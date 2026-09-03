@@ -1,0 +1,29 @@
+name: PR Summary
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Generate PR summary
+        uses: alexanderlhicks/lean4repo-utils/summary@0.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          api_key: ${{ secrets.OPENROUTER_KEY }}
+          github_repository: ${{ github.repository }}
+          pr_number: ${{ github.event.pull_request.number }}
+          additional_instructions_path: CONTRIBUTING.md
+          validate_title: "true"

@@ -1,0 +1,14 @@
+{
+  "lean": {
+    "repository": "leanprover/lean4",
+    "tracking": "release",
+    "ref": "v4.33.1",
+    "commit": ""
+  },
+  "leanVM": {
+    "repository": "leanEthereum/leanVM",
+    "tracking": "branch",
+    "ref": "main",
+    "commit": "a386121f84292f6fa663aaa3e570c15bc0240ea2"
+  }
+}

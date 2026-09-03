@@ -1,0 +1,21 @@
+name = "leanerVM"
+version = "0.1.0"
+defaultTargets = ["LeanerVM"]
+testDriver = "leanerVMTests"
+
+[leanOptions]
+autoImplicit = false
+relaxedAutoImplicit = false
+pp.unicode.fun = true
+
+[[lean_lib]]
+name = "LeanerVM"
+
+[[lean_lib]]
+name = "LeanerVMTests"
+srcDir = "tests"
+
+[[lean_exe]]
+name = "leanerVMTests"
+srcDir = "tests"
+root = "Main"

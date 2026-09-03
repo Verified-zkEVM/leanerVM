@@ -1,0 +1,72 @@
+name: Build timing
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Lean
+        uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: auto
+      - name: Prepare result directory
+        run: mkdir -p "$RUNNER_TEMP/leanerVM-build-timing/logs"
+      - name: Measure clean build
+        run: |
+          rm -rf .lake/build
+          python3 scripts/build_timing.py run \
+            --label clean-build \
+            --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
+            --log "$RUNNER_TEMP/leanerVM-build-timing/logs/clean-build.log" \
+            -- lake build --wfail
+      - name: Measure warm build
+        run: |
+          python3 scripts/build_timing.py run \
+            --label warm-build \
+            --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
+            --log "$RUNNER_TEMP/leanerVM-build-timing/logs/warm-build.log" \
+            -- lake build --wfail
+      - name: Measure test path
+        run: |
+          python3 scripts/build_timing.py run \
+            --label lake-test \
+            --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
+            --log "$RUNNER_TEMP/leanerVM-build-timing/logs/lake-test.log" \
+            -- lake test
+      - name: Publish timing summary
+        if: always()
+        run: |
+          python3 scripts/build_timing.py render \
+            --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
+            > "$RUNNER_TEMP/leanerVM-build-timing/report.md"
+          cat "$RUNNER_TEMP/leanerVM-build-timing/report.md"
+          cat "$RUNNER_TEMP/leanerVM-build-timing/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload timing records and logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: leanervm-build-timing-data
+          path: ${{ runner.temp }}/leanerVM-build-timing
+          if-no-files-found: error
+          retention-days: 30

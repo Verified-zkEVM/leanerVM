@@ -1,0 +1,42 @@
+name: PR review
+
+on:
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  review:
+    if: >-
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/review') &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Read optional review instructions
+        id: instructions
+        env:
+          COMMENT: ${{ github.event.comment.body }}
+        run: |
+          delimiter="review-instructions-$RANDOM-$RANDOM"
+          {
+            echo "text<<$delimiter"
+            printf '%s\n' "${COMMENT#/review}"
+            echo "$delimiter"
+          } >> "$GITHUB_OUTPUT"
+      - name: Review pull request
+        uses: alexanderlhicks/lean4repo-utils/review@0.3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          api_key: ${{ secrets.OPENROUTER_KEY }}
+          pr_number: ${{ github.event.issue.number }}
+          additional_comments: ${{ steps.instructions.outputs.text }}

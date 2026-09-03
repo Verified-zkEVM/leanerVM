@@ -1,0 +1,39 @@
+name: Upstream drift
+
+on:
+  schedule:
+    - cron: "17 8 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Compare tracked refs with upstream
+        id: drift
+        continue-on-error: true
+        run: ./scripts/check-upstreams.sh | tee upstream-drift.txt
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Report drift
+        if: steps.drift.outcome == 'failure'
+        run: |
+          title="Upstream drift detected"
+          existing="$(gh issue list --state open --search "${title} in:title" --json number --jq '.[0].number // empty')"
+          if [[ -n "$existing" ]]; then
+            gh issue comment "$existing" --body-file upstream-drift.txt
+          else
+            gh issue create --title "$title" --body-file upstream-drift.txt
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

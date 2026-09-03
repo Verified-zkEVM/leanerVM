@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lean:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up and build Lean project
+        uses: leanprover/lean-action@v1.6.0
+        with:
+          auto-config: false
+          build: true
+          build-args: "--wfail"
+          test: true
+          lint: false
+          use-github-cache: true
+          use-mathlib-cache: false
+          # Enable the LeanerVM namespace axiom audit in the first PR that adds
+          # a production declaration. The empty scaffold has nothing to audit.
+      - name: Elaborate the test root with warnings as errors
+        run: lake env lean -E warning tests/Main.lean

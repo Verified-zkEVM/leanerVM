@@ -1,0 +1,31 @@
+name: Repository policy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Audit first-party Lean source
+        run: ./scripts/audit-lean.sh
+      - name: Check repository hygiene
+        run: ./scripts/check-repository.sh
+      - name: Exercise repository policy checkers
+        run: python3 ./scripts/test-policy-checks.py
