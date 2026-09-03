@@ -13,7 +13,6 @@ keeping only checks justified by leanerVM's current Lean-only surface.
 | `PR summary` | Post an automated summary using policy from the trusted base revision | Informational |
 | `PR review` | Run a member-triggered `/review` pass | Informational |
 | `Upstream drift` | Report newer Lean and tracked library releases each week | Informational |
-| `Lean release tag` | Move the repository's Lean-version tag after `lean-toolchain` changes | Release automation |
 
 Configure branch protection with the four required checks above after publishing the
 repository. Do not make timing a merge gate: hosted-runner timings are noisy and the retained
@@ -26,8 +25,11 @@ the new repository has a useful history of successful main-branch timing artifac
 to `/review` comments from owners, members, and collaborators; it may inspect pull-request code,
 so only trusted members should invoke it on an untrusted fork.
 
-The Lean release-tag job needs `contents: write`. All other workflows have read-only repository
-contents unless they must post pull-request output.
+Project releases are milestone-driven. A Lean toolchain update is an ordinary reviewed dependency
+change and does not create or move a release tag. Release automation should be introduced only
+when the project has a concrete milestone release process to automate.
+
+Workflows have read-only repository contents unless they must post pull-request output.
 
 Native/FFI isolation, CUDA, generated-blueprint, and VM-runtime benchmark jobs are deliberately
 absent. Add each only alongside the artifact it protects. Runtime benchmarks should follow the

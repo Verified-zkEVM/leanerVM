@@ -23,6 +23,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+      - name: Install ripgrep
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ripgrep
       - name: Check aggregate imports
         run: ./scripts/check-imports.sh
       - name: Check architectural boundaries

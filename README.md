@@ -159,9 +159,10 @@ source.
 
 CI keeps build/tests, repository policy, import layering, and documentation integrity as
 independent required checks. It also provides automated PR summaries, member-triggered review,
-upstream release tracking, Lean release tags, and informational build timing. The benchmark job
-records clean-build, warm-build, and test-path wall/user/system time with JSONL records and logs.
-See [docs/ci.md](docs/ci.md) and [bench/README.md](bench/README.md).
+upstream release tracking, and informational build timing. Project releases follow reviewed
+milestones rather than Lean toolchain updates. The benchmark job records clean-build, warm-build,
+and test-path wall/user/system time with JSONL records and logs. See
+[docs/ci.md](docs/ci.md) and [bench/README.md](bench/README.md).
 
 ## License
 
