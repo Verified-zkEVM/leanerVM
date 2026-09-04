@@ -3,3 +3,7 @@
 /.idea/
 *.olean
 *.ilean
+
+# Agents
+.claude/
+
