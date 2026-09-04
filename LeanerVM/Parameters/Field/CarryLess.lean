@@ -27,6 +27,7 @@ candidate for upstreaming into CompPoly alongside the existing binary-field mate
 * `carryLessMul` — the carry-less product at an arbitrary result width.
 * `toPoly_carryLessMul` — it denotes the product of the denoted polynomials, provided the
   result width admits the full product.
+* `toPoly_split` — splitting the denoted polynomial at a bit position.
 -/
 
 namespace LeanerVM.Parameters.Field
@@ -98,6 +99,34 @@ theorem toPoly_carryLessMul {v w : ℕ} (a b : BitVec v) (h : v + v ≤ w) :
     rw [toPoly_zeroExtendTo b (by omega)]
     ring
   · simp [toPoly_zero_eq_zero]
+
+/-! ## Splitting a bit vector -/
+
+/-- `toPoly` as a sum over the set bits, indexed by `ℕ`. -/
+theorem toPoly_eq_range {w : ℕ} (v : BitVec w) :
+    toPoly v = ∑ i ∈ Finset.range w, if v.toNat.testBit i then (X : (ZMod 2)[X]) ^ i else 0 := by
+  unfold toPoly BitVec.getLsb
+  rw [Fin.sum_univ_eq_sum_range
+    (f := fun i => if v.toNat.testBit i then (X : (ZMod 2)[X]) ^ i else 0)]
+
+/-- Splitting the denoted polynomial at bit position `n` into a high part carrying `X ^ n`
+and a low part. -/
+theorem toPoly_split {w : ℕ} (v : BitVec w) (n : ℕ) (hn : n ≤ w) :
+    toPoly v
+      = (∑ i ∈ Finset.range (w - n),
+          if v.toNat.testBit (n + i) then (X : (ZMod 2)[X]) ^ i else 0) * X ^ n
+        + ∑ i ∈ Finset.range n, if v.toNat.testBit i then (X : (ZMod 2)[X]) ^ i else 0 := by
+  rw [toPoly_eq_range]
+  rw [← Finset.sum_range_add_sum_Ico _ hn]
+  rw [add_comm]
+  congr 1
+  rw [Finset.sum_mul]
+  rw [Finset.sum_Ico_eq_sum_range]
+  apply Finset.sum_congr rfl
+  intro i _
+  split_ifs with h
+  · rw [pow_add]; ring
+  · simp
 
 end
 end LeanerVM.Parameters.Field

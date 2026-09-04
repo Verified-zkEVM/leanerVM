@@ -9,6 +9,7 @@ module
 
 public import LeanerVM.Parameters.Field.BaseCertificate
 public import CompPoly.Data.Polynomial.Rabin
+public import CompPoly.Data.RingTheory.CanonicalEuclideanDomain
 public import Mathlib.Data.ZMod.Basic
 public import Mathlib.RingTheory.AdjoinRoot
 public import Mathlib.Tactic.ComputeDegree
@@ -115,6 +116,24 @@ theorem basePoly_irreducible : Irreducible basePoly := by
       (by rfl) (by rfl) (by rfl) (by rfl)
 
 instance : Fact (Irreducible basePoly) := ⟨basePoly_irreducible⟩
+
+/-! ## The reduction identity -/
+
+/-- The modulus below its leading term: `x^4 + x^3 + x + 1`, the polynomial the Rust
+names `R64 = 0x1B`. -/
+noncomputable def baseTail : Polynomial (ZMod 2) := X ^ 4 + X ^ 3 + X + 1
+
+theorem basePoly_eq_add_tail : basePoly = X ^ 64 + baseTail := by
+  unfold basePoly baseTail; ring
+
+/-- `x^64 ≡ x^4 + x^3 + x + 1` modulo the modulus: multiplying by `X ^ 64` may be
+replaced by multiplying by `baseTail`. -/
+theorem mul_pow_reduce (A : Polynomial (ZMod 2)) :
+    (A * X ^ 64) % basePoly = (A * baseTail) % basePoly := by
+  have hadd : (X : (ZMod 2)[X]) ^ 64 = basePoly + baseTail := by
+    rw [basePoly_eq_add_tail, add_assoc, CharTwo.add_self_eq_zero, add_zero]
+  rw [hadd, mul_add, show A * basePoly + A * baseTail = A * baseTail + basePoly * A from by ring,
+    CanonicalEuclideanDomain.add_mul_mod_right _ _ _ basePoly_ne_zero]
 
 /-! ## The base field -/
 
