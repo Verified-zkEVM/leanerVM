@@ -242,6 +242,120 @@ noncomputable instance : CommRing Base :=
     toQuot_zero toQuot_one toQuot_add toQuot_mul toQuot_neg toQuot_sub
     toQuot_nsmul toQuot_zsmul toQuot_npow toQuot_natCast toQuot_intCast
 
+
+/-! ### Inversion by Itoh-Tsujii
+
+The pinned Rust inverts in `K` by Itoh-Tsujii (`crates/primitives/src/field/gf2_64.rs`):
+`a⁻¹ = a^(2^64 - 2) = (a^(2^63 - 1))^2`, with `a^(2^k - 1)` built by the addition chain
+`1, 2, 3, 6, 7, 14, 15, 30, 31, 62, 63`. This is an explicit algorithm rather than an
+existence proof, so the resulting inverse evaluates.
+-/
+
+/-- Repeated squaring: `a ^ (2 ^ k)`. -/
+@[expose] def powTwoPow (a : Base) (k : ℕ) : Base :=
+  match k with
+  | 0 => a
+  | n + 1 => powTwoPow (a * a) n
+
+theorem toQuot_powTwoPow (a : Base) (k : ℕ) :
+    toQuot (powTwoPow a k) = toQuot a ^ (2 ^ k) := by
+  induction k generalizing a with
+  | zero => simp only [powTwoPow, pow_zero, pow_one]
+  | succ n ih =>
+    simp only [powTwoPow]
+    rw [ih, toQuot_mul, ← sq, ← pow_mul, pow_succ, mul_comm]
+
+/-- The multiplicative inverse, by the Itoh-Tsujii addition chain. `0⁻¹ = 0`, matching the
+pinned Rust's convention. -/
+@[expose] def invItohTsujii (a : Base) : Base :=
+  if a = 0 then 0 else
+    let u1 := a
+    let u2 := powTwoPow u1 1 * u1
+    let u3 := powTwoPow u2 1 * u1
+    let u6 := powTwoPow u3 3 * u3
+    let u7 := powTwoPow u6 1 * u1
+    let u14 := powTwoPow u7 7 * u7
+    let u15 := powTwoPow u14 1 * u1
+    let u30 := powTwoPow u15 15 * u15
+    let u31 := powTwoPow u30 1 * u1
+    let u62 := powTwoPow u31 31 * u31
+    let u63 := powTwoPow u62 1 * u1
+    u63 * u63
+
+/-- The exponent identity behind one Itoh-Tsujii step. -/
+private theorem chain_exponent (n m : ℕ) :
+    (2 ^ n - 1) * 2 ^ m + (2 ^ m - 1) = 2 ^ (n + m) - 1 := by
+  have h1 : 1 ≤ 2 ^ n := Nat.one_le_two_pow
+  have h2 : 1 ≤ 2 ^ m := Nat.one_le_two_pow
+  rw [pow_add]
+  generalize 2 ^ n = A at *
+  generalize 2 ^ m = B at *
+  cases A with
+  | zero => omega
+  | succ a =>
+    cases B with
+    | zero => omega
+    | succ b => simp [Nat.succ_mul, Nat.mul_succ]
+
+/-- The target of chain step `k`: `a ^ (2 ^ k - 1)`. -/
+private noncomputable def chainTarget (q : AdjoinRoot basePoly) (k : ℕ) :
+    AdjoinRoot basePoly := q ^ (2 ^ k - 1)
+
+/-- The Itoh-Tsujii step: combining the `n`- and `m`-targets gives the `n + m`-target. -/
+private theorem chainTarget_step {q x y : AdjoinRoot basePoly} {n m : ℕ}
+    (hx : x = chainTarget q n) (hy : y = chainTarget q m) :
+    x ^ (2 ^ m) * y = chainTarget q (n + m) := by
+  rw [hx, hy, chainTarget, chainTarget, chainTarget, ← pow_mul, ← pow_add, chain_exponent]
+
+/-- The Itoh-Tsujii chain computes `a ^ (2 ^ 64 - 2)`. -/
+theorem toQuot_invItohTsujii (a : Base) (h : a ≠ 0) :
+    toQuot (invItohTsujii a) = toQuot a ^ (2 ^ 64 - 2) := by
+  rw [invItohTsujii, if_neg h]
+  set q := toQuot a with hq
+  have e1 : toQuot a = chainTarget q 1 := by
+    simp only [chainTarget, hq]; norm_num
+  have e2 : toQuot (powTwoPow a 1 * a) = chainTarget q 2 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e1 e1
+  have e3 : toQuot (powTwoPow (powTwoPow a 1 * a) 1 * a) = chainTarget q 3 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e2 e1
+  set u3 := powTwoPow (powTwoPow a 1 * a) 1 * a with hu3
+  have e6 : toQuot (powTwoPow u3 3 * u3) = chainTarget q 6 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e3 e3
+  set u6 := powTwoPow u3 3 * u3 with hu6
+  have e7 : toQuot (powTwoPow u6 1 * a) = chainTarget q 7 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e6 e1
+  set u7 := powTwoPow u6 1 * a with hu7
+  have e14 : toQuot (powTwoPow u7 7 * u7) = chainTarget q 14 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e7 e7
+  set u14 := powTwoPow u7 7 * u7 with hu14
+  have e15 : toQuot (powTwoPow u14 1 * a) = chainTarget q 15 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e14 e1
+  set u15 := powTwoPow u14 1 * a with hu15
+  have e30 : toQuot (powTwoPow u15 15 * u15) = chainTarget q 30 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e15 e15
+  set u30 := powTwoPow u15 15 * u15 with hu30
+  have e31 : toQuot (powTwoPow u30 1 * a) = chainTarget q 31 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e30 e1
+  set u31 := powTwoPow u30 1 * a with hu31
+  have e62 : toQuot (powTwoPow u31 31 * u31) = chainTarget q 62 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e31 e31
+  set u62 := powTwoPow u31 31 * u31 with hu62
+  have e63 : toQuot (powTwoPow u62 1 * a) = chainTarget q 63 := by
+    rw [toQuot_mul, toQuot_powTwoPow]
+    exact chainTarget_step e62 e1
+  set u63 := powTwoPow u62 1 * a with hu63
+  rw [toQuot_mul, e63, chainTarget, ← pow_add]
+  congr 1
+
 /-! ### The field structure
 
 `AdjoinRoot basePoly` is a field because `basePoly` is irreducible, and `toQuot` is an
@@ -275,11 +389,32 @@ theorem toQuot_surjective : Function.Surjective toQuot := by
     rw [card_base, card_K]
   exact ((Fintype.bijective_iff_injective_and_card toQuot).mpr ⟨toQuot_injective, hcard⟩).2
 
-/-- Every nonzero carrier value has a multiplicative inverse. -/
-theorem exists_mul_inv {a : Base} (h : a ≠ 0) : ∃ b : Base, a * b = 1 := by
+/-- The Itoh-Tsujii inverse really is a multiplicative inverse. -/
+theorem mul_invItohTsujii {a : Base} (h : a ≠ 0) : a * invItohTsujii a = 1 := by
   have hq : toQuot a ≠ 0 := fun hz => h (toQuot_eq_zero_iff.mp hz)
-  obtain ⟨b, hb⟩ := toQuot_surjective (toQuot a)⁻¹
-  exact ⟨b, toQuot_injective (by rw [toQuot_mul, hb, toQuot_one, mul_inv_cancel₀ hq])⟩
+  refine toQuot_injective ?_
+  rw [toQuot_mul, toQuot_invItohTsujii a h, toQuot_one, ← pow_succ']
+  have hcard : toQuot a ^ (2 ^ 64 - 1) = 1 := by
+    have := FiniteField.pow_card_sub_one_eq_one (toQuot a) hq
+    rwa [card_K] at this
+  rw [show 2 ^ 64 - 2 + 1 = 2 ^ 64 - 1 from by norm_num]
+  exact hcard
+
+/-- Every nonzero carrier value has a multiplicative inverse. -/
+theorem exists_mul_inv {a : Base} (h : a ≠ 0) : ∃ b : Base, a * b = 1 :=
+  ⟨invItohTsujii a, mul_invItohTsujii h⟩
+
+/-- Inversion is the Itoh-Tsujii chain, so it evaluates. -/
+instance : Inv Base := ⟨invItohTsujii⟩
+
+instance : Div Base := ⟨fun a b => a * invItohTsujii b⟩
+
+theorem inv_def (a : Base) : a⁻¹ = invItohTsujii a := rfl
+
+theorem div_def (a b : Base) : a / b = a * invItohTsujii b := rfl
+
+@[simp] theorem inv_zero_base : (0 : Base)⁻¹ = 0 := by
+  rw [inv_def, invItohTsujii, if_pos rfl]
 
 theorem isField_base : IsField Base where
   exists_pair_ne := exists_pair_ne
