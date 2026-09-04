@@ -1,6 +1,7 @@
 module
 
 public import LeanerVMTests.Imports
+public import LeanerVMTests.Parameters.Field
 
 /-!
 # leanerVM test aggregate

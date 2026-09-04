@@ -47,10 +47,10 @@ set_option maxRecDepth 8000
 /-! ## Halves of a double-width value -/
 
 /-- The high 64 bits of a 128-bit value. -/
-def highHalf (x : BitVec 128) : BitVec 64 := BitVec.setWidth 64 (x >>> 64)
+@[expose] def highHalf (x : BitVec 128) : BitVec 64 := BitVec.setWidth 64 (x >>> 64)
 
 /-- The low 64 bits of a 128-bit value. -/
-def lowHalf (x : BitVec 128) : BitVec 64 := BitVec.setWidth 64 x
+@[expose] def lowHalf (x : BitVec 128) : BitVec 64 := BitVec.setWidth 64 x
 
 theorem highHalf_testBit (x : BitVec 128) (i : ℕ) (h : i < 64) :
     (highHalf x).toNat.testBit i = x.toNat.testBit (64 + i) := by
@@ -113,7 +113,7 @@ theorem carryLessMul_lt {v w : ℕ} (a b : BitVec v) {p q : ℕ}
 /-! ## The reduction fold -/
 
 /-- The reduction constant `0x1B`, the Rust's `R64`: the modulus below its leading term. -/
-def reductionConstant : BitVec 64 := 0x1B
+@[expose] def reductionConstant : BitVec 64 := 0x1B
 
 theorem toPoly_reductionConstant : toPoly reductionConstant = baseTail := by
   have h : reductionConstant = (1 <<< 4) ^^^ (1 <<< 3) ^^^ (1 <<< 1) ^^^ 1 := by decide +kernel
@@ -129,7 +129,7 @@ theorem toPoly_reductionConstant : toPoly reductionConstant = baseTail := by
 theorem reductionConstant_lt : reductionConstant.toNat < 2 ^ 5 := by decide +kernel
 
 /-- One reduction fold: replace the high half's factor of `x^64` by `baseTail`. -/
-def foldStep (x : BitVec 128) : BitVec 128 :=
+@[expose] def foldStep (x : BitVec 128) : BitVec 128 :=
   carryLessMul (w := 128) (highHalf x) reductionConstant ^^^ zeroExtendTo (lowHalf x)
 
 /-- A fold preserves the residue modulo the modulus. -/
@@ -159,7 +159,7 @@ theorem foldStep_lt (x : BitVec 128) {d : ℕ} (hx : x.toNat < 2 ^ (64 + d)) :
 /-! ## Full reduction -/
 
 /-- Reduce a 128-bit carry-less product into the base field: two folds, then truncate. -/
-def reduce (x : BitVec 128) : BitVec 64 := lowHalf (foldStep (foldStep x))
+@[expose] def reduce (x : BitVec 128) : BitVec 64 := lowHalf (foldStep (foldStep x))
 
 /-- Two folds bring any 128-bit value below `2 ^ 64`. -/
 theorem foldStep_foldStep_lt (x : BitVec 128) : (foldStep (foldStep x)).toNat < 2 ^ 64 := by

@@ -37,7 +37,7 @@ open Polynomial BinaryField
 public section
 
 /-- Widen a bit vector by zero-extension. -/
-def zeroExtendTo {v w : ℕ} (a : BitVec v) : BitVec w := BitVec.zeroExtend w a
+@[expose] def zeroExtendTo {v w : ℕ} (a : BitVec v) : BitVec w := BitVec.zeroExtend w a
 
 theorem toNat_zeroExtendTo {v w : ℕ} (a : BitVec v) (h : v ≤ w) :
     (zeroExtendTo (w := w) a).toNat = a.toNat := by
@@ -63,7 +63,7 @@ theorem toPoly_zeroExtendTo {v w : ℕ} (a : BitVec v) (h : v ≤ w) :
   simp [Nat.testBit_lt_two_pow hlt]
 
 /-- The carry-less (polynomial) product, at an arbitrary result width. -/
-def carryLessMul {v w : ℕ} (a b : BitVec v) : BitVec w :=
+@[expose] def carryLessMul {v w : ℕ} (a b : BitVec v) : BitVec w :=
   Fin.foldl v (fun acc i => if a.getLsbD i then acc ^^^ (zeroExtendTo b <<< (i : Nat)) else acc) 0
 
 private theorem carryLessMul_unfold {v w : ℕ} (a b : BitVec v) :
