@@ -151,24 +151,21 @@ natural- and integer-number casts collapse likewise. Defining them in that close
 keeps them computable and makes the transport conditions immediate.
 -/
 
-instance : SMul ℕ Base := ⟨fun n a => if n % 2 = 0 then 0 else a⟩
-instance : SMul ℤ Base := ⟨fun n a => if n % 2 = 0 then 0 else a⟩
-instance : NatCast Base := ⟨fun n => if n % 2 = 0 then 0 else 1⟩
-instance : IntCast Base := ⟨fun n => if n % 2 = 0 then 0 else 1⟩
+instance : SMul ℕ Base := ⟨nsmulRec⟩
+instance : SMul ℤ Base := ⟨zsmulRec nsmulRec⟩
+instance : NatCast Base := ⟨Nat.unaryCast⟩
+instance : IntCast Base := ⟨Int.castDef⟩
 instance : Pow Base ℕ := ⟨fun a n => npowRec n a⟩
 
-theorem nsmul_def (n : ℕ) (a : Base) : n • a = if n % 2 = 0 then 0 else a := rfl
-theorem zsmul_def (n : ℤ) (a : Base) : n • a = if n % 2 = 0 then 0 else a := rfl
-theorem natCast_def (n : ℕ) : (n : Base) = if n % 2 = 0 then 0 else 1 := rfl
-theorem intCast_def (n : ℤ) : (n : Base) = if n % 2 = 0 then 0 else 1 := rfl
 theorem npow_def (a : Base) (n : ℕ) : a ^ n = npowRec n a := rfl
 
 /-! ### The commutative-ring structure
 
-Every law is transported along the injective `toQuot` from `AdjoinRoot basePoly`. The
-transport takes `toQuot` as data, so the resulting structure is noncomputable; the
-computable operations remain reachable through `add_def`, `mul_def`, and the equation
-lemmas above, and `toQuot_add` / `toQuot_mul` connect the two views.
+Every law is discharged by pushing through the injective `toQuot` into `AdjoinRoot basePoly`,
+where it holds because the quotient is a commutative ring. The instances are written out
+field-by-field rather than via `Function.Injective.commRing`: that transport takes `toQuot`
+as *data*, which would make the whole structure noncomputable and shadow the computable
+operations. This mirrors `CompPoly.Extension.Ext.instCommRing`.
 -/
 
 theorem toQuot_neg (a : Base) : toQuot (-a) = -toQuot a := by
@@ -182,66 +179,59 @@ theorem toQuot_sub (a b : Base) : toQuot (a - b) = toQuot a - toQuot b := by
   rw [← toQuot_neg b]
   rfl
 
-/-- The quotient inherits characteristic two from `GF(2)`. -/
-instance : CharP (AdjoinRoot basePoly) 2 := by
-  have : CharP (ZMod 2) 2 := inferInstance
-  exact charP_of_injective_algebraMap' (ZMod 2) 2
-
-/-- Two vanishes in the quotient. -/
-private theorem quot_two_eq_zero : (2 : AdjoinRoot basePoly) = 0 := by
-  simpa using CharP.cast_eq_zero (AdjoinRoot basePoly) 2
-
-theorem toQuot_nsmul (n : ℕ) (a : Base) : toQuot (n • a) = n • toQuot a := by
-  rw [nsmul_def, nsmul_eq_mul]
-  rcases Nat.even_or_odd n with he | ho
-  · obtain ⟨k, hk⟩ := he
-    rw [if_pos (by omega), toQuot_zero, hk]
-    simp [← two_mul, Nat.cast_mul, quot_two_eq_zero]
-  · obtain ⟨k, hk⟩ := ho
-    rw [if_neg (by omega), hk]
-    simp [Nat.cast_add, Nat.cast_mul, quot_two_eq_zero]
-
-theorem toQuot_zsmul (n : ℤ) (a : Base) : toQuot (n • a) = n • toQuot a := by
-  rw [zsmul_def, zsmul_eq_mul]
-  rcases Int.even_or_odd n with he | ho
-  · obtain ⟨k, hk⟩ := he
-    rw [if_pos (by omega), toQuot_zero, hk]
-    simp [← two_mul, Int.cast_mul, quot_two_eq_zero]
-  · obtain ⟨k, hk⟩ := ho
-    rw [if_neg (by omega), hk]
-    simp [Int.cast_add, Int.cast_mul, quot_two_eq_zero]
+instance : AddCommGroup Base where
+  add_assoc a b c := toQuot_injective (by simp only [toQuot_add, add_assoc])
+  zero_add a := toQuot_injective (by simp only [toQuot_add, toQuot_zero, zero_add])
+  add_zero a := toQuot_injective (by simp only [toQuot_add, toQuot_zero, add_zero])
+  add_comm a b := toQuot_injective (by simp only [toQuot_add, add_comm])
+  neg_add_cancel a :=
+    toQuot_injective (by simp only [toQuot_add, toQuot_neg, toQuot_zero, neg_add_cancel])
+  sub_eq_add_neg a b :=
+    toQuot_injective (by simp only [toQuot_sub, toQuot_add, toQuot_neg, sub_eq_add_neg])
+  nsmul := nsmulRec
+  nsmul_zero _ := rfl
+  nsmul_succ _ _ := rfl
+  zsmul := zsmulRec nsmulRec
+  zsmul_zero' _ := rfl
+  zsmul_succ' _ _ := rfl
+  zsmul_neg' _ _ := rfl
 
 theorem toQuot_npow (a : Base) (n : ℕ) : toQuot (a ^ n) = toQuot a ^ n := by
   induction n with
   | zero => rw [npow_def, npowRec, pow_zero, toQuot_one]
   | succ k ih => rw [npow_def, npowRec, ← npow_def, toQuot_mul, ih, pow_succ]
 
+/-- The quotient inherits characteristic two from `GF(2)`. -/
+instance : CharP (AdjoinRoot basePoly) 2 := by
+  have : CharP (ZMod 2) 2 := inferInstance
+  exact charP_of_injective_algebraMap' (ZMod 2) 2
+
 theorem toQuot_natCast (n : ℕ) : toQuot (n : Base) = (n : AdjoinRoot basePoly) := by
-  rw [natCast_def]
-  rcases Nat.even_or_odd n with he | ho
-  · obtain ⟨k, hk⟩ := he
-    rw [if_pos (by omega), toQuot_zero, hk]
-    simp [← two_mul, Nat.cast_mul, quot_two_eq_zero]
-  · obtain ⟨k, hk⟩ := ho
-    rw [if_neg (by omega), toQuot_one, hk]
-    simp [Nat.cast_add, Nat.cast_mul, quot_two_eq_zero]
+  induction n with
+  | zero => show toQuot 0 = _; rw [toQuot_zero, Nat.cast_zero]
+  | succ k ih =>
+    show toQuot ((k : Base) + 1) = _
+    rw [toQuot_add, ih, toQuot_one, Nat.cast_succ]
 
-theorem toQuot_intCast (n : ℤ) : toQuot (n : Base) = (n : AdjoinRoot basePoly) := by
-  rw [intCast_def]
-  rcases Int.even_or_odd n with he | ho
-  · obtain ⟨k, hk⟩ := he
-    rw [if_pos (by omega), toQuot_zero, hk]
-    simp [← two_mul, Int.cast_mul, quot_two_eq_zero]
-  · obtain ⟨k, hk⟩ := ho
-    rw [if_neg (by omega), toQuot_one, hk]
-    simp [Int.cast_add, Int.cast_mul, quot_two_eq_zero]
-
-/-- The commutative-ring structure on the carrier, transported along `toQuot`. -/
-noncomputable instance : CommRing Base :=
-  Function.Injective.commRing toQuot toQuot_injective
-    toQuot_zero toQuot_one toQuot_add toQuot_mul toQuot_neg toQuot_sub
-    toQuot_nsmul toQuot_zsmul toQuot_npow toQuot_natCast toQuot_intCast
-
+instance : CommRing Base where
+  left_distrib a b c := toQuot_injective (by simp only [toQuot_mul, toQuot_add, mul_add])
+  right_distrib a b c := toQuot_injective (by simp only [toQuot_mul, toQuot_add, add_mul])
+  zero_mul a := toQuot_injective (by simp only [toQuot_mul, toQuot_zero, zero_mul])
+  mul_zero a := toQuot_injective (by simp only [toQuot_mul, toQuot_zero, mul_zero])
+  mul_assoc a b c := toQuot_injective (by simp only [toQuot_mul, mul_assoc])
+  one_mul a := toQuot_injective (by simp only [toQuot_mul, toQuot_one, one_mul])
+  mul_one a := toQuot_injective (by simp only [toQuot_mul, toQuot_one, mul_one])
+  mul_comm a b := toQuot_injective (by simp only [toQuot_mul, mul_comm])
+  npow n x := x ^ n
+  npow_zero x := toQuot_injective (by simp only [toQuot_npow, toQuot_one, pow_zero])
+  npow_succ n x := toQuot_injective (by simp only [toQuot_npow, toQuot_mul, pow_succ])
+  natCast n := (n : Base)
+  natCast_zero := toQuot_injective (by simp only [toQuot_natCast, toQuot_zero, Nat.cast_zero])
+  natCast_succ n :=
+    toQuot_injective (by simp only [toQuot_natCast, toQuot_add, toQuot_one, Nat.cast_succ])
+  intCast n := (n : Base)
+  intCast_ofNat n := rfl
+  intCast_negSucc n := rfl
 
 /-! ### Inversion by Itoh-Tsujii
 
@@ -421,20 +411,25 @@ theorem isField_base : IsField Base where
   mul_comm := mul_comm
   mul_inv_cancel := fun h => exists_mul_inv h
 
-/-- The carrier is a field: `K = GF(2^64)`. -/
-noncomputable instance : Field Base := isField_base.toField
+/-- The carrier is a field: `K = GF(2^64)`.
 
-/-- The base field has characteristic two. -/
+Assembled field-by-field around the explicit Itoh-Tsujii inverse, so inversion and division
+evaluate rather than being extracted from an existence proof. -/
+instance : Field Base where
+  inv := invItohTsujii
+  div a b := a * invItohTsujii b
+  div_eq_mul_inv _ _ := rfl
+  exists_pair_ne := exists_pair_ne
+  mul_inv_cancel _ h := mul_invItohTsujii h
+  inv_zero := inv_zero_base
+  qsmul := (Rat.castRec · * ·)
+  nnqsmul := (NNRat.castRec · * ·)
+
+/-- The base field has characteristic two, inherited through the bridge. -/
 instance : CharP Base 2 where
   cast_eq_zero_iff n := by
-    rw [natCast_def]
-    constructor
-    · intro h
-      by_contra hn
-      rw [if_neg (by omega)] at h
-      exact one_ne_zero h
-    · intro ⟨k, hk⟩
-      rw [if_pos (by omega)]
+    rw [← toQuot_eq_zero_iff, toQuot_natCast]
+    exact (CharP.cast_eq_zero_iff (AdjoinRoot basePoly) 2 n)
 
 end Base
 

@@ -6,6 +6,7 @@
 
 module
 
+public meta import LeanerVM
 public import LeanerVM
 
 /-!
@@ -21,7 +22,7 @@ namespace LeanerVMTests.Parameters.Field
 
 open LeanerVM.Parameters.Field
 
-public section
+public meta section
 
 /-! ## Differential vectors
 
@@ -61,6 +62,50 @@ theorem one_mul_sample : ((1 : Base) * 0x01090913877ed8ed : Base) = 0x0109091387
 theorem reduction_is_exercised :
     ((0x8000000000000000 : Base) * 0x2 : Base) = 0x1B := by
   rw [Base.mul_def]; decide +kernel
+
+/-! ## Extension-field vectors
+
+Transcribed from `crates/primitives/src/field/gf2_64x3.rs` lines 990-1016 (the `VECTORS`
+array of `(a, b, a * b, a^2)` quadruples) and line 1026 (the modulus check).
+
+These use `#guard`, which runs the *compiled* arithmetic at elaboration time, following
+`CompPolyTests.Fields.Extension`. That is deliberate: it checks the operations actually
+evaluate, so a noncomputable instance would fail the build rather than pass silently.
+-/
+
+section Vectors
+
+open CompPoly.Extension
+
+private def limbs (c0 c1 c2 : Base) : Extension :=
+  Ext.ofFn (fun i => if (i : ℕ) = 0 then c0 else if (i : ℕ) = 1 then c1 else c2)
+
+/-- The adjoined root `y`. -/
+private def y : Extension := limbs 0 1 0
+
+-- The defining relation `y^3 = y + 1` (`gf2_64x3.rs:1026`).
+#guard y * y * y == y + 1
+
+-- First reference vector: product and square (`gf2_64x3.rs:990-1016`).
+#guard limbs 0x950e87d7f5606615 0x2c61275c9e6b6cf8 0x1f00bca0042db923
+         * limbs 0x6dbca290a9eab706 0x4c10a4fe30cffdda 0xf26fff4cc4fd394d
+       == limbs 0x888a0fc35abaf5f6 0x68a84cbc132b0649 0x9fdeaf613003cabe
+
+#guard limbs 0x950e87d7f5606615 0x2c61275c9e6b6cf8 0x1f00bca0042db923
+         * limbs 0x950e87d7f5606615 0x2c61275c9e6b6cf8 0x1f00bca0042db923
+       == limbs 0x8fba131ad5d46b8c 0x1c170457f537a805 0x3632cc098ca15135
+
+-- Second reference vector.
+#guard limbs 0x6814a2bc786a6d2d 0xa26b351e6c8042c5 0x54760e7fbc051c6c
+         * limbs 0xd4c08880a5a4666d 0x29610ae0eed8f1e7 0xc34bd8e2fe5213e5
+       == limbs 0x2ad322ebf2f9043b 0x8ac800aa67154c80 0x6d0f76651d3c4d0c
+
+-- Inversion evaluates in both fields.
+#guard (0x01090913877ed8ed : Base) * (0x01090913877ed8ed : Base)⁻¹ == 1
+#guard (0 : Base)⁻¹ == 0
+#guard y * y⁻¹ == 1
+
+end Vectors
 
 end
 end LeanerVMTests.Parameters.Field
