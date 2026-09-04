@@ -19,7 +19,7 @@ permissions:
 jobs:
   lean:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -32,8 +32,7 @@ jobs:
           test: true
           lint: false
           use-github-cache: true
-          use-mathlib-cache: false
-          # Enable the LeanerVM namespace axiom audit in the first PR that adds
-          # a production declaration. The empty scaffold has nothing to audit.
+          use-mathlib-cache: true
+          axiom-audit-root: LeanerVM
       - name: Elaborate the test root with warnings as errors
         run: lake env lean -E warning tests/Main.lean

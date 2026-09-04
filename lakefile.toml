@@ -11,7 +11,7 @@ pp.unicode.fun = true
 [[require]]
 name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
-rev = "v4.33.1"
+rev = "2aa593725644fb0fe7c578be68cc5ec96bbc8dd2"
 
 [[lean_lib]]
 name = "LeanerVM"

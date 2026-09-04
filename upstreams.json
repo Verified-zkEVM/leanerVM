@@ -10,5 +10,11 @@
     "tracking": "branch",
     "ref": "main",
     "commit": "a386121f84292f6fa663aaa3e570c15bc0240ea2"
+  },
+  "CompPoly": {
+    "repository": "Verified-zkEVM/CompPoly",
+    "tracking": "branch",
+    "ref": "main",
+    "commit": "2aa593725644fb0fe7c578be68cc5ec96bbc8dd2"
   }
 }
