@@ -43,6 +43,13 @@ Source revision: leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`.
 
 `basePoly` is `noncomputable` because Mathlib's `Polynomial` is a `Finsupp`, which has
 no executable representation. It exists to state irreducibility and is never evaluated.
+CompPoly makes the same choice for `ExtensionParams.poly`.
+
+`K` here is the *quotient* presentation, used for cardinality and as the target of the
+bridge. The computable presentation that arithmetic actually runs on is
+`LeanerVM.Parameters.Field.Base` in `Carrier.lean`, a `BitVec 64`; the two are related by
+`Base.toQuot`, which `Base.toQuot_injective` and `Base.toQuot_surjective` show is a
+bijection.
 -/
 
 namespace LeanerVM.Parameters.Field

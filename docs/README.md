@@ -4,6 +4,8 @@ This directory contains stable project and operating knowledge.
 
 - [architecture.md](architecture.md): Lean layers, dependency direction, and criteria for
   adding native or acceleration code.
+- [comppoly-upstream.md](comppoly-upstream.md): handoff for porting the binary field tower
+  to CompPoly.
 - [dependencies.md](dependencies.md): version pins and dependency update policy.
 - [leanvm-target.md](leanvm-target.md): audited target revision, legacy comparison, and
   proof-obligation coverage.

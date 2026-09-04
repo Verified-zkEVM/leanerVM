@@ -27,9 +27,23 @@ Source revision: leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`.
 
 ## Main definitions and statements
 
-* `Base` — the carrier, `BitVec 64`.
+* `Base` — the carrier, `BitVec 64`, with `Add`, `Mul`, `Inv` and `card_base`.
 * `Base.toQuot` — the bridge into `AdjoinRoot basePoly`, with `toQuot_add`, `toQuot_mul`,
-  and `toQuot_injective`.
+  `toQuot_injective` and `toQuot_surjective`.
+* `Base.invItohTsujii` — inversion by the addition chain the pinned Rust uses, with
+  `toQuot_invItohTsujii` and `mul_invItohTsujii`.
+* the `CommRing` and `Field` instances, and `CharP Base 2`.
+
+## Implementation notes
+
+The algebraic instances are written out field-by-field rather than obtained from
+`Function.Injective.commRing`. That transport takes the bridge map as *data*, which makes
+the whole structure noncomputable and shadows the computable `Mul` and `Pow`; because
+`CompPoly.Extension.Ext.mul` reaches through the base field's `Field` instance, it would
+also take the extension field's arithmetic down with it. Writing the instances longhand —
+as `CompPoly.Extension.Ext` does — keeps every operation computable. The `#guard` checks in
+`tests/LeanerVMTests/Parameters/Field.lean` run the compiled arithmetic and so fail if this
+ever regresses.
 -/
 
 namespace LeanerVM.Parameters.Field

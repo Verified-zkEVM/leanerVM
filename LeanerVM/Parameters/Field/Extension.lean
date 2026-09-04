@@ -32,7 +32,19 @@ Source revision: leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`.
 ## Main definitions and statements
 
 * `extensionPoly` — the modulus `y^3 + y + 1` over `K`, and `extensionPoly_irreducible`.
+* `extensionParams` — its `CompPoly.Extension.ExtensionParams`, with `extensionParams_poly`
+  tying the coefficient vector to the cubic.
 * `Extension` — the field `E`, with `card_extension : Fintype.card Extension = 2 ^ 192`.
+
+## Implementation notes
+
+Irreducibility needs no certificate here. A cubic is irreducible exactly when it has no
+root; a root would satisfy `a ^ 7 = 1`, so its order divides both `7` and `2 ^ 64 - 1`,
+which are coprime, forcing `a = 1` — and `1` is not a root.
+
+`extensionParams_poly` is the load-bearing transcription: it ties the coefficient vector
+`#v[1, 1, 0]` to `y ^ 3 + y + 1`. A wrong vector there would still compile and would
+silently give a different field.
 -/
 
 namespace LeanerVM.Parameters.Field
