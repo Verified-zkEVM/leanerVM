@@ -289,6 +289,18 @@ theorem isField_base : IsField Base where
 /-- The carrier is a field: `K = GF(2^64)`. -/
 noncomputable instance : Field Base := isField_base.toField
 
+/-- The base field has characteristic two. -/
+instance : CharP Base 2 where
+  cast_eq_zero_iff n := by
+    rw [natCast_def]
+    constructor
+    · intro h
+      by_contra hn
+      rw [if_neg (by omega)] at h
+      exact one_ne_zero h
+    · intro ⟨k, hk⟩
+      rw [if_pos (by omega)]
+
 end Base
 
 end
