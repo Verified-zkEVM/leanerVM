@@ -117,5 +117,47 @@ theorem extensionPoly_irreducible : Irreducible extensionPoly :=
 
 instance : Fact (Irreducible extensionPoly) := ⟨extensionPoly_irreducible⟩
 
+/-! ## The extension field -/
+
+/-- Parameters of `E = K[y]/(y^3 + y + 1)`: degree three, with lower coefficients
+`(1, 1, 0)` encoding `1 + y` below the leading `y^3`. -/
+@[expose] def extensionParams : ExtensionParams Base where
+  d := 3
+  two_le := by norm_num
+  lower := #v[1, 1, 0]
+  q := 2 ^ 64
+  card_eq := Base.card_base
+
+@[simp] theorem extensionParams_d : extensionParams.d = 3 := rfl
+@[simp] theorem extensionParams_q : extensionParams.q = 2 ^ 64 := rfl
+
+/-- The parameters' defining polynomial is the cubic. -/
+theorem extensionParams_poly : extensionParams.poly = extensionPoly := by
+  have h0 : extensionParams.lowerCoeff ⟨0, by norm_num⟩ = 1 := rfl
+  have h1 : extensionParams.lowerCoeff ⟨1, by norm_num⟩ = 1 := rfl
+  have h2 : extensionParams.lowerCoeff ⟨2, by norm_num⟩ = 0 := rfl
+  rw [ExtensionParams.poly, extensionPoly]
+  show X ^ 3 + (∑ i : Fin 3, C (extensionParams.lowerCoeff i) * X ^ (i : ℕ)) = X ^ 3 + X + 1
+  rw [Fin.sum_univ_three]
+  rw [show extensionParams.lowerCoeff (0 : Fin 3) = 1 from h0,
+    show extensionParams.lowerCoeff (1 : Fin 3) = 1 from h1,
+    show extensionParams.lowerCoeff (2 : Fin 3) = 0 from h2]
+  simp only [map_zero, map_one]
+  rw [show ((0 : Fin 3) : ℕ) = 0 from rfl, show ((1 : Fin 3) : ℕ) = 1 from rfl]
+  ring
+
+instance : Fact (Irreducible extensionParams.poly) :=
+  ⟨extensionParams_poly ▸ extensionPoly_irreducible⟩
+
+/-- `E`, the leanVM machine word: `K[y]/(y^3 + y + 1)`.
+
+Definitionally `Vector Base 3`, the three-limb layout `c0 + c1 * y + c2 * y^2` of the
+pinned Rust's `F192 { c0, c1, c2 }`. -/
+abbrev Extension : Type := Ext extensionParams
+
+/-- `E` has `2 ^ 192` elements. -/
+theorem card_extension : Fintype.card Extension = 2 ^ 192 := by
+  rw [Ext.card_ext, extensionParams_q, extensionParams_d, ← pow_mul]
+
 end
 end LeanerVM.Parameters.Field
