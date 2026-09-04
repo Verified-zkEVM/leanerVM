@@ -31,6 +31,8 @@ Source revision: leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`,
 * `reductionConstant` — `0x1B`, and `toPoly_reductionConstant`, that it denotes `baseTail`.
 * `foldStep` — one reduction fold, with `foldStep_mod` (it preserves the residue) and
   `foldStep_lt` (it shrinks the value).
+* `reduce` — two folds and a truncation, with `toPoly_reduce`: it computes the remainder
+  modulo the modulus.
 -/
 
 namespace LeanerVM.Parameters.Field
@@ -153,6 +155,39 @@ theorem foldStep_lt (x : BitVec 128) {d : ℕ} (hx : x.toNat < 2 ^ (64 + d)) :
   · rw [toNat_zeroExtendTo (lowHalf x) (by omega)]
     exact lt_of_lt_of_le (lowHalf_lt x)
       (Nat.pow_le_pow_right (by norm_num) (le_max_left 64 (d + 5)))
+
+/-! ## Full reduction -/
+
+/-- Reduce a 128-bit carry-less product into the base field: two folds, then truncate. -/
+def reduce (x : BitVec 128) : BitVec 64 := lowHalf (foldStep (foldStep x))
+
+/-- Two folds bring any 128-bit value below `2 ^ 64`. -/
+theorem foldStep_foldStep_lt (x : BitVec 128) : (foldStep (foldStep x)).toNat < 2 ^ 64 := by
+  have h1 : x.toNat < 2 ^ (64 + 64) := x.isLt
+  have h2 : (foldStep x).toNat < 2 ^ (64 + 5) := by simpa using foldStep_lt x h1
+  simpa using foldStep_lt (foldStep x) h2
+
+/-- Truncation is faithful on values already below `2 ^ 64`. -/
+theorem toPoly_lowHalf_of_lt (x : BitVec 128) (h : x.toNat < 2 ^ 64) :
+    toPoly (lowHalf x) = toPoly x := by
+  rw [toPoly_halves x]
+  have hhi : highHalf x = 0 := by
+    apply BitVec.eq_of_toNat_eq
+    simpa using highHalf_lt x (d := 0) (by simpa using h)
+  rw [hhi]
+  simp [toPoly_zero_eq_zero]
+
+/-- `reduce` computes the remainder of the denoted polynomial modulo the modulus. -/
+theorem toPoly_reduce (x : BitVec 128) :
+    toPoly (reduce x) = toPoly x % basePoly := by
+  unfold reduce
+  rw [toPoly_lowHalf_of_lt _ (foldStep_foldStep_lt x)]
+  have hmod : toPoly (foldStep (foldStep x)) % basePoly = toPoly x % basePoly := by
+    rw [foldStep_mod, foldStep_mod]
+  rw [← hmod]
+  refine ((Polynomial.mod_eq_self_iff basePoly_ne_zero).mpr ?_).symm
+  refine lt_of_lt_of_le (toPoly_degree_of_lt_two_pow _ (foldStep_foldStep_lt x)) ?_
+  rw [basePoly_degree]
 
 end
 end LeanerVM.Parameters.Field

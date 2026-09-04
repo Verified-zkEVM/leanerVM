@@ -82,6 +82,9 @@ theorem toPoly_baseCoeffs : toPoly 2 baseCoeffs = basePoly := by
 theorem basePoly_natDegree : basePoly.natDegree = 64 := by
   rw [basePoly]; compute_degree!
 
+theorem basePoly_degree : basePoly.degree = (64 : ℕ) := by
+  rw [basePoly]; compute_degree!
+
 theorem basePoly_ne_zero : basePoly ≠ 0 := by
   intro h
   have hd := basePoly_natDegree
