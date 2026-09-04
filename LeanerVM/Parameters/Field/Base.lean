@@ -56,11 +56,11 @@ set_option maxRecDepth 10000
 
 /-- Little-endian coefficients of `x^64 + x^4 + x^3 + x + 1`: the terms of degree
 `0, 1, 3, 4` and `64`. -/
-def baseCoeffs : List ℕ := [1, 1, 0, 1, 1] ++ List.replicate 59 0 ++ [1]
+@[expose] def baseCoeffs : List ℕ := [1, 1, 0, 1, 1] ++ List.replicate 59 0 ++ [1]
 
 /-- The leanVM base-field modulus `x^64 + x^4 + x^3 + x + 1` over `GF(2)`. Part of the
 specification only; it is never evaluated. -/
-noncomputable def basePoly : Polynomial (ZMod 2) := X ^ 64 + X ^ 4 + X ^ 3 + X + 1
+@[expose] noncomputable def basePoly : Polynomial (ZMod 2) := X ^ 64 + X ^ 4 + X ^ 3 + X + 1
 
 /-- A run of zero coefficients shifts the rest of the list up by that many degrees. -/
 theorem toPoly_replicate_zero {p : ℕ} (n : ℕ) (rest : List ℕ) :
@@ -121,7 +121,11 @@ instance : Fact (Irreducible basePoly) := ⟨basePoly_irreducible⟩
 
 /-- The modulus below its leading term: `x^4 + x^3 + x + 1`, the polynomial the Rust
 names `R64 = 0x1B`. -/
-noncomputable def baseTail : Polynomial (ZMod 2) := X ^ 4 + X ^ 3 + X + 1
+@[expose] noncomputable def baseTail : Polynomial (ZMod 2) := X ^ 4 + X ^ 3 + X + 1
+
+theorem baseTail_eq : baseTail = X ^ 4 + X ^ 3 + X + 1 := rfl
+
+theorem basePoly_eq : basePoly = X ^ 64 + X ^ 4 + X ^ 3 + X + 1 := rfl
 
 theorem basePoly_eq_add_tail : basePoly = X ^ 64 + baseTail := by
   unfold basePoly baseTail; ring
