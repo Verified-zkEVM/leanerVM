@@ -6,6 +6,19 @@ The scaffold currently has two tracked upstreams and no third-party Lake package
 | --- | --- | --- |
 | Lean | `v4.33.1` | Root toolchain |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
+| CompPoly | `3468b38c8fd270f93f55a259220a8abc544e7437` | Computable polynomial and field infrastructure; Mathlib arrives through it |
+
+CompPoly is consumed by `LeanerVM.Parameters.Field.*`, which uses its Rabin irreducibility
+certificates (`CompPoly.Data.Polynomial.Rabin{,Certificate}`), its `GF(2)` bit-vector and
+polynomial bridge (`CompPoly.Fields.Binary.Common`), and its computable extension-field
+framework (`CompPoly.Fields.Extension.*`). It is pinned to a `main` commit rather than the
+`v4.33.1` tag because the tag predates the fast binary-tower work; note that ArkLib, when it
+is introduced, currently pins the tag, so the two will need reconciling.
+
+CompPoly's binary *tower* fields build `GF(2^64)` as an iterated quadratic extension. leanVM's
+`K` is the flat quotient `GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)`. The two are abstractly
+isomorphic but use different bases, so their bit-level encodings disagree and the tower
+instances are not a substitute for the source-faithful base field.
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
 Lake graph. The weekly drift workflow reports newer releases or commits but never rewrites

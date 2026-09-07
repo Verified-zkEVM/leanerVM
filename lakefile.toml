@@ -8,6 +8,11 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
+[[require]]
+name = "CompPoly"
+git = "https://github.com/Verified-zkEVM/CompPoly"
+rev = "3468b38c8fd270f93f55a259220a8abc544e7437"
+
 [[lean_lib]]
 name = "LeanerVM"
 
