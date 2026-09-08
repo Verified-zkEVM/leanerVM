@@ -28,7 +28,10 @@ jobs:
         with:
           auto-config: false
           build: true
-          build-args: "--wfail"
+          # `--no-cache`: CompPoly sets `preferReleaseBuild`, and its pin is an untagged
+          # commit, so Lake's release lookup warns and `--wfail` would fail the build.
+          # See docs/dependencies.md.
+          build-args: "--wfail --no-cache"
           test: true
           lint: false
           use-github-cache: true

@@ -203,4 +203,7 @@ Kept so the searches are not repeated.
   (`/3` about 6 s, `/5` about 9 s); `g^(2^64-1) = 1` by `decide +kernel` took 27 s and was
   replaced by Lagrange; the two test modules take about 10 s; plain `decide` exhausts
   `maxRecDepth` on every large power. A git worktree has no `.lake/`; symlinking
-  `.lake/packages` to the main checkout's reuses the built dependencies.
+  `.lake/packages` to the main checkout's reuses the built dependencies. On a fresh checkout
+  `lake build --wfail` fails at `CompPoly:extraDep`: CompPoly's `preferReleaseBuild` finds no
+  release tag at `3468b38c` and warns, so CI and `validate.sh` pass `--no-cache`
+  (`docs/dependencies.md`).

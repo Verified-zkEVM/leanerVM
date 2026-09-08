@@ -42,6 +42,15 @@ Expected future Lake dependency roles are:
 Do not add either merely because it is anticipated. Introduce each when the first module
 needs it.
 
+CompPoly is pinned to `3468b38c`, an untagged commit fifteen commits after its `v4.33.1`
+release, because the computable `BF64` and `Ext3` fields are newer than the tag. CompPoly's
+lakefile sets `preferReleaseBuild`, so on a checkout where CompPoly is not yet built Lake
+looks for a release tag at the pin, finds none, logs a warning, and builds from source; under
+`--wfail` that warning fails the build. Every `lake build --wfail` in this repository therefore
+passes `--no-cache`, which skips the lookup and changes nothing else: Mathlib's oleans come
+from `lake exe cache get`, not from Lake's package cache. Pinning CompPoly to a release tag
+that contains the binary fields would let a build download the prebuilt archive instead.
+
 Clean is pinned to `93c9d1ef`, the merge of
 [PR #457](https://github.com/Verified-zkEVM/clean/pull/457), which moved Clean to Lean
 `v4.33.1` and the same Mathlib revision (`0df444a3`) that CompPoly resolves, so the Lake graph

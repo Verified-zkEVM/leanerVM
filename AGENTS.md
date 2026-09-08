@@ -23,7 +23,7 @@ assembly, optimized execution, and implementation validation. Start with
 Useful focused commands:
 
 ```sh
-lake build --wfail
+lake build --wfail --no-cache
 lake test
 lake env lean -E warning tests/Main.lean
 ./scripts/audit-lean.sh
