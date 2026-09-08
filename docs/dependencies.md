@@ -46,8 +46,9 @@ Clean is pinned to `93c9d1ef`, the merge of
 [PR #457](https://github.com/Verified-zkEVM/clean/pull/457), which moved Clean to Lean
 `v4.33.1` and the same Mathlib revision (`0df444a3`) that CompPoly resolves, so the Lake graph
 has one Mathlib. Its first consumers are the leanISA table components and the
-`FiniteField BF64` instance described in [leanisa-blueprint.md](leanisa-blueprint.md). Clean's
-core (`Clean/Circuit`, `Clean/Air`, `Clean/Table`) is generic over `FiniteField F`; its gadget
+`FiniteField BF64` instance described in
+[roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md). Clean's core (`Clean/Circuit`,
+`Clean/Air`, `Clean/Table`) is generic over `FiniteField F`; its gadget
 tree is `ZMod p` with `p > 512` and is not used. Two Clean limitations bind this repository and
 are tracked in the blueprint: interactions distinguish push from pull by multiplicity `±1`,
 which coincide in characteristic 2, and there is no degree bound on `Expression`.

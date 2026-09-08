@@ -119,8 +119,9 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 - [`docs/leanvm-target.md`](docs/leanvm-target.md) — target source map and current proof gaps.
 - [`docs/development.md`](docs/development.md) — validation and module workflow.
 - [`docs/ci.md`](docs/ci.md) — workflow responsibilities and repository configuration.
-- [`docs/leanisa-blueprint.md`](docs/leanisa-blueprint.md) — leanISA roadmap: scope, dependency
-  contracts, the eleven layers, acceptance tests, and interfaces; tracked in issue #4.
-- [`docs/leanisa-status.md`](docs/leanisa-status.md) — where the leanISA roadmap stands; rewritten
-  whole when a layer lands.
+- [`docs/roadmap/leanisa-blueprint.md`](docs/roadmap/leanisa-blueprint.md) — leanISA roadmap:
+  scope, dependency contracts, the eleven layers, acceptance tests, and interfaces; tracked in
+  issue #4.
+- [`docs/roadmap/leanisa-status.md`](docs/roadmap/leanisa-status.md) — where the leanISA roadmap
+  stands; rewritten whole when a layer lands.
 - [`bench/README.md`](bench/README.md) — benchmark scope and interpretation.

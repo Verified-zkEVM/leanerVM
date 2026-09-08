@@ -25,7 +25,7 @@ specification section or the Rust lines it transcribes.
 
 Suggested home: `LeanerVM/Parameters/`, `LeanerVM/Semantics/`, and
 `LeanerVM/Arithmetization/`, following the layer ownership of
-[architecture.md](architecture.md). The public declarations live in the namespaces
+[architecture.md](../architecture.md). The public declarations live in the namespaces
 `LeanerVM.Parameters`, `LeanerVM.Semantics`, and `LeanerVM.Arithmetization`.
 
 This document is the specification. The Lean signatures embedded in the layers pin the shapes
@@ -96,7 +96,7 @@ when they exist and never rebuilds them under a leanISA-specific spelling.
 
 A prerequisite below is a named declaration at a pinned revision, an earlier layer here, or a
 cited section of a source. The pins are in `upstreams.json` and
-[dependencies.md](dependencies.md): leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
+[dependencies.md](../dependencies.md): leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
 `3468b38c`, Clean `93c9d1ef`, Lean `v4.33.1`.
 
 ### The leanVM specification and implementation
@@ -738,7 +738,7 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
 - **To report a problem with this roadmap** — a wrong or unclear target, a source discrepancy, a
   missing prerequisite — open an issue titled `[Roadmap]: leanISA — …` naming the layer and the
   acceptance test or convention it touches. Durable source discrepancies are also recorded in
-  [leanvm-target.md](leanvm-target.md).
+  [leanvm-target.md](../leanvm-target.md).
 - **To change this document**, open a pull request that edits it, titled `docs(leanisa): …`,
   and reference #4 in the description so the change is listed on the dashboard; say which
   layer, acceptance test, or convention it touches. A pull request that lands a layer rewrites
@@ -769,5 +769,5 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
 - Irreducible, *Multi-multiset matching (M3)*, Binius documentation.
 - M. Blum, W. Evans, P. Gemmell, S. Kannan, M. Naor, *Checking the correctness of memories*,
   Algorithmica 12 (1994), for the offline memory-checking idea behind the counted lookup.
-- [architecture.md](architecture.md) for the T1–T8 ladder and layer ownership;
-  [leanvm-target.md](leanvm-target.md) for the pinned revision and its obligation table.
+- [architecture.md](../architecture.md) for the T1–T8 ladder and layer ownership;
+  [leanvm-target.md](../leanvm-target.md) for the pinned revision and its obligation table.
