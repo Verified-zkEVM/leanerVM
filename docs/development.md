@@ -39,6 +39,11 @@ lake env lean -E warning tests/Main.lean
 The production and test aggregate checks are intentionally dependency-free; they do not require
 Mathlib's `mk_all` utility before Mathlib exists in the Lake graph.
 
+`lake test` builds the `LeanerVMTests` library, so a test is anything that fails elaboration: a
+compiled `#guard` or a kernel-checked `example` (see [`tests/README.md`](../tests/README.md) for
+the module-system caveats). There is no test executable (finding P3 in
+[`docs/roadmap/leanisa-status.md`](roadmap/leanisa-status.md)).
+
 ## CI
 
 Build/test, repository policy, architectural imports, and documentation links are separate

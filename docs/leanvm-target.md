@@ -113,7 +113,7 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests | T2: concrete generated assignment satisfies constraints and projects to its execution |
 | Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness | T1: multiset, range, count, table, bytecode, and memory composition theorem |
 | Hint handling | Write-once design, guest checks, and hint-tampering tests | T1/T3: every claim-relevant hinted value is constrained or checked |
-| BLAKE2s opcode | Rust implementations and Flock R1CS relation | T1 prerequisite: BLAKE2s specification, both constraint directions, and implementation correspondence |
+| BLAKE2s opcode | Rust implementations and Flock R1CS relation; Lean `compress` and `CompressCells` (`LeanerVM/Semantics/Blake2s.lean`) pinned by RFC 7693, `hashlib`, and executor vectors | T1 prerequisite: both constraint directions and implementation correspondence |
 | Proof system | Protocol document with component bounds; Rust prover/verifier | T4: formal component notions, Fiat–Shamir assumptions, composed error bound, and verifier refinement |
 | Verifier implementations | Rust, Python, and recursive zkDSL implementations; differential tests | T4/T5: each accepts exactly the specified protocol and statement encoding |
 | Recursion and deferred claims | Self-recursive guest, native root discharge, end-to-end tests | T5 plus provisional T6: verifier-in-circuit equivalence, batching/root discharge, well-foundedness, and the unresolved inner-ROM/outer-topology extraction bridge |
