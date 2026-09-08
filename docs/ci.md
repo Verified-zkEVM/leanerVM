@@ -5,7 +5,7 @@ keeping only checks justified by leanerVM's current Lean-only surface.
 
 | Workflow | Responsibility | Branch-protection status |
 | --- | --- | --- |
-| `CI` | Build with warnings as errors, run the Lake test driver, and elaborate the test root | Required |
+| `CI` | Build with the Actions and Mathlib caches, run the Lake test driver, and elaborate the test root with warnings as errors | Required |
 | `Repository policy` | Audit Lean trust markers and repository hygiene, and exercise planted policy violations | Required |
 | `Imports and layers` | Keep the aggregate import complete and enforce the architecture DAG | Required |
 | `Documentation integrity` | Reject broken or unsafe local Markdown links | Required |

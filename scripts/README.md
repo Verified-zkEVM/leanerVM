@@ -16,6 +16,13 @@
 - `test-build-timing.py`: exercises successful, failing, and reporting timing paths.
 - `check-upstreams.sh`: compares `upstreams.json` with current releases and branch heads;
   requires `gh`, `jq`, and network access.
+- `dump-blake2s.py`: `constants` extracts the BLAKE2s `IV` and `SIGMA` tables from RFC 7693
+  Appendix D for `LeanerVM/Parameters/Blake2s.lean`; `vectors` prints the `hashlib.blake2s`
+  compression vectors, including the tree-mode `last_node` flag, used by
+  `tests/LeanerVMTests/Semantics/Blake2s.lean`.
+- `dump-blake2s-rust.sh <leanVM checkout>`: reproduces the BLAKE2S opcode cells of the pinned
+  leanVM executor test `blake2s_computes_the_compression` through the executor's own
+  `hash_flock` functions; requires `cargo` and a checkout at the pinned commit.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.

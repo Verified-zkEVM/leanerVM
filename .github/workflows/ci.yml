@@ -28,14 +28,15 @@ jobs:
         with:
           auto-config: false
           build: true
-          # `--no-cache`: CompPoly sets `preferReleaseBuild`, and its pin is an untagged
-          # commit, so Lake's release lookup warns and `--wfail` would fail the build.
+          # Plain `lake build`: no `--wfail`, so Lake's caches stay enabled and CompPoly's
+          # release lookup, which warns at its untagged pin, cannot fail the build.
           # See docs/dependencies.md.
-          build-args: "--wfail --no-cache"
           test: true
           lint: false
+          # Restore `.lake` from the Actions cache and fetch Mathlib's oleans with
+          # `lake exe cache get`; without them the job compiles Mathlib from source.
           use-github-cache: true
-          use-mathlib-cache: false
+          use-mathlib-cache: auto
           # Kernel-level audit: no declaration under `LeanerVM` may depend on an
           # axiom outside `propext`, `Classical.choice`, `Quot.sound`.
           axiom-audit: true

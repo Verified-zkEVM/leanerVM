@@ -16,6 +16,12 @@ As executable definitions arrive, add focused unit, differential, and mutation t
 Put their modules under `tests/LeanerVMTests/` and import each one from `LeanerVMTests.lean`.
 Tests must not be imported by the production `LeanerVM/` library.
 
+In a `module` test file, a `#guard` needs a `meta import` of the module it evaluates, and
+core's `DecidableEq` instances for `Vector` and `Array` are not exposed, so neither `decide` nor
+the kernel can reduce an equality of vectors there (finding L1): state such checks on the word
+lists through `Vector.toList_inj`, and give production predicates over vectors a `Decidable`
+instance that compares lists, as `CompressCells` does in `LeanerVM/Semantics/Blake2s.lean`.
+
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,
 traces, encodings, and rejection behavior as each surface becomes available. Optimized native,
