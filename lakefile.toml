@@ -13,6 +13,11 @@ name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
 rev = "3468b38c8fd270f93f55a259220a8abc544e7437"
 
+[[require]]
+name = "Clean"
+git = "https://github.com/Verified-zkEVM/clean"
+rev = "93c9d1ef45be9f687214625d7857889cf2485504"
+
 [[lean_lib]]
 name = "LeanerVM"
 
