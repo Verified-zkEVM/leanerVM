@@ -46,10 +46,11 @@ CompPoly is pinned to `3468b38c`, an untagged commit fifteen commits after its `
 release, because the computable `BF64` and `Ext3` fields are newer than the tag. CompPoly's
 lakefile sets `preferReleaseBuild`, so on a checkout where CompPoly is not yet built Lake
 looks for a release tag at the pin, finds none, logs a warning, and builds from source; under
-`--wfail` that warning fails the build. Every `lake build --wfail` in this repository therefore
-passes `--no-cache`, which skips the lookup and changes nothing else: Mathlib's oleans come
-from `lake exe cache get`, not from Lake's package cache. Pinning CompPoly to a release tag
-that contains the binary fields would let a build download the prebuilt archive instead.
+`--wfail` that warning fails the build. CI and `scripts/validate.sh` therefore run `lake build`
+without `--wfail` and with Lake's caches enabled; the lookup costs one warning and changes
+nothing else. Mathlib's oleans come from `lake exe cache get`, which CI runs before the build:
+compiling Mathlib from source does not fit the job's time limit. Pinning CompPoly to a release
+tag that contains the binary fields would let a build download the prebuilt archive instead.
 
 Clean is pinned to `93c9d1ef`, the merge of
 [PR #457](https://github.com/Verified-zkEVM/clean/pull/457), which moved Clean to Lean

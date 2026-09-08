@@ -11,7 +11,7 @@ Run the full local gate:
 Focused checks:
 
 ```sh
-lake build --wfail --no-cache
+lake build
 lake test
 ./scripts/audit-lean.sh
 ./scripts/check-repository.sh

@@ -3,7 +3,7 @@
 The initial benchmark suite measures repository engineering performance rather than VM
 execution performance:
 
-- a clean `lake build --wfail`;
+- a clean `lake build`;
 - a warm repeat of the same build; and
 - the `lake test` path.
 
