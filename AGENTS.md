@@ -23,7 +23,7 @@ assembly, optimized execution, and implementation validation. Start with
 Useful focused commands:
 
 ```sh
-lake build --wfail
+lake build --wfail --no-cache
 lake test
 lake env lean -E warning tests/Main.lean
 ./scripts/audit-lean.sh
@@ -60,7 +60,10 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 
 - Lean defaults are `autoImplicit = false` and `relaxedAutoImplicit = false`.
 - Use explicit, narrow imports and respect the layer DAG. Add every production module to the
-  aggregate public import in `LeanerVM.lean` exactly once.
+  aggregate import in `LeanerVM.lean` exactly once.
+- Files are Lean `module`s unless they import Clean, which is not a `module` at the pinned
+  revision, or a file that does; `CONTRIBUTING.md` places that boundary and says what changes
+  in a plain file.
 - Do not add `axiom`, `sorry`, `admit`, `unsafe`, or `native_decide` to accepted first-party
   Lean code. Do not override repository-wide linter or implicit-variable options in source.
 - The first pull request that adds a production declaration must enable the prepared

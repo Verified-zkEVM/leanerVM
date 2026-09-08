@@ -32,6 +32,8 @@ jobs:
           use-mathlib-cache: auto
       - name: Prepare result directory
         run: mkdir -p "$RUNNER_TEMP/leanerVM-build-timing/logs"
+      # `--no-cache` on both builds: CompPoly's release lookup warns at an untagged pin and
+      # `--wfail` would fail the build. See docs/dependencies.md.
       - name: Measure clean build
         run: |
           rm -rf .lake/build
@@ -39,14 +41,14 @@ jobs:
             --label clean-build \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             --log "$RUNNER_TEMP/leanerVM-build-timing/logs/clean-build.log" \
-            -- lake build --wfail
+            -- lake build --wfail --no-cache
       - name: Measure warm build
         run: |
           python3 scripts/build_timing.py run \
             --label warm-build \
             --results "$RUNNER_TEMP/leanerVM-build-timing/results.jsonl" \
             --log "$RUNNER_TEMP/leanerVM-build-timing/logs/warm-build.log" \
-            -- lake build --wfail
+            -- lake build --wfail --no-cache
       - name: Measure test path
         run: |
           python3 scripts/build_timing.py run \

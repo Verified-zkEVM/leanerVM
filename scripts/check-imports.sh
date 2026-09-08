@@ -6,18 +6,30 @@ cd "$REPO_ROOT"
 
 status=0
 
-if ! rg --fixed-strings --line-regexp --quiet \
-    "public import LeanerVMTests" tests/Main.lean; then
+# Aggregates may be `module`s (`public import X`) or plain files (`import X`).
+import_line='^\(public \)\{0,1\}import \([A-Za-z0-9_.]*\)$'
+
+has_import() {
+  local module="$1"
+  local file="$2"
+  rg --line-regexp --quiet "(public )?import ${module//./\\.}" "$file"
+}
+
+list_imports() {
+  sed -n "s/${import_line}/\2/p" "$1"
+}
+
+if ! has_import LeanerVMTests tests/Main.lean; then
   echo "tests/Main.lean must import the LeanerVMTests aggregate" >&2
   status=1
 fi
 
-# Production modules must be reachable from the public library root.
+# Production modules must be reachable from the library root.
 while IFS= read -r file; do
   module="${file%.lean}"
   module="${module//\//.}"
-  if ! rg --fixed-strings --line-regexp --quiet "public import $module" LeanerVM.lean; then
-    echo "Missing from LeanerVM.lean: public import $module" >&2
+  if ! has_import "$module" LeanerVM.lean; then
+    echo "Missing from LeanerVM.lean: import $module" >&2
     status=1
   fi
 done < <(find LeanerVM -type f -name '*.lean' -print | LC_ALL=C sort)
@@ -25,14 +37,14 @@ done < <(find LeanerVM -type f -name '*.lean' -print | LC_ALL=C sort)
 while IFS= read -r module; do
   path="${module//./\/}.lean"
   if [[ ! -f "$path" ]]; then
-    echo "Stale import in LeanerVM.lean: public import $module" >&2
+    echo "Stale import in LeanerVM.lean: import $module" >&2
     status=1
   fi
-done < <(sed -n 's/^public import \([A-Za-z0-9_.]*\)$/\1/p' LeanerVM.lean)
+done < <(list_imports LeanerVM.lean)
 
-duplicates="$(sed -n 's/^public import \([A-Za-z0-9_.]*\)$/\1/p' LeanerVM.lean | sort | uniq -d)"
+duplicates="$(list_imports LeanerVM.lean | sort | uniq -d)"
 if [[ -n "$duplicates" ]]; then
-  echo "Duplicate public imports in LeanerVM.lean:" >&2
+  echo "Duplicate imports in LeanerVM.lean:" >&2
   echo "$duplicates" >&2
   status=1
 fi
@@ -43,9 +55,8 @@ while IFS= read -r file; do
   module="${file#tests/}"
   module="${module%.lean}"
   module="${module//\//.}"
-  if ! rg --fixed-strings --line-regexp --quiet \
-      "public import $module" tests/LeanerVMTests.lean; then
-    echo "Missing from tests/LeanerVMTests.lean: public import $module" >&2
+  if ! has_import "$module" tests/LeanerVMTests.lean; then
+    echo "Missing from tests/LeanerVMTests.lean: import $module" >&2
     status=1
   fi
 done < <(find tests/LeanerVMTests -type f -name '*.lean' -print | LC_ALL=C sort)
@@ -53,15 +64,14 @@ done < <(find tests/LeanerVMTests -type f -name '*.lean' -print | LC_ALL=C sort)
 while IFS= read -r module; do
   path="tests/${module//./\/}.lean"
   if [[ ! -f "$path" ]]; then
-    echo "Stale import in tests/LeanerVMTests.lean: public import $module" >&2
+    echo "Stale import in tests/LeanerVMTests.lean: import $module" >&2
     status=1
   fi
-done < <(sed -n 's/^public import \([A-Za-z0-9_.]*\)$/\1/p' tests/LeanerVMTests.lean)
+done < <(list_imports tests/LeanerVMTests.lean)
 
-test_duplicates="$(sed -n 's/^public import \([A-Za-z0-9_.]*\)$/\1/p' \
-  tests/LeanerVMTests.lean | sort | uniq -d)"
+test_duplicates="$(list_imports tests/LeanerVMTests.lean | sort | uniq -d)"
 if [[ -n "$test_duplicates" ]]; then
-  echo "Duplicate public imports in tests/LeanerVMTests.lean:" >&2
+  echo "Duplicate imports in tests/LeanerVMTests.lean:" >&2
   echo "$test_duplicates" >&2
   status=1
 fi

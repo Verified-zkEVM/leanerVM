@@ -42,7 +42,7 @@ without a trailing full stop.
 ## Lean files and modules
 
 Production code lives under `LeanerVM/`; executable and proof-regression tests live
-under `tests/`. New ordinary Lean files use Lean's module system and this shape:
+under `tests/`. New ordinary Lean files use Lean's module system by default and this shape:
 
 ```lean
 /-
@@ -71,17 +71,31 @@ end
 end LeanerVM.Example
 ```
 
+A file may instead be a plain (non-`module`) file when it must import a non-`module`
+dependency, or a file that does. Clean, at the pinned revision, is not written with the
+module system, and Lean refuses to import a non-`module` from a `module` while a plain file
+can import anything; so a plain file forces every file that imports it to be plain as well.
+Keep that boundary as high in the import graph as the dependency allows. Today it is
+`LeanerVM/Parameters/CleanField.lean`, the Clean-consuming modules of
+`LeanerVM/Arithmetization/`, the aggregate `LeanerVM.lean`, and the test aggregate; the
+`Parameters` and `Semantics` layers stay `module`s so that each other's modules can import
+them. In a plain file, `public import`, `public section`, and `@[expose]` are rejected and
+unnecessary: every import is re-exported and every body is visible to importers. Keep the
+same header comment, module docstring, and section headings, and mark helpers `private`. A
+plain file also lets the kernel unfold definitions the module system hides from importers,
+which is why a plain test file can decide `E` arithmetic and a `module` cannot.
+
 - Use the repository history for authorship rather than adding per-file author claims. Preserve
   copyright, licence, and attribution notices required by substantially derived upstream material.
-- Use `public import` only when downstream users need the dependency transitively.
-- Use plain `import` for implementation-only dependencies.
-- Put exported declarations in a `public section`; expose implementation details only
-  when definitional unfolding is an intentional API promise.
+- In a `module`, use `public import` only when downstream users need the dependency
+  transitively, and plain `import` for implementation-only dependencies.
+- In a `module`, put exported declarations in a `public section`; expose implementation
+  details only when definitional unfolding is an intentional API promise.
 - Keep repository-wide options in `lakefile.toml`; do not disable linters or re-enable
   implicit variables in individual files.
 - Add every production module explicitly to `LeanerVM.lean` and every test module to
   `tests/LeanerVMTests.lean`. The validation script rejects missing, stale, and duplicate
-  aggregate imports.
+  aggregate imports, and accepts `import` and `public import` lines alike.
 - Import-only umbrella modules stay bare.
 
 ## Style and naming

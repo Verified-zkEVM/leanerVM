@@ -1,11 +1,6 @@
-module
+import LeanerVMTests
 
-public import LeanerVMTests
-
-public section
-
-/-- Executable smoke test for the aggregate test surface. -/
+/-- Elaboration root of the test surface; `scripts/validate.sh` checks it with warnings as
+errors. -/
 def main : IO Unit := do
   IO.println "leanerVM smoke test passed"
-
-end

@@ -79,7 +79,7 @@ the timing helper, the Lean build, and executable tests.
 Useful focused commands are:
 
 ```sh
-lake build --wfail
+lake build --wfail --no-cache
 lake test
 lake env lean -E warning tests/Main.lean
 ./scripts/audit-lean.sh
@@ -116,7 +116,7 @@ The detailed ownership and dependency rules are in
 | Path | Contents |
 | --- | --- |
 | [`LeanerVM/`](LeanerVM/) | Production Lean library |
-| [`LeanerVM.lean`](LeanerVM.lean) | Aggregate public import surface |
+| [`LeanerVM.lean`](LeanerVM.lean) | Aggregate import surface |
 | [`tests/`](tests/) | Executable examples and proof-regression tests |
 | [`bench/`](bench/) | Benchmark contracts and reproducible workloads |
 | [`docs/`](docs/) | Architecture, dependencies, development, and CI documentation |
@@ -149,8 +149,9 @@ implementation-validation boundary, and optimized execution paths specific to le
 
 ## Testing and automation
 
-`lake test` runs the executable Lean test driver in [`tests/Main.lean`](tests/Main.lean), which
-imports the complete [`LeanerVMTests.lean`](tests/LeanerVMTests.lean) test library. Tests for
+`lake test` builds the [`LeanerVMTests.lean`](tests/LeanerVMTests.lean) test library, whose
+`#guard`s and `example`s are checked at compile time; [`tests/Main.lean`](tests/Main.lean)
+imports it and is elaborated with warnings as errors by `scripts/validate.sh`. Tests for
 semantics should cover successful executions, boundaries, and malformed inputs. Constraint work
 should include witness mutations that demonstrate rejection, and implementation-validation work
 should include differential vectors tied to authoritative Rust source revisions.
