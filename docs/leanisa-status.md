@@ -1,7 +1,7 @@
 # Status: leanISA semantics and M3 constraints
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of the branch
-`scaraven/leanisa-scaffold` on 2026-09-08, before any layer has landed. It is a hand-maintained
+`scaraven/leanISA-blueprint` on 2026-09-08, before any layer has landed. It is a hand-maintained
 snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap is the
 authority on what is wanted, and the tracking issue
 [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.

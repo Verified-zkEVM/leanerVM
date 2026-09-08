@@ -96,8 +96,8 @@ when they exist and never rebuilds them under a leanISA-specific spelling.
 
 A prerequisite below is a named declaration at a pinned revision, an earlier layer here, or a
 cited section of a source. The pins are in `upstreams.json` and
-[dependencies.md](dependencies.md): leanVM `a386121f`, CompPoly `3468b38c`, Clean `93c9d1ef`,
-Lean `v4.33.1`.
+[dependencies.md](dependencies.md): leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
+`3468b38c`, Clean `93c9d1ef`, Lean `v4.33.1`.
 
 ### The leanVM specification and implementation
 
@@ -728,8 +728,9 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
   frontier, open findings against the sources, and the decisions still pending. It is
   hand-maintained, headed by the commit it describes, and rewritten whole when a layer lands.
 - **Issue [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4)** is the dashboard: the
-  layer checklist, links to the pull request that landed each layer, and the frontier. It is
-  updated when the status file is.
+  layer checklist, links to the pull request that landed each layer, and the frontier. It links
+  to this document and to the status file at `main`, holds nothing that is not in them, and is
+  updated when the status file is. Where the issue and the files disagree, the files win.
 - **To claim work**, open an issue titled `[Intention]: leanISA — Layer N: …` listing the exact
   targets taken (declaration names from the layer), so the rest stays open, and link it from
   #4. One layer, or a slice of one, per intention. Close it with the pull request that lands the
@@ -738,15 +739,30 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
   missing prerequisite — open an issue titled `[Roadmap]: leanISA — …` naming the layer and the
   acceptance test or convention it touches. Durable source discrepancies are also recorded in
   [leanvm-target.md](leanvm-target.md).
+- **To change this document**, open a pull request that edits it, titled `docs(leanisa): …`,
+  and reference #4 in the description so the change is listed on the dashboard; say which
+  layer, acceptance test, or convention it touches. A pull request that lands a layer rewrites
+  [leanisa-status.md](leanisa-status.md) whole in the same change and ticks the layer in #4. A
+  decision taken on a pending item is written here, as the convention or acceptance test it
+  settles, and removed from the status file and from #4.
 - Pull requests carry `awaiting-review` when the author is done and `awaiting-author` after a
   review that asks for changes; the reviewer runs the `leanerVM-review` skill's three passes
   (specification, fidelity, hygiene) and reads the changed modules in full.
 
 ## References
 
-- leanVM specification document, `doc/leanvm/` at pin `a386121f` (§2 machine, §5 M3 model,
-  §6 bus interactions, §7 instruction tables, §8 end-to-end protocol).
-- leanVM implementation at the same pin: `crates/lean_vm/src/cpu/{isa,execute,layout,filler}.rs`,
+- leanVM repository [leanEthereum/leanVM](https://github.com/leanEthereum/leanVM), pinned at
+  [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2).
+- leanVM specification document: the LaTeX source
+  [`doc/leanvm/`](https://github.com/leanEthereum/leanVM/tree/a386121f84292f6fa663aaa3e570c15bc0240ea2/doc/leanvm) at the pin
+  (§2 machine, §5 M3 model, §6 bus interactions, §7 instruction tables, §8 end-to-end
+  protocol). leanVM's CI renders it as
+  [leanVM.pdf](https://github.com/leanEthereum/leanVM/releases/download/doc-latest/leanVM.pdf), linked from the
+  leanVM README; that PDF is rebuilt on every push to leanVM's `main` and tracks `main`, not the
+  pin. Section numbers in this document are the pinned source's.
+- leanVM implementation at the same pin,
+  [`crates/lean_vm/src/`](https://github.com/leanEthereum/leanVM/tree/a386121f84292f6fa663aaa3e570c15bc0240ea2/crates/lean_vm/src):
+  `cpu/{isa,execute,layout,filler}.rs`,
   `crates/lean_vm/src/tables.rs`, `crates/primitives/src/field/`.
 - RFC 7693, *The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC)*, §2.6–§2.7,
   §3.2; and the BLAKE2 specification's tree-mode finalization flags.
