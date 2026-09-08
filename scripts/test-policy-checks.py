@@ -178,6 +178,30 @@ def test_aggregate_gate() -> None:
         write(main, "module\n\npublic import LeanerVMTests\n")
         require_pass(run(root, "check-imports.sh"), "aggregate gate after cleanup")
 
+        # Plain (non-`module`) aggregates use `import`; they are checked the same way.
+        aggregate = root / "LeanerVM.lean"
+        plain_aggregate = """import LeanerVM.Arithmetization.Basic
+import LeanerVM.Parameters.Basic
+import LeanerVM.Protocol.Basic
+import LeanerVM.Semantics.Basic
+"""
+        write(aggregate, plain_aggregate)
+        write(root / "tests" / "LeanerVMTests.lean", "import LeanerVMTests.Imports\n")
+        write(main, "import LeanerVMTests\n")
+        require_pass(run(root, "check-imports.sh"), "plain aggregates")
+        write(aggregate, plain_aggregate + "import LeanerVM.Semantics.Ghost\n")
+        require_failure(
+            run(root, "check-imports.sh"),
+            "stale plain import",
+            "Stale import in LeanerVM.lean",
+        )
+        write(aggregate, plain_aggregate + "import LeanerVM.Semantics.Basic\n")
+        require_failure(
+            run(root, "check-imports.sh"),
+            "duplicate plain import",
+            "Duplicate imports in LeanerVM.lean",
+        )
+
 
 def main() -> int:
     test_source_audit()

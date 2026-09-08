@@ -1,7 +1,11 @@
 name = "leanerVM"
 version = "0.1.0"
 defaultTargets = ["LeanerVM"]
-testDriver = "leanerVMTests"
+# The test driver is the test library, not an executable: an executable linking
+# `CompPoly.Fields.Binary.BF64.Impl` evaluates its `Fintype BF64` instance at startup and is
+# killed enumerating `2^64` elements (finding P3 in docs/roadmap/leanisa-status.md). Tests are
+# `#guard`s and `example`s checked while the library compiles.
+testDriver = "LeanerVMTests"
 
 [leanOptions]
 autoImplicit = false
@@ -24,8 +28,3 @@ name = "LeanerVM"
 [[lean_lib]]
 name = "LeanerVMTests"
 srcDir = "tests"
-
-[[lean_exe]]
-name = "leanerVMTests"
-srcDir = "tests"
-root = "Main"

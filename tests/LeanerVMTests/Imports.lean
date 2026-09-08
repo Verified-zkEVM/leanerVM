@@ -1,20 +1,15 @@
-module
-
-public import LeanerVM
+import LeanerVM
 
 /-!
-# Public import smoke test
+# Import smoke test
 
 Checks that the production aggregate is available through the test-library root.
 -/
 
 namespace LeanerVMTests
 
-public section
-
-/-- The initial test library elaborates through the complete public import surface. -/
+/-- The test library elaborates through the complete production import surface. -/
 example : True := by
   trivial
 
-end
 end LeanerVMTests

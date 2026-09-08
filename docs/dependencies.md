@@ -51,7 +51,11 @@ has one Mathlib. Its first consumers are the leanISA table components and the
 `Clean/Air`, `Clean/Table`) is generic over `FiniteField F`; its gadget
 tree is `ZMod p` with `p > 512` and is not used. Two Clean limitations bind this repository and
 are tracked in the blueprint: interactions distinguish push from pull by multiplicity `±1`,
-which coincide in characteristic 2, and there is no degree bound on `Expression`.
+which coincide in characteristic 2, and there is no degree bound on `Expression`. A third shapes
+the file policy: Clean's files are not `module`s, and Lean `v4.33.1` refuses to import a
+non-`module` from a `module`, so Clean is consumed only from plain files and every file
+importing them is plain too; see `CONTRIBUTING.md` and finding C8 in
+[roadmap/leanisa-status.md](roadmap/leanisa-status.md).
 
 leanVM's existing `formal/xmss/` project is not imported wholesale. At the target revision it
 uses Lean `v4.31.0` and VCVio revision `cbd4144`; moving that reviewed security theorem onto this

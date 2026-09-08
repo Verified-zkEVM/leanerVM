@@ -33,7 +33,9 @@ jobs:
           lint: false
           use-github-cache: true
           use-mathlib-cache: false
-          # Enable the LeanerVM namespace axiom audit in the first PR that adds
-          # a production declaration. The empty scaffold has nothing to audit.
+          # Kernel-level audit: no declaration under `LeanerVM` may depend on an
+          # axiom outside `propext`, `Classical.choice`, `Quot.sound`.
+          axiom-audit: true
+          axiom-audit-root: LeanerVM
       - name: Elaborate the test root with warnings as errors
         run: lake env lean -E warning tests/Main.lean
