@@ -205,6 +205,7 @@ proof-committed `ProverData`.
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); hypotheses appear in signatures, never in `variable` blocks or unstated instances. |
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
+| Module system | Files are Lean `module`s, except that a file importing Clean (not a `module` at `93c9d1ef`) or a file that does is plain; the boundary sits as high as the dependency allows: `Parameters/CleanField.lean`, the Clean-consuming Arithmetization modules, `LeanerVM.lean`, and the test aggregate. |
 
 ## The build, in eleven layers
 
@@ -216,7 +217,8 @@ available is written as a block comment at its place (see
 
 ### Layer 0: fields, limbs, and the generator
 
-`LeanerVM/Parameters/Field.lean`, `LeanerVM/Parameters/Generator.lean`.
+`LeanerVM/Parameters/Field.lean`, `LeanerVM/Parameters/Generator.lean`, and, for Clean's field
+interface, the plain file `LeanerVM/Parameters/CleanField.lean`.
 
 Define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128` as abbreviations
 and one-line definitions over the CompPoly declarations of the dependency table, with

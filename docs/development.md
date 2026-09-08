@@ -28,9 +28,10 @@ lake env lean -E warning tests/Main.lean
 ## Adding a production module
 
 1. Choose its owner layer using `docs/architecture.md`.
-2. Use Lean's module syntax and a module docstring.
+2. Use Lean's module syntax and a module docstring, unless the file imports Clean or a file
+   that does; `CONTRIBUTING.md` explains when a file is plain instead.
 3. Keep imports narrow and respect the CI-enforced layer DAG.
-4. Add a `public import` line to `LeanerVM.lean`.
+4. Add an `import` line to `LeanerVM.lean`.
 5. Add executable or proof-regression coverage under `tests/LeanerVMTests/` and import it from
    `tests/LeanerVMTests.lean`.
 6. Run the complete validator.
