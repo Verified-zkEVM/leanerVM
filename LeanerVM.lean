@@ -1,4 +1,5 @@
 import LeanerVM.Arithmetization.Basic
+import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
 import LeanerVM.Parameters.CleanField

@@ -408,16 +408,22 @@ way; a taken `JUMP`; a `DEREF` in `pc` mode; an out-of-range address giving `ste
 `LeanerVM/Arithmetization/Bytecode.lean`.
 
 ```lean
-def encodeSlots : Instr → Vector K 16        -- opcode slot 3, operands 4..10, zero elsewhere
+def derefFlags : DerefMode → K × K           -- (f_pc, f_fp): cell (0,0), pc (1,0), fp (0,1)
 def entry (i : Instr) : Vector K 8            -- (opcode, op1, …, op7): the bus lookup entry
+def encodeSlots : Instr → Vector K 16        -- opcode slot 3, operands 4..10, zero elsewhere
 def decode : Vector K 8 → Option Instr
 theorem decode_entry (i : Instr) : decode (entry i) = some i
+theorem decode_eq_some_iff : decode v = some i ↔ v = entry i
 theorem entry_injective : Function.Injective entry
 ```
 
-`decode` is partial: a vector whose opcode is not one of the six codes, or whose `DEREF` flags
-are `(1, 1)`, is not an instruction. This is where flag booleanity lives — in the public program,
-not in an AIR constraint.
+`decode` is partial and exact. A vector whose opcode is not one of the six codes, whose `DEREF`
+flags are not one of the three pairs, or whose spare slots are not zero is not an instruction,
+and nothing else is rejected (`decode_eq_some_iff`). This is where flag booleanity lives — in
+the public program, not in an AIR constraint. The spare slots are checked because every table's
+bytecode tuple carries literal zeros there (`tables.rs:486-908`), so no row can pull an entry
+with a nonzero one: the semantics fetches nothing at an address the constraints cannot execute,
+which `constraintCompleteness` needs.
 
 ### Layer 5: the bus channels
 
@@ -688,7 +694,7 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   MemImage  gLog?  gLog?_spec  gLog?_gpow_eq_none  MemImage.read
                   PublicInput  word0  word1
                   Regs  derefSource  step  run  Trace  HasPublicBoundary  ValidExecution
-Arithmetization:  encodeSlots  entry  decode  decode_entry
+Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
                   StateMsg  MemMsg  BytecodeMsg
                   StatePull  StatePush  MemPull  MemPush  BytecodePull  BytecodePush
                   memRead  bytecodeRead
