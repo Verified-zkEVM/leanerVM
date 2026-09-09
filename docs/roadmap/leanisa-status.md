@@ -1,15 +1,15 @@
 # Status: leanISA semantics and M3 constraints
 
-This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of the Layer 2
-working tree, built on `main` at `63a7f0f` (Layer 0, PR #6; Layer 1, PR #7) and revised on
-2026-09-09 (`gLog?` made noncomputable), validated locally but not yet merged. It is a
-hand-maintained snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap
-is the authority on what is wanted, and the tracking issue
-[#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
+This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of branch
+`feat/leanisa-bytecode-encoding`, which lands Layer 4 on top of the merged Layer 2 (`main` at
+`46c5f83`, PR #8) on 2026-09-09. It is a hand-maintained snapshot, rewritten whole when a layer
+lands or a decision is taken; the roadmap is the authority on what is wanted, and the tracking
+issue [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table
+below.
 
 ## Where this roadmap stands
 
-**At a glance.** Layers 0, 1 and 2 are built. `LeanerVM/Parameters/Field.lean` and
+**At a glance.** Layers 0, 1, 2 and 4 are built. `LeanerVM/Parameters/Field.lean` and
 `LeanerVM/Parameters/Generator.lean` define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`,
 `IsInK`, `IsCanonical128`, `g`, and `gpow`, and prove `orderOf_g` and `gpow_injOn` from the
 seven `decide +kernel` checks; Clean's `FiniteField K` instance is `instFiniteFieldK` in the
@@ -23,13 +23,17 @@ five caps; `LeanerVM/Semantics/Memory.lean` defines `gLog?` (noncomputable, the 
 proves `gLog?_spec`, the one statement through which the bounded logarithm is trusted, with
 `gLog?_eq_none_iff` and `gLog?_gpow_eq_none` on the failure side;
 `LeanerVM/Semantics/Instruction.lean` defines `DerefMode`, `Instr`, `Instr.opcode`, `Program`,
-and `Program.fetch`. `./scripts/validate.sh` is green, the axiom closure of every declaration is
-`propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in CI
+and `Program.fetch`. `LeanerVM/Arithmetization/Bytecode.lean` defines `derefFlags`, the bus
+entry `entry`, the sixteen slots `encodeSlots`, and the decoder `decode` (with `opcode?` and
+`derefMode?`), and proves `decode_entry`, `decode_eq_some_iff` (the decoder is the exact inverse
+of the entry), `entry_injective`, and `encodeSlots_getElem`. `./scripts/validate.sh` is green,
+the axiom closure of every declaration is `propext, Classical.choice, Quot.sound`, and the
+kernel axiom audit is enabled in CI
 (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
 (finding C8, now the roadmap's module-system convention); kernel-`decide` over `E` arithmetic
 works from plain files but not from `module`s (P1); `lake test` builds the test library because
-no executable may link the field module (P3). Nothing under `LeanerVM/Arithmetization/` is
-non-empty yet.
+no executable may link the field module (P3). `Bytecode.lean` is the first non-empty
+Arithmetization module; it imports no Clean and is a `module`.
 
 ### Roadmap coverage
 
@@ -37,9 +41,9 @@ non-empty yet.
 | --- | --- | --- |
 | 0 — fields, limbs, generator | landed (PR #6) | `instFiniteFieldK` lives in the plain `CleanField.lean` (C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
 | 1 — BLAKE2s | landed (PR #7) | flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file (L1) |
-| 2 — instructions, image, public input | built, awaiting review | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
+| 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | untouched; needs Layers 1 and 2 | Category A; write from specification §2 first; fixtures are proofs through the fetch and read lemmas (decision 4) |
-| 4 — bytecode encoding | untouched; needs Layer 2 | `Instr.opcode` supplies slot 3 |
+| 4 — bytecode encoding | built, awaiting review | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
 | 5 — channels | untouched; consumes Clean | plain files (C8) |
 | 6 — six tables | untouched; consumes Clean | plain files (C8) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
@@ -49,10 +53,8 @@ non-empty yet.
 
 ### The frontier
 
-- **Layer 2** awaits review as `feat(semantics): leanISA Layer 2 — instructions, image, public
-  input`. Its reviewer reading list is the three production files, the three test files, and the
-  roadmap changes below. Every Layer 2 target of the roadmap is present; the roadmap's pinned
-  shapes were adjusted in four places, each recorded in the roadmap itself or here:
+- **Layer 2** landed as PR #8. Every Layer 2 target of the roadmap is present; the roadmap's
+  pinned shapes were adjusted in four places, each recorded in the roadmap itself or here:
   - `gLog?` is `noncomputable` (2026-09-09, next bullet), and with it `MemImage.read` and
     `Program.fetch`; the roadmap's Layer 2 and Layer 3 text now say so.
   - `gLog?_spec` takes `κ < 64` rather than `κ ≤ maxLogMem`. The condition the proof uses is
@@ -63,6 +65,21 @@ non-empty yet.
     (`t.image ⟨0, _⟩`), which needs the unfolding.
   - `Instr.opcode : Instr → Opcode` is added as the link Layer 4's `entry` and Layer 8's
     `CountsNonzero` need; it is one screen line.
+- **Layer 4** awaits review as `feat(arithmetization): leanISA Layer 4 — bytecode encoding`
+  (branch `feat/leanisa-bytecode-encoding`). Its reviewer reading list is
+  `LeanerVM/Arithmetization/Bytecode.lean`, `tests/LeanerVMTests/Arithmetization/Bytecode.lean`,
+  and the roadmap's Layer 4 section. Every Layer 4 target of the roadmap is present; the
+  roadmap's Layer 4 text now records two things the build settled:
+  - `decode` is exact (`decode_eq_some_iff : decode v = some i ↔ v = entry i`), so a nonzero
+    spare slot is no instruction, not only the flag pair `(1, 1)` and an unknown opcode. The
+    reason is completeness: every table's bytecode tuple carries literal zeros in its spare
+    coordinates (R24), so no row can pull such an entry, and a semantics that fetched an
+    instruction there would execute programs the constraints cannot.
+  - `derefFlags : DerefMode → K × K` names the flag pair `(f_pc, f_fp)` of `isa.rs:69-78`, which
+    Layer 6's `DEREF` table reads; `derefMode?` inverts it.
+  The decoder reads coordinates and never compares whole vectors, so it needs no
+  `DecidableEq (Vector K 8)` (L1): the tests decide `decode` on literal vectors and slot reads
+  in the kernel from a `module` file, and state vector equalities on word lists.
 - **`gLog?` is noncomputable** (2026-09-09). Its index is `Classical.choose` of
   `∃ i : Fin (2^κ), a = gpow i`, so `MemImage.read`, `Program.fetch`, and Layer 3's `step` are
   specifications that cannot be run, by construction rather than by cost; its body is still not
@@ -92,7 +109,7 @@ non-empty yet.
   kernel sees every body, or an upstream fix; the Layer 6 per-table row tests can also use
   compiled evaluation (`#guard` under `meta import`). Decision 4 below.
 - **Layer 3** can start now: it needs `CompressCells` for the `BLAKE2S` arm and everything else
-  from Layer 2. Layer 4 can start now.
+  from Layer 2. Layer 5 needs Layers 3 and 4 and is the first Clean-consuming, plain, file.
 - **The Rust vectors.** Layer 1's (`blake2s_computes_the_compression`) is reproduced by
   `scripts/dump-blake2s-rust.sh`; Layer 3's (`mul_192bit_word`, `cpu/mod.rs:985`) is not yet
   dumped; the dump command goes under `scripts/` with the fixture.
@@ -177,14 +194,20 @@ in the Layer 1 tests). R12 metadata split confirmed (test 11). R13 flag booleani
 constraint (test 18). R14 halt asserts `fp = 0` (test 4). R15 step cap `10^8`. R16 the filler
 phase executes fill blocks after halt and can raise `κ_mem` (test 15). R17 `g = 0x2` (test 1;
 Layer 0 `g`, certified). R18 `SET`'s immediate is one `F192` (Layer 2 `setConstant (o : K)
-(k : E)`). R19 slot packing matches §8.1 (test 16). R20 `cpu/mod.rs` cites a stale `.tex`
+(k : E)`). R19 slot packing matches §8.1 (test 16; Layer 4's `entry` and `encodeSlots` transcribe
+`layout.rs:229-290`). R20 `cpu/mod.rs` cites a stale `.tex`
 filename. R21 the repository holds two BLAKE2s compressions: `flock::hash::blake2s_compress`
 (two flag words; the opcode) and `primitives::hash::compress` (last-block flag only; the byte
 hasher). Layer 1 transcribes the former. R22 the opcode's IV, sigma, rotations and round count
 agree with RFC 7693 (`crates/primitives/src/hash.rs:19-62`), so no leanVM-specific compression
 exists. R23 the verifier rejects a public input with a nonzero top limb
 (`cpu/mod.rs:139-143`); Layer 2's `PublicInput` cannot express one, so the check is a type, not
-a hypothesis.
+a hypothesis. R24 a table's bytecode tuple passes five operand coordinates (`tables.rs:486-491`,
+`:553-558`, `:636`, `:742-747`), seven for `BLAKE2S` (`:876-889`), and relies on the bus's zero
+padding to `m = 16` slots (`05-arithmetization.tex:12`) to match the seed's eight public columns
+(`layout.rs:385-395`); Layer 6 emits all seven explicitly, as the roadmap's `XOR` template does,
+because Clean messages are typed, and Layer 4's `decode` rejects a nonzero spare slot for the
+same reason.
 
 **Clean** (`93c9d1ef`): C1 direction is the sign of the multiplicity (test 13). C2 balance is a
 field sum with a characteristic side condition (test 14). C3 a component cannot see its row
@@ -286,7 +309,8 @@ Kept so the searches are not repeated.
   Tables `tables.rs:436-908`; `BLAKE2S` flushes 890–907 and addresses 373–386; `FlushBuilder`
   126–183; `TOWER_LANES` 44–49; `jump_identity` 63–78; opcode constants 95–100. Caps
   `cpu/mod.rs:51-64`, checked in `read_public` at 158–166, with the third-limb rejection at
-  139–143. ISA `cpu/isa.rs:6-66`. Boundary blocks `layout.rs:355-395`; slot packing 252–290;
+  139–143. ISA `cpu/isa.rs:6-66`. Boundary blocks `layout.rs:355-395`; bytecode columns
+  229–290 (slot packing 252–290) and the bytecode seed and finalize blocks 385–395;
   count blocks 410–412. Cell packing `hash_flock.rs:117-139, 162-185`; the compression
   `flock/src/hash.rs:191-231` with constants in `primitives/src/hash.rs:19-62`. BLAKE2S floor:
   `filler.rs:43` (`MIN_ROWS`) and `crates/flock/src/hash.rs:283-286` (`min_n_blocks_log`,
@@ -332,6 +356,9 @@ Kept so the searches are not repeated.
   in under a minute. Layer 2: each production module builds in one to two seconds, each test
   module in one to three; the `g + 1` non-power check by `fin_cases` and `decide +kernel` at
   `κ = 2` is within that (the former scan to `g^4000` at `κ = 16` was a fifth of a second).
+  Layer 4: the production module builds in about three seconds and the test module in two;
+  `decode` on a literal vector and a slot read decide in the kernel from a `module` test file,
+  since they touch only `K` equality and vector indexing (L1).
   A git worktree has no `.lake/`; symlinking or copying `.lake/packages` from the main checkout
   reuses the built dependencies. On a fresh checkout `lake build --wfail` fails at
   `CompPoly:extraDep`: CompPoly's `preferReleaseBuild` finds no release tag at `3468b38c` and
