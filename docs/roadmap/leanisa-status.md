@@ -1,15 +1,15 @@
 # Status: leanISA semantics and M3 constraints
 
-This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of branch
-`feat/leanisa-blake2s-semantics`, which lands Layer 1 on top of the merged Layer 0 (`main` at
-`c66d8a0`, PR #6) on 2026-09-08. It is a hand-maintained snapshot, rewritten whole when a layer
-lands or a decision is taken; the roadmap is the authority on what is wanted, and the tracking
-issue
+This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of the Layer 2
+working tree, built on `main` at `63a7f0f` (Layer 0, PR #6; Layer 1, PR #7) and revised on
+2026-09-09 (`gLog?` made noncomputable), validated locally but not yet merged. It is a
+hand-maintained snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap
+is the authority on what is wanted, and the tracking issue
 [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
 
 ## Where this roadmap stands
 
-**At a glance.** Layers 0 and 1 are built. `LeanerVM/Parameters/Field.lean` and
+**At a glance.** Layers 0, 1 and 2 are built. `LeanerVM/Parameters/Field.lean` and
 `LeanerVM/Parameters/Generator.lean` define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`,
 `IsInK`, `IsCanonical128`, `g`, and `gpow`, and prove `orderOf_g` and `gpow_injOn` from the
 seven `decide +kernel` checks; Clean's `FiniteField K` instance is `instFiniteFieldK` in the
@@ -17,7 +17,13 @@ plain file `LeanerVM/Parameters/CleanField.lean`. `LeanerVM/Parameters/Blake2s.l
 `LeanerVM/Semantics/Blake2s.lean` define `iv`, `sigma`, the two-flag `compress`, the cell
 encoding (`cellWords`, `wordsCell`, `unpackMetadata`), and `CompressCells`, each pinned by
 kernel-checked vectors from RFC 7693, from CPython's `hashlib.blake2s`, and from the pinned Rust
-executor. `./scripts/validate.sh` is green, the axiom closure of every declaration is
+executor. `LeanerVM/Parameters/Isa.lean` defines `Opcode`, `Opcode.code` (`g^0 … g^5`), and the
+five caps; `LeanerVM/Semantics/Memory.lean` defines `gLog?` (noncomputable, the index by
+`Classical.choose`), `MemImage`, `MemImage.read`, and `PublicInput` with `word0`/`word1`, and
+proves `gLog?_spec`, the one statement through which the bounded logarithm is trusted, with
+`gLog?_eq_none_iff` and `gLog?_gpow_eq_none` on the failure side;
+`LeanerVM/Semantics/Instruction.lean` defines `DerefMode`, `Instr`, `Instr.opcode`, `Program`,
+and `Program.fetch`. `./scripts/validate.sh` is green, the axiom closure of every declaration is
 `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in CI
 (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
 (finding C8, now the roadmap's module-system convention); kernel-`decide` over `E` arithmetic
@@ -29,11 +35,11 @@ non-empty yet.
 
 | Layer | Status | Notes |
 | --- | --- | --- |
-| 0 — fields, limbs, generator | built | complete; `instFiniteFieldK` lives in the plain `CleanField.lean` (C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
-| 1 — BLAKE2s | built, awaiting review | complete; flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file (L1) |
-| 2 — instructions, image, public input | untouched | can start on Layer 0 |
-| 3 — `step`, `ValidExecution` | untouched | Category A; write from specification §2 first; "decidable by `decide`" tests depend on P1 and L1 |
-| 4 — bytecode encoding | untouched | |
+| 0 — fields, limbs, generator | landed (PR #6) | `instFiniteFieldK` lives in the plain `CleanField.lean` (C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
+| 1 — BLAKE2s | landed (PR #7) | flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file (L1) |
+| 2 — instructions, image, public input | built, awaiting review | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
+| 3 — `step`, `ValidExecution` | untouched; needs Layers 1 and 2 | Category A; write from specification §2 first; fixtures are proofs through the fetch and read lemmas (decision 4) |
+| 4 — bytecode encoding | untouched; needs Layer 2 | `Instr.opcode` supplies slot 3 |
 | 5 — channels | untouched; consumes Clean | plain files (C8) |
 | 6 — six tables | untouched; consumes Clean | plain files (C8) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
@@ -43,9 +49,35 @@ non-empty yet.
 
 ### The frontier
 
-- **Layer 1** awaits review as `feat(blake2s): leanISA Layer 1`. Its reviewer reading list is
-  the two production files, the two test files, the two dump scripts, and decision 6; the
-  roadmap's Layer 1 targets are all present, with `UInt32` where the roadmap writes `Bool`.
+- **Layer 2** awaits review as `feat(semantics): leanISA Layer 2 — instructions, image, public
+  input`. Its reviewer reading list is the three production files, the three test files, and the
+  roadmap changes below. Every Layer 2 target of the roadmap is present; the roadmap's pinned
+  shapes were adjusted in four places, each recorded in the roadmap itself or here:
+  - `gLog?` is `noncomputable` (2026-09-09, next bullet), and with it `MemImage.read` and
+    `Program.fetch`; the roadmap's Layer 2 and Layer 3 text now say so.
+  - `gLog?_spec` takes `κ < 64` rather than `κ ≤ maxLogMem`. The condition the proof uses is
+    `2^κ ≤ orderOf g = 2^64 - 1`, and both caps (`maxLogMem`, `maxLogBytecode`) satisfy it, so
+    `Program.fetch` discharges it from `logSize_le` without identifying the two caps. The
+    roadmap's Layer 2 signature now says so.
+  - `MemImage` is an `abbrev`, not a `def`: the roadmap applies an image to an index
+    (`t.image ⟨0, _⟩`), which needs the unfolding.
+  - `Instr.opcode : Instr → Opcode` is added as the link Layer 4's `entry` and Layer 8's
+    `CountsNonzero` need; it is one screen line.
+- **`gLog?` is noncomputable** (2026-09-09). Its index is `Classical.choose` of
+  `∃ i : Fin (2^κ), a = gpow i`, so `MemImage.read`, `Program.fetch`, and Layer 3's `step` are
+  specifications that cannot be run, by construction rather than by cost; its body is still not
+  exposed, so a `module` importer reasons through `gLog?_spec` (`MemImage.read`,
+  `Program.fetch`, and their lemmas are exposed). It replaced a fuel-bounded scan of
+  `g^0, g^1, …` that ran at about 50 µs per `K` multiplication (E4) and would have made every
+  read of a running execution a discrete logarithm; the `mulG` fast-path idea went with it. The
+  scan's two induction helpers became a `split_ifs` on the choice, and the failure side gained
+  `gLog?_eq_none_iff` (no size bound) and `gLog?_gpow_eq_none` (a power past the end), which
+  Layer 3's out-of-range test needs. The Layer 2 tests apply the lemmas to concrete addresses
+  instead of evaluating; the one evaluated addressing fact (`g + 1` is no power below `g^4`) is
+  `fin_cases` and `decide +kernel` at `κ = 2`. For the back of the mind only, not planned: if a
+  runnable machine is ever wanted, it is a computable carrier bridged to this specification in
+  the CompPoly shape, with exponent-indexed state and a memoized reverse index `g^j ↦ j` as the
+  Rust executor has (`cpu/hints.rs:30-58`); nothing here anticipates it.
 - **Clean is consumed from plain files** (C8, settled 2026-09-08). Lean `v4.33.1` rejects
   `import` of a non-`module` from a `module`, so the roadmap's module-system convention makes
   the Clean-facing files plain and everything importing them plain too: today
@@ -55,13 +87,15 @@ non-empty yet.
   neither does any `Vector` or `E` equality (L1). Layer 1 shows what does reduce: a `module`
   test decides a full compression and `CompressCells` on literal cells with `decide +kernel` in
   about a second each, because `compress` and `E.ofLimbs` avoid `Vector.ofFn` and every vector
-  equality is decided on its word list. The roadmap's Layer 3 tests ("`ValidExecution` by
-  `decide`") and the Layer 6 per-table row tests still need one of: compiled evaluation
-  (`#guard` under `meta import`), a plain test file, or an upstream fix. Decision 4 below.
-- **Layers 2 and 4** can start now. Layer 2 builds on Layer 0.
+  equality is decided on its word list. The Layer 3 fixtures (proofs unfolding `run`, whose
+  per-step `E` equalities must reduce in the kernel) still need a plain test file, where the
+  kernel sees every body, or an upstream fix; the Layer 6 per-table row tests can also use
+  compiled evaluation (`#guard` under `meta import`). Decision 4 below.
+- **Layer 3** can start now: it needs `CompressCells` for the `BLAKE2S` arm and everything else
+  from Layer 2. Layer 4 can start now.
 - **The Rust vectors.** Layer 1's (`blake2s_computes_the_compression`) is reproduced by
-  `scripts/dump-blake2s-rust.sh`; Layer 3's (`mul_192bit_word`) is not yet dumped; the dump
-  command goes under `scripts/` with the fixture.
+  `scripts/dump-blake2s-rust.sh`; Layer 3's (`mul_192bit_word`, `cpu/mod.rs:985`) is not yet
+  dumped; the dump command goes under `scripts/` with the fixture.
 - **Clean's bus** is the remaining external item for Layers 9–10. The contract is stated in the
   roadmap's dependency table; no upstream issue exists yet for the direction tag, and Clean
   [#452](https://github.com/Verified-zkEVM/clean/issues/452) covers only the side-condition
@@ -80,7 +114,7 @@ Confirm before Layer 3 is opened:
 3. The bytecode interaction stays on the bus, transcribed like memory, rather than becoming a
    Clean `StaticTable` lookup, which would be characteristic-safe today but would change the
    constraint system the theorems are about.
-4. **Executable tests versus kernel `decide`** (P1, L1). Either the roadmap's "by `decide`"
+4. **Executable tests versus kernel `decide`** (P1, L1, E4). Either the roadmap's "by `decide`"
    tests for Layers 3 and 6 live in plain test files (the test aggregate already is one), or
    they are restated as compiled `#guard`s, or CompPoly makes `Ext.ofFn` and
    `Ext.instDecidableEq` kernel-reducible under the module system (a literal-vector or
@@ -88,7 +122,11 @@ Confirm before Layer 3 is opened:
    list-comparing `DecidableEq E`, since core's `Vector` equality is unexposed too), which is a
    CompPoly pin bump. `E.ofLimbs` is already a literal vector so the predicates on literal words
    decide in the kernel today, and Layer 1's `Decidable (CompressCells …)` compares word lists
-   for the same reason.
+   for the same reason. Since `gLog?` is noncomputable (2026-09-09), `ValidExecution` is
+   neither kernel-decidable nor compilable at any `κ`; a Layer 3 fixture is a proof that
+   unfolds `run` through `Program.fetch_gpow` and `MemImage.read_gpow` and decides each step's
+   equality on literal words in the kernel, which P1 confines to plain test files until the
+   upstream fix.
 5. **Restoring a test executable** (P3). The library test driver is a workaround. If the
    roadmap's executable fixtures, the differential tests against the pinned Rust, or the native
    execution target need a real binary, CompPoly must first stop threading `[Fintype F]` through
@@ -110,8 +148,8 @@ Confirm before Layer 3 is opened:
 
 Numbered for citation from pull requests and `docs/leanvm-target.md`. **S** = internal to the
 specification document; **R** = Rust versus specification; **C** = Clean versus leanISA; **P** =
-CompPoly versus leanISA; **L** = Lean core versus the roadmap's expectations. The roadmap's
-acceptance tests already encode the ones that bind a definition.
+CompPoly versus leanISA; **L** = Lean core versus the roadmap's expectations; **E** = the Lean
+environment. The roadmap's acceptance tests already encode the ones that bind a definition.
 
 **Specification.** S1 halting is tested after execution in §2 but before the fetch in the Rust
 and the bus (acceptance test 5). S2 final `fp = g^0` is required by §6.1 and the Rust, not by
@@ -120,26 +158,33 @@ generator value is not in the specification; Layer 0 binds it to the Rust and th
 verifier. S5 `02-vm-specification.tex` line 75 annotates `o_3 ∈ K` where the cell value is
 meant. S6 §8.4 Fiat–Shamir is `TODO`. S7 §2 calls `BLAKE2S` "the standard BLAKE2s compression"
 and names both flags in the metadata cell without saying that the flag *words* enter the state
-unchanged (decision 6).
+unchanged (decision 6). S8 the BLAKE2S table floor (`τ_BLAKE2S ≥ 3`) is enforced by the
+verifier (`cpu/mod.rs:166`) and the filler (`filler.rs:43`) but appears in no section of the
+specification; Layer 2 binds `minLogRowsBlake2s` to the Rust and to Flock's `min_n_blocks_log`
+(`crates/flock/src/hash.rs:283-286`).
 
 **Rust executor** (`crates/lean_vm/src/cpu/execute.rs`), all witness-generation behaviour, none
-a second meaning of the machine (test 19): R1 registers and operands are `u32` exponents. R2 an
-equal rewrite of a set cell is accepted, a differing one panics. R3 an unset cell reads as zero
-with a diagnostic. R4 memory grows on demand; no range check at access. R5 `κ_mem` is a
-post-run high-water mark. R6 `DEREF` in `cell` mode fills the unset side, asserts when both are
-set, defers when neither is, and zero-fills leftovers. R7 `MUL` back-solves one unset operand;
-`XOR` does not. R8 ten `RHint` advice kinds run before each instruction. R9 a taken `JUMP` needs
-small g-powers. R10 a `DEREF` pointer must be a small g-power. R11 the canonical check covers the
-seven read cells only (test 12; pinned by the output-cell mutation in the Layer 1 tests). R12
-metadata split confirmed (test 11). R13 flag booleanity is not an AIR constraint (test 18). R14
-halt asserts `fp = 0` (test 4). R15 step cap `10^8`. R16 the filler phase executes fill blocks
-after halt and can raise `κ_mem` (test 15). R17 `g = 0x2` (test 1; Layer 0 `g`, certified). R18
-`SET`'s immediate is one `F192`. R19 slot packing matches §8.1 (test 16). R20 `cpu/mod.rs` cites
-a stale `.tex` filename. R21 the repository holds two BLAKE2s compressions:
-`flock::hash::blake2s_compress` (two flag words; the opcode) and `primitives::hash::compress`
-(last-block flag only; the byte hasher). Layer 1 transcribes the former. R22 the opcode's IV,
-sigma, rotations and round count agree with RFC 7693 (`crates/primitives/src/hash.rs:19-62`), so
-no leanVM-specific compression exists.
+a second meaning of the machine (test 19): R1 registers and operands are `u32` exponents
+(Layer 2's operands are `K` elements; a non-`g`-power operand is expressible and names no valid
+cell). R2 an equal rewrite of a set cell is accepted, a differing one panics. R3 an unset cell
+reads as zero with a diagnostic. R4 memory grows on demand; no range check at access. R5
+`κ_mem` is a post-run high-water mark. R6 `DEREF` in `cell` mode fills the unset side, asserts
+when both are set, defers when neither is, and zero-fills leftovers. R7 `MUL` back-solves one
+unset operand; `XOR` does not. R8 ten `RHint` advice kinds run before each instruction. R9 a
+taken `JUMP` needs small g-powers. R10 a `DEREF` pointer must be a small g-power. R11 the
+canonical check covers the seven read cells only (test 12; pinned by the output-cell mutation
+in the Layer 1 tests). R12 metadata split confirmed (test 11). R13 flag booleanity is not an AIR
+constraint (test 18). R14 halt asserts `fp = 0` (test 4). R15 step cap `10^8`. R16 the filler
+phase executes fill blocks after halt and can raise `κ_mem` (test 15). R17 `g = 0x2` (test 1;
+Layer 0 `g`, certified). R18 `SET`'s immediate is one `F192` (Layer 2 `setConstant (o : K)
+(k : E)`). R19 slot packing matches §8.1 (test 16). R20 `cpu/mod.rs` cites a stale `.tex`
+filename. R21 the repository holds two BLAKE2s compressions: `flock::hash::blake2s_compress`
+(two flag words; the opcode) and `primitives::hash::compress` (last-block flag only; the byte
+hasher). Layer 1 transcribes the former. R22 the opcode's IV, sigma, rotations and round count
+agree with RFC 7693 (`crates/primitives/src/hash.rs:19-62`), so no leanVM-specific compression
+exists. R23 the verifier rejects a public input with a nonzero top limb
+(`cpu/mod.rs:139-143`); Layer 2's `PublicInput` cannot express one, so the check is a type, not
+a hypothesis.
 
 **Clean** (`93c9d1ef`): C1 direction is the sign of the multiplicity (test 13). C2 balance is a
 field sum with a characteristic side condition (test 14). C3 a component cannot see its row
@@ -198,6 +243,22 @@ through `Vector.toList_inj`, and `E` equalities in tests go through `E.ext` or a
 `sigma`, which does. L3 `#guard` in a `module` file is a `meta` definition and needs a
 `meta import` of the module it evaluates (`Lean/Compiler/LCNF/Visibility.lean`, `checkMeta`).
 
+**Environment** (Lean `v4.33.1`, Mathlib at the pin). **E1** the elaborator's `decide` exhausts
+`maxRecDepth` on `K` powers, even `g ^ 5`, when the decision goes through instance search on a
+finite type (`Function.Injective Opcode.code` with a derived `Fintype`); `decide +kernel` after a
+`cases` split proves the same in two seconds and is what `Opcode.code_injective` uses. **E2**
+`deriving Fintype` (Mathlib's handler) fails inside a `module` file: the generated `Finset`
+term does not typecheck under the module system ("declaration has metavariables"). Enumerations
+that need a `Fintype` instance write it by hand or avoid it; Layer 2 avoids it. **E3** a
+non-exposed `def` in a `public section` (`gLog?`) is visible to importers by name and opaque in
+the kernel, as intended, but non-exposure hides a body from proofs only: while `gLog?` was a
+computable scan, `#guard` under `meta import` still evaluated it and a plain test file could
+`decide +kernel` it, which is why making the specification unrunnable took `noncomputable`,
+not exposure. **E4** compile-time evaluation runs in the IR interpreter: one `K` multiplication
+(`carryLessMul` then `reduce`) costs about 50 µs, and one kernel `K` multiplication tens of
+milliseconds, which sizes every evaluated test (the `cases` of `Opcode.code_injective`, the
+`g + 1` non-power check, the per-step kernel equalities of Layer 3 fixtures).
+
 **Targets.** F1 constraint completeness as phrased in `docs/architecture.md` is false without a
 program-shape hypothesis (test 15). F2 the `2^64 - 1` read bound is derivable from the caps.
 F3 the BLAKE2S value limbs are virtual columns in Flock's stack in the Rust; ordinary columns
@@ -221,24 +282,30 @@ Kept so the searches are not repeated.
 - **leanVM**: the local checkout `../../leanEthereum/leanVM` is exactly `a386121f`. The
   specification's §2 matches `02-vm-specification.tex` at the pin clause by clause (S5 is the
   only nit). Executor arms `execute.rs:584-831`; `BLAKE2S` arm 779–812; filler loop 353–410;
-  deferred `DEREF` 884–901; `κ_mem` 914–920. Tables `tables.rs:436-908`; `BLAKE2S` flushes
-  890–907 and addresses 373–386; `FlushBuilder` 126–183; `TOWER_LANES` 44–49; `jump_identity`
-  63–78. Boundary blocks `layout.rs:355-395`; slot packing 252–290; count blocks 410–412. Cell
-  packing `hash_flock.rs:117-139, 162-185`; the compression `flock/src/hash.rs:191-231` with
-  constants in `primitives/src/hash.rs:19-62`. No checked-in fixtures; no textual bytecode
-  format. Smallest executor tests: `mul_192bit_word` (`cpu/mod.rs:985`),
-  `blake2s_computes_the_compression` (`:889`), `blake2s_self_hash_aliased_operands` (`:933`),
-  `blake2s_requires_zero_third_limb` (`:919`). The executor bodies were read while writing the
-  roadmap; Layer 3 must still be authored from §2 first and diffed afterwards. Layer 0 cites
+  deferred `DEREF` 884–901; `κ_mem` 914–920; public-input seeding 173–177; `as_addr` 36–40.
+  Tables `tables.rs:436-908`; `BLAKE2S` flushes 890–907 and addresses 373–386; `FlushBuilder`
+  126–183; `TOWER_LANES` 44–49; `jump_identity` 63–78; opcode constants 95–100. Caps
+  `cpu/mod.rs:51-64`, checked in `read_public` at 158–166, with the third-limb rejection at
+  139–143. ISA `cpu/isa.rs:6-66`. Boundary blocks `layout.rs:355-395`; slot packing 252–290;
+  count blocks 410–412. Cell packing `hash_flock.rs:117-139, 162-185`; the compression
+  `flock/src/hash.rs:191-231` with constants in `primitives/src/hash.rs:19-62`. BLAKE2S floor:
+  `filler.rs:43` (`MIN_ROWS`) and `crates/flock/src/hash.rs:283-286` (`min_n_blocks_log`,
+  `max(8)`). No checked-in fixtures; no textual bytecode format. Smallest executor tests:
+  `mul_192bit_word` (`cpu/mod.rs:985`), `blake2s_computes_the_compression` (`:893`),
+  `blake2s_self_hash_aliased_operands` (`:938`), `blake2s_requires_zero_third_limb` (`:922`).
+  The executor bodies were read while writing the roadmap and, for Layer 2, its seeding and
+  address decoding were read before `Memory.lean` was written (recorded in its docstring);
+  Layer 3 must still be authored from §2 first and diffed afterwards. Layer 0 cites
   `gf2_64.rs:19-22` (bit encoding), `:28` (`F64::G`), and `python-verifier/verifier.py:177`
   (`E.__repr__`), `:182` (`GEN`).
 - **CompPoly**: the working checkout `../CompPoly` (`40bac6e4`) is byte-identical to the pin on
   every field module. No generator, no order lemma, no `IsScalarTower`, no `{1, y, y²}` basis
-  (Layer 0 adds `E.eq_sum_limbs`); the MLE representation (`CMlPolynomialEval`,
-  `eqPolynomial`) exists, sumcheck does not. Every CompPoly file is a `module` with
-  `@[expose] public section`; P1 is inherited from core, not from CompPoly's own exposure.
-  `Ext P` is a `def` over `Vector F P.d`; `Ext.ofVector`, `Ext.coeff`, `Ext.ext` and
-  `Ext.coeff_ofFn` are the API Layer 0 wraps.
+  (Layer 0 adds `E.eq_sum_limbs`); no multiply-by-`x` lemma on `BF64` (a runnable carrier, if
+  ever built, could use one); the MLE representation (`CMlPolynomialEval`, `eqPolynomial`)
+  exists, sumcheck does not. Every CompPoly file is a `module` with `@[expose] public section`;
+  P1 is inherited from core, not from CompPoly's own exposure. `Ext P` is a `def` over
+  `Vector F P.d`; `Ext.ofVector`, `Ext.coeff`, `Ext.ext` and `Ext.coeff_ofFn` are the API
+  Layer 0 wraps.
 - **Clean**: surveyed at `93c9d1ef` on an extracted tree: `Clean/Utils/FiniteField`,
   `Clean/Circuit/{Channel,Formal,Operations,Lookup}`, all of `Clean/Air/`,
   `Clean/Examples/{FemtoCairo,FibonacciWithChannels}`, `Clean/Utils/OfflineMemory`. Exactly
@@ -262,10 +329,12 @@ Kept so the searches are not repeated.
   `maxRecDepth` on every large power. Layer 1: the kernel decides one BLAKE2s compression in
   about a second (`decide +kernel`); the elaborator's `decide` manages one in about three
   seconds and exhausts its recursion budget on `CompressCells`; the Layer 1 test module builds
-  in under a minute. A git worktree has no `.lake/`; symlinking or copying `.lake/packages`
-  from the main checkout reuses the built dependencies. On a fresh checkout
-  `lake build --wfail` fails at `CompPoly:extraDep`: CompPoly's `preferReleaseBuild` finds no
-  release tag at `3468b38c` and warns. CI and `validate.sh` therefore build without `--wfail`
-  and with Lake's caches enabled, and CI fetches Mathlib's oleans with `lake exe cache get`
-  before building; without them the job compiled Mathlib from source and hit its time limit
-  (`docs/dependencies.md`).
+  in under a minute. Layer 2: each production module builds in one to two seconds, each test
+  module in one to three; the `g + 1` non-power check by `fin_cases` and `decide +kernel` at
+  `κ = 2` is within that (the former scan to `g^4000` at `κ = 16` was a fifth of a second).
+  A git worktree has no `.lake/`; symlinking or copying `.lake/packages` from the main checkout
+  reuses the built dependencies. On a fresh checkout `lake build --wfail` fails at
+  `CompPoly:extraDep`: CompPoly's `preferReleaseBuild` finds no release tag at `3468b38c` and
+  warns. CI and `validate.sh` therefore build without `--wfail` and with Lake's caches enabled,
+  and CI fetches Mathlib's oleans with `lake exe cache get` before building; without them the
+  job compiled Mathlib from source and hit its time limit (`docs/dependencies.md`).

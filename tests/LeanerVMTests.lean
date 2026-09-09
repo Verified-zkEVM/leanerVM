@@ -4,6 +4,9 @@ import LeanerVMTests.Parameters.CleanField
 import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Semantics.Blake2s
+import LeanerVMTests.Parameters.Isa
+import LeanerVMTests.Semantics.Instruction
+import LeanerVMTests.Semantics.Memory
 
 /-!
 # leanerVM test aggregate
