@@ -4,6 +4,9 @@ import LeanerVM.Parameters.Blake2s
 import LeanerVM.Parameters.CleanField
 import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
+import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
+import LeanerVM.Semantics.Instruction
+import LeanerVM.Semantics.Memory
