@@ -313,11 +313,12 @@ structure Program where
   logSize_le : logSize ≤ maxLogBytecode
   code : Fin (2 ^ logSize) → Instr
 
-def MemImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
-def gLog? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ))
-theorem gLog?_spec (hκ : κ ≤ maxLogMem) : gLog? κ a = some i ↔ a = gpow i
-def MemImage.read (L : MemImage κ) (a : K) : Option E := (gLog? κ a).map L
-def Program.fetch (prog : Program) (pc : K) : Option Instr := (gLog? prog.logSize pc).map prog.code
+abbrev MemImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
+noncomputable def gLog? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ))   -- `Classical.choose` of `∃ i, a = gpow i`
+theorem gLog?_spec (hκ : κ < 64) : gLog? κ a = some i ↔ a = gpow i   -- `2^κ ≤ orderOf g`
+theorem gLog?_gpow_eq_none (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 1) : gLog? κ (gpow j) = none
+noncomputable def MemImage.read (L : MemImage κ) (a : K) : Option E := (gLog? κ a).map L
+noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr := (gLog? prog.logSize pc).map prog.code
 
 structure PublicInput where
   lanes : Fin 4 → K
@@ -327,8 +328,13 @@ theorem PublicInput.words_injective : Function.Injective fun p ↦ (p.word0, p.w
 theorem Opcode.code_injective : Function.Injective Opcode.code
 ```
 
-`gLog?` is the bounded discrete logarithm, the one non-field computation in the semantics; it is
-trusted through `gLog?_spec` only, and its table implementation is never unfolded elsewhere.
+`gLog?` is the bounded discrete logarithm, stated by choice rather than computed: it is
+`noncomputable`, so `MemImage.read`, `Program.fetch`, and Layer 3's `step` are specifications
+that cannot be run, and the cost of a discrete logarithm never enters the semantics. It is
+trusted through `gLog?_spec` only, whose hypothesis both caps satisfy, and its body is not
+exposed, so it is never unfolded elsewhere. A computable carrier for running executions, if one
+is ever wanted, is separate later work bridged to this specification, in the shape CompPoly uses
+for its fields; nothing in this roadmap depends on it.
 
 ### Layer 3: the step function and valid executions
 
@@ -390,10 +396,12 @@ def Trace.regs (t : Trace prog) : List Regs
 ```
 
 Values are read and compared, never computed into memory, so a table row's correspondence with
-a step is a `simp`. `ValidExecution` is decidable on concrete inputs. Tests: the Rust executor
-test `mul_192bit_word` (`cpu/mod.rs:985`) as a `ValidExecution` by `decide`; a taken `JUMP`; a
-`DEREF` in `pc` mode; an out-of-range address giving `step = none`; a `JUMP` with `c = 0` and
-`d ∉ K` giving `none`.
+a step is a `simp`. `ValidExecution` is a specification, not a program: `gLog?` is
+noncomputable, so a concrete execution is a proof that unfolds `run` through
+`Program.fetch_gpow`, `MemImage.read_gpow`, and each step's equality on literal words. Tests:
+the Rust executor test `mul_192bit_word` (`cpu/mod.rs:985`) as a `ValidExecution` proved that
+way; a taken `JUMP`; a `DEREF` in `pc` mode; an out-of-range address giving `step = none`
+(`gLog?_gpow_eq_none`); a `JUMP` with `c = 0` and `d ∉ K` giving `none`.
 
 ### Layer 4: the bytecode encoding
 
@@ -677,7 +685,8 @@ Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  IsInK  IsCanonical128  instFi
                   iv  sigma
 Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   DerefMode  Instr  Program  Program.fetch
-                  MemImage  gLog?  gLog?_spec  MemImage.read  PublicInput  word0  word1
+                  MemImage  gLog?  gLog?_spec  gLog?_gpow_eq_none  MemImage.read
+                  PublicInput  word0  word1
                   Regs  derefSource  step  run  Trace  HasPublicBoundary  ValidExecution
 Arithmetization:  encodeSlots  entry  decode  decode_entry
                   StateMsg  MemMsg  BytecodeMsg
