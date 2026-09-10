@@ -345,63 +345,96 @@ specification §2 before the Rust executor is opened.
 structure Regs where
   pc : K
   fp : K
+instance : DecidableEq Regs        -- by hand, field by field; never derived (status finding E5)
 def Regs.next (r : Regs) : Regs := ⟨g * r.pc, r.fp⟩
 def derefSource : DerefMode → Regs → E → E
   | .cell, _, v3 => v3
   | .pc, r, _ => ofK (g ^ 2 * r.pc)
   | .fp, r, _ => ofK r.fp
 
-/-- One step over the fixed image `L` (specification §2, "execute inst"). -/
-def step (prog : Program) (L : MemImage κ) (r : Regs) : Option Regs := do
-  match ← prog.fetch r.pc with
-  | .xor oA oB oC =>
+/-- Execute one instruction from `r` over the fixed image `L` (specification §2, "execute inst"). -/
+noncomputable def execute (L : MemImage κ) (r : Regs) : Instr → Option Regs
+  | .xor oA oB oC => do
       let vA ← L.read (r.fp * oA); let vB ← L.read (r.fp * oB); let vC ← L.read (r.fp * oC)
       guard (vC = vA + vB); pure r.next
-  | .mulNative oA oB oC =>
+  | .mulNative oA oB oC => do
       let vA ← L.read (r.fp * oA); let vB ← L.read (r.fp * oB); let vC ← L.read (r.fp * oC)
       guard (vC = vA * vB); pure r.next
-  | .setConstant o k =>
+  | .setConstant o k => do
       let v ← L.read (r.fp * o)
       guard (v = k); pure r.next
-  | .deref o1 o2 o3 mode =>
+  | .deref o1 o2 o3 mode => do
       let p ← L.read (r.fp * o1)
       guard (IsInK p)
       let v3 ← L.read (r.fp * o3)
       let v2 ← L.read (p.limb 0 * o2)
       guard (v2 = derefSource mode r v3); pure r.next
-  | .jump oc od of =>
+  | .jump oc od of => do
       let c ← L.read (r.fp * oc); let d ← L.read (r.fp * od); let f ← L.read (r.fp * of)
       guard (IsInK c ∧ IsInK d ∧ IsInK f)
       pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
-  | .blake2s om ocv oout omd =>
-      let m ← (List.finRange 4).mapM fun i ↦ L.read (r.fp * om i)
-      let cv0 ← L.read (r.fp * ocv);  let cv1 ← L.read (r.fp * g * ocv)
-      let out0 ← L.read (r.fp * oout); let out1 ← L.read (r.fp * g * oout)
+  | .blake2s om ocv oout omd => do
+      let m0 ← L.read (r.fp * om 0); let m1 ← L.read (r.fp * om 1)
+      let m2 ← L.read (r.fp * om 2); let m3 ← L.read (r.fp * om 3)
+      let cv0 ← L.read (r.fp * ocv);  let cv1 ← L.read (r.fp * (g * ocv))
+      let out0 ← L.read (r.fp * oout); let out1 ← L.read (r.fp * (g * oout))
       let md ← L.read (r.fp * omd)
-      guard (CompressCells m cv0 cv1 out0 out1 md); pure r.next
+      guard (CompressCells ![m0, m1, m2, m3] cv0 cv1 out0 out1 md); pure r.next
+
+/-- One step: fetch the instruction at `pc`, then execute it (§2, loop steps 1–2). -/
+noncomputable def step (prog : Program) (L : MemImage κ) (r : Regs) : Option Regs :=
+  prog.fetch r.pc >>= execute L r
+theorem step_of_fetch_eq_some (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins
 
 def Regs.initial : Regs := ⟨1, 1⟩
-def Regs.final (prog : Program) : Regs := ⟨gpow (2 ^ prog.logSize - 1), 1⟩
-def run (prog : Program) (L : MemImage κ) : ℕ → Regs → Option Regs
+def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
+def Regs.final (prog : Program) : Regs := ⟨prog.finalPc, 1⟩
+/-- `n` steps, testing for the sentinel before each fetch; `none` from a state at the sentinel. -/
+noncomputable def run (prog : Program) (L : MemImage κ) : ℕ → Regs → Option Regs
+  | 0, r => some r
+  | n + 1, r => if r.pc = prog.finalPc then none else step prog L r >>= run prog L n
+theorem run_add (m n : ℕ) (r : Regs) : run prog L (m + n) r = run prog L m r >>= run prog L n
+theorem run_intermediate (h : run prog L n r = some r') (hm : m < n) :
+    ∃ r₁, run prog L m r = some r₁ ∧ r₁.pc ≠ prog.finalPc
 
 structure Trace (prog : Program) where
   κ : ℕ
   image : MemImage κ
   steps : ℕ
 def HasPublicBoundary (input : PublicInput) (t : Trace prog) : Prop :=
-  minLogMem ≤ t.κ ∧ t.κ ≤ maxLogMem ∧ t.image ⟨0, _⟩ = input.word0 ∧ t.image ⟨1, _⟩ = input.word1
+  minLogMem ≤ t.κ ∧ t.κ ≤ maxLogMem ∧
+    t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
 def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
   HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
-def Trace.regs (t : Trace prog) : List Regs
+noncomputable def Trace.regs (t : Trace prog) : List Regs      -- `r_0, …, r_steps`, by `run`
+theorem Trace.regs_length (h : run prog t.image t.steps Regs.initial = some r) :
+    t.regs.length = t.steps + 1
 ```
 
-Values are read and compared, never computed into memory, so a table row's correspondence with
-a step is a `simp`. `ValidExecution` is a specification, not a program: `gLog?` is
-noncomputable, so a concrete execution is a proof that unfolds `run` through
-`Program.fetch_gpow`, `MemImage.read_gpow`, and each step's equality on literal words. Tests:
-the Rust executor test `mul_192bit_word` (`cpu/mod.rs:985`) as a `ValidExecution` proved that
-way; a taken `JUMP`; a `DEREF` in `pc` mode; an out-of-range address giving `step = none`
-(`gLog?_gpow_eq_none`); a `JUMP` with `c = 0` and `d ∉ K` giving `none`.
+`step` is fetch then `execute`, so a table row's correspondence with a step is
+`step_of_fetch_eq_some` and the unfolding of one arm of `execute`; values are read and
+compared, never computed into memory. The halting test lives in `run`, before the fetch: a
+state at the sentinel counter `finalPc` steps to `none` whatever fuel remains, so
+`run n initial = some final` says that exactly `n` instructions ran, none of them the sentinel
+(acceptance test 5, `run_intermediate`), and `Regs.final` fixes `fp = 1` at the end (test 4).
+`step` itself does not test for the sentinel: a table row may sit at that counter, and its
+`Spec` must still hold. `HasPublicBoundary` states the two public words through
+`MemImage.read` at `g^0` and `g^1`, the spelling of §2, which needs no index proof.
+
+`ValidExecution` is a specification, not a program: `gLog?` is noncomputable, so a concrete
+execution is a proof that peels `run` one step at a time (`run_succ_of_ne`), rewrites each
+fetch and read through `Program.fetch_gpow` and `MemImage.read_gpow` at a literal index, and
+decides the step's relation on literal words in the kernel, from a plain test file (status
+finding P1). Tests: the Rust executor test `mul_192bit_word` (`cpu/mod.rs:985`, operands and
+product dumped by `scripts/dump-mul-rust.sh`) as a `ValidExecution` proved that way, with its
+fourth step refused; the `BLAKE2S` row of `blake2s_computes_the_compression` on the Layer 1
+cells, accepted, and rejected with a non-canonical output cell (test 12); the empty execution
+of `N_prog = 1`; a taken `JUMP` and a `JUMP` not taken; a `DEREF` in `pc` mode; an out-of-range
+address, the address `0`, and a counter past the bytecode giving `step = none`
+(`gLog?_gpow_eq_none`, `MemImage.read_zero`); a `DEREF` in `pc` mode whose local cell is out of
+range giving `none` (test 6); a `JUMP` with `c = 0` and `d ∉ K` giving `none` (test 7); and a
+`JUMP` into the sentinel with `fp ← g`, which no number of steps makes a `ValidExecution`
+(test 4).
 
 ### Layer 4: the bytecode encoding
 
@@ -693,7 +726,9 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   DerefMode  Instr  Program  Program.fetch
                   MemImage  gLog?  gLog?_spec  gLog?_gpow_eq_none  MemImage.read
                   PublicInput  word0  word1
-                  Regs  derefSource  step  run  Trace  HasPublicBoundary  ValidExecution
+                  Regs  Regs.next  derefSource  execute  step  step_of_fetch_eq_some
+                  Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
+                  Trace  Trace.regs  HasPublicBoundary  ValidExecution
 Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
                   StateMsg  MemMsg  BytecodeMsg
                   StatePull  StatePush  MemPull  MemPush  BytecodePull  BytecodePush
@@ -748,12 +783,12 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
   layer checklist, links to the pull request that landed each layer, and the frontier. It links
   to this document and to the status file at `main`, holds nothing that is not in them, and is
   updated when the status file is. Where the issue and the files disagree, the files win.
-- **To claim work**, open an issue titled `[Intention]: leanISA — Layer N: …` listing the exact
+- **To claim work**, open an issue titled `[Intention]: leanISA Layer N: …` listing the exact
   targets taken (declaration names from the layer), so the rest stays open, and link it from
   #4. One layer, or a slice of one, per intention. Close it with the pull request that lands the
   slice.
 - **To report a problem with this roadmap** — a wrong or unclear target, a source discrepancy, a
-  missing prerequisite — open an issue titled `[Roadmap]: leanISA — …` naming the layer and the
+  missing prerequisite — open an issue titled `[Roadmap]: leanISA: …` naming the layer and the
   acceptance test or convention it touches. Durable source discrepancies are also recorded in
   [leanvm-target.md](../leanvm-target.md).
 - **To change this document**, open a pull request that edits it, titled `docs(leanisa): …`,

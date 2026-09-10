@@ -22,6 +22,14 @@ the kernel can reduce an equality of vectors there (finding L1): state such chec
 lists through `Vector.toList_inj`, and give production predicates over vectors a `Decidable`
 instance that compares lists, as `CompressCells` does in `LeanerVM/Semantics/Blake2s.lean`.
 
+A kernel check of an equality on a structure over `K` or `E` goes through that structure's
+`DecidableEq` instance, and a *derived* instance decides its later fields under `h ▸` for the
+earlier ones, which makes the kernel compare two field values symbolically instead of
+evaluating them (finding E5): `decide +kernel` on `⟨g * 1, 1⟩ = ⟨g ^ 1, 1⟩` never returns
+under a derived instance. Production structures that kernel proofs compare carry a
+hand-written `decidable_of_iff` instance (`Regs`), and an `E` equality is decided only against
+a word in `E.ofLimbs` form, as `tests/LeanerVMTests/Semantics/Execution.lean` does.
+
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,
 traces, encodings, and rejection behavior as each surface becomes available. Optimized native,
