@@ -150,8 +150,10 @@ whose bit encoding disagrees with `BF64` and is never used.
 | --- | --- |
 | `FiniteField F` (`Clean/Utils/FiniteField.lean`) | The field interface every Clean object is generic over. Layer 0 supplies the `K` instance; Clean's core never consumes `val` or `size`, only the witness-IR bridge does, and for a 64-bit field its `UInt64` truncation is the identity. |
 | `GeneralFormalCircuit F Input Output` with `Assumptions`, `Spec`, `ProverAssumptions`, `ProverSpec`, `soundness`, `completeness` (`Clean/Circuit/Formal.lean`) | One per table and per boundary block. Soundness: constraints plus the guarantees of pulled tuples imply `Spec` and the requirements of pushed tuples. Completeness: an honest row satisfies the constraints. |
-| `assertZero`, `witness`, `Channel.emit` (`Clean/Circuit/Basic.lean`, `Channel.lean`) | Constraints, prover-supplied columns, and bus tuples inside a component's `main`. |
+| `assertZero`, `witness`, `Channel.pull`, `Channel.push` (`Clean/Circuit/Basic.lean:112-145`) | Constraints, prover-supplied columns, and bus tuples inside a component's `main`. `pull` is the one emitter whose interaction a soundness proof may assume the channel's guarantee of (`assumeGuarantees := true`, multiplicity `-1`); `push` has multiplicity `1` and assumes nothing; `emit` assumes nothing at any multiplicity and is not used. |
 | `Channel F Message` with `name` and `Guarantees (message) (data : ProverData F)` (`Clean/Circuit/Channel.lean:9`) | A bus interaction in one direction. `Guarantees` is what a pull may assume; the memory and bytecode pulls state it against the committed image and the public program, and the state pull assumes nothing (acceptance test 21). |
+| `ProverData F` (`Clean/Circuit/Expression.lean:21`) | The string-keyed store of prover tables a component's `Spec` sees, `String → (n : ℕ) → Array (Vector F n)`; the image is its `"mem"` table and the program its `"bytecode"` table (Layer 5). |
+| `ProvableStruct`, its deriving handler (`Clean/Utils/Tactics/ProvableStructDeriving.lean`), `toElements` (`Clean/Circuit/Provable.lean`) | Typed messages as flat element vectors: `toElements` lists the fields in declaration order, a `Vector F n` field as its `n` elements in place. |
 | `Air.Flat.Component`, `Air.Flat.Table` (`Clean/Air/FlatComponent.lean`) | A component is one row circuit checked independently on every row, with no adjacent-row access; a table is its rows. |
 | `Air.Flat.Ensemble`, `EnsembleWitness`, `EnsembleWitness.Constraints` (`Clean/Air/FlatEnsemble.lean`) | The multi-table carrier and "every component's constraints hold on every row, lookups included". Consumed unchanged. |
 | `ConstraintsHold.Soundness`, `Operations.Requirements` (`Clean/Circuit/Operations.lean`) | The shape of per-component soundness: interaction guarantees are hypotheses, requirements are conclusions. |
@@ -166,9 +168,11 @@ deletion:
 | `Channel.toRaw` grants `Guarantees` when `mult = -1` and demands `Requirements` when `mult ∉ {-1, 0}` | `1 = -1` in `K`: a push is granted the guarantee it should establish, and requirements are vacuous | direction read from an explicit tag on the interaction, independent of the multiplicity's sign |
 | `BalancedInteractions`: `length < ringChar F ∨ ringChar F = 0` and `∀ msg, balanceOf = 0` with `balanceOf` a sum in `F` | `ringChar K = 2` admits at most one interaction, and a field sum cannot count | balance as multiset equality of pushed and pulled messages, counted in `ℕ`, with no characteristic condition |
 
-Until Clean supplies both, each interaction is a *pair* of channels (pull, push) emitted with
-multiplicity `1`, so guarantees attach only to pulls and pushes are constrained by `Spec`; and
-balance is the three-line `BalancedPair` of Layer 8. The ensemble theorems
+Until Clean supplies both, each interaction is a *pair* of channels (pull, push), emitted through
+`Channel.pull` on the pull channel and `Channel.push` on the push channel, whose multiplicities
+`-1` and `1` coincide in `K`, so every interaction has multiplicity `1`, guarantees attach only
+to pulls, and pushes are constrained by `Spec`; and balance is the three-line `BalancedPair` of
+Layer 8. The ensemble theorems
 `addVm_soundVmChannel_of_soundChannels` (`Clean/Air/Vm.lean:703`) and the `SoundChannels`
 machinery (`Clean/Air/OrderedChannel.lean`) are the Layer 9 consumers once the change lands;
 Clean issue [#452](https://github.com/Verified-zkEVM/clean/issues/452) is the tracker for the
@@ -479,8 +483,17 @@ structure MemMsg (F : Type) where (addr count : F) (v : Vector F 3)
 structure BytecodeMsg (F : Type) where (pc count opcode : F) (op : Vector F 7)
 -- each `deriving ProvableStruct`
 
+def memDataName : String := "mem"                -- the image: one row of three limbs per word
+def bytecodeDataName : String := "bytecode"      -- the program: one eight-coordinate entry per slot
+/-- `κ` is the floor logarithm of the `"mem"` row count; a missing row reads as `0`. -/
 def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ
+/-- `logSize` is the floor logarithm of the `"bytecode"` row count, capped at `maxLogBytecode`;
+a missing row, or one that decodes to nothing, is `XOR 0 0 0`, whose first read fails. -/
 def programOf (data : ProverData K) : Program
+theorem imageOf_apply (h : (i : ℕ) < (data memDataName 3).size) :
+    (imageOf data).2 i = E.ofLimbs (data memDataName 3)[i][0] (…)[i][1] (…)[i][2]
+theorem programOf_code (h : (i : ℕ) < (data bytecodeDataName 8).size)
+    (hd : decode (data bytecodeDataName 8)[i] = some ins) : (programOf data).code i = ins
 
 def StatePull : Channel K StateMsg := { name := "st.pull", Guarantees := fun _ _ ↦ True }
 def MemPull : Channel K MemMsg where
@@ -488,26 +501,30 @@ def MemPull : Channel K MemMsg where
   Guarantees m data := (imageOf data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
 def BytecodePull : Channel K BytecodeMsg where
   name := "bc.pull"
-  Guarantees b data := (programOf data).fetch b.pc = decode (b.opcode ::ᵥ b.op)
+  Guarantees b data := (programOf data).fetch b.pc = decode (#v[b.opcode] ++ b.op)
 def StatePush    : Channel K StateMsg    := { name := "st.push",  Guarantees := fun _ _ ↦ True }
 def MemPush      : Channel K MemMsg      := { name := "mem.push", Guarantees := fun _ _ ↦ True }
 def BytecodePush : Channel K BytecodeMsg := { name := "bc.push",  Guarantees := fun _ _ ↦ True }
 
 def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit K Unit := do
-  MemPull.emit 1 ⟨addr, count, v⟩
-  MemPush.emit 1 ⟨addr, const g * count, v⟩
-def bytecodeRead … : Circuit K Unit
+  MemPull.pull ⟨addr, count, v⟩
+  MemPush.push ⟨addr, const g * count, v⟩
+def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 7) :
+    Circuit K Unit                                -- likewise: pull, then push with `g · count`
 
 inductive Direction | pull | push
-def channelDir : RawChannel K → Direction        -- `*.pull ↦ .pull`, `*.push ↦ .push`
-def channelSep : RawChannel K → K                -- `st ↦ g^0`, `mem ↦ g^1`, `bc ↦ g^2` (§5.1)
+def channelDir : RawChannel K → Direction        -- `*.pull ↦ .pull`, every other channel `.push`
+def channelSep : RawChannel K → K                -- `st ↦ g^0`, `mem ↦ g^1`, `bc ↦ g^2` (§5.1); `0` else
 /-- The sixteen-slot bus tuple of a message on a channel: the separator, then the message's
 elements in the specification's order, then zeros (§5.1). -/
 def busTuple (c : RawChannel K) (msg : List K) : Vector K 16
-theorem stateMsg_toElements (s : StateMsg K) : toElements s = [s.pc, s.fp]              -- §6.1
-theorem memMsg_toElements (m : MemMsg K) : toElements m = [m.addr, m.count] ++ m.v.toList -- §6.2
+theorem busTuple_getElem (hj : j < 16) :
+    (busTuple c msg)[j] = if j = 0 then channelSep c else msg.getD (j - 1) 0
+theorem stateMsg_toElements (s : StateMsg K) : (toElements s).toList = [s.pc, s.fp]       -- §6.1
+theorem memMsg_toElements (m : MemMsg K) :                                                 -- §6.2
+    (toElements m).toList = [m.addr, m.count] ++ m.v.toList
 theorem bytecodeMsg_toElements (b : BytecodeMsg K) :                                       -- §6.4
-    toElements b = [b.pc, b.count, b.opcode] ++ b.op.toList
+    (toElements b).toList = [b.pc, b.count, b.opcode] ++ b.op.toList
 ```
 
 A pulled memory tuple is a correct read and a pulled bytecode tuple is the fetched instruction:
@@ -518,6 +535,14 @@ state channel yields is the walk decomposition of Layer 9, and a table's `Spec` 
 reachability. Pushes carry no guarantee; what a push must satisfy is the emitting component's
 `Spec`.
 
+The two read gadgets emit through `Channel.pull` and `Channel.push`, not `Channel.emit`: only
+`pull` marks its interaction as one whose guarantee a soundness proof may assume, and its
+multiplicity `-1` is `1` in `K`, so every interaction of Layers 6 and 7 has multiplicity `1` and
+the direction is the channel (acceptance test 13). The image and the program are read off
+Clean's `ProverData`, the string-keyed store a component's `Spec` sees, from its `"mem"` and
+`"bytecode"` tables; Layer 8's hypotheses `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`
+tie them to the committed rows until Clean PR #446 supplies proof-committed data.
+
 Each channel also names its bus data, so that the proof-system roadmap
 ([#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)) reads the M3 bus off these channels
 instead of transcribing the tuples a second time: `channelSep` is the domain separator of
@@ -526,7 +551,10 @@ multiplicity's sign (acceptance test 13), and `busTuple` the sixteen-slot tuple 
 three `toElements` lemmas pin the element order of the typed messages to the specification's
 tuple order, which is also the coordinate order of `tables.rs` (issue
 [#13](https://github.com/Verified-zkEVM/leanerVM/issues/13)). Tests: the six channels' separators
-and directions, and the three element orders on literal messages.
+and directions, the three element orders on literal messages and their sixteen-slot tuples, the
+two gadgets' interaction lists, a correct and a wrong memory read against `MemPull.Guarantees`
+on a two-row prover data, and the three facts of acceptance tests 13 and 14 about Clean's
+`toRaw` and `BalancedInteractions` over `K`, as theorems.
 
 ### Layer 6: the six opcode tables
 
@@ -820,7 +848,7 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   StatePull  StatePush  MemPull  MemPush  BytecodePull  BytecodePush
                   memRead  bytecodeRead
                   Direction  channelDir  channelSep  busTuple
-                  imageOf  programOf
+                  memDataName  bytecodeDataName  imageOf  programOf
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
                   memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
                   BalancedPair

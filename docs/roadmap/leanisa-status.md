@@ -1,15 +1,18 @@
 # Status: leanISA semantics and M3 constraints
 
-This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of `main` at
-`2a84f9b` (Layer 3, PR #11, merged 2026-09-10) together with the review of Layers 0 to 4 and the
-decisions taken with it on 2026-09-10 (findings F4, F6; decisions 2, 6, 7, 8, 9). It is a
+This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 5
+(PR #PRNUM, a draft on top of `main` at `4b95a60`, the review of Layers 0 to 4 merged 2026-09-10),
+together with the finding that PR records against Clean's bus (C10, below) and the upstream
+request it files ([#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)). It is a
 hand-maintained snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap
 is the authority on what is wanted, and the tracking issue
 [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
 
 ## Where this roadmap stands
 
-**At a glance.** Layers 0, 1, 2, 3 and 4 are landed and reviewed. `LeanerVM/Parameters/Field.lean`
+**At a glance.** Layers 0, 1, 2, 3 and 4 are landed and reviewed; Layer 5 is built, fully proved,
+and held as a draft pull request (PR #PRNUM) until Clean's bus supports binary fields (C10,
+[#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)). `LeanerVM/Parameters/Field.lean`
 and `LeanerVM/Parameters/Generator.lean` define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`,
 `IsInK`, `IsCanonical128`, `g`, and `gpow`, and prove `orderOf_g` and `gpow_injOn` from the seven
 `decide +kernel` checks; Clean's `FiniteField K` instance is `instFiniteFieldK` in the plain file
@@ -34,14 +37,22 @@ tests 2–7 and 12, and exhibits the `JUMP` sentinel of acceptance test 20.
 `LeanerVM/Arithmetization/Bytecode.lean` defines `derefFlags`, the bus entry `entry`, the sixteen
 slots `encodeSlots`, and the decoder `decode` (with `opcode?` and `derefMode?`), and proves
 `decode_entry`, `decode_eq_some_iff` (the decoder is the exact inverse of the entry),
-`entry_injective`, and `encodeSlots_getElem`. `./scripts/validate.sh` is green, the axiom closure of
-every declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled
-in CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are
-plain (finding C8, now the roadmap's module-system convention); kernel-`decide` over `E` arithmetic
-works from plain files but not from `module`s (P1); a derived `DecidableEq` on a `K`-valued
-structure does not decide in the kernel (E5, new with Layer 3); `lake test` builds the test library
-because no executable may link the field module (P3). `Bytecode.lean` is the first non-empty
-Arithmetization module; it imports no Clean and is a `module`.
+`entry_injective`, and `encodeSlots_getElem`. `LeanerVM/Arithmetization/Channels.lean`, the first
+Clean-consuming production file and therefore plain, defines the three typed messages `StateMsg`,
+`MemMsg`, `BytecodeMsg` (`deriving ProvableStruct`), the prover-data tables `memDataName` and
+`bytecodeDataName` with `imageOf` and `programOf`, the six channels `StatePull` … `BytecodePush`
+(guarantees on the memory and bytecode pulls only), the gadgets `memRead` and `bytecodeRead`
+(`Channel.pull` then `Channel.push`, the count advanced by `g`), and the bus data `Direction`,
+`channelDir`, `channelSep`, `busTuple`; it proves the three `toElements` lemmas,
+`busTuple_getElem`, `imageOf_apply`, and `programOf_code`. `./scripts/validate.sh` is green, the
+axiom closure of every declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom
+audit is enabled in CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the
+aggregates are plain (finding C8, now the roadmap's module-system convention); kernel-`decide` over
+`E` arithmetic works from plain files but not from `module`s (P1); a derived `DecidableEq` on a
+`K`-valued structure does not decide in the kernel (E5, new with Layer 3); `lake test` builds the
+test library because no executable may link the field module (P3). `Bytecode.lean` imports no
+Clean and is a `module`; `Channels.lean` is the plain boundary the roadmap's module-system
+convention places at the first Clean import.
 
 ### Roadmap coverage
 
@@ -52,7 +63,7 @@ Arithmetization module; it imports no Clean and is a `module`.
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4, settled); unchanged by F6, whose hypothesis sits on Layer 10 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
-| 5 — channels | open; needs Layers 3 and 4 (landed); consumes Clean | plain files (C8); `Spec`s unfold `execute` through `step_of_fetch_eq_some`; the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8) |
+| 5 — channels | built and proved; draft PR #PRNUM, held until Clean's bus supports binary fields (C10) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name |
 | 6 — six tables | untouched; consumes Clean | plain files (C8); row tests are kernel checks against `E.ofLimbs` words (E5) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
@@ -61,6 +72,47 @@ Arithmetization module; it imports no Clean and is a `module`.
 
 ### The frontier
 
+- **Layer 5 is built as PR #PRNUM** (`feat(arithmetization): leanISA Layer 5: bus channels`), a
+  draft. Its reading list is `LeanerVM/Arithmetization/Channels.lean`,
+  `tests/LeanerVMTests/Arithmetization/Channels.lean`, and the roadmap's Layer 5 section, which
+  shows the built shapes. Every Layer 5 target of the roadmap is present and proved; nothing in
+  the layer is vacuous, and the tests state, as theorems, the three facts about Clean's bus over
+  `K` that the roadmap's channel pairs work around (C10). The roadmap's sketch was adjusted in
+  five places, each written into the roadmap:
+  - `memRead` and `bytecodeRead` emit through `Channel.pull` and `Channel.push`, not
+    `Channel.emit 1`: `emit` builds its interaction with `assumeGuarantees := false`
+    (`Clean/Circuit/Basic.lean:124-127`), so a Layer 6 soundness proof could never assume the
+    memory or bytecode guarantee of its own pull; `pull` sets the flag and multiplicity `-1`,
+    which is `1` in `K` (`Basic.lean:130-133`), and `push` sets multiplicity `1`. Every
+    interaction thus has multiplicity `1` and the direction is the channel (acceptance test 13).
+  - The three `toElements` lemmas are stated on `(toElements m).toList`, the list form, since
+    `toElements` returns a `Vector K (size M)` whose length is a `combinedSize'` term.
+  - `BytecodePull.Guarantees` writes the entry as `#v[b.opcode] ++ b.op`; core's `Vector` has no
+    `::ᵥ`.
+  - `imageOf` and `programOf` are given bodies: the `"mem"` and `"bytecode"` tables of Clean's
+    `ProverData` (`String → (n : ℕ) → Array (Vector F n)`), log-size the floor logarithm of the
+    row count (`Nat.log 2`), `programOf` capped at `maxLogBytecode`; a missing word is `0` and a
+    missing or undecodable instruction is `XOR 0 0 0`, whose first read is at address `0` and
+    fails. `imageOf_apply` and `programOf_code` are their specifications, and the two table
+    names are interface declarations (`memDataName`, `bytecodeDataName`).
+  - `channelSep` returns `0`, which is no separator (`gpow_ne_zero`), on a channel that is none
+    of the six, and `channelDir` returns `.push` there; both read the channel's `name`.
+  Held as a draft: the rule set for this layer is that a collision with Clean's characteristic-2
+  bus keeps the work out of `main` until Clean supports binary fields
+  ([#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)); the collision is
+  real in Clean's raw channels and balance (C10), though Layer 5's own statements do not
+  depend on it.
+- **Clean's bus over `K`, exhibited** (C10, 2026-09-10, with Layer 5). Three facts are now
+  kernel-checked theorems in `tests/LeanerVMTests/Arithmetization/Channels.lean`: `(-1 : K) = 1`;
+  `MemPull.toRaw.Guarantees 1 v data ↔ MemPull.Guarantees (fromElements v) data`, so
+  `Channel.toRaw` grants the typed guarantee at the multiplicity of a push, and
+  `MemPull.toRaw.Requirements m v data` holds for `m ∈ {0, 1}`, so every requirement of every
+  interaction a component emits is vacuous; and `¬ BalancedInteractions (i :: j :: rest)` for
+  any two interactions, since `ringChar K = 2`. Layer 5 is stated so as not to depend on any of
+  the three; Layers 6 and 7 route push obligations through `Spec`, Layer 8 balances through
+  `BalancedPair`, and Layer 9 is blocked on the Clean change of the roadmap's dependency table,
+  now requested upstream through
+  [#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM).
 - **Layers 0 to 4 were reviewed on 2026-09-10** (the `leanerVM-review` skill's three passes on
   `main` at `2a84f9b`, every changed module read in full, the pinned sources read first for the
   Category B content). Specification pass: every theorem inhabited, every load-bearing condition
@@ -187,10 +239,10 @@ Arithmetization module; it imports no Clean and is a `module`.
   equality is decided on its word list. The Layer 3 fixtures are therefore a plain test file
   (decision 4, settled), where the kernel sees every body; the Layer 6 per-table row tests can
   also use compiled evaluation (`#guard` under `meta import`).
-- **Layer 5** can start now: it needs Layers 3 and 4, both landed, consumes
-  `step_of_fetch_eq_some` and the arms of `execute` for its `Spec`s, and is the first
-  Clean-consuming, plain, file; its state pull carries no guarantee (decision 7) and its
-  channels carry their bus data (decision 8).
+- **Layer 6** can start on the draft: it needs Layer 5's channels and gadgets, consumes
+  `step_of_fetch_eq_some` and the arms of `execute` for its `Spec`s, assumes the memory and
+  bytecode guarantees through `Channel.pull`'s interactions, and must state every push
+  obligation in `Spec`, since Clean's `Requirements` are vacuous over `K` (C10).
 - **The Rust vectors.** Layer 1's (`blake2s_computes_the_compression`) is reproduced by
   `scripts/dump-blake2s-rust.sh`; Layer 3's (`mul_192bit_word`, `cpu/mod.rs:981-998`) by
   `scripts/dump-mul-rust.sh`, whose product CompPoly reproduces in the kernel
@@ -198,9 +250,11 @@ Arithmetization module; it imports no Clean and is a `module`.
   cells; they are copied into the Layer 3 test file because the Layer 1 test module does not
   export them.
 - **Clean's bus** is the remaining external item for Layers 9–10. The contract is stated in the
-  roadmap's dependency table; no upstream issue exists yet for the direction tag, and Clean
-  [#452](https://github.com/Verified-zkEVM/clean/issues/452) covers only the side-condition
-  half of the balance change. Filing the combined request is the first action of the docs stage.
+  roadmap's dependency table; Clean [#452](https://github.com/Verified-zkEVM/clean/issues/452)
+  covers only the side-condition half of the balance change, and the combined request (direction
+  tag plus `ℕ`-counted multiset balance, with the kernel-checked exhibits of C10) is tracked here
+  as [#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM), whose action is a
+  pull request to Clean.
 - **Clean PR [#446](https://github.com/Verified-zkEVM/clean/pull/446)** removes the three named
   hypotheses of Layer 8 when it lands; until then they stay in `SatisfiedBy`.
 
@@ -302,7 +356,17 @@ index (Layer 8 hypothesis; PR #446). C4 `ProverData` is untied from committed co
 hypotheses; PR #446). C5 no degree bound on `Expression`. C6 no prover-chosen heights. C7 the
 channel-based VM example (`FibonacciWithChannels.lean`) installs `Fact (ringChar F ≠ 2)`, and
 `FemtoCairo` is `InductiveTable`-based with prime-field address arithmetic; both are proof-style
-templates only. **C8 Clean does not use Lean's module system**: no file under `Clean/` is a
+templates only. **C10 Clean's raw channels and balance are degenerate over `K`** (2026-09-10,
+Layer 5): `Channel.toRaw` (`Clean/Circuit/Channel.lean:35-45`) grants `Guarantees` at `mult = -1`
+and demands `Requirements` at `mult ∉ {-1, 0}`, and `Channel.emit` (`Clean/Circuit/Basic.lean:124`)
+never sets `assumeGuarantees`; over `K`, `-1 = 1`, so a push-multiplicity interaction is granted
+the guarantee and every requirement holds, and `BalancedInteractions` (`Clean/Air/Balance.lean:24`)
+requires `length < ringChar F = 2`, and `Normal`, `Consistent`, and the VM-channel theorems
+(`Balance.lean:193-260, 292, 551`; `Clean/Air/Vm.lean:703, 859`) carry `[Fact (ringChar F ≠ 2)]`.
+Kernel-checked in `tests/LeanerVMTests/Arithmetization/Channels.lean`;
+worked around by the channel pairs, `Channel.pull`/`Channel.push`, `Spec`-side push obligations,
+and `BalancedPair`; removed by the Clean change of the roadmap's dependency table (#ISSUENUM).
+**C8 Clean does not use Lean's module system**: no file under `Clean/` is a
 `module`, and `Lean.Environment.importModulesCore` in `v4.33.1` throws
 ``cannot import non-`module` Clean.Utils.FiniteField from `module` `` for any `import` or
 `public import` from a `module` file. Settled 2026-09-08 by the roadmap's module-system
@@ -484,7 +548,16 @@ Kept so the searches are not repeated.
   `lake env lean` on growing prefixes with a per-run timeout. Layer 4: the production module
   builds in about three seconds and the test module in two; `decode` on a literal vector and a
   slot read decide in the kernel from a `module` test file, since they touch only `K` equality
-  and vector indexing (L1).
+  and vector indexing (L1). Layer 5: the production file builds in about three seconds and the
+  test file in two; `deriving ProvableStruct` needs `Clean.Utils.Tactics.ProvableStructDeriving`
+  imported (it is not reached through `Clean.Circuit.Basic`); a `Vector`-field message's
+  `toElements` is rewritten to its append form with `change` and then `Vector.toList_append` by
+  `rw` (a `simp` set does not fire on the `combinedSize'`-indexed appends); the channels are
+  computable even though `MemPull.Guarantees` mentions the noncomputable `MemImage.read`, since a
+  `Prop`-valued field is erased; a prover-data fixture that matches on table *names* exhausts
+  the elaborator's `decide` on the string comparison, and so does unifying an indexed row with an
+  `entry`, so the kernel-decided fixture matches on arity, the name-sensitive one is checked by
+  `#guard`, and the decoded row is a `decide +kernel` fact.
   A git worktree has no `.lake/`; symlinking or copying `.lake/packages` from the main checkout
   reuses the built dependencies. On a fresh checkout `lake build --wfail` fails at
   `CompPoly:extraDep`: CompPoly's `preferReleaseBuild` finds no release tag at `3468b38c` and
