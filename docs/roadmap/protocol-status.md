@@ -155,6 +155,9 @@ Read the rows of your hole before starting it; whoever bumps a pin rewrites this
 | VCVio #784 | merged 2026-09-24 | K3, P7 | query-budget and product-relation controls (#29, #30) | done |
 | leanth #16 at `23929f8c` (private) | — | L1, G1, G3, G4 | port sources, per the catalog | never as code; derived material carries its notice |
 
+The earlier leanVM-a formalization holds port sources for A1, A2, A3 and A6; they are listed per
+ledger item in [leanth-reuse.md](leanth-reuse.md#upstream-candidates).
+
 ## Decisions pending
 
 Decision 1 was taken with #13, and decision 3 with revision 2 (blueprint convention *Seams*: the
@@ -420,6 +423,14 @@ Kept so the searches are not repeated.
 - **VCVio** at `f9dc47d9` (through ArkLib): `SampleableType` (`OracleComp/Constructions/
   SampleableType.lean:44`), `SampleableType.ofEquiv`, instances for `Fin n`, `Vector α n`,
   `BitVec n`.
+- **leanth** (private, pull request #16, branch `leanth-project` at `23929f8c`; audit branch
+  `scaraven/leanth-project-audit`): surveyed 2026-09-10 in eight clusters, every load-bearing
+  declaration read with its proof; the result is [leanth-reuse.md](leanth-reuse.md). Its
+  security framework is on `PMF`, not ArkLib (only `ProtocolSpec` and `CommitmentScheme.Basic`
+  are imported); its cube indexing is big-endian in `Shift`, `Stacking` and `Residual` and
+  little-endian elsewhere; no `sorry`, no axiom, extraction by `Classical.choose`; the
+  production WHIR pins are refuted on the audit branch. ArkLib at `dca90385` has no
+  `ProofSystem/Whir/` directory (ledger A7 confirmed).
 - **Environment**: `lake update Arklib` cloned Arklib, VCVio, PolyFun, loom2, cslib, leansqlite,
   UnicodeBasic, BibtexQuery, MD4Lean, doc-gen4 and checkdecls and ran Mathlib's cache hook
   (no download; the same revision). The first build of the OracleReduction cone compiled

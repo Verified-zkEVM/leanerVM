@@ -135,4 +135,7 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   upstream ledger; tracked in issue #12.
 - [`docs/roadmap/protocol-status.md`](docs/roadmap/protocol-status.md) — where the proof-system
   roadmap stands; rewritten whole when a layer lands.
+- [`docs/roadmap/leanth-reuse.md`](docs/roadmap/leanth-reuse.md) — what the earlier leanVM-a
+  formalization contains that the proof-system roadmap reuses, with the credit convention for
+  derived material.
 - [`bench/README.md`](bench/README.md) — benchmark scope and interpretation.
