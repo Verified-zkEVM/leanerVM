@@ -22,5 +22,11 @@
     "tracking": "branch",
     "ref": "main",
     "commit": "93c9d1ef45be9f687214625d7857889cf2485504"
+  },
+  "ArkLib": {
+    "repository": "Verified-zkEVM/ArkLib",
+    "tracking": "branch",
+    "ref": "main",
+    "commit": "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
   }
 }

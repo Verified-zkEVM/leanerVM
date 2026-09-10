@@ -6,6 +6,7 @@ import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Parameters.Isa
+import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 
