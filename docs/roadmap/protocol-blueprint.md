@@ -138,6 +138,12 @@ ArkLib
 [`dca90385`](https://github.com/Verified-zkEVM/ArkLib/commit/dca90385fb40dd5eb8da9145da6348ed17f5cd8b),
 CompPoly `3468b38c`, Clean `93c9d1ef`, VCVio `f9dc47d9` (through ArkLib), Lean `v4.33.1`.
 
+**Prior work.** The earlier formalization of leanVM-a (the pre-leanISA design) in the private
+repository `leanth` is surveyed in [leanth-reuse.md](leanth-reuse.md), layer by layer: what is
+ported, what is a port source for a ledger item, what is only a pattern, and what is dropped and
+why. Issues cite that page, never the private tree; derived material carries the credit line and
+co-author trailers it prescribes.
+
 ### The leanVM specification and implementation
 
 Two kinds of source, with opposite disciplines (the authoring skill `lean-spec-authoring` sets
@@ -328,7 +334,8 @@ answers `evalMle` on a two-variable table, on and off the cube, with a mutated c
 
 ### Layer 1: hypercube tables, stacking, the index and bytecode columns
 
-`LeanerVM/Protocol/Multilinear.lean` (generic), `LeanerVM/Protocol/Stack.lean` (leanVM).
+`LeanerVM/Protocol/Multilinear.lean` and `LeanerVM/Protocol/Stacking.lean` (generic),
+`LeanerVM/Protocol/Stack.lean` (leanVM).
 
 ```lean
 structure Column (n : ℕ) where values : CMlPolynomialEval K n     -- Layer 0; not an abbreviation
