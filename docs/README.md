@@ -23,6 +23,9 @@ This directory contains stable project and operating knowledge.
   - [protocol-status.md](roadmap/protocol-status.md): where the proof-system roadmap stands —
     layer coverage, the frontier, the upstream ledger, pending decisions, open findings, and the
     survey record.
+  - [leanth-reuse.md](roadmap/leanth-reuse.md): what the earlier leanVM-a formalization
+    (private repository `leanth`) contains that the proof-system roadmap reuses — the catalog by
+    layer, verdicts, credit, the port log, and the upstream candidates.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

@@ -20,7 +20,7 @@ rest in the survey record.
 | Layer | Status | Notes |
 | --- | --- | --- |
 | 0 — ArkLib dependency, field instances | built, awaiting review | `Protocol/Field.lean`: `Column` (a structure, see the frontier), `instSampleableTypeK/E`, `card_E`, `evalOracle`; axiom closure `propext, Classical.choice, Quot.sound` |
-| 1 — tables, stacking, index and bytecode columns | open | independent of leanISA |
+| 1 — tables, stacking, index and bytecode columns | generic half built (draft), awaiting review | `Protocol/Multilinear.lean`, `Protocol/Stacking.lean`: cube sums, the eq table, slices, back-loaded padding, aligned stacking and `stack_eval`, ported from leanth ([leanth-reuse.md](leanth-reuse.md)); `Stack.lean` (`Column` blocks, `stack_eval_pad`, `idxColumn`, `bytecodeColumn`) open |
 | 2 — Clean components as polynomials | open | independent of leanISA; Clean upstream candidate |
 | 3 — the M3 instance | open; needs leanISA Layers 5–8 | two `[Roadmap]: leanISA` requests filed (#13) |
 | 4 — virtual sumcheck and batching | open | ArkLib ledger A1, A6 |
@@ -78,6 +78,9 @@ and the issue or pull request once opened. Drafted titles are in quotes.
 | C1 `Expression.toMvPolynomial`, `degreeBound` | 2 | write here, upstream to Clean | to open on Clean |
 | C2 power-of-two heights, bus separator data | 3 | leanISA `Caps` and channels | leanerVM #13 |
 
+The earlier leanVM-a formalization holds port sources for A1, A2, A3 and A6; they are listed per
+ledger item in [leanth-reuse.md](leanth-reuse.md#upstream-candidates).
+
 ## Decisions pending
 
 Confirm before Layer 3 or Layer 10 is opened:
@@ -92,7 +95,10 @@ Confirm before Layer 3 or Layer 10 is opened:
 3. **Where the zerocheck error is charged.** Layer 7 charges the "`C̃(ζ) = 0` implies `C` vanishes
    on the cube" step to Layer 6's challenges (where `ζ` is drawn). The alternative is a separate
    `ReduceClaim`-shaped phase between Layers 6 and 7 whose only content is that implication; it
-   is cleaner to audit and costs one more composition. Decide at Layer 7.
+   is cleaner to audit and costs one more composition. Decide at Layer 7. The leanVM-a proof
+   charges the recycled point once for the whole family (one violated constraint suffices,
+   [leanth-reuse.md](leanth-reuse.md#layer-7-the-table-sumcheck-phase)); the roadmap's
+   per-constraint `τ_max/|E|` is an over-estimate to tighten then.
 4. **Generic code location.** `LeanerVM/Protocol/Generic/` until the ArkLib pull request merges
    (convention *Generic code*), versus developing directly on an ArkLib branch and pinning
    leanerVM to that branch's commit. The former keeps CI green on one pin; the latter avoids a
@@ -224,6 +230,14 @@ Kept so the searches are not repeated (2026-09-10).
 - **VCVio** at `f9dc47d9` (through ArkLib): `SampleableType` (`OracleComp/Constructions/
   SampleableType.lean:44`), `SampleableType.ofEquiv`, instances for `Fin n`, `Vector α n`,
   `BitVec n`.
+- **leanth** (private, pull request #16, branch `leanth-project` at `23929f8c`; audit branch
+  `scaraven/leanth-project-audit`): surveyed 2026-09-10 in eight clusters, every load-bearing
+  declaration read with its proof; the result is [leanth-reuse.md](leanth-reuse.md). Its
+  security framework is on `PMF`, not ArkLib (only `ProtocolSpec` and `CommitmentScheme.Basic`
+  are imported); its cube indexing is big-endian in `Shift`, `Stacking` and `Residual` and
+  little-endian elsewhere; no `sorry`, no axiom, extraction by `Classical.choose`; the
+  production WHIR pins are refuted on the audit branch. ArkLib at `dca90385` has no
+  `ProofSystem/Whir/` directory (ledger A7 confirmed).
 - **Environment**: `lake update Arklib` cloned Arklib, VCVio, PolyFun, loom2, cslib, leansqlite,
   UnicodeBasic, BibtexQuery, MD4Lean, doc-gen4 and checkdecls and ran Mathlib's cache hook
   (no download; the same revision). The first build of the OracleReduction cone compiled
