@@ -1,9 +1,9 @@
 # Status: leanISA semantics and M3 constraints
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 5
-(PR #PRNUM, a draft on top of `main` at `4b95a60`, the review of Layers 0 to 4 merged 2026-09-10),
+(PR #17, a draft on top of `main` at `4b95a60`, the review of Layers 0 to 4 merged 2026-09-10),
 together with the finding that PR records against Clean's bus (C10, below) and the upstream
-request it files ([#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)). It is a
+request it files ([#16](https://github.com/Verified-zkEVM/leanerVM/issues/16)). It is a
 hand-maintained snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap
 is the authority on what is wanted, and the tracking issue
 [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
@@ -11,8 +11,8 @@ is the authority on what is wanted, and the tracking issue
 ## Where this roadmap stands
 
 **At a glance.** Layers 0, 1, 2, 3 and 4 are landed and reviewed; Layer 5 is built, fully proved,
-and held as a draft pull request (PR #PRNUM) until Clean's bus supports binary fields (C10,
-[#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)). `LeanerVM/Parameters/Field.lean`
+and held as a draft pull request (PR #17) until Clean's bus supports binary fields (C10,
+[#16](https://github.com/Verified-zkEVM/leanerVM/issues/16)). `LeanerVM/Parameters/Field.lean`
 and `LeanerVM/Parameters/Generator.lean` define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`,
 `IsInK`, `IsCanonical128`, `g`, and `gpow`, and prove `orderOf_g` and `gpow_injOn` from the seven
 `decide +kernel` checks; Clean's `FiniteField K` instance is `instFiniteFieldK` in the plain file
@@ -63,7 +63,7 @@ convention places at the first Clean import.
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4, settled); unchanged by F6, whose hypothesis sits on Layer 10 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
-| 5 — channels | built and proved; draft PR #PRNUM, held until Clean's bus supports binary fields (C10) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name |
+| 5 — channels | built and proved; draft PR #17, held until Clean's bus supports binary fields (C10) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name |
 | 6 — six tables | untouched; consumes Clean | plain files (C8); row tests are kernel checks against `E.ofLimbs` words (E5) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
@@ -72,7 +72,7 @@ convention places at the first Clean import.
 
 ### The frontier
 
-- **Layer 5 is built as PR #PRNUM** (`feat(arithmetization): leanISA Layer 5: bus channels`), a
+- **Layer 5 is built as PR #17** (`feat(arithmetization): leanISA Layer 5: bus channels`), a
   draft. Its reading list is `LeanerVM/Arithmetization/Channels.lean`,
   `tests/LeanerVMTests/Arithmetization/Channels.lean`, and the roadmap's Layer 5 section, which
   shows the built shapes. Every Layer 5 target of the roadmap is present and proved; nothing in
@@ -99,7 +99,7 @@ convention places at the first Clean import.
     of the six, and `channelDir` returns `.push` there; both read the channel's `name`.
   Held as a draft: the rule set for this layer is that a collision with Clean's characteristic-2
   bus keeps the work out of `main` until Clean supports binary fields
-  ([#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM)); the collision is
+  ([#16](https://github.com/Verified-zkEVM/leanerVM/issues/16)); the collision is
   real in Clean's raw channels and balance (C10), though Layer 5's own statements do not
   depend on it.
 - **Clean's bus over `K`, exhibited** (C10, 2026-09-10, with Layer 5). Three facts are now
@@ -112,7 +112,7 @@ convention places at the first Clean import.
   the three; Layers 6 and 7 route push obligations through `Spec`, Layer 8 balances through
   `BalancedPair`, and Layer 9 is blocked on the Clean change of the roadmap's dependency table,
   now requested upstream through
-  [#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM).
+  [#16](https://github.com/Verified-zkEVM/leanerVM/issues/16).
 - **Layers 0 to 4 were reviewed on 2026-09-10** (the `leanerVM-review` skill's three passes on
   `main` at `2a84f9b`, every changed module read in full, the pinned sources read first for the
   Category B content). Specification pass: every theorem inhabited, every load-bearing condition
@@ -253,7 +253,7 @@ convention places at the first Clean import.
   roadmap's dependency table; Clean [#452](https://github.com/Verified-zkEVM/clean/issues/452)
   covers only the side-condition half of the balance change, and the combined request (direction
   tag plus `ℕ`-counted multiset balance, with the kernel-checked exhibits of C10) is tracked here
-  as [#ISSUENUM](https://github.com/Verified-zkEVM/leanerVM/issues/ISSUENUM), whose action is a
+  as [#16](https://github.com/Verified-zkEVM/leanerVM/issues/16), whose action is a
   pull request to Clean.
 - **Clean PR [#446](https://github.com/Verified-zkEVM/clean/pull/446)** removes the three named
   hypotheses of Layer 8 when it lands; until then they stay in `SatisfiedBy`.
@@ -365,7 +365,7 @@ requires `length < ringChar F = 2`, and `Normal`, `Consistent`, and the VM-chann
 (`Balance.lean:193-260, 292, 551`; `Clean/Air/Vm.lean:703, 859`) carry `[Fact (ringChar F ≠ 2)]`.
 Kernel-checked in `tests/LeanerVMTests/Arithmetization/Channels.lean`;
 worked around by the channel pairs, `Channel.pull`/`Channel.push`, `Spec`-side push obligations,
-and `BalancedPair`; removed by the Clean change of the roadmap's dependency table (#ISSUENUM).
+and `BalancedPair`; removed by the Clean change of the roadmap's dependency table (#16).
 **C8 Clean does not use Lean's module system**: no file under `Clean/` is a
 `module`, and `Lean.Environment.importModulesCore` in `v4.33.1` throws
 ``cannot import non-`module` Clean.Utils.FiniteField from `module` `` for any `import` or
