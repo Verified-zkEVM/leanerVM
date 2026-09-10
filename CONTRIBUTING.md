@@ -37,7 +37,9 @@ The pull request description should include:
 
 Use the title form `type(scope): subject`, where `type` is normally `feat`, `fix`,
 `docs`, `refactor`, `test`, `perf`, `ci`, or `chore`. Use imperative lower-case wording
-without a trailing full stop.
+without a trailing full stop. Commit subjects, pull-request titles, and issue titles use plain
+ASCII punctuation: no em dashes or en dashes. Separate a qualifier from the subject with a
+colon or a comma (`feat(semantics): leanISA Layer 3: step and valid executions`).
 
 ## Lean files and modules
 

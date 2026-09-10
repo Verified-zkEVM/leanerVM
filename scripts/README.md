@@ -23,6 +23,9 @@
 - `dump-blake2s-rust.sh <leanVM checkout>`: reproduces the BLAKE2S opcode cells of the pinned
   leanVM executor test `blake2s_computes_the_compression` through the executor's own
   `hash_flock` functions; requires `cargo` and a checkout at the pinned commit.
+- `dump-mul-rust.sh <leanVM checkout>`: reproduces the operands and the `E` product of the
+  pinned leanVM executor test `mul_192bit_word` through the executor's own `F192` arithmetic,
+  as the words of `tests/LeanerVMTests/Semantics/Execution.lean`; same requirements.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.
