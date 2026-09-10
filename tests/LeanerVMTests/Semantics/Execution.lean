@@ -12,8 +12,9 @@ decision 4). Nothing here evaluates `gLog?`: every fetch and read is `Program.fe
 Fixtures: the executor test `mul_192bit_word` (`crates/lean_vm/src/cpu/mod.rs:981-998` at the
 pin, operands and product reproduced by `scripts/dump-mul-rust.sh`) as a `ValidExecution`; the
 `BLAKE2S` row of `blake2s_computes_the_compression` (`cpu/mod.rs:855-917`) on the cells of
-`scripts/dump-blake2s-rust.sh`; a taken `JUMP`; a `DEREF` in `pc` mode; and the rejections of
-roadmap acceptance tests 2–7 and 12.
+`scripts/dump-blake2s-rust.sh`; a taken `JUMP`; a `DEREF` in `pc` mode; the rejections of
+roadmap acceptance tests 2–7 and 12; and the `JUMP` sentinel of acceptance test 20, whose two
+rows are steps that chain to the final registers while `run` never reaches them.
 -/
 
 namespace LeanerVMTests.Semantics.Execution
@@ -328,5 +329,52 @@ example : step (oneStep blakeIns)
   show execute (blakeImage _) ⟨1, 1⟩ blakeIns = _
   rw [blake_reads]
   decide +kernel
+
+/-! ## A `JUMP` sentinel (acceptance test 20) -/
+
+/-- `haltProg` with a `JUMP` in the sentinel slot. Read in frame `fp = g`, its operands `g` and
+`g^13` name cells `2` and `14`: `c = 1`, `d = g` (the sentinel), `f = 1`. -/
+def jumpSentinelProg : Program :=
+  ⟨1, by decide, ![.jump (gpow 2) (gpow 14) (gpow 14), .jump g (gpow 13) g]⟩
+
+/-- Row 1: `(1, 1)` jumps to the sentinel counter with `fp = g`. -/
+theorem jumpSentinel_row1 : step jumpSentinelProg ctlImage Regs.initial = some ⟨g, g⟩ := by
+  rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
+  show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 14) (gpow 14)) = _
+  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
+  decide +kernel
+
+/-- Row 2, at the sentinel counter: `(g, g)` jumps to the final registers `(g, 1)`. -/
+theorem jumpSentinel_row2 :
+    step jumpSentinelProg ctlImage ⟨g, g⟩ = some (Regs.final jumpSentinelProg) := by
+  rw [step_of_fetch_eq_some (r := ⟨g, g⟩) (jumpSentinelProg.fetch_gpow 1)]
+  show execute ctlImage ⟨g, g⟩ (.jump g (gpow 13) g) = some ⟨gpow 1, 1⟩
+  have hgg : g * g = gpow 2 := (pow_two g).symm
+  simp only [execute, hgg, g_mul_gpow, read_lit ctlImage 2, read_lit ctlImage 14]
+  decide +kernel
+
+/-- The two rows are steps that chain from the initial to the final registers, which is all the
+state channel asks of them. -/
+example : (step jumpSentinelProg ctlImage Regs.initial >>= step jumpSentinelProg ctlImage) =
+    some (Regs.final jumpSentinelProg) := by
+  rw [jumpSentinel_row1, Option.bind_eq_bind, Option.bind_some, jumpSentinel_row2]
+
+/-- Yet `run` halts at `(g, g)`, so no step count is a `ValidExecution`: without
+`WellFormedBytecode`, constraint soundness would be false for this program. -/
+example :
+    ∀ n, run jumpSentinelProg ctlImage n Regs.initial ≠ some (Regs.final jumpSentinelProg) := by
+  intro n
+  match n with
+  | 0 => rw [run_zero]; decide +kernel
+  | 1 =>
+    rw [run_succ_of_ne (prog := jumpSentinelProg) (r := Regs.initial) (by decide +kernel) 0,
+      jumpSentinel_row1]
+    decide +kernel
+  | n + 2 =>
+    rw [show n + 2 = 2 + n by omega, run_add,
+      run_succ_of_ne (prog := jumpSentinelProg) (r := Regs.initial) (by decide +kernel) 1,
+      jumpSentinel_row1, Option.bind_eq_bind, Option.bind_some,
+      run_succ_of_eq (prog := jumpSentinelProg) (r := ⟨g, g⟩) (by decide +kernel) 0]
+    exact fun h ↦ Option.some_ne_none _ h.symm
 
 end LeanerVMTests.Semantics.Execution

@@ -18,9 +18,14 @@ formal verification of the relevant Rust code.
 
 ## Project status
 
-The project is in **Phase 0: repository baseline**. The Lean module boundaries, executable test
-driver, validation policy, CI, and dependency tracking are in place. VM semantics and proof
-claims have not landed yet.
+The repository baseline is in place: module boundaries, the test library, validation policy, CI
+with a kernel axiom audit, and dependency tracking. The first formalization effort, the leanISA
+roadmap ([`docs/roadmap/leanisa-blueprint.md`](docs/roadmap/leanisa-blueprint.md), issue #4),
+has landed its Layers 0 to 4: the fields and the generator, BLAKE2s compression and the cell
+encoding, instructions, the memory image and the public input, the step function and valid
+executions, and the bytecode encoding. The semantics is a specification (`step` and `run` are
+noncomputable); the M3 tables, the bus, and the two T1 theorems are the layers still to come,
+and no proof-system claim has landed.
 
 Recursive CTE is an open research problem: the intended knowledge-soundness arguments for the
 concrete inner SNARKs live in the random-oracle model, while the known outer recursion-topology
