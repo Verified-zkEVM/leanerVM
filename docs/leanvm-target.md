@@ -54,6 +54,12 @@ At the pinned revision:
 - `crates/lean_vm/src/cpu/isa.rs` and `cpu/execute.rs` implement the six opcodes and executable
   write-once-memory behavior. Prover-supplied values enter through initially unset cells and must
   be bound by later reads and checks.
+- The instruction tables of `doc/leanvm/body/07-instruction-tables.tex` place no condition on a
+  row's `pc`, so a bytecode whose sentinel slot `g^(N_prog - 1)` holds a `JUMP` admits accepted
+  walks that execute the sentinel, which §2 and `cpu/execute.rs` never do (the executor halts at
+  the first arrival and asserts `fp = 1`). leanISA's constraint soundness therefore carries a
+  well-formed-bytecode hypothesis (`WellFormedBytecode`, roadmap Layer 10); the compiler pads
+  the sentinel with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:162`), which satisfies it.
 - `doc/leanvm/body/05-arithmetization.tex` through `08-end-to-end-protocol.tex`, together with
   `crates/lean_vm/src/`, define the tables, bus, witness/proof pipeline, statement binding, and
   Rust prover and verifier.
@@ -107,7 +113,7 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | --- | --- | --- |
 | Guest functional correctness | zkDSL guest, Rust construction/API, positive and adversarial tests | T3: reviewed Lean guest specification and local postcondition; provisional T6 would supply recursive closure |
 | Guest-to-ISA compilation | Rust zkDSL compiler and compiler regression/soundness tests | T3: certified compiler or proof for the exact emitted aggregation bytecode |
-| ISA semantics | LaTeX specification and Rust interpreter | T1 prerequisite: pure Lean step/run semantics and source-revision correspondence |
+| ISA semantics | LaTeX specification and Rust interpreter; Lean `step`, `run`, and `ValidExecution` (`LeanerVM/Semantics/`) written from §2 and diffed arm by arm against `cpu/execute.rs` | T1 prerequisite: a formal correspondence boundary with the executor beyond the recorded diff |
 | Constraints imply ISA execution (CC-S) | Constraint/table implementation and design document | T1-S: refinement from every accepted assignment to an ISA trace |
 | ISA execution yields constraints (CC-C) | Rust trace construction and honest-prover path | T1-C: satisfying-assignment existence for every in-scope execution |
 | Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests | T2: concrete generated assignment satisfies constraints and projects to its execution |

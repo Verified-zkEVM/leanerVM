@@ -216,7 +216,11 @@ The public theorem ladder is:
    The advertised equivalence is therefore between valid ISA traces and constraint assignments
    projecting to those traces. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
    lookup, bytecode, memory, padding, and interaction-count results; none may remain as an
-   unlabelled axiom.
+   unlabelled axiom. Both directions are stated for well-formed programs: a named program-shape
+   hypothesis (`WellFormedBytecode` in the leanISA roadmap: the sentinel slot is not a `JUMP`,
+   and the fill blocks the prover pads tables with are present) is a hypothesis of each, since
+   the constraint system enforces neither and the compiled guest satisfies both;
+   [leanvm-target.md](leanvm-target.md) records why.
 
 2. **T2 — witness-generator correctness (`witnessGen_correct`).** Whenever the executable
    interpreter produces `trace` and witness generation succeeds, its concrete `assignment`
