@@ -15,6 +15,8 @@ import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Spine
+import LeanerVMTests.Protocol.Multilinear
+import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.RustExport

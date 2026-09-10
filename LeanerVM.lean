@@ -18,11 +18,13 @@ import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Multilinear
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
+import LeanerVM.Protocol.Stacking
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
