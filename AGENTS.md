@@ -63,7 +63,10 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   aggregate import in `LeanerVM.lean` exactly once.
 - Files are Lean `module`s unless they import Clean, which is not a `module` at the pinned
   revision, or a file that does; `CONTRIBUTING.md` places that boundary and says what changes
-  in a plain file.
+  in a plain file. ArkLib is a `module` library and may be imported from either kind of file.
+- ArkLib carries admitted theorems under its own baseline; a leanerVM declaration must not
+  depend on one (the kernel axiom audit rejects `sorryAx`). Check with `#print axioms` before
+  consuming an ArkLib theorem, and record what replaces an admitted one in the roadmap's ledger.
 - Do not add `axiom`, `sorry`, `admit`, `unsafe`, or `native_decide` to accepted first-party
   Lean code. Do not override repository-wide linter or implicit-variable options in source.
 - The first pull request that adds a production declaration must enable the prepared
@@ -127,4 +130,9 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   issue #4.
 - [`docs/roadmap/leanisa-status.md`](docs/roadmap/leanisa-status.md) — where the leanISA roadmap
   stands; rewritten whole when a layer lands.
+- [`docs/roadmap/protocol-blueprint.md`](docs/roadmap/protocol-blueprint.md) — proof-system
+  roadmap on ArkLib: the oracle protocol, its master theorems, the compiled verifier, the
+  upstream ledger; tracked in issue #12.
+- [`docs/roadmap/protocol-status.md`](docs/roadmap/protocol-status.md) — where the proof-system
+  roadmap stands; rewritten whole when a layer lands.
 - [`bench/README.md`](bench/README.md) — benchmark scope and interpretation.

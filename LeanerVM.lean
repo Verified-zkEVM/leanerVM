@@ -7,6 +7,7 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
+import LeanerVM.Protocol.Field
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
 import LeanerVM.Semantics.Execution

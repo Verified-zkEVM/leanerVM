@@ -1,6 +1,6 @@
 # Dependency policy
 
-The scaffold currently has four tracked upstreams and two Lake packages:
+The scaffold currently has five tracked upstreams and three Lake packages:
 
 | Component | Tracked ref | Role |
 | --- | --- | --- |
@@ -8,6 +8,7 @@ The scaffold currently has four tracked upstreams and two Lake packages:
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
 | CompPoly | `3468b38c8fd270f93f55a259220a8abc544e7437` | Computable polynomial and field infrastructure; Mathlib arrives through it |
 | Clean | `93c9d1ef45be9f687214625d7857889cf2485504` | Circuit, AIR, channel, and witness-generation infrastructure for the leanISA tables |
+| ArkLib | `dca90385fb40dd5eb8da9145da6348ed17f5cd8b` | Interactive oracle reductions, their security definitions and composition, sumcheck, multilinear theory; VCVio arrives through it |
 
 CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
 
@@ -17,8 +18,12 @@ CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
 - `E = GF(2^192)`: `CompPoly.Fields.Binary.BF64.Ext3`, the cubic extension `K[y]/(y^3 + y + 1)`
   on a `Vector BF64 3` carrier via `CompPoly.Fields.Extension`.
 
-It is pinned to a `main` commit because the `v4.33.1` tag predates these modules. ArkLib, when
-introduced, currently pins the tag; the two will need reconciling.
+It is pinned to a `main` commit because the `v4.33.1` tag predates these modules. ArkLib pins
+the tag (`a09455a2`, fifteen commits earlier); Lake resolves a package once, and the root's
+direct requirement wins, so ArkLib's CompPoly-facing modules (`ArkLib/ToCompPoly/`,
+`OracleInterface.lean`, a few `Data/` files) are compiled here against `3468b38c`. The diff
+between the two CompPoly revisions is additive on every declaration ArkLib imports; a CompPoly
+pin bump on either side must re-check that.
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
 Lake graph. The weekly drift workflow reports newer releases or commits but never rewrites
@@ -34,13 +39,23 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 4. audit the first-party namespace's transitive kernel dependencies; and
 5. record semantic changes separately from mechanical porting.
 
-Expected future Lake dependency roles are:
+ArkLib is pinned to `dca90385`, the commit that moved ArkLib to Lean's module system
+(PR #897), so every ArkLib file is a `module` and can be imported from `module` files here.
+Its Lake package name is `Arklib`, which is what the `[[require]]` must say. It brings VCVio
+(`f9dc47d9`), PolyFun (`c0c92369`, owned by VCVio), loom2, cslib and doc-gen4's dependencies
+into the manifest; its Mathlib is the same `0df444a3`, so the graph still has one Mathlib. Its
+first consumer is `LeanerVM/Protocol/Field.lean`, described in
+[roadmap/protocol-blueprint.md](roadmap/protocol-blueprint.md), whose dependency table lists
+every ArkLib declaration consumed and whose ledger lists the ArkLib theorems admitted at the pin
+that this repository must not depend on: the kernel axiom audit (`axiom-audit-root: LeanerVM`)
+rejects `sorryAx`, and ArkLib's `scripts/axiom_baseline.json` is an allowlist, not a proof.
+Building ArkLib's import cone loads its build-time lint plugin (`ArkLibLintPlugin:shared`) while
+elaborating each ArkLib module; a first `lake build` with several explicit targets was seen to
+schedule that plugin twice and fail one link, after which a second invocation proceeds
+(status finding E6).
 
-- ArkLib: generic proof systems and oracle reductions; and
-- VCVio: oracle computations and cryptographic security definitions.
-
-Do not add either merely because it is anticipated. Introduce each when the first module
-needs it.
+VCVio is not required directly: it arrives through ArkLib, and a direct requirement would be
+added only for a first-party consumer of a VCVio declaration that ArkLib does not re-export.
 
 CompPoly is pinned to `3468b38c`, an untagged commit fifteen commits after its `v4.33.1`
 release, because the computable `BF64` and `Ext3` fields are newer than the tag. CompPoly's

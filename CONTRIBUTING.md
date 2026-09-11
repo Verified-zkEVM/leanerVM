@@ -81,7 +81,9 @@ Keep that boundary as high in the import graph as the dependency allows. Today i
 `LeanerVM/Parameters/CleanField.lean`, the Clean-consuming modules of
 `LeanerVM/Arithmetization/`, the aggregate `LeanerVM.lean`, and the test aggregate; the
 `Parameters` and `Semantics` layers stay `module`s so that each other's modules can import
-them. In a plain file, `public import`, `public section`, and `@[expose]` are rejected and
+them. ArkLib (pinned at `dca90385`) is entirely a `module` library, so a file that imports
+ArkLib and not Clean stays a `module`; the `Protocol` layer's Clean-facing files (those consuming
+the leanISA relation) are plain, its generic components are `module`s. In a plain file, `public import`, `public section`, and `@[expose]` are rejected and
 unnecessary: every import is re-exported and every body is visible to importers. Keep the
 same header comment, module docstring, and section headings, and mark helpers `private`. A
 plain file also lets the kernel unfold definitions the module system hides from importers,

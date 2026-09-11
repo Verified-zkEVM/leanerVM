@@ -22,6 +22,15 @@ name = "Clean"
 git = "https://github.com/Verified-zkEVM/clean"
 rev = "93c9d1ef45be9f687214625d7857889cf2485504"
 
+# ArkLib's package name is `Arklib` (its lakefile), so the `require` must use that spelling. Its
+# own CompPoly requirement is the `v4.33.1` tag; the root pin above (`3468b38c`, needed for the
+# binary fields) wins the Lake resolution, and ArkLib's CompPoly-facing modules are rebuilt
+# against it. See docs/dependencies.md.
+[[require]]
+name = "Arklib"
+git = "https://github.com/Verified-zkEVM/ArkLib"
+rev = "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
+
 [[lean_lib]]
 name = "LeanerVM"
 

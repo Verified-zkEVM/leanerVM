@@ -16,6 +16,13 @@ This directory contains stable project and operating knowledge.
     interfaces.
   - [leanisa-status.md](roadmap/leanisa-status.md): where the leanISA roadmap stands — layer
     coverage, the frontier, pending decisions, open source findings, and the survey record.
+  - [protocol-blueprint.md](roadmap/protocol-blueprint.md): the proof-system roadmap on
+    ArkLib — scope, dependency contracts and the ArkLib ledger, pinned conventions, the fourteen
+    layers from the M3 relation to the executable verifier, acceptance tests, and public
+    interfaces.
+  - [protocol-status.md](roadmap/protocol-status.md): where the proof-system roadmap stands —
+    layer coverage, the frontier, the upstream ledger, pending decisions, open findings, and the
+    survey record.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
