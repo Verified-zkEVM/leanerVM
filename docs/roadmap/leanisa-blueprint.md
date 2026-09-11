@@ -199,7 +199,7 @@ proof-committed `ProverData`.
 | `K` inside `E` | `ofK a = a + 0·y + 0·y²`. "`x ∈ K`" means `x.limb 1 = 0 ∧ x.limb 2 = 0` (`IsInK`). A canonical 128-bit word has `x.limb 2 = 0` (`IsCanonical128`). |
 | Generator | `g = x = 0x2`, order `2^64 - 1`, certified by seven `decide +kernel` checks. Symbolic everywhere; the value appears once. |
 | Addresses | `K` elements. Logical index `i` has address `gpow i = g^i`; `0` is never an address; address `a` is valid for log-size `κ` iff `a = g^i` with `i < 2^κ`. |
-| Registers | `pc`, `fp` are `K` elements, never exponents. Initial `(1, 1)`; fall-through successor `(g·pc, fp)`; final `(g^(N_prog - 1), 1)`. |
+| Registers | `pc`, `fp` are `K` elements, never exponents. Initial `(1, 1)`; fall-through successor `(g·pc, fp)`; final `(g^(N_prog - 1), 1)`. One structure `Regs F`: `Regs K` is the machine's pair, `Regs (Expression K)` a row's state message. |
 | Operands | `K` elements, the g-powers `o = g^j`; `SET_CONSTANT`'s immediate is one `E` word. |
 | Memory | A committed image `MemImage κ = Fin (2^κ) → E`, total on its addresses. All nondeterminism is the image. |
 | Halting | Tested before each fetch; the sentinel slot `g^(N_prog - 1)` is never executed by the semantics; final `fp = 1` is required. The constraints let a `JUMP` sentinel execute (acceptance test 20), which `WellFormedBytecode` excludes. |
@@ -355,18 +355,20 @@ for its fields; nothing in this roadmap depends on it.
 specification §2 before the Rust executor is opened.
 
 ```lean
-structure Regs where
-  pc : K
-  fp : K
-instance : DecidableEq Regs        -- by hand, field by field; never derived (status finding E5)
-def Regs.next (r : Regs) : Regs := ⟨g * r.pc, r.fp⟩
-def derefSource : DerefMode → Regs → E → E
+/-- `Regs K` is the machine's register pair and `Regs (Expression K)` a table row's: one
+structure serves the semantics and the state channel (Layer 5). -/
+structure Regs (F : Type) where
+  pc : F
+  fp : F
+instance [DecidableEq F] : DecidableEq (Regs F)   -- by hand, field by field; never derived (E5)
+def Regs.next (r : Regs K) : Regs K := ⟨g * r.pc, r.fp⟩
+def derefSource : DerefMode → Regs K → E → E
   | .cell, _, v3 => v3
   | .pc, r, _ => ofK (g ^ 2 * r.pc)
   | .fp, r, _ => ofK r.fp
 
 /-- Execute one instruction from `r` over the fixed image `L` (specification §2, "execute inst"). -/
-noncomputable def execute (L : MemImage κ) (r : Regs) : Instr → Option Regs
+noncomputable def execute (L : MemImage κ) (r : Regs K) : Instr → Option (Regs K)
   | .xor oA oB oC => do
       let vA ← L.read (r.fp * oA); let vB ← L.read (r.fp * oB); let vC ← L.read (r.fp * oC)
       guard (vC = vA + vB); pure r.next
@@ -395,18 +397,18 @@ noncomputable def execute (L : MemImage κ) (r : Regs) : Instr → Option Regs
       guard (CompressCells ![m0, m1, m2, m3] cv0 cv1 out0 out1 md); pure r.next
 
 /-- One step: fetch the instruction at `pc`, then execute it (§2, loop steps 1–2). -/
-noncomputable def step (prog : Program) (L : MemImage κ) (r : Regs) : Option Regs :=
+noncomputable def step (prog : Program) (L : MemImage κ) (r : Regs K) : Option (Regs K) :=
   prog.fetch r.pc >>= execute L r
 theorem step_of_fetch_eq_some (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins
 
-def Regs.initial : Regs := ⟨1, 1⟩
+def Regs.initial : Regs K := ⟨1, 1⟩
 def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
-def Regs.final (prog : Program) : Regs := ⟨prog.finalPc, 1⟩
+def Regs.final (prog : Program) : Regs K := ⟨prog.finalPc, 1⟩
 /-- `n` steps, testing for the sentinel before each fetch; `none` from a state at the sentinel. -/
-noncomputable def run (prog : Program) (L : MemImage κ) : ℕ → Regs → Option Regs
+noncomputable def run (prog : Program) (L : MemImage κ) : ℕ → Regs K → Option (Regs K)
   | 0, r => some r
   | n + 1, r => if r.pc = prog.finalPc then none else step prog L r >>= run prog L n
-theorem run_add (m n : ℕ) (r : Regs) : run prog L (m + n) r = run prog L m r >>= run prog L n
+theorem run_add (m n : ℕ) (r : Regs K) : run prog L (m + n) r = run prog L m r >>= run prog L n
 theorem run_intermediate (h : run prog L n r = some r') (hm : m < n) :
     ∃ r₁, run prog L m r = some r₁ ∧ r₁.pc ≠ prog.finalPc
 
@@ -419,7 +421,7 @@ def HasPublicBoundary (input : PublicInput) (t : Trace prog) : Prop :=
     t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
 def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Prop :=
   HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
-noncomputable def Trace.regs (t : Trace prog) : List Regs      -- `r_0, …, r_steps`, by `run`
+noncomputable def Trace.regs (t : Trace prog) : List (Regs K)  -- `r_0, …, r_steps`, by `run`
 theorem Trace.regs_length (h : run prog t.image t.steps Regs.initial = some r) :
     t.regs.length = t.steps + 1
 ```
@@ -478,31 +480,42 @@ which `constraintCompleteness` needs.
 `LeanerVM/Arithmetization/Channels.lean`.
 
 ```lean
-structure StateMsg (F : Type) where (pc fp : F)
+deriving instance ProvableStruct for Regs        -- the state message is Layer 3's register pair
 structure MemMsg (F : Type) where (addr count : F) (v : Vector F 3)
 structure BytecodeMsg (F : Type) where (pc count opcode : F) (op : Vector F 7)
 -- each `deriving ProvableStruct`
 
 def memDataName : String := "mem"                -- the image: one row of three limbs per word
 def bytecodeDataName : String := "bytecode"      -- the program: one eight-coordinate entry per slot
-/-- `κ` is the floor logarithm of the `"mem"` row count; a missing row reads as `0`. -/
+def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
+def bytecodeRows (data : ProverData K) : Array (Vector K 8) := data bytecodeDataName 8
+/-- `κ` is the floor logarithm of the `"mem"` row count; a missing row reads as `0`, and rows at
+indices from `2^κ` on are dropped. -/
 def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ
 /-- `logSize` is the floor logarithm of the `"bytecode"` row count, capped at `maxLogBytecode`;
-a missing row, or one that decodes to nothing, is `XOR 0 0 0`, whose first read fails. -/
+a missing row, or one that decodes to nothing, is `XOR 0 0 0`, whose first read fails; rows at
+indices from `2^logSize` on are dropped. -/
 def programOf (data : ProverData K) : Program
-theorem imageOf_apply (h : (i : ℕ) < (data memDataName 3).size) :
-    (imageOf data).2 i = E.ofLimbs (data memDataName 3)[i][0] (…)[i][1] (…)[i][2]
-theorem programOf_code (h : (i : ℕ) < (data bytecodeDataName 8).size)
-    (hd : decode (data bytecodeDataName 8)[i] = some ins) : (programOf data).code i = ins
+/-- The shape under which nothing is dropped: each table's row count is exactly a power of two,
+the bytecode's within the cap. A conjunct of Layer 8's `Caps`. -/
+structure WellShapedData (data : ProverData K) : Prop where
+  memRows_size : (memRows data).size = 2 ^ (imageOf data).1
+  bytecodeRows_size : (bytecodeRows data).size = 2 ^ (programOf data).logSize
+theorem wellShapedData_iff : WellShapedData data ↔
+    (∃ κ, (memRows data).size = 2 ^ κ) ∧ ∃ k ≤ maxLogBytecode, (bytecodeRows data).size = 2 ^ k
+theorem imageOf_apply (h : WellShapedData data) (i) (hv : (memRows data)[i]'_ = v) :
+    (imageOf data).2 i = E.ofLimbs v[0] v[1] v[2]
+theorem programOf_code (h : WellShapedData data) (i) (hd : decode ((bytecodeRows data)[i]'_) = some ins) :
+    (programOf data).code i = ins
 
-def StatePull : Channel K StateMsg := { name := "st.pull", Guarantees := fun _ _ ↦ True }
+def StatePull : Channel K Regs := { name := "st.pull", Guarantees := fun _ _ ↦ True }
 def MemPull : Channel K MemMsg where
   name := "mem.pull"
   Guarantees m data := (imageOf data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
 def BytecodePull : Channel K BytecodeMsg where
   name := "bc.pull"
   Guarantees b data := (programOf data).fetch b.pc = decode (#v[b.opcode] ++ b.op)
-def StatePush    : Channel K StateMsg    := { name := "st.push",  Guarantees := fun _ _ ↦ True }
+def StatePush    : Channel K Regs        := { name := "st.push",  Guarantees := fun _ _ ↦ True }
 def MemPush      : Channel K MemMsg      := { name := "mem.push", Guarantees := fun _ _ ↦ True }
 def BytecodePush : Channel K BytecodeMsg := { name := "bc.push",  Guarantees := fun _ _ ↦ True }
 
@@ -512,7 +525,7 @@ def memRead (addr count : Expression K) (v : Vector (Expression K) 3) : Circuit 
 def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 7) :
     Circuit K Unit                                -- likewise: pull, then push with `g · count`
 
-inductive Direction | pull | push
+inductive Direction | pull | push               -- deleted for Clean's direction tag when it lands (#16)
 def channelDir : RawChannel K → Direction        -- `*.pull ↦ .pull`, every other channel `.push`
 def channelSep : RawChannel K → K                -- `st ↦ g^0`, `mem ↦ g^1`, `bc ↦ g^2` (§5.1); `0` else
 /-- The sixteen-slot bus tuple of a message on a channel: the separator, then the message's
@@ -520,7 +533,7 @@ elements in the specification's order, then zeros (§5.1). -/
 def busTuple (c : RawChannel K) (msg : List K) : Vector K 16
 theorem busTuple_getElem (hj : j < 16) :
     (busTuple c msg)[j] = if j = 0 then channelSep c else msg.getD (j - 1) 0
-theorem stateMsg_toElements (s : StateMsg K) : (toElements s).toList = [s.pc, s.fp]       -- §6.1
+theorem regs_toElements (s : Regs K) : (toElements s).toList = [s.pc, s.fp]               -- §6.1
 theorem memMsg_toElements (m : MemMsg K) :                                                 -- §6.2
     (toElements m).toList = [m.addr, m.count] ++ m.v.toList
 theorem bytecodeMsg_toElements (b : BytecodeMsg K) :                                       -- §6.4
@@ -538,10 +551,15 @@ reachability. Pushes carry no guarantee; what a push must satisfy is the emittin
 The two read gadgets emit through `Channel.pull` and `Channel.push`, not `Channel.emit`: only
 `pull` marks its interaction as one whose guarantee a soundness proof may assume, and its
 multiplicity `-1` is `1` in `K`, so every interaction of Layers 6 and 7 has multiplicity `1` and
-the direction is the channel (acceptance test 13). The image and the program are read off
-Clean's `ProverData`, the string-keyed store a component's `Spec` sees, from its `"mem"` and
-`"bytecode"` tables; Layer 8's hypotheses `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`
-tie them to the committed rows until Clean PR #446 supplies proof-committed data.
+the direction is the channel (acceptance test 13). The state message is Layer 3's `Regs`, made
+parametric in the field for that purpose, so that a pulled state and a register pair are one
+thing and Layer 9 chains pulled states into `run` without a conversion. The image and the
+program are read off Clean's `ProverData`, the string-keyed store a component's `Spec` sees,
+from its `"mem"` and `"bytecode"` tables (`memRows`, `bytecodeRows`); both readings are total,
+so they take the floor logarithm of a table's row count and drop the rows beyond that power of
+two, and `WellShapedData` names the shape under which nothing is dropped, which Layer 8's
+`Caps` requires. Layer 8's hypotheses `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram` tie
+the two tables to the committed rows until Clean PR #446 supplies proof-committed data.
 
 Each channel also names its bus data, so that the proof-system roadmap
 ([#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)) reads the M3 bus off these channels
@@ -574,8 +592,8 @@ structure XorRow (F : Type) where
   rA rB rC rbc : F
 def xorTable : GeneralFormalCircuit K XorRow unit where
   main r := do
-    StatePull.emit 1 ⟨r.pc, r.fp⟩
-    StatePush.emit 1 ⟨const g * r.pc, r.fp⟩
+    StatePull.pull ⟨r.pc, r.fp⟩
+    StatePush.push ⟨const g * r.pc, r.fp⟩
     bytecodeRead r.pc r.rbc (const Opcode.xor.code) ![r.oA, r.oB, r.oC, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
@@ -613,11 +631,11 @@ Tests: one satisfying row per table, accepted by completeness, and one mutated r
 ```lean
 structure MemRow (F : Type) where (idx cntFin : F) (m : Vector F 3)
 def memTable : GeneralFormalCircuit K MemRow unit where           -- seed push, finalize pull
-  main r := do MemPush.emit 1 ⟨r.idx, 1, r.m⟩; MemPull.emit 1 ⟨r.idx, r.cntFin, r.m⟩
+  main r := do MemPush.push ⟨r.idx, 1, r.m⟩; MemPull.pull ⟨r.idx, r.cntFin, r.m⟩
   …
 def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit       -- likewise, entries public
 def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where  -- push initial, pull final
-  main _ := do StatePush.emit 1 ⟨1, 1⟩; StatePull.emit 1 ⟨const (gpow (N_prog - 1)), 1⟩
+  main _ := do StatePush.push ⟨1, 1⟩; StatePull.pull ⟨const (gpow (N_prog - 1)), 1⟩
   …
 ```
 
@@ -646,7 +664,8 @@ def SeedRowsAreTheImage (w) : Prop             -- `memTable` rows are `imageOf w
 def BytecodeRowsAreTheProgram (w) : Prop       -- `bytecodeTable` rows are `programOf w.data`
 def CountsNonzero (w) : Prop                   -- every read pull has `count ≠ 0`
 def Caps (w) : Prop                            -- `16 ≤ κ ≤ 32`; heights `2^τ_j ≤ 2^32`; bytecode
-                                               -- length `2^logSize`; `τ_BLAKE2S ≥ 3`
+                                               -- length `2^logSize`; `τ_BLAKE2S ≥ 3`;
+                                               -- `WellShapedData w.data` (Layer 5)
 
 def SatisfiedBy (prog : Program) (input : PublicInput)
     (w : EnsembleWitness leanIsaEnsemble) : Prop :=
@@ -665,7 +684,9 @@ theorem assignmentRepresents_image : AssignmentRepresents w t → (imageOf w.dat
 
 `w.Constraints` is Clean's. `Caps` is the verifier's `read_public` (`cpu/mod.rs:158-170`): the
 memory log-size within `[16, 32]`, every table height a power of two at most `2^32`, the bytecode
-of length `2^prog.logSize`, and the BLAKE2S table of at least `2^3` rows. Heights are powers of
+of length `2^prog.logSize`, and the BLAKE2S table of at least `2^3` rows; and, so that `imageOf`
+and `programOf` drop no row of the prover data, `WellShapedData w.data` (Layer 5), the shape
+those announced sizes already imply for an honest prover. Heights are powers of
 two because the verifier accepts only announced log-heights and completeness pads to them, so
 `SatisfiedBy` is exactly the relation the proof-system roadmap proves and extracts (issue
 [#13](https://github.com/Verified-zkEVM/leanerVM/issues/13)). `AssignmentRepresents` says the
@@ -844,11 +865,12 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
                   Trace  Trace.regs  HasPublicBoundary  ValidExecution
 Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
-                  StateMsg  MemMsg  BytecodeMsg
+                  MemMsg  BytecodeMsg
                   StatePull  StatePush  MemPull  MemPush  BytecodePull  BytecodePush
                   memRead  bytecodeRead
                   Direction  channelDir  channelSep  busTuple
-                  memDataName  bytecodeDataName  imageOf  programOf
+                  memDataName  bytecodeDataName  memRows  bytecodeRows  imageOf  programOf
+                  WellShapedData
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
                   memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
                   BalancedPair

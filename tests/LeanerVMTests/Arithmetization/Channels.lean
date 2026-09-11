@@ -1,4 +1,5 @@
 import LeanerVM.Arithmetization.Channels
+import LeanerVM.Semantics.Execution
 import Clean.Air.Balance
 
 /-!
@@ -8,8 +9,9 @@ A plain file, like the module it tests. The six channels' separators and directi
 against specification §5.1 and `tables.rs:90-92`, the three element orders against §6.1, §6.2,
 §6.4 and the flush builders of `tables.rs:127-166`, on literal messages, and the sixteen-slot
 tuples against §5.1. The read gadgets are checked to emit a `pull` then a `push` with the count
-advanced by `g`. `imageOf` and `programOf` are read off a two-row prover data, and a correct
-memory read satisfies `MemPull.Guarantees` while a wrong word does not.
+advanced by `g`. `imageOf` and `programOf` are read off a two-row prover data, which is
+`WellShapedData`, and a correct memory read satisfies `MemPull.Guarantees` while a wrong word
+does not; a three-row store and the empty store are shown truncated and not well shaped.
 
 The last section exhibits Clean's bus over `K` (roadmap acceptance tests 13 and 14): `-1 = 1`,
 so a push-multiplicity interaction on a pull channel is granted the typed guarantee, every
@@ -66,7 +68,7 @@ example : channelSep foreign ≠ channelSep MemPull.toRaw := by decide
 
 /-! ## Element orders (specification §6.1, §6.2, §6.4; `tables.rs:127-166`) -/
 
-def st : StateMsg K := ⟨gpow 3, gpow 5⟩
+def st : Regs K := ⟨gpow 3, gpow 5⟩
 def mm : MemMsg K := ⟨gpow 3 * gpow 5, gpow 2, #v[7, 8, 9]⟩
 def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gpow 5, 1, 0, 0, 0]⟩
 
@@ -76,7 +78,7 @@ def bm : BytecodeMsg K := ⟨gpow 3, gpow 4, Opcode.deref.code, #v[gpow 4, 1, gp
   [gpow 3, gpow 4, Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0]
 
 /-- The orders as theorems, through the three `toElements` lemmas. -/
-example : (toElements st).toList = [gpow 3, gpow 5] := stateMsg_toElements st
+example : (toElements st).toList = [gpow 3, gpow 5] := regs_toElements st
 example : (toElements mm).toList = [gpow 3 * gpow 5, gpow 2, 7, 8, 9] := by
   rw [memMsg_toElements]; rfl
 example : (toElements bm).toList =
@@ -84,9 +86,12 @@ example : (toElements bm).toList =
   rw [bytecodeMsg_toElements]; rfl
 
 -- Sizes: two, five, and ten coordinates after the separator.
-example : size StateMsg = 2 := rfl
+example : size Regs = 2 := rfl
 example : size MemMsg = 5 := rfl
 example : size BytecodeMsg = 10 := rfl
+
+/-- The state message is the machine's register pair: `Regs.initial` is a message. -/
+example : (toElements Regs.initial).toList = [1, 1] := rfl
 
 /-! ## The sixteen-slot tuples (specification §5.1) -/
 
@@ -147,6 +152,16 @@ def namedData : ProverData K := fun name n ↦
   | "bytecode", 8 => #[entry (.jump 1 1 1)]
   | _, _ => #[]
 
+/-- Three memory words: not a power of two. -/
+def threeRows : ProverData K := fun _ n ↦
+  match n with
+  | 3 => #[#v[1, 2, 3], #v[4, 5, 6], #v[7, 8, 9]]
+  | 8 => #[entry (.jump 1 1 1)]
+  | _ => #[]
+
+/-- The empty store. -/
+def emptyData : ProverData K := fun _ _ ↦ #[]
+
 #guard (imageOf sampleData).1 = 1
 #guard (imageOf sampleData).2 0 = E.ofLimbs 1 2 3
 #guard (imageOf sampleData).2 1 = E.ofLimbs 4 5 6
@@ -158,9 +173,13 @@ def namedData : ProverData K := fun name n ↦
 #guard (programOf namedData).logSize = 0
 #guard (programOf namedData).code 0 = .jump 1 1 1
 
--- An empty store: one word `0`, one instruction `XOR 0 0 0`.
-#guard (imageOf fun _ _ ↦ #[]).2 0 = 0
-#guard (programOf fun _ _ ↦ #[]).code 0 = .xor 0 0 0
+-- The floor logarithm truncates: three rows give a one-bit image without the third word.
+#guard (imageOf threeRows).1 = 1
+#guard (imageOf threeRows).2 1 = E.ofLimbs 4 5 6
+-- The empty store: one word `0`, one instruction `XOR 0 0 0`.
+#guard (imageOf emptyData).1 = 0
+#guard (imageOf emptyData).2 0 = 0
+#guard (programOf emptyData).code 0 = .xor 0 0 0
 
 /-- The log-size of two rows is `1`, through `Nat.log_pow`. -/
 theorem sampleData_logSize : (imageOf sampleData).1 = 1 := by
@@ -176,6 +195,34 @@ theorem sampleData_bytecodeLogSize : (programOf sampleData).logSize = 1 := by
   rw [show (#[entry (.xor (gpow 2) (gpow 3) (gpow 4)), entry (.jump 1 1 1)]).size = 2 from rfl, h]
   decide
 
+/-- The two-row store is well shaped. -/
+theorem sampleData_wellShaped : WellShapedData sampleData where
+  memRows_size := by rw [sampleData_logSize]; decide +kernel
+  bytecodeRows_size := by rw [sampleData_bytecodeLogSize]; decide +kernel
+
+/-- The same, through the power-of-two reading. -/
+example : WellShapedData sampleData :=
+  (wellShapedData_iff _).mpr ⟨⟨1, by decide +kernel⟩, 1, by decide, by decide +kernel⟩
+
+/-- The floor logarithm of three rows is `1`. -/
+theorem threeRows_logSize : (imageOf threeRows).1 = 1 :=
+  Nat.log_eq_of_pow_le_of_lt_pow (b := 2) (m := 1) (n := (memRows threeRows).size)
+    (by decide +kernel) (by decide +kernel)
+
+/-- Three rows are not well shaped: the third is dropped. -/
+theorem threeRows_not_wellShaped : ¬ WellShapedData threeRows := by
+  intro h
+  have hsize := h.memRows_size
+  rw [threeRows_logSize] at hsize
+  exact absurd hsize (by decide +kernel)
+
+/-- The empty store is not well shaped: its image still has one word. -/
+example : ¬ WellShapedData emptyData := by
+  intro h
+  have hsize := h.memRows_size
+  rw [show (imageOf emptyData).1 = 0 from Nat.log_zero_right 2] at hsize
+  exact absurd hsize (by decide)
+
 /-- Index `1` of the sample image. -/
 def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; decide⟩
 
@@ -183,14 +230,16 @@ def one : Fin (2 ^ (imageOf sampleData).1) := ⟨1, by rw [sampleData_logSize]; 
 example : MemPull.Guarantees ⟨gpow 1, gpow 0, #v[4, 5, 6]⟩ sampleData := by
   show (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs 4 5 6)
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
-    MemImage.read_gpow (by rw [sampleData_logSize]; decide), imageOf_apply _ _ (by decide)]
+    MemImage.read_gpow (by rw [sampleData_logSize]; decide),
+    imageOf_apply sampleData_wellShaped one (v := #v[4, 5, 6]) (by decide +kernel)]
   rfl
 
 /-- A wrong word does not: the guarantee is a statement about the committed image. -/
 example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[4, 5, 7]⟩ sampleData := by
   show ¬ (imageOf sampleData).2.read (gpow 1) = some (E.ofLimbs 4 5 7)
   rw [show gpow 1 = gpow (one : ℕ) from rfl,
-    MemImage.read_gpow (by rw [sampleData_logSize]; decide), imageOf_apply _ _ (by decide)]
+    MemImage.read_gpow (by rw [sampleData_logSize]; decide),
+    imageOf_apply sampleData_wellShaped one (v := #v[4, 5, 6]) (by decide +kernel)]
   decide +kernel
 
 /-- A correct bytecode read: fetching at `g^1` is decoding the `JUMP` entry. -/
@@ -199,20 +248,19 @@ example : BytecodePull.Guarantees ⟨gpow 1, gpow 0, Opcode.jump.code, #v[1, 1, 
   show (programOf sampleData).fetch (gpow 1) = decode _
   have hi : (1 : ℕ) < 2 ^ (programOf sampleData).logSize := by
     rw [sampleData_bytecodeLogSize]; decide
-  have hlt : (1 : ℕ) < (sampleData bytecodeDataName 8).size := by decide +kernel
-  have hd : decode ((sampleData bytecodeDataName 8)[(1 : ℕ)]'(by decide +kernel)) =
+  have hd : decode ((bytecodeRows sampleData)[(1 : ℕ)]'(by decide +kernel)) =
       some (.jump 1 1 1) := by
     decide +kernel
   have hfetch : (programOf sampleData).fetch (gpow 1) =
       some ((programOf sampleData).code ⟨1, hi⟩) :=
     Program.fetch_gpow _ ⟨1, hi⟩
   have hcode : (programOf sampleData).code ⟨1, hi⟩ = .jump 1 1 1 :=
-    programOf_code _ ⟨1, hi⟩ hlt hd
+    programOf_code sampleData_wellShaped ⟨1, hi⟩ hd
   rw [hfetch, hcode]
   exact (decode_eq_some_iff.mpr rfl).symm
 
 /-- The state pull guarantees nothing (acceptance test 21). -/
-example (s : StateMsg K) (data : ProverData K) : StatePull.Guarantees s data := trivial
+example (s : Regs K) (data : ProverData K) : StatePull.Guarantees s data := trivial
 
 /-! ## Clean's bus over `K` (acceptance tests 13 and 14) -/
 

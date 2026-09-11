@@ -59,7 +59,7 @@ open LeanerVM.Parameters
 /-! ## Boundary registers -/
 
 /-- The initial registers `(1, 1)`, that is `(g^0, g^0)` (specification §2). -/
-def Regs.initial : Regs := ⟨1, 1⟩
+def Regs.initial : Regs K := ⟨1, 1⟩
 
 /-- The sentinel counter `g^(N_prog - 1)`, the last bytecode slot: reaching it halts the
 machine, and it is never executed (§2, execution loop step 3; acceptance test 5). -/
@@ -67,13 +67,13 @@ def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
 
 /-- The final registers `(g^(N_prog - 1), 1)`: the sentinel counter with the frame pointer back
 at `1` (§6.1, the boundary pull; acceptance test 4). -/
-def Regs.final (prog : Program) : Regs := ⟨prog.finalPc, 1⟩
+def Regs.final (prog : Program) : Regs K := ⟨prog.finalPc, 1⟩
 
 /-! ## The loop -/
 
 /-- `n` steps from `r`, halting before each fetch: `some` the registers after `n` steps when
 none of the `n` states stepped from is at the sentinel, `none` otherwise (§2, execution loop). -/
-noncomputable def run {κ : ℕ} (prog : Program) (L : MemImage κ) : ℕ → Regs → Option Regs
+noncomputable def run {κ : ℕ} (prog : Program) (L : MemImage κ) : ℕ → Regs K → Option (Regs K)
   | 0, r => some r
   | n + 1, r => if r.pc = prog.finalPc then none else step prog L r >>= run prog L n
 
@@ -102,7 +102,7 @@ def ValidExecution (prog : Program) (input : PublicInput) (t : Trace prog) : Pro
 
 /-- The register sequence `r_0 = (1, 1), r_1, …, r_steps` of a trace; a prefix that fails to
 run is dropped, so a valid trace has exactly `steps + 1` entries (`Trace.regs_length`). -/
-noncomputable def Trace.regs {prog : Program} (t : Trace prog) : List Regs :=
+noncomputable def Trace.regs {prog : Program} (t : Trace prog) : List (Regs K) :=
   (List.range (t.steps + 1)).filterMap fun n ↦ run prog t.image n Regs.initial
 
 /-! ## Load-bearing lemmas -/
@@ -112,25 +112,25 @@ section
 variable {κ : ℕ} {prog : Program} {L : MemImage κ}
 
 /-- Zero steps go nowhere. -/
-@[simp] theorem run_zero (r : Regs) : run prog L 0 r = some r := rfl
+@[simp] theorem run_zero (r : Regs K) : run prog L 0 r = some r := rfl
 
 /-- The loop: test for the sentinel, then fetch, execute, and continue. -/
-theorem run_succ (n : ℕ) (r : Regs) :
+theorem run_succ (n : ℕ) (r : Regs K) :
     run prog L (n + 1) r = if r.pc = prog.finalPc then none else step prog L r >>= run prog L n :=
   rfl
 
 /-- Away from the sentinel, a step is taken. -/
-theorem run_succ_of_ne {r : Regs} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
+theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n := by
   rw [run_succ, if_neg h]
 
 /-- At the sentinel, no step is taken (acceptance test 5). -/
-theorem run_succ_of_eq {r : Regs} (h : r.pc = prog.finalPc) (n : ℕ) :
+theorem run_succ_of_eq {r : Regs K} (h : r.pc = prog.finalPc) (n : ℕ) :
     run prog L (n + 1) r = none := by
   rw [run_succ, if_pos h]
 
 /-- Runs compose. -/
-theorem run_add (m n : ℕ) (r : Regs) :
+theorem run_add (m n : ℕ) (r : Regs K) :
     run prog L (m + n) r = run prog L m r >>= run prog L n := by
   induction m generalizing r with
   | zero => simp
@@ -142,19 +142,19 @@ theorem run_add (m n : ℕ) (r : Regs) :
       exact bind_congr fun r' ↦ ih r'
 
 /-- A run of `m + n` steps passes through the registers after `m`. -/
-theorem run_prefix {m n : ℕ} {r r'' : Regs} (h : run prog L (m + n) r = some r'') :
+theorem run_prefix {m n : ℕ} {r r'' : Regs K} (h : run prog L (m + n) r = some r'') :
     ∃ r', run prog L m r = some r' ∧ run prog L n r' = some r'' := by
   rw [run_add] at h
   exact Option.bind_eq_some_iff.mp h
 
 /-- A state that is stepped from is not at the sentinel. -/
-theorem pc_ne_finalPc_of_run_succ {n : ℕ} {r r' : Regs} (h : run prog L (n + 1) r = some r') :
+theorem pc_ne_finalPc_of_run_succ {n : ℕ} {r r' : Regs K} (h : run prog L (n + 1) r = some r') :
     r.pc ≠ prog.finalPc :=
   fun hpc ↦ by rw [run_succ_of_eq hpc] at h; exact Option.some_ne_none r' h.symm
 
 /-- Along a run, every state before the last is away from the sentinel: the halting test
 precedes every fetch (acceptance test 5). -/
-theorem run_intermediate {n : ℕ} {r r' : Regs} (h : run prog L n r = some r') {m : ℕ}
+theorem run_intermediate {n : ℕ} {r r' : Regs K} (h : run prog L n r = some r') {m : ℕ}
     (hm : m < n) : ∃ r₁, run prog L m r = some r₁ ∧ r₁.pc ≠ prog.finalPc := by
   obtain ⟨k, rfl⟩ : ∃ k, n = m + (k + 1) := ⟨n - m - 1, by omega⟩
   obtain ⟨r₁, h₁, h₂⟩ := run_prefix h
@@ -163,7 +163,7 @@ theorem run_intermediate {n : ℕ} {r r' : Regs} (h : run prog L n r = some r') 
 end
 
 /-- A trace that runs has `steps + 1` register states. -/
-theorem Trace.regs_length {prog : Program} {t : Trace prog} {r : Regs}
+theorem Trace.regs_length {prog : Program} {t : Trace prog} {r : Regs K}
     (h : run prog t.image t.steps Regs.initial = some r) : t.regs.length = t.steps + 1 := by
   rw [Trace.regs]
   refine (List.filterMap_length_eq_length.mpr ?_).trans List.length_range

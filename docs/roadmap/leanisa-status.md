@@ -38,13 +38,16 @@ tests 2–7 and 12, and exhibits the `JUMP` sentinel of acceptance test 20.
 slots `encodeSlots`, and the decoder `decode` (with `opcode?` and `derefMode?`), and proves
 `decode_entry`, `decode_eq_some_iff` (the decoder is the exact inverse of the entry),
 `entry_injective`, and `encodeSlots_getElem`. `LeanerVM/Arithmetization/Channels.lean`, the first
-Clean-consuming production file and therefore plain, defines the three typed messages `StateMsg`,
-`MemMsg`, `BytecodeMsg` (`deriving ProvableStruct`), the prover-data tables `memDataName` and
-`bytecodeDataName` with `imageOf` and `programOf`, the six channels `StatePull` … `BytecodePush`
-(guarantees on the memory and bytecode pulls only), the gadgets `memRead` and `bytecodeRead`
-(`Channel.pull` then `Channel.push`, the count advanced by `g`), and the bus data `Direction`,
-`channelDir`, `channelSep`, `busTuple`; it proves the three `toElements` lemmas,
-`busTuple_getElem`, `imageOf_apply`, and `programOf_code`. `./scripts/validate.sh` is green, the
+Clean-consuming production file and therefore plain, defines the two lookup messages `MemMsg`
+and `BytecodeMsg` (`deriving ProvableStruct`) and makes Layer 3's `Regs`, now parametric in the
+field, the state message (`deriving instance ProvableStruct for Regs`); the prover-data tables
+`memDataName`, `bytecodeDataName` with their rows `memRows`, `bytecodeRows`, the readings
+`imageOf` and `programOf`, and the shape `WellShapedData` under which they drop no row; the six
+channels `StatePull` … `BytecodePush` (guarantees on the memory and bytecode pulls only); the
+gadgets `memRead` and `bytecodeRead` (`Channel.pull` then `Channel.push`, the count advanced by
+`g`); and the bus data `Direction`, `channelDir`, `channelSep`, `busTuple`. It proves the three
+`toElements` lemmas, `busTuple_getElem`, `wellShapedData_iff`, `imageOf_apply`, and
+`programOf_code`. `./scripts/validate.sh` is green, the
 axiom closure of every declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom
 audit is enabled in CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the
 aggregates are plain (finding C8, now the roadmap's module-system convention); kernel-`decide` over
@@ -61,7 +64,7 @@ convention places at the first Clean import.
 | 0 — fields, limbs, generator | landed (PR #6) | `instFiniteFieldK` lives in the plain `CleanField.lean` (C8); `E` arithmetic not kernel-reducible from `module` files (P1) |
 | 1 — BLAKE2s | landed (PR #7) | flags are 32-bit words, not `Bool` (decision 6); vectors kernel-checked from a `module` file (L1) |
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
-| 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4, settled); unchanged by F6, whose hypothesis sits on Layer 10 |
+| 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4, settled); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 (`Regs K` the machine's pair, `Regs (Expression K)` a row's state message), the semantics otherwise untouched |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
 | 5 — channels | built and proved; draft PR #17, held until Clean's bus supports binary fields (C10) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name |
 | 6 — six tables | untouched; consumes Clean | plain files (C8); row tests are kernel checks against `E.ofLimbs` words (E5) |
@@ -77,8 +80,17 @@ convention places at the first Clean import.
   `tests/LeanerVMTests/Arithmetization/Channels.lean`, and the roadmap's Layer 5 section, which
   shows the built shapes. Every Layer 5 target of the roadmap is present and proved; nothing in
   the layer is vacuous, and the tests state, as theorems, the three facts about Clean's bus over
-  `K` that the roadmap's channel pairs work around (C10). The roadmap's sketch was adjusted in
-  five places, each written into the roadmap:
+  `K` that the roadmap's channel pairs work around (C10). The review of 2026-09-11 settled
+  three further points, each written into the roadmap: the state message is Layer 3's `Regs`,
+  made parametric in the field (`Regs K` the machine's pair, `Regs (Expression K)` a row's),
+  rather than a second structure; the two prover-data tables have named accessors `memRows`
+  and `bytecodeRows`; and the floor-logarithm normalisation of `imageOf`/`programOf`, which
+  drops the rows of a table whose count is not a power of two, is made explicit as
+  `WellShapedData`, the shape under which the two specifications `imageOf_apply` and
+  `programOf_code` hold, to be a conjunct of Layer 8's `Caps`. `channelSep`/`channelDir` stay
+  as they are, with the note that `Direction` and `channelDir` are deleted for Clean's
+  direction tag once #16 is upstreamed. The roadmap's sketch was adjusted in five further
+  places, each written into the roadmap:
   - `memRead` and `bytecodeRead` emit through `Channel.pull` and `Channel.push`, not
     `Channel.emit 1`: `emit` builds its interaction with `assumeGuarantees := false`
     (`Clean/Circuit/Basic.lean:124-127`), so a Layer 6 soundness proof could never assume the
@@ -93,8 +105,9 @@ convention places at the first Clean import.
     `ProverData` (`String → (n : ℕ) → Array (Vector F n)`), log-size the floor logarithm of the
     row count (`Nat.log 2`), `programOf` capped at `maxLogBytecode`; a missing word is `0` and a
     missing or undecodable instruction is `XOR 0 0 0`, whose first read is at address `0` and
-    fails. `imageOf_apply` and `programOf_code` are their specifications, and the two table
-    names are interface declarations (`memDataName`, `bytecodeDataName`).
+    fails. `imageOf_apply` and `programOf_code` are their specifications under
+    `WellShapedData`, and the two table names are interface declarations (`memDataName`,
+    `bytecodeDataName`).
   - `channelSep` returns `0`, which is no separator (`gpow_ne_zero`), on a channel that is none
     of the six, and `channelDir` returns `.push` there; both read the channel's `name`.
   Held as a draft: the rule set for this layer is that a collision with Clean's characteristic-2
@@ -550,7 +563,9 @@ Kept so the searches are not repeated.
   slot read decide in the kernel from a `module` test file, since they touch only `K` equality
   and vector indexing (L1). Layer 5: the production file builds in about three seconds and the
   test file in two; `deriving ProvableStruct` needs `Clean.Utils.Tactics.ProvableStructDeriving`
-  imported (it is not reached through `Clean.Circuit.Basic`); a `Vector`-field message's
+  imported (it is not reached through `Clean.Circuit.Basic`), and `deriving instance
+  ProvableStruct for Regs` derives it from a plain file for a structure declared in a `module`;
+  a `Vector`-field message's
   `toElements` is rewritten to its append form with `change` and then `Vector.toList_append` by
   `rw` (a `simp` set does not fire on the `combinedSize'`-indexed appends); the channels are
   computable even though `MemPull.Guarantees` mentions the noncomputable `MemImage.read`, since a
