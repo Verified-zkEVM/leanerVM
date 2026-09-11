@@ -1,7 +1,7 @@
 # Status: leanISA semantics and M3 constraints
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 6
-(the branch `worktree-leanisa-task-6` on top of `main` at `849806e`, Layer 5 merged as PR #17
+(draft PR #19 on top of `main` at `849806e`, Layer 5 merged as PR #17
 on 2026-09-11), together with the two findings that build records: the roadmap's bytecode
 guarantee was too weak for the `DEREF` table (F7, below, a Layer 5 change) and core's `BitVec`
 simprocs misread numerals of `K` (E6). It is a hand-maintained snapshot, rewritten whole when a
@@ -11,8 +11,8 @@ table below.
 
 ## Where this roadmap stands
 
-**At a glance.** Layers 0 to 5 are landed and Layer 6 is built and fully proved on its branch,
-awaiting its pull request. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
+**At a glance.** Layers 0 to 5 are landed and Layer 6 is built and fully proved, open for
+review as draft PR #19. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
 define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, `g`, and `gpow`,
 and prove `orderOf_g` and `gpow_injOn` from the seven `decide +kernel` checks; Clean's
 `FiniteField K` instance is `instFiniteFieldK` in the plain file
@@ -77,7 +77,7 @@ module (P3).
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
 | 5 — channels | landed (PR #17) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name; `BytecodePull.Guarantees` strengthened by Layer 6 to name the fetched instruction on both sides (F7) |
-| 6 — six tables | built and proved on `worktree-leanisa-task-6`; pull request pending | plain files (C8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`) so that `Spec` reads `step … = some next` for `JUMP` too; push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
+| 6 — six tables | built and proved; draft PR #19 open for review | plain files (C8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`) so that `Spec` reads `step … = some next` for `JUMP` too; push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
 | 9 — bus soundness | untouched; consumes a Clean change | statements land as block comments with Layer 8; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
@@ -85,7 +85,8 @@ module (P3).
 
 ### The frontier
 
-- **Layer 6 is built** on the branch `worktree-leanisa-task-6`. Its reading list is the six
+- **Layer 6 is built** and open for review as draft PR #19 (branch `feat/leanisa-opcode-tables`).
+  Its reading list is the six
   files under `LeanerVM/Arithmetization/Tables/`, `tests/LeanerVMTests/Arithmetization/Tables.lean`,
   the two-line change to `BytecodePull` in `LeanerVM/Arithmetization/Channels.lean`, and the
   roadmap's Layer 6 section, which shows the built shapes. Every Layer 6 target of the roadmap
