@@ -1,6 +1,12 @@
 import LeanerVM.Arithmetization.Basic
 import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
+import LeanerVM.Arithmetization.Tables.Blake2s
+import LeanerVM.Arithmetization.Tables.Deref
+import LeanerVM.Arithmetization.Tables.Jump
+import LeanerVM.Arithmetization.Tables.MulNative
+import LeanerVM.Arithmetization.Tables.SetConstant
+import LeanerVM.Arithmetization.Tables.Xor
 import LeanerVM.Parameters.Basic
 import LeanerVM.Parameters.Blake2s
 import LeanerVM.Parameters.CleanField

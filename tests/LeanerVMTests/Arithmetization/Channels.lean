@@ -251,10 +251,10 @@ example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[4, 5, 7]⟩ sampleData := 
     imageOf_apply sampleData_wellShaped one (v := #v[4, 5, 6]) (by decide +kernel)]
   decide +kernel
 
-/-- A correct bytecode read: fetching at `g^1` is decoding the `JUMP` entry. -/
+/-- A correct bytecode read: the `JUMP` entry decodes to the instruction fetched at `g^1`. -/
 example : BytecodePull.Guarantees ⟨gpow 1, gpow 0, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩
     sampleData := by
-  show (programOf sampleData).fetch (gpow 1) = decode _
+  show ∃ ins, (programOf sampleData).fetch (gpow 1) = some ins ∧ decode _ = some ins
   have hi : (1 : ℕ) < 2 ^ (programOf sampleData).logSize := by
     rw [sampleData_bytecodeLogSize]; decide
   have hd : decode ((bytecodeRows sampleData)[(1 : ℕ)]'(by decide +kernel)) =
@@ -266,7 +266,15 @@ example : BytecodePull.Guarantees ⟨gpow 1, gpow 0, Opcode.jump.code, #v[1, 1, 
   have hcode : (programOf sampleData).code ⟨1, hi⟩ = .jump 1 1 1 :=
     programOf_code sampleData_wellShaped ⟨1, hi⟩ hd
   rw [hfetch, hcode]
-  exact (decode_eq_some_iff.mpr rfl).symm
+  exact ⟨_, rfl, decode_eq_some_iff.mpr rfl⟩
+
+/-- An entry that decodes to nothing is no bytecode read, even at a counter that fetches nothing:
+the flag pair `(1, 1)` is no store mode (acceptance test 18). -/
+example : ¬ BytecodePull.Guarantees ⟨0, gpow 0, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0]⟩
+    sampleData := by
+  rintro ⟨ins, hfetch, -⟩
+  rw [Program.fetch_zero] at hfetch
+  cases hfetch
 
 /-- The state pull guarantees nothing (acceptance test 21). -/
 example (s : Regs K) (data : ProverData K) : StatePull.Guarantees s data := trivial
