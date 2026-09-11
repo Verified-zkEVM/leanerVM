@@ -22,9 +22,11 @@ is silent the roadmap's pinned conventions decide: `DEREF` reads its local cell 
 (specification §7.4, acceptance test 6), and the halting test that keeps the sentinel from ever
 being executed belongs to the loop, `LeanerVM.Semantics.Execution` (acceptance test 5).
 
-**The registers** are two `K` elements, `pc` and `fp`. Every instruction but a taken `JUMP`
-advances to the fall-through successor `Regs.next r = (g · pc, fp)`, the next bytecode slot in
-the same frame (§2, execution loop step 2).
+**The registers** are two `K` elements, `pc` and `fp`, the pair `Regs K`; the structure is
+parametric in the field so that the bus of Layer 5 carries the same pair over `Expression K`.
+Every instruction but a taken `JUMP` advances to the fall-through successor
+`Regs.next r = (g · pc, fp)`, the next bytecode slot in the same frame (§2, execution loop
+step 2).
 
 **One step** is `step prog L r = prog.fetch r.pc >>= execute L r`: fetch the instruction at
 `pc` (`Program.fetch`), then `execute` it against the committed image `L`: read the cells it
@@ -66,30 +68,32 @@ open LeanerVM.Parameters
 
 /-! ## Registers -/
 
-/-- The two `K`-valued registers (specification §2). -/
-structure Regs where
+/-- The two registers (specification §2), over a field `F`: `Regs K` is the machine's register
+pair, and `Regs (Expression K)` a table row's, so that one structure serves the semantics and
+the state channel of the bus (roadmap Layer 5). -/
+structure Regs (F : Type) where
   /-- The program counter: the address of the instruction to execute. -/
-  pc : K
+  pc : F
   /-- The frame pointer: the base of the current frame, an operand `o` naming `fp · o`. -/
-  fp : K
+  fp : F
   deriving Repr
 
 /-- Register equality is decided field by field. Not derived: the derived instance decides the
 second field under `h ▸` for the first, whose `Eq.rec` makes the kernel compare two register
 values by definitional unfolding instead of evaluation, and `g * 1 = g ^ 1` then never
 decides (status finding E5). -/
-instance : DecidableEq Regs := fun x y ↦
+instance {F : Type} [DecidableEq F] : DecidableEq (Regs F) := fun x y ↦
   decidable_of_iff (x.pc = y.pc ∧ x.fp = y.fp) (by cases x; cases y; simp)
 
 /-- The fall-through successor `(g · pc, fp)`: the next bytecode slot, same frame (§2,
 execution loop step 2). -/
-def Regs.next (r : Regs) : Regs := ⟨g * r.pc, r.fp⟩
+def Regs.next (r : Regs K) : Regs K := ⟨g * r.pc, r.fp⟩
 
 /-! ## `DEREF` -/
 
 /-- The value a `DEREF` stores, by mode: the local cell `[o₃]`, the return address `g² · pc`,
 or the frame pointer `fp`, the registers embedded in `E` (§2, `src(mode)`). -/
-def derefSource : DerefMode → Regs → E → E
+def derefSource : DerefMode → Regs K → E → E
   | .cell, _, v3 => v3
   | .pc, r, _ => ofK (g ^ 2 * r.pc)
   | .fp, r, _ => ofK r.fp
@@ -99,7 +103,7 @@ def derefSource : DerefMode → Regs → E → E
 /-- Execute one instruction from registers `r` over the committed image `L`: read the cells it
 names, check its relation, and return the next registers; `none` on a failed read or a false
 relation (§2, execution loop step 2, "execute inst"). -/
-noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs) : Instr → Option Regs
+noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs K) : Instr → Option (Regs K)
   | .xor oA oB oC => do
     let vA ← L.read (r.fp * oA)
     let vB ← L.read (r.fp * oB)
@@ -144,19 +148,20 @@ noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs) : Instr → Op
 
 /-- One step of the machine: fetch the instruction at `pc` and execute it (§2, execution loop
 steps 1–2); `none` when the counter fetches nothing. -/
-noncomputable def step {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs) : Option Regs :=
+noncomputable def step {κ : ℕ} (prog : Program) (L : MemImage κ) (r : Regs K) :
+    Option (Regs K) :=
   prog.fetch r.pc >>= execute L r
 
 /-! ## Load-bearing lemmas -/
 
 /-- A counter that fetches nothing steps nowhere. -/
-theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs}
+theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K}
     (h : prog.fetch r.pc = none) : step prog L r = none := by
   rw [step, h]; rfl
 
 /-- A step from a counter that fetches `ins` executes `ins`. -/
-theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs} {ins : Instr}
-    (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
+theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K}
+    {ins : Instr} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
   rw [step, h]; rfl
 
 end

@@ -1,4 +1,5 @@
 import LeanerVMTests.Arithmetization.Bytecode
+import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s
 import LeanerVMTests.Parameters.CleanField
