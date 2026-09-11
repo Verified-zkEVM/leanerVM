@@ -45,8 +45,9 @@ says that when the bus balances, every count is nonzero, and there are fewer tha
 reads, every pulled memory tuple is a correct read of the committed image and every pulled
 bytecode tuple is an entry of the public program. That per-tuple fact is what a pull may assume
 and is the channel's `Guarantees`: `MemPull` states it as `MemImage.read` of the image named by
-the prover data, `BytecodePull` as `Program.fetch` of the program named by the prover data
-against Layer 4's `decode`. The state pull carries no guarantee: a pulled state need not be
+the prover data, `BytecodePull` as the pulled entry decoding, through Layer 4's `decode`, to the
+instruction `Program.fetch` reads at the pulled counter from the program named by the prover
+data. The state pull carries no guarantee: a pulled state need not be
 reachable, since the fill blocks of §8.3 are closed walks disjoint from the run, and what the
 state channel yields is the walk decomposition of Layer 9 (roadmap acceptance test 21, issue
 #10). Pushes carry no guarantee; what a push must satisfy is the emitting component's `Spec`.
@@ -103,6 +104,11 @@ dependency table).
 * A `"bytecode"` row that decodes to nothing is `XOR 0 0 0`, whose first read is at address `0`
   and fails (acceptance test 2), so `step` executes nothing there; `BytecodeRowsAreTheProgram`
   excludes such rows anyway.
+* The bytecode guarantee is not `fetch pc = decode entry`: that reading holds of a counter that
+  fetches nothing paired with an entry that decodes to nothing, so a `DEREF` row with a flag
+  pair that is no store mode would satisfy it at such a counter while `step` executes nothing,
+  and the table's soundness (Layer 6) would be false. The guarantee names the instruction on
+  both sides.
 -/
 
 namespace LeanerVM.Semantics
@@ -212,11 +218,15 @@ def MemPush : Channel K MemMsg where
   name := "mem.push"
   Guarantees _ _ := True
 
-/-- The bytecode pull, separator `g^2`: fetching at the pulled counter from the program named
-by the prover data is decoding the pulled entry (specification Theorem 6.4; Layer 4). -/
+/-- The bytecode pull, separator `g^2`: the pulled entry decodes to an instruction, and it is the
+one the program named by the prover data fetches at the pulled counter (specification Theorem
+6.4; Layer 4). Both sides are asserted: a counter that fetches nothing paired with an entry that
+decodes to nothing is not a read, and the `DEREF` table's soundness needs the entry to be an
+instruction, since a flag pair that is no store mode decodes to nothing. -/
 def BytecodePull : Channel K BytecodeMsg where
   name := "bc.pull"
-  Guarantees b data := (programOf data).fetch b.pc = decode (#v[b.opcode] ++ b.op)
+  Guarantees b data :=
+    ∃ ins, (programOf data).fetch b.pc = some ins ∧ decode (#v[b.opcode] ++ b.op) = some ins
 
 /-- The bytecode push, separator `g^2`. -/
 def BytecodePush : Channel K BytecodeMsg where

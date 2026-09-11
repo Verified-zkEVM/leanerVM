@@ -214,6 +214,7 @@ proof-committed `ProverData`.
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); hypotheses appear in signatures, never in `variable` blocks or unstated instances. |
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
+| Numerals over `K` | `K` is `BitVec 64`, so a numeral `(1 : K)` elaborates through `BitVec.instOfNat` and core's `BitVec` simprocs fire on it: `-1 : K` is `1`, not the two's-complement word `BitVec.reduceNeg` produces, and a default `simp` turns `0 : K` into a literal that lemmas stated with numerals no longer match. Proofs over `K` use `simp only` with named lemmas, and a Clean channel-lawfulness proof over `K` excludes `BitVec.reduceNeg`. |
 | Module system | Files are Lean `module`s, except that a file importing Clean (not a `module` at `93c9d1ef`) or a file that does is plain; the boundary sits as high as the dependency allows: `Parameters/CleanField.lean`, the Clean-consuming Arithmetization modules, `LeanerVM.lean`, and the test aggregate. |
 
 ## The build, in eleven layers
@@ -515,7 +516,8 @@ def MemPull : Channel K MemMsg where
   Guarantees m data := (imageOf data).2.read m.addr = some (E.ofLimbs m.v[0] m.v[1] m.v[2])
 def BytecodePull : Channel K BytecodeMsg where
   name := "bc.pull"
-  Guarantees b data := (programOf data).fetch b.pc = decode (#v[b.opcode] ++ b.op)
+  Guarantees b data :=
+    ∃ ins, (programOf data).fetch b.pc = some ins ∧ decode (#v[b.opcode] ++ b.op) = some ins
 def StatePush    : Channel K Regs        := { name := "st.push",  Guarantees := fun _ _ ↦ True }
 def MemPush      : Channel K MemMsg      := { name := "mem.push", Guarantees := fun _ _ ↦ True }
 def BytecodePush : Channel K BytecodeMsg := { name := "bc.push",  Guarantees := fun _ _ ↦ True }
@@ -542,7 +544,10 @@ theorem bytecodeMsg_toElements (b : BytecodeMsg K) :                            
 ```
 
 A pulled memory tuple is a correct read and a pulled bytecode tuple is the fetched instruction:
-per-tuple facts, specification Theorem 6.4. The state pull carries no guarantee. A pulled state
+per-tuple facts, specification Theorem 6.4. Both guarantees name the value on both sides: the
+bytecode guarantee is not `fetch pc = decode entry`, which a counter fetching nothing paired
+with an entry decoding to nothing would satisfy, and under which a `DEREF` row with a flag pair
+that is no store mode would have no `step` (Layer 6). The state pull carries no guarantee. A pulled state
 need not be reachable, since the fill blocks of §8.3 are closed walks disjoint from the run
 (acceptance test 21, issue [#10](https://github.com/Verified-zkEVM/leanerVM/issues/10)); what the
 state channel yields is the walk decomposition of Layer 9, and a table's `Spec` never needed
@@ -580,51 +585,74 @@ on a two-row prover data, and the three facts of acceptance tests 13 and 14 abou
 
 `LeanerVM/Arithmetization/Tables/{Xor,MulNative,SetConstant,Deref,Jump,Blake2s}.lean`.
 
-Each table is a `GeneralFormalCircuit K Row unit`: `Row` is the table's column list in the
+Each table is a `GeneralFormalCircuit K Row Regs`: `Row` is the table's column list in the
 Rust's order; `main` is the specification §7 entry read top to bottom (constraints as
-`assertZero`, flushes as interactions in the specification's coordinate order); `Assumptions`
-is `True`; `Spec r _ data` is `step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some (next)`
-with the row's successor; `ProverAssumptions` says the row's reads are the image's values.
-`XOR`, as the template:
+`assertZero`, flushes as interactions in the specification's coordinate order) and returns the
+state it pushes, the row's successor; `Assumptions` is `True`; `Spec r next data` is
+`step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`, so that the row's registers
+step exactly to the pushed state; `ProverAssumptions` is the honest row: its operands are the
+fetched instruction's and its reads, the derived result included, are the image's words;
+`channelsWithRequirements` lists the three push channels, whose requirements are vacuous
+(Layer 5) and whose obligation is `Spec`. `XOR`, as the template:
 
 ```lean
 structure XorRow (F : Type) where
   pc fp oA oB oC : F
   vA vB : Vector F 3
   rA rB rC rbc : F
-def xorTable : GeneralFormalCircuit K XorRow unit where
+def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
+    let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push ⟨const g * r.pc, r.fp⟩
-    bytecodeRead r.pc r.rbc (const Opcode.xor.code) ![r.oA, r.oB, r.oC, 0, 0, 0, 0]
+    StatePush.push next
+    bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.code) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
-    memRead (r.fp * r.oC) r.rC (r.vA + r.vB)
-  Spec r _ data := step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some ⟨g * r.pc, r.fp⟩
+    memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
+    pure next
+  channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
+  Spec r next data := step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
+  ProverAssumptions r data _ :=
+    (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
+    (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧ …
   …
 ```
 
-Prove soundness and completeness for each. Table-specific targets:
+Prove soundness and completeness for each. Soundness assumes the guarantees of the four pulls
+and concludes `Spec` by `step_of_fetch_eq_some` and the arm of `execute`, with the bytecode
+guarantee yielding the fetched instruction through `decode_entry` (or, for `DEREF`,
+`decode_eq_some_iff` and `entry_getElem_zero`); completeness discharges the same guarantees
+from `ProverAssumptions`. Table-specific targets:
 
+- **XOR.** The result read carries `(vA[0] + vB[0], vA[1] + vB[1], vA[2] + vB[2])`. Prove
+  `add_limbs : E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2)`.
 - **MUL_NATIVE.** The result read carries the twelve products over nine limb pairs
   (`vA[0]·vB[0] + vA[1]·vB[2] + vA[2]·vB[1]`, …; Rust `TOWER_LANES`). Prove
-  `mul_limbs : a * b = E.ofLimbs (…)` by `Ext.ext` and `simp [Ext.coeff_mul]`; it licenses the
-  soundness proof to rewrite the coordinates into `vA * vB`.
+  `mul_limbs : E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 = E.ofLimbs (…)` by the fold
+  `y^3 = y + 1` (`ofLimbs_eq`, `y_pow_three`); it licenses the soundness proof to rewrite the
+  coordinates into `vA * vB`.
 - **DEREF.** Columns add `f_pc`, `f_fp`, the pointer `p`, and `v3`; the target read carries
   `(f̄·v3[0] + f_pc·(g²·pc) + f_fp·fp, f̄·v3[1], f̄·v3[2])` with `f̄ = 1 + f_pc + f_fp`. Prove
   `storeCoords_eval`: for each of the three flag settings the coordinate is
-  `derefSource mode`. No booleanity constraint (Layer 4).
-- **JUMP.** Columns add `w`, `b` as `witness` operations with the honest inverse as generator,
-  and the two `assertZero`s `b + c·w` and `c·(b + 1)`, written as residuals; the successor is
-  `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`. Prove `flags_sound : b + c·w = 0 → c·(b+1) = 0 →
-  b = if c = 0 then 0 else 1` and `flags_complete`.
-- **BLAKE2S.** Nine `memRead`s of canonical words (third coordinate `const 0`), no constraints,
+  `derefSource mode`. No booleanity constraint (Layer 4); `ProverAssumptions` names the mode
+  whose flags the row carries.
+- **JUMP.** `w`, `b` are `witness` operations with the honest inverse and indicator as
+  generators, and the two `assertZero`s `b + c·w` and `c·(b + 1)` are written as residuals;
+  the pushed successor is `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`, a function of the witness
+  `b`, which is why a table returns its successor rather than naming it in `Spec` from the
+  row. Prove `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1` and
+  `flags_complete`.
+- **BLAKE2S.** Nine `memRead`s of canonical words (third coordinate `0`), no constraints,
   `Spec` through `CompressCells`. The Flock relation on the eighteen low limbs is the named
-  `Assumptions` field `Blake2sRelation r`; every consumer of this table carries it until #3
-  supplies the circuit.
+  `Assumptions` field `Blake2sRelation r`, `CompressCells` on the nine cells the limbs form;
+  every consumer of this table carries it until #3 supplies the circuit.
 
-Tests: one satisfying row per table, accepted by completeness, and one mutated row per table
-(a wrong result limb, a wrong flag, a non-canonical BLAKE2S cell) rejected.
+Tests: one satisfying row per table, satisfying `ProverAssumptions` and `Spec`, with the
+acceptance by `completeness` exhibited on the row's environment for `XOR` and the two honest
+`JUMP` witnesses checked against the residuals; and one mutated row per table (a wrong result
+or immediate limb, a flag pair that is no store mode, the flag row `b = 1, c = 0`, a
+non-canonical BLAKE2S cell) rejected through the failure of its pull guarantee or of its
+constraint.
 
 ### Layer 7: the boundary blocks
 
@@ -873,7 +901,9 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   Direction  channelDir  channelSep  busTuple
                   memDataName  bytecodeDataName  memRows  bytecodeRows  imageOf  programOf
                   WellShapedData
+                  XorRow  MulRow  SetRow  DerefRow  JumpRow  Blake2sRow  Blake2sRelation
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
+                  add_limbs  mul_limbs  storeCoords_eval  flags_sound  flags_complete
                   memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
                   BalancedPair
                   IndexColumnsAreRowIndices  SeedRowsAreTheImage  BytecodeRowsAreTheProgram
@@ -885,9 +915,10 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
 
 Everything not listed is a proof, a helper, or a test. The named hypotheses a reviewer must
 know are assumed rather than proved are exactly: `IndexColumnsAreRowIndices`,
-`SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram` (until Clean #446), `Blake2sRelation` (until
-#3), `WellFormedBytecode` (both fields forced, acceptance tests 15 and 20), and the balance
-conjuncts of `SatisfiedBy`, which the proof system establishes. There are no axioms and no
+`SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram` (until Clean #446), `Blake2sRelation` (the
+`Assumptions` field of `blake2sTable`, until #3), `WellFormedBytecode` (both fields forced,
+acceptance tests 15 and 20), and the balance conjuncts of `SatisfiedBy`, which the proof system
+establishes. There are no axioms and no
 `variable`-block hypotheses.
 
 ### The boundary with the Flock roadmap
