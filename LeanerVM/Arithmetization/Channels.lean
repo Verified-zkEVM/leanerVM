@@ -71,15 +71,18 @@ direction tag when that change is upstreamed (issue #16).
 component's `Spec` sees: `memRows` is its `"mem"` table, one row of three limbs per word, and
 `bytecodeRows` its `"bytecode"` table, one eight-coordinate entry per instruction. `imageOf` and
 `programOf` are total, since a channel guarantee is a total proposition on arbitrary data, and
-so they normalise: each takes the *floor* logarithm of its table's row count as the log-size,
-which drops the rows at indices from `2^κ` on when the count is not a power of two, and
-`programOf` further caps the log-size at `maxLogBytecode`. `WellShapedData` is the shape under
-which neither drops anything (each table's row count is exactly a power of two, the bytecode's
-within the cap), and `imageOf_apply` and `programOf_code` are the two specifications under it;
-it is a conjunct of Layer 8's `Caps`, the verifier's check of the announced sizes, never a new
-hypothesis on a theorem. Layer 8's hypotheses `SeedRowsAreTheImage` and
-`BytecodeRowsAreTheProgram` tie the two tables to the committed seed rows and the public program
-until Clean PR #446 supplies proof-committed data (roadmap dependency table).
+so they normalise: each takes the *floor* logarithm of its table's row count, capped at the
+verifier's bound (`maxLogMem`, `maxLogBytecode`), as its log-size, which drops the rows at
+indices from that power of two on whenever the count is not exactly it. The memory cap also
+keeps `κ < 64`, the hypothesis under which `MemImage.read` reads an address as an index
+(`gLog?_spec`), so `MemPull.Guarantees` means what it says on every data. `WellShapedData` is
+the shape under which neither reading drops anything (each table's row count is exactly a
+power of two within its cap, `wellShapedData_iff`), and `imageOf_apply` and `programOf_code`
+are the two specifications under it; it is a conjunct of Layer 8's `Caps`, the verifier's check
+of the announced sizes, never a new hypothesis on a theorem. Layer 8's hypotheses
+`SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram` tie the two tables to the committed seed
+rows and the public program until Clean PR #446 supplies proof-committed data (roadmap
+dependency table).
 
 ## Wrong readings excluded
 
@@ -94,9 +97,9 @@ until Clean PR #446 supplies proof-committed data (roadmap dependency table).
 * The element order of a typed message is its field order, a vector field contributing its
   elements in place: `(addr, count, v₀, v₁, v₂)`, never `(v, addr, count)` or the separator
   inside the message (`memMsg_toElements`).
-* A table whose row count is not a power of two is silently truncated by `imageOf` and
-  `programOf` (a three-row store yields a one-bit image, tests) and is not `WellShapedData`;
-  the empty store is not either, since its image still has one word.
+* A table whose row count is not a power of two within its cap is silently truncated by
+  `imageOf` and `programOf` (a three-row store yields a one-bit image, tests) and is not
+  `WellShapedData`; the empty store is not either, since its image still has one word.
 * A `"bytecode"` row that decodes to nothing is `XOR 0 0 0`, whose first read is at address `0`
   and fails (acceptance test 2), so `step` executes nothing there; `BytecodeRowsAreTheProgram`
   excludes such rows anyway.
@@ -158,10 +161,11 @@ def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
 def bytecodeRows (data : ProverData K) : Array (Vector K 8) := data bytecodeDataName 8
 
 /-- The memory image named by the prover data: `κ` is the floor logarithm of the `"mem"` row
-count, word `i` is row `i` as limbs `(c₀, c₁, c₂)`, and a missing row reads as `0`. Rows at
-indices from `2^κ` on are dropped; `WellShapedData` is the shape under which there are none. -/
+count, capped at `maxLogMem`, word `i` is row `i` as limbs `(c₀, c₁, c₂)`, and a missing row
+reads as `0`. Rows at indices from `2^κ` on are dropped; `WellShapedData` is the shape under
+which there are none. -/
 def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ :=
-  ⟨Nat.log 2 (memRows data).size,
+  ⟨min (Nat.log 2 (memRows data).size) maxLogMem,
     fun i ↦ (((memRows data)[(i : ℕ)]?).map fun v ↦ E.ofLimbs v[0] v[1] v[2]).getD 0⟩
 
 /-- The program named by the prover data: `logSize` is the floor logarithm of the `"bytecode"`
@@ -175,7 +179,7 @@ def programOf (data : ProverData K) : Program where
 
 /-- The prover data is well shaped: the `"mem"` table has exactly the `2^κ` rows of its image
 and the `"bytecode"` table exactly the `2^logSize` entries of its program, that is, each row
-count is a power of two and the bytecode's is at most `2^maxLogBytecode`
+count is a power of two within its cap, `2^maxLogMem` and `2^maxLogBytecode`
 (`wellShapedData_iff`), so that `imageOf` and `programOf` drop nothing. A conjunct of Layer 8's
 `Caps`. -/
 structure WellShapedData (data : ProverData K) : Prop where
@@ -298,19 +302,19 @@ theorem busTuple_getElem (c : RawChannel K) (msg : List K) (j : ℕ) (hj : j < 1
     (busTuple c msg)[j] = if j = 0 then channelSep c else msg.getD (j - 1) 0 := by
   interval_cases j <;> simp [busTuple]
 
-/-- Well shaped means: each table's row count is a power of two, the bytecode's at most
-`2^maxLogBytecode`. -/
+/-- Well shaped means: each table's row count is a power of two within its cap, `2^maxLogMem`
+for the memory and `2^maxLogBytecode` for the bytecode. -/
 theorem wellShapedData_iff (data : ProverData K) :
     WellShapedData data ↔
-      (∃ κ, (memRows data).size = 2 ^ κ) ∧
+      (∃ κ ≤ maxLogMem, (memRows data).size = 2 ^ κ) ∧
         ∃ k ≤ maxLogBytecode, (bytecodeRows data).size = 2 ^ k := by
   constructor
   · rintro ⟨hm, hb⟩
-    exact ⟨⟨_, hm⟩, _, Nat.min_le_right _ _, hb⟩
-  · rintro ⟨⟨κ, hκ⟩, k, hk, hkb⟩
+    exact ⟨⟨_, Nat.min_le_right _ _, hm⟩, _, Nat.min_le_right _ _, hb⟩
+  · rintro ⟨⟨κ, hκ, hκm⟩, k, hk, hkb⟩
     refine ⟨?_, ?_⟩
-    · show (memRows data).size = 2 ^ Nat.log 2 (memRows data).size
-      rw [hκ, Nat.log_pow (by norm_num)]
+    · show (memRows data).size = 2 ^ min (Nat.log 2 (memRows data).size) maxLogMem
+      rw [hκm, Nat.log_pow (by norm_num), Nat.min_eq_left hκ]
     · show (bytecodeRows data).size = 2 ^ min (Nat.log 2 (bytecodeRows data).size) maxLogBytecode
       rw [hkb, Nat.log_pow (by norm_num), Nat.min_eq_left hk]
 

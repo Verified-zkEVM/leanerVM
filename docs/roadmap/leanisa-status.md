@@ -85,8 +85,8 @@ convention places at the first Clean import.
   made parametric in the field (`Regs K` the machine's pair, `Regs (Expression K)` a row's),
   rather than a second structure; the two prover-data tables have named accessors `memRows`
   and `bytecodeRows`; and the floor-logarithm normalisation of `imageOf`/`programOf`, which
-  drops the rows of a table whose count is not a power of two, is made explicit as
-  `WellShapedData`, the shape under which the two specifications `imageOf_apply` and
+  drops the rows of a table whose count is not a power of two within its cap, is made explicit
+  as `WellShapedData`, the shape under which the two specifications `imageOf_apply` and
   `programOf_code` hold, to be a conjunct of Layer 8's `Caps`. `channelSep`/`channelDir` stay
   as they are, with the note that `Direction` and `channelDir` are deleted for Clean's
   direction tag once #16 is upstreamed. The roadmap's sketch was adjusted in five further
@@ -103,7 +103,8 @@ convention places at the first Clean import.
     `::ᵥ`.
   - `imageOf` and `programOf` are given bodies: the `"mem"` and `"bytecode"` tables of Clean's
     `ProverData` (`String → (n : ℕ) → Array (Vector F n)`), log-size the floor logarithm of the
-    row count (`Nat.log 2`), `programOf` capped at `maxLogBytecode`; a missing word is `0` and a
+    row count (`Nat.log 2`) capped at the verifier's bound (`maxLogMem`, `maxLogBytecode`, the
+    former also keeping `κ < 64` for `gLog?_spec`); a missing word is `0` and a
     missing or undecodable instruction is `XOR 0 0 0`, whose first read is at address `0` and
     fails. `imageOf_apply` and `programOf_code` are their specifications under
     `WellShapedData`, and the two table names are interface declarations (`memDataName`,

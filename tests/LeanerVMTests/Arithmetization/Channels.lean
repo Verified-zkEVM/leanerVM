@@ -181,10 +181,13 @@ def emptyData : ProverData K := fun _ _ ↦ #[]
 #guard (imageOf emptyData).2 0 = 0
 #guard (programOf emptyData).code 0 = .xor 0 0 0
 
-/-- The log-size of two rows is `1`, through `Nat.log_pow`. -/
+/-- The log-size of two rows is `1`, through `Nat.log_pow`, under the cap. -/
 theorem sampleData_logSize : (imageOf sampleData).1 = 1 := by
-  show Nat.log 2 (#[(#v[1, 2, 3] : Vector K 3), #v[4, 5, 6]]).size = 1
-  simpa using Nat.log_pow (b := 2) (by norm_num) 1
+  show min (Nat.log 2 (#[(#v[1, 2, 3] : Vector K 3), #v[4, 5, 6]]).size) maxLogMem = 1
+  have h := Nat.log_pow (b := 2) (by norm_num) 1
+  rw [pow_one] at h
+  rw [show (#[(#v[1, 2, 3] : Vector K 3), #v[4, 5, 6]]).size = 2 from rfl, h]
+  decide
 
 /-- Likewise for the program, under the cap. -/
 theorem sampleData_bytecodeLogSize : (programOf sampleData).logSize = 1 := by
@@ -202,12 +205,15 @@ theorem sampleData_wellShaped : WellShapedData sampleData where
 
 /-- The same, through the power-of-two reading. -/
 example : WellShapedData sampleData :=
-  (wellShapedData_iff _).mpr ⟨⟨1, by decide +kernel⟩, 1, by decide, by decide +kernel⟩
+  (wellShapedData_iff _).mpr
+    ⟨⟨1, by decide, by decide +kernel⟩, 1, by decide, by decide +kernel⟩
 
-/-- The floor logarithm of three rows is `1`. -/
-theorem threeRows_logSize : (imageOf threeRows).1 = 1 :=
-  Nat.log_eq_of_pow_le_of_lt_pow (b := 2) (m := 1) (n := (memRows threeRows).size)
-    (by decide +kernel) (by decide +kernel)
+/-- The floor logarithm of three rows is `1`, under the cap. -/
+theorem threeRows_logSize : (imageOf threeRows).1 = 1 := by
+  show min (Nat.log 2 (memRows threeRows).size) maxLogMem = 1
+  rw [Nat.log_eq_of_pow_le_of_lt_pow (b := 2) (m := 1) (n := (memRows threeRows).size)
+    (by decide +kernel) (by decide +kernel)]
+  decide
 
 /-- Three rows are not well shaped: the third is dropped. -/
 theorem threeRows_not_wellShaped : ¬ WellShapedData threeRows := by
@@ -220,7 +226,10 @@ theorem threeRows_not_wellShaped : ¬ WellShapedData threeRows := by
 example : ¬ WellShapedData emptyData := by
   intro h
   have hsize := h.memRows_size
-  rw [show (imageOf emptyData).1 = 0 from Nat.log_zero_right 2] at hsize
+  rw [show (imageOf emptyData).1 = 0 by
+    show min (Nat.log 2 (memRows emptyData).size) maxLogMem = 0
+    rw [show (memRows emptyData).size = 0 from rfl, Nat.log_zero_right]
+    decide] at hsize
   exact absurd hsize (by decide)
 
 /-- Index `1` of the sample image. -/

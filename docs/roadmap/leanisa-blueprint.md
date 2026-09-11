@@ -489,20 +489,21 @@ def memDataName : String := "mem"                -- the image: one row of three 
 def bytecodeDataName : String := "bytecode"      -- the program: one eight-coordinate entry per slot
 def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
 def bytecodeRows (data : ProverData K) : Array (Vector K 8) := data bytecodeDataName 8
-/-- `κ` is the floor logarithm of the `"mem"` row count; a missing row reads as `0`, and rows at
-indices from `2^κ` on are dropped. -/
+/-- `κ` is the floor logarithm of the `"mem"` row count, capped at `maxLogMem`; a missing row
+reads as `0`, and rows at indices from `2^κ` on are dropped. -/
 def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ
 /-- `logSize` is the floor logarithm of the `"bytecode"` row count, capped at `maxLogBytecode`;
 a missing row, or one that decodes to nothing, is `XOR 0 0 0`, whose first read fails; rows at
 indices from `2^logSize` on are dropped. -/
 def programOf (data : ProverData K) : Program
-/-- The shape under which nothing is dropped: each table's row count is exactly a power of two,
-the bytecode's within the cap. A conjunct of Layer 8's `Caps`. -/
+/-- The shape under which nothing is dropped: each table's row count is exactly a power of two
+within its cap. A conjunct of Layer 8's `Caps`. -/
 structure WellShapedData (data : ProverData K) : Prop where
   memRows_size : (memRows data).size = 2 ^ (imageOf data).1
   bytecodeRows_size : (bytecodeRows data).size = 2 ^ (programOf data).logSize
 theorem wellShapedData_iff : WellShapedData data ↔
-    (∃ κ, (memRows data).size = 2 ^ κ) ∧ ∃ k ≤ maxLogBytecode, (bytecodeRows data).size = 2 ^ k
+    (∃ κ ≤ maxLogMem, (memRows data).size = 2 ^ κ) ∧
+      ∃ k ≤ maxLogBytecode, (bytecodeRows data).size = 2 ^ k
 theorem imageOf_apply (h : WellShapedData data) (i) (hv : (memRows data)[i]'_ = v) :
     (imageOf data).2 i = E.ofLimbs v[0] v[1] v[2]
 theorem programOf_code (h : WellShapedData data) (i) (hd : decode ((bytecodeRows data)[i]'_) = some ins) :
@@ -556,9 +557,10 @@ parametric in the field for that purpose, so that a pulled state and a register 
 thing and Layer 9 chains pulled states into `run` without a conversion. The image and the
 program are read off Clean's `ProverData`, the string-keyed store a component's `Spec` sees,
 from its `"mem"` and `"bytecode"` tables (`memRows`, `bytecodeRows`); both readings are total,
-so they take the floor logarithm of a table's row count and drop the rows beyond that power of
-two, and `WellShapedData` names the shape under which nothing is dropped, which Layer 8's
-`Caps` requires. Layer 8's hypotheses `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram` tie
+so they take the floor logarithm of a table's row count, capped at the verifier's bound
+(`maxLogMem`, `maxLogBytecode`, which also keeps `κ < 64` for `gLog?_spec`), and drop the rows
+beyond that power of two, and `WellShapedData` names the shape under which nothing is dropped,
+which Layer 8's `Caps` requires. Layer 8's hypotheses `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram` tie
 the two tables to the committed rows until Clean PR #446 supplies proof-committed data.
 
 Each channel also names its bus data, so that the proof-system roadmap
