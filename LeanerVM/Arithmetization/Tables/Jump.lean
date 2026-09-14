@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Tables.Jump
 
-  The `JUMP` table: one Clean component per row, sound and complete for the row's functional
-  specification, its bindings to the program and the image together with Layer 3's `step`.
+  The `JUMP` table: one Clean component per row, sound and complete for the relation the row
+  refines, its bindings to a program and an image together with Layer 3's `step`.
   A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
@@ -32,17 +32,18 @@ they force `b = [v_cond ≠ 0]` (`flags_sound`): with `v_cond = 0` the first giv
 `v_cond = 0` and a wrong successor (roadmap acceptance test 8). The honest witnesses satisfy
 both (`flags_complete`).
 
-**The contract.** `JumpRowBindings r data` binds the row to the program and the image: the
-instruction at `pc` is `JUMP o_c o_d o_f`, and the three cells hold the `K` words `v_cond`,
-`v_pc`, `v_fp`, taken or not. `JumpSpec r next data` is the bindings and the step;
-`jump_spec_iff` expands it: the successor is `(v_pc, v_fp)` when `v_cond ≠ 0` and `(g·pc, fp)`
-otherwise, so the bindings alone make a successor exist. `ProverAssumptions r data _ :=
-∃ next, JumpSpec r next data` is the honest prover's row (see
-`LeanerVM.Arithmetization.Tables.Xor` for the template), proved of the row of any valid step by
-`jumpRowOf_spec` (`jump_step_complete`); completeness discharges the four pulls from its
-bindings and the two residuals from the honest witnesses (`flags_complete`). The specification
-does not mention `w`: with `v_cond = 0` the residuals accept every `w`, and the honest
-generator's `0` is one satisfying assignment among all of them.
+**The relation.** `JumpBindings prog mem r` binds the row to a program and an image: the
+instruction at `pc` is `JUMP o_c o_d o_f` (`fetch_eq`), and the three cells hold the `K` words
+`v_cond`, `v_pc`, `v_fp` (`cond_eq`, `dest_eq`, `frame_eq`), taken or not. `JumpRefines prog
+mem r next` is the bindings and the step (`step_eq`); `jump_refines_iff` expands it: the
+successor is `(v_pc, v_fp)` when `v_cond ≠ 0` and `(g·pc, fp)` otherwise, so the bindings
+alone make a successor exist. `JumpSpec r next data` adapts the relation to Clean's prover data
+and is the table's `Spec`; `ProverAssumptions r data _ := ∃ next, JumpSpec r next data` is the
+honest prover's row (see `LeanerVM.Arithmetization.Tables.Xor` for the template), proved of
+the row of any valid step by `jumpRowOf_refines` (`jump_step_complete`); completeness
+discharges the four pulls from its bindings and the two residuals from the honest witnesses
+(`flags_complete`). The relation does not mention `w`: with `v_cond = 0` the residuals accept
+every `w`, and the honest generator's `0` is one satisfying assignment among all of them.
 
 **The component** `jumpTable` pulls the state `(pc, fp)`, pushes and returns the derived
 successor `(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)`, in characteristic two the selection
@@ -61,10 +62,10 @@ Clean's array generator `Circuit.witgen` computes the same two values (the tests
 its environment carries no data, so the data-carrying environment is `jumpEnv`, whose witness
 discipline is the theorem.
 
-**Rows from steps.** `jumpRowOf data pc fp o_c o_d o_f r_c r_d r_f r_bc` reads the three low
-limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_spec` proves its `JumpSpec`, and
-`jump_step_complete` its acceptance by `main` in `jumpEnv`, witnesses included, from the step
-alone.
+**Rows from steps.** `jumpRowOf mem pc fp o_c o_d o_f r_c r_d r_f r_bc` reads the three low
+limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_refines` proves it refines the
+relation, and `jump_step_complete` its acceptance by `main` in `jumpEnv`, witnesses included,
+from the step alone.
 
 ## Wrong readings excluded
 
@@ -133,28 +134,36 @@ theorem flags_complete (c : K) :
   · exact ⟨by rw [mul_inv_cancel₀ hc, CharTwo.add_self_eq_zero],
       by rw [CharTwo.add_self_eq_zero, mul_zero]⟩
 
-/-! ## The contract -/
+/-! ## The relation -/
 
-/-- The row's bindings to the program and the image: the instruction at `pc` is
-`JUMP o_c o_d o_f`, and the three cells hold the row's `K` words. -/
-def JumpRowBindings (r : JumpRow K) (data : ProverData K) : Prop :=
-  (programOf data).fetch r.pc = some (.jump r.oc r.od r.of) ∧
-  (imageOf data).2.read (r.fp * r.oc) = some (E.ofLimbs r.vcond 0 0) ∧
-  (imageOf data).2.read (r.fp * r.od) = some (E.ofLimbs r.vpc 0 0) ∧
-  (imageOf data).2.read (r.fp * r.of) = some (E.ofLimbs r.vfp 0 0)
+/-- The row's bindings to a program and an image: the instruction at `pc` is `JUMP o_c o_d o_f`,
+and the three cells hold the row's `K` words. -/
+structure JumpBindings {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : JumpRow K) : Prop where
+  /-- The instruction at `pc` is `JUMP o_c o_d o_f`. -/
+  fetch_eq : prog.fetch r.pc = some (.jump r.oc r.od r.of)
+  /-- The condition cell `fp · o_c` holds `v_cond`, a word in `K`. -/
+  cond_eq : mem.read (r.fp * r.oc) = some (E.ofLimbs r.vcond 0 0)
+  /-- The destination cell `fp · o_d` holds `v_pc`, a word in `K`. -/
+  dest_eq : mem.read (r.fp * r.od) = some (E.ofLimbs r.vpc 0 0)
+  /-- The frame cell `fp · o_f` holds `v_fp`, a word in `K`. -/
+  frame_eq : mem.read (r.fp * r.of) = some (E.ofLimbs r.vfp 0 0)
 
-/-- The functional specification of a `JUMP` row: it is bound to the program and the image,
-and from its registers the machine steps to `next`. -/
-def JumpSpec (r : JumpRow K) (next : Regs K) (data : ProverData K) : Prop :=
-  JumpRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
+/-- The relation a `JUMP` row refines: it is bound to the program and the image, and from its
+registers the machine steps to `next`. -/
+structure JumpRefines {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : JumpRow K)
+    (next : Regs K) : Prop where
+  /-- The row is bound to the program and the image. -/
+  bindings : JumpBindings prog mem r
+  /-- From the row's registers the machine steps to `next`. -/
+  step_eq : step prog mem ⟨r.pc, r.fp⟩ = some next
 
-/-- `JumpSpec`, expanded: the bindings, and the successor is `(v_pc, v_fp)` when the condition
-is nonzero and the fall-through `(g·pc, fp)` otherwise. -/
-theorem jump_spec_iff (r : JumpRow K) (next : Regs K) (data : ProverData K) :
-    JumpSpec r next data ↔
-      JumpRowBindings r data ∧
+/-- `JumpRefines`, expanded: the bindings, and the successor is `(v_pc, v_fp)` when the
+condition is nonzero and the fall-through `(g·pc, fp)` otherwise. -/
+theorem jump_refines_iff {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : JumpRow K)
+    (next : Regs K) :
+    JumpRefines prog mem r next ↔
+      JumpBindings prog mem r ∧
         next = if r.vcond = 0 then Regs.next ⟨r.pc, r.fp⟩ else ⟨r.vpc, r.vfp⟩ := by
-  unfold JumpSpec
   constructor
   · rintro ⟨⟨hfetch, hc, hd, hf⟩, hstep⟩
     refine ⟨⟨hfetch, hc, hd, hf⟩, ?_⟩
@@ -169,6 +178,13 @@ theorem jump_spec_iff (r : JumpRow K) (next : Regs K) (data : ProverData K) :
     simp only [execute, hc, hd, hf, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, isInK_ofLimbs, and_self, Option.pure_def, ofLimbs_eq_zero_iff,
       limb_ofLimbs, Matrix.cons_val_zero]
+
+/-! ## The adapter to the prover data -/
+
+/-- The table's `Spec`: the row refines `JumpRefines` over the program and the image the prover
+data names. -/
+def JumpSpec (r : JumpRow K) (next : Regs K) (data : ProverData K) : Prop :=
+  JumpRefines (programOf data) (imageOf data).2 r next
 
 /-! ## The table -/
 
@@ -199,11 +215,11 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
-  -- The row is bound to the program and the image, and steps to the pushed successor.
+  -- The row refines the relation over the data's program and image, to the pushed successor.
   Spec := JumpSpec
   -- The honest prover's row: written from a valid step, it is bound and steps somewhere (the
-  -- bindings alone, by `jump_spec_iff`). Proved of the row built from any valid step by
-  -- `jumpRowOf_spec`; see `jump_step_complete`.
+  -- bindings alone, by `jump_refines_iff`). Proved of the row built from any valid step by
+  -- `jumpRowOf_refines`; see `jump_step_complete`.
   ProverAssumptions r data _ := ∃ next, JumpSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -212,7 +228,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     -- The pulled tuple is the entry of `JUMP` with the row's operands (Layer 4).
     obtain rfl := Option.some.inj ((decode_entry (.jump _ _ _)).symm.trans hdec)
     have hind := flags_sound hw hb
-    refine (jump_spec_iff _ _ _).mpr ⟨⟨hfetch, hc, hd, hf⟩, ?_⟩
+    refine (jump_refines_iff _ _ _ _).mpr ⟨⟨hfetch, hc, hd, hf⟩, ?_⟩
     split_ifs at hind ⊢ with hc0
     · -- Not taken: `b = 0`, the successor is `(g·pc, fp)`.
       simp only [hind, zero_mul, zero_add, Regs.next]
@@ -225,7 +241,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     -- emits is the fetched instruction's entry (Layer 4), and the two residuals hold of the
     -- honest witnesses.
     obtain ⟨next, h⟩ := h_assumptions
-    obtain ⟨hfetch, hc, hd, hf⟩ := h.1
+    obtain ⟨hfetch, hc, hd, hf⟩ := h.bindings
     obtain ⟨hw, hb⟩ := h_env
     rw [hw, hb]
     exact ⟨(flags_complete _).1, (flags_complete _).2, ⟨_, hfetch, decode_entry (.jump _ _ _)⟩,
@@ -266,35 +282,32 @@ def jumpEnv (data : ProverData K) (r : JumpRow K) : ProverEnvironment K :=
 
 /-! ## Rows from steps -/
 
-/-- The row of a step that fetches `JUMP o_c o_d o_f` from `(pc, fp)`: the registers, the
-operands, the three low limbs read back from the image, and the counts as parameters.
-Noncomputable: it reads the image. -/
-noncomputable def jumpRowOf (data : ProverData K) (pc fp oc od of rc rd rf rbc : K) :
+/-- The row of a step that fetches `JUMP o_c o_d o_f` from `(pc, fp)` over the image `mem`: the
+registers, the operands, the three low limbs read back from the image, and the counts as
+parameters. Noncomputable: it reads the image. -/
+noncomputable def jumpRowOf {κ : ℕ} (mem : MemImage κ) (pc fp oc od of rc rd rf rbc : K) :
     JumpRow K :=
-  ⟨pc, fp, oc, od, of, ((imageOf data).2.limbsAt (fp * oc))[0],
-    ((imageOf data).2.limbsAt (fp * od))[0], ((imageOf data).2.limbsAt (fp * of))[0],
-    rc, rd, rf, rbc⟩
+  ⟨pc, fp, oc, od, of, (mem.limbsAt (fp * oc))[0], (mem.limbsAt (fp * od))[0],
+    (mem.limbsAt (fp * of))[0], rc, rd, rf, rbc⟩
 
 /-- A valid step that fetches `JUMP o_c o_d o_f` is represented by `jumpRowOf`, with any
-counts: the honest prover's row satisfies `ProverAssumptions`. -/
-theorem jumpRowOf_spec {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.jump oc od of))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
-    JumpSpec (jumpRowOf data pc fp oc od of rc rd rf rbc) next data := by
+counts: the honest prover's row refines the relation, which is `ProverAssumptions` over the
+data. -/
+theorem jumpRowOf_refines {κ : ℕ} {prog : Program} {mem : MemImage κ} {pc fp oc od of : K}
+    {next : Regs K} (hfetch : prog.fetch pc = some (.jump oc od of))
+    (hstep : step prog mem ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
+    JumpRefines prog mem (jumpRowOf mem pc fp oc od of rc rd rf rbc) next := by
   have h := hstep
   rw [step_of_fetch_eq_some hfetch] at h
   simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨c, hc, d, hd, f, hf, u, hu, -⟩ := h
   obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
   refine ⟨⟨hfetch, ?_, ?_, ?_⟩, hstep⟩
-  · show (imageOf data).2.read (fp * oc) =
-      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oc))[0] 0 0)
+  · show mem.read (fp * oc) = some (E.ofLimbs (mem.limbsAt (fp * oc))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
-  · show (imageOf data).2.read (fp * od) =
-      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * od))[0] 0 0)
+  · show mem.read (fp * od) = some (E.ofLimbs (mem.limbsAt (fp * od))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
-  · show (imageOf data).2.read (fp * of) =
-      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * of))[0] 0 0)
+  · show mem.read (fp * of) = some (E.ofLimbs (mem.limbsAt (fp * of))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
 /-- Every valid `JUMP` step has a satisfying row, witnesses included, from the step alone: the
@@ -302,11 +315,13 @@ constraints of `main` hold of `jumpRowOf` in its honest environment over the dat
 theorem jump_step_complete {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.jump oc od of))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
-    ConstraintsHold.Completeness (jumpEnv data (jumpRowOf data pc fp oc od of rc rd rf rbc))
-      ((jumpTable.main (const (jumpRowOf data pc fp oc od of rc rd rf rbc))).operations 0) :=
+    ConstraintsHold.Completeness
+      (jumpEnv data (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc))
+      ((jumpTable.main
+        (const (jumpRowOf (imageOf data).2 pc fp oc od of rc rd rf rbc))).operations 0) :=
   (jumpTable.completeness 0 (jumpEnv data _) (const _)
     -- `jumpEnv` holds the honest inverse and indicator of the row's condition (`jump_env_iff`).
     (by rw [jump_env_iff, ProvableType.eval_const_prover]; exact ⟨rfl, rfl⟩) _
-    ProvableType.eval_const_prover ⟨_, jumpRowOf_spec hfetch hstep rc rd rf rbc⟩).1
+    ProvableType.eval_const_prover ⟨_, jumpRowOf_refines hfetch hstep rc rd rf rbc⟩).1
 
 end LeanerVM.Arithmetization

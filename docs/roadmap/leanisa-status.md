@@ -58,12 +58,14 @@ the bus data `Direction`, `channelDir`, `channelSep`, `busTuple`. It proves the 
 define the six rows `XorRow` … `Blake2sRow` (`deriving ProvableStruct`, columns in the Rust's
 order) and the six tables `xorTable` … `blake2sTable`, each a `GeneralFormalCircuit K Row Regs`
 whose `main` is the specification §7 entry and returns the state it pushes, whose `Spec` is
-the functional specification `*Spec r next data` (the row's bindings `*RowBindings` to the
-program and the image, and `step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, with
-`*_spec_iff` its opcode-level reading), and whose soundness and completeness are proved; the
+`*Spec r next data := *Refines (programOf data) (imageOf data).2 r next`, the relation the row
+refines stated over a program and an image (a structure: the row's bindings
+`*Bindings prog mem r`, the named facts `fetch_eq` and `…_eq`, and `step_eq : step prog mem
+⟨pc, fp⟩ = some next`, with `*_refines_iff` its opcode-level reading) and adapted to the
+prover data in that one step, and whose soundness and completeness are proved; the
 named assumption `Blake2sRelation` (`CompressCells` on the row's nine cells) is the
 `Assumptions` field of `blake2sTable`. Beside the tables they state the honest prover's row of
-a valid step (`*RowOf`, `*RowOf_spec`, `*_step_complete`; `blake2sRow_complete` for the
+a valid step (`*RowOf mem …`, `*RowOf_refines`, `*_step_complete`; `blake2sRow_complete` for the
 boundary), `storeCoords_eval` (the `DEREF` store coordinates are `derefSource` at each flag
 setting), `flags_sound` and `flags_complete` (the two `JUMP` residuals force the indicator),
 and `jumpEnv` with `jump_env_iff` (the witness discipline); the limb arithmetic (`add_limbs`,
@@ -87,7 +89,7 @@ module (P3).
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
 | 5 — channels | landed (PR #17) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name; `BytecodePull.Guarantees` strengthened by Layer 6 to name the fetched instruction on both sides (F7) |
-| 6 — six tables | built and proved; draft PR #19 open for review, revised for the review of 2026-09-14 | plain files (C8); each table's `Spec` is its functional specification `*Spec`, the row's bindings to the program and the image together with `step` (decision 11, F8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from steps by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
+| 6 — six tables | built and proved; draft PR #19 open for review, revised for the review of 2026-09-14 | plain files (C8); each table's `Spec` is `*Spec`, the relation `*Refines prog mem r next` (the row's bindings to a program and an image, and `step`) adapted to the prover data (decision 11, F8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from steps by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
 | 9 — bus soundness | untouched; consumes a Clean change | statements land as block comments with Layer 8; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
@@ -105,11 +107,11 @@ module (P3).
   is present and proved. The review's three findings (F8) are met: (R1) the step-only `Spec`
   forgot the row, and each table's `Spec` is now its functional specification `*Spec`, the
   bindings of the row's operands and words to the program and the image together with `step`,
-  with `*_spec_iff` expanding it to the opcode's equation and successor rule (decision 11);
+  with `*_refines_iff` expanding it to the opcode's equation and successor rule (decision 11);
   (R2) completeness was conditional row acceptance, and `ProverAssumptions` is now the
   semantic premise `∃ next, *Spec r next data`, the honest prover's row from a valid step,
   which nothing above the tables assumes: `*RowOf` builds the row of any valid step
-  (`*RowOf_spec`), and `*_step_complete` pushes it through `completeness` in `rowEnv data` or
+  (`*RowOf_refines`), and `*_step_complete` pushes it through `completeness` in `rowEnv data` or
   `jumpEnv data r`, completeness from the step alone; (R3) the negative tests did not touch
   `main`, and every rejection now goes through the constraints `main` emits (read back through
   each table's `soundness`) or the strengthened specification. The review's follow-up comments
@@ -132,8 +134,15 @@ module (P3).
   `jumpEnv_usesLocalWitnesses`, `blake2s_bindings_of_spec` and `blake2sRow_complete_of_spec`
   are removed, their consumers (the tests) calling `soundness` and `*_step_complete` directly;
   what stays table-specific is `storeCoords_eval`, `flags_sound`, `flags_complete`, `jumpEnv`,
-  `jump_env_iff` and, for the boundary with Flock, `blake2sRow_complete`. The executable
-  obligation the review names stays open and is recorded in the
+  `jump_env_iff` and, for the boundary with Flock, `blake2sRow_complete`. The third follow-up
+  (2026-09-14) parameterised the relation by the program and the image explicitly:
+  `*Bindings prog mem r` and `*Refines prog mem r next` are structures with named fields
+  (`fetch_eq`, `…_eq`; `bindings`, `step_eq`), `*Spec r next data` is the adapter
+  `*Refines (programOf data) (imageOf data).2 r next`, `*RowOf` builds over an image and
+  `*RowOf_refines` is stated over a program and an image, so that execution and witness proofs
+  state their obligations over theirs and a consumer projects by name; only `*Spec`,
+  `ProverAssumptions`, `*_step_complete`, `jumpEnv` and `blake2sRow_complete` touch the prover
+  data. The executable obligation the review names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
   carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
   it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
@@ -153,7 +162,8 @@ module (P3).
     says. The lawfulness proof is supplied by hand because Clean's default tactic dies on `K`
     (E6).
   - `ProverAssumptions` is the semantic premise `∃ next, *Spec r next data` (decision 11),
-    from which completeness discharges each pull's guarantee through `*_spec_iff`: the fetched
+    from which completeness discharges each pull's guarantee through `*_refines_iff`: the
+    fetched
     instruction with the row's operands (for `DEREF`, the mode whose flags the row carries)
     and every read, the derived result included, as the image's word. `BLAKE2S` keeps the pull
     guarantees themselves as its premise, since its compression is Flock's. `mul_limbs`
@@ -312,13 +322,15 @@ line.
     (`GeneralFormalCircuit K Row Regs`), so that every `Spec` is `step … = some next`, the
     `JUMP` successor being a function of its witness `b` (roadmap Layer 6).
 11. Settled 2026-09-14 (Layer 6, the review's R1 and R2, F8): a table's `Spec` is its
-    functional specification `*Spec r next data := *RowBindings r data ∧ step … = some next`,
-    binding the row's operands and words to the program and the image, with `*_spec_iff` as
-    the opcode-level characterisation; `ProverAssumptions`
+    functional specification `*Spec r next data := *Refines (programOf data) (imageOf data).2
+    r next`, the relation `*Refines prog mem r next` (a structure: `bindings : *Bindings prog
+    mem r`, the row's operands and words bound to a program and an image as named facts, and
+    `step_eq`) adapted to the prover data, with `*_refines_iff` as the opcode-level
+    characterisation; `ProverAssumptions`
     is the semantic premise `∃ next, *Spec r next data`, the honest prover's row, which nothing
-    above the tables assumes (`*RowOf_spec` proves it of the row of any valid step, and
+    above the tables assumes (`*RowOf_refines` proves it of the row of any valid step, and
     `*_step_complete` states completeness from the step alone), except for `BLAKE2S`, whose
-    local premise `Blake2sRowBindings` does not check the compression (the boundary with
+    local premise `Blake2sBindings` does not check the compression (the boundary with
     Flock). The pull guarantees have no separate name: `circuit_proof_start` supplies them, and
     the review's follow-up of 2026-09-14 removed `XorRowReads`. Access counts stay outside the
     contract.
@@ -548,9 +560,10 @@ honest `DEREF` row with the flag pair `(1, 1)` satisfied it; the soundness proof
 fetched opcode and the read words from the pulls and then discarded them, so a consumer of
 `Spec` could not recover them, and completeness restated the pull guarantees as its premise
 rather than connecting them to a semantic step. Met by decision 11: each table's `Spec` is the
-functional specification `*Spec` (bindings and step) with `*_spec_iff`; `ProverAssumptions` is
+functional specification `*Spec` (bindings and step, `*Refines` over the data's program and
+image) with `*_refines_iff`; `ProverAssumptions` is
 `∃ next, *Spec r next data`, proved of the row of any valid step; rows of valid steps are built
-(`*RowOf`, `*RowOf_spec`) and pushed through `completeness` (`*_step_complete`);
+(`*RowOf`, `*RowOf_refines`) and pushed through `completeness` (`*_step_complete`);
 the tests reject the three counterexamples through the specification and mutated rows through
 the constraints `main` emits. The remaining executable obligation, a data-aware generator, is
 T2's (decision 11).

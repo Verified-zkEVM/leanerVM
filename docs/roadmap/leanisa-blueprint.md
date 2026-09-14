@@ -605,39 +605,50 @@ state it pushes, the row's successor; `channelsWithRequirements` lists the three
 whose requirements are vacuous (Layer 5) and whose obligation is `Spec`. The contract of a
 table is opcode-specific and names the row, never only its registers:
 
-- `*RowBindings r data` binds the row to the program and the image named by the prover data:
-  the instruction at `r.pc` is the opcode with the row's operands (for `DEREF`, for some mode
-  whose flags the row carries; for `SET_CONSTANT`, with the row's immediate), and each input
-  cell holds the row's word (`E.ofLimbs v[0] v[1] v[2]` for a three-limb column, as
-  `MemPull.Guarantees` spells it; `E.ofLimbs c 0 0` for a `K` word; `E.ofCell` for a canonical
-  `BLAKE2S` cell). Access counts are outside the bindings: their allocation is the bus's
-  (Layers 8 and 9), and a wrong count does not falsify the opcode's specification.
-- `*Spec r next data := *RowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`
-  is the functional specification and the table's `Spec`; `*_spec_iff` expands it into the
-  bindings, the opcode's equation and the successor rule (below). The row's pull guarantees
-  have no name of their own: they are what Clean's `circuit_proof_start` hands soundness as
-  hypotheses and asks of completeness as goals, and `*_spec_iff` with Layer 0's limb arithmetic
-  is their semantic reading.
+- `*Bindings prog mem r` binds the row to a program and an image, as named facts (`fetch_eq`
+  and one `…_eq` per read): the instruction at `r.pc` is the opcode with the row's operands
+  (for `DEREF`, `DerefBindings prog mem r mode` for the store mode whose flags the row carries;
+  for `SET_CONSTANT`, with the row's immediate), and each input cell holds the row's word
+  (`E.ofLimbs v[0] v[1] v[2]` for a three-limb column, as `MemPull.Guarantees` spells it;
+  `E.ofLimbs c 0 0` for a `K` word; `E.ofCell` for a canonical `BLAKE2S` cell). Access counts
+  are outside the bindings: their allocation is the bus's (Layers 8 and 9), and a wrong count
+  does not falsify the opcode's specification.
+- `*Refines prog mem r next` is the relation the row refines, a structure with the fields
+  `bindings : *Bindings prog mem r` (for `DEREF`, `∃ mode, DerefBindings prog mem r mode`) and
+  `step_eq : step prog mem ⟨r.pc, r.fp⟩ = some next`. It is stated over the program and the
+  image themselves, so that execution and witness proofs state their obligations over theirs,
+  and its fields are named, so that a consumer writes `h.bindings.fetch_eq` and `h.step_eq`
+  and adding a field shifts no positional projection. `*_refines_iff` expands it into the
+  bindings, the opcode's equation and the successor rule (below).
+- `*Spec r next data := *Refines (programOf data) (imageOf data).2 r next` adapts the relation
+  to Clean's prover data (Layer 5) and is the table's `Spec`: constructing and relating
+  `ProverData` is this one explicit step. The row's pull guarantees have no name of their own:
+  they are what Clean's `circuit_proof_start` hands soundness as hypotheses and asks of
+  completeness as goals, and `*_refines_iff` with Layer 0's limb arithmetic is their semantic
+  reading.
 - `ProverAssumptions r data _` is `∃ next, *Spec r next data`: the honest prover's row,
   written from a valid step of the execution it proves, so bound and stepping. It is the
   honest-prover precondition Clean's completeness is relative to, and nothing above the tables
-  assumes it: `*RowOf_spec` proves it of the row built from any valid step (below). `BLAKE2S`
-  takes its bindings instead (below).
+  assumes it: `*RowOf_refines` proves it of the row built from any valid step (below).
+  `BLAKE2S` takes its bindings instead (below).
 - Soundness assumes the guarantees of the pulls and concludes `*Spec`: the bindings are exactly
   what the pulls guarantee, and the step follows by the arm of `execute`, with the bytecode
   guarantee yielding the fetched instruction through Layer 4's `decode_entry` (or, for `DEREF`,
   `decode_deref_eq_some_iff`, which names the store mode whose flags the tuple carries).
-  Completeness discharges the pull guarantees from the semantic premise through `*_spec_iff`;
+  Completeness discharges the pull guarantees from the semantic premise through
+  `*_refines_iff`;
   what it proves is the encoding, that the tuple `main` emits decodes to the fetched
   instruction and that the coordinates it emits for a derived read are the limbs of the word a
   valid step reads (`add_limbs`, `mul_limbs`, `storeCoords_eval`). Nothing else is stated of
-  `main`: the successor it returns is fixed by `*_spec_iff` under `soundness`, and a rejection
+  `main`: the successor it returns is fixed by `*_refines_iff` under `soundness`, and a
+  rejection
   is read back through `soundness` itself.
-- Rows from steps: `*RowOf` builds the row of a valid step from its registers, the fetched
-  operands and the words read back from the image (`MemImage.limbsAt`, `MemImage.cellAt`,
-  Layer 2; noncomputable, since `MemImage.read` is); `*RowOf_spec` says it satisfies `*Spec`
-  whenever the step is valid, with any counts, which is `ProverAssumptions` of the honest row;
-  `*_step_complete` pushes it through `completeness`: every valid step of the opcode has a
+- Rows from steps: `*RowOf mem …` builds the row of a valid step over the image `mem` from
+  its registers, the fetched operands and the words read back from the image
+  (`MemImage.limbsAt`, `MemImage.cellAt`, Layer 2; noncomputable, since `MemImage.read` is);
+  `*RowOf_refines` says it refines `*Refines prog mem` whenever the step is valid, with any
+  counts, which is `ProverAssumptions` of the honest row over the data; `*_step_complete`
+  pushes it through `completeness` over the data: every valid step of the opcode has a
   satisfying row, from the step alone, its constraints holding in `rowEnv data` (no witness
   slots, the data) or, for `JUMP`, in `jumpEnv data r`. `BLAKE2S` also states
   `blake2sRow_complete`, local completeness of any bound row with the compression unchecked:
@@ -656,17 +667,21 @@ structure XorRow (F : Type) where
   pc fp oA oB oC : F
   vA vB : Vector F 3
   rA rB rC rbc : F
-def XorRowBindings (r : XorRow K) (data : ProverData K) : Prop :=
-  (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
-  (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧
-  (imageOf data).2.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
-def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
-  XorRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
-theorem xor_spec_iff : XorSpec r next data ↔
-    XorRowBindings r data ∧
-      (imageOf data).2.read (r.fp * r.oC) =
+structure XorBindings {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : XorRow K) : Prop where
+  fetch_eq : prog.fetch r.pc = some (.xor r.oA r.oB r.oC)
+  readA_eq : mem.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2])
+  readB_eq : mem.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
+structure XorRefines {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : XorRow K) (next : Regs K) :
+    Prop where
+  bindings : XorBindings prog mem r
+  step_eq : step prog mem ⟨r.pc, r.fp⟩ = some next
+theorem xor_refines_iff : XorRefines prog mem r next ↔
+    XorBindings prog mem r ∧
+      mem.read (r.fp * r.oC) =
         some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] + E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
       next = Regs.next ⟨r.pc, r.fp⟩
+def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
+  XorRefines (programOf data) (imageOf data).2 r next
 def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
@@ -683,7 +698,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
   …
 ```
 
-Table-specific targets, each the opcode's equation and successor rule of `*_spec_iff`:
+Table-specific targets, each the opcode's equation and successor rule of `*_refines_iff`:
 
 - **XOR.** The cell `fp·o_C` holds the sum of the two words, addition in `E` (bitwise `XOR`
   in each limb, never integer addition); the successor is `(g·pc, fp)`. The result read
@@ -721,9 +736,11 @@ Table-specific targets, each the opcode's equation and successor rule of `*_spec
   `Blake2sRelation r` (`CompressCells` on the nine cells) and `(g·pc, fp)`. The Flock relation
   stays the named `Assumptions` field `Blake2sRelation r`: the component proves memory and
   bytecode binding, Flock (#3) discharges the compression, and soundness of `Blake2sSpec` is
-  conditional on it, never unconditional. `ProverAssumptions` is `Blake2sRowBindings`, the
+  conditional on it, never unconditional. `ProverAssumptions` is `Blake2sBindings` over the
+  data's program and image, the
   local premise, which accepts any correctly bound canonical cells without checking the
-  compression (`blake2sRow_complete`); `blake2s_spec_iff` derives it, with the relation, from
+  compression (`blake2sRow_complete`); `blake2s_refines_iff` derives it, with the relation,
+  from
   `∃ next, Blake2sSpec r next data`.
 
 Tests: one prover data with a `DEREF` in each store mode and a `JUMP` on each branch; per
@@ -992,15 +1009,16 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   WellShapedData
                   rowEnv
                   XorRow  MulRow  SetRow  DerefRow  JumpRow  Blake2sRow  Blake2sRelation
-                  XorRowBindings  MulRowBindings  SetRowBindings  DerefRowBindings
-                  JumpRowBindings  Blake2sRowBindings
+                  XorBindings  MulBindings  SetBindings  DerefBindings  JumpBindings
+                  Blake2sBindings
+                  XorRefines  MulRefines  SetRefines  DerefRefines  JumpRefines  Blake2sRefines
                   XorSpec  MulSpec  SetSpec  DerefSpec  JumpSpec  Blake2sSpec
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
-                  xor_spec_iff  mul_spec_iff  set_spec_iff  deref_spec_iff  jump_spec_iff
-                  blake2s_spec_iff
+                  xor_refines_iff  mul_refines_iff  set_refines_iff  deref_refines_iff
+                  jump_refines_iff  blake2s_refines_iff
                   xorRowOf  mulRowOf  setRowOf  derefRowOf  jumpRowOf  blake2sRowOf
-                  xorRowOf_spec  mulRowOf_spec  setRowOf_spec  derefRowOf_spec  jumpRowOf_spec
-                  blake2sRowOf_spec  blake2sRow_complete
+                  xorRowOf_refines  mulRowOf_refines  setRowOf_refines  derefRowOf_refines
+                  jumpRowOf_refines  blake2sRowOf_refines  blake2sRow_complete
                   xor_step_complete  mul_step_complete  set_step_complete  deref_step_complete
                   jump_step_complete  blake2s_step_complete
                   jumpEnv  jump_env_iff

@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Tables.Deref
 
-  The `DEREF` table: one Clean component per row, sound and complete for the row's functional
-  specification, its bindings to the program and the image together with Layer 3's `step`.
+  The `DEREF` table: one Clean component per row, sound and complete for the relation the row
+  refines, its bindings to a program and an image together with Layer 3's `step`.
   A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
@@ -29,15 +29,17 @@ ride the target read as `(f̄·v₃₀ + f_pc·(g²·pc) + f_fp·fp, f̄·v₃�
 `f̄ = 1 + f_pc + f_fp`, the flag-selected source of §7.4, which `storeCoords_eval` identifies
 with Layer 3's `derefSource` at each of the three flag settings.
 
-**The contract.** `DerefRowBindings r data` binds the row to the program and the image: for
-some store mode, the instruction at `pc` is `DEREF o₁ o₂ o₃ mode`, the row's flags are the
-mode's (`derefFlags`), the pointer cell `fp·o₁` holds `p` in `K`, and the local cell `fp·o₃`
-holds the row's word. `DerefSpec r next data` is the bindings and the step; `deref_spec_iff`
-expands it, with the same mode: the target cell `p·o₂` holds `derefSource mode (pc, fp)` of
-the local word, the return address `g²·pc`, or `fp`, and the successor is `(g·pc, fp)`. The
-local cell is read in every mode. `ProverAssumptions r data _ := ∃ next, DerefSpec r next data`
-is the honest prover's row (see `LeanerVM.Arithmetization.Tables.Xor` for the template),
-proved of the row of any valid step by `derefRowOf_spec`.
+**The relation.** `DerefBindings prog mem r mode` binds the row to a program and an image for
+a store mode: the instruction at `pc` is `DEREF o₁ o₂ o₃ mode` (`fetch_eq`), the row's flags
+are the mode's (`flags_eq`, `derefFlags`), the pointer cell `fp·o₁` holds `p` in `K`
+(`ptr_eq`), and the local cell `fp·o₃` holds the row's word (`local_eq`). `DerefRefines prog
+mem r next` is the bindings for some mode and the step (`step_eq`); `deref_refines_iff` expands
+it, with the same mode: the target cell `p·o₂` holds `derefSource mode (pc, fp)` of the local
+word, the return address `g²·pc`, or `fp`, and the successor is `(g·pc, fp)`. The local cell
+is read in every mode. `DerefSpec r next data` adapts the relation to Clean's prover data and
+is the table's `Spec`; `ProverAssumptions r data _ := ∃ next, DerefSpec r next data` is the
+honest prover's row (see `LeanerVM.Arithmetization.Tables.Xor` for the template), proved of
+the row of any valid step by `derefRowOf_refines`.
 
 **The component** `derefTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
@@ -46,25 +48,26 @@ reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, re
 through Layer 4's `decode_deref_eq_some_iff`: the pulled tuple *is* an instruction, so its
 flag pair is a store mode's (a pair that is no mode's decodes to nothing, and such a row cannot
 pull its entry), and the target read's coordinates are that mode's source (`storeCoords_eval`).
-Completeness discharges the four pulls from the semantic premise through `deref_spec_iff`: the
-tuple `main` emits decodes to the fetched instruction (Layer 4's `decode_entry`), and the target
-coordinates it emits are the mode's source.
+Completeness discharges the four pulls from the semantic premise through `deref_refines_iff`:
+the tuple `main` emits decodes to the fetched instruction (Layer 4's `decode_entry`), and the
+target coordinates it emits are the mode's source.
 
-**Rows from steps.** `derefRowOf data pc fp o₁ o₂ o₃ mode r₁ r₂ r₃ rbc` is the row of a step
-that fetches `DEREF o₁ o₂ o₃ mode`: the mode's flags, the pointer's low limb and the local word
-read back from the image (`MemImage.limbsAt`); `derefRowOf_spec` proves its `DerefSpec`, and
-`deref_step_complete` its acceptance by `main`, from the step alone.
+**Rows from steps.** `derefRowOf mem pc fp o₁ o₂ o₃ mode r₁ r₂ r₃ rbc` is the row of a step
+that fetches `DEREF o₁ o₂ o₃ mode` over the image `mem`: the mode's flags, the pointer's low
+limb and the local word read back from the image (`MemImage.limbsAt`); `derefRowOf_refines`
+proves it refines the relation, and `deref_step_complete` its acceptance by `main` over the
+prover data, from the step alone.
 
 ## Wrong readings excluded
 
 * The pointer read carries literal zeros above its low limb (`memory_k`, `tables.rs:172-174`),
   so a pointer word outside `K` cannot balance the bus; `step` asserts `IsInK p` the same way.
 * The local cell is read in every mode, `pc` and `fp` modes included (acceptance test 6):
-  `memRead (fp·o₃)` is unconditional, as is the third read of `execute`, and `DerefSpec` binds
-  it in every mode.
+  `memRead (fp·o₃)` is unconditional, as is the third read of `execute`, and `DerefBindings`
+  binds it in every mode.
 * The return address is `g²·pc`, a free `×g²` on the product coordinate (`Prod(FPC, PC, 2)`),
   never `pc + 2`.
-* `DerefSpec` names the mode: the flag pair `(1, 1)` is no `derefFlags mode`, so a row
+* `DerefRefines` names the mode: the flag pair `(1, 1)` is no `derefFlags mode`, so a row
   carrying it fails its bindings at every counter, where the old step-only reading accepted it
   (the review's counterexample, in the tests).
 -/
@@ -121,53 +124,66 @@ theorem storeCoords_eval (mode : DerefMode) (pc fp v30 v31 v32 : K) :
     simp only [derefFlags, derefSource, ofK_eq_ofLimbs, add_zero, zero_add, one_mul, zero_mul,
       CharTwo.add_self_eq_zero]
 
-/-! ## The contract -/
+/-! ## The relation -/
 
-/-- The row's bindings to the program and the image: for some store mode, the instruction at
-`pc` is `DEREF o₁ o₂ o₃ mode`, the flags are the mode's, the pointer cell holds `p` in `K`,
-and the local cell holds the row's word. -/
-def DerefRowBindings (r : DerefRow K) (data : ProverData K) : Prop :=
-  ∃ mode, (programOf data).fetch r.pc = some (.deref r.o1 r.o2 r.o3 mode) ∧
-    derefFlags mode = (r.fpc, r.ffp) ∧
-    (imageOf data).2.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0) ∧
-    (imageOf data).2.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])
+/-- The row's bindings to a program and an image for a store mode: the instruction at `pc` is
+`DEREF o₁ o₂ o₃ mode`, the flags are the mode's, the pointer cell holds `p` in `K`, and the
+local cell holds the row's word. -/
+structure DerefBindings {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : DerefRow K)
+    (mode : DerefMode) : Prop where
+  /-- The instruction at `pc` is `DEREF o₁ o₂ o₃ mode`. -/
+  fetch_eq : prog.fetch r.pc = some (.deref r.o1 r.o2 r.o3 mode)
+  /-- The row's flags are the mode's. -/
+  flags_eq : derefFlags mode = (r.fpc, r.ffp)
+  /-- The pointer cell `fp · o₁` holds `p`, a word in `K`. -/
+  ptr_eq : mem.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0)
+  /-- The local cell `fp · o₃` holds the row's word `v₃`. -/
+  local_eq : mem.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])
 
-/-- The functional specification of a `DEREF` row: it is bound to the program and the image,
-and from its registers the machine steps to `next`. -/
-def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
-  DerefRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
+/-- The relation a `DEREF` row refines: it is bound to the program and the image for some store
+mode, and from its registers the machine steps to `next`. -/
+structure DerefRefines {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : DerefRow K)
+    (next : Regs K) : Prop where
+  /-- The row is bound to the program and the image, for some store mode. -/
+  bindings : ∃ mode, DerefBindings prog mem r mode
+  /-- From the row's registers the machine steps to `next`. -/
+  step_eq : step prog mem ⟨r.pc, r.fp⟩ = some next
 
-/-- `DerefSpec`, expanded with the same mode: the bindings, the target cell `p·o₂` holds the
+/-- `DerefRefines`, expanded with the same mode: the bindings, the target cell `p·o₂` holds the
 source the mode selects, and the successor is the fall-through `(g·pc, fp)`. -/
-theorem deref_spec_iff (r : DerefRow K) (next : Regs K) (data : ProverData K) :
-    DerefSpec r next data ↔
-      ∃ mode, (programOf data).fetch r.pc = some (.deref r.o1 r.o2 r.o3 mode) ∧
-        derefFlags mode = (r.fpc, r.ffp) ∧
-        (imageOf data).2.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0) ∧
-        (imageOf data).2.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2]) ∧
-        (imageOf data).2.read (r.p * r.o2) =
+theorem deref_refines_iff {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : DerefRow K)
+    (next : Regs K) :
+    DerefRefines prog mem r next ↔
+      ∃ mode, DerefBindings prog mem r mode ∧
+        mem.read (r.p * r.o2) =
           some (derefSource mode ⟨r.pc, r.fp⟩ (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
-  unfold DerefSpec DerefRowBindings
   constructor
   · rintro ⟨⟨mode, hfetch, hflags, h1, h3⟩, hstep⟩
-    refine ⟨mode, hfetch, hflags, h1, h3, ?_⟩
+    refine ⟨mode, ⟨hfetch, hflags, h1, h3⟩, ?_⟩
     rw [step_of_fetch_eq_some hfetch] at hstep
     simp only [execute, h1, h3, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
       isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hstep
-    cases hc : (imageOf data).2.read (r.p * r.o2) with
+    cases hc : mem.read (r.p * r.o2) with
     | none => rw [hc] at hstep; exact absurd hstep (by simp)
     | some c =>
       rw [hc, Option.bind_some, guard_bind_eq_some_iff] at hstep
       obtain ⟨rfl, h⟩ := hstep
       simp only [Option.pure_def, Option.some.injEq] at h
       exact ⟨rfl, h.symm⟩
-  · rintro ⟨mode, hfetch, hflags, h1, h3, h2, rfl⟩
+  · rintro ⟨mode, ⟨hfetch, hflags, h1, h3⟩, h2, rfl⟩
     refine ⟨⟨mode, hfetch, hflags, h1, h3⟩, ?_⟩
     rw [step_of_fetch_eq_some hfetch]
     simp only [execute, h1, h3, h2, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero,
       Option.pure_def]
+
+/-! ## The adapter to the prover data -/
+
+/-- The table's `Spec`: the row refines `DerefRefines` over the program and the image the prover
+data names. -/
+def DerefSpec (r : DerefRow K) (next : Regs K) (data : ProverData K) : Prop :=
+  DerefRefines (programOf data) (imageOf data).2 r next
 
 /-! ## The table -/
 
@@ -196,10 +212,10 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
-  -- The row is bound to the program and the image, and steps to the pushed successor.
+  -- The row refines the relation over the data's program and image, to the pushed successor.
   Spec := DerefSpec
   -- The honest prover's row: written from a valid step, it is bound and steps somewhere.
-  -- Proved of the row built from any valid step by `derefRowOf_spec`.
+  -- Proved of the row built from any valid step by `derefRowOf_refines`.
   ProverAssumptions r data _ := ∃ next, DerefSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -214,7 +230,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     subst h4 h5
     simp only [Vector.getElem_map] at h3 h2
     rw [storeCoords_eval] at h2
-    refine (deref_spec_iff _ _ _).mpr ⟨mode, hfetch, rfl, h1, ?_, ?_, rfl⟩
+    refine (deref_refines_iff _ _ _ _).mpr ⟨mode, ⟨hfetch, rfl, h1, ?_⟩, ?_, rfl⟩
     · simpa only [Vector.getElem_map] using h3
     · simpa only [Vector.getElem_map] using h2
   completeness := by
@@ -224,7 +240,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     -- fetched instruction's entry (Layer 4), and the target read carries the coordinates of
     -- the mode's source (`storeCoords_eval`).
     obtain ⟨next, h⟩ := h_assumptions
-    obtain ⟨mode, hfetch, hflags, h1, h3, h2, -⟩ := (deref_spec_iff _ _ _).mp h
+    obtain ⟨mode, ⟨hfetch, hflags, h1, h3⟩, h2, -⟩ := (deref_refines_iff _ _ _ _).mp h
     obtain ⟨_, _, _, _, _, _, _, _, hv3, _, _, _, _⟩ := h_input
     subst hv3
     obtain ⟨h4, h5⟩ := Prod.ext_iff.mp hflags
@@ -235,31 +251,31 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
 
 /-! ## Rows from steps -/
 
-/-- The row of a step that fetches `DEREF o₁ o₂ o₃ mode` from `(pc, fp)`: the registers, the
-operands, the mode's flags, the pointer's low limb and the local word read back from the image,
-and the counts as parameters. Noncomputable: it reads the image. -/
-noncomputable def derefRowOf (data : ProverData K) (pc fp o1 o2 o3 : K) (mode : DerefMode)
+/-- The row of a step that fetches `DEREF o₁ o₂ o₃ mode` from `(pc, fp)` over the image `mem`:
+the registers, the operands, the mode's flags, the pointer's low limb and the local word read
+back from the image, and the counts as parameters. Noncomputable: it reads the image. -/
+noncomputable def derefRowOf {κ : ℕ} (mem : MemImage κ) (pc fp o1 o2 o3 : K) (mode : DerefMode)
     (r1 r2 r3 rbc : K) : DerefRow K :=
   ⟨pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
-    ((imageOf data).2.limbsAt (fp * o1))[0], (imageOf data).2.limbsAt (fp * o3), r1, r2, r3, rbc⟩
+    (mem.limbsAt (fp * o1))[0], mem.limbsAt (fp * o3), r1, r2, r3, rbc⟩
 
 /-- A valid step that fetches `DEREF o₁ o₂ o₃ mode` is represented by `derefRowOf`, with any
-counts: the honest prover's row satisfies `ProverAssumptions`. -/
-theorem derefRowOf_spec {data : ProverData K} {pc fp o1 o2 o3 : K} {mode : DerefMode}
-    {next : Regs K} (hfetch : (programOf data).fetch pc = some (.deref o1 o2 o3 mode))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (r1 r2 r3 rbc : K) :
-    DerefSpec (derefRowOf data pc fp o1 o2 o3 mode r1 r2 r3 rbc) next data := by
+counts: the honest prover's row refines the relation, which is `ProverAssumptions` over the
+data. -/
+theorem derefRowOf_refines {κ : ℕ} {prog : Program} {mem : MemImage κ} {pc fp o1 o2 o3 : K}
+    {mode : DerefMode} {next : Regs K} (hfetch : prog.fetch pc = some (.deref o1 o2 o3 mode))
+    (hstep : step prog mem ⟨pc, fp⟩ = some next) (r1 r2 r3 rbc : K) :
+    DerefRefines prog mem (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc) next := by
   have h := hstep
   rw [step_of_fetch_eq_some hfetch] at h
   simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨p, hp, u, hu, v3, hv3, -⟩ := h
   have hin := guard_eq_some hu
   refine ⟨⟨mode, hfetch, rfl, ?_, ?_⟩, hstep⟩
-  · show (imageOf data).2.read (fp * o1) =
-      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * o1))[0] 0 0)
+  · show mem.read (fp * o1) = some (E.ofLimbs (mem.limbsAt (fp * o1))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
-  · show (imageOf data).2.read (fp * o3) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * o3))[0]
-      ((imageOf data).2.limbsAt (fp * o3))[1] ((imageOf data).2.limbsAt (fp * o3))[2])
+  · show mem.read (fp * o3) = some (E.ofLimbs (mem.limbsAt (fp * o3))[0]
+      (mem.limbsAt (fp * o3))[1] (mem.limbsAt (fp * o3))[2])
     rw [MemImage.ofLimbs_limbsAt hv3]; exact hv3
 
 /-- Every valid `DEREF` step has a satisfying row, from the step alone: the constraints of
@@ -268,10 +284,11 @@ theorem deref_step_complete {data : ProverData K} {pc fp o1 o2 o3 : K} {mode : D
     {next : Regs K} (hfetch : (programOf data).fetch pc = some (.deref o1 o2 o3 mode))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (r1 r2 r3 rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
-      ((derefTable.main (const (derefRowOf data pc fp o1 o2 o3 mode r1 r2 r3 rbc))).operations 0) :=
+      ((derefTable.main
+        (const (derefRowOf (imageOf data).2 pc fp o1 o2 o3 mode r1 r2 r3 rbc))).operations 0) :=
   (derefTable.completeness 0 (rowEnv data) (const _)
     -- No witness slot: the row environment uses the local witnesses vacuously.
     (by simp only [circuit_norm, derefTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
-    ProvableType.eval_const_prover ⟨_, derefRowOf_spec hfetch hstep r1 r2 r3 rbc⟩).1
+    ProvableType.eval_const_prover ⟨_, derefRowOf_refines hfetch hstep r1 r2 r3 rbc⟩).1
 
 end LeanerVM.Arithmetization

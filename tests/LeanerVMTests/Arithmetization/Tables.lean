@@ -15,7 +15,8 @@ equalities in the kernel. One prover data serves every table: a thirty-two-word 
 three store modes and a `JUMP` on each branch, both read through `imageOf`/`programOf` at
 literal indices as in the Layer 5 tests.
 
-For each table: the honest row is bound (`*RowBindings`) and satisfies its functional
+For each table: the honest row is bound (`*Bindings`, over `programOf tabData` and
+`imageOf tabData`) and satisfies its functional
 specification (`*Spec`, with Layer 3's `step` decided in the kernel, which also names the
 successor `main` returns), and every valid step of the fixture yields a satisfying row from the
 step alone (`*_step_complete`, on the row `*RowOf` reads back from the image): the `DEREF`
@@ -189,7 +190,7 @@ def xorRow : XorRow K :=
   ⟨gpow 0, 1, gpow 2, gpow 3, gpow 4, #v[x0, x1, x2], #v[y0, y1, y2], 1, 1, 1, 1⟩
 
 /-- The honest row is bound: the instruction and the two operand words are the fixture's. -/
-theorem xor_bindings : XorRowBindings xorRow tabData := by
+theorem xor_bindings : XorBindings (programOf tabData) (imageOf tabData).2 xorRow := by
   refine ⟨fetch_at 0 _, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 2) = some (E.ofLimbs x0 x1 x2)
     rw [one_mul]; exact read_at 2 #v[x0, x1, x2]
@@ -208,9 +209,9 @@ theorem xor_spec : XorSpec xorRow ⟨g * gpow 0, 1⟩ tabData :=
 /-- The valid step alone yields a satisfying row (`xor_step_complete`): no assumption on the
 row, the honest prover builds it; `xor_spec` names the successor `main` returns. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((xorTable.main
-      (const (xorRowOf tabData (gpow 0) 1 (gpow 2) (gpow 3) (gpow 4) 1 1 1 1))).operations 0) :=
-  xor_step_complete (fetch_at 0 _) xor_spec.2 1 1 1 1
+    ((xorTable.main (const (xorRowOf (imageOf tabData).2
+      (gpow 0) 1 (gpow 2) (gpow 3) (gpow 4) 1 1 1 1))).operations 0) :=
+  xor_step_complete (fetch_at 0 _) xor_spec.step_eq 1 1 1 1
 
 /-- The review's counterexample to the old step-only contract: an alleged `XOR` row at the
 `SET` instruction with operands `0` satisfies `step` from its registers. -/
@@ -261,7 +262,7 @@ example : E.ofLimbs xyLanes[0] xyLanes[1] xyLanes[2] = mulXY := by decide +kerne
 def mulRow : MulRow K :=
   ⟨gpow 1, 1, gpow 2, gpow 3, gpow 5, #v[x0, x1, x2], #v[y0, y1, y2], 1, 1, 1, 1⟩
 
-theorem mul_bindings : MulRowBindings mulRow tabData := by
+theorem mul_bindings : MulBindings (programOf tabData) (imageOf tabData).2 mulRow := by
   refine ⟨fetch_at 1 _, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 2) = some (E.ofLimbs x0 x1 x2)
     rw [one_mul]; exact read_at 2 #v[x0, x1, x2]
@@ -279,9 +280,9 @@ theorem mul_spec : MulSpec mulRow ⟨g * gpow 1, 1⟩ tabData :=
     decide +kernel⟩
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((mulTable.main
-      (const (mulRowOf tabData (gpow 1) 1 (gpow 2) (gpow 3) (gpow 5) 1 1 1 1))).operations 0) :=
-  mul_step_complete (fetch_at 1 _) mul_spec.2 1 1 1 1
+    ((mulTable.main (const (mulRowOf (imageOf tabData).2
+      (gpow 1) 1 (gpow 2) (gpow 3) (gpow 5) 1 1 1 1))).operations 0) :=
+  mul_step_complete (fetch_at 1 _) mul_spec.step_eq 1 1 1 1
 
 /-- A changed input limb fails the bindings, and the constraints in every environment. -/
 def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1, y2] }
@@ -300,7 +301,7 @@ example (get : ℕ → K) :
 /-- The honest `SET_CONSTANT` row at `pc = g^2`: the immediate `7 + 8·y + 9·y²` at `g^6`. -/
 def setRow : SetRow K := ⟨gpow 2, 1, gpow 6, #v[7, 8, 9], 1, 1⟩
 
-theorem set_bindings : SetRowBindings setRow tabData := fetch_at 2 _
+theorem set_bindings : SetBindings (programOf tabData) (imageOf tabData).2 setRow := ⟨fetch_at 2 _⟩
 
 theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
   ⟨set_bindings, by
@@ -312,15 +313,14 @@ theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
     ((setTable.main (const (setRowOf (gpow 2) 1 (gpow 6) (E.ofLimbs 7 8 9) 1 1))).operations 0) :=
-  set_step_complete (fetch_at 2 _) set_spec.2 1 1
+  set_step_complete (fetch_at 2 _) set_spec.step_eq 1 1
 
 /-- A changed immediate limb: the row names an instruction the program does not hold, so its
 binding fails and the constraints fail in every environment. -/
 def setRow' : SetRow K := { setRow with k := #v[7, 8, 10] }
 
 example (next : Regs K) : ¬ SetSpec setRow' next tabData := by
-  rintro ⟨hfetch, -⟩
-  unfold SetRowBindings at hfetch
+  rintro ⟨⟨hfetch⟩, -⟩
   rw [show setRow'.pc = gpow 2 from rfl, fetch_at 2 (.setConstant (gpow 6) (E.ofLimbs 7 8 9))]
     at hfetch
   simp only [Option.some.injEq, Instr.setConstant.injEq] at hfetch
@@ -331,8 +331,7 @@ example (get : ℕ → K) :
   intro h
   have hs : SetSpec setRow' _ tabData := (setTable.soundness 0 ⟨get, tabData⟩ (const setRow')
     setRow' ProvableType.eval_const trivial h).1
-  obtain ⟨hfetch, -⟩ := hs
-  unfold SetRowBindings at hfetch
+  obtain ⟨⟨hfetch⟩, -⟩ := hs
   rw [show setRow'.pc = gpow 2 from rfl, fetch_at 2 (.setConstant (gpow 6) (E.ofLimbs 7 8 9))]
     at hfetch
   simp only [Option.some.injEq, Instr.setConstant.injEq] at hfetch
@@ -355,22 +354,24 @@ stored), target `g^29 · 1` holding `fp = 1`. -/
 def derefFpRow : DerefRow K :=
   ⟨gpow 7, 1, gpow 28, 1, gpow 30, 0, 1, gpow 29, #v[9, 9, 9], 1, 1, 1, 1⟩
 
-theorem deref_bindings : DerefRowBindings derefRow tabData := by
-  refine ⟨.pc, fetch_at 3 _, rfl, ?_, ?_⟩
+theorem deref_bindings : DerefBindings (programOf tabData) (imageOf tabData).2 derefRow .pc := by
+  refine ⟨fetch_at 3 _, rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 7) = some (E.ofLimbs (gpow 8) 0 0)
     rw [one_mul]; exact read_at 7 #v[gpow 8, 0, 0]
   · show (imageOf tabData).2.read (1 * gpow 9) = some (E.ofLimbs 5 6 7)
     rw [one_mul]; exact read_at 9 #v[5, 6, 7]
 
-theorem derefCell_bindings : DerefRowBindings derefCellRow tabData := by
-  refine ⟨.cell, fetch_at 6 _, rfl, ?_, ?_⟩
+theorem derefCell_bindings :
+    DerefBindings (programOf tabData) (imageOf tabData).2 derefCellRow .cell := by
+  refine ⟨fetch_at 6 _, rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 25) = some (E.ofLimbs (gpow 26) 0 0)
     rw [one_mul]; exact read_at 25 #v[gpow 26, 0, 0]
   · show (imageOf tabData).2.read (1 * gpow 27) = some (E.ofLimbs 3 4 5)
     rw [one_mul]; exact read_at 27 #v[3, 4, 5]
 
-theorem derefFp_bindings : DerefRowBindings derefFpRow tabData := by
-  refine ⟨.fp, fetch_at 7 _, rfl, ?_, ?_⟩
+theorem derefFp_bindings :
+    DerefBindings (programOf tabData) (imageOf tabData).2 derefFpRow .fp := by
+  refine ⟨fetch_at 7 _, rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 28) = some (E.ofLimbs (gpow 29) 0 0)
     rw [one_mul]; exact read_at 28 #v[gpow 29, 0, 0]
   · show (imageOf tabData).2.read (1 * gpow 30) = some (E.ofLimbs 9 9 9)
@@ -378,7 +379,7 @@ theorem derefFp_bindings : DerefRowBindings derefFpRow tabData := by
 
 /-- `DerefSpec` in `pc` mode: the target holds the return address `g² · g^3`. -/
 theorem deref_spec : DerefSpec derefRow ⟨g * gpow 3, 1⟩ tabData :=
-  ⟨deref_bindings, by
+  ⟨⟨.pc, deref_bindings⟩, by
     show step (programOf tabData) (imageOf tabData).2 ⟨gpow 3, 1⟩ = some ⟨g * gpow 3, 1⟩
     rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_at 3 (.deref (gpow 7) 1 (gpow 9) .pc))]
     simp only [execute, one_mul, mul_one, read_lit 7 (gpow 8) 0 0, Option.bind_eq_bind,
@@ -388,7 +389,7 @@ theorem deref_spec : DerefSpec derefRow ⟨g * gpow 3, 1⟩ tabData :=
 
 /-- `DerefSpec` in `cell` mode: the target holds the local word. -/
 theorem derefCell_spec : DerefSpec derefCellRow ⟨g * gpow 6, 1⟩ tabData :=
-  ⟨derefCell_bindings, by
+  ⟨⟨.cell, derefCell_bindings⟩, by
     show step (programOf tabData) (imageOf tabData).2 ⟨gpow 6, 1⟩ = some ⟨g * gpow 6, 1⟩
     rw [step_of_fetch_eq_some (r := ⟨gpow 6, 1⟩)
       (fetch_at 6 (.deref (gpow 25) 1 (gpow 27) .cell))]
@@ -399,7 +400,7 @@ theorem derefCell_spec : DerefSpec derefCellRow ⟨g * gpow 6, 1⟩ tabData :=
 
 /-- `DerefSpec` in `fp` mode: the target holds `fp = 1`; the local cell is read all the same. -/
 theorem derefFp_spec : DerefSpec derefFpRow ⟨g * gpow 7, 1⟩ tabData :=
-  ⟨derefFp_bindings, by
+  ⟨⟨.fp, derefFp_bindings⟩, by
     show step (programOf tabData) (imageOf tabData).2 ⟨gpow 7, 1⟩ = some ⟨g * gpow 7, 1⟩
     rw [step_of_fetch_eq_some (r := ⟨gpow 7, 1⟩)
       (fetch_at 7 (.deref (gpow 28) 1 (gpow 30) .fp))]
@@ -411,19 +412,19 @@ theorem derefFp_spec : DerefSpec derefFpRow ⟨g * gpow 7, 1⟩ tabData :=
 /-- A valid step in each store mode alone yields a satisfying row (`deref_step_complete`); its
 successor is the one `DerefSpec` names. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main
-      (const (derefRowOf tabData (gpow 3) 1 (gpow 7) 1 (gpow 9) .pc 1 1 1 1))).operations 0) :=
-  deref_step_complete (fetch_at 3 _) deref_spec.2 1 1 1 1
+    ((derefTable.main (const (derefRowOf (imageOf tabData).2
+      (gpow 3) 1 (gpow 7) 1 (gpow 9) .pc 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 3 _) deref_spec.step_eq 1 1 1 1
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main
-      (const (derefRowOf tabData (gpow 6) 1 (gpow 25) 1 (gpow 27) .cell 1 1 1 1))).operations 0) :=
-  deref_step_complete (fetch_at 6 _) derefCell_spec.2 1 1 1 1
+    ((derefTable.main (const (derefRowOf (imageOf tabData).2
+      (gpow 6) 1 (gpow 25) 1 (gpow 27) .cell 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 6 _) derefCell_spec.step_eq 1 1 1 1
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main
-      (const (derefRowOf tabData (gpow 7) 1 (gpow 28) 1 (gpow 30) .fp 1 1 1 1))).operations 0) :=
-  deref_step_complete (fetch_at 7 _) derefFp_spec.2 1 1 1 1
+    ((derefTable.main (const (derefRowOf (imageOf tabData).2
+      (gpow 7) 1 (gpow 28) 1 (gpow 30) .fp 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 7 _) derefFp_spec.step_eq 1 1 1 1
 
 /-- The review's counterexample to the old contract: the honest row with the flag pair
 `(1, 1)` satisfies `step` from its registers (the flags are no input of `step`)… -/
@@ -431,7 +432,7 @@ def invalidDeref : DerefRow K := { derefRow with fpc := 1, ffp := 1 }
 
 example : step (programOf tabData) (imageOf tabData).2 ⟨invalidDeref.pc, invalidDeref.fp⟩ =
     some ⟨g * gpow 3, 1⟩ :=
-  deref_spec.2
+  deref_spec.step_eq
 
 /-- …and fails `DerefSpec` for every successor: `(1, 1)` is no store mode's flags. -/
 example (next : Regs K) : ¬ DerefSpec invalidDeref next tabData := by
@@ -456,7 +457,7 @@ def jumpRow : JumpRow K := ⟨gpow 4, 1, gpow 10, gpow 11, gpow 12, 1, gpow 6, 1
 /-- The untaken `JUMP` row at `pc = g^8`: `c = 0`, the same `d`, `f`. -/
 def jumpRow0 : JumpRow K := ⟨gpow 8, 1, gpow 13, gpow 11, gpow 12, 0, gpow 6, 1, 1, 1, 1, 1⟩
 
-theorem jump_bindings : JumpRowBindings jumpRow tabData := by
+theorem jump_bindings : JumpBindings (programOf tabData) (imageOf tabData).2 jumpRow := by
   refine ⟨fetch_at 4 _, ?_, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 10) = some (E.ofLimbs 1 0 0)
     rw [one_mul]; exact read_at 10 #v[1, 0, 0]
@@ -465,7 +466,7 @@ theorem jump_bindings : JumpRowBindings jumpRow tabData := by
   · show (imageOf tabData).2.read (1 * gpow 12) = some (E.ofLimbs 1 0 0)
     rw [one_mul]; exact read_at 12 #v[1, 0, 0]
 
-theorem jump0_bindings : JumpRowBindings jumpRow0 tabData := by
+theorem jump0_bindings : JumpBindings (programOf tabData) (imageOf tabData).2 jumpRow0 := by
   refine ⟨fetch_at 8 _, ?_, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 13) = some (E.ofLimbs 0 0 0)
     rw [one_mul]; exact read_at 13 #v[0, 0, 0]
@@ -497,16 +498,18 @@ theorem jump0_spec : JumpSpec jumpRow0 ⟨g * gpow 8, 1⟩ tabData :=
 /-- Either valid step alone yields a satisfying row, in its honest environment, witnesses
 included; `jump_spec` and `jump0_spec` name the successors `main` returns. -/
 example : ConstraintsHold.Completeness
-    (jumpEnv tabData (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main
-      (const (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
-  jump_step_complete (fetch_at 4 _) jump_spec.2 1 1 1 1
+    (jumpEnv tabData
+      (jumpRowOf (imageOf tabData).2 (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))
+    ((jumpTable.main (const (jumpRowOf (imageOf tabData).2
+      (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+  jump_step_complete (fetch_at 4 _) jump_spec.step_eq 1 1 1 1
 
 example : ConstraintsHold.Completeness
-    (jumpEnv tabData (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main
-      (const (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
-  jump_step_complete (fetch_at 8 _) jump0_spec.2 1 1 1 1
+    (jumpEnv tabData
+      (jumpRowOf (imageOf tabData).2 (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))
+    ((jumpTable.main (const (jumpRowOf (imageOf tabData).2
+      (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+  jump_step_complete (fetch_at 8 _) jump0_spec.step_eq 1 1 1 1
 
 -- Clean's array generator computes the same two witnesses as `jumpEnv` holds: `w = 1⁻¹ = 1`,
 -- `b = 1` on the taken row, `w = 0`, `b = 0` on the untaken one (compiled).
@@ -554,7 +557,7 @@ theorem blake2s_reads {data : ProverData K} (hlog : (imageOf data).1 = 5)
     (h22 : (memRows data)[22]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out0)
     (h23 : (memRows data)[23]'(by rw [hws.memRows_size, hlog]; decide) = cell r.out1)
     (h24 : (memRows data)[24]'(by rw [hws.memRows_size, hlog]; decide) = cell r.md) :
-    Blake2sRowBindings r data := by
+    Blake2sBindings (programOf data) (imageOf data).2 r := by
   rw [hr]
   refine ⟨hfetch, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · exact readCell hlog hws 16 r.m0 (by decide) h16
@@ -569,7 +572,7 @@ theorem blake2s_reads {data : ProverData K} (hlog : (imageOf data).1 = 5)
     rw [g_mul_gpow]; exact readCell hlog hws 23 r.out1 (by decide) h23
   · exact readCell hlog hws 24 r.md (by decide) h24
 
-theorem blake2s_bindings : Blake2sRowBindings blake2sRow tabData :=
+theorem blake2s_bindings : Blake2sBindings (programOf tabData) (imageOf tabData).2 blake2sRow :=
   blake2s_reads (dataOf_logSize rfl) (dataOf_wellShaped rfl) blake2sRow rfl (fetch_at 5 _)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
@@ -583,7 +586,7 @@ theorem blake2s_relation : Blake2sRelation blake2sRow := by
 /-- `Blake2sSpec` on the honest row, through `blake2s_spec_iff`: bound, compressing, and the
 successor is `(g · g^5, 1)`. -/
 theorem blake2s_spec : Blake2sSpec blake2sRow ⟨g * gpow 5, 1⟩ tabData :=
-  (blake2s_spec_iff _ _ _).mpr ⟨blake2s_bindings, blake2s_relation, rfl⟩
+  (blake2s_refines_iff _ _ _ _).mpr ⟨blake2s_bindings, blake2s_relation, rfl⟩
 
 /-- …and its step, decided in the kernel directly. -/
 example : step (programOf tabData) (imageOf tabData).2 ⟨gpow 5, 1⟩ = some ⟨g * gpow 5, 1⟩ := by
@@ -603,9 +606,9 @@ example : ConstraintsHold.Completeness (rowEnv tabData)
 
 /-- The valid step alone yields a satisfying row. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((blake2sTable.main (const (blake2sRowOf tabData (gpow 5) 1 (gpow 16) (gpow 17) (gpow 18)
-      (gpow 19) (gpow 20) (gpow 22) (gpow 24) 1 1 1 1 1 1 1 1 1 1))).operations 0) :=
-  blake2s_step_complete (fetch_at 5 _) blake2s_spec.2 1 1 1 1 1 1 1 1 1 1
+    ((blake2sTable.main (const (blake2sRowOf (imageOf tabData).2 (gpow 5) 1 (gpow 16) (gpow 17)
+      (gpow 18) (gpow 19) (gpow 20) (gpow 22) (gpow 24) 1 1 1 1 1 1 1 1 1 1))).operations 0) :=
+  blake2s_step_complete (fetch_at 5 _) blake2s_spec.step_eq 1 1 1 1 1 1 1 1 1 1
 
 /-- A non-canonical cell is rejected (acceptance test 12): an image whose second output cell has
 a nonzero top limb does not balance the row's canonical read of it, so the constraints `main`
@@ -634,7 +637,8 @@ def wrongMem : Array (Vector K 3) := memTable.set! 23 (cell wrongOut1)
 
 def blake2sRow' : Blake2sRow K := { blake2sRow with out1 := wrongOut1 }
 
-theorem blake2s'_bindings : Blake2sRowBindings blake2sRow' (dataOf wrongMem) :=
+theorem blake2s'_bindings :
+    Blake2sBindings (programOf (dataOf wrongMem)) (imageOf (dataOf wrongMem)).2 blake2sRow' :=
   blake2s_reads (dataOf_logSize (mem := wrongMem) rfl) (dataOf_wellShaped rfl) blake2sRow' rfl
     (fetchAt wrongMem rfl 5 _)
     (by decide +kernel) (by decide +kernel) (by decide +kernel) (by decide +kernel)
@@ -650,6 +654,6 @@ theorem blake2s'_no_relation : ¬ Blake2sRelation blake2sRow' := by
   decide +kernel
 
 example (next : Regs K) : ¬ Blake2sSpec blake2sRow' next (dataOf wrongMem) := fun h ↦
-  blake2s'_no_relation ((blake2s_spec_iff _ _ _).mp h).2.1
+  blake2s'_no_relation ((blake2s_refines_iff _ _ _ _).mp h).2.1
 
 end LeanerVMTests.Arithmetization.Tables

@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Tables.SetConstant
 
-  The `SET_CONSTANT` table: one Clean component per row, sound and complete for the row's
-  functional specification, its binding to the program together with Layer 3's `step`.
+  The `SET_CONSTANT` table: one Clean component per row, sound and complete for the relation
+  the row refines, its binding to a program together with Layer 3's `step`.
   A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
@@ -23,15 +23,18 @@ are `crates/lean_vm/src/tables.rs:532-543` (`mod set`, in that order) and the fl
 limbs (`K_LO, K_HI, K_TOP`, the bytecode's spare slots); the memory count `r`; the bytecode
 count `r_bc`.
 
-**The contract.** `SetRowBindings r data` binds the row to the program alone: the instruction
-at `pc` is `SET_CONSTANT o k` with the row's immediate `E.ofLimbs k[0] k[1] k[2]`, all three
-limbs; there is no input word to bind, the immediate being part of the fetched instruction.
-`SetSpec r next data` is the binding and the step; `set_spec_iff` expands it: the cell `fp·o`
-holds the immediate and the successor is `(g·pc, fp)` (see `LeanerVM.Arithmetization.Tables.Xor`
-for the template). `ProverAssumptions r data _ := ∃ next, SetSpec r next data` is the honest
-prover's row, proved of the row of any valid step by `setRowOf_spec` (`set_step_complete`);
-completeness discharges the two pulls from it through `set_spec_iff`, the immediate limbs `main`
-emits being the fetched instruction's (Layer 4's `decode_entry`).
+**The relation.** `SetBindings prog mem r` binds the row to the program alone (`fetch_eq`): the
+instruction at `pc` is `SET_CONSTANT o k` with the row's immediate `E.ofLimbs k[0] k[1] k[2]`,
+all three limbs; there is no input word to bind, the immediate being part of the fetched
+instruction, and the image is a parameter for the shape shared with the other tables.
+`SetRefines prog mem r next` is the binding and the step (`step_eq`); `set_refines_iff` expands
+it: the cell `fp·o` holds the immediate and the successor is `(g·pc, fp)` (see
+`LeanerVM.Arithmetization.Tables.Xor` for the template). `SetSpec r next data` adapts the
+relation to Clean's prover data and is the table's `Spec`; `ProverAssumptions r data _ :=
+∃ next, SetSpec r next data` is the honest prover's row, proved of the row of any valid step
+by `setRowOf_refines` (`set_step_complete`); completeness discharges the two pulls from it
+through `set_refines_iff`, the immediate limbs `main` emits being the fetched instruction's
+(Layer 4's `decode_entry`).
 
 **The component** `setTable` pulls the state `(pc, fp)`, pushes and returns the fall-through
 successor `(g·pc, fp)`, reads the bytecode entry `(SET, o, k₀, k₁, k₂, 0, 0, 0)` at `pc`, and
@@ -39,15 +42,15 @@ reads the cell `fp·o` carrying the immediate. `Spec` is `SetSpec`.
 
 **Rows from steps.** `setRowOf pc fp o k r rbc` is the row of a step that fetches
 `SET_CONSTANT o k`: the immediate's limbs are the instruction's, so the builder reads nothing
-back and is computable; `setRowOf_spec` and `set_step_complete` are the `XOR` statements.
+back and is computable; `setRowOf_refines` and `set_step_complete` are the `XOR` statements.
 
 ## Wrong readings excluded
 
 * The immediate's three lanes are bytecode coordinates `4, 5, 6` of the entry, the slots
   `DEREF` uses for `o₃, f_pc, f_fp` (roadmap acceptance test 16; Layer 4's `entry`).
 * The word read at `fp·o` is the immediate itself, all three limbs: a row whose cell holds any
-  other word fails `SetSpec` (the mutated row in the tests), and a row whose immediate limb is
-  not the program's fails its binding.
+  other word fails `SetRefines` (the mutated row in the tests), and a row whose immediate limb
+  is not the program's fails its binding.
 -/
 
 namespace LeanerVM.Arithmetization
@@ -72,43 +75,55 @@ structure SetRow (F : Type) where
   rbc : F
   deriving ProvableStruct
 
-/-! ## The contract -/
+/-! ## The relation -/
 
-/-- The row's binding to the program: the instruction at `pc` is `SET_CONSTANT o k` with the
-row's immediate. -/
-def SetRowBindings (r : SetRow K) (data : ProverData K) : Prop :=
-  (programOf data).fetch r.pc = some (.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]))
+/-- The row's binding to a program (the image is a parameter, for the shape shared with the
+other tables): the instruction at `pc` is `SET_CONSTANT o k` with the row's immediate. -/
+structure SetBindings {κ : ℕ} (prog : Program) (_mem : MemImage κ) (r : SetRow K) : Prop where
+  /-- The instruction at `pc` is `SET_CONSTANT o k`, `k` the row's immediate. -/
+  fetch_eq : prog.fetch r.pc = some (.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]))
 
-/-- The functional specification of a `SET_CONSTANT` row: it is bound to the program, and from
-its registers the machine steps to `next`. -/
-def SetSpec (r : SetRow K) (next : Regs K) (data : ProverData K) : Prop :=
-  SetRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
+/-- The relation a `SET_CONSTANT` row refines: it is bound to the program, and from its
+registers the machine steps to `next`. -/
+structure SetRefines {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : SetRow K) (next : Regs K) :
+    Prop where
+  /-- The row is bound to the program. -/
+  bindings : SetBindings prog mem r
+  /-- From the row's registers the machine steps to `next`. -/
+  step_eq : step prog mem ⟨r.pc, r.fp⟩ = some next
 
-/-- `SetSpec`, expanded: the binding, the cell `fp·o` holds the immediate, and the successor is
-the fall-through `(g·pc, fp)`. -/
-theorem set_spec_iff (r : SetRow K) (next : Regs K) (data : ProverData K) :
-    SetSpec r next data ↔
-      SetRowBindings r data ∧
-        (imageOf data).2.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1] r.k[2]) ∧
+/-- `SetRefines`, expanded: the binding, the cell `fp·o` holds the immediate, and the successor
+is the fall-through `(g·pc, fp)`. -/
+theorem set_refines_iff {κ : ℕ} (prog : Program) (mem : MemImage κ) (r : SetRow K)
+    (next : Regs K) :
+    SetRefines prog mem r next ↔
+      SetBindings prog mem r ∧
+        mem.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1] r.k[2]) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
-  unfold SetSpec SetRowBindings
   constructor
-  · rintro ⟨hfetch, hstep⟩
-    refine ⟨hfetch, ?_⟩
+  · rintro ⟨⟨hfetch⟩, hstep⟩
+    refine ⟨⟨hfetch⟩, ?_⟩
     rw [step_of_fetch_eq_some hfetch] at hstep
     simp only [execute, Option.bind_eq_bind] at hstep
-    cases hc : (imageOf data).2.read (r.fp * r.o) with
+    cases hc : mem.read (r.fp * r.o) with
     | none => rw [hc] at hstep; exact absurd hstep (by simp)
     | some c =>
       rw [hc, Option.bind_some, guard_bind_eq_some_iff] at hstep
       obtain ⟨rfl, h⟩ := hstep
       simp only [Option.pure_def, Option.some.injEq] at h
       exact ⟨rfl, h.symm⟩
-  · rintro ⟨hfetch, hk, rfl⟩
-    refine ⟨hfetch, ?_⟩
+  · rintro ⟨⟨hfetch⟩, hk, rfl⟩
+    refine ⟨⟨hfetch⟩, ?_⟩
     rw [step_of_fetch_eq_some hfetch]
     simp only [execute, hk, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
       Option.pure_def, true_and]
+
+/-! ## The adapter to the prover data -/
+
+/-- The table's `Spec`: the row refines `SetRefines` over the program and the image the prover
+data names. -/
+def SetSpec (r : SetRow K) (next : Regs K) (data : ProverData K) : Prop :=
+  SetRefines (programOf data) (imageOf data).2 r next
 
 /-! ## The table -/
 
@@ -130,10 +145,11 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
     simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
-  -- The row is bound to the program, and steps to the pushed successor.
+  -- The row refines the relation over the data's program and image, to the pushed successor.
   Spec := SetSpec
   -- The honest prover's row: written from a valid step, it is bound and steps somewhere.
-  -- Proved of the row built from any valid step by `setRowOf_spec`; see `set_step_complete`.
+  -- Proved of the row built from any valid step by `setRowOf_refines`; see
+  -- `set_step_complete`.
   ProverAssumptions r data _ := ∃ next, SetSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -145,8 +161,8 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     -- (Layer 4).
     obtain rfl :=
       Option.some.inj ((decode_entry (.setConstant input_o (E.ofLimbs _ _ _))).symm.trans hdec)
-    refine (set_spec_iff _ _ _).mpr ⟨?_, ?_, rfl⟩
-    · simpa only [SetRowBindings, Vector.getElem_map] using hfetch
+    refine (set_refines_iff _ _ _ _).mpr ⟨⟨?_⟩, ?_, rfl⟩
+    · simpa only [Vector.getElem_map] using hfetch
     · simpa only [Vector.getElem_map] using hk
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -154,10 +170,10 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     -- The two pull guarantees, from the semantic premise: the tuple `main` emits is the
     -- fetched instruction's entry (Layer 4).
     obtain ⟨next, h⟩ := h_assumptions
-    obtain ⟨hfetch, hk, -⟩ := (set_spec_iff _ _ _).mp h
+    obtain ⟨⟨hfetch⟩, hk, -⟩ := (set_refines_iff _ _ _ _).mp h
     obtain ⟨_, _, _, hvk, _, _⟩ := h_input
     subst hvk
-    simp only [SetRowBindings, Vector.getElem_map] at hfetch hk ⊢
+    simp only [Vector.getElem_map] at hfetch hk ⊢
     exact ⟨⟨_, hfetch, decode_entry (.setConstant _ (E.ofLimbs _ _ _))⟩, hk⟩
 
 /-! ## Rows from steps -/
@@ -168,14 +184,14 @@ def setRowOf (pc fp o : K) (k : E) (rc rbc : K) : SetRow K :=
   ⟨pc, fp, o, #v[k.limb 0, k.limb 1, k.limb 2], rc, rbc⟩
 
 /-- A valid step that fetches `SET_CONSTANT o k` is represented by `setRowOf`, with any
-counts: the honest prover's row satisfies `ProverAssumptions`. -/
-theorem setRowOf_spec {data : ProverData K} {pc fp o : K} {k : E} {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.setConstant o k))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rbc : K) :
-    SetSpec (setRowOf pc fp o k rc rbc) next data :=
-  ⟨by show (programOf data).fetch pc =
-        some (.setConstant o (E.ofLimbs (k.limb 0) (k.limb 1) (k.limb 2)))
-      rw [ofLimbs_limb]; exact hfetch,
+counts: the honest prover's row refines the relation, which is `ProverAssumptions` over the
+data. -/
+theorem setRowOf_refines {κ : ℕ} {prog : Program} {mem : MemImage κ} {pc fp o : K} {k : E}
+    {next : Regs K} (hfetch : prog.fetch pc = some (.setConstant o k))
+    (hstep : step prog mem ⟨pc, fp⟩ = some next) (rc rbc : K) :
+    SetRefines prog mem (setRowOf pc fp o k rc rbc) next :=
+  ⟨⟨by show prog.fetch pc = some (.setConstant o (E.ofLimbs (k.limb 0) (k.limb 1) (k.limb 2)))
+       rw [ofLimbs_limb]; exact hfetch⟩,
    hstep⟩
 
 /-- Every valid `SET_CONSTANT` step has a satisfying row, from the step alone: the constraints
@@ -188,6 +204,6 @@ theorem set_step_complete {data : ProverData K} {pc fp o : K} {k : E} {next : Re
   (setTable.completeness 0 (rowEnv data) (const _)
     -- No witness slot: the row environment uses the local witnesses vacuously.
     (by simp only [circuit_norm, setTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
-    ProvableType.eval_const_prover ⟨_, setRowOf_spec hfetch hstep rc rbc⟩).1
+    ProvableType.eval_const_prover ⟨_, setRowOf_refines hfetch hstep rc rbc⟩).1
 
 end LeanerVM.Arithmetization
