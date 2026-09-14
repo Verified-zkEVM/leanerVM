@@ -106,18 +106,17 @@ module (P3).
   completeness from the step alone; (R3) the negative tests did not touch `main`, and every
   rejection now goes through the constraints `main` emits (`*_spec_of_constraints`,
   `jump_residuals_of_constraints`) or the strengthened specification. The review's follow-up
-  comments (2026-09-14) are met on `XOR`, the template, and remain to be propagated to the
-  other five tables: the limb arithmetic (`add_limbs`, `mul_limbs`, the `K`-word lemmas,
-  `E.ofCell`) moved to Layer 0 and the image read-back (`MemImage.limbsAt`, `MemImage.cellAt`)
-  to Layer 2, reused rather than redefined; a row's word is spelled `E.ofLimbs v[0] v[1] v[2]`
-  as Layer 5 spells it; the row-level restatement of the pull guarantees (`XorRowReads`,
-  `xor_reads_iff`, `xor_reads_of_constraints`) is gone, since `circuit_proof_start` supplies
-  the guarantees themselves, and `xor_spec_of_constraints` replaces it; and `xor_step_complete`
-  answers whether the semantic premise is vacuous: it is proved, never assumed, of the row of
-  every valid step. `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP` and `BLAKE2S` still carry
-  `*RowReads`, `*_reads_iff` and `*_reads_of_constraints` from the first revision and lack
-  `*_step_complete`; the roadmap states the `XOR` shape as the target. The executable
-  obligation the review names stays open and is recorded in the
+  comments (2026-09-14) are met on all six tables, `XOR` first as the template: the limb
+  arithmetic (`add_limbs`, `mul_limbs`, the `K`-word lemmas, `E.ofCell`) moved to Layer 0 and
+  the image read-back (`MemImage.limbsAt`, `MemImage.cellAt`) to Layer 2, reused rather than
+  redefined, so that no table file carries a field-generic theorem (the table-specific
+  `storeCoords_eval`, `flags_sound`, `flags_complete` and the `*_entry` facts stay); a row's
+  word is spelled `E.ofLimbs v[0] v[1] v[2]` as Layer 5 spells it; the row-level restatement
+  of the pull guarantees (`*RowReads`, `*_reads_iff`, `*_reads_of_constraints`) is gone, since
+  `circuit_proof_start` supplies the guarantees themselves, and `*_spec_of_constraints`
+  replaces it; and `*_step_complete` answers whether the semantic premise is vacuous: it is
+  proved, never assumed, of the row of every valid step. The executable obligation the review
+  names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
   carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
   it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was

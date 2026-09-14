@@ -28,9 +28,10 @@ old step-only contract (an `XOR` row at the `SET` instruction; a `DEREF` row wit
 `(1, 1)`) satisfy `step` from their registers and fail their bindings; a changed input limb
 (`XOR`, `MUL_NATIVE`), a changed immediate (`SET_CONSTANT`), and a non-canonical image cell
 (`BLAKE2S`, acceptance test 12) fail the constraints `main` emits in every environment over
-the data (`*_reads_of_constraints`, `blake2s_bindings_of_constraints`); the wrong witness
-`b = 1` at `v_cond = 0` fails the first residual (`jump_residuals_of_constraints`, acceptance
-test 8). The `BLAKE2S` boundary: a bound row whose output cell is a wrong but canonical word,
+the data (`*_spec_of_constraints`, soundness read back); the wrong witness `b = 1` at
+`v_cond = 0` fails the first residual (`jump_residuals_of_constraints`, acceptance test 8).
+Every valid step of the fixture yields a satisfying row from the step alone
+(`*_step_complete`). The `BLAKE2S` boundary: a bound row whose output cell is a wrong but canonical word,
 consistently in row and image, is locally complete and fails `Blake2sRelation` and
 `Blake2sSpec`, the failure Flock enforces.
 
@@ -293,10 +294,12 @@ theorem mul_spec : MulSpec mulRow ⟨g * gpow 1, 1⟩ tabData :=
       read_at 5 xyLanes]
     decide +kernel⟩
 
-theorem mul_reads : MulRowReads mulRow tabData := (mul_reads_iff _ _).mpr ⟨_, mul_spec⟩
-
 example : ConstraintsHold.Completeness (rowEnv tabData) ((mulTable.main (const mulRow)).operations 0) :=
   mulRow_complete ⟨_, mul_spec⟩
+
+example : ConstraintsHold.Completeness (rowEnv tabData)
+    ((mulTable.main (const (mulRowOf tabData (gpow 1) 1 (gpow 2) (gpow 3) (gpow 5) 1 1 1 1))).operations 0) :=
+  mul_step_complete (fetch_at 1 _) mul_spec.2 1 1 1 1
 
 example : eval (rowEnv tabData).toEnvironment ((mulTable.main (const mulRow)).output 0) =
     ⟨g * gpow 1, 1⟩ := by
@@ -308,10 +311,10 @@ def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1, y2] }
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((mulTable.main (const mulRow')).operations 0) := by
   intro h
-  have hr := mul_reads_of_constraints h
-  rw [ProvableType.eval_const] at hr
-  dsimp only at hr
-  obtain ⟨-, -, hB, -⟩ := hr
+  obtain ⟨next, hs⟩ := mul_spec_of_constraints h
+  rw [ProvableType.eval_const] at hs
+  dsimp only at hs
+  obtain ⟨⟨-, -, hB⟩, -⟩ := hs
   rw [show mulRow'.fp * mulRow'.oB = 1 * gpow 3 from rfl, one_mul, read_at 3 #v[y0, y1, y2]] at hB
   exact absurd (Option.some.inj hB) (by decide +kernel)
 
@@ -330,10 +333,12 @@ theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
     simp only [execute, one_mul, read_at 6 #v[7, 8, 9]]
     decide +kernel⟩
 
-theorem set_reads : SetRowReads setRow tabData := (set_reads_iff _ _).mpr ⟨_, set_spec⟩
-
 example : ConstraintsHold.Completeness (rowEnv tabData) ((setTable.main (const setRow)).operations 0) :=
   setRow_complete ⟨_, set_spec⟩
+
+example : ConstraintsHold.Completeness (rowEnv tabData)
+    ((setTable.main (const (setRowOf (gpow 2) 1 (gpow 6) (E.ofLimbs 7 8 9) 1 1))).operations 0) :=
+  set_step_complete (fetch_at 2 _) set_spec.2 1 1
 
 example : eval (rowEnv tabData).toEnvironment ((setTable.main (const setRow)).output 0) =
     ⟨g * gpow 2, 1⟩ := by
@@ -354,10 +359,11 @@ example (next : Regs K) : ¬ SetSpec setRow' next tabData := by
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((setTable.main (const setRow')).operations 0) := by
   intro h
-  have hr := set_reads_of_constraints h
-  rw [ProvableType.eval_const] at hr
-  dsimp only at hr
-  obtain ⟨hfetch, -⟩ := hr
+  obtain ⟨next, hs⟩ := set_spec_of_constraints h
+  rw [ProvableType.eval_const] at hs
+  dsimp only at hs
+  obtain ⟨hfetch, -⟩ := hs
+  unfold SetRowBindings at hfetch
   rw [show setRow'.pc = gpow 2 from rfl, fetch_at 2 (.setConstant (gpow 6) (E.ofLimbs 7 8 9))]
     at hfetch
   simp only [Option.some.injEq, Instr.setConstant.injEq] at hfetch
@@ -433,7 +439,10 @@ theorem derefFp_spec : DerefSpec derefFpRow ⟨g * gpow 7, 1⟩ tabData :=
       read_lit 30 9 9 9, read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
     decide +kernel⟩
 
-theorem deref_reads : DerefRowReads derefRow tabData := (deref_reads_iff _ _).mpr ⟨_, deref_spec⟩
+/-- The valid `pc`-mode step alone yields a satisfying row. -/
+example : ConstraintsHold.Completeness (rowEnv tabData)
+    ((derefTable.main (const (derefRowOf tabData (gpow 3) 1 (gpow 7) 1 (gpow 9) .pc 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 3 _) deref_spec.2 1 1 1 1
 
 /-- The three rows are accepted by `main`, and `main` returns their pushed successors. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
@@ -534,6 +543,17 @@ example : ConstraintsHold.Completeness (jumpEnv tabData jumpRow0)
     ((jumpTable.main (const jumpRow0)).operations 0) :=
   jumpRow_complete ⟨_, jump0_spec⟩
 
+/-- Either valid step alone yields a satisfying row, in its honest environment. -/
+example : ConstraintsHold.Completeness
+    (jumpEnv tabData (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))
+    ((jumpTable.main (const (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+  jump_step_complete (fetch_at 4 _) jump_spec.2 1 1 1 1
+
+example : ConstraintsHold.Completeness
+    (jumpEnv tabData (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))
+    ((jumpTable.main (const (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+  jump_step_complete (fetch_at 8 _) jump0_spec.2 1 1 1 1
+
 /-- `main` returns the pushed successors: `b = 1` selects `(d, f)`, `b = 0` the fall-through. -/
 example : eval (jumpEnv tabData jumpRow).toEnvironment ((jumpTable.main (const jumpRow)).output 0) =
     ⟨gpow 6, 1⟩ := by
@@ -585,7 +605,7 @@ theorem readCell {data : ProverData K} (hlog : (imageOf data).1 = 5) (hws : Well
     (k : ℕ) (c : Vector K 2) (hk : k < 32 := by decide)
     (hv : (memRows data)[k]'(by rw [hws.memRows_size, hlog]; exact hk) = cell c :=
       by decide +kernel) :
-    (imageOf data).2.read (1 * gpow k) = some (cellOf c) := by
+    (imageOf data).2.read (1 * gpow k) = some (E.ofCell c) := by
   rw [one_mul]; exact readAt hlog hws k (cell c) hk hv
 
 /-- The nine cell reads of a row over a well-shaped data whose cells at `16..24` are the row's:
@@ -613,10 +633,10 @@ theorem blake2s_reads {data : ProverData K} (hlog : (imageOf data).1 = 5)
   · exact readCell hlog hws 18 r.m2 (by decide) h18
   · exact readCell hlog hws 19 r.m3 (by decide) h19
   · exact readCell hlog hws 20 r.cv0 (by decide) h20
-  · show (imageOf data).2.read (1 * (g * gpow 20)) = some (cellOf r.cv1)
+  · show (imageOf data).2.read (1 * (g * gpow 20)) = some (E.ofCell r.cv1)
     rw [g_mul_gpow]; exact readCell hlog hws 21 r.cv1 (by decide) h21
   · exact readCell hlog hws 22 r.out0 (by decide) h22
-  · show (imageOf data).2.read (1 * (g * gpow 22)) = some (cellOf r.out1)
+  · show (imageOf data).2.read (1 * (g * gpow 22)) = some (E.ofCell r.out1)
     rw [g_mul_gpow]; exact readCell hlog hws 23 r.out1 (by decide) h23
   · exact readCell hlog hws 24 r.md (by decide) h24
 
@@ -650,6 +670,12 @@ example : ConstraintsHold.Completeness (rowEnv tabData)
     ((blake2sTable.main (const blake2sRow)).operations 0) :=
   blake2sRow_complete_of_spec ⟨_, blake2s_spec⟩
 
+/-- The valid step alone yields a satisfying row. -/
+example : ConstraintsHold.Completeness (rowEnv tabData)
+    ((blake2sTable.main (const (blake2sRowOf tabData (gpow 5) 1 (gpow 16) (gpow 17) (gpow 18)
+      (gpow 19) (gpow 20) (gpow 22) (gpow 24) 1 1 1 1 1 1 1 1 1 1))).operations 0) :=
+  blake2s_step_complete (fetch_at 5 _) blake2s_spec.2 1 1 1 1 1 1 1 1 1 1
+
 example : eval (rowEnv tabData).toEnvironment ((blake2sTable.main (const blake2sRow)).output 0) =
     ⟨g * gpow 5, 1⟩ := by
   simp only [blake2s_output, ProvableType.eval_const, blake2sRow]
@@ -663,11 +689,11 @@ example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, dataOf badMem⟩
       ((blake2sTable.main (const blake2sRow)).operations 0) := by
   intro h
-  have hb := blake2s_bindings_of_constraints
+  obtain ⟨next, hs⟩ := blake2s_spec_of_constraints
     (by rw [ProvableType.eval_const]; exact blake2s_relation) h
-  rw [ProvableType.eval_const] at hb
-  dsimp only at hb
-  obtain ⟨-, -, -, -, -, -, -, -, hout1, -⟩ := hb
+  rw [ProvableType.eval_const] at hs
+  dsimp only at hs
+  obtain ⟨⟨-, -, -, -, -, -, -, -, hout1, -⟩, -⟩ := hs
   rw [show blake2sRow.fp * (g * blake2sRow.oout) = 1 * (g * gpow 22) from rfl, one_mul,
     g_mul_gpow, readAt (dataOf_logSize (mem := badMem) rfl) (dataOf_wellShaped rfl) 23
       #v[rustOut1[0], rustOut1[1], 1]] at hout1
