@@ -29,42 +29,42 @@ prover sets `w = v_cond⁻¹` when `v_cond ≠ 0` and `0` otherwise, and `b = [v
 **The constraints** are the two residuals `b + v_cond·w = 0` and `v_cond·(b + 1) = 0`. Together
 they force `b = [v_cond ≠ 0]` (`flags_sound`): with `v_cond = 0` the first gives `b = 0`; with
 `v_cond ≠ 0` the second gives `b = 1`. Booleanity of `b` alone would accept `b = 1` with
-`v_cond = 0` and a wrong successor (roadmap acceptance test 8).
+`v_cond = 0` and a wrong successor (roadmap acceptance test 8). The honest witnesses satisfy
+both (`flags_complete`).
 
 **The contract.** `JumpRowBindings r data` binds the row to the program and the image: the
 instruction at `pc` is `JUMP o_c o_d o_f`, and the three cells hold the `K` words `v_cond`,
 `v_pc`, `v_fp`, taken or not. `JumpSpec r next data` is the bindings and the step;
 `jump_spec_iff` expands it: the successor is `(v_pc, v_fp)` when `v_cond ≠ 0` and `(g·pc, fp)`
-otherwise; `jump_spec_step` projects the step. The bindings alone make a successor exist
-(`jump_bindings_iff`). `ProverAssumptions r data _ := ∃ next, JumpSpec r next data` is the
-honest prover's row (see `LeanerVM.Arithmetization.Tables.Xor` for the template), proved of
-the row of any valid step by `jumpRowOf_spec` (`jump_step_complete`); completeness discharges
-the four pulls from its bindings and the two residuals from the honest witnesses
-(`flags_complete`). The specification does not mention `w`: with `v_cond = 0` the residuals
-accept every `w`, and the honest generator's `0` is one satisfying assignment among all of
-them.
+otherwise, so the bindings alone make a successor exist. `ProverAssumptions r data _ :=
+∃ next, JumpSpec r next data` is the honest prover's row (see
+`LeanerVM.Arithmetization.Tables.Xor` for the template), proved of the row of any valid step by
+`jumpRowOf_spec` (`jump_step_complete`); completeness discharges the four pulls from its
+bindings and the two residuals from the honest witnesses (`flags_complete`). The specification
+does not mention `w`: with `v_cond = 0` the residuals accept every `w`, and the honest
+generator's `0` is one satisfying assignment among all of them.
 
-**The component** `jumpTable` pulls the state `(pc, fp)` and pushes the derived successor
-`(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)` (`jump_output`), in characteristic two the
-selection of `(v_pc, v_fp)` when `b = 1` and of `(g·pc, fp)` when `b = 0`; reads the bytecode
-entry `(JMP, o_c, o_d, o_f, 0, 0, 0, 0)` at `pc`; and reads the three cells `fp·o_c`, `fp·o_d`,
-`fp·o_f` as single-limb words `(v, 0, 0)`. It returns the pushed successor, and `Spec` is
-`JumpSpec`: the successor is a function of the witness `b`, which is why the table returns it
-rather than naming it in `Spec` from the row; `ProverAssumptions r data _ :=
-∃ next, JumpSpec r next data`.
+**The component** `jumpTable` pulls the state `(pc, fp)`, pushes and returns the derived
+successor `(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)`, in characteristic two the selection
+of `(v_pc, v_fp)` when `b = 1` and of `(g·pc, fp)` when `b = 0`; reads the bytecode entry
+`(JMP, o_c, o_d, o_f, 0, 0, 0, 0)` at `pc`; and reads the three cells `fp·o_c`, `fp·o_d`,
+`fp·o_f` as single-limb words `(v, 0, 0)`. `Spec` is `JumpSpec`: the successor is a function of
+the witness `b`, which is why the table returns it rather than naming it in `Spec` from the
+row; soundness reads `b` off the residuals (`flags_sound`) and the fetched instruction off the
+bytecode pull (Layer 4's `decode_entry`).
 
 **The witness discipline.** `jump_env_iff` says exactly which prover environments use the two
 local witnesses: slot `offset` is the honest inverse and slot `offset + 1` the honest
 indicator of the row's condition. `jumpEnv data r` is that environment for a row over its
-data, and `jumpRow_complete` pushes any row with the semantic premise through `completeness`
-in it. Clean's array generator `Circuit.witgen` computes the same two values (the tests run
-it), but its environment carries no data, so the data-carrying environment is `jumpEnv`, whose
-witness discipline is the theorem.
+data, in which `jump_step_complete` pushes the row of any valid step through `completeness`.
+Clean's array generator `Circuit.witgen` computes the same two values (the tests run it), but
+its environment carries no data, so the data-carrying environment is `jumpEnv`, whose witness
+discipline is the theorem.
 
 **Rows from steps.** `jumpRowOf data pc fp o_c o_d o_f r_c r_d r_f r_bc` reads the three low
-limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_spec`, `jump_row_exists`,
-`jump_step_complete`, `jump_spec_of_constraints` and `jump_residuals_of_constraints` (the two
-residuals, read off the constraints `main` emits) are the `XOR` statements for this table.
+limbs back from the image (`MemImage.limbsAt`); `jumpRowOf_spec` proves its `JumpSpec`, and
+`jump_step_complete` its acceptance by `main` in `jumpEnv`, witnesses included, from the step
+alone.
 
 ## Wrong readings excluded
 
@@ -72,8 +72,7 @@ residuals, read off the constraints `main` emits) are the `XOR` statements for t
   and frame words are in `K` whether or not the branch is taken, as `step` asserts
   (acceptance test 7).
 * `b·(b + 1) = 0` is not the constraint (acceptance test 8): `flags_sound` needs both
-  residuals, and the mutated row `b = 1, v_cond = 0` of the tests fails the first
-  (`jump_residuals_of_constraints`).
+  residuals, and `b = 1` at `v_cond = 0` fails the first (`flags_sound`, in the tests).
 * The successor is a degree-two coordinate of the state push, not a column: there is no
   `next_pc` column to constrain.
 -/
@@ -113,7 +112,7 @@ structure JumpRow (F : Type) where
   rbc : F
   deriving ProvableStruct
 
-/-! ## Load-bearing lemmas -/
+/-! ## The residuals -/
 
 /-- The two residuals force the indicator: `b = [c ≠ 0]` (specification §7.5; roadmap
 acceptance test 8). -/
@@ -133,10 +132,6 @@ theorem flags_complete (c : K) :
     exact ⟨by rw [zero_mul, add_zero], by rw [zero_mul]⟩
   · exact ⟨by rw [mul_inv_cancel₀ hc, CharTwo.add_self_eq_zero],
       by rw [CharTwo.add_self_eq_zero, mul_zero]⟩
-
-/-- The bytecode tuple of a `JUMP` row is the entry of the instruction it names (Layer 4). -/
-theorem jump_entry (oc od of : K) :
-    #v[Opcode.jump.code] ++ #v[oc, od, of, 0, 0, 0, 0] = entry (.jump oc od of) := rfl
 
 /-! ## The contract -/
 
@@ -175,20 +170,6 @@ theorem jump_spec_iff (r : JumpRow K) (next : Regs K) (data : ProverData K) :
       guard_bind_eq_some_iff, isInK_ofLimbs, and_self, Option.pure_def, ofLimbs_eq_zero_iff,
       limb_ofLimbs, Matrix.cons_val_zero]
 
-/-- The step, projected out of the specification. -/
-theorem jump_spec_step {r : JumpRow K} {next : Regs K} {data : ProverData K}
-    (h : JumpSpec r next data) : step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next :=
-  h.2
-
-/-- The bindings alone make the row step: they are the local completeness premise. -/
-theorem jump_bindings_iff (r : JumpRow K) (data : ProverData K) :
-    JumpRowBindings r data ↔ ∃ next, JumpSpec r next data := by
-  constructor
-  · intro h
-    exact ⟨_, (jump_spec_iff _ _ _).mpr ⟨h, rfl⟩⟩
-  · rintro ⟨next, h⟩
-    exact h.1
-
 /-! ## The table -/
 
 /-- The `JUMP` table (specification §7.5; `tables.rs:690-820`): the witnesses `w`, `b`, the two
@@ -221,15 +202,15 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
   -- The row is bound to the program and the image, and steps to the pushed successor.
   Spec := JumpSpec
   -- The honest prover's row: written from a valid step, it is bound and steps somewhere (the
-  -- bindings alone, by `jump_bindings_iff`). Proved of the row built from any valid step by
+  -- bindings alone, by `jump_spec_iff`). Proved of the row built from any valid step by
   -- `jumpRowOf_spec`; see `jump_step_complete`.
   ProverAssumptions r data _ := ∃ next, JumpSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
     obtain ⟨hw, hb, ⟨ins, hfetch, hdec⟩, hc, hd, hf⟩ := h_holds
-    rw [jump_entry, decode_entry, Option.some.injEq] at hdec
-    subst hdec
+    -- The pulled tuple is the entry of `JUMP` with the row's operands (Layer 4).
+    obtain rfl := Option.some.inj ((decode_entry (.jump _ _ _)).symm.trans hdec)
     have hind := flags_sound hw hb
     refine (jump_spec_iff _ _ _).mpr ⟨⟨hfetch, hc, hd, hf⟩, ?_⟩
     split_ifs at hind ⊢ with hc0
@@ -240,44 +221,15 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
-    -- The four pull guarantees are the bindings of the semantic premise; the two residuals
-    -- hold of the honest witnesses.
+    -- The four pull guarantees are the bindings of the semantic premise, the tuple `main`
+    -- emits is the fetched instruction's entry (Layer 4), and the two residuals hold of the
+    -- honest witnesses.
     obtain ⟨next, h⟩ := h_assumptions
     obtain ⟨hfetch, hc, hd, hf⟩ := h.1
     obtain ⟨hw, hb⟩ := h_env
     rw [hw, hb]
-    exact ⟨(flags_complete _).1, (flags_complete _).2,
-      ⟨_, hfetch, by rw [jump_entry, decode_entry]⟩, hc, hd, hf⟩
-
-/-- The returned successor: the derived `(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)` with
-`b` the witness in slot `offset + 1`, for every environment. -/
-theorem jump_output (env : Environment K) (offset : ℕ) (r : Var JumpRow K) :
-    eval env ((jumpTable.main r).output offset) =
-      ⟨env.get (offset + 1) * (eval env r).vpc + env.get (offset + 1) * (g * (eval env r).pc) +
-          g * (eval env r).pc,
-        env.get (offset + 1) * (eval env r).vfp + env.get (offset + 1) * (eval env r).fp +
-          (eval env r).fp⟩ := by
-  simp only [circuit_norm, jumpTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-/-- Soundness, read back off the constraints `main` emits: a row whose constraints hold in any
-environment is bound and steps. -/
-theorem jump_spec_of_constraints {env : Environment K} {r : Var JumpRow K} {offset : ℕ}
-    (h : ConstraintsHold.Soundness env ((jumpTable.main r).operations offset)) :
-    ∃ next, JumpSpec (eval env r) next env.data :=
-  ⟨_, (jumpTable.soundness offset env r (eval env r) rfl trivial h).1⟩
-
-/-- The constraints `main` emits on a row include the two residuals on the witnesses in slots
-`offset` (the inverse) and `offset + 1` (the indicator). -/
-theorem jump_residuals_of_constraints {env : Environment K} {r : Var JumpRow K} {offset : ℕ}
-    (h : ConstraintsHold.Soundness env ((jumpTable.main r).operations offset)) :
-    env.get (offset + 1) + (eval env r).vcond * env.get offset = 0 ∧
-      (eval env r).vcond * (env.get (offset + 1) + 1) = 0 := by
-  -- As `circuit_proof_start` does: the row destructured into its columns, the table unfolded
-  -- by `dsimp` (unfolding it by `simp` exhausts the recursion depth), then `circuit_norm`.
-  obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := r
-  dsimp only [jumpTable] at h
-  simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg] at h ⊢
-  exact ⟨h.1, h.2.1⟩
+    exact ⟨(flags_complete _).1, (flags_complete _).2, ⟨_, hfetch, decode_entry (.jump _ _ _)⟩,
+      hc, hd, hf⟩
 
 /-! ## The witness discipline -/
 
@@ -297,8 +249,9 @@ theorem jump_env_iff (env : ProverEnvironment K) (offset : ℕ) (r : Var JumpRow
       env.get offset = (if (eval env r).vcond = 0 then 0 else (eval env r).vcond⁻¹) ∧
         env.get (offset + 1) = (if (eval env r).vcond = 0 then 0 else 1) := by
   -- As `circuit_proof_start` does: the row destructured into its columns, the table unfolded
-  -- by `dsimp`, then `circuit_norm`, with `ite_feq` reading the witness programs' `Bool`
-  -- conditions back as propositions before the descent (E7).
+  -- by `dsimp` (unfolding it by `simp` exhausts the recursion depth), then `circuit_norm`,
+  -- with `ite_feq` reading the witness programs' `Bool` conditions back as propositions before
+  -- the descent (E7).
   obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := r
   dsimp only [jumpTable]
   simp only [↓ite_feq, circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
@@ -310,21 +263,6 @@ theorem jump_env_iff (env : ProverEnvironment K) (offset : ℕ) (r : Var JumpRow
 def jumpEnv (data : ProverData K) (r : JumpRow K) : ProverEnvironment K :=
   ⟨⟨fun j ↦ if j = 0 then (if r.vcond = 0 then 0 else r.vcond⁻¹)
       else if j = 1 then (if r.vcond = 0 then 0 else 1) else 0, data⟩, default⟩
-
-/-- `jumpEnv` uses the row's local witnesses. -/
-theorem jumpEnv_usesLocalWitnesses (data : ProverData K) (r : JumpRow K) :
-    (jumpEnv data r).UsesLocalWitnessesCompleteness 0
-      ((jumpTable.main (const r)).operations 0) := by
-  rw [jump_env_iff, ProvableType.eval_const_prover]
-  exact ⟨rfl, rfl⟩
-
-/-- A row with the semantic premise satisfies the constraints of `main` in its honest
-environment over its data: local completeness, literally, witnesses included. -/
-theorem jumpRow_complete {r : JumpRow K} {data : ProverData K}
-    (h : ∃ next, JumpSpec r next data) :
-    ConstraintsHold.Completeness (jumpEnv data r) ((jumpTable.main (const r)).operations 0) :=
-  (jumpTable.completeness 0 (jumpEnv data r) (const r) (jumpEnv_usesLocalWitnesses data r) r
-    ProvableType.eval_const_prover h).1
 
 /-! ## Rows from steps -/
 
@@ -338,7 +276,7 @@ noncomputable def jumpRowOf (data : ProverData K) (pc fp oc od of rc rd rf rbc :
     rc, rd, rf, rbc⟩
 
 /-- A valid step that fetches `JUMP o_c o_d o_f` is represented by `jumpRowOf`, with any
-counts. -/
+counts: the honest prover's row satisfies `ProverAssumptions`. -/
 theorem jumpRowOf_spec {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.jump oc od of))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
@@ -359,20 +297,16 @@ theorem jumpRowOf_spec {data : ProverData K} {pc fp oc od of : K} {next : Regs K
       some (E.ofLimbs ((imageOf data).2.limbsAt (fp * of))[0] 0 0)
     rw [MemImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
-/-- A valid step that fetches `JUMP o_c o_d o_f` admits a row with the same registers and
-operands and any counts. -/
-theorem jump_row_exists {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.jump oc od of))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
-    ∃ c d f, JumpSpec ⟨pc, fp, oc, od, of, c, d, f, rc, rd, rf, rbc⟩ next data :=
-  ⟨_, _, _, jumpRowOf_spec hfetch hstep rc rd rf rbc⟩
-
-/-- Every valid `JUMP` step has a satisfying row, witnesses included, from the step alone. -/
+/-- Every valid `JUMP` step has a satisfying row, witnesses included, from the step alone: the
+constraints of `main` hold of `jumpRowOf` in its honest environment over the data. -/
 theorem jump_step_complete {data : ProverData K} {pc fp oc od of : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.jump oc od of))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rd rf rbc : K) :
     ConstraintsHold.Completeness (jumpEnv data (jumpRowOf data pc fp oc od of rc rd rf rbc))
       ((jumpTable.main (const (jumpRowOf data pc fp oc od of rc rd rf rbc))).operations 0) :=
-  jumpRow_complete ⟨_, jumpRowOf_spec hfetch hstep rc rd rf rbc⟩
+  (jumpTable.completeness 0 (jumpEnv data _) (const _)
+    -- `jumpEnv` holds the honest inverse and indicator of the row's condition (`jump_env_iff`).
+    (by rw [jump_env_iff, ProvableType.eval_const_prover]; exact ⟨rfl, rfl⟩) _
+    ProvableType.eval_const_prover ⟨_, jumpRowOf_spec hfetch hstep rc rd rf rbc⟩).1
 
 end LeanerVM.Arithmetization

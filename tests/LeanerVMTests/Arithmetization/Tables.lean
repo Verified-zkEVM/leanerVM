@@ -15,25 +15,24 @@ equalities in the kernel. One prover data serves every table: a thirty-two-word 
 three store modes and a `JUMP` on each branch, both read through `imageOf`/`programOf` at
 literal indices as in the Layer 5 tests.
 
-For each table: the honest row is bound (`*RowBindings`), satisfies its functional
-specification (`*Spec`, with Layer 3's `step` decided in the kernel), is accepted by `main`
-(its constraints hold in its honest environment, through `completeness`: `*Row_complete`), and
-`main` returns the pushed successor (`*_output`). The `JUMP` rows, taken and untaken, are
-pushed through `completeness` in `jumpEnv`, whose two witness slots are what the witness
-programs compute (`jump_env_iff`); Clean's array generator `Circuit.witgen` computes the same
-two values (`#guard`, compiled). The `DEREF` rows cover the three modes.
+For each table: the honest row is bound (`*RowBindings`) and satisfies its functional
+specification (`*Spec`, with Layer 3's `step` decided in the kernel, which also names the
+successor `main` returns), and every valid step of the fixture yields a satisfying row from the
+step alone (`*_step_complete`, on the row `*RowOf` reads back from the image): the `DEREF`
+steps in the three store modes, the `JUMP` steps on both branches in their honest environment
+`jumpEnv`, whose two witness slots are what the witness programs compute (`jump_env_iff`);
+Clean's array generator `Circuit.witgen` computes the same two values (`#guard`, compiled).
 
 Rejections use actual rows and the tables' own theorems: the review's counterexamples to the
 old step-only contract (an `XOR` row at the `SET` instruction; a `DEREF` row with the flag pair
 `(1, 1)`) satisfy `step` from their registers and fail their bindings; a changed input limb
 (`XOR`, `MUL_NATIVE`), a changed immediate (`SET_CONSTANT`), and a non-canonical image cell
 (`BLAKE2S`, acceptance test 12) fail the constraints `main` emits in every environment over
-the data (`*_spec_of_constraints`, soundness read back); the wrong witness `b = 1` at
-`v_cond = 0` fails the first residual (`jump_residuals_of_constraints`, acceptance test 8).
-Every valid step of the fixture yields a satisfying row from the step alone
-(`*_step_complete`). The `BLAKE2S` boundary: a bound row whose output cell is a wrong but canonical word,
-consistently in row and image, is locally complete and fails `Blake2sRelation` and
-`Blake2sSpec`, the failure Flock enforces.
+the data, read back through each table's `soundness`; the two `JUMP` residuals reject the wrong
+witness `b = 1` at `v_cond = 0` (`flags_sound`, acceptance test 8). The `BLAKE2S` boundary: a
+bound row whose output cell is a wrong but canonical word, consistently in row and image, is
+locally complete (`blake2sRow_complete`) and fails `Blake2sRelation` and `Blake2sSpec`, the
+failure Flock enforces.
 
 The `MUL_NATIVE` row reproduces the executor's `mul_192bit_word` product (`cpu/mod.rs:981-998`,
 `scripts/dump-mul-rust.sh`) from the twelve-product coordinates (acceptance test 9), and the
@@ -206,26 +205,12 @@ theorem xor_spec : XorSpec xorRow ⟨g * gpow 0, 1⟩ tabData :=
       read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
     decide +kernel⟩
 
-/-- The row is accepted by `main`: its constraints hold in the row environment over the
-fixture (through `completeness`). -/
-example : ConstraintsHold.Completeness (rowEnv tabData) ((xorTable.main (const xorRow)).operations 0) :=
-  xorRow_complete ⟨_, xor_spec⟩
-
 /-- The valid step alone yields a satisfying row (`xor_step_complete`): no assumption on the
-row, the honest prover builds it. -/
+row, the honest prover builds it; `xor_spec` names the successor `main` returns. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((xorTable.main (const (xorRowOf tabData (gpow 0) 1 (gpow 2) (gpow 3) (gpow 4) 1 1 1 1))).operations 0) :=
+    ((xorTable.main
+      (const (xorRowOf tabData (gpow 0) 1 (gpow 2) (gpow 3) (gpow 4) 1 1 1 1))).operations 0) :=
   xor_step_complete (fetch_at 0 _) xor_spec.2 1 1 1 1
-
-/-- `main` returns the pushed successor `(g, 1)`. -/
-example : eval (rowEnv tabData).toEnvironment ((xorTable.main (const xorRow)).output 0) =
-    ⟨g * gpow 0, 1⟩ := by
-  simp only [xor_output, ProvableType.eval_const, xorRow]
-
-/-- The step admits a row with the honest registers and operands (`xor_row_exists`). -/
-example : ∃ vA vB, XorSpec ⟨gpow 0, 1, gpow 2, gpow 3, gpow 4, vA, vB, 1, 1, 1, 1⟩
-    ⟨g * gpow 0, 1⟩ tabData :=
-  xor_row_exists (fetch_at 0 _) xor_spec.2 1 1 1 1
 
 /-- The review's counterexample to the old step-only contract: an alleged `XOR` row at the
 `SET` instruction with operands `0` satisfies `step` from its registers. -/
@@ -256,13 +241,12 @@ example (next : Regs K) : ¬ XorSpec xorRow' next tabData := by
   exact absurd (Option.some.inj hA) (by decide +kernel)
 
 /-- …so the constraints `main` emits on it fail in every environment over the fixture: its
-second pull is no read of the image. -/
+second pull is no read of the image (`soundness`, read back). -/
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((xorTable.main (const xorRow')).operations 0) := by
   intro h
-  obtain ⟨next, hs⟩ := xor_spec_of_constraints h
-  rw [ProvableType.eval_const] at hs
-  dsimp only at hs
+  have hs : XorSpec xorRow' _ tabData := (xorTable.soundness 0 ⟨get, tabData⟩ (const xorRow')
+    xorRow' ProvableType.eval_const trivial h).1
   obtain ⟨⟨-, hA, -⟩, -⟩ := hs
   rw [show xorRow'.fp * xorRow'.oA = 1 * gpow 2 from rfl, one_mul, read_at 2 #v[x0, x1, x2]] at hA
   exact absurd (Option.some.inj hA) (by decide +kernel)
@@ -294,16 +278,10 @@ theorem mul_spec : MulSpec mulRow ⟨g * gpow 1, 1⟩ tabData :=
       read_at 5 xyLanes]
     decide +kernel⟩
 
-example : ConstraintsHold.Completeness (rowEnv tabData) ((mulTable.main (const mulRow)).operations 0) :=
-  mulRow_complete ⟨_, mul_spec⟩
-
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((mulTable.main (const (mulRowOf tabData (gpow 1) 1 (gpow 2) (gpow 3) (gpow 5) 1 1 1 1))).operations 0) :=
+    ((mulTable.main
+      (const (mulRowOf tabData (gpow 1) 1 (gpow 2) (gpow 3) (gpow 5) 1 1 1 1))).operations 0) :=
   mul_step_complete (fetch_at 1 _) mul_spec.2 1 1 1 1
-
-example : eval (rowEnv tabData).toEnvironment ((mulTable.main (const mulRow)).output 0) =
-    ⟨g * gpow 1, 1⟩ := by
-  simp only [mul_output, ProvableType.eval_const, mulRow]
 
 /-- A changed input limb fails the bindings, and the constraints in every environment. -/
 def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1, y2] }
@@ -311,9 +289,8 @@ def mulRow' : MulRow K := { mulRow with vB := #v[y0, y1 + 1, y2] }
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((mulTable.main (const mulRow')).operations 0) := by
   intro h
-  obtain ⟨next, hs⟩ := mul_spec_of_constraints h
-  rw [ProvableType.eval_const] at hs
-  dsimp only at hs
+  have hs : MulSpec mulRow' _ tabData := (mulTable.soundness 0 ⟨get, tabData⟩ (const mulRow')
+    mulRow' ProvableType.eval_const trivial h).1
   obtain ⟨⟨-, -, hB⟩, -⟩ := hs
   rw [show mulRow'.fp * mulRow'.oB = 1 * gpow 3 from rfl, one_mul, read_at 3 #v[y0, y1, y2]] at hB
   exact absurd (Option.some.inj hB) (by decide +kernel)
@@ -333,16 +310,9 @@ theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
     simp only [execute, one_mul, read_at 6 #v[7, 8, 9]]
     decide +kernel⟩
 
-example : ConstraintsHold.Completeness (rowEnv tabData) ((setTable.main (const setRow)).operations 0) :=
-  setRow_complete ⟨_, set_spec⟩
-
 example : ConstraintsHold.Completeness (rowEnv tabData)
     ((setTable.main (const (setRowOf (gpow 2) 1 (gpow 6) (E.ofLimbs 7 8 9) 1 1))).operations 0) :=
   set_step_complete (fetch_at 2 _) set_spec.2 1 1
-
-example : eval (rowEnv tabData).toEnvironment ((setTable.main (const setRow)).output 0) =
-    ⟨g * gpow 2, 1⟩ := by
-  simp only [set_output, ProvableType.eval_const, setRow]
 
 /-- A changed immediate limb: the row names an instruction the program does not hold, so its
 binding fails and the constraints fail in every environment. -/
@@ -359,9 +329,8 @@ example (next : Regs K) : ¬ SetSpec setRow' next tabData := by
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((setTable.main (const setRow')).operations 0) := by
   intro h
-  obtain ⟨next, hs⟩ := set_spec_of_constraints h
-  rw [ProvableType.eval_const] at hs
-  dsimp only at hs
+  have hs : SetSpec setRow' _ tabData := (setTable.soundness 0 ⟨get, tabData⟩ (const setRow')
+    setRow' ProvableType.eval_const trivial h).1
   obtain ⟨hfetch, -⟩ := hs
   unfold SetRowBindings at hfetch
   rw [show setRow'.pc = gpow 2 from rfl, fetch_at 2 (.setConstant (gpow 6) (E.ofLimbs 7 8 9))]
@@ -439,31 +408,22 @@ theorem derefFp_spec : DerefSpec derefFpRow ⟨g * gpow 7, 1⟩ tabData :=
       read_lit 30 9 9 9, read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
     decide +kernel⟩
 
-/-- The valid `pc`-mode step alone yields a satisfying row. -/
+/-- A valid step in each store mode alone yields a satisfying row (`deref_step_complete`); its
+successor is the one `DerefSpec` names. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main (const (derefRowOf tabData (gpow 3) 1 (gpow 7) 1 (gpow 9) .pc 1 1 1 1))).operations 0) :=
+    ((derefTable.main
+      (const (derefRowOf tabData (gpow 3) 1 (gpow 7) 1 (gpow 9) .pc 1 1 1 1))).operations 0) :=
   deref_step_complete (fetch_at 3 _) deref_spec.2 1 1 1 1
 
-/-- The three rows are accepted by `main`, and `main` returns their pushed successors. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main (const derefRow)).operations 0) :=
-  derefRow_complete ⟨_, deref_spec⟩
-
-example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main (const derefCellRow)).operations 0) :=
-  derefRow_complete ⟨_, derefCell_spec⟩
+    ((derefTable.main
+      (const (derefRowOf tabData (gpow 6) 1 (gpow 25) 1 (gpow 27) .cell 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 6 _) derefCell_spec.2 1 1 1 1
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((derefTable.main (const derefFpRow)).operations 0) :=
-  derefRow_complete ⟨_, derefFp_spec⟩
-
-example : eval (rowEnv tabData).toEnvironment ((derefTable.main (const derefRow)).output 0) =
-    ⟨g * gpow 3, 1⟩ := by
-  simp only [deref_output, ProvableType.eval_const, derefRow]
-
-example : eval (rowEnv tabData).toEnvironment ((derefTable.main (const derefFpRow)).output 0) =
-    ⟨g * gpow 7, 1⟩ := by
-  simp only [deref_output, ProvableType.eval_const, derefFpRow]
+    ((derefTable.main
+      (const (derefRowOf tabData (gpow 7) 1 (gpow 28) 1 (gpow 30) .fp 1 1 1 1))).operations 0) :=
+  deref_step_complete (fetch_at 7 _) derefFp_spec.2 1 1 1 1
 
 /-- The review's counterexample to the old contract: the honest row with the flag pair
 `(1, 1)` satisfies `step` from its registers (the flags are no input of `step`)… -/
@@ -534,38 +494,19 @@ theorem jump0_spec : JumpSpec jumpRow0 ⟨g * gpow 8, 1⟩ tabData :=
       read_at 12 #v[1, 0, 0]]
     decide +kernel⟩
 
-/-- Both rows are accepted by `main` in their honest environments, witnesses included. -/
-example : ConstraintsHold.Completeness (jumpEnv tabData jumpRow)
-    ((jumpTable.main (const jumpRow)).operations 0) :=
-  jumpRow_complete ⟨_, jump_spec⟩
-
-example : ConstraintsHold.Completeness (jumpEnv tabData jumpRow0)
-    ((jumpTable.main (const jumpRow0)).operations 0) :=
-  jumpRow_complete ⟨_, jump0_spec⟩
-
-/-- Either valid step alone yields a satisfying row, in its honest environment. -/
+/-- Either valid step alone yields a satisfying row, in its honest environment, witnesses
+included; `jump_spec` and `jump0_spec` name the successors `main` returns. -/
 example : ConstraintsHold.Completeness
     (jumpEnv tabData (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main (const (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+    ((jumpTable.main
+      (const (jumpRowOf tabData (gpow 4) 1 (gpow 10) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
   jump_step_complete (fetch_at 4 _) jump_spec.2 1 1 1 1
 
 example : ConstraintsHold.Completeness
     (jumpEnv tabData (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))
-    ((jumpTable.main (const (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
+    ((jumpTable.main
+      (const (jumpRowOf tabData (gpow 8) 1 (gpow 13) (gpow 11) (gpow 12) 1 1 1 1))).operations 0) :=
   jump_step_complete (fetch_at 8 _) jump0_spec.2 1 1 1 1
-
-/-- `main` returns the pushed successors: `b = 1` selects `(d, f)`, `b = 0` the fall-through. -/
-example : eval (jumpEnv tabData jumpRow).toEnvironment ((jumpTable.main (const jumpRow)).output 0) =
-    ⟨gpow 6, 1⟩ := by
-  rw [jump_output, ProvableType.eval_const]
-  show (⟨_, _⟩ : Regs K) = ⟨gpow 6, 1⟩
-  decide +kernel
-
-example : eval (jumpEnv tabData jumpRow0).toEnvironment
-    ((jumpTable.main (const jumpRow0)).output 0) = ⟨g * gpow 8, 1⟩ := by
-  rw [jump_output, ProvableType.eval_const]
-  show (⟨_, _⟩ : Regs K) = ⟨g * gpow 8, 1⟩
-  decide +kernel
 
 -- Clean's array generator computes the same two witnesses as `jumpEnv` holds: `w = 1⁻¹ = 1`,
 -- `b = 1` on the taken row, `w = 0`, `b = 0` on the untaken one (compiled).
@@ -575,20 +516,8 @@ example : eval (jumpEnv tabData jumpRow0).toEnvironment
 example : (jumpEnv tabData jumpRow).get 0 = 1 ∧ (jumpEnv tabData jumpRow).get 1 = 1 := by
   decide +kernel
 
-/-- The wrong witness `b = 1` at `v_cond = 0` fails the first residual `b + v_cond·w = 0` of
-`main` for every inverse `w` (acceptance test 8): booleanity of `b` alone would have accepted
-it. -/
-example (get : ℕ → K) (hb : get 1 = 1) :
-    ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((jumpTable.main (const jumpRow0)).operations 0) := by
-  intro h
-  have hres := (jump_residuals_of_constraints h).1
-  rw [ProvableType.eval_const] at hres
-  dsimp only at hres
-  have h1 : get 1 + (0 : K) * get 0 = 0 := hres
-  rw [zero_mul, add_zero, hb] at h1
-  exact one_ne_zero h1
-
-/-- With `v_cond = 0` the residuals force `b = 0`, whatever `w`. -/
+/-- With `v_cond = 0` the two residuals `main` asserts force `b = 0`, whatever the inverse `w`
+(acceptance test 8): booleanity of `b` alone would have accepted `b = 1`. -/
 example (w b : K) (h1 : b + 0 * w = 0) (h2 : 0 * (b + 1) = 0) : b = 0 := by
   simpa using flags_sound h1 h2
 
@@ -666,19 +595,17 @@ example : step (programOf tabData) (imageOf tabData).2 ⟨gpow 5, 1⟩ = some �
     read_at 23 (cell rustOut1), read_at 24 (cell rustMd), Option.bind_eq_bind, Option.bind_some]
   decide +kernel
 
+/-- The honest row is bound, so locally complete: `main` accepts it without checking the
+compression. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
     ((blake2sTable.main (const blake2sRow)).operations 0) :=
-  blake2sRow_complete_of_spec ⟨_, blake2s_spec⟩
+  blake2sRow_complete blake2s_bindings
 
 /-- The valid step alone yields a satisfying row. -/
 example : ConstraintsHold.Completeness (rowEnv tabData)
     ((blake2sTable.main (const (blake2sRowOf tabData (gpow 5) 1 (gpow 16) (gpow 17) (gpow 18)
       (gpow 19) (gpow 20) (gpow 22) (gpow 24) 1 1 1 1 1 1 1 1 1 1))).operations 0) :=
   blake2s_step_complete (fetch_at 5 _) blake2s_spec.2 1 1 1 1 1 1 1 1 1 1
-
-example : eval (rowEnv tabData).toEnvironment ((blake2sTable.main (const blake2sRow)).output 0) =
-    ⟨g * gpow 5, 1⟩ := by
-  simp only [blake2s_output, ProvableType.eval_const, blake2sRow]
 
 /-- A non-canonical cell is rejected (acceptance test 12): an image whose second output cell has
 a nonzero top limb does not balance the row's canonical read of it, so the constraints `main`
@@ -689,10 +616,9 @@ example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, dataOf badMem⟩
       ((blake2sTable.main (const blake2sRow)).operations 0) := by
   intro h
-  obtain ⟨next, hs⟩ := blake2s_spec_of_constraints
-    (by rw [ProvableType.eval_const]; exact blake2s_relation) h
-  rw [ProvableType.eval_const] at hs
-  dsimp only at hs
+  have hs : Blake2sSpec blake2sRow _ (dataOf badMem) :=
+    (blake2sTable.soundness 0 ⟨get, dataOf badMem⟩ (const blake2sRow) blake2sRow
+      ProvableType.eval_const blake2s_relation h).1
   obtain ⟨⟨-, -, -, -, -, -, -, -, hout1, -⟩, -⟩ := hs
   rw [show blake2sRow.fp * (g * blake2sRow.oout) = 1 * (g * gpow 22) from rfl, one_mul,
     g_mul_gpow, readAt (dataOf_logSize (mem := badMem) rfl) (dataOf_wellShaped rfl) 23

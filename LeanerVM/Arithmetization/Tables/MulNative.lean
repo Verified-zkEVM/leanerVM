@@ -40,22 +40,20 @@ result coordinates as `v_A · v_B` (roadmap acceptance test 9).
 `LeanerVM.Arithmetization.Tables.Xor` for the template): `MulRowBindings r data` binds the
 instruction `MUL_NATIVE o_A o_B o_C` at `pc` and the two operand words; `MulSpec r next data`
 is the bindings and the step; `mul_spec_iff` expands it to the word at `fp·o_C` being the
-product of the two words in `E`, and the successor `(g·pc, fp)`; `mul_spec_step`
-projects the step. The public description of the operation is the product in `E`; the
-circuit's expanded polynomial is `main`'s coordinates alone, tied to it by `mul_limbs`.
-`ProverAssumptions r data _ := ∃ next, MulSpec r next data` is the honest prover's row, proved
-of the row of any valid step by `mulRowOf_spec` (`mul_step_complete`); completeness discharges
-the pulls from it through `mul_spec_iff` and `mul_limbs`, the twelve products `main` emits
-being the product's limbs.
+product of the two words in `E`, and the successor `(g·pc, fp)`. The public description of the
+operation is the product in `E`; the circuit's expanded polynomial is `main`'s coordinates
+alone, tied to it by `mul_limbs`. `ProverAssumptions r data _ := ∃ next, MulSpec r next data`
+is the honest prover's row, proved of the row of any valid step by `mulRowOf_spec`
+(`mul_step_complete`); completeness discharges the pulls from it through `mul_spec_iff` and
+`mul_limbs`, the twelve products `main` emits being the product's limbs.
 
-**The component** `mulTable` pulls the state `(pc, fp)` and pushes the fall-through successor
-`(g·pc, fp)` (`mul_output`), reads the bytecode entry `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)` at
-`pc`, and reads the three cells `fp·o_A`, `fp·o_B`, `fp·o_C` with the third carrying the
-product. It returns the pushed successor, and `Spec` is `MulSpec`; soundness and completeness
-are as for `XOR`, with `ProverAssumptions r data _ := ∃ next, MulSpec r next data`.
+**The component** `mulTable` pulls the state `(pc, fp)`, pushes and returns the fall-through
+successor `(g·pc, fp)`, reads the bytecode entry `(MUL, o_A, o_B, o_C, 0, 0, 0, 0)` at `pc`,
+and reads the three cells `fp·o_A`, `fp·o_B`, `fp·o_C` with the third carrying the product.
+`Spec` is `MulSpec`; soundness and completeness are as for `XOR`.
 
-**Rows from steps.** `mulRowOf`, `mulRowOf_spec`, `mul_row_exists`, `mulRow_complete`,
-`mul_step_complete` and `mul_spec_of_constraints` are the `XOR` statements for this table.
+**Rows from steps.** `mulRowOf`, `mulRowOf_spec` and `mul_step_complete` are the `XOR`
+statements for this table.
 
 ## Wrong readings excluded
 
@@ -100,12 +98,6 @@ structure MulRow (F : Type) where
   rbc : F
   deriving ProvableStruct
 
-/-! ## Load-bearing lemmas -/
-
-/-- The bytecode tuple of a `MUL_NATIVE` row is the entry of the instruction it names (Layer 4). -/
-theorem mul_entry (oA oB oC : K) :
-    #v[Opcode.mulNative.code] ++ #v[oA, oB, oC, 0, 0, 0, 0] = entry (.mulNative oA oB oC) := rfl
-
 /-! ## The contract -/
 
 /-- The row's bindings to the program and the image: the instruction at `pc` is
@@ -147,11 +139,6 @@ theorem mul_spec_iff (r : MulRow K) (next : Regs K) (data : ProverData K) :
     simp only [execute, hA, hB, hC, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, Option.pure_def, true_and]
 
-/-- The step, projected out of the specification. -/
-theorem mul_spec_step {r : MulRow K} {next : Regs K} {data : ProverData K}
-    (h : MulSpec r next data) : step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next :=
-  h.2
-
 /-! ## The table -/
 
 /-- The `MUL_NATIVE` table (specification §7.2; `tables.rs:436-528`): state step, bytecode read
@@ -190,8 +177,8 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     obtain ⟨⟨ins, hfetch, hdec⟩, hA, hB, hC⟩ := h_holds
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    rw [mul_entry, decode_entry, Option.some.injEq] at hdec
-    subst hdec
+    -- The pulled tuple is the entry of `MUL_NATIVE` with the row's operands (Layer 4).
+    obtain rfl := Option.some.inj ((decode_entry (.mulNative _ _ _)).symm.trans hdec)
     refine (mul_spec_iff _ _ _).mpr ⟨⟨hfetch, ?_, ?_⟩, ?_, rfl⟩
     · simpa only [Vector.getElem_map] using hA
     · simpa only [Vector.getElem_map] using hB
@@ -199,27 +186,16 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
-    -- The four pull guarantees, from the semantic premise: the result read carries the limbs
-    -- of the product a valid step reads (`mul_limbs`).
+    -- The four pull guarantees, from the semantic premise: the tuple `main` emits is the
+    -- fetched instruction's entry (Layer 4), and the result read carries the limbs of the
+    -- product a valid step reads (`mul_limbs`).
     obtain ⟨next, h⟩ := h_assumptions
     obtain ⟨⟨hfetch, hA, hB⟩, hC, -⟩ := (mul_spec_iff _ _ _).mp h
     rw [mul_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
     simp only [Vector.getElem_map] at hA hB hC ⊢
-    exact ⟨⟨_, hfetch, by rw [mul_entry, decode_entry]⟩, hA, hB, hC⟩
-
-/-- The returned successor: the fall-through `(g·pc, fp)`, for every environment. -/
-theorem mul_output (env : Environment K) (offset : ℕ) (r : Var MulRow K) :
-    eval env ((mulTable.main r).output offset) = ⟨g * (eval env r).pc, (eval env r).fp⟩ := by
-  simp only [circuit_norm, mulTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-/-- Soundness, read back off the constraints `main` emits: a row whose constraints hold in any
-environment is bound and steps. -/
-theorem mul_spec_of_constraints {env : Environment K} {r : Var MulRow K} {offset : ℕ}
-    (h : ConstraintsHold.Soundness env ((mulTable.main r).operations offset)) :
-    ∃ next, MulSpec (eval env r) next env.data :=
-  ⟨_, (mulTable.soundness offset env r (eval env r) rfl trivial h).1⟩
+    exact ⟨⟨_, hfetch, decode_entry (.mulNative _ _ _)⟩, hA, hB, hC⟩
 
 /-! ## Rows from steps -/
 
@@ -231,7 +207,7 @@ noncomputable def mulRowOf (data : ProverData K) (pc fp oA oB oC rA rB rC rbc : 
     rA, rB, rC, rbc⟩
 
 /-- A valid step that fetches `MUL_NATIVE oA oB oC` is represented by `mulRowOf`, with any
-counts. -/
+counts: the honest prover's row satisfies `ProverAssumptions`. -/
 theorem mulRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.mulNative oA oB oC))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
@@ -248,28 +224,16 @@ theorem mulRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
       ((imageOf data).2.limbsAt (fp * oB))[1] ((imageOf data).2.limbsAt (fp * oB))[2])
     rw [MemImage.ofLimbs_limbsAt hb]; exact hb
 
-/-- A valid step that fetches `MUL_NATIVE oA oB oC` admits a row with the same registers and
-operands and any counts. -/
-theorem mul_row_exists {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.mulNative oA oB oC))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
-    ∃ vA vB, MulSpec ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ next data :=
-  ⟨_, _, mulRowOf_spec hfetch hstep rA rB rC rbc⟩
-
-/-- A row with the semantic premise satisfies the constraints of `main` in the row environment
-over its data. -/
-theorem mulRow_complete {r : MulRow K} {data : ProverData K} (h : ∃ next, MulSpec r next data) :
-    ConstraintsHold.Completeness (rowEnv data) ((mulTable.main (const r)).operations 0) :=
-  (mulTable.completeness 0 (rowEnv data) (const r)
-    (by simp only [circuit_norm, mulTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
-    ProvableType.eval_const_prover h).1
-
-/-- Every valid `MUL_NATIVE` step has a satisfying row, from the step alone. -/
+/-- Every valid `MUL_NATIVE` step has a satisfying row, from the step alone: the constraints of
+`main` hold of `mulRowOf` in the row environment over the data. -/
 theorem mul_step_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.mulNative oA oB oC))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((mulTable.main (const (mulRowOf data pc fp oA oB oC rA rB rC rbc))).operations 0) :=
-  mulRow_complete ⟨_, mulRowOf_spec hfetch hstep rA rB rC rbc⟩
+  (mulTable.completeness 0 (rowEnv data) (const _)
+    -- No witness slot: the row environment uses the local witnesses vacuously.
+    (by simp only [circuit_norm, mulTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
+    ProvableType.eval_const_prover ⟨_, mulRowOf_spec hfetch hstep rA rB rC rbc⟩).1
 
 end LeanerVM.Arithmetization

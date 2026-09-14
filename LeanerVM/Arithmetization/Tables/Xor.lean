@@ -33,23 +33,23 @@ the prover data (Layer 5): the instruction at `pc` is `XOR o_A o_B o_C`, and the
 `step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, Layer 3's `step` from the row's
 registers to `next`; `xor_spec_iff` expands it into the opcode's equation, the word at `fp·o_C`
 is the sum of the two words in `E` (addition in `E`, whose limbs are bitwise `XOR` in `K`, never
-integer addition), and the successor `next = (g·pc, fp)`; `xor_spec_step` projects the step
-back out. Access counts are outside the contract: their allocation is the bus's (Layers 8 and
-9), and a wrong count does not falsify the opcode's specification. The row's pull guarantees
-have no name of their own: they are what Clean's `circuit_proof_start` hands soundness as
-hypotheses and asks of completeness as goals, and `xor_spec_iff` with Layer 0's `add_limbs` is
-their semantic reading (the result read carries the sum's limbs).
+integer addition), and the successor `next = (g·pc, fp)`. Access counts are outside the
+contract: their allocation is the bus's (Layers 8 and 9), and a wrong count does not falsify
+the opcode's specification. The row's pull guarantees have no name of their own: they are what
+Clean's `circuit_proof_start` hands soundness as hypotheses and asks of completeness as goals,
+and `xor_spec_iff` with Layer 0's `add_limbs` is their semantic reading (the result read
+carries the sum's limbs).
 
-**The component** `xorTable` pulls the state `(pc, fp)` and pushes the fall-through successor
-`(g·pc, fp)` (`xor_output`), reads the bytecode entry `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)` at
-`pc`, and reads the three cells `fp·o_A`, `fp·o_B`, `fp·o_C` with the third carrying the sum.
-It returns the pushed successor, and `Spec` is `XorSpec`.
+**The component** `xorTable` pulls the state `(pc, fp)`, pushes and returns the fall-through
+successor `(g·pc, fp)`, reads the bytecode entry `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)` at `pc`,
+and reads the three cells `fp·o_A`, `fp·o_B`, `fp·o_C` with the third carrying the sum. `Spec`
+is `XorSpec`.
 
 **Soundness** assumes the guarantees of the four pulls (memory reads are the image's words,
-the bytecode entry is the fetched instruction) and concludes `XorSpec`: the bindings are
-exactly what the pulls guarantee, and the step follows by the arm of `execute`; the
-requirements of the three pushes are vacuous, since the push channels guarantee nothing
-(Layer 5: what a push must satisfy is this `Spec`).
+the bytecode entry is the fetched instruction, which Layer 4's `decode_entry` identifies with
+`XOR o_A o_B o_C`) and concludes `XorSpec`: the bindings are exactly what the pulls guarantee,
+and the step follows by the arm of `execute`; the requirements of the three pushes are vacuous,
+since the push channels guarantee nothing (Layer 5: what a push must satisfy is this `Spec`).
 
 **Completeness** takes `ProverAssumptions r data _ := ∃ next, XorSpec r next data`: the row is
 an honest row, one an honest prover wrote from a valid step of the execution it proves, so it
@@ -66,13 +66,14 @@ which is why the proof is a substitution once `xor_spec_iff` and `add_limbs` hav
 **Rows from steps.** `xorRowOf data pc fp oA oB oC rA rB rC rbc` is the row of a step: the
 registers and the fetched operands, the two operand words read back from the image
 (`MemImage.limbsAt`, Layer 2), and the counts as parameters. `xorRowOf_spec` says it satisfies
-`XorSpec` whenever the step is valid and fetches `XOR oA oB oC`, `xor_row_exists` is the
-existence statement, `xorRow_complete` pushes any row with the semantic premise through
-`completeness` (its constraints hold in the row environment `rowEnv data`), and
-`xor_step_complete` composes the two: every valid `XOR` step has a satisfying row. The builder
-is noncomputable, since `MemImage.read` is; an executable, data-aware generator is T2's,
-against these theorems. Conversely `xor_spec_of_constraints` reads soundness back off the
-constraints `main` emits: a row whose constraints hold in any environment is bound and steps.
+`XorSpec` whenever the step is valid and fetches `XOR oA oB oC`, and `xor_step_complete` pushes
+it through `completeness`: every valid `XOR` step has a satisfying row, its constraints holding
+in the row environment `rowEnv data`. The builder is noncomputable, since `MemImage.read` is;
+an executable, data-aware generator is T2's, against these theorems.
+
+This is all a table file states. Facts about its bytecode tuple are Layer 4's (`decode_entry`),
+the successor `main` returns is fixed by `xor_spec_iff` under `soundness`, and one-line
+corollaries of `soundness` and `completeness` are left to their consumers.
 
 ## Wrong readings excluded
 
@@ -119,12 +120,6 @@ structure XorRow (F : Type) where
   rbc : F
   deriving ProvableStruct
 
-/-! ## Load-bearing lemmas -/
-
-/-- The bytecode tuple of an `XOR` row is the entry of the instruction it names (Layer 4). -/
-theorem xor_entry (oA oB oC : K) :
-    #v[Opcode.xor.code] ++ #v[oA, oB, oC, 0, 0, 0, 0] = entry (.xor oA oB oC) := rfl
-
 /-! ## The contract -/
 
 /-- The row's bindings to the program and the image: the instruction at `pc` is
@@ -166,11 +161,6 @@ theorem xor_spec_iff (r : XorRow K) (next : Regs K) (data : ProverData K) :
     simp only [execute, hA, hB, hC, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, Option.pure_def, true_and]
 
-/-- The step, projected out of the specification. -/
-theorem xor_spec_step {r : XorRow K} {next : Regs K} {data : ProverData K}
-    (h : XorSpec r next data) : step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next :=
-  h.2
-
 /-! ## The table -/
 
 /-- The `XOR` table (specification §7.1; `tables.rs:436-528`): state step, bytecode read of
@@ -205,8 +195,8 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     obtain ⟨⟨ins, hfetch, hdec⟩, hA, hB, hC⟩ := h_holds
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    rw [xor_entry, decode_entry, Option.some.injEq] at hdec
-    subst hdec
+    -- The pulled tuple is the entry of `XOR` with the row's operands (Layer 4).
+    obtain rfl := Option.some.inj ((decode_entry (.xor _ _ _)).symm.trans hdec)
     refine (xor_spec_iff _ _ _).mpr ⟨⟨hfetch, ?_, ?_⟩, ?_, rfl⟩
     · simpa only [Vector.getElem_map] using hA
     · simpa only [Vector.getElem_map] using hB
@@ -214,27 +204,16 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
-    -- The four pull guarantees, from the semantic premise: the result read carries the limbs
-    -- of the sum a valid step reads (`add_limbs`).
+    -- The four pull guarantees, from the semantic premise: the tuple `main` emits is the
+    -- fetched instruction's entry (Layer 4), and the result read carries the limbs of the sum
+    -- a valid step reads (`add_limbs`).
     obtain ⟨next, h⟩ := h_assumptions
     obtain ⟨⟨hfetch, hA, hB⟩, hC, -⟩ := (xor_spec_iff _ _ _).mp h
     rw [add_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
     simp only [Vector.getElem_map] at hA hB hC ⊢
-    exact ⟨⟨_, hfetch, by rw [xor_entry, decode_entry]⟩, hA, hB, hC⟩
-
-/-- The returned successor: the fall-through `(g·pc, fp)`, for every environment. -/
-theorem xor_output (env : Environment K) (offset : ℕ) (r : Var XorRow K) :
-    eval env ((xorTable.main r).output offset) = ⟨g * (eval env r).pc, (eval env r).fp⟩ := by
-  simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-/-- Soundness, read back off the constraints `main` emits: a row whose constraints hold in any
-environment is bound and steps (to the successor `xor_output` names). -/
-theorem xor_spec_of_constraints {env : Environment K} {r : Var XorRow K} {offset : ℕ}
-    (h : ConstraintsHold.Soundness env ((xorTable.main r).operations offset)) :
-    ∃ next, XorSpec (eval env r) next env.data :=
-  ⟨_, (xorTable.soundness offset env r (eval env r) rfl trivial h).1⟩
+    exact ⟨⟨_, hfetch, decode_entry (.xor _ _ _)⟩, hA, hB, hC⟩
 
 /-! ## Rows from steps -/
 
@@ -245,7 +224,8 @@ noncomputable def xorRowOf (data : ProverData K) (pc fp oA oB oC rA rB rC rbc : 
   ⟨pc, fp, oA, oB, oC, (imageOf data).2.limbsAt (fp * oA), (imageOf data).2.limbsAt (fp * oB),
     rA, rB, rC, rbc⟩
 
-/-- A valid step that fetches `XOR oA oB oC` is represented by `xorRowOf`, with any counts. -/
+/-- A valid step that fetches `XOR oA oB oC` is represented by `xorRowOf`, with any counts: the
+honest prover's row satisfies `ProverAssumptions`. -/
 theorem xorRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.xor oA oB oC))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
@@ -262,29 +242,16 @@ theorem xorRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
       ((imageOf data).2.limbsAt (fp * oB))[1] ((imageOf data).2.limbsAt (fp * oB))[2])
     rw [MemImage.ofLimbs_limbsAt hb]; exact hb
 
-/-- A valid step that fetches `XOR oA oB oC` admits a row with the same registers and
-operands and any counts. -/
-theorem xor_row_exists {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.xor oA oB oC))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
-    ∃ vA vB, XorSpec ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ next data :=
-  ⟨_, _, xorRowOf_spec hfetch hstep rA rB rC rbc⟩
-
-/-- A row with the semantic premise satisfies the constraints of `main` in the row environment
-over its data: local completeness, literally. -/
-theorem xorRow_complete {r : XorRow K} {data : ProverData K} (h : ∃ next, XorSpec r next data) :
-    ConstraintsHold.Completeness (rowEnv data) ((xorTable.main (const r)).operations 0) :=
-  (xorTable.completeness 0 (rowEnv data) (const r)
-    (by simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
-    ProvableType.eval_const_prover h).1
-
-/-- Every valid `XOR` step has a satisfying row: the constraints of `main` on the row it builds
-hold in the row environment, from the step alone. -/
+/-- Every valid `XOR` step has a satisfying row, from the step alone: the constraints of `main`
+hold of `xorRowOf` in the row environment over the data. -/
 theorem xor_step_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
     (hfetch : (programOf data).fetch pc = some (.xor oA oB oC))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
     ConstraintsHold.Completeness (rowEnv data)
       ((xorTable.main (const (xorRowOf data pc fp oA oB oC rA rB rC rbc))).operations 0) :=
-  xorRow_complete ⟨_, xorRowOf_spec hfetch hstep rA rB rC rbc⟩
+  (xorTable.completeness 0 (rowEnv data) (const _)
+    -- No witness slot: the row environment uses the local witnesses vacuously.
+    (by simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
+    ProvableType.eval_const_prover ⟨_, xorRowOf_spec hfetch hstep rA rB rC rbc⟩).1
 
 end LeanerVM.Arithmetization

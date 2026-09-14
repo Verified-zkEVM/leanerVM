@@ -34,7 +34,7 @@ operands, and the nine cells `fp·o_{mᵢ}`, `fp·o_cv`, `fp·(g·o_cv)`, `fp·o
 out₀`, `E.ofCell out₁`, `E.ofCell md`. `Blake2sSpec r next data` is the bindings and the step;
 `blake2s_spec_iff` expands it: the bindings, `Blake2sRelation r` (the compression on the nine
 cells, counter and both finalization flags included, through Layer 1's `CompressCells`), and
-the successor `(g·pc, fp)`; `blake2s_spec_step` projects the step.
+the successor `(g·pc, fp)`.
 
 **The boundary.** `Blake2sRelation r` stays the `Assumptions` field: the component proves the
 memory and bytecode binding, and Flock (issue #3) discharges the compression for the composed
@@ -42,22 +42,20 @@ system. Soundness of `Blake2sSpec` is conditional on it, never unconditional; no
 re-proves or re-states the compression. Local completeness takes `ProverAssumptions r data _
 := Blake2sRowBindings r data`, the ten pull guarantees: it accepts any correctly bound
 canonical cells without checking the compression, which is what a bound row with a wrong but
-canonical output exhibits (the tests). The semantic premise `∃ next, Blake2sSpec r next data`
-implies the bindings and the relation (`blake2s_bindings_of_spec`), so it also drives
-completeness (`blake2sRow_complete_of_spec`).
+canonical output exhibits (`blake2sRow_complete`, the boundary stated; the tests). The semantic
+premise `∃ next, Blake2sSpec r next data` implies the bindings (`blake2s_spec_iff`), so it also
+drives completeness (`blake2s_step_complete`).
 
-**The component** `blake2sTable` pulls the state `(pc, fp)` and pushes `(g·pc, fp)`
-(`blake2s_output`), reads the bytecode entry `(B2S, o_{m₀}, o_{m₁}, o_{m₂}, o_{m₃}, o_cv,
-o_out, o_md)` at `pc`, and reads the nine cells in the order of §7.6, each as `(lo, hi, 0)`. It
-returns the pushed successor, and `Spec` is `Blake2sSpec`.
+**The component** `blake2sTable` pulls the state `(pc, fp)`, pushes and returns `(g·pc, fp)`,
+reads the bytecode entry `(B2S, o_{m₀}, o_{m₁}, o_{m₂}, o_{m₃}, o_cv, o_out, o_md)` at `pc`
+(the fetched instruction, by Layer 4's `decode_entry`), and reads the nine cells in the order of
+§7.6, each as `(lo, hi, 0)`. `Spec` is `Blake2sSpec`.
 
 **Rows from steps.** `blake2sRowOf` reads the nine cells back from the image
 (`MemImage.cellAt`, Layer 2: the two limbs of a canonical word), and `blake2sRowOf_spec` says
-it satisfies `Blake2sSpec`
-whenever the step is valid: `CompressCells` makes every cell canonical, which is what reading
-two limbs back needs. `blake2s_row_exists`, `blake2sRow_complete`, `blake2s_step_complete` and
-`blake2s_spec_of_constraints` are the `XOR` statements (see
-`LeanerVM.Arithmetization.Tables.Xor` for the template), the last under the relation.
+it satisfies `Blake2sSpec` whenever the step is valid: `CompressCells` makes every cell
+canonical, which is what reading two limbs back needs. `blake2s_step_complete` is its acceptance
+by `main`, from the step alone (see `LeanerVM.Arithmetization.Tables.Xor` for the template).
 
 ## Wrong readings excluded
 
@@ -141,10 +139,13 @@ def Blake2sRelation (r : Blake2sRow K) : Prop :=
   CompressCells ![E.ofCell r.m0, E.ofCell r.m1, E.ofCell r.m2, E.ofCell r.m3] (E.ofCell r.cv0)
     (E.ofCell r.cv1) (E.ofCell r.out0) (E.ofCell r.out1) (E.ofCell r.md)
 
-/-! ## Load-bearing lemmas -/
+/-! ## Proof helper -/
 
-/-- The bytecode tuple of a `BLAKE2S` row is the entry of the instruction it names (Layer 4). -/
-theorem blake2s_entry (om0 om1 om2 om3 ocv oout omd : K) :
+/-- The bytecode tuple of a `BLAKE2S` row is Layer 4's `entry` of the instruction it names, by
+definition. Spelled once, privately: with the four message operands packed as a `Fin 4 → K`
+vector, the unifier does not see this through `decode` on its own (it times out at `whnf`),
+where the other tables' tuples unify against `decode_entry` directly. -/
+private theorem blake2s_entry (om0 om1 om2 om3 ocv oout omd : K) :
     #v[Opcode.blake2s.code] ++ #v[om0, om1, om2, om3, ocv, oout, omd] =
       entry (.blake2s ![om0, om1, om2, om3] ocv oout omd) := rfl
 
@@ -192,20 +193,6 @@ theorem blake2s_spec_iff (r : Blake2sRow K) (next : Regs K) (data : ProverData K
       Fin.isValue, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff, hrel,
       true_and, Option.pure_def]
 
-/-- The step, projected out of the specification. -/
-theorem blake2s_spec_step {r : Blake2sRow K} {next : Regs K} {data : ProverData K}
-    (h : Blake2sSpec r next data) :
-    step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next :=
-  h.2
-
-/-- The semantic premise gives the local one and the compression: a row that is bound and
-steps is bound, and its cells compress. -/
-theorem blake2s_bindings_of_spec {r : Blake2sRow K} {data : ProverData K}
-    (h : ∃ next, Blake2sSpec r next data) : Blake2sRowBindings r data ∧ Blake2sRelation r := by
-  obtain ⟨next, h⟩ := h
-  obtain ⟨hb, hrel, -⟩ := (blake2s_spec_iff _ _ _).mp h
-  exact ⟨hb, hrel⟩
-
 /-! ## The table -/
 
 /-- The `BLAKE2S` table (specification §7.6; `tables.rs:846-960`): state step, bytecode read of
@@ -247,6 +234,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
       _, _, _, _, _, _, _, _, _, _⟩ := h_input
     subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
+    -- The pulled tuple is the entry of `BLAKE2S` with the row's operands (Layer 4).
     rw [blake2s_entry, decode_entry, Option.some.injEq] at hdec
     subst hdec
     refine (blake2s_spec_iff _ _ _).mpr
@@ -263,6 +251,8 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead, E.ofCell]
+    -- The ten pull guarantees are the bindings; the tuple `main` emits is the fetched
+    -- instruction's entry (Layer 4).
     obtain ⟨hfetch, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_assumptions
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
       _, _, _, _, _, _, _, _, _, _⟩ := h_input
@@ -271,18 +261,15 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     exact ⟨⟨_, hfetch, by rw [blake2s_entry, decode_entry]⟩, hm0, hm1, hm2, hm3, hcv0, hcv1,
       hout0, hout1, hmd⟩
 
-/-- The returned successor: the fall-through `(g·pc, fp)`, for every environment. -/
-theorem blake2s_output (env : Environment K) (offset : ℕ) (r : Var Blake2sRow K) :
-    eval env ((blake2sTable.main r).output offset) = ⟨g * (eval env r).pc, (eval env r).fp⟩ := by
-  simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-/-- Soundness under the relation, read back off the constraints `main` emits: a row whose
-cells compress and whose constraints hold in any environment is bound and steps. -/
-theorem blake2s_spec_of_constraints {env : Environment K} {r : Var Blake2sRow K}
-    {offset : ℕ} (hrel : Blake2sRelation (eval env r))
-    (h : ConstraintsHold.Soundness env ((blake2sTable.main r).operations offset)) :
-    ∃ next, Blake2sSpec (eval env r) next env.data :=
-  ⟨_, (blake2sTable.soundness offset env r (eval env r) rfl hrel h).1⟩
+/-- A bound row satisfies the constraints of `main` in the row environment over its data: local
+completeness, which does not check the compression. The boundary with Flock, stated. -/
+theorem blake2sRow_complete {r : Blake2sRow K} {data : ProverData K}
+    (h : Blake2sRowBindings r data) :
+    ConstraintsHold.Completeness (rowEnv data) ((blake2sTable.main (const r)).operations 0) :=
+  (blake2sTable.completeness 0 (rowEnv data) (const r)
+    -- No witness slot: the row environment uses the local witnesses vacuously.
+    (by simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
+    ProvableType.eval_const_prover h).1
 
 /-! ## Rows from steps -/
 
@@ -337,35 +324,6 @@ theorem blake2sRowOf_spec {data : ProverData K} {pc fp om0 om1 om2 om3 ocv oout 
   · show (imageOf data).2.read (fp * omd) = some (E.ofCell ((imageOf data).2.cellAt (fp * omd)))
     rw [MemImage.ofCell_cellAt hmd hcmd]; exact hmd
 
-/-- A valid step that fetches `BLAKE2S` admits a row with the same registers and operands and
-any counts. -/
-theorem blake2s_row_exists {data : ProverData K} {pc fp om0 om1 om2 om3 ocv oout omd : K}
-    {next : Regs K}
-    (hfetch : (programOf data).fetch pc = some (.blake2s ![om0, om1, om2, om3] ocv oout omd))
-    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next)
-    (rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc : K) :
-    ∃ m0 m1 m2 m3 out0 out1 cv0 cv1 md, Blake2sSpec
-      ⟨pc, fp, om0, om1, om2, om3, ocv, oout, omd, m0, m1, m2, m3, out0, out1, cv0, cv1, md,
-        rm0, rm1, rm2, rm3, rcv0, rcv1, rout0, rout1, rmd, rbc⟩ next data :=
-  ⟨_, _, _, _, _, _, _, _, _,
-    blake2sRowOf_spec hfetch hstep rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc⟩
-
-/-- A bound row satisfies the constraints of `main` in the row environment over its data:
-local completeness, which does not check the compression. -/
-theorem blake2sRow_complete {r : Blake2sRow K} {data : ProverData K}
-    (h : Blake2sRowBindings r data) :
-    ConstraintsHold.Completeness (rowEnv data) ((blake2sTable.main (const r)).operations 0) :=
-  (blake2sTable.completeness 0 (rowEnv data) (const r)
-    (by simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
-    ProvableType.eval_const_prover h).1
-
-/-- A row with the semantic premise satisfies the constraints of `main` in the row environment
-over its data. -/
-theorem blake2sRow_complete_of_spec {r : Blake2sRow K} {data : ProverData K}
-    (h : ∃ next, Blake2sSpec r next data) :
-    ConstraintsHold.Completeness (rowEnv data) ((blake2sTable.main (const r)).operations 0) :=
-  blake2sRow_complete (blake2s_bindings_of_spec h).1
-
 /-- Every valid `BLAKE2S` step has a satisfying row, from the step alone: the compression a
 valid step passes is what makes its nine cells canonical, hence readable back and bound. -/
 theorem blake2s_step_complete {data : ProverData K} {pc fp om0 om1 om2 om3 ocv oout omd : K}
@@ -376,7 +334,7 @@ theorem blake2s_step_complete {data : ProverData K} {pc fp om0 om1 om2 om3 ocv o
     ConstraintsHold.Completeness (rowEnv data)
       ((blake2sTable.main (const (blake2sRowOf data pc fp om0 om1 om2 om3 ocv oout omd
         rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc))).operations 0) :=
-  blake2sRow_complete_of_spec
-    ⟨_, blake2sRowOf_spec hfetch hstep rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc⟩
+  blake2sRow_complete
+    (blake2sRowOf_spec hfetch hstep rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc).1
 
 end LeanerVM.Arithmetization

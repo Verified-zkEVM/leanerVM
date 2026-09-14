@@ -2,7 +2,9 @@
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 6
 (draft PR #19 on top of `main` at `849806e`, revised on 2026-09-14 for the review
-[`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md); Layer 5 merged
+[`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md) and its two
+follow-ups, the last cutting each table file to the circuit, its `Spec` and the honest-row
+witness; Layer 5 merged
 as PR #17 on 2026-09-11), together with the findings that build records: the step-only table
 contract forgot the row (F8, the review's three findings, met), the roadmap's bytecode
 guarantee was too weak for the `DEREF` table (F7, a Layer 5 change), core's `BitVec` simprocs
@@ -39,7 +41,9 @@ tests 2–7 and 12, and exhibits the `JUMP` sentinel of acceptance test 20.
 `LeanerVM/Arithmetization/Bytecode.lean` defines `derefFlags`, the bus entry `entry`, the sixteen
 slots `encodeSlots`, and the decoder `decode` (with `opcode?` and `derefMode?`), and proves
 `decode_entry`, `decode_eq_some_iff` (the decoder is the exact inverse of the entry),
-`entry_injective`, and `encodeSlots_getElem`. `LeanerVM/Arithmetization/Channels.lean`, the first
+`decode_deref_eq_some_iff` (a `DEREF` tuple with free flags decodes to the store mode whose
+flags they are), `entry_injective`, and `encodeSlots_getElem`.
+`LeanerVM/Arithmetization/Channels.lean`, the first
 Clean-consuming production file and therefore plain, defines the two lookup messages `MemMsg`
 and `BytecodeMsg` (`deriving ProvableStruct`) and makes Layer 3's `Regs`, parametric in the
 field, the state message (`deriving instance ProvableStruct for Regs`); the prover-data tables
@@ -54,13 +58,17 @@ the bus data `Direction`, `channelDir`, `channelSep`, `busTuple`. It proves the 
 define the six rows `XorRow` … `Blake2sRow` (`deriving ProvableStruct`, columns in the Rust's
 order) and the six tables `xorTable` … `blake2sTable`, each a `GeneralFormalCircuit K Row Regs`
 whose `main` is the specification §7 entry and returns the state it pushes, whose `Spec` is
-`step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, and whose soundness and
-completeness are proved; the named assumption `Blake2sRelation` (`CompressCells` on the row's
-nine cells) is the `Assumptions` field of `blake2sTable`. They prove `add_limbs`, `mul_limbs`
-(the twelve-product coordinates are the product in `E`), `storeCoords_eval` (the `DEREF` store
-coordinates are `derefSource` at each flag setting), `flags_sound` and `flags_complete` (the two
-`JUMP` residuals force the indicator), and the six `*_entry` lemmas tying each table's bytecode
-tuple to Layer 4's `entry`. `./scripts/validate.sh` is green, the axiom closure of every
+the functional specification `*Spec r next data` (the row's bindings `*RowBindings` to the
+program and the image, and `step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, with
+`*_spec_iff` its opcode-level reading), and whose soundness and completeness are proved; the
+named assumption `Blake2sRelation` (`CompressCells` on the row's nine cells) is the
+`Assumptions` field of `blake2sTable`. Beside the tables they state the honest prover's row of
+a valid step (`*RowOf`, `*RowOf_spec`, `*_step_complete`; `blake2sRow_complete` for the
+boundary), `storeCoords_eval` (the `DEREF` store coordinates are `derefSource` at each flag
+setting), `flags_sound` and `flags_complete` (the two `JUMP` residuals force the indicator),
+and `jumpEnv` with `jump_env_iff` (the witness discipline); the limb arithmetic (`add_limbs`,
+`mul_limbs`, `E.ofCell`) is Layer 0's and the image read-back (`MemImage.limbsAt`,
+`MemImage.cellAt`) Layer 2's. `./scripts/validate.sh` is green, the axiom closure of every
 declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in
 CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
 (finding C8, now the roadmap's module-system convention); kernel-`decide` over `E` arithmetic
@@ -97,26 +105,35 @@ module (P3).
   is present and proved. The review's three findings (F8) are met: (R1) the step-only `Spec`
   forgot the row, and each table's `Spec` is now its functional specification `*Spec`, the
   bindings of the row's operands and words to the program and the image together with `step`,
-  with `*_spec_iff` expanding it to the opcode's equation and successor rule and `*_spec_step`
-  projecting the step (decision 11); (R2) completeness was conditional row acceptance, and
-  `ProverAssumptions` is now the semantic premise `∃ next, *Spec r next data`, the honest
-  prover's row from a valid step, which nothing above the tables assumes: `*RowOf` builds the
-  row of any valid step (`*RowOf_spec`, `*_row_exists`), `*Row_complete` pushes any such row
-  through `completeness` in `rowEnv data` or `jumpEnv data r`, and `*_step_complete` states
-  completeness from the step alone; (R3) the negative tests did not touch `main`, and every
-  rejection now goes through the constraints `main` emits (`*_spec_of_constraints`,
-  `jump_residuals_of_constraints`) or the strengthened specification. The review's follow-up
-  comments (2026-09-14) are met on all six tables, `XOR` first as the template: the limb
-  arithmetic (`add_limbs`, `mul_limbs`, the `K`-word lemmas, `E.ofCell`) moved to Layer 0 and
-  the image read-back (`MemImage.limbsAt`, `MemImage.cellAt`) to Layer 2, reused rather than
-  redefined, so that no table file carries a field-generic theorem (the table-specific
-  `storeCoords_eval`, `flags_sound`, `flags_complete` and the `*_entry` facts stay); a row's
-  word is spelled `E.ofLimbs v[0] v[1] v[2]` as Layer 5 spells it; the row-level restatement
-  of the pull guarantees (`*RowReads`, `*_reads_iff`, `*_reads_of_constraints`) is gone, since
-  `circuit_proof_start` supplies the guarantees themselves, and `*_spec_of_constraints`
-  replaces it; and `*_step_complete` answers whether the semantic premise is vacuous: it is
-  proved, never assumed, of the row of every valid step. The executable obligation the review
-  names stays open and is recorded in the
+  with `*_spec_iff` expanding it to the opcode's equation and successor rule (decision 11);
+  (R2) completeness was conditional row acceptance, and `ProverAssumptions` is now the
+  semantic premise `∃ next, *Spec r next data`, the honest prover's row from a valid step,
+  which nothing above the tables assumes: `*RowOf` builds the row of any valid step
+  (`*RowOf_spec`), and `*_step_complete` pushes it through `completeness` in `rowEnv data` or
+  `jumpEnv data r`, completeness from the step alone; (R3) the negative tests did not touch
+  `main`, and every rejection now goes through the constraints `main` emits (read back through
+  each table's `soundness`) or the strengthened specification. The review's follow-up comments
+  (2026-09-14) are met on all six tables, `XOR` first as the template: the limb arithmetic
+  (`add_limbs`, `mul_limbs`, the `K`-word lemmas, `E.ofCell`) moved to Layer 0 and the image
+  read-back (`MemImage.limbsAt`, `MemImage.cellAt`) to Layer 2, reused rather than redefined,
+  so that no table file carries a field-generic theorem; a row's word is spelled
+  `E.ofLimbs v[0] v[1] v[2]` as Layer 5 spells it; the row-level restatement of the pull
+  guarantees (`*RowReads`, `*_reads_iff`, `*_reads_of_constraints`) is gone, since
+  `circuit_proof_start` supplies the guarantees themselves; and `*_step_complete` answers
+  whether the semantic premise is vacuous: it is proved, never assumed, of the row of every
+  valid step. The second follow-up (2026-09-14, `/lean4:refactor`, `DEREF` first) cut each
+  table file to the circuit, its `Spec` and the honest-row witness: the `*_entry` restatements
+  of Layer 4's `entry` are gone (`decode_entry` is used directly; `DEREF` reads its mode off
+  the pulled tuple by Layer 4's new `decode_deref_eq_some_iff`, which replaces the table's
+  private reconstruction; `BLAKE2S` keeps its tuple equation as a private `rfl`, the `Fin 4`
+  message vector defeating unification through `decode`), and the one-line corollaries
+  `*_spec_step`, `*_output`, `*_spec_of_constraints`, `*_row_exists`, `*Row_complete` (folded
+  into `*_step_complete`), `jump_bindings_iff`, `jump_residuals_of_constraints`,
+  `jumpEnv_usesLocalWitnesses`, `blake2s_bindings_of_spec` and `blake2sRow_complete_of_spec`
+  are removed, their consumers (the tests) calling `soundness` and `*_step_complete` directly;
+  what stays table-specific is `storeCoords_eval`, `flags_sound`, `flags_complete`, `jumpEnv`,
+  `jump_env_iff` and, for the boundary with Flock, `blake2sRow_complete`. The executable
+  obligation the review names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
   carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
   it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
@@ -147,13 +164,15 @@ module (P3).
   Tests: one prover data (a thirty-two-word image, a sixteen-slot program with one instruction
   per opcode, a `DEREF` in each store mode and a `JUMP` on each branch) read through
   `imageOf_apply`/`programOf_code` at literal indices; per table the honest row's bindings and
-  `*Spec` (the step decided in the kernel), its acceptance by `main` through `*Row_complete`
-  (`ConstraintsHold.Completeness` in `rowEnv`, or in `jumpEnv` for both `JUMP` rows, witnesses
-  included) and the successor `main` returns (`*_output`); the review's counterexamples to the
-  step-only contract satisfying `step` and failing their bindings; a changed input limb, a
-  changed immediate and a non-canonical cell failing the constraints `main` emits in every
-  environment over the data; the wrong witness `b = 1` at `v_cond = 0` failing the first
-  residual; Clean's `Circuit.witgen` computing the two `JUMP` witnesses `jumpEnv` holds; and
+  `*Spec` (the step decided in the kernel, naming the successor `main` returns) and every valid
+  step of the fixture yielding a satisfying row from the step alone (`*_step_complete`:
+  `ConstraintsHold.Completeness` in `rowEnv`, or in `jumpEnv` for both `JUMP` branches,
+  witnesses included); the review's counterexamples to the step-only contract satisfying `step`
+  and failing their bindings; a changed input limb, a changed immediate and a non-canonical
+  cell failing the constraints `main` emits in every environment over the data (read back
+  through `soundness`); the two `JUMP` residuals rejecting the wrong witness `b = 1` at
+  `v_cond = 0` (`flags_sound`); Clean's `Circuit.witgen` computing the two `JUMP` witnesses
+  `jumpEnv` holds; and
   the `BLAKE2S` boundary, a bound and locally complete row whose canonical output is not the
   compression, failing `Blake2sRelation` and `Blake2sSpec`. The `MUL_NATIVE` row reproduces
   the executor's product from the twelve coordinates (acceptance test 9).
@@ -295,7 +314,7 @@ line.
 11. Settled 2026-09-14 (Layer 6, the review's R1 and R2, F8): a table's `Spec` is its
     functional specification `*Spec r next data := *RowBindings r data ∧ step … = some next`,
     binding the row's operands and words to the program and the image, with `*_spec_iff` as
-    the opcode-level characterisation and `*_spec_step` the projection; `ProverAssumptions`
+    the opcode-level characterisation; `ProverAssumptions`
     is the semantic premise `∃ next, *Spec r next data`, the honest prover's row, which nothing
     above the tables assumes (`*RowOf_spec` proves it of the row of any valid step, and
     `*_step_complete` states completeness from the step alone), except for `BLAKE2S`, whose
@@ -531,8 +550,7 @@ fetched opcode and the read words from the pulls and then discarded them, so a c
 rather than connecting them to a semantic step. Met by decision 11: each table's `Spec` is the
 functional specification `*Spec` (bindings and step) with `*_spec_iff`; `ProverAssumptions` is
 `∃ next, *Spec r next data`, proved of the row of any valid step; rows of valid steps are built
-(`*RowOf`, `*_row_exists`) and pushed through `completeness` (`*Row_complete`,
-`*_step_complete`);
+(`*RowOf`, `*RowOf_spec`) and pushed through `completeness` (`*_step_complete`);
 the tests reject the three counterexamples through the specification and mutated rows through
 the constraints `main` emits. The remaining executable obligation, a data-aware generator, is
 T2's (decision 11).

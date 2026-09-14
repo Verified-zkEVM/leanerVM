@@ -614,11 +614,10 @@ table is opcode-specific and names the row, never only its registers:
   (Layers 8 and 9), and a wrong count does not falsify the opcode's specification.
 - `*Spec r next data := *RowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`
   is the functional specification and the table's `Spec`; `*_spec_iff` expands it into the
-  bindings, the opcode's equation and the successor rule (below), and `*_spec_step` projects
-  the common step property back out. The row's pull guarantees have no name of their own:
-  they are what Clean's `circuit_proof_start` hands soundness as hypotheses and asks of
-  completeness as goals, and `*_spec_iff` with Layer 0's limb arithmetic is their semantic
-  reading.
+  bindings, the opcode's equation and the successor rule (below). The row's pull guarantees
+  have no name of their own: they are what Clean's `circuit_proof_start` hands soundness as
+  hypotheses and asks of completeness as goals, and `*_spec_iff` with Layer 0's limb arithmetic
+  is their semantic reading.
 - `ProverAssumptions r data _` is `∃ next, *Spec r next data`: the honest prover's row,
   written from a valid step of the execution it proves, so bound and stepping. It is the
   honest-prover precondition Clean's completeness is relative to, and nothing above the tables
@@ -626,23 +625,29 @@ table is opcode-specific and names the row, never only its registers:
   takes its bindings instead (below).
 - Soundness assumes the guarantees of the pulls and concludes `*Spec`: the bindings are exactly
   what the pulls guarantee, and the step follows by the arm of `execute`, with the bytecode
-  guarantee yielding the fetched instruction through `decode_entry` (or, for `DEREF`,
-  `decode_eq_some_iff` and `entry_getElem_zero`). Completeness discharges the pull guarantees
-  from the semantic premise through `*_spec_iff`; what it proves is the encoding, that the
-  tuple `main` emits decodes to the fetched instruction and that the coordinates it emits for
-  a derived read are the limbs of the word a valid step reads (`add_limbs`, `mul_limbs`,
-  `storeCoords_eval`). `*_output` states the returned successor for every environment, and
-  `*_spec_of_constraints` reads soundness back off the constraints `main` emits.
+  guarantee yielding the fetched instruction through Layer 4's `decode_entry` (or, for `DEREF`,
+  `decode_deref_eq_some_iff`, which names the store mode whose flags the tuple carries).
+  Completeness discharges the pull guarantees from the semantic premise through `*_spec_iff`;
+  what it proves is the encoding, that the tuple `main` emits decodes to the fetched
+  instruction and that the coordinates it emits for a derived read are the limbs of the word a
+  valid step reads (`add_limbs`, `mul_limbs`, `storeCoords_eval`). Nothing else is stated of
+  `main`: the successor it returns is fixed by `*_spec_iff` under `soundness`, and a rejection
+  is read back through `soundness` itself.
 - Rows from steps: `*RowOf` builds the row of a valid step from its registers, the fetched
   operands and the words read back from the image (`MemImage.limbsAt`, `MemImage.cellAt`,
-  Layer 2; noncomputable, since `MemImage.read` is); `*RowOf_spec` and `*_row_exists` say a
-  valid step of the opcode admits a row with the same registers and operands and any counts;
-  `*Row_complete` pushes any row with the semantic premise through `completeness`, its
-  constraints holding in `rowEnv data` (no witness slots, the data) or, for `JUMP`, in
-  `jumpEnv data r`; `*_step_complete` composes the two, every valid step of the opcode has a
-  satisfying row, from the step alone. An executable, data-aware generator is T2's, against
+  Layer 2; noncomputable, since `MemImage.read` is); `*RowOf_spec` says it satisfies `*Spec`
+  whenever the step is valid, with any counts, which is `ProverAssumptions` of the honest row;
+  `*_step_complete` pushes it through `completeness`: every valid step of the opcode has a
+  satisfying row, from the step alone, its constraints holding in `rowEnv data` (no witness
+  slots, the data) or, for `JUMP`, in `jumpEnv data r`. `BLAKE2S` also states
+  `blake2sRow_complete`, local completeness of any bound row with the compression unchecked:
+  the boundary with Flock, as a theorem. An executable, data-aware generator is T2's, against
   these theorems: Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`), and
   the kernel does not reduce it.
+- A table file states nothing beyond this (review follow-up, 2026-09-14): what its bytecode
+  tuple decodes to is Layer 4's (`decode_entry`, `decode_deref_eq_some_iff`), and one-line
+  corollaries of `soundness` and `completeness` (the returned successor, a row's acceptance,
+  the existence of a row) are left to their consumers rather than named.
 
 `XOR`, as the template:
 
@@ -697,18 +702,20 @@ Table-specific targets, each the opcode's equation and successor rule of `*_spec
   `(f̄·v3[0] + f_pc·(g²·pc) + f_fp·fp, f̄·v3[1], f̄·v3[2])` with `f̄ = 1 + f_pc + f_fp`. Prove
   `storeCoords_eval`: for each of the three flag settings the coordinates are
   `derefSource mode`. No booleanity constraint (Layer 4): the fetched instruction forces one of
-  the three pairs, so the pair `(1, 1)` fails the bindings at every counter.
+  the three pairs, so the pair `(1, 1)` fails the bindings at every counter; soundness reads the
+  mode off the pulled tuple by Layer 4's `decode_deref_eq_some_iff`.
 - **JUMP.** The bindings are the instruction and the three `K` words `v_cond`, `v_pc`, `v_fp`;
   the successor is `(v_pc, v_fp)` when `v_cond ≠ 0` and `(g·pc, fp)` otherwise, and the
-  bindings alone make a successor exist (`jump_bindings_iff`). `w`, `b` are `witness`
+  bindings alone make a successor exist. `w`, `b` are `witness`
   operations with the honest inverse and indicator as generators, and the two `assertZero`s
   `b + c·w` and `c·(b + 1)` are written as residuals; the pushed successor is
   `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`, a function of the witness `b`, which is why a
   table returns its successor rather than naming it in `Spec` from the row. The specification
   does not mention `w`: with `v_cond = 0` every `w` satisfies the residuals. Prove
   `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1`, `flags_complete`,
-  `jump_env_iff` (an environment uses the two witnesses exactly when slots `offset`,
-  `offset + 1` hold the honest inverse and indicator), and `jump_residuals_of_constraints`.
+  and `jump_env_iff` (an environment uses the two witnesses exactly when slots `offset`,
+  `offset + 1` hold the honest inverse and indicator); `jumpEnv data r` is that environment
+  for a row over its data, in which `jump_step_complete` is stated.
 - **BLAKE2S.** The bindings are the instruction with the seven operands and the nine canonical
   cell reads (`E.ofCell`, third coordinate `0`); `Blake2sSpec` expands to the bindings,
   `Blake2sRelation r` (`CompressCells` on the nine cells) and `(g·pc, fp)`. The Flock relation
@@ -716,20 +723,21 @@ Table-specific targets, each the opcode's equation and successor rule of `*_spec
   bytecode binding, Flock (#3) discharges the compression, and soundness of `Blake2sSpec` is
   conditional on it, never unconditional. `ProverAssumptions` is `Blake2sRowBindings`, the
   local premise, which accepts any correctly bound canonical cells without checking the
-  compression; `blake2s_bindings_of_spec` derives it, with the relation, from
+  compression (`blake2sRow_complete`); `blake2s_spec_iff` derives it, with the relation, from
   `∃ next, Blake2sSpec r next data`.
 
 Tests: one prover data with a `DEREF` in each store mode and a `JUMP` on each branch; per
-table the honest row's bindings and `*Spec` (the step decided in the kernel), its acceptance
-by `main` through `*Row_complete` and the successor `main` returns; the review's
-counterexamples to a step-only contract (an `XOR` row at the `SET` instruction, a `DEREF` row
-with flags `(1, 1)`) satisfying `step` and failing their bindings; a changed input limb
-(`XOR`, `MUL_NATIVE`), a changed immediate (`SET_CONSTANT`) and a non-canonical cell
-(`BLAKE2S`) failing the constraints `main` emits in every environment over the data
-(`*_spec_of_constraints`); the wrong witness `b = 1` at `v_cond = 0` failing the first
-residual; Clean's `Circuit.witgen` computing the two `JUMP` witnesses `jumpEnv` holds
-(compiled); and the `BLAKE2S` boundary, a bound and locally complete row whose canonical
-output is not the compression, failing `Blake2sRelation` and `Blake2sSpec`.
+table the honest row's bindings and `*Spec` (the step decided in the kernel, naming the
+successor `main` returns), and every valid step of the fixture yielding a satisfying row from
+the step alone (`*_step_complete`); the review's counterexamples to a step-only contract (an
+`XOR` row at the `SET` instruction, a `DEREF` row with flags `(1, 1)`) satisfying `step` and
+failing their bindings; a changed input limb (`XOR`, `MUL_NATIVE`), a changed immediate
+(`SET_CONSTANT`) and a non-canonical cell (`BLAKE2S`) failing the constraints `main` emits in
+every environment over the data, read back through `soundness`; the two `JUMP` residuals
+rejecting the wrong witness `b = 1` at `v_cond = 0` (`flags_sound`); Clean's `Circuit.witgen`
+computing the two `JUMP` witnesses `jumpEnv` holds (compiled); and the `BLAKE2S` boundary, a
+bound and locally complete row (`blake2sRow_complete`) whose canonical output is not the
+compression, failing `Blake2sRelation` and `Blake2sSpec`.
 
 ### Layer 7: the boundary blocks
 
@@ -975,6 +983,7 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
                   Trace  Trace.regs  HasPublicBoundary  ValidExecution
 Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
+                  decode_deref_eq_some_iff
                   MemMsg  BytecodeMsg
                   StatePull  StatePush  MemPull  MemPush  BytecodePull  BytecodePush
                   memRead  bytecodeRead
@@ -988,15 +997,10 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   XorSpec  MulSpec  SetSpec  DerefSpec  JumpSpec  Blake2sSpec
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
                   xor_spec_iff  mul_spec_iff  set_spec_iff  deref_spec_iff  jump_spec_iff
-                  blake2s_spec_iff  jump_bindings_iff  blake2s_bindings_of_spec
-                  xor_spec_of_constraints  mul_spec_of_constraints  set_spec_of_constraints
-                  deref_spec_of_constraints  jump_spec_of_constraints
-                  blake2s_bindings_of_constraints  jump_residuals_of_constraints
+                  blake2s_spec_iff
                   xorRowOf  mulRowOf  setRowOf  derefRowOf  jumpRowOf  blake2sRowOf
-                  xor_row_exists  mul_row_exists  set_row_exists  deref_row_exists
-                  jump_row_exists  blake2s_row_exists
-                  xorRow_complete  mulRow_complete  setRow_complete  derefRow_complete
-                  jumpRow_complete  blake2sRow_complete  blake2sRow_complete_of_spec
+                  xorRowOf_spec  mulRowOf_spec  setRowOf_spec  derefRowOf_spec  jumpRowOf_spec
+                  blake2sRowOf_spec  blake2sRow_complete
                   xor_step_complete  mul_step_complete  set_step_complete  deref_step_complete
                   jump_step_complete  blake2s_step_complete
                   jumpEnv  jump_env_iff
