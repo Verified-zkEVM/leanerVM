@@ -1,18 +1,20 @@
 # Status: leanISA semantics and M3 constraints
 
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 6
-(draft PR #19 on top of `main` at `849806e`, Layer 5 merged as PR #17
-on 2026-09-11), together with the two findings that build records: the roadmap's bytecode
-guarantee was too weak for the `DEREF` table (F7, below, a Layer 5 change) and core's `BitVec`
-simprocs misread numerals of `K` (E6). It is a hand-maintained snapshot, rewritten whole when a
-layer lands or a decision is taken; the roadmap is the authority on what is wanted, and the
-tracking issue [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage
-table below.
+(draft PR #19 on top of `main` at `849806e`, revised on 2026-09-14 for the review
+[`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md); Layer 5 merged
+as PR #17 on 2026-09-11), together with the findings that build records: the step-only table
+contract forgot the row (F8, the review's three findings, met), the roadmap's bytecode
+guarantee was too weak for the `DEREF` table (F7, a Layer 5 change), core's `BitVec` simprocs
+misread numerals of `K` (E6), and `circuit_norm` strands the `Decidable` instance of a witness
+program's `decide` (E7). It is a hand-maintained snapshot, rewritten whole when a layer lands
+or a decision is taken; the roadmap is the authority on what is wanted, and the tracking issue
+[#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
 
 ## Where this roadmap stands
 
 **At a glance.** Layers 0 to 5 are landed and Layer 6 is built and fully proved, open for
-review as draft PR #19. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
+review as draft PR #19 and revised for its review of 2026-09-14. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
 define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, `g`, and `gpow`,
 and prove `orderOf_g` and `gpow_injOn` from the seven `decide +kernel` checks; Clean's
 `FiniteField K` instance is `instFiniteFieldK` in the plain file
@@ -77,7 +79,7 @@ module (P3).
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
 | 5 — channels | landed (PR #17) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name; `BytecodePull.Guarantees` strengthened by Layer 6 to name the fetched instruction on both sides (F7) |
-| 6 — six tables | built and proved; draft PR #19 open for review | plain files (C8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`) so that `Spec` reads `step … = some next` for `JUMP` too; push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
+| 6 — six tables | built and proved; draft PR #19 open for review, revised for the review of 2026-09-14 | plain files (C8); each table's `Spec` is its functional specification `*Spec`, the row's bindings to the program and the image together with `step` (decision 11, F8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from steps by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
 | 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
 | 9 — bus soundness | untouched; consumes a Clean change | statements land as block comments with Layer 8; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
@@ -85,13 +87,29 @@ module (P3).
 
 ### The frontier
 
-- **Layer 6 is built** and open for review as draft PR #19 (branch `feat/leanisa-opcode-tables`).
-  Its reading list is the six
-  files under `LeanerVM/Arithmetization/Tables/`, `tests/LeanerVMTests/Arithmetization/Tables.lean`,
+- **Layer 6 is built** and open for review as draft PR #19 (branch `feat/leanisa-opcode-tables`),
+  revised on 2026-09-14 for the review
+  [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md). Its reading
+  list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean` the shared
+  vocabulary: `word`, `limbs`, `limbsAt`, `rowEnv`, the `Option` lemmas), `tests/LeanerVMTests/Arithmetization/Tables.lean`,
   the two-line change to `BytecodePull` in `LeanerVM/Arithmetization/Channels.lean`, and the
   roadmap's Layer 6 section, which shows the built shapes. Every Layer 6 target of the roadmap
-  is present and proved. The roadmap's sketch was adjusted in four places, each written into the
-  roadmap:
+  is present and proved. The review's three findings (F8) are met: (R1) the step-only `Spec`
+  forgot the row, and each table's `Spec` is now its functional specification `*Spec`, the
+  bindings of the row's operands and words to the program and the image together with `step`,
+  with `*_spec_iff` expanding it to the opcode's equation and successor rule and `*_spec_step`
+  projecting the step (decision 11); (R2) completeness was conditional row acceptance, and
+  `ProverAssumptions` is now the semantic premise `∃ next, *Spec r next data`, `*_reads_iff`
+  identifies it with the pull guarantees, `*RowOf` builds the row of any valid step
+  (`*RowOf_spec`, `*_row_exists`), and `*Row_complete` pushes any such row through
+  `completeness` in `rowEnv data` or `jumpEnv data r`; (R3) the negative tests did not touch
+  `main`, and every rejection now goes through the constraints `main` emits
+  (`*_reads_of_constraints`, `jump_residuals_of_constraints`) or the strengthened
+  specification. The executable obligation the review names stays open and is recorded in the
+  roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
+  carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
+  it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
+  adjusted in four places, each written into the roadmap:
   - Each table is a `GeneralFormalCircuit K Row Regs`, not `… unit`: `main` returns the state
     it pushes and `Spec r next data` is `step … ⟨r.pc, r.fp⟩ = some next`. The `JUMP` successor
     `(b·v_pc + b·(g·pc) + g·pc, b·v_fp + b·fp + fp)` is a function of the witness `b`, which a
@@ -106,22 +124,42 @@ module (P3).
     Their requirements are vacuous (guarantee `True`); the obligation is `Spec`, as Layer 5
     says. The lawfulness proof is supplied by hand because Clean's default tactic dies on `K`
     (E6).
-  - `ProverAssumptions` is the honest row in full: the fetched instruction with the row's
-    operands (for `DEREF`, the mode whose flags the row carries) and every read, the derived
-    result included, as the image's word; completeness discharges each pull's guarantee from
-    it. `mul_limbs` is proved by the fold `y^3 = y + 1` (`ofLimbs_eq`, `linear_combination`
+  - `ProverAssumptions` is the semantic premise `∃ next, *Spec r next data` (decision 11),
+    identified by `*_reads_iff` with the row's pull guarantees `*RowReads`: the fetched
+    instruction with the row's operands (for `DEREF`, the mode whose flags the row carries)
+    and every read, the derived result included, as the image's word; completeness discharges
+    each pull's guarantee from it. `BLAKE2S` keeps the pull guarantees themselves as its
+    premise, since its compression is Flock's. `mul_limbs` is proved by the fold `y^3 = y + 1` (`ofLimbs_eq`, `linear_combination`
     against `y_pow_three`) rather than by `Ext.coeff_mul`: `E.limb` is an abbreviation, and
     CompPoly's `Ext.coeff_*` simp lemmas do not fire through it (they are usable as terms,
     `limb_add`, `limb_zero`).
-  Tests: one prover data (a thirty-two-word image, an eight-slot program with one instruction
-  per opcode) read through `imageOf_apply`/`programOf_code` at literal indices; per table the
-  honest row's `ProverAssumptions` and `Spec` in the kernel, the `XOR` row pushed literally
-  through `completeness` (`ConstraintsHold.Completeness` on the row's environment), the two
-  honest `JUMP` witnesses checked against the residuals in the kernel, and one mutated row
-  rejected through its pull guarantee or its residual. The `JUMP` row cannot be pushed through
-  `completeness` the same way: its witness obligation is stated through Clean's witness-IR
-  evaluator, which neither the kernel reduces nor `simp` normalises within budget. The `MUL_NATIVE` row reproduces the executor's product from the twelve
-  coordinates (acceptance test 9).
+  Tests: one prover data (a thirty-two-word image, a sixteen-slot program with one instruction
+  per opcode, a `DEREF` in each store mode and a `JUMP` on each branch) read through
+  `imageOf_apply`/`programOf_code` at literal indices; per table the honest row's bindings and
+  `*Spec` (the step decided in the kernel), its acceptance by `main` through `*Row_complete`
+  (`ConstraintsHold.Completeness` in `rowEnv`, or in `jumpEnv` for both `JUMP` rows, witnesses
+  included) and the successor `main` returns (`*_output`); the review's counterexamples to the
+  step-only contract satisfying `step` and failing their bindings; a changed input limb, a
+  changed immediate and a non-canonical cell failing the constraints `main` emits in every
+  environment over the data; the wrong witness `b = 1` at `v_cond = 0` failing the first
+  residual; Clean's `Circuit.witgen` computing the two `JUMP` witnesses `jumpEnv` holds; and
+  the `BLAKE2S` boundary, a bound and locally complete row whose canonical output is not the
+  compression, failing `Blake2sRelation` and `Blake2sSpec`. The `MUL_NATIVE` row reproduces
+  the executor's product from the twelve coordinates (acceptance test 9).
+- **`circuit_norm` strands the `Decidable` instance of a witness program's `decide`** (E7,
+  2026-09-14, with the Layer 6 revision). A witness program's `x =? 0` is `BExpr.feq`, whose
+  evaluation is `decide (x.eval = 0)` with its `Decidable` instance applied to the same
+  evaluations; `circuit_norm` unfolds the evaluator and rewrites the proposition underneath the
+  `decide` (and the `ite` condition around it) while the instance keeps the old terms, so the
+  result is ill-typed at reducible transparency and neither `decide_eq_true_eq` (in
+  `circuit_norm`, pre-order or post-order), `simp +instances`, `dsimp`, `show` nor `Iff.rfl`
+  can touch it afterwards. Inside `circuit_proof_start` the row's fields are variables and the
+  instance stays consistent; a lemma stated over a `Var Row K` destructures the row first and
+  rewrites the conditional before the descent (`ite_feq`, a `↓` simp lemma in `Jump.lean`).
+  Two neighbours: unfolding a table by `simp` (rather than `dsimp`) inside a hypothesis
+  exhausts the recursion depth, and the kernel does not reduce `Circuit.witgen` on a literal
+  row (its `Array` fold stays stuck), so the generator is checked compiled (`#guard`). The
+  roadmap's conventions carry the rule.
 - **Core's `BitVec` simprocs fire on `K`** (E6, 2026-09-11, with Layer 6). `K` is an `abbrev`
   for `BitVec 64`, so a numeral `(1 : K)` elaborates through `BitVec.instOfNat`, and core's
   simprocs treat `K` terms as bit vectors regardless of the instance: `simp` proves
@@ -243,6 +281,16 @@ line.
 10. Settled 2026-09-11 (Layer 6): the six tables return the state they push
     (`GeneralFormalCircuit K Row Regs`), so that every `Spec` is `step … = some next`, the
     `JUMP` successor being a function of its witness `b` (roadmap Layer 6).
+11. Settled 2026-09-14 (Layer 6, the review's R1 and R2, F8): a table's `Spec` is its
+    functional specification `*Spec r next data := *RowBindings r data ∧ step … = some next`,
+    binding the row's operands and words to the program and the image, with `*_spec_iff` as
+    the opcode-level characterisation and `*_spec_step` the projection; `ProverAssumptions`
+    is the semantic premise `∃ next, *Spec r next data`, identified with the pull guarantees
+    by `*_reads_iff`, except for `BLAKE2S`, whose local premise `Blake2sRowBindings` does not
+    check the compression (the boundary with Flock). Access counts stay outside the contract.
+    Row builders `*RowOf` are noncomputable; an executable, data-aware generator is T2's, since
+    Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`) and the kernel
+    does not reduce it.
 
 ## Open findings against the sources
 
@@ -421,7 +469,15 @@ while `simp only [mul_one]` does match. Layer 6 supplies the lawfulness proofs w
 `-BitVec.reduceNeg`, uses `simp only` with named lemmas on every `K` goal, and the roadmap's
 conventions carry the rule ("Numerals over `K`"). A numeral `2 : K` is the literal `x`, never
 `1 + 1 = 0`, so characteristic-two facts go through `CharTwo.add_self_eq_zero`, never `ring`
-with a `2`.
+with a `2`. **E7 `circuit_norm` strands the `Decidable` instance of a witness program's
+`decide`** (found with the Layer 6 revision, 2026-09-14): unfolding the witness-IR evaluator
+rewrites the proposition under `decide (x.eval = 0)` and the `ite` condition around it while
+the instance keeps the old terms, an ill-typed term at reducible transparency that no later
+rewrite matches; a lemma stated over a `Var Row K` destructures the row and rewrites the
+conditional before the descent (`ite_feq`, `Jump.lean`; the roadmap's conventions carry the
+rule, "Witness programs"). Unfolding a table by `simp` inside a hypothesis exhausts the
+recursion depth where `dsimp` does not, and the kernel does not reduce `Circuit.witgen` on a
+literal row, so the generator is checked compiled.
 
 **Targets.** F1 constraint completeness as phrased in `docs/architecture.md` was false without a
 program-shape hypothesis (test 15); since 2026-09-10 the architecture states T1 for well-formed
@@ -448,7 +504,22 @@ and `derefTable`'s soundness (`Spec` = `step … = some next`) was false under i
 tables were unaffected, their entries decoding unconditionally. The guarantee now names the
 instruction on both sides, `∃ ins, fetch b.pc = some ins ∧ decode entry = some ins`, which is
 what Theorem 6.4 gives Layer 9 from balance with the bytecode seed rows; the Layer 5 test file
-gains the rejection of a `DEREF` tuple with the flag pair `(1, 1)` at the counter `0`.
+gains the rejection of a `DEREF` tuple with the flag pair `(1, 1)` at the counter `0`. **F8 the
+step-only table contract forgot the row** (2026-09-14, the review
+[`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md) of the Layer 6
+draft, findings R1–R3). `Spec r next data := step … ⟨r.pc, r.fp⟩ = some next` named the
+registers and nothing else: an alleged `XOR` row at the fixture's `SET` instruction with
+operands `0` satisfied it, replacing any row's `v_A` left it definitionally unchanged, and the
+honest `DEREF` row with the flag pair `(1, 1)` satisfied it; the soundness proofs derived the
+fetched opcode and the read words from the pulls and then discarded them, so a consumer of
+`Spec` could not recover them, and completeness restated the pull guarantees as its premise
+rather than connecting them to a semantic step. Met by decision 11: each table's `Spec` is the
+functional specification `*Spec` (bindings and step) with `*_spec_iff`; `ProverAssumptions` is
+`∃ next, *Spec r next data`, identified with the pull guarantees by `*_reads_iff`; rows of valid
+steps are built (`*RowOf`, `*_row_exists`) and pushed through `completeness` (`*Row_complete`);
+the tests reject the three counterexamples through the specification and mutated rows through
+the constraints `main` emits. The remaining executable obligation, a data-aware generator, is
+T2's (decision 11).
 
 ## Survey record
 

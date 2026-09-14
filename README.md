@@ -24,7 +24,8 @@ roadmap ([`docs/roadmap/leanisa-blueprint.md`](docs/roadmap/leanisa-blueprint.md
 has landed its Layers 0 to 6: the fields and the generator, BLAKE2s compression and the cell
 encoding, instructions, the memory image and the public input, the step function and valid
 executions, the bytecode encoding, the bus channels, and the six opcode tables as Clean
-components, each sound and complete for `step`. The semantics is a specification (`step` and
+components, each sound and complete for a functional specification that binds the row to the
+program and the image and steps by `step`. The semantics is a specification (`step` and
 `run` are noncomputable); the boundary blocks, the constraint statement, the bus theorems, and
 the two T1 theorems are the layers still to come, and no proof-system claim has landed.
 

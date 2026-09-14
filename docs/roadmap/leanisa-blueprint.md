@@ -215,6 +215,7 @@ proof-committed `ProverData`.
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
 | Numerals over `K` | `K` is `BitVec 64`, so a numeral `(1 : K)` elaborates through `BitVec.instOfNat` and core's `BitVec` simprocs fire on it: `-1 : K` is `1`, not the two's-complement word `BitVec.reduceNeg` produces, and a default `simp` turns `0 : K` into a literal that lemmas stated with numerals no longer match. Proofs over `K` use `simp only` with named lemmas, and a Clean channel-lawfulness proof over `K` excludes `BitVec.reduceNeg`. |
+| Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (`ite_feq`, applied as a `↓` simp lemma). |
 | Module system | Files are Lean `module`s, except that a file importing Clean (not a `module` at `93c9d1ef`) or a file that does is plain; the boundary sits as high as the dependency allows: `Parameters/CleanField.lean`, the Clean-consuming Arithmetization modules, `LeanerVM.lean`, and the test aggregate. |
 
 ## The build, in eleven layers
@@ -583,23 +584,63 @@ on a two-row prover data, and the three facts of acceptance tests 13 and 14 abou
 
 ### Layer 6: the six opcode tables
 
-`LeanerVM/Arithmetization/Tables/{Xor,MulNative,SetConstant,Deref,Jump,Blake2s}.lean`.
+`LeanerVM/Arithmetization/Tables/{Basic,Xor,MulNative,SetConstant,Deref,Jump,Blake2s}.lean`.
 
 Each table is a `GeneralFormalCircuit K Row Regs`: `Row` is the table's column list in the
 Rust's order; `main` is the specification §7 entry read top to bottom (constraints as
 `assertZero`, flushes as interactions in the specification's coordinate order) and returns the
-state it pushes, the row's successor; `Assumptions` is `True`; `Spec r next data` is
-`step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`, so that the row's registers
-step exactly to the pushed state; `ProverAssumptions` is the honest row: its operands are the
-fetched instruction's and its reads, the derived result included, are the image's words;
-`channelsWithRequirements` lists the three push channels, whose requirements are vacuous
-(Layer 5) and whose obligation is `Spec`. `XOR`, as the template:
+state it pushes, the row's successor; `channelsWithRequirements` lists the three push channels,
+whose requirements are vacuous (Layer 5) and whose obligation is `Spec`. The contract of a
+table is opcode-specific and names the row, never only its registers:
+
+- `*RowBindings r data` binds the row to the program and the image named by the prover data:
+  the instruction at `r.pc` is the opcode with the row's operands (for `DEREF`, for some mode
+  whose flags the row carries; for `SET_CONSTANT`, with the row's immediate), and each input
+  cell holds the row's word (`word v = E.ofLimbs v[0] v[1] v[2]`; `E.ofLimbs c 0 0` for a `K`
+  word; `cellOf` for a canonical `BLAKE2S` cell). Access counts are outside the bindings:
+  their allocation is the bus's (Layers 8 and 9), and a wrong count does not falsify the
+  opcode's specification.
+- `*Spec r next data := *RowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`
+  is the functional specification and the table's `Spec`; `*_spec_iff` expands it into the
+  bindings, the opcode's equation and the successor rule (below), and `*_spec_step` projects
+  the common step property back out.
+- `*RowReads r data` is the row's pull guarantees (the honest row of the sketch, the result
+  read included), and `*_reads_iff` identifies it with `∃ next, *Spec r next data`: a row's
+  pulls are reads of the data exactly when it is bound and steps. `ProverAssumptions r data _`
+  is `∃ next, *Spec r next data`, the semantic premise, except for `BLAKE2S` (below).
+- Soundness assumes the guarantees of the pulls and concludes `*Spec`: the bindings are exactly
+  what the pulls guarantee, and the step follows by the arm of `execute`, with the bytecode
+  guarantee yielding the fetched instruction through `decode_entry` (or, for `DEREF`,
+  `decode_eq_some_iff` and `entry_getElem_zero`); completeness discharges the pull guarantees
+  from the semantic premise through `*_spec_iff`. `*_output` states the returned successor for
+  every environment, and `*_reads_of_constraints` reads the pull guarantees back off the
+  constraints `main` emits.
+- Rows from steps: `*RowOf` builds the row of a valid step from its registers, the fetched
+  operands and the words read back from the image (`limbsAt`, `cellAt`; noncomputable, since
+  `MemImage.read` is); `*RowOf_spec` and `*_row_exists` say a valid step of the opcode admits
+  a row with the same registers and operands and any counts; `*Row_complete` pushes any row
+  with the semantic premise through `completeness`, its constraints holding in `rowEnv data`
+  (no witness slots, the data) or, for `JUMP`, in `jumpEnv data r`. An executable, data-aware
+  generator is T2's, against these theorems: Clean's `Circuit.witgen` carries no data
+  (`ProverEnvironment.fromArray`), and the kernel does not reduce it.
+
+`XOR`, as the template:
 
 ```lean
 structure XorRow (F : Type) where
   pc fp oA oB oC : F
   vA vB : Vector F 3
   rA rB rC rbc : F
+def XorRowBindings (r : XorRow K) (data : ProverData K) : Prop :=
+  (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
+  (imageOf data).2.read (r.fp * r.oA) = some (word r.vA) ∧
+  (imageOf data).2.read (r.fp * r.oB) = some (word r.vB)
+def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
+  XorRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
+theorem xor_spec_iff : XorSpec r next data ↔
+    XorRowBindings r data ∧
+      (imageOf data).2.read (r.fp * r.oC) = some (word r.vA + word r.vB) ∧
+      next = Regs.next ⟨r.pc, r.fp⟩
 def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
@@ -611,48 +652,64 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
     pure next
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
-  Spec r next data := step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
-  ProverAssumptions r data _ :=
-    (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
-    (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧ …
+  Spec := XorSpec
+  ProverAssumptions r data _ := ∃ next, XorSpec r next data
   …
 ```
 
-Prove soundness and completeness for each. Soundness assumes the guarantees of the four pulls
-and concludes `Spec` by `step_of_fetch_eq_some` and the arm of `execute`, with the bytecode
-guarantee yielding the fetched instruction through `decode_entry` (or, for `DEREF`,
-`decode_eq_some_iff` and `entry_getElem_zero`); completeness discharges the same guarantees
-from `ProverAssumptions`. Table-specific targets:
+Table-specific targets, each the opcode's equation and successor rule of `*_spec_iff`:
 
-- **XOR.** The result read carries `(vA[0] + vB[0], vA[1] + vB[1], vA[2] + vB[2])`. Prove
+- **XOR.** The cell `fp·o_C` holds `word v_A + word v_B`, addition in `E` (bitwise `XOR` in
+  each limb, never integer addition); the successor is `(g·pc, fp)`. The result read carries
+  `(vA[0] + vB[0], vA[1] + vB[1], vA[2] + vB[2])`; prove
   `add_limbs : E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2)`.
-- **MUL_NATIVE.** The result read carries the twelve products over nine limb pairs
-  (`vA[0]·vB[0] + vA[1]·vB[2] + vA[2]·vB[1]`, …; Rust `TOWER_LANES`). Prove
+- **MUL_NATIVE.** The cell `fp·o_C` holds `word v_A * word v_B`, the product in `E`, the
+  public description of the operation; the result read carries the twelve products over nine
+  limb pairs (`vA[0]·vB[0] + vA[1]·vB[2] + vA[2]·vB[1]`, …; Rust `TOWER_LANES`). Prove
   `mul_limbs : E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 = E.ofLimbs (…)` by the fold
-  `y^3 = y + 1` (`ofLimbs_eq`, `y_pow_three`); it licenses the soundness proof to rewrite the
-  coordinates into `vA * vB`.
-- **DEREF.** Columns add `f_pc`, `f_fp`, the pointer `p`, and `v3`; the target read carries
+  `y^3 = y + 1` (`ofLimbs_eq`, `y_pow_three`); it ties the coordinates to the product.
+- **SET_CONSTANT.** The binding is the instruction alone, `SET_CONSTANT o (word k)` with all
+  three immediate limbs; the cell `fp·o` holds `word k`.
+- **DEREF.** Columns add `f_pc`, `f_fp`, the pointer `p`, and `v3`; the bindings name a mode
+  with `derefFlags mode = (f_pc, f_fp)`, the pointer cell holding `E.ofLimbs p 0 0` and the
+  local cell holding `word v3` in every mode; the target `p·o₂` holds
+  `derefSource mode (pc, fp) (word v3)`, and the target read carries
   `(f̄·v3[0] + f_pc·(g²·pc) + f_fp·fp, f̄·v3[1], f̄·v3[2])` with `f̄ = 1 + f_pc + f_fp`. Prove
-  `storeCoords_eval`: for each of the three flag settings the coordinate is
-  `derefSource mode`. No booleanity constraint (Layer 4); `ProverAssumptions` names the mode
-  whose flags the row carries.
-- **JUMP.** `w`, `b` are `witness` operations with the honest inverse and indicator as
-  generators, and the two `assertZero`s `b + c·w` and `c·(b + 1)` are written as residuals;
-  the pushed successor is `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`, a function of the witness
-  `b`, which is why a table returns its successor rather than naming it in `Spec` from the
-  row. Prove `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1` and
-  `flags_complete`.
-- **BLAKE2S.** Nine `memRead`s of canonical words (third coordinate `0`), no constraints,
-  `Spec` through `CompressCells`. The Flock relation on the eighteen low limbs is the named
-  `Assumptions` field `Blake2sRelation r`, `CompressCells` on the nine cells the limbs form;
-  every consumer of this table carries it until #3 supplies the circuit.
+  `storeCoords_eval`: for each of the three flag settings the coordinates are
+  `derefSource mode`. No booleanity constraint (Layer 4): the fetched instruction forces one of
+  the three pairs, so the pair `(1, 1)` fails the bindings at every counter.
+- **JUMP.** The bindings are the instruction and the three `K` words `v_cond`, `v_pc`, `v_fp`;
+  the successor is `(v_pc, v_fp)` when `v_cond ≠ 0` and `(g·pc, fp)` otherwise, and the
+  bindings alone make a successor exist (`jump_bindings_iff`). `w`, `b` are `witness`
+  operations with the honest inverse and indicator as generators, and the two `assertZero`s
+  `b + c·w` and `c·(b + 1)` are written as residuals; the pushed successor is
+  `(b·d + b·(g·pc) + g·pc, b·f + b·fp + fp)`, a function of the witness `b`, which is why a
+  table returns its successor rather than naming it in `Spec` from the row. The specification
+  does not mention `w`: with `v_cond = 0` every `w` satisfies the residuals. Prove
+  `flags_sound : b + c·w = 0 → c·(b+1) = 0 → b = if c = 0 then 0 else 1`, `flags_complete`,
+  `jump_env_iff` (an environment uses the two witnesses exactly when slots `offset`,
+  `offset + 1` hold the honest inverse and indicator), and `jump_residuals_of_constraints`.
+- **BLAKE2S.** The bindings are the instruction with the seven operands and the nine canonical
+  cell reads (`cellOf`, third coordinate `0`); `Blake2sSpec` expands to the bindings,
+  `Blake2sRelation r` (`CompressCells` on the nine cells) and `(g·pc, fp)`. The Flock relation
+  stays the named `Assumptions` field `Blake2sRelation r`: the component proves memory and
+  bytecode binding, Flock (#3) discharges the compression, and soundness of `Blake2sSpec` is
+  conditional on it, never unconditional. `ProverAssumptions` is `Blake2sRowBindings`, the
+  local premise, which accepts any correctly bound canonical cells without checking the
+  compression; `blake2s_bindings_of_spec` derives it, with the relation, from
+  `∃ next, Blake2sSpec r next data`.
 
-Tests: one satisfying row per table, satisfying `ProverAssumptions` and `Spec`, with the
-acceptance by `completeness` exhibited on the row's environment for `XOR` and the two honest
-`JUMP` witnesses checked against the residuals; and one mutated row per table (a wrong result
-or immediate limb, a flag pair that is no store mode, the flag row `b = 1, c = 0`, a
-non-canonical BLAKE2S cell) rejected through the failure of its pull guarantee or of its
-constraint.
+Tests: one prover data with a `DEREF` in each store mode and a `JUMP` on each branch; per
+table the honest row's bindings and `*Spec` (the step decided in the kernel), its acceptance
+by `main` through `*Row_complete` and the successor `main` returns; the review's
+counterexamples to a step-only contract (an `XOR` row at the `SET` instruction, a `DEREF` row
+with flags `(1, 1)`) satisfying `step` and failing their bindings; a changed input limb
+(`XOR`, `MUL_NATIVE`), a changed immediate (`SET_CONSTANT`) and a non-canonical cell
+(`BLAKE2S`) failing the constraints `main` emits in every environment over the data
+(`*_reads_of_constraints`); the wrong witness `b = 1` at `v_cond = 0` failing the first
+residual; Clean's `Circuit.witgen` computing the two `JUMP` witnesses `jumpEnv` holds
+(compiled); and the `BLAKE2S` boundary, a bound and locally complete row whose canonical
+output is not the compression, failing `Blake2sRelation` and `Blake2sSpec`.
 
 ### Layer 7: the boundary blocks
 
@@ -901,8 +958,23 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   Direction  channelDir  channelSep  busTuple
                   memDataName  bytecodeDataName  memRows  bytecodeRows  imageOf  programOf
                   WellShapedData
+                  word  limbs  limbsAt  rowEnv  cellOf  cellAt
                   XorRow  MulRow  SetRow  DerefRow  JumpRow  Blake2sRow  Blake2sRelation
+                  XorRowBindings  MulRowBindings  SetRowBindings  DerefRowBindings
+                  JumpRowBindings  Blake2sRowBindings
+                  XorSpec  MulSpec  SetSpec  DerefSpec  JumpSpec  Blake2sSpec
+                  XorRowReads  MulRowReads  SetRowReads  DerefRowReads
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
+                  xor_spec_iff  mul_spec_iff  set_spec_iff  deref_spec_iff  jump_spec_iff
+                  blake2s_spec_iff
+                  xor_reads_iff  mul_reads_iff  set_reads_iff  deref_reads_iff  jump_bindings_iff
+                  blake2s_bindings_of_spec
+                  xorRowOf  mulRowOf  setRowOf  derefRowOf  jumpRowOf  blake2sRowOf
+                  xor_row_exists  mul_row_exists  set_row_exists  deref_row_exists
+                  jump_row_exists  blake2s_row_exists
+                  xorRow_complete  mulRow_complete  setRow_complete  derefRow_complete
+                  jumpRow_complete  blake2sRow_complete  blake2sRow_complete_of_spec
+                  jumpEnv  jump_env_iff  jump_residuals_of_constraints
                   add_limbs  mul_limbs  storeCoords_eval  flags_sound  flags_complete
                   memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
                   BalancedPair
