@@ -90,8 +90,8 @@ module (P3).
 - **Layer 6 is built** and open for review as draft PR #19 (branch `feat/leanisa-opcode-tables`),
   revised on 2026-09-14 for the review
   [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md). Its reading
-  list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean` the shared
-  vocabulary: `word`, `limbs`, `limbsAt`, `rowEnv`, the `Option` lemmas), `tests/LeanerVMTests/Arithmetization/Tables.lean`,
+  list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean`: `rowEnv` and
+  the two `Option` lemmas, all the tables share beyond Layers 0 and 2), `tests/LeanerVMTests/Arithmetization/Tables.lean`,
   the two-line change to `BytecodePull` in `LeanerVM/Arithmetization/Channels.lean`, and the
   roadmap's Layer 6 section, which shows the built shapes. Every Layer 6 target of the roadmap
   is present and proved. The review's three findings (F8) are met: (R1) the step-only `Spec`
@@ -99,13 +99,25 @@ module (P3).
   bindings of the row's operands and words to the program and the image together with `step`,
   with `*_spec_iff` expanding it to the opcode's equation and successor rule and `*_spec_step`
   projecting the step (decision 11); (R2) completeness was conditional row acceptance, and
-  `ProverAssumptions` is now the semantic premise `∃ next, *Spec r next data`, `*_reads_iff`
-  identifies it with the pull guarantees, `*RowOf` builds the row of any valid step
-  (`*RowOf_spec`, `*_row_exists`), and `*Row_complete` pushes any such row through
-  `completeness` in `rowEnv data` or `jumpEnv data r`; (R3) the negative tests did not touch
-  `main`, and every rejection now goes through the constraints `main` emits
-  (`*_reads_of_constraints`, `jump_residuals_of_constraints`) or the strengthened
-  specification. The executable obligation the review names stays open and is recorded in the
+  `ProverAssumptions` is now the semantic premise `∃ next, *Spec r next data`, the honest
+  prover's row from a valid step, which nothing above the tables assumes: `*RowOf` builds the
+  row of any valid step (`*RowOf_spec`, `*_row_exists`), `*Row_complete` pushes any such row
+  through `completeness` in `rowEnv data` or `jumpEnv data r`, and `*_step_complete` states
+  completeness from the step alone; (R3) the negative tests did not touch `main`, and every
+  rejection now goes through the constraints `main` emits (`*_spec_of_constraints`,
+  `jump_residuals_of_constraints`) or the strengthened specification. The review's follow-up
+  comments (2026-09-14) are met on `XOR`, the template, and remain to be propagated to the
+  other five tables: the limb arithmetic (`add_limbs`, `mul_limbs`, the `K`-word lemmas,
+  `E.ofCell`) moved to Layer 0 and the image read-back (`MemImage.limbsAt`, `MemImage.cellAt`)
+  to Layer 2, reused rather than redefined; a row's word is spelled `E.ofLimbs v[0] v[1] v[2]`
+  as Layer 5 spells it; the row-level restatement of the pull guarantees (`XorRowReads`,
+  `xor_reads_iff`, `xor_reads_of_constraints`) is gone, since `circuit_proof_start` supplies
+  the guarantees themselves, and `xor_spec_of_constraints` replaces it; and `xor_step_complete`
+  answers whether the semantic premise is vacuous: it is proved, never assumed, of the row of
+  every valid step. `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP` and `BLAKE2S` still carry
+  `*RowReads`, `*_reads_iff` and `*_reads_of_constraints` from the first revision and lack
+  `*_step_complete`; the roadmap states the `XOR` shape as the target. The executable
+  obligation the review names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
   carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
   it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
@@ -125,11 +137,11 @@ module (P3).
     says. The lawfulness proof is supplied by hand because Clean's default tactic dies on `K`
     (E6).
   - `ProverAssumptions` is the semantic premise `∃ next, *Spec r next data` (decision 11),
-    identified by `*_reads_iff` with the row's pull guarantees `*RowReads`: the fetched
+    from which completeness discharges each pull's guarantee through `*_spec_iff`: the fetched
     instruction with the row's operands (for `DEREF`, the mode whose flags the row carries)
-    and every read, the derived result included, as the image's word; completeness discharges
-    each pull's guarantee from it. `BLAKE2S` keeps the pull guarantees themselves as its
-    premise, since its compression is Flock's. `mul_limbs` is proved by the fold `y^3 = y + 1` (`ofLimbs_eq`, `linear_combination`
+    and every read, the derived result included, as the image's word. `BLAKE2S` keeps the pull
+    guarantees themselves as its premise, since its compression is Flock's. `mul_limbs`
+    (Layer 0) is proved by the fold `y^3 = y + 1` (`ofLimbs_eq`, `linear_combination`
     against `y_pow_three`) rather than by `Ext.coeff_mul`: `E.limb` is an abbreviation, and
     CompPoly's `Ext.coeff_*` simp lemmas do not fire through it (they are usable as terms,
     `limb_add`, `limb_zero`).
@@ -285,9 +297,13 @@ line.
     functional specification `*Spec r next data := *RowBindings r data ∧ step … = some next`,
     binding the row's operands and words to the program and the image, with `*_spec_iff` as
     the opcode-level characterisation and `*_spec_step` the projection; `ProverAssumptions`
-    is the semantic premise `∃ next, *Spec r next data`, identified with the pull guarantees
-    by `*_reads_iff`, except for `BLAKE2S`, whose local premise `Blake2sRowBindings` does not
-    check the compression (the boundary with Flock). Access counts stay outside the contract.
+    is the semantic premise `∃ next, *Spec r next data`, the honest prover's row, which nothing
+    above the tables assumes (`*RowOf_spec` proves it of the row of any valid step, and
+    `*_step_complete` states completeness from the step alone), except for `BLAKE2S`, whose
+    local premise `Blake2sRowBindings` does not check the compression (the boundary with
+    Flock). The pull guarantees have no separate name: `circuit_proof_start` supplies them, and
+    the review's follow-up of 2026-09-14 removed `XorRowReads`. Access counts stay outside the
+    contract.
     Row builders `*RowOf` are noncomputable; an executable, data-aware generator is T2's, since
     Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`) and the kernel
     does not reduce it.
@@ -515,8 +531,9 @@ fetched opcode and the read words from the pulls and then discarded them, so a c
 `Spec` could not recover them, and completeness restated the pull guarantees as its premise
 rather than connecting them to a semantic step. Met by decision 11: each table's `Spec` is the
 functional specification `*Spec` (bindings and step) with `*_spec_iff`; `ProverAssumptions` is
-`∃ next, *Spec r next data`, identified with the pull guarantees by `*_reads_iff`; rows of valid
-steps are built (`*RowOf`, `*_row_exists`) and pushed through `completeness` (`*Row_complete`);
+`∃ next, *Spec r next data`, proved of the row of any valid step; rows of valid steps are built
+(`*RowOf`, `*_row_exists`) and pushed through `completeness` (`*Row_complete`,
+`*_step_complete`);
 the tests reject the three counterexamples through the specification and mutated rows through
 the constraints `main` emits. The remaining executable obligation, a data-aware generator, is
 T2's (decision 11).

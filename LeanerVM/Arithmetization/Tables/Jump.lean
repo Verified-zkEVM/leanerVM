@@ -130,19 +130,6 @@ theorem flags_complete (c : K) :
   · exact ⟨by rw [mul_inv_cancel₀ hc, CharTwo.add_self_eq_zero],
       by rw [CharTwo.add_self_eq_zero, mul_zero]⟩
 
-/-- Limb `i` of the zero word is zero. -/
-theorem limb_zero (i : Fin 3) : (0 : E).limb i = 0 :=
-  CompPoly.Extension.Ext.coeff_zero (P := BF64.ext3Params) i
-
-/-- A single-limb word is zero exactly when its limb is. -/
-theorem ofLimbs_eq_zero_iff (c : K) : E.ofLimbs c 0 0 = 0 ↔ c = 0 := by
-  constructor
-  · intro h
-    have := congrArg (fun z : E ↦ z.limb 0) h
-    simpa only [limb_ofLimbs, limb_zero, Matrix.cons_val_zero] using this
-  · rintro rfl
-    exact E.ext fun i ↦ by rw [limb_zero]; fin_cases i <;> simp
-
 /-- The bytecode tuple of a `JUMP` row is the entry of the instruction it names (Layer 4). -/
 theorem jump_entry (oc od of : K) :
     #v[Opcode.jump.code] ++ #v[oc, od, of, 0, 0, 0, 0] = entry (.jump oc od of) := rfl
@@ -337,8 +324,8 @@ operands, the three low limbs read back from the image, and the counts as parame
 Noncomputable: it reads the image. -/
 noncomputable def jumpRowOf (data : ProverData K) (pc fp oc od of rc rd rf rbc : K) :
     JumpRow K :=
-  ⟨pc, fp, oc, od, of, (limbsAt (imageOf data).2 (fp * oc))[0],
-    (limbsAt (imageOf data).2 (fp * od))[0], (limbsAt (imageOf data).2 (fp * of))[0],
+  ⟨pc, fp, oc, od, of, ((imageOf data).2.limbsAt (fp * oc))[0],
+    ((imageOf data).2.limbsAt (fp * od))[0], ((imageOf data).2.limbsAt (fp * of))[0],
     rc, rd, rf, rbc⟩
 
 /-- A valid step that fetches `JUMP o_c o_d o_f` is represented by `jumpRowOf`, with any
@@ -354,14 +341,14 @@ theorem jumpRowOf_spec {data : ProverData K} {pc fp oc od of : K} {next : Regs K
   obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
   refine ⟨⟨hfetch, ?_, ?_, ?_⟩, hstep⟩
   · show (imageOf data).2.read (fp * oc) =
-      some (E.ofLimbs (limbsAt (imageOf data).2 (fp * oc))[0] 0 0)
-    rw [limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
+      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oc))[0] 0 0)
+    rw [MemImage.limbsAt_getElem_zero hc, ofLimbs_of_isInK hcK]; exact hc
   · show (imageOf data).2.read (fp * od) =
-      some (E.ofLimbs (limbsAt (imageOf data).2 (fp * od))[0] 0 0)
-    rw [limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
+      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * od))[0] 0 0)
+    rw [MemImage.limbsAt_getElem_zero hd, ofLimbs_of_isInK hdK]; exact hd
   · show (imageOf data).2.read (fp * of) =
-      some (E.ofLimbs (limbsAt (imageOf data).2 (fp * of))[0] 0 0)
-    rw [limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
+      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * of))[0] 0 0)
+    rw [MemImage.limbsAt_getElem_zero hf, ofLimbs_of_isInK hfK]; exact hf
 
 /-- A valid step that fetches `JUMP o_c o_d o_f` admits a row with the same registers and
 operands and any counts. -/

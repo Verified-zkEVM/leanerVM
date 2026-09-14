@@ -205,13 +205,16 @@ theorem xor_spec : XorSpec xorRow ⟨g * gpow 0, 1⟩ tabData :=
       read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
     decide +kernel⟩
 
-/-- The four pull guarantees of the honest row follow from its specification. -/
-theorem xor_reads : XorRowReads xorRow tabData := (xor_reads_iff _ _).mpr ⟨_, xor_spec⟩
-
 /-- The row is accepted by `main`: its constraints hold in the row environment over the
 fixture (through `completeness`). -/
 example : ConstraintsHold.Completeness (rowEnv tabData) ((xorTable.main (const xorRow)).operations 0) :=
   xorRow_complete ⟨_, xor_spec⟩
+
+/-- The valid step alone yields a satisfying row (`xor_step_complete`): no assumption on the
+row, the honest prover builds it. -/
+example : ConstraintsHold.Completeness (rowEnv tabData)
+    ((xorTable.main (const (xorRowOf tabData (gpow 0) 1 (gpow 2) (gpow 3) (gpow 4) 1 1 1 1))).operations 0) :=
+  xor_step_complete (fetch_at 0 _) xor_spec.2 1 1 1 1
 
 /-- `main` returns the pushed successor `(g, 1)`. -/
 example : eval (rowEnv tabData).toEnvironment ((xorTable.main (const xorRow)).output 0) =
@@ -256,10 +259,10 @@ second pull is no read of the image. -/
 example (get : ℕ → K) :
     ¬ ConstraintsHold.Soundness ⟨get, tabData⟩ ((xorTable.main (const xorRow')).operations 0) := by
   intro h
-  have hr := xor_reads_of_constraints h
-  rw [ProvableType.eval_const] at hr
-  dsimp only at hr
-  obtain ⟨-, hA, -, -⟩ := hr
+  obtain ⟨next, hs⟩ := xor_spec_of_constraints h
+  rw [ProvableType.eval_const] at hs
+  dsimp only at hs
+  obtain ⟨⟨-, hA, -⟩, -⟩ := hs
   rw [show xorRow'.fp * xorRow'.oA = 1 * gpow 2 from rfl, one_mul, read_at 2 #v[x0, x1, x2]] at hA
   exact absurd (Option.some.inj hA) (by decide +kernel)
 

@@ -164,7 +164,7 @@ def DerefRowBindings (r : DerefRow K) (data : ProverData K) : Prop :=
   ∃ mode, (programOf data).fetch r.pc = some (.deref r.o1 r.o2 r.o3 mode) ∧
     derefFlags mode = (r.fpc, r.ffp) ∧
     (imageOf data).2.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0) ∧
-    (imageOf data).2.read (r.fp * r.o3) = some (word r.v3)
+    (imageOf data).2.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])
 
 /-- The functional specification of a `DEREF` row: it is bound to the program and the image,
 and from its registers the machine steps to `next`. -/
@@ -190,8 +190,9 @@ theorem deref_spec_iff (r : DerefRow K) (next : Regs K) (data : ProverData K) :
       ∃ mode, (programOf data).fetch r.pc = some (.deref r.o1 r.o2 r.o3 mode) ∧
         derefFlags mode = (r.fpc, r.ffp) ∧
         (imageOf data).2.read (r.fp * r.o1) = some (E.ofLimbs r.p 0 0) ∧
-        (imageOf data).2.read (r.fp * r.o3) = some (word r.v3) ∧
-        (imageOf data).2.read (r.p * r.o2) = some (derefSource mode ⟨r.pc, r.fp⟩ (word r.v3)) ∧
+        (imageOf data).2.read (r.fp * r.o3) = some (E.ofLimbs r.v3[0] r.v3[1] r.v3[2]) ∧
+        (imageOf data).2.read (r.p * r.o2) =
+          some (derefSource mode ⟨r.pc, r.fp⟩ (E.ofLimbs r.v3[0] r.v3[1] r.v3[2])) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
   unfold DerefSpec DerefRowBindings
   constructor
@@ -283,8 +284,8 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     simp only [Vector.getElem_map] at h3 h2
     rw [storeCoords_eval] at h2
     refine (deref_spec_iff _ _ _).mpr ⟨mode, hfetch, rfl, h1, ?_, ?_, rfl⟩
-    · simpa only [word, Vector.getElem_map] using h3
-    · simpa only [word, Vector.getElem_map] using h2
+    · simpa only [Vector.getElem_map] using h3
+    · simpa only [Vector.getElem_map] using h2
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
@@ -315,7 +316,7 @@ and the counts as parameters. Noncomputable: it reads the image. -/
 noncomputable def derefRowOf (data : ProverData K) (pc fp o1 o2 o3 : K) (mode : DerefMode)
     (r1 r2 r3 rbc : K) : DerefRow K :=
   ⟨pc, fp, o1, o2, o3, (derefFlags mode).1, (derefFlags mode).2,
-    (limbsAt (imageOf data).2 (fp * o1))[0], limbsAt (imageOf data).2 (fp * o3), r1, r2, r3, rbc⟩
+    ((imageOf data).2.limbsAt (fp * o1))[0], (imageOf data).2.limbsAt (fp * o3), r1, r2, r3, rbc⟩
 
 /-- A valid step that fetches `DEREF o₁ o₂ o₃ mode` is represented by `derefRowOf`, with any
 counts. -/
@@ -330,10 +331,11 @@ theorem derefRowOf_spec {data : ProverData K} {pc fp o1 o2 o3 : K} {mode : Deref
   have hin := guard_eq_some hu
   refine ⟨⟨mode, hfetch, rfl, ?_, ?_⟩, hstep⟩
   · show (imageOf data).2.read (fp * o1) =
-      some (E.ofLimbs (limbsAt (imageOf data).2 (fp * o1))[0] 0 0)
-    rw [limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
-  · show (imageOf data).2.read (fp * o3) = some (word (limbsAt (imageOf data).2 (fp * o3)))
-    rw [word_limbsAt hv3]; exact hv3
+      some (E.ofLimbs ((imageOf data).2.limbsAt (fp * o1))[0] 0 0)
+    rw [MemImage.limbsAt_getElem_zero hp, ofLimbs_of_isInK hin]; exact hp
+  · show (imageOf data).2.read (fp * o3) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * o3))[0]
+      ((imageOf data).2.limbsAt (fp * o3))[1] ((imageOf data).2.limbsAt (fp * o3))[2])
+    rw [MemImage.ofLimbs_limbsAt hv3]; exact hv3
 
 /-- A valid step that fetches `DEREF o₁ o₂ o₃ mode` admits a row with the same registers,
 operands and the mode's flags, and any counts. -/

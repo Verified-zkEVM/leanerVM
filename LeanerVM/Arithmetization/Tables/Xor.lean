@@ -24,20 +24,21 @@ the assertion `[o_C] = [o_A] + [o_B]` (§5, "M3").
 **The row** `XorRow` is the column list: `pc, fp`; the operands `o_A, o_B, o_C`; the two read
 words `v_A, v_B` as three limbs each; the memory counts `r_A, r_B, r_C`; the bytecode count
 `r_bc`. The result word is never a column: its limbs ride the third memory read as the sums
-`v_{A,i} + v_{B,i}`.
+`v_{A,i} + v_{B,i}`. A three-limb column `v` is the word `E.ofLimbs v[0] v[1] v[2]`, as Layer
+5's `MemPull.Guarantees` spells it.
 
 **The contract.** `XorRowBindings r data` binds the row to the program and the image named by
 the prover data (Layer 5): the instruction at `pc` is `XOR o_A o_B o_C`, and the operand cells
-`fp·o_A`, `fp·o_B` hold the row's words `word v_A`, `word v_B`. `XorSpec r next data` is the
-bindings together with `step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, Layer 3's
-`step` from the row's registers to `next`; `xor_spec_iff` expands it into the opcode's
-equation, the word at `fp·o_C` is `word v_A + word v_B` in `E` (addition in `E`, whose limbs
-are bitwise `XOR` in `K`, never integer addition), and the successor `next = (g·pc, fp)`;
-`xor_spec_step` projects the step back out. `XorRowReads r data` is the four pull guarantees of
-the row, the result read carrying the limb-wise sum: `xor_reads_iff` identifies it with the
-semantic premise `∃ next, XorSpec r next data`, so a row is bound and steps exactly when its
-pulls are reads of the data. Access counts are outside the contract: their allocation is the
-bus's (Layers 8 and 9), and a wrong count does not falsify the opcode's specification.
+`fp·o_A`, `fp·o_B` hold the row's words. `XorSpec r next data` is the bindings together with
+`step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next`, Layer 3's `step` from the row's
+registers to `next`; `xor_spec_iff` expands it into the opcode's equation, the word at `fp·o_C`
+is the sum of the two words in `E` (addition in `E`, whose limbs are bitwise `XOR` in `K`, never
+integer addition), and the successor `next = (g·pc, fp)`; `xor_spec_step` projects the step
+back out. Access counts are outside the contract: their allocation is the bus's (Layers 8 and
+9), and a wrong count does not falsify the opcode's specification. The row's pull guarantees
+have no name of their own: they are what Clean's `circuit_proof_start` hands soundness as
+hypotheses and asks of completeness as goals, and `xor_spec_iff` with Layer 0's `add_limbs` is
+their semantic reading (the result read carries the sum's limbs).
 
 **The component** `xorTable` pulls the state `(pc, fp)` and pushes the fall-through successor
 `(g·pc, fp)` (`xor_output`), reads the bytecode entry `(XOR, o_A, o_B, o_C, 0, 0, 0, 0)` at
@@ -48,19 +49,30 @@ It returns the pushed successor, and `Spec` is `XorSpec`.
 the bytecode entry is the fetched instruction) and concludes `XorSpec`: the bindings are
 exactly what the pulls guarantee, and the step follows by the arm of `execute`; the
 requirements of the three pushes are vacuous, since the push channels guarantee nothing
-(Layer 5: what a push must satisfy is this `Spec`). **Completeness** takes
-`ProverAssumptions r data _ := ∃ next, XorSpec r next data`, the semantic premise, and
-discharges each pull's guarantee from it through `xor_spec_iff`.
+(Layer 5: what a push must satisfy is this `Spec`).
+
+**Completeness** takes `ProverAssumptions r data _ := ∃ next, XorSpec r next data`: the row is
+an honest row, one an honest prover wrote from a valid step of the execution it proves, so it
+is bound to the program and the image and the machine steps from its registers. That is the
+honest-prover precondition Clean's completeness is relative to, and nothing above this file
+assumes it: `xorRowOf_spec` proves it of the row built from any valid `XOR` step, so
+`xor_step_complete` states completeness from the step alone. What completeness then proves is
+the encoding: the tuple `main` emits decodes to the fetched instruction (Layer 4's
+`decode_entry`), and the coordinates it emits for the result read are the limbs of the word a
+valid step reads (`add_limbs`, through `xor_spec_iff`); a mistranscribed lane would fail here.
+For a table without constraints the constraints are the pull guarantees and nothing else,
+which is why the proof is a substitution once `xor_spec_iff` and `add_limbs` have done theirs.
 
 **Rows from steps.** `xorRowOf data pc fp oA oB oC rA rB rC rbc` is the row of a step: the
 registers and the fetched operands, the two operand words read back from the image
-(`limbsAt`), and the counts as parameters. `xorRowOf_spec` says it satisfies `XorSpec` whenever
-the step is valid and fetches `XOR oA oB oC`, `xor_row_exists` is the existence statement, and
-`xorRow_complete` pushes any row with the semantic premise through `completeness`: its
-constraints hold in the row environment `rowEnv data`. The builder is noncomputable, since
-`MemImage.read` is (Layer 2); an executable, data-aware generator is T2's, against these
-theorems. Conversely `xor_reads_of_constraints` reads the four pull guarantees back off the
-constraints `main` emits, for every environment.
+(`MemImage.limbsAt`, Layer 2), and the counts as parameters. `xorRowOf_spec` says it satisfies
+`XorSpec` whenever the step is valid and fetches `XOR oA oB oC`, `xor_row_exists` is the
+existence statement, `xorRow_complete` pushes any row with the semantic premise through
+`completeness` (its constraints hold in the row environment `rowEnv data`), and
+`xor_step_complete` composes the two: every valid `XOR` step has a satisfying row. The builder
+is noncomputable, since `MemImage.read` is; an executable, data-aware generator is T2's,
+against these theorems. Conversely `xor_spec_of_constraints` reads soundness back off the
+constraints `main` emits: a row whose constraints hold in any environment is bound and steps.
 
 ## Wrong readings excluded
 
@@ -109,16 +121,6 @@ structure XorRow (F : Type) where
 
 /-! ## Load-bearing lemmas -/
 
-/-- Limb `i` of a sum is the sum of the limbs (CompPoly's `Ext.coeff_add`). -/
-theorem limb_add (x y : E) (i : Fin 3) : (x + y).limb i = x.limb i + y.limb i :=
-  CompPoly.Extension.Ext.coeff_add x y i
-
-/-- The sum of two words, limb by limb: the result coordinates of the `XOR` table
-(specification §7.1; `tables.rs:470-476`). -/
-theorem add_limbs (a0 a1 a2 b0 b1 b2 : K) :
-    E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2) :=
-  E.ext fun i ↦ by rw [limb_add]; fin_cases i <;> simp
-
 /-- The bytecode tuple of an `XOR` row is the entry of the instruction it names (Layer 4). -/
 theorem xor_entry (oA oB oC : K) :
     #v[Opcode.xor.code] ++ #v[oA, oB, oC, 0, 0, 0, 0] = entry (.xor oA oB oC) := rfl
@@ -129,29 +131,21 @@ theorem xor_entry (oA oB oC : K) :
 `XOR o_A o_B o_C`, and the operand cells hold the row's words. -/
 def XorRowBindings (r : XorRow K) (data : ProverData K) : Prop :=
   (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
-  (imageOf data).2.read (r.fp * r.oA) = some (word r.vA) ∧
-  (imageOf data).2.read (r.fp * r.oB) = some (word r.vB)
+  (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧
+  (imageOf data).2.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
 
 /-- The functional specification of an `XOR` row: it is bound to the program and the image,
 and from its registers the machine steps to `next` (Layer 3's `step`). -/
 def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
   XorRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
 
-/-- The four pull guarantees of the row: the fetch and the three reads, the result read
-carrying the limb-wise sum. The local completeness premise, what the row's pulls assume. -/
-def XorRowReads (r : XorRow K) (data : ProverData K) : Prop :=
-  (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
-  (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧
-  (imageOf data).2.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
-  (imageOf data).2.read (r.fp * r.oC) =
-    some (E.ofLimbs (r.vA[0] + r.vB[0]) (r.vA[1] + r.vB[1]) (r.vA[2] + r.vB[2]))
-
 /-- `XorSpec`, expanded: the bindings, the result cell holds the sum in `E`, and the successor
 is the fall-through `(g·pc, fp)`. -/
 theorem xor_spec_iff (r : XorRow K) (next : Regs K) (data : ProverData K) :
     XorSpec r next data ↔
       XorRowBindings r data ∧
-        (imageOf data).2.read (r.fp * r.oC) = some (word r.vA + word r.vB) ∧
+        (imageOf data).2.read (r.fp * r.oC) =
+          some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] + E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
   unfold XorSpec
   constructor
@@ -176,18 +170,6 @@ theorem xor_spec_iff (r : XorRow K) (next : Regs K) (data : ProverData K) :
 theorem xor_spec_step {r : XorRow K} {next : Regs K} {data : ProverData K}
     (h : XorSpec r next data) : step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next :=
   h.2
-
-/-- A row's pulls are reads of the data exactly when it is bound and steps: the local
-completeness premise is the semantic one. -/
-theorem xor_reads_iff (r : XorRow K) (data : ProverData K) :
-    XorRowReads r data ↔ ∃ next, XorSpec r next data := by
-  constructor
-  · rintro ⟨hfetch, hA, hB, hC⟩
-    exact ⟨_, (xor_spec_iff _ _ _).mpr ⟨⟨hfetch, hA, hB⟩, by rw [hC, word, word, add_limbs], rfl⟩⟩
-  · rintro ⟨next, h⟩
-    obtain ⟨⟨hfetch, hA, hB⟩, hC, -⟩ := (xor_spec_iff _ _ _).mp h
-    rw [word, word, add_limbs] at hC
-    exact ⟨hfetch, hA, hB, hC⟩
 
 /-! ## The table -/
 
@@ -214,7 +196,8 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     tauto
   -- The row is bound to the program and the image, and steps to the pushed successor.
   Spec := XorSpec
-  -- The semantic premise: the row is bound and steps somewhere.
+  -- The honest prover's row: written from a valid step, it is bound and steps somewhere.
+  -- Proved of the row built from any valid step by `xorRowOf_spec`; see `xor_step_complete`.
   ProverAssumptions r data _ := ∃ next, XorSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -224,20 +207,21 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     subst hvA hvB
     rw [xor_entry, decode_entry, Option.some.injEq] at hdec
     subst hdec
-    simp only [Vector.getElem_map] at hA hB hC
-    refine ⟨⟨hfetch, ?_, ?_⟩, ?_⟩
-    · simpa only [word, Vector.getElem_map] using hA
-    · simpa only [word, Vector.getElem_map] using hB
-    · rw [step_of_fetch_eq_some hfetch]
-      simp [execute, guard, hA, hB, hC, add_limbs, Regs.next]
+    refine (xor_spec_iff _ _ _).mpr ⟨⟨hfetch, ?_, ?_⟩, ?_, rfl⟩
+    · simpa only [Vector.getElem_map] using hA
+    · simpa only [Vector.getElem_map] using hB
+    · simpa only [add_limbs, Vector.getElem_map] using hC
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
+    -- The four pull guarantees, from the semantic premise: the result read carries the limbs
+    -- of the sum a valid step reads (`add_limbs`).
     obtain ⟨next, h⟩ := h_assumptions
     obtain ⟨⟨hfetch, hA, hB⟩, hC, -⟩ := (xor_spec_iff _ _ _).mp h
+    rw [add_limbs] at hC
     obtain ⟨_, _, _, _, _, hvA, hvB, _, _, _, _⟩ := h_input
     subst hvA hvB
-    simp only [word, add_limbs, Vector.getElem_map] at hA hB hC ⊢
+    simp only [Vector.getElem_map] at hA hB hC ⊢
     exact ⟨⟨_, hfetch, by rw [xor_entry, decode_entry]⟩, hA, hB, hC⟩
 
 /-- The returned successor: the fall-through `(g·pc, fp)`, for every environment. -/
@@ -245,12 +229,12 @@ theorem xor_output (env : Environment K) (offset : ℕ) (r : Var XorRow K) :
     eval env ((xorTable.main r).output offset) = ⟨g * (eval env r).pc, (eval env r).fp⟩ := by
   simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]
 
-/-- The constraints `main` emits on a row are its four pull guarantees: read back off any
-environment in which they hold. -/
-theorem xor_reads_of_constraints {env : Environment K} {r : Var XorRow K} {offset : ℕ}
+/-- Soundness, read back off the constraints `main` emits: a row whose constraints hold in any
+environment is bound and steps (to the successor `xor_output` names). -/
+theorem xor_spec_of_constraints {env : Environment K} {r : Var XorRow K} {offset : ℕ}
     (h : ConstraintsHold.Soundness env ((xorTable.main r).operations offset)) :
-    XorRowReads (eval env r) env.data :=
-  (xor_reads_iff _ _).mpr ⟨_, (xorTable.soundness offset env r (eval env r) rfl trivial h).1⟩
+    ∃ next, XorSpec (eval env r) next env.data :=
+  ⟨_, (xorTable.soundness offset env r (eval env r) rfl trivial h).1⟩
 
 /-! ## Rows from steps -/
 
@@ -258,7 +242,7 @@ theorem xor_reads_of_constraints {env : Environment K} {r : Var XorRow K} {offse
 the two operand words read back from the image, and the counts as parameters. Noncomputable:
 it reads the image. -/
 noncomputable def xorRowOf (data : ProverData K) (pc fp oA oB oC rA rB rC rbc : K) : XorRow K :=
-  ⟨pc, fp, oA, oB, oC, limbsAt (imageOf data).2 (fp * oA), limbsAt (imageOf data).2 (fp * oB),
+  ⟨pc, fp, oA, oB, oC, (imageOf data).2.limbsAt (fp * oA), (imageOf data).2.limbsAt (fp * oB),
     rA, rB, rC, rbc⟩
 
 /-- A valid step that fetches `XOR oA oB oC` is represented by `xorRowOf`, with any counts. -/
@@ -271,10 +255,12 @@ theorem xorRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
   simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨a, ha, b, hb, -⟩ := h
   refine ⟨⟨hfetch, ?_, ?_⟩, hstep⟩
-  · show (imageOf data).2.read (fp * oA) = some (word (limbsAt (imageOf data).2 (fp * oA)))
-    rw [word_limbsAt ha]; exact ha
-  · show (imageOf data).2.read (fp * oB) = some (word (limbsAt (imageOf data).2 (fp * oB)))
-    rw [word_limbsAt hb]; exact hb
+  · show (imageOf data).2.read (fp * oA) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oA))[0]
+      ((imageOf data).2.limbsAt (fp * oA))[1] ((imageOf data).2.limbsAt (fp * oA))[2])
+    rw [MemImage.ofLimbs_limbsAt ha]; exact ha
+  · show (imageOf data).2.read (fp * oB) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oB))[0]
+      ((imageOf data).2.limbsAt (fp * oB))[1] ((imageOf data).2.limbsAt (fp * oB))[2])
+    rw [MemImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- A valid step that fetches `XOR oA oB oC` admits a row with the same registers and
 operands and any counts. -/
@@ -291,5 +277,14 @@ theorem xorRow_complete {r : XorRow K} {data : ProverData K} (h : ∃ next, XorS
   (xorTable.completeness 0 (rowEnv data) (const r)
     (by simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
     ProvableType.eval_const_prover h).1
+
+/-- Every valid `XOR` step has a satisfying row: the constraints of `main` on the row it builds
+hold in the row environment, from the step alone. -/
+theorem xor_step_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
+    (hfetch : (programOf data).fetch pc = some (.xor oA oB oC))
+    (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rA rB rC rbc : K) :
+    ConstraintsHold.Completeness (rowEnv data)
+      ((xorTable.main (const (xorRowOf data pc fp oA oB oC rA rB rC rbc))).operations 0) :=
+  xorRow_complete ⟨_, xorRowOf_spec hfetch hstep rA rB rC rbc⟩
 
 end LeanerVM.Arithmetization

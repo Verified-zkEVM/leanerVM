@@ -84,7 +84,7 @@ theorem set_entry (o k0 k1 k2 : K) :
 /-- The row's binding to the program: the instruction at `pc` is `SET_CONSTANT o k` with the
 row's immediate. -/
 def SetRowBindings (r : SetRow K) (data : ProverData K) : Prop :=
-  (programOf data).fetch r.pc = some (.setConstant r.o (word r.k))
+  (programOf data).fetch r.pc = some (.setConstant r.o (E.ofLimbs r.k[0] r.k[1] r.k[2]))
 
 /-- The functional specification of a `SET_CONSTANT` row: it is bound to the program, and from
 its registers the machine steps to `next`. -/
@@ -101,7 +101,7 @@ the fall-through `(g·pc, fp)`. -/
 theorem set_spec_iff (r : SetRow K) (next : Regs K) (data : ProverData K) :
     SetSpec r next data ↔
       SetRowBindings r data ∧
-        (imageOf data).2.read (r.fp * r.o) = some (word r.k) ∧
+        (imageOf data).2.read (r.fp * r.o) = some (E.ofLimbs r.k[0] r.k[1] r.k[2]) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
   unfold SetSpec SetRowBindings
   constructor
@@ -170,8 +170,8 @@ def setTable : GeneralFormalCircuit K SetRow Regs where
     rw [set_entry, decode_entry, Option.some.injEq] at hdec
     subst hdec
     refine (set_spec_iff _ _ _).mpr ⟨?_, ?_, rfl⟩
-    · simpa only [SetRowBindings, word, Vector.getElem_map] using hfetch
-    · simpa only [word, Vector.getElem_map] using hk
+    · simpa only [SetRowBindings, Vector.getElem_map] using hfetch
+    · simpa only [Vector.getElem_map] using hk
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
@@ -196,7 +196,8 @@ theorem set_reads_of_constraints {env : Environment K} {r : Var SetRow K} {offse
 
 /-- The row of a step that fetches `SET_CONSTANT o k` from `(pc, fp)`: the registers, the
 operand, the immediate's limbs, and the counts as parameters. -/
-def setRowOf (pc fp o : K) (k : E) (rc rbc : K) : SetRow K := ⟨pc, fp, o, limbs k, rc, rbc⟩
+def setRowOf (pc fp o : K) (k : E) (rc rbc : K) : SetRow K :=
+  ⟨pc, fp, o, #v[k.limb 0, k.limb 1, k.limb 2], rc, rbc⟩
 
 /-- A valid step that fetches `SET_CONSTANT o k` is represented by `setRowOf`, with any
 counts. -/
@@ -204,8 +205,8 @@ theorem setRowOf_spec {data : ProverData K} {pc fp o : K} {k : E} {next : Regs K
     (hfetch : (programOf data).fetch pc = some (.setConstant o k))
     (hstep : step (programOf data) (imageOf data).2 ⟨pc, fp⟩ = some next) (rc rbc : K) :
     SetSpec (setRowOf pc fp o k rc rbc) next data :=
-  ⟨by show (programOf data).fetch pc = some (.setConstant o (word (limbs k)))
-      rw [word_limbs]; exact hfetch,
+  ⟨by show (programOf data).fetch pc = some (.setConstant o (E.ofLimbs (k.limb 0) (k.limb 1) (k.limb 2)))
+      rw [ofLimbs_limb]; exact hfetch,
    hstep⟩
 
 /-- A valid step that fetches `SET_CONSTANT o k` admits a row with the same registers and

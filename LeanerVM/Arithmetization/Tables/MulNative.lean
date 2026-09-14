@@ -9,7 +9,6 @@
 import LeanerVM.Arithmetization.Tables.Basic
 import Clean.Circuit.Formal
 import Clean.Utils.Tactics.CircuitProofStart
-import Mathlib.Tactic.LinearCombination
 
 /-!
 # The `MUL_NATIVE` table
@@ -33,15 +32,15 @@ c1 = a0·b1 + a1·b0 + a1·b2 + a2·b1 + a2·b2
 c2 = a0·b2 + a1·b1 + a2·b0 + a2·b2
 ```
 
-(`TOWER_LANES`; §7.2's `p_0 + p_3, p_1 + p_3 + p_4, p_2 + p_4`). `mul_limbs` is the statement
-that these are the limbs of the product in `E`, and licenses the proofs to read the result
-coordinates as `v_A · v_B` (roadmap acceptance test 9).
+(`TOWER_LANES`; §7.2's `p_0 + p_3, p_1 + p_3 + p_4, p_2 + p_4`). Layer 0's `mul_limbs` is the
+statement that these are the limbs of the product in `E`, and licenses the proofs to read the
+result coordinates as `v_A · v_B` (roadmap acceptance test 9).
 
 **The contract** is the `XOR` table's with the product for the sum (see
 `LeanerVM.Arithmetization.Tables.Xor` for the template): `MulRowBindings r data` binds the
 instruction `MUL_NATIVE o_A o_B o_C` at `pc` and the two operand words; `MulSpec r next data`
-is the bindings and the step; `mul_spec_iff` expands it to the word at `fp·o_C` being
-`word v_A * word v_B`, the product in `E`, and the successor `(g·pc, fp)`; `mul_spec_step`
+is the bindings and the step; `mul_spec_iff` expands it to the word at `fp·o_C` being the
+product of the two words in `E`, and the successor `(g·pc, fp)`; `mul_spec_step`
 projects the step; `MulRowReads` is the four pull guarantees, the result read carrying the
 twelve products, and `mul_reads_iff` identifies it with `∃ next, MulSpec r next data`. The
 public description of the operation is the product in `E`; the circuit's expanded polynomial
@@ -101,23 +100,6 @@ structure MulRow (F : Type) where
 
 /-! ## Load-bearing lemmas -/
 
-/-- `ofK` preserves sums: it is `algebraMap K E`. -/
-theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
-
-/-- `ofK` preserves products: it is `algebraMap K E`. -/
-theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
-
-/-- The product of two words, limb by limb: the twelve products over the nine limb pairs,
-folded by `y^3 = y + 1` (specification §7.2; `tables.rs:44-49`, `TOWER_LANES`). -/
-theorem mul_limbs (a0 a1 a2 b0 b1 b2 : K) :
-    E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 =
-      E.ofLimbs (a0 * b0 + a1 * b2 + a2 * b1)
-        (a0 * b1 + a1 * b0 + a1 * b2 + a2 * b1 + a2 * b2)
-        (a0 * b2 + a1 * b1 + a2 * b0 + a2 * b2) := by
-  simp only [ofLimbs_eq, ofK_add, ofK_mul]
-  -- The product is `p₀ + p₁·y + p₂·y² + p₃·y³ + p₄·y⁴`; `y³ = y + 1` folds `p₃` and `p₄`.
-  linear_combination (ofK a1 * ofK b2 + ofK a2 * ofK b1 + ofK a2 * ofK b2 * y) * y_pow_three
-
 /-- The bytecode tuple of a `MUL_NATIVE` row is the entry of the instruction it names (Layer 4). -/
 theorem mul_entry (oA oB oC : K) :
     #v[Opcode.mulNative.code] ++ #v[oA, oB, oC, 0, 0, 0, 0] = entry (.mulNative oA oB oC) := rfl
@@ -128,8 +110,8 @@ theorem mul_entry (oA oB oC : K) :
 `MUL_NATIVE o_A o_B o_C`, and the operand cells hold the row's words. -/
 def MulRowBindings (r : MulRow K) (data : ProverData K) : Prop :=
   (programOf data).fetch r.pc = some (.mulNative r.oA r.oB r.oC) ∧
-  (imageOf data).2.read (r.fp * r.oA) = some (word r.vA) ∧
-  (imageOf data).2.read (r.fp * r.oB) = some (word r.vB)
+  (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧
+  (imageOf data).2.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
 
 /-- The functional specification of a `MUL_NATIVE` row: it is bound to the program and the
 image, and from its registers the machine steps to `next`. -/
@@ -153,7 +135,8 @@ successor is the fall-through `(g·pc, fp)`. -/
 theorem mul_spec_iff (r : MulRow K) (next : Regs K) (data : ProverData K) :
     MulSpec r next data ↔
       MulRowBindings r data ∧
-        (imageOf data).2.read (r.fp * r.oC) = some (word r.vA * word r.vB) ∧
+        (imageOf data).2.read (r.fp * r.oC) =
+          some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] * E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
         next = Regs.next ⟨r.pc, r.fp⟩ := by
   unfold MulSpec
   constructor
@@ -184,10 +167,10 @@ theorem mul_reads_iff (r : MulRow K) (data : ProverData K) :
     MulRowReads r data ↔ ∃ next, MulSpec r next data := by
   constructor
   · rintro ⟨hfetch, hA, hB, hC⟩
-    exact ⟨_, (mul_spec_iff _ _ _).mpr ⟨⟨hfetch, hA, hB⟩, by rw [hC, word, word, mul_limbs], rfl⟩⟩
+    exact ⟨_, (mul_spec_iff _ _ _).mpr ⟨⟨hfetch, hA, hB⟩, by rw [hC, mul_limbs], rfl⟩⟩
   · rintro ⟨next, h⟩
     obtain ⟨⟨hfetch, hA, hB⟩, hC, -⟩ := (mul_spec_iff _ _ _).mp h
-    rw [word, word, mul_limbs] at hC
+    rw [mul_limbs] at hC
     exact ⟨hfetch, hA, hB, hC⟩
 
 /-! ## The table -/
@@ -230,9 +213,9 @@ def mulTable : GeneralFormalCircuit K MulRow Regs where
     rw [mul_entry, decode_entry, Option.some.injEq] at hdec
     subst hdec
     refine (mul_spec_iff _ _ _).mpr ⟨⟨hfetch, ?_, ?_⟩, ?_, rfl⟩
-    · simpa only [word, Vector.getElem_map] using hA
-    · simpa only [word, Vector.getElem_map] using hB
-    · simpa only [word, mul_limbs, Vector.getElem_map] using hC
+    · simpa only [Vector.getElem_map] using hA
+    · simpa only [Vector.getElem_map] using hB
+    · simpa only [mul_limbs, Vector.getElem_map] using hC
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
       memRead, bytecodeRead]
@@ -259,7 +242,7 @@ theorem mul_reads_of_constraints {env : Environment K} {r : Var MulRow K} {offse
 operands, the two operand words read back from the image, and the counts as parameters.
 Noncomputable: it reads the image. -/
 noncomputable def mulRowOf (data : ProverData K) (pc fp oA oB oC rA rB rC rbc : K) : MulRow K :=
-  ⟨pc, fp, oA, oB, oC, limbsAt (imageOf data).2 (fp * oA), limbsAt (imageOf data).2 (fp * oB),
+  ⟨pc, fp, oA, oB, oC, (imageOf data).2.limbsAt (fp * oA), (imageOf data).2.limbsAt (fp * oB),
     rA, rB, rC, rbc⟩
 
 /-- A valid step that fetches `MUL_NATIVE oA oB oC` is represented by `mulRowOf`, with any
@@ -273,10 +256,12 @@ theorem mulRowOf_spec {data : ProverData K} {pc fp oA oB oC : K} {next : Regs K}
   simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨a, ha, b, hb, -⟩ := h
   refine ⟨⟨hfetch, ?_, ?_⟩, hstep⟩
-  · show (imageOf data).2.read (fp * oA) = some (word (limbsAt (imageOf data).2 (fp * oA)))
-    rw [word_limbsAt ha]; exact ha
-  · show (imageOf data).2.read (fp * oB) = some (word (limbsAt (imageOf data).2 (fp * oB)))
-    rw [word_limbsAt hb]; exact hb
+  · show (imageOf data).2.read (fp * oA) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oA))[0]
+      ((imageOf data).2.limbsAt (fp * oA))[1] ((imageOf data).2.limbsAt (fp * oA))[2])
+    rw [MemImage.ofLimbs_limbsAt ha]; exact ha
+  · show (imageOf data).2.read (fp * oB) = some (E.ofLimbs ((imageOf data).2.limbsAt (fp * oB))[0]
+      ((imageOf data).2.limbsAt (fp * oB))[1] ((imageOf data).2.limbsAt (fp * oB))[2])
+    rw [MemImage.ofLimbs_limbsAt hb]; exact hb
 
 /-- A valid step that fetches `MUL_NATIVE oA oB oC` admits a row with the same registers and
 operands and any counts. -/

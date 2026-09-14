@@ -231,11 +231,19 @@ available is written as a block comment at its place (see
 `LeanerVM/Parameters/Field.lean`, `LeanerVM/Parameters/Generator.lean`, and, for Clean's field
 interface, the plain file `LeanerVM/Parameters/CleanField.lean`.
 
-Define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128` as abbreviations
-and one-line definitions over the CompPoly declarations of the dependency table, with
-`DecidablePred` instances for the two predicates and `ToString E`. Prove `ofK_injective`,
+Define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, and
+`E.ofCell v = E.ofLimbs v[0] v[1] 0` (the canonical cell shape `BLAKE2S` consumes) as
+abbreviations and one-line definitions over the CompPoly declarations of the dependency table,
+with `DecidablePred` instances for the two predicates and `ToString E`. Prove `ofK_injective`,
 `isInK_iff : IsInK x ↔ ∃ a, x = ofK a`, `ofLimbs_eq : E.ofLimbs c0 c1 c2 = ofK c0 + ofK c1 * y +
-ofK c2 * y ^ 2`, and `limb_ofLimbs`.
+ofK c2 * y ^ 2`, `limb_ofLimbs`, `ofLimbs_limb`, and the limb arithmetic the opcode tables read
+their coordinates with: `limb_add`, `limb_zero`, `ofK_add`, `ofK_mul`, `ofK_eq_ofLimbs`,
+`isInK_ofLimbs`, `ofLimbs_of_isInK`, `ofLimbs_eq_zero_iff`,
+`add_limbs : E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2)`
+(bitwise `XOR` limb by limb), and `mul_limbs : E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 =
+E.ofLimbs (…)`, the twelve products over nine limb pairs folded by `y^3 = y + 1` (`ofLimbs_eq`,
+`y_pow_three`; Rust `TOWER_LANES`). A row's three-limb column `v` is always the word
+`E.ofLimbs v[0] v[1] v[2]`; there is no second spelling.
 
 Supply Clean's field interface for `K` and prove it introduces no second field structure:
 
@@ -333,6 +341,10 @@ noncomputable def gLog? (κ : ℕ) (a : K) : Option (Fin (2 ^ κ))   -- `Classic
 theorem gLog?_spec (hκ : κ < 64) : gLog? κ a = some i ↔ a = gpow i   -- `2^κ ≤ orderOf g`
 theorem gLog?_gpow_eq_none (hj : 2 ^ κ ≤ j) (hj' : j < 2 ^ 64 - 1) : gLog? κ (gpow j) = none
 noncomputable def MemImage.read (L : MemImage κ) (a : K) : Option E := (gLog? κ a).map L
+noncomputable def MemImage.limbsAt (L : MemImage κ) (a : K) : Vector K 3   -- `read`, as a row's limbs; zero when none
+noncomputable def MemImage.cellAt (L : MemImage κ) (a : K) : Vector K 2    -- the same for a canonical cell
+theorem MemImage.ofLimbs_limbsAt (h : L.read a = some v) : E.ofLimbs (L.limbsAt a)[0] (L.limbsAt a)[1] (L.limbsAt a)[2] = v
+theorem MemImage.ofCell_cellAt (h : L.read a = some v) (hc : IsCanonical128 v) : E.ofCell (L.cellAt a) = v
 noncomputable def Program.fetch (prog : Program) (pc : K) : Option Instr := (gLog? prog.logSize pc).map prog.code
 
 structure PublicInput where
@@ -596,33 +608,41 @@ table is opcode-specific and names the row, never only its registers:
 - `*RowBindings r data` binds the row to the program and the image named by the prover data:
   the instruction at `r.pc` is the opcode with the row's operands (for `DEREF`, for some mode
   whose flags the row carries; for `SET_CONSTANT`, with the row's immediate), and each input
-  cell holds the row's word (`word v = E.ofLimbs v[0] v[1] v[2]`; `E.ofLimbs c 0 0` for a `K`
-  word; `cellOf` for a canonical `BLAKE2S` cell). Access counts are outside the bindings:
-  their allocation is the bus's (Layers 8 and 9), and a wrong count does not falsify the
-  opcode's specification.
+  cell holds the row's word (`E.ofLimbs v[0] v[1] v[2]` for a three-limb column, as
+  `MemPull.Guarantees` spells it; `E.ofLimbs c 0 0` for a `K` word; `E.ofCell` for a canonical
+  `BLAKE2S` cell). Access counts are outside the bindings: their allocation is the bus's
+  (Layers 8 and 9), and a wrong count does not falsify the opcode's specification.
 - `*Spec r next data := *RowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next`
   is the functional specification and the table's `Spec`; `*_spec_iff` expands it into the
   bindings, the opcode's equation and the successor rule (below), and `*_spec_step` projects
-  the common step property back out.
-- `*RowReads r data` is the row's pull guarantees (the honest row of the sketch, the result
-  read included), and `*_reads_iff` identifies it with `∃ next, *Spec r next data`: a row's
-  pulls are reads of the data exactly when it is bound and steps. `ProverAssumptions r data _`
-  is `∃ next, *Spec r next data`, the semantic premise, except for `BLAKE2S` (below).
+  the common step property back out. The row's pull guarantees have no name of their own:
+  they are what Clean's `circuit_proof_start` hands soundness as hypotheses and asks of
+  completeness as goals, and `*_spec_iff` with Layer 0's limb arithmetic is their semantic
+  reading.
+- `ProverAssumptions r data _` is `∃ next, *Spec r next data`: the honest prover's row,
+  written from a valid step of the execution it proves, so bound and stepping. It is the
+  honest-prover precondition Clean's completeness is relative to, and nothing above the tables
+  assumes it: `*RowOf_spec` proves it of the row built from any valid step (below). `BLAKE2S`
+  takes its bindings instead (below).
 - Soundness assumes the guarantees of the pulls and concludes `*Spec`: the bindings are exactly
   what the pulls guarantee, and the step follows by the arm of `execute`, with the bytecode
   guarantee yielding the fetched instruction through `decode_entry` (or, for `DEREF`,
-  `decode_eq_some_iff` and `entry_getElem_zero`); completeness discharges the pull guarantees
-  from the semantic premise through `*_spec_iff`. `*_output` states the returned successor for
-  every environment, and `*_reads_of_constraints` reads the pull guarantees back off the
-  constraints `main` emits.
+  `decode_eq_some_iff` and `entry_getElem_zero`). Completeness discharges the pull guarantees
+  from the semantic premise through `*_spec_iff`; what it proves is the encoding, that the
+  tuple `main` emits decodes to the fetched instruction and that the coordinates it emits for
+  a derived read are the limbs of the word a valid step reads (`add_limbs`, `mul_limbs`,
+  `storeCoords_eval`). `*_output` states the returned successor for every environment, and
+  `*_spec_of_constraints` reads soundness back off the constraints `main` emits.
 - Rows from steps: `*RowOf` builds the row of a valid step from its registers, the fetched
-  operands and the words read back from the image (`limbsAt`, `cellAt`; noncomputable, since
-  `MemImage.read` is); `*RowOf_spec` and `*_row_exists` say a valid step of the opcode admits
-  a row with the same registers and operands and any counts; `*Row_complete` pushes any row
-  with the semantic premise through `completeness`, its constraints holding in `rowEnv data`
-  (no witness slots, the data) or, for `JUMP`, in `jumpEnv data r`. An executable, data-aware
-  generator is T2's, against these theorems: Clean's `Circuit.witgen` carries no data
-  (`ProverEnvironment.fromArray`), and the kernel does not reduce it.
+  operands and the words read back from the image (`MemImage.limbsAt`, `MemImage.cellAt`,
+  Layer 2; noncomputable, since `MemImage.read` is); `*RowOf_spec` and `*_row_exists` say a
+  valid step of the opcode admits a row with the same registers and operands and any counts;
+  `*Row_complete` pushes any row with the semantic premise through `completeness`, its
+  constraints holding in `rowEnv data` (no witness slots, the data) or, for `JUMP`, in
+  `jumpEnv data r`; `*_step_complete` composes the two, every valid step of the opcode has a
+  satisfying row, from the step alone. An executable, data-aware generator is T2's, against
+  these theorems: Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`), and
+  the kernel does not reduce it.
 
 `XOR`, as the template:
 
@@ -633,13 +653,14 @@ structure XorRow (F : Type) where
   rA rB rC rbc : F
 def XorRowBindings (r : XorRow K) (data : ProverData K) : Prop :=
   (programOf data).fetch r.pc = some (.xor r.oA r.oB r.oC) ∧
-  (imageOf data).2.read (r.fp * r.oA) = some (word r.vA) ∧
-  (imageOf data).2.read (r.fp * r.oB) = some (word r.vB)
+  (imageOf data).2.read (r.fp * r.oA) = some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2]) ∧
+  (imageOf data).2.read (r.fp * r.oB) = some (E.ofLimbs r.vB[0] r.vB[1] r.vB[2])
 def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
   XorRowBindings r data ∧ step (programOf data) (imageOf data).2 ⟨r.pc, r.fp⟩ = some next
 theorem xor_spec_iff : XorSpec r next data ↔
     XorRowBindings r data ∧
-      (imageOf data).2.read (r.fp * r.oC) = some (word r.vA + word r.vB) ∧
+      (imageOf data).2.read (r.fp * r.oC) =
+        some (E.ofLimbs r.vA[0] r.vA[1] r.vA[2] + E.ofLimbs r.vB[0] r.vB[1] r.vB[2]) ∧
       next = Regs.next ⟨r.pc, r.fp⟩
 def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
@@ -659,21 +680,20 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
 
 Table-specific targets, each the opcode's equation and successor rule of `*_spec_iff`:
 
-- **XOR.** The cell `fp·o_C` holds `word v_A + word v_B`, addition in `E` (bitwise `XOR` in
-  each limb, never integer addition); the successor is `(g·pc, fp)`. The result read carries
-  `(vA[0] + vB[0], vA[1] + vB[1], vA[2] + vB[2])`; prove
-  `add_limbs : E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2)`.
-- **MUL_NATIVE.** The cell `fp·o_C` holds `word v_A * word v_B`, the product in `E`, the
-  public description of the operation; the result read carries the twelve products over nine
-  limb pairs (`vA[0]·vB[0] + vA[1]·vB[2] + vA[2]·vB[1]`, …; Rust `TOWER_LANES`). Prove
-  `mul_limbs : E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 = E.ofLimbs (…)` by the fold
-  `y^3 = y + 1` (`ofLimbs_eq`, `y_pow_three`); it ties the coordinates to the product.
-- **SET_CONSTANT.** The binding is the instruction alone, `SET_CONSTANT o (word k)` with all
-  three immediate limbs; the cell `fp·o` holds `word k`.
+- **XOR.** The cell `fp·o_C` holds the sum of the two words, addition in `E` (bitwise `XOR`
+  in each limb, never integer addition); the successor is `(g·pc, fp)`. The result read
+  carries `(vA[0] + vB[0], vA[1] + vB[1], vA[2] + vB[2])`, the sum's limbs by Layer 0's
+  `add_limbs`.
+- **MUL_NATIVE.** The cell `fp·o_C` holds the product of the two words in `E`, the public
+  description of the operation; the result read carries the twelve products over nine limb
+  pairs (`vA[0]·vB[0] + vA[1]·vB[2] + vA[2]·vB[1]`, …; Rust `TOWER_LANES`), the product's
+  limbs by Layer 0's `mul_limbs`, which ties the coordinates to the product.
+- **SET_CONSTANT.** The binding is the instruction alone, `SET_CONSTANT o k` with the row's
+  immediate word, all three limbs; the cell `fp·o` holds it.
 - **DEREF.** Columns add `f_pc`, `f_fp`, the pointer `p`, and `v3`; the bindings name a mode
   with `derefFlags mode = (f_pc, f_fp)`, the pointer cell holding `E.ofLimbs p 0 0` and the
-  local cell holding `word v3` in every mode; the target `p·o₂` holds
-  `derefSource mode (pc, fp) (word v3)`, and the target read carries
+  local cell holding the row's local word in every mode; the target `p·o₂` holds
+  `derefSource mode (pc, fp)` of the local word, and the target read carries
   `(f̄·v3[0] + f_pc·(g²·pc) + f_fp·fp, f̄·v3[1], f̄·v3[2])` with `f̄ = 1 + f_pc + f_fp`. Prove
   `storeCoords_eval`: for each of the three flag settings the coordinates are
   `derefSource mode`. No booleanity constraint (Layer 4): the fetched instruction forces one of
@@ -690,7 +710,7 @@ Table-specific targets, each the opcode's equation and successor rule of `*_spec
   `jump_env_iff` (an environment uses the two witnesses exactly when slots `offset`,
   `offset + 1` hold the honest inverse and indicator), and `jump_residuals_of_constraints`.
 - **BLAKE2S.** The bindings are the instruction with the seven operands and the nine canonical
-  cell reads (`cellOf`, third coordinate `0`); `Blake2sSpec` expands to the bindings,
+  cell reads (`E.ofCell`, third coordinate `0`); `Blake2sSpec` expands to the bindings,
   `Blake2sRelation r` (`CompressCells` on the nine cells) and `(g·pc, fp)`. The Flock relation
   stays the named `Assumptions` field `Blake2sRelation r`: the component proves memory and
   bytecode binding, Flock (#3) discharges the compression, and soundness of `Blake2sSpec` is
@@ -706,7 +726,7 @@ counterexamples to a step-only contract (an `XOR` row at the `SET` instruction, 
 with flags `(1, 1)`) satisfying `step` and failing their bindings; a changed input limb
 (`XOR`, `MUL_NATIVE`), a changed immediate (`SET_CONSTANT`) and a non-canonical cell
 (`BLAKE2S`) failing the constraints `main` emits in every environment over the data
-(`*_reads_of_constraints`); the wrong witness `b = 1` at `v_cond = 0` failing the first
+(`*_spec_of_constraints`); the wrong witness `b = 1` at `v_cond = 0` failing the first
 residual; Clean's `Circuit.witgen` computing the two `JUMP` witnesses `jumpEnv` holds
 (compiled); and the `BLAKE2S` boundary, a bound and locally complete row whose canonical
 output is not the compression, failing `Blake2sRelation` and `Blake2sSpec`.
@@ -939,7 +959,9 @@ work, the Flock integration (#3), and the `Protocol` layer consume them and do n
 step, a table, or a balance predicate under another spelling.
 
 ```text
-Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  IsInK  IsCanonical128  instFiniteFieldK
+Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  E.ofCell  IsInK  IsCanonical128  instFiniteFieldK
+                  limb_add  limb_zero  ofK_add  ofK_mul  ofK_eq_ofLimbs  isInK_ofLimbs
+                  ofLimbs_of_isInK  ofLimbs_eq_zero_iff  add_limbs  mul_limbs
                   g  gpow  orderOf_g  gpow_injOn
                   Opcode  Opcode.code
                   minLogMem  maxLogMem  maxLogRows  maxLogBytecode  minLogRowsBlake2s
@@ -947,6 +969,7 @@ Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  IsInK  IsCanonical128  instFi
 Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   DerefMode  Instr  Instr.opcode  Program  Program.fetch
                   MemImage  gLog?  gLog?_spec  gLog?_gpow_eq_none  MemImage.read
+                  MemImage.limbsAt  MemImage.cellAt
                   PublicInput  word0  word1
                   Regs  Regs.next  derefSource  execute  step  step_of_fetch_eq_some
                   Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
@@ -958,24 +981,26 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   Direction  channelDir  channelSep  busTuple
                   memDataName  bytecodeDataName  memRows  bytecodeRows  imageOf  programOf
                   WellShapedData
-                  word  limbs  limbsAt  rowEnv  cellOf  cellAt
+                  rowEnv
                   XorRow  MulRow  SetRow  DerefRow  JumpRow  Blake2sRow  Blake2sRelation
                   XorRowBindings  MulRowBindings  SetRowBindings  DerefRowBindings
                   JumpRowBindings  Blake2sRowBindings
                   XorSpec  MulSpec  SetSpec  DerefSpec  JumpSpec  Blake2sSpec
-                  XorRowReads  MulRowReads  SetRowReads  DerefRowReads
                   xorTable  mulTable  setTable  derefTable  jumpTable  blake2sTable
                   xor_spec_iff  mul_spec_iff  set_spec_iff  deref_spec_iff  jump_spec_iff
-                  blake2s_spec_iff
-                  xor_reads_iff  mul_reads_iff  set_reads_iff  deref_reads_iff  jump_bindings_iff
-                  blake2s_bindings_of_spec
+                  blake2s_spec_iff  jump_bindings_iff  blake2s_bindings_of_spec
+                  xor_spec_of_constraints  mul_spec_of_constraints  set_spec_of_constraints
+                  deref_spec_of_constraints  jump_spec_of_constraints
+                  blake2s_bindings_of_constraints  jump_residuals_of_constraints
                   xorRowOf  mulRowOf  setRowOf  derefRowOf  jumpRowOf  blake2sRowOf
                   xor_row_exists  mul_row_exists  set_row_exists  deref_row_exists
                   jump_row_exists  blake2s_row_exists
                   xorRow_complete  mulRow_complete  setRow_complete  derefRow_complete
                   jumpRow_complete  blake2sRow_complete  blake2sRow_complete_of_spec
-                  jumpEnv  jump_env_iff  jump_residuals_of_constraints
-                  add_limbs  mul_limbs  storeCoords_eval  flags_sound  flags_complete
+                  xor_step_complete  mul_step_complete  set_step_complete  deref_step_complete
+                  jump_step_complete  blake2s_step_complete
+                  jumpEnv  jump_env_iff
+                  storeCoords_eval  flags_sound  flags_complete
                   memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
                   BalancedPair
                   IndexColumnsAreRowIndices  SeedRowsAreTheImage  BytecodeRowsAreTheProgram
