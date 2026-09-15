@@ -27,6 +27,12 @@ This directory contains stable project and operating knowledge.
   of work; the status file records how each finding was met.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
     table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
+- [design/](design/): design notes for substantive components, each a concrete proposal to
+  review before its layers are built.
+  - [blake2s-flock-boundary.md](design/blake2s-flock-boundary.md): how the `K`-valued `BLAKE2S`
+    table, Flock's Boolean R1CS and ring switching are reconciled in Lean: the packing bijection,
+    the circuit and its R1CS, the bridge to `Blake2sRelation`, the changes to the two roadmaps,
+    the alternatives rejected, and the decisions requested.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
