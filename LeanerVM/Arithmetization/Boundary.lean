@@ -1,0 +1,294 @@
+/-
+  LeanerVM.Arithmetization.Boundary
+
+  The three bus blocks owned by no table: the memory seed/finalize block, the bytecode
+  seed/finalize block, and the verifier's state boundary, each a Clean component, sound and
+  complete for what its interactions say.
+  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
+-/
+
+import LeanerVM.Arithmetization.Tables.Basic
+import LeanerVM.Semantics.Execution
+import Clean.Circuit.Formal
+import Clean.Utils.Tactics.CircuitProofStart
+
+/-!
+# The boundary blocks
+
+leanISA roadmap Layer 7 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the three
+blocks are `crates/lean_vm/src/cpu/layout.rs:352-395` (the "shared blocks" of `layout`), matching
+specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary), §6.2
+"Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:95`, the index
+column), and §8.4 (`08-end-to-end-protocol.tex:70`: "three blocks per side belong to no
+table"). The committed columns are `MEM_LO, MEM_HI, MEM_TOP, MFCNT` and `BFCNT`
+(`layout.rs:13-17`); the bytecode entry rides eight *public* columns (`bytecode_columns`,
+`layout.rs:229-290`, Layer 4's `entry`); the sentinel counter is `g^(N_prog - 1)` for the
+public program's length (`layout.rs:335`).
+
+**The three blocks.** Every table row of Layer 6 pulls its state and pushes its successor,
+and reads its cells and its instruction through the counted lookup of §6.2. What closes the
+three channel pairs are the boundary blocks: the *memory block* pushes each word of the image
+once, as `(g^i, 1, mem[i])`, and pulls it back with its final count, `(g^i, g^(A[i]), mem[i])`;
+the *bytecode block* does the same for each slot of the public program; the *verifier* pushes
+the initial state `(1, 1)` and pulls the final state `(g^(N_prog - 1), 1)`. None has a
+constraint: each is its two flushes.
+
+**The rows.** `MemRow` is the memory block's row: the address `idx` (the index column of §6.5,
+which the verifier computes and which is a column here until Clean PR #446), the finalize count
+`cntFin`, and the word's three limbs `m`; `BytecodeRow` is the bytecode block's: the counter
+`idx`, the finalize count, and the entry as the opcode and the seven operand slots, in the
+order of Layer 5's `BytecodeMsg`. `PublicIO` is what the verifier reads off the public data:
+the four lanes of the public input (§2, §8.2) and the sentinel counter `finalPc`. Clean's `main`
+cannot read the prover data, where Layer 5 keeps the program, so the counter enters as public
+input, as Clean's own VM verifiers read their boundary states off theirs; `PublicIO.ofInput
+prog input` is the public input of a run, with `finalPc = Program.finalPc prog`, and Layer 8
+requires the witness's public input to be it.
+
+**The specifications.** A block's `Spec` is what its pull guarantees (Layer 5): `MemSpec r
+data` says the row is bound to the image the data names, `MemBindings (imageOf data).2 r`, the
+cell at `idx` holding the row's word `E.ofLimbs m[0] m[1] m[2]`; `BytecodeSpec r data` says the
+row is bound to the program the data names, `BytecodeBindings (programOf data) r`, the program
+fetching an instruction at `idx` to which the row's entry decodes (Layer 4). The verifier's
+`Spec` is `True`: the state pull carries no guarantee, since a pulled state need not be
+reachable (roadmap acceptance test 21, decision 7), and what the state boundary yields, a run
+from `(1, 1)` to `(g^(N_prog - 1), 1)` inside a balanced bus, is Layer 9's
+`exists_run_of_balanced`, stated once, from balance, never per component. Access counts are
+outside every specification: nothing checks a finalize count (§6.2, "Nothing checks the
+finalize counts"), and a wrong one can only unbalance the bus (Layer 8).
+
+**Soundness and completeness.** Soundness assumes the guarantee of the block's pull and
+concludes `Spec`, which is that guarantee; the requirement of its push is vacuous (Layer 5). The
+honest-prover premise is `Spec` itself, and nothing above this file assumes it: `memRowOf mem i
+cntFin` is the seed row of word `i` of an image and `bytecodeRowOf prog i cntFin` the seed row
+of slot `i` of a program, `memRowOf_bindings` and `bytecodeRowOf_bindings` prove them bound
+with any finalize count, and `mem_word_complete` and `bytecode_entry_complete` push them
+through `completeness` over the prover data: every word of the image and every slot of the
+program has a satisfying row, in the row environment `rowEnv data`. Both builders are
+computable, since they read the image and the program as functions, never through
+`MemImage.read`. The verifier is complete for every public input.
+
+## Wrong readings excluded
+
+* The seed count is the literal `1 = g^0` and the finalize count a column: a block whose seed
+  carried the finalize count, or whose finalize pulled `1`, would let a read go unbalanced;
+  `main` transcribes `Const(one)` on the push and `Col(MFCNT)`/`Col(BFCNT)` on the pull.
+* The verifier pulls `fp = 1` as a literal (§6.1, the final frame pointer is `g^0`; acceptance
+  test 4), never a public coordinate: a run ending with `fp ≠ 1` cannot balance the state pair.
+* `idx` is a column of the row here, not the verifier's index column: nothing in `main` ties
+  row `i` to `g^i`. That is Layer 8's `IndexColumnsAreRowIndices`, and the two seed tables
+  being the image and the program are its `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`,
+  all three removed by Clean PR #446 (roadmap dependency table).
+* The bytecode entry carries all seven operand slots, spare slots as literal zeros, so that the
+  seed of a slot and a table's read of it are the same tuple (status finding R24); Layer 4's
+  `decode` rejects a nonzero spare slot, and so does `BytecodeBindings` (tests).
+* The public words are not on the bus: §8.2 checks them against the committed memory by an
+  evaluation claim, which Layer 8 states as a conjunct of `SatisfiedBy` over `imageOf w.data`,
+  and the verifier reads `lanes` for nothing.
+-/
+
+namespace LeanerVM.Arithmetization
+
+open LeanerVM.Parameters LeanerVM.Semantics
+
+/-! ## The public input of the constraint system -/
+
+/-- What the verifier circuit reads off the public data: the four lanes of the public input
+(specification §2, §8.2) and the sentinel counter `g^(N_prog - 1)`, which the leanVM verifier
+derives from the public program's length (`layout.rs:335`). -/
+structure PublicIO (F : Type) where
+  /-- `input₀, …, input₃`. -/
+  lanes : Vector F 4
+  /-- The sentinel counter `g^(N_prog - 1)`, the final program counter. -/
+  finalPc : F
+  deriving ProvableStruct
+
+/-- The public input of a run of `prog` on `input`: the lanes, and the program's sentinel
+counter `Program.finalPc prog`. -/
+def PublicIO.ofInput (prog : Program) (input : PublicInput) : PublicIO K :=
+  ⟨#v[input.lanes 0, input.lanes 1, input.lanes 2, input.lanes 3], prog.finalPc⟩
+
+/-! ## The memory block -/
+
+/-- A row of the memory block: the address `g^i` (the index column of §6.5), the finalize count
+`g^(A[i])` (`MFCNT`), and the word's three limbs (`MEM_LO, MEM_HI, MEM_TOP`; `layout.rs:13-16`). -/
+structure MemRow (F : Type) where
+  /-- The address, `g^i` for row `i`. -/
+  idx : F
+  /-- The finalize count, `g^(A[i])` for an address read `A[i]` times. -/
+  cntFin : F
+  /-- The word at the address, as limbs. -/
+  m : Vector F 3
+  deriving ProvableStruct
+
+/-- The row's binding to an image: the cell at its address holds its word. -/
+structure MemBindings {κ : ℕ} (mem : MemImage κ) (r : MemRow K) : Prop where
+  /-- The cell `idx` holds the row's word `m`. -/
+  word_eq : mem.read r.idx = some (E.ofLimbs r.m[0] r.m[1] r.m[2])
+
+/-- The memory block's `Spec`: the row is bound to the image the prover data names (Layer 5's
+`imageOf`). -/
+def MemSpec (r : MemRow K) (data : ProverData K) : Prop :=
+  MemBindings (imageOf data).2 r
+
+/-- The memory block (specification §6.2, seed and finalize; `layout.rs:359-381`): push
+`(idx, 1, m)`, pull `(idx, cntFin, m)`. -/
+def memTable : GeneralFormalCircuit K MemRow unit where
+  main r := do
+    MemPush.push ⟨r.idx, 1, r.m⟩
+    MemPull.pull ⟨r.idx, r.cntFin, r.m⟩
+  -- The push channel: its requirement is vacuous (Layer 5), the obligation is `Spec`.
+  channelsWithRequirements := [MemPush.toRaw]
+  requirementsChannelsLawful input offset := by
+    -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
+    simp only [circuit_norm, -BitVec.reduceNeg]
+    tauto
+  Spec r _ data := MemSpec r data
+  -- The honest prover's row: a word of the image. Proved of the row of every word by
+  -- `memRowOf_bindings`; see `mem_word_complete`.
+  ProverAssumptions r data _ := MemSpec r data
+  soundness := by
+    circuit_proof_start [MemPull, MemPush]
+    obtain ⟨_, _, hm⟩ := h_input
+    subst hm
+    exact ⟨by simpa only [Vector.getElem_map] using h_holds⟩
+  completeness := by
+    circuit_proof_start [MemPull, MemPush]
+    obtain ⟨_, _, hm⟩ := h_input
+    subst hm
+    simpa only [Vector.getElem_map] using h_assumptions.word_eq
+
+/-- The seed row of word `i` of the image `mem`, with finalize count `cntFin`: the address `g^i`
+and the word's limbs. -/
+def memRowOf {κ : ℕ} (mem : MemImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K :=
+  ⟨gpow i, cntFin, #v[(mem i).limb 0, (mem i).limb 1, (mem i).limb 2]⟩
+
+/-- On an image within the address space `gLog?_spec` covers, `memRowOf` is bound, with any
+finalize count. -/
+theorem memRowOf_bindings {κ : ℕ} (hκ : κ < 64) (mem : MemImage κ) (i : Fin (2 ^ κ))
+    (cntFin : K) : MemBindings mem (memRowOf mem i cntFin) :=
+  ⟨by
+    show mem.read (gpow i) = some (E.ofLimbs ((mem i).limb 0) ((mem i).limb 1) ((mem i).limb 2))
+    rw [MemImage.read_gpow hκ, ofLimbs_limb]⟩
+
+/-- Every word of the image named by the data has a satisfying seed row, from the image alone:
+the constraints of `main` hold of `memRowOf` in the row environment over the data. -/
+theorem mem_word_complete {data : ProverData K} (i : Fin (2 ^ (imageOf data).1)) (cntFin : K) :
+    ConstraintsHold.Completeness (rowEnv data)
+      ((memTable.main (const (memRowOf (imageOf data).2 i cntFin))).operations 0) :=
+  (memTable.completeness 0 (rowEnv data) (const _)
+    -- No witness slot: the row environment uses the local witnesses vacuously.
+    (by simp only [circuit_norm, memTable, -BitVec.reduceNeg]) _
+    ProvableType.eval_const_prover
+    (memRowOf_bindings (lt_of_le_of_lt (Nat.min_le_right _ _) (by decide)) _ _ _)).1
+
+/-! ## The bytecode block -/
+
+/-- A row of the bytecode block: the counter `g^i` (the index column), the finalize count
+`g^(A[i])` (`BFCNT`, `layout.rs:17`), and the entry of Layer 4 at that slot, the opcode and the
+seven operand slots (the eight public columns of `bytecode_columns`, `layout.rs:229-290`). -/
+structure BytecodeRow (F : Type) where
+  /-- The counter, `g^i` for row `i`. -/
+  idx : F
+  /-- The finalize count, `g^(A[i])` for a slot executed `A[i]` times. -/
+  cntFin : F
+  /-- The opcode, coordinate 3 of the tuple. -/
+  opcode : F
+  /-- The seven operand slots. -/
+  op : Vector F 7
+  deriving ProvableStruct
+
+/-- The row's binding to a program: the program fetches an instruction at the row's counter,
+and the row's entry decodes to it (Layer 4; `decode_eq_some_iff` reads it as the entry). -/
+structure BytecodeBindings (prog : Program) (r : BytecodeRow K) : Prop where
+  /-- The program fetches at `idx` the instruction the row's entry decodes to. -/
+  entry_eq : ∃ ins, prog.fetch r.idx = some ins ∧ decode (#v[r.opcode] ++ r.op) = some ins
+
+/-- The bytecode block's `Spec`: the row is bound to the program the prover data names (Layer
+5's `programOf`). -/
+def BytecodeSpec (r : BytecodeRow K) (data : ProverData K) : Prop :=
+  BytecodeBindings (programOf data) r
+
+/-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs:382-395`):
+push `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`. -/
+def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
+  main r := do
+    BytecodePush.push ⟨r.idx, 1, r.opcode, r.op⟩
+    BytecodePull.pull ⟨r.idx, r.cntFin, r.opcode, r.op⟩
+  -- The push channel: its requirement is vacuous (Layer 5), the obligation is `Spec`.
+  channelsWithRequirements := [BytecodePush.toRaw]
+  requirementsChannelsLawful input offset := by
+    simp only [circuit_norm, -BitVec.reduceNeg]
+    tauto
+  Spec r _ data := BytecodeSpec r data
+  -- The honest prover's row: a slot of the program. Proved of the row of every slot by
+  -- `bytecodeRowOf_bindings`; see `bytecode_entry_complete`.
+  ProverAssumptions r data _ := BytecodeSpec r data
+  soundness := by
+    circuit_proof_start [BytecodePull, BytecodePush]
+    obtain ⟨_, _, _, hop⟩ := h_input
+    subst hop
+    exact ⟨h_holds⟩
+  completeness := by
+    circuit_proof_start [BytecodePull, BytecodePush]
+    obtain ⟨_, _, _, hop⟩ := h_input
+    subst hop
+    exact h_assumptions.entry_eq
+
+/-! ### Proof helpers -/
+
+/-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
+private theorem cons_append_ops (e : Vector K 8) :
+    #v[e[0]] ++ #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]] = e := by
+  ext j hj
+  interval_cases j <;> rfl
+
+/-- The seed row of slot `i` of the program `prog`, with finalize count `cntFin`: the counter
+`g^i` and the slot's entry (Layer 4) as the opcode and the seven operand slots. -/
+def bytecodeRowOf (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) : BytecodeRow K :=
+  let e := entry (prog.code i)
+  ⟨gpow i, cntFin, e[0], #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]]⟩
+
+/-- `bytecodeRowOf` is bound, with any finalize count. -/
+theorem bytecodeRowOf_bindings (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
+    BytecodeBindings prog (bytecodeRowOf prog i cntFin) :=
+  ⟨_, prog.fetch_gpow i, by
+    show decode (#v[(entry (prog.code i))[0]] ++ #v[(entry (prog.code i))[1],
+      (entry (prog.code i))[2], (entry (prog.code i))[3], (entry (prog.code i))[4],
+      (entry (prog.code i))[5], (entry (prog.code i))[6], (entry (prog.code i))[7]]) = some _
+    rw [cons_append_ops]
+    exact decode_entry _⟩
+
+/-- Every slot of the program named by the data has a satisfying seed row, from the program
+alone: the constraints of `main` hold of `bytecodeRowOf` in the row environment over the data. -/
+theorem bytecode_entry_complete {data : ProverData K} (i : Fin (2 ^ (programOf data).logSize))
+    (cntFin : K) :
+    ConstraintsHold.Completeness (rowEnv data)
+      ((bytecodeTable.main (const (bytecodeRowOf (programOf data) i cntFin))).operations 0) :=
+  (bytecodeTable.completeness 0 (rowEnv data) (const _)
+    (by simp only [circuit_norm, bytecodeTable, -BitVec.reduceNeg]) _
+    ProvableType.eval_const_prover (bytecodeRowOf_bindings _ _ _)).1
+
+/-! ## The verifier -/
+
+/-- The verifier's state boundary (specification §6.1; `layout.rs:352-358`): push the initial
+state `(1, 1)`, pull the final state `(g^(N_prog - 1), 1)`, the counter read off the public
+input. `Spec` is `True`: the state pull carries no guarantee (acceptance test 21), and the run
+the boundary closes is Layer 9's `exists_run_of_balanced`. -/
+def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where
+  main pi := do
+    StatePush.push ⟨1, 1⟩
+    StatePull.pull ⟨pi.finalPc, 1⟩
+  -- The push channel: its requirement is vacuous (Layer 5).
+  channelsWithRequirements := [StatePush.toRaw]
+  requirementsChannelsLawful input offset := by
+    simp only [circuit_norm, -BitVec.reduceNeg]
+    tauto
+  Spec _ _ _ := True
+  -- No constraint, no guarantee, no requirement: both statements are closed by their openers.
+  soundness := by
+    circuit_proof_start [StatePull, StatePush]
+  completeness := by
+    circuit_proof_start [StatePull, StatePush]
+
+end LeanerVM.Arithmetization

@@ -1,3 +1,4 @@
+import LeanerVMTests.Arithmetization.Boundary
 import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Tables

@@ -207,6 +207,7 @@ proof-committed `ProverData`.
 | `JUMP` | The three `K` assertions are unconditional; taken iff `c ≠ 0`; flags `b = c·w`, `c·(b + 1) = 0`. |
 | `BLAKE2S` | Tree-mode compression with both flags, each a 32-bit word (`0xFFFFFFFF` when set), never a `Bool`; metadata `counter = limb 0`, `final = low 32 bits of limb 1`, `last_node = high 32 bits of limb 1`; all nine cells canonical 128-bit; word order transcribed from the Rust. |
 | Bus | One Clean channel per interaction and direction (`st/mem/bc` × `pull/push`); each channel names its domain separator (`g^0`, `g^1`, `g^2`) and its direction as data (`channelSep`, `channelDir`), never through a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)`; balance = multiset equality per pair. |
+| Boundary blocks | Three components owned by no table (§8.4): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier pushes `(1, 1)` and pulls `(finalPc, 1)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes and `finalPc`, fixed to `prog.finalPc` by `SatisfiedBy`. |
 | Opcode codes | `g^0 … g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP, BLAKE2S. |
 | Bytecode slots | Sixteen `K` slots; opcode in slot 3; operands in slots 4..10; `SET`'s `k2` in slot 7; `BLAKE2S` uses all seven; zero elsewhere. |
 | Caps | `16 ≤ κ_mem ≤ 32`; every table height is a power of two `≤ 2^32`; the bytecode length is `2^logSize ≤ 2^32`; the BLAKE2S table has at least `2^3` rows. |
@@ -760,19 +761,91 @@ compression, failing `Blake2sRelation` and `Blake2sSpec`.
 
 `LeanerVM/Arithmetization/Boundary.lean`.
 
+The three blocks owned by no table (specification §6.1, §6.2 "Flush rules", §8.4;
+`layout.rs:352-395`): the memory and bytecode seed/finalize blocks and the verifier's state
+boundary. Each is a `GeneralFormalCircuit … unit` whose `main` is its two flushes, a push at
+count `1` and a pull at the row's finalize count, with no constraint; its `Spec` is what its
+pull guarantees (Layer 5), stated over the image or the program and adapted to the prover data
+as in Layer 6; and its honest-prover premise is that `Spec`, proved of the row of every word or
+slot, so that nothing above the layer assumes it.
+
 ```lean
+structure PublicIO (F : Type) where (lanes : Vector F 4) (finalPc : F)   -- deriving ProvableStruct
+def PublicIO.ofInput (prog : Program) (input : PublicInput) : PublicIO K   -- the lanes; `prog.finalPc`
+
 structure MemRow (F : Type) where (idx cntFin : F) (m : Vector F 3)
+structure MemBindings {κ} (mem : MemImage κ) (r : MemRow K) : Prop where
+  word_eq : mem.read r.idx = some (E.ofLimbs r.m[0] r.m[1] r.m[2])
+def MemSpec (r : MemRow K) (data : ProverData K) : Prop := MemBindings (imageOf data).2 r
 def memTable : GeneralFormalCircuit K MemRow unit where           -- seed push, finalize pull
   main r := do MemPush.push ⟨r.idx, 1, r.m⟩; MemPull.pull ⟨r.idx, r.cntFin, r.m⟩
+  channelsWithRequirements := [MemPush.toRaw]
+  Spec r _ data := MemSpec r data
+  ProverAssumptions r data _ := MemSpec r data
   …
-def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit       -- likewise, entries public
+def memRowOf {κ} (mem : MemImage κ) (i : Fin (2 ^ κ)) (cntFin : K) : MemRow K   -- `(g^i, cntFin, mem i)`
+theorem memRowOf_bindings (hκ : κ < 64) : MemBindings mem (memRowOf mem i cntFin)
+theorem mem_word_complete (i : Fin (2 ^ (imageOf data).1)) (cntFin : K) :
+    ConstraintsHold.Completeness (rowEnv data)
+      ((memTable.main (const (memRowOf (imageOf data).2 i cntFin))).operations 0)
+
+structure BytecodeRow (F : Type) where (idx cntFin opcode : F) (op : Vector F 7)
+structure BytecodeBindings (prog : Program) (r : BytecodeRow K) : Prop where
+  entry_eq : ∃ ins, prog.fetch r.idx = some ins ∧ decode (#v[r.opcode] ++ r.op) = some ins
+def BytecodeSpec (r : BytecodeRow K) (data : ProverData K) : Prop := BytecodeBindings (programOf data) r
+def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit       -- likewise, on the bytecode pair
+def bytecodeRowOf (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) : BytecodeRow K
+theorem bytecodeRowOf_bindings : BytecodeBindings prog (bytecodeRowOf prog i cntFin)
+theorem bytecode_entry_complete (i : Fin (2 ^ (programOf data).logSize)) (cntFin : K) : …
+
 def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where  -- push initial, pull final
-  main _ := do StatePush.push ⟨1, 1⟩; StatePull.pull ⟨const (gpow (N_prog - 1)), 1⟩
+  main pi := do StatePush.push ⟨1, 1⟩; StatePull.pull ⟨pi.finalPc, 1⟩
+  channelsWithRequirements := [StatePush.toRaw]
+  Spec _ _ _ := True
   …
 ```
 
-Prove soundness and completeness for each; the verifier's `Spec` is "the final registers are
-reachable".
+- **The public input.** `PublicIO` is what the verifier circuit reads off the public data: the
+  four lanes of the public input and the sentinel counter `g^(N_prog - 1)`, which the leanVM
+  verifier derives from the public program's length (`layout.rs:335`). Clean's `main` cannot
+  read the prover data, where Layer 5 keeps the program, so the counter enters as public input,
+  as Clean's own VM verifiers read their boundary states off theirs; `PublicIO.ofInput prog
+  input` is the public input of a run, and Layer 8's `SatisfiedBy` requires
+  `w.publicInput = PublicIO.ofInput prog input`. The public words are not on the bus (§8.2
+  checks them against the committed memory by an evaluation claim) and are a conjunct of
+  `SatisfiedBy` over `imageOf w.data`; the verifier reads `lanes` for nothing.
+- **The memory block.** `MemRow` is the address `idx` (the index column of §6.5, a column here
+  until Clean PR #446 makes it the verifier's), the finalize count `cntFin` (`MFCNT`), and the
+  word's three limbs (`MEM_LO, MEM_HI, MEM_TOP`). `MemBindings mem r` binds the row to an image,
+  the cell at `idx` holding the row's word, and `MemSpec` adapts it to the data. Soundness is
+  the pull's guarantee; completeness discharges it from the premise. `memRowOf mem i cntFin` is
+  the seed row of word `i`, bound by `memRowOf_bindings` under `κ < 64` (the cap), and
+  `mem_word_complete` says every word of the image the data names has a satisfying row in
+  `rowEnv data`, with any finalize count: nothing checks a finalize count (§6.2), a wrong one
+  can only unbalance the bus (Layer 8).
+- **The bytecode block.** `BytecodeRow` is the counter `idx`, the finalize count (`BFCNT`), and
+  the entry of Layer 4 as the opcode and the seven operand slots, spare slots as literal zeros
+  (the eight public columns of `bytecode_columns`, `layout.rs:229-290`). `BytecodeBindings prog
+  r` binds the row to a program, the program fetching at `idx` the instruction the row's entry
+  decodes to, spelled as `BytecodePull.Guarantees` spells it; `bytecodeRowOf prog i cntFin` is
+  the seed row of slot `i`, always bound, and `bytecode_entry_complete` its acceptance over the
+  data. Both builders are computable: they read the image and the program as functions.
+- **The verifier.** `main` pushes `(1, 1)` and pulls `(finalPc, 1)`, the final frame pointer a
+  literal (§6.1, acceptance test 4). Its `Spec` is `True`: the state pull carries no guarantee
+  (acceptance test 21, the closed walks), so no per-component statement about the pulled state
+  is sound, and the run the boundary closes is Layer 9's `exists_run_of_balanced`, stated once
+  from balance. It has no local witness (`localLength = 0`, the `verifier_length_zero` field of
+  Layer 8's ensemble) and is complete for every public input.
+
+Tests: the three components' interaction lists as data against `layout.rs:352-395` (push at
+`1`, pull at the finalize count, on the block's channel pair); `PublicIO` flattening to the four
+lanes then the counter, and `PublicIO.ofInput` fixing the counter to the program's; on a
+four-word, two-slot prover data, the honest rows bound and the rows `memRowOf`/`bytecodeRowOf`
+build accepted from the image and the program alone, with the count `0` too; a changed limb,
+the address `0` (acceptance test 2) and an address past the image failing `MemSpec` and hence
+the constraints `main` emits in every environment over the data (read back through
+`soundness`); a changed opcode, a nonzero spare slot (acceptance test 16) and a counter past
+the program failing `BytecodeSpec` the same way.
 
 ### Layer 8: the constraint statement
 
@@ -801,7 +874,7 @@ def Caps (w) : Prop                            -- `16 ≤ κ ≤ 32`; heights `2
 
 def SatisfiedBy (prog : Program) (input : PublicInput)
     (w : EnsembleWitness leanIsaEnsemble) : Prop :=
-  w.publicInput = input ∧ w.Constraints ∧
+  w.publicInput = PublicIO.ofInput prog input ∧ w.Constraints ∧
   BalancedPair w StatePull.toRaw StatePush.toRaw ∧
   BalancedPair w MemPull.toRaw MemPush.toRaw ∧
   BalancedPair w BytecodePull.toRaw BytecodePush.toRaw ∧
@@ -1023,7 +1096,12 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   jump_step_complete  blake2s_step_complete
                   jumpEnv  jump_env_iff
                   storeCoords_eval  flags_sound  flags_complete
-                  memTable  bytecodeTable  leanIsaVerifier  leanIsaEnsemble
+                  PublicIO  PublicIO.ofInput  MemRow  BytecodeRow
+                  MemBindings  BytecodeBindings  MemSpec  BytecodeSpec
+                  memTable  bytecodeTable  leanIsaVerifier
+                  memRowOf  bytecodeRowOf  memRowOf_bindings  bytecodeRowOf_bindings
+                  mem_word_complete  bytecode_entry_complete
+                  leanIsaEnsemble
                   BalancedPair
                   IndexColumnsAreRowIndices  SeedRowsAreTheImage  BytecodeRowsAreTheProgram
                   CountsNonzero  Caps  SatisfiedBy  AssignmentRepresents
@@ -1052,7 +1130,8 @@ witness, a matrix, or a stack position.
 
 Layers 0, 1, and 4 are independent and can begin at once. Layer 2 needs Layer 0; Layer 3 needs
 Layers 1 and 2; Layer 5 needs Layers 3 and 4; Layer 6 needs Layer 5, and its six tables are
-independent of one another; Layer 7 needs Layer 5; Layer 8 needs Layers 6 and 7. Layer 9 needs
+independent of one another; Layer 7 needs Layer 5 and the shared vocabulary of Layer 6
+(`Tables/Basic.lean`, `rowEnv`); Layer 8 needs Layers 6 and 7. Layer 9 needs
 Layer 8 and the Clean contract of the dependency table; until that contract is met its
 statements are block comments at their places. Layer 10 needs Layer 9, and its completeness
 half additionally needs the fill-block lemma.
