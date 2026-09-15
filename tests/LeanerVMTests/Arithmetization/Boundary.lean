@@ -10,10 +10,10 @@ tests.
 
 The three components are pinned to the Rust blocks (`layout.rs:352-395`) as data: each is a
 push at count `1` and a pull at the finalize count, on its channel pair, with the pull's
-multiplicity `-1` and its guarantee assumed; the verifier has no local witness (the
-`verifier_length_zero` field of Layer 8's ensemble) and is complete for every public input.
-`PublicIO` flattens to the four lanes then the sentinel counter, and `PublicIO.ofInput` fixes
-the counter to the program's.
+multiplicity `-1` and its guarantee assumed; the verifier of a program has no local witness (the
+`verifier_length_zero` field of Layer 8's ensemble), is complete for every public input, and
+pulls the program's sentinel as a constant, `g^1` for the fixture's two-slot program.
+`PublicIO` flattens to the four lanes.
 
 For the two seed blocks: the honest row of a word or a slot is bound (`MemSpec`, `BytecodeSpec`)
 and the row `memRowOf`/`bytecodeRowOf` builds from the image or the program alone satisfies the
@@ -100,11 +100,12 @@ example (r : Var BytecodeRow K) : (bytecodeTable.main r).operations 0 =
        toElements (⟨r.idx, r.cntFin, r.opcode, r.op⟩ : BytecodeMsg (Expression K)), true⟩] :=
   rfl
 
-/-- The verifier: push `(1, 1)`, pull `(finalPc, 1)`, on the state pair (specification §6.1). -/
-example (pi : Var PublicIO K) : (leanIsaVerifier.main pi).operations 0 =
+/-- The verifier of `prog`: push `(1, 1)`, pull `(prog.finalPc, 1)`, both constants, on the state
+pair (specification §6.1; `layout.rs:354-358`). -/
+example (prog : Program) (pi : Var PublicIO K) : ((leanIsaVerifier prog).main pi).operations 0 =
     [.interact ⟨StatePush.toRaw, 1, toElements (⟨1, 1⟩ : Regs (Expression K)), false⟩,
-     .interact ⟨StatePull.toRaw, -1, toElements (⟨pi.finalPc, 1⟩ : Regs (Expression K)),
-       true⟩] :=
+     .interact ⟨StatePull.toRaw, -1,
+       toElements (⟨Expression.const prog.finalPc, 1⟩ : Regs (Expression K)), true⟩] :=
   rfl
 
 /-- The seed count is the word `1 = g^0`. -/
@@ -112,36 +113,38 @@ example (env : Environment K) : Expression.eval env (1 : Expression K) = gpow 0 
   simp only [circuit_norm]; rfl
 
 /-- The verifier has no local witness: the `verifier_length_zero` field of Layer 8's ensemble. -/
-example (pi : Var PublicIO K) : leanIsaVerifier.localLength pi = 0 := by
+example (prog : Program) (pi : Var PublicIO K) : (leanIsaVerifier prog).localLength pi = 0 := by
   simp only [circuit_norm, leanIsaVerifier]
 
-/-- The verifier is complete for every public input over every data. -/
-example (pi : PublicIO K) (data : ProverData K) :
+/-- The verifier is complete for every program and public input over every data. -/
+example (prog : Program) (pi : PublicIO K) (data : ProverData K) :
     ConstraintsHold.Completeness (rowEnv data)
-      ((leanIsaVerifier.main (const pi)).operations 0) :=
-  (leanIsaVerifier.completeness 0 (rowEnv data) (const pi)
+      (((leanIsaVerifier prog).main (const pi)).operations 0) :=
+  ((leanIsaVerifier prog).completeness 0 (rowEnv data) (const pi)
     (by simp only [circuit_norm, leanIsaVerifier, -BitVec.reduceNeg]) pi
     ProvableType.eval_const_prover trivial).1
 
-/-! ## The public input -/
+/-- The two boundary states are Layer 3's: `(1, 1)`, and `(g^(N_prog - 1), 1)`, which is
+`(g^1, 1)` for the fixture's two-slot program. -/
+example (env : Environment K) : eval env (⟨1, 1⟩ : Regs (Expression K)) = Regs.initial :=
+  verifier_push_eval env
 
--- The four lanes, then the sentinel counter.
-#guard (toElements (⟨#v[1, 2, 3, 4], 5⟩ : PublicIO K)).toList = [1, 2, 3, 4, 5]
-#guard (toElements (PublicIO.ofInput (programOf bData) ⟨![7, 8, 9, 10]⟩)).toList =
-  [7, 8, 9, 10, gpow 1]
-
--- Five coordinates.
-example : size PublicIO = 5 := rfl
-
-/-- `PublicIO.ofInput` fixes the counter to the program's sentinel `g^(N_prog - 1)`: `g^1` for
-the two-slot program. -/
-example (input : PublicInput) :
-    (PublicIO.ofInput (programOf bData) input).finalPc = (programOf bData).finalPc := rfl
-
-example (input : PublicInput) : (PublicIO.ofInput (programOf bData) input).finalPc = gpow 1 := by
-  show gpow (2 ^ (programOf bData).logSize - 1) = gpow 1
+example (env : Environment K) :
+    eval env (⟨Expression.const (programOf bData).finalPc, 1⟩ : Regs (Expression K)) =
+      ⟨gpow 1, 1⟩ := by
+  rw [verifier_pull_eval]
+  show (⟨gpow (2 ^ (programOf bData).logSize - 1), 1⟩ : Regs K) = _
   rw [bData_progLogSize]
   rfl
+
+/-! ## The public input -/
+
+-- The four lanes, and nothing else: the sentinel counter is the verifier's constant.
+#guard (toElements (⟨#v[1, 2, 3, 4]⟩ : PublicIO K)).toList = [1, 2, 3, 4]
+#guard (toElements (PublicIO.ofInput ⟨![7, 8, 9, 10]⟩)).toList = [7, 8, 9, 10]
+
+-- Four coordinates.
+example : size PublicIO = 4 := rfl
 
 /-! ## The memory block -/
 
@@ -212,11 +215,12 @@ def bcRow0 : BytecodeRow K :=
 theorem bcRow0_spec : BytecodeSpec bcRow0 bData :=
   ⟨_, fetch_at 0 (.xor (gpow 2) (gpow 3) (gpow 4)), by decide +kernel⟩
 
-/-- The row `bytecodeRowOf` builds from the program is the honest row, and slot `1` gives the
-`JUMP` entry with its four spare slots zero. -/
+/-- The two slot indices of the fixture's program. -/
 theorem slot0_lt : 0 < 2 ^ (programOf bData).logSize := by rw [bData_progLogSize]; decide
 theorem slot1_lt : 1 < 2 ^ (programOf bData).logSize := by rw [bData_progLogSize]; decide
 
+/-- The row `bytecodeRowOf` builds from the program is the honest row, and slot `1` gives the
+`JUMP` entry with its four spare slots zero. -/
 example : bytecodeRowOf (programOf bData) ⟨0, slot0_lt⟩ (gpow 2) = bcRow0 := by
   have h : (programOf bData).code ⟨0, slot0_lt⟩ = .xor (gpow 2) (gpow 3) (gpow 4) :=
     programOf_code bData_wellShaped _ (by decide +kernel)

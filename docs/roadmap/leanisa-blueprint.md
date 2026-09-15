@@ -207,7 +207,7 @@ proof-committed `ProverData`.
 | `JUMP` | The three `K` assertions are unconditional; taken iff `c ≠ 0`; flags `b = c·w`, `c·(b + 1) = 0`. |
 | `BLAKE2S` | Tree-mode compression with both flags, each a 32-bit word (`0xFFFFFFFF` when set), never a `Bool`; metadata `counter = limb 0`, `final = low 32 bits of limb 1`, `last_node = high 32 bits of limb 1`; all nine cells canonical 128-bit; word order transcribed from the Rust. |
 | Bus | One Clean channel per interaction and direction (`st/mem/bc` × `pull/push`); each channel names its domain separator (`g^0`, `g^1`, `g^2`) and its direction as data (`channelSep`, `channelDir`), never through a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)`; balance = multiset equality per pair. |
-| Boundary blocks | Three components owned by no table (§8.4): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier pushes `(1, 1)` and pulls `(finalPc, 1)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes and `finalPc`, fixed to `prog.finalPc` by `SatisfiedBy`. |
+| Boundary blocks | Three components owned by no table (§8.4): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier `leanIsaVerifier prog` pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both constants, the counter the public program's as in `layout(prog, …)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes; the ensemble is `leanIsaEnsemble prog`. |
 | Opcode codes | `g^0 … g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP, BLAKE2S. |
 | Bytecode slots | Sixteen `K` slots; opcode in slot 3; operands in slots 4..10; `SET`'s `k2` in slot 7; `BLAKE2S` uses all seven; zero elsewhere. |
 | Caps | `16 ≤ κ_mem ≤ 32`; every table height is a power of two `≤ 2^32`; the bytecode length is `2^logSize ≤ 2^32`; the BLAKE2S table has at least `2^3` rows. |
@@ -770,8 +770,8 @@ as in Layer 6; and its honest-prover premise is that `Spec`, proved of the row o
 slot, so that nothing above the layer assumes it.
 
 ```lean
-structure PublicIO (F : Type) where (lanes : Vector F 4) (finalPc : F)   -- deriving ProvableStruct
-def PublicIO.ofInput (prog : Program) (input : PublicInput) : PublicIO K   -- the lanes; `prog.finalPc`
+structure PublicIO (F : Type) where (lanes : Vector F 4)   -- deriving ProvableStruct
+def PublicIO.ofInput (input : PublicInput) : PublicIO K   -- the lanes
 
 structure MemRow (F : Type) where (idx cntFin : F) (m : Vector F 3)
 structure MemBindings {κ} (mem : MemImage κ) (r : MemRow K) : Prop where
@@ -798,22 +798,25 @@ def bytecodeRowOf (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) : B
 theorem bytecodeRowOf_bindings : BytecodeBindings prog (bytecodeRowOf prog i cntFin)
 theorem bytecode_entry_complete (i : Fin (2 ^ (programOf data).logSize)) (cntFin : K) : …
 
-def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where  -- push initial, pull final
-  main pi := do StatePush.push ⟨1, 1⟩; StatePull.pull ⟨pi.finalPc, 1⟩
+def leanIsaVerifier (prog : Program) : GeneralFormalCircuit K PublicIO unit where  -- push initial, pull final
+  main _ := do StatePush.push ⟨1, 1⟩; StatePull.pull ⟨Expression.const prog.finalPc, 1⟩
   channelsWithRequirements := [StatePush.toRaw]
   Spec _ _ _ := True
   …
+theorem verifier_push_eval (env : Environment K) : eval env (⟨1, 1⟩ : Regs (Expression K)) = Regs.initial
+theorem verifier_pull_eval (prog : Program) (env : Environment K) :
+    eval env (⟨Expression.const prog.finalPc, 1⟩ : Regs (Expression K)) = Regs.final prog
 ```
 
 - **The public input.** `PublicIO` is what the verifier circuit reads off the public data: the
-  four lanes of the public input and the sentinel counter `g^(N_prog - 1)`, which the leanVM
-  verifier derives from the public program's length (`layout.rs:335`). Clean's `main` cannot
-  read the prover data, where Layer 5 keeps the program, so the counter enters as public input,
-  as Clean's own VM verifiers read their boundary states off theirs; `PublicIO.ofInput prog
-  input` is the public input of a run, and Layer 8's `SatisfiedBy` requires
-  `w.publicInput = PublicIO.ofInput prog input`. The public words are not on the bus (§8.2
-  checks them against the committed memory by an evaluation claim) and are a conjunct of
-  `SatisfiedBy` over `imageOf w.data`; the verifier reads `lanes` for nothing.
+  four lanes of the public input. `PublicIO.ofInput input` is the public input of a run, and
+  Layer 8's `SatisfiedBy` requires `w.publicInput = PublicIO.ofInput input`. The public words
+  are not on the bus (§8.2 checks them against the committed memory by an evaluation claim) and
+  are a conjunct of `SatisfiedBy` over `imageOf w.data`; the verifier reads `lanes` for nothing.
+  The sentinel counter is not a public coordinate: leanVM's `layout(prog, …)` derives `final_pc`
+  from the public program's length and writes `Const(g_pow(final_pc))` into the state block
+  (`layout.rs:335`, `:357`), so the verifier is a function of the program, and so is Layer 8's
+  ensemble.
 - **The memory block.** `MemRow` is the address `idx` (the index column of §6.5, a column here
   until Clean PR #446 makes it the verifier's), the finalize count `cntFin` (`MFCNT`), and the
   word's three limbs (`MEM_LO, MEM_HI, MEM_TOP`). `MemBindings mem r` binds the row to an image,
@@ -830,16 +833,20 @@ def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where  -- push initia
   decodes to, spelled as `BytecodePull.Guarantees` spells it; `bytecodeRowOf prog i cntFin` is
   the seed row of slot `i`, always bound, and `bytecode_entry_complete` its acceptance over the
   data. Both builders are computable: they read the image and the program as functions.
-- **The verifier.** `main` pushes `(1, 1)` and pulls `(finalPc, 1)`, the final frame pointer a
-  literal (§6.1, acceptance test 4). Its `Spec` is `True`: the state pull carries no guarantee
-  (acceptance test 21, the closed walks), so no per-component statement about the pulled state
-  is sound, and the run the boundary closes is Layer 9's `exists_run_of_balanced`, stated once
-  from balance. It has no local witness (`localLength = 0`, the `verifier_length_zero` field of
-  Layer 8's ensemble) and is complete for every public input.
+- **The verifier.** `leanIsaVerifier prog` pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both
+  constants: the final frame pointer a literal (§6.1, acceptance test 4) and the counter
+  `Expression.const prog.finalPc`, the program's sentinel. `verifier_push_eval` and
+  `verifier_pull_eval` read the two states as Layer 3's `Regs.initial` and `Regs.final prog` in
+  every environment, which is what Layer 9's `exists_run_of_balanced` takes off the boundary.
+  Its `Spec` is `True`: the state pull carries no guarantee (acceptance test 21, the closed
+  walks), so no per-component statement about the pulled state is sound, and the run the
+  boundary closes is Layer 9's `exists_run_of_balanced`, stated once from balance. It has no
+  local witness (`localLength = 0`, the `verifier_length_zero` field of Layer 8's ensemble) and
+  is complete for every program and public input.
 
 Tests: the three components' interaction lists as data against `layout.rs:352-395` (push at
 `1`, pull at the finalize count, on the block's channel pair); `PublicIO` flattening to the four
-lanes then the counter, and `PublicIO.ofInput` fixing the counter to the program's; on a
+lanes, and the verifier of the fixture's program pulling `g^1`; on a
 four-word, two-slot prover data, the honest rows bound and the rows `memRowOf`/`bytecodeRowOf`
 build accepted from the image and the program alone, with the count `0` too; a changed limb,
 the address `0` (acceptance test 2) and an address past the image failing `MemSpec` and hence
@@ -852,15 +859,15 @@ the program failing `BytecodeSpec` the same way.
 `LeanerVM/Arithmetization/Statement.lean`.
 
 ```lean
-def leanIsaEnsemble : Ensemble K PublicIO where
+def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
   tables := [⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩,
              ⟨memTable⟩, ⟨bytecodeTable⟩]
   channels := [StatePull.toRaw, StatePush.toRaw, MemPull.toRaw, MemPush.toRaw,
                BytecodePull.toRaw, BytecodePush.toRaw]
-  verifier := leanIsaVerifier
+  verifier := leanIsaVerifier prog
 
 /-- Pushed and pulled messages of a pair form the same multiset (specification §5.1). -/
-def BalancedPair (w : EnsembleWitness leanIsaEnsemble) (pull push : RawChannel K) : Prop :=
+def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawChannel K) : Prop :=
   ((w.interactions.filter (·.channel = push)).map (·.msg)).Perm
     ((w.interactions.filter (·.channel = pull)).map (·.msg))
 
@@ -873,8 +880,8 @@ def Caps (w) : Prop                            -- `16 ≤ κ ≤ 32`; heights `2
                                                -- `WellShapedData w.data` (Layer 5)
 
 def SatisfiedBy (prog : Program) (input : PublicInput)
-    (w : EnsembleWitness leanIsaEnsemble) : Prop :=
-  w.publicInput = PublicIO.ofInput prog input ∧ w.Constraints ∧
+    (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
+  w.publicInput = PublicIO.ofInput input ∧ w.Constraints ∧
   BalancedPair w StatePull.toRaw StatePush.toRaw ∧
   BalancedPair w MemPull.toRaw MemPush.toRaw ∧
   BalancedPair w BytecodePull.toRaw BytecodePush.toRaw ∧
@@ -883,7 +890,7 @@ def SatisfiedBy (prog : Program) (input : PublicInput)
   programOf w.data = prog ∧
   (imageOf w.data).2 ⟨0, _⟩ = input.word0 ∧ (imageOf w.data).2 ⟨1, _⟩ = input.word1
 
-def AssignmentRepresents (w : EnsembleWitness leanIsaEnsemble) (t : Trace prog) : Prop
+def AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t : Trace prog) : Prop
 theorem assignmentRepresents_image : AssignmentRepresents w t → (imageOf w.data).2 = t.image
 ```
 
@@ -896,7 +903,10 @@ two because the verifier accepts only announced log-heights and completeness pad
 `SatisfiedBy` is exactly the relation the proof-system roadmap proves and extracts (issue
 [#13](https://github.com/Verified-zkEVM/leanerVM/issues/13)). `AssignmentRepresents` says the
 image is the trace's and the state rows embed the register sequence; the remaining rows are the
-closed walks of specification §8.3.
+closed walks of specification §8.3. The ensemble is a function of the public program, as
+leanVM's `layout(prog, log_mem, taus, pi)` is: the verifier's sentinel is the program's
+constant, and `programOf w.data = prog` ties the program the tables read off the prover data
+(Layer 5) to the same program.
 The three named hypotheses are the facts Clean cannot yet express (dependency table); they are
 faithful — the index column is verifier-computed, the program is public, the memory columns are
 the image. Tests: one hand-built `SatisfiedBy` witness for the Layer 3 program, which needs
@@ -1098,7 +1108,7 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   storeCoords_eval  flags_sound  flags_complete
                   PublicIO  PublicIO.ofInput  MemRow  BytecodeRow
                   MemBindings  BytecodeBindings  MemSpec  BytecodeSpec
-                  memTable  bytecodeTable  leanIsaVerifier
+                  memTable  bytecodeTable  leanIsaVerifier  verifier_push_eval  verifier_pull_eval
                   memRowOf  bytecodeRowOf  memRowOf_bindings  bytecodeRowOf_bindings
                   mem_word_complete  bytecode_entry_complete
                   leanIsaEnsemble

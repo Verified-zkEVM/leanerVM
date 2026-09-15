@@ -23,8 +23,9 @@ specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boun
 column), and §8.4 (`08-end-to-end-protocol.tex:70`: "three blocks per side belong to no
 table"). The committed columns are `MEM_LO, MEM_HI, MEM_TOP, MFCNT` and `BFCNT`
 (`layout.rs:13-17`); the bytecode entry rides eight *public* columns (`bytecode_columns`,
-`layout.rs:229-290`, Layer 4's `entry`); the sentinel counter is `g^(N_prog - 1)` for the
-public program's length (`layout.rs:335`).
+`layout.rs:229-290`, Layer 4's `entry`); the sentinel counter `g^(N_prog - 1)` is derived from
+the public program's length and written into the state block as a constant (`layout.rs:335`,
+`final_pc`; `:357`, `Const(g_pow(final_pc))`).
 
 **The three blocks.** Every table row of Layer 6 pulls its state and pushes its successor,
 and reads its cells and its instruction through the counted lookup of §6.2. What closes the
@@ -39,11 +40,12 @@ which the verifier computes and which is a column here until Clean PR #446), the
 `cntFin`, and the word's three limbs `m`; `BytecodeRow` is the bytecode block's: the counter
 `idx`, the finalize count, and the entry as the opcode and the seven operand slots, in the
 order of Layer 5's `BytecodeMsg`. `PublicIO` is what the verifier reads off the public data:
-the four lanes of the public input (§2, §8.2) and the sentinel counter `finalPc`. Clean's `main`
-cannot read the prover data, where Layer 5 keeps the program, so the counter enters as public
-input, as Clean's own VM verifiers read their boundary states off theirs; `PublicIO.ofInput
-prog input` is the public input of a run, with `finalPc = Program.finalPc prog`, and Layer 8
-requires the witness's public input to be it.
+the four lanes of the public input (§2, §8.2), and `PublicIO.ofInput input` is the public input
+of a run, which Layer 8 requires of the witness. The verifier is a function of the public
+program, `leanIsaVerifier prog`, and pulls `Expression.const prog.finalPc`: leanVM's
+`layout(prog, …)` derives the counter from the program and writes it into the block as a
+constant, so here it is a constant of the component, never a column and never a public
+coordinate, and Layer 8's ensemble is `leanIsaEnsemble prog`.
 
 **The specifications.** A block's `Spec` is what its pull guarantees (Layer 5): `MemSpec r
 data` says the row is bound to the image the data names, `MemBindings (imageOf data).2 r`, the
@@ -66,7 +68,9 @@ with any finalize count, and `mem_word_complete` and `bytecode_entry_complete` p
 through `completeness` over the prover data: every word of the image and every slot of the
 program has a satisfying row, in the row environment `rowEnv data`. Both builders are
 computable, since they read the image and the program as functions, never through
-`MemImage.read`. The verifier is complete for every public input.
+`MemImage.read`. The verifier is complete for every program and public input, and
+`verifier_push_eval` and `verifier_pull_eval` read its two states as Layer 3's `Regs.initial`
+and `Regs.final prog`.
 
 ## Wrong readings excluded
 
@@ -75,6 +79,12 @@ computable, since they read the image and the program as functions, never throug
   `main` transcribes `Const(one)` on the push and `Col(MFCNT)`/`Col(BFCNT)` on the pull.
 * The verifier pulls `fp = 1` as a literal (§6.1, the final frame pointer is `g^0`; acceptance
   test 4), never a public coordinate: a run ending with `fp ≠ 1` cannot balance the state pair.
+* The counter it pulls is the program's constant, never a public coordinate or a column: the
+  Rust derives `final_pc` and neither reads nor checks one. A verifier reading the counter off
+  the public input accepts a witness whose sentinel is not the program's unless a further
+  conjunct ties the two, and says nothing per component; `verifier_pull_eval` says the pulled
+  state is `Regs.final prog` in every environment. That was this file's first shape, replaced
+  on review (status finding F9).
 * `idx` is a column of the row here, not the verifier's index column: nothing in `main` ties
   row `i` to `g^i`. That is Layer 8's `IndexColumnsAreRowIndices`, and the two seed tables
   being the image and the program are its `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`,
@@ -94,19 +104,16 @@ open LeanerVM.Parameters LeanerVM.Semantics
 /-! ## The public input of the constraint system -/
 
 /-- What the verifier circuit reads off the public data: the four lanes of the public input
-(specification §2, §8.2) and the sentinel counter `g^(N_prog - 1)`, which the leanVM verifier
-derives from the public program's length (`layout.rs:335`). -/
+(specification §2, §8.2). The sentinel counter is not here: it is a constant of the public
+program (`leanIsaVerifier`). -/
 structure PublicIO (F : Type) where
   /-- `input₀, …, input₃`. -/
   lanes : Vector F 4
-  /-- The sentinel counter `g^(N_prog - 1)`, the final program counter. -/
-  finalPc : F
   deriving ProvableStruct
 
-/-- The public input of a run of `prog` on `input`: the lanes, and the program's sentinel
-counter `Program.finalPc prog`. -/
-def PublicIO.ofInput (prog : Program) (input : PublicInput) : PublicIO K :=
-  ⟨#v[input.lanes 0, input.lanes 1, input.lanes 2, input.lanes 3], prog.finalPc⟩
+/-- The public input of a run on `input`: its four lanes. -/
+def PublicIO.ofInput (input : PublicInput) : PublicIO K :=
+  ⟨#v[input.lanes 0, input.lanes 1, input.lanes 2, input.lanes 3]⟩
 
 /-! ## The memory block -/
 
@@ -131,7 +138,7 @@ structure MemBindings {κ : ℕ} (mem : MemImage κ) (r : MemRow K) : Prop where
 def MemSpec (r : MemRow K) (data : ProverData K) : Prop :=
   MemBindings (imageOf data).2 r
 
-/-- The memory block (specification §6.2, seed and finalize; `layout.rs:359-381`): push
+/-- The memory block (specification §6.2, seed and finalize; `layout.rs:359-382`): push
 `(idx, 1, m)`, pull `(idx, cntFin, m)`. -/
 def memTable : GeneralFormalCircuit K MemRow unit where
   main r := do
@@ -209,7 +216,7 @@ structure BytecodeBindings (prog : Program) (r : BytecodeRow K) : Prop where
 def BytecodeSpec (r : BytecodeRow K) (data : ProverData K) : Prop :=
   BytecodeBindings (programOf data) r
 
-/-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs:382-395`):
+/-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs:383-395`):
 push `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`. -/
 def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
   main r := do
@@ -235,7 +242,7 @@ def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
     subst hop
     exact h_assumptions.entry_eq
 
-/-! ### Proof helpers -/
+/-! ## Proof helpers -/
 
 /-- An eight-coordinate entry is its opcode followed by its seven operand slots. -/
 private theorem cons_append_ops (e : Vector K 8) :
@@ -271,14 +278,15 @@ theorem bytecode_entry_complete {data : ProverData K} (i : Fin (2 ^ (programOf d
 
 /-! ## The verifier -/
 
-/-- The verifier's state boundary (specification §6.1; `layout.rs:352-358`): push the initial
-state `(1, 1)`, pull the final state `(g^(N_prog - 1), 1)`, the counter read off the public
-input. `Spec` is `True`: the state pull carries no guarantee (acceptance test 21), and the run
-the boundary closes is Layer 9's `exists_run_of_balanced`. -/
-def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where
-  main pi := do
+/-- The verifier's state boundary for the public program `prog` (specification §6.1;
+`layout.rs:352-358`): push the initial state `(1, 1)`, pull the final state
+`(g^(N_prog - 1), 1)`, the counter a constant of the program as `Const(g_pow(final_pc))` is
+(`layout.rs:335`, `:357`). `Spec` is `True`: the state pull carries no guarantee (acceptance
+test 21), and the run the boundary closes is Layer 9's `exists_run_of_balanced`. -/
+def leanIsaVerifier (prog : Program) : GeneralFormalCircuit K PublicIO unit where
+  main _ := do
     StatePush.push ⟨1, 1⟩
-    StatePull.pull ⟨pi.finalPc, 1⟩
+    StatePull.pull ⟨Expression.const prog.finalPc, 1⟩
   -- The push channel: its requirement is vacuous (Layer 5).
   channelsWithRequirements := [StatePush.toRaw]
   requirementsChannelsLawful input offset := by
@@ -290,5 +298,18 @@ def leanIsaVerifier : GeneralFormalCircuit K PublicIO unit where
     circuit_proof_start [StatePull, StatePush]
   completeness := by
     circuit_proof_start [StatePull, StatePush]
+
+/-! ## Load-bearing lemmas -/
+
+/-- The state the verifier pushes is Layer 3's `Regs.initial`, in every environment. -/
+theorem verifier_push_eval (env : Environment K) :
+    eval env (⟨1, 1⟩ : Regs (Expression K)) = Regs.initial := by
+  simp only [circuit_norm]; rfl
+
+/-- The state the verifier pulls is Layer 3's `Regs.final prog`, in every environment: the
+counter is a constant of the component, not a column or a public coordinate. -/
+theorem verifier_pull_eval (prog : Program) (env : Environment K) :
+    eval env (⟨Expression.const prog.finalPc, 1⟩ : Regs (Expression K)) = Regs.final prog := by
+  simp only [circuit_norm]; rfl
 
 end LeanerVM.Arithmetization
