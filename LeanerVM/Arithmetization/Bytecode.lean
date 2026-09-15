@@ -31,10 +31,12 @@ leanISA roadmap Layer 4 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
 
 `entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `encodeSlots i` is
 its sixteen-slot row of §8.1, the entry at slots 3–10; `decode` reads an entry back. `decode` is
-exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`). A vector whose opcode is not
-one of the six codes, whose `DEREF` flags are not one of the three pairs, or whose spare slots
-are not zero is no instruction, and `Program.fetch` at its address fails. This is where flag
-booleanity lives: in the public program, not in an AIR constraint (roadmap acceptance test 18).
+exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF` tuple with free
+flags it names the mode whose flags they are (`decode_deref_eq_some_iff`). A vector whose
+opcode is not one of the six codes, whose `DEREF` flags are not one of the three pairs, or whose
+spare slots are not zero is no instruction, and `Program.fetch` at its address fails. This is
+where flag booleanity lives: in the public program, not in an AIR constraint (roadmap acceptance
+test 18).
 
 ## Wrong readings excluded
 
@@ -213,6 +215,23 @@ theorem decode_eq_some_iff {v : Vector K 8} {i : Instr} : decode v = some i ↔ 
 /-- A vector decodes to nothing exactly when it is no instruction's entry. -/
 theorem decode_eq_none_iff {v : Vector K 8} : decode v = none ↔ ∀ i, v ≠ entry i := by
   simp only [Option.eq_none_iff_forall_ne_some, ne_eq, decode_eq_some_iff]
+
+/-- A `DEREF` tuple with free flags decodes exactly to the `DEREF` with its operands and the store
+mode whose flags it carries; a pair that is no mode's decodes to nothing (acceptance test 18). -/
+theorem decode_deref_eq_some_iff {o1 o2 o3 fpc ffp : K} {i : Instr} :
+    decode #v[Opcode.deref.code, o1, o2, o3, fpc, ffp, 0, 0] = some i ↔
+      ∃ mode, i = .deref o1 o2 o3 mode ∧ (fpc, ffp) = derefFlags mode := by
+  simp only [decode, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,
+    List.getElem_cons_succ, opcode?_code, and_self, ite_true]
+  constructor
+  · intro h
+    rcases hm : derefMode? fpc ffp with _ | mode
+    · rw [hm] at h
+      cases h
+    · rw [hm, Option.some.injEq] at h
+      exact ⟨mode, h.symm, derefMode?_eq_some_iff.mp hm⟩
+  · rintro ⟨mode, rfl, hf⟩
+    rw [derefMode?_eq_some_iff.mpr hf]
 
 /-- Distinct instructions have distinct entries. -/
 theorem entry_injective : Function.Injective entry := by

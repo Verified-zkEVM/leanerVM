@@ -23,6 +23,10 @@ This directory contains stable project and operating knowledge.
   - [protocol-status.md](roadmap/protocol-status.md): where the proof-system roadmap stands —
     layer coverage, the frontier, the upstream ledger, pending decisions, open findings, and the
     survey record.
+- [reviews/](reviews/): review documents handed off for implementation, one per reviewed piece
+  of work; the status file records how each finding was met.
+  - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
+    table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

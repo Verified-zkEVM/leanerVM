@@ -32,7 +32,10 @@ prover-chosen word — is the choice of image. The executor's write-once bookkee
 of unset cells, and on-demand growth (`crates/lean_vm/src/cpu/execute.rs`) are witness
 generation producing such an image, not a second memory model (roadmap acceptance test 19).
 Rust-informed: the executor's seeding and address decoding (`execute.rs:36-40`, `:173-177`)
-were read before this file was written.
+were read before this file was written. `MemImage.limbsAt` and `MemImage.cellAt` read a word
+back as a row's limbs (zero when there is none): the vocabulary of Layer 6's row builders,
+noncomputable like `read` and specified by `ofLimbs_limbsAt`, `limbsAt_getElem_zero` and
+`ofCell_cellAt`; they read, and never a second time differently.
 
 **The public input** (Category B: specification §2, `02-vm-specification.tex:16,24`, and §8.2,
 `08-end-to-end-protocol.tex:29`; seeded at `execute.rs:173-177`, a third limb rejected at
@@ -76,6 +79,21 @@ abbrev MemImage (κ : ℕ) : Type := Fin (2 ^ κ) → E
 /-- Read the word at address `a`: `some (L i)` when `a = g ^ i`, `none` otherwise. -/
 noncomputable def MemImage.read {κ : ℕ} (L : MemImage κ) (a : K) : Option E :=
   (gLog? κ a).map L
+
+/-- The limbs of the word at `a`, zero when there is none: `read`, read back into a row's
+three-limb column (roadmap Layer 6, the row builders). Noncomputable as `read` is; not a
+second reader, and specified by `ofLimbs_limbsAt`. -/
+noncomputable def MemImage.limbsAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector K 3 :=
+  match L.read a with
+  | some v => #v[v.limb 0, v.limb 1, v.limb 2]
+  | none => #v[0, 0, 0]
+
+/-- The two limbs of the canonical word at `a`, zero when there is none: `read`, read back into
+a `BLAKE2S` row's cell column; specified by `ofCell_cellAt`. -/
+noncomputable def MemImage.cellAt {κ : ℕ} (L : MemImage κ) (a : K) : Vector K 2 :=
+  match L.read a with
+  | some v => #v[v.limb 0, v.limb 1]
+  | none => #v[0, 0]
 
 /-! ## The public input -/
 
@@ -152,6 +170,31 @@ theorem MemImage.read_eq_none_iff {κ : ℕ} (L : MemImage κ) {a : K} :
 /-- Address `0` reads nothing (roadmap acceptance test 2). -/
 theorem MemImage.read_zero {κ : ℕ} (L : MemImage κ) : L.read 0 = none := by
   rw [MemImage.read, gLog?_zero, Option.map_none]
+
+/-- The limbs read back at an address that holds a word form that word. -/
+theorem MemImage.ofLimbs_limbsAt {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+    (h : L.read a = some v) :
+    E.ofLimbs (L.limbsAt a)[0] (L.limbsAt a)[1] (L.limbsAt a)[2] = v := by
+  unfold MemImage.limbsAt
+  rw [h]
+  exact ofLimbs_limb v
+
+/-- The low limb read back at an address that holds a word is the word's. -/
+theorem MemImage.limbsAt_getElem_zero {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+    (h : L.read a = some v) : (L.limbsAt a)[0] = v.limb 0 := by
+  unfold MemImage.limbsAt
+  rw [h]
+  rfl
+
+/-- The two limbs read back at an address that holds a canonical word form that word. -/
+theorem MemImage.ofCell_cellAt {κ : ℕ} {L : MemImage κ} {a : K} {v : E}
+    (h : L.read a = some v) (hc : IsCanonical128 v) : E.ofCell (L.cellAt a) = v := by
+  unfold MemImage.cellAt
+  rw [h]
+  show E.ofLimbs (v.limb 0) (v.limb 1) 0 = v
+  calc E.ofLimbs (v.limb 0) (v.limb 1) 0 = E.ofLimbs (v.limb 0) (v.limb 1) (v.limb 2) := by
+        rw [show v.limb 2 = 0 from hc]
+    _ = v := ofLimbs_limb v
 
 /-- The two words determine the input: no lane is dropped or shared (acceptance test 17). -/
 theorem PublicInput.words_injective :

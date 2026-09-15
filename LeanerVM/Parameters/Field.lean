@@ -8,6 +8,7 @@
 module
 
 public import CompPoly.Fields.Binary.BF64
+import Mathlib.Tactic.LinearCombination
 
 /-!
 # The fields `K` and `E`
@@ -26,7 +27,10 @@ E = K[y]/(y^3 + y + 1),  |E| = 2^192         BF64.ext3Params_poly, BF64.ext3Poly
 (`crates/primitives/src/field/gf2_64.rs:19-22`, `F64`); `E` is a `Vector K 3` whose limb `i` is
 the coefficient of `y^i`. Everything below is an abbreviation or a one-line definition over those
 CompPoly declarations, so the trusted surface is the CompPoly rows of the roadmap's dependency
-table plus this file.
+table plus this file. The limb arithmetic under "Load-bearing lemmas" (`add_limbs`,
+`mul_limbs`, the `K`-word lemmas) is what the opcode tables of Layer 6 read their result
+coordinates with: a sum is bitwise `XOR` limb by limb, a product is the twelve limb products
+folded by `y^3 = y + 1`.
 
 ## Wrong readings excluded
 
@@ -93,6 +97,9 @@ def IsInK (x : E) : Prop := x.limb 1 = 0 ∧ x.limb 2 = 0
 /-- A canonical 128-bit word: its `y²` limb is zero. -/
 def IsCanonical128 (x : E) : Prop := x.limb 2 = 0
 
+/-- The canonical word of a two-limb cell, `c0 + c1·y`: the cell shape `BLAKE2S` consumes. -/
+def E.ofCell (v : Vector K 2) : E := E.ofLimbs v[0] v[1] 0
+
 instance : DecidablePred IsInK :=
   fun x ↦ inferInstanceAs (Decidable (x.limb 1 = 0 ∧ x.limb 2 = 0))
 
@@ -151,6 +158,59 @@ theorem isInK_iff (x : E) : IsInK x ↔ ∃ a, x = ofK a := by
     exact ⟨x.limb 0, E.ext fun i ↦ by fin_cases i <;> simp [h1, h2]⟩
   · rintro ⟨a, rfl⟩
     exact ⟨by simp, by simp⟩
+
+/-- Limb `i` of a sum is the sum of the limbs (CompPoly's `Ext.coeff_add`). -/
+theorem limb_add (x z : E) (i : Fin 3) : (x + z).limb i = x.limb i + z.limb i :=
+  Ext.coeff_add x z i
+
+/-- Limb `i` of the zero word is zero. -/
+theorem limb_zero (i : Fin 3) : (0 : E).limb i = 0 :=
+  Ext.coeff_zero (P := BF64.ext3Params) i
+
+/-- `ofK` preserves sums: it is `algebraMap K E`. -/
+theorem ofK_add (a b : K) : ofK (a + b) = ofK a + ofK b := map_add (algebraMap K E) a b
+
+/-- `ofK` preserves products: it is `algebraMap K E`. -/
+theorem ofK_mul (a b : K) : ofK (a * b) = ofK a * ofK b := map_mul (algebraMap K E) a b
+
+/-- `ofK a` is the word with limbs `(a, 0, 0)`. -/
+theorem ofK_eq_ofLimbs (a : K) : ofK a = E.ofLimbs a 0 0 :=
+  E.ext fun i ↦ by fin_cases i <;> simp
+
+/-- A word with zero upper limbs lies in `K`. -/
+theorem isInK_ofLimbs (c : K) : IsInK (E.ofLimbs c 0 0) := ⟨by simp, by simp⟩
+
+/-- A word in `K` is its low limb with zeros above. -/
+theorem ofLimbs_of_isInK {x : E} (h : IsInK x) : E.ofLimbs (x.limb 0) 0 0 = x :=
+  calc E.ofLimbs (x.limb 0) 0 0 = E.ofLimbs (x.limb 0) (x.limb 1) (x.limb 2) := by rw [h.1, h.2]
+    _ = x := ofLimbs_limb x
+
+/-- A single-limb word is zero exactly when its limb is. -/
+theorem ofLimbs_eq_zero_iff (c : K) : E.ofLimbs c 0 0 = 0 ↔ c = 0 := by
+  constructor
+  · intro h
+    have := congrArg (fun z : E ↦ z.limb 0) h
+    simpa only [limb_ofLimbs, limb_zero, Matrix.cons_val_zero] using this
+  · rintro rfl
+    exact E.ext fun i ↦ by rw [limb_zero]; fin_cases i <;> simp
+
+/-- The sum of two words, limb by limb: addition in `E` is bitwise `XOR` in each limb, never
+integer addition with carries (the `XOR` table's result coordinates, specification §7.1). -/
+theorem add_limbs (a0 a1 a2 b0 b1 b2 : K) :
+    E.ofLimbs a0 a1 a2 + E.ofLimbs b0 b1 b2 = E.ofLimbs (a0 + b0) (a1 + b1) (a2 + b2) :=
+  E.ext fun i ↦ by rw [limb_add]; fin_cases i <;> simp
+
+/-- The product of two words, limb by limb: the twelve products over the nine limb pairs,
+folded by `y^3 = y + 1` into three lanes (the `MUL_NATIVE` table's result coordinates,
+specification §7.2; the pinned Rust's `TOWER_LANES`). -/
+theorem mul_limbs (a0 a1 a2 b0 b1 b2 : K) :
+    E.ofLimbs a0 a1 a2 * E.ofLimbs b0 b1 b2 =
+      E.ofLimbs (a0 * b0 + a1 * b2 + a2 * b1)
+        (a0 * b1 + a1 * b0 + a1 * b2 + a2 * b1 + a2 * b2)
+        (a0 * b2 + a1 * b1 + a2 * b0 + a2 * b2) := by
+  simp only [ofLimbs_eq, ofK_add, ofK_mul]
+  -- The product is `p₀ + p₁·y + p₂·y² + p₃·y³ + p₄·y⁴`; `y³ = y + 1` folds `p₃` and `p₄`.
+  linear_combination (ofK a1 * ofK b2 + ofK a2 * ofK b1 + ofK a2 * ofK b2 * y) * y_pow_three
 
 end
 end LeanerVM.Parameters

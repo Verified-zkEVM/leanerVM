@@ -198,12 +198,10 @@ example : step (oneStep (.jump (gpow 12) (gpow 13) (gpow 4))) ctlImage ⟨1, 1�
 /-- The pointer cell holds the address `g^7`. -/
 theorem ctl_pointer : (ctlImage ⟨5, by decide⟩).limb 0 = gpow 7 := by decide +kernel
 
-/-- `ofK a` is the word with limbs `(a, 0, 0)`: the kernel decides an `E` equality only against
-a word in `E.ofLimbs` form (finding E5), so the `DEREF` source is put in that form first. -/
-theorem ofK_eq_ofLimbs (a : K) : ofK a = E.ofLimbs a 0 0 := E.ext fun i ↦ by fin_cases i <;> simp
-
 /-- A `DEREF` in `pc` mode at `pc = 1`: the pointer `g^7` is in `K`, the local cell is read,
-and `mem[g^7 · 1] = g² · 1`. -/
+and `mem[g^7 · 1] = g² · 1`. The kernel decides an `E` equality only against a word in
+`E.ofLimbs` form (finding E5), so the `DEREF` source is put in that form first
+(`ofK_eq_ofLimbs`, Layer 0). -/
 example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .pc)) ctlImage ⟨1, 1⟩ = some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .pc) = _
