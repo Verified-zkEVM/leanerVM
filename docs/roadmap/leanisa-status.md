@@ -1,22 +1,32 @@
 # Status: leanISA semantics and M3 constraints
 
-This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 6
-(draft PR #19 on top of `main` at `849806e`, revised on 2026-09-14 for the review
-[`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md) and its two
-follow-ups, the last cutting each table file to the circuit, its `Spec` and the honest-row
-witness; Layer 5 merged
-as PR #17 on 2026-09-11), together with the findings that build records: the step-only table
-contract forgot the row (F8, the review's three findings, met), the roadmap's bytecode
-guarantee was too weak for the `DEREF` table (F7, a Layer 5 change), core's `BitVec` simprocs
-misread numerals of `K` (E6), and `circuit_norm` strands the `Decidable` instance of a witness
-program's `decide` (E7). It is a hand-maintained snapshot, rewritten whole when a layer lands
-or a decision is taken; the roadmap is the authority on what is wanted, and the tracking issue
+This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 7
+(built and proved on top of `main` at `a999d03`, where Layer 6 landed as PR #19 on 2026-09-15
+after the review [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md)
+and its follow-ups; Layer 5 landed as PR #17 on 2026-09-11), together with the findings the
+builds record: the roadmap's Layer 7 sketch named a verifier specification the state channel
+cannot carry and a counter with its program unbound (F9, met by decision 12, revised on
+review), the step-only table
+contract forgot the row (F8, met), the roadmap's bytecode guarantee was too weak for the
+`DEREF` table (F7), core's `BitVec` simprocs misread numerals of `K` (E6), and `circuit_norm`
+strands the `Decidable` instance of a witness program's `decide` (E7); and the faithfulness
+review of `main` against leanVM
+([`docs/reviews/leanvm-faithfulness-review.md`](../reviews/leanvm-faithfulness-review.md),
+2026-09-15), whose first row raised F10, the program read off the prover data, met on this
+branch by decision 14 (2026-09-16, superseding decision 13): the channels and the six tables
+are program-free as leanVM's AIRs are, and the program enters through the bytecode block's row
+builder, the verifier and the statement. It is a hand-maintained
+snapshot, rewritten whole when a layer lands or a decision is taken; the roadmap is the
+authority on what is wanted, and the tracking issue
 [#4](https://github.com/Verified-zkEVM/leanerVM/issues/4) mirrors the coverage table below.
 
 ## Where this roadmap stands
 
-**At a glance.** Layers 0 to 5 are landed and Layer 6 is built and fully proved, open for
-review as draft PR #19 and revised for its review of 2026-09-14. `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
+**At a glance.** Layers 0 to 6 are landed and Layer 7 is built and fully proved on this
+branch, where the program has left the prover data (decision 14, F10): the channels and the six
+tables are program-free, the bytecode guarantee is decodability alone, and the program enters
+through `bytecodeRowOf prog`, `leanIsaVerifier prog` and Layer 8's `SatisfiedBy prog` (the
+frontier). `LeanerVM/Parameters/Field.lean` and `LeanerVM/Parameters/Generator.lean`
 define `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `IsInK`, `IsCanonical128`, `g`, and `gpow`,
 and prove `orderOf_g` and `gpow_injOn` from the seven `decide +kernel` checks; Clean's
 `FiniteField K` instance is `instFiniteFieldK` in the plain file
@@ -46,31 +56,49 @@ flags they are), `entry_injective`, and `encodeSlots_getElem`.
 `LeanerVM/Arithmetization/Channels.lean`, the first
 Clean-consuming production file and therefore plain, defines the two lookup messages `MemMsg`
 and `BytecodeMsg` (`deriving ProvableStruct`) and makes Layer 3's `Regs`, parametric in the
-field, the state message (`deriving instance ProvableStruct for Regs`); the prover-data tables
-`memDataName`, `bytecodeDataName` with their rows `memRows`, `bytecodeRows`, the readings
-`imageOf` and `programOf`, and the shape `WellShapedData` under which they drop no row; the six
-channels `StatePull` … `BytecodePush` (guarantees on the memory and bytecode pulls only, the
-bytecode guarantee naming the fetched instruction on both sides since Layer 6); the gadgets
-`memRead` and `bytecodeRead` (`Channel.pull` then `Channel.push`, the count advanced by `g`); and
-the bus data `Direction`, `channelDir`, `channelSep`, `busTuple`. It proves the three
-`toElements` lemmas, `busTuple_getElem`, `wellShapedData_iff`, `imageOf_apply`, and
-`programOf_code`. `LeanerVM/Arithmetization/Tables/{Xor,MulNative,SetConstant,Deref,Jump,Blake2s}.lean`
+field, the state message (`deriving instance ProvableStruct for Regs`); the prover-data table
+`memDataName` with its rows `memRows`, the reading `imageOf`, and the shape `WellShapedData`
+under which it drops no row (the program has no table: decision 14); the six channels
+`StatePull` … `BytecodePush` (guarantees on the memory and bytecode pulls only, the memory
+guarantee the read of the image the data names, the bytecode guarantee the static fact that
+the entry decodes, naming no program and reading no data); the gadgets `memRead` and
+`bytecodeRead` (`Channel.pull` then `Channel.push`, the count advanced by `g`); and the bus
+data `Direction`, `channelDir`, `channelSep`, `busTuple`. It proves the three `toElements`
+lemmas, `busTuple_getElem`, `wellShapedData_iff` and `imageOf_apply`.
+`LeanerVM/Arithmetization/Tables/{Xor,MulNative,SetConstant,Deref,Jump,Blake2s}.lean`
 define the six rows `XorRow` … `Blake2sRow` (`deriving ProvableStruct`, columns in the Rust's
-order) and the six tables `xorTable` … `blake2sTable`, each a `GeneralFormalCircuit K Row Regs`
-whose `main` is the specification §7 entry and returns the state it pushes, whose `Spec` is
-`*Spec r next data := *Refines (programOf data) (imageOf data).2 r next`, the relation the row
-refines stated over a program and an image (a structure: the row's bindings
-`*Bindings prog mem r`, the named facts `fetch_eq` and `…_eq`, and `step_eq : step prog mem
-⟨pc, fp⟩ = some next`, with `*_refines_iff` its opcode-level reading) and adapted to the
-prover data in that one step, and whose soundness and completeness are proved; the
-named assumption `Blake2sRelation` (`CompressCells` on the row's nine cells) is the
-`Assumptions` field of `blake2sTable`. Beside the tables they state the honest prover's row of
-a valid step (`*RowOf mem …`, `*RowOf_refines`, `*_step_complete`; `blake2sRow_complete` for the
+order) and the six tables `xorTable` … `blake2sTable`, each a `GeneralFormalCircuit K Row Regs`,
+program-free as leanVM's AIRs are (decision 14), whose `main` is the specification §7 entry and
+returns the state it pushes, whose `Spec` is `*Spec r next data := *Refines (imageOf data).2 r
+next`, the relation the row refines stated over an image (a structure: the row's bindings
+`*Bindings mem r`, the named facts `…_eq` per input read, and `exec_eq : execute mem ⟨pc, fp⟩
+ins = some next` for the instruction `ins` the row's own columns name, with `*_refines_iff` its
+opcode-level reading) and adapted to the prover data in that one step, and whose soundness and
+completeness are proved; the named assumption `Blake2sRelation` (`CompressCells` on the row's
+nine cells) is the `Assumptions` field of `blake2sTable`. Beside the tables they state the
+honest prover's row of a valid execution (`*RowOf mem …`, `*RowOf_refines`, `*_exec_complete`;
+`blake2sRow_complete` for the
 boundary), `storeCoords_eval` (the `DEREF` store coordinates are `derefSource` at each flag
 setting), `flags_sound` and `flags_complete` (the two `JUMP` residuals force the indicator),
 and `jumpEnv` with `jump_env_iff` (the witness discipline); the limb arithmetic (`add_limbs`,
 `mul_limbs`, `E.ofCell`) is Layer 0's and the image read-back (`MemImage.limbsAt`,
-`MemImage.cellAt`) Layer 2's. `./scripts/validate.sh` is green, the axiom closure of every
+`MemImage.cellAt`) Layer 2's. `LeanerVM/Arithmetization/Boundary.lean` defines the public input
+of the constraint system `PublicIO` (the four lanes; `PublicIO.ofInput input`), the two seed
+rows `MemRow` and `BytecodeRow`, the memory row's binding to an image (`MemBindings`, the
+block's pull guarantee, adapted to the data as `MemSpec`), the bytecode row's decodability
+(`BytecodeDecodes`, the block's program-free pull guarantee and `Spec`) and its binding to a
+program (`BytecodeBindings prog r`, the per-row reading of Layer 8's `BytecodeRowsAreTheProgram
+prog`, never the block's `Spec`), and the three components `memTable`, `bytecodeTable` and
+`leanIsaVerifier prog`, the verifier a
+function of the public program pulling its sentinel `Expression.const prog.finalPc` as a
+constant (`GeneralFormalCircuit … unit`, each its two flushes, sound and complete, the
+verifier's `Spec` `True`); it proves that every word of the image and every slot of the program
+has a satisfying seed row with any finalize count (`memRowOf`, `bytecodeRowOf`,
+`memRowOf_bindings`, `bytecodeRowOf_bindings`, `bytecodeRowOf_decodes`, `mem_word_complete`,
+`bytecode_entry_complete`)
+and that the verifier's two states are `Regs.initial` and `Regs.final prog` in every
+environment (`verifier_push_eval`, `verifier_pull_eval`).
+`./scripts/validate.sh` is green, the axiom closure of every
 declaration is `propext, Classical.choice, Quot.sound`, and the kernel axiom audit is enabled in
 CI (`axiom-audit-root: LeanerVM`). Clean is consumed from plain files and the aggregates are plain
 (finding C8, now the roadmap's module-system convention); kernel-`decide` over `E` arithmetic
@@ -88,16 +116,102 @@ module (P3).
 | 2 — instructions, image, public input | landed (PR #8) | `gLog?` is noncomputable behind `gLog?_spec`, hypothesis `κ < 64`; `MemImage` is an `abbrev`; `Instr.opcode` added (see the frontier) |
 | 3 — `step`, `ValidExecution` | landed (PR #11) | Category A, written from §2 first and diffed against `execute.rs` afterwards (no new divergence); `Regs` equality by hand (E5); fixtures in a plain test file (decision 4); unchanged by F6, whose hypothesis sits on Layer 10; `Regs` made parametric in the field by PR #17 |
 | 4 — bytecode encoding | landed (PR #9) | `decode` is exact (`decode_eq_some_iff`): a nonzero spare slot is no instruction; `derefFlags` added for Layer 6; a `module`, no Clean |
-| 5 — channels | landed (PR #17) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image and program are read off `ProverData` by table name; `BytecodePull.Guarantees` strengthened by Layer 6 to name the fetched instruction on both sides (F7) |
-| 6 — six tables | built and proved; draft PR #19 open for review, revised for the review of 2026-09-14 | plain files (C8); each table's `Spec` is `*Spec`, the relation `*Refines prog mem r next` (the row's bindings to a program and an image, and `step`) adapted to the prover data (decision 11, F8); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from steps by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
-| 7 — boundary blocks | untouched; consumes Clean | plain files (C8) |
+| 5 — channels | landed (PR #17) | plain file (C8); the state pull carries no guarantee (decision 7); each channel names its separator and direction, `busTuple` and the `toElements` lemmas (decision 8); gadgets emit through `Channel.pull`/`Channel.push`, never `emit` (C10); the image is read off `ProverData` by table name; `BytecodePull.Guarantees` was strengthened by Layer 6 to name the fetched instruction on both sides (F7) and reduced on this branch to its decoding half, program- and data-free (decision 14, F10): `programOf` and the `"bytecode"` table are gone |
+| 6 — six tables | landed (PR #19) | plain files (C8); each table's `Spec` is `*Spec`, the relation `*Refines mem r next` (the row's bindings to an image, and `execute` of the instruction the row names) adapted to the prover data (decision 11, F8; program-free on this branch, decision 14); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from executions by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
+| 7 — boundary blocks | built and proved on this branch | plain file (C8); each block is its two flushes with no constraint, its `Spec` its pull guarantee (`MemSpec`; `BytecodeDecodes`, program-free) and the verifier's `True` (decision 12, F9; decision 14); the verifier is a function of the public program and pulls its sentinel as a constant (`leanIsaVerifier prog`, `verifier_pull_eval`); the seed rows of every word and slot are built and accepted (`mem_word_complete`, `bytecode_entry_complete`); the program's hold on the bytecode block's rows is Layer 8's conjunct, read per row by `BytecodeBindings prog` (decision 14) |
 | 8 — statement | untouched; consumes Clean | plain files (C8); `Caps` requires power-of-two heights and the bytecode length (decision 8) |
 | 9 — bus soundness | untouched; consumes a Clean change | statements land as block comments with Layer 8; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
 | 10 — T1 | untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6) |
 
 ### The frontier
 
-- **Layer 6 is built** and open for review as draft PR #19 (branch `feat/leanisa-opcode-tables`),
+- **The program left the prover data on this branch** (decision 14, F10; the faithfulness
+  review's row 1; 2026-09-16). Decision 13's shape, the program a parameter of the channels,
+  the six tables and the bytecode block, was implemented and discarded the same day: it put the
+  program into both the semantics and every circuit, where leanVM's AIRs are fixed for all
+  programs, and it bought no soundness, the bytecode block still needing the statement's
+  conjunct to pin its seed rows. The shape made instead, needing no Clean change:
+  - Layer 5 (`Channels.lean`): `bytecodeDataName`, `bytecodeRows`, `programOf`,
+    `WellShapedData.bytecodeRows_size`, `WellShapedData.bytecodeIndex_lt` and `programOf_code`
+    deleted; `wellShapedData_iff` over the `"mem"` table alone; `BytecodePull.Guarantees b _ :=
+    ∃ ins, decode (#v[b.opcode] ++ b.op) = some ins`, program- and data-free; `bytecodeRead`,
+    `channelDir` and `channelSep` unchanged.
+  - Layer 3 (`Step.lean`): `execute_of_step`, the one join between a program's step and an
+    instruction's execution.
+  - Layer 6 (`Tables/*.lean`): `*Bindings mem r` (no `prog`, no `fetch_eq`; `SetBindings`
+    deleted), `*Refines mem r next` with `exec_eq : execute mem ⟨r.pc, r.fp⟩ ins = some next`
+    for the instruction the row's columns name (`DerefRefines mem r next := ∃ mode,
+    DerefBindings mem r mode ∧ execute … (.deref … mode) = some next`, one mode for both),
+    `*Spec r next data := *Refines (imageOf data).2 r next`, the six tables unchanged in `main`,
+    `*RowOf_refines` and `*_exec_complete` (was `*_step_complete`) from an execution,
+    `blake2sRow_complete` over `Blake2sBindings (imageOf data).2 r`; `jumpEnv` and
+    `jump_env_iff` unchanged. Five soundness proofs no longer touch the bytecode guarantee;
+    `DEREF`'s still reads its mode off it.
+  - Layer 7 (`Boundary.lean`): `BytecodeDecodes r`, the block's `Spec` and `ProverAssumptions`;
+    `BytecodeSpec` deleted; `BytecodeBindings prog r` kept as the per-row reading of Layer 8's
+    conjunct; `bytecodeRowOf_decodes`; `bytecode_entry_complete {data} (prog) (i) (cntFin)`
+    over any data.
+  - Tests: no program fixture in the Layer 5 and 6 tests; the Layer 7 tests take the `Program`
+    value `bProg` beside a `"mem"`-only prover data, `fetch_at` by `rfl` through
+    `Program.fetch_gpow`, `bytecodeRowOf bProg … = bcRow0` by `rfl`; the rejections that went
+    through `fetch_eq` are restated (a changed `SET` immediate the cell does not hold; a changed
+    opcode and a counter past the program rejected by `BytecodeBindings bProg` and accepted by
+    the block), and an `XOR` row with honest reads at another counter is shown accepted.
+  - Layer 8's sketch reads `leanIsaEnsemble prog` with the program-free components and
+    `BytecodePull.toRaw`, `verifier := leanIsaVerifier prog`, and `SatisfiedBy prog` with the
+    conjunct `BytecodeRowsAreTheProgram prog w` on the block's raw rows; Layer 9's
+    `bytecode_channel_sound` is stated in the strong form. When Clean PR #446 lands, the
+    conjunct becomes `fixedColumns` on `bytecodeTable` and nothing else moves.
+  - The line citations the review's row 20 lists are refreshed (the six table docstrings,
+    `Bytecode.lean`, `Step.lean`, the survey record below).
+- **Layer 7 is built** and fully proved on this branch. Its reading list is
+  `LeanerVM/Arithmetization/Boundary.lean`, `tests/LeanerVMTests/Arithmetization/Boundary.lean`,
+  and the roadmap's Layer 7 section, which shows the built shapes. The roadmap's sketch was
+  adjusted in three places, each written into the roadmap (decision 12, F9):
+  - The verifier's `Spec` is `True`, not "the final registers are reachable": the state pull
+    carries no guarantee (decision 7, acceptance test 21), so no per-component statement about
+    the pulled state is sound, and the run the boundary closes is Layer 9's
+    `exists_run_of_balanced`, from balance. The verifier is its two flushes, `(1, 1)` pushed
+    and `(prog.finalPc, 1)` pulled, with no local witness (`localLength = 0`, the
+    `verifier_length_zero` field of Layer 8's ensemble, checked in the tests).
+  - The verifier is a function of the public program: `leanIsaVerifier prog` pulls
+    `⟨Expression.const prog.finalPc, 1⟩`, as `layout(prog, …)` derives `final_pc` from the
+    program's length and writes `Const(g_pow(final_pc))` into the block (`layout.rs:335`,
+    `:357`); `PublicIO F` is `lanes : Vector F 4` alone, Layer 8's ensemble is `leanIsaEnsemble
+    prog`, and `SatisfiedBy` requires `w.publicInput = PublicIO.ofInput input` (the roadmap's
+    Layer 8 sketch now says so). The sketch's `const (gpow (N_prog - 1))` had `N_prog` free; the
+    branch's first shape bound it as a public coordinate `PublicIO.finalPc`, fixed to the
+    program's by a `SatisfiedBy` conjunct, and the Layer 7 review of 2026-09-15 replaced that
+    with the program parameter: the Rust derives the counter and never reads or checks one, and
+    Clean's Fibonacci verifier reading its boundary off the public input is no precedent, since
+    there those values are the public input. `verifier_push_eval` and `verifier_pull_eval` hand
+    Layer 9 the boundary states as `Regs.initial` and `Regs.final prog`.
+  - The two seed blocks' `Spec`s are their pull guarantees, stated over an image and a program
+    (`MemBindings mem r`, `BytecodeBindings prog r`) and adapted to the data (`MemSpec`,
+    `BytecodeSpec`) as Layer 6 does; `ProverAssumptions` is `Spec` itself and is proved of the
+    row of every word and slot (`memRowOf_bindings`, `bytecodeRowOf_bindings`,
+    `mem_word_complete`, `bytecode_entry_complete`), with any finalize count, since nothing
+    checks a finalize count (§6.2; F4). The two builders are computable (they read the image
+    and the program as functions). `BytecodeRow` carries the entry as `opcode` and `op :
+    Vector F 7`, the shape of Layer 5's `BytecodeMsg`, so that a seed and a table's read of the
+    same slot are the same tuple (R24). (Since decision 14 the bytecode block's `Spec` is
+    `BytecodeDecodes r`, program-free, `BytecodeSpec` is gone, and `BytecodeBindings prog r` is
+    the per-row reading of Layer 8's conjunct.)
+  Tests: the three interaction lists as data against `layout.rs:352-395` (`rfl`); `PublicIO`
+  flattening to the lanes, the fixture program's verifier pulling `g^1`; on a four-word, two-slot prover data the honest
+  rows bound and the built rows accepted; a changed limb, the address `0` and an address past
+  the image, a changed opcode, a nonzero spare slot and a counter past the program each
+  rejected through the specification and through the constraints `main` emits (read back
+  through `soundness`). Layer 7 imports `Tables/Basic.lean` for `rowEnv`; the roadmap's
+  ordering says so.
+- **Layer 8 can start**: `leanIsaEnsemble prog` lists the six program-free tables and the two
+  seed blocks as components with `leanIsaVerifier prog` as its verifier (`verifier_length_zero`
+  by `simp only [circuit_norm, leanIsaVerifier]`), `SatisfiedBy prog input w` takes
+  `w.publicInput = PublicIO.ofInput input`, and the three named hypotheses
+  (`IndexColumnsAreRowIndices`, `SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram prog`) are
+  stated over the witness's `memTable` and `bytecodeTable` raw rows, the last as "for some
+  finalize-count column, row `i` is `bytecodeRowOf prog i (cntFin i)`" (decision 14).
+- **Layer 6 landed** as PR #19 (squash `a999d03`, 2026-09-15; `feat/leanisa-opcode-tables`),
   revised on 2026-09-14 for the review
   [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md). Its reading
   list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean`: `rowEnv` and
@@ -142,7 +256,9 @@ module (P3).
   `*RowOf_refines` is stated over a program and an image, so that execution and witness proofs
   state their obligations over theirs and a consumer projects by name; only `*Spec`,
   `ProverAssumptions`, `*_step_complete`, `jumpEnv` and `blake2sRow_complete` touch the prover
-  data. The executable obligation the review names stays open and is recorded in the
+  data. (Decision 14, 2026-09-16, dropped the program from the relation: `*Bindings mem r`,
+  `*Refines mem r next` over `execute` of the instruction the row names, `*_exec_complete`.)
+  The executable obligation the review names stays open and is recorded in the
   roadmap: an executable, data-aware row generator is T2's, since Clean's `Circuit.witgen`
   carries no data (`ProverEnvironment.fromArray` sets it empty) and the kernel does not reduce
   it; the tests run it compiled (`#guard`) on the `JUMP` rows. The roadmap's sketch was
@@ -154,7 +270,9 @@ module (P3).
     registers step exactly to the pushed state" uniform over the six tables, and Clean's
     `Air.Flat.Component` accepts any output type.
   - The bytecode guarantee names the instruction on both sides (F7, below): Layer 5's
-    `BytecodePull.Guarantees` is now `∃ ins, fetch pc = some ins ∧ decode entry = some ins`.
+    `BytecodePull.Guarantees` became `∃ ins, fetch pc = some ins ∧ decode entry = some ins`.
+    Decision 14 keeps the decoding half alone, which is all `DEREF` needs; the fetch half is
+    Layer 9's `bytecode_channel_sound`.
   - `channelsWithRequirements` lists the three push channels: Clean's
     `RequirementsChannelsLawful` requires every channel a circuit interacts with to be in its
     guarantee list or its requirement list, and the push channels are in neither by default.
@@ -259,9 +377,11 @@ module (P3).
 - **Kernel-decided fixtures** are written in one shape: `step_of_fetch_eq_some (r := …)` at the
   literal state, `simp only [execute, one_mul, read lemmas …]` to rewrite every read at a
   literal index, then `decide +kernel` on the residual closed term; runs peel `run_succ_of_ne`.
-  Layer 6's row tests use the same shape on prover data, through `readAt`/`read_lit`/`fetch_at`
-  built on `imageOf_apply`, `programOf_code`, `MemImage.read_gpow` and `Program.fetch_gpow`;
-  `r` is given explicitly, since leaving it implicit makes the elaborator unfold `gpow k`.
+  Layer 6's row tests use the same shape on prover data, through `readAt`/`read_lit` built on
+  `imageOf_apply` and `MemImage.read_gpow`, on `execute` of the row's instruction directly
+  (decision 14); the Layer 7 tests fetch from a `Program` value by `rfl` through
+  `Program.fetch_gpow` (`fetch_at`); `r` is given explicitly, since leaving it implicit makes
+  the elaborator unfold `gpow k`.
 - **Layer 2** landed as PR #8 and **Layer 4** as PR #9; `gLog?` is noncomputable (2026-09-09),
   `gLog?_spec` takes `κ < 64`, `MemImage` is an `abbrev`, `Instr.opcode` was added; `decode` is
   exact and `derefFlags` names the flag pair (see the roadmap).
@@ -271,9 +391,6 @@ module (P3).
 - **CompPoly's `Ext` arithmetic does not reduce in the kernel from a `module` file** (P1), and
   neither does any `Vector` or `E` equality (L1); the Layer 3 and Layer 6 fixtures are plain
   test files (decision 4, settled).
-- **Layer 7** can start on this branch: the boundary blocks reuse the six channels, the read
-  gadgets, and the table template (`Tables/Xor.lean`), with `channelsWithRequirements` listing
-  the channels they push on and the lawfulness proof supplied by hand (E6).
 - **The Rust vectors.** Layer 1's (`blake2s_computes_the_compression`) is reproduced by
   `scripts/dump-blake2s-rust.sh`; Layer 3's and Layer 6's (`mul_192bit_word`,
   `cpu/mod.rs:981-998`) by `scripts/dump-mul-rust.sh`, whose product CompPoly reproduces in the
@@ -322,11 +439,12 @@ line.
     (`GeneralFormalCircuit K Row Regs`), so that every `Spec` is `step … = some next`, the
     `JUMP` successor being a function of its witness `b` (roadmap Layer 6).
 11. Settled 2026-09-14 (Layer 6, the review's R1 and R2, F8): a table's `Spec` is its
-    functional specification `*Spec r next data := *Refines (programOf data) (imageOf data).2
-    r next`, the relation `*Refines prog mem r next` (a structure: `bindings : *Bindings prog
-    mem r`, the row's operands and words bound to a program and an image as named facts, and
-    `step_eq`) adapted to the prover data, with `*_refines_iff` as the opcode-level
-    characterisation; `ProverAssumptions`
+    functional specification `*Spec r next data`, the relation `*Refines … r next` (a structure:
+    `bindings : *Bindings … r`, the row's operands and words bound as named facts, and the
+    machine's transition from the row's registers; as first built over a program and an image
+    with `step_eq`, since decision 14 over an image alone with `exec_eq`, the execution of the
+    instruction the row names) adapted to the prover data, with `*_refines_iff` as the
+    opcode-level characterisation; `ProverAssumptions`
     is the semantic premise `∃ next, *Spec r next data`, the honest prover's row, which nothing
     above the tables assumes (`*RowOf_refines` proves it of the row of any valid step, and
     `*_step_complete` states completeness from the step alone), except for `BLAKE2S`, whose
@@ -337,6 +455,54 @@ line.
     Row builders `*RowOf` are noncomputable; an executable, data-aware generator is T2's, since
     Clean's `Circuit.witgen` carries no data (`ProverEnvironment.fromArray`) and the kernel
     does not reduce it.
+12. Settled with Layer 7 (F9): a boundary block's `Spec` is its pull guarantee, stated over an
+    image for the memory block (`MemBindings`, adapted to the prover data as `MemSpec`) and,
+    since decision 14, program-free for the bytecode block (`BytecodeDecodes`; the first shape
+    was `BytecodeBindings (programOf data) r` as `BytecodeSpec`), with `ProverAssumptions` that
+    same `Spec`, proved of the row of every word and slot; the verifier's `Spec` is `True`, since the state pull carries no
+    guarantee (decision 7) and Proposition 6.1 is Layer 9's `exists_run_of_balanced`; and the
+    verifier is a function of the public program, `leanIsaVerifier prog` pulling
+    `Expression.const prog.finalPc` as `layout(prog, …)` writes `Const(g_pow(final_pc))` into
+    the block, with `PublicIO F := (lanes : Vector F 4)` and Layer 8's ensemble `leanIsaEnsemble
+    prog` (roadmap Layer 7, Layer 8, pinned convention "Boundary blocks"). The counter was first
+    a public coordinate `PublicIO.finalPc` fixed by a `SatisfiedBy` conjunct; the Layer 7 review
+    of 2026-09-15 replaced it (F9).
+13. Settled 2026-09-15 (the faithfulness review's row 1, F10): the program is public and never
+    prover data. leanVM's bytecode is public and never committed (§6.4; `layout.rs:288-290`,
+    `Coord::Public`), while Layers 5 to 7 read it off Clean's `ProverData`, a field of the
+    witness (`programOf`, the `"bytecode"` table), and Layer 8's sketch tied it to the
+    statement's program only by the conjunct `programOf w.data = prog`. The roadmap now makes
+    `prog : Program` a parameter of `BytecodePull`, `bytecodeRead`, the six tables,
+    `bytecodeTable`, the verifier and the ensemble, as `layout(prog, …)` takes it, and deletes
+    `programOf`, the `"bytecode"` table, `BytecodeSpec` and the conjunct (roadmap Layers 5 to
+    8, pinned convention "Program", acceptance test 22); `BytecodeRowsAreTheProgram` stays,
+    over `prog`'s entries, until Clean has verifier-computed columns (#446), since the seed rows
+    carry the entry as row fields. Implemented on 2026-09-16 and discarded the same day:
+    superseded by decision 14.
+14. Settled 2026-09-16 (this branch, F10): the program is public, and the channels and the
+    tables are program-free. Decision 13's parameter was built and discarded: it made every
+    table's type a function of the program, where leanVM's AIRs are fixed for all programs
+    (each table's bytecode flush is its constant opcode and its own operand columns,
+    `tables.rs:143-152`), it put the program into both the semantics and every circuit, and it
+    bought no soundness, since the bytecode block's `Spec` was proved from its own pull, which
+    balance derives from its own seed push, so the statement still needed the conjunct pinning
+    the seed rows. The shape made instead follows leanVM's division of labour and, at the table
+    level, sp1-lean's: `BytecodePull.Guarantees` is static decodability, naming no program and
+    reading no data (all a table needs, `DEREF`'s flag pair, and what every entry of a program
+    satisfies); each table's relation is `*Refines mem r next`, its bindings to the image and
+    `execute` of the instruction the row's own columns name, joined to a program's step by
+    Layer 3's `execute_of_step`; the bytecode block's `Spec` is `BytecodeDecodes r`; and the
+    program enters in three places, `bytecodeRowOf prog`, `leanIsaVerifier prog` and Layer 8's
+    `SatisfiedBy prog`, whose conjunct `BytecodeRowsAreTheProgram prog` says the block's rows
+    are the program's with only the finalize counts free, as the verifier forms "the program's
+    whole share of the two bytecode blocks" itself (§8.5, Bus 4; `Coord::Public`), and which
+    Clean PR #446's fixed columns make a primitive. The cost, declared: a table no longer
+    rejects a row naming an instruction the program does not hold at its counter; that is the
+    bytecode pair's balance, Layer 9, as it is for leanVM's AIR. Unlike sp1-lean, whose program
+    table sits outside the ensemble as a hypothesis of its soundness theorem, the bytecode
+    block is a component of the ensemble and the conjunct is part of the relation the proof
+    system proves (roadmap Layers 3 and 5 to 9, pinned convention "Program", acceptance test
+    22).
 
 ## Open findings against the sources
 
@@ -366,7 +532,10 @@ balance.
 a second meaning of the machine (test 19): R1 registers and operands are `u32` exponents
 (Layer 2's operands are `K` elements; a non-`g`-power operand is expressible and names no valid
 cell). R2 an equal rewrite of a set cell is accepted, a differing one panics. R3 an unset cell
-reads as zero with a diagnostic. R4 memory grows on demand; no range check at access. R5
+reads as zero with a diagnostic, and the prover refuses to prove a run that read one below the
+fill base (`cpu/mod.rs:536-542`, `execute.rs:909-912`; prover-side only, the verifier accepts
+such a proof; the faithfulness review's row 14). R4 memory grows on demand; no range check at
+access. R5
 `κ_mem` is a post-run high-water mark. R6 `DEREF` in `cell` mode fills the unset side, asserts
 when both are set, defers when neither is, and zero-fills leftovers. R7 `MUL` back-solves one
 unset operand; `XOR` does not. R8 ten `RHint` advice kinds run before each instruction. R9 a
@@ -395,7 +564,12 @@ and `main_frame` is a frame-allocation hint for the prover, not part of the mach
 fixtures transcribe only `prog`. R26 the `JUMP` table commits `w` and `b` as columns
 (`tables.rs:707-711`, "local witness columns"); Layer 6 has them as Clean `witness` operations,
 local to the component, with the honest generators the Rust's batched inversion computes
-(`tables.rs:781-806`).
+(`tables.rs:781-806`). R27 the verifier accepts any `K`-array as the public bytecode
+(`verifier.py:1365`, `:1429`; `layout.rs:315-316`), and the constraints give an undecodable
+entry a meaning, a `DEREF` with the flag pair `(1, 1)` storing `v₃₀ + g²·pc + fp` in lane `0`
+(`tables.rs:616-623`), where Layer 2's `Program` holds decodable instructions only; T1 is
+stated for decodable bytecode and is silent, not false, about such a proof (the faithfulness
+review's row 4).
 
 **Clean** (`93c9d1ef`): C1 direction is the sign of the multiplicity (test 13). C2 balance is a
 field sum with a characteristic side condition (test 14). C3 a component cannot see its row
@@ -550,7 +724,10 @@ and `derefTable`'s soundness (`Spec` = `step … = some next`) was false under i
 tables were unaffected, their entries decoding unconditionally. The guarantee now names the
 instruction on both sides, `∃ ins, fetch b.pc = some ins ∧ decode entry = some ins`, which is
 what Theorem 6.4 gives Layer 9 from balance with the bytecode seed rows; the Layer 5 test file
-gains the rejection of a `DEREF` tuple with the flag pair `(1, 1)` at the counter `0`. **F8 the
+gains the rejection of a `DEREF` tuple with the flag pair `(1, 1)` at the counter `0`. (Decision
+14 keeps the decoding half alone as the guarantee, which is what `DEREF` uses, and moves the
+fetch half to Layer 9's `bytecode_channel_sound`; the rejection is now stated at every counter
+and over every data.) **F8 the
 step-only table contract forgot the row** (2026-09-14, the review
 [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md) of the Layer 6
 draft, findings R1–R3). `Spec r next data := step … ⟨r.pc, r.fp⟩ = some next` named the
@@ -566,7 +743,31 @@ image) with `*_refines_iff`; `ProverAssumptions` is
 (`*RowOf`, `*RowOf_refines`) and pushed through `completeness` (`*_step_complete`);
 the tests reject the three counterexamples through the specification and mutated rows through
 the constraints `main` emits. The remaining executable obligation, a data-aware generator, is
-T2's (decision 11).
+T2's (decision 11). **F9 the roadmap's Layer 7 sketch was unbuildable in two places**
+(2026-09-15, Layer 7). It gave the verifier the `Spec` "the final registers are reachable",
+which decision 7 had already made unsound to state per component (the state pull carries no
+guarantee, and a padded honest witness's pulled states are not `run`-reachable, F5), and it
+wrote the pulled counter as `const (gpow (N_prog - 1))` with `N_prog` free, while a Clean
+`main` sees neither the prover data, where Layer 5 keeps the program, nor any global. Met by
+decision 12: the verifier's `Spec` is `True`, the seed blocks' `Spec`s are their pull
+guarantees, which the sketch left unstated, and the counter is bound by making the verifier a
+function of the program, `leanIsaVerifier prog` pulling `Expression.const prog.finalPc`, as
+`layout(prog, …)` does (`layout.rs:335`, `:357`). The branch's first resolution made the counter
+a public coordinate `PublicIO.finalPc`, fixed to the program's by a `SatisfiedBy` conjunct; the
+Layer 7 review of 2026-09-15 flagged it as unfaithful, since the Rust derives the counter from
+the program and never reads or checks one, and Clean's Fibonacci verifier reading its boundary
+off the public input is no precedent, there those values being the public input. It was
+replaced before the pull request left draft, and raised decision 13 on the program's home.
+**F10 the program was read off the prover data** (2026-09-15, the faithfulness review of
+`main`, row 1). Layer 5's `programOf` read the program from the `"bytecode"` table of Clean's
+`ProverData`, a field of the witness, and every table `Spec` and `BytecodePull.Guarantees` were
+stated over it, so a table's soundness concluded a step of the program the prover named, where
+leanVM's bytecode is public and never committed; no theorem was false, the object was weaker
+than leanVM's until Layer 8's conjunct. Met by decision 14 on this branch (2026-09-16; decision
+13's parameter was built first and discarded): `programOf` and the `"bytecode"` table are gone,
+the channels and tables are program-free, and the program enters through `bytecodeRowOf prog`,
+`leanIsaVerifier prog` and Layer 8's `SatisfiedBy prog` (roadmap Layers 5 to 8, convention
+"Program", acceptance test 22).
 
 ## Survey record
 
@@ -588,14 +789,21 @@ Kept so the searches are not repeated.
   filling `08-end-to-end-protocol.tex:35-42` (F5). Executor loop head `execute.rs:540-584`
   (hints, g-power index growth, bytecode count bump, op load); arms `:584-831`; `BLAKE2S` arm
   779–812; filler loop 353–410; deferred `DEREF` 884–901; `κ_mem` 914–920; public-input
-  seeding 173–177; `as_addr` 36–40. Tables `tables.rs:436-960`: `mod arith` 436–455 and
-  `arith_result` 470–480 (`XOR`, `MUL`), `mod set` 532–543, `mod deref` 590–613 and
-  `deref_store` 615–627, `mod jump` 690–712 with the batched inversion 781–806, `mod blake2st`
-  846–882; `FlushBuilder` 126–183 (`memory_k` 172–174, `memory_128` 180–182); `TOWER_LANES`
-  44–49; `jump_identity` 63–78; opcode constants 95–100. Caps `cpu/mod.rs:51-64`, checked in
+  seeding 173–177; `as_addr` 36–40. Tables `tables.rs:436-951`: `mod arith` 436–456 and
+  `arith_result` 461–473 (`XOR`, `MUL`; flushes 483–495), `mod set` 527–538 (flushes 548–561),
+  `mod deref` 586–609 and `deref_store` 616–623 (flushes 633–643), `mod jump` 688–712 (local
+  witnesses 706–710; flushes 731–751), `mod blake2st` 833–863 (flushes 873–908);
+  `FlushBuilder` 108–183 (`bytecode` 145–152, `memory_k` 175–177, `memory_128` 180–182);
+  `TOWER_LANES` 45–49; `jump_identity` 70–74; opcode constants 95–100 (refreshed 2026-09-16,
+  the faithfulness review's row 20). Caps `cpu/mod.rs:51-64`, checked in
   `read_public` at 158–166, with the third-limb rejection at 139–143. ISA `cpu/isa.rs:6-66`.
   `Program::from_bytecode` `cpu/mod.rs:289-296` (R25); executor tests `mul_192bit_word`
-  `:981-998`, `blake2s_program` `:855-887`. Boundary blocks `layout.rs:355-395`; bytecode
+  `:981-998`, `blake2s_program` `:855-887`. Boundary blocks `layout.rs:352-395` (the state
+  boundary 352–358 with the constant pull at 357, memory seed and finalize 359–382, bytecode
+  seed and finalize 383–395, the committed column constants 13–17, `final_pc` at 335),
+  transcribed by Layer 7 against §6.1,
+  §6.2 ("Flush rules", `06-bus-interactions.tex:44-46`; "Nothing checks the finalize counts",
+  `:74`), §6.5 (`:95`) and §8.4 (`08-end-to-end-protocol.tex:70`); bytecode
   columns 229–290 (slot packing 252–290) and the bytecode seed and finalize blocks 385–395;
   count blocks 410–412. Cell packing `hash_flock.rs:117-139, 162-185`; the compression
   `flock/src/hash.rs:191-231` with constants in `primitives/src/hash.rs:19-62`; `F192` limb

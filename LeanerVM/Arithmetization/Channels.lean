@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Channels
 
-  The three bus interactions of leanISA as six Clean channels, the image and program a channel
-  guarantee is stated against, the two read gadgets, and the bus data of every channel.
+  The three bus interactions of leanISA as six Clean channels, the image a channel guarantee is
+  stated against, the two read gadgets, and the bus data of every channel.
   A plain (non-`module`) file: it imports Clean, which is not a `module` at `93c9d1ef`.
 -/
 
@@ -43,14 +43,17 @@ channels rather than transcribing the tuples again (issue #13).
 `pull (addr, count, v)` and `push (addr, g·count, v)` (§6.2 "Flush rules"); the lookup theorem
 says that when the bus balances, every count is nonzero, and there are fewer than `2^64 - 1`
 reads, every pulled memory tuple is a correct read of the committed image and every pulled
-bytecode tuple is an entry of the public program. That per-tuple fact is what a pull may assume
-and is the channel's `Guarantees`: `MemPull` states it as `MemImage.read` of the image named by
-the prover data, `BytecodePull` as the pulled entry decoding, through Layer 4's `decode`, to the
-instruction `Program.fetch` reads at the pulled counter from the program named by the prover
-data. The state pull carries no guarantee: a pulled state need not be
-reachable, since the fill blocks of §8.3 are closed walks disjoint from the run, and what the
-state channel yields is the walk decomposition of Layer 9 (roadmap acceptance test 21, issue
-#10). Pushes carry no guarantee; what a push must satisfy is the emitting component's `Spec`.
+bytecode tuple is an entry of the public program. What a pull may assume locally is the
+channel's `Guarantees`: `MemPull` states the whole lookup fact, `MemImage.read` of the image
+named by the prover data, since the image is committed and lives nowhere else; `BytecodePull`
+states only that the pulled entry decodes, through Layer 4's `decode`, to an instruction, a
+static fact about the tuple that names no program (the paragraph on the program below), which
+is all a table needs (`DEREF`'s flag pair must be a store mode's) and which Layer 9 derives from
+the lookup theorem together with the strong fact, that the entry is the program's at the pulled
+counter. The state pull carries no guarantee: a pulled state need not be reachable, since the
+fill blocks of §8.3 are closed walks disjoint from the run, and what the state channel yields is
+the walk decomposition of Layer 9 (roadmap acceptance test 21, issue #10). Pushes carry no
+guarantee; what a push must satisfy is the emitting component's `Spec`.
 
 **Direction as data.** Clean's `Channel.toRaw` reads the direction of an interaction off the sign
 of its multiplicity: a pull is `-1` and is granted the guarantee, and a push must satisfy the
@@ -68,22 +71,38 @@ never Clean's field-sum `BalancedInteractions`, which admits at most one interac
 workarounds into deletions; `Direction` and `channelDir` are deleted in favour of Clean's
 direction tag when that change is upstreamed (issue #16).
 
-**The image and the program** are read off Clean's `ProverData`, the string-keyed store a
-component's `Spec` sees: `memRows` is its `"mem"` table, one row of three limbs per word, and
-`bytecodeRows` its `"bytecode"` table, one eight-coordinate entry per instruction. `imageOf` and
-`programOf` are total, since a channel guarantee is a total proposition on arbitrary data, and
-so they normalise: each takes the *floor* logarithm of its table's row count, capped at the
-verifier's bound (`maxLogMem`, `maxLogBytecode`), as its log-size, which drops the rows at
-indices from that power of two on whenever the count is not exactly it. The memory cap also
-keeps `κ < 64`, the hypothesis under which `MemImage.read` reads an address as an index
-(`gLog?_spec`), so `MemPull.Guarantees` means what it says on every data. `WellShapedData` is
-the shape under which neither reading drops anything (each table's row count is exactly a
-power of two within its cap, `wellShapedData_iff`), and `imageOf_apply` and `programOf_code`
-are the two specifications under it; it is a conjunct of Layer 8's `Caps`, the verifier's check
-of the announced sizes, never a new hypothesis on a theorem. Layer 8's hypotheses
-`SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram` tie the two tables to the committed seed
-rows and the public program until Clean PR #446 supplies proof-committed data (roadmap
+**The image** is read off Clean's `ProverData`, the string-keyed store a component's `Spec`
+sees: `memRows` is its `"mem"` table, one row of three limbs per word. `imageOf` is total, since
+a channel guarantee is a total proposition on arbitrary data, and so it normalises: it takes
+the *floor* logarithm of the table's row count, capped at the verifier's bound (`maxLogMem`),
+as its log-size, which drops the rows at indices from that power of two on whenever the count
+is not exactly it. The cap also keeps `κ < 64`, the hypothesis under which `MemImage.read`
+reads an address as an index (`gLog?_spec`), so `MemPull.Guarantees` means what it says on
+every data. `WellShapedData` is the shape under which the reading drops nothing (the row count
+is exactly a power of two within the cap, `wellShapedData_iff`), and `imageOf_apply` is its
+specification; it is a conjunct of Layer 8's `Caps`, the verifier's check of the announced
+sizes, never a new hypothesis on a theorem. Layer 8's hypothesis `SeedRowsAreTheImage` ties the
+table to the committed seed rows until Clean PR #446 supplies proof-committed data (roadmap
 dependency table).
+
+**The program is public and the channels are program-free.** leanVM's bytecode is "public,
+i.e. not committed, the verifier can evaluate it directly" (§6.4, `06-bus-interactions.tex:93`):
+the eight entry columns ride the bytecode seed and finalize blocks as `Coord::Public`
+(`cpu/layout.rs:8-11`, `:288-290`, `:383-395`; `leaf.rs:36-39`), and every opcode table's read
+is its own constant opcode and its own operand columns, `[Const(BC), Col(pc), Col(count),
+Const(opcode), operands…]` (`tables.rs:143-152`): no table knows the program, and what binds a
+row's operands to the program is the bus, Theorem 6.4 applied to the bytecode pair. The Lean
+follows that division of labour. The program is not prover data: Clean's `ProverData` is a
+field of the witness, so a guarantee stated over a program read off it would be about a program
+the prover chose (acceptance test 22, status finding F10). Nor is it a parameter of the channels
+or of the tables: that would make the AIR itself a function of the program, where leanVM's is
+fixed for all programs (status decision 14). It enters in three places only: the bytecode
+block's row builder `bytecodeRowOf prog` (Layer 7), the verifier's sentinel counter
+`leanIsaVerifier prog` (Layer 7), and the statement `SatisfiedBy prog` of Layer 8, whose
+conjunct `BytecodeRowsAreTheProgram prog` says the block's rows are built from the program with
+only the finalize counts free, as the verifier forms "the program's whole share of the two
+bytecode blocks" itself (§8.5, Bus 4); Clean PR #446's fixed columns are that conjunct as a
+primitive.
 
 ## Wrong readings excluded
 
@@ -99,16 +118,17 @@ dependency table).
   elements in place: `(addr, count, v₀, v₁, v₂)`, never `(v, addr, count)` or the separator
   inside the message (`memMsg_toElements`).
 * A table whose row count is not a power of two within its cap is silently truncated by
-  `imageOf` and `programOf` (a three-row store yields a one-bit image, tests) and is not
-  `WellShapedData`; the empty store is not either, since its image still has one word.
-* A `"bytecode"` row that decodes to nothing is `XOR 0 0 0`, whose first read is at address `0`
-  and fails (acceptance test 2), so `step` executes nothing there; `BytecodeRowsAreTheProgram`
-  excludes such rows anyway.
-* The bytecode guarantee is not `fetch pc = decode entry`: that reading holds of a counter that
-  fetches nothing paired with an entry that decodes to nothing, so a `DEREF` row with a flag
-  pair that is no store mode would satisfy it at such a counter while `step` executes nothing,
-  and the table's soundness (Layer 6) would be false. The guarantee names the instruction on
-  both sides.
+  `imageOf` (a three-row store yields a one-bit image, tests) and is not `WellShapedData`; the
+  empty store is not either, since its image still has one word.
+* The bytecode guarantee is not `True`: `DEREF`'s constraints are defined at the flag pair
+  `(1, 1)`, which is no store mode's (`tables.rs:616-623`), so its soundness needs the pulled
+  entry to decode; that every entry on the bus does is a fact about the public program
+  (`decode_entry` on the block's rows), and Layer 9 derives it (tests: the pair `(1, 1)` is
+  rejected at every counter, acceptance test 18).
+* The bytecode guarantee names no program: neither one read off the prover data, which the
+  prover chooses (status finding F10), nor a parameter, which would put the program into every
+  table's type (decision 14). `BytecodePull.Guarantees` is the same proposition on every data
+  (tests, `Iff.rfl`).
 -/
 
 namespace LeanerVM.Semantics
@@ -152,19 +172,14 @@ structure BytecodeMsg (F : Type) where
   op : Vector F 7
   deriving ProvableStruct
 
-/-! ## The image and the program in the prover data -/
+/-! ## The image in the prover data -/
 
-/-- The prover-data table holding the memory image: one row of three limbs per word. -/
+/-- The prover-data table holding the memory image: one row of three limbs per word. The
+program has no table: it is public (the module docstring). -/
 def memDataName : String := "mem"
-
-/-- The prover-data table holding the program: one eight-coordinate entry per instruction. -/
-def bytecodeDataName : String := "bytecode"
 
 /-- The rows of the `"mem"` table. -/
 def memRows (data : ProverData K) : Array (Vector K 3) := data memDataName 3
-
-/-- The rows of the `"bytecode"` table. -/
-def bytecodeRows (data : ProverData K) : Array (Vector K 8) := data bytecodeDataName 8
 
 /-- The memory image named by the prover data: `κ` is the floor logarithm of the `"mem"` row
 count, capped at `maxLogMem`, word `i` is row `i` as limbs `(c₀, c₁, c₂)`, and a missing row
@@ -174,25 +189,12 @@ def imageOf (data : ProverData K) : (κ : ℕ) × MemImage κ :=
   ⟨min (Nat.log 2 (memRows data).size) maxLogMem,
     fun i ↦ (((memRows data)[(i : ℕ)]?).map fun v ↦ E.ofLimbs v[0] v[1] v[2]).getD 0⟩
 
-/-- The program named by the prover data: `logSize` is the floor logarithm of the `"bytecode"`
-row count, capped at `maxLogBytecode`, and instruction `i` is row `i` decoded; a missing row, or
-one that is no instruction's entry, is `XOR 0 0 0`, whose first read fails. Rows at indices from
-`2^logSize` on are dropped; `WellShapedData` is the shape under which there are none. -/
-def programOf (data : ProverData K) : Program where
-  logSize := min (Nat.log 2 (bytecodeRows data).size) maxLogBytecode
-  logSize_le := Nat.min_le_right _ _
-  code i := ((bytecodeRows data)[(i : ℕ)]? >>= decode).getD (.xor 0 0 0)
-
-/-- The prover data is well shaped: the `"mem"` table has exactly the `2^κ` rows of its image
-and the `"bytecode"` table exactly the `2^logSize` entries of its program, that is, each row
-count is a power of two within its cap, `2^maxLogMem` and `2^maxLogBytecode`
-(`wellShapedData_iff`), so that `imageOf` and `programOf` drop nothing. A conjunct of Layer 8's
-`Caps`. -/
+/-- The prover data is well shaped: the `"mem"` table has exactly the `2^κ` rows of its image,
+that is, its row count is a power of two within the cap `2^maxLogMem` (`wellShapedData_iff`),
+so that `imageOf` drops nothing. A conjunct of Layer 8's `Caps`. -/
 structure WellShapedData (data : ProverData K) : Prop where
   /-- The `"mem"` table has `2^κ` rows. -/
   memRows_size : (memRows data).size = 2 ^ (imageOf data).1
-  /-- The `"bytecode"` table has `2^logSize` rows. -/
-  bytecodeRows_size : (bytecodeRows data).size = 2 ^ (programOf data).logSize
 
 /-! ## The six channels -/
 
@@ -218,15 +220,16 @@ def MemPush : Channel K MemMsg where
   name := "mem.push"
   Guarantees _ _ := True
 
-/-- The bytecode pull, separator `g^2`: the pulled entry decodes to an instruction, and it is the
-one the program named by the prover data fetches at the pulled counter (specification Theorem
-6.4; Layer 4). Both sides are asserted: a counter that fetches nothing paired with an entry that
-decodes to nothing is not a read, and the `DEREF` table's soundness needs the entry to be an
-instruction, since a flag pair that is no store mode decodes to nothing. -/
+/-- The bytecode pull, separator `g^2`: the pulled entry decodes to an instruction (Layer 4). A
+static fact about the tuple alone, naming no program and reading no data: it is what the `DEREF`
+table needs (a flag pair that is no store mode decodes to nothing) and what every entry of the
+public program satisfies (`decode_entry`). That the entry is the program's at the pulled counter
+is Layer 9's, specification Theorem 6.4 on the bytecode pair from the block's rows
+(`BytecodeRowsAreTheProgram`); the module docstring says why neither a program read off the
+data nor a program parameter belongs here. -/
 def BytecodePull : Channel K BytecodeMsg where
   name := "bc.pull"
-  Guarantees b data :=
-    ∃ ins, (programOf data).fetch b.pc = some ins ∧ decode (#v[b.opcode] ++ b.op) = some ins
+  Guarantees b _ := ∃ ins, decode (#v[b.opcode] ++ b.op) = some ins
 
 /-- The bytecode push, separator `g^2`. -/
 def BytecodePush : Channel K BytecodeMsg where
@@ -312,31 +315,22 @@ theorem busTuple_getElem (c : RawChannel K) (msg : List K) (j : ℕ) (hj : j < 1
     (busTuple c msg)[j] = if j = 0 then channelSep c else msg.getD (j - 1) 0 := by
   interval_cases j <;> simp [busTuple]
 
-/-- Well shaped means: each table's row count is a power of two within its cap, `2^maxLogMem`
-for the memory and `2^maxLogBytecode` for the bytecode. -/
+/-- Well shaped means: the `"mem"` table's row count is a power of two within its cap,
+`2^maxLogMem`. -/
 theorem wellShapedData_iff (data : ProverData K) :
-    WellShapedData data ↔
-      (∃ κ ≤ maxLogMem, (memRows data).size = 2 ^ κ) ∧
-        ∃ k ≤ maxLogBytecode, (bytecodeRows data).size = 2 ^ k := by
+    WellShapedData data ↔ ∃ κ ≤ maxLogMem, (memRows data).size = 2 ^ κ := by
   constructor
-  · rintro ⟨hm, hb⟩
-    exact ⟨⟨_, Nat.min_le_right _ _, hm⟩, _, Nat.min_le_right _ _, hb⟩
-  · rintro ⟨⟨κ, hκ, hκm⟩, k, hk, hkb⟩
-    refine ⟨?_, ?_⟩
-    · show (memRows data).size = 2 ^ min (Nat.log 2 (memRows data).size) maxLogMem
-      rw [hκm, Nat.log_pow (by norm_num), Nat.min_eq_left hκ]
-    · show (bytecodeRows data).size = 2 ^ min (Nat.log 2 (bytecodeRows data).size) maxLogBytecode
-      rw [hkb, Nat.log_pow (by norm_num), Nat.min_eq_left hk]
+  · rintro ⟨hm⟩
+    exact ⟨_, Nat.min_le_right _ _, hm⟩
+  · rintro ⟨κ, hκ, hκm⟩
+    refine ⟨?_⟩
+    show (memRows data).size = 2 ^ min (Nat.log 2 (memRows data).size) maxLogMem
+    rw [hκm, Nat.log_pow (by norm_num), Nat.min_eq_left hκ]
 
 /-- Under the shape, every index of the image is a row of the `"mem"` table. -/
 theorem WellShapedData.memIndex_lt {data : ProverData K} (h : WellShapedData data)
     (i : Fin (2 ^ (imageOf data).1)) : (i : ℕ) < (memRows data).size := by
   rw [h.memRows_size]; exact i.isLt
-
-/-- Under the shape, every index of the program is a row of the `"bytecode"` table. -/
-theorem WellShapedData.bytecodeIndex_lt {data : ProverData K} (h : WellShapedData data)
-    (i : Fin (2 ^ (programOf data).logSize)) : (i : ℕ) < (bytecodeRows data).size := by
-  rw [h.bytecodeRows_size]; exact i.isLt
 
 /-- Under the shape, word `i` of the image is row `i` of the `"mem"` table, as limbs. -/
 theorem imageOf_apply {data : ProverData K} (h : WellShapedData data)
@@ -344,13 +338,5 @@ theorem imageOf_apply {data : ProverData K} (h : WellShapedData data)
     (hv : (memRows data)[(i : ℕ)]'(h.memIndex_lt i) = v) :
     (imageOf data).2 i = E.ofLimbs v[0] v[1] v[2] := by
   simp [imageOf, Array.getElem?_eq_getElem (h.memIndex_lt i), hv]
-
-/-- Under the shape, instruction `i` of the program is row `i` of the `"bytecode"` table,
-decoded. -/
-theorem programOf_code {data : ProverData K} (h : WellShapedData data)
-    (i : Fin (2 ^ (programOf data).logSize)) {ins : Instr}
-    (hd : decode ((bytecodeRows data)[(i : ℕ)]'(h.bytecodeIndex_lt i)) = some ins) :
-    (programOf data).code i = ins := by
-  simp [programOf, Array.getElem?_eq_getElem (h.bytecodeIndex_lt i), hd]
 
 end LeanerVM.Arithmetization

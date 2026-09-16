@@ -183,7 +183,7 @@ nothing is restated here.
 | `encodeSlots` (Layer 4) | The bytecode multilinear is `encodeSlots` laid out on `2^(k_bc + 4)` points. |
 | `leanIsaEnsemble`, `xorTable` … `blake2sTable`, `memTable`, `bytecodeTable`, `leanIsaVerifier` (Layers 6–8) | The components whose operations are read as polynomials (Layer 2 here). |
 | `StatePull` … `BytecodePush`, `MemMsg`, `StateMsg`, `BytecodeMsg` (Layer 5) | The channel of an interaction names its domain separator and coordinate order on the 16-slot bus. |
-| `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf`, `programOf` (Layer 8) | The relation. `Caps` is asked to include power-of-two heights ([Boundaries](#boundaries)). |
+| `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf` (Layer 8) | The relation. `Caps` is asked to include power-of-two heights ([Boundaries](#boundaries)). |
 | `constraintSoundness`, `HasFillBlocks`, `constraintCompleteness` (Layer 10) | Consumed only by Layer 13. |
 
 ### ArkLib

@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Tables.Basic
 
-  The vocabulary the six opcode tables share and that is theirs alone: the row environment, and
-  the two `Option` facts that turn a `guard` of `execute` into an equation.
+  The vocabulary the six opcode tables share, and that the boundary blocks of Layer 7 reuse: the
+  row environment, and the two `Option` facts that turn a `guard` of `execute` into an equation.
   A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
@@ -20,7 +20,8 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 `E.ofLimbs v[0] v[1] v[2]`, spelled as Layer 5's `MemPull.Guarantees` spells it.
 
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
-  witness slots, the data, no hints. `*Row_complete` states local completeness in it.
+  witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
+  boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
 * `guard_bind_eq_some_iff` and `guard_eq_some` are the `Option` facts the `*_spec_iff`
   characterisations and the row builders need: `execute` checks each relation with `guard`,
   and `guard p >>= f = some b` says `p` and `f () = some b`.

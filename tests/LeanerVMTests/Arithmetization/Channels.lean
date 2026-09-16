@@ -9,9 +9,12 @@ A plain file, like the module it tests. The six channels' separators and directi
 against specification §5.1 and `tables.rs:90-92`, the three element orders against §6.1, §6.2,
 §6.4 and the flush builders of `tables.rs:127-166`, on literal messages, and the sixteen-slot
 tuples against §5.1. The read gadgets are checked to emit a `pull` then a `push` with the count
-advanced by `g`. `imageOf` and `programOf` are read off a two-row prover data, which is
-`WellShapedData`, and a correct memory read satisfies `MemPull.Guarantees` while a wrong word
-does not; a three-row store and the empty store are shown truncated and not well shaped.
+advanced by `g`. `imageOf` is read off a two-row prover data, which is `WellShapedData`, and a
+correct memory read satisfies `MemPull.Guarantees` while a wrong word does not; a three-row
+store and the empty store are shown truncated and not well shaped. The bytecode guarantee is
+decodability alone, program- and data-free (decision 14): an instruction's entry passes on
+every data, a flag pair that is no store mode and a nonzero spare slot fail at every counter,
+and the guarantee is the same proposition on any two data.
 
 The last section exhibits Clean's bus over `K` (roadmap acceptance tests 13 and 14): `-1 = 1`,
 so a push-multiplicity interaction on a pull channel is granted the typed guarantee, every
@@ -134,29 +137,25 @@ example (env : Environment K) : Expression.eval env (-1 : Expression K) = 1 := b
   show (-1 : K) * 1 = 1
   decide
 
-/-! ## The image and the program in the prover data -/
+/-! ## The image in the prover data -/
 
-/-- Two memory words and two instructions, told apart by arity so that the kernel never
-compares table names. -/
+/-- Two memory words, matched on arity so that the kernel never compares table names. The
+program has no table: it is public (decision 14). -/
 def sampleData : ProverData K := fun _ n ↦
   match n with
   | 3 => #[#v[1, 2, 3], #v[4, 5, 6]]
-  | 8 => #[entry (.xor (gpow 2) (gpow 3) (gpow 4)), entry (.jump 1 1 1)]
   | _ => #[]
 
-/-- A store whose tables are told apart by name: `imageOf` reads `"mem"` and `programOf`
-`"bytecode"`. -/
+/-- A store whose table is told apart by name: `imageOf` reads `"mem"`. -/
 def namedData : ProverData K := fun name n ↦
   match name, n with
   | "mem", 3 => #[#v[9, 9, 9]]
-  | "bytecode", 8 => #[entry (.jump 1 1 1)]
   | _, _ => #[]
 
 /-- Three memory words: not a power of two. -/
 def threeRows : ProverData K := fun _ n ↦
   match n with
   | 3 => #[#v[1, 2, 3], #v[4, 5, 6], #v[7, 8, 9]]
-  | 8 => #[entry (.jump 1 1 1)]
   | _ => #[]
 
 /-- The empty store. -/
@@ -165,21 +164,15 @@ def emptyData : ProverData K := fun _ _ ↦ #[]
 #guard (imageOf sampleData).1 = 1
 #guard (imageOf sampleData).2 0 = E.ofLimbs 1 2 3
 #guard (imageOf sampleData).2 1 = E.ofLimbs 4 5 6
-#guard (programOf sampleData).logSize = 1
-#guard (programOf sampleData).code 0 = .xor (gpow 2) (gpow 3) (gpow 4)
-#guard (programOf sampleData).code 1 = .jump 1 1 1
 #guard (imageOf namedData).1 = 0
 #guard (imageOf namedData).2 0 = E.ofLimbs 9 9 9
-#guard (programOf namedData).logSize = 0
-#guard (programOf namedData).code 0 = .jump 1 1 1
 
 -- The floor logarithm truncates: three rows give a one-bit image without the third word.
 #guard (imageOf threeRows).1 = 1
 #guard (imageOf threeRows).2 1 = E.ofLimbs 4 5 6
--- The empty store: one word `0`, one instruction `XOR 0 0 0`.
+-- The empty store: one word `0`.
 #guard (imageOf emptyData).1 = 0
 #guard (imageOf emptyData).2 0 = 0
-#guard (programOf emptyData).code 0 = .xor 0 0 0
 
 /-- The log-size of two rows is `1`, through `Nat.log_pow`, under the cap. -/
 theorem sampleData_logSize : (imageOf sampleData).1 = 1 := by
@@ -189,24 +182,13 @@ theorem sampleData_logSize : (imageOf sampleData).1 = 1 := by
   rw [show (#[(#v[1, 2, 3] : Vector K 3), #v[4, 5, 6]]).size = 2 from rfl, h]
   decide
 
-/-- Likewise for the program, under the cap. -/
-theorem sampleData_bytecodeLogSize : (programOf sampleData).logSize = 1 := by
-  show min (Nat.log 2 (#[entry (.xor (gpow 2) (gpow 3) (gpow 4)), entry (.jump 1 1 1)]).size)
-    maxLogBytecode = 1
-  have h := Nat.log_pow (b := 2) (by norm_num) 1
-  rw [pow_one] at h
-  rw [show (#[entry (.xor (gpow 2) (gpow 3) (gpow 4)), entry (.jump 1 1 1)]).size = 2 from rfl, h]
-  decide
-
 /-- The two-row store is well shaped. -/
 theorem sampleData_wellShaped : WellShapedData sampleData where
   memRows_size := by rw [sampleData_logSize]; decide +kernel
-  bytecodeRows_size := by rw [sampleData_bytecodeLogSize]; decide +kernel
 
 /-- The same, through the power-of-two reading. -/
 example : WellShapedData sampleData :=
-  (wellShapedData_iff _).mpr
-    ⟨⟨1, by decide, by decide +kernel⟩, 1, by decide, by decide +kernel⟩
+  (wellShapedData_iff _).mpr ⟨1, by decide, by decide +kernel⟩
 
 /-- The floor logarithm of three rows is `1`, under the cap. -/
 theorem threeRows_logSize : (imageOf threeRows).1 = 1 := by
@@ -251,30 +233,34 @@ example : ¬ MemPull.Guarantees ⟨gpow 1, gpow 0, #v[4, 5, 7]⟩ sampleData := 
     imageOf_apply sampleData_wellShaped one (v := #v[4, 5, 6]) (by decide +kernel)]
   decide +kernel
 
-/-- A correct bytecode read: the `JUMP` entry decodes to the instruction fetched at `g^1`. -/
-example : BytecodePull.Guarantees ⟨gpow 1, gpow 0, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩
-    sampleData := by
-  show ∃ ins, (programOf sampleData).fetch (gpow 1) = some ins ∧ decode _ = some ins
-  have hi : (1 : ℕ) < 2 ^ (programOf sampleData).logSize := by
-    rw [sampleData_bytecodeLogSize]; decide
-  have hd : decode ((bytecodeRows sampleData)[(1 : ℕ)]'(by decide +kernel)) =
-      some (.jump 1 1 1) := by
-    decide +kernel
-  have hfetch : (programOf sampleData).fetch (gpow 1) =
-      some ((programOf sampleData).code ⟨1, hi⟩) :=
-    Program.fetch_gpow _ ⟨1, hi⟩
-  have hcode : (programOf sampleData).code ⟨1, hi⟩ = .jump 1 1 1 :=
-    programOf_code sampleData_wellShaped ⟨1, hi⟩ hd
-  rw [hfetch, hcode]
-  exact ⟨_, rfl, decode_eq_some_iff.mpr rfl⟩
+/-- The bytecode guarantee is decodability alone: an instruction's entry passes, at any counter
+and with any count, over every data (the guarantee reads no data, decision 14). -/
+example (pc c : K) (data : ProverData K) :
+    BytecodePull.Guarantees ⟨pc, c, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩ data :=
+  ⟨_, decode_entry (.jump 1 1 1)⟩
 
-/-- An entry that decodes to nothing is no bytecode read, even at a counter that fetches nothing:
-the flag pair `(1, 1)` is no store mode (acceptance test 18). -/
-example : ¬ BytecodePull.Guarantees ⟨0, gpow 0, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0]⟩
-    sampleData := by
-  rintro ⟨ins, hfetch, -⟩
-  rw [Program.fetch_zero] at hfetch
-  cases hfetch
+/-- An entry that decodes to nothing is no bytecode read at any counter: the flag pair `(1, 1)`
+is no store mode (acceptance test 18). -/
+example (pc c : K) (data : ProverData K) :
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.deref.code, #v[1, 1, 1, 1, 1, 0, 0]⟩ data := by
+  rintro ⟨ins, hdec⟩
+  have h : decode (#v[Opcode.deref.code] ++ #v[(1 : K), 1, 1, 1, 1, 0, 0]) = none := by
+    decide +kernel
+  exact nomatch h.symm.trans hdec
+
+/-- Nor is a nonzero spare slot (acceptance test 16). -/
+example (pc c : K) (data : ProverData K) :
+    ¬ BytecodePull.Guarantees ⟨pc, c, Opcode.xor.code, #v[1, 1, 1, 0, 0, 0, 1]⟩ data := by
+  rintro ⟨ins, hdec⟩
+  have h : decode (#v[Opcode.xor.code] ++ #v[(1 : K), 1, 1, 0, 0, 0, 1]) = none := by
+    decide +kernel
+  exact nomatch h.symm.trans hdec
+
+/-- The guarantee names no program and reads no data: it is the same proposition on any two
+data, where the memory guarantee reads its image off the data. -/
+example (b : BytecodeMsg K) (data data' : ProverData K) :
+    BytecodePull.Guarantees b data ↔ BytecodePull.Guarantees b data' :=
+  Iff.rfl
 
 /-- The state pull guarantees nothing (acceptance test 21). -/
 example (s : Regs K) (data : ProverData K) : StatePull.Guarantees s data := trivial
