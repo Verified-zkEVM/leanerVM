@@ -49,12 +49,19 @@ coordinate, and Layer 8's ensemble is `leanIsaEnsemble prog`.
 
 **The specifications.** A block's `Spec` is what its pull guarantees (Layer 5): `MemSpec r
 data` says the row is bound to the image the data names, `MemBindings (imageOf data).2 r`, the
-cell at `idx` holding the row's word `E.ofLimbs m[0] m[1] m[2]`; `BytecodeSpec r data` says the
-row is bound to the program the data names, `BytecodeBindings (programOf data) r`, the program
-fetching an instruction at `idx` to which the row's entry decodes (Layer 4). The verifier's
-`Spec` is `True`: the state pull carries no guarantee, since a pulled state need not be
-reachable (roadmap acceptance test 21, decision 7), and what the state boundary yields, a run
-from `(1, 1)` to `(g^(N_prog - 1), 1)` inside a balanced bus, is Layer 9's
+cell at `idx` holding the row's word `E.ofLimbs m[0] m[1] m[2]`; `BytecodeDecodes r` says the
+row's entry decodes to an instruction (Layer 4), the program-free guarantee of the bytecode
+pull, which reads no data. The program is not the block's to name: its rows are the public
+program's entries because the verifier forms them from the program (§8.5, Bus 4;
+`Coord::Public`), which Layer 8 states as the conjunct `BytecodeRowsAreTheProgram prog` of
+`SatisfiedBy prog`, that the block's rows are `bytecodeRowOf prog i cntFin` for every slot `i`
+with some finalize count. `BytecodeBindings prog r` is that conjunct's per-row reading, the
+program fetching at `idx` an instruction the row's entry decodes to: proved of every
+`bytecodeRowOf` row (`bytecodeRowOf_bindings`), derived for every seed row by Layer 9, and
+never the block's `Spec` (Layer 5's program paragraph; decision 14). The verifier's `Spec` is
+`True`: the state pull carries no guarantee, since a pulled state need not be reachable
+(roadmap acceptance test 21, decision 7), and what the state boundary yields, a run from
+`(1, 1)` to `(g^(N_prog - 1), 1)` inside a balanced bus, is Layer 9's
 `exists_run_of_balanced`, stated once, from balance, never per component. Access counts are
 outside every specification: nothing checks a finalize count (§6.2, "Nothing checks the
 finalize counts"), and a wrong one can only unbalance the bus (Layer 8).
@@ -63,14 +70,14 @@ finalize counts"), and a wrong one can only unbalance the bus (Layer 8).
 concludes `Spec`, which is that guarantee; the requirement of its push is vacuous (Layer 5). The
 honest-prover premise is `Spec` itself, and nothing above this file assumes it: `memRowOf mem i
 cntFin` is the seed row of word `i` of an image and `bytecodeRowOf prog i cntFin` the seed row
-of slot `i` of a program, `memRowOf_bindings` and `bytecodeRowOf_bindings` prove them bound
-with any finalize count, and `mem_word_complete` and `bytecode_entry_complete` push them
-through `completeness` over the prover data: every word of the image and every slot of the
-program has a satisfying row, in the row environment `rowEnv data`. Both builders are
-computable, since they read the image and the program as functions, never through
-`MemImage.read`. The verifier is complete for every program and public input, and
-`verifier_push_eval` and `verifier_pull_eval` read its two states as Layer 3's `Regs.initial`
-and `Regs.final prog`.
+of slot `i` of a program, `memRowOf_bindings` proves the word's row bound and
+`bytecodeRowOf_decodes` the slot's row decodable, with any finalize count, and
+`mem_word_complete` and `bytecode_entry_complete` push them through `completeness` over the
+prover data: every word of the image and every slot of the program has a satisfying row, in
+the row environment `rowEnv data`. Both builders are computable, since they read the image and
+the program as functions, never through `MemImage.read`. The verifier is complete for every
+program and public input, and `verifier_push_eval` and `verifier_pull_eval` read its two
+states as Layer 3's `Regs.initial` and `Regs.final prog`.
 
 ## Wrong readings excluded
 
@@ -89,9 +96,16 @@ and `Regs.final prog`.
   row `i` to `g^i`. That is Layer 8's `IndexColumnsAreRowIndices`, and the two seed tables
   being the image and the program are its `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram`,
   all three removed by Clean PR #446 (roadmap dependency table).
+* The bytecode block's `Spec` names no program: one read off the prover data is the prover's
+  (status finding F10), and a parameter would be Clean PR #446's fixed columns done by hand on a
+  component that has no constraint to hold them. The statement carries the program
+  (`BytecodeRowsAreTheProgram`, Layer 8), and a row whose entry is not the program's at its
+  counter is rejected there, never here (decision 14; the tests reject it through
+  `BytecodeBindings`).
 * The bytecode entry carries all seven operand slots, spare slots as literal zeros, so that the
   seed of a slot and a table's read of it are the same tuple (status finding R24); Layer 4's
-  `decode` rejects a nonzero spare slot, and so does `BytecodeBindings` (tests).
+  `decode` rejects a nonzero spare slot, and so do `BytecodeDecodes` and `BytecodeBindings`
+  (tests).
 * The public words are not on the bus: §8.2 checks them against the committed memory by an
   evaluation claim, which Layer 8 states as a conjunct of `SatisfiedBy` over `imageOf w.data`,
   and the verifier reads `lanes` for nothing.
@@ -205,19 +219,24 @@ structure BytecodeRow (F : Type) where
   op : Vector F 7
   deriving ProvableStruct
 
+/-- The row's entry decodes to an instruction (Layer 4; `decode_eq_some_iff` reads it as the
+entry): the bytecode pull's guarantee (Layer 5), and the block's `Spec`. -/
+structure BytecodeDecodes (r : BytecodeRow K) : Prop where
+  /-- The row's entry is an instruction's. -/
+  entry_eq : ∃ ins, decode (#v[r.opcode] ++ r.op) = some ins
+
 /-- The row's binding to a program: the program fetches an instruction at the row's counter,
-and the row's entry decodes to it (Layer 4; `decode_eq_some_iff` reads it as the entry). -/
+and the row's entry decodes to it. The per-row reading of Layer 8's `BytecodeRowsAreTheProgram
+prog`, the statement's conjunct that the block's rows are the program's, and never the block's
+`Spec` (the module docstring): Layer 9 derives it for every seed row from the conjunct, and
+`bytecodeRowOf_bindings` proves it of every row the builder writes. -/
 structure BytecodeBindings (prog : Program) (r : BytecodeRow K) : Prop where
   /-- The program fetches at `idx` the instruction the row's entry decodes to. -/
   entry_eq : ∃ ins, prog.fetch r.idx = some ins ∧ decode (#v[r.opcode] ++ r.op) = some ins
 
-/-- The bytecode block's `Spec`: the row is bound to the program the prover data names (Layer
-5's `programOf`). -/
-def BytecodeSpec (r : BytecodeRow K) (data : ProverData K) : Prop :=
-  BytecodeBindings (programOf data) r
-
 /-- The bytecode block (specification §6.2 and §6.4, seed and finalize; `layout.rs:383-395`):
-push `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`. -/
+push `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`. Program-free: the entry columns
+are the program's by Layer 8's conjunct, not by anything here. -/
 def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
   main r := do
     BytecodePush.push ⟨r.idx, 1, r.opcode, r.op⟩
@@ -227,10 +246,10 @@ def bytecodeTable : GeneralFormalCircuit K BytecodeRow unit where
   requirementsChannelsLawful input offset := by
     simp only [circuit_norm, -BitVec.reduceNeg]
     tauto
-  Spec r _ data := BytecodeSpec r data
-  -- The honest prover's row: a slot of the program. Proved of the row of every slot by
-  -- `bytecodeRowOf_bindings`; see `bytecode_entry_complete`.
-  ProverAssumptions r data _ := BytecodeSpec r data
+  Spec r _ _ := BytecodeDecodes r
+  -- The honest prover's row: a slot of the program, whose entry decodes. Proved of the row of
+  -- every slot by `bytecodeRowOf_decodes`; see `bytecode_entry_complete`.
+  ProverAssumptions r _ _ := BytecodeDecodes r
   soundness := by
     circuit_proof_start [BytecodePull, BytecodePush]
     obtain ⟨_, _, _, hop⟩ := h_input
@@ -256,7 +275,7 @@ def bytecodeRowOf (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) : B
   let e := entry (prog.code i)
   ⟨gpow i, cntFin, e[0], #v[e[1], e[2], e[3], e[4], e[5], e[6], e[7]]⟩
 
-/-- `bytecodeRowOf` is bound, with any finalize count. -/
+/-- `bytecodeRowOf` is bound to its program, with any finalize count. -/
 theorem bytecodeRowOf_bindings (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     BytecodeBindings prog (bytecodeRowOf prog i cntFin) :=
   ⟨_, prog.fetch_gpow i, by
@@ -266,15 +285,21 @@ theorem bytecodeRowOf_bindings (prog : Program) (i : Fin (2 ^ prog.logSize)) (cn
     rw [cons_append_ops]
     exact decode_entry _⟩
 
-/-- Every slot of the program named by the data has a satisfying seed row, from the program
-alone: the constraints of `main` hold of `bytecodeRowOf` in the row environment over the data. -/
-theorem bytecode_entry_complete {data : ProverData K} (i : Fin (2 ^ (programOf data).logSize))
-    (cntFin : K) :
+/-- `bytecodeRowOf` decodes, with any finalize count: the block's `Spec` of every row the
+builder writes. -/
+theorem bytecodeRowOf_decodes (prog : Program) (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
+    BytecodeDecodes (bytecodeRowOf prog i cntFin) :=
+  ⟨(bytecodeRowOf_bindings prog i cntFin).entry_eq.imp fun _ h ↦ h.2⟩
+
+/-- Every slot of a program has a satisfying seed row, from the program alone and over any
+data: the constraints of `main` hold of `bytecodeRowOf` in the row environment. -/
+theorem bytecode_entry_complete {data : ProverData K} (prog : Program)
+    (i : Fin (2 ^ prog.logSize)) (cntFin : K) :
     ConstraintsHold.Completeness (rowEnv data)
-      ((bytecodeTable.main (const (bytecodeRowOf (programOf data) i cntFin))).operations 0) :=
+      ((bytecodeTable.main (const (bytecodeRowOf prog i cntFin))).operations 0) :=
   (bytecodeTable.completeness 0 (rowEnv data) (const _)
     (by simp only [circuit_norm, bytecodeTable, -BitVec.reduceNeg]) _
-    ProvableType.eval_const_prover (bytecodeRowOf_bindings _ _ _)).1
+    ProvableType.eval_const_prover (bytecodeRowOf_decodes _ _ _)).1
 
 /-! ## The verifier -/
 

@@ -16,7 +16,7 @@ leanISA roadmap Layer 3 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`. Category A: written from specification §2
 (`doc/leanvm/body/02-vm-specification.tex`; the registers `:16-20`, the execution loop
 `:26-35`, the operands `:49-52`, the instruction table `:54-68`, `DEREF` `:71-81`, `JUMP`
-`:86`, `BLAKE2S` `:90-96`) before the Rust executor (`crates/lean_vm/src/cpu/execute.rs`) was
+`:86`, `BLAKE2S` `:90-93`) before the Rust executor (`crates/lean_vm/src/cpu/execute.rs`) was
 opened; the diff against the executor is recorded in `docs/roadmap/leanisa-status.md`. Where §2
 is silent the roadmap's pinned conventions decide: `DEREF` reads its local cell in every mode
 (specification §7.4, acceptance test 6), and the halting test that keeps the sentinel from ever
@@ -163,6 +163,15 @@ theorem step_eq_none_of_fetch_eq_none {κ : ℕ} {prog : Program} {L : MemImage 
 theorem step_of_fetch_eq_some {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K}
     {ins : Instr} (h : prog.fetch r.pc = some ins) : step prog L r = execute L r ins := by
   rw [step, h]; rfl
+
+/-- A step that fetches `ins` and reaches `next` executes `ins` to `next`: the one join between
+a program's step and an instruction's execution. The tables of the arithmetization (Layer 6)
+are stated over `execute`, program-free as leanVM's are, and Layer 10 composes them with
+`Program.fetch` through this lemma. -/
+theorem execute_of_step {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs K} {ins : Instr}
+    {next : Regs K} (hfetch : prog.fetch r.pc = some ins) (hstep : step prog L r = some next) :
+    execute L r ins = some next := by
+  rwa [step_of_fetch_eq_some hfetch] at hstep
 
 end
 end LeanerVM.Semantics

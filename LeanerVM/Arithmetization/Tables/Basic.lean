@@ -20,7 +20,7 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 `E.ofLimbs v[0] v[1] v[2]`, spelled as Layer 5's `MemPull.Guarantees` spells it.
 
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
-  witness slots, the data, no hints. `*_step_complete` states completeness in it, and so do the
+  witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
   boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
 * `guard_bind_eq_some_iff` and `guard_eq_some` are the `Option` facts the `*_spec_iff`
   characterisations and the row builders need: `execute` checks each relation with `guard`,

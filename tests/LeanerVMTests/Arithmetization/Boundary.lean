@@ -4,9 +4,9 @@ import LeanerVM.Arithmetization.Boundary
 # Layer 7 tests: the boundary blocks
 
 A plain file, like the module it tests: the fixtures decide `E` arithmetic in the kernel. One
-prover data serves the three blocks: a four-word image (`κ = 2`) and a two-slot program
-(`logSize = 1`), read through `imageOf`/`programOf` at literal indices as in the Layer 5 and 6
-tests.
+prover data serves the three blocks, a four-word image (`κ = 2`) read through `imageOf` at
+literal indices as in the Layer 5 and 6 tests, beside a two-slot program `bProg` (`logSize =
+1`), a `Program` value: the program is public and no table of the data (decision 14).
 
 The three components are pinned to the Rust blocks (`layout.rs:352-395`) as data: each is a
 push at count `1` and a pull at the finalize count, on its channel pair, with the pull's
@@ -15,15 +15,19 @@ multiplicity `-1` and its guarantee assumed; the verifier of a program has no lo
 pulls the program's sentinel as a constant, `g^1` for the fixture's two-slot program.
 `PublicIO` flattens to the four lanes.
 
-For the two seed blocks: the honest row of a word or a slot is bound (`MemSpec`, `BytecodeSpec`)
-and the row `memRowOf`/`bytecodeRowOf` builds from the image or the program alone satisfies the
-constraints `main` emits (`mem_word_complete`, `bytecode_entry_complete`), with any finalize
-count, `0` included, since nothing checks the finalize counts (specification §6.2). Rejections
-use actual rows and the blocks' own theorems: a changed limb, the address `0` (acceptance test
-2) and an address past the image fail `MemSpec` and hence the constraints in every environment
-over the data (read back through `soundness`); a changed opcode, a nonzero spare slot
-(acceptance test 16, finding R24) and a counter past the program fail `BytecodeSpec` the same
-way.
+For the two seed blocks: the honest row of a word is bound (`MemSpec`), the honest row of a
+slot decodes (`BytecodeDecodes`, the block's `Spec`) and is the program's (`BytecodeBindings
+bProg`, the per-row reading of Layer 8's conjunct, which the block does not state), and the row
+`memRowOf`/`bytecodeRowOf` builds from the image or the program alone is the honest row and
+satisfies the constraints `main` emits (`mem_word_complete`, `bytecode_entry_complete`), with
+any finalize count, `0` included, since nothing checks the finalize counts (specification
+§6.2). Rejections use actual rows and the blocks' own theorems: a changed limb, the address `0`
+(acceptance test 2) and an address past the image fail `MemSpec` and hence the constraints in
+every environment over the data (read back through `soundness`); a nonzero spare slot
+(acceptance test 16, finding R24) fails `BytecodeDecodes` the same way, over any data; a
+changed opcode and a counter past the program are accepted by the block, whose `Spec` names no
+program, and rejected by `BytecodeBindings bProg`, where Layer 8's conjunct rejects the
+witness (decision 14).
 -/
 
 namespace LeanerVMTests.Arithmetization.Boundary
@@ -35,16 +39,14 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 /-- The image: four words, `κ = 2`. -/
 def memWords : Array (Vector K 3) := #[#v[1, 2, 3], #v[4, 5, 6], #v[7, 8, 9], #v[0, 0, 0]]
 
-/-- The program: an `XOR` and a `JUMP`, `logSize = 1`. -/
-def progEntries : Array (Vector K 8) :=
-  #[entry (.xor (gpow 2) (gpow 3) (gpow 4)), entry (.jump 1 1 1)]
+/-- The program: an `XOR` and a `JUMP`, `logSize = 1`, a `Program` value (public, not data). -/
+def bProg : Program := ⟨1, by decide, ![.xor (gpow 2) (gpow 3) (gpow 4), .jump 1 1 1]⟩
 
-/-- The prover data, its two tables told apart by arity so that the kernel never compares
-names (as in the Layer 5 and 6 tests). -/
+/-- The prover data, its one table matched on arity so that the kernel never compares names
+(as in the Layer 5 and 6 tests). -/
 def bData : ProverData K := fun _ n ↦
   match n with
   | 3 => memWords
-  | 8 => progEntries
   | _ => #[]
 
 theorem bData_logSize : (imageOf bData).1 = 2 := by
@@ -53,16 +55,8 @@ theorem bData_logSize : (imageOf bData).1 = 2 := by
     Nat.log_pow (by norm_num)]
   decide
 
-theorem bData_progLogSize : (programOf bData).logSize = 1 := by
-  show min (Nat.log 2 (bytecodeRows bData).size) maxLogBytecode = 1
-  have h := Nat.log_pow (b := 2) (by norm_num) 1
-  rw [pow_one] at h
-  rw [show (bytecodeRows bData).size = 2 from rfl, h]
-  decide
-
 theorem bData_wellShaped : WellShapedData bData where
   memRows_size := by rw [bData_logSize]; rfl
-  bytecodeRows_size := by rw [bData_progLogSize]; rfl
 
 /-- The word at `g^k` of the fixture's image, as limbs. -/
 theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 4 := by decide)
@@ -73,14 +67,11 @@ theorem read_at (k : ℕ) (v : Vector K 3) (hk : k < 4 := by decide)
   rw [show gpow k = gpow ((⟨k, hk'⟩ : Fin (2 ^ (imageOf bData).1)) : ℕ) from rfl,
     MemImage.read_gpow (by rw [bData_logSize]; decide), imageOf_apply bData_wellShaped _ hv]
 
-/-- The instruction at `g^i` of the fixture's program, decoded. -/
-theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 := by decide)
-    (hd : decode (progEntries[i]'(by rw [show progEntries.size = 2 from rfl]; exact hi)) =
-      some ins := by decide +kernel) :
-    (programOf bData).fetch (gpow i) = some ins := by
-  have hi' : i < 2 ^ (programOf bData).logSize := by rw [bData_progLogSize]; omega
-  rw [show gpow i = gpow ((⟨i, hi'⟩ : Fin (2 ^ (programOf bData).logSize)) : ℕ) from rfl,
-    Program.fetch_gpow, programOf_code bData_wellShaped ⟨i, hi'⟩ hd]
+/-- The instruction at `g^i` of the fixture's program. -/
+theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ bProg.logSize := by decide)
+    (hd : bProg.code ⟨i, hi⟩ = ins := by rfl) : bProg.fetch (gpow i) = some ins := by
+  rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ bProg.logSize)) : ℕ) from rfl,
+    Program.fetch_gpow, hd]
 
 /-! ## The three blocks are their flushes (`layout.rs:352-395`) -/
 
@@ -130,11 +121,8 @@ example (env : Environment K) : eval env (⟨1, 1⟩ : Regs (Expression K)) = Re
   verifier_push_eval env
 
 example (env : Environment K) :
-    eval env (⟨Expression.const (programOf bData).finalPc, 1⟩ : Regs (Expression K)) =
-      ⟨gpow 1, 1⟩ := by
+    eval env (⟨Expression.const bProg.finalPc, 1⟩ : Regs (Expression K)) = ⟨gpow 1, 1⟩ := by
   rw [verifier_pull_eval]
-  show (⟨gpow (2 ^ (programOf bData).logSize - 1), 1⟩ : Regs K) = _
-  rw [bData_progLogSize]
   rfl
 
 /-! ## The public input -/
@@ -211,73 +199,77 @@ example (cntFin : K) (m : Vector K 3) : ¬ MemSpec ⟨gpow 4, cntFin, m⟩ bData
 def bcRow0 : BytecodeRow K :=
   ⟨gpow 0, gpow 2, Opcode.xor.code, #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 0]⟩
 
-/-- The honest row is bound to the program: its entry is the fetched instruction's. -/
-theorem bcRow0_spec : BytecodeSpec bcRow0 bData :=
+/-- The honest row decodes: the block's `Spec`, over no data. -/
+theorem bcRow0_decodes : BytecodeDecodes bcRow0 :=
+  ⟨.xor (gpow 2) (gpow 3) (gpow 4), by decide +kernel⟩
+
+/-- … and is the program's: its entry is the instruction fetched at its counter, the per-row
+reading of Layer 8's conjunct, which the block does not state. -/
+theorem bcRow0_bindings : BytecodeBindings bProg bcRow0 :=
   ⟨_, fetch_at 0 (.xor (gpow 2) (gpow 3) (gpow 4)), by decide +kernel⟩
 
 /-- The two slot indices of the fixture's program. -/
-theorem slot0_lt : 0 < 2 ^ (programOf bData).logSize := by rw [bData_progLogSize]; decide
-theorem slot1_lt : 1 < 2 ^ (programOf bData).logSize := by rw [bData_progLogSize]; decide
+theorem slot0_lt : 0 < 2 ^ bProg.logSize := by decide
+theorem slot1_lt : 1 < 2 ^ bProg.logSize := by decide
 
 /-- The row `bytecodeRowOf` builds from the program is the honest row, and slot `1` gives the
-`JUMP` entry with its four spare slots zero. -/
-example : bytecodeRowOf (programOf bData) ⟨0, slot0_lt⟩ (gpow 2) = bcRow0 := by
-  have h : (programOf bData).code ⟨0, slot0_lt⟩ = .xor (gpow 2) (gpow 3) (gpow 4) :=
-    programOf_code bData_wellShaped _ (by decide +kernel)
-  simp only [bytecodeRowOf, h]
-  rfl
+`JUMP` entry with its four spare slots zero: the block's rows are a function of the program,
+the finalize count aside. -/
+example : bytecodeRowOf bProg ⟨0, slot0_lt⟩ (gpow 2) = bcRow0 := rfl
 
-example : bytecodeRowOf (programOf bData) ⟨1, slot1_lt⟩ 1 =
-    ⟨gpow 1, 1, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩ := by
-  have h : (programOf bData).code ⟨1, slot1_lt⟩ = .jump 1 1 1 :=
-    programOf_code bData_wellShaped _ (by decide +kernel)
-  simp only [bytecodeRowOf, h]
+example : bytecodeRowOf bProg ⟨1, slot1_lt⟩ 1 =
+    ⟨gpow 1, 1, Opcode.jump.code, #v[1, 1, 1, 0, 0, 0, 0]⟩ :=
   rfl
 
 /-- Every slot of the program has a satisfying seed row from the program alone
-(`bytecode_entry_complete`), with any count. -/
+(`bytecode_entry_complete`), with any count, over any data. -/
 example : ConstraintsHold.Completeness (rowEnv bData)
-    ((bytecodeTable.main (const (bytecodeRowOf (programOf bData) ⟨0, slot0_lt⟩
-      (gpow 2)))).operations 0) :=
-  bytecode_entry_complete _ _
+    ((bytecodeTable.main (const (bytecodeRowOf bProg ⟨0, slot0_lt⟩ (gpow 2)))).operations 0) :=
+  bytecode_entry_complete bProg _ _
 
-example : ConstraintsHold.Completeness (rowEnv bData)
-    ((bytecodeTable.main (const (bytecodeRowOf (programOf bData) ⟨1, slot1_lt⟩
-      0))).operations 0) :=
-  bytecode_entry_complete _ _
+example (data : ProverData K) : ConstraintsHold.Completeness (rowEnv data)
+    ((bytecodeTable.main (const (bytecodeRowOf bProg ⟨1, slot1_lt⟩ 0))).operations 0) :=
+  bytecode_entry_complete bProg _ _
 
-/-- A changed opcode: the row's entry is not the fetched instruction's, so it is not bound … -/
+/-- A changed opcode: the row still decodes, so the block accepts it, its `Spec` naming no
+program (leanVM's block carries the program as public columns it does not check) … -/
 def bcRow0' : BytecodeRow K := { bcRow0 with opcode := Opcode.mulNative.code }
 
-theorem bcRow0'_not_spec : ¬ BytecodeSpec bcRow0' bData := by
+example : BytecodeDecodes bcRow0' :=
+  ⟨.mulNative (gpow 2) (gpow 3) (gpow 4), by decide +kernel⟩
+
+/-- … and it is not the program's: `BytecodeBindings bProg` rejects it, which is where Layer
+8's conjunct rejects the witness, never the block (decision 14). -/
+theorem bcRow0'_not_bound : ¬ BytecodeBindings bProg bcRow0' := by
   rintro ⟨ins, hfetch, hdec⟩
   rw [show bcRow0'.idx = gpow 0 from rfl, fetch_at 0 (.xor (gpow 2) (gpow 3) (gpow 4))] at hfetch
   obtain rfl := Option.some.inj hfetch
   exact absurd hdec (by decide +kernel)
 
-/-- … and the constraints fail in every environment over the data (`soundness`, read back). -/
-example (get : ℕ → K) :
-    ¬ ConstraintsHold.Soundness ⟨get, bData⟩
-      ((bytecodeTable.main (const bcRow0')).operations 0) :=
-  fun h ↦ bcRow0'_not_spec
-    (bytecodeTable.soundness 0 ⟨get, bData⟩ (const bcRow0') bcRow0' ProvableType.eval_const
-      trivial h).1
-
 /-- A nonzero spare slot is no instruction (acceptance test 16, finding R24): the row decodes to
-nothing and is bound to nothing, whatever the program fetches. -/
+nothing, fails the block's `Spec` … -/
 def bcRow0'' : BytecodeRow K := { bcRow0 with op := #v[gpow 2, gpow 3, gpow 4, 0, 0, 0, 1] }
 
-example : ¬ BytecodeSpec bcRow0'' bData := by
-  rintro ⟨ins, -, hdec⟩
+theorem bcRow0''_not_decodes : ¬ BytecodeDecodes bcRow0'' := by
+  rintro ⟨ins, hdec⟩
   rw [show decode (#v[bcRow0''.opcode] ++ bcRow0''.op) = none by decide +kernel] at hdec
   cases hdec
 
-/-- A counter past the program, `g^2` at `logSize = 1`, fetches nothing. -/
+/-- … and so the constraints `main` emits on it fail in every environment over any data
+(`soundness`, read back). -/
+example (get : ℕ → K) (data : ProverData K) :
+    ¬ ConstraintsHold.Soundness ⟨get, data⟩
+      ((bytecodeTable.main (const bcRow0'')).operations 0) :=
+  fun h ↦ bcRow0''_not_decodes
+    (bytecodeTable.soundness 0 ⟨get, data⟩ (const bcRow0'') bcRow0'' ProvableType.eval_const
+      trivial h).1
+
+/-- A counter past the program, `g^2` at `logSize = 1`, fetches nothing: the row is no slot of
+the program, whatever its entry, though the block accepts a decodable one. -/
 example (cntFin opcode : K) (op : Vector K 7) :
-    ¬ BytecodeSpec ⟨gpow 2, cntFin, opcode, op⟩ bData := by
+    ¬ BytecodeBindings bProg ⟨gpow 2, cntFin, opcode, op⟩ := by
   rintro ⟨ins, hfetch, -⟩
-  rw [Program.fetch, gLog?_gpow_eq_none (by rw [bData_progLogSize]; decide) (by decide),
-    Option.map_none] at hfetch
+  rw [Program.fetch, gLog?_gpow_eq_none (by decide) (by decide), Option.map_none] at hfetch
   cases hfetch
 
 end LeanerVMTests.Arithmetization.Boundary

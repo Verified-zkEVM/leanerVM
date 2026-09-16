@@ -119,6 +119,12 @@ Rows whose "Justified?" is No or Partly, in the recommended order of fixes.
    treats data as public (a definition's parameters) and matches `layout.rs:288-290` and §6.4
    without waiting on Clean #446. Do it before Layer 8 so that `SatisfiedBy` needs neither
    `programOf w.data = prog` nor the program half of `BytecodeRowsAreTheProgram`.
+   *Resolution taken (2026-09-16, decision 14 in `leanisa-status.md`):* the parameter was
+   built and discarded as unfaithful to leanVM's layering (an AIR is fixed for all programs)
+   and as buying no soundness; the channels and tables are program-free, the bytecode
+   guarantee is static decodability, and `SatisfiedBy prog`'s conjunct
+   `BytecodeRowsAreTheProgram prog` pins the block's rows to the program, Clean #446's fixed
+   columns by hand.
 2. Row 4 (undecodable public bytecode). Record the wider verifier surface and the fourth
    `DEREF` mode as an R finding in `leanisa-status.md`, and say in `docs/leanvm-target.md` that
    T1 is stated for decodable bytecode. No Lean change is needed unless the project wants T1 to

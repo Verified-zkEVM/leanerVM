@@ -25,7 +25,7 @@ leanISA roadmap Layer 4 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
   columns `(opcode, o1, o2, o3, fpc, ffp, extra0, extra1)`, with `SET_CONSTANT`'s immediate
   lanes at `o2, o3, fpc` (`:252-271`) and `BLAKE2S`'s last four operands at `fpc, ffp, extra0,
   extra1` (`:267-287`); the seed and finalize blocks carry them at `:385-395`;
-* `crates/lean_vm/src/cpu/isa.rs:58-79` and specification §7.4 (`07-instruction-tables.tex:76`):
+* `crates/lean_vm/src/cpu/isa.rs:58-75` and specification §7.4 (`07-instruction-tables.tex:76`):
   the `DEREF` store mode as the flag pair `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`,
   `fp = (0, 1)`.
 
