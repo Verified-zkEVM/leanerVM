@@ -27,6 +27,9 @@ This directory contains stable project and operating knowledge.
   of work; the status file records how each finding was met.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
     table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
+  - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
+    Layer 8 constraint statement (2026-09-17), whose findings the statement now meets (the
+    missing BLAKE2s validity conjunct, its finding A1).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

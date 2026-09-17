@@ -2,6 +2,7 @@ import LeanerVM.Arithmetization.Basic
 import LeanerVM.Arithmetization.Boundary
 import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
+import LeanerVM.Arithmetization.Statement
 import LeanerVM.Arithmetization.Tables.Basic
 import LeanerVM.Arithmetization.Tables.Blake2s
 import LeanerVM.Arithmetization.Tables.Deref

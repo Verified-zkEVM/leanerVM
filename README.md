@@ -21,13 +21,14 @@ formal verification of the relevant Rust code.
 The repository baseline is in place: module boundaries, the test library, validation policy, CI
 with a kernel axiom audit, and dependency tracking. The first formalization effort, the leanISA
 roadmap ([`docs/roadmap/leanisa-blueprint.md`](docs/roadmap/leanisa-blueprint.md), issue #4),
-has landed its Layers 0 to 6: the fields and the generator, BLAKE2s compression and the cell
+has landed its Layers 0 to 7: the fields and the generator, BLAKE2s compression and the cell
 encoding, instructions, the memory image and the public input, the step function and valid
-executions, the bytecode encoding, the bus channels, and the six opcode tables as Clean
-components, each sound and complete for a functional specification that binds the row to the
-program and the image and steps by `step`. The semantics is a specification (`step` and
-`run` are noncomputable); the boundary blocks, the constraint statement, the bus theorems, and
-the two T1 theorems are the layers still to come, and no proof-system claim has landed.
+executions, the bytecode encoding, the bus channels, the six opcode tables as Clean
+components, each sound and complete for the relation its row refines, and the three boundary
+blocks; Layer 8, the constraint statement `SatisfiedBy` with one hand-built witness, is built
+on this branch. The semantics is a specification (`step` and `run` are noncomputable); the bus
+theorems and the two T1 theorems are the layers still to come, and no proof-system claim has
+landed.
 
 Recursive CTE is an open research problem: the intended knowledge-soundness arguments for the
 concrete inner SNARKs live in the random-oracle model, while the known outer recursion-topology

@@ -208,9 +208,9 @@ not change (decision 14).
 | `DEREF` | Reads the pointer `fp·o1` (in `K`), the local `fp·o3` (in every mode), and the target `p·o2`; modes `(f_pc, f_fp) ∈ {(0,0), (1,0), (0,1)}`; `src(pc) = g²·pc`. |
 | `JUMP` | The three `K` assertions are unconditional; taken iff `c ≠ 0`; flags `b = c·w`, `c·(b + 1) = 0`. |
 | `BLAKE2S` | Tree-mode compression with both flags, each a 32-bit word (`0xFFFFFFFF` when set), never a `Bool`; metadata `counter = limb 0`, `final = low 32 bits of limb 1`, `last_node = high 32 bits of limb 1`; all nine cells canonical 128-bit; word order transcribed from the Rust. |
-| Bus | One Clean channel per interaction and direction (`st/mem/bc` × `pull/push`); each channel names its domain separator (`g^0`, `g^1`, `g^2`) and its direction as data (`channelSep`, `channelDir`), never through a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)`; balance = multiset equality per pair. |
+| Bus | One Clean channel per interaction and direction (`st/mem/bc` × `pull/push`); each channel names its domain separator (`g^0`, `g^1`, `g^2`) and its direction as data (`channelSep`, `channelDir`), never through a multiplicity's sign; tuples are typed messages in the specification's coordinate order, and `busTuple` is their sixteen-slot form; `read(addr, count, v)` = pull `(addr, count, v)`, push `(addr, g·count, v)`; balance = multiset equality per pair (`BalancedPair`, a `List.Perm` of the messages `messagesOn` lists), a channel identified by its name. |
 | Program | Public, never prover data, never a parameter of a channel or a table (§6.4; `layout.rs:288-290`, `Coord::Public`; `tables.rs:143-152`, an AIR's bytecode flush is its constant opcode and its own operand columns): the channels and the six tables are program-free, the bytecode guarantee is static decodability, and the program enters in three places, the bytecode block's row builder `bytecodeRowOf prog`, the verifier `leanIsaVerifier prog` and the statement `SatisfiedBy prog`, whose conjunct `BytecodeRowsAreTheProgram prog` pins the block's rows to the program (Clean PR #446's fixed columns by hand). `ProverData` holds the image alone, its `"mem"` table (acceptance test 22, decision 14). |
-| Boundary blocks | Three components owned by no table (§8.4): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier `leanIsaVerifier prog` pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both constants, the counter the public program's as in `layout(prog, …)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes; the ensemble is `leanIsaEnsemble prog`. |
+| Boundary blocks | Three components owned by no table (§8.5): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier `leanIsaVerifier prog` pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both constants, the counter the public program's as in `layout(prog, …)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes; the ensemble is `leanIsaEnsemble prog`. |
 | Opcode codes | `g^0 … g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP, BLAKE2S. |
 | Bytecode slots | Sixteen `K` slots; opcode in slot 3; operands in slots 4..10; `SET`'s `k2` in slot 7; `BLAKE2S` uses all seven; zero elsewhere. |
 | Caps | `16 ≤ κ_mem ≤ 32`; every table height is a power of two `≤ 2^32`; the bytecode length is `2^logSize ≤ 2^32`; the BLAKE2S table has at least `2^3` rows. |
@@ -220,6 +220,7 @@ not change (decision 14).
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
 | Numerals over `K` | `K` is `BitVec 64`, so a numeral `(1 : K)` elaborates through `BitVec.instOfNat` and core's `BitVec` simprocs fire on it: `-1 : K` is `1`, not the two's-complement word `BitVec.reduceNeg` produces, and a default `simp` turns `0 : K` into a literal that lemmas stated with numerals no longer match. Proofs over `K` use `simp only` with named lemmas, and a Clean channel-lawfulness proof over `K` excludes `BitVec.reduceNeg`. |
 | Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (`ite_feq`, applied as a `↓` simp lemma). |
+| Large witnesses | A block of `2^κ_mem` rows is a `List.ofFn` no proof enumerates: its facts are stated through equation lemmas and `getElem?`, an `imageOf` equality is proved once and substituted, and a conjunct with dependent binders over `imageOf w.data` is proved for a destructured witness by `subst`, never by `rw`; a definitional comparison of a stuck projection against a `List.ofFn`/`Array.ofFn`, or of the data's log-size against a numeral, evaluates the block in both the elaborator and the kernel (status finding E8). The kernel reads a table's interactions through `Component.rowOperations` (`table_interactions_eq`), never `Component.operations`. |
 | Module system | Files are Lean `module`s, except that a file importing Clean (not a `module` at `93c9d1ef`) or a file that does is plain; the boundary sits as high as the dependency allows: `Parameters/CleanField.lean`, the Clean-consuming Arithmetization modules, `LeanerVM.lean`, and the test aggregate. |
 
 ## The build, in eleven layers
@@ -775,7 +776,7 @@ complete row (`blake2sRow_complete`) whose canonical output is not the compressi
 
 `LeanerVM/Arithmetization/Boundary.lean`.
 
-The three blocks owned by no table (specification §6.1, §6.2 "Flush rules", §8.4;
+The three blocks owned by no table (specification §6.1, §6.2 "Flush rules", §8.5;
 `layout.rs:352-395`): the memory and bytecode seed/finalize blocks and the verifier's state
 boundary. Each is a `GeneralFormalCircuit … unit` whose `main` is its two flushes, a push at
 count `1` and a pull at the row's finalize count, with no constraint; its `Spec` is what its
@@ -894,57 +895,213 @@ def leanIsaEnsemble (prog : Program) : Ensemble K PublicIO where
                BytecodePull.toRaw, BytecodePush.toRaw]
   verifier := leanIsaVerifier prog                            -- the one program-bearing component
 
-/-- Pushed and pulled messages of a pair form the same multiset (specification §5.1). -/
-def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawChannel K) : Prop :=
-  ((w.interactions.filter (·.channel = push)).map (·.msg)).Perm
-    ((w.interactions.filter (·.channel = pull)).map (·.msg))
+/-- The witness's table of component `j`, in the order of `tables`. -/
+def tableAt (w : EnsembleWitness (leanIsaEnsemble prog)) (j : Fin 8) : Air.Flat.Table K
+abbrev blake2sRows (w) := (tableAt w 5).table       -- `memBlockRows` (6), `bytecodeBlockRows` (7)
+/-- The messages the witness sends on the channel of that name, in table and row order. -/
+def messagesOn (w) (c : RawChannel K) : List (Array K) :=
+  (w.interactions.filter (·.channel.name = c.name)).map (·.msg)
+def rowMessagesOn (t : Air.Flat.Table K) (row : Array K) (c : RawChannel K) : List (Array K)
+/-- A raw row of the memory block as its typed row, as the block's constraints read it. -/
+def memRowAt (w) (row : Array K) : MemRow K :=
+  valueFromOffset MemRow 0 (Environment.fromArray row w.data)
+def blake2sRowAt (w) (row : Array K) : Blake2sRow K           -- likewise
 
-def IndexColumnsAreRowIndices (w) : Prop       -- `idx` of row `i` of `memTable` is `gpow i`
-def SeedRowsAreTheImage (w) : Prop             -- `memTable` rows are `imageOf w.data`
+/-- Pushed and pulled messages of a pair form the same multiset (specification §5.1). -/
+def BalancedPair (w) (pull push : RawChannel K) : Prop :=
+  (messagesOn w push).Perm (messagesOn w pull)
+
+/-- Every read pull of the six tables carries a nonzero count (§6.2, the count product). -/
+def CountsNonzero (w) : Prop :=
+  ∀ t ∈ w.tables.take 6, ∀ i ∈ t.interactions,
+    (i.channel.name = MemPull.name ∨ i.channel.name = BytecodePull.name) →
+      ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
+structure Caps (w) : Prop where           -- the M3 part of `read_public`, `cpu/mod.rs:130-178`
+  minLogMem_le : minLogMem ≤ (imageOf w.data).1
+  le_maxLogMem : (imageOf w.data).1 ≤ maxLogMem
+  heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
+  blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length
+  well_shaped : WellShapedData w.data       -- not a check: Layer 5's shape of the `"mem"` table
+
+/-- `idx` of row `i` of the memory block is `g^i`. -/
+def IndexColumnsAreRowIndices (w) : Prop :=
+  ∀ i (hi : i < (memBlockRows w).length), (memRowAt w (memBlockRows w)[i]).idx = gpow i
+/-- The memory block's rows are the image's words, in order, `idx` and `cntFin` free. -/
+def SeedRowsAreTheImage (w) : Prop :=
+  ∃ idx cntFin : Fin (2 ^ (imageOf w.data).1) → K, memBlockRows w = List.ofFn fun i ↦
+    (toElements (⟨idx i, cntFin i, #v[limb 0, limb 1, limb 2 of (imageOf w.data).2 i]⟩ :
+      MemRow K)).toArray
 /-- The bytecode block's rows are the program's: for some finalize-count column `cntFin`, the
 block's raw rows are `bytecodeRowOf prog i (cntFin i)` for `i < 2 ^ prog.logSize`, in order.
 The verifier forms the block's entry columns from the program itself (§8.5, Bus 4;
 `Coord::Public`), the prover commits only `cntFin`; Clean PR #446's fixed columns are this
 conjunct as a primitive. Its per-row reading is Layer 7's `BytecodeBindings prog`. -/
-def BytecodeRowsAreTheProgram (prog : Program) (w) : Prop
-def CountsNonzero (w) : Prop                   -- every read pull has `count ≠ 0`
-def Caps (w) : Prop                            -- `16 ≤ κ ≤ 32`; heights `2^τ_j ≤ 2^32`;
-                                               -- `τ_BLAKE2S ≥ 3`; `WellShapedData w.data`
-                                               -- (Layer 5, the `"mem"` table)
+def BytecodeRowsAreTheProgram (prog : Program) (w) : Prop :=
+  ∃ cntFin : Fin (2 ^ prog.logSize) → K,
+    bytecodeBlockRows w = List.ofFn fun i ↦ (toElements (bytecodeRowOf prog i (cntFin i))).toArray
 
-def SatisfiedBy (prog : Program) (input : PublicInput)
-    (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
-  w.publicInput = PublicIO.ofInput input ∧ w.Constraints ∧
-  BalancedPair w StatePull.toRaw StatePush.toRaw ∧
-  BalancedPair w MemPull.toRaw MemPush.toRaw ∧
-  BalancedPair w BytecodePull.toRaw BytecodePush.toRaw ∧
-  CountsNonzero w ∧ Caps w ∧
-  IndexColumnsAreRowIndices w ∧ SeedRowsAreTheImage w ∧ BytecodeRowsAreTheProgram prog w ∧
-  (imageOf w.data).2 ⟨0, _⟩ = input.word0 ∧ (imageOf w.data).2 ⟨1, _⟩ = input.word1
+/-- Every `BLAKE2S` row compresses: what Flock proves (§8.5 "BLAKE2s validity"). -/
+def Blake2sRowsValid (w) : Prop := ∀ row ∈ blake2sRows w, Blake2sRelation (blake2sRowAt w row)
 
-def AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t : Trace prog) : Prop
-theorem assignmentRepresents_image : AssignmentRepresents w t → (imageOf w.data).2 = t.image
+structure SatisfiedBy (prog : Program) (input : PublicInput)
+    (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
+  public_input_eq : w.publicInput = PublicIO.ofInput input
+  constraints : w.Constraints
+  state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw
+  mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw
+  bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw
+  counts_nonzero : CountsNonzero w
+  caps : Caps w
+  index_columns : IndexColumnsAreRowIndices w
+  seed_rows : SeedRowsAreTheImage w
+  bytecode_rows : BytecodeRowsAreTheProgram prog w
+  blake2s_valid : Blake2sRowsValid w
+  word0_eq : (imageOf w.data).2.read (gpow 0) = some input.word0
+  word1_eq : (imageOf w.data).2.read (gpow 1) = some input.word1
+
+/-- Some row of some table steps `r` to `r'`: its one state pull is `r`, its one push `r'`. -/
+def RowSteps (w) (r r' : Regs K) : Prop :=
+  ∃ t ∈ w.tables, ∃ row ∈ t.table,
+    rowMessagesOn t row StatePull.toRaw = [#[r.pc, r.fp]] ∧
+      rowMessagesOn t row StatePush.toRaw = [#[r'.pc, r'.fp]]
+structure AssignmentRepresents (w) (t : Trace prog) : Prop where
+  κ_eq : (imageOf w.data).1 = t.κ
+  image_eq : ∀ i (hi : i < 2 ^ t.κ), (imageOf w.data).2 ⟨i, κ_eq ▸ hi⟩ = t.image ⟨i, hi⟩
+  regs_embed : ∀ k (hk : k + 1 < t.regs.length), RowSteps w t.regs[k] t.regs[k + 1]
+theorem assignmentRepresents_image : AssignmentRepresents w t → imageOf w.data = ⟨t.κ, t.image⟩
+theorem rowAt_toElements (data) (r : Row K) :
+    valueFromOffset Row 0 (Environment.fromArray (toElements r).toArray data) = r
+theorem memRowAt_toElements, blake2sRowAt_toElements                 -- its two instances
+theorem mem_tables_iff : t ∈ w.tables ↔ ∃ j : Fin 8, tableAt w j = t
+theorem tableAt_component (j) : (tableAt w j).component = (leanIsaEnsemble prog).tables[j]
+/-- The one conjunct Clean's `TableSoundness` takes as `w.Assumptions` (Layer 10). -/
+theorem assumptions_of_blake2sRowsValid : Blake2sRowsValid w → w.Assumptions
 ```
 
-`w.Constraints` is Clean's. `Caps` is the verifier's `read_public` (`cpu/mod.rs:158-170`): the
-memory log-size within `[16, 32]`, every table height a power of two at most `2^32`, and the
-BLAKE2S table of at least `2^3` rows (the bytecode length `2^prog.logSize ≤ 2^32` is `Program`'s
-by type); and, so that `imageOf` drops no row of the prover data, `WellShapedData w.data`
-(Layer 5), the shape those announced sizes already imply for an honest prover. Heights are powers of
-two because the verifier accepts only announced log-heights and completeness pads to them, so
-`SatisfiedBy` is exactly the relation the proof-system roadmap proves and extracts (issue
-[#13](https://github.com/Verified-zkEVM/leanerVM/issues/13)). `AssignmentRepresents` says the
-image is the trace's and the state rows embed the register sequence; the remaining rows are the
-closed walks of specification §8.3. The ensemble is a function of the public program, as
-leanVM's `layout(prog, log_mem, taus, pi)` is, through the verifier alone: the six tables, the
-bytecode block and the channels are program-free, as leanVM's AIRs are, and the program's hold
-on the witness is the conjunct `BytecodeRowsAreTheProgram prog`, which says what the verifier
-does when it forms the bytecode blocks' entry columns from the program (§8.5, Bus 4). The
-program appears in no table of the prover data (acceptance test 22, decision 14). The three
-named hypotheses are the facts Clean cannot yet express (dependency table); they are faithful:
-the index column is verifier-computed, the program is public, the memory columns are the image.
-Tests: one hand-built `SatisfiedBy` witness for the Layer 3 program, which needs eight BLAKE2S
-rows (acceptance test 14).
+- **The ensemble and its witness.** `leanIsaEnsemble prog` is Clean's `Ensemble`: the six
+  tables and the two seed blocks as components, program-free as leanVM's AIRs are, the six
+  channels, and the verifier `leanIsaVerifier prog`, the one program-bearing component, as
+  `layout(prog, log_mem, taus, pi)` is a function of the program through its state boundary
+  alone (decision 14). A witness `w` is Clean's `EnsembleWitness`: one `Air.Flat.Table` of raw
+  rows per component, in the ensemble's order (`tableAt w j`), the prover data, and the public
+  input; `w.Constraints` ("every component's constraints hold on every row, lookups included")
+  is Clean's, consumed unchanged. `messagesOn w c` is what the witness sends on a channel and
+  `rowMessagesOn t row c` what one row sends: a channel is identified by its *name*, as
+  `channelDir` and `channelSep` already read it, because Clean's `RawChannel` carries
+  propositions and has no decidable equality, and a classical filter would make no balance
+  decidable in a test. `memRowAt w row` and `blake2sRowAt w row` are Clean's
+  `Component.rowInput` for the two tables whose rows the statement reads: the first `size Row`
+  cells of a raw row, a missing cell `0`; `rowAt_toElements` says a row written from a typed
+  row reads back as it. `w.tables` is read by position (`tableAt`, `mem_tables_iff`,
+  `tableAt_component`); the ensemble's order is the one guard of the indices `5`, `6`, `7`.
+- **Balance** is a `List.Perm` of message lists, counted in `ℕ` (§5.1 "Balance"; acceptance
+  test 14), never Clean's field sum. Every interaction of the ensemble has multiplicity `1`
+  (Layer 5), so the multiset of messages is the multiset of interactions, and the direction of
+  an interaction is the channel it is on.
+- **The verifier's checks.** `CountsNonzero` is the nonzero count product (§6.2 "The count
+  product"): the count channel of `layout.rs:73` and `:397-413` stacks the *read-count columns
+  of the six tables* and nothing else, so the conjunct quantifies over `w.tables.take 6` and
+  the finalize counts of the two blocks are outside it (§6.2 "Nothing checks the finalize
+  counts": a wrong one, `0` included, is rejected by balance alone; a read count of `0` that
+  balances, a pull and a push of one tuple, is what the conjunct alone rejects, Theorem 6.4).
+  `Caps` is the M3 part of `read_public` (`cpu/mod.rs:130-178`), which makes eight checks:
+  the memory log-size within `[16, 32]`, every table height a power of two at most `2^32`
+  (heights are announced as logs, `:114-117`; the two blocks' heights `2^κ_mem` and `2^κ_bc`
+  are powers of two within the same cap by the other conjuncts), and the BLAKE2S table of at
+  least `2^3` rows are transcribed; the bytecode length `2^prog.logSize ≤ 2^32` and the public
+  words' zero third limbs are `Program`'s and `PublicInput`'s by type; the WHIR rate and the
+  stacked size `mu ∈ [15, 28]` (`:167`, `:174-176`) are parameters of the commitment and the
+  protocol layer's. `Caps` adds, so that `imageOf` drops no row of the prover data,
+  `WellShapedData w.data` (Layer 5), a representation hypothesis rather than a check, the shape
+  the announced sizes already imply for an honest prover. Heights are powers of two because
+  the verifier accepts only announced log-heights and completeness pads to them, so
+  `SatisfiedBy` is the M3 relation the proof-system roadmap proves and extracts (issue
+  [#13](https://github.com/Verified-zkEVM/leanerVM/issues/13)), the commitment parameters
+  aside.
+- **The BLAKE2s validity** `Blake2sRowsValid w` is the one conjunct the verifier enforces
+  outside the bus (§8.5 "BLAKE2s validity", Opening step 4; `cpu/mod.rs:759-768`): the
+  `BLAKE2S` table has no constraint on its eighteen limbs, and Flock proves the compression on
+  the region the limb columns are routed to. It is a conjunct of the statement because Clean's
+  `EnsembleWitness.Constraints` excludes a table's `Assumptions` and its
+  `AssumptionsConsistency` sources them from the public input alone;
+  `assumptions_of_blake2sRowsValid` turns it into the `w.Assumptions` Clean's `TableSoundness`
+  takes (the other seven components and the verifier have `Assumptions := True`). Without it
+  `SatisfiedBy` accepts a wrong-but-canonical digest and `constraintSoundness` is false for any
+  program whose run executes `BLAKE2S`. The Flock work (#3; the design note
+  `docs/design/blake2s-flock-boundary.md` on the branch `docs/blake2s-flock-boundary`, D5)
+  restates the conjunct as the constraints themselves, one block of Flock's R1CS per row, and
+  derives the relation; T1 does not change.
+- **The three named hypotheses** are the facts Clean cannot yet express (dependency table);
+  they are faithful: the index column is verifier-computed (§6.5; `layout.rs:365`, `:376`),
+  the memory columns are the committed image (`layout.rs:359-382`), the program is public
+  (§8.5, Bus 4).
+  `IndexColumnsAreRowIndices` reads the `idx` column through `memRowAt`;
+  `SeedRowsAreTheImage` and `BytecodeRowsAreTheProgram prog` pin the two blocks' raw rows to
+  `List.ofFn` builders, the finalize-count column free (and the index column too, for the
+  memory block, which the first hypothesis pins). Their per-row readings are Layer 7's
+  `memRowOf_bindings` and `BytecodeBindings prog`. All three are removed by Clean PR #446,
+  which makes `BytecodeRowsAreTheProgram prog` the `fixedColumns` field of `bytecodeTable`;
+  nothing else moves (decision 14).
+- **The statement** is a structure with named fields, so that Layers 9 and 10 project the
+  conjunct they consume by name, as the tables' `*Refines` are (decision 11). Its
+  `constraints` field is Clean's, and only the `JUMP` table emits an assertion
+  (`tables.rs:724-731`), so the field reduces to the `JUMP` residuals; `public_input_eq` is
+  read by no component, the lanes binding the run through the two word fields. The two public
+  words are §8.2's evaluation claim against the committed memory, spelled as Layer 3's
+  `HasPublicBoundary` spells it, through `MemImage.read` on the image the data names; they are
+  not on the bus (Layer 7). The ensemble is a function of the public program through the
+  verifier alone, and the program's hold on the witness is `BytecodeRowsAreTheProgram prog`;
+  the program appears in no table of the prover data (acceptance test 22).
+- **The trace.** `AssignmentRepresents w t` says what a witness is a witness of: the image the
+  data names is the trace's (`κ_eq`, `image_eq`; `assignmentRepresents_image` reads the two
+  as one equality of dependent pairs, the shape the sketch's `(imageOf w.data).2 = t.image`
+  cannot take), and each consecutive pair of the trace's register sequence `r_0, …, r_steps`
+  (`Trace.regs`) occurs as the state pull and the state push of some row of some table
+  (`RowSteps`): occurrence, not an injection of steps into rows, since the image determines the
+  run. The remaining rows are the closed walks of §8.3, about which nothing is claimed
+  (acceptance test 21).
+- **Layer 9's four statements** are block comments at the end of the file, as the pinned
+  convention requires, each with its consumed dependency.
+
+Tests: one hand-built `SatisfiedBy` witness for the Layer 3 program, the executor's
+`mul_192bit_word`, extended in the shape of the compiler's fill blocks: a `JUMP` to the
+sentinel and the fill blocks every table needs to reach a power-of-two height (§8.3;
+`crates/lean_vm/src/cpu/filler.rs:36-87`; acceptance test 15), one `XOR`, one `DEREF` and
+eight `BLAKE2S` rows, each block a closed walk ending in a `JUMP` back to its first instruction
+in a frame disjoint from the run's. The thirty-two-slot program is a `ValidExecution` in four
+steps; its honest witness at the minimum memory size `2^16` satisfies every conjunct
+(`fill_satisfiedBy`) and represents the trace (`fill_represents`): the completeness instance
+of T1 for that program, by hand (`fill_t1_instance`). The witness is parametric in two read
+counts and the finalize counts, and every conjunct but the balances and the count product is
+proved for every count. The `2^16`-row memory block is built by `List.ofFn` and never
+enumerated: its constraints hold row-generically, its messages on a foreign channel are `[]`
+by a lemma, and its share of the memory pair is split (`List.ofFn_add`) into the `touched`
+cells, decided in the kernel with the tables' reads, and the untouched suffix, whose seed and
+finalize messages coincide (status finding E8 records what the kernel and the elaborator will
+and will not evaluate there). Rejections, each the honest witness with one thing changed and
+each failing the conjunct named: a wrong finalize count unbalances the memory pair (§6.2); a
+read count of `0` that balances satisfies every other conjunct and fails `CountsNonzero` alone
+(`zero_count_witness`); a wrong digest fails `Blake2sRowsValid`; a shifted index column fails
+`IndexColumnsAreRowIndices`; a wrong public word fails `word0_eq`; a three-row table and a
+four-row `BLAKE2S` table fail `Caps`.
+
+**After Clean #446** (issue [#23](https://github.com/Verified-zkEVM/leanerVM/issues/23)).
+The three named hypotheses are what leanVM's verifier computes itself and Clean at
+`93c9d1ef` cannot express: the memory block's address coordinate is `Coord::Index`, never
+committed, evaluated by the verifier as `∏_k (1 + ζ_k (1 + g^{2^k}))` (§6.5;
+`crates/primitives/src/field/mod.rs:105-113`, `leaf.rs:444`); the bytecode block's entry
+columns are `Coord::Public`, the program's; and the memory block's value columns are the
+committed image. Clean PR [#446](https://github.com/Verified-zkEVM/clean/pull/446) adds
+indexed fixed columns whose row facts reach component soundness proofs, and a `ProverData`
+derived from proof-committed component inputs. When it merges and the pin is bumped, the
+refactor is: `memTable` gains the fixed column `fun i ↦ g^i` and `IndexColumnsAreRowIndices`
+goes; `bytecodeTable` becomes `bytecodeTable prog` with fixed entry and index columns and
+`BytecodeRowsAreTheProgram prog` goes; the `"mem"` table is derived from the memory block's
+value columns and `SeedRowsAreTheImage` goes. The six tables, the channels, the balances,
+`CountsNonzero`, `Caps`, `Blake2sRowsValid`, the word conjuncts, `AssignmentRepresents` and
+both T1 statements do not move; Layer 9 takes its seed facts from the components instead of
+from `SatisfiedBy`. The rejection tests keep their names and are then rejected by the
+components. Independent of the balance side of Clean (#16, #20).
 
 ### Layer 9: bus soundness
 
@@ -955,17 +1112,20 @@ balance and `addVm_soundVmChannel_of_soundChannels`. Prove:
 /-- Specification Lemma 6.3, Thm. 6.4, Cor. 6.5: with nonzero counts and fewer than `2^64 - 1`
 reads, balance of the memory pair makes every pulled memory tuple a correct read. -/
 theorem mem_channel_sound (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel = MemPull.toRaw → MemPull.Guarantees i.msg w.data
+    ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
+      ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data
 /-- The same for the bytecode pair, in the strong form: every pulled entry is the public
 program's at the pulled counter (from `BytecodeRowsAreTheProgram prog`), which implies the
 pull's guarantee, that it decodes, and is what Layer 10 joins to `execute` by `execute_of_step`. -/
 theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel = BytecodePull.toRaw →
-      ∃ k : Fin (2 ^ prog.logSize), i.msg.pc = gpow k ∧ #v[i.msg.opcode] ++ i.msg.op = entry (prog.code k)
+    ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
+      ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
+        ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧ #v[m.opcode] ++ m.op = entry (prog.code k)
 /-- No row sits at the sentinel counter: its bytecode entry is not a `JUMP`, so the row would
 push `(g^N_prog, fp)`, a counter no bytecode read can balance (acceptance test 20). -/
 theorem no_row_at_sentinel (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
-    ∀ i ∈ w.interactions, i.channel = StatePull.toRaw → i.msg.pc ≠ prog.finalPc
+    ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
+      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
 from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
 theorem exists_run_of_balanced (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
@@ -1005,8 +1165,11 @@ theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecuti
     ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
 ```
 
-Soundness composes Layer 9 with the per-table soundness of Layer 6 through
-`soundness_of_tableSoundness_and_specConsistency`, and uses only `hwf.sentinelHalts`.
+Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's
+`TableSoundness`, applied directly to the witness with `w.Assumptions` supplied by
+`assumptions_of_blake2sRowsValid h.blake2s_valid` (never through
+`soundness_of_tableSoundness_and_specConsistency`, whose `AssumptionsConsistency` sources a
+table's `Assumptions` from the public input alone), and uses only `hwf.sentinelHalts`.
 Completeness builds the rows of the run, then pads each table to a power of two — and the
 BLAKE2S table to at least eight rows — with closed walks from the fill blocks, and uses only
 `hwf.hasFillBlocks`. Both take the whole structure so that T1 reads "for well-formed bytecode".
@@ -1166,10 +1329,15 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   memTable  bytecodeTable  leanIsaVerifier  verifier_push_eval  verifier_pull_eval
                   memRowOf  bytecodeRowOf  memRowOf_bindings  bytecodeRowOf_bindings
                   bytecodeRowOf_decodes  mem_word_complete  bytecode_entry_complete
-                  leanIsaEnsemble
+                  leanIsaEnsemble  tableAt  blake2sRows  memBlockRows  bytecodeBlockRows
+                  messagesOn  rowMessagesOn  memRowAt  blake2sRowAt
+                  rowAt_toElements  memRowAt_toElements  blake2sRowAt_toElements
+                  mem_tables_iff  tableAt_component
                   BalancedPair
                   IndexColumnsAreRowIndices  SeedRowsAreTheImage  BytecodeRowsAreTheProgram
-                  CountsNonzero  Caps  SatisfiedBy  AssignmentRepresents
+                  Blake2sRowsValid  assumptions_of_blake2sRowsValid
+                  CountsNonzero  Caps  SatisfiedBy  RowSteps  AssignmentRepresents
+                  assignmentRepresents_image
                   mem_channel_sound  bytecode_channel_sound
                   no_row_at_sentinel  exists_run_of_balanced
                   HasFillBlocks  WellFormedBytecode  constraintSoundness  constraintCompleteness
@@ -1177,8 +1345,9 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
 
 Everything not listed is a proof, a helper, or a test. The named hypotheses a reviewer must
 know are assumed rather than proved are exactly: `IndexColumnsAreRowIndices`,
-`SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram` (until Clean #446), `Blake2sRelation` (the
-`Assumptions` field of `blake2sTable`, until #3), `WellFormedBytecode` (both fields forced,
+`SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram` (until Clean #446), `Blake2sRowsValid` (the
+`blake2s_valid` conjunct of `SatisfiedBy`, which discharges the `Assumptions` field of
+`blake2sTable` and is established by Flock, #3), `WellFormedBytecode` (both fields forced,
 acceptance tests 15 and 20), and the balance conjuncts of `SatisfiedBy`, which the proof system
 establishes. There are no axioms and no
 `variable`-block hypotheses.

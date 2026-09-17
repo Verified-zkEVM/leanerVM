@@ -1,6 +1,7 @@
 import LeanerVMTests.Arithmetization.Boundary
 import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
+import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Tables
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s

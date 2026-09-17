@@ -20,7 +20,7 @@ leanISA roadmap Layer 7 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
 blocks are `crates/lean_vm/src/cpu/layout.rs:352-395` (the "shared blocks" of `layout`), matching
 specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary), §6.2
 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:95`, the index
-column), and §8.4 (`08-end-to-end-protocol.tex:70`: "three blocks per side belong to no
+column), and §8.5 (`08-end-to-end-protocol.tex:70`: "three blocks per side belong to no
 table"). The committed columns are `MEM_LO, MEM_HI, MEM_TOP, MFCNT` and `BFCNT`
 (`layout.rs:13-17`); the bytecode entry rides eight *public* columns (`bytecode_columns`,
 `layout.rs:229-290`, Layer 4's `entry`); the sentinel counter `g^(N_prog - 1)` is derived from
