@@ -1,4 +1,8 @@
 /-
+Copyright (c) 2026 leanerVM Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Elias Judin, Stefano Rocca, Aristotle (Harmonic)
+/-
   LeanerVM.Protocol.Multilinear
 
   Generic algebra of hypercube tables: sums over the cube, the equality kernel as a table,
@@ -43,9 +47,11 @@ explore branch, `Stacking/MLE.lean`, `eval_stackPoly_sel`). The proofs are new: 
 
 * `evalMle_append_boolVec` reads the slice at the *high* index `j`; a version slicing on the
   low index is a different (strided) selection and is not what stacking uses.
-* `padHigh` places the table where the high coordinates are all ones, so the pad sums to the
-  table's own sum (`sumCube_padHigh`); padding by zero everywhere would multiply the sum by
-  `2 ^ m` under an eq-weight, which is acceptance test 7 of the roadmap.
+* `padHigh` places the table where the high coordinates are all ones and puts zero in the
+  other slices, so its cube sum is the table's own sum (`sumCube_padHigh`). Replicating the
+  table in every high-coordinate slice instead multiplies the unweighted cube sum by
+  `2 ^ m`. The same factor remains if the equality weight uses only the low coordinates;
+  an equality weight on all coordinates sums the high-coordinate factor to one.
 -/
 
 namespace LeanerVM.Protocol
