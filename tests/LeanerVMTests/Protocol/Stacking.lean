@@ -1,7 +1,17 @@
+/-
+Copyright (c) 2026 leanerVM Contributors. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Elias Judin, Stefano Rocca, Aristotle (Harmonic)
+-/
+/-
+  LeanerVMTests.Protocol.Stacking
+-/
+
 module
 
 public import LeanerVM.Protocol.Stacking
 public import LeanerVM.Parameters.Field
+public import Mathlib.Data.ZMod.Defs
 meta import LeanerVM.Protocol.Stacking
 meta import LeanerVM.Parameters.Field
 meta import CompPoly.Multilinear.Basic
@@ -69,6 +79,61 @@ def stack0 : CMlPolynomialEval K 3 := blocks.stackAt 3 0
 #guard evalMle stack0
     (Vector.cast (by decide) ((#v[13] : Vector K 1) ++ (boolVec (blocks.selector blocks_total_le (1 : Fin 3)) : Vector K _))) ≠
   evalMle (#v[1, 2, 3, 4] : CMlPolynomialEval K 2) #v[13, 0]
+
+-- Mapping the actual base-field stack also maps the padding.
+example : CMlPolynomialEval.map (algebraMap K E) stack0 =
+    (blocks.map (algebraMap K E)).stackAt 3 0 := by
+  simpa only [stack0, map_zero] using blocks.map_stackAt (algebraMap K E) 3 0
+
+example : CMlPolynomialEval.map (algebraMap K E) (blocks.stackAt 3 1) =
+    (blocks.map (algebraMap K E)).stackAt 3 1 := by
+  simpa only [map_one] using blocks.map_stackAt (algebraMap K E) 3 1
+
+-- This is quantified over extension-field points, not just embedded base-field points.
+example (z : Vector E 2) :
+    eval₂Mle stack0 (algebraMap K E)
+      (Vector.cast (by decide)
+        (z ++ (boolVec (blocks.selector blocks_total_le (0 : Fin 3)) : Vector E 1))) =
+    eval₂Mle (#v[1, 2, 3, 4] : CMlPolynomialEval K 2) (algebraMap K E) z := by
+  exact blocks.stack_eval₂ (algebraMap K E) blocks_total_le 0 (0 : Fin 3) z
+
+-- This point is genuinely outside the embedded base field.
+example : ¬ IsInK (E.ofLimbs 0 1 0) := by decide
+#guard eval₂Mle stack0 (algebraMap K E)
+    (#v[E.ofLimbs 0 1 0, E.ofLimbs 1 1 0, 0] : Vector E 3) =
+  eval₂Mle (blocks.values (0 : Fin 3)) (algebraMap K E) #v[E.ofLimbs 0 1 0, E.ofLimbs 1 1 0]
+
+/-- Empty layouts exercise the constant padding constructor, including zero variables. -/
+def emptyBlocks : Blocks K where
+  n := 0
+  size := Fin.elim0
+  values := fun b ↦ Fin.elim0 b
+  descending := fun i ↦ Fin.elim0 i
+
+#guard emptyBlocks.stackAt 0 1 = (#v[1] : CMlPolynomialEval K 0)
+example : CMlPolynomialEval.map (algebraMap K E) (emptyBlocks.stackAt 0 1) =
+    (emptyBlocks.map (algebraMap K E)).stackAt 0 1 := by
+  simpa only [map_one] using emptyBlocks.map_stackAt (algebraMap K E) 0 1
+
+-- The raw constructor law also applies when the ambient table truncates the layout.
+example : ¬ blocks.total ≤ 2 ^ 0 := by decide
+
+example : CMlPolynomialEval.map (algebraMap K E) (blocks.stackAt 0 1) =
+    (blocks.map (algebraMap K E)).stackAt 0 1 := by
+  simpa only [map_one] using blocks.map_stackAt (algebraMap K E) 0 1
+
+-- Coefficient transport does not reflect equality: this homomorphism identifies 0 and 5.
+example : ¬ Function.Injective (Int.castRingHom (ZMod 5)) := by
+  intro h
+  have h05 : (0 : ℤ) = 5 := h (by decide)
+  norm_num at h05
+
+-- The noninjective map also changes the padding, from integer 7 to residue 2.
+example (B : Blocks ℤ) (μ : ℕ) :
+    CMlPolynomialEval.map (Int.castRingHom (ZMod 5)) (B.stackAt μ 7) =
+      (B.map (Int.castRingHom (ZMod 5))).stackAt μ 2 := by
+  have hpad : (Int.castRingHom (ZMod 5)) 7 = 2 := by decide
+  simpa only [hpad] using B.map_stackAt (Int.castRingHom (ZMod 5)) μ 7
 
 end
 end LeanerVMTests.Protocol
