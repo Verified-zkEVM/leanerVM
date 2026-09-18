@@ -281,8 +281,68 @@ no oracle and no query log (:88, :138), so its `Q` is attached to no adversary, 
   scheme-generic but assumes transparent recursion (child proofs read off the root proof). Port for
   T6 with "the level-ℓ extractor produces an accepting level-(ℓ-1) transcript" in place of
   `childProofs`. RBR knowledge soundness of forwarding is an assumed field, not proved.
-- `XMSS/*`: out of scope; the audit's F-6 (the verification relation cannot denote the deployed
-  scheme) stands.
+- `XMSS/*`: the scheme-specific verification relation and security assembly are out of scope;
+  the audit's F-6 (the verification relation cannot denote the deployed scheme) stands. The
+  generic, operational ROM controls in `XMSS/RandomOracle.lean` are a separate port source
+  described below.
+
+### Cross-cutting probability, relation and ROM sources
+
+These families occur inside modules whose application-specific assembly is dropped. The
+classification applies to the stated lemma family, not to its enclosing subtree. All source
+locations use `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, as elsewhere in this catalogue.
+
+| Declaration family | Source | Reusable content | Verdict and consumer |
+| --- | --- | --- | --- |
+| `piPMF`, `piPMF_map_pi`, `piPMF_map_eval` | `LeanVM/Aggregation.lean:2176, 2346, 2372` | Independent dependent-family PMF product, coordinatewise mapping and marginals | port only missing dependent-family statements after a duplicate audit; use current product/marginal APIs where they apply |
+| `sequenceFinPMF`, `pmf_option_bind_failure_le`, `tsum_mul_le_of_pointwise_add`, `sequenceFinPMF_failure_le` | `Aggregation/Core.lean:2680, 2889, 2914, 2934` | Optional extraction and finite-family failure bounds; failure includes `none` and invalid returned witnesses | reuse current bind-error APIs; port only a missing optional-extraction adapter for a named A2/A3 consumer |
+| `uniform_bind_toOuterMeasure_fst_le` and helpers | `ProofSystem/Commitment.lean:726-773` | A bad event on an initially uniform sample keeps its cardinality bound under an arbitrary continuation | copy if absent upstream; fresh-challenge probability bookkeeping |
+| `multi_isKnowledgeSound`, `multi_isKnowledgeSound_counterexample`, `multi_isKnowledgeSound_refinement_insufficient` | `LeanVM/Aggregation.lean:2467, 2614, 2752` | Product extraction with component relation maps, and controls showing that neither the maps nor component security can be omitted | port/pattern with the execution and extractor model stated explicitly; see below |
+| `algebraMap_stack`, `assignmentStackedVector_innerProduct`, `assignmentStackedVector_pairing_iff` | `LeanVM/Protocol.lean:8528, 8550, 8591` | Coefficient mapping commutes with stacking; `K`-valued data pairs with `E`-valued weights | port to `Blocks`, little-endian indexing and CompPoly's existing `eval₂Mle`; Layers 1 and 10 |
+| `not_isHashQueryBound_oneQuery_attack`, `repeatBoolHash_consistent`, `twoFreshBoolHashes_independent` | `XMSS/RandomOracle.lean:266, 308, 331` | Structural query bounds, persistent cache, independent fresh addresses | pattern/port the controls onto current VCVio; do not duplicate its interpreter |
+| `zeroHashQuery_guess_probability`, `queryGap_zero_exact`, `queryGap_one_exact`, `queryGap_one_strictly_better`, `phantomBoundEquiv` | `XMSS/RandomOracle.lean:404, 432, 437, 444, 458` | Every zero-hash-query adversary in the source guessing game wins with probability `1/2`; a one-query adversary wins with probability `1`; a phantom PMF budget imposes no restriction | pattern/port the actual games and negative model control; evidence for Layer 12's ROM interface, not a proof of FS/BCS security |
+
+For optional bind, the first-stage bad set contains `none`, and the continuation has a uniform
+failure bound after every good `some x`. The continuation may depend on `x`: this bound does
+not assume independence. The product lemmas, by contrast, concern the independent distribution
+constructed by `piPMF`. Check current Mathlib and VCVio equivalents before copying helpers;
+the catalogue is a source inventory, not a claim that those libraries lack every statement.
+At the pinned VCVio revision, `EvalDist/IndepProduct.lean` already provides `probOutput_mOfFn`,
+`probEvent_forall_coord_mOfFn` and exact marginals under full-mass hypotheses, with finite-index
+versions through `Fintype.mPi`. Its result type is homogeneous (`ι → α`), whereas the source
+`piPMF` permits a dependent family. `EvalDist/Monad/Basic.lean` already provides
+`probEvent_bind_le_add`; an optional-extraction adapter must put `none` in the bad event when
+applying it. New VCVio code must follow its current probability-carrier policy rather than
+reintroducing the retiring PMF/SPMF layer. These findings narrow a possible probability PR;
+they do not weaken the need to account for extraction failure.
+
+The product theorem assumes component knowledge soundness and validity-preserving maps from
+the component relations into the target relation, and sums the component errors. The old
+`MultiInputBinding` pins a list of configured digests; it is not a replacement for these maps
+and is not a premise of `multi_isKnowledgeSound`. Keep both negative controls with any port.
+The theorem builds a `CoupledExtractor` whose joint distribution depends on the prover
+(`Security/Protocol.lean:1076`); even the old straightline extractor receives the prover.
+ArkLib's current `Extractor.Straightline` receives the statement, terminal witness, transcript
+and query logs, not prover code. A port to that API needs fixed component extractors and a
+proved relation between their actual executions and the joint distribution. An independent
+product theorem does not establish arbitrary shared-oracle composition or recursive T6.
+
+For the mixed-field bridge, a ring homomorphism commutes with stacking without an injectivity
+hypothesis, and maps the padding value too. Derive the `K` to `E` selection and pairing laws
+through `eval₂Mle`; use injectivity only when reflecting equality or a nonzero polynomial.
+The pairing must apply to an arbitrary committed column. Unstacking then restacking agrees
+on occupied windows, but need not recover unconstrained padding.
+
+Two further patterns belong in their existing workstreams. `ActualPathHoareTriple`,
+`CertifiedExecutionRows`, `ExecutionUsesBuffer` and `ProgramCertificate.correct`
+(`LeanVM/Aggregation.lean:845, 918, 1082, 1247`) tie a supplied execution and its reached final
+frame to the decoded buffer. Preserve that boundary for T3; the theorem composes assumed local
+block contracts and does not verify the current guest. `pull_matched`,
+`sourcePush_count_eq_pullMultiplicity` and `source_linkage` (`LeanVM/Arith/Glue.lean:1249,
+1653, 1700`) supply source guidance for natural-count matching in the existing
+[Clean bus work](https://github.com/Verified-zkEVM/clean/pull/464), tracked by
+[issue #20](https://github.com/Verified-zkEVM/leanerVM/issues/20). Reuse the combinatorial
+argument; reprove its correspondence with the new directed events and `g * count` mechanism.
 
 ## Lessons that bind the roadmap
 
@@ -302,10 +362,16 @@ Patterns worth adopting, each with the leanth evidence.
    `DegreeThreeSumcheckCertificate`, `hwhir : WHIRCertificate.IsValid` (`Main.lean:87-89`,
    proved for every certificate) look like assumptions and are not; a reader cannot tell which
    fields carry content. The roadmap forbids assumed hypotheses and this is one more reason.
-5. **`Classical.choose` extraction is soundness.** `coreSelectedAssignment`
-   (`Protocol.lean:2208`) and `fromSemantics` (`Refinement.lean:1383`) make "knowledge" the
-   satisfiability of the statement (audit FW-1). Acceptance test 19 (the extractor reads the
-   stack) is the roadmap's guard.
+5. **Extraction must use the committed witness.** `coreSelectedAssignment`
+   (`Protocol.lean:2208`) depends only on the statement, and `coreReduction.reconstruct`
+   (`:2471`) ignores its transcript and terminal witness. This reduces its "knowledge"
+   condition to statement satisfiability (audit FW-1). Acceptance test 19 (the extractor reads
+   the stack) is the roadmap's guard. By contrast, `fromSemantics` (`Refinement.lean:1390`)
+   maps an already supplied semantic witness through `CanonicalAssignmentData stmt w`
+   (`:41`), whose `decode_eq` and `satisfies` fields preserve that valid witness and prove
+   its arithmetization satisfies the constraints. This is a noncomputable completeness
+   construction, used by `Main.honestProver`, and a useful witness-preservation pattern;
+   it is not adversarial extraction. The old three-table construction itself remains dropped.
 6. **Pins need achievability witnesses** (audit F-1): a parameter certificate whose equalities
    force a false coding hypothesis is empty and every theorem under it is vacuous. Acceptance
    test 23 should include the witness, and `McaJohnson` its regime.
@@ -331,10 +397,13 @@ Patterns worth adopting, each with the leanth evidence.
 
 The arithmetization (`Arith/*`, 17k lines), the composed protocol's decode, charge and honest
 layers (`LeanVM/Protocol.lean`, 25k lines), the security carriers (`Security/*`, 6.4k lines,
-except as port sources for A2 and A3), the WHIR parameter object and certificates, the
+except as port sources for A2, A3 and the relation/extractor controls above), the WHIR parameter
+object and certificates, the
 commitment and Fiat–Shamir certificates, `Main`, `ParameterSearch`'s pins, aggregation's
-`Config`, and XMSS. The reasons are in the tables: prime field, logup, three tables, a framework
-on `PMF`, and certificates whose fields are the theorems.
+`Config`, and XMSS's scheme-specific assembly. This excludes neither the isolated probability
+lemmas nor the operational ROM controls catalogued above. The reasons are in the tables:
+prime field, logup, three tables, a framework on `PMF`, and certificates whose fields are the
+theorems.
 
 ## Port log
 
@@ -364,3 +433,31 @@ Where a leanth proof is the port source for an ArkLib ledger item.
 | A6 grand product, GKR, batching, stacking | absent | `Logup.lean:275-444, 804-831`; `GKR.lean:439-640, 3596-3830`; `Stacking.lean` (stacking, done here); `ZeroCheck.lean:670-697` (batching) |
 | A7 WHIR, Merkle | absent | `WHIR.lean:271-684, 928-960` as the reference shape only |
 | A8 mutual correlated agreement | `rs_mcaError_le_in_johnson_range` admitted (affine lines) | none; `WHIR.lean:120-133` shows what not to state |
+
+
+## Dependency refresh: 2026-09-17
+
+The ledger above describes ArkLib at the pinned revision, not every open upstream branch.
+[ArkLib PR #615](https://github.com/Verified-zkEVM/ArkLib/pull/615), reviewed at
+`ca7a2577071a937a6ae1c1f96f606d0cbcb35395`, implements
+`Verifier.KnowledgeStateFunction.appendGuarded`,
+`Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first` and
+`Verifier.seqCompose_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_verifiers` in
+`Composition/Sequential/Append/Knowledge.lean` and `Composition/Sequential/KnowledgeNary.lean`.
+Its first verifier is deterministic and may reject; the suffix may query the shared oracle.
+The statements retain the actual component extractors, knowledge states and worst-case
+per-prefix bounds. A2's next step is to check and adopt this implementation for a concrete
+consumer before attempting a competing proof. This branch is not the pinned dependency, and
+no adoption or axiom-closure result for leanerVM follows from inspecting its source.
+
+ArkLib's `Verifier.PureForm` at the pin is total: its output has type `StmtOut`, not
+`Option StmtOut`. Absence of oracle queries does not make a rejecting verifier a `PureForm`.
+Compose rejecting sumcheck rounds through an applicable guarded theorem or a direct induction;
+do not erase rejection to satisfy a total-first composition contract.
+
+[leanerVM PR #21](https://github.com/Verified-zkEVM/leanerVM/pull/21) merged as `42bbd51` and
+closed issue #22. Decision 14 keeps the channels and opcode tables program-free; the public
+program enters through `bytecodeRowOf prog`, `leanIsaVerifier prog` and the Layer 8 statement.
+The Layer 8 witness and committed projection are still separate work. Fixed public-column
+evaluation can already use `Semantics.Program` and `encodeSlots`; it does not need a program
+extracted from prover data.
