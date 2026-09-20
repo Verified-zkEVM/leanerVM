@@ -317,9 +317,12 @@ reintroducing the retiring PMF/SPMF layer. These findings narrow a possible prob
 they do not weaken the need to account for extraction failure.
 
 The product theorem assumes component knowledge soundness and validity-preserving maps from
-the component relations into the target relation, and sums the component errors. The old
-`MultiInputBinding` pins a list of configured digests; it is not a replacement for these maps
-and is not a premise of `multi_isKnowledgeSound`. Keep both negative controls with any port.
+the component relations into the target relation, and sums the component errors.
+`multiProtocol.accepts` pins `advertisedDigests` to the configured digest list
+(`LeanVM/Aggregation.lean:2198–2201`). The separate `MultiInputBinding` (`:2146–2149`)
+is an existential canonical-buffer collision bound. Neither replaces the component relation
+maps, and `MultiInputBinding` is not a premise of `multi_isKnowledgeSound`.
+Keep both negative controls with any port.
 The theorem builds a `CoupledExtractor` whose joint distribution depends on the prover
 (`Security/Protocol.lean:1076`); even the old straightline extractor receives the prover.
 ArkLib's current `Extractor.Straightline` receives the statement, terminal witness, transcript
@@ -368,7 +371,7 @@ Patterns worth adopting, each with the leanth evidence.
    condition to statement satisfiability (audit FW-1). Acceptance test 19 (the extractor reads
    the stack) is the roadmap's guard. By contrast, `fromSemantics` (`Refinement.lean:1390`)
    maps an already supplied semantic witness through `CanonicalAssignmentData stmt w`
-   (`:41`), whose `decode_eq` and `satisfies` fields preserve that valid witness and prove
+   (`:47–54`), whose `decode_eq` and `satisfies` fields preserve that valid witness and prove
    its arithmetization satisfies the constraints. This is a noncomputable completeness
    construction, used by `Main.honestProver`, and a useful witness-preservation pattern;
    it is not adversarial extraction. The old three-table construction itself remains dropped.
