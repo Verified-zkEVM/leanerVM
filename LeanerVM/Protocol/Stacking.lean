@@ -1,9 +1,4 @@
 /-
-Copyright (c) 2026 leanerVM Contributors. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Elias Judin, Stefano Rocca, Aristotle (Harmonic)
--/
-/-
   LeanerVM.Protocol.Stacking
 
   Aligned stacking of hypercube tables of different heights into one table, and the
@@ -180,23 +175,9 @@ theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (μ : ℕ) (pad : 
   change φ (if B.total ≤ x then pad else ∑ b : Fin B.n,
       if B.InWindow b x then ((B.values b)[x - B.offset b]?).getD 0 else 0) =
     if B.total ≤ x then φ pad else ∑ b : Fin B.n,
-      if B.InWindow b x then (((B.map φ).values b)[x - B.offset b]?).getD 0 else 0
-  by_cases hp : B.total ≤ x
-  · simp [hp]
-  · simp only [if_neg hp, map_sum]
-    apply Finset.sum_congr rfl
-    intro b _
-    by_cases hb : B.InWindow b x
-    · have hi : x - B.offset b < 2 ^ B.size b := by
-        have := hb.1
-        have := hb.2
-        omega
-      rw [if_pos hb, if_pos hb, Vector.getElem?_eq_getElem hi, Option.getD_some]
-      change φ ((B.values b)[x - B.offset b]) =
-        ((B.values b).map φ)[x - B.offset b]?.getD 0
-      rw [Vector.getElem?_eq_getElem hi, Option.getD_some]
-      simp only [CMlPolynomialEval.map, Vector.getElem_map]
-    · simp [hb]
+      if B.InWindow b x then (Vector.map φ (B.values b))[x - B.offset b]?.getD 0 else 0
+  split_ifs <;>
+    simp_all only [map_sum, apply_ite, Vector.getElem?_map, ← Option.getD_map, map_zero]
 
 /-! ## Selectors -/
 
