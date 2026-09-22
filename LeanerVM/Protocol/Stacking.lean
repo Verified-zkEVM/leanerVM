@@ -35,6 +35,9 @@ to the slice of the stack at the selector index, which alignment identifies with
   (acceptance test 15 of the roadmap).
 * The pad value is a parameter: the witness stack pads with `0` and the bus trees with `1`
   (acceptance test 2); nothing in `stack_eval` depends on it.
+
+Upstream ownership: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900),
+for coefficient transport and arbitrary-column readout in protocol Layers 1 and 10.
 -/
 
 namespace LeanerVM.Protocol
@@ -60,6 +63,15 @@ namespace Blocks
 
 variable (B : Blocks R)
 
+/-! ## Coefficient maps -/
+
+/-- Map the block values along a ring homomorphism, preserving the layout. -/
+def map {S : Type*} [CommRing S] (φ : R →+* S) : Blocks S where
+  n := B.n
+  size := B.size
+  values := fun b ↦ CMlPolynomialEval.map φ (B.values b)
+  descending := B.descending
+
 /-! ## Offsets -/
 
 /-- The sum of the heights of the first `k` blocks. -/
@@ -71,6 +83,18 @@ def offset (b : Fin B.n) : ℕ := B.offsetNat b.val
 
 /-- The total height of the blocks. -/
 def total : ℕ := B.offsetNat B.n
+
+/-- Mapping coefficients leaves every prefix offset unchanged. -/
+@[simp] theorem map_offsetNat {S : Type*} [CommRing S] (φ : R →+* S) (k : ℕ) :
+    (B.map φ).offsetNat k = B.offsetNat k := rfl
+
+/-- Mapping coefficients leaves block offsets unchanged. -/
+@[simp] theorem map_offset {S : Type*} [CommRing S] (φ : R →+* S) (b : Fin B.n) :
+    (B.map φ).offset b = B.offset b := rfl
+
+/-- Mapping coefficients leaves the total occupied height unchanged. -/
+@[simp] theorem map_total {S : Type*} [CommRing S] (φ : R →+* S) :
+    (B.map φ).total = B.total := rfl
 
 omit [CommRing R] in
 theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
@@ -141,6 +165,20 @@ theorem stackAt_getElem_of_total_le {μ : ℕ} (pad : R) {x : ℕ} (hx : x < 2 ^
     (h : B.total ≤ x) : (B.stackAt μ pad)[x] = pad := by
   simp [stackAt, h]
 
+/-- Coefficient mapping commutes with stacking, including its padding value. No injectivity
+or stack-fit hypothesis is needed for this identity of total constructors. -/
+theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (μ : ℕ) (pad : R) :
+    CMlPolynomialEval.map φ (B.stackAt μ pad) = (B.map φ).stackAt μ (φ pad) := by
+  apply Vector.ext
+  intro x hx
+  simp only [CMlPolynomialEval.map, Vector.getElem_map, stackAt, Vector.getElem_ofFn]
+  change φ (if B.total ≤ x then pad else ∑ b : Fin B.n,
+      if B.InWindow b x then ((B.values b)[x - B.offset b]?).getD 0 else 0) =
+    if B.total ≤ x then φ pad else ∑ b : Fin B.n,
+      if B.InWindow b x then (Vector.map φ (B.values b))[x - B.offset b]?.getD 0 else 0
+  split_ifs <;>
+    simp_all only [map_sum, apply_ite, Vector.getElem?_map, ← Option.getD_map, map_zero]
+
 /-! ## Selectors -/
 
 omit [CommRing R] in
@@ -193,6 +231,17 @@ theorem stack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n)
         (Vector.cast (congrArg (2 ^ ·) hk.symm) (B.stackAt μ pad)) := by
     simp
   rw [hS, evalMle_cast hk, evalMle_append_boolVec, slice_stackAt]
+
+/-- The selection identity after mapping coefficients to another ring. The evaluation point
+may lie outside the image of the coefficient map, as for the `K` to `E` column oracle. -/
+theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) (z : Vector S (B.size b)) :
+    eval₂Mle (B.stackAt μ pad) φ
+      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+        (z ++ (boolVec (B.selector hμ b) : Vector S (μ - B.size b)))) =
+    eval₂Mle (B.values b) φ z := by
+  rw [eval₂Mle, B.map_stackAt]
+  exact (B.map φ).stack_eval hμ (φ pad) b z
 
 end Blocks
 
