@@ -106,7 +106,7 @@ gate remains open. Changing dependencies to address it requires a separate drift
 
 The row-export diagnostic does not yet validate access-count columns, combined M3/protocol
 resource bounds, raw-bytecode verifier coverage, or an aggregation guest's artifact binding.
-The [source-fidelity ledger](reviews/leanisa-source-fidelity.md) records the semantic choices,
-coverage and revision delta for this typed ISA. Both padding/completeness constructions and
-Rust read-stability correspondence remain outstanding. Passing these checks is not completion
+The semantic and Rust pins, typed-program domain, and regression coverage are described above.
+Both padding/completeness constructions and Rust read-stability correspondence remain
+outstanding. Passing these checks is not completion
 of the full leanISA implementation-validation plan.

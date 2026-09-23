@@ -27,8 +27,6 @@ This directory contains stable project and operating knowledge.
     survey record.
 - [reviews/](reviews/): review documents handed off for implementation, one per reviewed piece
   of work; the status file records how each finding was met.
-  - [leanisa-source-fidelity.md](reviews/leanisa-source-fidelity.md): pinned ISA clause decisions,
-    distinguishing regressions, and the comparison revision delta.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
     table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
