@@ -4,9 +4,9 @@
 - `audit-lean.sh`: first-party lexical policy for trust-sensitive constructs and local
   option overrides.
 - `audit-axioms.lean`: recursive axiom-closure audit of the production and test namespaces;
-  run after building with `lake env lean -E warning scripts/audit-axioms.lean`. Permits only
-  `propext`, `Classical.choice` and `Quot.sound`. This is a separate proof-acceptance check,
-  not part of `validate.sh`; CI's configured namespace audit covers production.
+  `validate.sh` and CI run it after `lake test` through `test-axiom-audit.py`. Permits only
+  `propext`, `Classical.choice` and `Quot.sound`. CI's lean-action audit independently covers
+  the production namespace.
 - `test-axiom-audit.py`: runs the real audit and verifies that a temporary foreign assumption
   is rejected through dependent declarations in both project namespaces. The negative
   fixture is never written into accepted source.
