@@ -1,7 +1,7 @@
 /-
   LeanerVM.Semantics.Cycle
 
-  Executable validation of finite register traces and disconnected padding cycles.
+  Executable validation of finite register traces and candidate padding cycles.
 -/
 
 module
@@ -12,11 +12,12 @@ public import LeanerVM.Semantics.Executable
 /-!
 # Checked register traces and filler cycles
 
-A filler is checked against the same immutable program and image as the main run. Every
+A candidate filler is checked against a supplied immutable program and image. Every
 transition is checked, no transition starts at the sentinel, and the last state equals the
-first. This validates local execution and cycle closure. It does not prove lookup-count
-balance, row-height budgets, existence of scratch space, or a whole satisfying assignment.
-Those remain separate obligations for leanISA T1 completeness and the Rust T2 boundary.
+first. The checker does not take a main run or itself assert disjointness from one. It also
+does not prove lookup-count balance, row-height budgets, existence of scratch space, or a
+whole satisfying assignment. Those remain separate obligations for leanISA T1 completeness
+and the Rust T2 boundary.
 -/
 
 namespace LeanerVM.Semantics
@@ -37,7 +38,7 @@ theorem checkRunTrace_eq_true_iff {κ : ℕ} (hκ : κ < 64) (prog : Program)
     checkRunTrace prog image states = true ↔ RunTrace prog image n states := by
   simp only [checkRunTrace, decide_eq_true_eq, stepChecked_eq_step hκ, RunTrace, ProgramStep]
 
-/-- Untrusted registers for one proposed disconnected filler cycle. -/
+/-- Untrusted registers for one proposed filler cycle. -/
 structure Cycle where
   /-- Number of instruction rows, including the closing JUMP. -/
   steps : ℕ
@@ -49,7 +50,7 @@ def Cycle.Valid {κ : ℕ} (prog : Program) (image : MemImage κ) (cycle : Cycle
   0 < cycle.steps ∧ RunTrace prog image cycle.steps cycle.states ∧
     cycle.states (Fin.last cycle.steps) = cycle.states 0
 
-/-- Check local execution, nonempty length, and closure of a disconnected filler. -/
+/-- Check local execution, nonempty length, and closure of a proposed filler cycle. -/
 def checkCycle {κ : ℕ} (prog : Program) (image : MemImage κ) (cycle : Cycle) : Bool :=
   decide (0 < cycle.steps) && checkRunTrace prog image cycle.states &&
     decide (cycle.states (Fin.last cycle.steps) = cycle.states 0)

@@ -1,7 +1,7 @@
 /-
   LeanerVM.Semantics.FillerRows
 
-  Checking an unordered collection of disconnected filler rows.
+  Checking an unordered collection of candidate filler rows.
 -/
 
 module
@@ -15,7 +15,8 @@ Rust exports rows grouped by opcode, not as one ordered filler trace. The multis
 starting states must match the multiset of their checked successors. Keeping `Option` in this
 comparison makes any failed step invalidate the check. Multiplicities are natural list
 multiplicities, never sums in the characteristic-two field. This is a semantic row check;
-it does not check memory/bytecode lookup counts, table capacities, or Rust correspondence.
+it does not take a main run or establish disjointness from one. It also does not check
+memory/bytecode lookup counts, table capacities, or Rust correspondence.
 -/
 
 namespace LeanerVM.Semantics

@@ -17,7 +17,7 @@ open LeanerVM.Parameters LeanerVM.Semantics
 /-- Opcode order of Rust's six trace tables at revision `48a904208d682848dac0e18ef8b01ebfc40df9ad`. -/
 def opcodeOrder : Vector Opcode 6 := #v[.xor, .mulNative, .setConstant, .deref, .jump, .blake2s]
 
-/-- Replay an exported main run and separately check all disconnected filler rows. This is
+/-- Replay an exported main run and separately check all rows attributed to filler. This is
 an executable differential-test helper, not a theorem about the Rust implementation. -/
 def checkExport (prog : Program) (publicInput : PublicInput) (input : TraceInput)
     (rows : Vector (Array (Regs K)) 6) (hints : List ℕ := []) : Bool :=

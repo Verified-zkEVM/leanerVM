@@ -4,7 +4,7 @@ import LeanerVMTests.Semantics.Cycle
 /-!
 # Unordered filler-row checks
 
-A closed cycle may be disconnected from the main run. State multiplicities are preserved,
+A closed cycle is checked without a main run. State multiplicities are preserved,
 including duplicate rows. Failure, an open path, or a sentinel row invalidates the collection.
 -/
 

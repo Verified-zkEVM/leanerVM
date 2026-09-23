@@ -4,7 +4,7 @@ import LeanerVMTests.Semantics.Checker
 /-!
 # Filler-cycle contract tests
 
-A concrete closed JUMP cycle is accepted independently of the main run. Mutations reject an
+A concrete closed JUMP cycle is accepted without supplying a main run. Mutations reject an
 empty filler, an open path, an incorrect intermediate register pair, a read mismatch, and a
 transition beginning at the sentinel. No successful main run alone certifies these fillers.
 -/

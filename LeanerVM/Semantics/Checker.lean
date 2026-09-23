@@ -34,7 +34,7 @@ inductive CheckError
   deriving DecidableEq, Repr
 
 /-- Run to the sentinel in at most `fuel` transitions. The result counts only main-run
-steps; no disconnected filler cycle is appended. At zero fuel an already halted state
+steps; no filler rows are appended. At zero fuel an already halted state
 succeeds, while a nonterminal state reports exhaustion. -/
 def runToHalt {κ : ℕ} (prog : Program) (image : MemImage κ) :
     ℕ → Regs K → Except CheckError ℕ

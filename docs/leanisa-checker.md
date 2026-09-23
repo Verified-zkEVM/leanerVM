@@ -2,9 +2,9 @@
 
 The checker validates a fixed final image against the existing Lean ISA. It does not generate
 memory, prove Rust correct, or check an executable proof verifier. The semantic reference
-remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The optional Rust regression
-lane separately tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does not change that pin or
-claim coverage of every change between those revisions.
+remains pinned to leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The optional Rust
+regression lane separately tests `48a904208d682848dac0e18ef8b01ebfc40df9ad`; it does
+not change that pin or claim coverage of every change between those revisions.
 
 ## Proved interfaces
 
@@ -24,19 +24,22 @@ claim coverage of every change between those revisions.
   `Trace.steps`. `adapt_preserves` and `validateInput_eq_true_iff` specify these guarantees.
   Announced counts alone do not prove that the rows exist.
 - [`Cycle.lean`](../LeanerVM/Semantics/Cycle.lean) checks every transition of a nonempty closed
-  filler trace. [`FillerRows.lean`](../LeanerVM/Semantics/FillerRows.lean) instead accepts
-  unordered row starts when every reference successor succeeds and the starting/successor
-  multisets agree. Neither interface checks memory/bytecode access-count columns or budgets.
+  candidate filler trace. [`FillerRows.lean`](../LeanerVM/Semantics/FillerRows.lean) instead
+  accepts unordered row starts when every reference successor succeeds and the
+  starting/successor multisets agree. These standalone interfaces do not take a main run or
+  check memory/bytecode access-count columns or budgets.
 
-[`ReadHints.lean`](../LeanerVM/Semantics/ReadHints.lean) accelerates high scratch-address reads and instruction fetches.
+[`ReadHints.lean`](../LeanerVM/Semantics/ReadHints.lean) accelerates high scratch-address reads
+and instruction fetches.
 Every suggested index is range checked and its generator power must match the requested
 address. Every miss falls back to exhaustive search. Kernel-checked equalities show that hints
 preserve the acceptance domain without a coverage assumption. Tests cover empty, incomplete,
 duplicate, incorrect and out-of-range hints. The Rust lane supplies hints from touched memory
 indices and row program counters solely for speed; these are not trusted evidence about access counts.
 
-These deterministic semantic refinements support T1 and the T2 validation boundary. They
-prove neither global constraint soundness/completeness nor cryptographic soundness.
+These deterministic semantic refinements support T1 and the T2 validation boundary. By
+themselves, they prove neither global constraint soundness/completeness nor cryptographic
+soundness.
 
 ## Running the checks
 
@@ -68,7 +71,7 @@ not accepted source or proof certificates. Arrays are built by folds over export
 generated mutable `do` blocks caused excessive elaboration time on the filler program.
 
 The Lean diagnostic helper checks the public main run, actual row lengths/opcodes, the main
-row multiset against replay, and every disconnected filler row with natural state balance:
+row multiset against replay, and every row attributed to filler with natural state balance:
 
 | Fixture | Expected result |
 | --- | --- |
@@ -93,8 +96,9 @@ theorems are kernel checked. Foreign export generation and compiled evaluation r
 boundaries; the tests are not proofs of Rust source or Rust's complete success domain.
 
 Fallback address lookup is exhaustive and slow for large or absent addresses. Verified hints
-make the concrete filler regression practical; this is not a performance result for large VMs. A standalone native executable still encounters
-the pinned CompPoly `Fintype BF64` startup issue recorded in the
+make the concrete filler regression practical; this is not a performance result for large VMs.
+A standalone native executable still encounters the pinned CompPoly `Fintype BF64` startup
+issue recorded in the
 [status](roadmap/leanisa-status.md); compiled evaluation within Lean works. The P2 native smoke
 gate remains open. Changing dependencies to address it requires a separate drift review.
 

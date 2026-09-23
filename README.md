@@ -25,8 +25,8 @@ has landed its Layers 0 to 7: the fields and the generator, BLAKE2s compression 
 encoding, instructions, the memory image and the public input, the step function and valid
 executions, the bytecode encoding, the bus channels, the six opcode tables as Clean
 components, each sound and complete for the relation its row refines, and the three boundary
-blocks; Layer 8, the constraint statement `SatisfiedBy` with one hand-built witness, is built
-on this branch. The reference `step` and `run` are noncomputable; fixed-image executable
+blocks; Layer 8 supplies the constraint statement `SatisfiedBy` and one hand-built witness.
+The reference `step` and `run` are noncomputable; fixed-image executable
 checkers are proved equivalent to them for exact and fuel-bounded runs. Finite traces, a
 source-fidelity ledger and a pinned Rust comparison lane provide the first ISA validation
 boundary. The bus theorems and the two T1 theorems are the layers still to come, and no

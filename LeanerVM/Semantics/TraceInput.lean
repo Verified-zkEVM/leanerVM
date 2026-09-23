@@ -15,7 +15,7 @@ Rust leanVM `48a904208d682848dac0e18ef8b01ebfc40df9ad` reports `base_counts` bef
 and `cycles` after filling. `TraceInput` records the finite data needed to adapt that shape
 without confusing the two lengths. Counts are natural numbers after unsigned conversion.
 This adapter checks memory shape and accounting, then optionally validates the main run.
-It does not certify exported counts against actual Rust rows, validate disconnected fillers,
+It does not certify exported counts against actual Rust rows, validate filler rows,
 or establish a correspondence to the Rust source; those are distinct T2 obligations.
 -/
 
@@ -40,7 +40,7 @@ structure TraceInput where
 /-- Main-run transitions, summed in unbounded natural-number arithmetic. -/
 def TraceInput.mainSteps (input : TraceInput) : ℕ := input.mainCounts.toList.sum
 
-/-- Rows attributed to disconnected filler traversal. -/
+/-- Rows attributed to filler traversal, after the announced main-run counts. -/
 def TraceInput.fillerSteps (input : TraceInput) : ℕ :=
   (input.rowCounts.toList.zipWith (· - ·) input.mainCounts.toList).sum
 

@@ -10,15 +10,16 @@ fn blake2s_distinct_non_boolean_flag_words() {
     // The corresponding Lean vector is in Semantics/Blake2s.lean.
     let h = [7, 0, 0, 0, 11, 0, 0, 0];
     let m = [
-        0x89abcdef, 0x01234567, 0x76543210, 0xfedcba98,
-        0x33334444, 0x11112222, 0x77778888, 0x55556666,
-        0xcafebabe, 0xdeadbeef, 0x0badf00d, 0x0badf00d,
-        0xbbbbcccc, 0x9999aaaa, 0xffff0000, 0xddddeeee,
+        0x89abcdef, 0x01234567, 0x76543210, 0xfedcba98, 0x33334444, 0x11112222, 0x77778888,
+        0x55556666, 0xcafebabe, 0xdeadbeef, 0x0badf00d, 0x0badf00d, 0xbbbbcccc, 0x9999aaaa,
+        0xffff0000, 0xddddeeee,
     ];
     assert_eq!(
         flock::hash::blake2s_compress(&h, &m, 64, 0x12345678, 0x9abcdef0),
-        [0xe9a85163, 0xd16af0a6, 0x2edb90ff, 0xba5be325,
-         0xbdc018d2, 0x3ce6b68f, 0xbea90143, 0x8c0e7b0b]
+        [
+            0xe9a85163, 0xd16af0a6, 0x2edb90ff, 0xba5be325, 0xbdc018d2, 0x3ce6b68f, 0xbea90143,
+            0x8c0e7b0b
+        ]
     );
 }
 

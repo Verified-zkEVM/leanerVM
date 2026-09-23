@@ -96,7 +96,7 @@ structure Trace (prog : Program) where
   κ : ℕ
   /-- The committed memory image. -/
   image : MemImage κ
-  /-- Main-run transitions to the sentinel; excludes disconnected padding cycles.
+  /-- Main-run transitions to the sentinel; excludes separately attributed padding rows.
   At Rust `48a90420` this corresponds to `sum(base_counts)`, not `Execution.cycles`.
   That implementation conversion still requires a correspondence proof. -/
   steps : ℕ
