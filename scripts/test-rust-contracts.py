@@ -50,7 +50,8 @@ def main() -> None:
             raise SystemExit("The reference Cargo.lock changed")
         subprocess.run(["lake", "build", "LeanerVMTests.Semantics.RustExport"],
                        cwd=ROOT, check=True)
-        for name in ("zero", "plain", "stale", "fillers"):
+        for name in ("zero", "plain", "stale", "fillers", "unwritten_zero",
+                     "xor_cancellation", "stale_mul"):
             print(f"Checking actual Rust export: {name}", flush=True)
             subprocess.run(["lake", "env", "lean", "-E", "warning",
                             str(exports / f"{name}.lean")], cwd=ROOT, check=True)

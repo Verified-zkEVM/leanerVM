@@ -133,6 +133,52 @@ fn returned_image_can_violate_an_earlier_xor() {
 }
 
 #[test]
+fn unwritten_zero_operands_can_match_the_final_image() {
+    let p = program(vec![
+        Op::Xor { a: 2, b: 3, c: 4 },
+        Op::Set { o: 0, k: F192::ONE },
+    ]);
+    let input = [F192::ZERO; 2];
+    let e = p.execute(input);
+    assert_eq!(e.base_counts, [1, 0, 0, 0, 0, 0]);
+    assert_eq!(e.unconstrained_reads, [2, 3]);
+    assert_eq!(e.mem[4], e.mem[2] + e.mem[3]);
+    emit_fixture("unwritten_zero", &p, &e, input, true);
+}
+
+#[test]
+fn later_xor_operand_changes_can_cancel() {
+    let p = program(vec![
+        Op::Xor { a: 2, b: 3, c: 4 },
+        Op::Set { o: 2, k: F192::ONE },
+        Op::Set { o: 3, k: F192::ONE },
+        Op::Set { o: 0, k: F192::ONE },
+    ]);
+    let input = [F192::ZERO; 2];
+    let e = p.execute(input);
+    assert_eq!(e.base_counts, [1, 0, 2, 0, 0, 0]);
+    assert!(e.unconstrained_reads.is_empty());
+    assert_eq!(e.mem[4], e.mem[2] + e.mem[3]);
+    emit_fixture("xor_cancellation", &p, &e, input, true);
+}
+
+#[test]
+fn returned_image_can_violate_an_earlier_mul() {
+    let p = program(vec![
+        Op::Mul { a: 2, b: 3, c: 4 },
+        Op::Set { o: 2, k: F192::ONE },
+        Op::Set { o: 3, k: F192::ONE },
+        Op::Set { o: 0, k: F192::ONE },
+    ]);
+    let input = [F192::ZERO; 2];
+    let e = p.execute(input);
+    assert_eq!(e.base_counts, [0, 1, 2, 0, 0, 0]);
+    assert!(e.unconstrained_reads.is_empty());
+    assert_ne!(e.mem[4], e.mem[2] * e.mem[3]);
+    emit_fixture("stale_mul", &p, &e, input, false);
+}
+
+#[test]
 fn untaken_jump_checks_upper_limbs() {
     let p = program(vec![
         Op::Jump {

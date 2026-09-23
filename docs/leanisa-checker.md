@@ -61,8 +61,8 @@ Cargo target directory, overridable with `--target-dir`. This optional external 
 part of the dependency-local validation gate.
 
 The script archives that exact commit into a temporary directory, adds only a `cfg(test)`
-module to inspect the private trace rows, and runs all 25 original library tests plus seven
-maintained contract regressions. It preserves the archived lockfile. Four fixtures export
+module to inspect the private trace rows, and runs all 25 original library tests plus ten
+maintained contract regressions. It preserves the archived lockfile. Seven fixtures export
 actual typed instructions, all final-memory words, the original public input, per-opcode row
 starts, main counts, final counts and total cycles. Adjacent identical instructions and zero
 memory words are compressed losslessly in generated Lean data. Generated files are temporary,
@@ -77,6 +77,9 @@ row multiset against replay, and every row attributed to filler with natural sta
 | One-slot program | Zero main steps; sentinel not executed |
 | Nonempty main, no fillers | One SET step; no filler rows |
 | Stale read followed by a write | Rust succeeds; Lean rejects its final image |
+| Unwritten zero XOR operands | Rust reports unconstrained reads; Lean accepts the final zero image |
+| Two later XOR operand changes that cancel | Rust succeeds; Lean accepts the final image relation |
+| Stale MUL operands followed by nonzero writes | Rust succeeds; Lean rejects its final image |
 | Exact one-main-step/20-cycle fixture | One main step and nineteen separately checked filler rows |
 | Filler fixture using total counts as main counts | Rejected for early halting |
 | Missing closing JUMP, with accounting adjusted | Main image remains valid; complete export check rejects fillers |
