@@ -1,5 +1,5 @@
 import LeanerVM.Semantics.FillerRows
-import LeanerVMTests.Semantics.Cycle
+import LeanerVMTests.Semantics.Checker
 
 /-!
 # Unordered filler-row checks
@@ -12,7 +12,9 @@ namespace LeanerVMTests.Semantics.FillerRows
 
 open LeanerVM.Parameters LeanerVM.Semantics
 open LeanerVMTests.Semantics.Execution LeanerVMTests.Semantics.Checker
-open LeanerVMTests.Semantics.Cycle
+
+/-- A tiny all-one image whose initial JUMP returns to the same registers. -/
+def loopImage : MemImage 1 := fun _ ↦ E.ofLimbs 1 0 0
 
 #guard checkFillerRows loopProgram loopImage []
 #guard checkFillerRows loopProgram loopImage [Regs.initial]

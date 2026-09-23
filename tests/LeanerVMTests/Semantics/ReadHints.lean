@@ -1,5 +1,5 @@
 import LeanerVM.Semantics.ReadHints
-import LeanerVMTests.Semantics.Cycle
+import LeanerVMTests.Semantics.FillerRows
 
 /-!
 # Address-hint acceptance and coverage
@@ -11,7 +11,7 @@ candidate is verified before use, and a cache miss must use the exhaustive fallb
 namespace LeanerVMTests.Semantics.ReadHints
 
 open LeanerVM.Parameters LeanerVM.Semantics
-open LeanerVMTests.Semantics.Checker LeanerVMTests.Semantics.Cycle
+open LeanerVMTests.Semantics.Checker LeanerVMTests.Semantics.FillerRows
 
 #guard addressIndexWithHints 4 (hintIndices 4 [0, 0, 3, 16, 1000]) (gpow 3) =
   some ⟨3, by decide⟩

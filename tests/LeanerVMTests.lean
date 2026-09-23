@@ -10,7 +10,6 @@ import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Checker
-import LeanerVMTests.Semantics.Cycle
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Parameters.Isa

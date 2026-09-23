@@ -23,11 +23,10 @@ not change that pin or claim coverage of every change between those revisions.
   checks its power-of-two memory shape and count accounting, and uses `sum(mainCounts)` as
   `Trace.steps`. `adapt_preserves` and `validateInput_eq_true_iff` specify these guarantees.
   Announced counts alone do not prove that the rows exist.
-- [`Cycle.lean`](../LeanerVM/Semantics/Cycle.lean) checks every transition of a nonempty closed
-  candidate filler trace. [`FillerRows.lean`](../LeanerVM/Semantics/FillerRows.lean) instead
-  accepts unordered row starts when every reference successor succeeds and the
-  starting/successor multisets agree. These standalone interfaces do not take a main run or
-  check memory/bytecode access-count columns or budgets.
+- [`FillerRows.lean`](../LeanerVM/Semantics/FillerRows.lean) accepts unordered row starts when
+  every reference successor succeeds and the starting/successor multisets agree. This
+  standalone interface does not take a main run or check memory/bytecode access-count columns
+  or budgets.
 
 [`ReadHints.lean`](../LeanerVM/Semantics/ReadHints.lean) accelerates high scratch-address reads
 and instruction fetches.

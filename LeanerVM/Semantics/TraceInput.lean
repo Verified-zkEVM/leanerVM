@@ -44,15 +44,14 @@ def TraceInput.mainSteps (input : TraceInput) : ℕ := input.mainCounts.toList.s
 def TraceInput.fillerSteps (input : TraceInput) : ℕ :=
   (input.rowCounts.toList.zipWith (· - ·) input.mainCounts.toList).sum
 
-/-- Main counts cannot exceed total counts, and the total agrees with `cycles`.
+/-- Main counts cannot exceed total counts, and total rows agree with `cycles`.
 These are accounting conditions, not proofs that any announced row exists or is valid. -/
 def TraceInput.Accounted (input : TraceInput) : Prop :=
   (∀ i : Fin 6, input.mainCounts[i] ≤ input.rowCounts[i]) ∧
-    input.cycles = input.rowCounts.toList.sum ∧
-    input.cycles = input.mainSteps + input.fillerSteps
+    input.cycles = input.rowCounts.toList.sum
 
 instance (input : TraceInput) : Decidable input.Accounted :=
-  inferInstanceAs (Decidable (_ ∧ _ ∧ _))
+  inferInstanceAs (Decidable (_ ∧ _))
 
 /-- Convert an export after checking its memory shape, memory caps and count accounting.
 Every original word is retained; main-run validity is checked separately by `validateInput`.
