@@ -13,6 +13,7 @@ from typing import Iterator
 
 ROOT = Path(__file__).resolve().parent.parent
 CHECKS = ("audit-lean.sh", "check-imports.sh", "check-layers.sh")
+SUPPORT = ("check-lean-options.py",)
 
 
 def write(path: Path, contents: str = "module\n") -> None:
@@ -26,7 +27,7 @@ def fixture() -> Iterator[Path]:
         root = Path(directory)
         scripts = root / "scripts"
         scripts.mkdir()
-        for name in CHECKS:
+        for name in CHECKS + SUPPORT:
             destination = scripts / name
             shutil.copy2(ROOT / "scripts" / name, destination)
             destination.chmod(0o755)
@@ -89,6 +90,7 @@ def test_source_audit() -> None:
             ("axiom planted : True", "Forbidden trust-sensitive"),
             ("set_option autoImplicit true", "must not be overridden"),
             ("set_option relaxedAutoImplicit true", "must not be overridden"),
+            ("set_option warningAsError false", "must not be overridden"),
             ("set_option linter.unusedVariables false", "must not be overridden"),
             ("set_option weak.linter.mathlibStandardSet false", "must not be overridden"),
         )
@@ -96,6 +98,65 @@ def test_source_audit() -> None:
             write(probe, f"module\n\n{source}\n")
             require_failure(run(root, "audit-lean.sh"), source, expected)
         probe.unlink()
+        # Every protected option must be caught across Lean whitespace/comments, in both
+        # production and imported-test source trees, including locally scoped overrides.
+        for relative in ("LeanerVM/Semantics/Violation.lean", "tests/LeanerVMTests/Violation.lean"):
+            probe = root / relative
+            for option in (
+                "autoImplicit true",
+                "relaxedAutoImplicit true",
+                "warningAsError false",
+                "linter.unusedVariables false",
+                "weak.linter.mathlibStandardSet false",
+            ):
+                for separator in (
+                    "\t", "\n  ", "\n\t", "\r\n  ", " \n\n\t ",
+                    " -- separator\n  ",
+                    " /- separator -/ ",
+                    "/-no whitespace-/",
+                    " /- outer /- inner -/ still outer -/ ",
+                    ' /- outer " -- /- inner /- deepest -/ -/ -/ ',
+                    " /- first -/ -- line /- ignored\n /- last -/ ",
+                ):
+                    for scope in ("", " in\nexample : True := True.intro"):
+                        source = f"set_option{separator}{option}{scope}"
+                        write(probe, f"module\n\n{source}\n")
+                        require_failure(run(root, "audit-lean.sh"), repr(source),
+                                        "must not be overridden")
+            for option in (
+                "«autoImplicit» true",
+                "«relaxedAutoImplicit» true",
+                "«warningAsError» false",
+                "«linter».unusedVariables false",
+                "weak.«linter».mathlibStandardSet false",
+            ):
+                source = f"set_option /- separator -/ {option}"
+                write(probe, f"module\n\n{source}\n")
+                require_failure(run(root, "audit-lean.sh"), source, "must not be overridden")
+            # Delimiters in strings must not hide a later command. The policy remains
+            # conservative: command-shaped text in strings/comments is also rejected.
+            for source in (
+                'def start := "/-"\nset_option /- gap -/ warningAsError false\ndef stop := "-/"',
+                '-- set_option /- gap -/ warningAsError false',
+                '/- set_option /- gap -/ warningAsError false -/',
+                'def text := "set_option /- gap -/ warningAsError false"',
+            ):
+                write(probe, f"module\n\n{source}\n")
+                require_failure(run(root, "audit-lean.sh"), source, "must not be overridden")
+            write(probe, "module\n\nset_option /- line one\n/- nested -/ -/\nwarningAsError false\n")
+            require_failure(run(root, "audit-lean.sh"), "diagnostic line", f"{relative}:3:")
+            write(probe, "module\n\nset_option /- unterminated\nwarningAsError false\n")
+            require_failure(run(root, "audit-lean.sh"), "unterminated separator",
+                            "unterminated block comment")
+            for source in (
+                "set_option /- allowed -/ maxRecDepth 4096",
+                "set_option /- outer /- inner -/ warningAsError false -/ maxRecDepth 4096",
+                "set_option -- warningAsError false\nmaxRecDepth 4096",
+                "set_/- separator -/option warningAsError false",
+            ):
+                write(probe, f"module\n\n{source}\n")
+                require_pass(run(root, "audit-lean.sh"), source)
+            probe.unlink()
         require_pass(run(root, "audit-lean.sh"), "source audit after cleanup")
 
 

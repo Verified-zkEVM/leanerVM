@@ -11,8 +11,10 @@ cd "$REPO_ROOT"
 python3 ./scripts/check-docs.py
 python3 ./scripts/test-policy-checks.py
 python3 ./scripts/test-build-timing.py
+python3 ./scripts/test-warning-policy.py
 # Plain `lake build`, as in CI: no `--wfail`, so CompPoly's release lookup may warn at its
-# untagged pin and Lake's caches stay enabled. See docs/dependencies.md.
+# untagged pin and Lake's caches stay enabled. Package-level `warningAsError` still rejects
+# every first-party elaboration warning, including imported leaves. See docs/dependencies.md.
 lake build
 lake test
 lake env lean -E warning tests/Main.lean
