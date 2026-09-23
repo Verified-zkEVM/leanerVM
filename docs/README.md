@@ -7,6 +7,8 @@ This directory contains stable project and operating knowledge.
 - [dependencies.md](dependencies.md): version pins and dependency update policy.
 - [leanvm-target.md](leanvm-target.md): audited target revision, legacy comparison, and
   proof-obligation coverage.
+- [leanisa-checker.md](leanisa-checker.md): proved exact and fuel-bounded checkers, trace
+  adapters, filler validation, and the pinned Rust comparison lane.
 - [development.md](development.md): local commands, module workflow, and testing guidance.
 - [ci.md](ci.md): workflow responsibilities, required checks, and automation secrets.
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)
@@ -25,6 +27,8 @@ This directory contains stable project and operating knowledge.
     survey record.
 - [reviews/](reviews/): review documents handed off for implementation, one per reviewed piece
   of work; the status file records how each finding was met.
+  - [leanisa-source-fidelity.md](reviews/leanisa-source-fidelity.md): pinned ISA clause decisions,
+    distinguishing regressions, and the comparison revision delta.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
     table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the

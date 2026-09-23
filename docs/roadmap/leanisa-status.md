@@ -1,5 +1,13 @@
 # Status: leanISA semantics and M3 constraints
 
+The typed ISA now also has exact and fuel-bounded fixed-image checkers proved equivalent to
+`ValidExecution`, an ordered finite-trace view, a checked main/filler export adapter, and
+source-pinned Rust comparison tests. These are semantic validation results; the Layer 8
+constraint frontier and T1 obligations below retain their historical status. The
+[checker guide](../leanisa-checker.md) and
+[source-fidelity ledger](../reviews/leanisa-source-fidelity.md) give the precise domain and
+revision boundary. Arbitrary raw verifier bytecode is still outside that domain.
+
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 8
 (built and proved on top of `main` at `42bbd51`, where Layer 7 landed as PR #21 on 2026-09-16;
 Layer 6 landed as PR #19 on 2026-09-15 after the review

@@ -20,8 +20,10 @@ leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
 are `crates/lean_vm/src/tables.rs:586-609` (`mod deref`, in that order), the store coordinates
 `tables.rs:616-623` (`deref_store`), the flushes `tables.rs:633-643` (`DerefTable::flushes`),
 matching specification §7.4 (`doc/leanvm/body/07-instruction-tables.tex:66-92`). There is no
-constraint; the flags are not constrained Boolean, since the public program's decoder admits
-only the three pairs (Layer 4; roadmap acceptance test 18).
+constraint enforcing Boolean flags. Local soundness instead requires the bytecode pull's
+canonical-entry guarantee, whose decoder admits only the three flag pairs (Layer 4;
+roadmap acceptance test 18). The typed public program stores `Instr` values; this does not
+supply a raw-program parser or its correspondence theorem.
 
 **The row** `DerefRow` is the column list: `pc, fp`; the operands `o₁, o₂, o₃`; the flags
 `f_pc, f_fp`; the pointer `p`, a single `K` limb; the local word `v₃` as three limbs; the memory
@@ -50,8 +52,8 @@ reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, re
 §7.4; `Spec` is `DerefSpec`. Soundness reads the instruction the pulled tuple decodes to
 through Layer 4's `decode_deref_eq_some_iff`, the one use a table makes of the bytecode
 guarantee: the pulled tuple *is* an instruction, so its flag pair is a store mode's (a pair that
-is no mode's decodes to nothing, and such a row cannot pull its entry), and the target read's
-coordinates are that mode's source (`storeCoords_eval`). Completeness discharges the four pulls
+is no mode's decodes to nothing, so such a row cannot satisfy the lookup guarantee), and the
+target read's coordinates are that mode's source (`storeCoords_eval`). Completeness discharges the four pulls
 from the semantic premise through `deref_refines_iff`: the tuple `main` emits decodes (Layer
 4's `decode_entry`), and the target coordinates it emits are the mode's source.
 

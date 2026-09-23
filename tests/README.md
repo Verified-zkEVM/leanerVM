@@ -42,3 +42,9 @@ prover-supplied cells. Guest-level fixtures should separately cover XMSS epoch g
 `(key, message)` claims, overlaps, conflicting messages, omitted coverage, child mappings, and
 deferred-claim rejection. Bind vectors to the revision in
 [`docs/leanvm-target.md`](../docs/leanvm-target.md).
+
+The executable ISA checker and its proved contracts are documented in
+[`docs/leanisa-checker.md`](../docs/leanisa-checker.md). The optional
+`python3 scripts/test-rust-contracts.py /path/to/leanVM` lane runs the maintained Rust fixtures
+in `tests/rust/` and validates their actual exports in Lean. It requires the pinned source
+commit and an offline Cargo cache; the ordinary Lean gate does not depend on a Rust checkout.

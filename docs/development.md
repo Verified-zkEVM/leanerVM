@@ -25,6 +25,19 @@ lake env lean -E warning tests/Main.lean
 
 `scripts/check-upstreams.sh` additionally requires `gh`, `jq`, and network access.
 
+Proof acceptance also requires the production-and-test namespace axiom audit after the
+build/test gate:
+
+```sh
+lake env lean -E warning scripts/audit-axioms.lean
+```
+
+This recursively inspects declaration dependencies and permits only `propext`,
+`Classical.choice` and `Quot.sound`. It is distinct from `audit-lean.sh`'s lexical policy
+and CI's production-only namespace audit. Run `python3 scripts/test-axiom-audit.py` when
+changing the driver; it checks both the normal result and transitive rejection through
+production and test declarations in a temporary negative fixture.
+
 ## Adding a production module
 
 1. Choose its owner layer using `docs/architecture.md`.

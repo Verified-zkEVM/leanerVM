@@ -146,12 +146,25 @@ example : run mulProg mulImage 4 Regs.initial = none := by
 /-- One slot, the sentinel. -/
 def oneProg : Program := ⟨0, by decide, ![.xor 1 1 1]⟩
 
+/-- Sentinel safety is inhabited even for the zero-step program. -/
+example : SentinelSafe oneProg := by decide
+
 /-- Zero steps from `(1, 1)` reach `(g^0, 1)`, so the program has a valid execution... -/
 example : ValidExecution oneProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
   ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
 
 /-- ...and its sentinel is not executed, whatever it holds. -/
 example : run oneProg mulImage 1 Regs.initial = none := run_succ_of_eq (by decide +kernel) 0
+
+/-- A one-slot program also permits a `JUMP` in its unexecuted sentinel. Sentinel safety is
+needed by the current constraint-soundness theorem, not by ISA execution. -/
+def oneJumpProg : Program := ⟨0, by decide, ![.jump 0 0 0]⟩
+
+example : ¬ SentinelSafe oneJumpProg := by decide
+example : ValidExecution oneJumpProg mulInput ⟨minLogMem, mulImage, 0⟩ :=
+  ⟨mulImage_boundary 0, by rw [run_zero]; decide +kernel⟩
+example : run oneJumpProg mulImage 1 Regs.initial = none :=
+  run_succ_of_eq (by decide +kernel) 0
 
 /-! ## Control flow: `JUMP` and `DEREF` on a sixteen-cell image -/
 
@@ -195,6 +208,13 @@ example : step (oneStep (.jump (gpow 12) (gpow 13) (gpow 4))) ctlImage ⟨1, 1�
   simp only [execute, one_mul, read_lit ctlImage 12, read_lit ctlImage 13, read_lit ctlImage 4]
   decide +kernel
 
+/-- A taken branch also rejects a destination outside `K`. -/
+example : step (oneStep (.jump (gpow 2) (gpow 13) (gpow 4))) ctlImage ⟨1, 1⟩ = none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 13) (gpow 4)) = _
+  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 13, read_lit ctlImage 4]
+  decide +kernel
+
 /-- The pointer cell holds the address `g^7`. -/
 theorem ctl_pointer : (ctlImage ⟨5, by decide⟩).limb 0 = gpow 7 := by decide +kernel
 
@@ -208,6 +228,69 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .pc)) ctlImage ⟨1, 1⟩ = 
   simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
     Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7, derefSource,
     ofK_eq_ofLimbs]
+  decide +kernel
+
+/-- Change only the target cell so the same pointer and local reads exercise `cell` mode. -/
+def derefCellImage : MemImage 4 := fun i ↦
+  if i.val = 7 then ctlImage ⟨6, by decide⟩ else ctlImage i
+
+theorem derefCell_pointer : (derefCellImage ⟨5, by decide⟩).limb 0 = gpow 7 :=
+  by decide +kernel
+
+/-- `cell` mode copies the local cell value to the pointed-to target. -/
+example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) derefCellImage ⟨1, 1⟩ =
+    some ⟨g, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute derefCellImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = _
+  simp only [execute, one_mul, mul_one, read_lit derefCellImage 5,
+    Option.bind_eq_bind, Option.bind_some, derefCell_pointer, read_lit derefCellImage 6,
+    read_lit derefCellImage 7, derefSource]
+  decide +kernel
+
+/-- Change the target to the frame pointer embedded in `E`; the local cell is still read. -/
+def derefFpImage : MemImage 4 := fun i ↦
+  if i.val = 7 then E.ofLimbs 1 0 0 else ctlImage i
+
+theorem derefFp_pointer : (derefFpImage ⟨5, by decide⟩).limb 0 = gpow 7 :=
+  by decide +kernel
+
+/-- `fp` mode stores the current frame pointer at the target. -/
+example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) derefFpImage ⟨1, 1⟩ =
+    some ⟨g, 1⟩ := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute derefFpImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .fp) = _
+  simp only [execute, one_mul, mul_one, read_lit derefFpImage 5,
+    Option.bind_eq_bind, Option.bind_some, derefFp_pointer, read_lit derefFpImage 6,
+    read_lit derefFpImage 7, derefSource, ofK_eq_ofLimbs]
+  decide +kernel
+
+/-- The same image cannot satisfy `cell` mode: its target differs from the local cell. -/
+example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) ctlImage ⟨1, 1⟩ = none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = none
+  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+    Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7, derefSource]
+  decide +kernel
+
+/-- The same target also differs from the frame pointer required by `fp` mode. -/
+example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) ctlImage ⟨1, 1⟩ = none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .fp) = none
+  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+    Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7,
+    derefSource, ofK_eq_ofLimbs]
+  decide +kernel
+
+/-- Every mode rejects a pointer whose upper limbs are nonzero, before using it as an address. -/
+def nonKPointerImage : MemImage 4 := fun i ↦
+  if i.val = 5 then E.ofLimbs (gpow 7) 1 0 else ctlImage i
+
+example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) nonKPointerImage ⟨1, 1⟩ =
+    none := by
+  rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
+  show execute nonKPointerImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = none
+  simp only [execute, one_mul, read_lit nonKPointerImage 5, Option.bind_eq_bind,
+    Option.bind_some]
   decide +kernel
 
 /-- 6: the same `DEREF` with its local cell `g^16` out of range is invalid, although `pc` mode
@@ -334,6 +417,9 @@ example : step (oneStep blakeIns)
 `g^13` name cells `2` and `14`: `c = 1`, `d = g` (the sentinel), `f = 1`. -/
 def jumpSentinelProg : Program :=
   ⟨1, by decide, ![.jump (gpow 2) (gpow 14) (gpow 14), .jump g (gpow 13) g]⟩
+
+/-- The load-bearing soundness premise rejects the JUMP sentinel. -/
+example : ¬ SentinelSafe jumpSentinelProg := by decide
 
 /-- Row 1: `(1, 1)` jumps to the sentinel counter with `fp = g`. -/
 theorem jumpSentinel_row1 : step jumpSentinelProg ctlImage Regs.initial = some ⟨g, g⟩ := by
