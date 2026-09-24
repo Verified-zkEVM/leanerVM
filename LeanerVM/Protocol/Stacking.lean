@@ -243,6 +243,84 @@ theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
   rw [eval₂Mle, B.map_stackAt]
   exact (B.map φ).stack_eval hμ (φ pad) b z
 
+/-! ## Reading an arbitrary committed table -/
+
+/-- Read block `b` from its declared window in an arbitrary ambient table. -/
+def unstack {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+    (b : Fin B.n) : CMlPolynomialEval R (B.size b) :=
+  slice (Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' (B.size_le hμ b)).symm) q)
+    (B.selector hμ b)
+
+/-- Reading an honestly stacked block recovers its supplied values. -/
+@[simp] theorem unstack_stackAt {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) :
+    B.unstack hμ (B.stackAt μ pad) b = B.values b := by
+  exact B.slice_stackAt hμ pad b
+
+omit [CommRing R] in
+/-- A block read accesses the original committed cell at its offset plus the local index. -/
+theorem unstack_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+    (b : Fin B.n) {i : ℕ} (hi : i < 2 ^ B.size b) :
+    (B.unstack hμ q b)[i] = q[i + B.offset b]'(by
+      have := B.offset_add_pow_le_total b
+      omega) := by
+  rw [unstack, slice_getElem_nat _ _ hi]
+  simp [selector_val, Nat.mul_div_cancel' (B.pow_size_dvd_offset b)]
+
+/-- Coefficient maps commute with reading a block from an arbitrary table. -/
+theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n) :
+    (B.map φ).unstack hμ (CMlPolynomialEval.map φ q) b =
+      CMlPolynomialEval.map φ (B.unstack hμ q b) := by
+  apply Vector.ext
+  intro i hi
+  rw [(B.map φ).unstack_getElem hμ _ b hi]
+  have hi' : i < 2 ^ B.size b := hi
+  have hx : i + B.offset b < 2 ^ μ := by
+    have := B.offset_add_pow_le_total b
+    omega
+  change (CMlPolynomialEval.map φ q)[i + B.offset b] =
+    (CMlPolynomialEval.map φ (B.unstack hμ q b))[i]
+  simp only [CMlPolynomialEval.map, Vector.getElem_map]
+  exact congrArg φ (B.unstack_getElem hμ q b hi').symm
+
+/-- A block evaluation of an arbitrary table is its evaluation at the block's selector. -/
+theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+    (b : Fin B.n) (z : Vector R (B.size b)) :
+    evalMle q
+      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+        (z ++ (boolVec (B.selector hμ b) : Vector R (μ - B.size b)))) =
+    evalMle (B.unstack hμ q b) z := by
+  have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)
+  have hq : q = Vector.cast (congrArg (2 ^ ·) hk)
+      (Vector.cast (congrArg (2 ^ ·) hk.symm) q) := by simp
+  conv_lhs => rw [hq, evalMle_cast hk, evalMle_append_boolVec]
+  rfl
+
+/-- Mixed-ring selection for an arbitrary committed table, without an honest-stack premise. -/
+theorem unstack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n)
+    (z : Vector S (B.size b)) :
+    eval₂Mle q φ
+      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+        (z ++ (boolVec (B.selector hμ b) : Vector S (μ - B.size b)))) =
+    eval₂Mle (B.unstack hμ q b) φ z := by
+  have h := (B.map φ).unstack_eval hμ (CMlPolynomialEval.map φ q) b z
+  rw [B.unstack_map] at h
+  exact h
+
+omit [CommRing R] in
+/-- Agreement on the selected window preserves its block values; other cells are irrelevant. -/
+theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
+    (q r : CMlPolynomialEval R μ) (b : Fin B.n)
+    (h : ∀ x : Fin (2 ^ μ), B.InWindow b x.val → q[x] = r[x]) :
+    B.unstack hμ q b = B.unstack hμ r b := by
+  apply Vector.ext
+  intro i hi
+  rw [B.unstack_getElem hμ q b hi, B.unstack_getElem hμ r b hi]
+  apply h ⟨i + B.offset b, by have := B.offset_add_pow_le_total b; omega⟩
+  change B.offset b ≤ i + B.offset b ∧ i + B.offset b < B.offset b + 2 ^ B.size b
+  constructor <;> omega
+
 end Blocks
 
 end

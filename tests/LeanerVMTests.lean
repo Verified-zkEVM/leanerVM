@@ -22,6 +22,8 @@ import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
 
+import LeanerVMTests.Protocol.Claims
+
 /-!
 # leanerVM test aggregate
 
