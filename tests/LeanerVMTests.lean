@@ -18,6 +18,7 @@ import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.BlockClaims
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
+import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
