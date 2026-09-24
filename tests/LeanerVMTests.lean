@@ -26,6 +26,8 @@ import LeanerVMTests.Protocol.Claims
 
 import LeanerVMTests.Protocol.AmbientStacking
 
+import LeanerVMTests.Protocol.FixedColumns
+
 /-!
 # leanerVM test aggregate
 
