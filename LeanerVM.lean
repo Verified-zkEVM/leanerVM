@@ -16,3 +16,4 @@ import LeanerVM.Semantics.Execution
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.Step
+import LeanerVM.Protocol.Generic.Claims

@@ -13,6 +13,8 @@ import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 
+import LeanerVMTests.Protocol.Claims
+
 /-!
 # leanerVM test aggregate
 
