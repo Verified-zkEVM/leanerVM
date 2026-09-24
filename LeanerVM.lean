@@ -8,6 +8,7 @@ import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Generic.Fingerprint
 import LeanerVM.Protocol.Multilinear
 import LeanerVM.Protocol.Stacking
 import LeanerVM.Semantics.Basic
