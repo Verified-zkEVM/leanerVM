@@ -12,6 +12,7 @@ import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.Field
+import LeanerVMTests.Protocol.HonestSumcheck
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 
