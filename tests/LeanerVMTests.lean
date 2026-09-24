@@ -24,6 +24,8 @@ import LeanerVMTests.Semantics.TraceInput
 
 import LeanerVMTests.Protocol.Claims
 
+import LeanerVMTests.Protocol.AmbientStacking
+
 /-!
 # leanerVM test aggregate
 
