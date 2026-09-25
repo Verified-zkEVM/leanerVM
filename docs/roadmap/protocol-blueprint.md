@@ -304,7 +304,7 @@ polynomial view and is Clean's upstream candidate.
 | Tables | `Column n` wraps `CMlPolynomialEval K n` (values) in a structure, so that its evaluation oracle is disjoint from ArkLib's position-query interface on `Vector`; `ETable n := CMlPolynomialEval E n`. A "multilinear" is its value table; its extension is `evalMle`, lifted by `eval₂Mle` when the point is in `E`. |
 | `eq` | `eq(r, x) = ∏ (1 + r_k + x_k)` over `E` (characteristic 2); `eqTable r : ETable n` holds `eq(r, ·)` on the cube. |
 | Sumcheck messages | A round polynomial travels as its coefficient list, low degree first, of length `d + 1`; the oracle protocol sends all of them. Dropping one is the *encoding* of Layer 12 (`transcript.rs:289-309`), inverted by the running claim. |
-| Statements and parameters | The program `prog`, the announced `sizes` and the public `input` are Lean parameters of every phase; a phase's `StmtIn` carries only what earlier phases produced (challenges, claims). The relation of the first phase is `{(input, w) \| SatisfiedBy prog input w ∧ Sizes.ofWitness w = sizes}`. |
+| Statements and parameters | The public `input : I.Stmt` is the statement of the oracle protocol and the instance `I : M3Instance` (the program and the announced sizes, for leanISA) indexes the protocol family; a phase's `StmtIn` carries only what earlier phases produced (claims). The relation of the first phase is `M3Rel I`, that is `M3Holds I input q` on the stack `q`; the caps are checked by the compiled verifier on the announced sizes before the oracle protocol starts (Layer 12). |
 | The oracle | One committed oracle `q : Column μ_stack` for the whole protocol (`OStmt : Unit → Type`), with `OracleInterface` query `Vector E μ_stack` and answer `eval₂Mle q`. No other oracle exists in the oracle protocol; WHIR's codewords appear only in Layer 11. |
 | Errors | `ℝ≥0`, per verifier message, as ArkLib's `rbrKnowledgeError`; the closed form is a `def` next to the theorem, and the interactive error is its sum. `|E|` is `Fintype.card E`, rewritten to `2^192` only in the numeric acceptance test. |
 | Bus | Width `m = 16`; coordinate 0 is the separator `g^0 / g^1 / g^2` for state, memory, bytecode; coordinates follow the specification's tuple order; unused coordinates are the constant `0`. Fingerprint `π_α(t) = Σ_{i<16} eq(α, bits i) · t_i` with `α : Fin 4 → E`; leaf `β − π_α(t)`, padding leaf `1`. |
@@ -326,9 +326,11 @@ polynomial view and is Clean's upstream candidate.
 
 ## The spine
 
-The spine is the one pull request (hole S, [#45](https://github.com/Verified-zkEVM/leanerVM/issues/45))
-that fixes everything two neighbouring pieces of work would otherwise have to agree on, and
-proves the composition once. After it, every phase, every generic component, the instance and
+The spine is the one pull request (hole S; its specification is a section of the [hole
+comment](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) on the dashboard #12) that fixes everything two neighbouring pieces of work would
+otherwise have to agree on, and proves the composition once. It is built under
+`LeanerVM/Protocol/Spine/` (`Instance`, `Seams`, `Phase`, `Compose`, `Transport`, `Toy`), with
+its tests in `tests/LeanerVMTests/Protocol/Spine.lean`; the sketch below names what is there. After it, every phase, every generic component, the instance and
 the compilation is a unit of work that consumes spine names only, is tested on a toy instance,
 and lands in two halves (`Def`, then `Security`). It restates the shape the leanVM-a
 formalization used in leanth (explore branch: a `Type 0` witness, a relation anchored to Clean, a
@@ -348,7 +350,7 @@ the commitment, and a balance summed in the field.
 
 The adaptor joins the middle two: `witnessOf : Column μ → EnsembleWitness` with
 `satisfiedBy_witnessOf : M3Holds → SatisfiedBy`, along which knowledge transports at the same
-error (`knowledgeSound_of_refinement`), and `stackOf` with `m3Holds_stackOf`, which completeness
+error (pointwise, `Refinement.map_option_valid`), and `stackOf` with `m3Holds_stackOf`, which completeness
 needs. T4 is `verify_knowledgeSound` composed with the adaptor and `constraintSoundness`. `Type 1`
 matters because ArkLib's statement and witness types are in `Type`: an `EnsembleWitness` cannot
 be the protocol's witness, and the stack can.
@@ -377,7 +379,7 @@ be the protocol's witness, and the stack can.
                     │  R_m3(I):  M3Holds I input q,   q : Column μ   (Type 0)    │  seam 0
                     ├───────────────────────────────────────────────────────────┤
                     │  commit ⟫ bus ⟫ table ⟫ public ⟫ flock ⟫ opening          │  the spine: seams,
-                    │  Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.pool     │  schedules, composition
+                    │  Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.done     │  claims, composition
                     │  phase i: Phase.Def (hole)   Phase.Security (hole)         │  holes P1 to P8
                     │  generic: Sumcheck.*  Gkr.*  Batch.*  (holes G1 to G6)     │
                     ├───────────────────────────────────────────────────────────┤
@@ -389,7 +391,7 @@ be the protocol's witness, and the stack can.
                     │  verify : Program → PublicInput → Proof → Bool             │
                     │  verify_knowledgeSound (fs) (bcs) (mca) (flock): conditional│
                     └───────────────────────────────────────────────────────────┘
-   T4  =  verify_knowledgeSound  ∘  knowledgeSound_of_refinement satisfiedBy_witnessOf  ∘  constraintSoundness
+   T4  =  verify_knowledgeSound  ∘  Refinement.map_option_valid satisfiedBy_witnessOf  ∘  constraintSoundness
 ```
 
 ### What the spine fixes
@@ -399,136 +401,153 @@ be the protocol's witness, and the stack can.
 3. **The seam relations**: the output relation of each phase, which is the input relation of
    the next by definition. They are the load-bearing definitions of the whole proof system and
    get the spine's review budget.
-4. **The message schedule of each phase** as a `ProtocolSpec` (Category B: the stream order of
-   `cpu/mod.rs:711-779`), so that Layer 12's `verify` depends on the phases' definitions and not
-   on their proofs.
-5. **The hole interfaces**: one `Def`/`Security` pair per phase and per generic component, and
-   `KnowledgeAppend` for the composition theorem ArkLib admits (ledger A2).
+4. **The message schedule of each phase** travels with its `Def` (the fields `n`, `pSpec`),
+   so that Layer 12's `verify` depends on the phases' definitions and not on their proofs; the
+   spine fixes only the commit phase's (`commitSpec`, one prover message). The stream order of
+   `cpu/mod.rs:711-779` (Category B) is each phase's to transcribe and Layer 12's to check.
+5. **The hole interfaces**: a `Def`, a `Complete` and a `Security` per phase and per generic
+   component (`Component.*`, specialised to the one oracle as `Phase.*`), and `KnowledgeAppend`
+   for the composition theorem ArkLib admits (ledger A2), in ArkLib #615's shape.
 6. **The composition** `leanVmPiop` over a bundle `Phases I`, its error `piopError`, and the two
-   master theorems, conditional on the bundle's `Security` and on `KnowledgeAppend`.
-7. **The toy instance** (one table of width 2, one constraint, one push/pull pair, one boundary
-   block) with an honest `q` satisfying `M3Holds` and a mutated `q` failing exactly one clause.
+   master theorems: `piop_perfectCompleteness` conditional on `Phases.Complete`,
+   `piop_rbrKnowledgeSoundness` on `Phases.Security` and `KnowledgeAppend`. The commit phase is
+   the spine's: defined and proved in both halves (`commitComplete`, `commitSecurity`; its
+   extractor `commitExtractor` reads the stack off the message).
+7. **The toy instance** (one table of width 3 and height 2 on a stack of height 8: one
+   constraint, one push, one boundary pull, one count column, one public cell) with an honest
+   `q` satisfying `M3Holds` and, for each of the four checkable clauses, a stack failing it alone.
 
 ```lean
--- LeanerVM/Protocol/Spine/Instance.lean (module)
-/-- One coordinate of a boundary tuple: a constant, a public column the verifier evaluates itself,
-or a committed column of the stack. -/
-inductive Coord | const (c : K) | public (eval : ∀ κ, Vector E κ → E) | committed (id : ColumnId)
-
-/-- The polynomial view of an arithmetization: what every phase reads. -/
+-- LeanerVM/Protocol/Spine/Instance.lean (module): the instance and the relation
+inductive Side | push | pull
+abbrev ColumnId (ntab) (width) := Σ j : Fin ntab, Fin (width j)
+structure Layout (μ) (ι) (κ : ι → ℕ) where            -- the stack layout, as data with its one law
+  read : Column μ → (c : ι) → Column (κ c)
+  extend : (c : ι) → Vector E (κ c) → Vector E μ       -- z ↦ (z, sel_c) for an aligned block
+  read_eval : ∀ q c z, eval₂Mle (read q c) z = eval₂Mle q (extend c z)
+inductive Coord … κ | const (c : K) | known (col : Column κ) | committed (c : ColumnId …) (h : τ c.1 = κ)
+structure BoundaryBlock … where (κ : ℕ) (side : Side) (coords : Vector (Coord … κ) 16)
+structure PublicCell … where (col : ColumnId …) (idx : Fin (2 ^ τ col.1)) (val : K)
 structure M3Instance where
-  ntab : ℕ
-  τ : Fin ntab → ℕ                                                      -- announced log-heights
-  width : Fin ntab → ℕ
-  constraints : (j : Fin ntab) → List (MvPolynomial (Fin (width j)) K)   -- degree ≤ 2
-  flushes : (j : Fin ntab) → List (Side × Vector (MvPolynomial (Fin (width j)) K) 16)  -- separator first
-  counts : (j : Fin ntab) → List (Fin (width j))                        -- the count columns
-  boundary : List (Side × Vector Coord 16)                              -- the framework blocks (§5.4)
-  layout : Blocks K                                                     -- every column's block, largest first
-  μ : ℕ
-  fits : layout.total ≤ 2 ^ μ
-  admissible : Prop                                                     -- the caps; decidable
-def M3Instance.column (I) (q : Column I.μ) (c : ColumnId) : Column (κ c)   -- `Blocks.unstack`
-def Ensemble.toM3 (ens : Ensemble K PublicIO) (sep : RawChannel K → K) (dir : RawChannel K → Side)
-    (sizes : …) : M3Instance                                            -- Layer 2
+  Stmt : Type                                          -- the public statement (leanISA: PublicInput)
+  ntab : ℕ ; τ width : Fin ntab → ℕ
+  constraints : (j) → List (CMvPolynomial (width j) K)  -- CompPoly's computable polynomials
+  flushes : (j) → List (Side × Vector (CMvPolynomial (width j) K) 16)   -- separator first
+  counts : (j) → List (Fin (width j))
+  boundary : List (BoundaryBlock ntab width τ)
+  μ : ℕ ; layout : Layout μ (ColumnId ntab width) (fun c ↦ τ c.1)
+  publicCells : Stmt → List (PublicCell ntab width τ)
+  aux : Column μ → Prop ; decAux : DecidablePred aux   -- what the Flock phase establishes
+def M3Instance.column I q c ; def M3Instance.row I q j x ; def M3Instance.tuples I q (s : Side)
+def M3Instance.ConstraintsVanish I q ; Balanced I q (List.Perm) ; CountsNonzero I q ; PublicCellsHold I input q
+def M3Holds (I) (input : I.Stmt) (q : Column I.μ) : Prop :=
+  I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicCellsHold input q ∧ I.aux q
+instance : Decidable (M3Holds I input q)
+abbrev NoOracle : Fin 0 → Type ; abbrev TheOracle I : Fin 1 → Type := fun _ ↦ Column I.μ
+def M3Rel (I) : Set ((I.Stmt × ∀ i, NoOracle i) × Column I.μ) := {p | M3Holds I p.1.1 p.2}
 
-/-- The relation the oracle protocol proves knowledge of: what the verifier establishes about `q`. -/
-def M3Holds (I : M3Instance) (input : PublicInput) (q : Column I.μ) : Prop :=
-  (∀ j, ∀ C ∈ I.constraints j, ∀ x, MvPolynomial.eval (I.row q j x) C = 0) ∧  -- vanishes on its table
-  (I.pushed q).Perm (I.pulled q) ∧                                        -- one multiset, counted in ℕ
-  (∀ c ∈ I.countCells q, c ≠ 0) ∧                                         -- the count product is nonzero
-  I.admissible ∧                                                          -- the caps (§6.2)
-  I.publicWords q = (input.word0, input.word1) ∧                          -- §8.2
-  I.Blake2sRows q                                                         -- Flock's fact, via `limbColumns`
-def M3Rel (I) : Set ((PublicInput × (Empty → Unit)) × Column I.μ) := {p | M3Holds I p.1.1 p.2}
+-- LeanerVM/Protocol/Spine/Seams.lean: the claims and the seam relations
+structure ColumnClaim I where (col : I.ColumnId) (point : Vector E (I.κ col)) (value : E)
+structure VirtualTerm I where (weight : E) (j) (poly : CMvPolynomial (I.width j) E) (point : Vector E (I.τ j))
+structure LinearClaim I where (terms : List (VirtualTerm I)) (value : E)   -- Σ weight · (poly on rows)~(point) = value
+structure Weight μ where (onCube : CMlPolynomialEval E μ) (mle : Vector E μ → E) (mle_eq : …)
+structure WeightedClaim I where (weight : Weight I.μ) (value : E)         -- ⟨W, q⟩ = value
+structure BusOut I where (linear : List (LinearClaim I)) (columns : List (ColumnClaim I))
+structure TableOut I where (columns : List (ColumnClaim I))
+structure PubOut I where (columns : List (ColumnClaim I))
+structure FlockOut I where (columns : List (ColumnClaim I)) (weighted : List (WeightedClaim I))
+def Seam.commit I : Set ((I.Stmt × ∀ i, TheOracle I i) × Unit)            -- M3Holds of the oracle itself
+def Seam.bus I   : Set (((I.Stmt × BusOut I) × …) × Unit)                 -- claims ∧ public cells ∧ aux
+def Seam.table I ; Seam.pub I (claims ∧ aux) ; Seam.flock I (claims) ; Seam.done I := Set.univ
 
--- LeanerVM/Protocol/Spine/Seams.lean
-structure BusOut (I) where (ζ : Fin I.μbus → E) (rem : Fin 3 → E) (pool : Pool I) (α : Fin 4 → E) (β : E)
-def Seam.bus (I) : BusOut I → Column I.μ → Prop    -- ∀ j i, C̃_{j,i}(ζ_{<τ_j}) = 0; bus forms = rem; pool true; R_c ≠ 0
-def Seam.table (I) : TableOut I → Column I.μ → Prop  -- every column claim is a true evaluation of q
-def Seam.pub (I) : PubOut I → Column I.μ → Prop
-def Seam.flock (I) : FlockOut I → Column I.μ → Prop  -- the pool, now with the ring-switched weighted claim
-def Seam.pool (I) : Pool I → Column I.μ → Prop       -- every weighted claim ⟨W, q⟩ = c holds
-def commitSpec busSpec tableSpec pubSpec flockSpec openSpec : ProtocolSpec …   -- Category B
+-- LeanerVM/Protocol/Spine/Phase.lean: the hole interfaces and their composition
+structure Component.Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut where
+  n : ℕ ; pSpec : ProtocolSpec n ; [msgOracle] ; [chalSample]
+  red : OracleReduction []ₒ StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec
+  err : pSpec.ChallengeIdx → ℝ≥0
+structure Component.Complete (D) (relIn relOut) where
+  outputPure : D.red.prover.OutputIsPure ; guarded : D.red.toReduction.verifier.GuardedForm
+  complete : ∀ {σ} init impl, D.red.perfectCompleteness init impl relIn relOut
+structure Component.Security (D) (relIn relOut) extends Complete D relIn relOut where
+  rbr : ∀ {σ} init impl, D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCase init impl relIn relOut D.err
+structure KnowledgeAppend where append : ∀ …, V₁.GuardedForm → V₁.rbrKSWorstCase … → V₂.rbrKSWorstCase … →
+  (V₁.append V₂).rbrKSWorstCase … (Sum.elim ε₁ ε₂ ∘ ChallengeIdx.sumEquiv.symm)          -- ledger A2, #615's shape
+def Component.Def.append ; def Component.Complete.append (proved, ArkLib's guarded append)
+def Component.Security.append (A : KnowledgeAppend)
+abbrev Phase.Def I StmtIn StmtOut := Component.Def StmtIn (TheOracle I) Unit StmtOut (TheOracle I) Unit
+abbrev Phase.Complete ; abbrev Phase.Security
+def Phase.passThrough I (f : StmtIn → StmtOut) : Phase.Def I StmtIn StmtOut      -- no round; the bookkeeping shape
+def Phase.passThroughComplete I f (h : ∀ s o, ((s, o), ()) ∈ relIn → ((f s, o), ()) ∈ relOut)  -- proved
 
--- LeanerVM/Protocol/Spine/Phase.lean
-/-- The definition half of a phase: a reduction over the one oracle q, against fixed seams. -/
-structure Phase.Def (I) (StmtIn StmtOut : Type) {n} (pSpec : ProtocolSpec n)
-    (relIn : StmtIn → Column I.μ → Prop) (relOut : StmtOut → Column I.μ → Prop) where
-  red : OracleReduction []ₒ StmtIn (fun _ : Unit ↦ Column I.μ) Unit
-                           StmtOut (fun _ : Unit ↦ Column I.μ) Unit pSpec
-  err : pSpec.ChallengeIdx → ℝ≥0                        -- the closed-form per-challenge error
-/-- The proof half: the two theorems, with the extractor reading q off the oracle. -/
-structure Phase.Security (D : Phase.Def I …) where
-  complete : D.red.perfectCompleteness init impl (setOf relIn) (setOf relOut)
-  rbr : D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCase init impl (setOf relIn) (setOf relOut) D.err
-structure Sumcheck.Def … ; structure Sumcheck.Security …     -- Layer 4, generic over F
-structure Gkr.Def … ;      structure Gkr.Security …          -- Layer 5
-structure Batch.Def … ;    structure Batch.Security …        -- Layer 4
-/-- What ledger A2 owes: round-by-round knowledge soundness of an append with a guarded first
-verifier, in the shape of ArkLib #615. -/
-structure KnowledgeAppend where …
+-- LeanerVM/Protocol/Spine/Compose.lean: the commit phase, the bundle, the master theorems
+def commitSpec I : ProtocolSpec 1 ; def commitDef I : Component.Def I.Stmt NoOracle (Column I.μ) I.Stmt (TheOracle I) Unit
+def commitComplete I : Component.Complete (commitDef I) (M3Rel I) (Seam.commit I)      -- proved
+def commitExtractor I ; def commitSecurity I : Component.Security (commitDef I) (M3Rel I) (Seam.commit I)  -- proved, error 0
+structure Phases I where
+  bus     : Phase.Def I I.Stmt (I.Stmt × BusOut I)
+  table   : Phase.Def I (I.Stmt × BusOut I) (I.Stmt × TableOut I)
+  pub     : Phase.Def I (I.Stmt × TableOut I) (I.Stmt × PubOut I)
+  flock   : Phase.Def I (I.Stmt × PubOut I) (I.Stmt × FlockOut I)
+  opening : Phase.Def I (I.Stmt × FlockOut I) Unit
+structure Phases.Complete (P) where (bus : Phase.Complete I P.bus (Seam.commit I) (Seam.bus I)) … (opening : … (Seam.flock I) (Seam.done I))
+structure Phases.Security (P) where (bus : Phase.Security I P.bus (Seam.commit I) (Seam.bus I)) … (opening : …)
+def Phases.toDef (P) := (((((commitDef I).append P.bus).append P.table).append P.pub).append P.flock).append P.opening
+def leanVmPiop (P) := P.toDef.red ; leanVmVerifier ; leanVmProver ; piopError (P) := P.toDef.err
+theorem piop_perfectCompleteness (P) (C : P.Complete) init impl :
+    (leanVmPiop P).perfectCompleteness init impl (M3Rel I) (Seam.done I)
+theorem piop_rbrKnowledgeSoundness (A : KnowledgeAppend) (P) (S : P.Security) init impl :
+    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCase init impl (M3Rel I) (Seam.done I) (piopError P)
 
--- LeanerVM/Protocol/Spine/Compose.lean
-structure Phases (I) where
-  commit  : Phase.Def I PublicInput Unit commitSpec (M3Holds I) (M3Holds I)  -- sends q; seam 0 pins it
-  bus     : Phase.Def I Unit (BusOut I) (busSpec I) (M3Holds I) (Seam.bus I)
-  table   : Phase.Def I (BusOut I) (TableOut I) (tableSpec I) (Seam.bus I) (Seam.table I)
-  pub     : Phase.Def I (TableOut I) (PubOut I) pubSpec (Seam.table I) (Seam.pub I)
-  flock   : Phase.Def I (PubOut I) (FlockOut I) (flockSpec I) (Seam.pub I) (Seam.flock I)
-  opening : Phase.Def I (FlockOut I) Unit (openSpec I) (Seam.flock I) (fun _ _ ↦ True)
-structure Phases.Security (P : Phases I) where (commit : …) … (opening : …)
-def leanVmPiop (P : Phases I) := P.commit.red ⟫ P.bus.red ⟫ P.table.red ⟫ P.pub.red ⟫ P.flock.red ⟫ P.opening.red
-def leanVmVerifier (P) := (leanVmPiop P).verifier
-def leanVmProver (P) := (leanVmPiop P).prover
-def piopError (P : Phases I) : (…).ChallengeIdx → ℝ≥0             -- the six `err`s, concatenated
-theorem piop_perfectCompleteness (P : Phases I) (S : P.Security) :
-    (leanVmPiop P).perfectCompleteness init impl (M3Rel I) Set.univ
-theorem piop_rbrKnowledgeSoundness (A : KnowledgeAppend) (P : Phases I) (S : P.Security) :
-    (leanVmVerifier P).rbrKnowledgeSoundness init impl (M3Rel I) Set.univ (piopError P)
-
--- The adaptor's generic half
-structure Refinement (R : Stmt → W₁ → Prop) (S : Stmt → W₂ → Prop) where
-  map : W₁ → W₂
-  map_valid : ∀ x w, R x w → S x (map w)
-theorem knowledgeSound_of_refinement (f : Refinement R S)
-    (h : V.knowledgeSoundness init impl (setOf R) relOut ε) :
-    V.knowledgeSoundness init impl (setOf S) relOut ε       -- post-compose the extractor with `f.map`
+-- LeanerVM/Protocol/Spine/Transport.lean: the adaptor's generic half
+structure Refinement (R : Set (Stmt × W₁)) (S : Set (Stmt × W₂)) where (map : Stmt → W₁ → W₂) (map_valid : …)
+theorem Refinement.map_option_valid       -- an extracted witness slot valid for R is valid for S after the map
+def Extractor.Straightline.map (f) (E)    -- post-compose ArkLib's straight-line extractor
 ```
 
-`M3Holds` names the leanVM checks in the order the verifier makes them; its clauses are the
-proposal of pending decision 8, and the witness type is decision 6 (status file). The commit
-phase is ArkLib's `SendSingleWitness` shape with the message the derived stack; its output
-relation is `M3Holds` on the oracle itself, the "strengthened intermediate relation" leanth used
-to pin the oracle to the witness of record.
+`M3Holds` names the leanVM checks in the order the phases consume them; its five clauses settle
+decision 8 (the caps are not a clause: the compiled verifier rejects inadmissible sizes before the
+oracle protocol starts, so the protocol is a family over admissible instances), and the witness
+type, the stack, settles decision 6. The seams carry *claims*, not challenges: what a phase
+emits is fixed by its knowledge soundness, not by the seam's type (a bus phase emitting no claim
+typechecks and cannot be proved knowledge sound), which is what lets the table sumcheck consume
+any list of linear claims without knowing the bus. The commit phase is ArkLib's
+`SendSingleWitness` shape with the message the stack itself; its output relation is `M3Holds` on
+the oracle, the "strengthened intermediate relation" leanth used to pin the oracle to the witness
+of record, and both its halves are proved in the spine (zero knowledge error; the extractor
+reads the message). The transport of
+knowledge along the adaptor is pointwise (`Refinement.map_option_valid`), because the adaptor's
+target witness lives in `Type 1`, which ArkLib's games cannot quantify over; the probabilistic
+transport of `knowledgeSoundnessWith` along a `Type 0` refinement is not proved (it needs a
+prover conversion and `Nonempty WitIn`) and has no consumer yet.
 
 ### The holes
 
-Every hole consumes spine names only and closes one issue. `L1` groups the leaves of Layer 1
-already in flight; the generic holes carry the ledger letters of the ArkLib work they will
+Every hole consumes spine names only. Its specification is a section of the hole comment on the
+dashboard #12 (the `[Hole]` issues were folded there on 2026-09-25); `L1` groups the leaves of
+Layer 1 already in flight; the generic holes carry the ledger letters of the ArkLib work they will
 become.
 
 | Hole | Unit | Produces | Consumes | Existing work | Issue |
 | --- | --- | --- | --- | --- | --- |
-| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes) | Layer 0, Layer 1's generic half (#18) | leanth's explore branch | [#45](https://github.com/Verified-zkEVM/leanerVM/issues/45) |
+| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes); built under `LeanerVM/Protocol/Spine/` | Layer 0 only (#18's `Blocks` inhabit `Layout` later) | leanth's explore branch | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | `Virtual`, `sumcheck`, `sumcheck_perfectCompleteness` | nothing | #42, ArkLib #1128, ArkLib `main`'s `Sumcheck/Interaction/` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G2 | sumcheck rbr knowledge, `Sumcheck.Security` (Layer 4, A1) | `sumcheck_rbrKnowledgeSoundness`, `d/\|F\|` per round | G1 | ArkLib #1129, `Interaction/Soundness.lean` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G3 | batching by powers, `Batch.Def` and `Security` (Layer 4) | `batchClaims`, `(k − 1)/\|F\|` | nothing | #43, ArkLib #615's `gammaPowers` | [#31](https://github.com/Verified-zkEVM/leanerVM/issues/31) |
 | G4 | fingerprint, Lemma 5.1, the collision bound (Layer 5) | `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision` | nothing | #39, ArkLib #901 | [#33](https://github.com/Verified-zkEVM/leanerVM/issues/33) |
-| G5, G6 | GKR: `Gkr.Def` and completeness; `Gkr.Security` (Layer 5) | `gkr`, `gkrError`, its two theorems | G1 (G6 also G2) | ArkLib #818 as a pattern | [#46](https://github.com/Verified-zkEVM/leanerVM/issues/46) |
+| G5, G6 | GKR: `Gkr.Def` and completeness; `Gkr.Security` (Layer 5) | `gkr`, `gkrError`, its two theorems | G1 (G6 also G2) | ArkLib #818 as a pattern | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | L1 | Layer 1's leaves | `stack_eval_ambient` (#40), `unstack` and `BlockClaim` (#38), `idxColumn_eval` and `bytecodeColumn_slot` (#41), coefficient transport (#26) | #18 | in review | #27, #32, #35, #36 |
 | I1 | Clean components as polynomials (Layer 2) | `Expression.toMvPolynomial`, `degreeBound`, `Component.toM3`, `Ensemble.toM3`, the two bridge theorems | Clean | Clean #466 | [#28](https://github.com/Verified-zkEVM/leanerVM/issues/28) |
-| I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, #38, #40 | | [#47](https://github.com/Verified-zkEVM/leanerVM/issues/47) |
-| P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), #40, #41 | | [#48](https://github.com/Verified-zkEVM/leanerVM/issues/48) |
-| P3, P4 | the table sumcheck phase (Layer 7) | `tableSummand`, `tableSummand_target`, `tableSumcheck`; its `Security` | S, G1 (P4 also G2) | #42 | [#49](https://github.com/Verified-zkEVM/leanerVM/issues/49) |
-| P5 | the public-input phase (Layer 8) | `publicInputPhase`, both halves | S | | [#50](https://github.com/Verified-zkEVM/leanerVM/issues/50) |
-| P6 | the Flock phase at the flock seam (Layer 9) | `FlockOut`, `limbColumns`, `flockError_le`; the inhabitant is #3's | S | #3, ArkLib #383, #893 | [#51](https://github.com/Verified-zkEVM/leanerVM/issues/51) |
-| P7, P8 | the claim pool and the opening phase (Layer 10) | `Weight`, `WeightedClaim`, `openingPhase`; its `Security` | S, G3, G1, #38, #43 | | [#52](https://github.com/Verified-zkEVM/leanerVM/issues/52) |
-| C1 | the knowledge-soundness append (ledger A2) | a term of `KnowledgeAppend` | ArkLib only | ArkLib #615, #676 | [#53](https://github.com/Verified-zkEVM/leanerVM/issues/53) |
-| K1 | WHIR over binary Reed–Solomon codes (Layer 11) | `encode`, `whirOpen`, `whirOpen_rbrSoundness`, `McaJohnson` | `WeightedClaim`, Layers 0, 1 | #3 F6, ArkLib #383, #992 | [#54](https://github.com/Verified-zkEVM/leanerVM/issues/54) |
-| K2 | Merkle, BLAKE2s bytes, the WHIR parameters (Layer 11) | `merkleRoot`, `merkleVerify`, `blake2sBytes`, `ladder` | leanISA Layer 1 | ArkLib #4 | [#55](https://github.com/Verified-zkEVM/leanerVM/issues/55) |
-| K3 | transcript, `Proof`, `verify`, `verify_iff_compiled`, the FS and BCS interfaces (Layer 12) | as Layer 12 | S (schedules, phase `Def`s), K1, K2 | ArkLib #848, #469, #627 | [#56](https://github.com/Verified-zkEVM/leanerVM/issues/56) |
-| K4 | T4 (Layer 13) | `baseVerifier_extractsExecution`, `baseProver_complete` | K3, I2, leanISA Layer 10 | | [#57](https://github.com/Verified-zkEVM/leanerVM/issues/57) |
+| I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, #38, #40 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), #40, #41 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P3, P4 | the table sumcheck phase (Layer 7) | `tableSummand`, `tableSummand_target`, `tableSumcheck`; its `Security` | S, G1 (P4 also G2) | #42 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P5 | the public-input phase (Layer 8) | `publicInputPhase`, both halves | S | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P6 | the Flock phase at the flock seam (Layer 9) | `FlockOut`, `limbColumns`, `flockError_le`; the inhabitant is #3's | S | #3, ArkLib #383, #893 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P7, P8 | the claim pool and the opening phase (Layer 10) | `Weight`, `WeightedClaim`, `openingPhase`; its `Security` | S, G3, G1, #38, #43 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| C1 | the knowledge-soundness append (ledger A2) | a term of `KnowledgeAppend` | ArkLib only | ArkLib #615, #676 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| K1 | WHIR over binary Reed–Solomon codes (Layer 11) | `encode`, `whirOpen`, `whirOpen_rbrSoundness`, `McaJohnson` | `WeightedClaim`, Layers 0, 1 | #3 F6, ArkLib #383, #992 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| K2 | Merkle, BLAKE2s bytes, the WHIR parameters (Layer 11) | `merkleRoot`, `merkleVerify`, `blake2sBytes`, `ladder` | leanISA Layer 1 | ArkLib #4 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| K3 | transcript, `Proof`, `verify`, `verify_iff_compiled`, the FS and BCS interfaces (Layer 12) | as Layer 12 | S (schedules, phase `Def`s), K1, K2 | ArkLib #848, #469, #627 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| K4 | T4 (Layer 13) | `baseVerifier_extractsExecution`, `baseProver_complete` | K3, I2, leanISA Layer 10 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 
 ## The build: the spine, then fourteen layers
 
@@ -665,7 +684,10 @@ theorem witnessOf_stackOf (hs) : witnessOf prog s (stackOf w hs) = w    -- on th
 
 `M3Holds` (the spine's, over `I`) is the target of extraction and the source of completeness; the
 two theorems around it are the whole bridge between polynomials and Clean's witness, and the only
-place the proof system meets leanISA (convention *The wall*). `witnessOf` rebuilds the tables from
+place the proof system meets leanISA (convention *The wall*). The stack columns that belong to no
+opcode table (`mem_0, mem_1, mem_2`, `cntfin_mem`, `cntfin_bc`, `q_flock`; `witness.rs:85-101`)
+are tables of the instance with no constraints and no flushes, so that `ColumnId` and
+`Coord.committed` reach them; the boundary blocks and the public cells name them that way. `witnessOf` rebuilds the tables from
 the columns, the interactions from the components, the image from the memory columns, and the
 program from `prog`; `Blake2sRows` is the leanISA `Blake2sRelation` on the BLAKE2S rows, whose
 eighteen value limbs are read from `q_flock` through the Flock interface (Layer 9). The stack
@@ -841,7 +863,7 @@ structure FlockInterface (I : M3Instance) where
   flockError_le : Σ flockError ≤ (4 * k_batch + 163) / |E| + 2 ^ 32 / |E|
 ```
 
-The weighted claim is `⟨W, q⟩ = c` with `W` MLE-friendly (Definition 3.12): a `Weight μ` is a
+The weighted claim is `⟨W, q⟩ = c` with `W` MLE-friendly (Definition 3.13): a `Weight μ` is a
 function evaluating `W̃` at any point together with its cube values and their agreement. This
 is an assumed interface in the sense of the authoring skill: it names a real external boundary,
 its witness obligation is #3's F3–F5 and F8, and nothing here unfolds it. Until #3 supplies it,
@@ -994,7 +1016,7 @@ theorem baseProver_complete (hfill : HasFillBlocks prog) (h : ValidExecution pro
     verify prog input (prove prog input (witness of t)) = true
 ```
 
-The first composes `verify_knowledgeSound`, the adaptor's transport `knowledgeSound_of_refinement`
+The first composes `verify_knowledgeSound`, the adaptor's pointwise transport `Refinement.map_option_valid`
 with `satisfiedBy_witnessOf`, and `constraintSoundness`;
 the second composes `constraintCompleteness`, `m3Holds_stackOf`, `piop_perfectCompleteness` and
 the determinism of the Fiat–Shamir chain (perfect completeness survives the transform without
@@ -1075,7 +1097,7 @@ witness is executable it is a test under `tests/`.
 23. **Numeric error.** `piopError_le`: at the caps, `Σ piopError < 2^{-150}` plus Flock's
     `< 2^{-183}`; a reading that bounds each term by `1/|E|` and forgets `2^μ` is off by `2^40`.
 24. **The extractor computes.** `witnessOf` is a computable definition and the protocol's
-    extractor is `witnessOf` on the oracle message. An extractor chosen by `Classical.choose`
+    extractor is `witnessOf` on the oracle message (the commit phase's `extractOut` reads it). An extractor chosen by `Classical.choose`
     over "some valid witness exists" proves soundness, not knowledge (leanth-project's
     `coreSelectedAssignment`, catalog audit FW-1). Witness: `#guard witnessOf (stackOf w) = w` on
     the one-row witness.
@@ -1084,10 +1106,13 @@ witness is executable it is a test under `tests/`.
     leanISA change. Witness: `scripts/check-layers.sh`.
 26. **Seams are the contract.** A phase's output relation is the next phase's input relation by
     definition, not by a bridge lemma; two relations joined by an `iff` at a seam double the
-    trusted surface. Witness: `Phases I` typechecks only when the seams agree.
+    trusted surface. Witness: `Phases.Complete.toDef` and `Phases.Security.toDef` typecheck only
+    when the seams agree, and the test's `trivComplete` (five pass-through phases) inhabits
+    `Phases.Complete` against exactly the spine's seams.
 27. **The toy instance is honest.** `M3Holds toy input q` holds of the toy stack and fails for
-    the stack with one constraint cell changed; a spine whose relation is inhabited by every `q`
-    proves nothing. Witness: the two `decide`s in `tests/LeanerVMTests/Protocol/Spine.lean`.
+    the stack with one cell changed, each of the four checkable clauses failing alone; a spine
+    whose relation is inhabited by every `q` proves nothing. Witness: the `#guard`s of
+    `tests/LeanerVMTests/Protocol/Spine.lean`, decided by evaluation.
 
 ## Interfaces supplied to later work
 
@@ -1095,15 +1120,21 @@ These names are the public boundary and the reviewer's reading list. The recursi
 T6), the Flock roadmap, and the ArkLib upstream pull requests consume them.
 
 ```text
-Spine:                M3Instance  Coord  M3Holds  M3Rel  Ensemble.toM3 (Layer 2)
-                      BusOut  TableOut  PubOut  FlockOut  Pool
-                      Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.pool
-                      commitSpec  busSpec  tableSpec  pubSpec  flockSpec  openSpec
-                      Phase.Def  Phase.Security  Sumcheck.Def  Sumcheck.Security  Gkr.Def  Gkr.Security
-                      Batch.Def  Batch.Security  KnowledgeAppend  Phases  Phases.Security
+Spine:                Side  ColumnId  Layout  Coord  BoundaryBlock  PublicCell  M3Instance
+                      M3Instance.column  row  tuples  ConstraintsVanish  Balanced  CountsNonzero  PublicCellsHold
+                      M3Holds  M3Rel  NoOracle  TheOracle  Ensemble.toM3 (Layer 2)
+                      ColumnClaim  VirtualTerm  LinearClaim  Weight  WeightedClaim  (each with .Holds)
+                      BusOut  TableOut  PubOut  FlockOut  theStack
+                      Seam.commit  Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.done
+                      Component.Def  Component.Complete  Component.Security  (and their .append)
+                      Phase.Def  Phase.Complete  Phase.Security  Phase.passThrough  Phase.passThroughComplete
+                      KnowledgeAppend
+                      commitSpec  commitProver  commitVerifier  commitDef  commitComplete  commitExtractor  commitSecurity
+                      Phases  Phases.Complete  Phases.Security  Phases.toDef
                       leanVmPiop  leanVmVerifier  leanVmProver  piopError
                       piop_perfectCompleteness  piop_rbrKnowledgeSoundness
-                      Refinement  knowledgeSound_of_refinement  toy
+                      Refinement  Refinement.map_option_valid  Extractor.Straightline.map
+                      Toy.toy  Toy.honest  Toy.layout
 Protocol (generic):   Column  ETable  sumCube  eqTable  stack  selector  stack_eval  stack_eval_pad
                       Virtual  sumcheck  sumcheck_rbrKnowledgeSoundness  batchClaims
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision
@@ -1130,7 +1161,7 @@ Parameters:           initialFold  subsequentFold  initialReduction  subsequentR
 Everything not listed is a proof, a helper, or a test. The assumed interfaces a reviewer must
 know are exactly: `FlockInterface` (#3), `KnowledgeAppend` (ArkLib, ledger A2), `McaJohnson`
 (ArkLib, ledger A8), `FiatShamirSecurity` and `BcsSecurity` (ArkLib, ledger A5), and, until every
-hole is filled, the `Phase.Security` and generic `Security` fields of `Phases.Security`. Each is a
+hole is filled, the fields of `Phases.Complete` and `Phases.Security`. Each is a
 structure whose fields are the statements of theorems another roadmap or hole owes; none is an
 axiom, and every theorem that uses one takes it as an argument. There are no `variable`-block
 hypotheses.
@@ -1189,17 +1220,15 @@ hole's pull request links the ArkLib issue it will become.
   intention issue and pull request of each, the upstream ledger, and the frontier. It links to
   this document and to the status file at `main`, holds nothing that is not in them, and is
   updated when the status file is. Where the issue and the files disagree, the files win.
-- **To claim work**, open an issue titled `[Intention]: protocol — Layer N: …` listing the exact
-  targets taken (declaration names from the layer), so the rest stays open, and link it from
-  the dashboard; the dashboard line moves to *claimed*. One layer, or a slice of one, per
-  intention. Close it with the pull request that lands the slice; the line moves to *in review*
-  when the pull request carries `awaiting-review` and to *landed* when it merges.
-- **Holes.** Each unit of [The holes](#the-holes) has an issue titled `[Hole]: protocol - <id>: …`
-  (label `hole`) stating what it consumes from the spine, what it produces, its tests and its
-  upstream-watch rows. A hole is open and unassigned until someone claims it by assigning
-  themselves and commenting; the dashboard line moves to *claimed*. A slice of a hole is claimed
-  with an `[Intention]` issue as before. A hole's `Def` and `Security` are separate slices and
-  separate pull requests. Whoever takes a hole reads its upstream-watch rows first.
+- **Holes.** Each unit of [The holes](#the-holes) is a section of the hole comment on the
+  dashboard #12, stating what it consumes from the spine, what it produces, its tests and its
+  upstream-watch rows. To claim a hole, or a slice of one, comment on #12 naming the hole and
+  the exact declarations taken; the checklist line moves to *claimed*. No `[Hole]` or
+  `[Intention]` issue is opened for it (the tracker stays small and readable whole); an issue is
+  opened only when a slice needs its own discussion thread, titled
+  `[Intention]: protocol - <hole>: …`, and it is closed by the pull request that lands the slice.
+  A hole's `Def` with its `Complete`, and its `Security`, are separate slices and separate pull
+  requests. Whoever takes a hole reads its upstream-watch rows first.
 - **Upstream watch.** The status file keeps a table of external pull requests and issues that
   would replace or feed a hole: repository and number, the hole, the state, the condition under
   which it is adopted (usually a pin bump), and the date last checked. Whoever bumps a pin

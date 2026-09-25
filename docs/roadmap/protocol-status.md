@@ -1,8 +1,9 @@
 # Status: the leanVM proof system on ArkLib
 
 This file records where the [protocol roadmap](protocol-blueprint.md) stands as of `main` at
-`8563b05` (leanISA Layer 8, PR #24), checked on 2026-09-24, together with the open pull requests
-and the roadmap's revision 2 (the spine), which this snapshot accompanies. It is a hand-maintained
+`cd5f60a` (leanISA execution validation, PR #34), checked on 2026-09-25, together with the open
+pull requests and the spine as built on the branch `docs/protocol-spine` (hole S), which this
+snapshot accompanies. It is a hand-maintained
 snapshot, rewritten whole when a layer or hole lands or a decision is taken; the roadmap is the
 authority on what is wanted, and the tracking issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole checklist below.
@@ -11,17 +12,25 @@ dependency pins are unchanged.
 
 ## Where this roadmap stands
 
-**At a glance.** Layer 0 is on `main` (#15, 2026-09-11). Layer 1's generic half is in the draft
-#18 (`feat/leanth-reuse` at `5cc944a`, forked from `4b95a60` and behind `main`; #25 and #26 are
-merged into it) and must be rebased and landed before anything stacked on it can get CI. Six pull
-requests are open on top of it or on `main` (#38 to #43): every one is algebra underneath a phase,
-none defines an `OracleReduction`, a verifier, a prover, a state function or a security theorem,
-and nothing on any branch is a trunk for them to hang on. Revision 2 of the roadmap answers that
-with the spine (hole S, #45): the abstract instance `M3Instance`, the relation `M3Holds` on the
-committed stack, the seams, the schedules, the hole interfaces and the composition, landed first
-so that every other unit sits in isolation. The relation the proof system proves is `M3Holds`;
-the adaptor (`witnessOf`, `satisfiedBy_witnessOf`) carries knowledge of it to leanISA's
-`SatisfiedBy`, and T1 carries that to `ValidExecution`.
+**At a glance.** Layer 0 is on `main` (#15, 2026-09-11). The spine (hole S) is built, on the
+branch `docs/protocol-spine`, under `LeanerVM/Protocol/Spine/` with its tests in
+`tests/LeanerVMTests/Protocol/Spine.lean`, and `./scripts/validate.sh` is green there; its pull
+request is the next to open. It is generic over `I : M3Instance` and imports nothing from
+`LeanerVM/Arithmetization/` (the wall holds). Concrete in it: the instance and the relation
+`M3Holds` (decidable; the toy instance decides it by evaluation), the claims and the six seams,
+the hole interfaces `Component.Def`/`Complete`/`Security` with their binary composition (the
+completeness half by ArkLib's proved guarded append, the knowledge half conditional on
+`KnowledgeAppend`), the pass-through phase with its completeness (the bookkeeping shape, and
+the inhabitant of `Phases` and `Phases.Complete` in the tests), the commit phase with both halves
+proved (its extractor reads the stack off the message, at error zero), the bundle `Phases` and the
+two master theorems `piop_perfectCompleteness` and `piop_rbrKnowledgeSoundness`, the refinement
+of relations. Left for the holes: the five phase `Def`s and their proofs, the generic
+components, the adaptor, the compiled verifier. Layer 1's generic half is still in the
+draft #18 and is no longer on the spine's path: its `Blocks` will inhabit the spine's `Layout`
+(hole I2) when it lands. Six pull requests are open on top of it or on `main` (#38 to #43),
+algebra underneath phases; where each sits against the spine is in the table below. The relation
+the proof system proves is `M3Holds`; the adaptor (`witnessOf`, `satisfiedBy_witnessOf`) carries
+knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that to `ValidExecution`.
 
 ### Coverage by hole
 
@@ -29,38 +38,41 @@ the adaptor (`witnessOf`, `satisfiedBy_witnessOf`) carries knowledge of it to le
 | --- | --- | --- | --- |
 | 0 | ArkLib dependency and field instances (Layer 0) | landed | #15 |
 | L1 | Layer 1: generic tables and stacking, and the leaves | generic half in draft #18 (rebase pending); `stack_eval_ambient` in #40, `unstack` and `BlockClaim` in #38, `idxColumn_eval` and `bytecodeColumn_slot` in #41; coefficient transport #26 merged into #18 | #27, #32, #35, #36 |
-| S | the spine | open; pending decisions 2 and 6–11 | #45 |
+| S | the spine | built on `docs/protocol-spine`, pull request to open | #12 |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | claimed; the honest round algebra and the ArkLib bridge in #42 | #37 |
 | G2 | sumcheck round-by-round knowledge, `Sumcheck.Security` (Layer 4, A1) | claimed; a one-round leaf prepared, unpublished | #37 |
 | G3 | batching by powers (Layer 4) | claimed; the algebra and the `(J − 1)/\|F\|` count in #43; the fresh-challenge game prepared | #31 |
 | G4 | fingerprint, Lemma 5.1, the collision bound (Layer 5) | claimed; the fingerprint in #39; the multiset-product slice prepared | #33 |
-| G5, G6 | GKR (Layer 5) | open | #46 |
+| G5, G6 | GKR (Layer 5) | open | #12 |
 | I1 | Clean components as polynomials (Layer 2) | claimed; Clean #466 approved, unmerged | #28 |
-| I2 | the adaptor (Layer 3) | open; needs S, I1 | #47 |
-| P1, P2 | the bus phase (Layer 6) | open; needs S, G5 | #48 |
-| P3, P4 | the table sumcheck phase (Layer 7) | open; needs S, G1 | #49 |
-| P5 | the public-input phase (Layer 8) | open; needs S | #50 |
-| P6 | the Flock phase (Layer 9) | open; needs S and #3 | #51 |
-| P7, P8 | the claim pool and the opening phase (Layer 10) | open; needs S, G1, G3 | #52 |
-| C1 | the knowledge-soundness append (A2) | open; ArkLib #615 is the candidate | #53 |
-| K1 | WHIR (Layer 11) | open; shared with #3 F6 | #54 |
-| K2 | Merkle, BLAKE2s bytes, the parameters (Layer 11) | open | #55 |
-| K3 | transcript, proof, `verify` (Layer 12) | open; needs S, K1, K2 | #56 |
-| K4 | T4 (Layer 13) | open; needs K3, I2, leanISA Layer 10 | #57 |
+| I2 | the adaptor (Layer 3) | open; needs the spine merged and I1; inhabits `Layout` with #18's `Blocks` | #12 |
+| P1, P2 | the bus phase (Layer 6) | open on the spine's seams; P1 needs G5 | #12 |
+| P3, P4 | the table sumcheck phase (Layer 7) | open on the spine's seams; needs G1 | #12 |
+| P5 | the public-input phase (Layer 8) | open on the spine's seams; the smallest hole, a good first one | #12 |
+| P6 | the Flock phase (Layer 9) | open on the spine's seams; needs #3 | #12 |
+| P7, P8 | the claim pool and the opening phase (Layer 10) | open on the spine's seams; needs G1, G3 | #12 |
+| C1 | the knowledge-soundness append (A2) | open; the statement is the spine's `KnowledgeAppend`; ArkLib #615 is the candidate | #12 |
+| K1 | WHIR (Layer 11) | open; shared with #3 F6 | #12 |
+| K2 | Merkle, BLAKE2s bytes, the parameters (Layer 11) | open | #12 |
+| K3 | transcript, proof, `verify` (Layer 12) | open; needs the phase `Def`s, K1, K2 | #12 |
+| K4 | T4 (Layer 13) | open; needs K3, I2, leanISA Layer 10 | #12 |
 | — | VCVio controls for K3 and P7 | landed upstream (VCVio #784) | #29, #30 |
 
 ### Open pull requests
 
-| PR | Hole | Base | CI | Content | Review order |
-| --- | --- | --- | --- | --- | --- |
-| #18 (draft) | L1 | `4b95a60` | none until rebased | `Multilinear.lean`, `Stacking.lean`, the reuse catalog; #25 and #26 merged in | land first |
-| #40 | L1, feeds P1 | #18 | none | `stack_eval_ambient` (specification (5.4) with any pad), `stack_eval₂_ambient` | 2 |
-| #38 | L1, feeds P7 | #18 | none | `Blocks.unstack`, `BlockClaim`, `isValid_iff_pairing`, window locality | 3 |
-| #41 | L1, feeds P1 | #18 | none | `idxColumn`, `idxColumn_eval`, `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_eval` (Category B against §8.1 and `leaf.rs:570-637`) | 4 |
-| #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | 5 |
-| #39 | G4 | #18 | none | `fingerprintPoly`, its injectivity, `fingerprintFactorPoly` of total degree at most 4 | 6 |
-| #42 | G1 | `main` | runs | the honest round polynomials and their four identities; equality with ArkLib's `projectedRoundPolynomial` | independent; decide which representation Layer 4 builds on |
-| #44 | docs | `main` | runs | rewrote this file | held; its content is folded into this revision |
+None of the open pull requests touches a spine name; each is algebra a hole will consume. The
+column *Against the spine* says which spine object it feeds and through which hole.
+
+| PR | Hole | Base | CI | Content | Against the spine | Review order |
+| --- | --- | --- | --- | --- | --- | --- |
+| #18 (draft) | L1 | `4b95a60` | none until rebased | `Multilinear.lean`, `Stacking.lean`, the reuse catalog; #25 and #26 merged in | `Blocks` inhabits `Layout` (`read := unstack`, `extend := (· ++ selector)`, `read_eval := stack_eval`) in the leanISA instance (I2) | land first |
+| #40 | L1, feeds P1 | #18 | none | `stack_eval_ambient` (specification (5.4) with any pad), `stack_eval₂_ambient` | the bus phase's leaf decomposition, from which it computes the values of its `LinearClaim`s | 2 |
+| #38 | L1, feeds P7 | #18 | none | `Blocks.unstack`, `BlockClaim`, `isValid_iff_pairing`, window locality | `BlockClaim` is a `ColumnClaim` read through `Layout`; `isValid_iff_pairing` is the `ColumnClaim` to `WeightedClaim` step of the opening phase | 3 |
+| #41 | L1, feeds P1 | #18 | none | `idxColumn`, `idxColumn_eval`, `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_eval` (Category B against §8.1 and `leaf.rs:570-637`) | the `Coord.known` columns of the leanISA instance's boundary blocks; `FixedColumns.lean` imports `Arithmetization.Bytecode`, so it sits below the wall with the adaptor (I2), not with a phase | 4 |
+| #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | the opening phase's batching of `FlockOut` into one `WeightedClaim` (P7), and its `(J − 1)/\|E\|` term of `err` (P8) | 5 |
+| #39 | G4 | #18 | none | `fingerprintPoly`, its injectivity, `fingerprintFactorPoly` of total degree at most 4 | the bus phase: the `VirtualTerm.poly` of a bus form is `β − π_α` composed with the flush tuple; the collision bound is P2's | 6 |
+| #42 | G1 | `main` | runs | the honest round polynomials and their four identities; equality with ArkLib's `projectedRoundPolynomial` | the honest prover of a sumcheck `Component.Def`, consumed by the table sumcheck (P3) and the opening (P7) | independent; decide which representation Layer 4 builds on |
+| #44 | docs | `main` | runs | rewrote this file | none | held; its content is folded into this revision |
 
 The reading audit of these pull requests (2026-09-24) found no defect. Its questions: §5.2's
 `5·2^μ/|E|` against the proved factor degree 4 (S13 below); #42's two definitions of the honest
@@ -72,13 +84,15 @@ not run: the five stacked pull requests have no CI, and only #18's body records
 
 ### The frontier
 
+- **The spine** is built and is the next pull request; it does not depend on #18. Its review
+  budget goes to `M3Instance`, `M3Holds` and the seam relations, then to `Component.*` and the
+  two master theorems. The decisions it settled by construction are listed under *Decisions
+  pending*; each is reversible by a pull request to the spine.
 - **#18** is the base of five pull requests and is behind `main`: rebase and land it (the two
-  modules and the catalog), then retarget #38, #39, #40, #41 and #43 to `main`.
-- **The spine** (#45) is the next pull request after #18. Its review budget goes to
-  `M3Instance` and the seam relations; the pending decisions 2 and 6–11 are settled on its issue
-  first.
-- **Holes that can start now**, on the spine's signatures: G1 to G6, I1, K1, K2 (generic), and
-  C1 (ArkLib only).
+  modules and the catalog), then retarget #38, #39, #40, #41 and #43 to `main`. It is now on the
+  adaptor's path (I2), not the spine's.
+- **Holes that can start now**, on the spine's branch: P5 (the smallest phase, the pattern for
+  the others), P1 and P3 (their `Def`s), G1 to G6, I1, K1, K2, C1.
 - **The pins have not moved.** ArkLib `main` is 246 commits past `dca90385` (finding A18); the
   next bump is one planned change (Lean 4.34, a CompPoly containing #331, `card_E` restated:
   findings P3 and P7).
@@ -129,43 +143,30 @@ Read the rows of your hole before starting it; whoever bumps a pin rewrites this
 
 ## Decisions pending
 
-Confirm before the spine (#45) opens; each is discussed on that issue. Decision 1 was taken with
-#13, and decision 3 with revision 2 (blueprint convention *Seams*: the zerocheck escape is charged
-in the bus phase where ζ is drawn; no separate phase).
+Decision 1 was taken with #13, and decision 3 with revision 2 (blueprint convention *Seams*: the
+zerocheck escape is charged in the bus phase where ζ is drawn; no separate phase). Building the
+spine settled the following by construction, each reversible by a pull request to the spine:
+2 (`input : I.Stmt` is the statement; the instance, hence the sizes, indexes the family; the
+caps are outside the relation), 6 (the witness is the stack `q`; `M3Rel` is on
+`Column I.μ`), 7 (every phase is over an abstract `I : M3Instance`; the toy instance is the
+test bed), 8 (the five clauses of `M3Holds`: constraints, balance, counts, public cells, the
+auxiliary predicate; the caps are not a clause, the fixed columns are `Coord.known` data), 9
+(balance is `List.Perm` of the tuple lists), 10 (worst-case round-by-round knowledge soundness
+per component, composed through `KnowledgeAppend`). Two further choices were made: the seams
+carry claims only, never challenges, so a phase's knowledge soundness and not the seam's type
+fixes what it emits; and the message schedules travel with the `Def`s rather than being fixed
+by the spine (only `commitSpec` is), so Layer 12 reads them off the phases. Still pending:
 
-2. **Statement versus parameter.** `input` is the statement and `(prog, sizes)` index the
-   protocol family, the compiled verifier reading the sizes from the proof and dispatching
-   (leanth's decision 4); or `(prog, input)` is the statement. Recommended: the former, as the
-   roadmap's convention says.
 4. **Generic code location.** `LeanerVM/Protocol/Generic/` until the ArkLib pull request merges
    (convention *Generic code*), versus developing directly on an ArkLib branch and pinning
    leanerVM to that branch's commit. Default is the former.
 5. **The honest prover's shape.** Computable by construction is the default; whether it is also
    the object of a compile-time end-to-end `#guard` on a tiny instance depends on the cost of the
    WHIR encoder in the interpreter, measured at K1.
-6. **The witness at the protocol boundary.** (a) `q : Column μ` itself, with `witnessOf` as the
-   adaptor and a computable extractor, and no universe issue (`EnsembleWitness` lives in
-   `Type 1`, ArkLib's witness types in `Type`); or (b) a `Type 0` proxy of `EnsembleWitness`
-   (leanth's `Witness ens`), the stack derived inside the commit phase. Recommended: (a).
-7. **Generic instance.** Phases over an abstract `M3Instance` derived from any Clean ensemble by
-   `Ensemble.toM3`, leanISA being one instance (the wall, toy-instance tests, reuse for the
-   recursion guest), or phases written over `leanIsaEnsemble`. Recommended: generic.
-8. **Conjunct placement.** Which of `SatisfiedBy`'s thirteen conjuncts are clauses of `M3Holds`
-   and which are the adaptor's work. Proposal: every fact a phase or the verifier establishes
-   about `q` is a clause (constraints, multiset balance, counts nonzero, caps, public words, the
-   Flock claim); the three fixed-column conjuncts are `M3Instance` data (a *public* coordinate
-   tag for the bytecode block, a *committed* tag for the memory block), as Clean #446 models them.
-9. **Balance.** `M3Holds` states balance as multiset equality of the flush tuples read from `q`,
-   which is what Lemma 5.1 proves; the adaptor maps it to `BalancedPair` now and to Clean #464's
-   ℕ-counted balance later, so the proof system is insulated either way. Confirm that
-   `BalancedPair` is retired only through the adaptor.
-10. **Security notion.** Round-by-round knowledge soundness per phase, composed, with plain
-    knowledge soundness and plain soundness as corollaries once ledger A3 lands; or plain
-    soundness only (cheaper, does not compose, does not serve recursion). Recommended:
-    round-by-round knowledge.
 11. **Extractor discipline.** Every extractor a computable definition, with
     `#guard witnessOf (stackOf w) = w` on the toy stack (acceptance test 24); the enforceable form
-    of "reasonable running time", which neither ArkLib nor leanth models. Recommended: adopt.
+    of "reasonable running time", which neither ArkLib nor leanth models. Recommended: adopt; the
+    commit phase's extractor (reading the message) is the first instance.
 
 ## Open findings against the sources
 
@@ -244,6 +245,31 @@ while elaborating every ArkLib module (`lakefile.toml:48`), so a consumer needs 
 
 Kept so the searches are not repeated.
 
+- **2026-09-25, the adversarial review of the spine** (a context-free agent, the
+  `adversarial-review` skill): no theorem statement wrong or vacuous; findings applied: two toy
+  mutations did not isolate their clause (now tested at statement `2`, and a char-2 balance
+  witness `badBalanceSum` added), `Phases`/`Phases.Complete` had no inhabitant (now
+  `trivPhases`/`trivComplete` from `Phase.passThrough`), citation drift (§6.2 for `R_c`,
+  Definition 3.13, §5.4 equation (2)), the `Layout` docstring now says it is a reading law, the
+  knowledge theorem's docstring names ledger A3 for its plain reading, this roadmap's
+  `Seam.pool`/`knowledgeSound_of_refinement`/`prog, sizes` leftovers fixed. Observation kept:
+  the non-table stack columns are instance tables without constraints (Layer 3 sketch).
+- **2026-09-25, building the spine.** ArkLib `Composition/Sequential/{Append/Basic,
+  Append/Completeness,Append/Security,Append/RoundByRound,OracleCompleteness}.lean`
+  (`OracleReduction.append`, `append_perfectCompleteness_of_guarded_verifiers` proved,
+  `append_rbrKnowledgeSoundness` admitted, `append_rbrSoundnessWorstCase_of_pure_first`
+  proved), `Security/{Basic,RoundByRound,Implications}.lean` (`rbrKnowledgeSoundnessWorstCase`,
+  `KnowledgeStateFunction`, `Extractor.RoundByRound`; `rbrKnowledgeSoundness_implies_knowledgeSoundness`
+  admitted, ledger A3), `CoordinateWiseSpecialSoundness/Guarded.lean` (`GuardedForm`, its
+  `append`), `ProofSystem/Component/SendWitness.lean` (the commit shape; its oracle completeness
+  is admitted upstream, proved here for `commitDef`), `OracleReduction/Basic.lean`
+  (`OracleOutputEmbedding`, `toVerifier`, `materializeOutput`); CompPoly
+  `Multivariate/{CMvPolynomial,Lawful,MvPolyEquiv/*}.lean` (`CMvPolynomial`, `eval`,
+  `totalDegree`, `fromCMvPolynomial` with `eval_equiv`) and `Multilinear/Basic.lean`
+  (`evalMle_succ`, `evalMleLayer_get`); leanth `db895db` `Protocol/{Spec,Stacked,Relation,
+  Witness,Zerocheck,PCS,Measures}.lean` and `23929f8c` `Security/{Relation,Protocol}.lean`
+  (`Refinement`, `knowledgeSound_mapRelation`); the descriptions of every open pull request
+  and issue of this repository (the table above).
 - **2026-09-24, the open pull requests and leanth.** #38 to #43 read in full (the reading audit
   is recorded on the dashboard's history); leanth's explore branch `scaraven/proof-system-explore`
   at `db895db` (`Protocol/{Witness,Relation,Spec,Dimensions,Layout,Stacked,Zerocheck,PCS,

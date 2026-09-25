@@ -18,6 +18,12 @@ import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Spine.Compose
+import LeanerVM.Protocol.Spine.Instance
+import LeanerVM.Protocol.Spine.Phase
+import LeanerVM.Protocol.Spine.Seams
+import LeanerVM.Protocol.Spine.Toy
+import LeanerVM.Protocol.Spine.Transport
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
 import LeanerVM.Semantics.Executable
