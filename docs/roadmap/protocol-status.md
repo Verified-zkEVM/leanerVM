@@ -1,108 +1,117 @@
 # Status: the leanVM proof system on ArkLib
 
-This file records where the [protocol roadmap](protocol-blueprint.md) stands as of the branch
-that introduces it, on top of `main` at `1fa9cf1` (leanISA Layer 4 merged, PR #9) on 2026-09-10.
-It is a hand-maintained snapshot, rewritten whole when a layer lands or a decision is taken; the
-roadmap is the authority on what is wanted, and the tracking issue
-[#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the coverage table below.
+Snapshot of `main` at `8563b05b03434851badc19715f6162fb70ffc093`, checked on 2026-09-24.
+The [blueprint](protocol-blueprint.md) defines the intended protocol;
+[#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) tracks its implementation.
+Open pull requests and prerequisite-branch adoption below are not changes landed on `main`.
+The dependency pins are unchanged.
 
-## Where this roadmap stands
+## Landed and adopted prerequisites
 
-**At a glance.** Nothing is built. ArkLib is wired in at `dca90385` (`lakefile.toml`,
-`lake-manifest.json`, `upstreams.json`; the Lake resolution keeps CompPoly at `3468b38c` and the
-one Mathlib `0df444a3`), and `LeanerVM/Protocol/Field.lean` is the first consumer. The
-roadmap was written after a survey of ArkLib, Clean, CompPoly, the leanVM specification and the
-Rust and Python verifiers; the survey's findings that bind the roadmap are recorded below, the
-rest in the survey record.
+The field and oracle-interface foundation landed on `main` in
+[#15](https://github.com/Verified-zkEVM/leanerVM/pull/15). The leanISA constraint statement
+landed in [#24](https://github.com/Verified-zkEVM/leanerVM/pull/24), including the announced
+height caps. The protocol's concrete M3 assembly still has to consume that relation.
 
-### Roadmap coverage
+Scaraven's draft [#18](https://github.com/Verified-zkEVM/leanerVM/pull/18), at
+`5cc944a5441c2cbcd12385bfb575f4976c994347`, supplies the generic multilinear-table and
+aligned-stacking prerequisite. The reuse-catalog corrections in
+[#25](https://github.com/Verified-zkEVM/leanerVM/pull/25) and coefficient transport in
+[#26](https://github.com/Verified-zkEVM/leanerVM/pull/26) merged into that branch only.
+Adoption into it remains with its owner; the branch has not landed on `main`.
 
-| Layer | Status | Notes |
+## Contributions awaiting review or adoption
+
+These six pull requests are open and marked ready for review. The five targeting
+`feat/leanth-reuse` need owner adoption or a CI-trigger change to run upstream Lean CI, whose
+pull-request trigger currently targets `main`.
+
+| Contribution | Pull request | Base and scope |
 | --- | --- | --- |
-| 0 — ArkLib dependency, field instances | built, awaiting review | `Protocol/Field.lean`: `Column` (a structure, see the frontier), `instSampleableTypeK/E`, `card_E`, `evalOracle`; axiom closure `propext, Classical.choice, Quot.sound` |
-| 1 — tables, stacking, index and bytecode columns | open | independent of leanISA |
-| 2 — Clean components as polynomials | open | independent of leanISA; Clean upstream candidate |
-| 3 — the M3 instance | open; needs leanISA Layers 5–8 | two `[Roadmap]: leanISA` requests filed (#13) |
-| 4 — virtual sumcheck and batching | open | ArkLib ledger A1, A6 |
-| 5 — fingerprints, grand product, GKR | open | ArkLib ledger A6 |
-| 6 — bus phase | open; needs 3, 5 | |
-| 7 — table sumcheck phase | open; needs 3, 4, 6 | |
-| 8 — public-input phase | open; needs 3 | |
-| 9 — Flock and ring-switching boundary | open; needs 3 and #3 | interface only |
-| 10 — claim pool, opening, the oracle protocol | open; needs 6–9 | ArkLib ledger A2 |
-| 11 — WHIR, Merkle, parameters | open; needs 0, 1 | shared with #3 (F6); ledger A7, A8 |
-| 12 — compilation, transcript, `verify` | open; needs 10, 11 | ledger A5 |
-| 13 — T4 and fixtures | open; needs 12 and leanISA Layer 10 | |
+| Claims on arbitrary committed columns | [#38](https://github.com/Verified-zkEVM/leanerVM/pull/38) | #18; weight-table pairing and block locality after coefficient transport |
+| Symbolic tuple fingerprints | [#39](https://github.com/Verified-zkEVM/leanerVM/pull/39) | #18; injective symbolic encoding, separate product challenge, coefficient transport |
+| Ambient stack evaluation with arbitrary padding | [#40](https://github.com/Verified-zkEVM/leanerVM/pull/40) | #18; includes uncovered padding weight for zero- and one-padded stacks |
+| Fixed public-column evaluation | [#41](https://github.com/Verified-zkEVM/leanerVM/pull/41) | #18; index and explicit-program bytecode evaluations equal their oracle answers |
+| Honest sumcheck polynomial algebra | [#42](https://github.com/Verified-zkEVM/leanerVM/pull/42) | main; Boolean suffix sums, polynomial transport, high-first order and selected-coordinate degree |
+| Power-batched weight-table pairing | [#43](https://github.com/Verified-zkEVM/leanerVM/pull/43) | #18; zero-based powers, pairing and the `(J - 1) / |F|` collision bound |
 
-### The frontier
+Three child contributions have complete source: a fresh-challenge batching game after a
+probabilistic prefix ([#31](https://github.com/Verified-zkEVM/leanerVM/issues/31), after #43),
+a rejecting single-round sumcheck knowledge result with a fixed extractor and honest completeness
+([#37](https://github.com/Verified-zkEVM/leanerVM/issues/37), after #42), and symbolic multiset
+products with collision bounds ([#33](https://github.com/Verified-zkEVM/leanerVM/issues/33),
+after #39). Their branches await the corresponding parents' adoption into upstream base
+branches before separate pull requests can show just the child changes. They are not landed.
 
-- **Layer 0.** `lakefile.toml` requires `Arklib` at `dca90385`; `lake update Arklib` resolved
-  VCVio `f9dc47d9`, PolyFun `c0c92369`, loom2, cslib and doc-gen4's dependencies and left
-  CompPoly at the root pin `3468b38c` (ArkLib asks for the `v4.33.1` tag, fifteen commits
-  earlier; the diff is additive on everything ArkLib's `ToCompPoly` imports). The first
-  `lake build` of the OracleReduction cone hit a Lake race building ArkLib's lint plugin
-  (`ArkLibLintPlugin:shared` scheduled twice, one link failing with "no such file"); a second
-  invocation proceeds (environment finding E6). `Protocol/Field.lean` supplies
-  `SampleableType K` (a uniform `Fin (2^64)` as a bit pattern) and `SampleableType E` through
-  `SampleableType.ofEquiv` on `Vector K 3 ≃ E` (ArkLib does the same for `KoalaBear.Ext6`), the
-  evaluation `OracleInterface` on `Column n`, and `card_E`. `Column n` became a structure
-  wrapping `CMlPolynomialEval K n` rather than the roadmap's abbreviation: as an abbreviation it
-  unfolds to `Vector K (2^n)`, and instance search then also finds ArkLib's position-query
-  `OracleInterface (Vector α m)`, which a test literal did (finding A17); the roadmap's Layer 1
-  signature and *Tables* convention now say so. The `#guard`s answer on and off the cube; the
-  samplers are probed by compiling `$ᵗ K` and `$ᵗ E`.
-- **Layers 1, 2, 5** can start now: they need only Layer 0's instances (Layer 1), Clean
-  (Layer 2), or nothing beyond ArkLib (Layer 5 with the sampler as a parameter).
-- **Layer 11** is the largest independent piece and should start early; its generic half is
-  #3's F6 and the ArkLib WHIR track, developed once.
-- **Layer 3** waits for leanISA Layers 5–8; the two requests to #4 are filed as
-  [#13](https://github.com/Verified-zkEVM/leanerVM/issues/13).
-- **Upstream ledger.** No ArkLib issue is filed yet; the drafts are below, to be opened when
-  Layer 4, 5 or 11 is claimed, so that each carries a concrete consumer.
+The multiset-product result fixes both multisets before a uniform joint challenge is sampled.
+It retains natural multiplicities in every characteristic and gives `4 * cap / |F|` for
+sixteen-coordinate tuples. It does not supply conditional freshness for recycled challenges.
+The batching and single-round knowledge results do not assemble the full virtual or
+multi-round sumcheck protocol.
 
-## Upstream ledger
+## Upstream contributions
 
-Each entry names the ArkLib state at `dca90385`, the leanerVM layer that needs it, the action,
-and the issue or pull request once opened. Drafted titles are in quotes.
+- [VCVio #784](https://github.com/Verified-zkEVM/VCVio/pull/784) landed the random-oracle query
+  controls and the counterexamples separating component soundness from target refinement,
+  superseding [#767](https://github.com/Verified-zkEVM/VCVio/pull/767) and
+  [#768](https://github.com/Verified-zkEVM/VCVio/pull/768). Current VCVio main retains these
+  controls. The positive shared-oracle product-extraction theorem
+  remains open in [#30](https://github.com/Verified-zkEVM/leanerVM/issues/30).
+- [Clean #466](https://github.com/Verified-zkEVM/clean/pull/466) supplies the expression-polynomial
+  evaluation and degree bridge for [#28](https://github.com/Verified-zkEVM/leanerVM/issues/28).
+  It remains open and approved. Squash merge requires a maintainer with merge
+  permission; it has not been merged or adopted into leanerVM's pin.
+- Current sumcheck work follows [ArkLib #1](https://github.com/Verified-zkEVM/ArkLib/issues/1).
+  The operational game already exists on current ArkLib.
+  [#1128](https://github.com/Verified-zkEVM/ArkLib/pull/1128) adds polynomial substitution and
+  selected-coordinate degree lemmas;
+  [#1129](https://github.com/Verified-zkEVM/ArkLib/pull/1129) adds executor regression controls.
+  Both are open for review, separately from the pinned compatibility in #42.
+- [ArkLib #615](https://github.com/Verified-zkEVM/ArkLib/pull/615) remains open and unavailable at
+  the pinned revision. Separate compatibility probes check its `gammaPowers` correspondence
+  and rejection through guarded append; they do not make it a dependency of the pinned ports.
+- [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900) tracks stacking algebra;
+  [#901](https://github.com/Verified-zkEVM/ArkLib/issues/901) tracks fingerprints and multiset
+  products. Generic leanerVM modules remain local until their upstream adoption and a reviewed
+  pin update.
 
-| Ledger | Layer | Action | Upstream |
-| --- | --- | --- | --- |
-| A1 sumcheck single-round rbr knowledge soundness (`Sumcheck/Spec/SingleRound.lean` sorries) | 4 | prove for the virtual-summand shape; contribute the leaf | to open: "sumcheck: prove the single-round rbr knowledge-soundness leaf" (ArkLib #3 is the umbrella) |
-| A2 rbr knowledge-soundness append for a pure first verifier (`Append/Security.lean` admitted) | 10 | prove `append_rbrKnowledgeSoundnessWorstCase_of_pure_first` mirroring the soundness version | to open, referencing ArkLib #676 |
-| A3 rbr ⇒ plain knowledge soundness (`Implications.lean` admitted) | 12 (corollary only) | none here; plain corollaries stated when it lands | ArkLib #676 |
-| A5 Fiat–Shamir and BCS security | 12 | interfaces `FiatShamirSecurity`, `BcsSecurity` | ArkLib #627 (BCS design); FS: to open "Fiat–Shamir: rbr knowledge soundness transfers in the ROM" |
-| A6 grand product, GKR, batching, stacking | 1, 4, 5 | write in ArkLib's shape under `Protocol/Generic/`, upstream as `ProofSystem/GKR/GrandProduct`, `Component/Batching`, `Data/MvPolynomial/Stacking` | to open: "grand-product GKR and multiset fingerprinting", "batch claims by powers of a challenge" |
-| A7 WHIR over binary Reed–Solomon codes, Merkle trees | 11 | write generically, upstream as `ProofSystem/Whir/` and `Commitments/Merkle` | to open; ArkLib #4 (Merkle) is the umbrella; coordinate with #3 F6 |
-| A8 mutual correlated agreement up to Johnson (`rs_mcaError_le_in_johnson_range` admitted) | 11 | interface `McaJohnson` | ArkLib's coding-theory track (#854 is adjacent) |
-| A9 ring switching packing leaves; no `GF(2) → GF(2^64)` profile | 9 | owned by #3 (F5) | ArkLib #893 |
-| C1 `Expression.toMvPolynomial`, `degreeBound` | 2 | write here, upstream to Clean | to open on Clean |
-| C2 power-of-two heights, bus separator data | 3 | leanISA `Caps` and channels | leanerVM #13 |
+The derived algebra retains the attribution documented in
+[the prerequisite branch’s reuse catalog](https://github.com/Verified-zkEVM/leanerVM/blob/5cc944a5441c2cbcd12385bfb575f4976c994347/docs/roadmap/leanth-reuse.md), from
+[leanth #16](https://github.com/Verified-zkEVM/leanth/pull/16) at
+`23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`. Existing source notices, file authors and commit
+coauthors are preserved; newly written controls do not expand the original results' scope.
 
-## Decisions pending
+## Roadmap coverage and remaining work
 
-Confirm before Layer 3 or Layer 10 is opened:
+| Layer | Current status |
+| --- | --- |
+| 0 — dependency and field instances | Landed on main |
+| 1 — tables, stacking and public columns | Generic prerequisite in #18; further algebra and public evaluations under review; concrete assembly remains |
+| 2 — Clean components as polynomials | Expression bridge under review upstream; operation/ensemble polynomial assembly remains |
+| 3 — M3 instance | leanISA constraint statement landed; protocol-specific layout and witness assembly remain |
+| 4 — virtual sumcheck and batching | Honest algebra and batching under review; single-round child results prepared; full virtual/multi-round protocol remains |
+| 5 — fingerprints, grand product and GKR | Fingerprints under review; multiset-product child prepared; concrete bus wrappers, product trees and GKR remain |
+| 6 — bus phase | Open; needs the concrete M3 and grand-product/GKR interfaces |
+| 7 — table sumcheck phase | Open; needs the bus phase, virtual sumcheck and operational challenge argument |
+| 8 — public-input phase | Open; fixed public-column evaluations alone do not assemble the phase |
+| 9 — Flock and ring switching | Open protocol interface; coordinated through [the Flock roadmap](https://github.com/Verified-zkEVM/leanerVM/issues/3) |
+| 10 — claim pool, opening and oracle protocol | Open; composition and extraction interfaces remain |
+| 11 — WHIR, Merkle and parameters | Open; requires its protocol, commitment and coding-theory interfaces |
+| 12 — compilation, transcript and verifier | Open; requires the composed protocol and cryptographic interfaces |
+| 13 — base-proof extraction, completeness and fixtures | Open; requires the compiled protocol and leanISA extraction |
 
-1. **`Caps` includes power-of-two heights** (leanerVM #13): the relation of this roadmap is
-   `SatisfiedBy` alone only if it does; otherwise Layer 3 adds the conjunct locally and the two
-   roadmaps state two relations.
-2. **Statement versus parameter.** The roadmap makes `prog` and `sizes` Lean parameters and
-   `input` the statement (convention *Statements and parameters*). The alternative, `(prog,
-   input)` as the statement and `sizes` a parameter, changes nothing in the theorems and makes
-   the Fiat–Shamir seeding read more naturally; decide at Layer 3.
-3. **Where the zerocheck error is charged.** Layer 7 charges the "`C̃(ζ) = 0` implies `C` vanishes
-   on the cube" step to Layer 6's challenges (where `ζ` is drawn). The alternative is a separate
-   `ReduceClaim`-shaped phase between Layers 6 and 7 whose only content is that implication; it
-   is cleaner to audit and costs one more composition. Decide at Layer 7.
-4. **Generic code location.** `LeanerVM/Protocol/Generic/` until the ArkLib pull request merges
-   (convention *Generic code*), versus developing directly on an ArkLib branch and pinning
-   leanerVM to that branch's commit. The former keeps CI green on one pin; the latter avoids a
-   deletion step. Default is the former.
-5. **The honest prover's shape.** Computable by construction (each phase's prover a function of
-   the witness and the challenges) is the default; whether it is also made the object of a
-   compile-time end-to-end `#guard` on a tiny instance depends on the cost of the WHIR encoder
-   in the interpreter, measured at Layer 11.
+The remaining assembly choices include statement versus parameter placement, where to charge
+the recycled-point zerocheck error, and the executable honest prover's shape. Full ensemble
+reconstruction, positive product extraction, recycled-challenge freshness, recursion extraction,
+and unconditional end-to-end soundness are not established by these contributions. Witness
+generation from executions, zero knowledge, and the other exclusions in the blueprint retain
+their existing scope. No base-proof extraction or completeness theorem is claimed complete.
 
-## Open findings against the sources
+## Historical source findings
+
+The findings and survey below record the pinned-source audit of 2026-09-10. Their original
+labels are retained for existing citations. They are not claims about current upstream main
+or a fresh validation receipt; the current contribution status is given above.
 
 Numbered for citation from pull requests and `docs/leanvm-target.md`. **S** = internal to the
 specification; **F** = Rust versus specification, continuing the leanISA numbering where the
@@ -145,7 +154,7 @@ the per-log caps (`cpu/mod.rs:174-176`). F16 `SECURITY_BITS = 128` round-by-roun
 Johnson slack, and `assert_grinding_unnecessary` proves the bus needs no grinding for
 `μ ≤ 61` (`leaf.rs:945-950`).
 
-**ArkLib** (`dca90385`). A1–A9 are the ledger. Further: A10 relations are `Set (Stmt × Wit)`;
+**ArkLib** (`dca90385`). A1–A9 refer to the original blueprint ledger. Further: A10 relations are `Set (Stmt × Wit)`;
 the documented refactor to `Stmt → Wit → Prop` has not happened (`Security/Basic.lean:45-65`).
 A11 `rbrKnowledgeSoundness` averages over prover-sampled prefixes and is weaker than the
 literature's; the worst-case form (`rbrKnowledgeSoundnessWorstCase`) is the one every layer
@@ -175,9 +184,9 @@ Frobenius ladder is #3's (F1 there).
 `.so`; the file existed afterwards and a second `lake build` proceeds. The plugin is loaded
 while elaborating every ArkLib module (`lakefile.toml:48`), so a consumer needs it built.
 
-## Survey record
+## Historical survey record
 
-Kept so the searches are not repeated (2026-09-10).
+Scope of the 2026-09-10 survey; retained as historical evidence.
 
 - **ArkLib** at `dca90385`: `OracleReduction/{Basic,Execution,OracleInterface,Security/*,
   Composition/Sequential/*,LiftContext/*,FiatShamir/*,BCS,Salt,VectorIOR}.lean`,
