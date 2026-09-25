@@ -2,8 +2,8 @@
 
 This file records where the [protocol roadmap](protocol-blueprint.md) stands as of `main` at
 `cd5f60a` (leanISA execution validation, PR #34), checked on 2026-09-25, together with the open
-pull requests and the spine as built on the branch `docs/protocol-spine` (hole S), which this
-snapshot accompanies. It is a hand-maintained
+pull requests and the spine as built on the branch `docs/protocol-spine` (hole S, pull request
+#58), which this snapshot accompanies. It is a hand-maintained
 snapshot, rewritten whole when a layer or hole lands or a decision is taken; the roadmap is the
 authority on what is wanted, and the tracking issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole checklist below.
@@ -15,7 +15,7 @@ dependency pins are unchanged.
 **At a glance.** Layer 0 is on `main` (#15, 2026-09-11). The spine (hole S) is built, on the
 branch `docs/protocol-spine`, under `LeanerVM/Protocol/Spine/` with its tests in
 `tests/LeanerVMTests/Protocol/Spine.lean`, and `./scripts/validate.sh` is green there; its pull
-request is the next to open. It is generic over `I : M3Instance` and imports nothing from
+request is #58, in review. It is generic over `I : M3Instance` and imports nothing from
 `LeanerVM/Arithmetization/` (the wall holds). Concrete in it: the instance and the relation
 `M3Holds` (decidable; the toy instance decides it by evaluation), the claims and the six seams,
 the hole interfaces `Component.Def`/`Complete`/`Security` with their binary composition (the
@@ -38,7 +38,7 @@ knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that to `ValidExecuti
 | --- | --- | --- | --- |
 | 0 | ArkLib dependency and field instances (Layer 0) | landed | #15 |
 | L1 | Layer 1: generic tables and stacking, and the leaves | generic half in draft #18 (rebase pending); `stack_eval_ambient` in #40, `unstack` and `BlockClaim` in #38, `idxColumn_eval` and `bytecodeColumn_slot` in #41; coefficient transport #26 merged into #18 | #27, #32, #35, #36 |
-| S | the spine | built on `docs/protocol-spine`, pull request to open | #12 |
+| S | the spine | in review, #58 | #12 |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | claimed; the honest round algebra and the ArkLib bridge in #42 | #37 |
 | G2 | sumcheck round-by-round knowledge, `Sumcheck.Security` (Layer 4, A1) | claimed; a one-round leaf prepared, unpublished | #37 |
 | G3 | batching by powers (Layer 4) | claimed; the algebra and the `(J − 1)/\|F\|` count in #43; the fresh-challenge game prepared | #31 |
@@ -84,7 +84,7 @@ not run: the five stacked pull requests have no CI, and only #18's body records
 
 ### The frontier
 
-- **The spine** is built and is the next pull request; it does not depend on #18. Its review
+- **The spine** is #58, in review; it does not depend on #18. Its review
   budget goes to `M3Instance`, `M3Holds` and the seam relations, then to `Component.*` and the
   two master theorems. The decisions it settled by construction are listed under *Decisions
   pending*; each is reversible by a pull request to the spine.
