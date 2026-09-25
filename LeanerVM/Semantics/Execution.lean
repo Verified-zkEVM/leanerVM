@@ -43,8 +43,8 @@ and decides each instruction's relation on literal words in the kernel.
 
 * The final frame pointer is required: a run reaching the sentinel with `fp ≠ 1` is not a
   `ValidExecution` (acceptance test 4).
-* The sentinel is never executed: `run` is `none` from a state at `finalPc`, whatever fuel
-  remains, so the step count of a valid execution is the first arrival at the sentinel
+* The sentinel is never executed: `run` is `none` from a state at `finalPc` for any positive
+  step count (zero steps return that state), so a valid execution first arrives at the sentinel
   (`run_intermediate`), and the program with `N_prog = 1` has the empty execution
   (acceptance test 5).
 * The boundary words sit at `g^0` and `g^1`, two lanes each (acceptance test 17).
@@ -64,6 +64,18 @@ def Regs.initial : Regs K := ⟨1, 1⟩
 /-- The sentinel counter `g^(N_prog - 1)`, the last bytecode slot: reaching it halts the
 machine, and it is never executed (§2, execution loop step 3; acceptance test 5). -/
 def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
+
+/-- The sentinel is not a `JUMP`. This is a program-shape premise for constraint
+soundness, not a condition on ISA validity or a promise that padding is possible.
+The exact verifier-bound guest must establish it separately. It is the `sentinelSafe` field of
+the roadmap's `WellFormedBytecode` (Layer 10), which refers to this definition rather than
+restating it (acceptance test 20). -/
+def SentinelSafe (prog : Program) : Prop :=
+  (prog.code ⟨2 ^ prog.logSize - 1, Nat.sub_lt (Nat.two_pow_pos _) (by decide)⟩).opcode ≠ .jump
+
+/-- Sentinel safety is checked from the last typed instruction, without an address search. -/
+instance (prog : Program) : Decidable (SentinelSafe prog) :=
+  inferInstanceAs (Decidable (_ ≠ Opcode.jump))
 
 /-- The final registers `(g^(N_prog - 1), 1)`: the sentinel counter with the frame pointer back
 at `1` (§6.1, the boundary pull; acceptance test 4). -/
@@ -86,7 +98,9 @@ structure Trace (prog : Program) where
   κ : ℕ
   /-- The committed memory image. -/
   image : MemImage κ
-  /-- The number of instructions executed. -/
+  /-- Main-run transitions to the sentinel; excludes separately attributed padding rows.
+  At Rust `48a90420` this corresponds to `sum(base_counts)`, not `Execution.cycles`.
+  That implementation conversion still requires a correspondence proof. -/
   steps : ℕ
 
 /-- The verifier's boundary on a trace: `16 ≤ κ ≤ 32`, and the two public words at `g^0` and

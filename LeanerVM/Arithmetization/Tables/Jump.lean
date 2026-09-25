@@ -166,13 +166,13 @@ theorem jump_refines_iff {κ : ℕ} (mem : MemImage κ) (r : JumpRow K) (next : 
   constructor
   · rintro ⟨⟨hc, hd, hf⟩, hexec⟩
     refine ⟨⟨hc, hd, hf⟩, ?_⟩
-    simp only [execute, hc, hd, hf, Option.bind_eq_bind, Option.bind_some,
+    simp only [execute, executeWith, hc, hd, hf, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, isInK_ofLimbs, and_self, true_and, Option.pure_def,
       Option.some.injEq, ofLimbs_eq_zero_iff, limb_ofLimbs, Matrix.cons_val_zero] at hexec
     exact hexec.symm
   · rintro ⟨⟨hc, hd, hf⟩, rfl⟩
     refine ⟨⟨hc, hd, hf⟩, ?_⟩
-    simp only [execute, hc, hd, hf, Option.bind_eq_bind, Option.bind_some,
+    simp only [execute, executeWith, hc, hd, hf, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, isInK_ofLimbs, and_self, Option.pure_def, ofLimbs_eq_zero_iff,
       limb_ofLimbs, Matrix.cons_val_zero]
 
@@ -291,7 +291,7 @@ theorem jumpRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oc od of : K} {n
     (hexec : execute mem ⟨pc, fp⟩ (.jump oc od of) = some next) (rc rd rf rbc : K) :
     JumpRefines mem (jumpRowOf mem pc fp oc od of rc rd rf rbc) next := by
   have h := hexec
-  simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+  simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨c, hc, d, hd, f, hf, u, hu, -⟩ := h
   obtain ⟨hcK, hdK, hfK⟩ := guard_eq_some hu
   refine ⟨⟨?_, ?_, ?_⟩, hexec⟩

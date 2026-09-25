@@ -165,7 +165,7 @@ theorem xor_refines_iff {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Re
   constructor
   · rintro ⟨⟨hA, hB⟩, hexec⟩
     refine ⟨⟨hA, hB⟩, ?_⟩
-    simp only [execute, hA, hB, Option.bind_eq_bind, Option.bind_some] at hexec
+    simp only [execute, executeWith, hA, hB, Option.bind_eq_bind, Option.bind_some] at hexec
     cases hc : mem.read (r.fp * r.oC) with
     | none => rw [hc] at hexec; exact absurd hexec (by simp)
     | some c =>
@@ -175,7 +175,7 @@ theorem xor_refines_iff {κ : ℕ} (mem : MemImage κ) (r : XorRow K) (next : Re
       exact ⟨rfl, h.symm⟩
   · rintro ⟨⟨hA, hB⟩, hC, rfl⟩
     refine ⟨⟨hA, hB⟩, ?_⟩
-    simp only [execute, hA, hB, hC, Option.bind_eq_bind, Option.bind_some,
+    simp only [execute, executeWith, hA, hB, hC, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, Option.pure_def, true_and]
 
 /-! ## The adapter to the prover data -/
@@ -255,7 +255,7 @@ theorem xorRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp oA oB oC : K} {ne
     (hexec : execute mem ⟨pc, fp⟩ (.xor oA oB oC) = some next) (rA rB rC rbc : K) :
     XorRefines mem (xorRowOf mem pc fp oA oB oC rA rB rC rbc) next := by
   have h := hexec
-  simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+  simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨a, ha, b, hb, -⟩ := h
   refine ⟨⟨?_, ?_⟩, hexec⟩
   · show mem.read (fp * oA) = some (E.ofLimbs (mem.limbsAt (fp * oA))[0]

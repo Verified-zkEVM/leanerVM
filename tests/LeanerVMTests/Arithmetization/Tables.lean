@@ -166,7 +166,7 @@ theorem xor_spec : XorSpec xorRow ⟨g * gpow 0, 1⟩ tabData :=
   ⟨xor_bindings, by
     show execute (imageOf tabData).2 ⟨gpow 0, 1⟩ (.xor (gpow 2) (gpow 3) (gpow 4)) =
       some ⟨g * gpow 0, 1⟩
-    simp only [execute, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
       read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
     decide +kernel⟩
 
@@ -187,7 +187,7 @@ example : XorSpec xorRow2 ⟨g * gpow 2, 1⟩ tabData :=
   ⟨⟨xor_bindings.readA_eq, xor_bindings.readB_eq⟩, by
     show execute (imageOf tabData).2 ⟨gpow 2, 1⟩ (.xor (gpow 2) (gpow 3) (gpow 4)) =
       some ⟨g * gpow 2, 1⟩
-    simp only [execute, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
       read_at 4 #v[x0 + y0, x1 + y1, x2 + y2]]
     decide +kernel⟩
 
@@ -242,7 +242,7 @@ theorem mul_spec : MulSpec mulRow ⟨g * gpow 1, 1⟩ tabData :=
   ⟨mul_bindings, by
     show execute (imageOf tabData).2 ⟨gpow 1, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 5)) =
       some ⟨g * gpow 1, 1⟩
-    simp only [execute, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
+    simp only [execute, executeWith, one_mul, read_at 2 #v[x0, x1, x2], read_at 3 #v[y0, y1, y2],
       read_at 5 xyLanes]
     decide +kernel⟩
 
@@ -274,7 +274,7 @@ theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
   ⟨by
     show execute (imageOf tabData).2 ⟨gpow 2, 1⟩ (.setConstant (gpow 6) (E.ofLimbs 7 8 9)) =
       some ⟨g * gpow 2, 1⟩
-    simp only [execute, one_mul, read_at 6 #v[7, 8, 9]]
+    simp only [execute, executeWith, one_mul, read_at 6 #v[7, 8, 9]]
     decide +kernel⟩
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
@@ -344,7 +344,7 @@ theorem derefFp_bindings : DerefBindings (imageOf tabData).2 derefFpRow .fp := b
 theorem deref_exec :
     execute (imageOf tabData).2 ⟨gpow 3, 1⟩ (.deref (gpow 7) 1 (gpow 9) .pc) =
       some ⟨g * gpow 3, 1⟩ := by
-  simp only [execute, one_mul, mul_one, read_lit 7 (gpow 8) 0 0, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 7 (gpow 8) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
     read_lit 9 5 6 7, read_lit 8 (g ^ 2 * gpow 3) 0 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
@@ -353,7 +353,7 @@ theorem deref_exec :
 theorem derefCell_exec :
     execute (imageOf tabData).2 ⟨gpow 6, 1⟩ (.deref (gpow 25) 1 (gpow 27) .cell) =
       some ⟨g * gpow 6, 1⟩ := by
-  simp only [execute, one_mul, mul_one, read_lit 25 (gpow 26) 0 0, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 25 (gpow 26) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
     read_lit 27 3 4 5, read_lit 26 3 4 5, derefSource]
   decide +kernel
@@ -363,7 +363,7 @@ same. -/
 theorem derefFp_exec :
     execute (imageOf tabData).2 ⟨gpow 7, 1⟩ (.deref (gpow 28) 1 (gpow 30) .fp) =
       some ⟨g * gpow 7, 1⟩ := by
-  simp only [execute, one_mul, mul_one, read_lit 28 (gpow 29) 0 0, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit 28 (gpow 29) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
     read_lit 30 9 9 9, read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
@@ -450,7 +450,7 @@ theorem jump_spec : JumpSpec jumpRow ⟨gpow 6, 1⟩ tabData :=
   ⟨jump_bindings, by
     show execute (imageOf tabData).2 ⟨gpow 4, 1⟩ (.jump (gpow 10) (gpow 11) (gpow 12)) =
       some ⟨gpow 6, 1⟩
-    simp only [execute, one_mul, read_at 10 #v[1, 0, 0], read_at 11 #v[gpow 6, 0, 0],
+    simp only [execute, executeWith, one_mul, read_at 10 #v[1, 0, 0], read_at 11 #v[gpow 6, 0, 0],
       read_at 12 #v[1, 0, 0]]
     decide +kernel⟩
 
@@ -459,7 +459,7 @@ theorem jump0_spec : JumpSpec jumpRow0 ⟨g * gpow 8, 1⟩ tabData :=
   ⟨jump0_bindings, by
     show execute (imageOf tabData).2 ⟨gpow 8, 1⟩ (.jump (gpow 13) (gpow 11) (gpow 12)) =
       some ⟨g * gpow 8, 1⟩
-    simp only [execute, one_mul, read_at 13 #v[0, 0, 0], read_at 11 #v[gpow 6, 0, 0],
+    simp only [execute, executeWith, one_mul, read_at 13 #v[0, 0, 0], read_at 11 #v[gpow 6, 0, 0],
       read_at 12 #v[1, 0, 0]]
     decide +kernel⟩
 
@@ -558,7 +558,7 @@ theorem blake2s_spec : Blake2sSpec blake2sRow ⟨g * gpow 5, 1⟩ tabData :=
 example : execute (imageOf tabData).2 ⟨gpow 5, 1⟩
     (.blake2s ![gpow 16, gpow 17, gpow 18, gpow 19] (gpow 20) (gpow 22) (gpow 24)) =
       some ⟨g * gpow 5, 1⟩ := by
-  simp only [execute, one_mul, g_mul_gpow, Matrix.cons_val, Fin.isValue, read_at 16 (cell rustM0),
+  simp only [execute, executeWith, one_mul, g_mul_gpow, Matrix.cons_val, Fin.isValue, read_at 16 (cell rustM0),
     read_at 17 (cell rustM1), read_at 18 (cell rustM2), read_at 19 (cell rustM3),
     read_at 20 (cell rustCv0), read_at 21 (cell rustCv1), read_at 22 (cell rustOut0),
     read_at 23 (cell rustOut1), read_at 24 (cell rustMd), Option.bind_eq_bind, Option.bind_some]

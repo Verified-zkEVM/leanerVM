@@ -8,6 +8,7 @@ defaultTargets = ["LeanerVM"]
 testDriver = "LeanerVMTests"
 
 [leanOptions]
+warningAsError = true
 autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true

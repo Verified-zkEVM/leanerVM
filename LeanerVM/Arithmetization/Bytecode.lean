@@ -2,7 +2,7 @@
   LeanerVM.Arithmetization.Bytecode
 
   The sixteen-slot bytecode encoding of an instruction, its eight-coordinate bus entry, and the
-  decoder that reads the public program back.
+  decoder for canonical eight-coordinate entries.
 -/
 
 module
@@ -30,13 +30,16 @@ leanISA roadmap Layer 4 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
   `fp = (0, 1)`.
 
 `entry i` is the bus entry of an instruction, the row of `bytecode_columns`; `encodeSlots i` is
-its sixteen-slot row of §8.1, the entry at slots 3–10; `decode` reads an entry back. `decode` is
-exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF` tuple with free
-flags it names the mode whose flags they are (`decode_deref_eq_some_iff`). A vector whose
-opcode is not one of the six codes, whose `DEREF` flags are not one of the three pairs, or whose
-spare slots are not zero is no instruction, and `Program.fetch` at its address fails. This is
-where flag booleanity lives: in the public program, not in an AIR constraint (roadmap acceptance
-test 18).
+its sixteen-slot row of §8.1, the entry at slots 3–10; `decode` consumes an eight-coordinate
+entry. It is exact: `decode v = some i ↔ v = entry i` (`decode_eq_some_iff`); on a `DEREF`
+tuple with free flags it names the mode whose flags they are (`decode_deref_eq_some_iff`).
+Unknown opcodes, invalid `DEREF` flag pairs and nonzero spare entry coordinates decode to
+`none`. These results establish the canonical entry boundary (roadmap acceptance test 18).
+
+`Program` already contains typed `Instr` values, and `Program.fetch` looks them up by address;
+it does not invoke this decoder. `encodeSlots` constructs sixteen-slot vectors, but this
+module does not decode arbitrary sixteen-slot vectors or prove a raw-bytecode-to-`Program`
+loading/correspondence theorem. Those interfaces require separate coverage or rejection proofs.
 
 ## Wrong readings excluded
 
@@ -45,9 +48,10 @@ test 18).
   `decode_entry` on every constructor).
 * The flag pair `(1, 1)` decodes to nothing, and so does every pair that is not one of the
   three (acceptance test 18).
-* A nonzero spare slot is not ignored. Every table's bytecode tuple carries literal zeros in
-  its spare coordinates (`tables.rs:486-491`, `:553-558`, `:636`, `:742-747`), so no row can
-  pull such an entry; the decoder rejects it, and the semantics fetches nothing at its address.
+* A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
+  literal zeros in its spare coordinates (`tables.rs:486-491`, `:553-558`, `:636`, `:742-747`),
+  and `decode` rejects a tuple that violates that opcode's canonical entry shape. This is an
+  eight-coordinate entry claim, not rejection by the typed program's address lookup.
 -/
 
 namespace LeanerVM.Arithmetization

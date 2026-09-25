@@ -95,7 +95,7 @@ theorem set_refines_iff {κ : ℕ} (mem : MemImage κ) (r : SetRow K) (next : Re
         next = Regs.next ⟨r.pc, r.fp⟩ := by
   constructor
   · rintro ⟨hexec⟩
-    simp only [execute, Option.bind_eq_bind] at hexec
+    simp only [execute, executeWith, Option.bind_eq_bind] at hexec
     cases hc : mem.read (r.fp * r.o) with
     | none => rw [hc] at hexec; exact absurd hexec (by simp)
     | some c =>
@@ -105,7 +105,7 @@ theorem set_refines_iff {κ : ℕ} (mem : MemImage κ) (r : SetRow K) (next : Re
       exact ⟨rfl, h.symm⟩
   · rintro ⟨hk, rfl⟩
     refine ⟨?_⟩
-    simp only [execute, hk, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
+    simp only [execute, executeWith, hk, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
       Option.pure_def, true_and]
 
 /-! ## The adapter to the prover data -/

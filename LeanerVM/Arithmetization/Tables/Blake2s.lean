@@ -198,14 +198,14 @@ theorem blake2s_refines_iff {κ : ℕ} (mem : MemImage κ) (r : Blake2sRow K) (n
   constructor
   · rintro ⟨⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩, hexec⟩
     refine ⟨⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩, ?_⟩
-    simp only [execute, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd, Matrix.cons_val,
+    simp only [execute, executeWith, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd, Matrix.cons_val,
       Fin.isValue, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
       Option.pure_def, Option.some.injEq] at hexec
     exact ⟨hexec.1, hexec.2.symm⟩
   · rintro ⟨⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩, hrel, rfl⟩
     refine ⟨⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩, ?_⟩
     unfold Blake2sRelation at hrel
-    simp only [execute, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd, Matrix.cons_val,
+    simp only [execute, executeWith, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd, Matrix.cons_val,
       Fin.isValue, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff, hrel,
       true_and, Option.pure_def]
 
@@ -315,7 +315,7 @@ theorem blake2sRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp om0 om1 om2 o
     Blake2sRefines mem (blake2sRowOf mem pc fp om0 om1 om2 om3 ocv oout omd
       rm0 rm1 rm2 rm3 rcv0 rcv1 rout0 rout1 rmd rbc) next := by
   have h := hexec
-  simp only [execute, Matrix.cons_val, Fin.isValue, Option.bind_eq_bind,
+  simp only [execute, executeWith, Matrix.cons_val, Fin.isValue, Option.bind_eq_bind,
     Option.bind_eq_some_iff] at h
   obtain ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
     md, hmd, u, hu, -⟩ := h
