@@ -110,7 +110,7 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
 -- An unknown opcode is not an instruction.
 #guard decode #v[gpow 6, gpow 2, gpow 3, gpow 4, 0, 0, 0, 0] = none
 #guard decode #v[0, gpow 2, gpow 3, gpow 4, 0, 0, 0, 0] = none
--- A nonzero spare slot is not an instruction: no table row can pull such an entry.
+-- A nonzero spare entry coordinate is outside the canonical typed-program encoding.
 #guard decode #v[Opcode.xor.code, gpow 2, gpow 3, gpow 4, 1, 0, 0, 0] = none
 #guard decode #v[Opcode.setConstant.code, gpow 2, 7, 8, 9, 1, 0, 0] = none
 #guard decode #v[Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 1] = none

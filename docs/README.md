@@ -7,6 +7,8 @@ This directory contains stable project and operating knowledge.
 - [dependencies.md](dependencies.md): version pins and dependency update policy.
 - [leanvm-target.md](leanvm-target.md): audited target revision, legacy comparison, and
   proof-obligation coverage.
+- [leanisa-checker.md](leanisa-checker.md): proved exact and fuel-bounded checkers, trace
+  adapters, filler validation, and the pinned Rust comparison lane.
 - [development.md](development.md): local commands, module workflow, and testing guidance.
 - [ci.md](ci.md): workflow responsibilities, required checks, and automation secrets.
 - [roadmap/](roadmap/): one roadmap (what is wanted) and one status snapshot (where it stands)

@@ -18,16 +18,7 @@ else
   fi
 fi
 
-if matches="$(rg --line-number --glob '*.lean' \
-    'set_option (autoImplicit|relaxedAutoImplicit|linter\.|weak\.linter\.)' "${paths[@]}")"; then
-  echo "Repository-wide Lean options must not be overridden in source files:" >&2
-  echo "$matches" >&2
-  exit 1
-else
-  status=$?
-  if [[ $status -ne 1 ]]; then
-    exit "$status"
-  fi
-fi
+# Lean also permits line comments and nested block comments between these tokens.
+python3 ./scripts/check-lean-options.py "${paths[@]}"
 
 echo "First-party Lean source policy passed."

@@ -133,6 +133,22 @@ example : cellWords rustOut0 ++ cellWords rustOut1 =
 /-- The nine cells satisfy the relation. -/
 example : CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1 rustMd := by decide +kernel
 
+/-! ## Arbitrary flag words in the pinned opcode compression -/
+
+/-- Pinned `flock::hash::blake2s_compress` accepts these distinct, non-Boolean `u32` flag words.
+The corresponding Rust lane asserts the same eight output words. -/
+def rawFlagsMd : E := E.ofLimbs 64 0x9abcdef012345678 0
+def rawFlagsOut0 : E := E.ofLimbs 0xd16af0a6e9a85163 0xba5be3252edb90ff 0
+def rawFlagsOut1 : E := E.ofLimbs 0x3ce6b68fbdc018d2 0x8c0e7b0bbea90143 0
+
+example : unpackMetadata rawFlagsMd = (64, 0x12345678, 0x9abcdef0) := by decide
+example : CompressCells rustM rustCv0 rustCv1 rawFlagsOut0 rawFlagsOut1 rawFlagsMd :=
+  by decide +kernel
+
+/-- Changing only the last-node word cannot retain the raw-flag output. -/
+example : ¬ CompressCells rustM rustCv0 rustCv1 rawFlagsOut0 rawFlagsOut1
+    (E.ofLimbs 64 0x0000000012345678 0) := by decide +kernel
+
 example : wordsCell (cellWords rustOut0) = rustOut0 := wordsCell_cellWords (by decide)
 
 /-! ## Mutations (roadmap acceptance tests 10–12) -/
@@ -147,6 +163,12 @@ example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0
 example : ¬ CompressCells ![E.ofLimbs 0x0123456789abcdef 0xfedcba9876543210 1, rustM1, rustM2,
     rustM3] rustCv0 rustCv1 rustOut0 rustOut1 rustMd := by
   decide +kernel
+
+/-- The chaining-value and metadata cells have the same canonicality requirement. -/
+example : ¬ CompressCells rustM (E.ofLimbs 7 0 1) rustCv1 rustOut0 rustOut1 rustMd :=
+  by decide +kernel
+example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1
+    (E.ofLimbs 64 0x00000000ffffffff 1) := by decide +kernel
 
 /-- A single wrong output bit is rejected. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0

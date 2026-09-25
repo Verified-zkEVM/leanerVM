@@ -63,7 +63,12 @@ lakefile sets `preferReleaseBuild`, so on a checkout where CompPoly is not yet b
 looks for a release tag at the pin, finds none, logs a warning, and builds from source; under
 `--wfail` that warning fails the build. CI and `scripts/validate.sh` therefore run `lake build`
 without `--wfail` and with Lake's caches enabled; the lookup costs one warning and changes
-nothing else. Mathlib's oleans come from `lake exe cache get`, which CI runs before the build:
+nothing else. Package-level `leanOptions.warningAsError = true` in the root lakefile
+rejects first-party Lean elaboration warnings, including imported production and test leaves,
+without turning Lake's release-lookup warning into a failure. `scripts/test-warning-policy.py`
+checks positive builds and planted imported-leaf warnings for both library kinds. It does
+not change upstream package options or dependency revisions. Mathlib's oleans come from
+`lake exe cache get`, which CI runs before the build:
 compiling Mathlib from source does not fit the job's time limit. Pinning CompPoly to a release
 tag that contains the binary fields would let a build download the prebuilt archive instead.
 

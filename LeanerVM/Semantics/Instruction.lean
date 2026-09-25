@@ -29,9 +29,11 @@ no valid cell.
 `Program.fetch` reads the instruction at a program counter through the same bounded logarithm
 as memory: `pc = g ^ i` with `i < 2 ^ logSize` fetches instruction `i` and every other `pc`
 fetches nothing. The halting test of Layer 3 runs before the fetch, so a valid execution never
-fetches the sentinel slot `g ^ (2 ^ logSize - 1)` (roadmap acceptance test 5). The store-mode
-flag pair `(1, 1)` has no constructor: it is excluded by the public program's decoder
-(Layer 4), not by a constraint (acceptance test 18).
+fetches the sentinel slot `g ^ (2 ^ logSize - 1)` (roadmap acceptance test 5). `Program` stores
+typed `Instr` values, so the store-mode flag pair `(1, 1)` has no constructor. Layer 4
+separately specifies canonical encodings and an eight-coordinate entry decoder that rejects
+invalid flags (acceptance test 18). `Program.fetch` is an address lookup, not a raw-bytecode
+parser; correspondence with raw program loading remains a separate obligation.
 -/
 
 namespace LeanerVM.Semantics
