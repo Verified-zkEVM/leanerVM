@@ -1140,7 +1140,7 @@ full order (Layer 0). The read bound is derived from `Caps` (`≤ 10 · 6 · 2^3
 registers: the decomposition gives a walk of steps from `(1, 1)` to `(g^(N_prog - 1), 1)`,
 `no_row_at_sentinel` says no state before the last carries the sentinel counter, and
 `run_succ_of_ne` chains the walk into `run` (issue #10; acceptance tests 20 and 21). Both consume
-only the `sentinelHalts` field of `WellFormedBytecode`. The remaining rows are the closed walks
+only the `sentinelSafe` field of `WellFormedBytecode`. The remaining rows are the closed walks
 `AssignmentRepresents` names; nothing is claimed about them beyond being steps.
 
 ### Layer 10: constraint soundness and completeness
@@ -1155,8 +1155,8 @@ def HasFillBlocks (prog : Program) : Prop
 require is one more field here, never a new hypothesis on a theorem. -/
 structure WellFormedBytecode (prog : Program) : Prop where
   /-- The sentinel slot is not a `JUMP`: a row there pushes a counter outside the bytecode
-  (acceptance test 20). -/
-  sentinelHalts : (prog.code ⟨2 ^ prog.logSize - 1, _⟩).opcode ≠ .jump
+  (acceptance test 20). Layer 3's `SentinelSafe prog`, not restated here. -/
+  sentinelSafe : SentinelSafe prog
   /-- The fill blocks are present (acceptance test 15). -/
   hasFillBlocks : HasFillBlocks prog
 
@@ -1170,7 +1170,7 @@ Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean
 `TableSoundness`, applied directly to the witness with `w.Assumptions` supplied by
 `assumptions_of_blake2sRowsValid h.blake2s_valid` (never through
 `soundness_of_tableSoundness_and_specConsistency`, whose `AssumptionsConsistency` sources a
-table's `Assumptions` from the public input alone), and uses only `hwf.sentinelHalts`.
+table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`.
 Completeness builds the rows of the run, then pads each table to a power of two — and the
 BLAKE2S table to at least eight rows — with closed walks from the fill blocks, and uses only
 `hwf.hasFillBlocks`. Both take the whole structure so that T1 reads "for well-formed bytecode".
@@ -1257,7 +1257,7 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     read in frame `g`, jumps to `(g, 1)`. Both rows are `step`s and the state channel balances
     against the boundary, yet `run` halts at `(g, g)` for every step count, so no
     `ValidExecution` exists. Hence `constraintSoundness` carries `WellFormedBytecode prog`, whose
-    `sentinelHalts` field excludes a `JUMP` sentinel; a version without it is false. The
+    `sentinelSafe` field excludes a `JUMP` sentinel; a version without it is false. The
     compiler pads the sentinel with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:162`).
 21. **Closed walks are not reachable.** The fill blocks of §8.3 run in frames disjoint from the
     program's own run, so their pulled states are not `run`-reachable from `(1, 1)`, and a state

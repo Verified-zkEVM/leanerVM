@@ -17,6 +17,9 @@ comparison makes any failed step invalidate the check. Multiplicities are natura
 multiplicities, never sums in the characteristic-two field. This is a semantic row check;
 it does not take a main run or establish disjointness from one. It also does not check
 memory/bytecode lookup counts, table capacities, or Rust correspondence.
+
+`FillerRowsValid` is the audited statement; `checkFillerRows` is its carrier, the same
+condition over `stepChecked`, with the untrusted hint list of `LeanerVM.Semantics.Executable`.
 -/
 
 namespace LeanerVM.Semantics
@@ -33,18 +36,19 @@ def FillerRowsValid {κ : ℕ} (prog : Program) (image : MemImage κ)
     (starts.map some).Perm (starts.map (step prog image))
 
 /-- Check every filler row against the fixed image and check natural state multiplicities. -/
-def checkFillerRows {κ : ℕ} (prog : Program) (image : MemImage κ)
+def checkFillerRows {κ : ℕ} (prog : Program) (image : MemImage κ) (hints : List ℕ)
     (starts : List (Regs K)) : Bool :=
   decide ((∀ r ∈ starts, r.pc ≠ prog.finalPc) ∧
-    (starts.map some).Perm (starts.map (stepChecked prog image)))
+    (starts.map some).Perm (starts.map (stepChecked prog image hints)))
 
-/-- Executable filler-row checking has exactly the reference meaning within the address bound. -/
+/-- Executable filler-row checking has exactly the reference meaning within the address
+bound, for every hint list. -/
 theorem checkFillerRows_eq_true_iff {κ : ℕ} (hκ : κ < 64) (prog : Program)
-    (image : MemImage κ) (starts : List (Regs K)) :
-    checkFillerRows prog image starts = true ↔ FillerRowsValid prog image starts := by
+    (image : MemImage κ) (hints : List ℕ) (starts : List (Regs K)) :
+    checkFillerRows prog image hints starts = true ↔ FillerRowsValid prog image starts := by
   unfold checkFillerRows FillerRowsValid
-  rw [show stepChecked prog image = step prog image from
-    funext (stepChecked_eq_step hκ prog image)]
+  rw [show stepChecked prog image hints = step prog image from
+    funext (stepChecked_eq_step hκ prog image hints)]
   simp only [decide_eq_true_eq]
 
 /-- Every accepted row has a real successor, and that successor occurs among the starts. -/

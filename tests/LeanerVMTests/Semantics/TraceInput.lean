@@ -1,5 +1,5 @@
 import LeanerVM.Semantics.TraceInput
-import LeanerVMTests.Semantics.Checker
+import LeanerVMTests.Semantics.Executable
 
 /-!
 # Finite export adaptation regressions
@@ -11,7 +11,7 @@ Rust producer fixtures. Counts alone do not certify filler rows or actual opcode
 namespace LeanerVMTests.Semantics.TraceInput
 
 open LeanerVM.Parameters LeanerVM.Semantics
-open LeanerVMTests.Semantics.Execution LeanerVMTests.Semantics.Checker
+open LeanerVMTests.Semantics.Execution LeanerVMTests.Semantics.Executable
 
 /-- A finite export of the consistent three-step image, with no filler announcements. -/
 def exactInput : TraceInput where
@@ -50,7 +50,6 @@ def fillerInput : TraceInput where
 def jumpInput : PublicInput := ⟨![1, 0, g, 0]⟩
 
 #guard fillerInput.mainSteps = 1
-#guard fillerInput.fillerSteps = 19
 #guard (fillerInput.adapt jumpProgram).map (·.steps) = some 1
 #guard validateInput jumpProgram jumpInput fillerInput
 #guard !validateInput jumpProgram jumpInput

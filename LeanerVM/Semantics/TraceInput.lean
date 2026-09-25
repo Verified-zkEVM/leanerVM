@@ -6,7 +6,7 @@
 
 module
 
-public import LeanerVM.Semantics.Checker
+public import LeanerVM.Semantics.Executable
 
 /-!
 # Finite execution exports
@@ -40,10 +40,6 @@ structure TraceInput where
 /-- Main-run transitions, summed in unbounded natural-number arithmetic. -/
 def TraceInput.mainSteps (input : TraceInput) : ℕ := input.mainCounts.toList.sum
 
-/-- Rows attributed to filler traversal, after the announced main-run counts. -/
-def TraceInput.fillerSteps (input : TraceInput) : ℕ :=
-  (input.rowCounts.toList.zipWith (· - ·) input.mainCounts.toList).sum
-
 /-- Main counts cannot exceed total counts, and total rows agree with `cycles`.
 These are accounting conditions, not proofs that any announced row exists or is valid. -/
 def TraceInput.Accounted (input : TraceInput) : Prop :=
@@ -63,11 +59,13 @@ def TraceInput.adapt (prog : Program) (input : TraceInput) : Option (Trace prog)
   else none
 
 /-- Validate the main run in an adapted export against the supplied public program/input.
-Success says nothing about the separate filler rows or a Rust producer's correctness. -/
-def validateInput (prog : Program) (publicInput : PublicInput) (input : TraceInput) : Bool :=
+Success says nothing about the separate filler rows or a Rust producer's correctness. The
+hint list is the carrier's untrusted speedup (`LeanerVM.Semantics.Executable`). -/
+def validateInput (prog : Program) (publicInput : PublicInput) (input : TraceInput)
+    (hints : List ℕ := []) : Bool :=
   match input.adapt prog with
   | none => false
-  | some t => checkTrace prog publicInput t
+  | some t => checkTrace prog publicInput t hints
 
 /-- Adapting preserves the exact whole image and uses the main count, never total cycles. -/
 theorem TraceInput.adapt_preserves {prog : Program} {input : TraceInput} {t : Trace prog}
@@ -84,10 +82,11 @@ theorem TraceInput.adapt_preserves {prog : Program} {input : TraceInput} {t : Tr
     have hi : i.val < 2 ^ Nat.log 2 input.memory.size := i.isLt
     exact Array.getElem?_eq_getElem (by omega)
 
-/-- Export validation is equivalent to successful adaptation and a valid reference run. -/
+/-- Export validation is equivalent to successful adaptation and a valid reference run, for
+every hint list. -/
 theorem validateInput_eq_true_iff (prog : Program) (publicInput : PublicInput)
-    (input : TraceInput) :
-    validateInput prog publicInput input = true ↔
+    (input : TraceInput) (hints : List ℕ) :
+    validateInput prog publicInput input hints = true ↔
       ∃ t, input.adapt prog = some t ∧ ValidExecution prog publicInput t := by
   unfold validateInput
   cases h : input.adapt prog with

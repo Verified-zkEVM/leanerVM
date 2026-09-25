@@ -100,19 +100,19 @@ def mulTrace : Trace mulProg := ⟨minLogMem, mulImage, 3⟩
 theorem mul_step0 : step mulProg mulImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one mulProg)]
   show execute mulImage ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
-  simp only [execute, one_mul, read_lit mulImage 2]
+  simp only [execute, executeWith, one_mul, read_lit mulImage 2]
   decide +kernel
 
 theorem mul_step1 : step mulProg mulImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_lit mulProg 1)]
   show execute mulImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
-  simp only [execute, one_mul, read_lit mulImage 3]
+  simp only [execute, executeWith, one_mul, read_lit mulImage 3]
   decide +kernel
 
 theorem mul_step2 : step mulProg mulImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_lit mulProg 2)]
   show execute mulImage ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
-  simp only [execute, one_mul, read_lit mulImage 2, read_lit mulImage 3, read_lit mulImage 4]
+  simp only [execute, executeWith, one_mul, read_lit mulImage 2, read_lit mulImage 3, read_lit mulImage 4]
   decide +kernel
 
 /-- The run: three steps from `(1, 1)`, halting at the sentinel `(g^3, 1)`. -/
@@ -191,28 +191,28 @@ example : step (oneStep (.jump (gpow 2) (gpow 3) (gpow 4))) ctlImage ⟨1, 1⟩ 
     some ⟨gpow 3, gpow 5⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 3) (gpow 4)) = _
-  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 3, read_lit ctlImage 4]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 3, read_lit ctlImage 4]
   decide +kernel
 
 /-- A `JUMP` not taken: `c = 0`, so it falls through to `(g, 1)`. -/
 example : step (oneStep (.jump (gpow 12) (gpow 3) (gpow 4))) ctlImage ⟨1, 1⟩ = some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 12) (gpow 3) (gpow 4)) = _
-  simp only [execute, one_mul, read_lit ctlImage 12, read_lit ctlImage 3, read_lit ctlImage 4]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 12, read_lit ctlImage 3, read_lit ctlImage 4]
   decide +kernel
 
 /-- 7: the same `JUMP` with `d = y ∉ K` is invalid although it is not taken. -/
 example : step (oneStep (.jump (gpow 12) (gpow 13) (gpow 4))) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 12) (gpow 13) (gpow 4)) = _
-  simp only [execute, one_mul, read_lit ctlImage 12, read_lit ctlImage 13, read_lit ctlImage 4]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 12, read_lit ctlImage 13, read_lit ctlImage 4]
   decide +kernel
 
 /-- A taken branch also rejects a destination outside `K`. -/
 example : step (oneStep (.jump (gpow 2) (gpow 13) (gpow 4))) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 13) (gpow 4)) = _
-  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 13, read_lit ctlImage 4]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 13, read_lit ctlImage 4]
   decide +kernel
 
 /-- The pointer cell holds the address `g^7`. -/
@@ -225,7 +225,7 @@ and `mem[g^7 · 1] = g² · 1`. The kernel decides an `E` equality only against 
 example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .pc)) ctlImage ⟨1, 1⟩ = some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .pc) = _
-  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
     Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7, derefSource,
     ofK_eq_ofLimbs]
   decide +kernel
@@ -242,7 +242,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) derefCellImage ⟨1,
     some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute derefCellImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = _
-  simp only [execute, one_mul, mul_one, read_lit derefCellImage 5,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit derefCellImage 5,
     Option.bind_eq_bind, Option.bind_some, derefCell_pointer, read_lit derefCellImage 6,
     read_lit derefCellImage 7, derefSource]
   decide +kernel
@@ -259,7 +259,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) derefFpImage ⟨1, 1�
     some ⟨g, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute derefFpImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .fp) = _
-  simp only [execute, one_mul, mul_one, read_lit derefFpImage 5,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit derefFpImage 5,
     Option.bind_eq_bind, Option.bind_some, derefFp_pointer, read_lit derefFpImage 6,
     read_lit derefFpImage 7, derefSource, ofK_eq_ofLimbs]
   decide +kernel
@@ -268,7 +268,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) derefFpImage ⟨1, 1�
 example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = none
-  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
     Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7, derefSource]
   decide +kernel
 
@@ -276,7 +276,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) ctlImage ⟨1, 1⟩ 
 example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .fp)) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .fp) = none
-  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
     Option.bind_some, ctl_pointer, read_lit ctlImage 6, read_lit ctlImage 7,
     derefSource, ofK_eq_ofLimbs]
   decide +kernel
@@ -289,7 +289,7 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 6) .cell)) nonKPointerImage ⟨
     none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute nonKPointerImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 6) .cell) = none
-  simp only [execute, one_mul, read_lit nonKPointerImage 5, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, read_lit nonKPointerImage 5, Option.bind_eq_bind,
     Option.bind_some]
   decide +kernel
 
@@ -298,7 +298,7 @@ ignores the cell's value. -/
 example : step (oneStep (.deref (gpow 5) 1 (gpow 16) .pc)) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.deref (gpow 5) 1 (gpow 16) .pc) = _
-  simp only [execute, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
+  simp only [execute, executeWith, one_mul, mul_one, read_lit ctlImage 5, Option.bind_eq_bind,
     Option.bind_some, Option.bind_none, read_sixteen]
   decide +kernel
 
@@ -308,13 +308,13 @@ example : step (oneStep (.deref (gpow 5) 1 (gpow 16) .pc)) ctlImage ⟨1, 1⟩ =
 example : step (oneStep (.xor (gpow 16) (gpow 2) (gpow 3))) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.xor (gpow 16) (gpow 2) (gpow 3)) = _
-  simp only [execute, one_mul, read_sixteen, Option.bind_eq_bind, Option.bind_none]
+  simp only [execute, executeWith, one_mul, read_sixteen, Option.bind_eq_bind, Option.bind_none]
 
 /-- The operand `0` names no cell. -/
 example : step (oneStep (.xor 0 (gpow 2) (gpow 3))) ctlImage ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.xor 0 (gpow 2) (gpow 3)) = _
-  simp only [execute, mul_zero, MemImage.read_zero, Option.bind_eq_bind, Option.bind_none]
+  simp only [execute, executeWith, mul_zero, MemImage.read_zero, Option.bind_eq_bind, Option.bind_none]
 
 /-- A counter past the bytecode fetches nothing. -/
 example : step (oneStep (.xor 1 1 1)) ctlImage ⟨gpow 2, 1⟩ = none :=
@@ -330,7 +330,7 @@ def haltProg : Program := oneStep (.jump (gpow 2) (gpow 14) (gpow 14))
 theorem halt_step : step haltProg ctlImage Regs.initial = some ⟨g, g⟩ := by
   rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 14) (gpow 14)) = _
-  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel
 
 /-- The run reaches the sentinel after one step with `fp = g`, and no number of steps reaches
@@ -388,7 +388,7 @@ theorem blake_reads (out1 : E) :
         guard (CompressCells ![rustM0, rustM1, rustM2, rustM3] rustCv0 rustCv1 rustOut0 out1
           rustMd)
         pure (Regs.next ⟨1, 1⟩)) := by
-  simp only [blakeIns, execute, one_mul, mul_one, Matrix.cons_val, g_mul_gpow, Nat.reduceAdd,
+  simp only [blakeIns, execute, executeWith, one_mul, mul_one, Matrix.cons_val, g_mul_gpow, Nat.reduceAdd,
     read_one (blakeImage out1), read_g (blakeImage out1), read_lit (blakeImage out1) 2,
     read_lit (blakeImage out1) 3, read_lit (blakeImage out1) 4, read_lit (blakeImage out1) 5,
     read_lit (blakeImage out1) 6, read_lit (blakeImage out1) 7, read_lit (blakeImage out1) 8,
@@ -425,7 +425,7 @@ example : ¬ SentinelSafe jumpSentinelProg := by decide
 theorem jumpSentinel_row1 : step jumpSentinelProg ctlImage Regs.initial = some ⟨g, g⟩ := by
   rw [step_of_fetch_eq_some (r := Regs.initial) (fetch_one _)]
   show execute ctlImage ⟨1, 1⟩ (.jump (gpow 2) (gpow 14) (gpow 14)) = _
-  simp only [execute, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
+  simp only [execute, executeWith, one_mul, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel
 
 /-- Row 2, at the sentinel counter: `(g, g)` jumps to the final registers `(g, 1)`. -/
@@ -434,7 +434,7 @@ theorem jumpSentinel_row2 :
   rw [step_of_fetch_eq_some (r := ⟨g, g⟩) (jumpSentinelProg.fetch_gpow 1)]
   show execute ctlImage ⟨g, g⟩ (.jump g (gpow 13) g) = some ⟨gpow 1, 1⟩
   have hgg : g * g = gpow 2 := (pow_two g).symm
-  simp only [execute, hgg, g_mul_gpow, read_lit ctlImage 2, read_lit ctlImage 14]
+  simp only [execute, executeWith, hgg, g_mul_gpow, read_lit ctlImage 2, read_lit ctlImage 14]
   decide +kernel
 
 /-- The two rows are steps that chain from the initial to the final registers, which is all the

@@ -161,7 +161,7 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next 
   constructor
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, hexec⟩
     refine ⟨mode, ⟨hflags, h1, h3⟩, ?_⟩
-    simp only [execute, h1, h3, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
+    simp only [execute, executeWith, h1, h3, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
       isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hexec
     cases hc : mem.read (r.p * r.o2) with
     | none => rw [hc] at hexec; exact absurd hexec (by simp)
@@ -172,7 +172,7 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next 
       exact ⟨rfl, h.symm⟩
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, h2, rfl⟩
     refine ⟨mode, ⟨hflags, h1, h3⟩, ?_⟩
-    simp only [execute, h1, h3, h2, Option.bind_eq_bind, Option.bind_some,
+    simp only [execute, executeWith, h1, h3, h2, Option.bind_eq_bind, Option.bind_some,
       guard_bind_eq_some_iff, isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero,
       Option.pure_def]
 
@@ -264,7 +264,7 @@ theorem derefRowOf_refines {κ : ℕ} {mem : MemImage κ} {pc fp o1 o2 o3 : K} {
     (r1 r2 r3 rbc : K) :
     DerefRefines mem (derefRowOf mem pc fp o1 o2 o3 mode r1 r2 r3 rbc) next := by
   have h := hexec
-  simp only [execute, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
+  simp only [execute, executeWith, Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨p, hp, u, hu, v3, hv3, -⟩ := h
   have hin := guard_eq_some hu
   refine ⟨mode, ⟨rfl, ?_, ?_⟩, hexec⟩

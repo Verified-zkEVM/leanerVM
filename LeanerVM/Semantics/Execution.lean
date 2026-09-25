@@ -67,7 +67,9 @@ def Program.finalPc (prog : Program) : K := gpow (2 ^ prog.logSize - 1)
 
 /-- The sentinel is not a `JUMP`. This is a program-shape premise for constraint
 soundness, not a condition on ISA validity or a promise that padding is possible.
-The exact verifier-bound guest must establish it separately. -/
+The exact verifier-bound guest must establish it separately. It is the `sentinelSafe` field of
+the roadmap's `WellFormedBytecode` (Layer 10), which refers to this definition rather than
+restating it (acceptance test 20). -/
 def SentinelSafe (prog : Program) : Prop :=
   (prog.code ⟨2 ^ prog.logSize - 1, Nat.sub_lt (Nat.two_pow_pos _) (by decide)⟩).opcode ≠ .jump
 

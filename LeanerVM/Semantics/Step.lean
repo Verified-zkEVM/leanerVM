@@ -34,9 +34,11 @@ names (`MemImage.read`, an operand `o` naming `fp · o`), check the instruction'
 the values read, and return the next registers. A failed fetch, a failed read, or a false
 relation is `none`. Values are only ever read and compared: the image is fixed before
 execution, so "`[o_C] = [o_A] + [o_B]`" is a check on three words, and a constraint row of
-Layer 6 corresponds to a step by unfolding `execute`.
+Layer 6 corresponds to a step by unfolding `execute` and `executeWith`. The arms are written
+once, in `executeWith` over a named reader; `execute L r` is `executeWith L.read r`, and the
+computable carrier of `LeanerVM.Semantics.Executable` is the same arms at a computable reader.
 
-The arms of `execute`, in the order of §2's table:
+The arms of `executeWith`, in the order of §2's table:
 
 * `XOR`, `MUL_NATIVE`: `[o_C] = [o_A] + [o_B]`, respectively `[o_A] · [o_B]`, in `E`.
 * `SET_CONSTANT`: `[o] = k`.
@@ -56,8 +58,9 @@ The arms of `execute`, in the order of §2's table:
   (acceptance test 7).
 * All nine `BLAKE2S` cells are canonical, the two output cells included, through
   `CompressCells` (acceptance test 12).
-* There is no second semantics. The executor's write-once bookkeeping, back-solving, hints,
-  and deferrals are witness generation, specified later against `step` (acceptance test 19).
+* There is no second semantics. The six arms exist once, in `executeWith`; the carrier only
+  changes the reader. The executor's write-once bookkeeping, back-solving, hints, and
+  deferrals are witness generation, specified later against `step` (acceptance test 19).
 -/
 
 namespace LeanerVM.Semantics
@@ -100,51 +103,59 @@ def derefSource : DerefMode → Regs K → E → E
 
 /-! ## The step -/
 
-/-- Execute one instruction from registers `r` over the committed image `L`: read the cells it
+/-- The six arms of one instruction over a named reader `read`: read the cells the instruction
 names, check its relation, and return the next registers; `none` on a failed read or a false
-relation (§2, execution loop step 2, "execute inst"). -/
-noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs K) : Instr → Option (Regs K)
+relation (§2, execution loop step 2, "execute inst"). The machine's step is `execute`, this
+function at the image's reader `L.read`; the computable carrier (`LeanerVM.Semantics.Executable`)
+instantiates the same arms with its own reader, so the arms exist once (acceptance test 19). -/
+def executeWith (read : K → Option E) (r : Regs K) : Instr → Option (Regs K)
   | .xor oA oB oC => do
-    let vA ← L.read (r.fp * oA)
-    let vB ← L.read (r.fp * oB)
-    let vC ← L.read (r.fp * oC)
+    let vA ← read (r.fp * oA)
+    let vB ← read (r.fp * oB)
+    let vC ← read (r.fp * oC)
     guard (vC = vA + vB)
     pure r.next
   | .mulNative oA oB oC => do
-    let vA ← L.read (r.fp * oA)
-    let vB ← L.read (r.fp * oB)
-    let vC ← L.read (r.fp * oC)
+    let vA ← read (r.fp * oA)
+    let vB ← read (r.fp * oB)
+    let vC ← read (r.fp * oC)
     guard (vC = vA * vB)
     pure r.next
   | .setConstant o k => do
-    let v ← L.read (r.fp * o)
+    let v ← read (r.fp * o)
     guard (v = k)
     pure r.next
   | .deref o1 o2 o3 mode => do
-    let p ← L.read (r.fp * o1)
+    let p ← read (r.fp * o1)
     guard (IsInK p)
-    let v3 ← L.read (r.fp * o3)
-    let v2 ← L.read (p.limb 0 * o2)
+    let v3 ← read (r.fp * o3)
+    let v2 ← read (p.limb 0 * o2)
     guard (v2 = derefSource mode r v3)
     pure r.next
   | .jump oc od of => do
-    let c ← L.read (r.fp * oc)
-    let d ← L.read (r.fp * od)
-    let f ← L.read (r.fp * of)
+    let c ← read (r.fp * oc)
+    let d ← read (r.fp * od)
+    let f ← read (r.fp * of)
     guard (IsInK c ∧ IsInK d ∧ IsInK f)
     pure (if c = 0 then r.next else ⟨d.limb 0, f.limb 0⟩)
   | .blake2s om ocv oout omd => do
-    let m0 ← L.read (r.fp * om 0)
-    let m1 ← L.read (r.fp * om 1)
-    let m2 ← L.read (r.fp * om 2)
-    let m3 ← L.read (r.fp * om 3)
-    let cv0 ← L.read (r.fp * ocv)
-    let cv1 ← L.read (r.fp * (g * ocv))
-    let out0 ← L.read (r.fp * oout)
-    let out1 ← L.read (r.fp * (g * oout))
-    let md ← L.read (r.fp * omd)
+    let m0 ← read (r.fp * om 0)
+    let m1 ← read (r.fp * om 1)
+    let m2 ← read (r.fp * om 2)
+    let m3 ← read (r.fp * om 3)
+    let cv0 ← read (r.fp * ocv)
+    let cv1 ← read (r.fp * (g * ocv))
+    let out0 ← read (r.fp * oout)
+    let out1 ← read (r.fp * (g * oout))
+    let md ← read (r.fp * omd)
     guard (CompressCells ![m0, m1, m2, m3] cv0 cv1 out0 out1 md)
     pure r.next
+
+/-- Execute one instruction from registers `r` over the committed image `L`: the arms of
+`executeWith` at the image's reader `MemImage.read`, which is what makes the specification
+noncomputable (§2, execution loop step 2). -/
+noncomputable def execute {κ : ℕ} (L : MemImage κ) (r : Regs K) : Instr → Option (Regs K) :=
+  executeWith L.read r
 
 /-- One step of the machine: fetch the instruction at `pc` and execute it (§2, execution loop
 steps 1–2); `none` when the counter fetches nothing. -/

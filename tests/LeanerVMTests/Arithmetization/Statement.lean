@@ -375,25 +375,25 @@ theorem read_at (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
 theorem fill_step0 : step fillProg fillImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) fetch_one]
   show execute fillImage ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
-  simp only [execute, one_mul, read_at 2 mulX]
+  simp only [execute, executeWith, one_mul, read_at 2 mulX]
   decide +kernel
 
 theorem fill_step1 : step fillProg fillImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_at 1 (.setConstant (gpow 3) mulY))]
   show execute fillImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
-  simp only [execute, one_mul, read_at 3 mulY]
+  simp only [execute, executeWith, one_mul, read_at 3 mulY]
   decide +kernel
 
 theorem fill_step2 : step fillProg fillImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_at 2 (.mulNative (gpow 2) (gpow 3) (gpow 4)))]
   show execute fillImage ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
-  simp only [execute, one_mul, read_at 2 mulX, read_at 3 mulY, read_at 4 mulXY]
+  simp only [execute, executeWith, one_mul, read_at 2 mulX, read_at 3 mulY, read_at 4 mulXY]
   decide +kernel
 
 theorem fill_step3 : step fillProg fillImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_at 3 (.jump (gpow 26) (gpow 27) (gpow 28)))]
   show execute fillImage ⟨gpow 3, 1⟩ (.jump (gpow 26) (gpow 27) (gpow 28)) = _
-  simp only [execute, one_mul, read_at 26 (cellK 1), read_at 27 (cellK (gpow 31)),
+  simp only [execute, executeWith, one_mul, read_at 26 (cellK 1), read_at 27 (cellK (gpow 31)),
     read_at 28 (cellK 1)]
   decide +kernel
 

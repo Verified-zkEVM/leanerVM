@@ -8,14 +8,27 @@ not change that pin or claim coverage of every change between those revisions.
 
 ## Proved interfaces
 
-- [`Executable.lean`](../LeanerVM/Semantics/Executable.lean) supplies exhaustive bounded-address
-  search and the six instruction checks. `checkTrace_eq_true_iff` proves that exact checking
-  accepts precisely `ValidExecution`, including memory caps, public words, exact step count,
-  the unexecuted sentinel and final frame pointer. A `SentinelSafe` premise is unnecessary for
-  semantic checking; it remains a separate premise of global constraint soundness.
-- [`Checker.lean`](../LeanerVM/Semantics/Checker.lean) searches within a transition budget.
-  `checkWithinFuel_eq_ok_iff` proves that success with count `n` is equivalent to a valid
-  exact-length execution with `n ≤ fuel`. Exhaustion makes no claim about larger budgets.
+The reference semantics (`gLog?`, `MemImage.read`, `Program.fetch`, `execute`, `step`, `run`,
+`ValidExecution`) stays noncomputable and is what a reader audits. One computable carrier is
+proved equal to it; its bodies may hold speedups and are not audited, only the equivalence
+statements are.
+
+- [`Step.lean`](../LeanerVM/Semantics/Step.lean) writes the six instruction arms once, in
+  `executeWith` over a named reader; `execute L r` is `executeWith L.read r`. The carrier
+  instantiates the same arms with its own reader, so there is no second copy of the semantics.
+- [`Executable.lean`](../LeanerVM/Semantics/Executable.lean) is the carrier. `addressIndex`
+  tries an untrusted hint list first, accepting an index only after `g ^ i = a` has been
+  checked, and otherwise scans the address space carrying `g ^ i` as a running product, one
+  multiplication per candidate; `addressIndex_eq_gLog` says it equals the reference logarithm
+  for every hint list. `stepChecked` is `executeWith` at that reader and equals `step`.
+  `checkWithinFuel_eq_ok_iff` proves that success with count `n` within a budget is equivalent
+  to a valid exact-length execution with `n ≤ fuel`; exhaustion makes no claim about larger
+  budgets. `checkTrace` runs the bounded search with the announced count as its budget and
+  requires exactly that count; `checkTrace_eq_true_iff` proves it accepts precisely
+  `ValidExecution`, including memory caps, public words, the unexecuted sentinel and the final
+  frame pointer, with no hypothesis and for every hint list. A `SentinelSafe` premise is
+  unnecessary for semantic checking; it remains a separate premise of global constraint
+  soundness.
 - [`RunTrace.lean`](../LeanerVM/Semantics/RunTrace.lean) gives relational steps and ordered
   finite traces, equivalent to `run`. A failed step has no successor. The empty run has one
   state and zero transitions.
@@ -24,17 +37,15 @@ not change that pin or claim coverage of every change between those revisions.
   `Trace.steps`. `adapt_preserves` and `validateInput_eq_true_iff` specify these guarantees.
   Announced counts alone do not prove that the rows exist.
 - [`FillerRows.lean`](../LeanerVM/Semantics/FillerRows.lean) accepts unordered row starts when
-  every reference successor succeeds and the starting/successor multisets agree. This
-  standalone interface does not take a main run or check memory/bytecode access-count columns
-  or budgets.
+  every reference successor succeeds and the starting/successor multisets agree
+  (`FillerRowsValid`, the audited statement; `checkFillerRows`, its carrier). This standalone
+  interface does not take a main run or check memory/bytecode access-count columns or budgets.
 
-[`ReadHints.lean`](../LeanerVM/Semantics/ReadHints.lean) accelerates high scratch-address reads
-and instruction fetches.
-Every suggested index is range checked and its generator power must match the requested
-address. Every miss falls back to exhaustive search. Kernel-checked equalities show that hints
-preserve the acceptance domain without a coverage assumption. Tests cover empty, incomplete,
-duplicate, incorrect and out-of-range hints. The Rust lane supplies hints from touched memory
-indices and row program counters solely for speed; these are not trusted evidence about access counts.
+Hints are a parameter of every carrier function, never of a definition of the machine. A
+suggested index is range checked and its generator power must match the requested address;
+every miss falls back to the scan. Tests cover empty, incomplete, duplicate, incorrect and
+out-of-range hints. The Rust lane supplies hints from touched memory indices and row program
+counters solely for speed; these are not trusted evidence about access counts.
 
 These deterministic semantic refinements support T1 and the T2 validation boundary. By
 themselves, they prove neither global constraint soundness/completeness nor cryptographic
@@ -97,8 +108,9 @@ Compiled `#guard` checks exercise the executable definitions. The refinement and
 theorems are kernel checked. Foreign export generation and compiled evaluation remain test
 boundaries; the tests are not proofs of Rust source or Rust's complete success domain.
 
-Fallback address lookup is exhaustive and slow for large or absent addresses. Verified hints
-make the concrete filler regression practical; this is not a performance result for large VMs.
+The scan is linear in the address space, so a read at a high or absent address costs one
+field multiplication per candidate below it. Verified hints make the concrete filler
+regression practical; this is not a performance result for large VMs.
 A standalone native executable still encounters the pinned CompPoly `Fintype BF64` startup
 issue recorded in the
 [status](roadmap/leanisa-status.md); compiled evaluation within Lean works. The P2 native smoke

@@ -24,10 +24,6 @@ open LeanerVM.Parameters
 
 @[expose] public section
 
-/-- A relational view of one instruction's fixed-image execution. -/
-def InstructionStep {κ : ℕ} (image : MemImage κ) (ins : Instr)
-    (before after : Regs K) : Prop := execute image before ins = some after
-
 /-- A relational view of instruction fetch followed by execution. This does not itself
 exclude the sentinel; the whole-run relation does. -/
 def ProgramStep {κ : ℕ} (prog : Program) (image : MemImage κ)

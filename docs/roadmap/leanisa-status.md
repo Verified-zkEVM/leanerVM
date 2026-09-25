@@ -550,8 +550,10 @@ line.
 8. Settled 2026-09-10 (issue #13): `Caps` requires power-of-two heights and the bytecode length;
    each Layer 5 channel names its separator, direction and sixteen-slot tuple.
 9. Settled 2026-09-10 (F6): both T1 theorems take `WellFormedBytecode prog`, a structure with
-   the fields `sentinelHalts` and `hasFillBlocks`; further program-shape conditions the Clean
-   proofs need join it as fields (roadmap Layer 10, acceptance test 20).
+   the fields `sentinelSafe` and `hasFillBlocks`; further program-shape conditions the Clean
+   proofs need join it as fields (roadmap Layer 10, acceptance test 20). Since PR #34 the
+   first field is Layer 3's `SentinelSafe prog` (`Semantics/Execution.lean`), not a restatement;
+   the field was named `sentinelHalts` until then.
 10. Settled 2026-09-11 (Layer 6): the six tables return the state they push
     (`GeneralFormalCircuit K Row Regs`), so that every `Spec` is `step … = some next`, the
     `JUMP` successor being a function of its witness `b` (roadmap Layer 6).
@@ -694,7 +696,17 @@ local to the component, with the honest generators the Rust's batched inversion 
 entry a meaning, a `DEREF` with the flag pair `(1, 1)` storing `v₃₀ + g²·pc + fp` in lane `0`
 (`tables.rs:616-623`), where Layer 2's `Program` holds decodable instructions only; T1 is
 stated for decodable bytecode and is silent, not false, about such a proof (the faithfulness
-review's row 4).
+review's row 4). R28 `Mem::get` (`execute.rs:263-270`) reads an unwritten cell as zero without
+marking it, and `Mem::put` (`:273-291`) accepts a later differing write as a first write; the
+diagnostic `unconstrained_reads` (`:909-912`) lists only cells never written, so a run that reads
+a cell before the instruction that writes it returns an image violating the reading instruction
+while the prover's guard (`cpu/mod.rs:536-542`) passes. Found by Alexander Hicks (PR #34, the
+`stale` fixture; Layer 3's checker rejects the image); confirmed unchanged at leanVM `main`
+`6fab9e30` on 2026-09-25 and filed upstream as leanEthereum/leanVM#285. Witness generation
+only: T1 is unaffected, and a T2 statement of the form "executor success implies
+`ValidExecution`" is false without a read-stability premise or an executor repair. Whether "no
+read before write" joins `WellFormedBytecode` as a program-shape condition is open and recorded
+here as uncertain, pending the upstream response.
 
 **Clean** (`93c9d1ef`): C1 direction is the sign of the multiplicity (test 13). C2 balance is a
 field sum with a characteristic side condition (test 14). C3 a component cannot see its row
