@@ -1,20 +1,17 @@
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Spine.Compose
-import LeanerVM.Protocol.Spine.Transport
+import LeanerVM.Protocol.ToArkLib.Refinement
 
 /-!
-# Protocol spine tests: the toy instance and the composition
+# Protocol spine tests
 
-Acceptance test 27 of the protocol roadmap: `M3Holds` holds of the toy's honest stack and fails
-for a stack with one cell changed, each of the four checkable clauses failing alone, and balance
-is a multiset equality, not a field sum. Decided by evaluation (`#guard`), since the relation is
-decidable. Then the composition: `Phases toy` and `Phases.Complete` are inhabited by pass-through
-phases (so `piop_perfectCompleteness` has an instance, and the seams line up: the inhabitant's
-`Complete` typechecks only against the spine's seams, acceptance test 26), the commit phase has
-one round and no challenge, its extractor reads the stack off the message, and a refinement
-transports an extracted witness slot.
-
-This is a plain file so that `#guard` evaluates the compiled decision procedure.
+`M3Holds` on the toy: the honest stack passes, each of the four checkable clauses fails alone on
+a stack with one cell changed, and balance is a multiset equality (a stack a field-summed
+balance would accept is rejected). The composition: five pass-through phases inhabit `Phases`
+and `Phases.Complete`, so `piop_perfectCompleteness` has an instance and the seams line up; the
+commit phase has one round and no challenge and its extractor reads the stack back; a
+refinement transports an extracted witness slot. A plain file, so `#guard` evaluates the
+compiled decision procedures.
 -/
 
 namespace LeanerVMTests.Protocol.Spine
@@ -28,8 +25,8 @@ open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy CompPoly CPoly 
 
 -- Each clause can fail alone.
 
-/-- Column 2 changed to `[2, 0]`, where `2 : K` is the polynomial `x`, not Boolean. At the
-statement `2` (so that the public cell still holds) only the constraint clause fails. -/
+/-- Column 2 changed to `[2, 0]`, where `2 : K` is the polynomial `x`, not Boolean. At statement
+`2`, so that the public cell still holds, only the constraint clause fails. -/
 def badConstraint : Column 3 := ⟨#v[1, 1, 1, 1, 2, 0, 0, 0]⟩
 
 #guard ¬ toy.ConstraintsVanish badConstraint
@@ -98,10 +95,9 @@ def trivPhases : Phases toy where
   flock := Phase.passThrough toy fun p ↦ (p.1, ⟨[], []⟩)
   opening := Phase.passThrough toy fun _ ↦ ()
 
-/-- Their completeness halves against the spine's seams: dropping every claim is complete
-(and not knowledge sound, which is why `Phases.Security` has no such inhabitant). This
-typechecks only because each `passThroughComplete` is stated against the seam the previous one
-outputs (acceptance test 26). -/
+/-- Their completeness against the seams: dropping every claim is complete, and not knowledge
+sound, which is why `Phases.Security` has no such inhabitant. This typechecks only because each
+completeness is stated against the seam the previous phase outputs. -/
 def trivComplete : trivPhases.Complete where
   bus := Phase.passThroughComplete toy _ fun _ _ h ↦ ⟨by simp, by simp, h.2.2.2.1, h.2.2.2.2⟩
   table := Phase.passThroughComplete toy _ fun _ _ h ↦ ⟨by simp, h.2.2.1, h.2.2.2⟩
@@ -131,8 +127,7 @@ def honestTranscript : (commitSpec toy).FullTranscript := fun i ↦ match i with
 def extracted : Column 3 :=
   (commitExtractor toy).extractOut ((1 : K), fun i : Fin 0 ↦ i.elim0) honestTranscript ()
 
--- The commit phase's extractor reads the stack off the message: acceptance test 24's first
--- instance, computable.
+-- The commit phase's extractor reads the stack off the message, and it computes.
 #guard extracted.values = honest.values
 
 /-- The relation the protocol starts from is `M3Holds`, in ArkLib's shape. -/

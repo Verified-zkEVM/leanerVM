@@ -40,7 +40,7 @@ Suggested home: `LeanerVM/Protocol/Spine/` (the spine), `LeanerVM/Protocol/` (th
 abstract instance, the adaptor, the compilation) with the Clean bridge in
 `LeanerVM/Arithmetization/` and the transcribed constants in `LeanerVM/Parameters/`, following
 [architecture.md](../architecture.md). Generic components live under
-`LeanerVM/Protocol/Generic/` only until their ArkLib pull request merges.
+`LeanerVM/Protocol/ToArkLib/` (and `ToCompPoly/`, `ToVCVio/`) only until their upstream pull request merges.
 
 This document is the specification. The Lean signatures pin the shapes most likely to drift;
 they are not exhaustive. Where things stand is recorded separately in
@@ -317,7 +317,7 @@ polynomial view and is Clean's upstream candidate.
 | Verifier shape | `verify` is a total, computable function of `(prog, input, proof)` to `Bool`; it never panics; a malformed proof is `false`. Structure checks on public data that the Rust `assert!`s (finding F10) are theorems about the layout, not branches of `verify`. |
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); assumed interfaces are structures with a docstring naming the upstream witness obligation, never `variable`-block hypotheses or `axiom`s. |
 | Unproved targets | A statement whose dependency is not yet available is a block comment at its place, carrying the statement and the dependency (leanISA convention). Never `sorry`. |
-| Generic code | A generic definition or theorem lives under `LeanerVM/Protocol/Generic/` with a module docstring naming the ArkLib issue; when the upstream pull request merges and the pin moves, the local copy is deleted in the same pull request. |
+| Generic code | A definition or theorem that belongs upstream lives under `LeanerVM/Protocol/ToArkLib/`, `LeanerVM/Protocol/ToCompPoly/` or `LeanerVM/Protocol/ToVCVio/` by destination, in a module of its own with a docstring saying it is a candidate for that library, so that it can be ported file by file; when the upstream pull request merges and the pin moves, the local copy is deleted in the same pull request. Comments everywhere are brief and self-contained: they cite the specification, never this roadmap. |
 | Module system | ArkLib is a `module` library; a file importing ArkLib and not Clean (nor a plain file) is a `module`. The Clean bridge (Layer 2), the adaptor (Layer 3) and T4 (Layer 13) are plain; the spine and every phase are modules, since `M3Instance` carries polynomials and tables, never a Clean circuit. |
 | The wall | Every module of the proof system is written over an abstract `I : M3Instance` and imports nothing from `LeanerVM/Arithmetization/`; the only exceptions are the Clean bridge (Layer 2), the adaptor (Layer 3) and T4 (Layer 13). `scripts/check-layers.sh` enforces the import rule (acceptance test 25). A leanISA change touches `leanIsaInstance`, the adaptor and T1, and nothing else. |
 | Holes | A phase or generic component is two structures: `X.Def` (the reduction, its relations and its per-challenge error) and `X.Security` (perfect completeness and round-by-round knowledge soundness over a `Def`). A `Def` lands with its completeness proof and an honest-run test on the toy instance; its `Security` may land later, as its own pull request; neither ever contains `sorry`. Until every hole is filled, `Phases.Security` is an assumed interface in the sense of *Trusted surface*. |
@@ -329,8 +329,10 @@ polynomial view and is Clean's upstream candidate.
 The spine is the one pull request (hole S; its specification is a section of the [hole
 comment](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) on the dashboard #12) that fixes everything two neighbouring pieces of work would
 otherwise have to agree on, and proves the composition once. It is built under
-`LeanerVM/Protocol/Spine/` (`Instance`, `Seams`, `Phase`, `Compose`, `Transport`, `Toy`), with
-its tests in `tests/LeanerVMTests/Protocol/Spine.lean`; the sketch below names what is there. After it, every phase, every generic component, the instance and
+`LeanerVM/Protocol/Spine/` (`Instance`, `Seams`, `Phase`, `Compose`, `Toy`) and, for the parts
+that belong in ArkLib, `LeanerVM/Protocol/ToArkLib/` (`Oracles`, `Component`, `PassThrough`,
+`SendOracle`, `Refinement`), with its tests in `tests/LeanerVMTests/Protocol/Spine.lean`; the
+sketch below names what is there. After it, every phase, every generic component, the instance and
 the compilation is a unit of work that consumes spine names only, is tested on a toy instance,
 and lands in two halves (`Def`, then `Security`). It restates the shape the leanVM-a
 formalization used in leanth (explore branch: a `Type 0` witness, a relation anchored to Clean, a
@@ -460,7 +462,7 @@ def Seam.commit I : Set ((I.Stmt × ∀ i, TheOracle I i) × Unit)            --
 def Seam.bus I   : Set (((I.Stmt × BusOut I) × …) × Unit)                 -- claims ∧ public cells ∧ aux
 def Seam.table I ; Seam.pub I (claims ∧ aux) ; Seam.flock I (claims) ; Seam.done I := Set.univ
 
--- LeanerVM/Protocol/Spine/Phase.lean: the hole interfaces and their composition
+-- LeanerVM/Protocol/ToArkLib/Component.lean: the hole interfaces and their composition (ArkLib candidate)
 structure Component.Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut where
   n : ℕ ; pSpec : ProtocolSpec n ; [msgOracle] ; [chalSample]
   red : OracleReduction []ₒ StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec
@@ -474,15 +476,18 @@ structure KnowledgeAppend where append : ∀ …, V₁.GuardedForm → V₁.rbrK
   (V₁.append V₂).rbrKSWorstCase … (Sum.elim ε₁ ε₂ ∘ ChallengeIdx.sumEquiv.symm)          -- ledger A2, #615's shape
 def Component.Def.append ; def Component.Complete.append (proved, ArkLib's guarded append)
 def Component.Security.append (A : KnowledgeAppend)
+-- LeanerVM/Protocol/ToArkLib/PassThrough.lean, SendOracle.lean (ArkLib candidates)
+def Component.passThrough OStmt (f : StmtIn → StmtOut) ; def Component.passThroughComplete   -- no round; proved
+def Component.sendOracle S M : Component.Def S NoOracle M S (OneOracle M) Unit                -- one message, the oracle
+def Component.sendOracleComplete rel ; def Component.sendOracleSecurity rel                    -- both proved, error 0
+-- LeanerVM/Protocol/Spine/Phase.lean
 abbrev Phase.Def I StmtIn StmtOut := Component.Def StmtIn (TheOracle I) Unit StmtOut (TheOracle I) Unit
-abbrev Phase.Complete ; abbrev Phase.Security
-def Phase.passThrough I (f : StmtIn → StmtOut) : Phase.Def I StmtIn StmtOut      -- no round; the bookkeeping shape
-def Phase.passThroughComplete I f (h : ∀ s o, ((s, o), ()) ∈ relIn → ((f s, o), ()) ∈ relOut)  -- proved
+abbrev Phase.Complete ; abbrev Phase.Security ; abbrev Phase.passThrough ; def Phase.passThroughComplete
 
 -- LeanerVM/Protocol/Spine/Compose.lean: the commit phase, the bundle, the master theorems
-def commitSpec I : ProtocolSpec 1 ; def commitDef I : Component.Def I.Stmt NoOracle (Column I.μ) I.Stmt (TheOracle I) Unit
+abbrev commitSpec I ; abbrev commitDef I := Component.sendOracle I.Stmt (Column I.μ) ; abbrev commitExtractor I
 def commitComplete I : Component.Complete (commitDef I) (M3Rel I) (Seam.commit I)      -- proved
-def commitExtractor I ; def commitSecurity I : Component.Security (commitDef I) (M3Rel I) (Seam.commit I)  -- proved, error 0
+def commitSecurity I : Component.Security (commitDef I) (M3Rel I) (Seam.commit I)      -- proved, error 0
 structure Phases I where
   bus     : Phase.Def I I.Stmt (I.Stmt × BusOut I)
   table   : Phase.Def I (I.Stmt × BusOut I) (I.Stmt × TableOut I)
@@ -498,7 +503,7 @@ theorem piop_perfectCompleteness (P) (C : P.Complete) init impl :
 theorem piop_rbrKnowledgeSoundness (A : KnowledgeAppend) (P) (S : P.Security) init impl :
     (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCase init impl (M3Rel I) (Seam.done I) (piopError P)
 
--- LeanerVM/Protocol/Spine/Transport.lean: the adaptor's generic half
+-- LeanerVM/Protocol/ToArkLib/Refinement.lean: the adaptor's generic half (ArkLib candidate)
 structure Refinement (R : Set (Stmt × W₁)) (S : Set (Stmt × W₂)) where (map : Stmt → W₁ → W₂) (map_valid : …)
 theorem Refinement.map_option_valid       -- an extracted witness slot valid for R is valid for S after the map
 def Extractor.Straightline.map (f) (E)    -- post-compose ArkLib's straight-line extractor
@@ -697,7 +702,7 @@ the columns); `Sizes.Admissible` rejects `logMem = 15` and `τ_BLAKE2S = 2`.
 
 ### Layer 4: sumcheck for eq-weighted virtual polynomials
 
-`LeanerVM/Protocol/Generic/Sumcheck.lean` (module; ArkLib upstream, ledger A1).
+`LeanerVM/Protocol/ToArkLib/Sumcheck.lean` (module; ArkLib upstream, ledger A1).
 
 leanVM runs sumcheck on polynomials the verifier cannot evaluate at the end: the summand is a
 formula in the columns' extensions, so the last step is "the prover sends the column values at
@@ -742,7 +747,7 @@ run accepted by `#guard`, a wrong round polynomial rejected.
 
 ### Layer 5: fingerprints, the grand product, and GKR
 
-`LeanerVM/Protocol/Generic/GrandProduct.lean` (module; ArkLib upstream, ledger A6).
+`LeanerVM/Protocol/ToArkLib/GrandProduct.lean` (module; ArkLib upstream, ledger A6).
 
 ```lean
 def fingerprint (α : Fin 4 → E) (t : Vector K 16) : E := Σ i, eqTilde α (bits i) * ofK t[i]
@@ -915,7 +920,7 @@ knowledge extractor recovers the witness; `piopError_le` by `norm_num` at the ca
 
 ### Layer 11: WHIR over binary Reed–Solomon codes, and Merkle trees
 
-`LeanerVM/Protocol/Generic/Whir.lean` (module; ArkLib upstream, ledger A7; shared with #3 F6),
+`LeanerVM/Protocol/ToArkLib/Whir.lean` (module; ArkLib upstream, ledger A7; shared with #3 F6),
 `LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`,
 `LeanerVM/Protocol/Pcs.lean`.
 
@@ -1128,7 +1133,7 @@ Spine:                Side  ColumnId  Layout  Coord  BoundaryBlock  PublicCell  
                       Seam.commit  Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.done
                       Component.Def  Component.Complete  Component.Security  (and their .append)
                       Phase.Def  Phase.Complete  Phase.Security  Phase.passThrough  Phase.passThroughComplete
-                      KnowledgeAppend
+                      NoOracle  OneOracle  Component.passThrough  Component.sendOracle  KnowledgeAppend
                       commitSpec  commitProver  commitVerifier  commitDef  commitComplete  commitExtractor  commitSecurity
                       Phases  Phases.Complete  Phases.Security  Phases.toDef
                       leanVmPiop  leanVmVerifier  leanVmProver  piopError

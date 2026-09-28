@@ -1,8 +1,8 @@
 /-
   LeanerVM.Protocol.Spine.Seams
 
-  The claims that travel between the phases of the oracle protocol, and the seam relations: the
-  output relation of each phase, which is the input relation of the next by definition.
+  The claims that travel between the phases, and the seam relations: the output relation of
+  each phase, which is the input relation of the next by definition.
 -/
 
 module
@@ -12,61 +12,34 @@ public import LeanerVM.Protocol.Spine.Instance
 /-!
 # Claims and seams
 
-Protocol roadmap, section *The spine*, convention *Seams*. The oracle protocol is six phases,
+The oracle protocol is six phases, `commit ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ opening`, each a
+reduction from a statement to a statement over the one committed stack `q`. The statement
+types between phases and the relations on them are fixed here, so a phase is built and proved
+knowing only its two seams.
 
-```text
-commit ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ opening
-```
+Three kinds of claim, each a statement about an extension read off `q` at a point of `E`:
 
-and every phase is a reduction over the one committed oracle `q : Column I.μ` from a statement
-to a statement. The statement types between the phases (`BusOut`, `TableOut`, `PubOut`,
-`FlockOut`) and the relations on them (`Seam.commit` to `Seam.done`) are fixed here, so that a
-phase can be built and proved knowing only its two seams. Whatever a seam does not carry, the
-phase before it must have established, and the round-by-round knowledge soundness of that phase
-is exactly the proof that it did.
-
-## Three kinds of claim
-
-Every claim is a statement about the extension of some table read off `q` at a point of `E`.
-
-* A `ColumnClaim`: one column's extension at a point equals a value. Produced by the bus phase
-  (the boundary blocks), the table sumcheck (its final evaluations) and the public-input phase.
-* A `LinearClaim`: a weighted sum of *virtual* tables' extensions equals a value, where a
-  virtual table is a polynomial of the row evaluated on every row of a table (specification
-  §5.5's summand: a constraint, or a bus form `β − π_α(t)` with the fingerprint folded into
-  the polynomial's coefficients). Produced by the bus phase: the zerocheck claims at the reused
-  point `ζ` (value `0`) and the three bus forms (values the tables owe, §5.4 "Settling it").
-  Consumed by the table sumcheck, which needs nothing else about where they came from.
-* A `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` given by its cube
-  values and an evaluator for its extension (Definition 3.13, an MLE-friendly weight). The
-  currency of the opening phase and of WHIR; a column claim becomes one through the layout's
-  `extend` (`eq(extend c z, ·)` as the weight), the ring-switched Flock claim is born one.
-
-## What each seam carries
+* a `ColumnClaim`: one column's extension at a point equals a value;
+* a `LinearClaim`: a weighted sum of virtual tables' extensions equals a value, a virtual table
+  being a polynomial of the row evaluated on every row of a table (§5.5's summand: a constraint,
+  or a bus form `β − π_α(t)` with the fingerprint folded into the coefficients);
+* a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` given by its cube
+  values and an evaluator the verifier can run (§3, Definition 3.13).
 
 | Seam | Statement | Holds of `q` |
 | --- | --- | --- |
-| `commit` | the public input | `M3Holds` on the oracle itself: the oracle *is* the witness |
-| `bus` | `BusOut`: linear claims, column claims | every claim; the public cells; `aux` |
-| `table` | `TableOut`: column claims | every claim; the public cells; `aux` |
-| `pub` | `PubOut`: column claims | every claim; `aux` |
-| `flock` | `FlockOut`: column claims, weighted claims | every claim |
+| `commit` | the public input | `M3Holds` of the oracle itself |
+| `bus` | linear and column claims | every claim; the public cells; `aux` |
+| `table` | column claims | every claim; the public cells; `aux` |
+| `pub` | column claims | every claim; `aux` |
+| `flock` | column and weighted claims | every claim |
 | `done` | nothing | nothing |
 
-The zerocheck point is recycled from the bus (§5.5): the bus phase draws `ζ` inside its GKR and
-emits the zerocheck claims at it, so the escape "a constraint violated on the cube whose
-extension vanishes at `ζ`" is charged in the bus phase, coordinate by coordinate as `ζ` is drawn
-(decision 3 of the roadmap, settled). There is no separate zerocheck phase.
-
-Category A: written from the specification's phase structure (§5, §8.5); nothing here transcribes
-Rust. Target: T4, the intermediate relations of the oracle protocol.
-
-## Wrong readings excluded
-
-* A seam relation does not say *which* claims a phase emits; its knowledge soundness does. A
-  bus phase emitting no claims typechecks and cannot be proved knowledge sound.
-* The seams carry no challenge and no message: a phase that needs an earlier phase's challenge
-  (the table sumcheck needs `ζ`) reads it inside the claims it receives.
+A seam says which claims hold, not which claims a phase emits: that is fixed by the phase's
+knowledge soundness (a bus phase emitting no claim typechecks and cannot be proved knowledge
+sound). Seams carry no challenge; the zerocheck point `ζ` reaches the table sumcheck inside the
+claims' points, and the escape "violated on the cube, zero at `ζ`" is charged to the bus phase
+where `ζ` is drawn (§5.5).
 -/
 
 namespace LeanerVM.Protocol
@@ -122,8 +95,8 @@ structure LinearClaim (I : M3Instance) where
 def LinearClaim.Holds {I : M3Instance} (q : Column I.μ) (c : LinearClaim I) : Prop :=
   (c.terms.map fun t ↦ t.eval q).sum = c.value
 
-/-- A weight on the stack (Definition 3.13): its values on the cube, and an evaluator for its
-extension that the verifier can run, with the proof that the two agree. -/
+/-- A weight on the stack (Definition 3.13): its cube values, and an evaluator for its extension
+the verifier can run, with the proof that they agree. -/
 structure Weight (μ : ℕ) where
   /-- The values on the cube. -/
   onCube : CMlPolynomialEval E μ
@@ -149,26 +122,25 @@ def WeightedClaim.Holds {I : M3Instance} (q : Column I.μ) (c : WeightedClaim I)
 
 /-! ## Seam statements -/
 
-/-- What the bus phase hands to the table sumcheck: the zerocheck claims at the reused point and
-the bus forms, as linear claims, and the boundary blocks' column claims. -/
+/-- What the bus phase hands on: the zerocheck claims at `ζ` and the bus forms, as linear claims,
+and the boundary blocks' column claims. -/
 structure BusOut (I : M3Instance) where
   /-- The linear claims. -/
   linear : List (LinearClaim I)
   /-- The column claims. -/
   columns : List (ColumnClaim I)
 
-/-- What the table sumcheck hands to the public-input phase: column claims only. -/
+/-- What the table sumcheck hands on: column claims only. -/
 structure TableOut (I : M3Instance) where
   /-- The column claims. -/
   columns : List (ColumnClaim I)
 
-/-- What the public-input phase hands to the Flock phase: column claims, now including the
-public words' claims. -/
+/-- What the public-input phase hands on: column claims, now with the public words' claims. -/
 structure PubOut (I : M3Instance) where
   /-- The column claims. -/
   columns : List (ColumnClaim I)
 
-/-- What the Flock phase hands to the opening phase: the claim pool. -/
+/-- What the Flock phase hands on: the claim pool the opening phase batches. -/
 structure FlockOut (I : M3Instance) where
   /-- The column claims, to be weighted through the layout. -/
   columns : List (ColumnClaim I)
@@ -177,8 +149,8 @@ structure FlockOut (I : M3Instance) where
 
 /-! ## Seam relations
 
-Each is a set of `((statement × oracle) × witness)` in ArkLib's shape, with the one oracle
-`TheOracle I` and the trivial witness: after the commit phase the oracle is the witness. -/
+Each is a set of `((statement, oracle), witness)` with the one oracle the stack and the witness
+trivial: after the commit phase the oracle is the witness. -/
 
 /-- The stack behind the one oracle. -/
 abbrev theStack {I : M3Instance} (o : ∀ i, TheOracle I i) : Column I.μ := o 0
@@ -187,8 +159,8 @@ namespace Seam
 
 variable (I : M3Instance)
 
-/-- After the commit phase: `M3Holds` of the oracle itself. The strengthened intermediate
-relation of the leanth pattern, pinning the oracle to the witness of record. -/
+/-- After the commit phase: `M3Holds` of the oracle itself, which pins the oracle to the witness
+of record. -/
 def commit : Set ((I.Stmt × ∀ i, TheOracle I i) × Unit) :=
   {p | M3Holds I p.1.1 (theStack p.1.2)}
 

@@ -23,7 +23,11 @@ import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
-import LeanerVM.Protocol.Spine.Transport
+import LeanerVM.Protocol.ToArkLib.Component
+import LeanerVM.Protocol.ToArkLib.Oracles
+import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.Refinement
+import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
 import LeanerVM.Semantics.Executable

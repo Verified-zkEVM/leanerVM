@@ -13,22 +13,12 @@ public import LeanerVM.Protocol.Spine.Instance
 /-!
 # The toy instance
 
-Protocol roadmap, section *The spine*, item 7 of *What the spine fixes*, and acceptance test 27.
-The instance is small enough that `M3Holds` is decided by evaluation (`#guard` in
-`tests/LeanerVMTests/Protocol/Spine.lean`), and rich enough that every clause of `M3Holds` can be
-made to fail alone:
-
-* the one table has three columns of height two, at stack cells `0–1`, `2–3`, `4–5` (cells `6–7`
-  are padding);
-* column 2 must be Boolean (`X₂² − X₂ = 0`), and its cell `0` is the public statement;
-* the table pushes `(X₀, 0, …)` on every row, and one boundary block pulls the public column
-  `[1, 1]`, so the bus balances exactly when column 0 is `[1, 1]` in some order;
-* column 1 is a count column, so its cells must be nonzero;
-* the auxiliary predicate is `True`.
-
-The layout is the spine's own `Layout` with the selector law proved by hand for the three
-slices: column `i` at cells `2i, 2i + 1` has selector bits `(i mod 2, i div 2)`, so its extension
-at `z` is the stack's extension at `(z, i mod 2, i div 2)`.
+One table of width 3 and height 2 on a stack of height 8: column `i` at cells `2i, 2i + 1`,
+cells 6 and 7 padding. Column 2 must be Boolean and its cell 0 is the public statement; the
+table pushes `(X₀, 0, …)` on every row and one boundary block pulls the known column `[1, 1]`,
+so the bus balances exactly when column 0 is `[1, 1]` in some order; column 1 is a count
+column; the auxiliary predicate is `True`. `M3Holds` on it is decided by evaluation, and each
+of its clauses can be made to fail alone (`tests/LeanerVMTests/Protocol/Spine.lean`).
 -/
 
 namespace LeanerVM.Protocol.Toy
@@ -60,8 +50,8 @@ private theorem evalMle_one (p : CMlPolynomialEval E 1) (x : Vector E 1) :
     CMlPolynomialEval.evalMle p x =
       (CMlPolynomialEval.evalMleLayer p x.head).get ⟨0, by norm_num⟩ := rfl
 
-/-- The selector law for the three slices: reading the slice then extending at `z` is extending
-the stack at `(z, i mod 2, i div 2)`. -/
+/-- The layout law for the three slices: the slice's extension at `z` is the stack's at
+`(z, i mod 2, i div 2)`. -/
 theorem read_eval (q : Column 3) (c : Col) (z : Vector E 1) :
     CMlPolynomialEval.eval₂Mle (slice q c).values (algebraMap K E) z =
       CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) (extend c z) := by

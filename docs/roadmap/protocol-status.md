@@ -245,6 +245,12 @@ while elaborating every ArkLib module (`lakefile.toml:48`), so a consumer needs 
 
 Kept so the searches are not repeated.
 
+- **2026-09-28, comments and the `To*` folders.** Every comment of the spine rewritten to be
+  brief and self-contained (no roadmap references); the parts that belong in ArkLib moved to
+  `LeanerVM/Protocol/ToArkLib/` (`Oracles`, `Component`, `PassThrough`, `SendOracle`,
+  `Refinement`), the commit phase and the pass-through phase generalised there over any
+  statement, message and oracle family; convention *Generic code* now names the `To*` folders,
+  which #38 to #43 should adopt on rebase (`Generic/` becomes `ToArkLib/` or `ToCompPoly/`).
 - **2026-09-25, the adversarial review of the spine** (a context-free agent, the
   `adversarial-review` skill): no theorem statement wrong or vacuous; findings applied: two toy
   mutations did not isolate their clause (now tested at statement `2`, and a char-2 balance
