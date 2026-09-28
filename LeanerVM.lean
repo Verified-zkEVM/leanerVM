@@ -24,6 +24,7 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.ToArkLib.Component
+import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement

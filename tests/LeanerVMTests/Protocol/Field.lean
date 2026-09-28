@@ -11,7 +11,7 @@ meta import CompPoly.Multilinear.Basic
 Compiled checks (`#guard`) that the evaluation oracle on a two-variable column answers the
 multilinear extension, on cube points and off them; code-generation probes that the two
 samplers have compiler IR (a sampler built from `Fintype` would be noncomputable, or would
-enumerate the field); and the cardinality of `E`.
+enumerate the field); that scalar messages have an oracle interface; and the cardinality of `E`.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -50,6 +50,14 @@ def sampleK : ProbComp K := $ᵗ K
 
 /-- Compiles only if the `E` sampler is computable. -/
 def sampleE : ProbComp E := $ᵗ E
+
+/-! ## Scalar messages -/
+
+-- The trivial oracle on scalars and scalar lists is found. ArkLib supplies neither at the pinned
+-- revision; a pin bump that does will make these ambiguous, and the local instances in
+-- `LeanerVM.Protocol.Field` should then be deleted.
+#synth OracleInterface E
+#synth OracleInterface (List E)
 
 /-! ## Cardinality -/
 

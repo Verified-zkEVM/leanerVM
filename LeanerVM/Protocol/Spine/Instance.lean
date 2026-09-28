@@ -13,24 +13,28 @@ public import CompPoly.Multivariate.CMvPolynomial
 /-!
 # The M3 instance and the relation `M3Holds`
 
-An `M3Instance` is everything the verifier reads about an arithmetization: the tables with
-their log-heights and widths; per table, the constraint polynomials that must vanish on every
-row (§5.5) and the bus flushes, each a side and sixteen coordinate polynomials with the domain
-separator first (§5.2); the count columns whose cells must be nonzero (§6.2); the boundary
-blocks, tuples the verifier's side of the bus provides or consumes, with constant, publicly
-known or committed coordinates (§5.4); the layout of every column inside the one committed
-stack `q`; the cells the public statement fixes (§8.2); and an auxiliary predicate for what the
-Flock phase establishes (for leanISA, that the BLAKE2s rows are valid compressions). Nothing
-here knows leanISA: leanISA is one instance, built by the adaptor.
+An `M3Instance` is everything the verifier reads about an arithmetization: the tables with their
+log-heights and widths; per table, the constraint polynomials that must vanish on every row
+(§5.5) and the bus flushes, each a side and sixteen coordinate polynomials with the domain
+separator first (§5.1); a bound `d` on the total degree of both (leanVM's is 2); the count
+columns whose cells must be nonzero (§6.2); the boundary blocks, tuples the verifier's side of
+the bus provides or consumes, with constant, publicly known or committed coordinates (§5.4); the
+layout of every column inside the one committed stack `q`; the columns whose first two cells the
+public statement fixes (§8.2); and an auxiliary predicate for what the Flock phase proves of
+the committed region it owns (for leanISA, that Flock's R1CS holds of the bits packed into
+`q_flock`, §4.2 and Annex C; that the eighteen limb slots then compress is a consequence, not
+the predicate, since the wires must already be in `q` for the honest prover to convince).
+Nothing here knows leanISA: leanISA is one instance, built by the adaptor.
 
 `M3Holds I input q` is the relation: constraints vanish, pushed and pulled tuples are one
-multiset (a permutation, counted in the integers: in characteristic two a tuple pushed twice
-and never pulled would sum to zero), count cells are nonzero, public cells hold, the auxiliary
+multiset (a permutation, counted in the integers: in characteristic two a tuple pushed twice and
+never pulled would sum to zero), count cells are nonzero, the public lines hold, the auxiliary
 predicate holds. It is decidable, and every value is read from `q` through `I.layout`, so
 knowledge of `q` is exactly as strong as the layout is. Polynomials are CompPoly's computable
-`CMvPolynomial`; `fromCMvPolynomial` bridges to Mathlib's when a proof needs degrees. The
-announced sizes are not a clause: the compiled verifier rejects inadmissible sizes before the
-protocol starts, so the protocol is a family over admissible instances.
+`CMvPolynomial` and degrees its `totalDegree`; `fromCMvPolynomial` bridges to Mathlib's, whose
+degree lemmas prove a concrete instance's bound. The announced sizes are not a clause: the
+compiled verifier rejects inadmissible sizes before the protocol starts, so the protocol is a
+family over admissible instances.
 
 Written from the specification; nothing here transcribes Rust.
 -/
@@ -49,14 +53,23 @@ inductive Side
   | pull
   deriving DecidableEq, Repr
 
-/-- A column of an instance with `ntab` tables of the given widths: table `j`, column `i`. -/
-abbrev ColumnId (ntab : ℕ) (width : Fin ntab → ℕ) : Type := Σ j : Fin ntab, Fin (width j)
+/-- The tables of an instance: how many, and each one's log-height and width. -/
+structure Shape where
+  /-- Number of tables. -/
+  ntab : ℕ
+  /-- Log-height of each table: the announced sizes. -/
+  τ : Fin ntab → ℕ
+  /-- Width of each table. -/
+  width : Fin ntab → ℕ
+
+/-- A column: table `j`, column `i`. -/
+abbrev Shape.ColumnId (S : Shape) : Type := Σ j : Fin S.ntab, Fin (S.width j)
 
 /-- How each column of height `2 ^ κ c` is read off the stack of height `2 ^ μ`, and how a point
 of the column lifts to a point of the stack, with the law that reading then evaluating equals
-evaluating the stack at the lifted point (§5.4, equation (2); for an aligned block at selector
-bits `sel`, `extend c z = (z, sel)`). It is a reading law, not a stacking law: it does not say
-the columns are disjoint slices of `q`. -/
+evaluating the stack at the lifted point (§4.1, the stacking identity, and §5.4, equation (2);
+for an aligned block at selector bits `sel`, `extend c z = (z, sel)`). It is a reading law, not a
+stacking law: it does not say the columns are disjoint slices of `q`. -/
 structure Layout (μ : ℕ) (ι : Type) (κ : ι → ℕ) where
   /-- Read column `c` off the stack. -/
   read : Column μ → (c : ι) → Column (κ c)
@@ -70,56 +83,62 @@ structure Layout (μ : ℕ) (ι : Type) (κ : ι → ℕ) where
 /-- One coordinate of a boundary tuple on a block of height `2 ^ κ`: a constant, a column both
 parties know (the index column `g^i`, the bytecode column), or a committed column of the same
 height. -/
-inductive Coord (ntab : ℕ) (width : Fin ntab → ℕ) (τ : Fin ntab → ℕ) (κ : ℕ)
+inductive Coord (S : Shape) (κ : ℕ)
   | const (c : K)
   | known (col : Column κ)
-  | committed (c : ColumnId ntab width) (h : τ c.1 = κ)
+  | committed (c : S.ColumnId) (h : S.τ c.1 = κ)
 
 /-- A boundary block (§5.4): `2 ^ κ` tuples on one side of the bus, coordinate by coordinate. -/
-structure BoundaryBlock (ntab : ℕ) (width : Fin ntab → ℕ) (τ : Fin ntab → ℕ) where
+structure BoundaryBlock (S : Shape) where
   /-- Log-height of the block. -/
   κ : ℕ
   /-- The side its tuples are on. -/
   side : Side
   /-- The sixteen coordinates, the separator first. -/
-  coords : Vector (Coord ntab width τ κ) 16
+  coords : Vector (Coord S κ) 16
 
-/-- A cell of a column fixed by the public statement. -/
-structure PublicCell (ntab : ℕ) (width : Fin ntab → ℕ) (τ : Fin ntab → ℕ) where
+/-- A column whose first two cells the public statement fixes (§8.2: the two public words are
+the first two memory cells). -/
+structure PublicLine (S : Shape) where
   /-- The column. -/
-  col : ColumnId ntab width
-  /-- The row. -/
-  idx : Fin (2 ^ τ col.1)
-  /-- The value the cell must hold. -/
-  val : K
+  col : S.ColumnId
+  /-- The value cell 0 must hold. -/
+  cell0 : K
+  /-- The value cell 1 must hold. -/
+  cell1 : K
+  /-- The column has a cell 1. -/
+  pos : 0 < S.τ col.1
 
 /-! ## The instance -/
 
 /-- Everything the verifier reads about an arithmetization. -/
-structure M3Instance where
+structure M3Instance extends Shape where
   /-- The public statement type (leanISA: `PublicInput`). -/
   Stmt : Type
-  /-- Number of tables. -/
-  ntab : ℕ
-  /-- Log-height of each table: the announced sizes. -/
-  τ : Fin ntab → ℕ
-  /-- Width of each table. -/
-  width : Fin ntab → ℕ
   /-- The constraint polynomials of each table, in the row's variables. -/
   constraints : (j : Fin ntab) → List (CMvPolynomial (width j) K)
   /-- The flush tuples of each table: a side and sixteen coordinate polynomials, separator first. -/
   flushes : (j : Fin ntab) → List (Side × Vector (CMvPolynomial (width j) K) 16)
+  /-- The degree bound: every constraint and every flush coordinate has total degree at most
+  `d`; leanVM's is 2. -/
+  d : ℕ
+  /-- Every constraint has total degree at most `d`. -/
+  constraints_degree : ∀ j, ∀ C ∈ constraints j, C.totalDegree ≤ d
+  /-- Every flush coordinate has total degree at most `d`. -/
+  flushes_degree : ∀ j, ∀ f ∈ flushes j, ∀ k, (f.2.get k).totalDegree ≤ d
   /-- The count columns of each table. -/
   counts : (j : Fin ntab) → List (Fin (width j))
   /-- The boundary blocks. -/
-  boundary : List (BoundaryBlock ntab width τ)
+  boundary : List (BoundaryBlock toShape)
   /-- Log-height of the committed stack. -/
   μ : ℕ
   /-- The stack layout. -/
-  layout : Layout μ (ColumnId ntab width) (fun c ↦ τ c.1)
-  /-- The cells the statement fixes. -/
-  publicCells : Stmt → List (PublicCell ntab width τ)
-  /-- What the Flock phase establishes about the stack beyond the polynomial checks. -/
+  layout : Layout μ toShape.ColumnId (fun c ↦ τ c.1)
+  /-- The columns whose first two cells the statement fixes. -/
+  publicLines : Stmt → List (PublicLine toShape)
+  /-- What the Flock phase proves of the committed region it owns, beyond the polynomial
+  checks: the statement its honest prover can convince the verifier of, so it names the
+  committed witness (Flock's R1CS on `q_flock`), never only a consequence of it. -/
   aux : Column μ → Prop
   /-- The auxiliary predicate is decidable, so that the relation is. -/
   decAux : DecidablePred aux
@@ -129,9 +148,6 @@ attribute [instance] M3Instance.decAux
 namespace M3Instance
 
 variable (I : M3Instance)
-
-/-- The columns of the instance. -/
-abbrev ColumnId : Type := LeanerVM.Protocol.ColumnId I.ntab I.width
 
 /-- Log-height of a column: its table's. -/
 abbrev κ (c : I.ColumnId) : ℕ := I.τ c.1
@@ -144,7 +160,7 @@ def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width
   fun i ↦ (I.column q ⟨j, i⟩).values.get x
 
 /-- The value of a boundary coordinate at row `x` of its block. -/
-def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.ntab I.width I.τ κ → Fin (2 ^ κ) → K
+def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ) → K
   | .const c, _ => c
   | .known col, x => col.values.get x
   | .committed c h, x => (I.column q c).values.get (Fin.cast (congrArg (2 ^ ·) h.symm) x)
@@ -184,30 +200,23 @@ def Balanced (q : Column I.μ) : Prop := (I.tuples q .push).Perm (I.tuples q .pu
 def CountsNonzero (q : Column I.μ) : Prop :=
   ∀ j, ∀ i ∈ I.counts j, ∀ x, (I.column q ⟨j, i⟩).values.get x ≠ 0
 
-/-- The cells the statement fixes hold their values (§8.2). -/
-def PublicCellsHold (input : I.Stmt) (q : Column I.μ) : Prop :=
-  ∀ c ∈ I.publicCells input, (I.column q c.col).values.get c.idx = c.val
+/-- Cells 0 and 1 of every column the statement fixes hold their values (§8.2). -/
+def PublicLinesHold (input : I.Stmt) (q : Column I.μ) : Prop :=
+  ∀ l ∈ I.publicLines input,
+    (I.column q l.col).values.get ⟨0, Nat.two_pow_pos _⟩ = l.cell0 ∧
+      (I.column q l.col).values.get ⟨1, Nat.one_lt_two_pow l.pos.ne'⟩ = l.cell1
 
-instance (q : Column I.μ) : Decidable (I.ConstraintsVanish q) := by
-  unfold ConstraintsVanish; infer_instance
-instance (q : Column I.μ) : Decidable (I.Balanced q) := by
-  unfold Balanced; infer_instance
-instance (q : Column I.μ) : Decidable (I.CountsNonzero q) := by
-  unfold CountsNonzero; infer_instance
-instance (input : I.Stmt) (q : Column I.μ) : Decidable (I.PublicCellsHold input q) := by
-  unfold PublicCellsHold; infer_instance
+deriving instance Decidable for ConstraintsVanish, Balanced, CountsNonzero, PublicLinesHold
 
 end M3Instance
 
 /-- The relation the oracle protocol proves knowledge of: what the verifier establishes about
 the committed stack `q`. -/
 def M3Holds (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Prop :=
-  I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicCellsHold input q ∧ I.aux q
+  I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicLinesHold input q ∧ I.aux q
 
-/-- The relation is decidable: every clause is a finite check over computable data. -/
-instance (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Decidable (M3Holds I input q) := by
-  unfold M3Holds
-  infer_instance
+-- The relation is decidable: every clause is a finite check over computable data.
+deriving instance Decidable for M3Holds
 
 /-- The one oracle of the protocol from the commit phase on: the stack. -/
 abbrev TheOracle (I : M3Instance) : Fin 1 → Type := OneOracle (Column I.μ)

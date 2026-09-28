@@ -20,7 +20,7 @@ ArkLib (pin `dca90385fb40dd5eb8da9145da6348ed17f5cd8b`) and of VCVio through it
 (`f9dc47d9dacfc5cb51dae9f92f1e34cb5ce2cc24`). Category A: nothing here transcribes a source; the
 field and its cardinality are the leanISA Layer 0 declarations and CompPoly's `card_ext3`.
 
-Three things are supplied.
+Four things are supplied.
 
 * `SampleableType K` and `SampleableType E`: the uniform samplers ArkLib requires of every
   challenge type (`[∀ i, SampleableType (pSpec.Challenge i)]` on its security definitions).
@@ -36,6 +36,10 @@ Three things are supplied.
   `algebraMap`. This is the interface of the one committed oracle of the oracle protocol
   (roadmap convention *The oracle*); the Reed–Solomon codeword oracles of Layer 11 are a
   different instance on a different type.
+* `OracleInterface E` and `OracleInterface (List E)`: the trivial oracle, ArkLib's
+  `OracleInterface.instDefault` (the query is `Unit`, the answer is the whole message), for the
+  scalars and coefficient lists a phase sends. ArkLib registers that default for no type, and
+  every component's schedule needs an interface on each prover message.
 
 ## Wrong readings excluded
 
@@ -104,6 +108,14 @@ instance evalOracle (n : ℕ) : OracleInterface (Column n) where
 /-- The oracle answers the lifted multilinear extension. -/
 theorem evalOracle_answer (n : ℕ) (q : Column n) (r : Vector E n) :
     OracleInterface.answer q r = CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) r := rfl
+
+/-! ## Scalar messages -/
+
+/-- A scalar the prover sends is queried trivially: the answer is the scalar. -/
+instance instOracleInterfaceE : OracleInterface E := OracleInterface.instDefault
+
+/-- A list of scalars the prover sends is queried trivially: the answer is the list. -/
+instance instOracleInterfaceListE : OracleInterface (List E) := OracleInterface.instDefault
 
 end
 end LeanerVM.Protocol

@@ -20,17 +20,20 @@ knowing only its two seams.
 Three kinds of claim, each a statement about an extension read off `q` at a point of `E`:
 
 * a `ColumnClaim`: one column's extension at a point equals a value;
-* a `LinearClaim`: a weighted sum of virtual tables' extensions equals a value, a virtual table
-  being a polynomial of the row evaluated on every row of a table (§5.5's summand: a constraint,
-  or a bus form `β − π_α(t)` with the fingerprint folded into the coefficients);
+* a `LinearClaim`: an `E`-weighted sum of virtual tables' extensions equals a value, a virtual
+  table being a `K`-polynomial of the row evaluated on every row of a table (§5.5's summand). A
+  zerocheck claim is one term, of weight 1, with the constraint; a bus form is the list of terms
+  of weight `eq(sel_b, ζ_hi)·eq(α, i)` with the coordinate polynomials `c_{b,i}`, plus one
+  constant term of weight `eq(sel_b, ζ_hi)·β`. The bus seam bounds the total degree of every
+  term's polynomial by the instance's `d`, the degree the table sumcheck is built for;
 * a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` given by its cube
   values and an evaluator the verifier can run (§3, Definition 3.13).
 
-| Seam | Statement | Holds of `q` |
+| Seam | Statement | Holds |
 | --- | --- | --- |
 | `commit` | the public input | `M3Holds` of the oracle itself |
-| `bus` | linear and column claims | every claim; the public cells; `aux` |
-| `table` | column claims | every claim; the public cells; `aux` |
+| `bus` | linear and column claims | every claim; terms of degree `≤ d`; public lines; `aux` |
+| `table` | column claims | every claim; the public lines; `aux` |
 | `pub` | column claims | every claim; `aux` |
 | `flock` | column and weighted claims | every claim |
 | `done` | nothing | nothing |
@@ -63,22 +66,22 @@ structure ColumnClaim (I : M3Instance) where
 def ColumnClaim.Holds {I : M3Instance} (q : Column I.μ) (c : ColumnClaim I) : Prop :=
   CMlPolynomialEval.eval₂Mle (I.column q c.col).values (algebraMap K E) c.point = c.value
 
-/-- One term of a linear claim: a weight, a table, a polynomial of its row with coefficients in
-`E`, and a point of the table's cube. -/
+/-- One term of a linear claim: a weight in `E`, a table, a polynomial of its row with
+coefficients in `K`, and the point the table's extension is taken at. -/
 structure VirtualTerm (I : M3Instance) where
   /-- The weight of the term in the sum. -/
   weight : E
   /-- The table. -/
   j : Fin I.ntab
   /-- The polynomial of the row. -/
-  poly : CMvPolynomial (I.width j) E
+  poly : CMvPolynomial (I.width j) K
   /-- The point the virtual table is extended to. -/
   point : Vector E (I.τ j)
 
 /-- The virtual table of a term: its polynomial on every row of its table, lifted to `E`. -/
 def VirtualTerm.table {I : M3Instance} (q : Column I.μ) (t : VirtualTerm I) :
     CMlPolynomialEval E (I.τ t.j) :=
-  Vector.ofFn fun x ↦ t.poly.eval fun i ↦ ofK (I.row q t.j x i)
+  Vector.ofFn fun x ↦ ofK (t.poly.eval (I.row q t.j x))
 
 /-- The value of a term: its weight times its virtual table's extension at its point. -/
 def VirtualTerm.eval {I : M3Instance} (q : Column I.μ) (t : VirtualTerm I) : E :=
@@ -159,33 +162,33 @@ namespace Seam
 
 variable (I : M3Instance)
 
+/-- The seam of a predicate of the statement and the stack behind the one oracle. -/
+def of {S : Type} (P : S → Column I.μ → Prop) : Set ((S × ∀ i, TheOracle I i) × Unit) :=
+  {p | P p.1.1 (theStack p.1.2)}
+
 /-- After the commit phase: `M3Holds` of the oracle itself, which pins the oracle to the witness
 of record. -/
-def commit : Set ((I.Stmt × ∀ i, TheOracle I i) × Unit) :=
-  {p | M3Holds I p.1.1 (theStack p.1.2)}
+def commit := of I (M3Holds I)
 
-/-- After the bus phase: every claim holds, and what the bus did not touch. -/
-def bus : Set (((I.Stmt × BusOut I) × ∀ i, TheOracle I i) × Unit) :=
-  {p | (∀ c ∈ p.1.1.2.linear, c.Holds (theStack p.1.2)) ∧
-    (∀ c ∈ p.1.1.2.columns, c.Holds (theStack p.1.2)) ∧
-    I.PublicCellsHold p.1.1.1 (theStack p.1.2) ∧ I.aux (theStack p.1.2)}
+/-- After the bus phase: every claim holds, every term has degree at most `d`, and what the bus
+did not touch. -/
+def bus := of I fun (s : I.Stmt × BusOut I) q ↦ (∀ c ∈ s.2.linear, c.Holds q) ∧
+  (∀ c ∈ s.2.linear, ∀ t ∈ c.terms, t.poly.totalDegree ≤ I.d) ∧
+  (∀ c ∈ s.2.columns, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
 
 /-- After the table sumcheck: every column claim holds, and what it did not touch. -/
-def table : Set (((I.Stmt × TableOut I) × ∀ i, TheOracle I i) × Unit) :=
-  {p | (∀ c ∈ p.1.1.2.columns, c.Holds (theStack p.1.2)) ∧
-    I.PublicCellsHold p.1.1.1 (theStack p.1.2) ∧ I.aux (theStack p.1.2)}
+def table := of I fun (s : I.Stmt × TableOut I) q ↦
+  (∀ c ∈ s.2.columns, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
 
 /-- After the public-input phase: every column claim holds, and the auxiliary predicate. -/
-def pub : Set (((I.Stmt × PubOut I) × ∀ i, TheOracle I i) × Unit) :=
-  {p | (∀ c ∈ p.1.1.2.columns, c.Holds (theStack p.1.2)) ∧ I.aux (theStack p.1.2)}
+def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns, c.Holds q) ∧ I.aux q
 
 /-- After the Flock phase: every pooled claim holds. -/
-def flock : Set (((I.Stmt × FlockOut I) × ∀ i, TheOracle I i) × Unit) :=
-  {p | (∀ c ∈ p.1.1.2.columns, c.Holds (theStack p.1.2)) ∧
-    (∀ c ∈ p.1.1.2.weighted, c.Holds (theStack p.1.2))}
+def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
+  (∀ c ∈ s.2.columns, c.Holds q) ∧ ∀ c ∈ s.2.weighted, c.Holds q
 
 /-- After the opening phase: nothing is left to check. -/
-def done : Set ((Unit × ∀ i, TheOracle I i) × Unit) := Set.univ
+def done := of I fun (_ : Unit) _ ↦ True
 
 end Seam
 

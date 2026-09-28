@@ -2,7 +2,7 @@
   LeanerVM.Protocol.ToArkLib.PassThrough
 
   The component with no round that maps the statement and leaves the oracles and the witness
-  alone, with its completeness proof. Candidate for ArkLib.
+  alone, with its completeness and knowledge-soundness proofs. Candidate for ArkLib.
 -/
 
 module
@@ -15,8 +15,10 @@ public import LeanerVM.Protocol.ToArkLib.Component
 `Component.passThrough OStmt f` sends nothing and outputs `f` of the input statement, the same
 oracles and the same witness. It is the shape of every bookkeeping step (relabelling claims,
 dropping a clause the previous step consumed), and its two unfolding lemmas are the ones any
-zero-round or pure component would otherwise prove again. Its completeness holds for any two
-relations `f` carries one into the other.
+zero-round or pure component would otherwise prove again. It is proved in both halves: complete
+whenever `f` carries the input relation into the output relation, and knowledge sound at error
+zero, with the extractor that keeps the witness, whenever `f` also reflects the output relation
+back into the input relation.
 -/
 
 namespace LeanerVM.Protocol
@@ -93,6 +95,52 @@ def passThroughComplete (f : StmtIn → StmtOut)
           fun i ↦ Fin.elim0 i), (f s, o), witIn), (f s, o))) := rfl
     rw [hrun, support_pure, Set.mem_singleton_iff] at hx
     exact ⟨_, hx, h s o witIn hIn, rfl⟩
+
+/-! ## Knowledge soundness -/
+
+/-- The extractor keeps the witness. The shared oracle is written `OracleSpec.emptySpec.{0, 0}`
+rather than `[]ₒ` to pin a universe `Extractor.RoundByRound` leaves free. -/
+def passThroughExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+    (StmtIn × ∀ i, OStmt i) W W !p[] (fun _ ↦ W) where
+  eqIn := rfl
+  extractMid := fun i ↦ Fin.elim0 i
+  extractOut := fun _ _ w ↦ w
+
+variable (f : StmtIn → StmtOut) {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)}
+  {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
+  (h : ∀ s o w, ((f s, o), w) ∈ relOut → ((s, o), w) ∈ relIn)
+  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+
+/-- The knowledge state function: the input relation, at the only round. -/
+def passThroughStateFunction :
+    (passThroughVerifier OStmt f).toVerifier.KnowledgeStateFunction init impl relIn relOut
+      (passThroughExtractor OStmt) where
+  toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun m ↦ Fin.elim0 m
+  toFun_full := fun stmt tr w hpos ↦ by
+    obtain ⟨s, o⟩ := stmt
+    rw [passThroughVerifier_toVerifier_run OStmt f s o tr] at hpos
+    change Pr[_ | OptionT.mk (do let st ← init; (simulateQ impl
+      (OptionT.run (pure (f s, o)))).run' st)] > 0 at hpos
+    exact h s o w (by simp at hpos; exact hpos.2)
+
+/-- Round-by-round knowledge soundness at error zero: no challenge, the witness is kept. -/
+theorem passThrough_rbr :
+    (passThroughVerifier OStmt f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn
+      relOut (fun _ ↦ W) (passThroughExtractor OStmt) (passThroughStateFunction OStmt f h init impl)
+      (fun i ↦ Fin.elim0 i.1) :=
+  fun _ i ↦ Fin.elim0 i.1
+
+/-- The security half, with the extractor that keeps the witness, whenever `f` carries the input
+relation into the output relation and back. -/
+def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
+    Security (passThrough OStmt f) relIn relOut where
+  toComplete := passThroughComplete OStmt f hc
+  witMid := fun _ ↦ W
+  extractor := passThroughExtractor OStmt
+  kSF := passThroughStateFunction OStmt f h
+  rbr := passThrough_rbr OStmt f h
 
 end Component
 

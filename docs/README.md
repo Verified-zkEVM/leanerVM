@@ -32,6 +32,9 @@ This directory contains stable project and operating knowledge.
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
     Layer 8 constraint statement (2026-09-17), whose findings the statement now meets (the
     missing BLAKE2s validity conjunct, its finding A1).
+  - [protocol-spine.md](reviews/protocol-spine.md): the review of the proof-system spine
+    (2026-09-28), whose findings the branch now meets (the degree bound at the bus seam, the
+    named extractor, public lines, the strong Flock predicate).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

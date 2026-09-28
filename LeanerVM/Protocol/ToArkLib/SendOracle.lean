@@ -175,15 +175,18 @@ def sendStateFunction :
 /-- Round-by-round knowledge soundness at error zero: no challenge, the extractor reads the
 message. -/
 theorem sendOracle_rbr :
-    (sendVerifier S M).toVerifier.rbrKnowledgeSoundnessWorstCase init impl rel
-      (sendOracle_relOut rel) (fun _ ↦ 0) :=
-  ⟨sendWitMid M, sendExtractor, sendStateFunction rel init impl,
-    fun _ i ↦ (IsEmpty.false i).elim⟩
+    (sendVerifier S M).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl rel
+      (sendOracle_relOut rel) (sendWitMid M) sendExtractor (sendStateFunction rel init impl)
+      (fun _ ↦ 0) :=
+  fun _ i ↦ (IsEmpty.false i).elim
 
-/-- The security half. -/
+/-- The security half, with the extractor that reads the message. -/
 def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) where
   toComplete := sendOracleComplete rel
-  rbr := fun init impl ↦ sendOracle_rbr rel init impl
+  witMid := sendWitMid M
+  extractor := sendExtractor
+  kSF := sendStateFunction rel
+  rbr := sendOracle_rbr rel
 
 end Component
 
