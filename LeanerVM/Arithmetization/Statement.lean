@@ -22,7 +22,7 @@ import Clean.Air.FlatEnsemble
 # The constraint statement
 
 leanISA roadmap Layer 8 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category A for the
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category A for the
 statement itself, which is what the M3 model means by an accepted instance (specification §5,
 `doc/leanvm/body/05-arithmetization.tex:4`: "an instance is accepted exactly when every
 table's constraints hold and the bus balances", the balance being the multiset equality of
@@ -35,7 +35,7 @@ public parts of the bus the verifier forms itself, the index column and the prog
 the bytecode blocks (§8.5, `:70`; §6.5, `06-bus-interactions.tex:95`), and the BLAKE2s
 validity Flock proves (§8.5 "BLAKE2s validity"; `cpu/mod.rs:759-768`). Artifact: the accept
 relation of the M3 constraint system and its ensemble. Direction: a statement, no soundness or
-completeness theorem. Boundary: leanVM at the pin above, Clean `93c9d1ef`. Contribution: the
+completeness theorem. Boundary: leanVM at the pin above, Clean `0386e42b`. Contribution: the
 statement surface of T1 (both directions); no target of `docs/architecture.md` is claimed.
 
 **The ensemble.** `leanIsaEnsemble prog` is Clean's `Ensemble`: the six opcode tables of Layer
@@ -443,7 +443,7 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
 
 The four statements of roadmap Layer 9 consume Clean's direction-tagged, `ℕ`-counted balance
 and `addVm_soundVmChannel_of_soundChannels` (the roadmap's dependency table; issue #16, Clean
-#452), which Clean `93c9d1ef` does not supply. They are recorded here as the roadmap's
+#452), which Clean `0386e42b` does not supply. They are recorded here as the roadmap's
 convention requires, never as an unproved declaration. Channels are identified by name and a
 pulled message is read as its typed form, as the module does (`messagesOn`, `memRowAt`):
 

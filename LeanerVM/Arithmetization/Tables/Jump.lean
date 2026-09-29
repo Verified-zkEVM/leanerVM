@@ -16,7 +16,7 @@ import Mathlib.Algebra.CharP.Two
 # The `JUMP` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:688-712` (`mod jump`, in that order), the two identities
 `tables.rs:70-74` (`jump_identity`), the flushes `tables.rs:731-751` (`JumpTable::flushes`),
 matching specification §7.5 (`doc/leanvm/body/07-instruction-tables.tex:94-112`).

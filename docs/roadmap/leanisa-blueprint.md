@@ -99,9 +99,13 @@ when they exist and never rebuilds them under a leanISA-specific spelling.
 ## Dependencies and exact contracts
 
 A prerequisite below is a named declaration at a pinned revision, an earlier layer here, or a
-cited section of a source. The pins are in `upstreams.json` and
-[dependencies.md](../dependencies.md): leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
+cited section of a source. The tables below record the original implementation baseline:
+leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
 `3468b38c`, Clean `93c9d1ef`, Lean `v4.33.1`.
+
+Current pins are in `upstreams.json` and [dependencies.md](../dependencies.md). That page
+records the 4.34 port: `BF64` now wraps its bit coordinates, wire literals use `K.ofBits`,
+and field enumeration is proof-only. The semantic source revision and limb encoding are retained.
 
 ### The leanVM specification and implementation
 

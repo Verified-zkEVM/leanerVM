@@ -16,17 +16,18 @@ public import VCVio.OracleComp.Constructions.SampleableType
 # Fields for the proof system
 
 Protocol roadmap Layer 0 (`docs/roadmap/protocol-blueprint.md`). This is the first consumer of
-ArkLib (pin `dca90385fb40dd5eb8da9145da6348ed17f5cd8b`) and of VCVio through it
-(`f9dc47d9dacfc5cb51dae9f92f1e34cb5ce2cc24`). Category A: nothing here transcribes a source; the
+ArkLib (pin `fa14552d40e793f2ea26e65c440306aae0c08a26`) and of VCVio through it
+(`7a4d7ee254165f2fcf3282c7d2e6f204056e5121`). Category A: nothing here transcribes a source; the
 field and its cardinality are the leanISA Layer 0 declarations and CompPoly's `card_ext3`.
 
 Four things are supplied.
 
 * `SampleableType K` and `SampleableType E`: the uniform samplers ArkLib requires of every
   challenge type (`[∀ i, SampleableType (pSpec.Challenge i)]` on its security definitions).
-  `K` is sampled as a uniform `Fin (2^64)` carried through `BitVec.ofFin`, and `E` as three
-  independent limbs carried through `Ext.ofVector`; neither enumerates the field, which the
-  eager `Fintype BF64` instance would (leanISA status finding P3). The shape follows ArkLib's
+  `K` is sampled as a uniform `Fin (2^64)` through `BitVec.ofFin` and `BF64.ofBitVec`, and `E`
+  as three independent limbs through `Ext.ofVector`; neither enumerates the field.
+  `Fintype K` is proof-only; compiled sampling uses the explicit equivalences (leanISA status
+  finding P3). The shape follows ArkLib's
   own `KoalaBear.Ext6.sampleableType`.
 * `card_E`: `Fintype.card E = 2^192`, the one cardinality fact every error bound of the roadmap
   rewrites with.
@@ -72,8 +73,8 @@ structure Column (n : ℕ) where
 
 /-- `K` as the `2^64` bit patterns, the `BitVec` view of `Fin (2^64)`. -/
 def finEquivK : Fin (2 ^ 64) ≃ K where
-  toFun := BitVec.ofFin
-  invFun := BitVec.toFin
+  toFun := fun i ↦ BF64.ofBitVec (BitVec.ofFin i)
+  invFun := fun x ↦ x.toBitVec.toFin
   left_inv _ := rfl
   right_inv _ := rfl
 

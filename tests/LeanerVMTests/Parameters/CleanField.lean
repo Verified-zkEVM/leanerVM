@@ -15,8 +15,8 @@ open LeanerVM.Parameters
 
 /-! ## Clean's interface -/
 
-#guard FiniteField.val (0x2a : K) = 42
-#guard (FiniteField.fromNat 42 : K) = 0x2a
+#guard FiniteField.val (K.ofBits 0x2a : K) = 42
+#guard (FiniteField.fromNat 42 : K) = K.ofBits 0x2a
 
 /-- The size Clean sees is `2^64`. -/
 example : FiniteField.size K = 2 ^ 64 := rfl
@@ -34,7 +34,7 @@ same `decide` is stuck on CompPoly's `Ext.ofFn` (finding P1). -/
 example : y ^ 3 = E.ofLimbs 1 1 0 := by decide +kernel
 
 /-- The predicates decide on words built through `ofK` and `y`. -/
-example : IsInK (ofK 5) ∧ ¬ IsInK y ∧ IsCanonical128 y ∧ ¬ IsCanonical128 (y ^ 2) := by
+example : IsInK (ofK (K.ofBits 5)) ∧ ¬ IsInK y ∧ IsCanonical128 y ∧ ¬ IsCanonical128 (y ^ 2) := by
   decide +kernel
 
 end LeanerVMTests.Parameters

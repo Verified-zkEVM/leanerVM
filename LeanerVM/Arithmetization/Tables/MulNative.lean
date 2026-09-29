@@ -15,7 +15,7 @@ import Clean.Utils.Tactics.CircuitProofStart
 # The `MUL_NATIVE` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:436-456` (`mod arith`, shared with `XOR`, in that order), the
 flushes `tables.rs:483-495` (`Arith::flushes` with `is_xor = false`), the result coordinates
 `tables.rs:45-49` and `:461-473` (`TOWER_LANES`, `arith_result`), all matching specification

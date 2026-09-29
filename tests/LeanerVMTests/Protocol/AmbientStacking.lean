@@ -28,7 +28,7 @@ open LeanerVM.Parameters LeanerVM.Protocol CompPoly CMlPolynomialEval
 /-! ## The empty layout -/
 
 example (z : Vector K 2) : evalMle (emptyBlocks.stackAt emptyTables 2 1) z = 1 := by
-  have ht : emptyBlocks.stackAt emptyTables 2 1 = Vector.replicate (2 ^ 2) (1 : K) := by
+  have ht : emptyBlocks.stackAt emptyTables 2 1 = Vector.replicate (2 ^ 2) (1: K) := by
     apply Vector.ext
     intro i hi
     rw [emptyBlocks.stackAt_getElem_of_total_le emptyTables 1 hi (by
@@ -39,7 +39,7 @@ example (z : Vector K 2) : evalMle (emptyBlocks.stackAt emptyTables 2 1) z = 1 :
   rw [ht]
   exact evalMle_replicate 1 z
 
-#guard evalMle (emptyBlocks.stackAt emptyTables 2 1) (#v[5, 9] : Vector K 2) = 1
+#guard evalMle (emptyBlocks.stackAt emptyTables 2 1) (#v[K.ofBits 5, K.ofBits 9] : Vector K 2) = 1
 
 /-! ## Weights of a full layout and of a layout with a gap -/
 
@@ -59,13 +59,13 @@ example (z : Vector K 2) :
 
 -- The weights of the full layout sum to one off the cube.
 #guard (∑ b : Fin fullBlocks.n,
-  fullBlocks.selectorWeight fullBlocks_total.le b (#v[5, 9] : Vector K 2)) = 1
+  fullBlocks.selectorWeight fullBlocks_total.le b (#v[K.ofBits 5, K.ofBits 9] : Vector K 2)) = 1
 -- Those of the fixture, which leaves one cell uncovered, do not.
 #guard (∑ b : Fin blocks.n,
-  blocks.selectorWeight blocks_total_le b (#v[5, 9, 11] : Vector K 3)) ≠ 1
+  blocks.selectorWeight blocks_total_le b (#v[K.ofBits 5, K.ofBits 9, K.ofBits 11] : Vector K 3)) ≠ 1
 -- At a lifted point of a block, that block's weight is one.
 #guard blocks.selectorWeight blocks_total_le (1 : Fin 3)
-  (blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[13] : Vector K 1)) = 1
+  (blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[K.ofBits 13] : Vector K 1)) = 1
 
 /-! ## The decomposition, evaluated -/
 
@@ -82,12 +82,12 @@ def uncoveredWeight : E :=
   1 - ∑ b : Fin blocks.n, blocks.selectorWeight blocks_total_le b offCube
 
 -- Pad 5: the blocks' share plus five times the uncovered weight.
-#guard eval₂Mle (blocks.stackAt tables 3 5) (algebraMap K E) offCube =
-  coveredPart + ofK 5 * uncoveredWeight
+#guard eval₂Mle (blocks.stackAt tables 3 (K.ofBits 5)) (algebraMap K E) offCube =
+  coveredPart + ofK (K.ofBits 5) * uncoveredWeight
 -- Pad 0: the blocks' share alone.
 #guard eval₂Mle (blocks.stackAt tables 3 0) (algebraMap K E) offCube = coveredPart
 -- Mutation: with a nonzero pad, dropping the pad term is wrong.
-#guard eval₂Mle (blocks.stackAt tables 3 5) (algebraMap K E) offCube ≠ coveredPart
+#guard eval₂Mle (blocks.stackAt tables 3 (K.ofBits 5)) (algebraMap K E) offCube ≠ coveredPart
 #guard eval₂Mle (blocks.stackAt tables 3 1) (algebraMap K E) offCube ≠
   eval₂Mle (blocks.stackAt tables 3 0) (algebraMap K E) offCube
 

@@ -2,7 +2,7 @@
   "lean": {
     "repository": "leanprover/lean4",
     "tracking": "release",
-    "ref": "v4.33.1",
+    "ref": "v4.34.1",
     "commit": ""
   },
   "leanVM": {
@@ -15,18 +15,24 @@
     "repository": "Verified-zkEVM/CompPoly",
     "tracking": "branch",
     "ref": "main",
-    "commit": "3468b38c8fd270f93f55a259220a8abc544e7437"
+    "commit": "df591bb8c6745126d1d72f5243faae3022b0432a"
   },
   "Clean": {
     "repository": "Verified-zkEVM/clean",
     "tracking": "branch",
     "ref": "main",
-    "commit": "93c9d1ef45be9f687214625d7857889cf2485504"
+    "commit": "0386e42b7bffddb378d1af6540e1b776cd36c30f"
   },
   "ArkLib": {
     "repository": "Verified-zkEVM/ArkLib",
     "tracking": "branch",
     "ref": "main",
-    "commit": "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
+    "commit": "fa14552d40e793f2ea26e65c440306aae0c08a26"
+  },
+  "Mathlib": {
+    "repository": "leanprover-community/mathlib4",
+    "tracking": "release",
+    "ref": "v4.34.1",
+    "commit": ""
   }
 }

@@ -7,13 +7,14 @@
 
 module
 
-public import VCVio.OracleComp.Constructions.SampleableType
+public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
 
 /-!
 # Counting bounds for uniform samples
 
-VCVio's `probEvent_uniformSample` says that the probability of an event under a uniform sample
-of a finite type is the number of its witnesses over the size of the type. The two bounds here
+VCVio's `SampleableType.prEvent_uniformSample` says that the probability of an event under a
+uniform sample of a finite type is the number of its witnesses over the size of the type.
+The two bounds here
 are the forms a soundness argument uses: an event with at most `k` witnesses has probability at
 most `k/|α|`, and an event any two of whose witnesses are equal has probability at most
 `1/|α|`. The right-hand sides are non-negative reals coerced to extended ones, the type of a
@@ -34,8 +35,9 @@ variable {α : Type} [SampleableType α] [Fintype α]
 sample. -/
 theorem probEvent_uniformSample_le_of_card_le (p : α → Prop) [DecidablePred p] {k : ℕ}
     (h : (Finset.univ.filter p).card ≤ k) :
-    Pr[p | $ᵗ α] ≤ ((k / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
-  rw [probEvent_uniformSample, ENNReal.coe_div (Nat.cast_ne_zero.mpr Fintype.card_ne_zero),
+    Pr{let sample ← $ᵗ α}[p sample] ≤ ((k / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
+  rw [SampleableType.prEvent_uniformSample,
+    ENNReal.coe_div (Nat.cast_ne_zero.mpr Fintype.card_ne_zero),
     ENNReal.coe_natCast, ENNReal.coe_natCast]
   exact ENNReal.div_le_div_right (Nat.cast_le.mpr h) _
 
@@ -43,7 +45,7 @@ theorem probEvent_uniformSample_le_of_card_le (p : α → Prop) [DecidablePred p
 uniform sample. -/
 theorem probEvent_uniformSample_le_of_subsingleton (p : α → Prop)
     (h : ∀ a b, p a → p b → a = b) :
-    Pr[p | $ᵗ α] ≤ ((1 / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
+    Pr{let sample ← $ᵗ α}[p sample] ≤ ((1 / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
   classical
   have hcard : (Finset.univ.filter p).card ≤ 1 :=
     Finset.card_le_one.mpr fun a ha b hb ↦

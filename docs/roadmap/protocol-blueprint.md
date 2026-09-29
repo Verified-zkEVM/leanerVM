@@ -49,6 +49,10 @@ wanted. Work on a layer is claimed through the tracking issue
 ([#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)); see
 [How work is tracked](#how-work-is-tracked).
 
+The dependency API tables and signatures below record the original implementation baseline.
+[dependencies.md](../dependencies.md) records current pins and the 4.34 native-probability
+port, which retains the relations, extraction conditions, and error bounds.
+
 ## For zkVM engineers
 
 ArkLib formalizes a proof system as a chain of *reductions*. A reduction is a short interactive

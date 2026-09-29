@@ -206,11 +206,11 @@ fn sentinel_with_wrong_frame_is_rejected() {
 }
 
 fn word(v: F192) -> String {
-    format!("(E.ofLimbs {} {} {})", v.c0, v.c1, v.c2)
+    format!("(E.ofLimbs (K.ofBits {}) (K.ofBits {}) (K.ofBits {}))", v.c0, v.c1, v.c2)
 }
 
 fn instruction(op: Op) -> String {
-    let address = |i: u32| format!("({} : K)", g_pow(i as usize).0);
+    let address = |i: u32| format!("(K.ofBits {} : K)", g_pow(i as usize).0);
     match op {
         Op::Xor { a, b, c } => format!(".xor {} {} {}", address(a), address(b), address(c)),
         Op::Mul { a, b, c } => format!(".mulNative {} {} {}", address(a), address(b), address(c)),
@@ -307,13 +307,13 @@ fn emit_fixture(name: &str, p: &Program, e: &Execution, public_input: [F192; 2],
     .unwrap();
     writeln!(
         out,
-        "def publicInput : PublicInput := ⟨![{}, {}, {}, {}]⟩",
+        "def publicInput : PublicInput := ⟨![K.ofBits {}, K.ofBits {}, K.ofBits {}, K.ofBits {}]⟩",
         public_input[0].c0, public_input[0].c1, public_input[1].c0, public_input[1].c1
     )
     .unwrap();
     assert_eq!(public_input[0].c2, 0);
     assert_eq!(public_input[1].c2, 0);
-    let regs = |pc: u32, fp: u32| format!("⟨{}, {}⟩", g_pow(pc as usize).0, g_pow(fp as usize).0);
+    let regs = |pc: u32, fp: u32| format!("⟨K.ofBits {}, K.ofBits {}⟩", g_pow(pc as usize).0, g_pow(fp as usize).0);
     let rows = [
         e.trace
             .xor

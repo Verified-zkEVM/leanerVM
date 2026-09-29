@@ -109,7 +109,7 @@ theorem stale_trace_rejected :
 #guard stepChecked (oneStep (.deref (gpow 5) 1 (gpow 16) .pc)) ctlImage [] Regs.initial = none
 #guard stepChecked (oneStep blakeIns) (blakeImage rustOut1) [] Regs.initial = some ⟨g, 1⟩
 #guard stepChecked (oneStep blakeIns)
-  (blakeImage (E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 1)) [] Regs.initial = none
+  (blakeImage (E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 1)) [] Regs.initial = none
 
 /-! ## Address hints: verified on a hit, exhaustive on a miss -/
 

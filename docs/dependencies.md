@@ -1,29 +1,15 @@
 # Dependency policy
 
-The scaffold currently has five tracked upstreams and three Lake packages:
+The repository tracks six upstreams and four direct Lake packages:
 
 | Component | Tracked ref | Role |
 | --- | --- | --- |
-| Lean | `v4.33.1` | Root toolchain |
+| Lean | `v4.34.1` | Root toolchain |
+| Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
 | leanVM | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Audited Rust/specification target; not a Lake dependency |
-| CompPoly | `3468b38c8fd270f93f55a259220a8abc544e7437` | Computable polynomial and field infrastructure; Mathlib arrives through it |
-| Clean | `93c9d1ef45be9f687214625d7857889cf2485504` | Circuit, AIR, channel, and witness-generation infrastructure for the leanISA tables |
-| ArkLib | `dca90385fb40dd5eb8da9145da6348ed17f5cd8b` | Interactive oracle reductions, their security definitions and composition, sumcheck, multilinear theory; VCVio arrives through it |
-
-CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
-
-- `K = GF(2^64)`: `CompPoly.Fields.Binary.BF64`, the flat quotient
-  `GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` on a computable `BitVec 64` carrier, with Rabin-certified
-  irreducibility;
-- `E = GF(2^192)`: `CompPoly.Fields.Binary.BF64.Ext3`, the cubic extension `K[y]/(y^3 + y + 1)`
-  on a `Vector BF64 3` carrier via `CompPoly.Fields.Extension`.
-
-It is pinned to a `main` commit because the `v4.33.1` tag predates these modules. ArkLib pins
-the tag (`a09455a2`, fifteen commits earlier); Lake resolves a package once, and the root's
-direct requirement wins, so ArkLib's CompPoly-facing modules (`ArkLib/ToCompPoly/`,
-`OracleInterface.lean`, a few `Data/` files) are compiled here against `3468b38c`. The diff
-between the two CompPoly revisions is additive on every declaration ArkLib imports; a CompPoly
-pin bump on either side must re-check that.
+| CompPoly | `df591bb8c6745126d1d72f5243faae3022b0432a` (`v4.34.0-patch2`) | Computable polynomial and field infrastructure |
+| Clean | `0386e42b7bffddb378d1af6540e1b776cd36c30f` | Circuit, AIR, channel, and witness-generation infrastructure |
+| ArkLib | `fa14552d40e793f2ea26e65c440306aae0c08a26` (`v4.34.0`) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
 Lake graph. The weekly drift workflow reports newer releases or commits but never rewrites
@@ -39,55 +25,83 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 4. audit the first-party namespace's transitive kernel dependencies; and
 5. record semantic changes separately from mechanical porting.
 
-ArkLib is pinned to `dca90385`, the commit that moved ArkLib to Lean's module system
-(PR #897), so every ArkLib file is a `module` and can be imported from `module` files here.
-Its Lake package name is `Arklib`, which is what the `[[require]]` must say. It brings VCVio
-(`f9dc47d9`), PolyFun (`c0c92369`, owned by VCVio), loom2, cslib and doc-gen4's dependencies
-into the manifest; its Mathlib is the same `0df444a3`, so the graph still has one Mathlib. Its
-first consumer is `LeanerVM/Protocol/Field.lean`, described in
-[roadmap/protocol-blueprint.md](roadmap/protocol-blueprint.md), whose dependency table lists
-every ArkLib declaration consumed and whose ledger lists the ArkLib theorems admitted at the pin
-that this repository must not depend on: the kernel axiom audit (`axiom-audit-root: LeanerVM`)
-rejects `sorryAx`, and ArkLib's `scripts/axiom_baseline.json` is an allowlist, not a proof.
-Building ArkLib's import cone loads its build-time lint plugin (`ArkLibLintPlugin:shared`) while
-elaborating each ArkLib module; a first `lake build` with several explicit targets was seen to
-schedule that plugin twice and fail one link, after which a second invocation proceeds
-(status finding E6).
+## Lean 4.34 port review
 
-VCVio is not required directly: it arrives through ArkLib, and a direct requirement would be
-added only for a first-party consumer of a VCVio declaration that ArkLib does not re-export.
+The previous baseline was Lean `v4.33.1`, CompPoly `3468b38c`, ArkLib `dca90385`, and Clean
+`93c9d1ef`. Lean `v4.34.1` is the patch release in the requested 4.34 series. Compiled artifacts
+from `v4.34.0` have incompatible headers, so Mathlib is now an explicit root requirement at
+`v4.34.1`. Existing first-party consumers include `LeanerVM.Parameters.Generator` and the
+polynomial and probability bridges under `LeanerVM.Protocol`. This requirement overrides the
+`v4.34.0` Mathlib requirements inherited from CompPoly and ArkLib.
 
-CompPoly is pinned to `3468b38c`, an untagged commit fifteen commits after its `v4.33.1`
-release, because the computable `BF64` and `Ext3` fields are newer than the tag. CompPoly's
-lakefile sets `preferReleaseBuild`, so on a checkout where CompPoly is not yet built Lake
-looks for a release tag at the pin, finds none, logs a warning, and builds from source; under
-`--wfail` that warning fails the build. CI and `scripts/validate.sh` therefore run `lake build`
-without `--wfail` and with Lake's caches enabled; the lookup costs one warning and changes
-nothing else. Package-level `leanOptions.warningAsError = true` in the root lakefile
-rejects first-party Lean elaboration warnings, including imported production and test leaves,
-without turning Lake's release-lookup warning into a failure. `scripts/test-warning-policy.py`
-checks positive builds and planted imported-leaf warnings for both library kinds. It does
-not change upstream package options or dependency revisions. Mathlib's oleans come from
-`lake exe cache get`, which CI runs before the build:
-compiling Mathlib from source does not fit the job's time limit. Pinning CompPoly to a release
-tag that contains the binary fields would let a build download the prebuilt archive instead.
+Regenerate the graph with `lake update`, then fetch matching artifacts with
+`lake exe cache get`. Do not use `lake --keep-toolchain update`: in Lake 4.34 that option also
+changes dependency traversal, allowing inherited manifests to resolve a package before later
+root requirements. Check the resolved revisions in the manifest after an update.
 
-Clean is pinned to `93c9d1ef`, the merge of
-[PR #457](https://github.com/Verified-zkEVM/clean/pull/457), which moved Clean to Lean
-`v4.33.1` and the same Mathlib revision (`0df444a3`) that CompPoly resolves, so the Lake graph
-has one Mathlib. Its first consumers are the leanISA table components and the
-`FiniteField BF64` instance described in
-[roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md). Clean's core (`Clean/Circuit`,
-`Clean/Air`, `Clean/Table`) is generic over `FiniteField F`; its gadget
-tree is `ZMod p` with `p > 512` and is not used. Two Clean limitations bind this repository and
-are tracked in the blueprint: interactions distinguish push from pull by multiplicity `±1`,
-which coincide in characteristic 2, and there is no degree bound on `Expression`. A third shapes
-the file policy: Clean's files are not `module`s, and Lean `v4.33.1` refuses to import a
-non-`module` from a `module`, so Clean is consumed only from plain files and every file
-importing them is plain too; see `CONTRIBUTING.md` and finding C8 in
+CompPoly's `v4.34.0-patch2` revision overrides ArkLib's `v4.34.0` CompPoly requirement. The
+complete first-party import cone must be compiled against that single resolved revision.
+`BF64` is now a structure wrapping `BitVec 64`, with characteristic-two natural-number casts:
+`(2 : K) = 0`. Encoded words use `K.ofBits n = BF64.ofBitVec (BitVec.ofNat 64 n)` instead.
+The generator remains the encoded word `0x2`; BLAKE2s cells, Clean's `val`/`fromNat` interface,
+protocol fixtures, and exported Rust contract fixtures retain their original bit coordinates.
+Regression tests distinguish casts from encoded words explicitly. `DecidableEq K` compares bit
+coordinates through an equivalence proof: the upstream derived wrapper instance makes kernel
+checks of computed words stall on dependent transport. The existing register-equality
+regression checks this boundary without unchecked evaluation. The `Fintype K` instance is
+proof-only; executable samplers use coordinate equivalences without enumerating `2^64` words.
+
+ArkLib's release migrates security definitions to VCVio's native measure API. The guarded
+verdict, guarded append, and uniform counting bridges use `Pr{let x ← computation}[P x]`
+and native event lemmas. Their relations, extraction conditions, and error bounds are retained.
+The retired `Pr[P | computation]` interface is no longer used by first-party probability proofs.
+Review these statement changes alongside the kernel audit, rather than relying on successful
+elaboration alone.
+
+Clean is pinned to the compatibility commit in [PR #474](https://github.com/Verified-zkEVM/clean/pull/474),
+based on its `v4.33.1` revision. Mathlib 4.34 rejects `ring_nf at ih'` in
+`Clean.Air.Balance.balanceOf_active_append_eq` because normalization makes no progress at that
+hypothesis. The fix applies the induction equality under addition explicitly and proves the
+reassociation goals with `ring`, retaining the theorem statement and assumptions. The complete
+Balance file is checked under both Lean 4.33.1 and Lean 4.34.1, and the affected Clean import cone
+is built under the root toolchain. The published commit is pinned directly; local package
+overrides must never be written into the committed manifest.
+
+## Dependency boundaries
+
+CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
+
+- `K = GF(2^64)`: `CompPoly.Fields.Binary.BF64`, the flat quotient
+  `GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)` on a computable polynomial-basis carrier, with
+  Rabin-certified irreducibility;
+- `E = GF(2^192)`: `CompPoly.Fields.Binary.BF64.Ext3`, the cubic extension
+  `K[y]/(y^3 + y + 1)` on a `Vector BF64 3` carrier via `CompPoly.Fields.Extension`.
+
+ArkLib's Lake package name is `Arklib`, which is what the `[[require]]` must say. Its first
+consumer is `LeanerVM/Protocol/Field.lean`. It brings VCVio (`7a4d7ee2`), PolyFun (`3710d71b`),
+cslib, and doc-gen4's dependencies into the manifest. VCVio is transitive; any future direct
+requirement needs a named first-party consumer. The historical consumer table and trust ledger
+are in [roadmap/protocol-blueprint.md](roadmap/protocol-blueprint.md). Upstream admitted results
+are not proof evidence: the first-party kernel axiom audit rejects `sorryAx` transitively,
+including through upstream theorems. ArkLib's own axiom baseline is an allowlist, not a proof.
+
+Package-level `leanOptions.warningAsError = true` rejects every first-party elaboration warning,
+including imported production and test leaves. CI and `scripts/validate.sh` use plain
+`lake build` so Lake's dependency release-lookup warnings do not fail the build.
+`scripts/test-warning-policy.py` verifies both positive builds and planted imported-leaf
+warnings; it does not change upstream options. Mathlib's artifacts come from
+`lake exe cache get` before building, since compiling all of Mathlib does not fit CI's time limit.
+CompPoly's release tag permits its prebuilt archive lookup; an artifact from a different Lean
+patch version must be rebuilt with the root toolchain.
+
+Clean's first consumers are the leanISA table components and the `FiniteField BF64` instance
+in [roadmap/leanisa-blueprint.md](roadmap/leanisa-blueprint.md). Its core is generic over
+`FiniteField F`; its `ZMod p` gadget tree is not used. Two limitations remain: push and pull
+multiplicities `±1` coincide in characteristic two, and `Expression` has no degree bound.
+Clean's pinned files are not `module`s, so files importing them remain plain; see
+[CONTRIBUTING.md](../CONTRIBUTING.md) and the historical finding C8 in
 [roadmap/leanisa-status.md](roadmap/leanisa-status.md).
 
 leanVM's existing `formal/xmss/` project is not imported wholesale. At the target revision it
 uses Lean `v4.31.0` and VCVio revision `cbd4144`; moving that reviewed security theorem onto this
-repository's current dependency set is a deliberate port and statement/correspondence review,
-not a reason to downgrade the root toolchain.
+repository's dependency set requires a deliberate port and statement/correspondence review.

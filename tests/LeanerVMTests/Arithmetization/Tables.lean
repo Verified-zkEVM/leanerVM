@@ -51,24 +51,25 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 /-! ## The fixture: one image -/
 
 -- scripts/dump-mul-rust.sh at leanVM a386121f: the operands `x`, `y` and the product `x · y`.
-def x0 : K := 0x0123456789abcdef
-def x1 : K := 0xfeedfacedeadbeef
-def x2 : K := 0x1111222233334444
-def y0 : K := 0x9999aaaabbbbcccc
-def y1 : K := 0x13579bdf2468ace0
-def y2 : K := 0x5555666677778888
-def mulXY : E := E.ofLimbs 0xf4bccd9a2e8e525b 0xf85ebb9433986f2f 0x918137982bf175ac
+def x0 : K := (K.ofBits 0x0123456789abcdef)
+def x1 : K := (K.ofBits 0xfeedfacedeadbeef)
+def x2 : K := (K.ofBits 0x1111222233334444)
+def y0 : K := (K.ofBits 0x9999aaaabbbbcccc)
+def y1 : K := (K.ofBits 0x13579bdf2468ace0)
+def y2 : K := (K.ofBits 0x5555666677778888)
+def mulXY : E :=
+  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
 
 -- scripts/dump-blake2s-rust.sh at leanVM a386121f: the nine cells, as `(lo, hi)`.
-def rustM0 : Vector K 2 := #v[0x0123456789abcdef, 0xfedcba9876543210]
-def rustM1 : Vector K 2 := #v[0x1111222233334444, 0x5555666677778888]
-def rustM2 : Vector K 2 := #v[0xdeadbeefcafebabe, 0x0badf00d0badf00d]
-def rustM3 : Vector K 2 := #v[0x9999aaaabbbbcccc, 0xddddeeeeffff0000]
-def rustCv0 : Vector K 2 := #v[0x0000000000000007, 0x0000000000000000]
-def rustCv1 : Vector K 2 := #v[0x000000000000000b, 0x0000000000000000]
-def rustMd : Vector K 2 := #v[0x0000000000000040, 0x00000000ffffffff]
-def rustOut0 : Vector K 2 := #v[0x583fffe1350e2137, 0x0de9e32629a5c508]
-def rustOut1 : Vector K 2 := #v[0xf1b0679a15df60bb, 0x0228c8d4ed9b3a24]
+def rustM0 : Vector K 2 := #v[K.ofBits 0x0123456789abcdef, K.ofBits 0xfedcba9876543210]
+def rustM1 : Vector K 2 := #v[K.ofBits 0x1111222233334444, K.ofBits 0x5555666677778888]
+def rustM2 : Vector K 2 := #v[K.ofBits 0xdeadbeefcafebabe, K.ofBits 0x0badf00d0badf00d]
+def rustM3 : Vector K 2 := #v[K.ofBits 0x9999aaaabbbbcccc, K.ofBits 0xddddeeeeffff0000]
+def rustCv0 : Vector K 2 := #v[K.ofBits 0x0000000000000007, 0x0000000000000000]
+def rustCv1 : Vector K 2 := #v[K.ofBits 0x000000000000000b, 0x0000000000000000]
+def rustMd : Vector K 2 := #v[K.ofBits 0x0000000000000040, K.ofBits 0x00000000ffffffff]
+def rustOut0 : Vector K 2 := #v[K.ofBits 0x583fffe1350e2137, K.ofBits 0x0de9e32629a5c508]
+def rustOut1 : Vector K 2 := #v[K.ofBits 0xf1b0679a15df60bb, K.ofBits 0x0228c8d4ed9b3a24]
 
 /-- The canonical image word of a two-limb cell. -/
 def cell (v : Vector K 2) : Vector K 3 := #v[v[0], v[1], 0]
@@ -88,14 +89,14 @@ at `30`; zero elsewhere. -/
 def memTable : Array (Vector K 3) :=
   #[#v[0, 0, 0], #v[0, 0, 0],
     #v[x0, x1, x2], #v[y0, y1, y2], #v[x0 + y0, x1 + y1, x2 + y2], xyLanes,
-    #v[7, 8, 9],
-    #v[gpow 8, 0, 0], #v[g ^ 2 * gpow 3, 0, 0], #v[5, 6, 7],
+    #v[K.ofBits 7, K.ofBits 8, K.ofBits 9],
+    #v[gpow 8, 0, 0], #v[g ^ 2 * gpow 3, 0, 0], #v[K.ofBits 5, K.ofBits 6, K.ofBits 7],
     #v[1, 0, 0], #v[gpow 6, 0, 0], #v[1, 0, 0],
     #v[0, 0, 0], #v[0, 0, 0], #v[0, 0, 0],
     cell rustM0, cell rustM1, cell rustM2, cell rustM3, cell rustCv0, cell rustCv1,
     cell rustOut0, cell rustOut1, cell rustMd,
-    #v[gpow 26, 0, 0], #v[3, 4, 5], #v[3, 4, 5],
-    #v[gpow 29, 0, 0], #v[1, 0, 0], #v[9, 9, 9],
+    #v[gpow 26, 0, 0], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5], #v[K.ofBits 3, K.ofBits 4, K.ofBits 5],
+    #v[gpow 29, 0, 0], #v[1, 0, 0], #v[K.ofBits 9, K.ofBits 9, K.ofBits 9],
     #v[0, 0, 0]]
 
 /-- The prover data of an image, its one table matched on arity so that the kernel never
@@ -266,30 +267,30 @@ example (get : ℕ → K) :
 /-! ## `SET_CONSTANT` -/
 
 /-- The honest `SET_CONSTANT` row at `pc = g^2`: the immediate `7 + 8·y + 9·y²` at `g^6`. -/
-def setRow : SetRow K := ⟨gpow 2, 1, gpow 6, #v[7, 8, 9], 1, 1⟩
+def setRow : SetRow K := ⟨gpow 2, 1, gpow 6, #v[K.ofBits 7, K.ofBits 8, K.ofBits 9], 1, 1⟩
 
 /-- `SetSpec` on the honest row: `SET_CONSTANT g^6 (7 + 8·y + 9·y²)` executes, the cell holding
 the immediate. -/
 theorem set_spec : SetSpec setRow ⟨g * gpow 2, 1⟩ tabData :=
   ⟨by
-    show execute (imageOf tabData).2 ⟨gpow 2, 1⟩ (.setConstant (gpow 6) (E.ofLimbs 7 8 9)) =
+    show execute (imageOf tabData).2 ⟨gpow 2, 1⟩ (.setConstant (gpow 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8) (K.ofBits 9))) =
       some ⟨g * gpow 2, 1⟩
-    simp only [execute, executeWith, one_mul, read_at 6 #v[7, 8, 9]]
+    simp only [execute, executeWith, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]]
     decide +kernel⟩
 
 example : ConstraintsHold.Completeness (rowEnv tabData)
-    ((setTable.main (const (setRowOf (gpow 2) 1 (gpow 6) (E.ofLimbs 7 8 9) 1 1))).operations 0) :=
+    ((setTable.main (const (setRowOf (gpow 2) 1 (gpow 6) (E.ofLimbs (K.ofBits 7) (K.ofBits 8) (K.ofBits 9)) 1 1))).operations 0) :=
   set_exec_complete set_spec.exec_eq 1 1
 
 /-- A changed immediate limb: the cell `fp·o` does not hold the row's immediate, so the row
 fails `SetRefines` and the constraints fail in every environment. (Whether the program holds
 this immediate at `g^2` is the bus's to check, Layer 9.) -/
-def setRow' : SetRow K := { setRow with k := #v[7, 8, 10] }
+def setRow' : SetRow K := { setRow with k := #v[K.ofBits 7, K.ofBits 8, K.ofBits 10] }
 
 example (next : Regs K) : ¬ SetSpec setRow' next tabData := by
   intro h
   obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp h
-  rw [show setRow'.fp * setRow'.o = 1 * gpow 6 from rfl, one_mul, read_at 6 #v[7, 8, 9]] at hk
+  rw [show setRow'.fp * setRow'.o = 1 * gpow 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]] at hk
   exact absurd (Option.some.inj hk) (by decide +kernel)
 
 example (get : ℕ → K) :
@@ -298,7 +299,7 @@ example (get : ℕ → K) :
   have hs : SetSpec setRow' _ tabData := (setTable.soundness 0 ⟨get, tabData⟩ (const setRow')
     setRow' ProvableType.eval_const trivial h).1
   obtain ⟨hk, -⟩ := (set_refines_iff _ _ _).mp hs
-  rw [show setRow'.fp * setRow'.o = 1 * gpow 6 from rfl, one_mul, read_at 6 #v[7, 8, 9]] at hk
+  rw [show setRow'.fp * setRow'.o = 1 * gpow 6 from rfl, one_mul, read_at 6 #v[K.ofBits 7, K.ofBits 8, K.ofBits 9]] at hk
   exact absurd (Option.some.inj hk) (by decide +kernel)
 
 /-! ## `DEREF` -/
@@ -306,38 +307,38 @@ example (get : ℕ → K) :
 /-- The honest `DEREF` row at `pc = g^3` in `pc` mode (`f_pc = 1`, `f_fp = 0`): pointer `g^8`
 at `g^7`, local cell `g^9`, target `g^8 · 1` holding `g² · g^3`. -/
 def derefRow : DerefRow K :=
-  ⟨gpow 3, 1, gpow 7, 1, gpow 9, 1, 0, gpow 8, #v[5, 6, 7], 1, 1, 1, 1⟩
+  ⟨gpow 3, 1, gpow 7, 1, gpow 9, 1, 0, gpow 8, #v[K.ofBits 5, K.ofBits 6, K.ofBits 7], 1, 1, 1, 1⟩
 
 /-- The `cell`-mode row at `pc = g^6`: pointer `g^26` at `g^25`, local cell `g^27`, target
 `g^26 · 1` holding the local word. -/
 def derefCellRow : DerefRow K :=
-  ⟨gpow 6, 1, gpow 25, 1, gpow 27, 0, 0, gpow 26, #v[3, 4, 5], 1, 1, 1, 1⟩
+  ⟨gpow 6, 1, gpow 25, 1, gpow 27, 0, 0, gpow 26, #v[K.ofBits 3, K.ofBits 4, K.ofBits 5], 1, 1, 1, 1⟩
 
 /-- The `fp`-mode row at `pc = g^7`: pointer `g^29` at `g^28`, local cell `g^30` (read, not
 stored), target `g^29 · 1` holding `fp = 1`. -/
 def derefFpRow : DerefRow K :=
-  ⟨gpow 7, 1, gpow 28, 1, gpow 30, 0, 1, gpow 29, #v[9, 9, 9], 1, 1, 1, 1⟩
+  ⟨gpow 7, 1, gpow 28, 1, gpow 30, 0, 1, gpow 29, #v[K.ofBits 9, K.ofBits 9, K.ofBits 9], 1, 1, 1, 1⟩
 
 theorem deref_bindings : DerefBindings (imageOf tabData).2 derefRow .pc := by
   refine ⟨rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 7) = some (E.ofLimbs (gpow 8) 0 0)
     rw [one_mul]; exact read_at 7 #v[gpow 8, 0, 0]
-  · show (imageOf tabData).2.read (1 * gpow 9) = some (E.ofLimbs 5 6 7)
-    rw [one_mul]; exact read_at 9 #v[5, 6, 7]
+  · show (imageOf tabData).2.read (1 * gpow 9) = some (E.ofLimbs (K.ofBits 5) (K.ofBits 6) (K.ofBits 7))
+    rw [one_mul]; exact read_at 9 #v[K.ofBits 5, K.ofBits 6, K.ofBits 7]
 
 theorem derefCell_bindings : DerefBindings (imageOf tabData).2 derefCellRow .cell := by
   refine ⟨rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 25) = some (E.ofLimbs (gpow 26) 0 0)
     rw [one_mul]; exact read_at 25 #v[gpow 26, 0, 0]
-  · show (imageOf tabData).2.read (1 * gpow 27) = some (E.ofLimbs 3 4 5)
-    rw [one_mul]; exact read_at 27 #v[3, 4, 5]
+  · show (imageOf tabData).2.read (1 * gpow 27) = some (E.ofLimbs (K.ofBits 3) (K.ofBits 4) (K.ofBits 5))
+    rw [one_mul]; exact read_at 27 #v[K.ofBits 3, K.ofBits 4, K.ofBits 5]
 
 theorem derefFp_bindings : DerefBindings (imageOf tabData).2 derefFpRow .fp := by
   refine ⟨rfl, ?_, ?_⟩
   · show (imageOf tabData).2.read (1 * gpow 28) = some (E.ofLimbs (gpow 29) 0 0)
     rw [one_mul]; exact read_at 28 #v[gpow 29, 0, 0]
-  · show (imageOf tabData).2.read (1 * gpow 30) = some (E.ofLimbs 9 9 9)
-    rw [one_mul]; exact read_at 30 #v[9, 9, 9]
+  · show (imageOf tabData).2.read (1 * gpow 30) = some (E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9))
+    rw [one_mul]; exact read_at 30 #v[K.ofBits 9, K.ofBits 9, K.ofBits 9]
 
 /-- `DEREF g^7 1 g^9` in `pc` mode executes from `(g^3, 1)`: the target holds the return address
 `g² · g^3`. -/
@@ -346,7 +347,7 @@ theorem deref_exec :
       some ⟨g * gpow 3, 1⟩ := by
   simp only [execute, executeWith, one_mul, mul_one, read_lit 7 (gpow 8) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 9 5 6 7, read_lit 8 (g ^ 2 * gpow 3) 0 0, derefSource, ofK_eq_ofLimbs]
+    read_lit 9 (K.ofBits 5) (K.ofBits 6) (K.ofBits 7), read_lit 8 (g ^ 2 * gpow 3) 0 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
 
 /-- In `cell` mode from `(g^6, 1)`: the target holds the local word. -/
@@ -355,7 +356,7 @@ theorem derefCell_exec :
       some ⟨g * gpow 6, 1⟩ := by
   simp only [execute, executeWith, one_mul, mul_one, read_lit 25 (gpow 26) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 27 3 4 5, read_lit 26 3 4 5, derefSource]
+    read_lit 27 (K.ofBits 3) (K.ofBits 4) (K.ofBits 5), read_lit 26 (K.ofBits 3) (K.ofBits 4) (K.ofBits 5), derefSource]
   decide +kernel
 
 /-- In `fp` mode from `(g^7, 1)`: the target holds `fp = 1`; the local cell is read all the
@@ -365,7 +366,7 @@ theorem derefFp_exec :
       some ⟨g * gpow 7, 1⟩ := by
   simp only [execute, executeWith, one_mul, mul_one, read_lit 28 (gpow 29) 0 0, Option.bind_eq_bind,
     Option.bind_some, guard, isInK_ofLimbs, ite_true, limb_ofLimbs, Matrix.cons_val_zero,
-    read_lit 30 9 9 9, read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
+    read_lit 30 (K.ofBits 9) (K.ofBits 9) (K.ofBits 9), read_lit 29 1 0 0, derefSource, ofK_eq_ofLimbs]
   decide +kernel
 
 /-- `DerefSpec` in each store mode: the bindings and the execution, with the same mode. -/

@@ -2,8 +2,8 @@ name = "leanerVM"
 version = "0.1.0"
 defaultTargets = ["LeanerVM"]
 # The test driver is the test library, not an executable: an executable linking
-# `CompPoly.Fields.Binary.BF64.Impl` evaluates its `Fintype BF64` instance at startup and is
-# killed enumerating `2^64` elements (finding P3 in docs/roadmap/leanisa-status.md). Tests are
+# historical `Fintype BF64` instance enumerated `2^64` elements at startup (finding P3 in
+# docs/roadmap/leanisa-status.md); the current field enumeration is proof-only. Tests are
 # `#guard`s and `example`s checked while the library compiles.
 testDriver = "LeanerVMTests"
 
@@ -14,23 +14,29 @@ relaxedAutoImplicit = false
 pp.unicode.fun = true
 
 [[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.1"
+
+[[require]]
 name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
-rev = "3468b38c8fd270f93f55a259220a8abc544e7437"
+rev = "df591bb8c6745126d1d72f5243faae3022b0432a"
 
 [[require]]
 name = "Clean"
 git = "https://github.com/Verified-zkEVM/clean"
-rev = "93c9d1ef45be9f687214625d7857889cf2485504"
+rev = "0386e42b7bffddb378d1af6540e1b776cd36c30f"
 
 # ArkLib's package name is `Arklib` (its lakefile), so the `require` must use that spelling. Its
-# own CompPoly requirement is the `v4.33.1` tag; the root pin above (`3468b38c`, needed for the
-# binary fields) wins the Lake resolution, and ArkLib's CompPoly-facing modules are rebuilt
-# against it. See docs/dependencies.md.
+# own CompPoly requirement is `v4.34.0`; the root's `v4.34.0-patch2` revision wins Lake
+# resolution. The explicit Mathlib requirement also wins over inherited `v4.34.0` pins,
+# providing artifacts compatible with Lean `v4.34.1`. See docs/dependencies.md.
 [[require]]
 name = "Arklib"
 git = "https://github.com/Verified-zkEVM/ArkLib"
-rev = "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
+rev = "fa14552d40e793f2ea26e65c440306aae0c08a26"
 
 [[lean_lib]]
 name = "LeanerVM"

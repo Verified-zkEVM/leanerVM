@@ -123,10 +123,10 @@ theorem stackAt_decomposition (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^
     simp [B.windowTable_getElem, hn]
   · obtain ⟨b, hb⟩ := B.exists_inWindow (Nat.lt_of_not_ge hp)
     rw [B.stackAt_getElem_of_inWindow t (b := b) pad hx hb, Finset.sum_eq_single b]
-    · rw [B.windowTable_getElem, dif_pos hb]
+    · rw [B.windowTable_getElem, dite_eq_left hb]
       simp
     · intro c _ hc
-      rw [B.windowTable_getElem, dif_neg (fun hh ↦ hc (B.inWindow_unique hh hb))]
+      rw [B.windowTable_getElem, dite_eq_right (fun hh ↦ hc (B.inWindow_unique hh hb))]
     · simp
 
 /-- The stack at an arbitrary point: every block at the point's low coordinates, weighted by

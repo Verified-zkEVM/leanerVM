@@ -52,7 +52,7 @@ theorem evalMle_prodVars {m : ℕ} (s : Vector R m) :
     evalMle (prodVars m) s = ∏ b : Fin m, s[b] := by
   rw [evalMle_eq_sum]
   simp only [Fin.getElem_fin, prodVars, Vector.getElem_ofFn, Fin.eta, ite_mul, one_mul,
-    zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
   exact lagrangeBasis_onesIndex s
 
 /-- A table of `k` variables lifted to `k + m` variables by `∏_{c ≥ k} X_c`: its entries sit

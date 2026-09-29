@@ -3,7 +3,7 @@
 
   The three bus interactions of leanISA as six Clean channels, the image a channel guarantee is
   stated against, the two read gadgets, and the bus data of every channel.
-  A plain (non-`module`) file: it imports Clean, which is not a `module` at `93c9d1ef`.
+  A plain (non-`module`) file: it imports Clean, which is not a `module` at `0386e42b`.
 -/
 
 import LeanerVM.Parameters.CleanField
@@ -17,7 +17,7 @@ import Mathlib.Data.Nat.Log
 # The bus channels
 
 leanISA roadmap Layer 5 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`.
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`.
 
 **The tuples** (Category B). Every bus tuple is sixteen `K` slots: a domain separator, then the
 interaction's coordinates, then zeros (specification §5.1,
@@ -255,7 +255,7 @@ def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 7)
 
 /-! ## Bus data -/
 
-/-- The direction of a bus flush (specification §5.1 "The bus"). Clean at `93c9d1ef` has no such
+/-- The direction of a bus flush (specification §5.1 "The bus"). Clean at `0386e42b` has no such
 type, only the sign of a multiplicity, which carries no information over `K`; this one and
 `channelDir` are deleted in favour of Clean's direction tag once that change is upstreamed
 (issue #16, the roadmap's dependency table). -/

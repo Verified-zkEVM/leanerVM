@@ -82,7 +82,7 @@ Install [elan](https://github.com/leanprover/elan), then clone the repository an
 ./scripts/validate.sh
 ```
 
-The repository is pinned by [`lean-toolchain`](lean-toolchain) to Lean `v4.33.1`. The complete
+The repository is pinned by [`lean-toolchain`](lean-toolchain) to Lean `v4.34.1`. The complete
 validation command checks source policy, imports, architectural dependencies, documentation,
 the timing helper, the Lean build, and executable tests.
 

@@ -1,7 +1,7 @@
 /-
   LeanerVM.Parameters.CleanField
 
-  Clean's field interface for `K`. A plain (non-`module`) file: Clean at `93c9d1ef` is not
+  Clean's field interface for `K`. A plain (non-`module`) file: Clean at `0386e42b` is not
   written with Lean's module system, and a `module` may not import a non-`module`.
 -/
 
@@ -13,7 +13,7 @@ import Clean.Utils.FiniteField
 
 leanISA roadmap Layer 0 (`docs/roadmap/leanisa-blueprint.md`). `instFiniteFieldK` supplies
 Clean's `FiniteField K`, the interface every Clean circuit, table, and channel is generic over,
-with `val = BitVec.toNat`, `fromNat = BitVec.ofNat 64`, and `size = 2^64`. The roadmap's
+with `val x = x.toBitVec.toNat`, `fromNat = K.ofBits`, and `size = 2^64`. The roadmap's
 dependency table records that Clean's core never consumes `val` or `size`; only its witness-IR
 bridge does, and for a 64-bit field its `UInt64` truncation is the identity.
 
@@ -32,12 +32,12 @@ namespace LeanerVM.Parameters
 
 /-- Clean's `FiniteField K`: `val` is the word's value and `fromNat` its inverse below `2^64`. -/
 instance instFiniteFieldK : FiniteField K where
-  val := BitVec.toNat
-  fromNat n := BitVec.ofNat 64 n
+  val x := x.toBitVec.toNat
+  fromNat := K.ofBits
   size := 2 ^ 64
-  val_lt x := x.isLt
-  val_injective := fun _ _ h ↦ BitVec.eq_of_toNat_eq h
-  val_fromNat n hn := by simp [BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn]
+  val_lt x := x.toBitVec.isLt
+  val_injective := fun _ _ h ↦ BF64.toBitVec_injective (BitVec.eq_of_toNat_eq h)
+  val_fromNat n hn := by simp [K.ofBits, BitVec.toNat_ofNat, Nat.mod_eq_of_lt hn]
   val_zero := rfl
   val_one := rfl
 

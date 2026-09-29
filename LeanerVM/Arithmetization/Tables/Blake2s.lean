@@ -16,7 +16,7 @@ import Clean.Utils.Tactics.CircuitProofStart
 # The `BLAKE2S` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:833-863` (`mod blake2st`, in that order), the flushes
 `tables.rs:873-908` (`Blake2sTable::flushes`), matching specification §7.6
 (`doc/leanvm/body/07-instruction-tables.tex:114-141`). There is no table constraint: the
