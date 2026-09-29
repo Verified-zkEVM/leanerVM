@@ -48,16 +48,14 @@ open CompPoly CMlPolynomialEval
 
 variable {R : Type*} [CommRing R]
 
-omit [CommRing R] in
 /-- Place a table at one high-coordinate selector and fill the other slices with zero. -/
-def placeSlice [Zero R] {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+def placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
     CMlPolynomialEval R (k + m) :=
   Vector.ofFn fun x ↦ if x.val / 2 ^ k = j.val then
     t[x.val % 2 ^ k]'(Nat.mod_lt _ (Nat.two_pow_pos k)) else 0
 
-omit [CommRing R] in
 /-- Slicing a placed table gives the table at its selector and zero at every other selector. -/
-theorem slice_placeSlice [Zero R] {k m : ℕ} (t : CMlPolynomialEval R k) (j h : Fin (2 ^ m)) :
+theorem slice_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j h : Fin (2 ^ m)) :
     slice (placeSlice t j) h = if h = j then t else Vector.replicate (2 ^ k) 0 := by
   apply Vector.ext
   intro i hi
@@ -148,16 +146,14 @@ def highPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R 
 def selectorWeight {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) : R :=
   (eqTable (B.highPoint hμ b z))[B.selector hμ b]
 
-omit [CommRing R] in
 /-- Place arbitrary values in a block's window and zero outside it. -/
-def windowTable [Zero R] {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+def windowTable {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) : CMlPolynomialEval R μ :=
   Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' (B.size_le hμ b)))
     (placeSlice t (B.selector hμ b))
 
-omit [CommRing R] in
 /-- A window table reads the local value inside its window and vanishes outside it. -/
-theorem windowTable_getElem [Zero R] {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+theorem windowTable_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (t : CMlPolynomialEval R (B.size b)) (x : Fin (2 ^ μ)) :
     (B.windowTable hμ b t)[x] = if h : B.InWindow b x.val then
       t[x.val - B.offset b]'(by have := h.2; omega) else 0 := by
