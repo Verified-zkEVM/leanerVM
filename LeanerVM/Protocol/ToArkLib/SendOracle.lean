@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.Component
+public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.Oracles
 
 /-!
@@ -136,13 +137,6 @@ def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × �
   extractMid := fun m _ tr _ ↦ tr ⟨0, Nat.succ_pos m.val⟩
   extractOut := fun _ tr _ ↦ tr 0
 
-/-- The run of the send verifier, at the transcript type a state function sees. -/
-theorem sendVerifier_toVerifier_run' (s : S) (o : ∀ i, NoOracle i)
-    (tr : (sendSpec M).Transcript (Fin.last 1)) :
-    Verifier.run (s, o) tr (sendVerifier S M).toVerifier =
-      pure (s, fun _ ↦ tr ⟨0, Nat.succ_pos 0⟩) :=
-  sendVerifier_toVerifier_run s o tr
-
 variable (rel : Set ((S × ∀ i, NoOracle i) × M))
   {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
 
@@ -162,15 +156,9 @@ def sendStateFunction :
   toFun_full := fun stmt tr _ h ↦ by
     obtain ⟨s, o⟩ := stmt
     simp only [Fin.val_last, one_ne_zero, dite_false]
-    rw [sendVerifier_toVerifier_run'] at h
-    change Pr[_ | OptionT.mk (do let st ← init; (simulateQ impl
-      (OptionT.run (pure (s, fun _ ↦ tr ⟨0, Nat.succ_pos 0⟩)))).run' st)] > 0 at h
-    rw [OptionT.run_pure, simulateQ_pure] at h
-    obtain ⟨y, hy, hp⟩ := probEvent_pos_iff.mp h
-    simp [OptionT.mem_support_iff] at hy
-    obtain ⟨_, rfl⟩ := hy
     rw [noOracle_eq o (fun i ↦ i.elim0)]
-    exact hp
+    exact (Verifier.GuardedForm.of_probEvent_pos
+      (sendVerifierPure (S := S) (M := M)).toGuardedForm init impl (s, o) tr _ h).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the extractor reads the
 message. -/
