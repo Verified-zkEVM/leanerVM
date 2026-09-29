@@ -49,7 +49,12 @@ directory with its first concrete module rather than adding an empty placeholder
 
 Owns only leanVM-specific composition of upstream polynomial, oracle, commitment, and proof-
 system components around the verified arithmetization. Generic theory belongs in CompPoly,
-VCVio, or ArkLib.
+VCVio, or ArkLib. Until its upstream pull request merges, a generic candidate is staged under
+`LeanerVM/Protocol/To<Library>/`, named after the library that owns the objects it talks about,
+one module each. A staged module imports nothing leanVM-specific and is written for that
+library's other consumers: general definitions and helper lemmas, with no special case the
+protocol chose and no protocol vocabulary. The special cases are derived in the leanVM modules,
+which is where the specification is cited.
 
 The target-theorem ownership is:
 

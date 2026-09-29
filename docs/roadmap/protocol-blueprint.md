@@ -167,6 +167,12 @@ ArkLib
 [`dca90385`](https://github.com/Verified-zkEVM/ArkLib/commit/dca90385fb40dd5eb8da9145da6348ed17f5cd8b),
 CompPoly `3468b38c`, Clean `93c9d1ef`, VCVio `f9dc47d9` (through ArkLib), Lean `v4.33.1`.
 
+**Prior work.** The earlier formalization of leanVM-a (the pre-leanISA design) in the private
+repository `leanth` is surveyed in [leanth-reuse.md](leanth-reuse.md), layer by layer: what is
+ported, what is a port source for a ledger item, what is only a pattern, and what is dropped and
+why. Issues cite that page, never the private tree; derived material carries the credit line and
+co-author trailers it prescribes.
+
 ### The leanVM specification and implementation
 
 Two kinds of source, with opposite disciplines (the authoring skill `lean-spec-authoring` sets
@@ -187,7 +193,7 @@ or file and lines, and the pin.
 | Fiat–Shamir chain: tags, seeding, sampling, grinding | B (§8.4 is `TODO`; finding F1) | `crates/fiat_shamir/src/lib.rs:18-174`; `crates/lean_vm/src/cpu/mod.rs:82-124` |
 | Proof object and stream order | B | `crates/fiat_shamir/src/transcript.rs:9-19, 280-330`; `cpu/mod.rs:711-779` |
 | Round-polynomial encoding (one coefficient derived) | B | `crates/fiat_shamir/src/transcript.rs:289-309` |
-| Stack and leaf layouts, block order, selectors | B | `crates/lean_vm/src/witness.rs:85-101`, `leaf.rs:53-156`, `cpu/layout.rs:400-445` |
+| Stack and leaf layouts, block order, selectors | B | `crates/lean_vm/src/witness.rs:67-101` (the order, ties by column index), `cpu/layout.rs:13-49` (the column index), `leaf.rs:53-156`, `cpu/layout.rs:400-445` |
 | Count blocks (tables' count columns only) | B | `cpu/layout.rs:412-414`; `leaf.rs:664-668` |
 | Bytecode multilinear, sixteen slots | B | specification §8.1; `leaf.rs:585-637` |
 | Caps and the stacking bound `μ ∈ [15, 28]` | B | `cpu/mod.rs:45-64, 130-178`; `lean_vm/src/pcs.rs:49-51` |
@@ -304,8 +310,8 @@ polynomial view and is Clean's upstream candidate.
 | Subject | Convention |
 | --- | --- |
 | Hypercube | `Fin (2^n)` indexes `{0,1}^n` with bit `k` = coordinate `k` (low bit first), the CompPoly and leanVM order. A point is `Vector E n` (CompPoly's shape; ArkLib's `Fin n → E` is `Vector.ofFn` away). |
-| Tables | `Column n` wraps `CMlPolynomialEval K n` (values) in a structure, so that its evaluation oracle is disjoint from ArkLib's position-query interface on `Vector`; `ETable n := CMlPolynomialEval E n`. A "multilinear" is its value table; its extension is `evalMle`, lifted by `eval₂Mle` when the point is in `E`. |
-| `eq` | `eq(r, x) = ∏ (1 + r_k + x_k)` over `E` (characteristic 2); `eqTable r : ETable n` holds `eq(r, ·)` on the cube. |
+| Tables | `Column n` wraps `CMlPolynomialEval K n` (values) in a structure, so that its evaluation oracle is disjoint from ArkLib's position-query interface on `Vector`; a table over `E` is `CMlPolynomialEval E n` (written `ETable n` in the sketches below). A "multilinear" is its value table; its extension is `evalMle`, lifted by `eval₂Mle` when the point is in `E`. |
+| `eq` | `eq(r, x) = ∏ (1 + r_k + x_k)` over `E` (characteristic 2); its values on the cube are CompPoly's `lagrangeBasis r`. |
 | Sumcheck messages | A round polynomial travels as its coefficient list, low degree first, of length `d + 1`; the oracle protocol sends all of them. Dropping one is the *encoding* of Layer 12 (`transcript.rs:289-309`), inverted by the running claim. |
 | Statements and parameters | The public `input : I.Stmt` is the statement of the oracle protocol and the instance `I : M3Instance` (the program and the announced sizes, for leanISA) indexes the protocol family; a phase's `StmtIn` carries only what earlier phases produced (claims). The relation of the first phase is `M3Rel I`, that is `M3Holds I input q` on the stack `q`; the caps are checked by the compiled verifier on the announced sizes before the oracle protocol starts (Layer 12), and are a hypothesis of the adaptor's soundness theorem (Layer 3). |
 | The oracle | One committed oracle `q : Column μ_stack` for the whole protocol (`OStmt : Unit → Type`), with `OracleInterface` query `Vector E μ_stack` and answer `eval₂Mle q`. No other oracle exists in the oracle protocol; WHIR's codewords appear only in Layer 11. |
@@ -313,16 +319,16 @@ polynomial view and is Clean's upstream candidate.
 | Bus | Width `m = 16`; coordinate 0 is the separator `g^0 / g^1 / g^2` for state, memory, bytecode; coordinates follow the specification's tuple order; unused coordinates are the constant `0`. Fingerprint `π_α(t) = Σ_{i<16} eq(α, bits i) · t_i` with `α : Fin 4 → E`; leaf `β − π_α(t)`, padding leaf `1`. |
 | Count tree | Leaves are the tables' count columns themselves (`α = 0`, no `β`), padded with `1` to the bus trees' depth; the finalize counts are not in it (`layout.rs:412`). |
 | GKR | Radix 4 from the root down; if `μ` is odd, one radix-2 layer first. A fresh combiner `λ` per layer; two combination challenges after each radix-4 layer; the three trees share every challenge and end at one `ζ`. Layer sumcheck messages have degree 5 (eq × four multilinears); the round check is on the cofactor (Gruen). |
-| Stacks | Blocks ordered largest first at aligned offsets; `sel_b = offset_b >> κ_b`; `q̃(z, sel_b) = P̃_b(z)`. The witness stack holds every table column in table order, then `mem_0, mem_1, mem_2`, `cntfin_mem`, `cntfin_bc`, `q_flock` (`witness.rs:85-101`); `μ_stack ∈ [15, 28]`. |
+| Stacks | Blocks ordered largest first at aligned offsets; `sel_b = offset_b >> κ_b`; `q̃(z, sel_b) = P̃_b(z)`. Blocks of equal size keep the order of the column index (`stack_offsets`, `witness.rs:67-79`), and the column index puts the six shared columns first, `mem_0, mem_1, mem_2`, `cntfin_mem`, `cntfin_bc`, `q_flock`, then every table's columns in table order (`cpu/layout.rs:13-49`); the specification gives no rule for equal sizes. `μ_stack ∈ [15, 28]`. |
 | Table sumcheck | Variables bound highest first; table `j` joins at round `τ_max − τ_j`; its summand is padded by `∏_{k ≥ τ_j} X_k`; round polynomials have degree 3; `ξ` powers: constraints table by table, then the three bus sides in `[push, pull, count]` order sharing the last three powers; the target is computed by the verifier, never sent (finding F4). |
 | Claim pool order | Bus (framework block) claims, then per-table column claims, then the three public-input limb claims (`finish_claims`, `cpu/mod.rs:656-667`); ring-switched claims take the low powers of `λ`, point claims the high ones (finding F8). |
 | Fiat–Shamir | A Merkle–Damgård chain of `compress` on a 256-bit state; block lane 3 carries the tag `1` (observe), `2` (squeeze), `3` (grinding base), `4` (grinding nonce); no labels (finding F1); seeded by `compress(iv, input)` with `iv` the BLAKE2s of `"leanvm" ‖ len ‖ R1CS_DIGEST ‖ bytecodeHash`; one squeeze yields one `E` challenge (three low words). |
 | Verifier shape | `verify` is a total, computable function of `(prog, input, proof)` to `Bool`; it never panics; a malformed proof is `false`. Structure checks on public data that the Rust `assert!`s (finding F10) are theorems about the layout, not branches of `verify`. |
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); assumed interfaces are structures with a docstring naming the upstream witness obligation, never `variable`-block hypotheses or `axiom`s. |
 | Unproved targets | A statement whose dependency is not yet available is a block comment at its place, carrying the statement and the dependency (leanISA convention). Never `sorry`. |
-| Generic code | A definition or theorem that belongs upstream lives under `LeanerVM/Protocol/ToArkLib/`, `LeanerVM/Protocol/ToCompPoly/` or `LeanerVM/Protocol/ToVCVio/` by destination, in a module of its own with a docstring saying it is a candidate for that library, so that it can be ported file by file; when the upstream pull request merges and the pin moves, the local copy is deleted in the same pull request. Comments everywhere are brief and self-contained: they cite the specification, never this roadmap. |
+| Generic code | A definition or theorem that belongs upstream lives under `LeanerVM/Protocol/ToArkLib/`, `LeanerVM/Protocol/ToCompPoly/` or `LeanerVM/Protocol/ToVCVio/` by destination, in a module of its own with a docstring saying it is a candidate for that library, so that it can be ported file by file; when the upstream pull request merges and the pin moves, the local copy is deleted in the same pull request. The destination is the library that owns the objects the module talks about, read off its imports. What goes there is written for that library's other consumers: general definitions and helper lemmas, no special case the protocol chose (a slot, a pad value, a particular point) and no protocol vocabulary; the special case is derived in a leanVM module, which is where the specification is cited. Comments everywhere are brief and self-contained: they cite the specification, never this roadmap. |
 | Module system | ArkLib is a `module` library; a file importing ArkLib and not Clean (nor a plain file) is a `module`. The Clean bridge (Layer 2), the adaptor (Layer 3) and T4 (Layer 13) are plain; the spine and every phase are modules, since `M3Instance` carries polynomials and tables, never a Clean circuit. |
-| The wall | Every module of the proof system is written over an abstract `I : M3Instance` and imports nothing from `LeanerVM/Arithmetization/`; the only exceptions are the Clean bridge (Layer 2), the adaptor (Layer 3) and T4 (Layer 13). `scripts/check-layers.sh` enforces the import rule (acceptance test 25). A leanISA change touches `leanIsaInstance`, the adaptor and T1, and nothing else. |
+| The wall | Every module of the proof system is written over an abstract `I : M3Instance` and imports nothing from `LeanerVM/Arithmetization/`; the only exceptions are the fixed columns (`FixedColumns.lean`, Layer 1), the Clean bridge (Layer 2), the adaptor (Layer 3), the compiled verifier (Layer 12) and T4 (Layer 13). The rule is checked by review (acceptance test 25): `scripts/check-layers.sh` checks the layer DAG and has no rule for it yet. A leanISA change touches `leanIsaInstance`, the adaptor and T1, and nothing else. |
 | Holes | A phase or generic component is two structures: `X.Def` (the reduction, its relations and its per-challenge error) and `X.Security` (perfect completeness, and round-by-round knowledge soundness over a `Def` for an extractor and a knowledge state function it carries: ArkLib's `rbrKnowledgeSoundnessWorstCaseWith` form, so the extractor is named, not merely shown to exist). A `Def` lands with its completeness proof and an honest-run test on the toy instance; its `Security` may land later, as its own pull request; neither ever contains `sorry`. Until every hole is filled, `Phases.Security` is an assumed interface in the sense of *Trusted surface*. |
 | Seams | The output relation of a phase is the input relation of the next, by definition (`Seam.*`), never by a bridge lemma (acceptance test 26). `Seam.bus` carries the reused zerocheck point, `∀ j i, C̃_{j,i}(ζ_{<τ_j}) = 0`, and the escape "violated on the cube, zero at ζ" is charged in the bus phase, coordinate by coordinate as ζ is drawn, `1/|E|` per coordinate per constraint (leanth's `ZerocheckClaim` pattern); there is no separate zerocheck phase. `Seam.bus` also bounds the total degree of every term of every linear claim by the instance's `d`, the degree the table sumcheck is built for (acceptance test 28). |
 | Extractors | Every extractor is a computable definition. The protocol's is `piopExtractor`, the commit phase's (which reads the stack off the oracle message) followed by the phases', straight-line; `witnessOf` is applied to its output by the adaptor. An extractor chosen by `Classical.choose` proves soundness, not knowledge (acceptance test 24). |
@@ -587,20 +593,20 @@ become.
 
 | Hole | Unit | Produces | Consumes | Existing work | Issue |
 | --- | --- | --- | --- | --- | --- |
-| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes); built under `LeanerVM/Protocol/Spine/` | Layer 0 only (#18's `Blocks` inhabit `Layout` later) | leanth's explore branch | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes); built under `LeanerVM/Protocol/Spine/` | Layer 0 only (Layer 1's `Blocks.layout` inhabits `Layout` for aligned blocks) | leanth's explore branch | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | `Virtual`, `sumcheck`, `sumcheck_perfectCompleteness` | nothing | #42, ArkLib #1128, ArkLib `main`'s `Sumcheck/Interaction/` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G2 | sumcheck rbr knowledge, `Sumcheck.Security` (Layer 4, A1) | `sumcheck_rbrKnowledgeSoundness`, `d/\|F\|` per round | G1 | ArkLib #1129, `Interaction/Soundness.lean` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G3 | batching by powers, `Batch.Def` and `Security` (Layer 4) | `batchClaims`, `(k − 1)/\|F\|` | nothing | #43, ArkLib #615's `gammaPowers` | [#31](https://github.com/Verified-zkEVM/leanerVM/issues/31) |
 | G4 | fingerprint, Lemma 5.1, the collision bound (Layer 5) | `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision` | nothing | #39, ArkLib #901 | [#33](https://github.com/Verified-zkEVM/leanerVM/issues/33) |
 | G5, G6 | GKR: `Gkr.Def` and completeness; `Gkr.Security` (Layer 5) | `gkr`, `gkrError`, its two theorems | G1 (G6 also G2) | ArkLib #818 as a pattern | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
-| L1 | Layer 1's leaves | `stack_eval_ambient` (#40), `unstack` and `BlockClaim` (#38), `idxColumn_eval` and `bytecodeColumn_slot` (#41), coefficient transport (#26) | #18 | in review | #27, #32, #35, #36 |
+| L1 | Layer 1: tables, stacking, the fixed columns | `Blocks`, `stack_eval`, `unstack_eval₂`, `stack_eval_ambient`, `bitProductTable`, `powersTable`, `placeSlice`; `Blocks.layout`, `Layout.comap`, `ColumnClaim.holds_iff_weighted`, `padHigh`, `BlockClaim`, `idxColumn_eval`, `bytecodeColumn_answer_boolVec`, `bytecodeColumn_eval` | Layer 0; the spine's `Layout` and claims | leanth, per the catalog [leanth-reuse.md](leanth-reuse.md) | #27, #32, #35, #36 |
 | I1 | Clean components as polynomials (Layer 2) | `Expression.toMvPolynomial`, `degreeBound`, `Component.toM3`, `Ensemble.toM3`, the two bridge theorems | Clean | Clean #466 | [#28](https://github.com/Verified-zkEVM/leanerVM/issues/28) |
-| I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, #38, #40; #3 (the Flock witness generator, "the R1CS holds ⇒ the limb slots compress") | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
-| P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), #40, #41 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, L1; #3 (the Flock witness generator, "the R1CS holds ⇒ the limb slots compress") | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), L1 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P3, P4 | the table sumcheck phase (Layer 7) | `tableSummand`, `tableSummand_target`, `tableSumcheck`; its `Security` | S, G1 (P4 also G2) | #42 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P5 | the public-input phase (Layer 8) | `publicInputPhase`, both halves | S | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P6 | the Flock phase at the flock seam (Layer 9) | `FlockOut`, `limbColumns`, `flockError_le`; the inhabitant is #3's | S | #3, ArkLib #383, #893 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
-| P7, P8 | the claim pool and the opening phase (Layer 10) | `Weight`, `WeightedClaim`, `openingPhase`; its `Security` | S, G3, G1, #38, #43 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P7, P8 | the claim pool and the opening phase (Layer 10) | `Weight`, `WeightedClaim`, `openingPhase`; its `Security` | S, G3, G1, L1, #43 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | C1 | the knowledge-soundness append (ledger A2) | `Verifier.KnowledgeStateFunction.appendGuarded`, `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first` in `LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean`, the port of ArkLib #615's `Append/Knowledge.lean`: done on the spine's branch, as the port; deleted at the pin bump | ArkLib only | ArkLib #615, #676 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | K1 | WHIR over binary Reed–Solomon codes (Layer 11) | `encode`, `whirOpen`, `whirOpen_rbrSoundness`, `McaJohnson` | `WeightedClaim`, Layers 0, 1 | #3 F6, ArkLib #383, #992 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | K2 | Merkle, BLAKE2s bytes, the WHIR parameters (Layer 11) | `merkleRoot`, `merkleVerify`, `blake2sBytes`, `ladder` | leanISA Layer 1 | ArkLib #4 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
@@ -610,7 +616,7 @@ become.
 ## The build: the spine, then fourteen layers
 
 Every layer names what to define and what to prove, intrinsically. Each layer's tests are part
-of the layer. The spine (hole S) is built after Layer 0 and Layer 1's generic half; the layers
+of the layer. The spine (hole S) is built after Layer 0; the layers
 keep their numbers and are read as the holes of the table above. Layers 3 and 6 to 10 are written
 over `I : M3Instance`; where a signature below says `(prog) (s)`, read `leanIsaInstance prog s`.
 A layer lands only fully proved; a hole's `Def` and `Security` are separate landings.
@@ -644,36 +650,108 @@ answers `evalMle` on a two-variable table, on and off the cube, with a mutated c
 
 ### Layer 1: hypercube tables, stacking, the index and bytecode columns
 
-`LeanerVM/Protocol/Multilinear.lean` (generic), `LeanerVM/Protocol/Stack.lean` (leanVM).
+Two halves. The generic half is written for CompPoly and its other consumers, over any
+commutative ring and CompPoly's tables, and names no protocol:
+`LeanerVM/Protocol/ToCompPoly/{Multilinear,BitProductTable,Stacking,AmbientStacking}.lean`. They
+are CompPoly's candidates, not ArkLib's: every object in them is a CompPoly table or its
+evaluation, none imports ArkLib, and ArkLib stages such lemmas under its own
+`ArkLib/ToCompPoly/`. The leanVM half specialises it and cites the specification:
+`LeanerVM/Protocol/Stack.lean` (columns over `K`, points in `E`, the spine's `Layout`),
+`Padding.lean` (back-loaded padding, §5.5), `ClaimWeights.lean` (a column claim as a weighted
+claim, §4.1), `BlockClaims.lean` (claims on aligned blocks) and `FixedColumns.lean` (the index
+and bytecode columns; it names the program, so it sits below the wall with the adaptor).
 
 ```lean
 structure Column (n : ℕ) where values : CMlPolynomialEval K n     -- Layer 0; not an abbreviation
-abbrev ETable (n : ℕ) := CMlPolynomialEval E n
-def sumCube (t : ETable n) : E                                  -- Σ over the cube
-def ETable.mul (s t : ETable n) : ETable n                     -- pointwise
-def eqTable (r : Fin n → E) : ETable n                         -- values of eq(r, ·)
-theorem eval_eq_sum_eqTable (t : ETable n) (r) : evalMle t r = sumCube (eqTable r).mul t
-theorem sumCube_prod_vars : sumCube (∏ X_k) = 1                -- Σ_x x_0 ⋯ x_{n-1} = 1
+-- ToCompPoly/Multilinear.lean, over any commutative ring R
+def sumCube (t : CMlPolynomialEval R n) : R                     -- Σ over the cube
+def hadamard (s t : CMlPolynomialEval R n) : CMlPolynomialEval R n   -- pointwise
+theorem evalMle_eq_sumCube_hadamard (t) (r) : evalMle t r = sumCube (hadamard (lagrangeBasis r) t)
+theorem sumCube_lagrangeBasis (r) : sumCube (lagrangeBasis r) = 1    -- the partition of unity
+theorem evalMle_replicate (a) (x) : evalMle (replicate (2 ^ n) a) x = a
+def slice (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m)) : CMlPolynomialEval R k
+theorem evalMle_append_boolVec (t) (z) (j) : evalMle t (z ++ boolVec j) = evalMle (slice t j) z
+def placeSlice (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) : CMlPolynomialEval R (k + m)
+theorem evalMle_placeSlice (t) (j) (z) (s) :
+    evalMle (placeSlice t j) (z ++ s) = (lagrangeBasis s)[j] * evalMle t z
+theorem sumCube_placeSlice (t) (j) : sumCube (placeSlice t j) = sumCube t
+-- ToCompPoly/BitProductTable.lean
+def bitProductTable (f : Fin n → Bool → R) : CMlPolynomialEval R n   -- entry i: ∏_k f k (bit k of i)
+theorem evalMle_bitProductTable (f) (x) :
+    evalMle (bitProductTable f) x = ∏ k, ((1 - x[k]) * f k false + x[k] * f k true)
+def powersTable (a : R) (n) : CMlPolynomialEval R n             -- entry i: a ^ i
+theorem evalMle_powersTable (a) (n) (x) :
+    evalMle (powersTable a n) x = ∏ k, ((1 - x[k]) + x[k] * a ^ 2 ^ k)
+theorem evalMle_lagrangeBasis (w x) : evalMle (lagrangeBasis w) x = ∏ k, (…)   -- the eq kernel
 
-structure Block where (κ : ℕ) (values : Column κ)
-def stack (blocks : List Block) : (μ : ℕ) × Column μ           -- largest first, aligned, 0-pad
-def selector (blocks) (b : Fin blocks.length) : Fin (μ - κ_b) → E   -- the bits of offset_b >> κ_b
-theorem stack_eval (b) (z : Fin κ_b → E) :
-    evalMle (stack blocks).2 (z ++ selector blocks b) = evalMle blocks[b].values z
-theorem stack_eval_pad (ζ) : evalMle (stack …).2 ζ = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo) + pad(ζ)
+-- ToCompPoly/Stacking.lean
+structure Blocks where (n : ℕ) (size : Fin n → ℕ) (descending : Antitone size)   -- sizes only
+abbrev Blocks.Tables (B) (R) := (b : Fin B.n) → CMlPolynomialEval R (B.size b)  -- the values
+def Blocks.stackAt (B) (t : B.Tables R) (μ) (pad : R) : CMlPolynomialEval R μ
+def Blocks.selector (B) (hμ : B.total ≤ 2 ^ μ) (b) : Fin (2 ^ (μ - B.size b))   -- offset_b >> κ_b
+def Blocks.extendPoint (B) (hμ) (b) (z : Vector R (B.size b)) : Vector R μ      -- (z, sel_b)
+theorem Blocks.pow_size_dvd_offset (b) : 2 ^ B.size b ∣ B.offset b   -- alignment, from the order
+theorem Blocks.stack_eval (t) (hμ) (pad) (b) (z) :
+    evalMle (B.stackAt t μ pad) (B.extendPoint hμ b z) = evalMle (t b) z
+def Blocks.unstack (hμ) (q : CMlPolynomialEval R μ) (b)         -- read a block off any table
+theorem Blocks.unstack_eval₂ (φ : R →+* S) (hμ) (q) (b) (z) :   -- a K table at an E point
+    eval₂Mle q φ (B.extendPoint hμ b z) = eval₂Mle (B.unstack hμ q b) φ z
+-- ToCompPoly/AmbientStacking.lean
+theorem Blocks.stack_eval_ambient (t) (hμ) (pad) (ζ) : evalMle (B.stackAt t μ pad) ζ =
+    Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo) + pad · (1 − Σ_b eq(sel_b, ζ_hi))
 
-def idxColumn (κ : ℕ) : Column κ                               -- g^i at index i
-theorem idxColumn_eval (ζ : Fin κ → E) :
-    evalMle (idxColumn κ) ζ = ∏ k, (1 + ζ k * (1 + ofK (g ^ (2 ^ k.val))))     -- §6.5
+-- Stack.lean
+def Blocks.stackColumn (B) (t : B.Tables K) (μ) : Column μ      -- the witness stack, 0-pad
+def Blocks.readColumn (hμ) (q : Column μ) (b) : Column (B.size b)
+theorem Blocks.readColumn_eval (hμ) (q) (b) (z) :              -- for every q, honest or not
+    eval₂Mle (B.readColumn hμ q b).values (algebraMap K E) z
+      = eval₂Mle q.values (algebraMap K E) (B.extendPoint hμ b z)
+def Blocks.layout (hμ) : Layout μ (Fin B.n) B.size              -- the spine's reading law
+def Layout.comap (L) (f : ι' → ι) (h : ∀ c, κ (f c) = κ' c) : Layout μ ι' κ'   -- rename columns
+theorem Blocks.stack_eval_ambient_one (B) (t : B.Tables E) (hμ) (ζ) :   -- §5.4 (2), char. two
+    evalMle (B.stackAt t μ 1) ζ = Σ_b w_b · P̃_b(ζ_lo) + (1 + Σ_b w_b)
+-- Padding.lean
+def padHigh (t) (m) := placeSlice t (onesIndex m)               -- lift by ∏_{c ≥ k} X_c
+theorem sumCube_padHigh (t) (m) : sumCube (padHigh t m) = sumCube t
+theorem sumCube_prodVars : sumCube (prodVars m) = 1             -- Σ_x x_0 ⋯ x_{m-1} = 1
+-- ClaimWeights.lean, over an abstract instance
+def eqWeight (p : Vector E μ) : Weight μ                        -- eq(p, ·), with its evaluator
+theorem ColumnClaim.holds_iff_weighted (q) (c : ColumnClaim I) :
+    c.Holds q ↔ WeightedClaim.Holds q ⟨eqWeight (I.layout.extend c.col c.point), c.value⟩
+
+-- FixedColumns.lean
+def idxColumn (κ : ℕ) : Column κ := ⟨powersTable g κ⟩           -- g^i at index i
+theorem idxColumn_eval (ζ : Vector E κ) : answer (idxColumn κ) ζ = idxColumnEval ζ
+theorem idxColumnEval_eq (ζ) :
+    idxColumnEval ζ = ∏ k, (1 + ζ[k] * (1 + algebraMap K E (g ^ (2 ^ k.val))))   -- §6.5
 def bytecodeColumn (prog : Program) : Column (prog.logSize + 4)   -- slot s of instruction z
-theorem bytecodeColumn_slot (z s) : (bytecodeColumn prog)[z + 2^k_bc * s] = (encodeSlots (prog.code z))[s]
+theorem bytecodeColumn_answer_boolVec (i) (s) :                 -- the bit order, at the oracle
+    answer (bytecodeColumn prog) (boolVec i ++ boolVec s) = ofK (encodeSlots (prog.code i))[s]
+theorem bytecodeColumn_eval (z) (w) : answer (bytecodeColumn prog) (z ++ w) = bytecodeColumnEval prog z w
 ```
 
-`stack_eval` is the one selector fact every later decomposition uses; `stack_eval_pad` is
-specification (5.4) with `pad(ζ) = 1 + Σ_b eq(sel_b, ζ_hi)` when the padding value is `1` (a
-second version pads with `0` for the witness stack). Generic parts are ArkLib's `Data/MvPolynomial`
-candidates. Tests: `stack_eval` decided in the kernel on three blocks of sizes 4, 2, 1;
-`idxColumn_eval` at `κ = 2`; `bytecodeColumn_slot` on a two-instruction program.
+`stack_eval` is the one selector fact every later decomposition uses, and `unstack_eval₂` is the
+same fact for a table the prover chose: it is what `Blocks.layout` packages as the spine's
+`Layout` for aligned blocks, and `Layout.comap` renames its blocks to the columns of an
+instance. A `Blocks` is sizes only, so a layout names no table and one layout serves tables over
+`K` and over `E`. `stack_eval_ambient` is equation (2) of specification §5.4 for any padding
+value; with padding `1` over `E` the padding term is `1 + Σ_b eq(sel_b, ζ_hi)`
+(`stack_eval_ambient_one`), and with padding `0` it vanishes (the witness stack).
+
+The special cases the protocol uses are corollaries proved in the leanVM half. Back-loaded
+padding is `placeSlice` at the all-ones index. The index column is the geometric table at the
+generator, itself a table that factors over the index bits. A point whose coordinates past the
+first are all zero, which the public-input phase evaluates at, is the point
+`(z, selector bits of index 0)`, so its evaluation is `evalMle_append_boolVec` at slice zero.
+
+Tests: offsets and selectors decided in the kernel on three blocks of heights 4, 2, 1, the
+stacking identity evaluated on them and on a column that is no honest stack, reversed selector
+bits, and the small-first placement, which no selector reads; the aligned layout of three
+blocks of height 2 in the layout field of the toy instance, where `M3Holds` decides as it does
+with the toy's own layout; a table with a different factor at each coordinate against its
+coordinates swapped; back-loaded padding by two variables against the copied table;
+`idxColumn_eval` at `κ = 2` in the specification's form, against the reversed bit order;
+`bytecodeColumn_answer_boolVec` on a two-instruction program, against reversed slot bits.
 
 ### Layer 2: Clean components as polynomials
 
@@ -723,7 +801,7 @@ theorem admissible_iff_caps : s.Admissible prog ↔ (Caps w ∧ Sizes.ofWitness 
 
 def leanIsaInstance (prog : Program) (s : Sizes) : M3Instance   -- `Ensemble.toM3` of the eight tables with
                                                                -- leanISA's separators and directions; the
-                                                               -- layout of `witness.rs:85-101`, `leaf.rs:53-156`
+                                                               -- layout of `witness.rs:67-101`, `leaf.rs:53-156`
 theorem leanIsaInstance_degree (j) (C ∈ (leanIsaInstance prog s).constraints j) : C.totalDegree ≤ 2
 theorem leanIsaInstance_flush_degree …  ≤ 2
 theorem leanIsaInstance_fits : (leanIsaInstance prog s).layout.total ≤ 2 ^ (leanIsaInstance prog s).μ
@@ -755,12 +833,12 @@ hypothesis, since `SatisfiedBy` carries `Caps`.
 `leanIsaInstance_flush_degree`, and three public lines, on `mem_0, mem_1, mem_2` (§8.2): for
 `ℓ = 0, 1` the line on `mem_ℓ` has as cells limb `ℓ` of the two public words, and the line on
 `mem_2` has cells `0, 0`. The stack columns that belong to no opcode table (`mem_0, mem_1, mem_2`,
-`cntfin_mem`, `cntfin_bc`, `q_flock`; `witness.rs:85-101`) are tables of the instance with no
+`cntfin_mem`, `cntfin_bc`, `q_flock`; `cpu/layout.rs:13-26`) are tables of the instance with no
 constraints and no flushes, so that `Shape.ColumnId` and `Coord.committed` reach them; the
 boundary blocks and the public lines name them that way.
 
 The layout has two readers. The table columns and the non-table columns are aligned blocks, read
-by #18's `Blocks` (`extend c z = (z, sel_c)`). The eighteen BLAKE2S value limbs are virtual
+by Layer 1's `Blocks.layout` (`extend c z = (z, sel_c)`). The eighteen BLAKE2S value limbs are virtual
 columns (`layout.rs:20-28`, `tables.rs:829`), read as strided slots of `q_flock`: a claim on a
 limb column at `z` is the claim on `q_flock` at the point whose low eight coordinates are frozen
 to the slot's bits and whose high coordinates are `z` (`cpu/mod.rs:790-814`,
@@ -783,7 +861,7 @@ which `m3Holds_stackOf` consumes.
 
 `witnessOf` rebuilds the tables from the columns (the BLAKE2S limbs from their slots), the
 interactions from the components, the image from the memory columns, and the program from `prog`.
-The stack layout transcribes `witness.rs:85-101` and `leaf.rs:53-156`; every offset is a
+The stack layout transcribes `witness.rs:67-101`, `cpu/layout.rs:13-49` and `leaf.rs:53-156`; every offset is a
 `decide`. Tests: a witness with one row per table stacked and read back (`witnessOf_stackOf` by
 `decide +kernel` on the columns); `Sizes.Admissible` rejects `logMem = 15` and `τ_BLAKE2S = 2`.
 
@@ -817,7 +895,7 @@ theorem sumcheck_rbrKnowledgeSoundness :
 ```
 
 with the *eq-weighted, back-loaded* variant built on it: tables of different heights `τ_j ≤ n`
-lifted to `n` variables by `∏_{k ≥ τ_j} X_k` with `sumCube_prod_vars`, the verifier's running
+lifted to `n` variables by `∏_{k ≥ τ_j} X_k` with `sumCube_prodVars`, the verifier's running
 weight `∏ (challenges of the rounds a table sat out)`, and `eq(ζ_{<τ_j}, ·)` as an explicit
 factor whose evaluation at `r` the verifier computes itself (so `d` counts the cofactor plus one).
 Add the batching component:
@@ -885,7 +963,7 @@ structure BusOut where
   α : Fin 4 → E ; β : E
 def busPhase.relOut : Set (…) :=
   {…| (∀ j, Σ_x eq(ζ_{<τ_j}, x) · B_j^s(x) = rem s) ∧ every pooled claim holds for q ∧ (count root ≠ 0)}
-/-- Specification (5.4): the leaf extension splits into public selectors, block extensions and padding. -/
+/-- Specification §5.4, equation (2): the leaf extension splits into public selectors, block extensions and padding. -/
 theorem leaf_decomposition (L) (ζ) : evalMle (pushLeaves L α β q) ζ = Σ_b eq(sel_b, ζ_hi) · (β − Σ_i eq(α, i) · c̃_{b,i}(ζ_lo)) + pad ζ
 theorem busPhase_perfectCompleteness …
 theorem busPhase_rbrKnowledgeSoundness : … (busError s)
@@ -1169,7 +1247,7 @@ witness is executable it is a test under `tests/`.
    before the commitment is unsound: commit a column vanishing at `ζ_{<τ}` only. The state
    function of Layer 7 charges the zerocheck to Layer 6's challenges.
 7. **Back-loaded padding.** Lifting table `j` by `∏_{k ≥ τ_j} X_k` sums to the table's own sum
-   (`sumCube_prod_vars`). Lifting by nothing multiplies it by `2^(τ_max − τ_j)`. Witness:
+   (`sumCube_prodVars`). Lifting by nothing multiplies it by `2^(τ_max − τ_j)`. Witness:
    `tableSummand_target` on heights 2 and 1.
 8. **Degree three, three scalars.** The table round polynomial is cubic; the wire carries three
    coefficients and `decode` reconstructs `c_1`. A quadratic reading rejects every Rust proof
@@ -1188,8 +1266,8 @@ witness is executable it is a test under `tests/`.
     every claim value is observed before `λ`. A chain sampling `α` before the root is broken.
     `FsState` follows the stream order; `verify_iff_compiled` fails otherwise.
 13. **Index column bit order.** `∏ (1 + ζ_k (1 + g^(2^k)))` reads bit `k` as coordinate `k`;
-    high-first order evaluates a different column. Witness: `idxColumn_eval` at `κ = 2` by
-    `decide +kernel`.
+    high-first order evaluates a different column. Witness: the `#guard`s on `idxColumn 2` in
+    `tests/LeanerVMTests/Protocol/FixedColumns.lean`.
 14. **Bytecode slot bits.** The opcode is `P(z, 1, 1, 0, 0)`: slot 3 in low-first bits.
     Witness: `bytecodeColumn_slot` on a two-instruction program.
 15. **Selector alignment.** Blocks sit at offsets that are multiples of their size, largest
@@ -1227,7 +1305,9 @@ witness is executable it is a test under `tests/`.
     (Layer 3).
 25. **The wall holds.** No module above the adaptor imports `LeanerVM.Arithmetization`; a phase
     that mentions `leanIsaEnsemble` cannot be tested on the toy instance and breaks with every
-    leanISA change. Witness: `scripts/check-layers.sh`.
+    leanISA change. Witness: `grep -rn 'import LeanerVM.Arithmetization' LeanerVM/Protocol`
+    lists the exceptions of convention *The wall* only; a rule in `scripts/check-layers.sh` is
+    still to be written.
 26. **Seams are the contract.** A phase's output relation is the next phase's input relation by
     definition, not by a bridge lemma; two relations joined by an `iff` at a seam double the
     trusted surface. Witness: `Phases.Complete.toDef` and `Phases.Security.toDef` typecheck only
@@ -1268,7 +1348,12 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Coord  BoundaryBlock 
                       piop_perfectCompleteness  piop_rbrKnowledgeSoundness  piop_rbrKnowledgeSoundness_exists
                       Refinement  Refinement.map_option_valid  Extractor.Straightline.map
                       Toy.shape  Toy.toy  Toy.honest  Toy.layout
-Protocol (generic):   Column  ETable  sumCube  eqTable  stack  selector  stack_eval  stack_eval_pad
+Protocol (generic):   Column  sumCube  hadamard  slice  placeSlice  boolVec
+                      evalMle_eq_sumCube_hadamard  evalMle_append_boolVec  evalMle_placeSlice
+                      bitProductTable  evalMle_bitProductTable  powersTable  evalMle_powersTable
+                      Blocks  Blocks.Tables  Blocks.stackAt  Blocks.selector  Blocks.extendPoint
+                      Blocks.stack_eval  Blocks.stack_eval₂  Blocks.unstack  Blocks.unstack_eval₂
+                      Blocks.stack_eval_ambient
                       Virtual  sumcheck  sumcheck_rbrKnowledgeSoundness  batchClaims
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision
                       ProductTree  gkr  gkrError  gkr_rbrKnowledgeSoundness
@@ -1278,7 +1363,12 @@ Protocol (generic):   Column  ETable  sumCube  eqTable  stack  selector  stack_e
 Arithmetization:      Expression.toMvPolynomial  degreeBound  M3Table  Component.toM3  Ensemble.toM3
                       toM3_constraints_iff  toM3_flushes_eq
 Protocol (leanVM):    instSampleableTypeE  evalOracle  card_E
-                      idxColumn  idxColumn_eval  bytecodeColumn  bytecodeColumn_slot
+                      Blocks.stackColumn  Blocks.readColumn  Blocks.readColumn_eval
+                      Blocks.layout  Layout.comap  Blocks.stack_eval_ambient_one
+                      padHigh  sumCube_padHigh  prodVars  sumCube_prodVars
+                      eqWeight  ColumnClaim.holds_iff_weighted  BlockClaim
+                      idxColumn  idxColumn_eval  idxColumnEval_eq
+                      bytecodeColumn  bytecodeColumn_answer_boolVec  bytecodeColumn_eval
                       Sizes  Sizes.Admissible  leanIsaInstance  stackOf  witnessOf
                       satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf
                       busPhase  BusOut  leaf_decomposition  tableSumcheck  tableSummand
@@ -1329,8 +1419,8 @@ modelled here.
 
 ## Ordering and parallelism
 
-The spine (S) needs Layer 0 and Layer 1's generic half (#18) and nothing else; it is the first
-pull request. G1 to G6, I1, K1 and K2 consume nothing from the spine but the shape of their
+The spine (S) needs Layer 0 and nothing else; it is the first pull request, and Layer 1's
+`Blocks.layout` inhabits its `Layout` afterwards. G1 to G6, I1, K1 and K2 consume nothing from the spine but the shape of their
 interface, so they can start on the spine's signatures before it merges; C1, the port of one
 ArkLib file, is done on the spine's branch. I2 and P1 to P8 need the spine merged; P2, P4 and P8
 additionally need the `Security` of the generic component they use. K3 needs the spine's
@@ -1420,6 +1510,5 @@ hole's pull request links the ArkLib issue it will become.
 - leanth (private): the explore branch `scaraven/proof-system-explore` at `db895db`, whose
   `Protocol/{Witness,Relation,Spec,Dimensions,Stacked,Zerocheck,PCS,Measures}.lean` and
   `docs/wiki/proof-system-status.md` are the pattern of [The spine](#the-spine), and the leanVM-a
-  formalization at `23929f8c`, catalogued in `docs/roadmap/leanth-reuse.md` (on #18's branch until
-  it lands), whose
+  formalization at `23929f8c`, catalogued in [leanth-reuse.md](leanth-reuse.md), whose
   end-to-end extractor is the counterexample of acceptance test 24.

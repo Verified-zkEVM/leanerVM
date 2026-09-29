@@ -25,6 +25,9 @@ This directory contains stable project and operating knowledge.
   - [protocol-status.md](roadmap/protocol-status.md): where the proof-system roadmap stands —
     layer coverage, the frontier, the upstream ledger, pending decisions, open findings, and the
     survey record.
+  - [leanth-reuse.md](roadmap/leanth-reuse.md): what the earlier leanVM-a formalization
+    (private repository `leanth`) contains that the proof-system roadmap reuses — the catalog by
+    layer, verdicts, credit, the port log, and the upstream candidates.
 - [reviews/](reviews/): review documents handed off for implementation, one per reviewed piece
   of work; the status file records how each finding was met.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
@@ -35,6 +38,10 @@ This directory contains stable project and operating knowledge.
   - [protocol-spine.md](reviews/protocol-spine.md): the review of the proof-system spine
     (2026-09-28), whose findings the branch now meets (the degree bound at the bus seam, the
     named extractor, public lines, the strong Flock predicate).
+  - [protocol-layer1.md](reviews/protocol-layer1.md): the review of the proof system's Layer 1
+    (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
+    aligned layout in an instance's layout field, the bit order of the bytecode column stated
+    at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
