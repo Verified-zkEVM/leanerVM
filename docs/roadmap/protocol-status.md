@@ -2,12 +2,13 @@
 
 This file records where the [protocol roadmap](protocol-blueprint.md) stands as of `main` at
 `f4d858c` (Layer 1, PR #59, merged on 2026-09-29), checked on 2026-09-29, together with the open
-pull requests and the public-input phase (hole P5) as built on its branch; this snapshot
-accompanies that branch. It is a hand-maintained snapshot, rewritten whole when a
-layer or hole lands or a decision is taken; the roadmap is the authority on what is wanted, and
-the tracking issue [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole
-checklist below. Open pull requests and prerequisite-branch adoption are not changes landed on
-`main`. The dependency pins are unchanged.
+pull requests and the public-input phase (hole P5) as built on the branch
+`feat/protocol-public-input` (pull request #60); this snapshot accompanies that branch. It is a
+hand-maintained snapshot, rewritten whole when a layer or hole lands or a decision is taken; the
+roadmap is the authority on what is wanted, and the tracking issue
+[#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole checklist below.
+Open pull requests and prerequisite-branch adoption are not changes landed on `main`. The
+dependency pins are unchanged.
 
 ## Where this roadmap stands
 
@@ -26,9 +27,9 @@ relations. It was revised before merging after the adversarial review
 [protocol-spine.md](../reviews/protocol-spine.md).
 
 Layer 1 (hole L1) is on `main` (#59, `f4d858c`, 2026-09-29). It is a consolidation of what was
-spread over four pull requests on a stale base: the
-draft #18 (the generic half and the reuse catalog [leanth-reuse.md](leanth-reuse.md), with the
-merged #25 and #26) and the leaves #38, #40 and #41. Their commits are cherry-picked with their
+spread over four pull requests on a stale base: the draft #18 (the generic half and the reuse
+catalog [leanth-reuse.md](leanth-reuse.md), with the merged #25 and #26) and the leaves #38,
+#40 and #41. Their commits are cherry-picked with their
 authorship and co-author trailers, each citing the commit and pull request it comes from, and
 each commit added on top names the authors of the modules it touches.
 
@@ -54,11 +55,12 @@ sits below the wall with the adaptor and the compiled verifier; every other Laye
 imports no leanISA module. The wall is checked by review: `scripts/check-layers.sh` has no rule
 for it (review finding D1).
 
-The public-input phase (hole P5) is built, on its own branch, with `./scripts/validate.sh` green
-there and the axiom audit at 3298 declarations. `LeanerVM/Protocol/PublicInput.lean` is §8.2 as
-the specification writes it: the verifier's challenge, then the prover's values for the public
-lines whose value is sent, which the verifier checks against the statement, rejecting otherwise,
-before it pools one claim per line. Both halves are proved (`publicInputComplete`,
+The public-input phase (hole P5) is built, on the branch `feat/protocol-public-input`, pull
+request #60, a draft, with `./scripts/validate.sh` green there and the axiom audit at 3298
+declarations. `LeanerVM/Protocol/PublicInput.lean` is §8.2 as the specification writes it: the
+verifier's challenge, then the prover's values for the public lines whose value is sent, which
+the verifier checks against the statement, rejecting otherwise, before it pools one claim per
+line. Both halves are proved (`publicInputComplete`,
 `publicInputSecurity`), at error `1/|E|` on the one challenge. It is the first phase with a
 challenge, a prover message, a verifier that can reject and a nonzero error. The first build had
 no prover message; it was rebuilt on the specification's transcript, merged with Layer 1, and
@@ -74,10 +76,11 @@ generic modules, each in place of a proof the components would otherwise copy:
 | `ToVCVio/UniformSample.lean` | `probEvent_uniformSample_le_of_card_le` (at most `k` witnesses, probability at most `k/\|α\|`), `probEvent_uniformSample_le_of_subsingleton` | the phase |
 
 Left for the holes: four of the five phase `Def`s and their proofs, the generic components, the
-adaptor, the compiled verifier. Three pull requests are open: #39 and #43, stacked on the closed
-#18, and #42 on `main`; where each sits against the spine is in the table below. The relation
-the proof system proves is `M3Holds`; the adaptor (`witnessOf`, `satisfiedBy_witnessOf`) carries
-knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that to `ValidExecution`.
+adaptor, the compiled verifier. Three pull requests are open beside #60: #39 and #43, stacked
+on the closed #18, and #42 on `main`; where each sits against the spine is in the table below.
+The relation the proof system proves is `M3Holds`; the adaptor (`witnessOf`,
+`satisfiedBy_witnessOf`) carries knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that
+to `ValidExecution`.
 
 ### Coverage by hole
 
@@ -95,7 +98,7 @@ knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that to `ValidExecuti
 | I2 | the adaptor (Layer 3) | open; needs L1 and I1; `satisfiedBy_witnessOf` takes `s.Admissible` as a hypothesis; two layout readers, Layer 1's `Blocks.layout` (renamed by `Layout.comap`) for the aligned blocks, in the order of finding F17, and a strided reader for the eighteen BLAKE2S limb slots of `q_flock`; depends on #3 for the Flock witness generator and the lemma "the R1CS holds ⇒ the limb slots compress" | #12 |
 | P1, P2 | the bus phase (Layer 6) | open on the spine's seams; P1 needs G5 | #12 |
 | P3, P4 | the table sumcheck phase (Layer 7) | open on the spine's seams; needs G1 | #12 |
-| P5 | the public-input phase (Layer 8) | built on its branch as §8.2 writes it, both halves proved, reviewed on 2026-09-29: `publicInputPhase` on `PublicInput.pSpec` (the challenge in `E`, then the prover's values, a `List E`), `PublicInput.check` (the message is the values `(1 + r)·cell0 + r·cell1` of the lines whose value is sent), `PublicInput.pooled` (the earlier phases' claims, then one claim per line at `(r, 0, …, 0)`), the verdict `PublicInput.verifier_verify` (check, then pool, else reject), `publicInputComplete`, `publicInputSecurity` with the trivial extractor and error `1/\|E\|`; a line says whether its value is sent (`PublicLine.sent`), leanISA's first two do; lands when its pull request merges | #12 |
+| P5 | the public-input phase (Layer 8) | built, draft #60, as §8.2 writes it, both halves proved, reviewed on 2026-09-29: `publicInputPhase` on `PublicInput.pSpec` (the challenge in `E`, then the prover's values, a `List E`), `PublicInput.check` (the message is the values `(1 + r)·cell0 + r·cell1` of the lines whose value is sent), `PublicInput.pooled` (the earlier phases' claims, then one claim per line at `(r, 0, …, 0)`), the verdict `PublicInput.verifier_verify` (check, then pool, else reject), `publicInputComplete`, `publicInputSecurity` with the trivial extractor and error `1/\|E\|`; a line says whether its value is sent (`PublicLine.sent`), leanISA's first two do; lands when #60 merges | #12 |
 | P6 | the Flock phase (Layer 9) | open on the spine's seams; needs #3; its input predicate is the strong `aux`, Flock's R1CS on `q_flock` (decision 12) | #12 |
 | P7, P8 | the claim pool and the opening phase (Layer 10) | open on the spine's seams; needs G1, G3; its first step, a column claim as a weighted claim, is Layer 1's `ColumnClaim.holds_iff_weighted` | #12 |
 | C1 | the knowledge-soundness append (A2) | landed with the spine (#58): `ToArkLib/KnowledgeAppend.lean`, the port of #615's proof; deleted at the pin bump | #12 |
@@ -107,12 +110,13 @@ knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that to `ValidExecuti
 
 ### Open pull requests
 
-Layer 1 merged as #59, and the four pull requests it consolidated (#18, #38, #40, #41) are
-closed. None of the three that remain touches a spine name; each is algebra a hole will
-consume.
+#60 carries the public-input phase. Layer 1 merged as #59, and the four pull requests it
+consolidated (#18, #38, #40, #41) are closed. None of the three others touches a spine name;
+each is algebra a hole will consume.
 
 | PR | Hole | Base | CI | Content | Against the spine | Next step |
 | --- | --- | --- | --- | --- | --- | --- |
+| #60 (draft) | P5 | `main` | runs | the public-input phase, both halves; `ToArkLib/GuardedVerdict.lean`, `ToArkLib/KeepOracles.lean`, `ToVCVio/UniformSample.lean` | fills the slot `pub` of `Phases`; adds the field `PublicLine.sent` to the spine (decision 15); the pass-through and send-oracle components use the shared lemmas | mark ready, review and merge |
 | #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | the opening phase's batching of `FlockOut` into one `WeightedClaim` (P7), and its `(J − 1)/\|E\|` term of `err` (P8) | rebase onto `main` after #59: `Generic/` becomes `ToArkLib/` or `ToCompPoly/` by destination, the imports become `LeanerVM.Protocol.ToCompPoly.Multilinear`, `LeanerVM.Protocol.ToCompPoly.Stacking`, and `Blocks R` with its `values` becomes `Blocks` with a separate `B.Tables R` |
 | #39 | G4 | #18 | none | `fingerprintPoly`, its injectivity, `fingerprintFactorPoly` of total degree at most 4 | the bus phase: a bus form is a list of `VirtualTerm`s, the flush coordinate polynomials over `K` with weights `eq(sel_b, ζ_hi)·eq(α, i)` and one constant term of weight `eq(sel_b, ζ_hi)·β`, so the fingerprint enters the weights, not the polynomials; the collision bound is P2's | rebase onto `main` after #59, as #43 |
 | #42 | G1 | `main` | runs | the honest round polynomials and their four identities; equality with ArkLib's `projectedRoundPolynomial` | the honest prover of a sumcheck `Component.Def`, consumed by the table sumcheck (P3) and the opening (P7) | independent; decide which representation Layer 4 builds on |
@@ -139,9 +143,9 @@ the namespace audit passes on the branch.
   a rule for the wall in `scripts/check-layers.sh` (D1), a fixture for the bytecode column
   derived from the pinned source with all six opcodes (B, observation 3), and the per-file
   author headers of two modules (C1), the maintainer's to decide.
-- **The public-input phase** (P5) is built on its branch and reviewed on 2026-09-29
+- **The public-input phase** (P5) is the draft #60, reviewed on 2026-09-29
   ([public-input-phase.md](../reviews/public-input-phase.md)): no theorem wrong or vacuous; its
-  findings are met on the branch. Its pull request ticks P5 on the dashboard when it merges.
+  findings are met on the branch. #60 ticks P5 on the dashboard when it merges.
   Review budget: `PublicInput.check` and `PublicInput.pooled` against §8.2, the flag
   `PublicLine.sent`, the state function `PublicInput.stateFunction`, and `PublicInput.rbr`, which
   carries the `1/|E|`. Its theorems are about the specification's verifier. The pinned verifiers
