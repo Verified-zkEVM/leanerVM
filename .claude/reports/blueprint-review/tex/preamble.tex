@@ -1,0 +1,112 @@
+% Preamble of the blueprint review. Engine: LuaLaTeX (the Lean snippets are Unicode).
+% Build: latexmk -lualatex main.tex
+\usepackage{fontspec}
+\usepackage{unicode-math}
+\usepackage[a4paper,margin=25mm]{geometry}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{fvextra}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,shapes.geometric}
+\usepackage{pdflscape}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+% ---------------------------------------------------------------- fonts
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmathfont{Latin Modern Math}
+% A monospace font with the Lean symbols, and fallbacks for what it lacks.
+\directlua{luaotfload.add_fallback("leanfallback",
+  {"FreeMono:mode=harf;", "DejaVu Sans:mode=harf;", "FreeSerif:mode=harf;"})}
+\setmonofont{DejaVu Sans Mono}[Scale=0.82, RawFeature={fallback=leanfallback}]
+
+% ---------------------------------------------------------------- colours
+\definecolor{critical}{HTML}{9B1C1C}
+\definecolor{major}{HTML}{B45309}
+\definecolor{minor}{HTML}{1D4ED8}
+\definecolor{note}{HTML}{4B5563}
+\definecolor{ok}{HTML}{166534}
+\definecolor{codebg}{HTML}{F6F7F9}
+\definecolor{rule}{HTML}{CBD5E1}
+
+% ---------------------------------------------------------------- code
+% Lean, Rust, Python and specification excerpts are set verbatim: what is shown is copied
+% from the source at the revision reviewed.
+\DefineVerbatimEnvironment{leancode}{Verbatim}{%
+  fontsize=\footnotesize, breaklines=true, breakanywhere=true,
+  frame=leftline, framerule=1.2pt, rulecolor=\color{rule}, framesep=6pt,
+  xleftmargin=4pt, samepage=false}
+\DefineVerbatimEnvironment{srccode}{Verbatim}{%
+  fontsize=\footnotesize, breaklines=true, breakanywhere=true,
+  frame=leftline, framerule=1.2pt, rulecolor=\color{major!50}, framesep=6pt,
+  xleftmargin=4pt, samepage=false}
+\DefineVerbatimEnvironment{shellcode}{Verbatim}{%
+  fontsize=\footnotesize, breaklines=true, breakanywhere=true,
+  frame=single, rulecolor=\color{rule}, framesep=4pt}
+% The file a snippet comes from.
+\newcommand{\src}[1]{\par\smallskip\noindent{\footnotesize\textsf{\color{note}#1}}\par\nopagebreak\vspace{-2pt}}
+\newcommand{\file}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\lean}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\newcommand{\enquote}[1]{``#1''}
+
+% ---------------------------------------------------------------- findings
+\newcounter{finding}
+\newcommand{\sev}[1]{\textsf{\bfseries\color{#1}\MakeUppercase{#1}}}
+% \begin{finding}{severity}{label}{name}
+\newtcolorbox{finding}[3]{%
+  enhanced, breakable, colback=white, colframe=#1, boxrule=0.6pt, arc=1pt,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  title={\refstepcounter{finding}\label{#2}\textsf{Finding \thefinding\ (\MakeLowercase{#1}). #3}},
+  coltitle=white, colbacktitle=#1, fonttitle=\small\bfseries}
+\crefname{finding}{finding}{findings}
+\Crefname{finding}{Finding}{Findings}
+\newcommand{\fhead}[1]{\par\smallskip\noindent\textsf{\small\bfseries #1.}\ }
+
+% A proposed change: the passage as it stands, as proposed, and the reason.
+\newtcolorbox{change}[1]{%
+  enhanced, breakable, colback=codebg, colframe=rule, boxrule=0.4pt, arc=1pt,
+  left=6pt, right=6pt, top=4pt, bottom=4pt,
+  title={\textsf{Proposed change: #1}}, coltitle=black, colbacktitle=rule!60,
+  fonttitle=\small\bfseries}
+\newcommand{\asis}{\par\smallskip\noindent\textsf{\small\bfseries As it stands.}\ }
+\newcommand{\asproposed}{\par\smallskip\noindent\textsf{\small\bfseries As proposed.}\ }
+\newcommand{\reason}{\par\smallskip\noindent\textsf{\small\bfseries Reason.}\ }
+
+% A term defined for the reader.
+\newtcolorbox{define}[1]{%
+  enhanced, breakable, colback=ok!4, colframe=ok!60, boxrule=0.4pt, arc=1pt,
+  left=6pt, right=6pt, top=3pt, bottom=3pt,
+  title={\textsf{#1}}, coltitle=black, colbacktitle=ok!15, fonttitle=\small\bfseries}
+
+% ---------------------------------------------------------------- mathematics
+\newcommand{\K}{\mathbb{K}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\mle}[1]{\widetilde{#1}}
+\newcommand{\eq}{\mathrm{eq}}
+\newcommand{\qflock}{q_{\mathrm{flock}}}
+\newcommand{\abs}[1]{\lvert #1\rvert}
+
+% ---------------------------------------------------------------- layout
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt minus 1pt}
+\setlist{itemsep=2pt, topsep=3pt, parsep=0pt}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textsf{Review of the leanVM proof-system blueprint}}
+\fancyhead[R]{\small\textsf{\nouppercase{\leftmark}}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{3}

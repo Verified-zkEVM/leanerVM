@@ -1,0 +1,2756 @@
+{
+"M3": {
+"blueprint": [
+3,
+20,
+120,
+188,
+781,
+789,
+1539
+],
+"tracker-body": [
+12
+],
+"review-spine": [
+307
+],
+"leanth-reuse": [
+98
+],
+"leanvm-target": [
+37,
+40,
+120
+],
+"leanisa-blueprint": [
+1,
+10,
+593,
+920,
+1008,
+1019,
+1417,
+1428
+],
+"leanisa-status": [
+1,
+116,
+144
+],
+"docs-README": [
+23
+]
+},
+"T4": {
+"blueprint": [
+25,
+136,
+330,
+331,
+367,
+407,
+615,
+1242,
+1257,
+1469,
+1542
+],
+"status": [
+108
+],
+"tracker-body": [
+14,
+39
+],
+"hole-comment": [
+186,
+188,
+190
+],
+"review-spine": [
+46,
+280,
+393,
+708
+],
+"leanth-reuse": [
+262
+],
+"architecture": [
+66,
+256,
+261,
+383,
+496
+],
+"leanvm-target": [
+123,
+147
+]
+},
+"T5": {
+"blueprint": [
+93,
+149,
+1236,
+1362,
+1450
+],
+"hole-comment": [
+176
+],
+"architecture": [
+67,
+165,
+277,
+383
+],
+"leanvm-target": [
+125,
+147
+]
+},
+"T6": {
+"blueprint": [
+93,
+150,
+1363,
+1450
+],
+"leanth-reuse": [
+282,
+331
+],
+"architecture": [
+68,
+69,
+131,
+166,
+256,
+284,
+321,
+364,
+383,
+480,
+496
+],
+"leanvm-target": [
+92,
+114,
+125,
+149
+]
+},
+"T2": {
+"blueprint": [
+147,
+295
+],
+"status": [
+356
+],
+"architecture": [
+64,
+66,
+230,
+274,
+381
+],
+"leanvm-target": [
+119,
+136
+],
+"leanisa-blueprint": [
+86,
+669,
+1286
+],
+"leanisa-status": [
+379,
+574,
+706,
+890
+]
+},
+"F1": {
+"blueprint": [
+193,
+282,
+325,
+1330
+],
+"status": [
+286,
+305,
+363
+],
+"tracker-body": [
+85
+],
+"hole-comment": [
+176
+],
+"leanisa-status": [
+846
+]
+},
+"R21": {
+"blueprint": [
+216
+],
+"hole-comment": [
+162
+],
+"leanisa-status": [
+678
+]
+},
+"A2": {
+"blueprint": [
+243,
+260,
+426,
+611,
+1105,
+1138,
+1427
+],
+"status": [
+16,
+104,
+174,
+209,
+244,
+352,
+443,
+484,
+510
+],
+"tracker-body": [
+35,
+64
+],
+"hole-comment": [
+15,
+129,
+131
+],
+"tracker-other-comments": [
+19,
+23
+],
+"review-spine": [
+35,
+57,
+106,
+302,
+341,
+346,
+485,
+754
+],
+"review-layer1": [
+29,
+52,
+72
+],
+"review-public-input": [
+71,
+186,
+639,
+650,
+655
+],
+"leanth-reuse": [
+46,
+203,
+212,
+403,
+444,
+454,
+472
+],
+"leanisa-status": [
+202
+]
+},
+"A5": {
+"blueprint": [
+248,
+263,
+1223,
+1421
+],
+"status": [
+176,
+513
+],
+"tracker-body": [
+66
+],
+"hole-comment": [
+174
+],
+"review-spine": [
+38,
+59,
+216,
+337,
+337,
+339,
+342
+],
+"review-layer1": [
+32,
+94
+],
+"leanth-reuse": [
+244
+],
+"leanisa-status": [
+209
+]
+},
+"A1": {
+"blueprint": [
+259,
+599,
+871
+],
+"status": [
+49,
+93,
+173,
+208,
+254,
+332,
+443,
+483,
+509
+],
+"tracker-body": [
+24,
+63
+],
+"tracker-other-comments": [
+11
+],
+"review-spine": [
+34,
+42,
+47,
+55,
+66,
+292,
+361,
+420,
+468
+],
+"review-layer1": [
+28,
+52,
+59
+],
+"review-public-input": [
+70,
+167,
+566,
+572,
+656
+],
+"leanth-reuse": [
+117,
+127,
+453
+],
+"leanisa-status": [
+144,
+198
+],
+"docs-README": [
+37
+]
+},
+"C1": {
+"blueprint": [
+260,
+611,
+1105,
+1143,
+1459
+],
+"status": [
+16,
+104,
+145,
+174,
+181,
+192,
+192,
+352,
+445
+],
+"tracker-body": [
+14,
+35,
+64,
+71,
+78
+],
+"hole-comment": [
+3,
+9,
+129,
+131
+],
+"tracker-other-comments": [
+19,
+23,
+23
+],
+"review-spine": [
+45,
+175,
+388,
+651,
+710,
+754
+],
+"review-layer1": [
+42,
+194,
+197,
+210
+],
+"review-public-input": [
+69,
+97,
+387,
+665,
+667
+],
+"leanisa-status": [
+711
+]
+},
+"A3": {
+"blueprint": [
+261
+],
+"status": [
+175,
+208,
+486,
+511,
+534,
+543
+],
+"tracker-body": [
+65
+],
+"review-spine": [
+36,
+39,
+46,
+58,
+146,
+265,
+281,
+390,
+470,
+647,
+658
+],
+"review-layer1": [
+30,
+82
+],
+"review-public-input": [
+76,
+211,
+653
+],
+"leanth-reuse": [
+46,
+203,
+213,
+403,
+455
+],
+"leanisa-status": [
+207
+]
+},
+"A4": {
+"blueprint": [
+262
+],
+"status": [
+199,
+249,
+487,
+512
+],
+"review-spine": [
+37,
+55,
+189,
+296,
+302,
+472
+],
+"review-layer1": [
+31,
+91,
+93
+],
+"review-public-input": [
+77,
+226
+],
+"leanisa-status": [
+208
+]
+},
+"A6": {
+"blueprint": [
+264,
+916
+],
+"status": [
+177,
+208,
+487
+],
+"tracker-body": [
+67
+],
+"hole-comment": [
+30,
+40
+],
+"review-spine": [
+39,
+180,
+236,
+461,
+471
+],
+"review-layer1": [
+33,
+91,
+96
+],
+"leanth-reuse": [
+137,
+456
+],
+"leanisa-status": [
+210
+]
+},
+"A7": {
+"blueprint": [
+265,
+1152
+],
+"status": [
+178,
+617
+],
+"tracker-body": [
+68
+],
+"hole-comment": [
+146
+],
+"leanth-reuse": [
+218,
+221,
+457
+],
+"leanisa-status": [
+211
+]
+},
+"A8": {
+"blueprint": [
+265,
+266,
+1176,
+1420
+],
+"status": [
+179
+],
+"tracker-body": [
+69
+],
+"hole-comment": [
+146
+],
+"leanth-reuse": [
+218,
+458
+],
+"leanisa-status": [
+212
+]
+},
+"A9": {
+"blueprint": [
+267
+],
+"status": [
+180,
+332
+],
+"tracker-body": [
+70
+],
+"hole-comment": [
+111
+]
+},
+"F5": {
+"blueprint": [
+267,
+1097,
+1291
+],
+"status": [
+311
+],
+"tracker-body": [
+85
+],
+"hole-comment": [
+80
+],
+"leanisa-status": [
+487,
+852,
+893,
+933
+]
+},
+"P3": {
+"blueprint": [
+283,
+607,
+646,
+983
+],
+"status": [
+100,
+122,
+154,
+159,
+163,
+360
+],
+"tracker-body": [
+31,
+42,
+56
+],
+"hole-comment": [
+77,
+80,
+87
+],
+"tracker-other-comments": [
+25
+],
+"review-public-input": [
+98,
+389
+],
+"leanisa-status": [
+130,
+540,
+543,
+632,
+753
+],
+"development": [
+56
+]
+},
+"C5": {
+"blueprint": [
+297
+],
+"status": [
+355
+],
+"review-layer1": [
+201
+],
+"leanisa-status": [
+714
+]
+},
+"C6": {
+"blueprint": [
+297
+],
+"status": [
+355
+],
+"review-layer1": [
+202
+],
+"leanisa-status": [
+714
+]
+},
+"F4": {
+"blueprint": [
+323
+],
+"status": [
+310,
+322
+],
+"hole-comment": [
+80
+],
+"leanisa-status": [
+310,
+850
+]
+},
+"F8": {
+"blueprint": [
+324,
+1097
+],
+"status": [
+315
+],
+"tracker-body": [
+85
+],
+"hole-comment": [
+120
+],
+"leanisa-status": [
+18,
+142,
+338,
+560,
+874
+],
+"docs-README": [
+34
+]
+},
+"F10": {
+"blueprint": [
+326
+],
+"status": [
+319
+],
+"leanisa-status": [
+23,
+36,
+141,
+244,
+589,
+601,
+905
+]
+},
+"T1": {
+"blueprint": [
+331,
+360,
+362,
+377
+],
+"status": [
+82
+],
+"tracker-body": [
+12,
+12
+],
+"architecture": [
+63,
+64,
+66,
+69,
+157,
+165,
+203,
+235,
+271,
+381,
+497
+],
+"leanvm-target": [
+116,
+117,
+118,
+120,
+122,
+136
+],
+"leanisa-blueprint": [
+80,
+217,
+1034,
+1075,
+1103,
+1176,
+1379,
+1431
+],
+"leanisa-status": [
+6,
+35,
+146,
+182,
+490,
+528,
+529,
+552,
+697,
+706,
+847
+]
+},
+"S(hole)": {
+"blueprint": [
+339,
+539,
+597,
+605,
+609,
+620,
+1457
+],
+"status": [
+15,
+91,
+195,
+201
+],
+"tracker-body": [
+14,
+22,
+78,
+78
+],
+"hole-comment": [
+3,
+5,
+16
+],
+"tracker-other-comments": [
+23
+],
+"review-spine": [
+177
+],
+"review-public-input": [
+490,
+496,
+503,
+513,
+517,
+519,
+524
+],
+"leanth-reuse": [
+74,
+75,
+76,
+79,
+80,
+81,
+95,
+96,
+127,
+128,
+129,
+133,
+145,
+146,
+148,
+149,
+152,
+154,
+155,
+184,
+185,
+186,
+207,
+208,
+209,
+215,
+229,
+230,
+253
+]
+},
+"P1": {
+"blueprint": [
+396,
+606,
+951,
+1460
+],
+"status": [
+99,
+99,
+154,
+159,
+360
+],
+"tracker-body": [
+30,
+30,
+42,
+51
+],
+"hole-comment": [
+63,
+66,
+73
+],
+"tracker-other-comments": [
+25
+],
+"review-spine": [
+61,
+371
+],
+"review-public-input": [
+98,
+389
+],
+"leanisa-blueprint": [
+463
+],
+"leanisa-status": [
+127,
+136,
+508,
+534,
+742,
+970
+]
+},
+"P8": {
+"blueprint": [
+396,
+610,
+1103,
+1460,
+1460
+],
+"status": [
+103,
+120
+],
+"tracker-body": [
+34,
+42,
+54
+],
+"hole-comment": [
+117,
+121,
+123,
+127
+],
+"review-spine": [
+61,
+371
+]
+},
+"G1": {
+"blueprint": [
+397,
+598,
+599,
+602,
+607,
+610,
+1458
+],
+"status": [
+92,
+100,
+103,
+122,
+159,
+198,
+201,
+206
+],
+"tracker-body": [
+23,
+31,
+34,
+42,
+56,
+78,
+78
+],
+"hole-comment": [
+36,
+83,
+123
+],
+"tracker-other-comments": [
+25
+]
+},
+"G6": {
+"blueprint": [
+397,
+602,
+602,
+606,
+1458
+],
+"status": [
+96,
+159
+],
+"tracker-body": [
+27,
+42
+],
+"hole-comment": [
+30,
+34,
+42,
+69
+],
+"tracker-other-comments": [
+25
+]
+},
+"G2": {
+"blueprint": [
+599,
+602,
+607
+],
+"status": [
+93,
+173,
+198,
+201
+],
+"tracker-body": [
+24,
+63,
+78,
+78
+],
+"hole-comment": [
+83
+]
+},
+"G3": {
+"blueprint": [
+600,
+610
+],
+"status": [
+94,
+103,
+120,
+177,
+192,
+192,
+206
+],
+"tracker-body": [
+25,
+34,
+54,
+67,
+78
+],
+"hole-comment": [
+123
+]
+},
+"G4": {
+"blueprint": [
+601,
+606
+],
+"status": [
+95,
+121,
+177,
+200,
+206
+],
+"tracker-body": [
+26,
+55,
+67,
+78
+],
+"hole-comment": [
+69
+]
+},
+"G5": {
+"blueprint": [
+602,
+606
+],
+"status": [
+96,
+99,
+177,
+193
+],
+"tracker-body": [
+27,
+30,
+67,
+78
+],
+"hole-comment": [
+30,
+33,
+42,
+69
+]
+},
+"L1": {
+"blueprint": [
+603,
+605,
+606,
+608,
+610
+],
+"status": [
+29,
+90,
+98,
+177,
+200,
+206
+],
+"tracker-body": [
+21,
+50,
+51,
+52,
+53,
+67,
+78
+],
+"review-layer1": [
+40,
+211
+],
+"leanisa-status": [
+137,
+509,
+534,
+746,
+773,
+778,
+1017
+]
+},
+"I1": {
+"blueprint": [
+604,
+605,
+1458
+],
+"status": [
+97,
+98,
+160,
+181,
+202
+],
+"tracker-body": [
+28,
+29,
+42,
+42,
+71,
+78
+],
+"hole-comment": [
+47
+],
+"tracker-other-comments": [
+25,
+25
+],
+"review-spine": [
+42,
+81,
+99,
+334,
+334,
+335,
+355,
+474,
+720
+]
+},
+"I2": {
+"blueprint": [
+605,
+615,
+792,
+1460,
+1462
+],
+"status": [
+98,
+108,
+160,
+182,
+183,
+184,
+203,
+204
+],
+"tracker-body": [
+29,
+39,
+42,
+50,
+53,
+72,
+73,
+74,
+78,
+78,
+82
+],
+"hole-comment": [
+3,
+44,
+46,
+108,
+188,
+192
+],
+"tracker-other-comments": [
+23,
+23,
+25
+],
+"review-spine": [
+35,
+43,
+44,
+140,
+218,
+232,
+326,
+331,
+365,
+379,
+380,
+474,
+482,
+719,
+749
+],
+"review-layer1": [
+34
+]
+},
+"P2": {
+"blueprint": [
+606,
+606,
+951,
+1460
+],
+"status": [
+99,
+121
+],
+"tracker-body": [
+30,
+42,
+55
+],
+"hole-comment": [
+63,
+67,
+69,
+73
+],
+"leanisa-status": [
+749
+]
+},
+"P4": {
+"blueprint": [
+607,
+607,
+983,
+1460
+],
+"status": [
+100,
+360
+],
+"tracker-body": [
+31,
+42
+],
+"hole-comment": [
+77,
+81,
+83,
+87
+],
+"leanisa-status": [
+770,
+816
+]
+},
+"P5": {
+"blueprint": [
+608,
+1008
+],
+"status": [
+5,
+58,
+101,
+119,
+146,
+148,
+159,
+330,
+361,
+384,
+388,
+392,
+396,
+429,
+465
+],
+"tracker-body": [
+32,
+42,
+83
+],
+"hole-comment": [
+3,
+89,
+91
+],
+"tracker-other-comments": [
+23,
+23,
+25
+],
+"review-spine": [
+37,
+197,
+207,
+210,
+211,
+243,
+734
+],
+"review-public-input": [
+1,
+599
+],
+"leanisa-status": [
+773,
+973
+]
+},
+"P6": {
+"blueprint": [
+609,
+1072
+],
+"status": [
+102,
+180,
+195,
+362
+],
+"tracker-body": [
+8,
+33,
+70,
+78
+],
+"hole-comment": [
+3,
+102,
+104
+],
+"tracker-other-comments": [
+23,
+23
+],
+"review-spine": [
+35,
+140,
+243,
+745
+]
+},
+"P7": {
+"blueprint": [
+610,
+1103
+],
+"status": [
+103,
+109,
+120,
+122,
+154,
+205
+],
+"tracker-body": [
+34,
+40,
+52,
+54,
+56
+],
+"hole-comment": [
+9,
+117,
+120,
+127
+],
+"review-spine": [
+413
+],
+"review-public-input": [
+98,
+390
+]
+},
+"K1": {
+"blueprint": [
+612,
+614,
+1458,
+1462
+],
+"status": [
+105,
+107,
+160,
+178,
+179,
+195,
+196,
+277
+],
+"tracker-body": [
+8,
+36,
+38,
+42,
+42,
+68,
+69,
+78,
+78
+],
+"hole-comment": [
+144,
+146,
+178
+],
+"tracker-other-comments": [
+25
+]
+},
+"F6": {
+"blueprint": [
+612,
+1152,
+1289,
+1446
+],
+"status": [
+105,
+178,
+312
+],
+"tracker-body": [
+36,
+85
+],
+"leanisa-status": [
+139,
+146,
+476,
+490,
+552,
+857
+]
+},
+"K2": {
+"blueprint": [
+613,
+614,
+1458,
+1462
+],
+"status": [
+106,
+107,
+160,
+178
+],
+"tracker-body": [
+37,
+38,
+42,
+42,
+68
+],
+"hole-comment": [
+158,
+160,
+178
+],
+"tracker-other-comments": [
+25
+]
+},
+"K3": {
+"blueprint": [
+614,
+615,
+1461,
+1462
+],
+"status": [
+107,
+108,
+109,
+175,
+176,
+197,
+205
+],
+"tracker-body": [
+38,
+39,
+40,
+42,
+65,
+66,
+78
+],
+"hole-comment": [
+97,
+172,
+174,
+188,
+192,
+194
+],
+"review-spine": [
+199,
+209,
+211,
+211,
+740
+]
+},
+"K4": {
+"blueprint": [
+615,
+1462
+],
+"status": [
+108
+],
+"tracker-body": [
+39,
+42
+],
+"hole-comment": [
+54,
+186,
+188
+],
+"review-spine": [
+229,
+727
+]
+},
+"S9": {
+"blueprint": [
+945
+],
+"status": [
+286
+],
+"leanisa-status": [
+653
+]
+},
+"F3": {
+"blueprint": [
+973,
+1097,
+1275,
+1440
+],
+"status": [
+291,
+309
+],
+"tracker-body": [
+85
+],
+"hole-comment": [
+66
+],
+"leanisa-status": [
+849
+]
+},
+"F2": {
+"blueprint": [
+1448
+],
+"status": [
+307
+],
+"leanisa-status": [
+848
+]
+},
+"E14": {
+"status": [
+37,
+400,
+498
+],
+"review-public-input": [
+346
+]
+},
+"E16": {
+"status": [
+37,
+177,
+200,
+407,
+500
+],
+"review-public-input": [
+347
+]
+},
+"E17": {
+"status": [
+37,
+415,
+501
+],
+"review-layer1": [
+22
+],
+"review-public-input": [
+346,
+355
+]
+},
+"D1": {
+"status": [
+56,
+143
+],
+"review-layer1": [
+38,
+173,
+209
+]
+},
+"F17": {
+"status": [
+98,
+303,
+330,
+489
+],
+"review-layer1": [
+34
+],
+"review-public-input": [
+284,
+355
+]
+},
+"F18": {
+"status": [
+153,
+268,
+330,
+442,
+456
+],
+"review-public-input": [
+68,
+73
+]
+},
+"A18": {
+"status": [
+161,
+201,
+345
+],
+"tracker-body": [
+84
+]
+},
+"F9": {
+"status": [
+164,
+316
+],
+"tracker-body": [
+85
+],
+"leanisa-status": [
+18,
+143,
+286,
+577,
+588,
+890
+]
+},
+"A19": {
+"status": [
+174,
+192,
+346
+]
+},
+"C2": {
+"status": [
+182,
+447
+],
+"tracker-body": [
+72
+],
+"review-spine": [
+46,
+392
+],
+"review-layer1": [
+43,
+198
+],
+"review-public-input": [
+72,
+434
+],
+"leanisa-status": [
+711
+]
+},
+"C3": {
+"status": [
+183
+],
+"tracker-body": [
+73
+],
+"review-layer1": [
+199
+],
+"review-public-input": [
+74,
+449
+],
+"leanisa-status": [
+712
+]
+},
+"C4": {
+"status": [
+184
+],
+"tracker-body": [
+74
+],
+"review-layer1": [
+200
+],
+"review-public-input": [
+78,
+469
+],
+"leanisa-status": [
+713
+]
+},
+"A14": {
+"status": [
+201,
+338
+]
+},
+"S6": {
+"status": [
+285
+],
+"leanisa-status": [
+648
+]
+},
+"S10": {
+"status": [
+287
+]
+},
+"S11": {
+"status": [
+289
+]
+},
+"S12": {
+"status": [
+291
+]
+},
+"S13": {
+"status": [
+293,
+520
+],
+"tracker-body": [
+85
+],
+"review-spine": [
+41,
+41,
+318,
+320,
+322
+]
+},
+"S14": {
+"status": [
+297,
+520
+],
+"tracker-body": [
+85
+],
+"review-spine": [
+40
+]
+},
+"S15": {
+"status": [
+303,
+489
+],
+"review-layer1": [
+34
+]
+},
+"S16": {
+"status": [
+303,
+489
+],
+"review-layer1": [
+36
+]
+},
+"F7": {
+"status": [
+313
+],
+"leanisa-status": [
+19,
+141,
+389,
+862
+]
+},
+"F11": {
+"status": [
+321
+],
+"tracker-body": [
+85
+]
+},
+"F12": {
+"status": [
+322
+]
+},
+"F13": {
+"status": [
+324
+]
+},
+"F14": {
+"status": [
+325
+],
+"hole-comment": [
+176
+]
+},
+"F15": {
+"status": [
+327
+]
+},
+"F16": {
+"status": [
+328
+]
+},
+"A10": {
+"status": [
+332
+]
+},
+"A11": {
+"status": [
+334
+]
+},
+"A12": {
+"status": [
+336
+]
+},
+"A13": {
+"status": [
+337
+]
+},
+"A15": {
+"status": [
+340
+]
+},
+"A16": {
+"status": [
+341
+]
+},
+"A17": {
+"status": [
+342
+]
+},
+"C10": {
+"status": [
+355
+],
+"leanisa-status": [
+141,
+451,
+464,
+717
+]
+},
+"C11": {
+"status": [
+356
+],
+"leanisa-status": [
+727,
+988
+]
+},
+"E6": {
+"status": [
+365,
+622
+],
+"leanisa-status": [
+20,
+128,
+398,
+438,
+731,
+817,
+975
+],
+"dependencies": [
+55
+]
+},
+"E7": {
+"status": [
+368
+],
+"tracker-body": [
+85
+],
+"review-spine": [
+42
+],
+"leanisa-status": [
+21,
+424,
+829
+]
+},
+"E8": {
+"status": [
+375
+],
+"tracker-body": [
+85
+],
+"review-spine": [
+43
+],
+"leanisa-blueprint": [
+223,
+1081
+],
+"leanisa-status": [
+16,
+144,
+189,
+218,
+837
+]
+},
+"E9": {
+"status": [
+380
+],
+"tracker-body": [
+85
+],
+"review-spine": [
+34,
+47
+]
+},
+"E10": {
+"status": [
+383
+],
+"review-public-input": [
+75
+]
+},
+"E11": {
+"status": [
+388
+]
+},
+"E12": {
+"status": [
+391
+],
+"review-public-input": [
+75,
+348
+]
+},
+"E13": {
+"status": [
+396
+],
+"review-public-input": [
+49,
+346
+]
+},
+"E15": {
+"status": [
+405
+],
+"review-public-input": [
+346
+]
+},
+"E18": {
+"status": [
+429
+],
+"review-public-input": [
+75
+]
+},
+"B1": {
+"status": [
+442,
+489
+],
+"review-spine": [
+40,
+304
+],
+"review-layer1": [
+34,
+53,
+117,
+150
+],
+"review-public-input": [
+68,
+93,
+281,
+658,
+664
+],
+"leanisa-status": [
+204
+]
+},
+"H1": {
+"status": [
+447,
+513
+],
+"review-spine": [
+47,
+47,
+47,
+456,
+493
+],
+"review-public-input": [
+70,
+76,
+79,
+79,
+182,
+496,
+502,
+503,
+529,
+536,
+543,
+552,
+569,
+572,
+641,
+656
+]
+},
+"H6": {
+"status": [
+447,
+514
+],
+"review-spine": [
+47,
+47,
+245,
+247,
+461,
+490,
+590
+],
+"review-public-input": [
+79,
+79,
+426,
+529,
+537,
+540,
+547,
+619,
+646
+]
+},
+"B3": {
+"status": [
+489
+],
+"review-layer1": [
+36,
+138
+],
+"review-public-input": [
+75,
+344
+],
+"leanisa-status": [
+212
+]
+},
+"B2": {
+"status": [
+489
+],
+"review-spine": [
+41,
+318
+],
+"review-layer1": [
+35,
+37,
+133,
+135,
+155
+],
+"review-public-input": [
+73,
+329
+],
+"leanisa-status": [
+206
+]
+},
+"B4": {
+"status": [
+489
+],
+"review-layer1": [
+37,
+133,
+139
+]
+},
+"P17": {
+"tracker-other-comments": [
+11
+]
+},
+"I3": {
+"review-spine": [
+44,
+373,
+416
+]
+},
+"H2": {
+"review-spine": [
+47,
+457,
+535
+],
+"review-public-input": [
+79,
+279,
+500,
+506,
+515,
+536,
+575
+]
+},
+"H3": {
+"review-spine": [
+47,
+458,
+458,
+543
+],
+"review-public-input": [
+79,
+504,
+505,
+507,
+512,
+522,
+537,
+589
+]
+},
+"H4": {
+"review-spine": [
+47,
+459,
+490,
+561
+],
+"review-public-input": [
+79,
+519,
+536,
+602
+]
+},
+"H5": {
+"review-spine": [
+47,
+395,
+460,
+584
+],
+"review-public-input": [
+79,
+424,
+529,
+540,
+543,
+605,
+646,
+667
+]
+},
+"D2": {
+"review-layer1": [
+39,
+182
+]
+},
+"D4": {
+"review-layer1": [
+39
+]
+},
+"D9": {
+"review-layer1": [
+39
+]
+},
+"D5": {
+"review-layer1": [
+40
+],
+"leanisa-blueprint": [
+1032
+],
+"leanisa-status": [
+202
+]
+},
+"D7": {
+"review-layer1": [
+40
+]
+},
+"D8": {
+"review-layer1": [
+41,
+41
+]
+},
+"D10": {
+"review-layer1": [
+41,
+41
+]
+},
+"D16": {
+"review-layer1": [
+41,
+41
+]
+},
+"D11": {
+"review-layer1": [
+41
+]
+},
+"D12": {
+"review-layer1": [
+41
+]
+},
+"D13": {
+"review-layer1": [
+41
+]
+},
+"D15": {
+"review-layer1": [
+41
+]
+},
+"D14": {
+"review-layer1": [
+41
+]
+},
+"D17": {
+"review-layer1": [
+41,
+182,
+211
+]
+},
+"C9": {
+"review-layer1": [
+43,
+194,
+204
+],
+"leanisa-status": [
+738,
+921
+]
+},
+"B0": {
+"review-layer1": [
+114
+]
+},
+"B6": {
+"review-layer1": [
+115
+]
+},
+"C7": {
+"review-layer1": [
+202
+],
+"leanisa-status": [
+714
+]
+},
+"C8": {
+"review-layer1": [
+203
+],
+"leanisa-status": [
+126,
+136,
+141,
+142,
+143,
+144,
+505,
+732,
+999
+],
+"dependencies": [
+87
+]
+},
+"T3": {
+"leanth-reuse": [
+342
+],
+"architecture": [
+65,
+238,
+335,
+382,
+498
+],
+"leanvm-target": [
+114,
+115,
+142
+]
+},
+"T7": {
+"architecture": [
+69,
+166,
+339,
+385,
+491
+],
+"leanvm-target": [
+126,
+127,
+128,
+149
+]
+},
+"T8": {
+"architecture": [
+70,
+165,
+371,
+386,
+491,
+506
+],
+"leanvm-target": [
+128,
+150
+],
+"leanisa-blueprint": [
+1431
+]
+},
+"S1": {
+"architecture": [
+80,
+89,
+91,
+121
+],
+"leanisa-status": [
+642
+]
+},
+"S2": {
+"architecture": [
+81,
+91,
+93,
+101,
+117,
+129
+],
+"leanisa-status": [
+643
+]
+},
+"S3": {
+"architecture": [
+82,
+101
+],
+"leanisa-status": [
+644
+]
+},
+"S4": {
+"architecture": [
+83,
+103,
+105,
+113,
+117
+],
+"leanisa-status": [
+646
+]
+},
+"F64": {
+"leanisa-blueprint": [
+120,
+272
+]
+},
+"E5": {
+"leanisa-blueprint": [
+382
+],
+"leanisa-status": [
+128,
+139,
+484,
+534,
+771,
+805,
+1012
+]
+},
+"R24": {
+"leanisa-status": [
+313,
+486,
+683
+]
+},
+"R1": {
+"leanisa-status": [
+338,
+486,
+560,
+659,
+877
+]
+},
+"R2": {
+"leanisa-status": [
+342,
+560,
+661
+]
+},
+"R3": {
+"leanisa-status": [
+346,
+661,
+877
+]
+},
+"E4": {
+"leanisa-status": [
+534,
+802
+]
+},
+"S5": {
+"leanisa-status": [
+647,
+931
+]
+},
+"S7": {
+"leanisa-status": [
+648
+]
+},
+"S8": {
+"leanisa-status": [
+650
+]
+},
+"R4": {
+"leanisa-status": [
+664
+]
+},
+"R5": {
+"leanisa-status": [
+665
+]
+},
+"R6": {
+"leanisa-status": [
+666
+]
+},
+"R7": {
+"leanisa-status": [
+667
+]
+},
+"R8": {
+"leanisa-status": [
+668
+]
+},
+"R9": {
+"leanisa-status": [
+668
+]
+},
+"R10": {
+"leanisa-status": [
+669
+]
+},
+"R11": {
+"leanisa-status": [
+669
+]
+},
+"R12": {
+"leanisa-status": [
+672
+]
+},
+"R13": {
+"leanisa-status": [
+672
+]
+},
+"R14": {
+"leanisa-status": [
+673
+]
+},
+"R15": {
+"leanisa-status": [
+673
+]
+},
+"R16": {
+"leanisa-status": [
+673
+]
+},
+"R17": {
+"leanisa-status": [
+674
+]
+},
+"R18": {
+"leanisa-status": [
+675
+]
+},
+"R19": {
+"leanisa-status": [
+676
+]
+},
+"R20": {
+"leanisa-status": [
+677
+]
+},
+"R22": {
+"leanisa-status": [
+680
+]
+},
+"R23": {
+"leanisa-status": [
+681
+]
+},
+"R25": {
+"leanisa-status": [
+688,
+944
+]
+},
+"R26": {
+"leanisa-status": [
+691
+]
+},
+"R27": {
+"leanisa-status": [
+694
+]
+},
+"R28": {
+"leanisa-status": [
+699
+]
+},
+"L2": {
+"leanisa-status": [
+784
+]
+},
+"L3": {
+"leanisa-status": [
+786
+]
+},
+"E1": {
+"leanisa-status": [
+789
+]
+},
+"E2": {
+"leanisa-status": [
+794
+]
+},
+"E3": {
+"leanisa-status": [
+797
+]
+}
+}

@@ -1,0 +1,7 @@
+The tensor profile used row coordinates for the original-claim check and column coordinates for batching. Over `GF(4)/GF(2)`, honest packing of `t(X₀,X₁) = X₀` at zero consequently rejected the correct claim `0`. Correct the coordinate definitions and reconstruction laws so columns expand as `∑ cᵥ ⊗ βᵥ` and rows as `∑ βᵤ ⊗ rᵤ`, matching the existing protocol calls and [DP24](https://eprint.iacr.org/2024/504), §2.5 and Construction 3.1 (reviewed September 2025 PDF revision).
+
+Add the two pure-tensor coordinate formulas and kernel regressions through actual packing, honest acceptance, false-claim rejection, batching, and the final multiplier at a non-Boolean challenge. Update the profile/phase documentation, KB and blueprint, including rendered reconstruction equations and working cross-references. Generic profile reconstruction remains a data contract; full protocol completeness and soundness are still open.
+
+Validation: full `./scripts/validate.sh --axioms --site`; independent source-fresh checks against the unchanged CompPoly pin; PDF/web blueprint rendering and declaration checks. All three independently constructed, compilable wrong-selector mutations are caught by the regressions. The axiom sweep reports 11,458 declarations, with the same 291 existing `sorryAx`-tainted declarations and no new or nonstandard-axiom taint.
+
+Stacked on #895; tracks #893. This repairs a pre-existing packing defect preserved by the tensor migration. The generic CompPoly tensor API and dependency pins are unchanged.

@@ -1,0 +1,7 @@
+The concrete consumer is [leanerVM protocol Layer 5](https://github.com/Verified-zkEVM/leanerVM/issues/12): binary-field bus fingerprints and the algebra feeding its future grand-product/GKR phase.
+
+Proposed narrow scope: symbolic multilinear fingerprints; an independent formal product challenge; injectivity of the multiset product polynomial over an integral domain, preserving natural multiplicities in every characteristic; and a Schwartz-Zippel collision bound when BOTH multisets are fixed before a uniform joint challenge. For sixteen-coordinate tuples the joint degree bound is four per factor, yielding `4 * cap / |F|`.
+
+The fingerprint source is leanth PR #16 at `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, `Leanth/ProofSystem/Logup.lean:275-444`, by Aristotle/Harmonic, Stefano Rocca and Elias Judin. The grand-product argument is new for the current leanVM blueprint; no logarithmic-derivative or characteristic-versus-multiplicity premise is imported. Initial staging is two small leanerVM PRs; actual ArkLib migration needs destination module/API validation.
+
+Acceptance: off-cube evaluation and bit-order controls, separate beta variable, empty multiset and zero-dimensional tests, characteristic-two multiplicities, coefficient-map transport, full destination gates and exhaustive standard-only transitive axiom audits. Excluded: GKR, bus-phase assembly and conditional freshness for a recycled bus/table challenge. Those require additional protocol statements and proofs.

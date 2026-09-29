@@ -1,0 +1,155 @@
+Arklib/ArkLib/OracleReduction/ProtocolSpec/Basic.lean  [976 lines]  cited: 
+    ProtocolSpec: decl at [31]
+    Direction: decl at NOT FOUND as a declaration
+    MessageIdx: decl at [52]
+    ChallengeIdx: decl at [57]
+    FullTranscript: decl at [105]
+    Transcript: decl at [262]
+Arklib/ArkLib/OracleReduction/OracleInterface.lean  [410 lines]  cited: 53-73
+    OracleInterface: decl at [55]
+Arklib/ArkLib/OracleReduction/OracleInterface.lean  [410 lines]  cited: 93 (status E8)
+    instDefault: decl at [93]
+Arklib/ArkLib/OracleReduction/Basic.lean  [1025 lines]  cited: 222-669
+    Prover: decl at [223]
+    Verifier: decl at [248]
+    OracleVerifier: decl at [323]
+    Reduction: decl at [625]
+    OracleReduction: decl at [633]
+    OracleProof: decl at [669]
+    (lines containing 'sorry': 2)
+Arklib/ArkLib/OracleReduction/Basic.lean  [1025 lines]  cited: 1011 (status)
+    PureForm: decl at [1011]
+    (lines containing 'sorry': 2)
+Arklib/ArkLib/OracleReduction/Security/Basic.lean  [766 lines]  cited: 89-103, 460-469
+    completeness: decl at [89, 460, 537, 566]
+    perfectCompleteness: decl at [103, 469, 542, 575]
+    (lines containing 'sorry': 1)
+Arklib/ArkLib/OracleReduction/Security/Basic.lean  [766 lines]  cited: 248-359
+    knowledgeSoundness: decl at [344, 500, 553, 593]
+    Straightline: decl at [248]
+    (lines containing 'sorry': 1)
+Arklib/ArkLib/OracleReduction/Security/Basic.lean  [766 lines]  cited: 193 (status)
+    perfectCompleteness_of_run_support: decl at [193]
+    (lines containing 'sorry': 1)
+Arklib/ArkLib/OracleReduction/Security/RoundByRound.lean  [903 lines]  cited: 77-190, 416, 534, 606, 553
+    KnowledgeStateFunction: decl at [164, 719, 789]
+    RoundByRound: decl at [77]
+    rbrKnowledgeSoundness: decl at [416, 738, 777, 809]
+    rbrKnowledgeSoundnessWorstCase: decl at [534]
+    rbrKnowledgeSoundnessWorstCase_implies_rbrKnowledgeSoundness: decl at [606]
+    rbrKnowledgeSoundnessWorstCaseWith: decl at [553]
+Arklib/ArkLib/OracleReduction/Security/Implications.lean  [417 lines]  cited: 85
+    rbrKnowledgeSoundness_implies_rbrSoundness: decl at [87]
+    rbrKnowledgeSoundness_implies_knowledgeSoundness: decl at [223]
+    rbrSoundness_implies_soundness: decl at [79]
+    (lines containing 'sorry': 12)
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Append/Basic.lean  [724 lines]  cited: 709
+    append: decl at [58, 212, 236, 243, 619, 709]
+Arklib/ArkLib/OracleReduction/Composition/Sequential/General.lean  [553 lines]  cited: 255
+    seqCompose: decl at [42, 80, 109, 140, 187, 255]
+    (lines containing 'sorry': 3)
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Completeness.lean  [82 lines]  cited: 
+    seqCompose_perfectCompleteness_of_pure: decl at [66]
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Append/Completeness.lean  [273 lines]  cited: 
+    append_perfectCompleteness_of_pure_verifiers: decl at [163, 259]
+    append_perfectCompleteness_of_guarded_verifiers: decl at NOT FOUND as a declaration
+Arklib/ArkLib/OracleReduction/Composition/Sequential/GuardedNary.lean  [94 lines]  cited: 
+    seqCompose_completeness_of_guarded_verifiers: decl at [45]
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Append/RoundByRound.lean  [145 lines]  cited: 37
+    append_rbrSoundnessWorstCase_of_pure_first: decl at [37]
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Append/StateFunction.lean  [692 lines]  cited: 292, 75
+    append: decl at [39, 75, 292]
+Arklib/ArkLib/OracleReduction/Composition/Sequential/Append/Security.lean  [197 lines]  cited: (status: 4 sorries)
+    append_knowledgeSoundness: decl at [58, 148]
+    append_rbrKnowledgeSoundness: decl at [94, 180]
+    (lines containing 'sorry': 4)
+Arklib/ArkLib/OracleReduction/Security/CoordinateWiseSpecialSoundness/Guarded.lean  [674 lines]  cited: 112 (status)
+    GuardedForm: decl at [112]
+Arklib/ArkLib/ProofSystem/Sumcheck/Spec/General.lean  [238 lines]  cited: 171
+    reduction: decl at [172]
+Arklib/ArkLib/ProofSystem/Sumcheck/Spec/SingleRound.lean  [1285 lines]  cited: 130-144
+    StatementRound: decl at [130]
+    relationRound: decl at [144]
+    verifier_rbrKnowledgeSoundness: decl at [729, 1091]
+    (lines containing 'sorry': 15)
+MISSING FILE  Arklib/ArkLib/ProofSystem/Sumcheck/Spec/Domain.lean   (cited )
+Arklib/ArkLib/Data/MvPolynomial/Multilinear.lean  [427 lines]  cited: 
+    MLE: decl at [151]
+    eqPolynomial: decl at [88]
+    eqTilde: decl at [95]
+    eqTilde_append: decl at [116]
+    MLE_eq_zero_iff: decl at [252]
+    MLEEquivFin: decl at [421]
+Arklib/ArkLib/ToCompPoly/Multilinear/Basic.lean  [88 lines]  cited: 56
+    eval_eq_MvPolynomial_MLE: decl at [56]
+Arklib/ArkLib/Data/MvPolynomial/SchwartzZippelCounting.lean  [215 lines]  cited: 
+    schwartz_zippel_counting: decl at [30]
+    prob_eval_zero_le_div: decl at [131]
+Arklib/ArkLib/OracleReduction/FiatShamir/Basic.lean  [180 lines]  cited: 114-138
+    fiatShamir: decl at [114, 130, 140]
+    fsChallengeOracle: decl at NOT FOUND as a declaration
+    fiatShamir_completeness: decl at [163]
+    (lines containing 'sorry': 1)
+Arklib/ArkLib/Commitments/Functional/Basic.lean  [364 lines]  cited: 
+    Scheme: decl at [67]
+    binding: decl at [220]
+    perfectCorrectness_of_opening_perfectCompleteness: decl at [128]
+    extractability: decl at [250]
+Arklib/ArkLib/ProofSystem/ToyProblem/Codegen.lean  [102 lines]  cited: 
+Arklib/ArkLib/Data/Fin/Basic.lean  [356 lines]  cited: 93 (status)
+    induction_two: decl at [93]
+    (lines containing 'sorry': 1)
+Arklib/ArkLib/OracleReduction/Execution.lean  [726 lines]  cited: 642, 663, 343 (status)
+    run_of_verifier_first: decl at [642]
+    run_of_prover_first: decl at [653, 663]
+    support_run_pure_verifier: decl at [343]
+    (lines containing 'sorry': 1)
+VCVio/VCVio/OracleComp/Constructions/SampleableType.lean  [757 lines]  cited: 44; 225 (status)
+    SampleableType: decl at [44, 270]
+    probEvent_uniformSample: decl at [225]
+VCVio/VCVio/OracleComp/SimSemantics/OptionT/Basic.lean  [264 lines]  cited: 49, 214 (status)
+    simulateQ_optionT_bind_run: decl at [49]
+    simulateQ_optionT_failure: decl at [214]
+CompPoly/CompPoly/Multilinear/Basic.lean  [1106 lines]  cited: 47; 410-632; status 475,499,520,543,600,632,482,512
+    CMlPolynomialEval: decl at [47]
+    evalMle: decl at [499]
+    evalMleLayer: decl at [475]
+    evalMle_succ: decl at [512]
+    eval₂Mle: decl at [520]
+    eval_mle_eq_eval: decl at [586]
+    eqTilde: decl at [543]
+    eqTilde_eq_prod: decl at [600]
+    eqTilde_append: decl at [632]
+    lagrangeBasis: decl at [410]
+    evalMleLayer_get: decl at [482]
+CompPoly/CompPoly/Multilinear/Equiv.lean  [358 lines]  cited: 
+    toMvPolynomialDeg1: decl at [183, 342]
+    equivMvPolynomialDeg1: decl at [200]
+CompPoly/CompPoly/Multivariate/CMvPolynomial.lean  [304 lines]  cited: 55-85; 231 (review)
+    totalDegree: decl at [231]
+CompPoly/CompPoly/Fields/Binary/BF64/Ext3.lean  [203 lines]  cited: 171, 199 (status)
+    card_ext3: decl at [199]
+CompPoly/CompPoly/Fields/Binary/BF64/Impl.lean  [459 lines]  cited: 391 (status)
+    Fintype: decl at NOT FOUND as a declaration
+Clean/Clean/Circuit/Expression.lean  [212 lines]  cited: 6-90; 71
+    Expression: decl at [12]
+    eval: decl at [86]
+    fromArray: decl at [71]
+Clean/Clean/Air/FlatComponent.lean  [519 lines]  cited: 21; 151-186
+    operations: decl at [21]
+    Table: decl at [151]
+    Constraints: decl at [184, 496]
+    environment: decl at [163]
+Clean/Clean/Circuit/Operations.lean  [1314 lines]  cited: 404-432; 168-182
+    constraints: decl at [68, 404]
+    interactions: decl at [78, 428]
+    constraintsHold_iff_forall_mem: decl at [176]
+Clean/Clean/Circuit/Channel.lean  [427 lines]  cited: 101-105, 305-329
+    AbstractInteraction: decl at [101]
+    Interaction: decl at [305]
+Clean/Clean/Air/FlatEnsemble.lean  [544 lines]  cited: 19-25; 361; 342; 353-360
+    EnsembleWitness: decl at [19]
+    Statement: decl at [361]
+    BalancedChannels: decl at [342]
+Clean/Clean/Circuit/WitnessGeneration.lean  [108 lines]  cited: 82
+    witgen: decl at [55, 82]

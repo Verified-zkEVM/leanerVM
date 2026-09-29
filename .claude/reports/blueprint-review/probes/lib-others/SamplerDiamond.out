@@ -1,0 +1,13 @@
+FinEnum.SampleableType K
+FinEnum.SampleableType (BitVec 64)
+FinEnum.instBitVec 64
+'sampler_unique' depends on axioms: [propext, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/lib-others/SamplerDiamond.lean:29:0: error: failed to synthesize
+  SampleableType E
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+
+real	0m22.446s
+user	0m2.534s
+sys	0m1.584s
+exit=1

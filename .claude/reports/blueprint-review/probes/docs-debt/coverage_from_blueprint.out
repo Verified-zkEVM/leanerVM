@@ -1,0 +1,20 @@
+code     unit                                                       declared/produced   missing
+S        the spine                                                   0/ 0              
+G1       virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4  0/ 3              Virtual, sumcheck, sumcheck_perfectCompleteness
+G2       sumcheck rbr knowledge, `Sumcheck.Security` (Layer 4, A1)   0/ 1              sumcheck_rbrKnowledgeSoundness
+G3       batching by powers, `Batch.Def` and `Security` (Layer 4)    0/ 1              batchClaims
+G4       fingerprint, Lemma 5.1, the collision bound (Layer 5)       0/ 4              fingerprint, sideProduct, sideProduct_poly_eq_iff, sideProduct_collision
+G5, G6   GKR: `Gkr.Def` and completeness; `Gkr.Security` (Layer 5)   0/ 2              gkr, gkrError
+L1       Layer 1: tables, stacking, the fixed columns               15/15              
+I1       Clean components as polynomials (Layer 2)                   0/ 4              Expression.toMvPolynomial, degreeBound, Component.toM3, Ensemble.toM3
+I2       the adaptor (Layer 3)                                       0/ 6              leanIsaInstance, stackOf, witnessOf, satisfiedBy_witnessOf, m3Holds_stackOf, witnessOf_sta
+P1, P2   the bus phase (Layer 6)                                     1/ 4              busPhase, leaf_decomposition, busError
+P3, P4   the table sumcheck phase (Layer 7)                          1/ 4              tableSummand, tableSummand_target, tableSumcheck
+P5       the public-input phase (Layer 8)                            1/ 1              
+P6       the Flock phase at the flock seam (Layer 9)                 1/ 3              limbColumns, flockError_le
+P7, P8   the claim pool and the opening phase (Layer 10)             3/ 4              openingPhase
+C1       the knowledge-soundness append (ledger A2)                  2/ 2              
+K1       WHIR over binary Reed–Solomon codes (Layer 11)              0/ 4              encode, whirOpen, whirOpen_rbrSoundness, McaJohnson
+K2       Merkle, BLAKE2s bytes, the WHIR parameters (Layer 11)       0/ 4              merkleRoot, merkleVerify, blake2sBytes, ladder
+K3       transcript, `Proof`, `verify`, `verify_iff_compiled`, the   0/ 0              
+K4       T4 (Layer 13)                                               0/ 2              baseVerifier_extractsExecution, baseProver_complete

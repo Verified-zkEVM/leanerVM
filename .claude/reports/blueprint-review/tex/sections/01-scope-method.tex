@@ -1,0 +1,150 @@
+\chapter{Scope, vocabulary and method}\label{ch:scope}
+
+\section{What was reviewed, and against what}
+
+The object of the review is the \emph{blueprint} of the leanVM proof system in leanerVM, the
+document \file{docs/roadmap/protocol-blueprint.md}, together with the code already built from it.
+leanerVM was reviewed on its branch \code{main} at commit \code{b435631} (local and remote agree).
+\Cref{tab:revisions} lists every revision a statement of this report can be about. A statement
+about a library is about its \emph{pin}, the revision leanerVM builds against, unless it says
+\enquote{upstream}.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}llll@{}}
+\toprule
+What & Revision & Where it was read & Role \\
+\midrule
+leanerVM & \code{b435631} (\code{main}) & the working directory & the object of the review \\
+leanVM specification & \code{a386121f} & \file{doc/leanvm/body/*.tex} & ground truth: the intended protocol \\
+leanVM Rust verifier & \code{a386121f} & \file{crates/} & ground truth: the deployed protocol \\
+leanVM Python verifier & \code{a386121f} & \file{python-verifier/verifier.py} & ground truth: second implementation \\
+ArkLib & \code{dca90385} & \file{.lake/packages/Arklib} & the framework of the statements \\
+VCVio & \code{f9dc47d9} & \file{.lake/packages/VCVio} & probabilistic oracle computations \\
+CompPoly & \code{3468b38c} & \file{.lake/packages/CompPoly} & fields and computable polynomials \\
+Clean & \code{93c9d1ef} & \file{.lake/packages/Clean} & the circuit language of the arithmetization \\
+Mathlib, Lean & \code{v4.33.1} & \file{.lake/packages/mathlib} & mathematics, and the kernel \\
+\bottomrule
+\end{tabular}
+\caption{The revisions this report speaks about.}\label{tab:revisions}
+\end{table}
+
+Three sources define leanVM at the pin, and they do not always agree. This report uses two words
+for them and keeps them apart:
+\begin{itemize}
+\item the \textbf{specification} is the tex source at the pin: what leanVM is meant to be;
+\item the \textbf{deployed} protocol is what the Rust verifier at the pin accepts: what would run
+  on Ethereum. The Python verifier is a second implementation of it.
+\end{itemize}
+A disagreement between them is a finding in its own right (\cref{ch:faithfulness}), and every
+theorem discussed is labelled with the verifier it describes. A PDF of the specification
+circulates (\file{leanVM-b-2.pdf}); it was built from an earlier revision, differs from the
+pinned text, and is never cited here.
+
+\section{The three criteria}
+
+\begin{description}
+\item[Faithfulness.] The blueprint models leanVM's proof system interaction by interaction: every
+  prover message, every verifier challenge and every verifier check, in leanVM's order.
+  A divergence is classified as one of: \emph{an error of the blueprint}, to be fixed;
+  \emph{a deliberate deviation}, to be kept with its reason recorded and with the theorem that
+  relates it to the deployed verifier named and owed; or \emph{a deviation forced by an upstream
+  library}, recorded with its workaround and the condition under which it is retired.
+\item[Non-vacuity.] A definition is inhabited by the object leanVM intends and refuted by the
+  near misses; a hypothesis can be met, and by the real protocol, not only by a trivial one; an
+  error bound means something at leanVM's parameters; an extractor computes. A statement that
+  typechecks and a proof that compiles are evidence of neither.
+\item[Auditability.] The declarations a reader has to read and trust in order to know what the
+  master theorems say are as few and as short as they can be.
+\end{description}
+Faithfulness and non-vacuity of the relation, the seams and the master theorems come first;
+the size of the audit surface comes second and can be improved iteratively once the statements
+are right.
+
+\section{Vocabulary}\label{sec:vocabulary}
+
+The repository's documents use several names for overlapping things. This report uses one name
+for each, as follows; \cref{ch:documentation} proposes that the documents do the same.
+
+\begin{longtable}{@{}p{0.2\linewidth}p{0.76\linewidth}@{}}
+\toprule
+Term & Meaning \\
+\midrule
+\endhead
+blueprint & \file{docs/roadmap/protocol-blueprint.md}, the specification of what is wanted for
+  the proof system. It titles itself \enquote{Roadmap}; the two are one document. \\
+status & \file{docs/roadmap/protocol-status.md}. \\
+tracker & issue \#12 of the repository, with the long comment that holds the specifications of
+  the holes (the \emph{hole comment}). \\
+oracle protocol & the interactive protocol in the ideal model where the committed polynomial is
+  an oracle the verifier may query and challenges are uniformly random. In the literature: a
+  polynomial interactive oracle proof. \\
+phase & one step of the oracle protocol: commit, bus, table sumcheck, public input, Flock,
+  opening. \\
+spine & the part of the blueprint, and of the code, that fixes what the phases share: the
+  abstract instance \lean{M3Instance}, the relation \lean{M3Holds}, the seam relations, the
+  interfaces a phase has to meet, the composition and the two master theorems. \\
+seam & the relation that holds between two consecutive phases: the output relation of one and,
+  by definition, the input relation of the next. \\
+hole & a unit of work the spine leaves open (a phase, a generic component, the adaptor, the
+  compilation). \\
+layer & the blueprint's numbering of the same work (Layers 0 to 13). \\
+adaptor & the part, not yet built, that instantiates the abstract instance at leanISA and
+  carries the proof system's relation to leanISA's constraint relation \lean{SatisfiedBy}. \\
+compilation & what turns the oracle protocol into a non-interactive proof: the polynomial
+  commitment (WHIR over Merkle trees) in place of the oracle, and Fiat--Shamir in place of the
+  verifier's coins. \\
+master theorems & \lean{piop_perfectCompleteness} and \lean{piop_rbrKnowledgeSoundness}, and the
+  theorems the blueprint builds on them, not yet proved: \lean{verify_knowledgeSound} for the
+  compiled verifier, and \lean{baseVerifier_extractsExecution} with \lean{baseProver_complete},
+  the proof system's target theorem. \\
+pin & the revision of a dependency recorded in \file{upstreams.json}. \\
+load-bearing & said of a declaration that a master theorem's statement unfolds to, so that a
+  reader must read it to know what the theorem says. \\
+\bottomrule
+\end{longtable}
+
+\paragraph{Letter codes.} The repository's documents label holes, ledger entries, findings and
+decisions with a letter and a number. This report names things in words. Where a code helps to
+find the thing in the repository it is given once, in parentheses, after the name.
+\Cref{ch:codeindex} is the index of every code met.
+
+\section{Method}\label{sec:method}
+
+The review was run by one orchestrating session and independent sub-agents, each with its own
+context and a self-contained task, all bound by the limits of the session: no edit to a tracked
+file, nothing posted to an issue tracker, no checkout moved.
+
+\begin{enumerate}
+\item \textbf{Ground truth first.} For each part of the protocol a sub-agent read the
+  specification, the Rust and the Python verifier at the pin and wrote down the transcript
+  (who sends what, in which order, which challenge follows which message), every check of the
+  verifier with its rejection path, and the errors claimed. Only then was the blueprint set
+  against it.
+\item \textbf{The code as evidence.} The built code (the spine, Layers 0 and 1, the public-input
+  phase) was catalogued declaration by declaration from the source, classified as load-bearing,
+  interface, helper or test fixture, and read adversarially against its docstrings and the
+  blueprint.
+\item \textbf{Probes.} Claims of non-vacuity were tested by Lean files that build against
+  \code{main}: inhabitants, near misses, and mutations of a verifier that show where a proof
+  stops when a check is removed. The probes are scratch work and are reproduced in
+  \cref{ch:probes}.
+\item \textbf{Validation of findings and of their absence.} Every finding carries its evidence:
+  the line of the pinned source, the Lean declaration, and the probe or counterexample that
+  reproduces it. Where a part was found to have no issue, the report says what was checked.
+  Findings of severity \emph{major} and above were re-derived by a second, independent
+  sub-agent before they entered this report.
+\end{enumerate}
+
+\paragraph{Severity.} \sev{critical}: a theorem or definition is wrong, vacuous or unfaithful in
+a way that would let an unsound verifier be \enquote{proved}. \sev{major}: the blueprint
+specifies something leanVM does not do, or omits something it does, or a statement cannot be
+proved or stated as written. \sev{minor}: imprecision, stale text, avoidable audit surface.
+\sev{note}: worth recording.
+
+\section{What this report is not}
+
+It is the record of a review, not a further source of truth about the proof system. Whatever it
+concludes should change is written as a proposed change to the blueprint (\cref{ch:changes}),
+with the status and the tracker following, so that the blueprint remains the one place that
+says what is wanted. Nothing proposed here has been applied.

@@ -1,0 +1,100 @@
+non-private declarations under LeanerVM/Protocol: 333; not in the interface list: 198
+  LeanerVM/Protocol/BlockClaims.lean: 8 declarations, 7 unlisted
+  LeanerVM/Protocol/ClaimWeights.lean: 4 declarations, 2 unlisted
+  LeanerVM/Protocol/Field.lean: 11 declarations, 7 unlisted
+  LeanerVM/Protocol/FixedColumns.lean: 13 declarations, 6 unlisted
+  LeanerVM/Protocol/Padding.lean: 6 declarations, 2 unlisted
+  LeanerVM/Protocol/PublicInput.lean: 21 declarations, 18 unlisted
+  LeanerVM/Protocol/Spine/Compose.lean: 19 declarations, 0 unlisted
+  LeanerVM/Protocol/Spine/Instance.lean: 22 declarations, 4 unlisted
+  LeanerVM/Protocol/Spine/Phase.lean: 6 declarations, 0 unlisted
+  LeanerVM/Protocol/Spine/Seams.lean: 23 declarations, 2 unlisted
+  LeanerVM/Protocol/Spine/Toy.lean: 11 declarations, 6 unlisted
+  LeanerVM/Protocol/Stack.lean: 9 declarations, 3 unlisted
+  LeanerVM/Protocol/ToArkLib/Component.lean: 9 declarations, 3 unlisted
+  LeanerVM/Protocol/ToArkLib/GuardedVerdict.lean: 2 declarations, 2 unlisted
+  LeanerVM/Protocol/ToArkLib/KeepOracles.lean: 2 declarations, 2 unlisted
+  LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean: 25 declarations, 23 unlisted
+  LeanerVM/Protocol/ToArkLib/Oracles.lean: 3 declarations, 1 unlisted
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean: 11 declarations, 8 unlisted
+  LeanerVM/Protocol/ToArkLib/Refinement.lean: 5 declarations, 2 unlisted
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean: 17 declarations, 16 unlisted
+  LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean: 10 declarations, 9 unlisted
+  LeanerVM/Protocol/ToCompPoly/BitProductTable.lean: 13 declarations, 9 unlisted
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean: 43 declarations, 35 unlisted
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean: 38 declarations, 29 unlisted
+  LeanerVM/Protocol/ToVCVio/UniformSample.lean: 2 declarations, 2 unlisted
+
+  LeanerVM/Protocol/BlockClaims.lean:69: def ambientPoint   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/BlockClaims.lean:73: def weight
+  LeanerVM/Protocol/BlockClaims.lean:78: def IsValid   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/Field.lean:65: structure rather
+  LeanerVM/Protocol/Field.lean:74: def finEquivK   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/Field.lean:86: def limbsEquiv   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/FixedColumns.lean:56: def idxColumnEval
+  LeanerVM/Protocol/FixedColumns.lean:75: def bytecodeSlotColumn   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/FixedColumns.lean:108: def bytecodeColumnEval
+  LeanerVM/Protocol/PublicInput.lean:65: def linePoint
+  LeanerVM/Protocol/PublicInput.lean:99: def pSpec
+  LeanerVM/Protocol/PublicInput.lean:111: def error
+  LeanerVM/Protocol/PublicInput.lean:119: def lineValue
+  LeanerVM/Protocol/PublicInput.lean:123: def lineClaim   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/PublicInput.lean:127: def pooled
+  LeanerVM/Protocol/PublicInput.lean:132: def expectedValues
+  LeanerVM/Protocol/PublicInput.lean:136: def check
+  LeanerVM/Protocol/PublicInput.lean:208: def prover
+  LeanerVM/Protocol/PublicInput.lean:223: def queryValues   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/PublicInput.lean:229: def verifier
+  LeanerVM/Protocol/PublicInput.lean:273: def guarded
+  LeanerVM/Protocol/PublicInput.lean:327: def stateFunction   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/PublicInput.lean:384: def publicInputComplete
+  LeanerVM/Protocol/PublicInput.lean:391: def publicInputSecurity
+  LeanerVM/Protocol/Spine/Instance.lean:157: abbrev κ
+  LeanerVM/Protocol/Spine/Instance.lean:167: def coordCell   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/Spine/Instance.lean:174: def flushTuples   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/Spine/Instance.lean:180: def boundaryTuples   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/Spine/Seams.lean:87: def VirtualTerm.eval
+  LeanerVM/Protocol/Spine/Seams.lean:112: def Weight.pair
+  LeanerVM/Protocol/Spine/Toy.lean:39: abbrev Col
+  LeanerVM/Protocol/Spine/Toy.lean:47: def extend
+  LeanerVM/Protocol/Spine/Toy.lean:66: def constraint
+  LeanerVM/Protocol/Spine/Toy.lean:77: def flush
+  LeanerVM/Protocol/Spine/Toy.lean:89: def boundary
+  LeanerVM/Protocol/ToArkLib/Component.lean:110: def stateFunctionOfEq   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/Component.lean:156: def guardedAppend   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/KeepOracles.lean:34: def keepOracles   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:55: abbrev Witness
+  LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:71: def left   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:78: def right   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:182: def state
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean:38: def passThroughProver   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean:47: def passThroughVerifier   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean:75: def passThroughPure   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean:101: def passThroughExtractor
+  LeanerVM/Protocol/ToArkLib/PassThrough.lean:113: def passThroughStateFunction
+  LeanerVM/Protocol/ToArkLib/Refinement.lean:43: def id
+  LeanerVM/Protocol/ToArkLib/Refinement.lean:48: def comp
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:39: def sendSpec   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:42: def sendProver   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:50: def sendEmbedding   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:56: def sendVerifier   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:71: def sendOracle_relOut   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:101: def sendVerifierPure   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:121: def sendOracleComplete
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:130: abbrev sendWitMid   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:134: def sendExtractor   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:145: def sendStateFunction   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToArkLib/SendOracle.lean:172: def sendOracleSecurity
+  LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean:69: def selectorWeight   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean:80: def windowTable   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean:144: def cubeIndex   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean:170: def cubeSplit   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean:185: def lowVec   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean:189: def highVec   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Multilinear.lean:239: def onesIndex
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:80: def offsetNat   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:84: def offset
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:87: def total
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:118: abbrev InWindow   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:233: def lowPoint   [name appears nowhere in the blueprint]
+  LeanerVM/Protocol/ToCompPoly/Stacking.lean:238: def highPoint   [name appears nowhere in the blueprint]

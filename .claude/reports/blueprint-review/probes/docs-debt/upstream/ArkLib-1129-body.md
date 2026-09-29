@@ -1,0 +1,3 @@
+Add Boolean-domain controls for the closed sumcheck executor: exact repair probability `1/5`, exclusion of `X²` from a degree-one message, endpoint and empty-domain rejection, and a challenge-first adaptive message that succeeds with probability one. The counterexample shows why the fixed-message bound requires a fresh challenge.
+
+This completes the executor-regression part of the [leanth reuse request](https://github.com/Verified-zkEVM/leanerVM/issues/12) on the current typed sumcheck API tracked in #1. The original formalization remains attributed to [leanth #16](https://github.com/Verified-zkEVM/leanth/pull/16) at [`23929f8`](https://github.com/Verified-zkEVM/leanth/commit/23929f8c922cd4461ab22dbfaa6520f3ad23a3b2).

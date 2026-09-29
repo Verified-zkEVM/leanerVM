@@ -1,0 +1,7 @@
+I am taking the arbitrary-padding stack-evaluation slice of Layer 1, supplying the generic identity needed by Layer 6's `leaf_decomposition`. This is a sibling follow-up to the coefficient transport adopted through #26 on #18.
+
+The declarations are `placeSlice`, `slice_placeSlice`, `evalMle_placeSlice`, and `Blocks.exists_inWindow`, `inWindow_iff_div`, `lowPoint`, `highPoint`, `selectorWeight`, `windowTable`, `windowTable_getElem`, `evalMle_windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval_ambient_zero`, `stack_eval_ambient_one`, `stackAt_eq_of_total_eq`, `sum_selectorWeight_of_total_eq` and `stack_eval₂_ambient`. The ambient evaluation includes the uncovered padding weight, with arbitrary padding and arbitrary coefficient maps.
+
+Upstream ownership is [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900). The proof extends `eval_MLE_stack_ambient` from [leanth PR #16](https://github.com/Verified-zkEVM/leanth/pull/16), revision `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, `Leanth/LeanVM/Protocol.lean:9818-9850`. Its consumer is the leaf decomposition in leanVM `a386121f`, specification §5.4.
+
+Acceptance covers empty and fully occupied layouts, zero and one padding, and an off-base-field point that detects omission of the padding correction. Fit assumptions and mapped padding remain explicit. This proves the algebraic identity, not the assembled bus phase. Dependency pins stay unchanged. Tracking: #12.

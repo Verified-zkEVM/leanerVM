@@ -1,0 +1,116 @@
+## Motivation
+
+Layer 1 of the proof-system roadmap (#12, hole L1) was spread over four open pull requests on a base that predates the spine: the draft #18 (the generic half and the leanth reuse catalog, with the merged #25 and #26) and the three leaves #38, #40 and #41 stacked on it. None of the stacked ones had CI, and nothing could land before #18 was rebased. This pull request consolidates all of it on `main` so that the layer can be reviewed and merged as one unit. It supersedes #18, #38, #40 and #41; #39 and #43 (Layers 5 and 4) stay as they are and rebase onto `main` afterwards.
+
+No proof is redone. The nine commits of those pull requests are cherry-picked with their authorship and co-author trailers, and the Lean files were byte-identical to the pull requests' heads before the commits added on top.
+
+**Credit.** Every cherry-picked commit cites the commit and pull request it comes from, and every commit added on top names the authors of the modules it touches (Aristotle (Harmonic), Stefano Rocca, Elias Judin) as co-authors. A squash merge collects them all.
+
+## What is in it
+
+Two halves. The generic half is staged for CompPoly and written for its other consumers: it names no protocol. The leanVM half specialises it and is where the specification is cited.
+
+| Module | Content | From |
+| --- | --- | --- |
+| `ToCompPoly/Multilinear.lean` | `sumCube`, `hadamard`, `evalMle_eq_sumCube_hadamard`, `sumCube_lagrangeBasis`, `evalMle_replicate`, the cube split, `boolVec` and the two corners, `slice`, `evalMle_append_boolVec`, `placeSlice`, `evalMle_placeSlice`, `sumCube_placeSlice` | #18; `placeSlice` from #40 |
+| `ToCompPoly/BitProductTable.lean` | `bitProductTable`, `evalMle_bitProductTable`, `pow_eq_prod_testBit`, `powersTable`, `evalMle_powersTable`, `evalMle_lagrangeBasis` | new; the geometric table's statement from #41 |
+| `ToCompPoly/Stacking.lean` | `Blocks` (sizes only), `Blocks.Tables`, offsets, `pow_size_dvd_offset`, `stackAt`, `selector`, `extendPoint`, `stack_eval`, `stack_eval₂`, `map_stackAt`, `unstack`, `unstack_eval₂`, `unstack_eval₂_eq_sumCube`, `unstack_eq_of_window_eq` | #18, #26, #38 |
+| `ToCompPoly/AmbientStacking.lean` | `selectorWeight`, `stack_eval_ambient`, `stack_eval_ambient_zero`, `stack_eval₂_ambient`, `sum_selectorWeight_of_total_eq` | #40 |
+| `Stack.lean` | `Blocks.stackColumn`, `readColumn`, `readColumn_eval`, `Blocks.layout`, `Layout.comap`, `stackColumn_eval_ambient`, `stack_eval_ambient_one` | new |
+| `Padding.lean` | `prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | #18 |
+| `ClaimWeights.lean` | `Weight.pair_eq_sumCube`, `eqWeight`, `ColumnClaim.holds_iff_weighted` | new |
+| `BlockClaims.lean` | `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, window locality | #38 |
+| `FixedColumns.lean` | `idxColumn`, `idxColumn_eval`, `idxColumnEval_eq`, `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_answer_boolVec`, `bytecodeColumn_eval` | #41; two theorems new |
+| `docs/roadmap/leanth-reuse.md` | the reuse catalog | #18, #25 |
+| `docs/reviews/protocol-layer1.md` | the adversarial review of this pull request | new |
+
+Paths are under `LeanerVM/Protocol/`.
+
+### The commits added on top of the cherry-picks
+
+1. **`fix(protocol): drop the overlapping zero instance in ambient stacking`.** #40's `placeSlice` and `windowTable` took `[Zero R]` beside the section's `[CommRing R]`. Mathlib's overlapping-instances linter rejects that, and `warningAsError` makes it a build failure on `main`.
+2. **Two moves** (`move the Layer 1 generic modules into the To* folders`, `move the stacking modules to ToCompPoly`). All generic modules are CompPoly candidates: they import `CompPoly.Multilinear.Basic` and Mathlib only, every statement is about `CMlPolynomialEval` and its evaluators, and ArkLib at the pin keeps its own additions of this kind under `ArkLib/ToCompPoly/Multilinear/`. That their request is tracked as ArkLib #900 does not make them ArkLib's.
+3. **`feat(protocol): Layer 1: the stack of columns and the spine's layout`** and **`docs(protocol): record Layer 1 as built …`**: `Stack.lean`, and the roadmap documents.
+4. **`refactor(protocol): make the staged CompPoly modules generic`.** A staged module is for the upstream library's other consumers; being stated over an arbitrary ring does not make a declaration generic.
+   - `Blocks` is the sizes of a layout and nothing else. The tables are an argument, `B.Tables R`, so one layout serves tables over `K` and over `E`, and `Blocks.map` is gone.
+   - `BitProductTable` replaces `PowerColumn`: any table whose entries factor over the bits of the index. The geometric table and the Lagrange basis are instances.
+   - Moved out of the staged modules: back-loaded padding (the all-ones slot is the protocol's choice; upstream keeps `placeSlice` at any slot), the claim record `BlockClaim` (protocol vocabulary; upstream keeps `unstack_eval₂_eq_sumCube`), the pad-one decomposition.
+   - Upstream docstrings state the mathematics and the attribution; the specification and Rust citations are in the leanVM modules.
+5. **`feat(protocol): Layer 1: a column claim as a weighted claim on the stack`.** `ColumnClaim.holds_iff_weighted`, over an abstract instance: the first step of the opening phase.
+6. **`docs(protocol): the review of Layer 1, and the roadmap brought to the branch`.**
+
+## The review
+
+`docs/reviews/protocol-layer1.md`: the `adversarial-review` skill, three passes by three agents with no knowledge of the branch, run at `8bc9bbd`. The fidelity pass read the pinned sources before any Lean.
+
+- **No theorem is false, vacuous or of the wrong strength**, and every Lean object is the leanVM object: the evaluation order, the offsets and selectors, the padding term, the index column and the bytecode table agree numerically with the pinned Python verifier.
+- **Met on this branch:** `BlockClaim` could not be used by a phase over an abstract instance (now `ColumnClaim.holds_iff_weighted`); `Blocks.layout` did not have the type of an instance's layout (now `Layout.comap`, and the toy instance carries the aligned layout in a test); `bytecodeColumn_slot` was provable on the opposite bit order (now `bytecodeColumn_answer_boolVec`); three weak tests; "equation (5.4)" is equation (2) of §5.4; sixteen mismatches between the roadmap documents and the branch.
+- **Recorded for the roadmap:** leanVM breaks ties between equal-size blocks by column index, shared columns first (`witness.rs:67-79`, `cpu/layout.rs:13-49`); the blueprint said the reverse. No statement here depends on the order, and the adaptor must supply the pinned one.
+- **Open, the maintainer's:** a rule for the wall in `scripts/check-layers.sh` (the blueprint named the script, which has no such rule); the per-file author headers of two modules; a bytecode fixture derived from the pinned source with all six opcodes.
+
+The fixes were made after the review and have not themselves been reviewed adversarially.
+
+## Sources and revisions
+
+leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2): specification §4.1 (`04-committing-the-witness.tex:4-18`), §5.4 (`05-arithmetization.tex:97-109`, equation (2)), §5.5 (back-loaded padding), §6.5 (`06-bus-interactions.tex:95-100`), §8.1 (`08-end-to-end-protocol.tex:4-25`); `crates/lean_vm/src/leaf.rs:570-604, 627-637` for the bytecode bit order. leanth `leanth-project` at `23929f8c` for the derived modules, per the catalog. CompPoly `3468b38c`, ArkLib `dca90385`, Lean `v4.33.1`; no pin moves.
+
+| Declarations | Category |
+| --- | --- |
+| everything under `ToCompPoly/` | A: generic algebra, nothing transcribed |
+| `Stack.lean`, `Padding.lean`, `ClaimWeights.lean`, `BlockClaims.lean`, `idxColumn` and its evaluations | A: written from the specification |
+| `bytecodeColumn`, `bytecodeSlotColumn`, and the theorems on them | B: the sixteen-slot layout and the bit order are transcribed from §8.1 and `leaf.rs`; the slot contents are leanISA Layer 4's `encodeSlots`, not restated |
+
+## Layer ownership
+
+All new public definitions are in `Protocol`. `FixedColumns.lean` imports `LeanerVM.Arithmetization.Bytecode` because it names the program; it sits below the wall with the adaptor and the compiled verifier, and no phase imports it. Every other module imports no leanISA module. `Stack.lean` imports the spine's `Instance` and `ClaimWeights.lean` its `Seams`.
+
+## Validation
+
+```sh
+./scripts/validate.sh        # green; axiom audit: 3193 declarations, unexpected axioms: []
+lake build LeanerVMTests.Protocol.Multilinear LeanerVMTests.Protocol.BitProductTable \
+  LeanerVMTests.Protocol.Stacking LeanerVMTests.Protocol.AmbientStacking \
+  LeanerVMTests.Protocol.Stack LeanerVMTests.Protocol.Padding \
+  LeanerVMTests.Protocol.ClaimWeights LeanerVMTests.Protocol.BlockClaims \
+  LeanerVMTests.Protocol.FixedColumns
+```
+
+`#print axioms` on 33 load-bearing declarations (`stack_eval`, `unstack_eval₂`, `stack_eval_ambient`, `evalMle_bitProductTable`, `Blocks.layout`, `Layout.comap`, `ColumnClaim.holds_iff_weighted`, `bytecodeColumn_answer_boolVec`, …): `propext, Classical.choice, Quot.sound`.
+
+Tests and the wrong reading each one excludes:
+
+| Test | Excludes |
+| --- | --- |
+| offsets and selectors of blocks of heights 4, 2, 1 decided in the kernel; the stack at each block's lifted point; at block 1's point with reversed selector bits | a selector that is not `offset >> size`; high-bit-first selectors |
+| sizes 0, 1, 2 in that order are not `Antitone`; on that placement every slice of height 2 differs from the block `[5, 6]` | alignment for any order (roadmap acceptance test 15) |
+| the reading law on a column that is no honest stack, at a point outside `K` | a law that holds of honest stacks only |
+| the aligned layout of three blocks of height 2, renamed by `Layout.comap`, in the layout field of the toy instance: `M3Holds` passes the honest stack and fails a mutated one | a generic reader that does not fit an instance |
+| the weight of a claim on each column of the toy, paired with the stack, against the column's evaluation; with another column's weight | a claim weight that reads the wrong column |
+| a table with a different factor at each coordinate, against its coordinates swapped | a coordinate order other than low bit first |
+| padding by two variables, against the copied table, whose sum is zero in characteristic two | copying in place of back-loaded padding (acceptance test 7) |
+| the one-padded stack at an off-cube point, against the sum without the padding term and against the sum plus the constant 1 | dropping the padding weight, or reading it as 1 |
+| `idxColumn 2` at `(y, y²)` in the form of §6.5, against the product with `g` and `g²` swapped | high-bit-first index columns (acceptance test 13) |
+| slot 3 of each instruction of a two-instruction program at slot bits `(1,1,0,0)`; bits `(0,0,1,1)` read the spare slot 12; the native evaluator off the cube against reversed slot coordinates | reversed slot bits (acceptance test 14) |
+
+## Deployed behavior or repair
+
+Neither. The generic modules are algebra with no source to be faithful to. The two fixed columns describe public data of the deployed verifier, as Lean column-oracle equalities; no theorem here proves Rust execution correspondence.
+
+## Linked issues and pull requests
+
+Dashboard #12, hole L1. This is a draft.
+
+The intention issues whose slices this lands close with the merge:
+
+- Closes #27 (coefficient transport for aligned stacks).
+- Closes #32 (public index and bytecode evaluations).
+- Closes #35 (arbitrary-column block claims).
+- Closes #36 (ambient stack evaluation with padding).
+
+Supersedes #18, #38, #40 and #41, to be closed by hand when this merges; each carries a comment saying where its declarations are now. #25 and #26 were merged into #18's branch and are carried with it. The branch `feat/leanth-reuse` must outlive #18's closing for as long as #39 and #43 target it.
+
+The staged modules are CompPoly candidates; the request they answer is tracked as [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900) (ledger A6), and no CompPoly issue is open for them yet. After this merges, #39 and #43 rebase onto `main`: their imports become `LeanerVM.Protocol.ToCompPoly.Multilinear` and `LeanerVM.Protocol.ToCompPoly.Stacking`, and `Blocks R` with its `values` becomes `Blocks` with a separate `B.Tables R`.
+
+Feeds T4 through the adaptor (I2: `Blocks.layout` with `Layout.comap`, the fixed columns as `Coord.known` data), the bus phase (P1: `stack_eval_ambient`), the table sumcheck (P3: `padHigh`), the opening phase (P7: `ColumnClaim.holds_iff_weighted`) and the compiled verifier (K3: `idxColumn_eval`, `bytecodeColumn_eval`).
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

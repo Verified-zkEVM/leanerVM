@@ -1,0 +1,49 @@
+% Review of the blueprint of the leanVM proof system in leanerVM.
+% Build: latexmk -lualatex main.tex   (LuaLaTeX; see preamble.tex)
+% This file is scratch output of a review session. It is not to be committed to the repository.
+\documentclass[10pt,a4paper]{report}
+\input{preamble}
+
+\title{\textsf{\bfseries The blueprint of the leanVM proof system in leanerVM}\\[4pt]
+  \large\textsf{A review of its faithfulness to leanVM, its non-vacuity, and its audit surface}}
+\author{\textsf{Review session of 29 September 2026}}
+\date{\textsf{leanerVM \texttt{main} at \texttt{b435631} \quad leanVM pinned at \texttt{a386121f}}}
+
+\begin{document}
+\maketitle
+
+\input{sections/00-summary}
+\tableofcontents
+
+\part{The map}
+\input{sections/01-scope-method}
+\input{sections/02-protocol-map}
+\input{sections/03-libraries}
+\input{sections/04-catalogue}
+
+\part{The analysis}
+\input{sections/05-phases}
+\input{sections/06-obligations}
+\input{sections/07-tcb}
+
+\part{The audit}
+\input{sections/08-faithfulness}
+\input{sections/09-nonvacuity}
+\input{sections/10-auditability}
+
+\part{What to do}
+\input{sections/11-options}
+\input{sections/12-documentation}
+\input{sections/13-drift}
+
+\appendix
+\part{Appendices}
+\input{sections/a-proposed-changes}
+\input{sections/b-probes}
+\input{sections/c-code-index}
+\input{sections/d-tracker-drafts}
+\input{sections/e-brief-review}
+
+\bibliographystyle{alpha}
+\bibliography{refs}
+\end{document}

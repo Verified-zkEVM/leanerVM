@@ -1,0 +1,195 @@
+DECL    | Spine                | Side                                                                 | LeanerVM/Protocol/Spine/Instance.lean:51: inductive Side
+DECL    | Spine                | Shape                                                                | LeanerVM/Protocol/Spine/Instance.lean:57: structure Shape where
+DECL    | Spine                | Shape.ColumnId                                                       | LeanerVM/Protocol/Spine/Instance.lean:66: abbrev Shape.ColumnId (S : Shape) : Type := Σ j : Fin S.ntab, Fin (S.width j)
+DECL    | Spine                | Layout                                                               | LeanerVM/Protocol/Spine/Instance.lean:73: structure Layout (μ : ℕ) (ι : Type) (κ : ι → ℕ) where
+DECL    | Spine                | Coord                                                                | LeanerVM/Protocol/Spine/Instance.lean:86: inductive Coord (S : Shape) (κ : ℕ)
+DECL    | Spine                | BoundaryBlock                                                        | LeanerVM/Protocol/Spine/Instance.lean:92: structure BoundaryBlock (S : Shape) where
+DECL    | Spine                | PublicLine                                                           | LeanerVM/Protocol/Spine/Instance.lean:102: structure PublicLine (S : Shape) where
+DECL    | Spine                | M3Instance                                                           | LeanerVM/Protocol/Spine/Instance.lean:119: structure M3Instance extends Shape where
+FIELD   | Spine                | M3Instance.d                                                         | LeanerVM/Protocol/Spine/Instance.lean:128: d : ℕ
+DECL    | Spine                | M3Instance.column                                                    | LeanerVM/Protocol/Spine/Instance.lean:160: def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read q c
+DECL    | Spine                | row                                                                  | LeanerVM/Protocol/Spine/Instance.lean:163: def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
+DECL    | Spine                | tuples                                                               | LeanerVM/Protocol/Spine/Instance.lean:185: def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
+DECL    | Spine                | ConstraintsVanish                                                    | LeanerVM/Protocol/Spine/Instance.lean:197: def ConstraintsVanish (q : Column I.μ) : Prop :=
+DECL    | Spine                | Balanced                                                             | LeanerVM/Protocol/Spine/Instance.lean:201: def Balanced (q : Column I.μ) : Prop := (I.tuples q .push).Perm (I.tuples q .pull)
+DECL    | Spine                | CountsNonzero                                                        | LeanerVM/Arithmetization/Statement.lean:240: def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
+DECL    | Spine                | PublicLinesHold                                                      | LeanerVM/Protocol/Spine/Instance.lean:208: def PublicLinesHold (input : I.Stmt) (q : Column I.μ) : Prop :=
+DECL    | Spine                | M3Holds                                                              | LeanerVM/Protocol/Spine/Instance.lean:219: def M3Holds (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Prop :=
+DECL    | Spine                | M3Rel                                                                | LeanerVM/Protocol/Spine/Instance.lean:230: def M3Rel (I : M3Instance) : Set ((I.Stmt × (∀ i, NoOracle i)) × Column I.μ) :=
+DECL    | Spine                | NoOracle                                                             | LeanerVM/Protocol/ToArkLib/Oracles.lean:26: abbrev NoOracle : Fin 0 → Type := fun i ↦ i.elim0
+DECL    | Spine                | TheOracle                                                            | LeanerVM/Protocol/Spine/Instance.lean:226: abbrev TheOracle (I : M3Instance) : Fin 1 → Type := OneOracle (Column I.μ)
+ABSENT  | Spine                | Ensemble.toM3                                                        | 
+DECL    | Spine                | ColumnClaim                                                          | LeanerVM/Protocol/Spine/Seams.lean:57: structure ColumnClaim (I : M3Instance) where
+DECL    | Spine                | VirtualTerm                                                          | LeanerVM/Protocol/Spine/Seams.lean:71: structure VirtualTerm (I : M3Instance) where
+DECL    | Spine                | LinearClaim                                                          | LeanerVM/Protocol/Spine/Seams.lean:91: structure LinearClaim (I : M3Instance) where
+DECL    | Spine                | Weight                                                               | LeanerVM/Protocol/Spine/Seams.lean:103: structure Weight (μ : ℕ) where
+DECL    | Spine                | WeightedClaim                                                        | LeanerVM/Protocol/Spine/Seams.lean:116: structure WeightedClaim (I : M3Instance) where
+DECL    | Spine                | BusOut                                                               | LeanerVM/Protocol/Spine/Seams.lean:130: structure BusOut (I : M3Instance) where
+DECL    | Spine                | TableOut                                                             | LeanerVM/Protocol/Spine/Seams.lean:137: structure TableOut (I : M3Instance) where
+DECL    | Spine                | PubOut                                                               | LeanerVM/Protocol/Spine/Seams.lean:142: structure PubOut (I : M3Instance) where
+DECL    | Spine                | FlockOut                                                             | LeanerVM/Protocol/Spine/Seams.lean:147: structure FlockOut (I : M3Instance) where
+DECL    | Spine                | theStack                                                             | LeanerVM/Protocol/Spine/Seams.lean:159: abbrev theStack {I : M3Instance} (o : ∀ i, TheOracle I i) : Column I.μ := o 0
+DECL    | Spine                | Seam.of                                                              | LeanerVM/Protocol/ToCompPoly/Stacking.lean:45: * Alignment is a theorem of the descending order, not a hypothesis: sizes 2, 1, 0 in that 
+DECL    | Spine                | Seam.commit                                                          | LeanerVM/Protocol/Spine/Seams.lean:171: def commit := of I (M3Holds I)
+DECL    | Spine                | Seam.bus                                                             | LeanerVM/Protocol/Spine/Seams.lean:175: def bus := of I fun (s : I.Stmt × BusOut I) q ↦ (∀ c ∈ s.2.linear, c.Holds q) ∧
+DECL    | Spine                | Seam.table                                                           | LeanerVM/Protocol/Spine/Seams.lean:82: def VirtualTerm.table {I : M3Instance} (q : Column I.μ) (t : VirtualTerm I) :
+DECL    | Spine                | Seam.pub                                                             | LeanerVM/Protocol/Spine/Seams.lean:184: def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns, c.Holds q) ∧ I.aux q
+DECL    | Spine                | Seam.flock                                                           | LeanerVM/Protocol/Spine/Seams.lean:187: def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
+DECL    | Spine                | Seam.done                                                            | LeanerVM/Protocol/Spine/Seams.lean:191: def done := of I fun (_ : Unit) _ ↦ True
+DECL    | Spine                | Component.Def                                                        | LeanerVM/Protocol/Spine/Phase.lean:37: abbrev Def (StmtIn StmtOut : Type) : Type 1 :=
+DECL    | Spine                | Component.Complete                                                   | LeanerVM/Protocol/Spine/Phase.lean:41: abbrev Complete {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+DECL    | Spine                | Component.Security                                                   | LeanerVM/Protocol/Spine/Phase.lean:47: abbrev Security {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+FIELD   | Spine                | Component.Security.witMid                                            | LeanerVM/Protocol/ToArkLib/Component.lean:95: witMid : Fin (D.n + 1) → Type
+DECL    | Spine                | Component.Security.extractor                                         | LeanerVM/Protocol/PublicInput.lean:317: def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+FIELD   | Spine                | Component.Security.kSF                                               | LeanerVM/Protocol/ToArkLib/Component.lean:101: kSF : ∀ {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)),
+DECL    | Spine                | Component.Security.rbr                                               | LeanerVM/Protocol/PublicInput.lean:350: theorem rbr :
+DECL    | Spine                | Phase.Def                                                            | LeanerVM/Protocol/Spine/Phase.lean:37: abbrev Def (StmtIn StmtOut : Type) : Type 1 :=
+DECL    | Spine                | Phase.Complete                                                       | LeanerVM/Protocol/Spine/Phase.lean:41: abbrev Complete {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+DECL    | Spine                | Phase.Security                                                       | LeanerVM/Protocol/Spine/Phase.lean:47: abbrev Security {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+DECL    | Spine                | Phase.passThrough                                                    | LeanerVM/Protocol/Spine/Phase.lean:55: abbrev passThrough (f : StmtIn → StmtOut) : Def I StmtIn StmtOut :=
+DECL    | Spine                | Phase.passThroughComplete                                            | LeanerVM/Protocol/Spine/Phase.lean:59: def passThroughComplete (f : StmtIn → StmtOut)
+DECL    | Spine                | Phase.passThroughSecurity                                            | LeanerVM/Protocol/Spine/Phase.lean:68: def passThroughSecurity (f : StmtIn → StmtOut)
+DECL    | Spine                | OneOracle                                                            | LeanerVM/Protocol/ToArkLib/Oracles.lean:29: abbrev OneOracle (M : Type) : Fin 1 → Type := fun _ ↦ M
+DECL    | Spine                | Component.passThrough                                                | LeanerVM/Protocol/Spine/Phase.lean:55: abbrev passThrough (f : StmtIn → StmtOut) : Def I StmtIn StmtOut :=
+DECL    | Spine                | Component.passThroughSecurity                                        | LeanerVM/Protocol/Spine/Phase.lean:68: def passThroughSecurity (f : StmtIn → StmtOut)
+DECL    | Spine                | Component.sendOracle                                                 | LeanerVM/Protocol/ToArkLib/SendOracle.lean:61: def sendOracle : Def S NoOracle M S (OneOracle M) Unit where
+DECL    | Spine                | Verifier.KnowledgeStateFunction.appendGuarded                        | LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:474: def appendGuarded (G : V₁.GuardedForm)
+DECL    | Spine                | Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first  | LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean:510: theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.GuardedForm)
+DECL    | Spine                | commitSpec                                                           | LeanerVM/Protocol/Spine/Compose.lean:51: abbrev commitSpec : ProtocolSpec 1 := Component.sendSpec (Column I.μ)
+DECL    | Spine                | commitDef                                                            | LeanerVM/Protocol/Spine/Compose.lean:55: abbrev commitDef : Component.Def I.Stmt NoOracle (Column I.μ) I.Stmt (TheOracle I) Unit :=
+DECL    | Spine                | commitComplete                                                       | LeanerVM/Protocol/Spine/Compose.lean:63: def commitComplete : Component.Complete (commitDef I) (M3Rel I) (Seam.commit I) :=
+DECL    | Spine                | commitExtractor                                                      | LeanerVM/Protocol/Spine/Compose.lean:59: abbrev commitExtractor := Component.sendExtractor (S := I.Stmt) (M := Column I.μ)
+DECL    | Spine                | commitSecurity                                                       | LeanerVM/Protocol/Spine/Compose.lean:67: def commitSecurity : Component.Security (commitDef I) (M3Rel I) (Seam.commit I) :=
+DECL    | Spine                | Phases                                                               | LeanerVM/Protocol/Spine/Compose.lean:73: structure Phases where
+DECL    | Spine                | Phases.Complete                                                      | LeanerVM/Protocol/Spine/Phase.lean:41: abbrev Complete {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+DECL    | Spine                | Phases.Security                                                      | LeanerVM/Protocol/Spine/Phase.lean:47: abbrev Security {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
+DECL    | Spine                | Phases.toDef                                                         | LeanerVM/Protocol/Spine/Compose.lean:89: def Phases.toDef (P : Phases I) :
+DECL    | Spine                | leanVmPiop                                                           | LeanerVM/Protocol/Spine/Compose.lean:134: def leanVmPiop (P : Phases I) :
+DECL    | Spine                | leanVmVerifier                                                       | LeanerVM/Protocol/Spine/Compose.lean:139: def leanVmVerifier (P : Phases I) :
+DECL    | Spine                | leanVmProver                                                         | LeanerVM/Protocol/Spine/Compose.lean:144: def leanVmProver (P : Phases I) :
+DECL    | Spine                | piopError                                                            | LeanerVM/Protocol/Spine/Compose.lean:149: def piopError (P : Phases I) : P.toDef.pSpec.ChallengeIdx → ℝ≥0 := P.toDef.err
+DECL    | Spine                | piopExtractor                                                        | LeanerVM/Protocol/Spine/Compose.lean:153: def piopExtractor (P : Phases I) (S : P.Security) :
+DECL    | Spine                | piop_perfectCompleteness                                             | LeanerVM/Protocol/Spine/Compose.lean:162: theorem piop_perfectCompleteness (P : Phases I) (C : P.Complete) {σ : Type}
+DECL    | Spine                | piop_rbrKnowledgeSoundness                                           | LeanerVM/Protocol/Spine/Compose.lean:172: theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
+DECL    | Spine                | piop_rbrKnowledgeSoundness_exists                                    | LeanerVM/Protocol/Spine/Compose.lean:181: theorem piop_rbrKnowledgeSoundness_exists (P : Phases I) (S : P.Security) {σ : Type}
+DECL    | Spine                | Refinement                                                           | LeanerVM/Protocol/ToArkLib/Refinement.lean:31: structure Refinement {Stmt : Type} {W₁ W₂ : Type _} (R : Set (Stmt × W₁))
+DECL    | Spine                | Refinement.map_option_valid                                          | LeanerVM/Protocol/ToArkLib/Refinement.lean:55: theorem map_option_valid {R : Set (Stmt × W₁)} {S : Set (Stmt × W₂)} (f : Refinement R S)
+DECL    | Spine                | Extractor.Straightline.map                                           | LeanerVM/Protocol/ToArkLib/Refinement.lean:68: def Extractor.Straightline.map (f : StmtIn → WitIn → WitIn')
+DECL    | Spine                | Toy.shape                                                            | LeanerVM/Protocol/Spine/Toy.lean:36: abbrev shape : Shape := ⟨1, fun _ ↦ 1, fun _ ↦ 3⟩
+DECL    | Spine                | Toy.toy                                                              | LeanerVM/Protocol/Spine/Toy.lean:95: abbrev toy : M3Instance where
+DECL    | Spine                | Toy.honest                                                           | LeanerVM/Protocol/Spine/Toy.lean:114: def honest : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩
+DECL    | Spine                | Toy.layout                                                           | LeanerVM/Protocol/Stack.lean:97: def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
+DECL    | Protocol (generic)   | Column                                                               | LeanerVM/Protocol/Field.lean:67: structure Column (n : ℕ) where
+DECL    | Protocol (generic)   | sumCube                                                              | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:67: def sumCube {n : ℕ} (t : CMlPolynomialEval R n) : R := ∑ i : Fin (2 ^ n), t[i]
+DECL    | Protocol (generic)   | hadamard                                                             | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:70: def hadamard {n : ℕ} (s t : CMlPolynomialEval R n) : CMlPolynomialEval R n :=
+DECL    | Protocol (generic)   | slice                                                                | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:307: def slice {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m)) :
+DECL    | Protocol (generic)   | placeSlice                                                           | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:351: def placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+DECL    | Protocol (generic)   | boolVec                                                              | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:235: def boolVec {m : ℕ} (j : Fin (2 ^ m)) : Vector R m :=
+DECL    | Protocol (generic)   | evalMle_eq_sumCube_hadamard                                          | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:91: theorem evalMle_eq_sumCube_hadamard {n : ℕ} (t : CMlPolynomialEval R n) (r : Vector R n) :
+DECL    | Protocol (generic)   | evalMle_append_boolVec                                               | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:342: theorem evalMle_append_boolVec {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z : Vector R k
+DECL    | Protocol (generic)   | evalMle_placeSlice                                                   | LeanerVM/Protocol/ToCompPoly/Multilinear.lean:371: theorem evalMle_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m))
+DECL    | Protocol (generic)   | bitProductTable                                                      | LeanerVM/Protocol/ToCompPoly/BitProductTable.lean:44: def bitProductTable {n : ℕ} (f : Fin n → Bool → R) : CMlPolynomialEval R n :=
+DECL    | Protocol (generic)   | evalMle_bitProductTable                                              | LeanerVM/Protocol/ToCompPoly/BitProductTable.lean:58: theorem evalMle_bitProductTable {n : ℕ} (f : Fin n → Bool → R) (x : Vector R n) :
+DECL    | Protocol (generic)   | powersTable                                                          | LeanerVM/Protocol/ToCompPoly/BitProductTable.lean:127: def powersTable (a : R) (n : ℕ) : CMlPolynomialEval R n :=
+DECL    | Protocol (generic)   | evalMle_powersTable                                                  | LeanerVM/Protocol/ToCompPoly/BitProductTable.lean:144: theorem evalMle_powersTable (a : R) (n : ℕ) (x : Vector R n) :
+DECL    | Protocol (generic)   | Blocks                                                               | LeanerVM/Protocol/ToCompPoly/Stacking.lean:62: structure Blocks where
+DECL    | Protocol (generic)   | Blocks.Tables                                                        | LeanerVM/Protocol/ToCompPoly/Stacking.lean:75: abbrev Tables (R : Type*) : Type _ := (b : Fin B.n) → CMlPolynomialEval R (B.size b)
+DECL    | Protocol (generic)   | Blocks.stackAt                                                       | LeanerVM/Protocol/ToCompPoly/Stacking.lean:159: def stackAt (t : B.Tables R) (μ : ℕ) (pad : R) : CMlPolynomialEval R μ :=
+DECL    | Protocol (generic)   | Blocks.selector                                                      | LeanerVM/Protocol/ToCompPoly/Stacking.lean:213: def selector {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : Fin (2 ^ (μ - B.size b)) :=
+DECL    | Protocol (generic)   | Blocks.extendPoint                                                   | LeanerVM/Protocol/ToCompPoly/Stacking.lean:227: def extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R (B.size b)) :
+DECL    | Protocol (generic)   | Blocks.stack_eval                                                    | LeanerVM/Protocol/ToCompPoly/Stacking.lean:339: theorem stack_eval (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n)
+DECL    | Protocol (generic)   | Blocks.stack_eval₂                                                   | LeanerVM/Protocol/ToCompPoly/Stacking.lean:345: theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) {μ : ℕ}
+DECL    | Protocol (generic)   | Blocks.unstack                                                       | LeanerVM/Protocol/ToCompPoly/Stacking.lean:264: def unstack {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+DECL    | Protocol (generic)   | Blocks.unstack_eval₂                                                 | LeanerVM/Protocol/ToCompPoly/Stacking.lean:330: theorem unstack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+DECL    | Protocol (generic)   | Blocks.stack_eval_ambient                                            | LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean:134: theorem stack_eval_ambient (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R)
+ABSENT  | Protocol (generic)   | Virtual                                                              | 
+ABSENT  | Protocol (generic)   | sumcheck                                                             | 
+ABSENT  | Protocol (generic)   | sumcheck_rbrKnowledgeSoundness                                       | 
+ABSENT  | Protocol (generic)   | batchClaims                                                          | 
+ABSENT  | Protocol (generic)   | fingerprint                                                          | 
+ABSENT  | Protocol (generic)   | sideProduct                                                          | 
+ABSENT  | Protocol (generic)   | sideProduct_poly_eq_iff                                              | 
+ABSENT  | Protocol (generic)   | sideProduct_collision                                                | 
+ABSENT  | Protocol (generic)   | ProductTree                                                          | 
+ABSENT  | Protocol (generic)   | gkr                                                                  | 
+ABSENT  | Protocol (generic)   | gkrError                                                             | 
+ABSENT  | Protocol (generic)   | gkr_rbrKnowledgeSoundness                                            | 
+DECL    | Protocol (generic)   | Weight                                                               | LeanerVM/Protocol/Spine/Seams.lean:103: structure Weight (μ : ℕ) where
+DECL    | Protocol (generic)   | WeightedClaim                                                        | LeanerVM/Protocol/Spine/Seams.lean:116: structure WeightedClaim (I : M3Instance) where
+ABSENT  | Protocol (generic)   | openingPhase                                                         | 
+ABSENT  | Protocol (generic)   | encode                                                               | 
+ABSENT  | Protocol (generic)   | encode_column_weight                                                 | 
+ABSENT  | Protocol (generic)   | whirOpen                                                             | 
+ABSENT  | Protocol (generic)   | whirError                                                            | 
+ABSENT  | Protocol (generic)   | whirOpen_rbrSoundness                                                | 
+ABSENT  | Protocol (generic)   | McaJohnson                                                           | 
+ABSENT  | Protocol (generic)   | merkleRoot                                                           | 
+ABSENT  | Protocol (generic)   | merkleVerify                                                         | 
+ABSENT  | Protocol (generic)   | blake2sBytes                                                         | 
+ABSENT  | Arithmetization      | Expression.toMvPolynomial                                            | 
+ABSENT  | Arithmetization      | degreeBound                                                          | 
+ABSENT  | Arithmetization      | M3Table                                                              | 
+ABSENT  | Arithmetization      | Component.toM3                                                       | 
+ABSENT  | Arithmetization      | Ensemble.toM3                                                        | 
+ABSENT  | Arithmetization      | toM3_constraints_iff                                                 | 
+ABSENT  | Arithmetization      | toM3_flushes_eq                                                      | 
+DECL    | Protocol (leanVM)    | instSampleableTypeE                                                  | LeanerVM/Protocol/Field.lean:93: instance instSampleableTypeE : SampleableType E := SampleableType.ofEquiv limbsEquiv
+DECL    | Protocol (leanVM)    | evalOracle                                                           | LeanerVM/Protocol/Field.lean:102: instance evalOracle (n : ℕ) : OracleInterface (Column n) where
+DECL    | Protocol (leanVM)    | card_E                                                               | LeanerVM/Protocol/Field.lean:96: theorem card_E : Fintype.card E = 2 ^ 192 := BF64.card_ext3
+DECL    | Protocol (leanVM)    | Blocks.stackColumn                                                   | LeanerVM/Protocol/Stack.lean:70: def stackColumn (t : B.Tables K) (μ : ℕ) : Column μ := ⟨B.stackAt t μ 0⟩
+DECL    | Protocol (leanVM)    | Blocks.readColumn                                                    | LeanerVM/Protocol/Stack.lean:73: def readColumn (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n) : Column (B.size b) :=
+DECL    | Protocol (leanVM)    | Blocks.readColumn_eval                                               | LeanerVM/Protocol/Stack.lean:78: theorem readColumn_eval (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n)
+DECL    | Protocol (leanVM)    | Blocks.layout                                                        | LeanerVM/Protocol/Stack.lean:97: def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
+DECL    | Protocol (leanVM)    | Layout.comap                                                         | LeanerVM/Protocol/Stack.lean:52: def Layout.comap {μ : ℕ} {ι ι' : Type} {κ : ι → ℕ} {κ' : ι' → ℕ} (L : Layout μ ι κ)
+DECL    | Protocol (leanVM)    | Blocks.stack_eval_ambient_one                                        | LeanerVM/Protocol/Stack.lean:118: theorem stack_eval_ambient_one (B : Blocks) (t : B.Tables E) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ
+DECL    | Protocol (leanVM)    | padHigh                                                              | LeanerVM/Protocol/Padding.lean:60: def padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) : CMlPolynomialEval R (k + m) :=
+DECL    | Protocol (leanVM)    | sumCube_padHigh                                                      | LeanerVM/Protocol/Padding.lean:64: theorem sumCube_padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) :
+DECL    | Protocol (leanVM)    | prodVars                                                             | LeanerVM/Protocol/Padding.lean:43: def prodVars (m : ℕ) : CMlPolynomialEval R m :=
+DECL    | Protocol (leanVM)    | sumCube_prodVars                                                     | LeanerVM/Protocol/Padding.lean:47: theorem sumCube_prodVars (m : ℕ) : sumCube (prodVars m : CMlPolynomialEval R m) = 1 := by
+DECL    | Protocol (leanVM)    | eqWeight                                                             | LeanerVM/Protocol/ClaimWeights.lean:45: def eqWeight {μ : ℕ} (p : Vector E μ) : Weight μ where
+DECL    | Protocol (leanVM)    | ColumnClaim.holds_iff_weighted                                       | LeanerVM/Protocol/ClaimWeights.lean:58: theorem ColumnClaim.holds_iff_weighted {I : M3Instance} (q : Column I.μ) (c : ColumnClaim 
+DECL    | Protocol (leanVM)    | BlockClaim                                                           | LeanerVM/Protocol/BlockClaims.lean:54: structure BlockClaim (B : Blocks) (S : Type*) where
+DECL    | Protocol (leanVM)    | idxColumn                                                            | LeanerVM/Protocol/FixedColumns.lean:48: def idxColumn (κ : ℕ) : Column κ := ⟨powersTable g κ⟩
+DECL    | Protocol (leanVM)    | idxColumn_eval                                                       | LeanerVM/Protocol/FixedColumns.lean:60: theorem idxColumn_eval {κ : ℕ} (z : Vector E κ) :
+DECL    | Protocol (leanVM)    | idxColumnEval_eq                                                     | LeanerVM/Protocol/FixedColumns.lean:66: theorem idxColumnEval_eq {κ : ℕ} (z : Vector E κ) :
+DECL    | Protocol (leanVM)    | bytecodeColumn                                                       | LeanerVM/Protocol/FixedColumns.lean:79: def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
+DECL    | Protocol (leanVM)    | bytecodeColumn_answer_boolVec                                        | LeanerVM/Protocol/FixedColumns.lean:97: theorem bytecodeColumn_answer_boolVec (prog : Program) (i : Fin (2 ^ prog.logSize))
+DECL    | Protocol (leanVM)    | bytecodeColumn_eval                                                  | LeanerVM/Protocol/FixedColumns.lean:114: theorem bytecodeColumn_eval (prog : Program) (z : Vector E prog.logSize) (w : Vector E 4) 
+ABSENT  | Protocol (leanVM)    | Sizes                                                                | 
+ABSENT  | Protocol (leanVM)    | Sizes.Admissible                                                     | 
+ABSENT  | Protocol (leanVM)    | leanIsaInstance                                                      | 
+ABSENT  | Protocol (leanVM)    | stackOf                                                              | 
+ABSENT  | Protocol (leanVM)    | witnessOf                                                            | 
+ABSENT  | Protocol (leanVM)    | satisfiedBy_witnessOf                                                | 
+ABSENT  | Protocol (leanVM)    | m3Holds_stackOf                                                      | 
+ABSENT  | Protocol (leanVM)    | witnessOf_stackOf                                                    | 
+ABSENT  | Protocol (leanVM)    | busPhase                                                             | 
+DECL    | Protocol (leanVM)    | BusOut                                                               | LeanerVM/Protocol/Spine/Seams.lean:130: structure BusOut (I : M3Instance) where
+ABSENT  | Protocol (leanVM)    | leaf_decomposition                                                   | 
+ABSENT  | Protocol (leanVM)    | tableSumcheck                                                        | 
+ABSENT  | Protocol (leanVM)    | tableSummand                                                         | 
+DECL    | Protocol (leanVM)    | publicInputPhase                                                     | LeanerVM/Protocol/PublicInput.lean:376: noncomputable def publicInputPhase :
+ABSENT  | Protocol (leanVM)    | FlockInterface                                                       | 
+ABSENT  | Protocol (leanVM)    | piopError_le                                                         | 
+ABSENT  | Protocol (leanVM)    | leanVmIopp                                                           | 
+ABSENT  | Protocol (leanVM)    | FsState                                                              | 
+ABSENT  | Protocol (leanVM)    | Proof                                                                | 
+DECL    | Protocol (leanVM)    | RoundPoly.decode                                                     | LeanerVM/Arithmetization/Bytecode.lean:112: def decode (v : Vector K 8) : Option Instr :=
+ABSENT  | Protocol (leanVM)    | verify                                                               | 
+ABSENT  | Protocol (leanVM)    | settleFixedClaims                                                    | 
+ABSENT  | Protocol (leanVM)    | verify_iff_compiled                                                  | 
+ABSENT  | Protocol (leanVM)    | FiatShamirSecurity                                                   | 
+ABSENT  | Protocol (leanVM)    | BcsSecurity                                                          | 
+ABSENT  | Protocol (leanVM)    | verify_knowledgeSound                                                | 
+ABSENT  | Protocol (leanVM)    | niError                                                              | 
+ABSENT  | Protocol (leanVM)    | baseVerifier_extractsExecution                                       | 
+ABSENT  | Protocol (leanVM)    | baseProver_complete                                                  | 
+ABSENT  | Parameters           | initialFold                                                          | 
+ABSENT  | Parameters           | subsequentFold                                                       | 
+ABSENT  | Parameters           | initialReduction                                                     | 
+ABSENT  | Parameters           | subsequentReduction                                                  | 
+ABSENT  | Parameters           | residualMaxLog                                                       | 
+ABSENT  | Parameters           | queryGrindingBits                                                    | 
+ABSENT  | Parameters           | ladder                                                               | 
+ABSENT  | Parameters           | novelBasis                                                           | 
+{'DECL': 127, 'FIELD': 3, 'ABSENT': 64}

@@ -1,0 +1,17 @@
+.claude/reports/blueprint-review/probes/boundary-adaptor/UniverseFail.lean:19:41: error: Application type mismatch: The argument
+  EnsembleWitness (leanIsaEnsemble prog)
+has type
+  Type 1
+of sort `Type 2` but is expected to have type
+  Type
+of sort `Type 1` in the application
+  Extractor.Straightline []ₒ PublicInput (EnsembleWitness (leanIsaEnsemble prog))
+.claude/reports/blueprint-review/probes/boundary-adaptor/UniverseFail.lean:25:29: error: Application type mismatch: The argument
+  witnessOf
+has type
+  PublicInput → Column μ → EnsembleWitness (leanIsaEnsemble prog)
+of sort `Type 1` but is expected to have type
+  PublicInput → Column μ → ?m.27 prog pSpec μ witnessOf E
+of sort `Type` in the application
+  Extractor.Straightline.map witnessOf
+exit=1

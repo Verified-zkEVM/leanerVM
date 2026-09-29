@@ -1,0 +1,11 @@
+Tracks #12. Holes **P3** (definition and completeness) and **P4** (round-by-round knowledge soundness): the table sumcheck phase, blueprint Layer 7, over an abstract `I : M3Instance`.
+
+**Produces** (`LeanerVM/Protocol/TableSumcheck.lean`, module):
+- P3: `tableSummand I ζ ξ α β rem : Virtual E τ_max (Σ_j width_j) 3` (the `F` of §5.5: constraints table by table with `ξ` powers, the three bus forms sharing the last three powers (finding F5), `eq(ζ_{<τ_j}, ·)` as an explicit factor, back-loaded padding `∏_{k ≥ τ_j} X_k`), `tableSummand_target` (the verifier's derived target `Σ_s ξ^(B+s)·rem s`, finding F4), `tableSumcheck I (S : Sumcheck.Def) : Phase.Def I (BusOut I) (TableOut I) (tableSpec I) (Seam.bus I) (Seam.table I)` (variables bound highest first, table `j` joining at round `τ_max − τ_j`, cubic round polynomials, one value per column at the end), and `Phase.Security.complete`.
+- P4: `Phase.Security.rbr` with `(B + 2)/|E|` on `ξ` and `3/|E|` per round; the output relation says every column claim is a true evaluation of `q` and the formula reproduces the final value.
+
+**Consumes:** the spine (`Seam.bus`, `Seam.table`, `tableSpec`), G1's `Sumcheck.Def` (P4 also G2's `Sumcheck.Security`), #42's honest round algebra for completeness.
+
+**Tests:** `tableSummand_target` on two tables of heights 2 and 1 (acceptance tests 7 and 9); a row violating a constraint makes the honest run's final check fail; the reversed variable order mismatches `eq` (test 16).
+
+**Claim** by assigning yourself; P3 and P4 are separate pull requests.

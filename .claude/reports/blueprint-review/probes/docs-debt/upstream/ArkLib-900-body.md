@@ -1,0 +1,7 @@
+leanerVM [protocol Layer 1 and the claim-pool consumer](https://github.com/Verified-zkEVM/leanerVM/issues/12) need aligned multilinear block readout at extension-ring points. The staging policy calls for an owning upstream issue before porting the reviewed generic results.
+
+Proposed scope: `Blocks.map`, naturality of `stackAt` under arbitrary ring homomorphisms (mapping the padding too, with no injectivity or fit premise), mixed-ring selection with the fit premise retained, and readout/weighted claims for arbitrary columns. Ambient evaluation retains the explicit arbitrary-pad correction. CompPoly already owns `eval₂Mle` and the underlying multilinear table evaluation; this work should reuse that API.
+
+Sources: leanth PR #16 at `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2` (Aristotle/Harmonic, Stefano Rocca, Elias Judin), and scaraven's existing leanerVM #18 algebra. Preserve their attribution. The initial small leanerVM follow-up is coefficient transport; subsequent consumers remain separate PRs. An ArkLib submission requires actual module/API migration and validation, without incidental dependency-pin changes.
+
+Acceptance: direct tests at extension-only points, a noninjective coefficient map, raw construction without fit, empty/zero-dimensional layouts, occupied-window versus padding mutations, ordinary full destination gates, and transitive axiom closure limited to the standard Lean axioms. No commitment binding, fixed extractor, or complete VM soundness theorem is claimed.

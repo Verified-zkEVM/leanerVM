@@ -1,0 +1,3 @@
+Add symbolic multilinear fingerprints with a separate product challenge for Layer 5. The encoding agrees with CompPoly evaluation, is injective over commutative rings, and has joint degree four for sixteen-coordinate tuples. Coefficient transport allows noninjective maps; inequality transport needs an injective map from a semiring.
+
+Built on #18 for #33 and [ArkLib #901](https://github.com/Verified-zkEVM/ArkLib/issues/901), following leanVM §5.2. The fingerprint algebra derives from [leanth #16 at `23929f8`](https://github.com/Verified-zkEVM/leanth/blob/23929f8c922cd4461ab22dbfaa6520f3ad23a3b2/Leanth/ProofSystem/Logup.lean#L275).

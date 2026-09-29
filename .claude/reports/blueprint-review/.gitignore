@@ -1,0 +1,6 @@
+# Scratch outputs of the review that are not part of its record.
+/tex/build/
+/logs/
+__pycache__/
+# Clones of upstream repositories made by sub-agents to read `main`.
+/probes/*/upstream/*-main/

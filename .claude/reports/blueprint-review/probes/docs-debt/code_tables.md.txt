@@ -1,0 +1,130 @@
+
+**Units of work (the documents' 'holes')**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `S(hole)` | the spine: instance, relation, seams, phase interfaces, composition, toy instance | blueprint:597; hole comment:5 | 27: BP 7, ST 4, TB 4, HC 3, OC 1, RS 1, RP 7 |
+| `L1` | tables and stacking (Layer 1): hypercube tables, stacking, the fixed columns | blueprint:603; no section in the hole comment | 20: BP 5, ST 6, TB 7, RL 2 |
+| `I1` | Clean expressions as polynomials (Layer 2) | blueprint:604; no section in the hole comment | 26: BP 3, ST 5, TB 6, HC 1, OC 2, RS 9 |
+| `I2` | the adaptor (Layer 3): the leanISA instance, `stackOf`, `witnessOf` and their theorems | blueprint:605; hole comment:44 | 49: BP 5, ST 8, TB 11, HC 6, OC 3, RS 15, RL 1 |
+| `G1` | generic sumcheck, definition and completeness (Layer 4) | blueprint:598; no section in the hole comment | 26: BP 7, ST 8, TB 7, HC 3, OC 1 |
+| `G2` | generic sumcheck, round-by-round knowledge soundness (Layer 4) | blueprint:599 | 12: BP 3, ST 4, TB 4, HC 1 |
+| `G3` | batching of claims by powers of one challenge (Layer 4) | blueprint:600 | 15: BP 2, ST 7, TB 5, HC 1 |
+| `G4` | fingerprint, product-determines-multiset lemma, collision bound (Layer 5) | blueprint:601 | 12: BP 2, ST 5, TB 4, HC 1 |
+| `G5` | grand-product GKR, definition and completeness (Layer 5) | blueprint:602; hole comment:28 | 14: BP 2, ST 4, TB 4, HC 4 |
+| `G6` | grand-product GKR, knowledge soundness (Layer 5) | blueprint:602; hole comment:28 | 14: BP 5, ST 2, TB 2, HC 4, OC 1 |
+| `P1` | bus phase, definition and completeness (Layer 6) | blueprint:606; hole comment:61 | 21: BP 4, ST 5, TB 4, HC 3, OC 1, RS 2, RP 2 |
+| `P2` | bus phase, knowledge soundness (Layer 6) | blueprint:606; hole comment:61 | 13: BP 4, ST 2, TB 3, HC 4 |
+| `P3` | table sumcheck phase, definition and completeness (Layer 7) | blueprint:607; hole comment:75 | 19: BP 4, ST 6, TB 3, HC 3, OC 1, RP 2 |
+| `P4` | table sumcheck phase, knowledge soundness (Layer 7) | blueprint:607; hole comment:75 | 12: BP 4, ST 2, TB 2, HC 4 |
+| `P5` | public-input phase, both halves (Layer 8) | blueprint:608; hole comment:89 | 35: BP 2, ST 15, TB 3, HC 3, OC 3, RS 7, RP 2 |
+| `P6` | Flock phase as an interface supplied by issue #3 (Layer 9) | blueprint:609; hole comment:102 | 19: BP 2, ST 4, TB 4, HC 3, OC 2, RS 4 |
+| `P7` | opening phase and claim pool, definition and completeness (Layer 10) | blueprint:610; hole comment:115 | 20: BP 2, ST 6, TB 5, HC 4, RS 1, RP 2 |
+| `P8` | opening phase, knowledge soundness (Layer 10) | blueprint:610; hole comment:115 | 16: BP 5, ST 2, TB 3, HC 4, RS 2 |
+| `C1` | knowledge-soundness composition, ported from ArkLib pull request 615 | blueprint:611; hole comment:129 | 41: BP 5, ST 9, TB 5, HC 4, OC 3, RS 6, RL 4, RP 5 |
+| `K1` | WHIR opening over binary Reed-Solomon codes (Layer 11) | blueprint:612; hole comment:144 | 25: BP 4, ST 8, TB 9, HC 3, OC 1 |
+| `K2` | Merkle trees, BLAKE2s byte hasher, WHIR parameters (Layer 11) | blueprint:613; hole comment:158 | 17: BP 4, ST 4, TB 5, HC 3, OC 1 |
+| `K3` | transcript, proof object, compiled verifier `verify` and its refinement theorem (Layer 12) | blueprint:614; hole comment:172 | 29: BP 4, ST 7, TB 7, HC 6, RS 5 |
+| `K4` | the two base theorems of target T4 (Layer 13) | blueprint:615; hole comment:186 | 10: BP 2, ST 1, TB 2, HC 3, RS 2 |
+
+**Upstream ledger entries**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `A1` | ArkLib admits the sumcheck's single-round knowledge soundness | blueprint:259; status:173; tracker body:63 | 32: BP 3, ST 9, TB 2, OC 1, RS 9, RL 3, RP 5 |
+| `A2` | ArkLib admits the knowledge-soundness composition of appended reductions | blueprint:260; status:174; tracker body:64 | 39: BP 7, ST 9, TB 2, HC 3, OC 2, RS 8, RL 3, RP 5 |
+| `A3` | ArkLib admits 'round-by-round implies plain' knowledge soundness | blueprint:261; status:175; tracker body:65 | 24: BP 1, ST 6, TB 1, RS 11, RL 2, RP 3 |
+| `A4` | ArkLib admits every context-lifting security theorem (not consumed) | blueprint:262 only; absent from the status and tracker tables | 16: BP 1, ST 4, RS 6, RL 3, RP 2 |
+| `A5` | ArkLib admits or lacks Fiat-Shamir and BCS security | blueprint:263; status:176; tracker body:66 | 17: BP 4, ST 2, TB 1, HC 1, RS 7, RL 2 |
+| `A6` | ArkLib has no grand product, GKR, batching or stacking | blueprint:264; status:177; tracker body:67 | 16: BP 2, ST 3, TB 1, HC 2, RS 5, RL 3 |
+| `A7` | ArkLib has no WHIR, Merkle tree or BLAKE2s | blueprint:265; status:178; tracker body:68 | 6: BP 2, ST 2, TB 1, HC 1 |
+| `A8` | ArkLib admits mutual correlated agreement up to the Johnson bound | blueprint:266; status:179; tracker body:69 | 7: BP 4, ST 1, TB 1, HC 1 |
+| `A9` | ArkLib admits the ring-switching packing lemmas | blueprint:267; status:180; tracker body:70 | 5: BP 1, ST 2, TB 1, HC 1 |
+| `C2` | request to leanISA: power-of-two heights in `Caps`, bus data per channel (done) | status:182; tracker body:72; not in the blueprint's table | 9: ST 2, TB 1, RS 2, RL 2, RP 2 |
+| `C3` | Clean lacks a balance counted in the naturals with direction tags | status:183; tracker body:73; not in the blueprint's table | 5: ST 1, TB 1, RL 1, RP 2 |
+| `C4` | Clean lacks fixed columns and sound prover data | status:184; tracker body:74; not in the blueprint's table | 5: ST 1, TB 1, RL 1, RP 2 |
+
+**Findings about ArkLib beyond the ledger**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `A10` | ArkLib relations are sets of pairs; the documented refactor has not happened | status:332 | 1: ST 1 |
+| `A11` | ArkLib's averaged round-by-round notion is weaker than the worst-case one the layers prove | status:334 | 1: ST 1 |
+| `A12` | ArkLib's `extractability` for commitments is `False`-valued; not cited | status:336 | 1: ST 1 |
+| `A13` | two ArkLib statements contain `sorry` in their types; never cited | status:337 | 1: ST 1 |
+| `A14` | ArkLib's typed-interaction replacement has no security definitions yet | status:338 | 2: ST 2 |
+| `A15` | ArkLib's toy problem is sorry-free; its code-generation probes are the pattern for `verify` | status:340 | 1: ST 1 |
+| `A16` | ArkLib pins CompPoly at a tag; leanerVM's pin wins the resolution | status:341 | 1: ST 1 |
+| `A17` | ArkLib's position-query oracle instance on `Vector` is global, so `Column` must be a structure | status:342 | 1: ST 1 |
+| `A18` | ArkLib `main` had moved 246 commits past the pin on 2026-09-24 | status:345 | 4: ST 3, TB 1 |
+| `A19` | ArkLib pull request 615's composition file compiles unchanged against the pin | status:346 | 3: ST 3 |
+
+**Findings internal to the specification**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `S6` | specification section 8.4 (Fiat-Shamir) is `TODO` (inherited from leanISA) | status:285 | 1: ST 1 |
+| `S9` | the proof of specification Lemma 5.2 is `TODO` | status:286 | 2: BP 1, ST 1 |
+| `S10` | specification section 5.3 does not state the degree of a radix-4 round polynomial | status:287 | 1: ST 1 |
+| `S11` | specification section 8.5 does not say the push and pull roots are one scalar | status:289 | 1: ST 1 |
+| `S12` | Annex B omits the 17 grinding bits per level that the Rust applies | status:291 | 1: ST 1 |
+| `S13` | retired: a bound of 5 instead of 4 read off a PDF that is not the pinned text | status:293 | 8: ST 2, TB 1, RS 5 |
+| `S14` | the PDF `leanVM-b-2.pdf` is not the pinned text and must not be cited | status:297 | 4: ST 2, TB 1, RS 1 |
+| `S15` | the specification gives no rule for stacking blocks of equal size | status:303 | 3: ST 2, RL 1 |
+| `S16` | the specification's equations are numbered (1) to (4); 'equation (5.4)' does not exist | status:303 | 3: ST 2, RL 1 |
+
+**Findings, Rust and Python against the specification**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `F1` | no domain-separation labels: four numeric tags in lane 3 | status:305 | 9: BP 4, ST 3, TB 1, HC 1 |
+| `F2` | Flock's fixed coordinate is a hard-coded constant without provenance | status:307 | 2: BP 1, ST 1 |
+| `F3` | one root for the push and pull products | status:309 | 8: BP 4, ST 2, TB 1, HC 1 |
+| `F4` | the table sumcheck's target is derived by the verifier, never sent | status:310 | 4: BP 1, ST 2, HC 1 |
+| `F5` | the three bus forms share the last three powers of the batching challenge | status:311 | 6: BP 3, ST 1, TB 1, HC 1 |
+| `F6` | the table round polynomial is a cubic; three scalars travel | status:312 | 9: BP 4, ST 3, TB 2 |
+| `F7` | one coefficient of every round polynomial is never transmitted | status:313 | 1: ST 1 |
+| `F8` | ring-switched claims take the low powers in the opening batch | status:315 | 5: BP 2, ST 1, TB 1, HC 1 |
+| `F9` | the Python verifier omits four caps that the Rust verifier checks | status:316 | 3: ST 2, TB 1 |
+| `F10` | the Rust verifier's rejection set; structure checks are `assert!`s | status:319 | 2: BP 1, ST 1 |
+| `F11` | the count tree holds the tables' count columns only | status:321 | 2: ST 1, TB 1 |
+| `F12` | fill blocks make announced heights exact | status:322 | 1: ST 1 |
+| `F13` | grinding binds the nonce even when the check fails | status:324 | 1: ST 1 |
+| `F14` | the seed hashes one constant naming the circuit, not the matrices | status:325 | 2: ST 1, HC 1 |
+| `F15` | the stacking bound on the stack height is checked separately from the caps | status:327 | 1: ST 1 |
+| `F16` | 128 security bits round by round; the bus needs no grinding | status:328 | 1: ST 1 |
+| `F17` | blocks of equal size are stacked in the order of the column index | status:330 | 7: ST 4, RL 1, RP 2 |
+| `F18` | the pinned verifiers check one equation on the public words, the specification one per limb | status:330 | 7: ST 5, RP 2 |
+
+**Findings about Clean and the Lean environment, and the one leanISA finding cited**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `C5` | Clean has no degree bound on expressions (inherited from leanISA) | status:355 (by reference) | 3: BP 1, ST 1, RL 1 |
+| `C6` | Clean has no prover-chosen heights (inherited from leanISA) | status:355 (by reference) | 3: BP 1, ST 1, RL 1 |
+| `C10` | Clean's `EnsembleWitness` has no generator | status:355 | 1: ST 1 |
+| `C11` | Clean's `Ensemble.Statement` assumes the non-overflow side condition | status:356 | 1: ST 1 |
+| `E6` | a Lake race on ArkLib's lint plugin at first build | status:365 | 2: ST 2 |
+| `E7` | no `LawfulBEq E` at the CompPoly pin, so no polynomial with coefficients in `E` | status:368 | 3: ST 1, TB 1, RS 1 |
+| `E8` | no `OracleInterface E` at the ArkLib pin | status:375 | 3: ST 1, TB 1, RS 1 |
+| `E9` | `decide` cannot unfold CompPoly's `X` and `*` inside a `module` | status:380 | 4: ST 1, TB 1, RS 2 |
+| `E10` | a phase with a nonzero error is a `noncomputable` bundle | status:383 | 2: ST 1, RP 1 |
+| `E11` | a binder over `Finset.univ : Finset E` makes a linter enumerate the field | status:388 | 1: ST 1 |
+| `E12` | `simp` does not rewrite inside instance arguments of `Component.Def.red` | status:391 | 3: ST 1, RP 2 |
+| `E13` | a `Decidable` instance written by `unfold` never evaluates under `#guard` | status:396 | 3: ST 1, RP 2 |
+| `E14` | Mathlib's overlapping-instances linter rejects `[Zero R]` under `[CommRing R]` | status:400 | 4: ST 3, RP 1 |
+| `E15` | `#guard` finds no `Decidable` instance for vectors of computed length | status:405 | 2: ST 1, RP 1 |
+| `E16` | a generic module's destination is read off its objects and imports | status:407 | 6: ST 5, RP 1 |
+| `E17` | being stated over any ring does not make a declaration generic | status:415 | 6: ST 3, RL 1, RP 2 |
+| `E18` | a `#guard` with a numeral of `E` next to an operation finds no `Decidable` instance | status:429 | 2: ST 1, RP 1 |
+| `R21` | leanISA finding: the repository holds two BLAKE2s compressions | `leanisa-status.md`; cited at blueprint:216, hole comment:162 | 2: BP 1, HC 1 |
+
+**Target theorems cited by the proof-system documents**
+
+| Code | What it denotes | Defined at | Uses in the eight documents |
+| --- | --- | --- | --- |
+| `T1` | arithmetization and ISA equivalence (both directions) | `architecture.md`:203 | 7: BP 4, ST 1, TB 2 |
+| `T2` | witness-generator correctness | `architecture.md`:230 | 3: BP 2, ST 1 |
+| `T4` | base proof extraction and completeness (the proof system's target) | `architecture.md`:261 | 21: BP 11, ST 1, TB 2, HC 3, RS 4 |
+| `T5` | recursive-verifier correctness | `architecture.md`:277 | 6: BP 5, HC 1 |
+| `T6` | recursion and correct-trace extractability (open) | `architecture.md`:284 | 4: BP 4 |

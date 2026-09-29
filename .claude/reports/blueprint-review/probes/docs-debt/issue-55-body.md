@@ -1,0 +1,11 @@
+Tracks #12. Hole **K2**: Merkle trees over BLAKE2s and the WHIR parameter tables, blueprint Layer 11's Category B half.
+
+**Produces** (`LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`, `LeanerVM/Protocol/Generic/Merkle.lean`): `initialFold = 6`, `subsequentFold = 4`, `initialReduction = 3`, `subsequentReduction = 1`, `residualMaxLog = 5`, `queryGrindingBits = 17`, `ladder μ logInvRate : List Level` with `ladder_queries_eq : (ladder 15 1).map (·.queries) = [223, 55]` (`whir_config.rs:38-86, 260-370`; `verifier.py:910`); `blake2sBytes : List UInt8 → Vector UInt32 8` (RFC 7693 §3.3 over leanISA Layer 1's `compress`, last-block flag only, finding R21); `merkleRoot`, `merkleVerify` (`fiat_shamir/src/merkle.rs:14-67`, `pcs/src/merkle.rs`).
+
+**Consumes:** leanISA Layer 1 (`compress`); nothing from the spine.
+
+**Tests:** `merkleVerify` on a four-leaf tree with a wrong sibling rejected; `blake2sBytes` on the RFC 7693 test vector; the parameter tables against `verifier.py:910`.
+
+**Upstream watch:** ArkLib #4 (Merkle trees, definition and security), ArkLib #627 (BCS as a change of oracle implementation).
+
+**Claim** by assigning yourself.

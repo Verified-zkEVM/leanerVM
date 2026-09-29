@@ -1,0 +1,30 @@
+## Intention
+
+Layer 8's statement (`LeanerVM/Arithmetization/Statement.lean`, `SatisfiedBy prog input w`) carries three named hypotheses that Clean at pin `93c9d1ef` cannot express, each stated over the raw rows of a boundary block:
+
+- `IndexColumnsAreRowIndices w`: row `i` of the memory block carries the address `g^i`. In leanVM this coordinate is `Coord::Index`, never committed: the verifier evaluates it as `index_mle(ζ) = ∏_k (1 + ζ_k (1 + g^{2^k}))` (`crates/primitives/src/field/mod.rs:105-113`, `crates/lean_vm/src/leaf.rs:444`; specification §6.5).
+- `SeedRowsAreTheImage w`: the memory block's value columns are the `"mem"` table of the prover data, row for row (`layout.rs:361-382`, `MEM_LO, MEM_HI, MEM_TOP`).
+- `BytecodeRowsAreTheProgram prog w`: the bytecode block's rows are `bytecodeRowOf prog i (cntFin i)` (`layout.rs:383-395`, `Coord::Public`; §8.5, Bus 4).
+
+Clean PR [Verified-zkEVM/clean#446](https://github.com/Verified-zkEVM/clean/pull/446), open, adds indexed fixed columns whose row facts are available to component soundness proofs, and a named `ProverData` derived from proof-committed component inputs with consistency carried into component assumptions by construction. When it merges and the Clean pin is bumped, the three hypotheses become definitions inside the components and leave `SatisfiedBy`:
+
+1. `memTable` gains a fixed column `fun i ↦ g^i` for `idx`; `MemRow` loses the prover column; `IndexColumnsAreRowIndices` is deleted.
+2. `bytecodeTable` becomes `bytecodeTable prog`, its entry columns fixed to `entry (prog.code i)` and its index column to `g^i`; `BytecodeRowsAreTheProgram prog` is deleted; the ensemble's `tables` list names `⟨bytecodeTable prog⟩`. The six opcode tables and the channels do not change (decision 14).
+3. The `"mem"` table of `ProverData` is derived from the memory block's committed value columns, so `imageOf w.data` is the block's rows by construction and `SeedRowsAreTheImage` is deleted; `memRowAt`, `mem_tables_iff` and `tableAt_component` stay as readers.
+
+What does not move: the three `BalancedPair` conjuncts, `CountsNonzero`, `Caps`, `Blake2sRowsValid`, the two public-word conjuncts, `AssignmentRepresents`, and both T1 statements. Layer 9's `mem_channel_sound` and `bytecode_channel_sound` then take their seed facts from the components rather than from `SatisfiedBy`.
+
+## Acceptance
+
+- The three definitions and their docstrings are gone from `Statement.lean`, and the blueprint's Layer 8 block, its "three named hypotheses" bullet, the "Program" and "Boundary blocks" convention rows, and the trusted-surface paragraph no longer list them.
+- The Layer 8 tests keep every rejection: the shifted index column and the wrong program rows are rejected by the component (a fixed column cannot be overwritten), with the same test names.
+- The Clean dependency table in the blueprint records the new pin and the API used (`fixedColumns` or its final name), and `docs/dependencies.md` the bump.
+- `./scripts/validate.sh` green; the axiom closure of `fill_satisfiedBy` unchanged.
+
+## Blocked on
+
+Verified-zkEVM/clean#446 merging, then a Clean pin bump (the bump also has to survive P3, the eager `Fintype BF64`, see the status file). Not blocked on #16 or #20 (the balance side of Clean), which are independent.
+
+## Where it is recorded
+
+`docs/roadmap/leanisa-blueprint.md` (Layer 8, "After Clean #446"), `docs/roadmap/leanisa-status.md` (decisions pending), parent #4.

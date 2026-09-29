@@ -1,0 +1,7 @@
+I am taking the arbitrary-column readout and block-claim slice of Layer 1, for the claim pool and opening phase. This extends the algebra adopted into #18 through #26; it does not claim the rest of Layer 1.
+
+The declarations are `Blocks.unstack`, `unstack_stackAt`, `unstack_getElem`, `unstack_map`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq`, and `BlockClaim` with `ambientPoint`, `weight`, `IsValid`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_map_window_eq` and `isValid_iff_of_window_eq`. The pairing identity quantifies over any committed ambient column, including noncanonical padding, and arbitrary coefficient homomorphisms.
+
+This is the staging contribution tracked by [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900). The source is [leanth PR #16](https://github.com/Verified-zkEVM/leanth/pull/16) at `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, `Leanth/ProofSystem/Stacking.lean:705-777` and `Leanth/LeanVM/Protocol.lean:8550-8602`, adapted to the current low-bit-first API and unshifted claims. The specification is leanVM `a386121f`, §4.1.
+
+Acceptance includes arbitrary-column pairing, padding locality, an occupied-cell mutation that invalidates the corresponding claim, and a noninjective integer-to-`ZMod 5` map where raw coefficients differ but the mapped claim is unchanged. The prerequisite is the actual adopted #18 branch; dependency pins stay unchanged. Tracking: #12.

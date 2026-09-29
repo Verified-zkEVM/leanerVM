@@ -1,0 +1,188 @@
+@EnsembleWitness : {F : Type} →
+  [inst : FiniteField F] → {PublicIO : TypeMap} → [inst_1 : ProvableType PublicIO] → Ensemble F PublicIO → Type 1
+Air.Flat.Table : (F : Type) → [FiniteField F] → Type 1
+Component : (F : Type) → [FiniteField F] → Type 1
+leanIsaEnsemble : Program → Ensemble K PublicIO
+SatisfiedBy : (prog : Program) → PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Prop
+M3Holds : (I : M3Instance) → I.Stmt → Column I.μ → Prop
+M3Rel : (I : M3Instance) → Set.{0} (Prod.{0, 0} (Prod.{0, 0} I.Stmt ((i : Fin 0) → NoOracle i)) (Column I.μ))
+Column : ℕ → Type
+@Refinement.{u_1,
+    u_2} : {Stmt : Type} →
+  {W₁ : Type u_1} →
+    {W₂ : Type u_2} → Set.{u_1} (Prod.{0, u_1} Stmt W₁) → Set.{u_2} (Prod.{0, u_2} Stmt W₂) → Type (max u_1 u_2)
+@Refinement.map_option_valid.{u_1,
+    u_2} : ∀ {Stmt : Type} {W₁ : Type u_1} {W₂ : Type u_2} {R : Set.{u_1} (Prod.{0, u_1} Stmt W₁)}
+  {S : Set.{u_2} (Prod.{0, u_2} Stmt W₂)} (f : Refinement.{u_1, u_2} R S) (x : Stmt) (w? : Option.{u_1} W₁),
+  (∀ (w : W₁), Membership.mem.{u_1, u_1} w? w → Membership.mem.{u_1, u_1} R (Prod.mk.{0, u_1} x w)) →
+    ∀ (w' : W₂),
+      Membership.mem.{u_2, u_2} (Option.map.{u_1, u_2} (Refinement.map.{u_1, u_2} f x) w?) w' →
+        Membership.mem.{u_2, u_2} S (Prod.mk.{0, u_2} x w')
+@Extractor.Straightline.map.{u_1} : {ι : Type} →
+  {oSpec : OracleSpec.{0, u_1} ι} →
+    {StmtIn WitIn WitIn' WitOut : Type} →
+      {n : ℕ} →
+        {pSpec : ProtocolSpec n} →
+          (StmtIn → WitIn → WitIn') →
+            Extractor.Straightline.{u_1} oSpec StmtIn WitIn WitOut pSpec →
+              Extractor.Straightline.{u_1} oSpec StmtIn WitIn' WitOut pSpec
+structure LeanerVM.Arithmetization.SatisfiedBy (prog : Program) (input : PublicInput)
+  (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+number of parameters: 3
+fields:
+  LeanerVM.Arithmetization.SatisfiedBy.public_input_eq : w.publicInput = PublicIO.ofInput input
+  LeanerVM.Arithmetization.SatisfiedBy.constraints : w.Constraints
+  LeanerVM.Arithmetization.SatisfiedBy.state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.counts_nonzero : CountsNonzero w
+  LeanerVM.Arithmetization.SatisfiedBy.caps : Caps w
+  LeanerVM.Arithmetization.SatisfiedBy.index_columns : IndexColumnsAreRowIndices w
+  LeanerVM.Arithmetization.SatisfiedBy.seed_rows : SeedRowsAreTheImage w
+  LeanerVM.Arithmetization.SatisfiedBy.bytecode_rows : BytecodeRowsAreTheProgram prog w
+  LeanerVM.Arithmetization.SatisfiedBy.blake2s_valid : Blake2sRowsValid w
+  LeanerVM.Arithmetization.SatisfiedBy.word0_eq : (imageOf w.data).snd.read (gpow 0) = some input.word0
+  LeanerVM.Arithmetization.SatisfiedBy.word1_eq : (imageOf w.data).snd.read (gpow 1) = some input.word1
+constructor:
+  LeanerVM.Arithmetization.SatisfiedBy.mk {prog : Program} {input : PublicInput}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} (public_input_eq : w.publicInput = PublicIO.ofInput input)
+    (constraints : w.Constraints) (state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw)
+    (mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw)
+    (bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw) (counts_nonzero : CountsNonzero w)
+    (caps : Caps w) (index_columns : IndexColumnsAreRowIndices w) (seed_rows : SeedRowsAreTheImage w)
+    (bytecode_rows : BytecodeRowsAreTheProgram prog w) (blake2s_valid : Blake2sRowsValid w)
+    (word0_eq : (imageOf w.data).snd.read (gpow 0) = some input.word0)
+    (word1_eq : (imageOf w.data).snd.read (gpow 1) = some input.word1) : SatisfiedBy prog input w
+structure LeanerVM.Arithmetization.Caps {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+number of parameters: 2
+fields:
+  LeanerVM.Arithmetization.Caps.minLogMem_le : minLogMem ≤ (imageOf w.data).fst
+  LeanerVM.Arithmetization.Caps.le_maxLogMem : (imageOf w.data).fst ≤ maxLogMem
+  LeanerVM.Arithmetization.Caps.heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
+  LeanerVM.Arithmetization.Caps.blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length
+  LeanerVM.Arithmetization.Caps.well_shaped : WellShapedData w.data
+constructor:
+  LeanerVM.Arithmetization.Caps.mk {prog : Program} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (minLogMem_le : minLogMem ≤ (imageOf w.data).fst) (le_maxLogMem : (imageOf w.data).fst ≤ maxLogMem)
+    (heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ)
+    (blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length) (well_shaped : WellShapedData w.data) : Caps w
+structure LeanerVM.Semantics.PublicInput : Type
+number of parameters: 0
+fields:
+  LeanerVM.Semantics.PublicInput.lanes : Fin 4 → K
+constructor:
+  LeanerVM.Semantics.PublicInput.mk (lanes : Fin 4 → K) : PublicInput
+def LeanerVM.Semantics.PublicInput.word0 : PublicInput → E :=
+fun p => E.ofLimbs (p.lanes 0) (p.lanes 1) 0
+def LeanerVM.Semantics.PublicInput.word1 : PublicInput → E :=
+fun p => E.ofLimbs (p.lanes 2) (p.lanes 3) 0
+structure LeanerVM.Arithmetization.PublicIO (F : Type) : Type
+number of parameters: 1
+fields:
+  LeanerVM.Arithmetization.PublicIO.lanes : Vector F 4
+constructor:
+  LeanerVM.Arithmetization.PublicIO.mk {F : Type} (lanes : Vector F 4) : PublicIO F
+def LeanerVM.Semantics.ValidExecution : (prog : Program) → PublicInput → Trace prog → Prop :=
+fun prog input t => HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
+def LeanerVM.Semantics.HasPublicBoundary : {prog : Program} → PublicInput → Trace prog → Prop :=
+fun {prog} input t =>
+  minLogMem ≤ t.κ ∧
+    t.κ ≤ maxLogMem ∧ t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
+structure LeanerVM.Semantics.Program : Type
+number of parameters: 0
+fields:
+  LeanerVM.Semantics.Program.logSize : ℕ
+  LeanerVM.Semantics.Program.logSize_le : self.logSize ≤ maxLogBytecode
+  LeanerVM.Semantics.Program.code : Fin (2 ^ self.logSize) → Instr
+constructor:
+  LeanerVM.Semantics.Program.mk (logSize : ℕ) (logSize_le : logSize ≤ maxLogBytecode)
+    (code : Fin (2 ^ logSize) → Instr) : Program
+def LeanerVM.Protocol.M3Holds : (I : M3Instance) → I.Stmt → Column I.μ → Prop :=
+fun I input q => I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicLinesHold input q ∧ I.aux q
+structure LeanerVM.Protocol.M3Instance : Type 1
+number of parameters: 0
+parents:
+  LeanerVM.Protocol.M3Instance.toShape : Shape
+fields:
+  LeanerVM.Protocol.Shape.ntab : ℕ
+  LeanerVM.Protocol.Shape.τ : Fin self.ntab → ℕ
+  LeanerVM.Protocol.Shape.width : Fin self.ntab → ℕ
+  LeanerVM.Protocol.M3Instance.Stmt : Type
+  LeanerVM.Protocol.M3Instance.constraints : (j : Fin self.ntab) → List (CPoly.CMvPolynomial (self.width j) K)
+  LeanerVM.Protocol.M3Instance.flushes : (j : Fin self.ntab) →
+      List (Side × Vector (CPoly.CMvPolynomial (self.width j) K) 16)
+  LeanerVM.Protocol.M3Instance.d : ℕ
+  LeanerVM.Protocol.M3Instance.constraints_degree : ∀ (j : Fin self.ntab),
+      ∀ C ∈ self.constraints j, C.totalDegree ≤ self.d
+  LeanerVM.Protocol.M3Instance.flushes_degree : ∀ (j : Fin self.ntab),
+      ∀ f ∈ self.flushes j, ∀ (k : Fin 16), (f.2.get k).totalDegree ≤ self.d
+  LeanerVM.Protocol.M3Instance.counts : (j : Fin self.ntab) → List (Fin (self.width j))
+  LeanerVM.Protocol.M3Instance.boundary : List (BoundaryBlock self.toShape)
+  LeanerVM.Protocol.M3Instance.μ : ℕ
+  LeanerVM.Protocol.M3Instance.layout : Layout self.μ self.ColumnId fun c => self.τ c.fst
+  LeanerVM.Protocol.M3Instance.publicLines : self.Stmt → List (PublicLine self.toShape)
+  LeanerVM.Protocol.M3Instance.aux : Column self.μ → Prop
+  LeanerVM.Protocol.M3Instance.decAux : DecidablePred self.aux
+constructor:
+  LeanerVM.Protocol.M3Instance.mk (toShape : Shape) (Stmt : Type)
+    (constraints : (j : Fin toShape.ntab) → List (CPoly.CMvPolynomial (toShape.width j) K))
+    (flushes : (j : Fin toShape.ntab) → List (Side × Vector (CPoly.CMvPolynomial (toShape.width j) K) 16)) (d : ℕ)
+    (constraints_degree : ∀ (j : Fin toShape.ntab), ∀ C ∈ constraints j, C.totalDegree ≤ d)
+    (flushes_degree : ∀ (j : Fin toShape.ntab), ∀ f ∈ flushes j, ∀ (k : Fin 16), (f.2.get k).totalDegree ≤ d)
+    (counts : (j : Fin toShape.ntab) → List (Fin (toShape.width j))) (boundary : List (BoundaryBlock toShape)) (μ : ℕ)
+    (layout : Layout μ toShape.ColumnId fun c => toShape.τ c.fst) (publicLines : Stmt → List (PublicLine toShape))
+    (aux : Column μ → Prop) (decAux : DecidablePred aux) : M3Instance
+field notation resolution order:
+  LeanerVM.Protocol.M3Instance, LeanerVM.Protocol.Shape
+structure LeanerVM.Protocol.PublicLine (S : Shape) : Type
+number of parameters: 1
+fields:
+  LeanerVM.Protocol.PublicLine.col : S.ColumnId
+  LeanerVM.Protocol.PublicLine.cell0 : K
+  LeanerVM.Protocol.PublicLine.cell1 : K
+  LeanerVM.Protocol.PublicLine.sent : Bool
+  LeanerVM.Protocol.PublicLine.pos : 0 < S.τ self.col.fst
+constructor:
+  LeanerVM.Protocol.PublicLine.mk {S : Shape} (col : S.ColumnId) (cell0 cell1 : K) (sent : Bool)
+    (pos : 0 < S.τ col.fst) : PublicLine S
+def Air.Flat.EnsembleWitness.Constraints : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] → {ens : Ensemble F PublicIO} → EnsembleWitness ens → Prop :=
+fun {F} [FiniteField F] {PublicIO} [ProvableType PublicIO] {ens} witness =>
+  ∀ table ∈ witness.allTables, table.Constraints
+def Air.Flat.Table.Constraints : {F : Type} → [inst : FiniteField F] → Air.Flat.Table F → Prop :=
+fun {F} [FiniteField F] table =>
+  ∀ row ∈ table.table, Operations.ConstraintsHold (table.environment row) table.component.operations
+def Operations.ConstraintsHold : {F : Type} → [inst : FiniteField F] → Environment F → Operations F → Prop :=
+fun {F} [FiniteField F] env ops =>
+  (∀ e ∈ ops.constraints, (fun x => Expression.eval env x) e = 0) ∧ ∀ l ∈ ops.lookups, l.Contains env
+def Air.Flat.EnsembleWitness.interactions : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] → {ens : Ensemble F PublicIO} → EnsembleWitness ens → List (Interaction F) :=
+fun {F} [FiniteField F] {PublicIO} [ProvableType PublicIO] {ens} witness =>
+  List.flatMap (fun table => table.interactions) witness.allTables
+def ProverData : Type → Type :=
+fun F => String → (n : ℕ) → Array (Vector F n)
+'LeanerVM.Arithmetization.assumptions_of_blake2sRowsValid' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.memRowOf_bindings' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeRowOf_bindings' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeRowOf_decodes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.verifier_pull_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.verifier_push_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.rowAt_toElements' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.decode_eq_some_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.assignmentRepresents_image' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.xorTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.jumpTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.blake2sTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.memTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.leanIsaVerifier' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Refinement.map_option_valid' depends on axioms: [propext, Quot.sound]
+'LeanerVM.Protocol.bytecodeColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.idxColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0

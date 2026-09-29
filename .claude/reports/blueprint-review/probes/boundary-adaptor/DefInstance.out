@@ -1,0 +1,15 @@
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:46:7: error: Type mismatch
+  M3Holds (inst prog0 0) input1 honest
+has type
+  Prop
+but is expected to have type
+  Bool
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:46:0: error: cannot evaluate code because 'sorryAx' uses 'sorry' and/or contains errors
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:47:7: error: Type mismatch
+  ¬M3Holds (inst prog0 0) input0 honest
+has type
+  Prop
+but is expected to have type
+  Bool
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:47:0: error: cannot evaluate code because 'sorryAx' uses 'sorry' and/or contains errors
+exit=1

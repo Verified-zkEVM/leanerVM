@@ -1,0 +1,141 @@
+===== docs/roadmap/protocol-blueprint.md
+  ok  crates/pcs/src/whir_config.rs:38-86 [1077 lines] (doc 191) | pub const SECURITY_BITS: usize = 128;
+  ok  crates/fiat_shamir/src/lib.rs:18-174 [250 lines] (doc 193) | pub fn compress(a: [F64; 4], b: [F64; 4]) -> [F64; 4] {
+  ok  crates/lean_vm/src/cpu/mod.rs:82-124 [1001 lines] (doc 193) | pub fn fs_seed(program: &Program) -> [F192; 2] {
+  ok  crates/fiat_shamir/src/transcript.rs:9-19 [371 lines] (doc 194) | pub struct Proof<M = PrunedMerklePaths> {
+  ok  crates/fiat_shamir/src/transcript.rs:280-330 [371 lines] (doc 194) | 
+  ok  crates/lean_vm/src/cpu/mod.rs:711-779 [1001 lines] (doc 194) | pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
+  ok  crates/fiat_shamir/src/transcript.rs:289-309 [371 lines] (doc 195) | fn next_round_poly(&mut self, n_coeffs: usize, claim: F192, eq: Option<F192>) ->
+  ok  crates/lean_vm/src/witness.rs:67-101 [218 lines] (doc 196) | pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
+  ok  crates/lean_vm/src/cpu/layout.rs:13-49 [560 lines] (doc 196) | pub const MEM_LO: usize = 0;
+  ok  crates/lean_vm/src/leaf.rs:53-156 [952 lines] (doc 196) | #[derive(Clone, Debug)]
+  ok  crates/lean_vm/src/cpu/layout.rs:400-445 [560 lines] (doc 196) | let mut count_blocks: Vec<Block> = Vec::new();
+  ok  crates/lean_vm/src/cpu/layout.rs:412-414 [560 lines] (doc 197) | for &c in table.count_columns() {
+  ok  crates/lean_vm/src/leaf.rs:664-668 [952 lines] (doc 197) | owners: &[Vec<Option<(usize, usize)>>; 3],
+  ok  crates/lean_vm/src/leaf.rs:585-637 [952 lines] (doc 198) | pub fn stacked_bytecode_table(blocks: &[Block]) -> Vec<F64> {
+  ok  crates/lean_vm/src/cpu/mod.rs:45-64 [1001 lines] (doc 199) | /// Data-memory size bounds (doc §Memory): memory is `2^h` cells with
+  ok  crates/lean_vm/src/cpu/mod.rs:130-178 [1001 lines] (doc 199) | fn read_public(vs: &mut VerifierState, prog: &Program, public_input: &[F192; 2])
+  ok  crates/lean_vm/src/pcs.rs:49-51 [190 lines] (doc 199) | pub const MIN_MU: usize = 15;
+  ok  crates/lean_vm/src/gkr.rs:32-76 [560 lines] (doc 200) | fn build_layers(leaves: ArenaVec<F192>, mu: usize) -> Vec<ArenaVec<F192>> {
+  ok  crates/lean_vm/src/gkr.rs:247-430 [560 lines] (doc 200) | #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+  ok  crates/lean_vm/src/cpu/mod.rs:404-441 [1001 lines] (doc 201) | /// Where the three bus forms sit in the batch's `η`-powers: the last three, AFT
+  ok  crates/lean_vm/src/cpu/mod.rs:726-735 [1001 lines] (doc 201) | let zc_xi = vs.sample();
+  ok  crates/pcs/src/whir_config.rs:38-86 [1077 lines] (doc 202) | pub const SECURITY_BITS: usize = 128;
+  ok  crates/pcs/src/whir_config.rs:260-370 [1077 lines] (doc 202) | fn derive_ladder(
+  ok  python-verifier/verifier.py:910 [1440 lines] (doc 202) | WHIR_QUERIES = (((223,55), (223,56,30), (223,56,31), (224,56,32), (224,56,32), (
+  ok  crates/fiat_shamir/src/merkle.rs:14-67 [364 lines] (doc 203) | pub fn hash_to_scalars(hash: &Hash) -> [F192; 2] {
+  ok  python-verifier/verifier.py:1365-1414 [1440 lines] (doc 205) | def verify_execution(bytecode: Sequence[K], public_input: Digest, proof: Proof) 
+  AMBIGUOUS  transcript.rs:289-309 -> ['crates/fiat_shamir/src/transcript.rs', 'crates/lean_vm/src/transcript.rs']  (doc lines [315, 1212])
+  ok  crates/fiat_shamir/src/transcript.rs:289-309 [371 lines] (doc 315) | fn next_round_poly(&mut self, n_coeffs: usize, claim: F192, eq: Option<F192>) ->
+  OUT crates/lean_vm/src/transcript.rs:289-309 [11 lines] (doc 315) | 
+  ok  crates/lean_vm/src/cpu/layout.rs:412 [560 lines] (doc 320) | for &c in table.count_columns() {
+  AMBIGUOUS  witness.rs:67-79 -> ['crates/flock/src/witness.rs', 'crates/lean_vm/src/witness.rs']  (doc lines [322])
+  ok  crates/flock/src/witness.rs:67-79 [232 lines] (doc 322) | /// mod-2³² carry-out; the carry slot is 31 bits wide).
+  ok  crates/lean_vm/src/witness.rs:67-79 [218 lines] (doc 322) | pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
+  ok  crates/lean_vm/src/cpu/mod.rs:656-667 [1001 lines] (doc 324) | fn finish_claims(
+  AMBIGUOUS  witness.rs:67-101 -> ['crates/flock/src/witness.rs', 'crates/lean_vm/src/witness.rs']  (doc lines [805, 865])
+  ok  crates/flock/src/witness.rs:67-101 [232 lines] (doc 805) | /// mod-2³² carry-out; the carry slot is 31 bits wide).
+  ok  crates/lean_vm/src/witness.rs:67-101 [218 lines] (doc 805) | pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
+  ok  crates/lean_vm/src/cpu/mod.rs:130-178 [1001 lines] (doc 829) | fn read_public(vs: &mut VerifierState, prog: &Program, public_input: &[F192; 2])
+  ok  crates/lean_vm/src/cpu/layout.rs:13-26 [560 lines] (doc 837) | pub const MEM_LO: usize = 0;
+  ok  crates/lean_vm/src/cpu/layout.rs:20-28 [560 lines] (doc 843) | // instance (a no-BLAKE2s program commits one full padding instance). It is the
+  ok  crates/lean_vm/src/tables.rs:829 [1009 lines] (doc 843) | /// VIRTUAL (not committed) and routes their bus claims to `q_flock`, which alre
+  ok  crates/lean_vm/src/cpu/mod.rs:790-814 [1001 lines] (doc 845) | fn slot_claims(l: &Layout, claims: &[ColumnClaim]) -> Vec<pcs::SlotClaim> {
+  ok  crates/lean_vm/src/cpu/mod.rs:611-613 [1001 lines] (doc 1041) | let pi_limbs = [
+  ok  crates/lean_vm/src/cpu/mod.rs:745-755 [1001 lines] (doc 1056) | let r_pi = vs.sample();
+  ok  python-verifier/verifier.py:1400 [1440 lines] (doc 1056) | require(poly_eval(public_limbs, Y) == multilinear_eval(public_input.halves(), [p
+  ok  python-verifier/verifier.py:910 [1440 lines] (doc 1165) | WHIR_QUERIES = (((223,55), (223,56,30), (223,56,31), (224,56,32), (224,56,32), (
+  AMBIGUOUS  transcript.rs:9-19 -> ['crates/fiat_shamir/src/transcript.rs', 'crates/lean_vm/src/transcript.rs']  (doc lines [1208])
+  ok  crates/fiat_shamir/src/transcript.rs:9-19 [371 lines] (doc 1208) | pub struct Proof<M = PrunedMerklePaths> {
+  OUT crates/lean_vm/src/transcript.rs:9-19 [11 lines] (doc 1208) | pub type ProverState = fiat_shamir::transcript::ProverState;
+  ok  crates/lean_vm/src/cpu/mod.rs:158-170 [1001 lines] (doc 1435) | if !bytecode_size.is_power_of_two()
+  ok  crates/lean_vm/src/cpu/mod.rs:690-704 [1001 lines] (doc 1452) | pub struct VerifySummary {
+  -- 38 distinct citations, 2 unresolved or out of range, 4 ambiguous
+===== docs/roadmap/protocol-status.md
+  ok  crates/lean_vm/src/gkr.rs:399-401 [560 lines] (doc 289) | let h = vs
+  ok  crates/pcs/src/whir_config.rs:60 [1077 lines] (doc 293) | pub const QUERY_GRINDING_BITS: usize = 17;
+  AMBIGUOUS  05-arithmetization.tex:37 -> ['doc/leanvm/body/05-arithmetization.tex', 'doc/leanvm/drafts/05-arithmetization.tex']  (doc lines [294])
+  ok  doc/leanvm/body/05-arithmetization.tex:37 [156 lines] (doc 294) | The protocol above has perfect completeness (equal pulled and pushed multisets a
+  OUT doc/leanvm/drafts/05-arithmetization.tex:37 [20 lines] (doc 294) | 
+  AMBIGUOUS  05-arithmetization.tex:37, 51 -> ['doc/leanvm/body/05-arithmetization.tex', 'doc/leanvm/drafts/05-arithmetization.tex']  (doc lines [300])
+  ok  doc/leanvm/body/05-arithmetization.tex:37 [156 lines] (doc 300) | The protocol above has perfect completeness (equal pulled and pushed multisets a
+  ok  doc/leanvm/body/05-arithmetization.tex:51 [156 lines] (doc 300) | TODO
+  OUT doc/leanvm/drafts/05-arithmetization.tex:37 [20 lines] (doc 300) | 
+  OUT doc/leanvm/drafts/05-arithmetization.tex:51 [20 lines] (doc 300) | 
+  AMBIGUOUS  04-committing-the-witness.tex:6 -> ['doc/leanvm/body/04-committing-the-witness.tex', 'doc/leanvm/drafts/04-committing-the-witness.tex']  (doc lines [303])
+  ok  doc/leanvm/body/04-committing-the-witness.tex:6 [29 lines] (doc 303) | Suppose we want to commit to $T$ multilinears $P_1,\dots,P_T$ over boolean hyper
+  ok  doc/leanvm/drafts/04-committing-the-witness.tex:6 [20 lines] (doc 303) | \input{../preamble/theorems}
+  AMBIGUOUS  08-end-to-end-protocol.tex:60 -> ['doc/leanvm/body/08-end-to-end-protocol.tex', 'doc/leanvm/drafts/08-end-to-end-protocol.tex']  (doc lines [303])
+  ok  doc/leanvm/body/08-end-to-end-protocol.tex:60 [102 lines] (doc 303) | \item \textbf{Prover.} Stack (\S\ref{sec:stacking}) every column, the three memo
+  OUT doc/leanvm/drafts/08-end-to-end-protocol.tex:60 [20 lines] (doc 303) | 
+  AMBIGUOUS  main.tex:8 -> ['doc/leanvm/main.tex', 'doc/sphincs/main.tex', 'doc/xmss/main.tex']  (doc lines [303])
+  ok  doc/leanvm/main.tex:8 [44 lines] (doc 303) | \documentclass[11pt]{article}
+  ok  doc/sphincs/main.tex:8 [468 lines] (doc 303) | \usepackage{amsmath,amssymb,amsthm,mathtools}
+  ok  doc/xmss/main.tex:8 [312 lines] (doc 303) | \usepackage{amsmath,amssymb,amsthm,mathtools}
+  AMBIGUOUS  05-arithmetization.tex:106 -> ['doc/leanvm/body/05-arithmetization.tex', 'doc/leanvm/drafts/05-arithmetization.tex']  (doc lines [303])
+  ok  doc/leanvm/body/05-arithmetization.tex:106 [156 lines] (doc 303) | \begin{equation}\label{eq:gkr_leaves}
+  OUT doc/leanvm/drafts/05-arithmetization.tex:106 [20 lines] (doc 303) | 
+  ok  crates/fiat_shamir/src/lib.rs:31-39 [250 lines] (doc 307) | // Domain-separation tags. EVERY absorbed block puts its tag in lane 3 and its
+  ok  crates/flock/src/zerocheck/univariate_skip_optimized.rs:104-106 [1129 lines] (doc 309) | const fn medium_generator() -> F192 {
+  ok  crates/lean_vm/src/gkr.rs:363-367 [560 lines] (doc 310) | // unbalanced pair a prover could state, and nothing for the caller to check.
+  ok  crates/lean_vm/src/leaf.rs:890-894 [952 lines] (doc 310) | // Every row of every table is a real row (`cpu::filler`), so the two sides bala
+  ok  crates/lean_vm/src/cpu/mod.rs:728-735 [1001 lines] (doc 311) | // THE tie between the batch and the bus, and the reason the batch's target is
+  ok  crates/lean_vm/src/cpu/mod.rs:404-422 [1001 lines] (doc 312) | /// Where the three bus forms sit in the batch's `η`-powers: the last three, AFT
+  ok  crates/lean_vm/src/constraints.rs:187-194 [453 lines] (doc 313) | // `h(x) = (1 + zeta_m + x)·p(x) + x·u` with `p` the degree-2 cofactor
+  ok  crates/lean_vm/src/constraints.rs:267 [453 lines] (doc 313) | let h = vs.next_round_poly(4, claim, None).map_err(|_| Error::Truncated)?;
+  AMBIGUOUS  transcript.rs:289-309 -> ['crates/fiat_shamir/src/transcript.rs', 'crates/lean_vm/src/transcript.rs']  (doc lines [314])
+  ok  crates/fiat_shamir/src/transcript.rs:289-309 [371 lines] (doc 314) | fn next_round_poly(&mut self, n_coeffs: usize, claim: F192, eq: Option<F192>) ->
+  OUT crates/lean_vm/src/transcript.rs:289-309 [11 lines] (doc 314) | 
+  ok  crates/flock/src/zerocheck.rs:91-94 [756 lines] (doc 315) | /// `ĉ(z, mlv_challenges)`, derived from the terminal identity rather than
+  ok  crates/pcs/src/stack_open.rs:400-401 [860 lines] (doc 316) | let lambdas = powers(ps.sample(), ring.claims.len() + point_claims.len());
+  ok  crates/pcs/src/stack_open.rs:518-519 [860 lines] (doc 316) | let lambdas = powers(vs.sample(), n_rs + point_claims.len());
+  ok  python-verifier/verifier.py:1372-1379 [1440 lines] (doc 317) | announced = transcript.next_scalars(2 + len(TABLES))
+  ok  crates/lean_vm/src/cpu/mod.rs:158-170 [1001 lines] (doc 318) | if !bytecode_size.is_power_of_two()
+  ok  crates/lean_vm/src/leaf.rs:123-146 [952 lines] (doc 321) | fn assert_grinding_unnecessary(
+  ok  crates/lean_vm/src/cpu/layout.rs:412-414 [560 lines] (doc 322) | for &c in table.count_columns() {
+  AMBIGUOUS  filler.rs:1-25 -> ['crates/lean_compiler/src/filler.rs', 'crates/lean_compiler/tests/suite/filler.rs', 'crates/lean_vm/src/cpu/filler.rs']  (doc lines [324])
+  ok  crates/lean_compiler/src/filler.rs:1-25 [59 lines] (doc 324) | //! Fill blocks: extra rows so every table's height is a power of two.
+  ok  crates/lean_compiler/tests/suite/filler.rs:1-25 [57 lines] (doc 324) | //! Fill blocks (`lean_compiler::filler`): extra real rows so a table's height n
+  ok  crates/lean_vm/src/cpu/filler.rs:1-25 [277 lines] (doc 324) | //! Filling every table to a power of two, so that no table has padding rows.
+  AMBIGUOUS  lib.rs:165-174 -> ['crates/fiat_shamir/src/lib.rs', 'crates/flock/src/lib.rs', 'crates/lean_compiler/src/lib.rs', 'crates/lean_vm/src/lib.rs', 'crates/parallel/src/lib.rs', 'crates/pcs/src/lib.rs', 'crates/primitives/src/lib.rs', 'crates/rec_aggregation/src/lib.rs', 'crates/sphincs/src/lib.rs', 'crates/xmss/src/lib.rs', 'crates/zk_alloc/src/lib.rs', 'src/lib.rs']  (doc lines [325])
+  ok  crates/fiat_shamir/src/lib.rs:165-174 [250 lines] (doc 325) | pub fn verify_pow_field(&mut self, nonce: F192, bits: u32) -> bool {
+  OUT crates/flock/src/lib.rs:165-174 [39 lines] (doc 325) | 
+  ok  crates/lean_compiler/src/lib.rs:165-174 [289 lines] (doc 325) | program.fn_ranges = lowered
+  ok  crates/lean_vm/src/cpu/mod.rs:82-93 [1001 lines] (doc 326) | pub fn fs_seed(program: &Program) -> [F192; 2] {
+  ok  crates/flock/src/hash.rs:276-280 [1185 lines] (doc 327) | pub const R1CS_DIGEST: [u8; 32] = [
+  ok  crates/lean_vm/src/cpu/mod.rs:174-176 [1001 lines] (doc 328) | if !(pcs::MIN_MU..=pcs::MAX_MU).contains(&l.shape.mu) {
+  ok  crates/lean_vm/src/leaf.rs:945-950 [952 lines] (doc 330) | #[test]
+  AMBIGUOUS  witness.rs:67-79 -> ['crates/flock/src/witness.rs', 'crates/lean_vm/src/witness.rs']  (doc lines [330])
+  ok  crates/flock/src/witness.rs:67-79 [232 lines] (doc 330) | /// mod-2³² carry-out; the carry slot is 31 bits wide).
+  ok  crates/lean_vm/src/witness.rs:67-79 [218 lines] (doc 330) | pub(crate) fn stack_offsets(kappas: &[Option<usize>]) -> (Vec<usize>, usize) {
+  ok  python-verifier/verifier.py:305-311 [1440 lines] (doc 330) | def stack_offsets(sizes: Sequence[int]) -> tuple[list[int], int]:
+  ok  crates/lean_vm/src/cpu/layout.rs:13-49 [560 lines] (doc 330) | pub const MEM_LO: usize = 0;
+  AMBIGUOUS  witness.rs:85-101 -> ['crates/flock/src/witness.rs', 'crates/lean_vm/src/witness.rs']  (doc lines [330])
+  ok  crates/flock/src/witness.rs:85-101 [232 lines] (doc 330) | /// `j + 1`, matching the 30-slot ripple run.
+  ok  crates/lean_vm/src/witness.rs:85-101 [218 lines] (doc 330) | pub fn placements_of(kappas: &[Option<usize>]) -> (Vec<Placement>, StackShape) {
+  AMBIGUOUS  witness.rs:191-197 -> ['crates/flock/src/witness.rs', 'crates/lean_vm/src/witness.rs']  (doc lines [330])
+  ok  crates/flock/src/witness.rs:191-197 [232 lines] (doc 330) | unsafe { (z_chunks.get(g), a_chunks.get(g), b_chunks.get(g), stripe_chunks.get(g
+  ok  crates/lean_vm/src/witness.rs:191-197 [218 lines] (doc 330) | let cases: [Vec<Option<usize>>; 5] = [
+  ok  crates/lean_vm/src/cpu/mod.rs:752-755 [1001 lines] (doc 330) | let want = primitives::multilinear::interp(l.pi[0], l.pi[1], r_pi);
+  ok  python-verifier/verifier.py:1400 [1440 lines] (doc 330) | require(poly_eval(public_limbs, Y) == multilinear_eval(public_input.halves(), [p
+  AMBIGUOUS  08-end-to-end-protocol.tex:29-32 -> ['doc/leanvm/body/08-end-to-end-protocol.tex', 'doc/leanvm/drafts/08-end-to-end-protocol.tex']  (doc lines [330])
+  ok  doc/leanvm/body/08-end-to-end-protocol.tex:29-32 [102 lines] (doc 330) | The public input is the first two memory cells $\mem[\gen^{0}],\mem[\gen^{1}]$, 
+  OUT doc/leanvm/drafts/08-end-to-end-protocol.tex:29-32 [20 lines] (doc 330) | 
+  ok  crates/lean_vm/src/cpu/mod.rs:745-755 [1001 lines] (doc 455) | let r_pi = vs.sample();
+  AMBIGUOUS  08-end-to-end-protocol.tex:27-33 -> ['doc/leanvm/body/08-end-to-end-protocol.tex', 'doc/leanvm/drafts/08-end-to-end-protocol.tex']  (doc lines [466])
+  ok  doc/leanvm/body/08-end-to-end-protocol.tex:27-33 [102 lines] (doc 466) | \subsection{Public input}\label{sec:e2e-pi}
+  OUT doc/leanvm/drafts/08-end-to-end-protocol.tex:27-33 [20 lines] (doc 466) | 
+  AMBIGUOUS  04-committing-the-witness.tex:4-18 -> ['doc/leanvm/body/04-committing-the-witness.tex', 'doc/leanvm/drafts/04-committing-the-witness.tex']  (doc lines [493])
+  ok  doc/leanvm/body/04-committing-the-witness.tex:4-18 [29 lines] (doc 493) | \subsection{Multilinear stacking}\label{sec:stacking}
+  ok  doc/leanvm/drafts/04-committing-the-witness.tex:4-18 [20 lines] (doc 493) | \input{../preamble/packages}
+  AMBIGUOUS  05-arithmetization.tex:97-109 -> ['doc/leanvm/body/05-arithmetization.tex', 'doc/leanvm/drafts/05-arithmetization.tex']  (doc lines [493])
+  ok  doc/leanvm/body/05-arithmetization.tex:97-109 [156 lines] (doc 493) | \subsection{Stacking the leaves}\label{sec:leafstack}
+  OUT doc/leanvm/drafts/05-arithmetization.tex:97-109 [20 lines] (doc 493) | 
+  AMBIGUOUS  06-bus-interactions.tex:95-100 -> ['doc/leanvm/body/06-bus-interactions.tex', 'doc/leanvm/drafts/06-bus-interactions.tex']  (doc lines [494])
+  ok  doc/leanvm/body/06-bus-interactions.tex:95-100 [101 lines] (doc 494) | \subsection{The index column}\label{sec:idxcol}
+  OUT doc/leanvm/drafts/06-bus-interactions.tex:95-100 [20 lines] (doc 494) | 
+  AMBIGUOUS  08-end-to-end-protocol.tex:4-25 -> ['doc/leanvm/body/08-end-to-end-protocol.tex', 'doc/leanvm/drafts/08-end-to-end-protocol.tex']  (doc lines [494])
+  ok  doc/leanvm/body/08-end-to-end-protocol.tex:4-25 [102 lines] (doc 494) | \subsection{Bytecode encoding}\label{sec:e2e-bc}
+  OUT doc/leanvm/drafts/08-end-to-end-protocol.tex:4-25 [20 lines] (doc 494) | \input{../preamble/packages}
+  ok  crates/lean_vm/src/cpu/mod.rs:711-779 [1001 lines] (doc 579) | pub fn verify(program: &Program, public_input: &[F192; 2], proof: &Proof) -> Res
+  -- 43 distinct citations, 12 unresolved or out of range, 18 ambiguous

@@ -1,0 +1,3 @@
+Add zero-based power batching, its weight-table pairing and the `(J - 1) / |F|` collision bound for the Layer 4 consumer in #31. Built on #18, following leanVM §4.1 and the scalar results in [leanth #16 at `23929f8`](https://github.com/Verified-zkEVM/leanth/blob/23929f8c922cd4461ab22dbfaa6520f3ad23a3b2/Leanth/ProofSystem/ZeroCheck.lean#L670).
+
+[ArkLib #615](https://github.com/Verified-zkEVM/ArkLib/pull/615) contains the scalar strategy but remains unavailable at leanerVM's pinned revision. This contributes the table pairing and retains the necessary pinned scalar compatibility; it does not establish batching knowledge soundness.

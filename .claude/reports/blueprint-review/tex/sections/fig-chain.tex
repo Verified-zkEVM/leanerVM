@@ -1,0 +1,74 @@
+% The chain of relations and theorems, from the compiled verifier up to the semantics.
+% Solid boxes: built on main at b435631. Dashed boxes: specified in the blueprint, not built.
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+  font=\small\sffamily,
+  rel/.style={draw, rounded corners=2pt, align=left, inner sep=5pt, text width=0.58\linewidth},
+  built/.style={rel, fill=ok!6, draw=ok!70!black},
+  planned/.style={rel, dashed, fill=major!5, draw=major!80!black},
+  thm/.style={align=left, font=\footnotesize\sffamily, text width=0.33\linewidth, anchor=west},
+  arr/.style={-{Stealth[length=2.2mm]}, thick},
+  node distance=11mm]
+
+\node[built] (sem) {\textbf{The semantics}\\
+  \texttt{ValidExecution prog input t}: a trace \texttt{t} of the leanISA machine on
+  program \texttt{prog} whose first two memory cells are the public input.\\
+  \emph{leanISA, built.}};
+
+\node[built, below=of sem] (sat) {\textbf{The constraint relation}\\
+  \texttt{SatisfiedBy prog input w}, with \texttt{w} a witness of Clean's ensemble of tables
+  (type \texttt{EnsembleWitness}): every row satisfies its table's constraints, the three
+  buses balance, counts are nonzero, sizes are within the caps, BLAKE2s rows are valid, the
+  public words sit in memory.\\
+  \emph{leanISA, built.}};
+
+\node[built, below=of sat] (m3) {\textbf{The proof system's relation}\\
+  \texttt{M3Holds I input q}, with \texttt{q} the one committed column (the stack) and
+  \texttt{I} an abstract instance: constraints vanish, pushed and pulled tuples are one
+  multiset, count cells are nonzero, the public lines hold, the auxiliary predicate holds.\\
+  \emph{The spine, built, over an abstract instance.}};
+
+\node[built, below=of m3] (piop) {\textbf{The oracle protocol}\\
+  commit, bus, table sumcheck, public input, Flock, opening; the stack is an oracle, the
+  challenges are uniform.\\
+  \emph{Composition built; of the six phases, the commit and the public-input phases are
+  built; the four others are hypotheses of the master theorems.}};
+
+\node[planned, below=of piop] (ver) {\textbf{The compiled verifier}\\
+  \texttt{verify prog input proof : Bool}: WHIR over Merkle trees in place of the oracle,
+  a BLAKE2s chain in place of the verifier's coins.\\
+  \emph{Specified, not built.}};
+
+\node[planned, below=of ver] (rust) {\textbf{The deployed verifier}\\
+  The Rust verifier of leanVM at the pin. Tied to \texttt{verify} by tests on proofs the
+  Rust prover produced, never by a theorem.\\
+  \emph{Outside Lean.}};
+
+\draw[arr] (sat) -- (sem);
+\draw[arr] (m3) -- (sat);
+\draw[arr] (piop) -- (m3);
+\draw[arr] (ver) -- (piop);
+\draw[arr, dashed] (rust) -- (ver);
+\node[thm] at ($(sem.south east)!0.5!(sat.north east)+(4mm,0)$)
+  {\texttt{constraintSoundness} (up)\\ \texttt{constraintCompleteness} (down)\\
+   \emph{leanISA's, outside this review}};
+\node[thm] at ($(sat.south east)!0.5!(m3.north east)+(4mm,0)$)
+  {the adaptor: \texttt{satisfiedBy\_witnessOf} (up), \texttt{m3Holds\_stackOf} (down)\\
+   \emph{specified, not built}};
+\node[thm] at ($(m3.south east)!0.5!(piop.north east)+(4mm,0)$)
+  {the master theorems: \texttt{piop\_rbrKnowledgeSoundness} (up),
+   \texttt{piop\_perfectCompleteness} (down)\\
+   \emph{built, conditional on the phases}};
+\node[thm] at ($(piop.south east)!0.5!(ver.north east)+(4mm,0)$)
+  {\texttt{verify\_knowledgeSound}\\
+   \emph{specified; conditional on three assumed interfaces and on Flock}};
+\node[thm] at ($(ver.south east)!0.5!(rust.north east)+(4mm,0)$)
+  {differential tests\\ \emph{evidence, not proof}};
+\end{tikzpicture}
+\caption{The chain from the deployed verifier to the semantics. An arrow pointing up is a
+soundness direction (what is below implies what is above, up to an error where the step is
+probabilistic); each step also has a completeness direction, pointing down. Solid boxes are
+built on \texttt{main}; dashed boxes are specified in the blueprint and not built.}
+\label{fig:chain}
+\end{figure}

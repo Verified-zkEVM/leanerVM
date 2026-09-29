@@ -1,0 +1,25 @@
+@OfNat.ofNat K (nat_lit 2)
+  (@BitVec.instOfNat (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))) (nat_lit 2)) : K
+6#64
+(false, true)
+15#64
+@HAdd.hAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (@instHAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))) BF64.instAdd) u
+  v : BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))
+8#32
+BF64.instAdd
+BF64.instMul
+BitVec.instAdd
+BF64.instFintype
+instLawfulBEq
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.lean:103:0: error: failed to synthesize
+  LawfulBEq E
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+
+real	0m31.389s
+user	0m5.433s
+sys	0m1.650s
+exit=1

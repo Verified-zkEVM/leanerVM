@@ -1,0 +1,25 @@
+.claude/reports/blueprint-review/probes/lib-others/NumeralHazard.lean:16:29: error: unsolved goals
+⊢ False
+.claude/reports/blueprint-review/probes/lib-others/NumeralHazard.lean:16:0: error: (kernel) application type mismatch
+  id (eq_false_of_decide (Eq.refl false))
+argument has type
+  (2#64 = 0#64) = False
+but function has type
+  (1 + 1 = 0) = False → (1 + 1 = 0) = False
+.claude/reports/blueprint-review/probes/lib-others/NumeralHazard.lean:20:8: error: (kernel) application type mismatch
+  congrArg Not (eq_false_of_decide (Eq.refl false))
+argument has type
+  (2#64 = 0#64) = False
+but function has type
+  (1 + 1 = 0) = False → (¬1 + 1 = 0) = ¬False
+.claude/reports/blueprint-review/probes/lib-others/NumeralHazard.lean:24:8: error: (kernel) declaration type mismatch, 'bad_mul' has type
+  0#64 = 0#64
+but it is expected to have type
+  2 * 9223372036854775808 = 0
+'bad' depends on axioms: [bad, propext, Quot.sound]
+'bad_mul' depends on axioms: [bad_mul, propext, Quot.sound]
+
+real	0m3.786s
+user	0m2.526s
+sys	0m1.322s
+exit=1

@@ -1,0 +1,37 @@
+.claude/reports/blueprint-review/probes/lib-others/CountingBounds.lean:25:9: warning: Variable name `a` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _a
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+.claude/reports/blueprint-review/probes/lib-others/CountingBounds.lean:25:11: warning: Variable name `b` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _b
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+.claude/reports/blueprint-review/probes/lib-others/CountingBounds.lean:65:9: warning: Variable name `a` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _a
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+.claude/reports/blueprint-review/probes/lib-others/CountingBounds.lean:65:11: warning: Variable name `b` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _b
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+'one_witness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'one_witness_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'rhs_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'two_witnesses' depends on axioms: [propext, Classical.choice, Quot.sound]
+'two_witnesses_exceed' depends on axioms: [propext, Classical.choice, Quot.sound]
+'two_witnesses_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'one_bad_challenge' depends on axioms: [propext, Classical.choice, Quot.sound]
+'one_bad_challenge_bound' depends on axioms: [propext, Classical.choice, Quot.sound]
+
+real	5m18.923s
+user	0m2.869s
+sys	0m1.905s
+exit=0

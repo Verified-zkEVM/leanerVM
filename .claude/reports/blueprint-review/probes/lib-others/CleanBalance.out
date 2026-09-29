@@ -1,0 +1,37 @@
+Air.Flat.Component : (F : Type) → [FiniteField F] → Type 1
+Air.Flat.Table : (F : Type) → [FiniteField F] → Type 1
+Air.Flat.Ensemble : (F : Type) → [FiniteField F] → (PublicIO : TypeMap) → [ProvableType PublicIO] → Type 1
+@Air.Flat.EnsembleWitness : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} → [inst_1 : ProvableType PublicIO] → Air.Flat.Ensemble F PublicIO → Type 1
+RawChannel : Type → Type
+Interaction : Type → Type
+ProverData : Type → Type
+TypeMap : Type 1
+@Air.Flat.Ensemble.Statement : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] → [DecidableEq F] → Air.Flat.Ensemble F PublicIO → PublicIO F → Prop
+@Air.Flat.Ensemble.Soundness : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] →
+        [DecidableEq F] → Air.Flat.Ensemble F PublicIO → (PublicIO F → Prop) → (PublicIO F → Prop) → Prop
+@BalancedInteractions : {F : Type} → [FiniteField F] → [DecidableEq F] → List (Interaction F) → Prop
+@balanceOf : {F : Type} → [FiniteField F] → [DecidableEq F] → List (Interaction F) → Array F → F
+'Air.Flat.Ensemble.soundness_of_tableSoundness_and_specConsistency' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'exists_push_of_pull' depends on axioms: [propext, Classical.choice, Quot.sound]
+'pushedTwice_balance' depends on axioms: [propext, Classical.choice, Quot.sound]
+'pushedTwice_not_perm' depends on axioms: [propext]
+'pushedTwice_not_balanced' depends on axioms: [propext, Classical.choice, Quot.sound]
+'length_le_one_of_balanced' depends on axioms: [propext, Classical.choice, Quot.sound]
+'mult_eq_zero_of_balanced_singleton' depends on axioms: [propext, Classical.choice, Quot.sound]
+'honest_pair_not_balanced' depends on axioms: [propext, Classical.choice, Quot.sound]
+'statement_forces_at_most_one_interaction' depends on axioms: [propext, Classical.choice, Quot.sound]
+
+real	0m33.498s
+user	0m3.000s
+sys	0m1.989s
+exit=0
