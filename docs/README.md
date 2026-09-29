@@ -38,6 +38,10 @@ This directory contains stable project and operating knowledge.
   - [protocol-spine.md](reviews/protocol-spine.md): the review of the proof-system spine
     (2026-09-28), whose findings the branch now meets (the degree bound at the bus seam, the
     named extractor, public lines, the strong Flock predicate).
+  - [protocol-layer1.md](reviews/protocol-layer1.md): the review of the proof system's Layer 1
+    (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
+    aligned layout in an instance's layout field, the bit order of the bytecode column stated
+    at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

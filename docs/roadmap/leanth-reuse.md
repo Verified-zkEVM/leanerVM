@@ -71,8 +71,8 @@ only non-trivial content, big-endian).
 
 | Declaration | Source | Statement | Verdict | Target | Effort |
 | --- | --- | --- | --- | --- | --- |
-| `eqTilde_sum_cube` | `Polynomial/Multilinear.lean:213` | `Σ_c eq(x, c) = 1` over the cube, any `x` | port (done) | `sumCube_eqTable` | S |
-| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` | S |
+| `eqTilde_sum_cube` | `Polynomial/Multilinear.lean:213` | `Σ_c eq(x, c) = 1` over the cube, any `x` | port (done) | `sumCube_lagrangeBasis` | S |
+| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
 | `AlignedLayout`, `offset`, `pow_height_dvd_offset`, window lemmas | `ProofSystem/Stacking.lean:48, 71, 388, 397, 409` | blocks largest first at prefix-sum offsets; alignment from the antitone order | port (done; EX `Blocks`, `Stacking.lean:41-149`) | `Blocks`, `offset`, `pow_size_dvd_offset` | S |
 | `eval_MLE_stack_block` | `ProofSystem/Stacking.lean:603` | `P̃_b(z) = S̃(sel_b, z)`, the selection identity | port (done; EX `eval_stackPoly_sel`, `Stacking/MLE.lean:210`) | `stack_eval` | M |
 | `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port (done, for any pad value); with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` | `stack_eval_ambient` | M |
@@ -170,7 +170,7 @@ and no characteristic hypothesis.
   count is zero ∨ a boundary claim is false" is the product analogue; "some count is zero" has
   no leanVM-a counterpart.
 - `eval_MLE_stack_ambient` (`LeanVM/Protocol.lean:9818`) is the port source for
-  `leaf_decomposition` once `stack_eval_pad` exists.
+  `leaf_decomposition`, on `stack_eval_ambient`.
 - Completeness in leanVM-a is `K/q + ε_whir` because of logup poles
   (`interactive_hasCompletenessError`, :13817); the grand product has no poles, so perfect
   completeness at the oracle level is consistent.
@@ -411,27 +411,38 @@ theorems.
 ## Port log
 
 What this repository has carried over, with the derived-from lines in each module docstring.
-The pull request column names where the port was first proposed.
+The last column names the pull request in which the port was first proposed. The generic
+modules are under `LeanerVM/Protocol/ToCompPoly/`; what specialises them to leanVM is under
+`LeanerVM/Protocol/`.
 
 | leanerVM declaration | Module | Source | Proposed in |
 | --- | --- | --- | --- |
-| `sumCube_eqTable` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
-| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
-| `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
-| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
-| `Blocks.map`, `map_stackAt`, `stack_eval₂` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
-| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
-| `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `LeanerVM/Protocol/ToCompPoly/Claims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
-| `placeSlice`, `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
+| `sumCube_lagrangeBasis` | `ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
+| `placeSlice`, `sumCube_placeSlice`, `evalMle_placeSlice` | `ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886`, for any slice | #18, #40 |
+| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
+| `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
+| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
+| `map_stackAt`, `stack_eval₂` | `ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
+| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
+| `unstack_eval₂_eq_sumCube`; `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `ToCompPoly/Stacking.lean`; `BlockClaims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
 
-Not derived from leanth, and listed so that the layer reads whole: `powerColumnValues` with
-`evalMle_powerColumnValues` (`LeanerVM/Protocol/ToCompPoly/PowerColumn.lean`), `idxColumn` and
-`bytecodeColumn` with their evaluations (`LeanerVM/Protocol/FixedColumns.lean`), both from #41;
-and the `Column`-level stack with the spine's `Layout` (`LeanerVM/Protocol/Stack.lean`).
+Two changes to the ported shapes were made when the generic half was made generic: `Blocks` is
+the sizes alone and the tables are an argument (`B.Tables R`), so `Blocks.map` of #26 is gone
+and `map_stackAt` maps the tables; and the alias `eqTable` is removed in favour of CompPoly's
+`lagrangeBasis`.
 
-Next port candidates, in order of value per effort: `scalarBatch_rejection` (Layer 4, S); the
-`sumcheck_*` core (Layer 4, S); the fingerprint lemmas (Layer 5, S); the `ofPrefixCharges` and
-`append` designs (A2, L).
+Not derived from leanth, and listed so that the layer reads whole: `bitProductTable` with
+`evalMle_bitProductTable`, and the geometric table `powersTable` as its instance
+(`ToCompPoly/BitProductTable.lean`; the geometric table's statement is #41's
+`evalMle_powerColumnValues`); `idxColumn` and `bytecodeColumn` with their evaluations
+(`FixedColumns.lean`, #41); the `Column`-level stack with the spine's `Layout` (`Stack.lean`);
+and a column claim as a weighted claim (`ClaimWeights.lean`).
+
+Next port candidates, in order of value per effort, each already proposed in an open pull
+request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42); the
+fingerprint lemmas (Layer 5, S; #39). The knowledge-soundness composition (A2) was not ported
+from leanth: it is the port of ArkLib #615, on `main` since 2026-09-28.
 
 ## Upstream candidates
 
@@ -440,7 +451,7 @@ Where a leanth proof is the port source for an ArkLib ledger item.
 | Ledger | ArkLib gap at `dca90385` | leanth port source |
 | --- | --- | --- |
 | A1 sumcheck round-by-round knowledge soundness | `Sumcheck.Spec.SingleRound.verifier_rbrKnowledgeSoundness` admitted | `ZeroCheck.lean:3455-3675` (algebra), `:2925` (root count), `:2010` (state) |
-| A2 knowledge-soundness composition | `append_rbrKnowledgeSoundness`, `seqCompose_rbrKnowledgeSoundness` admitted | `RBR.lean:5042` and the seam design `:2580-2621`; `Protocol.lean:2490-2520` for the error split |
+| A2 knowledge-soundness composition | `append_rbrKnowledgeSoundness`, `seqCompose_rbrKnowledgeSoundness` admitted | `RBR.lean:5042` and the seam design `:2580-2621`; `Protocol.lean:2490-2520` for the error split; not used: leanerVM ported ArkLib #615's proof instead (`ToArkLib/KnowledgeAppend.lean`, 2026-09-28) |
 | A3 round-by-round implies plain | `rbrKnowledgeSoundness_implies_knowledgeSoundness` admitted | `RBR.lean:2422-2453, 2051`; `Security/Protocol.lean:1053` |
 | A6 grand product, GKR, batching, stacking | absent | `Logup.lean:275-444, 804-831`; `GKR.lean:439-640, 3596-3830`; `Stacking.lean` (stacking, done here); `ZeroCheck.lean:670-697` (batching) |
 | A7 WHIR, Merkle | absent | `WHIR.lean:271-684, 928-960` as the reference shape only |
@@ -461,6 +472,9 @@ The statements retain the actual component extractors, knowledge states and wors
 per-prefix bounds. A2's next step is to check and adopt this implementation for a concrete
 consumer before attempting a competing proof. This branch is not the pinned dependency, and
 no adoption or axiom-closure result for leanerVM follows from inspecting its source.
+(2026-09-28: adopted. The file was ported to
+`LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean` with the spine, and the master knowledge
+theorem closes on the kernel's three axioms.)
 
 ArkLib's `Verifier.PureForm` at the pin is total: its output has type `StmtOut`, not
 `Option StmtOut`. Absence of oracle queries does not make a rejecting verifier a `PureForm`.
