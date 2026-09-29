@@ -1,13 +1,13 @@
 module
 
-public import LeanerVM.Protocol.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import LeanerVM.Parameters.Field
-meta import LeanerVM.Protocol.Multilinear
+meta import LeanerVM.Protocol.ToCompPoly.Multilinear
 meta import LeanerVM.Parameters.Field
 meta import CompPoly.Multilinear.Basic
 
 /-!
-# Protocol Layer 1 tests: hypercube tables
+# Hypercube table tests
 
 Compiled checks (`#guard`) over `K` of the generic identities on a two-variable table: cube
 points read entries, the equality kernel sums to one, evaluation is the eq-weighted sum, a

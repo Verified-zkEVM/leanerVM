@@ -1,22 +1,22 @@
 /-
-  LeanerVM.Protocol.Stacking
+  LeanerVM.Protocol.ToArkLib.Stacking
 
   Aligned stacking of hypercube tables of different heights into one table, and the
   selection identity: evaluating the stack at a point whose high coordinates are a block's
-  selector bits evaluates that block. Protocol roadmap Layer 1, generic half.
+  selector bits evaluates that block. Candidate for ArkLib.
 -/
 
 module
 
-public import LeanerVM.Protocol.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.Multilinear
 
 /-!
 # Aligned stacking
 
-Protocol roadmap Layer 1 (`docs/roadmap/protocol-blueprint.md`, convention *Stacks*): blocks are
-ordered largest first, each block sits at an offset that is a multiple of its size, the selector
-of block `b` is `offset_b >> κ_b`, and the stack is padded past the last block. Category A:
-nothing here transcribes a source; the leanVM stack and leaf layouts are Layer 3's.
+Blocks are ordered largest first, each block sits at an offset that is a multiple of its size,
+the selector of block `b` is `offset_b >> κ_b`, and the stack is padded past the last block
+(leanVM specification §4.1). Category A: nothing here transcribes a source; the leanVM stack and
+leaf layouts are built on it elsewhere.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
 Stefano Rocca and Elias Judin (`docs/roadmap/leanth-reuse.md`): `Blocks` is
@@ -31,13 +31,12 @@ to the slice of the stack at the selector index, which alignment identifies with
 ## Wrong readings excluded
 
 * Alignment is a theorem of the descending order (`pow_size_dvd_offset`), not a hypothesis:
-  blocks of sizes 4, 2, 1 in that order are aligned, in any other order they are not
-  (acceptance test 15 of the roadmap).
-* The pad value is a parameter: the witness stack pads with `0` and the bus trees with `1`
-  (acceptance test 2); nothing in `stack_eval` depends on it.
+  blocks of sizes 4, 2, 1 in that order are aligned, in any other order they are not.
+* The pad value is a parameter: the witness stack pads with `0` and the bus trees with `1`;
+  nothing in `stack_eval` depends on it.
 
-Upstream ownership: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900),
-for coefficient transport and arbitrary-column readout in protocol Layers 1 and 10.
+Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900),
+coefficient transport and arbitrary-column readout.
 -/
 
 namespace LeanerVM.Protocol

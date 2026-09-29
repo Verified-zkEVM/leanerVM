@@ -8,14 +8,14 @@ Copyright (c) 2026 Leanth Contributors. All rights reserved.
 -/
 
 /-
-  LeanerVM.Protocol.Generic.AmbientStacking
+  LeanerVM.Protocol.ToArkLib.AmbientStacking
 
   Ambient evaluation of aligned stacks with arbitrary padding.
 -/
 
 module
 
-public import LeanerVM.Protocol.Stacking
+public import LeanerVM.Protocol.ToArkLib.Stacking
 
 /-!
 # Ambient stack evaluation
@@ -34,10 +34,10 @@ include the same uncovered padding weight.
 Derived from Verified-zkEVM/leanth at 23929f8c922cd4461ab22dbfaa6520f3ad23a3b2,
 `Leanth/LeanVM/Protocol.lean:9818-9850` (`eval_MLE_stack_ambient`), by Aristotle (Harmonic),
 Stefano Rocca and Elias Judin. The zero-padding source statement is extended to arbitrary
-padding and coefficient maps using the current little-endian cube split. The named consumer
-is protocol-blueprint Layer 6's `leaf_decomposition`, following Layer 5's product trees.
+padding and coefficient maps using the current little-endian cube split. Its consumer is the
+leaf decomposition of the bus argument's product trees.
 
-Upstream ownership: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
+Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
 -/
 
 namespace LeanerVM.Protocol

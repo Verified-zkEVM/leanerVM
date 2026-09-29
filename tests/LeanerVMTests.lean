@@ -13,20 +13,17 @@ import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Parameters.Isa
+import LeanerVMTests.Protocol.AmbientStacking
+import LeanerVMTests.Protocol.Claims
 import LeanerVMTests.Protocol.Field
-import LeanerVMTests.Protocol.Spine
+import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Multilinear
+import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
-
-import LeanerVMTests.Protocol.Claims
-
-import LeanerVMTests.Protocol.AmbientStacking
-
-import LeanerVMTests.Protocol.FixedColumns
 
 /-!
 # leanerVM test aggregate

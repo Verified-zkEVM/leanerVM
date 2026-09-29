@@ -8,14 +8,14 @@ Copyright (c) 2026 Leanth Contributors. All rights reserved.
 -/
 
 /-
-  LeanerVM.Protocol.Generic.Claims
+  LeanerVM.Protocol.ToArkLib.Claims
 
   Block evaluation claims as weighted claims on an arbitrary committed table.
 -/
 
 module
 
-public import LeanerVM.Protocol.Stacking
+public import LeanerVM.Protocol.ToArkLib.Stacking
 
 /-!
 # Claims on aligned blocks
@@ -38,9 +38,9 @@ Derived from Verified-zkEVM/leanth at 23929f8c922cd4461ab22dbfaa6520f3ad23a3b2,
 `assignmentStackedVector_pairing_iff`), by Aristotle (Harmonic), Stefano Rocca and Elias Judin.
 The statements use the current little-endian selection API and arbitrary coefficient maps;
 only unshifted claims are represented because the leanISA protocol has no shifted columns.
-This generic staging module is consumed by the opening phase and is intended for ArkLib.
+This generic staging module is consumed by the opening phase.
 
-Upstream ownership: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
+Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
 -/
 
 namespace LeanerVM.Protocol

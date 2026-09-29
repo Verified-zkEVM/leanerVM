@@ -1,9 +1,9 @@
 /-
-  LeanerVM.Protocol.Multilinear
+  LeanerVM.Protocol.ToCompPoly.Multilinear
 
   Generic algebra of hypercube tables: sums over the cube, the equality kernel as a table,
   splitting a cube into a low block and a high block, slices at Boolean high coordinates, and
-  back-loaded padding. Protocol roadmap Layer 1, generic half.
+  back-loaded padding. Candidate for CompPoly.
 -/
 
 module
@@ -14,10 +14,10 @@ import Mathlib.Algebra.BigOperators.Fin
 /-!
 # Hypercube tables
 
-Protocol roadmap Layer 1 (`docs/roadmap/protocol-blueprint.md`), the generic half: everything
-here is over an arbitrary commutative ring `R` and CompPoly's value tables
+Everything here is over an arbitrary commutative ring `R` and CompPoly's value tables
 `CMlPolynomialEval R n` (a `Vector R (2 ^ n)`, bit `k` of the index being coordinate `k`, low bit
-first). Category A: nothing here transcribes a source.
+first). Category A: nothing here transcribes a source. Candidate for CompPoly, beside
+`CompPoly.Multilinear.Basic`.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
 Stefano Rocca and Elias Judin, ported to CompPoly's tables and little-endian indexing

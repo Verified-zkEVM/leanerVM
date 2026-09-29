@@ -4,15 +4,15 @@
 
 module
 
-public import LeanerVM.Protocol.Stacking
+public import LeanerVM.Protocol.ToArkLib.Stacking
 public import LeanerVM.Parameters.Field
 public import Mathlib.Data.ZMod.Defs
-meta import LeanerVM.Protocol.Stacking
+meta import LeanerVM.Protocol.ToArkLib.Stacking
 meta import LeanerVM.Parameters.Field
 meta import CompPoly.Multilinear.Basic
 
 /-!
-# Protocol Layer 1 tests: aligned stacking
+# Aligned stacking tests
 
 Three blocks of heights 4, 2, 1, largest first, stacked on three variables: the offsets and
 selectors decided in the kernel, the stack's entries, and the selection identity `stack_eval`

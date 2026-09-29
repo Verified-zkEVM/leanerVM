@@ -1,12 +1,12 @@
 /-
-  LeanerVM.Protocol.Generic.PowerColumn
+  LeanerVM.Protocol.ToCompPoly.PowerColumn
 
   Multilinear evaluation of a geometric power table.
 -/
 
 module
 
-public import LeanerVM.Protocol.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.Multilinear
 
 /-!
 # Power columns
@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.Multilinear
 The table indexed by little-endian Boolean integers has entry `a ^ i` at index `i`.
 Its multilinear extension is the product of the one-bit interpolants. The proof follows
 CompPoly's low-bit-first folding evaluator, so the ordering is part of the theorem.
-This generic algebra supplies the public index column of protocol-blueprint Layer 1.
+This generic algebra supplies leanVM's public index column.
 
 Category A: the index-column factorization in leanVM specification §6.5
 (`doc/leanvm/body/06-bus-interactions.tex:95-100`) at
@@ -23,9 +23,9 @@ generator to any element of a commutative ring. The pinned
 `crates/primitives/src/field/mod.rs:102-113` and `python-verifier/verifier.py:271-278`
 use this factorization with successive squaring in low-coordinate order.
 
-Upstream consumer: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900),
-for public-column readout in protocol Layer 1. The geometric-table algebra remains a
-CompPoly migration candidate; this staging module changes no dependency pin.
+Candidate for CompPoly. Its upstream consumer is
+[ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900), for public-column readout;
+this staging module changes no dependency pin.
 -/
 
 namespace LeanerVM.Protocol

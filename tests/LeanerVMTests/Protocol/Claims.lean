@@ -6,10 +6,10 @@
 
 module
 
-public import LeanerVM.Protocol.Generic.Claims
+public import LeanerVM.Protocol.ToArkLib.Claims
 public import LeanerVMTests.Protocol.Stacking
 import Mathlib.Data.ZMod.Defs
-meta import LeanerVM.Protocol.Generic.Claims
+meta import LeanerVM.Protocol.ToArkLib.Claims
 meta import LeanerVMTests.Protocol.Stacking
 
 /-!

@@ -7,13 +7,13 @@
 module
 
 public import LeanerVM.Protocol.Field
-public import LeanerVM.Protocol.Generic.PowerColumn
+public import LeanerVM.Protocol.ToCompPoly.PowerColumn
 public import LeanerVM.Arithmetization.Bytecode
 
 /-!
 # Fixed public columns
 
-Protocol-blueprint Layer 1 at leanVM revision
+The two columns both parties know, at leanVM revision
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`. Category A: the index-column evaluation
 follows specification §6.5 (`doc/leanvm/body/06-bus-interactions.tex:95-100`), and
 the bytecode evaluation follows multilinear interpolation. Category B: the sixteen-slot
@@ -27,6 +27,9 @@ program is an explicit input. The Python cross-check is
 The bytecode formula uses the already adopted `encodeSlots` definition, including its
 zero slots. Consequently the encoding and spare-slot rules have a single source of truth.
 These are Lean column-oracle equalities; no theorem here proves Rust execution correspondence.
+
+This module names the program, so it imports the bytecode encoding. It belongs with the leanISA
+instance and the compiled verifier; no phase of the oracle protocol imports it.
 -/
 
 namespace LeanerVM.Protocol
