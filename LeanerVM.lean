@@ -22,6 +22,7 @@ import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Padding
+import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase

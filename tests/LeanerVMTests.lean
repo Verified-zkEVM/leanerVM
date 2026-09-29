@@ -21,6 +21,7 @@ import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
+import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
