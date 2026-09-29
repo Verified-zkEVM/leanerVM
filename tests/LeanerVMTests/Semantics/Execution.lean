@@ -60,7 +60,7 @@ theorem g_mul_gpow (i : ℕ) : g * gpow i = gpow (i + 1) := (gpow_succ i).symm
 example : Regs.next ⟨1, 1⟩ = ⟨g, 1⟩ := rfl
 
 /-- `pc + 1` would not even be injective on a run: `1 + 1 = 0` in `K`. -/
-example : (1 : K) + 1 = 0 := by decide
+example : (1: K) + 1 = 0 := by decide
 
 /-- Register equality decides in the kernel on a product against a power (finding E5). -/
 example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
@@ -68,9 +68,12 @@ example : Regs.next ⟨1, 1⟩ = ⟨gpow 1, 1⟩ := by decide +kernel
 /-! ## `mul_192bit_word` (`cpu/mod.rs:981-998`) -/
 
 -- scripts/dump-mul-rust.sh at leanVM a386121f
-def mulX : E := E.ofLimbs 0x0123456789abcdef 0xfeedfacedeadbeef 0x1111222233334444
-def mulY : E := E.ofLimbs 0x9999aaaabbbbcccc 0x13579bdf2468ace0 0x5555666677778888
-def mulXY : E := E.ofLimbs 0xf4bccd9a2e8e525b 0xf85ebb9433986f2f 0x918137982bf175ac
+def mulX : E :=
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef) (K.ofBits 0x1111222233334444)
+def mulY : E :=
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0) (K.ofBits 0x5555666677778888)
+def mulXY : E :=
+  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
 
 /-- CompPoly's product of the two words is the executor's (acceptance test 9). -/
 example : mulX * mulY = mulXY := by decide +kernel
@@ -81,7 +84,7 @@ def mulProg : Program :=
     .mulNative (gpow 2) (gpow 3) (gpow 4), .xor 1 1 1]⟩
 
 /-- The public input `[w(1), w(2)]`. -/
-def mulInput : PublicInput := ⟨![1, 0, 2, 0]⟩
+def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- The image the executor commits, at the smallest size: the public words, the operands, the
 product, and zero elsewhere. -/
@@ -177,7 +180,7 @@ def ctlImage : MemImage 4 := fun i ↦
   | 3 => E.ofLimbs (gpow 3) 0 0
   | 4 => E.ofLimbs (gpow 5) 0 0
   | 5 => E.ofLimbs (gpow 7) 0 0
-  | 6 => E.ofLimbs 9 9 9
+  | 6 => E.ofLimbs (K.ofBits 9) (K.ofBits 9) (K.ofBits 9)
   | 7 => E.ofLimbs (gpow 2) 0 0
   | 13 => E.ofLimbs 0 1 0
   | 14 => E.ofLimbs g 0 0
@@ -352,15 +355,22 @@ example : ∀ n, run haltProg ctlImage n Regs.initial ≠ some (Regs.final haltP
 /-! ## `BLAKE2S` (`blake2s_computes_the_compression`, `cpu/mod.rs:855-917`) -/
 
 -- scripts/dump-blake2s-rust.sh at leanVM a386121f
-def rustM0 : E := E.ofLimbs 0x0123456789abcdef 0xfedcba9876543210 0x0000000000000000
-def rustM1 : E := E.ofLimbs 0x1111222233334444 0x5555666677778888 0x0000000000000000
-def rustM2 : E := E.ofLimbs 0xdeadbeefcafebabe 0x0badf00d0badf00d 0x0000000000000000
-def rustM3 : E := E.ofLimbs 0x9999aaaabbbbcccc 0xddddeeeeffff0000 0x0000000000000000
-def rustCv0 : E := E.ofLimbs 0x0000000000000007 0x0000000000000000 0x0000000000000000
-def rustCv1 : E := E.ofLimbs 0x000000000000000b 0x0000000000000000 0x0000000000000000
-def rustMd : E := E.ofLimbs 0x0000000000000040 0x00000000ffffffff 0x0000000000000000
-def rustOut0 : E := E.ofLimbs 0x583fffe1350e2137 0x0de9e32629a5c508 0x0000000000000000
-def rustOut1 : E := E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 0x0000000000000000
+def rustM0 : E :=
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0x0000000000000000
+def rustM1 : E :=
+  E.ofLimbs (K.ofBits 0x1111222233334444) (K.ofBits 0x5555666677778888) 0x0000000000000000
+def rustM2 : E :=
+  E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0x0000000000000000
+def rustM3 : E :=
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0xddddeeeeffff0000) 0x0000000000000000
+def rustCv0 : E := E.ofLimbs (K.ofBits 0x0000000000000007) 0x0000000000000000 0x0000000000000000
+def rustCv1 : E := E.ofLimbs (K.ofBits 0x000000000000000b) 0x0000000000000000 0x0000000000000000
+def rustMd : E :=
+  E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0x00000000ffffffff) 0x0000000000000000
+def rustOut0 : E :=
+  E.ofLimbs (K.ofBits 0x583fffe1350e2137) (K.ofBits 0x0de9e32629a5c508) 0x0000000000000000
+def rustOut1 : E :=
+  E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 0x0000000000000000
 
 /-- The executor's cells: the chaining value at `0, 1` (the public input `[w(7), w(11)]`), the
 message at `2..5`, the output at `6, 7`, and the metadata at `8`; `out1` is the second output
@@ -405,7 +415,7 @@ example : step (oneStep blakeIns) (blakeImage rustOut1) ⟨1, 1⟩ = some ⟨g, 
 /-- 12: with a nonzero top limb on the second output cell the row is invalid, although the
 cell's words are right. -/
 example : step (oneStep blakeIns)
-    (blakeImage (E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 1)) ⟨1, 1⟩ = none := by
+    (blakeImage (E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 1)) ⟨1, 1⟩ = none := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) (fetch_one _)]
   show execute (blakeImage _) ⟨1, 1⟩ blakeIns = _
   rw [blake_reads]

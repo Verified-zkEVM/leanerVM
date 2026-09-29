@@ -3,7 +3,7 @@ import LeanerVM.Arithmetization.Statement
 /-!
 # Layer 8 tests: the constraint statement
 
-A plain file, like the module it tests: the fixture decides `K` and `E` arithmetic and the
+A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic and the
 bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the Layer 3 program, the
@@ -53,23 +53,26 @@ open Air.Flat (Component EnsembleWitness)
 /-! ## The fixture: `mul_192bit_word` with fill blocks -/
 
 -- scripts/dump-mul-rust.sh at leanVM a386121f
-def mulX : E := E.ofLimbs 0x0123456789abcdef 0xfeedfacedeadbeef 0x1111222233334444
-def mulY : E := E.ofLimbs 0x9999aaaabbbbcccc 0x13579bdf2468ace0 0x5555666677778888
-def mulXY : E := E.ofLimbs 0xf4bccd9a2e8e525b 0xf85ebb9433986f2f 0x918137982bf175ac
+def mulX : E :=
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfeedfacedeadbeef) (K.ofBits 0x1111222233334444)
+def mulY : E :=
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0x13579bdf2468ace0) (K.ofBits 0x5555666677778888)
+def mulXY : E :=
+  E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
 
 -- scripts/dump-blake2s-rust.sh at leanVM a386121f: the nine cells of the executor's row.
-def rustM0 : E := E.ofLimbs 0x0123456789abcdef 0xfedcba9876543210 0
-def rustM1 : E := E.ofLimbs 0x1111222233334444 0x5555666677778888 0
-def rustM2 : E := E.ofLimbs 0xdeadbeefcafebabe 0x0badf00d0badf00d 0
-def rustM3 : E := E.ofLimbs 0x9999aaaabbbbcccc 0xddddeeeeffff0000 0
-def rustCv0 : E := E.ofLimbs 0x0000000000000007 0 0
-def rustCv1 : E := E.ofLimbs 0x000000000000000b 0 0
-def rustMd : E := E.ofLimbs 0x0000000000000040 0x00000000ffffffff 0
-def rustOut0 : E := E.ofLimbs 0x583fffe1350e2137 0x0de9e32629a5c508 0
-def rustOut1 : E := E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 0
+def rustM0 : E := E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0
+def rustM1 : E := E.ofLimbs (K.ofBits 0x1111222233334444) (K.ofBits 0x5555666677778888) 0
+def rustM2 : E := E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0
+def rustM3 : E := E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0xddddeeeeffff0000) 0
+def rustCv0 : E := E.ofLimbs (K.ofBits 0x0000000000000007) 0 0
+def rustCv1 : E := E.ofLimbs (K.ofBits 0x000000000000000b) 0 0
+def rustMd : E := E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0x00000000ffffffff) 0
+def rustOut0 : E := E.ofLimbs (K.ofBits 0x583fffe1350e2137) (K.ofBits 0x0de9e32629a5c508) 0
+def rustOut1 : E := E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 0
 
 /-- The public input `[w(1), w(2)]`. -/
-def mulInput : PublicInput := ⟨![1, 0, 2, 0]⟩
+def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 
 /-- A word of `K` as a cell. -/
 def cellK (a : K) : E := E.ofLimbs a 0 0
@@ -101,7 +104,7 @@ the sentinel `JUMP`'s `c, d, f` (`26..28`). Frame `g^5`: the `XOR` and `DEREF` c
 `c` (`6`), the two blocks' `d` (`7`, `8`), the pointer and `f` (`11`). Frame `g^14`: the
 `BLAKE2S` cells in the executor's layout (`14..22`) and the block's `c, d, f` (`23..25`). -/
 def fillCells : Array E :=
-  #[cellK 1, cellK 2, mulX, mulY, mulXY,
+  #[cellK 1, cellK (K.ofBits 2), mulX, mulY, mulXY,
     0, cellK 1, cellK (gpow 4), cellK (gpow 6), 0, 0, cellK (gpow 5), 0, 0,
     rustCv0, rustCv1, rustM0, rustM1, rustM2, rustM3, rustOut0, rustOut1, rustMd,
     cellK 1, cellK (gpow 8), cellK (gpow 14),
@@ -224,6 +227,12 @@ def memRowArr (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
   (toElements (⟨gpow i, cnt i,
     #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩ : MemRow K)).toArray
 
+/-- The memory row's five coordinates, without evaluating the block's row list. -/
+theorem memRowArr_eq (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
+    memRowArr cnt i =
+      #[gpow i, cnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2] := by
+  with_unfolding_all rfl
+
 /-! ## The tables and the witness -/
 
 /-- A table of the witness: a component and its rows, over the fixture's data. -/
@@ -322,7 +331,7 @@ makes both the elaborator and the kernel unroll it (finding E8). -/
 theorem fillRows_get? (k : ℕ) (hk : k < 2 ^ minLogMem) :
     fillRows[k]? = some #v[(fillImage ⟨k, hk⟩).limb 0, (fillImage ⟨k, hk⟩).limb 1,
       (fillImage ⟨k, hk⟩).limb 2] := by
-  rw [fillRows, Array.getElem?_ofFn, dif_pos hk]
+  rw [fillRows, Array.getElem?_ofFn, dite_eq_left hk]
 
 theorem fill_image_apply' (k : ℕ) (hk : k < 2 ^ (imageOf fillData).1) :
     (imageOf fillData).2 ⟨k, hk⟩ = fillImage ⟨k, by rw [← fill_pow_eq]; exact hk⟩ := by
@@ -419,7 +428,7 @@ theorem fill_run : run fillProg fillImage 4 Regs.initial = some (Regs.final fill
 
 /-- The public words are in place. -/
 theorem fill_boundary : HasPublicBoundary mulInput fillTrace :=
-  ⟨le_rfl, by decide, read_at 0 (cellK 1), read_at 1 (cellK 2)⟩
+  ⟨le_rfl, by decide, read_at 0 (cellK 1), read_at 1 (cellK (K.ofBits 2))⟩
 
 /-- The extended program is a valid execution of the executor's on the same input. -/
 example : ValidExecution fillProg mulInput fillTrace := ⟨fill_boundary, fill_run⟩
@@ -449,8 +458,8 @@ theorem memTable_rowOps :
       [⟨MemPush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
           MemMsg (Expression K)), false⟩,
        ⟨MemPull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), true⟩] :=
-  rfl
+          MemMsg (Expression K)), true⟩] := by
+  with_unfolding_all rfl
 
 /-- The bytecode block's two interactions, on a row's variables. -/
 theorem bytecodeTable_rowOps :
@@ -460,8 +469,8 @@ theorem bytecodeTable_rowOps :
           BytecodeMsg (Expression K)), false⟩,
        ⟨BytecodePull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
           #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), true⟩] :=
-  rfl
+          BytecodeMsg (Expression K)), true⟩] := by
+  with_unfolding_all rfl
 
 /-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
 its rows. -/
@@ -525,7 +534,7 @@ theorem memRow_push (a : Array K) :
   show [((toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K))).map
     (Expression.eval (Environment.fromArray a fillData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K)) =
-    #v[var ⟨0⟩, 1, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from rfl]
+    #v[var ⟨0⟩, 1, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
   rfl
 
@@ -539,7 +548,7 @@ theorem memRow_pull (a : Array K) :
   show [((toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
     MemMsg (Expression K))).map (Expression.eval (Environment.fromArray a fillData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-    MemMsg (Expression K)) = #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from rfl]
+    MemMsg (Expression K)) = #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
   rfl
 
@@ -550,6 +559,10 @@ theorem memT_pushes (cnt : ℕ → K) :
   rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
   simp only [memT, mkT, Air.Flat.Table.environment, memRow_push, ← List.map_eq_flatMap,
     List.map_ofFn]
+  apply congrArg List.ofFn
+  funext i
+  dsimp only [Function.comp_apply]
+  rw [memRowArr_eq]
   rfl
 
 /-- The memory block's pulls are the finalizes of every cell, in order. -/
@@ -559,6 +572,10 @@ theorem memT_pulls (cnt : ℕ → K) :
   rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
   simp only [memT, mkT, Air.Flat.Table.environment, memRow_pull, ← List.map_eq_flatMap,
     List.map_ofFn]
+  apply congrArg List.ofFn
+  funext i
+  dsimp only [Function.comp_apply]
+  rw [memRowArr_eq]
   rfl
 
 /-- The seeds, split at the touched cells. -/
@@ -898,7 +915,7 @@ def wrongCnt (i : ℕ) : K := if i = 4 then 1 else memCnt i
 
 theorem wrongCnt_of_ge {i : ℕ} (h : 29 ≤ i) : wrongCnt i = 1 := by
   unfold wrongCnt
-  rw [if_neg (by omega), memCnt_of_ge h]
+  rw [ite_eq_right (by omega), memCnt_of_ge h]
 
 /-- Nothing checks the finalize counts (§6.2): the block accepts the row, and the bus does not
 balance. -/
@@ -914,7 +931,7 @@ def zeroCnt (i : ℕ) : K := if i = 2 then g else memCnt i
 
 theorem zeroCnt_of_ge {i : ℕ} (h : 29 ≤ i) : zeroCnt i = 1 := by
   unfold zeroCnt
-  rw [if_neg (by omega), memCnt_of_ge h]
+  rw [ite_eq_right (by omega), memCnt_of_ge h]
 
 /-- The zero-count witness balances the memory pair: a pull and a push of one tuple cancel,
 which is what the count product exists to reject (§6.2 "The count product", Theorem 6.4). -/
@@ -969,7 +986,7 @@ theorem zero_count_witness :
       decide +kernel⟩
 
 /-- A wrong digest: the executor's row with the low bit of `out1` flipped. -/
-def wrongOut1 : E := E.ofLimbs 0xf1b0679a15df60ba 0x0228c8d4ed9b3a24 0
+def wrongOut1 : E := E.ofLimbs (K.ofBits 0xf1b0679a15df60ba) (K.ofBits 0x0228c8d4ed9b3a24) 0
 def blakeRow' : Blake2sRow K := { blakeRow 0 with out1 := cell wrongOut1 }
 
 theorem blakeRow'_no_relation : ¬ Blake2sRelation blakeRow' := by
@@ -1021,7 +1038,7 @@ example : ¬ IndexColumnsAreRowIndices idxW := fun h ↦ by
   decide +kernel
 
 /-- The public words are checked (§8.2): `input₀ = 3` in place of `1` fails `word0_eq`. -/
-example : ¬ SatisfiedBy fillProg ⟨![3, 0, 2, 0]⟩ (fillW 1 g memCnt) := fun h ↦ by
+example : ¬ SatisfiedBy fillProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (fillW 1 g memCnt) := fun h ↦ by
   have h0 := h.word0_eq
   rw [fill_word0] at h0
   have h1 := congrArg (fun o : Option E ↦ (o.getD 0).limb 0) h0

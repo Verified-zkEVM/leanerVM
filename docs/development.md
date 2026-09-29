@@ -40,8 +40,8 @@ transitive rejection through production and test declarations in a temporary fix
 ## Adding a production module
 
 1. Choose its owner layer using `docs/architecture.md`.
-2. Use Lean's module syntax and a module docstring, unless the file imports Clean or a file
-   that does; `CONTRIBUTING.md` explains when a file is plain instead.
+2. Use Lean's module syntax and a module docstring. Clean and ArkLib both use the module
+   system; `CONTRIBUTING.md` describes visibility and the classic test convention.
 3. Keep imports narrow and respect the CI-enforced layer DAG.
 4. Add an `import` line to `LeanerVM.lean`.
 5. Add executable or proof-regression coverage under `tests/LeanerVMTests/` and import it from

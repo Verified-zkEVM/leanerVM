@@ -38,9 +38,9 @@ def blocks : Blocks where
 /-- The tables `[1, 2, 3, 4]`, `[5, 6]`, `[7]` over `K`. -/
 def tables : blocks.Tables K :=
   show (b : Fin 3) → CMlPolynomialEval K (![2, 1, 0] b) from fun b ↦ match b with
-    | 0 => (#v[1, 2, 3, 4] : CMlPolynomialEval K 2)
-    | 1 => (#v[5, 6] : CMlPolynomialEval K 1)
-    | 2 => (#v[7] : CMlPolynomialEval K 0)
+    | 0 => (#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4] : CMlPolynomialEval K 2)
+    | 1 => (#v[K.ofBits 5, K.ofBits 6] : CMlPolynomialEval K 1)
+    | 2 => (#v[K.ofBits 7] : CMlPolynomialEval K 0)
 
 /-- The blocks fit on three variables. -/
 theorem blocks_total_le : blocks.total ≤ 2 ^ 3 := by decide
@@ -57,27 +57,27 @@ example : (blocks.selector blocks_total_le (2 : Fin 3)).val = 6 := by decide
 def stack0 : CMlPolynomialEval K 3 := blocks.stackAt tables 3 0
 
 -- The stack lays the blocks out in order and pads the last entry.
-#guard stack0 = #v[1, 2, 3, 4, 5, 6, 7, 0]
-#guard blocks.stackAt tables 3 1 = #v[1, 2, 3, 4, 5, 6, 7, 1]
+#guard stack0 = #v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4, K.ofBits 5, K.ofBits 6, K.ofBits 7, 0]
+#guard blocks.stackAt tables 3 1 = #v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4, K.ofBits 5, K.ofBits 6, K.ofBits 7, 1]
 
 -- A lifted point is the point followed by the selector bits, low bit first.
-#guard blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[9, 11] : Vector K 2) = #v[9, 11, 0]
-#guard blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[13] : Vector K 1) = #v[13, 0, 1]
+#guard blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[K.ofBits 9, K.ofBits 11] : Vector K 2) = #v[K.ofBits 9, K.ofBits 11, 0]
+#guard blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[K.ofBits 13] : Vector K 1) = #v[K.ofBits 13, 0, 1]
 #guard blocks.extendPoint blocks_total_le (2 : Fin 3) (#v[] : Vector K 0) = #v[0, 1, 1]
 
 -- The selection identity: block 0 at `(9, 11)`, with either pad.
-#guard evalMle stack0 (blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[9, 11] : Vector K 2)) =
-  evalMle (#v[1, 2, 3, 4] : CMlPolynomialEval K 2) #v[9, 11]
+#guard evalMle stack0 (blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[K.ofBits 9, K.ofBits 11] : Vector K 2)) =
+  evalMle (#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4] : CMlPolynomialEval K 2) #v[K.ofBits 9, K.ofBits 11]
 #guard evalMle (blocks.stackAt tables 3 1)
-    (blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[9, 11] : Vector K 2)) =
-  evalMle (#v[1, 2, 3, 4] : CMlPolynomialEval K 2) #v[9, 11]
+    (blocks.extendPoint blocks_total_le (0 : Fin 3) (#v[K.ofBits 9, K.ofBits 11] : Vector K 2)) =
+  evalMle (#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4] : CMlPolynomialEval K 2) #v[K.ofBits 9, K.ofBits 11]
 -- Block 1 at `13`, block 2 at the empty point.
-#guard evalMle stack0 (blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[13] : Vector K 1)) =
-  evalMle (#v[5, 6] : CMlPolynomialEval K 1) #v[13]
-#guard evalMle stack0 (blocks.extendPoint blocks_total_le (2 : Fin 3) (#v[] : Vector K 0)) = 7
+#guard evalMle stack0 (blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[K.ofBits 13] : Vector K 1)) =
+  evalMle (#v[K.ofBits 5, K.ofBits 6] : CMlPolynomialEval K 1) #v[K.ofBits 13]
+#guard evalMle stack0 (blocks.extendPoint blocks_total_le (2 : Fin 3) (#v[] : Vector K 0)) = K.ofBits 7
 -- Mutation: with block 1's selector bits reversed, `(1, 0)`, the stack does not answer block 1.
-#guard evalMle stack0 (#v[13, 1, 0] : Vector K 3) ≠
-  evalMle (#v[5, 6] : CMlPolynomialEval K 1) #v[13]
+#guard evalMle stack0 (#v[K.ofBits 13, 1, 0] : Vector K 3) ≠
+  evalMle (#v[K.ofBits 5, K.ofBits 6] : CMlPolynomialEval K 1) #v[K.ofBits 13]
 
 /-! ## One layout, tables over another ring -/
 

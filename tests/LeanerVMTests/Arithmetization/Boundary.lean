@@ -3,7 +3,7 @@ import LeanerVM.Arithmetization.Boundary
 /-!
 # Layer 7 tests: the boundary blocks
 
-A plain file, like the module it tests: the fixtures decide `E` arithmetic in the kernel. One
+A classic test for kernel evaluation: the fixtures decide `E` arithmetic in the kernel. One
 prover data serves the three blocks, a four-word image (`κ = 2`) read through `imageOf` at
 literal indices as in the Layer 5 and 6 tests, beside a two-slot program `bProg` (`logSize =
 1`), a `Program` value: the program is public and no table of the data (decision 14).
@@ -37,7 +37,7 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 /-! ## The fixture: four words, two slots -/
 
 /-- The image: four words, `κ = 2`. -/
-def memWords : Array (Vector K 3) := #[#v[1, 2, 3], #v[4, 5, 6], #v[7, 8, 9], #v[0, 0, 0]]
+def memWords : Array (Vector K 3) := #[#v[1, K.ofBits 2, K.ofBits 3], #v[K.ofBits 4, K.ofBits 5, K.ofBits 6], #v[K.ofBits 7, K.ofBits 8, K.ofBits 9], #v[0, 0, 0]]
 
 /-- The program: an `XOR` and a `JUMP`, `logSize = 1`, a `Program` value (public, not data). -/
 def bProg : Program := ⟨1, by decide, ![.xor (gpow 2) (gpow 3) (gpow 4), .jump 1 1 1]⟩
@@ -128,8 +128,8 @@ example (env : Environment K) :
 /-! ## The public input -/
 
 -- The four lanes, and nothing else: the sentinel counter is the verifier's constant.
-#guard (toElements (⟨#v[1, 2, 3, 4]⟩ : PublicIO K)).toList = [1, 2, 3, 4]
-#guard (toElements (PublicIO.ofInput ⟨![7, 8, 9, 10]⟩)).toList = [7, 8, 9, 10]
+#guard (toElements (⟨#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4]⟩ : PublicIO K)).toList = [1, K.ofBits 2, K.ofBits 3, K.ofBits 4]
+#guard (toElements (PublicIO.ofInput ⟨![K.ofBits 7, K.ofBits 8, K.ofBits 9, K.ofBits 10]⟩)).toList = [K.ofBits 7, K.ofBits 8, K.ofBits 9, K.ofBits 10]
 
 -- Four coordinates.
 example : size PublicIO = 4 := rfl
@@ -137,18 +137,18 @@ example : size PublicIO = 4 := rfl
 /-! ## The memory block -/
 
 /-- The honest seed row of word `1`: `(g^1, g^3, (4, 5, 6))`, read three times. -/
-def memRow1 : MemRow K := ⟨gpow 1, gpow 3, #v[4, 5, 6]⟩
+def memRow1 : MemRow K := ⟨gpow 1, gpow 3, #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
 
 /-- The honest row is bound to the image. -/
-theorem memRow1_spec : MemSpec memRow1 bData := ⟨read_at 1 #v[4, 5, 6]⟩
+theorem memRow1_spec : MemSpec memRow1 bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
 
 /-- Nothing checks the finalize count (specification §6.2): the same row with count `0` is
 bound too. -/
-example : MemSpec { memRow1 with cntFin := 0 } bData := ⟨read_at 1 #v[4, 5, 6]⟩
+example : MemSpec { memRow1 with cntFin := 0 } bData := ⟨read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]⟩
 
 /-- The row `memRowOf` builds from the image is the honest row. -/
 example : memRowOf (imageOf bData).2 ⟨1, by rw [bData_logSize]; decide⟩ (gpow 3) = memRow1 := by
-  rw [memRowOf, imageOf_apply bData_wellShaped _ (v := #v[4, 5, 6]) (by decide +kernel)]
+  rw [memRowOf, imageOf_apply bData_wellShaped _ (v := #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]) (by decide +kernel)]
   simp only [limb_ofLimbs]
   rfl
 
@@ -165,11 +165,11 @@ example : ConstraintsHold.Completeness (rowEnv bData)
   mem_word_complete _ _
 
 /-- A changed limb: the row is no word of the image, so it is not bound … -/
-def memRow1' : MemRow K := { memRow1 with m := #v[4, 5, 7] }
+def memRow1' : MemRow K := { memRow1 with m := #v[K.ofBits 4, K.ofBits 5, K.ofBits 7] }
 
 theorem memRow1'_not_spec : ¬ MemSpec memRow1' bData := by
   rintro ⟨h⟩
-  rw [show memRow1'.idx = gpow 1 from rfl, read_at 1 #v[4, 5, 6]] at h
+  rw [show memRow1'.idx = gpow 1 from rfl, read_at 1 #v[K.ofBits 4, K.ofBits 5, K.ofBits 6]] at h
   exact absurd (Option.some.inj h) (by decide +kernel)
 
 /-- … and the constraints `main` emits on it fail in every environment over the data: its pull

@@ -4,19 +4,22 @@
   The `JUMP` table: one Clean component per row, sound and complete for the relation the row
   refines, its bindings to an image together with Layer 3's `execute` of the instruction it
   names.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Tables.Basic
-import Clean.Circuit.Formal
-import Clean.Utils.Tactics.CircuitProofStart
-import Mathlib.Algebra.CharP.Two
+module
+
+public import LeanerVM.Arithmetization.Tables.Basic
+public import Clean.Circuit.Formal
+public import Clean.Utils.Tactics.CircuitProofStart
+public import Mathlib.Algebra.CharP.Two
+
+@[expose] public section
 
 /-!
 # The `JUMP` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:688-712` (`mod jump`, in that order), the two identities
 `tables.rs:70-74` (`jump_identity`), the flushes `tables.rs:731-751` (`JumpTable::flushes`),
 matching specification §7.5 (`doc/leanvm/body/07-instruction-tables.tex:94-112`).

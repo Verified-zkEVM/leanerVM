@@ -264,9 +264,9 @@ theorem verifier_verify (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
     (OracleComp.monadLift_liftM_OptionT _).symm]
   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
   by_cases h : check I s (tr 0) (tr 1) = true
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     rfl
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     rfl
 
 /-- The verifier is a check followed by a verdict, as data. -/
@@ -306,7 +306,7 @@ theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (State
   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
   have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
 
 /-! ## Knowledge soundness -/
@@ -359,10 +359,10 @@ theorem rbr :
     · rfl
     · exact absurd hi (by decide)
   subst hi0
-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
-  rintro r - ⟨_, hin, hout⟩
+  rintro r ⟨_, hin, hout⟩
   exact ⟨hin, hout⟩
 
 end PublicInput

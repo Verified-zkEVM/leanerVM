@@ -40,7 +40,7 @@ namespace LeanerVM.Parameters
 /-! ## The generator -/
 
 /-- `g = x`, the word `0x2`; `crates/primitives/src/field/gf2_64.rs:28` (`F64::G = F64(2)`). -/
-def g : K := 0x2
+def g : K := K.ofBits 0x2
 
 /-- Exponent addressing: logical index `i` is the address `g ^ i`. -/
 abbrev gpow (i : ℕ) : K := g ^ i

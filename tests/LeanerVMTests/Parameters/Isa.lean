@@ -20,8 +20,8 @@ public section
 /-! ## Codes -/
 
 /-- `OP_XOR = 1, OP_MUL = 2, OP_SET = 4, OP_DEREF = 8, OP_JUMP = 16, OP_BLAKE2S = 32`. -/
-example : Opcode.xor.code = 0x01 ∧ Opcode.mulNative.code = 0x02 ∧ Opcode.setConstant.code = 0x04 ∧
-    Opcode.deref.code = 0x08 ∧ Opcode.jump.code = 0x10 ∧ Opcode.blake2s.code = 0x20 := by
+example : Opcode.xor.code = 0x01 ∧ Opcode.mulNative.code = K.ofBits 0x02 ∧ Opcode.setConstant.code = K.ofBits 0x04 ∧
+    Opcode.deref.code = K.ofBits 0x08 ∧ Opcode.jump.code = K.ofBits 0x10 ∧ Opcode.blake2s.code = K.ofBits 0x20 := by
   decide +kernel
 
 /-- The codes are the six lowest addresses, in order. -/

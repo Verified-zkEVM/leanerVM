@@ -16,14 +16,14 @@ import Mathlib.Tactic.LinearCombination
 leanISA roadmap Layer 0 (`docs/roadmap/leanisa-blueprint.md`). Category B: the moduli and the
 limb order are transcribed from specification §2, `doc/leanvm/body/02-vm-specification.tex:6-8`
 at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`, and are exactly CompPoly's `BF64` and
-`BF64.Ext3` at pin `3468b38c8fd270f93f55a259220a8abc544e7437`:
+`BF64.Ext3` at pin `572f997390aa4fc131ef30b1186fa1dcf292ca10`:
 
 ```text
 K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)      BF64.basePoly_eq, BF64.basePoly_irreducible
 E = K[y]/(y^3 + y + 1),  |E| = 2^192         BF64.ext3Params_poly, BF64.ext3Poly_irreducible
 ```
 
-`K` is a `BitVec 64` whose bit `i` is the coefficient of `x^i`
+`K` wraps a `BitVec 64` whose bit `i` is the coefficient of `x^i`
 (`crates/primitives/src/field/gf2_64.rs:19-22`, `F64`); `E` is a `Vector K 3` whose limb `i` is
 the coefficient of `y^i`. Everything below is an abbreviation or a one-line definition over those
 CompPoly declarations, so the trusted surface is the CompPoly rows of the roadmap's dependency
@@ -36,8 +36,8 @@ folded by `y^3 = y + 1`.
 
 * `CompPoly.Fields.Binary.Tower` presents `GF(2^64)` with a different bit encoding; it is never
   used.
-* The numeral `2 : K` is the `BitVec` literal `x` (bit 1), not `1 + 1`, which is `0` in
-  characteristic two.
+* Natural-number casts follow characteristic two: `2 : K = 0`. Wire words use
+  `K.ofBits`; `K.ofBits 2` is `x` (bit 1).
 * `ofK a` occupies the `y^0` limb only. "`x ∈ K`" is the predicate `IsInK`; a canonical 128-bit
   word, the cell shape BLAKE2S consumes, is `IsCanonical128`.
 
@@ -53,10 +53,9 @@ execution by `decide` depends on CompPoly or core lifting this.
 
 ## Clean's field interface
 
-Clean's `FiniteField K` is `instFiniteFieldK` in `LeanerVM.Parameters.CleanField`, a plain
-file: Clean at `93c9d1ef` does not use Lean's module system, and Lean `v4.33.1` refuses to
-import a non-`module` file from a `module` (`Lean.Environment.importModulesCore`). This module
-stays a `module` so that the Semantics layer can import it as one.
+Clean's `FiniteField K` is `instFiniteFieldK` in `LeanerVM.Parameters.CleanField`.
+Clean now uses Lean's module system. The Clean bridge is a separate module, keeping the field carrier independent of that
+interface for the Semantics layer.
 -/
 
 namespace LeanerVM.Parameters
@@ -67,8 +66,21 @@ open CompPoly.Extension
 
 /-! ## The fields -/
 
-/-- `K = GF(2^64)`, CompPoly's `BF64`: a `BitVec 64` with bit `i` the coefficient of `x^i`. -/
+/-- `K = GF(2^64)`, CompPoly's `BF64`: a wrapper of `BitVec 64` with bit `i` the
+coefficient of `x^i`. -/
 abbrev K : Type := BF64
+
+/-- Decode a polynomial-basis word, reducing its integer representation modulo `2^64`.
+This is a wire encoding, distinct from the characteristic-two natural-number cast. -/
+def K.ofBits (n : ℕ) : K := BF64.ofBitVec (BitVec.ofNat 64 n)
+
+/-- Decide equality through bit coordinates, keeping kernel comparisons of computed words
+free of the dependent transport introduced by the upstream derived instance. -/
+instance instDecidableEqK : DecidableEq K := fun a b ↦
+  decidable_of_iff (a.toBitVec = b.toBitVec) BF64.toBitVec_injective.eq_iff
+
+/-- A proof-only enumeration of `K`; executable code uses its explicit bit coordinates. -/
+noncomputable instance : Fintype K := Fintype.ofFinite K
 
 /-- `E = K[y]/(y^3 + y + 1)`, CompPoly's `BF64.Ext3`: a `Vector K 3` in limb order
 `c0 + c1·y + c2·y²`. -/
@@ -109,7 +121,11 @@ instance : DecidablePred IsCanonical128 :=
 /-- Hexadecimal rendering `E(0x<c2><c1><c0>)`, the Python verifier's `E.__repr__`
 (`python-verifier/verifier.py:177`). -/
 instance : ToString E :=
-  ⟨fun x ↦ s!"E(0x{(x.limb 2).toHex}{(x.limb 1).toHex}{(x.limb 0).toHex})"⟩
+  ⟨fun x ↦
+    let hi := (x.limb 2).toBitVec.toHex
+    let mid := (x.limb 1).toBitVec.toHex
+    let lo := (x.limb 0).toBitVec.toHex
+    s!"E(0x{hi}{mid}{lo})"⟩
 
 /-! ## Load-bearing lemmas -/
 

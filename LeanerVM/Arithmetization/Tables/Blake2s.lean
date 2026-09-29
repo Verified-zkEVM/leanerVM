@@ -5,18 +5,21 @@
   row refines, its bindings to an image together with Layer 3's `execute` of the instruction it
   names, under the named assumption that Flock proves the compression relation on the row's
   eighteen limbs.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Tables.Basic
-import Clean.Circuit.Formal
-import Clean.Utils.Tactics.CircuitProofStart
+module
+
+public import LeanerVM.Arithmetization.Tables.Basic
+public import Clean.Circuit.Formal
+public import Clean.Utils.Tactics.CircuitProofStart
+
+@[expose] public section
 
 /-!
 # The `BLAKE2S` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:833-863` (`mod blake2st`, in that order), the flushes
 `tables.rs:873-908` (`Blake2sTable::flushes`), matching specification §7.6
 (`doc/leanvm/body/07-instruction-tables.tex:114-141`). There is no table constraint: the

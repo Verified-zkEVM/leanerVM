@@ -111,7 +111,7 @@ theorem pow_size_dvd_offset (b : Fin B.n) : 2 ^ B.size b ∣ B.offset b := by
   refine Finset.dvd_sum fun c hc ↦ ?_
   rw [Finset.mem_range] at hc
   have hcn : c < B.n := lt_trans hc b.isLt
-  rw [dif_pos hcn]
+  rw [dite_eq_left hcn]
   exact Nat.pow_dvd_pow 2 (B.descending (Fin.le_def.mpr (Nat.le_of_lt hc)))
 
 /-- Index `x` lies in the window of block `b`. -/
@@ -166,10 +166,10 @@ theorem stackAt_getElem_of_inWindow (t : B.Tables R) {μ : ℕ} (pad : R) {b : F
     (hx : x < 2 ^ μ) (h : B.InWindow b x) :
     (B.stackAt t μ pad)[x] = (t b)[x - B.offset b]'(by have := h.2; omega) := by
   simp only [stackAt, Vector.getElem_ofFn]
-  rw [if_neg (by have := B.offset_add_pow_le_total b; omega), Finset.sum_eq_single b]
-  · rw [if_pos h, Vector.getElem?_eq_getElem (by have := h.2; omega), Option.getD_some]
+  rw [ite_eq_right (by have := B.offset_add_pow_le_total b; omega), Finset.sum_eq_single b]
+  · rw [ite_eq_left h, Vector.getElem?_eq_getElem (by have := h.2; omega), Option.getD_some]
   · intro c _ hc
-    rw [if_neg fun h' ↦ hc (B.inWindow_unique h' h)]
+    rw [ite_eq_right fun h' ↦ hc (B.inWindow_unique h' h)]
   · intro h'
     exact absurd (Finset.mem_univ _) h'
 

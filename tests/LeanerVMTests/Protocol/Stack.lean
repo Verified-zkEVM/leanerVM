@@ -27,20 +27,20 @@ open LeanerVM.Parameters LeanerVM.Protocol CompPoly CMlPolynomialEval
 /-! ## The honest stack -/
 
 -- Blocks at their windows, zero in the one uncovered cell.
-#guard (blocks.stackColumn tables 3).values = #v[1, 2, 3, 4, 5, 6, 7, 0]
+#guard (blocks.stackColumn tables 3).values = #v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4, K.ofBits 5, K.ofBits 6, K.ofBits 7, 0]
 
 -- Reading the honest stack returns each block.
 #guard (blocks.readColumn blocks_total_le (blocks.stackColumn tables 3)
-  (0 : Fin 3)).values.toList = [1, 2, 3, 4]
+  (0 : Fin 3)).values.toList = [1, K.ofBits 2, K.ofBits 3, K.ofBits 4]
 #guard (blocks.readColumn blocks_total_le (blocks.stackColumn tables 3)
-  (1 : Fin 3)).values.toList = [5, 6]
+  (1 : Fin 3)).values.toList = [K.ofBits 5, K.ofBits 6]
 #guard (blocks.readColumn blocks_total_le (blocks.stackColumn tables 3)
-  (2 : Fin 3)).values.toList = [7]
+  (2 : Fin 3)).values.toList = [K.ofBits 7]
 
 /-! ## The reading law on an arbitrary column -/
 
 /-- A column that is not the stack of the fixture's blocks, with a nonzero uncovered cell. -/
-def arbitrary : Column 3 := ⟨#v[9, 8, 7, 6, 5, 4, 3, 2]⟩
+def arbitrary : Column 3 := ⟨#v[K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6, K.ofBits 5, K.ofBits 4, K.ofBits 3, K.ofBits 2]⟩
 
 /-- A point of `E` outside `K`. -/
 def u : E := E.ofLimbs 0 1 0
@@ -48,9 +48,9 @@ def u : E := E.ofLimbs 0 1 0
 example : ¬ IsInK u := by decide
 
 -- The blocks read off it are its windows: cells 0 to 3, cells 4 and 5, cell 6.
-#guard (blocks.readColumn blocks_total_le arbitrary (0 : Fin 3)).values.toList = [9, 8, 7, 6]
-#guard (blocks.readColumn blocks_total_le arbitrary (1 : Fin 3)).values.toList = [5, 4]
-#guard (blocks.readColumn blocks_total_le arbitrary (2 : Fin 3)).values.toList = [3]
+#guard (blocks.readColumn blocks_total_le arbitrary (0 : Fin 3)).values.toList = [K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6]
+#guard (blocks.readColumn blocks_total_le arbitrary (1 : Fin 3)).values.toList = [K.ofBits 5, K.ofBits 4]
+#guard (blocks.readColumn blocks_total_le arbitrary (2 : Fin 3)).values.toList = [K.ofBits 3]
 
 -- A lifted point is the point followed by the selector bits, low bit first: block 1 sits at
 -- selector index 2, bits `(0, 1)`.
@@ -85,14 +85,14 @@ example : ¬ Antitone (![0, 1, 2] : Fin 3 → ℕ) := fun h ↦
   absurd (h (show (0 : Fin 3) ≤ 1 by decide)) (by decide)
 
 /-- The same cells with the small block first: the block `[5, 6]` sits at offset 1. -/
-def smallFirst : CMlPolynomialEval K 3 := #v[7, 5, 6, 1, 2, 3, 4, 0]
+def smallFirst : CMlPolynomialEval K 3 := #v[K.ofBits 7, K.ofBits 5, K.ofBits 6, 1, K.ofBits 2, K.ofBits 3, K.ofBits 4, 0]
 
 -- No selector reads the block `[5, 6]` off that placement: every slice of height 2 differs.
 #guard (List.finRange 4).all fun j ↦
-  slice (k := 1) (m := 2) smallFirst j ≠ (#v[5, 6] : CMlPolynomialEval K 1)
+  slice (k := 1) (m := 2) smallFirst j ≠ (#v[K.ofBits 5, K.ofBits 6] : CMlPolynomialEval K 1)
 -- Largest first, the selector of index 2 reads it.
 #guard slice (k := 1) (m := 2) (blocks.stackColumn tables 3).values (2 : Fin 4) =
-  (#v[5, 6] : CMlPolynomialEval K 1)
+  (#v[K.ofBits 5, K.ofBits 6] : CMlPolynomialEval K 1)
 
 /-! ## The aligned layout in an instance -/
 
@@ -124,9 +124,9 @@ abbrev toyAligned : M3Instance := { Toy.toy with layout := toyLayout }
 
 -- The relation decides the same: the honest stack passes, and a stack with one cell of the
 -- constrained column changed fails.
-#guard M3Holds toyAligned (1 : K) Toy.honest
-#guard ¬ M3Holds toyAligned (1 : K) ⟨#v[1, 1, 1, 1, 2, 0, 0, 0]⟩
-#guard ¬ M3Holds toyAligned (0 : K) Toy.honest
+#guard M3Holds toyAligned (1: K) Toy.honest
+#guard ¬ M3Holds toyAligned (1: K) ⟨#v[1, 1, 1, 1, K.ofBits 2, 0, 0, 0]⟩
+#guard ¬ M3Holds toyAligned (0: K) Toy.honest
 
 /-! ## Evaluation at an arbitrary point -/
 

@@ -49,7 +49,7 @@ def trueValues (I : M3Instance) (q : Column I.μ) (input : I.Stmt) (r : E) : Lis
 /-! ## The point -/
 
 /-- The table `[1, 2, 3, 4]` on two variables. -/
-def table : CMlPolynomialEval K 2 := #v[1, 2, 3, 4]
+def table : CMlPolynomialEval K 2 := #v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4]
 
 /-- The point `(y, 0)`. -/
 def onLine : List E := [y, 0]
@@ -60,10 +60,10 @@ def offLine : Vector E 2 := #v[y, ofK 1]
 #guard (linePoint (n := 2) (by decide) y).toList = onLine
 -- The extension at `(y, 0)` is the line through cells 0 and 1.
 #guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) (linePoint (n := 2) (by decide) y) =
-  (1 - y) * ofK 1 + y * ofK 2
+  (1 - y) * ofK 1 + y * ofK (K.ofBits 2)
 -- With the second coordinate `1` it is the line through cells 2 and 3 instead.
-#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine = (1 - y) * ofK 3 + y * ofK 4
-#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine ≠ (1 - y) * ofK 1 + y * ofK 2
+#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine = (1 - y) * ofK (K.ofBits 3) + y * ofK (K.ofBits 4)
+#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine ≠ (1 - y) * ofK 1 + y * ofK (K.ofBits 2)
 
 /-! ## The check -/
 
@@ -86,7 +86,7 @@ def wrong : List E := [y]
 def extra : List E := [1 + y, 0]
 
 -- The verifier expects one value, the line's.
-#guard expectedValues toy (1 : K) y = good
+#guard expectedValues toy (1: K) y = good
 -- The check accepts it, and rejects a wrong value, a missing value and an extra value.
 #guard check toy stmt1 y good
 #guard ¬ check toy stmt1 y wrong
@@ -94,9 +94,9 @@ def extra : List E := [1 + y, 0]
 #guard ¬ check toy stmt1 y extra
 
 -- On the honest stack the true evaluation is the line's value, at every sampled challenge.
-#guard trueValues toy honest (1 : K) y = expectedValues toy (1 : K) y
-#guard trueValues toy honest (1 : K) r₂ = expectedValues toy (1 : K) r₂
-#guard trueValues toy honest (1 : K) 0 = expectedValues toy (1 : K) 0
+#guard trueValues toy honest (1: K) y = expectedValues toy (1: K) y
+#guard trueValues toy honest (1: K) r₂ = expectedValues toy (1: K) r₂
+#guard trueValues toy honest (1: K) 0 = expectedValues toy (1: K) 0
 
 /-! ## A wrong stack -/
 
@@ -142,7 +142,7 @@ abbrev noneSent : M3Instance :=
 def stmtNone : K × TableOut noneSent := (1, ⟨[]⟩)
 
 -- The message is empty, a value is rejected, and the line is pooled all the same.
-#guard expectedValues noneSent (1 : K) y = []
+#guard expectedValues noneSent (1: K) y = []
 #guard check noneSent stmtNone y []
 #guard ¬ check noneSent stmtNone y good
 #guard ((pooled noneSent stmtNone y).2.columns.map fun c ↦ c.value) = good
@@ -168,7 +168,7 @@ def badTopLimb : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩
 def limbValues : List E := [1, 1, 0]
 
 -- Two values are sent and three claims are pooled, the third with value `0`.
-#guard (expectedValues threeLimbs (1 : K) y).length = 2
+#guard (expectedValues threeLimbs (1: K) y).length = 2
 #guard ((pooled threeLimbs stmtLimbs y).2.columns.map fun c ↦ c.value) = limbValues
 #guard ((pooled threeLimbs stmtLimbs y).2.columns.map fun c ↦ c.col) =
   [⟨0, 0⟩, ⟨0, 1⟩, ⟨0, 2⟩]

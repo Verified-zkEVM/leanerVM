@@ -136,12 +136,12 @@ theorem run_succ (n : ℕ) (r : Regs K) :
 /-- Away from the sentinel, a step is taken. -/
 theorem run_succ_of_ne {r : Regs K} (h : r.pc ≠ prog.finalPc) (n : ℕ) :
     run prog L (n + 1) r = step prog L r >>= run prog L n := by
-  rw [run_succ, if_neg h]
+  rw [run_succ, ite_eq_right h]
 
 /-- At the sentinel, no step is taken (acceptance test 5). -/
 theorem run_succ_of_eq {r : Regs K} (h : r.pc = prog.finalPc) (n : ℕ) :
     run prog L (n + 1) r = none := by
-  rw [run_succ, if_pos h]
+  rw [run_succ, ite_eq_left h]
 
 /-- Runs compose. -/
 theorem run_add (m n : ℕ) (r : Regs K) :

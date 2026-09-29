@@ -299,7 +299,7 @@ theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) 
     evalMle t (boolVec j) = t[j] := by
   rw [evalMle_eq_sum]
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, mul_ite, mul_one, mul_zero,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-! ## Slices: reading and placing a subcube -/
 
@@ -344,7 +344,7 @@ theorem evalMle_append_boolVec {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z 
     evalMle t (z ++ (boolVec j : Vector R m)) = evalMle (slice t j) z := by
   rw [evalMle_split]
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_mul, one_mul, zero_mul,
-    Finset.sum_ite_eq', Finset.mem_univ, if_true]
+    Finset.sum_ite_eq', Finset.mem_univ, ite_true]
 
 /-- A table placed at the high index `j`: its entries in the slice at `j`, zero in every other
 slice. -/
@@ -381,10 +381,10 @@ theorem evalMle_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^
 theorem sumCube_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
     sumCube (placeSlice t j) = sumCube t := by
   rw [sumCube, sum_cube_split, Finset.sum_eq_single j]
-  · simp only [← slice_getElem, slice_placeSlice, if_true]
+  · simp only [← slice_getElem, slice_placeSlice, ite_true]
     rfl
   · intro h _ hh
-    simp only [← slice_getElem, slice_placeSlice, if_neg hh]
+    simp only [← slice_getElem, slice_placeSlice, ite_eq_right hh]
     simp
   · intro h
     exact absurd (Finset.mem_univ _) h

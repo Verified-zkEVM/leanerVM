@@ -7,7 +7,7 @@ meta import LeanerVM.Parameters.Generator
 # Layer 0 tests: the generator
 
 `gpow k` is bit `k` for `k < 64`, pinning `g = x`, and `gpow 64` is the reduction tail
-`x^4 + x^3 + x + 1 = 0x1b` of the modulus (`crates/primitives/src/field/gf2_64.rs:3`, `R64`).
+`x^4 + x^3 + x + 1 = K.ofBits 0x1b` of the modulus (`crates/primitives/src/field/gf2_64.rs:3`, `R64`).
 The nearby false statements of roadmap acceptance test 1 follow: `g^3` has order
 `(2^64 - 1)/3` and fails the `3`-check, and `gpow` wraps at the order.
 -/
@@ -22,11 +22,11 @@ public section
 
 #guard gpow 0 = 1
 #guard gpow 1 = g
-#guard (List.range 64).all fun k ↦ gpow k = 1#64 <<< k
-#guard gpow 64 = 0x1b
+#guard (List.range 64).all fun k ↦ gpow k = BF64.ofBitVec (1#64 <<< k)
+#guard gpow 64 = K.ofBits 0x1b
 
 /-- `gpow k` is bit `k` for `k < 64`, checked in the kernel. -/
-example : ∀ k < 64, gpow k = 1#64 <<< k := by decide +kernel
+example : ∀ k < 64, gpow k = BF64.ofBitVec (1#64 <<< k) := by decide +kernel
 
 /-! ## Nearby false statements -/
 

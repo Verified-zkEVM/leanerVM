@@ -39,25 +39,25 @@ example (b : Fin blocks.n) :
 
 -- The first value of block 1 is occupied, so changing it is observable.
 #guard (blocks.unstack blocks_total_le
-    (#v[1, 2, 3, 4, 0, 6, 7, 0] : CMlPolynomialEval K 3) (1 : Fin 3))[0] ≠
+    (#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4, 0, K.ofBits 6, K.ofBits 7, 0] : CMlPolynomialEval K 3) (1 : Fin 3))[0] ≠
   (tables (1 : Fin 3))[0]
 
 /-! ## Claims -/
 
 -- The claim holds on the honest stack and fails when the occupied cell changes.
 #guard (@decide
-    (({ block := (1 : Fin 3), point := #v[0], value := 5 } : BlockClaim blocks K).IsValid
+    (({ block := (1 : Fin 3), point := #v[0], value := K.ofBits 5 } : BlockClaim blocks K).IsValid
       (RingHom.id K) blocks_total_le stack0)
     (by unfold BlockClaim.IsValid; infer_instance))
 #guard (@decide
-    (¬ ({ block := (1 : Fin 3), point := #v[0], value := 5 } : BlockClaim blocks K).IsValid
-      (RingHom.id K) blocks_total_le (#v[1, 2, 3, 4, 0, 6, 7, 0] : CMlPolynomialEval K 3))
+    (¬ ({ block := (1 : Fin 3), point := #v[0], value := K.ofBits 5 } : BlockClaim blocks K).IsValid
+      (RingHom.id K) blocks_total_le (#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4, 0, K.ofBits 6, K.ofBits 7, 0] : CMlPolynomialEval K 3))
     (by unfold BlockClaim.IsValid; infer_instance))
 
 /-! ## The pairing, evaluated -/
 
 /-- A table that is not the stack of the fixture, with a nonzero uncovered cell. -/
-def arbitraryTable : CMlPolynomialEval K 3 := #v[9, 8, 7, 6, 5, 4, 3, 2]
+def arbitraryTable : CMlPolynomialEval K 3 := #v[K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6, K.ofBits 5, K.ofBits 4, K.ofBits 3, K.ofBits 2]
 
 /-- A point of `E` outside `K`. -/
 def outsideK : E := E.ofLimbs 0 1 0
@@ -68,11 +68,11 @@ def claimOnBlock1 : BlockClaim blocks E := ⟨(1 : Fin 3), #v[outsideK], 0⟩
 -- The weight paired with the table is block 1 of the table, cells 4 and 5, at the point.
 #guard sumCube (hadamard (claimOnBlock1.weight blocks_total_le)
     (CMlPolynomialEval.map (algebraMap K E) arbitraryTable)) =
-  eval₂Mle (#v[5, 4] : CMlPolynomialEval K 1) (algebraMap K E) #v[outsideK]
+  eval₂Mle (#v[K.ofBits 5, K.ofBits 4] : CMlPolynomialEval K 1) (algebraMap K E) #v[outsideK]
 -- Mutation: it is not cells 2 and 3, which reversed selector bits would read.
 #guard sumCube (hadamard (claimOnBlock1.weight blocks_total_le)
     (CMlPolynomialEval.map (algebraMap K E) arbitraryTable)) ≠
-  eval₂Mle (#v[7, 6] : CMlPolynomialEval K 1) (algebraMap K E) #v[outsideK]
+  eval₂Mle (#v[K.ofBits 7, K.ofBits 6] : CMlPolynomialEval K 1) (algebraMap K E) #v[outsideK]
 
 example (q : CMlPolynomialEval K 3) (c : BlockClaim blocks E) :
     c.IsValid (algebraMap K E) blocks_total_le q ↔

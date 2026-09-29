@@ -8,7 +8,7 @@ module
 
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.ToArkLib.Oracles
-public import CompPoly.Multivariate.CMvPolynomial
+public import CompPoly.Multivariate.Basic
 
 /-!
 # The M3 instance and the relation `M3Holds`

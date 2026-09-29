@@ -3,7 +3,7 @@ import LeanerVM.Parameters.CleanField
 /-!
 # Layer 0 tests: Clean's field interface, and what a plain file can decide
 
-A plain file, like the module it tests. Guards on `instFiniteFieldK`; the check that instance
+A classic test for kernel evaluation. Guards on `instFiniteFieldK`; the check that instance
 search for `Field K` still finds CompPoly's structure now that Clean's `FiniteField.toField` is
 in scope; and kernel checks of `E` arithmetic that only a plain file can run (roadmap status
 finding P1).
@@ -15,8 +15,8 @@ open LeanerVM.Parameters
 
 /-! ## Clean's interface -/
 
-#guard FiniteField.val (0x2a : K) = 42
-#guard (FiniteField.fromNat 42 : K) = 0x2a
+#guard FiniteField.val (K.ofBits 0x2a : K) = 42
+#guard (FiniteField.fromNat 42 : K) = K.ofBits 0x2a
 
 /-- The size Clean sees is `2^64`. -/
 example : FiniteField.size K = 2 ^ 64 := rfl
@@ -34,7 +34,7 @@ same `decide` is stuck on CompPoly's `Ext.ofFn` (finding P1). -/
 example : y ^ 3 = E.ofLimbs 1 1 0 := by decide +kernel
 
 /-- The predicates decide on words built through `ofK` and `y`. -/
-example : IsInK (ofK 5) ∧ ¬ IsInK y ∧ IsCanonical128 y ∧ ¬ IsCanonical128 (y ^ 2) := by
+example : IsInK (ofK (K.ofBits 5)) ∧ ¬ IsInK y ∧ IsCanonical128 y ∧ ¬ IsCanonical128 (y ^ 2) := by
   decide +kernel
 
 end LeanerVMTests.Parameters
