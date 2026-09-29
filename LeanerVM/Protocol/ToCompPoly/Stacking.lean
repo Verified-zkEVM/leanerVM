@@ -1,9 +1,9 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Stacking
+  LeanerVM.Protocol.ToCompPoly.Stacking
 
   Aligned stacking of hypercube tables of different heights into one table, and the
   selection identity: evaluating the stack at a point whose high coordinates are a block's
-  selector bits evaluates that block. Candidate for ArkLib.
+  selector bits evaluates that block. Candidate for CompPoly.
 -/
 
 module
@@ -35,8 +35,10 @@ to the slice of the stack at the selector index, which alignment identifies with
 * The pad value is a parameter: the witness stack pads with `0` and the bus trees with `1`;
   nothing in `stack_eval` depends on it.
 
-Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900),
-coefficient transport and arbitrary-column readout.
+Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table
+or its evaluation, and nothing is a protocol. The request it answers is tracked upstream as
+[ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900), coefficient
+transport and arbitrary-column readout.
 -/
 
 namespace LeanerVM.Protocol

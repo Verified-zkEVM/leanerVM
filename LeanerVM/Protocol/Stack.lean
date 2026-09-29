@@ -8,12 +8,12 @@
 module
 
 public import LeanerVM.Protocol.Spine.Instance
-public import LeanerVM.Protocol.ToArkLib.AmbientStacking
+public import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 
 /-!
 # The stack of columns
 
-The generic stacking of `ToArkLib/Stacking.lean`, specialised to the two fields of leanVM: the
+The generic stacking of `ToCompPoly/Stacking.lean`, specialised to the two fields of leanVM: the
 blocks are columns over `K`, the stack is the one committed column, and every evaluation is at a
 point of `E`, the column oracle's answer there (`evalOracle_answer`; specification §4.1).
 

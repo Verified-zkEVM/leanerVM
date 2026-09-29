@@ -30,8 +30,8 @@ with `./scripts/validate.sh` green there and the axiom audit at 3153 declaration
 consolidation on `main` of what was spread over five pull requests on a stale base: the draft
 #18 (the generic half, with #25 and #26 merged into it, and the reuse catalog
 [leanth-reuse.md](leanth-reuse.md)) and the leaves #38, #40 and #41, whose commits are
-cherry-picked with their authorship. On top of them the branch moves the generic modules into
-the `To*` folders (convention *Generic code*), repairs the one build failure the stacked pull
+cherry-picked with their authorship, each citing its pull request. On top of them the branch
+moves the generic modules into `ToCompPoly/` (convention *Generic code*; finding E16), repairs the one build failure the stacked pull
 requests could not see without CI (finding E14), and adds the leanVM half,
 `LeanerVM/Protocol/Stack.lean`. The modules:
 
@@ -39,9 +39,9 @@ requests could not see without CI (finding E14), and adds the leanVM half,
 | --- | --- | --- |
 | `ToCompPoly/Multilinear.lean` | `sumCube`, `hadamard`, `eqTable`, `eval_eq_sum_eqTable`, `sumCube_eqTable`, the cube split, `boolVec`, `slice`, `evalMle_append_boolVec`, `prodVars`, `padHigh` with `sumCube_padHigh`, `evalMle_padHigh` | #18 |
 | `ToCompPoly/PowerColumn.lean` | `powerColumnValues`, `evalMle_powerColumnValues`, `eval₂Mle_powerColumnValues` | #41 |
-| `ToArkLib/Stacking.lean` | `Blocks`, offsets, `pow_size_dvd_offset`, `stackAt`, `selector`, `stack_eval`; `Blocks.map`, `map_stackAt`, `stack_eval₂`; `unstack`, `unstack_eval₂`, `unstack_eq_of_window_eq` | #18, #26, #38 |
-| `ToArkLib/AmbientStacking.lean` | `stack_eval_ambient` (specification (5.4), any pad), its zero and one instances, `stack_eval₂_ambient`, `sum_selectorWeight_of_total_eq` | #40 |
-| `ToArkLib/Claims.lean` | `BlockClaim`, `isValid_iff_pairing`, window locality | #38 |
+| `ToCompPoly/Stacking.lean` | `Blocks`, offsets, `pow_size_dvd_offset`, `stackAt`, `selector`, `stack_eval`; `Blocks.map`, `map_stackAt`, `stack_eval₂`; `unstack`, `unstack_eval₂`, `unstack_eq_of_window_eq` | #18, #26, #38 |
+| `ToCompPoly/AmbientStacking.lean` | `stack_eval_ambient` (specification (5.4), any pad), its zero and one instances, `stack_eval₂_ambient`, `sum_selectorWeight_of_total_eq` | #40 |
+| `ToCompPoly/Claims.lean` | `BlockClaim`, `isValid_iff_pairing`, window locality | #38 |
 | `FixedColumns.lean` | `idxColumn`, `idxColumn_eval`, `idxColumnEval_eq` (the form of §6.5), `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_eval` | #41; `idxColumnEval_eq` new |
 | `Stack.lean` | `Blocks.stack`, `readColumn`, `extendPoint`, `readColumn_eval`, `Blocks.layout` (the spine's `Layout` for aligned blocks), `eval_stack`, `eval_stackAt_one` | new |
 
@@ -93,7 +93,7 @@ spine name; each is algebra a hole will consume.
 | #40 | L1, feeds P1 | #18 | none | `stack_eval_ambient` (specification (5.4) with any pad), `stack_eval₂_ambient` | the bus phase's leaf decomposition, from which it computes the values of its `LinearClaim`s; in #59 | close when #59 merges |
 | #38 | L1, feeds P7 | #18 | none | `Blocks.unstack`, `BlockClaim`, `isValid_iff_pairing`, window locality | `BlockClaim` is a `ColumnClaim` read through `Layout`; `isValid_iff_pairing` is the `ColumnClaim` to `WeightedClaim` step of the opening phase; in #59 | close when #59 merges |
 | #41 | L1, feeds P1 | #18 | none | `idxColumn`, `idxColumn_eval`, `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_eval` (Category B against §8.1 and `leaf.rs:570-637`) | the `Coord.known` columns of the leanISA instance's boundary blocks; below the wall; in #59 | close when #59 merges |
-| #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | the opening phase's batching of `FlockOut` into one `WeightedClaim` (P7), and its `(J − 1)/\|E\|` term of `err` (P8) | rebase onto `main` after #59: `Generic/` becomes `ToArkLib/`, and the imports become `LeanerVM.Protocol.ToCompPoly.Multilinear`, `LeanerVM.Protocol.ToArkLib.Stacking` |
+| #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | the opening phase's batching of `FlockOut` into one `WeightedClaim` (P7), and its `(J − 1)/\|E\|` term of `err` (P8) | rebase onto `main` after #59: `Generic/` becomes `ToArkLib/` or `ToCompPoly/` by destination, and the imports become `LeanerVM.Protocol.ToCompPoly.Multilinear`, `LeanerVM.Protocol.ToCompPoly.Stacking` |
 | #39 | G4 | #18 | none | `fingerprintPoly`, its injectivity, `fingerprintFactorPoly` of total degree at most 4 | the bus phase: a bus form is a list of `VirtualTerm`s, the flush coordinate polynomials over `K` with weights `eq(sel_b, ζ_hi)·eq(α, i)` and one constant term of weight `eq(sel_b, ζ_hi)·β`, so the fingerprint enters the weights, not the polynomials; the collision bound is P2's | rebase onto `main` after #59, as #43 |
 | #42 | G1 | `main` | runs | the honest round polynomials and their four identities; equality with ArkLib's `projectedRoundPolynomial` | the honest prover of a sumcheck `Component.Def`, consumed by the table sumcheck (P3) and the opening (P7) | independent; decide which representation Layer 4 builds on |
 
@@ -136,7 +136,7 @@ it, and the upstream issue or pull request.
 | A2 rbr knowledge-soundness append (guarded first verifier) | admitted at the pin (`Append/Security.lean`, 4 sorries, also on `main`); proved locally by the port of #615 (`ToArkLib/KnowledgeAppend.lean`); the local file is deleted when the pin moves past #615 | C1 | ArkLib #676; ArkLib #615's `Append/Knowledge.lean` (at `ca7a2577`), ported on 2026-09-28 (finding A19); `KnowledgeNary.lean` is the n-ary form |
 | A3 rbr ⇒ plain knowledge soundness | admitted | K3 (corollary) | ArkLib #676 |
 | A5 Fiat–Shamir and BCS security | admitted / absent | K3 | ArkLib #627 (BCS); #848 and #469 (duplex-sponge Fiat–Shamir, Theorems 6.1 and 6.2; the single-salt transfer is the shape of `FiatShamirSecurity`) |
-| A6 grand product, GKR, batching, stacking | absent | L1, G3, G4, G5 | stacking: ArkLib #900 (staged in `ToArkLib/{Stacking,AmbientStacking,Claims}.lean`, #59); fingerprints and the product: ArkLib #901 (#39 staged); batching: ArkLib #615's `gammaPowers`; GKR: to open (ArkLib #818 is a different protocol shape) |
+| A6 grand product, GKR, batching, stacking | absent | L1, G3, G4, G5 | stacking: staged in `ToCompPoly/{Stacking,AmbientStacking,Claims}.lean` (#59), a CompPoly candidate (finding E16); the request is tracked as ArkLib #900 and no CompPoly issue is open yet; fingerprints and the product: ArkLib #901 (#39 staged); batching: ArkLib #615's `gammaPowers`; GKR: to open (ArkLib #818 is a different protocol shape) |
 | A7 WHIR over binary Reed–Solomon codes, Merkle trees | absent | K1, K2 | ArkLib #4 (Merkle); #383 and #992 adjacent; coordinate with #3 F6 |
 | A8 mutual correlated agreement up to Johnson | admitted | K1 | ArkLib's coding-theory track (the #907 slices landing on `main`) |
 | A9 ring switching packing leaves | admitted (packing coordinates repaired after the pin, ArkLib #896) | P6 | #3, ArkLib #893, #383 |
@@ -333,7 +333,15 @@ not prevent it: #40's `placeSlice` and `windowTable` failed to build on `main` f
 and now use the ring's zero. The stacked pull requests had no CI, so nothing had compiled
 them under the repository's options. E15 (2026-09-29) `#guard v = w` finds no `Decidable`
 instance when the vectors' length is a computed block size (`CMlPolynomialEval K (B.size b)`);
-the tests compare `.toList`.
+the tests compare `.toList`. E16 (2026-09-29) the destination of a generic module is read
+off its objects and imports, not off the repository of the issue that asks for it. The
+stacking modules were first filed under `ToArkLib/` because their tracking issue is ArkLib
+#900; they import `CompPoly.Multilinear.Basic` and Mathlib only, every statement is about
+`CMlPolynomialEval` and its evaluators, and ArkLib at the pin keeps its own additions of
+that kind under `ArkLib/ToCompPoly/Multilinear/`, so they are CompPoly's. `Claims.lean` is
+the one judgement call: its theorems are table identities, its record `BlockClaim` is a
+name for their arguments; if CompPoly declines the record, the pairing lemma goes upstream
+stated on `unstack` and the record joins the spine's claims.
 
 ## Survey record
 
@@ -347,8 +355,8 @@ Kept so the searches are not repeated.
   checked. The nine commits cherry-pick onto `main` with conflicts in the two import aggregates
   and the documentation only; the Lean files are byte-identical to the pull requests' heads
   before the adaptation commits. Adaptation: the one build repair (E14); the move of
-  `Multilinear` and `PowerColumn` to `ToCompPoly/` and of `Stacking`, `AmbientStacking` and
-  `Claims` to `ToArkLib/`; roadmap bookkeeping removed from the docstrings; `idxColumnEval_eq`,
+  `Multilinear`, `PowerColumn`, `Stacking`, `AmbientStacking` and `Claims` to `ToCompPoly/`
+  (the last three first to `ToArkLib/`, corrected the same day: finding E16); roadmap bookkeeping removed from the docstrings; `idxColumnEval_eq`,
   the characteristic-two form of §6.5 the roadmap states; `Stack.lean` and its tests. The
   per-file copyright and author notices of #38 and #40 are kept as their author wrote them,
   although `CONTRIBUTING.md` asks for the repository history instead: a decision for the

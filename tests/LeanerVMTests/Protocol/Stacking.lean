@@ -4,10 +4,10 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Stacking
+public import LeanerVM.Protocol.ToCompPoly.Stacking
 public import LeanerVM.Parameters.Field
 public import Mathlib.Data.ZMod.Defs
-meta import LeanerVM.Protocol.ToArkLib.Stacking
+meta import LeanerVM.Protocol.ToCompPoly.Stacking
 meta import LeanerVM.Parameters.Field
 meta import CompPoly.Multilinear.Basic
 

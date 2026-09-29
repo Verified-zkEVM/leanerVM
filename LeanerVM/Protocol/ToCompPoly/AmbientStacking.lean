@@ -8,14 +8,14 @@ Copyright (c) 2026 Leanth Contributors. All rights reserved.
 -/
 
 /-
-  LeanerVM.Protocol.ToArkLib.AmbientStacking
+  LeanerVM.Protocol.ToCompPoly.AmbientStacking
 
   Ambient evaluation of aligned stacks with arbitrary padding.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Stacking
+public import LeanerVM.Protocol.ToCompPoly.Stacking
 
 /-!
 # Ambient stack evaluation
@@ -37,7 +37,8 @@ Stefano Rocca and Elias Judin. The zero-padding source statement is extended to 
 padding and coefficient maps using the current little-endian cube split. Its consumer is the
 leaf decomposition of the bus argument's product trees.
 
-Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
+Candidate for CompPoly, beside `CompPoly.Multilinear`. The request it answers is tracked
+upstream as [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
 -/
 
 namespace LeanerVM.Protocol

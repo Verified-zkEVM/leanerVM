@@ -6,9 +6,9 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.AmbientStacking
+public import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 public import LeanerVMTests.Protocol.Stacking
-meta import LeanerVM.Protocol.ToArkLib.AmbientStacking
+meta import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 meta import LeanerVMTests.Protocol.Stacking
 
 /-!

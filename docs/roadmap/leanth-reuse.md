@@ -418,11 +418,11 @@ The pull request column names where the port was first proposed.
 | `sumCube_eqTable` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
 | `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
 | `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
-| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
-| `Blocks.map`, `map_stackAt`, `stack_eval₂` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | the same, across a ring homomorphism | #26 |
-| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
-| `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `LeanerVM/Protocol/ToArkLib/Claims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
-| `placeSlice`, `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `LeanerVM/Protocol/ToArkLib/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
+| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
+| `Blocks.map`, `map_stackAt`, `stack_eval₂` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
+| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `LeanerVM/Protocol/ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
+| `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `LeanerVM/Protocol/ToCompPoly/Claims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `placeSlice`, `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
 
 Not derived from leanth, and listed so that the layer reads whole: `powerColumnValues` with
 `evalMle_powerColumnValues` (`LeanerVM/Protocol/ToCompPoly/PowerColumn.lean`), `idxColumn` and

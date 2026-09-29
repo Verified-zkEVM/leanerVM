@@ -651,8 +651,10 @@ answers `evalMle` on a two-variable table, on and off the cube, with a mutated c
 ### Layer 1: hypercube tables, stacking, the index and bytecode columns
 
 Generic, over any commutative ring `R` and CompPoly's tables:
-`LeanerVM/Protocol/ToCompPoly/{Multilinear,PowerColumn}.lean`,
-`LeanerVM/Protocol/ToArkLib/{Stacking,AmbientStacking,Claims}.lean`. leanVM:
+`LeanerVM/Protocol/ToCompPoly/{Multilinear,PowerColumn,Stacking,AmbientStacking,Claims}.lean`.
+They are CompPoly's candidates, not ArkLib's: every object in them is a CompPoly table or
+its evaluation, none imports ArkLib, and ArkLib stages such lemmas under its own
+`ArkLib/ToCompPoly/`. leanVM:
 `LeanerVM/Protocol/Stack.lean` (columns over `K`, points in `E`, the spine's `Layout`) and
 `LeanerVM/Protocol/FixedColumns.lean` (the index and bytecode columns; it names the program, so
 it sits below the wall with the adaptor).
@@ -669,7 +671,7 @@ theorem evalMle_append_boolVec (t) (z) (j) : evalMle t (z ++ boolVec j) = evalMl
 theorem sumCube_prodVars : sumCube (prodVars m) = 1             -- Σ_x x_0 ⋯ x_{m-1} = 1
 theorem sumCube_padHigh (t) (m) : sumCube (padHigh t m) = sumCube t   -- back-loaded padding
 
--- ToArkLib/Stacking.lean
+-- ToCompPoly/Stacking.lean
 structure Blocks (R) where (n : ℕ) (size : Fin n → ℕ) (values : (b) → CMlPolynomialEval R (size b))
   (descending : Antitone size)                                  -- largest first
 def Blocks.stackAt (B) (μ) (pad : R) : CMlPolynomialEval R μ    -- aligned; `pad` past the total
@@ -681,10 +683,10 @@ theorem Blocks.stack_eval₂ (φ : R →+* S) …                      -- the sa
 def Blocks.unstack (hμ) (q : CMlPolynomialEval R μ) (b)         -- read a block off any table
 theorem Blocks.unstack_eval₂ (φ) (hμ) (q) (b) (z) :
     eval₂Mle q φ (z ++ boolVec (B.selector hμ b)) = eval₂Mle (B.unstack hμ q b) φ z
--- ToArkLib/AmbientStacking.lean
+-- ToCompPoly/AmbientStacking.lean
 theorem Blocks.stack_eval_ambient (hμ) (pad) (ζ) : evalMle (B.stackAt μ pad) ζ =
     Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo) + pad · (1 − Σ_b eq(sel_b, ζ_hi))
--- ToArkLib/Claims.lean
+-- ToCompPoly/Claims.lean
 structure BlockClaim (B) (S) where (block) (point : Vector S (B.size block)) (value : S)
 theorem BlockClaim.isValid_iff_pairing : c.IsValid φ hμ q ↔ ⟨eq((point, sel), ·), q⟩ = c.value
 

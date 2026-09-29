@@ -8,14 +8,14 @@ Copyright (c) 2026 Leanth Contributors. All rights reserved.
 -/
 
 /-
-  LeanerVM.Protocol.ToArkLib.Claims
+  LeanerVM.Protocol.ToCompPoly.Claims
 
   Block evaluation claims as weighted claims on an arbitrary committed table.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Stacking
+public import LeanerVM.Protocol.ToCompPoly.Stacking
 
 /-!
 # Claims on aligned blocks
@@ -40,7 +40,10 @@ The statements use the current little-endian selection API and arbitrary coeffic
 only unshifted claims are represented because the leanISA protocol has no shifted columns.
 This generic staging module is consumed by the opening phase.
 
-Candidate for ArkLib: [ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
+Candidate for CompPoly, beside `CompPoly.Multilinear`: the pairing theorems are identities
+between a table's cube sum and its evaluation, and the claim record only names their
+arguments. The request it answers is tracked upstream as
+[ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900).
 -/
 
 namespace LeanerVM.Protocol
