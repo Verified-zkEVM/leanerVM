@@ -1,0 +1,6 @@
+'Probe.acceptAll0_no_stateFunction' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.acceptAll1_not_sound_at_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.acceptAll1_sound_at_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.checkBit_sound_at_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.full_iff_of_univ' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0

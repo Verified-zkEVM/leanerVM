@@ -1,0 +1,69 @@
+'Reduction.completeness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'OracleReduction.perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.soundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.knowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Extractor.Straightline' does not depend on any axioms
+'Verifier.StateFunction' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.KnowledgeStateFunction' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Extractor.RoundByRound' depends on axioms: [propext, Quot.sound]
+'Verifier.rbrSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.rbrKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.rbrKnowledgeSoundnessWorstCase' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.rbrKnowledgeSoundnessWorstCaseWith' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.GuardedForm' does not depend on any axioms
+'Prover.OutputIsPure' depends on axioms: [propext]
+'OracleVerifier.toVerifier' does not depend on any axioms
+'OracleReduction.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'OracleReduction.seqCompose' depends on axioms: [propext, Classical.choice, Quot.sound]
+'ProtocolSpec.seqCompose' depends on axioms: [propext]
+'Extractor.RoundByRound.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.StateFunction.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.GuardedForm.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.rbrKnowledgeSoundnessWorstCase_implies_rbrKnowledgeSoundness' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Verifier.rbrSoundnessWorstCase_implies_rbrSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Verifier.rbrKnowledgeSoundnessWorstCaseWith_implies_rbrKnowledgeSoundnessWith' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'ProtocolSpec.probEvent_simulateQ_addLift_getChallenge_bind_le' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Reduction.perfectCompleteness_of_run_support' depends on axioms: [propext, Classical.choice, Quot.sound]
+'OracleReduction.append_perfectCompleteness_of_pure_verifiers' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'OracleReduction.append_perfectCompleteness_of_guarded_verifiers' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'OracleReduction.append_completeness_of_guarded_verifiers' depends on axioms: [propext, Classical.choice, Quot.sound]
+'OracleReduction.seqCompose_completeness_of_guarded_verifiers' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'OracleReduction.seqCompose_perfectCompleteness_of_guarded_verifiers' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Reduction.seqCompose_completeness_of_guarded_verifiers' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.append_completeness_of_guarded_verifiers' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Reduction.append_completeness_of_guarded_prover_factorization' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Verifier.append_rbrSoundnessWorstCase_of_pure_first' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Prover.OutputIsPure.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'OracleVerifier.append_toVerifier' depends on axioms: [propext, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/lib-arklib/AxiomsArkLibBuilt.lean:52:14: error(lean.unknownIdentifier): Unknown constant `MvPolynomial.schwartz_zippel_counting`
+'prob_eval_zero_le_div' depends on axioms: [propext, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/lib-arklib/AxiomsArkLibBuilt.lean:54:14: error(lean.unknownIdentifier): Unknown constant `MvPolynomial.prob_eval_zero_le_div`
+'Verifier.append_soundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.append_knowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.append_rbrSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.append_rbrKnowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'OracleVerifier.append_rbrKnowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.seqCompose_soundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.seqCompose_knowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.seqCompose_rbrSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Verifier.seqCompose_rbrKnowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'OracleVerifier.seqCompose_rbrKnowledgeSoundness' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'OracleVerifier.numQueries' depends on axioms: [sorryAx]
+exit=1   (the two `Unknown constant` lines are the only errors: the names the blueprint gives do not exist)

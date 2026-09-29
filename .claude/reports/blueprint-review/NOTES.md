@@ -182,3 +182,43 @@ Findings:
 - PROBE `probes/gt-flock-ring/NoCheckFlock.lean`: on the toy (aux := True) a Flock phase with no
   message, no challenge, no check has `Phase.Security`, standard axioms only. I.e. the master
   theorems constrain the Flock verifier exactly as much as the instance's `aux` does.
+
+## PAUSED by the user (about 21:00, 2026-09-29)
+
+The user asked for every sub-agent to be paused until they say to restart. All ten running
+agents were stopped with TaskStop; their transcripts are kept, so each is resumed with
+SendMessage to its id (a resume continues from the transcript). Nothing else is running.
+
+To restart, send each a short "resume" message (remind: branch `docs/protocol-blueprint-review`,
+no build, Lean only under the lock, write the dossier incrementally). Launch in small batches.
+
+| Task | Agent id | Model | State when paused |
+| --- | --- | --- | --- |
+| code-pubinput | ac9d08c8739049c91 | Fable | resumed once; mutation probes on disk; dossier: see `ls dossiers/` |
+| code-spine | a19e52090b4de7aec | Fable | resumed once; probes on disk |
+| lib-arklib | a44f401af73980c7d | Fable | resumed once; probes on disk; was about to save a first dossier |
+| docs-debt (finish) | a5f883689be86186c | Opus | started from `probes/docs-debt/dossier-part1.txt` |
+| literature | a7d298d313359c144 | Opus | just started |
+| lib-others | a7d2272ba8e6c4295 | Opus | just started (reusing probes on disk) |
+| code-layer1 | ae216ea12b9b64dec | Opus | just started (reusing probes on disk) |
+| verify-gt-bus | a8677e8e10ba5195e | Opus | just started |
+| verify-gt-table-pub | a7eed15962ee36d90 | Opus | just started |
+| verify-gt-flock-ring | a0e2028fc2a0a9921 | Opus | just started |
+| gt-opening-compile | af3af1b8d3b04f65b | Fable | NOT resumed since the usage limit; probes on disk, no dossier |
+| boundary-adaptor | ac9a0283cf6e56419 | Fable | NOT resumed since the usage limit; probes on disk, no dossier |
+
+Complete dossiers: gt-table-pub, gt-bus, gt-flock-ring.
+
+First-hand checks by the orchestrator (20:55), all confirming the dossiers:
+- `gkr.rs:358-430`: roots read as `[shared, shared, root]` (bus root first, then count root);
+  `lambda = vs.sample()` before the loop AND at the end of every iteration (so one more combiner
+  than layers, the last unused); radix-4 rounds call `next_round_poly(5, claim,
+  Some(equality_point))` (5 coefficients, c_0 derived through the eq factor, 4 on the wire);
+  layer check `claim != poly_eval(&products, lambda)` has no eq factor;
+  `point = [low, high] ++ round_point`.
+- `fiat_shamir/src/transcript.rs:289-309`: `fixed = usize::from(eq.is_none())`; with `eq = None`
+  the coefficient c_1 is derived as `claim + sum_from(2)`; with `Some(r)` c_0 is derived as
+  `claim + r * sum_from(1)`. Only the transmitted coefficients are bound into the chain. No
+  round check can fail; no division.
+- `flock/src/zerocheck.rs:116-123` (prover `send_round`):
+  `let g0 = (claim + r_eq * g1) * (F192::ONE + r_eq).inv();` — the inverse is the PROVER's.

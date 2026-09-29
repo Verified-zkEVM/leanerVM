@@ -1,0 +1,4 @@
+.claude/reports/blueprint-review/probes/lib-arklib/ExtractorsExpectedFailure.lean:12:4: error(lean.dependsOnNoncomputable): failed to compile definition, consider marking it as 'noncomputable' because it depends on 'Classical.propDecidable', which is 'noncomputable'
+.claude/reports/blueprint-review/probes/lib-arklib/ExtractorsExpectedFailure.lean:19:4: error(lean.dependsOnNoncomputable): failed to compile definition, consider marking it as 'noncomputable' because it depends on 'publicInputPhase', which is 'noncomputable'
+.claude/reports/blueprint-review/probes/lib-arklib/ExtractorsExpectedFailure.lean:31:4: error(lean.dependsOnNoncomputable): failed to compile definition, consider marking it as 'noncomputable' because it depends on 'publicInputPhase', which is 'noncomputable'
+exit=1   (expected: the three errors are the result)

@@ -1,0 +1,60 @@
+'LeanerVM.Protocol.piop_perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piopExtractor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.commitExtractor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.sendExtractor' depends on axioms: [propext, Quot.sound]
+'LeanerVM.Protocol.commitSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.commitComplete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.Security.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.Complete.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Phases.Security.toDef' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.M3Holds' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.passThroughSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.publicInputSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'LeanerVM.Protocol.Verifier.KnowledgeStateFunction.appendGuarded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'Extractor.RoundByRound.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Refinement.map_option_valid' depends on axioms: [propext, Quot.sound]
+'LeanerVM.Protocol.Toy.read_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+LeanerVM.Protocol.piopExtractor: noncomputable=false
+LeanerVM.Protocol.commitExtractor: noncomputable=false
+LeanerVM.Protocol.Component.sendExtractor: noncomputable=false
+LeanerVM.Protocol.Phases.Security.toDef: noncomputable=false
+LeanerVM.Protocol.Phases.Complete.toDef: noncomputable=false
+LeanerVM.Protocol.Component.Security.append: noncomputable=false
+LeanerVM.Protocol.Component.Complete.append: noncomputable=false
+Extractor.RoundByRound.append: noncomputable=false
+LeanerVM.Protocol.leanVmPiop: noncomputable=false
+LeanerVM.Protocol.leanVmVerifier: noncomputable=false
+LeanerVM.Protocol.leanVmProver: noncomputable=false
+LeanerVM.Protocol.piopError: noncomputable=false
+LeanerVM.Protocol.Phases.toDef: noncomputable=false
+LeanerVM.Protocol.Component.Def.append: noncomputable=false
+LeanerVM.Protocol.commitDef: noncomputable=false
+LeanerVM.Protocol.Component.sendOracle: noncomputable=false
+LeanerVM.Protocol.Component.sendProver: noncomputable=false
+LeanerVM.Protocol.Component.sendVerifier: noncomputable=false
+LeanerVM.Protocol.publicInputPhase: noncomputable=true
+LeanerVM.Protocol.publicInputSecurity: noncomputable=false
+LeanerVM.Protocol.publicInputComplete: noncomputable=false
+LeanerVM.Protocol.commitSecurity: noncomputable=false
+LeanerVM.Protocol.commitComplete: noncomputable=false
+LeanerVM.Protocol.Component.passThrough: noncomputable=false
+LeanerVM.Protocol.Component.passThroughSecurity: noncomputable=false
+LeanerVM.Protocol.Component.passThroughExtractor: noncomputable=false
+LeanerVM.Protocol.PublicInput.extractor: noncomputable=false
+LeanerVM.Protocol.PublicInput.prover: noncomputable=false
+LeanerVM.Protocol.PublicInput.verifier: noncomputable=false
+LeanerVM.Protocol.Verifier.KnowledgeStateFunction.appendGuarded: noncomputable=false
+LeanerVM.Protocol.Component.guardedAppend: noncomputable=false
+LeanerVM.Protocol.M3Holds: noncomputable=false
+LeanerVM.Protocol.Toy.toy: noncomputable=false
+LeanerVM.Protocol.Toy.honest: noncomputable=false
+LeanerVM.Protocol.Extractor.Straightline.map: noncomputable=false
+OracleReduction.append: noncomputable=false
+exit=0

@@ -1,0 +1,7 @@
+.claude/reports/blueprint-review/probes/code-spine/P3cExtractor.lean:58:49: error: Type mismatch
+  honest
+has type
+  Column 3
+but is expected to have type
+  (realPubSecurity Sb St Sf So).toDef.witMid (Fin.last realPub.toDef.n)
+exit=1

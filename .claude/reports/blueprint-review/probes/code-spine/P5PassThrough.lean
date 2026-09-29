@@ -42,7 +42,7 @@ def noImpl : QueryImpl []ₒ (StateT Unit ProbComp) := fun t ↦ PEmpty.elim t
 constructor fails, the type is empty. -/
 theorem no_security (S : Phase.Security toy (Phase.passThrough toy dropAll) (Seam.commit toy)
     (Seam.bus toy)) : False := by
-  have K := S.kSF (pure ()) noImpl
+  have ksf := S.kSF (pure ()) noImpl
   let stmt : K × ∀ i, TheOracle toy i := (2, fun _ ↦ badConstraint)
   let tr : (Phase.passThrough toy dropAll).pSpec.FullTranscript := fun i ↦ Fin.elim0 i
   have htr : tr = (default : (Phase.passThrough toy dropAll).pSpec.Transcript 0) :=
@@ -61,9 +61,9 @@ theorem no_security (S : Phase.Security toy (Phase.passThrough toy dropAll) (Sea
     rw [gt_iff_lt, probEvent_pos_iff]
     refine ⟨(dropAll 2, fun _ ↦ badConstraint), ?_, bad_mem_bus⟩
     simp
-  have hfull := K.toFun_full stmt tr () hpos
+  have hfull := ksf.toFun_full stmt tr () hpos
   rw [htr] at hfull
-  exact bad_not_m3Holds ((K.toFun_empty stmt _).mpr hfull)
+  exact bad_not_m3Holds ((ksf.toFun_empty stmt _).mpr hfull)
 
 #print axioms no_security
 
