@@ -30,10 +30,8 @@ with `./scripts/validate.sh` green there and the axiom audit at 3193 declaration
 consolidation on `main` of what was spread over four open pull requests on a stale base: the
 draft #18 (the generic half and the reuse catalog [leanth-reuse.md](leanth-reuse.md), with the
 merged #25 and #26) and the leaves #38, #40 and #41. Their commits are cherry-picked with their
-authorship and co-author trailers. The branch `feat/protocol-layer-1-credited` holds the same
-tree with corrected messages: each cherry-pick cites the commit and pull request it comes from,
-and each commit added on top names the authors of the modules it touches; replacing #59's
-history by it needs a force push, which is the maintainer's.
+authorship and co-author trailers, each citing the commit and pull request it comes from, and
+each commit added on top names the authors of the modules it touches.
 
 On top of the cherry-picks the branch repairs the one build failure the stacked pull requests
 could not see without CI (finding E14), makes the generic half generic (findings E16, E17), adds

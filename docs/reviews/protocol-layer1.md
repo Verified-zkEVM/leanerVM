@@ -208,8 +208,6 @@ stale test docstring (C9). The five gate scripts pass.
 - The rule for the wall in `scripts/check-layers.sh`, with its allowlist and its test in
   `scripts/test-policy-checks.py` (D1).
 - The per-file headers of `ToCompPoly/AmbientStacking.lean` and `BlockClaims.lean` (C1).
-- Replacing the history of #59 by that of `feat/protocol-layer-1-credited`, which needs a force
-  push.
 - On GitHub: the L1 line and the open pull request table of the dashboard #12 (D17), and the
   note to the author of #39 and #43 that `Blocks` no longer carries values.
 
