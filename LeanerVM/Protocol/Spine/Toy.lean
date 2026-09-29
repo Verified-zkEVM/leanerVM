@@ -18,9 +18,10 @@ import Mathlib.Algebra.MvPolynomial.CommRing
 
 One table of width 3 and height 2 on a stack of height 8: column `i` at cells `2i, 2i + 1`, cells
 6 and 7 padding. Column 2 must be Boolean, and it is the public line: its cell 0 is the public
-statement and its cell 1 is `0`. The table pushes `(X₀, 0, …)` on every row and one boundary
-block pulls the known column `[1, 1]`, so the bus balances exactly when column 0 is `[1, 1]` in
-some order; column 1 is a count column; the auxiliary predicate is `True`; the degree bound is 2.
+statement, its cell 1 is `0`, and its value on the line is sent. The table pushes `(X₀, 0, …)`
+on every row and one boundary block pulls the known column `[1, 1]`, so the bus balances exactly
+when column 0 is `[1, 1]` in some order; column 1 is a count column; the auxiliary predicate is
+`True`; the degree bound is 2.
 `M3Holds` on it is decided by evaluation, and each of its clauses can be made to fail alone
 (`tests/LeanerVMTests/Protocol/Spine.lean`).
 -/
@@ -105,7 +106,7 @@ abbrev toy : M3Instance where
   boundary := [boundary]
   μ := 3
   layout := layout
-  publicLines := fun v ↦ [⟨⟨0, 2⟩, v, 0, by decide⟩]
+  publicLines := fun v ↦ [⟨⟨0, 2⟩, v, 0, true, by decide⟩]
   aux := fun _ ↦ True
   decAux := fun _ ↦ inferInstance
 

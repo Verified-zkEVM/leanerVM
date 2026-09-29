@@ -106,6 +106,10 @@ structure PublicLine (S : Shape) where
   cell0 : K
   /-- The value cell 1 must hold. -/
   cell1 : K
+  /-- Whether the proof carries the value claimed for this column on the line through its two
+  cells (§8.2: it does for the two low limbs of the memory, and not for the top limb, whose
+  value is known to be zero). It fixes the transcript, not the relation. -/
+  sent : Bool
   /-- The column has a cell 1. -/
   pos : 0 < S.τ col.1
 

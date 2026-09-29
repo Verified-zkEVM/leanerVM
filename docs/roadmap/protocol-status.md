@@ -1,13 +1,14 @@
 # Status: the leanVM proof system on ArkLib
 
 This file records where the [protocol roadmap](protocol-blueprint.md) stands as of `main` at
-`5cb7da6` (the spine, PR #58), checked on 2026-09-29, together with the open pull requests and
-Layer 1 as consolidated on the branch `feat/protocol-layer-1` (hole L1, pull request #59);
-this snapshot accompanies that branch. It is a hand-maintained snapshot, rewritten whole when a
-layer or hole lands or a decision is taken; the roadmap is the authority on what is wanted, and
-the tracking issue [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole
-checklist below. Open pull requests and prerequisite-branch adoption are not changes landed on
-`main`. The dependency pins are unchanged.
+`f4d858c` (Layer 1, PR #59, merged on 2026-09-29), checked on 2026-09-29, together with the open
+pull requests and the public-input phase (hole P5) as built on the branch
+`feat/protocol-public-input` (pull request #60); this snapshot accompanies that branch. It is a
+hand-maintained snapshot, rewritten whole when a layer or hole lands or a decision is taken; the
+roadmap is the authority on what is wanted, and the tracking issue
+[#12](https://github.com/Verified-zkEVM/leanerVM/issues/12) mirrors the hole checklist below.
+Open pull requests and prerequisite-branch adoption are not changes landed on `main`. The
+dependency pins are unchanged.
 
 ## Where this roadmap stands
 
@@ -25,17 +26,16 @@ the commit phase with both halves proved, the bundle `Phases`, the protocol's ex
 relations. It was revised before merging after the adversarial review
 [protocol-spine.md](../reviews/protocol-spine.md).
 
-Layer 1 (hole L1) is built, on the branch `feat/protocol-layer-1`, pull request #59, a draft,
-with `./scripts/validate.sh` green there and the axiom audit at 3193 declarations. It is a
-consolidation on `main` of what was spread over four open pull requests on a stale base: the
-draft #18 (the generic half and the reuse catalog [leanth-reuse.md](leanth-reuse.md), with the
-merged #25 and #26) and the leaves #38, #40 and #41. Their commits are cherry-picked with their
+Layer 1 (hole L1) is on `main` (#59, `f4d858c`, 2026-09-29). It is a consolidation of what was
+spread over four pull requests on a stale base: the draft #18 (the generic half and the reuse
+catalog [leanth-reuse.md](leanth-reuse.md), with the merged #25 and #26) and the leaves #38,
+#40 and #41. Their commits are cherry-picked with their
 authorship and co-author trailers, each citing the commit and pull request it comes from, and
 each commit added on top names the authors of the modules it touches.
 
-On top of the cherry-picks the branch repairs the one build failure the stacked pull requests
-could not see without CI (finding E14), makes the generic half generic (findings E16, E17), adds
-the leanVM half, and meets the adversarial review
+On top of the cherry-picks it repairs the one build failure the stacked pull requests could not
+see without CI (finding E14), makes the generic half generic (findings E16, E17), adds the
+leanVM half, and meets the adversarial review
 [protocol-layer1.md](../reviews/protocol-layer1.md). The modules:
 
 | Module | Content | From |
@@ -53,11 +53,32 @@ the leanVM half, and meets the adversarial review
 `FixedColumns.lean` imports `LeanerVM.Arithmetization.Bytecode` (it names the program), so it
 sits below the wall with the adaptor and the compiled verifier; every other Layer 1 module
 imports no leanISA module. The wall is checked by review: `scripts/check-layers.sh` has no rule
-for it (review finding D1). Left for the holes: the five phase `Def`s and their proofs, the
-generic components, the adaptor, the compiled verifier. Seven pull requests are open beside #59:
-the four it consolidates (#18, #38, #40, #41), closed when it merges, and three that stay, #39
-and #43, stacked on #18, and #42 on `main`; where each sits against the spine is in the table
-below. The relation the proof system proves is `M3Holds`; the adaptor (`witnessOf`,
+for it (review finding D1).
+
+The public-input phase (hole P5) is built, on the branch `feat/protocol-public-input`, pull
+request #60, a draft, with `./scripts/validate.sh` green there and the axiom audit at 3298
+declarations. `LeanerVM/Protocol/PublicInput.lean` is §8.2 as the specification writes it: the
+verifier's challenge, then the prover's values for the public lines whose value is sent, which
+the verifier checks against the statement, rejecting otherwise, before it pools one claim per
+line. Both halves are proved (`publicInputComplete`,
+`publicInputSecurity`), at error `1/|E|` on the one challenge. It is the first phase with a
+challenge, a prover message, a verifier that can reject and a nonzero error. The first build had
+no prover message; it was rebuilt on the specification's transcript, merged with Layer 1, and
+revised after the adversarial review
+[public-input-phase.md](../reviews/public-input-phase.md). It changes the spine in one place: a
+public line says whether its value is sent (`PublicLine.sent`, decision 15). It adds three
+generic modules, each in place of a proof the components would otherwise copy:
+
+| Module | Content | Used by |
+| --- | --- | --- |
+| `ToArkLib/GuardedVerdict.lean` | `Verifier.GuardedForm.of_probEvent_pos` (a verifier that is a check followed by a verdict can output a statement satisfying a predicate only if the check passes and the verdict satisfies it), `Reduction.mem_support_run_of_guarded` (every outcome of a run is a run of the prover with the verdict, or a rejection) | the phase, and now the pass-through and send-oracle components (`PassThrough.lean`, `SendOracle.lean`) |
+| `ToArkLib/KeepOracles.lean` | `keepOracles` (the output oracles are the input oracles), `OracleVerifier.materializeOutput_of_keepOracles` | the phase and the pass-through |
+| `ToVCVio/UniformSample.lean` | `probEvent_uniformSample_le_of_card_le` (at most `k` witnesses, probability at most `k/\|α\|`), `probEvent_uniformSample_le_of_subsingleton` | the phase |
+
+Left for the holes: four of the five phase `Def`s and their proofs, the generic components, the
+adaptor, the compiled verifier. Three pull requests are open beside #60: #39 and #43, stacked
+on the closed #18, and #42 on `main`; where each sits against the spine is in the table below.
+The relation the proof system proves is `M3Holds`; the adaptor (`witnessOf`,
 `satisfiedBy_witnessOf`) carries knowledge of it to leanISA's `SatisfiedBy`, and T1 carries that
 to `ValidExecution`.
 
@@ -66,7 +87,7 @@ to `ValidExecution`.
 | Hole | Unit | Status | Issue |
 | --- | --- | --- | --- |
 | 0 | ArkLib dependency and field instances (Layer 0) | landed | #15 |
-| L1 | Layer 1: tables, stacking, the fixed columns | built, draft #59: consolidates the draft #18 (with #25, #26) and the leaves #38, #40, #41 on `main`, makes the generic half generic, and adds the leanVM half; reviewed on 2026-09-29 | #27, #32, #35, #36 |
+| L1 | Layer 1: tables, stacking, the fixed columns | landed (#59, `f4d858c`, 2026-09-29): consolidates the draft #18 (with #25, #26) and the leaves #38, #40, #41, makes the generic half generic, and adds the leanVM half; reviewed on 2026-09-29 | #27, #32, #35, #36 |
 | S | the spine | landed (#58, `5cb7da6`, 2026-09-28) | #12 |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | claimed; the honest round algebra and the ArkLib bridge in #42 | #37 |
 | G2 | sumcheck round-by-round knowledge, `Sumcheck.Security` (Layer 4, A1) | claimed; a one-round leaf prepared, unpublished | #37 |
@@ -77,7 +98,7 @@ to `ValidExecution`.
 | I2 | the adaptor (Layer 3) | open; needs L1 and I1; `satisfiedBy_witnessOf` takes `s.Admissible` as a hypothesis; two layout readers, Layer 1's `Blocks.layout` (renamed by `Layout.comap`) for the aligned blocks, in the order of finding F17, and a strided reader for the eighteen BLAKE2S limb slots of `q_flock`; depends on #3 for the Flock witness generator and the lemma "the R1CS holds ⇒ the limb slots compress" | #12 |
 | P1, P2 | the bus phase (Layer 6) | open on the spine's seams; P1 needs G5 | #12 |
 | P3, P4 | the table sumcheck phase (Layer 7) | open on the spine's seams; needs G1 | #12 |
-| P5 | the public-input phase (Layer 8) | open on the spine's seams; over `I.publicLines`: one challenge, one pooled claim per line, the prover sends nothing; the smallest hole, a good first one | #12 |
+| P5 | the public-input phase (Layer 8) | built, draft #60, as §8.2 writes it, both halves proved, reviewed on 2026-09-29: `publicInputPhase` on `PublicInput.pSpec` (the challenge in `E`, then the prover's values, a `List E`), `PublicInput.check` (the message is the values `(1 + r)·cell0 + r·cell1` of the lines whose value is sent), `PublicInput.pooled` (the earlier phases' claims, then one claim per line at `(r, 0, …, 0)`), the verdict `PublicInput.verifier_verify` (check, then pool, else reject), `publicInputComplete`, `publicInputSecurity` with the trivial extractor and error `1/\|E\|`; a line says whether its value is sent (`PublicLine.sent`), leanISA's first two do; lands when #60 merges | #12 |
 | P6 | the Flock phase (Layer 9) | open on the spine's seams; needs #3; its input predicate is the strong `aux`, Flock's R1CS on `q_flock` (decision 12) | #12 |
 | P7, P8 | the claim pool and the opening phase (Layer 10) | open on the spine's seams; needs G1, G3; its first step, a column claim as a weighted claim, is Layer 1's `ColumnClaim.holds_iff_weighted` | #12 |
 | C1 | the knowledge-soundness append (A2) | landed with the spine (#58): `ToArkLib/KnowledgeAppend.lean`, the port of #615's proof; deleted at the pin bump | #12 |
@@ -89,17 +110,13 @@ to `ValidExecution`.
 
 ### Open pull requests
 
-#59 carries Layer 1. The four pull requests it consolidates stay open until it merges, so
-that their discussion is not lost; they are closed by that merge. None of the others touches a
-spine name; each is algebra a hole will consume.
+#60 carries the public-input phase. Layer 1 merged as #59, and the four pull requests it
+consolidated (#18, #38, #40, #41) are closed. None of the three others touches a spine name;
+each is algebra a hole will consume.
 
 | PR | Hole | Base | CI | Content | Against the spine | Next step |
 | --- | --- | --- | --- | --- | --- | --- |
-| #59 (draft) | L1 | `main` | runs | Layer 1, the table above | `Blocks.layout` inhabits `Layout` for the aligned blocks (I2), `ColumnClaim.holds_iff_weighted` is the opening phase's first step (P7); the rest as in the rows below | mark ready, review and merge |
-| #18 (draft) | L1 | `4b95a60` | none | `Multilinear.lean`, `Stacking.lean`, the reuse catalog; #25 and #26 merged in | in #59 | close when #59 merges |
-| #40 | L1, feeds P1 | #18 | none | `stack_eval_ambient` (§5.4, equation (2), with any pad), `stack_eval₂_ambient` | the bus phase's leaf decomposition, from which it computes the values of its `LinearClaim`s; in #59 | close when #59 merges |
-| #38 | L1, feeds P7 | #18 | none | `Blocks.unstack`, `BlockClaim`, `isValid_iff_pairing`, window locality | `BlockClaim` is the aligned-block form, usable where a `Blocks` is known; a phase works over an abstract instance and takes `ColumnClaim.holds_iff_weighted` instead; in #59 | close when #59 merges |
-| #41 | L1, feeds P1 | #18 | none | `idxColumn`, `idxColumn_eval`, `bytecodeColumn`, `bytecodeColumn_slot`, `bytecodeColumn_eval` (Category B against §8.1 and `leaf.rs:570-637`) | the `Coord.known` columns of the leanISA instance's boundary blocks; below the wall; in #59 | close when #59 merges |
+| #60 (draft) | P5 | `main` | runs | the public-input phase, both halves; `ToArkLib/GuardedVerdict.lean`, `ToArkLib/KeepOracles.lean`, `ToVCVio/UniformSample.lean` | fills the slot `pub` of `Phases`; adds the field `PublicLine.sent` to the spine (decision 15); the pass-through and send-oracle components use the shared lemmas | mark ready, review and merge |
 | #43 | G3 | #18 | none | `powerBatch`, `pairing_batchWeight`, `batch_complete`, `card_false_batch_le` | the opening phase's batching of `FlockOut` into one `WeightedClaim` (P7), and its `(J − 1)/\|E\|` term of `err` (P8) | rebase onto `main` after #59: `Generic/` becomes `ToArkLib/` or `ToCompPoly/` by destination, the imports become `LeanerVM.Protocol.ToCompPoly.Multilinear`, `LeanerVM.Protocol.ToCompPoly.Stacking`, and `Blocks R` with its `values` becomes `Blocks` with a separate `B.Tables R` |
 | #39 | G4 | #18 | none | `fingerprintPoly`, its injectivity, `fingerprintFactorPoly` of total degree at most 4 | the bus phase: a bus form is a list of `VirtualTerm`s, the flush coordinate polynomials over `K` with weights `eq(sel_b, ζ_hi)·eq(α, i)` and one constant term of weight `eq(sel_b, ζ_hi)·β`, so the fingerprint enters the weights, not the polynomials; the collision bound is P2's | rebase onto `main` after #59, as #43 |
 | #42 | G1 | `main` | runs | the honest round polynomials and their four identities; equality with ArkLib's `projectedRoundPolynomial` | the honest prover of a sumcheck `Component.Def`, consumed by the table sumcheck (P3) and the opening (P7) | independent; decide which representation Layer 4 builds on |
@@ -116,20 +133,31 @@ the namespace audit passes on the branch.
 
 ### The frontier
 
-- **Layer 1** is the draft #59, reviewed on 2026-09-29
+- **Layer 1** is on `main` (#59), reviewed on 2026-09-29
   ([protocol-layer1.md](../reviews/protocol-layer1.md)): no theorem false or vacuous; the
-  findings on this layer are met on the branch, and those on the roadmap are applied to it. Its
-  review budget goes to the statements later layers rest on: `Blocks.stack_eval` and
+  findings on this layer were met before the merge, and those on the roadmap applied to it. The
+  statements later layers rest on: `Blocks.stack_eval` and
   `Blocks.unstack_eval₂` (the stacking identity, honest and for any committed table),
   `Blocks.stack_eval_ambient` (§5.4, equation (2)), `ColumnClaim.holds_iff_weighted`, and
   `bytecodeColumn_answer_boolVec` with `idxColumn_eval` (the bit orders). Open from the review:
   a rule for the wall in `scripts/check-layers.sh` (D1), a fixture for the bytecode column
   derived from the pinned source with all six opcodes (B, observation 3), and the per-file
   author headers of two modules (C1), the maintainer's to decide.
-- **#39 and #43** rebase onto `main` once #59 merges; their import paths change with the move
-  into the `To*` folders, and `Blocks` no longer carries values.
-- **Holes that can start now**, on `main`: P5 (the smallest phase, the pattern for the others),
-  P1 and P3 (their `Def`s), G1 to G6, I1, K1 and K2. I2 can start on #59's branch.
+- **The public-input phase** (P5) is the draft #60, reviewed on 2026-09-29
+  ([public-input-phase.md](../reviews/public-input-phase.md)): no theorem wrong or vacuous; its
+  findings are met on the branch. #60 ticks P5 on the dashboard when it merges.
+  Review budget: `PublicInput.check` and `PublicInput.pooled` against §8.2, the flag
+  `PublicLine.sent`, the state function `PublicInput.stateFunction`, and `PublicInput.rbr`, which
+  carries the `1/|E|`. Its theorems are about the specification's verifier. The pinned verifiers
+  check one equation on the two public words where §8.2 checks one per limb, and accept
+  transcripts this verifier rejects (finding F18), so Layer 12 owes the deployed check its own
+  lemma. The phase is the pattern for P1, P3 and P7: a verifier that reads a prover message and
+  can reject is given its verdict once (`PublicInput.verifier_verify`), and both proofs start
+  from the shared lemmas of `ToArkLib/GuardedVerdict.lean`.
+- **#39 and #43** rebase onto `main`, now that #59 has merged; their import paths change with
+  the move into the `To*` folders, and `Blocks` no longer carries values.
+- **Holes that can start now**, on `main`: P1 and P3 (their `Def`s, on P5's pattern), G1 to G6,
+  I1, I2, K1 and K2.
 - **The pins have not moved.** ArkLib `main` is 246 commits past `dca90385` (finding A18); the
   next bump is one planned change (Lean 4.34, a CompPoly containing #331, `card_E` restated:
   finding P3).
@@ -216,14 +244,28 @@ reversible by a pull request to the spine:
     witness generator in `stackOf` (review finding A2).
 13. **Public lines, not cells.** The statement fixes cells 0 and 1 of listed columns
     (`PublicLine`, `PublicLinesHold`), the shape the public-input phase of §8.2 checks with one
-    challenge and no prover message; an arbitrary list of cells admits statements no such phase
-    serves. The leanISA instance has three lines, on `mem_0, mem_1, mem_2`, the third with cells
-    `0, 0` (review finding A4).
+    challenge; an arbitrary list of cells admits statements no such phase serves. The leanISA
+    instance has three lines, on `mem_0, mem_1, mem_2`, the third with cells `0, 0` (review
+    finding A4).
 14. **The degree bound belongs to the instance.** `M3Instance` carries `d` with proofs that every
     constraint and every flush coordinate has total degree at most `d` (leanVM: 2), and
     `Seam.bus` bounds every term of every linear claim by it, so the table sumcheck's
     completeness is owed only on claims its round polynomials, of degree `d + 1`, can carry
     (review finding A1, acceptance test 28).
+
+Taken on 2026-09-29 with the public-input phase, on the user's instruction:
+
+15. **The public-input phase has the specification's transcript, and a line says whether its
+    value is sent.** The prover sends the values it claims for the public columns at
+    `(r, 0, …, 0)`, and the verifier checks them against the line through the statement's two
+    cells and rejects otherwise. §8.2 sends `c_0, c_1` for the two low limbs and pools the top
+    limb at `0` with no scalar, so which lines have a value sent is part of the proof's format.
+    It is the field `PublicLine.sent` of the instance, declared with the line, where the
+    protocol and the compiled verifier both read it; as a parameter of the phase it was bound by
+    no statement and no test. It fixes the transcript and not the relation: `M3Holds` does not
+    mention it, and both theorems hold for every choice. The claims are pooled at the lines'
+    values, which are the values sent whenever the check passes. The check is the
+    specification's, per limb, not the pinned verifiers' equation on the words (finding F18).
 
 Still pending:
 
@@ -285,7 +327,7 @@ blocks make announced heights exact, so no truthfulness obligation exists
 `flock/src/hash.rs:276-280`). F15 the stacking bound `μ ∈ [15, 28]` is checked separately from
 the per-log caps (`cpu/mod.rs:174-176`). F16 `SECURITY_BITS = 128` round-by-round with the
 Johnson slack, and `assert_grinding_unnecessary` proves the bus needs no grinding for
-`μ ≤ 61` (`leaf.rs:945-950`). F17 (2026-09-29) blocks of equal size are stacked in the order of the column index (`stack_offsets`, `witness.rs:67-79`, `.then(a.cmp(&b))`; `verifier.py:305-311`), and the column index puts the six shared columns first, `MEM_LO` to `QFLOCK`, then the tables' columns (`cpu/layout.rs:13-49`). This roadmap said the reverse and cited `witness.rs:85-101`, which is `placements_of` and lists no column. Whenever a table's log-height equals `log_mem` the two orders give different offsets and selectors; Layer 1's `Blocks` takes the order as given, so the adaptor must supply this one, with a guard on the vectors of `witness.rs:191-197`.
+`μ ≤ 61` (`leaf.rs:945-950`). F17 (2026-09-29) blocks of equal size are stacked in the order of the column index (`stack_offsets`, `witness.rs:67-79`, `.then(a.cmp(&b))`; `verifier.py:305-311`), and the column index puts the six shared columns first, `MEM_LO` to `QFLOCK`, then the tables' columns (`cpu/layout.rs:13-49`). This roadmap said the reverse and cited `witness.rs:85-101`, which is `placements_of` and lists no column. Whenever a table's log-height equals `log_mem` the two orders give different offsets and selectors; Layer 1's `Blocks` takes the order as given, so the adaptor must supply this one, with a guard on the vectors of `witness.rs:191-197`. F18 (2026-09-29, P5) the pinned verifiers check one equation on the two public words, `c_0 + Y·c_1 = interp(pi_0, pi_1, r)` over `E` (`cpu/mod.rs:752-755`, `verifier.py:1400`), where §8.2 writes one equation per limb, `c_ℓ = (1 + r)·mem[g⁰]_ℓ + r·mem[g¹]_ℓ` (`08-end-to-end-protocol.tex:29-32`); the transcripts agree, one challenge and two scalars. The two equations imply the one. The converse fails, also when the scalars are the true evaluations of `K`-valued columns, because they are evaluations at a point of `E`: with zero public words and limbs `[0, 1]` and `[1, 0]`, at `r = y/(1 + y)` the equation on the words holds and both equations per limb fail (pinned by a test). For a given wrong stack each check has at most one bad challenge, and not the same one, so each gives the error `1/|E|` (Lemma 3.8, Schwartz-Zippel); for the equation on the words this is argued on paper, not proved in Lean. The phase proves the specification's verifier; the pinned verifiers accept strictly more transcripts, and their knowledge soundness is a lemma Layer 12 owes.
 
 **ArkLib** (`dca90385`). A1–A9 are the ledger. Further: A10 relations are `Set (Stmt × Wit)`;
 the documented refactor to `Stmt → Wit → Prop` has not happened (`Security/Basic.lean:45-65`).
@@ -338,8 +380,24 @@ registered for no type, and a component's schedule needs an interface on every p
 be deleted when upstream supplies them. E9 (2026-09-28) `decide` cannot unfold CompPoly's `X`
 and `*` inside a `module`: the toy's two degree bounds (`constraint_totalDegree`,
 `flush_totalDegree` in `Toy.lean`) go through `totalDegree_equiv` and Mathlib's `MvPolynomial`
-degree lemmas, while the plain test file decides the same degrees by `decide +kernel`. E10 to
-E13 are reserved for the public-input phase (hole P5), whose pull request is not yet open. E14 (2026-09-29) a `def` that takes
+degree lemmas, while the plain test file decides the same degrees by `decide +kernel`. E10
+(2026-09-28, P5) `Component.Def` carries its error `err : ChallengeIdx → ℝ≥0` as data, and real
+division is noncomputable, so every phase with a nonzero error is a `noncomputable` bundle
+(`publicInputPhase`); its prover, verifier, check and pool (`PublicInput.prover`, `verifier`,
+`check`, `pooled`) are separate computable definitions, and Layer 12's `verify` reads those,
+never `D.red`. E11 (2026-09-28, P5) a binder whose type is a membership in
+`Finset.univ : Finset E` makes Lean's `constructorNameAsVariable` linter `whnf` the type and
+enumerate the field, failing with "maximum recursion depth"; a counting bound is stated over an
+abstract `[Fintype α]`, with its hypothesis on witnesses (`ToVCVio/UniformSample.lean`). E12
+(2026-09-28, P5) `simp` does not rewrite inside the instance arguments carried by the type of
+`Component.Def.red`, so a lemma stated on `(PublicInput.verifier I).toVerifier` does not match
+the same verifier reached through `(publicInputPhase I).red.toReduction`; the phase's theorems
+are stated on the literal pair of prover and verifier, and the bundle's fields accept them by
+unfolding. E13 (2026-09-28, P5) a `Decidable (c.Holds q)` instance written
+`by unfold ColumnClaim.Holds; infer_instance` elaborates, but a `#guard` that evaluates it never
+returns (killed at 13 GB), while the same instance written
+`inferInstanceAs (Decidable (eval₂Mle … = c.value))` decides the same guard in milliseconds. A
+compile judged through a pipe into `head` hides the kill: read the exit status. E14 (2026-09-29) a `def` that takes
 `[Zero R]` under a section's `[CommRing R]` is rejected by Mathlib's overlapping-instances
 linter, which `warningAsError` makes an error, and `omit [CommRing R] in` before the `def` does
 not prevent it: #40's `placeSlice` and `windowTable` failed to build on `main` for that reason
@@ -366,13 +424,58 @@ values, which are an argument, so a layout does not depend on a ring and `Blocks
 gone; `eqTable`, an alias of CompPoly's `lagrangeBasis`, is removed. Upstream docstrings
 state mathematics and attribution; specification and Rust citations are in the leanVM
 modules. The public-input phase's `ToCompPoly/LinePoint.lean` (evaluation at
-`(r, 0, …, 0)`), on its own branch, is the same case: it is `evalMle_append_boolVec` at
-slice zero, and the test `tests/LeanerVMTests/Protocol/Multilinear.lean` derives it.
+`(r, 0, …, 0)`) was the same case and is gone: the phase derives
+`PublicInput.eval₂Mle_linePoint` from `evalMle_append_boolVec` at slice zero, as the test
+`tests/LeanerVMTests/Protocol/Multilinear.lean` does. E18 (2026-09-29, P5) a `#guard` on a
+proposition whose term holds a numeral of `E` next to an operation (`y ^ 2 + 1`,
+`[1 + y, 0]`) finds no `Decidable` instance, the numeral's type being still pending when the
+coercion to `Bool` is inserted; the tests name such values as definitions.
 
 ## Survey record
 
 Kept so the searches are not repeated.
 
+- **2026-09-29, the adversarial review of the public-input phase** (the `adversarial-review`
+  skill, a context-free agent; [public-input-phase.md](../reviews/public-input-phase.md)): no
+  theorem wrong or vacuous, and each of five wrong verifiers breaks a stated theorem. Findings,
+  all met on the branch: the documents' claim that the two checks are equivalent on evaluations
+  of `K`-valued columns was false (B1: finding F18, with a test); the output dropped a claim on
+  a short message (A1: one output, `PublicInput.pooled`); `sent` was bound by nothing (A2:
+  `PublicLine.sent`, decision 15, and a test in the shape of the memory limbs); three proofs
+  rested on the normal form `simp` happened to leave (C1: the shared lemmas of
+  `ToArkLib/GuardedVerdict.lean`, explicit `simp only` lists, no restated goal); ten unprefixed
+  names (C2: `namespace PublicInput`); the audit surface (H1 to H6: 35 public declarations to
+  23 in the phase module). The same day the branch was merged with Layer 1 (#59): nine conflict
+  hunks, in the two aggregate imports and in this file, none in a Lean proof; the phase's
+  private helper for the zero point duplicated `evalMle_boolVec` and is gone, the line identity
+  being derived from `evalMle_append_boolVec`.
+- **2026-09-29, the public-input phase rebuilt as §8.2 writes it.** The first build
+  (2026-09-28) had no prover message: the verifier computed the lines' values and pooled them.
+  On the user's instruction the phase has the specification's transcript: a challenge, the
+  prover's values, a check that can reject. Read: `cpu/mod.rs:745-755` (the two scalars and the
+  equation on the words, finding F18) and `:611-613` (the pinned prover computes the two values
+  from the public words); `ProofSystem/ToyProblem/Spec/General.lean` (a three-round verifier
+  that reads a prover message through `OracleSpec.query` and guards, `:493-527`, and the staged
+  simulation of its body, `:563-640`); `ProofSystem/Component/{SendClaim,CheckClaim}.lean`
+  (ArkLib's oracle versions keep the verifier pure and carry the check in the output relation,
+  which the spine's fixed seams rule out here); VCVio `SimSemantics/OptionT/Basic.lean`
+  (`simulateQ_optionT_bind_run` `:49`, `simulateQ_optionT_failure` `:214`); ArkLib
+  `Data/Fin/Basic.lean` (`Fin.induction_two` `:93`),
+  `Security/CoordinateWiseSpecialSoundness/Guarded.lean` (`GuardedForm` `:112`).
+- **2026-09-28, building the public-input phase (P5).** Specification §8.2
+  (`08-end-to-end-protocol.tex:27-33` at the pin: `c_ℓ = (1 + r_m)·mem[g⁰]_ℓ + r_m·mem[g¹]_ℓ`,
+  error `1/|E|` by Lemma 3.8, Schwartz-Zippel, on a polynomial of degree one); ArkLib
+  `OracleReduction/Execution.lean` (`Prover.run_of_verifier_first` `:642`,
+  `Reduction.run_of_prover_first` `:663`, `Reduction.support_run_pure_verifier` `:343`),
+  `Security/RoundByRound.lean` (`KnowledgeStateFunction` `:164`, its `toFun_next` for prover
+  rounds only, `rbrKnowledgeSoundnessWorstCaseWith` `:553`, the event quantified over the
+  intermediate witness), `Security/Basic.lean` (`perfectCompleteness_of_run_support` `:193`),
+  `ProtocolSpec/Basic.lean` (`Transcript.concat` = `Fin.snoc` `:519`), `Basic.lean` (`PureForm`
+  `:1011`); VCVio `SampleableType.lean` (`probEvent_uniformSample` `:225`:
+  `Pr[p | $ᵗ α] = |filter p| / |α|`); CompPoly `Multilinear/Basic.lean` (`evalMleLayer_get`
+  `:482`, `evalMle_succ` `:512`), `Fields/Binary/BF64/Ext3.lean` (`CharP Ext3 2` `:171`, used for
+  `1 - r = 1 + r` in `E`), `Fields/Extension/Field.lean` (`Fintype (Ext P)` `:60`,
+  `Field (Ext P)` `:159`).
 - **2026-09-29, the adversarial review of Layer 1 at `8bc9bbd`** (the `adversarial-review`
   skill, three context-free agents, one per pass, so that fidelity was read from the pinned
   sources before any Lean; [protocol-layer1.md](../reviews/protocol-layer1.md)): no theorem

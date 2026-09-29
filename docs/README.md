@@ -35,6 +35,9 @@ This directory contains stable project and operating knowledge.
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
     Layer 8 constraint statement (2026-09-17), whose findings the statement now meets (the
     missing BLAKE2s validity conjunct, its finding A1).
+  - [public-input-phase.md](reviews/public-input-phase.md): the review of the public-input
+    phase (2026-09-29), whose findings the branch now meets (the two checks that are not
+    equivalent, one output, the line's `sent` flag, the shared lemmas).
   - [protocol-spine.md](reviews/protocol-spine.md): the review of the proof-system spine
     (2026-09-28), whose findings the branch now meets (the degree bound at the bus seam, the
     named extractor, public lines, the strong Flock predicate).

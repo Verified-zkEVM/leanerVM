@@ -332,7 +332,7 @@ polynomial view and is Clean's upstream candidate.
 | Holes | A phase or generic component is two structures: `X.Def` (the reduction, its relations and its per-challenge error) and `X.Security` (perfect completeness, and round-by-round knowledge soundness over a `Def` for an extractor and a knowledge state function it carries: ArkLib's `rbrKnowledgeSoundnessWorstCaseWith` form, so the extractor is named, not merely shown to exist). A `Def` lands with its completeness proof and an honest-run test on the toy instance; its `Security` may land later, as its own pull request; neither ever contains `sorry`. Until every hole is filled, `Phases.Security` is an assumed interface in the sense of *Trusted surface*. |
 | Seams | The output relation of a phase is the input relation of the next, by definition (`Seam.*`), never by a bridge lemma (acceptance test 26). `Seam.bus` carries the reused zerocheck point, `∀ j i, C̃_{j,i}(ζ_{<τ_j}) = 0`, and the escape "violated on the cube, zero at ζ" is charged in the bus phase, coordinate by coordinate as ζ is drawn, `1/|E|` per coordinate per constraint (leanth's `ZerocheckClaim` pattern); there is no separate zerocheck phase. `Seam.bus` also bounds the total degree of every term of every linear claim by the instance's `d`, the degree the table sumcheck is built for (acceptance test 28). |
 | Extractors | Every extractor is a computable definition. The protocol's is `piopExtractor`, the commit phase's (which reads the stack off the oracle message) followed by the phases', straight-line; `witnessOf` is applied to its output by the adaptor. An extractor chosen by `Classical.choose` proves soundness, not knowledge (acceptance test 24). |
-| Public input | The statement fixes *lines*, not cells: a `PublicLine` is a column with the values its cells 0 and 1 must hold (`PublicLinesHold`), the shape the public-input phase of §8.2 checks with one challenge, on the line through the two cells. The leanISA instance has three, on `mem_0, mem_1, mem_2`, the third with cells `0, 0`. An arbitrary list of cells would admit statements no phase with that schedule can serve. |
+| Public input | The statement fixes *lines*, not cells: a `PublicLine` is a column with the values its cells 0 and 1 must hold (`PublicLinesHold`), the shape the public-input phase of §8.2 checks with one challenge, on the line through the two cells. A line also says whether the proof carries the value claimed for it (`sent`): the prover sends those values, the verifier checks them against the statement and rejects otherwise, and pools one claim per line. `sent` fixes the transcript and is no part of the relation. The leanISA instance has three lines, on `mem_0, mem_1, mem_2`, the first two with their value sent and the third with cells `0, 0`. An arbitrary list of cells would admit statements no phase with that schedule can serve. |
 
 ## The spine
 
@@ -450,7 +450,8 @@ structure Layout (μ) (ι) (κ : ι → ℕ) where            -- the stack layou
   read_eval : ∀ q c z, eval₂Mle (read q c) z = eval₂Mle q (extend c z)
 inductive Coord (S : Shape) κ | const (c : K) | known (col : Column κ) | committed (c : S.ColumnId) (h : S.τ c.1 = κ)
 structure BoundaryBlock (S : Shape) where (κ : ℕ) (side : Side) (coords : Vector (Coord S κ) 16)
-structure PublicLine (S : Shape) where (col : S.ColumnId) (cell0 cell1 : K) (pos : 0 < S.τ col.1)
+structure PublicLine (S : Shape) where
+  (col : S.ColumnId) (cell0 cell1 : K) (sent : Bool) (pos : 0 < S.τ col.1)  -- sent: in the proof
 structure M3Instance extends Shape where
   Stmt : Type                                          -- the public statement (leanISA: PublicInput)
   constraints : (j) → List (CMvPolynomial (width j) K)  -- CompPoly's computable polynomials
@@ -604,7 +605,7 @@ become.
 | I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, L1; #3 (the Flock witness generator, "the R1CS holds ⇒ the limb slots compress") | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), L1 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P3, P4 | the table sumcheck phase (Layer 7) | `tableSummand`, `tableSummand_target`, `tableSumcheck`; its `Security` | S, G1 (P4 also G2) | #42 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
-| P5 | the public-input phase (Layer 8) | `publicInputPhase`, both halves | S | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| P5 | the public-input phase (Layer 8) | `publicInputPhase`, both halves | S, L1 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P6 | the Flock phase at the flock seam (Layer 9) | `FlockOut`, `limbColumns`, `flockError_le`; the inhabitant is #3's | S | #3, ArkLib #383, #893 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P7, P8 | the claim pool and the opening phase (Layer 10) | `Weight`, `WeightedClaim`, `openingPhase`; its `Security` | S, G3, G1, L1, #43 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | C1 | the knowledge-soundness append (ledger A2) | `Verifier.KnowledgeStateFunction.appendGuarded`, `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first` in `LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean`, the port of ArkLib #615's `Append/Knowledge.lean`: done on the spine's branch, as the port; deleted at the pin bump | ArkLib only | ArkLib #615, #676 | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
@@ -1004,33 +1005,67 @@ of heights 2 and 1; a row violating a JUMP identity makes the honest run's final
 
 ### Layer 8: the public-input phase
 
-`LeanerVM/Protocol/PublicInput.lean` (module, over `I`; hole P5). Needs the spine.
+`LeanerVM/Protocol/PublicInput.lean` (module, over `I`; hole P5). Needs the spine and Layer 1's
+`evalMle_append_boolVec`.
 
 ```lean
+namespace PublicInput
+def pSpec : ProtocolSpec 2                 -- V_to_P : E, then P_to_V : List E
+def linePoint (hn : 0 < n) (r : E) : Vector E n                        -- (r, 0, …, 0)
+theorem eval₂Mle_linePoint : q̃(linePoint hn r) = (1 - r)·q(0) + r·q(1)
+def lineValue I r l : E := (1 + r)·cell0 + r·cell1
+def pooled I s r : I.Stmt × PubOut I       -- the earlier claims, then one claim per line
+def expectedValues I input r : List E      -- the values of the lines whose value is sent
+def check I s r cs : Bool := decide (cs = expectedValues I s.1 r)
+def prover I ; def verifier I              -- reads the message, checks, pools, or rejects
+theorem verifier_verify : (verifier I).toVerifier.verify (s, o) tr =
+    if check I s (tr 0) (tr 1) then pure (pooled I s (tr 0), o) else failure
+end PublicInput
 def publicInputPhase (I : M3Instance) : Phase.Def I (I.Stmt × TableOut I) (I.Stmt × PubOut I)
-    -- pSpec := V_to_P : E; the prover sends nothing
 def publicInputComplete I : Phase.Complete I (publicInputPhase I) (Seam.table I) (Seam.pub I)
 def publicInputSecurity I : Phase.Security I (publicInputPhase I) (Seam.table I) (Seam.pub I)
     -- err: 1/|E| on the one challenge
 ```
 
-The phase is over `I.publicLines input`. The verifier draws one `r ∈ E` and pools, for each line,
-the column claim `col~(r, 0, …, 0) = (1 + r)·cell0 + r·cell1`; the prover sends nothing, since
-the verifier computes every value. For leanISA the lines are the three of Layer 3, so the claims are
-the three limb claims on `mem_0, mem_1, mem_2`, the third with value `0` (acceptance test 10). A
-line whose two cells differ from the statement's makes its claim a nonzero polynomial of degree
-one in `r`, so the error is `1/|E|`, one line's, whatever the number of lines.
+The phase is §8.2 as written, over `I.publicLines input`. The verifier draws one `r ∈ E`. The
+prover sends, as one message, the values at `r` of the lines whose value is sent
+(`PublicLine.sent`), in order. The verifier checks that message against the lines' values
+`(1 + r)·cell0 + r·cell1`, which fixes its length too, and rejects otherwise; then it pools one
+claim per line, on the line's column at `(r, 0, …, 0)`, with the line's value, after the column
+claims of the earlier phases (the row *Claim pool order* of the pinned conventions). For a line
+whose value was sent the value pooled is the value sent, since the check has just passed; for
+the others it is the value the verifier computes. For leanISA the lines are the three of Layer 3, the first two
+with their value sent: the prover sends `c_0, c_1` for `mem_0, mem_1`, and the claim on `mem_2`
+is pooled with value `0` although no scalar is sent for it (acceptance test 10). The honest
+prover's values are functions of the public statement and the challenge, as the pinned prover's
+are (`cpu/mod.rs:611-613`); on a stack whose lines hold they are the extensions of its columns.
 
-The Rust verifier instead reads two scalars `c_0, c_1`, the claimed values of `mem_0, mem_1` at
-the point, checks the one combined equation `c_0 + Y·c_1 = interp(pi_0, pi_1, r)` over `E` and
-pools the claims at the sent values (`cpu/mod.rs:745-755`). The two checks accept the same
-stacks: the cells are `K`-valued and `1, Y, Y²` is a `K`-basis of `E`, so either says, except with
-probability `1/|E|`, that cells 0 and 1 of the memory block hold the public words. They are not
-the same challenge by challenge (each has at most one bad `r`, not the same one), and the two
-scalars are redundant with values the verifier computes: reading them and reconciling the
-combined check with the per-line claims is Layer 12's encoding, like the dropped round
-coefficient. Tests: on the toy, the honest run accepted; on the stack `badLine`, whose cell 1
-differs from the statement's, the pooled claim false at a sampled `r`.
+A line whose two cells differ from the statement's makes its claim a nonzero polynomial of
+degree one in `r`, so the error is `1/|E|`, one line's, whatever the number of lines. Both
+proofs start from the two facts of `ToArkLib/GuardedVerdict.lean` about a verifier that is a
+check followed by a verdict, and the bound is `ToVCVio/UniformSample.lean`'s. The line identity
+is derived in the phase module from Layer 1's selection identity `evalMle_append_boolVec` at
+slice zero, followed by a one-variable evaluation: a special point chosen by the protocol is not
+upstream material. The bundle `publicInputPhase` is `noncomputable` for its error alone, a real
+number; the prover, the verifier, `check` and `pooled` are computable definitions, and Layer 12
+reads those.
+
+The theorems are about the specification's verifier. The pinned verifiers read the same
+transcript, one challenge and two scalars, and check one equation on the two public words,
+`c_0 + Y·c_1 = interp(pi_0, pi_1, r)` over `E`, where §8.2 writes one equation per limb
+(`cpu/mod.rs:745-755`, `verifier.py:1400`). The two equations imply the one, and not
+conversely: the scalars are values at a point of `E`, so that `1, Y` are independent over `K`
+says nothing of them. The two checks accept the same stacks, since the cells are `K`-valued and
+either says, except with probability `1/|E|`, that cells 0 and 1 of the memory limbs hold the
+public words. They are not the same challenge by challenge: for a given wrong stack each has at
+most one bad `r`, and not the same one. So the pinned verifiers accept transcripts this verifier
+rejects, their knowledge soundness at `1/|E|` is a lemma of its own, and Layer 12 owes it.
+
+Tests: on the toy, the line's value accepted and a wrong, missing or extra value rejected; on
+the stack `badLine`, whose cell 1 differs from the statement's, the true evaluation rejected by
+the check and the pooled claim false, both except at the one bad challenge; three lines in the
+shape of the memory limbs, where a wrong top cell passes the check and fails the third claim;
+and the challenge at which the equation on the words holds and the check per limb rejects.
 
 ### Layer 9: the Flock and ring-switching boundary
 

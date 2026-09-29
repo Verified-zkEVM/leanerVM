@@ -8,6 +8,8 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.Component
+public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
+public import LeanerVM.Protocol.ToArkLib.KeepOracles
 
 /-!
 # The pass-through component
@@ -45,10 +47,7 @@ def passThroughProver (f : StmtIn → StmtOut) :
 def passThroughVerifier (f : StmtIn → StmtOut) :
     OracleVerifier []ₒ StmtIn OStmt StmtOut OStmt !p[] where
   verify := fun s _ ↦ pure (f s)
-  outputOracle := .inl
-    { embed := Function.Embedding.inl
-      hEq := fun _ ↦ rfl
-      outputInterface_heq := fun _ ↦ HEq.rfl }
+  outputOracle := .inl (keepOracles OStmt !p[])
 
 /-- The pass-through component: no round, no error. -/
 def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W where
@@ -60,9 +59,8 @@ def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W wh
 /-- The output oracles are the input oracles. -/
 theorem passThrough_materializeOutput (f : StmtIn → StmtOut) (challenges : (!p[]).Challenges)
     (o : ∀ i, OStmt i) (messages : (!p[]).Messages) :
-    (passThroughVerifier OStmt f).materializeOutput challenges o messages = o := by
-  funext i
-  rfl
+    (passThroughVerifier OStmt f).materializeOutput challenges o messages = o :=
+  OracleVerifier.materializeOutput_of_keepOracles _ rfl challenges o messages
 
 /-- As an ordinary verifier, the pass-through verifier returns the mapped statement and the
 oracles. -/
@@ -118,12 +116,9 @@ def passThroughStateFunction :
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m ↦ Fin.elim0 m
-  toFun_full := fun stmt tr w hpos ↦ by
-    obtain ⟨s, o⟩ := stmt
-    rw [passThroughVerifier_toVerifier_run OStmt f s o tr] at hpos
-    change Pr[_ | OptionT.mk (do let st ← init; (simulateQ impl
-      (OptionT.run (pure (f s, o)))).run' st)] > 0 at hpos
-    exact h s o w (by simp at hpos; exact hpos.2)
+  toFun_full := fun stmt tr w hpos ↦
+    h stmt.1 stmt.2 w (Verifier.GuardedForm.of_probEvent_pos
+      (passThroughPure OStmt f).toGuardedForm init impl stmt tr _ hpos).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the witness is kept. -/
 theorem passThrough_rbr :
