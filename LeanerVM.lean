@@ -18,6 +18,7 @@ import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
 import LeanerVM.Protocol.BlockClaims
+import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Padding
