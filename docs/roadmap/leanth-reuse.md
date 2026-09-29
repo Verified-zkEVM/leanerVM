@@ -75,13 +75,13 @@ only non-trivial content, big-endian).
 | `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` | S |
 | `AlignedLayout`, `offset`, `pow_height_dvd_offset`, window lemmas | `ProofSystem/Stacking.lean:48, 71, 388, 397, 409` | blocks largest first at prefix-sum offsets; alignment from the antitone order | port (done; EX `Blocks`, `Stacking.lean:41-149`) | `Blocks`, `offset`, `pow_size_dvd_offset` | S |
 | `eval_MLE_stack_block` | `ProofSystem/Stacking.lean:603` | `P̃_b(z) = S̃(sel_b, z)`, the selection identity | port (done; EX `eval_stackPoly_sel`, `Stacking/MLE.lean:210`) | `stack_eval` | M |
-| `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port; with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` by the partition of unity | `stack_eval_pad` | M |
-| `unstack`, `unstack_stack`, `weight_embedBits_of_ne`, `sum_weight_stack_unstack`, `isValid_unstack_iff` | `ProofSystem/Stacking.lean:724-777` | blocks read back from a flat vector; a claim's weight vanishes outside its block, so `q` and `stack (unstack q)` satisfy the same claims | port (unported on EX) | Layer 10 extractor reading `q`; `witnessOf_stackOf` | S |
+| `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port (done, for any pad value); with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` | `stack_eval_ambient` | M |
+| `unstack`, `unstack_stack`, `weight_embedBits_of_ne`, `sum_weight_stack_unstack`, `isValid_unstack_iff` | `ProofSystem/Stacking.lean:724-777` | blocks read back from a flat vector; a claim's weight vanishes outside its block, so `q` and `stack (unstack q)` satisfy the same claims | port (done) | `unstack`, `BlockClaim`; Layer 10 extractor reading `q`; `witnessOf_stackOf` | S |
 | `bitPoint`, `bitPoint_eq_finFunctionFinEquiv_symm`, `sum_bitPoint` | `ProofSystem/Commitment.lean:419-460` | little-endian bit decomposition and the flat-sum = cube-sum bridge | copy if ArkLib's `MLE` is ever needed alongside CompPoly | `boolVec`, `sum_cube_split` | S |
 | `Blocks.spliceBits`, `selBits`, `evalMle_eq_eval_MLE'`, `finFunctionFinEquiv_split` | EX `Stacking/MLE.lean`, `Poly/EvalBridge.lean:34`, `Poly/MLE.lean:32` | the little-endian cube-splitting API and the CompPoly-to-ArkLib evaluation bridge | copy when a proof needs ArkLib's `MLE'` | Layers 2, 5 | S |
 
-Not present in either source: a stack padded with `1` (the bus trees), and `idxColumn`,
-`bytecodeColumn`, which are leanVM-b's own.
+Not present in either source, and written here: a stack padded with `1` (the bus trees), and
+`idxColumn`, `bytecodeColumn`, which are leanVM-b's own.
 
 ### Layer 2: Clean components as polynomials
 
@@ -411,18 +411,27 @@ theorems.
 ## Port log
 
 What this repository has carried over, with the derived-from lines in each module docstring.
+The pull request column names where the port was first proposed.
 
-| leanerVM declaration | Module | Source | Ported by |
+| leanerVM declaration | Module | Source | Proposed in |
 | --- | --- | --- | --- |
-| `sumCube_eqTable` | `LeanerVM/Protocol/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | this branch |
-| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `LeanerVM/Protocol/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886` | this branch |
-| `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `LeanerVM/Protocol/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | this branch (new proofs on CompPoly) |
-| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `LeanerVM/Protocol/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | this branch |
+| `sumCube_eqTable` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
+| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
+| `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `LeanerVM/Protocol/ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
+| `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
+| `Blocks.map`, `map_stackAt`, `stack_eval₂` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | the same, across a ring homomorphism | #26 |
+| `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `LeanerVM/Protocol/ToArkLib/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
+| `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `LeanerVM/Protocol/ToArkLib/Claims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `placeSlice`, `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `LeanerVM/Protocol/ToArkLib/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
 
-Next port candidates, in order of value per effort: the `unstack` lemmas (Layer 10, S);
-`scalarBatch_rejection` (Layer 4, S); the `sumcheck_*` core (Layer 4, S); the fingerprint
-lemmas (Layer 5, S); `stack_eval_pad` from `eval_MLE_stack_ambient` (Layer 1, M); the
-`ofPrefixCharges` and `append` designs (A2, L).
+Not derived from leanth, and listed so that the layer reads whole: `powerColumnValues` with
+`evalMle_powerColumnValues` (`LeanerVM/Protocol/ToCompPoly/PowerColumn.lean`), `idxColumn` and
+`bytecodeColumn` with their evaluations (`LeanerVM/Protocol/FixedColumns.lean`), both from #41;
+and the `Column`-level stack with the spine's `Layout` (`LeanerVM/Protocol/Stack.lean`).
+
+Next port candidates, in order of value per effort: `scalarBatch_rejection` (Layer 4, S); the
+`sumcheck_*` core (Layer 4, S); the fingerprint lemmas (Layer 5, S); the `ofPrefixCharges` and
+`append` designs (A2, L).
 
 ## Upstream candidates
 

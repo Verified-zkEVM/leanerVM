@@ -593,13 +593,13 @@ become.
 
 | Hole | Unit | Produces | Consumes | Existing work | Issue |
 | --- | --- | --- | --- | --- | --- |
-| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes); built under `LeanerVM/Protocol/Spine/` | Layer 0 only (#18's `Blocks` inhabit `Layout` later) | leanth's explore branch | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
+| S | the spine | everything under [What the spine fixes](#what-the-spine-fixes); built under `LeanerVM/Protocol/Spine/` | Layer 0 only (Layer 1's `Blocks.layout` inhabits `Layout` for aligned blocks) | leanth's explore branch | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | G1 | virtual sumcheck, `Sumcheck.Def` and completeness (Layer 4) | `Virtual`, `sumcheck`, `sumcheck_perfectCompleteness` | nothing | #42, ArkLib #1128, ArkLib `main`'s `Sumcheck/Interaction/` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G2 | sumcheck rbr knowledge, `Sumcheck.Security` (Layer 4, A1) | `sumcheck_rbrKnowledgeSoundness`, `d/\|F\|` per round | G1 | ArkLib #1129, `Interaction/Soundness.lean` | [#37](https://github.com/Verified-zkEVM/leanerVM/issues/37) |
 | G3 | batching by powers, `Batch.Def` and `Security` (Layer 4) | `batchClaims`, `(k − 1)/\|F\|` | nothing | #43, ArkLib #615's `gammaPowers` | [#31](https://github.com/Verified-zkEVM/leanerVM/issues/31) |
 | G4 | fingerprint, Lemma 5.1, the collision bound (Layer 5) | `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision` | nothing | #39, ArkLib #901 | [#33](https://github.com/Verified-zkEVM/leanerVM/issues/33) |
 | G5, G6 | GKR: `Gkr.Def` and completeness; `Gkr.Security` (Layer 5) | `gkr`, `gkrError`, its two theorems | G1 (G6 also G2) | ArkLib #818 as a pattern | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
-| L1 | Layer 1's leaves | `stack_eval_ambient` (#40), `unstack` and `BlockClaim` (#38), `idxColumn_eval` and `bytecodeColumn_slot` (#41), coefficient transport (#26) | #18 | in review | #27, #32, #35, #36 |
+| L1 | Layer 1: tables, stacking, the fixed columns | `Blocks`, `stack_eval`, `stack_eval₂` and `unstack_eval₂` (coefficient transport), `stack_eval_ambient`, `BlockClaim` with `isValid_iff_pairing`, `Blocks.stack`, `Blocks.layout`, `idxColumn_eval`, `bytecodeColumn_slot`, `bytecodeColumn_eval` | Layer 0; the spine's `Layout` | leanth, per the catalog [leanth-reuse.md](leanth-reuse.md) | #27, #32, #35, #36 |
 | I1 | Clean components as polynomials (Layer 2) | `Expression.toMvPolynomial`, `degreeBound`, `Component.toM3`, `Ensemble.toM3`, the two bridge theorems | Clean | Clean #466 | [#28](https://github.com/Verified-zkEVM/leanerVM/issues/28) |
 | I2 | the adaptor (Layer 3) | `leanIsaInstance`, `stackOf`, `witnessOf`, `satisfiedBy_witnessOf`, `m3Holds_stackOf`, `witnessOf_stackOf` | S, I1, leanISA Layers 5–8, #38, #40; #3 (the Flock witness generator, "the R1CS holds ⇒ the limb slots compress") | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
 | P1, P2 | the bus phase (Layer 6) | `busPhase`, `leaf_decomposition`, `busError`; its `Security` | S, G5 (P2 also G6, G4), #40, #41 | | [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12#issuecomment-5833669972) |
@@ -650,37 +650,76 @@ answers `evalMle` on a two-variable table, on and off the cube, with a mutated c
 
 ### Layer 1: hypercube tables, stacking, the index and bytecode columns
 
-`LeanerVM/Protocol/Multilinear.lean` and `LeanerVM/Protocol/Stacking.lean` (generic),
-`LeanerVM/Protocol/Stack.lean` (leanVM).
+Generic, over any commutative ring `R` and CompPoly's tables:
+`LeanerVM/Protocol/ToCompPoly/{Multilinear,PowerColumn}.lean`,
+`LeanerVM/Protocol/ToArkLib/{Stacking,AmbientStacking,Claims}.lean`. leanVM:
+`LeanerVM/Protocol/Stack.lean` (columns over `K`, points in `E`, the spine's `Layout`) and
+`LeanerVM/Protocol/FixedColumns.lean` (the index and bytecode columns; it names the program, so
+it sits below the wall with the adaptor).
 
 ```lean
 structure Column (n : ℕ) where values : CMlPolynomialEval K n     -- Layer 0; not an abbreviation
-abbrev ETable (n : ℕ) := CMlPolynomialEval E n
-def sumCube (t : ETable n) : E                                  -- Σ over the cube
-def ETable.mul (s t : ETable n) : ETable n                     -- pointwise
-def eqTable (r : Fin n → E) : ETable n                         -- values of eq(r, ·)
-theorem eval_eq_sum_eqTable (t : ETable n) (r) : evalMle t r = sumCube (eqTable r).mul t
-theorem sumCube_prod_vars : sumCube (∏ X_k) = 1                -- Σ_x x_0 ⋯ x_{n-1} = 1
+-- ToCompPoly/Multilinear.lean, over any commutative ring R
+def sumCube (t : CMlPolynomialEval R n) : R                     -- Σ over the cube
+def hadamard (s t : CMlPolynomialEval R n) : CMlPolynomialEval R n   -- pointwise
+abbrev eqTable (r : Vector R n) := lagrangeBasis r              -- values of eq(r, ·)
+theorem eval_eq_sum_eqTable (t) (r) : evalMle t r = sumCube (hadamard (eqTable r) t)
+theorem sumCube_eqTable (r) : sumCube (eqTable r) = 1           -- the partition of unity
+theorem evalMle_append_boolVec (t) (z) (j) : evalMle t (z ++ boolVec j) = evalMle (slice t j) z
+theorem sumCube_prodVars : sumCube (prodVars m) = 1             -- Σ_x x_0 ⋯ x_{m-1} = 1
+theorem sumCube_padHigh (t) (m) : sumCube (padHigh t m) = sumCube t   -- back-loaded padding
 
-structure Block where (κ : ℕ) (values : Column κ)
-def stack (blocks : List Block) : (μ : ℕ) × Column μ           -- largest first, aligned, 0-pad
-def selector (blocks) (b : Fin blocks.length) : Fin (μ - κ_b) → E   -- the bits of offset_b >> κ_b
-theorem stack_eval (b) (z : Fin κ_b → E) :
-    evalMle (stack blocks).2 (z ++ selector blocks b) = evalMle blocks[b].values z
-theorem stack_eval_pad (ζ) : evalMle (stack …).2 ζ = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo) + pad(ζ)
+-- ToArkLib/Stacking.lean
+structure Blocks (R) where (n : ℕ) (size : Fin n → ℕ) (values : (b) → CMlPolynomialEval R (size b))
+  (descending : Antitone size)                                  -- largest first
+def Blocks.stackAt (B) (μ) (pad : R) : CMlPolynomialEval R μ    -- aligned; `pad` past the total
+def Blocks.selector (B) (hμ : B.total ≤ 2 ^ μ) (b) : Fin (2 ^ (μ - B.size b))   -- offset_b >> κ_b
+theorem Blocks.pow_size_dvd_offset (b) : 2 ^ B.size b ∣ B.offset b   -- alignment, from the order
+theorem Blocks.stack_eval (hμ) (pad) (b) (z) :
+    evalMle (B.stackAt μ pad) (z ++ boolVec (B.selector hμ b)) = evalMle (B.values b) z
+theorem Blocks.stack_eval₂ (φ : R →+* S) …                      -- the same, a K table at an E point
+def Blocks.unstack (hμ) (q : CMlPolynomialEval R μ) (b)         -- read a block off any table
+theorem Blocks.unstack_eval₂ (φ) (hμ) (q) (b) (z) :
+    eval₂Mle q φ (z ++ boolVec (B.selector hμ b)) = eval₂Mle (B.unstack hμ q b) φ z
+-- ToArkLib/AmbientStacking.lean
+theorem Blocks.stack_eval_ambient (hμ) (pad) (ζ) : evalMle (B.stackAt μ pad) ζ =
+    Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo) + pad · (1 − Σ_b eq(sel_b, ζ_hi))
+-- ToArkLib/Claims.lean
+structure BlockClaim (B) (S) where (block) (point : Vector S (B.size block)) (value : S)
+theorem BlockClaim.isValid_iff_pairing : c.IsValid φ hμ q ↔ ⟨eq((point, sel), ·), q⟩ = c.value
 
+-- Stack.lean, for B : Blocks K
+def Blocks.stack (B) (μ) : Column μ                             -- the witness stack, 0-pad
+def Blocks.readColumn (hμ) (q : Column μ) (b) ; def Blocks.extendPoint (hμ) (b) (z : Vector E _)
+theorem Blocks.readColumn_eval (hμ) (q) (b) (z) :              -- for every q, honest or not
+    eval₂Mle (B.readColumn hμ q b).values (algebraMap K E) z
+      = eval₂Mle q.values (algebraMap K E) (B.extendPoint hμ b z)
+def Blocks.layout (hμ) : Layout μ (Fin B.n) B.size              -- the spine's reading law
+theorem Blocks.eval_stackAt_one (B : Blocks E) (hμ) (ζ) :       -- (5.4), characteristic two
+    evalMle (B.stackAt μ 1) ζ = Σ_b w_b · P̃_b(ζ_lo) + (1 + Σ_b w_b)
+
+-- FixedColumns.lean
 def idxColumn (κ : ℕ) : Column κ                               -- g^i at index i
-theorem idxColumn_eval (ζ : Fin κ → E) :
-    evalMle (idxColumn κ) ζ = ∏ k, (1 + ζ k * (1 + ofK (g ^ (2 ^ k.val))))     -- §6.5
+theorem idxColumn_eval (ζ : Vector E κ) : answer (idxColumn κ) ζ = idxColumnEval ζ
+theorem idxColumnEval_eq (ζ) :
+    idxColumnEval ζ = ∏ k, (1 + ζ[k] * (1 + algebraMap K E (g ^ (2 ^ k.val))))   -- §6.5
 def bytecodeColumn (prog : Program) : Column (prog.logSize + 4)   -- slot s of instruction z
-theorem bytecodeColumn_slot (z s) : (bytecodeColumn prog)[z + 2^k_bc * s] = (encodeSlots (prog.code z))[s]
+theorem bytecodeColumn_slot (i s) :
+    (bytecodeColumn prog).values[cubeIndex i s] = (encodeSlots (prog.code i))[s]
+theorem bytecodeColumn_eval (z) (w) : answer (bytecodeColumn prog) (z ++ w) = bytecodeColumnEval prog z w
 ```
 
-`stack_eval` is the one selector fact every later decomposition uses; `stack_eval_pad` is
-specification (5.4) with `pad(ζ) = 1 + Σ_b eq(sel_b, ζ_hi)` when the padding value is `1` (a
-second version pads with `0` for the witness stack). Generic parts are ArkLib's `Data/MvPolynomial`
-candidates. Tests: `stack_eval` decided in the kernel on three blocks of sizes 4, 2, 1;
-`idxColumn_eval` at `κ = 2`; `bytecodeColumn_slot` on a two-instruction program.
+`stack_eval` is the one selector fact every later decomposition uses, and `unstack_eval₂` is the
+same fact for a column the prover chose: it is what `Blocks.layout` packages as the spine's
+`Layout` for aligned blocks. `stack_eval_ambient` is specification (5.4) for any padding value;
+with padding `1` over `E` the padding term is `1 + Σ_b eq(sel_b, ζ_hi)` (`eval_stackAt_one`), and
+with padding `0` it vanishes (the witness stack). `Blocks` carries the blocks' values beside
+their sizes; the offsets, the selectors, `unstack` and `layout` use the sizes only. Tests:
+offsets and selectors decided in the kernel on three blocks of sizes 4, 2, 1, the stacking
+identity evaluated on them and on a column that is no honest stack, and the small-first
+placement, which no selector reads; the aligned layout of three blocks of height 2 against the
+toy instance's; `idxColumn_eval` at `κ = 2` in the specification's form, against the reversed
+bit order; `bytecodeColumn_slot` on a two-instruction program.
 
 ### Layer 2: Clean components as polynomials
 
@@ -767,7 +806,7 @@ constraints and no flushes, so that `Shape.ColumnId` and `Coord.committed` reach
 boundary blocks and the public lines name them that way.
 
 The layout has two readers. The table columns and the non-table columns are aligned blocks, read
-by #18's `Blocks` (`extend c z = (z, sel_c)`). The eighteen BLAKE2S value limbs are virtual
+by Layer 1's `Blocks.layout` (`extend c z = (z, sel_c)`). The eighteen BLAKE2S value limbs are virtual
 columns (`layout.rs:20-28`, `tables.rs:829`), read as strided slots of `q_flock`: a claim on a
 limb column at `z` is the claim on `q_flock` at the point whose low eight coordinates are frozen
 to the slot's bits and whose high coordinates are `z` (`cpu/mod.rs:790-814`,
@@ -1275,7 +1314,10 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Coord  BoundaryBlock 
                       piop_perfectCompleteness  piop_rbrKnowledgeSoundness  piop_rbrKnowledgeSoundness_exists
                       Refinement  Refinement.map_option_valid  Extractor.Straightline.map
                       Toy.shape  Toy.toy  Toy.honest  Toy.layout
-Protocol (generic):   Column  ETable  sumCube  eqTable  stack  selector  stack_eval  stack_eval_pad
+Protocol (generic):   Column  sumCube  hadamard  eqTable  slice  padHigh  powerColumnValues
+                      Blocks  Blocks.stackAt  Blocks.selector  Blocks.stack_eval  Blocks.stack_eval₂
+                      Blocks.unstack  Blocks.unstack_eval₂  Blocks.stack_eval_ambient
+                      BlockClaim  BlockClaim.isValid_iff_pairing
                       Virtual  sumcheck  sumcheck_rbrKnowledgeSoundness  batchClaims
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision
                       ProductTree  gkr  gkrError  gkr_rbrKnowledgeSoundness
@@ -1285,7 +1327,10 @@ Protocol (generic):   Column  ETable  sumCube  eqTable  stack  selector  stack_e
 Arithmetization:      Expression.toMvPolynomial  degreeBound  M3Table  Component.toM3  Ensemble.toM3
                       toM3_constraints_iff  toM3_flushes_eq
 Protocol (leanVM):    instSampleableTypeE  evalOracle  card_E
-                      idxColumn  idxColumn_eval  bytecodeColumn  bytecodeColumn_slot
+                      Blocks.stack  Blocks.readColumn  Blocks.extendPoint  Blocks.readColumn_eval
+                      Blocks.layout  Blocks.eval_stackAt_one
+                      idxColumn  idxColumn_eval  idxColumnEval_eq
+                      bytecodeColumn  bytecodeColumn_slot  bytecodeColumn_eval
                       Sizes  Sizes.Admissible  leanIsaInstance  stackOf  witnessOf
                       satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf
                       busPhase  BusOut  leaf_decomposition  tableSumcheck  tableSummand
@@ -1336,7 +1381,7 @@ modelled here.
 
 ## Ordering and parallelism
 
-The spine (S) needs Layer 0 and Layer 1's generic half (#18) and nothing else; it is the first
+The spine (S) needs Layer 0 and Layer 1's generic half and nothing else; it is the first
 pull request. G1 to G6, I1, K1 and K2 consume nothing from the spine but the shape of their
 interface, so they can start on the spine's signatures before it merges; C1, the port of one
 ArkLib file, is done on the spine's branch. I2 and P1 to P8 need the spine merged; P2, P4 and P8
@@ -1427,6 +1472,5 @@ hole's pull request links the ArkLib issue it will become.
 - leanth (private): the explore branch `scaraven/proof-system-explore` at `db895db`, whose
   `Protocol/{Witness,Relation,Spec,Dimensions,Stacked,Zerocheck,PCS,Measures}.lean` and
   `docs/wiki/proof-system-status.md` are the pattern of [The spine](#the-spine), and the leanVM-a
-  formalization at `23929f8c`, catalogued in `docs/roadmap/leanth-reuse.md` (on #18's branch until
-  it lands), whose
+  formalization at `23929f8c`, catalogued in [leanth-reuse.md](leanth-reuse.md), whose
   end-to-end extractor is the counterexample of acceptance test 24.
