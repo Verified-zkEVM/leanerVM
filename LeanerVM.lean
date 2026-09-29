@@ -24,6 +24,7 @@ import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
+import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.ToArkLib.AmbientStacking
 import LeanerVM.Protocol.ToArkLib.Claims
 import LeanerVM.Protocol.ToArkLib.Component

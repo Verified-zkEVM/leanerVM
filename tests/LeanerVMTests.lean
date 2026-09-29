@@ -19,6 +19,7 @@ import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Spine
+import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory

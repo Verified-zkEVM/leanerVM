@@ -47,6 +47,18 @@ example : evalMle (powerColumnValues (2 : ℚ) 2) #v[3, 5] ≠
 #guard fixedColumnAnswer (idxColumn 2) #v[0, 1] = ofK (g ^ 2)
 #guard fixedColumnAnswer (idxColumn 2) #v[y, y ^ 2] = idxColumnEval #v[y, y ^ 2]
 
+-- The specification's characteristic-two form (§6.5) at `κ = 2`, written out: coordinate `k`
+-- carries `g ^ (2 ^ k)`.
+#guard fixedColumnAnswer (idxColumn 2) #v[y, y ^ 2] =
+  (1 + y * (1 + ofK g)) * (1 + y ^ 2 * (1 + ofK (g ^ 2)))
+-- High bit first evaluates a different column.
+#guard fixedColumnAnswer (idxColumn 2) #v[y, y ^ 2] ≠
+  (1 + y * (1 + ofK (g ^ 2))) * (1 + y ^ 2 * (1 + ofK g))
+
+example (z : Vector E 2) : OracleInterface.answer (idxColumn 2) z =
+    ∏ k : Fin 2, (1 + z[k] * (1 + algebraMap K E (g ^ (2 ^ k.val)))) :=
+  (idxColumn_eval z).trans (idxColumnEval_eq z)
+
 /-- A public fixture with two different opcodes. -/
 def fixedColumnProgram : Program where
   logSize := 1

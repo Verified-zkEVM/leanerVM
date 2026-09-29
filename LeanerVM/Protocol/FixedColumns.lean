@@ -56,6 +56,14 @@ theorem idxColumn_eval {κ : ℕ} (z : Vector E κ) :
     OracleInterface.answer (idxColumn κ) z = idxColumnEval z := by
   exact eval₂Mle_powerColumnValues (algebraMap K E) g κ z
 
+/-- The evaluator as the specification writes it in characteristic two (§6.5):
+`∏_k (1 + ζ_k (1 + g^(2^k)))`. -/
+theorem idxColumnEval_eq {κ : ℕ} (z : Vector E κ) :
+    idxColumnEval z = ∏ k : Fin κ, (1 + z[k] * (1 + algebraMap K E (g ^ (2 ^ k.val)))) := by
+  refine Finset.prod_congr rfl fun k _ ↦ ?_
+  rw [CharTwo.sub_eq_add]
+  ring
+
 /-- One public slot as a column indexed by instruction number. -/
 def bytecodeSlotColumn (prog : Program) (s : Fin 16) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (encodeSlots (prog.code i))[s]⟩
