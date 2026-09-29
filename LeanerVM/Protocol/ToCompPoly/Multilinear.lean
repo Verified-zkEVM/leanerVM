@@ -1,9 +1,9 @@
 /-
   LeanerVM.Protocol.ToCompPoly.Multilinear
 
-  Generic algebra of hypercube tables: sums over the cube, the equality kernel as a table,
-  splitting a cube into a low block and a high block, slices at Boolean high coordinates, and
-  back-loaded padding. Candidate for CompPoly.
+  Algebra of hypercube tables: sums over the cube, the split of a cube into a low and a high
+  block, Boolean points, and reading or placing the slice at a Boolean high index. Candidate for
+  CompPoly.
 -/
 
 module
@@ -14,40 +14,43 @@ import Mathlib.Algebra.BigOperators.Fin
 /-!
 # Hypercube tables
 
-Everything here is over an arbitrary commutative ring `R` and CompPoly's value tables
-`CMlPolynomialEval R n` (a `Vector R (2 ^ n)`, bit `k` of the index being coordinate `k`, low bit
-first). Category A: nothing here transcribes a source. Candidate for CompPoly, beside
-`CompPoly.Multilinear.Basic`.
+Lemmas about CompPoly's value tables `CMlPolynomialEval R n` (a `Vector R (2 ^ n)`, bit `k` of the
+index being coordinate `k`, low bit first) and their multilinear extension `evalMle`, over an
+arbitrary commutative ring `R`. Candidate for CompPoly, beside `CompPoly.Multilinear.Basic`.
+Nothing here transcribes a source.
+
+* **Sums.** `sumCube`, `hadamard`; `evalMle_eq_sumCube_hadamard`: evaluating at `r` is summing the
+  table against the Lagrange basis at `r`; `sumCube_lagrangeBasis`: the partition of unity;
+  `evalMle_replicate`: a constant table extends to the constant.
+* **Splitting.** `cubeIndex i j = i + 2 ^ k * j` has low bits `i` and high bits `j`;
+  `sum_cube_split` turns a sum over the cube into a double sum; `lagrangeBasis_cubeIndex` factors
+  the Lagrange basis across the split.
+* **Boolean points.** `boolVec j` is the point of the cube with index `j`; the Lagrange basis
+  there is an indicator (`lagrangeBasis_boolVec`), so evaluating reads the entry
+  (`evalMle_boolVec`). `boolVec_zero` and `boolVec_onesIndex` name the two corners, and
+  `lagrangeBasis_zero_index`, `lagrangeBasis_onesIndex` give the basis at them as products.
+* **Slices.** `slice t j` is the subcube of `t` whose high bits are `j`, and `placeSlice t j` is
+  the table that holds `t` on that subcube and zero elsewhere. `evalMle_split` writes an
+  evaluation as the weighted sum of the slices; `evalMle_append_boolVec` is the selection
+  identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
+  `sumCube_placeSlice` are its converse.
+
+A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
-Stefano Rocca and Elias Judin, ported to CompPoly's tables and little-endian indexing
-(`docs/roadmap/leanth-reuse.md`): the partition of unity `sumCube_eqTable`
-(`Polynomial/Multilinear.lean:213`, `eqTilde_sum_cube`), the padding collapse `sumCube_padHigh`
-and `sumCube_prodVars` (`ProofSystem/ZeroCheck.lean:836-886`, `sum_prod_cube_eq_one`,
-`sum_prefix_collapse`), and the block-selection identity `evalMle_append_boolVec`
-(`ProofSystem/Stacking.lean:603`, `eval_MLE_stack_block`; its little-endian restatement on the
-explore branch, `Stacking/MLE.lean`, `eval_stackPoly_sel`). The proofs are new: they go through
-`eval_mle_eq_eval`, the dot product with `lagrangeBasis`, and one lemma,
-`lagrangeBasis_cubeIndex`, factoring the Lagrange basis across a split of the index.
-
-## Conventions
-
-* A point is a `Vector R n`; `z ++ s` puts `z` in the low coordinates.
-* `cubeIndex i j = i + 2 ^ k * j` is the index whose low `k` bits are `i` and whose high `m`
-  bits are `j`; `sum_cube_split` rewrites a sum over the cube as a double sum.
-* `boolVec j` is the point of the cube with index `j`, as ring elements.
-* `eqTable r` is CompPoly's `lagrangeBasis r`, the values of `eq(r, ·)` on the cube; in
-  characteristic 2 the factor `r_k x_k + (1 - r_k)(1 - x_k)` is `1 + r_k + x_k`.
+Stefano Rocca and Elias Judin, ported to CompPoly's tables and little-endian indexing: the
+partition of unity (`Polynomial/Multilinear.lean:213`, `eqTilde_sum_cube`), the collapse of a
+sum onto one slice (`ProofSystem/ZeroCheck.lean:836-886`, `sum_prefix_collapse`), and the
+selection identity (`ProofSystem/Stacking.lean:603`, `eval_MLE_stack_block`). The proofs are new:
+they go through `eval_mle_eq_eval`, the dot product with `lagrangeBasis`, and one lemma,
+`lagrangeBasis_cubeIndex`.
 
 ## Wrong readings excluded
 
-* `evalMle_append_boolVec` reads the slice at the *high* index `j`; a version slicing on the
-  low index is a different (strided) selection and is not what stacking uses.
-* `padHigh` places the table where the high coordinates are all ones and puts zero in the
-  other slices, so its cube sum is the table's own sum (`sumCube_padHigh`). Replicating the
-  table in every high-coordinate slice instead multiplies the unweighted cube sum by
-  `2 ^ m`. The same factor remains if the equality weight uses only the low coordinates;
-  an equality weight on all coordinates sums the high-coordinate factor to one.
+* `evalMle_append_boolVec` reads the slice at the *high* index; slicing on the low index is a
+  different, strided selection.
+* `placeSlice` puts zero in the other slices, so the cube sum is kept. Copying the table into
+  every slice multiplies the sum by `2 ^ m`.
 -/
 
 namespace LeanerVM.Protocol
@@ -71,9 +74,6 @@ def hadamard {n : ℕ} (s t : CMlPolynomialEval R n) : CMlPolynomialEval R n :=
     (hadamard s t)[i] = s[i] * t[i] := by
   simp [hadamard]
 
-/-- The equality kernel `eq(r, ·)` on the cube: CompPoly's Lagrange basis at `r`. -/
-abbrev eqTable {n : ℕ} (r : Vector R n) : CMlPolynomialEval R n := lagrangeBasis r
-
 /-- `lagrangeBasis_getElem` with a natural-number index. -/
 theorem lagrangeBasis_getElem_nat {n : ℕ} (w : Vector R n) {a : ℕ} (ha : a < 2 ^ n) :
     (lagrangeBasis w)[a] = ∏ b : Fin n, if a.testBit b then w[b] else 1 - w[b] := by
@@ -87,14 +87,26 @@ theorem evalMle_eq_sum {n : ℕ} (t : CMlPolynomialEval R n) (x : Vector R n) :
   rw [eval_mle_eq_eval, CMlPolynomialEval.eval, Vector.dotProduct_eq_root_dotProduct]
   simp [dotProduct, Vector.get_eq_getElem]
 
-/-- Evaluating at `r` is summing the table against the equality kernel at `r`. -/
-theorem eval_eq_sum_eqTable {n : ℕ} (t : CMlPolynomialEval R n) (r : Vector R n) :
-    evalMle t r = sumCube (hadamard (eqTable r) t) := by
+/-- Evaluating at `r` is summing the table against the Lagrange basis at `r`. -/
+theorem evalMle_eq_sumCube_hadamard {n : ℕ} (t : CMlPolynomialEval R n) (r : Vector R n) :
+    evalMle t r = sumCube (hadamard (lagrangeBasis r) t) := by
   rw [evalMle_eq_sum, sumCube]
   exact Finset.sum_congr rfl fun i _ ↦ by rw [hadamard_getElem, mul_comm]
 
-/-- The all-ones table extends to the constant one. -/
-theorem evalMle_replicate_one {n : ℕ} (x : Vector R n) :
+/-- Evaluation is invariant under casting the number of variables. -/
+theorem evalMle_cast {n n' : ℕ} (h : n = n') (t : CMlPolynomialEval R n) (x : Vector R n) :
+    evalMle (Vector.cast (congrArg (2 ^ ·) h) t) (Vector.cast h x) = evalMle t x := by
+  subst h
+  simp
+
+/-- Evaluation at a point of another ring is invariant under casting the number of variables. -/
+theorem eval₂Mle_cast {S : Type*} [CommRing S] (φ : R →+* S) {n n' : ℕ} (h : n = n')
+    (t : CMlPolynomialEval R n) (x : Vector S n) :
+    eval₂Mle (Vector.cast (congrArg (2 ^ ·) h) t) φ (Vector.cast h x) = eval₂Mle t φ x := by
+  subst h
+  simp
+
+private theorem evalMle_replicate_one {n : ℕ} (x : Vector R n) :
     evalMle (Vector.replicate (2 ^ n) (1 : R)) x = 1 := by
   induction n with
   | zero => simp [evalMle_zero]
@@ -109,24 +121,21 @@ theorem evalMle_replicate_one {n : ℕ} (x : Vector R n) :
       ring
     rw [h, ih]
 
-/-- The all-zeros table extends to the constant zero. -/
-theorem evalMle_replicate_zero {n : ℕ} (x : Vector R n) :
-    evalMle (Vector.replicate (2 ^ n) (0 : R)) x = 0 := by
-  rw [evalMle_eq_sum]
-  simp
-
-/-- Evaluation is invariant under casting the number of variables. -/
-theorem evalMle_cast {n n' : ℕ} (h : n = n') (h2 : 2 ^ n = 2 ^ n') (t : CMlPolynomialEval R n)
-    (x : Vector R n) : evalMle (Vector.cast h2 t) (Vector.cast h x) = evalMle t x := by
-  subst h
-  simp
-
-/-- The equality kernel sums to one over the cube: the partition of unity behind every
-eq-weighted sum. -/
-theorem sumCube_eqTable {n : ℕ} (r : Vector R n) : sumCube (eqTable r) = 1 := by
+/-- The Lagrange basis sums to one over the cube: the partition of unity. -/
+theorem sumCube_lagrangeBasis {n : ℕ} (r : Vector R n) : sumCube (lagrangeBasis r) = 1 := by
   have h := evalMle_replicate_one r
   rw [evalMle_eq_sum] at h
-  simpa [sumCube, eqTable] using h
+  simpa [sumCube] using h
+
+/-- A constant table extends to the constant. -/
+theorem evalMle_replicate {n : ℕ} (a : R) (x : Vector R n) :
+    evalMle (Vector.replicate (2 ^ n) a) x = a := by
+  rw [evalMle_eq_sum]
+  simp only [Fin.getElem_fin, Vector.getElem_replicate]
+  rw [← Finset.mul_sum]
+  have hs := sumCube_lagrangeBasis x
+  simp only [sumCube, Fin.getElem_fin] at hs
+  rw [hs, mul_one]
 
 /-! ## Splitting the cube -/
 
@@ -194,6 +203,19 @@ omit [CommRing R] in
   intro b hb
   simp [highVec, Vector.getElem_append_right]
 
+omit [CommRing R] in
+/-- A point is its low coordinates followed by its high coordinates. -/
+theorem lowVec_append_highVec {k m : ℕ} (w : Vector R (k + m)) :
+    lowVec w ++ highVec w = w := by
+  apply Vector.ext
+  intro i hi
+  rw [Vector.getElem_append]
+  split
+  · simp [lowVec]
+  · simp only [highVec, Vector.getElem_ofFn]
+    congr 1
+    omega
+
 /-- The Lagrange basis factors across the split of the index. -/
 theorem lagrangeBasis_cubeIndex {k m : ℕ} (w : Vector R (k + m)) (i : Fin (2 ^ k))
     (j : Fin (2 ^ m)) :
@@ -207,11 +229,29 @@ theorem lagrangeBasis_cubeIndex {k m : ℕ} (w : Vector R (k + m)) (i : Fin (2 ^
   · refine Finset.prod_congr rfl fun b _ ↦ ?_
     simp [highVec]
 
-/-! ## Boolean points and slices -/
+/-! ## Boolean points -/
 
 /-- The point of the cube with index `j`, as ring elements. -/
 def boolVec {m : ℕ} (j : Fin (2 ^ m)) : Vector R m :=
   Vector.ofFn fun b ↦ if j.val.testBit b then 1 else 0
+
+/-- The all-ones index of the cube `{0,1}^m`. -/
+def onesIndex (m : ℕ) : Fin (2 ^ m) :=
+  ⟨(2 ^ m - 1 : ℕ), by have := Nat.two_pow_pos m; omega⟩
+
+/-- The point of index zero is the origin. -/
+theorem boolVec_zero {m : ℕ} :
+    (boolVec (⟨0, Nat.two_pow_pos m⟩ : Fin (2 ^ m)) : Vector R m) = Vector.replicate m 0 := by
+  apply Vector.ext
+  intro b hb
+  simp [boolVec]
+
+/-- The point of the all-ones index has every coordinate one. -/
+theorem boolVec_onesIndex {m : ℕ} :
+    (boolVec (onesIndex m) : Vector R m) = Vector.replicate m 1 := by
+  apply Vector.ext
+  intro b hb
+  simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
 
 /-- Two indices below `2 ^ m` agree iff their `m` low bits agree. -/
 theorem fin_eq_iff_testBit {m : ℕ} (i j : Fin (2 ^ m)) :
@@ -241,12 +281,27 @@ theorem lagrangeBasis_boolVec {m : ℕ} (j i : Fin (2 ^ m)) :
   · simp [hij]
   · simp [hij, (fin_eq_iff_testBit i j).not.mp hij]
 
+/-- The Lagrange basis at the all-ones index is the product of the coordinates. -/
+theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
+    (lagrangeBasis s)[(onesIndex m).val] = ∏ b : Fin m, s[b] := by
+  rw [lagrangeBasis_getElem_nat _ (onesIndex m).isLt]
+  refine Finset.prod_congr rfl fun b _ ↦ ?_
+  simp [onesIndex, Nat.testBit_two_pow_sub_one, b.isLt]
+
+/-- The Lagrange basis at index zero is the product of the complements of the coordinates. -/
+theorem lagrangeBasis_zero_index {m : ℕ} (s : Vector R m) :
+    (lagrangeBasis s)[0]'(Nat.two_pow_pos m) = ∏ b : Fin m, (1 - s[b]) := by
+  rw [lagrangeBasis_getElem_nat _ (Nat.two_pow_pos m)]
+  simp
+
 /-- Evaluating a table at a point of the cube reads the entry. -/
 theorem evalMle_boolVec {m : ℕ} (t : CMlPolynomialEval R m) (j : Fin (2 ^ m)) :
     evalMle t (boolVec j) = t[j] := by
   rw [evalMle_eq_sum]
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, mul_ite, mul_one, mul_zero,
     Finset.sum_ite_eq', Finset.mem_univ, if_true]
+
+/-! ## Slices: reading and placing a subcube -/
 
 /-- The slice of a table at the high index `j`: the entries whose high `m` bits are `j`. -/
 def slice {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m)) :
@@ -271,7 +326,8 @@ theorem slice_getElem_nat {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin
   rw [slice, Vector.getElem_ofFn]
   rfl
 
-/-- Evaluation at a split point is the eq-weighted sum of the slices' evaluations. -/
+/-- Evaluation at a split point is the sum of the slices' evaluations, each weighted by the
+Lagrange basis of the high coordinates. -/
 theorem evalMle_split {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z : Vector R k)
     (s : Vector R m) :
     evalMle t (z ++ s) = ∑ j : Fin (2 ^ m), (lagrangeBasis s)[j] * evalMle (slice t j) z := by
@@ -290,79 +346,46 @@ theorem evalMle_append_boolVec {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z 
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_mul, one_mul, zero_mul,
     Finset.sum_ite_eq', Finset.mem_univ, if_true]
 
-/-! ## Back-loaded padding -/
+/-- A table placed at the high index `j`: its entries in the slice at `j`, zero in every other
+slice. -/
+def placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+    CMlPolynomialEval R (k + m) :=
+  Vector.ofFn fun x ↦ if x.val / 2 ^ k = j.val then
+    t[x.val % 2 ^ k]'(Nat.mod_lt _ (Nat.two_pow_pos k)) else 0
 
-/-- The index of the all-ones point of `{0,1}^m`. -/
-def onesIndex (m : ℕ) : Fin (2 ^ m) :=
-  ⟨(2 ^ m - 1 : ℕ), by have := Nat.two_pow_pos m; omega⟩
-
-/-- The table of `x_0 ⋯ x_{m-1}` on the cube: the indicator of the all-ones point. -/
-def prodVars (m : ℕ) : CMlPolynomialEval R m :=
-  Vector.ofFn fun i ↦ if i = onesIndex m then 1 else 0
-
-/-- `Σ_x x_0 ⋯ x_{m-1} = 1`. -/
-theorem sumCube_prodVars (m : ℕ) : sumCube (prodVars m : CMlPolynomialEval R m) = 1 := by
-  simp [sumCube, prodVars]
-
-/-- The Lagrange basis at the all-ones index is the product of the coordinates. -/
-theorem lagrangeBasis_onesIndex {m : ℕ} (s : Vector R m) :
-    (lagrangeBasis s)[(onesIndex m).val] = ∏ b : Fin m, s[b] := by
-  rw [lagrangeBasis_getElem_nat _ (onesIndex m).isLt]
-  refine Finset.prod_congr rfl fun b _ ↦ ?_
-  simp [onesIndex, Nat.testBit_two_pow_sub_one, b.isLt]
-
-/-- The extension of `x_0 ⋯ x_{m-1}` at `s` is the product of the coordinates of `s`. -/
-theorem evalMle_prodVars {m : ℕ} (s : Vector R m) :
-    evalMle (prodVars m) s = ∏ b : Fin m, s[b] := by
-  rw [evalMle_eq_sum]
-  simp only [Fin.getElem_fin, prodVars, Vector.getElem_ofFn, Fin.eta, ite_mul, one_mul,
-    zero_mul, Finset.sum_ite_eq', Finset.mem_univ, if_true]
-  exact lagrangeBasis_onesIndex s
-
-/-- A table of `k` variables lifted to `k + m` variables by `∏_{c ≥ k} X_c`: its entries sit
-where the high coordinates are all ones, and everything else is zero. -/
-def padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) : CMlPolynomialEval R (k + m) :=
-  Vector.ofFn fun x ↦
-    if x.val / 2 ^ k = 2 ^ m - 1 then t[x.val % 2 ^ k]'(Nat.mod_lt _ (Nat.two_pow_pos k)) else 0
-
-theorem slice_padHigh_ones {k m : ℕ} (t : CMlPolynomialEval R k) :
-    slice (padHigh t m) (onesIndex m) = t := by
+/-- Slicing a placed table gives the table at its index and zero at every other index. -/
+theorem slice_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j h : Fin (2 ^ m)) :
+    slice (placeSlice t j) h = if h = j then t else Vector.replicate (2 ^ k) 0 := by
   apply Vector.ext
   intro i hi
-  have hdiv := cubeIndex_div (⟨i, hi⟩ : Fin (2 ^ k)) (onesIndex m)
-  simp only [cubeIndex_val, onesIndex] at hdiv
-  simp [slice, padHigh, hdiv, onesIndex, Nat.mod_eq_of_lt hi]
-
-theorem slice_padHigh_of_ne {k m : ℕ} (t : CMlPolynomialEval R k) {j : Fin (2 ^ m)}
-    (hj : j ≠ onesIndex m) : slice (padHigh t m) j = Vector.replicate (2 ^ k) 0 := by
-  apply Vector.ext
-  intro i hi
-  have hdiv := cubeIndex_div (⟨i, hi⟩ : Fin (2 ^ k)) j
+  have hdiv := cubeIndex_div (⟨i, hi⟩ : Fin (2 ^ k)) h
   simp only [cubeIndex_val] at hdiv
-  have hj' : j.val ≠ 2 ^ m - 1 := fun h ↦ hj (Fin.ext h)
-  simp [slice, padHigh, hdiv, hj']
+  by_cases hh : h = j
+  · subst h
+    simp [slice, placeSlice, hdiv, Nat.mod_eq_of_lt hi]
+  · have hn : h.val ≠ j.val := fun he ↦ hh (Fin.ext he)
+    simp [slice, placeSlice, hdiv, hh, hn]
 
-/-- Back-loaded padding preserves the sum over the cube. -/
-theorem sumCube_padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) :
-    sumCube (padHigh t m) = sumCube t := by
-  rw [sumCube, sum_cube_split, Finset.sum_eq_single (onesIndex m)]
-  · simp only [← slice_getElem, slice_padHigh_ones]
+/-- The extension of a placed table is the table's extension times the Lagrange basis of the
+high coordinates at the index. -/
+theorem evalMle_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m))
+    (z : Vector R k) (s : Vector R m) :
+    evalMle (placeSlice t j) (z ++ s) = (lagrangeBasis s)[j] * evalMle t z := by
+  rw [evalMle_split, Finset.sum_eq_single j]
+  · simp [slice_placeSlice]
+  · intro h _ hh
+    simp [slice_placeSlice, hh, evalMle_replicate]
+  · simp
+
+/-- Placing a table keeps its sum over the cube. -/
+theorem sumCube_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+    sumCube (placeSlice t j) = sumCube t := by
+  rw [sumCube, sum_cube_split, Finset.sum_eq_single j]
+  · simp only [← slice_getElem, slice_placeSlice, if_true]
     rfl
-  · intro j _ hj
-    simp only [← slice_getElem, slice_padHigh_of_ne t hj]
+  · intro h _ hh
+    simp only [← slice_getElem, slice_placeSlice, if_neg hh]
     simp
-  · intro h
-    exact absurd (Finset.mem_univ _) h
-
-/-- The extension of a padded table is the table's extension times the product of the high
-coordinates. -/
-theorem evalMle_padHigh {k m : ℕ} (t : CMlPolynomialEval R k) (z : Vector R k)
-    (s : Vector R m) :
-    evalMle (padHigh t m) (z ++ s) = evalMle t z * ∏ b : Fin m, s[b] := by
-  rw [evalMle_split, Finset.sum_eq_single (onesIndex m)]
-  · rw [slice_padHigh_ones, Fin.getElem_fin, lagrangeBasis_onesIndex, mul_comm]
-  · intro j _ hj
-    rw [slice_padHigh_of_ne t hj, evalMle_replicate_zero, mul_zero]
   · intro h
     exact absurd (Finset.mem_univ _) h
 

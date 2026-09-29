@@ -15,9 +15,10 @@ meta import CompPoly.Multilinear.Basic
 /-!
 # Fixed-column controls
 
-The asymmetric power-table example detects swapping the two Boolean bits. Public bytecode
-checks use two distinct instructions and include a spare zero slot and the extension-field
-native evaluation. No private witness is needed to construct any of these columns.
+The index column is evaluated in the specification's form and against the form with the two
+coordinates swapped. The bytecode column uses two distinct instructions, a spare zero slot, the
+native evaluation at a point outside `K`, and the slot bits reversed as the mutation. No
+private witness is needed to construct any of these columns.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -30,20 +31,10 @@ open CompPoly CMlPolynomialEval
 private def fixedColumnAnswer {n : ℕ} (q : Column n) (z : Vector E n) : E :=
   OracleInterface.answer q z
 
-example (a : ℚ) : evalMle (powerColumnValues a 0) #v[] = 1 := by
-  rw [evalMle_powerColumnValues]
-  simp
+/-! ## The index column -/
 
-example : evalMle (powerColumnValues (2 : ℚ) 2) #v[3, 5] = 64 := by
-  simp only [evalMle_powerColumnValues]
-  norm_num [Fin.prod_univ_succ]
-
-example : evalMle (powerColumnValues (2 : ℚ) 2) #v[3, 5] ≠
-    evalMle (powerColumnValues (2 : ℚ) 2) #v[5, 3] := by
-  simp only [evalMle_powerColumnValues]
-  norm_num [Fin.prod_univ_succ]
-
--- The actual index-column oracle uses the same low-bit-first convention.
+-- Cell `i` holds `g ^ i`, and the point `(0, 1)` of the cube is index 2.
+#guard (idxColumn 2).values = #v[1, g, g ^ 2, g ^ 3]
 #guard fixedColumnAnswer (idxColumn 2) #v[0, 1] = ofK (g ^ 2)
 #guard fixedColumnAnswer (idxColumn 2) #v[y, y ^ 2] = idxColumnEval #v[y, y ^ 2]
 
@@ -58,6 +49,8 @@ example : evalMle (powerColumnValues (2 : ℚ) 2) #v[3, 5] ≠
 example (z : Vector E 2) : OracleInterface.answer (idxColumn 2) z =
     ∏ k : Fin 2, (1 + z[k] * (1 + algebraMap K E (g ^ (2 ^ k.val)))) :=
   (idxColumn_eval z).trans (idxColumnEval_eq z)
+
+/-! ## The bytecode column -/
 
 /-- A public fixture with two different opcodes. -/
 def fixedColumnProgram : Program where
@@ -93,6 +86,20 @@ example : OracleInterface.answer (bytecodeColumn fixedColumnProgram)
     ((#v[1] : Vector E 1) ++ (#v[0, 0, 1, 1] : Vector E 4)) = 0
 #guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
     ((#v[1] : Vector E 1) ++ (#v[0, 0, 1, 1] : Vector E 4)) ≠ ofK Opcode.mulNative.code
+
+-- The same cube point written with the index and the slot: instruction 1, slot 3.
+#guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
+    ((boolVec (1 : Fin (2 ^ 1)) : Vector E 1) ++ (boolVec (m := 4) (3 : Fin 16) : Vector E 4)) =
+  ofK Opcode.mulNative.code
+
+-- The native evaluator agrees with the oracle at a point outside `K` and off the cube.
+#guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
+    ((#v[y] : Vector E 1) ++ (#v[y + 1, y ^ 2, y, 1] : Vector E 4)) =
+  bytecodeColumnEval fixedColumnProgram #v[y] #v[y + 1, y ^ 2, y, 1]
+-- Mutation: with the slot coordinates reversed it does not.
+#guard fixedColumnAnswer (bytecodeColumn fixedColumnProgram)
+    ((#v[y] : Vector E 1) ++ (#v[y + 1, y ^ 2, y, 1] : Vector E 4)) ≠
+  bytecodeColumnEval fixedColumnProgram #v[y] #v[1, y, y ^ 2, y + 1]
 
 /-- With no instruction bits, the public program contains exactly one instruction. -/
 def singletonColumnProgram : Program where

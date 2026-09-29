@@ -1,0 +1,57 @@
+/-
+  LeanerVMTests.Protocol.Padding
+
+  Controls for back-loaded padding: which slice the table lands on, and what copying the table
+  would give instead.
+-/
+
+module
+
+public import LeanerVM.Protocol.Padding
+public import LeanerVM.Parameters.Field
+meta import LeanerVM.Protocol.Padding
+meta import LeanerVM.Parameters.Field
+meta import CompPoly.Multilinear.Basic
+
+/-!
+# Back-loaded padding controls
+
+The table is lifted by two variables, so that the all-ones slice (index 3) differs from the
+top-bit slice (index 2) and from index 1. Copying the table into every slice is the mutation:
+in characteristic two its sum is zero.
+-/
+
+namespace LeanerVMTests.Protocol
+
+open LeanerVM.Parameters LeanerVM.Protocol CompPoly CMlPolynomialEval
+
+@[expose] public section
+
+/-- The table `[3, 5]` on one variable. -/
+def short : CMlPolynomialEval K 1 := #v[3, 5]
+
+-- Lifted by two variables, it sits on the last slice of four.
+#guard padHigh short 2 = #v[0, 0, 0, 0, 0, 0, 3, 5]
+-- The lift keeps the sum over the cube.
+#guard sumCube (padHigh short 2) = sumCube short
+-- Its extension is the table's, times the product of the two new coordinates.
+#guard evalMle (padHigh short 2) ((#v[7] : Vector K 1) ++ (#v[11, 13] : Vector K 2)) =
+  evalMle short #v[7] * (11 * 13)
+-- Mutation: one new coordinate alone is not the factor.
+#guard evalMle (padHigh short 2) ((#v[7] : Vector K 1) ++ (#v[11, 13] : Vector K 2)) ≠
+  evalMle short #v[7] * 13
+
+/-- The table copied into every slice: lifting by nothing. -/
+def copied : CMlPolynomialEval K 3 := #v[3, 5, 3, 5, 3, 5, 3, 5]
+
+-- Its sum is four times the table's, zero in characteristic two.
+#guard sumCube copied = 0
+#guard sumCube copied ≠ sumCube short
+
+-- The product of the variables: one at the all-ones point, and its cube sum is one.
+#guard (prodVars 2 : CMlPolynomialEval K 2) = #v[0, 0, 0, 1]
+#guard sumCube (prodVars 3 : CMlPolynomialEval K 3) = 1
+#guard evalMle (prodVars 3) (#v[5, 9, 11] : Vector K 3) = 5 * 9 * 11
+
+end
+end LeanerVMTests.Protocol

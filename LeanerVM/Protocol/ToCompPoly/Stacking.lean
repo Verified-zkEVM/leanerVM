@@ -1,9 +1,9 @@
 /-
   LeanerVM.Protocol.ToCompPoly.Stacking
 
-  Aligned stacking of hypercube tables of different heights into one table, and the
-  selection identity: evaluating the stack at a point whose high coordinates are a block's
-  selector bits evaluates that block. Candidate for CompPoly.
+  Aligned stacking of hypercube tables of different heights into one table, and the selection
+  identity: the stack at a point whose high coordinates are a block's selector bits is that
+  block at the low coordinates. Candidate for CompPoly.
 -/
 
 module
@@ -13,32 +13,40 @@ public import LeanerVM.Protocol.ToCompPoly.Multilinear
 /-!
 # Aligned stacking
 
-Blocks are ordered largest first, each block sits at an offset that is a multiple of its size,
-the selector of block `b` is `offset_b >> κ_b`, and the stack is padded past the last block
-(leanVM specification §4.1). Category A: nothing here transcribes a source; the leanVM stack and
-leaf layouts are built on it elsewhere.
+A `Blocks` is a list of sizes, largest first: block `b` has `2 ^ size b` entries. Laid end to
+end in that order, each block starts at an offset that is a multiple of its own height
+(`pow_size_dvd_offset`), so it occupies a subcube of any table tall enough to hold them all:
+the subcube whose high coordinates are the bits of `selector b = offset b / 2 ^ size b`. The
+layout knows sizes only. The tables are a separate argument, `t : B.Tables R`, one table per
+block over any commutative ring, so one layout serves tables over different rings.
+
+* `stackAt t μ pad` lays the tables out on `μ` variables and fills the rest with `pad`.
+* `unstack hμ q b` reads block `b` off any table `q` of `μ` variables, stack or not.
+* `extendPoint hμ b z` lifts a point of block `b` to the point `(z, selector bits)` of the stack;
+  `lowPoint` and `highPoint` split a point of the stack the same way.
+* The selection identity: `unstack_eval` for any table, `stack_eval` for a stack, and
+  `unstack_eval₂`, `stack_eval₂` when the point lies in another ring than the entries.
+  `unstack_eval₂_eq_sumCube` writes it as a sum over the cube against a Lagrange basis.
+* `map_stackAt`, `unstack_map`: mapping the entries commutes with stacking and reading.
+
+Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table or
+its evaluation. The request it answers is tracked upstream as
+[ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900). Nothing here transcribes a
+source.
 
 Derived from Verified-zkEVM/leanth `leanth-project` at 23929f8c, by Aristotle (Harmonic),
-Stefano Rocca and Elias Judin (`docs/roadmap/leanth-reuse.md`): `Blocks` is
-`ProofSystem/Stacking.lean:48` (`AlignedLayout`, minus the two unused fields), `offset` its
-`offset` (:71), `pow_size_dvd_offset` is `pow_height_dvd_offset` (:388), the window lemmas are
-`offset_add_pow_height_le` and `offset_add_pow_height_le_offset` (:397, :409), and `stack_eval`
-is `eval_MLE_stack_block` (:603) restated little-endian as on the explore branch
-(`Stacking/MLE.lean`, `eval_stackPoly_sel`, by this repository's maintainer). The proof here is
-new: it is the generic selection identity `evalMle_append_boolVec` of `Multilinear.lean` applied
-to the slice of the stack at the selector index, which alignment identifies with the block.
+Stefano Rocca and Elias Judin: the layout is `ProofSystem/Stacking.lean:48` (`AlignedLayout`),
+alignment is `pow_height_dvd_offset` (:388), the window lemmas are :397 and :409, the selection
+identity is `eval_MLE_stack_block` (:603), and reading a block is `unstack` (:724-777), restated
+little-endian. The proofs are new.
 
 ## Wrong readings excluded
 
-* Alignment is a theorem of the descending order (`pow_size_dvd_offset`), not a hypothesis:
-  blocks of sizes 4, 2, 1 in that order are aligned, in any other order they are not.
-* The pad value is a parameter: the witness stack pads with `0` and the bus trees with `1`;
-  nothing in `stack_eval` depends on it.
-
-Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table
-or its evaluation, and nothing is a protocol. The request it answers is tracked upstream as
-[ArkLib #900](https://github.com/Verified-zkEVM/ArkLib/issues/900), coefficient
-transport and arbitrary-column readout.
+* Alignment is a theorem of the descending order, not a hypothesis: sizes 2, 1, 0 in that order
+  are aligned, in any other order they are not.
+* The pad is a parameter, and no selection identity depends on it.
+* `stackAt` is total: when the tables do not fit on `μ` variables it truncates. Every statement
+  that needs the fit takes `B.total ≤ 2 ^ μ`.
 -/
 
 namespace LeanerVM.Protocol
@@ -49,29 +57,22 @@ open CompPoly CMlPolynomialEval
 
 variable {R : Type*} [CommRing R]
 
-/-- Blocks to stack: `n` tables, block `b` on `size b` variables, largest first. -/
-structure Blocks (R : Type*) where
+/-- The sizes of the blocks of an aligned layout: `n` blocks, block `b` on `size b` variables,
+largest first. -/
+structure Blocks where
   /-- The number of blocks. -/
   n : ℕ
   /-- The number of variables of each block; its height is `2 ^ size b`. -/
   size : Fin n → ℕ
-  /-- The tables. -/
-  values : (b : Fin n) → CMlPolynomialEval R (size b)
   /-- Largest first. -/
   descending : Antitone size
 
 namespace Blocks
 
-variable (B : Blocks R)
+variable (B : Blocks)
 
-/-! ## Coefficient maps -/
-
-/-- Map the block values along a ring homomorphism, preserving the layout. -/
-def map {S : Type*} [CommRing S] (φ : R →+* S) : Blocks S where
-  n := B.n
-  size := B.size
-  values := fun b ↦ CMlPolynomialEval.map φ (B.values b)
-  descending := B.descending
+/-- One table per block, over the ring `R`. -/
+abbrev Tables (R : Type*) : Type _ := (b : Fin B.n) → CMlPolynomialEval R (B.size b)
 
 /-! ## Offsets -/
 
@@ -85,41 +86,24 @@ def offset (b : Fin B.n) : ℕ := B.offsetNat b.val
 /-- The total height of the blocks. -/
 def total : ℕ := B.offsetNat B.n
 
-/-- Mapping coefficients leaves every prefix offset unchanged. -/
-@[simp] theorem map_offsetNat {S : Type*} [CommRing S] (φ : R →+* S) (k : ℕ) :
-    (B.map φ).offsetNat k = B.offsetNat k := rfl
-
-/-- Mapping coefficients leaves block offsets unchanged. -/
-@[simp] theorem map_offset {S : Type*} [CommRing S] (φ : R →+* S) (b : Fin B.n) :
-    (B.map φ).offset b = B.offset b := rfl
-
-/-- Mapping coefficients leaves the total occupied height unchanged. -/
-@[simp] theorem map_total {S : Type*} [CommRing S] (φ : R →+* S) :
-    (B.map φ).total = B.total := rfl
-
-omit [CommRing R] in
 theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
     B.offsetNat (k + 1) = B.offsetNat k + 2 ^ B.size ⟨k, hk⟩ := by
   simp [offsetNat, Finset.sum_range_succ, hk]
 
-omit [CommRing R] in
 theorem offsetNat_mono : Monotone B.offsetNat := fun _ _ hab ↦
   Finset.sum_le_sum_of_subset (Finset.range_mono hab)
 
-omit [CommRing R] in
 /-- Windows of distinct blocks are disjoint and in order. -/
 theorem offset_add_pow_le_offset {b c : Fin B.n} (hbc : b < c) :
     B.offset b + 2 ^ B.size b ≤ B.offset c := by
   rw [offset, offset, ← B.offsetNat_succ b.val b.isLt]
   exact B.offsetNat_mono hbc
 
-omit [CommRing R] in
 /-- Every window fits below the total. -/
 theorem offset_add_pow_le_total (b : Fin B.n) : B.offset b + 2 ^ B.size b ≤ B.total := by
   rw [offset, total, ← B.offsetNat_succ b.val b.isLt]
   exact B.offsetNat_mono b.isLt
 
-omit [CommRing R] in
 /-- Alignment: the offset of a block is a multiple of its height, because every earlier block
 is at least as large. -/
 theorem pow_size_dvd_offset (b : Fin B.n) : 2 ^ B.size b ∣ B.offset b := by
@@ -134,7 +118,6 @@ theorem pow_size_dvd_offset (b : Fin B.n) : 2 ^ B.size b ∣ B.offset b := by
 abbrev InWindow (b : Fin B.n) (x : ℕ) : Prop :=
   B.offset b ≤ x ∧ x < B.offset b + 2 ^ B.size b
 
-omit [CommRing R] in
 theorem inWindow_unique {b c : Fin B.n} {x : ℕ} (hb : B.InWindow b x) (hc : B.InWindow c x) :
     b = c := by
   rcases lt_trichotomy b c with h | h | h
@@ -142,18 +125,46 @@ theorem inWindow_unique {b c : Fin B.n} {x : ℕ} (hb : B.InWindow b x) (hc : B.
   · exact h
   · exact absurd (lt_of_lt_of_le hc.2 (B.offset_add_pow_le_offset h)) (not_lt.mpr hb.1)
 
+/-- Every index below the total belongs to a block window: there are no internal gaps. -/
+theorem exists_inWindow {x : ℕ} (hx : x < B.total) : ∃ b, B.InWindow b x := by
+  by_contra h
+  have hno : ∀ b : Fin B.n, ¬ B.InWindow b x := by simpa using h
+  have hprefix : ∀ k, k ≤ B.n → B.offsetNat k ≤ x := by
+    intro k hk
+    induction k with
+    | zero => simp [offsetNat]
+    | succ k ih =>
+      have hk' : k < B.n := by omega
+      have hp := ih (by omega)
+      rw [B.offsetNat_succ k hk']
+      have hn := hno ⟨k, hk'⟩
+      change ¬ (B.offsetNat k ≤ x ∧ x < B.offsetNat k + 2 ^ B.size ⟨k, hk'⟩) at hn
+      omega
+  have := hprefix B.n le_rfl
+  exact (not_lt_of_ge this) hx
+
+/-- Alignment identifies window membership with the quotient selecting the high slice. -/
+theorem inWindow_iff_div (b : Fin B.n) (x : ℕ) :
+    B.InWindow b x ↔ x / 2 ^ B.size b = B.offset b / 2 ^ B.size b := by
+  have ha := Nat.mul_div_cancel' (B.pow_size_dvd_offset b)
+  rw [Nat.div_eq_iff (Nat.two_pow_pos (B.size b))]
+  rw [Nat.mul_comm (B.offset b / 2 ^ B.size b), ha]
+  have hp := Nat.two_pow_pos (B.size b)
+  change (B.offset b ≤ x ∧ x < B.offset b + 2 ^ B.size b) ↔ _
+  omega
+
 /-! ## The stack -/
 
 /-- The stack on `μ` variables: block `b`'s entries at its window, `pad` past the total. -/
-def stackAt (μ : ℕ) (pad : R) : CMlPolynomialEval R μ :=
+def stackAt (t : B.Tables R) (μ : ℕ) (pad : R) : CMlPolynomialEval R μ :=
   Vector.ofFn fun x ↦
     if B.total ≤ x.val then pad
     else ∑ b : Fin B.n,
-      if B.InWindow b x.val then ((B.values b)[x.val - B.offset b]?).getD 0 else 0
+      if B.InWindow b x.val then ((t b)[x.val - B.offset b]?).getD 0 else 0
 
-theorem stackAt_getElem_of_inWindow {μ : ℕ} (pad : R) {b : Fin B.n} {x : ℕ} (hx : x < 2 ^ μ)
-    (h : B.InWindow b x) :
-    (B.stackAt μ pad)[x] = (B.values b)[x - B.offset b]'(by have := h.2; omega) := by
+theorem stackAt_getElem_of_inWindow (t : B.Tables R) {μ : ℕ} (pad : R) {b : Fin B.n} {x : ℕ}
+    (hx : x < 2 ^ μ) (h : B.InWindow b x) :
+    (B.stackAt t μ pad)[x] = (t b)[x - B.offset b]'(by have := h.2; omega) := by
   simp only [stackAt, Vector.getElem_ofFn]
   rw [if_neg (by have := B.offset_add_pow_le_total b; omega), Finset.sum_eq_single b]
   · rw [if_pos h, Vector.getElem?_eq_getElem (by have := h.2; omega), Option.getD_some]
@@ -162,27 +173,35 @@ theorem stackAt_getElem_of_inWindow {μ : ℕ} (pad : R) {b : Fin B.n} {x : ℕ}
   · intro h'
     exact absurd (Finset.mem_univ _) h'
 
-theorem stackAt_getElem_of_total_le {μ : ℕ} (pad : R) {x : ℕ} (hx : x < 2 ^ μ)
-    (h : B.total ≤ x) : (B.stackAt μ pad)[x] = pad := by
+theorem stackAt_getElem_of_total_le (t : B.Tables R) {μ : ℕ} (pad : R) {x : ℕ}
+    (hx : x < 2 ^ μ) (h : B.total ≤ x) : (B.stackAt t μ pad)[x] = pad := by
   simp [stackAt, h]
 
-/-- Coefficient mapping commutes with stacking, including its padding value. No injectivity
-or stack-fit hypothesis is needed for this identity of total constructors. -/
-theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (μ : ℕ) (pad : R) :
-    CMlPolynomialEval.map φ (B.stackAt μ pad) = (B.map φ).stackAt μ (φ pad) := by
+/-- Mapping the entries commutes with stacking, the pad included. No injectivity and no fit
+hypothesis is needed. -/
+theorem map_stackAt {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) (μ : ℕ)
+    (pad : R) :
+    CMlPolynomialEval.map φ (B.stackAt t μ pad) =
+      B.stackAt (fun b ↦ CMlPolynomialEval.map φ (t b)) μ (φ pad) := by
   apply Vector.ext
   intro x hx
   simp only [CMlPolynomialEval.map, Vector.getElem_map, stackAt, Vector.getElem_ofFn]
   change φ (if B.total ≤ x then pad else ∑ b : Fin B.n,
-      if B.InWindow b x then ((B.values b)[x - B.offset b]?).getD 0 else 0) =
+      if B.InWindow b x then ((t b)[x - B.offset b]?).getD 0 else 0) =
     if B.total ≤ x then φ pad else ∑ b : Fin B.n,
-      if B.InWindow b x then (Vector.map φ (B.values b))[x - B.offset b]?.getD 0 else 0
+      if B.InWindow b x then (Vector.map φ (t b))[x - B.offset b]?.getD 0 else 0
   split_ifs <;>
     simp_all only [map_sum, apply_ite, Vector.getElem?_map, ← Option.getD_map, map_zero]
 
+/-- A stack that the blocks fill does not depend on the pad. -/
+theorem stackAt_eq_of_total_eq (t : B.Tables R) {μ : ℕ} (h : B.total = 2 ^ μ) (pad pad' : R) :
+    B.stackAt t μ pad = B.stackAt t μ pad' := by
+  apply Vector.ext
+  intro i hi
+  simp [stackAt, h, Nat.not_le.mpr hi]
+
 /-! ## Selectors -/
 
-omit [CommRing R] in
 /-- Every block fits in a stack of `μ` variables. -/
 theorem size_le {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : B.size b ≤ μ := by
   have h1 : 2 ^ B.size b ≤ 2 ^ μ :=
@@ -200,65 +219,55 @@ def selector {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : Fin (2 ^ (μ 
       omega
     exact Nat.div_lt_of_lt_mul h2⟩
 
-omit [CommRing R] in
 @[simp] theorem selector_val {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
     (B.selector hμ b).val = B.offset b / 2 ^ B.size b := rfl
 
-/-- The slice of the stack at a block's selector is the block. -/
-theorem slice_stackAt {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) :
-    slice (Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' (B.size_le hμ b)).symm)
-        (B.stackAt μ pad)) (B.selector hμ b) = B.values b := by
-  apply Vector.ext
-  intro i hi
-  rw [slice_getElem_nat _ _ hi]
-  simp only [Vector.getElem_cast, selector_val, Nat.mul_div_cancel' (B.pow_size_dvd_offset b)]
-  have hx : i + B.offset b < 2 ^ μ := by
-    have := B.offset_add_pow_le_total b
-    omega
-  rw [B.stackAt_getElem_of_inWindow (b := b) pad hx ⟨by omega, by omega⟩]
+/-- A point of block `b` lifted to the stack: the point in the low coordinates, the bits of the
+block's selector in the high ones. -/
+def extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R (B.size b)) :
+    Vector R μ :=
+  Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+    (z ++ (boolVec (B.selector hμ b) : Vector R (μ - B.size b)))
+
+/-- The low coordinates of a point of the stack: a point of block `b`. -/
+def lowPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) :
+    Vector R (B.size b) :=
+  lowVec (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b)).symm z)
+
+/-- The high coordinates of a point of the stack, on which block `b`'s selector is tested. -/
+def highPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vector R μ) :
+    Vector R (μ - B.size b) :=
+  highVec (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b)).symm z)
+
+omit [CommRing R] in
+/-- A point of the stack is its low part followed by its high part. -/
+theorem cast_lowPoint_append_highPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+    (z : Vector R μ) :
+    Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
+      (B.lowPoint hμ b z ++ B.highPoint hμ b z) = z := by
+  rw [lowPoint, highPoint, lowVec_append_highVec]
   simp
 
-/-- The selection identity: the stack, at a point whose low coordinates are `z` and whose high
-coordinates are block `b`'s selector bits, evaluates to block `b` at `z`. -/
-theorem stack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n)
+@[simp] theorem lowPoint_extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+    (z : Vector R (B.size b)) : B.lowPoint hμ b (B.extendPoint hμ b z) = z := by
+  simp [lowPoint, extendPoint]
+
+@[simp] theorem highPoint_extendPoint {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
     (z : Vector R (B.size b)) :
-    evalMle (B.stackAt μ pad)
-      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
-        (z ++ (boolVec (B.selector hμ b) : Vector R (μ - B.size b)))) =
-    evalMle (B.values b) z := by
-  have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)
-  have hS : B.stackAt μ pad =
-      Vector.cast (congrArg (2 ^ ·) hk)
-        (Vector.cast (congrArg (2 ^ ·) hk.symm) (B.stackAt μ pad)) := by
-    simp
-  rw [hS, evalMle_cast hk, evalMle_append_boolVec, slice_stackAt]
+    B.highPoint hμ b (B.extendPoint hμ b z) = boolVec (B.selector hμ b) := by
+  simp [highPoint, extendPoint]
 
-/-- The selection identity after mapping coefficients to another ring. The evaluation point
-may lie outside the image of the coefficient map, as for the `K` to `E` column oracle. -/
-theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
-    (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) (z : Vector S (B.size b)) :
-    eval₂Mle (B.stackAt μ pad) φ
-      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
-        (z ++ (boolVec (B.selector hμ b) : Vector S (μ - B.size b)))) =
-    eval₂Mle (B.values b) φ z := by
-  rw [eval₂Mle, B.map_stackAt]
-  exact (B.map φ).stack_eval hμ (φ pad) b z
+/-! ## Reading a block off a table -/
 
-/-! ## Reading an arbitrary committed table -/
-
-/-- Read block `b` from its declared window in an arbitrary ambient table. -/
+/-- Block `b` read off a table of `μ` variables: the cells of its window. The table need not be
+a stack. -/
 def unstack {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
     (b : Fin B.n) : CMlPolynomialEval R (B.size b) :=
   slice (Vector.cast (congrArg (2 ^ ·) (Nat.add_sub_cancel' (B.size_le hμ b)).symm) q)
     (B.selector hμ b)
 
-/-- Reading an honestly stacked block recovers its supplied values. -/
-@[simp] theorem unstack_stackAt {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) :
-    B.unstack hμ (B.stackAt μ pad) b = B.values b := by
-  exact B.slice_stackAt hμ pad b
-
 omit [CommRing R] in
-/-- A block read accesses the original committed cell at its offset plus the local index. -/
+/-- A block read is the cell at the block's offset plus the local index. -/
 theorem unstack_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
     (b : Fin B.n) {i : ℕ} (hi : i < 2 ^ B.size b) :
     (B.unstack hμ q b)[i] = q[i + B.offset b]'(by
@@ -267,50 +276,31 @@ theorem unstack_getElem {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomial
   rw [unstack, slice_getElem_nat _ _ hi]
   simp [selector_val, Nat.mul_div_cancel' (B.pow_size_dvd_offset b)]
 
-/-- Coefficient maps commute with reading a block from an arbitrary table. -/
-theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
-    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n) :
-    (B.map φ).unstack hμ (CMlPolynomialEval.map φ q) b =
-      CMlPolynomialEval.map φ (B.unstack hμ q b) := by
+/-- Reading a block off the stack returns the block. -/
+@[simp] theorem unstack_stackAt (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R)
+    (b : Fin B.n) : B.unstack hμ (B.stackAt t μ pad) b = t b := by
   apply Vector.ext
   intro i hi
-  rw [(B.map φ).unstack_getElem hμ _ b hi]
-  have hi' : i < 2 ^ B.size b := hi
+  rw [B.unstack_getElem hμ _ b hi]
   have hx : i + B.offset b < 2 ^ μ := by
     have := B.offset_add_pow_le_total b
     omega
-  change (CMlPolynomialEval.map φ q)[i + B.offset b] =
-    (CMlPolynomialEval.map φ (B.unstack hμ q b))[i]
+  rw [B.stackAt_getElem_of_inWindow t (b := b) pad hx ⟨by omega, by omega⟩]
+  simp
+
+/-- Mapping the entries commutes with reading a block. -/
+theorem unstack_map {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n) :
+    B.unstack hμ (CMlPolynomialEval.map φ q) b =
+      CMlPolynomialEval.map φ (B.unstack hμ q b) := by
+  apply Vector.ext
+  intro i hi
+  rw [B.unstack_getElem hμ _ b hi]
   simp only [CMlPolynomialEval.map, Vector.getElem_map]
-  exact congrArg φ (B.unstack_getElem hμ q b hi').symm
-
-/-- A block evaluation of an arbitrary table is its evaluation at the block's selector. -/
-theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
-    (b : Fin B.n) (z : Vector R (B.size b)) :
-    evalMle q
-      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
-        (z ++ (boolVec (B.selector hμ b) : Vector R (μ - B.size b)))) =
-    evalMle (B.unstack hμ q b) z := by
-  have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)
-  have hq : q = Vector.cast (congrArg (2 ^ ·) hk)
-      (Vector.cast (congrArg (2 ^ ·) hk.symm) q) := by simp
-  conv_lhs => rw [hq, evalMle_cast hk, evalMle_append_boolVec]
-  rfl
-
-/-- Mixed-ring selection for an arbitrary committed table, without an honest-stack premise. -/
-theorem unstack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
-    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n)
-    (z : Vector S (B.size b)) :
-    eval₂Mle q φ
-      (Vector.cast (Nat.add_sub_cancel' (B.size_le hμ b))
-        (z ++ (boolVec (B.selector hμ b) : Vector S (μ - B.size b)))) =
-    eval₂Mle (B.unstack hμ q b) φ z := by
-  have h := (B.map φ).unstack_eval hμ (CMlPolynomialEval.map φ q) b z
-  rw [B.unstack_map] at h
-  exact h
+  exact congrArg φ (B.unstack_getElem hμ q b hi).symm
 
 omit [CommRing R] in
-/-- Agreement on the selected window preserves its block values; other cells are irrelevant. -/
+/-- Two tables that agree on a block's window read the same block. -/
 theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
     (q r : CMlPolynomialEval R μ) (b : Fin B.n)
     (h : ∀ x : Fin (2 ^ μ), B.InWindow b x.val → q[x] = r[x]) :
@@ -321,6 +311,50 @@ theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
   apply h ⟨i + B.offset b, by have := B.offset_add_pow_le_total b; omega⟩
   change B.offset b ≤ i + B.offset b ∧ i + B.offset b < B.offset b + 2 ^ B.size b
   constructor <;> omega
+
+/-! ## The selection identity -/
+
+/-- The selection identity, for any table: the table at a lifted point is the block read off
+it, at the point. -/
+theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+    (b : Fin B.n) (z : Vector R (B.size b)) :
+    evalMle q (B.extendPoint hμ b z) = evalMle (B.unstack hμ q b) z := by
+  have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)
+  have hq : q = Vector.cast (congrArg (2 ^ ·) hk)
+      (Vector.cast (congrArg (2 ^ ·) hk.symm) q) := by simp
+  rw [extendPoint]
+  conv_lhs => rw [hq, evalMle_cast hk, evalMle_append_boolVec]
+  rfl
+
+/-- The selection identity at a point of another ring. -/
+theorem unstack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n)
+    (z : Vector S (B.size b)) :
+    eval₂Mle q φ (B.extendPoint hμ b z) = eval₂Mle (B.unstack hμ q b) φ z := by
+  rw [eval₂Mle, eval₂Mle, ← B.unstack_map]
+  exact B.unstack_eval hμ (CMlPolynomialEval.map φ q) b z
+
+/-- The selection identity for the stack: the stack at a lifted point is the block at the
+point, whatever the pad. -/
+theorem stack_eval (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n)
+    (z : Vector R (B.size b)) :
+    evalMle (B.stackAt t μ pad) (B.extendPoint hμ b z) = evalMle (t b) z := by
+  rw [B.unstack_eval, B.unstack_stackAt]
+
+/-- The selection identity for the stack at a point of another ring. -/
+theorem stack_eval₂ {S : Type*} [CommRing S] (φ : R →+* S) (t : B.Tables R) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (pad : R) (b : Fin B.n) (z : Vector S (B.size b)) :
+    eval₂Mle (B.stackAt t μ pad) φ (B.extendPoint hμ b z) = eval₂Mle (t b) φ z := by
+  rw [B.unstack_eval₂, B.unstack_stackAt]
+
+/-- The selection identity as a sum over the cube: the block read off a table, evaluated at a
+point, is the table summed against the Lagrange basis of the lifted point. -/
+theorem unstack_eval₂_eq_sumCube {S : Type*} [CommRing S] (φ : R →+* S) {μ : ℕ}
+    (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ) (b : Fin B.n)
+    (z : Vector S (B.size b)) :
+    eval₂Mle (B.unstack hμ q b) φ z =
+      sumCube (hadamard (lagrangeBasis (B.extendPoint hμ b z)) (CMlPolynomialEval.map φ q)) := by
+  rw [← B.unstack_eval₂, eval₂Mle, evalMle_eq_sumCube_hadamard]
 
 end Blocks
 

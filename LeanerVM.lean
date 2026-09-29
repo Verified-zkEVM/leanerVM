@@ -17,8 +17,10 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Basic
+import LeanerVM.Protocol.BlockClaims
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.FixedColumns
+import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
@@ -32,9 +34,8 @@ import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
-import LeanerVM.Protocol.ToCompPoly.Claims
+import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Multilinear
-import LeanerVM.Protocol.ToCompPoly.PowerColumn
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
