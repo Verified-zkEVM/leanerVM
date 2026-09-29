@@ -3,18 +3,21 @@
 
   The `SET_CONSTANT` table: one Clean component per row, sound and complete for the relation
   the row refines, Layer 3's `execute` of the instruction it names.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Tables.Basic
-import Clean.Circuit.Formal
-import Clean.Utils.Tactics.CircuitProofStart
+module
+
+public import LeanerVM.Arithmetization.Tables.Basic
+public import Clean.Circuit.Formal
+public import Clean.Utils.Tactics.CircuitProofStart
+
+@[expose] public section
 
 /-!
 # The `SET_CONSTANT` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:527-538` (`mod set`, in that order) and the flushes
 `tables.rs:548-561` (`SetTable::flushes`), matching specification §7.3
 (`doc/leanvm/body/07-instruction-tables.tex:52-64`). There is no constraint.

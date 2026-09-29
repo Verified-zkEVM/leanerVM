@@ -16,7 +16,7 @@ import Mathlib.Tactic.LinearCombination
 leanISA roadmap Layer 0 (`docs/roadmap/leanisa-blueprint.md`). Category B: the moduli and the
 limb order are transcribed from specification §2, `doc/leanvm/body/02-vm-specification.tex:6-8`
 at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`, and are exactly CompPoly's `BF64` and
-`BF64.Ext3` at pin `df591bb8c6745126d1d72f5243faae3022b0432a`:
+`BF64.Ext3` at pin `572f997390aa4fc131ef30b1186fa1dcf292ca10`:
 
 ```text
 K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)      BF64.basePoly_eq, BF64.basePoly_irreducible
@@ -53,10 +53,9 @@ execution by `decide` depends on CompPoly or core lifting this.
 
 ## Clean's field interface
 
-Clean's `FiniteField K` is `instFiniteFieldK` in `LeanerVM.Parameters.CleanField`, a plain
-file: Clean at `0386e42b` does not use Lean's module system, and Lean `v4.34.1` refuses to
-import a non-`module` file from a `module` (`Lean.Environment.importModulesCore`). This module
-stays a `module` so that the Semantics layer can import it as one.
+Clean's `FiniteField K` is `instFiniteFieldK` in `LeanerVM.Parameters.CleanField`.
+Clean now uses Lean's module system. The Clean bridge is a separate module, keeping the field carrier independent of that
+interface for the Semantics layer.
 -/
 
 namespace LeanerVM.Parameters

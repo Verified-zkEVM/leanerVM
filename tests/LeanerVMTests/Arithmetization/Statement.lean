@@ -3,7 +3,7 @@ import LeanerVM.Arithmetization.Statement
 /-!
 # Layer 8 tests: the constraint statement
 
-A plain file, like the module it tests: the fixture decides `K` and `E` arithmetic and the
+A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic and the
 bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the Layer 3 program, the
@@ -226,6 +226,12 @@ theorem jumpRaw_size (rs : List (JumpRow K)) :
 def memRowArr (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
   (toElements (⟨gpow i, cnt i,
     #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩ : MemRow K)).toArray
+
+/-- The memory row's five coordinates, without evaluating the block's row list. -/
+theorem memRowArr_eq (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
+    memRowArr cnt i =
+      #[gpow i, cnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2] := by
+  with_unfolding_all rfl
 
 /-! ## The tables and the witness -/
 
@@ -452,8 +458,8 @@ theorem memTable_rowOps :
       [⟨MemPush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
           MemMsg (Expression K)), false⟩,
        ⟨MemPull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), true⟩] :=
-  rfl
+          MemMsg (Expression K)), true⟩] := by
+  with_unfolding_all rfl
 
 /-- The bytecode block's two interactions, on a row's variables. -/
 theorem bytecodeTable_rowOps :
@@ -463,8 +469,8 @@ theorem bytecodeTable_rowOps :
           BytecodeMsg (Expression K)), false⟩,
        ⟨BytecodePull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
           #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), true⟩] :=
-  rfl
+          BytecodeMsg (Expression K)), true⟩] := by
+  with_unfolding_all rfl
 
 /-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
 its rows. -/
@@ -528,7 +534,7 @@ theorem memRow_push (a : Array K) :
   show [((toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K))).map
     (Expression.eval (Environment.fromArray a fillData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K)) =
-    #v[var ⟨0⟩, 1, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from rfl]
+    #v[var ⟨0⟩, 1, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
   rfl
 
@@ -542,7 +548,7 @@ theorem memRow_pull (a : Array K) :
   show [((toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
     MemMsg (Expression K))).map (Expression.eval (Environment.fromArray a fillData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-    MemMsg (Expression K)) = #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from rfl]
+    MemMsg (Expression K)) = #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
   rfl
 
@@ -553,6 +559,10 @@ theorem memT_pushes (cnt : ℕ → K) :
   rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
   simp only [memT, mkT, Air.Flat.Table.environment, memRow_push, ← List.map_eq_flatMap,
     List.map_ofFn]
+  apply congrArg List.ofFn
+  funext i
+  dsimp only [Function.comp_apply]
+  rw [memRowArr_eq]
   rfl
 
 /-- The memory block's pulls are the finalizes of every cell, in order. -/
@@ -562,6 +572,10 @@ theorem memT_pulls (cnt : ℕ → K) :
   rw [table_interactions_eq, List.filter_flatMap, List.map_flatMap]
   simp only [memT, mkT, Air.Flat.Table.environment, memRow_pull, ← List.map_eq_flatMap,
     List.map_ofFn]
+  apply congrArg List.ofFn
+  funext i
+  dsimp only [Function.comp_apply]
+  rw [memRowArr_eq]
   rfl
 
 /-- The seeds, split at the touched cells. -/

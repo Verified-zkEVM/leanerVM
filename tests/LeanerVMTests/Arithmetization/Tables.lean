@@ -9,7 +9,7 @@ import Clean.Circuit.WitnessGeneration
 /-!
 # Layer 6 tests: the six opcode tables
 
-A plain file, like the modules it tests: the fixtures decide `E` arithmetic and `Regs`
+A classic test for kernel evaluation: the fixtures decide `E` arithmetic and `Regs`
 equalities in the kernel. One prover data serves every table: a thirty-two-word image
 (`κ = 5`) holding the cells of one instruction per opcode, a `DEREF` in each of the three store
 modes and a `JUMP` on each branch, read through `imageOf` at literal indices as in the Layer 5

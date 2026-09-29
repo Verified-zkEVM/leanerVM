@@ -3,7 +3,7 @@ import LeanerVM.Arithmetization.Boundary
 /-!
 # Layer 7 tests: the boundary blocks
 
-A plain file, like the module it tests: the fixtures decide `E` arithmetic in the kernel. One
+A classic test for kernel evaluation: the fixtures decide `E` arithmetic in the kernel. One
 prover data serves the three blocks, a four-word image (`κ = 2`) read through `imageOf` at
 literal indices as in the Layer 5 and 6 tests, beside a two-slot program `bProg` (`logSize =
 1`), a `Program` value: the program is public and no table of the data (decision 14).

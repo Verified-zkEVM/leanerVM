@@ -4,19 +4,22 @@
   The three bus blocks owned by no table: the memory seed/finalize block, the bytecode
   seed/finalize block, and the verifier's state boundary, each a Clean component, sound and
   complete for what its interactions say.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Tables.Basic
-import LeanerVM.Semantics.Execution
-import Clean.Circuit.Formal
-import Clean.Utils.Tactics.CircuitProofStart
+module
+
+public import LeanerVM.Arithmetization.Tables.Basic
+public import LeanerVM.Semantics.Execution
+public import Clean.Circuit.Formal
+public import Clean.Utils.Tactics.CircuitProofStart
+
+@[expose] public section
 
 /-!
 # The boundary blocks
 
 leanISA roadmap Layer 7 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category B: the three
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the three
 blocks are `crates/lean_vm/src/cpu/layout.rs:352-395` (the "shared blocks" of `layout`), matching
 specification §6.1 (`doc/leanvm/body/06-bus-interactions.tex:8`, the state boundary), §6.2
 "Flush rules" (`:44-46`, seed and finalize), §6.4 (the bytecode array), §6.5 (`:95`, the index

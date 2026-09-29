@@ -3,10 +3,13 @@
 
   The vocabulary the six opcode tables share, and that the boundary blocks of Layer 7 reuse: the
   row environment, and the two `Option` facts that turn a `guard` of `execute` into an equation.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Channels
+module
+
+public import LeanerVM.Arithmetization.Channels
+
+@[expose] public section
 
 /-!
 # Shared vocabulary of the tables

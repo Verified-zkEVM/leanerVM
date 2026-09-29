@@ -16,8 +16,8 @@ public import VCVio.OracleComp.Constructions.SampleableType
 # Fields for the proof system
 
 Protocol roadmap Layer 0 (`docs/roadmap/protocol-blueprint.md`). This is the first consumer of
-ArkLib (pin `fa14552d40e793f2ea26e65c440306aae0c08a26`) and of VCVio through it
-(`7a4d7ee254165f2fcf3282c7d2e6f204056e5121`). Category A: nothing here transcribes a source; the
+ArkLib (pin `7653a901ed466c88a2e61a3075011b73d7bb2316`) and of VCVio through it
+(`a4232d084aa18aa71f75b92b64082b457ffdb77b`). Category A: nothing here transcribes a source; the
 field and its cardinality are the leanISA Layer 0 declarations and CompPoly's `card_ext3`.
 
 Four things are supplied.

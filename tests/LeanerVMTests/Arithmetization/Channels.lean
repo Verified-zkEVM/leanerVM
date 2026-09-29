@@ -5,7 +5,7 @@ import Clean.Air.Balance
 /-!
 # Layer 5 tests: the bus channels
 
-A plain file, like the module it tests. The six channels' separators and directions are pinned
+A classic test for kernel evaluation. The six channels' separators and directions are pinned
 against specification §5.1 and `tables.rs:90-92`, the three element orders against §6.1, §6.2,
 §6.4 and the flush builders of `tables.rs:127-166`, on literal messages, and the sixteen-slot
 tuples against §5.1. The read gadgets are checked to emit a `pull` then a `push` with the count
@@ -94,7 +94,9 @@ example : size MemMsg = 5 := rfl
 example : size BytecodeMsg = 10 := rfl
 
 /-- The state message is the machine's register pair: `Regs.initial` is a message. -/
-example : (toElements Regs.initial).toList = [1, 1] := rfl
+example : (toElements Regs.initial).toList = [1, 1] := by
+  rw [regs_toElements]
+  rfl
 
 /-! ## The sixteen-slot tuples (specification §5.1) -/
 
@@ -109,7 +111,7 @@ example : (toElements Regs.initial).toList = [1, 1] := rfl
 example : (busTuple MemPull.toRaw (toElements mm).toList)[0] = g ∧
     (busTuple MemPull.toRaw (toElements mm).toList)[3] = K.ofBits 7 ∧
     (busTuple MemPull.toRaw (toElements mm).toList)[6] = 0 := by
-  simp only [busTuple_getElem]
+  simp only [busTuple_getElem, memMsg_toElements]
   decide
 
 /-! ## The read gadgets (specification §6.2 "Flush rules") -/

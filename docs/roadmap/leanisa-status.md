@@ -7,6 +7,12 @@ constraint frontier and T1 obligations below retain their historical status. The
 [checker guide](../leanisa-checker.md) gives the precise domain and revision boundary.
 Arbitrary raw verifier bytecode is still outside that domain.
 
+The Lean 4.34.1 dependency port updates the current field carrier to a `BitVec` wrapper
+with characteristic-two natural casts (`K.ofBits` preserves encoded words). Clean and its
+first-party bridges now use modules, and message-flattening proofs use the public normalization
+interface. This resolves the historical C8 import restriction; C8 and E6 below remain evidence
+about the earlier pins. Current dependency revisions are in [dependencies.md](../dependencies.md).
+
 This file records where the [leanISA roadmap](leanisa-blueprint.md) stands as of Layer 8
 (built and proved on top of `main` at `42bbd51`, where Layer 7 landed as PR #21 on 2026-09-16;
 Layer 6 landed as PR #19 on 2026-09-15 after the review

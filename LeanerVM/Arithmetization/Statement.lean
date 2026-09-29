@@ -6,23 +6,26 @@
   on the announced instance; the three hypotheses Clean cannot yet express; the relation
   `SatisfiedBy` the two T1 theorems connect to `ValidExecution`; and what it means for a
   witness to represent a trace.
-  A plain (non-`module`) file: it imports Clean through the tables and blocks.
 -/
 
-import LeanerVM.Arithmetization.Boundary
-import LeanerVM.Arithmetization.Tables.Xor
-import LeanerVM.Arithmetization.Tables.MulNative
-import LeanerVM.Arithmetization.Tables.SetConstant
-import LeanerVM.Arithmetization.Tables.Deref
-import LeanerVM.Arithmetization.Tables.Jump
-import LeanerVM.Arithmetization.Tables.Blake2s
-import Clean.Air.FlatEnsemble
+module
+
+public import LeanerVM.Arithmetization.Boundary
+public import LeanerVM.Arithmetization.Tables.Xor
+public import LeanerVM.Arithmetization.Tables.MulNative
+public import LeanerVM.Arithmetization.Tables.SetConstant
+public import LeanerVM.Arithmetization.Tables.Deref
+public import LeanerVM.Arithmetization.Tables.Jump
+public import LeanerVM.Arithmetization.Tables.Blake2s
+public import Clean.Air.FlatEnsemble
+
+@[expose] public section
 
 /-!
 # The constraint statement
 
 leanISA roadmap Layer 8 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `0386e42b`. Category A for the
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category A for the
 statement itself, which is what the M3 model means by an accepted instance (specification §5,
 `doc/leanvm/body/05-arithmetization.tex:4`: "an instance is accepted exactly when every
 table's constraints hold and the bus balances", the balance being the multiset equality of
@@ -35,7 +38,7 @@ public parts of the bus the verifier forms itself, the index column and the prog
 the bytecode blocks (§8.5, `:70`; §6.5, `06-bus-interactions.tex:95`), and the BLAKE2s
 validity Flock proves (§8.5 "BLAKE2s validity"; `cpu/mod.rs:759-768`). Artifact: the accept
 relation of the M3 constraint system and its ensemble. Direction: a statement, no soundness or
-completeness theorem. Boundary: leanVM at the pin above, Clean `0386e42b`. Contribution: the
+completeness theorem. Boundary: leanVM at the pin above, Clean `42fe4b26`. Contribution: the
 statement surface of T1 (both directions); no target of `docs/architecture.md` is claimed.
 
 **The ensemble.** `leanIsaEnsemble prog` is Clean's `Ensemble`: the six opcode tables of Layer
@@ -443,7 +446,7 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
 
 The four statements of roadmap Layer 9 consume Clean's direction-tagged, `ℕ`-counted balance
 and `addVm_soundVmChannel_of_soundChannels` (the roadmap's dependency table; issue #16, Clean
-#452), which Clean `0386e42b` does not supply. They are recorded here as the roadmap's
+#452), which Clean `42fe4b26` does not supply. They are recorded here as the roadmap's
 convention requires, never as an unproved declaration. Channels are identified by name and a
 pulled message is read as its typed form, as the module does (`messagesOn`, `memRowAt`):
 

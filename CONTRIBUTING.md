@@ -73,21 +73,16 @@ end
 end LeanerVM.Example
 ```
 
-A file may instead be a plain (non-`module`) file when it must import a non-`module`
-dependency, or a file that does. Clean, at the pinned revision, is not written with the
-module system, and Lean refuses to import a non-`module` from a `module` while a plain file
-can import anything; so a plain file forces every file that imports it to be plain as well.
-Keep that boundary as high in the import graph as the dependency allows. Today it is
-`LeanerVM/Parameters/CleanField.lean`, the Clean-consuming modules of
-`LeanerVM/Arithmetization/`, the aggregate `LeanerVM.lean`, and the test aggregate; the
-`Parameters` and `Semantics` layers stay `module`s so that each other's modules can import
-them. ArkLib (pinned at `fa14552d`) is entirely a `module` library, so a file that imports
-ArkLib and not Clean stays a `module`; the `Protocol` layer's Clean-facing files (those consuming
-the leanISA relation) are plain, its generic components are `module`s. In a plain file, `public import`, `public section`, and `@[expose]` are rejected and
-unnecessary: every import is re-exported and every body is visible to importers. Keep the
-same header comment, module docstring, and section headings, and mark helpers `private`. A
-plain file also lets the kernel unfold definitions the module system hides from importers,
-which is why a plain test file can decide `E` arithmetic and a `module` cannot.
+Production declaration files use Lean's module system, including `Parameters/CleanField.lean`
+and the Clean-consuming `Arithmetization` files. Clean and ArkLib both use it at the current
+pins. The historical restriction requiring plain Clean bridges no longer applies.
+
+Tests may use modules or remain classic; root aggregates remain classic. A classic test loads
+full definition bodies
+for kernel evaluation of `E` arithmetic and for the transitive axiom audit. In a classic file,
+`public import`, `public section`, and `@[expose]` are rejected and unnecessary: imports are
+re-exported and bodies are visible to importers. Keep the same header comment, module
+docstring, and section headings, and mark helpers `private`.
 
 - Use the repository history for authorship rather than adding per-file author claims. Preserve
   copyright, licence, and attribution notices required by substantially derived upstream material.

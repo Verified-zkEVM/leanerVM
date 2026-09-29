@@ -1,12 +1,15 @@
 /-
   LeanerVM.Parameters.CleanField
 
-  Clean's field interface for `K`. A plain (non-`module`) file: Clean at `0386e42b` is not
-  written with Lean's module system, and a `module` may not import a non-`module`.
+  Clean's field interface for `K`, over Clean's modular circuit interface.
 -/
 
-import LeanerVM.Parameters.Field
-import Clean.Utils.FiniteField
+module
+
+public import LeanerVM.Parameters.Field
+public import Clean.Utils.FiniteField
+
+@[expose] public section
 
 /-!
 # Clean's field interface for `K`
@@ -22,10 +25,9 @@ so `K` has one field structure. Clean's `FiniteField.toField` is itself an insta
 `tests/LeanerVMTests/Parameters/CleanField.lean` guards that instance search for `Field K` still
 lands on CompPoly's.
 
-This file is plain rather than a `module` (roadmap status finding C8, settled by the roadmap's
-module-system convention), so it lives apart from `LeanerVM.Parameters.Field`, which stays a
-`module` for the Semantics layer. Everything importing this file is plain too: `LeanerVM.lean`
-and the test aggregate.
+Clean's current source uses Lean's module system, as does this bridge. The historical
+import restriction (roadmap status finding C8) no longer applies. The field carrier stays
+separate in `LeanerVM.Parameters.Field` for the Semantics layer.
 -/
 
 namespace LeanerVM.Parameters
