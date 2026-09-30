@@ -763,3 +763,117 @@ under `probes/code-pubinput/`. Nothing was run for them; they stay unverified as
 says. What would verify them is written in `code-pubinput.md` C.12 (a height-4 instance and
 the two refutations) and C.13 (the state function and the case split).
 
+## 2. The spine (`probes/code-spine/`)
+
+The three probes that write numerals other than `0` and `1` in `K` (found with
+`grep -ln "(2 : K)\|, 2\b" probes/code-spine/*.lean`: `P2Relation`, `P3aSeams`,
+`P5PassThrough`) were copied to `.v434.lean` and every such numeral was rewritten as
+`K.ofBits 2`, the encoded word the repository's adapted test uses (`LeanerVM/Parameters/Field.lean:75`
+at `144c5aa`: `def K.ofBits (n : ℕ) : K := BF64.ofBitVec (BitVec.ofNat 64 n)`; the test
+`tests/LeanerVMTests/Protocol/Spine.lean` at `144c5aa` writes `⟨#v[1, 1, 1, 1, K.ofBits 2, 0, 0, 0]⟩`
+and `(K.ofBits 2 : K)`). `CMvPolynomial.X 2` (a variable index) is not a numeral in `K` and was
+left. No probe of this directory imports `CompPoly.Multivariate.CMvPolynomial`, so no import
+changed. Command, from the repository root (no `-D` option, as in `code-spine.md`'s appendix):
+
+```text
+flock .claude/reports/blueprint-review/logs/lean.lock lake env lean <file> > <file>.new.out 2>&1; echo "exit=$?" >> <file>.new.out
+```
+
+### 2.1 `P2Relation.v434.lean` (`M3Holds` on variants of the toy; the aliased layout)
+
+The only numerals `2` in `K` are the three lists of the exhaustive check of `toyAlias`. At the
+new pin `([0, 1, 2] : List K)` is `[0, 1, 0]`, so the unchanged check would test two values,
+not three. Diff:
+
+```diff
+@@ -136,8 +136,8 @@
+ -- `0, 1` in `{0, 1, 2}` satisfies it at a statement in `{0, 1, 2}`. On paper: balance forces
+ -- cells `0, 1` to be `1, 1`, and the public line on column 2, now cells `0, 1`, forces cell 1
+ -- to be `0`.
+-#guard ([0, 1, 2] : List K).all fun a ↦ ([0, 1, 2] : List K).all fun b ↦
+-  ([0, 1, 2] : List K).all fun s ↦
++#guard ([0, 1, K.ofBits 2] : List K).all fun a ↦ ([0, 1, K.ofBits 2] : List K).all fun b ↦
++  ([0, 1, K.ofBits 2] : List K).all fun s ↦
+     decide (¬ M3Holds toyAlias s (⟨#v[a, b, 1, 1, 1, 0, 0, 0]⟩ : Column 3))
+ 
+ end Probe
+```
+
+Output (`P2Relation.v434.lean.new.out`), 4 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-spine.md` appendix: `exit=0`): every `#guard`
+holds, including the exhaustive evidence that no stack with cells `0, 1` in
+`{0, 1, K.ofBits 2}` satisfies `M3Holds toyAlias` at a statement in `{0, 1, K.ofBits 2}`.
+
+### 2.2 `P3aSeams.v434.lean` (each seam on the toy: an inhabitant and near misses; the zerocheck escape)
+
+At the new pin `ofK 2 = ofK 0 = 0`, so the unchanged `eTwo` would be the point `0` (not a point
+outside `{0, 1}`), and the unchanged `badConstraint` would have column 2 `[0, 0]`, which is
+Boolean. Diff:
+
+```diff
+@@ -80,7 +80,7 @@
+ def eZero : E := 0
+ def eOne : E := 1
+ /-- A point of `E` outside `{0, 1}`: the image of `2 : K` (the polynomial `x`). -/
+-def eTwo : E := ofK 2
++def eTwo : E := ofK (K.ofBits 2)
+ 
+ /-- Column 0 of the honest stack is `[1, 1]`: its extension is `1` everywhere. -/
+ def col0One : ColumnClaim toy := ⟨⟨0, 0⟩, #v[eTwo], eOne⟩
+@@ -101,7 +101,7 @@
+   ⟨[⟨eOne, 0, CMvPolynomial.X 2 * CMvPolynomial.X 2 * CMvPolynomial.X 2, #v[eZero]⟩], eOne⟩
+ 
+ /-- The stack of the repository's test `badConstraint`: column 2 is `[2, 0]`, not Boolean. -/
+-def badConstraint : Column 3 := ⟨#v[1, 1, 1, 1, 2, 0, 0, 0]⟩
++def badConstraint : Column 3 := ⟨#v[1, 1, 1, 1, K.ofBits 2, 0, 0, 0]⟩
+ 
+ /-! ## The bus seam -/
+ 
+@@ -120,12 +120,12 @@
+ #guard ¬ toy.ConstraintsVanish badConstraint
+ #guard ¬ zeroAt0.Holds badConstraint
+ #guard zeroAt1.Holds badConstraint
+-#guard busPred toy ((2 : K), ⟨[zeroAt1], [col0One]⟩) badConstraint
+-#guard ¬ M3Holds toy (2 : K) badConstraint
++#guard busPred toy ((K.ofBits 2 : K), ⟨[zeroAt1], [col0One]⟩) badConstraint
++#guard ¬ M3Holds toy (K.ofBits 2 : K) badConstraint
+ 
+ -- A bus statement with no claim holds of every stack whose public line holds: the seam does
+ -- not say which claims are emitted.
+-#guard busPred toy ((2 : K), ⟨[], []⟩) badConstraint
++#guard busPred toy ((K.ofBits 2 : K), ⟨[], []⟩) badConstraint
+ 
+ /-! ## The table and public-input seams -/
+ 
+```
+
+Output (`P3aSeams.v434.lean.new.out`), 3 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-spine.md` appendix: `exit=0`): every inhabitant
+and near miss of the bus, table, public and Flock seams holds as recorded, and the zerocheck
+escape (the bus seam holds of `badConstraint`, which is outside `M3Holds`) holds with
+`badConstraint` and the statement written as `K.ofBits 2`.
+
+*Check that the runs evaluate.* Because the runs are fast (3 to 8 s: the imports are the built
+oleans), a scratch copy `probes/probes-rerun/SanityP3a.lean` (this file with two false guards
+added before `end Probe`) was run; both were rejected:
+
+```text
+.claude/reports/blueprint-review/probes/probes-rerun/SanityP3a.lean:159:0: error: Expression
+  decide ¬busPred toy (1, { linear := [zeroAt0, zeroAt1], columns := [col0One] }) honest
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/probes-rerun/SanityP3a.lean:160:0: error: Expression
+  decide (busPred toy (K.ofBits 2, { linear := [zeroAt1], columns := [col0One] }) honest)
+did not evaluate to `true`
+exit=1
+```
+

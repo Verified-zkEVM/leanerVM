@@ -379,3 +379,6 @@ when arguing that the zerocheck conjunct adds nothing (max, not sum): its argume
 4/|E| too. The report states 4/|E| for the deployed protocol and calls the blueprint's 5/|E| a
 loose upper bound that also describes a different (non-normalized) protocol.
 tex-groundtruth done: 12 fragments + index-gen.tex; the leanVM checkout move confirmed by it.
+### 11:00: tex-boundary (aa51a65bb3206779a, Opus) → gen/boundary-*.tex, findings-boundary.tex,
+probes-boundary.tex; obligations (ab02c85f4f6a7f994, Fable) → dossiers/obligations.md.
+Report at 97 pages (9f5e1f1). Chapters 03, 04, 12 and appendices b, c, d wired to fragments.

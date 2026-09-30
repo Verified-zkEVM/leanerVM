@@ -1,1 +1,33 @@
-% stub: to be written
+\chapter{The libraries, from scratch}\label{ch:libraries}
+
+Every statement of the proof system unfolds to objects of four libraries. This chapter
+introduces each object before anything is built on it: what it is, what it is for here, its
+Lean text at the pin, and what a reader trusts in accepting it. The revision is named with each
+snippet; where the upgrade of \code{main} to the new pins changed an object, both are given.
+Readers who know Lean may skim; readers who do not should not skip the sections on VCVio and on
+ArkLib's security notions, since the master theorems are statements in that vocabulary and
+mean exactly what those definitions say.
+
+\section{VCVio: computations with oracles, and probabilities}
+\InputIfFileExists{sections/gen/lib-vcvio}{}{\emph{[fragment pending]}}
+
+\section{CompPoly: tables, polynomials, and the two fields}
+\InputIfFileExists{sections/gen/lib-comppoly}{}{\emph{[fragment pending]}}
+
+\section{Clean: the circuit language of the arithmetization}
+\InputIfFileExists{sections/gen/lib-clean}{}{\emph{[fragment pending]}}
+
+\section{Mathlib, and Lean's own trusted base}
+\InputIfFileExists{sections/gen/lib-lean}{}{\emph{[fragment pending]}}
+
+\section{ArkLib: the objects of an oracle reduction}
+\InputIfFileExists{sections/gen/lib-arklib-objects}{}{\emph{[fragment pending]}}
+
+\section{ArkLib: what completeness and knowledge soundness mean}\label{sec:lib-security}
+\InputIfFileExists{sections/gen/lib-arklib-security}{}{\emph{[fragment pending]}}
+
+\section{ArkLib: proved and admitted, at the old pin and at the new}\label{sec:lib-pins}
+\InputIfFileExists{sections/gen/lib-arklib-pins}{}{\emph{[fragment pending]}}
+
+\section{Layer 0 of the proof system, audited}\label{sec:lib-layer0}
+\InputIfFileExists{sections/gen/layer0-audit}{}{\emph{[fragment pending]}}

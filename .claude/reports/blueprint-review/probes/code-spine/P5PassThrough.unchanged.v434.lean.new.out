@@ -1,0 +1,36 @@
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:26:68: error: Tactic `decide` failed for proposition
+  ¬M3Holds toy 2 badConstraint
+because its `Decidable` instance
+  instDecidableNot
+did not reduce to `isTrue` or `isFalse`.
+
+Reduction got stuck at the `Decidable` instance
+  match h :
+    (↑(CMvPolynomial.eval (toy.row badConstraint ⟨0, ⋯⟩ ⟨0, ⋯⟩) constraint).1.toFin).beq
+      ↑(Fin.Internal.ofNat (2 ^ 64) ⋯ 0) with
+  | true => isTrue ⋯
+  | false => isFalse ⋯
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:50:14: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:58:11: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:64:42: error: Application type mismatch: The argument
+  hpos
+has type
+  (probEvent
+      (OptionT.mk
+        ((simulateQ noImpl (Verifier.run stmt tr (Phase.passThrough toy dropAll).red.verifier.toVerifier)).run' ()))
+      fun stmtOut => (stmtOut, ()) ∈ Seam.bus toy) >
+    0
+but is expected to have type
+  𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← pure ()
+              (simulateQ noImpl (Verifier.run stmt tr (Phase.passThrough toy dropAll).red.verifier.toVerifier)).run'
+                  __do_lift
+        pure ((stmtOut, ()) ∈ Seam.bus toy)]
+      {True} >
+    0
+in the application
+  ksf.toFun_full stmt tr () hpos
+'Probe.no_security' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+exit=1

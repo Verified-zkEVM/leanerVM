@@ -1,1 +1,23 @@
-% stub: to be written
+\chapter{Catalogue of the built code}\label{ch:catalogue}
+
+Every public declaration of the proof system on \code{main} at \code{b435631}, grouped by file:
+the structures with their fields, the definitions with their signatures (and their bodies where
+the body is what a reader has to check), the theorem statements, the instances and the concrete
+inhabitants. Each entry says what it means in plain language, what it depends on, and its
+class: \textsf{load-bearing} (a master theorem's statement unfolds to it), \textsf{interface}
+(a phase author or the adaptor must meet or consume it), \textsf{helper} (used inside proofs
+only) or \textsf{test fixture}. Snippets are copied from the source at the revision reviewed.
+The blueprint's per-layer sketches are compared with this catalogue in
+\cref{sec:faith-conformance}; the audit surface it implies is measured in \cref{ch:auditability}.
+
+\section{The spine}
+\InputIfFileExists{sections/gen/catalogue-spine}{}{\emph{[fragment pending]}}
+
+\section{The public-input phase}
+\InputIfFileExists{sections/gen/catalogue-pubinput}{}{\emph{[fragment pending]}}
+
+\section{Layer 1: tables, stacking, padding, claim weights, the fixed columns}
+\InputIfFileExists{sections/gen/catalogue-layer1}{}{\emph{[fragment pending]}}
+
+\section{The statements, read adversarially}\label{sec:cat-statements}
+\InputIfFileExists{sections/gen/statements-spine}{}{\emph{[fragment pending]}}

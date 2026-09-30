@@ -1090,3 +1090,86 @@ protocol's explicit check is what `decode` makes true by construction.
 | `verify … phase by phase in the stream order of the conventions` (`bp:1230`) | the conventions' rows do not give the WHIR-internal order (B.1) nor the Merkle side channel |
 | `verify_iff_compiled` (`bp:1218-1221`) | section E.4 |
 | Tests: six mutations, "a flipped stream scalar in each phase, a wrong Merkle sibling" (`bp:1238-1239`) | add: a nonce that fails the grind; a nonzero third limb in a root; a nonzero upper limb in a size; an extra trailing scalar; an extra sibling; a level-0 row of the wrong width (`gt-bus` G9 asks for three of these) |
+
+---
+
+## D. The checks, enumerated
+
+Every check of the opening and of the compiled verifier that is not a check of an earlier
+phase. The setup and commitment checks are `gt-bus`'s B1–B10 and B17 (its section B); they
+are listed here only where this dossier adds something. "Attack" is a prover, committed word
+or proof that a verifier **without** the check accepts although it should not; where the check
+does not protect soundness this is said rather than invented. Line numbers are at the pin.
+
+### D.1 Setup: what the sizes buy the opening
+
+| # | Check | Specification | Rust | Python | Protects | Attack without it |
+| --- | --- | --- | --- | --- | --- | --- |
+| S-rate | `1 ≤ ρ ≤ 4` (`gt-bus` B8) | absent (`08:55` names no rate) | `mod.rs:167` (`validate_log_inv_rate`, `whir_config.rs:48-55`) | `py:1377` | a rate below 1 leaves no redundancy; the parameter search exists only for `[1, 4]` (`whir_config.rs:43-45`) | **a rate-1 code** (`ρ = 0`): every word is a codeword, `γ_0 < 1 − √1 = 0` is empty, and the query phase detects nothing: to cheat on the batched claim, the prover chooses `f⁽¹⁾ = g + Δ` with `Enc_0(Δ)` a single-position word (rate 1 has weight-1 codewords) and `⟨W', Δ⟩` fixing the residual claim; the `t_0` queries miss that position with probability `(1 − 1/n_0)^{t_0} ≈ 1`; the deeper levels are honest for `f⁽¹⁾`. Accepted with probability near 1 |
+| S-window | `15 ≤ μ ≤ 28` (`gt-bus` B9) | absent | `mod.rs:174-176` | `py:1379` | that a WHIR configuration exists and was validated for the size (`pcs.rs:179-188`: "every size in the window is configurable at every rate"); the recursion guest's arms | none known: below 15 the ladder has fewer than two levels and `derive_ladder` errors (`whir_config.rs:291-293`), so a verifier without the bound would fail to run rather than accept; above 28 the search would produce a configuration the Python has no table for. The lower bound never fires (`μ` is floored at 15, `witness.rs:97`, `py:890`) |
+| S-implied | the per-log caps `κ_mem ≤ 32`, `τ_j ≤ 32`, `κ_bc ≤ 32` | `06:80, 86, 90` | `mod.rs:158-161` | `py:857-862` | (`gt-bus` B4–B6) | note: **implied** by the window, since every column's `2^κ` is at most the stack's `2^μ ≤ 2^{28}` (`witness.rs:67-102`, `py:305-311`); only the lower bounds `κ_mem ≥ 16`, `τ_5 ≥ 3` are independent |
+
+The blueprint's `Sizes.Admissible` must contain S-rate and S-window (`gt-bus` G4).
+
+### D.2 Reading the stream and the openings
+
+| # | Check | Rust | Python | Protects | Attack without it |
+| --- | --- | --- | --- | --- | --- |
+| R1 | the stream holds every scalar read | `fs/transcript.rs:184-188` (`ExceededStream`) | `py:363-367` | totality | none: the verifier would fail to run |
+| R2 | every root's two halves have a zero third limb | `fs/merkle.rs:26-29` (`NonCanonicalEncoding`), for the commitment root and every level root (`whir.rs:2104, 2311`) | `py:222-224`, `:1034` | one encoding per root; the chain binds all three limbs while the tree uses two | none on soundness: `2^128` streams per root, all with the same tree; a prover re-rolling every later challenge at the cost of one squeeze rather than one commitment — within the query bound's accounting. Matters to canonicality and to the recursion guest |
+| R3 | a Merkle phase exists for every opening | `fs/transcript.rs:271` (`MissingHint`) | `py:385-390` | totality | none |
+| R4 | the stream and the phase list are fully consumed | `fs/transcript.rs:213-219`; `mod.rs:769` | `py:415-417`, `:1414` | one encoding per proof | none on soundness (`gt-bus` B17) |
+| R5 | the residual `f_final` has exactly `2^{n_res}` scalars | by count, `whir.rs:2198` | `py:1032` | the closing evaluation is of a table of the right size | none: the count is the verifier's |
+
+### D.3 Grinding
+
+| # | Check | Rust | Python | Protects | Attack without it |
+| --- | --- | --- | --- | --- | --- |
+| G1 | at every level, before the positions are sampled: the nonce read from the stream satisfies `compress(pow_base(cv), (nonce, 4))[0] ≡ 0 (mod 2^17)`; the nonce is bound either way | `whir.rs:2117, 2202, 2325`; `fs/lib.rs:47-51, 165-174`; `fs/transcript.rs:314-323` | `py:377-383`, `:1039` | 17 of the 128 bits at each query round: the queries close `(1 − γ_i)^{t_i} ≈ 2^{-111}` (F.2), the grind the rest | **a `2^{111}`-work forgery.** Commit to a word at distance `> γ_0` from the code (or fold dishonestly at any level) and re-sample the query positions by changing the unchecked nonce: each nonce gives fresh positions at the cost of one squeeze; after about `2^{111}` nonces the positions all fall in the agreement set and the level passes. With the check each attempt costs `2^{17}` hashes, restoring `2^{128}` |
+| G2 | with `bits = 0` only the nonce `0` is accepted | `fs/lib.rs:167-168` (`bits = 0` never happens in production, all levels grind 17 bits) | `py:381` | canonicality of proofs at a zero-bit site | none on soundness |
+
+### D.4 Merkle openings (per level, `fs/merkle.rs:163-235`)
+
+| # | Check | Rust | Python (raw form) | Protects | Attack without it |
+| --- | --- | --- | --- | --- | --- |
+| M1 | the phase stores one row per **distinct** position (sorted) | `:139-141` | n/a (one row per query, duplicates repeated, `py:395-403`) | format | none |
+| M2 | every stored row has exactly `row_words` words (level 0: `n_lanes`, from the announced layout; deeper: `3·2^4`), and `row_words ≤ leaf_words` | `:141-148`; `whir.rs:2130-2131, 2213-2219` | the leaf is read as `8·leaf_words` bytes (`py:396`) with `leaf_words = 64` at level 0 (`py:1049`): **the zero prefix is the prover's** | that the absent lanes of the level-0 image are zero, i.e. that the committed word past the placed columns is zero; the width of every row | none on soundness: a row with nonzero absent lanes is a different word `w'`, still bound by the root, whose extra lanes lie under no claim's weight (every claim's weight is supported inside the placed columns, `stack_open.rs:359-362`, `:497-500`) and outside every column of the layout, so `Λ(w')` restricted to the layout is the same. The Python's accepted set is strictly larger than the Rust's on this point |
+| M3 | `num_leaves` is a power of two, nonzero; the query list is nonempty | `:171-173` | by construction | the tree shape | none: verifier data |
+| M4 | every position is below `num_leaves` | `:176-178` | `py:400` (shift) | — | none: positions are masked at sampling (`whir.rs:1189`, `py:950`) |
+| M5 | the octopus has exactly the siblings the paths need: none missing, none surplus | `:195, 197, 208` | by fixed-length parsing and R4 | canonical format | none on soundness (a surplus sibling is never hashed) |
+| M6 | the recomputed root equals the expected root: the commitment root at level 0 (a statement value bound before any challenge, `pcs.rs:136-138`), the root read from the stream at level `i ≥ 1` | `:208` (`nodes[0].1 != *root`) | `py:402` | **binding**: the opened rows are the committed ones | **total break**: open any rows; at level 0 answer the `t_0` positions with a row consistent with a dishonest `f⁽¹⁾` (`c_q := Enc_0(f⁽¹⁾)[x_q]`, recomputed after the positions are known), at every level likewise; every intro claim then holds and the terminal check passes for any batched claim |
+| M7 | height and leaf width are the verifier's (`height = log₂ num_leaves`, `leaf_words`), never read from the proof | `:174, 139-148`; `whir.rs:2084, 2213` | `py:393, 396` | that no 64-byte node preimage can be presented as a leaf and vice versa without domain separation (B.4) | if the prover chose the height: build a tree one level deeper than announced and open, as "leaves", the 64-byte preimages of depth-`h` nodes — but with fixed `leaf_words ≠ 8` the image length differs and the hash cannot match; so no attack is known even then. Recorded because domain separation is absent and this is what replaces it |
+
+### D.5 WHIR's per-level checks and the final check
+
+| # | Check | Rust | Python | Protects | Attack without it |
+| --- | --- | --- | --- | --- | --- |
+| W1 | the round identity `h(0) + h(1) = claim` at every round | not a check: `c_1` is derived (`fs/transcript.rs:297-299`) | `py:409-410` | in a protocol that sends all coefficients: the link between the round and the running claim | in such a protocol without it: send the true `h` whatever the claim; every later check is about true values and any `C_λ` is accepted. In the deployed encoding the attack has no message to carry it |
+| W2 | the out-of-domain answer `y` | not checked when read (`whir.rs:1672`); glued into the sumcheck with `λ_i` and settled at W5 | `py:1036-1037` | that the new oracle's list has at most one member consistent with the transcript (Lemma B.11) | dropping the OOD claim from the glue: the prover commits at level 1 to a word close to two codewords `U, U'` and answers the queries with whichever fits; Theorem B.7's query row then pays `(1 − γ)^t` per member (a union over `L_1`), which the 128-bit accounting does not include (`whir_config.rs:329-333`: "Plain Johnson without OOD binding would be unsound at these parameters: the query phase would pay a union bound over the interleaved list (19 to 52 bits here)") |
+| W3 | the consistency of the opened rows with the fold: `enforced_sum_i = Σ_q λ_i^q·⟨row_q, eq(r_level, ·)⟩` is the claim of the intro polynomial | computed by `V` (`whir.rs:2140, 2226, 2346`) and glued; settled at W5 | `py:1051, 1057` | that `f⁽ⁱ⁺¹⁾` is the fold of the committed `C⁽ⁱ⁾` on the queried columns (step 3(c)–(d)) | with the intro claim taken from the prover instead: commit any `f⁽ⁱ⁺¹⁾`; all consistency claims are on prover-chosen values; the residual claim is discharged by the dishonest `f⁽ⁱ⁺¹⁾`; accepted |
+| W4 | the level batching: OOD first, queries after, powers `λ_i, λ_i², …` with the running claim at `λ_i^0` | `whir.rs:1131-1154`, `:1681-1701` | `py:1058-1063` | that every claim of the level is settled by one polynomial identity (Theorem B.7's batching row, `(J_i − 1)L_i/|E|`) | a batch with two claims on the same power: the prover balances a false OOD claim against a false query claim (`λ·(y − y_true) + λ·(s − s_true) = 0`) with probability 1 |
+| W5 | **the terminal check** `weight · f̃_final(ρ_tail) = t_r`, with `weight = W̃_λ(ρ rotated) + Σ_i β_i·(induced weight of level `i`'s queries at the tail of `ρ` from level `i`'s start) + Σ β·eq(z, ρ-part)` | `whir.rs:2264-2308` | `py:1075-1083` | everything: it is the one equation the whole sumcheck chain ends on | without it nothing is checked about `q`: any commitment, any `C_λ` |
+| W6 | the shape guards `n_current ≥ k_i`, `ctx.log_msg_cols ≥ yr_log_n`, `at.len() = 1`, `prev.advance` | `whir.rs:2188-2190, 2266-2268, 2280-2282, 2374-2384` | absent | the verifier's own arithmetic on the configuration | none: functions of `(μ, ρ)`, true for every supported size |
+| W7 | `n_lanes ∈ [1, 2^6]`, `r ≥ 1`, vector lengths, `ood_samples[0] = 0` | `whir.rs:2064-2072` | absent | configuration sanity | none: verifier data |
+| W8 | ring switching: `s_hat_v` present, of length 64 | `stack_open.rs:507-510` | n/a (Python builds the target from Flock's 64 values, `py:1346`) | statement well-formedness | none (Flock's claim, `gt-flock-ring`) |
+
+### D.6 The specification's closing list
+
+`08:100`: "Accepts if every check above passed: the caps, the one bus root for both sides, the
+nonzero count root, every sumcheck's rounds and final value, the public-input line, flock's
+reduction, and the PCS opening." Against D.1–D.5: "the caps" omits the rate window and the
+stacking window (D.1); "every sumcheck's rounds" is not a check in either verifier (W1);
+"the PCS opening" stands for M1–M7, W2–W5 and — absent from Annex B altogether — G1. Absent
+from the specification and present in both verifiers: the canonical encodings (`gt-bus` B2,
+B3, B10; R2), full consumption (R4), grinding (G1–G2). The blueprint's `verify` inherits the
+omissions of the specification it is "written from" (`bp:1216`) unless Layer 12 lists D.1–D.5;
+its six mutations (`bp:1238-1239`) exercise M6 and the scalars only.
+
+### D.7 Negative results
+
+Checked, no finding: the query sampling is exactly uniform (`d`-bit chunks of a uniform 192-bit
+string, `d ≤ 28`, `⌊192/d⌋ ≥ 6` chunks per squeeze; `whir.rs:1175-1193`, `py:943-951`); the
+two verifiers derive `n_lanes`, the block lengths and the leaf widths from the announced sizes
+(`whir.rs:2061-2066, 2084, 2213`; `py:1040, 1048-1049`); both floor `μ` at 15
+(`witness.rs:97`, `py:890`); the Python's `derive_config` and the Rust's `configs_for_rate` give
+the same ladder for every `(μ, ρ)` in the window (H.3).

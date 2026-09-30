@@ -10,7 +10,7 @@ Where the blueprint's sketches, interface list and acceptance tests match the co
 
 All blueprint lines are those of \texttt{docs/\allowbreak{}roadmap/\allowbreak{}protocol-{}blueprint.\allowbreak{}md} at \texttt{b435631}; all Lean lines those of \texttt{main} at \texttt{b435631}.
 
-\subsection{The Lean sketch (\texttt{:442-{}554}) against the code, declaration by declaration (E.1)}\label{sec:gen-spine-E1}
+\subsubsection{The Lean sketch (\texttt{:442-{}554}) against the code, declaration by declaration (E.1)}\label{sec:gen-spine-E1}
 
 The sketch is a compressed transcription of the code and matches it in every name, field and signature it gives, with the following differences (none changes a statement):
 
@@ -49,7 +49,7 @@ Sketch & Code & Difference \\
 
 \textbf{Names the sketch or the interface list (\texttt{:1365-{}1385}) give that do not exist under that name or signature on \texttt{main}:} none in the spine block of the list (\texttt{:1366-{}1385}) — every name was found (\texttt{Side} … \texttt{Toy.\allowbreak{}layout}), except that the list names \texttt{Ensemble.\allowbreak{}toM3 (\allowbreak{}Layer 2)} (not built, marked) and \texttt{Component.\allowbreak{}Security.\allowbreak{}\{witMid,\allowbreak{} extractor,\allowbreak{} kSF,\allowbreak{} rbr\}} (fields, exist). \textbf{Public declarations of the reviewed modules that the list does not name:} \texttt{M3Instance.\allowbreak{}κ}, \texttt{M3Instance.\allowbreak{}coordCell}, \texttt{flushTuples}, \texttt{boundaryTuples}, \texttt{M3Instance.\allowbreak{}decAux} (as an instance), the five \texttt{.\allowbreak{}Holds}, \texttt{VirtualTerm.\allowbreak{}table}, \texttt{VirtualTerm.\allowbreak{}eval}, \texttt{Weight.\allowbreak{}pair}, \texttt{Component.\allowbreak{}stateFunctionOfEq}, \texttt{rbrKnowledgeSoundnessWorstCaseWith\_\allowbreak{}of\_\allowbreak{}eq}, \texttt{Component.\allowbreak{}guardedAppend}, \texttt{Component.\allowbreak{}passThroughProver/\allowbreak{}Verifier/\allowbreak{}Pure/\allowbreak{}Extractor/\allowbreak{}StateFunction}, \texttt{passThrough\_\allowbreak{}materializeOutput}, \texttt{passThroughVerifier\_\allowbreak{}toVerifier\_\allowbreak{}run}, \texttt{passThrough\_\allowbreak{}rbr}, \texttt{Component.\allowbreak{}passThroughComplete}, \texttt{Component.\allowbreak{}sendSpec/\allowbreak{}sendProver/\allowbreak{}sendEmbedding/\allowbreak{}sendVerifier}, \texttt{sendOracle\_\allowbreak{}relOut}, \texttt{sendOracle\_\allowbreak{}outputPure}, \texttt{send\_\allowbreak{}materializeOutput}, \texttt{sendVerifier\_\allowbreak{}toVerifier\_\allowbreak{}run}, \texttt{sendVerifierPure}, \texttt{sendOracle\_\allowbreak{}complete}, \texttt{sendOracleComplete}, \texttt{sendWitMid}, \texttt{sendExtractor}, \texttt{sendStateFunction}, \texttt{sendOracle\_\allowbreak{}rbr}, \texttt{sendOracleSecurity}, \texttt{noOracle\_\allowbreak{}eq}, \texttt{Refinement.\allowbreak{}id}, \texttt{Refinement.\allowbreak{}comp}, \texttt{Verifier.\allowbreak{}GuardedForm.\allowbreak{}of\_\allowbreak{}probEvent\_\allowbreak{}pos}, \texttt{Reduction.\allowbreak{}mem\_\allowbreak{}support\_\allowbreak{}run\_\allowbreak{}of\_\allowbreak{}guarded}, \texttt{keepOracles}, \texttt{OracleVerifier.\allowbreak{}materializeOutput\_\allowbreak{}of\_\allowbreak{}keepOracles}, everything in \texttt{KnowledgeAppend} but the two named theorems, \texttt{Toy.\allowbreak{}Col}, \texttt{Toy.\allowbreak{}slice}, \texttt{Toy.\allowbreak{}extend}, \texttt{Toy.\allowbreak{}read\_\allowbreak{}eval}, \texttt{Toy.\allowbreak{}constraint}, \texttt{Toy.\allowbreak{}flush}, \texttt{Toy.\allowbreak{}boundary}. The list's sentence \enquote{Everything not listed is a proof, a helper, or a test} (\texttt{:1419}) is false of the fourteen of these that section B counts as load-bearing (the \texttt{.\allowbreak{}Holds}, \texttt{table}, \texttt{eval}, \texttt{pair}, \texttt{coordCell}, the two tuple lists, \texttt{sendOracle\_\allowbreak{}relOut}, \texttt{sendVerifierPure}, \texttt{sendStateFunction}, \texttt{sendWitMid}, \texttt{guardedAppend}, \texttt{stateFunctionOfEq}).
 
-\subsection{The blueprint's other statements of the same objects (E.2)}\label{sec:gen-spine-E2}
+\subsubsection{The blueprint's other statements of the same objects (E.2)}\label{sec:gen-spine-E2}
 
 \begin{landscape}
 {\footnotesize
@@ -88,7 +88,7 @@ Layer 6's \texttt{BusOut}, Layer 7's types, Layer 9's \texttt{FlockInterface} an
 
 \textbf{Proposed change} (one for all): replace each pre-spine block by a signature over the spine's types — \texttt{busPhase (\allowbreak{}I) : Phase.\allowbreak{}Def I I.\allowbreak{}Stmt (\allowbreak{}I.\allowbreak{}Stmt × BusOut I)}, \texttt{busComplete}, \texttt{busSecurity} at \texttt{Seam.\allowbreak{}commit}/\texttt{Seam.\allowbreak{}bus}; \texttt{tableSumcheck (\allowbreak{}I) : Phase.\allowbreak{}Def I (\allowbreak{}I.\allowbreak{}Stmt × BusOut I) (\allowbreak{}I.\allowbreak{}Stmt × TableOut I)}; \texttt{FlockInterface (\allowbreak{}I)} as the pair \texttt{Phase.\allowbreak{}Def I (\allowbreak{}I.\allowbreak{}Stmt × PubOut I) (\allowbreak{}I.\allowbreak{}Stmt × FlockOut I)} with its \texttt{Phase.\allowbreak{}Security} at \texttt{Seam.\allowbreak{}pub}/\texttt{Seam.\allowbreak{}flock}; \texttt{openingPhase (\allowbreak{}I) : Phase.\allowbreak{}Def I (\allowbreak{}I.\allowbreak{}Stmt × FlockOut I) Unit}; delete Layer 10's \texttt{leanVmPiop … piopError\_\allowbreak{}le} block and point at the spine, keeping \texttt{piopError\_\allowbreak{}le} restated over \texttt{I} (section F, first finding).
 
-\subsection{Acceptance tests 24 to 28 against the code (E.3)}\label{sec:gen-spine-E3}
+\subsubsection{Acceptance tests 24 to 28 against the code (E.3)}\label{sec:gen-spine-E3}
 
 {\footnotesize
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.083\linewidth}>{\raggedright\arraybackslash}p{0.190\linewidth}>{\raggedright\arraybackslash}p{0.674\linewidth}@{}}
@@ -141,7 +141,7 @@ error & \texttt{1/\allowbreak{}|E|} \enquote{a limb disagreeing with the public 
 \end{longtable}}
 \end{landscape}
 
-\subsubsection{Which verifier do the theorems describe (B.1)}\label{sec:gen-pubinput-B1}
+\paragraph{Which verifier do the theorems describe (B.1)}\label{sec:gen-pubinput-B1}
 
 The specification's, and only it. The three deployed verifiers (the Rust, the Python and the recursion guest all run the combined equation; \texttt{verify-{}gt-{}table-{}pub.\allowbreak{}md} section 7 established the same and it is confirmed above first hand) accept every transcript the Lean verifier accepts, and strictly more: the test at \texttt{b435631} (\texttt{tests/\allowbreak{}…/\allowbreak{}PublicInput.\allowbreak{}lean:184-{}210}) pins one transcript accepted by the words' equation and rejected per limb (\texttt{rStar}, \texttt{atStar}, \texttt{wordsEquation}). The blueprint (\texttt{:1053-{}1062}) says this and assigns the deployed check's knowledge soundness to Layer 12: \enquote{their knowledge soundness at \texttt{1/\allowbreak{}|E|} is a lemma of its own, and Layer 12 owes it.}
 
@@ -172,7 +172,7 @@ with \texttt{checkWords} as in C.5 (the words' equation when exactly two lines a
 
 \textbf{Recommendation: (iii), with the deployed phase as the one the master theorems and Layer 12 consume, and the divergence reported to leanVM as an ambiguity of §8.2.} Reason: the report's object is deployment on L1; the theorem that matters is about the verifier that runs; the specification's verifier is one lemma away and documents intent. If only one is kept, keep the deployed one.
 
-\subsubsection{The honest prover's values (B.2)}\label{sec:gen-pubinput-B2}
+\paragraph{The honest prover's values (B.2)}\label{sec:gen-pubinput-B2}
 
 The Lean prover sends \texttt{expectedValues I input r} (\texttt{:219}), the lines' values \texttt{(\allowbreak{}1 + r)·cell0 + r·cell1} computed from the statement. The Rust prover does the same: \texttt{interp\_\allowbreak{}k(\allowbreak{}F64(\allowbreak{}l.\allowbreak{}pi[0].\allowbreak{}c0),\allowbreak{} F64(\allowbreak{}l.\allowbreak{}pi[1].\allowbreak{}c0),\allowbreak{} r\_\allowbreak{}pi)} with \texttt{interp\_\allowbreak{}k(\allowbreak{}lo,\allowbreak{} hi,\allowbreak{} t) = lo + t·(\allowbreak{}lo + hi)} (\texttt{cpu/\allowbreak{}mod.\allowbreak{}rs:611-{}613}; \texttt{multilinear.\allowbreak{}rs:46-{}48}), where \texttt{l.\allowbreak{}pi} is the public input the layout was built from (\texttt{layout.\allowbreak{}rs:83}, \texttt{:471} \texttt{pi = [exec.\allowbreak{}mem[0],\allowbreak{} exec.\allowbreak{}mem[1]]}). Neither evaluates the committed column. \textbf{They agree.} The blueprint says so (\texttt{:1039-{}1041}).
 
@@ -237,7 +237,7 @@ Each declaration read at \texttt{b435631} against what it should say. The librar
 
 \par\noindent{\small\textit{Cross-references.} A reference such as \enquote{(D.5)} or \enquote{section B} in this part is to a section of the dossier \file{dossiers/code-layer1.md}, whose codes the headings keep in parentheses: A (catalogue) is \cref{sec:gen-cat-layer1}; E (audit surface) is \cref{sec:gen-surface-layer1}; F (conformance) is \cref{sec:gen-conf-layer1}; G (findings) is \cref{sec:gen-findings-layer1}; I (probes) is \cref{sec:gen-probes-layer1}; B (faithfulness), C (statements), D (the wall and the To-folders) and H (the upgrade) is not reproduced in these fragments; they are in the dossier.}\par
 
-\subsection{The Layer 1 sketch (\texttt{protocol-{}blueprint.\allowbreak{}md:665-{}731}) against the code (F.1)}\label{sec:gen-layer1-F1}
+\subsubsection{The Layer 1 sketch (\texttt{protocol-{}blueprint.\allowbreak{}md:665-{}731}) against the code (F.1)}\label{sec:gen-layer1-F1}
 
 Every declaration of the sketch exists with the sketched type:
 
@@ -270,7 +270,7 @@ In the code, not in the sketch, and appearing in sketched statements or run by a
 
 The prose (\texttt{:734-{}746}) agrees with the code: the aligned reader for a table the prover chose is \texttt{unstack\_\allowbreak{}eval₂}; \texttt{stack\_\allowbreak{}eval\_\allowbreak{}ambient} for any pad; back-loaded padding is \texttt{placeSlice} at the all-ones index; the index column is the geometric table; the public-input phase's point \texttt{(\allowbreak{}r,\allowbreak{} 0,\allowbreak{} …,\allowbreak{} 0)} is handled by \texttt{evalMle\_\allowbreak{}append\_\allowbreak{}boolVec} at slice zero (as done in \texttt{PublicInput.\allowbreak{}lean:71-{}89}). The tests paragraph (\texttt{:748-{}755}) is met item by item (C.5).
 
-\subsection{Acceptance tests 7, 13, 14, 15 (F.2)}\label{sec:gen-layer1-F2}
+\subsubsection{Acceptance tests 7, 13, 14, 15 (F.2)}\label{sec:gen-layer1-F2}
 
 \begin{itemize}
 \item \textbf{7} (\texttt{:1284-{}1286}): \enquote{Lifting table \texttt{j} by \texttt{∏\_\allowbreak{}\{k ≥ τ\_\allowbreak{}j\} X\_\allowbreak{}k} sums to the table's own sum (\texttt{sumCube\_\allowbreak{}prodVars}) … Witness: \texttt{tableSummand\_\allowbreak{}target} on heights 2 and 1.} The statement it describes is \texttt{sumCube\_\allowbreak{}padHigh}, not \texttt{sumCube\_\allowbreak{}prodVars} (which is \texttt{Σ x\_\allowbreak{}0⋯x\_\allowbreak{}\{m−1\} = 1}); and \texttt{tableSummand\_\allowbreak{}target} does not exist (Layer 7 is not built). The existing witness is \texttt{tests/\allowbreak{}…/\allowbreak{}Padding.\allowbreak{}lean:44-{}49} (the copied table sums to 0 in characteristic two).
@@ -279,7 +279,7 @@ The prose (\texttt{:734-{}746}) agrees with the code: the aligned reader for a t
 \item \textbf{15} (\texttt{:1308-{}1310}): \enquote{Blocks sit at offsets that are multiples of their size, largest first; \texttt{stack\_\allowbreak{}eval} fails for any other placement. Witness: three blocks of sizes 4, 2, 1 with the small one first.} Two imprecisions: 4, 2, 1 are the \emph{heights} (the sizes, in the code's sense of variables, are 2, 1, 0); and \enquote{fails for any other placement} is false: sizes 1, 1, 2 in that order sit at offsets 0, 2, 4, all aligned (\texttt{DuplicatesProbe}), and any permutation of equal sizes is aligned too, which is exactly why the tie order needs its own guard (B.2). The witness exists (\texttt{tests/\allowbreak{}…/\allowbreak{}Stack.\allowbreak{}lean:87-{}95}).
 \end{itemize}
 
-\subsection{The interface list (\texttt{:1386-{}1406}) (F.3)}\label{sec:gen-layer1-F3}
+\subsubsection{The interface list (\texttt{:1386-{}1406}) (F.3)}\label{sec:gen-layer1-F3}
 
 \begin{itemize}
 \item Every Layer 1 name listed exists: generic \texttt{Column sumCube hadamard slice placeSlice boolVec evalMle\_\allowbreak{}eq\_\allowbreak{}sumCube\_\allowbreak{}hadamard evalMle\_\allowbreak{}append\_\allowbreak{}boolVec evalMle\_\allowbreak{}placeSlice bitProductTable evalMle\_\allowbreak{}bitProductTable powersTable evalMle\_\allowbreak{}powersTable Blocks Blocks.\allowbreak{}Tables Blocks.\allowbreak{}stackAt Blocks.\allowbreak{}selector Blocks.\allowbreak{}extendPoint Blocks.\allowbreak{}stack\_\allowbreak{}eval Blocks.\allowbreak{}stack\_\allowbreak{}eval₂ Blocks.\allowbreak{}unstack Blocks.\allowbreak{}unstack\_\allowbreak{}eval₂ Blocks.\allowbreak{}stack\_\allowbreak{}eval\_\allowbreak{}ambient}; leanVM \texttt{Blocks.\allowbreak{}stackColumn Blocks.\allowbreak{}readColumn Blocks.\allowbreak{}readColumn\_\allowbreak{}eval Blocks.\allowbreak{}layout Layout.\allowbreak{}comap Blocks.\allowbreak{}stack\_\allowbreak{}eval\_\allowbreak{}ambient\_\allowbreak{}one padHigh sumCube\_\allowbreak{}padHigh prodVars sumCube\_\allowbreak{}prodVars eqWeight ColumnClaim.\allowbreak{}holds\_\allowbreak{}iff\_\allowbreak{}weighted BlockClaim idxColumn idxColumn\_\allowbreak{}eval idxColumnEval\_\allowbreak{}eq bytecodeColumn bytecodeColumn\_\allowbreak{}answer\_\allowbreak{}boolVec bytecodeColumn\_\allowbreak{}eval}.
@@ -288,7 +288,7 @@ The prose (\texttt{:734-{}746}) agrees with the code: the aligned reader for a t
 \item Listed and to be removed if proposal E.1 is taken: \texttt{BlockClaim}.
 \end{itemize}
 
-\subsection{Elsewhere in the blueprint, touching Layer 1 (F.4)}\label{sec:gen-layer1-F4}
+\subsubsection{Elsewhere in the blueprint, touching Layer 1 (F.4)}\label{sec:gen-layer1-F4}
 
 \begin{itemize}
 \item Layer 3 (\texttt{:808}): \texttt{theorem leanIsaInstance\_\allowbreak{}fits : (\allowbreak{}leanIsaInstance prog s).\allowbreak{}layout.\allowbreak{}total ≤ 2 \textasciicircum{} (\allowbreak{}leanIsaInstance prog s).\allowbreak{}μ}. \texttt{Layout} (\texttt{Spine/\allowbreak{}Instance.\allowbreak{}lean:73-{}81}) has no \texttt{total}; \texttt{total} is a field of \texttt{Blocks}. Moreover \texttt{Blocks.\allowbreak{}layout} takes the fit as an argument (\texttt{hμ}), so the fit must be proved \emph{before} \texttt{leanIsaInstance} can be defined, not after it. Finding G.2.
