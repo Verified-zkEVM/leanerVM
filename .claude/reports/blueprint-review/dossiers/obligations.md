@@ -901,7 +901,8 @@ by declaration). Today an auditor of the master theorems reads none of them; sev
 definitions become trusted when the adaptor is built, about eight more with the executable
 verifier (code-layer1 E).
 
-- **2.5.6.1 The generic identities** (`ToCompPoly/`; over any commutative ring).
+- **2.5.6.1 The generic identities** (`ToCompPoly/`; over any commutative ring). *Status:*
+  `[status: built and proved]` for each of the following.
   - `evalMle_eq_sumCube_hadamard`, `sumCube_lagrangeBasis` (partition of unity),
     `evalMle_replicate`, `evalMle_lagrangeBasis` (the eq kernel; duplicates CompPoly's
     `eqTilde_eq_prod`) — `Multilinear.lean:91, 125, 131`, `BitProductTable.lean:156`.
@@ -914,7 +915,7 @@ verifier (code-layer1 E).
     selector fact: `q̃(z, sel_b) = P̃_b(z)` for the honest stack), `Blocks.unstack_eval₂` (the
     same for a table the prover chose), `Blocks.stack_eval_ambient` (equation (2) of §5.4 for
     any padding) — `Stacking.lean:109, 339, 330`, `AmbientStacking.lean:134`.
-- **2.5.6.2 The leanVM half.** `Blocks.readColumn_eval`, `Blocks.layout` (the aligned blocks as
+- **2.5.6.2 The leanVM half** (`[status: built and proved]` for each). `Blocks.readColumn_eval`, `Blocks.layout` (the aligned blocks as
   the spine's `Layout`), `Layout.comap` (renaming; accepts a non-injective renaming, so a layout
   built with it can alias), `Blocks.stack_eval_ambient_one` (padding `1` over `E`, the leaf
   decomposition), `sumCube_padHigh`, `evalMle_padHigh`, `eqWeight`, `eqWeight_pair`,
@@ -1099,4 +1100,265 @@ verifier checks (V), a theorem another roadmap or library owes (O), nothing (N).
 | the round-by-round ⇒ plain implication | 2.1.2.7 | O (ArkLib, admitted) | "stated once the implication lands" | consistent; forgets the named extractor |
 | the count columns are exactly the pulls' count coordinates | 2.6.2.3 | O (Layer 2/3, Category B) | a transcription of `count_columns()` | unspecified |
 | the order of equal-size blocks; the leaf stacks' order | 2.5.6.4, 2.3.1.3.8 | O (Category B) | nothing before the fixture | unspecified |
+
+## 3. The error, composed
+
+### 3.1 The interactive error of the oracle protocol, challenge by challenge
+
+Every entry is a multiple of `1/|E|`, `|E| = 2^192`. "Blueprint" is what the blueprint charges at
+`b435631`; "tight" is what the review finds to be the exact worst-case escape probability of
+that challenge for the deployed verifier (the sibling dossier named in the last column does the
+argument). Counts are at the largest admissible instance under the stacking window
+(`μ_bus ≤ 28`, `τ_max ≤ 24`, `B = 2`, `k_batch = τ_BLAKE2S ≤ 24`, `J = 113`).
+
+| Phase | Challenge | Count | Blueprint charges | Review finds tight | Note | See |
+| --- | --- | --- | --- | --- | --- | --- |
+| commit | none | 0 | 0 | 0 | the extractor reads the message | code-spine D.6 |
+| bus | `(α, β) ∈ E^5` | 1 | `4·2^{μ_bus}` | `4N`, `N ≤ 2^{μ_bus}` (within a factor 2) | Theorem 5.1 through Lemma 5.2 | gt-bus D.3, D.4 |
+| bus | combiner `λ` | `⌈μ_bus/2⌉ + 1` | `nside − 1 = 2` each, one per layer | `2` each; the last one `0` | the blueprint has no last combiner | gt-bus G2 |
+| bus | layer sumcheck round `χ_t` | `Σ_layers k ≈ μ_bus²/4` | `5` | **`4`** (degree-4 cofactor, `c_0` derived) | `5` is another verifier's | gt-bus G1, D.3 |
+| bus | combination pair `(u_0, u_1)` | `⌊μ_bus/2⌋` | `2` per pair | `2` per pair (`1` each); binary layer `1` | the binary layer's challenge is unassigned | gt-bus G12 |
+| bus | the recycled zerocheck point (`ζ`, drawn in the last layer) | 0 extra | three incompatible charges (`1` per coordinate per constraint; `τ_max` per constraint to `(α, β)` and the GKR; nothing) | **adds nothing**: `max(ε_GKR, 1) = ε_GKR` per coordinate; `τ_max` once if separated | one conjunct of one state function | gt-table-pub D.3; gt-bus G6 |
+| bus | prover messages (roots, children, boundary evaluations) | — | 0 | 0 | | |
+| **bus, sum** | | | `4·2^{μ_bus} + 5μ_bus²/4 − μ_bus/2 + 2` (plus the zerocheck charge) | `4·2^{μ_bus} + μ_bus²` | at `μ_bus = 28`: about `2^{30}` | gt-bus D.3 |
+| table | `ξ` | 1 | `B + 2 = 4` | `k − 1 = 4` for `k = B + 3` claims (tight) | unbounded over `Seam.bus` without a guard on the number of claims | gt-table-pub D.2, E.1 (b) |
+| table | round `r_m` | `τ_max ≤ 24` | `3` | `3` (tight) | | gt-table-pub D.2 |
+| table | final message | — | 0 | 0 | | |
+| **table, sum** | | | `4 + 3τ_max ≤ 76` | the same | | |
+| public input | `r` | 1 | `1` | `1` (tight, attained) | built and proved; the deployed combined check also `1` | code-pubinput F; gt-table-pub D.4 |
+| Flock | sampled equality coordinates `r_7..` | `k_batch + 1` | inside `(4k_batch + 163)` | `1` each | | gt-flock-ring 5.2 |
+| Flock | `z_skip` | 1 | inside | `127` | two polynomials of degree below 128 | |
+| Flock | zerocheck round `χ_i` | `n_flock = 8 + k_batch` | inside | `2` each, plus `1` more on the last `k_batch` (the constant position) | | |
+| Flock | `α_lc` | 1 | inside | `3` | | |
+| Flock | lincheck round | 8 | inside | `2` each | | |
+| Flock | ring switching `f_0..f_5` | 6 | `2^{32}` (as one term) | `2^{31}, 2^{15}, 2^{7}, 8, 2, 1` | acceptance test 23 leaves this term out (`2^{-160}` dominates its `2^{-183}` by `2^{23}`) | gt-flock-ring 5.2, 8.8 |
+| **Flock, sum** | | | `4k_batch + 163 + 2^{32}` | `4k_batch + 163 + 2^{31} + 2^{15} + 2^{7} + 11 < 2^{32}` | right for a fixed committed polynomial | gt-flock-ring 5.2 |
+| opening | `λ` | 1 | `J − 1 = 112` | `112` (tight) | | gt-opening-compile A.5 |
+| opening | "sumcheck `W_λ·q` rounds" | `μ` in the blueprint, **0 deployed** | `2` per round | **no such rounds**: they are WHIR's and carry `2L_i + 2^{ℓ_i−j}a_i` | the blueprint's transcript is not leanVM's | gt-opening-compile A.3, A.4 |
+| **oracle protocol, sum** | | | `piopError_le`: `≤ 2^{40} + flockError` | about `1.25·2^{32}`, that is `2^{-159.7}`, dominated by ring switching | true under the stacking window (margin about `2^8`); **false at the per-log caps** (`μ_bus = 38` gives `2^{40}` on `(α, β)` alone) | gt-opening-compile F.1; gt-bus D.4 |
+
+What `Σ piopError` measures: the interactive error of the ideal-oracle protocol, of no
+consequence for the deployed 128-bit claim, which the query rounds of WHIR set.
+
+### 3.2 The compiled protocol's per-challenge errors (Theorem B.7, per level `i`)
+
+| Challenge | Error | At the deployed parameters (`μ = 28`, `ρ = 1/2`) | See |
+| --- | --- | --- | --- |
+| level batching `λ_i` | `(J_i − 1)L_i/|E|` | level 0: `J_0 = 113`, `L_0 ≤ 110` to `396` over the sizes | gt-opening-compile F.2 |
+| fold round `j` of level `i` | `2L_i/|E| + 2^{ℓ_i−j}·a_i/|E|` (`a_i` from MCA, Theorem 4.6, with the `2^{ℓ−1}` row union) | `128.2` to `146` bits | |
+| out-of-domain sample | `C(L_i, 2)·μ_i/|E|` | `155` to `180` bits | |
+| query positions (after 17 bits of proof of work) | `(1 − γ_i)^{t_i}` | `111` bits, plus 17 by grinding | |
+| final batching | `t_{r−1}/|E|` | | |
+| tail | `2/|E|` | | |
+| every front challenge, after compilation | **`L_0 · ε_i`** (the list-binding compilation, 2.1.2.3) | `2^{-160+8.6}` at worst; benign, structurally load-bearing | gt-opening-compile E.3, G; literature A.3 |
+
+The Rust's own accounting multiplies only the ring-switching degree by the list size
+(`whir_config.rs:540-567`); the bus's `4·2^{μ_bus}` is not unioned (still clears 128 bits at
+these parameters).
+
+### 3.3 The non-interactive error
+
+- **As the blueprint writes it** (`bp:1224`, `bp:1234-1235`): `niError = Q · max_i ε_i` "plus
+  the grinding-adjusted WHIR terms".
+- **What the review finds it must be**, per random-oracle query, for a `t`-query adversary
+  against `verify^H` with `k` rounds:
+
+  ```text
+  niError(t)  =  (t + k) · max( L_0 · max_front ε_i ,
+                                max_fold (2L_i + 2^{ℓ_i−j} a_i)/|E| ,
+                                max_query 2^{−b_i} (1 − γ_i)^{t_i} ,
+                                the OOD, batching, final and tail terms )
+               + 3.5 t²/2^256                      (the hash chain and the Merkle trees)
+               + the program-hash collision term
+               , uniform in the announced sizes s or maximized over them
+  ```
+
+  with the multiplier `(t + k)` of [CY24] Theorems 31.2.1/31.3.1 (or `Q` of [BGKTTZ23]
+  Theorem 3.15), the list factor `L_0` on every challenge of the oracle protocol (they precede
+  the point where the claims pin one list member), the grinding bits `b_i = 17` at every query
+  round as a per-round multiplicative factor (an assumption no published theorem covers), and
+  the hash term that caps a 256-bit digest at the edge of 128 bits of average-case security.
+- **The terms the blueprint's formula lacks**: the list-size factor `L_0` (literature LT2;
+  gt-flock-ring FR13); the hash-collision term (LT3); a model of grinding (LT1: without it the
+  formula certifies about 111 bits where leanVM claims 128); the family composition over the
+  prover's sizes (boundary-adaptor finding 6); the program-hash collision (gt-opening-compile
+  E.1). The maximum is set by the query rounds (`2^{-111}·2^{-17} = 2^{-128}`) and the folds
+  (`2^{-128.2}`), not by anything in the oracle protocol; the theorem is classical (no quantum
+  random-oracle model, LT14).
+- **Which theorems carry which term.** `piop_rbrKnowledgeSoundness` carries the front's
+  `ε_i` per challenge (2.2.2); the list-binding compilation multiplies them by `L_0` and adds
+  Theorem B.7's (2.1.2.3, 2.1.2.4); the round-by-round to state-restoration step gives the
+  `(t + k)` multiplier (2.1.2.1.1); the Merkle interface adds the hash term (2.1.2.2); the
+  chain lemma adds the encoding collision (2.1.2.1.2); the grinding model turns `b_i` into
+  `2^{-b_i}` (2.1.2.1.3); the family composition handles `s` (2.1.2.1.6). Of these seven
+  steps, one is built (the first), one is admitted upstream in a weaker form (the third), and
+  five are stated nowhere.
+
+## 4. Validation of the two existing outlines
+
+### 4.1 `docs/architecture.md`'s obligation map (at `b435631`)
+
+The map has three parts that touch the proof system: the target ladder's T4 (`arch:261-275`),
+the coverage diagram's S4 rows ("Prover … S4: prover implementation correspondence", "Verifier
+… S4: soundness extracts constraints", `arch:96-131`) and the "Proof system" list of the layer
+ownership (the "Verification coverage" list at `arch:446-462`, checked by boundary-adaptor F).
+Set against the tree:
+
+| The map says | In the tree | Verdict |
+| --- | --- | --- |
+| T4 first proves "`BaseVerifier.Accepts … → except with probability baseError, ∃ assignment, Constraints.SatisfiedBy …`" | 2.0.1, 2.1.2, 2.6.2 | **has** the right decomposition (verifier, extraction into the arithmetization's relation, then T1-S); **gets wrong** the shape: a closed Boolean with a probability attached (the same defect the blueprint transcribes; gt-opening-compile E.1) |
+| "compose it with T1-S" | 2.6.6 | **lacks** the hypothesis `WellFormedBytecode` of T1-S in the composed statement (`arch:224-228` states it for T1 and drops it at T4) |
+| "must expose the component soundness/knowledge-soundness bounds, Fiat–Shamir or random-oracle model, commitment and hash assumptions, transcript/serialization agreement, and executable-verifier refinement" | 2.2.2.5, 2.1.2.1, 2.1.2.2, 2.1.1.2, 2.1.1 | **has** every heading; **lacks** the list-binding compilation (2.1.2.3), the grinding model (2.1.2.1.3), the family composition over sizes (2.1.2.1.6), and it files the random-oracle instantiation under "must expose" rather than under "assumed" (2.1.5) |
+| "Its completeness dual composes T2 with the honest prover and records any failure/resource conditions" | 2.0.2, 2.6.8 | **right**, and the blueprint diverges from it: Layer 13 composes T1-C (an existence theorem) instead of T2 and records no resource condition (boundary-adaptor finding 4; docs-debt DD19) |
+| "T4 — base proof extraction/completeness: proof-system components, T1, and T2" (`arch:66`) | | as above |
+| "Relate the executable verifier to the protocol specification, including serialization, transcript order, domain separation, challenge derivation, statement binding, and rejection behavior" (`arch:453-455`) | 2.1.1, 2.1.1.2 to 2.1.1.4 | **has** the headings; "domain separation" is absent from leanVM's trees (role separation replaces it, 2.1.2.2.2); "statement binding" needs the injectivity of `prog ↦ bytecodeColumn prog` and the program-hash collision term, both unstated |
+| "Prove completeness of the abstract prover and test or verify completeness of the executable prover" (`arch:456-457`) | 2.2.1, 2.1.6 | **has**; the executable (Rust) prover's completeness is evidence, not a theorem, as the map allows; the Rust Flock prover is in fact not perfectly complete (2.3.4.2) |
+| the coverage diagram: "Verifier … S4: soundness extracts constraints" | 2.1.2 | **has** the right level (constraints, not executions); the diagram has no row for the commitment's list binding or for the challenge derivation, which the tree shows are where the compiled error's structure lives |
+| the extracted witness "should contain ordered `pc`/`fp` steps and the full memory image" (`arch:332-335`, for T6) | 2.0.1 | the blueprint's `baseVerifier_extractsExecution` keeps only `∃ t, ValidExecution`, dropping `AssignmentRepresents (witnessOf q) t`, which the chain has and recursion consumes (boundary-adaptor note 16) |
+| T1–T8 refine the six obligations of arXiv:2607.23752 (CC-S, CC-C, PS, VC, WC, PC) | | **not attributed** in the file; no T-theorem covers the deployed (Rust, Python) verifier: VC for it is differential testing only (literature E.5, LT11) |
+
+What the map lacks that the tree has: every obligation of section 2.1.2's leaves (the seven
+steps of 3.3); the per-phase and per-component obligations (it names components without
+listing them, which is by design); the hypotheses table 2.7. What the map has that the tree
+does not need: nothing (every item feeds a node). What it gets wrong: the shape of the base
+theorem (a probability over nothing) and the omission of `WellFormedBytecode`.
+
+### 4.2 The blueprint's holes table (`bp:594-617`)
+
+Twenty-two units in twenty rows. Each row against the tree: what it has, what it lacks, what it
+gets wrong.
+
+| Hole | Tree nodes | Has | Lacks | Gets wrong |
+| --- | --- | --- | --- | --- |
+| S (the spine) | 2.2 | the composition, the seams, the commit phase, the extractor chain, the transport lemma; all built and proved | a bound on `piopError` (2.2.2.5); "the extracted stack" as a definition (2.2.2.4); a completeness error field (2.2.1.4); the oracle-freeness requirement (2.1.2.3.3) | `Seam.bus`'s shape (2.2.3.3); the evaluation interface of the stack (2.5.7.3, 2.3.5.1) |
+| G1, G2 (sumcheck `Def`, completeness; `Security`) | 2.5.1 | the plain variant with `d/|F|` per round | the normalized variant the GKR runs (2.5.1.1); the transport lemma for the dropped coefficient (2.5.1.3.3); that ArkLib's completeness is admitted too | nothing else |
+| G3 (batching) | 2.5.2 | `(k − 1)/|F|` | — | — (the row is right; it is also the whole opening phase under recommendation (ii)) |
+| G4 (fingerprint, Lemma 5.2, the collision bound) | 2.5.3 | the three statements | — | "Lemma 5.1" (`bp:601`) is Lemma 5.2 (gt-bus G14); the Schwartz–Zippel names (lib-arklib G.6) |
+| G5, G6 (GKR) | 2.5.4, 2.3.1.3.6 | the shape | the last combiner, the binary layer's challenge, the normalized round | degree 5 and `5/|E|`; and the GKR cannot be appended in the bus phase with the zerocheck clause (gt-bus G3) |
+| L1 (Layer 1) | 2.5.6 | every listed name, built and proved | the strided reader (2.5.6.3); the tie order (2.5.6.4); the two verifier evaluators and `evalMle_padHigh` in the interface list (code-layer1 G.6) | acceptance tests 7, 14, 15 name wrong or vacuous witnesses (code-layer1 G.4, G.5, G.9) |
+| I1 (Clean components as polynomials) | 2.5.8 | the bridge theorems | the count columns' derivation (2.5.8.3); the boundary-block bridge (2.6.2.2) | Mathlib polynomials where the instance holds CompPoly's, noncomputable at the pin (2.5.8.1) |
+| I2 (the adaptor) | 2.6 | the four theorems and the two maps | the carrier of "R1CS ⇒ the limb slots compress" (2.6.2.5); `witnessOf`'s `input`; the reducibility of the instance | `Ensemble.toM3` of the eight tables (2.6.1); `leanIsaInstance_fits`; `admissible_iff_caps`; `witnessOf_stackOf` as an equality (2.6.4); the circular `FlockInterface` dependency |
+| P1, P2 (bus) | 2.3.1 | `busPhase`, `leaf_decomposition`, `busError`; the right `(α, β)` term; `R_c ≠ 0`; one root | the leaf stacks' order, the orders of roots/evaluations/claims, the two side conditions (2.3.1.3.8 to 2.3.1.3.10) | the sketch's types; the GKR's degree and errors; the zerocheck charge (three ways); "the invariant after `(α, β)` is the multisets differ" (it must be "the products differ", gt-bus G11) |
+| P3, P4 (table sumcheck) | 2.3.2 | `tableSummand`, `tableSummand_target`; the right `ξ` and round errors | the guards the seam forces (2.3.2.6); which tables the sumcheck opens (2.3.2.1); the wire's three-coefficient message | the sketch's types; the rounds and final message ranging over every table of the instance; `tableSumcheck_relOut_implies_constraints` is a placeholder |
+| P5 (public input) | 2.3.3 | both halves, built and proved | the deployed verifier's phase (2.3.3.4) | the check is not load-bearing (2.3.3.3); the debt assigned to Layer 12 |
+| P6 (Flock at the flock seam) | 2.3.4 | the spine's slot (`FlockOut`, `Seam.flock`), which is right; `flockError_le`'s numbers | the constant position in `aux`; a `FlockRegion` in the instance; the `F_2`-independence hypothesis; the Category B constants' owner; the `With` form | `FlockInterface` consumes the limb claims (error 1 against leanVM's verifier); `limbColumns` inside the interface; acceptance test 20's inverse; test 23's number |
+| P7, P8 (claim pool and opening) | 2.3.5 | `Weight`, `WeightedClaim`, `(J − 1)/|E|` on `λ` | — | a `μ`-round sumcheck and an evaluation query leanVM does not run; "`2/|E|` per round" |
+| C1 (the knowledge append) | 2.2.2.1, 2.2.2.2 | done, proved | — | "deleted at the pin bump": #615 is open, conflicting, on a framework upstream calls legacy (lib-arklib G.3) |
+| K1 (WHIR) | 2.1.2.4 | `whirOpen`, `whirOpen_rbrSoundness`, `McaJohnson`, `encode` | the `η_i` in `ladder`; the level-0 relayout, the intro messages, the omitted last message; `encode` over `E`; the `K`-valuedness lemma (2.1.2.3.1) | `encode_column_weight` as an existential; the annex's numbering; `whirOpen` "batches a second time" after the opening sumcheck |
+| K2 (Merkle, bytes, parameters) | 2.1.2.6, 2.1.2.4.11 | the definitions | the leaf-image order, the two leaf widths, the pruned-versus-raw path format; VCVio's Merkle library as a possible base (docs-debt DD15) | — |
+| K3 (transcript, `Proof`, `verify`, `verify_iff_compiled`, the FS and BCS interfaces) | 2.1.1, 2.1.2.1, 2.1.2.2 | the definitions; the fixture | the Merkle compilation (2.1.1.1); the grinding conjunct; the canonical-encoding checks; the chain lemma; the state-restoration step; the hash term; the grinding model; the list-binding compilation; the six mutations do not cover the grinding nonce, a truncated path, a size above the caps | `verify_iff_compiled` with ArkLib's `Verifier.fiatShamir` on the oracle verifier; `FiatShamirSecurity` and `BcsSecurity` as stated; "perfect completeness survives the transform" |
+| K4 (T4) | 2.0 | the two statements' intent | `WellFormedBytecode`; a query budget and a random oracle; the resource hypothesis; the witness generator; the extracted witness in the conclusion | the shape of both theorems (2.0.1, 2.0.2) |
+
+Obligations the tree needs that no hole owns (consolidated; each is recorded by a sibling
+dossier individually, the list as such is finding 5.1): the list-binding compilation with its
+three lemmas (2.1.2.3); round-by-round to state-restoration (2.1.2.1.1); the chain lemma
+(2.1.2.1.2); the grinding model (2.1.2.1.3); the hash term (2.1.2.1.4); the program-hash term
+(2.1.2.1.5); the family composition over sizes (2.1.2.1.6); the Merkle compilation of the IOPP
+(2.1.1.1); the role-separation lemma (2.1.2.2.2); the strided reader (2.5.6.3); the
+boundary-block bridge (2.6.2.2); the carrier of "R1CS ⇒ compress" (2.6.2.5); the deployed
+public-input phase (2.3.3.4); the normalized sumcheck variant (2.5.1.1); the transport lemma for
+the dropped coefficient (2.5.1.3.3); the guards or the shape at the bus seam (2.3.2.6); the
+leaf stacks' order and the instance's two side conditions (2.3.1.3.8, 2.3.1.3.9); the count
+columns' derivation (2.5.8.3); the oracle-freeness of the front (2.1.2.3.3); the bound on
+`piopError` (2.2.2.5); the Flock walk in `settleFixedClaims` (2.1.1.5).
+
+## 5. Findings
+
+Only what the tree reveals and no sibling dossier states as such; each finding cites the
+nodes it rests on. The severities are the brief's.
+
+### 5.1 Twenty-one obligations of the composition have no hole, no layer and no owner (major)
+
+*Evidence.* Section 4.2's closing list against the holes table (`bp:594-617`) and the layers
+(`bp:619-1259`): each item is needed by an arrow of the chain in section 2 and appears in no
+hole's "Produces" column and in no layer's sketch. Sibling dossiers record most of them one at a
+time (gt-opening-compile E.2, E.3; literature A.4; code-layer1 G.1; boundary-adaptor findings 2,
+6, 7; gt-bus G7, G10; gt-table-pub TP1, TP4; code-spine CS1); none states that the plan's unit of
+work leaves them unassigned. *Classification.* An error of the blueprint (the plan is
+incomplete, not wrong where it is stated). *Proposed change.* Add to the holes table one row per
+item, or fold them into the nearest hole's "Produces" column: K3 gains the Merkle compilation,
+the chain lemma, the state-restoration step, the grinding model, the hash and program-hash
+terms, the family composition, the canonical-encoding checks; K1 gains the `K`-valuedness lemma
+and `encode` over `E`; a new hole "list-binding compilation" (between K1 and K3) gains 2.1.2.3
+with its union-bound lemma and the oracle-freeness requirement; L1 gains the strided reader and
+the tie order; I1 gains the boundary-block bridge and the count columns; I2 gains the carrier of
+"R1CS ⇒ compress"; P5 gains the deployed phase; G1 gains the normalized variant and the
+dropped-coefficient transport; S gains the bound on `piopError`. *Reason.* A reader of the holes
+table today believes that filling twenty-two units yields `baseVerifier_extractsExecution`; it
+yields the two master theorems and a `verify` with no theorem tying them together.
+
+### 5.2 The compilation needs every phase before the opening to make no oracle query, and nothing states or enforces it (major)
+
+*Evidence.* The list-binding compilation (2.1.2.3, gt-opening-compile E.3) replaces the commit
+message by a codeword and keeps the front's verifier unchanged; that is possible only if the
+front's verifier never queries the stack, since a query answered by `q̃` has no counterpart
+when the oracle is a word close to a list. The two built phases do not query (the commit
+verifier reads nothing; the public-input verifier queries only its own message,
+`PublicInput.lean:222-231`). The spine's `Phase.Def` allows a verifier to query the stack at any
+point any number of times (ArkLib's `OracleVerifier`; neither ArkLib nor the spine counts
+queries, `OracleVerifier.numQueries` being `sorry`), and code-spine D.3 (d) and gt-table-pub E.4
+item 6 show that a phase reading the whole stack fills every slot. So a bundle `Phases I` may
+satisfy both master theorems and be uncompilable. Under the blueprint's evaluation interface the
+opening phase itself queries once (the final evaluation), so the requirement is "every phase
+but the last"; under recommendation (ii) it is "every phase but the opening's one weighted
+query, which WHIR realizes". No sentence of the blueprint, the tracker or the spine's docstrings
+states it. *Classification.* An error of the blueprint (an omission in the design of the seams).
+*Proposed change.* Either a field of `Phases` (or a hypothesis of the compilation theorem) "the
+verifier of each front phase makes no query to `TheOracle I`", stated as a property of the
+`OracleVerifier` (its `verify` computation is in the image of the query-free embedding), with
+the two built phases as its first inhabitants; or a stronger type for the front phases, an
+`OracleReduction` whose verifier is a plain `Verifier` over `[]ₒ` lifted by `keepOracles`, so
+that a query is a typing error. Add to the conventions row *The oracle* (`bp:317`): "No phase
+before the opening queries it; the opening queries it once (under (ii)); the compilation depends
+on this." *Reason.* Without it the sentence "WHIR realizes the oracle" has no theorem behind it
+for an arbitrary bundle, and a phase written in the ideal model with a convenient query would
+pass every planned check and break the compilation.
+
+### 5.3 The per-challenge error has no carrier for the grinding bits, and the compiled protocol's schedule must carry them (minor)
+
+*Evidence.* `Component.Def.err : pSpec.ChallengeIdx → ℝ≥0` (`Component.lean:66`) is what
+`piopError` sums and what the Fiat–Shamir interface consumes (`bp:1224`: "error `Q · max_i
+ε_i`"); leanVM's 128-bit claim needs, per challenge, both `ε_i` and the grinding bits `b_i`
+(2.1.2.1.3; literature A.3 item 3). The ground rounds are WHIR's query rounds only, which live in
+the compiled protocol (2.1.2.4.7), not in the oracle protocol, so the spine's `err` is the right
+type for the front; but `leanVmIopp`'s definition (2.1.3) must expose `b_i` per challenge and
+the Fiat–Shamir interface must take it. The blueprint's `niError` prose ("grinding-adjusted
+WHIR terms") names no such datum. *Classification.* An error of the blueprint (an omission in the
+data of Layer 12). *Proposed change.* Give the compiled reduction's definition a second
+function `grind : pSpec.ChallengeIdx → ℕ` (zero everywhere but at the query rounds, `17`
+there), make `FiatShamirSecurity` take it, and define `niError` from `err` and `grind`. *Reason.*
+The statement of the interface must be able to say which challenge is ground.
+
+### 5.4 The two master theorems are conditional on bundles no instance but the toy can inhabit today, and the tree shows the smallest set of nodes that makes them about leanVM (note)
+
+*Evidence.* Reading the tree bottom-up from `piop_perfectCompleteness` and
+`piop_rbrKnowledgeSoundness` (2.2.1, 2.2.2), the nodes that must exist for the theorems to be
+about leanVM's verifier, and are not built, are: the instance (2.6.1, with 2.5.6.3, 2.5.8), the
+four unbuilt phases' `Def`s (2.3.1.1, 2.3.2.1, 2.3.4.1, 2.3.5.1), their `Complete` and `Security`
+(eight fields), the bound 2.2.2.5, the non-vacuity theorem 2.6.3, and the refinement 2.1.1 with
+its fixture. That is the whole of Layers 3, 6, 7, 9, 10 and 12's `verify_iff_compiled`; nothing
+smaller pins the phases (2.2.2.6). Every other node of the tree is above (the compilation's
+security) or below (the generic components, whose theorems the phases' proofs consume).
+*Classification.* Not a divergence; a reading aid for the report's chapter. *Proposed change.*
+None to the blueprint beyond 5.1; the status file should list these nodes as "what makes the
+master theorems about leanVM" separately from the holes.
+
+### 5.5 Negative results
+
+- Every node of the blueprint's Layers 0 to 13 and of its holes table has a place in the tree;
+  no blueprint obligation was found redundant (every layer feeds `verify` or a theorem about it;
+  agrees with boundary-adaptor F). Three named declarations serve nothing on the chain
+  (`witnessOf_stackOf`, `Extractor.Straightline.map`, `piop_rbrKnowledgeSoundness_exists`):
+  non-vacuity tests or upstream candidates, as boundary-adaptor F says.
+- The per-challenge errors of the built phase (`1/|E|`) and of the two sketched phases whose
+  arguments the sibling dossiers worked (table: `(B+2)/|E|` on `ξ`, `3/|E|` per round; opening:
+  `(J−1)/|E|` on `λ`) are correct and tight, on the right challenges (gt-table-pub D; code-pubinput F;
+  gt-opening-compile A.5). The bus phase's `(α, β)` term is correct within a factor 2.
+- The composition of errors through the spine is per challenge with no additive term
+  (lib-arklib G.9, `KnowledgeAppend.lean` read in full by that dossier); the tree's section 3.1
+  adds nothing at the seams.
+- The hypotheses table (2.7) reproduces boundary-adaptor C's rows and adds six (the grinding
+  check, the canonical encodings, `R1CS_DIGEST`, the `F_2`-independence of the fixed weights,
+  the oracle-freeness of the front, the bound on `piopError`); none of boundary-adaptor's rows
+  was found wrong.
 

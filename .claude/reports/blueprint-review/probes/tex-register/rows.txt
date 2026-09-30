@@ -1,0 +1,136 @@
+R1 | critical | The existential forms of round-by-round knowledge soundness carry no knowledge content || lib-arklib.md §G.1; §D.4, §D.6
+R2 | major | The bus seam admits statements the deployed table sumcheck cannot serve || gt-table-pub.md §8 (first finding), §6 E.1; code-spine.md §F "The degree conjunct of Seam.bus", §C.3
+R3 | major | The real bus phase can fill the spine's bus slot; the seam's surplus generality burdens only the table phase || gt-bus.md Summary item 2, §E.1, §E.2, §E.4
+R4 | major | The spine's completeness cannot carry an error, and Flock may need one || lib-arklib.md §G.2; §E.3
+R5 | major | The declared error is unconstrained: the knowledge theorem has content only with a bound on `piopError` || code-spine.md §F "The declared error is unconstrained"; §C.5, §D.3 (b)
+R6 | major | The composition over the prover's announced sizes is unspecified || boundary-adaptor.md §G.6; §B.3
+R7 | major | The GKR layer sumcheck is the normalized variant; the blueprint gives it the wrong degree, the wrong error and no definition || gt-bus.md G1
+R8 | major | The GKR last-layer rounds cost `5/|E|` each, as the blueprint says || gt-table-pub.md §5 D.3 ("On the rounds of the last layer `ε_G = 5/|E|`"); verify-gt-table-pub.md §4 item 5
+R9 | major | One combiner more than GKR layers: the last is drawn and never used || gt-bus.md G2
+R10 | major | Layer 5's generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause || gt-bus.md G3
+R11 | major | The table sumcheck's tables are not distinguished from the instance's other tables || gt-table-pub.md §8 (second finding), §4 C.1 item 4; boundary-adaptor.md §G.9, §E.4; gt-bus.md G16
+R12 | major | The public-input theorems are about a verifier none of the three executable verifiers runs; the debt is assigned to Layer 12, which cannot pay it || gt-table-pub.md §8 (third finding), §7; code-pubinput.md §G.2, §B.1, §C.13
+R13 | major | The check on the public-input message is not load-bearing for any theorem of the phase || code-pubinput.md §G.1; §C.3, §C.4, §C.5
+R14 | major | Layer 9's Flock interface consumes the eighteen limb claims and emits one claim; leanVM's Flock reads no claim || gt-flock-ring.md §8.1, §2.4, §5.1; gt-table-pub.md §8 "Layer 9's sketch", §6 E.2
+R15 | major | The instance depends on a Flock interface that depends on the instance (the limb slot map, `aux`, the compression lemma) || gt-flock-ring.md §8.2; boundary-adaptor.md §G.7
+R16 | major | The Flock phase cannot be written over an abstract instance, which gives it only an opaque predicate || gt-flock-ring.md §8.3; §1 item 7; probe 9.1
+R17 | major | Acceptance test 20 files a completeness failure under a soundness error, and attributes to the protocol an inverse only the Rust prover takes || gt-flock-ring.md §8.4; §4
+R18 | major | The opening phase runs a sumcheck leanVM does not run || gt-opening-compile.md §I.1; §A
+R19 | major | Layer 11's `whirOpen` batches a second time, and its `encode` serves level 0 only || gt-opening-compile.md §I.8; §B.6, §A.4
+R20 | major | No ArkLib theorem can inhabit the planned Fiat–Shamir and BCS interfaces, and the interface as commented is false || lib-arklib.md §G.4 (first half), §F.1; gt-opening-compile.md §I.4, §E.2
+R21 | major | `verify_iff_compiled` names definitions that do not describe the compiled verifier || lib-arklib.md §G.4 (second half); gt-opening-compile.md §I.2, §E.4
+R22 | major | Upstream Fiat–Shamir and BCS theorems will be about other constructions than leanVM's one-map BLAKE2s chain || literature.md §E.6 (first finding)
+R23 | major | The non-interactive error omits grinding, the list-size factor and the hash term, so it cannot carry leanVM's 128-bit claim || literature.md §A.4 (first, second and third findings), §A.3; gt-opening-compile.md §I.7, §F.2-F.3; gt-flock-ring.md §8.13
+R24 | major | The list-binding compilation is a theorem the blueprint names and does not state || gt-opening-compile.md §I.5; §E.3, §G
+R25 | major | The proof of work is the one verifier check no planned theorem or mutation makes load-bearing || literature.md §G.5 (first finding); §G.3, §G.4
+R26 | major | Perfect completeness does not survive the Fiat–Shamir transform: the honest prover's grinding is a search || gt-opening-compile.md §I.6; §E.5
+R27 | major | The base soundness (and completeness) theorems lack `WellFormedBytecode` || docs-debt.md §H.1, §B.6; boundary-adaptor.md §G.3 (first part), §C
+R28 | major | The base soundness theorem is not a probability statement about `verify`, and concludes no extracted witness || boundary-adaptor.md §G.3 (second part), §C, §E.6; gt-opening-compile.md §I.3, §E.1
+R29 | major | The base completeness theorem is false without resource hypotheses and needs a witness generator || boundary-adaptor.md §G.4; §C
+R30 | major | The instance is not `Ensemble.toM3` of the eight tables || boundary-adaptor.md §G.1; §A.5
+R31 | major | No bridge lemma relates the boundary blocks to the Clean memory, bytecode and verifier rows || boundary-adaptor.md §G.2; §A.2, §A.5
+R32 | major | The polynomial bridge of Layer 2 is noncomputable at the pin || boundary-adaptor.md §G.8; §E.5
+R33 | major | Layer 3's sizes and admissibility statements cannot be stated or hold as written (`Sizes`, `Sizes.ofWitness`, `Sizes.Admissible`, `admissible_iff_caps`, `leanIsaInstance_fits`) || gt-bus.md G4; boundary-adaptor.md §G.5; code-layer1.md §G.2; gt-opening-compile.md §I.15 (first half), §F.1
+R34 | major | The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge || lib-arklib.md §G.3; §F.2, §C.3
+R35 | major | The strided reader of the eighteen BLAKE2s limb columns exists nowhere and is assigned to no layer || code-layer1.md §G.1; §B.8
+R36 | major | The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types the spine does not have || docs-debt.md §H.3, §B.4; gt-table-pub.md §8 "Layer 7's sketch", §4 C.2; gt-bus.md G11; code-spine.md §E.2
+R37 | major | The blueprint hands the holes' specification to a tracker comment that contradicts it; its public-input section says "the prover sends nothing" || docs-debt.md §H.2, §B.3; gt-table-pub.md §8 "The tracker's text for the public-input phase is stale"
+R38 | major | The status's finding that the Python verifier omits the caps is false at the pin (F9) || gt-bus.md G5, §F; gt-table-pub.md §8 "Two status findings are wrong"; gt-flock-ring.md §8.10; gt-opening-compile.md §I.16
+R39 | minor | Knowledge soundness is bundled with perfect completeness || gt-flock-ring.md §8.5
+R40 | minor | The `outputPure` field is redundant, and `guarded` nearly so || code-spine.md §F "The outputPure field is redundant", §D.7; lib-arklib.md §G.7
+R41 | minor | `Layout.read` is determined by `extend` || code-spine.md §F "read is determined by extend"; §C.2
+R42 | minor | The error bundled in `Component.Def` makes every phase, the composed verifier and the extractor noncomputable || lib-arklib.md §G.5
+R43 | minor | Two side conditions a bus phase over an abstract instance needs || gt-bus.md G10; probe H.2
+R44 | minor | `Protocol/Basic.lean` imports the arithmetization and is not a listed exception of the wall || code-spine.md §E.3 row 25; code-layer1.md §G.8, §D.1; docs-debt.md §H.8, §B.5 item 12
+R45 | minor | The blueprint's headline describes master theorems that do not exist on `main` || code-spine.md §F "The headline describes theorems that do not exist"; §C.4
+R46 | minor | The extracted stack is not a definition; acceptance test 24's `rfl` witness covers zero-round phases only || code-spine.md §F "The extracted stack is not a definition"; §D.5
+R47 | minor | The zerocheck escape is over-charged and charged three or four different ways || gt-table-pub.md §8 "The zerocheck escape", §5 D.1, D.3; gt-bus.md G6, §D.3
+R48 | minor | "Computable" is not "efficient" for the compiled extractor || literature.md §A.4 (fourth finding)
+R49 | minor | Two deployed checks are discharged by type in Lean, and the blueprint does not say who parses || boundary-adaptor.md §G.15; §B.2 item 2
+R50 | minor | The order of the leaf stacks is nowhere stated, and the spine's `tuples` lists them in the opposite order || gt-bus.md G7
+R51 | minor | Orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims, the point || gt-bus.md G8
+R52 | minor | The binary GKR layer's combination challenge has no error assigned || gt-bus.md G12
+R53 | minor | Sumcheck round messages: four coefficients and a check in the oracle protocol, three and none on the wire; the owed lemma is unstated || gt-table-pub.md §8 "The round message"
+R54 | minor | The top limb is enforced only through the instance's third line and the unbuilt adaptor theorem; acceptance test 10 names the wrong witness || code-pubinput.md §G.3, §D.1, §D.2; boundary-adaptor.md §D, Summary item 3
+R55 | minor | `PublicLine.sent` is pinned by prose only || code-pubinput.md §G.4; §E
+R56 | minor | The auxiliary predicate must include the constant-one position || gt-flock-ring.md §8.6
+R57 | minor | Flock is listed as written from the specification; its circuit, layout and constants exist only in the Rust and the Python || gt-flock-ring.md §8.7
+R58 | minor | The Flock error quoted in acceptance test 23 leaves out ring switching || gt-flock-ring.md §8.8; gt-opening-compile.md §I.15 (second half), §F.1
+R59 | minor | The ledger row on ring switching suggests a missing profile; ArkLib's construction is another protocol || gt-flock-ring.md §8.9; §6
+R60 | minor | The executable verifier needs the Flock phase's definition, which no roadmap has started || gt-flock-ring.md §8.11
+R61 | minor | The canonical-encoding and stream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little || gt-bus.md G9; gt-opening-compile.md §I.17, §C.4, §D
+R62 | minor | `encode_column_weight` is an existence statement every linear map satisfies || gt-opening-compile.md §I.9; §B.6
+R63 | minor | The proof object's Merkle format is unspecified between the pruned wire form and the raw form || gt-opening-compile.md §I.10; §C.2, §B.4, §D.4
+R64 | minor | Four transcript facts of WHIR are not in the blueprint || gt-opening-compile.md §I.11; §B.1
+R65 | minor | `Level` lacks WHIR's analysis parameter; the OOD count and grinding bits are parameters || gt-opening-compile.md §I.12; §B.3
+R66 | minor | The chain's step is the 64-byte hash, not the compression with the chain state as chaining value || gt-opening-compile.md §I.14; §C.1
+R67 | minor | The blueprint does not state the scope of its random-oracle assumption || literature.md §B.4
+R68 | minor | The Lean theorem is classical; the quantum random-oracle model is not mentioned || literature.md §G.5 (second finding); §G.1
+R69 | minor | `witnessOf_stackOf` has no Lean statement || boundary-adaptor.md §G.10; §E.2
+R70 | minor | `witnessOf` has no public input, and the count columns have no derivation || boundary-adaptor.md §G.11; §A.4 rows 1, 4
+R71 | minor | `leanIsaInstance` must be reducible || boundary-adaptor.md §G.12
+R72 | minor | `Refinement.map_option_valid` has the wrong polarity for ArkLib's knowledge game || boundary-adaptor.md §G.13; §E.6
+R73 | minor | The relation ladder conflates Clean's field sum with Clean's balance relation || lib-others.md §G.1; §C.5
+R74 | minor | `SampleableType K` is unused audit surface, and the blueprint disagrees with itself about it (Layer 0) || lib-others.md §G.2; §E.1
+R75 | minor | `evalOracle_answer` takes `n` explicitly, unlike the blueprint (Layer 0) || lib-others.md §G.3
+R76 | minor | The scalar oracle interfaces are trusted surface the blueprint does not list (Layer 0) || lib-others.md §G.4
+R77 | minor | The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue || docs-debt.md §H.15; §B.9
+R78 | minor | The order of equal-size blocks in the witness stack is pinned by no statement or test before the compiled verifier || code-layer1.md §G.3
+R79 | minor | Acceptance test 14 names a tautology as its witness; no test compares the bytecode column with leanVM's encoder || code-layer1.md §G.4, §C.3; docs-debt.md §H.14 (one item)
+R80 | minor | Acceptance test 15 overclaims that `stack_eval` fails for any other placement || code-layer1.md §G.5
+R81 | minor | `BlockClaims.lean` has no consumer || code-layer1.md §G.7; §A.8, §E.1
+R82 | minor | Acceptance test 7 names the wrong lemma and a witness that does not exist || code-layer1.md §G.9; §F.2
+R83 | minor | The status and the tracker describe a repository two merges old || docs-debt.md §H.4; §B.1, §B.2, §B.11; code-pubinput.md §G.6
+R84 | minor | After the upgrade the blueprint states superseded pins as current, and Layer 0's prose is stale || docs-debt.md §H.5, §B.11; lib-others.md §G.5
+R85 | minor | Letter codes collide, and two references point at the wrong finding || docs-debt.md §H.6; §D, §F
+R86 | minor | The same fact is written in three to six places || docs-debt.md §H.7; §A
+R87 | minor | The review tooling the blueprint prescribes is not in the repository || docs-debt.md §H.9
+R88 | minor | "How work is tracked" is contradicted by practice || docs-debt.md §H.10; §B.7
+R89 | minor | The blueprint records state and history, against its own rule || docs-debt.md §H.11; §B.4 item 11
+R90 | minor | Decisions are numbered, but most of their content is gone and the numbers collide || docs-debt.md §H.12; §B.8
+R91 | minor | The list of public names is not the public boundary: most public declarations are unlisted, some load-bearing, three mislabelled || docs-debt.md §H.13; code-layer1.md §G.6, §F.3; code-spine.md §E.1 (last paragraph)
+R92 | minor | Broken names and citations in the blueprint, status and tracker || gt-bus.md G14; docs-debt.md §H.14, §B.5, §B.10; boundary-adaptor.md §G.14; gt-opening-compile.md §I.13
+R93 | minor | Source discrepancies are not recorded where both status files say they are || docs-debt.md §H.16; §B.7 item 6
+R94 | minor | The status's round-message finding says the cubic is sent "at four nodes"; the wire carries coefficients || gt-table-pub.md §8 "Two status findings are wrong" (first bullet)
+R95 | minor | The status's finding on the one bus root misreads the specification (S11) || gt-bus.md G13
+R96 | minor | Names and line references in the blueprint's ArkLib table are wrong in places || lib-arklib.md §G.6; §B.2
+R97 | minor | The status's dates for ArkLib #615 and #818 are last-update dates, not opening dates || lib-arklib.md §F.5 (last paragraph)
+R98 | minor | Misattributed and mistitled references in the blueprint || literature.md §A.4 (fifth finding)
+R99 | minor | The blueprint's citation for grand products points to the wrong Thaler chapter || literature.md §D.3
+R100 | minor | The obligation outline behind `architecture.md`'s labels is not attributed || literature.md §E.6 (second finding)
+R101 | note | The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it || gt-table-pub.md §8 Notes, §6 E.4 item 6; code-spine.md §0 item 2, §D.3 (d)
+R102 | note | The instance is data the theorems trust; only the toy's relation is known inhabited || code-spine.md §F "The instance is data the theorems trust"; §C.1, §C.2, §D.4
+R103 | note | The protocol's knowledge soundness is non-adaptive in the statement || boundary-adaptor.md §G.17; §B.3
+R104 | note | The upper per-log caps are implied by the stacking window || gt-opening-compile.md §I Notes (first bullet); §D.1; verify-gt-bus.md §4 item 2
+R105 | note | Seven disagreements between specification, Rust and Python in the setup, commitment and bus; none between the two verifiers || gt-bus.md G15; §A.6
+R106 | note | The Fiat–Shamir seed binds a constant that cannot be recomputed at the pin || gt-flock-ring.md §8.14
+R107 | note | The specification gives no round-by-round analysis of the bus phase || gt-bus.md G17; §D.1
+R108 | note | The specification's batching error is loose by one, gives no error for the recycled point, and does not say which coefficient is dropped || gt-table-pub.md §8 Notes; §5 D.1, D.2
+R109 | note | Stale comments in the Rust on the round message || gt-table-pub.md §8 Notes, §2 A.4; verify-gt-table-pub.md §4 item 3; verify-gt-bus.md §4 item 5
+R110 | note | The public-input message type is wider than the transcript || code-pubinput.md §G.5
+R111 | note | The pinned Rust prover of Flock is not perfectly complete || gt-flock-ring.md §8.12; §4.1
+R112 | note | Stale comments in the Rust on what binds the counter and the flags || gt-flock-ring.md §8.15; verify-gt-flock-ring.md §4 item 8
+R113 | note | A weighted claim carries the `2^μ` cube values of its weight || gt-flock-ring.md §8.16
+R114 | note | The one coding-theory input is a preprint theorem with a sketched proof || literature.md §C.4 (first finding)
+R115 | note | Three readings of the constant in Theorem 4.6; leanVM and ArkLib use the printed one || literature.md §C.4 (second finding); §C.3 item 4
+R116 | note | A stale comment in the pinned Rust on level-0 grinding || literature.md §G.1 (bullet "Grinding")
+R117 | note | The Rust's own security accounting unions only the algebraic checks over the Johnson list || gt-opening-compile.md §I Notes (second bullet); §F.2
+R118 | note | A stale comment in the Rust on the size of a WHIR Merkle leaf || gt-opening-compile.md §I Notes (third bullet)
+R119 | note | Knowledge transport along the adaptor is three lines in the event form || code-spine.md §F "Knowledge transport"; §D.7
+R120 | note | The completeness base theorem composes leanISA's existence theorem, where `architecture.md` says witness generation || docs-debt.md §H.19; boundary-adaptor.md §F, Summary item 6
+R121 | note | The base extraction theorem (T4) drops the extracted witness that recursion (T6) needs || boundary-adaptor.md §G.16; §F
+R122 | note | `constraintCompleteness` needs a resource hypothesis of its own || boundary-adaptor.md §G.18; §C
+R123 | note | The zkVM verification literature is almost entirely constraint-level || literature.md §F.3
+R124 | note | Locally re-implemented objects that ArkLib has (`passThrough`, `sendOracle`) || lib-arklib.md §G.8
+R125 | note | The eager `Fintype BF64` blocked every executable at the old pins; retired at `144c5aa` || lib-others.md §G.6; §B.3, §F.3
+R126 | note | `simp` misread `K` arithmetic at the old pins; the kernel rejected the result || lib-others.md §G.7; §H.7
+R127 | note | Numerals in `K` changed meaning at the new pins || lib-others.md §G.8; §F.3
+R128 | note | ArkLib's multilinear bridge is likely unimportable at the new pins || lib-others.md §G.9; §F.2
+R129 | note | The local counting bound is redundant with VCVio at the new pin || lib-others.md §G.10; §F.1
+R130 | note | The Layer 0 module's comments cite the roadmap, layer numbers and a letter code || docs-debt.md §H.17; §B.5 item 13
+R131 | note | `Layout.comap` accepts a non-injective renaming, so a layout can alias columns || code-layer1.md §G.10 (first bullet); §C.4
+R132 | note | Unused or duplicated Layer 1 declarations || code-layer1.md §G.10 (second bullet); §E proposals 2-5
+R133 | note | Disagreements between leanVM's sources on the witness stack || code-layer1.md §G.10 (fourth bullet); §B.2, §B.6
+R134 | note | Two dispositions of the earlier spine review are met only in part || code-spine.md §F "Two statements the earlier review's disposition"; §0 item 3, §D.3 (a)
+R135 | note | A review's tracker edits were never applied, while its handoff says "met" || docs-debt.md §H.18
+R136 | note | Blueprint line numbers shift by four at `HEAD`; the upgrade changed more than the pins table || verify-gt-table-pub.md §4 item 1

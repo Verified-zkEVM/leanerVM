@@ -108,7 +108,7 @@ R5 & the residual $f_{\mathrm{final}}$ has exactly $2^{n_{\mathrm{res}}}$ scalar
 \multicolumn{7}{@{}l}{\textit{Grinding}} \\
 \midrule
 G1 & at every level, before the positions are sampled: the nonce read from the stream satisfies
-  $\mathrm{compress}(\mathrm{pow\_base}(\mathit{cv}), (\mathit{nonce}, 4))[0] ≡ 0 \pmod{2^{17}}$;
+  \code{compress(pow_base(cv), (nonce, 4))[0] ≡ 0 (mod 2^17)};
   the nonce is bound either way
   & absent (from Annex B altogether)
   & \code{whir.rs:2117, 2202, 2325}; \code{fs/lib.rs:47-51, 165-174};
@@ -231,9 +231,9 @@ W4 & the level batching: OOD first, queries after, powers $λ_i, λ_i^2, …$ wi
   & a batch with two claims on the same power: the prover balances a false OOD claim against a
   false query claim ($λ·(y − y_{\mathrm{true}}) + λ·(s − s_{\mathrm{true}}) = 0$) with probability 1 \\
 W5 & \textbf{the terminal check} $\mathit{weight} · \mle{f}_{\mathrm{final}}(ρ_{\mathrm{tail}}) = t_r$,
-  with $\mathit{weight} = \mle{W}_λ(ρ\text{ rotated})$ $+ Σ_i β_i·(\text{induced weight of level
-  } i\text{'s queries at the tail of } ρ \text{ from level } i\text{'s start})$ $+ Σ β·\eq(z,
-  ρ\text{-part})$
+  with $\mathit{weight}$ the sum of $\mle{W}_λ$ at $ρ$ rotated, of $Σ_i β_i·$(the induced weight
+  of level $i$'s queries at the tail of $ρ$ from level $i$'s start) and of
+  $Σ β·\eq(z, ρ\text{-part})$
   & \code{08:100} ``the PCS opening''
   & \code{whir.rs:2264-2308}
   & \code{py:1075-1083}

@@ -243,6 +243,8 @@ the Flock consequence lemma (the adaptor consumes a theorem no interface carries
 random-oracle heuristic is a fifth, inherent, and must simply be written down.
 
 \subsection{The top limb of the public input, along the whole chain}\label{sec:gen-boundary-toplimb}
+% The probe's line numbers are those of probes/boundary-adaptor/Shapes.lean; the dossier cites
+% them as 45-49, 51-55, 57-63, twelve lines too low (checked against the file).
 
 The public-input dossier (\file{code-pubinput.md}, section D) traced the limb through the phase,
 the spine and the deployed verifiers; this walk adds the two ends of the chain and the anchors.
@@ -265,7 +267,7 @@ def PublicInput.word1 (p : PublicInput) : E := E.ofLimbs (p.lanes 2) (p.lanes 3)
 \src{LeanerVM/Semantics/Memory.lean:101-110 at b435631, docstrings omitted (probe Shapes prints them, output lines 69--78)}
   A public input with a nonzero top limb cannot be written; the probe proves
   \bndc{p.word0.limb 2 = 0} and \bndc{p.word1.limb 2 = 0} for every \bndc{p} by \bndc{simp}
-  (\bndc{Shapes.lean:45-49}, exit 0). The specification agrees, \enquote{two 192-bit words (with
+  (\bndc{Shapes.lean:57-61}, exit 0). The specification agrees, \enquote{two 192-bit words (with
   top limb 0)} (\bndc{doc/leanvm/body/08-end-to-end-protocol.tex:29}), the Rust rejects a third
   limb (\bndc{cpu/mod.rs:141-143}) and the Python's \bndc{Digest} has none
   (\bndc{verifier.py:223}).
@@ -280,7 +282,7 @@ def PublicInput.word1 (p : PublicInput) : E := E.ofLimbs (p.lanes 2) (p.lanes 3)
   \bndc{(word0.limb 0, word1.limb 0)}, \bndc{mem_1} with \bndc{(word0.limb 1, word1.limb 1)},
   \bndc{mem_2} with \bndc{(0, 0)}. \bndc{PublicLinesHold} on them is exactly the six limb
   equalities, from which \bndc{E.ofLimbs mem_0[i] mem_1[i] mem_2[i] = input.word_i} follows
-  (probe \bndc{Shapes.lean:57-63}, the second \bndc{example}).
+  (probe \bndc{Shapes.lean:71-76}).
 \item \textbf{If the instance omitted the third line.} \bndc{M3Holds} would say nothing of
   \bndc{mem_2[0]}, \bndc{mem_2[1]}; the master theorems hold unchanged; the theorem left without a
   proof is \textbf{\bndc{satisfiedBy_witnessOf}}, for \emph{every} possible \bndc{witnessOf}, not
@@ -288,7 +290,7 @@ def PublicInput.word1 (p : PublicInput) : E := E.ofLimbs (p.lanes 2) (p.lanes 3)
   \begin{itemize}
   \item the natural \bndc{witnessOf} writes the image's word 0 as
     \bndc{E.ofLimbs mem_0[0] mem_1[0] mem_2[0]}; with \bndc{mem_2[0] ≠ 0} it is not
-    \bndc{input.word0}, whatever \bndc{input} (probe \bndc{Shapes.lean:51-55}:
+    \bndc{input.word0}, whatever \bndc{input} (probe \bndc{Shapes.lean:63-69}:
     \bndc{E.ofLimbs a b c ≠ p.word0} when \bndc{c ≠ 0}, by comparing limb 2);
   \item a \bndc{witnessOf} that zeroed the limb when building the data and the block would break
     \bndc{mem_balanced} for any program that reads cell 0 (the reading row's pulled tuple carries
