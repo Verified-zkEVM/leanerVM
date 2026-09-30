@@ -4,18 +4,21 @@
   The `XOR` table: one Clean component per row, sound and complete for the relation the row
   refines, its bindings to an image together with Layer 3's `execute` of the instruction it
   names.
-  A plain (non-`module`) file: it imports Clean through the channels of Layer 5.
 -/
 
-import LeanerVM.Arithmetization.Tables.Basic
-import Clean.Circuit.Formal
-import Clean.Utils.Tactics.CircuitProofStart
+module
+
+public import LeanerVM.Arithmetization.Tables.Basic
+public import Clean.Circuit.Formal
+public import Clean.Utils.Tactics.CircuitProofStart
+
+@[expose] public section
 
 /-!
 # The `XOR` table
 
 leanISA roadmap Layer 6 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`. Category B: the columns
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`. Category B: the columns
 are `crates/lean_vm/src/tables.rs:436-456` (`mod arith`, in that order), the flushes
 `tables.rs:483-495` (`Arith::flushes` with `is_xor`), the result coordinates `tables.rs:461-473`
 (`arith_result`, the lane-wise sum), all matching specification §7.1

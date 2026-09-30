@@ -29,7 +29,7 @@ public section
 
 def xorI : Instr := .xor (gpow 2) (gpow 3) (gpow 4)
 def mulI : Instr := .mulNative (gpow 2) (gpow 3) (gpow 4)
-def setI : Instr := .setConstant (gpow 2) (E.ofLimbs 7 8 9)
+def setI : Instr := .setConstant (gpow 2) (E.ofLimbs (K.ofBits 7) (K.ofBits 8) (K.ofBits 9))
 def derefCellI : Instr := .deref (gpow 4) 1 (gpow 5) .cell
 def derefPcI : Instr := .deref (gpow 4) 1 (gpow 5) .pc
 def derefFpI : Instr := .deref (gpow 4) 1 (gpow 5) .fp
@@ -49,19 +49,19 @@ def blakeI : Instr := .blake2s ![gpow 6, gpow 7, gpow 8, gpow 9] (gpow 10) (gpow
 
 -- The six codes are the words `1, 2, 4, 8, 16, 32`; `0x40` and `0` are no opcode.
 #guard opcode? 0x01 = some .xor
-#guard opcode? 0x02 = some .mulNative
-#guard opcode? 0x04 = some .setConstant
-#guard opcode? 0x08 = some .deref
-#guard opcode? 0x10 = some .jump
-#guard opcode? 0x20 = some .blake2s
-#guard opcode? 0x40 = none
+#guard opcode? (K.ofBits 0x02) = some .mulNative
+#guard opcode? (K.ofBits 0x04) = some .setConstant
+#guard opcode? (K.ofBits 0x08) = some .deref
+#guard opcode? (K.ofBits 0x10) = some .jump
+#guard opcode? (K.ofBits 0x20) = some .blake2s
+#guard opcode? (K.ofBits 0x40) = none
 #guard opcode? 0 = none
 
 /-! ## Slots 3–10 (specification §8.1) -/
 
 #guard (entry xorI).toList = [Opcode.xor.code, gpow 2, gpow 3, gpow 4, 0, 0, 0, 0]
 #guard (entry mulI).toList = [Opcode.mulNative.code, gpow 2, gpow 3, gpow 4, 0, 0, 0, 0]
-#guard (entry setI).toList = [Opcode.setConstant.code, gpow 2, 7, 8, 9, 0, 0, 0]
+#guard (entry setI).toList = [Opcode.setConstant.code, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0]
 #guard (entry derefCellI).toList = [Opcode.deref.code, gpow 4, 1, gpow 5, 0, 0, 0, 0]
 #guard (entry derefPcI).toList = [Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 0]
 #guard (entry derefFpI).toList = [Opcode.deref.code, gpow 4, 1, gpow 5, 0, 1, 0, 0]
@@ -71,7 +71,7 @@ def blakeI : Instr := .blake2s ![gpow 6, gpow 7, gpow 8, gpow 9] (gpow 10) (gpow
 
 -- The sixteen slots: the opcode at 3, the operands at 4–10, zero elsewhere.
 #guard (encodeSlots setI).toList =
-  [0, 0, 0, Opcode.setConstant.code, gpow 2, 7, 8, 9, 0, 0, 0, 0, 0, 0, 0, 0]
+  [0, 0, 0, Opcode.setConstant.code, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0, 0, 0, 0, 0, 0]
 #guard (encodeSlots blakeI).toList =
   [0, 0, 0, Opcode.blake2s.code, gpow 6, gpow 7, gpow 8, gpow 9, gpow 10, gpow 12, gpow 14,
     0, 0, 0, 0, 0]
@@ -81,7 +81,7 @@ example : (encodeSlots setI)[3] = Opcode.setConstant.code := by
   simp [encodeSlots_getElem, entry_getElem_zero, setI, Instr.opcode]
 
 /-- `k₂` rides slot 7, checked in the kernel. -/
-example : (encodeSlots setI)[7] = 9 := by decide +kernel
+example : (encodeSlots setI)[7] = K.ofBits 9 := by decide +kernel
 
 /-! ## Round trips (acceptance test 16) -/
 
@@ -95,7 +95,7 @@ example : (encodeSlots setI)[7] = 9 := by decide +kernel
 #guard decode (entry blakeI) = some blakeI
 
 /-- The literal entry of `SET_CONSTANT` decodes to it: `decode` is exact. -/
-example : decode #v[Opcode.setConstant.code, gpow 2, 7, 8, 9, 0, 0, 0] = some setI :=
+example : decode #v[Opcode.setConstant.code, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 0, 0, 0] = some setI :=
   decode_eq_some_iff.mpr rfl
 
 -- The `DEREF` modes are told apart by their entries.
@@ -112,7 +112,7 @@ example : derefPcI ≠ derefFpI := fun h ↦ by cases h
 #guard decode #v[0, gpow 2, gpow 3, gpow 4, 0, 0, 0, 0] = none
 -- A nonzero spare entry coordinate is outside the canonical typed-program encoding.
 #guard decode #v[Opcode.xor.code, gpow 2, gpow 3, gpow 4, 1, 0, 0, 0] = none
-#guard decode #v[Opcode.setConstant.code, gpow 2, 7, 8, 9, 1, 0, 0] = none
+#guard decode #v[Opcode.setConstant.code, gpow 2, K.ofBits 7, K.ofBits 8, K.ofBits 9, 1, 0, 0] = none
 #guard decode #v[Opcode.deref.code, gpow 4, 1, gpow 5, 1, 0, 0, 1] = none
 #guard decode #v[Opcode.jump.code, gpow 2, gpow 3, gpow 4, 0, 0, 0, 1] = none
 

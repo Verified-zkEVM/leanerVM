@@ -3,21 +3,24 @@
 
   The three bus interactions of leanISA as six Clean channels, the image a channel guarantee is
   stated against, the two read gadgets, and the bus data of every channel.
-  A plain (non-`module`) file: it imports Clean, which is not a `module` at `93c9d1ef`.
 -/
 
-import LeanerVM.Parameters.CleanField
-import LeanerVM.Semantics.Step
-import LeanerVM.Arithmetization.Bytecode
-import Clean.Circuit.Basic
-import Clean.Utils.Tactics.ProvableStructDeriving
-import Mathlib.Data.Nat.Log
+module
+
+public import LeanerVM.Parameters.CleanField
+public import LeanerVM.Semantics.Step
+public import LeanerVM.Arithmetization.Bytecode
+public import Clean.Circuit.Basic
+public import Clean.Utils.Tactics.ProvableStructDeriving
+public import Mathlib.Data.Nat.Log
+
+@[expose] public section
 
 /-!
 # The bus channels
 
 leanISA roadmap Layer 5 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `93c9d1ef`.
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` and Clean pin `42fe4b26`.
 
 **The tuples** (Category B). Every bus tuple is sixteen `K` slots: a domain separator, then the
 interaction's coordinates, then zeros (specification §5.1,
@@ -255,7 +258,7 @@ def bytecodeRead (pc count opcode : Expression K) (op : Vector (Expression K) 7)
 
 /-! ## Bus data -/
 
-/-- The direction of a bus flush (specification §5.1 "The bus"). Clean at `93c9d1ef` has no such
+/-- The direction of a bus flush (specification §5.1 "The bus"). Clean at `42fe4b26` has no such
 type, only the sign of a multiplicity, which carries no information over `K`; this one and
 `channelDir` are deleted in favour of Clean's direction tag once that change is upstreamed
 (issue #16, the roadmap's dependency table). -/
@@ -290,24 +293,28 @@ def busTuple (c : RawChannel K) (msg : List K) : Vector K 16 :=
 /-! ## Load-bearing lemmas -/
 
 /-- A state message flattens to `[pc, fp]` (specification §6.1). -/
-theorem regs_toElements (s : Regs K) : (toElements s).toList = [s.pc, s.fp] := rfl
+theorem regs_toElements (s : Regs K) : (toElements s).toList = [s.pc, s.fp] := by
+  obtain ⟨pc, fp⟩ := s
+  simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
 
 /-- A memory message flattens to `[addr, count, v₀, v₁, v₂]` (specification §6.2). -/
 theorem memMsg_toElements (m : MemMsg K) :
     (toElements m).toList = [m.addr, m.count] ++ m.v.toList := by
   obtain ⟨addr, count, v⟩ := m
-  change (Vector.cast _ (#v[addr] ++ (#v[count] ++ (v ++ #v[])))).toList = _
-  rw [Vector.toList_cast, Vector.toList_append, Vector.toList_append, Vector.toList_append]
-  simp
+  simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
+  change (#v[addr] ++ (#v[count] ++ v)).toList = addr :: count :: v.toList
+  rw [Vector.toList_append, Vector.toList_append]
+  rfl
 
 /-- A bytecode message flattens to `[pc, count, opcode, op₁, …, op₇]` (specification §6.4). -/
 theorem bytecodeMsg_toElements (b : BytecodeMsg K) :
     (toElements b).toList = [b.pc, b.count, b.opcode] ++ b.op.toList := by
   obtain ⟨pc, count, opcode, op⟩ := b
-  change (Vector.cast _ (#v[pc] ++ (#v[count] ++ (#v[opcode] ++ (op ++ #v[]))))).toList = _
-  rw [Vector.toList_cast, Vector.toList_append, Vector.toList_append, Vector.toList_append,
-    Vector.toList_append]
-  simp
+  simp [circuit_norm, explicit_provable_type, ProvableStruct.toComponents]
+  change (#v[pc] ++ (#v[count] ++ (#v[opcode] ++ op))).toList =
+    pc :: count :: opcode :: op.toList
+  rw [Vector.toList_append, Vector.toList_append, Vector.toList_append]
+  rfl
 
 /-- Slot `0` of a bus tuple is the separator and slot `j + 1` is element `j` of the message,
 `0` past its end. -/

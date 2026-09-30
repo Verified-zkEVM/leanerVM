@@ -143,14 +143,14 @@ theorem scan_eq_some {κ : ℕ} {a : K} (fuel i : ℕ) {j : Fin (2 ^ κ)}
   | succ fuel ih =>
     unfold scan at h
     by_cases hi : i < 2 ^ κ
-    · rw [dif_pos hi] at h
+    · rw [dite_eq_left hi] at h
       by_cases ha : gpow i = a
-      · rw [if_pos ha] at h
+      · rw [ite_eq_left ha] at h
         cases h
         exact ha.symm
-      · rw [if_neg ha, ← gpow_succ] at h
+      · rw [ite_eq_right ha, ← gpow_succ] at h
         exact ih (i + 1) h
-    · rw [dif_neg hi] at h
+    · rw [dite_eq_right hi] at h
       exact nomatch h
 
 /-- A miss of the scan is genuine: from `cur = g ^ i`, `none` means no index in the window
@@ -162,11 +162,11 @@ theorem scan_eq_none {κ : ℕ} {a : K} (fuel i : ℕ) (h : scan κ a fuel i (gp
   | succ fuel ih =>
     unfold scan at h
     by_cases hi : i < 2 ^ κ
-    · rw [dif_pos hi] at h
+    · rw [dite_eq_left hi] at h
       by_cases ha : gpow i = a
-      · rw [if_pos ha] at h
+      · rw [ite_eq_left ha] at h
         exact nomatch h
-      · rw [if_neg ha, ← gpow_succ] at h
+      · rw [ite_eq_right ha, ← gpow_succ] at h
         intro haj
         rcases Nat.eq_or_lt_of_le hij with hij' | hij'
         · apply ha
@@ -186,7 +186,7 @@ theorem addressIndex_eq_gLog {κ : ℕ} (hκ : κ < 64) (hints : List (Fin (2 ^ 
       List.find?_some (p := fun j : Fin (2 ^ κ) ↦ decide (gpow j = a)) hf
     exact ((gLog?_spec hκ).mpr (of_decide_eq_true hgi).symm).symm
   | none =>
-    have h1 : (1 : K) = gpow 0 := (pow_zero g).symm
+    have h1 : (1: K) = gpow 0 := (pow_zero g).symm
     cases hs : scan κ a (2 ^ κ) 0 1 with
     | some j =>
       rw [h1] at hs

@@ -61,9 +61,9 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 - Lean defaults are `autoImplicit = false` and `relaxedAutoImplicit = false`.
 - Use explicit, narrow imports and respect the layer DAG. Add every production module to the
   aggregate import in `LeanerVM.lean` exactly once.
-- Files are Lean `module`s unless they import Clean, which is not a `module` at the pinned
-  revision, or a file that does; `CONTRIBUTING.md` places that boundary and says what changes
-  in a plain file. ArkLib is a `module` library and may be imported from either kind of file.
+- Production declaration files use Lean's module system, including the Clean bridges. Both
+  Clean and ArkLib now use it. Kernel-evaluation tests and root aggregates remain classic; see
+  `CONTRIBUTING.md` for visibility and kernel evaluation conventions.
 - ArkLib carries admitted theorems under its own baseline; a leanerVM declaration must not
   depend on one (the kernel axiom audit rejects `sorryAx`). Check with `#print axioms` before
   consuming an ArkLib theorem, and record what replaces an admitted one in the roadmap's ledger.

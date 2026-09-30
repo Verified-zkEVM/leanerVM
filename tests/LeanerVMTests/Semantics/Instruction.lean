@@ -22,7 +22,7 @@ public section
 
 /-! ## A program -/
 
-def i0 : Instr := .setConstant (gpow 2) (E.ofLimbs 7 0 0)
+def i0 : Instr := .setConstant (gpow 2) (E.ofLimbs (K.ofBits 7) 0 0)
 def i1 : Instr := .xor (gpow 2) (gpow 3) (gpow 4)
 def i2 : Instr := .deref (gpow 4) 1 (gpow 5) .pc
 def i3 : Instr := .jump (gpow 2) (gpow 3) (gpow 4)
@@ -55,7 +55,7 @@ example : prog.fetch 0 = none := prog.fetch_zero
 #guard Instr.blake2s ![1, g, gpow 2, gpow 3] (gpow 4) (gpow 6) (gpow 8) ≠
   Instr.blake2s ![1, g, gpow 2, gpow 5] (gpow 4) (gpow 6) (gpow 8)
 #guard Instr.deref 1 g (gpow 2) .pc ≠ Instr.deref 1 g (gpow 2) .fp
-#guard Instr.setConstant 1 (E.ofLimbs 1 2 3) ≠ Instr.setConstant 1 (E.ofLimbs 1 2 4)
+#guard Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)) ≠ Instr.setConstant 1 (E.ofLimbs 1 (K.ofBits 2) (K.ofBits 4))
 
 /-! ## The bytecode cap -/
 

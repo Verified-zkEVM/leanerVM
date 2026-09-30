@@ -2,8 +2,8 @@ name = "leanerVM"
 version = "0.1.0"
 defaultTargets = ["LeanerVM"]
 # The test driver is the test library, not an executable: an executable linking
-# `CompPoly.Fields.Binary.BF64.Impl` evaluates its `Fintype BF64` instance at startup and is
-# killed enumerating `2^64` elements (finding P3 in docs/roadmap/leanisa-status.md). Tests are
+# historical `Fintype BF64` instance enumerated `2^64` elements at startup (finding P3 in
+# docs/roadmap/leanisa-status.md); the current field enumeration is proof-only. Tests are
 # `#guard`s and `example`s checked while the library compiles.
 testDriver = "LeanerVMTests"
 
@@ -14,27 +14,44 @@ relaxedAutoImplicit = false
 pp.unicode.fun = true
 
 [[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4"
+rev = "v4.34.1"
+
+[[require]]
 name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"
-rev = "3468b38c8fd270f93f55a259220a8abc544e7437"
+rev = "572f997390aa4fc131ef30b1186fa1dcf292ca10"
 
 [[require]]
 name = "Clean"
 git = "https://github.com/Verified-zkEVM/clean"
-rev = "93c9d1ef45be9f687214625d7857889cf2485504"
+rev = "42fe4b268132a46604d40cc73f642a1995f26547"
 
-# ArkLib's package name is `Arklib` (its lakefile), so the `require` must use that spelling. Its
-# own CompPoly requirement is the `v4.33.1` tag; the root pin above (`3468b38c`, needed for the
-# binary fields) wins the Lake resolution, and ArkLib's CompPoly-facing modules are rebuilt
-# against it. See docs/dependencies.md.
+# Root requirements select the reviewed current source revisions over inherited
+# manifests. Mathlib stays on the matching Lean 4.34.1 release; see docs/dependencies.md.
 [[require]]
 name = "Arklib"
 git = "https://github.com/Verified-zkEVM/ArkLib"
-rev = "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
+rev = "7653a901ed466c88a2e61a3075011b73d7bb2316"
+
+# Native probability carriers and the free monads used by Protocol oracle computations.
+[[require]]
+name = "VCVio"
+git = "https://github.com/Verified-zkEVM/VCVio"
+rev = "a4232d084aa18aa71f75b92b64082b457ffdb77b"
+
+[[require]]
+name = "PolyFun"
+git = "https://github.com/Verified-zkEVM/PolyFun"
+rev = "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
 
 [[lean_lib]]
 name = "LeanerVM"
 
 [[lean_lib]]
+# Tests deliberately load full module bodies for kernel evaluation and axiom inspection.
 name = "LeanerVMTests"
 srcDir = "tests"
+allowNonModules = true

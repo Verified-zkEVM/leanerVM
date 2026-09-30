@@ -12,8 +12,8 @@ python3 ./scripts/check-docs.py
 python3 ./scripts/test-policy-checks.py
 python3 ./scripts/test-build-timing.py
 python3 ./scripts/test-warning-policy.py
-# Plain `lake build`, as in CI: no `--wfail`, so CompPoly's release lookup may warn at its
-# untagged pin and Lake's caches stay enabled. Package-level `warningAsError` still rejects
+# Plain `lake build`, as in CI: no `--wfail`, so dependency release lookups may warn and
+# Lake's caches stay enabled. Package-level `warningAsError` still rejects
 # every first-party elaboration warning, including imported leaves. See docs/dependencies.md.
 lake build
 lake test

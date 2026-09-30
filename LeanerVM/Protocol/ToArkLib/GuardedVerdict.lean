@@ -41,31 +41,34 @@ theorem Verifier.GuardedForm.of_probEvent_pos {V : Verifier oSpec StmtIn StmtOut
     (G : V.GuardedForm) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl oSpec (StateT σ ProbComp)) (stmt : StmtIn) (tr : pSpec.FullTranscript)
     (P : StmtOut → Prop)
-    (h : Pr[P | OptionT.mk do (simulateQ impl (V.run stmt tr)).run' (← init)] > 0) :
+    (h : Pr{let sample ← OptionT.mk do (simulateQ impl (V.run stmt tr)).run' (← init)}[P sample] > 0) :
     G.check stmt tr = true ∧ P (G.out stmt tr) := by
   have hv : V.run stmt tr = if G.check stmt tr then pure (G.out stmt tr) else failure :=
     G.verify_eq stmt tr
   rw [hv] at h
   by_cases hc : G.check stmt tr = true
   · refine ⟨hc, ?_⟩
-    rw [if_pos hc] at h
-    change Pr[_ | OptionT.mk (do let st ← init; (simulateQ impl (OptionT.run
-      (pure (G.out stmt tr)))).run' st)] > 0 at h
+    rw [ite_eq_left hc] at h
+    change Pr{let sample ← OptionT.mk (do
+      let st ← init
+      (simulateQ impl (OptionT.run (pure (G.out stmt tr)))).run' st)}[_] > 0 at h
     rw [OptionT.run_pure, simulateQ_pure] at h
-    obtain ⟨z, hz, hp⟩ := probEvent_pos_iff.mp h
+    obtain ⟨z, hz, hp⟩ := (OracleComp.OptionT.prEvent_mk_pos_iff _ _).mp h
     simp only [StateT.run'_eq, StateT.run_pure, map_pure, bind_pure_comp,
-      OptionT.mem_support_iff, OptionT.run_mk, support_map, Set.mem_image, Option.some.injEq,
+      support_map, Set.mem_image, Option.some.injEq,
       exists_and_right] at hz
     obtain ⟨_, rfl⟩ := hz
     exact hp
   · exfalso
-    rw [if_neg hc] at h
-    change Pr[_ | OptionT.mk (do let st ← init; (simulateQ impl (OptionT.run
-      (failure : OptionT (OracleComp oSpec) StmtOut))).run' st)] > 0 at h
+    rw [ite_eq_right hc] at h
+    change Pr{let sample ← OptionT.mk (do
+      let st ← init
+      (simulateQ impl (OptionT.run
+        (failure : OptionT (OracleComp oSpec) StmtOut))).run' st)}[_] > 0 at h
     rw [OptionT.run_failure, simulateQ_pure] at h
-    obtain ⟨z, hz, -⟩ := probEvent_pos_iff.mp h
+    obtain ⟨z, hz, -⟩ := (OracleComp.OptionT.prEvent_mk_pos_iff _ _).mp h
     simp only [StateT.run'_eq, StateT.run_pure, map_pure, bind_pure_comp,
-      OptionT.mem_support_iff, OptionT.run_mk, support_map, Set.mem_image, reduceCtorEq,
+      support_map, Set.mem_image, reduceCtorEq,
       and_false, exists_false] at hz
 
 /-- Every outcome of a run with a guarded verifier: a run of the prover, then the verdict if

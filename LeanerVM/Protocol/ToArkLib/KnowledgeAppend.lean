@@ -207,7 +207,7 @@ theorem state_left (G : V₁.GuardedForm)
   rcases j with ⟨j, hj⟩
   change k = j at h
   subst j
-  simp only [state, Fin.val_mk, dif_pos (show k ≤ m by omega)]
+  simp only [state, Fin.val_mk, dite_eq_left (show k ≤ m by omega)]
 
 /-- Past the seam, the state is the first check and the second component's state. -/
 theorem state_right (G : V₁.GuardedForm)
@@ -225,7 +225,7 @@ theorem state_right (G : V₁.GuardedForm)
   change 0 < j at hj
   subst k
   have hsub : m + j - m = j := by omega
-  simp only [state, Fin.val_mk, dif_neg (show ¬ m + j ≤ m by omega)]
+  simp only [state, Fin.val_mk, dite_eq_right (show ¬ m + j ≤ m by omega)]
   apply and_congr Iff.rfl
   apply knowledge_congr K₂ hsub
   · apply transcript_heq hsub
@@ -245,7 +245,7 @@ theorem extractMid_left (G : V₁.GuardedForm)
   rcases j with ⟨j, hj⟩
   change i = j at h
   subst i
-  simp only [Extractor.RoundByRound.append, Fin.val_mk, dif_pos hj, cast_cast, cast_eq]
+  simp only [Extractor.RoundByRound.append, Fin.val_mk, dite_eq_left hj, cast_cast, cast_eq]
   rfl
 
 /-- Past the seam, the append extractor is the second extractor, on the first verdict. -/
@@ -263,7 +263,7 @@ theorem extractMid_right (G : V₁.GuardedForm)
   change 0 < j at hj
   subst i
   simp only [Extractor.RoundByRound.append, Fin.val_mk,
-    dif_neg (show ¬ m + j < m by omega), dif_neg (show ¬ m + j = m by omega),
+    dite_eq_right (show ¬ m + j < m by omega), dite_eq_right (show ¬ m + j = m by omega),
     cast_cast]
   apply eq_of_heq
   refine (cast_heq _ _).trans (extractMid_heq E₂ (by simp) ?_ ?_)
@@ -290,7 +290,7 @@ theorem extractMid_seam (G : V₁.GuardedForm)
   change i = m at h
   subst i
   simp only [Extractor.RoundByRound.append, Fin.val_mk,
-    dif_neg (Nat.lt_irrefl m), ↓reduceDIte, cast_cast, cast_eq]
+    dite_eq_right (Nat.lt_irrefl m), ↓reduceDIte, cast_cast, cast_eq]
   rfl
 
 /-- With a second round, the final extraction is the second extractor's. -/
@@ -299,7 +299,7 @@ theorem extractOut_right (G : V₁.GuardedForm) (hn : 0 < n) (s : Stmt₁)
     cast (witness_right (Fin.last (m + n)) (Fin.last n) (by simp) hn)
       ((E₁.append E₂ G.out).extractOut s tr w) =
       E₂.extractOut (G.out s tr.fst) tr.snd w := by
-  simp only [Extractor.RoundByRound.append, dif_pos hn, cast_cast, cast_eq]
+  simp only [Extractor.RoundByRound.append, dite_eq_left hn, cast_cast, cast_eq]
 
 /-- With no second round, the final extraction feeds the second extractor's output to the
 first's. -/
@@ -312,7 +312,7 @@ theorem extractOut_zero (G : V₁.GuardedForm) (hn : n = 0) (s : Stmt₁)
           rw [show Fin.last n = 0 by ext; simp; omega]
           exact E₂.eqIn)
         (E₂.extractOut (G.out s tr.fst) tr.snd w)) := by
-  simp only [Extractor.RoundByRound.append, dif_neg (show ¬ 0 < n by omega), cast_cast,
+  simp only [Extractor.RoundByRound.append, dite_eq_right (show ¬ 0 < n by omega), cast_cast,
     cast_eq]
 
 variable [∀ i, SampleableType (pSpec₁.Challenge i)]
@@ -417,14 +417,13 @@ theorem run_guarded (G : V₁.GuardedForm) (s : Stmt₁)
   rwa [FullTranscript.append_fst_snd] at h
 
 private theorem failure_probability (p : Stmt₃ → Prop) :
-    Pr[p | OptionT.mk do
-      (simulateQ impl (failure : OptionT (OracleComp oSpec) Stmt₃)).run' (← init)] = 0 := by
-  rw [probEvent_eq_zero_iff]
+    Pr{let sample ← OptionT.mk do
+      (simulateQ impl (failure : OptionT (OracleComp oSpec) Stmt₃)).run' (← init)}[p sample] = 0 := by
+  rw [OracleComp.OptionT.prEvent_mk_eq_zero_iff]
   intro x hx
-  rw [OptionT.mem_support_iff] at hx
   have hc : (do (simulateQ impl (failure : OptionT (OracleComp oSpec) Stmt₃)).run' (← init) :
       ProbComp (Option Stmt₃)) = (init >>= fun _ => pure none) := by congr 1
-  simp only [OptionT.run_mk, hc, support_bind_const, support_pure, Set.mem_ofPred_eq] at hx
+  simp only [hc, support_bind_const, support_pure, Set.mem_ofPred_eq] at hx
   have hbad : some x = (none : Option Stmt₃) := hx.1
   cases hbad
 
@@ -433,12 +432,12 @@ theorem state_full (G : V₁.GuardedForm)
     (K₁ : V₁.KnowledgeStateFunction init impl R₁ R₂ E₁)
     (K₂ : V₂.KnowledgeStateFunction init impl R₂ R₃ E₂)
     (s : Stmt₁) (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) (w : Wit₃)
-    (hp : Pr[ fun t => (t, w) ∈ R₃ | OptionT.mk do
-      (simulateQ impl ((V₁.append V₂).run s tr)).run' (← init)] > 0) :
+    (hp : Pr{let t ← OptionT.mk do
+      (simulateQ impl ((V₁.append V₂).run s tr)).run' (← init)}[(t, w) ∈ R₃] > 0) :
     state G K₁ K₂ (Fin.last (m + n)) s tr ((E₁.append E₂ G.out).extractOut s tr w) := by
   rw [run_guarded G] at hp
   by_cases hc : G.check s tr.fst = true
-  · rw [if_pos hc] at hp
+  · rw [ite_eq_left hc] at hp
     have h₂ := K₂.toFun_full (G.out s tr.fst) tr.snd w hp
     by_cases hn : 0 < n
     · erw [state_right G K₁ K₂ (k := Fin.last (m + n)) (Fin.last n) (by simp) hn,
@@ -449,7 +448,7 @@ theorem state_full (G : V₁.GuardedForm)
         extractOut_zero G hn0, left_full]
       exact left_related G K₁ s tr.fst _ hc
         (empty_relation K₂ (Fin.last n) (by simp [hn0]) _ _ _ h₂)
-  · rw [if_neg hc, failure_probability] at hp
+  · rw [ite_eq_right hc, failure_probability] at hp
     exact False.elim (lt_irrefl _ hp)
 
 end Verifier.KnowledgeAppend
@@ -524,13 +523,12 @@ theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.Gua
     simp only [Function.comp_apply, Equiv.symm_apply_apply, Sum.elim_inl]
     let tr₁ := left tr i.1.castSucc (by rfl)
     calc
-      _ ≤ Pr[fun c => ∃ w₁,
+      _ ≤ Pr{let c ← $ᵗ ((pSpec₁ ++ₚ pSpec₂).Challenge (ChallengeIdx.inl i))}[∃ w₁,
           ¬ K₁ i.1.castSucc s tr₁
             (E₁.extractMid i.1 s (tr₁.concat (cast (challenge_append_inl i) c)) w₁) ∧
-          K₁ i.1.succ s (tr₁.concat (cast (challenge_append_inl i) c)) w₁
-        | $ᵗ ((pSpec₁ ++ₚ pSpec₂).Challenge (ChallengeIdx.inl i))] := by
-        apply probEvent_mono
-        intro c _ hc
+          K₁ i.1.succ s (tr₁.concat (cast (challenge_append_inl i) c)) w₁] := by
+        apply prEvent_mono _ _ _
+        intro c hc
         obtain ⟨w, hprev, hnext⟩ := hc
         change ¬ state G K₁ K₂ _ s tr _ at hprev
         change state G K₁ K₂ _ s (tr.concat c) w at hnext
@@ -542,11 +540,10 @@ theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.Gua
           exact hk
         · have hk := (state_left G K₁ K₂ i.1.succ rfl s (tr.concat c) w).mp hnext
           rwa [left_concat tr c i.1 rfl (challenge_append_inl i)] at hk
-      _ = Pr[fun c => ∃ w₁,
+      _ = Pr{let c ← $ᵗ (pSpec₁.Challenge i)}[∃ w₁,
           ¬ K₁ i.1.castSucc s tr₁ (E₁.extractMid i.1 s (tr₁.concat c) w₁) ∧
-          K₁ i.1.succ s (tr₁.concat c) w₁ | $ᵗ (pSpec₁.Challenge i)] := by
-        rw [← uniformSample_challenge_append_inl (pSpec₂ := pSpec₂) i, probEvent_map]
-        rfl
+          K₁ i.1.succ s (tr₁.concat c) w₁] := by
+        rw [← uniformSample_challenge_append_inl (pSpec₂ := pSpec₂) i, prEvent_map]
       _ ≤ _ := h₁ s i tr₁
   · intro tr
     simp only [Function.comp_apply, Equiv.symm_apply_apply, Sum.elim_inr]
@@ -554,13 +551,12 @@ theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.Gua
     let s₂ := G.out s tr₁
     let tr₂ := right tr i.1.castSucc (by rfl)
     calc
-      _ ≤ Pr[fun c => ∃ w₂,
+      _ ≤ Pr{let c ← $ᵗ ((pSpec₁ ++ₚ pSpec₂).Challenge (ChallengeIdx.inr i))}[∃ w₂,
           ¬ K₂ i.1.castSucc s₂ tr₂
             (E₂.extractMid i.1 s₂ (tr₂.concat (cast (challenge_append_inr i) c)) w₂) ∧
-          K₂ i.1.succ s₂ (tr₂.concat (cast (challenge_append_inr i) c)) w₂
-        | $ᵗ ((pSpec₁ ++ₚ pSpec₂).Challenge (ChallengeIdx.inr i))] := by
-        apply probEvent_mono
-        intro c _ hc
+          K₂ i.1.succ s₂ (tr₂.concat (cast (challenge_append_inr i) c)) w₂] := by
+        apply prEvent_mono _ _ _
+        intro c hc
         obtain ⟨w, hprev, hnext⟩ := hc
         change ¬ state G K₁ K₂ _ s tr _ at hprev
         change state G K₁ K₂ _ s (tr.concat c) w at hnext
@@ -574,11 +570,10 @@ theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.Gua
         intro hp
         exact hprev (backward_right G K₁ K₂ i.1 rfl (challenge_append_inr i)
           s tr c w hk.1 hp)
-      _ = Pr[fun c => ∃ w₂,
+      _ = Pr{let c ← $ᵗ (pSpec₂.Challenge i)}[∃ w₂,
           ¬ K₂ i.1.castSucc s₂ tr₂ (E₂.extractMid i.1 s₂ (tr₂.concat c) w₂) ∧
-          K₂ i.1.succ s₂ (tr₂.concat c) w₂ | $ᵗ (pSpec₂.Challenge i)] := by
-        rw [← uniformSample_challenge_append_inr (pSpec₁ := pSpec₁) i, probEvent_map]
-        rfl
+          K₂ i.1.succ s₂ (tr₂.concat c) w₂] := by
+        rw [← uniformSample_challenge_append_inr (pSpec₁ := pSpec₁) i, prEvent_map]
       _ ≤ _ := h₂ s₂ i tr₂
 
 end Verifier

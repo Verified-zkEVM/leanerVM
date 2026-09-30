@@ -2,7 +2,7 @@
   "lean": {
     "repository": "leanprover/lean4",
     "tracking": "release",
-    "ref": "v4.33.1",
+    "ref": "v4.34.1",
     "commit": ""
   },
   "leanVM": {
@@ -15,18 +15,36 @@
     "repository": "Verified-zkEVM/CompPoly",
     "tracking": "branch",
     "ref": "main",
-    "commit": "3468b38c8fd270f93f55a259220a8abc544e7437"
+    "commit": "572f997390aa4fc131ef30b1186fa1dcf292ca10"
   },
   "Clean": {
     "repository": "Verified-zkEVM/clean",
     "tracking": "branch",
     "ref": "main",
-    "commit": "93c9d1ef45be9f687214625d7857889cf2485504"
+    "commit": "42fe4b268132a46604d40cc73f642a1995f26547"
   },
   "ArkLib": {
     "repository": "Verified-zkEVM/ArkLib",
     "tracking": "branch",
     "ref": "main",
-    "commit": "dca90385fb40dd5eb8da9145da6348ed17f5cd8b"
+    "commit": "7653a901ed466c88a2e61a3075011b73d7bb2316"
+  },
+  "Mathlib": {
+    "repository": "leanprover-community/mathlib4",
+    "tracking": "release",
+    "ref": "v4.34.1",
+    "commit": "d13f23b723b8a846827a245b89c10fc7d3f11612"
+  },
+  "VCVio": {
+    "repository": "Verified-zkEVM/VCVio",
+    "tracking": "branch",
+    "ref": "main",
+    "commit": "a4232d084aa18aa71f75b92b64082b457ffdb77b"
+  },
+  "PolyFun": {
+    "repository": "Verified-zkEVM/PolyFun",
+    "tracking": "branch",
+    "ref": "main",
+    "commit": "41d3b21dcc99817fe4f9f24ca7b2b58f0578083d"
   }
 }

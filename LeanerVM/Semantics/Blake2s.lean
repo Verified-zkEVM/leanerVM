@@ -112,13 +112,13 @@ def compress (h : Vector UInt32 8) (m : Vector UInt32 16) (t : UInt64) (f0 f1 : 
 /-! ## Cells -/
 
 /-- The low 32 bits of a `K` element. -/
-def lowWord (a : K) : UInt32 := ⟨a.extractLsb' 0 32⟩
+def lowWord (a : K) : UInt32 := ⟨a.toBitVec.extractLsb' 0 32⟩
 
 /-- The high 32 bits of a `K` element. -/
-def highWord (a : K) : UInt32 := ⟨a.extractLsb' 32 32⟩
+def highWord (a : K) : UInt32 := ⟨a.toBitVec.extractLsb' 32 32⟩
 
 /-- The `K` element with the given low and high words. -/
-def ofWords (lo hi : UInt32) : K := hi.toBitVec ++ lo.toBitVec
+def ofWords (lo hi : UInt32) : K := BF64.ofBitVec (hi.toBitVec ++ lo.toBitVec)
 
 /-- The four little-endian words of a canonical cell `a0 + a1·y`: the low and high words of `a0`,
 then those of `a1` (`hash_flock.rs:117-121`, `words_of`; the top limb is ignored). -/
@@ -134,7 +134,7 @@ def wordsCell (w : Vector UInt32 4) : E :=
 the counter is limb 0, the last-block and last-node flag words are the low and high halves of
 limb 1. -/
 def unpackMetadata (md : E) : UInt64 × UInt32 × UInt32 :=
-  (⟨md.limb 0⟩, lowWord (md.limb 1), highWord (md.limb 1))
+  (⟨(md.limb 0).toBitVec⟩, lowWord (md.limb 1), highWord (md.limb 1))
 
 /-- The sixteen message words of the four message cells, in operand order
 (`hash_flock.rs:162-172`). -/
@@ -169,7 +169,8 @@ instance {m : Fin 4 → E} {cv0 cv1 out0 out1 md : E} :
 
 /-- Splitting a `K` element into its two words and joining them again is the identity. -/
 private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
-  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a) (start₁ := 0) (len₁ := 32)
+  apply BF64.toBitVec_injective
+  have := BitVec.extractLsb'_append_extractLsb'_eq_extractLsb' (x := a.toBitVec) (start₁ := 0) (len₁ := 32)
     (start₂ := 32) (len₂ := 32) rfl
   simpa [ofWords, lowWord, highWord] using this
 

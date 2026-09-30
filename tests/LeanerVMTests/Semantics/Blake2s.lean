@@ -99,15 +99,22 @@ example : compress (compress paramIv longBlock0 64 0 0) longBlock1 65 flag flag 
 
 /-! ## The executor vector: `blake2s_computes_the_compression` (`cpu/mod.rs:889-917`) -/
 
-def rustM0 : E := E.ofLimbs 0x0123456789abcdef 0xfedcba9876543210 0x0000000000000000
-def rustM1 : E := E.ofLimbs 0x1111222233334444 0x5555666677778888 0x0000000000000000
-def rustM2 : E := E.ofLimbs 0xdeadbeefcafebabe 0x0badf00d0badf00d 0x0000000000000000
-def rustM3 : E := E.ofLimbs 0x9999aaaabbbbcccc 0xddddeeeeffff0000 0x0000000000000000
-def rustCv0 : E := E.ofLimbs 0x0000000000000007 0x0000000000000000 0x0000000000000000
-def rustCv1 : E := E.ofLimbs 0x000000000000000b 0x0000000000000000 0x0000000000000000
-def rustMd : E := E.ofLimbs 0x0000000000000040 0x00000000ffffffff 0x0000000000000000
-def rustOut0 : E := E.ofLimbs 0x583fffe1350e2137 0x0de9e32629a5c508 0x0000000000000000
-def rustOut1 : E := E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 0x0000000000000000
+def rustM0 : E :=
+  E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 0x0000000000000000
+def rustM1 : E :=
+  E.ofLimbs (K.ofBits 0x1111222233334444) (K.ofBits 0x5555666677778888) 0x0000000000000000
+def rustM2 : E :=
+  E.ofLimbs (K.ofBits 0xdeadbeefcafebabe) (K.ofBits 0x0badf00d0badf00d) 0x0000000000000000
+def rustM3 : E :=
+  E.ofLimbs (K.ofBits 0x9999aaaabbbbcccc) (K.ofBits 0xddddeeeeffff0000) 0x0000000000000000
+def rustCv0 : E := E.ofLimbs (K.ofBits 0x0000000000000007) 0x0000000000000000 0x0000000000000000
+def rustCv1 : E := E.ofLimbs (K.ofBits 0x000000000000000b) 0x0000000000000000 0x0000000000000000
+def rustMd : E :=
+  E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0x00000000ffffffff) 0x0000000000000000
+def rustOut0 : E :=
+  E.ofLimbs (K.ofBits 0x583fffe1350e2137) (K.ofBits 0x0de9e32629a5c508) 0x0000000000000000
+def rustOut1 : E :=
+  E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 0x0000000000000000
 
 /-- The four message cells in operand order. -/
 def rustM : Fin 4 → E := ![rustM0, rustM1, rustM2, rustM3]
@@ -137,9 +144,9 @@ example : CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1 rustMd := by dec
 
 /-- Pinned `flock::hash::blake2s_compress` accepts these distinct, non-Boolean `u32` flag words.
 The corresponding Rust lane asserts the same eight output words. -/
-def rawFlagsMd : E := E.ofLimbs 64 0x9abcdef012345678 0
-def rawFlagsOut0 : E := E.ofLimbs 0xd16af0a6e9a85163 0xba5be3252edb90ff 0
-def rawFlagsOut1 : E := E.ofLimbs 0x3ce6b68fbdc018d2 0x8c0e7b0bbea90143 0
+def rawFlagsMd : E := E.ofLimbs (K.ofBits 64) (K.ofBits 0x9abcdef012345678) 0
+def rawFlagsOut0 : E := E.ofLimbs (K.ofBits 0xd16af0a6e9a85163) (K.ofBits 0xba5be3252edb90ff) 0
+def rawFlagsOut1 : E := E.ofLimbs (K.ofBits 0x3ce6b68fbdc018d2) (K.ofBits 0x8c0e7b0bbea90143) 0
 
 example : unpackMetadata rawFlagsMd = (64, 0x12345678, 0x9abcdef0) := by decide
 example : CompressCells rustM rustCv0 rustCv1 rawFlagsOut0 rawFlagsOut1 rawFlagsMd :=
@@ -147,7 +154,7 @@ example : CompressCells rustM rustCv0 rustCv1 rawFlagsOut0 rawFlagsOut1 rawFlags
 
 /-- Changing only the last-node word cannot retain the raw-flag output. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rawFlagsOut0 rawFlagsOut1
-    (E.ofLimbs 64 0x0000000012345678 0) := by decide +kernel
+    (E.ofLimbs (K.ofBits 64) (K.ofBits 0x0000000012345678) 0) := by decide +kernel
 
 example : wordsCell (cellWords rustOut0) = rustOut0 := wordsCell_cellWords (by decide)
 
@@ -155,39 +162,39 @@ example : wordsCell (cellWords rustOut0) = rustOut0 := wordsCell_cellWords (by d
 
 /-- 12: an output cell with a nonzero top limb is rejected although its words are right. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0
-    (E.ofLimbs 0xf1b0679a15df60bb 0x0228c8d4ed9b3a24 1) rustMd := by
+    (E.ofLimbs (K.ofBits 0xf1b0679a15df60bb) (K.ofBits 0x0228c8d4ed9b3a24) 1) rustMd := by
   decide +kernel
 
 /-- 12: so is a message cell with a nonzero top limb, whose words are unchanged
 (`blake2s_requires_zero_third_limb`, `cpu/mod.rs:919-931`). -/
-example : ¬ CompressCells ![E.ofLimbs 0x0123456789abcdef 0xfedcba9876543210 1, rustM1, rustM2,
+example : ¬ CompressCells ![E.ofLimbs (K.ofBits 0x0123456789abcdef) (K.ofBits 0xfedcba9876543210) 1, rustM1, rustM2,
     rustM3] rustCv0 rustCv1 rustOut0 rustOut1 rustMd := by
   decide +kernel
 
 /-- The chaining-value and metadata cells have the same canonicality requirement. -/
-example : ¬ CompressCells rustM (E.ofLimbs 7 0 1) rustCv1 rustOut0 rustOut1 rustMd :=
+example : ¬ CompressCells rustM (E.ofLimbs (K.ofBits 7) 0 1) rustCv1 rustOut0 rustOut1 rustMd :=
   by decide +kernel
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1
-    (E.ofLimbs 64 0x00000000ffffffff 1) := by decide +kernel
+    (E.ofLimbs (K.ofBits 64) (K.ofBits 0x00000000ffffffff) 1) := by decide +kernel
 
 /-- A single wrong output bit is rejected. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0
-    (E.ofLimbs 0xf1b0679a15df60ba 0x0228c8d4ed9b3a24 0) rustMd := by
+    (E.ofLimbs (K.ofBits 0xf1b0679a15df60ba) (K.ofBits 0x0228c8d4ed9b3a24) 0) rustMd := by
   decide +kernel
 
 /-- 11: the two flag words are not interchangeable: `final = 0`, `last_node = 0xFFFFFFFF`. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1
-    (E.ofLimbs 0x0000000000000040 0xffffffff00000000 0) := by
+    (E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0xffffffff00000000) 0) := by
   decide +kernel
 
 /-- 10: the last-node flag is not ignored: setting it as well changes the compression. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1
-    (E.ofLimbs 0x0000000000000040 0xffffffffffffffff 0) := by
+    (E.ofLimbs (K.ofBits 0x0000000000000040) (K.ofBits 0xffffffffffffffff) 0) := by
   decide +kernel
 
 /-- 11: the counter is limb 0; zeroing it changes the compression. -/
 example : ¬ CompressCells rustM rustCv0 rustCv1 rustOut0 rustOut1
-    (E.ofLimbs 0x0000000000000000 0x00000000ffffffff 0) := by
+    (E.ofLimbs 0x0000000000000000 (K.ofBits 0x00000000ffffffff) 0) := by
   decide +kernel
 
 end LeanerVMTests.Semantics.Blake2s

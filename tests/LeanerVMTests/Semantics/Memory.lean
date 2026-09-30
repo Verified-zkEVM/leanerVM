@@ -52,9 +52,9 @@ example : gLog? 2 (g + 1) = none :=
 /-! ## The image -/
 
 /-- Sixteen words, word `i` holding limbs `(i, 2i, 0)`. -/
-def image : MemImage 4 := fun i ↦ E.ofLimbs (BitVec.ofNat 64 i) (BitVec.ofNat 64 (2 * i)) 0
+def image : MemImage 4 := fun i ↦ E.ofLimbs (K.ofBits i) (K.ofBits (2 * i)) 0
 
-example : image 5 = E.ofLimbs 5 10 0 := rfl
+example : image 5 = E.ofLimbs (K.ofBits 5) (K.ofBits 10) 0 := rfl
 
 example : image.read 1 = some (image 0) := by simpa using MemImage.read_gpow (by decide) image 0
 example : image.read (gpow 5) = some (image 5) := MemImage.read_gpow (by decide) image 5
@@ -76,21 +76,21 @@ example (L : MemImage 40) : L.read 0 = none := MemImage.read_zero L
 /-! ## The public input -/
 
 /-- Lanes `1, 2, 3, 4`. -/
-def input : PublicInput := ⟨![1, 2, 3, 4]⟩
+def input : PublicInput := ⟨![1, K.ofBits 2, K.ofBits 3, K.ofBits 4]⟩
 
-example : input.word0 = E.ofLimbs 1 2 0 := rfl
-example : input.word1 = E.ofLimbs 3 4 0 := rfl
+example : input.word0 = E.ofLimbs 1 (K.ofBits 2) 0 := rfl
+example : input.word1 = E.ofLimbs (K.ofBits 3) (K.ofBits 4) 0 := rfl
 
 /-- Both words are canonical 128-bit cells. -/
 example : IsCanonical128 input.word0 ∧ IsCanonical128 input.word1 := by decide +kernel
 
 -- 17: lane `2` rides `word1`, not `word0`; a three-lane packing would move it.
-#guard (PublicInput.mk ![1, 2, 5, 4]).word0 = input.word0
-#guard (PublicInput.mk ![1, 2, 5, 4]).word1 ≠ input.word1
-#guard (PublicInput.mk ![1, 5, 3, 4]).word0 ≠ input.word0
+#guard (PublicInput.mk ![1, K.ofBits 2, K.ofBits 5, K.ofBits 4]).word0 = input.word0
+#guard (PublicInput.mk ![1, K.ofBits 2, K.ofBits 5, K.ofBits 4]).word1 ≠ input.word1
+#guard (PublicInput.mk ![1, K.ofBits 5, K.ofBits 3, K.ofBits 4]).word0 ≠ input.word0
 
 /-- Distinct inputs are distinct words: `words_injective` on a concrete pair. -/
-example : (⟨![1, 2, 3, 4]⟩ : PublicInput) ≠ ⟨![1, 2, 3, 5]⟩ := by decide
+example : (⟨![1, K.ofBits 2, K.ofBits 3, K.ofBits 4]⟩ : PublicInput) ≠ ⟨![1, K.ofBits 2, K.ofBits 3, K.ofBits 5]⟩ := by decide
 
 end
 end LeanerVMTests.Semantics

@@ -119,7 +119,7 @@ theorem pow_eq_prod_testBit (a : R) {n i : ℕ} (hi : i < 2 ^ n) :
       simp only [Bool.false_eq_true, ↓reduceIte, one_mul]
       conv_lhs => rw [hi2]
     · have hb : i.testBit 0 = true := by simp [Nat.testBit_zero, h]
-      simp only [Fin.val_zero, hb, if_true, pow_zero, pow_one]
+      simp only [Fin.val_zero, hb, ite_true, pow_zero, pow_one]
       rw [h] at hi2
       conv_lhs => rw [hi2, pow_add, pow_one]
 

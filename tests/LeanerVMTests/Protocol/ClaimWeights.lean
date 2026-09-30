@@ -28,7 +28,7 @@ def u : E := E.ofLimbs 0 1 0
 def z : Vector E 1 := #v[u]
 
 /-- A stack that is not the honest one. -/
-def arbitrary : Column 3 := ⟨#v[9, 8, 7, 6, 5, 4, 3, 2]⟩
+def arbitrary : Column 3 := ⟨#v[K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6, K.ofBits 5, K.ofBits 4, K.ofBits 3, K.ofBits 2]⟩
 
 -- The weight of a claim on column `c` at `z`, paired with the stack, is column `c` at `z`.
 #guard (List.finRange 3).all fun c ↦

@@ -28,21 +28,21 @@ open LeanerVM.Parameters LeanerVM.Protocol CompPoly CMlPolynomialEval
 @[expose] public section
 
 /-- The table `[3, 5]` on one variable. -/
-def short : CMlPolynomialEval K 1 := #v[3, 5]
+def short : CMlPolynomialEval K 1 := #v[K.ofBits 3, K.ofBits 5]
 
 -- Lifted by two variables, it sits on the last slice of four.
-#guard padHigh short 2 = #v[0, 0, 0, 0, 0, 0, 3, 5]
+#guard padHigh short 2 = #v[0, 0, 0, 0, 0, 0, K.ofBits 3, K.ofBits 5]
 -- The lift keeps the sum over the cube.
 #guard sumCube (padHigh short 2) = sumCube short
 -- Its extension is the table's, times the product of the two new coordinates.
-#guard evalMle (padHigh short 2) ((#v[7] : Vector K 1) ++ (#v[11, 13] : Vector K 2)) =
-  evalMle short #v[7] * (11 * 13)
+#guard evalMle (padHigh short 2) ((#v[K.ofBits 7] : Vector K 1) ++ (#v[K.ofBits 11, K.ofBits 13] : Vector K 2)) =
+  evalMle short #v[K.ofBits 7] * ((K.ofBits 11) * (K.ofBits 13))
 -- Mutation: one new coordinate alone is not the factor.
-#guard evalMle (padHigh short 2) ((#v[7] : Vector K 1) ++ (#v[11, 13] : Vector K 2)) ≠
-  evalMle short #v[7] * 13
+#guard evalMle (padHigh short 2) ((#v[K.ofBits 7] : Vector K 1) ++ (#v[K.ofBits 11, K.ofBits 13] : Vector K 2)) ≠
+  evalMle short #v[K.ofBits 7] * (K.ofBits 13)
 
 /-- The table copied into every slice: lifting by nothing. -/
-def copied : CMlPolynomialEval K 3 := #v[3, 5, 3, 5, 3, 5, 3, 5]
+def copied : CMlPolynomialEval K 3 := #v[K.ofBits 3, K.ofBits 5, K.ofBits 3, K.ofBits 5, K.ofBits 3, K.ofBits 5, K.ofBits 3, K.ofBits 5]
 
 -- Its sum is four times the table's, zero in characteristic two.
 #guard sumCube copied = 0
@@ -51,7 +51,7 @@ def copied : CMlPolynomialEval K 3 := #v[3, 5, 3, 5, 3, 5, 3, 5]
 -- The product of the variables: one at the all-ones point, and its cube sum is one.
 #guard (prodVars 2 : CMlPolynomialEval K 2) = #v[0, 0, 0, 1]
 #guard sumCube (prodVars 3 : CMlPolynomialEval K 3) = 1
-#guard evalMle (prodVars 3) (#v[5, 9, 11] : Vector K 3) = 5 * 9 * 11
+#guard evalMle (prodVars 3) (#v[K.ofBits 5, K.ofBits 9, K.ofBits 11] : Vector K 3) = (K.ofBits 5) * (K.ofBits 9) * (K.ofBits 11)
 
 end
 end LeanerVMTests.Protocol

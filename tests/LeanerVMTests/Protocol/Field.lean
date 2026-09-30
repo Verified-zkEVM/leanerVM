@@ -24,24 +24,24 @@ public section
 
 /-- The column `[1, 2, 3, 4]` on two variables: `q(0,0) = 1`, `q(1,0) = 2`, `q(0,1) = 3`,
 `q(1,1) = 4`. -/
-def col : Column 2 := ⟨#v[1, 2, 3, 4]⟩
+def col : Column 2 := ⟨#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4]⟩
 
 /-- The oracle's answer, typed as the field element it is. -/
 def answer (q : Column 2) (r : Vector E 2) : E := OracleInterface.answer q r
 
 -- On the cube the oracle returns the table entry.
 #guard answer col #v[ofK 0, ofK 0] = ofK 1
-#guard answer col #v[ofK 1, ofK 0] = ofK 2
-#guard answer col #v[ofK 0, ofK 1] = ofK 3
-#guard answer col #v[ofK 1, ofK 1] = ofK 4
+#guard answer col #v[ofK 1, ofK 0] = ofK (K.ofBits 2)
+#guard answer col #v[ofK 0, ofK 1] = ofK (K.ofBits 3)
+#guard answer col #v[ofK 1, ofK 1] = ofK (K.ofBits 4)
 -- Off the cube it is the multilinear extension: at `(y, 0)` the value is `1 + y·(1 + 2) = 1 + 3y`
 -- in characteristic two (`(1 - y)·1 + y·2`, with `-1 = 1` and `2 = x`).
-#guard answer col #v[y, ofK 0] = ofK 1 + ofK 3 * y
+#guard answer col #v[y, ofK 0] = ofK 1 + ofK (K.ofBits 3) * y
 -- And it agrees with CompPoly's evaluation of the lifted table.
 #guard answer col #v[y, y ^ 2] =
   CMlPolynomialEval.evalMle (CMlPolynomialEval.map (algebraMap K E) col.values) #v[y, y ^ 2]
 -- Mutation: a different column answers differently at the same point.
-#guard answer ⟨#v[1, 2, 3, 5]⟩ #v[y, y ^ 2] ≠ answer col #v[y, y ^ 2]
+#guard answer ⟨#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 5]⟩ #v[y, y ^ 2] ≠ answer col #v[y, y ^ 2]
 
 /-! ## Samplers have compiler IR -/
 

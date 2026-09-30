@@ -99,9 +99,13 @@ when they exist and never rebuilds them under a leanISA-specific spelling.
 ## Dependencies and exact contracts
 
 A prerequisite below is a named declaration at a pinned revision, an earlier layer here, or a
-cited section of a source. The pins are in `upstreams.json` and
-[dependencies.md](../dependencies.md): leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
+cited section of a source. The tables below record the original implementation baseline:
+leanVM [`a386121f`](https://github.com/leanEthereum/leanVM/commit/a386121f84292f6fa663aaa3e570c15bc0240ea2), CompPoly
 `3468b38c`, Clean `93c9d1ef`, Lean `v4.33.1`.
+
+Current pins are in `upstreams.json` and [dependencies.md](../dependencies.md). That page
+records the 4.34 port: `BF64` now wraps its bit coordinates, wire literals use `K.ofBits`,
+and field enumeration is proof-only. The semantic source revision and limb encoding are retained.
 
 ### The leanVM specification and implementation
 
@@ -218,10 +222,10 @@ not change (decision 14).
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); hypotheses appear in signatures, never in `variable` blocks or unstated instances. |
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
-| Numerals over `K` | `K` is `BitVec 64`, so a numeral `(1 : K)` elaborates through `BitVec.instOfNat` and core's `BitVec` simprocs fire on it: `-1 : K` is `1`, not the two's-complement word `BitVec.reduceNeg` produces, and a default `simp` turns `0 : K` into a literal that lemmas stated with numerals no longer match. Proofs over `K` use `simp only` with named lemmas, and a Clean channel-lawfulness proof over `K` excludes `BitVec.reduceNeg`. |
+| Numerals over `K` | At the current CompPoly pin, `K` wraps `BitVec 64` and natural casts follow characteristic two: `(2 : K) = 0`. Use `K.ofBits` for encoded wire words; the generator is `K.ofBits 2`. Historical E6 describes the previous bare-`BitVec` representation. |
 | Witness programs | A witness program's `x =? 0` is decided as a `Bool`, and `circuit_norm` rewrites underneath that `decide` while leaving its `Decidable` instance behind, an ill-typed term no later rewrite can touch. A proof that normalises a witness obligation outside `circuit_proof_start` rewrites the conditional first, before descending (`ite_feq`, applied as a `↓` simp lemma). |
 | Large witnesses | A block of `2^κ_mem` rows is a `List.ofFn` no proof enumerates: its facts are stated through equation lemmas and `getElem?`, an `imageOf` equality is proved once and substituted, and a conjunct with dependent binders over `imageOf w.data` is proved for a destructured witness by `subst`, never by `rw`; a definitional comparison of a stuck projection against a `List.ofFn`/`Array.ofFn`, or of the data's log-size against a numeral, evaluates the block in both the elaborator and the kernel (status finding E8). The kernel reads a table's interactions through `Component.rowOperations` (`table_interactions_eq`), never `Component.operations`. |
-| Module system | Files are Lean `module`s, except that a file importing Clean (not a `module` at `93c9d1ef`) or a file that does is plain; the boundary sits as high as the dependency allows: `Parameters/CleanField.lean`, the Clean-consuming Arithmetization modules, `LeanerVM.lean`, and the test aggregate. |
+| Module system | Production declaration files use Lean `module`s, including the Clean bridges now that Clean itself is modular. Kernel-evaluation tests and root aggregates stay classic for full-body access and axiom inspection. |
 
 ## The build, in eleven layers
 
