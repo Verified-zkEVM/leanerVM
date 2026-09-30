@@ -344,3 +344,27 @@ code-layer1 ValuesProbe/StridedProbe with K.ofBits); (c) Fable: proof-obligation
 (chapter 06) and adversarial re-derivation of the major design findings; (d) orchestrator:
 chapters 00, 07 (TCB), 08 (faithfulness: intro + per-phase inputs of gen/), 09 (non-vacuity),
 10 (auditability), 11 (options), 12 (documentation), 13 (drift), appendices a–d.
+
+### 10:35 boundary-adaptor landed (~2050 lines, 18 findings); leanVM checkout MOVED
+- The leanVM checkout is at `248da071` (crate tree renamed); pin `a386121f` is an ancestor;
+  all reading must go through `git show a386121f:<path>`. BRIEF §8 updated. gt-opening-compile
+  told. The user has not been asked to restore it (their checkout; they may have moved it for
+  the Rust contract tests of #61, "implementation revision 48a90420").
+- boundary-adaptor majors: (1) `witnessOf` mixes parts built from `prog` with parts read from
+  q; balance carries over ONLY because the boundary blocks are `Coord.known` from the same
+  `prog` (decision 8); "Ensemble.toM3 of the eight tables" describes the wrong construction;
+  Layer 2 has no bridge lemma for boundary blocks. (2) Both T4 statements unprovable as
+  written: `baseVerifier_extractsExecution` omits `WellFormedBytecode` (JUMP-sentinel
+  counterexample proved in tests), attaches a probability to a closed Boolean, is a soundness
+  statement for the language {∃ t, ValidExecution}; `baseProver_complete` is FALSE: a valid
+  execution at κ_mem = 32 needs 2^34 cells, verifier rejects μ > 28; "witness of t" needs T2 or
+  classical choice. (3) top limb anchored: without the third line `satisfiedBy_witnessOf`
+  unprovable for every `witnessOf` (a `SET_CONSTANT [g^0, y²]` program); ultimate anchor the
+  literal 0 in `PublicInput.word0/word1` (`Memory.lean:107-110`). (4) unstatable: `Sizes.
+  logInvRate`, `admissible_iff_caps`, `leanIsaInstance` needing `FlockInterface I` (proposed
+  instance-free `FlockSpec`), Layer 2's Mathlib polynomials not computably convertible
+  (`toCMvPolynomial` noncomputable at both pins; probe PolyBridge gives a direct translation),
+  `witnessOf_stackOf … = w` not a Lean statement, `leanIsaInstance` must be an `abbrev` (probe
+  DefInstance). (5) `∃ s` sound but the probabilistic composition over prover-announced sizes is
+  unspecified (union bound ≈ 2^34 vs Q·max ε needing a family-level FS interface); architecture.md's
+  T4 map diverges on T2, resource conditions, hash assumption.

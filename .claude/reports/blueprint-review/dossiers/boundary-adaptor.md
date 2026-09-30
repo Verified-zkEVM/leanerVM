@@ -17,10 +17,13 @@ all run on 2026-09-29 against `main` at `b435631` with the old pins, under the s
 outputs are the `.out` files next to them and are reproduced in the appendix. `Shapes`,
 `Transport`, `PolyBridge`, `KnownColumn` exited 0; `UniverseFail` and `DefInstance` are
 expected failures and exited 1 with the recorded messages. After the upgrade no Lean can run
-(brief §8); nothing was re-run. Two probes use numerals of `K` other than `0` and `1`
-(`KnownColumn`: `2`; `PolyBridge`: `3, 5, 7`), which at the new CompPoly pin mean `0`, `1`,
-`1`, `1`: their conclusions stand at the old pin, and a re-run at the new pin needs
-`K.ofBits n` in place of the numerals (noted in the appendix). No file of any repository was
+(brief §8) until the rebuild finished on 2026-09-30. Two probes use numerals of `K`
+other than `0` and `1` (`KnownColumn`: `2`; `PolyBridge`: `3, 5, 7`), which at the new
+CompPoly pin mean `0`, `1`, `1`, `1`; their conclusions stand at the old pin, and after the
+rebuild both were re-run at the new pins as `KnownColumnNew` and `PolyBridgeNew` with
+`K.ofBits n` in place of the numerals, exit 0 (appendix). The other four were not re-run;
+nothing they rest on changed between the two revisions of the proof-system sources
+(brief §8: proofs and imports only). No file of any repository was
 edited; nothing was posted; no checkout was moved; no build was started by this task.
 
 ## Summary
@@ -1047,7 +1050,8 @@ deleted; the phase-level `FlockInterface` keeps the reduction and its two proofs
 
 **Evidence.** Section E.5: `bp:762-771` produce Mathlib `MvPolynomial`s; the instance holds
 `CMvPolynomial`s (`Spine/Instance.lean:123-125`); `toCMvPolynomial` is `noncomputable def`
-(CompPoly `3468b38c`, `MvPolyEquiv/Core.lean:41`; unchanged in kind at `572f9973`, unverified);
+(CompPoly `3468b38c`, `MvPolyEquiv/Core.lean:41`; the same `noncomputable def` at the same
+line at `572f9973`, `git show` of the new pin);
 `M3Holds` is meant to be decided by evaluation and `verify` to be computable (`bp:866-867,
 1230-1231`). Probe `PolyBridge`: the direct translation is computable and agrees with
 `Expression.eval`. **Classification.** A deviation forced by an upstream library, with a
@@ -1204,10 +1208,11 @@ roadmap (`Boundaries`, `bp:1433-1441`).
   (probe `Shapes`).
 - The count of admissible size vectors (B.3, about `2^34`) is a hand estimate from the caps
   and the stacking window; the exact count depends on the layout's `μ`, which Layer 3 defines.
-- Whether CompPoly's `toCMvPolynomial` is still `noncomputable` at the new pin `572f9973` was
-  not checked (the review's object is the old pin).
-- No probe was re-run after the upgrade; the two probes with numerals other than `0`, `1`
-  need `K.ofBits` before a re-run (header).
+- CompPoly's `toCMvPolynomial` is still `noncomputable def` at the new pin `572f9973`
+  (`MvPolyEquiv/Core.lean:41`, read with `git show`); the workaround of finding 8 stands.
+- After the rebuild, `KnownColumnNew` and `PolyBridgeNew` (the two probes with numerals,
+  rewritten with `K.ofBits`) were re-run at the new pins and pass; `Shapes`, `Transport`,
+  `UniverseFail`, `DefInstance` were not re-run (their recorded outputs are at the old pins).
 - The claim that a run of a halting program visits distinct states (note 18) is an argument
   from determinism of `step`, not a Lean proof.
 
@@ -1224,3 +1229,821 @@ roadmap (`Boundaries`, `bp:1433-1441`).
   re-verified on 2026-09-30 with `git show a386121f:<path>` from the object store (the
   commit is present: `git cat-file -t a386121f` = `commit`). Other agents citing the working
   tree after the move would cite the wrong revision.
+
+## Appendix: the probes, in full
+
+All files are under `.claude/reports/blueprint-review/probes/boundary-adaptor/`. Each was run from the repository root with
+`flock .claude/reports/blueprint-review/logs/lean.lock lake env lean <file>`; the recorded output follows each source, with the exit status on its last line. `Shapes`, `KnownColumn`, `Transport`, `UniverseFail`, `DefInstance` and `PolyBridge` ran on 2026-09-29 against `main` at `b435631` with the old pins (ArkLib `dca90385`, CompPoly `3468b38c`, Clean `93c9d1ef`); `KnownColumnNew` and `PolyBridgeNew` ran on 2026-09-30 after the rebuild, against the checkout `docs/protocol-blueprint-review` at `b022e4f` (whose Lean sources are `main` at `144c5aa`) with the new pins (CompPoly `572f9973`, Clean `42fe4b26`, ArkLib `7653a901`), with `K.ofBits n` in place of the numerals. An empty output with `exit=0` means every `#guard` passed and every `example` elaborated.
+
+### `Shapes.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor): the two relations, their universes, and the public input.
+  Scratch work for the blueprint review; not part of the repository.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/Shapes.lean
+-/
+import LeanerVM
+
+open LeanerVM LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
+open LeanerVM.Protocol
+open Air.Flat (Ensemble EnsembleWitness Component)
+
+set_option pp.universes true
+
+/-! ## 1. Universes: the witness of `SatisfiedBy` against the witness of `M3Holds` -/
+
+#check @EnsembleWitness
+#check @Air.Flat.Table
+#check @Air.Flat.Component
+#check @leanIsaEnsemble
+#check @SatisfiedBy
+#check @M3Holds
+#check @M3Rel
+#check @Column
+#check @Refinement
+#check @Refinement.map_option_valid
+#check @Extractor.Straightline.map
+
+set_option pp.universes false
+
+/-! ## 2. The statement types as written -/
+
+#print SatisfiedBy
+#print Caps
+#print PublicInput
+#print PublicInput.word0
+#print PublicInput.word1
+#print PublicIO
+#print ValidExecution
+#print HasPublicBoundary
+#print Program
+#print M3Holds
+#print M3Instance
+#print PublicLine
+
+/-! ## 3. Which `ConstraintsHold` does `w.Constraints` unfold to? -/
+
+#print Air.Flat.EnsembleWitness.Constraints
+#print Air.Flat.Table.Constraints
+#print Operations.ConstraintsHold
+#print Air.Flat.EnsembleWitness.interactions
+#print ProverData
+
+/-! ## 4. The top limb of a public word is zero by construction -/
+
+example (p : PublicInput) : p.word0.limb 2 = 0 := by
+  simp [PublicInput.word0]
+
+example (p : PublicInput) : p.word1.limb 2 = 0 := by
+  simp [PublicInput.word1]
+
+/-- A word of the image whose top limb is nonzero is not a public word, whatever the input: the
+fact `word0_eq` needs from the third public line. -/
+example (p : PublicInput) (a b c : K) (hc : c ≠ 0) : E.ofLimbs a b c ≠ p.word0 := by
+  intro h
+  have := congrArg (fun z : E ↦ z.limb 2) h
+  simp [PublicInput.word0] at this
+  exact hc this
+
+/-- With the top limb zero and the two low limbs those of the statement, the word is the public
+word: the three public lines give `word0_eq`. -/
+example (p : PublicInput) (a b c : K) (ha : a = p.word0.limb 0) (hb : b = p.word0.limb 1)
+    (hc : c = 0) : E.ofLimbs a b c = p.word0 := by
+  subst ha hb hc
+  simp [PublicInput.word0]
+
+/-! ## 5. Axioms of what the chain will use on the arithmetization side, and of the master
+theorems -/
+
+#print axioms assumptions_of_blake2sRowsValid
+#print axioms memRowOf_bindings
+#print axioms bytecodeRowOf_bindings
+#print axioms bytecodeRowOf_decodes
+#print axioms verifier_pull_eval
+#print axioms verifier_push_eval
+#print axioms rowAt_toElements
+#print axioms decode_eq_some_iff
+#print axioms assignmentRepresents_image
+#print axioms xorTable
+#print axioms jumpTable
+#print axioms blake2sTable
+#print axioms memTable
+#print axioms bytecodeTable
+#print axioms leanIsaVerifier
+#print axioms piop_rbrKnowledgeSoundness
+#print axioms piop_perfectCompleteness
+#print axioms Refinement.map_option_valid
+#print axioms bytecodeColumn_eval
+#print axioms idxColumn_eval
+```
+
+Output (`Shapes.out`):
+
+```
+@EnsembleWitness : {F : Type} →
+  [inst : FiniteField F] → {PublicIO : TypeMap} → [inst_1 : ProvableType PublicIO] → Ensemble F PublicIO → Type 1
+Air.Flat.Table : (F : Type) → [FiniteField F] → Type 1
+Component : (F : Type) → [FiniteField F] → Type 1
+leanIsaEnsemble : Program → Ensemble K PublicIO
+SatisfiedBy : (prog : Program) → PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Prop
+M3Holds : (I : M3Instance) → I.Stmt → Column I.μ → Prop
+M3Rel : (I : M3Instance) → Set.{0} (Prod.{0, 0} (Prod.{0, 0} I.Stmt ((i : Fin 0) → NoOracle i)) (Column I.μ))
+Column : ℕ → Type
+@Refinement.{u_1,
+    u_2} : {Stmt : Type} →
+  {W₁ : Type u_1} →
+    {W₂ : Type u_2} → Set.{u_1} (Prod.{0, u_1} Stmt W₁) → Set.{u_2} (Prod.{0, u_2} Stmt W₂) → Type (max u_1 u_2)
+@Refinement.map_option_valid.{u_1,
+    u_2} : ∀ {Stmt : Type} {W₁ : Type u_1} {W₂ : Type u_2} {R : Set.{u_1} (Prod.{0, u_1} Stmt W₁)}
+  {S : Set.{u_2} (Prod.{0, u_2} Stmt W₂)} (f : Refinement.{u_1, u_2} R S) (x : Stmt) (w? : Option.{u_1} W₁),
+  (∀ (w : W₁), Membership.mem.{u_1, u_1} w? w → Membership.mem.{u_1, u_1} R (Prod.mk.{0, u_1} x w)) →
+    ∀ (w' : W₂),
+      Membership.mem.{u_2, u_2} (Option.map.{u_1, u_2} (Refinement.map.{u_1, u_2} f x) w?) w' →
+        Membership.mem.{u_2, u_2} S (Prod.mk.{0, u_2} x w')
+@Extractor.Straightline.map.{u_1} : {ι : Type} →
+  {oSpec : OracleSpec.{0, u_1} ι} →
+    {StmtIn WitIn WitIn' WitOut : Type} →
+      {n : ℕ} →
+        {pSpec : ProtocolSpec n} →
+          (StmtIn → WitIn → WitIn') →
+            Extractor.Straightline.{u_1} oSpec StmtIn WitIn WitOut pSpec →
+              Extractor.Straightline.{u_1} oSpec StmtIn WitIn' WitOut pSpec
+structure LeanerVM.Arithmetization.SatisfiedBy (prog : Program) (input : PublicInput)
+  (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+number of parameters: 3
+fields:
+  LeanerVM.Arithmetization.SatisfiedBy.public_input_eq : w.publicInput = PublicIO.ofInput input
+  LeanerVM.Arithmetization.SatisfiedBy.constraints : w.Constraints
+  LeanerVM.Arithmetization.SatisfiedBy.state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw
+  LeanerVM.Arithmetization.SatisfiedBy.counts_nonzero : CountsNonzero w
+  LeanerVM.Arithmetization.SatisfiedBy.caps : Caps w
+  LeanerVM.Arithmetization.SatisfiedBy.index_columns : IndexColumnsAreRowIndices w
+  LeanerVM.Arithmetization.SatisfiedBy.seed_rows : SeedRowsAreTheImage w
+  LeanerVM.Arithmetization.SatisfiedBy.bytecode_rows : BytecodeRowsAreTheProgram prog w
+  LeanerVM.Arithmetization.SatisfiedBy.blake2s_valid : Blake2sRowsValid w
+  LeanerVM.Arithmetization.SatisfiedBy.word0_eq : (imageOf w.data).snd.read (gpow 0) = some input.word0
+  LeanerVM.Arithmetization.SatisfiedBy.word1_eq : (imageOf w.data).snd.read (gpow 1) = some input.word1
+constructor:
+  LeanerVM.Arithmetization.SatisfiedBy.mk {prog : Program} {input : PublicInput}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} (public_input_eq : w.publicInput = PublicIO.ofInput input)
+    (constraints : w.Constraints) (state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw)
+    (mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw)
+    (bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw) (counts_nonzero : CountsNonzero w)
+    (caps : Caps w) (index_columns : IndexColumnsAreRowIndices w) (seed_rows : SeedRowsAreTheImage w)
+    (bytecode_rows : BytecodeRowsAreTheProgram prog w) (blake2s_valid : Blake2sRowsValid w)
+    (word0_eq : (imageOf w.data).snd.read (gpow 0) = some input.word0)
+    (word1_eq : (imageOf w.data).snd.read (gpow 1) = some input.word1) : SatisfiedBy prog input w
+structure LeanerVM.Arithmetization.Caps {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+number of parameters: 2
+fields:
+  LeanerVM.Arithmetization.Caps.minLogMem_le : minLogMem ≤ (imageOf w.data).fst
+  LeanerVM.Arithmetization.Caps.le_maxLogMem : (imageOf w.data).fst ≤ maxLogMem
+  LeanerVM.Arithmetization.Caps.heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
+  LeanerVM.Arithmetization.Caps.blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length
+  LeanerVM.Arithmetization.Caps.well_shaped : WellShapedData w.data
+constructor:
+  LeanerVM.Arithmetization.Caps.mk {prog : Program} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (minLogMem_le : minLogMem ≤ (imageOf w.data).fst) (le_maxLogMem : (imageOf w.data).fst ≤ maxLogMem)
+    (heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ)
+    (blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length) (well_shaped : WellShapedData w.data) : Caps w
+structure LeanerVM.Semantics.PublicInput : Type
+number of parameters: 0
+fields:
+  LeanerVM.Semantics.PublicInput.lanes : Fin 4 → K
+constructor:
+  LeanerVM.Semantics.PublicInput.mk (lanes : Fin 4 → K) : PublicInput
+def LeanerVM.Semantics.PublicInput.word0 : PublicInput → E :=
+fun p => E.ofLimbs (p.lanes 0) (p.lanes 1) 0
+def LeanerVM.Semantics.PublicInput.word1 : PublicInput → E :=
+fun p => E.ofLimbs (p.lanes 2) (p.lanes 3) 0
+structure LeanerVM.Arithmetization.PublicIO (F : Type) : Type
+number of parameters: 1
+fields:
+  LeanerVM.Arithmetization.PublicIO.lanes : Vector F 4
+constructor:
+  LeanerVM.Arithmetization.PublicIO.mk {F : Type} (lanes : Vector F 4) : PublicIO F
+def LeanerVM.Semantics.ValidExecution : (prog : Program) → PublicInput → Trace prog → Prop :=
+fun prog input t => HasPublicBoundary input t ∧ run prog t.image t.steps Regs.initial = some (Regs.final prog)
+def LeanerVM.Semantics.HasPublicBoundary : {prog : Program} → PublicInput → Trace prog → Prop :=
+fun {prog} input t =>
+  minLogMem ≤ t.κ ∧
+    t.κ ≤ maxLogMem ∧ t.image.read (gpow 0) = some input.word0 ∧ t.image.read (gpow 1) = some input.word1
+structure LeanerVM.Semantics.Program : Type
+number of parameters: 0
+fields:
+  LeanerVM.Semantics.Program.logSize : ℕ
+  LeanerVM.Semantics.Program.logSize_le : self.logSize ≤ maxLogBytecode
+  LeanerVM.Semantics.Program.code : Fin (2 ^ self.logSize) → Instr
+constructor:
+  LeanerVM.Semantics.Program.mk (logSize : ℕ) (logSize_le : logSize ≤ maxLogBytecode)
+    (code : Fin (2 ^ logSize) → Instr) : Program
+def LeanerVM.Protocol.M3Holds : (I : M3Instance) → I.Stmt → Column I.μ → Prop :=
+fun I input q => I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicLinesHold input q ∧ I.aux q
+structure LeanerVM.Protocol.M3Instance : Type 1
+number of parameters: 0
+parents:
+  LeanerVM.Protocol.M3Instance.toShape : Shape
+fields:
+  LeanerVM.Protocol.Shape.ntab : ℕ
+  LeanerVM.Protocol.Shape.τ : Fin self.ntab → ℕ
+  LeanerVM.Protocol.Shape.width : Fin self.ntab → ℕ
+  LeanerVM.Protocol.M3Instance.Stmt : Type
+  LeanerVM.Protocol.M3Instance.constraints : (j : Fin self.ntab) → List (CPoly.CMvPolynomial (self.width j) K)
+  LeanerVM.Protocol.M3Instance.flushes : (j : Fin self.ntab) →
+      List (Side × Vector (CPoly.CMvPolynomial (self.width j) K) 16)
+  LeanerVM.Protocol.M3Instance.d : ℕ
+  LeanerVM.Protocol.M3Instance.constraints_degree : ∀ (j : Fin self.ntab),
+      ∀ C ∈ self.constraints j, C.totalDegree ≤ self.d
+  LeanerVM.Protocol.M3Instance.flushes_degree : ∀ (j : Fin self.ntab),
+      ∀ f ∈ self.flushes j, ∀ (k : Fin 16), (f.2.get k).totalDegree ≤ self.d
+  LeanerVM.Protocol.M3Instance.counts : (j : Fin self.ntab) → List (Fin (self.width j))
+  LeanerVM.Protocol.M3Instance.boundary : List (BoundaryBlock self.toShape)
+  LeanerVM.Protocol.M3Instance.μ : ℕ
+  LeanerVM.Protocol.M3Instance.layout : Layout self.μ self.ColumnId fun c => self.τ c.fst
+  LeanerVM.Protocol.M3Instance.publicLines : self.Stmt → List (PublicLine self.toShape)
+  LeanerVM.Protocol.M3Instance.aux : Column self.μ → Prop
+  LeanerVM.Protocol.M3Instance.decAux : DecidablePred self.aux
+constructor:
+  LeanerVM.Protocol.M3Instance.mk (toShape : Shape) (Stmt : Type)
+    (constraints : (j : Fin toShape.ntab) → List (CPoly.CMvPolynomial (toShape.width j) K))
+    (flushes : (j : Fin toShape.ntab) → List (Side × Vector (CPoly.CMvPolynomial (toShape.width j) K) 16)) (d : ℕ)
+    (constraints_degree : ∀ (j : Fin toShape.ntab), ∀ C ∈ constraints j, C.totalDegree ≤ d)
+    (flushes_degree : ∀ (j : Fin toShape.ntab), ∀ f ∈ flushes j, ∀ (k : Fin 16), (f.2.get k).totalDegree ≤ d)
+    (counts : (j : Fin toShape.ntab) → List (Fin (toShape.width j))) (boundary : List (BoundaryBlock toShape)) (μ : ℕ)
+    (layout : Layout μ toShape.ColumnId fun c => toShape.τ c.fst) (publicLines : Stmt → List (PublicLine toShape))
+    (aux : Column μ → Prop) (decAux : DecidablePred aux) : M3Instance
+field notation resolution order:
+  LeanerVM.Protocol.M3Instance, LeanerVM.Protocol.Shape
+structure LeanerVM.Protocol.PublicLine (S : Shape) : Type
+number of parameters: 1
+fields:
+  LeanerVM.Protocol.PublicLine.col : S.ColumnId
+  LeanerVM.Protocol.PublicLine.cell0 : K
+  LeanerVM.Protocol.PublicLine.cell1 : K
+  LeanerVM.Protocol.PublicLine.sent : Bool
+  LeanerVM.Protocol.PublicLine.pos : 0 < S.τ self.col.fst
+constructor:
+  LeanerVM.Protocol.PublicLine.mk {S : Shape} (col : S.ColumnId) (cell0 cell1 : K) (sent : Bool)
+    (pos : 0 < S.τ col.fst) : PublicLine S
+def Air.Flat.EnsembleWitness.Constraints : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] → {ens : Ensemble F PublicIO} → EnsembleWitness ens → Prop :=
+fun {F} [FiniteField F] {PublicIO} [ProvableType PublicIO] {ens} witness =>
+  ∀ table ∈ witness.allTables, table.Constraints
+def Air.Flat.Table.Constraints : {F : Type} → [inst : FiniteField F] → Air.Flat.Table F → Prop :=
+fun {F} [FiniteField F] table =>
+  ∀ row ∈ table.table, Operations.ConstraintsHold (table.environment row) table.component.operations
+def Operations.ConstraintsHold : {F : Type} → [inst : FiniteField F] → Environment F → Operations F → Prop :=
+fun {F} [FiniteField F] env ops =>
+  (∀ e ∈ ops.constraints, (fun x => Expression.eval env x) e = 0) ∧ ∀ l ∈ ops.lookups, l.Contains env
+def Air.Flat.EnsembleWitness.interactions : {F : Type} →
+  [inst : FiniteField F] →
+    {PublicIO : TypeMap} →
+      [inst_1 : ProvableType PublicIO] → {ens : Ensemble F PublicIO} → EnsembleWitness ens → List (Interaction F) :=
+fun {F} [FiniteField F] {PublicIO} [ProvableType PublicIO] {ens} witness =>
+  List.flatMap (fun table => table.interactions) witness.allTables
+def ProverData : Type → Type :=
+fun F => String → (n : ℕ) → Array (Vector F n)
+'LeanerVM.Arithmetization.assumptions_of_blake2sRowsValid' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.memRowOf_bindings' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeRowOf_bindings' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeRowOf_decodes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.verifier_pull_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.verifier_push_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.rowAt_toElements' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.decode_eq_some_iff' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.assignmentRepresents_image' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.xorTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.jumpTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.blake2sTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.memTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.bytecodeTable' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Arithmetization.leanIsaVerifier' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Refinement.map_option_valid' depends on axioms: [propext, Quot.sound]
+'LeanerVM.Protocol.bytecodeColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.idxColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+### `KnownColumn.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor): the public column of a boundary block is part of the relation, and
+  what goes wrong when an instance treats it as committed while the adaptor rebuilds it.
+  A model on the spine's toy instance; scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/KnownColumn.lean
+-/
+import LeanerVM.Protocol.Spine.Toy
+
+open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy
+
+namespace Probe
+
+/-- The toy instance with the boundary block's public column a parameter: the model of
+`leanIsaInstance prog s`, the column `p` standing for the program. -/
+abbrev toyOf (p : Column 1) : M3Instance :=
+  { toy with
+    boundary := [{ κ := 1, side := .pull,
+                   coords := Vector.ofFn fun k ↦ if k.val = 0 then .known p else .const 0 }] }
+
+/-- The same instance built wrongly: the block's column is read from the stack (column 1 of the
+table), as if the program were committed. -/
+abbrev toyCommitted : M3Instance :=
+  { toy with
+    boundary := [{ κ := 1, side := .pull,
+                   coords := Vector.ofFn fun k ↦
+                     if k.val = 0 then .committed ⟨0, 1⟩ rfl else .const 0 }] }
+
+/-- The public program of the model. -/
+def prog : Column 1 := ⟨#v[1, 1]⟩
+
+/-- Another program. -/
+def prog' : Column 1 := ⟨#v[1, 2]⟩
+
+-- 1. The relation is about the program in the instance: the honest stack of `prog` satisfies the
+-- relation of `prog`, and not the relation of `prog'`.
+#guard M3Holds (toyOf prog) (1 : K) honest
+#guard ¬ (toyOf prog').Balanced honest
+#guard ¬ M3Holds (toyOf prog') (1 : K) honest
+
+/-- A stack that pushes `[2, 2]` and whose column 1 is `[2, 2]`. -/
+def pushesTwo : Column 3 := ⟨#v[2, 2, 2, 2, 1, 0, 0, 0]⟩
+
+-- 2. The trap. Against the instance that reads the block's column off the stack, the relation
+-- holds of a stack that has nothing to do with the public program ...
+#guard M3Holds toyCommitted (1 : K) pushesTwo
+-- ... while the witness an adaptor would rebuild from it, the table's columns read from the
+-- stack and the block's column built from the public program, does not balance.
+#guard ¬ (toyOf prog).Balanced pushesTwo
+-- The pulled tuples of the two instances on the same stack: the first from the stack, the second
+-- from the program.
+#guard (toyCommitted.tuples pushesTwo .pull).map (fun t ↦ t.get 0) = [2, 2]
+#guard ((toyOf prog).tuples pushesTwo .pull).map (fun t ↦ t.get 0) = [1, 1]
+
+end Probe
+```
+
+Output (`KnownColumn.out`):
+
+```
+exit=0
+```
+
+### `KnownColumnNew.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor), NEW-PIN VARIANT (CompPoly 572f9973, K.ofBits in place of numerals): the public column of a boundary block is part of the relation, and
+  what goes wrong when an instance treats it as committed while the adaptor rebuilds it.
+  A model on the spine's toy instance; scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/KnownColumnNew.lean
+-/
+import LeanerVM.Protocol.Spine.Toy
+
+open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy
+
+namespace Probe
+
+/-- The toy instance with the boundary block's public column a parameter: the model of
+`leanIsaInstance prog s`, the column `p` standing for the program. -/
+abbrev toyOf (p : Column 1) : M3Instance :=
+  { toy with
+    boundary := [{ κ := 1, side := .pull,
+                   coords := Vector.ofFn fun k ↦ if k.val = 0 then .known p else .const 0 }] }
+
+/-- The same instance built wrongly: the block's column is read from the stack (column 1 of the
+table), as if the program were committed. -/
+abbrev toyCommitted : M3Instance :=
+  { toy with
+    boundary := [{ κ := 1, side := .pull,
+                   coords := Vector.ofFn fun k ↦
+                     if k.val = 0 then .committed ⟨0, 1⟩ rfl else .const 0 }] }
+
+/-- The public program of the model. -/
+def prog : Column 1 := ⟨#v[1, 1]⟩
+
+/-- Another program. -/
+def prog' : Column 1 := ⟨#v[1, K.ofBits 2]⟩
+
+-- 1. The relation is about the program in the instance: the honest stack of `prog` satisfies the
+-- relation of `prog`, and not the relation of `prog'`.
+#guard M3Holds (toyOf prog) (1 : K) honest
+#guard ¬ (toyOf prog').Balanced honest
+#guard ¬ M3Holds (toyOf prog') (1 : K) honest
+
+/-- A stack that pushes `[2, 2]` and whose column 1 is `[2, 2]`. -/
+def pushesTwo : Column 3 := ⟨#v[K.ofBits 2, K.ofBits 2, K.ofBits 2, K.ofBits 2, 1, 0, 0, 0]⟩
+
+-- 2. The trap. Against the instance that reads the block's column off the stack, the relation
+-- holds of a stack that has nothing to do with the public program ...
+#guard M3Holds toyCommitted (1 : K) pushesTwo
+-- ... while the witness an adaptor would rebuild from it, the table's columns read from the
+-- stack and the block's column built from the public program, does not balance.
+#guard ¬ (toyOf prog).Balanced pushesTwo
+-- The pulled tuples of the two instances on the same stack: the first from the stack, the second
+-- from the program.
+#guard (toyCommitted.tuples pushesTwo .pull).map (fun t ↦ t.get 0) = [K.ofBits 2, K.ofBits 2]
+#guard ((toyOf prog).tuples pushesTwo .pull).map (fun t ↦ t.get 0) = [1, 1]
+
+end Probe
+```
+
+Output (`KnownColumnNew.out`):
+
+```
+exit=0
+```
+
+### `Transport.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor): does the chain
+    knowledge of `M3Holds`  →  `SatisfiedBy`  →  `ValidExecution`
+  typecheck, with the adaptor's target witness in `Type 1`?
+  The instance, the witness map and the two theorems not yet built are hypotheses of each
+  `example`; nothing here is an axiom. Scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/Transport.lean
+-/
+import LeanerVM
+
+open LeanerVM LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
+open LeanerVM.Protocol
+open Air.Flat (Ensemble EnsembleWitness Component)
+
+namespace Probe
+
+/-- A stand-in for `leanIsaInstance prog s`: any instance whose statement type is
+`PublicInput`. (The toy's tables, no public line.) -/
+abbrev stub : M3Instance :=
+  { Toy.toy with Stmt := PublicInput, publicLines := fun _ ↦ [] }
+
+/-- The relation of leanISA in ArkLib's shape, over the statement type of `M3Rel`. Its witness
+type is in `Type 1`. -/
+def SatRel (prog : Program) :
+    Set ((PublicInput × (∀ i, NoOracle i)) × EnsembleWitness (leanIsaEnsemble prog)) :=
+  {p | SatisfiedBy prog p.1.1 p.2}
+
+/-- 1. The adaptor is a `Refinement`: the structure accepts a target witness in `Type 1`. -/
+example (prog : Program) (witnessOf : Column stub.μ → EnsembleWitness (leanIsaEnsemble prog))
+    (satisfiedBy_witnessOf :
+      ∀ input q, M3Holds stub input q → SatisfiedBy prog input (witnessOf q)) :
+    Refinement (M3Rel stub) (SatRel prog) where
+  map := fun _ q ↦ witnessOf q
+  map_valid := fun x q hx ↦ satisfiedBy_witnessOf x.1 q hx
+
+/-- 2. The polarity ArkLib's game needs. Its bad event is "no witness in the slot is valid"
+(an empty slot is bad); `Refinement.map_option_valid` is stated for "every witness in the slot
+is valid" (an empty slot is good). The transport of the bad event is this lemma, which follows
+from `map_valid` directly. -/
+theorem bad_of_bad {Stmt : Type} {W₁ : Type} {W₂ : Type 1} {R : Set (Stmt × W₁)}
+    {S : Set (Stmt × W₂)} (f : Refinement R S) (x : Stmt) (w? : Option W₁)
+    (h : ∀ w' ∈ w?.map (f.map x), (x, w') ∉ S) : ∀ w ∈ w?, (x, w) ∉ R := by
+  intro w hw hR
+  exact h (f.map x w) (Option.mem_map_of_mem _ hw) (f.map_valid x w hR)
+
+/-- 3. The composition of the chain, pointwise, in the form the probability bound consumes:
+when `prog` has no valid execution on `input`, whatever the extractor returns is outside
+`M3Rel`, so the event of ArkLib's knowledge-soundness game is the event "the verifier accepts".
+The conclusion of the chain is therefore a soundness statement for the language
+`{(prog, input) | ∃ t, ValidExecution prog input t}`. -/
+example (prog : Program) (input : PublicInput)
+    (witnessOf : Column stub.μ → EnsembleWitness (leanIsaEnsemble prog))
+    (satisfiedBy_witnessOf :
+      ∀ q, M3Holds stub input q → SatisfiedBy prog input (witnessOf q))
+    (constraintSoundness :
+      ∀ w, SatisfiedBy prog input w → ∃ t, ValidExecution prog input t)
+    (hno : ¬ ∃ t, ValidExecution prog input t) (o : ∀ i, NoOracle i)
+    (q? : Option (Column stub.μ)) :
+    ∀ q ∈ q?, ((input, o), q) ∉ M3Rel stub := by
+  intro q _ hq
+  exact hno (constraintSoundness _ (satisfiedBy_witnessOf q hq))
+
+/-- 4. The same with the hypothesis of `constraintSoundness` the leanISA roadmap states
+(`WellFormedBytecode prog`, of which soundness uses the sentinel field, built as
+`SentinelSafe prog`): the hypothesis reaches the conclusion of the chain. -/
+example (prog : Program) (input : PublicInput)
+    (witnessOf : Column stub.μ → EnsembleWitness (leanIsaEnsemble prog))
+    (satisfiedBy_witnessOf :
+      ∀ q, M3Holds stub input q → SatisfiedBy prog input (witnessOf q))
+    (constraintSoundness :
+      SentinelSafe prog → ∀ w, SatisfiedBy prog input w → ∃ t, ValidExecution prog input t)
+    (hwf : SentinelSafe prog)
+    (q : Column stub.μ) (h : M3Holds stub input q) : ∃ t, ValidExecution prog input t :=
+  constraintSoundness hwf _ (satisfiedBy_witnessOf q h)
+
+end Probe
+```
+
+Output (`Transport.out`):
+
+```
+exit=0
+```
+
+### `UniverseFail.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor), EXPECTED TO FAIL: ArkLib's knowledge-soundness game and its
+  straight-line extractor cannot be stated with the witness of `SatisfiedBy`, which lives in
+  `Type 1`. Scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/UniverseFail.lean
+-/
+import LeanerVM
+
+open LeanerVM LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
+open LeanerVM.Protocol OracleComp OracleSpec ProtocolSpec
+open Air.Flat (Ensemble EnsembleWitness Component)
+
+namespace Probe
+
+/-- Expected failure 1: a straight-line extractor whose output is an `EnsembleWitness`. -/
+example (prog : Program) {n : ℕ} (pSpec : ProtocolSpec n) : Type :=
+  Extractor.Straightline []ₒ PublicInput (EnsembleWitness (leanIsaEnsemble prog)) Unit pSpec
+
+/-- Expected failure 2: post-composing an extractor of stacks with a map to `EnsembleWitness`. -/
+example (prog : Program) {n : ℕ} (pSpec : ProtocolSpec n) (μ : ℕ)
+    (witnessOf : PublicInput → Column μ → EnsembleWitness (leanIsaEnsemble prog))
+    (E : Extractor.Straightline []ₒ PublicInput (Column μ) Unit pSpec) :=
+  Extractor.Straightline.map witnessOf E
+
+end Probe
+```
+
+Output (`UniverseFail.out`):
+
+```
+.claude/reports/blueprint-review/probes/boundary-adaptor/UniverseFail.lean:19:41: error: Application type mismatch: The argument
+  EnsembleWitness (leanIsaEnsemble prog)
+has type
+  Type 1
+of sort `Type 2` but is expected to have type
+  Type
+of sort `Type 1` in the application
+  Extractor.Straightline []ₒ PublicInput (EnsembleWitness (leanIsaEnsemble prog))
+.claude/reports/blueprint-review/probes/boundary-adaptor/UniverseFail.lean:25:29: error: Application type mismatch: The argument
+  witnessOf
+has type
+  PublicInput → Column μ → EnsembleWitness (leanIsaEnsemble prog)
+of sort `Type 1` but is expected to have type
+  PublicInput → Column μ → ?m.27 prog pSpec μ witnessOf E
+of sort `Type` in the application
+  Extractor.Straightline.map witnessOf
+exit=1
+```
+
+### `DefInstance.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor): does the adaptor's statement typecheck when the instance is a `def`
+  (not an `abbrev`), and is its relation still decided by evaluation?
+  The two `#guard`s on the `def` instance are EXPECTED TO FAIL (no `Decidable` instance is
+  found); the same guards on the `abbrev` instance pass.
+  Scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean
+-/
+import LeanerVM.Protocol.Spine.Toy
+import LeanerVM.Semantics.Instruction
+
+open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Toy
+
+namespace Probe
+
+/-- A stand-in for `leanIsaInstance prog s`, as a `def` with parameters: the statement type is
+`PublicInput`, and the one public line reads lane 0 of the input. -/
+def inst (_prog : Program) (_s : ℕ) : M3Instance :=
+  { toy with
+    Stmt := PublicInput
+    publicLines := fun input ↦ [⟨⟨0, 2⟩, input.lanes 0, 0, true, by decide⟩] }
+
+/-- The same, as an `abbrev`. -/
+abbrev instA (_prog : Program) (_s : ℕ) : M3Instance :=
+  { toy with
+    Stmt := PublicInput
+    publicLines := fun input ↦ [⟨⟨0, 2⟩, input.lanes 0, 0, true, by decide⟩] }
+
+/-- The statement of `satisfiedBy_witnessOf`'s hypothesis elaborates with `input : PublicInput`
+on the `def`: the elaborator unfolds it to see the statement type. -/
+example (prog : Program) (s : ℕ) (input : PublicInput) (q : Column (inst prog s).μ) : Prop :=
+  M3Holds (inst prog s) input q
+
+/-- A program and an input for the evaluation below. -/
+def prog0 : Program := ⟨0, by decide, fun _ ↦ .xor 1 1 1⟩
+def input1 : PublicInput := ⟨fun _ ↦ 1⟩
+def input0 : PublicInput := ⟨fun _ ↦ 0⟩
+
+-- On the `abbrev`, the relation is decided by evaluation, as the toy's is.
+#guard M3Holds (instA prog0 0) input1 honest
+#guard ¬ M3Holds (instA prog0 0) input0 honest
+
+-- On the `def`, instance search does not see through the definition (EXPECTED TO FAIL).
+#guard M3Holds (inst prog0 0) input1 honest
+#guard ¬ M3Holds (inst prog0 0) input0 honest
+
+end Probe
+```
+
+Output (`DefInstance.out`):
+
+```
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:46:7: error: Type mismatch
+  M3Holds (inst prog0 0) input1 honest
+has type
+  Prop
+but is expected to have type
+  Bool
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:46:0: error: cannot evaluate code because 'sorryAx' uses 'sorry' and/or contains errors
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:47:7: error: Type mismatch
+  ¬M3Holds (inst prog0 0) input0 honest
+has type
+  Prop
+but is expected to have type
+  Bool
+.claude/reports/blueprint-review/probes/boundary-adaptor/DefInstance.lean:47:0: error: cannot evaluate code because 'sorryAx' uses 'sorry' and/or contains errors
+exit=1
+```
+
+### `PolyBridge.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor): from a Clean expression to the polynomial an `M3Instance` holds.
+  The blueprint's Layer 2 produces Mathlib's `MvPolynomial`; the instance holds CompPoly's
+  `CMvPolynomial`. CompPoly's conversion from the first to the second is noncomputable at the
+  pin; a direct, computable translation exists. Scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/PolyBridge.lean
+-/
+import LeanerVM
+import CompPoly.Multivariate.MvPolyEquiv.Eval
+import CompPoly.Multivariate.Operations
+
+open LeanerVM.Parameters CompPoly CPoly
+
+namespace Probe
+
+-- The two directions of CompPoly's bridge at the pin.
+#print CPoly.toCMvPolynomial
+#print CPoly.fromCMvPolynomial
+
+/-- A direct translation of a Clean expression over `K` to a computable polynomial in the first
+`n` row variables; a variable past the width reads `0`, as Clean's `Environment.fromArray`
+reads a missing cell. -/
+def exprToCMv (n : ℕ) : Expression K → CMvPolynomial n K
+  | .var v => if h : v.index < n then CMvPolynomial.X ⟨v.index, h⟩ else 0
+  | .const c => CMvPolynomial.C c
+  | .add a b => exprToCMv n a + exprToCMv n b
+  | .mul a b => exprToCMv n a * exprToCMv n b
+
+/-- The first `JUMP` residual, `b + v_cond · w`, on a row `(v_cond, w, b)`. -/
+def residual : Expression K := .add (.var ⟨2⟩) (.mul (.var ⟨0⟩) (.var ⟨1⟩))
+
+/-- A row. -/
+def row : Array K := #[3, 5, 7]
+
+/-- The row as the assignment of the three variables. -/
+def rowFn : Fin 3 → K := fun i ↦ row[i.val]?.getD 0
+
+/-- Clean's value of the residual on the row. -/
+def cleanValue : K := residual.eval (Environment.fromArray row fun _ _ ↦ #[])
+
+/-- The polynomial's value on the row. -/
+def polyValue : K := (exprToCMv 3 residual).eval rowFn
+
+-- The translation runs, agrees with Clean's evaluation on the row, and has the degree the
+-- expression shows.
+#guard polyValue = cleanValue
+#guard (exprToCMv 3 residual).totalDegree = 2
+
+-- A variable past the width is read as zero on both sides.
+def wide : Expression K := .add (.var ⟨5⟩) (.var ⟨0⟩)
+def wideClean : K := wide.eval (Environment.fromArray row fun _ _ ↦ #[])
+def widePoly : K := (exprToCMv 3 wide).eval rowFn
+#guard widePoly = wideClean
+
+end Probe
+```
+
+Output (`PolyBridge.out`):
+
+```
+def CPoly.toCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → MvPolynomial (Fin n) R → CMvPolynomial n R :=
+fun {n} {R} [CommSemiring R] p =>
+  match p with
+  | AddMonoidAlgebra.ofCoeff { support := s, toFun := f, mem_support_toFun := mem_support_toFun } =>
+    let unlawful := Unlawful.ofList (List.map (fun m => (CMvMonomial.ofFinsupp m, f m)) s.toList);
+    ⟨unlawful, ⋯⟩
+def CPoly.fromCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → CMvPolynomial n R → MvPolynomial (Fin n) R :=
+fun {n} {R} [CommSemiring R] p =>
+  let support := List.map CMvMonomial.toFinsupp (Lawful.monomials p);
+  let toFun := fun f => p[CMvMonomial.ofFinsupp f]?.getD 0;
+  have mem_support_fun := ⋯;
+  AddMonoidAlgebra.ofCoeff { support := support.toFinset, toFun := toFun, mem_support_toFun := ⋯ }
+exit=0
+```
+
+### `PolyBridgeNew.lean`
+
+```lean
+/-
+  Probe (boundary-adaptor), NEW-PIN VARIANT (CompPoly 572f9973, K.ofBits in place of numerals): from a Clean expression to the polynomial an `M3Instance` holds.
+  The blueprint's Layer 2 produces Mathlib's `MvPolynomial`; the instance holds CompPoly's
+  `CMvPolynomial`. CompPoly's conversion from the first to the second is noncomputable at the
+  pin; a direct, computable translation exists. Scratch work for the blueprint review.
+  Run from the repository root:
+    flock .claude/reports/blueprint-review/logs/lean.lock \
+      lake env lean .claude/reports/blueprint-review/probes/boundary-adaptor/PolyBridgeNew.lean
+-/
+import LeanerVM
+import CompPoly.Multivariate.MvPolyEquiv.Eval
+import CompPoly.Multivariate.Operations
+
+open LeanerVM.Parameters CompPoly CPoly
+
+namespace Probe
+
+-- The two directions of CompPoly's bridge at the pin.
+#print CPoly.toCMvPolynomial
+#print CPoly.fromCMvPolynomial
+
+/-- A direct translation of a Clean expression over `K` to a computable polynomial in the first
+`n` row variables; a variable past the width reads `0`, as Clean's `Environment.fromArray`
+reads a missing cell. -/
+def exprToCMv (n : ℕ) : Expression K → CMvPolynomial n K
+  | .var v => if h : v.index < n then CMvPolynomial.X ⟨v.index, h⟩ else 0
+  | .const c => CMvPolynomial.C c
+  | .add a b => exprToCMv n a + exprToCMv n b
+  | .mul a b => exprToCMv n a * exprToCMv n b
+
+/-- The first `JUMP` residual, `b + v_cond · w`, on a row `(v_cond, w, b)`. -/
+def residual : Expression K := .add (.var ⟨2⟩) (.mul (.var ⟨0⟩) (.var ⟨1⟩))
+
+/-- A row. -/
+def row : Array K := #[K.ofBits 3, K.ofBits 5, K.ofBits 7]
+
+/-- The row as the assignment of the three variables. -/
+def rowFn : Fin 3 → K := fun i ↦ row[i.val]?.getD 0
+
+/-- Clean's value of the residual on the row. -/
+def cleanValue : K := residual.eval (Environment.fromArray row fun _ _ ↦ #[])
+
+/-- The polynomial's value on the row. -/
+def polyValue : K := (exprToCMv 3 residual).eval rowFn
+
+-- The translation runs, agrees with Clean's evaluation on the row, and has the degree the
+-- expression shows.
+#guard polyValue = cleanValue
+#guard (exprToCMv 3 residual).totalDegree = 2
+
+-- A variable past the width is read as zero on both sides.
+def wide : Expression K := .add (.var ⟨5⟩) (.var ⟨0⟩)
+def wideClean : K := wide.eval (Environment.fromArray row fun _ _ ↦ #[])
+def widePoly : K := (exprToCMv 3 wide).eval rowFn
+#guard widePoly = wideClean
+
+end Probe
+```
+
+Output (`PolyBridgeNew.out`):
+
+```
+def CPoly.toCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → MvPolynomial (Fin n) R → CMvPolynomial n R :=
+fun {n} {R} [CommSemiring R] p =>
+  match p with
+  | AddMonoidAlgebra.ofCoeff { support := s, toFun := f, mem_support_toFun := mem_support_toFun } =>
+    let unlawful := Unlawful.ofList (List.map (fun m => (CMvMonomial.ofFinsupp m, f m)) s.toList);
+    ⟨unlawful, ⋯⟩
+def CPoly.fromCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → CMvPolynomial n R → MvPolynomial (Fin n) R :=
+fun {n} {R} [CommSemiring R] p =>
+  let support := List.map CMvMonomial.toFinsupp (Lawful.monomials p);
+  let toFun := fun f => p[CMvMonomial.ofFinsupp f]?.getD 0;
+  have mem_support_fun := ⋯;
+  AddMonoidAlgebra.ofCoeff { support := support.toFinset, toFun := toFun, mem_support_toFun := ⋯ }
+exit=0
+```

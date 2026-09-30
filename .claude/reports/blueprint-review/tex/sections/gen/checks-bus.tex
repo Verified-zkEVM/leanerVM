@@ -61,14 +61,14 @@ B4 & The program has a power-of-two length, at most $2^{32}$
   & \code{mod.rs:158-159}
   & \code{py:857}, \code{py:862} (\code{log2_strict}, \code{0 <= log_bytecode <= 32})
   & the statement's shape; the read bound
-  & see B6 \\
+  & see the check $τ_j ≤ 32$ (B6) \\
 B5 & $16 ≤ κ_{\mathrm{mem}} ≤ 32$
   & \code{06:86}
   & \code{mod.rs:160}; \code{mod.rs:51-52}
   & \code{py:859}
   & upper: the read bound; lower: the guest's range checks assume at least $2^{16}$ cells
   (\code{mod.rs:45-50})
-  & upper: see B6. Lower: none on the relation's soundness; a smaller memory makes honest range
+  & upper: see the check $τ_j ≤ 32$ (B6). Lower: none on the relation's soundness; a smaller memory makes honest range
   checks fail \\
 B6 & $τ_j ≤ 32$
   & \code{06:80}
@@ -80,7 +80,7 @@ B6 & $τ_j ≤ 32$
   & with $2^{64} − 1$ reads of one pair $(a, v)$ that is no entry of the array, counts
   $g⁰, g¹, …, g^{2^{64}−2}$: the pulled counts and the pushed counts $g·c$ are the same
   multiset, every count is nonzero, the bus balances, and the read is wrong. A mathematical
-  counterexample, not a feasible one. Given B9 the three upper caps are implied
+  counterexample, not a feasible one. Given the stacking window (B9) the three upper caps are implied
   ($μ_{\mathrm{stack}} ≤ 28$ forces $τ_j ≤ 24$, $κ_{\mathrm{mem}} ≤ 26$,
   $κ_{\mathrm{bc}} ≤ 28$); they are checked first because the layout shifts by them
   (\code{witness.rs:76}). (The citation check found these implied caps true but loose: the
@@ -121,8 +121,8 @@ B11 & Layout facts, asserted: \code{push.mu = pull.mu}, \code{count.mu ≤ push.
   & \code{leaf.rs:130-145} (\code{assert!}, a panic)
   & absent
   & the verifier's own arithmetic
-  & none: they are functions of the announced sizes and hold for every size that passes B4 to
-  B9 \\
+  & none: they are functions of the announced sizes and hold for every size that passes the caps and the windows (B4 to
+  B9) \\
 B12 & \textbf{One root for both sides}
   & \code{08:68-69}, \code{08:100} ``the one bus root for both sides''
   & structural: one element read into two slots, \code{gkr.rs:364-367}

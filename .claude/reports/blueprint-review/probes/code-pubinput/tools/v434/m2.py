@@ -19,9 +19,9 @@ IMPORT_TOY,
 """),
 ("""  rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
   by_cases h : check I s (tr 0) (tr 1) = true
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     rfl
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     rfl
 """,
 """  rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
@@ -33,14 +33,14 @@ IMPORT_TOY,
 """,
 """  check := fun _ _ ↦ true
   out := fun p tr ↦ (pooledFrom I p.1 (tr 0) (tr 1), p.2)
-  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (if_pos rfl).symm
+  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (ite_eq_left rfl).symm
 """),
 ("""  have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
 """,
 """  have hc : (guarded I).check (s, o) pr.1 = true := rfl
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
   have hpool : (guarded I).out (s, o) pr.1 = (pooled I s (pr.1 0), o) := by
     show (pooledFrom I s (pr.1 0) (pr.1 1), o) = (pooled I s (pr.1 0), o)
     rw [hmsg, pooledFrom_expected]

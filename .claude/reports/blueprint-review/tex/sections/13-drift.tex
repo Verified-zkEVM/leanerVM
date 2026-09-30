@@ -1,1 +1,180 @@
-% stub: to be written
+\chapter{Keeping the Lean verifier from drifting away from the deployed one}\label{ch:drift}
+
+The requirement, stated by the owner: a verifier that omits a check leanVM makes, or makes a
+weaker one, must have no proof of knowledge soundness; a verifier that makes a wrong check, or
+one leanVM does not make, must have no proof of completeness. The theorems, not the tests, are
+to keep leanerVM faithful. This chapter says where that holds today, where it does not and why,
+and what would make it hold as the work proceeds and the pin moves.
+
+\section{Where a weakening can hide}\label{sec:drift-hiding}
+
+The chain from \lean{verify} to the semantics (\cref{fig:chain}) has five places where a
+missing or wrong check could go unnoticed by the master theorems. For each, the review says
+whether it occurs today.
+
+\paragraph{The relation weakened in step with the verifier.} The relation is
+\lean{M3Holds I input q}, and \lean{I} is data: its \lean{publicLines}, its \lean{aux}, its
+\lean{counts}, its \lean{boundary}, its \lean{constraints} and \lean{flushes}, its
+\lean{layout}. A verifier that omits the claim on the top memory limb, together with an
+instance that lists two public lines instead of three, is knowledge sound: every theorem of the
+spine and of the public-input phase holds of the two-line instance. A Flock verifier that checks
+nothing, together with an instance whose \lean{aux} is \lean{True}, is knowledge sound at error
+zero (probe \code{NoCheckFlock}). An instance whose layout aliases columns has an empty
+relation and both master theorems (probe \code{P2Relation}). \emph{This occurs.} It is the
+price of stating the protocol over an abstract instance: the instance is where leanVM's
+relation enters, and the oracle protocol's theorems cannot check the instance. What catches a
+weakened instance is the adaptor's soundness theorem, \lean{satisfiedBy_witnessOf}, whose
+conclusion \lean{SatisfiedBy} does not weaken with the instance: a two-line instance leaves its
+public-word conjunct unprovable (\lean{SatisfiedBy.word0\_eq} has the top limb zero by the type
+of \lean{PublicInput}); a trivial \lean{aux} leaves \lean{Blake2sRowsValid} unprovable; an
+aliasing layout leaves the completeness theorem \lean{m3Holds_stackOf} unprovable. Behind the
+adaptor, \lean{constraintSoundness} anchors \lean{SatisfiedBy} to \lean{ValidExecution}. None of
+these three theorems is built. \textbf{Until the adaptor is built, the master theorems
+constrain the instance by nothing, and a weakening of the instance is caught by no theorem on
+\code{main}.}
+
+\paragraph{A property supplied as a hypothesis that nothing discharges.} The master theorems
+take \lean{Phases.Complete} and \lean{Phases.Security} as hypotheses; four of the five phases
+are unbuilt, so the hypotheses are undischarged. Worse, \lean{Phases.Security} can be
+discharged by phases that check nothing at declared error one (probe \code{P4Junk}): the error
+is the phases' own field. \emph{This occurs}, and it is the finding that most changes how the
+soundness theorem should be read (\cref{sec:nv-hypotheses}). The repair is to fix the error in
+the spine, so that a phase can only meet its slot by earning the bound.
+
+\paragraph{A check behind an assumed interface.} Flock, ring switching, WHIR's soundness, the
+Merkle compilation and Fiat--Shamir are consumed as interfaces. Today none exists in Lean; when
+they exist, a check the deployed verifier makes inside one of them (the lincheck's terminal
+identity; the Merkle path check; the grinding check) is load-bearing only for the interface's
+own theorem, which another roadmap or an upstream library owes. \emph{This occurs by design},
+and the report accepts it on two conditions: that each interface is a structure whose fields are
+theorems with named owners and no inhabitant in the repository until they are proved (the
+repository's own rule against uninhabited load-bearing types then flags them), and that the
+interfaces are stated for leanVM's constructions, which the Fiat--Shamir and BCS ones today are
+not (\cref{sec:faith-opening}).
+
+\paragraph{A property lost between the abstract instance and leanISA's, or in the adaptor.}
+The instance for leanISA does not exist; the adaptor does not exist. What the review found is
+that the blueprint's sketch of them cannot be written as it stands (the admissibility predicate,
+the strided reader of the limb columns, the Flock predicate, the fit of the layout) and that
+the sketch's \lean{witnessOf} builds parts of the witness from the program, which is sound only
+if balance is then proved of the mixed witness (\cref{ch:faithfulness}). \emph{Cannot occur
+yet}, since nothing is there to lose it; the report's recommendations for Layer 3 are where it
+must be prevented.
+
+\paragraph{A check present in the oracle verifier and absent from the compiled one, or in Lean
+and absent from Rust.} The compiled verifier does not exist. Between Lean and Rust the review
+found one check that Lean makes and the deployed verifiers do not (the per-limb public-input
+check), one that the deployed verifiers make and Lean's oracle protocol cannot (the proof of
+work), and three format checks the blueprint does not list (canonical encodings of the sizes
+and of the root, the stream fully consumed). \emph{This occurs} at the public-input phase
+today, and would occur at the compilation as planned.
+
+\section{The public-input phase, as the test case}\label{sec:drift-pubinput}
+
+The owner's own example was the top lane of the two public words. Following it to its anchor:
+
+\begin{enumerate}
+\item In the deployed verifier, two things enforce it: the statement-level rejection of a
+  public word with a nonzero top limb at setup (\file{cpu/mod.rs:141-143}), and the pooled claim
+  that the top memory limb is zero at $(r, 0, \dots, 0)$, for which no scalar is sent.
+\item In Lean, the first is enforced by the type: leanISA's \lean{PublicInput} is four lanes of
+  $\K$, so a nonzero top limb is not writable. The second is the third public line of the
+  leanISA instance, which the blueprint specifies and which nothing on \code{main} states.
+\item The phase pools the third claim because the instance lists a third line. Drop the line
+  and every theorem of the spine and of the phase still holds (\cref{sec:nv-pubinput}). The
+  master theorems do not catch it.
+\item The adaptor's theorem \lean{satisfiedBy_witnessOf} would: \lean{SatisfiedBy} requires
+  the memory cells $0$ and $1$, as three-limb values, to be the public words, whose top limb is
+  zero by type. Without the third line the top limb of the extracted memory is unconstrained
+  and the conjunct is unprovable. Behind it, \lean{constraintSoundness} carries the conjunct to
+  the semantics.
+\item So the answer to the owner's question is: \textbf{the master theorems do not catch it;
+  the adaptor's soundness theorem does, once it exists; the blueprint's acceptance test 10 is a
+  test on the pool, not a theorem.} The chain is anchored, but its anchor is two unbuilt
+  theorems away from the oracle protocol.
+\end{enumerate}
+
+The same phase gave a second, harder lesson. Its check on the prover's message is not
+load-bearing for any theorem, because the verifier pools the values it computes rather than the
+values it received (\cref{sec:nv-pubinput}). The requirement cannot be met for that check by
+any theorem about the phase as designed, since omitting the check yields a sound verifier: a
+verifier that ignores the message and pools the statement's values is right to do so. What
+makes the check load-bearing is the design of the deployed verifiers, which pool the values
+\emph{sent}: with \lean{pooledFrom} in place of \lean{pooled} the omission and the weakening are
+refuted by Lean theorems and a wrong check breaks completeness for every prover (probes
+\code{Probe2TrustProver}, \code{Probe3b}, \code{Probe7a}). The rule this gives is general:
+\emph{a check is load-bearing only if the verifier commits to what it checked.} A phase that
+recomputes what the prover sent makes the message, and its check, decorative.
+
+\section{The checks of the deployed verifier, one by one}\label{sec:drift-checks}
+
+For every check the deployed verifier makes at the pin, the tables below give where it is in
+the three sources, what it protects, the concrete cheating prover or witness a verifier
+without it would accept, and, where a phase is built, the Lean check and the theorem that
+makes it necessary. They are the review's enumeration from the specification and from the
+rejection paths of the Rust and Python verifiers; the setup's checks and the format checks are
+included, since the compiled verifier must make them and the blueprint does not list them.
+
+\InputIfFileExists{sections/gen/checks-bus}{}{\emph{[The checks of the setup, the commitment
+and the bus phase: fragment pending.]}}
+\InputIfFileExists{sections/gen/checks-table-pub}{}{\emph{[The checks of the table sumcheck
+and the public-input phase: fragment pending.]}}
+\InputIfFileExists{sections/gen/checks-flock}{}{\emph{[The checks of the BLAKE2s validity
+phase and ring switching: fragment pending.]}}
+\InputIfFileExists{sections/gen/checks-opening}{}{\emph{[The checks of the opening and of
+the compiled verifier: fragment pending.]}}
+
+Three checks stand out because no planned theorem makes them load-bearing: the proof of work
+(grinding), the canonical encodings, and the consumption of the stream. The first is a soundness
+check in the non-interactive setting only, and no published theorem covers Fiat--Shamir with
+proof of work for a multi-round protocol; the other two are format checks whose omission lets
+\lean{verify} accept streams the deployed verifier rejects. All three need a mutation test in
+the compiled verifier's fixture (\cref{sec:drift-mechanisms}).
+
+\section{What keeps it true}\label{sec:drift-mechanisms}
+
+\paragraph{Stated once, so that it cannot drift.} The relation, the seams and the error: the
+first two are the spine's already; the error is to be (\cref{sec:aud-proposals}). With the
+error fixed by the spine, a phase that declares less than it earns does not typecheck against
+its slot.
+
+\paragraph{What each phase delivers before it lands.} For each check of the phase's verifier,
+a \emph{refutation}: a Lean theorem that the verifier without that check has no round-by-round
+knowledge soundness against the seams at any error below one, whatever the extractor and the
+state function; and for each check the deployed verifier does not make, a theorem that the
+verifier with it is not perfectly complete. The public-input phase's audit gives the two
+generic lemmas this needs (\code{not\_rbr} and \code{not\_perfectCompleteness},
+\cref{ch:probes}); they belong in \file{ToArkLib/}. A mutation whose omission cannot be
+refuted is a check the verifier does not rely on, and the phase's design should be revised
+until it does (the rule of \cref{sec:drift-pubinput}). These refutations are tests under
+\file{tests/}, run by \code{lake test}, and a phase's pull request lists them.
+
+\paragraph{What ties the Lean verifier to the deployed one.} The compiled verifier's refinement
+theorem ties \lean{verify} to the oracle protocol by definition; only a fixture ties either to
+the Rust. The fixture is a proof produced by the pinned Rust prover, accepted by \lean{verify}
+under \lean{\#guard}, with a mutation per check: each of the checks of \cref{sec:drift-checks}
+gets a mutated proof that the deployed verifier rejects and that \lean{verify} must reject too.
+The blueprint's six mutations become as many as there are checks. Reverse tests, transcripts
+the specification rejects run through the Rust and Python verifiers, are how the per-limb
+public-input divergence would have been found by a test rather than by a reader; the review
+recommends them for every check whose statement in the specification differs from the code.
+
+\paragraph{What is examined again when the pin moves.} The leanVM pin: every check of
+\cref{sec:drift-checks} against the new verifier's rejection paths, the message and challenge
+counts of every phase, the layouts and their tie-breaking orders, the constants of Flock and
+of Fiat--Shamir, the parameter tables. The library pins: the admitted theorems the ledger names
+(this upgrade lifted none), the notation of the probability bridges (this upgrade changed it),
+the meaning of numerals in $\K$ (this upgrade changed it), and every acceptance test that
+\lean{decide}s a numeral.
+
+\paragraph{What the repository's validation can enforce.} Today it enforces the axiom
+closure, the absence of \lean{sorry}, the layer DAG and the documentation index. It can also
+enforce: the wall (a rule in \file{scripts/check-layers.sh} listing the modules allowed to
+import the arithmetization, which today would flag \file{Protocol/Basic.lean}); the presence,
+for every built phase, of a refutation test per check (a script that reads the phase's checks
+from a manifest and asserts a test per entry); the fixture and its mutations, once the
+compiled verifier exists; and, at a pin move, a script that re-derives the message and
+challenge counts of every phase from its \lean{Def} and compares them with counts dumped from
+the Rust prover. What it cannot enforce is that a phase's definition is leanVM's: that rests
+on review against the specification, which is why this report's tables of the transcript
+exist.

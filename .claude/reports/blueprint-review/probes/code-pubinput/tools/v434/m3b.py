@@ -29,14 +29,14 @@ def checkWeak (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
   out := fun p tr ↦ (pooledFrom I p.1 (tr 0) (tr 1), p.2)
 """),
 ("""  have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
 """,
 """  have hc : (guarded I).check (s, o) pr.1 = true := by
     show checkWeak I s (pr.1 0) (pr.1 1) = true
     rw [hmsg]
     exact decide_eq_true rfl
-  rw [if_pos hc]
+  rw [ite_eq_left hc]
   have hpool : (guarded I).out (s, o) pr.1 = (pooled I s (pr.1 0), o) := by
     show (pooledFrom I s (pr.1 0) (pr.1 1), o) = (pooled I s (pr.1 0), o)
     rw [hmsg, pooledFrom_expected]

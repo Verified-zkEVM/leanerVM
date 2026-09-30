@@ -31,10 +31,10 @@ def pooledSent (s : I.Stmt × TableOut I) (r : E) : I.Stmt × PubOut I :=
 """,
 """    pr.1 1 = expectedValues I s.1 (pr.1 0) ∧ pr.2 = ((pooledSent I s (pr.1 0), o), ()) := by
 """),
-("""  rw [if_pos hc]
+("""  rw [ite_eq_left hc]
   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
 """,
-"""  rw [if_pos hc]
+"""  rw [ite_eq_left hc]
   have hsub : ((pooledSent I s (pr.1 0), o), ()) ∈ Seam.pub I := by
     obtain ⟨hcols, haux⟩ := pooled_mem_pub I s o hIn (pr.1 0)
     refine ⟨fun c hc ↦ hcols c ?_, haux⟩

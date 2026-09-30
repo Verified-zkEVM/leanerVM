@@ -47,7 +47,7 @@ Check & Specification & Rust & Python & Protects & Accepted without it \\
   position; the link between the $s_i$ and the matrices
   & Any $\qflock$. The prover commits limb slots with a wrong digest and zeros elsewhere, sends
   arbitrary messages at steps 3, 6, 7, 9 and the \textbf{true} $s_i$; ring switching and the
-  opening accept, since the $s_i$ are true of $q$ \\
+  opening accept, since the $s_i$ are true of $q$ \\ \addlinespace[2pt]
 \textbf{Zeros assumed on $H$} (step 5): the verifier interpolates with 64 zeros, it does not
   receive them
   & \code{c-flock:62}
@@ -55,7 +55,7 @@ Check & Specification & Rust & Python & Protects & Accepted without it \\
   & \code{verifier.py:1144}
   & This is where $a·b + c = 0$ is imposed
   & If the 64 values on $H$ were read from the prover: the prover sends the true $P$ of a witness
-  violating the R1CS; every later step is honest and passes \\
+  violating the R1CS; every later step is honest and passes \\ \addlinespace[2pt]
 \textbf{$c_0$ derived} in each zerocheck round (step 6), equivalently the round check $c_0 +
   r_i(c_1 + c_2) = \mathit{claim}$
   & \code{03:110}, \code{c-flock:69}
@@ -63,14 +63,14 @@ Check & Specification & Rust & Python & Protects & Accepted without it \\
   & \code{verifier.py:411-413}
   & The chain from $v_P$ to $R_{\mathrm{zc}}$
   & With $c_0$ free: the prover ignores $v_P$, runs an honest sumcheck of the true (nonzero) sum,
-  ends at true $v_a, v_b, v_c$ \\
+  ends at true $v_a, v_b, v_c$ \\ \addlinespace[2pt]
 \textbf{$v_c$ derived} (step 7), equivalently the check $R_{\mathrm{zc}} = v_a v_b + v_c$
   & \code{c-flock:70-73}
   & \code{zerocheck.rs:423}
   & \code{verifier.py:1149}
   & The link between the zerocheck and the lincheck
   & With $v_c$ sent and unchecked: true $v_a, v_b, v_c$ of a violating witness pass the lincheck;
-  the zerocheck constrains nothing \\
+  the zerocheck constrains nothing \\ \addlinespace[2pt]
 \textbf{The $α³$ term} in the target (step 8) and in the terminal identity (step 11)
   & \code{c-flock:23-28}, \code{:112-118}, \code{:131}
   & \code{lincheck.rs:1202, 1240}
@@ -79,34 +79,34 @@ Check & Specification & Rust & Python & Protects & Accepted without it \\
   & The all-zero block: every row of the R1CS is homogeneous, so $z_t = 0$ satisfies it
   (\code{hash.rs:1176-1183} \enquote{homogeneous rows accept zero without the pin}). The limb
   slots are then zero: the statement \enquote{the compression of the zero input under the zero
-  chaining value is zero} is accepted \\
+  chaining value is zero} is accepted \\ \addlinespace[2pt]
 \textbf{$c_1$ derived} in each lincheck round (step 9), equivalently $c_1 + c_2 = \mathit{claim}$
   & \code{03:110}
   & \code{transcript.rs:298-299}
   & \code{verifier.py:409-410}
   & The chain from the target to $R_{\mathrm{lc}}$
   & With $c_1$ free: the prover runs the sumcheck of the true inner product of a wrong witness;
-  the target is never compared \\
+  the target is never compared \\ \addlinespace[2pt]
 \textbf{$T$ computed by the verifier} from the $s_i$ (step 13)
   & \code{a-ring:45}
   & \code{stack_open.rs:522-524}
   & \code{verifier.py:1346}
   & The $s_i$ are the slices of the committed $\qflock$
   & With $T$ sent: the terminal identity is one linear equation in 64 unknowns; the prover picks
-  $s$ satisfying it for any witness and sends the true $⟨W, q⟩$ \\
+  $s$ satisfying it for any witness and sends the true $⟨W, q⟩$ \\ \addlinespace[2pt]
 \textbf{The weighted claim enters the batch} (step 14)
   & \code{08:98-99}
   & \code{stack_open.rs:522-524}
   & \code{verifier.py:1413}
   & the same
-  & the same \\
+  & the same \\ \addlinespace[2pt]
 \textbf{The limb claims enter the batch} as claims on $\qflock$
   & \code{08:77, 97}
   & \code{cpu/mod.rs:798-806}, \code{stack_open.rs:525-527}
   & \code{verifier.py:892, 1413}
   & The limbs the bus used are the words Flock proved
   & A $\qflock$ of valid but unrelated compressions, and limb values chosen to balance the memory
-  bus: a forged digest in memory \\
+  bus: a forged digest in memory \\ \addlinespace[2pt]
 \textbf{The size floor} $τ_{\mathrm{BLAKE2S}} ≥ 3$ and the cap $≤ 32$
   & cap only, \code{06:80}; \textbf{the floor is absent}
   & \code{cpu/mod.rs:161-166}
@@ -119,13 +119,13 @@ Check & Specification & Rust & Python & Protects & Accepted without it \\
   the floor \enquote{the lincheck floor of \code{n_blocks_log ≥ 3} (\code{n_outer ≥ 8})},
   \code{hash.rs:281-282}; the lincheck verifier has no such check, \code{lincheck.rs:1151-1176}
   comparing lengths only, so the floor is a constraint of the prover's layout; what in the
-  lincheck prover needs \code{n_outer ≥ 8} was not checked.) \\
+  lincheck prover needs \code{n_outer ≥ 8} was not checked.) \\ \addlinespace[2pt]
 \textbf{The stream is consumed}
   & \code{08:100} (implicit)
   & \code{cpu/mod.rs:769}
   & \code{verifier.py:1414}
   & No trailing data
-  & Malleable proofs \\
+  & Malleable proofs \\ \addlinespace[2pt]
 Shape checks inside the reduction
   & none
   & \code{lincheck.rs:1151-1176}, \code{zerocheck.rs:354-356}

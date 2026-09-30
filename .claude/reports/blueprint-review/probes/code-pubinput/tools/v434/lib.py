@@ -53,20 +53,20 @@ theorem not_rbr {StmtIn StmtOut : Type} {relIn : Set (StmtIn × Unit)}
           (default : Transcript 0 pSpec)) witMid := by
     intro r
     obtain ⟨hc, hout⟩ := hacc r
-    have hpos : Pr[fun stmtOut => (stmtOut, ()) ∈ relOut
-        | OptionT.mk do
+    have hpos : Pr{let stmtOut ← OptionT.mk do
             (simulateQ impl (V.run stmt (tr2 r (msg r)))).run'
-              (← (pure () : ProbComp Unit))] > 0 := by
+              (← (pure () : ProbComp Unit))}[(stmtOut, ()) ∈ relOut] > 0 := by
       have hv : V.run stmt (tr2 r (msg r)) = pure (G.out stmt (tr2 r (msg r))) := by
         have := G.verify_eq stmt (tr2 r (msg r))
-        rw [if_pos hc] at this
+        rw [ite_eq_left hc] at this
         exact this
       rw [hv]
-      change Pr[_ | OptionT.mk (do let st ← (pure () : ProbComp Unit); (simulateQ impl
-        (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
-          OptionT (OracleComp []ₒ) StmtOut))).run' st)] > 0
+      change Pr{let sample ← OptionT.mk (do
+        let st ← (pure () : ProbComp Unit)
+        (simulateQ impl (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
+          OptionT (OracleComp []ₒ) StmtOut))).run' st)}[(sample, ()) ∈ relOut] > 0
       rw [OptionT.run_pure, simulateQ_pure]
-      rw [gt_iff_lt, probEvent_pos_iff]
+      rw [gt_iff_lt, OracleComp.OptionT.prEvent_mk_pos_iff]
       refine ⟨G.out stmt (tr2 r (msg r)), ?_, hout⟩
       simp
     have hfull := kSF.toFun_full stmt (tr2 r (msg r)) () hpos
@@ -77,15 +77,15 @@ theorem not_rbr {StmtIn StmtOut : Type} {relIn : Set (StmtIn × Unit)}
     intro h0
     exact hin ((kSF.toFun_empty stmt _).mpr h0)
   -- So the bad event has probability one.
-  have hone : Pr[fun challenge : E => ∃ witMid,
+  have hone : Pr{let challenge ← $ᵗ E}[∃ witMid,
       ¬ kSF (Fin.castSucc 0) stmt (default : Transcript 0 pSpec)
           (ext.extractMid 0 stmt
             (Transcript.concat (m := (0 : Fin 2)) challenge
               (default : Transcript 0 pSpec)) witMid) ∧
         kSF (Fin.succ 0) stmt (Transcript.concat (m := (0 : Fin 2)) challenge
-          (default : Transcript 0 pSpec)) witMid | $ᵗ E] = 1 := by
-    rw [probEvent_eq_one_iff]
-    exact ⟨by simp, fun r _ ↦ hall r⟩
+          (default : Transcript 0 pSpec)) witMid] = 1 := by
+    rw [OracleComp.prEvent_eq_one_iff]
+    exact fun r _ ↦ hall r
   have hle : (1 : ℝ≥0∞) ≤ ((ε ⟨0, rfl⟩ : ℝ≥0) : ℝ≥0∞) := hone ▸ hbound
   exact absurd (ENNReal.coe_lt_one_iff.mpr hε) (not_lt.mpr hle)
 
@@ -106,8 +106,9 @@ theorem not_perfectCompleteness {ι : Type} {oSpec : OracleSpec ι}
   have h1 := hc stmtIn witIn hin
   dsimp only at h1
   have hpos := lt_of_lt_of_eq (zero_lt_one' ℝ≥0∞) h1.symm
-  obtain ⟨x, hx, hev⟩ := probEvent_pos_iff.mp hpos
-  rw [OptionT.mem_support_iff, OptionT.run_mk, mem_support_bind_iff] at hx
+  obtain ⟨x, hx, hev⟩ := (OracleComp.OptionT.prEvent_mk_pos_iff _
+    (fun x ↦ (x.2, x.1.2.2) ∈ relOut ∧ x.1.2.1 = x.2)).mp hpos
+  rw [mem_support_bind_iff] at hx
   obtain ⟨s, _, hx⟩ := hx
   exact h (some x) (support_simulateQ_run'_subset _ _ s hx) x rfl hev
 

@@ -17,9 +17,9 @@ EDITS = [
 """),
 ("""  rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
   by_cases h : check I s (tr 0) (tr 1) = true
-  · rw [if_pos h, if_pos h]
+  · rw [ite_eq_left h, ite_eq_left h]
     rfl
-  · rw [if_neg h, if_neg h]
+  · rw [ite_eq_right h, ite_eq_right h]
     rfl
 """,
 """  rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
@@ -32,7 +32,7 @@ EDITS = [
 """,
 """  check := fun _ _ ↦ true
   out := fun p tr ↦ (pooled I p.1 (tr 0), p.2)
-  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (if_pos rfl).symm
+  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (ite_eq_left rfl).symm
 """),
 # completeness: the guard passes by definition
 ("""  have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
@@ -87,10 +87,10 @@ theorem rbr' :
     · rfl
     · exact absurd hi (by decide)
   subst hi0
-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
-  rintro r - ⟨_, hin, hout⟩
+  rintro r ⟨_, hin, hout⟩
   exact ⟨hin, hout⟩
 
 end PublicInput

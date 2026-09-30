@@ -51,11 +51,11 @@ $z$ is packed into $\qflock$, a region of the stack
   of the stack}; \code{08:60}
 & \code{hash_flock.rs:3-5} \enquote{committed as a column in leanVM's ONE stacked \code{F64}
   witness \dots, with no separate flock commitment}; \code{cpu/layout.rs:25} \code{QFLOCK = 5}
-& \code{verifier.py:633}, \code{:879-880} \\
+& \code{verifier.py:633}, \code{:879-880} \\ \addlinespace[2pt]
 Packing: bit $i$ of word $u$ is $z(i, u)$, coefficient of $x^i$
 & \code{a-ring:13-16} $\qflock(u) = Σ_i Q_i(u) x^i$
 & \code{pack.rs:1-2} \enquote{least significant bit first}; \code{hash_flock.rs:187-197}
-& (verifier only) \\
+& (verifier only) \\ \addlinespace[2pt]
 No other oracle, no other commitment
 & \code{c-flock:264} \enquote{the PCS proves the claims opened on $\qflock$}
 & \code{flock/src/lib.rs:6-13}; \code{cpu/mod.rs:564-571}
@@ -95,50 +95,50 @@ computation. All values are in $\E$. Counts are per proof.
   & \code{c-flock:54} (value of $g_0$ not given: \enquote{where $g_0∈\E$ is public})
   & \code{zerocheck.rs:51-58}; \code{univariate_skip_optimized.rs:65, 79-101}; $g_0$ at
   \code{:104-106}
-  & \code{verifier.py:1095-1100} \\
+  & \code{verifier.py:1095-1100} \\ \addlinespace[2pt]
 2 & \code{V →} $n_{\mathrm{flock}} − 7 = k_{\mathrm{batch}} + 1$ coordinates $r_7..$, before any
   Flock message
   & \code{c-flock:55}, \code{:173}
   & \code{zerocheck.rs:362} \code{equality_tail(m, |n| vs.sample_vec(n))}
-  & \code{verifier.py:1139} \\
+  & \code{verifier.py:1139} \\ \addlinespace[2pt]
 3 & \code{P →} $P$ on the coset $H' = φ_8(64..127)$: 64 values
   & \code{c-flock:62} \enquote{The prover sends $P|_{H'}$, $64$ values}
   & \code{zerocheck.rs:365} (prover \code{:185-187})
-  & \code{verifier.py:1142} \\
+  & \code{verifier.py:1142} \\ \addlinespace[2pt]
 4 & \code{V →} $z_{\mathrm{skip}}$
   & \code{c-flock:64}
   & \code{zerocheck.rs:366}
-  & \code{verifier.py:1143} \\
+  & \code{verifier.py:1143} \\ \addlinespace[2pt]
 5 & \code{V:} $v_P$, the value at $z_{\mathrm{skip}}$ of the interpolant of the 64 received values
   and \textbf{64 assumed zeros} on $H$; no check
   & \code{c-flock:62-67}
   & \code{zerocheck.rs:378}; \code{zerocheck/multilinear.rs:129-138}
-  & \code{verifier.py:1144} \\
+  & \code{verifier.py:1144} \\ \addlinespace[2pt]
 6 & $n_{\mathrm{flock}}$ rounds. \code{P →} two coefficients $c_1, c_2$ of the quadratic cofactor
   $G_i$; \code{V:} $c_0 := \mathit{claim} + r_i·(c_1 + c_2)$; \code{V →} $χ_i$; \code{V:}
   $\mathit{claim} := G_i(χ_i)$. Low variable first. No check
   & \code{c-flock:69} (\enquote{with Gruen's eq-factor optimization}); \code{03:110}
   & \code{zerocheck.rs:397-405}; \code{transcript.rs:289-309} (prover \code{zerocheck.rs:116-123})
-  & \code{verifier.py:1147}, \code{:406-413}, \code{:420-427} \\
+  & \code{verifier.py:1147}, \code{:406-413}, \code{:420-427} \\ \addlinespace[2pt]
 7 & \code{P →} $v_a, v_b$; \code{V:} $v_c := R_{\mathrm{zc}} + v_a·v_b$ (never sent, never checked)
   & \code{c-flock:69-73} \enquote{is what \emph{defines} $v_c$: both sides solve it rather than
   transmit it}
   & \code{zerocheck.rs:421-423}
-  & \code{verifier.py:1148-1149} \\
+  & \code{verifier.py:1148-1149} \\ \addlinespace[2pt]
 8 & \code{V →} $α_{\mathrm{lc}}$; \code{V:} target $v_a + α v_b + α² v_c + α³$
   & \code{c-flock:112-118}
   & \code{lincheck.rs:1179}, \code{:1199-1203}
-  & \code{verifier.py:1155}, \code{:1162} \\
+  & \code{verifier.py:1155}, \code{:1162} \\ \addlinespace[2pt]
 9 & 8 rounds. \code{P →} two coefficients $c_0, c_2$ of the quadratic; \code{V:} $c_1 :=
   \mathit{claim} + c_2$; \code{V →} challenge; high variable first, so the point
   $χ'_{\mathrm{in}}$ is the challenges reversed
   & \code{c-flock:122}
   & \code{lincheck.rs:1205-1211}, \code{:1218-1219} (prover \code{:1085-1107})
-  & \code{verifier.py:1163}, \code{:1169} \\
+  & \code{verifier.py:1163}, \code{:1169} \\ \addlinespace[2pt]
 10 & \code{P →} $s_0..s_{63}$, claimed $s_i = \mle{z}(i, χ'_{\mathrm{in}}, χ_{\mathrm{out}})$
   & \code{c-flock:124}
   & \code{lincheck.rs:1214} (prover \code{:1113-1115})
-  & \code{verifier.py:1168} \\
+  & \code{verifier.py:1168} \\ \addlinespace[2pt]
 11 & \code{V:} \textbf{check} the terminal identity $R_{\mathrm{lc}} = e_{\mathrm{row}}^T (A_0 + α
   B_0) w_{\mathrm{col}} + α²·\eq(χ_{\mathrm{in}}, χ'_{\mathrm{in}})·Σ_i ϖ_i(z_{\mathrm{skip}})
   s_i + α³·\eq(χ'_{\mathrm{in}}, 8)·s_0$; reject otherwise
@@ -147,23 +147,23 @@ computation. All values are in $\E$. Counts are per proof.
   \code{CpuError::Blake2s} at \code{cpu/mod.rs:765}; the matrix term is \code{hash.rs:361-389}
   (\code{bilinear_walk})
   & \code{verifier.py:1170-1176} \code{require(terminal == r_lc, …)}; matrix term
-  \code{:1180-1301} \\
+  \code{:1180-1301} \\ \addlinespace[2pt]
 12 & \code{V →} six challenges $f_0..f_5$ (ring switching)
   & \code{a-ring:104}; \code{08:91}
   & \code{stack_open.rs:513}; \code{ring_switch.rs:160-162}
-  & \code{verifier.py:1343} \\
+  & \code{verifier.py:1343} \\ \addlinespace[2pt]
 13 & \code{V:} target $T = Σ_i x^i Φ(s_i)$; the weight is $W(u) = Φ(\eq(r, u))$ on the
   $\qflock$ region, $r = (χ'_{\mathrm{in}}, χ_{\mathrm{out}})$. No message, no check
   & \code{a-ring:44-46}, \code{:104-110}
   & \code{stack_open.rs:521-524}; \code{ring_switch.rs:555-557} (through the transposed columns,
   \code{tensor_algebra.rs:42-71}, and \code{build_coordinate_weights},
   \code{ring_switch.rs:133-144})
-  & \code{verifier.py:1345-1347} \\
+  & \code{verifier.py:1345-1347} \\ \addlinespace[2pt]
 14 & (opening) \code{V →} $λ$; the ring-switched claim takes $λ^0$, the pooled claims the next
   powers
   & \code{08:98}
   & \code{stack_open.rs:518-527}
-  & \code{verifier.py:1361}, \code{:1413} \\
+  & \code{verifier.py:1361}, \code{:1413} \\ \addlinespace[2pt]
 15 & (opening, last step) \code{V:} evaluates $\mle{W}$ at the final point $r'$
   & \code{a-ring:150-154}: $Σ_k c_k ∏_n (1 + r_n^{2^k} + r'_n)$
   & \code{stack_open.rs:530-546}; \code{ring_switch.rs:597-617} (\code{eval_rs_eq}, the
@@ -223,7 +223,7 @@ The table sumcheck sends one value per column of every table, the eighteen limb 
 & \code{08:77} \enquote{The prover sends one value per column of every table}
 & \code{cpu/mod.rs:428-441} (\code{for c in 0..table.n_committed_columns()}, 37 for
   \code{BLAKE2S}, \code{tables.rs:866-868}, \code{:862})
-& \code{verifier.py:620} (\code{table.width}), \code{:827-834} \\
+& \code{verifier.py:620} (\code{table.width}), \code{:827-834} \\ \addlinespace[2pt]
 A limb claim at $z$ becomes a claim on $\qflock$ with the low 8 coordinates frozen to the slot
 & \code{08:77} \enquote{their claims route there}; \code{07:122}. The selector is \textbf{not
   described} (§4.1 has aligned blocks only, \code{04:10-18})
@@ -231,16 +231,16 @@ A limb claim at $z$ becomes a claim on $\qflock$ with the low 8 coordinates froz
   table); \code{stack_open.rs:84-97}, \code{:305-323}; \code{hash_flock.rs:223} (\code{= 14 − 6
   = 8})
 & \code{verifier.py:884-894} \code{Placement(kappa, offsets[QFLOCK] + limbs[column],
-  QFLOCK_SLOT_BITS)}; \code{:295-302} \\
+  QFLOCK_SLOT_BITS)}; \code{:295-302} \\ \addlinespace[2pt]
 Slot of each limb
 & not given
 & \code{hash_flock.rs:87-115}: \code{cv} 0..3, \code{out} 4..7, message 10..17, metadata 18, 19
-& \code{verifier.py:847-850} (same) \\
+& \code{verifier.py:847-850} (same) \\ \addlinespace[2pt]
 The Flock verifier takes no claim
 & \code{c-flock:170-179} (the summary has no input claim)
 & \code{cpu/mod.rs:765} \code{verify_reduction(n_blocks, &mut vs)}; \code{hash_flock.rs:282-284}
 & \code{verifier.py:1405}, called with the size only (quoted below the table); the signature
-  \code{verify_flock(log_n: int, transcript: Transcript)} is at \code{:1304} \\
+  \code{verify_flock(log_n: int, transcript: Transcript)} is at \code{:1304} \\ \addlinespace[2pt]
 The limb claims enter the opening batch with every other pooled claim
 & \code{08:97-99}
 & \code{cpu/mod.rs:756, 768} (\code{slots}), \code{stack_open.rs:525-527}

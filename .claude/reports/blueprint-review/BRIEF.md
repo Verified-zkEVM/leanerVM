@@ -281,3 +281,11 @@ else.
 - The blueprint changed in its pins table only (6 lines); the status file did not change.
   `docs/dependencies.md` was rewritten for the upgrade and describes the port
   (`git show 144c5aa:docs/dependencies.md`).
+- **The leanVM checkout has moved too** (found 2026-09-30 by the boundary agent, confirmed by the
+  orchestrator): `/home/scaraven/Documents/leanEthereum/leanVM` is no longer at `a386121f`; its
+  HEAD is `248da071` and the crate tree changed (`crates/leanvm`, `leanvm_core`; no
+  `crates/lean_vm`). The pin `a386121f` is an ancestor of HEAD, so **every leanVM citation must
+  now be read with `git -C /home/scaraven/Documents/leanEthereum/leanVM show a386121f:<path>`**
+  (old paths, for example `crates/lean_vm/src/cpu/mod.rs`, `python-verifier/verifier.py`,
+  `doc/leanvm/body/08-end-to-end-protocol.tex`). Do not read the working tree for the pin, and
+  do not move the checkout. The review's ground truth stays `a386121f`.
