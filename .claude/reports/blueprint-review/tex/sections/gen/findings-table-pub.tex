@@ -122,7 +122,7 @@ the degree, and in Layer 12 that the four guards are dead in the composition.
 \fhead{Evidence} Blueprint \code{bp:836-839}, ``The stack columns that belong to no opcode table
 (\code{mem_0, mem_1, mem_2}, \code{cntfin_mem}, \code{cntfin_bc}, \code{q_flock} …) are tables
 of the instance with no constraints and no flushes''; Layer 7 \code{bp:987-989}, $τ_{\max}$ and
-$Σ_j \mathit{width}_j$ over the instance; ground truth T4 and T9. With $κ_{\mathrm{mem}} ≥ 16$
+$Σ_j \mathit{width}_j$ over the instance; ground truth: the number of rounds (T4) and the final message (T9). With $κ_{\mathrm{mem}} ≥ 16$
 every leanISA instance would have at least 16 rounds and 110 final values; leanVM has $τ_{\max}$
 rounds (as few as 3) and 104. \textbf{Unverified}: \lean{leanIsaInstance} is not built; this is a
 reading of the blueprint's text.
@@ -180,7 +180,7 @@ when reporting is allowed.
 
 %------------------------------------------------------------------------------------------------
 \begin{finding}{minor}{f:table-pub-round-message}{The round message: four coefficients and a check in the oracle protocol, three and none on the wire}
-\fhead{Evidence} Steps T5 and T6; blueprint \code{bp:315}.
+\fhead{Evidence} The round message and the derivation of $c_1$ (T5, T6); blueprint \code{bp:315}.
 
 \fhead{Classification} A deliberate deviation. It owes a lemma the blueprint does not state.
 ``Inverted by the running claim'' holds only on messages that pass the round check; and ArkLib's

@@ -67,3 +67,699 @@ exit=0
 
 Agrees with the dossier's recorded result (`code-pubinput.md` C.0).
 
+### 1.1 The adaptations of the scripts, shared by every probe below
+
+Three kinds of change, all forced by the upgrade:
+
+1. Search strings that name the module's old text, and appended proofs that use the same
+   lemmas, were moved to the module's new names (Lean 4.34.1 deprecates `if_pos`/`if_neg` for
+   `ite_eq_left`/`ite_eq_right`; VCVio `a4232d08` retires `probEvent_mono` for
+   `prEvent_mono _ _ _`, whose event no longer carries a support hypothesis, so `rintro r - ⟨…⟩`
+   becomes `rintro r ⟨…⟩`). In every script (`m1.py m2.py m3a.py m3b.py m4a.py m5.py m7a.py
+   m8.py anycheck.py weak.py`), by `sed`:
+
+```text
+s/if_pos/ite_eq_left/g; s/if_neg/ite_eq_right/g;
+s/probEvent_mono ?_/prEvent_mono _ _ _ ?_/g; s/rintro r - ⟨_, hin, hout⟩/rintro r ⟨_, hin, hout⟩/g
+```
+
+   plus the `exec` paths pointed at `tools/v434/`. Collected over `m1 m2 m7a m8 anycheck`, the
+   changed lines are (count, line):
+
+```text
+      2 -  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+      2 +  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+      2 -  rintro r - ⟨_, hin, hout⟩
+      2 +  rintro r ⟨_, hin, hout⟩
+      3 -  rw [if_pos hc]
+      3 +  rw [ite_eq_left hc]
+      2 -  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (if_pos rfl).symm
+      2 +  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (ite_eq_left rfl).symm
+      3 -  · rw [if_pos h, if_pos h]
+      3 +  · rw [ite_eq_left h, ite_eq_left h]
+      3 -  · rw [if_neg h, if_neg h]
+      3 +  · rw [ite_eq_right h, ite_eq_right h]
+```
+
+2. The two refutation lemmas (`not_rbr`, `not_perfectCompleteness`, in `tools/lib.py`) were
+   restated on VCVio's new probability API. At ArkLib `7653a901` a knowledge state function's
+   `toFun_full` takes `Pr{let stmtOut ← OptionT.mk do …}[(stmtOut, witOut) ∈ relOut] > 0`
+   (`ArkLib/OracleReduction/Security/RoundByRound.lean:187-191`), round-by-round knowledge
+   soundness bounds `Pr{let challenge ← $ᵗ (pSpec.Challenge i)}[…]` (`:539-555`), and
+   `Reduction.perfectCompleteness_eq_prob_one` states probability one in the `Pr{…}[…]` form
+   (`ArkLib/OracleReduction/Security/Basic.lean:163-173`). The old `Pr[P | c]` still parses at
+   VCVio `a4232d08` but means the deprecated `probEvent` (`VCVio/EvalDist/Defs/Basic.lean:97-115`),
+   a different definition, so the old statements no longer match ArkLib's. The lemmas used:
+   `OracleComp.OptionT.prEvent_mk_pos_iff` and `OracleComp.prEvent_eq_one_iff`
+   (`VCVio/OracleComp/EvalDist/Measure.lean:362-364, 412-414`), the ones the repository's
+   `ToArkLib/GuardedVerdict.lean` uses at `144c5aa`. Diff of `tools/lib.py` to
+   `tools/v434/lib.py`:
+
+```diff
+@@ -53,20 +53,20 @@
+           (default : Transcript 0 pSpec)) witMid := by
+     intro r
+     obtain ⟨hc, hout⟩ := hacc r
+-    have hpos : Pr[fun stmtOut => (stmtOut, ()) ∈ relOut
+-        | OptionT.mk do
++    have hpos : Pr{let stmtOut ← OptionT.mk do
+             (simulateQ impl (V.run stmt (tr2 r (msg r)))).run'
+-              (← (pure () : ProbComp Unit))] > 0 := by
++              (← (pure () : ProbComp Unit))}[(stmtOut, ()) ∈ relOut] > 0 := by
+       have hv : V.run stmt (tr2 r (msg r)) = pure (G.out stmt (tr2 r (msg r))) := by
+         have := G.verify_eq stmt (tr2 r (msg r))
+-        rw [if_pos hc] at this
++        rw [ite_eq_left hc] at this
+         exact this
+       rw [hv]
+-      change Pr[_ | OptionT.mk (do let st ← (pure () : ProbComp Unit); (simulateQ impl
+-        (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
+-          OptionT (OracleComp []ₒ) StmtOut))).run' st)] > 0
++      change Pr{let sample ← OptionT.mk (do
++        let st ← (pure () : ProbComp Unit)
++        (simulateQ impl (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
++          OptionT (OracleComp []ₒ) StmtOut))).run' st)}[(sample, ()) ∈ relOut] > 0
+       rw [OptionT.run_pure, simulateQ_pure]
+-      rw [gt_iff_lt, probEvent_pos_iff]
++      rw [gt_iff_lt, OracleComp.OptionT.prEvent_mk_pos_iff]
+       refine ⟨G.out stmt (tr2 r (msg r)), ?_, hout⟩
+       simp
+     have hfull := kSF.toFun_full stmt (tr2 r (msg r)) () hpos
+@@ -77,15 +77,15 @@
+     intro h0
+     exact hin ((kSF.toFun_empty stmt _).mpr h0)
+   -- So the bad event has probability one.
+-  have hone : Pr[fun challenge : E => ∃ witMid,
++  have hone : Pr{let challenge ← $ᵗ E}[∃ witMid,
+       ¬ kSF (Fin.castSucc 0) stmt (default : Transcript 0 pSpec)
+           (ext.extractMid 0 stmt
+             (Transcript.concat (m := (0 : Fin 2)) challenge
+               (default : Transcript 0 pSpec)) witMid) ∧
+         kSF (Fin.succ 0) stmt (Transcript.concat (m := (0 : Fin 2)) challenge
+-          (default : Transcript 0 pSpec)) witMid | $ᵗ E] = 1 := by
+-    rw [probEvent_eq_one_iff]
+-    exact ⟨by simp, fun r _ ↦ hall r⟩
++          (default : Transcript 0 pSpec)) witMid] = 1 := by
++    rw [OracleComp.prEvent_eq_one_iff]
++    exact fun r _ ↦ hall r
+   have hle : (1 : ℝ≥0∞) ≤ ((ε ⟨0, rfl⟩ : ℝ≥0) : ℝ≥0∞) := hone ▸ hbound
+   exact absurd (ENNReal.coe_lt_one_iff.mpr hε) (not_lt.mpr hle)
+ 
+@@ -106,8 +106,9 @@
+   have h1 := hc stmtIn witIn hin
+   dsimp only at h1
+   have hpos := lt_of_lt_of_eq (zero_lt_one' ℝ≥0∞) h1.symm
+-  obtain ⟨x, hx, hev⟩ := probEvent_pos_iff.mp hpos
+-  rw [OptionT.mem_support_iff, OptionT.run_mk, mem_support_bind_iff] at hx
++  rw [OracleComp.OptionT.prEvent_mk_pos_iff] at hpos
++  obtain ⟨x, hx, hev⟩ := hpos
++  rw [mem_support_bind_iff] at hx
+   obtain ⟨s, _, hx⟩ := hx
+   exact h (some x) (support_simulateQ_run'_subset _ _ s hx) x rfl hev
+ 
+```
+
+   A first version applied `(OracleComp.OptionT.prEvent_mk_pos_iff _ (fun x ↦ …)).mp hpos`
+   in `not_perfectCompleteness`; it hit `(deterministic) timeout at whnf, maximum number of
+   heartbeats (200000)` at the declaration. The `rw … at hpos` form above was checked in a
+   scratch plain file (`probes/probes-rerun/RefuteScratch.lean`, the lemma alone, importing
+   `LeanerVM.Protocol.ToArkLib.GuardedVerdict`: no error) and then used. No statement of either
+   lemma changed except the probability notation.
+
+3. The scripts `m7a.py` and `m8.py`: the old files `Probe7a.lean` and `Probe8.lean` on disk were
+   **not** produced from the old module. Regenerating every old probe from `b435631`'s
+   `PublicInput.lean` with the old scripts reproduces `Probe1NoCheck`, `Probe2TrustProver`,
+   `Probe3a`, `Probe3b`, `Probe4a`, `Probe5` and `ProbeAnyCheck` byte for byte, but `Probe7a`
+   and `Probe8` differ from the regenerated ones exactly in the five lines the upgrade changed in
+   the module (`if_pos`→`ite_eq_left`, `if_neg`→`ite_eq_right`, `probEvent_mono`→`prEvent_mono`,
+   `rintro r -`→`rintro r`): they were made from the module after the merge `8d3ea7d` (the
+   dossier `code-pubinput.md` C.9 records the merge landing mid-work), with the old `lib.py`
+   tails. This does not change what they test.
+
+### 1.2 Mutation 7a: a wrong check (the cells swapped), the honest prover unchanged (`Probe7a.v434.lean`)
+
+Generated by `mutate.py …/Probe7a.v434.lean Probe7a …/tools/v434/m7a.py`. Diff of the mutation
+against the current module (the part before the appended tail; the tail is `TAIL` of
+`tools/v434/m7a.py`: the refutation lemmas of 1.1 and the toy refutation quoted in
+`code-pubinput.md` C.10, unchanged):
+
+```diff
+@@ -11,6 +11,7 @@
+ public import LeanerVM.Protocol.Spine.Phase
+ public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
+ public import LeanerVM.Protocol.ToArkLib.KeepOracles
++public import LeanerVM.Protocol.Spine.Toy
+ import LeanerVM.Protocol.ToCompPoly.Multilinear
+ import LeanerVM.Protocol.ToVCVio.UniformSample
+ import Mathlib.Algebra.CharP.Two
+@@ -50,7 +51,7 @@
+ the specification's verifier.
+ -/
+ 
+-namespace LeanerVM.Protocol
++namespace LeanerVM.Protocol.Probe7a
+ 
+ open LeanerVM.Parameters CompPoly OracleComp OracleSpec ProtocolSpec
+ open scoped NNReal ENNReal
+@@ -136,6 +137,15 @@
+ def check (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+   decide (cs = expectedValues I s.1 r)
+ 
++
++/-- The values of the lines with their cells swapped: `(1 + r)·cell1 + r·cell0`. -/
++def swappedValues (input : I.Stmt) (r : E) : List E :=
++  ((I.publicLines input).filter (·.sent)).map fun l ↦ (1 + r) * ofK l.cell1 + r * ofK l.cell0
++
++/-- The wrong check: the message is the swapped values. -/
++def checkWrong (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
++  decide (cs = swappedValues I s.1 r)
++
+ /-- A line's claim holds of the stack exactly when the line through the stack's two cells,
+ evaluated at `r`, is the line through the statement's. -/
+ private theorem lineClaim_holds_iff (q : Column I.μ) (r : E) (l : PublicLine I.toShape) :
+@@ -230,7 +240,7 @@
+     (I.Stmt × PubOut I) (TheOracle I) pSpec where
+   verify := fun s chals ↦ do
+     let cs ← liftM queryValues
+-    if check I s (chals ⟨0, rfl⟩) cs then pure (pooled I s (chals ⟨0, rfl⟩)) else failure
++    if checkWrong I s (chals ⟨0, rfl⟩) cs then pure (pooled I s (chals ⟨0, rfl⟩)) else failure
+   outputOracle := .inl (keepOracles (TheOracle I) pSpec)
+ 
+ /-! ## The verifier's verdict -/
+@@ -253,7 +263,7 @@
+ theorem verifier_verify (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
+     (tr : pSpec.FullTranscript) :
+     (verifier I).toVerifier.verify (s, o) tr =
+-      if check I s (tr 0) (tr 1) then pure (pooled I s (tr 0), o) else failure := by
++      if checkWrong I s (tr 0) (tr 1) then pure (pooled I s (tr 0), o) else failure := by
+   simp only [OracleVerifier.toVerifier]
+   rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+   simp only [verifier]
+@@ -263,7 +273,7 @@
+         OracleComp ([]ₒ + ([TheOracle I]ₒ + [pSpec.Message]ₒ)) (List E)) from
+     (OracleComp.monadLift_liftM_OptionT _).symm]
+   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
+-  by_cases h : check I s (tr 0) (tr 1) = true
++  by_cases h : checkWrong I s (tr 0) (tr 1) = true
+   · rw [ite_eq_left h, ite_eq_left h]
+     rfl
+   · rw [ite_eq_right h, ite_eq_right h]
+@@ -271,7 +281,7 @@
+ 
+ /-- The verifier is a check followed by a verdict, as data. -/
+ def guarded : (verifier I).toVerifier.GuardedForm where
+-  check := fun p tr ↦ check I p.1 (tr 0) (tr 1)
++  check := fun p tr ↦ checkWrong I p.1 (tr 0) (tr 1)
+   out := fun p tr ↦ (pooled I p.1 (tr 0), p.2)
+   verify_eq := fun ⟨s, o⟩ tr ↦ verifier_verify I s o tr
+ 
+@@ -397,4 +407,168 @@
+   rbr := PublicInput.rbr I
+ 
+ end
+-end LeanerVM.Protocol
++end LeanerVM.Protocol.Probe7a
++
++#print axioms LeanerVM.Protocol.Probe7a.PublicInput.verifier_verify
+```
+
+Output (`Probe7a.v434.lean.new.out`), 5 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:318:67: error: maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:356:4: error: maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:362:49: error(lean.unknownIdentifier): Unknown identifier `stateFunction`
+
+Note: It is not possible to treat `stateFunction` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:406:9: error(lean.unknownIdentifier): Unknown identifier `PublicInput.stateFunction`
+'LeanerVM.Protocol.Probe7a.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe7a.PublicInput.complete' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:414:14: error(lean.unknownIdentifier): Unknown constant `LeanerVM.Protocol.Probe7a.PublicInput.stateFunction`
+'LeanerVM.Protocol.Probe7a.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe7a.PublicInput.not_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=1
+```
+
+Positions: `318:67` is `hmsg` in `have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg`
+(in `complete`); `356:4` is `Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr _ h`,
+the field `toFun_full` of the unchanged `stateFunction`; the later "unknown identifier" errors
+are `rbr`, `publicInputSecurity` and the `#print axioms` naming `stateFunction`, which was not
+added.
+
+Result: **differs in part.** As the dossier predicted (`code-pubinput.md` C.10), `complete`
+fails at `decide_eq_true hmsg` and the refutation `not_complete` (the mutated verifier is not
+perfectly complete, for every initial state and implementation of the shared oracle) is proved
+on the kernel's three axioms. Two differences: (a) the dossier predicted "`rbr` compiles (it
+never reads the check)"; it does not: the unchanged `stateFunction` fails at `toFun_full`, as in
+every other mutation (`code-pubinput.md` C.2), because its last round names the original `check`,
+and `rbr` is stated over `stateFunction`. (b) The two failures are reported as `maximum recursion
+depth has been reached`, not as the `Type mismatch` the older probes printed; so the unchanged
+`stateFunction` is not added at all (the old probes added it with `sorryAx`). Neither changes the
+conclusion the dossier draws from 7a (completeness, against the fixed honest prover, is refuted).
+
+### 1.3 Mutation 8: an extra check leanVM does not make (`Probe8.v434.lean`)
+
+Generated by `mutate.py …/Probe8.v434.lean Probe8 …/tools/v434/m8.py`. Diff of the mutation
+against the current module (before the tail; the tail is `TAIL` of `tools/v434/m8.py`: the
+refutation lemmas of 1.1 and the toy refutation quoted in `code-pubinput.md` C.11, unchanged):
+
+```diff
+@@ -11,6 +11,7 @@
+ public import LeanerVM.Protocol.Spine.Phase
+ public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
+ public import LeanerVM.Protocol.ToArkLib.KeepOracles
++public import LeanerVM.Protocol.Spine.Toy
+ import LeanerVM.Protocol.ToCompPoly.Multilinear
+ import LeanerVM.Protocol.ToVCVio.UniformSample
+ import Mathlib.Algebra.CharP.Two
+@@ -50,7 +51,7 @@
+ the specification's verifier.
+ -/
+ 
+-namespace LeanerVM.Protocol
++namespace LeanerVM.Protocol.Probe8
+ 
+ open LeanerVM.Parameters CompPoly OracleComp OracleSpec ProtocolSpec
+ open scoped NNReal ENNReal
+@@ -136,6 +137,11 @@
+ def check (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+   decide (cs = expectedValues I s.1 r)
+ 
++
++/-- The check with an extra condition: the first value of the message is nonzero. -/
++def checkExtra (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
++  check I s r cs && decide (cs.headD 0 ≠ 0)
++
+ /-- A line's claim holds of the stack exactly when the line through the stack's two cells,
+ evaluated at `r`, is the line through the statement's. -/
+ private theorem lineClaim_holds_iff (q : Column I.μ) (r : E) (l : PublicLine I.toShape) :
+@@ -230,7 +236,7 @@
+     (I.Stmt × PubOut I) (TheOracle I) pSpec where
+   verify := fun s chals ↦ do
+     let cs ← liftM queryValues
+-    if check I s (chals ⟨0, rfl⟩) cs then pure (pooled I s (chals ⟨0, rfl⟩)) else failure
++    if checkExtra I s (chals ⟨0, rfl⟩) cs then pure (pooled I s (chals ⟨0, rfl⟩)) else failure
+   outputOracle := .inl (keepOracles (TheOracle I) pSpec)
+ 
+ /-! ## The verifier's verdict -/
+@@ -253,7 +259,7 @@
+ theorem verifier_verify (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
+     (tr : pSpec.FullTranscript) :
+     (verifier I).toVerifier.verify (s, o) tr =
+-      if check I s (tr 0) (tr 1) then pure (pooled I s (tr 0), o) else failure := by
++      if checkExtra I s (tr 0) (tr 1) then pure (pooled I s (tr 0), o) else failure := by
+   simp only [OracleVerifier.toVerifier]
+   rw [OracleVerifier.materializeOutput_of_keepOracles _ rfl]
+   simp only [verifier]
+@@ -263,7 +269,7 @@
+         OracleComp ([]ₒ + ([TheOracle I]ₒ + [pSpec.Message]ₒ)) (List E)) from
+     (OracleComp.monadLift_liftM_OptionT _).symm]
+   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
+-  by_cases h : check I s (tr 0) (tr 1) = true
++  by_cases h : checkExtra I s (tr 0) (tr 1) = true
+   · rw [ite_eq_left h, ite_eq_left h]
+     rfl
+   · rw [ite_eq_right h, ite_eq_right h]
+@@ -271,7 +277,7 @@
+ 
+ /-- The verifier is a check followed by a verdict, as data. -/
+ def guarded : (verifier I).toVerifier.GuardedForm where
+-  check := fun p tr ↦ check I p.1 (tr 0) (tr 1)
++  check := fun p tr ↦ checkExtra I p.1 (tr 0) (tr 1)
+   out := fun p tr ↦ (pooled I p.1 (tr 0), p.2)
+   verify_eq := fun ⟨s, o⟩ tr ↦ verifier_verify I s o tr
+ 
+@@ -397,4 +403,174 @@
+   rbr := PublicInput.rbr I
+ 
+ end
+-end LeanerVM.Protocol
++end LeanerVM.Protocol.Probe8
++
++#print axioms LeanerVM.Protocol.Probe8.PublicInput.verifier_verify
+```
+
+Output (`Probe8.v434.lean.new.out`), 4 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-pubinput/Probe8.v434.lean:314:52: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  Decidable (pr.1 1 = expectedValues I s.1 (pr.1 0))
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+.claude/reports/blueprint-review/probes/code-pubinput/Probe8.v434.lean:352:4: error: Type mismatch
+  Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr (fun sample => (sample, x✝) ∈ Seam.pub I) h
+has type
+  (guarded I).check stmt tr = true ∧ ((guarded I).out stmt tr, x✝) ∈ Seam.pub I
+but is expected to have type
+  if h0 : ↑(Fin.last 2) = 0 then (stmt, ()) ∈ Seam.table I
+  else
+    if h1 : ↑(Fin.last 2) = 1 then ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+    else check I stmt.1 (tr ⟨0, ⋯⟩) (tr ⟨1, ⋯⟩) = true ∧ ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+'LeanerVM.Protocol.Probe8.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe8.PublicInput.complete' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe8.PublicInput.stateFunction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe8.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe8.PublicInput.not_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=1
+```
+
+Positions: `314:52` is `decide_eq_true hmsg` in `complete`'s
+`have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg`; `352:4` is the field
+`toFun_full` of the unchanged `stateFunction`.
+
+Result: **differs in part.** As predicted (`code-pubinput.md` C.11), `complete` fails at the
+same line as in 7a, and `not_complete` (the verifier with the extra check is not perfectly
+complete, for every initial state and implementation of the shared oracle; the refutation's
+argument holds for every prover, since `check` pins the message) is proved on the kernel's three
+axioms. The dossier's "`rbr` compiles" does not hold: `rbr` depends on `sorryAx` because the
+unchanged `stateFunction` fails at `toFun_full` (the same `Type mismatch` as `code-pubinput.md`
+C.2), as for every other mutation. The failure message in `complete` is a missing `Decidable`
+instance (the elaborator cannot read `hmsg` as a `decide` of the extra conjunct), not a type
+mismatch; the location is the one predicted.
+
+### 1.4 `ProbeWordsLemma.v434.lean` (the algebra of the deployed verifiers' combined check)
+
+A plain file; no numeral other than `0` in `K`, no ArkLib or VCVio object. Copied unchanged
+(`cp ProbeWordsLemma.lean ProbeWordsLemma.v434.lean`; empty diff). Output
+(`ProbeWordsLemma.v434.lean.new.out`), 6 s:
+
+```text
+'WordsLemma.accepts_two_challenges' depends on axioms: [propext, Classical.choice, Quot.sound]
+'WordsLemma.cells_eq_lanes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'WordsLemma.top_limb_zero_of_two_challenges' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-pubinput.md` C.13): the three lemmas hold at
+the new pins on the kernel's three axioms.
+
+### 1.5 Control: mutation 1, no check, the lines' values pooled (`Probe1NoCheck.v434.lean`)
+
+Generated by `mutate.py …/Probe1NoCheck.v434.lean Probe1 …/tools/v434/m1.py`. Diff of the
+v434 probe against the old probe (the mutation itself is the one quoted in `code-pubinput.md`
+C.3; what changed is only what the upgrade changed in the module, and the tail's `rbr'`):
+
+```diff
+@@ -268,7 +268,7 @@
+ def guarded : (verifier I).toVerifier.GuardedForm where
+   check := fun _ _ ↦ true
+   out := fun p tr ↦ (pooled I p.1 (tr 0), p.2)
+-  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (if_pos rfl).symm
++  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (ite_eq_left rfl).symm
+ 
+ /-! ## Completeness -/
+ 
+@@ -301,7 +301,7 @@
+   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
+   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
+   have hc : (guarded I).check (s, o) pr.1 = true := rfl
+-  rw [if_pos hc]
++  rw [ite_eq_left hc]
+   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
+ 
+ /-! ## Knowledge soundness -/
+@@ -354,10 +354,10 @@
+     · rfl
+     · exact absurd hi (by decide)
+   subst hi0
+-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
++  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+-  rintro r - ⟨_, hin, hout⟩
++  rintro r ⟨_, hin, hout⟩
+   exact ⟨hin, hout⟩
+ 
+ end PublicInput
+@@ -440,10 +440,10 @@
+     · rfl
+     · exact absurd hi (by decide)
+   subst hi0
+-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
++  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+-  rintro r - ⟨_, hin, hout⟩
++  rintro r ⟨_, hin, hout⟩
+   exact ⟨hin, hout⟩
+ 
+ end PublicInput
+```
+
+Output (`Probe1NoCheck.v434.lean.new.out`), 4 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-pubinput/Probe1NoCheck.v434.lean:341:4: error: Type mismatch
+  Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr (fun sample => (sample, x✝) ∈ Seam.pub I) h
+has type
+  (guarded I).check stmt tr = true ∧ ((guarded I).out stmt tr, x✝) ∈ Seam.pub I
+but is expected to have type
+  if h0 : ↑(Fin.last 2) = 0 then (stmt, ()) ∈ Seam.table I
+  else
+    if h1 : ↑(Fin.last 2) = 1 then ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+    else check I stmt.1 (tr ⟨0, ⋯⟩) (tr ⟨1, ⋯⟩) = true ∧ ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+'LeanerVM.Protocol.Probe1.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe1.publicInputComplete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe1.publicInputSecurity' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe1.publicInputSecurity'' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=1
+```
+
+Agrees with the dossier's recorded result (`code-pubinput.md` C.3): the one expected error at
+the same position (`341:4`, the unchanged `stateFunction`'s `toFun_full`), and the repaired
+`publicInputSecurity'` (a full `Phase.Security` of the verifier that checks nothing) on the
+kernel's three axioms.
+
+### 1.6 Control: mutation 2, no check, the prover's values pooled (`Probe2TrustProver.v434.lean`)
+
+Generated by `mutate.py …/Probe2TrustProver.v434.lean Probe2 …/tools/v434/m2.py`. Diff of the
+v434 probe against the old probe:
+
+```diff
+@@ -299,7 +299,7 @@
+ def guarded : (verifier I).toVerifier.GuardedForm where
+   check := fun _ _ ↦ true
+   out := fun p tr ↦ (pooledFrom I p.1 (tr 0) (tr 1), p.2)
+-  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (if_pos rfl).symm
++  verify_eq := fun ⟨s, o⟩ tr ↦ (verifier_verify I s o tr).trans (ite_eq_left rfl).symm
+ 
+ /-! ## Completeness -/
+ 
+@@ -332,7 +332,7 @@
+   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
+   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
+   have hc : (guarded I).check (s, o) pr.1 = true := rfl
+-  rw [if_pos hc]
++  rw [ite_eq_left hc]
+   have hpool : (guarded I).out (s, o) pr.1 = (pooled I s (pr.1 0), o) := by
+     show (pooledFrom I s (pr.1 0) (pr.1 1), o) = (pooled I s (pr.1 0), o)
+     rw [hmsg, pooledFrom_expected]
+@@ -389,10 +389,10 @@
+     · rfl
+     · exact absurd hi (by decide)
+   subst hi0
+-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
++  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+-  rintro r - ⟨_, hin, hout⟩
++  rintro r ⟨_, hin, hout⟩
+   exact ⟨hin, hout⟩
+ 
+ end PublicInput
+@@ -475,20 +475,20 @@
+           (default : Transcript 0 pSpec)) witMid := by
+     intro r
+     obtain ⟨hc, hout⟩ := hacc r
+-    have hpos : Pr[fun stmtOut => (stmtOut, ()) ∈ relOut
+-        | OptionT.mk do
++    have hpos : Pr{let stmtOut ← OptionT.mk do
+             (simulateQ impl (V.run stmt (tr2 r (msg r)))).run'
+-              (← (pure () : ProbComp Unit))] > 0 := by
++              (← (pure () : ProbComp Unit))}[(stmtOut, ()) ∈ relOut] > 0 := by
+       have hv : V.run stmt (tr2 r (msg r)) = pure (G.out stmt (tr2 r (msg r))) := by
+         have := G.verify_eq stmt (tr2 r (msg r))
+-        rw [if_pos hc] at this
++        rw [ite_eq_left hc] at this
+         exact this
+       rw [hv]
+-      change Pr[_ | OptionT.mk (do let st ← (pure () : ProbComp Unit); (simulateQ impl
+-        (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
+-          OptionT (OracleComp []ₒ) StmtOut))).run' st)] > 0
++      change Pr{let sample ← OptionT.mk (do
++        let st ← (pure () : ProbComp Unit)
++        (simulateQ impl (OptionT.run (pure (G.out stmt (tr2 r (msg r))) :
++          OptionT (OracleComp []ₒ) StmtOut))).run' st)}[(sample, ()) ∈ relOut] > 0
+       rw [OptionT.run_pure, simulateQ_pure]
+-      rw [gt_iff_lt, probEvent_pos_iff]
++      rw [gt_iff_lt, OracleComp.OptionT.prEvent_mk_pos_iff]
+       refine ⟨G.out stmt (tr2 r (msg r)), ?_, hout⟩
+       simp
+     have hfull := kSF.toFun_full stmt (tr2 r (msg r)) () hpos
+@@ -499,15 +499,15 @@
+     intro h0
+     exact hin ((kSF.toFun_empty stmt _).mpr h0)
+   -- So the bad event has probability one.
+-  have hone : Pr[fun challenge : E => ∃ witMid,
++  have hone : Pr{let challenge ← $ᵗ E}[∃ witMid,
+       ¬ kSF (Fin.castSucc 0) stmt (default : Transcript 0 pSpec)
+           (ext.extractMid 0 stmt
+             (Transcript.concat (m := (0 : Fin 2)) challenge
+               (default : Transcript 0 pSpec)) witMid) ∧
+         kSF (Fin.succ 0) stmt (Transcript.concat (m := (0 : Fin 2)) challenge
+-          (default : Transcript 0 pSpec)) witMid | $ᵗ E] = 1 := by
+-    rw [probEvent_eq_one_iff]
+-    exact ⟨by simp, fun r _ ↦ hall r⟩
++          (default : Transcript 0 pSpec)) witMid] = 1 := by
++    rw [OracleComp.prEvent_eq_one_iff]
++    exact fun r _ ↦ hall r
+   have hle : (1 : ℝ≥0∞) ≤ ((ε ⟨0, rfl⟩ : ℝ≥0) : ℝ≥0∞) := hone ▸ hbound
+   exact absurd (ENNReal.coe_lt_one_iff.mpr hε) (not_lt.mpr hle)
+ 
+@@ -528,8 +528,9 @@
+   have h1 := hc stmtIn witIn hin
+   dsimp only at h1
+   have hpos := lt_of_lt_of_eq (zero_lt_one' ℝ≥0∞) h1.symm
+-  obtain ⟨x, hx, hev⟩ := probEvent_pos_iff.mp hpos
+-  rw [OptionT.mem_support_iff, OptionT.run_mk, mem_support_bind_iff] at hx
++  rw [OracleComp.OptionT.prEvent_mk_pos_iff] at hpos
++  obtain ⟨x, hx, hev⟩ := hpos
++  rw [mem_support_bind_iff] at hx
+   obtain ⟨s, _, hx⟩ := hx
+   exact h (some x) (support_simulateQ_run'_subset _ _ s hx) x rfl hev
+ 
+```
+
+Output (`Probe2TrustProver.v434.lean.new.out`), 5 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:160:32: warning: `if_true` has been deprecated: Use `ite_true` instead
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:162:52: warning: `if_false` has been deprecated: Use `ite_false` instead
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:376:4: error: Type mismatch
+  Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr (fun sample => (sample, x✝) ∈ Seam.pub I) h
+has type
+  (guarded I).check stmt tr = true ∧ ((guarded I).out stmt tr, x✝) ∈ Seam.pub I
+but is expected to have type
+  if h0 : ↑(Fin.last 2) = 0 then (stmt, ()) ∈ Seam.table I
+  else
+    if h1 : ↑(Fin.last 2) = 1 then ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+    else check I stmt.1 (tr ⟨0, ⋯⟩) (tr ⟨1, ⋯⟩) = true ∧ ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+'LeanerVM.Protocol.Probe2.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.stateFunction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.not_knowledgeSound' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=1
+```
+
+Agrees with the dossier's recorded result (`code-pubinput.md` C.6): the one expected error at
+the same position (`376:4`), `complete` on the three axioms, and `not_knowledgeSound` (no
+extractor, state function or error below one makes the verifier that pools the prover's values
+unchecked round-by-round knowledge sound) on the three axioms. This run also exercises the
+adapted `not_rbr` of 1.1. The two new warnings are Lean 4.34.1 deprecations (`if_true`,
+`if_false`) inside the appended `claimsFrom_expected`.
+
+### 1.7 Control: any message, any check (`ProbeAnyCheck.v434.lean`)
+
+Generated by `mutate.py …/ProbeAnyCheck.v434.lean ProbeAny …/tools/v434/anycheck.py`. Diff of
+the v434 probe against the old probe:
+
+```diff
+@@ -264,9 +264,9 @@
+     (OracleComp.monadLift_liftM_OptionT _).symm]
+   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
+   by_cases h : check I s (tr 0) (tr 1) = true
+-  · rw [if_pos h, if_pos h]
++  · rw [ite_eq_left h, ite_eq_left h]
+     rfl
+-  · rw [if_neg h, if_neg h]
++  · rw [ite_eq_right h, ite_eq_right h]
+     rfl
+ 
+ /-- The verifier is a check followed by a verdict, as data. -/
+@@ -306,7 +306,7 @@
+   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
+   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
+   have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
+-  rw [if_pos hc]
++  rw [ite_eq_left hc]
+   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
+ 
+ /-! ## Knowledge soundness -/
+@@ -359,10 +359,10 @@
+     · rfl
+     · exact absurd hi (by decide)
+   subst hi0
+-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
++  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+-  rintro r - ⟨_, hin, hout⟩
++  rintro r ⟨_, hin, hout⟩
+   exact ⟨hin, hout⟩
+ 
+ end PublicInput
+@@ -451,9 +451,9 @@
+     (OracleComp.monadLift_liftM_OptionT _).symm]
+   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
+   by_cases h : chk s (tr 0) (tr 1) = true
+-  · rw [if_pos h, if_pos h]
++  · rw [ite_eq_left h, ite_eq_left h]
+     rfl
+-  · rw [if_neg h, if_neg h]
++  · rw [ite_eq_right h, ite_eq_right h]
+     rfl
+ 
+ def guardedG : (verifierG I chk).toVerifier.GuardedForm where
+@@ -494,7 +494,7 @@
+     show chk s (pr.1 0) (pr.1 1) = true
+     rw [hmsg]
+     exact hchk s (pr.1 0)
+-  rw [if_pos hc]
++  rw [ite_eq_left hc]
+   exact ⟨_, rfl, pooled_mem_pub I s o hIn (pr.1 0), congrArg Prod.fst hout⟩
+ 
+ variable {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+@@ -534,10 +534,10 @@
+     · rfl
+     · exact absurd hi (by decide)
+   subst hi0
+-  refine le_trans (probEvent_mono ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
++  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+-  rintro r - ⟨_, hin, hout⟩
++  rintro r ⟨_, hin, hout⟩
+   exact ⟨hin, hout⟩
+ 
+ end PublicInput
+```
+
+Output (`ProbeAnyCheck.v434.lean.new.out`), 4 s:
+
+```text
+'LeanerVM.Protocol.ProbeAny.securityG' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.ProbeAny.noCheckNoMessage' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.ProbeAny.noCheckJunk' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.ProbeAny.swappedCheck' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.ProbeAny.specification' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-pubinput.md` C.4), line for line.
+
+### 1.8 Mutations 4b and 6: could not run, not written
+
+The task lists mutation 4b (the deployed combined check with the prover's values pooled) and
+mutation 6 (the claims pooled at a wrong point). Neither exists as a file: `code-pubinput.md`
+C.12 says of 6 "Argued on paper; not written", and C.13 says of 4b that only its key lemma is
+proved (that is `ProbeWordsLemma`, run in 1.4) and the phase itself is "Estimated at 120 lines;
+**not written**". There is no `Probe4b*.lean`, `Probe6*.lean`, `tools/m4b.py` or `tools/m6.py`
+under `probes/code-pubinput/`. Nothing was run for them; they stay unverified as the dossier
+says. What would verify them is written in `code-pubinput.md` C.12 (a height-4 instance and
+the two refutations) and C.13 (the state function and the case split).
+

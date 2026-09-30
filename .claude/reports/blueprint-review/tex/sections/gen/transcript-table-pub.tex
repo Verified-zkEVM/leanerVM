@@ -56,7 +56,7 @@ T0 & What precedes: the bus phase's last prover message is the five boundary eva
   & \code{08:70} ``For their committed columns the prover sends one evaluation each''
   & \code{leaf.rs:909-920} (\code{decompose_verify}), order fixed by \code{cpu/layout.rs:361-395}
   & \code{py:552-557} \\
-T1 & \textbf{Challenge} $ξ ← \E$ (one element), drawn after T0
+T1 & \textbf{Challenge} $ξ ← \E$ (one element), drawn after the boundary evaluations (T0)
   & \code{08:75} ``Samples and sends the batch challenge $ξ∈\E$''; \code{05:145}
   & \code{cpu/mod.rs:726} \code{let zc_xi = vs.sample();} (prover \code{:590})
   & \code{py:1389} \\
@@ -206,7 +206,7 @@ P0 & Precondition: each public word has top limb 0
   \code{CpuError::PublicInput} (\code{cpu/mod.rs:141-143})
   & by type: \code{Digest} is 32 bytes, \code{halves()} builds \code{E(w0, w1)}
   (\code{py:204-219}) \\
-P1 & \textbf{Challenge} $r ← \E$, after the 104 values of T9
+P1 & \textbf{Challenge} $r ← \E$, after the 104 values of the final message (T9)
   & \code{08:83}
   & \code{cpu/mod.rs:745} (prover \code{:610})
   & \code{py:1398} \\
@@ -249,9 +249,9 @@ first power of $λ$ & the ring-switched claim on $\qflock$ & 1
 then & bus: \code{mem₀}, \code{mem₁}, \code{mem₂}, \code{cntfin_mem} at
   $ζ_{<κ_{\mathrm{mem}}}$, \code{cntfin_bc} at $ζ_{<κ_{\mathrm{bc}}}$ & 5
   & \code{cpu/mod.rs:663}; \code{py:555-557, 1395} \\
-then & table sumcheck: T11, of which 18 strided on $\qflock$ & 104
+then & table sumcheck: the column claims (T11), of which 18 strided on $\qflock$ & 104
   & \code{cpu/mod.rs:664}; \code{py:1395} \\
-then & public input: P4 & 3 & \code{cpu/mod.rs:665}; \code{py:1402} \\
+then & public input: the pooled claims (P4) & 3 & \code{cpu/mod.rs:665}; \code{py:1402} \\
 \end{longtable}
 \endgroup
 

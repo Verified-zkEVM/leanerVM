@@ -825,3 +825,268 @@ in another (the `literature` dossier A.3 item 4, [BRW26] Remark 11). Neither the
 (§8.4 is `TODO`, `08:44-46`), nor the blueprint's `verify_knowledgeSound`, nor any of its three
 interfaces contains it; the sentence "Layer 12 turns list binding into extraction of the one `q`
 that satisfies every pooled claim" (`bp:1190`) names the step without the theorem.
+
+---
+
+## B. WHIR, Merkle trees and the parameters, as deployed
+
+Note on citations: the leanVM working tree was moved off the pin on 2026-09-30 09:42 (its
+reflog: `pull: Fast-forward`, then `checkout: moving from main to
+feat/drop-prover-public-input-challenge`; HEAD `248da071`), not by this review. Every line
+cited below was read on 2026-09-29 while HEAD was `a386121f`, and the ones quoted were
+re-verified on 2026-09-30 with `git show a386121f:<path>`; the scratch scripts of section H
+read a copy of the pinned `verifier.py` extracted the same way.
+
+### B.1 The message schedule per level
+
+Notation: `μ` the stack's log-size; `k_0 = 6` the initial fold (`whir_config.rs:67`), `k_i = 4`
+after (`:68`), the residual `n_res ≤ 5` (`:86`); `r` the number of recursive levels
+(`level_steps`); `t_i` the query count of level `i`; `z` an out-of-domain point.
+
+| # | Message | Specification, Protocol B.6 (`B:100-123`) | Rust prover (`whir.rs`) / verifier (`whir.rs`, succinct) | Python (`py:1006-1087`) |
+| --- | --- | --- | --- | --- |
+| 0 | `V→P` `λ` (level-0 batching), `J_0 = 113` claims | step 1 at `i = 0` (`B:110`) | outside WHIR: `stack_open.rs:400` / `:518` (A.2) | `py:1361` |
+| 1 | `P→V` `h_1`: round polynomial of `Σ_x q(x)·W_λ(x) = C_λ` (2 scalars: `c_0, c_2`; `c_1` derived) | step 2, `j = 1` (`B:111`) | `:1324-1326` / `:2087-2090` | `:1012` |
+| 2 | 6 × (`V→P` `r_j`; `P→V` next round polynomial), the **lane fold** on the stack's top 6 coordinates | step 2, `j = 1..ℓ_0` (`B:111-112`); the row index is the stack's most significant `ℓ_0` coordinates, `f(u, x) := q(x, u)` (`B:380`) | `:1328-1334` / `:2100` (`replay_fold_rounds`, `:1641-1655`); the point is rotated by 6 at the end, `:2297-2306` | `:1017-1024`; rotation `:1078-1079` |
+| 3 | `P→V` root of `f⁽¹⁾` (2 scalars), the fold `f⁽¹⁾ = q̃(r_1..r_6, ·)`, `E`-valued, interleaved `2^4` lanes | step 3(a) (`B:115`) | `:1340-1358` / `:2104` | `:1034` |
+| 4 | OOD: `V→P` `z ∈ E^{μ−6}` (`μ − 6` squeezes); `P→V` `y` (1 scalar); `P→V` intro round polynomial for the claim `(eq(z, ·), y)` (2 scalars) | step 3(b) (`B:116`): `z`, `y`; **no intro message** | `send_ood`, `:1201-1208` / `replay_ood`, `:1670-1675`; count `ood_samples[1] = 1` (`whir_config.rs:677-684`, test `:1032-1034`) | `:1035-1037` |
+| 5 | `P→V` grinding nonce (1 raw scalar); `V` checks 17 bits | **absent** | `:1366` / `:2117` (`grind_check`, `fs/transcript.rs:314-323`); `QUERY_GRINDING_BITS = 17` (`whir_config.rs:60`) | `:1039` |
+| 6 | `V→P` `t_0` positions in `[0, 2^{μ−6+ρ})`, by chunking squeezes | step 3(c): "`t_i` i.i.d. columns" (`B:117`) | `sample_queries_ordered`, `:1175-1193`: `⌊192/d⌋` `d`-bit chunks per squeeze, duplicates kept / `:2122` | `:943-951`, `:1041` |
+| 7 | `V→P` `λ_0`, the level's batching challenge | step 1 at `i = 1` (`B:110`), **after** step 3(d)'s claims are formed | `:1373` / `:2123` | `:1044` |
+| 8 | `P→V` Merkle openings of level 0 at the positions (rows of `n_lanes` words + one octopus), **not absorbed** | step 3(c): "it reads `C⁽ⁱ⁾[·, x_q]`" (`B:117`) | `hint_merkle`, `:1380` / `recv_level_rows`, `:2125-2135` (`fs/transcript.rs:263-279`) | `:1049-1050` (raw paths) |
+| 9 | `P→V` intro round polynomial for the query batch (2 scalars), with claim `enforced_sum_0 = Σ_q λ_0^q·⟨row_q, eq(r_lane, ·)⟩` computed by `V` from the openings | step 3(d): the `t_i` consistency claims `(W_{x_q}, c_q)` with `c_q = C_fold[x_q]` (`B:117-118`); **no intro message**, the batch's `h_1` is sent after `λ` | `:1405-1406` / `:2140-2144` (`induce_sumcheck_enforced_sum`, `whir_induce.rs:203-218`) | `:1051, 1057` |
+| 10 | `V` glues: running quad `+= λ_0·quad_ood + λ_0²·quad_query`, claim `t_r += λ_0·y + λ_0²·enforced_sum` | step 1 at level 1: `(W, σ_0) := (Σ λ^{t−1} W_t, …)` with the order residual, OOD, queries (`B:118`, `:110`) | `glue_pending`, `:1131-1154` / `batch_level_claims`, `:1681-1701` | `:1058-1063` |
+| 11 | level `i ≥ 1`: 4 × (`V→P` `r`; `P→V` round polynomial); then as 3–10 with `t_i`, the leaf `3·2^4` words | steps 2–3 (`B:111-119`) | `:1420-1425, 1509-1560` / `:2191-2194, 2311-2384` | `:1017-1063` (loop) |
+| 12 | last level: after its 4 folds, `P→V` `f_final` (`2^{n_res}` scalars in the clear); grind; `V→P` `t_last` positions; `V→P` `λ_last`; openings; intro; glue; then `n_res` × (`V→P` `r`; `P→V` round polynomial **except after the last `r`**) | step 4 (`B:120`): `f_final`, queries, `λ`, `ν_L` rounds, "`V` closes by evaluating `f̃_final`"; no intro; nothing said about the last message | `:1431-1476` / `:2197-2262` | `:1031-1032, 1065-1074` |
+| 13 | terminal check `weight · f̃_final(ρ_tail) = t_r` with `weight = W̃_λ(ρ rotated) + Σ_levels β_i·(induced weight of the level's queries at ρ) + Σ_ood β·eq(z, ρ)` | the closing check of step 4 (`B:120`), the consistency claims being `⟨W_{x_q}, f_final⟩` (`B:120`, Lemma `lem:colweight`) | `:2264-2308` / `induce_sumcheck_evaluate_at_residual`, `whir_induce.rs:228-293` | `:1075-1083`, `_induced_weight`, `:971-989` |
+
+The two verifiers agree with each other message for message (checked by walking
+`recursive_verifier_with_basis_succinct` and `verify_whir` side by side; the Python is a
+transcription of the Rust). Against Protocol B.6 the deployed schedule differs in four ways:
+
+1. **Per-claim intro messages before the batching challenge.** The spec sends, after `λ_i`, one
+   round polynomial `h_1` of the batched claim (`B:111`). The Rust sends a round polynomial *per
+   claim* — the residual's (the last fold message), the OOD claim's (`:1206`) and the query
+   batch's (`:1406`) — before or after `λ_i` is drawn, and both sides form the batched `h_1` by
+   linearity (`RoundQuad::fold`, `:548-554`). Equivalent claims, more prover messages, and two
+   verifier challenges in a row (`λ_i` then `r_1`) with no prover message between them: a
+   round-by-round analysis must charge `λ_i` and `r_1` as consecutive challenges, which Theorem
+   B.7 already does (its batching row and its fold row are separate). Soundness-neutral;
+   transcript-relevant.
+2. **Grinding.** 17 bits at every level, including the last, ground after the level's root (or
+   `f_final`) and before its positions (`whir_config.rs:57-60, 335-336`); `bits = 0` would still
+   read a canonical zero nonce (`fs/lib.rs:165-174`). Not in Annex B (the status's S12 records
+   it).
+3. **The lane relayout.** Level 0 folds the stack's *top* six coordinates (the lane index), the
+   later levels the low coordinates of the current fold; the verifier rotates the terminal point
+   left by 6 before evaluating `W̃_λ` (`whir.rs:2297-2306`, `py:1079`). Annex B states it only
+   in "Optimizations" (`B:380`). The blueprint's Layer 11 says `whirOpen` is "stated exactly as
+   Protocol B.1" (`bp:1185`) and nowhere mentions the relayout; a `verify` without it evaluates
+   `W̃_λ` at the wrong point and rejects every Rust proof.
+4. **The last round message is omitted** (`whir.rs:1471-1475`, `:2256-2261`; `py:1073-1074`):
+   the verifier's last running claim is checked directly against `f̃_final`, so the message that
+   would carry it is redundant.
+
+Also: the OOD count is one per level `≥ 1` and zero at level 0 (`whir_config.rs:677-684`, `:829-841`;
+`whir.rs:1261-1265` "L0 takes no OOD sample"), as Annex B (`B:105` "No OOD sample is taken") and
+the blueprint (`bp:1186-1187`) say.
+
+### B.2 The code
+
+- **Field and domain.** Reed–Solomon over `E` with the evaluation domain an `F_2`-subspace of
+  `K` (`B:54`, `B:90`); the level-0 word is `K`-valued because the message is (`B:306`; the
+  codeword buffer is `ArenaVec<F64>`, `whir.rs:293`, `:364`); deeper levels are `E`-valued
+  (`ArenaVec<F192>`, `:397`) encoded with `K` twiddles by the mixed product
+  (`whir.rs:17-19`, `whir_ntt_ext.rs`).
+- **Basis.** The novel polynomial basis of Lin–Chung–Han on the standard basis `e_c = x^c` of
+  `K` (`B:278`, `B:301-306`): `whir_induce.rs:19-21` "Standard basis only (`v_i = x^i = F64(1 <<
+  i)`)", `eval_sk_at_vks` (`:32-52`) and `normalized_sks_at` (`:56-67`, `Ŵ_i(x) = s_i(x)/s_i(v_i)`,
+  the spec's `Ŵ_i := W_i/W_i(e_i)`, `B:299`); the Python `_subspace_roots` (`py:962-968`). A
+  position `q ∈ [0, 2^{κ+ρ})` is the domain point `F64(q)` (`whir_induce.rs:163`, `py:983`), the
+  spec's `x_v = Σ_c v_c e_c` (`B:357`). The message is read directly as novel-basis coefficients
+  (`B:306`; the encoder is the additive NTT, `ntt::AdditiveNttF64::standard`, `whir.rs:372-373`).
+- **The column weight** the verifier evaluates: `Π_k (1 + p_k·(1 + Ŵ_k(q)))`
+  (`whir_induce.rs:220-224`, `py:971-977`) — Lemma `lem:colweight`'s `Π((1 + r_i) + r_i Ŵ_i(x))`
+  (`B:312`) in characteristic two. Agrees.
+- **Rates.** Level 0: `ρ_0 = 2^{−ρ}` with `ρ ∈ [1, 4]` chosen by the prover and announced
+  (`whir_config.rs:41-55`, `mod.rs:123, 149, 167`); then the rate exponent grows by
+  `k_0 − 3 = 3` after the initial fold and by `k_i − 1 = 3` after each later fold
+  (`whir_config.rs:73-78, 298-311`; `py:929`). Block lengths `2^{κ_i + ρ_i}`, all `≤ 2^{28}`,
+  within `κ + ρ ≤ 64` (`B:90`).
+- **The ladder.** Folds `[6, 4, 4, …]` until at most 5 variables remain (`derive_ladder`,
+  `whir_config.rs:260-296`; `py:924-932`): 2 levels and a residual of 5 at `μ = 15`, 6 levels
+  and a residual of 2 at `μ = 28`.
+
+### B.3 The parameters
+
+`SECURITY_BITS = 128`, `LOG_INV_RATE_0 = 1`, `MIN/MAX_LOG_INV_RATE = 1/4`, `QUERY_GRINDING_BITS =
+17`, `INITIAL_FOLDING_FACTOR = 6`, `SUBSEQUENT_FOLDING_FACTOR = 4`, `RS_DOMAIN_INITIAL_REDUCTION_FACTOR
+= 3`, `RS_DOMAIN_SUBSEQUENT_REDUCTION_FACTOR = 1`, `RESIDUAL_MAX_LOG = 5` (`whir_config.rs:38-86`);
+`MIN_MU = 15`, `MAX_MU = 28` (`pcs.rs:49-51`); the Python's copies `py:900-908`. The query counts
+per level come from the search of `whir_config.rs:639-707` (F.2) and are tabulated in
+`py:910` for every `(ρ, μ)`; the scratch port reproduces the table (H.3). The blueprint's
+parameter block (`bp:1157-1165`) lists the six constants and `ladder … -- fold, rate exponent,
+queries per level` with `ladder_queries_eq` against `py:910`: right, with two gaps: (a) the
+analysis parameter `η_i` (or `m_i`) per level is not a field of `Level`, yet `whirError params`
+(`bp:1175`) is a function of `γ_i = 1 − √ρ_i − η_i` and `L_i = 1/(2η_i√ρ_i)`; a Lean `whirError`
+needs the `η_i` as data (any admissible value proves the theorem; the Rust's are the
+floating-point optimum, `whir_config.rs:624-633`), and acceptance of "128 bits" needs the
+specific ones; (b) the OOD count (1 from level 1) and the grinding bits per level are parameters
+too.
+
+### B.4 The Merkle trees and the encodings
+
+- **Tree.** Binary, `2^k` leaves, flat layout (`pcs/merkle.rs:11-18`); leaf hash =
+  BLAKE2s-256 of the leaf bytes (`fs/merkle.rs:38-41`), node = BLAKE2s-256 of the 64 bytes
+  `left ‖ right` (`:44-51`); **no domain separation** between leaves and nodes. Safe because the
+  verifier fixes the height (`open`, `fs/merkle.rs:174`: `height = num_leaves.trailing_zeros()`,
+  `num_leaves` a function of the announced sizes) and the leaf width (`row_words`, `leaf_words`,
+  `:139-148`); a node's 64-byte preimage can only be presented as a leaf of a tree whose height
+  the verifier does not accept.
+- **Leaf images.** Level 0: `2^6` words of 8 bytes (512 bytes) per position, lane-**descending**,
+  the absent lanes a zero prefix supplied by the verifier (`whir.rs:331-345`,
+  `pcs/merkle.rs:144-192`, `fs/merkle.rs:53-58`); the words are little-endian `u64`s
+  (`fs/merkle.rs:60-67`). Deeper levels: `2^4` elements of `E` as `3·2^4 = 48` words, 384 bytes
+  (`whir.rs:461-467`, `ext_row_words`, `:1211-1213`; `py:1049`, `_ext_row`, `:938-940`). The
+  comment `whir.rs:393-395` says "one Merkle leaf of `num_interleaved * 16` bytes"; the code
+  hashes `num_interleaved * size_of::<F192>() = 24·num_interleaved` bytes (`:463`); the comment is
+  stale (a finding against the source, note).
+- **Digests on the stream.** A 32-byte digest travels as two scalars, each two little-endian
+  words in the low limbs and a zero third limb (`hash_to_scalars`, `fs/merkle.rs:14-20`;
+  `py:216-219`); reading rejects a nonzero third limb (`scalars_to_hash`, `:26-36`;
+  `py:222-224`).
+- **Wire format.** One phase per level: the rows at the *distinct, sorted* positions and one
+  "octopus" of siblings (`PrunedMerklePaths`, `fs/merkle.rs:78-92`, `prune`, `:101-136`); the
+  verifier rebuilds every path, refuses a missing or surplus sibling, a wrong row count or
+  width, an out-of-range position, a root mismatch (`open`, `:163-235`). The raw form
+  (`RawMerklePath`, `:246-264`: full leaf image plus full sibling path, one per query,
+  duplicates repeated) is what an accepting Rust verifier *emits* (`into_raw_proof`,
+  `fs/transcript.rs:198-203`; `mod.rs:702-704, 777`) and what the Python and the recursion guest
+  consume (`py:392-404`; the test harness `crates/lean_vm/tests/verifiers/python_verifier.rs:50-80`
+  writes it out).
+
+### B.5 What Annex B's soundness theorem says, and on what it rests
+
+Theorem B.7 (`B:139-152`, `thm:rbr`): the scheme is `L_0`-list binding (Definition B.4,
+`B:70-72`) and its opening has **round-by-round soundness** (Definition B.5, `B:74-84`) for the
+relation `R_open` (`B:133-136`), with the per-message errors of the table `B:141-150`. The model
+is the interactive oracle proof: the oracles `C⁽ⁱ⁾` are read at queried columns, the challenges
+are uniform, the prover unbounded; the extractor is not named (soundness for a language).
+Inputs: the Johnson bound, proved in the annex (`B:391-414`); mutual correlated agreement up to
+the Johnson bound, Theorem B.9 (`B:176-185`), quoted from [BCHKS25] Theorem 4.6 and external;
+Lemma B.10 (`B:189-198`) turns it into "folding preserves lists" with the `2^{ℓ−1}` union of rows;
+Lemma B.11 (`B:200-206`) is the out-of-domain separation. Fiat–Shamir is one sentence (`B:84`).
+
+### B.6 The blueprint's Layer 11 set against it
+
+| Blueprint (`bp:1150-1193`) | Ground truth | Judgement |
+| --- | --- | --- |
+| `whirOpen (params) : OracleReduction … (StmtIn := Fin J → WeightedClaim μ) (OStmtIn := codeword oracles)`, "stated exactly as Protocol B.1: batch, `ℓ_i` sumcheck rounds, commit, one out-of-domain sample from level 1 on, `t_i` queries, and the final plaintext level" | Protocol B.6 (numbered on the section counter, `preamble/theorems.tex:4, 12`) with the four deployed differences of B.1 | the input type is right (J weighted claims; under (ii) its level-0 batch is the opening phase's `λ`, section A). The relayout, the intro messages and the omitted last message must be pinned as Category B for `verify` to accept Rust proofs; grinding is Layer 12's. "Protocol B.1", "Theorem B.2", "Definition B.1" (`bp:1187`), "Lemma B.7" (`bp:1170`), "Annex B.3" (`bp:278`), "(Annex B.4)" (`bp:1172`) are not the pinned numbers (Protocol B.6, Theorem B.7, Definition B.4, Lemma B.14, §B.5, §B.3); cite labels |
+| `whirOpen_rbrSoundness (mca : McaJohnson) : … (whirError params) -- Theorem B.2, per message`; "Its soundness is *round-by-round soundness for the list relation* `relopen`, not knowledge soundness" | Theorem B.7 as read in B.5 | right in kind; `whirError` needs the `η_i` (B.3); the errors are `(J_i − 1)L_i/|E|`, `2L_i/|E| + 2^{ℓ_i−j}ε_i`, `C(L_i,2)μ_i/|E|`, `(1 − γ_i)^{t_i}`, `t_{r−1}/|E|`, `2/|E|` — Layer 10's "`2/|E|` per round" is the tail's value, wrong for the fold rounds (section A) |
+| `encode (κ R : ℕ) : Column κ → (Fin (2^(κ+R)) → K) -- additive NTT on the K basis` | the encoder is `Enc : E^{cube} → E^{dom}`, `K`-valued on `K`-valued messages (`B:54, 306`); every level past 0 encodes an `E`-valued message (`whir.rs:419-485`) | **too narrow**: `encode` over `K` serves level 0 only; the deeper levels need the same encoder over `E` (or over any `K`-algebra), and the `K`-valuedness of level 0 is a lemma about it |
+| `theorem encode_column_weight (x) : ∃ W_x : Weight κ, ∀ f, encode κ R f x = ⟨W_x, f⟩ -- Lemma B.7` | Lemma B.14 (`B:309-315`): `W_x(u) = Π_i Ŵ_i(x)^{u_i}` and `W̃_x(r) = Π_i ((1 + r_i) + r_i Ŵ_i(x))`, which the verifier computes (`whir_induce.rs:220-224`) | **near-vacuous as stated**: every linear map `K^{2^κ} → K` is an inner product with some cube table, and `Weight` is inhabited by `⟨row, evalMle row, rfl⟩`, so the existential is true of any linear `encode` and says nothing about the novel basis. What Layer 11 needs is the *definition* `columnWeight x : Weight κ` with the closed-form `mle` and the theorem `encode κ R f x = (columnWeight x).pair f`, since `verify` evaluates that closed form |
+| `merkleRoot : List (Vector K leafWords) → Digest`, `merkleVerify : Digest → ℕ → Vector K leafWords → Path → Bool`, `blake2sBytes` | B.4 | `merkleVerify` is the raw path (`RawMerklePath::root`, `fs/merkle.rs:252-264`), not the wire's pruned octopus; which one `Proof.merkle : List MerklePaths` (`bp:1209-1211`) holds decides which proofs `verify` accepts (section C). The leaf image order (lane-descending, zero prefix) and the two leaf widths are not stated |
+| Tests: `encode` against CompPoly's additive NTT at `κ = 3`; `merkleVerify` on four leaves; honest `whirOpen` at `μ = 4`, rate `1/2`; the parameter tables against `py:910` | | the honest run at `μ = 4` cannot use the production ladder (`derive_ladder` needs `μ > 6` and two levels, `whir_config.rs:266-267, 291-293`; the Rust's tests fall back to `default_config`, `:196-224`); say which shape the toy uses |
+
+---
+
+## C. Fiat–Shamir and the proof object, as deployed
+
+§8.4 of the specification is `TODO` (`08:44-46`); §8.5's "Setup" says only "The Fiat-Shamir
+initial state (§8.4) is seeded by the public input, the bytecode and Flock's BLAKE2s R1CS
+matrices" (`08:55`). **The Rust is the only source**; the Python is a transcription of it and is
+checked against it below (every row agrees unless marked).
+
+### C.1 The chain
+
+| Element | Rust (`fs/lib.rs`) | Python (`py`) |
+| --- | --- | --- |
+| The primitive `compress(a, b)` on two 256-bit halves | `:18-24`: `BLAKE2s(a ‖ b)` over 64 bytes, the words little-endian — i.e. the RFC compression `F(PARAM_IV, a ‖ b, t = 64, f0 = 1)` from the unkeyed parameter state (`primitives/src/hash.rs:83-87, 209-224`); the chain state is the *first half of the message*, never a BLAKE2s chaining value | `:341-343` `compress(left, right) = blake2s(le bytes of the 8 words)` |
+| Tags, lane 3 of the right half | `:36-39`: observe `1`, squeeze `2`, grinding base `3`, grinding nonce `4`; the seeding block has no tag, "its position is its tag" (`:31-35`) | `:335-338` |
+| Seed | `cv_0 = compress(iv, public_input)` (`:69-73`); `iv = BLAKE2s("leanvm" ‖ len(R1CS_DIGEST) as u64 LE ‖ R1CS_DIGEST ‖ bytecode_hash)` as four words (`mod.rs:82-93`, `:712`); `public_input` as its four low words, the third limbs dropped (`mod.rs:99-106`) | `:1366-1369`, `:349` |
+| Observe `x ∈ E` | `cv ← compress(cv, (x.c0, x.c1, x.c2, 1))` (`:85-87`) | `:353-354` |
+| Squeeze | `out ← compress(cv, (0, 0, 0, 2))`; `cv ← out`; challenge `= (out_0, out_1, out_2)` (`:95-99`): the challenge is 192 of the 256 state bits | `:356-358` |
+| Grinding base | `compress(cv, (0, 0, 0, 3))`, not written to the state (`:108-110`) | `:380` |
+| Nonce bound | `cv ← compress(cv, (nonce.c0, nonce.c1, nonce.c2, 4))` (`:118-120`), on both sides, **also when the check fails** (`:165-174`; status F13) | `:382` |
+| Grinding predicate | low `bits` bits of `compress(base, (nonce, 4))[0]` are zero; `bits = 0` accepts only `nonce = 0` (`:47-51`, `:165-174`) | `:381` |
+| The honest grind | smallest `u64` nonce, unbounded search (`:126-155`) | not the verifier's |
+
+The blueprint's row *Fiat–Shamir* (`bp:325`) states the tags, the seed and "one squeeze yields
+one `E` challenge (three low words)" correctly. It does not say that the step is
+`BLAKE2s-256(cv ‖ block)` with `cv` in the *message* and the RFC chaining value fixed at the
+parameter state; Layer 12's `FsState.observe … -- lane 3 = 1` (`bp:1204`) and the leanISA row
+"`compress` (Layer 1): the compression the transcript, Merkle hashing and the Flock circuit
+share" (`bp:216`) invite `F(cv, x ‖ tag, …)` with `cv` as chaining value, which is a different
+function. Category B; the transcription must say `hash64 (cv ++ x ++ tag) = compress iv64
+(cv ++ x ++ tag) 64 true false` in leanISA's `compress`'s terms (`LeanerVM/Semantics/Blake2s.lean:105`
+at `b435631`).
+
+### C.2 The proof object and the stream order
+
+`Proof<M = PrunedMerklePaths> { stream: Vec<F192>, merkle: Vec<M> }` (`fs/transcript.rs:9-12`);
+`RawProof = Proof<RawMerklePath>` (`:19`) is what the Rust verifier emits after accepting
+(`:198-203`) and what the Python reads (`py:322-330`: a byte file of 24-byte scalars and a byte
+file of leaf words followed by sibling digests, no lengths). The blueprint's `Proof` (`bp:1209-1211`:
+`stream : List E`, `merkle : List MerklePaths`) cites `transcript.rs:9-19`, which defines both;
+`merkleVerify … Path` (`bp:1182`) is the raw shape; the fixture "a proof dumped from the pinned
+Rust prover" (`bp:1237-1238`) — the prover emits the pruned form (`ps.into_proof()`, `:138-143`),
+the verifier the raw one. Which one `verify` takes is unspecified, and they are not equivalent
+as sets of accepted byte strings: (a) the raw form repeats a row for a duplicated position and
+carries every sibling, the pruned form dedups and shares (`fs/merkle.rs:69-76, 101-136`);
+(b) at level 0 the pruned form carries `n_lanes` words per row and the verifier supplies the
+zero prefix (`fs/merkle.rs:53-58`; `whir.rs:2130-2131`), while the raw form carries the full
+64-word image (`py:1049`: `lanes if level == 0 else 3 * lanes`) and **the Python does not check
+that the prefix is zero**: run standalone on an adversarial raw proof it accepts a commitment
+whose absent lanes are nonzero (soundness-neutral, section D, check M2; a divergence in accepted
+sets nonetheless). A choice must be made and named: the pruned wire format is "what the Rust
+prover emits"; the raw one is what the recursion guest verifies.
+
+The stream, in order (`mod.rs:711-769`; the phases' internals are in the sibling dossiers):
+
+| # | Scalars read (`P→V`, each absorbed as read) | Squeezes (`V→P`) | Source |
+| --- | --- | --- | --- |
+| 1 | seed | — | `mod.rs:712` |
+| 2 | 8: `κ_mem, τ_0..τ_5, ρ` | — | `mod.rs:144-149`; `py:1372` |
+| 3 | 2: the commitment root | — | `mod.rs:714`, `pcs.rs:136-138`; `py:1382` |
+| 4 | bus: 2 roots; per GKR layer the round polynomials and children | `α` (4), `β`, per layer the combiners and the two combination challenges; then 5 boundary evaluations read | `gt-bus` A.3–A.4 |
+| 5 | table sumcheck: `τ_max` round polynomials (3 scalars each), then 104 column values | `ξ`, then `τ_max` challenges | `gt-table-pub` A.1 |
+| 6 | 2: `c_0, c_1` | `r_pi` first | `mod.rs:745-749`; `py:1398-1399` |
+| 7 | Flock: zerocheck and lincheck messages | their challenges | `gt-flock-ring` §2.2 |
+| 8 | — | 6 ring-switching challenges | `stack_open.rs:394`/`:513`; `py:1343` |
+| 9 | — | `λ` | `stack_open.rs:400`/`:518`; `py:1361` |
+| 10 | WHIR: as B.1 rows 1–13; Merkle phases on the side channel, one per level | as B.1 | `whir.rs:2087-2308`; `py:1006-1087` |
+| 11 | `vs.finish()`: the stream and the phase list fully consumed | — | `mod.rs:769`, `fs/transcript.rs:213-219`; `py:1414` |
+
+What is absorbed before each challenge is therefore: everything read from the stream before it
+(including the grinding nonces, with tag 4) and every earlier squeeze (which ratchets the state),
+and **nothing else**: the Merkle openings are never absorbed (`fs/transcript.rs:225-228`), the
+derived coefficient of a round polynomial is never absorbed (`:56-62` "Binding it would add
+nothing"), the table sumcheck's target is never sent (`gt-table-pub`), the program enters
+through its hash and the public input through its four low words at the seed. A challenge is
+a function of (statement, sizes, all scalars so far, the count of squeezes so far).
+
+### C.3 The encoding of round polynomials
+
+`add_round_poly(coeffs, eq)` sends every coefficient but one, "constant first" (`fs/transcript.rs:56-71`):
+with `eq = false` it drops `c_1`, with `eq = true` it drops `c_0`. `next_round_poly(n, claim, eq)`
+(`:289-309`) reads the others in index order, derives the missing one — `c_1 = claim + Σ_{i≥2} c_i`
+for a plain round (`h(0) + h(1) = claim` in characteristic two), `c_0 = claim + r·Σ_{i≥1} c_i`
+for a round whose `eq` factor `r` the verifier holds — and binds the read ones. The Python
+`sumcheck_round_poly` (`py:406-413`) is the same. WHIR's rounds are plain and quadratic: two
+scalars `(c_0, c_2)` per round (`whir.rs:509-522`; `py:1012`). The blueprint's row *Sumcheck
+messages* (`bp:315`) and acceptance test 8 (`bp:1287-1289`: "`decode` reconstructs `c_1`") state
+this for the table sumcheck; `RoundPoly.decode (d) (claim) (eq? : Option E)` (`bp:1212`) has the
+right signature. Consequence for the oracle protocol: the round identity is not a check in the
+deployed verifier (`gt-bus` B15, `gt-table-pub` "three and none on the wire"); the oracle
+protocol's explicit check is what `decode` makes true by construction.
+
+### C.4 The blueprint's Layer 12 set against it
+
+| Blueprint | Judgement |
+| --- | --- |
+| `FsState` with `seed`, `observe`, `sample`, `grind` (`bp:1202-1206`) | right shape; `grind (bits) (nonce) : FsState → Bool × FsState` must bind the nonce whether or not the check passes (`fs/lib.rs:165-174`), and `compress` must be the 64-byte hash (C.1) |
+| `Proof` (`bp:1209-1211`) | which Merkle format (C.2) |
+| `RoundPoly.decode` (`bp:1212`) | right |
+| `verify … phase by phase in the stream order of the conventions` (`bp:1230`) | the conventions' rows do not give the WHIR-internal order (B.1) nor the Merkle side channel |
+| `verify_iff_compiled` (`bp:1218-1221`) | section E.4 |
+| Tests: six mutations, "a flipped stream scalar in each phase, a wrong Merkle sibling" (`bp:1238-1239`) | add: a nonce that fails the grind; a nonzero third limb in a root; a nonzero upper limb in a size; an extra trailing scalar; an extra sibling; a level-0 row of the wrong width (`gt-bus` G9 asks for three of these) |

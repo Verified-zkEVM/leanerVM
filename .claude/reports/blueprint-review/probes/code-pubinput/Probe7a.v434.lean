@@ -508,8 +508,8 @@ theorem not_perfectCompleteness {ι : Type} {oSpec : OracleSpec ι}
   have h1 := hc stmtIn witIn hin
   dsimp only at h1
   have hpos := lt_of_lt_of_eq (zero_lt_one' ℝ≥0∞) h1.symm
-  obtain ⟨x, hx, hev⟩ := (OracleComp.OptionT.prEvent_mk_pos_iff _
-    (fun x ↦ (x.2, x.1.2.2) ∈ relOut ∧ x.1.2.1 = x.2)).mp hpos
+  rw [OracleComp.OptionT.prEvent_mk_pos_iff] at hpos
+  obtain ⟨x, hx, hev⟩ := hpos
   rw [mem_support_bind_iff] at hx
   obtain ⟨s, _, hx⟩ := hx
   exact h (some x) (support_simulateQ_run'_subset _ _ s hx) x rfl hev

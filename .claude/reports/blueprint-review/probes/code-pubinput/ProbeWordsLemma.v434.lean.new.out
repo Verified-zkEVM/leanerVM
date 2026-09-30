@@ -1,0 +1,4 @@
+'WordsLemma.accepts_two_challenges' depends on axioms: [propext, Classical.choice, Quot.sound]
+'WordsLemma.cells_eq_lanes' depends on axioms: [propext, Classical.choice, Quot.sound]
+'WordsLemma.top_limb_zero_of_two_challenges' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0

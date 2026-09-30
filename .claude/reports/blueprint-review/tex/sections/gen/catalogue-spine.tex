@@ -6,6 +6,8 @@ Every public declaration of the modules in scope, in file order, with its class:
 
 Library objects (all at the pins ArkLib \texttt{dca90385}, CompPoly \texttt{3468b38c}, VCVio \texttt{f9dc47d9}) are introduced where first used in sections C and D; the catalogue names them in the \enquote{depends on} column.
 
+\par\noindent{\small\textit{Cross-references.} A reference such as \enquote{(D.5)} or \enquote{section B} in this part is to a section of the dossier \file{dossiers/code-spine.md}, whose codes the headings keep in parentheses: A (catalogue) is \cref{sec:gen-cat-spine}; B (audit surface) is \cref{sec:gen-surface-spine}; C (the statements) is \cref{sec:gen-statements-spine}; D (non-vacuity by probe), G (what was not verified) and the appendix (the probes) is \cref{sec:gen-probes-spine}; E (conformance) is \cref{sec:gen-conf-spine}; F (findings) is \cref{sec:gen-findings-spine}.}\par
+
 Order of this section: the five spine modules (\texttt{Instance}, \texttt{Seams}, \texttt{Phase}, \texttt{Compose}, \texttt{Toy}), then the generic modules under \texttt{ToArkLib/}, then \texttt{Field.\allowbreak{}lean} where the spine unfolds to it. Every load-bearing and interface declaration is shown with its snippet, its source at \texttt{b435631}, and its meaning and dependencies as the dossier states them; the helpers and test fixtures of each file are listed in a table at the end of the file's subsection. The class is given at the right of each entry.
 
 \subsection{\file{LeanerVM/Protocol/Spine/Instance.lean}}\label{sec:gen-cat-spine-Instance}
@@ -125,7 +127,7 @@ structure M3Instance extends Shape where
 
 Everything the verifier reads about an arithmetization: the statement type, per table its constraints and flushes (polynomials over \texttt{K} of the row), a degree bound \texttt{d} with the two proofs, the count columns, the boundary blocks, the stack height \texttt{μ} and layout, the public lines of a statement, and the auxiliary predicate \texttt{aux} with its decision procedure. Trusted data (section F). \emph{Depends on:} \texttt{Shape}, \texttt{Layout}, \texttt{BoundaryBlock}, \texttt{PublicLine}, CompPoly \texttt{CMvPolynomial}, \texttt{totalDegree}.
 
-\par\medskip\noindent\textbf{\lean{κ}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.κ}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 abbrev κ (c : I.ColumnId) : ℕ := I.τ c.1
@@ -135,7 +137,7 @@ abbrev κ (c : I.ColumnId) : ℕ := I.τ c.1
 
 Log-height of a column: its table's. \emph{Depends on:} \texttt{M3Instance}.
 
-\par\medskip\noindent\textbf{\lean{column}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.column}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read q c
@@ -145,7 +147,7 @@ def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read
 
 One column of the stack, through the layout. \emph{Depends on:} \texttt{Layout.\allowbreak{}read}.
 
-\par\medskip\noindent\textbf{\lean{row}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.row}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
@@ -156,7 +158,7 @@ def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width
 
 Row \texttt{x} of table \texttt{j}: the function giving each column's cell \texttt{x}. \emph{Depends on:} \texttt{column}.
 
-\par\medskip\noindent\textbf{\lean{coordCell}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.coordCell}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ) → K
@@ -169,7 +171,7 @@ def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ)
 
 The value of a boundary coordinate at row \texttt{x} of its block. \emph{Depends on:} \texttt{Coord}, \texttt{column}.
 
-\par\medskip\noindent\textbf{\lean{flushTuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.flushTuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def flushTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -182,7 +184,7 @@ def flushTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 
 The tuples of one side flushed by the tables: for every table, every flush of that side, every row, the sixteen coordinate polynomials evaluated on the row. \emph{Depends on:} \texttt{row}, CompPoly \texttt{CMvPolynomial.\allowbreak{}eval}.
 
-\par\medskip\noindent\textbf{\lean{boundaryTuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.boundaryTuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def boundaryTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -194,7 +196,7 @@ def boundaryTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 
 The tuples of one side on the boundary blocks: for every block of that side, every row. \emph{Depends on:} \texttt{coordCell}.
 
-\par\medskip\noindent\textbf{\lean{tuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.tuples}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -205,7 +207,7 @@ def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 
 Every tuple of one side: the tables' then the boundary's. \emph{Depends on:} \texttt{flushTuples}, \texttt{boundaryTuples}.
 
-\par\medskip\noindent\textbf{\lean{ConstraintsVanish}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.ConstraintsVanish}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def ConstraintsVanish (q : Column I.μ) : Prop :=
@@ -216,7 +218,7 @@ def ConstraintsVanish (q : Column I.μ) : Prop :=
 
 Every constraint of every table is zero on every row (the zerocheck target). \emph{Depends on:} \texttt{row}.
 
-\par\medskip\noindent\textbf{\lean{Balanced}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.Balanced}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def Balanced (q : Column I.μ) : Prop := (I.tuples q .push).Perm (I.tuples q .pull)
@@ -226,7 +228,7 @@ def Balanced (q : Column I.μ) : Prop := (I.tuples q .push).Perm (I.tuples q .pu
 
 The pushed tuples are a permutation of the pulled tuples: the same multiset, counted in \texttt{ℕ}. \emph{Depends on:} \texttt{tuples}, Mathlib \texttt{List.\allowbreak{}Perm}.
 
-\par\medskip\noindent\textbf{\lean{CountsNonzero}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.CountsNonzero}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def CountsNonzero (q : Column I.μ) : Prop :=
@@ -237,7 +239,7 @@ def CountsNonzero (q : Column I.μ) : Prop :=
 
 Every cell of every count column is nonzero (the count product). \emph{Depends on:} \texttt{column}.
 
-\par\medskip\noindent\textbf{\lean{PublicLinesHold}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{M3Instance.PublicLinesHold}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def PublicLinesHold (input : I.Stmt) (q : Column I.μ) : Prop :=
@@ -471,7 +473,7 @@ abbrev theStack {I : M3Instance} (o : ∀ i, TheOracle I i) : Column I.μ := o 0
 
 The stack behind the one oracle. \emph{Depends on:} \texttt{TheOracle}.
 
-\par\medskip\noindent\textbf{\lean{of}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.of}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def of {S : Type} (P : S → Column I.μ → Prop) : Set ((S × ∀ i, TheOracle I i) × Unit) :=
@@ -482,7 +484,7 @@ def of {S : Type} (P : S → Column I.μ → Prop) : Set ((S × ∀ i, TheOracle
 
 A seam from a predicate on the statement and the stack: the set of \texttt{(\allowbreak{}(\allowbreak{}statement,\allowbreak{} oracles),\allowbreak{} (\allowbreak{}))} where it holds of the one oracle. \emph{Depends on:} \texttt{theStack}.
 
-\par\medskip\noindent\textbf{\lean{commit}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.commit}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def commit := of I (M3Holds I)
@@ -492,7 +494,7 @@ def commit := of I (M3Holds I)
 
 After the commit: \texttt{M3Holds} of the oracle itself. \emph{Depends on:} \texttt{of}, \texttt{M3Holds}.
 
-\par\medskip\noindent\textbf{\lean{bus}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.bus}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def bus := of I fun (s : I.Stmt × BusOut I) q ↦ (∀ c ∈ s.2.linear, c.Holds q) ∧
@@ -504,7 +506,7 @@ def bus := of I fun (s : I.Stmt × BusOut I) q ↦ (∀ c ∈ s.2.linear, c.Hold
 
 After the bus phase: every linear claim holds, every term is within the degree bound, every column claim holds, the lines hold, \texttt{aux} holds. \emph{Depends on:} \texttt{of}, the claims, \texttt{PublicLinesHold}.
 
-\par\medskip\noindent\textbf{\lean{table}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.table}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def table := of I fun (s : I.Stmt × TableOut I) q ↦
@@ -515,7 +517,7 @@ def table := of I fun (s : I.Stmt × TableOut I) q ↦
 
 After the table sumcheck: column claims, lines, \texttt{aux}. \emph{Depends on:} \texttt{of}.
 
-\par\medskip\noindent\textbf{\lean{pub}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.pub}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns, c.Holds q) ∧ I.aux q
@@ -525,7 +527,7 @@ def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns, c.Hol
 
 After the public-input phase: column claims and \texttt{aux}. \emph{Depends on:} \texttt{of}.
 
-\par\medskip\noindent\textbf{\lean{flock}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.flock}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
@@ -536,7 +538,7 @@ def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
 
 After the Flock phase: column claims and weighted claims. \emph{Depends on:} \texttt{of}.
 
-\par\medskip\noindent\textbf{\lean{done}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Seam.done}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def done := of I fun (_ : Unit) _ ↦ True
@@ -548,7 +550,7 @@ After the opening: nothing (the whole set). \emph{Depends on:} \texttt{of}.
 
 \subsection{\file{LeanerVM/Protocol/Spine/Phase.lean}}\label{sec:gen-cat-spine-Phase}
 
-\par\medskip\noindent\textbf{\lean{Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 abbrev Def (StmtIn StmtOut : Type) : Type 1 :=
@@ -559,7 +561,7 @@ abbrev Def (StmtIn StmtOut : Type) : Type 1 :=
 
 A phase: a component from a statement to a statement over the stack, with trivial witnesses. \emph{Depends on:} \texttt{Component.\allowbreak{}Def}, \texttt{TheOracle}.
 
-\par\medskip\noindent\textbf{\lean{Complete}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.Complete}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 abbrev Complete {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
@@ -572,7 +574,7 @@ abbrev Complete {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
 
 Its completeness half against two seams. \emph{Depends on:} \texttt{Component.\allowbreak{}Complete}.
 
-\par\medskip\noindent\textbf{\lean{Security}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.Security}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 abbrev Security {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
@@ -585,7 +587,7 @@ abbrev Security {StmtIn StmtOut : Type} (D : Def I StmtIn StmtOut)
 
 Its security half against two seams. \emph{Depends on:} \texttt{Component.\allowbreak{}Security}.
 
-\par\medskip\noindent\textbf{\lean{passThrough}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.passThrough}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 abbrev passThrough (f : StmtIn → StmtOut) : Def I StmtIn StmtOut :=
@@ -596,7 +598,7 @@ abbrev passThrough (f : StmtIn → StmtOut) : Def I StmtIn StmtOut :=
 
 The pass-through phase. \emph{Depends on:} \texttt{Component.\allowbreak{}passThrough}.
 
-\par\medskip\noindent\textbf{\lean{passThroughComplete}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.passThroughComplete}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 def passThroughComplete (f : StmtIn → StmtOut)
@@ -611,7 +613,7 @@ def passThroughComplete (f : StmtIn → StmtOut)
 
 Its completeness when the map carries one seam into the other. \emph{Depends on:} \texttt{Component.\allowbreak{}passThroughComplete}.
 
-\par\medskip\noindent\textbf{\lean{passThroughSecurity}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Phase.passThroughSecurity}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 def passThroughSecurity (f : StmtIn → StmtOut)
@@ -864,7 +866,7 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{Phases.\allowbreak{}Complete.\allowbreak{}toDef} & 107-110 & helper & The composed completeness. \\
+\texttt{P\allowbreak{}h\allowbreak{}a\allowbreak{}s\allowbreak{}e\allowbreak{}s\allowbreak{}.\allowbreak{}C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}l\allowbreak{}e\allowbreak{}t\allowbreak{}e\allowbreak{}.\allowbreak{}t\allowbreak{}o\allowbreak{}D\allowbreak{}e\allowbreak{}f} & 107-110 & helper & The composed completeness. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/Spine/Toy.lean}}\label{sec:gen-cat-spine-Toy}
@@ -885,14 +887,14 @@ Declaration & Lines & Class & Meaning \\
 \endfoot
 \texttt{shape} & 36-36 & test fixture & One table of height two and width three. \\
 \texttt{slice} & 42-44 & test fixture & Column \texttt{i} is the slice at cells \texttt{2i,\allowbreak{} 2i+1}. \\
-\texttt{extend} & 47-48 & test fixture & The selector of column \texttt{i}: \texttt{(\allowbreak{}z,\allowbreak{} i mod 2,\allowbreak{} i div 2)}. \\
+\texttt{extend} & 47-48 & test fixture & The selector of column \texttt{i}: \texttt{(\allowbreak{}z\allowbreak{},\allowbreak{} i\allowbreak{} m\allowbreak{}o\allowbreak{}d\allowbreak{} 2\allowbreak{},\allowbreak{} i\allowbreak{} d\allowbreak{}i\allowbreak{}v\allowbreak{} 2\allowbreak{})}. \\
 \texttt{read\_\allowbreak{}eval} & 52-57 & test fixture & The law for the three slices. \\
 \texttt{layout} & 60-63 & test fixture & The toy's layout. \\
 \texttt{constraint} & 66-66 & test fixture & Column 2 is Boolean: \texttt{X₂² − X₂}. \\
 \texttt{flush} & 77-78 & test fixture & The one flush: \texttt{(\allowbreak{}X₀,\allowbreak{} 0,\allowbreak{} …)}, pushed. \\
-\texttt{boundary} & 89-92 & test fixture & The one boundary block: pulls \texttt{(\allowbreak{}[1,\allowbreak{} 1],\allowbreak{} 0,\allowbreak{} …)}. \\
-\texttt{toy} & 95-111 & test fixture & The toy instance: \texttt{d = 2}, column 1 a count column, the public line on column 2 with cells \texttt{(\allowbreak{}input,\allowbreak{} 0)}, \texttt{aux := True}. \\
-\texttt{honest} & 114-114 & test fixture & The honest stack \texttt{[1,\allowbreak{} 1,\allowbreak{} 1,\allowbreak{} 1,\allowbreak{} 1,\allowbreak{} 0,\allowbreak{} 0,\allowbreak{} 0]}. \\
+\texttt{boundary} & 89-92 & test fixture & The one boundary block: pulls \texttt{(\allowbreak{}[\allowbreak{}1\allowbreak{},\allowbreak{} 1\allowbreak{}]\allowbreak{},\allowbreak{} 0\allowbreak{},\allowbreak{} …\allowbreak{})}. \\
+\texttt{toy} & 95-111 & test fixture & The toy instance: \texttt{d = 2}, column 1 a count column, the public line on column 2 with cells \texttt{(\allowbreak{}input,\allowbreak{} 0)}, \texttt{a\allowbreak{}u\allowbreak{}x\allowbreak{} :\allowbreak{}=\allowbreak{} T\allowbreak{}r\allowbreak{}u\allowbreak{}e}. \\
+\texttt{honest} & 114-114 & test fixture & The honest stack \texttt{[\allowbreak{}1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 0\allowbreak{},\allowbreak{} 0\allowbreak{},\allowbreak{} 0\allowbreak{}]}. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/Oracles.lean}}\label{sec:gen-cat-spine-Oracles}
@@ -931,12 +933,12 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{noOracle\_\allowbreak{}eq} & 32-32 & helper & Any two empty oracle families are equal. \\
+\texttt{n\allowbreak{}o\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}\_\allowbreak{}e\allowbreak{}q} & 32-32 & helper & Any two empty oracle families are equal. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/Component.lean}}\label{sec:gen-cat-spine-Component}
 
-\par\medskip\noindent\textbf{\lean{Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 structure Def (StmtIn : Type) {ιi : Type} (OStmtIn : ιi → Type) (WitIn : Type)
@@ -954,7 +956,7 @@ structure Def (StmtIn : Type) {ιi : Type} (OStmtIn : ιi → Type) (WitIn : Typ
 
 A component: its number of rounds, its schedule (who speaks, what type), the instances that every message can be queried and every challenge sampled, the honest prover with the verifier (an ArkLib \texttt{OracleReduction} over the empty shared oracle), and the knowledge error it declares per challenge. \emph{Depends on:} ArkLib \texttt{ProtocolSpec}, \texttt{OracleReduction}, \texttt{OracleInterface}, VCVio \texttt{SampleableType}.
 
-\par\medskip\noindent\textbf{\lean{Complete}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.Complete}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 structure Complete (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut)
@@ -970,7 +972,7 @@ structure Complete (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut)
 
 The completeness half a phase must supply: the prover's output is pure (redundant, D.7), the verifier is a check followed by a verdict (data), and perfect completeness from any shared state. \emph{Depends on:} \texttt{Def}, ArkLib \texttt{OutputIsPure}, \texttt{GuardedForm}, \texttt{perfectCompleteness}.
 
-\par\medskip\noindent\textbf{\lean{Security}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.Security}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut)
@@ -991,7 +993,7 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut)
 
 The security half: completeness, the intermediate witness types, a round-by-round extractor, its knowledge state function from any shared state, and worst-case round-by-round knowledge soundness for them at the declared error. \emph{Depends on:} \texttt{Complete}, ArkLib \texttt{Extractor.\allowbreak{}RoundByRound}, \texttt{KnowledgeStateFunction}, \texttt{rbrKnowledgeSoundnessWorstCaseWith}.
 
-\par\medskip\noindent\textbf{\lean{Def.append}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.Def.append}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def Def.append (D₁ : Def Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂)
@@ -1020,11 +1022,11 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{stateFunctionOfEq} & 110-120 & helper (in the named statement) & Transport a knowledge state function along an equality of verifiers (needed because ArkLib's appended oracle verifier is only propositionally the appended ordinary verifier). \\
-\texttt{rbrKnowledgeSoundnessWorstCaseWith\_\allowbreak{}of\_\allowbreak{}eq} & 124-135 & helper & The same transport for the bound. \\
-\texttt{guardedAppend} & 156-159 & helper (in the named statement) & The guarded form of an appended verifier from those of its parts (ArkLib's \texttt{GuardedForm.\allowbreak{}append}, cast along the append equation). \\
-\texttt{Complete.\allowbreak{}append} & 162-169 & helper (in the named statement) & Completeness composes: purity, guarded form, and ArkLib's guarded-append completeness theorem. \\
-\texttt{Security.\allowbreak{}append} & 174-184 & helper (in the named statement) & Security composes: extractors appended through the first verdict (ArkLib), state functions by the ported \texttt{appendGuarded}, the bound by the ported theorem. \\
+\texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}s\allowbreak{}t\allowbreak{}a\allowbreak{}t\allowbreak{}e\allowbreak{}F\allowbreak{}u\allowbreak{}n\allowbreak{}c\allowbreak{}t\allowbreak{}i\allowbreak{}o\allowbreak{}n\allowbreak{}O\allowbreak{}f\allowbreak{}E\allowbreak{}q} & 110-120 & helper (in the named statement) & Transport a knowledge state function along an equality of verifiers (needed because ArkLib's appended oracle verifier is only propositionally the appended ordinary verifier). \\
+\texttt{r\allowbreak{}b\allowbreak{}r\allowbreak{}K\allowbreak{}n\allowbreak{}o\allowbreak{}w\allowbreak{}l\allowbreak{}e\allowbreak{}d\allowbreak{}g\allowbreak{}e\allowbreak{}S\allowbreak{}o\allowbreak{}u\allowbreak{}n\allowbreak{}d\allowbreak{}n\allowbreak{}e\allowbreak{}s\allowbreak{}s\allowbreak{}W\allowbreak{}o\allowbreak{}r\allowbreak{}s\allowbreak{}t\allowbreak{}C\allowbreak{}a\allowbreak{}s\allowbreak{}e\allowbreak{}W\allowbreak{}i\allowbreak{}t\allowbreak{}h\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}e\allowbreak{}q} & 124-135 & helper & The same transport for the bound. \\
+\texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}g\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d\allowbreak{}A\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d} & 156-159 & helper (in the named statement) & The guarded form of an appended verifier from those of its parts (ArkLib's \texttt{G\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d\allowbreak{}F\allowbreak{}o\allowbreak{}r\allowbreak{}m\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d}, cast along the append equation). \\
+\texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}l\allowbreak{}e\allowbreak{}t\allowbreak{}e\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d} & 162-169 & helper (in the named statement) & Completeness composes: purity, guarded form, and ArkLib's guarded-append completeness theorem. \\
+\texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}S\allowbreak{}e\allowbreak{}c\allowbreak{}u\allowbreak{}r\allowbreak{}i\allowbreak{}t\allowbreak{}y\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d} & 174-184 & helper (in the named statement) & Security composes: extractors appended through the first verdict (ArkLib), state functions by the ported \texttt{a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}G\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d}, the bound by the ported theorem. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean}}\label{sec:gen-cat-spine-KnowledgeAppend}
@@ -1043,13 +1045,13 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{appendGuarded} & 474-488 & helper (in the named statement) & The knowledge state function of two appended verifiers, the first guarded: the first's state up to the seam, then the first check together with the second's state on the first verdict (ported from ArkLib \#615). \\
-\texttt{append\_\allowbreak{}rbrKnowledgeSoundnessWorstCaseWith\_\allowbreak{}of\_\allowbreak{}guarded\_\allowbreak{}first} & 510-582 & helper & Round-by-round knowledge soundness composes across an append whose first verifier is guarded, each challenge keeping its error (ported from ArkLib \#615; admitted upstream at the pin). \\
+\texttt{V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}K\allowbreak{}n\allowbreak{}o\allowbreak{}w\allowbreak{}l\allowbreak{}e\allowbreak{}d\allowbreak{}g\allowbreak{}e\allowbreak{}S\allowbreak{}t\allowbreak{}a\allowbreak{}t\allowbreak{}e\allowbreak{}F\allowbreak{}u\allowbreak{}n\allowbreak{}c\allowbreak{}t\allowbreak{}i\allowbreak{}o\allowbreak{}n\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}G\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d} & 474-488 & helper (in the named statement) & The knowledge state function of two appended verifiers, the first guarded: the first's state up to the seam, then the first check together with the second's state on the first verdict (ported from ArkLib \#615). \\
+\texttt{V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}\_\allowbreak{}r\allowbreak{}b\allowbreak{}r\allowbreak{}K\allowbreak{}n\allowbreak{}o\allowbreak{}w\allowbreak{}l\allowbreak{}e\allowbreak{}d\allowbreak{}g\allowbreak{}e\allowbreak{}S\allowbreak{}o\allowbreak{}u\allowbreak{}n\allowbreak{}d\allowbreak{}n\allowbreak{}e\allowbreak{}s\allowbreak{}s\allowbreak{}W\allowbreak{}o\allowbreak{}r\allowbreak{}s\allowbreak{}t\allowbreak{}C\allowbreak{}a\allowbreak{}s\allowbreak{}e\allowbreak{}W\allowbreak{}i\allowbreak{}t\allowbreak{}h\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}g\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d\allowbreak{}\_\allowbreak{}f\allowbreak{}i\allowbreak{}r\allowbreak{}s\allowbreak{}t} & 510-582 & helper & Round-by-round knowledge soundness composes across an append whose first verifier is guarded, each challenge keeping its error (ported from ArkLib \#615; admitted upstream at the pin). \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/PassThrough.lean}}\label{sec:gen-cat-spine-PassThrough}
 
-\par\medskip\noindent\textbf{\lean{passThrough}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.passThrough}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W where
@@ -1063,7 +1065,7 @@ def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W wh
 
 The component with no round that maps the statement and keeps the oracles and the witness: the shape of bookkeeping steps. \emph{Depends on:} \texttt{passThroughProver}, \texttt{passThroughVerifier}, \texttt{keepOracles}.
 
-\par\medskip\noindent\textbf{\lean{passThroughComplete}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.passThroughComplete}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 def passThroughComplete (f : StmtIn → StmtOut)
@@ -1078,7 +1080,7 @@ def passThroughComplete (f : StmtIn → StmtOut)
 
 Its completeness, whenever the map carries the input relation into the output relation. \emph{Depends on:} \texttt{passThrough}, \texttt{GuardedVerdict}.
 
-\par\medskip\noindent\textbf{\lean{passThroughSecurity}}\hfill\textsf{\small [interface]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.passThroughSecurity}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
 \begin{leancode}
 def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
@@ -1095,7 +1097,7 @@ Its security at error zero, with the extractor that keeps the witness, whenever 
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/SendOracle.lean}}\label{sec:gen-cat-spine-SendOracle}
 
-\par\medskip\noindent\textbf{\lean{sendOracle}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendOracle}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
 \begin{leancode}
 def sendOracle : Def S NoOracle M S (OneOracle M) Unit where
@@ -1109,7 +1111,7 @@ def sendOracle : Def S NoOracle M S (OneOracle M) Unit where
 
 The component whose one message becomes the one oracle: the prover sends the witness, the verifier keeps the statement and exposes the message; no challenge, error zero. \emph{Depends on:} \texttt{sendSpec}, \texttt{sendProver}, \texttt{sendVerifier}, \texttt{sendEmbedding}.
 
-\par\medskip\noindent\textbf{\lean{sendOracle_relOut}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendOracle_relOut}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
 
 \begin{leancode}
 def sendOracle_relOut (rel : Set ((S × ∀ i, NoOracle i) × M)) :
@@ -1121,7 +1123,7 @@ def sendOracle_relOut (rel : Set ((S × ∀ i, NoOracle i) × M)) :
 
 The input relation read on the oracle instead of the witness (definitionally \texttt{Seam.\allowbreak{}commit} at \texttt{M3Rel}). \emph{Depends on:} —.
 
-\par\medskip\noindent\textbf{\lean{sendOracleComplete}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendOracleComplete}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
 
 \begin{leancode}
 def sendOracleComplete (rel : Set ((S × ∀ i, NoOracle i) × M)) :
@@ -1134,7 +1136,7 @@ def sendOracleComplete (rel : Set ((S × ∀ i, NoOracle i) × M)) :
 
 Its completeness half. \emph{Depends on:} \texttt{sendVerifierPure}, \texttt{sendOracle\_\allowbreak{}complete}.
 
-\par\medskip\noindent\textbf{\lean{sendExtractor}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendExtractor}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
 
 \begin{leancode}
 def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × ∀ i, NoOracle i) M
@@ -1147,7 +1149,7 @@ def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × �
 
 Its extractor: read the message, at every round. \emph{Depends on:} ArkLib \texttt{Extractor.\allowbreak{}RoundByRound}.
 
-\par\medskip\noindent\textbf{\lean{sendStateFunction}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendStateFunction}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
 
 \begin{leancode}
 def sendStateFunction :
@@ -1161,7 +1163,7 @@ def sendStateFunction :
 
 Its knowledge state function: before the message, the relation of the candidate witness; after it, the relation of the message. \emph{Depends on:} \texttt{sendExtractor}, \texttt{GuardedVerdict}.
 
-\par\medskip\noindent\textbf{\lean{sendOracleSecurity}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Component.sendOracleSecurity}}\hfill\textsf{\small [load-bearing (named form)]}\par\nopagebreak
 
 \begin{leancode}
 def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) where
@@ -1190,7 +1192,7 @@ structure Refinement {Stmt : Type} {W₁ W₂ : Type _} (R : Set (Stmt × W₁))
 
 A map on witnesses between two relations over the same statements, sending valid witnesses to valid witnesses; the two witness types may live in different universes (D.7). \emph{Depends on:} —.
 
-\par\medskip\noindent\textbf{\lean{map_option_valid}}\hfill\textsf{\small [interface (the adaptor)]}\par\nopagebreak
+\par\medskip\noindent\textbf{\lean{Refinement.map_option_valid}}\hfill\textsf{\small [interface (the adaptor)]}\par\nopagebreak
 
 \begin{leancode}
 theorem map_option_valid {R : Set (Stmt × W₁)} {S : Set (Stmt × W₂)} (f : Refinement R S)
@@ -1216,7 +1218,7 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{Extractor.\allowbreak{}Straightline.\allowbreak{}map} & 68-71 & helper (no consumer) & Post-compose ArkLib's straight-line extractor with a witness map (same universe). \\
+\texttt{E\allowbreak{}x\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{}.\allowbreak{}S\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}i\allowbreak{}g\allowbreak{}h\allowbreak{}t\allowbreak{}l\allowbreak{}i\allowbreak{}n\allowbreak{}e\allowbreak{}.\allowbreak{}m\allowbreak{}a\allowbreak{}p} & 68-71 & helper (no consumer) & Post-compose ArkLib's straight-line extractor with a witness map (same universe). \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/GuardedVerdict.lean}}\label{sec:gen-cat-spine-GuardedVerdict}
@@ -1235,8 +1237,8 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{Verifier.\allowbreak{}GuardedForm.\allowbreak{}of\_\allowbreak{}probEvent\_\allowbreak{}pos} & 40-69 & helper & If a guarded verifier can output a statement satisfying \texttt{P}, its check passes and its verdict satisfies \texttt{P}: the last obligation of every knowledge state function. \\
-\texttt{Reduction.\allowbreak{}mem\_\allowbreak{}support\_\allowbreak{}run\_\allowbreak{}of\_\allowbreak{}guarded} & 73-112 & helper & Every outcome of a run with a guarded verifier is a prover run with the verdict where the check passes, a rejection otherwise: how perfect completeness is proved. \\
+\texttt{V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}G\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d\allowbreak{}F\allowbreak{}o\allowbreak{}r\allowbreak{}m\allowbreak{}.\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}p\allowbreak{}r\allowbreak{}o\allowbreak{}b\allowbreak{}E\allowbreak{}v\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}\_\allowbreak{}p\allowbreak{}o\allowbreak{}s} & 40-69 & helper & If a guarded verifier can output a statement satisfying \texttt{P}, its check passes and its verdict satisfies \texttt{P}: the last obligation of every knowledge state function. \\
+\texttt{R\allowbreak{}e\allowbreak{}d\allowbreak{}u\allowbreak{}c\allowbreak{}t\allowbreak{}i\allowbreak{}o\allowbreak{}n\allowbreak{}.\allowbreak{}m\allowbreak{}e\allowbreak{}m\allowbreak{}\_\allowbreak{}s\allowbreak{}u\allowbreak{}p\allowbreak{}p\allowbreak{}o\allowbreak{}r\allowbreak{}t\allowbreak{}\_\allowbreak{}r\allowbreak{}u\allowbreak{}n\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}g\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d} & 73-112 & helper & Every outcome of a run with a guarded verifier is a prover run with the verdict where the check passes, a rejection otherwise: how perfect completeness is proved. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/ToArkLib/KeepOracles.lean}}\label{sec:gen-cat-spine-KeepOracles}
@@ -1255,8 +1257,8 @@ Declaration & Lines & Class & Meaning \\
 \endhead
 \bottomrule
 \endfoot
-\texttt{keepOracles} & 34-37 & helper & The output-oracle description \enquote{the output oracles are the input oracles}. \\
-\texttt{OracleVerifier.\allowbreak{}materializeOutput\_\allowbreak{}of\_\allowbreak{}keepOracles} & 42-50 & helper & Such a verifier outputs the oracles it was given. \\
+\texttt{k\allowbreak{}e\allowbreak{}e\allowbreak{}p\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}s} & 34-37 & helper & The output-oracle description \enquote{the output oracles are the input oracles}. \\
+\texttt{O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}m\allowbreak{}a\allowbreak{}t\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}a\allowbreak{}l\allowbreak{}i\allowbreak{}z\allowbreak{}e\allowbreak{}O\allowbreak{}u\allowbreak{}t\allowbreak{}p\allowbreak{}u\allowbreak{}t\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}k\allowbreak{}e\allowbreak{}e\allowbreak{}p\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}s} & 42-50 & helper & Such a verifier outputs the oracles it was given. \\
 \end{longtable}}
 
 \subsection{\file{LeanerVM/Protocol/Field.lean}}\label{sec:gen-cat-spine-Field}

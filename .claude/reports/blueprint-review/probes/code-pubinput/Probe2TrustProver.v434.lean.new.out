@@ -1,0 +1,17 @@
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:160:32: warning: `if_true` has been deprecated: Use `ite_true` instead
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:162:52: warning: `if_false` has been deprecated: Use `ite_false` instead
+.claude/reports/blueprint-review/probes/code-pubinput/Probe2TrustProver.v434.lean:376:4: error: Type mismatch
+  Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr (fun sample => (sample, x✝) ∈ Seam.pub I) h
+has type
+  (guarded I).check stmt tr = true ∧ ((guarded I).out stmt tr, x✝) ∈ Seam.pub I
+but is expected to have type
+  if h0 : ↑(Fin.last 2) = 0 then (stmt, ()) ∈ Seam.table I
+  else
+    if h1 : ↑(Fin.last 2) = 1 then ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+    else check I stmt.1 (tr ⟨0, ⋯⟩) (tr ⟨1, ⋯⟩) = true ∧ ((pooled I stmt.1 (tr ⟨0, ⋯⟩), stmt.2), ()) ∈ Seam.pub I
+'LeanerVM.Protocol.Probe2.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.complete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.stateFunction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe2.PublicInput.not_knowledgeSound' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=1

@@ -368,3 +368,14 @@ chapters 00, 07 (TCB), 08 (faithfulness: intro + per-phase inputs of gen/), 09 (
   DefInstance). (5) `∃ s` sound but the probabilistic composition over prover-announced sizes is
   unspecified (union bound ≈ 2^34 vs Q·max ε needing a family-level FS interface); architecture.md's
   T4 map diverges on T2, resource conditions, hash assumption.
+
+### Disagreement settled by the orchestrator (10:55): the GKR round error
+gt-bus: the deployed radix-4 layer round is the NORMALIZED cofactor of degree 4 (read first-hand:
+`gkr.rs:399-401` `next_round_poly(5, claim, Some(equality_point))`, five coefficients, c_0
+derived through the eq factor; the layer check has no eq factor). If the running claim is
+wrong the prover's cofactor differs from the true one, both of degree 4, so the next claim is
+right at ≤ 4 challenges: error 4/|E|. gt-table-pub's D.3 used 5/|E| (the blueprint's number)
+when arguing that the zerocheck conjunct adds nothing (max, not sum): its argument stands with
+4/|E| too. The report states 4/|E| for the deployed protocol and calls the blueprint's 5/|E| a
+loose upper bound that also describes a different (non-normalized) protocol.
+tex-groundtruth done: 12 fragments + index-gen.tex; the leanVM checkout move confirmed by it.

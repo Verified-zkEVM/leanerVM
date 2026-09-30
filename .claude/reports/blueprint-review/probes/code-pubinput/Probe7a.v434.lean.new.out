@@ -12,14 +12,5 @@ Note: It is not possible to treat `stateFunction` as an implicitly bound variabl
 'LeanerVM.Protocol.Probe7a.PublicInput.complete' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
 .claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:414:14: error(lean.unknownIdentifier): Unknown constant `LeanerVM.Protocol.Probe7a.PublicInput.stateFunction`
 'LeanerVM.Protocol.Probe7a.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
-.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:494:0: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached
-
-Note: Use `set_option maxHeartbeats <num>` to set the limit.
-
-Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
-.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:555:8: error: (kernel) unknown constant 'LeanerVM.Protocol.Probe7a.PublicInput.not_perfectCompleteness'
-'LeanerVM.Protocol.Probe7a.PublicInput.not_complete' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- LeanerVM.Protocol.Probe7a.PublicInput.not_complete]
+'LeanerVM.Protocol.Probe7a.PublicInput.not_complete' depends on axioms: [propext, Classical.choice, Quot.sound]
 exit=1

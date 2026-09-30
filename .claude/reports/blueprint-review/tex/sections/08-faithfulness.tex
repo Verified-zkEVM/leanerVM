@@ -1,1 +1,87 @@
-% stub: to be written
+\chapter{Faithfulness}\label{ch:faithfulness}
+
+For each phase of the oracle protocol and for the compilation, this chapter sets the blueprint
+side by side with the specification and with the Rust and Python verifiers at the pin: the
+transcript (who sends what, in which order, which challenge is drawn after which message),
+the checks the verifier makes (in \cref{ch:drift}, where they serve the check-by-check
+enumeration), the disagreements between the three sources, and the findings, each classified
+as an error of the blueprint, a deliberate deviation with the theorem it owes, or a deviation
+an upstream library forces. The tables and the findings were written by the review's agents
+from the sources, then checked citation by citation by independent agents; the corrections
+are marked in place. leanVM's revision is \code{a386121f} throughout, read from git after the
+checkout moved (\cref{ch:brief}).
+
+\section{How to read the tables}
+
+A transcript row is one step of the deployed verifier: a prover message with its size, a
+verifier challenge, a computation or a check, with the three sources' lines. A disagreement is
+a place where the specification, the Rust and the Python do not say the same thing; where the
+two verifiers agree and the specification is silent or differs, the blueprint follows the
+verifiers and the report says so. A finding names what the blueprint gets wrong or leaves out,
+with its evidence and the change proposed.
+
+\section{The spine}\label{sec:faith-spine}
+
+The spine is not a phase, but the seams and the error are where the phases' faithfulness is
+decided, and three of the review's findings on it belong here: the bus seam admits statements
+the deployed table sumcheck cannot serve (\cref{sec:faith-table}); the error of the composed
+protocol is the phases' own declaration, so that the knowledge-soundness theorem constrains
+nothing until a bound is stated (\cref{sec:nv-hypotheses}); and the blueprint states the
+master theorems, the phases' statement types and the opening's objects two or three times
+differently, with the code implementing the spine's version every time
+(\cref{sec:faith-conformance}). The findings on the spine's code are collected in
+\cref{sec:faith-code}.
+
+\section{The setup, the commitment and the bus}\label{sec:faith-bus}
+
+\InputIfFileExists{sections/gen/transcript-bus}{}{\emph{[transcript fragment pending]}}
+\InputIfFileExists{sections/gen/disagreements-bus}{}{}
+\InputIfFileExists{sections/gen/findings-bus}{}{\emph{[findings fragment pending]}}
+
+\paragraph{The review's verdict on the GKR round error.} Two dossiers charged a radix-4 round
+differently: $4/\abs{\E}$ (the bus dossier, from the deployed cofactor of degree 4) and
+$5/\abs{\E}$ (the table-sumcheck dossier, taking the blueprint's number when it argued that the
+zerocheck conjunct adds nothing). The orchestrator read the verifier loop
+(\file{crates/lean_vm/src/gkr.rs:399-413}): the round message is five coefficients of which
+four travel, the first derived through the equality factor from the running claim, and the
+layer's final check has no equality factor. A wrong running claim makes the prover's cofactor
+differ from the true one, both of degree 4, so the next claim is right at four challenges at
+most: $4/\abs{\E}$ is the deployed error, the blueprint's $5/\abs{\E}$ is a loose bound that
+also describes a different, non-normalized protocol, and the second dossier's argument stands
+with $4/\abs{\E}$ in place of $5/\abs{\E}$.
+
+\section{The table sumcheck and the public input}\label{sec:faith-table}\label{sec:faith-pub}
+
+\InputIfFileExists{sections/gen/transcript-table-pub}{}{\emph{[transcript fragment pending]}}
+\InputIfFileExists{sections/gen/disagreements-table-pub}{}{}
+\InputIfFileExists{sections/gen/findings-table-pub}{}{\emph{[findings fragment pending]}}
+
+\section{BLAKE2s validity and ring switching}\label{sec:faith-flock}
+
+\InputIfFileExists{sections/gen/transcript-flock-ring}{}{\emph{[transcript fragment pending]}}
+\InputIfFileExists{sections/gen/disagreements-flock-ring}{}{}
+\InputIfFileExists{sections/gen/findings-flock-ring}{}{\emph{[findings fragment pending]}}
+
+\section{The opening and the compilation}\label{sec:faith-opening}
+
+\InputIfFileExists{sections/gen/transcript-opening}{}{\emph{[The dossier on the opening,
+WHIR, Merkle trees and Fiat--Shamir is being finished; its transcript, disagreements and
+findings are inserted here when it lands.]}}
+\InputIfFileExists{sections/gen/disagreements-opening}{}{}
+\InputIfFileExists{sections/gen/findings-opening}{}{}
+
+\section{The adaptor and the boundary with leanISA}\label{sec:faith-adaptor}
+
+\InputIfFileExists{sections/gen/findings-boundary}{}{\emph{[The findings of the boundary
+dossier are inserted here when their LaTeX fragment lands; the nine major ones are summarised
+in \cref{ch:tcb}.]}}
+
+\section{The code as built: the spine, Layer 1, the public-input phase}\label{sec:faith-code}
+
+\InputIfFileExists{sections/gen/conformance}{}{\emph{[conformance fragment pending]}}
+\label{sec:faith-conformance}
+\InputIfFileExists{sections/gen/findings-code}{}{\emph{[findings fragment pending]}}
+
+\section{The libraries and Layer 0}\label{sec:faith-libraries}
+
+\InputIfFileExists{sections/gen/findings-libraries}{}{\emph{[findings fragment pending]}}
