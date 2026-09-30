@@ -56,6 +56,13 @@ library's other consumers: general definitions and helper lemmas, with no specia
 protocol chose and no protocol vocabulary. The special cases are derived in the leanVM modules,
 which is where the specification is cited.
 
+The proof system has a wall: every module of the protocol layer is written over an abstract
+instance of the arithmetization and imports nothing from `LeanerVM/Arithmetization/`, so that a
+change to leanISA touches only the modules that meet it. Those are the fixed columns
+(`FixedColumns.lean`), the adaptor (`LeanIsa.lean`), the compiled verifier (`Transcript.lean`,
+`Proof.lean`, `Compile.lean`, `Verify.lean`) and the base theorems (`Soundness.lean`);
+`scripts/check-layers.sh` enforces the wall with that allow-list.
+
 The target-theorem ownership is:
 
 | Target | Owning layer | Principal inputs |
