@@ -1,1 +1,107 @@
-% stub: to be written
+\chapter{The brief, reviewed}\label{ch:brief}
+
+The brief (\file{.claude/prompts/blueprint-spine-review.md}) asked, as its first step, for a
+critical reading of itself. This appendix records that reading, the assumptions the review
+adopted where the brief left a choice open, what happened during the session that the brief
+did not foresee, and what a future run of the same brief would gain from a few changes.
+
+\section{What the brief settles well}
+
+The brief fixes the object (the blueprint and the code built from it), the three criteria in
+priority order, the revisions of every source, the rule that the pinned tex is the
+specification and the PDF is not to be cited, and the limits of the session (no edit to a
+tracked file, nothing posted, no checkout moved). It separates the pin of a dependency from its
+upstream \code{main}, and it names the phases, the master theorems and the vocabulary the
+report should use. All of this was followed as written.
+
+\section{Choices the brief leaves open, and the choice made}
+
+\begin{description}
+\item[Which source is \enquote{deployed}.] The brief treats the specification, the Rust and
+  the Python verifier together as the ground truth, asks that a disagreement between them be
+  recorded, and asks of every theorem whether it describes \enquote{the deployed protocol or
+  a repaired one}. It does not say which source \emph{is} the deployed protocol. The review
+  takes the Rust verifier at the pin to be the deployed protocol and the tex to be the
+  specification (\cref{sec:vocabulary}). The distinction mattered at once: the public-input
+  check differs between them, and the phase built on \code{main} follows the specification.
+\item[Which source the Lean should follow when they disagree.] The brief does not say. The
+  repository's convention (\enquote{Category A} content is written from the specification and
+  then diffed against the code) and the owner's instruction that built the public-input phase
+  (\enquote{as the specification writes it}) favour the specification; the review's finding is
+  that this produced a theorem about a verifier nobody runs. The report records each such
+  disagreement, and recommends the rule of \cref{sec:opt-tradeoff}: model the deployed
+  verifier's checks, take the arguments from the specification, report the difference upstream.
+\item[VCVio.] The brief lists local checkouts of ArkLib, CompPoly and Clean beside the
+  repository; none was listed for VCVio (one exists, at the new pin). Its pinned sources under
+  \file{.lake/packages/VCVio/} were read; its upstream \code{main} from a shallow clone made
+  under the review's own directory.
+\item[The build.] The brief expects probes that build. The main checkout's build was stale
+  (it predated Layer~1 and the public-input phase), so the review rebuilt \code{main} once at
+  the start (3280 jobs, exit 0). The owner later asked that no further expensive build be run
+  on this machine, which is memory limited; when the upgrade of \code{main} then made every
+  probe impossible, the owner authorised one more build (3452 jobs, exit 0), and every probe
+  was re-run at the new pins.
+\item[Where the report lives.] The brief says anywhere convenient, never committed. Mid-session
+  the owner asked for the work to be placed on a separate branch and, on being asked, for the
+  report to be committed there. The review branch is \code{docs/protocol-blueprint-review},
+  created from \code{main} at \code{b435631}; no tracked file of \code{main} is changed on it,
+  and it is not pushed.
+\item[Secondary repositories.] The comparable verification efforts were consulted through the
+  web only (\cref{ch:options}), since nothing in them needed to be built or run.
+\item[Models.] The owner asked, after the first wave, that simpler tasks run on a cheaper
+  model. The ground truth, the code audits, the boundary, the libraries' adequacy, the
+  obligations tree and the hostile re-derivation ran on the review's own model; the citation
+  checks, the LaTeX transcriptions, the register, the probe re-runs, the documentation
+  inventory and the literature survey ran on Opus.
+\end{description}
+
+\section{What happened that the brief did not foresee}
+
+\begin{itemize}
+\item A usage limit stopped eleven of twelve agents an hour into the first wave. The three that
+  had written their dossiers incrementally lost nothing; the others lost their conclusions and
+  were resumed from their transcripts. The rule \enquote{write the dossier incrementally} was
+  added to the shared brief and held from then on.
+\item The owner upgraded \code{main} to Lean 4.34.1 with new library pins and merged it into
+  the review branch while eleven agents were reading. The proof-system statements did not
+  change; the library sources under \file{.lake/packages/} did, so every library citation now
+  names its revision and old-pin files are read from git; a numeral in $\K$ changed meaning,
+  and every probe was re-run.
+\item The leanVM checkout moved off the pin during the same upgrade (a pull and a branch
+  checkout by the owner). The pin is an ancestor of the new head, so every leanVM file was
+  read at the pin through git from then on, and the citation checks re-read the earlier
+  dossiers' lines that way.
+\item Two agents forked helpers of their own; the owner stopped two of those, and the rule
+  \enquote{no sub-agents} was added for the rest.
+\end{itemize}
+
+\section{Scope the brief does not name, which the review covered}
+
+\begin{itemize}
+\item \textbf{The setup.} The announced sizes, their canonical encoding, the caps and the
+  stacking window are checks of the deployed verifier that precede every phase; the brief's
+  list of phases omits them, and the check-by-check enumeration of \cref{ch:drift} includes
+  them.
+\item \textbf{Ring switching}, a step of the Flock phase with its own challenges and error.
+\item \textbf{The generic components} (the sumcheck, the batching, the GKR), which three
+  phases are built from and where two of the major findings sit.
+\item \textbf{The error accounting}, where the review found the spine's error to be the
+  phases' own declaration, and \textbf{the shape of the non-interactive theorems}, which the
+  brief does not ask about and which the review found not well formed.
+\end{itemize}
+
+\section{What a future run of the brief would gain}
+
+\begin{enumerate}
+\item Say which source is the deployed protocol and which source the Lean follows when the
+  sources disagree, and what is then owed.
+\item Say whether probes may copy repository modules; the mutation probes of the public-input
+  phase could only be built as copies of the whole module, its lemmas being private.
+\item Name the setup and the generic components among the things to review.
+\item Give the expected form of the catalogue: a catalogue of every declaration with its
+  snippet is several hundred pages, and the review kept full snippets for the load-bearing and
+  interface declarations and one line for the rest.
+\item State the budget: how many agents may run at once and on which model. The first wave
+  exhausted the session's allowance in under an hour.
+\item Freeze the checkouts for the session's duration, or say what to do when they move.
+\end{enumerate}
