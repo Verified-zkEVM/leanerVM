@@ -618,3 +618,485 @@ hole is filled, the two bundles are assumed interfaces (`bp:1419-1426`): today
   specified]` `[review: missing]` (the strided reader, 2.5.6.3). *See:* gt-table-pub E.2;
   code-layer1 G.1; gt-flock-ring 5.4, 8.2.
 
+#### 2.3.3 The public-input phase (Layer 8; `Seam.table → Seam.pub`; built)
+
+- **2.3.3.1 Definition** (`publicInputPhase`, `PublicInput.lean:376-381`; `pSpec` `:99`,
+  `prover` `:208`, `verifier` `:229`, `check` `:136`, `pooled` `:127`, `expectedValues` `:132`,
+  `lineValue` `:119`, `linePoint` `:65`). *States:* one challenge `r ∈ E`; the prover sends, as
+  one `List E`, the values at `r` of the lines whose value is sent; the verifier checks the
+  message equals the expected values `(1 + r)·cell0 + r·cell1` and rejects otherwise; it pools
+  one claim per line, on the line's column at `(r, 0, …, 0)`, with the value it computes, after
+  the received claims. *Status:* `[status: built, definition]`; `noncomputable` for its real
+  error only. Faithful to §8.2's per-limb check; `[review: wrong]` in one respect: the three
+  executable verifiers (Rust, Python, the recursion guest) check one combined equation
+  `c_0 + y·c_1 = w_0 + r·(w_0 + w_1)` and pool the scalars sent, and the blueprint assigns their
+  soundness to Layer 12, which can neither state nor detect it. *See:* code-pubinput B.1, A,
+  G.2 (PI2); gt-table-pub F, finding TP3.
+- **2.3.3.2 Perfect completeness** (`complete`, `:300`; `publicInputComplete`, `:384`).
+  *States:* from the table seam, for every `r`, the honest values pass the check and the pool
+  is in the public seam. *Status:* `[status: built and proved]` (probe `Probe0Baseline`, re-run
+  at the new pin: three standard axioms). *See:* code-pubinput F; probes-rerun 1.0.
+- **2.3.3.3 Knowledge soundness** (`rbr`, `:350`; `stateFunction`, `:327`; `extractor`, `:317`;
+  `publicInputSecurity`, `:391`). *States:* worst-case round-by-round knowledge soundness at
+  `1/|E|` on the one challenge: outside the table seam, at most one `r` puts the pool in the
+  public seam (`bad_challenge_unique`); the bound is attained (`badLine`). *Status:* `[status:
+  built and proved]`. `[review: wrong]` on what it protects: the check on the message is not
+  load-bearing for any theorem of the phase, because `pooled` reads the statement, not the
+  message; a verifier that ignores the message has the same `Phase.Security` (probe
+  `ProbeAnyCheck`, `securityG`). The requirement "a missing check leaves knowledge soundness
+  unprovable" fails for this check; pooling the values sent, as §8.2 and the deployed verifiers
+  do, restores it. *See:* code-pubinput C.3, C.4, F, G.1 (PI1).
+  - **2.3.3.3.1 The line identity** (`eval₂Mle_linePoint`, `:71`). *States:* the extension at
+    `(r, 0, …, 0)` is `(1 − r)·q(0) + r·q(1)`; the bit order (coordinate 0 is the low bit) is
+    proved, from Layer 1's `evalMle_append_boolVec` at slice zero. *Status:* `[status: built
+    and proved]`. *See:* code-pubinput A, negative results.
+  - **2.3.3.3.2 Two distinct lines through `K`-cells meet at most once** (`line_challenge_unique`,
+    `:152`, private; `bad_challenge_unique`, `:186`). *States:* cells differing by `(a, c) ≠ 0`
+    are hit when `(1 + r)·a + r·c = 0`, one `r` at most (`ofK` injective, characteristic two).
+    *Status:* `[status: built and proved]`.
+  - **2.3.3.3.3 The uniform sampler's law** (`probEvent_uniformSample_le_of_subsingleton`,
+    `ToVCVio/UniformSample.lean:44`; `…_of_card_le`, `:35`). *States:* an event with at most
+    `k` witnesses has probability at most `k/|α|` under `$ᵗ α`; uniformity is a law of VCVio's
+    `SampleableType`, so no instance can be non-uniform. *Status:* `[status: built and proved]`
+    (probe `CountingBounds`); redundant with VCVio's `prEvent_uniformSample_le_div_iff` at the
+    new pin. *See:* lib-others E.4, G.10; 2.5.7.2.
+  - **2.3.3.3.4 The guarded-verdict lemmas** (`Verifier.GuardedForm.of_probEvent_pos`,
+    `ToArkLib/GuardedVerdict.lean:40`; `Reduction.mem_support_run_of_guarded`, `:73`). *States:*
+    if a guarded verifier can output a statement with a property, its check passed and its
+    verdict has it (the last law of a knowledge state function); every outcome of a run is a
+    prover run plus the verdict. *Status:* `[status: built and proved]`; restated on VCVio's new
+    probability API at `144c5aa` with the same bounds (brief §8). *See:* code-pubinput A.
+  - **2.3.3.3.5 The verdict as an ordinary verifier** (`verifier_verify`, `:253`; `guarded`,
+    `:273`; `keepOracles`, `materializeOutput_of_keepOracles`, `ToArkLib/KeepOracles.lean`).
+    *Status:* `[status: built and proved]`.
+- **2.3.3.4 The deployed verifier's phase** (`deployedPhase`, `deployedSecurity`; no blueprint
+  name). *States:* the combined check on the two words with the values sent pooled is knowledge
+  sound at `1/|E|`: the words' equation with true claims at two distinct challenges forces the
+  cells and zero top limbs (`accepts_two_challenges`). *Status:* `[status: not specified]`
+  `[review: missing]`; key lemma proved in a probe (`ProbeWordsLemma`), the full `Phase.Security`
+  on paper. *See:* code-pubinput C.13, G.2.
+- **2.3.3.5 The top limb** (the third public line `mem_2` with cells `(0, 0)`, `sent = false`).
+  *States:* the claim on `mem_2` is pooled with value 0 although no scalar is sent; every
+  theorem of the phase and the spine holds for an instance with two lines; what a missing third
+  line breaks is the adaptor's `satisfiedBy_witnessOf` at `SatisfiedBy.word0_eq`, whose
+  right-hand side has a zero top limb by the type of `PublicInput`. *Status:* `[status:
+  specified only]` (Layer 3 lists the line; `PublicLine.sent` is pinned by prose only).
+  *See:* code-pubinput D, G.3, G.4; boundary-adaptor D; acceptance test 10 (names the wrong witness).
+
+#### 2.3.4 The Flock phase (Layer 9; `Seam.pub → Seam.flock`; nothing built)
+
+Today nothing named `FlockInterface`, `FlockWitnessGen`, `limbColumns` or `flockError` exists
+in Lean; the only instance built has `aux := True`, and on it a Flock phase that checks nothing
+is knowledge sound at error zero (probe `NoCheckFlock`). Issue #3 records "Flock F0 has not
+started". Everything below is `[status: trusted, assumed interface]` for a reader of the master
+theorems today (gt-flock-ring 7.1).
+
+- **2.3.4.1 Definition** (the blueprint's `FlockInterface`, `bp:1075-1086`). *States, as
+  deployed:* fifteen steps (gt-flock-ring 2.2): seven fixed equality coordinates, `k_batch + 1`
+  sampled ones, the univariate skip (64 values on the coset, `z_skip`, the interpolant with 64
+  assumed zeros), `n_flock = 8 + k_batch` zerocheck rounds with `c_0` derived, `v_a, v_b` with
+  `v_c` derived, `α_lc`, eight lincheck rounds with `c_1` derived, the 64 slice values `s_i`,
+  the one check (the lincheck terminal identity with the `α³` constant-position term), six
+  ring-switching challenges, the derived target `T = Σ_i x^i Φ(s_i)`; the phase reads no
+  claim of the pool and adds one weighted claim on the `q_flock` region. *Status:* `[status:
+  specified only]` `[review: wrong]` — Layer 9's interface takes the eighteen limb claims as
+  input and emits one claim, which with leanVM's verifier has knowledge-soundness error 1 (the
+  limb claims stay in the pool and are opened); the spine's slot (`FlockOut` with `columns` and
+  `weighted`) is right. The circuit, wire positions, slot map, `g_0`, `φ_8` and the floor exist
+  only in the Rust and Python (Category B, no owner). *See:* gt-flock-ring 2, 5.1, 5.5, 8.1,
+  8.7 (FR1, FR7); gt-table-pub finding TP7.
+- **2.3.4.2 Perfect completeness** (`FlockInterface.perfectCompleteness`, `bp:1083`). *States:*
+  the specification's prover (true coefficients) is accepted at every challenge; no verifier
+  inverts a challenge-dependent value. *Status:* `[status: specified only]` `[review: wrong]` on
+  its obstacle: acceptance test 20 files a completeness failure under `flockError`, a soundness
+  error, and attributes to the protocol the inverse `(1 + r_eq)^{-1}` only the Rust prover
+  takes (at `r_eq = 1` that prover emits a proof its verifier rejects: an implementation
+  defect, probability at most `(k_batch + 1)/|E|`). *See:* gt-flock-ring 4, 8.4, 8.12 (FR4,
+  FR12); lib-arklib G.2 (AK2, the disagreement is settled gt-flock-ring's way).
+- **2.3.4.3 Knowledge soundness** (`FlockInterface.rbrKnowledgeSoundness … flockError`,
+  `flockError_le`, `bp:1084-1085`). *States:* if `aux q` fails, the weighted claim is false
+  except with the error; `Σ flockError ≤ (4·k_batch + 163)/|E| + 2^32/|E|`, right for a fixed
+  committed polynomial and term by term the Rust's parameters (gt-flock-ring 5.2). *Status:*
+  `[status: specified only]` `[review: wrong]` in form: stated in the existential
+  `rbrKnowledgeSoundnessWorstCase` (soundness only, 2.2.6) and bundled with completeness
+  (`Security extends Complete`). *See:* gt-flock-ring 5.2, 8.5 (FR5); lib-arklib G.1. Its leaves:
+  - **2.3.4.3.1 The partially fixed zerocheck** (Annex C.7; `03:95-100`). *States:* `k_batch + 1`
+    sampled coordinates at `1/|E|`; the univariate skip `127/|E|` on `z_skip` (two polynomials
+    of degree below 128); `2/|E|` per quadratic round; `1/|E|` more on each of the last
+    `k_batch` rounds for the constant position. *Status:* `[status: specified only]`.
+  - **2.3.4.3.2 The `F_2`-independence of the 128 fixed equality weights.** *States:* the
+    hypothesis of the partially fixed zerocheck holds for the pinned constants. *Status:*
+    `[status: trusted, hypothesis]`; verified by a Python probe (rank 128), asserted by a Rust
+    unit test, stated nowhere in the blueprint. *See:* gt-flock-ring 5.2, 9.3, 7.1 (row 7).
+  - **2.3.4.3.3 The lincheck** (`c-flock:112-133`). *States:* `3/|E|` on `α_lc` (degree three),
+    `2/|E|` per round for eight rounds; the terminal identity is the phase's only check, and
+    without it any `q_flock` passes. *Status:* `[status: specified only]`. *See:* gt-flock-ring 3.
+  - **2.3.4.3.4 The constant position** (`z(512, t) = 1`; the `α³` term). *States:* without it
+    the all-zero block satisfies the homogeneous R1CS and "the limb slots compress" is false.
+    *Status:* `[status: specified only]` `[review: missing]` — absent from the blueprint's and
+    the docstring's wording of `aux`. *See:* gt-flock-ring 5.3, 8.6 (FR6).
+  - **2.3.4.3.5 Ring switching** (Annex A; `a-ring:104-128`). *States:* the 64 slice claims at
+    one point reduce to one weighted claim on the packed polynomial through a random
+    `F_2`-linear map built from six challenges; no message, no check; error below `2^32/|E|`
+    (a nonzero polynomial of total degree `2^31 + 2^15 + 2^7 + 2^3 + 2 + 1` in `f_0..f_5`); the
+    weight's extension has the closed form `Σ_k c_k ∏_n (1 + r_n^{2^k} + r'_n)`. *Status:*
+    `[status: specified only]`; needs "`x` has 64 distinct conjugates" and "the `c_k` are
+    distinct monomials" (Annex A, tested in the Rust); ArkLib's `RingSwitching/Packing` is a
+    different protocol (Diamond–Posen), admitted at both pins, and no profile turns it into
+    leanVM's. *See:* gt-flock-ring 6, 8.9 (FR9); lib-arklib B.3 (ledger A9).
+  - **2.3.4.3.6 The auxiliary predicate** (`I.aux`; for leanISA "Flock's R1CS with the constant
+    position holds of the bits packed into `q_flock`"). *States:* decidable; well defined only
+    from the Rust (the circuit, wire positions and slot map are not in the specification).
+    *Status:* `[status: specified only]` `[review: unprovable]` as placed: Layer 9 is over an
+    abstract `I` whose `aux` is opaque and names no column, count or relation, so the Flock
+    phase cannot be written there (a `FlockRegion I` supplied by Layer 3 is needed). *See:*
+    gt-flock-ring 5.3, 8.3 (FR3); code-spine CS8.
+- **2.3.4.4 The weighted claim's weight is MLE-friendly** (`Weight.mle_eq` for the
+  ring-switched weight). *Status:* `[status: specified only]`, owed by #3. *See:* gt-flock-ring 8.16.
+- **2.3.4.5 The limb columns' slot map** (`FlockInterface.limbColumns`, `bp:1077`). *States:*
+  eighteen numbers (`hash_flock.rs:87-115`) and a generic low-index selection identity.
+  *Status:* `[status: unprovable as written]` `[review: unprovable]` — placed inside an interface
+  that takes the instance as parameter while the instance's layout needs it. *See:*
+  gt-flock-ring 8.2 (FR2); boundary-adaptor finding 7; code-layer1 G.1.
+- **2.3.4.6 The constants** (`φ_8`, `0xf7, 0x53, 0xb5`, `g_0`, `R1CS_DIGEST`, the floor
+  `τ_BLAKE2S ≥ 3`). *Status:* `[status: trusted, transcribed data]`; `R1CS_DIGEST` cannot be
+  recomputed at the pin and has no owner. *See:* gt-flock-ring 5.5, 8.14 (FR14).
+
+#### 2.3.5 The opening phase (Layer 10; `Seam.flock → Seam.done`)
+
+- **2.3.5.1 Definition** (`openingPhase`, `bp:1112-1113`). *States, as the blueprint has it:*
+  the verifier draws `λ`; a `μ`-round sumcheck on `W_λ·q`; a final evaluation query of `q̃`.
+  *As deployed:* after `λ` (drawn after the six ring-switching challenges, every claim value
+  already bound; the ring-switched claim takes `λ^0`, the pooled claims the next powers in
+  pool order; `J = 113`) the next message is WHIR's first round polynomial; the sumcheck rounds
+  that reduce the weighted claim are WHIR's own, interleaved with its levels, and the protocol
+  ends on one equation, never on an evaluation of `q̃` at a point. *Status:* `[status: wrong as
+  written]` `[review: wrong]` — a `verify` built as written has `μ` extra round polynomials, one
+  extra challenge and one extra scalar and rejects every Rust proof; `verify_iff_compiled` is
+  then false. The fix that keeps the spine's statements: give the stack the inner-product
+  oracle interface (a query is a `Weight μ`, the answer `Σ_w W(w)·q(w)`, the idealization of
+  Definition 3.13); the opening phase is then "`λ`, then one weighted query", a one-challenge
+  component, and WHIR realizes that one query (typechecked against ArkLib at the pin, probe
+  `InnerProductOracle`). *See:* gt-opening-compile A.1 to A.5 (recommendation (ii)); brief §7.
+- **2.3.5.2 Perfect completeness.** *States:* by linearity of `Weight.pair`, the batched claim
+  holds of `q` when every pooled claim does. *Status:* `[status: specified only]`.
+- **2.3.5.3 Knowledge soundness** (`openingPhase_rbrKnowledgeSoundness`, `bp:1114`). *States:*
+  before `λ` "some pooled claim is false of `q`"; after `λ` "the batched claim is false of
+  `q`", error `(J − 1)/|E|` on `λ` (a nonzero polynomial of degree below `J`); the one query
+  makes the verdict. *Status:* `[status: specified only]`; the blueprint's "`2/|E|` per round"
+  is the tail's value of Theorem B.7 and belongs to no round of this phase. *See:*
+  gt-opening-compile A.5 (table, Layer 10 row), B.6.
+  - **2.3.5.3.1 A column claim is a weighted claim** (`ColumnClaim.holds_iff_weighted`,
+    `ClaimWeights.lean:58`; `eqWeight`, `eqWeight_pair`, `Weight.pair_eq_sumCube`). *States:*
+    a claim on column `c` at `z` is the weighted claim with weight `eq(extend c z, ·)`; the
+    strided limb claims need the strided extension (2.5.6.3). *Status:* `[status: built and
+    proved]` (probe `ValuesProbe`). *See:* code-layer1 A.7, B.7.
+  - **2.3.5.3.2 The pool's order and the assignment of the powers of `λ`.** *Status:*
+    `[status: specified only]` (convention *Claim pool order*, `bp:324`); agrees with the three
+    sources. *See:* gt-opening-compile A.2, A.6; gt-flock-ring negative results.
+  - **2.3.5.3.3 The batching component** (2.5.2).
+- **2.3.5.4 `Seam.done` is `True`.** *States:* the last phase leaves nothing to check; the
+  opening's knowledge soundness therefore says "if the verifier accepts, every pooled claim
+  holds of `q` except with the error". *Status:* `[status: built, definition]` (`Seam.done =
+  Set.univ`, probe of code-spine E.2).
+
+### 2.5 The generic components and the layers below the phases
+
+#### 2.5.1 Sumcheck for eq-weighted virtual polynomials (Layer 4, holes G1 and G2)
+
+- **2.5.1.1 Definition** (`Virtual`, `sumcheck`, `bp:880-893`). *States:* `n` rounds, each a
+  round polynomial of degree `d` sent as `d + 1` coefficients and a challenge, then the claimed
+  table values at the point; the output relation says each value is the table's extension at
+  the point and the formula reproduces the running claim. *Status:* `[status: specified only]`
+  `[review: missing]` — two variants are needed and only the plain one is defined: the
+  normalized (Gruen) variant, whose round message is the cofactor of degree `d` with `c_0`
+  derived through the equality factor and no equality factor in the final check, is the one
+  the GKR runs; the table sumcheck sends three of four coefficients with `c_1` derived. *See:*
+  gt-bus G1 (GB1); gt-table-pub A.1 (T5, T6).
+- **2.5.1.2 Perfect completeness** (`sumcheck_perfectCompleteness`, `bp:894`). *Status:*
+  `[status: specified only]`; ArkLib's `Sumcheck.Spec.SingleRound.reduction_perfectCompleteness`
+  is `[status: admitted upstream]` (through the admitted `liftContext_perfectCompleteness`),
+  which the blueprint's ledger row A1 omits. *See:* lib-arklib B.3 (row A1).
+- **2.5.1.3 Round-by-round knowledge soundness** (`sumcheck_rbrKnowledgeSoundness … (fun _ ↦
+  d/|F|)`, `bp:895-896`). *States:* if the running claim is false before a round, the prover's
+  message differs from the true round polynomial and the two agree at most at `d` points.
+  *Status:* `[status: specified only]`; ArkLib's `Sumcheck.Spec.SingleRound.verifier_rbrKnowledgeSoundness`
+  and its lens instances `[status: admitted upstream]` at both pins (ledger A1). *See:*
+  lib-arklib B.3, F.1.
+  - **2.5.1.3.1 Two distinct polynomials of degree at most `d` agree at most at `d` points**
+    (Mathlib `Polynomial.card_roots'`, `Polynomial.eq_of_degree_le_of_eval_finset_eq`).
+    *Status:* `[status: library, proved at the old pin]`. *See:* `bp:275-277`.
+  - **2.5.1.3.2 The uniform sampler's counting bound** (2.3.3.3.3).
+  - **2.5.1.3.3 The round identity as derivation** (the wire drops one coefficient; the
+    verifier derives it from the running claim). *States:* the dropped-coefficient encoding is
+    inverted by the running claim, so a protocol that sends all coefficients and checks the
+    identity accepts the same transcripts as one that derives; Fiat–Shamir absorbs different
+    data, so a transport lemma is owed. *Status:* `[status: not specified]` `[review: missing]`.
+    *See:* gt-table-pub finding TP4; gt-bus B (B15).
+- **2.5.1.4 The eq-weighted, back-loaded variant** (`bp:898-904`). *States:* tables of
+  different heights lifted by `∏_{k ≥ τ_j} X_k` (`sumCube_prodVars`, `sumCube_padHigh`), the
+  verifier's running weight `∏` of the challenges a table sat out, `eq(ζ_{<τ_j}, ·)` as an
+  explicit factor evaluated by the verifier. *Status:* the Layer 1 identities `[status: built
+  and proved]` (`Padding.lean:47, 64, 70`); the variant `[status: specified only]`. *See:*
+  code-layer1 A.6, B.4.
+
+#### 2.5.2 Batching by the powers of one challenge (Layer 4, hole G3)
+
+- **2.5.2.1 Definition and knowledge soundness** (`batchClaims`, `batchClaims_rbrKnowledgeSoundness
+  … (k − 1)/|F|`, `bp:907-911`). *States:* the invariant "some claim is false"; escape needs the
+  batching polynomial, of degree below `k`, to vanish at the challenge. *Feeds:* 2.3.2.4 (`ξ`),
+  2.3.5.3 (`λ`), the GKR's combiners, WHIR's per-level batching. *Status:* `[status: specified
+  only]`; ArkLib #615's `gammaPowers` is a pattern. *See:* gt-table-pub D.2 (the argument, worked).
+
+#### 2.5.3 Fingerprints and the grand product (Layer 5, hole G4)
+
+- **2.5.3.1 The fingerprint and the side product** (`fingerprint`, `sideProduct`, `bp:923-924`).
+  *States:* `π_α(t) = Σ_{i<16} eq(α, bits i)·t_i` with `α ∈ E^4`; the product over the multiset
+  of `β − π_α(t)`; padding leaves are `1`. *Status:* `[status: specified only]`
+  `[status: built, definition]` for the bit order (`bitProductTable`, `lagrangeBasis`).
+- **2.5.3.2 The product polynomial determines the multiset** (`sideProduct_poly_eq_iff`,
+  Lemma 5.2, `bp:926-928`). *States:* in `K[A_0, …, A_3, X]` the products of the monic linear
+  factors `X − π_A(t)` agree iff the multisets do (unique factorization; monic factors are
+  equal, not merely associate; `t ↦ π_A(t)` injective). *Status:* `[status: specified only]`;
+  Mathlib's `UniqueFactorizationMonoid` on `MvPolynomial` `[status: library, proved at the old
+  pin]`; the specification's proof is `TODO`. *See:* gt-bus E.2; `bp:278-279`.
+- **2.5.3.3 The collision bound** (`sideProduct_collision`, Theorem 5.1, `bp:929-931`).
+  *States:* unequal multisets of size at most `2^μ` collide at `(α, β)` with probability at
+  most `4·2^μ/|E|` (total degree `4N`, `N ≤ 2^μ`). *Status:* `[status: specified only]`;
+  Schwartz–Zippel `[status: library, proved at the old pin]` (ArkLib
+  `schwartz_zippel_counting` in the root namespace, `prob_eval_zero_le_div` a `PMF`
+  statement: the blueprint's names are wrong). *See:* lib-arklib G.6 (AK6); acceptance test 1.
+
+#### 2.5.4 The batched radix-4 GKR (Layer 5, holes G5 and G6)
+
+- **2.5.4.1 Definition** (`ProductTree`, `gkr nside μ`, `gkrError`, `bp:933-944`). *States:*
+  from the roots to the leaf claims: radix 4 from the root down, one radix-2 layer first if
+  `μ` is odd; a combiner after the roots and after every layer (the last unused); per layer
+  `k = μ − layer` normalized sumcheck rounds of degree 4, twelve children, the layer check
+  `claim = Σ_s λ^s ∏ children[s]` with no equality factor, two combination challenges; the
+  three trees share every challenge and end at one `ζ`. *Status:* `[status: specified only]`
+  `[review: wrong]` (degree 5, one combiner per layer, no binary-layer error; 2.3.1.3.4).
+  *See:* gt-bus A.4, D.4, G1, G2, G12.
+- **2.5.4.2 Perfect completeness** (`gkr_perfectCompleteness`, `bp:942`). *Status:*
+  `[status: specified only]`; an honest GKR prover written from the specification is accepted
+  by the pinned Python verifier (gt-bus probe H.1).
+- **2.5.4.3 Round-by-round knowledge soundness** (`gkr_rbrKnowledgeSoundness … (gkrError nside
+  μ)`, `bp:943-944`). *States:* per challenge as in 2.3.1.3.4; the layer check turns a false
+  running claim into a false child. *Status:* `[status: specified only]`; the specification
+  states no error for the GKR (gt-bus G17). Its leaves: the sumcheck of 2.5.1 in its normalized
+  variant; the batching of 2.5.2 for the combiners; the bilinear interpolation of the four
+  children (`1/|E|` per coordinate).
+
+#### 2.5.5 The ring-switching and WHIR components
+
+Ring switching is 2.3.4.3.5 (inside the Flock phase, #3's); WHIR is 2.1.2.4 (Layer 11, the
+compilation). Neither is a phase of the oracle protocol; under recommendation (ii) the opening
+phase is the batching component alone.
+
+#### 2.5.6 Layer 1: hypercube tables, stacking, padding, claim weights, the fixed columns (built)
+
+Every theorem below is `[status: built and proved]` (seventeen declarations checked with
+`#print axioms` by code-layer1, three standard axioms; the sketch matches the code declaration
+by declaration). Today an auditor of the master theorems reads none of them; seventeen
+definitions become trusted when the adaptor is built, about eight more with the executable
+verifier (code-layer1 E).
+
+- **2.5.6.1 The generic identities** (`ToCompPoly/`; over any commutative ring).
+  - `evalMle_eq_sumCube_hadamard`, `sumCube_lagrangeBasis` (partition of unity),
+    `evalMle_replicate`, `evalMle_lagrangeBasis` (the eq kernel; duplicates CompPoly's
+    `eqTilde_eq_prod`) — `Multilinear.lean:91, 125, 131`, `BitProductTable.lean:156`.
+  - `evalMle_append_boolVec` (`Multilinear.lean:342`): the extension at `(z, bits of j)` is
+    the extension of slice `j` at `z` (high-index selection; the low-index, strided selection
+    is absent: 2.5.6.3). `evalMle_placeSlice`, `sumCube_placeSlice` (`:371, 381`).
+  - `evalMle_bitProductTable`, `evalMle_powersTable` (`BitProductTable.lean:58, 144`): a table
+    that factors over the index bits evaluates as a product.
+  - `Blocks.pow_size_dvd_offset` (alignment from the order), `Blocks.stack_eval` (the one
+    selector fact: `q̃(z, sel_b) = P̃_b(z)` for the honest stack), `Blocks.unstack_eval₂` (the
+    same for a table the prover chose), `Blocks.stack_eval_ambient` (equation (2) of §5.4 for
+    any padding) — `Stacking.lean:109, 339, 330`, `AmbientStacking.lean:134`.
+- **2.5.6.2 The leanVM half.** `Blocks.readColumn_eval`, `Blocks.layout` (the aligned blocks as
+  the spine's `Layout`), `Layout.comap` (renaming; accepts a non-injective renaming, so a layout
+  built with it can alias), `Blocks.stack_eval_ambient_one` (padding `1` over `E`, the leaf
+  decomposition), `sumCube_padHigh`, `evalMle_padHigh`, `eqWeight`, `eqWeight_pair`,
+  `ColumnClaim.holds_iff_weighted`, `idxColumn_eval`, `idxColumnEval_eq` (the index column
+  `g^i`, coordinate `k` carrying `g^{2^k}`, §6.5), `bytecodeColumn_answer_boolVec`,
+  `bytecodeColumn_eval` (slot `s` of instruction `z` at `(z, s)`, cell for cell the Rust
+  encoder's table on a sixteen-instruction program). *See:* code-layer1 A.5 to A.9, B.1 to B.7.
+- **2.5.6.3 The strided reader of the eighteen BLAKE2S limb columns** (`sliceLow`,
+  `evalMle_boolVec_append`, `Blocks.stridedLayout`, `Layout.piecewise`; no blueprint name).
+  *States:* a limb column is read from `q_flock` at the low eight coordinates frozen to the
+  slot's bits; the selection lemma is twenty lines (probe `StridedProbe`, proved). *Status:*
+  `[status: not specified]` `[review: missing]` — exists nowhere, assigned to no layer;
+  `leanIsaInstance` cannot be built without it. *See:* code-layer1 G.1 (L1-1); gt-flock-ring 8.2.
+- **2.5.6.4 The order of equal-size blocks.** *States:* the six shared columns first, then
+  every table's columns in table order (`witness.rs:67-79`, `cpu/layout.rs:13-49`); `Blocks` is
+  the sorted sizes only, and leanVM's order and "tables first" give different offsets with the
+  same `Blocks`. *Status:* `[status: trusted, transcribed data]` `[review: missing]` — pinned by
+  no statement or test before the compiled verifier. *See:* code-layer1 G.3 (L1-3), B.2 (the
+  92 offsets of the pinned Python layout reproduced by `Blocks.offset`).
+
+#### 2.5.7 Layer 0: the fields, the samplers, the oracle interface (built)
+
+- **2.5.7.1 The fields and their cardinality** (`K`, `E`, `card_E : Fintype.card E = 2^192`,
+  `Field.lean:96`; CompPoly's `card_ext3`). *States:* `K = GF(2)[x]/(x^64+x^4+x^3+x+1)` as
+  64-bit words, `E = K[y]/(y^3+y+1)` as limb triples, bit for bit leanVM's (probe
+  `FieldFidelity`: eleven Rust reference products reproduced). *Status:* `[status: library,
+  proved at the old pin]` (irreducibility by a Rabin certificate, no `native_decide`); at the new
+  pin `BF64` is a structure and `(2 : K) = 0`. *See:* lib-others B, G.8.
+- **2.5.7.2 Uniform challenges** (`instSampleableTypeE`, `Field.lean:93`; VCVio's
+  `SampleableType`). *States:* uniformity is a law of the class, so the `E` sampler (three limbs
+  through a bijection) is uniform by proof; `Pr[= x | $ᵗ E] = 2^{-192}` (probe `Layer0`); the `K`
+  sampler has no consumer. *Status:* `[status: built and proved]`. *See:* lib-others E.1, G.2.
+- **2.5.7.3 The evaluation oracle** (`evalOracle`, `evalOracle_answer`, `Field.lean:102-113`).
+  *States:* a query is a point of `E^n`, the answer `q̃(r) = Σ_i ofK(q_i)·eq(r, i)` in the
+  specification's little-endian order. *Status:* `[status: built and proved]`; `[review: wrong]`
+  as the interface of the stack: the compilation needs the inner-product interface (2.3.5.1),
+  of which evaluation is the case `W = eq(r, ·)`. *See:* lib-others E.2; gt-opening-compile A.5.
+- **2.5.7.4 The scalar oracle interfaces** (`instOracleInterfaceE`, `instOracleInterfaceListE`,
+  `Field.lean:115-118`). *States:* a scalar or list message is read whole. *Status:* `[status:
+  built, definition]` `[status: trusted, transcribed data]`, unlisted in the blueprint's
+  interface list. *See:* lib-others G.4 (LO4).
+
+#### 2.5.8 Layer 2: Clean components as polynomials (hole I1; not built)
+
+- **2.5.8.1 Expressions as polynomials** (`Expression.toMvPolynomial`, `eval_toMvPolynomial`,
+  `degreeBound`, `totalDegree_le_degreeBound`, `bp:759-765`). *States:* a Clean expression
+  evaluates as the polynomial with `var i ↦ X i`; the syntactic degree bounds the total
+  degree. *Status:* `[status: specified only]` `[review: unprovable]` as placed: Layer 2
+  produces Mathlib `MvPolynomial`s while the instance holds CompPoly `CMvPolynomial`s and the
+  conversion is `noncomputable` at the pin, which would make `M3Holds (leanIsaInstance …)`
+  undecidable by evaluation and `verify` noncomputable; a direct translation is twelve
+  computable lines (probe `PolyBridge`). *See:* boundary-adaptor E.5, finding 8.
+- **2.5.8.2 The polynomial view of a component** (`Component.toM3`, `Ensemble.toM3`,
+  `toM3_constraints_iff`, `toM3_flushes_eq`, `vars_lt_width`, `bp:767-780`). *States:* the
+  constraints of a row vanish iff Clean's `ConstraintsHold` does; the multiset of evaluated
+  flush tuples is the interactions mapped to 16-tuples, with the separator and direction given
+  per channel. *Feeds:* 2.6.2 (the constraint and balance clauses). *Status:* `[status:
+  specified only]`; Clean has no polynomial, degree, height or padding notion. *See:*
+  boundary-adaptor A.4; blueprint `bp:781-786`.
+- **2.5.8.3 The count columns' derivation.** *States:* which cells are the pulls' count
+  coordinates (`count_columns()` per table, `layout.rs:412-414`), which `Component.toM3` cannot
+  derive from the separator and direction alone. *Status:* `[status: not specified]`
+  `[review: missing]`. *See:* boundary-adaptor finding 11.
+
+### 2.6 The adaptor and what it needs of leanISA and of Flock (Layer 3, hole I2; not built)
+
+The only place the proof system meets leanISA. Nothing of it exists in Lean at `b435631`
+(`M3Holds`, `M3Rel` and `Refinement` are built; `leanIsaInstance`, `stackOf`, `witnessOf` and
+the four theorems are not).
+
+- **2.6.1 The leanISA instance** (`leanIsaInstance prog s`, `Sizes`, `Sizes.Admissible`,
+  `leanIsaInstance_degree`, `leanIsaInstance_flush_degree`, `leanIsaInstance_fits`,
+  `bp:794-808`). *States:* the polynomial view of the eight tables with leanISA's separators and
+  directions, `d := 2`, three public lines on `mem_0, mem_1, mem_2`, the six shared columns as
+  constraint-free tables, the boundary blocks with the index and bytecode columns as `known`
+  coordinates, the stack layout of `witness.rs`, `cpu/layout.rs`, `leaf.rs`, the strided
+  limbs, the auxiliary predicate. *Feeds:* everything above through `I`. *Status:* `[status:
+  specified only]` `[status: trusted, transcribed data]`; `[review: wrong]` on four points: it
+  is not `Ensemble.toM3` of the eight tables (the memory and bytecode seed/finalize blocks and
+  the state boundary must be boundary blocks with `known` program data, or the program would be
+  committed and no adaptor theorem provable); `leanIsaInstance_fits` mentions a field `Layout`
+  does not have (the fit belongs to `Blocks`, before the instance); its layout and `aux` depend
+  on a `FlockInterface I` that takes the instance as parameter; it must be reducible for the
+  tests' `Decidable` search. *See:* boundary-adaptor A.5, E.4, findings 1, 7, 12; code-layer1
+  G.2; gt-flock-ring 8.2, 8.3.
+- **2.6.2 The soundness bridge** (`satisfiedBy_witnessOf (hs : s.Admissible prog) (h : M3Holds
+  (leanIsaInstance prog s) input q) : SatisfiedBy prog input (witnessOf prog s q)`,
+  `bp:815-816`). *States:* the witness rebuilt from a stack satisfying `M3Holds` satisfies
+  leanISA's thirteen-conjunct relation; carries knowledge from `M3Holds` to `SatisfiedBy` at the
+  same error (pointwise, 2.2.5). *Feeds:* 2.0.1. *Status:* `[status: specified only]`; can work
+  as sketched for the reason of 2.6.1. *See:* boundary-adaptor A.4, A.5, E.1. Conjunct by conjunct:
+  - **2.6.2.1 Clean's constraints** from `ConstraintsVanish` through `toM3_constraints_iff`
+    (2.5.8.2). *Status:* `[status: specified only]`.
+  - **2.6.2.2 The three `BalancedPair`s (counted in ℕ)** from `Balanced` (a `List.Perm` of
+    16-tuples) through `toM3_flushes_eq` **and a bridge for the boundary blocks** against the
+    two Clean blocks and the verifier component. *Status:* `[status: not specified]`
+    `[review: missing]` for the boundary bridge; leanISA's `BalancedPair` replaces Clean's
+    field-summed balance, unsatisfiable over `K`. *See:* boundary-adaptor finding 2; lib-others C.5.
+  - **2.6.2.3 `CountsNonzero`** (both relations quantify over the same cells). *Status:*
+    `[status: specified only]`; the count columns' derivation is 2.5.8.3.
+  - **2.6.2.4 The public words** (`word0_eq`, `word1_eq`) from `PublicLinesHold` on the three
+    lines; the top limb is zero by the type of `PublicInput` and needs the third line (2.3.3.5);
+    `κ < 64` for `MemImage.read_gpow` from admissibility. *Status:* `[status: specified only]`.
+    *See:* boundary-adaptor D; code-pubinput D.
+  - **2.6.2.5 `Blake2sRowsValid`** from `aux` through #3's lemma "the R1CS with the constant
+    position holds of `q_flock` ⇒ the eighteen limb slots compress" (the functional
+    correctness of a circuit with 14,720 AND gates: the forward walk, two adders, leanISA's
+    `compress`). *Status:* `[status: trusted, hypothesis]` `[review: missing]` — nothing carries
+    it: the sketched signature has no argument for it, `FlockInterface` has no such field, and
+    `aux` needs #3's R1CS to be defined. *See:* boundary-adaptor C (row "the R1CS holds ⇒ the
+    limb slots compress"), finding 7; gt-flock-ring 5.3, 7.1 (row 2).
+  - **2.6.2.6 `Caps`** from `s.Admissible prog`: a hypothesis, since `M3Holds` leaves the caps
+    out and `imageOf` truncates above `maxLogMem`. *Status:* `[status: trusted, hypothesis]`,
+    discharged by the verifier's setup check (2.7). `admissible_iff_caps` `[status: unprovable
+    as written]` (a free `w`; false in either reading; `Sizes.ofWitness` cannot produce the
+    rate). *See:* boundary-adaptor E.3, finding 5; gt-bus G4.
+  - **2.6.2.7 The three fixed-column facts and decodability** (from the instance's `known`
+    columns and the type of `Program`). *Status:* `[status: specified only]`; "statement
+    binding" needs the injectivity of `prog ↦ bytecodeColumn prog`, unstated. *See:*
+    boundary-adaptor B.2, F.
+- **2.6.3 The completeness bridge** (`m3Holds_stackOf (h : SatisfiedBy prog input w) (hs :
+  Sizes.ofWitness w = some s) : M3Holds (leanIsaInstance prog s) input (stackOf gen w hs)`,
+  `bp:817-818`). *States:* the stack of a satisfying witness (with the Flock wires generated
+  from the limbs) satisfies `M3Holds`; the non-vacuity of the whole protocol for leanISA.
+  *Feeds:* 2.0.2. *Status:* `[status: specified only]`; needs `Sizes.ofWitness` (ill-defined
+  while `Sizes` holds `logInvRate`) and `FlockWitnessGen` with its lemma "the generated wires
+  satisfy the R1CS when the limbs compress" `[status: trusted, assumed interface]` (#3's).
+  *See:* boundary-adaptor A.6, C; gt-flock-ring 7.1 (row 3).
+- **2.6.4 The round trip** (`witnessOf_stackOf … = w`, `bp:819`). *States:* reading the stack
+  back gives the witness on the committed fields. *Status:* `[status: unprovable as written]`
+  — not an equality any `EnsembleWitness` satisfies (`ProverData` is a function, `Table.width`
+  is free); serves nothing on the chain (a non-vacuity test). *See:* boundary-adaptor E.2,
+  finding 10, F.
+- **2.6.5 `witnessOf` itself** (`bp:812-814`). *States:* rebuilds the tables from the columns,
+  the limbs from their slots, the interactions from the components, the image from the memory
+  columns, the program from `prog`; total and computable. *Status:* `[status: specified only]`;
+  has no `input` argument. *See:* boundary-adaptor finding 11.
+- **2.6.6 leanISA's constraint soundness** (`constraintSoundness (hwf : WellFormedBytecode
+  prog) (h : SatisfiedBy prog input w) : ∃ t, AssignmentRepresents w t ∧ ValidExecution prog
+  input t`, `leanisa-blueprint.md:1156-1177`; T1-S). *States:* every satisfying assignment of a
+  well-formed program represents a valid execution. *Feeds:* 2.0.1. *Status:* `[status:
+  specified only]` — a block comment, blocked on Clean's ℕ-counted balance (issue #16, Clean
+  #452/#464). *See:* boundary-adaptor C; lib-others C.5 to C.7.
+- **2.6.7 leanISA's constraint completeness** (`constraintCompleteness (hwf) (h :
+  ValidExecution prog input t) : ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t`;
+  T1-C). *Feeds:* 2.0.2. *Status:* `[status: specified only]`; needs a resource hypothesis of its
+  own (out of scope). *See:* boundary-adaptor note 18.
+- **2.6.8 The witness generator** (T2, `witnessGen_correct`, `arch:230-236`). *States:* the
+  executable witness generation produces a satisfying, representing assignment. *Feeds:* 2.0.2
+  as `docs/architecture.md` states it. *Status:* `[status: not specified]` in the blueprint (out
+  of scope, `bp:147-148`); T4's completeness composes T1-C instead. *See:* boundary-adaptor F;
+  docs-debt (DD19).
+
+### 2.7 The hypotheses: what a verifier check or a condition on public data discharges
+
+Every hypothesis on the two chains, with what discharges it (from boundary-adaptor C, extended
+by the opening and Flock dossiers). Kinds: a condition on public data (P), a property the
+verifier checks (V), a theorem another roadmap or library owes (O), nothing (N).
+
+| Hypothesis | Appears in | Kind | Discharged by | Status |
+| --- | --- | --- | --- | --- |
+| `s.Admissible prog` (caps, `τ_BLAKE2S ≥ 3`, `15 ≤ μ ≤ 28`, `1 ≤ ρ ≤ 4`) | 2.6.2, 2.1.1 | V | `read_public` (`cpu/mod.rs:130-178`), reproduced by `verify`; supplied by `verify_iff_compiled`'s `∃ s` | consistent once `Admissible` carries the two windows (2.1.1.4) |
+| the top limb of each public word is zero | 2.6.2.4 | V in the Rust (`cpu/mod.rs:141-143`); by type in Lean | the parser of `PublicInput`; defence in depth through the third line | consistent; the parsing obligation undocumented (boundary-adaptor finding 15) |
+| the bytecode is decodable, of power-of-two length `≤ 2^32` | 2.6.2.7 | V in the Rust; by type in Lean | the loader of `Program` | consistent |
+| `WellFormedBytecode prog` (sentinel not a `JUMP`; fill blocks) | 2.6.6, 2.6.7 | P (decidable; no verifier checks it; the compiler emits both) | the guest owner (T3) | **N in the blueprint**: `baseVerifier_extractsExecution` has no such hypothesis, `baseProver_complete` has `HasFillBlocks` only |
+| `Sizes.ofWitness w = some s` (power-of-two heights) | 2.6.3 | O (leanISA: `Caps.heights`, `seed_rows`, `bytecode_rows`) | `SatisfiedBy` | provable; ill-defined while `Sizes` holds `logInvRate` |
+| a resource bound on the trace (every table `≤ 2^32` rows; the stack `≤ 2^28`) | 2.0.2, 2.6.7 | N | nothing: `ValidExecution` bounds nothing but `κ ≤ 32` | **N**: `baseProver_complete` is false without it |
+| a witness constructed from the trace | 2.0.2 | O (T2, out of scope) | `constraintCompleteness` gives `∃ w` only | **N** as written |
+| the honest grind succeeds | 2.0.2, 2.1.4 | N (a search) | running the prover | **N**: `prove` must be partial |
+| `FlockWitnessGen` and its lemma | 2.6.3 | O (#3) | an explicit argument | assumed interface |
+| "the R1CS with the constant position ⇒ the limb slots compress" | 2.6.2.5 | O (#3) | nothing names a carrier | **N** until a carrier is named |
+| the `F_2`-independence of the 128 fixed equality weights | 2.3.4.3.2 | P (a rank computation on constants) | a Rust unit test; a Python probe | not in any theorem |
+| `Phases.Complete`, `Phases.Security` of `leanIsaInstance prog s` | 2.2.1, 2.2.2 | O (holes P1 to P8; the public-input phase built) | the phases | assumed interface until every hole is filled |
+| a bound on `piopError P` | 2.2.2.5 | O (this roadmap) | nothing in the spine | **N** today |
+| every front phase's verifier makes no oracle query | 2.1.2.3.3 | O (this roadmap) | nothing; the spine's types allow queries | **N** (finding 5.2) |
+| `FiatShamirSecurity`, `BcsSecurity`, `McaJohnson` | 2.1.2 | O (ArkLib; the literature) | explicit arguments | assumed interfaces; the first two as stated are false or empty |
+| the list-binding compilation, with `L_0` | 2.1.2.3 | O (this roadmap) | nothing | **N** |
+| BLAKE2s's compression function is a random oracle; BLAKE2s-256 is collision resistant | 2.1.5 | N (a heuristic) | nothing | **N**: must be written down as the assumption it is |
+| the grinding check at every query round (17 bits) | 2.1.2.1.3, 2.1.2.4.7 | V (`fs/lib.rs:165-174`) | `verify` | no planned theorem or mutation makes it load-bearing (literature LT13) |
+| the canonical encodings (upper limbs, root halves) and full consumption of the stream | 2.1.1.4 | V | `verify` | none protects soundness; `verify` without them accepts streams the Rust rejects |
+| `R1CS_DIGEST` in the seed | 2.3.4.6 | V (a constant compared) | a Rust-produced proof accepted by `verify` | no theorem; not recomputable at the pin |
+| the round-by-round ⇒ plain implication | 2.1.2.7 | O (ArkLib, admitted) | "stated once the implication lands" | consistent; forgets the named extractor |
+| the count columns are exactly the pulls' count coordinates | 2.6.2.3 | O (Layer 2/3, Category B) | a transcription of `count_columns()` | unspecified |
+| the order of equal-size blocks; the leaf stacks' order | 2.5.6.4, 2.3.1.3.8 | O (Category B) | nothing before the fixture | unspecified |
+

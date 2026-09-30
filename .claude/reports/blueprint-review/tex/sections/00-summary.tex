@@ -1,1 +1,98 @@
-% stub: to be written
+\chapter*{Summary}\addcontentsline{toc}{chapter}{Summary}
+
+\paragraph{What was reviewed.} The blueprint of the leanVM proof system in leanerVM
+(\file{docs/roadmap/protocol-blueprint.md}) and the code built from it on \code{main} at
+\code{b435631}: the spine (the abstract instance, the relation, the seams, the composition and
+the two master theorems), Layer 0, Layer 1 and the public-input phase. The ground truth is
+leanVM at the pin \code{a386121f}: the specification's tex, the Rust verifier (the deployed
+protocol) and the Python verifier. Mid-review the owner upgraded \code{main} to Lean 4.34.1 with
+new library pins; every statement here is about \code{b435631}, and \cref{sec:map-revision}
+says what the upgrade changes (the proof-system statements are the same; the pins moved to
+what the review had examined as upstream; a numeral in $\K$ now means something else).
+
+\paragraph{How.} Twelve dossiers, each by an agent with its own context, on the ground truth
+phase by phase, on the code, on the libraries, on the boundary with leanISA, on the
+documentation and on the literature; every citation of the four ground-truth dossiers checked
+against the sources by a second agent (about 1,400 citations; a dozen wrong theorem or line
+numbers, no finding weakened); forty-odd Lean and Python probes, re-run at the new pins; a
+hostile second reading of the eleven major findings that do not concern the opening
+(\cref{ch:register} records its verdicts); one register of 134 findings, 111 negative results
+and 58 items not verified.
+
+\paragraph{The verdict on the three criteria.}
+\begin{description}
+\item[Faithfulness.] The blueprint is faithful to leanVM in the bus phase's checks, in the
+  table sumcheck's numbers, in the relation's five clauses and in Layer 1's transcriptions,
+  which the review confirmed line by line. It is not faithful in the opening (it runs a
+  sumcheck leanVM does not run, because it gives the stack an evaluation oracle where leanVM
+  commits to an inner-product scheme), in the GKR (the wrong degree, one combiner too few, a
+  generic component that cannot be appended), in the Flock interface (it drops the eighteen
+  limb claims and attributes to the protocol a defect of the Rust prover), in the public-input
+  phase as built (it proves the specification's check, which none of the three executable
+  verifiers runs), and in the compilation, whose theorems are not well formed and whose error
+  lacks three terms.
+\item[Non-vacuity.] The relation and the seams are inhabited and refuted as they should be,
+  and every extractor computes. But the knowledge-soundness master theorem has content only
+  with a bound on the error, and the spine states none: phases that check nothing, at declared
+  error one, satisfy its hypotheses for every instance. The check on the public-input message
+  is not load-bearing for any theorem, because the verifier pools what it computes rather than
+  what it received. And the master theorems constrain the leanISA instance by nothing until
+  the adaptor is built, so a weakened instance (two public lines instead of three, a trivial
+  Flock predicate, an aliasing layout) is caught by no theorem on \code{main}.
+\item[Auditability.] The named knowledge-soundness theorem unfolds to 100 declarations and
+  354 lines of statements; twelve proposals, none changing a theorem's meaning, bring it to
+  about 80 and 290 (\cref{ch:auditability}).
+\end{description}
+
+\paragraph{The findings that matter most} (the register's numbers in parentheses).
+\begin{enumerate}
+\item The declared error is unconstrained; the soundness theorem says nothing until the spine
+  fixes the error in closed form (\code{R5}; machine-checked).
+\item The opening phase runs a sumcheck leanVM does not run; an inner-product oracle repairs
+  it and makes WHIR the whole opening (\code{R18}; the interface typechecks at both pins).
+\item The bus seam admits statements the deployed table sumcheck cannot serve (\code{R2}),
+  and the sumcheck's tables are not distinguished from the instance's other tables
+  (\code{R11}).
+\item The public-input phase proves a check no executable verifier runs (\code{R12}), and the
+  check it proves is not load-bearing (\code{R13}); pooling the values sent repairs both, and
+  the deployed check's key lemma is proved.
+\item The GKR is specified with the wrong degree and one combiner too few, and its generic
+  component cannot be appended in a one-oracle phase (\code{R7}, \code{R9}, \code{R10}).
+\item The Flock interface drops the limb claims, is circular with the instance, cannot be
+  written over an abstract instance, and files the Rust prover's defect under a soundness error
+  (\code{R14} to \code{R17}).
+\item The two target theorems are unprovable as sketched: one omits the program's
+  well-formedness and attaches a probability to a Boolean; the other is false without a resource
+  bound (\code{R27} to \code{R29}). The adaptor's instance is not what the blueprint says it is,
+  and the boundary blocks have no bridge lemma (\code{R30}, \code{R31}).
+\item The non-interactive error omits grinding, the list-size factor and the hash term; the
+  assumed Fiat--Shamir and Merkle interfaces are false as stated or inhabited by nothing, and
+  are about other constructions than leanVM's one BLAKE2s map (\code{R20} to \code{R26}).
+\item ArkLib's existential notion of round-by-round knowledge soundness carries no knowledge
+  content (\code{R1}, critical as a warning about the library, not a defect of a leanerVM
+  theorem); the spine's named form is adequate with the extractor read.
+\end{enumerate}
+The status file's finding that the Python verifier omits the caps is false at the pin and must
+not be reported upstream (\code{R38}). Three matters are to be reported to leanVM: the
+public-input check differs between the specification and its three verifiers; the Rust Flock
+prover fails at one challenge value; several constants and layouts of Flock exist only in the
+code.
+
+\paragraph{The owner's question.} If the verifier did not check, through some claim, that the
+top lane of both public words is zero, would the theorems catch it? Not the master theorems:
+the third public line is data of the instance, and every theorem of the spine and of the phase
+holds of an instance with two lines. The adaptor's soundness theorem would, since
+\lean{SatisfiedBy} fixes the memory cells to the public words whose top limb is zero by type,
+and behind it the constraint-soundness theorem; neither is built. The general rule the review
+draws is that a check is load-bearing only if the verifier commits to what it checked, and
+that every check of a phase must come with the theorem that refutes its omission
+(\cref{ch:drift}).
+
+\paragraph{What the report proposes.} Ten recommendations in priority order
+(\cref{sec:opt-recommendations}); the proposed change for every finding, as the passage stands
+and as proposed (\cref{ch:changes}); one owner per kind of fact in the documentation, with the
+status and the tracker as pointers to the blueprint, names in place of the letter codes and one
+index for those that stay (\cref{ch:documentation}, \cref{ch:tracker}, \cref{ch:codeindex});
+and the mechanisms that keep the Lean verifier tied to the deployed one as the work proceeds
+and the pin moves (\cref{ch:drift}). Nothing has been applied: the blueprint, the status and
+the trackers are unchanged, and the drafts wait for the owner's go-ahead.
