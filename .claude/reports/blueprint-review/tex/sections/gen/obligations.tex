@@ -36,7 +36,7 @@
 \section{The shape of the tree}\label{sec:obl-shape}
 
 \begingroup\emergencystretch=3em
-\textbf{Sources and revisions.} The tree was drawn by the review's task \code{obligations} on 2026-09-30. Object: leanerVM \code{main} at \code{b435631} (every Lean citation at that revision, \bndc{git show b435631:<path>}); ground truth leanVM at \code{a386121f} (read with \bndc{git -C /home/scaraven/Documents/leanEthereum/leanVM show a386121f:<path>}; the checkout has moved, brief §8); libraries at the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, VCVio \code{f9dc47d9}, Clean \code{93c9d1ef}) unless the new pin (\code{7653a901}, \code{572f9973}, \code{a4232d08}, \code{42fe4b26}) is named. No Lean was run for this dossier: every status below rests on the sibling dossiers' recorded probes (named at each node) or on reading the sources.
+\textbf{Sources and revisions.} The tree was drawn by the review's task \code{obligations} on 2026-09-30. Object: leanerVM \code{main} at \code{b435631} (every Lean citation at that revision, \bndc{git show b435631:<path>}); ground truth leanVM at \code{a386121f} (read with \bndc{git -C /home/scaraven/Documents/leanEthereum/leanVM show a386121f:<path>}; the checkout has moved, brief §8); libraries at the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, VCVio \code{f9dc47d9}, Clean \code{93c9d1ef}) unless the new pin (\code{7653a901}, \code{572f9973}, \code{a4232d08}, \code{42fe4b26}) is named. No Lean was run for the dossier: every status below rests on the sibling dossiers' recorded probes (named at each node) or on reading the sources.
 
 Inputs, read in the order the task gave: \bndc{docs/architecture.md} and \bndc{docs/roadmap/protocol-blueprint.md} at \code{b435631}; the dossiers \code{code-spine}, \code{lib-arklib}, \code{gt-bus}, \code{gt-table-pub}, \code{gt-flock-ring}, \code{code-pubinput}, \code{boundary-adaptor}, \code{literature}, \code{code-layer1}, \bndc{gt-opening-compile} (complete when read: its summary is headed ``Conclusions'' with five items and its sections A to G are written), \code{lib-others}, and the \code{register} staging (its row identifiers are quoted in parentheses only where they locate a finding); the Lean sources of \bndc{LeanerVM/Protocol/} at \code{b435631} for every name.
 
@@ -529,7 +529,7 @@ out-of-domain sample & $\binom{L_i}{2}\cdot\mu_i/\abs{\E}$ & $155$ to $180$ bits
 query positions (after 17 bits of proof of work) & $(1 - \gamma_i)^{t_i}$ & $111$ bits, plus 17 by grinding &  \\
 final batching & $t_{r-1}/\abs{\E}$ &  &  \\
 tail & $2/\abs{\E}$ &  &  \\
-every front challenge, after compilation & $\symbf{L_0\cdot\varepsilon_i}$ (the list-binding compilation, 2.1.2.3) & $2^{-160+8.6}$ at worst; benign, structurally load-bearing & gt-opening-compile E.3, G; literature A.3 \\
+every front challenge, after compilation & $\symbf{L}_{\symbf{0}}\cdot\symbf{\varepsilon}_{\symbf{i}}$ (the list-binding compilation, 2.1.2.3) & $2^{-160+8.6}$ at worst; benign, structurally load-bearing & gt-opening-compile E.3, G; literature A.3 \\
 \end{longtable}
 \endgroup
 
@@ -731,7 +731,7 @@ The proposed change of \cref{f:obl-unowned} also gives the transcript hole (K3) 
 Only what the tree reveals and no sibling dossier states as such; each finding cites the nodes it rests on. The severities are the brief's.
 
 \begin{finding}{major}{f:obl-unowned}{Twenty-one obligations of the composition have no hole, no layer and no owner}
-\fhead{Evidence} The closing list of \cref{sec:obl-holes} against the holes table (\code{bp:594-617}) and the layers (\code{bp:619-1259}): each item is needed by an arrow of the chain in section 2 and appears in no hole's ``Produces'' column and in no layer's sketch. Sibling dossiers record most of them one at a time (gt-opening-compile E.2, E.3; literature A.4; code-layer1 G.1; boundary-adaptor findings 2, 6, 7; gt-bus G7, G10; gt-table-pub TP1, TP4; code-spine CS1); none states that the plan's unit of work leaves them unassigned.
+\fhead{Evidence} The closing list of \cref{sec:obl-holes} against the holes table (\code{bp:594-617}) and the layers (\code{bp:619-1259}): each item is needed by an arrow of the chain in \cref{sec:obl-tree} and appears in no hole's ``Produces'' column and in no layer's sketch. Sibling dossiers record most of them one at a time (gt-opening-compile E.2, E.3; literature A.4; code-layer1 G.1; boundary-adaptor findings 2, 6, 7; gt-bus G7, G10; gt-table-pub TP1, TP4; code-spine CS1); none states that the plan's unit of work leaves them unassigned.
 
 \fhead{Classification} An error of the blueprint (the plan is incomplete, not wrong where it is stated).
 
