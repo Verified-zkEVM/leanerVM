@@ -1,0 +1,460 @@
+R1    1.00 lib-arklib:§G.1 -> f:lib-existential-rbr
+   head: the existential form of round-by-round knowledge soundness has no knowledge content (critical, as a warning; not a defec
+   box : the existential form of round-by-round knowledge soundness has no knowledge content
+R2    0.16 gt-table-pub:§8 (first finding) -> f:table-pub-bus-seam  <<<
+   head: §8 (first finding)
+   box : the bus seam admits statements the deployed table sumcheck cannot serve
+R2    0.54 code-spine:§F "The degree conjunct of Sea -> f:code-spine-degree-conjunct-seam-bus-guard  <<<
+   head: §f "the degree conjunct of seam.bus"
+   box : the degree conjunct of seam.bus is a guard the table phase's verifier must run
+R4    1.00 lib-arklib:§G.2 -> f:lib-completeness-error
+   head: the spine's completeness cannot carry an error, and flock may need one (major)
+   box : the spine's completeness cannot carry an error, and flock may need one
+R5    0.50 code-spine:§F "The declared error is unco -> f:code-spine-declared-error-unconstrained-knowledge-theorem  <<<
+   head: §f "the declared error is unconstrained"
+   box : the declared error is unconstrained: the knowledge theorem has content only with a bound on pioperror
+R6    1.00 boundary-adaptor:§G.6 -> f:boundary-announced-sizes
+   head: the composition over the prover's announced sizes is unspecified (major)
+   box : the composition over the prover's announced sizes is unspecified
+R7    1.00 gt-bus:G1 -> f:bus-gkr-normalized
+   head: the gkr layer sumcheck is the normalized one: the blueprint gives it the wrong degree, the wrong error and no definition
+   box : the gkr layer sumcheck is the normalized one: the blueprint gives it the wrong degree, the wrong error and no definition
+R9    1.00 gt-bus:G2 -> f:bus-extra-combiner
+   head: one combiner more than layers: the last is drawn and never used
+   box : one combiner more than layers: the last is drawn and never used
+R10   1.00 gt-bus:G3 -> f:bus-generic-gkr
+   head: the generic gkr of layer 5 cannot be appended in the bus phase, and cannot carry the zerocheck clause
+   box : the generic gkr of layer 5 cannot be appended in the bus phase, and cannot carry the zerocheck clause
+R11   0.24 gt-table-pub:§8 (second finding) -> f:table-pub-sumcheck-tables  <<<
+   head: §8 (second finding)
+   box : the table sumcheck's tables are not distinguished from the instance's other tables
+R11   1.00 boundary-adaptor:§G.9 -> f:boundary-column-groups
+   head: the column-only tables enter the generic table sumcheck's schedule (major)
+   box : the column-only tables enter the generic table sumcheck's schedule
+R11   1.00 gt-bus:G16 -> f:bus-table-phase-tables
+   head: the table phase must know which tables it opens
+   box : the table phase must know which tables it opens
+R12   0.14 gt-table-pub:§8 (third finding) -> f:table-pub-public-input-check  <<<
+   head: §8 (third finding)
+   box : the public-input phase proves a check no executable verifier runs, and the debt is assigned to a layer that cannot pay i
+R12   0.97 code-pubinput:§G.2 -> f:code-pub-theorems-are-about-verifier-none
+   head: the theorems are about a verifier none of the three executable verifiers runs, and the debt is assigned to a layer that 
+   box : the theorems are about a verifier none of the three executable verifiers runs, and the debt is assigned to a layer that 
+R13   0.96 code-pubinput:§G.1 -> f:code-pub-check-on-public-input-message
+   head: the check on the public-input message is not load-bearing for any theorem of the phase (major)
+   box : the check on the public-input message is not load-bearing for any theorem of the phase (g.1)
+R14   1.00 gt-flock-ring:§8.1 -> f:flock-ring-interface-limb-claims
+   head: the flock interface of layer 9 consumes the limb claims and emits one claim; leanvm's flock reads no claim and the limb 
+   box : the flock interface of layer 9 consumes the limb claims and emits one claim; leanvm's flock reads no claim and the limb 
+R14   0.37 gt-table-pub:§8 "Layer 9's sketch" -> f:table-pub-limb-claims-flock  <<<
+   head: §8 "layer 9's sketch"
+   box : layer 9's sketch makes the eighteen limb claims an input of flock
+R15   1.00 gt-flock-ring:§8.2 -> f:flock-ring-slot-map-circular
+   head: the slot map of the limb columns is placed inside the flock interface, so the instance and the interface each need the o
+   box : the slot map of the limb columns is placed inside the flock interface, so the instance and the interface each need the o
+R15   1.00 boundary-adaptor:§G.7 -> f:boundary-flock-circular
+   head: the instance depends on a flock interface that depends on the instance (major)
+   box : the instance depends on a flock interface that depends on the instance
+R16   1.00 gt-flock-ring:§8.3 -> f:flock-ring-opaque-aux
+   head: the flock phase cannot be written over an abstract instance: the instance gives it only an opaque predicate
+   box : the flock phase cannot be written over an abstract instance: the instance gives it only an opaque predicate
+R17   1.00 gt-flock-ring:§8.4 -> f:flock-ring-test20-completeness
+   head: acceptance test 20 files a completeness failure under a soundness error, and attributes to the protocol an inverse that 
+   box : acceptance test 20 files a completeness failure under a soundness error, and attributes to the protocol an inverse that 
+R18   1.00 gt-opening-compile:§I.1 -> f:opening-extra-sumcheck
+   head: the opening phase runs a sumcheck leanvm does not run (major)
+   box : the opening phase runs a sumcheck leanvm does not run
+R19   1.00 gt-opening-compile:§I.8 -> f:opening-whiropen-batch-encode
+   head: layer 11's whiropen batches a second time, and its encode serves level 0 only (major)
+   box : layer 11's whiropen batches a second time, and its encode serves level 0 only
+R20   1.00 lib-arklib:§G.4 -> f:lib-fs-bcs
+   head: fiat–shamir and bcs: arklib has no statement to serve as the witness obligation (major)
+   box : fiat–shamir and bcs: arklib has no statement to serve as the witness obligation
+R20   1.00 gt-opening-compile:§I.4 -> f:opening-fs-bcs-interfaces
+   head: the fiat–shamir and bcs interfaces cannot be inhabited, and one is false as stated (major)
+   box : the fiat–shamir and bcs interfaces cannot be inhabited, and one is false as stated
+R21   1.00 lib-arklib:§G.4 -> f:lib-fs-bcs
+   head: fiat–shamir and bcs: arklib has no statement to serve as the witness obligation (major)
+   box : fiat–shamir and bcs: arklib has no statement to serve as the witness obligation
+R21   1.00 gt-opening-compile:§I.2 -> f:opening-verify-iff-compiled
+   head: verify_iff_compiled names definitions that do not describe the compiled verifier (major)
+   box : verify_iff_compiled names definitions that do not describe the compiled verifier
+R23   1.00 gt-opening-compile:§I.7 -> f:opening-nierror
+   head: nierror cannot carry leanvm's 128-bit claim (major)
+   box : nierror cannot carry leanvm's 128-bit claim
+R23   1.00 gt-flock-ring:§8.13 -> f:flock-ring-list-size
+   head: the error for a fixed committed polynomial is not the error after compilation
+   box : the error for a fixed committed polynomial is not the error after compilation
+R24   1.00 gt-opening-compile:§I.5 -> f:opening-list-binding
+   head: the list-binding compilation is a theorem the blueprint names and does not state (major)
+   box : the list-binding compilation is a theorem the blueprint names and does not state
+R26   1.00 gt-opening-compile:§I.6 -> f:opening-completeness-grinding
+   head: perfect completeness does not survive the transform (major)
+   box : perfect completeness does not survive the transform
+R27   1.00 docs-debt:§H.1 -> f:docs-base-theorem-hypothesis
+   head: the base theorem of extraction lacks the program hypothesis its own composition needs
+   box : the base theorem of extraction lacks the program hypothesis its own composition needs
+R27   1.00 boundary-adaptor:§G.3 -> f:boundary-base-soundness
+   head: the base soundness theorem omits wellformedbytecode, and is not a statement about verify (major)
+   box : the base soundness theorem omits wellformedbytecode, and is not a statement about verify
+R28   1.00 boundary-adaptor:§G.3 -> f:boundary-base-soundness
+   head: the base soundness theorem omits wellformedbytecode, and is not a statement about verify (major)
+   box : the base soundness theorem omits wellformedbytecode, and is not a statement about verify
+R28   1.00 gt-opening-compile:§I.3 -> f:opening-not-probability
+   head: baseverifier_extractsexecution and verify_knowledgesound are not probability statements (major)
+   box : baseverifier_extractsexecution and verify_knowledgesound are not probability statements
+R29   1.00 boundary-adaptor:§G.4 -> f:boundary-base-completeness
+   head: the base completeness theorem is false without resource hypotheses and needs a witness generator (major)
+   box : the base completeness theorem is false without resource hypotheses and needs a witness generator
+R30   1.00 boundary-adaptor:§G.1 -> f:boundary-not-ensemble-tom3
+   head: the instance is not ensemble.tom3 of the eight tables (major)
+   box : the instance is not ensemble.tom3 of the eight tables
+R31   1.00 boundary-adaptor:§G.2 -> f:boundary-bridge-lemma
+   head: no bridge lemma for the boundary blocks (major)
+   box : no bridge lemma for the boundary blocks
+R32   1.00 boundary-adaptor:§G.8 -> f:boundary-poly-bridge
+   head: the polynomial bridge of layer 2 is noncomputable at the pin (major)
+   box : the polynomial bridge of layer 2 is noncomputable at the pin
+R33   1.00 gt-bus:G4 -> f:bus-admissible
+   head: the admissibility predicate: the stacking window and the rate window
+   box : the admissibility predicate: the stacking window and the rate window
+R33   1.00 boundary-adaptor:§G.5 -> f:boundary-sizes
+   head: sizes, sizes.ofwitness and admissible_iff_caps cannot be stated as written (major)
+   box : sizes, sizes.ofwitness and admissible_iff_caps cannot be stated as written
+R33   0.97 code-layer1:§G.2 -> f:code-l1-leanisainstance-fits-cannot-be-stated
+   head: leanisainstance_fits cannot be stated as written, and is needed before the instance, not after
+   box : leanisainstance_fits cannot be stated as written, and is needed before the instance, not after (g.2)
+R33   0.88 gt-opening-compile:§I.15 -> f:opening-piop-error-window
+   head: pioperror_le's bound depends on the window; test 23 omits ring switching (minor)
+   box : pioperror_le's bound depends on the window; acceptance test 23 omits ring switching
+R34   1.00 lib-arklib:§G.3 -> f:lib-legacy-framework
+   head: the blueprint plans on a framework arklib calls legacy, and on a pull request that may not merge (major)
+   box : the blueprint plans on a framework arklib calls legacy, and on a pull request that may not merge
+R35   0.97 code-layer1:§G.1 -> f:code-l1-strided-reader-eighteen-blake2s-limb
+   head: the strided reader of the eighteen blake2s limb columns exists nowhere and is assigned to no layer
+   box : the strided reader of the eighteen blake2s limb columns exists nowhere and is assigned to no layer (g.1)
+R36   1.00 docs-debt:§H.3 -> f:docs-sketch-types
+   head: the per-layer sketches use types the spine does not have
+   box : the per-layer sketches use types the spine does not have
+R36   0.39 gt-table-pub:§8 "Layer 7's sketch" -> f:table-pub-layer7-sketch  <<<
+   head: §8 "layer 7's sketch"
+   box : layer 7's sketch and the tracker's signature predate the spine
+R36   1.00 gt-bus:G11 -> f:bus-stale-sketch
+   head: the sketch of layer 6 and the tracker's bus section are stale, and the invariant they name is not one
+   box : the sketch of layer 6 and the tracker's bus section are stale, and the invariant they name is not one
+R37   1.00 docs-debt:§H.2 -> f:docs-hole-comment
+   head: the blueprint hands the specification of the holes to a tracker comment that contradicts it
+   box : the blueprint hands the specification of the holes to a tracker comment that contradicts it
+R37   0.93 gt-table-pub:§8 "The tracker's text for the -> f:table-pub-tracker-stale
+   head: §8 "the tracker's text for the public-input phase is stale"
+   box : the tracker's text for the public-input phase is stale
+R38   1.00 gt-bus:G5 -> f:bus-status-python-caps
+   head: the status file's finding on the python verifier's caps is false
+   box : the status file's finding on the python verifier's caps is false
+R38   0.78 gt-table-pub:§8 "Two status findings are wr -> f:table-pub-status-wrong  <<<
+   head: §8 "two status findings are wrong"
+   box : two status findings are wrong at the pin
+R38   1.00 gt-flock-ring:§8.10 -> f:flock-ring-status-python-caps
+   head: the status file's finding that the python verifier omits the caps is false at the pin
+   box : the status file's finding that the python verifier omits the caps is false at the pin
+R38   0.56 gt-opening-compile:§I.16 -> f:opening-status-python-caps  <<<
+   head: the status's finding f9 is false at the pin (minor; agrees with gt-bus g5, gt-flock-ring 8.10)
+   box : the status file's finding on the python verifier's caps is false at the pin
+R39   1.00 gt-flock-ring:§8.5 -> f:flock-ring-security-extends-complete
+   head: knowledge soundness is bundled with perfect completeness
+   box : knowledge soundness is bundled with perfect completeness
+R40   0.70 code-spine:§F "The outputPure field is re -> f:code-spine-outputpure-field-redundant-guarded-nearly  <<<
+   head: §f "the outputpure field is redundant"
+   box : the outputpure field is redundant, and guarded nearly so
+R40   1.00 lib-arklib:§G.7 -> f:lib-side-conditions-derivable
+   head: component.complete's two side conditions are derivable (note)
+   box : component.complete's two side conditions are derivable
+R41   0.86 code-spine:§F "read is determined by exte -> f:code-spine-read-determined-extend
+   head: §f "read is determined by extend"
+   box : read is determined by extend
+R42   1.00 lib-arklib:§G.5 -> f:lib-err-noncomputable
+   head: the error bundled in component.def makes every phase and the composed protocol noncomputable (minor, auditability)
+   box : the error bundled in component.def makes every phase and the composed protocol noncomputable
+R43   1.00 gt-bus:G10 -> f:bus-side-conditions
+   head: two side conditions a bus phase over an abstract instance needs
+   box : two side conditions a bus phase over an abstract instance needs
+R44   0.97 code-layer1:§G.8 -> f:code-l1-protocol-basic-lean-imports-arithmetization
+   head: protocol/basic.lean imports the arithmetization and is not a listed exception of the wall
+   box : protocol/basic.lean imports the arithmetization and is not a listed exception of the wall (g.8)
+R44   1.00 docs-debt:§H.8 -> f:docs-import-rule
+   head: the import rule of the proof system is false of main as written
+   box : the import rule of the proof system is false of main as written
+R45   0.92 code-spine:§F "The headline describes the -> f:code-spine-headline-describes-theorems-that-do
+   head: §f "the headline describes theorems that do not exist"
+   box : the headline describes theorems that do not exist
+R46   0.50 code-spine:§F "The extracted stack is not -> f:code-spine-extracted-stack-not-definition-rfl  <<<
+   head: §f "the extracted stack is not a definition"
+   box : the extracted stack is not a definition, and the rfl witness of acceptance test 24 covers zero-round phases only
+R47   0.41 gt-table-pub:§8 "The zerocheck escape" -> f:table-pub-zerocheck-escape  <<<
+   head: §8 "the zerocheck escape"
+   box : the zerocheck escape is over-charged, and charged in three different ways
+R47   1.00 gt-bus:G6 -> f:bus-zerocheck-charge
+   head: the zerocheck escape is charged in four different ways, none tight, one to the wrong challenge
+   box : the zerocheck escape is charged in four different ways, none tight, one to the wrong challenge
+R49   1.00 boundary-adaptor:§G.15 -> f:boundary-parse
+   head: two deployed checks are discharged by type, and nobody is told to parse (minor)
+   box : two deployed checks are discharged by type, and nobody is told to parse
+R50   1.00 gt-bus:G7 -> f:bus-leaf-order
+   head: the order of the leaf stacks is nowhere stated, and the spine's tuples has the opposite order
+   box : the order of the leaf stacks is nowhere stated, and the spine's tuples has the opposite order
+R51   1.00 gt-bus:G8 -> f:bus-open-orders
+   head: orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims
+   box : orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims
+R52   1.00 gt-bus:G12 -> f:bus-binary-combination
+   head: the binary layer's combination challenge has no error assigned
+   box : the binary layer's combination challenge has no error assigned
+R53   0.28 gt-table-pub:§8 "The round message" -> f:table-pub-round-message  <<<
+   head: §8 "the round message"
+   box : the round message: four coefficients and a check in the oracle protocol, three and none on the wire
+R54   0.98 code-pubinput:§G.3 -> f:code-pub-top-limb-checked-instance-s
+   head: the top limb is checked by the instance's third line and enforced by the adaptor's theorem, which is not built; the acce
+   box : the top limb is checked by the instance's third line and enforced by the adaptor's theorem, which is not built; the acce
+R55   0.91 code-pubinput:§G.4 -> f:code-pub-publicline-sent-pinned-prose-only
+   head: publicline.sent is pinned by prose only (minor)
+   box : publicline.sent is pinned by prose only (g.4)
+R56   1.00 gt-flock-ring:§8.6 -> f:flock-ring-aux-constant-one
+   head: the auxiliary predicate must include the constant-one position
+   box : the auxiliary predicate must include the constant-one position
+R57   1.00 gt-flock-ring:§8.7 -> f:flock-ring-written-from-spec
+   head: flock is listed as written from the specification; its circuit, layout and constants exist only in the rust and the pyth
+   box : flock is listed as written from the specification; its circuit, layout and constants exist only in the rust and the pyth
+R58   1.00 gt-flock-ring:§8.8 -> f:flock-ring-test23-ring-switching
+   head: the flock error quoted in acceptance test 23 leaves out ring switching
+   box : the flock error quoted in acceptance test 23 leaves out ring switching
+R58   0.88 gt-opening-compile:§I.15 -> f:opening-piop-error-window
+   head: pioperror_le's bound depends on the window; test 23 omits ring switching (minor)
+   box : pioperror_le's bound depends on the window; acceptance test 23 omits ring switching
+R59   1.00 gt-flock-ring:§8.9 -> f:flock-ring-ledger-ring-switching
+   head: the ledger row on ring switching suggests a missing profile; arklib's construction is another protocol
+   box : the ledger row on ring switching suggests a missing profile; arklib's construction is another protocol
+R60   1.00 gt-flock-ring:§8.11 -> f:flock-ring-verifier-needs-flock-def
+   head: the executable verifier needs the flock phase's definition, which no roadmap has started
+   box : the executable verifier needs the flock phase's definition, which no roadmap has started
+R61   1.00 gt-bus:G9 -> f:bus-canonical-checks
+   head: the canonical-encoding checks and the consumption check are absent from the blueprint
+   box : the canonical-encoding checks and the consumption check are absent from the blueprint
+R61   1.00 gt-opening-compile:§I.17 -> f:opening-mutation-tests
+   head: layer 12's mutation tests exercise too little (minor)
+   box : layer 12's mutation tests exercise too little
+R62   1.00 gt-opening-compile:§I.9 -> f:opening-encode-column-weight
+   head: encode_column_weight is an existence statement every linear map satisfies (minor)
+   box : encode_column_weight is an existence statement every linear map satisfies
+R63   1.00 gt-opening-compile:§I.10 -> f:opening-merkle-format
+   head: the proof object's merkle format is unspecified (minor)
+   box : the proof object's merkle format is unspecified
+R64   1.00 gt-opening-compile:§I.11 -> f:opening-whir-facts
+   head: four transcript facts of whir are not in the blueprint (minor)
+   box : four transcript facts of whir are not in the blueprint
+R65   0.91 gt-opening-compile:§I.12 -> f:opening-level-eta
+   head: level lacks the analysis parameter; ood count and grinding bits are parameters (minor)
+   box : level lacks the analysis parameter; the ood count and the grinding bits are parameters
+R66   0.90 gt-opening-compile:§I.14 -> f:opening-chain-step
+   head: the chain's step is the 64-byte hash, not the compression with cv as chaining value (minor)
+   box : the chain's step is the 64-byte hash, not the compression with the state as chaining value
+R69   1.00 boundary-adaptor:§G.10 -> f:boundary-witnessof-stackof
+   head: witnessof_stackof has no lean statement (minor)
+   box : witnessof_stackof has no lean statement
+R70   1.00 boundary-adaptor:§G.11 -> f:boundary-witnessof-input-counts
+   head: witnessof has no input, and the count columns have no derivation (minor)
+   box : witnessof has no input, and the count columns have no derivation
+R71   1.00 boundary-adaptor:§G.12 -> f:boundary-reducible
+   head: leanisainstance must be reducible (minor)
+   box : leanisainstance must be reducible
+R72   1.00 boundary-adaptor:§G.13 -> f:boundary-refinement-polarity
+   head: refinement.map_option_valid has the wrong polarity for arklib's game (minor)
+   box : refinement.map_option_valid has the wrong polarity for arklib's game
+R73   1.00 lib-others:§G.1 -> f:lib-ladder-conflates
+   head: the relation ladder conflates the field sum with clean's balance relation — minor
+   box : the relation ladder conflates the field sum with clean's balance relation
+R74   1.00 lib-others:§G.2 -> f:lib-k-sampler-unused
+   head: sampleabletype k is unused audit surface, and the blueprint disagrees with itself about it — minor
+   box : sampleabletype k is unused audit surface, and the blueprint disagrees with itself about it
+R75   1.00 lib-others:§G.3 -> f:lib-evaloracle-answer-n
+   head: evaloracle_answer takes n explicitly — minor
+   box : evaloracle_answer takes n explicitly
+R76   1.00 lib-others:§G.4 -> f:lib-scalar-interfaces
+   head: the scalar oracle interfaces are trusted surface the blueprint does not list — minor
+   box : the scalar oracle interfaces are trusted surface the blueprint does not list
+R77   1.00 docs-debt:§H.15 -> f:docs-vcvio-merkle
+   head: the upstream ledger misses the merkle trees of the pinned vcvio, and cites a closed issue
+   box : the upstream ledger misses the merkle trees of the pinned vcvio, and cites a closed issue
+R78   0.97 code-layer1:§G.3 -> f:code-l1-order-equal-size-blocks-pinned
+   head: the order of equal-size blocks is pinned by no statement, definition or test before the compiled verifier
+   box : the order of equal-size blocks is pinned by no statement, definition or test before the compiled verifier (g.3)
+R79   0.97 code-layer1:§G.4 -> f:code-l1-acceptance-test-14-names-tautology
+   head: acceptance test 14 names a tautology as its witness; bytecodecolumn_slot and its tests prove nothing about the layout
+   box : acceptance test 14 names a tautology as its witness; bytecodecolumn_slot and its tests prove nothing about the layout (g
+R79   1.00 docs-debt:§H.14 -> f:docs-dangling-names
+   head: names and references that point at nothing, or at the wrong thing
+   box : names and references that point at nothing, or at the wrong thing
+R80   0.91 code-layer1:§G.5 -> f:code-l1-acceptance-test-15-overclaims
+   head: acceptance test 15 overclaims
+   box : acceptance test 15 overclaims (g.5)
+R81   0.91 code-layer1:§G.7 -> f:code-l1-blockclaims-lean-has-no-consumer
+   head: blockclaims.lean has no consumer
+   box : blockclaims.lean has no consumer (g.7)
+R82   0.96 code-layer1:§G.9 -> f:code-l1-acceptance-test-7-names-wrong
+   head: acceptance test 7 names the wrong lemma and a witness that does not exist
+   box : acceptance test 7 names the wrong lemma and a witness that does not exist (g.9)
+R83   1.00 docs-debt:§H.4 -> f:docs-status-stale
+   head: the status and the tracker describe a repository two merges old
+   box : the status and the tracker describe a repository two merges old
+R83   0.83 code-pubinput:§G.6 -> f:code-pub-status-text-stale
+   head: status text stale (minor, known)
+   box : status text stale (g.6, known)
+R84   1.00 docs-debt:§H.5 -> f:docs-superseded-pins
+   head: the blueprint states superseded pins as current
+   box : the blueprint states superseded pins as current
+R84   1.00 lib-others:§G.5 -> f:lib-layer0-stale
+   head: layer 0 prose is stale after the lean 4.34.1 upgrade — minor (at 144c5aa)
+   box : layer 0 prose is stale after the lean 4.34.1 upgrade
+R85   1.00 docs-debt:§H.6 -> f:docs-letter-codes
+   head: letter codes collide, and some point at the wrong thing
+   box : letter codes collide, and some point at the wrong thing
+R86   1.00 docs-debt:§H.7 -> f:docs-many-homes
+   head: the same fact is written in three to six places
+   box : the same fact is written in three to six places
+R87   1.00 docs-debt:§H.9 -> f:docs-review-tooling
+   head: the review tooling the blueprint prescribes is not in the repository
+   box : the review tooling the blueprint prescribes is not in the repository
+R88   0.96 docs-debt:§H.10 -> f:docs-tracking-practice
+   head: "how work is tracked" is contradicted by practice
+   box : how work is tracked is contradicted by practice
+R89   1.00 docs-debt:§H.11 -> f:docs-blueprint-history
+   head: the blueprint records state and history, against its own rule
+   box : the blueprint records state and history, against its own rule
+R90   1.00 docs-debt:§H.12 -> f:docs-decisions
+   head: decisions are numbered, but most of their content is gone and the numbers collide
+   box : decisions are numbered, but most of their content is gone and the numbers collide
+R91   1.00 docs-debt:§H.13 -> f:docs-public-names
+   head: the list of public names is not the public boundary
+   box : the list of public names is not the public boundary
+R91   0.96 code-layer1:§G.6 -> f:code-l1-interface-list-omits-load-bearing
+   head: the interface list omits load-bearing layer 1 names and mislabels three
+   box : the interface list omits load-bearing layer 1 names and mislabels three (g.6)
+R92   1.00 gt-bus:G14 -> f:bus-citation-drift
+   head: citation drift
+   box : citation drift
+R92   1.00 docs-debt:§H.14 -> f:docs-dangling-names
+   head: names and references that point at nothing, or at the wrong thing
+   box : names and references that point at nothing, or at the wrong thing
+R92   1.00 boundary-adaptor:§G.14 -> f:boundary-stale-names
+   head: stale names (minor)
+   box : stale names
+R92   1.00 gt-opening-compile:§I.13 -> f:opening-annex-numbers
+   head: the blueprint's annex b numbers are not the pinned counter's (minor)
+   box : the blueprint's annex b numbers are not the pinned counter's
+R93   1.00 docs-debt:§H.16 -> f:docs-source-discrepancies
+   head: discrepancies in the sources are not where both status files say they are
+   box : discrepancies in the sources are not where both status files say they are
+R94   0.78 gt-table-pub:§8 "Two status findings are wr -> f:table-pub-status-wrong  <<<
+   head: §8 "two status findings are wrong"
+   box : two status findings are wrong at the pin
+R95   1.00 gt-bus:G13 -> f:bus-status-one-root
+   head: the status file's finding on the one bus root misreads the pinned specification
+   box : the status file's finding on the one bus root misreads the pinned specification
+R96   1.00 lib-arklib:§G.6 -> f:lib-arklib-table-names
+   head: line references and names in the blueprint's arklib table (minor)
+   box : line references and names in the blueprint's arklib table
+R97   0.34 lib-arklib:§F.5 -> f:lib-status-dates  <<<
+   head: the other named pull requests and issues (state on 2026-09-29, gh api, read-only)
+   box : the status's dates for arklib #615 and #818 are last-update dates
+R101  0.12 gt-table-pub:§8 Notes -> f:table-pub-slot-not-pinned  <<<
+   head: §8 notes
+   box : the spine's slot does not pin the protocol: a phase that reads the whole oracle fills it
+R102  0.49 code-spine:§F "The instance is data the t -> f:code-spine-instance-data-theorems-trust-nothing  <<<
+   head: §f "the instance is data the theorems trust"
+   box : the instance is data the theorems trust, and nothing on main says any instance but the toy has an inhabited relation
+R103  1.00 boundary-adaptor:§G.17 -> f:boundary-non-adaptive
+   head: the protocol's soundness is non-adaptive in the statement (note)
+   box : the protocol's soundness is non-adaptive in the statement
+R104  0.96 gt-opening-compile:§I Notes (first bullet) -> f:opening-implied-caps
+   head: - the upper per-log caps are implied by the stacking window (d.1): a lean admissible with
+   box : the upper per-log caps are implied by the stacking window
+R105  0.62 gt-bus:G15 -> f:bus-disagreements  <<<
+   head: disagreements between the three sources
+   box : disagreements between the three sources (seven, none a divergence of the two verifiers)
+R106  1.00 gt-flock-ring:§8.14 -> f:flock-ring-seed-constant
+   head: the fiat–shamir seed binds a constant that cannot be recomputed at the pin
+   box : the fiat–shamir seed binds a constant that cannot be recomputed at the pin
+R107  1.00 gt-bus:G17 -> f:bus-no-rbr-in-spec
+   head: the specification gives no round-by-round analysis of the bus phase
+   box : the specification gives no round-by-round analysis of the bus phase
+R108  0.08 gt-table-pub:§8 Notes -> f:table-pub-spec-errors  <<<
+   head: §8 notes
+   box : the specification's batching error is loose by one; it gives no error for the recycled point; it does not say which coef
+R109  0.22 gt-table-pub:§8 Notes -> f:table-pub-stale-comments  <<<
+   head: §8 notes
+   box : stale comments in the rust on the round message
+R110  0.92 code-pubinput:§G.5 -> f:code-pub-message-type-wider-than-transcript
+   head: the message type is wider than the transcript (note)
+   box : the message type is wider than the transcript (g.5)
+R111  1.00 gt-flock-ring:§8.12 -> f:flock-ring-rust-prover-incomplete
+   head: the pinned rust prover of flock is not perfectly complete
+   box : the pinned rust prover of flock is not perfectly complete
+R112  1.00 gt-flock-ring:§8.15 -> f:flock-ring-stale-comments
+   head: stale comments in the rust on what binds the counter and the flags
+   box : stale comments in the rust on what binds the counter and the flags
+R113  1.00 gt-flock-ring:§8.16 -> f:flock-ring-weight-cube-values
+   head: a weighted claim carries the 2^μ cube values of its weight
+   box : a weighted claim carries the 2^μ cube values of its weight
+R117  0.94 gt-opening-compile:§I Notes (second bullet) -> f:opening-rust-list-accounting
+   head: - the rust's list-size accounting (f.2): only the algebraic checks are unioned over the
+   box : the rust's list-size accounting
+R118  0.70 gt-opening-compile:§I Notes (third bullet) -> f:opening-stale-leaf-comment  <<<
+   head: - a stale comment in the source: whir.rs:393-395 "one merkle leaf of num_interleaved * 16
+   box : a stale comment in the source on the leaf size
+R119  0.40 code-spine:§F "Knowledge transport" -> f:code-spine-knowledge-transport-along-adaptor-three  <<<
+   head: §f "knowledge transport"
+   box : knowledge transport along the adaptor is three lines in the event form
+R120  1.00 docs-debt:§H.19 -> f:docs-completeness-witness
+   head: the completeness base theorem composes leanisa's existence theorem, where architecture.md says witness generation
+   box : the completeness base theorem composes leanisa's existence theorem, where architecture.md says witness generation
+R121  0.70 boundary-adaptor:§G.16 -> f:boundary-extracted-witness  <<<
+   head: t4 drops the extracted witness that t6 needs (note)
+   box : the base theorem (t4) drops the extracted witness that recursion (t6) needs
+R122  0.92 boundary-adaptor:§G.18 -> f:boundary-completeness-resources
+   head: constraintcompleteness needs a resource hypothesis of its own (note, leanisa's)
+   box : constraintcompleteness needs a resource hypothesis of its own (leanisa's)
+R124  1.00 lib-arklib:§G.8 -> f:lib-reimplemented
+   head: locally re-implemented objects that arklib has (note)
+   box : locally re-implemented objects that arklib has
+R125  1.00 lib-others:§G.6 -> f:lib-eager-fintype
+   head: the eager fintype bf64 blocked every executable at the old pins — note (retired)
+   box : the eager fintype bf64 blocked every executable at the old pins
+R126  1.00 lib-others:§G.7 -> f:lib-simp-misreads-k
+   head: simp misreads k arithmetic (old pins) — note (retired)
+   box : simp misreads k arithmetic (old pins)
+R127  1.00 lib-others:§G.8 -> f:lib-numerals-changed
+   head: numerals in k changed meaning at the new pins — note (for every later probe and fixture)
+   box : numerals in k changed meaning at the new pins
+R128  0.95 lib-others:§G.9 -> f:lib-mle-bridge-unimportable
+   head: the arklib bridge eval_eq_mvpolynomial_mle is likely unimportable at the new pins — note (unverified)
+   box : arklib's bridge eval_eq_mvpolynomial_mle is likely unimportable at the new pins
+R129  1.00 lib-others:§G.10 -> f:lib-counting-bound-redundant
+   head: the local counting bound is redundant with vcvio at the new pin — note
+   box : the local counting bound is redundant with vcvio at the new pin
+R130  1.00 docs-debt:§H.17 -> f:docs-layer0-comments
+   head: the layer 0 module's comments cite the roadmap, layer numbers and a letter code
+   box : the layer 0 module's comments cite the roadmap, layer numbers and a letter code
+R131  0.92 code-layer1:§G.10 (first bullet) -> f:code-l1-note-layout-comap-accepts-non
+   head: - layout.comap accepts a non-injective renaming (c.4, valuesprobe's aliased). completeness
+   box : layout.comap accepts a non-injective renaming (g.10)
+R132  0.88 code-layer1:§G.10 (second bullet) -> f:code-l1-note-unused-or-duplicated-declarations
+   head: - unused or duplicated declarations (prodvars and its two lemmas, unstack_eval,
+   box : unused or duplicated declarations (g.10)
+R133  0.87 code-layer1:§G.10 (fourth bullet) -> f:code-l1-note-disagreements-between-leanvm-s
+   head: - disagreements between leanvm's sources, recorded, not new: the specification's m = ⌈log₂ n⌉
+   box : disagreements between leanvm's sources (g.10)
+R134  0.69 code-spine:§F "Two statements the earlier -> f:code-spine-two-statements-earlier-review-s  <<<
+   head: §f "two statements the earlier review's disposition"
+   box : two statements the earlier review's disposition recorded as met are met only in part
+R135  0.99 docs-debt:§H.18 -> f:docs-review-edits
+   head: a review's tracker edits are not applied, while its handoff says "met"
+   box : a review's tracker edits are not applied, while its handoff says met
+flagged 24

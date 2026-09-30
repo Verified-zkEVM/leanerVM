@@ -158,7 +158,7 @@ exit=0
 The warning is the unused binder \code{W} in the copied \lean{OpeningCopy}; harmless. The two
 declarations the conclusion rests on use only the three standard axioms.
 
-\subsection{\texttt{FiatShamirChain.lean}: what \texttt{Verifier.fiatShamir} takes, and a chain plugged in}\label{sec:gen-opening-probe-fs}
+\subsection{\texttt{FiatShamirChain.lean}: what the Fiat--Shamir transform takes, and a chain plugged in}\label{sec:gen-opening-probe-fs}
 
 \paragraph{What it establishes.} What ArkLib's Fiat--Shamir transform takes as the challenge oracle,
 and whether a concrete hash chain can be plugged in (used in \cref{sec:gen-opening-iff-compiled}).
@@ -255,6 +255,7 @@ oracle verifier's plain form carries the oracle statements and messages in the c
 
 \subsection{\texttt{whir\_params.py} and \texttt{bus\_depth.py}: the parameters and the bus depth (scratch, Python 3; no Lean)}\label{sec:gen-opening-probe-params}
 
+\begin{sloppypar}
 \paragraph{What \file{whir_params.py} establishes.} It ports \code{whir_config.rs:260-311, 419-707}
 (\file{crates/pcs/src/whir_config.rs} at \code{a386121f}: the ladder and the per-level search) to
 Python floats and compares with the pinned \file{python-verifier/verifier.py} (a copy extracted with
@@ -262,6 +263,7 @@ Python floats and compares with the pinned \file{python-verifier/verifier.py} (a
 tree moved). It reproduces the query table of \code{verifier.py:910} for every $(ρ, μ)$ and reads
 off $η$, $m$, the Johnson list bound $L$ and the per-term security bits
 (\cref{tab:gen-opening-params}).
+\end{sloppypar}
 
 \paragraph{Command.} In the probe directory, run on 2026-09-29 against the then-pinned working tree
 and on 2026-09-30 against the extracted copy; same output:
@@ -423,7 +425,7 @@ if __name__ == "__main__":
                   f"queries={l['queries']} ood={l['ood']} | bits: mca-fold={l['pg']:.2f} query={l['qbits']:.2f}(+17 grind) "
                   f"ood={l['oodbits']:.2f} algebraic(list-unioned)={l['alg']:.2f}")
 \end{srccode}
-\src{.claude/reports/blueprint-review/probes/gt-opening-compile/whir_params.py}
+\src{.claude/reports/blueprint-review/probes/gt-opening-compile/whir\_params.py}
 
 \paragraph{Output} (2026-09-30):
 \begin{shellcode}
@@ -520,7 +522,7 @@ print("max bus depth found under the window mu<=28:", best)
 mu, dp, dl, dc = depths(32, [32]*6, 28)
 print("per-log caps (mem 32, tau 32, kbc 28), ignoring the window: stack_log", mu, "bus depth", dp, dl, dc)
 \end{srccode}
-\src{.claude/reports/blueprint-review/probes/gt-opening-compile/bus_depth.py}
+\src{.claude/reports/blueprint-review/probes/gt-opening-compile/bus\_depth.py}
 
 \paragraph{Output} (2026-09-30, same as 2026-09-29):
 \begin{shellcode}

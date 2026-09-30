@@ -98,9 +98,13 @@ findings are inserted here when it lands.]}}
 
 \section{The adaptor and the boundary with leanISA}\label{sec:faith-adaptor}
 
-\InputIfFileExists{sections/gen/findings-boundary}{}{\emph{[The findings of the boundary
-dossier are inserted here when their LaTeX fragment lands; the nine major ones are summarised
-in \cref{ch:tcb}.]}}
+The two relations side by side, the chain from the program and the public input to the
+semantics, the hypotheses and who discharges each, and the adaptor's sketched statements read
+as statements to be written in Lean; then the findings.
+\InputIfFileExists{sections/gen/boundary-relations}{}{}
+\InputIfFileExists{sections/gen/boundary-chain}{}{}
+\InputIfFileExists{sections/gen/boundary-statements}{}{}
+\InputIfFileExists{sections/gen/findings-boundary}{}{}
 
 \section{The code as built: the spine, Layer 1, the public-input phase}\label{sec:faith-code}
 
