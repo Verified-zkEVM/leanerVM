@@ -259,20 +259,26 @@ The public theorem ladder is:
    terminating execution from well-formed aggregation inputs within the published caps.
 
 4. **T4 — base proof extraction and completeness (`baseVerifier_extractsExecution`).** First
-   prove the proof-system bridge
+   prove the proof-system bridge, a random-oracle statement about a prover that makes at most `Q`
+   queries to the hash `H`, with a straight-line extractor that reads the witness off its query
+   log:
 
    ```text
-   BaseVerifier.Accepts version proof program publicInput →
-     except with probability baseError,
-       ∃ assignment,
-         Constraints.SatisfiedBy version program publicInput assignment
+   WellFormedBytecode program →
+     Pr_H [ the Q-query prover makes BaseVerifier^H accept on (program, publicInput) ∧
+            ¬ Constraints.SatisfiedBy version program publicInput (extract log) ] ≤ baseError Q
    ```
 
-   then compose it with T1-S to obtain an ISA execution. The theorem must expose the component
-   soundness/knowledge-soundness bounds, Fiat–Shamir or random-oracle model, commitment and hash
-   assumptions, transcript/serialization agreement, and executable-verifier refinement. Its
-   completeness dual composes T2 with the honest prover and records any failure/resource
-   conditions.
+   then compose it with T1-S to obtain an ISA execution, keeping the extracted witness for T6.
+   `Accepts … → except with probability …` is not a statement: acceptance of fixed values has no
+   randomness in it. The theorem must expose the component knowledge-soundness bounds, the
+   list-binding compilation of the commitment, the Fiat–Shamir and Merkle assumptions for the
+   deployed construction with its proof of work, the family over the prover's announced sizes,
+   transcript/serialization agreement, and executable-verifier refinement. Instantiating `H` by
+   the deployed hash is the one non-formal step: an assumption of the deployment, named, never a
+   hypothesis of a theorem. Its completeness dual composes T2 with the honest prover and records
+   the failure and resource conditions: a valid execution may need more memory than the verifier
+   accepts, and the prover's proof-of-work search has no proved bound.
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
    for the verifier-in-circuit is equivalent to the specified base-verifier decision for every

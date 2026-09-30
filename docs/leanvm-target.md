@@ -103,6 +103,108 @@ At the pinned revision:
   implementation, the zkDSL guest, or the VM constraints. SPHINCS currently has a written
   specification but no corresponding Lean security formalization.
 
+## Known discrepancies at the pin
+
+What the proof system found where the specification (`doc/leanvm/body/`), the Rust (`crates/`)
+and the Python verifier (`python-verifier/verifier.py`, written `py:`) differ, leave a fact to
+the code, or carry a defect, at `a386121f`. Each entry has a name; where one binds a definition,
+the [protocol blueprint](roadmap/protocol-blueprint.md) cites it by that name. The pinned tex is
+the authority for the specification: the PDF `leanVM-b-2.pdf` predates it and must not be cited.
+The leanISA roadmap's source findings are in [its status file](roadmap/leanisa-status.md). The
+former code in parentheses is for reading older pull requests.
+
+**The specification and its verifiers disagree.**
+
+- *The public-input check.* §8.2 checks each limb, `c_ℓ = (1 + r)·w_{0,ℓ} + r·w_{1,ℓ}`; the Rust
+  verifier, the Python verifier and the recursion guest check one equation on the words,
+  `c_0 + y·c_1 = (1 + r)·w_0 + r·w_1`, and pool the scalars sent. Both are sound at `1/|E|`; the
+  verifiers accept strictly more transcripts (`08-end-to-end-protocol.tex:29-33`;
+  `lean_vm/src/cpu/mod.rs:750-755`, `py:1398-1400`, `rec_aggregation/guests/aggregate.py:1680-1683`).
+  (F18)
+- *One combiner more than GKR layers.* Both verifiers draw a combiner after the roots and after
+  every layer, the last included and unused; §5.3 has one per layer (`05-arithmetization.tex:91`;
+  `lean_vm/src/gkr.rs:369, 391, 423`, `py:435, 453`).
+- *The normalized GKR round.* §5.3 does not state the layer sumcheck's round message. The
+  verifiers run the normalized (Gruen) round: a cofactor of degree 4 with four coefficients on
+  the wire, the constant one derived through the equality factor, and a layer check without the
+  equality factor (`gkr.rs:399-404, 410-413`, `fiat_shamir/src/transcript.rs:297-302`,
+  `py:411-413, 445, 449`). (S10, corrected)
+- *The fingerprint bound.* The Rust charges `5·2^μ/|E|` where §5.2 proves `4·2^μ/|E|`
+  (`lean_vm/src/leaf.rs:110`; `05-arithmetization.tex:37`).
+- *Root order.* §8.5's prose names the count root first; the stream has the bus root first, and
+  the push and pull roots are one scalar (`08-end-to-end-protocol.tex:68`; `gkr.rs:272-276,
+  363-367`, `leaf.rs:890-894`). (F3, S11)
+- *The announced rate.* The verifiers read the WHIR rate with the announced sizes
+  (`cpu/mod.rs:123, 149`); §8.5's list of announced values does not match it
+  (`08-end-to-end-protocol.tex:55`).
+- *The seed.* §8.5 says the seed binds the R1CS matrices; the Rust binds `R1CS_DIGEST`, one
+  constant naming the circuit, whose recipe needs matrices the pinned module no longer builds,
+  and the Python and the guest copy its bytes (`cpu/mod.rs:66-93`, `flock/src/hash.rs:259-280`,
+  `py:629`). (F14)
+- *Setup and format checks the specification omits.* Both verifiers reject a nonzero upper limb
+  in an announced size (`cpu/mod.rs:133-135`, `py:1373`), `τ_BLAKE2S < 3` (`cpu/mod.rs:162-166`,
+  `py:861`), a rate outside `[1, 4]` (`cpu/mod.rs:167`, `py:1377`), a stack outside
+  `μ ∈ [15, 28]` (`cpu/mod.rs:174-176`, `py:1379`), a nonzero third limb in a half of the
+  commitment root (`fiat_shamir/src/merkle.rs:26-29`, `py:223`), and a stream not fully consumed
+  (`cpu/mod.rs:769`, `transcript.rs:213-219`, `py:1414`); the Rust also requires `ζ` to have at
+  least `τ_max` coordinates (`constraints.rs:250-253`). §8 states none of these. (F15)
+- *The program in the Python verifier.* It takes the program as the stacked table and does not
+  check that the unused slots are zero (`py:566, 857`).
+
+**The specification leaves it to the code** (the blueprint transcribes these).
+
+- *Fiat–Shamir.* §8.4 is `TODO`. The chain is BLAKE2s-256 of 64 bytes (the chain state and a
+  block) with four numeric tags in lane 3 and no labels (`fiat_shamir/src/lib.rs:18-174`). (S6,
+  F1)
+- *Grinding.* Annex B does not mention it; every WHIR level grinds 17 bits before its queries,
+  the nonce is bound even when the check fails, and `ood_samples[0] = 0`
+  (`pcs/src/whir_config.rs:60`, `fiat_shamir/src/lib.rs:165-174`). (S12, F13)
+- *Stack size and ties.* §4.1's `M = ⌈log₂ N⌉` has no floor or ceiling and no order for blocks of
+  equal size; the verifiers floor at 15, reject above 28, and order ties by the column index, the
+  six shared columns first (`04-committing-the-witness.tex:6-10`; `lean_vm/src/witness.rs:67-97`,
+  `cpu/layout.rs:13-49`, `py:305-311, 890`). (S15, F17)
+- *The table sumcheck.* Its target is derived, never sent; the three bus forms share the last
+  three `ξ` powers; the round polynomial is a cubic of which three coefficients travel
+  (`cpu/mod.rs:404-422, 728-735`, `constraints.rs:187-194, 267`, `transcript.rs:289-309`). §5.5
+  charges `(ν_side + B)/|E|` for batching where its Corollary 3.9 gives one less, gives no error
+  for the recycled zerocheck point, and does not say which coefficient is dropped
+  (`05-arithmetization.tex:132, 155`; `03-proving-primitives.tex:67, 110`). (F4, F5, F6, F7)
+- *The count tree* holds the tables' count columns only (`cpu/layout.rs:412-414`). (F11)
+- *The opening batch.* Ring-switched claims take the low powers of `λ`
+  (`pcs/src/stack_open.rs:400-401, 518-519`). (F8)
+- *Flock's circuit and constants.* The BLAKE2s circuit and its wire positions, the slot of each
+  of the eighteen limbs (`lean_vm/src/hash_flock.rs:87-115`), the selector of a limb claim
+  (`pcs/src/stack_open.rs:84-97`), the fixed coordinate `g_0` (the hexadecimal expansion of π,
+  `flock/src/zerocheck/univariate_skip_optimized.rs:104-106`), the embedding `φ_8` and the
+  modulus of `GF(2^8)`, `k_batch = τ_BLAKE2S` and the floor `τ_BLAKE2S ≥ 3`
+  (`cpu/mod.rs:162-166`, `py:1092-1095`) are in no annex. (F2)
+- *No round-by-round analysis of the bus phase.* The specification's one round-by-round theorem
+  is the opening's (Theorem B.7); the Rust asserts a coarse sum for the bus
+  (`leaf.rs:108-118`), and its security accounting multiplies only the algebraic checks by the
+  Johnson list size (`pcs/src/whir_config.rs:537-568`). (F16)
+- *Lemma 5.2's proof* is `TODO` (`05-arithmetization.tex`). The specification numbers its
+  equations (1) to (4) with no section prefix: the leaf decomposition is equation (2) of §5.4.
+  (S9, S16)
+- *The Rust verifier's rejection set* is four predicates plus truncations, with Flock's and
+  WHIR's inside; structure checks on public data are `assert!`s (`leaf.rs:123-146`); the fill
+  blocks make announced heights exact (`filler.rs:1-25`). (F10, F12)
+
+**Defects of the Rust.**
+
+- *The Flock prover's exceptional challenge.* The prover derives a coefficient through
+  `(1 + r_eq)⁻¹` and at `r_eq = 1` emits a proof its own verifier rejects (probability at most
+  `(k_batch + 1)/|E|` per proof). The specification's protocol is perfectly complete; no
+  verifier inverts a challenge-dependent value (`flock/src/zerocheck.rs:116-118`).
+- *Stale comments*: the table sumcheck's round message (`lean_vm/src/constraints.rs:24, 26,
+  257-260, 265-266`); what binds Flock's counter and flags (`cpu/mod.rs:568-570, 619-620`,
+  `flock/src/zerocheck.rs:389-390`, `lean_vm/src/hash_flock.rs:8-9`); level-0 grinding
+  (`pcs/src/whir.rs:1364-1365, 1771-1772`; every level grinds 17 bits); the size of a WHIR Merkle
+  leaf (`pcs/src/whir.rs:394-395`; 24 bytes a lane).
+
+**Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
+most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
+finding F9, that it omits them, was false.
+
 ## Obligation coverage at the baseline
 
 “Present” means an implementation or prose specification exists in the current leanVM source
