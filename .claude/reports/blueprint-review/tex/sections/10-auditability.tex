@@ -50,7 +50,7 @@ A helper lemma cannot enlarge the trusted surface of a theorem it helps to prove
 checks the proof, and what the proof used does not change what the statement says. Two things
 can leak nonetheless, and were checked. An \emph{axiom} used by a helper propagates to every
 theorem that uses it: every theorem of the proof system, the port of the composition included,
-closes on the kernel's three standard axioms and on nothing else (\texttt{#print axioms},
+closes on the kernel's three standard axioms and on nothing else (\texttt{\#print axioms},
 probe \code{AxiomsLeanerVM}, re-run at the new pins in \cref{ch:probes}), and the repository's
 validation rejects \lean{sorryAx} across both namespaces with a planted-axiom control. An
 \emph{instance} used by a statement (a decidability instance, a sampler, an oracle interface)

@@ -127,7 +127,7 @@ bound the blueprint sketches leaves out three things that decide whether leanVM 
 
 Every extractor in the repository is a compiled definition: nothing along the chain from
 \lean{piopExtractor} to the commit phase's is marked \lean{noncomputable}, and the three of them
-run (probes \code{P1Axioms}, \code{Extractors}). \texttt{#print axioms} says nothing about this:
+run (probes \code{P1Axioms}, \code{Extractors}). \texttt{\#print axioms} says nothing about this:
 it reports the three standard axioms for computable definitions whose proofs use classical
 lemmas, and the earlier review's use of it as evidence of computability was a misreading.
 
