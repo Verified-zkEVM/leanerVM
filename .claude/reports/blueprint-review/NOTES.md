@@ -438,3 +438,10 @@ tex-register, tex-obligations, register (update). Report at 362 pages (d6be851).
 Remaining for the orchestrator: wire gen/obligations; read verify-majors + verify-gt-opening
 verdicts and adjust 00/05/08 wording; final adversarial read by a fresh agent; final commit
 with the PDF (checkpoint.sh adds tex/report.pdf if present: copy build/main.pdf there).
+### 13:20 tex-register done (switch on); verify-gt-opening done (277 rows; substance holds;
+corrections: only the OOD round poly precedes λ_i; Merkle leaves = multi-compression BLAKE2s-256
+(RO statement about one compression does not cover them); L_0 110–648 over 56 sizes; fold min
+128.19 bits; dossier's own Annex B numbering slips). verify-majors done: 9 confirmed, 2
+weakened (GKR error loose not wrong; limb reader "assigned to no layer" overstated). tex-boundary
+done and wired. Switches in main.tex for in-progress fragments: changes, obligations, opening
+(off); register (on). Report 383 pages.

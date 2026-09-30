@@ -90,11 +90,13 @@ with $4/\abs{\E}$ in place of $5/\abs{\E}$.
 
 \section{The opening and the compilation}\label{sec:faith-opening}
 
-\InputIfFileExists{sections/gen/transcript-opening}{}{\emph{[The dossier on the opening,
-WHIR, Merkle trees and Fiat--Shamir is being finished; its transcript, disagreements and
-findings are inserted here when it lands.]}}
+\ifopeningready
+\InputIfFileExists{sections/gen/transcript-opening}{}{}
 \InputIfFileExists{sections/gen/disagreements-opening}{}{}
+\InputIfFileExists{sections/gen/analysis-opening}{}{}
 \InputIfFileExists{sections/gen/findings-opening}{}{}
+\else\emph{[The dossier on the opening, WHIR, Merkle trees and Fiat--Shamir is being typeset;
+its transcript, analysis, disagreements and findings are inserted here when it lands.]}\fi
 
 \section{The adaptor and the boundary with leanISA}\label{sec:faith-adaptor}
 

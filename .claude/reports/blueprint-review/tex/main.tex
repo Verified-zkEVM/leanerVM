@@ -3,6 +3,11 @@
 % This file is scratch output of a review session. It is not to be committed to the repository.
 \documentclass[10pt,a4paper]{report}
 \input{preamble}
+% Fragments still being written by agents are included only when their switch is on.
+\newif\ifchangesready \changesreadyfalse
+\newif\ifregisterready \registerreadytrue
+\newif\ifobligationsready \obligationsreadyfalse
+\newif\ifopeningready \openingreadyfalse
 
 \title{\textsf{\bfseries The blueprint of the leanVM proof system in leanerVM}\\[4pt]
   \large\textsf{A review of its faithfulness to leanVM, its non-vacuity, and its audit surface}}

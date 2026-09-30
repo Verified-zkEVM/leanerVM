@@ -7,5 +7,4 @@ outlines, the obligation map of \file{docs/architecture.md} and the blueprint's 
 are validated against it at the end. The tree was drawn by a review agent from the blueprint,
 the dossiers and the sources; its Markdown form is \file{dossiers/obligations.md} on the review
 branch.
-\InputIfFileExists{sections/gen/obligations}{}{\emph{[The obligations dossier is being
-written; its tree is inserted here when it lands.]}}
+\ifobligationsready\InputIfFileExists{sections/gen/obligations}{}{}\else\emph{[The obligations tree is being typeset; it is inserted here when it lands.]}\fi

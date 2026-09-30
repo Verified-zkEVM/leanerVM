@@ -121,8 +121,7 @@ and the bus phase: fragment pending.]}}
 and the public-input phase: fragment pending.]}}
 \InputIfFileExists{sections/gen/checks-flock-ring}{}{\emph{[The checks of the BLAKE2s validity
 phase and ring switching: fragment pending.]}}
-\InputIfFileExists{sections/gen/checks-opening}{}{\emph{[The checks of the opening and of
-the compiled verifier: fragment pending.]}}
+\ifopeningready\InputIfFileExists{sections/gen/checks-opening}{}{}\else\emph{[The checks of the opening and of the compiled verifier: fragment pending.]}\fi
 
 Three checks stand out because no planned theorem makes them load-bearing: the proof of work
 (grinding), the canonical encodings, and the consumption of the stream. The first is a soundness

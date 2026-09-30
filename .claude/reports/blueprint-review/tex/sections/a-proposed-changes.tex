@@ -5,4 +5,4 @@ finding that carries its full text: the passage as it stands, the passage as pro
 the reason. The changes to the status file, the tracker and the other documents are in
 \cref{ch:tracker}; the changes to the code are in the second table. Nothing here has been
 applied.
-\InputIfFileExists{sections/gen/changes}{}{\emph{[fragment pending]}}
+\ifchangesready\InputIfFileExists{sections/gen/changes}{}{}\else\emph{[fragment pending]}\fi

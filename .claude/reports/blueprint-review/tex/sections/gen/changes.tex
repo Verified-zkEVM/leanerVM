@@ -41,7 +41,7 @@ and \code{R8} and its rows that propose no change to the blueprint (\code{R101},
 \begin{landscape}
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.12}
+\renewcommand{\arraystretch}{1.3}
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{10.2cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{1.6cm}@{}}
 \caption{Proposed changes to the blueprint, in the blueprint's order (lines at \code{b435631}).}\label{tab:chg-blueprint}\\
 \toprule
@@ -141,3 +141,1149 @@ is the deployment theorem's (T7) to state, and is not given by this roadmap's pe
 theorems, whose games quantify over the input statement outside the probability. &
 \code{R103}; \file{boundary-adaptor.md} §G.17 &
 none given & \sev{note}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Dependencies and exact contracts (\code{:160-306}): the pins, the sources, the tables, the ledger}}\\*
+Introduction, \code{:164-168} (\code{:167-172} at \code{144c5aa}) &
+The list of pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \code{93c9d1ef}, VCVio
+\code{f9dc47d9} \enquote{through ArkLib}, Lean \code{v4.33.1}) becomes \enquote{The pins are in
+\file{upstreams.json}, with the history of each in \file{dependencies.md}; leanVM is pinned at
+\code{a386121f}.} &
+\code{R84}; \cref{f:docs-superseded-pins} &
+documentation (stale at \code{144c5aa}) & \sev{minor}\\
+The leanVM specification and implementation, \code{:178} &
+\enquote{the authoring skill \code{lean-spec-authoring} sets the rules} becomes \enquote{(the
+rules are in \file{CONTRIBUTING.md})}, or the owner tracks the skill in the repository: it lives
+under the git-ignored \file{.claude/}. &
+\code{R87}; \cref{f:docs-review-tooling} &
+documentation & \sev{minor}\\
+Table of artifacts, row Flock, \code{:192} &
+Two rows: \enquote{Flock: protocol and errors | A, owned by \#3 | specification Annex A,
+Annex C} and \enquote{Flock: the BLAKE2s circuit, wire positions, limb slots, $φ_8$, the fixed
+coordinates, \code{R1CS_DIGEST} | B | the Rust and Python lines that fix them}. The second row
+also gives the seed's constant \code{R1CS_DIGEST}, which cannot be recomputed at the pin, an owner. &
+\code{R57}, \code{R106}; \cref{f:flock-ring-written-from-spec}, \cref{f:flock-ring-seed-constant} &
+forced by the source (the specification is incomplete; the blueprint follows the Rust, rightly) &
+\sev{minor}\\
+Table of artifacts, row Count blocks, \code{:197} &
+Cite \code{leaf.rs:606-622} (the count side), not \code{leaf.rs:664-668} (the signature of
+\code{prove_balance}). &
+\code{R92}; \cref{f:bus-citation-drift} &
+error of the blueprint & \sev{minor}\\
+leanISA table, \code{:220} &
+\lean{StateMsg} exists nowhere (the state channel's message is \lean{Regs}): drop it or name the
+type leanISA declares. &
+\code{R92}; \cref{f:docs-dangling-names}; \file{boundary-adaptor.md} §G.14 &
+error of the blueprint & \sev{minor}\\
+leanISA table, \code{:221} &
+Delete \enquote{(\#13, taken)}: the blueprint records no state. &
+\code{R89}; \cref{f:docs-blueprint-history} &
+documentation & \sev{minor}\\
+leanISA table, \code{:222} &
+The row consumes \lean{constraintSoundness}, \lean{WellFormedBytecode},
+\lean{constraintCompleteness} (leanISA Layer 10), not \lean{HasFillBlocks}: both leanISA theorems
+take \lean{WellFormedBytecode prog}. \textsf{[decision]} &
+\code{R27}; \cref{f:docs-base-theorem-hypothesis} &
+error of the blueprint (against the leanISA roadmap) & \sev{major}\\
+ArkLib table, \code{:232-251} &
+Correct the names and places: \lean{schwartz_zippel_counting} is in the root namespace;
+\lean{prob_eval_zero_le_div} is a \lean{PMF} statement; \lean{Sumcheck.Domain} is
+\lean{SumcheckDomain}; \lean{Direction} is in \file{Prelude.lean}; add the completeness theorem
+the spine uses (\texttt{OracleReduction.\allowbreak append\_\allowbreak perfectCompleteness\_\allowbreak of\_\allowbreak guarded\_\allowbreak verifiers});
+say that \lean{CheckClaim}'s oracle variant checks nothing at run time and that the sumcheck's
+perfect completeness is admitted too. &
+\code{R96}; \cref{f:lib-arklib-table-names} &
+error of the blueprint & \sev{minor}\\
+ArkLib table, row round-by-round knowledge soundness, \code{:239} &
+Add: ArkLib's extractor type accepts a classical choice (its own \lean{toRoundByRoundOfRel} is
+one), so a theorem in the existential forms \lean{rbrKnowledgeSoundness} or
+\lean{rbrKnowledgeSoundnessWorstCase} proves soundness only; every interface and theorem of the
+roadmap is stated in the \lean{With} form with a compiled extractor, checked by a \lean{def}
+without \lean{noncomputable} at each phase's \lean{Security}. &
+\code{R1}; \cref{f:lib-existential-rbr} &
+forced by an upstream library (ArkLib has no notion of running time) &
+\sev{critical} (as a warning)\\
+ArkLib table, the multilinear bridge, \code{:246} &
+Before a phase imports ArkLib's \file{ToCompPoly/Multilinear/Basic}, elaborate a file importing it
+and CompPoly's \file{Multilinear/Basic} (\lean{eval_zero} is declared in both at the new pins); if
+it fails, cite the bridge with that caveat and report the clash upstream. Unverified. &
+\code{R128}; \cref{f:lib-mle-bridge-unimportable} &
+forced by an upstream library (version skew) & \sev{note}\\
+ArkLib table, row sampling, \code{:251} &
+\enquote{Layer 0 supplies the \lean{E} instance (built from a \lean{K} instance)}. &
+\code{R74}; \cref{f:lib-k-sampler-unused} &
+documentation (avoidable audit surface) & \sev{minor}\\
+Ledger, heading, \code{:257} (\code{:261} at \code{144c5aa}) &
+\enquote{ArkLib state at \code{dca90385}} becomes \enquote{ArkLib state at the pin}, every row
+re-read at \code{7653a901} (the library review found no relevant admission lifted between the
+pins). &
+\code{R84}, \code{R34}; \cref{f:docs-superseded-pins}, \cref{f:lib-legacy-framework} &
+documentation (stale at \code{144c5aa}) & \sev{minor}\\
+Ledger rows on the knowledge-soundness composition and on round-by-round to plain, \code{:260-261} &
+Composition (A2): the port is kept until ArkLib, on whatever framework, proves a guarded-first
+append for the worst-case named form, not \enquote{deleted when the pin moves past \#615} (open and
+conflicting). Round-by-round to plain (A3): the plain corollary is stated from the transcript-level
+reading (probe \code{PlainReading}, 40 lines) and a local union bound, since upstream has no plan
+to prove the implication. A new row: ArkLib's typed Interaction framework has no knowledge
+soundness at \code{7653a901}; the spine cannot migrate to it yet. \textsf{[decision]} &
+\code{R34}; \cref{f:lib-legacy-framework} &
+error of the blueprint's plan & \sev{major}\\
+Ledger row on context lifting, \code{:262} &
+\enquote{Not consumed: statements are shaped so that no lens is needed} is false for the bus phase,
+whose GKR runs on leaf tables derived from the stack; it becomes the reason the proposed GKR over a
+context with riders (Layer 5) needs no lens. &
+\code{R10}; \cref{f:bus-generic-gkr} &
+error of the blueprint; forced by an upstream library (lifting admitted at both pins) &
+\sev{major}\\
+Ledger row on Fiat--Shamir and BCS, \code{:263} &
+No ArkLib theorem states Fiat--Shamir or BCS knowledge soundness at either pin
+(\lean{fiatShamir_completeness} admitted and for a constant oracle, \lean{BCSTransform} commented
+out, \lean{Commitment.extractability} with body \lean{False}): \lean{FiatShamirSecurity} and
+\lean{BcsSecurity} are assumed interfaces whose obligation is the literature. The upstream
+theorems, when they come, are about other constructions (one oracle on the full prefix or a duplex
+sponge; independent oracles per role) than leanVM's one BLAKE2s map for the chain, the Merkle nodes
+and the grinding: a chain lemma and a role-separation lemma are owed here. \#848 and \#469 are
+single-salt and duplex-sponge Fiat--Shamir with no proof of work; \#627 is a design issue. &
+\code{R20}, \code{R22}; \cref{f:lib-fs-bcs}; \file{literature.md} §E.6 (first finding);
+\file{gt-opening-compile.md} §I.4 &
+error of the blueprint; forced by an upstream library & \sev{major}\\
+Ledger row on WHIR, Merkle, BLAKE2s, \code{:265} &
+Merkle trees are not absent upstream: VCVio at \code{f9dc47d9} has nineteen sorry-free Merkle-tree
+modules. Name VCVio's library and VCVio issue 571 (ArkLib issue 4 is closed), with the decision
+whether Layer 11 builds on it (the fit with leanVM's trees is unverified). \textsf{[decision]} &
+\code{R77}; \cref{f:docs-vcvio-merkle} &
+documentation & \sev{minor}\\
+Ledger row on ring switching, \code{:267} &
+ArkLib's \code{RingSwitching/Packing} is Diamond--Posen's interactive reduction (carrier message,
+batching vector, relocation sumcheck), 14 \code{sorry} at both pins; leanVM's ring switching is
+rectangular, sends nothing and draws six challenges: new work of \#3, at most the tensor algebra
+shared; no \enquote{profile} makes one the other. &
+\code{R59}; \cref{f:flock-ring-ledger-ring-switching} &
+error of the blueprint (of description) & \sev{minor}\\
+CompPoly table, \code{:278} &
+\enquote{the encoder of Annex B.3}: the pinned numbering is §B.5; cite Annex B by label. &
+\code{R92}; \file{gt-opening-compile.md} §I.13 &
+error of the blueprint & \sev{minor}\\
+CompPoly paragraph, \code{:281-284} (\code{:285-288} at \code{144c5aa}) &
+\enquote{no \lean{GF(2^8) ↪ E} embedding} becomes \enquote{\dots\ no embedding
+\lean{GF(2^8) ↪ K} (CompPoly now has the AES field \lean{GF(2^8)}, \#356, and its embedding into
+GHASH only)}. The sentence on the eager \lean{Fintype BF64} is stale at \code{144c5aa}, whose
+CompPoly pin meets its retirement condition; whether \code{lake test} can again be an executable is
+the owner's check. &
+\code{R84}, \code{R125}; \cref{f:lib-layer0-stale}, \cref{f:lib-eager-fintype} &
+documentation (stale at \code{144c5aa}; forced upstream, since lifted) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Pinned conventions (\code{:308-335}), row by row}}\\*
+Row \emph{Sumcheck messages}, \code{:315} &
+The oracle protocol sends four coefficients and checks the round, the wire three and none. Either
+the wire's message becomes the oracle protocol's (three coefficients, the fourth derived, no round
+check), or the row stays and Layer 4 proves the transport lemma (a verifier composed with an
+injective decoding of wire messages onto the messages passing its round check keeps its
+round-by-round knowledge soundness), Fiat--Shamir then taking a challenge oracle on the encoded
+message. \textsf{[decision]} &
+\code{R53}; \cref{f:table-pub-round-message} &
+deliberate deviation (it owes a lemma the blueprint does not state) & \sev{minor}\\
+Row \emph{Statements and parameters}, \code{:316} &
+Add: the sizes are the prover's; the non-interactive theorem is stated for the family, its error
+\lean{niError Q} the maximum over admissible sizes (or the sum, if the interface is per instance),
+and \lean{FiatShamirSecurity} is the family form, the challenge oracle taking the announced sizes
+with the statement. (A union over the admissible sizes costs about $2^{34}$, a hand estimate.) &
+\code{R6}; \file{boundary-adaptor.md} §G.6 &
+error of the blueprint (a missing decision) & \sev{major}\\
+Row \emph{The oracle}, \code{:317} &
+The stack's oracle interface is the inner product: a query is a \lean{Weight μ_stack}
+(specification Definition 3.13), the answer $\sum_w W(w)\,q(w)$; an evaluation is the query
+\lean{eqWeight r}. \textsf{[decision]} &
+\code{R18}; \file{gt-opening-compile.md} §I.1, §A.5 &
+error of the blueprint (caused by Layer 0's evaluation interface) & \sev{major}\\
+Row \emph{The oracle}, \code{:317} &
+Add: no phase before the opening queries the stack, and the opening queries it once (under the
+inner-product interface); the compilation depends on it (see the spine's row on the
+oracle-freeness of the front). \textsf{[decision]} &
+\code{R138}; \file{obligations.md} §5.2 &
+error of the blueprint (an omission in the design of the seams) & \sev{major}\\
+Row \emph{Errors}, \code{:318} &
+The spine fixes the closed form of every phase's error as a function \lean{piopError I} of the
+instance's sizes, and \lean{Phases.Security} demands each phase's round-by-round bound at that
+error; \lean{piop_rbrKnowledgeSoundness} is stated at \lean{piopError I} and \lean{piopError_le}
+bounds its sum at the caps. A phase may not declare its own error: with an unconstrained
+declaration the knowledge theorem holds of a protocol that checks nothing (declared error 1).
+\textsf{[decision]} &
+\code{R5}; \cref{f:code-spine-declared-error-unconstrained-knowledge-theorem} &
+error of the blueprint (an omission the spine inherited) & \sev{major}\\
+Row \emph{GKR}, \code{:321} (the layer sumcheck) &
+\enquote{Layer sumcheck messages have degree 5 (eq × four multilinears)} becomes: the layer
+sumcheck is normalized; the round message is the cofactor of degree 4 (four coefficients on the
+wire, the constant one derived through the equality factor); the verifier checks
+$(1 + r_t)\,h(0) + r_t\,h(1)$ against the running claim; the new claim is $h(χ_t)$; the layer's
+final check has no equality factor. The table sumcheck is not normalized. (The register's position
+\code{R8} kept $5/\abs{\E}$ per round: a loose upper bound; $4/\abs{\E}$ is tight.) &
+\code{R7} (\code{R8}); \cref{f:bus-gkr-normalized} &
+error of the blueprint & \sev{major}\\
+Row \emph{GKR}, \code{:321} (the combiners) &
+\enquote{A fresh combiner $λ$ per layer} becomes: a combiner is drawn after the roots and after
+every layer, the last layer included; the last is used by nothing and its error is 0 (after
+Fiat--Shamir it still changes every later challenge). &
+\code{R9}; \cref{f:bus-extra-combiner} &
+error of the blueprint & \sev{major}\\
+A new row \emph{Leaf stacks}, after row \emph{Stacks} (\code{:322}) &
+Per side, the boundary blocks of that side in the order of \lean{I.boundary} (state, memory,
+bytecode), then each table's flushes of that side in order; the count side one block per count
+column; stacked largest first at aligned offsets, ties by that index, no floor on the depth; the
+depth of the three trees is the push side's. (The spine's \lean{tuples} lists the flushes first,
+which is immaterial to \lean{Balanced} and a trap for the leaf layout.) &
+\code{R50}; \cref{f:bus-leaf-order} &
+error of the blueprint (omission of a transcribed convention) & \sev{minor}\\
+Row \emph{Table sumcheck}, \code{:323} &
+Prepend: the sumcheck ranges over the tables that have a constraint, a flush or a count column
+(for leanISA the six opcode tables, never the tables of the shared columns); $τ_{\max}$ is the
+largest log-height among them and the final message has one value per column of each. The
+criterion is a decidable predicate of the spine (\lean{SumcheckTable} in the table-phase dossier;
+\lean{M3Instance.active} in the boundary dossier, which puts the rule in row \emph{Statements and
+parameters} or a new row \emph{Column groups}). &
+\code{R11}; \cref{f:table-pub-sumcheck-tables}, \cref{f:bus-table-phase-tables};
+\file{boundary-adaptor.md} §G.9 &
+error of the blueprint (omission) & \sev{major}\\
+Row \emph{Fiat--Shamir}, \code{:325} &
+Every step is BLAKE2s-256$(cv \,\|\, \mathit{block})$ over 64 bytes, that is the RFC compression
+$F(\mathit{paramIV}, cv \,\|\, \mathit{block}, t = 64, f_0 = 1)$ with the chain state in the
+message, not the compression with $cv$ as chaining value; leanISA's \lean{compress} is $F$. (The
+contract row \code{:216} and \lean{FsState.seed}, \code{:1203-1204}, are the dossier's evidence
+for the same step.) &
+\code{R66}; \file{gt-opening-compile.md} §I.14 &
+none given (Category B wording) & \sev{minor}\\
+Row \emph{Verifier shape}, \code{:326} &
+Add: \lean{verify} takes a typed \lean{Program} and \lean{PublicInput}, so the deployed rejection
+of a public word with a nonzero third limb and of a bytecode that is not $2^k \le 2^{32}$ decodable
+instructions is the obligation of whoever builds those values from bytes (the fixture's loader,
+T7's \lean{PublicInput.encode}); the differential fixture records a rejected public input as a
+parse failure, not as \lean{verify = false}. &
+\code{R49}; \file{boundary-adaptor.md} §G.15 &
+error of the blueprint (omission) & \sev{minor}\\
+Row \emph{The wall}, \code{:331} &
+\file{LeanerVM/Protocol/Basic.lean}, an empty root module, imports the arithmetization: drop its
+import, or list it among the exceptions; the rule goes into \file{scripts/check-layers.sh} with an
+allow-list (code row). &
+\code{R44}; \cref{f:code-l1-protocol-basic-lean-imports-arithmetization}, \cref{f:docs-import-rule} &
+error of the blueprint (the witness text is false) & \sev{minor}\\
+Row \emph{Holes}, \code{:332} (the guard) &
+\enquote{\lean{X.Security} (perfect completeness, and round-by-round knowledge soundness \dots)}
+becomes \enquote{\lean{X.Security} (the guard, and round-by-round knowledge soundness \dots)}: a
+\lean{Component.Guarded} (output purity and guard) extended by both \lean{Complete} and
+\lean{Security}, so that the knowledge theorem holds for a protocol whose completeness is unproved
+or imperfect. \textsf{[decision]} &
+\code{R39}; \cref{f:flock-ring-security-extends-complete} &
+deliberate deviation (of the spine from ArkLib's separate statements) & \sev{minor}\\
+Row \emph{Holes}, \code{:332} (the error) &
+\enquote{\lean{X.Def} (the reduction, its relations and its per-challenge error)}: the error
+leaves \lean{Def} (into \lean{Security}, or as the spine's closed form of row \emph{Errors}), or
+the reduction becomes a computable structure that \lean{Def} extends; a \lean{Def} carrying a real
+number makes every phase, \lean{leanVmVerifier} and \lean{piopExtractor} noncomputable.
+\textsf{[decision]} &
+\code{R42} (\code{R5}); \cref{f:lib-err-noncomputable} &
+none given (auditability) & \sev{minor}\\
+Row \emph{Seams}, \code{:333} &
+\enquote{charged in the bus phase, coordinate by coordinate as $ζ$ is drawn, $1/\abs{\E}$ per
+coordinate per constraint} becomes: carried by the bus phase's state function as one more
+conjunct (every constraint extension, restricted to the coordinates of $ζ$ drawn so far, is
+identically zero), which a coordinate makes true with probability at most $1/\abs{\E}$ whatever
+the number of constraints; \lean{busError} has no term for it. &
+\code{R47}; \cref{f:table-pub-zerocheck-escape}, \cref{f:bus-zerocheck-charge} &
+error of the blueprint & \sev{minor}\\
+Row \emph{Public input}, \code{:335} &
+Add: the choice of \lean{sent} is pinned by two tests, Layer 3's \texttt{\#guard} on
+\lean{leanIsaInstance.publicLines} and Layer 12's differential fixture, which reads exactly two
+scalars. &
+\code{R55}; \cref{f:code-pub-publicline-sent-pinned-prose-only} &
+documentation (avoidable audit surface until Layers 3 and 12 land) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries The spine (\code{:337-615}): the introduction, the relation ladder, the picture}}\\*
+Introduction, \code{:339-341} &
+\enquote{(hole S; its specification is a section of the hole comment on the dashboard \#12)} goes:
+the spine is specified here. &
+\code{R37}; \cref{f:docs-hole-comment}; \cref{sec:docs-text-holes} &
+error of the blueprint & \sev{major}\\
+Introduction, \code{:342-345} &
+Name \lean{GuardedVerdict} and \lean{KeepOracles} among the spine's generic modules under
+\file{ToArkLib/}: the pass-through and send components import them. &
+\code{R91}; \cref{f:docs-public-names} &
+error of the blueprint & \sev{minor}\\
+The relation ladder, row \lean{Ensemble.Statement}, \code{:359} &
+Over $\K$ the field sum accepts a tuple pushed twice and never pulled, and the side condition
+\lean{length < ringChar K} admits at most one interaction per channel, so
+\lean{Ensemble.Statement} holds of no ensemble with a real bus: Clean's soundness is vacuous and
+its completeness false over $\K$ (\#16); not \enquote{the side condition fails \dots\ and a tuple
+pushed twice \dots\ balances}. &
+\code{R73}; \cref{f:lib-ladder-conflates} &
+error of the blueprint (imprecise wording) & \sev{minor}\\
+The picture, \code{:407} &
+\lean{T4 = verify_knowledgeSound} \lean{∘ Refinement.knowledge_transport} \lean{satisfiedBy_witnessOf} \lean{∘ constraintSoundness}:
+the event-form transport, not the pointwise \lean{map_option_valid}, whose polarity is the
+opposite of ArkLib's bad event. &
+\code{R72}; \file{boundary-adaptor.md} §G.13 &
+error of the blueprint (imprecision) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries The spine: what the spine fixes, the sketch, the prose (\code{:410-586})}}\\*
+Item 1, \code{:412-414} &
+Append: an instance is trusted data; the spine proves nothing about it beyond \lean{read_eval}, and
+the master theorems hold of instances whose relation is empty; for leanISA the instance is
+Category B, its non-vacuity is \lean{m3Holds_stackOf} (Layer 3), its faithfulness Layer 12's
+fixture. &
+\code{R102}; \cref{f:code-spine-instance-data-theorems-trust-nothing} &
+deliberate deviation (the wall), kept with the theorem it owes & \sev{note}\\
+Item 6 \code{:431-437}; sketch \code{:541}, \code{:545-547} &
+\lean{piopError} is the spine's closed form of the instance's sizes, \lean{piopError I}, not the
+phases' declarations (\lean{piopError (P) := P.toDef.err}); \lean{Phases.Security} demands each
+phase's round-by-round bound at it. \textsf{[decision]} &
+\code{R5}; \cref{f:code-spine-declared-error-unconstrained-knowledge-theorem} &
+error of the blueprint & \sev{major}\\
+Items 3 and 6, a new requirement &
+The front phases make no oracle query: a field of \lean{Phases} (or a hypothesis of the
+compilation theorem) saying that each front phase's verifier makes no query to
+\lean{TheOracle I}, inhabited by the two built phases; or front phases typed as plain verifiers
+lifted by \lean{keepOracles}, so that a query is a typing error. Without it a bundle may satisfy
+both master theorems and be uncompilable. \textsf{[decision]} &
+\code{R138}; \file{obligations.md} §5.2 &
+error of the blueprint (an omission in the design of the seams) & \sev{major}\\
+Sketch, \lean{Layout}, \code{:447-450} &
+\lean{Layout} with \lean{extend} and one law (the extension at a cube point is in $\K$, or the
+equivalent on the eq weights); \lean{read} a definition from \lean{extend}. &
+\code{R41}; \cref{f:code-spine-read-determined-extend} &
+none given (a design remark) & \sev{minor}\\
+Sketch, \lean{M3Instance}, \code{:455-466} (the sumcheck tables) &
+Add the decidable predicate of the tables the table sumcheck ranges over (a constraint, a flush or
+a count column), as in the row \emph{Table sumcheck} above. &
+\code{R11}; \cref{f:table-pub-sumcheck-tables}; \file{boundary-adaptor.md} §G.9 &
+error of the blueprint (omission) & \sev{major}\\
+Sketch, \lean{M3Instance}, \code{:455-466} (side conditions) &
+Two side conditions a bus phase of the deployed shape needs: \lean{one_le_d : 1 ≤ d} (a count
+column's form has degree 1) and \lean{constrained_on_bus} (a table with a constraint is on the
+bus, $τ_j \le μ_{\mathrm{bus}}$); either fields of \lean{M3Instance} or hypotheses of the bus
+phase, stated in Layer 6. \textsf{[decision]} &
+\code{R43}; \cref{f:bus-side-conditions} &
+error of the blueprint (the instance admits instances no deployed-shape bus phase serves) &
+\sev{minor}\\
+Sketch, the claims and \lean{Seam.bus}, \code{:477-489} &
+\lean{BusOut} takes the shape of the Rust's \code{BusVerify}: one point, the forms per side and
+sumcheck table as data with the degree bound in the type, three totals, the column claims; and
+\lean{Seam.bus} states the zerocheck at the point's prefixes, the forms' sums, the column claims,
+the public lines and \lean{aux}. Smaller: keep the types and add the guards (at most $B + 3$
+claims, one point per table, terms on sumcheck tables). Smallest, for the degree alone:
+\lean{VirtualTerm.poly} a subtype within \lean{I.d}, the degree conjunct deleted.
+\textsf{[decision]} &
+\code{R2} (\code{R3}); \cref{f:table-pub-bus-seam}, \cref{f:code-spine-degree-conjunct-seam-bus-guard} &
+error of the blueprint & \sev{major}\\
+Sketch, \lean{Component.Def}, \code{:501-504} &
+\lean{err} leaves \lean{Def} (as in row \emph{Holes}), so that the reduction, the composed verifier
+and the extractor compile. \textsf{[decision]} &
+\code{R42} (\code{R5}); \cref{f:lib-err-noncomputable} &
+none given (auditability) & \sev{minor}\\
+Sketch, \lean{Component.Complete}, \code{:505-507} &
+Delete \lean{outputPure}: every component over \lean{[]ₒ} has a pure prover output (ArkLib's
+\lean{Prover.instOutputIsPureEmpty}); keep the hand-written \lean{guarded} form, which is what an
+auditor reads. &
+\code{R40}; \cref{f:code-spine-outputpure-field-redundant-guarded-nearly}, \cref{f:lib-side-conditions-derivable} &
+forced by an upstream library (retired when the spine imports ArkLib's \file{NoAmbient}) &
+\sev{minor}\\
+Sketch, \lean{Component.Complete}, \code{:505-507} (an error) &
+If completeness is to carry an error: a field \lean{err} in \lean{Component.Complete},
+completeness at that error, composition by ArkLib's
+\texttt{append\_\allowbreak completeness\_\allowbreak of\_\allowbreak guarded\_\allowbreak verifiers}
+(errors add), \lean{piop_completeness} at the sum and \lean{piop_perfectCompleteness} its corollary.
+\textsf{[decision]} &
+\code{R4} (\code{R17}); \cref{f:lib-completeness-error} &
+error of the blueprint, conditional (disputed by \code{R17}) & \sev{major}\\
+Sketch, \lean{Component.Security}, \code{:508-515} &
+\lean{Security} extends a \lean{Component.Guarded}, not \lean{Complete}; \lean{Security.append}
+gets a completeness-free path (it builds \lean{toComplete} today). \textsf{[decision]} &
+\code{R39}; \cref{f:flock-ring-security-extends-complete} &
+deliberate deviation & \sev{minor}\\
+Sketch \code{:551-553}; prose \code{:582-586} &
+Name \lean{Refinement.knowledge_transport} (the event form: accepting while the mapped extracted
+witness is invalid has probability at most the knowledge error; no prover conversion, the game's
+witness type unchanged) as what T4 composes, and keep \lean{map_option_valid} for the honest
+direction. The prose says the transport is proved and Layer 13 consumes it, and that what T4 waits
+on is ArkLib's round-by-round-to-plain implication, whose existential conclusion forgets the named
+extractor. &
+\code{R72}, \code{R119}; \file{boundary-adaptor.md} §G.13;
+\cref{f:code-spine-knowledge-transport-along-adaptor-three} &
+error of the blueprint (a claim that it is not proved and has no consumer; imprecision) &
+\sev{minor}\\
+Prose, \code{:556-560} &
+\enquote{decision 8}, \enquote{decision 6} are defined nowhere in the blueprint: a section
+\emph{Decisions} (row under How work is tracked) defines them. &
+\code{R90}; \cref{f:docs-decisions} &
+documentation & \sev{minor}\\
+Prose, \code{:560-574} &
+\enquote{The seams carry claims, not challenges \dots\ which is what lets the table sumcheck consume
+any list of linear claims without knowing the bus} becomes: the bus seam carries the point the bus
+phase ended at, since the table sumcheck runs at it (§5.5); $α$, $β$ and the leaf layout stay
+inside the bus phase, which hands on the forms it built; the degree bound moves from a clause to a
+type. \textsf{[decision]} &
+\code{R2}; \cref{f:table-pub-bus-seam} &
+error of the blueprint & \sev{major}\\
+Prose, \code{:569-570} (\code{:573-574} at \code{144c5aa}) &
+\enquote{no \lean{LawfulBEq E} at the pin}: re-check at the new pin (CompPoly \code{572f9973} has
+\lean{LawfulBEq (Ext P)}); if found, drop the restriction to $\K$-coefficient polynomials or keep
+it deliberately with a reason. &
+\code{R84}; \cref{f:lib-layer0-stale} &
+documentation (stale at \code{144c5aa}) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries The spine: the holes (\code{:588-615})}}\\*
+Introduction \code{:590-593}; table \code{:595-615} &
+Replace by the draft: every hole named in words, in build order, one row per half; the columns
+\enquote{Existing work} and \enquote{Issue} leave; each layer section is its hole's specification
+(not a section of the hole comment); \enquote{the generic holes carry the ledger letters} (false)
+and the history (\enquote{folded there on 2026-09-25}, \enquote{already in flight}, \enquote{done
+on the spine's branch}) go. &
+\code{R37}, \code{R85}, \code{R89}; \cref{f:docs-hole-comment}, \cref{f:docs-letter-codes},
+\cref{f:docs-blueprint-history}; \cref{sec:docs-text-holes} &
+error of the blueprint (the delegation); documentation & \sev{major}\\
+Table, rows G4, P6, P7--P8 (\code{:601}, \code{:609-610}) &
+\enquote{Lemma 5.1} is the specification's Lemma 5.2 (with Theorem 5.1); the spine's \lean{Weight},
+\lean{WeightedClaim} and \lean{FlockOut} leave the products of the opening and Flock holes. &
+\code{R92}; \cref{f:docs-dangling-names}, \cref{f:bus-citation-drift}; \cref{sec:docs-text-holes} &
+error of the blueprint & \sev{minor}\\
+Table, rows P6 and K3 (\code{:609}, \code{:614}) &
+Split the Flock hole like every other phase: its definition with its completeness (the schedule,
+the verifier, the circuit walk transcribed, the constants in \file{Parameters}, an honest run on a
+toy circuit) can be taken now and tested against the Python verifier's walk; its security stays
+\#3's; the compiled-verifier hole (K3) says its fixture waits on it. &
+\code{R60}; \cref{f:flock-ring-verifier-needs-flock-def} &
+none given (planning) & \sev{minor}\\
+Table, row K3 (\code{:614}) &
+Its upstream work reads: \#848 and \#469 are single-salt and duplex-sponge Fiat--Shamir from
+state-restoration soundness, with an ideal per-round oracle and no proof of work; \#627 is a design
+issue for the BCS transform whose plan excludes random-oracle soundness. (In the draft of the holes
+table this text moves to Layer 12's upstream work.) &
+\code{R20}; \file{gt-opening-compile.md} §I.4 &
+error of the blueprint & \sev{major}\\
+Table, every row (\code{:595-615}) &
+Twenty-one obligations of the composition have no hole: add one row each, or fold each into the
+nearest hole's products: K3 gains the Merkle compilation, the chain lemma, the state-restoration
+step, the grinding model, the hash and program-hash terms, the family composition, the
+canonical-encoding checks; K1 the $\K$-valuedness lemma and \lean{encode} over $\E$; a new hole
+\enquote{list-binding compilation}, between K1 and K3, the compilation theorem with its union-bound
+lemma and the oracle-freeness of the front; L1 the strided reader and the tie order; I1 the
+boundary-block bridge and the count columns; I2 the carrier of \enquote{R1CS $⇒$ compress}; P5 the
+deployed public-input phase; G1 the normalized variant and the dropped-coefficient transport; S the
+bound on \lean{piopError}. &
+\code{R137}; \file{obligations.md} §5.1, §4.2 &
+error of the blueprint (the plan is incomplete, not wrong where it is stated) & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 0: the ArkLib dependency and the field instances (\code{:625-650})}}\\*
+\code{:629-631} (\code{:633-635} at \code{144c5aa}) &
+\enquote{Add ArkLib at \code{dca90385} \dots\ the root pin \code{3468b38c} wins} becomes
+\enquote{ArkLib is the \code{Arklib} requirement; current pins in \file{upstreams.json} and
+\file{docs/dependencies.md}} (or says what Layer 0 did then, and that the pins have moved). &
+\code{R84}; \cref{f:lib-layer0-stale}, \cref{f:docs-superseded-pins} &
+documentation (stale at \code{144c5aa}) & \sev{minor}\\
+Sketch, the $\K$ sampler, \code{:634} &
+Its comment says it is only the building block of the $\E$ sampler: every leanVM challenge is in
+$\E$. &
+\code{R74}; \cref{f:lib-k-sampler-unused} &
+documentation (avoidable audit surface) & \sev{minor}\\
+Sketch, \lean{evalOracle} and \lean{evalOracle_answer}, \code{:637-642} &
+The instance becomes the inner product (query \lean{Weight n}, answer \lean{W.pair q}), with
+\lean{Weight} and \lean{Weight.pair} moved below \file{Field.lean}; \lean{evalOracle_answer} becomes
+\lean{answer q (eqWeight p) = eval₂Mle …}. \textsf{[decision]} &
+\code{R18}; \file{gt-opening-compile.md} §A.5 (the table of consequences), §I.1 &
+error of the blueprint & \sev{major}\\
+Sketch, \code{:633-643} (the scalar interfaces) &
+Add \lean{instOracleInterfaceE} and \lean{instOracleInterfaceListE} (\lean{instDefault}: a scalar
+or a coefficient list is read whole), with the sentence that ArkLib registers no default interface
+and that these go when it does. &
+\code{R76}; \cref{f:lib-scalar-interfaces} &
+error of the blueprint (omission) & \sev{minor}\\
+\code{:645-647} (\code{:649-650} at \code{144c5aa}) &
+\enquote{At CompPoly \code{3468b38c} a sampler through \lean{Fintype} would enumerate the field
+(leanISA finding P3); since CompPoly \#331 \lean{Fintype K} is proof-only and the samplers go
+through explicit equivalences.} &
+\code{R84}; \cref{f:lib-layer0-stale} &
+documentation (stale at \code{144c5aa}) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 1: hypercube tables, stacking, the index and bytecode columns (\code{:652-755})}}\\*
+Module list, \code{:662} &
+Drop \file{BlockClaims.lean} (\enquote{claims on aligned blocks}): it has no consumer (code row). &
+\code{R81}; \cref{f:code-l1-blockclaims-lean-has-no-consumer} &
+none given (avoidable audit surface) & \sev{minor}\\
+Sketch after \code{:674}; prose \code{:734-746}; tests \code{:748-755} &
+Add the low-index selection \lean{sliceLow} and \lean{evalMle_boolVec_append} (generic, in
+\file{ToCompPoly/}), \lean{Blocks.stridedLayout} and \lean{Layout.piecewise} (\file{Stack.lean}),
+and the prose: leanVM reads the eighteen BLAKE2S limb columns as strided slots of \lean{q_flock},
+the low eight coordinates frozen to the slot's bits; Layer 3 transports the sum type to
+\lean{ColumnId}. Tests against the Python's \code{Placement.stack_point}. &
+\code{R35}; \cref{f:code-l1-strided-reader-eighteen-blake2s-limb} &
+error of the blueprint (omission) & \sev{major}\\
+Sketch, \code{:704-731} &
+Add \lean{evalMle_padHigh} and the definitions of the two evaluators \lean{idxColumnEval} and
+\lean{bytecodeColumnEval}, which the verifier runs and listed statements mention. &
+\code{R91}; \cref{f:code-l1-interface-list-omits-load-bearing} &
+error of the blueprint & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 2: Clean components as polynomials (\code{:757-787})}}\\*
+Sketch, \code{:762-771} &
+A computable \lean{Expression.toCMvPolynomial} (\lean{var i} with $i < n$ to $X_i$, else 0, as
+\lean{Environment.fromArray} reads a missing cell), with \lean{eval_toCMvPolynomial} and a
+Mathlib-side bridge through which \lean{degreeBound} bounds \lean{totalDegree}; \lean{M3Table}'s
+fields become \lean{CMvPolynomial}; \lean{Direction} becomes \lean{Side}; Clean \#466 stays the
+proof-side bridge. &
+\code{R32}; \file{boundary-adaptor.md} §G.8 &
+forced by an upstream library (CompPoly's conversion is noncomputable at both pins; retired if it
+becomes computable) & \sev{major}\\
+Sketch, \lean{Component.toM3}, \code{:773-774} &
+\lean{Component.toM3} takes the lookup channels, and \lean{count} is coordinate 2 of every pull on
+them, required to be a variable (\lean{count_is_var}); a test that the six tables' count columns are
+those of \code{count_columns()}. &
+\code{R70}; \file{boundary-adaptor.md} §G.11 &
+error of the blueprint (imprecision) & \sev{minor}\\
+Tests, \code{:784-787} &
+Add a test of the three block components (memory, bytecode, verifier) against their boundary
+blocks on the one-row witness. &
+\code{R31}; \file{boundary-adaptor.md} §G.2 &
+error of the blueprint (omission) & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 3: the M3 instance of leanISA (\code{:789-867})}}\\*
+Sketch, \code{:795-808} &
+\lean{Sizes} of the heights only (no witness determines the rate); \lean{Sizes.ofWitness} takes
+\lean{prog}; \lean{leanIsaBlocks}, \lean{leanIsaμ} and \lean{leanIsaBlocks_fits} (the fit is a
+\lean{Blocks}' and is needed before the instance; \lean{Layout} has no \lean{total});
+\lean{Sizes.Admissible} with the caps and the stacking window $μ_{\mathrm{stack}} \le 28$;
+\lean{validRate} for $1 \le ρ \le 4$ (Layer 12); \lean{caps_of_admissible} and
+\lean{sizes_of_satisfiedBy} in place of \lean{admissible_iff_caps}; tests reject
+$μ_{\mathrm{stack}} = 29$ and \lean{logInvRate = 5}. &
+\code{R33}; \cref{f:bus-admissible}, \cref{f:code-l1-leanisainstance-fits-cannot-be-stated};
+\file{boundary-adaptor.md} §G.5 &
+error of the blueprint (three statements cannot hold together) & \sev{major}\\
+Sketch, \lean{leanIsaInstance}, \code{:803-805} &
+\lean{Component.toM3} of the six opcode tables; three column groups for the shared committed
+columns (tables with no constraint, flush or count); six boundary blocks written from
+\lean{memTable}, \lean{bytecodeTable} and \lean{leanIsaVerifier prog}, with \lean{Coord.known}
+program columns and \lean{Coord.const} final pc; the deployed layout; three public lines; \lean{aux}
+the Flock predicate of the region. Not \enquote{\lean{Ensemble.toM3} of the eight tables}. &
+\code{R30}; \file{boundary-adaptor.md} §G.1 &
+error of the blueprint & \sev{major}\\
+Sketch, \code{:803} &
+\lean{abbrev leanIsaInstance …}, reducible, so that \lean{Decidable (M3Holds …)} and the instances
+on \lean{I.Stmt} are found by instance search, as for the toy. &
+\code{R71}; \file{boundary-adaptor.md} §G.12 &
+error of the blueprint (omission of a constraint on the code) & \sev{minor}\\
+Sketch, the adaptor, \code{:810-819} (the boundary blocks) &
+Add \lean{boundary_tuples_eq}: under the three fixed-column conjuncts of \lean{SatisfiedBy}, the
+multiset of the messages of the memory block, the bytecode block and the verifier row on each side
+equals the instance's \lean{boundaryTuples} of \lean{stackOf}; both adaptor theorems use it. &
+\code{R31}; \file{boundary-adaptor.md} §G.2 &
+error of the blueprint (omission) & \sev{major}\\
+Sketch \code{:811-819}; prose \code{:841-861} (the slot map, the lemma, the generator) &
+One instance-free structure, supplied by \#3, carries the slot map ($18$ numbers,
+\code{hash_flock.rs:87-115}), the predicate on the packed column, the lemma \enquote{R1CS $⇒$ the
+limbs compress}, the generator and its lemma (\lean{FlockSpec}; or \lean{blake2sLimbSlot} in
+\file{Parameters/} with the reader built from Layer 1's lemma); the layout takes the slot map from
+it, not from \lean{FlockInterface.limbColumns}; \lean{FlockWitnessGen} goes. \textsf{[decision]} &
+\code{R15}; \cref{f:flock-ring-slot-map-circular}; \file{boundary-adaptor.md} §G.7 &
+error of the blueprint (cannot be stated as written) & \sev{major}\\
+Sketch, \lean{witnessOf}, \code{:813} &
+\lean{witnessOf} takes the public input, or the text says the lanes are read off cells 0 and 1 of
+\lean{mem_0}, \lean{mem_1}. &
+\code{R70}; \file{boundary-adaptor.md} §G.11 &
+error of the blueprint (imprecision) & \sev{minor}\\
+Sketch \code{:819}; prose \code{:822-824}; tests \code{:866-867} &
+\lean{witnessOf_stackOf} is not an equality any \lean{EnsembleWitness} satisfies: state the three
+equalities on the columns under \lean{SatisfiedBy} and \lean{Sizes.ofWitness}, test them with a
+\texttt{\#guard} on the one-row witness, and say that neither T4 composition uses it. &
+\code{R69}; \file{boundary-adaptor.md} §G.10 &
+error of the blueprint & \sev{minor}\\
+Prose, the auxiliary predicate, \code{:850-851} &
+\enquote{\lean{aux q} says that, for every compression, the bits packed into the \lean{q_flock}
+region satisfy Flock's R1CS \emph{and hold 1 at the constant position 512}}; without it the zero
+region satisfies \lean{aux} and \enquote{\lean{aux} $⇒$ the limbs compress} is false. &
+\code{R56}; \cref{f:flock-ring-aux-constant-one} &
+error of the blueprint (of wording) & \sev{minor}\\
+Prose, \code{:850-861} (what Layer 3 supplies to Layer 9) &
+Layer 3 supplies a \lean{FlockRegion I}: the column \lean{q_flock}, \lean{kBatch}, its height
+$8 + k_{\mathrm{batch}}$, and \lean{aux} equivalent to \lean{Flock.Holds kBatch} of that column; the
+toy keeps \lean{aux := True} and has none. &
+\code{R16}; \cref{f:flock-ring-opaque-aux} &
+error of the blueprint (a design gap the spine left open) & \sev{major}\\
+Tests, \code{:865-867} (the tie order) &
+Add the offsets of every committed column on the two configurations of the Layer 1 review's
+\code{OffsetsProbe}, where a table's height equals $κ_{\mathrm{mem}}$, so that a tables-first order
+fails them. &
+\code{R78}; \cref{f:code-l1-order-equal-size-blocks-pinned} &
+error of the blueprint (a check deferred with no witness named) & \sev{minor}\\
+Layer 3, optional &
+Optionally, \lean{Function.Injective} of the renaming for the instance's layout:
+\lean{Layout.comap} accepts a non-injective one, which aliases columns (the adaptor's completeness
+catches it). &
+\code{R131}; \cref{f:code-l1-note-layout-comap-accepts-non} &
+none given & \sev{note}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 4: sumcheck for eq-weighted virtual polynomials (\code{:869-912})}}\\*
+Sketch, \code{:878-907} &
+Restate \lean{sumcheck} and \lean{batchClaims} as \lean{Component.Def}s with their
+\lean{Complete} and \lean{Security}, their theorems in the \lean{rbrKnowledgeSoundnessWorstCaseWith}
+form of row \emph{Holes} (\lean{Sumcheck.Def} and \lean{Batch.Def} exist nowhere). &
+\code{R36}; \cref{f:docs-sketch-types} &
+error of the blueprint & \sev{major}\\
+The eq-weighted variant, \code{:898-901} &
+Define the two sumcheck variants by name: the plain one (error $d/\abs{F}$, $d$ the degree of the
+polynomial sent, the verifier evaluating the equality factors at the end: the table sumcheck) and
+the normalized one (error $d_c/\abs{F}$, $d_c$ the cofactor's degree: the GKR layers). &
+\code{R7}; \cref{f:bus-gkr-normalized} &
+error of the blueprint & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 5: fingerprints, the grand product, and GKR (\code{:914-947})}}\\*
+Sketch, \lean{gkr}, \code{:930-937} &
+\lean{gkr} over a context: \lean{leaves} (the leaf tables as functions of the statement and the
+oracles) and \lean{riders} (tables that must vanish), a \lean{Component.Def} whose output relation
+says the leaf claims hold at $ζ$ and every rider's extension vanishes at $ζ_{<τ}$, with errors
+$2/\abs{\E}$ per combiner (0 for the last), $4/\abs{\E}$ per round, $1/\abs{\E}$ per combination
+challenge. \textsf{[decision]} &
+\code{R10} (\code{R36}); \cref{f:bus-generic-gkr} &
+error of the blueprint; forced by an upstream library (the first half) & \sev{major}\\
+\lean{gkrError}, \code{:940-942} (the rounds) &
+$4/\abs{\E}$ to each sumcheck round, not $5/\abs{\E}$ (the tracker's hole for the generic GKR
+likewise). &
+\code{R7} (\code{R8}); \cref{f:bus-gkr-normalized} &
+error of the blueprint & \sev{major}\\
+\lean{gkrError}, \code{:941-942} (the binary layer) &
+$1/\abs{\E}$ to each combination challenge: two per radix-4 layer, one for the binary layer (odd
+$μ$). &
+\code{R52}; \cref{f:bus-binary-combination} &
+error of the blueprint (omission) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 6: the bus phase (\code{:949-979})}}\\*
+Sketch \code{:954-971}; prose \code{:975-977} &
+Replace the code block by the slot's types (\lean{busPhase I : Phase.Def I I.Stmt (I.Stmt × BusOut I)},
+\lean{busComplete}, \lean{busSecurity}) and the schedule \lean{V_to_P (α, β)}; \lean{P_to_V (R, R_c)};
+the GKR's; \lean{P_to_V} the boundary evaluations. The invariant after $(α, β)$ is \enquote{the two
+products at $(α, β)$ differ}, not \enquote{the multisets differ}, and no boundary claim exists
+before the last message. &
+\code{R36}; \cref{f:docs-sketch-types}, \cref{f:bus-stale-sketch} &
+error of the blueprint & \sev{major}\\
+The bus phase's composition (new sentence) &
+The bus phase is \lean{[(α, β); roots] ⟫ gkr ⟫ [boundary evaluations]}, with \lean{leaves} the
+three leaf tables of the stack and \lean{riders} the constraint tables. \textsf{[decision]} &
+\code{R10}; \cref{f:bus-generic-gkr} &
+error of the blueprint & \sev{major}\\
+\lean{busError}, \code{:973-975} &
+\lean{busError} is $4 \cdot 2^{μ_{\mathrm{bus}}}/\abs{\E}$ on $(α, β)$ and \lean{gkrError} on the
+GKR's challenges; the zerocheck escape adds nothing (a conjunction escapes with the larger of the
+two probabilities). &
+\code{R47}; \cref{f:bus-zerocheck-charge} &
+error of the blueprint & \sev{minor}\\
+Four orders (new clauses) &
+The roots message is $(R, R_c)$, the bus root first; the boundary evaluations in the order the
+sides, blocks and coordinates first name a committed column, repeats skipped (\lean{mem_0},
+\lean{mem_1}, \lean{mem_2}, \lean{cntfin_mem}, \lean{cntfin_bc}); \lean{BusOut}'s linear claims
+table by table, then push, pull, count; $ζ = (u_0, u_1, χ_0, \dots)$ of the last layer. &
+\code{R51}; \cref{f:bus-open-orders} &
+error of the blueprint (omission of transcribed conventions) & \sev{minor}\\
+Tests, \code{:978-979} &
+Add a guard on sizes with $τ_j = κ_{\mathrm{mem}}$, where the order of the leaf stacks decides the
+offsets. &
+\code{R50}; \cref{f:bus-leaf-order} &
+error of the blueprint & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 7: the table sumcheck phase (\code{:981-1004})}}\\*
+Sketch, \code{:986-995} &
+Rewrite on the spine's names: \lean{tableSumcheck (I) : Phase.Def I} \lean{(I.Stmt × BusOut I) (I.Stmt × TableOut I)},
+\lean{tableSumcheckComplete}, \lean{tableSumcheckSecurity}, \lean{tableSummand I (s : BusOut I) (ξ : E)};
+delete the placeholder \lean{tableSumcheck_relOut_implies_constraints} (what it meant is the bus
+phase's zerocheck conjunct). &
+\code{R36}; \cref{f:table-pub-layer7-sketch}, \cref{f:docs-sketch-types} &
+error of the blueprint & \sev{major}\\
+Sketch, \code{:987-989} &
+$τ_{\max}$ and $\sum_j \mathit{width}_j$ range over the sumcheck tables, not every table of the
+instance (at least 16 rounds and 110 values against leanVM's $τ_{\max}$ rounds and 104 values). &
+\code{R11}; \cref{f:table-pub-sumcheck-tables}; \file{boundary-adaptor.md} §G.9 &
+error of the blueprint (omission) & \sev{major}\\
+Prose, \code{:1000-1003} &
+\enquote{it is charged to the $(α, β)$ and GKR challenges of Layer 6 \dots\ as an extra
+$τ_{\max}/\abs{\E}$ per constraint} becomes \enquote{it is the bus phase's (Layer 6), and costs
+$τ_{\max}/\abs{\E}$ at most, once}. &
+\code{R47}; \cref{f:table-pub-zerocheck-escape} &
+error of the blueprint & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 8: the public-input phase (\code{:1006-1068})}}\\*
+Prose, \code{:1035-1037} &
+For a line whose value was sent the pooled value is the value sent, as §8.2 and the pinned
+verifiers pool it; the check is what makes the pooled claims the statement's: a verifier that pools
+the values it computes is knowledge sound with no check at all (the merged code does this; code
+row). &
+\code{R13}; \cref{f:code-pub-check-on-public-input-message} &
+error of the design (introduced by an audit-surface compression) & \sev{major}\\
+Prose, \code{:1053-1062} &
+Layer 8 has a second phase for the deployed check: the equation on the two words, the values sent
+pooled, \lean{Phase.Security} at $1/\abs{\E}$ (key lemma \lean{accepts_two_challenges} proved);
+\lean{Phases} and Layer 12 take it; the specification's per-limb phase is kept as the reference of
+§8.2, with the lemma that its acceptance implies the deployed one's. \enquote{Layer 12 owes it}
+goes. \textsf{[decision]} &
+\code{R12}; \cref{f:table-pub-public-input-check}, \cref{f:code-pub-theorems-are-about-verifier-none} &
+deliberate deviation (decision 15) owing its theorem in the wrong place; a disagreement of the
+specification with its three implementations & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 9: the Flock and ring-switching boundary (\code{:1070-1099})}}\\*
+Sketch and prose, \code{:1075-1092} &
+Replace \lean{FlockInterface} (the eighteen limb claims in, one weighted claim out: knowledge error
+1 against leanVM's verifier) by a \lean{FlockPhase I R} at the spine's seams, \lean{Seam.pub} to
+\lean{Seam.flock}, whose verifier reads no claim, hands the column claims on (the limb claims are
+opened as strided claims on \lean{q_flock}) and adds the ring-switched weighted claim; write the
+schedule out ($k_{\mathrm{batch}} + 1$ challenges; 64 values; one challenge;
+$8 + k_{\mathrm{batch}}$ rounds of two values and a challenge; two values; one challenge; 8 rounds
+of two values and a challenge; 64 values; six challenges). &
+\code{R14} (\code{R36}); \cref{f:flock-ring-interface-limb-claims}, \cref{f:table-pub-limb-claims-flock} &
+error of the blueprint (the spine's Flock slot is faithful; Layer 9 is not) & \sev{major}\\
+\code{:1072}, \code{:1077} (over an abstract instance) &
+The Flock phase takes the \lean{FlockRegion I} of Layer 3; \lean{Flock.Holds} is the Flock
+roadmap's predicate on a packed column and mentions no instance; the phase imports nothing from the
+arithmetization (the wall stands). &
+\code{R16}; \cref{f:flock-ring-opaque-aux} &
+error of the blueprint (a design gap the spine left open) & \sev{major}\\
+\code{:1080}, \code{:1091-1092} (\lean{limbColumns}) &
+Delete \lean{limbColumns}: the slot map is instance-free (Layer 3's row). &
+\code{R15}; \cref{f:flock-ring-slot-map-circular}; \file{boundary-adaptor.md} §G.7 &
+error of the blueprint & \sev{major}\\
+\code{:1083} (completeness) &
+Either the Flock phase has a completeness error of its own, summed (\code{R4}), or it is perfectly
+complete for the specification's honest prover, which sends the true coefficients (\code{R17}).
+\textsf{[decision]} &
+\code{R4}, \code{R17}; \cref{f:lib-completeness-error}, \cref{f:flock-ring-test20-completeness} &
+error of the blueprint (disputed between the two rows) & \sev{major}\\
+\code{:1084} (knowledge soundness) &
+\lean{rbrKnowledgeSoundnessWorstCase} becomes the \lean{With} form, with a named extractor and
+knowledge state function (the existential form proves soundness only). &
+\code{R1}; \cref{f:lib-existential-rbr} &
+forced by an upstream library & \sev{critical} (as a warning)\\
+\code{:1085} (the error) &
+Give \lean{flockError} per challenge as a closed form next to the theorem (row \emph{Errors}); its
+sum stays below $(4 k_{\mathrm{batch}} + 163)/\abs{\E} + 2^{32}/\abs{\E}$. &
+\code{R58}; \cref{f:flock-ring-test23-ring-switching} &
+error of the blueprint & \sev{minor}\\
+\code{:1088-1089} (the auxiliary predicate) &
+The strong auxiliary predicate includes the constant position 512, as in Layer 3 (the proposal
+applies wherever the phrase occurs). &
+\code{R56}; \cref{f:flock-ring-aux-constant-one} &
+error of the blueprint (of wording) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 10: the claim pool, the opening sumcheck, and the oracle protocol (\code{:1101-1148})}}\\*
+Title \code{:1101}; sketch \code{:1109-1114} &
+The opening phase is the batching challenge $λ$ followed by one weighted query of the stack at
+$W_λ$, compared with $C_λ$: \lean{Phase.Def I (I.Stmt × FlockOut I) Unit}, schedule
+\lean{V_to_P : E}, error $(J - 1)/\abs{\E}$ on $λ$; no sumcheck (§8.5: \enquote{there is no
+separate reduction sumcheck}); \enquote{$2/\abs{\E}$ per round} leaves; the title loses \enquote{the
+opening sumcheck}. \textsf{[decision]} &
+\code{R18}; \file{gt-opening-compile.md} §I.1, §A.5 &
+error of the blueprint (caused by Layer 0's evaluation interface) & \sev{major}\\
+Sketch, \code{:1109-1131} &
+Delete Layer 10's own \lean{Weight}, \lean{WeightedClaim}, \lean{Claim.toWeighted} and its
+\lean{leanVmPiop} block with master theorems over \lean{Set.univ} and \lean{rbrKnowledgeSoundness}:
+the spine's are authoritative (this also removes an existential form, which \code{R1} reads as a
+soundness statement only). &
+\code{R36}; \cref{f:docs-sketch-types} &
+error of the blueprint & \sev{major}\\
+Sketch, \code{:1122}, \code{:1130} &
+\lean{piopError} and \lean{piopError_le} restated over \lean{I} (the spine's closed form), not
+over \lean{Sizes}. \textsf{[decision]} &
+\code{R5}; \cref{f:code-spine-declared-error-unconstrained-knowledge-theorem} &
+error of the blueprint & \sev{major}\\
+Sketch \code{:1130}; tests \code{:1148} &
+\lean{piopError_le}'s comment states $μ_{\mathrm{bus}} \le 28$, a lemma of Layer 3 from the window
+of \lean{Admissible}: at the per-log caps alone the bound is false; with the window the phase
+errors sum to about $2^{-160}$. \enquote{\lean{piopError_le} by \lean{norm_num} at the caps}
+becomes \enquote{at admissible sizes}. &
+\code{R33}; \cref{f:bus-admissible}; \file{gt-opening-compile.md} §I.15 &
+error of the blueprint & \sev{major}\\
+Prose, \code{:1133-1135} &
+\enquote{the commit phase's, which reads the stack off that message} is true of its intermediate
+extractor at round 0; the extracted stack is \lean{piopExtractedStack}. &
+\code{R46}; \cref{f:code-spine-extracted-stack-not-definition-rfl} &
+error of the blueprint & \sev{minor}\\
+Prose, \code{:1136-1144} &
+The port is kept until an ArkLib framework proves a guarded-first append, not \enquote{deleted when
+the pin moves past \#615}; \enquote{The port is done and closes hole C1} (history) goes.
+\textsf{[decision]} &
+\code{R34}, \code{R89}; \cref{f:lib-legacy-framework}, \cref{f:docs-blueprint-history} &
+error of the blueprint's plan; documentation & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 11: WHIR over binary Reed--Solomon codes, and Merkle trees (\code{:1150-1193})}}\\*
+Sketch, \lean{ladder}, \code{:1164} &
+\lean{structure Level} with \lean{fold}, \lean{rateExp}, \lean{queries}, \lean{oodSamples},
+\lean{grindingBits} and the analysis parameter \lean{η : ℚ}; \lean{whirError} a function of $η$;
+the deployed $η_i$ per $(μ, ρ)$ recorded as Category B. &
+\code{R65}; \file{gt-opening-compile.md} §I.12 &
+none given & \sev{minor}\\
+Sketch and prose, \code{:1169}, \code{:1173}, \code{:1185} &
+\lean{whirOpen}'s level-0 batching challenge is the opening phase's $λ$ (the compilation replaces
+the whole opening phase by \lean{whirOpen}), not a second batching; \lean{encode} maps $\E$-valued
+messages of every level, with the lemma that a $\K$-valued message gives a $\K$-valued word. &
+\code{R19} (\code{R18}); \file{gt-opening-compile.md} §I.8, §I.1 &
+error of the blueprint & \sev{major}\\
+Sketch, \code{:1170} &
+\lean{def columnWeight (κ R) (x) : Weight κ} with its closed-form evaluator and
+\lean{encode_columnWeight (x) (f) : encode κ R f x = (columnWeight κ R x).pair f} (Lemma
+\code{lem:colweight}), in place of the existential \lean{encode_column_weight}, which every linear
+map satisfies. &
+\code{R62}; \file{gt-opening-compile.md} §I.9 &
+error of the blueprint (non-vacuity) & \sev{minor}\\
+Annex B numbers, \code{:1169-1188} &
+Cite Annex B by label: \enquote{Annex B.4} (\code{:1172}) is §B.3, \enquote{Lemma B.7}
+(\code{:1170}) is Lemma B.14, \enquote{Theorem B.2} (\code{:1175}) is Theorem B.7
+(\code{thm:rbr}), \enquote{Protocol B.1} (\code{:1185}) is Protocol B.6, \enquote{Definition B.1}
+(\code{:1188}) is Definition B.4. &
+\code{R92}; \file{gt-opening-compile.md} §I.13 &
+error of the blueprint & \sev{minor}\\
+\lean{McaJohnson}, \code{:1176-1177} &
+Say that [BCHKS25] Theorem 4.6 is a preprint theorem with a sketched proof, and that
+\lean{McaJohnson} is stated with the printed parameter (as ArkLib's admission is). &
+\code{R114} (\code{R115}); \file{literature.md} §C.4 &
+documentation (a fact about the assumption) & \sev{note}\\
+Merkle, \code{:1179-1182} &
+Name VCVio's Merkle-tree library and VCVio issue 571 as the upstream, and decide whether Layer 11
+builds on it. \textsf{[decision]} &
+\code{R77}; \cref{f:docs-vcvio-merkle} &
+documentation & \sev{minor}\\
+Prose \code{:1185-1190}, or the conventions &
+Record four transcript facts of WHIR (Category B): the level-0 lane relayout
+$f(u, x) = q(x, u)$ and the rotation of the terminal point; the out-of-domain claim's intro round
+polynomial, sent before each level's $λ_i$ (the query batch's intro follows $λ_i$: corrected by the
+citation check, \file{verify-gt-opening.md} row I44); the last round message omitted; the grinding
+nonce read before the positions at every level, 17 bits. &
+\code{R64}; \file{gt-opening-compile.md} §I.11 &
+error of the blueprint (omission) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 12: compilation, the transcript, the proof, and the executable verifier (\code{:1195-1240})}}\\*
+Sketch, \lean{Proof}, \code{:1209-1211} &
+\lean{Proof.merkle} is the pruned wire form (rows at the distinct sorted positions, one
+\enquote{octopus} per phase) that the Rust prover emits; \lean{merkleVerify} checks a phase, not a
+path; at level 0 the row holds the committed lanes and the verifier supplies the zero prefix. &
+\code{R63}; \file{gt-opening-compile.md} §I.10 &
+error of the blueprint (omission) & \sev{minor}\\
+Sketch, \code{:1214-1215} &
+\enquote{WHIR in place of the evaluation oracle} becomes \enquote{WHIR in place of the opening
+phase, over the level-0 word as the commit message}. \textsf{[decision]} &
+\code{R18}; \file{gt-opening-compile.md} §I.1, §A.5 &
+error of the blueprint & \sev{major}\\
+Sketch \code{:1218-1221}; prose \code{:1230-1232} &
+\lean{verify_iff_compiled} is stated against a leanerVM \lean{bcsCompile} (roots for oracle
+messages, authenticated rows for queries), the chain as a \lean{QueryImpl}, and the grinding checks
+conjoined, not ArkLib's \lean{Verifier.fiatShamir} of the oracle verifier (which would hash whole
+oracle messages); \enquote{unconditional, about two definitions, \emph{and} a check only because
+\lean{verify} is written from §8.5 before the right-hand side is unfolded}. &
+\code{R21}; \cref{f:lib-fs-bcs}; \file{gt-opening-compile.md} §I.2 &
+error of the blueprint; forced by an upstream library (no BCS transform in ArkLib) &
+\sev{major}\\
+Sketch, the assumed interfaces, \code{:1223-1227} &
+Restated so that they are true and can be inhabited: \lean{RbrToStateRestoration},
+\lean{BcsSecurity} (up to $3(Q^2 + 1)/2^{256}$, the straight-line extractor reading leaves off the
+query log), \lean{ChainFiatShamirSecurity} (leanVM's hash chain, with proof-of-work rounds), their
+witness obligation the literature; \lean{verify_knowledgeSound} takes them with
+\lean{McaJohnson}, the list-binding compilation and the Flock phase. An interface over all IOPPs
+with error $Q \cdot \max_i ε_i$ is false (hash term, oracle messages, grinding). &
+\code{R20}, \code{R22}; \file{gt-opening-compile.md} §I.4; \cref{f:lib-fs-bcs};
+\file{literature.md} §E.6 &
+error of the blueprint; forced by an upstream library & \sev{major}\\
+Sketch \code{:1224}; prose \code{:1234-1235} (the error) &
+\lean{niError Q} is $(Q + \mathit{rounds})$ times the largest per-challenge error of the compiled
+protocol, namely $L_0 \cdot ε_i$ at each oracle-protocol challenge, Theorem B.7's terms at WHIR's,
+$2^{-17}(1 - γ_i)^{t_i}$ at each ground query round, plus the hash term $c\,Q^2/2^{256}$;
+\lean{FiatShamirSecurity} carries the grinding bits, the proof-of-work factor marked an assumption
+no published theorem covers. &
+\code{R23}; \file{literature.md} §A.4 (first three findings); \file{gt-opening-compile.md} §I.7 &
+error of the blueprint & \sev{major}\\
+Sketch \code{:1224}; prose \code{:1234-1235} (the data) &
+The compiled reduction carries a second function \lean{grind : pSpec.ChallengeIdx → ℕ} (17 at the
+query rounds, 0 elsewhere), \lean{FiatShamirSecurity} takes it, and \lean{niError} is defined from
+\lean{err} and \lean{grind}. &
+\code{R139}; \file{obligations.md} §5.3 &
+error of the blueprint (an omission in the data of Layer 12) & \sev{minor}\\
+Sketch, \code{:1226-1227} &
+\lean{niError s Q} becomes the family's \lean{niError Q} (the maximum over admissible sizes, or
+the sum). &
+\code{R6}; \file{boundary-adaptor.md} §G.6 &
+error of the blueprint (a missing decision) & \sev{major}\\
+A new theorem, replacing Layer 11's sentence \code{:1190} &
+State the list-binding compilation: an extractor (list-decode, select), its state function, its
+errors ($L_0 \cdot ε_i$ at the front's challenges, Theorem B.7's at WHIR's) and two lemmas (every
+member of the list is $\K$-valued and of the right size; the front's verifier makes no oracle
+query); carry $L_0$ into \lean{niError}. &
+\code{R24} (\code{R23}, \code{R138}); \file{gt-opening-compile.md} §I.5; \file{literature.md} §A.4
+(second finding) &
+error of the blueprint (omission) & \sev{major}\\
+The compilation theorem (a hypothesis) &
+If the oracle-freeness of the front is not a field of \lean{Phases}, it is a hypothesis of the
+compilation theorem, stated as a property of each front phase's \lean{OracleVerifier}.
+\textsf{[decision]} &
+\code{R138}; \file{obligations.md} §5.2 &
+error of the blueprint & \sev{major}\\
+Tests, \code{:1237-1240} (the proof of work) &
+The mutations also cover a wrong grinding nonce at each ground level, a truncated Merkle path, a
+nonzero third limb in a digest half and an announced size above its cap; and, in reverse, each
+transcript the specification rejects is run through the Rust and Python verifiers. &
+\code{R25}; \file{literature.md} §G.5 (first finding) &
+error of the blueprint & \sev{major}\\
+Tests, \code{:1237-1240} (canonical encodings) &
+List the three canonical-encoding and consumption checks among \lean{verify}'s (zero upper limbs of
+the announced sizes, a zero third limb in each half of a root, a fully consumed stream) with a
+mutation each; add a trailing scalar, a surplus sibling, a level-0 row of the wrong width, a
+duplicated position. &
+\code{R61}; \cref{f:bus-canonical-checks}; \file{gt-opening-compile.md} §I.17 &
+error of the blueprint (omission) & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 13: T4 and the fixtures (\code{:1242-1259})}}\\*
+Sketch, \code{:1247-1250} (the program) &
+Both base theorems take \lean{hwf : WellFormedBytecode prog}, as \lean{constraintSoundness} and
+\lean{constraintCompleteness} do (a bytecode with a \lean{JUMP} in the sentinel slot has balancing
+steps and no valid execution; the repository proves it), or \lean{verify} decides the program
+condition and rejects. \textsf{[decision]} &
+\code{R27}; \cref{f:docs-base-theorem-hypothesis}; \file{boundary-adaptor.md} §G.3 &
+error of the blueprint (against the leanISA roadmap) & \sev{major}\\
+Sketch, \code{:1247-1248} (soundness) &
+A random-oracle statement: a $Q$-query adversary against the compiled verifier with the
+compression as the random oracle, a straight-line extractor (leaves off the query log, list
+decoding, selection), the event \enquote{accepts, and \lean{witnessOf} of the extracted stack fails
+\lean{SatisfiedBy}} bounded by \lean{niError Q}, the existential corollary, and the pointwise
+\lean{execution_of_extracted} that recursion (T6) needs; the instantiation of the oracle by
+BLAKE2s named as the one non-formal step (and in \file{architecture.md}). The citation check adds
+that the Merkle leaves are iterated BLAKE2s, which a random oracle for the one 64-byte compression
+does not model (\file{verify-gt-opening.md} row E9). &
+\code{R28}, \code{R121}; \file{boundary-adaptor.md} §G.3, §G.16; \file{gt-opening-compile.md} §I.3 &
+error of the blueprint (and of \file{architecture.md}'s T4) & \sev{major}\\
+Sketch \code{:1249-1250}; prose \code{:1255-1257} (resources) &
+\lean{baseProver_complete} from a satisfying witness with admissible sizes and a valid rate (with
+the Flock generator), and \lean{baseProver_complete_of_execution} with a fit hypothesis
+\lean{hfit}; the prose says \lean{hfit} is the resource condition \file{architecture.md} asks for
+(a valid execution may need $κ = 32$, beyond the stack the verifier accepts). \textsf{[decision]} &
+\code{R29}; \file{boundary-adaptor.md} §G.4 &
+error of the blueprint & \sev{major}\\
+Sketch \code{:1249-1250}; prose \code{:1255-1257} (grinding) &
+\lean{prove} takes fuel and returns \lean{Option Proof}, the grinding being a search;
+\lean{baseProver_complete} is \lean{prove … = some proof → verify … proof = true};
+\enquote{perfect completeness survives the transform without any assumption} goes. &
+\code{R26}; \file{gt-opening-compile.md} §I.6 &
+error of the blueprint & \sev{major}\\
+Prose, \code{:1255} &
+One sentence: \lean{baseProver_complete} is existential in the witness (it composes leanISA's
+\lean{constraintCompleteness}); the computable form through the witness generator (T2) is
+\file{architecture.md}'s and out of scope here. &
+\code{R120}; \cref{f:docs-completeness-witness} &
+deliberate deviation (a scope choice not written down) & \sev{note}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Acceptance tests and nearby false statements (\code{:1261-1358}), in order}}\\*
+Test 5, \code{:1280} &
+\enquote{distinguished by \lean{leanIsaTables} flush polynomials} becomes \enquote{distinguished by
+the flush polynomials of the leanISA instance} (\lean{leanIsaTables} exists nowhere). &
+\code{R92}; \cref{f:docs-dangling-names}; \file{boundary-adaptor.md} §G.14 &
+error of the blueprint & \sev{minor}\\
+Test 6, \code{:1283} &
+\enquote{The state function of Layer 7 charges the zerocheck to Layer 6's challenges} becomes
+\enquote{The state function of Layer 6 carries the zerocheck}. &
+\code{R47}; \cref{f:table-pub-zerocheck-escape} &
+error of the blueprint & \sev{minor}\\
+Test 7, \code{:1284-1286} &
+\lean{sumCube_padHigh}, not \lean{sumCube_prodVars}; copying multiplies by
+$2^{τ_{\max} - τ_j}$, which is 0 in characteristic two; witnesses: the test of \file{Padding.lean}
+and, once Layer 7 lands, \lean{tableSummand_target}. &
+\code{R82}; \cref{f:code-l1-acceptance-test-7-names-wrong} &
+error of the blueprint & \sev{minor}\\
+Test 10, \code{:1293-1295} &
+Say that the phase and the spine cannot notice a missing third line (an instance with two lines
+has all their theorems); what fails is \lean{satisfiedBy_witnessOf} at \lean{SatisfiedBy.word0_eq},
+whose right side has a zero top limb by type. Witnesses: \lean{threeLimbs} and, when Layer 3
+lands, a \texttt{\#guard} that the leanISA instance's public lines list \lean{mem_2} with cells
+\lean{(0, 0)} and \lean{sent = false}. &
+\code{R54}; \cref{f:code-pub-top-limb-checked-instance-s} &
+documentation (an incomplete audit trail, not a divergence) & \sev{minor}\\
+Test 14, \code{:1306-1307} &
+The witness is \lean{bytecodeColumn_answer_boolVec} with the oracle \texttt{\#guard}s, and a
+\texttt{\#guard} of \lean{bytecodeColumn} on a sixteen-instruction program with distinct operands
+against \code{leaf.rs:585-604}; not \lean{bytecodeColumn_slot}, which restates the definition. &
+\code{R79}; \cref{f:code-l1-acceptance-test-14-names-tautology}, \cref{f:docs-dangling-names} &
+error of the blueprint (stale witness) & \sev{minor}\\
+Test 15, \code{:1308-1310} &
+Largest first is sufficient, not necessary, and says nothing of equal sizes; \enquote{fails for
+any other placement} goes; the witness's 4, 2, 1 are heights. &
+\code{R80}; \cref{f:code-l1-acceptance-test-15-overclaims} &
+error of the blueprint & \sev{minor}\\
+Test 17, \code{:1314-1316} &
+Add the message count of the bus phase (a combiner after every layer, the last included). &
+\code{R9}; \cref{f:bus-extra-combiner} &
+error of the blueprint & \sev{major}\\
+Test 20, \code{:1323-1325} &
+No exceptional-challenge clause in any phase; no verifier inverts a challenge-dependent value; the
+pinned Rust Flock prover's $(1 + r)^{-1}$ at $r = 1$ is a completeness defect of the implementation,
+recorded in \file{docs/leanvm-target.md} and no part of \lean{flockError}; the Flock phase's test
+runs the round at $r = 1$ (\code{R17}). Or: the Flock phase's completeness error is its own field
+and is summed (\code{R4}). \textsf{[decision]} &
+\code{R17}, \code{R4} (\code{R111}); \cref{f:flock-ring-test20-completeness}, \cref{f:lib-completeness-error} &
+error of the blueprint & \sev{major}\\
+Test 21, \code{:1326-1328} &
+Add: the error of \lean{verify} does not depend on the prover's choice of sizes. &
+\code{R6}; \file{boundary-adaptor.md} §G.6 &
+error of the blueprint & \sev{major}\\
+Test 23, \code{:1331-1332} (ring switching) &
+\enquote{plus Flock's $< 2^{-183}$} becomes \enquote{plus the Flock phase's, below
+$2^{-183} + 2^{-160}$, the second term being ring switching's}, which dominates. &
+\code{R58}; \cref{f:flock-ring-test23-ring-switching}; \file{gt-opening-compile.md} §I.15 &
+error of the blueprint & \sev{minor}\\
+Test 23, \code{:1331-1332} (what the number is) &
+$\sum \mathit{piopError} < 2^{-150}$ is the interactive error at admissible sizes (below $2^{-159}$
+with the window, false at the per-log caps alone); it is not the security level of \lean{verify},
+which the WHIR query rounds set at 128 bits including 17 bits of grinding. &
+\code{R23}, \code{R33}; \file{gt-opening-compile.md} §I.7, §I.15 &
+error of the blueprint & \sev{major}\\
+Test 24, \code{:1333-1336} (the existential forms) &
+Add: ArkLib's extractor type accepts a classical choice, so the existential forms prove soundness
+only; every interface is in the \lean{With} form with a compiled extractor. &
+\code{R1}; \cref{f:lib-existential-rbr} &
+forced by an upstream library & \sev{critical} (as a warning)\\
+Test 24, \code{:1337-1339} (the witness) &
+The witness is \lean{piopExtractedStack_eq}, for every bundle and every transcript; the composed
+\lean{extractOut} is the last phase's and is not the stack; the \lean{rfl} test covers zero-round
+phases only. &
+\code{R46}; \cref{f:code-spine-extracted-stack-not-definition-rfl} &
+error of the blueprint & \sev{minor}\\
+Test 24, \code{:1333-1340} (efficiency) &
+\enquote{computable}, and for the compiled extractor an efficient list decoder named as the
+intended implementation; knowledge soundness of \lean{verify} is claimed only in the
+information-theoretic sense (Lean does not measure running time). &
+\code{R48}; \file{literature.md} §A.4 (fourth finding) &
+none given & \sev{minor}\\
+Test 24, \code{:1339-1340} (Layer 3's guard) &
+\enquote{\texttt{\#guard} \lean{witnessOf (stackOf w) = w}} becomes a \texttt{\#guard} of the three
+equalities on the columns. &
+\code{R69}; \file{boundary-adaptor.md} §G.10 &
+error of the blueprint & \sev{minor}\\
+Test 25, \code{:1341-1345} &
+The \code{grep} also returns \file{Protocol/Basic.lean}: drop its import or list it; \enquote{a rule
+in \file{scripts/check-layers.sh} is still to be written} (history) goes once the rule is written. &
+\code{R44}, \code{R89}; \cref{f:docs-import-rule}, \cref{f:code-l1-protocol-basic-lean-imports-arithmetization},
+\cref{f:docs-blueprint-history} &
+error of the blueprint (the witness text is false) & \sev{minor}\\
+Test 28, \code{:1356-1358} (a side condition) &
+Name the side condition \lean{one_le_d}. &
+\code{R43}; \cref{f:bus-side-conditions} &
+error of the blueprint & \sev{minor}\\
+Test 28, \code{:1356-1358} (the degree in the type) &
+Met by the type once the degree bound moves into the statement (the row polynomials of the
+proposed \lean{BusOut}, or \lean{VirtualTerm.poly} a subtype): the test \lean{cubicTerm} becomes a
+typing failure. \textsf{[decision]} &
+\code{R2}; \cref{f:code-spine-degree-conjunct-seam-bus-guard}, \cref{f:table-pub-bus-seam} &
+error of the blueprint & \sev{major}\\
+A new test (the constant position) &
+\enquote{The constant position is part of the predicate. The zero block satisfies the R1CS and is
+no compression. Witness: \lean{aux} fails on the zero region.} &
+\code{R56}; \cref{f:flock-ring-aux-constant-one} &
+error of the blueprint & \sev{minor}\\
+A new test (the sumcheck's tables) &
+On an instance with a taller table of no constraint and no flush, the number of rounds of the table
+sumcheck is the smaller height. &
+\code{R11}; \cref{f:table-pub-sumcheck-tables} &
+error of the blueprint (omission) & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Interfaces supplied to later work (\code{:1360-1429})}}\\*
+The list, \code{:1362-1419} &
+The list is the public boundary: add the unlisted load-bearing names (\lean{PublicInput.check},
+\lean{pooled}, \lean{prover}, \lean{verifier}, \lean{pSpec}, \lean{verifier_verify},
+\lean{publicInputComplete}, \lean{publicInputSecurity}; the generic declarations of
+\lean{GuardedVerdict} and \lean{KeepOracles}; \lean{idxColumnEval}, \lean{bytecodeColumnEval},
+\lean{evalMle_padHigh}, \lean{Blocks.total}, \lean{Blocks.offset}, \lean{Blocks.lowPoint},
+\lean{Blocks.selectorWeight}; \lean{sliceLow} and \lean{evalMle_boolVec_append} if the strided
+reader is taken); \lean{Column} moves to Layer 0's names, \lean{Weight} and \lean{WeightedClaim}
+out of \enquote{generic}; \lean{Ensemble.toM3} out of \enquote{Spine}. 198 of 333 non-private
+declarations are unlisted today, against \enquote{Everything not listed is a proof, a helper, or a
+test} (\code{:1419}). &
+\code{R91}; \cref{f:docs-public-names}, \cref{f:code-l1-interface-list-omits-load-bearing} &
+error of the blueprint & \sev{minor}\\
+The list, \code{:1369}, \code{:1398} &
+Delete \lean{Ensemble.toM3} (or define it as the six-table part only). &
+\code{R30}; \file{boundary-adaptor.md} §G.1 &
+error of the blueprint & \sev{major}\\
+The list, \code{:1400} &
+Add \lean{instSampleableTypeK}, \lean{instOracleInterfaceE}, \lean{instOracleInterfaceListE}. &
+\code{R76}, \code{R74}; \cref{f:lib-scalar-interfaces}, \cref{f:lib-k-sampler-unused} &
+error of the blueprint (omission) & \sev{minor}\\
+The list, \code{:1404} &
+Drop \lean{BlockClaim}. &
+\code{R81}; \cref{f:code-l1-blockclaims-lean-has-no-consumer} &
+none given (avoidable audit surface) & \sev{minor}\\
+The assumed interfaces, \code{:1419-1423} &
+\lean{FlockWitnessGen} leaves the assumed interfaces: the instance-free Flock structure of Layer 3
+carries the generator and its lemma. &
+\code{R15}; \file{boundary-adaptor.md} §G.7 &
+error of the blueprint & \sev{major}\\
+The composition, \code{:1427-1429} &
+The port \file{KnowledgeAppend.lean} is deleted when an ArkLib framework proves the append, not
+\enquote{when the pin moves past \#615}. \textsf{[decision]} &
+\code{R34}; \cref{f:lib-legacy-framework} &
+error of the blueprint's plan & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Boundaries (\code{:1431-1453})}}\\*
+With leanISA, \code{:1433-1441} &
+A further request: a \lean{constraintCompleteness} that returns a witness of minimal heights (or
+T4 takes \lean{hfit} as its hypothesis), and a resource hypothesis for
+\lean{constraintCompleteness} itself (\lean{Caps} bounds every table by $2^{32}$ rows,
+\lean{ValidExecution} bounds only $κ$). \textsf{[decision]} &
+\code{R29}, \code{R122}; \file{boundary-adaptor.md} §G.4, §G.18 &
+error of the blueprint (\code{R29}); none given (\code{R122}, leanISA's) & \sev{major}\\
+With leanISA, \code{:1439-1441} (the limbs) &
+\enquote{reconciled by \lean{FlockInterface.limbColumns}} becomes \enquote{reconciled by the
+instance's layout}. &
+\code{R15}; \cref{f:flock-ring-slot-map-circular} &
+error of the blueprint & \sev{major}\\
+With leanISA, \code{:1440} (the reference) &
+\enquote{(finding F3 of the status file)} becomes \enquote{(the leanISA status's finding on the
+BLAKE2S value limbs)}: the protocol status's F3 is another finding. &
+\code{R85}; \cref{f:docs-letter-codes} &
+documentation & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Ordering and parallelism (\code{:1455-1470})}}\\*
+\code{:1457-1462} (the new hole) &
+Place the new hole \enquote{list-binding compilation} between K1 and K3, and the obligations folded
+into existing holes with them (the holes-table row of \code{R137}). &
+\code{R137}; \file{obligations.md} §5.1 &
+error of the blueprint (the plan is incomplete) & \sev{major}\\
+\code{:1459-1460} &
+Delete \enquote{C1, the port of one ArkLib file, is done on the spine's branch} (history). &
+\code{R89}; \cref{f:docs-blueprint-history} &
+documentation & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries How work is tracked (\code{:1472-1515}), and two new sections}}\\*
+The section, \code{:1472-1515} &
+Replace by the draft: a table of homes, one per kind of fact; the tracker changed by editing its
+body; each hole specified in its layer section, not in the hole comment (\code{:1485-1487});
+claims by editing the checklist line or by an intention issue; discrepancies in the sources
+recorded under a name in \file{leanvm-target.md} (\code{:1500-1501}); the edits a review asks of
+the tracker made in the pull request that meets it. &
+\code{R88}, \code{R37}, \code{R93}, \code{R135}; \cref{f:docs-tracking-practice},
+\cref{f:docs-hole-comment}, \cref{f:docs-source-discrepancies}, \cref{f:docs-review-edits};
+\cref{sec:docs-text-tracking} &
+documentation; error of the blueprint (\code{R37}) & \sev{major}\\
+\code{:1511-1513} &
+Describe the review by what it does (three passes: the statements against the specification,
+fidelity to the pinned sources, hygiene), not as the \code{leanerVM-review} skill (none exists; it
+is \code{adversarial-review}, under the git-ignored \file{.claude/}); or track the skills. &
+\code{R87}; \cref{f:docs-review-tooling} &
+documentation & \sev{minor}\\
+New sections \emph{Decisions} and the index &
+A section \emph{Decisions}, one row per decision (number, name, the choice in one line, the
+convention or test that records it), and the index of names that replaces the codes. &
+\code{R90}, \code{R85}; \cref{f:docs-decisions}, \cref{f:docs-letter-codes};
+\cref{sec:docs-codes-index-draft} &
+documentation & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries References (\code{:1517-1549})}}\\*
+\code{:1530-1537} &
+The Fiat--Shamir paper is Canetti, Chen, Holmgren, Lombardi, Rothblum, Rothblum, Wichs (STOC
+2019); Ligerito is Novakovic and Angeris; BCHKS25's title is \enquote{On Proximity Gaps for
+Reed--Solomon Codes}; round-by-round knowledge soundness is [CMS19] Definition 8.5 (BibTeX in the
+literature dossier). &
+\code{R98}; \file{literature.md} §A.4 (fifth finding) &
+error of the blueprint & \sev{minor}\\
+\code{:1538} &
+Thaler (2022): Proposition 4.1 (sum-check), §4.6 (GKR), §6.6.2 (multiset equality by
+fingerprinting), not \enquote{chapter 4} for both; [Tha13] and [STW24] for GKR-based grand
+products. &
+\code{R99}; \file{literature.md} §D.3 &
+error of the blueprint & \sev{minor}\\
+\end{longtable}
+\end{landscape}
