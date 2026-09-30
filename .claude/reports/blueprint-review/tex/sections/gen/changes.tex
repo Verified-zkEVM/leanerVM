@@ -4,7 +4,7 @@
 % (at 144c5aa every line after 51 is four higher).
 \label{sec:chg}
 
-\paragraph{How to read this appendix.} Each row of \cref{tab:chg-blueprint} is one change to the
+\begin{sloppypar}\noindent\textbf{How to read this appendix.} Each row of \cref{tab:chg-blueprint} is one change to the
 blueprint (\file{docs/roadmap/protocol-blueprint.md}), placed where it applies: the rows follow the
 blueprint's own order, section by section (the headline and \enquote{For zkVM engineers}, the scope,
 the contracts and the ledger, the pinned conventions row by row, the spine, Layers 0 to 13, the
@@ -20,9 +20,9 @@ of the dossier under \file{.claude/reports/blueprint-review/dossiers/}. The four
 classification the dossier gives, in one of four words: an error of the blueprint, a deliberate
 deviation, a deviation forced by an upstream library, or documentation (stale, missing or
 misplaced text that is no divergence from leanVM); where the dossier gives none, the column says
-so. The last column is the severity of the strongest finding behind the row.
+so. The last column is the severity of the strongest finding behind the row.\end{sloppypar}
 
-Three kinds of change are not in \cref{tab:chg-blueprint}. Changes to the status, the tracker, the
+\begin{sloppypar}Three kinds of change are not in \cref{tab:chg-blueprint}. Changes to the status, the tracker, the
 hole comment, \file{docs/architecture.md}, \file{docs/leanvm-target.md} and the other documents
 are in \cref{ch:documentation} and in the drafts of \cref{sec:docs-texts} (among them the status
 rows \code{R38}, \code{R83}, \code{R94}, \code{R95}, \code{R97} and the attribution of
@@ -34,7 +34,7 @@ that ask the owner to choose between alternatives are marked \textsf{[decision]}
 and the review's recommendation are in \cref{sec:chg-decisions}. The register's positions \code{R3}
 and \code{R8} and its rows that propose no change to the blueprint (\code{R101}, \code{R104},
 \code{R110}, \code{R113}, \code{R115}, \code{R123}, \code{R126}, \code{R133}, \code{R134},
-\code{R136}, \code{R140}) appear only where they bear on a row.
+\code{R136}, \code{R140}) appear only where they bear on a row.\end{sloppypar}
 
 \section{Changes to the blueprint}\label{sec:chg-blueprint}
 
@@ -1287,3 +1287,375 @@ products. &
 error of the blueprint & \sev{minor}\\
 \end{longtable}
 \end{landscape}
+
+\section{Changes to the code}\label{sec:chg-code}
+
+\begin{sloppypar}
+The changes the review proposes to the Lean sources and tests already on \code{main}, with the file
+and lines at \code{b435631} (paths under \file{LeanerVM/Protocol/} unless another root is named).
+Code for layers that are not built (the adaptor, the phases of Layers 6, 7, 9 and 10, the
+compilation) is specified by the blueprint and appears in \cref{tab:chg-blueprint} only. Columns
+and classifications as in \cref{tab:chg-blueprint}.
+\end{sloppypar}
+
+\begin{landscape}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.8cm}>{\raggedright\arraybackslash}p{9.6cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{1.6cm}@{}}
+\caption{Proposed changes to the code (files and lines at \code{b435631}).}\label{tab:chg-code}\\
+\toprule
+\textsf{\bfseries File and lines} & \textsf{\bfseries Change} & \textsf{\bfseries Register row; full text} & \textsf{\bfseries Classification} & \textsf{\bfseries Severity}\\
+\midrule
+\endfirsthead
+\multicolumn{5}{@{}l}{\textit{\Cref{tab:chg-code}, continued.}}\\
+\toprule
+\textsf{\bfseries File and lines} & \textsf{\bfseries Change} & \textsf{\bfseries Register row; full text} & \textsf{\bfseries Classification} & \textsf{\bfseries Severity}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{5}{r@{}}{\textit{Continued on the next page.}}\\
+\endfoot
+\bottomrule
+\endlastfoot
+%
+\multicolumn{5}{@{}l}{\textsf{\bfseries The spine and its generic half}}\\*
+\file{Spine/Compose.lean:149}; \file{ToArkLib/Component.lean:66} &
+The error becomes the spine's closed form \lean{piopError I} of the instance's sizes: \lean{err}
+leaves \lean{Component.Def}, \lean{Security} carries it with its \lean{rbr}, and
+\lean{Phases.Security} demands each phase's \lean{rbr} at the spine's error (the alternative: a
+bound field in \lean{Phases.Security}). \textsf{[decision]} &
+\code{R5}; \cref{f:code-spine-declared-error-unconstrained-knowledge-theorem} &
+error of the blueprint (an omission the spine inherited) & \sev{major}\\
+\file{ToArkLib/Component.lean:66}; \file{PublicInput.lean:374-381} &
+\lean{err} out of \lean{Component.Def} (into \lean{Security}), or the reduction in a computable
+structure that \lean{Def} extends; then \lean{publicInputPhase}, \lean{leanVmVerifier} and
+\lean{piopExtractor} compile. \textsf{[decision]} &
+\code{R42}; \cref{f:lib-err-noncomputable} &
+none given (auditability) & \sev{minor}\\
+\file{ToArkLib/Component.lean:79-80} &
+Delete the field \lean{outputPure}; \lean{Complete.append} takes ArkLib's
+\lean{Prover.instOutputIsPureEmpty}; keep the hand-written \lean{guarded}. &
+\code{R40}; \cref{f:code-spine-outputpure-field-redundant-guarded-nearly} &
+forced by an upstream library (retired when the spine imports \file{NoAmbient}) & \sev{minor}\\
+\file{ToArkLib/Component.lean:84-85} &
+If completeness is to carry an error: \lean{err} in \lean{Complete}, composed by ArkLib's guarded
+completeness append (errors add), \lean{piop_completeness} with \lean{piop_perfectCompleteness} as
+its corollary. \textsf{[decision]} &
+\code{R4} (\code{R17}); \cref{f:lib-completeness-error} &
+error of the blueprint, conditional (disputed) & \sev{major}\\
+\file{ToArkLib/Component.lean:90-93, 176, 182-184} &
+A \lean{Component.Guarded} (output purity and guard) extended by both \lean{Complete} and
+\lean{Security}; \lean{Security.append} gets a path that does not build \lean{toComplete}.
+\textsf{[decision]} &
+\code{R39}; \cref{f:flock-ring-security-extends-complete} &
+deliberate deviation & \sev{minor}\\
+\file{Spine/Compose.lean} (new) &
+Define \lean{piopExtractedStack P S}, the fold of \lean{extractOut} and the \lean{extractMid}s
+down to round 0, and prove \lean{piopExtractedStack P S s tr = tr ⟨0, _⟩} for every bundle,
+statement and transcript; the tests' \lean{rfl} example becomes a corollary. &
+\code{R46}; \cref{f:code-spine-extracted-stack-not-definition-rfl} &
+error of the blueprint & \sev{minor}\\
+\file{Spine/Seams.lean:71-95, 130-134, 175-177} &
+\lean{BusOut} with a point, the forms per side and sumcheck table over row polynomials within the
+degree bound, three totals and the column claims, and \lean{Seam.bus} accordingly; smallest, for
+the degree alone: \lean{VirtualTerm.poly} a subtype within \lean{I.d}, the degree conjunct deleted
+(the test \lean{cubicTerm} becomes a typing failure). \textsf{[decision]} &
+\code{R2} (\code{R3}); \cref{f:table-pub-bus-seam}, \cref{f:code-spine-degree-conjunct-seam-bus-guard} &
+error of the blueprint & \sev{major}\\
+\file{Spine/Instance.lean:73-81} &
+\lean{Layout} with \lean{extend} and one law; \lean{read} a definition; the toy's \lean{slice}
+becomes a theorem. &
+\code{R41}; \cref{f:code-spine-read-determined-extend} &
+none given (a design remark) & \sev{minor}\\
+\file{Spine/Instance.lean:119-148} (\lean{M3Instance}) &
+The decidable predicate of the sumcheck tables (a constraint, a flush or a count column). &
+\code{R11}; \cref{f:table-pub-sumcheck-tables}; \file{boundary-adaptor.md} §G.9 &
+error of the blueprint (omission) & \sev{major}\\
+\file{Spine/Instance.lean:119-148} (\lean{M3Instance}) &
+The fields \lean{one_le_d} and \lean{constrained_on_bus}, or the same as hypotheses of the bus
+phase. \textsf{[decision]} &
+\code{R43}; \cref{f:bus-side-conditions} &
+error of the blueprint & \sev{minor}\\
+\file{Spine/Compose.lean} (\lean{Phases}) &
+A field saying that each front phase's verifier makes no query to \lean{TheOracle I}, inhabited by
+the commit and public-input phases; or front phases typed as plain verifiers lifted by
+\lean{keepOracles}. \textsf{[decision]} &
+\code{R138}; \file{obligations.md} §5.2 &
+error of the blueprint & \sev{major}\\
+\file{ToArkLib/Refinement.lean:55-57} &
+Add \lean{Refinement.knowledge_transport} (the event form, proved in the probe \code{P6Surface})
+as an ArkLib candidate; keep \lean{map_option_valid} for the honest direction. &
+\code{R119}, \code{R72}; \cref{f:code-spine-knowledge-transport-along-adaptor-three};
+\file{boundary-adaptor.md} §G.13 &
+error of the blueprint & \sev{minor}\\
+\file{ToArkLib/PassThrough.lean:1-5} (docstring) &
+Name ArkLib's \lean{ReduceClaim.oracleReduction}, of which \lean{Component.passThrough} is the
+named-form version. &
+\code{R124}; \cref{f:lib-reimplemented} &
+none given & \sev{note}\\
+\texttt{ToVCVio/\allowbreak UniformSample.lean:35} &
+At the new VCVio pin \code{a4232d08}, replace \lean{probEvent_uniformSample_le_of_card_le} by
+\lean{SampleableType.prEvent_uniformSample_le_div_iff}; keep or upstream the subsingleton form. &
+\code{R129}; \cref{f:lib-counting-bound-redundant} &
+none given (a duplicate of upstream after the pin moved) & \sev{note}\\
+\file{Basic.lean:3}; \file{LeanerVM.lean:19}; \file{scripts/check-layers.sh:30-41};
+\file{scripts/test-policy-checks.py} &
+Delete the empty \file{LeanerVM/Protocol/Basic.lean} (and its import), or drop its import of the
+arithmetization; write the wall's rule into \file{check-layers.sh} with an allow-list, and a
+planted violation into the policy tests. &
+\code{R44}; \cref{f:code-l1-protocol-basic-lean-imports-arithmetization}, \cref{f:docs-import-rule} &
+error of the blueprint (the witness text is false), and dead code & \sev{minor}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries The public-input phase}}\\*
+\file{PublicInput.lean:127-128}, and \lean{verifier}, \lean{prover.output}, \lean{guarded.out}, the
+state function (\code{:350-366}) &
+Pool the values sent (\lean{pooledFrom}) in place of the values computed from the statement; with
+the per-limb check the state function's round 1 is unchanged in substance. The check becomes
+load-bearing: add as tests, next to \lean{threeLimbs}, the refutations of its removal and of its
+weakening. &
+\code{R13}; \cref{f:code-pub-check-on-public-input-message} &
+error of the design (an audit-surface compression) & \sev{major}\\
+\file{PublicInput.lean} (new) &
+Build the deployed phase: \lean{checkWords}, \lean{deployedVerifier}, \lean{deployedPhase},
+\lean{deployedSecurity} at $1/\abs{\E}$ (key lemma \lean{accepts_two_challenges}), and the lemma
+that the per-limb phase's acceptance implies the deployed one's. \textsf{[decision]} &
+\code{R12}; \cref{f:code-pub-theorems-are-about-verifier-none}, \cref{f:table-pub-public-input-check} &
+deliberate deviation owing its theorem & \sev{major}\\
+\midrule
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 0 and Layer 1}}\\*
+\file{Field.lean:109} &
+\lean{evalOracle_answer {n : ℕ}}: $n$ implicit, as the blueprint has it. &
+\code{R75}; \cref{f:lib-evaloracle-answer-n} &
+none given (a code/blueprint mismatch) & \sev{minor}\\
+\file{Field.lean:80} (docstring) &
+Say that the $\K$ sampler is only the building block of the $\E$ sampler. &
+\code{R74}; \cref{f:lib-k-sampler-unused} &
+none given (avoidable audit surface) & \sev{minor}\\
+\file{Field.lean:18, 29, 31, 37, 66} (docstring) &
+Rewrite without the roadmap, the layer numbers and the code (\enquote{the eager \lean{Fintype BF64}
+instance} in words); at \code{144c5aa}, \enquote{of VCVio, a direct requirement}. &
+\code{R130}; \cref{f:docs-layer0-comments} &
+documentation & \sev{note}\\
+\texttt{tests/\allowbreak LeanerVMTests/\allowbreak Protocol/\allowbreak Field.lean:25-26, 37-38} (at \code{144c5aa}) &
+The comments name the column $[1, x, x + 1, x^2]$ (words 1, 2, 3, 4 as \lean{K.ofBits}), not
+\lean{[1, 2, 3, 4]}: \lean{(2 : K)} is 0 at the new CompPoly pin. &
+\code{R127}; \cref{f:lib-numerals-changed} &
+none given (an upstream change adopted) & \sev{note}\\
+\texttt{ToCompPoly/\allowbreak Multilinear.lean:50-51}; \file{Stack.lean} &
+Add \lean{sliceLow}, \lean{evalMle_boolVec_append}, \lean{Blocks.stridedLayout},
+\lean{Layout.piecewise}, with tests against the Python's \code{Placement.stack_point}. &
+\code{R35}; \cref{f:code-l1-strided-reader-eighteen-blake2s-limb} &
+error of the blueprint (omission) & \sev{major}\\
+\file{FixedColumns.lean:84-87}; \texttt{tests/\allowbreak LeanerVMTests/\allowbreak Protocol/\allowbreak FixedColumns.lean:61-74} &
+Delete \lean{bytecodeColumn_slot} and its three examples; add the sixteen-instruction
+\texttt{\#guard} against the Rust encoder (written with \lean{K.ofBits} at the new pin). &
+\code{R79}; \cref{f:code-l1-acceptance-test-14-names-tautology} &
+error of the blueprint (stale witness), and avoidable audit surface & \sev{minor}\\
+\file{BlockClaims.lean} and its test &
+Delete (eight public declarations, no consumer). &
+\code{R81}; \cref{f:code-l1-blockclaims-lean-has-no-consumer} &
+none given (avoidable audit surface) & \sev{minor}\\
+Layer 1, unused or duplicated declarations &
+\lean{prodVars} and its two lemmas, \lean{unstack_eval}, \lean{stack_eval_ambient_zero},
+\lean{stackColumn_eval}, \lean{stackColumn_eval_ambient}, \lean{bytecodeSlotColumn},
+\lean{slice_bytecodeColumn}, \lean{evalMle_lagrangeBasis} (CompPoly has \lean{eqTilde_eq_prod}):
+private or deleted. &
+\code{R132}; \cref{f:code-l1-note-unused-or-duplicated-declarations} &
+none given (audit surface) & \sev{note}\\
+\code{lake test} (no file named) &
+The owner checks whether \code{lake test} can again be an executable: the eager
+\lean{Fintype BF64} that forbade it is gone at \code{144c5aa}. &
+\code{R125}; \cref{f:lib-eager-fintype} &
+forced by an upstream library (retired) & \sev{note}\\
+\end{longtable}
+\end{landscape}
+
+\section{Changes that depend on a decision of the owner}\label{sec:chg-decisions}
+
+\begin{sloppypar}
+The rows marked \textsf{[decision]} above, grouped by the choice they wait on. For each: the
+alternatives the register or the dossiers offer, one line each, and the review's recommendation as
+the register or the dossier gives it (where only the options chapter, \cref{ch:options}, gives one,
+the entry says so). The other rows of the two tables do not depend on these choices, except in
+wording.
+\end{sloppypar}
+
+\begin{enumerate}[leftmargin=*, itemsep=6pt]
+\item \textbf{The oracle interface of the stack} (\code{R18}, with \code{R19}; rows in Scope, the
+  row \emph{The oracle}, Layers 0, 10, 11 and 12).
+  \begin{itemize}
+  \item (i) Keep the evaluation oracle and the opening sumcheck, and owe a theorem relating that
+    protocol to the deployed one.
+  \item (ii) Give the stack the inner-product interface (a query is a weight, specification
+    Definition 3.13); the opening phase is $λ$ and one weighted query, which WHIR realizes.
+  \item (iii) End the oracle protocol at the Flock seam and let the compilation append WHIR.
+  \end{itemize}
+  Recommendation: (ii). (i) is rejected, since no implication exists between two protocols with
+  different transcripts; (iii) is acceptable, but changes the master theorems' shape and leaves the
+  stack's interface unused (\file{gt-opening-compile.md} §A.5).
+
+\item \textbf{The shape of the bus seam} (\code{R2}, against the position \code{R3}; rows in the
+  spine's sketch and prose, test 28, the code table).
+  \begin{itemize}
+  \item (a) \lean{BusOut} in the shape of the Rust's \code{BusVerify}: one point, forms per side and
+    sumcheck table with the degree bound in the type, three totals, the column claims.
+  \item (b) Keep the types and add the guards to \lean{Seam.bus} (at most $B + 3$ claims, one point
+    per table, terms on sumcheck tables), checked by the table verifier and proved dead in the
+    composition (Layer 12).
+  \item (c) The smallest fix, for the degree only: \lean{VirtualTerm.poly} a subtype within
+    \lean{I.d}.
+  \item (d) No change beyond the bus phase's two side conditions: the seam's surplus burdens only
+    the table phase (the position of \file{gt-bus.md}, \code{R3}).
+  \end{itemize}
+  Recommendation: (a), the table-phase dossier's redesign, which the spine dossier endorses
+  (register \code{R2}; \cref{f:table-pub-bus-seam}). The second reading of the majors finds no
+  tension between \code{R2} and \code{R3}: the bus phase fills its slot, and the table phase cannot
+  serve the seam (\file{verify-majors.md}, summary).
+
+\item \textbf{Which public-input check the phase models} (\code{R12}; the pooling of \code{R13} is
+  needed either way).
+  \begin{itemize}
+  \item (a) Build the deployed phase (the combined equation on the two words, the values sent
+    pooled) and let the master theorems and Layer 12 take it; keep the specification's per-limb
+    phase as the reference, with the lemma that its acceptance implies the deployed one's; report
+    the ambiguity of §8.2 to leanVM.
+  \item (b) Keep only the specification's phase: the theorem is then about a verifier none of the
+    three executable verifiers runs, and the debt assigned to Layer 12 cannot be paid there.
+  \end{itemize}
+  Recommendation: (a) (\cref{f:table-pub-public-input-check,f:code-pub-theorems-are-about-verifier-none}).
+
+\item \textbf{Whether completeness carries an error} (\code{R4} against \code{R17}, with
+  \code{R39}; rows \emph{Holes}, the spine's sketch, Layer 9, test 20).
+  \begin{itemize}
+  \item (a) A field \lean{err} in \lean{Component.Complete}, errors added by ArkLib's guarded
+    completeness append, \lean{piop_completeness} with \lean{piop_perfectCompleteness} as its
+    corollary, and a completeness error for the Flock phase (\file{lib-arklib.md} §G.2).
+  \item (b) Perfect completeness stays: the specification's Flock is perfectly complete, the Lean
+    honest prover sends the true coefficients, and the Rust prover's defect at $r_{\mathrm{eq}} = 1$
+    is recorded in \file{docs/leanvm-target.md} (\file{gt-flock-ring.md} §8.4, §8.12).
+  \item (c) Independently of (a) or (b): separate the guard from completeness
+    (\lean{Component.Guarded}), so that knowledge soundness no longer presupposes completeness
+    (\file{gt-flock-ring.md} §8.5).
+  \end{itemize}
+  Recommendation: the dossiers disagree. \file{gt-opening-compile.md} §E.5 agrees with (b) on the
+  facts and calls (a)'s field \enquote{the right insurance}. The options chapter
+  (\cref{sec:opt-recommendations}, item 5) recommends (c) with (b): completeness left perfect.
+
+\item \textbf{Whether the framework stays on ArkLib's \lean{OracleReduction}} (\code{R34}; the
+  ledger rows, Layer 10, the interfaces).
+  \begin{itemize}
+  \item (a) Stay on the framework ArkLib calls legacy, keep the port of \#615 until some ArkLib
+    framework proves a guarded-first append, prove the plain corollary locally, and record the
+    decision with its retirement condition.
+  \item (b) Plan the migration to ArkLib's typed Interaction framework, which at \code{7653a901} has
+    no knowledge soundness, no round-by-round notion and no extractor.
+  \end{itemize}
+  Recommendation: (a) (\cref{f:lib-legacy-framework}; the options chapter, item 9: nothing upstream
+  is ready to receive the spine).
+
+\item \textbf{How the phases' error is constrained} (\code{R5}; rows \emph{Errors}, item 6, Layer
+  10, the code table).
+  \begin{itemize}
+  \item (a) A closed-form bound as a field of \lean{Phases.Security} (or a new \lean{Phases.Error}),
+    the phases still declaring their errors.
+  \item (b) The spine fixes each phase's error as a function \lean{piopError I} of the instance's
+    sizes and demands each phase's round-by-round bound at it (the schedules then fixed by the
+    spine too).
+  \end{itemize}
+  Recommendation: (b) (\cref{f:code-spine-declared-error-unconstrained-knowledge-theorem}).
+
+\item \textbf{Where the error lives in the hole interfaces} (\code{R42}; row \emph{Holes}, the
+  spine's sketch, the code table).
+  \begin{itemize}
+  \item (a) \lean{err} moves from \lean{Component.Def} into \lean{Security}.
+  \item (b) The reduction becomes a computable structure that \lean{Def} extends.
+  \end{itemize}
+  Recommendation: the dossier gives the reason for (a) (the error is a property of the soundness
+  proof, not of the reduction) without ranking the two (\cref{f:lib-err-noncomputable}); the design
+  recommended in item 6 also takes \lean{err} out of \lean{Def}.
+
+\item \textbf{The program hypothesis of the base theorems} (\code{R27}; the leanISA contract row,
+  Layer 13).
+  \begin{itemize}
+  \item (a) Both theorems take \lean{hwf : WellFormedBytecode prog}.
+  \item (b) \lean{verify} decides the program condition on the public program and rejects
+    otherwise, which removes the hypothesis from the soundness theorem.
+  \end{itemize}
+  Recommendation: none; the register calls it a technical decision. The drafted texts of both
+  dossiers take (a) (\cref{f:docs-base-theorem-hypothesis}; \file{boundary-adaptor.md} §G.3).
+
+\item \textbf{The resources of base completeness} (\code{R29}, \code{R122}; Layer 13, the
+  boundary with leanISA).
+  \begin{itemize}
+  \item (a) The completeness theorem from an execution takes a fit hypothesis \lean{hfit}, which is
+    then the resource condition \file{architecture.md} asks for.
+  \item (b) The leanISA roadmap supplies a \lean{constraintCompleteness} that returns a witness of
+    minimal heights (itself needing a resource hypothesis, \code{R122}).
+  \end{itemize}
+  Recommendation: none given (\file{boundary-adaptor.md} §G.4 offers both).
+
+\item \textbf{The round message of the sumchecks} (\code{R53}; row \emph{Sumcheck messages}).
+  \begin{itemize}
+  \item (a) The wire's message becomes the oracle protocol's (three coefficients, no round
+    check): the compilation is literal and one check leaves the audit.
+  \item (b) The oracle protocol keeps four coefficients and the round check, and Layer 4 proves
+    the transport lemma.
+  \end{itemize}
+  Recommendation: the dossier does not rank them (\cref{f:table-pub-round-message}); the options
+  chapter (\cref{sec:opt-tradeoff}) keeps the deviation, that is (b), with the lemma owed.
+
+\item \textbf{The GKR inside the bus phase} (\code{R10}; the ledger row on context lifting,
+  Layers 5 and 6).
+  \begin{itemize}
+  \item (a) Layer 5's GKR over a context, with the leaf tables derived from the stack and the
+    zerocheck riding along; retired when ArkLib proves its lifting theorems and offers riders.
+  \item (b) ArkLib's context lifting, whose completeness and knowledge-soundness theorems are
+    admitted at both pins, and which alone would not carry the zerocheck clause.
+  \item (c) A monolithic bus phase (named by the options chapter, item 6, not by a dossier).
+  \end{itemize}
+  Recommendation: (a) (\cref{f:bus-generic-gkr}).
+
+\item \textbf{Where the Flock slot map and the adaptor's Flock obligations live} (\code{R15},
+  \code{R16}; Layers 3 and 9, the interfaces, the boundaries).
+  \begin{itemize}
+  \item (a) \lean{blake2sLimbSlot : Fin 18 → Fin 256} in \file{Parameters/}, the low-index
+    selection generic, Layer 3 building the reader, \lean{limbColumns} deleted
+    (\cref{f:flock-ring-slot-map-circular}).
+  \item (b) One instance-free \lean{FlockSpec}, supplied by \#3, with the slot map, the predicate,
+    the lemma \enquote{R1CS $⇒$ compress}, the generator and its lemma; \lean{FlockWitnessGen} and
+    \lean{limbColumns} deleted; the phase takes the \lean{FlockRegion I} of \code{R16}
+    (\file{boundary-adaptor.md} §G.7).
+  \end{itemize}
+  Recommendation: none ranked; the register merges them into one change (\code{R15}), and (b)
+  includes (a)'s slot map with the two obligations (a) leaves without a carrier.
+
+\item \textbf{The bus phase's two side conditions} (\code{R43}; the spine's sketch, test 28).
+  Fields \lean{one_le_d} and \lean{constrained_on_bus} of \lean{M3Instance}, or the same as
+  hypotheses of the bus phase in Layer 6. Recommendation: none given (\cref{f:bus-side-conditions}).
+
+\item \textbf{How the front's oracle-freeness is enforced} (\code{R138}; row \emph{The oracle},
+  the spine, Layer 12, the code table).
+  \begin{itemize}
+  \item (a) A field of \lean{Phases} (or a hypothesis of the compilation theorem) that no front
+    phase's verifier queries the stack, inhabited by the two built phases.
+  \item (b) Front phases typed as plain verifiers lifted by \lean{keepOracles}, so that a query is
+    a typing error.
+  \end{itemize}
+  Recommendation: none ranked (\file{obligations.md} §5.2).
+
+\item \textbf{The error over the prover's announced sizes} (\code{R6}; row \emph{Statements and
+  parameters}, Layer 12, test 21). The maximum over admissible sizes, with
+  \lean{FiatShamirSecurity} in family form and the sizes in the challenge oracle's input; or the
+  sum, if the interface is per instance (a union over about $2^{34}$ sizes, a hand estimate).
+  Recommendation: the family form with the maximum (\file{boundary-adaptor.md} §G.6).
+
+\item \textbf{The Merkle trees} (\code{R77}; the ledger, Layer 11). Build Layer 11 on VCVio's
+  Merkle-tree library (VCVio issue 571), or write the trees here as planned. Recommendation: none;
+  whether VCVio's trees fit leanVM's (BLAKE2s, the leaf encoding, pruned paths) is unverified
+  (\cref{f:docs-vcvio-merkle}).
+
+\item \textbf{The obligations no hole owns} (\code{R137}; the holes table, the ordering). One new
+  hole per obligation, or each folded into the nearest hole with one new hole for the list-binding
+  compilation. Recommendation: none ranked; \file{obligations.md} §5.1 gives the folding in full.
+\end{enumerate}
