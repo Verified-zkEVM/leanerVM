@@ -1,1 +1,151 @@
-% stub: to be written
+\chapter{Options, limitations and boundaries}\label{ch:options}
+
+For each thing the review found, the options are to fix the blueprint, to keep it with the
+reason recorded and a theorem owed, or to refactor it; this chapter gives the review's
+recommendation with the cost of each, then the general trade-off between specifying leanVM
+exactly as deployed and specifying a variant that is easier to audit, then what cannot be
+reproduced today and what it waits on, and finally what the proof system hands over to, and
+requires of, the rest of the end-to-end verification. The register of findings
+(\cref{sec:reg}) numbers each finding \code{R1}, \code{R2}, \ldots; the appendix of proposed
+changes (\cref{ch:changes}) gives the text of each change.
+
+\section{Recommendations, in priority order}\label{sec:opt-recommendations}
+
+\begin{enumerate}
+\item \textbf{Fix the error in the spine} (\code{R5}). Define \lean{piopError\ I} in closed
+  form from the instance's sizes and demand each phase's knowledge soundness at it. Cost: one
+  definition and a change of one field; every phase built later pays the bound. Without it the
+  soundness theorem constrains nothing. The alternative, a bound as a field of
+  \lean{Phases.Security}, keeps the phases' freedom to declare and is weaker; not recommended.
+\item \textbf{Give the stack an inner-product oracle} (\code{R18}). The specification's
+  commitment is an inner-product scheme; its idealization answers weighted sums. The opening
+  phase becomes \enquote{$\lambda$, then one weighted query}, with the deployed transcript, and
+  WHIR replaces the whole opening phase. Cost: Layer 0's interface, the opening phase and
+  Layers 11 and 12 as sketched; nothing built breaks. The alternative, keeping the evaluation
+  oracle and the extra sumcheck and owing a theorem that relates the two protocols, is a
+  transcript leanVM does not have and a theorem nobody has stated; not recommended. A third,
+  ending the oracle protocol at the Flock seam and treating the opening as part of the
+  compilation, is acceptable but moves the batching error out of the oracle protocol.
+\item \textbf{Give the bus seam leanVM's shape and name the sumcheck's tables}
+  (\code{R2}, \code{R11}). One point, forms per side and table with the degree bound in the
+  type, three totals, the column claims; a decidable predicate for the tables the sumcheck
+  ranges over. Cost: the seam and the two phases around it; the removal of the guards a
+  generalized table sumcheck would otherwise need. The alternative, keeping the general seam
+  with a generalized verifier and proving the guards dead in the composition, is more code and
+  a verifier that is not leanVM's; not recommended. The bus phase's side of the seam is right
+  either way (\code{R3}).
+\item \textbf{Build the public-input phase of the deployed verifiers} (\code{R12},
+  \code{R13}). The combined check, with the values sent pooled; its key lemma is proved. Keep
+  the specification's phase as a reference and report the discrepancy of §8.2 to leanVM as an
+  ambiguity (both are sound). Cost: one phase, on the pattern of the built one. The alternative,
+  keeping only the specification's phase, leaves the master theorem about a verifier nobody
+  runs and a check that no theorem needs.
+\item \textbf{Make the Flock phase statable and its interface faithful} (\code{R14},
+  \code{R15}, \code{R16}, \code{R17}). A small structure in the instance naming the region, the
+  log-count and what the predicate says; the slot map of the limbs as parameters, not as a
+  field of the Flock interface; Layer 9's interface replaced by the spine's slot; the honest
+  prover the mathematical one; acceptance test 20 rewritten; the Rust prover's defect at
+  $r_{\mathrm{eq}} = 1$ reported to leanVM. Cost: text, one structure, and a request to the
+  Flock roadmap. Whether \lean{Component.Complete} should carry an error (\code{R4}) is then
+  a choice: not needed for faithfulness, useful as insurance; the review recommends separating
+  the guard from completeness so that knowledge soundness no longer presupposes it, and leaving
+  completeness perfect.
+\item \textbf{Describe the GKR as deployed} (\code{R7}, \code{R9}, \code{R10}). The
+  normalized layer sumcheck of degree 4, four coefficients on the wire, error $4/\abs{\E}$; a
+  combiner after every layer, the last unused; a GKR component over a context with the leaf
+  tables derived from the stack and the zerocheck conjunct riding along, or a monolithic bus
+  phase. Cost: Layers 4 to 6 as sketched. The alternative, ArkLib's context lifting, is admitted
+  at both pins.
+\item \textbf{Restate the adaptor} (\code{R30} to \code{R33}, \code{R35}). The instance built
+  from the tables' components and from boundary blocks with known columns, never
+  \lean{Ensemble.toM3} of the eight tables; a bridge lemma for the boundary blocks; a computable
+  polynomial bridge; admissibility with the stacking and rate windows and no
+  \lean{logInvRate} in the witness's sizes; a reducible instance; the strided reader of the limb
+  columns as a Layer 1 lemma and a Layer 3 reader. Cost: Layers 1 to 3 as sketched.
+\item \textbf{Restate the non-interactive theorems} (\code{R20} to \code{R29}). An adversary
+  with a query budget against a random oracle standing for the compression, a straight-line
+  extractor that reads leaves off the query log, list decodes and selects, adversary-chosen
+  sizes inside one protocol family, the program bound by its hash, the well-formedness of the
+  program and the resource bounds as hypotheses, and the random-oracle heuristic as a named
+  non-formal step; the error with the hash term, the list-size factor and grinding; completeness
+  of the honest prover whenever its grind returns. The assumed interfaces restated for leanVM's
+  constructions (one BLAKE2s map for the chain, the Merkle nodes and the grinding), or replaced
+  by a plan to prove the chain lemma and the role-separation lemma; the list-binding
+  compilation stated as the theorem it is. Cost: Layers 11 to 13 rewritten; the target theorem
+  of \file{docs/architecture.md} with them.
+\item \textbf{Decide the framework} (\code{R34}). ArkLib now calls \lean{OracleReduction}
+  legacy and its typed successor has no knowledge notion; the composition the spine ports is
+  still admitted upstream and its pull request still open. Stay on the legacy framework with
+  the local port, and record the decision and its retirement condition, or plan the migration.
+  The review recommends staying, since nothing upstream is ready to receive the spine.
+\item \textbf{Consolidate the documentation} (\code{R36} to \code{R38} and the minor rows).
+  The blueprint as the one specification, its per-layer sketches rewritten on the spine's
+  types, the hole comment folded into it, the status and the tracker as pointers, one
+  vocabulary, the codes replaced by names or indexed once (\cref{ch:documentation}).
+\end{enumerate}
+
+\section{Exactly as deployed, or easier to audit?}\label{sec:opt-tradeoff}
+
+The review's rule of thumb, from what it found: \emph{the oracle protocol models the checks
+of the deployed verifier; the specification is the source of the arguments.} Where the two
+agree, there is no choice. Where they differ, three cases arose. The public-input check: the
+specification's per-limb check is easier to reason about and the deployed combined check is
+what runs; modelling the specification's produced a theorem about a verifier nobody runs and a
+check that no theorem needs, so the deployed one should be modelled and the specification
+amended. The Flock prover's inverse: a defect of the implementation's prover, not of the
+protocol, so the Lean honest prover is the specification's and the implementation is told. The
+Python verifier's acceptance of nonzero absent lanes: soundness-neutral, recorded, not
+modelled. The general lesson is that an auditable variant is acceptable only where it accepts
+\emph{no more} than the deployed verifier and its relation to the deployed one is a theorem
+somebody states; a variant that accepts less (the per-limb check) makes the master theorem
+silent about the deployed verifier's extra acceptances, which is where a deployment's risk is.
+
+Two deliberate deviations the blueprint has are right and should stay with their reasons
+written: the oracle protocol's messages are whole objects where the wire carries an encoding
+(the round polynomial with one coefficient derived), owing the transport lemma the review
+states; and the relation is polynomial rather than \enquote{an execution exists}, with the
+adaptor as the one place the semantics is met.
+
+\section{What cannot be reproduced today}\label{sec:opt-upstream}
+
+\begin{itemize}
+\item Clean's bus balance over $\K$ is unsatisfiable, not merely unsound: leanISA's
+  \lean{BalancedPair} stands in until Clean's directed, integer-counted balance lands and the
+  pin reaches it (\cref{ch:libraries}).
+\item ArkLib admits the composition of knowledge soundness (ported locally), the implications
+  from round-by-round to plain knowledge soundness and soundness, the sumcheck's round-by-round
+  leaf, context lifting, and the coding-theory theorem; it states no Fiat--Shamir or Merkle
+  security; its ring switching is another protocol. None of this moved with the new pin. The
+  chain to the target theorem waits on the implications and on Fiat--Shamir, and the review
+  recommends stating the assumed interfaces for leanVM's constructions now, so that what is
+  waited for is at least written down.
+\item Lean's kernel cannot decide the fields' arithmetic fast: probes over $\K$ and $\E$ are
+  \lean{\#guard}s on tiny instances, and a numeral's meaning in $\K$ changed with the new pin.
+\item No published theorem covers Fiat--Shamir with proof of work for a multi-round protocol;
+  leanVM's query rounds reach 128 bits only with it. The blueprint should say what security
+  level its non-interactive theorem can certify and what remains a claim of the parameter
+  analysis.
+\end{itemize}
+
+\section{The boundaries}\label{sec:opt-boundaries}
+
+\paragraph{What the proof system requires of leanISA.} The relation \lean{SatisfiedBy} as it
+stands, with its \lean{Caps}, its integer-counted balance, its fixed-column conjuncts and its
+public-word conjunct whose top limb is zero by type; the constraint-soundness theorem with its
+hypothesis \lean{WellFormedBytecode}, which the target theorem must carry; a resource condition
+on valid executions, without which completeness is false; and the two requests the blueprint
+already makes (power-of-two heights, bus data per channel), both met.
+
+\paragraph{What it requires of the Flock roadmap.} A predicate on a packed column (the R1CS
+with the constant position), a phase at the spine's seams with perfect completeness for the
+specification's honest prover and knowledge soundness at the accounted error, the witness
+generator with its lemma, the constants and the slot map transcribed from the Rust (they are
+not in the specification), and the ring-switching weight's closed form. The roadmap has not
+started; the compiled verifier's fixture cannot pass before its definition exists.
+
+\paragraph{What it hands over.} To the arithmetization: knowledge of \lean{M3Holds} of the
+leanISA instance at the proof system's error, carried by the adaptor to \lean{SatisfiedBy}. To
+recursion: the compiled verifier with its fixed-claim settlement as the seam, and the extracted
+witness the recursion target needs, which the target theorem as sketched drops. To Ethereum: a
+verifier whose every check has a theorem behind it or a named reason why not, which is what
+\cref{ch:drift} sets out to make enforceable.

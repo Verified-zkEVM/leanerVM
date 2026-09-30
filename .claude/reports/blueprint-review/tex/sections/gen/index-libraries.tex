@@ -1,0 +1,16 @@
+% Index of the fragments written by task tex-libraries (from dossiers/lib-arklib.md and
+% dossiers/lib-others.md). Each is a \section with its own labels (prefix sec:gen-lib-, sec:gen-l0-,
+% tab:gen-lib-, tab:gen-l0-, f:lib-); each is wrapped in \begingroup\sloppy ... \endgroup.
+% External label used: ch:probes (the probes appendix). Suggested order, as below; the findings
+% fragment refers to sections of all the others.
+% Sources of the fragments: build/libtpl/<name>.tpl.tex, expanded by build/libtpl/gen.py (snippets
+% copied verbatim from the dossiers, or from `git show b435631:<path>` for the Layer 0 sources).
+\input{sections/gen/lib-vcvio}          % VCVio: OracleSpec, OracleComp, QueryImpl, Pr[...], SampleableType; what a reader trusts; new pin a4232d08
+\input{sections/gen/lib-comppoly}       % CompPoly: tables and multilinears, CMvPolynomial, K and E, bit-for-bit agreement with the Rust, numerals at the new pin 572f9973
+\input{sections/gen/lib-clean}          % Clean: circuits, tables, channels, balance and why it is unsatisfiable over K; tracking items; leanISA's workaround and its retirement
+\input{sections/gen/lib-lean}           % Mathlib notions, Lean's trusted base, what decide / decide +kernel / #guard / native_decide trust, leanerVM's validation
+\input{sections/gen/lib-arklib-objects} % ArkLib objects from scratch, in dependency order (old pin dca90385; new-pin note)
+\input{sections/gen/lib-arklib-security}% round-by-round knowledge soundness in mathematics; literature; proved/admitted; non-vacuity; extractors; completeness with errors
+\input{sections/gen/lib-arklib-pins}    % axioms of leanerVM's theorems; the blueprint's ArkLib table; admitted at each pin; the port of #615; legacy framework
+\input{sections/gen/layer0-audit}       % Layer 0 catalogue and the audit's five results
+\input{sections/gen/findings-libraries} % every finding of both dossiers, as finding boxes, and the negative results

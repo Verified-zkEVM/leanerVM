@@ -25,6 +25,7 @@ circuit emits \lean{Operation}s: a fresh witness variable, a polynomial asserted
 lookup, a bus interaction, or a nested circuit; a \lean{Circuit} is a state monad producing
 operations from a variable offset.
 \end{define}
+
 \begin{leancode}
 class FiniteField (F : Type) extends Field F where
   /-- Canonical embedding of field elements into natural numbers. -/
@@ -37,7 +38,9 @@ class FiniteField (F : Type) extends Field F where
   ...
   size : ℕ
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Utils/}\allowbreak\file{FiniteField.lean:23-45}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 inductive Expression (F : Type) where
@@ -46,7 +49,9 @@ inductive Expression (F : Type) where
   | add : Expression F -> Expression F -> Expression F
   | mul : Expression F -> Expression F -> Expression F
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Expression.lean:12-16}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 structure Environment (F : Type) where
@@ -55,7 +60,9 @@ structure Environment (F : Type) where
   ...
   data : ProverData F
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Expression.lean:46-52}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 inductive Operation (F : Type) [FiniteField F] where
@@ -67,11 +74,14 @@ inductive Operation (F : Type) [FiniteField F] where
 ...
 def Operations (F : Type) [FiniteField F] := List (Operation F)
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Operations.lean:315-320} and \file{:355}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 def Circuit (F : Type) [FiniteField F] (α : Type) := ℕ → α × List (Operation F)
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Basic.lean:29}, Clean \code{93c9d1ef}}
 
 \subsection{Components, tables, ensembles}\label{sec:gen-lib-clean-tables}
@@ -83,13 +93,16 @@ with its concrete rows. An \lean{Ensemble} is a list of components and the chann
 between them; its witness, an \lean{EnsembleWitness}, is one table per component, the shared
 data and the public input.
 \end{define}
+
 \begin{leancode}
 structure Component (F : Type) [FiniteField F] where
   {Input : TypeMap} {Output : TypeMap}
   [provableInput : ProvableType Input] [provableOutput : ProvableType Output]
   circuit : GeneralFormalCircuit F Input Output
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatComponent.lean:7-15}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 structure Table (F : Type) [FiniteField F] where
@@ -99,7 +112,9 @@ structure Table (F : Type) [FiniteField F] where
   data : ProverData F
   uniform_width : ∀ row ∈ table, row.size = width
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatComponent.lean:150-156}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 structure Ensemble (F : Type) [FiniteField F] (PublicIO : TypeMap) [ProvableType PublicIO] where
@@ -116,9 +131,10 @@ structure EnsembleWitness (ens : Ensemble F PublicIO) where
   same_circuits : ∀ i (hi : i < ens.tables.length), ens.tables[i] = tables[i].component
   same_data : ∀ table ∈ tables, table.data = data
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:11-25}, Clean \code{93c9d1ef}}
 
-\paragraph{Why \texorpdfstring{\lean{EnsembleWitness}}{EnsembleWitness} lives in \texorpdfstring{\lean{Type 1}}{Type 1}.}
+\paragraph{Why \texorpdfstring{\texttt{EnsembleWitness}}{EnsembleWitness} lives in \texorpdfstring{\texttt{Type 1}}{Type 1}.}
 A \lean{Table} stores its \lean{Component}, which stores its row types
 \lean{Input Output : TypeMap}, and \lean{TypeMap := Type → Type}
 (\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{CircuitType.lean:10}) is itself a \lean{Type 1}. A structure with a field in
@@ -139,6 +155,7 @@ pull, any other non-zero multiplicity a push. An interaction is a channel, a mul
 message: symbolic in a circuit (\lean{AbstractInteraction}), evaluated on a row
 (\lean{Interaction}).
 \end{define}
+
 \begin{leancode}
 structure RawChannel (F : Type) where
   name : String
@@ -146,7 +163,9 @@ structure RawChannel (F : Type) where
   Guarantees (mult : F) (message : Vector F arity) (data : ProverData F) : Prop
   Requirements (mult : F) (message : Vector F arity) (data : ProverData F) : Prop
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Channel.lean:15-25}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 def toRaw (channel : Channel F Message) : RawChannel F where
@@ -159,7 +178,9 @@ def toRaw (channel : Channel F Message) : RawChannel F where
     mult ≠ 0 →
     channel.Guarantees (fromElements message) data
 \end{leancode}
+
 \src{\file{Channel.lean:35-45}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 structure AbstractInteraction (F : Type) where
@@ -175,6 +196,7 @@ structure Interaction (F : Type) where
   same_size : msg.size = channel.arity
   assumeGuarantees : Bool
 \end{leancode}
+
 \src{\file{Channel.lean:101-105} and \file{:305-310}, Clean \code{93c9d1ef}}
 
 \subsection{Clean's ensemble statement and its soundness}\label{sec:gen-lib-clean-statement}
@@ -187,6 +209,7 @@ statement for a public input says that some witness has that public input, satis
 table's constraints, and balances every channel; \lean{Soundness} says that the assumptions and
 the statement imply the specification.
 \end{define}
+
 \begin{leancode}
 /--
 Balance of one element of an interaction list.
@@ -203,7 +226,9 @@ def BalancedInteractions (interactions : List (Interaction F)) : Prop :=
   (interactions.length < ringChar F ∨ ringChar F = 0) ∧
   ∀ msg : Array F, balanceOf interactions msg = 0
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{Balance.lean:13-26}, Clean \code{93c9d1ef}}
+
 
 \begin{leancode}
 abbrev BalancedChannel [DecidableEq F] {ens : Ensemble F PublicIO} (witness : EnsembleWitness ens)
@@ -220,12 +245,14 @@ def Statement (ens : Ensemble F PublicIO) (publicInput : PublicIO F) : Prop :=
 def Soundness (ens : Ensemble F PublicIO) (Assumptions Spec : PublicIO F → Prop) : Prop :=
   ∀ publicInput, Assumptions publicInput → ens.Statement publicInput → Spec publicInput
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:334-337}, \file{:361-370}, Clean \code{93c9d1ef}}
 
 The theorem that assembles per-table soundness into ensemble soundness has a proof that is plain
 logic; the bus argument is inside \lean{TableSoundness} and the channel lemmas of
 \file{Balance.lean} (for example \lean{exists_push_of_pull}, \file{:155-157}: every pull has a
 matching push, derived from balance \emph{and} the side condition).
+
 \begin{leancode}
 theorem soundness_of_tableSoundness_and_specConsistency (ens : Ensemble F PublicIO)
   (Assumptions Spec : PublicIO F → Prop) :
@@ -234,6 +261,7 @@ theorem soundness_of_tableSoundness_and_specConsistency (ens : Ensemble F Public
   ens.SpecConsistency Spec →
     ens.Soundness Assumptions Spec := by
 \end{leancode}
+
 \src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:419-424}, Clean \code{93c9d1ef}}
 
 \subsection{Why the balance argument is vacuous over a field of characteristic two}\label{sec:gen-lib-clean-vacuous}
@@ -247,12 +275,14 @@ the counts match; the side condition \lean{length < ringChar F} is that bound. O
   (multiplicity $1$, twice) and never pulled has \lean{balanceOf} $= 1 + 1 = 0$. The probe
   \code{CleanBalance} proves both statements below (axioms: the standard three and
   \lean{[propext]} respectively):
+
 \begin{leancode}
 def pushedTwice : List (Interaction K) := [push 7, push 7]
 theorem pushedTwice_balance (msg : Array K) : balanceOf pushedTwice msg = 0
 theorem pushedTwice_not_perm :
     ¬ (pushedTwice.map (·.msg)).Perm ([] : List (Array K))
 \end{leancode}
+
 \src{probe \code{CleanBalance} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
   In addition $-1 = 1$ in $\K$ (\lean{example : (-1 : K) = 1 := by decide}), so
   \lean{Channel.toRaw} grants the pull guarantee to every multiplicity-$1$ push and makes every
@@ -261,6 +291,7 @@ theorem pushedTwice_not_perm :
 \item \textbf{With the side condition, the relation holds of no real bus.} \lean{length < 2}
   admits at most one interaction per channel, and a balanced singleton has multiplicity $0$. The
   probe \code{CleanBalance} proves all of the following on the standard axioms:
+
 \begin{leancode}
 theorem pushedTwice_not_balanced : ¬ BalancedInteractions pushedTwice
 theorem length_le_one_of_balanced {l : List (Interaction K)} (h : BalancedInteractions l) :
@@ -273,6 +304,7 @@ theorem statement_forces_at_most_one_interaction {PublicIO : TypeMap} [ProvableT
     (c : RawChannel K) (hc : c ∈ ens.channels) :
     (w.allTablesWitness.interactionsWith c).length ≤ 1
 \end{leancode}
+
 \src{probe \code{CleanBalance} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
   So over $\K$ \lean{Ensemble.Statement} is false for every ensemble whose honest witness puts two
   interactions on a channel, including the smallest honest bus (one push, one matching pull):
@@ -335,6 +367,7 @@ Clean \#474 & open (updated 2026-09-29) & \enquote{preserve balance proof across
 leanISA never consumes \lean{Ensemble.Statement}. Its relation \lean{SatisfiedBy} states balance
 as a permutation of message lists, counted in $\N$, with direction given by \emph{which channel
 of a pair} an interaction is on:
+
 \begin{leancode}
 /-- Pushed and pulled messages of a channel pair form the same multiset (specification §5.1):
 a permutation of message lists, counted in `ℕ`, never a field sum (acceptance test 14). -/
@@ -342,6 +375,7 @@ def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawCh
     Prop :=
   (messagesOn w push).Perm (messagesOn w pull)
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Arithmetization/}\allowbreak\file{Statement.lean:227-231}, leanerVM \code{b435631}}
 
 \lean{BalancedPair} is used three times in \lean{SatisfiedBy} (\file{Statement.lean:320-324}:

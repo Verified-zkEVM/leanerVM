@@ -18,20 +18,25 @@ types. \lean{A →ₒ B} is the specification of one oracle with queries in \lea
 \lean{B}; \lean{[]ₒ} is the empty specification (no oracle at all); \lean{unifSpec} is the source
 of all randomness, the oracle of uniform choices from \lean{Fin (n+1)}.
 \end{define}
+
 \begin{leancode}
 /-- An `OracleSpec ι` specifies a set of oracles indexed by `ι`.
 Defined as a map from each input to the type of the oracle's output. -/
 def OracleSpec (ι : Type u) : Type (max u (v + 1)) :=
   ι → Type v
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:27-30}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Specifies access to no oracles, using the empty type as the indexing type. -/
 @[reducible] def emptySpec : OracleSpec PEmpty := PEmpty →ₒ PEmpty
 notation "[]ₒ" => emptySpec
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:215-217}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
@@ -39,6 +44,7 @@ By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ emp
 @[inline, reducible] def unifSpec : OracleSpec ℕ :=
   OracleSpec.ofFn fun n => Fin (n + 1)
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:233-236}, VCVio \code{f9dc47d9}}
 
 (The notation is \code{notation:25 (name := singletonSpec) A:25 " →ₒ " B:26 =>
@@ -53,6 +59,7 @@ the queries (\cref{sec:gen-lib-vcvio-dist}). A \emph{probabilistic} computation,
 \lean{$[0..n]} (\code{def uniformFin (n : ℕ) : ProbComp (Fin (n + 1)) := unifSpec.query n},
 \file{ProbComp.lean:55-58}).
 \end{define}
+
 \begin{leancode}
 /-- `OracleComp spec α` represents computations with oracle access to oracles in `spec`,
 where the final return value has type `α`, represented as a free monad over the `PFunctor`
@@ -62,7 +69,9 @@ def OracleComp {ι : Type u} (spec : OracleSpec.{u, v} ι) :
     Type w → Type (max u v w) :=
   PFunctor.FreeM spec.toPFunctor
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleComp.lean:23-29}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Simplified notation for computations with no oracles besides random inputs.
@@ -70,6 +79,7 @@ This specific case can be used with `#eval` to run a random program, see `Oracle
 NOTE: Need to decide if this should be more opaque than `abbrev`, seems like no as of now.. -/
 abbrev ProbComp : Type → Type := OracleComp unifSpec
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{ProbComp.lean:42-45}, VCVio \code{f9dc47d9}}
 
 \paragraph{Failure.} An \lean{OracleComp} tree has no failure node: it always returns. Failure (a
@@ -78,13 +88,16 @@ verifier rejecting, a guard not met) is added by Lean's \lean{OptionT} monad tra
 run in \lean{OptionT (OracleComp oSpec)}. VCVio sends \lean{none} to the \enquote{missing mass}
 of a sub-distribution (\lean{PMF} is Mathlib's type of probability mass functions: a function
 \lean{α → ℝ≥0∞} summing to 1):
+
 \begin{leancode}
 /-- A subprobability mass function is a function `α → ℝ≥0∞` such that values have an infinite
 sum at most `1` represented by applying an `OptionT` transformer to the `PMF` monad.
 The new `failure`/`none` value holds the "missing" mass to reach the total sum of `1`. -/
 def SPMF : Type u → Type u := OptionT PMF
 \end{leancode}
+
 \src{\file{ToMathlib/}\allowbreak\file{ProbabilityTheory/}\allowbreak\file{SPMF.lean:55-58}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Lift a `MonadLiftT m SPMF` instance to `MonadLiftT (OptionT m) SPMF`. Failure in `OptionT`
@@ -94,6 +107,7 @@ noncomputable instance instMonadLiftTSPMF (m : Type u → Type v) [Monad m]
     MonadLiftT (OptionT m) SPMF where
   monadLift x := OptionT.mapM' (MonadHom.ofLift m SPMF) x
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Instances/}\allowbreak\file{OptionT.lean:126-131}, VCVio \code{f9dc47d9}}
 
 \begin{define}{\lean{QueryImpl} and \lean{simulateQ}: answering the queries}
@@ -102,6 +116,7 @@ A \lean{QueryImpl spec m} answers every query of \lean{spec} by a computation in
 how ArkLib's challenger answers \enquote{give me challenge $i$} by a uniform sample, and how an
 oracle is implemented from the message it stands for.
 \end{define}
+
 \begin{leancode}
 /-- A monadic handler for the polynomial interface induced by `spec`.
 
@@ -112,7 +127,9 @@ applying the continuation, then to `OracleComp spec` by preserving `pure` and
 @[reducible] def QueryImpl {ι} (spec : OracleSpec ι) (m : Type u → Type v) :=
   (x : spec.Domain) → m (spec.Range x)
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{SimSemantics/}\allowbreak\file{QueryImpl/}\allowbreak\file{Basic.lean:30-37}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Given an implementation of `spec` in the monad `r`, convert an `OracleComp spec α` to a
@@ -121,6 +138,7 @@ def simulateQ {ι} {spec : OracleSpec ι} {r : Type u → Type _} [Monad r]
     (impl : QueryImpl spec r) {α : Type u} (mx : OracleComp spec α) : r α :=
   PFunctor.FreeM.liftM impl mx
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{SimSemantics/}\allowbreak\file{SimulateQ.lean:27-31}, VCVio \code{f9dc47d9}}
 
 \subsection{The distribution of a computation, \texorpdfstring{\texttt{Pr[…]}}{Pr[...]}, and the support}\label{sec:gen-lib-vcvio-dist}
@@ -131,6 +149,7 @@ answered by a fixed distribution on its answers. For \lean{unifSpec} (hence ever
 \lean{ProbComp}) that distribution is the uniform distribution on \lean{Fin (n+1)}, declared
 once. The probabilities are then read off that sub-distribution.
 \end{define}
+
 \begin{leancode}
 @[reducible] noncomputable def IsUniformSpec.ofFintypeInhabited
     {ι : Type u} (spec : OracleSpec ι)
@@ -142,13 +161,17 @@ once. The probabilities are then read off that sub-distribution.
 
 noncomputable instance : IsUniformSpec unifSpec := IsUniformSpec.ofFintypeInhabited _
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{EvalDist.lean:71-80}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 lemma evalSPMF_eq_simulateQ [IsProbabilitySpec spec] (mx : OracleComp spec α) :
     𝒮[mx] = simulateQ IsProbabilitySpec.toPMF mx := rfl
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{EvalDist.lean:146-147}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 def probOutput [MonadLiftT m SPMF] (mx : m α) (x : α) : ℝ≥0∞ :=
@@ -171,6 +194,7 @@ macro (name := probEventNotation) "Pr[ " p:term " | " mx:term "]" : term =>
 /-- Probability that a computation fails to return a value. -/
 notation "Pr[⊥" " | " mx "]" => probFailure mx
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Basic.lean:114-140}, VCVio \code{f9dc47d9}}
 
 So \lean{Pr[= x | mx]} is the probability that \lean{mx} returns \lean{x}, \lean{Pr[p | mx]}
@@ -178,11 +202,13 @@ the probability that it returns a value satisfying \lean{p} (failure never satis
 \lean{Pr[⊥ | mx]} the probability that it fails; all are extended non-negative reals
 (\lean{ℝ≥0∞}). The \textbf{support} is the set of values a computation can return, computed
 syntactically (every answer allowed at every query):
+
 \begin{leancode}
 /-- The set of possible outputs of running the monadic computation `mx`. -/
 def support [MonadLiftT m SetM] {α : Type u} (mx : m α) : Set α :=
   SetM.run (liftM mx)
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Support.lean:42-44}, VCVio \code{f9dc47d9}}
 
 \subsection{Uniform sampling, with uniformity as a law}\label{sec:gen-lib-vcvio-sample}
@@ -196,6 +222,7 @@ Consequently \textbf{no instance of \lean{SampleableType} can be non-uniform}, a
 on the same finite type have the same distribution (proved in the probe \code{SamplerDiamond},
 \lean{sampler_unique}; \cref{sec:gen-l0-samplers}).
 \end{define}
+
 \begin{leancode}
 /-- A `SampleableType β` instance means that `β` is a finite inhabited type,
 with a computation `selectElem` that selects uniformly at random from the type.
@@ -211,7 +238,9 @@ def uniformSample (β : Type) [h : SampleableType β] : ProbComp β := h.selectE
 
 notation:90 "$ᵗ " α:91 => uniformSample α
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType.lean:37-53}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Every element of a uniform sample over a `Fintype` has output probability `card⁻¹`. -/
@@ -219,13 +248,16 @@ notation:90 "$ᵗ " α:91 => uniformSample α
 lemma probOutput_uniformSample [Fintype α] (x : α) :
     Pr[= x | $ᵗ α] = (Fintype.card α : ℝ≥0∞)⁻¹ := by
 \end{leancode}
+
 \src{\file{SampleableType.lean:57-66}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 @[simp, grind =]
 lemma probEvent_uniformSample [Fintype α] (p : α → Prop) [DecidablePred p] :
     Pr[ p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α := by
 \end{leancode}
+
 \src{\file{SampleableType.lean:224-228}, VCVio \code{f9dc47d9}}
 
 The constructors leanerVM uses are the base case, a uniform \lean{Fin n}, which is the
@@ -233,6 +265,7 @@ primitive coin; the transport along a bijection, which re-proves the laws; vecto
 independent coordinates (laws proved at \file{:317-336}); and any \lean{FinEnum} type, that is,
 a type with a computable enumeration \lean{α ≃ Fin n} (this instance matters for the diamond on
 $\K$, \cref{sec:gen-l0-samplers}).
+
 \begin{leancode}
 @[reducible] def SampleableType.Fin (n : ℕ) : SampleableType (Fin (n + 1)) where
   selectElem := $[0..n]
@@ -243,7 +276,9 @@ instance (n : ℕ) [hn : NeZero n] : SampleableType (Fin n) :=
   match n, hn with
   | _ + 1, _ => SampleableType.Fin _
 \end{leancode}
+
 \src{\file{SampleableType.lean:232-239}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- A type equivalent to a `SampleableType` is also `SampleableType`. -/
@@ -255,7 +290,9 @@ instance (n : ℕ) [hn : NeZero n] : SampleableType (Fin n) :=
     rw [probOutput_map_equiv, probOutput_map_equiv]
     exact probOutput_uniformSample_inj α (e.symm x) (e.symm y)
 \end{leancode}
+
 \src{\file{SampleableType.lean:260-267}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 /-- Select a uniform element from `Vector α n` by independently selecting `α` at each index. -/
@@ -264,7 +301,9 @@ instance (α : Type) (n : ℕ) [SampleableType α] : SampleableType (Vector α n
   | zero => exact pure #v[]
   | succ m ih => exact Vector.push <$> ih <*> ($ᵗ α)
 \end{leancode}
+
 \src{\file{SampleableType.lean:313-316}, VCVio \code{f9dc47d9}}
+
 
 \begin{leancode}
 instance FinEnum.SampleableType (α : Type)
@@ -272,14 +311,17 @@ instance FinEnum.SampleableType (α : Type)
   have : NeZero (FinEnum.card α) := NeZero.mk FinEnum.card_ne_zero
   exact SampleableType.ofEquiv h.equiv.symm
 \end{leancode}
+
 \src{\file{SampleableType.lean:269-273}, VCVio \code{f9dc47d9}}
 
 ArkLib's challenger answers the challenge query of round $i$ by exactly this sampler:
+
 \begin{leancode}
 def challengeQueryImpl {pSpec : ProtocolSpec n} [∀ i, SampleableType (pSpec.Challenge i)] :
     QueryImpl ([pSpec.Challenge]ₒ'challengeOracleInterface) ProbComp :=
   fun q => $ᵗ (pSpec.Challenge q.1)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:732-734}, ArkLib \code{dca90385}}
 
 \subsection{What a reader trusts when a theorem is a VCVio probability bound}\label{sec:gen-lib-vcvio-trust}
@@ -320,6 +362,7 @@ at \code{a4232d08}, \code{@[deprecated "VCVio retiring probability API: use 𝒟
 \lean{Pr{let x ← c}[P x]}, a macro for the measure of the event \lean{{True}} under the
 computation returning the proposition:
 \end{sloppypar}
+
 \begin{leancode}
 macro_rules (kind := prEvent)
   -- `doSeqBracketed`
@@ -327,11 +370,13 @@ macro_rules (kind := prEvent)
   -- `doSeqIndent`
   | `(Pr{$items*}[$t]) => `(𝒟[do $items:doSeqItem* return $t:term] {True})
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{ProbabilityNotation.lean:65-69}, VCVio \code{a4232d08}}
 
 \lean{SampleableType}'s law is now stated directly as \enquote{the output measure is uniform},
 and sampler irrelevance is proved upstream
 (\lean{SampleableType.}\allowbreak\lean{prEvent_}\allowbreak\lean{uniformSample_}\allowbreak\lean{inst_}\allowbreak\lean{irrel}, \file{NativeMeasure.lean:280-284}):
+
 \begin{leancode}
 class SampleableType (β : Type) where
   /-- The canonical sampler of `β`, written `$ᵗ β`. -/
@@ -341,6 +386,7 @@ class SampleableType (β : Type) where
     ∀ [MeasurableSpace β] [MeasurableSingletonClass β],
       𝒟[selectElem] = uniformOn Set.univ
 \end{leancode}
+
 \src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType/}\allowbreak\file{Basic.lean:51-57}, VCVio \code{a4232d08}}
 
 \begin{sloppypar}

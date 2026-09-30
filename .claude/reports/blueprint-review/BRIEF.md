@@ -273,7 +273,7 @@ else.
   `BitVec 64` and natural-number casts have their characteristic-two meaning, `(2 : K) = 0`;
   encoded words are `K.ofBits n`. Any probe or fixture written with numerals other than `0`
   and `1` in `K` means something else at the new pin.
-- **Lean probes cannot run in this checkout until it is rebuilt** (`lake env lean` fails with
+- **Lean probes run again since 09:59 on 2026-09-30** (the checkout was rebuilt under 4.34.1; earlier text of this bullet said they could not). Use the lock; the pins are the NEW ones, so say which revision a probe elaborated against.
   "incompatible header"). Do not run Lean. Rely on the probe outputs already recorded; where a
   conclusion needed a probe that has not run, say so and mark it unverified. The owner decides
   whether the new `main` is built locally (the machine is memory limited) or whether the

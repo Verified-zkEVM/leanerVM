@@ -423,3 +423,9 @@ lanes; upper per-log caps implied by the window; `encode_column_weight` near-vac
 K-only; Annex B numbering: Protocol B.6, Theorem B.7, Definition B.4, Lemma B.14.
 Caveats: no probe of the list-compile theorem; ArkLib `Commitments/`, `FiatShamir/`,
 `Data/CodingTheory/` oleans absent from the build (probes copy definitions).
+### 12:10 register done (134 findings: 1 critical, 35 major, 62 minor, 36 notes; 111 negative
+results; 58 unverified); probes-rerun done (all agree at the new pins; 4b and 6 never written;
+7a/8 rbr fails at the state function as elsewhere; FieldFidelity products agree; LawfulBEq E
+now exists; sampler diamond gone). Chapter 11 (options) written. tex-changes launched
+(a55116b929f6f43f3). Running: tex-libraries, tex-boundary, obligations, verify-majors,
+verify-gt-opening, tex-opening, tex-changes.

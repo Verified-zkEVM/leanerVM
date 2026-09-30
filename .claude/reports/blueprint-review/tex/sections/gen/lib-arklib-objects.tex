@@ -9,7 +9,7 @@ prover and a verifier for it, and the security notions are predicates on verifie
 introduces its objects in dependency order. \textbf{Every snippet is from ArkLib at the old pin
 \code{dca90385}}, read with \code{git show} at that commit.
 
-\paragraph{At the new pin \texorpdfstring{\code{7653a901}}{7653a901}.} The objects below exist with
+\paragraph{At the new pin \texorpdfstring{\texttt{7653a901}}{7653a901}.} The objects below exist with
 the same shapes (checked by name): \lean{OracleReduction}, \lean{OracleVerifier.toVerifier},
 \lean{KnowledgeStateFunction}, \lean{rbrKnowledgeSoundnessWorstCaseWith}, \lean{GuardedForm},
 \lean{OracleReduction.append}, the guarded completeness theorems and
@@ -35,17 +35,20 @@ threads a state of type \lean{σ}. \Cref{sec:gen-lib-vcvio} introduces VCVio's o
 \begin{define}{\lean{Direction}: who speaks in a round}
 A round is either a prover message (\lean{P_to_V}) or a verifier challenge (\lean{V_to_P}).
 \end{define}
+
 \begin{leancode}
 inductive Direction where
   | P_to_V  -- Message
   | V_to_P -- Challenge
 deriving DecidableEq, Inhabited, Repr
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Prelude.lean:66-69}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{ProtocolSpec n}: the schedule of an $n$-round protocol}
 For each of the $n$ rounds, who speaks and the type of what is sent.
 \end{define}
+
 \begin{leancode}
 @[ext]
 structure ProtocolSpec (n : ℕ) where
@@ -55,12 +58,14 @@ structure ProtocolSpec (n : ℕ) where
   «Type» : Fin n → Type
 deriving Inhabited
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:30-36}, ArkLib \code{dca90385}}
 
 \begin{define}{Message and challenge indices, messages, challenges}
 \lean{MessageIdx} and \lean{ChallengeIdx} are the rounds of each direction, as subsets of
 \lean{Fin n}; \lean{Message} and \lean{Challenge} are their types.
 \end{define}
+
 \begin{leancode}
 /-- Subtype of `Fin n` for the indices corresponding to messages in a protocol specification -/
 @[reducible, simp]
@@ -72,7 +77,9 @@ def MessageIdx (pSpec : ProtocolSpec n) :=
 def ChallengeIdx (pSpec : ProtocolSpec n) :=
   {i : Fin n // pSpec.dir i = Direction.V_to_P}
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:50-58}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[reducible, inline, specialize, simp]
@@ -86,29 +93,35 @@ def Message' (pSpec : ProtocolSpec n) (i : Fin n) (_ : pSpec.dir i = .P_to_V) :=
 @[reducible, inline, specialize, simp]
 def Challenge (pSpec : ProtocolSpec n) (i : ChallengeIdx pSpec) := pSpec.«Type» i.val
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:68-77}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{FullTranscript}, \lean{Transcript k}: all entries, and a prefix}
 \lean{FullTranscript} is the list of all $n$ entries; \lean{Transcript k} is its prefix of length
 $k$ (the full transcript is \lean{Transcript (Fin.last n)} definitionally).
 \end{define}
+
 \begin{leancode}
 @[reducible, inline, specialize]
 def FullTranscript (pSpec : ProtocolSpec n) := (i : Fin n) → pSpec.«Type» i
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:104-105}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[reducible, inline, specialize]
 def Transcript (k : Fin (n + 1)) (pSpec : ProtocolSpec n) : Type :=
   (pSpec⟦:k.val⟧).FullTranscript
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:261-263}, ArkLib \code{dca90385}}
 
 \begin{define}{Concatenation of schedules}
 \lean{pSpec₁ ++ₚ pSpec₂} runs the first schedule then the second; \lean{seqCompose} iterates it
 over a family.
 \end{define}
+
 \begin{leancode}
 /-- Appending two `ProtocolSpec`s -/
 abbrev append (pSpec : ProtocolSpec m) (pSpec' : ProtocolSpec n) : ProtocolSpec (m + n) :=
@@ -117,7 +130,9 @@ abbrev append (pSpec : ProtocolSpec m) (pSpec' : ProtocolSpec n) : ProtocolSpec 
 @[inherit_doc]
 infixl : 65 " ++ₚ " => ProtocolSpec.append
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{SeqCompose.lean:38-43}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[inline]
@@ -126,6 +141,7 @@ def seqCompose {m : ℕ} {n : Fin m → ℕ} (pSpec : ∀ i, ProtocolSpec (n i))
   dir := Fin.vflatten (fun i => (pSpec i).dir)
   «Type» := Fin.vflatten (fun i => (pSpec i).Type)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{SeqCompose.lean:358-362}, ArkLib \code{dca90385}}
 
 \subsection{Oracles}\label{sec:gen-lib-ark-oracleinterface}
@@ -136,13 +152,16 @@ the answer computed). \lean{Response q} and \lean{answer m q} are derived. leane
 a column has queries in $\E^n$ and answers the multilinear extension
 (\cref{sec:gen-l0-oracle}).
 \end{define}
+
 \begin{leancode}
 @[ext]
 class OracleInterface (Message : Type u) where
   Query : Type v
   toOC : OracleContext Query (ReaderM Message)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{OracleInterface.lean:54-57}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def Response {Message : Type*} [O : OracleInterface Message]
@@ -158,6 +177,7 @@ def answer {Message : Type*} [O : OracleInterface Message]
     (m : Message) (q : O.Query) : O.Response q :=
   (O.toOC.impl q).run m
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{OracleInterface.lean:67-78}, ArkLib \code{dca90385}}
 
 \subsection{Provers, verifiers, reductions}\label{sec:gen-lib-ark-reductions}
@@ -168,12 +188,15 @@ A state type per round; \lean{input} from statement and witness; \lean{sendMessa
 \lean{output}, the final statement and witness. Provers of the soundness games are the same
 structure (with any \lean{WitIn}, \lean{WitOut}).
 \end{define}
+
 \begin{leancode}
 @[ext]
 structure ProverState (n : ℕ) where
   PrvState : Fin (n + 1) → Type
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:132-134}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[ext]
@@ -186,7 +209,9 @@ structure ProverRound {ι : Type} (oSpec : OracleSpec ι) {n : ℕ} (pSpec : Pro
   receiveChallenge (i : ChallengeIdx pSpec) :
     PrvState i.1.castSucc → OracleComp oSpec (pSpec.Challenge i → PrvState i.1.succ)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:154-162}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[ext]
@@ -198,24 +223,28 @@ structure Prover {ι : Type} (oSpec : OracleSpec ι)
       ProverRound oSpec pSpec,
       ProverOutput oSpec (StmtOut × WitOut) (PrvState (Fin.last n))
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:222-229}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Verifier}: a verdict on a full transcript}
 A function of the statement and the full transcript, returning the output statement or failing
 (rejecting).
 \end{define}
+
 \begin{leancode}
 @[ext]
 structure Verifier {ι : Type} (oSpec : OracleSpec ι)
     (StmtIn StmtOut : Type) {n : ℕ} (pSpec : ProtocolSpec n) where
   verify : StmtIn → FullTranscript pSpec → OptionT (OracleComp oSpec) StmtOut
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:247-250}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{OracleProver}}
 A prover whose input statement also carries the contents of the input oracles and whose output
 carries the output oracles.
 \end{define}
+
 \begin{leancode}
 @[reducible, inline]
 def OracleProver {ι : Type} (oSpec : OracleSpec ι)
@@ -224,6 +253,7 @@ def OracleProver {ι : Type} (oSpec : OracleSpec ι)
     {n : ℕ} (pSpec : ProtocolSpec n) :=
   Prover oSpec (StmtIn × (∀ i, OStmtIn i)) WitIn (StmtOut × (∀ i, OStmtOut i)) WitOut pSpec
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:255-260}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{OracleVerifier}: a verifier that only queries}
@@ -233,6 +263,7 @@ hands on: either an embedding naming, for each output oracle, an input oracle or
 \emph{is} (\lean{OracleOutputEmbedding}), or a simulation computing a virtual output oracle query
 by query (\lean{OracleOutputSimulation}).
 \end{define}
+
 \begin{leancode}
 @[ext]
 structure OracleVerifier {ι : Type} (oSpec : OracleSpec ι)
@@ -258,7 +289,9 @@ structure OracleVerifier {ι : Type} (oSpec : OracleSpec ι)
     OracleOutputEmbedding OStmtIn pSpec.Message OStmtOut ⊕
       OracleOutputSimulation oSpec OStmtIn OStmtOut pSpec
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:322-344}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 structure OracleOutputEmbedding {ιₛᵢ ιₛₒ : Type}
@@ -275,6 +308,7 @@ structure OracleOutputEmbedding {ιₛᵢ ιₛₒ : Type}
     | Sum.inl j => HEq (Oₛₒ i) (Oₛᵢ j)
     | Sum.inr j => HEq (Oₛₒ i) (Oₘ j)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:295-307}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{toVerifier}: the plain verifier of an oracle verifier}
@@ -282,6 +316,7 @@ It answers the oracle verifier's queries from the actual oracle contents and mes
 transcript, and materialises the output oracles. Every security notion of an oracle verifier is
 the notion of its \lean{toVerifier} (\cref{sec:gen-lib-ark-toverifier}).
 \end{define}
+
 \begin{leancode}
 def toVerifier : Verifier oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i, OStmtOut i)) pSpec where
   verify := fun ⟨stmt, oStmt⟩ transcript => OptionT.mk <|
@@ -291,6 +326,7 @@ def toVerifier : Verifier oSpec (StmtIn × ∀ i, OStmtIn i) (StmtOut × (∀ i,
       simulateQ (OracleInterface.simOracle2 oSpec oStmt transcript.messages)
         (verifier.verify stmt transcript.challenges).run
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:490-496}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Reduction}, \lean{OracleReduction}, \lean{OracleProof}}
@@ -298,6 +334,7 @@ A reduction is a prover and a verifier; an oracle reduction is an oracle prover 
 verifier; an oracle proof is an oracle reduction whose output is a Boolean, with no output oracle
 and no output witness.
 \end{define}
+
 \begin{leancode}
 @[ext]
 structure Reduction {ι : Type} (oSpec : OracleSpec ι)
@@ -305,7 +342,9 @@ structure Reduction {ι : Type} (oSpec : OracleSpec ι)
   prover : Prover oSpec StmtIn WitIn StmtOut WitOut pSpec
   verifier : Verifier oSpec StmtIn StmtOut pSpec
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:624-628}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[ext]
@@ -319,7 +358,9 @@ structure OracleReduction {ι : Type} (oSpec : OracleSpec ι)
   prover : OracleProver oSpec StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec
   verifier : OracleVerifier oSpec StmtIn OStmtIn StmtOut OStmtOut pSpec
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:632-641}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[reducible] def OracleProof {ι : Type} (oSpec : OracleSpec ι)
@@ -330,6 +371,7 @@ structure OracleReduction {ι : Type} (oSpec : OracleSpec ι)
   @OracleReduction ι oSpec Statement ιₛᵢ OStatement Witness Bool Empty
     (fun _ : Empty => Unit) Unit n pSpec Oₛᵢ Oₘ (fun i => nomatch i)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:669-675}, ArkLib \code{dca90385}}
 
 \subsection{Running a protocol}\label{sec:gen-lib-ark-run}
@@ -341,6 +383,7 @@ query) and handed to \lean{receiveChallenge}; at a message round \lean{sendMessa
 \lean{Reduction.run} runs the prover, then the verifier on the transcript; the verifier's failure
 makes the run fail.
 \end{define}
+
 \begin{leancode}
 def processRound (j : Fin n)
     (prover : Prover oSpec StmtIn WitIn StmtOut WitOut pSpec)
@@ -358,7 +401,9 @@ def processRound (j : Fin n)
     let ⟨msg, newState⟩ ← prover.sendMessage ⟨j, hDir⟩ state
     return ⟨transcript.concat msg, newState⟩
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Execution.lean:96-110}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def Reduction.run (stmt : StmtIn) (wit : WitIn)
@@ -370,6 +415,7 @@ def Reduction.run (stmt : StmtIn) (wit : WitIn)
   let stmtOut ← liftM (reduction.verifier.run stmt proverResult.1).run
   return ⟨proverResult, ← stmtOut.getM⟩
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Execution.lean:209-216}, ArkLib \code{dca90385}}
 
 In the security definitions the challenge oracle is implemented by uniform sampling
@@ -377,11 +423,13 @@ In the security definitions the challenge oracle is implemented by uniform sampl
 \lean{impl : QueryImpl oSpec (StateT σ ProbComp)} from an initial state drawn by
 \lean{init : ProbComp σ}. leanerVM's shared oracle is empty (\lean{[]ₒ}), so \lean{init} and
 \lean{impl} are inert and the master theorems quantify over them.
+
 \begin{leancode}
 def challengeQueryImpl {pSpec : ProtocolSpec n} [∀ i, SampleableType (pSpec.Challenge i)] :
     QueryImpl ([pSpec.Challenge]ₒ'challengeOracleInterface) ProbComp :=
   fun q => $ᵗ (pSpec.Challenge q.1)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:732-734}, ArkLib \code{dca90385}}
 
 \subsection{Security notions}\label{sec:gen-lib-ark-notions}
@@ -393,6 +441,7 @@ notion of the master theorem, is in \cref{sec:gen-lib-ark-sec}. The others:
 For every prover and every statement outside the input language, the run ends in the output
 language with probability at most the error; failure counts for the verifier.
 \end{define}
+
 \begin{leancode}
 def soundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     (verifier : Verifier oSpec StmtIn StmtOut pSpec)
@@ -407,6 +456,7 @@ def soundness (langIn : Set StmtIn) (langOut : Set StmtOut)
     Pr[fun ⟨_, stmtOut⟩ => stmtOut ∈ langOut | OptionT.mk do
       (simulateQ pImpl (reduction.run stmtIn witIn).run).run' (← init)] ≤ soundnessError
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{Basic.lean:272-283}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Extractor.Straightline}, \lean{knowledgeSoundness}}
@@ -415,6 +465,7 @@ logs and returns an input witness (or fails). Knowledge soundness bounds the pro
 run's output is in the output relation while the extracted input witness is not in the input
 relation (an extractor that fails counts against it, \file{:329-342}).
 \end{define}
+
 \begin{leancode}
 def Straightline :=
   StmtIn → -- input statement
@@ -424,7 +475,9 @@ def Straightline :=
   QueryLog oSpec → -- verifier's query log
   OptionT (OracleComp oSpec) WitIn -- input witness
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{Basic.lean:248-254}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def knowledgeSoundness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut × WitOut))
@@ -446,6 +499,7 @@ def knowledgeSoundness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut ×
           (stmtOut, witOut) ∈ relOut
       | OptionT.mk do (simulateQ pImpl exec.run).run' (← init)] ≤ knowledgeError
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{Basic.lean:344-361}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Verifier.StateFunction}, \lean{rbrSoundness}}
@@ -455,6 +509,7 @@ end unless the verifier can output a statement of the output language, and made 
 challenge with small probability. \lean{rbrSoundnessWorstCase}
 (\file{Security/}\allowbreak\file{RoundByRound.lean:517-527}) is its per-prefix form.
 \end{define}
+
 \begin{leancode}
 structure StateFunction
     (langIn : Set StmtIn) (langOut : Set StmtOut)
@@ -475,7 +530,9 @@ structure StateFunction
   toFun_full : ∀ stmt tr, ¬ toFun (.last n) stmt tr →
     Pr[(· ∈ langOut) | OptionT.mk do (simulateQ impl (verifier.run stmt tr)).run' (← init)] = 0
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:135-152}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
@@ -498,6 +555,7 @@ def rbrSoundness (langIn : Set StmtIn) (langOut : Set StmtOut)
           return (transcript, challenge))).run' (← init)] ≤
       rbrSoundnessError i
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:347-365}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{KnowledgeStateFunction}, \lean{Extractor.RoundByRound} and the round-by-round knowledge notions}
@@ -505,6 +563,7 @@ Defined and discussed in \cref{sec:gen-lib-ark-definition}. The existential wors
 quantifies the intermediate witness types, the extractor and the knowledge state function
 existentially:
 \end{define}
+
 \begin{leancode}
 def rbrKnowledgeSoundnessWorstCase (relIn : Set (StmtIn × WitIn))
     (relOut : Set (StmtOut × WitOut))
@@ -523,6 +582,7 @@ def rbrKnowledgeSoundnessWorstCase (relIn : Set (StmtIn × WitIn))
           kSF i.1.succ stmtIn (transcript.concat challenge) witMid
       | $ᵗ (pSpec.Challenge i)] ≤ rbrKnowledgeError i
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:534-549}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Verifier.GuardedForm}, \lean{Prover.OutputIsPure}}
@@ -530,13 +590,16 @@ A guarded verifier equals \enquote{if \lean{check} then \lean{pure (out …)} el
 \lean{check} and \lean{out} as data. A prover's output is pure when it is a function of its final
 state with no oracle query.
 \end{define}
+
 \begin{leancode}
 def IsGuardedWith (V : Verifier oSpec StmtIn StmtOut pSpec)
     (check : StmtIn → FullTranscript pSpec → Bool)
     (out : StmtIn → FullTranscript pSpec → StmtOut) : Prop :=
   ∀ stmt tr, V.verify stmt tr = if check stmt tr then pure (out stmt tr) else failure
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{CoordinateWiseSpecialSoundness/}\allowbreak\file{Guarded.lean:86-89}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 structure GuardedForm (V : Verifier oSpec StmtIn StmtOut pSpec) where
@@ -547,7 +610,9 @@ structure GuardedForm (V : Verifier oSpec StmtIn StmtOut pSpec) where
   /-- The verifier is guarded with exactly these. -/
   verify_eq : V.IsGuardedWith check out
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{CoordinateWiseSpecialSoundness/}\allowbreak\file{Guarded.lean:112-118}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 /-- The prover's output is a deterministic function of its final private state, with no
@@ -555,6 +620,7 @@ oracle queries. This condition does not constrain the message-sending steps. -/
 class Prover.OutputIsPure (P : Prover oSpec StmtIn WitIn StmtOut WitOut pSpec) where
     output_is_pure : ∃ output : _ → _, ∀ st, P.output st = pure (output st)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Basic.lean:989-992}, ArkLib \code{dca90385}}
 
 \subsection{Composition}\label{sec:gen-lib-ark-append}
@@ -567,6 +633,7 @@ the first half of the transcript and the second on the second half at the first'
 first's output-oracle simulation; \lean{OracleReduction.append} pairs them; \lean{seqCompose}
 (\file{General.lean:255-268}) iterates.
 \end{define}
+
 \begin{leancode}
 def Verifier.append (V₁ : Verifier oSpec Stmt₁ Stmt₂ pSpec₁)
     (V₂ : Verifier oSpec Stmt₂ Stmt₃ pSpec₂) :
@@ -581,7 +648,9 @@ def Reduction.append (R₁ : Reduction oSpec Stmt₁ Wit₁ Stmt₂ Wit₂ pSpec
   prover := Prover.append R₁.prover R₂.prover
   verifier := Verifier.append R₁.verifier R₂.verifier
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/}\allowbreak\file{Basic.lean:236-247}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def OracleReduction.append (R₁ : OracleReduction oSpec Stmt₁ OStmt₁ Wit₁ Stmt₂ OStmt₂ Wit₂ pSpec₁)
@@ -590,6 +659,7 @@ def OracleReduction.append (R₁ : OracleReduction oSpec Stmt₁ OStmt₁ Wit₁
   prover := Prover.append R₁.prover R₂.prover
   verifier := OracleVerifier.append R₁.verifier R₂.verifier
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/}\allowbreak\file{Basic.lean:709-713}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Extractor.}\allowbreak\lean{RoundByRound.}\allowbreak\lean{append}, \lean{Verifier.}\allowbreak\lean{StateFunction.}\allowbreak\lean{append}}
@@ -600,6 +670,7 @@ half; at the seam it hands the second extractor's round-0 witness to the first's
 function is disjunctive past the seam (\file{:292}, docstring \file{:17-19}). The knowledge
 version is leanerVM's port (\cref{sec:gen-lib-ark-port}).
 \end{define}
+
 \begin{leancode}
 /-- Compose round-by-round extractors using a deterministic intermediate-statement function.
 The composed witness family retains the first extractor's final witness at the boundary. -/
@@ -611,6 +682,7 @@ def RoundByRound.append
       Extractor.RoundByRound oSpec Stmt₁ Wit₁ Wit₃ (pSpec₁ ++ₚ pSpec₂)
         (Fin.append (m := m + 1) WitMid₁ (Fin.tail WitMid₂) ∘ Fin.cast (by omega)) where
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/}\allowbreak\file{StateFunction.lean:73-81}, ArkLib \code{dca90385}}
 
 The composition of completeness (\lean{append_}\allowbreak\lean{perfectCompleteness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers},
@@ -625,6 +697,7 @@ oracle whose query is the statement together with all messages before round $i$
 (\lean{challengeOracleInterfaceSR}); the transformed verifier receives all messages in one round,
 derives the challenges by querying that oracle and runs the original verifier.
 \end{define}
+
 \begin{leancode}
 @[reducible, inline, specialize]
 def challengeOracleInterfaceSR (StmtIn : Type) (pSpec : ProtocolSpec n) :
@@ -633,7 +706,9 @@ def challengeOracleInterfaceSR (StmtIn : Type) (pSpec : ProtocolSpec n) :
     toOC.spec := fun _ => pSpec.Challenge i
     toOC.impl := fun _ => read }
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:829-834}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 /-- The (slow) Fiat-Shamir transformation for the verifier. -/
@@ -653,6 +728,7 @@ def Reduction.fiatShamir (R : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec)
   prover := R.prover.fiatShamir
   verifier := R.verifier.fiatShamir
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{FiatShamir/}\allowbreak\file{Basic.lean:129-144}, ArkLib \code{dca90385}}
 
 \begin{define}{\lean{Commitment.Scheme}, \lean{binding}, \lean{extractability}}
@@ -663,6 +739,7 @@ different responses at the same query; \lean{extractability} is a placeholder (i
 \lean{False}, at both pins: \file{Commitments/}\allowbreak\file{Functional/}\allowbreak\file{Basic.lean:250-255} at \code{dca90385},
 \file{:249-254} at \code{7653a901}).
 \end{define}
+
 \begin{leancode}
 /-- Key generation for a commitment scheme, producing a committer key and a verifier key. -/
 structure KeyGen where
@@ -685,7 +762,9 @@ structure Scheme extends
     Commit oSpec Data Commitment Decommitment ComKey,
     Opening oSpec Data Commitment Decommitment ComKey VerifKey pSpec
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{Commitments/}\allowbreak\file{Functional/}\allowbreak\file{Basic.lean:51-70}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def binding (bindingError : ℝ≥0) : Prop :=
@@ -693,6 +772,7 @@ def binding (bindingError : ℝ≥0) : Prop :=
   ∀ adversary : BindingAdversary oSpec Data Commitment AuxState pSpec ComKey,
     bindingExperiment init impl scheme AuxState adversary ≤ bindingError
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{Commitments/}\allowbreak\file{Functional/}\allowbreak\file{Basic.lean:220-223}, ArkLib \code{dca90385}}
 
 \subsection{Generic components and the sumcheck specification}\label{sec:gen-lib-ark-components}
@@ -708,6 +788,7 @@ the query and both oracles; the output relation says the two oracles agree there
 witness, which becomes an oracle (\file{SendWitness.lean:316-343}; completeness admitted,
 \file{:440-443}).
 \end{define}
+
 \begin{leancode}
 /-- The verifier for the `ReduceClaim` reduction. -/
 def verifier : Verifier oSpec StmtIn StmtOut !p[] where
@@ -716,14 +797,18 @@ def verifier : Verifier oSpec StmtIn StmtOut !p[] where
 /-- The reduction for the `ReduceClaim` reduction. -/
 def reduction : Reduction oSpec StmtIn WitIn StmtOut WitOut !p[] where
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Component/}\allowbreak\file{ReduceClaim.lean:61-66}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[inline, specialize]
 def verifier : Verifier oSpec Statement Statement !p[] where
   verify := fun stmt _ => do guard (pred stmt); return stmt
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Component/}\allowbreak\file{CheckClaim.lean:71-73}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 @[reducible, simp]
@@ -741,6 +826,7 @@ def relOut : Set ((StmtOut OStatement × ∀ i, OStmtOut OStatement i) × WitOut
 @[reducible]
 def pSpec : ProtocolSpec 1 := ⟨!v[.V_to_P], !v[Query OStatement]⟩
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Component/}\allowbreak\file{RandomQuery.lean:44-57}, ArkLib \code{dca90385}}
 
 \begin{define}{The sumcheck specification}
@@ -753,6 +839,7 @@ the completeness and the round-by-round knowledge soundness of the specification
 both pins (\cref{sec:gen-lib-ark-baseline}). \lean{SumcheckDomain} (\file{Domain.lean:55-59})
 generalises the evaluation domain to a per-coordinate family.
 \end{define}
+
 \begin{leancode}
 structure StatementRound (i : Fin (n + 1)) where
   -- The target value for sum-check
@@ -771,7 +858,9 @@ def OracleStatement : Unit → Type := fun _ => R⦃≤ deg⦄[X Fin n]
 def relationRound (i : Fin (n + 1)) :
     Set (((StatementRound R n i) × (∀ i, OracleStatement R n deg i)) × Unit) :=
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean:130-145}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 namespace SingleRound
@@ -781,7 +870,9 @@ Has the form `⟨!v[.P_to_V, .V_to_P], !v[R⦃≤ deg⦄[X], R]⟩` -/
 @[reducible]
 def pSpec : ProtocolSpec 2 :=
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean:149-154}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 def pSpec : ProtocolSpec (Fin.vsum (fun _ : Fin n => 2)) :=
@@ -790,7 +881,9 @@ def pSpec : ProtocolSpec (Fin.vsum (fun _ : Fin n => 2)) :=
   -- fun i => if i % 2 = 0 then (.P_to_V, R⦃≤ d⦄[X]) else (.V_to_P, R)
 
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{General.lean:129-133}, ArkLib \code{dca90385}}
+
 
 \begin{leancode}
 
@@ -814,6 +907,7 @@ theorem oracleVerifier_rbrKnowledgeSoundness [Fintype R] :
   OracleVerifier.seqCompose_rbrKnowledgeSoundness
     (rel := relationRound R n deg D)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{General.lean:209-228}, ArkLib \code{dca90385}}
 
 \par\endgroup

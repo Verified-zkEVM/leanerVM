@@ -1,0 +1,37 @@
+\label{sec:probes-rerun}
+The probes below were re-run on 2026-09-30 at the upgraded checkout (\code{144c5aa}: Lean
+4.34.1, ArkLib \code{7653a901}, CompPoly \code{572f9973}, VCVio \code{a4232d08}), each under
+the shared lock, after adapting what the upgrade changed: numerals in $\K$ rewritten as
+\lean{K.ofBits}, the probability notation \lean{Pr\{let x ← c\}[P x]}, and the imports. The full
+adaptation diffs, commands, outputs and timings are in the dossier
+\file{dossiers/probes-rerun.md} on the review branch; no run took more than a minute.
+
+\begin{longtable}{@{}p{0.34\linewidth}p{0.26\linewidth}p{0.06\linewidth}p{0.28\linewidth}@{}}
+\toprule
+Probe & Adaptation & Exit & Outcome at the new pins \\
+\midrule
+\endhead
+public input, baseline (control) & regenerated from the current module & 0 & agrees \\
+public input, mutation 7a (wrong check, honest prover fixed) & regenerated; refutation lemmas on the new notation & 1 & completeness refuted as predicted (\code{not\_complete} proved); the unchanged \lean{rbr} fails at its state function, as in every other mutation \\
+public input, mutation 8 (extra check) & same & 1 & same pattern \\
+public input, the words lemma (\code{ProbeWordsLemma}) & none & 0 & agrees \\
+public input, mutations 1, 2, \code{ProbeAnyCheck} (controls) & regenerated & 1 / 1 / 0 & agree (the same expected failures) \\
+public input, mutations 4b and 6 & --- & --- & never written; on paper only \\
+spine \code{P2Relation}, \code{P3aSeams} & \lean{2 : K} $\to$ \lean{K.ofBits 2} & 0 / 0 & agree \\
+spine \code{P5PassThrough} & \lean{K.ofBits 2}, new notation & 0 & agrees (\code{no\_security} on the three axioms) \\
+spine \code{P4Junk} (control, unchanged) & none & 0 & agrees \\
+Layer 1 \code{ValuesProbe} & \lean{K.ofBits} everywhere & 0 & agrees: every check against the Python verifier's numbers holds \\
+Layer 1 \code{StridedProbe}, \code{OffsetsProbe}, \code{DuplicatesProbe} & \lean{K.ofBits} / none & 0 & agree \\
+\code{SeamBusShape}, \code{SeamBusMember}, \code{NoCheckFlock} & none & 0 & agree \\
+\code{FieldFidelity} & every word $\to$ \lean{K.ofBits} & 1 (one \lean{\#synth}) & the eleven Rust reference products still agree; the instance lines differ \\
+\code{SamplerDiamond2} & none & 1 & the sampler diamond on $\K$ no longer exists (no \lean{FinEnum K}); nothing to compare \\
+\code{Layer0} & none & 0 & agrees; instance names print differently \\
+\code{NonVacuity}, \code{PlainReading} & new notation & 0 / 0 & agree \\
+\code{Extractors} & none & 0 & agrees \\
+\code{AxiomsLeanerVM} & none & 0 & byte-identical: every master theorem, phase, composition and extractor on \lean{propext}, \lean{Classical.choice}, \lean{Quot.sound}; \lean{Component.sendExtractor} on \lean{propext}, \lean{Quot.sound}; no \lean{sorryAx} \\
+\bottomrule
+\end{longtable}
+
+Three library facts recorded at the old pin changed with the new one: \lean{LawfulBEq E} now
+exists; $\K$'s field operations no longer leak onto \lean{BitVec 64}; and the sampler diamond
+on $\K$ is gone. None affects a finding.

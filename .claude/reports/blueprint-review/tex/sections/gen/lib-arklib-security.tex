@@ -28,6 +28,7 @@ leanerVM's soundness master theorem is an instance of one ArkLib predicate,
 \lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith}, applied to the verifier of the composed oracle
 protocol after it has been turned into a plain verifier (\lean{toVerifier},
 \cref{sec:gen-lib-ark-toverifier}):
+
 \begin{leancode}
 /-- **Round-by-round knowledge soundness** at `piopError P`, for the extractor
 `piopExtractor P S` (the commit phase's, then the phases') and its knowledge state function,
@@ -41,6 +42,7 @@ theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
       (piopError P) :=
   S.toDef.rbr init impl
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{Spine/}\allowbreak\file{Compose.lean:167-177}, leanerVM \code{b435631}}
 
 Its arguments are: the input relation \lean{M3Rel I} (pairs of a public input and a stack
@@ -74,6 +76,7 @@ from the output witness to the last intermediate witness, and one round backward
 of its own. It is given no query log, no access to the shared oracle and no randomness, and
 nothing bounds its running time.
 \end{define}
+
 \begin{leancode}
 structure RoundByRound
     (oSpec : OracleSpec ι) (StmtIn WitIn WitOut : Type) {n : ℕ} (pSpec : ProtocolSpec n)
@@ -86,6 +89,7 @@ structure RoundByRound
   /-- Construct the intermediate witness for the final round from the output witness -/
   extractOut : StmtIn → FullTranscript pSpec → WitOut → WitMid (.last n)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:77-86}, ArkLib \code{dca90385}}
 
 \begin{define}{The knowledge state function (\lean{Verifier.}\allowbreak\lean{KnowledgeStateFunction})}
@@ -107,6 +111,7 @@ three laws.
   or $1$.
 \end{enumerate}
 \end{define}
+
 \begin{leancode}
 structure KnowledgeStateFunction
     (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut × WitOut))
@@ -135,6 +140,7 @@ structure KnowledgeStateFunction
     | OptionT.mk do (simulateQ impl (verifier.run stmtIn tr)).run' (← init)] > 0 →
     toFun (.last n) stmtIn tr (extractor.extractOut stmtIn tr witOut)
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:164-189}, ArkLib \code{dca90385}}
 
 \begin{define}{The bound (\lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith})}
@@ -150,6 +156,7 @@ The predicate says: for \textbf{every} statement $s$, \textbf{every} verifier ro
   \Pr_{c \leftarrow C_k \text{ uniform}}\bigl[\, c \in \mathrm{Bad}_k(s, \tau) \,\bigr] \le \varepsilon_k .
 \]
 \end{define}
+
 \begin{leancode}
 /-- Worst-case-per-prefix RBR knowledge soundness for one exact
 intermediate-witness family, extractor, and knowledge-state function. -/
@@ -170,6 +177,7 @@ def rbrKnowledgeSoundnessWorstCaseWith
           kSF i.1.succ stmtIn (transcript.concat challenge) witMid
       | $ᵗ (pSpec.Challenge i)] ≤ rbrKnowledgeError i
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:551-568}, ArkLib \code{dca90385}}
 
 \paragraph{What is quantified over, and what is not.}
@@ -202,6 +210,7 @@ bounds the same event in a game: a prover is run against the challenger up to ro
 produces the prefix, then the challenge is drawn, and the bound is on the probability over the
 whole game (so it is an average over the earlier challenges). It quantifies over provers, and the
 prefix is a random variable:
+
 \begin{leancode}
 def rbrKnowledgeSoundness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut × WitOut))
     (verifier : Verifier oSpec StmtIn StmtOut pSpec)
@@ -226,6 +235,7 @@ def rbrKnowledgeSoundness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut
           return (transcript, challenge, proveQueryLog))).run' (← init)] ≤
       rbrKnowledgeError i
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:416-437}, ArkLib \code{dca90385}}
 
 The worst-case form implies the averaged one with the same errors (proved:
@@ -594,6 +604,7 @@ Perfect completeness is $\varepsilon = 0$, so probability $1$
 against completeness. \lean{OracleReduction.}\allowbreak\lean{perfectCompleteness} (\file{:469}) is the same for
 \lean{toReduction}.
 \end{define}
+
 \begin{leancode}
 def completeness (relIn : Set (StmtIn × WitIn))
     (relOut : Set (StmtOut × WitOut))
@@ -613,12 +624,14 @@ def perfectCompleteness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut �
     (reduction : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec) : Prop :=
   completeness init impl relIn relOut reduction 0
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{Basic.lean:89-105}, ArkLib \code{dca90385}}
 
 \paragraph{What the composition theorem needs.} leanerVM's \lean{Component.Complete.append}
 (\file{Component.lean:162-169}) applies the following theorem of ArkLib,
 \lean{OracleReduction.}\allowbreak\lean{append_}\allowbreak\lean{perfectCompleteness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers}, which is proved (probe
 \code{AxiomsArkLibBuilt}):
+
 \begin{leancode}
 /-- Oracle reductions with guarded ordinary verifiers compose perfectly when prover execution
 factors at the seam and the suffix is perfectly complete from every shared state. -/
@@ -635,6 +648,7 @@ theorem append_perfectCompleteness_of_guarded_verifiers
   simpa only [add_zero] using
     append_completeness_of_guarded_verifiers R₁ R₂ V₁ V₂ hSeam h₁ h₂
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{OracleCompleteness.lean:54-67}, ArkLib \code{dca90385}}
 
 Its hypotheses: guarded forms of both plain verifiers (so that a run is \enquote{the prover's run,

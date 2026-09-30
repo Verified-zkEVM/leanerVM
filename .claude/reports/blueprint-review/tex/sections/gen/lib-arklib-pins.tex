@@ -11,8 +11,8 @@ its two built phases, the composition and the port, at \code{b435631} with ArkLi
 
 {\small
 \begin{longtable}{@{}p{0.52\linewidth}p{0.14\linewidth}p{0.28\linewidth}@{}}
-\caption{The axioms of leanerVM's proof-system declarations, at \code{b435631} (probe
-\code{AxiomsLeanerVM}; names under \lean{LeanerVM.Protocol}).}\label{tab:gen-lib-ark-axioms}\\
+\caption{The axioms of leanerVM's proof-system declarations, at \texttt{b435631} (probe
+\texttt{AxiomsLeanerVM}; names under \texttt{LeanerVM.Protocol}).}\label{tab:gen-lib-ark-axioms}\\
 \toprule
 Declaration & Kind & Axioms \\
 \midrule
@@ -23,30 +23,30 @@ Declaration & Kind & Axioms \\
 \endhead
 \bottomrule
 \endfoot
-\lean{piop_perfectCompleteness} & theorem & the standard three \\
-\lean{piop_rbrKnowledgeSoundness} & theorem & the standard three \\
-\lean{piop_}\allowbreak\lean{rbrKnowledgeSoundness_}\allowbreak\lean{exists} & theorem & the standard three \\
-\lean{commitSecurity} & definition & the standard three \\
-\lean{commitComplete} & --- & the standard three \\
-\lean{publicInputSecurity} & definition & the standard three \\
-\lean{publicInputComplete} & --- & the standard three \\
-\lean{Component.Security.append} & definition & the standard three \\
-\lean{Component.Complete.append} & definition & the standard three \\
-\lean{Verifier.}\allowbreak\lean{KnowledgeStateFunction.}\allowbreak\lean{appendGuarded} & definition & the standard three \\
+\lean{piop_perfectCompleteness} & \code{theorem} & the standard three \\
+\lean{piop_rbrKnowledgeSoundness} & \code{theorem} & the standard three \\
+\lean{piop_}\allowbreak\lean{rbrKnowledgeSoundness_}\allowbreak\lean{exists} & \code{theorem} & the standard three \\
+\lean{commitSecurity} & \code{def} & the standard three \\
+\lean{commitComplete} & \code{def} & the standard three \\
+\lean{publicInputSecurity} & \code{def} & the standard three \\
+\lean{publicInputComplete} & \code{def} & the standard three \\
+\lean{Component.Security.append} & \code{def} & the standard three \\
+\lean{Component.Complete.append} & \code{def} & the standard three \\
+\lean{Verifier.}\allowbreak\lean{KnowledgeStateFunction.}\allowbreak\lean{appendGuarded} & \code{def} & the standard three \\
 \lean{Verifier.}\allowbreak\lean{append_}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith_}\allowbreak\lean{of_guarded_first} &
-  theorem & the standard three \\
-\lean{piopExtractor} & definition & the standard three \\
-\lean{commitExtractor} & definition & the standard three \\
-\lean{PublicInput.extractor} & definition & the standard three \\
-\lean{Component.sendExtractor} & definition & \lean{propext}, \lean{Quot.sound} \\
-\lean{Phases.Security.toDef} & --- & the standard three \\
-\lean{Phases.Complete.toDef} & --- & the standard three \\
+  \code{theorem} & the standard three \\
+\lean{piopExtractor} & \code{def} & the standard three \\
+\lean{commitExtractor} & \code{abbrev} & the standard three \\
+\lean{PublicInput.extractor} & \code{def} & the standard three \\
+\lean{Component.sendExtractor} & \code{def} & \lean{propext}, \lean{Quot.sound} \\
+\lean{Phases.Security.toDef} & \code{def} & the standard three \\
+\lean{Phases.Complete.toDef} & \code{def} & the standard three \\
 \end{longtable}}
 
 (\enquote{The standard three} are \lean{propext}, \lean{Classical.choice}, \lean{Quot.sound}.
 \lean{Component.Security.append}, \lean{Component.Complete.append}, \lean{commitSecurity},
-\lean{publicInputSecurity} and \lean{appendGuarded} are definitions, structures bundling data
-and proofs, not theorems; the kinds marked --- are not stated in the dossier.) This does
+\lean{publicInputSecurity} and \lean{appendGuarded} are definitions (structures bundling data
+and proofs), not theorems; the kinds were read from the source at \code{b435631}.) This does
 \emph{not} say that the master theorems are unconditional: they take \lean{P : Phases I},
 \lean{C : P.Complete}, \lean{S : P.Security} as arguments, and only the commit and public-input
 phases exist. It says that nothing admitted in ArkLib is consumed. The validation enforces it
@@ -62,7 +62,7 @@ those of \code{dca90385}, under \file{.lake/}\allowbreak\file{packages/}\allowbr
 
 {\footnotesize
 \begin{longtable}{@{}p{0.30\linewidth}p{0.30\linewidth}p{0.33\linewidth}@{}}
-\caption{The blueprint's ArkLib table checked at \code{dca90385}.}\label{tab:gen-lib-ark-table}\\
+\caption{The blueprint's ArkLib table checked at \texttt{dca90385}.}\label{tab:gen-lib-ark-table}\\
 \toprule
 Blueprint row & At the pin & Proof status \\
 \midrule
@@ -204,9 +204,10 @@ compared by name over the prefixes \lean{Verifier.}, \lean{OracleVerifier.}, \le
 \lean{NoInteraction}, \lean{Extractor.}, \lean{CodingTheory.rs_mca}). Code-line \lean{sorry}
 counts at the new pin: \file{Security/}\allowbreak\file{Implications.lean} 9 (unchanged), \file{Append/}\allowbreak\file{Security.lean}
 4 (unchanged), \file{General.lean} 2, \file{FiatShamir/}\allowbreak\file{Basic.lean} 1,
-\file{LiftContext/}\allowbreak\file{Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13 (one fewer than the
-old pin by the dossier's count; the leaves \lean{verifier_}\allowbreak\lean{rbrKnowledgeSoundness} and the lens
-instances remain). \Cref{tab:gen-lib-ark-admitted} sets the blueprint's ledger of admissions
+\file{LiftContext/}\allowbreak\file{Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13, which the dossier
+calls one fewer than the old pin although it also gives 13 for the old pin (a discrepancy in the
+dossier's counts, not resolved here); the leaves \lean{verifier_}\allowbreak\lean{rbrKnowledgeSoundness} and the lens
+instances remain. \Cref{tab:gen-lib-ark-admitted} sets the blueprint's ledger of admissions
 (\file{protocol-blueprint.md:257-267}) against both pins.
 
 {\footnotesize
@@ -323,6 +324,7 @@ and knowledge state functions \lean{K₁} (for \lean{V₁}, relations \lean{R₁
 (\lean{state}, \file{:182-196}) is: up to and including the seam, \lean{K₁} on the prefix; after
 the seam, \enquote{the first check passes on the first half \textbf{and} \lean{K₂} on the second
 half, at the statement the first verifier outputs (\lean{G.out s tr₁})}.
+
 \begin{leancode}
 extractors and knowledge states. The first round of the right component is included. -/
 theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.GuardedForm)
@@ -336,6 +338,7 @@ theorem append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first (G : V₁.Gua
       (Sum.elim ε₁ ε₂ ∘ ChallengeIdx.sumEquiv.symm) := by
   classical
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{ToArkLib/}\allowbreak\file{KnowledgeAppend.lean:508-518}, leanerVM \code{b435631}}
 
 In words: if \lean{V₁} is worst-case round-by-round knowledge sound for \lean{(E₁, K₁)} at errors
@@ -373,7 +376,7 @@ readable but not necessary. It would be a restriction for a verifier that querie
 paths hashed through the oracle) is of that kind; the blueprint composes only at the
 oracle-protocol level, where none is.
 
-\paragraph{The upstream, read on 2026-09-29 (read-only \code{gh}).} Pull request \#615 is
+\paragraph{The upstream, read on 2026-09-29 (read-only \texttt{gh}).} Pull request \#615 is
 \textbf{open}, not a draft, \code{mergeable: CONFLICTING}, created 2026-07-07, last updated
 2026-09-08, head \code{ca7a2577}. Its \file{Knowledge.lean} is not on ArkLib's \code{main}
 (\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/} there has the same eleven files as the pin, no
@@ -423,7 +426,7 @@ is still \lean{sorry} (\file{Basic.lean:505-507}), \lean{Commitment.extractabili
 \lean{fiatShamir_completeness} is still stated for the constant challenge oracle
 (\file{FiatShamir/}\allowbreak\file{Basic.lean:163-173}).
 
-\paragraph{\texorpdfstring{\lean{OracleReduction}}{OracleReduction} is now the \enquote{legacy}
+\paragraph{\texorpdfstring{\texttt{OracleReduction}}{OracleReduction} is now the \enquote{legacy}
 framework, and the typed framework has no knowledge notion.}\label{sec:gen-lib-ark-legacy}
 ArkLib's guide already called \file{ArkLib/}\allowbreak\file{OracleReduction/} \enquote{legacy IOR abstractions and
 security theory} and \file{ArkLib/}\allowbreak\file{Interaction/} \enquote{typed interactions and dependent

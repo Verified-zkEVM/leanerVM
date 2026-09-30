@@ -20,6 +20,7 @@ Lagrange (equality) basis. Being \lean{@[reducible]}, it \emph{is} a \lean{Vecto
 search, which is why leanerVM wraps it in a structure \lean{Column}
 (\cref{sec:gen-l0-oracle}).
 \end{define}
+
 \begin{leancode}
 /-- `CMlPolynomialEval n R` is the type of multilinear polynomials in `n` variables over a ring `R`.
   It is represented by its evaluations over the Boolean hypercube `{0,1}^n`,
@@ -28,7 +29,9 @@ search, which is why leanerVM wraps it in a structure \lean{Column}
 @[reducible]
 def CMlPolynomialEval (R : Type*) (n : ℕ) := Vector R (2 ^ n) -- coefficient of Lagrange basis
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:42-48}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 /-- Lagrange (hypercube) basis at point `w`.
@@ -42,7 +45,9 @@ Equivalently, for `i : Fin (2^n)`,
 def lagrangeBasis (w : Vector R n) : Vector R (2 ^ n) :=
   Vector.ofFn (fun i => ∏ j : Fin n, if (BitVec.ofFin i).getLsb j then w[j] else 1 - w[j])
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:401-411}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 /-- Evaluate a `CMlPolynomialEval` at a point -/
@@ -56,6 +61,7 @@ def eval₂ (p : CMlPolynomialEval R n) (f : R →+* S) (x : Vector S n) : S := 
 @[inline] def eqTilde (w x : Vector R n) : R :=
   eval (lagrangeBasis w) x
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:523-544}, CompPoly \code{3468b38c}}
 
 So \lean{eval p x} $= \sum_i p[i] \cdot \prod_j (\mathrm{bit}_j(i)\ ?\ x_j : 1 - x_j)$, the
@@ -67,6 +73,7 @@ proved equal to the dot product. \lean{map f p} applies a ring homomorphism \lea
 every entry (\file{:461-463}); with \lean{f = algebraMap K E} it lifts a $\K$-table to an
 $\E$-table, so \lean{eval₂Mle q (algebraMap K E) r} evaluates the $\K$-multilinear $\mle{q}$ at
 a point $r \in \E^n$.
+
 \begin{leancode}
 /-- Evaluate a `CMlPolynomialEval` by recursive multilinear-extension interpolation. -/
 @[inline, specialize]
@@ -79,7 +86,9 @@ interpolation. -/
 def eval₂Mle (p : CMlPolynomialEval R n) (f : R →+* S) (x : Vector S n) : S :=
   evalMle (map f p) x
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:497-521}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 theorem eval_mle_eq_eval (p : CMlPolynomialEval R n) (x : Vector R n) :
@@ -88,6 +97,7 @@ theorem eval_mle_eq_eval (p : CMlPolynomialEval R n) (x : Vector R n) :
 theorem eval₂_mle_eq_eval₂ (p : CMlPolynomialEval R n) (f : R →+* S) (x : Vector S n) :
     eval₂Mle p f x = eval₂ p f x := by
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:585-586} and \file{:638-640}, CompPoly \code{3468b38c}}
 
 \paragraph{Bridge to Mathlib.} At the CompPoly pin there is a conversion
@@ -95,6 +105,7 @@ theorem eval₂_mle_eq_eval₂ (p : CMlPolynomialEval R n) (f : R →+* S) (x : 
 that \lean{eval} is Mathlib's evaluation of it}; that bridge is ArkLib's. The blueprint cites it
 correctly as ArkLib's (\file{protocol-blueprint.md:246}). For a reader the definition \lean{eval}
 above is self-explanatory and needs no bridge to be trusted.
+
 \begin{leancode}
 theorem eval_eq_MvPolynomial_MLE (evals : (Fin n → Fin 2) → R) (x : Fin n → R) :
     eval
@@ -102,6 +113,7 @@ theorem eval_eq_MvPolynomial_MLE (evals : (Fin n → Fin 2) → R) (x : Fin n �
         (Vector.ofFn x) =
       MvPolynomial.eval x (MvPolynomial.MLE evals) := by
 \end{leancode}
+
 \src{\file{ArkLib/}\allowbreak\file{ToCompPoly/}\allowbreak\file{Multilinear/}\allowbreak\file{Basic.lean:56}, ArkLib \code{dca90385}}
 
 \paragraph{Bit order against leanVM.} The specification fixes \enquote{$\langle u\rangle :=
@@ -122,6 +134,7 @@ subtype without zeros). The spine states its constraint and flush polynomials in
 Mathlib's \lean{MvPolynomial} (the standard, non-computable multivariate polynomial type)
 transfers evaluation and degree.
 \end{define}
+
 \begin{leancode}
 /-- A computable multivariate polynomial in `n` variables with coefficients in `R`. -/
 abbrev CMvPolynomial (n : ℕ) (R : Type*) [Zero R] : Type _ := Lawful n R
@@ -131,7 +144,9 @@ abbrev CMvPolynomial (n : ℕ) (R : Type*) [Zero R] : Type _ := Lawful n R
 def Lawful (n : ℕ) (R : Type*) [Zero R] : Type _ :=
   {p : Unlawful n R // p.isNoZeroCoef}
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multivariate/}\allowbreak\file{CMvPolynomial.lean:47-48} and \file{Multivariate/}\allowbreak\file{Lawful.lean:33-36}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 def eval₂ {R S : Type*} {n : ℕ} [Semiring R] [CommSemiring S] :
@@ -145,7 +160,9 @@ def totalDegree {R : Type*} {n : ℕ} [Zero R] : CMvPolynomial n R → ℕ :=
   fun p => Finset.sup (List.toFinset (List.map CMvMonomial.toFinsupp (Lawful.monomials p)))
     (fun s => Finsupp.sum s (fun _ e => e))
 \end{leancode}
+
 \src{\file{CMvPolynomial.lean:131-135}, \file{:216-218}, \file{:229-233}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 def fromCMvPolynomial  (p : CMvPolynomial n R) : MvPolynomial (Fin n) R :=
@@ -154,7 +171,9 @@ def fromCMvPolynomial  (p : CMvPolynomial n R) : MvPolynomial (Fin n) R :=
   let mem_support_fun {a : Fin n →₀ ℕ} : a ∈ support ↔ toFun a ≠ 0 := by grind
   AddMonoidAlgebra.ofCoeff <| Finsupp.mk support.toFinset toFun (by simp [mem_support_fun])
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multivariate/}\allowbreak\file{MvPolyEquiv/}\allowbreak\file{Core.lean:35-39}, CompPoly \code{3468b38c}}
+
 
 \begin{leancode}
 lemma eval_equiv {p : CMvPolynomial n R} {vals : Fin n → R} :
@@ -163,6 +182,7 @@ lemma eval_equiv {p : CMvPolynomial n R} {vals : Fin n → R} :
 lemma totalDegree_equiv {S : Type*} {p : CMvPolynomial n R} [CommSemiring S] :
     p.totalDegree = (fromCMvPolynomial p).totalDegree := by rfl
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Multivariate/}\allowbreak\file{MvPolyEquiv/}\allowbreak\file{Eval.lean:53-61}, CompPoly \code{3468b38c}}
 
 With \lean{polyEquiv : CMvPolynomial n R ≃ MvPolynomial (Fin n) R} (\file{Core.lean:134}), a
@@ -184,6 +204,7 @@ specification is Mathlib's quotient \lean{AdjoinRoot basePoly}, a field because 
 irreducible; the carrier is a 64-bit word whose bit $i$ is the coefficient of $x^i$, with
 addition XOR and multiplication the carry-less product reduced modulo the modulus.
 \end{define}
+
 \begin{leancode}
 /-- The modulus `x^64 + x^4 + x^3 + x + 1` over `GF(2)`. Part of the specification only;
 it is never evaluated. -/
@@ -194,12 +215,14 @@ theorem basePoly_irreducible : Irreducible basePoly := by
 ...
 noncomputable abbrev BF64Quot : Type := AdjoinRoot basePoly
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Binary/}\allowbreak\file{BF64/}\allowbreak\file{Basic.lean:100-102}, \file{:152-153}, \file{:199}, CompPoly \code{3468b38c}}
 
 Irreducibility is proved by Rabin's test (CompPoly's \lean{Polynomial.}\allowbreak\lean{irreducible_}\allowbreak\lean{of_rabin})
 against certificate chains that the kernel checks by \lean{rfl} (\file{BF64/}\allowbreak\file{BaseCertificate.lean},
 552 lines); no \lean{native_decide} (axioms of \lean{BF64.basePoly_irreducible}: \lean{propext},
 \lean{Classical.choice}, \lean{Quot.sound}, probe \code{Layer0}).
+
 \begin{leancode}
 /-- `GF(2^64)` in its computable, machine representation: a 64-bit word whose bit `i` is
 the coefficient of `x^i`. -/
@@ -217,6 +240,7 @@ instance : Add BF64 := ⟨fun a b => a ^^^ b⟩
 instance : Mul BF64 :=
   ⟨fun a b => reduce (carryLessMul (w := 128) a b)⟩
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Binary/}\allowbreak\file{BF64/}\allowbreak\file{Impl.lean:52-71}, CompPoly \code{3468b38c}}
 
 The carrier maps to the quotient by \lean{toQuot a = AdjoinRoot.}\allowbreak\lean{mk basePoly (toPoly a)}
@@ -226,6 +250,7 @@ The carrier maps to the quotient by \lean{toQuot a = AdjoinRoot.}\allowbreak\lea
 \file{:442-450}); inversion is the Itoh--Tsujii chain, proved correct (\lean{mul_invItohTsujii},
 \file{:404}), with $0^{-1} = 0$. \lean{DecidableEq K} is \lean{BitVec}'s
 (\lean{instDecidableEqBitVec}, probe \code{Layer0}). Cardinality and the instances:
+
 \begin{leancode}
 /-- The carrier is in bijection with `Fin (2 ^ 64)`, by its underlying representation. -/
 def equivFin : BF64 ≃ Fin (2 ^ 64) where
@@ -240,9 +265,10 @@ instance : Fintype BF64 := Fintype.ofEquiv _ equivFin.symm
 theorem card_bf64 : Fintype.card BF64 = 2 ^ 64 := by
   rw [Fintype.card_congr equivFin, Fintype.card_fin]
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Binary/}\allowbreak\file{BF64/}\allowbreak\file{Impl.lean:384-395}, CompPoly \code{3468b38c}}
 
-\paragraph{Hazard of the eager \texorpdfstring{\lean{Fintype BF64}}{Fintype BF64} (old pin).}
+\paragraph{Hazard of the eager \texorpdfstring{\texttt{Fintype BF64}}{Fintype BF64} (old pin).}
 The instance is a closed computable term; compiled code initialises it at program start by
 building \lean{List.finRange (2^64)}, so any executable linking the module is killed for lack of
 memory. leanerVM records this (\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{leanisa-status.md:753-769} at \code{b435631},
@@ -254,17 +280,19 @@ blueprint: the executable verifier \lean{verify}, differential tests against the
 native target are \textbf{blocked at this pin} until the CompPoly fix lands; it has
 (\cref{sec:gen-lib-comppoly-new}).
 
-\paragraph{Hazard of \texorpdfstring{\lean{abbrev BF64 := BitVec 64}}{abbrev BF64} (old pin).}
+\paragraph{Hazard of \texorpdfstring{\texttt{abbrev BF64 := BitVec 64}}{abbrev BF64} (old pin).}
 Because \lean{BF64} is reducible, CompPoly's \lean{Add}, \lean{Mul}, \lean{Neg}, \lean{Inv},
 \lean{NatCast}, \lean{Fintype}, \lean{CommRing}, \lean{Field} instances are instances \textbf{on
 \lean{BitVec 64} itself} in every file that imports the field. The probe \code{FieldFidelity}
 (lines 85--100, output lines 2--12) shows it:
+
 \begin{leancode}
 #eval u + v                -- u v : BitVec 64 := 3, 5   ⟹  6#64   (XOR, not 8)
 #eval (u + v == 8, u + v == 6)                          ⟹  (false, true)
 #synth Add (BitVec 64)                                  ⟹  BF64.instAdd
 #synth Add (BitVec 32)                                  ⟹  BitVec.instAdd
 \end{leancode}
+
 \src{probe \code{FieldFidelity} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{FieldFidelity.lean}), lines 85--100 and output lines 2--12, run at the old pins}
 and the numeral \lean{(2 : K)} elaborates as \lean{BitVec.instOfNat 64 2} (the bit pattern $x$),
 not the cast of the natural number two (which is $0$): \texttt{\#guard ((2 : ℕ) : K) = 0} and
@@ -284,6 +312,7 @@ coefficient of $y^i$), so an element of $\E$ is the limb triple $c_0 + c_1 y + c
 are the coefficients of $1, y, y^2$), \lean{ofBase} embeds $\K$ as the $y^0$ limb, and
 \lean{gen} is $y$.
 \end{define}
+
 \begin{leancode}
 noncomputable def ext3Poly : Polynomial BF64 := X ^ 3 + X + 1
 ...
@@ -303,12 +332,14 @@ abbrev Ext3 : Type := Ext ext3Params
 @[simp] theorem card_ext3 : Fintype.card Ext3 = 2 ^ 192 := by
   rw [Ext.card_ext, ext3Params_q, ext3Params_d, ← pow_mul]
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Binary/}\allowbreak\file{BF64/}\allowbreak\file{Ext3.lean:56-57}, \file{:125-127}, \file{:133-140}, \file{:165-168}, \file{:198-200}, CompPoly \code{3468b38c}}
 
 Irreducibility: a root $a$ of $y^3+y+1$ has $a^7 = 1$; $\gcd(7, 2^{64}-1) = 1$
 (\lean{decide +kernel}), so $a = 1$, which is not a root (\file{Ext3.lean:78-122}).
 \lean{ext3Params_poly} (\file{:148-160}) proves that the coefficient vector
 \texttt{\#v[1, 1, 0]} denotes $y^3 + y + 1$.
+
 \begin{leancode}
 /--
 The carrier of the extension `F[X] / f`: a dense coefficient vector of length `P.d`,
@@ -320,6 +351,7 @@ def Ext {F : Type*} [Field F] [Fintype F] (P : ExtensionParams F) : Type _ := Ve
 ...
 def gen : Ext P := ofFn fun i => if (i : ℕ) = 1 then 1 else 0
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Extension/}\allowbreak\file{Defs.lean:132-136}, \file{:185}, \file{:188}, CompPoly \code{3468b38c}}
 
 \lean{Ext} is a plain \lean{def} (not reducible), so \lean{Vector}'s instances do not leak onto
@@ -333,6 +365,7 @@ $x^{-1} = x^{q^d - 2}$ (\file{Field.lean:127}); the \lean{Field} instance needs
 \lean{Fintype (Ext P)} is by the coefficient bijection (\file{Field.lean:54-63}),
 \lean{card_}\allowbreak\lean{ext : Fintype.}\allowbreak\lean{card (Ext P) = P.}\allowbreak\lean{q ^ P.d}. The embedding $\K \to \E$ is
 \lean{Ext.ofBase}, packaged as \lean{algebraMap}:
+
 \begin{leancode}
 /-- The extension is an `F`-algebra. -/
 instance instAlgebra : Algebra F (Ext P) where
@@ -343,6 +376,7 @@ instance instAlgebra : Algebra F (Ext P) where
 
 @[simp] theorem algebraMap_eq_ofBase (c : F) : algebraMap F (Ext P) c = ofBase c := rfl
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Extension/}\allowbreak\file{Bridge.lean:363-370}, CompPoly \code{3468b38c}}
 
 \lean{DecidableEq (Ext P)} and \lean{BEq (Ext P)} are \lean{Vector}'s (\file{Defs.lean:282-284});
@@ -428,6 +462,7 @@ $\K$ and $\E$ are \emph{abbreviations} of CompPoly's types, so leanerVM adds no 
 \lean{example (a : K) : ofK a = algebraMap K E a := rfl} is accepted). The file's other
 declarations are limb lemmas (\lean{limb_add}, \lean{mul_limbs}, \lean{isInK_iff}, \dots), all
 proved.
+
 \begin{leancode}
 /-- `K = GF(2^64)`, CompPoly's `BF64`: a `BitVec 64` with bit `i` the coefficient of `x^i`. -/
 abbrev K : Type := BF64
@@ -448,6 +483,7 @@ abbrev ofK (a : K) : E := Ext.ofBase a
 /-- The word `c0 + c1·y + c2·y²`, as the literal limb vector. -/
 def E.ofLimbs (c0 c1 c2 : K) : E := Ext.ofVector #v[c0, c1, c2]
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{Field.lean:70-92}, leanerVM \code{b435631}}
 
 \file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{Generator.lean:258-311}: \lean{g : K := 0x2}, and
@@ -460,6 +496,7 @@ Clean's $\K$ has CompPoly's field structure (one field structure, by \lean{rfl})
 \lean{val}/\lean{fromNat} read $\K$ as the integers $0, \dots, 2^{64}-1$, which is \emph{not} a
 ring homomorphism in characteristic two; the file's docstring records that Clean's core never
 consumes them.
+
 \begin{leancode}
 instance instFiniteFieldK : FiniteField K where
   val := BitVec.toNat
@@ -468,6 +505,7 @@ instance instFiniteFieldK : FiniteField K where
   ...
 theorem instFiniteFieldK_toField : (instFiniteFieldK.toField : Field K) = BF64.instField := rfl
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{CleanField.lean:360-372}, leanerVM \code{b435631}}
 
 \subsection{At the new pin \texorpdfstring{\texttt{572f9973}}{572f9973}}\label{sec:gen-lib-comppoly-new}
@@ -488,17 +526,21 @@ system:
   \lean{K.ofBits n}, which leanerVM defines at \code{144c5aa}
   (\file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{Field.lean}).
 \end{itemize}
+
 \begin{leancode}
 /-- Cast a natural number by its parity in characteristic two. -/
 @[inline] def natCast (n : ℕ) : BF64 := if n % 2 = 0 then 0 else 1
 
 instance : NatCast BF64 := ⟨natCast⟩
 \end{leancode}
+
 \src{\file{CompPoly/}\allowbreak\file{Fields/}\allowbreak\file{Binary/}\allowbreak\file{BF64/}\allowbreak\file{Impl.lean:223-227}, CompPoly \code{572f9973}}
+
 
 \begin{leancode}
 def K.ofBits (n : ℕ) : K := BF64.ofBitVec (BitVec.ofNat 64 n)
 \end{leancode}
+
 \src{\file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{Field.lean}, leanerVM \code{144c5aa}}
 
 \paragraph{Effect on probes and fixtures.} Every numeral $\geq 2$ in $\K$ written at the old pin

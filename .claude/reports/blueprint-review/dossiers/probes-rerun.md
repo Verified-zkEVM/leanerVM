@@ -15,7 +15,54 @@ Old probe files and their old outputs are untouched; each adapted probe is a cop
 
 ## Summary table
 
-(filled in as the probes run)
+| # | Probe (at `144c5aa`, new pins) | Adaptation | Exit | Outcome |
+| --- | --- | --- | --- | --- |
+| 1.0 | public input: `Probe0Baseline` (control) | regenerated from the current module | 0 | agrees |
+| 1.2 | public input: mutation 7a (wrong check, honest prover fixed) | regenerated; refutation lemmas on the new `Pr{…}[…]` | 1 (expected errors) | **differs in part**: `complete` fails at `decide_eq_true hmsg` and `not_complete` is proved (three axioms), as predicted; but `rbr` depends on `sorryAx` (its statement names the unchanged `stateFunction`, which fails at `toFun_full` as in every other mutation and is not added), where the dossier predicted it would compile |
+| 1.3 | public input: mutation 8 (extra check) | same | 1 (expected errors) | **differs in part**: same pattern as 7a; `not_complete` proved; `rbr` depends on `sorryAx`, not "compiles" |
+| 1.4 | public input: `ProbeWordsLemma` | none | 0 | agrees |
+| 1.5 | public input: mutation 1 (control) | regenerated; `rbr'` on `prEvent_mono` | 1 (the one expected error) | agrees |
+| 1.6 | public input: mutation 2 (control) | regenerated; `not_rbr` on `Pr{…}[…]` | 1 (the one expected error) | agrees |
+| 1.7 | public input: `ProbeAnyCheck` (control) | regenerated | 0 | agrees |
+| 1.8 | public input: mutations 4b and 6 | — | — | **could not run: never written** (argued on paper in `code-pubinput.md` C.12, C.13) |
+| 2.1 | spine: `P2Relation` | `[0, 1, 2] : List K` → `[0, 1, K.ofBits 2]` | 0 | agrees |
+| 2.2 | spine: `P3aSeams` | `2` in `K` → `K.ofBits 2` (cell, point, statement) | 0 | agrees |
+| 2.3 | spine: `P5PassThrough` unchanged (control) | none | 1 | fails as expected of an unadapted probe (`(2 : K) = 0`; old `Pr[…]`) |
+| 2.3 | spine: `P5PassThrough` adapted | `K.ofBits 2`; `Pr{…}[…]` | 0 | agrees (`no_security`, three axioms) |
+| 2.4 | spine: `P4Junk` unchanged (control) | none | 0 | agrees |
+| 3.1 | Layer 1: `ValuesProbe` | numerals ≥ 2 in `K` → `K.ofBits`; `·.toNat` → `·.toBitVec.toNat` | 0 | agrees (every guard against the pinned Python verifier's numbers) |
+| 3.2 | Layer 1: `StridedProbe` | numerals → `K.ofBits` | 0 | agrees |
+| 3.3 | Layer 1: `OffsetsProbe` | none | 0 | agrees |
+| 3.4 | Layer 1: `DuplicatesProbe` | none | 0 | agrees |
+| 4.1 | table/bus seam: `SeamBusShape` | none | 0 | agrees |
+| 4.2 | table/bus seam: `SeamBusMember` | none | 0 | agrees |
+| 5 | Flock: `NoCheckFlock` | none | 0 | agrees |
+| 6.1 | Layer 0: `FieldFidelity` adapted | every word → `K.ofBits` | 1 (one `#synth`) | **the eleven reference products still agree**; differs in the instance lines: no leakage onto `BitVec 64` any more, `Fintype (BitVec 64)` no longer found, **`LawfulBEq E` now exists** |
+| 6.1 | Layer 0: `FieldFidelity` unchanged (control) | none | 1 | fails as `lib-others.md` predicted (numerals as casts) |
+| 6.2 | Layer 0: `SamplerDiamond2` | none | 1 | **differs**: `FinEnum K` has no instance; the second sampler, hence the diamond, no longer exists |
+| 6.3 | Layer 0: `Layer0` | none | 0 | agrees (instance names and the class `SampleableType`'s fields print differently) |
+| 7.1 | ArkLib: `NonVacuity` unchanged / adapted | adapted: `Pr{…}[…]`, `prEvent_eq_zero_iff` | 1 / 0 | adapted copy agrees |
+| 7.2 | ArkLib: `Extractors` | none | 0 | agrees |
+| 7.3 | ArkLib: `PlainReading` unchanged / adapted | adapted: `Pr{…}[…]` | 1 / 0 | adapted copy agrees (`prob_eval_zero_le_div` prints a new signature) |
+| 7.4 | ArkLib: `AxiomsLeanerVM` | none | 0 | agrees, output byte-identical to the old one |
+
+Every run took 3 to 23 s (54 s once, waiting for the lock); none approached the 15-minute
+limit. No run was killed for memory.
+
+**What differs from the dossiers' claims, in one place.**
+
+1. `code-pubinput.md` C.10 and C.11 predicted that, for mutations 7a and 8, "`rbr` compiles (it
+   never reads the check)". It does not: the unchanged `stateFunction` names the original
+   `check` in its last round and fails at `toFun_full` exactly as C.2 records for every other
+   mutation, so `rbr` is recorded with `sorryAx` in both. The predicted completeness
+   failure and the refutation `not_complete` are confirmed for both.
+2. Mutations 4b and 6 were never written; nothing could be run for them.
+3. `lib-others.md`: at the new pins `LawfulBEq E` exists (`CompPoly.Extension.Ext.instLawfulBEq`),
+   the instance leakage onto `BitVec 64` is gone, and the `K` sampler diamond no longer exists
+   (`FinEnum K` is not found). Those statements of the dossier were about the old pin.
+4. The old files `Probe7a.lean` and `Probe8.lean` were generated from the module after the merge
+   (their copied text has the upgrade's proof changes), not from `b435631`'s module like the other
+   old probes (1.1, item 3).
 
 ## 1. The public-input phase (`probes/code-pubinput/`)
 
@@ -314,8 +361,8 @@ Result: **differs in part.** As the dossier predicted (`code-pubinput.md` C.10),
 fails at `decide_eq_true hmsg` and the refutation `not_complete` (the mutated verifier is not
 perfectly complete, for every initial state and implementation of the shared oracle) is proved
 on the kernel's three axioms. Two differences: (a) the dossier predicted "`rbr` compiles (it
-never reads the check)"; it does not: the unchanged `stateFunction` fails at `toFun_full`, as in
-every other mutation (`code-pubinput.md` C.2), because its last round names the original `check`,
+never reads the check)"; it does not (`rbr` is printed with `sorryAx`): the unchanged
+`stateFunction` fails at `toFun_full`, as in every other mutation (`code-pubinput.md` C.2), because its last round names the original `check`,
 and `rbr` is stated over `stateFunction`. (b) The two failures are reported as `maximum recursion
 depth has been reached`, not as the `Type mismatch` the older probes printed; so the unchanged
 `stateFunction` is not added at all (the old probes added it with `sorryAx`). Neither changes the
@@ -2018,3 +2065,206 @@ type still accepts a classical choice of witness (`chooser_sound`, error `0`, th
 leanerVM's commit, public-input and composed extractors are compiled definitions (the `def`s
 without `noncomputable` are accepted), and the commit extractor returns the stack that was sent.
 
+### 7.3 `PlainReading` (the transcript-level reading of round-by-round knowledge soundness)
+
+**(a) Unchanged copy** (`PlainReading.unchanged.v434.lean`, `cp`; empty diff). Output
+(`PlainReading.unchanged.v434.lean.new.out`), 5 s:
+
+```text
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.unchanged.v434.lean:44:17: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.unchanged.v434.lean:45:2: error: Type mismatch
+  Iff.rfl
+has type
+  ?m.65 ↔ ?m.65
+but is expected to have type
+  Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut V W E K ε ↔
+    ∀ (s : StmtIn) (j : pSpec.ChallengeIdx) (pre : Transcript (↑j).castSucc pSpec),
+      (probEvent ($ᵗ pSpec.Challenge j) fun c => c ∈ badSet K s j pre) ≤ ↑(ε j)
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.unchanged.v434.lean:59:0: warning: automatically included section variable(s) unused in theorem `Probe.state_imp`:
+  [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.unchanged.v434.lean:95:12: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.unchanged.v434.lean:99:58: error: Application type mismatch: The argument
+  hacc
+has type
+  (probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run s tr V)).run' __do_lift)
+      fun t => (t, wOut) ∈ relOut) >
+    0
+but is expected to have type
+  𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run s tr V)).run' __do_lift
+        pure ((stmtOut, wOut) ∈ relOut)]
+      {True} >
+    0
+in the application
+  K.toFun_full s tr wOut hacc
+'Probe.accept_imp_extract_or_bad' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.rbr_iff_badSet' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'schwartz_zippel_counting' depends on axioms: [propext, Classical.choice, Quot.sound]
+@schwartz_zippel_counting : ∀ {F : Type u_1} [inst : Field F] [inst_1 : DecidableEq F] {s : ℕ}
+  (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (S : Fin s → Finset F) (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).card) →
+            {x ∈ Fintype.piFinset S | (MvPolynomial.eval x) f = 0}.card * m ≤ d * ∏ i, (S i).card
+@prob_eval_zero_le_div : ∀ {F : Type} [inst : Field F] {s : ℕ} {S : Fin s → Set F}
+  [inst_1 : (i : Fin s) → Fintype ↑(S i)] [∀ (i : Fin s), Nonempty ↑(S i)]
+  [inst_3 : SampleableType ((i : Fin s) → ↑(S i))] (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).toFinset.card) →
+            𝒟[do
+                  let x ← $ᵗ ((i : Fin s) → ↑(S i))
+                  pure ((MvPolynomial.eval fun i => ↑(x i)) f = 0)]
+                {True} ≤
+              ↑d / ↑m
+exit=1
+```
+
+Both errors are the old event notation against ArkLib `7653a901`'s `Pr{…}[…]`.
+
+**(b) Adapted copy** (`PlainReading.v434.lean`): the two events restated. Diff:
+
+```diff
+@@ -41,7 +41,7 @@
+ theorem rbr_iff_badSet (K : V.KnowledgeStateFunction init impl relIn relOut E)
+     (ε : pSpec.ChallengeIdx → ℝ≥0) :
+     V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut W E K ε ↔
+-      ∀ s j pre, Pr[fun c => c ∈ badSet K s j pre | $ᵗ (pSpec.Challenge j)] ≤ ε j :=
++      ∀ s j pre, Pr{let c ← $ᵗ (pSpec.Challenge j)}[c ∈ badSet K s j pre] ≤ ε j :=
+   Iff.rfl
+ 
+ /-- Some verifier round before round `m` of the transcript has its challenge in the bad set of
+@@ -92,8 +92,8 @@
+ input relation, or some challenge of `tr` is in the bad set of the prefix before it. -/
+ theorem accept_imp_extract_or_bad (K : V.KnowledgeStateFunction init impl relIn relOut E)
+     (s : StmtIn) (tr : pSpec.FullTranscript) (wOut : WitOut)
+-    (hacc : Pr[fun t => (t, wOut) ∈ relOut | OptionT.mk do
+-      (simulateQ impl (V.run s tr)).run' (← init)] > 0) :
++    (hacc : Pr{let t ← OptionT.mk do
++      (simulateQ impl (V.run s tr)).run' (← init)}[(t, wOut) ∈ relOut] > 0) :
+     (s, toInput E s (Fin.last n) tr (E.extractOut s tr wOut)) ∈ relIn ∨
+       badSomewhere K s (Fin.last n) tr :=
+   state_imp K s (Fin.last n) tr _ (K.toFun_full s tr wOut hacc)
+```
+
+Output (`PlainReading.v434.lean.new.out`), 6 s:
+
+```text
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.v434.lean:59:0: warning: automatically included section variable(s) unused in theorem `Probe.state_imp`:
+  [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+'Probe.accept_imp_extract_or_bad' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.rbr_iff_badSet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'schwartz_zippel_counting' depends on axioms: [propext, Classical.choice, Quot.sound]
+@schwartz_zippel_counting : ∀ {F : Type u_1} [inst : Field F] [inst_1 : DecidableEq F] {s : ℕ}
+  (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (S : Fin s → Finset F) (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).card) →
+            {x ∈ Fintype.piFinset S | (MvPolynomial.eval x) f = 0}.card * m ≤ d * ∏ i, (S i).card
+@prob_eval_zero_le_div : ∀ {F : Type} [inst : Field F] {s : ℕ} {S : Fin s → Set F}
+  [inst_1 : (i : Fin s) → Fintype ↑(S i)] [∀ (i : Fin s), Nonempty ↑(S i)]
+  [inst_3 : SampleableType ((i : Fin s) → ↑(S i))] (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).toFinset.card) →
+            𝒟[do
+                  let x ← $ᵗ ((i : Fin s) → ↑(S i))
+                  pure ((MvPolynomial.eval fun i => ↑(x i)) f = 0)]
+                {True} ≤
+              ↑d / ↑m
+exit=0
+```
+
+Agrees with the dossier's recorded result (`PlainReading.out`) in what the conclusions rest on:
+`rbr_iff_badSet` still holds by `Iff.rfl` (worst-case round-by-round knowledge soundness is, by
+definition, "every bad set has probability at most the error of its round"), and the plain
+reading `accept_imp_extract_or_bad` is proved on the kernel's three axioms; the unused-variable
+warning is the same. **One printed signature differs:** ArkLib's `prob_eval_zero_le_div` (the
+Schwartz–Zippel bound in probability form) now samples with `$ᵗ` under a
+`SampleableType ((i : Fin s) → ↑(S i))` hypothesis and states the bound on VCVio's measure `𝒟`,
+where at `dca90385` it sampled with `PMF.uniformOfFintype`; `schwartz_zippel_counting` is
+unchanged.
+
+### 7.4 `AxiomsLeanerVM.v434.lean` (`#print axioms` of the master theorems, the two built phases and the composition)
+
+Copied unchanged (`cp`; empty diff). Command:
+`flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/reports/blueprint-review/probes/lib-arklib/AxiomsLeanerVM.v434.lean > ….new.out 2>&1; echo "exit=$?" >> ….new.out`.
+Output, verbatim (`AxiomsLeanerVM.v434.lean.new.out`), 3 s:
+
+```text
+'LeanerVM.Protocol.piop_perfectCompleteness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.piop_rbrKnowledgeSoundness_exists' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.commitSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.commitComplete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.publicInputSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.publicInputComplete' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.Security.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.Complete.append' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Verifier.KnowledgeStateFunction.appendGuarded' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'LeanerVM.Protocol.Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'LeanerVM.Protocol.piopExtractor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.commitExtractor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.PublicInput.extractor' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Component.sendExtractor' depends on axioms: [propext, Quot.sound]
+'LeanerVM.Protocol.Phases.Security.toDef' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Phases.Complete.toDef' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result: `diff AxiomsLeanerVM.out AxiomsLeanerVM.v434.lean.new.out`
+is empty. At `144c5aa` with ArkLib `7653a901`, CompPoly `572f9973`, VCVio `a4232d08`, the two
+master theorems, the existential form, both halves of the commit and public-input phases, the
+composition lemmas, the four extractors and the two `toDef`s depend on no axiom beyond Lean's
+three (`sendExtractor` on two of them); no `sorryAx`.
+
+## 8. Files written by this task
+
+All under `.claude/reports/blueprint-review/`:
+
+- `dossiers/probes-rerun.md` (this file).
+- `probes/code-pubinput/tools/v434/` (copies of the mutation scripts, adapted as in 1.1, and
+  the new `m0.py`); `probes/code-pubinput/{Probe0Baseline,Probe1NoCheck,Probe2TrustProver,Probe7a,Probe8,ProbeAnyCheck,ProbeWordsLemma}.v434.lean`
+  with their `.new.out`.
+- `probes/code-spine/{P2Relation,P3aSeams,P5PassThrough,P5PassThrough.unchanged,P4Junk}.v434.lean`
+  with their `.new.out`.
+- `probes/code-layer1/{ValuesProbe,StridedProbe,OffsetsProbe,DuplicatesProbe}.v434.lean` with
+  their `.new.out`.
+- `probes/gt-table-pub/{SeamBusShape,SeamBusMember}.v434.lean`,
+  `probes/gt-flock-ring/NoCheckFlock.v434.lean`, with their `.new.out`.
+- `probes/lib-others/{FieldFidelity,FieldFidelity.unchanged,SamplerDiamond2,Layer0.unchanged}.v434.lean`
+  with their `.new.out`.
+- `probes/lib-arklib/{NonVacuity,NonVacuity.unchanged,Extractors,PlainReading,PlainReading.unchanged,AxiomsLeanerVM}.v434.lean`
+  with their `.new.out`.
+- `probes/probes-rerun/RefuteScratch.lean` (the adapted `not_perfectCompleteness`, checked alone,
+  1.1) and `probes/probes-rerun/SanityP3a.lean` (two false guards, 2.2); outputs quoted in the
+  text, not saved.
+
+No tracked file of any repository was changed; no checkout was moved; nothing was built or
+committed.
