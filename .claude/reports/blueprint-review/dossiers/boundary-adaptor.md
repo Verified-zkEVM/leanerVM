@@ -327,3 +327,201 @@ and `h : M3Holds I input q`. The earlier review's table (`docs/reviews/protocol-
 
 Two conjuncts hold trivially of the built witness (`index_columns`, `bytecode_rows`) and one
 half-built (`seed_rows`); this is where the trap of the task statement lives.
+
+### A.5 The trap of the built parts, worked out
+
+**What `witnessOf` builds and what it reads.** From `q` through `I.layout`: the rows of
+tables 0-5 (the `BLAKE2S` limbs strided off `q_flock`), the memory limbs and the two finalize
+counts. From `prog`: the eight entry cells of every bytecode-block row (`bytecodeRowOf prog i`)
+and the sentinel constant of the verifier component. From arithmetic: the index column
+`gpow i` of the memory block. From nothing: the `"mem"` table of the data is a copy of the
+limbs. So `w` is a **mixed witness**, and `SatisfiedBy`'s `bytecode_balanced` and
+`mem_balanced` are statements about lists that contain the built rows: `messagesOn w
+BytecodePush` includes, for every slot `i`, the built message `(g^i, 1, entry (prog.code i))`
+(`bytecodeTable.main`, `Boundary.lean:240-243`, on the row `bytecodeRowOf prog i _`), and
+`messagesOn w BytecodePull` the read messages of tables 0-5, taken from `q`.
+
+**What `M3Holds` establishes.** `I.Balanced q` is a permutation between two lists of
+sixteen-tuples, both read from `q` *except* the coordinates the instance holds as `Coord.const`
+and `Coord.known` (`coordCell`, A.2). Whether the built rows' messages are the instance's
+boundary tuples is therefore decided by what `leanIsaInstance prog s` puts in `boundary`:
+
+- If the bytecode blocks are boundary blocks with `Coord.known (bytecodeSlotColumn prog k)`
+  and `Coord.known (idxColumn prog.logSize)` (decision 8; the shape leanVM has,
+  `layout.rs:383-395`, `Coord::Public`, `Coord::Index`, and which the verifier evaluates
+  itself, `leaf.rs:444, 453`), then for every slot `i` the instance's pushed tuple is
+  `(g², g^i, 1, e[0], …, e[7], 0, …)` with `e = encodeSlots (prog.code i)` at slots 3-10 =
+  `entry (prog.code i)` (`Bytecode.lean:94-96`), exactly the bus tuple of the built row's
+  message. The same for the memory blocks (`known idxColumn`, `committed` limbs and counts read
+  from `q`, which `witnessOf` also reads) and for the state boundary (`const prog.finalPc`
+  against `Boundary.lean:314`). Then `I.Balanced q`, filtered by separator, *is* the three
+  balances of the mixed witness, and the proof of `satisfiedBy_witnessOf` goes through.
+- If instead the two blocks were tables of the instance with flushes, obtained by
+  `Component.toM3 memTable` and `Component.toM3 bytecodeTable` as the blueprint's phrase
+  "`Ensemble.toM3` of the eight tables with leanISA's separators and directions" (`:803-805`)
+  says, then their `idx`, `opcode` and `op` columns would be columns of `q` (the row's cells,
+  `BytecodeRow`, `Boundary.lean:211-220`), `I.Balanced q` would speak of whatever the prover
+  committed there, and `witnessOf`, which must build the block's rows from `prog`
+  (`bytecode_rows` demands it), would produce a witness whose `bytecode_balanced` does not
+  follow from `I.Balanced q`. The theorem `satisfiedBy_witnessOf` would be unprovable; worse,
+  the *protocol* would be a different one from leanVM's (a stack with committed index and
+  program columns, `μ` and the layout changed), so `verify_iff_compiled` and the Rust fixture
+  would fail too.
+
+**Model.** Probe `KnownColumn` (run at the old pins, exit 0) builds the spine's toy instance in
+both shapes. With the block's column `known` and equal to the "program" `[1, 1]`, the honest
+stack satisfies `M3Holds`, and the same stack fails `Balanced` for the program `[1, g]`, so
+the relation is about the program in the instance. With the block's column `committed`
+(read off column 1 of the table), a stack whose columns are `[2, 2]` satisfies `M3Holds`
+while the witness an adaptor would rebuild from it, block built from the program `[1, 1]`,
+does not balance:
+
+```
+#guard M3Holds (toyOf prog) (1 : K) honest          -- passes
+#guard ¬ M3Holds (toyOf prog') (1 : K) honest        -- passes
+#guard M3Holds toyCommitted (1 : K) pushesTwo        -- passes: the trap
+#guard ¬ (toyOf prog).Balanced pushesTwo             -- passes: the rebuilt witness fails
+```
+
+(the numeral `2 : K` is nonzero at the old CompPoly pin, as the spine's own test
+`badConstraint` uses it; at the new pin it is `0` and the probe needs `K.ofBits 2`).
+
+**Where "the accepted proof concerns the intended program" is decided.** Nowhere in the
+oracle protocol, whose theorems hold for every `I`; in the adaptor, by the *statement* of
+`satisfiedBy_witnessOf`, which names `leanIsaInstance prog s` and `SatisfiedBy prog` with one
+`prog`, so that its proof can only close if the instance's `known` coordinates are the
+program's and the verifier's sentinel is `prog.finalPc`; and in Layer 12's `verify prog input
+proof`, which must evaluate those same `known` columns (`settleFixedClaims`) and seed the
+transcript with the program (`fs_seed`, `cpu/mod.rs:82-93`), tied to the oracle verifier of
+`leanIsaInstance prog s` by `verify_iff_compiled`. The three are consistent when they name
+the same `prog`. What is missing is the lemma that lets the adaptor's proof close: Layer 2's
+`toM3_flushes_eq` is about a table's flushes and cannot say anything about a boundary block.
+A **third bridge lemma** is needed: for the two Clean block components and the verifier
+component, the messages of the block's rows (`Boundary.lean:157-160, 240-243, 311-314`) equal,
+as sixteen-tuples, the instance's boundary tuples, given the three fixed-column facts of the
+witness (findings 1 and 2).
+
+**A remark on `SatisfiedBy` that helps.** Its `word0_eq`, `word1_eq`, `caps.minLogMem_le`,
+`caps.le_maxLogMem` and `seed_rows` are all stated on `imageOf w.data`, the `"mem"` table of
+the prover data, not on the block's rows; and `MemPull.Guarantees` (`Channels.lean:214-216`)
+too. `witnessOf` must therefore write the same limbs into the data and into the memory
+block, and `seed_rows` is what ties them; Clean PR #446 would derive the data from the
+block's columns and delete the conjunct (`Statement.lean:87-100`). Nothing in the chain reads
+the data from anywhere else.
+
+### A.6 The completeness direction, `m3Holds_stackOf`
+
+`stackOf gen w hs : Column I.μ` stacks the committed columns of `w` at the aligned offsets
+(Layer 1's `Blocks.stackColumn`, `Stack.lean:70`), with `q_flock` computed by the Flock
+witness generator from the `BLAKE2S` rows' limbs. Clause by clause, from
+`h : SatisfiedBy prog input w` and `hs : Sizes.ofWitness w = some s`:
+
+| Clause of `M3Holds` | From | What else is needed |
+| --- | --- | --- |
+| `ConstraintsVanish` | `h.constraints`, tables 0-5 | `toM3_constraints_iff` on rows read back from the stack: `Blocks.readColumn_stackColumn` (`Stack.lean:85-87`) returns the block, so the rows read back are the rows stacked, provided every row has exactly `component.width` cells or `stackOf` reads `row[j]?.getD 0` as `Environment.fromArray` does; the `BLAKE2S` limbs read back from the strided slots equal the rows' limbs, which is the generator's "keeping the limbs in their slots" |
+| `Balanced` | `h.state_balanced`, `h.mem_balanced`, `h.bytecode_balanced` | the missing boundary lemma in the other direction: the messages of `w`'s tables 6, 7 and of the verifier row are the instance's boundary tuples, which needs `h.index_columns` (the rows' `idx` cells are `g^i`, the stack does not hold them), `h.seed_rows` (the block's limbs are the data's, which the stack holds) and `h.bytecode_rows` (the rows' entry cells are `prog`'s, not stacked); then the three permutations concatenate into one, since every flush tuple carries exactly one of the three separators |
+| `CountsNonzero` | `h.counts_nonzero` | `I.counts j` ⊆ the columns that appear as a pull's count coordinate (the converse inclusion the soundness direction needs; so `counts j` must be exactly that set) |
+| `PublicLinesHold` | `h.word0_eq`, `h.word1_eq`, `h.seed_rows`, `h.caps` | `MemImage.read_gpow` at `κ < 64`, `limb_ofLimbs`; the third line's `(0, 0)` from the top limb of `input.word0`, `input.word1`, which is `0` by definition (`Memory.lean:107-110`) |
+| `aux` | `h.blake2s_valid` | `FlockWitnessGen`'s lemma: the wires the generator computes from limbs that compress satisfy the R1CS (decision 12) |
+
+What else `m3Holds_stackOf` needs: nothing on the caps beyond `Sizes.ofWitness w = some s`,
+which `h.caps.heights` (every height a power of two at most `2^32`) supplies for the eight
+tables, together with `h.seed_rows` (table 6 has `2^(imageOf w.data).1` rows) and
+`h.bytecode_rows` (table 7 has `2^prog.logSize`); and `leanIsaInstance`'s layout fit, which is
+a `Blocks` fact and must precede the instance (`code-layer1.md` G.2). What `verify`'s
+acceptance needs beyond it is not in `SatisfiedBy` at all: the stacking window `μ ∈ [15, 28]`
+and the rate window (section C, finding 4).
+
+## B. The program and the public input, along the chain
+
+### B.1 How each enters
+
+| Link | The program | The public input |
+| --- | --- | --- |
+| (i) the deployed verifier (`cpu/mod.rs:711-779`) | seeds the transcript with `fs_seed(program)`, the BLAKE2s of `"leanvm" ‖ len ‖ R1CS_DIGEST ‖ bytecode_hash` (`:82-93`, `:712`), where `bytecode_hash` is the hash of the stacked sixteen-slot table (`:73-76`, `layout.rs:317-326`); builds the layout from `prog.prog` (`read_public`, `:171`): the final counter `g^(len−1)` as a constant of the state pull (`layout.rs:335, 357`) and the eight public columns of the two bytecode blocks (`layout.rs:343, 385-395`), which the verifier evaluates itself at `ζ_lo` (`leaf.rs:453`) and never opens; the bytecode length must be a power of two at most `2^32` (`:157-159`). The Python takes the raw stacked table (`verifier.py:1365-1368`) | seeds the transcript as four 64-bit words (`digest_words`, `:99-106`, `:712`), after rejecting a nonzero third limb (`:141-143`); enters the layout as `l.pi` (`layout.rs:83, 424`), read by the public-input check alone (`:752-755`); binds nothing else (the boundary tuples do not depend on it: `gt-bus.md` §E.3). The Python's `Digest` is 32 bytes by construction (`verifier.py:201-224`) |
+| (ii) the spine | the instance `I : M3Instance` is a parameter of every phase and theorem; for leanISA it is `leanIsaInstance prog s`, whose `boundary` holds the program as `Coord.known` data (the eight `bytecodeSlotColumn prog k`, `FixedColumns.lean:75-76`, and `const prog.finalPc`) and whose `Stmt` is `PublicInput`. Nothing in `M3Holds` reads a program from `q` | `input : I.Stmt` is the statement of the oracle protocol (`M3Rel`, `Spine/Instance.lean:230-231`); it is read by one clause, `PublicLinesHold input q`, through `I.publicLines input` (three lines) |
+| (iii) the adaptor (sketch) | `witnessOf prog s q` builds the bytecode block's rows and the verifier's sentinel from `prog`; `satisfiedBy_witnessOf` names the same `prog` in `leanIsaInstance prog s`, `witnessOf prog s q` and `SatisfiedBy prog input` | absent from `witnessOf`'s arguments (`:813-814`); recovered from `q` through the lines, or supplied by the refinement's `map : Stmt → W₁ → W₂` |
+| (iv) `SatisfiedBy prog input w` | `bytecode_rows` (the block's rows are `bytecodeRowOf prog i`), `leanIsaVerifier prog` pulling `const prog.finalPc` (`Boundary.lean:311-314`), and nothing else: the six tables and the channels are program-free (decision 14, `Channels.lean:88-105`) | `public_input_eq` (the lanes, read by no component) and `word0_eq`, `word1_eq` on the image the data names |
+| (v) `ValidExecution prog input t` | `run prog t.image t.steps Regs.initial = some (Regs.final prog)`, `Program.fetch` at every step (`Execution.lean:86-90, 114-115`) | `HasPublicBoundary input t`: `16 ≤ κ ≤ 32` and the two words at `g^0`, `g^1` (`:108-110`) |
+
+### B.2 A different program or input?
+
+Within one instantiation, no: `prog` and `input` are the same variables in `verify prog input
+proof`, `verify_iff_compiled`, `leanIsaInstance prog s`, `satisfiedBy_witnessOf`,
+`SatisfiedBy prog input` and `ValidExecution prog input`. Every theorem of the chain is
+universally quantified over both outside any probability, and the built code confirms the
+shape: `piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security)` is stated for a fixed `I`
+(`Spine/Compose.lean:172-177`), and ArkLib's game fixes `stmtIn` before the prover runs
+(`Security/Basic.lean:305-323`: `∀ stmtIn : StmtIn, ∀ witIn, ∀ prover, Pr[…] ≤ ε`). Three
+observations on the edges of that answer:
+
+1. **The program is bound by the transcript only through its stacked table.** The Lean side
+   holds `prog : Program` (typed instructions, `Instruction.lean:87-93`) and `FsState.seed
+   prog input` must hash `bytecodeColumn prog` (`FixedColumns.lean:78-82`), as the Rust hashes
+   `bytecode_table` (`cpu/mod.rs:73-76, 89`). That `prog ↦ (prog.logSize, bytecodeColumn prog)`
+   is injective follows from `entry_injective` (`Bytecode.lean:240-245`) and
+   `bytecodeColumn_slot` (`FixedColumns.lean:84-87`); it is not stated anywhere and Layer 12
+   will need it for "statement binding" (`architecture.md:453-454`). Unverified: no probe was
+   written for the lemma.
+2. **`Program` and `PublicInput` are narrower than the deployed surfaces.** The Rust verifier
+   takes `Vec<Op>` with `u32` operands; Lean's operands are any `K` (a superset); the Python
+   takes any `K`-array (`verifier.py:1365`), including undecodable entries, of which Lean has
+   none (the faithfulness review's row 4, `docs/reviews/leanvm-faithfulness-review.md:72`). A
+   public input with a nonzero third limb is rejected by the Rust (`:141-143`) and by the
+   Python's `Digest` (`:223`), and cannot be written in Lean (`PublicInput` is four lanes of
+   `K`, `Memory.lean:101-104`). So two of `read_public`'s eight checks (leanISA's numbering,
+   `Statement.lean:71-73`) are discharged "by type" on the Lean side, which means: by whoever
+   parses bytes into `Program` and `PublicInput`. The blueprint's *Verifier shape* convention
+   (`:326`) says structure checks the Rust `assert!`s are "theorems about the layout, not
+   branches of `verify`"; it does not say that these two are parsing obligations of the
+   fixture harness and, later, of T7's `PublicInput.encode` (finding 15).
+3. **The sizes are the prover's**, and this is where the family of instances is quantified.
+   `verify_iff_compiled` (`:1218-1221`) has `∃ s, s.Admissible prog ∧ …`; the prover writes
+   `log_mem`, six `τ_j` and `log_inv_rate` onto the stream (`announce_public`, `cpu/mod.rs
+   :118-124`) and the verifier reads and checks them before anything else (`read_public`,
+   `:144-176`; Python `:1372-1379`). Section B.3.
+
+### B.3 Is `∃ s` sound, and who checks?
+
+**For the conclusion, yes.** `satisfiedBy_witnessOf` is stated for every admissible `s`, and
+its conclusion `SatisfiedBy prog input (witnessOf prog s q)` does not mention `s`; so whatever
+sizes the prover announces, an accepting transcript whose extracted stack satisfies
+`M3Holds (leanIsaInstance prog s) input q` yields a satisfying witness and, through
+`constraintSoundness`, an execution. Admissibility is checked by the verifier: the Rust
+rejects `log_mem ∉ [16, 32]`, `τ_j > 32`, `τ_5 < 3`, an invalid rate, and `μ ∉ [15, 28]`
+(`cpu/mod.rs:157-176`); the Python checks the rate and the `μ` window (`verifier.py
+:1377-1379`) and the rest through its layout (`gt-bus.md` G5 re-examined the status file's
+claim that it omits four caps). The hypothesis `hs : s.Admissible prog` of the adaptor is
+therefore discharged by a verifier check, as the blueprint says (`:824-831`).
+
+**For the probability, the blueprint does not say how.** `verify_knowledgeSound` is sketched
+with error `niError s Q` (`:1226-1227`), a function of `s`; the oracle protocol is "a family
+indexed by them" (acceptance test 21, `:1326-1328`); and the per-instance theorems
+(`piop_rbrKnowledgeSoundness` for one `I`, `FiatShamirSecurity` for one compiled protocol)
+bound the event for one `s`. A prover against `verify` chooses `s` inside its proof, after
+its random-oracle queries. Two ways to compose exist and they differ by about `2^34`:
+
+- a union over the admissible sizes: `Pr[verify accepts ∧ bad] ≤ Σ_s Pr[accepts with s ∧ bad_s]
+  ≤ Σ_s ε_s`, with `|{admissible s}| ≤ 11 · 28^5 · 25 · 4 ≈ 2^34` (`log_mem ≤ 26` and
+  `τ_j ≤ 28` once `μ ≤ 28` is imposed; `τ_5 ≥ 3`; four rates), which the numeric target of
+  acceptance test 23 (`< 2^-150`) absorbs for the oracle protocol but the 128-bit WHIR budget
+  (`SECURITY_BITS`, `leaf.rs:143-145`) does not;
+- the standard argument, `Q · max_s ε_s`: each random-oracle query commits to one `s`
+  because the sizes are absorbed into the chain before any challenge (`announce_public`;
+  acceptance test 12). This needs the sizes to be part of the statement the Fiat–Shamir
+  transform hashes, i.e. one protocol whose first prover message is `s`, on which the rest
+  of the schedule depends. ArkLib's `ProtocolSpec n` has a fixed `n` and fixed message types
+  (`ProtocolSpec/Basic.lean`), so that protocol cannot be written at the pin; the family is
+  the only shape available, and `FiatShamirSecurity` must then be stated for the family (the
+  challenge oracle implemented by one BLAKE2s chain shared across `s`, with `s` in every
+  query), not for one instance.
+
+Finding 6 asks the blueprint to say which, and to make `niError` independent of the prover's
+choice (a maximum over admissible `s`, or the union). Either way the *conclusion* of T4 is
+unaffected; the *number* is.
+
+**A remark for T7.** ArkLib's game fixes the statement before the prover runs. For T7
+(`architecture.md:339-369`) the public input is `PublicInput.encode (FinalProof.metadata
+proof) expectedStatement`, part of which the prover chooses; that needs adaptive soundness in
+the statement, which the deployed transcript provides (the input seeds the chain) and which
+no theorem of the blueprint states (note 17).

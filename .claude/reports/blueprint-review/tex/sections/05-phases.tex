@@ -1,1 +1,218 @@
-% stub: to be written
+\chapter{The phases: what each proves, and how}\label{ch:phases}
+
+This chapter gives, phase by phase, the design as the blueprint has it, the design as leanVM
+has it, and the intuition behind the two proofs each phase owes: perfect completeness (an
+honest prover always passes) and round-by-round knowledge soundness (an invariant on partial
+transcripts that a cheating prover escapes only when a fresh challenge lands badly, with a
+bound per challenge). Where the blueprint falls short of leanVM the finding is named and
+detailed in \cref{ch:faithfulness}; where a definition cannot be met or says less than it
+should, in \cref{ch:nonvacuity}. The vocabulary of the ideal model (oracle reduction,
+knowledge state function, extractor) is introduced in \cref{ch:libraries}; the reader who has
+that chapter in mind can read this one on its own.
+
+\section{The commit phase}\label{sec:ph-commit}
+
+The prover sends the stack $q$ as the one oracle message; the verifier keeps the statement and
+exposes the message as the oracle. There is no challenge and no check. The phase is the spine's
+own and both its halves are proved (\lean{commitComplete}, \lean{commitSecurity}). Its knowledge
+state function says, before the message, that the candidate witness satisfies \lean{M3Holds}
+and, after it, that the \emph{message} does; its extractor reads the message. Error zero is
+right: there is no challenge to charge. In the deployed protocol the message is a Merkle root;
+what a root must provide for the compiled protocol to inherit the oracle protocol's guarantee
+is the subject of \cref{sec:ph-opening}.
+
+\section{The bus phase}\label{sec:ph-bus}
+
+\paragraph{What is proved.} That the multiset of tuples the tables push equals the multiset
+they pull, on each of the three buses, and that every read count is nonzero. With the boundary
+blocks (the initial and final machine state, the memory and bytecode seeds and finalizations)
+counted in, balance is the whole of the memory and bytecode consistency of the execution.
+
+\paragraph{How.} A fingerprint turns a 16-tuple $t$ into the scalar
+$\beta + \sum_{i < 16} \eq(\alpha, i)\, t_i$ for random $\alpha \in \E^4$, $\beta \in \E$; two
+multisets of at most $2^{\mu_{\mathrm{bus}}}$ tuples with different contents have different
+products of fingerprints except with probability $4 \cdot 2^{\mu_{\mathrm{bus}}} / \abs{\E}$
+(the specification's Theorem 5.1; each factor has total degree 4 in $(\alpha, \beta)$). The
+product itself is proved by a grand-product argument: the leaves are the fingerprints (padded
+with $1$), each layer of the tree holds pairwise products, and a GKR walk from the root
+descends layer by layer, reducing a claim on a layer to a claim on the layer below by a
+sumcheck; the three trees (push, pull, count) share every challenge and are batched by the
+powers of a combiner $\lambda$. The prover states a single root $R$ for the push and pull
+trees, so their equality needs no check, and a root $R_c$ for the count tree, which the
+verifier requires to be nonzero. The walk ends with three claims on the leaf tables at one point
+$\zeta$, which the leaf decomposition (the specification's equation (2) of §5.4) splits into a
+public part the verifier computes, five boundary evaluations the prover sends, and the tables'
+share, which the table sumcheck settles.
+
+\paragraph{Completeness.} From \lean{M3Holds}: the constraints vanish, so the zerocheck claims
+hold at every point; balance is a permutation, so the two products are one field element and
+the honest prover has a single $R$ to send; every count is nonzero, so $R_c \neq 0$; the GKR's
+honest messages pass every layer check (no inverse of a challenge is taken); the leaf
+decomposition holds of the honest stack with the derived $\mathit{rem}_s$. This is perfect.
+
+\paragraph{Knowledge soundness.} One state function for the whole phase, a conjunction:
+before $(\alpha, \beta)$, \lean{M3Holds} of the oracle; after them, \enquote{the two products at
+$(\alpha, \beta)$ are equal and $R_c$ is the true count product and every constraint vanishes};
+from then on the GKR's own invariant (\enquote{the current layer claims are the true values})
+together with the zerocheck conjunct \enquote{every constraint's extension, restricted to the
+coordinates of $\zeta$ drawn so far, is identically zero}. A challenge flips a false state
+to true with probability at most: $4 \cdot 2^{\mu_{\mathrm{bus}}} / \abs{\E}$ for
+$(\alpha, \beta)$; $2 / \abs{\E}$ for a combiner (the batching polynomial has degree 2);
+$4 / \abs{\E}$ for a round challenge (the cofactor has degree 4); $1 / \abs{\E}$ for a
+combination challenge; and $0$ for the last, unused combiner. The zerocheck conjunct adds
+nothing: on a coordinate of $\zeta$ it flips with probability at most $1 / \abs{\E}$, once for
+all constraints (a nonzero multilinear restricted at one more variable becomes zero for at most
+one value of that variable), and a conjunction escapes with the larger of the two
+probabilities, not their sum. The blueprint's three different accounts of this charge, and its
+GKR of the wrong degree, are the findings of \cref{sec:faith-bus}.
+
+\paragraph{Where the blueprint falls short.} The GKR layer sumcheck it specifies has degree 5
+and is not the deployed one (\emph{normalized} cofactor of degree 4, no equality factor in the
+layer check); it draws one combiner fewer than the deployed verifier; its generic GKR takes the
+leaf tables as oracles, which the spine's one-oracle phases cannot supply without ArkLib's
+admitted context lifting; and the zerocheck conjunct, which changes on the GKR's own
+challenges, cannot be framed around a GKR that knows nothing of the constraints. The admissible
+sizes it equates with leanISA's caps leave out the stacking window and the rate window that the
+deployed verifier checks. None of this touches the spine as built: the real bus phase's output
+is expressible as a \lean{BusOut}, and its completeness and knowledge soundness against the
+spine's two seams can hold (\cref{sec:faith-bus}).
+
+\section{The table sumcheck}\label{sec:ph-table}
+
+\paragraph{What is proved.} That every constraint of every opcode table vanishes on every row
+(for leanVM at the pin, the two identities of the JUMP table; the other tables have none), and
+that each table's bus forms sum, over its rows, to the share $\mathit{rem}_s$ the bus phase
+derived for it. The second is what ties the committed columns to the bus trees: the trees were
+built by the prover, and only this sumcheck says that they were built from the columns.
+
+\paragraph{How.} One sumcheck over $\tau_{\max}$ variables, the highest bound first, with each
+table joining at the round where its height is reached and padded below it by the product of
+the variables it lacks (so that its sum is unchanged). The summand batches the constraints and
+the three bus forms by the powers of $\xi$, with $\eq(\zeta_{< \tau_j}, \cdot)$ as the weight
+of table $j$: the constraint terms contribute zero to the target and the bus terms contribute
+$\sum_s \xi^{2 + s}\, \mathit{rem}_s$, which the verifier computes, so no target is ever sent.
+A round message is a cubic (the equality factor times a degree-2 term) of which three
+coefficients travel; the verifier derives the fourth from the running claim. At the end the
+prover sends every column's value at the sumcheck's point and the verifier recomputes the
+summand.
+
+\paragraph{Completeness.} Immediate from the input seam: the zerocheck claims are true, the bus
+forms sum to their values, the honest round polynomials pass, the honest column values
+reproduce the summand. No inverse of a challenge is taken.
+
+\paragraph{Knowledge soundness.} Before $\xi$: every claim is true. After $\xi$: the batched
+claim $\sum_c \xi^c\, \delta_c = 0$ where $\delta_c$ is claim $c$'s error; a nonzero polynomial
+of degree at most $k - 1$ in $\xi$ has at most $k - 1$ roots, so the error on $\xi$ is
+$(k - 1) / \abs{\E}$, which is $(B + 2) / \abs{\E}$ for $B$ constraints and three sides. Each
+round: if the running claim is false, the prover's cubic differs from the true one and they
+agree at most at three points, $3 / \abs{\E}$. After the last message: the verifier accepts and
+every column claim holds, so the recomputed summand is the true summand at the point and the
+running claim was true. The escape from \enquote{the zerocheck claims hold at $\zeta$} to
+\enquote{the constraints vanish on the cube} belongs to the bus phase, where $\zeta$ was drawn
+(above); it is not charged here.
+
+\paragraph{Where the blueprint falls short.} Not in the numbers, which are right and tight,
+but in the seam it consumes. \lean{Seam.bus} as built admits statements that the deployed table
+sumcheck cannot serve: any number of linear claims (so the error on $\xi$ is unbounded over the
+seam), terms of one table at unrelated points, terms on any table of the instance, and a degree
+clause on the statement alone, which forces the verifier to check degrees, a check leanVM does
+not make. Completeness and knowledge soundness are owed on all of them. The blueprint also
+leaves open which tables the sumcheck ranges over: its leanISA instance makes the six shared
+columns tables of the instance, and read literally its table sumcheck then has at least sixteen
+rounds where leanVM has as few as three (\cref{sec:faith-table}). And its oracle protocol sends
+four coefficients and checks the round identity, where the deployed verifier reads three and
+derives the fourth; the lemma relating the two is not stated.
+
+\section{The public-input phase}\label{sec:ph-pub}
+
+\paragraph{What is proved.} That cells 0 and 1 of the three memory limbs hold the two public
+words: for the two low limbs, the words' limbs; for the top limb, zero.
+
+\paragraph{How.} The verifier draws $r \in \E$ and considers the line through cells 0 and 1 of
+a column: $\widetilde{c}(r, 0, \dots, 0) = (1 - r)\, c(0) + r\, c(1)$, where $-1 = 1$ in
+characteristic 2. The prover sends the values $c_0, c_1$ it claims for the two low limbs on
+that line. The specification checks each against the line through the public words' limbs;
+the deployed verifiers check the single equation $c_0 + y\, c_1 = (1 + r)\, w_0 + r\, w_1$ in
+$\E$, which the two per-limb equations imply and which does not imply them. Three claims are
+then pooled: the two low limbs at the values sent and the top limb at $0$, for which nothing is
+sent.
+
+\paragraph{Completeness.} If the lines hold, the honest values pass either check and every
+pooled claim is a true evaluation. Perfect.
+
+\paragraph{Knowledge soundness.} A wrong stack (a cell of a limb differing from the public
+word's) makes the pooled claim on that limb a nonzero polynomial of degree one in $r$, true at
+one challenge at most: error $1 / \abs{\E}$, whatever the number of lines and for either
+check. For the deployed check the argument runs through the independence of $1, y, y^2$ over
+$\K$: if the three pooled claims hold of a $\K$-valued memory and the combined equation holds
+at two distinct challenges, the cells are the limbs of the public words and the top limbs are
+zero. This is proved in Lean by the review (\cref{ch:probes}).
+
+\paragraph{Where the phase as built falls short.} It follows the specification, so its theorem
+is about a verifier that none of the three executable verifiers runs. And it pools the values
+it \emph{computes} from the statement rather than the values \emph{sent}: on the accepting path
+they agree, but the consequence is that the check on the prover's message is not load-bearing
+for any theorem of the phase: a verifier that reads the message and ignores it has the same
+completeness and the same knowledge soundness at the same error. The requirement that a missing
+check leave a theorem unprovable is therefore not met by this phase as designed, and cannot be;
+pooling the values sent, as the deployed verifiers do, restores it (\cref{sec:faith-pub},
+\cref{ch:drift}). The top-limb claim exists because the leanISA instance lists a third public
+line; nothing in the phase or the spine forces that line, and what catches its absence is the
+adaptor's theorem, not built (\cref{ch:drift}).
+
+\section{BLAKE2s validity and ring switching}\label{sec:ph-flock}
+
+\paragraph{What is proved.} That the bits packed into the region $\qflock$ of the stack satisfy,
+block by block, the R1CS of the BLAKE2s compression with the constant position of every block
+equal to $1$; the eighteen value limbs each BLAKE2S table row carries are strided slots of that
+region and are opened with every other point claim.
+
+\paragraph{How.} Flock is a zerocheck over the R1CS's rows, with the first six variables
+skipped univariately (the prover sends the summand on a coset of 64 points), followed by a
+lincheck that reduces the three matrix products to one evaluation of the bit witness at a
+point, with a single terminal identity the verifier checks. Ring switching then turns the 64
+resulting claims on the bit polynomials $Q_i$ (bit $i$ of every word) at one point into a
+weighted claim on the packed column: for a random $\F_2$-linear map $\Phi$ built from six
+challenges, $\sum_u \Phi(\eq(r, u))\, \qflock(u) = \sum_i x^i\, \Phi(s_i)$, whose weight the
+verifier evaluates in closed form. Neither step commits anything: the only oracle is $q$.
+
+\paragraph{Completeness.} Perfect, for the honest prover that sends the coefficients of the
+true round polynomials: the verifier derives the untransmitted coefficient by a multiplication
+and takes no inverse. The \emph{deployed} Rust prover is not that prover: it derives $G(0)$
+through $(1 + r_{\mathrm{eq}})^{-1}$, whose value at $r_{\mathrm{eq}} = 1$ is $0$ by the
+field's convention, and at that challenge emits a proof its own verifier rejects. The
+blueprint's acceptance test 20 attributes this inverse to the protocol and files it under a
+soundness error; both are wrong (\cref{sec:faith-flock}).
+
+\paragraph{Knowledge soundness.} The specification's Annex C accounts
+$(4 k_{\mathrm{batch}} + 163) / \abs{\E}$ for the reduction, which the review re-derived term by
+term from the Rust's parameters, and Annex A accounts below $2^{32} / \abs{\E}$ for ring
+switching (a nonzero polynomial of total degree below $2^{32}$ in the six challenges). Both are
+errors for a fixed committed polynomial; after compilation the list-decoding regime multiplies
+them by the list size (\cref{sec:ph-opening}).
+
+\paragraph{Where the blueprint falls short.} Its Layer 9 makes the eighteen limb claims an
+\emph{input} of Flock and one weighted claim its only output, dropping the limb claims; with
+leanVM's verifier, which reads no claim, that interface has knowledge error one. The spine's
+slot, which keeps the column claims and adds the weighted one, is right. The slot map of the
+limbs is placed inside the Flock interface while the instance's layout needs it. And a Flock
+phase cannot be written over an abstract instance at all, since the instance offers it only an
+opaque predicate \lean{aux}; the review proposes a small structure that names the region, the
+number of compressions and what \lean{aux} says of them (\cref{sec:faith-flock}). Today, with
+the only built instance having \lean{aux} trivially true, a Flock phase that checks nothing is
+knowledge sound at error zero (\cref{ch:probes}): the master theorems constrain the Flock
+verifier exactly as much as the instance's predicate does.
+
+\section{The opening and the compilation}\label{sec:ph-opening}
+
+\emph{This section is completed from the dossier on the opening, WHIR, Merkle trees and
+Fiat--Shamir, which is being finished as this draft is written.} What is already established:
+the specification's opening is one batching challenge followed by one inner-product opening,
+with no separate reduction sumcheck, whereas the blueprint's oracle protocol runs a sumcheck
+reducing the batched weighted claim to an evaluation and then queries the oracle once; the
+oracle interface of the stack in Layer 0 is an evaluation oracle, and an inner-product oracle,
+the idealization of the specification's Definition 3.13, would make the opening phase
+\enquote{$\lambda$, then one query} with leanVM's transcript. The compiled error the blueprint
+sketches lacks the hash-collision term, the list-size factor of a list-binding commitment and
+any account of grinding; the assumed Fiat--Shamir and BCS interfaces are stated for
+constructions that are not leanVM's single BLAKE2s map (\cref{sec:faith-opening}).
