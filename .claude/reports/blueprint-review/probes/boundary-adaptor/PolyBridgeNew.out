@@ -1,0 +1,15 @@
+def CPoly.toCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → MvPolynomial (Fin n) R → CMvPolynomial n R :=
+fun {n} {R} [CommSemiring R] p =>
+  match p with
+  | AddMonoidAlgebra.ofCoeff { support := s, toFun := f, mem_support_toFun := mem_support_toFun } =>
+    let unlawful := Unlawful.ofList (List.map (fun m => (CMvMonomial.ofFinsupp m, f m)) s.toList);
+    ⟨unlawful, ⋯⟩
+def CPoly.fromCMvPolynomial.{u_1} : {n : ℕ} →
+  {R : Type u_1} → [inst : CommSemiring R] → CMvPolynomial n R → MvPolynomial (Fin n) R :=
+fun {n} {R} [CommSemiring R] p =>
+  let support := List.map CMvMonomial.toFinsupp (Lawful.monomials p);
+  let toFun := fun f => p[CMvMonomial.ofFinsupp f]?.getD 0;
+  have mem_support_fun := ⋯;
+  AddMonoidAlgebra.ofCoeff { support := support.toFinset, toFun := toFun, mem_support_toFun := ⋯ }
+exit=0

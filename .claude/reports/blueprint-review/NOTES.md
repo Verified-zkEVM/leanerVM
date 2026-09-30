@@ -329,3 +329,18 @@ Full `lake build LeanerVM LeanerVMTests` started 09:55 in the background
 ### Wave 2 launched 09:52 (Opus): `register` (abab0f7d52443576b) → dossiers/register.md;
 `tex-groundtruth` (a187d67d6fb7e3def) → tex/sections/gen/. Resumed (Fable): gt-opening-compile,
 boundary-adaptor (reading only until the build is done).
+
+### Wave 2 additions (10:05, Opus): tex-libraries (a766c02d3e91bdda5) → gen/lib-*.tex,
+layer0-audit.tex, findings-libraries.tex; tex-catalogue (ad48f4250a49950b2) → gen/catalogue-*.tex,
+surface.tex, statements-spine.tex, probes-code.tex, conformance.tex, findings-code.tex;
+tex-docs (afad83d0aacd46a63) → gen/docs-*.tex, code-index.tex, findings-docs.tex.
+Chapters written by the orchestrator so far: 01 (scope), 02 (map + fig), 05 (phases; the
+opening section awaits gt-opening-compile), e (brief review), fig-chain. Report compiles
+(`lualatex -output-directory=build main.tex` from tex/).
+Pending, in order once inputs land: (a) read register.md; (b) after the build: notify the two
+reading agents that Lean runs again under the lock; launch an Opus "probes-rerun" agent for the
+probes marked written-not-run / numerals ≥ 2 (code-pubinput 4b, 6, 7a, 8; code-spine's three;
+code-layer1 ValuesProbe/StridedProbe with K.ofBits); (c) Fable: proof-obligation hierarchy
+(chapter 06) and adversarial re-derivation of the major design findings; (d) orchestrator:
+chapters 00, 07 (TCB), 08 (faithfulness: intro + per-phase inputs of gen/), 09 (non-vacuity),
+10 (auditability), 11 (options), 12 (documentation), 13 (drift), appendices a–d.

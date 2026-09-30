@@ -2,8 +2,8 @@
 # verifier's own layout code (python-verifier/verifier.py at a386121f).
 import sys, math, itertools
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/scaraven/Documents/leanEthereum/leanVM/python-verifier")
-import verifier as V
+sys.path.insert(0, ".")
+import verifier_pinned as V
 
 print("tables:", [(t.opcode, t.width, len(t.flushes.push), len(t.flushes.pull), len(t.count_columns), t.n_constraints) for t in V.TABLES])
 

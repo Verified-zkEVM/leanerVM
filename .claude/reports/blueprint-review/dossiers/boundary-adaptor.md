@@ -130,7 +130,7 @@ Readers who know Lean may skip; every object below is quoted from the pinned sou
   output). `w.Constraints` is "every component's asserted expressions vanish on every row and
   every lookup is contained" (`Operations.lean:687-688`; bus guarantees are *not* part of it,
   probe `Shapes`, output lines 154-159), and `w.interactions` is the concatenation of every
-  table's emitted bus interactions, the verifier's one row first (`FlatEnsemble.lean:214-215`).
+  table's emitted bus interactions, the verifier's one row first (`FlatEnsemble.lean:225-226`).
 - **The spine** (leanerVM, `LeanerVM/Protocol/Spine/Instance.lean`) is the proof system's
   abstract view of an arithmetization. An `M3Instance` (`:119-148`) is: a `Shape` (a number
   of tables, each with a log-height `τ` and a width); a statement type `Stmt`; per table, a
@@ -142,7 +142,7 @@ Readers who know Lean may skip; every object below is quoted from the pinned sou
   (data both parties hold: the index column, the program) or a `committed` column of a table.
   `M3Holds I input q` (`:219-220`) is the conjunction of five clauses on the column `q`.
 - **ArkLib** (`dca90385`) is the proof-system library. Its knowledge-soundness game
-  `Verifier.knowledgeSoundnessWith` (`Security/Basic.lean:305-323`) fixes a statement, runs a
+  `Verifier.knowledgeSoundnessWith` (`Security/Basic.lean:299-323`) fixes a statement, runs a
   malicious prover against the verifier, applies a named straight-line extractor to the
   transcript, and bounds the probability that the verifier accepts *and* no witness in the
   extractor's `Option` slot is valid. Statement and witness types are in `Type`. A
@@ -239,7 +239,7 @@ and, in `Boundary.lean`, the three block components and their honest rows: `memT
 `(idx, 1, opcode, op)`, pull `(idx, cntFin, opcode, op)`), `leanIsaVerifier prog` (`:311-314`,
 push `(1, 1)`, pull `(const prog.finalPc, 1)`), `memRowOf` (`:184-185`) and `bytecodeRowOf`
 (`:274-276`: `⟨gpow i, cntFin, e[0], #v[e[1], …, e[7]]⟩` with `e := entry (prog.code i)`).
-Clean's `w.Constraints` (`FlatEnsemble.lean:212`, `FlatComponent.lean:175-177`,
+Clean's `w.Constraints` (`FlatEnsemble.lean:216`, `FlatComponent.lean:184-186`,
 `Operations.lean:687-688`) is, for every table including the verifier's one-row table,
 `(∀ e ∈ ops.constraints, env e = 0) ∧ (∀ l ∈ ops.lookups, l.Contains env)`; leanISA emits no
 lookup (grep of `LeanerVM/Arithmetization/Tables/`: the word occurs in prose only) and only
@@ -452,7 +452,7 @@ proof`, `verify_iff_compiled`, `leanIsaInstance prog s`, `satisfiedBy_witnessOf`
 universally quantified over both outside any probability, and the built code confirms the
 shape: `piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security)` is stated for a fixed `I`
 (`Spine/Compose.lean:172-177`), and ArkLib's game fixes `stmtIn` before the prover runs
-(`Security/Basic.lean:305-323`: `∀ stmtIn : StmtIn, ∀ witIn, ∀ prover, Pr[…] ≤ ε`). Three
+(`Security/Basic.lean:299-323`: `∀ stmtIn : StmtIn, ∀ witIn, ∀ prover, Pr[…] ≤ ε`). Three
 observations on the edges of that answer:
 
 1. **The program is bound by the transcript only through its stacked table.** The Lean side
@@ -525,3 +525,702 @@ unaffected; the *number* is.
 proof) expectedStatement`, part of which the prover chooses; that needs adaptive soundness in
 the statement, which the deployed transcript provides (the input seeds the chain) and which
 no theorem of the blueprint states (note 17).
+
+## C. Hypotheses, and where each is discharged
+
+The chain, soundness direction: `verify prog input proof = true` →(`verify_iff_compiled`)→
+`∃ s, s.Admissible prog ∧` the Fiat–Shamir-compiled oracle verifier of `leanIsaInstance prog s`
+accepts →(`verify_knowledgeSound`, in the random-oracle model)→ the extracted stack `q`
+satisfies `M3Holds (leanIsaInstance prog s) input q` except with probability `niError`
+→(`satisfiedBy_witnessOf`)→ `SatisfiedBy prog input (witnessOf prog s q)`
+→(`constraintSoundness`)→ `∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution
+prog input t`. Completeness direction: `ValidExecution prog input t` →(`constraintCompleteness`)→
+`∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t` →(`Sizes.ofWitness`, `stackOf gen`)→
+`M3Holds (leanIsaInstance prog s) input (stackOf gen w hs)` →(`piop_perfectCompleteness`, the
+compilation)→ `verify prog input (prove …) = true`.
+
+Every hypothesis on the chain, in four kinds: **(P)** a condition on public data anyone can
+check; **(V)** a property the verifier checks; **(O)** a theorem another roadmap or library
+owes; **(N)** nothing discharges it.
+
+| Hypothesis | Where it appears | Kind | Discharged by | Status |
+| --- | --- | --- | --- | --- |
+| `s.Admissible prog` | `satisfiedBy_witnessOf` (`:815`), `verify_iff_compiled` (`:1220`) | V | `read_public` (`cpu/mod.rs:157-176`), reproduced by `verify`; supplied by `verify_iff_compiled`'s `∃ s` | consistent, once `Admissible` contains the `μ` and rate windows (`gt-bus.md` G4) |
+| `Sizes.ofWitness w = some s` | `stackOf`, `m3Holds_stackOf`, `witnessOf_stackOf` (`:811-819`) | O (leanISA) | `SatisfiedBy.caps.heights`, `seed_rows`, `bytecode_rows` give power-of-two heights | provable from `SatisfiedBy`; ill-defined while `Sizes` holds `logInvRate` (E.3) |
+| `FlockWitnessGen` (the generator and its lemma "generated wires satisfy the R1CS when the limbs compress") | `stackOf` (`:811`), `m3Holds_stackOf` | O (#3) | an explicit argument until #3 supplies it (`:857-861`) | named; no statement of its type in the blueprint |
+| "the R1CS holds of `q_flock` ⇒ the eighteen limb slots compress" | `satisfiedBy_witnessOf` (`:855-857`) | O (#3) | nothing carries it: `satisfiedBy_witnessOf`'s sketched signature has no argument for it, `FlockInterface (I)` has no such field (`:1077-1085`), and `leanIsaInstance`'s `aux` needs #3's R1CS to be *defined* | **N** until a carrier is named (finding 7) |
+| `WellFormedBytecode prog` (`sentinelSafe`, used by soundness; `hasFillBlocks`, used by completeness) | `constraintSoundness`, `constraintCompleteness` (`leanisa-blueprint.md:1156-1166`) | P (decidable on the program: `SentinelSafe` has an instance, `Execution.lean:77-78`; `HasFillBlocks` is undefined yet) | no verifier checks it (leanVM's does not, `leanvm-target.md:57-62`); the compiler emits both (`lean_compiler/src/lib.rs:162`, `filler.rs`); the guest owner (T3) owes it | **N** in the blueprint: `baseVerifier_extractsExecution` (`:1247`) has no such hypothesis and `baseProver_complete` (`:1249`) has `HasFillBlocks` only (finding 3; `docs-debt.md` B.6) |
+| `constraintSoundness`, `constraintCompleteness` themselves | Layer 13 (`:1253-1256`) | O (leanISA Layer 10) | not stated in Lean; Layer 9's four statements are block comments (`Statement.lean:442-480`), blocked on Clean's ℕ-counted balance (issue #16, Clean #452/#464) | planned |
+| a resource bound on the trace (every table ≤ `2^32` rows) | `constraintCompleteness` as sketched has none | N (leanISA's) | nothing: `ValidExecution` bounds nothing but `κ ≤ 32`, and a run of `2^40` distinct `(pc, fp)` states needs `2^40` rows of one table, which `Caps.heights` forbids | **N** (note 18, out of scope; it reaches T4 through `baseProver_complete`) |
+| the stacking window `μ ∈ [15, 28]` and the rate window | `verify`'s acceptance in `baseProver_complete` | V (`cpu/mod.rs:174-176`, `pcs.rs:49-51`) | nothing on the completeness side: `SatisfiedBy.caps` has neither (`Statement.lean:79-81`); a valid execution at `κ = 32` has `4 · 2^32 > 2^28` committed cells | **N**: `baseProver_complete` is false without it (finding 4) |
+| a witness *constructed* from `t` ("`prove prog input (witness of t)`", `:1250`) | `baseProver_complete` | O (T2, out of scope `:147-148`) | `constraintCompleteness` gives `∃ w` only | **N** as written (finding 4) |
+| `Phases.Complete`, `Phases.Security` for `leanIsaInstance prog s` | the two master theorems (`Spine/Compose.lean:162-177`) | O (holes P1-P8; P5 built) | the phases | assumed interface until every hole is filled (`:1419-1426`) |
+| `FiatShamirSecurity`, `BcsSecurity`, `McaJohnson` | `verify_knowledgeSound` (`:1226`) | O (ArkLib, ledger rows *Fiat–Shamir and BCS*, *mutual correlated agreement*) | explicit arguments | assumed interfaces |
+| the Flock phase's `Security` (`FlockInterface`) | `verify_knowledgeSound`'s `flock` argument | O (#3) | explicit argument | assumed interface; circular with the instance (finding 7) |
+| BLAKE2s as a random oracle | the step from `verify_knowledgeSound` (ROM) to the concrete `verify` | N (a heuristic) | nothing; the blueprint's `baseVerifier_extractsExecution` names `verify` and a probability in one sentence (`:1247-1248`) | **N**: must be stated as the hypothesis it is (finding 3) |
+| the round-by-round-to-plain implication | the plain corollary (`:261`) | O (ArkLib, admitted at the pin) | "stated once the implication lands upstream" | consistent; `code-spine.md` C.7 notes it forgets the named extractor |
+| the top limb of the public words is zero | `read_public` (`cpu/mod.rs:141-143`) | V in the Rust; by type in Lean (`Memory.lean:107-110`) | the parser of `PublicInput` | consistent; undocumented as a parsing obligation (finding 15) |
+| the bytecode is decodable and of power-of-two length ≤ `2^32` | `read_public` (`:157-159`); the Python accepts any array | V in the Rust; by type in Lean (`Program`, `Instruction.lean:87-93`) | the loader of `Program` | consistent; coverage gap recorded (`leanvm-faithfulness-review.md:72`) |
+| `κ < 64` for `MemImage.read_gpow` | inside `satisfiedBy_witnessOf`'s `word0_eq` | V | from `s.Admissible prog` (`logMem ≤ 32`) | consistent |
+| the count columns are exactly the pulls' count coordinates | `counts_nonzero` both ways | O (Layer 2/3) | a Category-B transcription of `count_columns()` per table (`layout.rs:412-414`), which `Component.toM3` cannot derive from `(sep, dir)` alone | unspecified (finding 11) |
+
+Violations of "nothing is assumed on one side of the boundary which the other side does not
+prove": the four rows marked **N** that are not heuristics, namely `WellFormedBytecode` (the
+proof system assumes nothing of it and the arithmetization requires it), the resource
+bounds and the constructed witness of completeness (the proof system's completeness theorem
+requires what the arithmetization's does not give), and the Flock consequence lemma (the
+adaptor consumes a theorem no interface carries). The random-oracle heuristic is a fifth,
+inherent, and must simply be written down.
+
+## D. The top limb of the public input, along the whole chain
+
+The sibling dossier `code-pubinput.md` §D traced the limb through the phase, the spine and the
+deployed verifiers; this section does not repeat it and adds the two ends of the chain and the
+anchors. Its facts used here: the oracle protocol's theorems hold for every instance, so a
+leanISA instance with two lines is as good an `M3Instance` as one with three (§D.1); the
+deployed verifiers pool the third claim at `0` with no scalar (`cpu/mod.rs:746, 756`,
+`bind_pi_claim` `:674-682`; `verifier.py:1399-1401`; §D.3).
+
+**The type.** `PublicInput` is four lanes of `K`, and the two words are built with a literal
+zero top limb (`Memory.lean:101-110`, probe `Shapes`, output lines 69-78):
+
+```lean
+structure PublicInput where
+  lanes : Fin 4 → K
+def PublicInput.word0 (p : PublicInput) : E := E.ofLimbs (p.lanes 0) (p.lanes 1) 0
+def PublicInput.word1 (p : PublicInput) : E := E.ofLimbs (p.lanes 2) (p.lanes 3) 0
+```
+
+A public input with a nonzero top limb cannot be written; the probe proves
+`p.word0.limb 2 = 0` and `p.word1.limb 2 = 0` for every `p` by `simp` (`Shapes.lean:45-49`,
+exit 0). The specification agrees, "two 192-bit words (with top limb 0)"
+(`08-end-to-end-protocol.tex:29`), the Rust rejects a third limb (`cpu/mod.rs:141-143`) and the
+Python's `Digest` has none (`verifier.py:223`).
+
+**What `SatisfiedBy` says of cells 0 and 1.** `word0_eq : (imageOf w.data).2.read (gpow 0) =
+some input.word0` and `word1_eq` (`Statement.lean:338-340`): the *whole* `E`-word of the image
+at index 0 is `input.word0`, top limb included; and `public_input_eq` (`:315`), which no
+component reads. **What `ValidExecution` says**: `HasPublicBoundary input t` has the same two
+equations on `t.image` (`Execution.lean:108-110`), whole words again.
+
+**What the instance says.** Three lines (`:834-836`): `mem_0` with cells `(word0.limb 0,
+word1.limb 0)`, `mem_1` with `(word0.limb 1, word1.limb 1)`, `mem_2` with `(0, 0)`.
+`PublicLinesHold` on them is exactly the six limb equalities, from which
+`E.ofLimbs mem_0[i] mem_1[i] mem_2[i] = input.word_i` follows (probe `Shapes.lean:57-63`,
+the second `example`).
+
+**If the instance omitted the third line.** `M3Holds` would say nothing of `mem_2[0]`,
+`mem_2[1]`; the master theorems hold unchanged; the theorem left without a proof is
+**`satisfiedBy_witnessOf`**, for *every* possible `witnessOf`, not only the natural one:
+
+- the natural `witnessOf` writes the image's word 0 as `E.ofLimbs mem_0[0] mem_1[0] mem_2[0]`;
+  with `mem_2[0] ≠ 0` it is not `input.word0`, whatever `input` (probe `Shapes.lean:51-55`:
+  `E.ofLimbs a b c ≠ p.word0` when `c ≠ 0`, by comparing limb 2);
+- a `witnessOf` that zeroed the limb when building the data and the block would break
+  `mem_balanced` for any program that reads cell 0 (the reading row's pulled tuple carries
+  `mem_2[0]` from `q`, the built seed carries `0`);
+- and no `witnessOf` at all can serve when no satisfying witness exists: take the program
+  whose first instruction is `SET_CONSTANT [g^0, y²]` (`Instr.setConstant 1 (E.ofLimbs 0 0 1)`;
+  at `fp = 1` the operand `g^0` names cell 0) followed by a jump to the sentinel and the fill
+  blocks. Its constraints are satisfiable only with cell 0 = `y²`, whose low limbs are `0, 0`:
+  a stack with `mem_0[0] = mem_1[0] = 0`, `mem_2[0] = 1` satisfies the constraints, the
+  balances, the counts and the two remaining lines at `input = ⟨![0, 0, l₂, l₃]⟩`, so it is
+  in the two-line `M3Holds`; but `SatisfiedBy prog input w` demands `word0_eq` with
+  `input.word0 = E.ofLimbs 0 0 0 ≠ y²`, and `ValidExecution` demands the same of `t.image`, so
+  neither has an inhabitant. (An inference from the definitions: `execute` of `SET_CONSTANT`
+  requires `[o] = k`, `Step.lean`; the honest stack of that program is not built as a probe.)
+
+**If `SatisfiedBy` were weakened instead** (its two word conjuncts restricted to limbs 0
+and 1), `satisfiedBy_witnessOf` would close with two lines, and the theorem left without a
+proof would be **`constraintSoundness`**: it must produce `∃ t, AssignmentRepresents w t ∧
+ValidExecution prog input t`, `AssignmentRepresents` fixes `t.image` to `imageOf w.data`
+(`Statement.lean:355-362`, `assignmentRepresents_image`), and `HasPublicBoundary` then demands
+the whole word (`Execution.lean:110`). For the program above no `t` exists, so the theorem is
+false. **If `HasPublicBoundary` were weakened too**, nothing on the chain would object, and the
+anchor would be the specification alone; the top limb would then be constrained only where a
+guest reads it (T3). **The anchor** is therefore the pair `PublicInput.word0`,
+`PublicInput.word1` with their literal `0` (`Memory.lean:107-110`), consumed verbatim by
+`HasPublicBoundary` and by `SatisfiedBy`; the requirement of the owner's note ("a missing,
+weak or wrong verifier check must leave knowledge soundness or completeness unprovable") is
+met one level down from the oracle protocol, in the adaptor's theorem, and the acceptance
+test that claims it (test 10, `:1293-1295`) should name that theorem, as `code-pubinput.md`
+G.3 also asks.
+
+## E. Are the adaptor's statements well formed and provable as sketched?
+
+The Layer 3 sketch (`protocol-blueprint.md:794-820`), read as Lean to be written.
+
+### E.1 `witnessOf` and `satisfiedBy_witnessOf`
+
+`def witnessOf (prog) (s) (q : Column (leanIsaInstance prog s).μ) : EnsembleWitness
+(leanIsaEnsemble prog)`, "total and computable". `EnsembleWitness` is in `Type 1` (probe
+`Shapes`, output line 1-2); a computable definition may inhabit a type in `Type 1` (the
+ensemble itself is a `def` that compiles), and the fields are constructible: eight `Table`s
+with `component := (leanIsaEnsemble prog).tables[j]`, rows built by one pass over the columns
+read through the layout, `data := fun name n ↦ if name = "mem" ∧ n = 3 then … else #[]`, the
+public input off cells 0 and 1, and the three proof fields by `rfl`/`simp`. Total in `s`: for
+an inadmissible `s` the tables are simply of the announced heights. Two things the sketch
+omits: `witnessOf` has no `input` argument (B.1 (iii)), which is fine only if the lanes are
+read off `q` (then `public_input_eq` needs the first two lines and `0 < logMem`); and the
+instance must exist first (E.4, E.5, finding 7).
+
+`theorem satisfiedBy_witnessOf (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance prog s)
+input q) : SatisfiedBy prog input (witnessOf prog s q)` typechecks as a statement provided
+`(leanIsaInstance prog s).Stmt` reduces to `PublicInput`; with a `def` instance the elaborator
+unfolds it (probe `DefInstance`, the `example` at line 34 elaborates), but instance search
+does not, so `Decidable (M3Holds (leanIsaInstance prog s) input q)`, which every `#guard` of
+the Layer 3 tests needs, is found only for an `abbrev` instance (probe `DefInstance`: the two
+guards on `instA` pass, the two on `inst` fail with "Type mismatch … expected to have type
+Bool"; the spine's toy is an `abbrev` for the same reason, `Spine/Toy.lean:94-95`). Provable
+as sketched: yes, with the additions of A.4 (the boundary lemma, the count derivation, the
+Flock consequence lemma).
+
+### E.2 `stackOf`, `m3Holds_stackOf`, `witnessOf_stackOf`
+
+`def stackOf (gen : FlockWitnessGen) (w) (hs : Sizes.ofWitness w = some s) : Column
+(leanIsaInstance prog s).μ`: well formed (a `def` taking a proof to fix the index of its
+result is ordinary Lean). `m3Holds_stackOf`: provable with the additions of A.6.
+
+`theorem witnessOf_stackOf (hs) : witnessOf prog s (stackOf gen w hs) = w -- on the committed
+fields` is not a Lean statement. As an equality of `EnsembleWitness`es it is false for
+almost every `w`: `w.data : String → (n : ℕ) → Array (Vector K n)` is a function and
+`witnessOf` rebuilds it with the `"mem"` table only; `Table.width` is a free field
+(`FlatComponent.lean:151-156`) and `witnessOf` rebuilds rows of exactly the component's
+width; the memory block's `idx` cells and the bytecode block's entry cells are rebuilt from
+`gpow` and `prog`, so equality needs `index_columns` and `bytecode_rows` of `w`; and the
+public input is rebuilt from cells 0 and 1, so it needs `public_input_eq` and the word
+conjuncts. "On the committed fields" has to be spelled out; a statement that says what the
+sketch means and is decidable on a small witness:
+
+```lean
+/-- The cells a component reads: the first `width` cells of a raw row, a missing cell `0`. -/
+def rowCells (c : Component K) (row : Array K) : List K :=
+  (List.range c.width).map fun j ↦ row[j]?.getD 0
+theorem witnessOf_stackOf (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
+    let w' := witnessOf prog s (stackOf gen w hs)
+    (∀ j : Fin 8, (tableAt w' j).table.map (rowCells (tableAt w j).component) =
+        (tableAt w j).table.map (rowCells (tableAt w j).component)) ∧
+      memRows w'.data = memRows w.data ∧ w'.publicInput = w.publicInput
+```
+
+Neither T4 composition uses `witnessOf_stackOf` (soundness uses `satisfiedBy_witnessOf`,
+completeness `m3Holds_stackOf`); its role is acceptance tests 19 and 24 (`:1320-1322,
+1333-1340`), non-vacuity of `witnessOf`. `#guard witnessOf (stackOf w) = w` (`:1339`) cannot be
+written, `EnsembleWitness` having no `DecidableEq`; the statement above can (finding 10).
+
+### E.3 `Sizes.logInvRate`
+
+The Rust announces `log_mem`, six `τ_j` and `log_inv_rate` (`announce_public`, `cpu/mod.rs
+:118-124`; `read_public` `:144-149`); the Python reads the same `2 + 6` scalars
+(`verifier.py:1372-1376`); the specification's Setup names `κ_mem` and the six `τ_j` only
+(`08-end-to-end-protocol.tex:55`), a disagreement between the specification and both
+implementations that the blueprint resolves the Rust's way (Category B, `:199`). So the rate
+*is* announced with the sizes. It does not belong in the instance of the oracle protocol:
+`leanIsaInstance prog s` reads `s.logMem` and `s.τ` (heights, `μ`, layout, lines) and nothing
+of the rate, which parameterizes WHIR alone (Layer 11); `Sizes.ofWitness (w) : Option Sizes`
+(`:799`) cannot produce a rate from a witness; and `Sizes.Admissible` would mix a check of
+the oracle protocol's family index with a check of the commitment. `gt-bus.md` G4 reaches the
+same point from the caps. Proposed: `Sizes` holds `logMem` and `τ`; the announcement of Layer
+12 is `Sizes × logInvRate`; `Admissible prog s` (heights, `3 ≤ τ 5`, `μ_stack prog s ∈
+[15, 28]`) and `validRate ρ` (`ρ ∈ [1, 4]`, `whir_config.rs:48-55`) are two predicates
+(finding 5).
+
+### E.4 The instance's tables, columns and blocks against `M3Instance` as built
+
+Expressible, with one consequence:
+
+- the six shared columns as tables of the instance: yes, as at least three tables (A.3), each
+  with `constraints := []`, `flushes := []`, `counts := []`; `Shape.τ` is per table, so the
+  memory columns' height `2^logMem` sits beside the six tables' heights;
+- the finalize counts outside the count tree: `counts jMem = []`, `counts jBc = []`, as
+  `layout.rs:412-414` (the count blocks are the tables' `count_columns()` only);
+- the boundary blocks: `Coord.committed ⟨jMem, i⟩ rfl` at `κ = logMem`, `Coord.committed
+  ⟨jBc, 0⟩ rfl` at `κ = prog.logSize`, the `known` and `const` coordinates of A.3; the
+  `h : S.τ c.1 = κ` obligation is met by construction;
+- the eighteen limb columns as strided slots of `q_flock`: the `Layout` law admits it
+  (`Spine/Instance.lean:73-81`, a reading law), but no reader exists (`code-layer1.md` G.1)
+  and the slot map is placed inside `FlockInterface (I)` (`gt-flock-ring.md` 8.2): finding 7;
+- the three lines need `PublicLine.pos : 0 < τ`, i.e. `0 < s.logMem`; for a total
+  `leanIsaInstance` the lines must be empty (or the instance junk) when `logMem = 0`, which is
+  harmless because `verify` rejects such `s`, but must be written;
+- **the consequence**: the generic table sumcheck (Layer 7) takes its rounds from
+  `τ_max = max_j τ_j` over the instance's tables and sends "one value per column of every
+  table" (`:987-989`, `08-end-to-end-protocol.tex:76-77`); with the shared columns as
+  tables, a phase over the abstract `I` would run `max(τ_j, logMem, prog.logSize, τ_5 + 8)`
+  rounds and send scalars for `mem_0, …, q_flock`, a transcript leanVM does not have
+  (`constraints.rs:250`, the six tables; `gt-bus.md` G16). The instance needs a criterion the
+  phase can read ("a table with a constraint, a flush or a count column takes part"), stated
+  in the spine's conventions and used by Layer 7 (finding 9).
+
+### E.5 Mathlib polynomials in Layer 2, CompPoly polynomials in the instance
+
+Layer 2 produces `Expression.toMvPolynomial : Expression F → MvPolynomial ℕ F` and an
+`M3Table F` whose constraints are `MvPolynomial (Fin width) F` (`:762-771`); `M3Instance`
+holds `CMvPolynomial (width j) K` (`Spine/Instance.lean:123-125`). No conversion is named.
+CompPoly's `toCMvPolynomial : MvPolynomial (Fin n) R → CMvPolynomial n R` is
+`noncomputable def` at the pin `3468b38c` (`Multivariate/MvPolyEquiv/Core.lean:41`), so an
+instance built through it is noncomputable: `M3Holds (leanIsaInstance prog s)` could not be
+decided by evaluation (the Layer 3 tests, `:866-867`), the phases' verifiers, which evaluate
+`I.constraints` at the claimed column values, would not compile, and `verify` (`:1230-1231`,
+"total and computable") could not be defined from them. The degree bound travels the other
+way without trouble: `totalDegree_equiv : p.totalDegree = (fromCMvPolynomial p).totalDegree`
+(`MvPolyEquiv/Eval.lean:60-61`, `rfl`) and `eval_equiv` (`:53-57`) let Mathlib prove the
+bound of a computable polynomial, as the toy does (`Spine/Toy.lean:68-74`). What Layer 2 must
+produce is a *direct* computable translation `Expression K → CMvPolynomial n K` (structural
+recursion on `var`, `const`, `add`, `mul`, `Expression.lean:12-16`, with `CMvPolynomial.X`,
+`C`, `+`, `*`), and its bridge to Mathlib for the degree lemma. Probe `PolyBridge` (old pins,
+exit 0) writes it in twelve lines, evaluates the `JUMP` residual `b + v_cond · w` on a row
+and checks it against Clean's `Expression.eval` (`#guard polyValue = cleanValue`), checks
+`totalDegree = 2`, and checks that a variable past the width reads `0` on both sides as
+`Environment.fromArray` reads a missing cell (`Expression.lean:71-73`). At the new CompPoly
+pin the probe's row numerals `3, 5, 7` read as `1, 1, 1`; the guards still hold but a re-run
+should use `K.ofBits`. Finding 8. (The `Direction` of leanISA's `channelDir`,
+`Channels.lean:262-272`, and the spine's `Side`, `Spine/Instance.lean:51-54`, are two
+enumerations of the same two values; the translation is one match.)
+
+### E.6 The T4 composition, arrow by arrow
+
+"`T4 = verify_knowledgeSound ∘ Refinement.map_option_valid satisfiedBy_witnessOf ∘
+constraintSoundness`" (`:407`, `:1253-1254`; the tracker's K4 section says
+`knowledgeSound_of_refinement`, a name that exists nowhere).
+
+- `verify_knowledgeSound (fs bcs mca flock)`: in ArkLib's shape it bounds, for a fixed
+  `stmtIn = input` and every prover, the probability of the event "the compiled verifier
+  accepts ∧ ∀ q ∈ (extracted slot), `(input, q) ∉ M3Rel (leanIsaInstance prog s)`" by
+  `niError` (`Security/Basic.lean:299-323`, `knowledgeSoundnessWith`; the same event in the
+  round-by-round form, `RoundByRound.lean:553`). The slot is an `Option (Column μ)`,
+  `Column μ : Type`.
+- `satisfiedBy_witnessOf`, made a `Refinement (M3Rel I) (SatRel prog)` with `SatRel prog :=
+  {p | SatisfiedBy prog p.1.1 p.2}` on witnesses in `Type 1`: `Refinement`'s two universes
+  are independent (probe `Shapes`, output lines 10-13), and the construction typechecks
+  (probe `Transport`, example 1). `Refinement.map_option_valid` has the polarity "every
+  witness in the slot is valid ⇒ every mapped witness is valid" (`Refinement.lean:55-57`),
+  while the game's bad event is "no witness in the slot is valid" (an empty slot is bad);
+  the transport of the bad event is `∀ w' ∈ w?.map f, (x, w') ∉ S → ∀ w ∈ w?, (x, w) ∉ R`,
+  which follows from `map_valid` in one line (probe `Transport`, `bad_of_bad`), and
+  `code-spine.md`'s probe `knowledge_transport` proves the probabilistic statement for
+  ArkLib's game in the same way. `Extractor.Straightline.map` cannot serve: its `WitIn'` is in
+  `Type` (probe `UniverseFail`: "`EnsembleWitness (leanIsaEnsemble prog)` has type `Type 1` …
+  but is expected to have type `Type`").
+- `constraintSoundness (hwf : WellFormedBytecode prog)`: pointwise.
+
+The composition typechecks in principle as an inclusion of events (probe `Transport`,
+examples 3 and 4): if `¬ ∃ t, ValidExecution prog input t`, then every extracted `q` is
+outside `M3Rel`, so the game's bad event is "the verifier accepts", and `Pr[accepts] ≤
+niError`. That is the correct form of T4's first half: **a soundness theorem for the
+language `{(prog, input) | ∃ t, ValidExecution prog input t}`** (the conclusion is a
+closed proposition, so "except with probability" attaches to acceptance, not to it), in the
+random-oracle model, for each admissible `s` or with the family composition of B.3, and under
+`WellFormedBytecode prog`. It is not, and cannot be, an ArkLib `knowledgeSoundness` of a
+relation on `EnsembleWitness` (`WitIn : Type`), nor a statement about the concrete
+`verify prog input proof = true` (a closed Boolean), and it does not need the round-by-round
+implication if `FiatShamirSecurity` consumes the round-by-round form directly.
+
+## F. `docs/architecture.md` validated against the blueprint and the code
+
+The obligation map for the fourth target theorem (`architecture.md:261-275`, the "Proof
+system" list `:446-462`, the ladder `:63-70`), item by item:
+
+| Obligation (`architecture.md`) | In the blueprint | In the code at `b435631` | Verdict |
+| --- | --- | --- | --- |
+| the bridge "`BaseVerifier.Accepts … → except with probability baseError, ∃ assignment, Constraints.SatisfiedBy …`" (`:264-269`) | `verify_knowledgeSound` + `satisfiedBy_witnessOf` (`:1226-1227`, `:815-816`) | neither; `M3Holds`, `M3Rel`, `Refinement` built | consistent in content; the `version` parameter of the architecture is the pin recorded in prose, not a Lean argument |
+| "then compose it with T1-S" (`:270`) | Layer 13 (`:1253-1254`) | `constraintSoundness` not stated | consistent, except that T1-S's hypothesis `WellFormedBytecode` (`architecture.md:224-228`) is dropped in the composed statement (finding 3) |
+| expose "the component soundness/knowledge-soundness bounds, Fiat–Shamir or random-oracle model, commitment and hash assumptions, transcript/serialization agreement, and executable-verifier refinement" (`:270-273`) | `niError`, `FiatShamirSecurity`, `BcsSecurity`, `McaJohnson`, `verify_iff_compiled` (`:1218-1228`) | `piopError`, the two master theorems (`Compose.lean:149-185`) | the random-oracle model and the hash assumption are named as interfaces for the *compiled* protocol but the concrete `verify` uses BLAKE2s: the heuristic "BLAKE2s is the random oracle" is exposed nowhere (finding 3); the family composition over `s` is exposed nowhere (finding 6) |
+| "Its completeness dual composes T2 with the honest prover and records any failure/resource conditions" (`:273-275`) | `baseProver_complete` composes T1-C, "witness generation (T2) … out of scope" (`:147-148`, `:1255-1256`); no resource condition | nothing built | **divergent**: T2 is replaced by an existence theorem, which does not yield the witness `prove` needs, and no resource condition is recorded although two are load-bearing (finding 4; `docs-debt.md` B.6 item 3) |
+| "Relate the executable verifier to the protocol specification, including serialization, transcript order, domain separation, challenge derivation, statement binding, and rejection behavior" (`:453-455`) | Layer 12: `verify_iff_compiled`, the stream order, the tags, `FsState.seed`, total `verify` | nothing built | consistent; "statement binding" needs the injectivity of `prog ↦ bytecodeColumn prog` (B.2, item 1), unstated |
+| "Prove completeness of the abstract prover and test or verify completeness of the executable prover" (`:456-457`) | `piop_perfectCompleteness`; `prove` "a specification that runs" (`:158`); the Rust prover by fixture only | `piop_perfectCompleteness` (conditional) | consistent; the executable (Rust) prover's completeness is evidence, not a theorem, as `architecture.md:530-533` allows |
+| "T4 — base proof extraction/completeness: proof-system components, T1, and T2" (`:66`) | inputs: the components, T1; not T2 | | as above |
+| `leanvm-target.md:123-124`: "T4: formal component notions, Fiat–Shamir assumptions, composed error bound, and verifier refinement"; "each [verifier implementation] accepts exactly the specified protocol and statement encoding" | the first is Layers 10-13; the second is the fixture plus `verify_iff_compiled` | | the Rust and Python verifiers do *not* accept exactly the specified protocol on the public-input check (status finding F18; `code-pubinput.md` G.2), so "exactly" is owed a lemma the blueprint assigns to Layer 12 |
+
+Obligations of the map with no counterpart in the blueprint: T2 in the completeness dual;
+the resource conditions; the random-oracle instantiation as an explicit hypothesis; the
+statement-binding lemma. Blueprint layers that serve no obligation of T4: none (every layer
+feeds `verify` or a theorem about it); three named declarations serve nothing on the chain and
+are tests of non-vacuity or candidates for upstream: `witnessOf_stackOf` (E.2),
+`Extractor.Straightline.map` (no possible consumer in this repository, E.6),
+`piop_rbrKnowledgeSoundness_exists`.
+
+One more point of the architecture the blueprint's T4 loses: "the extracted leanVM witness
+should contain ordered `pc`/`fp` steps and the full memory image" (`architecture.md:332-335`,
+for T6). The chain has it, `constraintSoundness` giving `AssignmentRepresents (witnessOf prog
+s q) t` for the extracted `q`; `baseVerifier_extractsExecution` keeps only `∃ t,
+ValidExecution prog input t` (`:1247-1248`), which is a language membership and needs no
+extractor at all. Stating the pointwise theorem in the form "for the extractor's `q`, when it
+satisfies `M3Holds`, `∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog
+input t`" costs nothing and is what recursion consumes (note 16).
+
+## G. Findings
+
+Each with a name, a severity on the brief's scale, the evidence (sections above), a
+classification for a divergence from leanVM, and the change to the blueprint (`bp` =
+`docs/roadmap/protocol-blueprint.md` at `b435631`).
+
+### 1. The instance is not `Ensemble.toM3` of the eight tables (major)
+
+**Evidence.** `bp:803-805`: "`def leanIsaInstance (prog : Program) (s : Sizes) : M3Instance --
+`Ensemble.toM3` of the eight tables with leanISA's separators and directions`"; `bp:77`:
+"which `Ensemble.toM3` derives from any Clean `Ensemble`"; `bp:21`: "the polynomial view of
+any Clean ensemble". Against it: decision 8 ("the fixed columns are `Coord.known` data",
+`protocol-status.md:220-223`), the spine's `boundary` field and `Coord.known`
+(`Spine/Instance.lean:86-98, 136`), leanVM's three framework blocks per side (`layout.rs
+:352-395`; `08-end-to-end-protocol.tex:70`, "three blocks per side belong to no table") whose
+program columns the verifier evaluates itself (`leaf.rs:453`), and section A.5: an instance
+whose blocks are tables of `q` makes `satisfiedBy_witnessOf` unprovable (probe
+`KnownColumn`). An `M3Instance` also needs `μ`, `layout`, `publicLines`, `aux`, `Stmt`, none
+of which a Clean `Ensemble` has, so no `Ensemble.toM3 : Ensemble → M3Instance` exists;
+`Ensemble.toM3` is listed as an interface (`bp:1369, 1398`) and given no signature.
+**Classification.** An error of the blueprint. **Change.** `bp:803-805`, as it stands: the
+comment quoted. As proposed: "`Component.toM3` of the six opcode tables, with leanISA's
+separators and directions and their count columns; three column groups for the shared
+committed columns (`mem_0, mem_1, mem_2, cntfin_mem` at `2^logMem`; `cntfin_bc` at
+`2^prog.logSize`; `q_flock` at `2^(τ_5 + 8)`), tables with no constraint, flush or count;
+six boundary blocks written from `memTable`, `bytecodeTable` and `leanIsaVerifier prog` with
+`idx ↦ Coord.known (idxColumn κ)`, the entry cells `↦ Coord.known (bytecodeSlotColumn prog k)`,
+the sentinel `↦ Coord.const prog.finalPc`, the limbs and counts `↦ Coord.committed`; the
+layout of `witness.rs:67-101`, `leaf.rs:53-156`; three public lines; `aux` the Flock predicate
+of the region". Delete `Ensemble.toM3` from `bp:77, 1369, 1398` and from the sentence at
+`bp:21`, or define it as the six-table part only.
+
+### 2. No bridge lemma for the boundary blocks (major)
+
+**Evidence.** Layer 2's two bridges are `toM3_constraints_iff` and `toM3_flushes_eq`
+(`bp:775-777`), both about a Clean `Table` read as an instance *table*. The three balances
+of `SatisfiedBy` range over `w.interactions`, which include the memory block's, the bytecode
+block's and the verifier's rows (`FlatEnsemble.lean:225-226` at `93c9d1ef`;
+`Statement.lean:207-209`); in the instance those are `boundaryTuples`, not `flushTuples`
+(A.2, A.5). Nothing in Layers 2 or 3 states that the messages of `bytecodeRowOf prog i c`,
+`memRowOf mem i c` and `leanIsaVerifier prog`'s row are the boundary tuples, coordinate by
+coordinate. **Classification.** An error of the blueprint (omission). **Change.** Add to Layer
+3 (`bp:810-819`): "`theorem boundary_tuples_eq (h₁ : IndexColumnsAreRowIndices w) (h₂ :
+SeedRowsAreTheImage w) (h₃ : BytecodeRowsAreTheProgram prog w) (hs : Sizes.ofWitness w = some
+s) : the multiset of sixteen-tuples of the messages of `w`'s memory block, bytecode block and
+verifier row on each side = (leanIsaInstance prog s).boundaryTuples (stackOf gen w hs) side`",
+and its use in both adaptor theorems; add to Layer 2's tests "the three block components
+against their boundary blocks on the one-row witness". Reason: without it neither direction of
+the adaptor can be proved, and it is the one place the program's `known` columns meet the
+program's rows.
+
+### 3. The base soundness theorem omits `WellFormedBytecode`, and is not a statement about `verify` (major)
+
+**Evidence.** `bp:1247-1248`: "`theorem baseVerifier_extractsExecution (fs bcs mca flock)
+(h : verify prog input proof = true) : except with probability niError, ∃ t, ValidExecution
+prog input t`", "composes … `constraintSoundness`" (`:1253-1254`); `constraintSoundness (hwf :
+WellFormedBytecode prog)` (`leanisa-blueprint.md:1163`; `architecture.md:224-228`;
+`docs-debt.md` B.6). The `JUMP`-sentinel program has two rows that are steps and balance the
+state channel with no `ValidExecution` for the image (`tests/LeanerVMTests/Semantics/
+Execution.lean:415-461`, proved), so the theorem is false without the hypothesis. The
+"except with probability" attaches to `verify prog input proof = true`, a closed Boolean of
+the concrete BLAKE2s verifier, which has no probability; the theorem must be about the
+random-oracle verifier of `verify_iff_compiled`, and the step to the concrete `verify` is the
+random-oracle heuristic, stated nowhere (section C). The conclusion mentions no extracted
+witness, so the statement is a soundness statement for a language (E.6, probe `Transport`
+examples 3-4). **Classification.** An error of the blueprint. **Change.** `bp:1247-1248` as
+proposed:
+
+```lean
+/-- Base soundness, in the random-oracle model: for a well-formed program and an input on
+which no execution exists, every prover with at most `Q` oracle queries makes the
+Fiat–Shamir-compiled verifier of `leanIsaInstance prog s` accept with probability at most
+`niError Q` (the maximum over admissible `s`; finding 6). `verify` is that verifier with the
+BLAKE2s chain in place of the oracle (`verify_iff_compiled`), which is a heuristic and not a
+theorem. -/
+theorem baseVerifier_sound (fs bcs mca flock) (hwf : WellFormedBytecode prog)
+    (hno : ¬ ∃ t, ValidExecution prog input t) : ∀ prover, Pr[compiled verifier accepts] ≤ niError Q
+/-- Pointwise, for the extractor's stack: what recursion consumes (T6). -/
+theorem execution_of_extracted (hwf : WellFormedBytecode prog) (hs : s.Admissible prog)
+    (h : M3Holds (leanIsaInstance prog s) input q) :
+    ∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog input t
+```
+
+and in the prose: who establishes `WellFormedBytecode` (the compiler, `lean_compiler/src/
+lib.rs:162`, `filler.rs`; a check of T3 on the exact guest), and that the random-oracle
+instantiation is a hypothesis of the deployment, not of any theorem. The same two edits in the
+tracker's K4 section (`hole-comment.md:190`).
+
+### 4. The base completeness theorem is false without resource hypotheses and needs a witness generator (major)
+
+**Evidence.** `bp:1249-1250`: "`theorem baseProver_complete (hfill : HasFillBlocks prog) (h :
+ValidExecution prog input t) : verify prog input (prove prog input (witness of t)) = true`",
+"composes `constraintCompleteness`, `m3Holds_stackOf`, `piop_perfectCompleteness` and the
+determinism of the Fiat–Shamir chain" (`:1255-1257`). (a) `HasPublicBoundary` allows `κ =
+32` (`Execution.lean:108-110`); a valid execution at `κ = 16` is one at `κ = 32` with the
+image extended by zeros (the same run); its four memory columns hold `4 · 2^32 = 2^34 >
+2^28` cells, and the verifier rejects `μ > 28` (`cpu/mod.rs:174-176`, `pcs.rs:51`;
+`verifier.py:1379`); `AssignmentRepresents` fixes `κ` (`Statement.lean:358`), so no witness of
+`t` is provable. (b) `constraintCompleteness` gives `∃ w`; "`witness of t`" is a function
+the blueprint excludes (T2 out of scope, `bp:147-148`). (c) `constraintCompleteness` takes
+`WellFormedBytecode prog`, not `HasFillBlocks prog` (`leanisa-blueprint.md:1165`). (d) The
+rate is not chosen by `t`. **Classification.** An error of the blueprint. **Change.**
+`bp:1249-1250` as proposed:
+
+```lean
+/-- Base completeness: a satisfying witness whose sizes are admissible and any valid rate give
+a proof `verify` accepts. -/
+theorem baseProver_complete (gen : FlockWitnessGen) (hwf : WellFormedBytecode prog)
+    (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) (hadm : s.Admissible prog)
+    (hρ : validRate ρ) : verify prog input (prove gen prog input w ρ) = true
+/-- With leanISA's existence theorem: a valid execution that some admissible-size witness
+represents has an accepted proof. -/
+theorem baseProver_complete_of_execution (hwf : WellFormedBytecode prog)
+    (h : ValidExecution prog input t)
+    (hfit : ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
+      Sizes.ofWitness w = some s ∧ s.Admissible prog) : ∃ proof, verify prog input proof = true
+```
+
+and in the prose: "The resource condition `architecture.md:273-275` asks for is `hfit`: the
+stacking window forbids `κ > 26` and long runs; `constraintCompleteness` alone does not give
+admissible sizes (and, as sketched, has no resource hypothesis of its own, note 18)". Ask the
+leanISA roadmap (`Boundaries`, `bp:1433-1441`) for a `constraintCompleteness` that returns a
+witness of *minimal* heights, or accept `hfit` as T4's hypothesis. The same in the tracker's
+K4 section.
+
+### 5. `Sizes`, `Sizes.ofWitness` and `admissible_iff_caps` cannot be stated as written (major)
+
+**Evidence.** `bp:795-801`. `logInvRate` is announced (`cpu/mod.rs:118-124`, `verifier.py
+:1372-1376`; not in the specification's Setup, `08-end-to-end-protocol.tex:55`) but no witness
+determines it, so `Sizes.ofWitness w : Option Sizes` is ill-defined; `admissible_iff_caps :
+s.Admissible prog ↔ (Caps w ∧ Sizes.ofWitness w = some s)` has a free `w` and, quantified,
+is false in both directions (`Caps` lacks the `μ` and rate windows, `Statement.lean:79-81`;
+another `w` has other sizes); `Sizes.ofWitness (w : EnsembleWitness leanIsaEnsemble)` lacks
+`prog` (`bp:799`); `leanIsaInstance_fits` uses `layout.total` (`bp:808`), a field `Layout` has
+not (`code-layer1.md` G.2). `gt-bus.md` G4 has the caps side. **Classification.** An error of
+the blueprint. **Change.** `bp:795-808` as proposed:
+
+```lean
+structure Sizes where (logMem : ℕ) (τ : Fin 6 → ℕ)                 -- the family index
+def Sizes.ofWitness (w : EnsembleWitness (leanIsaEnsemble prog)) : Option Sizes
+def leanIsaBlocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ  -- witness.rs:67-101
+theorem leanIsaBlocks_fits : (leanIsaBlocks prog s).total ≤ 2 ^ leanIsaμ prog s
+def Sizes.Admissible (prog) (s) : Prop  -- 16 ≤ logMem ≤ 32, τ j ≤ 32, 3 ≤ τ 5, leanIsaμ prog s ≤ 28
+def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4                        -- whir_config.rs:48-55, Layer 12
+theorem caps_of_admissible (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
+theorem sizes_of_satisfiedBy (h : SatisfiedBy prog input w) : ∃ s, Sizes.ofWitness w = some s
+```
+
+Reason: the instance depends on the heights alone; the rate is Layer 12's; the two lemmas
+are what the two directions use.
+
+### 6. The composition over the prover's announced sizes is unspecified (major)
+
+**Evidence.** Section B.3: `verify_iff_compiled` quantifies `∃ s` (`bp:1218-1221`),
+`verify_knowledgeSound`'s error is `niError s Q` (`bp:1226-1227`), the per-instance theorems
+bound one `s`, and ArkLib's `ProtocolSpec n` cannot express a protocol whose schedule depends
+on a first message. A union over the admissible sizes costs about `2^34`; the `Q · max ε`
+bound needs `FiatShamirSecurity` stated for the family with `s` in the hashed input.
+**Classification.** An error of the blueprint (a missing decision). **Change.** In *Statements
+and parameters* (`bp:316`) add: "The sizes are the prover's. The non-interactive theorem is
+stated for the family: its error is `niError Q := max over admissible s of niError s Q` (or
+the sum, if the interface is per instance), and `FiatShamirSecurity` is the family form, the
+challenge oracle taking the announced sizes with the statement". In Layer 12 (`bp:1226-1227`)
+replace `niError s Q` by that. In acceptance test 21 (`bp:1326-1328`) add "the error of
+`verify` does not depend on the prover's choice".
+
+### 7. The instance depends on a Flock interface that depends on the instance (major)
+
+**Evidence.** `bp:846-848`: the instance's layout takes its slot map from
+`FlockInterface.limbColumns`, and `structure FlockInterface (I : M3Instance)` (`bp:1077`);
+`aux` of `leanIsaInstance` must be Flock's R1CS (decision 12), which only #3 defines; the
+consequence lemma "R1CS ⇒ the limbs compress" that `satisfiedBy_witnessOf` consumes
+(`bp:855-857`) has no carrier in any signature (`satisfiedBy_witnessOf`'s arguments,
+`FlockInterface`'s fields, `FlockWitnessGen`). `gt-flock-ring.md` 8.2 and 8.3 propose the
+split; `code-layer1.md` G.1 the reader. **Classification.** An error of the blueprint.
+**Change.** Layer 3 takes, and #3 supplies, one instance-free structure:
+
+```lean
+/-- What the adaptor needs of Flock, none of it mentioning an instance. -/
+structure FlockSpec where
+  slot : Fin 18 → Fin 256                                   -- hash_flock.rs:87-115
+  Holds (kBatch : ℕ) : Column (8 + kBatch) → Prop            -- the R1CS on the packed column
+  decHolds : ∀ k, DecidablePred (Holds k)
+  compress_of_holds : Holds k c → ∀ j, Blake2sRelation (limbs read at slot j of c)
+  gen : (rows : List (Blake2sRow K)) → Column (8 + kBatch)   -- keeps the limbs in their slots
+  holds_gen : (∀ r ∈ rows, Blake2sRelation r) → Holds k (gen rows)
+```
+
+`leanIsaInstance (F : FlockSpec) prog s` uses `F.slot` in its layout, `F.Holds` as `aux`;
+`satisfiedBy_witnessOf` uses `F.compress_of_holds`; `stackOf` uses `F.gen`,
+`m3Holds_stackOf` uses `F.holds_gen`; `FlockWitnessGen` and `FlockInterface.limbColumns` are
+deleted; the phase-level `FlockInterface` keeps the reduction and its two proofs and takes the
+`FlockRegion I` of `gt-flock-ring.md` 8.3, whose `aux_iff` is `F.Holds`.
+
+### 8. The polynomial bridge of Layer 2 is noncomputable at the pin (major)
+
+**Evidence.** Section E.5: `bp:762-771` produce Mathlib `MvPolynomial`s; the instance holds
+`CMvPolynomial`s (`Spine/Instance.lean:123-125`); `toCMvPolynomial` is `noncomputable def`
+(CompPoly `3468b38c`, `MvPolyEquiv/Core.lean:41`; unchanged in kind at `572f9973`, unverified);
+`M3Holds` is meant to be decided by evaluation and `verify` to be computable (`bp:866-867,
+1230-1231`). Probe `PolyBridge`: the direct translation is computable and agrees with
+`Expression.eval`. **Classification.** A deviation forced by an upstream library, with a
+workaround: the direct translation; retired if CompPoly makes `toCMvPolynomial` computable.
+**Change.** `bp:762-767` as proposed: "`def Expression.toCMvPolynomial (n) : Expression K →
+CMvPolynomial n K` (var `i < n` ↦ `X i`, else `0`, as `Environment.fromArray` reads a missing
+cell); `theorem eval_toCMvPolynomial (row) (e) : (e.toCMvPolynomial n).eval (fun i ↦
+row[i]?.getD 0) = e.eval (Environment.fromArray row data)`; `theorem
+fromCMvPolynomial_toCMvPolynomial (e) : fromCMvPolynomial (e.toCMvPolynomial n) =
+rename … e.toMvPolynomial`, through which `degreeBound` bounds `totalDegree`
+(`totalDegree_equiv`)". `M3Table`'s fields become `CMvPolynomial`; `Direction` becomes `Side`
+(or the spine adopts leanISA's `Direction`). Clean #466 (`Expression.toMvPolynomial`) stays the
+proof-side bridge.
+
+### 9. The column-only tables enter the generic table sumcheck's schedule (major)
+
+**Evidence.** Section E.4; `bp:836-839` (the six shared columns are "tables of the instance
+with no constraints and no flushes"); Layer 7's `τ_max`, "one value per column of every
+table" (`bp:987-989`; `08-end-to-end-protocol.tex:76-77`; `constraints.rs:250`, the six
+tables); `gt-bus.md` G16. A phase over the abstract `I` that ranges over all of `I.ntab` has
+a different transcript from leanVM's on the leanISA instance, which `verify_iff_compiled`
+would then fail. **Classification.** An error of the blueprint (a consequence of the
+modelling choice, unstated). **Change.** In the spine's conventions (`bp:316`, or a new row
+*Column groups*): "A table with no constraint, no flush and no count column is a column
+group: it takes no part in the table sumcheck (no round, no term, no column value) and its
+columns receive claims from the boundary blocks, the public lines and the Flock phase only.
+`M3Instance.active j := (I.constraints j ≠ []) ∨ (I.flushes j ≠ []) ∨ (I.counts j ≠ [])` is
+the criterion, decidable, and Layer 7 ranges over it." In Layer 7 (`bp:987`): `τ_max` and
+`Σ_j width_j` over the active tables.
+
+### 10. `witnessOf_stackOf` has no Lean statement (minor)
+
+**Evidence.** Section E.2; `bp:819` ("`= w -- on the committed fields`"), `bp:1339`
+("`#guard witnessOf (stackOf w) = w`"), `bp:866-867`. `EnsembleWitness` has a function field
+and a free width and no `DecidableEq`. **Classification.** An error of the blueprint.
+**Change.** `bp:819` as proposed: the statement of E.2 (`rowCells`, the three equalities
+under `SatisfiedBy` and `Sizes.ofWitness`), and `bp:1339`: "`#guard` of those three
+equalities on the one-row witness". Say in `bp:822-824` that neither T4 composition uses it.
+
+### 11. `witnessOf` has no `input`, and the count columns have no derivation (minor)
+
+**Evidence.** `bp:813-814`; `bp:773-777` (`Component.toM3 (c) (sep) (dir)` with a `count`
+field and no rule); `layout.rs:412-414`; A.4 rows 1 and 4. **Classification.** An error of
+the blueprint (imprecision). **Change.** `bp:813`: either add `(input : PublicInput)` to
+`witnessOf` (the `Refinement.map` has the statement) or say "the lanes are read off cells 0
+and 1 of `mem_0`, `mem_1`". `bp:773-774`: `Component.toM3 (c) (sep) (dir) (lookups :
+List (RawChannel F))` with "`count` is coordinate 2 of every pull on a channel in `lookups`,
+required to be a variable (`vars_lt_width`'s sibling `count_is_var`)", and the test "the
+count columns of the six tables are those of `count_columns()` (`layout.rs:412-414`)".
+
+### 12. `leanIsaInstance` must be reducible (minor)
+
+**Evidence.** Probe `DefInstance`: the adaptor's statement elaborates on a `def` instance,
+but no `Decidable` instance is found for `M3Holds (inst …) input q`, while the `abbrev` passes;
+the toy is an `abbrev` for that reason (`Spine/Toy.lean:94-95`); the Layer 3 tests decide
+`M3Holds` (`bp:866-867`). **Classification.** An error of the blueprint (omission of a
+constraint on the code). **Change.** `bp:803`: "`abbrev leanIsaInstance …`, reducible, so that
+`Decidable (M3Holds (leanIsaInstance prog s) input q)` and the instances on `I.Stmt` are found
+by instance search, as the toy is".
+
+### 13. `Refinement.map_option_valid` has the wrong polarity for ArkLib's game (minor)
+
+**Evidence.** E.6; `Refinement.lean:55-57`; `Security/Basic.lean:316` at `dca90385` (the bad
+event is `∀ w ∈ w?, (x, w) ∉ relIn`); probe `Transport`, `bad_of_bad`. Harmless (a case split on
+the `Option` converts), and `code-spine.md`'s `knowledge_transport` is the probabilistic form.
+**Classification.** Imprecision. **Change.** `bp:552` and `bp:582-586`: name
+`Refinement.knowledge_transport` (the event form, `code-spine.md`) as what T4 composes, and
+keep `map_option_valid` as the pointwise lemma of the honest direction; the T4 line at
+`bp:407` becomes "`T4 = verify_knowledgeSound ∘ Refinement.knowledge_transport
+satisfiedBy_witnessOf ∘ constraintSoundness`", and the tracker's
+`knowledgeSound_of_refinement` (`hole-comment.md:190`) the same.
+
+### 14. Stale names (minor)
+
+**Evidence.** `bp:220` `StateMsg` (the state message is `Regs`, `Channels.lean:138-141`;
+no `StateMsg` exists); `bp:1280` `leanIsaTables` (no such declaration; the ensemble is
+`leanIsaEnsemble`); `bp:799` `EnsembleWitness leanIsaEnsemble` (needs `prog` since decision
+14); `bp:808` `layout.total`; the tracker's `knowledgeSound_of_refinement`. **Change.**
+Replace each by the name that exists.
+
+### 15. Two deployed checks are discharged by type, and nobody is told to parse (minor)
+
+**Evidence.** B.2 item 2: `read_public`'s checks (2) (the public words' third limb, `cpu/mod.rs
+:141-143`) and (3) (the bytecode length and, in the Python, decodability) are "by type" in
+Lean (`Statement.lean:71-75`); `verify : Program → PublicInput → Proof → Bool` (`bp:1217`)
+takes the typed values; the fixture (`bp:1236-1240`) and T7's `PublicInput.encode` are the
+parsers. **Classification.** An error of the blueprint (omission). **Change.** In *Verifier
+shape* (`bp:326`) add: "`verify` takes a `Program` and a `PublicInput`; the deployed
+verifier's rejection of a public word with a nonzero third limb and of a bytecode that is not
+`2^k ≤ 2^32` decodable instructions are the obligations of whoever builds those values from
+bytes (the fixture's loader in Layer 12, `PublicInput.encode` in T7), and the differential
+fixture records a rejected public input as a parse failure, not as `verify = false`".
+
+### 16. T4 drops the extracted witness that T6 needs (note)
+
+**Evidence.** Section F, last paragraph; `architecture.md:332-335`. **Change.** The second
+theorem of finding 3's proposal (`execution_of_extracted`).
+
+### 17. The protocol's soundness is non-adaptive in the statement (note)
+
+**Evidence.** B.3, last paragraph: ArkLib's games quantify `∀ stmtIn` outside the probability
+(`Security/Basic.lean:299-323`); T7's public input has a prover-chosen part
+(`architecture.md:191-195, 357-358`). **Change.** Record in `bp`'s *Out of scope* that
+adaptive statement soundness in the random-oracle model (the input seeds the chain, `cpu/mod.rs
+:712`) is T7's to state and is not given by the per-statement theorems of this roadmap.
+
+### 18. `constraintCompleteness` needs a resource hypothesis of its own (note, leanISA's)
+
+**Evidence.** Section C: `Caps.heights` bounds every table by `2^32` rows
+(`Statement.lean:257`), `ValidExecution` bounds only `κ` (`Execution.lean:108-115`), and a
+halting run visits distinct `(pc, fp)` states (the step is a function of the state and the
+fixed image), so a run of more than `2^32` steps of one opcode has no satisfying witness.
+Out of this review's scope; it reaches T4 through finding 4. **Change.** Report to the leanISA
+roadmap (`Boundaries`, `bp:1433-1441`).
+
+## H. Negative results, what was not done, and what contradicts the brief
+
+**Checked and found consistent** (no finding):
+
+- `M3Holds`'s five clauses against `SatisfiedBy`'s thirteen conjuncts: every conjunct has a
+  source (A.4); no conjunct of `SatisfiedBy` is delivered by nothing once the caps hypothesis,
+  the boundary lemma, the count derivation and the Flock consequence lemma are in place.
+- `w.Constraints` is asserts and lookups only (Clean `93c9d1ef`, `Operations.lean:687-688`,
+  probe `Shapes` output 154-159); leanISA emits no lookup and only `JUMP` asserts; so
+  `toM3_constraints_iff` is provable in principle.
+- The degree bound `d = 2`: every flush coordinate of the six tables read (`Tables/*.lean`
+  `main`) is of degree at most two (`JUMP`'s successor `b·v_pc + b·(g·pc) + g·pc`,
+  `Jump.lean:199-201`; `DEREF`'s store `fbar·v3 + f_pc·(g²·pc) + f_fp·fp`, `Deref.lean:203-206`;
+  `MUL_NATIVE`'s twelve products, `MulNative.lean:168-173`; the pushes' `g · count`).
+- The state boundary as constants only (`Coord.committed` needs `τ = κ = 0`, impossible for a
+  real column), as `layout.rs:354-358`; the memory and bytecode blocks' committed coordinates
+  are columns of tables whose `τ` equals the block's `κ` by construction (E.4).
+- `Caps` is derivable from `Admissible` plus the construction of `witnessOf` (A.4 row 5), and
+  `Sizes.ofWitness w = some s` from `SatisfiedBy` (A.6).
+- The chain names one `prog` and one `input` throughout (B.2); no theorem lets the prover
+  choose either.
+- The top limb is anchored (section D), agreeing with `code-pubinput.md` §D.
+- `Refinement` accepts a `Type 1` target witness (probe `Transport`); the pointwise
+  composition of T4 typechecks (examples 3-4); `Extractor.Straightline.map` cannot serve
+  (probe `UniverseFail`).
+- The axioms of every arithmetization declaration the chain will use (`assumptions_of_
+  blake2sRowsValid`, `memRowOf_bindings`, `bytecodeRowOf_bindings`, `bytecodeRowOf_decodes`,
+  `verifier_pull_eval`, `verifier_push_eval`, `rowAt_toElements`, `decode_eq_some_iff`,
+  `assignmentRepresents_image`, the six tables, the two blocks, the verifier) and of the two
+  master theorems, `bytecodeColumn_eval`, `idxColumn_eval`: the kernel's three (probe `Shapes`,
+  output 168-187); `map_option_valid`: two.
+
+**Not done, and how it would be verified.**
+
+- The injectivity of `prog ↦ (prog.logSize, bytecodeColumn prog)` (B.2 item 1): inferred from
+  `entry_injective` and `bytecodeColumn_slot`; a probe proving it was not written.
+- The counterexample program of section D (`SET_CONSTANT [g^0, y²]`): its two-line stack was
+  not built; the load-bearing fact, `E.ofLimbs a b c ≠ p.word0` for `c ≠ 0`, is proved
+  (probe `Shapes`).
+- The count of admissible size vectors (B.3, about `2^34`) is a hand estimate from the caps
+  and the stacking window; the exact count depends on the layout's `μ`, which Layer 3 defines.
+- Whether CompPoly's `toCMvPolynomial` is still `noncomputable` at the new pin `572f9973` was
+  not checked (the review's object is the old pin).
+- No probe was re-run after the upgrade; the two probes with numerals other than `0`, `1`
+  need `K.ofBits` before a re-run (header).
+- The claim that a run of a halting program visits distinct states (note 18) is an argument
+  from determinism of `step`, not a Lean proof.
+
+**Contradicts the brief.**
+
+- The leanVM checkout `/home/scaraven/Documents/leanEthereum/leanVM` is **no longer at the
+  pin**: on 2026-09-30 its `HEAD` is `248da0719e94ec253af47c930908f087a7be02a1` and the crate
+  tree has changed (`crates/leanvm`, `crates/leanvm_core`; no `crates/lean_vm`). The brief
+  (§3, §8) and the coordinator's message say it is unchanged at `a386121f`. This task did not
+  move it (no `git checkout`, `pull`, `reset` or `switch` was run here; the shell history of
+  this task holds only `git rev-parse`, `git status`, `git log`, `git show`, `git cat-file`,
+  `git merge-base`). Every Rust citation of this dossier was read from the working tree on
+  2026-09-29 when `HEAD` was `a386121f` (verified then), and the ones in sections C-F were
+  re-verified on 2026-09-30 with `git show a386121f:<path>` from the object store (the
+  commit is present: `git cat-file -t a386121f` = `commit`). Other agents citing the working
+  tree after the move would cite the wrong revision.

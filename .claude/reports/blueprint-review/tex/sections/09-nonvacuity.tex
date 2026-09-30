@@ -1,1 +1,191 @@
-% stub: to be written
+\chapter{Non-vacuity}\label{ch:nonvacuity}
+
+A definition is non-vacuous when it is inhabited by the object leanVM intends and refuted by
+the near misses; a theorem, when its hypotheses can be met by the real protocol and not only by
+a trivial one, and when what it concludes is not already true of everything. This chapter
+records what the review established by probe, in Lean, against \code{main} at \code{b435631},
+and what it established on paper. The probes are reproduced in \cref{ch:probes}; the rule of the
+review was that a conclusion resting on a probe names it.
+
+\section{The relation and the seams}\label{sec:nv-relation}
+
+\paragraph{\lean{M3Holds}.} On the toy instance the honest stack satisfies it, and for each of
+the four checkable clauses a stack fails that clause alone: the repository's own tests do this
+(\file{tests/LeanerVMTests/Protocol/Spine.lean}). The review added the cases those tests lack
+(probe \code{P2Relation}): a tuple pushed twice and pulled once fails \lean{Balanced}, and a
+tuple pushed twice and never pulled fails it too, which a balance summed in the field would
+accept; the side filter and the row ranges of \lean{tuples} were exercised on instances built
+for the purpose. Clause by clause against the pinned specification, \lean{M3Holds} is the
+relation the bus, the table sumcheck, the public-input check and Flock together establish
+(\cref{ch:faithfulness}); the review found no clause wrong.
+
+\paragraph{The seams.} Each seam was inhabited and refuted per conjunct (probe \code{P3aSeams});
+the zerocheck escape, a constraint violated on the cube whose extension vanishes at the point
+$(1)$, was exhibited on a stack \code{badConstraint} to show that the bus seam's claims can hold
+of a stack outside \lean{M3Holds}, which is what the error of the bus phase pays for.
+\lean{Seam.done} is \lean{True}, so the last law of a knowledge state function reads
+\enquote{if the verifier accepts then the state is true} (probe \code{NonVacuity}); this is
+what an output relation carrying nothing should give.
+
+\paragraph{What the seams admit beyond leanVM.} \lean{Seam.bus} admits statements the deployed
+bus phase never emits and the deployed table sumcheck cannot serve: a statement true of an
+honest stack yet outside the seam by its degree clause alone; a linear claim with two terms of
+one table at two points; a thousand copies of a true claim (probes \code{SeamBusShape},
+\code{SeamBusMember}). This is not a vacuity of the seam but a burden on the phase that
+consumes it, developed in \cref{sec:faith-table}.
+
+\section{The hypotheses of the master theorems}\label{sec:nv-hypotheses}
+
+The two master theorems take a bundle of phases with their proofs, \lean{Phases.Complete} and
+\lean{Phases.Security}. Whether these can be met, and by what, is the question.
+
+\paragraph{They can be met by the real phases.} For the bus phase, the table sumcheck and the
+public-input phase the review worked out, on paper, a knowledge state function and per-challenge
+errors that meet \lean{Phase.Security} against the spine's seams (\cref{ch:phases}); the
+public-input phase's is built and proved. For Flock, perfect completeness is attainable by the
+honest prover of the specification, and the blueprint's belief that it is not (its acceptance
+test 20) is mistaken (\cref{sec:faith-flock}). For the table sumcheck the answer is
+\enquote{yes, by a generalized phase with guards leanVM does not have}, which is the finding of
+\cref{sec:faith-table}. For the opening, see \cref{sec:faith-opening}.
+
+\paragraph{They can also be met by protocols that are not leanVM's.} Three constructions,
+two of them machine-checked:
+\begin{enumerate}
+\item \textbf{Phases that check nothing, at declared error one.} A phase that draws one
+  challenge, ignores it, makes no query and outputs a function of its input statement is
+  perfectly complete whenever that function carries one seam into the next, and is
+  round-by-round knowledge sound against \emph{any} two seams at the error it declares for its
+  challenge, namely $1$. Five of them inhabit \lean{Phases.Security\ I} for every instance
+  $I$; both master theorems hold of the bundle; the composed error is $1$ at each of its five
+  challenges (probe \code{P4Junk}, standard axioms only). The knowledge-soundness master theorem
+  therefore has content only together with a bound on \lean{piopError}, and the spine states
+  none: \lean{piopError\ P} is \lean{P.toDef.err}, whatever the phases declare. The blueprint's
+  \lean{piopError_le} (Layer 10) is stated over sizes the spine's \lean{piopError} does not take.
+  This is the review's first major finding on the spine (\cref{sec:faith-spine}); the proposed
+  repair is a closed-form error fixed by the spine from the instance and demanded of each phase.
+\item \textbf{Phases that read the whole stack.} In the ideal model the verifier may query
+  $\widetilde{q}$ at every point of the cube, and neither ArkLib nor the spine counts queries;
+  \lean{M3Holds} is decidable. So a phase with no round whose verifier reads the $2^{\mu}$ cells
+  and decides the input seam itself is perfectly complete and knowledge sound at error zero.
+  Five of them inhabit \lean{Phases.Security\ I} for every $I$ with \lean{piopError} $= 0$. On
+  paper (two dossiers reach it independently); a probe was designed and not run.
+\item \textbf{A verifier that always rejects} is knowledge sound at error zero and is excluded
+  only because \lean{Security} extends \lean{Complete}: on an instance whose relation is empty
+  (below) the exclusion is void.
+\end{enumerate}
+Conversely, the five pass-through phases of the repository's tests, which inhabit
+\lean{Phases.Complete}, have \emph{no} \lean{Phases.Security}: the type is empty (probe
+\code{P5PassThrough}, theorem \code{no\_security}), where the test's docstring only asserts it.
+
+\paragraph{What this means.} The master theorems are composition theorems. They pin the
+phases to leanVM's by nothing in their statement; what does is outside the spine and, today,
+outside the repository: a bound on the error (item 1), the phases' definitions being leanVM's,
+which only the compiled verifier's refinement theorem and the fixture of a Rust-produced proof
+can tie down (item 2), and review of each phase's definition against the specification. The
+report's recommendation is to move the first into the spine and to say the other two plainly
+in the blueprint's headline (\cref{ch:options}).
+
+\section{The instance}\label{sec:nv-instance}
+
+The relation is stated over an abstract instance, and an instance can be wrong in ways the
+spine does not exclude. A \lean{Layout} that reads every column from cells $0$ and $1$
+satisfies the reading law (probe \code{P2Relation}, \code{toyAlias}); on it the three columns
+are one, \lean{M3Holds} asks for incompatible things, and the relation is empty for every stack
+and statement (exhaustive on the cells, the general case on paper). The master theorems hold of
+that instance: completeness is vacuous, and knowledge soundness says that every accepting
+prover was lucky. The reading law also determines \lean{read} from \lean{extend} (a cube point's
+extension is the cell), so \lean{read} is redundant data and the only freedom of an instance is
+\lean{extend}. A wrong \lean{extend} costs completeness and faithfulness, never the soundness of
+the Lean chain: the adaptor's theorem from \lean{M3Holds} to \lean{SatisfiedBy}, if proved of
+such an instance, still gives the chain to the semantics. Who rules such instances out is the
+adaptor's completeness theorems and the transcription of the layout with the compiled verifier's
+fixture, none of which is built; until then, no statement on \code{main} says that the relation
+of any instance other than the toy is inhabited.
+
+The same holds of the instance's other fields: \lean{aux} is an arbitrary predicate, and on the
+only built instance it is \lean{True}, so a Flock phase with no message, no challenge and no
+check is knowledge sound at error zero (probe \code{NoCheckFlock}); \lean{publicLines} is a
+list, and an instance with two lines instead of three has every theorem of the spine and of the
+public-input phase (\cref{ch:drift}); \lean{Layout.comap}, by which the adaptor is to name the
+blocks, accepts a renaming that is not one-to-one, so columns can alias.
+
+\section{The error bound}\label{sec:nv-error}
+
+Beyond item 1 above: the errors the blueprint charges to the bus phase, the table sumcheck and
+the public-input phase are correct and tight where they are stated, and the review's
+round-by-round arguments give the state functions that attain them (\cref{ch:phases}). Two
+errors are not tight: the zerocheck escape, which costs $\tau_{\max} / \abs{\E}$ once and
+nothing in a conjunctive state function, is charged per constraint and placed on the wrong
+challenges; and the GKR round error is $4 / \abs{\E}$, not $5 / \abs{\E}$. Whether the sum
+means something at leanVM's parameters is settled in \cref{sec:faith-opening}: the interactive
+sum does (the blueprint's $2^{40} / \abs{\E}$ is the right order), but the non-interactive
+bound the blueprint sketches leaves out three things that decide whether leanVM reaches the
+128 bits it claims.
+
+\section{The extractor}\label{sec:nv-extractor}
+
+Every extractor in the repository is a compiled definition: nothing along the chain from
+\lean{piopExtractor} to the commit phase's is marked \lean{noncomputable}, and the three of them
+run (probes \code{P1Axioms}, \code{Extractors}). \lean{#print\ axioms} says nothing about this:
+it reports the three standard axioms for computable definitions whose proofs use classical
+lemmas, and the earlier review's use of it as evidence of computability was a misreading.
+
+Two things are less than the blueprint says. First, \enquote{the extractor's column $q$
+satisfies \lean{M3Holds}} names no definition of the repository: the composed extractor's
+\lean{extractOut} returns the stack only when every phase has no round; with the repository's
+own public-input phase in the bundle, the statement of the test that \enquote{the extractor
+returns the committed stack} is ill-typed, because \lean{extractOut} then lives in that phase's
+last intermediate witness type, \lean{Unit} (probe \code{P3cExtractor}, an expected failure
+recorded). The stack is what the composed extractor returns at round $0$ through its
+\lean{extractMid} at the commit round, and there it is the transcript's first message whatever
+it is handed. No function \enquote{the stack extracted from a full transcript} is defined.
+Second, ArkLib's extractor type accepts an extractor that chooses a witness by classical choice,
+and such an extractor is \enquote{knowledge sound at error zero} for any relation whose
+language the verifier decides (probe \code{Extractors}): ArkLib's existential notion of
+round-by-round knowledge soundness is soundness, and the named form the spine uses is knowledge
+only with the named extractor read. A phase's \lean{Security} could carry a classical extractor
+without anything in the repository noticing; it would not matter, because from the commit phase
+on the witnesses are \lean{Unit} and the stack comes from the commit phase's extractor alone,
+which is the spine's and reads the message. The design \enquote{the oracle is the witness}
+excludes the risk that acceptance test 24 guards against; the test does not.
+
+\section{The public-input phase}\label{sec:nv-pubinput}
+
+The phase is built and its two theorems are proved; the question is what they exclude. The
+answer, machine-checked (probe \code{ProbeAnyCheck}, theorem \code{securityG}): nothing about
+the check. For every function the prover may use to compute its message and every Boolean check
+that the honest message passes, the phase with that check has a \lean{Phase.Security} against
+the same seams at the same error $1 / \abs{\E}$. Instances proved: no check and no message; no
+check and a message of forty-two zeros; a check with the two cells swapped, with a prover that
+sends the swapped values. The reason is one line of the definition: \lean{pooled} takes its
+values from the statement, not from the message, and the proof of knowledge soundness never
+mentions \lean{check}. What the theorems do exclude, each refuted in Lean with no extractor,
+state function or error below one able to repair it (theorem \code{not\_rbr}, which denies
+ArkLib's existential notion): a verifier that pools the prover's values without checking them;
+one that checks only the first value and pools the prover's values; one that does not pool the
+claim of a line whose value is not sent. The earlier review's statement that each of five wrong
+verifiers breaks a stated theorem was true of the build it read and is false of the code as
+merged: its own compression (pooling the lines' values, item H1 of that review) removed the
+dependence, and the status file still repeats the claim. The consequence for the requirement
+that a missing check leave a theorem unprovable is drawn in \cref{ch:drift}; the repair, pooling
+the values sent, is proposed in \cref{sec:faith-pub}.
+
+\section{The notion itself}\label{sec:nv-notion}
+
+ArkLib's round-by-round knowledge soundness is not trivially satisfiable: a verifier that
+accepts everything has no knowledge state function for a non-trivial relation with no rounds,
+and with one challenge it is not knowledge sound at error zero whatever the extractor; every
+verifier is knowledge sound at error one (probe \code{NonVacuity}). Its plain reading, that an
+accepting transcript either extracts a witness or contains a challenge that fell in the bad set
+of its prefix, is machine-checked at the transcript level (probe \code{PlainReading}); the
+step from there to a bound on a prover's success is ArkLib's admitted implication from
+round-by-round to plain knowledge soundness, at both pins (\cref{ch:libraries}).
+
+\section{What was not established}\label{sec:nv-open}
+
+The read-everything phase (item 2 of \cref{sec:nv-hypotheses}) is on paper. The emptiness of
+the aliased instance's relation is exhaustive on the cells and on paper in general. The
+mutation probes of the public-input phase that were written after the toolchain moved (the
+deployed check with the prover's values pooled, the wrong point, the wrong check with the
+honest prover unchanged, the extra check) are recorded as such in \cref{ch:probes}, with the
+result of their re-run at the new pins where it exists.

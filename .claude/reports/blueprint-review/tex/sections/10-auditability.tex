@@ -1,1 +1,112 @@
-% stub: to be written
+\chapter{Auditability}\label{ch:auditability}
+
+The audit surface of a theorem is the set of declarations its statement unfolds to: what a
+reader must read, and trust to mean what it says, before the theorem tells them anything. This
+chapter separates those declarations from the helpers, measures them, and proposes what can be
+removed without changing any statement's meaning. Faithfulness and non-vacuity come first; the
+proposals here are for after the statements are right.
+
+\section{What is load-bearing}\label{sec:aud-loadbearing}
+
+For the two master theorems the load-bearing declarations are, transitively: the theorems'
+statements (\lean{piop_perfectCompleteness}, \lean{piop_rbrKnowledgeSoundness}); the
+composition (\lean{leanVmPiop}, \lean{leanVmVerifier}, \lean{piopError}, \lean{piopExtractor},
+\lean{Phases}, \lean{Phases.toDef}, \lean{Phases.Complete}, \lean{Phases.Security}, and the
+commit phase's four declarations); the component interfaces (\lean{Component.Def},
+\lean{Complete}, \lean{Security}, their \lean{append}, the two ported composition
+declarations); the seams (\lean{Seam.of} and the six seams, the four claim structures with
+their \lean{Holds}, the four output structures, \lean{theStack}); the instance
+(\lean{M3Instance} with its fields, \lean{Shape}, \lean{Layout}, \lean{Coord},
+\lean{BoundaryBlock}, \lean{PublicLine}, the readers \lean{column}, \lean{row},
+\lean{coordCell}, \lean{tuples}, the four clauses, \lean{M3Holds}, \lean{M3Rel},
+\lean{TheOracle}); and Layer 0's oracle interface of the stack with the field and sampling
+instances. Below them sit the library definitions they unfold to, which \cref{ch:libraries}
+introduces: ArkLib's protocol specifications, oracle reductions, completeness, knowledge state
+functions, extractors and round-by-round knowledge soundness; VCVio's computations and
+probabilities; CompPoly's tables, polynomials and fields.
+
+Measured at \code{b435631} (probe \code{P6Surface}; the tables are in \cref{sec:aud-tables}):
+the completeness theorem unfolds to 70 declarations and 217 lines of statements (382 with
+docstrings); the knowledge-soundness theorem in its existential form to 76 declarations and
+248 lines (432); in the named form the spine states, to 100 declarations and 354 lines (612).
+Layer 1 has 143 public declarations, of which 20 are load-bearing and 41 are interfaces; an
+auditor of the master theorems reads none of them today, 17 definitions (61 lines) become
+trusted once the adaptor is built and about 8 more (22 lines) once the executable verifier is.
+The public-input phase adds its verifier, its check, its pool and its line identity.
+
+\section{What is not, and whether it leaks}\label{sec:aud-helpers}
+
+A helper lemma cannot enlarge the trusted surface of a theorem it helps to prove: the kernel
+checks the proof, and what the proof used does not change what the statement says. Two things
+can leak nonetheless, and were checked. An \emph{axiom} used by a helper propagates to every
+theorem that uses it: every theorem of the proof system, the port of the composition included,
+closes on the kernel's three standard axioms and on nothing else (\lean{#print\ axioms},
+probe \code{AxiomsLeanerVM}, re-run at the new pins in \cref{ch:probes}), and the repository's
+validation rejects \lean{sorryAx} across both namespaces with a planted-axiom control. An
+\emph{instance} used by a statement (a decidability instance, a sampler, an oracle interface)
+is part of the statement's meaning: the sampler instances are uniform by VCVio's class law, the
+diamond on the sampler of $\K$ resolves to the same term by \lean{rfl}, and the oracle
+interface of the stack answers the extension at the point in the specification's bit order
+(\cref{ch:libraries}). No helper was found to enlarge the trusted surface.
+
+\section{Proposals to reduce the surface}\label{sec:aud-proposals}
+
+Each proposal names what is removed, what it costs and whether a statement changes. None
+changes the meaning of a master theorem; the first two are also faithfulness repairs and are
+argued in \cref{ch:faithfulness}.
+
+\begin{enumerate}
+\item \textbf{Fix the error in the spine.} Replace the phases' declared \lean{err} by a closed
+  form \lean{piopError\ I} computed from the instance, and demand each phase's knowledge
+  soundness at it. Removes a field from \lean{Component.Def} and the possibility of item 1 of
+  \cref{sec:nv-hypotheses}; adds one definition to the spine. Changes the statement of the
+  knowledge-soundness theorem, for the better: it then says something.
+\item \textbf{Give the bus seam leanVM's shape.} Replace \lean{BusOut}'s list of linear claims
+  by one point, the forms per side and table with the degree bound in their type, three totals
+  and the column claims. Removes \lean{LinearClaim}, \lean{VirtualTerm}, the degree conjunct of
+  \lean{Seam.bus} and the guards a generalized table sumcheck would need; adds three small
+  types. Changes \lean{Seam.bus} and the two phases around it.
+\item \textbf{Derive \lean{read} from \lean{extend}.} The reading law determines it
+  (\cref{sec:nv-instance}); \lean{Layout} then has one field of data and one law, and an
+  instance cannot state a \lean{read} that disagrees with its \lean{extend}. Costs one
+  definition and a lemma; changes no statement's meaning.
+\item \textbf{Delete \lean{outputPure}.} It is derivable for every component over the empty
+  shared oracle (probe \code{P6Surface}, \code{outputPure\_of\_def}; ArkLib has the instance at
+  the pin). Removes a field of \lean{Component.Complete} and one obligation per phase.
+\item \textbf{Separate the guard from completeness.} A base structure with the guarded form
+  only, extended by \lean{Complete} and by \lean{Security}, so that knowledge soundness no
+  longer presupposes perfect completeness (\cref{sec:faith-flock}). Costs one structure;
+  changes no theorem's meaning; changes what an author of a phase must prove first.
+\item \textbf{Drop \lean{Weight.mle} from the seam.} The evaluator the verifier runs is the
+  opening phase's business, not the seam's; the seam needs the cube values and the value.
+  Removes a field and a law from \lean{Weight}; the closed form of the ring-switching weight
+  stays owed to whoever builds the opening.
+\item \textbf{Merge \lean{TableOut} and \lean{PubOut}.} Both are a list of column claims; one
+  structure with two uses. Removes one structure; changes the type of the public-input phase's
+  slot, not its meaning.
+\item \textbf{Move the error out of \lean{Component.Def}.} With item 1 the field is gone; even
+  without it, keeping a real number in the definition makes every phase with a challenge
+  \lean{noncomputable}, so that neither the verifier nor the extractor compiles when reached
+  through the phase (probe \code{ExtractorsExpectedFailure}). The executable verifier of Layer 12
+  is meant to read the phases' definitions.
+\item \textbf{Delete \lean{BlockClaims.lean}.} It has no consumer, and the earlier review found
+  that no phase can use it over an abstract instance. Removes about a dozen declarations.
+\item \textbf{Say which tables the sumcheck ranges over}, as a decidable predicate on the
+  instance's tables derived from its constraints, flushes and counts (\cref{sec:faith-table}).
+  Adds one definition; removes a whole class of instances the table sumcheck would otherwise be
+  owed on.
+\item \textbf{Name the Flock region in the instance} (a column, a log-count, a height fact and
+  what \lean{aux} says of it) instead of the opaque predicate alone (\cref{sec:faith-flock}).
+  Adds one small structure; makes the Flock phase statable over an abstract instance.
+\item \textbf{Read the existential theorem first.} \lean{piop_rbrKnowledgeSoundness_exists}
+  unfolds to 24 fewer declarations than the named form; a reader should start there, then read
+  the named form for the extractor.
+\end{enumerate}
+
+With items 2, 4, 6, 7 and 9 applied the review estimates the named knowledge-soundness form at
+about 80 declarations and 290 lines of statements; the estimate is not a measurement.
+
+\section{The measured tables}\label{sec:aud-tables}
+
+\InputIfFileExists{sections/gen/surface}{}{\emph{The measured tables of the audit surface, per
+file and per class, are produced from the spine and Layer 1 dossiers and are inserted here.}}

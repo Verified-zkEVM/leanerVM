@@ -293,3 +293,535 @@ and weight; that the verifier evaluates `W̃_λ` exactly once. Checked: the spin
 lifted by `ofK`, the specification's `⟨W, g⟩ = c` (`03:115`); and `Weight.mle_eq` ties the
 verifier's evaluator to the cube values, which is what "MLE-friendly" needs. No finding on the
 pool's translation into weighted claims.
+
+---
+
+## E. Are the blueprint's non-interactive theorems well formed?
+
+The four sketches (`bp:1218-1227`, `bp:1247-1250` at `b435631`):
+
+```lean
+theorem verify_iff_compiled (prog input proof) :
+    verify prog input proof = true ↔
+      ∃ s, s.Admissible prog ∧ (Verifier.fiatShamir (leanVmIopp prog s input flock).verifier …)
+        accepts (decode s proof) under the BLAKE2s challenge oracle
+structure FiatShamirSecurity where …   -- rbr knowledge soundness of the IOPP ⇒ knowledge soundness of its FS compilation in the ROM, error Q · max_i ε_i
+structure BcsSecurity where …          -- Merkle-compiled oracles: extraction from collision resistance / ROM
+theorem verify_knowledgeSound (fs : FiatShamirSecurity) (bcs : BcsSecurity) (mca : McaJohnson) (flock) :
+    … knowledge soundness of `verify` with error niError s Q
+theorem baseVerifier_extractsExecution (fs bcs mca flock) (h : verify prog input proof = true) :
+    except with probability niError, ∃ t, ValidExecution prog input t
+theorem baseProver_complete (hfill : HasFillBlocks prog) (h : ValidExecution prog input t) :
+    verify prog input (prove prog input (witness of t)) = true
+```
+
+They are read here as statements to be written in Lean. Two library objects are introduced
+first. A **random oracle** is a function drawn uniformly from all functions of a fixed domain
+and range, to which every party has query access only; a theorem "in the random-oracle model"
+(ROM) is a probability statement over that draw, against adversaries that make at most `Q`
+queries. ArkLib's **Fiat–Shamir transform** (`Verifier.fiatShamir`, `FiatShamir/Basic.lean:129-136`
+at `dca90385`, verbatim in probe H.2) turns an interactive `Verifier` into a
+`NonInteractiveVerifier` whose one message is the tuple of all prover messages, and which
+obtains each challenge by querying a *challenge oracle* `fsChallengeOracle StmtIn pSpec`
+(`ProtocolSpec/Basic.lean:849-854`) at the pair (statement, messages so far)
+(`challengeOracleInterfaceSR`, `:830-834`: "`Query := StmtIn × pSpec.MessagesUpTo i.1.castSucc`").
+That oracle is an `OracleSpec`; any deterministic function of the same signature is a
+`QueryImpl` for it, so a concrete hash chain can be plugged in by `simulateQ` (probe H.2,
+`runWithChain`).
+
+### E.1 `baseVerifier_extractsExecution`, and what a well-formed statement looks like
+
+**As sketched, it has no probability space.** `verify prog input proof = true` is a decidable
+proposition about three fixed values: `verify` is "a total, computable function of `(prog,
+input, proof)` to `Bool`" (`bp:326`) and BLAKE2s is a fixed function. "Except with probability
+`niError`" then quantifies over nothing: for fixed `(prog, input, proof)` the conclusion
+`∃ t, ValidExecution prog input t` is either true or false, and no randomness makes the
+hypothesis probabilistic. The same defect is in the source it transcribes, T4 in
+`docs/architecture.md:264-269` ("`BaseVerifier.Accepts version proof program publicInput → except
+with probability baseError, ∃ assignment, …`"), whose next sentence asks for what the sketch
+omits: "The theorem must expose the component soundness/knowledge-soundness bounds, Fiat–Shamir
+or random-oracle model, commitment and hash assumptions" (`architecture.md:271-273`).
+
+**As sketched, it is soundness, not knowledge soundness.** The conclusion is an existential
+over traces. Knowledge soundness names an extractor that outputs the witness; the blueprint's
+own doctrine (`bp:96-103`, acceptance test 24) insists on a named, computable extractor for the
+oracle protocol, and then discards it at the last step. Since `ValidExecution` is not what an
+extractor can output (`bp:96-99` says so), the right shape is: the extractor outputs a stack
+`q`; `witnessOf q` satisfies `SatisfiedBy` except with the error; `constraintSoundness` (T1)
+then gives the trace. The knowledge statement is about the first step; the existential is its
+corollary.
+
+**What the randomness is over, and what the adversary is.** In the ROM the verifier is
+`verify^H`, `verify` with the compression function `H : {0,1}^512 → {0,1}^256` (the primitive of
+`fs/lib.rs:18-24`, "`f(a, b) = BLAKE2s(a‖b)`", used for the chain, the grinding and every Merkle
+node and leaf, `fs/merkle.rs:40-51`) left as an oracle. The adversary `A^H` is a `Q`-query
+oracle algorithm that outputs `(prog, input, proof)` (adaptively: leanVM's statement includes
+the program, whose hash seeds the chain, `mod.rs:82-93`, and the sizes are the prover's,
+`mod.rs:118-124`). The probability is over `H` (and `A`'s coins). A well-formed statement:
+
+```text
+theorem verify_knowledgeSound (Q : ℕ) (A : Adversary H Q) :
+  Pr_H [ let (prog, input, proof, log) ← A^H ;           -- log: A's queries to H and the answers
+         verify^H prog input proof = true ∧
+         ¬ SatisfiedBy prog input (witnessOf (extract prog input proof log)) ]
+    ≤ niError Q
+theorem baseVerifier_extractsExecution (Q) (A) :
+  Pr_H [ … verify^H prog input proof = true ∧ ¬ ∃ t, ValidExecution prog input t ] ≤ niError Q
+```
+
+with `extract` a **straight-line** extractor: it reads the Merkle leaves of the level-0
+commitment off the query log (every leaf the prover can open was hashed, so it is in the log
+except with the collision/preimage term), list-decodes the word to its `≤ L_0` nearby
+codewords (section G), and returns the member that satisfies `M3Holds`, or a default. The
+second theorem follows from the first by `satisfiedBy_witnessOf` and `constraintSoundness`
+pointwise. Two further features of the deployed object a faithful statement carries:
+
+- **the sizes are the adversary's.** `verify` dispatches on the eight announced sizes
+  (`mod.rs:144-149`), so it is the union over admissible `s` of the members of a protocol
+  family; a bound proved per member (per `s`) transfers to the union only by an argument
+  about how `A`'s `Q` queries split among members (they do, since a query to the chain seeded
+  and then fed the sizes belongs to one `s`); `niError` must be uniform in `s` or take the
+  maximum. Acceptance test 21 (`bp:1326-1328`) records the dispatch and not this obligation.
+- **the program enters the chain by its hash.** `iv = BLAKE2s("leanvm" ‖ len ‖ R1CS_DIGEST ‖
+  bytecode_hash)` (`mod.rs:82-93`): two programs with the same `bytecode_hash` share every
+  challenge, so the statement binds the program only up to a BLAKE2s collision, a term of
+  `niError`.
+
+**The random-oracle heuristic.** `verify` is a function; `verify^H` is a family. The only
+theorem provable is about `verify^H` with `H` random; the sentence "BLAKE2s's compression
+function is that `H`" is the **random-oracle heuristic**, a non-formal step to be named as such
+in Layer 13 and in `docs/architecture.md` (which already has the words "Fiat–Shamir or
+random-oracle model" but files them under "must expose", not under "assumed"). It cannot be a
+Lean hypothesis (it is false for any fixed function, since an adversary may hard-wire it) and it
+cannot be an axiom (`AGENTS.md`); the theorem about `verify` itself, with BLAKE2s fixed, is the
+instantiation `H := blake2sCompress` of the definitions only (`verify = verify^blake2sCompress`,
+by `rfl`), never of the security theorem. The same holds of the Merkle side (collision
+resistance of BLAKE2s-256 is the second thing the heuristic buys).
+
+### E.2 The three assumed interfaces: what each must state to be true and strong enough
+
+Ground on ArkLib, both pins (`lib-arklib` G.4 established it; re-verified here at `dca90385`
+and `7653a901`): `fiatShamir_completeness` is admitted and stated for the constant challenge
+oracle (`FiatShamir/Basic.lean:163-173`); soundness after Fiat–Shamir is a `TODO` (`:175`);
+round-by-round ⇒ state-restoration is commented out (`Security/Implications.lean:230-254`, and
+the commented statement has the wrong error, `∑ i, rbrError i`, where a state-restoration bound
+must depend on the query budget); state-restoration ⇒ plain knowledge soundness is admitted
+(`:305-313`); `BCSTransform` is commented out (`BCS/Basic.lean:59-63, 79-82`);
+`Commitment.extractability` has `False` for its body (`Commitments/Functional/Basic.lean:250-255`).
+The pull requests the tracker names: #469 (open since 2026-04-19, "statements of Section 5" of
+[CO25], the duplex-sponge Fiat–Shamir, no security proof) and #848 (open, stacked on #469,
+"prove Theorems 6.1 and 6.2"); **#627 is an issue, not a pull request** (a design for the BCS
+transform, 2026-07-10), whose staged plan says: "Full ROM/state-restoration soundness
+inheritance is deliberately **out of scope** and will be fenced as a named open statement".
+
+**`McaJohnson`.** What it must state: [BCHKS25] Theorem 4.6 as Annex B quotes it
+(`B:176-185`, `thm:mca-johnson`): for the Reed–Solomon code of block length `n` and reduced
+rate `ρ = (k−1)/n`, every radius `δ < 1 − √ρ`, every two-row word `C`, the probability over
+`s ← E` that `C_s` agrees with the code on a set of `(1−δ)n` columns on which `C` does not
+agree with the interleaved code is at most `a/|E|`, `a` the explicit expression in
+`m = max(⌈√ρ/(1−√ρ−δ)⌉, 3)`. ArkLib states exactly this, admitted, at both pins:
+
+```lean
+-- ArkLib/Data/CodingTheory/ProximityGap/CapacityBounds.lean:203-219 (dca90385; 7653a901 has the
+-- same statement)
+theorem rs_mcaError_le_in_johnson_range
+    (domain : ι ↪ F) (k : ℕ) (δ : ℝ≥0)
+    (_hk : 1 < k) (_hδ_pos : 0 < δ)
+    (_hδ :
+        (δ : ℝ) <
+          1 - ((((k - 1 : ℕ) : ℝ) / Fintype.card ι) ^ ((1 : ℝ) / 2))) :
+    mcaError (AffineLineGenerator F) (ReedSolomon.code domain k) (δ : ℝ) ≤
+      ENNReal.ofReal
+        (let n : ℝ := Fintype.card ι
+         let ρ : ℝ := (k - 1 : ℕ) / n
+         let m : ℝ := max ⌈(ρ ^ ((1 : ℝ) / 2)) /
+           (1 - ρ ^ ((1 : ℝ) / 2) - δ)⌉ 3
+         ((2 * (m + 1/2) ^ 5 + 3 * (m + 1/2) * δ * ρ)
+            / (3 * ρ ^ ((3 : ℝ) / 2)) * n
+          + (m + 1/2) / ρ ^ ((1 : ℝ) / 2))
+           / (Fintype.card F : ℝ)) := by
+  sorry -- ABF26-T4.12; external admit [BCHKS25 Thm 4.6].
+```
+
+Instantiated at `F := E` and `domain` the additive subspace of `K ⊂ E` (`B:90, 302`), for the
+affine line `u_0 + s·u_1`, which Annex B's footnote (`B:158`) converts to the fold
+`(1−s)u_0 + s·u_1` in characteristic two. It is a statement of mathematics, not about protocols,
+so quantifying it universally (over `ι`, `F`, `domain`, `k`, `δ`) is right and true if the
+theorem is; its consumer is Lemma B.8 (`lem:fold-list`), through the `2^{ℓ−1}` union of rows.
+Strong enough: yes, it is the only coding-theoretic input Theorem B.7 uses (`B:140-152`). Its
+witness obligation is the preprint's theorem (the `literature` dossier, C.3, notes the two
+readings of the constant `m`; the printed one, the larger error, is what both Annex B and ArkLib
+state). Well formed.
+
+**`FiatShamirSecurity`.** As the comment states it — "rbr knowledge soundness of the IOPP ⇒
+knowledge soundness of its FS compilation in the ROM, error `Q · max_i ε_i`" — it is a
+universally quantified claim over IOPPs and is **false**: (a) an IOPP's messages are oracles;
+its Fiat–Shamir compilation hashes commitments, not oracles, and the compiled error carries a
+hash term (the `literature` dossier, A.3 item 2: `3.5·t²/2^λ` in [CY24] Theorem 25.2.1,
+`3(Q²+1)/2^κ` in [BGKTTZ23] Theorem 3.15); (b) leanVM's compilation grinds 17 bits at every
+query round, which no theorem in the literature covers (A.3 item 3) and which changes the
+error from `Q·max ε_i` to `(t + k)·max_i 2^{−b_i}ε_i` at best; (c) the hash-chain construction
+(`fs/lib.rs:85-99`, a state ratcheted by `H`) is neither ArkLib's per-round oracle keyed by the
+whole prefix nor [CO25]'s permutation sponge, so a theorem about either applies only through a
+further "chain is as good as the ideal oracle" lemma (collision term `Q²/2^256`). What ArkLib is
+about to offer (#848, `SingleSalt.lean:973-993` at its head `1c5c5bd7`,
+`single_salt_fiat_shamir_knowledge_soundness`) takes **state-restoration** knowledge soundness of
+a plain `Verifier` with coins, for the challenge oracle `fsChallengeOracle (StmtIn × Salt) pSpec`
+implemented by lazy uniform sampling (`srChallengeQueryImpl'`), and concludes adaptive NARG
+knowledge soundness with the same error; it has no BCS side, no grinding, and needs
+round-by-round ⇒ state-restoration, which is not stated anywhere. To be true and strong enough
+the interface must be stated for **this** construction: (1) a public-coin interactive argument
+`V^H` (the Merkle-compiled protocol, section E.3) that is state-restoration knowledge sound
+against `Q`-query provers in the ROM with error `ε_sr(Q)`, (2) the hash chain of `fs/lib.rs`
+with `H` random, (3) the named ground rounds with their bits `b_i`, and conclude adaptive
+knowledge soundness of the chain-compiled NARG with error `ε_sr(Q) + c·Q²/2^256`; and the
+grinding must be inside `ε_sr` as "a query to `H` at a ground round costs `2^{b_i}` queries in
+expectation". None of this exists in Lean; the honest interface names the literature and the
+gap (A.3: "a new assumption to name").
+
+**`BcsSecurity`.** As the comment states it ("Merkle-compiled oracles: extraction from
+collision resistance / ROM") it names a property with no error and no object. At the pin
+nothing can inhabit it, and #627's plan excludes the ROM inheritance it would need. To be true
+and strong enough: for the IOP `C` of section E.3 (oracle messages: the level-0 `K`-word and
+the deeper `E`-words, all with position queries), the Merkle compilation of `pcs/merkle.rs` and
+`fs/merkle.rs` (leaf = BLAKE2s of the row image, node = BLAKE2s of the two children, fixed
+height and fixed leaf width) in the ROM preserves state-restoration knowledge soundness, with
+the straight-line extractor that reads every committed leaf off the query log, up to
+`3(Q²+1)/2^256` ([BGKTTZ23] Theorem 3.15's hash term; [CY24] Theorem 25.2.1). Its hypothesis
+must include that the verifier fixes the leaf width and the tree height from public data
+(section D, checks M2–M7): that is what makes leaf/node confusion impossible without domain
+separation.
+
+Two interfaces the blueprint does not list and that the theorem needs:
+
+- **round-by-round ⇒ state-restoration** knowledge soundness, with error `Q_i·ε_i` summed over
+  rounds or `Q·max_i ε_i` ([CY24] Theorem 31.2.1/31.3.1: `(t + k)·max_i ε_i`; the `literature`
+  dossier A.3 item 1); commented out in ArkLib (`Implications.lean:230-254`) with the wrong error.
+- **the list-binding compilation** of E.3, which is not an upstream theorem at all.
+
+### E.3 From WHIR's list soundness to extraction of one `q`
+
+**What Theorem B.7 gives.** Round-by-round **soundness** (Definition B.2, `B:74-84`, an
+invariant on partial transcripts with an escape probability per verifier message) for the
+relation `R_open = {(C⁽⁰⁾, {(W_t, c_t)}) : ∃ U ∈ L_{γ_0}(C⁽⁰⁾), ⟨W_t, g_U⟩ = c_t ∀ t}`
+(`B:133-136`), where `L_{γ_0}(C⁽⁰⁾)` is the set of interleaved codewords within radius `γ_0` of
+the committed word, of size at most `L_0 = 1/(2η_0√ρ_0)` (`B:137`). Its start invariant is
+"every `U ∈ L_{γ_0}(C⁽⁰⁾)` violates at least one of the `J_0` claims" (`B:218`). No extractor
+is named: it is soundness for a language, in the IOP model (the oracles `C⁽ⁱ⁾` are read at
+queried columns only; the prover is unbounded).
+
+**What the master theorem gives.** `piop_rbrKnowledgeSoundness` (`Spine/Compose.lean:172-177` at
+`b435631`) is ArkLib's worst-case round-by-round knowledge soundness for `piopExtractor`, whose
+first step reads the stack `q` off the commit message (`commitExtractor`, `Compose.lean:58-59`),
+with a knowledge state function whose `toFun_full` property says (`Security/RoundByRound.lean:186-189`
+at `dca90385`): if the verifier can output a statement in `relOut` with witness `witOut`, the
+state is true at the full transcript. Everything is relative to **one** `q`.
+
+**The step "Layer 12 turns list binding into extraction of the one `q`"** (`bp:1190`,
+acceptance test 11, `bp:1296-1299`) is a theorem about the composed IOP, and it can be stated:
+
+Let `Front` be the spine's prefix `commit ⟫ bus ⟫ table ⟫ pub ⟫ flock`, whose verifier never
+queries the oracle (true of the built phases; a requirement on the others under (ii)), with
+worst-case round-by-round knowledge soundness from `M3Rel` to `Seam.flock` at errors `ε_i`
+(the composition of the first four fields of `Phases.Security`). Let `Front'` be `Front` with
+the commit message's type replaced by an interleaved `K`-word `w` (the level-0 codeword, with
+position queries) and the statement carried unchanged; since the front's verifier never reads
+the oracle, `Front'`'s verifier is `Front`'s. Let `C := Front' ⟫ whirOpen` (the level-0 batching
+of `whirOpen` being the opening phase's `λ`). Then:
+
+> **List-binding compilation.** `C` is worst-case round-by-round knowledge sound for `M3Rel`
+> with extractor `E(w, τ) :=` the first `g ∈ Λ(w)` with `M3Holds input g` (else a default),
+> where `Λ(w) = {g_U : U ∈ L_{γ_0}(w)}`, and per-challenge errors `L_0·ε_i` at the front's
+> challenges and Theorem B.7's at WHIR's. Its knowledge state function is: after `w`, "no
+> `g ∈ Λ(w)` satisfies `M3Holds`"; inside the front, "for every `g ∈ Λ(w)`, the front's state at
+> `(g, τ)` is false" (the front's state function evaluated with `g` in place of the commit
+> message); at the seam this reads "for every `g ∈ Λ(w)` some pooled claim is false of `g`",
+> which is `∉ R_open` and Theorem B.7's start invariant; then Theorem B.7's invariant.
+
+Proof shape: the front's `toFun_next` and `toFun_full` transfer pointwise (each `g` is a
+transcript of `Front`); the escape probability of a front challenge is bounded by the union over
+`Λ(w)` of the front's worst-case bound, which is per transcript and therefore per `g`
+(`rbrKnowledgeSoundnessWorstCaseWith`, `RoundByRound.lean:553-568`: a bound for every statement,
+every round, every partial transcript); the seam step needs `toFun_full` of the front's state
+function in the contrapositive: state false at the front's last transcript ⇒ the verifier's
+output claims are not all true of `g`. That is exactly why the spine's *worst-case* form is the
+right one (the averaged `rbrKnowledgeSoundness` would not union-bound). What it needs and does
+not have: Theorem B.7 in Lean (hole K1); the lemma that every member of `Λ(w)` is `K`-valued
+and of the right size (section G); a generic "state functions indexed by a finite set" lemma
+(union bound; ArkLib has none); and the identification of the front's oracle-free verifier with
+`Front'`'s (a cast of `OracleReduction`, which ArkLib #383's `Cast.lean` is about). The
+extractor is computable as a definition (enumerate the codewords of the finite code; Lean has no
+cost model, `bp:102-103`), and efficient in the literature's sense through Guruswami–Sudan,
+which Lean need not implement.
+
+This theorem is where the factor `L_0` enters `niError` (section F), and it is the missing
+fourth ingredient of `verify_knowledgeSound`: neither `FiatShamirSecurity`, `BcsSecurity` nor
+`McaJohnson` contains it, and the sentence "`verify_knowledgeSound` extracts the member"
+(`bp:1299`) assigns it to a theorem whose sketched hypotheses cannot prove it.
+
+### E.4 `verify_iff_compiled`
+
+"Unconditional: it is about two definitions" (`bp:1231-1232`) is right in kind and wrong in
+the definitions named.
+
+1. **`Verifier.fiatShamir` takes a `Verifier`, not an `OracleVerifier`**, and an oracle verifier
+   becomes one only through `OracleVerifier.toVerifier` (`Basic.lean:490-496` at `dca90385`;
+   probe H.2 prints its type), whose statement is `StmtIn × (∀ i, OStmtIn i)` and whose
+   transcript holds the oracle messages **in the clear**: `(leanVmIopp …).verifier.toVerifier`
+   has the level-0 word (`2^{μ−6}·2^6` elements of `K`) and every deeper codeword as messages,
+   and `fsChallengeOracle` would hash them whole. No `decode : Proof → messages` exists: a proof
+   holds roots and opened rows (`fs/transcript.rs:9-12`), from which no codeword is recoverable.
+   The right-hand side must be the Fiat–Shamir compilation of the **Merkle-compiled**
+   interactive verifier, whose messages are the roots, the scalars, the grinding nonces and
+   the openings; ArkLib has no such compilation (`BCSTransform` commented out), so Layer 12 must
+   define it (`bcsCompile`) before it can state the theorem.
+2. **The challenge oracle can be the chain.** Probe H.2 shows the mechanism: a function
+   `chain : (i) → StmtIn × MessagesUpTo i → Challenge i` is a `QueryImpl (fsChallengeOracle …) Id`,
+   and `simulateQ` runs the compiled verifier under it to an `Option StmtOut`. leanVM's chain is
+   such a function once the statement is `(input)` with `(prog, s)` as parameters of the family
+   (the chain's seed depends on `prog` through `iv`, `mod.rs:82-93`, and its first eight absorbs
+   are the sizes, `mod.rs:118-124`) and the messages are absorbed in the wire encoding (one
+   coefficient of each round polynomial dropped, `fs/transcript.rs:63-71`, `:289-309`; a root as
+   two scalars, `fs/merkle.rs:14-20`; the Merkle openings **not absorbed**, `fs/transcript.rs:225-228`
+   "Not absorbed: its binding is the Merkle structure itself"). A challenge that is several
+   squeezes (`α ∈ E^4`, the query positions by chunking, `whir.rs:1175-1193`) is one `Challenge i`
+   of a product type, or several rounds.
+3. **The grinding checks are not in the right-hand side.** The nonce at each query round is a
+   prover message (absorbed with tag 4, `fs/lib.rs:118-120`), and the verifier's check
+   `pow_bits_ok(pow_base(cv), nonce, 17)` (`fs/lib.rs:47-51, 165-174`) reads the **chain state**
+   `cv`, which an ArkLib `Verifier` does not see: its `verify` takes the statement and the full
+   transcript (`Basic.lean:248-250`). Either the interactive verifier recomputes the chain from
+   the transcript (definable, since the chain is a function of statement and messages; it then
+   depends on `H` and is no longer an IOP verifier), or `verify_iff_compiled`'s right-hand side
+   is a conjunction "the compiled verifier accepts ∧ every grinding check passes", the second
+   conjunct being about the chain. The sketch has neither.
+4. **`∃ s, s.Admissible prog`** is right in shape (the family is indexed by the sizes; the proof
+   carries them as its first eight scalars) provided `Admissible` is the verifier's whole
+   predicate (`gt-bus` G4: the stacking window and the rate window included).
+5. **The equation is a definition, not a theorem, if `verify` is defined as the right-hand
+   side.** The blueprint wants `verify` "written from §8.5 before `cpu/mod.rs:711-779` is opened"
+   (`bp:1216`) and the theorem to "pin the shape" (`bp:1277`, `:1302`, `:1316`, `:1328`). That is
+   only a check if the two sides are written independently; then the theorem is provable by
+   unfolding (`rfl`-like), and its value is the review of the two definitions.
+
+Statable form (with (ii) and the corrections above):
+
+```text
+theorem verify_iff_compiled (prog input proof) :
+    verify prog input proof = true ↔
+      ∃ s, s.Admissible prog ∧ ∃ msgs, decode prog s proof = some msgs ∧
+        runWithChain (bcsCompile (leanVmIopp prog s)).verifier (blake2sChain prog s) input msgs
+          = some () ∧ grindingChecks prog s msgs = true
+```
+
+### E.5 Completeness
+
+"Perfect completeness survives the transform without any assumption" (`bp:1256-1257`) is false
+for the deployed transform, for two reasons of different weight.
+
+**Grinding.** The honest prover's grind is a search: `fs/lib.rs:126-155` `grind_pow` loops over
+nonces `0, 1, 2, …` "until" `pow_bits_ok` (`loop { … break n }` at `:132-138`, and the parallel
+form at `:139-151`), with no bound. For a fixed state `cv` there is no theorem that a `u64`
+nonce (or any nonce) with `compress(pow_base(cv), nonce ‖ 4)[0] ≡ 0 mod 2^17` exists; in the
+ROM the search fails with probability `(1 − 2^{−17})^{2^64}`, not zero; with BLAKE2s fixed the
+statement "for every reachable `cv` a nonce exists" is a conjecture about BLAKE2s. So
+`prove prog input w` in Lean is either partial (`Option Proof`, returning `none` when a fuelled
+search fails) or takes the nonces as an argument, and `baseProver_complete` is
+`prove … = some proof → verify … proof = true` (or "for every choice of nonces that passes").
+"Without any assumption" must go; the assumption is the success of the search, and it is
+harmless only because it is checked by running the prover.
+
+**Phases complete up to an error.** `Phases.Complete` demands `perfectCompleteness` of every
+phase (`Compose.lean:94-104`; `Component.Complete.complete` is `perfectCompleteness`,
+`lib-arklib` G.2). If any phase were complete only up to an error, `Phases.Complete` would be
+uninhabitable and `baseProver_complete`, an equation, unprovable. The blueprint's acceptance
+test 20 (`bp:1323-1325`) says Flock has an exceptional challenge; `gt-flock-ring` §4 and finding
+8.4 settle it: the *protocol* is perfectly complete (no verifier takes an inverse; the derived
+coefficient `c_0 = claim + r·(c_1 + …)` is right at every `r`, `fs/transcript.rs:297-302`), and
+the exceptional point belongs to the pinned Rust prover's shortcut (`zerocheck.rs:117`). So the
+Lean honest prover can be perfectly complete phase by phase, and the composition
+(`Reduction.seqCompose_perfectCompleteness_of_pure`, `bp:242`) applies; `lib-arklib` G.2's
+proposal of an error field in `Component.Complete` remains the right insurance, and with it
+"survives the transform" becomes "with the sum of the phases' errors, plus the grind".
+
+**What does survive.** With the chain deterministic, an honest proof that the interactive
+verifier accepts on the chain's challenges is accepted by `verify`: that is a statement about
+two definitions (the interactive run with challenges supplied by the chain equals the
+compiled run), true by unfolding, and the grinding is the only randomness left in the honest
+prover.
+
+---
+
+## F. The numbers
+
+### F.1 The blueprint's `piopError_le` and acceptance test 23
+
+`piopError_le (hs : s.Admissible prog) : Σ i, piopError s i ≤ 2^40/|E| + flockError` (`bp:1130`);
+test 23: "at the caps, `Σ piopError < 2^{-150}` plus Flock's `< 2^{-183}`" (`bp:1331-1332`).
+Evaluated with the blueprint's own per-phase charges, at the largest admissible instance. The
+sizes are bounded by the stacking window, `μ_stack ≤ 28` (`mod.rs:174-176`, `pcs.rs:51`): every
+column has at most `2^28` entries, so `κ_mem ≤ 26`, `τ_j ≤ 24`, and the bus depth is
+`μ_bus ≤ 28` (the Python layout code run over a covering grid of sizes finds `28` as the
+maximum, at `κ_mem = 16, τ = (0, 0, 23, 0, 23, 3), κ_bc = 26`, scratch `bus_depth.py`, section H.3;
+`gt-bus` D.4 proves `μ_bus ≤ 28` by counting). The table sumcheck has `B = 2` constraints in
+all (`py:836-851`: only JUMP has constraints, `n_constraints = 2`; `xi_powers = powers(xi,
+n_constraints + 3)`, `py:1391`), `τ_max ≤ 24`, and `J = 113`.
+
+| Phase, charge (blueprint) | Where | Value at the maximum, as a multiple of `1/|E|` |
+| --- | --- | --- |
+| bus, `4·2^{μ_bus}` on `(α, β)` | `bp:974` | `2^30` |
+| bus, GKR: `(nside − 1)` per combiner, `5` per round, `2` per pair | `bp:941-942` | `≈ 14 layers × 14 ≈ 2^7.6` |
+| zerocheck escape, `τ_max` per constraint | `bp:1001-1003` | `48` |
+| table, `(B + 2)` on `ξ`, `3` per round | `bp:994` | `4 + 72` |
+| public input, `1` | `bp:1027` | `1` |
+| Flock, `(4·k_batch + 163) + 2^32` | `bp:1085` | `≈ 2^32` |
+| opening (Layer 10 as sketched), `(J − 1)` on `λ`, `2` per round | `bp:1114` | `112 + 56` |
+| **sum** | | `≈ 1.25·2^32 ≈ 2^{32.3}`, that is `≈ 2^{-159.7}` |
+
+So under the window `piopError_le` holds with a margin of `2^8`, and the interactive error of
+the oracle protocol is about `2^{-160}`, dominated by ring switching's `2^32/|E|` (which test 23
+leaves out of "Flock's `< 2^{-183}`": `gt-flock-ring` 8.8). At the per-log caps without the
+window (`κ_mem = τ_j = 32`), `μ_bus = 38` (scratch run, `stack_log 41 bus depth 38`) and the
+`(α, β)` term alone is `4·2^38 = 2^40`, so the bound is false there, as `gt-bus` D.4/G4 found.
+The statement is only true if `Admissible` contains the window.
+
+**What it measures.** `Σ piopError` is the *interactive* error of the *oracle* protocol (the sum
+over challenges, `bp:318`). It is not the quantity that governs the deployed security: after
+Fiat–Shamir the governing quantity is the largest per-challenge error (`B:84`, `whir_config.rs:25-27`),
+and the deployed challenges with the largest errors are WHIR's, which the oracle protocol does
+not contain. `2^{-150}` is therefore a fact about a sub-protocol, of no consequence for the
+128-bit claim.
+
+### F.2 What the deployed parameters claim, and in which regime
+
+`SECURITY_BITS = 128` (`whir_config.rs:38`; `lean_vm/src/lib.rs:69`) is a **round-by-round**
+target: "every verifier-challenge transition must have conditional failure probability at most
+`2^-SECURITY_BITS`" (`whir_config.rs:36-37`), "the Fiat–Shamir error per random-oracle query is
+the MAX of the entries, not their sum" (`:25-27`), "not a claim that the sum of all interactive
+failure probabilities is bounded" (`:404-407`). The regime is **Johnson list decoding with an
+explicit slack**, provable given [BCHKS25] Theorem 4.6 (`:314-337`: "That analysis is always the
+Johnson radius with explicit slack `eta` … WITH out-of-domain binding"; `analysis_version`
+`"bchks25_thm_4_6_exact_reduced_rate_row_union_optimized_eta"`, `:961`); no capacity conjecture,
+no unique-decoding fallback in production (`udr_queries` is `#[cfg(test)]`, `:175-180`).
+
+The per-level parameters are the output of a floating-point search (`optimize_johnson_level`,
+`:639-707`) over the theorem parameter `m ≥ 3`, minimizing the query count subject to four
+per-level bounds; the Python tabulates the resulting query counts (`py:910`). A scratch port of
+the search (section H.3, `whir_params.py`) **reproduces the Python table exactly** for all
+`μ ∈ [15, 28]` and `ρ ∈ {1, …, 4}` (the ladder geometry, the rates and the query counts), so
+the blueprint's `ladder_queries_eq : (ladder 15 1).map (·.queries) = [223, 55]` (`bp:1165`) is the
+right pin and the Rust and the Python agree. What the search yields, at three sizes:
+
+| `μ`, `ρ` | level | fold | rate | `m` | `η` | `γ` | Johnson list bound `L ≤ 1/(2η√ρ)` | queries | OOD | fold (MCA) bits | query bits (+17 grind) | OOD bits | list-unioned algebraic bits |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 15, 1/2 | 0 | 6 | 1/2 | 395 | 0.00179 | 0.292 | 396 | 223 | 0 | 132.9 | 111.0 | 179.5 | 152.4 |
+| | 1 | 4 | 1/16 | 306 | 0.00080 | 0.753 | 2527 | 55 | 1 | 133.2 | 111.0 | 167.2 | 149.7 |
+| 28, 1/2 | 0 | 6 | 1/2 | 110 | 0.00643 | 0.286 | 110 | 228 | 0 | 129.2 | 111.0 | 180.4 | 154.2 |
+| | 1 | 4 | 1/16 | 81 | 0.00309 | 0.747 | 648 | 56 | 1 | 129.8 | 111.0 | 169.9 | 151.7 |
+| | 2 | 4 | 1/128 | 46 | 0.00192 | 0.910 | 2944 | 32 | 1 | 130.4 | 111.0 | 165.8 | 149.5 |
+| | 3 | 4 | 1/1024 | 8 | 0.00390 | 0.965 | 4100 | 23 | 1 | 139.2 | 111.1 | 165.2 | 149.0 |
+| | 4 | 4 | 2^-13 | 4 | 0.00274 | 0.986 | 16644 | 18 | 1 | 140.2 | 111.4 | 161.6 | 147.0 |
+| | 5 | 4 | 2^-16 | 5 | 0.00068 | 0.996 | 218453 | 14 | 1 | 134.7 | 111.2 | 154.9 | 143.3 |
+| 28, 1/16 | 0 | 6 | 1/16 | 27 | 0.00926 | 0.741 | 216 | 57 | 0 | 131.7 | 111.0 | 179.4 | 153.3 |
+
+(the residual is 5 variables at `μ = 15` and 2 at `μ = 28`; "bits" is `−log₂` of the bound;
+the columns are `whir_config.rs`'s `paper_johnson_log_a` (`:484-490`, Theorem 4.6's `a` times
+the row union `2^{ℓ−1}` of Lemma B.8), `paper_per_query_bits × queries` (`:494-498`),
+`paper_ood_bits` (`:600-608`) and `johnson_algebraic_bits` (`:556-568`)).
+
+Reading: (1) the **query rounds** are the weakest: `(1 − γ)^t ≈ 2^{-111}` at every level, by
+design (`:57-60`: "the query count only needs to close the remaining `SECURITY_BITS − 17`
+bits"), the other 17 bits being the proof of work ground before the positions are sampled; (2)
+the **fold challenges** sit at `128.2` to `146` bits (the mutual-correlated-agreement term, with
+the `2^{ℓ−1}` row union; the search stops at the first `m` that clears 128, `:664-665`); (3) the
+Johnson list bound is **`L_0 ≤ 396` at level 0** (`2^{8.6}`, at `μ = 15`) down to `110` at
+`μ = 28`, and grows to `2^{17.7}` at the deepest levels; (4) the algebraic checks "unioned over
+the list" (`:537-555`: the batch polynomial's degree and the ring switching's `2^{31}+…`,
+times `L_i`) sit at `143` to `154` bits — this is the **only** place the Rust multiplies an
+oracle-protocol error by the list size; the bus's `4·2^{μ_bus}` is not unioned
+(`leaf.rs:108-118`, `soundness_degree_bound` has no `L`): with `L_0 ≤ 2^{8.6}` and
+`μ_bus ≤ 28` it would still clear 128 (`192 − 30 − 8.6 = 153`), so the omission is not a
+vulnerability at these parameters, but it is an omission of the same kind the blueprint makes.
+
+### F.3 `niError` against this
+
+`niError` "is the round-by-round maximum times the query bound plus the grinding-adjusted WHIR
+terms" (`bp:1234-1235`). Set against F.2 and the `literature` dossier's A.3:
+
+- the "round-by-round maximum" of the oracle protocol is `≈ 2^{-160}` (F.1); of the compiled
+  protocol it is `2^{-111}` at every query round before grinding and `2^{-128.2}` at the worst
+  fold. "Plus the grinding-adjusted WHIR terms" acknowledges that the maximum is elsewhere but
+  gives no formula; the phrase "grinding-adjusted" has no theorem behind it (A.3 item 3), and the
+  adjustment is multiplicative on a per-round error (`2^{-17}·2^{-111}`), not additive;
+- the factor `L_0` on every oracle-protocol challenge (E.3, section G) is absent; numerically
+  benign (`2^{-160+8.6}`), structurally load-bearing;
+- the hash term (`Q²/2^256`-type) is absent; numerically it is what caps the 128 bits at a
+  256-bit digest (A.3 item 2);
+- the prover's choice of sizes (E.1) is absent.
+
+**Does the blueprint's bound mean something at the deployed parameters?** `Σ piopError <
+2^{-150}` is a true statement about the ideal-oracle protocol at admissible sizes and says
+nothing about `verify`'s security level, which is set by the query rounds at 111 bits of
+information-theoretic soundness plus 17 bits of work, in the Johnson regime, conditional on
+Theorem 4.6. A `niError` that could carry leanVM's claim would read, per random-oracle query,
+`max( L_0·max_front ε_i , max_fold(2L_i/|E| + 2^{ℓ_i−j}a_i/|E|) , max_query 2^{-b}(1−γ_i)^{t_i} ,
+… )` times `(Q + rounds)`, plus the hash term, and it would be a statement about the ROM
+construction of E.2, not about the oracle protocol.
+
+---
+
+## G. The oracle model's hidden assumption
+
+In the oracle protocol the prover's first message is `q : Column μ`, a table of `2^μ` values of
+`K`, and the verifier reads it only through the interface (evaluation queries today, weighted
+queries under (ii)); the extractor reads it whole (`commitExtractor`). The compiled protocol
+replaces `q` by a Merkle root. For the compiled protocol to inherit the oracle protocol's
+security, the commitment must provide:
+
+1. **binding to a `K`-valued table of size `2^μ`** — the object `M3Holds` is about (`M3Rel I`
+   is on `Column I.μ`, `Spine/Instance.lean` at `b435631`; the bus's fingerprints, the counts, the
+   packing of `q_flock` all use that the entries are in `K`);
+2. **weighted openings over `E`** — the pooled claims have weights and values in `E` (`03:113`);
+3. an **extractor** that recovers the table from what the adversary did, straight-line.
+
+What the deployed WHIR provides:
+
+- **A `K`-valued word, not a codeword.** The root commits (up to collisions) to a leaf image per
+  position: `2^6` words of 8 bytes at level 0 (`whir.rs:331-345`, `pcs/merkle.rs:144-192`), and
+  every 8-byte pattern is an element of `K` (`K = F_2[x]/(x^64 + …)`, `A:8`; `F64(u64)`), so the
+  committed object is an interleaved word `w ∈ K^{2^6 × n_0}` by encoding, with no check that any
+  row is a codeword: **proximity, not membership** (`B:4` "our PCS is only list binding";
+  `B:70-72` Definition B.1). The verifier supplies the zero prefix of the absent lanes
+  (`fs/merkle.rs:53-58`, `whir.rs:2125-2132` with `row_words = n_lanes`), so `w`'s rows past
+  `n_lanes` are zero in the Rust's proof format (section C for the Python's).
+- **A list, over `E`.** Theorem B.7 binds the prover to `Λ(w) = {g_U : U ∈ L_{γ_0}(w)}`, the
+  interleaved codewords of `RS[E, dom_0, 2^{κ_0}]` within radius `γ_0` (`B:137`), of size at
+  most `L_0` (F.2: `110` to `396`). A priori these are `E`-valued multilinears; the relation
+  needs `K`-valued ones. **They are `K`-valued** (my argument; the specification does not say
+  it): write `E = K ⊕ K·y ⊕ K·y²` and a row `U_u = U⁽⁰⁾_u + y·U⁽¹⁾_u + y²·U⁽²⁾_u`. The
+  encoder's generator matrix is `K`-valued (the novel basis evaluated at points of `dom ⊂ K`,
+  `B:302-306`, "a `K`-valued message gives a `K`-valued word"), so each coordinate projection
+  `U⁽ʲ⁾_u` is a codeword of `RS[K, dom_0, 2^{κ_0}]`. On the agreement set `A`, `|A| ≥ (1−γ_0)n_0
+  > ρ_0 n_0 = 2^{κ_0}` (since `γ_0 < 1 − √ρ_0 ≤ 1 − ρ_0`), `U_u = w_u ∈ K`, so `U⁽¹⁾_u` and
+  `U⁽²⁾_u` vanish on more than `2^{κ_0} − 1` points and are zero; `U = U⁽⁰⁾`. So every member of
+  `Λ(w)` is `K`-valued, of `μ` variables after the relayout `f(u, x) = q(x, u)` (`B:380`), with
+  zero rows where `w` has them. This lemma belongs to Layer 11 or 12 and is a hypothesis of the
+  list-binding compilation (E.3); without it the extracted witness has the wrong type.
+- **Openings over `E` of weighted claims**: provided, that is Theorem B.7's relation.
+- **Extraction**: from the query log (the leaves) and list decoding, as in E.3; in the Johnson
+  regime the list is small and Guruswami–Sudan finds it; in Lean, enumeration suffices.
+
+**The assumption, stated.** The master theorems assume the verifier's oracle *is* one table
+`q`. The commitment gives a set `Λ(w)` of at most `L_0` tables, fixed when the root is sent,
+among which the prover may choose after seeing challenges. The security of the compiled
+protocol is the master theorem applied to every member at once, with a union bound: the
+per-challenge errors of every phase before the opening are multiplied by `L_0`, the extractor
+is "list-decode, then select the member that satisfies `M3Holds`", and the opening's job is to
+show that some member satisfies every pooled claim (Theorem B.7's relation `R_open`, `B:133-136`;
+acceptance test 11, `bp:1296-1299`, has the right words). The Rust's own accounting states the
+same in one place ("the opening's own evaluation claim sits at a post-commit random point, so
+at most one list member matches it except with `L·μ/|F|`", `whir_config.rs:593-599`) and Flock
+in another (the `literature` dossier A.3 item 4, [BRW26] Remark 11). Neither the specification
+(§8.4 is `TODO`, `08:44-46`), nor the blueprint's `verify_knowledgeSound`, nor any of its three
+interfaces contains it; the sentence "Layer 12 turns list binding into extraction of the one `q`
+that satisfies every pooled claim" (`bp:1190`) names the step without the theorem.

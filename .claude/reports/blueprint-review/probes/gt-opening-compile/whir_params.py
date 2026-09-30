@@ -3,7 +3,7 @@
 # eta, m, the Johnson list bound L and the per-term security bits.
 import math, sys
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/scaraven/Documents/leanEthereum/leanVM/python-verifier")
+sys.path.insert(0, ".")
 
 SECURITY_BITS = 128
 QUERY_GRINDING_BITS = 17
@@ -128,7 +128,7 @@ def derive(log_n, lir):
     return levels, yr
 
 if __name__ == "__main__":
-    import verifier as V
+    import verifier_pinned as V
     ok = True
     for lir in range(1, 5):
         for mu in range(15, 29):
