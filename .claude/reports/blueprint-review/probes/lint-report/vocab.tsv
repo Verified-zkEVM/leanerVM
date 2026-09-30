@@ -1,0 +1,1353 @@
+roadmap	sections/00-summary.tex:4	(\file{docs/roadmap/protocol-blueprint.md}) and the code built from it on \code
+pin	sections/00-summary.tex:7	leanVM at the pin \code{a386121f}: the specification's tex, the Rust verifier
+pin	sections/00-summary.tex:9	new library pins; every statement here is about \code{b435631}, and \cref{se
+pin	sections/00-summary.tex:10	at the upgrade changes (the proof-system statements are the same; the pins moved to
+pin	sections/00-summary.tex:17	inding weakened); forty-odd Lean and Python probes, re-run at the new pins; a
+evalOracle	sections/00-summary.tex:27	sumcheck leanVM does not run, because it gives the stack an evaluation oracle where leanVM
+pin	sections/00-summary.tex:53	WHIR the whole opening (\code{R18}; the interface typechecks at both pins).
+pin	sections/00-summary.tex:79	ile's finding that the Python verifier omits the caps is false at the pin and must
+the Rust	sections/00-summary.tex:81	nput check differs between the specification and its three verifiers; the Rust Flock
+pin	sections/00-summary.tex:101	and the pin moves (\cref{ch:drift}). Nothing has been applied: the blue
+roadmap	sections/01-scope-method.tex:6	document \file{docs/roadmap/protocol-blueprint.md}, together with the code already buil
+pin	sections/01-scope-method.tex:9	about a library is about its \emph{pin}, the revision leanerVM builds against, unless it says
+pin	sections/01-scope-method.tex:32	Three sources define leanVM at the pin, and they do not always agree. This report uses two words
+pin	sections/01-scope-method.tex:35	\item the \textbf{specification} is the tex source at the pin: what leanVM is meant to be;
+pin	sections/01-scope-method.tex:36	\item the \textbf{deployed} protocol is what the Rust verifier at the pin accepts: what would run
+pin	sections/01-scope-method.tex:42	pinned text, and is never cited here.
+roadmap	sections/01-scope-method.tex:74	blueprint & \file{docs/roadmap/protocol-blueprint.md}, the specification of what is wanted
+roadmap	sections/01-scope-method.tex:75	the proof system. It titles itself \enquote{Roadmap}; the two are one document. \\
+roadmap	sections/01-scope-method.tex:76	status & \file{docs/roadmap/protocol-status.md}. \\
+unit of work	sections/01-scope-method.tex:89	hole & a unit of work the spine leaves open (a phase, a generic component, the ad
+pin	sections/01-scope-method.tex:101	pin & the revision of a dependency recorded in \file{upstreams.
+pin	sections/01-scope-method.tex:120	specification, the Rust and the Python verifier at the pin and wrote down the transcript
+pin	sections/01-scope-method.tex:133	the line of the pinned source, the Lean declaration, and the probe or counterexamp
+pin	sections/02-protocol-map.tex:3	is chapter is the map. It says what leanVM's proof system does at the pin, interaction by
+the Rust	sections/02-protocol-map.tex:18	polynomials, bit encodings and limb order are those of the Rust and of the specification
+pin	sections/02-protocol-map.tex:32	\section{The protocol at the pin, phase by phase}\label{sec:map-protocol}
+pin	sections/02-protocol-map.tex:36	t the end. The counts below are those of the deployed verifier at the pin
+zerocheck	sections/02-protocol-map.tex:100	the pool: it is a zerocheck with a univariate skip (64 values, one challenge, $8 + k$ r
+zerocheck	sections/02-protocol-map.tex:134	\node[ph, below=of pub] (flock) {\textbf{BLAKE2s validity} \\ zerocheck with univariate skip;
+pin	sections/02-protocol-map.tex:167	\caption{leanVM's proof system at the pin, as the deployed verifier runs it (centre), what each
+roadmap	sections/02-protocol-map.tex:199	Flock and ring switching & Layer 9 & not built; owned by the Flock roadmap (issue \#3), which has not started \\
+pin	sections/02-protocol-map.tex:220	library pin: ArkLib to \code{7653a901}, CompPoly to \code{572f9973}, Cl
+pin	sections/02-protocol-map.tex:221	VCVio to \code{a4232d08}. The leanVM pin did not move. The proof-system sources changed in
+pin	sections/02-protocol-map.tex:225	recorded where they matter: ArkLib's new pin is the revision several dossiers examined as
+pin	sections/02-protocol-map.tex:230	the new pin (\cref{ch:probes}).
+pin	sections/03-libraries.tex:5	Lean text at the pin, and what a reader trusts in accepting it. The revision is
+pin	sections/03-libraries.tex:6	snippet; where the upgrade of \code{main} to the new pins changed an object, both are given.
+pin	sections/03-libraries.tex:29	\section{ArkLib: proved and admitted, at the old pin and at the new}\label{sec:lib-pins}
+pin	sections/03-libraries.tex:29	ib: proved and admitted, at the old pin and at the new}\label{sec:lib-pins}
+pin	sections/03-libraries.tex:30	\InputIfFileExists{sections/gen/lib-arklib-pins}{}{\emph{[fragment pending]}}
+zerocheck	sections/05-phases.tex:47	ph{Completeness.} From \lean{M3Holds}: the constraints vanish, so the zerocheck claims
+zerocheck	sections/05-phases.tex:57	together with the zerocheck conjunct \enquote{every constraint's extension, restricted
+zerocheck	sections/05-phases.tex:62	combination challenge; and $0$ for the last, unused combiner. The zerocheck conjunct adds
+zerocheck	sections/05-phases.tex:74	admitted context lifting; and the zerocheck conjunct, which changes on the GKR's own
+pin	sections/05-phases.tex:84	(for leanVM at the pin, the two identities of the JUMP table; the other tables hav
+zerocheck	sections/05-phases.tex:100	\paragraph{Completeness.} Immediate from the input seam: the zerocheck claims are true, the bus
+zerocheck	sections/05-phases.tex:111	running claim was true. The escape from \enquote{the zerocheck claims hold at $\zeta$} to
+zerocheck	sections/05-phases.tex:171	\paragraph{How.} Flock is a zerocheck over the R1CS's rows, with the first six variables
+the Rust	sections/05-phases.tex:190	term from the Rust's parameters, and Annex A accounts below $2^{32} / \abs{\E}
+evalOracle	sections/05-phases.tex:227	the evaluation oracle}. Composed, that is a transcript with $2\mu$ sumcheck round
+pin	sections/05-phases.tex:235	both pins, that the evaluation queries every built theorem uses are i
+pin	sections/05-phases.tex:255	map, and inhabited by nothing at either pin of ArkLib (\cref{sec:faith-opening},
+the Rust	sections/05-phases.tex:264	$\mu = 15$ to about $2^{20}$ at deep levels. The review's port of the Rust's parameter search
+evalOracle	sections/05-phases.tex:268	raph{Where the blueprint falls short.} In the shape of the oracle (an evaluation oracle
+pin	sections/07-tcb.tex:11	{Classical.choice} and \lean{Quot.sound} and on nothing else, at both pins
+pin	sections/07-tcb.tex:37	plans does, at both pins:
+pin	sections/07-tcb.tex:53	a missing profile, which it is not (\cref{sec:faith-flock}). The new pin lifts none of
+roadmap	sections/07-tcb.tex:61	structure whose fields are theorems another roadmap or an upstream library owes. What the
+pin	sections/07-tcb.tex:78	are meant to pin that data to the arithmetization (\lean{satisfiedBy_witness
+pin	sections/07-tcb.tex:85	polynomial bridge of Layer 2 is noncomputable at the pin. Until the adaptor is built, the
+roadmap	sections/07-tcb.tex:102	the Flock witness generator and its lemma & another roadmap's & the Flock roadmap, which has not started \\
+roadmap	sections/07-tcb.tex:102	Flock witness generator and its lemma & another roadmap's & the Flock roadmap, which has not started \\
+the Rust	sections/07-tcb.tex:114	d the guarantee is classical (\cref{ch:options}). The implementation: the Rust
+pin	sections/08-faithfulness.tex:4	with the specification and with the Rust and Python verifiers at the pin: the
+the Rust	sections/08-faithfulness.tex:18	a place where the specification, the Rust and the Python do not say the same thing; where the
+pin	sections/08-faithfulness.tex:40	R10}) & confirmed; the lifting theorems are still admitted at the new pin \\
+zerocheck	sections/08-faithfulness.tex:40	ded without admitted lifting, and its state function cannot carry the zerocheck conjunct (\code{R10}) & confirmed; the lifting theorems are
+zerocheck	sections/08-faithfulness.tex:70	zerocheck conjunct adds nothing). The orchestrator read the verifier
+pin	sections/09-nonvacuity.tex:18	for the purpose. Clause by clause against the pinned specification, \lean{M3Holds} is the
+zerocheck	sections/09-nonvacuity.tex:23	the zerocheck escape, a constraint violated on the cube whose extension v
+pin	sections/09-nonvacuity.tex:80	{What this means.} The master theorems are composition theorems. They pin the
+zerocheck	sections/09-nonvacuity.tex:117	errors are not tight: the zerocheck escape, which costs $\tau_{\max} / \abs{\E}$ once and
+pin	sections/09-nonvacuity.tex:182	round-by-round to plain knowledge soundness, at both pins (\cref{ch:libraries}).
+pin	sections/09-nonvacuity.tex:191	result of their re-run at the new pins where it exists.
+pin	sections/10-auditability.tex:44	probe \code{AxiomsLeanerVM}, re-run at the new pins in \cref{ch:probes}), and the repository's
+pin	sections/10-auditability.tex:75	the pin). Removes a field of \lean{Component.Complete} and one obli
+roadmap	sections/11-options.tex:49	Flock roadmap. Whether \lean{Component.Complete} should carry an error (\
+zerocheck	sections/11-options.tex:56	tables derived from the stack and the zerocheck conjunct riding along, or a monolithic bus
+pin	sections/11-options.tex:58	at both pins.
+pin	sections/11-options.tex:114	pin reaches it (\cref{ch:libraries}).
+pin	sections/11-options.tex:118	s ring switching is another protocol. None of this moved with the new pin. The
+pin	sections/11-options.tex:123	tiny instances, and a numeral's meaning in $\K$ changed with the new pin.
+roadmap	sections/11-options.tex:139	\paragraph{What it requires of the Flock roadmap.} A predicate on a packed column (the R1CS
+the Rust	sections/11-options.tex:142	rator with its lemma, the constants and the slot map transcribed from the Rust (they are
+roadmap	sections/11-options.tex:143	the specification), and the ring-switching weight's closed form. The roadmap has not
+pin	sections/13-drift.tex:7	and what would make it hold as the work proceeds and the pin moves.
+roadmap	sections/13-drift.tex:48	own theorem, which another roadmap or an upstream library owes. \emph{This occurs by design},
+pin	sections/13-drift.tex:111	For every check the deployed verifier makes at the pin, the tables below give where it is in
+the Rust	sections/13-drift.tex:153	the Rust. The fixture is a proof produced by the pinned Rust prover,
+pin	sections/13-drift.tex:153	the Rust. The fixture is a proof produced by the pinned Rust prover, accepted by \lean{verify}
+pin	sections/13-drift.tex:161	\paragraph{What is examined again when the pin moves.} The leanVM pin: every check of
+pin	sections/13-drift.tex:161	\paragraph{What is examined again when the pin moves.} The leanVM pin: every check of
+pin	sections/13-drift.tex:164	of Fiat--Shamir, the parameter tables. The library pins: the admitted theorems the ledger names
+pin	sections/13-drift.tex:175	compiled verifier exists; and, at a pin move, a script that re-derives the message and
+pin	sections/b-probes.tex:5	\code{b435631} with the old pins unless marked otherwise; those re-run after the upgrade are
+pin	sections/b-probes.tex:6	marked with their outcome at the new pins. A probe marked \enquote{written, not run} supports no
+pin	sections/b-probes.tex:18	\section{Re-runs at the new pins}
+pin	sections/b-probes.tex:20	probes and of those whose numerals changed meaning, at the new pins, is inserted here when
+pin	sections/e-brief-review.tex:11	priority order, the revisions of every source, the rule that the pinned tex is the
+pin	sections/e-brief-review.tex:13	tracked file, nothing posted, no checkout moved). It separates the pin of a dependency from its
+the Rust	sections/e-brief-review.tex:20	ch source is \enquote{deployed}.] The brief treats the specification, the Rust and
+pin	sections/e-brief-review.tex:24	takes the Rust verifier at the pin to be the deployed protocol and the tex to be the
+Category	sections/e-brief-review.tex:28	repository's convention (\enquote{Category A} content is written from the specification and
+pin	sections/e-brief-review.tex:35	repository; none was listed for VCVio (one exists, at the new pin). Its pinned sources under
+pin	sections/e-brief-review.tex:35	pository; none was listed for VCVio (one exists, at the new pin). Its pinned sources under
+pin	sections/e-brief-review.tex:43	was re-run at the new pins.
+pin	sections/e-brief-review.tex:65	\item The owner upgraded \code{main} to Lean 4.34.1 with new library pins and merged it into
+pin	sections/e-brief-review.tex:68	names its revision and old-pin files are read from git; a numeral in $\K$ changed meaning,
+pin	sections/e-brief-review.tex:70	\item The leanVM checkout moved off the pin during the same upgrade (a pull and a branch
+pin	sections/e-brief-review.tex:71	checkout by the owner). The pin is an ancestor of the new head, so every leanVM file was
+pin	sections/e-brief-review.tex:72	read at the pin through git from then on, and the citation checks re-read t
+PIOP	sections/fig-chain.tex:32	\node[built, below=of m3] (piop) {\textbf{The oracle protocol}\\
+PIOP	sections/fig-chain.tex:38	\node[planned, below=of piop] (ver) {\textbf{The compiled verifier}\\
+pin	sections/fig-chain.tex:44	The Rust verifier of leanVM at the pin. Tied to \texttt{verify} by tests on proofs the
+PIOP	sections/fig-chain.tex:50	\draw[arr] (piop) -- (m3);
+PIOP	sections/fig-chain.tex:51	\draw[arr] (ver) -- (piop);
+PIOP	sections/fig-chain.tex:59	\node[thm] at ($(m3.south east)!0.5!(piop.north east)+(4mm,0)$)
+PIOP	sections/fig-chain.tex:60	{the master theorems: \texttt{piop\_rbrKnowledgeSoundness} (up),
+PIOP	sections/fig-chain.tex:61	\texttt{piop\_perfectCompleteness} (down)\\
+PIOP	sections/fig-chain.tex:63	\node[thm] at ($(piop.south east)!0.5!(ver.north east)+(4mm,0)$)
+zerocheck	sections/gen/analysis-opening.tex:11	e{pcs.rs}, \code{leaf.rs} are under \file{crates/lean_vm/src/}; \code{zerocheck.rs} is
+zerocheck	sections/gen/analysis-opening.tex:12	\file{crates/flock/src/zerocheck.rs}. \code{py:} is \file{python-verifier/verifier.py}. Thes
+pin	sections/gen/analysis-opening.tex:13	leanVM's pin \code{a386121f}. \code{bp:} is the blueprint at leanerVM \c
+pin	sections/gen/analysis-opening.tex:16	old pin \code{dca90385} unless a revision is named: \code{Basic.lea
+roadmap	sections/gen/analysis-opening.tex:45	\src{docs/roadmap/protocol-blueprint.md:1218-1227, 1247-1250 at b435631}
+pin	sections/gen/analysis-opening.tex:153	\paragraph{The ground on ArkLib, at both pins.} The ArkLib dossier (\file{lib-arklib.md},
+pin	sections/gen/analysis-opening.tex:162	l/Basic.lean:250-255}). (The citation check adds the lines at the new pin
+pin	sections/gen/analysis-opening.tex:180	}/(1−\sqrt{ρ}−δ)⌉, 3)$. ArkLib states exactly this, admitted, at both pins:
+pin	sections/gen/analysis-opening.tex:255	ance / ROM'') it names a property with no error and no object. At the pin nothing
+pin	sections/gen/analysis-opening.tex:282	B.7 gives.} Round-by-round \textbf{soundness} (Definition B.5 at the pin,
+pin	sections/gen/analysis-opening.tex:392	cpu/mod.rs:711-779} is opened'' (\code{bp:1216}) and the theorem to ``pin the shape''
+pin	sections/gen/analysis-opening.tex:438	exceptional point belongs to the pinned Rust prover's shortcut (\code{zerocheck.rs:117}). So the
+zerocheck	sections/gen/analysis-opening.tex:438	exceptional point belongs to the pinned Rust prover's shortcut (\code{zerocheck.rs:117}). So the
+PIOP	sections/gen/analysis-opening.tex:453	rror_le}}{piopError_le} and acceptance test 23}\label{sec:gen-opening-piop-error}
+zerocheck	sections/gen/analysis-opening.tex:487	zerocheck escape, $τ_{\max}$ per constraint & \code{bp:1001-1003} & $
+the Rust	sections/gen/analysis-opening.tex:541	(\code{bp:1165}) is the right pin and the Rust and the Python agree. What the search yields, at three
+pin	sections/gen/analysis-opening.tex:541	(\code{bp:1165}) is the right pin and the Rust and the Python agree. What the search yields,
+the Rust	sections/gen/analysis-opening.tex:604	$μ = 28$, level 5); this is the \textbf{only} place the Rust multiplies an oracle-protocol error by
+the Rust	sections/gen/analysis-opening.tex:609	(\cref{f:opening-rust-list-accounting}). (The citation check: the Rust's bound is
+PIOP	sections/gen/analysis-opening.tex:622	(\cref{sec:gen-opening-piop-error}); of the compiled protocol it is $2^{-111}$ at every
+the Rust	sections/gen/analysis-opening.tex:674	past $n_{\mathrm{lanes}}$ are zero in the Rust's proof format (\cref{sec:gen-opening-proof} for the
+the Rust	sections/gen/analysis-opening.tex:710	test 11, \code{bp:1296-1299}, has the right words). The Rust's own accounting states the same in one
+roadmap	sections/gen/boundary-chain.tex:34	\file{docs/roadmap/protocol-blueprint.md} at leanerVM \code{b435631}; \file{ar
+roadmap	sections/gen/boundary-chain.tex:36	\file{docs/roadmap/}) at the same revision. Lean files are named by their last
+pin	sections/gen/boundary-chain.tex:44	e{verifier.py} is \file{python-verifier/verifier.py}; all at leanVM's pin \code{a386121f},
+pin	sections/gen/boundary-chain.tex:45	read with \code{git show}. ArkLib is cited at its old pin \code{dca90385}
+the Rust	sections/gen/boundary-chain.tex:91	(\bndc{FixedColumns.lean:78-82}), as the Rust hashes \bndc{bytecode_table}
+the Rust	sections/gen/boundary-chain.tex:102	is rejected by the Rust (\bndc{cpu/mod.rs:141-143}) and by the Python's \bndc{Diges
+the Rust	sections/gen/boundary-chain.tex:107	emph{Verifier shape} convention (\bndc{bp:326}) says structure checks the Rust
+pin	sections/gen/boundary-chain.tex:154	{ProtocolSpec/Basic.lean}), so that protocol cannot be written at the pin; the family is
+roadmap	sections/gen/boundary-chain.tex:200	theorem another roadmap or library \emph{owes}; and one that \emph{nothing} dischar
+roadmap	sections/gen/boundary-chain.tex:218	{stackOf} (\bndc{bp:811}), \bndc{m3Holds_stackOf} & owed by the Flock roadmap (issue \#3) & an explicit argument until the Flock roadmap
+roadmap	sections/gen/boundary-chain.tex:218	the Flock roadmap (issue \#3) & an explicit argument until the Flock roadmap supplies it (\bndc{bp:857-861}) & named; no statement of it
+roadmap	sections/gen/boundary-chain.tex:219	\bndc{satisfiedBy_witnessOf} (\bndc{bp:855-857}) & owed by the Flock roadmap & nothing carries it: \bndc{satisfiedBy_witnessOf}'s sketch
+roadmap	sections/gen/boundary-chain.tex:219	:1077-1085}), and \bndc{leanIsaInstance}'s \bndc{aux} needs the Flock roadmap's R1CS to be \emph{defined} & \textbf{undischarged} until a
+roadmap	sections/gen/boundary-chain.tex:227	dc{verify_knowledgeSound}'s \bndc{flock} argument & owed by the Flock roadmap & explicit argument & assumed interface; circular with the
+pin	sections/gen/boundary-chain.tex:229	the plain corollary (\bndc{bp:261}) & owed by ArkLib (admitted at the pin) & \enquote{stated once the implication lands upstream} & c
+the Rust	sections/gen/boundary-chain.tex:230	& \bndc{read_public} (\bndc{cpu/mod.rs:141-143}) & verifier check in the Rust; by type in Lean (\bndc{Memory.lean:107-110}) & the parser
+the Rust	sections/gen/boundary-chain.tex:231	pu/mod.rs:157-159}); the Python accepts any array & verifier check in the Rust; by type in Lean (\bndc{Program}, \bndc{Instruction.lean:87
+the Rust	sections/gen/boundary-chain.tex:233	ts_nonzero} both ways & owed by Layers 2 and 3 & a transcription from the Rust (the blueprint's category B) of \bndc{count_columns()} per
+the Rust	sections/gen/boundary-chain.tex:271	top limb 0)} (\bndc{doc/leanvm/body/08-end-to-end-protocol.tex:29}), the Rust rejects a third
+pin	sections/gen/boundary-chain.tex:354	t in content; the \bndc{version} parameter of the architecture is the pin recorded in prose, not a Lean argument \\\addlinespace[3pt]
+roadmap	sections/gen/boundary-relations.tex:34	\file{docs/roadmap/protocol-blueprint.md} there. Lean files are named by their
+pin	sections/gen/boundary-relations.tex:41	/Instance.lean} differs by one import line. Clean is cited at its old pin
+pin	sections/gen/boundary-relations.tex:45	(\code{layout.rs} is \file{cpu/layout.rs}), at leanVM's pin \code{a386121f}, read with
+pin	sections/gen/boundary-relations.tex:58	Every object below is quoted from the pinned sources.
+slice	sections/gen/boundary-relations.tex:314	n} of \file{FixedColumns.lean} is the sixteen-slot table, whose eight slices \bndc{bytecodeSlotColumn} are the block's columns (\bndc{sl
+roadmap	sections/gen/boundary-relations.tex:315	\bndc{blake2s_valid} & clause 5 (\bndc{aux}) & the Flock roadmap's lemma \enquote{the R1CS holds of the bits packed into \bn
+the Rust	sections/gen/boundary-relations.tex:368	layout changed), so \bndc{verify_iff_compiled} and the Rust fixture would fail too.
+pin	sections/gen/boundary-relations.tex:376	block built from the program, does not balance. It passed at the old pins and, rewritten
+pin	sections/gen/boundary-relations.tex:377	2} for the numeral \bndc{2} (which means \bndc{0} at the new CompPoly pin), as
+pin	sections/gen/boundary-relations.tex:378	\bndc{KnownColumnNew} at the new pins (\cref{sec:gen-boundary-probe-knowncolumn}).
+roadmap	sections/gen/boundary-statements.tex:36	\file{docs/roadmap/protocol-blueprint.md} at leanerVM \code{b435631}; every sk
+pin	sections/gen/boundary-statements.tex:38	Clean is cited at its old pin \code{93c9d1ef}, ArkLib at \code{dca90385}
+pin	sections/gen/boundary-statements.tex:42	\file{crates/lean_vm/src/} at leanVM's pin \code{a386121f}, and \file{whir_config.rs} under
+roadmap	sections/gen/boundary-statements.tex:59	\src{docs/roadmap/protocol-blueprint.md:813-816 at b435631}
+roadmap	sections/gen/boundary-statements.tex:105	\src{docs/roadmap/protocol-blueprint.md:811-812, 817-819 at b435631}
+roadmap	sections/gen/boundary-statements.tex:157	\src{docs/roadmap/protocol-blueprint.md:795-801 at b435631}
+the Rust	sections/gen/boundary-statements.tex:159	The Rust announces \bndc{log_mem}, six \bndc{τ_j} and \bndc{log_inv_
+the Rust	sections/gen/boundary-statements.tex:164	and both implementations that the blueprint resolves the Rust's way (its source category B,
+roadmap	sections/gen/boundary-statements.tex:206	\src{docs/roadmap/protocol-blueprint.md:803-808 at b435631}
+roadmap	sections/gen/boundary-statements.tex:276	\src{docs/roadmap/protocol-blueprint.md:762-777 at b435631}
+pin	sections/gen/boundary-statements.tex:283	\bndc{noncomputable def} at the pin \bndc{3468b38c} (\bndc{MvPolyEquiv/Core.lean:41}; the same
+pin	sections/gen/boundary-statements.tex:284	new pin \bndc{572f9973}, read with \bndc{git show}), so an instance
+pin	sections/gen/boundary-statements.tex:302	(\bndc{Expression.lean:71-73}); it passed at the old pins, and as \bndc{PolyBridgeNew}, with
+pin	sections/gen/boundary-statements.tex:303	\bndc{K.ofBits} for the row numerals, at the new pins (\cref{sec:gen-boundary-probe-polybridge}).
+roadmap	sections/gen/boundary-statements.tex:328	\src{docs/roadmap/protocol-blueprint.md:407 at b435631}
+roadmap	sections/gen/boundary-statements.tex:335	\src{docs/roadmap/protocol-blueprint.md:1247-1250 at b435631}
+evalOracle	sections/gen/catalogue-layer1.tex:28	\allowbreak{} r} (\texttt{Field.\allowbreak{}lean:102-{}110}, \texttt{evalOracle\_\allowbreak{}answer} is \texttt{rfl}). A \texttt{Layout μ
+slice	sections/gen/catalogue-layer1.tex:79	f index \texttt{j} (coordinate \texttt{b} is bit \texttt{b}); \texttt{slice t j} is the subtable of \texttt{t} whose high \texttt{m} bi
+slice	sections/gen/catalogue-layer1.tex:104	\texttt{slice} & 307 & load-bearing & above \\
+slice	sections/gen/catalogue-layer1.tex:105	listed; used by \texttt{PublicInput}) & a Boolean high part selects a slice \\
+slice	sections/gen/catalogue-layer1.tex:106	ak{} t\allowbreak{} j} & 351 & interface (listed) & \texttt{t} on the slice \texttt{j}, zero elsewhere (\texttt{padHigh}, \texttt{w\all
+slice	sections/gen/catalogue-layer1.tex:139	eak{}n\allowbreak{}a\allowbreak{}t} & 312-323 & helper & entries of a slice \\
+slice	sections/gen/catalogue-layer1.tex:426	(leanVM's: the protocol's choice of slice, over any ring; 6 public.)
+slice	sections/gen/catalogue-layer1.tex:628	owbreak{}l\allowbreak{}u\allowbreak{}m\allowbreak{}n} & 90 & helper & slice \texttt{s} is \texttt{b\allowbreak{}y\allowbreak{}t\allowbr
+slice	sections/gen/catalogue-layer1.tex:631	20 (\texttt{cubeIndex}, \texttt{cubeSplit}, \texttt{boolVec}, \texttt{slice}, \texttt{powersTable}, \texttt{Blocks}, \texttt{offsetNat}
+PIOP	sections/gen/catalogue-spine.tex:5	to it; \enquote{named form} marks those reached only through \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness}'s named extractor and
+pin	sections/gen/catalogue-spine.tex:7	Library objects (all at the pins ArkLib \texttt{dca90385}, CompPoly \texttt{3468b38c}, VCVio
+slice	sections/gen/catalogue-spine.tex:64	{extend c z}. A reading law: it does not say the columns are disjoint slices (C.2, D.4). \emph{Depends on:} \texttt{Column}, CompPoly \t
+zerocheck	sections/gen/catalogue-spine.tex:219	Every constraint of every table is zero on every row (the zerocheck target). \emph{Depends on:} \texttt{row}.
+zerocheck	sections/gen/catalogue-spine.tex:360	A weighted sum of virtual-table extensions equals a value (a zerocheck claim is one term of weight 1 and value 0; a bus form is a
+PIOP	sections/gen/catalogue-spine.tex:853	he extractor and state function forgotten. \emph{Depends on:} \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness}.
+slice	sections/gen/catalogue-spine.tex:889	\texttt{slice} & 42-44 & test fixture & Column \texttt{i} is the slice at
+slice	sections/gen/catalogue-spine.tex:889	\texttt{slice} & 42-44 & test fixture & Column \texttt{i} is the slice at cells \texttt{2i,\allowbreak{} 2i+1}. \\
+slice	sections/gen/catalogue-spine.tex:891	ad\_\allowbreak{}eval} & 52-57 & test fixture & The law for the three slices. \\
+pin	sections/gen/catalogue-spine.tex:1049	keeping its error (ported from ArkLib \#615; admitted upstream at the pin). \\
+evalOracle	sections/gen/catalogue-spine.tex:1277	\par\medskip\noindent\textbf{\lean{evalOracle}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
+roadmap	sections/gen/changes.tex:8	blueprint (\file{docs/roadmap/protocol-blueprint.md}), placed where it applies: the rows
+pin	sections/gen/changes.tex:10	the contracts and the ledger, the pinned conventions row by row, the spine, Layers 0 to 13, the
+pin	sections/gen/changes.tex:117	dependency, with \dots}: the pin moved at \code{144c5aa}, and pins are stated only in
+pin	sections/gen/changes.tex:117	dependency, with \dots}: the pin moved at \code{144c5aa}, and pins are stated only in
+pin	sections/gen/changes.tex:119	\code{R84}; \cref{f:docs-superseded-pins} &
+roadmap	sections/gen/changes.tex:140	is the deployment theorem's (T7) to state, and is not given by this roadmap's per-statement
+pin	sections/gen/changes.tex:145	tsf{\bfseries Dependencies and exact contracts (\code{:160-306}): the pins, the sources, the tables, the ledger}}\\*
+pin	sections/gen/changes.tex:147	The list of pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/changes.tex:148	} \enquote{through ArkLib}, Lean \code{v4.33.1}) becomes \enquote{The pins are in
+pin	sections/gen/changes.tex:149	.json}, with the history of each in \file{dependencies.md}; leanVM is pinned at
+pin	sections/gen/changes.tex:151	\code{R84}; \cref{f:docs-superseded-pins} &
+the Rust	sections/gen/changes.tex:162	coordinates, \code{R1CS_DIGEST} | B | the Rust and Python lines that fix them}. The second row
+pin	sections/gen/changes.tex:163	seed's constant \code{R1CS_DIGEST}, which cannot be recomputed at the pin, an owner. &
+the Rust	sections/gen/changes.tex:165	by the source (the specification is incomplete; the blueprint follows the Rust, rightly) &
+roadmap	sections/gen/changes.tex:186	error of the blueprint (against the leanISA roadmap) & \sev{major}\\
+roadmap	sections/gen/changes.tex:200	roadmap is stated in the \lean{With} form with a compiled extractor
+pin	sections/gen/changes.tex:207	e{Multilinear/Basic} (\lean{eval_zero} is declared in both at the new pins); if
+pin	sections/gen/changes.tex:216	ArkLib state at \code{dca90385}} becomes \enquote{ArkLib state at the pin}, every row
+pin	sections/gen/changes.tex:218	pins). &
+pin	sections/gen/changes.tex:219	\code{R84}, \code{R34}; \cref{f:docs-superseded-pins}, \cref{f:lib-legacy-framework} &
+pin	sections/gen/changes.tex:223	append for the worst-case named form, not \enquote{deleted when the pin moves past \#615} (open and
+pin	sections/gen/changes.tex:235	he blueprint; forced by an upstream library (lifting admitted at both pins) &
+pin	sections/gen/changes.tex:238	kLib theorem states Fiat--Shamir or BCS knowledge soundness at either pin
+pin	sections/gen/changes.tex:257	batching vector, relocation sumcheck), 14 \code{sorry} at both pins; leanVM's ring switching is
+pin	sections/gen/changes.tex:263	\enquote{the encoder of Annex B.3}: the pinned numbering is §B.5; cite Annex B by label. &
+pin	sections/gen/changes.tex:270	CompPoly pin meets its retirement condition; whether \code{lake test} ca
+Category	sections/gen/changes.tex:353	none given (Category B wording) & \sev{minor}\\
+zerocheck	sections/gen/changes.tex:390	\code{R47}; \cref{f:table-pub-zerocheck-escape}, \cref{f:bus-zerocheck-charge} &
+zerocheck	sections/gen/changes.tex:390	\code{R47}; \cref{f:table-pub-zerocheck-escape}, \cref{f:bus-zerocheck-charge} &
+pin	sections/gen/changes.tex:393	Add: the choice of \lean{sent} is pinned by two tests, Layer 3's \texttt{\#guard} on
+pin	sections/gen/changes.tex:396	\code{R55}; \cref{f:code-pub-publicline-sent-pinned-prose-only} &
+dashboard	sections/gen/changes.tex:401	te{(hole S; its specification is a section of the hole comment on the dashboard \#12)} goes:
+Category	sections/gen/changes.tex:429	Category B, its non-vacuity is \lean{m3Holds_stackOf} (Layer 3), its f
+the Rust	sections/gen/changes.tex:466	\lean{BusOut} takes the shape of the Rust's \code{BusVerify}: one point, the forms per side and
+zerocheck	sections/gen/changes.tex:468	\lean{Seam.bus} states the zerocheck at the point's prefixes, the forms' sums, the column claims
+pin	sections/gen/changes.tex:525	\enquote{no \lean{LawfulBEq E} at the pin}: re-check at the new pin (CompPoly \code{572f9973} has
+pin	sections/gen/changes.tex:525	\enquote{no \lean{LawfulBEq E} at the pin}: re-check at the new pin (CompPoly \code{572f9973} has
+pin	sections/gen/changes.tex:575	\enquote{Add ArkLib at \code{dca90385} \dots\ the root pin \code{3468b38c} wins} becomes
+pin	sections/gen/changes.tex:576	\enquote{ArkLib is the \code{Arklib} requirement; current pins in \file{upstreams.json} and
+pin	sections/gen/changes.tex:577	e{docs/dependencies.md}} (or says what Layer 0 did then, and that the pins have moved). &
+pin	sections/gen/changes.tex:578	\code{R84}; \cref{f:lib-layer0-stale}, \cref{f:docs-superseded-pins} &
+evalOracle	sections/gen/changes.tex:585	Sketch, \lean{evalOracle} and \lean{evalOracle_answer}, \code{:637-642} &
+evalOracle	sections/gen/changes.tex:585	Sketch, \lean{evalOracle} and \lean{evalOracle_answer}, \code{:637-642} &
+evalOracle	sections/gen/changes.tex:587	n{Weight} and \lean{Weight.pair} moved below \file{Field.lean}; \lean{evalOracle_answer} becomes
+pin	sections/gen/changes.tex:631	y an upstream library (CompPoly's conversion is noncomputable at both pins; retired if it
+pin	sections/gen/changes.tex:711	\code{R78}; \cref{f:code-l1-order-equal-size-blocks-pinned} &
+zerocheck	sections/gen/changes.tex:770	GKR's challenges; the zerocheck escape adds nothing (a conjunction escapes with the larger
+zerocheck	sections/gen/changes.tex:772	\code{R47}; \cref{f:bus-zerocheck-charge} &
+zerocheck	sections/gen/changes.tex:792	phase's zerocheck conjunct). &
+zerocheck	sections/gen/changes.tex:804	\code{R47}; \cref{f:table-pub-zerocheck-escape} &
+pin	sections/gen/changes.tex:809	se value was sent the pooled value is the value sent, as §8.2 and the pinned
+roadmap	sections/gen/changes.tex:838	roadmap's predicate on a packed column and mentions no instance; th
+PIOP	sections/gen/changes.tex:894	\code{R33}; \cref{f:bus-admissible}; \cref{f:opening-piop-error-window} &
+pin	sections/gen/changes.tex:903	the pin moves past \#615}; \enquote{The port is done and closes hol
+Category	sections/gen/changes.tex:912	the deployed $η_i$ per $(μ, ρ)$ recorded as Category B. &
+Category	sections/gen/changes.tex:946	Record four transcript facts of WHIR (Category B): the level-0 lane relayout
+evalOracle	sections/gen/changes.tex:962	\enquote{WHIR in place of the evaluation oracle} becomes \enquote{WHIR in place of the opening
+roadmap	sections/gen/changes.tex:1039	error of the blueprint (against the leanISA roadmap) & \sev{major}\\
+zerocheck	sections/gen/changes.tex:1078	\enquote{The state function of Layer 7 charges the zerocheck to Layer 6's challenges} becomes
+zerocheck	sections/gen/changes.tex:1079	\enquote{The state function of Layer 6 carries the zerocheck}. &
+zerocheck	sections/gen/changes.tex:1080	\code{R47}; \cref{f:table-pub-zerocheck-escape} &
+pin	sections/gen/changes.tex:1113	pinned Rust Flock prover's $(1 + r)^{-1}$ at $r = 1$ is a complete
+PIOP	sections/gen/changes.tex:1126	code{R58}; \cref{f:flock-ring-test23-ring-switching}; \cref{f:opening-piop-error-window} &
+PIOP	sections/gen/changes.tex:1132	\code{R23}, \code{R33}; \cref{f:opening-nierror,f:opening-piop-error-window} &
+pin	sections/gen/changes.tex:1216	\enquote{when the pin moves past \#615}. \textsf{[decision]} &
+pin	sections/gen/changes.tex:1263	fidelity to the pinned sources, hygiene), not as the \code{leanerVM-review} skill
+slice	sections/gen/changes.tex:1367	\lean{extend} and one law; \lean{read} a definition; the toy's \lean{slice}
+pin	sections/gen/changes.tex:1398	At the new VCVio pin \code{a4232d08}, replace \lean{probEvent_uniformSample_le_o
+pin	sections/gen/changes.tex:1401	none given (a duplicate of upstream after the pin moved) & \sev{note}\\
+evalOracle	sections/gen/changes.tex:1428	\lean{evalOracle_answer {n : ℕ}}: $n$ implicit, as the blueprint has it. &
+roadmap	sections/gen/changes.tex:1436	Rewrite without the roadmap, the layer numbers and the code (\enquote{the eager \lean{F
+pin	sections/gen/changes.tex:1442	\lean{[1, 2, 3, 4]}: \lean{(2 : K)} is 0 at the new CompPoly pin. &
+the Rust	sections/gen/changes.tex:1452	\texttt{\#guard} against the Rust encoder (written with \lean{K.ofBits} at the new pin). &
+pin	sections/gen/changes.tex:1452	rd} against the Rust encoder (written with \lean{K.ofBits} at the new pin). &
+evalOracle	sections/gen/changes.tex:1488	\item (i) Keep the evaluation oracle and the opening sumcheck, and owe a theorem relating that
+the Rust	sections/gen/changes.tex:1501	\item (a) \lean{BusOut} in the shape of the Rust's \code{BusVerify}: one point, forms per side and
+roadmap	sections/gen/changes.tex:1593	\item (b) The leanISA roadmap supplies a \lean{constraintCompleteness} that returns a wit
+zerocheck	sections/gen/changes.tex:1612	zerocheck riding along; retired when ArkLib proves its lifting theore
+pin	sections/gen/changes.tex:1614	admitted at both pins, and which alone would not carry the zerocheck clause.
+zerocheck	sections/gen/changes.tex:1614	admitted at both pins, and which alone would not carry the zerocheck clause.
+pin	sections/gen/checks-bus.tex:13	The number after the colon is the line, at leanVM's pin \code{a386121f}.
+zerocheck	sections/gen/checks-bus.tex:163	& the zerocheck point exists
+the Rust	sections/gen/checks-bus.tex:177	final check. Rejections of these phases in the Rust are therefore \code{CpuError::PublicInput},
+pin	sections/gen/checks-flock-ring.tex:6	in this section; the number after the colon is the line, at leanVM's pin
+zerocheck	sections/gen/checks-flock-ring.tex:13	\item Rust, under \file{crates/flock/src/}: \code{hash.rs}, \code{zerocheck.rs},
+zerocheck	sections/gen/checks-flock-ring.tex:14	\code{lincheck.rs}; under \file{crates/flock/src/zerocheck/}: \code{zerocheck/multilinear.rs},
+zerocheck	sections/gen/checks-flock-ring.tex:14	\code{lincheck.rs}; under \file{crates/flock/src/zerocheck/}: \code{zerocheck/multilinear.rs},
+zerocheck	sections/gen/checks-flock-ring.tex:54	& \code{zerocheck/}\allowbreak\code{multilinear.rs:133-137}
+zerocheck	sections/gen/checks-flock-ring.tex:59	\textbf{$c_0$ derived} in each zerocheck round (step 6), equivalently the round check $c_0 +
+zerocheck	sections/gen/checks-flock-ring.tex:69	& \code{zerocheck.rs:423}
+zerocheck	sections/gen/checks-flock-ring.tex:71	& The link between the zerocheck and the lincheck
+zerocheck	sections/gen/checks-flock-ring.tex:73	the zerocheck constrains nothing \\ \addlinespace[2pt]
+pin	sections/gen/checks-flock-ring.tex:80	{hash.rs:1176-1183} \enquote{homogeneous rows accept zero without the pin}). The limb
+slice	sections/gen/checks-flock-ring.tex:94	& The $s_i$ are the slices of the committed $\qflock$
+zerocheck	sections/gen/checks-flock-ring.tex:116	& Nothing unsound is known: the mathematics needs no floor (the zerocheck needs
+zerocheck	sections/gen/checks-flock-ring.tex:117	$k_{\mathrm{bool}} ≥ 13$, \code{zerocheck.rs:354}, always true). A Lean verifier without it
+the Rust	sections/gen/checks-flock-ring.tex:118	ize announcements the deployed ones reject. (The citation check adds: the Rust names
+zerocheck	sections/gen/checks-flock-ring.tex:131	& \code{lincheck.rs:1151-1176}, \code{zerocheck.rs:354-356}
+the Rust	sections/gen/checks-flock-ring.tex:142	ent equality weights} (\code{03:95-100}, used at \code{c-flock:278}). The Rust
+pin	sections/gen/checks-opening.tex:11	\file{python-verifier/verifier.py}. These are at leanVM's pin \code{a386121f}. \code{bp:} is the
+the Rust	sections/gen/checks-opening.tex:153	larger than the Rust's on this point \\
+the Rust	sections/gen/checks-opening.tex:288	\code{derive_config} and the Rust's \code{configs_for_rate} give the same ladder for every $(
+pin	sections/gen/checks-table-pub.tex:5	in this section. The number after the colon is the line, at leanVM's pin
+the Rust	sections/gen/checks-table-pub.tex:54	what the bus trees were built from is accepted. The Rust says so (\code{cpu/mod.rs:733-734}:
+the Rust	sections/gen/checks-table-pub.tex:128	definition; rejected by the Rust verifier before any message is read (the Rust
+the Rust	sections/gen/checks-table-pub.tex:131	LeanerVM/Semantics/Memory.lean:101-110}, leanerVM \code{b435631}), so the Rust's rejection
+roadmap	sections/gen/code-index.tex:47	T 4, TB 4, HC 3, OC 2, RS 4 & Flock phase, the interface to the Flock roadmap (Layer 9); short form \texttt{flock-\allowbreak{}interface}
+pin	sections/gen/code-index.tex:76	\texttt{A16} & ArkLib pins CompPoly at a tag; leanerVM's pin wins the resolution & sta
+pin	sections/gen/code-index.tex:76	\texttt{A16} & ArkLib pins CompPoly at a tag; leanerVM's pin wins the resolution & status:341 & 1: ST 1 & its descriptio
+pin	sections/gen/code-index.tex:78	\texttt{A18} & ArkLib \texttt{main} had moved 246 commits past the pin on 2026-09-24 & status:345 & 4: ST 3, TB 1 & its descriptio
+pin	sections/gen/code-index.tex:79	ib pull request 615's composition file compiles unchanged against the pin & status:346 & 3: ST 3 & its description, as a name in the
+the Rust	sections/gen/code-index.tex:86	\texttt{S12} & Annex B omits the 17 grinding bits per level that the Rust applies & status:291 & 1: ST 1 & grinding per level not in
+pin	sections/gen/code-index.tex:87	& retired: a bound of 5 instead of 4, read off a PDF that is not the pinned text & status:293 & 8: ST 2, TB 1, RS 5 & retired (in \text
+pin	sections/gen/code-index.tex:88	ttt{leanVM-\allowbreak{}b-\allowbreak{}2.\allowbreak{}pdf} is not the pinned text and must not be cited & status:297 & 4: ST 2, TB 1, RS
+pin	sections/gen/code-index.tex:88	not be cited & status:297 & 4: ST 2, TB 1, RS 1 & the PDF is not the pinned text (in \texttt{docs/\allowbreak{}leanvm-\allowbreak{}targ
+pin	sections/gen/code-index.tex:110	\texttt{F18} & the pinned verifiers check one equation on the public words, the speci
+pin	sections/gen/code-index.tex:127	\texttt{E7} & no \texttt{LawfulBEq E} at the CompPoly pin, so no polynomial with coefficients in \texttt{E} & status:
+pin	sections/gen/code-index.tex:128	texttt{E8} & no \texttt{Oracle\allowbreak{}Interface E} at the ArkLib pin & status:375 & 3: ST 1, TB 1, RS 1 & its description, as a
+pin	sections/gen/code-index.tex:150	ttt{B1} & citation drift, and the PDF handed to the review is not the pinned text & \texttt{protocol-\allowbreak{}spine.\allowbreak{}md:
+pin	sections/gen/code-index.tex:151	xttt{B2} & a status finding was stated against a text that is not the pin & \texttt{protocol-\allowbreak{}spine.\allowbreak{}md:\allo
+pin	sections/gen/code-index.tex:155	omials with coefficients in \texttt{E} have no ring operations at the pin & \texttt{protocol-\allowbreak{}spine.\allowbreak{}md:\allo
+pin	sections/gen/code-index.tex:184	\texttt{C3} & the module docstring has no pin and no provenance & \texttt{public-\allowbreak{}input-\allo
+roadmap	sections/gen/code-index.tex:188	\multicolumn{5}{@{}l}{\textbf{The Flock roadmap's milestones (13 occurrences in all)}} \\*
+roadmap	sections/gen/code-index.tex:189	\texttt{F1} & the Flock roadmap's milestone ``executable algebra'' & the body of issue 3, :
+roadmap	sections/gen/code-index.tex:190	\texttt{F3} & the Flock roadmap's milestone ``baseline reduction'' & the body of issue 3, :
+roadmap	sections/gen/code-index.tex:191	\texttt{F4} & a milestone of the Flock roadmap & the body of issue 3, :92-101 & - & the name issue 3 gives
+roadmap	sections/gen/code-index.tex:192	\texttt{F5} & the Flock roadmap's milestone ``packed openings'' & the body of issue 3, :92-
+roadmap	sections/gen/code-index.tex:193	\texttt{F6} & the Flock roadmap's milestone ``concrete PCS'' & the body of issue 3, :92-101
+roadmap	sections/gen/code-index.tex:194	\texttt{F8} & the Flock roadmap's milestone ``concrete hash instances'' & the body of issue
+roadmap	sections/gen/code-index.tex:197	decision 1 & leanISA's \texttt{Caps} requires it, so the two roadmaps state one relation (decision, taken) & status :212-277 & -
+zerocheck	sections/gen/code-index.tex:199	sion, taken) & status :212-277 & - & kept, with its name: ``where the zerocheck is charged'' \\\addlinespace[1.5pt]
+zerocheck	sections/gen/code-index.tex:219	er the commitment & blueprint :1266-1358 & - & kept, with its name: ``zerocheck point recycling'' \\\addlinespace[1.5pt]
+Category	sections/gen/code-index.tex:251	Category A & a kind of source & blueprint :178-184 & - & ``written fro
+Category	sections/gen/code-index.tex:252	Category B & a kind of source & blueprint :178-184 & - & ``transcribed
+slice	sections/gen/code-index.tex:258	\texttt{P05} & a private code for the algebra slice (issue 31, batching by powers): ``P05 depends only on \#18'
+pin	sections/gen/conformance.tex:42	eak{}\{\allowbreak{}0\allowbreak{},\allowbreak{} 0\allowbreak{}\}} to pin a universe (\texttt{:96-{}99}), and says so \\
+slice	sections/gen/conformance.tex:50	med theorems, \texttt{Toy.\allowbreak{}Col}, \texttt{Toy.\allowbreak{}slice}, \texttt{Toy.\allowbreak{}extend}, \texttt{Toy.\allowbreak
+zerocheck	sections/gen/conformance.tex:73	llowbreak{}bus} (\texttt{:175-{}177}) & the spine's; Layer 6's has no zerocheck claims, no lines, no \texttt{aux}, a count-root conjunct, a
+pin	sections/gen/conformance.tex:118	All leanVM citations at the pin \texttt{a386121f}; Lean at \texttt{b435631}.
+pin	sections/gen/conformance.tex:146	wbreak{}4\allowbreak{}-{}\allowbreak{}2\allowbreak{}1\allowbreak{}0}) pins one transcript accepted by the words' equation and rejected
+the Rust	sections/gen/conformance.tex:151	nput step is \emph{this} verifier. If \texttt{verify} is written from the Rust (combined check, values sent pooled), the \enquote{iff} is
+the Rust	sections/gen/conformance.tex:162	check otherwise, so that the verifier is total over instances and is the Rust's on leanISA's) and \texttt{pooledFrom} as in C.6. Its comp
+the Rust	sections/gen/conformance.tex:168	f\_\allowbreak{}compiled} provable for a \texttt{verify} written from the Rust.
+pin	sections/gen/conformance.tex:203	laims is refuted on it. So \texttt{sent} is bound by no theorem; what pins leanISA's choice \texttt{(\allowbreak{}true,\allowbreak{} t
+pin	sections/gen/conformance.tex:203	a transcript with three or one scalars. Until (b) and (c) exist, the pin is prose.
+the Rust	sections/gen/conformance.tex:205	e sends exactly the two low limbs}, a transcript fact checked against the Rust (\texttt{:616-{}618}, \texttt{:747-{}749}).
+pin	sections/gen/conformance.tex:218	primitive. Its cost is not the flag but the absence of anything that pins it (finding in G).
+the Rust	sections/gen/conformance.tex:233	ion passes, the per-limb check fails): a \texttt{verify} written from the Rust pools the values sent there and accepts, this verifier reje
+slice	sections/gen/conformance.tex:257	{}i\allowbreak{}c\allowbreak{}a\allowbreak{}t\allowbreak{}e}, \texttt{slice}, \texttt{e\allowbreak{}v\allowbreak{}a\allowbreak{}l\allow
+slice	sections/gen/conformance.tex:271	led by \texttt{evalMle\_\allowbreak{}append\_\allowbreak{}boolVec} at slice zero (as done in \texttt{PublicInput.\allowbreak{}lean:71-{
+pin	sections/gen/conformance.tex:278	olds of the opposite layout by the same proof (C.3); the witness that pins slot 3 = \texttt{(\allowbreak{}1,\allowbreak{}1,\allowbreak
+the Rust	sections/gen/conformance.tex:296	exttt{μ\_\allowbreak{}stack ∈ [15,\allowbreak{} 28]}; both agree with the Rust (\texttt{witness.\allowbreak{}rs:67-{}79}; \texttt{pcs.\all
+pin	sections/gen/disagreements-bus.tex:11	ier/verifier.py}. The number after the colon is the line, at leanVM's pin
+the Rust	sections/gen/disagreements-bus.tex:20	s prose names the two roots in the other order. The blueprint follows the Rust on
+the Rust	sections/gen/disagreements-bus.tex:25	\caption{Disagreements between the specification, the Rust and the Python in the setup, the
+the Rust	sections/gen/disagreements-bus.tex:43	& \code{08:55} has ``Flock's BLAKE2s R1CS matrices''; the Rust hashes one constant naming the
+the Rust	sections/gen/disagreements-bus.tex:55	are zero. The Rust builds the eight columns from the instructions (\code{layou
+the Rust	sections/gen/disagreements-bus.tex:59	& The Rust's bound for the fingerprint is $5·2^μ$ (\code{leaf.rs:110})
+the Rust	sections/gen/disagreements-bus.tex:61	counts. The Rust's assertions on the layout (B11) have no counterpart in the
+the Rust	sections/gen/disagreements-bus.tex:62	8 & The table sumcheck's round message, in the Rust's own comment (added by the citation check)
+pin	sections/gen/disagreements-flock-ring.tex:6	in this section; the number after the colon is the line, at leanVM's pin
+the Rust	sections/gen/disagreements-flock-ring.tex:56	& $Σ_w Φ(b_w)·t_w$ in the Rust; $Σ_i x^i Φ(s_i)$ in the specification and the Python
+the Rust	sections/gen/disagreements-flock-ring.tex:57	& equal by $\F_2$-linearity, and the Rust tests it, \code{ring_switch.rs:683-705} \\
+pin	sections/gen/disagreements-opening.tex:10	is \file{python-verifier/verifier.py}. These are at leanVM's pin \code{a386121f}. \code{bp:} is the
+the Rust	sections/gen/disagreements-opening.tex:17	on WHIR message for message, the Python being a transcription of the Rust
+the Rust	sections/gen/disagreements-opening.tex:26	\caption{Disagreements between the specification, the Rust and the Python in the opening and the
+the Rust	sections/gen/disagreements-opening.tex:43	(\code{08:55}). The Rust is the only source; the Python transcribes it and agrees on
+the Rust	sections/gen/disagreements-opening.tex:66	agrees by reading; the Python was not run on such a proof), while the Rust
+the Rust	sections/gen/disagreements-opening.tex:68	is strictly larger than the Rust's on this point. Soundness-neutral (M2 of
+the Rust	sections/gen/disagreements-opening.tex:72	5 & A stale comment in the Rust
+pin	sections/gen/disagreements-opening.tex:75	at the pin: \code{whir.rs:1364-1365} says level 0 grinds ``0 bits in t
+pin	sections/gen/disagreements-opening.tex:79	pinned code has none.
+the Rust	sections/gen/disagreements-opening.tex:86	(\code{B:111}). The Rust sends a round polynomial \emph{per claim} (the residual's,
+pin	sections/gen/disagreements-table-pub.tex:5	in this section. The number after the colon is the line, at leanVM's pin
+roadmap	sections/gen/disagreements-table-pub.tex:14	\code{leanisa-blueprint.md} & \file{docs/roadmap/leanisa-blueprint.md}, leanerVM at \code{b435631} \\
+the Rust	sections/gen/disagreements-table-pub.tex:21	\caption{Disagreements between the specification, the Rust and the Python on the table sumcheck
+the Rust	sections/gen/disagreements-table-pub.tex:55	table's column list in the Rust's order''; the citation check corrected the lines, which th
+the Rust	sections/gen/disagreements-table-pub.tex:61	Comments in the Rust
+roadmap	sections/gen/docs-codes.tex:41	Flock roadmap's milestones & \texttt{F1}, \texttt{F3}-\texttt{F6}, \textt
+Category	sections/gen/docs-codes.tex:45	Categories & Category A, Category B & 2 & 22 & blueprint \texttt{:\allowbreak{}178-
+Category	sections/gen/docs-codes.tex:45	Categories & Category A, Category B & 2 & 22 & blueprint \texttt{:\allowbreak{}178-\allowbreak{
+unit of work	sections/gen/docs-codes.tex:83	\texttt{C1} & unit of work (the composition) 25; ledger entry (Clean's expressions) 2;
+unit of work	sections/gen/docs-codes.tex:88	\texttt{I1} & unit of work (Clean expressions as polynomials) 21; spine review finding
+unit of work	sections/gen/docs-codes.tex:89	\texttt{I2} & unit of work (the adaptor) 46; spine review finding 3 \\\addlinespace[2p
+unit of work	sections/gen/docs-codes.tex:90	\texttt{P1} & unit of work 20; CompPoly finding 1 \\\addlinespace[2pt]
+unit of work	sections/gen/docs-codes.tex:91	\texttt{P3} & unit of work 15; CompPoly finding 4 \\\addlinespace[2pt]
+unit of work	sections/gen/docs-codes.tex:92	\texttt{P4}, \texttt{P5}, \texttt{P6} & unit of work 11, 34, 18; CompPoly finding 1 each \\\addlinespace[2pt]
+roadmap	sections/gen/docs-codes.tex:93	\texttt{F1} & finding (no labels) 7; the Flock roadmap's milestone ``executable algebra'' 2 \\\addlinespace[2pt]
+unit of work	sections/gen/docs-codes.tex:102	Within the spine handoff alone \texttt{I1} and \texttt{I2} are both a unit of work and a finding, once on adjacent rows (\texttt{protocol-\all
+the Rust	sections/gen/docs-codes.tex:120	ion 7.4 lists the \texttt{DEREF} memory flushes in another order than the Rust \\\addlinespace[2pt]
+roadmap	sections/gen/docs-codes.tex:121	, \texttt{F8} above) & Rust or Python against the specification & the roadmap's or the architecture's targets: for example \texttt{F9} is
+roadmap	sections/gen/docs-codes.tex:121	map's or the architecture's targets: for example \texttt{F9} is ``the roadmap's Layer 7 sketch was unbuildable in two places'' \\\addline
+unit of work	sections/gen/docs-codes.tex:127	\texttt{L1} & the unit of work ``tables and stacking'' & core's \texttt{DecidableEq} for \
+unit of work	sections/gen/docs-codes.tex:136	where \texttt{C1} is the ledger entry on Clean's expressions, not the unit of work that \texttt{C1} names on the checklist of issue 12. Issue
+roadmap	sections/gen/docs-codes.tex:140	\textbf{Numbered things that collide across the two roadmaps.} Decisions 1 to 15 (\cref{sec:docs-decisions}), layers 0
+Category	sections/gen/docs-codes.tex:144	\texttt{leanth-\allowbreak{}reuse.\allowbreak{}md:\allowbreak{}58}. ``Category A'' and ``Category B'' are kinds of source; ``Pass A'', ``Pas
+Category	sections/gen/docs-codes.tex:144	owbreak{}reuse.\allowbreak{}md:\allowbreak{}58}. ``Category A'' and ``Category B'' are kinds of source; ``Pass A'', ``Pass B'', ``Pass C'' a
+roadmap	sections/gen/docs-codes.tex:172	the Flock roadmap's \texttt{F1}, \texttt{F3}-\texttt{F6}, \texttt{F8} & defin
+roadmap	sections/gen/docs-contradictions.tex:14	\textbf{\#} & \textbf{The status says (\file{docs/roadmap/protocol-status.md})} & \textbf{Today} \\
+roadmap	sections/gen/docs-contradictions.tex:18	\textbf{\#} & \textbf{The status says (\file{docs/roadmap/protocol-status.md})} & \textbf{Today} \\
+dashboard	sections/gen/docs-contradictions.tex:27	{}146-\allowbreak{}148}: ``is the draft \#60 ... \#60 ticks P5 on the dashboard when it merges'' & merged, and the box is not ticked (\text
+roadmap	sections/gen/docs-contradictions.tex:35	Rust against the specification is \texttt{R}, and \texttt{F} is ``the roadmap's or the architecture's targets'' (\texttt{leanisa-\allowbr
+dashboard	sections/gen/docs-contradictions.tex:36	le is that a decision taken is ``removed from the status file and the dashboard'' (\texttt{protocol-\allowbreak{}blueprint.\allowbreak{}md:
+slice	sections/gen/docs-contradictions.tex:37	\texttt{:\allowbreak{}179}: ArkLib's coding-theory track, ``the \#907 slices landing on \texttt{main}''; the hole comment says the same,
+slice	sections/gen/docs-contradictions.tex:60	ays an intention issue ``is closed by the pull request that lands the slice'' (\texttt{protocol-\allowbreak{}blueprint.\allowbreak{}md:
+dashboard	sections/gen/docs-contradictions.tex:69	tHub: ``On GitHub: the L1 line and the open pull request table of the dashboard \#12'' (\texttt{docs/\allowbreak{}reviews/\allowbreak{}prot
+slice	sections/gen/docs-contradictions.tex:99	ak{} 184,\allowbreak{} 196}), ``by assigning yourself and commenting; slices go through \texttt{[Intention]} issues as usual'' (\texttt{
+roadmap	sections/gen/docs-contradictions.tex:116	\textbf{\#} & \textbf{Sketch (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{Spine section of the sam
+roadmap	sections/gen/docs-contradictions.tex:120	\textbf{\#} & \textbf{Sketch (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{Spine section of the sam
+PIOP	sections/gen/docs-contradictions.tex:129	g s) .\allowbreak{}.\allowbreak{}.\allowbreak{}}'', ``\texttt{theorem piop\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundne
+PIOP	sections/gen/docs-contradictions.tex:129	(\allowbreak{}m3Relation prog s) Set.\allowbreak{}univ (\allowbreak{}piop\allowbreak{}Error s)}'' & \texttt{:\allowbreak{}541-\allowb
+roadmap	sections/gen/docs-contradictions.tex:169	\textbf{\#} & \textbf{The blueprint says (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{The repository} \\
+roadmap	sections/gen/docs-contradictions.tex:173	\textbf{\#} & \textbf{The blueprint says (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{The repository} \\
+pin	sections/gen/docs-contradictions.tex:180	ak{}Column\_\allowbreak{}slot} ``restates the definition and does not pin the bit order'' and that the statement which does is \textt
+the Rust	sections/gen/docs-contradictions.tex:186	's: ``the BLAKE2S value limbs are virtual columns in Flock's stack in the Rust; ordinary columns here'' (\texttt{leanisa-\allowbreak{}stat
+roadmap	sections/gen/docs-contradictions.tex:190	are brief and self-contained: they cite the specification, never this roadmap'' & \texttt{Leaner\allowbreak{}VM/\allowbreak{}Protocol/\al
+roadmap	sections/gen/docs-contradictions.tex:190	ocol/\allowbreak{}Field.\allowbreak{}lean:\allowbreak{}18} ``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\allowbreak{}pro
+roadmap	sections/gen/docs-contradictions.tex:190	allowbreak{}18} ``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\allowbreak{}protocol-\allowbreak{}blueprint.\allowbreak{}m
+roadmap	sections/gen/docs-contradictions.tex:190	s finding P3)'', \texttt{:\allowbreak{}31} ``every error bound of the roadmap'', \texttt{:\allowbreak{}37} ``(roadmap convention \emph{Th
+roadmap	sections/gen/docs-contradictions.tex:190	1} ``every error bound of the roadmap'', \texttt{:\allowbreak{}37} ``(roadmap convention \emph{The oracle})'', \texttt{:\allowbreak{}37,\
+roadmap	sections/gen/docs-contradictions.tex:199	\textbf{\#} & \textbf{The proof-system blueprint (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{The other document} \\
+roadmap	sections/gen/docs-contradictions.tex:203	\textbf{\#} & \textbf{The proof-system blueprint (\file{docs/roadmap/protocol-blueprint.md})} & \textbf{The other document} \\
+roadmap	sections/gen/docs-contradictions.tex:224	textbf{\#} & \textbf{Text (a bare line number is a line of \file{docs/roadmap/protocol-blueprint.md})} & \textbf{Practice} \\
+roadmap	sections/gen/docs-contradictions.tex:228	textbf{\#} & \textbf{Text (a bare line number is a line of \file{docs/roadmap/protocol-blueprint.md})} & \textbf{Practice} \\
+dashboard	sections/gen/docs-contradictions.tex:233	contributor without write access cannot edit the body: ``I lack label/dashboard permissions'' (\texttt{issue-\allowbreak{}12-\allowbreak{}c
+slice	sections/gen/docs-contradictions.tex:233	eak{}md:\allowbreak{}1487-\allowbreak{}1488}: ``To claim a hole, or a slice of one, comment on \#12''; \texttt{issue-\allowbreak{}12-\a
+pin	sections/gen/docs-contradictions.tex:235	1470}: a pull request's description names ``the hole, the sources and pin, the category of each new definition, the ledger entries it
+dashboard	sections/gen/docs-contradictions.tex:240	: the reading audit of the stacked pull requests ``is recorded on the dashboard's history'' & a fact kept in the edit history of an issue b
+roadmap	sections/gen/docs-contradictions.tex:246	\allowbreak{}557,\allowbreak{} 560}) and defines neither. The leanISA roadmap numbers its own decisions from 1, so ``decision 13'' is ``p
+pin	sections/gen/docs-contradictions.tex:252	The blueprint's ledger says of ArkLib at the pin: ``A7 WHIR, Merkle, BLAKE2s \textbar{} absent (only coding-
+pin	sections/gen/docs-contradictions.tex:256	Fact, at the pin \texttt{f9dc47d9} of VCVio (the revision leanerVM builds ag
+pin	sections/gen/docs-contradictions.tex:280	Citations into leanVM at the pin, blueprint and status & \texttt{check\_\allowbreak{}leanvm\
+pin	sections/gen/docs-contradictions.tex:281	Citations into the pinned libraries & \texttt{check\_\allowbreak{}lib\_\allowbreak{}c
+pin	sections/gen/docs-contradictions.tex:293	\subsection{The pins, after the dependency upgrade (pull request 61, \texttt{mai
+pin	sections/gen/docs-contradictions.tex:293	(pull request 61, \texttt{main} at \texttt{144c5aa})}\label{sec:docs-pins}
+pin	sections/gen/docs-contradictions.tex:296	'', merged 2026-09-29 22:31 UTC, commit \texttt{144c5aa}) moved every pin but leanVM's: ArkLib \texttt{dca90385} \ensuremath{→} \text
+pin	sections/gen/docs-contradictions.tex:301	\caption{The pins, after the dependency upgrade (pull request 61).}\label{tab
+pin	sections/gen/docs-contradictions.tex:301	ns, after the dependency upgrade (pull request 61).}\label{tab:docs-b-pins}\\
+pin	sections/gen/docs-contradictions.tex:312	e original implementation baseline. [dependencies.md] records current pins and the 4.34 native-probability port, which retains the rel
+pin	sections/gen/docs-contradictions.tex:312	int that knows of the upgrade; the passages below still state the old pins as the current ones, and nothing says which of them are his
+pin	sections/gen/docs-contradictions.tex:314	3 & blueprint \texttt{:\allowbreak{}167-\allowbreak{}172}: ``The pins are in \texttt{upstreams.\allowbreak{}json} and [dependenci
+pin	sections/gen/docs-contradictions.tex:314	Lean \texttt{v4.\allowbreak{}33.\allowbreak{}1}.'' & four of the six pins changed, and VCVio is no longer ``through ArkLib'' \\\addli
+roadmap	sections/gen/docs-contradictions.tex:315	{}257-\allowbreak{}261}: ``\textbf{Admitted at the pin, and what this roadmap does about it.}'' and the column ``ArkLib state at \texttt{
+pin	sections/gen/docs-contradictions.tex:315	texttt{:\allowbreak{}257-\allowbreak{}261}: ``\textbf{Admitted at the pin, and what this roadmap does about it.}'' and the column ``A
+pin	sections/gen/docs-contradictions.tex:315	ttt{dca90385}'' of the upstream ledger & the ledger describes the old pin. Whether each admitted result is still admitted at \texttt{
+pin	sections/gen/docs-contradictions.tex:316	pPoly at the \texttt{v4.\allowbreak{}33.\allowbreak{}1} tag; the root pin \texttt{3468b38c} wins the resolution'' & \texttt{dependenc
+pin	sections/gen/docs-contradictions.tex:318	& status \texttt{:\allowbreak{}10-\allowbreak{}11}: ``The dependency pins are unchanged.''; \texttt{:\allowbreak{}161-\allowbreak{}16
+pin	sections/gen/docs-contradictions.tex:318	hanged.''; \texttt{:\allowbreak{}161-\allowbreak{}163}: ``\textbf{The pins have not moved.} ArkLib \texttt{main} is 246 commits past \
+pin	sections/gen/docs-contradictions.tex:318	out the libraries are findings about revisions that are no longer the pins \\\addlinespace[2pt]
+pin	sections/gen/docs-contradictions.tex:319	4.\allowbreak{}33.\allowbreak{}1}''; \texttt{:\allowbreak{}84}: ``The pins have not moved.'' & the same \\\addlinespace[2pt]
+pin	sections/gen/docs-contradictions.tex:320	tt{144c5aa} (updated by the upgrade): ``the first consumer of ArkLib (pin \texttt{7653a901…}) and of VCVio through it (\texttt{a4232d
+pin	sections/gen/docs-contradictions.tex:320	xttt{7653a901…}) and of VCVio through it (\texttt{a4232d08…})'' & the pins are right; ``through it'' is not, VCVio being a direct requ
+pin	sections/gen/docs-contradictions.tex:324	Every other pin statement in the proof system's documents that is a stateme
+pin	sections/gen/docs-contradictions.tex:324	as current. The proposed texts of \cref{sec:docs-texts} state the new pins once, in the status, and elsewhere point to \texttt{upstrea
+pin	sections/gen/docs-inventory.tex:5	ull request 61, the upgrade to Lean 4.34.1, which moved every library pin; brief, section 8), and the checkout now contains it. Citat
+roadmap	sections/gen/docs-inventory.tex:55	llowbreak{}48-\allowbreak{}57}); and what the spine asks of the Flock roadmap, which is a comment on issue 3 (id 5872015596).
+pin	sections/gen/docs-inventory.tex:55	n the RFC 7693 test vector'' (\texttt{:\allowbreak{}166}) and ``every pinned coding parameter with an achievability witness'' (\texttt{:
+unit of work	sections/gen/docs-proposal.tex:26	The specification of each unit of work: what it produces, with signatures; what it needs; its sour
+pin	sections/gen/docs-proposal.tex:28	The upstream ledger: what is admitted or absent at the pin, what replaces it here, the upstream number, when the local
+roadmap	sections/gen/docs-proposal.tex:34	reak{}md}, a new section ``Known discrepancies at the pin'', for both roadmaps & the blueprint cites a discrepancy by name where it binds
+pin	sections/gen/docs-proposal.tex:34	Discrepancies in the leanVM sources at the pin (specification, Rust, Python) & \texttt{docs/\allowbreak{}l
+pin	sections/gen/docs-proposal.tex:34	{}target.\allowbreak{}md}, a new section ``Known discrepancies at the pin'', for both roadmaps & the blueprint cites a discrepancy by
+pin	sections/gen/docs-proposal.tex:35	Limits of the pinned libraries & \texttt{docs/\allowbreak{}dependencies.\allowbr
+roadmap	sections/gen/docs-proposal.tex:47	pancies. They are facts about the target at the pin, not about either roadmap: they hold until the pin moves, they are shared (the missin
+roadmap	sections/gen/docs-proposal.tex:47	ternative, an appendix of the blueprint, keeps two registers, one per roadmap, and is not recommended.
+pin	sections/gen/docs-proposal.tex:47	ak{}md} for the discrepancies. They are facts about the target at the pin, not about either roadmap: they hold until the pin moves, t
+pin	sections/gen/docs-proposal.tex:47	the target at the pin, not about either roadmap: they hold until the pin moves, they are shared (the missing section 8.4 is one find
+unit of work	sections/gen/docs-proposal.tex:61	\item The units of work: one table with names (\cref{sec:docs-text-holes}), then on
+roadmap	sections/gen/docs-proposal.tex:64	\item Boundaries with the other roadmaps.
+roadmap	sections/gen/docs-proposal.tex:73	only the outcomes are written today; what the spine asks of the Flock roadmap, which is a comment on issue 3.
+pin	sections/gen/docs-proposal.tex:98	ream drift''. It can print the state of each watched item next to the pins' drift. The state then lives in the workflow's report and i
+unit of work	sections/gen/docs-proposal.tex:122	is then edited by its author to one line, ``The specifications of the units of work are in the blueprint, section 'The units of work''', so tha
+unit of work	sections/gen/docs-proposal.tex:122	pecifications of the units of work are in the blueprint, section 'The units of work''', so that links to it still land somewhere.
+Category	sections/gen/docs-proposal.tex:153	Category A, Category B & replaced by the two words they stand for: ``w
+Category	sections/gen/docs-proposal.tex:153	Category A, Category B & replaced by the two words they stand for: ``written from
+roadmap	sections/gen/docs-proposal.tex:156	xtractor computes (acceptance test 24)'' is. A reference to the other roadmap's layer, test or decision always says ``leanISA''.
+roadmap	sections/gen/docs-proposal.tex:159	vm-\allowbreak{}target.\allowbreak{}md}, without letters, across both roadmaps (``source finding 31''), with the former codes in one colu
+unit of work	sections/gen/docs-proposal.tex:168	\caption{The units of work: former code, name, short form.}\label{tab:docs-map-units}\
+roadmap	sections/gen/docs-proposal.tex:196	\texttt{P6} & Flock phase, the interface to the Flock roadmap (Layer 9) & \texttt{flock-\allowbreak{}interface} \\\addlin
+pin	sections/gen/docs-proposal.tex:256	\texttt{S14} & the PDF is not the pinned text \\\addlinespace[2pt]
+unit of work	sections/gen/docs-proposal.tex:307	field instances & Layer 0; formerly hole \texttt{0} & unit of work & ArkLib as a dependency; sampling and oracle instances for
+unit of work	sections/gen/docs-proposal.tex:307	ency; sampling and oracle instances for the fields & blueprint, ``The units of work'' \\\addlinespace[2pt]
+unit of work	sections/gen/docs-proposal.tex:308	tables and stacking & Layer 1; formerly \texttt{L1} & unit of work & hypercube tables, stacking with selectors, the index and
+unit of work	sections/gen/docs-proposal.tex:309	the spine & formerly \texttt{S} & unit of work & the instance, the relation, the seams, the phase interfac
+unit of work	sections/gen/docs-proposal.tex:310	knowledge-soundness composition & formerly hole \texttt{C1} & unit of work & the port of ArkLib pull request 615, deleted when the pin
+pin	sections/gen/docs-proposal.tex:310	unit of work & the port of ArkLib pull request 615, deleted when the pin passes it & blueprint, ``The spine'' \\\addlinespace[2pt]
+unit of work	sections/gen/docs-proposal.tex:311	Clean expressions as polynomials & Layer 2; formerly \texttt{I1} & unit of work & constraint and flush polynomials read off a Clean compone
+unit of work	sections/gen/docs-proposal.tex:311	t and flush polynomials read off a Clean component & blueprint, ``The units of work'' \\\addlinespace[2pt]
+unit of work	sections/gen/docs-proposal.tex:312	the adaptor & Layer 3; formerly \texttt{I2} & unit of work & the leanISA instance and the two maps between the stack a
+unit of work	sections/gen/docs-proposal.tex:313	mcheck: definition and completeness & Layer 4; formerly \texttt{G1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:314	sumcheck: knowledge soundness & Layer 4; formerly \texttt{G2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:315	batching by powers & Layer 4; formerly \texttt{G3} & unit of work & several claims become one by the powers of one challenge
+unit of work	sections/gen/docs-proposal.tex:316	fingerprint and collision bound & Layer 5; formerly \texttt{G4} & unit of work & specification Lemma 5.2 and Theorem 5.1 & same \\\addline
+unit of work	sections/gen/docs-proposal.tex:317	ct GKR: definition and completeness & Layer 5; formerly \texttt{G5} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:318	nd-product GKR: knowledge soundness & Layer 5; formerly \texttt{G6} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:319	phase: definition and completeness & Layer 6; formerly \texttt{P1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:320	bus phase: knowledge soundness & Layer 6; formerly \texttt{P2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:321	phase: definition and completeness & Layer 7; formerly \texttt{P3} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:322	sumcheck phase: knowledge soundness & Layer 7; formerly \texttt{P4} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:323	public-input phase & Layer 8; formerly \texttt{P5} & unit of work & specification section 8.2: one challenge, the sent values
+roadmap	sections/gen/docs-proposal.tex:324	ayer 9; formerly \texttt{P6} & unit of work & the interface the Flock roadmap (issue 3) inhabits & same \\\addlinespace[2pt]
+unit of work	sections/gen/docs-proposal.tex:324	Flock phase & Layer 9; formerly \texttt{P6} & unit of work & the interface the Flock roadmap (issue 3) inhabits & same
+unit of work	sections/gen/docs-proposal.tex:325	phase: definition and completeness & Layer 10; formerly \texttt{P7} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:326	opening phase: knowledge soundness & Layer 10; formerly \texttt{P8} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:327	WHIR opening & Layer 11; formerly \texttt{K1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:328	rees, byte hasher, WHIR parameters & Layer 11; formerly \texttt{K2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:329	t, proof object, compiled verifier & Layer 12; formerly \texttt{K3} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+unit of work	sections/gen/docs-proposal.tex:330	the base theorems & Layer 13; formerly \texttt{K4} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTR
+roadmap	sections/gen/docs-proposal.tex:331	1 & decision, taken & leanISA's \texttt{Caps} requires it, so the two roadmaps state one relation & leanISA blueprint, Layer 8; issue 13
+zerocheck	sections/gen/docs-proposal.tex:333	where the zerocheck is charged & decision 3 & decision, taken & in the bus phas
+zerocheck	sections/gen/docs-proposal.tex:353	zerocheck point recycling & acceptance test 6 & acceptance test & the
+pin	sections/gen/docs-proposal.tex:376	& ledger entry & the single-round bound is admitted in ArkLib at the pin & blueprint, ``Dependencies'', the ledger \\\addlinespace[2
+pin	sections/gen/docs-proposal.tex:377	& ledger entry & proved here by the port; the port is deleted at the pin bump & same \\\addlinespace[2pt]
+roadmap	sections/gen/docs-texts.tex:7	blueprint writes them (relative paths from \texttt{docs/\allowbreak{}roadmap/\allowbreak{}}, GitHub anchors computed from the headings a
+pin	sections/gen/docs-texts.tex:226	on sumcheck''); whether Layer 11 reuses the Merkle trees of the VCVio pin (\cref{sec:docs-merkle}); the hypothesis on the program of
+pin	sections/gen/docs-texts.tex:309	on a branch (\cref{sec:docs-status-stale}, items 1 to 5); it says the pins are unchanged, and pull request 61 has moved four of them (
+pin	sections/gen/docs-texts.tex:309	unchanged, and pull request 61 has moved four of them (\cref{sec:docs-pins}, item 7); it names holes by code. The ``At a glance'' para
+pin	sections/gen/docs-texts.tex:313	ns it; it names the last merge it accounts for, as today), states the pins once, and says what the file is. ``At a glance'' becomes a
+PIOP	sections/gen/docs-texts.tex:367	{b435631} the status recorded that \texttt{\#print axioms} on \texttt{piop\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundne
+pin	sections/gen/docs-texts.tex:367	the third row of the table follows it. The effect of the new CompPoly pin on numerals in \texttt{K} (brief, section 8) belongs here i
+dashboard	sections/gen/docs-texts.tex:380	`The public-input phase (P5) is the draft \#60 … \#60 ticks P5 on the dashboard when it merges'' becomes ``The public-input phase is on \te
+pin	sections/gen/docs-texts.tex:382	\item \texttt{:\allowbreak{}161-\allowbreak{}163}: ``The pins have not moved. ArkLib \texttt{main} is 246 commits past \t
+pin	sections/gen/docs-texts.tex:382	(finding A18); the next bump is one planned change …'' becomes ``The pins moved with pull request 61 (see the head).''
+slice	sections/gen/docs-texts.tex:385	\item \texttt{:\allowbreak{}179} ``the \#907 slices landing on \texttt{main}'': ArkLib issue 907 closed on 2026
+pin	sections/gen/docs-texts.tex:388	he findings about ArkLib, Clean and CompPoly are headed by the former pins; they say so (``at the former pin \texttt{dca90385}'').
+pin	sections/gen/docs-texts.tex:388	CompPoly are headed by the former pins; they say so (``at the former pin \texttt{dca90385}'').
+pin	sections/gen/docs-texts.tex:392	\texttt{main}'s typed executor and one-round bound, ``adopt when: the pin bump'' (\texttt{:\allowbreak{}201}), are now in the pin; Cl
+pin	sections/gen/docs-texts.tex:392	opt when: the pin bump'' (\texttt{:\allowbreak{}201}), are now in the pin; Clean pull requests 466, 464 and 446 against the new Clean
+pin	sections/gen/docs-texts.tex:392	n the pin; Clean pull requests 466, 464 and 446 against the new Clean pin \texttt{42fe4b26}; ``a CompPoly containing \#331'' (\texttt
+roadmap	sections/gen/docs-texts.tex:398	lowbreak{}6}), related issues (\texttt{:\allowbreak{}8}), ``What this roadmap builds (revision 2)'' (\texttt{:\allowbreak{}10-\allowbreak
+pin	sections/gen/docs-texts.tex:398	}, unchanged since 2026-09-28 14:28 UTC) has nine parts: pointers and pins (\texttt{:\allowbreak{}1-\allowbreak{}4}), a claim to hold
+pin	sections/gen/docs-texts.tex:432	he VCVio controls (\texttt{:\allowbreak{}40}) are not a hole; and the pins of \texttt{:\allowbreak{}4} and \texttt{:\allowbreak{}14} a
+pin	sections/gen/docs-texts.tex:432	xttt{:\allowbreak{}4} and \texttt{:\allowbreak{}14} are no longer the pins (\cref{sec:docs-pins}).
+pin	sections/gen/docs-texts.tex:432	and \texttt{:\allowbreak{}14} are no longer the pins (\cref{sec:docs-pins}).
+zerocheck	sections/gen/docs-texts.tex:509	allowbreak{}c ≠ 0} (\texttt{:\allowbreak{}955-\allowbreak{}977}); the zerocheck charge (convention \emph{Seams}, \texttt{:\allowbreak{}333}
+pin	sections/gen/docs-texts.tex:514	wbreak{}1136-\allowbreak{}1144}) & ``its two witness lemmas reuse the pinned ArkLib's proofs, and the wrappers into the existential and
+slice	sections/gen/docs-texts.tex:515	am watch ``ArkLib \#4 (Merkle umbrella)'', closed, and ``ArkLib \#907 slices … landing daily'', closed (\texttt{:\allowbreak{}154}) \\\a
+pin	sections/gen/docs-texts.tex:515	the tests at \texttt{κ = 3} and at toy parameters & the test ``every pinned coding parameter with an achievability witness (… a list-de
+pin	sections/gen/docs-texts.tex:515	ned coding parameter with an achievability witness (… a list-decoding pin can be false at the production rate)'' (\texttt{:\allowbrea
+roadmap	sections/gen/docs-texts.tex:541	\textbf{Issue 3 (the Flock roadmap).} Its body does not mention the proof system. What the pro
+roadmap	sections/gen/docs-texts.tex:553	leanISA tracker).} Its ``Related'' line says ``\#12 (the proof-system roadmap, which proves \texttt{SatisfiedBy}; its requests \#13 are s
+roadmap	sections/gen/docs-texts.tex:553	ich proves \texttt{SatisfiedBy}; its requests \#13 are settled in the roadmap)''. The proof system proves knowledge of its own relation o
+roadmap	sections/gen/docs-texts.tex:564	e over binary fields).} Nothing: its line on \#12, ``the proof-system roadmap reads the M3 bus off the same channels'', is right.
+pin	sections/gen/docs-texts.tex:571	CAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: whether the new Clean pin \texttt{42fe4b26} (pull request 61) contains Clean pull req
+pin	sections/gen/docs-texts.tex:571	her the eager-\texttt{Fintype} concern is retired by the new CompPoly pin, which would change ``Blocked on''.]}
+slice	sections/gen/docs-texts.tex:587	linear API. The game depends on P05'' (a private code for the algebra slice, and a closed pull request): ``The algebra depends only on
+slice	sections/gen/docs-texts.tex:593	18 at \texttt{41b79b3c…}'' and ``Depends on the corrected fingerprint slice over PR \#18'': pull request 18 is closed and its content i
+pin	sections/gen/docs-texts.tex:601	sue (\#33), ArkLib issue 901, the specification section (§5.2) at the pin, that it is written from the specification, the ledger entr
+roadmap	sections/gen/docs-vocabulary.tex:22	The document that says what is wanted & ``roadmap'': BP 25, ST 16, TB 13; ``blueprint'': BP 5, ST 3, TB 3, HC
+roadmap	sections/gen/docs-vocabulary.tex:22	xttt{protocol-\allowbreak{}blueprint.\allowbreak{}md}; its title is ``Roadmap: ...'' & blueprint & a reader of the tracker meets both wor
+dashboard	sections/gen/docs-vocabulary.tex:23	The tracking issue & ``dashboard'': BP 7, ST 2; ``tracker'': BP 2; ``tracking issue'': BP 1,
+unit of work	sections/gen/docs-vocabulary.tex:24	A unit of work & ``hole'': BP 48, TB 29, HC 21; ``layer'': BP 172, HC 40;
+unit of work	sections/gen/docs-vocabulary.tex:24	9; ``half'': BP 10; ``leaf'': see below & ``hole'', defined once (``a unit of work the spine leaves open: a phase, a generic component, the ad
+unit of work	sections/gen/docs-vocabulary.tex:24	losed issue's number, the pull request). The earlier draft proposed ``unit of work'' instead; the second pass keeps ``hole'', the brief's word
+unit of work	sections/gen/docs-vocabulary.tex:24	sec:docs-proposal-owners} and \cref{sec:docs-proposal-codes} below, ``unit of work'' and ``unit'' mean a hole \\\addlinespace[2pt]
+slice	sections/gen/docs-vocabulary.tex:24	'': BP 48, TB 29, HC 21; ``layer'': BP 172, HC 40; ``unit'': BP 29; ``slice'': BP 9; ``half'': BP 10; ``leaf'': see below & ``hole'', d
+pin	sections/gen/docs-vocabulary.tex:25	ak{}447}) & ``upstream ledger'' for what is admitted or absent at the pin and what replaces it; ``upstream watch'' for external work
+roadmap	sections/gen/docs-vocabulary.tex:26	boundary blocks of the bus and the section ``Boundaries'' with other roadmaps \\\addlinespace[2pt]
+roadmap	sections/gen/docs-vocabulary.tex:29	.\allowbreak{}md:\allowbreak{}356}), and a track of work in the Flock roadmap (\texttt{:\allowbreak{}1446}). ``limb'' is also used for a
+unit of work	sections/gen/docs-vocabulary.tex:30	'': BP 19, RP 33 & claim pool & ``claim'' is also the act of taking a unit of work (``claimed'': BP 7, TB 7) \\\addlinespace[2pt]
+PIOP	sections/gen/docs-vocabulary.tex:34	The protocol & ``oracle protocol'': BP 11; ``PIOP'' in names (\texttt{leanVmPiop}); ``IOR'': BP 1; ``IOPP'' (
+evalOracle	sections/gen/docs-vocabulary.tex:34	mes as a proximity proof the compiled protocol ``WHIR in place of the evaluation oracle'' (\texttt{:\allowbreak{}1214-\allowbreak{}1215}) \\\addlin
+Category	sections/gen/docs-vocabulary.tex:41	tions: hole, seam, spine, the wall, ledger, frontier, toy (instance), Category A and Category B, M3 (expanded only in the references, \textt
+Category	sections/gen/docs-vocabulary.tex:41	am, spine, the wall, ledger, frontier, toy (instance), Category A and Category B, M3 (expanded only in the references, \texttt{:\allowbreak{
+roadmap	sections/gen/findings-boundary.tex:36	\file{docs/roadmap/protocol-blueprint.md} at leanerVM \code{b435631}; \file{ar
+roadmap	sections/gen/findings-boundary.tex:38	\file{protocol-status.md} under \file{docs/roadmap/}, at the same revision. Lean files are named by
+pin	sections/gen/findings-boundary.tex:43	cited at its old pin \code{93c9d1ef}, ArkLib at \code{dca90385}, CompPoly at \co
+pin	sections/gen/findings-boundary.tex:48	o-end-protocol.tex} is under \file{doc/leanvm/body/}; all at leanVM's pin
+roadmap	sections/gen/findings-boundary.tex:66	\src{docs/roadmap/protocol-blueprint.md:803-805 at b435631}
+roadmap	sections/gen/findings-boundary.tex:138	\src{docs/roadmap/protocol-blueprint.md:1247-1248 at b435631}
+roadmap	sections/gen/findings-boundary.tex:187	\src{docs/roadmap/protocol-blueprint.md:1249-1250 at b435631}
+roadmap	sections/gen/findings-boundary.tex:227	\cref{f:boundary-completeness-resources})}. Ask the leanISA roadmap (\emph{Boundaries},
+roadmap	sections/gen/findings-boundary.tex:300	decision 12), which only the Flock roadmap (issue \#3) defines; the consequence lemma
+roadmap	sections/gen/findings-boundary.tex:309	\fhead{Proposed change} Layer 3 takes, and the Flock roadmap supplies, one instance-free
+pin	sections/gen/findings-boundary.tex:330	poly-bridge}{The polynomial bridge of Layer 2 is noncomputable at the pin}
+pin	sections/gen/findings-boundary.tex:335	\bndc{572f9973}, read with \bndc{git show} of the new pin); \bndc{M3Holds} is meant to be decided
+the Rust	sections/gen/findings-boundary.tex:505	\asis \enquote{Structure checks on public data that the Rust \bndc{assert!}s (finding F10) are
+roadmap	sections/gen/findings-boundary.tex:535	ess's to state and is not given by the per-statement theorems of this roadmap.
+roadmap	sections/gen/findings-boundary.tex:548	\fhead{Proposed change} Report to the leanISA roadmap (\emph{Boundaries}, \bndc{bp:1433-1441}).
+pin	sections/gen/findings-bus.tex:11	\file{python-verifier/verifier.py}. These are at leanVM's pin \code{a386121f}. \code{bp:} is the
+roadmap	sections/gen/findings-bus.tex:12	blueprint \file{docs/roadmap/protocol-blueprint.md} and \code{st:} the status
+roadmap	sections/gen/findings-bus.tex:13	\file{docs/roadmap/protocol-status.md}, both at leanerVM \code{b435631} (the m
+pin	sections/gen/findings-bus.tex:18	ArkLib is cited at its old pin \code{dca90385}. The number after the colon is the line.
+pin	sections/gen/findings-bus.tex:29	that reading, is accepted by the pinned Python verifier (dossier \file{gt-bus.md}, section H.1;
+the Rust	sections/gen/findings-bus.tex:49	message of degree 5 has six coefficients and five on the wire, where the Rust
+pin	sections/gen/findings-bus.tex:89	r'' (\code{bp:321}), and Layer 5 ``a fresh $λ$ per layer … exactly as pinned''
+zerocheck	sections/gen/findings-bus.tex:106	of Layer 5 cannot be appended in the bus phase, and cannot carry the zerocheck clause}
+roadmap	sections/gen/findings-bus.tex:118	\src{docs/roadmap/protocol-blueprint.md:930-937 at b435631}
+pin	sections/gen/findings-bus.tex:124	ose completeness and knowledge-soundness theorems are admitted at the pin:
+pin	sections/gen/findings-bus.tex:145	function, but at the pin \code{dca90385} ArkLib has no such declaration; the substan
+the Rust	sections/gen/findings-bus.tex:185	n{Admissible} is the caps alone, \lean{verify_iff_compiled} is false (the Rust rejects
+pin	sections/gen/findings-bus.tex:216	At the pin, \code{py:1378} calls \code{build_layout}, which begins:
+pin	sections/gen/findings-bus.tex:231	uires a power of two (\code{py:252-254}). The check is present at the pin;
+the Rust	sections/gen/findings-bus.tex:235	nly renamed the constant \code{BLAKE2S.opcode} to \code{OP_BLAKE2S}.) The Rust
+zerocheck	sections/gen/findings-bus.tex:246	\begin{finding}{minor}{f:bus-zerocheck-charge}{The zerocheck escape is charged in four different w
+zerocheck	sections/gen/findings-bus.tex:246	\begin{finding}{minor}{f:bus-zerocheck-charge}{The zerocheck escape is charged in four different ways, none tight, one t
+zerocheck	sections/gen/findings-bus.tex:255	\code{gkrError 3 μ_bus}'', no zerocheck term. \code{bp:1001-1003}: ``charged to the $(α, β)$ and GK
+zerocheck	sections/gen/findings-bus.tex:262	\lean{gkrError}. The zerocheck escape adds nothing: on each coordinate of $ζ$ (the last la
+pin	sections/gen/findings-bus.tex:291	\fhead{Proposed change} A new row of the pinned conventions: ``Leaf stacks | Per side, the blocks
+zerocheck	sections/gen/findings-bus.tex:312	\item \code{BusOut.linear} lists the zerocheck claims table by table, then push, pull, count, which
+the Rust	sections/gen/findings-bus.tex:330	the Rust's rejections as ``four predicates plus truncations'' (\code
+the Rust	sections/gen/findings-bus.tex:332	\lean{verify} accepts streams the Rust rejects, and \lean{verify} is specified as the verifier
+zerocheck	sections/gen/findings-bus.tex:355	e bus: the trees have depth 0, $ζ$ has no coordinate, and the table's zerocheck
+the Rust	sections/gen/findings-bus.tex:356	point needs $τ_j$. The Rust guards the inequality at the start of the table sumcheck
+zerocheck	sections/gen/findings-bus.tex:370	ool, α, β}, a \code{relOut} with ``count root $≠ 0$'' and without the zerocheck
+pin	sections/gen/findings-bus.tex:400	-one-root}{The status file's finding on the one bus root misreads the pinned specification}
+the Rust	sections/gen/findings-bus.tex:424	The blueprint follows the Rust on each, rightly. The seven are items 1 to 7 of
+the Rust	sections/gen/findings-bus.tex:428	in the Python verifier; the fingerprint bound, the count columns and the Rust's layout
+zerocheck	sections/gen/findings-bus.tex:444	(Dossier \file{gt-bus.md}, section D.1.) \lean{gkrError} and the zerocheck charge are the
+the Rust	sections/gen/findings-bus.tex:445	print's own analysis; the specification cannot be cited for them, and the Rust asserts only a
+PIOP	sections/gen/findings-code.tex:30	ity} demands each phase's round-by-round bound at that error; \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} is stated at \texttt{p
+pin	sections/gen/findings-code.tex:97	has a pure prover output, because no query is possible. ArkLib at the pin has the instance \texttt{Prover.\allowbreak{}instOutputIsPu
+pin	sections/gen/findings-code.tex:99	ification}a deviation forced by an upstream library, retired when the pin includes a module the spine can import.
+Category	sections/gen/findings-code.tex:112	old of instances whose relation is empty. For leanISA the instance is Category B (layouts, separators, count columns, lines) and its non-vac
+slice	sections/gen/findings-code.tex:124	gh \texttt{I.\allowbreak{}column} and is unchanged. The toy's \texttt{slice} becomes a theorem. Blueprint \texttt{:447-{}450} according
+pin	sections/gen/findings-code.tex:161	se value was sent the value pooled is the value sent, as §8.2 and the pinned verifiers pool it; for the others it is the value the verif
+the Rust	sections/gen/findings-code.tex:169	break{}3\allowbreak{}0\allowbreak{}-{}\allowbreak{}3\allowbreak{}1}); the Rust (\texttt{cpu/\allowbreak{}mod.\allowbreak{}rs:752-{}755}),
+the Rust	sections/gen/findings-code.tex:169	texttt{:1218-{}1221}) cannot hold with a \texttt{verify} written from the Rust, and cannot detect the difference with a \texttt{verify} wr
+pin	sections/gen/findings-code.tex:177	\asis So the pinned verifiers accept transcripts this verifier rejects, their k
+pin	sections/gen/findings-code.tex:178	\asproposed So the pinned verifiers accept transcripts this verifier rejects. Their v
+pin	sections/gen/findings-code.tex:200	\begin{finding}{minor}{f:code-pub-publicline-sent-pinned-prose-only}{\texttt{PublicLine.\allowbreak{}sent} is pinned
+pin	sections/gen/findings-code.tex:200	line-sent-pinned-prose-only}{\texttt{PublicLine.\allowbreak{}sent} is pinned by prose only (G.4)}
+pin	sections/gen/findings-code.tex:206	ow \enquote{Public input} (\texttt{:335}) add: \enquote{The choice is pinned by two tests: Layer 3's \texttt{\#guard} on \texttt{leanIsa
+pin	sections/gen/findings-code.tex:211	th only the check fixes (\texttt{:96-{}99}, \texttt{:136-{}137}); the pinned transcript carries exactly two scalars. Layer 12 must seria
+slice	sections/gen/findings-code.tex:240	wbreak{}md} 2.4, 5.4). Layer 1 has only high-index selection (\texttt{slice}, \texttt{evalMle\_\allowbreak{}append\_\allowbreak{}boolVe
+slice	sections/gen/findings-code.tex:258	nsports the sum type to \texttt{ColumnId}.} Tests: the slot's strided slice against the aligned slice of the same index; a limb claim's
+slice	sections/gen/findings-code.tex:258	exttt{ColumnId}.} Tests: the slot's strided slice against the aligned slice of the same index; a limb claim's lifted point against \tex
+the Rust	sections/gen/findings-code.tex:258	son: without it the instance's \texttt{layout} cannot be written, and the Rust's \texttt{Strided} claims have no Lean counterpart.
+pin	sections/gen/findings-code.tex:278	\begin{finding}{minor}{f:code-l1-order-equal-size-blocks-pinned}{The order of equal-size blocks is pinned by no statement,
+pin	sections/gen/findings-code.tex:278	-l1-order-equal-size-blocks-pinned}{The order of equal-size blocks is pinned by no statement, definition or test before the compiled ver
+pin	sections/gen/findings-code.tex:288	\begin{change}{The order of equal-size blocks is pinned by no statement, definition or test before the compiled ver
+pin	sections/gen/findings-code.tex:290	reak{} 3)}, \texttt{κ\_\allowbreak{}bc = 4}, whose 92 offsets are the pinned Python's \texttt{build\_\allowbreak{}layout}), where a tabl
+pin	sections/gen/findings-code.tex:311	} (rewritten with \texttt{K.\allowbreak{}ofBits} for the new CompPoly pin, H).
+pin	sections/gen/findings-code.tex:326	\reason the current wording suggests the descending order pins the placement, which is the reading that hides G.3.
+evalOracle	sections/gen/findings-code.tex:339	t is Layer 0's, listed under \enquote{Protocol (leanVM)} with \texttt{evalOracle}) and add \texttt{B\allowbreak{}l\allowbreak{}o\allowbreak{
+slice	sections/gen/findings-code.tex:388	ak{}eval\_\allowbreak{}ambient}, \texttt{bytecodeSlotColumn}, \texttt{slice\_\allowbreak{}bytecodeColumn}, \texttt{evalMle\_\allowbreak
+the Rust	sections/gen/findings-code.tex:398	w: the specification's \texttt{M = ⌈log₂ N⌉} has no floor or ceiling, the Rust and the Python bound the witness stack to \texttt{[15,\allo
+the Rust	sections/gen/findings-code.tex:398	s stack to \texttt{[15,\allowbreak{} 28]} (B.2; the blueprint follows the Rust and the Python); the specification gives no tie rule, both
+the Rust	sections/gen/findings-code.tex:398	rifiers break ties by column index (B.2; the blueprint follows them); the Rust evaluates the program's share per column, the Python as one
+pin	sections/gen/findings-docs.tex:5	uments disagree with each other and with the repository, not with the pinned sources), except where a finding says otherwise; the classi
+roadmap	sections/gen/findings-docs.tex:13	an error of the blueprint, against the leanISA roadmap (the program condition itself is faithful to leanVM, where
+dashboard	sections/gen/findings-docs.tex:43	eak{}591} ``Its specification is a section of the hole comment on the dashboard \#12''; \texttt{:\allowbreak{}1485-\allowbreak{}1487}). The
+pin	sections/gen/findings-docs.tex:73	b \#4'' and ``\#3 there'' as links to leanerVM items), \cref{sec:docs-pins} (both say the pins are unchanged; pull request 61 moved fo
+pin	sections/gen/findings-docs.tex:73	ere'' as links to leanerVM items), \cref{sec:docs-pins} (both say the pins are unchanged; pull request 61 moved four). The Layer 1 rev
+pin	sections/gen/findings-docs.tex:87	\begin{finding}{minor}{f:docs-superseded-pins}{The blueprint states superseded pins as current}
+pin	sections/gen/findings-docs.tex:87	nding}{minor}{f:docs-superseded-pins}{The blueprint states superseded pins as current}
+pin	sections/gen/findings-docs.tex:90	\cref{sec:docs-pins}, items 1 to 6: after pull request 61 the blueprint says in
+pin	sections/gen/findings-docs.tex:90	endency at \texttt{dca90385}'' (\texttt{:\allowbreak{}113}), that the pins are ArkLib \texttt{dca90385}, CompPoly \texttt{3468b38c}, C
+pin	sections/gen/findings-docs.tex:106	633-\allowbreak{}635}) says what Layer 0 did at the time and that the pins have since moved (``Layer 0 added ArkLib, then at \texttt{d
+pin	sections/gen/findings-docs.tex:106	tt{dca90385}, …''). The ledger's column becomes ``ArkLib state at the pin'' and is re-read at \texttt{7653a901}.
+dashboard	sections/gen/findings-docs.tex:171	ays no issue is opened for a hole; a review fact ``is recorded on the dashboard's history'' (\texttt{protocol-\allowbreak{}status.\allowbre
+roadmap	sections/gen/findings-docs.tex:189	llowbreak{}557,\allowbreak{} 560}) without defining them; the leanISA roadmap numbers its decisions from 1, so ``decision 15'' means two
+pin	sections/gen/findings-docs.tex:209	(\texttt{:\allowbreak{}177}); three citations into ArkLib at the old pin drifted (\cref{sec:docs-crossrefs}).
+pin	sections/gen/findings-docs.tex:224	Lib citations per \cref{sec:docs-crossrefs} (to be re-read at the new pin).
+pin	sections/gen/findings-docs.tex:227	docs-vcvio-merkle}{The upstream ledger misses the Merkle trees of the pinned VCVio, and cites a closed issue}
+pin	sections/gen/findings-docs.tex:230	ue 4, closed on 2026-09-27 in favour of VCVio issue 571. At the VCVio pin \texttt{f9dc47d9}, read before the upgrade, \texttt{Crypto\
+pin	sections/gen/findings-docs.tex:233	break{}rs:\allowbreak{}14-\allowbreak{}67}); and its state at the new pin \texttt{a4232d08}.
+roadmap	sections/gen/findings-docs.tex:246	texttt{leanvm-\allowbreak{}target.\allowbreak{}md}, by name, for both roadmaps.
+roadmap	sections/gen/findings-docs.tex:249	{note}{f:docs-layer0-comments}{The Layer 0 module's comments cite the roadmap, layer numbers and a letter code}
+roadmap	sections/gen/findings-docs.tex:252	31,\allowbreak{} 37,\allowbreak{} 66} at \texttt{b435631} (``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\allowbreak{}pro
+roadmap	sections/gen/findings-docs.tex:252	exttt{b435631} (``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\allowbreak{}protocol-\allowbreak{}blueprint.\allowbreak{}m
+roadmap	sections/gen/findings-docs.tex:252	k{}blueprint.\allowbreak{}md})'', ``(leanISA status finding P3)'', ``(roadmap convention \emph{The oracle})'', ``Layer 11''), against the
+roadmap	sections/gen/findings-docs.tex:252	gainst the convention ``Comments … cite the specification, never this roadmap'' (\texttt{:\allowbreak{}329}). Still so at \texttt{144c5aa
+pin	sections/gen/findings-docs.tex:252	o at \texttt{144c5aa}, where the upgrade updated the same docstring's pins and wrote ``and of VCVio through it'', although VCVio is no
+roadmap	sections/gen/findings-docs.tex:255	ed change} rewrite the module docstring's first paragraph without the roadmap, the layer numbers and the code (``the eager \texttt{Fintyp
+dashboard	sections/gen/findings-docs.tex:261	dits for GitHub, ``the L1 line and the open pull request table of the dashboard \#12'' (\texttt{docs/\allowbreak{}reviews/\allowbreak{}prot
+pin	sections/gen/findings-docs.tex:285	ttt{b435631} resolves (150 links); every one of 81 citations into the pinned leanVM sources resolves to an existing range once its crate
+pin	sections/gen/findings-docs.tex:285	anvm/\allowbreak{}drafts/\allowbreak{}}); 40 of 43 citations into the pinned libraries are at the cited place (the old pins); all 30 ref
+pin	sections/gen/findings-docs.tex:285	3 citations into the pinned libraries are at the cited place (the old pins); all 30 references to numbered acceptance tests point at t
+pin	sections/gen/findings-flock-ring.tex:6	ection; the number after the colon is the line. leanVM is read at its pin
+roadmap	sections/gen/findings-flock-ring.tex:9	\item leanerVM: \code{bp:} is the blueprint \file{docs/roadmap/protocol-blueprint.md},
+roadmap	sections/gen/findings-flock-ring.tex:10	\code{st:} the status \file{docs/roadmap/protocol-status.md}; Lean files are under
+zerocheck	sections/gen/findings-flock-ring.tex:16	under \file{crates/flock/src/}: \code{hash.rs}, \code{gf2.rs}, \code{zerocheck.rs},
+zerocheck	sections/gen/findings-flock-ring.tex:17	\code{lincheck.rs}; under \file{crates/flock/src/zerocheck/}:
+roadmap	sections/gen/findings-flock-ring.tex:30	The four major findings are all in text that the Flock roadmap will build from.
+roadmap	sections/gen/findings-flock-ring.tex:59	\src{docs/roadmap/protocol-blueprint.md:1077-1082 at b435631}
+Category	sections/gen/findings-flock-ring.tex:98	its source (the blueprint's Category B: \code{hash_flock.rs:87-115}, cross-checked with
+slice	sections/gen/findings-flock-ring.tex:102	\lean{boolVec j ++ z} is its low-index slice evaluated at $z$);
+roadmap	sections/gen/findings-flock-ring.tex:143	\lean{Flock.Holds} is the Flock roadmap's predicate on a packed column and mentions no instance.
+the Rust	sections/gen/findings-flock-ring.tex:150	soundness error, and attributes to the protocol an inverse that only the Rust
+the Rust	sections/gen/findings-flock-ring.tex:157	s/src/multilinear.rs:185}, \code{verifier.py:1099} and \code{:1110}.) The Rust
+zerocheck	sections/gen/findings-flock-ring.tex:169	\src{crates/flock/src/zerocheck.rs:116-123}
+pin	sections/gen/findings-flock-ring.tex:179	confirmed on a model of the two formulas over the pinned Python field (the dossier's probe 9.2);
+pin	sections/gen/findings-flock-ring.tex:195	's included, sends the coefficients of the true round polynomial. The pinned Rust
+zerocheck	sections/gen/findings-flock-ring.tex:197	(\code{zerocheck.rs:116-118}), and at $r = 1$ emits a proof its verifier rej
+the Rust	sections/gen/findings-flock-ring.tex:274	specification; its circuit, layout and constants exist only in the Rust and the Python}
+the Rust	sections/gen/findings-flock-ring.tex:307	blueprint follows the Rust, rightly, and should say so.
+zerocheck	sections/gen/findings-flock-ring.tex:315	\code{zerocheck/univariate_skip_optimized.rs:65, 104-106},
+the Rust	sections/gen/findings-flock-ring.tex:318	\reason The specification is incomplete; the blueprint follows the Rust, rightly, and should
+pin	sections/gen/findings-flock-ring.tex:352	with completeness and soundness both admitted at the pin and on \code{origin/main}; no
+pin	sections/gen/findings-flock-ring.tex:356	the ArkLib pin is \code{7653a901}, not \code{dca90385}; the 14 \code{sorry
+pin	sections/gen/findings-flock-ring.tex:357	Switching/Packing/} are the same at both, so \enquote{admitted at the pin and on
+pin	sections/gen/findings-flock-ring.tex:358	\code{origin/main}} holds at the old and at the new pin.)
+pin	sections/gen/findings-flock-ring.tex:368	essage, batching vector, relocation sumcheck), 14 \code{sorry} at the pin and
+pin	sections/gen/findings-flock-ring.tex:379	verifier omits the caps is false at the pin}
+pin	sections/gen/findings-flock-ring.tex:383	(\code{verifier.py:1372-1379} \dots)}. At the pin:
+pin	sections/gen/findings-flock-ring.tex:396	at the pin; it was assembled in \code{8a6e7750}, \code{348ca455} and \
+roadmap	sections/gen/findings-flock-ring.tex:408	Flock phase's definition, which no roadmap has started}
+pin	sections/gen/findings-flock-ring.tex:410	3-286}), so the fixture of Layer 12, \enquote{a proof dumped from the pinned Rust
+pin	sections/gen/findings-flock-ring.tex:426	\begin{finding}{note}{f:flock-ring-rust-prover-incomplete}{The pinned Rust prover of Flock is not
+the Rust	sections/gen/findings-flock-ring.tex:432	reason is that the specification's protocol is perfectly complete and the Rust's shortcut is
+the Rust	sections/gen/findings-flock-ring.tex:443	determines $\qflock$} holds up to a list. The Rust's parameter analysis multiplies the ring
+pin	sections/gen/findings-flock-ring.tex:453	cannot be recomputed at the pin}
+the Rust	sections/gen/findings-flock-ring.tex:455	covers \enquote{Flock's BLAKE2s R1CS matrices}. The Rust binds \code{R1CS_DIGEST}, of which
+Category	sections/gen/findings-flock-ring.tex:459	y:629}). The constant is transcribed from its source (the blueprint's Category B)
+the Rust	sections/gen/findings-flock-ring.tex:464	\begin{finding}{note}{f:flock-ring-stale-comments}{Stale comments in the Rust on what binds the
+zerocheck	sections/gen/findings-flock-ring.tex:475	citation check found two more stale comments of the same kind: \code{zerocheck.rs:389-390}
+zerocheck	sections/gen/findings-flock-ring.tex:477	= G(0) + G(1) + G(∞)$ and $c_2 = G(∞)$ (\code{zerocheck.rs:118} with \code{transcript.rs:63-71});
+roadmap	sections/gen/findings-flock-ring.tex:490	identity of \code{a-ring:150-154}, owed by the Flock roadmap.
+roadmap	sections/gen/findings-libraries.tex:35	only. Every interface and theorem of this roadmap is stated in the \lean{With} form with a compiled
+pin	sections/gen/findings-libraries.tex:46	\lean{flockError}, a soundness error. The pinned Rust prover takes the inverse
+zerocheck	sections/gen/findings-libraries.tex:47	rates/}\allowbreak\file{flock/}\allowbreak\file{src/}\allowbreak\file{zerocheck.rs:117}), which is $0$ at $r_{\mathrm{eq}} = 1$
+pin	sections/gen/findings-libraries.tex:48	ak\file{field/}\allowbreak\file{gf2_64x3.rs:144-153}). ArkLib at both pins composes
+pin	sections/gen/findings-libraries.tex:77	\fhead{Evidence} ArkLib's \file{AGENTS.md} at both pins calls \file{ArkLib/}\allowbreak\file{OracleReduction/}
+roadmap	sections/gen/findings-libraries.tex:79	\file{docs/}\allowbreak\file{design/}\allowbreak\file{05-roadmap.md} at \code{7653a901}; the typed framework has no knowledg
+pin	sections/gen/findings-libraries.tex:81	no relevant admission was lifted between the pins (\cref{sec:gen-lib-ark-port,sec:gen-lib-ark-new}).
+pin	sections/gen/findings-libraries.tex:83	port is deleted \dots\ when the pin moves past \#615} (\file{:260}, \file{:1143}, \file{:1429})
+pin	sections/gen/findings-libraries.tex:89	\asis A2: \enquote{the port is deleted \dots\ when the pin moves past \#615}. A3: \enquote{the
+pin	sections/gen/findings-libraries.tex:105	At both pins: \lean{fiatShamir_completeness} (\file{FiatShamir/}\allowbr
+pin	sections/gen/findings-libraries.tex:125	\asproposed State that no ArkLib theorem, at either pin, states Fiat--Shamir or BCS knowledge
+pin	sections/gen/findings-libraries.tex:200	ir/}\allowbreak\file{src/}\allowbreak\file{lib.rs:95-99}); at the old pins it is definitionally the library's
+pin	sections/gen/findings-libraries.tex:207	\lean{Vector} instance needs \lean{SampleableType K}; at the new pins no library instance exists)
+evalOracle	sections/gen/findings-libraries.tex:219	egin{finding}{minor}{f:lib-evaloracle-answer-n}{\texorpdfstring{\lean{evalOracle_answer}}{evalOracle\_answer} takes \texorpdfstring{\lean{n}
+evalOracle	sections/gen/findings-libraries.tex:219	{f:lib-evaloracle-answer-n}{\texorpdfstring{\lean{evalOracle_answer}}{evalOracle\_answer} takes \texorpdfstring{\lean{n}}{n} explicitly}
+evalOracle	sections/gen/findings-libraries.tex:221	\lean{theorem evalOracle_}\allowbreak\lean{answer (n : ℕ) (q : Column n) (r : Vector
+evalOracle	sections/gen/findings-libraries.tex:222	\lean{theorem evalOracle_}\allowbreak\lean{answer (q : Column n) (r : Vector E n)}.
+evalOracle	sections/gen/findings-libraries.tex:226	\asis \lean{theorem evalOracle_}\allowbreak\lean{answer (n : ℕ) (q : Column n) (r : Vector
+evalOracle	sections/gen/findings-libraries.tex:227	\asproposed \lean{theorem evalOracle_answer {n : ℕ} (q : Column n) (r : Vector E n) :}
+evalOracle	sections/gen/findings-libraries.tex:239	\fhead{Proposed change} Add to the Layer 0 sketch after \lean{evalOracle_answer}:
+pin	sections/gen/findings-libraries.tex:251	} \dots\ ArkLib requires CompPoly at the \code{v4.33.1} tag; the root pin
+pin	sections/gen/findings-libraries.tex:255	\enquote{no \lean{LawfulBEq E} at the pin} while CompPoly \code{572f9973} has
+pin	sections/gen/findings-libraries.tex:264	ile{:633-635}: \enquote{Add ArkLib at \code{dca90385} \dots\ the root pin \code{3468b38c}
+pin	sections/gen/findings-libraries.tex:267	at the pin}. \file{:285}: no \lean{GF(2^8) ↪ E} embedding.
+pin	sections/gen/findings-libraries.tex:268	{:633-635}: \enquote{ArkLib is the \code{Arklib} requirement; current pins in
+pin	sections/gen/findings-libraries.tex:272	it equivalences.} \file{:574}: re-check \lean{LawfulBEq E} at the new pin and, if
+pin	sections/gen/findings-libraries.tex:276	\reason The pins moved; the prose describes the old ones.
+pin	sections/gen/findings-libraries.tex:282	owbreak\file{Sequential/}\allowbreak\file{NoAmbient.lean:39-55}, both pins) give \lean{guarded} and
+pin	sections/gen/findings-libraries.tex:294	admitted at both pins and whose knowledge soundness is only in the coordinate-wis
+pin	sections/gen/findings-libraries.tex:302	lean{Fintype BF64}}{Fintype BF64} blocked every executable at the old pins}
+roadmap	sections/gen/findings-libraries.tex:304	nce} \cref{sec:gen-lib-comppoly-fields}; \file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{leanisa-status.md:753-769}
+pin	sections/gen/findings-libraries.tex:305	at \code{b435631}; CompPoly \#331 (\code{290c351}), in the new pin.
+pin	sections/gen/findings-libraries.tex:313	{\lean{simp}}{simp} misreads \texorpdfstring{$\K$}{K} arithmetic (old pins)}
+pin	sections/gen/findings-libraries.tex:328	\textbf{retired} at the new pin by CompPoly \#329 (\lean{BF64} a structure). In its place,
+pin	sections/gen/findings-libraries.tex:332	nged}{Numerals in \texorpdfstring{$\K$}{K} changed meaning at the new pins}
+pin	sections/gen/findings-libraries.tex:335	\lean{K.ofBits n} at \code{144c5aa}. A literal written for the old pin compiles at the new one with
+pin	sections/gen/findings-libraries.tex:347	\reason \lean{2 : K} is $0$ at the new pin. Any future probe of this review run at the new pins
+pin	sections/gen/findings-libraries.tex:347	is $0$ at the new pin. Any future probe of this review run at the new pins
+pin	sections/gen/findings-libraries.tex:353	_MLE}}{eval\_eq\_MvPolynomial\_MLE} is likely unimportable at the new pins}
+pin	sections/gen/findings-libraries.tex:357	ile{Multilinear/}\allowbreak\file{Basic.lean:45}), whose own CompPoly pin \code{df591bb8} lacks it
+pin	sections/gen/findings-libraries.tex:362	upstream (ArkLib should drop its \lean{eval_zero} once its CompPoly pin has one) and cite the
+pin	sections/gen/findings-libraries.tex:366	edundant}{The local counting bound is redundant with VCVio at the new pin}
+pin	sections/gen/findings-libraries.tex:369	\fhead{Classification} A duplicate of upstream after the pin moved.
+the Rust	sections/gen/findings-libraries.tex:392	$\K$, $\E$, \lean{y}, \lean{ofK}, \lean{g} against the specification, the Rust and the Python:
+evalOracle	sections/gen/findings-libraries.tex:400	\item \lean{evalOracle}: query, answer, lift, the reason for the structure
+pin	sections/gen/findings-libraries.tex:403	matches \lean{NoOracle} at both ArkLib pins).
+pin	sections/gen/findings-opening.tex:14	\file{python-verifier/verifier.py}. These are at leanVM's pin \code{a386121f}. \code{bp:} is the
+roadmap	sections/gen/findings-opening.tex:15	blueprint \file{docs/roadmap/protocol-blueprint.md} and \code{st:} the status
+roadmap	sections/gen/findings-opening.tex:16	\file{docs/roadmap/protocol-status.md}, both at leanerVM \code{b435631} (the c
+pin	sections/gen/findings-opening.tex:19	\code{b435631}. ArkLib at its old pin \code{dca90385}: \code{Basic.lean}, \code{FiatShamir/Basic.
+evalOracle	sections/gen/findings-opening.tex:55	``WHIR in place of the evaluation oracle'' $→$ ``WHIR in place of the opening phase, over the
+Category	sections/gen/findings-opening.tex:297	Category B).
+Category	sections/gen/findings-opening.tex:320	transcribed content (the blueprint's Category B).
+pin	sections/gen/findings-opening.tex:325	{f:opening-annex-numbers}{The blueprint's Annex B numbers are not the pinned counter's}
+Category	sections/gen/findings-opening.tex:353	Category B).
+PIOP	sections/gen/findings-opening.tex:358	\begin{finding}{minor}{f:opening-piop-error-window}{\texttt{piopError\_le}'s bound depends on the
+PIOP	sections/gen/findings-opening.tex:359	\fhead{Evidence} \Cref{sec:gen-opening-piop-error} (agrees with \cref{f:bus-admissible} and
+pin	sections/gen/findings-opening.tex:368	e status file's finding on the Python verifier's caps is false at the pin}
+the Rust	sections/gen/findings-opening.tex:388	only to match the Rust's rejection set, not for any theorem.
+the Rust	sections/gen/findings-opening.tex:391	\begin{finding}{note}{f:opening-rust-list-accounting}{The Rust's list-size accounting}
+the Rust	sections/gen/findings-opening.tex:396	$L_0 ≤ 2^{9.34}$ the room is $≈ 23.7$ bits by the Rust's count, so ``23 bits'' is consistent.)
+pin	sections/gen/findings-opening.tex:402	found more stale comments at the pin: \code{whir.rs:1364-1365} (and \code{1771-1772}) say level
+pin	sections/gen/findings-opening.tex:404	and \code{1636-1637} mention fold grinds the pinned code does not perform.
+pin	sections/gen/findings-opening.tex:407	\paragraph{Other notes.} The leanVM working tree was moved off the pin on 2026-09-30 at 09:42
+pin	sections/gen/findings-opening.tex:408	(reflog), not by this review; the pinned objects are intact and every citation was re-verified with
+pin	sections/gen/findings-opening.tex:409	\code{git show}. Both Lean probes elaborate at the old and the new pins
+pin	sections/gen/findings-opening.tex:411	check found the new-pin log; no log of the old-pin run of 2026-09-29 is on disk, so
+pin	sections/gen/findings-opening.tex:411	check found the new-pin log; no log of the old-pin run of 2026-09-29 is on disk, so that run could
+the Rust	sections/gen/findings-opening.tex:415	ref{tab:gen-opening-lambda}); the Python's \code{verify_whir} against the Rust's
+the Rust	sections/gen/findings-opening.tex:417	\code{derive_config} against the Rust's \code{configs_for_rate} for all 56 $(ρ, μ)$
+pin	sections/gen/findings-opening.tex:422	its \lean{ladder_queries_eq} pin (\cref{sec:gen-opening-parameters}); its \emph{Fiat--Shamir
+pin	sections/gen/findings-table-pub.tex:6	the pin \code{a386121f}, leanerVM files at \code{b435631}; a bare \
+roadmap	sections/gen/findings-table-pub.tex:10	\code{bp:} & \file{docs/roadmap/protocol-blueprint.md} (leanerVM) \\
+pin	sections/gen/findings-table-pub.tex:77	d 1 in $\K$, so the change of meaning of numerals at the new CompPoly pin does not
+pin	sections/gen/findings-table-pub.tex:78	affect them; whether they still elaborate on the new pins is unknown.)
+the Rust	sections/gen/findings-table-pub.tex:93	\asproposed The statement has leanVM's shape, the Rust's \code{BusVerify}
+Category	sections/gen/findings-table-pub.tex:143	\reason The schedule is Category B; a longer one rejects every Rust proof.
+the Rust	sections/gen/findings-table-pub.tex:159	deployed verifier (it rejects proofs the Rust accepts), or it has the combined check and the
+pin	sections/gen/findings-table-pub.tex:164	\asis (\code{bp:1060-1062}) ``So the pinned verifiers accept transcripts this verifier rejects,
+pin	sections/gen/findings-table-pub.tex:166	\asproposed ``So the pinned verifiers accept transcripts this verifier rejects. Layer 8
+zerocheck	sections/gen/findings-table-pub.tex:205	\begin{finding}{minor}{f:table-pub-zerocheck-escape}{The zerocheck escape is over-charged, and charged i
+zerocheck	sections/gen/findings-table-pub.tex:205	\begin{finding}{minor}{f:table-pub-zerocheck-escape}{The zerocheck escape is over-charged, and charged in three different ways
+zerocheck	sections/gen/findings-table-pub.tex:213	test 6 (\code{bp:1283}): ``The state function of Layer 7 charges the zerocheck to
+zerocheck	sections/gen/findings-table-pub.tex:223	$ζ$. If the zerocheck state $Z$ (every constraint extension, with the coordinates
+zerocheck	sections/gen/findings-table-pub.tex:250	(\code{bp:1283}): ``The state function of Layer 6 carries the zerocheck.''
+zerocheck	sections/gen/findings-table-pub.tex:270	The zerocheck claims & implicit (the instance's constraints at $ζ$) & dat
+the Rust	sections/gen/findings-table-pub.tex:290	(\cref{f:table-pub-bus-seam}). leanVM's own seam is between the two, the Rust's \code{BusVerify}
+zerocheck	sections/gen/findings-table-pub.tex:316	phase's zerocheck conjunct).
+the Rust	sections/gen/findings-table-pub.tex:324	uction takes no claim and the limb claims are opened with the others: the Rust's Flock
+pin	sections/gen/findings-table-pub.tex:332	minor}{f:table-pub-status-wrong}{Two status findings are wrong at the pin}
+pin	sections/gen/findings-table-pub.tex:344	power-of-two bound and $τ_{\mathrm{BLAKE2S}} ≥ 3$''. At the pin it has them
+zerocheck	sections/gen/findings-table-pub.tex:386	(the blueprint's three charges: \cref{f:table-pub-zerocheck-escape}).
+zerocheck	sections/gen/findings-table-pub.tex:395	omitted; §3's ``a zerocheck round on a degree-$d$ cofactor therefore costs $d$ field el
+the Rust	sections/gen/findings-table-pub.tex:403	\begin{finding}{note}{f:table-pub-stale-comments}{Stale comments in the Rust on the round message}
+pin	sections/gen/findings-table-pub.tex:416	\begin{finding}{note}{f:table-pub-slot-not-pinned}{The spine's slot does not pin the protocol: a phase that r
+pin	sections/gen/findings-table-pub.tex:416	finding}{note}{f:table-pub-slot-not-pinned}{The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it}
+roadmap	sections/gen/findings-table-pub.tex:432	blueprint does (\file{docs/roadmap/leanisa-blueprint.md:612-613}; the citation check corrected
+the Rust	sections/gen/findings-table-pub.tex:433	es, which the dossier gave as 611-612). Whether leanISA's tables have the Rust's order,
+pin	sections/gen/layer0-audit.tex:14	diamond on $\K$ at the old pins is definitionally one term; the $\K$ sampler has no consume
+evalOracle	sections/gen/layer0-audit.tex:24	\lean{n} of \lean{evalOracle_answer}, the unlisted scalar interfaces, an internal incons
+evalOracle	sections/gen/layer0-audit.tex:85	\lean{evalOracle} & \file{Field.lean:102-106} & instance & a column as an or
+evalOracle	sections/gen/layer0-audit.tex:87	\lean{evalOracle_answer} & \file{Field.lean:109-110} & theorem & the unfoldi
+pin	sections/gen/layer0-audit.tex:191	wer col \#v[y, ofK 0] = ofK 1 + ofK 3 * y} (\file{:39}, where at this pin $2$ and $3$ are
+pin	sections/gen/layer0-audit.tex:224	lib-others/}\allowbreak\file{Layer0.lean}), section 4, run at the old pins}
+pin	sections/gen/layer0-audit.tex:231	\paragraph{The diamond on \texorpdfstring{$\K$}{K} (old pins).} Because $\K$ is \lean{BitVec 64}
+pin	sections/gen/layer0-audit.tex:244	le{lib-others/}\allowbreak\file{SamplerDiamond.lean}), run at the old pins; the last line is an intended error}
+pin	sections/gen/layer0-audit.tex:256	e{lib-others/}\allowbreak\file{SamplerDiamond2.lean}), run at the old pins}
+pin	sections/gen/layer0-audit.tex:267	le{lib-others/}\allowbreak\file{SamplerDiamond.lean}), run at the old pins}
+pin	sections/gen/layer0-audit.tex:280	the \lean{E} instance} (\file{protocol-blueprint.md:251}). At the old pins the instance
+pin	sections/gen/layer0-audit.tex:282	tSampleableTypeE}, through VCVio's \lean{Vector} instance; at the old pin the
+pin	sections/gen/layer0-audit.tex:285	\paragraph{At \texorpdfstring{\texttt{144c5aa}}{144c5aa} (new pins).} $\K$ is a structure
+pin	sections/gen/layer0-audit.tex:314	lib-others/}\allowbreak\file{Layer0.lean}), section 5, run at the old pins}
+evalOracle	sections/gen/layer0-audit.tex:317	\item \textbf{Name}: the code calls it \lean{evalOracle}, as the blueprint does
+evalOracle	sections/gen/layer0-audit.tex:318	l name is \lean{LeanerVM.}\allowbreak\lean{Protocol.}\allowbreak\lean{evalOracle} (probe
+evalOracle	sections/gen/layer0-audit.tex:319	er0}: \texttt{\#synth OracleInterface (Column 3)} $\Rightarrow$ \lean{evalOracle 3}).
+pin	sections/gen/layer0-audit.tex:394	le{lib-others/}\allowbreak\file{CountingBounds.lean}), run at the old pins}
+pin	sections/gen/layer0-audit.tex:405	At each pin the left side equals the same closed form by a library theo
+pin	sections/gen/layer0-audit.tex:412	the new pin).
+pin	sections/gen/layer0-audit.tex:414	\paragraph{Upstream at the new pin.} At VCVio \code{f9dc47d9} there is no duplicate: VCVio has
+pin	sections/gen/layer0-audit.tex:435	(\file{:280-284}). So at the new pin \lean{…_of_card_le} is redundant and can be replaced by the
+evalOracle	sections/gen/layer0-audit.tex:464	\code{instance evalOracle (n : ℕ) : OracleInterface (Column n) where Query := Vector
+evalOracle	sections/gen/layer0-audit.tex:466	\code{theorem evalOracle_answer (q : Column n) (r : Vector E n) : …}
+evalOracle	sections/gen/layer0-audit.tex:467	& \code{theorem evalOracle_answer (n : ℕ) (q : Column n) (r : Vector E n) : …}
+evalOracle	sections/gen/layer0-audit.tex:469	callers must write \lean{evalOracle_answer n q r} although \lean{n} is determined by \lean{q}
+evalOracle	sections/gen/layer0-audit.tex:480	(\enquote{\code{instSampleableTypeE  evalOracle  card_E}}), which also omits
+pin	sections/gen/layer0-audit.tex:486	\enquote{Add ArkLib at \code{dca90385} \dots\ the root pin \code{3468b38c} wins}
+pin	sections/gen/layer0-audit.tex:490	& at \code{144c5aa} the pins moved and \lean{Fintype K} is proof-only
+pin	sections/gen/lib-arklib-objects.tex:9	in dependency order. \textbf{Every snippet is from ArkLib at the old pin
+pin	sections/gen/lib-arklib-objects.tex:12	\paragraph{At the new pin \texorpdfstring{\texttt{7653a901}}{7653a901}.} The objects
+pin	sections/gen/lib-arklib-objects.tex:18	\file{Security/}\allowbreak\file{RoundByRound.lean} between the pins is the notation and the lemma names
+pin	sections/gen/lib-arklib-objects.tex:690	\cref{sec:gen-lib-ark-completeness}; all are proved at both pins.
+pin	sections/gen/lib-arklib-objects.tex:739	\lean{False}, at both pins: \file{Commitments/}\allowbreak\file{Functional/}\allowbrea
+pin	sections/gen/lib-arklib-objects.tex:839	both pins (\cref{sec:gen-lib-ark-baseline}). \lean{SumcheckDomain} (\
+pin	sections/gen/lib-arklib-pins.tex:4	\section{ArkLib: what is proved and admitted, at the old pin and at the new}\label{sec:gen-lib-ark-pins}
+pin	sections/gen/lib-arklib-pins.tex:4	ed and admitted, at the old pin and at the new}\label{sec:gen-lib-ark-pins}
+roadmap	sections/gen/lib-arklib-pins.tex:57	lists the ArkLib objects it relies on at \file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:232-251}.
+pin	sections/gen/lib-arklib-pins.tex:58	\enquote{Exists} means the name resolves at the pin at the place given; \enquote{proved} means no
+pin	sections/gen/lib-arklib-pins.tex:67	Blueprint row & At the pin & Proof status \\
+pin	sections/gen/lib-arklib-pins.tex:71	Blueprint row & At the pin & Proof status \\
+pin	sections/gen/lib-arklib-pins.tex:170	\subsection{ArkLib's axiom baseline, and what is admitted at each pin}\label{sec:gen-lib-ark-baseline}
+pin	sections/gen/lib-arklib-pins.tex:172	ine.} \file{scripts/}\allowbreak\file{axiom_baseline.json} at the old pin (dated 2026-09-08,
+pin	sections/gen/lib-arklib-pins.tex:179	been proved. The \code{build} check run of the pin commit concluded \code{success}. Hence a
+pin	sections/gen/lib-arklib-pins.tex:180	declaration absent from the baseline is \lean{sorryAx}-free at the pin; one present may or may
+pin	sections/gen/lib-arklib-pins.tex:182	d": []}). Counted \lean{sorry} in code (non-comment lines) at the old pin:
+pin	sections/gen/lib-arklib-pins.tex:196	\file{SchwartzZippelCounting.lean}. Whole library at the old pin: 192 code occurrences of
+pin	sections/gen/lib-arklib-pins.tex:199	\paragraph{At the new pin.} The baseline shrinks from 291 to 286 entries between the
+pin	sections/gen/lib-arklib-pins.tex:199	he new pin.} The baseline shrinks from 291 to 286 entries between the pins, but
+pin	sections/gen/lib-arklib-pins.tex:205	counts at the new pin: \file{Security/}\allowbreak\file{Implications.lean} 9 (unc
+pin	sections/gen/lib-arklib-pins.tex:208	calls one fewer than the old pin although it also gives 13 for the old pin (a discrepancy in
+pin	sections/gen/lib-arklib-pins.tex:208	alls one fewer than the old pin although it also gives 13 for the old pin (a discrepancy in the
+pin	sections/gen/lib-arklib-pins.tex:211	(\file{protocol-blueprint.md:257-267}) against both pins.
+pin	sections/gen/lib-arklib-pins.tex:215	\caption{What ArkLib admits, at the old pin and at the new, with the blueprint's ledger rows
+pin	sections/gen/lib-arklib-pins.tex:275	soundness and completeness are exactly as admitted at the new pin as at the old.
+pin	sections/gen/lib-arklib-pins.tex:293	which is the pin's own commit, \texttt{dca90385 feat(module-system): migrate
+pin	sections/gen/lib-arklib-pins.tex:304	(\file{Append/}\allowbreak\file{StateFunction.lean:51-71} at the pin), which are the same statements.
+pin	sections/gen/lib-arklib-pins.tex:315	port \dots\ except that its two lemmas on the witness type reuse the pinned ArkLib's proofs; the
+pin	sections/gen/lib-arklib-pins.tex:369	wbreak\file{Sequential/}\allowbreak\file{NoAmbient.lean:46-55} at the pin:
+pin	sections/gen/lib-arklib-pins.tex:382	ial/}\allowbreak\file{Append/} there has the same eleven files as the pin, no
+pin	sections/gen/lib-arklib-pins.tex:406	its two names in \file{Component.lean} replaced by ArkLib's, when the pin moves past
+pin	sections/gen/lib-arklib-pins.tex:414	\subsection{What the new pin \texorpdfstring{\texttt{7653a901}}{7653a901} changes}\label
+pin	sections/gen/lib-arklib-pins.tex:420	about the old pin and were not re-run.
+pin	sections/gen/lib-arklib-pins.tex:422	\paragraph{The admitted theorems of the old pin are still admitted.} See
+pin	sections/gen/lib-arklib-pins.tex:433	reduction foundations} at the old pin (\file{AGENTS.md}, unchanged at \code{7653a901}). Between
+pin	sections/gen/lib-arklib-pins.tex:434	the pins \file{ArkLib/}\allowbreak\file{Interaction/} grew from 7 to
+roadmap	sections/gen/lib-arklib-pins.tex:436	documents (\file{docs/}\allowbreak\file{design/}\allowbreak\file{05-roadmap.md}, dated 2026-09-26) say the composition milestones
+pin	sections/gen/lib-arklib-pins.tex:457	wbreak\lean{GuardedForm.}\allowbreak\lean{ofEmpty}) exists at the new pin with the same shapes (checked by name);
+roadmap	sections/gen/lib-arklib-pins.tex:461	\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:257-267}; \enquote{
+pin	sections/gen/lib-arklib-pins.tex:461	l-blueprint.md:257-267}; \enquote{the port is deleted \dots\ when the pin
+pin	sections/gen/lib-arklib-pins.tex:472	\file{Security/}\allowbreak\file{RoundByRound.lean} between the pins is the notation and the lemma names
+pin	sections/gen/lib-arklib-pins.tex:487	written in the old notation; at the new pin they would need the same mechanical rewriting before
+pin	sections/gen/lib-arklib-security.tex:13	$\sum$ \lean{piopError}} is a union bound that ArkLib admits at both pins
+pin	sections/gen/lib-arklib-security.tex:21	This section derives that reading. Revisions: ArkLib at the old pin \code{dca90385} for every
+pin	sections/gen/lib-arklib-security.tex:22	snippet, leanerVM at \code{b435631}; every probe ran at the old pin and none could be re-run after
+pin	sections/gen/lib-arklib-security.tex:382	file{Security/}\allowbreak\file{StateRestoration.lean:133-154} at the pin) and states no theorem from
+pin	sections/gen/lib-arklib-security.tex:389	a round-by-round one at the pin, and the round-by-round extractor itself receives no query
+pin	sections/gen/lib-arklib-security.tex:400	aption{The standard implications between ArkLib's notions, at the two pins.}\label{tab:gen-lib-ark-implications}\\
+roadmap	sections/gen/lib-arklib-security.tex:456	\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1224}); nothing in
+pin	sections/gen/lib-arklib-security.tex:456	wbreak\file{protocol-blueprint.md:1224}); nothing in ArkLib at either pin states it.
+roadmap	sections/gen/lib-arklib-security.tex:482	\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1130}) is therefore
+pin	sections/gen/lib-arklib-security.tex:668	\paragraph{Completeness with an error.} ArkLib at the old pin composes completeness \textbf{with
+roadmap	sections/gen/lib-arklib-security.tex:679	blueprint's \lean{FlockInterface} (\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1083}) demands
+pin	sections/gen/lib-arklib-security.tex:684	n{piop_perfectCompleteness} has no side condition on challenges.} The pinned Rust Flock prover
+zerocheck	sections/gen/lib-arklib-security.tex:685	rates/}\allowbreak\file{flock/}\allowbreak\file{src/}\allowbreak\file{zerocheck.rs:117},
+the Rust	sections/gen/lib-arklib-security.tex:687	$r_{\mathrm{eq}} = 1$ in characteristic 2 (the Rust \code{inv} returns $0$ there,
+pin	sections/gen/lib-arklib-security.tex:694	pin: give \lean{Component.Complete} an error field and use the
+pin	sections/gen/lib-clean.tex:9	Every snippet of this section is from Clean at the old pin \code{93c9d1ef}, read with
+pin	sections/gen/lib-clean.tex:10	le{.lake/}\allowbreak\file{packages/}\allowbreak\file{Clean}. At this pin Clean is
+pin	sections/gen/lib-clean.tex:13	\Cref{sec:gen-lib-clean-new} says what the new pin \code{42fe4b26} changes.
+pin	sections/gen/lib-clean.tex:286	file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
+pin	sections/gen/lib-clean.tex:308	file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
+roadmap	sections/gen/lib-clean.tex:342	leanerVM \#20 & open (updated 2026-09-24) & the Clean-side roadmap: opt-in \lean{DirectedChannel}
+pin	sections/gen/lib-clean.tex:359	normalization}: the \textbf{new pin \code{42fe4b26}} is this branch merged with Clean
+pin	sections/gen/lib-clean.tex:362	identical text), so the vacuity stands at the new pin. \\
+pin	sections/gen/lib-clean.tex:389	\code{main}, (2) leanerVM's pin reaches a Clean revision containing it, and (3) leanerVM's
+pin	sections/gen/lib-clean.tex:397	\subsection{At the new pin \texorpdfstring{\texttt{42fe4b26}}{42fe4b26}}\label{sec:gen
+pin	sections/gen/lib-clean.tex:402	eractions} are unchanged, and \#464 (directed channels) is not in the pin (a
+pin	sections/gen/lib-comppoly.tex:8	of this section is from CompPoly at the old pin \code{3468b38c} (\enquote{feat(fields): add
+pin	sections/gen/lib-comppoly.tex:10	w 3468b38c:<path>}; \cref{sec:gen-lib-comppoly-new} says what the new pin
+pin	sections/gen/lib-comppoly.tex:103	\paragraph{Bridge to Mathlib.} At the CompPoly pin there is a conversion
+pin	sections/gen/lib-comppoly.tex:193	\code{FieldFidelity}, last lines); \textbf{$\E$ has none at the old pin} (the same probe:
+pin	sections/gen/lib-comppoly.tex:271	f the eager \texorpdfstring{\texttt{Fintype BF64}}{Fintype BF64} (old pin).}
+roadmap	sections/gen/lib-comppoly.tex:274	memory. leanerVM records this (\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{leanisa-status.md:753-769} at \code{b4356
+pin	sections/gen/lib-comppoly.tex:277	simply be made \lean{noncomputable} at this pin, because \lean{ExtensionParams F} takes
+the Rust	sections/gen/lib-comppoly.tex:279	nt: the executable verifier \lean{verify}, differential tests against the Rust, and any
+pin	sections/gen/lib-comppoly.tex:280	native target are \textbf{blocked at this pin} until the CompPoly fix lands; it has
+pin	sections/gen/lib-comppoly.tex:283	\texorpdfstring{\texttt{abbrev BF64 := BitVec 64}}{abbrev BF64} (old pin).}
+pin	sections/gen/lib-comppoly.tex:296	Fidelity.lean}), lines 85--100 and output lines 2--12, run at the old pins}
+pin	sections/gen/lib-comppoly.tex:383	there is no \lean{LawfulBEq (Ext P)} at the old pin (\cref{sec:gen-lib-comppoly-mv}).
+pin	sections/gen/lib-comppoly.tex:391	pin \code{a386121f}.
+the Rust	sections/gen/lib-comppoly.tex:442	Beyond the matching definitions, the probe \code{FieldFidelity} ran the Rust's own reference
+pin	sections/gen/lib-comppoly.tex:443	ctors through leanerVM's compiled $\K$ and $\E$ arithmetic at the old pins, and every
+pin	sections/gen/lib-comppoly.tex:456	pin and the blueprint says so, \file{protocol-blueprint.md:281}
+pin	sections/gen/lib-comppoly.tex:511	\subsection{At the new pin \texorpdfstring{\texttt{572f9973}}{572f9973}}\label{sec:gen
+pin	sections/gen/lib-comppoly.tex:546	obes and fixtures.} Every numeral $\geq 2$ in $\K$ written at the old pin
+pin	sections/gen/lib-comppoly.tex:547	\emph{compiles at the new pin with another value}. The probe \code{FieldFidelity} at the
+pin	sections/gen/lib-comppoly.tex:547	ew pin with another value}. The probe \code{FieldFidelity} at the new pin
+pin	sections/gen/lib-comppoly.tex:551	n{K.ofBits 0x2} at \code{144c5aa}). Its conclusions are about the old pin and stand there;
+pin	sections/gen/lib-comppoly.tex:552	at the new pin the field and its encoding are the same (\lean{ofBitVec} of
+pin	sections/gen/lib-comppoly.tex:554	possible now). The probe \code{NumeralHazard} is moot at the new pin. Pull request \#61 rewrote
+pin	sections/gen/lib-comppoly.tex:556	{144c5aa}: \texttt{⟨\#v[1, K.ofBits 2, K.ofBits 3, K.ofBits 4]⟩}) and pins the new meaning
+pin	sections/gen/lib-comppoly.tex:583	(leanISA status finding P3) is lifted by the new pin; the blueprint's executable \lean{verify}
+pin	sections/gen/lib-comppoly.tex:591	the new pin; the blueprint's \enquote{no \lean{LawfulBEq E} at the pin}
+pin	sections/gen/lib-comppoly.tex:591	the new pin; the blueprint's \enquote{no \lean{LawfulBEq E} at the pin}
+pin	sections/gen/lib-comppoly.tex:613	CompPoly added between the pins in \file{Multilinear/}\allowbreak\file{Basic.lean} is linea
+pin	sections/gen/lib-comppoly.tex:619	ArkLib builds against its own CompPoly pin \code{df591bb8}, which lacks it, and leanerVM's root
+pin	sections/gen/lib-comppoly.tex:620	pin \code{572f9973} wins the resolution. So a leanerVM file imp
+pin	sections/gen/lib-lean.tex:9	previous sections. Definitions are quoted from Mathlib at the old pin \code{v4.33.1}
+pin	sections/gen/lib-lean.tex:16	Notion & What it is & Definition (old pin) & Where the proof system meets it \\
+pin	sections/gen/lib-lean.tex:20	Notion & What it is & Definition (old pin) & Where the proof system meets it \\
+pin	sections/gen/lib-lean.tex:156	At \code{144c5aa} the pins are Mathlib and Lean \code{v4.34.1}; \file{docs/}\allowbrea
+pin	sections/gen/lib-vcvio.tex:7	Every snippet of this section is from VCVio at the old pin \code{f9dc47d9} (\enquote{feat(complexity):
+pin	sections/gen/lib-vcvio.tex:9	lowbreak\file{VCVio/}; \cref{sec:gen-lib-vcvio-new} says what the new pin \code{a4232d08}
+pin	sections/gen/lib-vcvio.tex:348	by the kernel. (VCVio at the old pin also has a measure-theoretic semantics \lean{𝒟[…]}; the
+pin	sections/gen/lib-vcvio.tex:352	\subsection{At the new pin \texorpdfstring{\texttt{a4232d08}}{a4232d08}}\label{sec:gen
+pin	sections/gen/obligations.tex:39	121f:<path>}; the checkout has moved, brief §8); libraries at the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, VCVio \c
+pin	sections/gen/obligations.tex:39	68b38c}, VCVio \code{f9dc47d9}, Clean \code{93c9d1ef}) unless the new pin (\code{7653a901}, \code{572f9973}, \code{a4232d08}, \code{4
+roadmap	sections/gen/obligations.tex:41	n the order the task gave: \bndc{docs/architecture.md} and \bndc{docs/roadmap/protocol-blueprint.md} at \code{b435631}; the dossiers \cod
+pin	sections/gen/obligations.tex:45	ayers 0 to 13) and, through the review's dossiers, what leanVM at the pin actually runs, what ArkLib and the other libraries prove an
+pin	sections/gen/obligations.tex:66	\oblstatus{ok}{library, proved at the old pin} & proved in ArkLib, VCVio, CompPoly, Clean or Mathlib at t
+pin	sections/gen/obligations.tex:66	pin} & proved in ArkLib, VCVio, CompPoly, Clean or Mathlib at the old pin (and, where the dossier checked, at the new one) & 6 \\
+pin	sections/gen/obligations.tex:67	\oblstatus{ok}{library, proved at the new pin only} & landed upstream between the pins & 0 \\
+pin	sections/gen/obligations.tex:67	k}{library, proved at the new pin only} & landed upstream between the pins & 0 \\
+pin	sections/gen/obligations.tex:68	or}{admitted upstream} & stated in a library and \bndc{sorry} at both pins & 2 \\
+roadmap	sections/gen/obligations.tex:73	d, assumed interface} & a structure whose fields are theorems another roadmap or library owes; every theorem that uses it takes it as an
+Category	sections/gen/obligations.tex:75	\oblstatus{minor}{trusted, transcribed data} & Category B data (layouts, constants, schedules) whose only check is a
+pin	sections/gen/obligations.tex:80	s closure (lib-arklib B.1; code-spine P1; probes-rerun 1.0 at the new pin). A node marked \oblreview{…} is one on which the review fo
+zerocheck	sections/gen/obligations.tex:91	y layer's challenge; charged three incompatible ways for the recycled zerocheck point, which adds nothing; and describing rounds that do no
+the Rust	sections/gen/obligations.tex:97	_0} at production parameters is the opening dossier's reproduction of the Rust's search (110 to 396 at level 0), not a run of the Rust's \
+the Rust	sections/gen/obligations.tex:97	production of the Rust's search (110 to 396 at level 0), not a run of the Rust's \code{validate()}.
+pin	sections/gen/obligations.tex:123	view{missing} — ArkLib's \code{BCSTransform} is commented out at both pins. \emph{See:} gt-opening-compile E.4 item 1; lib-arklib D.3.
+Category	sections/gen/obligations.tex:124	{fsChallengeOracle}. \emph{Status:} \oblstatus{note}{specified only} (Category B). \emph{See:} gt-opening-compile C.1, E.4 item 2; probe H.2
+pin	sections/gen/obligations.tex:129	three interfaces cannot be inhabited by any ArkLib theorem at either pin, and even inhabited they do not compose to the conclusion:
+pin	sections/gen/obligations.tex:145	ce argument. \emph{Status:} \oblstatus{ok}{library, proved at the old pin}; fit with leanVM's trees unverified. \emph{See:} docs-debt
+the Rust	sections/gen/obligations.tex:167	ranscribed data}; the Python table is reproduced by a scratch port of the Rust's search. \emph{See:} gt-opening-compile F.2, B.3 (\code{Le
+evalOracle	sections/gen/obligations.tex:173	d only} \oblreview{wrong} — the blueprint says ``WHIR in place of the evaluation oracle'' after a \code{μ}-round opening sumcheck; see 2.3.5.1. \em
+pin	sections/gen/obligations.tex:186	exists too. \emph{Status:} \oblstatus{ok}{library, proved at the old pin} (probe \bndc{AxiomsArkLibBuilt}). \emph{See:} lib-arklib E
+pin	sections/gen/obligations.tex:189	eview{missing} — ArkLib composes additive completeness errors at both pins; whether Flock needs one is settled by gt-flock-ring (it do
+pin	sections/gen/obligations.tex:193	brKnowledgeSoundness} is \oblstatus{major}{admitted upstream} at both pins (ledger A2), and \#615 is open and in conflict on a framewo
+pin	sections/gen/obligations.tex:195	n.lean:75}). \emph{Status:} \oblstatus{ok}{library, proved at the old pin}. \emph{See:} lib-arklib B.2.
+pin	sections/gen/obligations.tex:198	e leanVM's.} \emph{States:} nothing in the oracle protocol's theorems pins the phases to leanVM: a zero-round phase whose verifier rea
+pin	sections/gen/obligations.tex:198	acle and decides the seam itself fills every slot at error zero. What pins them is 2.1.1 with its fixture and review of each \code{Def
+pin	sections/gen/obligations.tex:209	ndness only. \emph{Status:} \oblstatus{ok}{library, proved at the old pin} as a definition; \oblreview{wrong} for every blueprint int
+zerocheck	sections/gen/obligations.tex:221	ompleteness}, \code{bp:971}). \emph{States:} from \code{M3Holds}: the zerocheck claims hold at every point; the two products are one elemen
+zerocheck	sections/gen/obligations.tex:222	unning claims are the true values; on the last layer's challenges the zerocheck restriction \code{Z(T)} is carried coordinate by coordinate
+zerocheck	sections/gen/obligations.tex:228	ction\label{obl:node-2.3.1.3.5}\oblflag\textbf{2.3.1.3.5 The recycled zerocheck point} (acceptance test 6; row \emph{Seams} \code{bp:333};
+pin	sections/gen/obligations.tex:229	ck along needs ArkLib's \code{liftContext} theorems, admitted at both pins, and an appended state function cannot carry the zerocheck
+zerocheck	sections/gen/obligations.tex:229	dmitted at both pins, and an appended state function cannot carry the zerocheck clause that changes with the GKR's challenges. \emph{Status
+zerocheck	sections/gen/obligations.tex:241	back-loaded, eq-weighted summand equals \bndc{Σ_s ξ^{B+s}·rem_s} (the zerocheck claims contribute 0). \emph{Status:} \oblstatus{note}{speci
+the Rust	sections/gen/obligations.tex:245	no such checks; smallest fix: the shape in the type (\code{BusOut} as the Rust's \code{BusVerify}: one point, forms per side and table wit
+pin	sections/gen/obligations.tex:253	ok}{built and proved} (probe \code{Probe0Baseline}, re-run at the new pin: three standard axioms). \emph{See:} code-pubinput F; probe
+slice	sections/gen/obligations.tex:256	e low bit) is proved, from Layer 1's \bndc{evalMle_append_boolVec} at slice zero. \emph{Status:} \oblstatus{ok}{built and proved}. \emp
+pin	sections/gen/obligations.tex:258	ndant with VCVio's \bndc{prEvent_uniformSample_le_div_iff} at the new pin. \emph{See:} lib-others E.4, G.10; 2.5.7.2.
+pin	sections/gen/obligations.tex:263	e}{specified only} (Layer 3 lists the line; \code{PublicLine.sent} is pinned by prose only). \emph{See:} code-pubinput D, G.3, G.4; boun
+slice	sections/gen/obligations.tex:271	d, \code{α_lc}, eight lincheck rounds with \code{c_1} derived, the 64 slice values \code{s_i}, the one check (the lincheck terminal ide
+Category	sections/gen/obligations.tex:271	ode{g_0}, \code{φ_8} and the floor exist only in the Rust and Python (Category B, no owner). \emph{See:} gt-flock-ring 2, 5.1, 5.5, 8.1, 8.7
+the Rust	sections/gen/obligations.tex:271	sitions, slot map, \code{g_0}, \code{φ_8} and the floor exist only in the Rust and Python (Category B, no owner). \emph{See:} gt-flock-rin
+zerocheck	sections/gen/obligations.tex:271	the interpolant with 64 assumed zeros), \bndc{n_flock = 8 + k_batch} zerocheck rounds with \code{c_0} derived, \code{v_a, v_b} with \code{
+the Rust	sections/gen/obligations.tex:273	+ 2^32/|E|}, right for a fixed committed polynomial and term by term the Rust's parameters (gt-flock-ring 5.2). \emph{Status:} \oblstatus
+zerocheck	sections/gen/obligations.tex:275	ection\label{obl:node-2.3.4.3.1}\textbf{2.3.4.3.1 The partially fixed zerocheck} (Annex C.7; \code{03:95-100}). \emph{States:} \code{k_batc
+pin	sections/gen/obligations.tex:276	tates:} the hypothesis of the partially fixed zerocheck holds for the pinned constants. \emph{Status:} \oblstatus{minor}{trusted, hypoth
+zerocheck	sections/gen/obligations.tex:276	uality weights.} \emph{States:} the hypothesis of the partially fixed zerocheck holds for the pinned constants. \emph{Status:} \oblstatus{m
+slice	sections/gen/obligations.tex:279	ng switching} (Annex A; \code{a-ring:104-128}). \emph{States:} the 64 slice claims at one point reduce to one weighted claim on the pac
+the Rust	sections/gen/obligations.tex:279	s'' and ``the \code{c_k} are distinct monomials'' (Annex A, tested in the Rust); ArkLib's \bndc{RingSwitching/Packing} is a different prot
+pin	sections/gen/obligations.tex:279	ng/Packing} is a different protocol (Diamond–Posen), admitted at both pins, and no profile turns it into leanVM's. \emph{See:} gt-floc
+the Rust	sections/gen/obligations.tex:280	o \lean{q_flock}''). \emph{States:} decidable; well defined only from the Rust (the circuit, wire positions and slot map are not in the sp
+pin	sections/gen/obligations.tex:284	ed, transcribed data}; \code{R1CS_DIGEST} cannot be recomputed at the pin and has no owner. \emph{See:} gt-flock-ring 5.5, 8.14 (FR14
+pin	sections/gen/obligations.tex:290	, and WHIR realizes that one query (typechecked against ArkLib at the pin, probe \bndc{InnerProductOracle}). \emph{See:} gt-opening-c
+pin	sections/gen/obligations.tex:309	} and its lens instances \oblstatus{major}{admitted upstream} at both pins (ledger A1). \emph{See:} lib-arklib B.3, F.1.
+pin	sections/gen/obligations.tex:311	finset_eq}). \emph{Status:} \oblstatus{ok}{library, proved at the old pin}. \emph{See:} \code{bp:275-277}.
+pin	sections/gen/obligations.tex:328	oid} on \code{MvPolynomial} \oblstatus{ok}{library, proved at the old pin}; the specification's proof is \code{TODO}. \emph{See:} gt-
+pin	sections/gen/obligations.tex:329	fied only}; Schwartz–Zippel \oblstatus{ok}{library, proved at the old pin} (ArkLib \bndc{schwartz_zippel_counting} in the root namesp
+pin	sections/gen/obligations.tex:336	n honest GKR prover written from the specification is accepted by the pinned Python verifier (gt-bus probe H.1).
+slice	sections/gen/obligations.tex:353	ean:342}): the extension at \code{(z, bits of j)} is the extension of slice \code{j} at \code{z} (high-index selection; the low-index,
+the Rust	sections/gen/obligations.tex:357	slot \code{s} of instruction \code{z} at \code{(z, s)}, cell for cell the Rust encoder's table on a sixteen-instruction program). \emph{Se
+pin	sections/gen/obligations.tex:359	:} \oblstatus{minor}{trusted, transcribed data} \oblreview{missing} — pinned by no statement or test before the compiled verifier. \emph
+pin	sections/gen/obligations.tex:359	ifier. \emph{See:} code-layer1 G.3 (L1-3), B.2 (the 92 offsets of the pinned Python layout reproduced by \code{Blocks.offset}).
+pin	sections/gen/obligations.tex:365	reproduced). \emph{Status:} \oblstatus{ok}{library, proved at the old pin} (irreducibility by a Rabin certificate, no \code{native_de
+pin	sections/gen/obligations.tex:365	cibility by a Rabin certificate, no \code{native_decide}); at the new pin \code{BF64} is a structure and \code{(2 : K) = 0}. \emph{Se
+evalOracle	sections/gen/obligations.tex:367	em \phantomsection\label{obl:node-2.5.7.3}\oblflag\textbf{2.5.7.3 The evaluation oracle} (\lean{evalOracle}, \bndc{evalOracle_answer}, \bndc{Field.
+evalOracle	sections/gen/obligations.tex:367	bl:node-2.5.7.3}\oblflag\textbf{2.5.7.3 The evaluation oracle} (\lean{evalOracle}, \bndc{evalOracle_answer}, \bndc{Field.lean:102-113}). \em
+evalOracle	sections/gen/obligations.tex:367	lflag\textbf{2.5.7.3 The evaluation oracle} (\lean{evalOracle}, \bndc{evalOracle_answer}, \bndc{Field.lean:102-113}). \emph{States:} a query
+pin	sections/gen/obligations.tex:374	ode{CMvPolynomial}s and the conversion is \code{noncomputable} at the pin, which would make \bndc{M3Holds (leanIsaInstance …)} undeci
+roadmap	sections/gen/obligations.tex:406	ublic data (P), a property the verifier checks (V), a theorem another roadmap or library owes (O), nothing (N).
+roadmap	sections/gen/obligations.tex:410	ublic data (P), a property the verifier checks (V), a theorem another roadmap or library owes (O), nothing (N).}\label{tab:obl-hypotheses
+the Rust	sections/gen/obligations.tex:423	the top limb of each public word is zero & 2.6.2.4 & V in the Rust (\bndc{cpu/mod.rs:141-143}); by type in Lean & the parser o
+the Rust	sections/gen/obligations.tex:424	e is decodable, of power-of-two length \bndc{≤ 2^32} & 2.6.2.7 & V in the Rust; by type in Lean & the loader of \bndc{Program} & consisten
+roadmap	sections/gen/obligations.tex:434	a bound on \bndc{piopError P} & 2.2.2.5 & O (this roadmap) & nothing in the spine & \textbf{N} today \\
+roadmap	sections/gen/obligations.tex:435	ry front phase's verifier makes no oracle query & 2.1.2.3.3 & O (this roadmap) & nothing; the spine's types allow queries & \textbf{N} (\
+roadmap	sections/gen/obligations.tex:437	the list-binding compilation, with \bndc{L_0} & 2.1.2.3 & O (this roadmap) & nothing & \textbf{N} \\
+the Rust	sections/gen/obligations.tex:440	& none protects soundness; \bndc{verify} without them accepts streams the Rust rejects \\
+pin	sections/gen/obligations.tex:441	proof accepted by \bndc{verify} & no theorem; not recomputable at the pin \\
+Category	sections/gen/obligations.tex:443	ns are exactly the pulls' count coordinates & 2.6.2.3 & O (Layer 2/3, Category B) & a transcription of \bndc{count_columns()} & unspecified
+Category	sections/gen/obligations.tex:444	f equal-size blocks; the leaf stacks' order & 2.5.6.4, 2.3.1.3.8 & O (Category B) & nothing before the fixture & unspecified \\
+zerocheck	sections/gen/obligations.tex:480	bus & the recycled zerocheck point ($\zeta$, drawn in the last layer) & 0 extra & three
+zerocheck	sections/gen/obligations.tex:482	us}}} + 5\mu_{\mathrm{bus}}^2/4 - \mu_{\mathrm{bus}}/2 + 2$ (plus the zerocheck charge) & $4\cdot 2^{\mu_{\mathrm{bus}}} + \mu_{\mathrm{bus
+zerocheck	sections/gen/obligations.tex:493	Flock & zerocheck round $\chi_i$ & $n_{\mathrm{flock}} = 8 + k_{\mathrm{batch
+the Rust	sections/gen/obligations.tex:536	The Rust's own accounting multiplies only the ring-switching degree
+pin	sections/gen/obligations.tex:560	lenge of the oracle protocol (they precede the point where the claims pin one list member),
+the Rust	sections/gen/obligations.tex:635	prover's completeness is evidence, not a theorem, as the map allows; the Rust Flock prover is in fact not perfectly complete (2.3.4.2) \\
+zerocheck	sections/gen/obligations.tex:668	bndc{5/|E|}; and the GKR cannot be appended in the bus phase with the zerocheck clause (gt-bus G3) \\
+pin	sections/gen/obligations.tex:670	polynomials where the instance holds CompPoly's, noncomputable at the pin (2.5.8.1) \\
+zerocheck	sections/gen/obligations.tex:672	to 2.3.1.3.10) & the sketch's types; the GKR's degree and errors; the zerocheck charge (three ways); ``the invariant after \bndc{(α, β)} is
+Category	sections/gen/obligations.tex:675	kRegion} in the instance; the \bndc{F_2}-independence hypothesis; the Category B constants' owner; the \bndc{With} form & \bndc{FlockInterfa
+pin	sections/gen/obligations.tex:677	append (C1) & 2.2.2.1, 2.2.2.2 & done, proved & — & ``deleted at the pin bump'': \#615 is open, conflicting, on a framework upstream
+unit of work	sections/gen/obligations.tex:734	; gt-table-pub TP1, TP4; code-spine CS1); none states that the plan's unit of work leaves them unassigned.
+pin	sections/gen/obligations.tex:767	s 3, 6, 7, 9, 10 and 12's \bndc{verify_iff_compiled}; nothing smaller pins the phases (2.2.2.6). Every other node of the tree is above
+pin	sections/gen/probes-boundary.tex:42	\code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c},
+pin	sections/gen/probes-boundary.tex:44	ode{2}; \code{PolyBridge}: \code{3, 5, 7}), which at the new CompPoly pin
+pin	sections/gen/probes-boundary.tex:45	{0}, \code{1}, \code{1}, \code{1}; their conclusions stand at the old pin, and both were
+pin	sections/gen/probes-boundary.tex:46	re-run at the new pins, with \code{K.ofBits n} in place of the numerals, as \code{
+pin	sections/gen/probes-boundary.tex:71	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:71	code{3468b38c}, Clean \code{93c9d1ef}). Exit 0. Not re-run at the new pins; nothing it rests on changed between the two revisions of t
+pin	sections/gen/probes-boundary.tex:387	not balance. The numeral \bndc{2 : K} is nonzero at the old CompPoly pin, as the spine's own test
+pin	sections/gen/probes-boundary.tex:388	\bndc{badConstraint} uses it; at the new pin it is \bndc{0}, hence the variant
+pin	sections/gen/probes-boundary.tex:391	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:468	(\cref{sec:gen-boundary-probe-knowncolumn}) at the new pins, with \bndc{K.ofBits 2} in place of the
+pin	sections/gen/probes-boundary.tex:471	}, whose Lean sources are \code{main} at \code{144c5aa}, with the new pins (CompPoly \code{572f9973}, Clean \code{42fe4b26}, ArkLib \c
+pin	sections/gen/probes-boundary.tex:561	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:561	code{3468b38c}, Clean \code{93c9d1ef}). Exit 0. Not re-run at the new pins.
+pin	sections/gen/probes-boundary.tex:666	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:666	t 1, with the two recorded errors, as expected. Not re-run at the new pins.
+pin	sections/gen/probes-boundary.tex:738	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:738	the two guards of the \code{def}, as expected. Not re-run at the new pins.
+pin	sections/gen/probes-boundary.tex:822	\bndc{M3Instance} holds. It prints CompPoly's two conversions at the pin, then defines
+pin	sections/gen/probes-boundary.tex:829	e (\bndc{Multivariate/MvPolyEquiv/Core.lean:41}). At the new CompPoly pin the
+pin	sections/gen/probes-boundary.tex:832	026-09-29 against leanerVM \code{main} at \code{b435631} with the old pins (ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \c
+pin	sections/gen/probes-boundary.tex:924	(\cref{sec:gen-boundary-probe-polybridge}) at the new pins, with \bndc{K.ofBits n} for the row's
+pin	sections/gen/probes-boundary.tex:926	CompPoly pin \bndc{572f9973} (\bndc{MvPolyEquiv/Core.lean:41}, read with
+pin	sections/gen/probes-boundary.tex:928	}, whose Lean sources are \code{main} at \code{144c5aa}, with the new pins (CompPoly \code{572f9973}, Clean \code{42fe4b26}, ArkLib \c
+pin	sections/gen/probes-code.tex:6	l ran against leanerVM \texttt{main} at \texttt{b435631} with the old pins (ArkLib \texttt{dca90385}, CompPoly \texttt{3468b38c}, VCVi
+pin	sections/gen/probes-code.tex:6	kout moved to \texttt{144c5aa} on 2026-09-30; none can run at the new pins without a rebuild. A probe that was written and not run, or
+pin	sections/gen/probes-code.tex:13	heckout now holds \texttt{main} at \texttt{144c5aa} (Lean 4.34.1, all pins moved). Everything here is about \texttt{b435631}; every Le
+pin	sections/gen/probes-code.tex:13	d recorded \textbf{before} the move, at \texttt{b435631} with the old pins; their outputs are in the appendix. Three probes (\texttt{P
+pin	sections/gen/probes-code.tex:13	ugh}) use the numeral \texttt{(\allowbreak{}2 : K)}, which at the old pin is the polynomial \texttt{x} (nonzero, not Boolean) and at
+pin	sections/gen/probes-code.tex:13	polynomial \texttt{x} (nonzero, not Boolean) and at the new CompPoly pin is \texttt{0}; they must be re-run with \texttt{K.\allowbre
+zerocheck	sections/gen/probes-code.tex:87	\texttt{Seam.\allowbreak{}bus} & the zerocheck claim of the toy's constraint at the points \texttt{(\allow
+zerocheck	sections/gen/probes-code.tex:97	{} 0]}, so the constraint \texttt{X₂² − X₂} is violated on row 0) the zerocheck claim at the point \texttt{(\allowbreak{}1)} with value \te
+zerocheck	sections/gen/probes-code.tex:97	\texttt{badConstraint} is outside \texttt{M3Holds toy 2}. This is the zerocheck escape; the bus phase's error must pay for it.
+PIOP	sections/gen/probes-code.tex:160	\textbf{Reading.} \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} has content only toget
+pin	sections/gen/probes-code.tex:184	ensive as the prover. This is expected of a composition theorem. What pins the phases to leanVM's is outside the spine and, today, out
+pin	sections/gen/probes-code.tex:188	owbreak{}compiled}, together with the fixture \enquote{a proof of the pinned Rust prover is accepted by \texttt{verify}}, that ties the
+pin	sections/gen/probes-code.tex:278	ion with no possible query is its pure result. ArkLib has this at the pin as the instance \texttt{Prover.\allowbreak{}instOutputIsPur
+pin	sections/gen/probes-code.tex:297	atements in \texttt{\{0,\allowbreak{} 1,\allowbreak{} 2\}} at the old pin; the paper argument is two lines & a theorem \texttt{∀\allo
+pin	sections/gen/probes-code.tex:301	t use \texttt{(\allowbreak{}2 : K)} mean the same at the new CompPoly pin & they do not (\texttt{(\allowbreak{}2\allowbreak{} :\allow
+pin	sections/gen/probes-code.tex:301	brief §8); their conclusions are about \texttt{b435631} with the old pins, where \texttt{2 : K} is the polynomial \texttt{x} (\texttt
+pin	sections/gen/probes-code.tex:444	the numeral \texttt{(\allowbreak{}2 : K)}, which at the old CompPoly pin is the polynomial \texttt{x} and at the new pin is \texttt{
+pin	sections/gen/probes-code.tex:444	h at the old CompPoly pin is the polynomial \texttt{x} and at the new pin is \texttt{0}; it must be re-run with \texttt{K.\allowbreak
+zerocheck	sections/gen/probes-code.tex:608	the design follow: a seam does not imply the relation before it (the zerocheck escape on \texttt{badConstraint}), and a seam does not say
+pin	sections/gen/probes-code.tex:1407	\textbf{The objects, for a reader who does not know ArkLib} (pin \texttt{dca90385}).
+pin	sections/gen/probes-code.tex:1580	4a & the pinned verifiers' equation; lines' values pooled & compiles & \tex
+pin	sections/gen/probes-code.tex:1581	4b & the pinned verifiers' equation; prover's values pooled (the deployed v
+PIOP	sections/gen/probes-code.tex:1679	eld \texttt{pub} of \texttt{Phases.\allowbreak{}Security}, so \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} holds of a protocol wh
+pin	sections/gen/probes-code.tex:1770	rm \enquote{first value only} and mutation 4 in the form \enquote{the pinned verifiers' equation} are members (each also run on its own,
+pin	sections/gen/probes-code.tex:1894	\texttt{Phase.\allowbreak{}Security}. This is the design of the three pinned verifiers and of the build the earlier review read.
+pin	sections/gen/probes-code.tex:1960	{}}. So from that moment \textbf{no probe can be compiled against the pins without a rebuild}, which the rules forbid. The coordinator
+pin	sections/gen/probes-code.tex:1960	this dossier was read before 09:18, or is read with \texttt{git show <pin>:<path>} inside the package's repository.)
+pin	sections/gen/probes-code.tex:2023	xtra condition fails on the honest message, and (since \texttt{check} pins the message to that value) on every message: no prover pass
+the Rust	sections/gen/probes-code.tex:2153	a nonzero top limb is not representable} as a statement. This matches the Rust, whose \texttt{read\_\allowbreak{}public} rejects it before
+pin	sections/gen/probes-code.tex:2209	t{.\allowbreak{}lake/\allowbreak{}packages/} were switched to the new pins at 09:18:47-09:19:05, their \texttt{.\allowbreak{}olean} fi
+pin	sections/gen/probes-code.tex:2212	{}py}: \texttt{python3 -{}B <file>} at 09:16, exit 0. They import the pinned Python verifier read-only from \texttt{/\allowbreak{}h\allo
+pin	sections/gen/probes-code.tex:2213	the checkout moved: sources at \texttt{b435631}, libraries at the old pins, exit 0.
+pin	sections/gen/probes-code.tex:2214	then run at 09:20 \textbf{not through \texttt{lake}} but with the old pin's Lean binary directly on the \texttt{b435631} build artefa
+pin	sections/gen/probes-code.tex:2222	sources, so these runs elaborate against \texttt{b435631} and the old pins exactly as \texttt{lake env lean} did before the move; both
+the Rust	sections/gen/probes-code.tex:2227	VM checkout at \texttt{a386121f}) and a line-by-line transcription of the Rust \texttt{stack\_\allowbreak{}offsets} (\texttt{c\allowbreak{
+pin	sections/gen/probes-code.tex:2227	\fhead{What it establishes}Runs the pinned Python verifier's own \texttt{stack\_\allowbreak{}offsets}
+pin	sections/gen/probes-code.tex:2227	ors of two configurations: the dossier's small configuration, and the pinned verifier's real layout for one admissible announcement (92
+the Rust	sections/gen/probes-code.tex:2511	-only; the bytecode table is built by a line-by-line transcription of the Rust \texttt{bytecode\_\allowbreak{}columns} and \texttt{stacked
+pin	sections/gen/probes-code.tex:2511	\fhead{What it establishes}Reference numbers from the pinned leanVM, to be compared with Layer 1's Lean definitions in \
+pin	sections/gen/probes-code.tex:2511	obe.\allowbreak{}lean}. Every evaluation is made by a function of the pinned Python verifier (\texttt{multilinear\_\allowbreak{}eval}, \
+pin	sections/gen/probes-code.tex:2693	dings, the column-claim weight and back-loaded padding agree with the pinned Python's numbers, with their near misses; \texttt{bytecodeC
+pin	sections/gen/probes-code.tex:2937	bsection{\texttt{DuplicatesProbe.\allowbreak{}lean}, run with the old pin's Lean binary, not through Lake (I.5)}\label{sec:gen-layer1
+pin	sections/gen/probes-code.tex:2939	est-first is not necessary for alignment (D.2, G.5). Run with the old pin's Lean binary on the untouched \texttt{b435631} artefacts,
+pin	sections/gen/probes-code.tex:3006	bsubsection{\texttt{StridedProbe.\allowbreak{}lean}, run with the old pin's Lean binary, not through Lake (I.6)}\label{sec:gen-layer1
+pin	sections/gen/probes-code.tex:3008	nd is twenty lines from Layer 1's lemmas (B.8, G.1). Run with the old pin's Lean binary on the untouched \texttt{b435631} artefacts,
+the Rust	sections/gen/probes-code.tex:3145	\item \textbf{Unverified: the Rust encoder was not executed.} The bytecode table \texttt{Value
+pin	sections/gen/probes-code.tex:3145	{}309} and \texttt{leaf.\allowbreak{}rs:585-{}604} (B.6). Running the pinned Rust \texttt{bytecode\_\allowbreak{}table} on the same prog
+pin	sections/gen/probes-code.tex:3147	\item \textbf{Not run at the new pin.} No probe was run against \texttt{144c5aa}; \texttt{Values
+pin	sections/gen/probes-code.tex:3147	ten first (H). The conclusions are about \texttt{b435631} and the old pins, which is the review's object (brief §8).
+pin	sections/gen/probes-code.tex:3148	xttt{DuplicatesProbe} and \texttt{StridedProbe} were run with the old pin's Lean binary and \texttt{LEAN\_\allowbreak{}PATH} on the u
+pin	sections/gen/probes-code.tex:3149	texttt{.\allowbreak{}lake/\allowbreak{}packages/} switched to the new pins; the coordinator's resume message (\enquote{nothing else ch
+pin	sections/gen/probes-opening.tex:10	2026-09-29 against the old pins (leanerVM \code{b435631}, ArkLib \code{dca90385}, CompPoly
+pin	sections/gen/probes-opening.tex:12	rebuild, against the new pins (ArkLib \code{7653a901}, CompPoly \code{572f9973}, VCVio
+pin	sections/gen/probes-opening.tex:23	the new pins with \code{exit=0} and the outputs as quoted; no log of the
+pin	sections/gen/probes-opening.tex:24	pins exists in the probe directory or in \file{logs/}, so that r
+pin	sections/gen/probes-opening.tex:36	\cref{sec:gen-opening-alternatives} is expressible at the pins: (1) ArkLib's \lean{OracleInterface}
+evalOracle	sections/gen/probes-opening.tex:42	is used so that the probe's instance does not overlap the built \lean{evalOracle}.
+pin	sections/gen/probes-opening.tex:160	\paragraph{Output} on 2026-09-29 (old pins: leanerVM \code{b435631}, ArkLib \code{dca90385}) and on
+pin	sections/gen/probes-opening.tex:161	2026-09-30 (new pins: ArkLib \code{7653a901}, Lean 4.34.1), identical up to the
+pin	sections/gen/probes-opening.tex:250	\paragraph{Output} (both runs, 2026-09-29 at the old pins and 2026-09-30 at the new pins):
+pin	sections/gen/probes-opening.tex:250	put} (both runs, 2026-09-29 at the old pins and 2026-09-30 at the new pins):
+pin	sections/gen/probes-opening.tex:272	Python floats and compares with the pinned \file{python-verifier/verifier.py} (a copy extracted with
+pin	sections/gen/probes-opening.tex:279	{Command.} In the probe directory, run on 2026-09-29 against the then-pinned working tree
+the Rust	sections/gen/probes-opening.tex:485	A caveat on floating point: the port uses Python's \code{math} where the Rust uses \code{f64}
+pin	sections/gen/probes-opening.tex:490	\paragraph{What \file{bus_depth.py} establishes.} It runs the pinned verifier's own
+PIOP	sections/gen/probes-opening.tex:492	r the stacking window, and at the per-log caps (\cref{sec:gen-opening-piop-error}). The dossier
+pin	sections/gen/probes-rerun.tex:11	Probe & Adaptation & Exit & Outcome at the new pins \\
+pin	sections/gen/probes-rerun.tex:35	Three library facts recorded at the old pin changed with the new one: \lean{LawfulBEq E} now
+pin	sections/gen/register.tex:11	f the review is leanerVM \code{main} at \code{b435631}; leanVM at the pin \code{a386121f}. Library citations name their revision: old
+pin	sections/gen/register.tex:11	t the pin \code{a386121f}. Library citations name their revision: old pins ArkLib \code{dca90385}, CompPoly \code{3468b38c}, Clean \co
+pin	sections/gen/register.tex:11	\code{93c9d1ef}, VCVio \code{f9dc47d9} (those of \code{b435631}); new pins after \code{144c5aa} ArkLib \code{7653a901}, CompPoly \code
+pin	sections/gen/register.tex:11	$+4$ at \code{HEAD} after line 51). Lean probe outputs are at the old pins unless a row says otherwise.
+pin	sections/gen/register.tex:13	h{probe-run}: a Lean or Python probe that ran supports it (at the old pins unless stated). \emph{paper}: the argument is a reading or
+pin	sections/gen/register.tex:19	d the notes they are in the dossier section named. Evidence is at the pins named: Lean and blueprint lines at \code{b435631}, leanVM a
+pin	sections/gen/register.tex:41	tream library (ArkLib has no notion of running time) & probe-run (old pin) \\
+zerocheck	sections/gen/register.tex:61	generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause & \textcolor{major}{major} & phase: bus & gt-bus G3
+roadmap	sections/gen/register.tex:95	base-soundness}), §C & an error of the blueprint, against the leanISA roadmap (the program condition is faithful to leanVM, whose compile
+pin	sections/gen/register.tex:105	extbf{R32} & The polynomial bridge of Layer 2 is noncomputable at the pin & \textcolor{major}{major} & adaptor and leanISA boundary &
+PIOP	sections/gen/register.tex:107	ot-be-stated}); gt-opening-compile §I.15 (first half; \cref{f:opening-piop-error-window}), §F.1 & an error of the blueprint & cited-ch
+pin	sections/gen/register.tex:109	of the blueprint's plan & paper; probe-run (\code{PlainReading}, old pin) \\
+pin	sections/gen/register.tex:117	tus's finding that the Python verifier omits the caps is false at the pin (F9) & \textcolor{major}{major}, of the status (gt-bus); mi
+PIOP	sections/gen/register.tex:133	nowledge sound at error 0. Theorems in the existential forms (\texttt{piop\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundne
+pin	sections/gen/register.tex:134	dca90385}; probe \code{Extractors} (\code{chooser_sound}, exit 0, old pin)
+the Rust	sections/gen/register.tex:140	\fhead{Proposed change} give \code{BusOut} the shape of the Rust's \code{BusVerify} (\code{leaf.rs:849-860}): one point, for
+pin	sections/gen/register.tex:148	ile ArkLib composes completeness with additive errors (proved at both pins); acceptance test 20 charges the Flock prover's failure at
+zerocheck	sections/gen/register.tex:149	325}; \texttt{crates/\allowbreak{}flock/\allowbreak{}src/\allowbreak{}zerocheck.\allowbreak{}rs:\allowbreak{}117}; ArkLib \texttt{Guarded\a
+PIOP	sections/gen/register.tex:150	eak{}of\_\allowbreak{}guarded\_\allowbreak{}verifiers}, state \texttt{piop\_\allowbreak{}completeness} with the sum and \texttt{piop\_
+PIOP	sections/gen/register.tex:150	ate \texttt{piop\_\allowbreak{}completeness} with the sum and \texttt{piop\_\allowbreak{}perfect\allowbreak{}Completeness} as its coro
+pin	sections/gen/register.tex:154	}, \code{:1130}; probe \code{P4Junk.lean} (\code{piopError_junk}, old pins)
+pin	sections/gen/register.tex:164	01}, \code{:941-942}; Python probe H.1 (honest prover accepted by the pinned Python verifier; re-run by the check)
+zerocheck	sections/gen/register.tex:168	\fhead{Claim} gt-table-pub's argument that the zerocheck escape adds nothing uses \code{ε_G = 5/|E|} per round of th
+zerocheck	sections/gen/register.tex:177	generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause}\enspace{\small\textsf{\color{major}(major)}}\par\no
+pin	sections/gen/register.tex:178	fting, whose completeness and knowledge soundness are admitted at the pin. And the appended state function cannot carry a clause (the
+zerocheck	sections/gen/register.tex:178	t the pin. And the appended state function cannot carry a clause (the zerocheck) that changes with the GKR's own challenges.
+pin	sections/gen/register.tex:189	an} (\texttt{accepts\_\allowbreak{}two\_\allowbreak{}challenges}, old pins)
+pin	sections/gen/register.tex:194	1 and \code{ProbeAnyCheck} (\code{securityG}, no \code{sorryAx}, old pins)
+pin	sections/gen/register.tex:209	eck\allowbreak{}Flock.\allowbreak{}lean} (exit 0 per the dossier, old pins)
+pin	sections/gen/register.tex:213	\fhead{Claim} No verifier inverts a challenge-dependent value. The pinned Rust Flock prover derives a coefficient with \code{(1 + r)⁻
+zerocheck	sections/gen/register.tex:214	ence} \texttt{crates/\allowbreak{}flock/\allowbreak{}src/\allowbreak{}zerocheck.\allowbreak{}rs:\allowbreak{}116-\allowbreak{}118}; \texttt
+evalOracle	sections/gen/register.tex:218	W_λ·q} and a final evaluation query) followed by WHIR in place of the evaluation oracle has \code{μ} extra rounds and an extra scalar, so \texttt{v
+pin	sections/gen/register.tex:219	inner-product oracle interface typechecks against ArkLib; old and new pins)
+pin	sections/gen/register.tex:228	\fhead{Claim} At both ArkLib pins \texttt{fiat\allowbreak{}Shamir\_\allowbreak{}completeness}
+pin	sections/gen/register.tex:229	eak{}Basic.\allowbreak{}lean:\allowbreak{}250-\allowbreak{}255} (both pins); ArkLib PR \#848 \texttt{Single\allowbreak{}Salt.\allowbre
+pin	sections/gen/register.tex:234	ttt{Verifier.\allowbreak{}fiat\allowbreak{}Shamir} takes; old and new pins)
+PIOP	sections/gen/register.tex:243	and the hash-collision term (\code{c·Q²/2^256}) is missing. \texttt{Σ piop\allowbreak{}Error < 2\textasciicircum{}-\allowbreak{}150} s
+pin	sections/gen/register.tex:269	eak{}264-\allowbreak{}273}; probe \code{Transport} (examples 3-4, old pins)
+pin	sections/gen/register.tex:279	reak{}395}; \code{leaf.rs:453}; probe \code{KnownColumn} (exit 0, old pins; \code{KnownColumnNew} re-run at the new pins, passes)
+pin	sections/gen/register.tex:279	ownColumn} (exit 0, old pins; \code{KnownColumnNew} re-run at the new pins, passes)
+pin	sections/gen/register.tex:287	space\textbf{The polynomial bridge of Layer 2 is noncomputable at the pin}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebre
+pin	sections/gen/register.tex:288	lds CompPoly's; CompPoly's conversion is \code{noncomputable} at both pins, which would make \code{M3Holds} of the leanISA instance un
+pin	sections/gen/register.tex:289	obe \code{PolyBridge} (exit 0; \code{PolyBridgeNew} re-run at the new pins, passes)
+pin	sections/gen/register.tex:298	is open and conflicting; no relevant admission was lifted between the pins. The blueprint expects \#615 to land and upstream to prove
+roadmap	sections/gen/register.tex:299	TS.md}, \texttt{docs/\allowbreak{}design/\allowbreak{}05-\allowbreak{}roadmap.\allowbreak{}md} (\code{7653a901}); issue \#676, PR \#615 (
+the Rust	sections/gen/register.tex:313	er sends nothing and the scalars are Layer 12's encoding, where §8.2, the Rust and the code have the prover send two scalars.
+pin	sections/gen/register.tex:317	tus's finding that the Python verifier omits the caps is false at the pin (F9)}\enspace{\small\textsf{\color{major}(major)}}\par\nopa
+the Rust	sections/gen/register.tex:318	height \code{≤ 32}, \code{τ_BLAKE2S ≥ 3} and a power-of-two bytecode; the Rust itself says the other two verifiers reject there. Nothing i
+zerocheck	sections/gen/register.tex:370	\textbf{R47} & The zerocheck escape is over-charged and charged three or four different
+zerocheck	sections/gen/register.tex:370	able-pub, gt-bus) & master theorems and error & gt-table-pub §8 ``The zerocheck escape'' (\cref{f:table-pub-zerocheck-escape}), §5 D.1, D.3
+zerocheck	sections/gen/register.tex:370	d error & gt-table-pub §8 ``The zerocheck escape'' (\cref{f:table-pub-zerocheck-escape}), §5 D.1, D.3; gt-bus G6 (\cref{f:bus-zerocheck-cha
+zerocheck	sections/gen/register.tex:370	f{f:table-pub-zerocheck-escape}), §5 D.1, D.3; gt-bus G6 (\cref{f:bus-zerocheck-charge}), §D.3 & cited-checked; paper \\
+pin	sections/gen/register.tex:386	\textbf{R55} & \code{PublicLine.sent} is pinned by prose only & \textcolor{minor}{minor} & phase: public in
+pin	sections/gen/register.tex:386	: public input & code-pubinput §G.4 (\cref{f:code-pub-publicline-sent-pinned-prose-only}); §E & paper \\
+the Rust	sections/gen/register.tex:390	om the specification; its circuit, layout and constants exist only in the Rust and the Python & \textcolor{minor}{minor} & phase: Flock an
+PIOP	sections/gen/register.tex:392	g-switching}); gt-opening-compile §I.15 (second half; \cref{f:opening-piop-error-window}), §F.1 & cited-checked (gt-flock-ring part);
+roadmap	sections/gen/register.tex:396	The executable verifier needs the Flock phase's definition, which no roadmap has started & \textcolor{minor}{minor} (planning) & phase:
+Category	sections/gen/register.tex:404	pt facts of WHIR are not in the blueprint & \textcolor{minor}{minor} (Category B) & phase: opening and compilation & gt-opening-compile §I.1
+Category	sections/gen/register.tex:408	on with the chain state as chaining value & \textcolor{minor}{minor} (Category B) & phase: opening and compilation & gt-opening-compile §I.1
+pin	sections/gen/register.tex:430	\textbf{R77} & The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue & \textcolor{minor}{minor} (
+pin	sections/gen/register.tex:432	\textbf{R78} & The order of equal-size blocks in the witness stack is pinned by no statement or test before the compiled verifier & \tex
+pin	sections/gen/register.tex:432	& Layer 1 & code-layer1 §G.3 (\cref{f:code-l1-order-equal-size-blocks-pinned}) & probe-run \\
+the Rust	sections/gen/register.tex:434	§H.14 (one item; \cref{f:docs-dangling-names}) & probe-run (old pins; the Rust encoder was transcribed, not executed) \\
+pin	sections/gen/register.tex:434	-debt §H.14 (one item; \cref{f:docs-dangling-names}) & probe-run (old pins; the Rust encoder was transcribed, not executed) \\
+pin	sections/gen/register.tex:444	\textbf{R84} & After the upgrade the blueprint states superseded pins as current, and Layer 0's prose is stale & \textcolor{minor
+pin	sections/gen/register.tex:444	e{144c5aa}) & documentation & docs-debt §H.5 (\cref{f:docs-superseded-pins}), §B.11; lib-others §G.5 (\cref{f:lib-layer0-stale}) & pap
+pin	sections/gen/register.tex:482	\textbf{R101} & The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it
+pin	sections/gen/register.tex:482	elation and seams & gt-table-pub §8 Notes (\cref{f:table-pub-slot-not-pinned}), §6 E.4 item 6; code-spine §0 item 2, §D.3 (d) & cited-ch
+pin	sections/gen/register.tex:492	he Fiat–Shamir seed binds a constant that cannot be recomputed at the pin & \textcolor{note}{note} & phase: setup & gt-flock-ring §8.
+the Rust	sections/gen/register.tex:498	\textbf{R109} & Stale comments in the Rust on the round message & \textcolor{note}{note} & phase: tabl
+pin	sections/gen/register.tex:502	\textbf{R111} & The pinned Rust prover of Flock is not perfectly complete & \textcolor
+the Rust	sections/gen/register.tex:504	\textbf{R112} & Stale comments in the Rust on what binds the counter and the flags & \textcolor{note}{
+pin	sections/gen/register.tex:512	\textbf{R116} & A stale comment in the pinned Rust on level-0 grinding & \textcolor{note}{note} & phase:
+the Rust	sections/gen/register.tex:514	\textbf{R117} & The Rust's own security accounting unions only the algebraic checks
+the Rust	sections/gen/register.tex:516	\textbf{R118} & A stale comment in the Rust on the size of a WHIR Merkle leaf & \textcolor{note}{note}
+pin	sections/gen/register.tex:530	} & The eager \code{Fintype BF64} blocked every executable at the old pins; retired at \code{144c5aa} & \textcolor{note}{note} (retire
+pin	sections/gen/register.tex:532	\textbf{R126} & \code{simp} misread \code{K} arithmetic at the old pins; the kernel rejected the result & \textcolor{note}{note} (r
+pin	sections/gen/register.tex:532	lib-others §G.7 (\cref{f:lib-simp-misreads-k}); §H.7 & probe-run (old pins) \\
+pin	sections/gen/register.tex:534	\textbf{R127} & Numerals in \code{K} changed meaning at the new pins & \textcolor{note}{note} & libraries & lib-others §G.8 (\cr
+pin	sections/gen/register.tex:536	R128} & ArkLib's multilinear bridge is likely unimportable at the new pins & \textcolor{note}{note} (unverified) & libraries & lib-oth
+pin	sections/gen/register.tex:538	f{R129} & The local counting bound is redundant with VCVio at the new pin & \textcolor{note}{note} & libraries & lib-others §G.10 (\c
+roadmap	sections/gen/register.tex:540	\textbf{R130} & The Layer 0 module's comments cite the roadmap, layer numbers and a letter code & \textcolor{note}{note} &
+pin	sections/gen/register.tex:552	mbers shift by four at \code{HEAD}; the upgrade changed more than the pins table & \textcolor{note}{note} (an observation of the citat
+the Rust	sections/gen/register.tex:584	, joining round, padding (\code{padHigh}, \code{evalMle_padHigh} give the Rust's factor), degree, powers of \code{ξ}, derived target, clai
+the Rust	sections/gen/register.tex:590	\textbf{N5} & gt-table-pub §2 A.4 & The Rust-only guard \code{zeta.len() < n} is unreachable (\texttt{μ\
+pin	sections/gen/register.tex:604	\textbf{N12} & gt-bus §F & Status findings confirmed at the pin: one scalar root for push and pull (F3, but an agreement, n
+pin	sections/gen/register.tex:612	n honest GKR prover written from the specification is accepted by the pinned Python verifier; \code{ζ} never contains the last combiner.
+the Rust	sections/gen/register.tex:628	wbreak{}|\allowbreak{}E|\allowbreak{}} is Annex C.7's sum and matches the Rust's parameters term by term; \code{2^32/|E|} bounds the ring-
+pin	sections/gen/register.tex:630	§1 item 4 & The partially fixed zerocheck's hypothesis holds for the pinned constants: the 128 equality weights of the seven fixed coor
+zerocheck	sections/gen/register.tex:630	\textbf{N25} & gt-flock-ring §1 item 4 & The partially fixed zerocheck's hypothesis holds for the pinned constants: the 128 equali
+pin	sections/gen/register.tex:640	heorem uses only the kernel's three standard axioms. & probe-run (old pins) & — \\
+pin	sections/gen/register.tex:682	51} & code-layer1 §B.2 & Stacking offsets and selectors agree: on the pinned Python verifier's real layout (92 blocks, \code{stack_log =
+the Rust	sections/gen/register.tex:688	de equals, cell for cell (256 cells), the table of a transcription of the Rust encoder, and its extension at \code{(ζ, α)} equals \code{ve
+the Rust	sections/gen/register.tex:688	ode{verifier.py:566}. & probes \code{ValuesProbe}, \code{values.py} & the Rust encoder was transcribed, not executed \\
+pin	sections/gen/register.tex:696	§D & The four \code{ToCompPoly} modules are generic; CompPoly at both pins shares only \code{eqTilde_eq_prod} and \code{eqTilde_append
+pin	sections/gen/register.tex:696	{eqTilde_eq_prod} and \code{eqTilde_append} with them; ArkLib at both pins has none of them. & reading; \code{DuplicatesProbe} & — \\
+pin	sections/gen/register.tex:710	ts the three standard axioms only. & probe \code{AxiomsLeanerVM} (old pin) & — \\
+pin	sections/gen/register.tex:724	rithmetic reproduces eleven Rust reference products. & probe-run (old pins) & a re-run at the new pins needs \code{K.ofBits} literals
+pin	sections/gen/register.tex:724	Rust reference products. & probe-run (old pins) & a re-run at the new pins needs \code{K.ofBits} literals \\
+pin	sections/gen/register.tex:728	{}-\allowbreak{}192}; the \code{K} diamond is definitional at the old pins and disappears at the new. & probes \code{Layer0}, \code{Sa
+pin	sections/gen/register.tex:740	\textbf{N80} & docs-debt §B.10 & Every one of 81 citations into the pinned leanVM sources resolves to an existing range once its crate
+pin	sections/gen/register.tex:742	\textbf{N81} & docs-debt §B.10 & 40 of 43 citations into the pinned libraries are exact (old pins). & reading & three drifted (
+pin	sections/gen/register.tex:742	t §B.10 & 40 of 43 citations into the pinned libraries are exact (old pins). & reading & three drifted (R92) \\
+the Rust	sections/gen/register.tex:754	= 1}). & term-by-term comparison & a preprint with a sketched proof; the Rust's arithmetic and \code{η} search not checked \\
+pin	sections/gen/register.tex:756	nt is bound and the trace committed before the first challenge at the pin. & reading \texttt{cpu/\allowbreak{}mod.\allowbreak{}rs:\al
+the Rust	sections/gen/register.tex:786	e §I Negative results, §B.1 & The Python's \code{verify_whir} matches the Rust's succinct verifier message by message. & reading & — \\
+the Rust	sections/gen/register.tex:788	ile §I Negative results, §H.3 & The Python's \code{derive_config} and the Rust's \code{configs_for_rate} give the same ladder for all 56 \
+the Rust	sections/gen/register.tex:788	ll 56 \code{(ρ, μ)}; the query counts of the Python table are exactly the Rust's floating-point search. & Python scratch port (\code{whir_
+pin	sections/gen/register.tex:794	stants and its \texttt{ladder\_\allowbreak{}queries\_\allowbreak{}eq} pin agree with the deployed parameters. & reading; Python scrat
+PIOP	sections/gen/register.tex:804	texttt{Extractor.\allowbreak{}Straightline.\allowbreak{}map}, \texttt{piop\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundne
+zerocheck	sections/gen/register.tex:840	§10 & Layer 4's sumcheck and the bus phase's \code{Security} with the zerocheck conjunct \\
+the Rust	sections/gen/register.tex:846	\textbf{U5} & leanISA's tables have the Rust's column order. & gt-table-pub §10 & compare \texttt{Arithm
+zerocheck	sections/gen/register.tex:848	\textbf{U6} & leanth's \code{ZerocheckClaim} pattern, which the blueprint's row Seams cites. & gt-
+pin	sections/gen/register.tex:850	ode{SeamBusShape} and \code{SeamBusMember} still elaborate at the new pins. & verify-gt-table-pub §1 item 7 & re-run after the rebuild
+the Rust	sections/gen/register.tex:852	extbf{U8} & The Rust verifier and prover (read only); the equality of the Rust and Python verdicts is by reading. & gt-bus §I & a differen
+the Rust	sections/gen/register.tex:864	GEST} is the digest of the matrices. & gt-flock-ring §11 & the commit the Rust's comment names \\
+the Rust	sections/gen/register.tex:866	\textbf{U15} & The Rust circuit computes BLAKE2s. & gt-flock-ring §11 & the theorem
+zerocheck	sections/gen/register.tex:868	\textbf{U16} & \code{lincheck.rs} beyond 1400, \texttt{zerocheck/\allowbreak{}multilinear.\allowbreak{}rs} beyond 330, \text
+pin	sections/gen/register.tex:886	\textbf{U25} & The probes that use \code{(2 : K)} at the new CompPoly pin. & code-spine §G & re-run \code{P2Relation}, \code{P3aSeams
+the Rust	sections/gen/register.tex:898	\textbf{U31} & The Rust bytecode encoder was not executed (compared through a trans
+pin	sections/gen/register.tex:898	ecuted (compared through a transcription). & code-layer1 §J & run the pinned Rust \code{bytecode_table} on the same program \\
+pin	sections/gen/register.tex:902	\textbf{U33} & No probe was run at the new pin; \code{ValuesProbe}, \code{StridedProbe} need \code{K.ofBit
+pin	sections/gen/register.tex:908	\textbf{U36} & The probes at the new pin (written in the old probability notation). & lib-arklib §F.
+pin	sections/gen/register.tex:914	\textbf{U39} & \code{FieldFidelity} at the new pin with \code{K.ofBits} literals. & lib-others §F.3 & re-run a
+pin	sections/gen/register.tex:916	lowbreak{}Type\allowbreak{}K} is the only \code{K} sampler at the new pins. & lib-others §E.1 & a probe at the new pins \\
+pin	sections/gen/register.tex:916	de{K} sampler at the new pins. & lib-others §E.1 & a probe at the new pins \\
+pin	sections/gen/register.tex:922	\textbf{U43} & All seven probes at the new pins. & lib-others §H & re-run after the rebuild \\
+pin	sections/gen/register.tex:924	reak{}merkle.\allowbreak{}rs:\allowbreak{}14-\allowbreak{}67} at both pins \\
+pin	sections/gen/register.tex:930	n proof of [BCHKS25] Theorem 4.6 exists (ArkLib's is admitted at both pins), and whether Haböck's update of [Hab25] exists. & literatu
+the Rust	sections/gen/register.tex:932	parameters (estimated \code{2^7} to \code{2^10}). & literature §A.4 & the Rust's \code{validate()} output \\
+pin	sections/gen/register.tex:944	\code{Transport}, \code{UniverseFail}, \code{DefInstance} at the new pins. & boundary-adaptor §H & re-run after the rebuild \\
+zerocheck	sections/gen/register.tex:1015	not tight. Both are upper bounds; neither dossier's conclusion on the zerocheck changes (the escape is a maximum with \code{ε_G ≥ 1/|E|} ei
+pin	sections/gen/register.tex:1016	opening-compile §E.5 agrees that the exceptional point belongs to the pinned Rust prover.
+pin	sections/gen/register.tex:1036	tus's finding that the Python verifier omits the caps is false at the pin (F9)): gt-table-pub, gt-bus, gt-flock-ring, gt-opening-comp
+zerocheck	sections/gen/register.tex:1039	\item \textbf{R47} (The zerocheck escape is over-charged and charged three or four different
+pin	sections/gen/register.tex:1045	\item \textbf{R84} (After the upgrade the blueprint states superseded pins as current, and Layer 0's prose is stale): lib-others, docs
+pin	sections/gen/register.tex:1048	\item \textbf{R101} (The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it)
+pin	sections/gen/statements-spine.tex:8	\subsection{\texttt{M3Holds}, clause by clause, against the pinned specification (C.1)}\label{sec:gen-spine-C1}
+the spec	sections/gen/statements-spine.tex:40	deployed check compares products of fingerprints (\texttt{:30-{}33}); the spec's Theorem 5.1 (\texttt{:37}) makes that a \texttt{4·2\texta
+pin	sections/gen/statements-spine.tex:47	allowbreak{}7\allowbreak{}9}), re-checked here against the tex at the pin.
+slice	sections/gen/statements-spine.tex:67	ing law, not a stacking law: it does not say the columns are disjoint slices of \texttt{q}} (\texttt{Instance.\allowbreak{}lean:71-{}72}
+slice	sections/gen/statements-spine.tex:67	447-{}450}) is right and understates: it does not say the columns are slices at all (an \texttt{extend} with a non-Boolean selector read
+slice	sections/gen/statements-spine.tex:67	with a non-Boolean selector reads a \texttt{K}-linear combination of slices).
+zerocheck	sections/gen/statements-spine.tex:76	reak{}bus} back into it: every constraint vanishing on the cube (from zerocheck claims at \texttt{ζ}, the escape charged to its own challen
+the Rust	sections/gen/statements-spine.tex:81	ablishes this by probe and proposes a \texttt{BusOut} in the shape of the Rust's \texttt{BusVerify} (its section 8, first finding). We agr
+PIOP	sections/gen/statements-spine.tex:86	Security/\allowbreak{}Basic.\allowbreak{}lean:329-{}342}). So \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} reads: on every accept
+pin	sections/gen/statements-spine.tex:86	{}\allowbreak{}2\allowbreak{}2\allowbreak{}8}), \texttt{sorry} at the pin, and existential in the extractor.
+evalOracle	sections/gen/statements-spine.tex:89	e seams are read through.} Every seam reads the stack through \texttt{evalOracle} (\texttt{Field.\allowbreak{}lean:102-{}106}): a query is a
+evalOracle	sections/gen/statements-spine.tex:89	}e\allowbreak{}x\allowbreak{}:\allowbreak{}9\allowbreak{}9}). With an evaluation oracle, a weighted claim (\texttt{Seam.\allowbreak{}flock}'s \text
+evalOracle	sections/gen/statements-spine.tex:89	examined by the opening dossier; it is recorded here because \texttt{evalOracle} is load-bearing for both master theorems.
+Category	sections/gen/statements-spine.tex:110	tem An instance: \texttt{leanIsaInstance prog s} (blueprint Layer 3). Category B data (layouts, separators, count columns, lines), trusted a
+pin	sections/gen/statements-spine.tex:142	xttt{Implications.\allowbreak{}lean:223-{}228}, \texttt{sorry} at the pin), whose conclusion is \texttt{knowledgeSoundness}, existent
+PIOP	sections/gen/surface.tex:42	\item \textbf{C}: what \texttt{piop\_\allowbreak{}perfectCompleteness} unfolds to (\texttt{Comp
+evalOracle	sections/gen/surface.tex:42	s (so every claim and its \texttt{Holds}), \texttt{TheOracle} and the evaluation oracle.
+PIOP	sections/gen/surface.tex:44	\item \textbf{K}: what \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} adds by naming its ext
+PIOP	sections/gen/surface.tex:51	eak{}py}), set as tables. Class: \emph{completeness} for what \texttt{piop\_\allowbreak{}perfectCompleteness} unfolds to; \emph{existe
+PIOP	sections/gen/surface.tex:51	k{}s\allowbreak{}t\allowbreak{}s} adds; \emph{named} for what \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} adds by naming its ext
+evalOracle	sections/gen/surface.tex:69	5 & 7 & \texttt{Field.\allowbreak{}lean} & 102-106 & \texttt{instance evalOracle} \\
+PIOP	sections/gen/surface.tex:228	eorem's statement; acceptance test 24 then rests on the lemma \texttt{piop\_\allowbreak{}rbrKnowledgeSoundness} (kept) and on \texttt{
+pin	sections/gen/surface.tex:229	7, ArkLib's \texttt{Prover.\allowbreak{}instOutputIsPureEmpty} at the pin). Costs one import (\texttt{NoAmbient}) or a four-line rest
+slice	sections/gen/surface.tex:231	ted in \texttt{Field.\allowbreak{}lean:50}) and, for the toy, \texttt{slice} becomes a theorem. Changes the definition of \texttt{colum
+pin	sections/gen/surface.tex:236	e (ArkLib's append needs every \texttt{s : σ}). Not removable at this pin.
+slice	sections/gen/surface.tex:279	}, \texttt{selector}, \texttt{extendPoint}, \texttt{unstack}, \texttt{slice}, \texttt{cubeIndex}, \texttt{boolVec}, \texttt{cubeSplit},
+slice	sections/gen/surface.tex:287	acle \texttt{\#guard}s (G.4). \texttt{bytecodeSlotColumn} and \texttt{slice\_\allowbreak{}bytecodeColumn} (2 / 4) have no consumer eith
+slice	sections/gen/surface.tex:291	_\allowbreak{}append}, \texttt{highVec\_\allowbreak{}append}, \texttt{slice\_\allowbreak{}placeSlice}, \texttt{windowTable*}, \texttt{s
+the Rust	sections/gen/surface.tex:324	e sends exactly the two low limbs}, a transcript fact checked against the Rust (\texttt{:616-{}618}, \texttt{:747-{}749}).
+pin	sections/gen/transcript-bus.tex:14	leanVM's pin \code{a386121f}.
+pin	sections/gen/transcript-bus.tex:164	H.1, against the pinned Python function, for $μ = 0 … 12$; the citation check re-ra
+the Rust	sections/gen/transcript-bus.tex:289	leaf index: the Rust test \code{radix_four_roundtrip_at_even_and_odd_depths}
+pin	sections/gen/transcript-bus.tex:293	same against the pinned Python. For $μ = 1$, $ζ = (u)$; for $μ = 0$ there is no lay
+the Rust	sections/gen/transcript-bus.tex:370	The Rust evaluates the eight bytecode columns one by one (\code{leaf
+pin	sections/gen/transcript-flock-ring.tex:6	in this section; the number after the colon is the line, at leanVM's pin
+zerocheck	sections/gen/transcript-flock-ring.tex:13	\item Rust, under \file{crates/flock/src/}: \code{hash.rs}, \code{zerocheck.rs},
+zerocheck	sections/gen/transcript-flock-ring.tex:15	\file{crates/flock/src/zerocheck/}: \code{univariate_skip_optimized.rs},
+zerocheck	sections/gen/transcript-flock-ring.tex:16	\code{zerocheck/multilinear.rs}.
+the Rust	sections/gen/transcript-flock-ring.tex:67	(\code{c-flock:30}; in the Rust the only commitment is \code{pcs::commit(&mut ps, &w.q, …)}
+zerocheck	sections/gen/transcript-flock-ring.tex:96	& \code{zerocheck.rs:51-58}; \code{univariate_skip_optimized.rs:65, 79-101};
+zerocheck	sections/gen/transcript-flock-ring.tex:102	& \code{zerocheck.rs:362} \code{equality_tail(m, |n| vs.sample_vec(n))}
+zerocheck	sections/gen/transcript-flock-ring.tex:106	& \code{zerocheck.rs:365} (prover \code{:185-187})
+zerocheck	sections/gen/transcript-flock-ring.tex:110	& \code{zerocheck.rs:366}
+zerocheck	sections/gen/transcript-flock-ring.tex:115	& \code{zerocheck.rs:378}; \code{zerocheck/multilinear.rs:129-138}
+zerocheck	sections/gen/transcript-flock-ring.tex:115	& \code{zerocheck.rs:378}; \code{zerocheck/multilinear.rs:129-138}
+zerocheck	sections/gen/transcript-flock-ring.tex:121	& \code{zerocheck.rs:397-405}; \code{transcript.rs:289-309} (prover \code{zer
+zerocheck	sections/gen/transcript-flock-ring.tex:121	ode{zerocheck.rs:397-405}; \code{transcript.rs:289-309} (prover \code{zerocheck.rs:116-123})
+zerocheck	sections/gen/transcript-flock-ring.tex:126	& \code{zerocheck.rs:421-423}
+the Rust	sections/gen/transcript-flock-ring.tex:194	the first lines of the opening function in the Rust (\code{open_batch_mixed_whir_stacked},
+zerocheck	sections/gen/transcript-flock-ring.tex:199	$v_P$ (step 5); $c_0$ of each of the $n_{\mathrm{flock}}$ zerocheck rounds (step 6); $v_c$
+the Rust	sections/gen/transcript-flock-ring.tex:251	The Rust's strided claim, and the Python's call of the Flock verifie
+slice	sections/gen/transcript-flock-ring.tex:278	One family of 64 slice claims at one point, turned by ring switching into \textbf{
+pin	sections/gen/transcript-opening.tex:15	\file{python-verifier/verifier.py}. These are at leanVM's pin \code{a386121f}. \code{bp:} is the
+roadmap	sections/gen/transcript-opening.tex:16	blueprint \file{docs/roadmap/protocol-blueprint.md} at leanerVM \code{b435631} (the chec
+pin	sections/gen/transcript-opening.tex:18	ile{LeanerVM/Protocol/} at \code{b435631}; ArkLib is cited at its old pin \code{dca90385}
+pin	sections/gen/transcript-opening.tex:24	The leanVM working tree was moved off the pin on 2026-09-30 at 09:42, not by this review (its
+pin	sections/gen/transcript-opening.tex:149	batching challenge of Annex B's opening protocol (Protocol B.6 at the pin; the dossier's
+pin	sections/gen/transcript-opening.tex:219	(\code{bp:1218-1221}) is false for every proof the pinned prover emits.
+pin	sections/gen/transcript-opening.tex:221	This is the divergence between the pinned §8.5 (\code{08:94-101}) and the blueprint's Layer 10
+evalOracle	sections/gen/transcript-opening.tex:223	choice of the evaluation interface at Layer 0: with an evaluation oracle, the only way to
+evalOracle	sections/gen/transcript-opening.tex:230	\paragraph{(i) Keep the evaluation oracle and the extra sumcheck; owe a theorem relating the two
+pin	sections/gen/transcript-opening.tex:246	abs{\E}$ and no sumcheck; WHIR realizes the one query. Checked at the pins (probe
+evalOracle	sections/gen/transcript-opening.tex:258	\lean{evalOracle_answer} becomes a corollary.
+evalOracle	sections/gen/transcript-opening.tex:286	& replace \lean{evalOracle} by the inner-product instance; \lean{Weight} (and \lean{We
+evalOracle	sections/gen/transcript-opening.tex:288	\lean{evalOracle_answer} becomes \code{answer q (eqWeight p) = eval₂Mle …}.
+the Rust	sections/gen/transcript-opening.tex:357	The specification's column is Protocol B.6 (\code{B:100-123}); the Rust column gives the prover and
+the Rust	sections/gen/transcript-opening.tex:462	transcription of the Rust). Against Protocol B.6 the deployed schedule differs in fou
+the Rust	sections/gen/transcript-opening.tex:550	as data (any admissible value proves the theorem; the Rust's are the floating-point optimum,
+Category	sections/gen/transcript-opening.tex:634	d last message must be pinned as transcribed content (the blueprint's Category B) for
+pin	sections/gen/transcript-opening.tex:634	omitted last message must be pinned as transcribed content (the blueprint's Category B) for
+pin	sections/gen/transcript-opening.tex:637	(\code{bp:278}), ``(Annex B.4)'' (\code{bp:1172}) are not the pinned numbers (Protocol B.6,
+the Rust	sections/gen/transcript-opening.tex:677	$μ > 6$ and two levels, \code{whir_config.rs:266-267, 291-293}; the Rust's tests fall back to
+the Rust	sections/gen/transcript-opening.tex:688	R1CS matrices'' (\code{08:55}). \textbf{The Rust is the only source}; the Python is a transcription
+Category	sections/gen/transcript-opening.tex:751	function. It is transcribed content (the blueprint's Category B); the transcription must say
+the Rust	sections/gen/transcript-opening.tex:768	s:9-12}); \code{RawProof = Proof<RawMerklePath>} (\code{:19}) is what the Rust
+pin	sections/gen/transcript-opening.tex:773	the raw shape; the fixture ``a proof dumped from the pinned Rust prover'' (\code{bp:1237-1238}): the
+zerocheck	sections/gen/transcript-opening.tex:821	7 & Flock: zerocheck and lincheck messages & their challenges & \file{gt-flock-r
+pin	sections/gen/transcript-table-pub.tex:5	in this section. The number after the colon is the line, at leanVM's pin
+pin	sections/gen/transcript-table-pub.tex:84	`Rounds bind $X_{τ_{\max}−1}$ first''; \code{08:76} ``the round check pins
+the Rust	sections/gen/transcript-table-pub.tex:258	s} (\code{cpu/mod.rs:656-667}) is the one place the order is fixed in the Rust.
+the Rust	sections/gen/transcript-table-pub.tex:365	\paragraph{Is the Rust's public input two words of $\E$ or of 128 bits?} By type t
+pin	sections/gen/transcript-table-pub.tex:371	pin run it, the recursion guest among them, and the guest's com

@@ -218,7 +218,8 @@ are WHIR's, interleaved with its level roots, out-of-domain samples, grinding, q
 per-level batchings, and the protocol closes on one equation without ever evaluating
 $\widetilde{q}$ at a point. There is no separate reduction sumcheck, as the specification says.
 Four details of the deployed schedule are not in the specification's Protocol B.6: the
-per-claim introductory polynomials before each level's batching challenge, seventeen bits of
+introductory round polynomials of the per-level claims (the out-of-domain claim's before the
+level's batching challenge, the query batch's after it and depending on it), seventeen bits of
 grinding at every level, the level-0 lane relayout with its rotated terminal point, and the
 omission of the last round message.
 
@@ -248,7 +249,7 @@ that some member of that list satisfies every pooled claim and charge $L_0$ time
 front-end error on the challenges before the opening. Every such codeword is $\K$-valued
 (agreement beyond the code's dimension on a $\K$-valued word kills the $y, y^2$ components), a
 lemma the specification does not state and the extracted witness's type needs; the review
-proves it in two lines. The non-interactive error then needs the hash-collision term, the
+gives a two-line argument for it, not yet a Lean proof. The non-interactive error then needs the hash-collision term, the
 list-size factor and an account of grinding, which the blueprint's sketch of \lean{niError}
 lacks; and the interfaces it assumes for Fiat--Shamir and for the Merkle compilation are, as
 written, false as universals or stated for other constructions than leanVM's single BLAKE2s

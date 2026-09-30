@@ -445,3 +445,15 @@ corrections: only the OOD round poly precedes λ_i; Merkle leaves = multi-compre
 weakened (GKR error loose not wrong; limb reader "assigned to no layer" overstated). tex-boundary
 done and wired. Switches in main.tex for in-progress fragments: changes, obligations, opening
 (off); register (on). Report 383 pages.
+### 14:15 ASSEMBLED: report.pdf 527 pages (b6db3be), no errors, no undefined refs, no dup labels.
+All fragments in (switches all on). Appendix E (brief review) had been lost to a stub and was
+rewritten. Launched: read-report (Fable, adversarial read of the whole report) and lint-report
+(Opus, mechanical pass). Then: apply fixes, recompile, final commit, final message to the user.
+### 14:50 read-report done: verdict "fit after a few hours of editing"; M1–M8, S1–S14 applied
+by the orchestrator (chapters) and by fix-fragments (aaba151b92eca6ee7, Opus: markers, table
+label families, report-upstream.tex, acceptance-tests.tex, bare codes). lint-report
+(a3f68678171e0645e) still running. USER REQUEST 14:45: survey what ArkLib now implements
+(sumcheck/GKR/…) at the new pin and in open PRs vs the blueprint's plan; what is pending
+upstream; what leanerVM builds itself → arklib-landscape agent (Fable) launched; will become a
+chapter "ArkLib: what exists, what is pending, what is ours" (sections/11b-arklib.tex) with an
+Opus LaTeX conversion, plus a revised upstream ledger.

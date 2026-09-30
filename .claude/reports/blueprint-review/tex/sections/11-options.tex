@@ -63,7 +63,8 @@ changes (\cref{ch:changes}) gives the text of each change.
   \lean{logInvRate} in the witness's sizes; a reducible instance; the strided reader of the limb
   columns as a Layer 1 lemma and a Layer 3 reader. Cost: Layers 1 to 3 as sketched.
 \item \textbf{Restate the non-interactive theorems} (\code{R20} to \code{R29}). An adversary
-  with a query budget against a random oracle standing for the compression, a straight-line
+  with a query budget against a random oracle standing for the compression and for the
+  multi-block hash of the Merkle leaves, a straight-line
   extractor that reads leaves off the query log, list decodes and selects, adversary-chosen
   sizes inside one protocol family, the program bound by its hash, the well-formedness of the
   program and the resource bounds as hypotheses, and the random-oracle heuristic as a named
@@ -126,6 +127,12 @@ adaptor as the one place the semantics is met.
   level its non-interactive theorem can certify and what remains a claim of the parameter
   analysis.
 \end{itemize}
+
+\section{What to report to leanVM}\label{sec:opt-upstream-report}
+
+The review changes nothing upstream and posts nothing; the matters below are what the owner
+may report, each with its source lines and its register row.
+\InputIfFileExists{sections/gen/report-upstream}{}{\emph{[list pending]}}
 
 \section{The boundaries}\label{sec:opt-boundaries}
 

@@ -1,0 +1,569 @@
+sections/05-phases.tex:185	acceptance test 20	blueprint's [[acceptance test 20]] attributes this inverse to the protocol
+sections/09-nonvacuity.tex:150	acceptance test 24	excludes the risk that [[acceptance test 24]] guards against; the test does not.
+sections/11-options.tex:47	acceptance test 20	  prover the mathematical one; [[acceptance test 20]] rewritten; the Rust prover's defect at
+sections/13-drift.tex:92	acceptance test 10	m does, once it exists; the blueprint's [[acceptance test 10]] is a
+sections/gen/analysis-opening.tex:76	T4	transcribes, the target theorem [[T4]] in \code{architecture.md:264-269} (``\c
+sections/gen/analysis-opening.tex:433	acceptance test 20	n equation, unprovable. The blueprint's [[acceptance test 20]]
+sections/gen/analysis-opening.tex:453	acceptance test 23	{\lean{piopError_le}}{piopError_le} and [[acceptance test 23]]}\label{sec:gen-opening-piop-error}
+sections/gen/boundary-chain.tex:49	T2	aintCompleteness}), witness generation ([[T2]]),
+sections/gen/boundary-chain.tex:146	acceptance test 23	  [[acceptance test 23]] (\bndc{< 2^-150}) absorbs for the oracl
+sections/gen/boundary-chain.tex:220	T3	, \bndc{filler.rs}); guest correctness ([[T3]]) owes it & \textbf{undischarged} in the
+sections/gen/boundary-chain.tex:225	holes P1	se.lean:162-177}) & owed by the phases ([[holes P1]] to P8; the public-input phase, P5, buil
+sections/gen/boundary-chain.tex:225	P8	177}) & owed by the phases (holes P1 to [[P8]]; the public-input phase, P5, built) & t
+sections/gen/boundary-chain.tex:225	P5	holes P1 to P8; the public-input phase, [[P5]], built) & the phases & assumed interfac
+sections/gen/boundary-chain.tex:355	T1	\enquote{then compose it with [[T1]]-S} (\bndc{:270}) & Layer 13 (\bndc{bp:1
+sections/gen/boundary-chain.tex:357	T2	\enquote{Its completeness dual composes [[T2]] with the honest prover and records any 
+sections/gen/boundary-chain.tex:360	T4	\enquote{[[T4]] — base proof extraction/completeness: p
+sections/gen/boundary-chain.tex:360	T1	/completeness: proof-system components, [[T1]], and T2} (\bndc{:66}) & inputs: the com
+sections/gen/boundary-chain.tex:360	T2	eness: proof-system components, T1, and [[T2]]} (\bndc{:66}) & inputs: the components 
+sections/gen/boundary-chain.tex:361	T4	ndc{leanvm-target.md:123-124}: \enquote{[[T4]]: formal component notions, Fiat–Shamir 
+sections/gen/boundary-chain.tex:383	T6	rchitecture.md:332-335}, for recursion, [[T6]]). The chain
+sections/gen/boundary-statements.tex:120	acceptance tests 19	ss \bndc{m3Holds_stackOf}); its role is [[acceptance tests 19]]
+sections/gen/boundary-statements.tex:397	T4	\bndc{[[T4]] = verify_knowledgeSound ∘ Refinement.kn
+sections/gen/changes.tex:224	A3	conflicting). Round-by-round to plain ([[A3]]): the plain corollary is stated from th
+sections/gen/changes.tex:358	T7	[[T7]]'s \lean{PublicInput.encode}); the diffe
+sections/gen/changes.tex:503	T4	witness type unchanged) as what [[T4]] composes, and keep \lean{map_option_val
+sections/gen/changes.tex:504	T4	and Layer 13 consumes it, and that what [[T4]] waits
+sections/gen/changes.tex:512	decision 8	\enquote{[[decision 8]]}, \enquote{decision 6} are defined nowh
+sections/gen/changes.tex:512	decision 6	\enquote{decision 8}, \enquote{[[decision 6]]} are defined nowhere in the blueprint: 
+sections/gen/changes.tex:541	G4	Table, rows [[G4]], P6, P7--P8 (\code{:601}, \code{:609-61
+sections/gen/changes.tex:541	P6	Table, rows G4, [[P6]], P7--P8 (\code{:601}, \code{:609-610}) 
+sections/gen/changes.tex:541	P7	Table, rows G4, P6, [[P7]]--P8 (\code{:601}, \code{:609-610}) &
+sections/gen/changes.tex:546	P6	Table, rows [[P6]] and K3 (\code{:609}, \code{:614}) &
+sections/gen/changes.tex:546	K3	Table, rows P6 and [[K3]] (\code{:609}, \code{:614}) &
+sections/gen/changes.tex:553	K3	Table, row [[K3]] (\code{:614}) &
+sections/gen/changes.tex:562	K3	nearest hole's products: [[K3]] gains the Merkle compilation, the chain
+sections/gen/changes.tex:564	K1	canonical-encoding checks; [[K1]] the $\K$-valuedness lemma and \lean{enc
+sections/gen/changes.tex:565	K1	uote{list-binding compilation}, between [[K1]] and K3, the compilation theorem with it
+sections/gen/changes.tex:565	K3	st-binding compilation}, between K1 and [[K3]], the compilation theorem with its union
+sections/gen/changes.tex:566	L1	a and the oracle-freeness of the front; [[L1]] the strided reader and the tie order; I
+sections/gen/changes.tex:566	I1	1 the strided reader and the tie order; [[I1]] the
+sections/gen/changes.tex:567	I2	ary-block bridge and the count columns; [[I2]] the carrier of \enquote{R1CS $⇒$ compre
+sections/gen/changes.tex:567	P5	carrier of \enquote{R1CS $⇒$ compress}; [[P5]] the
+sections/gen/changes.tex:568	G1	deployed public-input phase; [[G1]] the normalized variant and the dropped-
+sections/gen/changes.tex:645	M3	5}{@{}l}{\textsf{\bfseries Layer 3: the [[M3]] instance of leanISA (\code{:789-867})}}
+sections/gen/changes.tex:692	T4	e one-row witness, and say that neither [[T4]] composition uses it. &
+sections/gen/changes.tex:903	hole C1	}; \enquote{The port is done and closes [[hole C1]]} (history) goes.
+sections/gen/changes.tex:1032	T4	mn{5}{@{}l}{\textsf{\bfseries Layer 13: [[T4]] and the fixtures (\code{:1242-1259})}}\
+sections/gen/changes.tex:1223	T4	[[T4]] takes \lean{hfit} as its hypothesis), a
+sections/gen/changes.tex:1235	F3	2S value limbs)}: the protocol status's [[F3]] is another finding. &
+sections/gen/changes.tex:1241	K1	quote{list-binding compilation} between [[K1]] and K3, and the obligations folded
+sections/gen/changes.tex:1241	K3	ist-binding compilation} between K1 and [[K3]], and the obligations folded
+sections/gen/changes.tex:1246	C1	Delete \enquote{[[C1]], the port of one ArkLib file, is done o
+sections/gen/checks-bus.tex:35	B1	[[B1]] & The stream holds every element read (
+sections/gen/checks-bus.tex:42	B2	[[B2]] & Announced sizes: upper limbs zero
+sections/gen/checks-bus.tex:49	B3	[[B3]] & Public words: third limb zero
+sections/gen/checks-bus.tex:59	B4	[[B4]] & The program has a power-of-two length
+sections/gen/checks-bus.tex:65	B5	[[B5]] & $16 ≤ κ_{\mathrm{mem}} ≤ 32$
+sections/gen/checks-bus.tex:73	B6	[[B6]] & $τ_j ≤ 32$
+sections/gen/checks-bus.tex:90	B7	[[B7]] & $τ_{\mathrm{BLAKE2S}} ≥ 3$
+sections/gen/checks-bus.tex:99	B8	[[B8]] & $1 ≤ ρ ≤ 4$
+sections/gen/checks-bus.tex:105	B9	[[B9]] & $15 ≤ μ_{\mathrm{stack}} ≤ 28$
+sections/gen/checks-bus.tex:112	B10	[[B10]] & The root's halves have a zero third l
+sections/gen/checks-bus.tex:118	B11	[[B11]] & Layout facts, asserted: \code{push.mu
+sections/gen/checks-bus.tex:125	B9	  [[B9]]) \\
+sections/gen/checks-bus.tex:126	B12	[[B12]] & \textbf{One root for both sides}
+sections/gen/checks-bus.tex:134	B13	[[B13]] & $R_c ≠ 0$
+sections/gen/checks-bus.tex:142	B14	[[B14]] & \textbf{The layer check}, once per la
+sections/gen/checks-bus.tex:151	B15	[[B15]] & The round identity of the layer sumch
+sections/gen/checks-bus.tex:159	B16	[[B16]] & $ζ$ has at least $τ_{\max}$ coordinat
+sections/gen/checks-bus.tex:165	B17	[[B17]] & The stream and the openings are fully
+sections/gen/checks-opening.tex:17	B1	The setup and commitment checks are [[B1]] to B10 and B17 of \cref{tab:gen-bus-che
+sections/gen/checks-opening.tex:17	B10	e setup and commitment checks are B1 to [[B10]] and B17 of \cref{tab:gen-bus-checks}; t
+sections/gen/checks-opening.tex:17	B17	and commitment checks are B1 to B10 and [[B17]] of \cref{tab:gen-bus-checks}; they are
+sections/gen/checks-opening.tex:110	G1	[[G1]] & at every level, before the positions 
+sections/gen/checks-opening.tex:124	G2	[[G2]] & with \code{bits = 0} only the nonce \
+sections/gen/checks-opening.tex:133	M1	[[M1]] & the phase stores one row per \textbf{
+sections/gen/checks-opening.tex:139	M2	[[M2]] & every stored row has exactly \code{ro
+sections/gen/checks-opening.tex:154	M3	[[M3]] & \code{num_leaves} is a power of two, 
+sections/gen/checks-opening.tex:160	M4	[[M4]] & every position is below \code{num_lea
+sections/gen/checks-opening.tex:166	M5	[[M5]] & the octopus has exactly the siblings 
+sections/gen/checks-opening.tex:172	M6	[[M6]] & the recomputed root equals the expect
+sections/gen/checks-opening.tex:183	M7	[[M7]] & height and leaf width are the verifie
+sections/gen/checks-opening.tex:197	W1	[[W1]] & the round identity $h(0) + h(1) = \ma
+sections/gen/checks-opening.tex:205	W2	[[W2]] & the out-of-domain answer $y$
+sections/gen/checks-opening.tex:207	W5	 the sumcheck with $λ_i$ and settled at [[W5]]
+sections/gen/checks-opening.tex:216	W3	[[W3]] & the consistency of the opened rows wi
+sections/gen/checks-opening.tex:219	W5	140, 2226, 2346}) and glued; settled at [[W5]]
+sections/gen/checks-opening.tex:226	W4	[[W4]] & the level batching: OOD first, querie
+sections/gen/checks-opening.tex:235	W5	[[W5]] & \textbf{the terminal check} $\mathit{
+sections/gen/checks-opening.tex:244	W6	[[W6]] & the shape guards \code{n_current ≥ k_
+sections/gen/checks-opening.tex:251	W7	[[W7]] & \code{n_lanes ∈ [1, 2^6]}, $r ≥ 1$, v
+sections/gen/checks-opening.tex:257	W8	[[W8]] & ring switching: \code{s_hat_v} presen
+sections/gen/checks-opening.tex:275	M1	stands for [[M1]] to M7, W2 to W5 and, absent from Annex 
+sections/gen/checks-opening.tex:275	M7	stands for M1 to [[M7]], W2 to W5 and, absent from Annex B alto
+sections/gen/checks-opening.tex:275	W2	stands for M1 to M7, [[W2]] to W5 and, absent from Annex B altogeth
+sections/gen/checks-opening.tex:275	W5	stands for M1 to M7, W2 to [[W5]] and, absent from Annex B altogether, G1
+sections/gen/checks-opening.tex:275	G1	W5 and, absent from Annex B altogether, [[G1]]. Absent from the specification
+sections/gen/checks-opening.tex:277	G1	R2), full consumption (R4), grinding ([[G1]], G2). The blueprint's \lean{verify} inh
+sections/gen/checks-opening.tex:277	G2	), full consumption (R4), grinding (G1, [[G2]]). The blueprint's \lean{verify} inherit
+sections/gen/checks-opening.tex:279	M6	utations (\code{bp:1238-1239}) exercise [[M6]] and the scalars
+sections/gen/checks-table-pub.tex:84	T12	d, located by the routing of the limbs, [[T12]])
+sections/gen/conformance.tex:79	acceptance test 24	ttt{:100-{}101}; \texttt{:1133-{}1135}; [[acceptance test 24]] \texttt{:1333-{}1340} & \enquote{the co
+sections/gen/conformance.tex:173	L1	n: the report's object is deployment on [[L1]]; the theorem that matters is about the 
+sections/gen/conformance.tex:203	decision 15	 \texttt{:1037-{}1039}) and the status' [[decision 15]], (b) the definition \texttt{leanIsaInst
+sections/gen/conformance.tex:297	acceptance test 25	ion \emph{The wall} (\texttt{:331}) and [[acceptance test 25]] (\texttt{:1341-{}1345}) do not list \te
+sections/gen/disagreements-opening.tex:54	M1	er (W1); ``the PCS opening'' stands for [[M1]] to M7 and W2 to W5, and grinding
+sections/gen/disagreements-opening.tex:54	M7	); ``the PCS opening'' stands for M1 to [[M7]] and W2 to W5, and grinding
+sections/gen/disagreements-opening.tex:54	W2	e PCS opening'' stands for M1 to M7 and [[W2]] to W5, and grinding
+sections/gen/disagreements-opening.tex:54	W5	opening'' stands for M1 to M7 and W2 to [[W5]], and grinding
+sections/gen/disagreements-opening.tex:103	S12	  file records it, its finding [[S12]]).
+sections/gen/disagreements-opening.tex:121	L0	e{:829-841}; \code{whir.rs:1261-1265} ``[[L0]] takes no OOD sample''), as Annex B (\co
+sections/gen/docs-contradictions.tex:27	P5	48}: ``is the draft \#60 ... \#60 ticks [[P5]] on the dashboard when it merges'' & mer
+sections/gen/docs-contradictions.tex:35	F1	nued: both files have their own \texttt{[[F1]]} to \texttt{F10} \\\addlinespace[2pt]
+sections/gen/docs-contradictions.tex:35	F10	s have their own \texttt{F1} to \texttt{[[F10]]} \\\addlinespace[2pt]
+sections/gen/docs-contradictions.tex:55	L1	k{}md:\allowbreak{}21}: ``- [ ] \textbf{[[L1]] — Layer 1 ...} Generic half in draft \#
+sections/gen/docs-contradictions.tex:56	P5	xttt{:\allowbreak{}32}: ``- [ ] \textbf{[[P5]] — the public-input phase ...: one chall
+sections/gen/docs-contradictions.tex:60	K3	40}: ``- [x] \textbf{VCVio controls for [[K3]] and P7.} \#29, \#30 — \emph{landed upst
+sections/gen/docs-contradictions.tex:60	P7	- [x] \textbf{VCVio controls for K3 and [[P7]].} \#29, \#30 — \emph{landed upstream}''
+sections/gen/docs-contradictions.tex:61	F1	85}: ``Findings that bind a definition: [[F1]], F3, F5, F6, F8, F11'' and ``new are S1
+sections/gen/docs-contradictions.tex:61	F3	 ``Findings that bind a definition: F1, [[F3]], F5, F6, F8, F11'' and ``new are S14 ..
+sections/gen/docs-contradictions.tex:61	F5	indings that bind a definition: F1, F3, [[F5]], F6, F8, F11'' and ``new are S14 ..., E
+sections/gen/docs-contradictions.tex:61	F6	ngs that bind a definition: F1, F3, F5, [[F6]], F8, F11'' and ``new are S14 ..., E7 ..
+sections/gen/docs-contradictions.tex:61	F8	that bind a definition: F1, F3, F5, F6, [[F8]], F11'' and ``new are S14 ..., E7 ..., E
+sections/gen/docs-contradictions.tex:61	F11	 bind a definition: F1, F3, F5, F6, F8, [[F11]]'' and ``new are S14 ..., E7 ..., E8 ...
+sections/gen/docs-contradictions.tex:61	S14	F1, F3, F5, F6, F8, F11'' and ``new are [[S14]] ..., E7 ..., E8 ... and E9'' & the stat
+sections/gen/docs-contradictions.tex:61	E7	5, F6, F8, F11'' and ``new are S14 ..., [[E7]] ..., E8 ... and E9'' & the status has s
+sections/gen/docs-contradictions.tex:61	E8	8, F11'' and ``new are S14 ..., E7 ..., [[E8]] ... and E9'' & the status has since add
+sections/gen/docs-contradictions.tex:61	E9	d ``new are S14 ..., E7 ..., E8 ... and [[E9]]'' & the status has since added the orde
+sections/gen/docs-contradictions.tex:62	decision 15	:\allowbreak{}89}: decisions up to 14 & [[decision 15]] (the transcript of the public-input pha
+sections/gen/docs-contradictions.tex:69	L1	 two edits for GitHub: ``On GitHub: the [[L1]] line and the open pull request table of
+sections/gen/docs-contradictions.tex:96	decision 15	{r} of the lines whose value is sent''; [[decision 15]] \\\addlinespace[2pt]
+sections/gen/docs-contradictions.tex:135	hole C1	{}1460}), ``The port is done and closes [[hole C1]]'' (\texttt{:\allowbreak{}1143}), ``(\#1
+sections/gen/docs-contradictions.tex:135	L1	(\texttt{:\allowbreak{}591}), ``\texttt{[[L1]]} groups the leaves of Layer 1 already i
+sections/gen/docs-contradictions.tex:136	G1	' & the generic units are coded \texttt{[[G1]]} to \texttt{G6}; the ledger's letters a
+sections/gen/docs-contradictions.tex:136	G6	 units are coded \texttt{G1} to \texttt{[[G6]]}; the ledger's letters are \texttt{A} a
+sections/gen/docs-contradictions.tex:180	acceptance test 14	{:\allowbreak{}1306-\allowbreak{}1307}, [[acceptance test 14]]: ``Witness: \texttt{bytecode\allowbreak
+sections/gen/docs-contradictions.tex:182	acceptance test 5	5 & \texttt{:\allowbreak{}1280}, [[acceptance test 5]]: ``distinguished by \texttt{leanIsaTabl
+sections/gen/docs-contradictions.tex:189	T4	), the compiled verifier (Layer 12) and [[T4]] (Layer 13)''; acceptance test 25, \text
+sections/gen/docs-contradictions.tex:189	acceptance test 25	erifier (Layer 12) and T4 (Layer 13)''; [[acceptance test 25]], \texttt{:\allowbreak{}1343-\allowbreak
+sections/gen/docs-contradictions.tex:210	T2	action and completeness (T4) ``composes [[T2]] with the honest prover'' \\\addlinespac
+sections/gen/docs-contradictions.tex:235	T4	 the ledger entries it touches, and the [[T4]] obligation it feeds'' & the open pull r
+sections/gen/docs-contradictions.tex:246	Decisions 1	[[Decisions 1]] to 5 were stated as questions in the fi
+sections/gen/docs-contradictions.tex:246	Decision 1	51021d9}). Today the status says only ``[[Decision 1]] was taken with \#13, and decision 3 wit
+sections/gen/docs-contradictions.tex:246	decision 3	y ``Decision 1 was taken with \#13, and [[decision 3]] with revision 2'' (\texttt{protocol-\al
+sections/gen/docs-contradictions.tex:246	decision 1	allowbreak{}md:\allowbreak{}214}): what [[decision 1]] decided is no longer written anywhere i
+sections/gen/docs-contradictions.tex:246	decisions 6	 anywhere in the current documents, and [[decisions 6]] to 10 exist only as outcomes (\texttt{:
+sections/gen/docs-contradictions.tex:246	decision 8	the definitions). The blueprint cites ``[[decision 8]]'' and ``decision 6'' (\texttt{:\allowbr
+sections/gen/docs-contradictions.tex:246	decision 6	he blueprint cites ``decision 8'' and ``[[decision 6]]'' (\texttt{:\allowbreak{}557,\allowbrea
+sections/gen/docs-contradictions.tex:246	decision 13	 numbers its own decisions from 1, so ``[[decision 13]]'' is ``public lines, not cells'' here a
+sections/gen/docs-contradictions.tex:246	Decision 14	}485}, a proof-system document, cites ``[[Decision 14]]'' of leanISA without saying so.
+sections/gen/docs-contradictions.tex:252	A7	t's ledger says of ArkLib at the pin: ``[[A7]] WHIR, Merkle, BLAKE2s \textbar{} absent
+sections/gen/docs-contradictions.tex:283	acceptance tests 13	Witnesses named by [[acceptance tests 13]], 15, 24, 26, 27, 28 & \texttt{grep} in 
+sections/gen/docs-proposal.tex:73	decisions 1	{sec:docs-inventory}); the statement of [[decisions 1]] to 10, of which only the outcomes are w
+sections/gen/docs-proposal.tex:151	Decisions 1	[[Decisions 1]] to 15 & stay, each given a name \\\addl
+sections/gen/docs-proposal.tex:152	T1	Target theorems [[T1]] to T8 & stay; owned by \texttt{architec
+sections/gen/docs-proposal.tex:152	T8	Target theorems T1 to [[T8]] & stay; owned by \texttt{architecture.\
+sections/gen/docs-proposal.tex:180	L1	\texttt{[[L1]]} & tables and stacking (Layer 1) & \tex
+sections/gen/docs-proposal.tex:182	C1	\texttt{[[C1]]} & knowledge-soundness composition (the
+sections/gen/docs-proposal.tex:183	I1	\texttt{[[I1]]} & Clean expressions as polynomials (La
+sections/gen/docs-proposal.tex:184	I2	\texttt{[[I2]]} & the adaptor (Layer 3) & \texttt{adap
+sections/gen/docs-proposal.tex:185	G1	\texttt{[[G1]]} & sumcheck: definition and completenes
+sections/gen/docs-proposal.tex:186	G2	\texttt{[[G2]]} & sumcheck: knowledge soundness (Layer
+sections/gen/docs-proposal.tex:187	G3	\texttt{[[G3]]} & batching by powers (Layer 4) & \text
+sections/gen/docs-proposal.tex:188	G4	\texttt{[[G4]]} & fingerprint and collision bound (Lay
+sections/gen/docs-proposal.tex:189	G5	\texttt{[[G5]]} & grand-product GKR: definition and co
+sections/gen/docs-proposal.tex:190	G6	\texttt{[[G6]]} & grand-product GKR: knowledge soundne
+sections/gen/docs-proposal.tex:191	P1	\texttt{[[P1]]} & bus phase: definition and completene
+sections/gen/docs-proposal.tex:192	P2	\texttt{[[P2]]} & bus phase: knowledge soundness (Laye
+sections/gen/docs-proposal.tex:193	P3	\texttt{[[P3]]} & table sumcheck phase: definition and
+sections/gen/docs-proposal.tex:194	P4	\texttt{[[P4]]} & table sumcheck phase: knowledge soun
+sections/gen/docs-proposal.tex:195	P5	\texttt{[[P5]]} & public-input phase (Layer 8) & \text
+sections/gen/docs-proposal.tex:196	P6	\texttt{[[P6]]} & Flock phase, the interface to the Fl
+sections/gen/docs-proposal.tex:197	P7	\texttt{[[P7]]} & opening phase: definition and comple
+sections/gen/docs-proposal.tex:198	P8	\texttt{[[P8]]} & opening phase: knowledge soundness (
+sections/gen/docs-proposal.tex:199	K1	\texttt{[[K1]]} & WHIR opening (Layer 11) & \texttt{wh
+sections/gen/docs-proposal.tex:200	K2	\texttt{[[K2]]} & Merkle trees, byte hasher, WHIR para
+sections/gen/docs-proposal.tex:201	K3	\texttt{[[K3]]} & transcript, proof object, compiled v
+sections/gen/docs-proposal.tex:202	K4	\texttt{[[K4]]} & the base theorems of T4 (Layer 13) &
+sections/gen/docs-proposal.tex:202	T4	\texttt{K4} & the base theorems of [[T4]] (Layer 13) & \texttt{base-\allowbreak{}
+sections/gen/docs-proposal.tex:220	A1	\texttt{[[A1]]} & admitted upstream: sumcheck round kn
+sections/gen/docs-proposal.tex:221	A2	\texttt{[[A2]]} & admitted upstream: composition of kn
+sections/gen/docs-proposal.tex:222	A3	\texttt{[[A3]]} & admitted upstream: round-by-round im
+sections/gen/docs-proposal.tex:223	A4	\texttt{[[A4]]} & admitted upstream: context lifting (
+sections/gen/docs-proposal.tex:224	A5	\texttt{[[A5]]} & admitted or absent upstream: Fiat-Sh
+sections/gen/docs-proposal.tex:225	A6	\texttt{[[A6]]} & absent upstream: grand product, GKR,
+sections/gen/docs-proposal.tex:226	A7	\texttt{[[A7]]} & absent upstream: WHIR, Merkle trees,
+sections/gen/docs-proposal.tex:227	A8	\texttt{[[A8]]} & admitted upstream: correlated agreem
+sections/gen/docs-proposal.tex:228	A9	\texttt{[[A9]]} & admitted upstream: ring-switching pa
+sections/gen/docs-proposal.tex:229	C1	\texttt{[[C1]]} & absent in Clean: expressions as poly
+sections/gen/docs-proposal.tex:230	C2	\texttt{[[C2]]} & asked of leanISA: power-of-two heigh
+sections/gen/docs-proposal.tex:231	C3	\texttt{[[C3]]} & absent in Clean: balance counted in 
+sections/gen/docs-proposal.tex:232	C4	\texttt{[[C4]]} & absent in Clean: fixed columns and s
+sections/gen/docs-proposal.tex:250	S6	\texttt{[[S6]]} & Fiat-Shamir section is \texttt{TODO}
+sections/gen/docs-proposal.tex:251	S9	\texttt{[[S9]]} & proof of the product lemma is \textt
+sections/gen/docs-proposal.tex:252	S10	\texttt{[[S10]]} & degree of the radix-4 round polynomi
+sections/gen/docs-proposal.tex:253	S11	\texttt{[[S11]]} & one bus root not stated \\\addlinesp
+sections/gen/docs-proposal.tex:254	S12	\texttt{[[S12]]} & grinding per level not in Annex B \\
+sections/gen/docs-proposal.tex:255	S13	\texttt{[[S13]]} & retired \\\addlinespace[2pt]
+sections/gen/docs-proposal.tex:256	S14	\texttt{[[S14]]} & the PDF is not the pinned text \\\ad
+sections/gen/docs-proposal.tex:257	S15	\texttt{[[S15]]} & no rule for equal-size blocks \\\add
+sections/gen/docs-proposal.tex:258	S16	\texttt{[[S16]]} & equations are (1) to (4) \\\addlines
+sections/gen/docs-proposal.tex:259	F1	\texttt{[[F1]]} & numeric tags, no labels \\\addlinesp
+sections/gen/docs-proposal.tex:260	F2	\texttt{[[F2]]} & Flock's fixed coordinate has no prov
+sections/gen/docs-proposal.tex:261	F3	\texttt{[[F3]]} & one root for push and pull \\\addlin
+sections/gen/docs-proposal.tex:262	F4	\texttt{[[F4]]} & sumcheck target derived, not sent \\
+sections/gen/docs-proposal.tex:263	F5	\texttt{[[F5]]} & bus forms share the last three power
+sections/gen/docs-proposal.tex:264	F6	\texttt{[[F6]]} & cubic round polynomial, three scalar
+sections/gen/docs-proposal.tex:265	F7	\texttt{[[F7]]} & one coefficient never sent \\\addlin
+sections/gen/docs-proposal.tex:266	F8	\texttt{[[F8]]} & ring-switched claims take the low po
+sections/gen/docs-proposal.tex:267	F9	\texttt{[[F9]]} & Python verifier omits four caps \\\a
+sections/gen/docs-proposal.tex:268	F10	\texttt{[[F10]]} & rejection set of the Rust verifier \
+sections/gen/docs-proposal.tex:269	F11	\texttt{[[F11]]} & count tree holds the tables' counts 
+sections/gen/docs-proposal.tex:270	F12	\texttt{[[F12]]} & fill blocks make heights exact \\\ad
+sections/gen/docs-proposal.tex:271	F13	\texttt{[[F13]]} & grinding binds the nonce on failure 
+sections/gen/docs-proposal.tex:272	F14	\texttt{[[F14]]} & seed hashes a constant naming the ci
+sections/gen/docs-proposal.tex:273	F15	\texttt{[[F15]]} & stack height bound checked separatel
+sections/gen/docs-proposal.tex:274	F16	\texttt{[[F16]]} & security level and no grinding for t
+sections/gen/docs-proposal.tex:275	F17	\texttt{[[F17]]} & equal-size blocks in column-index or
+sections/gen/docs-proposal.tex:276	F18	\texttt{[[F18]]} & one equation on the words, not one p
+sections/gen/docs-proposal.tex:280	A10	erve as names; the former codes \texttt{[[A10]]}-\texttt{A19}, \texttt{C5}, \texttt{C6}
+sections/gen/docs-proposal.tex:280	A19	; the former codes \texttt{A10}-\texttt{[[A19]]}, \texttt{C5}, \texttt{C6}, \texttt{C10
+sections/gen/docs-proposal.tex:280	C5	odes \texttt{A10}-\texttt{A19}, \texttt{[[C5]]}, \texttt{C6}, \texttt{C10}, \texttt{C1
+sections/gen/docs-proposal.tex:280	C6	A10}-\texttt{A19}, \texttt{C5}, \texttt{[[C6]]}, \texttt{C10}, \texttt{C11}, \texttt{P
+sections/gen/docs-proposal.tex:280	C10	A19}, \texttt{C5}, \texttt{C6}, \texttt{[[C10]]}, \texttt{C11}, \texttt{P1}, \texttt{P3
+sections/gen/docs-proposal.tex:280	C11	C5}, \texttt{C6}, \texttt{C10}, \texttt{[[C11]]}, \texttt{P1}, \texttt{P3}-\texttt{P6},
+sections/gen/docs-proposal.tex:280	P1	6}, \texttt{C10}, \texttt{C11}, \texttt{[[P1]]}, \texttt{P3}-\texttt{P6}, \texttt{E6}-
+sections/gen/docs-proposal.tex:280	P3	10}, \texttt{C11}, \texttt{P1}, \texttt{[[P3]]}-\texttt{P6}, \texttt{E6}-\texttt{E15},
+sections/gen/docs-proposal.tex:280	P6	{C11}, \texttt{P1}, \texttt{P3}-\texttt{[[P6]]}, \texttt{E6}-\texttt{E15}, \texttt{E18
+sections/gen/docs-proposal.tex:280	E6	t{P1}, \texttt{P3}-\texttt{P6}, \texttt{[[E6]]}-\texttt{E15}, \texttt{E18} are kept in
+sections/gen/docs-proposal.tex:280	E15	tt{P3}-\texttt{P6}, \texttt{E6}-\texttt{[[E15]]}, \texttt{E18} are kept in one column o
+sections/gen/docs-proposal.tex:280	E18	{P6}, \texttt{E6}-\texttt{E15}, \texttt{[[E18]]} are kept in one column of each registe
+sections/gen/docs-proposal.tex:302	T4	ase proof extraction and completeness & [[T4]] & target theorem & an accepted proof ha
+sections/gen/docs-proposal.tex:303	T1	arithmetization and ISA equivalence & [[T1]] & target theorem & constraint assignmen
+sections/gen/docs-proposal.tex:304	T2	witness-generator correctness & [[T2]] & target theorem & the generated assign
+sections/gen/docs-proposal.tex:305	T5	recursive-verifier correctness & [[T5]] & target theorem & out of scope here; \
+sections/gen/docs-proposal.tex:306	T6	recursion extraction & [[T6]] & target theorem & open research; out o
+sections/gen/docs-proposal.tex:308	L1	nd stacking & Layer 1; formerly \texttt{[[L1]]} & unit of work & hypercube tables, sta
+sections/gen/docs-proposal.tex:310	C1	ess composition & formerly hole \texttt{[[C1]]} & unit of work & the port of ArkLib pu
+sections/gen/docs-proposal.tex:311	I1	polynomials & Layer 2; formerly \texttt{[[I1]]} & unit of work & constraint and flush 
+sections/gen/docs-proposal.tex:312	I2	the adaptor & Layer 3; formerly \texttt{[[I2]]} & unit of work & the leanISA instance 
+sections/gen/docs-proposal.tex:313	G1	ompleteness & Layer 4; formerly \texttt{[[G1]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:314	G2	e soundness & Layer 4; formerly \texttt{[[G2]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:315	G3	g by powers & Layer 4; formerly \texttt{[[G3]]} & unit of work & several claims become
+sections/gen/docs-proposal.tex:316	G4	ision bound & Layer 5; formerly \texttt{[[G4]]} & unit of work & specification Lemma 5
+sections/gen/docs-proposal.tex:317	G5	ompleteness & Layer 5; formerly \texttt{[[G5]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:318	G6	e soundness & Layer 5; formerly \texttt{[[G6]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:319	P1	ompleteness & Layer 6; formerly \texttt{[[P1]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:320	P2	e soundness & Layer 6; formerly \texttt{[[P2]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:321	P3	ompleteness & Layer 7; formerly \texttt{[[P3]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:322	P4	e soundness & Layer 7; formerly \texttt{[[P4]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:323	P5	input phase & Layer 8; formerly \texttt{[[P5]]} & unit of work & specification section
+sections/gen/docs-proposal.tex:324	P6	Flock phase & Layer 9; formerly \texttt{[[P6]]} & unit of work & the interface the Flo
+sections/gen/docs-proposal.tex:325	P7	mpleteness & Layer 10; formerly \texttt{[[P7]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:326	P8	 soundness & Layer 10; formerly \texttt{[[P8]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:327	K1	IR opening & Layer 11; formerly \texttt{[[K1]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:328	K2	parameters & Layer 11; formerly \texttt{[[K2]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:329	K3	d verifier & Layer 12; formerly \texttt{[[K3]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:330	K4	e theorems & Layer 13; formerly \texttt{[[K4]]} & unit of work & \textbf{[TECHNICAL CH
+sections/gen/docs-proposal.tex:331	decision 1	heights are powers of two & [[decision 1]] & decision, taken & leanISA's \texttt{C
+sections/gen/docs-proposal.tex:332	decision 2	statement and parameters & [[decision 2]] & decision, taken & the public input is
+sections/gen/docs-proposal.tex:333	decision 3	where the zerocheck is charged & [[decision 3]] & decision, taken & in the bus phase, w
+sections/gen/docs-proposal.tex:334	decision 4	where generic code lives & [[decision 4]] & decision, open & the \texttt{To<Libra
+sections/gen/docs-proposal.tex:335	decision 5	n end-to-end run of the honest prover & [[decision 5]] & decision, open & depends on the cost 
+sections/gen/docs-proposal.tex:336	decision 6	the witness is the stack & [[decision 6]] & decision, taken & the protocol's witn
+sections/gen/docs-proposal.tex:337	decision 7	phases over an abstract instance & [[decision 7]] & decision, taken & every phase is test
+sections/gen/docs-proposal.tex:338	decision 8	five clauses, caps outside & [[decision 8]] & decision, taken & the caps are a hypo
+sections/gen/docs-proposal.tex:339	decision 9	balance is a permutation & [[decision 9]] & decision, taken & the pushed and pull
+sections/gen/docs-proposal.tex:340	decision 10	se round-by-round knowledge soundness & [[decision 10]] & decision, taken & per component, comp
+sections/gen/docs-proposal.tex:341	decision 11	extractors are computable definitions & [[decision 11]] & decision, taken & the protocol's extr
+sections/gen/docs-proposal.tex:341	acceptance test 24	ractor} & convention \emph{Extractors}; [[acceptance test 24]] \\\addlinespace[2pt]
+sections/gen/docs-proposal.tex:342	decision 12	the strong Flock predicate & [[decision 12]] & decision, taken & the predicate is Fl
+sections/gen/docs-proposal.tex:343	decision 13	public lines, not cells & [[decision 13]] & decision, taken & the statement fixes
+sections/gen/docs-proposal.tex:344	decision 14	 degree bound belongs to the instance & [[decision 14]] & decision, taken & the bus seam bounds
+sections/gen/docs-proposal.tex:344	acceptance test 28	y term by it & convention \emph{Seams}; [[acceptance test 28]] \\\addlinespace[2pt]
+sections/gen/docs-proposal.tex:345	decision 15	the public-input transcript & [[decision 15]] & decision, taken & the prover sends th
+sections/gen/docs-proposal.tex:348	acceptance test 1	fingerprint degree & [[acceptance test 1]] & acceptance test & the error carries a
+sections/gen/docs-proposal.tex:349	acceptance test 2	padding leaves are 1 & [[acceptance test 2]] & acceptance test & a zero pad zeroes e
+sections/gen/docs-proposal.tex:350	acceptance test 3	he nonzero count root is load-bearing & [[acceptance test 3]] & acceptance test & a read with count z
+sections/gen/docs-proposal.tex:351	acceptance test 4	one root, not two & [[acceptance test 4]] & acceptance test & the push and pull r
+sections/gen/docs-proposal.tex:352	acceptance test 5	domain separators & [[acceptance test 5]] & acceptance test & coordinate 0 separa
+sections/gen/docs-proposal.tex:353	acceptance test 6	zerocheck point recycling & [[acceptance test 6]] & acceptance test & the point is drawn 
+sections/gen/docs-proposal.tex:354	acceptance test 7	back-loaded padding & [[acceptance test 7]] & acceptance test & the lift keeps the 
+sections/gen/docs-proposal.tex:355	acceptance test 8	degree three, three scalars & [[acceptance test 8]] & acceptance test & the wire carries th
+sections/gen/docs-proposal.tex:356	acceptance test 9	shared bus powers & [[acceptance test 9]] & acceptance test & the three bus forms
+sections/gen/docs-proposal.tex:357	acceptance test 10	top limb of the public input & [[acceptance test 10]] & acceptance test & the third claim is 
+sections/gen/docs-proposal.tex:358	acceptance test 11	joint list binding & [[acceptance test 11]] & acceptance test & one member of the l
+sections/gen/docs-proposal.tex:359	acceptance test 12	absorb before squeeze & [[acceptance test 12]] & acceptance test & sizes and root are 
+sections/gen/docs-proposal.tex:360	acceptance test 13	index column bit order & [[acceptance test 13]] & acceptance test & bit \texttt{k} is c
+sections/gen/docs-proposal.tex:361	acceptance test 14	bytecode slot bits & [[acceptance test 14]] & acceptance test & the opcode is slot 
+sections/gen/docs-proposal.tex:362	acceptance test 15	selector alignment & [[acceptance test 15]] & acceptance test & blocks sit at multi
+sections/gen/docs-proposal.tex:363	acceptance test 16	variable order & [[acceptance test 16]] & acceptance test & the highest variabl
+sections/gen/docs-proposal.tex:364	acceptance test 17	radix and parity & [[acceptance test 17]] & acceptance test & one radix-2 layer w
+sections/gen/docs-proposal.tex:365	acceptance test 18	counts in the count tree & [[acceptance test 18]] & acceptance test & the tables' count c
+sections/gen/docs-proposal.tex:366	acceptance test 19	the extractor reads the stack & [[acceptance test 19]] & acceptance test & the witness is read
+sections/gen/docs-proposal.tex:367	acceptance test 20	no exceptional challenge & [[acceptance test 20]] & acceptance test & perfect completenes
+sections/gen/docs-proposal.tex:368	acceptance test 21	sizes are parameters & [[acceptance test 21]] & acceptance test & the protocol is a f
+sections/gen/docs-proposal.tex:369	acceptance test 22	tags, not labels & [[acceptance test 22]] & acceptance test & four numeric tags &
+sections/gen/docs-proposal.tex:370	acceptance test 23	numeric error & [[acceptance test 23]] & acceptance test & the bound at the ca
+sections/gen/docs-proposal.tex:371	acceptance test 24	the extractor computes & [[acceptance test 24]] & acceptance test & an extractor chosen
+sections/gen/docs-proposal.tex:372	acceptance test 25	the import rule holds & [[acceptance test 25]] & acceptance test & no phase imports th
+sections/gen/docs-proposal.tex:373	acceptance test 26	seams are the contract & [[acceptance test 26]] & acceptance test & a phase's output re
+sections/gen/docs-proposal.tex:374	acceptance test 27	the toy instance is honest & [[acceptance test 27]] & acceptance test & each clause fails a
+sections/gen/docs-proposal.tex:375	acceptance test 28	the bus seam bounds the degree & [[acceptance test 28]] & acceptance test & a cubic term is rej
+sections/gen/docs-proposal.tex:376	A1	dge soundness & formerly ledger \texttt{[[A1]]} & ledger entry & the single-round boun
+sections/gen/docs-proposal.tex:377	A2	dge soundness & formerly ledger \texttt{[[A2]]} & ledger entry & proved here by the po
+sections/gen/docs-texts.tex:242	hole S	edes it, \texttt{:\allowbreak{}620}); ``[[hole S]]'' and ``read as the holes'' go. No link
+sections/gen/docs-texts.tex:378	P5	wbreak{}109}, the coverage table: row ``[[P5]]'' (\texttt{:\allowbreak{}101}) ``built,
+sections/gen/docs-texts.tex:378	G4	main} (\#60, \texttt{b435631})''; row ``[[G4]]'' (\texttt{:\allowbreak{}95}) ``Lemma 5
+sections/gen/docs-texts.tex:380	P5	ase (P5) is the draft \#60 … \#60 ticks [[P5]] on the dashboard when it merges'' becom
+sections/gen/docs-texts.tex:506	acceptance tests 24	t{:\allowbreak{}410-\allowbreak{}554}); [[acceptance tests 24]] to 27 & nothing & the pre-build signatu
+sections/gen/docs-texts.tex:509	acceptance test 3	aptor exists), the zero-count mutation ([[acceptance test 3]]) and the pad-0 mutation (test 2) (\text
+sections/gen/docs-texts.tex:549	F6	8'', \texttt{:\allowbreak{}1097}; ``\#3 [[F6]]'', \texttt{:\allowbreak{}612}; ``F1 the
+sections/gen/docs-texts.tex:549	F1	\#3 F6'', \texttt{:\allowbreak{}612}; ``[[F1]] there'', status \texttt{:\allowbreak{}3
+sections/gen/docs-texts.tex:560	decision 15	The same line's ``[[decision 15]]'' should read ``leanISA decision 15'', 
+sections/gen/docs-texts.tex:560	decision 15	s ``decision 15'' should read ``leanISA [[decision 15]]'', the proof system having a decision 1
+sections/gen/docs-texts.tex:560	decision 15	ecision 15'', the proof system having a [[decision 15]] of its own. Title: nothing.
+sections/gen/docs-texts.tex:564	M3	2, ``the proof-system roadmap reads the [[M3]] bus off the same channels'', is right.
+sections/gen/docs-texts.tex:567	P3	ys the Clean bump ``also has to survive [[P3]], the eager \texttt{Fintype BF64}, see t
+sections/gen/docs-texts.tex:567	P3	it should read ``leanISA status finding [[P3]] (the eager \texttt{Fintype BF64})'', or
+sections/gen/docs-texts.tex:587	P05	rases of the body are stale or coded: ``[[P05]] depends only on \#18's multilinear API.
+sections/gen/docs-texts.tex:587	P05	's multilinear API. The game depends on [[P05]]'' (a private code for the algebra slice
+sections/gen/docs-texts.tex:587	A6	ich is closed: ``ArkLib \#1''; ``ledger [[A6]]'': ``the ledger entry 'grand product, G
+sections/gen/docs-vocabulary.tex:41	M3	 (instance), Category A and Category B, [[M3]] (expanded only in the references, \text
+sections/gen/docs-vocabulary.tex:41	M3	llowbreak{}1539}), IOR. Of these only ``[[M3]]'' and ``IOR'' are terms of art elsewher
+sections/gen/findings-boundary.tex:290	acceptance test 21	by that. In [[acceptance test 21]] (\bndc{bp:1326-1328}) add \enquote{the 
+sections/gen/findings-boundary.tex:300	decision 12	[[decision 12]]), which only the Flock roadmap (issue \
+sections/gen/findings-boundary.tex:464	T4	\asis \bndc{[[T4]]  =  verify_knowledgeSound  ∘  Refinemen
+sections/gen/findings-boundary.tex:470	T4	\enquote{\bndc{[[T4]] = verify_knowledgeSound ∘ Refinement.kn
+sections/gen/findings-boundary.tex:484	decision 14	t channels and tables are program-free, [[decision 14]]);
+sections/gen/findings-boundary.tex:498	T7	1236-1240}) and end-to-end soundness's ([[T7]]) \bndc{PublicInput.encode} are the
+sections/gen/findings-boundary.tex:510	T7	 Layer 12, \bndc{PublicInput.encode} in [[T7]]), and the
+sections/gen/findings-bus.tex:102	acceptance test 17	[[acceptance test 17]].
+sections/gen/findings-bus.tex:173	B8	window and the stacking window, [[B8]] and B9 of \cref{tab:gen-bus-checks}). T
+sections/gen/findings-bus.tex:173	B9	window and the stacking window, B8 and [[B9]] of \cref{tab:gen-bus-checks}). The blue
+sections/gen/findings-bus.tex:214	F9	upstream.'' \code{st:164}: ``Finding [[F9]] … is still to be reported to leanVM.''
+sections/gen/findings-bus.tex:324	B17	) and of the consumption of the stream ([[B17]]), in \cref{tab:gen-bus-checks}.
+sections/gen/findings-bus.tex:326	acceptance test 10	only \code{bp:1294}, the public word of [[acceptance test 10]];
+sections/gen/findings-bus.tex:329	acceptance test 10	ree words finds only the public word of [[acceptance test 10]].) The status lists
+sections/gen/findings-bus.tex:362	acceptance test 28	phase, stated in Layer 6; and [[acceptance test 28]] to name the first.
+sections/gen/findings-bus.tex:426	F14	status file's finding on the seed, [[F14]]); the checks of the verifiers the speci
+sections/gen/findings-code.tex:63	acceptance test 24	nition, and the \texttt{rfl} witness of [[acceptance test 24]] covers zero-round phases only}
+sections/gen/findings-code.tex:75	acceptance test 24	nition, and the \texttt{rfl} witness of [[acceptance test 24]] covers zero-round phases only}
+sections/gen/findings-code.tex:90	acceptance test 28	ubicTerm} becomes a typing failure, and [[acceptance test 28]] is met by the type.
+sections/gen/findings-code.tex:134	T4	s unchanged. Layer 13 consumes it. What [[T4]] waits on is the round-by-round-to-plain
+sections/gen/findings-code.tex:139	A6	security}, D.3 (a)), which the review's [[A6]] reads as a property of the toy (\enquot
+sections/gen/findings-code.tex:150	H1	 the values sent, and its item \enquote{[[H1]]: one output, \texttt{pooled}} (\texttt{
+sections/gen/findings-code.tex:169	F18	s an honest proof). The status finding ([[F18]]) records the divergence correctly and d
+sections/gen/findings-code.tex:186	acceptance test 10	lowbreak{}o\allowbreak{}n} follow. D.2: [[acceptance test 10]]'s witness exists (\texttt{t\allowbreak{
+sections/gen/findings-code.tex:201	decision 15	:834-{}836}, \texttt{:1037-{}1039}) and [[decision 15]], with no definition (Layer 3) and no tr
+sections/gen/findings-code.tex:363	acceptance test 25	ak{}lean}), or drop its import. Reason: [[acceptance test 25]]'s witness becomes true as written.
+sections/gen/findings-docs.tex:117	A1	status; within the status alone \texttt{[[A1]]} and \texttt{C1} each have four meaning
+sections/gen/findings-docs.tex:117	C1	he status alone \texttt{A1} and \texttt{[[C1]]} each have four meanings. Two reference
+sections/gen/findings-docs.tex:117	F3	resolve to the wrong finding: ``finding [[F3]] of the status file'' (\texttt{protocol-
+sections/gen/findings-docs.tex:117	P3	rs: issue 28 ``Layer 2/C1'', issue 23 ``[[P3]]'', issue 31 ``P05'' (\cref{sec:docs-cod
+sections/gen/findings-docs.tex:117	P05	yer 2/C1'', issue 23 ``P3'', issue 31 ``[[P05]]'' (\cref{sec:docs-code-collisions}).
+sections/gen/findings-docs.tex:149	acceptance test 25	ak{}Arithmetization/\allowbreak{}}, and [[acceptance test 25]] (\texttt{:\allowbreak{}1341-\allowbreak
+sections/gen/findings-docs.tex:153	acceptance test 25	ns of \texttt{:\allowbreak{}331} and of [[acceptance test 25]]. Then write the rule into \texttt{scrip
+sections/gen/findings-docs.tex:180	hole C1	branch'', ``The port is done and closes [[hole C1]]'', ``(\#13, taken)'', ``folded there on
+sections/gen/findings-docs.tex:189	decisions 1	\cref{sec:docs-decisions}: [[decisions 1]] to 5 were questions in the first status
+sections/gen/findings-docs.tex:189	decisions 1	 first status (\texttt{51021d9}); today [[decisions 1]] and 3 survive as ``was taken'' (\texttt
+sections/gen/findings-docs.tex:189	decisions 6	.\allowbreak{}md:\allowbreak{}214}) and [[decisions 6]] to 10 only as outcomes (\texttt{:\allow
+sections/gen/findings-docs.tex:189	decision 8	llowbreak{}227}); the blueprint cites ``[[decision 8]]'' and ``decision 6'' (\texttt{:\allowbr
+sections/gen/findings-docs.tex:189	decision 6	he blueprint cites ``decision 8'' and ``[[decision 6]]'' (\texttt{:\allowbreak{}557,\allowbrea
+sections/gen/findings-docs.tex:189	decision 15	dmap numbers its decisions from 1, so ``[[decision 15]]'' means two things (issue 4 against \te
+sections/gen/findings-docs.tex:209	acceptance test 5	reak{}220}) and \texttt{leanIsaTables} ([[acceptance test 5]], \texttt{:\allowbreak{}1280}) exist now
+sections/gen/findings-docs.tex:209	acceptance test 14	k{}tex:\allowbreak{}4-\allowbreak{}5}); [[acceptance test 14]] names \texttt{bytecode\allowbreak{}Colu
+sections/gen/findings-docs.tex:252	P3	reak{}md})'', ``(leanISA status finding [[P3]])'', ``(roadmap convention \emph{The ora
+sections/gen/findings-docs.tex:261	L1	review left two edits for GitHub, ``the [[L1]] line and the open pull request table of
+sections/gen/findings-docs.tex:270	T2	action and completeness (T4) ``composes [[T2]] with the honest prover''.
+sections/gen/findings-flock-ring.tex:186	acceptance test 20	\begin{change}{[[acceptance test 20]]}
+sections/gen/findings-flock-ring.tex:334	acceptance test 23	\begin{change}{[[acceptance test 23]]}
+sections/gen/findings-flock-ring.tex:348	A9	fhead{Evidence} \code{bp:267}: \enquote{[[A9]] ring switching packing leaves |
+sections/gen/findings-flock-ring.tex:364	A9	\asis \enquote{[[A9]] ring switching packing leaves | \code{R
+sections/gen/findings-flock-ring.tex:365	F5	^64)} profile | Layer 9 | Owned by \#3 ([[F5]]); consumed
+sections/gen/findings-flock-ring.tex:367	A9	\asproposed \enquote{[[A9]] ring switching | ArkLib's \code{Packing
+sections/gen/findings-flock-ring.tex:381	F9	\code{st:316-319}: \enquote{[[F9]] the Python verifier omits the caps $\ma
+sections/gen/findings-libraries.tex:88	A2	n{change}{the ledger's actions for rows [[A2]] and A3 (\file{protocol-blueprint.md:260
+sections/gen/findings-libraries.tex:88	A3	e}{the ledger's actions for rows A2 and [[A3]] (\file{protocol-blueprint.md:260-261})}
+sections/gen/findings-libraries.tex:89	A2	\asis [[A2]]: \enquote{the port is deleted \dots\ wh
+sections/gen/findings-libraries.tex:89	A3	 \dots\ when the pin moves past \#615}. [[A3]]: \enquote{the
+sections/gen/findings-libraries.tex:91	A2	\asproposed [[A2]]: \enquote{kept until ArkLib, on whateve
+sections/gen/findings-libraries.tex:93	A3	\lean{ToArkLib} candidate}. [[A3]]: \enquote{the plain corollary is stated
+sections/gen/findings-libraries.tex:103	A5	ad{Evidence} The blueprint's ledger row [[A5]] (\file{:263}) plans \enquote{Named inte
+sections/gen/findings-libraries.tex:122	A5	\begin{change}{ledger row [[A5]] (\file{protocol-blueprint.md:263}) and 
+sections/gen/findings-libraries.tex:324	E6	ct). Recorded as leanISA status finding [[E6]] at \code{b435631}. Companion: CompPoly'
+sections/gen/findings-opening.tex:104	T4	theorem [[T4]], which it transcribes).
+sections/gen/findings-opening.tex:107	T4	48}), \lean{verify_knowledgeSound}, and [[T4]] in \code{architecture.md:264-269}}
+sections/gen/findings-opening.tex:120	T4	itecture.md:264-269} the same repair of [[T4]].
+sections/gen/findings-opening.tex:222	acceptance test 23	lean{niError} (\code{bp:1234-1235}) and [[acceptance test 23]]}
+sections/gen/findings-opening.tex:230	acceptance test 23	uery counts of \code{py:910}).'' And in [[acceptance test 23]]: ``$Σ\,\mathit{piopError} <
+sections/gen/findings-opening.tex:274	M2	ng-proof,sec:gen-opening-merkle}, check [[M2]]
+sections/gen/findings-opening.tex:358	acceptance test 23	ror\_le}'s bound depends on the window; [[acceptance test 23]] omits ring switching}
+sections/gen/findings-table-pub.tex:235	acceptance test 6	phase's challenges, so [[acceptance test 6]]'s ``the state function of Layer 7'' can
+sections/gen/index-gen.tex:9	G15	greements-bus}       % sections A.6 and [[G15]]: disagreements between the three source
+sections/gen/lib-arklib-pins.tex:437	C1	\enquote{[[C1]]--C8 are merged} and \enquote{the immedi
+sections/gen/lib-clean.tex:401	C8	finding [[C8]]) retires; the balance proofs were porte
+sections/gen/obligations.tex:95	T4	tlines}): \bndc{docs/architecture.md}'s [[T4]] has the right decomposition and the rig
+sections/gen/obligations.tex:95	T4	es), drops \bndc{WellFormedBytecode} at [[T4]], and lacks the list-binding compilation
+sections/gen/obligations.tex:103	T4	ich are the proof-system half of target [[T4]] (\code{arch:261-275}). Each level below
+sections/gen/obligations.tex:114	T4	gram on the public input. \emph{Feeds:} [[T4]], T7 through T5 and T6 (recursion consum
+sections/gen/obligations.tex:114	T7	 on the public input. \emph{Feeds:} T4, [[T7]] through T5 and T6 (recursion consumes t
+sections/gen/obligations.tex:114	T5	lic input. \emph{Feeds:} T4, T7 through [[T5]] and T6 (recursion consumes the extracte
+sections/gen/obligations.tex:114	T6	ut. \emph{Feeds:} T4, T7 through T5 and [[T6]] (recursion consumes the extracted witne
+sections/gen/obligations.tex:115	T4	ccepted by \code{verify}. \emph{Feeds:} [[T4]]'s completeness half, T8. \emph{Status:}
+sections/gen/obligations.tex:115	T8	. \emph{Feeds:} T4's completeness half, [[T8]]. \emph{Status:} \oblstatus{major}{unpro
+sections/gen/obligations.tex:126	G4	 encoding checks. \emph{See:} gt-bus B, [[G4]], G9; gt-opening-compile D.1, D.2; bound
+sections/gen/obligations.tex:126	G9	oding checks. \emph{See:} gt-bus B, G4, [[G9]]; gt-opening-compile D.1, D.2; boundary-
+sections/gen/obligations.tex:143	M7	eight and leaf width do the work, check [[M7]]). \emph{Status:} \oblstatus{major}{not 
+sections/gen/obligations.tex:147	acceptance test 11	 of the one \lean{q}'', \code{bp:1190}; [[acceptance test 11]]). \emph{States:} let \code{Front'} be t
+sections/gen/obligations.tex:196	acceptance test 24	ack is \code{extractMid} at round 0, so [[acceptance test 24]]'s \code{rfl} witness is ill-typed (prob
+sections/gen/obligations.tex:197	G4	r is unconstrained'' (CS1); gt-bus D.4, [[G4]]; gt-opening-compile F.1.
+sections/gen/obligations.tex:204	G10	 admits statements'' (TP1); gt-bus E.4, [[G10]].
+sections/gen/obligations.tex:220	G1	heck. \emph{See:} gt-bus A.3, A.4, E.1, [[G1]], G2, G8, G11; register (GB1, GB2, GB11)
+sections/gen/obligations.tex:220	G2	. \emph{See:} gt-bus A.3, A.4, E.1, G1, [[G2]], G8, G11; register (GB1, GB2, GB11).
+sections/gen/obligations.tex:220	G8	mph{See:} gt-bus A.3, A.4, E.1, G1, G2, [[G8]], G11; register (GB1, GB2, GB11).
+sections/gen/obligations.tex:220	G11	See:} gt-bus A.3, A.4, E.1, G1, G2, G8, [[G11]]; register (GB1, GB2, GB11).
+sections/gen/obligations.tex:221	G10	vable on paper. \emph{See:} gt-bus E.2, [[G10]].
+sections/gen/obligations.tex:224	acceptance test 1	 \emph{See:} gt-bus D.1, E.2; blueprint [[acceptance test 1]]; 2.5.3.
+sections/gen/obligations.tex:225	acceptance test 3	only}. \emph{See:} gt-bus B (B13), E.2; [[acceptance test 3]].
+sections/gen/obligations.tex:226	G13	fied only}. \emph{See:} gt-bus B (B12), [[G13]]; acceptance test 4.
+sections/gen/obligations.tex:226	acceptance test 4	only}. \emph{See:} gt-bus B (B12), G13; [[acceptance test 4]].
+sections/gen/obligations.tex:227	G1	challenge. \emph{See:} gt-bus D.3, D.4, [[G1]], G2, G12.
+sections/gen/obligations.tex:227	G2	lenge. \emph{See:} gt-bus D.3, D.4, G1, [[G2]], G12.
+sections/gen/obligations.tex:227	G12	e. \emph{See:} gt-bus D.3, D.4, G1, G2, [[G12]].
+sections/gen/obligations.tex:228	G6	mph{See:} gt-table-pub D.3; gt-bus D.3, [[G6]] (GB6, TP5).
+sections/gen/obligations.tex:229	G3	 one state function. \emph{See:} gt-bus [[G3]] (GB3); lib-arklib B.3 (ledger A4).
+sections/gen/obligations.tex:231	G7	\oblreview{missing}. \emph{See:} gt-bus [[G7]] (GB7); code-layer1 G.3.
+sections/gen/obligations.tex:232	G10	instance meets both. \emph{See:} gt-bus [[G10]] (GB10).
+sections/gen/obligations.tex:233	G8	\oblreview{missing}. \emph{See:} gt-bus [[G8]] (GB8).
+sections/gen/obligations.tex:240	G16	P4), ``Layer 7's sketch'' (TP6); gt-bus [[G16]].
+sections/gen/obligations.tex:241	acceptance tests 7	ceptance test 7 names the wrong lemma); [[acceptance tests 7]], 9.
+sections/gen/obligations.tex:263	acceptance test 10	binput D, G.3, G.4; boundary-adaptor D; [[acceptance test 10]] (names the wrong witness).
+sections/gen/obligations.tex:268	F0	CheckFlock}). Issue \#3 records ``Flock [[F0]] has not started''. Everything below is 
+sections/gen/obligations.tex:272	acceptance test 20	nly} \oblreview{wrong} on its obstacle: [[acceptance test 20]] files a completeness failure under \cod
+sections/gen/obligations.tex:307	G1	 \code{c_1} derived. \emph{See:} gt-bus [[G1]] (GB1); gt-table-pub A.1 (T5, T6).
+sections/gen/obligations.tex:308	A1	ess}), which the blueprint's ledger row [[A1]] omits. \emph{See:} lib-arklib B.3 (row 
+sections/gen/obligations.tex:329	acceptance test 1	ong). \emph{See:} lib-arklib G.6 (AK6); [[acceptance test 1]].
+sections/gen/obligations.tex:335	G1	.3.1.3.4). \emph{See:} gt-bus A.4, D.4, [[G1]], G2, G12.
+sections/gen/obligations.tex:335	G2	.3.4). \emph{See:} gt-bus A.4, D.4, G1, [[G2]], G12.
+sections/gen/obligations.tex:335	G12	). \emph{See:} gt-bus A.4, D.4, G1, G2, [[G12]].
+sections/gen/obligations.tex:371	hole I1	.5.8): Clean components as polynomials ([[hole I1]]; not built)}\label{sec:obl-gen-layer2}
+sections/gen/obligations.tex:392	G4	boundary-adaptor E.3, finding 5; gt-bus [[G4]].
+sections/gen/obligations.tex:398	T1	 \bndc{leanisa-blueprint.md:1156-1177}; [[T1]]-S). \emph{States:} every satisfying ass
+sections/gen/obligations.tex:399	T1	og input w ∧ AssignmentRepresents w t}; [[T1]]-C). \emph{Feeds:} 2.0.2. \emph{Status:}
+sections/gen/obligations.tex:400	T4	rint (out of scope, \code{bp:147-148}); [[T4]]'s completeness composes T1-C instead. \
+sections/gen/obligations.tex:400	T1	p:147-148}); T4's completeness composes [[T1]]-C instead. \emph{See:} boundary-adaptor
+sections/gen/obligations.tex:425	T3	compiler emits both) & the guest owner ([[T3]]) & \textbf{N in the blueprint}: \bndc{b
+sections/gen/obligations.tex:477	G2	blueprint has no last combiner & gt-bus [[G2]] \\
+sections/gen/obligations.tex:478	G1	d) & $5$ is another verifier's & gt-bus [[G1]], D.3 \\
+sections/gen/obligations.tex:479	G12	ayer's challenge is unassigned & gt-bus [[G12]] \\
+sections/gen/obligations.tex:480	G6	ate function & gt-table-pub D.3; gt-bus [[G6]] \\
+sections/gen/obligations.tex:496	acceptance test 23	m) & $2^{31}, 2^{15}, 2^{7}, 8, 2, 1$ & [[acceptance test 23]] leaves this term out ($2^{-160}$ domina
+sections/gen/obligations.tex:613	T4	h the proof system: the target ladder's [[T4]] (\code{arch:261-275}), the coverage dia
+sections/gen/obligations.tex:613	S4	{arch:261-275}), the coverage diagram's [[S4]] rows (``Prover … S4: prover implementat
+sections/gen/obligations.tex:613	S4	entation correspondence'', ``Verifier … [[S4]]: soundness extracts constraints'', \cod
+sections/gen/obligations.tex:629	T4	[[T4]] first proves ``\bndc{BaseVerifier.Accep
+sections/gen/obligations.tex:629	T1	to the arithmetization's relation, then [[T1]]-S); \textbf{gets wrong} the shape: a cl
+sections/gen/obligations.tex:630	T1	``compose it with [[T1]]-S'' & 2.6.6 & \textbf{lacks} the hypoth
+sections/gen/obligations.tex:630	T1	hypothesis \bndc{WellFormedBytecode} of [[T1]]-S in the composed statement (\bndc{arch
+sections/gen/obligations.tex:630	T4	4-228} states it for T1 and drops it at [[T4]]) \\
+sections/gen/obligations.tex:632	T2	``Its completeness dual composes [[T2]] with the honest prover and records any 
+sections/gen/obligations.tex:632	T1	int diverges from it: Layer 13 composes [[T1]]-C (an existence theorem) instead of T2 
+sections/gen/obligations.tex:632	T2	 T1-C (an existence theorem) instead of [[T2]] and records no resource condition (boun
+sections/gen/obligations.tex:633	T4	``[[T4]] — base proof extraction/completeness: p
+sections/gen/obligations.tex:633	T1	/completeness: proof-system components, [[T1]], and T2'' (\bndc{arch:66}) &  & as abov
+sections/gen/obligations.tex:633	T2	eness: proof-system components, T1, and [[T2]]'' (\bndc{arch:66}) &  & as above \\
+sections/gen/obligations.tex:636	S4	the coverage diagram: ``Verifier … [[S4]]: soundness extracts constraints'' & 2.1
+sections/gen/obligations.tex:638	T1	[[T1]]–T8 refine the six obligations of arXiv:
+sections/gen/obligations.tex:638	T8	T1–[[T8]] refine the six obligations of arXiv:260
+sections/gen/obligations.tex:669	acceptance tests 7	 the interface list (code-layer1 G.6) & [[acceptance tests 7]], 14, 15 name wrong or vacuous witnesses
+sections/gen/obligations.tex:672	G11	must be ``the products differ'', gt-bus [[G11]]) \\
+sections/gen/obligations.tex:675	acceptance test 20	bndc{limbColumns} inside the interface; [[acceptance test 20]]'s inverse; test 23's number \\
+sections/gen/obligations.tex:681	T4	[[T4]] (K4) & 2.0 & the two statements' intent
+sections/gen/obligations.tex:734	G7	undary-adaptor findings 2, 6, 7; gt-bus [[G7]], G10; gt-table-pub TP1, TP4; code-spine
+sections/gen/obligations.tex:734	G10	ry-adaptor findings 2, 6, 7; gt-bus G7, [[G10]]; gt-table-pub TP1, TP4; code-spine CS1)
+sections/gen/probes-code.tex:13	P3	texttt{P1} to \texttt{P6}, with \texttt{[[P3]]} in three files) were run and recorded 
+sections/gen/probes-code.tex:52	acceptance test 27	he claim of the test's docstring and of [[acceptance test 27]] (\enquote{each of the four checkable cl
+sections/gen/probes-code.tex:251	acceptance test 24	ractor cannot produce a stack. The risk [[acceptance test 24]] guards against (a witness chosen becaus
+sections/gen/probes-code.tex:303	P1	\allowbreak{}s} re-established by probe [[P1]] for the declarations listed there and m
+sections/gen/probes-code.tex:2134	T4	k{}u\allowbreak{}t\allowbreak{} t}, and [[T4]]'s \texttt{b\allowbreak{}a\allowbreak{}s
+sections/gen/probes-code.tex:2168	T4	wbreak{}eq} for cell 1), and through it [[T4]]'s \texttt{b\allowbreak{}a\allowbreak{}s
+sections/gen/probes-code.tex:2170	acceptance test 10	\subsubsection{In the tests: [[acceptance test 10]]'s witness exists today (D.2)}\label{sec
+sections/gen/register.tex:55	G1	lor{major}{major} & phase: bus & gt-bus [[G1]] (\cref{f:bus-gkr-normalized}) & an erro
+sections/gen/register.tex:59	G2	 is one sentence) & phase: bus & gt-bus [[G2]] (\cref{f:bus-extra-combiner}) & an erro
+sections/gen/register.tex:61	G3	lor{major}{major} & phase: bus & gt-bus [[G3]] (\cref{f:bus-generic-gkr}) & an error o
+sections/gen/register.tex:63	G16	:boundary-column-groups}), §E.4; gt-bus [[G16]] (\cref{f:bus-table-phase-tables}) & an 
+sections/gen/register.tex:97	T4	wbreak{}architecture.\allowbreak{}md}'s [[T4]], which it transcribes) & paper; probe-r
+sections/gen/register.tex:107	G4	& adaptor and leanISA boundary & gt-bus [[G4]] (\cref{f:bus-admissible}); boundary-ada
+sections/gen/register.tex:113	G11	ble-pub-layer7-sketch}), §4 C.2; gt-bus [[G11]] (\cref{f:bus-stale-sketch}); code-spine
+sections/gen/register.tex:117	G5	ening-compile) & documentation & gt-bus [[G5]] (\cref{f:bus-status-python-caps}), §F; 
+sections/gen/register.tex:148	acceptance test 20	 additive errors (proved at both pins); [[acceptance test 20]] charges the Flock prover's failure at \
+sections/gen/register.tex:175	acceptance test 17	t included, error 0''; add the count to [[acceptance test 17]] (gt-bus.md G2)
+sections/gen/register.tex:240	A5	ead{Proposed change} rewrite ledger row [[A5]]: obligations the upstream theorems do n
+sections/gen/register.tex:278	M3	tt{Ensemble.\allowbreak{}to\allowbreak{}[[M3]] :\allowbreak{} Ensemble → M3Instance} c
+sections/gen/register.tex:320	F9	\fhead{Proposed change} delete [[F9]] and \code{st:164}; correct the earlier 
+sections/gen/register.tex:325	I2	3, K1, a new list-binding hole, L1, I1, [[I2]], P5, G1, S), as §5.1 assigns (obligatio
+sections/gen/register.tex:325	P5	1, a new list-binding hole, L1, I1, I2, [[P5]], G1, S), as §5.1 assigns (obligations.m
+sections/gen/register.tex:325	G1	 new list-binding hole, L1, I1, I2, P5, [[G1]], S), as §5.1 assigns (obligations.md §5
+sections/gen/register.tex:362	G10	r}{minor} & relation and seams & gt-bus [[G10]] (\cref{f:bus-side-conditions}); probe H
+sections/gen/register.tex:368	acceptance test 24	he extracted stack is not a definition; [[acceptance test 24]]'s \code{rfl} witness covers zero-round 
+sections/gen/register.tex:370	G6	zerocheck-escape}), §5 D.1, D.3; gt-bus [[G6]] (\cref{f:bus-zerocheck-charge}), §D.3 &
+sections/gen/register.tex:376	G7	lor{minor}{minor} & phase: bus & gt-bus [[G7]] (\cref{f:bus-leaf-order}) & cited-check
+sections/gen/register.tex:378	G8	lor{minor}{minor} & phase: bus & gt-bus [[G8]] (\cref{f:bus-open-orders}) & cited-chec
+sections/gen/register.tex:380	G12	lor{minor}{minor} & phase: bus & gt-bus [[G12]] (\cref{f:bus-binary-combination}) & cit
+sections/gen/register.tex:384	acceptance test 10	d line and the unbuilt adaptor theorem; [[acceptance test 10]] names the wrong witness & \textcolor{mi
+sections/gen/register.tex:392	acceptance test 23	textbf{R58} & The Flock error quoted in [[acceptance test 23]] leaves out ring switching & \textcolor{
+sections/gen/register.tex:398	G9	phase: opening and compilation & gt-bus [[G9]] (\cref{f:bus-canonical-checks}); gt-ope
+sections/gen/register.tex:460	G14	ening-compile) & documentation & gt-bus [[G14]] (\cref{f:bus-citation-drift}); docs-deb
+sections/gen/register.tex:466	G13	{minor}{minor} & documentation & gt-bus [[G13]] (\cref{f:bus-status-one-root}) & cited-
+sections/gen/register.tex:490	G15	lor{note}{note} & phase: setup & gt-bus [[G15]] (\cref{f:bus-disagreements}); §A.6 & ci
+sections/gen/register.tex:494	G17	color{note}{note} & phase: bus & gt-bus [[G17]] (\cref{f:bus-no-rbr-in-spec}); §D.1 & c
+sections/gen/register.tex:604	F17	11), ties put the shared columns first ([[F17]]), the caps and stacking bound (F15), pa
+sections/gen/register.tex:606	acceptance tests 1	heck; \code{busError} on \code{(α, β)}; [[acceptance tests 1]], 2, 3, 4, 15, 17. & reading; cited-chec
+sections/gen/register.tex:640	P1	xtbf{N30} & code-spine §0 item 1; probe [[P1]] & No theorem of the spine is wrong for 
+sections/gen/register.tex:644	P2	\textbf{N32} & code-spine §D.1; probe [[P2]] & \code{Balanced} handles the side filt
+sections/gen/register.tex:646	P3a	\textbf{N33} & code-spine §D.2; probe [[P3a]] & Each seam is inhabited and refuted co
+sections/gen/register.tex:648	P3b	bf{N34} & code-spine §D.5, §D.6; probes [[P3b]], P1 & The commit phase's state function
+sections/gen/register.tex:648	P1	4} & code-spine §D.5, §D.6; probes P3b, [[P1]] & The commit phase's state function and
+sections/gen/register.tex:768	M3	UMP} asserts, so \texttt{to\allowbreak{}[[M3]]\_\allowbreak{}constraints\_\allowbreak{
+sections/gen/register.tex:780	T4	t witness; the pointwise composition of [[T4]] typechecks; \texttt{Extractor.\allowbre
+sections/gen/register.tex:1014	G1	rror (4 against 5). The check corrected [[G1]]'s wording on the table sumcheck: ``thre
+sections/gen/register.tex:1040	acceptance test 10	d line and the unbuilt adaptor theorem; [[acceptance test 10]] names the wrong witness): code-pubinput
+sections/gen/statements-spine.tex:115	acceptance test 24	, in a form that names the extractor if [[acceptance test 24]] is to survive it (C.7).
+sections/gen/statements-spine.tex:129	T4	subsection{\texttt{Refinement} and what [[T4]] needs (C.7)}\label{sec:gen-spine-C7}
+sections/gen/statements-spine.tex:142	T4	wo universes are independent, checked). [[T4]] (\texttt{b\allowbreak{}a\allowbreak{}s\
+sections/gen/statements-spine.tex:142	T4	and that Layer 13 is its consumer. What [[T4]] does still wait on is upstream: the pla
+sections/gen/surface.tex:228	acceptance test 24	tractor leaves the theorem's statement; [[acceptance test 24]] then rests on the lemma \texttt{piop\_\
+sections/gen/surface.tex:228	T4	ommended if the named extractor is what [[T4]] must carry through Fiat–Shamir; recomme
+sections/gen/surface.tex:287	acceptance test 14	 and its three \texttt{example}s; point [[acceptance test 14]] at \texttt{b\allowbreak{}y\allowbreak{}
+sections/gen/surface.tex:289	acceptance test 7	exttt{sumCube\_\allowbreak{}padHigh} in [[acceptance test 7]], or keep one as the specification's sen
+sections/gen/surface.tex:330	H1	 the values sent, and its item \enquote{[[H1]]: one output, \texttt{pooled}} (\texttt{
+sections/gen/transcript-bus.tex:57	S0	[[S0]] & $V$: seed the chain with \code{compre
+sections/gen/transcript-bus.tex:63	S1	[[S1]] & $P→V$: 8 elements: $κ_{\mathrm{mem}}$
+sections/gen/transcript-bus.tex:68	S2	[[S2]] & $V$: each announced element has its t
+sections/gen/transcript-bus.tex:72	S3	[[S3]] & $V$: each public word has its third l
+sections/gen/transcript-bus.tex:76	S4	[[S4]] & $V$: the caps (the checks B4 to B9 of
+sections/gen/transcript-bus.tex:80	S5	[[S5]] & $V$: derive the layouts (the stack, t
+sections/gen/transcript-bus.tex:84	S6	[[S6]] & $V$: the stacking window $15 ≤ μ_{\ma
+sections/gen/transcript-bus.tex:88	C1	[[C1]] & $P→V$: the commitment, a Merkle root 
+sections/gen/transcript-bus.tex:93	C2	[[C2]] & $V$: both halves of the root have a z
+sections/gen/transcript-bus.tex:118	U0	[[U0]] & $V$: structural assertions on the lea
+sections/gen/transcript-bus.tex:122	U1	[[U1]] & $V→P$: $α_0, α_1, α_2, α_3$ then $β$:
+sections/gen/transcript-bus.tex:126	U2	[[U2]] & $P→V$: 2 elements, the bus root $R$ t
+sections/gen/transcript-bus.tex:130	U3	[[U3]] & $V→P$: the first combiner $λ$
+sections/gen/transcript-bus.tex:134	U4	[[U4]] & The batched GKR (\cref{sec:gen-bus-gk
+sections/gen/transcript-bus.tex:138	U5	[[U5]] & $V$: $R_c ≠ 0$ (evaluated after the G
+sections/gen/transcript-bus.tex:142	U6	[[U6]] & $P→V$: 5 elements, the evaluations of
+sections/gen/transcript-bus.tex:150	U7	[[U7]] & $V$: computes, per side, the public p
+sections/gen/transcript-opening.tex:467	L0	e{:829-841}; \code{whir.rs:1261-1265} ``[[L0]] takes no OOD sample''), as Annex B (\co
+sections/gen/transcript-opening.tex:732	F13	de{:165-174}; the status file's finding [[F13]])
+sections/gen/transcript-opening.tex:854	acceptance test 8	{Sumcheck messages} (\code{bp:315}) and [[acceptance test 8]] (\code{bp:1287-1289}: ``\lean{decode}
+sections/gen/transcript-table-pub.tex:53	T0	[[T0]] & What precedes: the bus phase's last p
+sections/gen/transcript-table-pub.tex:59	T1	[[T1]] & \textbf{Challenge} $ξ ← \E$ (one elem
+sections/gen/transcript-table-pub.tex:63	T2	[[T2]] & \textbf{Powers.} Constraint $i$ (0-ba
+sections/gen/transcript-table-pub.tex:72	T3	[[T3]] & \textbf{Target, derived, never sent}:
+sections/gen/transcript-table-pub.tex:77	T4	[[T4]] & \textbf{Number of rounds} $τ_{\max}$,
+sections/gen/transcript-table-pub.tex:81	T5	[[T5]] & \textbf{Round $j = 0..τ_{\max}−1$ bin
+sections/gen/transcript-table-pub.tex:90	T6	[[T6]] & \textbf{Verifier computation}: $c₁ :=
+sections/gen/transcript-table-pub.tex:95	T7	[[T7]] & \textbf{Challenge} $r_m ← \E$ after t
+sections/gen/transcript-table-pub.tex:99	T8	[[T8]] & \textbf{Joining and padding.} Table $
+sections/gen/transcript-table-pub.tex:105	T9	[[T9]] & \textbf{Final prover message}: for $t
+sections/gen/transcript-table-pub.tex:112	T10	[[T10]] & \textbf{Final check}:
+sections/gen/transcript-table-pub.tex:118	T11	[[T11]] & \textbf{Claims pooled}: for $t$, then
+sections/gen/transcript-table-pub.tex:123	T12	[[T12]] & \textbf{The eighteen limbs}: their cl
+sections/gen/transcript-table-pub.tex:203	P0	[[P0]] & Precondition: each public word has to
+sections/gen/transcript-table-pub.tex:209	P1	[[P1]] & \textbf{Challenge} $r ← \E$, after th
+sections/gen/transcript-table-pub.tex:213	P2	[[P2]] & \textbf{Prover message}: two elements
+sections/gen/transcript-table-pub.tex:217	P3	[[P3]] & \textbf{Check}
+sections/gen/transcript-table-pub.tex:223	P4	[[P4]] & \textbf{Claims pooled}: \code{mem₀}, 

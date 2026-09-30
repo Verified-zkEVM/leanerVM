@@ -1,0 +1,874 @@
+prose	sections/00-summary.tex:6	Layer 0	the two master theorems), Layer 0, Layer 1 and the public-input phase. Th
+prose	sections/00-summary.tex:6	Layer 1	the two master theorems), Layer 0, Layer 1 and the public-input phase. The ground
+prose	sections/00-summary.tex:25	Layer 1	e sumcheck's numbers, in the relation's five clauses and in Layer 1's transcriptions,
+paren	sections/01-scope-method.tex:91	Layers 0	layer & the blueprint's numbering of the same work (Layers 0 to 13). \\
+paren	sections/01-scope-method.tex:124	Layers 0	m \textbf{The code as evidence.} The built code (the spine, Layers 0 and 1, the public-input
+paren	sections/02-protocol-map.tex:165	Layer 12	(Layer 12)};
+paren	sections/02-protocol-map.tex:179	Layers 4	with its two master theorems. It then specifies each phase (Layers 4 to 10),
+paren	sections/02-protocol-map.tex:180	Layers 2	the adaptor to leanISA (Layers 2 and 3), the compilation (Layers 11 and
+paren	sections/02-protocol-map.tex:180	Layers 11	the adaptor to leanISA (Layers 2 and 3), the compilation (Layers 11 and 12) and the target
+paren	sections/02-protocol-map.tex:181	Layer 13	theorem (Layer 13). \Cref{tab:map-where} says where each
+cell	sections/02-protocol-map.tex:189	Layer 0	Fields, sampling, the oracle interface of $q$ & Layer 0 & \file{LeanerVM/Protocol/Field.lean},
+cell	sections/02-protocol-map.tex:190	Layer 1	tables, stacking, padding, the index and bytecode columns & Layer 1 & \file{ToCompPoly/*}, \file{Stack.lean
+cell	sections/02-protocol-map.tex:192	Layer 2	Clean components as polynomials & Layer 2 & not built \\
+cell	sections/02-protocol-map.tex:193	Layer 3	The leanISA instance and the adaptor & Layer 3 & not built \\
+cell	sections/02-protocol-map.tex:194	Layer 4	The sumcheck and the batching component & Layer 4 & not built (an open pull request holds
+cell	sections/02-protocol-map.tex:195	Layer 5	Fingerprints, the grand product, GKR & Layer 5 & not built \\
+cell	sections/02-protocol-map.tex:196	Layer 6	The bus phase & Layer 6 & not built \\
+cell	sections/02-protocol-map.tex:197	Layer 7	The table sumcheck & Layer 7 & not built \\
+cell	sections/02-protocol-map.tex:198	Layer 8	The public-input phase & Layer 8 & \file{PublicInput.lean}; built, both
+cell	sections/02-protocol-map.tex:199	Layer 9	Flock and ring switching & Layer 9 & not built; owned by the Flock roadmap
+cell	sections/02-protocol-map.tex:200	Layer 10	The claim pool and the opening & Layer 10 & not built \\
+cell	sections/02-protocol-map.tex:201	Layer 11	WHIR, Merkle trees, the parameters & Layer 11 & not built \\
+cell	sections/02-protocol-map.tex:202	Layer 12	Fiat--Shamir, the proof object, \lean{verify} & Layer 12 & not built \\
+cell	sections/02-protocol-map.tex:203	Layer 13	The target theorem & Layer 13 & not built \\
+heading	sections/03-libraries.tex:32	Layer 0	\section{Layer 0 of the proof system, audited}\label{sec
+heading	sections/04-catalogue.tex:19	Layer 1	\section{Layer 1: tables, stacking, padding, claim weigh
+heading	sections/05-phases.tex:195	Layer 9	\paragraph{Where the blueprint falls short.} Its Layer 9 makes the eighteen limb claims an
+heading	sections/05-phases.tex:225	Layer 10	\paragraph{How, in the blueprint.} Layer 10 runs a sumcheck reducing the batched we
+prose	sections/05-phases.tex:226	Layer 11	to an evaluation and then queries the oracle once; Layer 11 then runs WHIR \enquote{in place of
+prose	sections/05-phases.tex:229	Layer 12	Layer 12 cannot hold as planned. The cause is th
+prose	sections/05-phases.tex:229	Layer 0	annot hold as planned. The cause is the oracle interface of Layer 0, an evaluation
+prose	sections/07-tcb.tex:85	Layer 2	polynomial bridge of Layer 2 is noncomputable at the pin. Until the
+cell	sections/08-faithfulness.tex:44	Layer 1	Layer 1 has no reader for the limb columns; the
+cell	sections/08-faithfulness.tex:44	Layer 3	er} overstates: the blueprint assigns the strided reader to Layer 3 (with the slot map placed circularly),
+cell	sections/08-faithfulness.tex:44	Layer 1	larly), and the generic identity is a short derivation from Layer 1's lemmas \\
+heading	sections/08-faithfulness.tex:111	Layer 1	\section{The code as built: the spine, Layer 1, the public-input phase}\label{sec:fait
+heading	sections/08-faithfulness.tex:117	Layer 0	\section{The libraries and Layer 0}\label{sec:faith-libraries}
+paren	sections/09-nonvacuity.tex:63	Layer 10	\lean{piopError_le} (Layer 10) is stated over sizes the spine's \lean
+prose	sections/10-auditability.tex:22	Layer 0	\lean{TheOracle}); and Layer 0's oracle interface of the stack with th
+prose	sections/10-auditability.tex:32	Layer 1	Layer 1 has 143 public declarations, of which 2
+prose	sections/10-auditability.tex:90	Layer 12	ode{ExtractorsExpectedFailure}). The executable verifier of Layer 12
+prose	sections/10-auditability.tex:112	Layer 1	file and per class, are produced from the spine and Layer 1 dossiers and are inserted here.}}
+prose	sections/11-options.tex:23	Layer 0	WHIR replaces the whole opening phase. Cost: Layer 0's interface, the opening phase and
+prose	sections/11-options.tex:24	Layers 11	Layers 11 and 12 as sketched; nothing built break
+prose	sections/11-options.tex:46	Layer 9	field of the Flock interface; Layer 9's interface replaced by the spine's slo
+prose	sections/11-options.tex:57	Layers 4	phase. Cost: Layers 4 to 6 as sketched. The alternative, ArkL
+prose	sections/11-options.tex:64	Layer 1	columns as a Layer 1 lemma and a Layer 3 reader. Cost: Layer
+prose	sections/11-options.tex:64	Layer 3	columns as a Layer 1 lemma and a Layer 3 reader. Cost: Layers 1 to 3 as sketched
+prose	sections/11-options.tex:64	Layers 1	columns as a Layer 1 lemma and a Layer 3 reader. Cost: Layers 1 to 3 as sketched.
+prose	sections/11-options.tex:74	Layers 11	compilation stated as the theorem it is. Cost: Layers 11 to 13 rewritten; the target theorem
+prose	sections/13-drift.tex:61	Layer 3	thing is there to lose it; the report's recommendations for Layer 3 are where it
+heading	sections/b-probes.tex:9	Layer 1	\section{The spine, the public-input phase, Layer 1}
+paren	sections/e-brief-review.tex:39	Layer~1	(it predated Layer~1 and the public-input phase), so the rev
+prose	sections/gen/analysis-opening.tex:140	Layer 13	non-formal step to be named as such in Layer 13 and in \code{architecture.md} (which al
+quote	sections/gen/analysis-opening.tex:300	Layer 12	\paragraph{The step ``Layer 12 turns list binding into extraction of t
+prose	sections/gen/analysis-opening.tex:362	Layer 12	no such compilation (\lean{BCSTransform} commented out), so Layer 12 must
+paren	sections/gen/analysis-opening.tex:491	Layer 10	opening (Layer 10 as sketched), $(J − 1)$ on $λ$, $2$ per
+prose	sections/gen/analysis-opening.tex:684	Layer 11	This lemma belongs to Layer 11 or 12 and is a hypothesis of the list-b
+quote	sections/gen/analysis-opening.tex:715	Layer 12	interfaces contains it; the sentence ``Layer 12 turns list binding into extraction of t
+prose	sections/gen/boundary-chain.tex:95	Layer 12	Layer 12 will need it for \enquote{statement bin
+prose	sections/gen/boundary-chain.tex:163	Layer 3	depends on the layout's \bndc{μ}, which Layer 3 defines.
+cell	sections/gen/boundary-chain.tex:221	Layer 13	raintSoundness}, \bndc{constraintCompleteness} themselves & Layer 13 (\bndc{bp:1253-1256}) & owed by leanISA
+paren	sections/gen/boundary-chain.tex:221	Layer 10	ves & Layer 13 (\bndc{bp:1253-1256}) & owed by leanISA (its Layer 10) & not stated in Lean; Layer 9's four s
+cell	sections/gen/boundary-chain.tex:221	Layer 9	56}) & owed by leanISA (its Layer 10) & not stated in Lean; Layer 9's four statements are block comments (\
+cell	sections/gen/boundary-chain.tex:233	Layers 2	unt coordinates & \bndc{counts_nonzero} both ways & owed by Layers 2 and 3 & a transcription from the Rust (
+cell	sections/gen/boundary-chain.tex:355	Layer 13	\enquote{then compose it with T1-S} (\bndc{:270}) & Layer 13 (\bndc{bp:1253-1254}) & \bndc{constrain
+cell	sections/gen/boundary-chain.tex:358	Layer 12	tement binding, and rejection behavior} (\bndc{:453-455}) & Layer 12: \bndc{verify_iff_compiled}, the stream
+cell	sections/gen/boundary-chain.tex:361	Layers 10	e specified protocol and statement encoding} & the first is Layers 10--13; the second is the fixture plus \bn
+cell	sections/gen/boundary-chain.tex:361	Layer 12	\enquote{exactly} is owed a lemma the blueprint assigns to Layer 12 \\\addlinespace[3pt]
+prose	sections/gen/boundary-relations.tex:53	Layers 2	Layers 2 and 3 (\bndc{bp:757-867}) and is not bu
+prose	sections/gen/boundary-relations.tex:257	Layer 3	Read from Layer 3 (\bndc{bp:794-867}), the status file's
+paren	sections/gen/boundary-relations.tex:262	Layer 2	}: the six opcode components through \bndc{Component.toM3} (Layer 2):
+cell	sections/gen/boundary-relations.tex:308	Layer 2	--5; vacuous for tables 6, 7 and the verifier (no assert) & Layer 2's \bndc{toM3_constraints_iff}, whose ri
+cell	sections/gen/boundary-relations.tex:309	Layer 2	ter}, injectivity of \bndc{busTuple} on arrays of one size; Layer 2's \bndc{toM3_flushes_eq} for tables 0--
+prose	sections/gen/boundary-relations.tex:385	Layer 12	and in Layer 12's \bndc{verify prog input proof}, which
+prose	sections/gen/boundary-relations.tex:389	Layer 2	missing is the lemma that lets the adaptor's proof close: Layer 2's \bndc{toM3_flushes_eq} is
+paren	sections/gen/boundary-relations.tex:408	Layer 1	offsets (Layer 1's \bndc{Blocks.stackColumn}, \bndc{Stac
+paren	sections/gen/boundary-relations.tex:438	Layer 1	and must precede the instance (the Layer 1 dossier's finding that \bndc{leanIsaIns
+prose	sections/gen/boundary-statements.tex:47	Layer 3	The Layer 3 sketch (\bndc{bp:794-820}) and the Laye
+prose	sections/gen/boundary-statements.tex:47	Layer 2	The Layer 3 sketch (\bndc{bp:794-820}) and the Layer 2 sketch it needs (\bndc{bp:761-778}) are
+prose	sections/gen/boundary-statements.tex:78	Layer 3	every \bndc{#guard} of the Layer 3 tests needs, is found only for an \bndc
+paren	sections/gen/boundary-statements.tex:167	Layer 11	s) and nothing of the rate, which parameterizes WHIR alone (Layer 11);
+paren	sections/gen/boundary-statements.tex:175	Layer 1	\bndc{Layout} has not (the Layer 1 dossier, \file{code-layer1.md} G.2).
+prose	sections/gen/boundary-statements.tex:191	Layer 12	The announcement of Layer 12 is \bndc{Sizes × logInvRate}.
+prose	sections/gen/boundary-statements.tex:192	Layer 12	ason The instance depends on the heights alone; the rate is Layer 12's; the two lemmas are what
+paren	sections/gen/boundary-statements.tex:226	Layer 1	ance.lean:73-81}, a reading law), but no reader exists (the Layer 1 dossier,
+paren	sections/gen/boundary-statements.tex:232	Layer 7	\item \textbf{the consequence}: the generic table sumcheck (Layer 7) takes its rounds from
+prose	sections/gen/boundary-statements.tex:241	Layer 7	mn groups in the spine's conventions (\code{bp:316}) and in Layer 7 (\code{bp:987})}
+prose	sections/gen/boundary-statements.tex:249	Layer 7	criterion, decidable, and Layer 7 ranges over it.} In Layer 7 (\bndc{bp:9
+prose	sections/gen/boundary-statements.tex:249	Layer 7	criterion, decidable, and Layer 7 ranges over it.} In Layer 7 (\bndc{bp:987}): \bndc{τ_max} and
+heading	sections/gen/boundary-statements.tex:256	Layer 2	\subsection{Mathlib polynomials in Layer 2, CompPoly polynomials in the instance}\
+prose	sections/gen/boundary-statements.tex:279	Layer 2	Layer 2 produces \bndc{Expression.toMvPolynomia
+prose	sections/gen/boundary-statements.tex:286	Layer 3	Layer 3 tests, \bndc{bp:866-867}), the phases'
+prose	sections/gen/boundary-statements.tex:295	Layer 2	What Layer 2 must produce is a \emph{direct} computa
+prose	sections/gen/boundary-statements.tex:308	Layer 2	\begin{change}{the polynomial bridge of Layer 2 (\code{bp:762-767})}
+heading	sections/gen/catalogue-layer1.tex:3	Layer 1	\section{Layer 1, declaration by declaration}\label{sec:
+heading	sections/gen/catalogue-layer1.tex:5	Layer 1	\subsection{The objects Layer 1 is built on}
+prose	sections/gen/catalogue-layer1.tex:28	Layer 1	\textbf{The spine's objects Layer 1 plugs into} (\texttt{LeanerVM/\allowbre
+paren	sections/gen/catalogue-layer1.tex:51	Layer 3	earing: a definition the instance \texttt{leanIsaInstance} (Layer 3) or the executable verifier (Layer 12)
+paren	sections/gen/catalogue-layer1.tex:51	Layer 12	xttt{leanIsaInstance} (Layer 3) or the executable verifier (Layer 12) will unfold, so it becomes trusted sur
+paren	sections/gen/catalogue-layer1.tex:51	Layer 1	uilt (no master theorem, seam or built instance unfolds any Layer 1 declaration today; see E). \textbf{I} i
+paren	sections/gen/catalogue-layer1.tex:404	Layer 6	ak{}e} & 118 & interface (listed; the leaf decomposition of Layer 6) & the one-padded stack at any point, c
+paren	sections/gen/catalogue-pubinput.tex:5	Layer 12	bf{helper} (proof support). The future executable verifier (Layer 12) reads, per the blueprint (\texttt{:104
+quote	sections/gen/catalogue-pubinput.tex:5	Layer 12	ttt{lineValue}, \texttt{linePoint}: marked \enquote{read by Layer 12}.
+prose	sections/gen/catalogue-pubinput.tex:13	Layer 12	lean{linePoint}}\hfill\textsf{\small [load-bearing, read by Layer 12]}\par\nopagebreak
+prose	sections/gen/catalogue-pubinput.tex:31	Layer 1	= low bit). \emph{Depends on:} CompPoly \texttt{eval₂Mle}, Layer 1's \texttt{evalMle\_\allowbreak{}append\
+prose	sections/gen/catalogue-pubinput.tex:33	Layer 12	extbf{\lean{pSpec}}\hfill\textsf{\small [interface, read by Layer 12]}\par\nopagebreak
+prose	sections/gen/catalogue-pubinput.tex:64	Layer 12	lean{lineValue}}\hfill\textsf{\small [load-bearing, read by Layer 12]}\par\nopagebreak
+prose	sections/gen/catalogue-pubinput.tex:84	Layer 12	f{\lean{pooled}}\hfill\textsf{\small [load-bearing, read by Layer 12]}\par\nopagebreak
+prose	sections/gen/catalogue-pubinput.tex:94	Layer 12	expectedValues}}\hfill\textsf{\small [load-bearing, read by Layer 12]}\par\nopagebreak
+prose	sections/gen/catalogue-pubinput.tex:104	Layer 12	only: no theorem of the phase depends on it (C.4), read by Layer 12]}\par\nopagebreak
+prose	sections/gen/changes.tex:10	Layers 0	d the ledger, the pinned conventions row by row, the spine, Layers 0 to 13, the
+paren	sections/gen/changes.tex:126	Layer 0	error of the blueprint (caused by Layer 0's evaluation interface) & \sev{major}\\
+paren	sections/gen/changes.tex:183	Layer 10	\lean{constraintCompleteness} (leanISA Layer 10), not \lean{HasFillBlocks}: both leanIS
+quote	sections/gen/changes.tex:212	Layer 0	\enquote{Layer 0 supplies the \lean{E} instance (built f
+paren	sections/gen/changes.tex:233	Layer 5	context with riders (Layer 5) needs no lens. &
+cell	sections/gen/changes.tex:252	Layer 11	whether Layer 11 builds on it (the fit with leanVM's tre
+prose	sections/gen/changes.tex:279	Layer 4	check), or the row stays and Layer 4 proves the transport lemma (a verifier
+paren	sections/gen/changes.tex:297	Layer 0	error of the blueprint (caused by Layer 0's evaluation interface) & \sev{major}\\
+prose	sections/gen/changes.tex:393	Layer 3	Add: the choice of \lean{sent} is pinned by two tests, Layer 3's \texttt{\#guard} on
+prose	sections/gen/changes.tex:394	Layer 12	\lean{leanIsaInstance.publicLines} and Layer 12's differential fixture, which reads exa
+paren	sections/gen/changes.tex:397	Layers 3	documentation (avoidable audit surface until Layers 3 and 12 land) & \sev{minor}\\
+paren	sections/gen/changes.tex:429	Layer 3	Category B, its non-vacuity is \lean{m3Holds_stackOf} (Layer 3), its faithfulness Layer 12's
+prose	sections/gen/changes.tex:429	Layer 12	cuity is \lean{m3Holds_stackOf} (Layer 3), its faithfulness Layer 12's
+cell	sections/gen/changes.tex:461	Layer 6	phase, stated in Layer 6. \textsf{[decision]} &
+prose	sections/gen/changes.tex:504	Layer 13	direction. The prose says the transport is proved and Layer 13 consumes it, and that what T4 waits
+cell	sections/gen/changes.tex:557	Layer 12	table this text moves to Layer 12's upstream work.) &
+prose	sections/gen/changes.tex:573	Layer 0	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 0: the ArkLib dependency and the field in
+paren	sections/gen/changes.tex:577	Layer 0	\file{docs/dependencies.md}} (or says what Layer 0 did then, and that the pins have moved)
+prose	sections/gen/changes.tex:604	Layer 1	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 1: hypercube tables, stacking, the index
+prose	sections/gen/changes.tex:613	Layer 3	the low eight coordinates frozen to the slot's bits; Layer 3 transports the sum type to
+prose	sections/gen/changes.tex:623	Layer 2	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 2: Clean components as polynomials (\code
+prose	sections/gen/changes.tex:645	Layer 3	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 3: the M3 instance of leanISA (\code{:789
+paren	sections/gen/changes.tex:651	Layer 12	window $1 \le ρ \le 4$ inside it or as \lean{validRate} (Layer 12); \lean{caps_of_admissible} and
+prose	sections/gen/changes.tex:680	Layer 1	\file{Parameters/} with the reader built from Layer 1's lemma); the layout takes the slot map
+paren	sections/gen/changes.tex:701	Layer 3	Prose, \code{:850-861} (what Layer 3 supplies to Layer 9) &
+paren	sections/gen/changes.tex:701	Layer 9	Prose, \code{:850-861} (what Layer 3 supplies to Layer 9) &
+prose	sections/gen/changes.tex:702	Layer 3	Layer 3 supplies a \lean{FlockRegion I}: the co
+prose	sections/gen/changes.tex:708	Layer 1	of every committed column on the two configurations of the Layer 1 review's
+cell	sections/gen/changes.tex:713	Layer 3	Layer 3, optional &
+prose	sections/gen/changes.tex:720	Layer 4	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 4: sumcheck for eq-weighted virtual polyn
+prose	sections/gen/changes.tex:734	Layer 5	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 5: fingerprints, the grand product, and G
+prose	sections/gen/changes.tex:754	Layer 6	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 6: the bus phase (\code{:949-979})}}\\*
+prose	sections/gen/changes.tex:787	Layer 7	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 7: the table sumcheck phase (\code{:981-1
+quote	sections/gen/changes.tex:801	Layer 6	enquote{it is charged to the $(α, β)$ and GKR challenges of Layer 6 \dots\ as an extra
+quote	sections/gen/changes.tex:802	Layer 6	E}$ per constraint} becomes \enquote{it is the bus phase's (Layer 6), and costs
+prose	sections/gen/changes.tex:807	Layer 8	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 8: the public-input phase (\code{:1006-10
+prose	sections/gen/changes.tex:816	Layer 8	Layer 8 has a second phase for the deployed che
+prose	sections/gen/changes.tex:818	Layer 12	\lean{Phases} and Layer 12 take it; the specification's per-limb p
+quote	sections/gen/changes.tex:819	Layer 12	ma that its acceptance implies the deployed one's. \enquote{Layer 12 owes it}
+prose	sections/gen/changes.tex:825	Layer 9	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 9: the Flock and ring-switching boundary
+paren	sections/gen/changes.tex:835	Layer 9	error of the blueprint (the spine's Flock slot is faithful; Layer 9 is not) & \sev{major}\\
+prose	sections/gen/changes.tex:837	Layer 3	The Flock phase takes the \lean{FlockRegion I} of Layer 3; \lean{Flock.Holds} is the Flock
+paren	sections/gen/changes.tex:843	Layer 3	Delete \lean{limbColumns}: the slot map is instance-free (Layer 3's row). &
+prose	sections/gen/changes.tex:863	Layer 3	xiliary predicate includes the constant position 512, as in Layer 3 (the proposal
+prose	sections/gen/changes.tex:868	Layer 10	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 10: the claim pool, the opening sumcheck,
+paren	sections/gen/changes.tex:876	Layer 0	error of the blueprint (caused by Layer 0's evaluation interface) & \sev{major}\\
+prose	sections/gen/changes.tex:878	Layer 10	Delete Layer 10's own \lean{Weight}, \lean{WeightedClai
+prose	sections/gen/changes.tex:890	Layer 3	_le}'s comment states $μ_{\mathrm{bus}} \le 28$, a lemma of Layer 3 from the window
+prose	sections/gen/changes.tex:908	Layer 11	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 11: WHIR over binary Reed--Solomon codes,
+prose	sections/gen/changes.tex:941	Layer 11	ary and VCVio issue 571 as the upstream, and decide whether Layer 11
+prose	sections/gen/changes.tex:954	Layer 12	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 12: compilation, the transcript, the proof
+paren	sections/gen/changes.tex:998	Layer 12	error of the blueprint (an omission in the data of Layer 12) & \sev{minor}\\
+cell	sections/gen/changes.tex:1004	Layer 11	A new theorem, replacing Layer 11's sentence \code{:1190} &
+prose	sections/gen/changes.tex:1032	Layer 13	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 13: T4 and the fixtures (\code{:1242-1259}
+quote	sections/gen/changes.tex:1078	Layer 7	\enquote{The state function of Layer 7 charges the zerocheck to Layer 6's chal
+quote	sections/gen/changes.tex:1078	Layer 6	uote{The state function of Layer 7 charges the zerocheck to Layer 6's challenges} becomes
+quote	sections/gen/changes.tex:1079	Layer 6	\enquote{The state function of Layer 6 carries the zerocheck}. &
+cell	sections/gen/changes.tex:1085	Layer 7	and, once Layer 7 lands, \lean{tableSummand_target}. &
+prose	sections/gen/changes.tex:1091	Layer 3	ro top limb by type. Witnesses: \lean{threeLimbs} and, when Layer 3
+paren	sections/gen/changes.tex:1151	Layer 3	Test 24, \code{:1339-1340} (Layer 3's guard) &
+prose	sections/gen/changes.tex:1191	Layer 0	reader is taken); \lean{Column} moves to Layer 0's names, \lean{Weight} and \lean{Weight
+prose	sections/gen/changes.tex:1210	Layer 3	he assumed interfaces: the instance-free Flock structure of Layer 3
+paren	sections/gen/changes.tex:1296	Layers 6	e for layers that are not built (the adaptor, the phases of Layers 6, 7, 9 and 10, the
+prose	sections/gen/changes.tex:1426	Layer 0	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 0 and Layer 1}}\\*
+prose	sections/gen/changes.tex:1426	Layer 1	\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 0 and Layer 1}}\\*
+cell	sections/gen/changes.tex:1459	Layer 1	Layer 1, unused or duplicated declarations &
+prose	sections/gen/changes.tex:1486	Layers 0	row \emph{The oracle}, Layers 0, 10, 11 and 12).
+paren	sections/gen/changes.tex:1505	Layer 12	composition (Layer 12).
+prose	sections/gen/changes.tex:1520	Layer 12	pooled) and let the master theorems and Layer 12 take it; keep the specification's per-l
+prose	sections/gen/changes.tex:1524	Layer 12	three executable verifiers runs, and the debt assigned to Layer 12 cannot be paid there.
+prose	sections/gen/changes.tex:1529	Layer 9	\code{R39}; rows \emph{Holes}, the spine's sketch, Layer 9, test 20).
+prose	sections/gen/changes.tex:1546	Layer 10	ledger rows, Layer 10, the interfaces).
+prose	sections/gen/changes.tex:1579	Layer 13	Layer 13).
+paren	sections/gen/changes.tex:1588	Layer 13	e resources of base completeness} (\code{R29}, \code{R122}; Layer 13, the
+prose	sections/gen/changes.tex:1602	Layer 4	e protocol keeps four coefficients and the round check, and Layer 4 proves
+prose	sections/gen/changes.tex:1609	Layers 5	Layers 5 and 6).
+prose	sections/gen/changes.tex:1611	Layer 5	\item (a) Layer 5's GKR over a context, with the leaf tab
+prose	sections/gen/changes.tex:1620	Layers 3	\code{R16}; Layers 3 and 9, the interfaces, the boundaries).
+prose	sections/gen/changes.tex:1623	Layer 3	selection generic, Layer 3 building the reader, \lean{limbColumns}
+prose	sections/gen/changes.tex:1635	Layer 6	hypotheses of the bus phase in Layer 6. Recommendation: none given (\cref{f:bu
+prose	sections/gen/changes.tex:1638	Layer 12	the spine, Layer 12, the code table).
+prose	sections/gen/changes.tex:1648	Layer 12	parameters}, Layer 12, test 21). The maximum over admissible
+paren	sections/gen/changes.tex:1653	Layer 11	\item \textbf{The Merkle trees} (\code{R77}; the ledger, Layer 11). Build Layer 11 on VCVio's
+prose	sections/gen/changes.tex:1653	Layer 11	The Merkle trees} (\code{R77}; the ledger, Layer 11). Build Layer 11 on VCVio's
+prose	sections/gen/checks-opening.tex:278	Layer 12	pecification it is ``written from'' (\code{bp:1216}) unless Layer 12 lists the checks of
+prose	sections/gen/code-index.tex:10	Layer 1	comments, and the handoffs of the reviews of the spine, of Layer 1 and of the public-input phase.
+paren	sections/gen/code-index.tex:27	Layer 0	\texttt{0} & the ArkLib dependency and the field instances (Layer 0); a layer number used as a hole code &
+paren	sections/gen/code-index.tex:27	Layer 0	tus:89; not in the blueprint's table & 2 & field instances (Layer 0); short form \texttt{field-\allowbreak{
+paren	sections/gen/code-index.tex:29	Layer 4	texttt{G1} & generic sumcheck, definition and completeness (Layer 4) & blueprint:598; no section in the hol
+paren	sections/gen/code-index.tex:29	Layer 4	, TB 7, HC 3, OC 1 & sumcheck: definition and completeness (Layer 4); short form \texttt{sumcheck-\allowbre
+paren	sections/gen/code-index.tex:30	Layer 4	G2} & generic sumcheck, round-by-round knowledge soundness (Layer 4) & blueprint:599 & 12: BP 3, ST 4, TB 4
+paren	sections/gen/code-index.tex:30	Layer 4	12: BP 3, ST 4, TB 4, HC 1 & sumcheck: knowledge soundness (Layer 4); short form \texttt{sumcheck-\allowbre
+paren	sections/gen/code-index.tex:31	Layer 4	texttt{G3} & batching of claims by powers of one challenge (Layer 4) & blueprint:600 & 15: BP 2, ST 7, TB 5
+paren	sections/gen/code-index.tex:31	Layer 4	rint:600 & 15: BP 2, ST 7, TB 5, HC 1 & batching by powers (Layer 4); short form \texttt{batching} \\\addli
+paren	sections/gen/code-index.tex:32	Layer 5	rprint, product-determines-multiset lemma, collision bound (Layer 5) & blueprint:601 & 12: BP 2, ST 5, TB 4
+paren	sections/gen/code-index.tex:32	Layer 5	: BP 2, ST 5, TB 4, HC 1 & fingerprint and collision bound (Layer 5); short form \texttt{fingerprint} \\\ad
+paren	sections/gen/code-index.tex:33	Layer 5	exttt{G5} & grand-product GKR, definition and completeness (Layer 5) & blueprint:602; hole comment:28 & 14:
+paren	sections/gen/code-index.tex:33	Layer 5	B 4, HC 4 & grand-product GKR: definition and completeness (Layer 5); short form \texttt{gkr-\allowbreak{}d
+paren	sections/gen/code-index.tex:34	Layer 5	\texttt{G6} & grand-product GKR, knowledge soundness (Layer 5) & blueprint:602; hole comment:28 & 14:
+paren	sections/gen/code-index.tex:34	Layer 5	TB 2, HC 4, OC 1 & grand-product GKR: knowledge soundness (Layer 5); short form \texttt{gkr-\allowbreak{}s
+paren	sections/gen/code-index.tex:35	Layer 2	\texttt{I1} & Clean expressions as polynomials (Layer 2) & blueprint:604; no section in the hol
+paren	sections/gen/code-index.tex:35	Layer 2	TB 6, HC 1, OC 2, RS 9 & Clean expressions as polynomials (Layer 2); short form \texttt{clean-\allowbreak{
+paren	sections/gen/code-index.tex:36	Layer 3	\texttt{I2} & the adaptor (Layer 3): the leanISA instance, \texttt{stackOf
+paren	sections/gen/code-index.tex:36	Layer 3	: BP 5, ST 8, TB 11, HC 6, OC 3, RS 15, RL 1 & the adaptor (Layer 3); short form \texttt{adaptor} \\\addlin
+paren	sections/gen/code-index.tex:37	Layer 11	\texttt{K1} & WHIR opening over binary Reed-Solomon codes (Layer 11) & blueprint:612; hole comment:144 & 25
+paren	sections/gen/code-index.tex:37	Layer 11	ment:144 & 25: BP 4, ST 8, TB 9, HC 3, OC 1 & WHIR opening (Layer 11); short form \texttt{whir} \\\addlinesp
+paren	sections/gen/code-index.tex:38	Layer 11	t{K2} & Merkle trees, BLAKE2s byte hasher, WHIR parameters (Layer 11) & blueprint:613; hole comment:158 & 17
+paren	sections/gen/code-index.tex:38	Layer 11	5, HC 3, OC 1 & Merkle trees, byte hasher, WHIR parameters (Layer 11); short form \texttt{merkle-\allowbreak
+paren	sections/gen/code-index.tex:39	Layer 12	mpiled verifier \texttt{verify} and its refinement theorem (Layer 12) & blueprint:614; hole comment:172 & 29
+paren	sections/gen/code-index.tex:39	Layer 12	, HC 6, RS 5 & transcript, proof object, compiled verifier (Layer 12); short form \texttt{compiled-\allowbre
+paren	sections/gen/code-index.tex:40	Layer 13	\texttt{K4} & the two base theorems of target T4 (Layer 13) & blueprint:615; hole comment:186 & 10
+paren	sections/gen/code-index.tex:40	Layer 13	10: BP 2, ST 1, TB 2, HC 3, RS 2 & the base theorems of T4 (Layer 13); short form \texttt{base-\allowbreak{}
+paren	sections/gen/code-index.tex:41	Layer 1	\texttt{L1} & tables and stacking (Layer 1): hypercube tables, stacking, the fixed
+paren	sections/gen/code-index.tex:41	Layer 1	comment & 21: BP 6, ST 6, TB 7, RL 2 & tables and stacking (Layer 1); short form \texttt{tables-\allowbreak
+paren	sections/gen/code-index.tex:42	Layer 6	\texttt{P1} & bus phase, definition and completeness (Layer 6) & blueprint:606; hole comment:61 & 21:
+paren	sections/gen/code-index.tex:42	Layer 6	OC 1, RS 2, RP 2 & bus phase: definition and completeness (Layer 6); short form \texttt{bus-\allowbreak{}d
+paren	sections/gen/code-index.tex:43	Layer 6	\texttt{P2} & bus phase, knowledge soundness (Layer 6) & blueprint:606; hole comment:61 & 13:
+paren	sections/gen/code-index.tex:43	Layer 6	3: BP 4, ST 2, TB 3, HC 4 & bus phase: knowledge soundness (Layer 6); short form \texttt{bus-\allowbreak{}s
+paren	sections/gen/code-index.tex:44	Layer 7	tt{P3} & table sumcheck phase, definition and completeness (Layer 7) & blueprint:607; hole comment:75 & 19:
+paren	sections/gen/code-index.tex:44	Layer 7	, RP 2 & table sumcheck phase: definition and completeness (Layer 7); short form \texttt{table-\allowbreak{
+paren	sections/gen/code-index.tex:45	Layer 7	\texttt{P4} & table sumcheck phase, knowledge soundness (Layer 7) & blueprint:607; hole comment:75 & 12:
+paren	sections/gen/code-index.tex:45	Layer 7	2, TB 2, HC 4 & table sumcheck phase: knowledge soundness (Layer 7); short form \texttt{table-\allowbreak{
+paren	sections/gen/code-index.tex:46	Layer 8	\texttt{P5} & public-input phase, both halves (Layer 8) & blueprint:608; hole comment:89 & 36:
+paren	sections/gen/code-index.tex:46	Layer 8	, ST 15, TB 3, HC 3, OC 3, RS 7, RP 3 & public-input phase (Layer 8); short form \texttt{public-\allowbreak
+paren	sections/gen/code-index.tex:47	Layer 9	xttt{P6} & Flock phase as an interface supplied by issue 3 (Layer 9) & blueprint:609; hole comment:102 & 19
+paren	sections/gen/code-index.tex:47	Layer 9	2, RS 4 & Flock phase, the interface to the Flock roadmap (Layer 9); short form \texttt{flock-\allowbreak{
+paren	sections/gen/code-index.tex:48	Layer 10	opening phase and claim pool, definition and completeness (Layer 10) & blueprint:610; hole comment:115 & 20
+paren	sections/gen/code-index.tex:48	Layer 10	4, RS 1, RP 2 & opening phase: definition and completeness (Layer 10); short form \texttt{opening-\allowbrea
+paren	sections/gen/code-index.tex:49	Layer 10	\texttt{P8} & opening phase, knowledge soundness (Layer 10) & blueprint:610; hole comment:115 & 16
+paren	sections/gen/code-index.tex:49	Layer 10	T 2, TB 3, HC 4, RS 2 & opening phase: knowledge soundness (Layer 10); short form \texttt{opening-\allowbrea
+cell	sections/gen/code-index.tex:52	Layer 0	Layer 0 to Layer 13 & the blueprint's section n
+cell	sections/gen/code-index.tex:52	Layer 13	Layer 0 to Layer 13 & the blueprint's section number & blue
+quote	sections/gen/code-index.tex:52	Layer 6	es in the blueprint & kept, with the name: ``the bus phase (Layer 6)'' \\\addlinespace[1.5pt]
+prose	sections/gen/code-index.tex:159	Layer 1	\multicolumn{5}{@{}l}{\textbf{Findings of the review of Layer 1}} \\*
+paren	sections/gen/conformance.tex:50	Layer 2	list names \texttt{Ensemble.\allowbreak{}toM3 (\allowbreak{}Layer 2)} (not built, marked) and \texttt{C\all
+cell	sections/gen/conformance.tex:68	Layer 10	the knowledge theorem & Layer 10 \texttt{:1127-{}1129} & \texttt{p\allow
+cell	sections/gen/conformance.tex:68	Layer 10	{}r\allowbreak{} s\allowbreak{})} & as above & the spine's; Layer 10's is over \texttt{p\allowbreak{}r\allow
+cell	sections/gen/conformance.tex:69	Layer 10	the completeness theorem & headline \texttt{:12-{}13}; Layer 10 \texttt{:1124-{}1126} & \texttt{(\allow
+cell	sections/gen/conformance.tex:69	Layer 10	\allowbreak{}e\allowbreak{} I\allowbreak{})} & the spine's; Layer 10's admissibility hypothesis is not in th
+cell	sections/gen/conformance.tex:70	Layer 10	\texttt{leanVmPiop} & Layer 10 \texttt{:1116-{}1119} & \texttt{l\allow
+cell	sections/gen/conformance.tex:71	Layer 10	\texttt{piopError} & conventions \texttt{:318}; Layer 10 \texttt{:1122}, \texttt{:1130} & \enquo
+cell	sections/gen/conformance.tex:72	Layer 6	\texttt{BusOut} & Layer 6 \texttt{:960-{}964} & \texttt{s\allowbr
+cell	sections/gen/conformance.tex:72	Layer 6	\allowbreak{}1\allowbreak{}3\allowbreak{}4}) & the spine's; Layer 6's carries the challenges and the three
+cell	sections/gen/conformance.tex:73	Layer 6	\allowbreak{}l\allowbreak{}O\allowbreak{}u\allowbreak{}t} & Layer 6 \texttt{:965-{}966} & \texttt{\{\allowb
+cell	sections/gen/conformance.tex:73	Layer 6	Seam.\allowbreak{}bus} (\texttt{:175-{}177}) & the spine's; Layer 6's has no zerocheck claims, no lines, no
+cell	sections/gen/conformance.tex:74	Layer 7	the table phase's statement types & Layer 7 \texttt{:988} & \texttt{t\allowbreak{}a
+cell	sections/gen/conformance.tex:74	Layer 7	\allowbreak{}:\allowbreak{}7\allowbreak{}8}) & the spine's; Layer 7's output keeps \texttt{BusOut} \\
+cell	sections/gen/conformance.tex:75	Layer 9	\allowbreak{}f\allowbreak{}a\allowbreak{}c\allowbreak{}e} & Layer 9 \texttt{:1077-{}1085} & \texttt{r\allow
+cell	sections/gen/conformance.tex:75	Layer 9	break{}pub}/\texttt{Seam.\allowbreak{}flock} & the spine's; Layer 9's has its own relations, the existentia
+cell	sections/gen/conformance.tex:76	Layer 10	\texttt{Weight} & Layer 10 \texttt{:1109} & \texttt{s\allowbreak{}
+cell	sections/gen/conformance.tex:77	Layer 10	\allowbreak{}l\allowbreak{}a\allowbreak{}i\allowbreak{}m} & Layer 10 \texttt{:1110}; Layer 11 \texttt{:1173}
+cell	sections/gen/conformance.tex:77	Layer 11	{}a\allowbreak{}i\allowbreak{}m} & Layer 10 \texttt{:1110}; Layer 11 \texttt{:1173} & \texttt{W\allowbreak{}
+cell	sections/gen/conformance.tex:77	Layer 11	xed by the instance, fields \texttt{weight}/\texttt{value}; Layer 11's \texttt{W\allowbreak{}e\allowbreak{}i
+cell	sections/gen/conformance.tex:78	Layer 10	the opening phase's statement & Layer 10 \texttt{:1112} & \texttt{o\allowbreak{}
+cell	sections/gen/conformance.tex:81	Layer 10	\texttt{Seam.\allowbreak{}done} & Layer 10 \texttt{:1144} & \enquote{\texttt{Set.\
+prose	sections/gen/conformance.tex:87	Layer 6	Layer 6's \texttt{BusOut}, Layer 7's types, Lay
+prose	sections/gen/conformance.tex:87	Layer 7	Layer 6's \texttt{BusOut}, Layer 7's types, Layer 9's \texttt{FlockInterfa
+prose	sections/gen/conformance.tex:87	Layer 9	Layer 6's \texttt{BusOut}, Layer 7's types, Layer 9's \texttt{FlockInterface} and Layer 10'
+prose	sections/gen/conformance.tex:87	Layer 10	ut}, Layer 7's types, Layer 9's \texttt{FlockInterface} and Layer 10's block are the pre-spine sketches; the
+prose	sections/gen/conformance.tex:87	Layer 7	xttt{gt-{}table-{}pub.\allowbreak{}md} records the same for Layer 7 (its finding \emph{Layer 7's sketch and
+quote	sections/gen/conformance.tex:87	Layer 7	wbreak{}md} records the same for Layer 7 (its finding \emph{Layer 7's sketch and the tracker's signature pr
+prose	sections/gen/conformance.tex:87	Layers 6	tch and the tracker's signature predate the spine}); we add Layers 6, 9, 10 and the headline.
+prose	sections/gen/conformance.tex:89	Layer 10	reak{} U\allowbreak{}n\allowbreak{}i\allowbreak{}t}; delete Layer 10's \texttt{leanVmPiop … piopError\_\allo
+prose	sections/gen/conformance.tex:146	Layer 12	his and assigns the deployed check's knowledge soundness to Layer 12: \enquote{their knowledge soundness at
+quote	sections/gen/conformance.tex:146	Layer 12	s at \texttt{1/\allowbreak{}|E|} is a lemma of its own, and Layer 12 owes it.}
+prose	sections/gen/conformance.tex:148	Layer 12	\textbf{Is Layer 12 the right place, and is \enquote{a lemm
+prose	sections/gen/conformance.tex:151	Layer 12	\item Layer 12's theorem is \texttt{verify\_\allowbrea
+quote	sections/gen/conformance.tex:151	Layer 12	roved nowhere. In neither case is anything \enquote{owed by Layer 12} discharged by a lemma inside it.
+prose	sections/gen/conformance.tex:152	Layer 8	seams; it is a phase-level object, and the place for it is Layer 8. Its statement, precisely:
+prose	sections/gen/conformance.tex:173	Layer 12	with the deployed phase as the one the master theorems and Layer 12 consume, and the divergence reported to
+prose	sections/gen/conformance.tex:203	Layer 3	tion \texttt{leanIsaInstance.\allowbreak{}publicLines} when Layer 3 lands, and (c) Layer 12's differential
+prose	sections/gen/conformance.tex:203	Layer 12	tance.\allowbreak{}publicLines} when Layer 3 lands, and (c) Layer 12's differential fixture, the only thing
+heading	sections/gen/conformance.tex:236	Layer 1	\subsection{Layer 1}\label{sec:gen-conf-layer1}
+heading	sections/gen/conformance.tex:240	Layer 1	\subsubsection{The Layer 1 sketch (\texttt{p\allowbreak{}r\allowbr
+paren	sections/gen/conformance.tex:256	Layer 0	eak{}7\allowbreak{}-{}\allowbreak{}6\allowbreak{}9} & same (Layer 0) \\
+paren	sections/gen/conformance.tex:276	Layer 7	\texttt{tableSummand\_\allowbreak{}target} does not exist (Layer 7 is not built). The existing witness is
+prose	sections/gen/conformance.tex:285	Layer 1	\item Every Layer 1 name listed exists: generic \texttt{C\a
+paren	sections/gen/conformance.tex:286	Layer 0	\item Mislabelled: \texttt{Column} (over \texttt{K}, Layer 0) and \texttt{Weight}, \texttt{WeightedC
+heading	sections/gen/conformance.tex:291	Layer 1	\subsubsection{Elsewhere in the blueprint, touching Layer 1 (F.4)}\label{sec:gen-layer1-F4}
+prose	sections/gen/conformance.tex:294	Layer 3	\item Layer 3 (\texttt{:808}): \texttt{t\allowbreak{}
+prose	sections/gen/conformance.tex:295	Layer 3	\item Layer 3 (\texttt{:841-{}848}): \enquote{\texttt
+cell	sections/gen/disagreements-opening.tex:58	Layer 12	& \lean{verify} inherits these omissions unless Layer 12 lists the checks
+cell	sections/gen/disagreements-opening.tex:104	Layer 11	& not recorded in Layer 11; Layer 12's \lean{grind} (\cref{tab:gen
+cell	sections/gen/disagreements-opening.tex:104	Layer 12	& not recorded in Layer 11; Layer 12's \lean{grind} (\cref{tab:gen-opening-l
+cell	sections/gen/docs-codes.tex:30	Layer 0	Layers & Layer 0 to Layer 13 & 14 & ``layer'' 172 times
+cell	sections/gen/docs-codes.tex:30	Layer 13	Layers & Layer 0 to Layer 13 & 14 & ``layer'' 172 times in the bluep
+cell	sections/gen/docs-codes.tex:39	Layer 1	Layer 1 review & \texttt{A1}-\texttt{A6}, \text
+cell	sections/gen/docs-codes.tex:75	Layer 1	\texttt{A1} & ledger entry 10; spine review 11; Layer 1 review 5; public-input review 6 \\\addl
+cell	sections/gen/docs-codes.tex:76	Layer 1	\texttt{A2} & ledger entry 20; spine review 9; Layer 1 review 4; public-input review 6 \\\addl
+cell	sections/gen/docs-codes.tex:77	Layer 1	\texttt{A3} & ledger entry 6; spine review 12; Layer 1 review 3; public-input review 3 \\\addl
+cell	sections/gen/docs-codes.tex:78	Layer 1	\texttt{A4} & ledger entry 2; spine review 8; Layer 1 review 4; public-input review 2 \\\addl
+cell	sections/gen/docs-codes.tex:79	Layer 1	\texttt{A5} & ledger entry 7; spine review 8; Layer 1 review 2 \\\addlinespace[2pt]
+cell	sections/gen/docs-codes.tex:80	Layer 1	\texttt{A6} & ledger entry 7; spine review 5; Layer 1 review 4 \\\addlinespace[2pt]
+cell	sections/gen/docs-codes.tex:82	Layer 1	\texttt{B3} & Layer 1 review; public-input review \\\addlines
+cell	sections/gen/docs-codes.tex:83	Layer 1	) 25; ledger entry (Clean's expressions) 2; spine review 3; Layer 1 review 5; public-input review 6 \\\addl
+cell	sections/gen/docs-codes.tex:84	Layer 1	\texttt{C2} & ledger entry 2; spine review 2; Layer 1 review 2; public-input review 3 \\\addl
+cell	sections/gen/docs-codes.tex:85	Layer 1	\texttt{C3}, \texttt{C4} & ledger entry 2; Layer 1 review 1; public-input review 2 \\\addl
+cell	sections/gen/docs-codes.tex:86	Layer 1	\texttt{C5}, \texttt{C6} & Clean finding 2; Layer 1 review 1 \\\addlinespace[2pt]
+quote	sections/gen/docs-codes.tex:121	Layer 7	cture's targets: for example \texttt{F9} is ``the roadmap's Layer 7 sketch was unbuildable in two places''
+quote	sections/gen/docs-codes.tex:136	Layer 2	ackers.} The body of intention issue 28 says ``Tracks \#12, Layer 2/C1'', where \texttt{C1} is the ledger e
+quote	sections/gen/docs-contradictions.tex:23	Layer 1	\allowbreak{}6}: ``as of \texttt{main} at \texttt{f4d858c} (Layer 1, PR \#59, merged on 2026-09-29) ... tog
+quote	sections/gen/docs-contradictions.tex:55	Layer 1	body.\allowbreak{}md:\allowbreak{}21}: ``- [ ] \textbf{L1 — Layer 1 ...} Generic half in draft \#18 (rebase
+cell	sections/gen/docs-contradictions.tex:55	Layer 1	.) ... \emph{in review}; nothing lands before \#18 does'' & Layer 1 merged as pull request 59 (\texttt{f4d8
+prose	sections/gen/docs-contradictions.tex:69	Layer 1	The Layer 1 review left exactly these two edits for
+cell	sections/gen/docs-contradictions.tex:93	Layer 1	t{Pool} (\texttt{:\allowbreak{}9} of the same comment); the Layer 1 review established that a phase over an
+cell	sections/gen/docs-contradictions.tex:95	Layers 5	ueprint.\allowbreak{}md:\allowbreak{}329}); the blueprint's Layers 5 and 11 name \texttt{To\allowbreak{}Ark\
+prose	sections/gen/docs-contradictions.tex:109	Layer 10	reak{}blueprint.\allowbreak{}md:\allowbreak{}622}), and for Layer 10 says that the master theorems ``below a
+cell	sections/gen/docs-contradictions.tex:125	Layer 6	1 & Layer 6, \texttt{:\allowbreak{}956-\allowbreak{
+cell	sections/gen/docs-contradictions.tex:126	Layer 7	2 & Layer 7, \texttt{:\allowbreak{}988}: ``\texttt{
+cell	sections/gen/docs-contradictions.tex:127	Layer 9	3 & Layer 9, \texttt{:\allowbreak{}1075-\allowbreak
+cell	sections/gen/docs-contradictions.tex:128	Layer 10	4 & Layer 10, \texttt{:\allowbreak{}1109-\allowbreak
+cell	sections/gen/docs-contradictions.tex:129	Layer 10	5 & Layer 10, \texttt{:\allowbreak{}1116-\allowbreak
+cell	sections/gen/docs-contradictions.tex:130	Layer 4	6 & Layer 4, \texttt{:\allowbreak{}894-\allowbreak{
+cell	sections/gen/docs-contradictions.tex:130	Layer 5	wbreak{}Case .\allowbreak{}.\allowbreak{}.\allowbreak{}}''; Layer 5, \texttt{:\allowbreak{}936-\allowbreak{
+cell	sections/gen/docs-contradictions.tex:131	Layers 6	7 & Layers 6, 7, 10 need ``Layer 5's \texttt{Gkr.\al
+quote	sections/gen/docs-contradictions.tex:131	Layer 5	7 & Layers 6, 7, 10 need ``Layer 5's \texttt{Gkr.\allowbreak{}Def}'' (\tex
+quote	sections/gen/docs-contradictions.tex:131	Layer 4	ttt{Gkr.\allowbreak{}Def}'' (\texttt{:\allowbreak{}952}), ``Layer 4's \texttt{Sumcheck.\allowbreak{}Def}''
+cell	sections/gen/docs-contradictions.tex:132	Layer 2	8 & Layer 2, \texttt{:\allowbreak{}768-\allowbreak{
+quote	sections/gen/docs-contradictions.tex:134	Layer 0	ttt{:\allowbreak{}620}: ``The spine (hole S) is built after Layer 0''. The count is right (Layers 0 to 13);
+paren	sections/gen/docs-contradictions.tex:134	Layers 0	pine (hole S) is built after Layer 0''. The count is right (Layers 0 to 13); the order in the heading is not
+quote	sections/gen/docs-contradictions.tex:135	Layer 1	ttt{:\allowbreak{}591}), ``\texttt{L1} groups the leaves of Layer 1 already in flight'' (\texttt{:\allowbre
+cell	sections/gen/docs-contradictions.tex:160	Layer 2	metization:'' (\texttt{:\allowbreak{}1398}) & absent; it is Layer 2's, not built, and not the spine's \\
+quote	sections/gen/docs-contradictions.tex:178	Layer 12	(blueprint \texttt{:\allowbreak{}1049-\allowbreak{}1051}: ``Layer 12 reads those''), \texttt{public\allowbre
+cell	sections/gen/docs-contradictions.tex:180	Layer 1	mn\_\allowbreak{}slot} on a two-instruction program'' & the Layer 1 review showed that \texttt{bytecode\all
+cell	sections/gen/docs-contradictions.tex:185	Layer 5	tex:\allowbreak{}4-\allowbreak{}6}). There is no Lemma 5.1. Layer 5 of the blueprint has it right (\texttt{
+cell	sections/gen/docs-contradictions.tex:187	Layer 1	ded'' & the spine with its two conditional master theorems, Layer 1 and the public-input phase with \texttt
+quote	sections/gen/docs-contradictions.tex:189	Layer 1	umns (\texttt{Fixed\allowbreak{}Columns.\allowbreak{}lean}, Layer 1), the Clean bridge (Layer 2), the adapt
+quote	sections/gen/docs-contradictions.tex:189	Layer 2	ak{}Columns.\allowbreak{}lean}, Layer 1), the Clean bridge (Layer 2), the adaptor (Layer 3), the compiled v
+quote	sections/gen/docs-contradictions.tex:189	Layer 3	{}lean}, Layer 1), the Clean bridge (Layer 2), the adaptor (Layer 3), the compiled verifier (Layer 12) and
+quote	sections/gen/docs-contradictions.tex:189	Layer 12	ge (Layer 2), the adaptor (Layer 3), the compiled verifier (Layer 12) and T4 (Layer 13)''; acceptance test 2
+quote	sections/gen/docs-contradictions.tex:189	Layer 13	adaptor (Layer 3), the compiled verifier (Layer 12) and T4 (Layer 13)''; acceptance test 25, \texttt{:\allow
+quote	sections/gen/docs-contradictions.tex:190	Layer 0	Field.\allowbreak{}lean:\allowbreak{}18} ``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\all
+quote	sections/gen/docs-contradictions.tex:190	Layer 11	he oracle})'', \texttt{:\allowbreak{}37,\allowbreak{} 66} ``Layer 11''; \texttt{tests/\allowbreak{}Leaner\al
+quote	sections/gen/docs-contradictions.tex:190	Layer 0	owbreak{}Field.\allowbreak{}lean:\allowbreak{}9} ``Protocol Layer 0 tests''. Layer 0 predates the rule (mer
+cell	sections/gen/docs-contradictions.tex:190	Layer 0	llowbreak{}lean:\allowbreak{}9} ``Protocol Layer 0 tests''. Layer 0 predates the rule (merged 2026-09-11 in
+quote	sections/gen/docs-contradictions.tex:234	Layer 4	ntion issues are titled by layer: ``[Intention]: protocol - Layer 4: ...'' \\\addlinespace[2pt]
+quote	sections/gen/docs-contradictions.tex:252	Layer 11	2s \textbar{} absent (only coding-theory lemmas) \textbar{} Layer 11 \textbar{} Written here'' (\texttt{prot
+prose	sections/gen/docs-contradictions.tex:252	Layer 11	lowbreak{}blueprint.\allowbreak{}md:\allowbreak{}265}), and Layer 11 plans \texttt{merkleRoot} and \texttt{m
+prose	sections/gen/docs-contradictions.tex:260	Layer 11	llowbreak{}14-\allowbreak{}67}; it belongs to the review of Layer 11. What is established here is that the l
+cell	sections/gen/docs-contradictions.tex:285	Layer 10	lowbreak{}Completeness}, \texttt{HasFillBlocks} are leanISA Layer 10, not built; \texttt{StateMsg} and \text
+paren	sections/gen/docs-contradictions.tex:316	Layer 0	5 & blueprint \texttt{:\allowbreak{}633-\allowbreak{}635} (Layer 0): ``Add ArkLib at \texttt{dca90385} as
+heading	sections/gen/docs-inventory.tex:5	Layer 1	comments, and the handoffs of the reviews of the spine, of Layer 1 and of the public-input phase.
+prose	sections/gen/docs-inventory.tex:8	Layer 1	, 42, 43). RS, RL, RP: the review handoffs of the spine, of Layer 1, of the public-input phase. AR: \texttt
+prose	sections/gen/docs-inventory.tex:49	Layer 6	lowbreak{}blueprint.\allowbreak{}md:\allowbreak{}606}), the Layer 6 sketch (\texttt{:\allowbreak{}949-\allo
+prose	sections/gen/docs-proposal.tex:92	Layer 1	{}Protocol/\allowbreak{}} outside an allow-list), which the Layer 1 review left open.
+cell	sections/gen/docs-proposal.tex:149	Layers 0	Layers 0 to 13 & stay, as the numbers of the blu
+quote	sections/gen/docs-proposal.tex:149	Layer 6	f the blueprint's sections, with the name: ``the bus phase (Layer 6)'' \\\addlinespace[2pt]
+paren	sections/gen/docs-proposal.tex:179	Layer 0	\texttt{0} & field instances (Layer 0) & \texttt{field-\allowbreak{}instances
+paren	sections/gen/docs-proposal.tex:180	Layer 1	\texttt{L1} & tables and stacking (Layer 1) & \texttt{tables-\allowbreak{}stacking
+paren	sections/gen/docs-proposal.tex:183	Layer 2	\texttt{I1} & Clean expressions as polynomials (Layer 2) & \texttt{clean-\allowbreak{}polynomia
+paren	sections/gen/docs-proposal.tex:184	Layer 3	\texttt{I2} & the adaptor (Layer 3) & \texttt{adaptor} \\\addlinespace[2pt
+paren	sections/gen/docs-proposal.tex:185	Layer 4	\texttt{G1} & sumcheck: definition and completeness (Layer 4) & \texttt{sumcheck-\allowbreak{}def} \
+paren	sections/gen/docs-proposal.tex:186	Layer 4	\texttt{G2} & sumcheck: knowledge soundness (Layer 4) & \texttt{sumcheck-\allowbreak{}securi
+paren	sections/gen/docs-proposal.tex:187	Layer 4	\texttt{G3} & batching by powers (Layer 4) & \texttt{batching} \\\addlinespace[2p
+paren	sections/gen/docs-proposal.tex:188	Layer 5	\texttt{G4} & fingerprint and collision bound (Layer 5) & \texttt{fingerprint} \\\addlinespace
+paren	sections/gen/docs-proposal.tex:189	Layer 5	exttt{G5} & grand-product GKR: definition and completeness (Layer 5) & \texttt{gkr-\allowbreak{}def} \\\add
+paren	sections/gen/docs-proposal.tex:190	Layer 5	\texttt{G6} & grand-product GKR: knowledge soundness (Layer 5) & \texttt{gkr-\allowbreak{}security} \
+paren	sections/gen/docs-proposal.tex:191	Layer 6	\texttt{P1} & bus phase: definition and completeness (Layer 6) & \texttt{bus-\allowbreak{}def} \\\add
+paren	sections/gen/docs-proposal.tex:192	Layer 6	\texttt{P2} & bus phase: knowledge soundness (Layer 6) & \texttt{bus-\allowbreak{}security} \
+paren	sections/gen/docs-proposal.tex:193	Layer 7	tt{P3} & table sumcheck phase: definition and completeness (Layer 7) & \texttt{table-\allowbreak{}def} \\\a
+paren	sections/gen/docs-proposal.tex:194	Layer 7	\texttt{P4} & table sumcheck phase: knowledge soundness (Layer 7) & \texttt{table-\allowbreak{}security}
+paren	sections/gen/docs-proposal.tex:195	Layer 8	\texttt{P5} & public-input phase (Layer 8) & \texttt{public-\allowbreak{}input} \
+paren	sections/gen/docs-proposal.tex:196	Layer 9	xttt{P6} & Flock phase, the interface to the Flock roadmap (Layer 9) & \texttt{flock-\allowbreak{}interface
+paren	sections/gen/docs-proposal.tex:197	Layer 10	\texttt{P7} & opening phase: definition and completeness (Layer 10) & \texttt{opening-\allowbreak{}def} \\
+paren	sections/gen/docs-proposal.tex:198	Layer 10	\texttt{P8} & opening phase: knowledge soundness (Layer 10) & \texttt{opening-\allowbreak{}securit
+paren	sections/gen/docs-proposal.tex:199	Layer 11	\texttt{K1} & WHIR opening (Layer 11) & \texttt{whir} \\\addlinespace[2pt]
+paren	sections/gen/docs-proposal.tex:200	Layer 11	\texttt{K2} & Merkle trees, byte hasher, WHIR parameters (Layer 11) & \texttt{merkle-\allowbreak{}paramete
+paren	sections/gen/docs-proposal.tex:201	Layer 12	\texttt{K3} & transcript, proof object, compiled verifier (Layer 12) & \texttt{compiled-\allowbreak{}verifi
+paren	sections/gen/docs-proposal.tex:202	Layer 13	\texttt{K4} & the base theorems of T4 (Layer 13) & \texttt{base-\allowbreak{}theorems}
+cell	sections/gen/docs-proposal.tex:303	Layer 10	& \texttt{architecture.\allowbreak{}md}; leanISA blueprint, Layer 10 \\\addlinespace[2pt]
+cell	sections/gen/docs-proposal.tex:307	Layer 0	field instances & Layer 0; formerly hole \texttt{0} & unit of wor
+cell	sections/gen/docs-proposal.tex:308	Layer 1	tables and stacking & Layer 1; formerly \texttt{L1} & unit of work &
+cell	sections/gen/docs-proposal.tex:311	Layer 2	Clean expressions as polynomials & Layer 2; formerly \texttt{I1} & unit of work &
+cell	sections/gen/docs-proposal.tex:312	Layer 3	the adaptor & Layer 3; formerly \texttt{I2} & unit of work &
+cell	sections/gen/docs-proposal.tex:313	Layer 4	sumcheck: definition and completeness & Layer 4; formerly \texttt{G1} & unit of work &
+cell	sections/gen/docs-proposal.tex:313	Layer 4	RTED BY THE ORCHESTRATOR: one sentence, after the review of Layer 4]} & same \\\addlinespace[2pt]
+cell	sections/gen/docs-proposal.tex:314	Layer 4	sumcheck: knowledge soundness & Layer 4; formerly \texttt{G2} & unit of work &
+cell	sections/gen/docs-proposal.tex:315	Layer 4	batching by powers & Layer 4; formerly \texttt{G3} & unit of work &
+cell	sections/gen/docs-proposal.tex:316	Layer 5	fingerprint and collision bound & Layer 5; formerly \texttt{G4} & unit of work &
+cell	sections/gen/docs-proposal.tex:317	Layer 5	grand-product GKR: definition and completeness & Layer 5; formerly \texttt{G5} & unit of work &
+cell	sections/gen/docs-proposal.tex:318	Layer 5	grand-product GKR: knowledge soundness & Layer 5; formerly \texttt{G6} & unit of work &
+cell	sections/gen/docs-proposal.tex:319	Layer 6	bus phase: definition and completeness & Layer 6; formerly \texttt{P1} & unit of work &
+cell	sections/gen/docs-proposal.tex:320	Layer 6	bus phase: knowledge soundness & Layer 6; formerly \texttt{P2} & unit of work &
+cell	sections/gen/docs-proposal.tex:321	Layer 7	table sumcheck phase: definition and completeness & Layer 7; formerly \texttt{P3} & unit of work &
+cell	sections/gen/docs-proposal.tex:322	Layer 7	table sumcheck phase: knowledge soundness & Layer 7; formerly \texttt{P4} & unit of work &
+cell	sections/gen/docs-proposal.tex:323	Layer 8	public-input phase & Layer 8; formerly \texttt{P5} & unit of work &
+cell	sections/gen/docs-proposal.tex:324	Layer 9	Flock phase & Layer 9; formerly \texttt{P6} & unit of work &
+cell	sections/gen/docs-proposal.tex:325	Layer 10	opening phase: definition and completeness & Layer 10; formerly \texttt{P7} & unit of work &
+cell	sections/gen/docs-proposal.tex:326	Layer 10	opening phase: knowledge soundness & Layer 10; formerly \texttt{P8} & unit of work &
+cell	sections/gen/docs-proposal.tex:327	Layer 11	WHIR opening & Layer 11; formerly \texttt{K1} & unit of work &
+cell	sections/gen/docs-proposal.tex:328	Layer 11	Merkle trees, byte hasher, WHIR parameters & Layer 11; formerly \texttt{K2} & unit of work &
+cell	sections/gen/docs-proposal.tex:329	Layer 12	transcript, proof object, compiled verifier & Layer 12; formerly \texttt{K3} & unit of work &
+cell	sections/gen/docs-proposal.tex:330	Layer 13	the base theorems & Layer 13; formerly \texttt{K4} & unit of work &
+cell	sections/gen/docs-proposal.tex:331	Layer 8	so the two roadmaps state one relation & leanISA blueprint, Layer 8; issue 13 \\\addlinespace[2pt]
+cell	sections/gen/docs-proposal.tex:342	Layers 3	n & the predicate is Flock's R1CS on the committed region & Layers 3 and 9 \\\addlinespace[2pt]
+cell	sections/gen/docs-proposal.tex:345	Layer 8	whether its value is sent & convention \emph{Public input}; Layer 8 \\\addlinespace[2pt]
+paren	sections/gen/docs-texts.tex:185	Layer 0	row per half, matching the checklist; the field instances (Layer 0), a line of today's checklist, get a ro
+prose	sections/gen/docs-texts.tex:226	Layers 4	ESTRATOR: the names and shapes of the generic components of Layers 4 and 5 once they are restated as \texttt
+prose	sections/gen/docs-texts.tex:226	Layer 11	§8.5 (``there is no separate reduction sumcheck''); whether Layer 11 reuses the Merkle trees of the VCVio pi
+paren	sections/gen/docs-texts.tex:242	Layer 0	ed. The heading says the spine comes first, which is false (Layer 0 precedes it, \texttt{:\allowbreak{}620}
+prose	sections/gen/docs-texts.tex:257	Layers 4	Instance prog s}'' is dropped above because the sketches of Layers 4 to 7, 9 and 10 are to be restated on th
+prose	sections/gen/docs-texts.tex:367	Layer 1	r\allowbreak{}Knowledge\allowbreak{}Soundness} and on every Layer 1 theorem gives the kernel's three axioms
+quote	sections/gen/docs-texts.tex:375	Layer 1	break{}56} ``(review finding D1)'': name the finding (``the Layer 1 review's finding that the import rule h
+prose	sections/gen/docs-texts.tex:432	Layer 1	and GitHub on 2026-09-30, its state is wrong in five lines: Layer 1 is on \texttt{main} (\#59), not ``in re
+paren	sections/gen/docs-texts.tex:482	Layer 11	mple if the opening phase has no sumcheck of its own, or if Layer 11 takes VCVio's Merkle trees), mirrored f
+cell	sections/gen/docs-texts.tex:507	Layer 5	, both halves (\texttt{:\allowbreak{}28-\allowbreak{}42}) & Layer 5 & \texttt{ProductTree}, \texttt{gkr}, \
+paren	sections/gen/docs-texts.tex:507	Layer 5	owbreak{}Gkr.\allowbreak{}lean} (\texttt{:\allowbreak{}32}; Layer 5 names \texttt{To\allowbreak{}Ark\allowb
+cell	sections/gen/docs-texts.tex:508	Layer 3	the adaptor (\texttt{:\allowbreak{}44-\allowbreak{}59}) & Layer 3 & all of it: \texttt{d :\allowbreak{}=
+paren	sections/gen/docs-texts.tex:508	Layer 1	hing & ``consumes … \#38, \#40'' (closed pull requests, now Layer 1 on \texttt{main}) \\\addlinespace[2pt]
+cell	sections/gen/docs-texts.tex:509	Layer 6	, both halves (\texttt{:\allowbreak{}61-\allowbreak{}73}) & Layer 6 & the leaf tables, \texttt{busError}, \
+cell	sections/gen/docs-texts.tex:509	Layer 1	, \texttt{:\allowbreak{}333}); the test on two blocks & the Layer 1 lemmas the leaf decomposition needs, \t
+quote	sections/gen/docs-texts.tex:509	Layer 3	instance's honest \texttt{q}'' (the blueprint says ``on the Layer 3 one-row witness'', which a phase over a
+cell	sections/gen/docs-texts.tex:510	Layer 7	, both halves (\texttt{:\allowbreak{}75-\allowbreak{}87}) & Layer 7 & \texttt{tableSummand}, \texttt{table\
+cell	sections/gen/docs-texts.tex:511	Layer 8	-input phase (\texttt{:\allowbreak{}89-\allowbreak{}100}) & Layer 8 & all of it, as built and as decided (d
+cell	sections/gen/docs-texts.tex:512	Layer 9	Flock phase (\texttt{:\allowbreak{}102-\allowbreak{}113}) & Layer 9 & the strong predicate, \texttt{limbCol
+cell	sections/gen/docs-texts.tex:513	Layer 10	both halves (\texttt{:\allowbreak{}115-\allowbreak{}127}) & Layer 10 & \texttt{Weight}, \texttt{WeightedClai
+paren	sections/gen/docs-texts.tex:513	Layer 10	awn rejected; the empty pool'' (\texttt{:\allowbreak{}125}: Layer 10's tests are about the whole protocol on
+paren	sections/gen/docs-texts.tex:513	Layer 1	xttt{BlockClaim} of \#38'' (\texttt{:\allowbreak{}120}; the Layer 1 review showed a phase cannot form one,
+cell	sections/gen/docs-texts.tex:515	Layer 11	HIR opening (\texttt{:\allowbreak{}144-\allowbreak{}156}) & Layer 11 & \texttt{novelBasis}, \texttt{encode},
+paren	sections/gen/docs-texts.tex:515	Layer 11	/\allowbreak{}Generic/\allowbreak{}Whir.\allowbreak{}lean} (Layer 11 names \texttt{To\allowbreak{}Ark\allowb
+cell	sections/gen/docs-texts.tex:516	Layer 11	parameters (\texttt{:\allowbreak{}158-\allowbreak{}170}) & Layer 11 & the six parameters, \texttt{ladder},
+cell	sections/gen/docs-texts.tex:517	Layer 12	ed verifier (\texttt{:\allowbreak{}172-\allowbreak{}184}) & Layer 12 & \texttt{FsState} and its four operati
+cell	sections/gen/docs-texts.tex:518	Layer 13	se theorems (\texttt{:\allowbreak{}186-\allowbreak{}196}) & Layer 13 & both statements, with the same progra
+paren	sections/gen/docs-texts.tex:518	Layer 10	ak{}le} at the caps, \texttt{:\allowbreak{}194}, is already Layer 10's test, \texttt{:\allowbreak{}1148}) &
+prose	sections/gen/docs-texts.tex:541	Layers 3	ent-\allowbreak{}5872015596}) and already in the blueprint, Layers 3 and 9 (\texttt{protocol-\allowbreak{}bl
+paren	sections/gen/docs-texts.tex:574	Layer 2	\textbf{Issue 28 (intention: Layer 2).} Its first line, ``Tracks \#12, Layer
+quote	sections/gen/docs-texts.tex:574	Layer 2	ue 28 (intention: Layer 2).} Its first line, ``Tracks \#12, Layer 2/C1'', uses the code of the ledger entry
+paren	sections/gen/docs-texts.tex:590	Layer 1	\textbf{Issues 27, 32, 35, 36 (intentions: Layer 1).} Closed with pull request 59. Nothing
+paren	sections/gen/docs-texts.tex:601	Layer 5	ited to name the hole (``fingerprint and collision bound'', Layer 5), the intention issue (\#33), ArkLib is
+paren	sections/gen/docs-texts.tex:605	Layer 4	the hole's name (``sumcheck: definition and completeness'', Layer 4) and the owner's comment of 2026-09-28
+paren	sections/gen/docs-texts.tex:609	Layer 4	t the description to name the hole (``batching by powers'', Layer 4), \#31, and the owner's comment of 2026
+cell	sections/gen/docs-vocabulary.tex:33	Layer 2	refinement for the generic notion & ``the Clean bridge'' is Layer 2, a different unit \\\addlinespace[2pt]
+paren	sections/gen/docs-vocabulary.tex:35	Layer 2	tt{Side}, spine) against ``direction'' (\texttt{Direction}, Layer 2 sketch, and ArkLib's message direction)
+quote	sections/gen/docs-vocabulary.tex:37	Layer 1	product tree (\texttt{:\allowbreak{}319}), ``the leaves of Layer 1 already in flight'' (\texttt{:\allowbre
+quote	sections/gen/docs-vocabulary.tex:45	Layer 11	15-\allowbreak{}222} uses the bare form for leanISA's and ``Layer 11 here'' for its own in the same row), \t
+prose	sections/gen/findings-boundary.tex:83	Layer 3	\begin{change}{the instance of Layer 3 (\code{bp:803-805})}
+prose	sections/gen/findings-boundary.tex:101	Layer 2	\fhead{Evidence} Layer 2's two bridges are \bndc{toM3_constraint
+prose	sections/gen/findings-boundary.tex:107	Layers 2	ec:gen-boundary-m3holds,sec:gen-boundary-trap}). Nothing in Layers 2 or 3 states that the
+prose	sections/gen/findings-boundary.tex:114	Layer 3	\begin{change}{a third bridge lemma in Layer 3 (\code{bp:810-819})}
+prose	sections/gen/findings-boundary.tex:117	Layer 3	\asproposed Add to Layer 3:
+prose	sections/gen/findings-boundary.tex:124	Layer 2	and its use in both adaptor theorems; add to Layer 2's tests \enquote{the three block compon
+paren	sections/gen/findings-boundary.tex:245	Layer 1	(the Layer 1 dossier, \file{code-layer1.md} G.2). Th
+prose	sections/gen/findings-boundary.tex:264	Layer 12	ason The instance depends on the heights alone; the rate is Layer 12's; the two lemmas are what
+prose	sections/gen/findings-boundary.tex:283	Layer 12	tocol family and nothing of how the error composes over it; Layer 12 states the error as
+prose	sections/gen/findings-boundary.tex:289	Layer 12	announced sizes with the statement}. In Layer 12 (\bndc{bp:1226-1227}) replace \bndc{niE
+prose	sections/gen/findings-boundary.tex:304	Layer 1	flock-ring-slot-map-circular,f:flock-ring-opaque-aux}); the Layer 1 dossier the reader
+prose	sections/gen/findings-boundary.tex:309	Layer 3	\fhead{Proposed change} Layer 3 takes, and the Flock roadmap supplies,
+prose	sections/gen/findings-boundary.tex:330	Layer 2	ng}{major}{f:boundary-poly-bridge}{The polynomial bridge of Layer 2 is noncomputable at the pin}
+prose	sections/gen/findings-boundary.tex:368	Layer 7	ables of the instance with no constraints and no flushes}); Layer 7's \bndc{τ_max},
+prose	sections/gen/findings-boundary.tex:386	Layer 7	criterion, decidable, and Layer 7 ranges over it.} In Layer 7 (\bndc{bp:9
+prose	sections/gen/findings-boundary.tex:386	Layer 7	criterion, decidable, and Layer 7 ranges over it.} In Layer 7 (\bndc{bp:987}): \bndc{τ_max} and
+prose	sections/gen/findings-boundary.tex:438	Layer 3	that reason (\bndc{Spine/Toy.lean:94-95}); the Layer 3 tests decide \bndc{M3Holds}
+paren	sections/gen/findings-boundary.tex:510	Layer 12	from bytes (the fixture's loader in Layer 12, \bndc{PublicInput.encode} in T7), and
+prose	sections/gen/findings-bus.tex:43	Layer 12	Layer 12.''
+prose	sections/gen/findings-bus.tex:50	Layer 4	ur: a verifier built so rejects every Rust proof. Read with Layer 4's variant, the verifier
+prose	sections/gen/findings-bus.tex:52	Layer 12	when $χ_t = 1 + \mathit{point}[t]$, whatever the children). Layer 12's
+prose	sections/gen/findings-bus.tex:54	Layers 4	Layers 4 and 5 define only one protocol.
+prose	sections/gen/findings-bus.tex:71	Layer 4	\item Layer 4: define the two variants by name, the p
+prose	sections/gen/findings-bus.tex:89	Layer 5	$λ$ per layer'' (\code{bp:321}), and Layer 5 ``a fresh $λ$ per layer … exactly as pi
+prose	sections/gen/findings-bus.tex:106	Layer 5	begin{finding}{major}{f:bus-generic-gkr}{The generic GKR of Layer 5 cannot be appended in the bus phase, an
+prose	sections/gen/findings-bus.tex:110	Layer 5	\fhead{Evidence} Layer 5's component (\code{bp:930-937}):
+prose	sections/gen/findings-bus.tex:149	Layer 5	\fhead{Proposed change} Restate Layer 5's component over a context, with riders
+prose	sections/gen/findings-bus.tex:160	Layer 6	and say in Layer 6 that the bus phase is
+prose	sections/gen/findings-bus.tex:198	Layer 3	with \lean{Sizes.ofWitness} returning the heights only. Layer 3's tests: add
+prose	sections/gen/findings-bus.tex:200	Layer 3	ent that the bound uses $μ_{\mathrm{bus}} ≤ 28$, a lemma of Layer 3
+prose	sections/gen/findings-bus.tex:256	Layer 6	challenges of Layer 6, where $ζ$ is drawn, as an extra $τ_{\m
+prose	sections/gen/findings-bus.tex:260	Layer 6	\fhead{Proposed change} One definition, in Layer 6, replacing the three passages:
+prose	sections/gen/findings-bus.tex:266	Layer 7	constraints.'' Row \emph{Seams}: drop ``per constraint''; Layer 7: drop ``the $(α, β)$ and''.
+prose	sections/gen/findings-bus.tex:297	Layer 6	side's.'' And a guard in Layer 6's tests on sizes with $τ_j = κ_{\mathrm
+prose	sections/gen/findings-bus.tex:304	Layer 6	fhead{Evidence and proposed change} Each a clause to add to Layer 6:
+prose	sections/gen/findings-bus.tex:333	Layer 12	``the Rust prover's proofs are checked against''. Layer 12's six mutations (\code{bp:1238-1239})
+prose	sections/gen/findings-bus.tex:336	Layer 12	\fhead{Proposed change} Layer 12: list the three checks among \lean{veri
+prose	sections/gen/findings-bus.tex:362	Layer 6	phase, stated in Layer 6; and acceptance test 28 to name the fir
+prose	sections/gen/findings-bus.tex:366	Layer 6	\begin{finding}{minor}{f:bus-stale-sketch}{The sketch of Layer 6 and the tracker's bus section are stale
+prose	sections/gen/findings-bus.tex:382	Layer 6	\fhead{Proposed change} Replace the code block of Layer 6 by the slot's types (dossier
+prose	sections/gen/findings-bus.tex:418	Layer 5	\code{05:36-48}), as Layer 5 itself writes. The tracker's hole for t
+paren	sections/gen/findings-code.tex:24	Layers 6	tt{2/\allowbreak{}|E|} per round for the opening; blueprint Layers 6 to 10), as a function \texttt{p\allowbr
+prose	sections/gen/findings-code.tex:24	Layer 12	sibling dossier recommends for \texttt{BusOut}'s shape, and Layer 12's \texttt{verify} needs the schedules f
+quote	sections/gen/findings-code.tex:58	Layers 6	exttt{leanIsaInstance} and \texttt{P} is the five phases of Layers 6 to 10 with their proofs. What is proved
+quote	sections/gen/findings-code.tex:112	Layer 3	its non-vacuity is \texttt{m3Holds\_\allowbreak{}stackOf} (Layer 3), its faithfulness Layer 12's fixture.}
+quote	sections/gen/findings-code.tex:112	Layer 12	{m3Holds\_\allowbreak{}stackOf} (Layer 3), its faithfulness Layer 12's fixture.}
+paren	sections/gen/findings-code.tex:131	Layer 13	ot proved and has no consumer, where it is provable now and Layer 13 consumes it).
+quote	sections/gen/findings-code.tex:134	Layer 13	ver conversion, since the game's witness type is unchanged. Layer 13 consumes it. What T4 waits on is the ro
+paren	sections/gen/findings-code.tex:154	Layer 8	head{Classification}An error of the design (the blueprint's Layer 8 text describes a phase whose check ties
+prose	sections/gen/findings-code.tex:169	Layer 12	's. The blueprint assigns the deployed check's soundness to Layer 12 (\texttt{:1053-{}1062}), whose theorem
+prose	sections/gen/findings-code.tex:174	Layer 8	Layer 8 builds the deployed phase as well (B.1:
+prose	sections/gen/findings-code.tex:174	Layer 12	WordsLemma.\allowbreak{}lean}), and the master theorems and Layer 12 consume it; the specification's phase s
+prose	sections/gen/findings-code.tex:177	Layer 12	s at \texttt{1/\allowbreak{}|E|} is a lemma of its own, and Layer 12 owes it.
+prose	sections/gen/findings-code.tex:178	Layer 12	wbreak{}two\_\allowbreak{}challenges}); \texttt{Phases} and Layer 12 take the deployed phase, and the specif
+prose	sections/gen/findings-code.tex:194	Layer 8	ets a non-canonical public word pass the line. Witness: the Layer 8 mutation with a nonzero \texttt{mem\_\a
+prose	sections/gen/findings-code.tex:195	Layer 8	ype (\texttt{Memory.\allowbreak{}lean:107}). Witnesses: the Layer 8 test \texttt{threeLimbs} (the third cla
+prose	sections/gen/findings-code.tex:195	Layer 3	texttt{badTopLimb}; without it the stack passes), and, when Layer 3 lands, a \texttt{\#guard} that \texttt{
+paren	sections/gen/findings-code.tex:201	Layer 3	\texttt{:1037-{}1039}) and decision 15, with no definition (Layer 3) and no transcript fixture (Layer 12) y
+paren	sections/gen/findings-code.tex:201	Layer 12	15, with no definition (Layer 3) and no transcript fixture (Layer 12) yet.
+prose	sections/gen/findings-code.tex:203	Layer 3	\fhead{Classification}Avoidable audit surface until Layer 3 and 12 land.
+quote	sections/gen/findings-code.tex:206	Layer 3	ttt{:335}) add: \enquote{The choice is pinned by two tests: Layer 3's \texttt{\#guard} on \texttt{leanIsaIn
+quote	sections/gen/findings-code.tex:206	Layer 12	} on \texttt{leanIsaInstance.\allowbreak{}publicLines}, and Layer 12's differential fixture, which reads exa
+prose	sections/gen/findings-code.tex:211	Layer 12	{}137}); the pinned transcript carries exactly two scalars. Layer 12 must serialize the sent values with no
+heading	sections/gen/findings-code.tex:232	Layer 1	\subsection{Findings on Layer 1}\label{sec:gen-findings-layer1}
+prose	sections/gen/findings-code.tex:240	Layer 1	{}5}; \texttt{gt-{}flock-{}ring.\allowbreak{}md} 2.4, 5.4). Layer 1 has only high-index selection (\texttt{
+prose	sections/gen/findings-code.tex:240	Layer 3	um{}τ\_\allowbreak{}B} is no block's (B.8). The blueprint's Layer 3 (\texttt{:841-{}848}) says the instance
+prose	sections/gen/findings-code.tex:240	Layer 9	strided reader or the combinator; the slot map is placed in Layer 9's \texttt{FlockInterface.\allowbreak{}l
+prose	sections/gen/findings-code.tex:240	Layer 1	robe} proves the missing generic lemma in twenty lines from Layer 1's own lemmas.
+prose	sections/gen/findings-code.tex:245	Layer 1	In the Layer 1 sketch, after \texttt{evalMle\_\allowbr
+quote	sections/gen/findings-code.tex:258	Layer 3	out.\allowbreak{}piecewise} joins it to the aligned layout; Layer 3 transports the sum type to \texttt{Colu
+paren	sections/gen/findings-code.tex:279	Layer 12	ueprint states the order correctly; nothing checks it until Layer 12).
+prose	sections/gen/findings-code.tex:281	Layer 1	lumn (\texttt{mem\_\allowbreak{}0} at 32 against 64); every Layer 1 theorem holds of both, and so would eve
+prose	sections/gen/findings-code.tex:281	Layer 3	4); every Layer 1 theorem holds of both, and so would every Layer 3 theorem (a bijective \texttt{f} passes
+prose	sections/gen/findings-code.tex:281	Layer 3	\allowbreak{}d\allowbreak{}:\allowbreak{}3\allowbreak{}4}). Layer 3's text promises a transcription and \te
+prose	sections/gen/findings-code.tex:286	Layer 3	Add to Layer 3's tests (\texttt{:866-{}867})
+prose	sections/gen/findings-code.tex:290	Layer 1	of every committed column on the two configurations of the Layer 1 review's \texttt{OffsetsProbe} (sizes \
+paren	sections/gen/findings-code.tex:325	Layer 3	the order of equal sizes (acceptance test on the tie order, Layer 3). Witness: three blocks of heights 4, 2
+prose	sections/gen/findings-code.tex:331	Layer 1	t-omits-load-bearing}{The interface list omits load-bearing Layer 1 names and mislabels three (G.6)}
+paren	sections/gen/findings-code.tex:339	Layer 0	tt{:1386-{}1391}) replace \texttt{Column} by nothing (it is Layer 0's, listed under \enquote{Protocol (lean
+prose	sections/gen/findings-code.tex:339	Layer 1	\texttt{idxColumnEval}, \texttt{bytecodeColumnEval}. In the Layer 1 sketch add \texttt{evalMle\_\allowbreak
+prose	sections/gen/findings-code.tex:351	Layer 1	owbreak{}n} and its test; remove it from the module list of Layer 1 (\texttt{:662}, \enquote{\texttt{BlockC
+prose	sections/gen/findings-code.tex:370	Layer 7	{}padHigh}; \texttt{tableSummand\_\allowbreak{}target} is a Layer 7 name, not built.
+prose	sections/gen/findings-code.tex:376	Layer 7	{tableSummand\_\allowbreak{}target} on heights 2 and 1 once Layer 7 lands.
+prose	sections/gen/findings-code.tex:383	Layer 3	owbreak{}Injective f} for \texttt{leanIsaInstance}'s map in Layer 3.
+prose	sections/gen/findings-code.tex:403	Layer 1	leaves every Layer 1 statement and definition unchanged and
+prose	sections/gen/findings-code.tex:403	Layer 1	and definition unchanged and preserves the meaning of every Layer 1 test (H).
+prose	sections/gen/findings-docs.tex:10	Layer 13	blueprint Layer 13, \texttt{protocol-\allowbreak{}blueprin
+quote	sections/gen/findings-docs.tex:10	Layer 10	sFillBlocks}, \texttt{constraint\allowbreak{}Completeness} (Layer 10)''. The leanISA blueprint states both w
+prose	sections/gen/findings-docs.tex:52	Layer 6	\cref{sec:docs-sketches}, items 1 to 9: Layer 6's local \texttt{structure Bus\allowbrea
+prose	sections/gen/findings-docs.tex:52	Layer 7	eams.\allowbreak{}lean:\allowbreak{}130-\allowbreak{}135}); Layer 7's \texttt{table\allowbreak{}Sumcheck …
+prose	sections/gen/findings-docs.tex:52	Layer 9	tt{Phases.\allowbreak{}table} (\texttt{:\allowbreak{}533}); Layer 9's \texttt{FlockInterface} with an \text
+prose	sections/gen/findings-docs.tex:52	Layer 10	tt{Phases.\allowbreak{}flock} (\texttt{:\allowbreak{}535}); Layer 10's own \texttt{Weight}, \texttt{Weighted
+prose	sections/gen/findings-docs.tex:52	Layer 8	ttt{M3Witness}, \texttt{m3Relation}, \texttt{commitPhase}). Layer 8 (\texttt{:\allowbreak{}1011-\allowbreak
+prose	sections/gen/findings-docs.tex:55	Layers 6	\fhead{Proposed change} restate Layers 6, 7, 9 and 10 on Layer 8's pattern:
+prose	sections/gen/findings-docs.tex:55	Layer 8	\fhead{Proposed change} restate Layers 6, 7, 9 and 10 on Layer 8's pattern:
+prose	sections/gen/findings-docs.tex:64	Layer 6	owbreak{}flock} to \texttt{Seam.\allowbreak{}done}); delete Layer 6's \texttt{BusOut}, Layer 10's \texttt{W
+prose	sections/gen/findings-docs.tex:64	Layer 10	Seam.\allowbreak{}done}); delete Layer 6's \texttt{BusOut}, Layer 10's \texttt{Weight}, \texttt{WeightedClai
+prose	sections/gen/findings-docs.tex:64	Layers 4	`What the spine fixes''); restate the generic components of Layers 4 and 5 as \texttt{Component.\allowbreak{
+paren	sections/gen/findings-docs.tex:73	Layer 1	en items), \cref{sec:docs-tracker-stale} (the tracker shows Layer 1 in review behind the closed \#18, the p
+prose	sections/gen/findings-docs.tex:73	Layer 1	ay the pins are unchanged; pull request 61 moved four). The Layer 1 review's two edits of the tracker were
+prose	sections/gen/findings-docs.tex:90	Layer 0	eak{}1} (\texttt{:\allowbreak{}167-\allowbreak{}172}), that Layer 0 adds ``ArkLib at \texttt{dca90385}'' wi
+prose	sections/gen/findings-docs.tex:106	Layer 0	Layer 0 (\texttt{:\allowbreak{}633-\allowbreak{
+prose	sections/gen/findings-docs.tex:106	Layer 0	r 0 (\texttt{:\allowbreak{}633-\allowbreak{}635}) says what Layer 0 did at the time and that the pins have
+quote	sections/gen/findings-docs.tex:106	Layer 0	yer 0 did at the time and that the pins have since moved (``Layer 0 added ArkLib, then at \texttt{dca90385}
+quote	sections/gen/findings-docs.tex:117	Layer 2	, item 12). The codes have reached the trackers: issue 28 ``Layer 2/C1'', issue 23 ``P3'', issue 31 ``P05''
+prose	sections/gen/findings-docs.tex:149	Layer 1	eak{}30-\allowbreak{}41} checks the layer DAG only), as the Layer 1 review found.
+quote	sections/gen/findings-docs.tex:198	Layer 12	led}, \texttt{prover}, \texttt{verifier}, \texttt{pSpec} (``Layer 12 reads those'', \texttt{:\allowbreak{}10
+prose	sections/gen/findings-docs.tex:198	Layer 2	der ``Spine:'' (\texttt{:\allowbreak{}1369}) although it is Layer 2's.
+prose	sections/gen/findings-docs.tex:209	Layer 1	(\texttt{:\allowbreak{}1306-\allowbreak{}1307}), which the Layer 1 review showed restates the definition,
+prose	sections/gen/findings-docs.tex:230	Layer 11	eory lemmas) … Written here'' (\texttt{:\allowbreak{}265}), Layer 11 plans \texttt{merkleRoot} and \texttt{m
+prose	sections/gen/findings-docs.tex:235	Layer 11	\fhead{Proposed change} the ledger row and Layer 11 name VCVio's Merkle-tree library and VC
+prose	sections/gen/findings-docs.tex:235	Layer 11	VCVio issue 571 as the upstream, with the decision whether Layer 11 builds on it.
+prose	sections/gen/findings-docs.tex:237	Layer 11	RTED BY THE ORCHESTRATOR: that decision, from the review of Layer 11 or the library review.]}
+prose	sections/gen/findings-docs.tex:249	Layer 0	\begin{finding}{note}{f:docs-layer0-comments}{The Layer 0 module's comments cite the roadmap, lay
+quote	sections/gen/findings-docs.tex:252	Layer 0	7,\allowbreak{} 66} at \texttt{b435631} (``Protocol roadmap Layer 0 (\texttt{docs/\allowbreak{}roadmap/\all
+quote	sections/gen/findings-docs.tex:252	Layer 11	inding P3)'', ``(roadmap convention \emph{The oracle})'', ``Layer 11''), against the convention ``Comments …
+prose	sections/gen/findings-docs.tex:261	Layer 1	the Layer 1 review left two edits for GitHub, ``the
+prose	sections/gen/findings-docs.tex:275	Layer 13	\fhead{Proposed change} one sentence in Layer 13:
+prose	sections/gen/findings-docs.tex:285	Layer 8	llowbreak{}442-\allowbreak{}554}) agrees with the code; the Layer 8 sketch agrees with \texttt{Public\allow
+prose	sections/gen/findings-flock-ring.tex:33	Layer 9	{f:flock-ring-interface-limb-claims}{The Flock interface of Layer 9 consumes
+prose	sections/gen/findings-flock-ring.tex:37	Layer 9	opened as evaluation claims on $\qflock$ (strided). Layer 9's \lean{FlockInterface}, with
+prose	sections/gen/findings-flock-ring.tex:41	Layer 9	s accepted and \lean{relOut} holds: error 1. A reduction of Layer 9's shape could be
+prose	sections/gen/findings-flock-ring.tex:45	Layer 9	error of the blueprint, to be fixed; the spine is faithful, Layer 9 and
+prose	sections/gen/findings-flock-ring.tex:49	Layer 9	\begin{change}{Layer 9: the Flock phase at the spine's seams}
+quote	sections/gen/findings-flock-ring.tex:60	Layer 3	uote{\lean{relIn} carries the strong auxiliary predicate of Layer 3 \dots\
+prose	sections/gen/findings-flock-ring.tex:61	Layer 3	\lean{limbColumns} is the strided reader of Layer 3}. (The citation check noted that the do
+paren	sections/gen/findings-flock-ring.tex:88	Layer 9	the slot map being \#3's \code{FlockInterface.limbColumns} (Layer 9)}, and
+prose	sections/gen/findings-flock-ring.tex:103	Layer 3	\item Layer 3 builds the strided reader from the two;
+prose	sections/gen/findings-flock-ring.tex:104	Layer 9	\item \lean{limbColumns} is deleted from Layer 9 and from the tracker's sections on the
+prose	sections/gen/findings-flock-ring.tex:124	Layer 9	Layer 9 is \enquote{module, over \lean{I}} (\co
+prose	sections/gen/findings-flock-ring.tex:134	Layer 3	\fhead{Proposed change} A sketch: Layer 3 supplies, and Layer 9 takes,
+prose	sections/gen/findings-flock-ring.tex:134	Layer 9	\fhead{Proposed change} A sketch: Layer 3 supplies, and Layer 9 takes,
+prose	sections/gen/findings-flock-ring.tex:188	Layers 4	exceptional-challenge clause} in Layers 4--8 and 10: no inverse of a challenge is
+prose	sections/gen/findings-flock-ring.tex:365	Layer 9	\code{sorry}, and no \code{GF(2) → GF(2^64)} profile | Layer 9 | Owned by \#3 (F5); consumed
+prose	sections/gen/findings-flock-ring.tex:370	Layer 9	and hands a weighted claim to the commitment scheme | Layer 9 | New work of \#3 (its gate F5); at
+prose	sections/gen/findings-flock-ring.tex:410	Layer 12	(\code{hash.rs:283-286}), so the fixture of Layer 12, \enquote{a proof dumped from the pinne
+heading	sections/gen/findings-libraries.tex:6	Layer 0	\section{Findings on the libraries and on Layer 0}\label{sec:gen-lib-findings}
+prose	sections/gen/findings-libraries.tex:9	Layer 0	in Layer 0 lets an unsound verifier be \enquote{pr
+prose	sections/gen/findings-libraries.tex:27	Layer 9	Layer 9 \lean{FlockInterface.}\allowbreak\lean{
+prose	sections/gen/findings-libraries.tex:28	Layer 10	\file{protocol-blueprint.md:1084}, and its Layer 10 sketch, \file{:1127-1129}) are soundnes
+quote	sections/gen/findings-libraries.tex:64	Layers 4	rfect completeness needs no exceptional-challenge clause in Layers 4--8 and 10: no
+quote	sections/gen/findings-libraries.tex:68	Layers 4	\asproposed \enquote{No phase of Layers 4--8 and 10 takes an inverse of a challen
+prose	sections/gen/findings-libraries.tex:202	Layer 0	blueprint's Layer 0 sketch declares it (\file{protocol-blue
+quote	sections/gen/findings-libraries.tex:203	Layer 0	table says \enquote{Layer 0 supplies the \lean{E} instance} (\file{
+prose	sections/gen/findings-libraries.tex:209	Layer 0	\begin{change}{the Layer 0 sketch (\file{protocol-blueprint.md:634
+quote	sections/gen/findings-libraries.tex:212	Layer 0	At \file{:251}: \enquote{Challenge sampling; Layer 0 supplies the \lean{E} instance (built f
+prose	sections/gen/findings-libraries.tex:236	Layer 0	whole message, query \lean{()}); they appear in neither the Layer 0 sketch
+prose	sections/gen/findings-libraries.tex:239	Layer 0	\fhead{Proposed change} Add to the Layer 0 sketch after \lean{evalOracle_answer}:
+prose	sections/gen/findings-libraries.tex:248	Layer 0	\begin{finding}{minor}{f:lib-layer0-stale}{Layer 0 prose is stale after the Lean 4.34.1 up
+prose	sections/gen/findings-opening.tex:25	Layers 10	makes a stated leanerVM theorem wrong today, since none of Layers 10 to 13 is built:
+prose	sections/gen/findings-opening.tex:33	Layer 0	ror of the blueprint, caused by the evaluation interface of Layer 0.
+prose	sections/gen/findings-opening.tex:36	Layer 10	\begin{change}{Layer 10 (\code{bp:1112-1114}), with the convent
+prose	sections/gen/findings-opening.tex:36	Layers 0	e{bp:1112-1114}), with the convention \emph{The oracle} and Layers 0, 11 and 12}
+prose	sections/gen/findings-opening.tex:52	Layer 0	query \code{eqWeight r}''; in Layer 0 (\code{bp:637-642}) the instance accord
+prose	sections/gen/findings-opening.tex:53	Layer 11	moved below it; in Layer 11 the sentence ``its level-0 batching cha
+prose	sections/gen/findings-opening.tex:54	Layer 12	ilation replaces the opening phase by \lean{whirOpen}''; in Layer 12 (\code{bp:1214})
+prose	sections/gen/findings-opening.tex:56	Layer 10	level-0 word as the commit message''; the title of Layer 10 and \code{bp:127} lose ``the opening
+paren	sections/gen/findings-opening.tex:87	Layer 12	with \lean{bcsCompile} (a leanerVM definition, Layer 12: oracle messages replaced by roots, the
+prose	sections/gen/findings-opening.tex:178	Layer 12	\begin{change}{Layer 12 (\code{bp:1190}) and \lean{niError}}
+quote	sections/gen/findings-opening.tex:179	Layer 12	\asis ``Layer 12 turns list binding into extraction of t
+prose	sections/gen/findings-opening.tex:181	Layer 12	\asproposed In Layer 12, the theorem of \cref{sec:gen-opening-l
+prose	sections/gen/findings-opening.tex:239	Layer 11	\begin{finding}{major}{f:opening-whiropen-batch-encode}{Layer 11's \texttt{whirOpen} batches a second ti
+prose	sections/gen/findings-opening.tex:246	Layer 11	\begin{change}{Layer 11 (\code{bp:1169, 1173, 1185})}
+prose	sections/gen/findings-opening.tex:262	Layer 11	\begin{change}{Layer 11 (\code{bp:1170})}
+prose	sections/gen/findings-opening.tex:281	Layer 12	\begin{change}{Layer 12, and \file{docs/leanvm-target.md}}
+prose	sections/gen/findings-opening.tex:282	Layer 12	\asproposed In Layer 12: ``\code{Proof.merkle} is the pruned wi
+prose	sections/gen/findings-opening.tex:299	Layer 11	\fhead{Proposed change} In Layer 11 or the conventions:
+prose	sections/gen/findings-opening.tex:317	Layer 11	\begin{change}{the parameter block of Layer 11 (\code{bp:1157-1165})}
+prose	sections/gen/findings-opening.tex:351	Layer 1	chain state in the message; \lean{compress} of leanISA Layer 1 is $F$''.
+prose	sections/gen/findings-opening.tex:378	Layer 12	\begin{finding}{minor}{f:opening-mutation-tests}{Layer 12's mutation tests exercise too little}
+prose	sections/gen/findings-table-pub.tex:69	Layer 3	\item \emph{Terms on any table of the instance.} With Layer 3's instance
+prose	sections/gen/findings-table-pub.tex:116	Layer 7	one vector'', ``terms sit on sumcheck tables''; state in Layer 7 that the verifier checks them and
+prose	sections/gen/findings-table-pub.tex:117	Layer 12	the degree, and in Layer 12 that the four guards are dead in the co
+prose	sections/gen/findings-table-pub.tex:124	Layer 7	of the instance with no constraints and no flushes''; Layer 7 \code{bp:987-989}, $τ_{\max}$ and
+quote	sections/gen/findings-table-pub.tex:156	Layer 12	``Layer 12 owes it'' (\code{bp:1062}). Layer 12 is
+prose	sections/gen/findings-table-pub.tex:156	Layer 12	``Layer 12 owes it'' (\code{bp:1062}). Layer 12 is the compilation. The combined check
+prose	sections/gen/findings-table-pub.tex:165	Layer 12	knowledge soundness at $1/|\E|$ is a lemma of its own, and Layer 12 owes it.''
+quote	sections/gen/findings-table-pub.tex:166	Layer 8	pinned verifiers accept transcripts this verifier rejects. Layer 8 has a
+quote	sections/gen/findings-table-pub.tex:196	Layer 4	\item or keep row \emph{Sumcheck messages} and add: ``Layer 4 proves the transport: if a verifier
+prose	sections/gen/findings-table-pub.tex:210	Layer 7	bus phase; Layer 7 (\code{bp:1001-1003}): ``charged to the
+quote	sections/gen/findings-table-pub.tex:210	Layer 6	001-1003}): ``charged to the $(α, β)$ and GKR challenges of Layer 6
+prose	sections/gen/findings-table-pub.tex:211	Layer 6	… as an extra $τ_{\max}/|\E|$ per constraint''; Layer 6 (\code{bp:973-975}): \lean{busError} ``
+quote	sections/gen/findings-table-pub.tex:213	Layer 7	Acceptance test 6 (\code{bp:1283}): ``The state function of Layer 7 charges the zerocheck to
+prose	sections/gen/findings-table-pub.tex:214	Layer 6	Layer 6's challenges''. The tracker's hole comm
+quote	sections/gen/findings-table-pub.tex:235	Layer 7	challenges, so acceptance test 6's ``the state function of Layer 7'' cannot be meant
+prose	sections/gen/findings-table-pub.tex:247	Layer 7	Layer 7 (\code{bp:1000-1003}): replace ``it is
+prose	sections/gen/findings-table-pub.tex:248	Layer 6	Layer 6, where $ζ$ is drawn, as an extra $τ_{\m
+paren	sections/gen/findings-table-pub.tex:249	Layer 6	phase's (Layer 6), and costs $τ_{\max}/|\E|$ at most, on
+quote	sections/gen/findings-table-pub.tex:250	Layer 6	(\code{bp:1283}): ``The state function of Layer 6 carries the zerocheck.''
+prose	sections/gen/findings-table-pub.tex:255	Layer 7	\begin{finding}{minor}{f:table-pub-layer7-sketch}{Layer 7's sketch and the tracker's signature pr
+prose	sections/gen/findings-table-pub.tex:256	Layer 7	\fhead{Evidence} Layer 7's sketch against the spine as built (do
+cell	sections/gen/findings-table-pub.tex:261	Layer 7	& Layer 7 (\code{bp:986-995}) with Layer 6's \lea
+cell	sections/gen/findings-table-pub.tex:261	Layer 6	& Layer 7 (\code{bp:986-995}) with Layer 6's \lean{BusOut} (\code{bp:960-964}) & T
+prose	sections/gen/findings-table-pub.tex:288	Layer 7	\emph{Which to keep.} Neither as it stands. Layer 7's needs $α, β$ and the selectors of the
+prose	sections/gen/findings-table-pub.tex:320	Layer 9	\begin{finding}{minor}{f:table-pub-limb-claims-flock}{Layer 9's sketch makes the eighteen limb claims
+paren	sections/gen/findings-table-pub.tex:321	Layer 9	\fhead{Evidence} (For whoever reviews Layer 9.) Dossier section 6, E.2; blueprint
+prose	sections/gen/findings-table-pub.tex:366	Layer 12	scalars are Layer 12's encoding to read and reconcile''; the
+prose	sections/gen/findings-table-pub.tex:422	Layer 12	(\cref{sec:gen-table-pub-transcript}), and on Layer 12's \lean{verify_iff_compiled} with its
+heading	sections/gen/layer0-audit.tex:4	Layer 0	\section{Layer 0 of the proof system, audited}\label{sec
+prose	sections/gen/layer0-audit.tex:6	Layer 0	Layer 0 is the proof system's interface to the
+prose	sections/gen/layer0-audit.tex:23	Layer 0	\item \textbf{The code conforms to the blueprint's Layer 0} except for four points: the explicit
+heading	sections/gen/layer0-audit.tex:60	Layer 0	\caption{The declarations of Layer 0, at \texttt{b435631}. Paths are under
+prose	sections/gen/layer0-audit.tex:275	Layer 0	M}, \file{tests} and \file{docs} finds only the blueprint's Layer 0 sketch), and
+quote	sections/gen/layer0-audit.tex:279	Layer 0	-valued}). The blueprint's own dependency row says \enquote{Layer 0
+heading	sections/gen/layer0-audit.tex:439	Layer 0	\subsection{Conformance with the blueprint's Layer 0}\label{sec:gen-l0-conformance}
+prose	sections/gen/layer0-audit.tex:441	Layer 0	The blueprint's Layer 0 is \file{protocol-blueprint.md:625-650}
+heading	sections/gen/layer0-audit.tex:445	Layer 0	\caption{The blueprint's Layer 0 against the code at \texttt{b435631}.}\
+cell	sections/gen/layer0-audit.tex:479	Layer 0	& \textbf{not in the Layer 0 sketch}, nor in the interface list \fil
+quote	sections/gen/layer0-audit.tex:483	Layer 0	\file{protocol-blueprint.md:251}: \enquote{Layer 0 supplies the \lean{E} instance}
+cell	sections/gen/layer0-audit.tex:484	Layer 0	& Layer 0 supplies $\K$ and $\E$
+prose	sections/gen/lib-arklib-security.tex:286	Layers 11	le trees, the random oracle), which the blueprint places in Layers 11
+prose	sections/gen/lib-arklib-security.tex:524	Layer 11	Layer 11), not this theorem's;
+prose	sections/gen/lib-arklib-security.tex:682	Layers 4	exceptional-challenge clause in Layers 4--8 and 10: no inverse of a challenge is
+prose	sections/gen/lib-clean.tex:344	Layers 0	N$), \lean{Ensemble.}\allowbreak\lean{StatementWith model}; Layers 0--4 on Clean \#464, Layer 5 (leanerVM
+prose	sections/gen/lib-clean.tex:344	Layer 5	reak\lean{StatementWith model}; Layers 0--4 on Clean \#464, Layer 5 (leanerVM
+paren	sections/gen/lib-clean.tex:391	Layer 5	th BalanceModel.}\allowbreak\lean{multiset} (leanerVM \#20, Layer 5, \enquote{a separate
+paren	sections/gen/lib-comppoly.tex:602	Layer 12	transcript (Layer 12) and to modelling \code{sample() -> F19
+prose	sections/gen/lib-lean.tex:152	Layer 0	an instance declared outside them would escape it. None of Layer 0's is:
+paren	sections/gen/obligations.tex:45	Layers 0	T4 and its obligation map; the blueprint's holes table and Layers 0 to 13) and, through the review's dossie
+prose	sections/gen/obligations.tex:45	Layer 13	n (\cref{sec:obl-tree}): the tree whose root is the pair of Layer 13 theorems, whose next level is the compi
+paren	sections/gen/obligations.tex:80	Layer 1	9). Every built theorem (the spine, the public-input phase, Layer 1, the ported append, the counting bounds
+paren	sections/gen/obligations.tex:87	Layer 13	stance (2.1.5); \bndc{WellFormedBytecode prog} (absent from Layer 13's statements; 2.7); the resource bound
+prose	sections/gen/obligations.tex:103	Layer 13	st of the verification: the two theorems of the blueprint's Layer 13, which are the proof-system half of tar
+paren	sections/gen/obligations.tex:103	Layer 3	with the review's corrections marked in place; the adaptor (Layer 3) and leanISA's theorems are a separate
+paren	sections/gen/obligations.tex:111	Layer 13	root (2.0)]{The root (2.0): what the proof system delivers (Layer 13, the proof-system half of T4)}\label{se
+paren	sections/gen/obligations.tex:118	Layers 11	on[The compiled verifier (2.1)]{The compiled verifier (2.1; Layers 11 and 12)}\label{sec:obl-tier-compiled}
+paren	sections/gen/obligations.tex:127	Layer 1	itself (\code{idxColumnEval}, \bndc{bytecodeColumnEval} of Layer 1; the circuit walk of Flock). \emph{Stat
+paren	sections/gen/obligations.tex:142	Layer 11	tal break. \emph{Status:} \oblstatus{note}{specified only} (Layer 11's \code{merkleVerify}). \emph{See:} gt-
+quote	sections/gen/obligations.tex:147	Layer 12	2.1.2.3 The list-binding compilation} (no blueprint name; ``Layer 12 turns list binding into extraction of t
+prose	sections/gen/obligations.tex:162	Layer 10	{Status:} \oblstatus{note}{specified only}; the blueprint's Layer 10 ``2/\textbar{}E\textbar{} per round'' i
+prose	sections/gen/obligations.tex:175	Layer 13	alse for any fixed function) nor an axiom; must be named in Layer 13 and in \bndc{docs/architecture.md}; cla
+prose	sections/gen/obligations.tex:208	Layer 13	rm (probe \code{P6Surface}, \bndc{knowledge_transport}) and Layer 13 is its consumer; the lemma has the pola
+paren	sections/gen/obligations.tex:209	Layer 9	r every blueprint interface stated in the existential form (Layer 9's \bndc{FlockInterface.rbrKnowledgeSoun
+paren	sections/gen/obligations.tex:209	Layer 10	orm (Layer 9's \bndc{FlockInterface.rbrKnowledgeSoundness}, Layer 10's sketch). \emph{See:} lib-arklib D.2,
+paren	sections/gen/obligations.tex:217	Layer 6	\subsubsection{The bus phase (2.3.1; Layer 6; \texttt{Seam.commit} \texorpdfstring{$
+paren	sections/gen/obligations.tex:224	Layer 5	ode{TODO}. \emph{Status:} \oblstatus{note}{specified only} (Layer 5, hole G4). \emph{See:} gt-bus D.1, E.2;
+prose	sections/gen/obligations.tex:229	Layer 5	ent cannot be appended} (\code{bp:930-937}). \emph{States:} Layer 5's \code{gkr} has the leaf tables as its
+paren	sections/gen/obligations.tex:230	Layer 1	composition} (\bndc{leaf_decomposition}, \code{bp:969-970}; Layer 1's \bndc{Blocks.stack_eval_ambient_one},
+prose	sections/gen/obligations.tex:230	Layer 1	wo. \emph{Status:} \oblstatus{ok}{built and proved} for the Layer 1 identity (probe \code{ValuesProbe}); th
+paren	sections/gen/obligations.tex:237	Layer 7	\subsubsection{The table sumcheck phase (2.3.2; Layer 7; \texttt{Seam.bus} \texorpdfstring{$\to
+prose	sections/gen/obligations.tex:240	Layer 3	nal message range over every table of the instance, so with Layer 3's column-only tables the schedule has a
+quote	sections/gen/obligations.tex:240	Layer 7	e not distinguished'' (TP2), ``the round message'' (TP4), ``Layer 7's sketch'' (TP6); gt-bus G16.
+prose	sections/gen/obligations.tex:241	Layer 1	). \emph{Status:} \oblstatus{note}{specified only}; its two Layer 1 ingredients are built: \code{sumCube_pa
+paren	sections/gen/obligations.tex:249	Layer 8	\subsubsection{The public-input phase (2.3.3; Layer 8; \texttt{Seam.table} \texorpdfstring{$\
+prose	sections/gen/obligations.tex:252	Layer 12	scalars sent, and the blueprint assigns their soundness to Layer 12, which can neither state nor detect it.
+prose	sections/gen/obligations.tex:256	Layer 1	the bit order (coordinate 0 is the low bit) is proved, from Layer 1's \bndc{evalMle_append_boolVec} at slic
+paren	sections/gen/obligations.tex:263	Layer 3	licInput}. \emph{Status:} \oblstatus{note}{specified only} (Layer 3 lists the line; \code{PublicLine.sent}
+paren	sections/gen/obligations.tex:266	Layer 9	\subsubsection{The Flock phase (2.3.4; Layer 9; \texttt{Seam.pub} \texorpdfstring{$\to
+prose	sections/gen/obligations.tex:271	Layer 9	atus:} \oblstatus{note}{specified only} \oblreview{wrong} — Layer 9's interface takes the eighteen limb cla
+quote	sections/gen/obligations.tex:271	Layer 9	ng 2, 5.1, 5.5, 8.1, 8.7 (FR1, FR7); gt-table-pub finding ``Layer 9's sketch makes the eighteen limb claims
+prose	sections/gen/obligations.tex:280	Layer 9	tus{note}{specified only} \oblreview{unprovable} as placed: Layer 9 is over an abstract \code{I} whose \cod
+paren	sections/gen/obligations.tex:280	Layer 3	cannot be written there (a \code{FlockRegion I} supplied by Layer 3 is needed). \emph{See:} gt-flock-ring 5
+paren	sections/gen/obligations.tex:287	Layer 10	\subsubsection{The opening phase (2.3.5; Layer 10; \texttt{Seam.flock} \texorpdfstring{$\
+paren	sections/gen/obligations.tex:292	Layer 10	d of this phase. \emph{See:} gt-opening-compile A.5 (table, Layer 10 row), B.6.
+paren	sections/gen/obligations.tex:304	Layer 4	ection{Sumcheck for eq-weighted virtual polynomials (2.5.1; Layer 4, holes G1 and G2)}\label{sec:obl-gen-su
+prose	sections/gen/obligations.tex:315	Layer 1	plicit factor evaluated by the verifier. \emph{Status:} the Layer 1 identities \oblstatus{ok}{built and pro
+paren	sections/gen/obligations.tex:318	Layer 4	bsubsection{Batching by the powers of one challenge (2.5.2; Layer 4, hole G3)}\label{sec:obl-gen-batching}
+paren	sections/gen/obligations.tex:324	Layer 5	\subsubsection{Fingerprints and the grand product (2.5.3; Layer 5, hole G4)}\label{sec:obl-gen-fingerprin
+paren	sections/gen/obligations.tex:332	Layer 5	\subsubsection{The batched radix-4 GKR (2.5.4; Layer 5, holes G5 and G6)}\label{sec:obl-gen-gk
+paren	sections/gen/obligations.tex:342	Layer 11	2.3.4.3.5 (inside the Flock phase, \#3's); WHIR is 2.1.2.4 (Layer 11, the compilation). Neither is a phase o
+heading	sections/gen/obligations.tex:345	Layer 1	\subsubsection[Layer 1 (2.5.6)]{Layer 1 (2.5.6): hypercube tab
+heading	sections/gen/obligations.tex:345	Layer 1	\subsubsection[Layer 1 (2.5.6)]{Layer 1 (2.5.6): hypercube tables, stacking, pa
+heading	sections/gen/obligations.tex:362	Layer 0	\subsubsection[Layer 0 (2.5.7)]{Layer 0 (2.5.7): the fields, t
+heading	sections/gen/obligations.tex:362	Layer 0	\subsubsection[Layer 0 (2.5.7)]{Layer 0 (2.5.7): the fields, the samplers, the
+heading	sections/gen/obligations.tex:371	Layer 2	\subsubsection[Layer 2 (2.5.8)]{Layer 2 (2.5.8): Clean compone
+heading	sections/gen/obligations.tex:371	Layer 2	\subsubsection[Layer 2 (2.5.8)]{Layer 2 (2.5.8): Clean components as polynomial
+prose	sections/gen/obligations.tex:374	Layer 2	tus{note}{specified only} \oblreview{unprovable} as placed: Layer 2 produces Mathlib \code{MvPolynomial}s w
+paren	sections/gen/obligations.tex:379	Layer 3	The adaptor and what it needs of leanISA and of Flock (2.6; Layer 3, hole I2; not built)}\label{sec:obl-tie
+paren	sections/gen/obligations.tex:443	Layer 2	mns are exactly the pulls' count coordinates & 2.6.2.3 & O (Layer 2/3, Category B) & a transcription of \bn
+cell	sections/gen/obligations.tex:632	Layer 13	2.6.8 & \textbf{right}, and the blueprint diverges from it: Layer 13 composes T1-C (an existence theorem) in
+cell	sections/gen/obligations.tex:669	Layer 1	Layer 1 (L1) & 2.5.6 & every listed name, built
+cell	sections/gen/obligations.tex:674	Layer 12	e check is not load-bearing (2.3.3.3); the debt assigned to Layer 12 \\
+cell	sections/gen/obligations.tex:712	Layer 1	10 & the strided reader & 2.5.6.3 & the Layer 1 hole (L1) \\
+prose	sections/gen/obligations.tex:727	Layer 1	}-valuedness lemma and \code{encode} over \code{E}, and the Layer 1 hole (L1) the tie order (2.5.6.4), none
+prose	sections/gen/obligations.tex:738	Layer 1	union-bound lemma and the oracle-freeness requirement; the Layer 1 hole (L1) gains the strided reader and
+paren	sections/gen/obligations.tex:758	Layer 12	tion} An error of the blueprint (an omission in the data of Layer 12).
+prose	sections/gen/obligations.tex:767	Layers 3	the refinement 2.1.1 with its fixture. That is the whole of Layers 3, 6, 7, 9, 10 and 12's \bndc{verify_iff_
+prose	sections/gen/obligations.tex:777	Layers 0	\item Every node of the blueprint's Layers 0 to 13 and of its holes table has a plac
+paren	sections/gen/probes-code.tex:160	Layer 10	e, and the blueprint's \texttt{piopError\_\allowbreak{}le} (Layer 10, \texttt{:1130}) is stated over \texttt
+prose	sections/gen/probes-code.tex:188	Layer 12	VM's, which no theorem of the oracle protocol states; it is Layer 12's \texttt{verify\_\allowbreak{}iff\_\al
+paren	sections/gen/probes-code.tex:204	Layer 3	ckOf} and \texttt{m3Holds\_\allowbreak{}stackOf} (blueprint Layer 3, not built) for non-vacuity, and the tr
+prose	sections/gen/probes-code.tex:204	Layer 12	scription of \texttt{witness.\allowbreak{}rs:67-{}101} with Layer 12's fixture for faithfulness. Until they
+prose	sections/gen/probes-code.tex:280	Layer 13	print says is not proved (\texttt{:582-{}586}), in the form Layer 13 needs (section C.7).
+paren	sections/gen/probes-code.tex:2009	Layer 12	t-level fixture for this phase (the dumped-proof fixture is Layer 12's). So a wrong check together with a ma
+paren	sections/gen/probes-code.tex:2009	Layer 12	y a differential test against the Rust prover's transcript (Layer 12's fixture) would reject it.
+paren	sections/gen/probes-code.tex:2125	Layer 3	third line.} What does is the adaptor, not built (blueprint Layer 3, \texttt{p\allowbreak{}r\allowbreak{}o\
+quote	sections/gen/probes-code.tex:2172	Layer 8	ets a non-canonical public word pass the line. Witness: the Layer 8 mutation with a nonzero \texttt{mem\_\a
+prose	sections/gen/probes-code.tex:2196	Layer 3	t{(\allowbreak{}0,\allowbreak{} 0)}, is checkable only when Layer 3 lands; the blueprint's prose says it (\
+heading	sections/gen/probes-code.tex:2205	Layer 1	\subsection{Layer 1's probes (I)}\label{sec:gen-probes-laye
+prose	sections/gen/probes-code.tex:2511	Layer 1	ference numbers from the pinned leanVM, to be compared with Layer 1's Lean definitions in \texttt{ValuesPro
+prose	sections/gen/probes-code.tex:2693	Layer 1	ut.\allowbreak{}comap} aliases; and the axioms of seventeen Layer 1 declarations and of the probe's \texttt
+prose	sections/gen/probes-code.tex:3008	Layer 1	low-index selection identity holds and is twenty lines from Layer 1's lemmas (B.8, G.1). Run with the old p
+prose	sections/gen/probes-code.tex:3085	Layer 1	it establishes}The counting script of the audit surface of Layer 1 (section E); scratch, not a probe.
+prose	sections/gen/probes-code.tex:3151	Layer 3	\item \textbf{Not examined}: the rest of the blueprint's Layer 3 (beyond the lines that touch Layer 1),
+paren	sections/gen/probes-code.tex:3151	Layer 1	est of the blueprint's Layer 3 (beyond the lines that touch Layer 1), the leaf stacks' block order in code
+paren	sections/gen/probes-code.tex:3151	Layer 1	the last lane (\texttt{witness.\allowbreak{}rs:41-{}60}; no Layer 1 statement concerns them).
+cell	sections/gen/probes-rerun.tex:23	Layer 1	Layer 1 \code{ValuesProbe} & \lean{K.ofBits} ev
+cell	sections/gen/probes-rerun.tex:24	Layer 1	Layer 1 \code{StridedProbe}, \code{OffsetsProbe
+cell	sections/gen/register.tex:61	Layer 5	\textbf{R10} & Layer 5's generic GKR cannot be appended in the
+paren	sections/gen/register.tex:63	Layer 3	cked (gt-table-pub, gt-bus parts); unverified (a reading of Layer 3's text: \code{leanIsaInstance} is not b
+cell	sections/gen/register.tex:65	Layer 12	he three executable verifiers runs; the debt is assigned to Layer 12, which cannot pay it & \textcolor{major
+paren	sections/gen/register.tex:67	Layer 8	introduced by an audit-surface compression (the blueprint's Layer 8 text describes a check tying the pool t
+cell	sections/gen/register.tex:69	Layer 9	\textbf{R14} & Layer 9's Flock interface consumes the eighteen
+quote	sections/gen/register.tex:69	Layer 9	ring-interface-limb-claims}), §2.4, §5.1; gt-table-pub §8 ``Layer 9's sketch'' (\cref{f:table-pub-limb-clai
+paren	sections/gen/register.tex:69	Layer 9	error of the blueprint (the spine's Flock slot is faithful; Layer 9 and the tracker's Flock section are not
+cell	sections/gen/register.tex:77	Layer 0	ror of the blueprint, caused by the evaluation interface of Layer 0 & probe-run (the proposed interface typ
+cell	sections/gen/register.tex:79	Layer 11	\textbf{R19} & Layer 11's \code{whirOpen} batches a second time
+cell	sections/gen/register.tex:105	Layer 2	\textbf{R32} & The polynomial bridge of Layer 2 is noncomputable at the pin & \textcolo
+cell	sections/gen/register.tex:107	Layer 3	\textbf{R33} & Layer 3's sizes and admissibility statements ca
+cell	sections/gen/register.tex:111	Layer 1	re and is assigned to no layer & \textcolor{major}{major} & Layer 1 & code-layer1 §G.1 (\cref{f:code-l1-str
+paren	sections/gen/register.tex:113	Layers 4	\textbf{R36} & The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types
+quote	sections/gen/register.tex:113	Layer 7	§H.3 (\cref{f:docs-sketch-types}), §B.4; gt-table-pub §8 ``Layer 7's sketch'' (\cref{f:table-pub-layer7-sk
+paren	sections/gen/register.tex:133	Layers 9	llowbreak{}Soundness\_\allowbreak{}exists}, the sketches of Layers 9 and 10) are soundness statements only;
+prose	sections/gen/register.tex:163	Layer 4	or. The blueprint says degree 5 and error \code{5/|E|}, and Layer 4 defines only the plain variant, so a ve
+prose	sections/gen/register.tex:165	Layer 4	\fhead{Proposed change} define both sumcheck variants in Layer 4 by name; \code{4/|E|} per GKR round in
+prose	sections/gen/register.tex:177	Layer 5	\par\medskip\noindent\textbf{R10.}\enspace\textbf{Layer 5's generic GKR cannot be appended in the
+prose	sections/gen/register.tex:180	Layer 5	\fhead{Proposed change} restate Layer 5's GKR over a context with \code{leaves}
+prose	sections/gen/register.tex:183	Layer 3	\fhead{Claim} Layer 3 makes the six shared columns tables of
+prose	sections/gen/register.tex:183	Layer 7	3 makes the six shared columns tables of the instance, and Layer 7 takes \code{τ_max} and the final messag
+prose	sections/gen/register.tex:185	Layer 7	ndary-adaptor: a constraint, a flush or a count column) and Layer 7 ranges over it; a test with a taller ta
+prose	sections/gen/register.tex:187	Layer 12	he three executable verifiers runs; the debt is assigned to Layer 12, which cannot pay it}\enspace{\small\te
+prose	sections/gen/register.tex:188	Layer 12	l the scalars sent. That is a different oracle verifier, so Layer 12's compilation theorem cannot hold with
+prose	sections/gen/register.tex:190	Layer 8	\fhead{Proposed change} Layer 8 builds a second phase for the deployed
+prose	sections/gen/register.tex:190	Layer 12	rity} at \code{1/|E|}), consumed by the master theorems and Layer 12; keep the specification's phase as refe
+prose	sections/gen/register.tex:197	Layer 9	\par\medskip\noindent\textbf{R14.}\enspace\textbf{Layer 9's Flock interface consumes the eighteen
+prose	sections/gen/register.tex:208	Layer 9	\fhead{Claim} Layer 9 is to be written over an abstract insta
+prose	sections/gen/register.tex:210	Layer 3	eight, \texttt{aux ↔ Flock.\allowbreak{}Holds}) supplied by Layer 3 and taken by Layer 9 (gt-flock-ring.md
+prose	sections/gen/register.tex:210	Layer 9	Flock.\allowbreak{}Holds}) supplied by Layer 3 and taken by Layer 9 (gt-flock-ring.md §8.3)
+prose	sections/gen/register.tex:218	Layer 10	there is no separate reduction sumcheck''). The blueprint's Layer 10 (a \code{μ}-round sumcheck on \code{W_λ
+prose	sections/gen/register.tex:222	Layer 11	\par\medskip\noindent\textbf{R19.}\enspace\textbf{Layer 11's \code{whirOpen} batches a second time
+prose	sections/gen/register.tex:250	Layer 12	\fhead{Proposed change} in Layer 12, the theorem of §E.3 (``List-binding co
+prose	sections/gen/register.tex:253	Layer 12	t claim depends on grinding, yet the planned interfaces and Layer 12's six mutations leave it outside every
+prose	sections/gen/register.tex:255	Layer 12	d change} restate the interface with grinding (R23); extend Layer 12's mutations (a wrong grinding nonce at
+prose	sections/gen/register.tex:263	Layer 13	\fhead{Claim} Layer 13's two base theorems are said to compose
+prose	sections/gen/register.tex:283	Layer 2	verifier's rows, which in the instance are boundary tuples; Layer 2's two bridges concern tables only, and
+prose	sections/gen/register.tex:285	Layer 3	\texttt{boundary\_\allowbreak{}tuples\_\allowbreak{}eq} to Layer 3 and a Layer 2 test on the one-row witne
+prose	sections/gen/register.tex:285	Layer 2	ary\_\allowbreak{}tuples\_\allowbreak{}eq} to Layer 3 and a Layer 2 test on the one-row witness (boundary-a
+prose	sections/gen/register.tex:287	Layer 2	indent\textbf{R32.}\enspace\textbf{The polynomial bridge of Layer 2 is noncomputable at the pin}\enspace{\s
+prose	sections/gen/register.tex:288	Layer 2	\fhead{Claim} Layer 2 produces Mathlib polynomials while the
+prose	sections/gen/register.tex:292	Layer 3	\par\medskip\noindent\textbf{R33.}\enspace\textbf{Layer 3's sizes and admissibility statements ca
+prose	sections/gen/register.tex:303	Layer 1	ock} (the low eight coordinates frozen to the slot's bits). Layer 1 has only high-index selection, \code{La
+prose	sections/gen/register.tex:305	Layer 1	ak{}strided\allowbreak{}Layout}, \code{Layout.piecewise} to Layer 1, with tests against the Python's \textt
+paren	sections/gen/register.tex:307	Layers 4	oindent\textbf{R36.}\enspace\textbf{The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types
+prose	sections/gen/register.tex:308	Layer 6	\fhead{Claim} Layer 6's \code{BusOut} with challenges and tot
+prose	sections/gen/register.tex:308	Layer 7	{Claim} Layer 6's \code{BusOut} with challenges and totals, Layer 7's \texttt{Bus\allowbreak{}Out × Column\
+prose	sections/gen/register.tex:308	Layer 9	s \texttt{Bus\allowbreak{}Out × Column\allowbreak{}Claims}, Layer 9's \code{FlockInterface}, Layer 10's own
+prose	sections/gen/register.tex:308	Layer 10	olumn\allowbreak{}Claims}, Layer 9's \code{FlockInterface}, Layer 10's own \code{Weight}, \code{WeightedClai
+prose	sections/gen/register.tex:308	Layer 6	side them says the spine is authoritative. gt-bus adds that Layer 6's invariant after \code{(α, β)} must be
+prose	sections/gen/register.tex:310	Layers 6	\fhead{Proposed change} restate Layers 6, 7, 9 and 10 on Layer 8's pattern over
+prose	sections/gen/register.tex:310	Layer 8	\fhead{Proposed change} restate Layers 6, 7, 9 and 10 on Layer 8's pattern over the spine's seams and La
+prose	sections/gen/register.tex:310	Layers 4	7, 9 and 10 on Layer 8's pattern over the spine's seams and Layers 4, 5 as \code{Component.Def}s in the name
+prose	sections/gen/register.tex:313	Layer 12	t section says the prover sends nothing and the scalars are Layer 12's encoding, where §8.2, the Rust and th
+cell	sections/gen/register.tex:398	Layer 12	tream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little & \text
+paren	sections/gen/register.tex:424	Layer 0	surface, and the blueprint disagrees with itself about it (Layer 0) & \textcolor{minor}{minor} & libraries
+paren	sections/gen/register.tex:426	Layer 0	k{}answer} takes \code{n} explicitly, unlike the blueprint (Layer 0) & \textcolor{minor}{minor} (cosmetic)
+paren	sections/gen/register.tex:428	Layer 0	interfaces are trusted surface the blueprint does not list (Layer 0) & \textcolor{minor}{minor} & libraries
+cell	sections/gen/register.tex:432	Layer 1	t before the compiled verifier & \textcolor{minor}{minor} & Layer 1 & code-layer1 §G.3 (\cref{f:code-l1-ord
+cell	sections/gen/register.tex:434	Layer 1	coder & \textcolor{minor}{minor} (code-layer1, docs-debt) & Layer 1 & code-layer1 §G.4 (\cref{f:code-l1-acc
+cell	sections/gen/register.tex:436	Layer 1	fails for any other placement & \textcolor{minor}{minor} & Layer 1 & code-layer1 §G.5 (\cref{f:code-l1-acc
+cell	sections/gen/register.tex:438	Layer 1	as no consumer & \textcolor{minor}{minor} (audit surface) & Layer 1 & code-layer1 §G.7 (\cref{f:code-l1-blo
+cell	sections/gen/register.tex:440	Layer 1	a witness that does not exist & \textcolor{minor}{minor} & Layer 1 & code-layer1 §G.9 (\cref{f:code-l1-acc
+cell	sections/gen/register.tex:444	Layer 0	pgrade the blueprint states superseded pins as current, and Layer 0's prose is stale & \textcolor{minor}{mi
+cell	sections/gen/register.tex:540	Layer 0	\textbf{R130} & The Layer 0 module's comments cite the roadmap, lay
+cell	sections/gen/register.tex:542	Layer 1	g, so a layout can alias columns & \textcolor{note}{note} & Layer 1 & code-layer1 §G.10 (first bullet) (\cr
+cell	sections/gen/register.tex:544	Layer 1	\textbf{R132} & Unused or duplicated Layer 1 declarations & \textcolor{note}{note} &
+cell	sections/gen/register.tex:544	Layer 1	duplicated Layer 1 declarations & \textcolor{note}{note} & Layer 1 & code-layer1 §G.10 (second bullet) (\c
+cell	sections/gen/register.tex:546	Layer 1	M's sources on the witness stack & \textcolor{note}{note} & Layer 1 & code-layer1 §G.10 (fourth bullet) (\c
+paren	sections/gen/register.tex:608	Layers 11	and a uniform bound); the commitment is sent as the oracle (Layers 11, 12 owe the compilation); the verifier'
+paren	sections/gen/register.tex:608	Layer 3	es four lemmas about \code{leanIsaInstance}, none listed in Layer 3); the round identity is checked in the
+cell	sections/gen/register.tex:608	Layer 3	oly.decode}). & reading & the four lemmas are not listed in Layer 3 \\
+cell	sections/gen/register.tex:692	Layer 1	\textbf{N56} & code-layer1 §C, §0 item 2 & No Layer 1 theorem is false or vacuous; the hypoth
+cell	sections/gen/register.tex:698	Layer 1	\textbf{N59} & code-layer1 §F & The Layer 1 sketch matches the code declaration by
+cell	sections/gen/register.tex:700	Layer 1	ayer1 §E & Today an auditor of the master theorems reads no Layer 1 declaration (17 definitions, 61 lines,
+cell	sections/gen/register.tex:702	Layer 1	e{K}); the upgrade to \code{144c5aa} changed only proofs in Layer 1, and the tests' numerals were rewritten
+cell	sections/gen/register.tex:746	Layer 8	spine's sketch (\code{:442-554}) agrees with the code; the Layer 8 sketch agrees with \code{PublicInput.le
+cell	sections/gen/register.tex:804	Layers 0	bf{N112} & obligations §5.5 & Every node of the blueprint's Layers 0 to 13 and of its holes table has a plac
+cell	sections/gen/register.tex:840	Layer 4	The errors of §5 D.2, D.3 and §6 E.3. & gt-table-pub §10 & Layer 4's sumcheck and the bus phase's \code{Se
+cell	sections/gen/register.tex:906	Layer 3	\textbf{U35} & Not examined: the rest of Layer 3; the leaf stacks' block order in code;
+cell	sections/gen/register.tex:942	Layer 3	vectors (about \code{2^34}). & boundary-adaptor §H, §B.3 & Layer 3's \code{μ} \\
+cell	sections/gen/register.tex:997	Layer 1	Layer 1 & 0 & 1 & 5 & 3 & 9 \\
+paren	sections/gen/register.tex:1025	Layer 12	he three executable verifiers runs; the debt is assigned to Layer 12, which cannot pay it): gt-table-pub, co
+paren	sections/gen/register.tex:1026	Layer 9	\item \textbf{R14} (Layer 9's Flock interface consumes the eighteen
+paren	sections/gen/register.tex:1033	Layer 3	\item \textbf{R33} (Layer 3's sizes and admissibility statements ca
+paren	sections/gen/register.tex:1034	Layers 4	\item \textbf{R36} (The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types
+paren	sections/gen/register.tex:1042	Layer 12	tream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little): gt-bu
+paren	sections/gen/register.tex:1045	Layer 0	pgrade the blueprint states superseded pins as current, and Layer 0's prose is stale): lib-others, docs-deb
+cell	sections/gen/statements-spine.tex:43	Layer 3	t{:31} & yes as a relation: with the three leanISA lines of Layer 3 (\texttt{m\allowbreak{}e\allowbreak{}m\
+prose	sections/gen/statements-spine.tex:89	Layer 10	valuation query, which is the opening phase the blueprint's Layer 10 adds (\texttt{:1112-{}1113}). An oracle
+paren	sections/gen/statements-spine.tex:110	Layer 3	tem An instance: \texttt{leanIsaInstance prog s} (blueprint Layer 3). Category B data (layouts, separators,
+paren	sections/gen/statements-spine.tex:111	Layers 6	Five phase definitions with leanVM's schedules and checks (Layers 6, 7, 8, 9, 10). Built: the public-input
+paren	sections/gen/statements-spine.tex:116	Layers 11	\item Compilation (Layers 11 to 13).
+prose	sections/gen/statements-spine.tex:142	Layer 13	form (once the lemma is moved into the repository) and that Layer 13 is its consumer. What T4 does still wai
+prose	sections/gen/surface.tex:5	Layer 1	t code: the spine (what the two master theorems unfold to), Layer 1 (what becomes trusted when the adaptor
+cell	sections/gen/surface.tex:25	Layer 1	Layer 1: all public declarations & 143 & 388 &
+cell	sections/gen/surface.tex:26	Layer 1	Layer 1: load-bearing & 20 & 71 & 97 & read by
+cell	sections/gen/surface.tex:27	Layer 1	Layer 1: once the adaptor is built & 17 & 61 &
+cell	sections/gen/surface.tex:28	Layer 1	Layer 1: once the executable verifier is built
+prose	sections/gen/surface.tex:31	Layer 1	body without proof fields, and never a theorem's proof; the Layer 1 dossier counts a theorem up to \texttt{
+heading	sections/gen/surface.tex:245	Layer 1	\subsection{Layer 1}\label{sec:gen-surface-layer1}
+prose	sections/gen/surface.tex:278	Layer 1	ated over an abstract \texttt{I : M3Instance} and import no Layer 1 module (\texttt{Spine/\allowbreak{}Inst
+prose	sections/gen/surface.tex:278	Layer 1	mports \texttt{Instance}). The one built phase that touches Layer 1, the public-input phase, imports \textt
+prose	sections/gen/surface.tex:278	Layer 1	}, \texttt{:71-{}89}); its definitions unfold none of them. Layer 1 is proved code whose statements nobody
+prose	sections/gen/surface.tex:280	Layer 1	sel\_\allowbreak{}b,\allowbreak{} ζ\_\allowbreak{}hi)} with Layer 1's function rather than its own, \texttt
+prose	sections/gen/transcript-opening.tex:198	Layer 10	\item Layer 10 (\code{bp:1112-1114}): \code{openingPha
+prose	sections/gen/transcript-opening.tex:202	Layer 11	\item Layer 11 (\code{bp:1173}): \code{whirOpen (param
+prose	sections/gen/transcript-opening.tex:204	Layer 12	\item Layer 12 (\code{bp:1214-1215}): ``The compiled o
+prose	sections/gen/transcript-opening.tex:207	Layer 0	\code{Vector E μ_stack} and answer \code{eval₂Mle q}''; Layer 0 (\code{bp:637-642}) and the built
+prose	sections/gen/transcript-opening.tex:221	Layer 10	ween the pinned §8.5 (\code{08:94-101}) and the blueprint's Layer 10
+prose	sections/gen/transcript-opening.tex:223	Layer 0	choice of the evaluation interface at Layer 0: with an evaluation oracle, the only wa
+prose	sections/gen/transcript-opening.tex:237	Layer 10	$J_0$ weighted claims), and the opening sumcheck of Layer 10 would be proved and never used.
+prose	sections/gen/transcript-opening.tex:262	Layer 11	Layer 11 must instantiate (``\code{Commitment.Sc
+prose	sections/gen/transcript-opening.tex:285	Layer 0	Layer 0 (\file{Field.lean})
+prose	sections/gen/transcript-opening.tex:297	Layer 0	\emph{The oracle} (\code{bp:317}) and Layer 0 (\code{bp:637-642}) change accordingly
+prose	sections/gen/transcript-opening.tex:306	Layer 10	Layer 10
+prose	sections/gen/transcript-opening.tex:311	Layer 10	``$2/\abs{\E}$ per round'' leaves Layer 10 (those rounds are WHIR's and carry
+prose	sections/gen/transcript-opening.tex:314	Layer 11	Layer 11
+prose	sections/gen/transcript-opening.tex:318	Layer 12	Layer 12
+prose	sections/gen/transcript-opening.tex:323	Layer 13	Layer 13
+prose	sections/gen/transcript-opening.tex:339	Layer 10	it removes a $μ$-round sumcheck from the trusted surface of Layer 10.
+heading	sections/gen/transcript-opening.tex:612	Layer 11	\subsection{The blueprint's Layer 11 set against it}\label{sec:gen-opening-b
+heading	sections/gen/transcript-opening.tex:616	Layer 11	\caption{The blueprint's Layer 11 (\code{bp:1150-1193}) against the deplo
+prose	sections/gen/transcript-opening.tex:635	Layer 12	\lean{verify} to accept Rust proofs; grinding is Layer 12's. ``Protocol B.1'', ``Theorem B.2'',
+prose	sections/gen/transcript-opening.tex:645	Layer 10	$(1 − γ_i)^{t_i}$, $t_{r−1}/\abs{\E}$, $2/\abs{\E}$; Layer 10's ``$2/\abs{\E}$ per round'' is
+prose	sections/gen/transcript-opening.tex:660	Layer 11	\lean{encode} and says nothing about the novel basis. What Layer 11 needs
+prose	sections/gen/transcript-opening.tex:747	Layer 12	RFC chaining value fixed at the parameter state; Layer 12's \code{FsState.observe … -- lane 3 = 1
+quote	sections/gen/transcript-opening.tex:748	Layer 1	(\code{bp:1204}) and the leanISA row ``\code{compress} (Layer 1): the compression the transcript,
+heading	sections/gen/transcript-opening.tex:861	Layer 12	\subsection{The blueprint's Layer 12 set against it}\label{sec:gen-opening-b
+heading	sections/gen/transcript-opening.tex:865	Layer 12	\caption{The blueprint's Layer 12 against the deployed chain and proof ob

@@ -118,7 +118,8 @@ errors are not tight: the zerocheck escape, which costs $\tau_{\max} / \abs{\E}$
 nothing in a conjunctive state function, is charged per constraint and placed on the wrong
 challenges; and the GKR round error is $4 / \abs{\E}$, not $5 / \abs{\E}$. Whether the sum
 means something at leanVM's parameters is settled in \cref{sec:faith-opening}: the interactive
-sum does (the blueprint's $2^{40} / \abs{\E}$ is the right order), but the non-interactive
+sum does (about $2^{32.3} / \abs{\E}$ under the stacking window, within the blueprint's
+$2^{40} / \abs{\E}$), but the non-interactive
 bound the blueprint sketches leaves out three things that decide whether leanVM reaches the
 128 bits it claims.
 
@@ -165,7 +166,7 @@ ArkLib's existential notion): a verifier that pools the prover's values without 
 one that checks only the first value and pools the prover's values; one that does not pool the
 claim of a line whose value is not sent. The earlier review's statement that each of five wrong
 verifiers breaks a stated theorem was true of the build it read and is false of the code as
-merged: its own compression (pooling the lines' values, item H1 of that review) removed the
+merged: its own compression (pooling the lines' values, its own first compression) removed the
 dependence, and the status file still repeats the claim. The consequence for the requirement
 that a missing check leave a theorem unprovable is drawn in \cref{ch:drift}; the repair, pooling
 the values sent, is proposed in \cref{sec:faith-pub}.
@@ -181,11 +182,19 @@ of its prefix, is machine-checked at the transcript level (probe \code{PlainRead
 step from there to a bound on a prover's success is ArkLib's admitted implication from
 round-by-round to plain knowledge soundness, at both pins (\cref{ch:libraries}).
 
+\section{The blueprint's acceptance tests}\label{sec:nv-acceptance}
+
+The blueprint names twenty-eight acceptance tests, each a reading that compiles and is wrong
+with the witness that rejects it. For each, whether the witness exists on \code{main} and the
+review's verdict.
+\InputIfFileExists{sections/gen/acceptance-tests}{}{\emph{[table pending]}}
+
 \section{What was not established}\label{sec:nv-open}
 
 The read-everything phase (item 2 of \cref{sec:nv-hypotheses}) is on paper. The emptiness of
-the aliased instance's relation is exhaustive on the cells and on paper in general. The
-mutation probes of the public-input phase that were written after the toolchain moved (the
-deployed check with the prover's values pooled, the wrong point, the wrong check with the
-honest prover unchanged, the extra check) are recorded as such in \cref{ch:probes}, with the
-result of their re-run at the new pins where it exists.
+the aliased instance's relation is exhaustive on the cells and on paper in general. Of the
+mutation probes of the public-input phase, two were never written (the deployed check with the
+prover's values pooled, the wrong point) and rest on paper; two (the wrong check with the
+honest prover unchanged, the extra check) ran at the new pins and refuted completeness as
+predicted, while their unchanged knowledge-soundness proof failed at the state function like
+every other mutation's (\cref{ch:probes}).

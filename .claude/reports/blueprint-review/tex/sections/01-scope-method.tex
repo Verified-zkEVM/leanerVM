@@ -107,7 +107,9 @@ load-bearing & said of a declaration that a master theorem's statement unfolds t
 \paragraph{Letter codes.} The repository's documents label holes, ledger entries, findings and
 decisions with a letter and a number. This report names things in words. Where a code helps to
 find the thing in the repository it is given once, in parentheses, after the name.
-\Cref{ch:codeindex} is the index of every code met.
+\Cref{ch:codeindex} is the index of every code met. The report has one code family of its
+own, the register's row numbers \code{R1} to \code{R140} (\cref{ch:register}), used only to
+point at a finding beside its name.
 
 \section{Method}\label{sec:method}
 
@@ -132,8 +134,10 @@ file, nothing posted to an issue tracker, no checkout moved.
 \item \textbf{Validation of findings and of their absence.} Every finding carries its evidence:
   the line of the pinned source, the Lean declaration, and the probe or counterexample that
   reproduces it. Where a part was found to have no issue, the report says what was checked.
-  Findings of severity \emph{major} and above were re-derived by a second, independent
-  sub-agent before they entered this report.
+  Every citation of the four ground-truth dossiers was checked against the sources by a
+  second agent, and eleven of the thirty-seven major findings (those not concerning the
+  opening, whose dossier landed last) were re-derived by a hostile second reader before this
+  report was written; the others rest on their dossier's evidence and the citation checks.
 \end{enumerate}
 
 \paragraph{Severity.} \sev{critical}: a theorem or definition is wrong, vacuous or unfaithful in

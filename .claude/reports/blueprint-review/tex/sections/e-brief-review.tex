@@ -39,8 +39,8 @@ report should use. All of this was followed as written.
   (it predated Layer~1 and the public-input phase), so the review rebuilt \code{main} once at
   the start (3280 jobs, exit 0). The owner later asked that no further expensive build be run
   on this machine, which is memory limited; when the upgrade of \code{main} then made every
-  probe impossible, the owner authorised one more build (3452 jobs, exit 0), and every probe
-  was re-run at the new pins.
+  probe impossible, the owner authorised one more build (3452 jobs, exit 0), and the twenty-two
+  probes that carry a conclusion were re-run at the new pins.
 \item[Where the report lives.] The brief says anywhere convenient, never committed. Mid-session
   the owner asked for the work to be placed on a separate branch and, on being asked, for the
   report to be committed there. The review branch is \code{docs/protocol-blueprint-review},
@@ -49,10 +49,11 @@ report should use. All of this was followed as written.
 \item[Secondary repositories.] The comparable verification efforts were consulted through the
   web only (\cref{ch:options}), since nothing in them needed to be built or run.
 \item[Models.] The owner asked, after the first wave, that simpler tasks run on a cheaper
-  model. The ground truth, the code audits, the boundary, the libraries' adequacy, the
-  obligations tree and the hostile re-derivation ran on the review's own model; the citation
-  checks, the LaTeX transcriptions, the register, the probe re-runs, the documentation
-  inventory and the literature survey ran on Opus.
+  model. The ground truth, the spine and public-input audits, the boundary, ArkLib's adequacy, the
+  obligations tree and the hostile re-derivation ran on the review's own model; the Layer 1
+  audit, the other libraries with Layer 0, the citation checks, the LaTeX transcriptions, the
+  register, the probe re-runs, the documentation inventory and the literature survey ran on
+  Opus.
 \end{description}
 
 \section{What happened that the brief did not foresee}
@@ -66,13 +67,13 @@ report should use. All of this was followed as written.
   the review branch while eleven agents were reading. The proof-system statements did not
   change; the library sources under \file{.lake/packages/} did, so every library citation now
   names its revision and old-pin files are read from git; a numeral in $\K$ changed meaning,
-  and every probe was re-run.
+  and the probes that carry a conclusion were re-run.
 \item The leanVM checkout moved off the pin during the same upgrade (a pull and a branch
   checkout by the owner). The pin is an ancestor of the new head, so every leanVM file was
   read at the pin through git from then on, and the citation checks re-read the earlier
   dossiers' lines that way.
-\item Two agents forked helpers of their own; the owner stopped two of those, and the rule
-  \enquote{no sub-agents} was added for the rest.
+\item Two agents forked helpers of their own; the owner stopped two of those, and the
+  literature agent was told to do its survey itself.
 \end{itemize}
 
 \section{Scope the brief does not name, which the review covered}

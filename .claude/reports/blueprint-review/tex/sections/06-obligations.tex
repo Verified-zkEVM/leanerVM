@@ -6,5 +6,7 @@ from the root down to the library facts the leaves rest on, with the status of e
 outlines, the obligation map of \file{docs/architecture.md} and the blueprint's table of holes,
 are validated against it at the end. The tree was drawn by a review agent from the blueprint,
 the dossiers and the sources; its Markdown form is \file{dossiers/obligations.md} on the review
-branch.
+branch. Two of its nodes keep wordings later corrected: the random oracle of the
+compilation must also stand for the multi-block leaf hash (\cref{sec:faith-opening}), and the
+GKR round error the blueprint charges is a valid, loose bound (\cref{sec:faith-rederived}).
 \ifobligationsready\InputIfFileExists{sections/gen/obligations}{}{}\else\emph{[The obligations tree is being typeset; it is inserted here when it lands.]}\fi

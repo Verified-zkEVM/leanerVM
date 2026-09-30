@@ -34,6 +34,16 @@ auditor of the master theorems reads none of them today, 17 definitions (61 line
 trusted once the adaptor is built and about 8 more (22 lines) once the executable verifier is.
 The public-input phase adds its verifier, its check, its pool and its line identity.
 
+\paragraph{Where an auditor starts.} In this order: \cref{ch:libraries} for ArkLib's notions
+of completeness and knowledge soundness (nothing else is meaningful before them); the two
+master theorems in \file{Spine/Compose.lean} with \lean{Phases}, \lean{Phases.Complete} and
+\lean{Phases.Security}; the seams in \file{Spine/Seams.lean}; the instance and the relation in
+\file{Spine/Instance.lean}; the component interfaces in \file{ToArkLib/Component.lean} and
+the two ported declarations of \file{ToArkLib/KnowledgeAppend.lean}; the oracle interface and
+the samplers of \file{Field.lean}; then, for the one built phase, \lean{PublicInput.verifier},
+\lean{check}, \lean{pooled} and the two theorems. Layer 1 is read only when the adaptor is,
+and the catalogue (\cref{ch:catalogue}) gives every declaration in that order with its class.
+
 \section{What is not, and whether it leaks}\label{sec:aud-helpers}
 
 A helper lemma cannot enlarge the trusted surface of a theorem it helps to prove: the kernel

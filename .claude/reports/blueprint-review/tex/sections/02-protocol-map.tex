@@ -97,8 +97,9 @@ values sent and $0$ for the top limb, for which nothing is sent.
 \paragraph{BLAKE2s validity (Flock) and ring switching.} Flock proves that the bits packed into
 the region $\qflock$ of $q$ satisfy the R1CS of the BLAKE2s compression, block by block, with
 position 512 of every block equal to $1$. It commits nothing of its own and reads no claim of
-the pool: it is a zerocheck with a univariate skip (64 values, one challenge, $8 + k$ rounds of
-two coefficients, two final values) followed by a lincheck ($8$ rounds, then 64 values
+the pool: it is a zerocheck with a univariate skip ($k + 1$ equality coordinates drawn first, seven
+more being fixed constants; 64 values; one challenge; $8 + k$ rounds of two coefficients; two
+final values) followed by a lincheck (one batching challenge, $8$ rounds, then 64 values
 $s_0, \dots, s_{63}$), with a single check that can reject, the lincheck's terminal identity.
 Ring switching then turns the 64 claims on the bit polynomials into one weighted claim on the
 $\qflock$ region of $q$, with six challenges and no message. Into the pool: one weighted claim.
@@ -176,7 +177,7 @@ reductions}, one per phase, in the ideal model where $q$ is an oracle and the ch
 uniform (\cref{ch:libraries} introduces the vocabulary). It fixes, in the spine, what the
 phases share: the abstract instance \lean{M3Instance}, the relation \lean{M3Holds}, the seam
 relations, the interfaces \lean{Phase.Def}, \lean{Phase.Complete} and \lean{Phase.Security}, and
-the composition with its two master theorems. It then specifies each phase (Layers 4 to 10),
+the composition with its two master theorems. It then specifies the generic components and each phase (Layers 4 to 10),
 the adaptor to leanISA (Layers 2 and 3), the compilation (Layers 11 and 12) and the target
 theorem (Layer 13). \Cref{tab:map-where} says where each part is.
 

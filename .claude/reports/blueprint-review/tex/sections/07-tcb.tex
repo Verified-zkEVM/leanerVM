@@ -113,7 +113,7 @@ non-interactive guarantee is a statement about a verifier with a random oracle, 
 deployed verifier hashes with BLAKE2s; the known attacks on this gap do not reach leanVM's
 structure, and the guarantee is classical (\cref{ch:options}). The implementation: the Rust
 verifier is what Ethereum would run, and it is tied to the Lean verifier by tests only; the
-review found one check on which they already differ. The hardware, the compiler and the
+review found one check on which they already differ in strength. The hardware, the compiler and the
 toolchain, as for every Lean development.
 
 \section{What the blueprint says of its trusted surface}
@@ -121,7 +121,8 @@ toolchain, as for every Lean development.
 Its convention \emph{Trusted surface} asks that every trusted definition fit on one screen,
 cite its source line, and appear in its interface list; its interface list closes with
 \enquote{everything not listed is a proof, a helper, or a test}. The review found fourteen
-load-bearing declarations not listed and several listed names that do not exist
+load-bearing declarations of the spine not listed, 198 of the proof system's 333 public
+declarations absent from it, and several listed names that do not exist
 (\cref{ch:faithfulness}); its \enquote{assumed interfaces a reviewer must know} are the right
 four, with the qualifications above; and its headline's account of what is proved without
 hypotheses (\enquote{everything about the oracle protocol}) overstates what is on \code{main}

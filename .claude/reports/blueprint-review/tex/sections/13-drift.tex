@@ -63,8 +63,8 @@ must be prevented.
 
 \paragraph{A check present in the oracle verifier and absent from the compiled one, or in Lean
 and absent from Rust.} The compiled verifier does not exist. Between Lean and Rust the review
-found one check that Lean makes and the deployed verifiers do not (the per-limb public-input
-check), one that the deployed verifiers make and Lean's oracle protocol cannot (the proof of
+found one check Lean makes in a stricter form than the deployed verifiers (the per-limb
+public-input check, where they check one combined equation), one that the deployed verifiers make and Lean's oracle protocol cannot (the proof of
 work), and three format checks the blueprint does not list (canonical encodings of the sizes
 and of the root, the stream fully consumed). \emph{This occurs} at the public-input phase
 today, and would occur at the compilation as planned.

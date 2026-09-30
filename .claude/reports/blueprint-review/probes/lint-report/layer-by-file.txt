@@ -1,0 +1,51 @@
+- `sections/00-summary.tex`: prose (3): 6, 25
+- `sections/01-scope-method.tex`: paren (2): 91, 124
+- `sections/02-protocol-map.tex`: cell (14): 189, 190, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203; paren (5): 165, 179, 180, 181
+- `sections/03-libraries.tex`: heading (1): 32
+- `sections/04-catalogue.tex`: heading (1): 19
+- `sections/05-phases.tex`: heading (2): 195, 225; prose (3): 226, 229
+- `sections/07-tcb.tex`: prose (1): 85
+- `sections/08-faithfulness.tex`: heading (2): 111, 117; cell (3): 44
+- `sections/09-nonvacuity.tex`: paren (1): 63
+- `sections/10-auditability.tex`: prose (4): 22, 32, 90, 112
+- `sections/11-options.tex`: prose (8): 23, 24, 46, 57, 64, 74
+- `sections/13-drift.tex`: prose (1): 61
+- `sections/b-probes.tex`: heading (1): 9
+- `sections/e-brief-review.tex`: paren (1): 39
+- `sections/gen/analysis-opening.tex`: prose (3): 140, 362, 684; paren (1): 491; quote (2): 300, 715
+- `sections/gen/boundary-chain.tex`: prose (2): 95, 163; cell (7): 221, 233, 355, 358, 361; paren (1): 221
+- `sections/gen/boundary-relations.tex`: prose (4): 53, 257, 385, 389; cell (2): 308, 309; paren (3): 262, 408, 438
+- `sections/gen/boundary-statements.tex`: heading (1): 256; prose (12): 47, 78, 191, 192, 241, 249, 279, 286, 295, 308; paren (4): 167, 175, 226, 232
+- `sections/gen/catalogue-layer1.tex`: heading (2): 3, 5; prose (1): 28; paren (4): 51, 404
+- `sections/gen/catalogue-pubinput.tex`: prose (7): 13, 31, 33, 64, 84, 94, 104; paren (1): 5; quote (1): 5
+- `sections/gen/changes.tex`: prose (51): 10, 279, 393, 394, 429, 504, 573, 604, 613, 623, 645, 680, 702, 708, 720, 734, 754, 787, 807, 816, 818, 825, 837, 863, 868, 878, 890, 908, 941, 954, 1032, 1091, 1191, 1210, 1426, 1486, 1520, 1524, 1529, 1546, 1579, 1602, 1609, 1611, 1620, 1623, 1635, 1638, 1648, 1653; cell (7): 252, 461, 557, 713, 1004, 1085, 1459; paren (19): 126, 183, 233, 297, 397, 429, 577, 651, 701, 835, 843, 876, 998, 1151, 1296, 1505, 1588, 1653; quote (7): 212, 801, 802, 819, 1078, 1079
+- `sections/gen/checks-opening.tex`: prose (1): 278
+- `sections/gen/code-index.tex`: prose (2): 10, 159; cell (2): 52; paren (44): 27, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49; quote (1): 52
+- `sections/gen/conformance.tex`: heading (3): 236, 240, 291; prose (17): 87, 89, 146, 148, 151, 152, 173, 203, 285, 294, 295; cell (20): 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 81; paren (4): 50, 256, 276, 286; quote (3): 87, 146, 151
+- `sections/gen/disagreements-opening.tex`: cell (3): 58, 104
+- `sections/gen/docs-codes.tex`: cell (14): 30, 39, 75, 76, 77, 78, 79, 80, 82, 83, 84, 85, 86; quote (2): 121, 136
+- `sections/gen/docs-contradictions.tex`: prose (4): 69, 109, 252, 260; cell (18): 55, 93, 95, 125, 126, 127, 128, 129, 130, 131, 132, 160, 180, 185, 187, 190, 285; paren (2): 134, 316; quote (17): 23, 55, 131, 134, 135, 178, 189, 190, 234, 252
+- `sections/gen/docs-inventory.tex`: heading (1): 5; prose (2): 8, 49
+- `sections/gen/docs-proposal.tex`: prose (1): 92; cell (28): 149, 303, 307, 308, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 342, 345; paren (22): 179, 180, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202; quote (1): 149
+- `sections/gen/docs-texts.tex`: prose (6): 226, 257, 367, 432, 541; cell (12): 507, 508, 509, 510, 511, 512, 513, 515, 516, 517, 518; paren (14): 185, 242, 482, 507, 508, 513, 515, 518, 574, 590, 601, 605, 609; quote (3): 375, 509, 574
+- `sections/gen/docs-vocabulary.tex`: cell (1): 33; paren (1): 35; quote (2): 37, 45
+- `sections/gen/findings-boundary.tex`: prose (16): 83, 101, 107, 114, 117, 124, 264, 283, 289, 304, 309, 330, 368, 386, 438; paren (2): 245, 510
+- `sections/gen/findings-bus.tex`: prose (23): 43, 50, 52, 54, 71, 89, 106, 110, 149, 160, 198, 200, 256, 260, 266, 297, 304, 333, 336, 362, 366, 382, 418
+- `sections/gen/findings-code.tex`: heading (1): 232; prose (29): 24, 169, 174, 177, 178, 194, 195, 203, 211, 240, 245, 281, 286, 290, 331, 339, 351, 370, 376, 383, 403; paren (8): 24, 131, 154, 201, 279, 325, 339; quote (7): 58, 112, 134, 206, 258
+- `sections/gen/findings-docs.tex`: prose (26): 10, 52, 55, 64, 73, 90, 106, 149, 198, 209, 230, 235, 237, 249, 261, 275, 285; paren (1): 73; quote (6): 10, 106, 117, 198, 252
+- `sections/gen/findings-flock-ring.tex`: prose (15): 33, 37, 41, 45, 49, 61, 103, 104, 124, 134, 188, 365, 370, 410; paren (1): 88; quote (1): 60
+- `sections/gen/findings-libraries.tex`: heading (1): 6; prose (8): 9, 27, 28, 202, 209, 236, 239, 248; quote (4): 64, 68, 203, 212
+- `sections/gen/findings-opening.tex`: prose (19): 25, 33, 36, 52, 53, 54, 56, 178, 181, 239, 246, 262, 281, 282, 299, 317, 351, 378; paren (1): 87; quote (1): 179
+- `sections/gen/findings-table-pub.tex`: prose (17): 69, 116, 117, 124, 156, 165, 210, 211, 214, 247, 248, 255, 256, 288, 320, 366, 422; cell (2): 261; paren (2): 249, 321; quote (7): 156, 166, 196, 210, 213, 235, 250
+- `sections/gen/layer0-audit.tex`: heading (4): 4, 60, 439, 445; prose (4): 6, 23, 275, 441; cell (2): 479, 484; quote (2): 279, 483
+- `sections/gen/lib-arklib-security.tex`: prose (3): 286, 524, 682
+- `sections/gen/lib-clean.tex`: prose (2): 344; paren (1): 391
+- `sections/gen/lib-comppoly.tex`: paren (1): 602
+- `sections/gen/lib-lean.tex`: prose (1): 152
+- `sections/gen/obligations.tex`: heading (6): 345, 362, 371; prose (19): 45, 103, 162, 175, 208, 229, 230, 240, 241, 252, 256, 271, 280, 315, 374, 727, 738, 767, 777; cell (4): 632, 669, 674, 712; paren (28): 45, 80, 87, 103, 111, 118, 127, 142, 209, 217, 224, 230, 237, 249, 263, 266, 280, 287, 292, 304, 318, 324, 332, 342, 379, 443, 758; quote (3): 147, 240, 271
+- `sections/gen/probes-code.tex`: heading (1): 2205; prose (9): 188, 204, 280, 2196, 2511, 2693, 3008, 3085, 3151; paren (7): 160, 204, 2009, 2125, 3151; quote (1): 2172
+- `sections/gen/probes-rerun.tex`: cell (2): 23, 24
+- `sections/gen/register.tex`: prose (38): 163, 165, 177, 180, 183, 185, 187, 188, 190, 197, 208, 210, 218, 222, 250, 253, 255, 263, 283, 285, 287, 288, 292, 303, 305, 308, 310, 313; cell (31): 61, 65, 69, 77, 79, 105, 107, 111, 398, 432, 434, 436, 438, 440, 444, 540, 542, 544, 546, 608, 692, 698, 700, 702, 746, 804, 840, 906, 942, 997; paren (17): 63, 67, 69, 113, 133, 307, 424, 426, 428, 608, 1025, 1026, 1033, 1034, 1042, 1045; quote (2): 69, 113
+- `sections/gen/statements-spine.tex`: prose (2): 89, 142; cell (1): 43; paren (3): 110, 111, 116
+- `sections/gen/surface.tex`: heading (1): 245; prose (6): 5, 31, 278, 280; cell (4): 25, 26, 27, 28
+- `sections/gen/transcript-opening.tex`: heading (4): 612, 616, 861, 865; prose (20): 198, 202, 204, 207, 221, 223, 237, 262, 285, 297, 306, 311, 314, 318, 323, 339, 635, 645, 660, 747; quote (1): 748
