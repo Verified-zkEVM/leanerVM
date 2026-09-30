@@ -1,1 +1,228 @@
-% stub: to be written
+\chapter{The proof system, as deployed and as planned}\label{ch:map}
+
+This chapter is the map. It says what leanVM's proof system does at the pin, interaction by
+interaction, where the blueprint puts each part, and where the code that exists sits. The
+detailed tables of the transcript, of the verifier's checks and of the disagreements between
+the sources, one set per phase, are in \cref{ch:faithfulness}; this chapter gives the shape.
+
+\section{Two fields, one committed column}\label{sec:map-fields}
+
+Everything the prover commits to is a table of values in the field
+\begin{define}{The fields $\K$ and $\E$}
+$\K = \mathrm{GF}(2^{64})$ is the field of the columns: every cell of every table of the
+arithmetization is an element of $\K$, represented as 64 bits. $\E = \mathrm{GF}(2^{192})$ is
+the field of the challenges: $\E = \K[y]/(y^3 + y + 1)$, so an element of $\E$ is three
+\emph{limbs} in $\K$, and $\K$ sits inside $\E$ as the elements whose upper two limbs are zero.
+Both have characteristic 2: $x + x = 0$, so subtraction is addition and $-1 = 1$. In Lean,
+CompPoly's \lean{BF64} and \lean{BF64.Ext3}; the review confirmed that their defining
+polynomials, bit encodings and limb order are those of the Rust and of the specification
+(\cref{ch:libraries}).
+\end{define}
+The prover's whole witness is one column: every table of the arithmetization (the six opcode
+tables, the three memory limbs, the two finalize counts, and the packed bit witness of the
+BLAKE2s circuit) is stacked into a single table $q$ of $2^{\mu}$ cells of $\K$, with
+$15 \le \mu \le 28$. The verifier never sees $q$; it holds a commitment to it and, at the very
+end, asks the commitment scheme to certify weighted sums $\sum_w W(w)\, \widetilde{q}(w)$ over
+the cube, where $\widetilde{q}$ is the multilinear extension of $q$ and $W$ is a weight the
+verifier can evaluate itself. An evaluation claim $\widetilde{q}(r) = v$ at a point
+$r \in \E^{\mu}$ is the case $W = \eq(r, \cdot)$.
+
+\section{The protocol at the pin, phase by phase}\label{sec:map-protocol}
+
+\Cref{fig:phases} shows the six phases the blueprint distinguishes, with what each phase adds
+to the \emph{claim pool}: the list of evaluation claims on columns of $q$ that the opening
+discharges at the end. The counts below are those of the deployed verifier at the pin
+(\file{crates/lean_vm/src/cpu/mod.rs:711-779} is the top-level flow); each is cited in
+\cref{ch:faithfulness}.
+
+\paragraph{Setup (before any phase).} The Fiat--Shamir chain is seeded with a digest of the
+program and of the Flock circuit's identifier, then with the two public words. The prover
+announces eight sizes: the memory log-size $\kappa_{\mathrm{mem}}$, the six tables' log-heights
+$\tau_0, \dots, \tau_5$, and the rate exponent $\rho$ of the commitment scheme. The verifier
+checks that each is canonically encoded (upper limbs zero), that each public word has a zero
+top limb, the caps ($2^{\kappa_{\mathrm{bc}}}$ instructions with $\kappa_{\mathrm{bc}} \le 32$;
+$16 \le \kappa_{\mathrm{mem}} \le 32$; $\tau_j \le 32$; $\tau_{\mathrm{BLAKE2S}} \ge 3$;
+$1 \le \rho \le 4$), derives every layout, and checks the stacked size
+$15 \le \mu \le 28$. None of this is a phase of the oracle protocol; all of it is a check of
+the deployed verifier, and \cref{ch:drift} counts it.
+
+\paragraph{Commit.} The prover sends the commitment to $q$: a Merkle root, two field elements
+with zero top limbs. In the oracle protocol this is the one oracle message: from here on the
+verifier may query $\widetilde{q}$ at points of $\E^{\mu}$ and nothing else.
+
+\paragraph{Bus.} The bus argument shows that the tuples every table \emph{pushes} onto the
+three buses (state, memory, bytecode) are, as a multiset, the tuples that are \emph{pulled},
+and that no read count is zero. The verifier draws the fingerprint challenge
+$\alpha \in \E^4$ and the multiset challenge $\beta \in \E$; each 16-coordinate tuple $t$
+becomes the scalar $\beta + \sum_i \eq(\alpha, i)\, t_i$; the pushed scalars, the pulled scalars
+and the count cells are each stacked into a tree of $2^{\mu_{\mathrm{bus}}}$ leaves (padded
+with $1$), and the prover sends two roots: $R$, claimed to be the product of the pushed leaves
+\emph{and} of the pulled leaves, one scalar for both sides, and $R_c$, the product of the
+counts. A batched GKR grand-product argument then walks the three trees from the roots to the
+leaves, radix 4 (a binary first layer when $\mu_{\mathrm{bus}}$ is odd): per layer, a
+combiner $\lambda$ batches the three trees; a sumcheck of $\mu_{\mathrm{bus}} - \ell$ rounds,
+each round a cofactor of degree 4 sent as four coefficients; the twelve children; one layer
+check; two combination challenges. A fresh combiner is drawn after every layer, the last one
+included, where it is used by nothing. The GKR ends with three claims on the leaf tables at one
+point $\zeta$ assembled from the last layer's challenges. The verifier checks $R_c \neq 0$,
+computes itself the public part of each leaf claim (the selectors, the constants, the index
+column, the program's bytecode columns), reads five boundary evaluations the prover sends (the
+three memory limbs and the memory finalize count at $\zeta_{< \kappa_{\mathrm{mem}}}$, the
+bytecode finalize count at $\zeta_{< \kappa_{\mathrm{bc}}}$), and derives what the tables owe
+each side: three values $\mathit{rem}_s$. Into the pool: five column claims.
+
+\paragraph{Table sumcheck.} One sumcheck proves the two constraints of the JUMP table and the
+tables' share of the three bus sides together. The verifier draws $\xi \in \E$; the constraints
+take $\xi^0, \xi^1$ and the three sides $\xi^2, \xi^3, \xi^4$, shared by every table; the
+target is $\sum_s \xi^{2+s}\, \mathit{rem}_s$, derived, never sent. The sumcheck runs
+$\tau_{\max}$ rounds, the maximum log-height over the six opcode tables, binding the highest
+variable first, each table joining when its height is reached; a round message is three
+coefficients of a cubic, the fourth derived from the running claim, so that no round check can
+fail. The prover then sends one value per column of every opcode table, 104 in all (the
+eighteen value limbs of the BLAKE2S table included), the verifier recomputes the summand from
+them and checks it against the running claim. Into the pool: 104 column claims, each at the
+prefix $\rho_{< \tau_j}$ of the sumcheck's point; the eighteen limb claims are claims on
+strided slots of the packed bit witness.
+
+\paragraph{Public input.} The verifier draws $r \in \E$; the prover sends $c_0, c_1$, claimed
+to be the values of the two low memory limbs at $(r, 0, \dots, 0)$, the line through cells
+0 and 1. The specification checks each against the public words' limb,
+$c_\ell = (1 + r)\, w_{0,\ell} + r\, w_{1,\ell}$; the three executable verifiers (Rust, Python,
+the recursion guest) check one combined equation $c_0 + y\, c_1 = (1 + r)\, w_0 + r\, w_1$ in
+$\E$. Into the pool: three claims, on the three memory limbs at $(r, 0, \dots, 0)$, with the
+values sent and $0$ for the top limb, for which nothing is sent.
+
+\paragraph{BLAKE2s validity (Flock) and ring switching.} Flock proves that the bits packed into
+the region $\qflock$ of $q$ satisfy the R1CS of the BLAKE2s compression, block by block, with
+position 512 of every block equal to $1$. It commits nothing of its own and reads no claim of
+the pool: it is a zerocheck with a univariate skip (64 values, one challenge, $8 + k$ rounds of
+two coefficients, two final values) followed by a lincheck ($8$ rounds, then 64 values
+$s_0, \dots, s_{63}$), with a single check that can reject, the lincheck's terminal identity.
+Ring switching then turns the 64 claims on the bit polynomials into one weighted claim on the
+$\qflock$ region of $q$, with six challenges and no message. Into the pool: one weighted claim.
+
+\paragraph{Opening.} The verifier draws $\lambda \in \E$; the ring-switched claim takes
+$\lambda^0$ and the 112 pooled point claims the next powers, each point claim first turned
+into a weighted claim through the stack's selectors; the batch is one weighted claim
+$\sum_w W_\lambda(w)\, \widetilde{q}(w) = C_\lambda$, and the commitment scheme (WHIR over
+Reed--Solomon codes of $\K$ in the novel polynomial basis, with Merkle trees over BLAKE2s)
+opens it. The specification is explicit: \enquote{This one opening discharges every pooled
+claim; there is no separate reduction sumcheck}
+(\file{doc/leanvm/body/08-end-to-end-protocol.tex:99}). The verifier finally checks that the
+proof stream has been consumed entirely.
+
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+  font=\small\sffamily, node distance=6mm,
+  ph/.style={draw, rounded corners=2pt, fill=ok!5, draw=ok!70!black, text width=0.30\linewidth,
+    align=left, inner sep=4pt},
+  pool/.style={draw, rounded corners=2pt, fill=minor!5, draw=minor!70!black,
+    text width=0.24\linewidth, align=left, inner sep=4pt, font=\footnotesize\sffamily},
+  chal/.style={text width=0.30\linewidth, align=left, font=\footnotesize\sffamily},
+  arr/.style={-{Stealth[length=2mm]}, thick}]
+\node[ph] (setup) {\textbf{Setup} \\ seed; 8 announced sizes; the caps; the stacking window};
+\node[ph, below=of setup] (commit) {\textbf{Commit} \\ the root of $q$ (2 elements)};
+\node[ph, below=of commit] (bus) {\textbf{Bus} \\ $\alpha, \beta$; roots $R, R_c$; batched
+  GKR over three trees; $R_c \neq 0$; five boundary evaluations; $\mathit{rem}_s$ derived};
+\node[ph, below=of bus] (table) {\textbf{Table sumcheck} \\ $\xi$; $\tau_{\max}$ rounds of 3
+  coefficients; 104 column values; the final check};
+\node[ph, below=of table] (pub) {\textbf{Public input} \\ $r$; $c_0, c_1$; the line check
+  (per limb, or combined)};
+\node[ph, below=of pub] (flock) {\textbf{BLAKE2s validity} \\ zerocheck with univariate skip;
+  lincheck; the terminal identity; ring switching (6 challenges)};
+\node[ph, below=of flock] (open) {\textbf{Opening} \\ $\lambda$; 113 claims batched; WHIR
+  over Merkle trees; the stream fully consumed};
+\draw[arr] (setup) -- (commit); \draw[arr] (commit) -- (bus); \draw[arr] (bus) -- (table);
+\draw[arr] (table) -- (pub); \draw[arr] (pub) -- (flock); \draw[arr] (flock) -- (open);
+\node[pool, right=12mm of bus] (p1) {into the pool: 5 column claims at $\zeta$ (the memory
+  limbs, the two finalize counts)};
+\node[pool, right=12mm of table] (p2) {into the pool: 104 column claims at $\rho_{<\tau_j}$,
+  18 of them strided slots of $\qflock$};
+\node[pool, right=12mm of pub] (p3) {into the pool: 3 claims on $\mathit{mem}_0, \mathit{mem}_1,
+  \mathit{mem}_2$ at $(r, 0, \dots, 0)$};
+\node[pool, right=12mm of flock] (p4) {into the pool: 1 weighted claim on the $\qflock$
+  region};
+\node[pool, right=12mm of open] (p5) {out of the pool: all 113, in one opening};
+\draw[arr, minor!70!black] (bus.east) -- (p1.west); \draw[arr, minor!70!black] (table.east) -- (p2.west);
+\draw[arr, minor!70!black] (pub.east) -- (p3.west); \draw[arr, minor!70!black] (flock.east) -- (p4.west);
+\draw[arr, minor!70!black] (p5.west) -- (open.east);
+\node[chal, left=10mm of bus, anchor=east] {\emph{the blueprint's phase} \lean{bus}; seams
+  \lean{Seam.commit} $\to$ \lean{Seam.bus}};
+\node[chal, left=10mm of table, anchor=east] {\lean{table}; \lean{Seam.bus} $\to$
+  \lean{Seam.table}};
+\node[chal, left=10mm of pub, anchor=east] {\lean{pub}; \lean{Seam.table} $\to$
+  \lean{Seam.pub}; \emph{built}};
+\node[chal, left=10mm of flock, anchor=east] {\lean{flock}; \lean{Seam.pub} $\to$
+  \lean{Seam.flock}};
+\node[chal, left=10mm of open, anchor=east] {\lean{opening}; \lean{Seam.flock} $\to$
+  \lean{Seam.done}};
+\node[chal, left=10mm of commit, anchor=east] {\lean{commitDef}; \lean{M3Rel} $\to$
+  \lean{Seam.commit}; \emph{built}};
+\node[chal, left=10mm of setup, anchor=east] {not a phase: the compiled verifier's
+  (Layer 12)};
+\end{tikzpicture}
+\caption{leanVM's proof system at the pin, as the deployed verifier runs it (centre), what each
+phase adds to the claim pool (right), and the blueprint's phase and seams for it (left).}
+\label{fig:phases}
+\end{figure}
+
+\section{What the blueprint makes of it}\label{sec:map-blueprint}
+
+The blueprint models the protocol as a sequential composition of ArkLib \emph{oracle
+reductions}, one per phase, in the ideal model where $q$ is an oracle and the challenges are
+uniform (\cref{ch:libraries} introduces the vocabulary). It fixes, in the spine, what the
+phases share: the abstract instance \lean{M3Instance}, the relation \lean{M3Holds}, the seam
+relations, the interfaces \lean{Phase.Def}, \lean{Phase.Complete} and \lean{Phase.Security}, and
+the composition with its two master theorems. It then specifies each phase (Layers 4 to 10),
+the adaptor to leanISA (Layers 2 and 3), the compilation (Layers 11 and 12) and the target
+theorem (Layer 13). \Cref{tab:map-where} says where each part is.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}p{0.27\linewidth}p{0.30\linewidth}p{0.36\linewidth}@{}}
+\toprule
+Part & Blueprint & Code on \code{main} at \code{b435631} \\
+\midrule
+Fields, sampling, the oracle interface of $q$ & Layer 0 & \file{LeanerVM/Protocol/Field.lean}, \file{ToArkLib/Oracles.lean}; built \\
+Hypercube tables, stacking, padding, the index and bytecode columns & Layer 1 & \file{ToCompPoly/*}, \file{Stack.lean}, \file{Padding.lean}, \file{ClaimWeights.lean}, \file{BlockClaims.lean}, \file{FixedColumns.lean}; built \\
+The abstract instance, the relation, the seams, the interfaces, the composition, the master theorems & the section \enquote{The spine} & \file{Spine/\{Instance,Seams,Phase,Compose,Toy\}.lean}, \file{ToArkLib/\{Component,KnowledgeAppend,PassThrough,SendOracle,Refinement,GuardedVerdict,KeepOracles\}.lean}; built \\
+Clean components as polynomials & Layer 2 & not built \\
+The leanISA instance and the adaptor & Layer 3 & not built \\
+The sumcheck and the batching component & Layer 4 & not built (an open pull request holds the honest round algebra) \\
+Fingerprints, the grand product, GKR & Layer 5 & not built \\
+The bus phase & Layer 6 & not built \\
+The table sumcheck & Layer 7 & not built \\
+The public-input phase & Layer 8 & \file{PublicInput.lean}; built, both halves proved \\
+Flock and ring switching & Layer 9 & not built; owned by the Flock roadmap (issue \#3), which has not started \\
+The claim pool and the opening & Layer 10 & not built \\
+WHIR, Merkle trees, the parameters & Layer 11 & not built \\
+Fiat--Shamir, the proof object, \lean{verify} & Layer 12 & not built \\
+The target theorem & Layer 13 & not built \\
+\bottomrule
+\end{tabular}
+\caption{Where each part of the proof system is specified and whether it is built.}
+\label{tab:map-where}
+\end{table}
+
+Of the six phases, two are built: the commit phase, which is the spine's, and the public-input
+phase. The four others, the generic components they rest on, the adaptor and the compilation
+are specified only. The master theorems are therefore theorems about a \emph{bundle} of phases
+supplied as a hypothesis; what they say, and what they leave to be trusted, is the subject of
+\cref{ch:phases,ch:nonvacuity}.
+
+\section{The reviewed revision and the one after it}\label{sec:map-revision}
+
+The review's object is \code{main} at \code{b435631}. While the review was under way, the
+owner upgraded \code{main} to Lean 4.34.1 (\code{144c5aa}, pull request \#61) and moved every
+library pin: ArkLib to \code{7653a901}, CompPoly to \code{572f9973}, Clean to \code{42fe4b26},
+VCVio to \code{a4232d08}. The leanVM pin did not move. The proof-system sources changed in
+proofs and imports only (77 lines in, 76 out), so every statement this report discusses is the
+same at both revisions; the two probability bridges of the spine were restated on VCVio's new
+notation with the same relations and bounds. Two things did change in substance and are
+recorded where they matter: ArkLib's new pin is the revision several dossiers examined as
+\enquote{upstream}, and it lifts none of the admissions the blueprint's ledger names
+(\cref{ch:libraries}); and CompPoly's $\K$ now gives natural-number literals their
+characteristic-two meaning, $(2 : \K) = 0$, with encoded words written \lean{K.ofBits n}, so
+that any probe or fixture using a literal other than $0$ or $1$ in $\K$ means something else at
+the new pin (\cref{ch:probes}).
