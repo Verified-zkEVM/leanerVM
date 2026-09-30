@@ -41,7 +41,106 @@ missing or unprovable; the tag says which.
 
 ## 1. Summary
 
-(written last; see the end of the file for the counts and the trusted leaves)
+**What was examined.** The two existing outlines (`docs/architecture.md`'s T4 and its
+obligation map; the blueprint's holes table and Layers 0 to 13) and, through the review's
+dossiers, what leanVM at the pin actually runs, what ArkLib and the other libraries prove and
+admit, and what is built at `b435631`. From these the complete hierarchy of proof obligations
+was written (section 2): the tree whose root is the pair of Layer 13 theorems, whose next level
+is the compiled verifier's theorems, then the master theorems of the oracle protocol, then the
+six phases' completeness and knowledge-soundness obligations, then the generic components each
+is built from and the helper statements each needs, down to the library facts; beside it the
+adaptor's obligations (2.6) and the table of hypotheses discharged by verifier checks or by
+conditions on public data (2.7). Section 3 composes the errors; section 4 validates the two
+outlines against the tree; section 5 states what the tree reveals that no sibling dossier says.
+
+**The shape of the tree.** 155 numbered nodes in seven tiers (2.0 the root, 2.1 the compiled
+verifier, 2.2 the master theorems and the spine, 2.3 the phases, 2.5 the generic components and
+the layers below the phases, 2.6 the adaptor and leanISA, 2.7 the hypotheses table), with up to
+four numbered levels inside a tier (22 nodes at the first level, 80 at the second, 53 at the
+third and fourth; 152 carry a status, the other three are a group header and two pointers). Seven arrows carry the error from the phases to the deployed claim (3.3, last
+paragraph): the spine's per-challenge composition (built), the list-binding compilation (not
+stated), Theorem B.7 (specified), round-by-round to state-restoration (commented out
+upstream), the Merkle interface with its hash term (empty as stated), the chain lemma (not
+stated), the grinding model (no theorem exists), and the family composition over the prover's
+sizes (not stated).
+
+**Count by status** (first tag of each node): specified only 66; not specified 25; built and
+proved 21; built definitions 10; unprovable as written 10; library, proved at the old pin 6;
+trusted transcribed data 4; trusted hypotheses 4; trusted assumed interfaces 2; admitted
+upstream 2; wrong as written 2. Nodes on which the review found the blueprint's statement
+wrong, missing or unprovable: 57 (wrong 22, missing 26, unprovable 9). Every built theorem
+(the spine, the public-input phase, Layer 1, the ported append, the counting bounds) rests on
+the kernel's three standard axioms; no admitted library theorem is in its closure (lib-arklib
+B.1; code-spine P1; probes-rerun 1.0 at the new pin).
+
+**The trusted leaves** (what a reader of the planned chain must accept, today and after every
+hole is filled as planned; the nodes are 2.1.1.3, 2.1.2.1, 2.1.2.2, 2.1.2.4.1, 2.1.2.4.11,
+2.1.2.6, 2.1.2.7, 2.1.5, 2.2.2.6, 2.2.3.2, 2.3.3.5, 2.3.4 (whole), 2.3.4.3.2, 2.3.4.6, 2.5.6.4,
+2.5.7.4, 2.6.1, 2.6.2.5, 2.6.2.6, 2.6.3, and the four unbuilt phases' bundles):
+
+1. *Assumed interfaces:* `FiatShamirSecurity` (false as stated, 2.1.2.1), `BcsSecurity` (empty
+   as stated, 2.1.2.2), `McaJohnson` (2.1.2.4.1), the Flock phase's definition, completeness
+   and security (`FlockInterface`, 2.3.4), the witness generator `FlockWitnessGen` with its
+   lemma (2.6.3), and, until every hole is filled, the `Complete` and `Security` fields of the
+   bus, table, Flock and opening phases (2.3).
+2. *Admitted upstream theorems the plan consumes:* [BCHKS25] Theorem 4.6
+   (`rs_mcaError_le_in_johnson_range`, a preprint with a sketched proof); the round-by-round
+   to plain implication, if the plain corollary is stated (2.1.2.7). The sumcheck's admitted
+   completeness and knowledge soundness (2.5.1.2, 2.5.1.3) and ArkLib's admitted append
+   (2.2.2.1) are replaced by local proofs in the plan and are not leaves.
+3. *Hypotheses nothing discharges:* the random-oracle heuristic for BLAKE2s's compression and
+   its collision resistance (2.1.5); `WellFormedBytecode prog` (absent from Layer 13's
+   statements; 2.7); the resource bound on the trace and the constructed witness that
+   `baseProver_complete` needs (2.7); the success of the honest grind (2.1.4); the carrier of
+   "the R1CS with the constant position holds ⇒ the limb slots compress" (2.6.2.5); the
+   `F_2`-independence of Flock's 128 fixed equality weights (2.3.4.3.2, true by a probe, in no
+   theorem); the oracle-freeness of the front phases (2.1.2.3.3, finding 5.2); a bound on
+   `piopError` (2.2.2.5); `s.Admissible prog` at the adaptor (2.6.2.6, discharged by the
+   verifier's setup check once `Admissible` has the two windows).
+4. *Transcribed data whose only check is a fixture:* the leanISA instance (layouts, separators,
+   count columns, boundary blocks, lines, the tie order of equal-size blocks, the leaf stacks'
+   order; 2.6.1, 2.5.6.4, 2.3.1.3.8), the WHIR parameters and Merkle formats (2.1.2.4.11,
+   2.1.2.6, 2.1.1.3), Flock's circuit and constants including `R1CS_DIGEST` (2.3.4.6), the
+   scalar oracle interfaces (2.5.7.4), and the fact that the phases' definitions are leanVM's
+   (2.2.2.6: no theorem of the oracle protocol says so; `verify_iff_compiled` with its fixture
+   and the review of each `Def` do).
+
+**The error, composed** (section 3). Per challenge, the review finds the blueprint's charges
+right and tight for `ξ` (`(B+2)/|E|`), the table rounds (`3/|E|`), `r` (`1/|E|`), `λ`
+(`(J−1)/|E|`) and `(α, β)` (`4·2^{μ_bus}/|E|`, within a factor 2); wrong for the GKR rounds
+(`4/|E|`, not `5/|E|`), the last combiner and the binary layer's challenge; charged three
+incompatible ways for the recycled zerocheck point, which adds nothing; and describing rounds
+that do not exist for the opening (WHIR's own rounds carry `2L_i/|E| + 2^{ℓ_i−j}a_i/|E|`). The
+interactive error of the oracle protocol is about `2^{-159.7}` under the stacking window,
+dominated by ring switching's `2^{32}/|E|`; the blueprint's `piopError_le` is false at the
+per-log caps and true under the window. After Fiat–Shamir the governing quantity is the largest
+per-challenge error of the compiled protocol, set by WHIR's query rounds (`2^{-111}` before 17
+bits of grinding) and folds (`2^{-128.2}`), not by anything in the oracle protocol; the
+blueprint's `niError = Q · max_i ε_i` lacks the list-size factor `L_0` on every front
+challenge, the hash-collision term, a model of grinding (without which it certifies about 111
+bits), the family composition over the announced sizes and the program-hash term.
+
+**Findings by severity** (section 5): *major* — twenty-one obligations of the composition have
+no hole, layer or owner (5.1); the compilation needs every phase before the opening to make no
+oracle query, and nothing states or enforces it (5.2). *Minor* — the per-challenge error has no
+carrier for the grinding bits (5.3). *Note* — the smallest set of unbuilt nodes that makes the
+master theorems about leanVM (5.4).
+
+**Validation of the outlines** (section 4): `docs/architecture.md`'s T4 has the right
+decomposition and the right headings, gets the shape of the base theorem wrong (a probability
+attached to a closed Boolean, the defect the blueprint transcribes), drops `WellFormedBytecode`
+at T4, and lacks the list-binding compilation, the grinding model and the family composition;
+its completeness dual (T2 with the honest prover, resource conditions recorded) is right and
+the blueprint diverges from it. The holes table covers what it names, with the corrections of
+section 4.2 per row, and omits the twenty-one units of 5.1.
+
+**Not done, and what would verify it.** No Lean was run: every status rests on the sibling
+dossiers' recorded probes or on reading; the counts are by the first status tag of each node
+(a node may carry two). The per-challenge errors were taken from the dossiers that worked them
+(gt-bus D.3, gt-table-pub D, gt-flock-ring 5.2, gt-opening-compile F) and checked for
+consistency between them, not re-derived. The value of `L_0` at production parameters is the
+opening dossier's reproduction of the Rust's search (110 to 396 at level 0), not a run of the
+Rust's `validate()`.
 
 ## 2. The tree
 
@@ -299,7 +398,7 @@ the opening.
   *States:* `commit' ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ whirOpen`, where `commit'` sends the level-0
   codeword and `whirOpen`'s level-0 batching is the opening phase's `λ`. *Status:* `[status:
   specified only]` `[review: wrong]` — the blueprint says "WHIR in place of the evaluation
-  oracle" after a `μ`-round opening sumcheck; see 2.4.5. *See:* gt-opening-compile A.4, A.5.
+  oracle" after a `μ`-round opening sumcheck; see 2.3.5.1. *See:* gt-opening-compile A.4, A.5.
 - **2.1.4 Completeness survives the compilation** (`bp:1256-1257`: "without any assumption").
   *States:* an honest proof accepted by the interactive verifier on the chain's challenges is
   accepted by `verify` (a statement about two definitions), and the grinding search succeeds.

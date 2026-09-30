@@ -64,11 +64,12 @@ nothing: on a coordinate of $\zeta$ it flips with probability at most $1 / \abs{
 all constraints (a nonzero multilinear restricted at one more variable becomes zero for at most
 one value of that variable), and a conjunction escapes with the larger of the two
 probabilities, not their sum. The blueprint's three different accounts of this charge, and its
-GKR of the wrong degree, are the findings of \cref{sec:faith-bus}.
+GKR with the wrong wire and a loose error, are the findings of \cref{sec:faith-bus}.
 
-\paragraph{Where the blueprint falls short.} The GKR layer sumcheck it specifies has degree 5
-and is not the deployed one (\emph{normalized} cofactor of degree 4, no equality factor in the
-layer check); it draws one combiner fewer than the deployed verifier; its generic GKR takes the
+\paragraph{Where the blueprint falls short.} The GKR layer sumcheck it specifies sends five
+coefficients where the deployed one sends four (the \emph{normalized} cofactor of degree 4)
+and checks a layer with an equality factor the deployed check lacks; its per-round error
+$5/\abs{\E}$ is a valid bound, loose by one; it draws one combiner fewer than the deployed verifier; its generic GKR takes the
 leaf tables as oracles, which the spine's one-oracle phases cannot supply without ArkLib's
 admitted context lifting; and the zerocheck conjunct, which changes on the GKR's own
 challenges, cannot be framed around a GKR that knows nothing of the constraints. The admissible

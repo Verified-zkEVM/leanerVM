@@ -6,9 +6,15 @@ It is an index and a summary, never the only record: every row points to the dos
 that states it in full, and the dossier's text governs where the two differ. No Lean was run
 for this register, no tracked file was edited, nothing was posted.
 
-**State.** Complete (2026-09-30): all twelve dossiers processed, `boundary-adaptor.md` and
-`gt-opening-compile.md` after the coordinator's notes. 134 findings (1 critical, 35 major,
-62 minor, 36 notes) and 2 positions; 111 negative results; 58 unverified items.
+**State.** Complete (2026-09-30): all thirteen dossiers processed, `boundary-adaptor.md`,
+`gt-opening-compile.md` and `obligations.md` after the coordinator's notes. 138 findings
+(1 critical, 37 major, 63 minor, 37 notes) and 2 positions; 115 negative results; 58
+unverified items.
+
+**Numbering.** R1 to R136 were fixed when the register was first published. Rows added later
+(R137 onward, from `obligations.md`) are numbered after them and shown at the end of their
+severity group, so that no earlier R-number changes; within a group, the order by subject
+therefore holds for the earlier rows only.
 
 **Object and revisions.** The object of the review is leanerVM `main` at `b435631`; leanVM at
 the pin `a386121f` (read, since 2026-09-30, with `git show a386121f:<path>`: the leanVM
@@ -50,6 +56,7 @@ the note says `DISAGREEMENT` and names both.
 | `literature.md` | complete | none | 4 major, 7 minor, 4 notes | findings in §A.4, §B.4, §C.4, §D.3, §E.6, §F.3, §G.5 |
 | `boundary-adaptor.md` | complete (read after the coordinator's first note) | none | 9 major, 6 minor, 3 notes | two probes re-run at the new pins after a rebuild |
 | `gt-opening-compile.md` | complete (read after the coordinator's second note, 1921 lines) | none | 8 major, 9 minor, notes (§I) | its summary says \"critical: none that makes a stated leanerVM theorem wrong today\"; two Lean probes (old pin; per the dossier they elaborate at the new pins too) and Python scratch computations |
+| `obligations.md` | complete (added after the register was first published, at the coordinator's request) | none | 2 major, 1 minor, 1 note (§5) | no Lean run; its tree rests on the sibling dossiers' recorded probes; its four rows are numbered R137 to R140 and shown at the end of their severity groups |
 
 The working extraction of the first ten dossiers, one block per dossier, is kept at
 `.claude/reports/blueprint-review/probes/register/staging.md` (boundary-adaptor and

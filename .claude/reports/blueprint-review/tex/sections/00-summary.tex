@@ -15,8 +15,8 @@ phase by phase, on the code, on the libraries, on the boundary with leanISA, on 
 documentation and on the literature; every citation of the four ground-truth dossiers checked
 against the sources by a second agent (about 1,400 citations; a dozen wrong theorem or line
 numbers, no finding weakened); forty-odd Lean and Python probes, re-run at the new pins; a
-hostile second reading of the eleven major findings that do not concern the opening
-(\cref{ch:register} records its verdicts); one register of 134 findings, 111 negative results
+hostile second reading of eleven major findings that do not concern the opening, which
+confirmed nine and weakened two (\cref{sec:faith-rederived}); one register of 138 findings, 115 negative results
 and 58 items not verified.
 
 \paragraph{The verdict on the three criteria.}
@@ -25,7 +25,8 @@ and 58 items not verified.
   table sumcheck's numbers, in the relation's five clauses and in Layer 1's transcriptions,
   which the review confirmed line by line. It is not faithful in the opening (it runs a
   sumcheck leanVM does not run, because it gives the stack an evaluation oracle where leanVM
-  commits to an inner-product scheme), in the GKR (the wrong degree, one combiner too few, a
+  commits to an inner-product scheme), in the GKR (a round message of five coefficients where the wire carries four, a layer
+  check with an equality factor the deployed one lacks, one combiner too few, and a
   generic component that cannot be appended), in the Flock interface (it drops the eighteen
   limb claims and attributes to the protocol a defect of the Rust prover), in the public-input
   phase as built (it proves the specification's check, which none of the three executable
@@ -56,8 +57,11 @@ and 58 items not verified.
 \item The public-input phase proves a check no executable verifier runs (\code{R12}), and the
   check it proves is not load-bearing (\code{R13}); pooling the values sent repairs both, and
   the deployed check's key lemma is proved.
-\item The GKR is specified with the wrong degree and one combiner too few, and its generic
-  component cannot be appended in a one-oracle phase (\code{R7}, \code{R9}, \code{R10}).
+\item The GKR is specified with the wrong wire and the wrong layer check, its per-round error
+  is loose, it draws one combiner too few, and its generic component cannot be appended in a
+  one-oracle phase (\code{R7}, \code{R9}, \code{R10}; the first weakened by the second reading:
+  the blueprint's $5/\abs{\E}$ is a valid, loose bound and its \enquote{check on the cofactor}
+  is right).
 \item The Flock interface drops the limb claims, is circular with the instance, cannot be
   written over an abstract instance, and files the Rust prover's defect under a soundness error
   (\code{R14} to \code{R17}).

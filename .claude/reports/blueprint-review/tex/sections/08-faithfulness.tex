@@ -20,6 +20,32 @@ two verifiers agree and the specification is silent or differs, the blueprint fo
 verifiers and the report says so. A finding names what the blueprint gets wrong or leaves out,
 with its evidence and the change proposed.
 
+\section{The major findings, re-derived}\label{sec:faith-rederived}
+
+A second agent, given only the sources and told to refute, re-derived eleven of the major
+findings (those not concerning the opening, whose dossier landed last); its dossier is
+\file{dossiers/verify-majors.md} on the review branch. Nine were confirmed as stated; two were
+weakened in their wording, not in their class.
+
+\begin{longtable}{@{}p{0.62\linewidth}p{0.34\linewidth}@{}}
+\toprule
+Finding & Verdict \\
+\midrule
+\endhead
+The knowledge theorem has content only with a bound on the error; none is stated (\code{R5}) & confirmed \\
+The bus seam admits statements the deployed table sumcheck cannot serve; the real bus phase can fill its slot (\code{R2}, \code{R3}) & both confirmed, no tension: completeness is universal over the input relation, so the seam's surplus burdens only the table phase \\
+The public-input check is not load-bearing for any theorem (\code{R13}) & confirmed \\
+The three executable verifiers check one combined equation; the specification checks per limb (\code{R12}) & confirmed; the counterexample challenge checked by hand \\
+The GKR round is the normalized cofactor of degree 4; a combiner is drawn after every layer, the last unused (\code{R7}, \code{R9}) & weakened: the blueprint's $5/\abs{\E}$ is a valid, loose bound and its \enquote{check on the cofactor} is right; wrong are the wire (five coefficients where four travel), the layer check (an equality factor the deployed one lacks), the absence of the normalized variant, and the extra combiner \\
+The generic GKR cannot be appended without admitted lifting, and its state function cannot carry the zerocheck conjunct (\code{R10}) & confirmed; the lifting theorems are still admitted at the new pin \\
+The four Flock findings (\code{R14} to \code{R17}) & all confirmed; \enquote{the verifiers take no inverse} corrected to \enquote{no inverse of a challenge-dependent value} \\
+The target theorems are unprovable as sketched; the instance is not \lean{Ensemble.toM3} of the eight tables (\code{R27} to \code{R30}) & confirmed; the \lean{Ensemble.toM3} phrase is stale against a decision the blueprint already took, and the real gap is the missing bridge lemma \\
+Admissibility cannot equal leanISA's caps (\code{R33}) & confirmed \\
+Layer 1 has no reader for the limb columns; the fit theorem names a missing field (\code{R35}) & weakened: both facts hold, but \enquote{assigned to no layer} overstates: the blueprint assigns the strided reader to Layer 3 (with the slot map placed circularly), and the generic identity is a short derivation from Layer 1's lemmas \\
+The status's finding on the Python verifier's caps is false (\code{R38}) & confirmed \\
+\bottomrule
+\end{longtable}
+
 \section{The spine}\label{sec:faith-spine}
 
 The spine is not a phase, but the seams and the error are where the phases' faithfulness is

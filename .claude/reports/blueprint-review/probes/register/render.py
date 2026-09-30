@@ -26,10 +26,16 @@ def is_position(r):
     return r["sev"].startswith("—")
 
 
-rows = sorted(enumerate(FIND), key=lambda t: (t[1]["rank"], SUBJ_IDX[t[1]["subj"]], t[0]))
-rows = [r for _, r in rows]
-for i, r in enumerate(rows, 1):
+early = sorted([t for t in enumerate(FIND) if not t[1]["late"]],
+               key=lambda t: (t[1]["rank"], SUBJ_IDX[t[1]["subj"]], t[0]))
+early = [r for _, r in early]
+late = [r for r in FIND if r["late"]]
+for i, r in enumerate(early + late, 1):
     r["id"] = f"R{i}"
+# display order: within each severity, the early rows (by subject) then the late rows
+rows = []
+for rank in (0, 1, 2, 3):
+    rows += [r for r in early if r["rank"] == rank] + [r for r in late if r["rank"] == rank]
 
 import re
 KEYS = D["KEYS"]
@@ -183,7 +189,8 @@ out.append("")
 out.append("### Merged rows (one finding stated by two or more dossiers)")
 out.append("")
 dossiers = ["gt-table-pub", "gt-bus", "gt-flock-ring", "code-spine", "code-pubinput", "code-layer1",
-            "lib-arklib", "lib-others", "docs-debt", "literature", "boundary-adaptor", "gt-opening-compile"]
+            "lib-arklib", "lib-others", "docs-debt", "literature", "boundary-adaptor", "gt-opening-compile",
+            "obligations"]
 def cites(text, d):
     return re.search(r"(?<![\w-])" + re.escape(d) + r"\.md", text) is not None
 

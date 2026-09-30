@@ -26,9 +26,12 @@ NEG = []
 UNV = []
 
 
-def F(sev, rank, subj, name, where, cls, claim, evid, change, status, note=""):
+def F(sev, rank, subj, name, where, cls, claim, evid, change, status, note="", late=False):
+    # late=True: added after the register was first published; numbered after every earlier
+    # row and shown at the end of its severity group, so that earlier R-numbers stay stable.
     FINDINGS.append(dict(sev=sev, rank=rank, subj=subj, name=name, where=where, cls=cls,
-                         claim=claim, evid=evid, change=change, status=status, note=note))
+                         claim=claim, evid=evid, change=change, status=status, note=note,
+                         late=late))
 
 
 def N(dossier, what, how, caveat=""):
@@ -1385,6 +1388,11 @@ N("gt-opening-compile §D.7", "Query sampling is exactly uniform (`d`-bit chunks
 N("gt-opening-compile §0 item 3, §F.1", "With the stacking window the blueprint's own phase errors sum to about `2^-160` (ring switching dominates; the `(α, β)` term is at most `2^-162`).", "paper; Python scratch", "false at the per-log caps without the window ([[sizes]])")
 N("gt-opening-compile §0 item 4, §G", "Every codeword within radius `γ < 1 − ρ` of a `K`-valued word is `K`-valued, so the list consists of `K`-valued multilinears of the right size.", "paper (a two-line argument, not in the specification)", "")
 
+N("obligations §5.5", "Every node of the blueprint's Layers 0 to 13 and of its holes table has a place in the tree; no blueprint obligation is redundant (three declarations serve nothing on the chain: `witnessOf_stackOf`, `Extractor.Straightline.map`, `piop_rbrKnowledgeSoundness_exists`, which are non-vacuity tests or upstream candidates).", "reading (the tree of §2)", "")
+N("obligations §5.5", "The per-challenge errors of the built phase (`1/|E|`) and of the two sketched phases the dossiers worked (table sumcheck `(B+2)/|E|` and `3/|E|`; opening `(J−1)/|E|` on `λ`) are correct, tight and on the right challenges; the bus phase's `(α, β)` term is correct within a factor 2.", "paper (from gt-table-pub, code-pubinput, gt-opening-compile)", "")
+N("obligations §5.5", "The composition of errors through the spine is per challenge with no additive term; the seams add nothing.", "reading (lib-arklib §G.9)", "")
+N("obligations §5.5", "The hypotheses table reproduces boundary-adaptor §C's rows (none found wrong) and adds six: the grinding check, the canonical encodings, `R1CS_DIGEST`, the `F_2`-independence of the fixed weights, the oracle-freeness of the front, the bound on `piopError`.", "reading", "")
+
 # ============================================================ PART 3: NOT VERIFIED
 # U(dossier + section, claim, status, what would verify it)
 
@@ -1530,3 +1538,46 @@ KEYS = {
     "hashcoll": "The non-interactive error omits grinding",
     "bridge": "No bridge lemma relates the boundary blocks",
 }
+
+
+# ============================================================ LATE ROWS: obligations.md (added after first publication)
+F("major", 1, "error",
+  "Twenty-one obligations of the composition have no hole, no layer and no owner",
+  "obligations.md §5.1; §4.2, §2",
+  "an error of the blueprint (the plan is incomplete, not wrong where it is stated)",
+  "Twenty-one items that some arrow of the chain from the phases to `baseVerifier_extractsExecution` needs appear in no hole's \"Produces\" column and no layer's sketch (among them the Merkle compilation, the chain lemma, the state-restoration step, the grinding model, the hash and program-hash terms, the composition over the announced sizes, the list-binding compilation, the strided reader, the boundary-block bridge, the deployed public-input phase, the bound on `piopError`). Filling the twenty-two planned units yields the two master theorems and a `verify` with no theorem tying them together.",
+  "blueprint holes table `:594-617` and layers `:619-1259` against the tree of §2 (the closing list of §4.2)",
+  "add one hole per item or fold each into the nearest hole's \"Produces\" column (K3, K1, a new list-binding hole, L1, I1, I2, P5, G1, S), as §5.1 assigns (obligations.md §5.1)",
+  "paper (the tree rests on the sibling dossiers' recorded probes and on reading)",
+  "Most items are recorded one at a time by other rows (for example [[listcompile]], [[sizesfamily]], [[strided]], [[bridge]], [[pubdeployed]], [[declerr]], [[fsother]]); this row is the plan-level finding that none is assigned.",
+  late=True)
+F("major", 1, "opening",
+  "The compilation needs every phase before the opening to make no oracle query, and nothing states or enforces it",
+  "obligations.md §5.2; node 2.1.2.3",
+  "an error of the blueprint (an omission in the design of the seams)",
+  "The list-binding compilation replaces the commit message by a codeword and keeps the front phases' verifiers unchanged, which is possible only if they never query the stack. The two built phases do not, but `Phase.Def` lets a verifier query the stack at will (neither ArkLib nor the spine counts queries), so a bundle may satisfy both master theorems and be uncompilable; no sentence of the blueprint, the tracker or the spine states the requirement.",
+  "`PublicInput.lean:222-231`; ArkLib `OracleVerifier.numQueries` (`sorry`); code-spine §D.3 (d); gt-table-pub §6 E.4 item 6",
+  "a field of `Phases` (or a hypothesis of the compilation theorem) that each front phase's verifier makes no query, inhabited by the two built phases; or front phases typed as plain verifiers lifted by `keepOracles`; a sentence in the conventions row \"The oracle\" (obligations.md §5.2)",
+  "paper",
+  "Related: [[listcompile]] (the theorem that needs it), [[slotpin]] (a phase reading the whole oracle fills every slot), [[openingsum]] (under the inner-product interface the opening makes one query).",
+  late=True)
+F("minor", 2, "opening",
+  "The per-challenge error has no carrier for the grinding bits",
+  "obligations.md §5.3; node 2.1.2.1.3",
+  "an error of the blueprint (an omission in the data of Layer 12)",
+  "`Component.Def.err` gives one number per challenge; the 128-bit claim needs, per challenge, both the error and the grinding bits. The ground rounds are WHIR's query rounds, in the compiled protocol, so the spine's type suffices for the front, but the compiled reduction must expose the bits and the Fiat–Shamir interface must take them; the blueprint's `niError` prose names no such datum.",
+  "`ToArkLib/Component.lean:66`; blueprint `:1224`, `:1234-1235`",
+  "a second function `grind : pSpec.ChallengeIdx → ℕ` on the compiled reduction (17 at the query rounds, 0 elsewhere), taken by `FiatShamirSecurity`, with `niError` defined from `err` and `grind` (obligations.md §5.3)",
+  "paper",
+  "Related: [[grinding]] (the non-interactive error omits grinding).",
+  late=True)
+F("note (a reading aid)", 3, "error",
+  "The smallest set of unbuilt nodes that makes the master theorems about leanVM",
+  "obligations.md §5.4; §2.2, §2.3, §2.6",
+  "— (not a divergence)",
+  "The master theorems are conditional on bundles only the toy inhabits today. The nodes that must exist for them to be about leanVM's verifier are the instance, the four unbuilt phases' definitions with their completeness and security (eight fields), the bound on `piopError`, the non-vacuity theorem of the adaptor, and the refinement with its fixture: the whole of Layers 3, 6, 7, 9, 10 and Layer 12's `verify_iff_compiled`; nothing smaller pins the phases.",
+  "the tree, nodes 2.2.1, 2.2.2, 2.2.2.5, 2.2.2.6, 2.3.x.1, 2.6.1, 2.6.3, 2.1.1",
+  "none to the blueprint beyond the row on unassigned obligations; the status lists these nodes as \"what makes the master theorems about leanVM\", apart from the holes (obligations.md §5.4)",
+  "paper",
+  "Related: [[declerr]], [[slotpin]].",
+  late=True)

@@ -429,3 +429,12 @@ results; 58 unverified); probes-rerun done (all agree at the new pins; 4b and 6 
 now exists; sampler diamond gone). Chapter 11 (options) written. tex-changes launched
 (a55116b929f6f43f3). Running: tex-libraries, tex-boundary, obligations, verify-majors,
 verify-gt-opening, tex-opening, tex-changes.
+### 12:40 obligations done (155 nodes; 66 specified only, 25 not specified, 21 built+proved,
+10 unprovable as written; 57 nodes wrong/missing/unprovable; two new majors: 21 obligations with
+no owner; the list-binding compilation needs oracle-free front verifiers, nothing enforces it).
+tex-obligations launched (ac96c4de5bccaff13); register agent asked to add the new rows.
+Still running: tex-boundary, verify-majors, verify-gt-opening, tex-opening, tex-changes,
+tex-register, tex-obligations, register (update). Report at 362 pages (d6be851).
+Remaining for the orchestrator: wire gen/obligations; read verify-majors + verify-gt-opening
+verdicts and adjust 00/05/08 wording; final adversarial read by a fresh agent; final commit
+with the PDF (checkpoint.sh adds tex/report.pdf if present: copy build/main.pdf there).
