@@ -507,7 +507,7 @@ theorems about the layout, not branches of \bndc{verify}.}
 \asproposed Add: \enquote{\bndc{verify} takes a \bndc{Program} and a \bndc{PublicInput}; the
 deployed verifier's rejection of a public word with a nonzero third limb and of a bytecode that is
 not \bndc{2^k ≤ 2^32} decodable instructions are the obligations of whoever builds those values
-from bytes (the fixture's loader in Layer 12, \bndc{PublicInput.encode} in T7), and the
+from bytes (the fixture's loader in Layer 12, \bndc{PublicInput.encode} in end-to-end soundness, T7), and the
 differential fixture records a rejected public input as a parse failure, not as
 \bndc{verify = false}}.
 \end{change}

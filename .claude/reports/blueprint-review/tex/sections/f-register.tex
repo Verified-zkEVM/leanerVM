@@ -12,5 +12,8 @@ round error is a valid, loose bound; the wrong parts are the wire, the layer che
 missing normalized variant), \code{R35} (the strided reader is assigned to Layer 3, not to no
 layer), \code{R23} (the level-0 list size runs to 648 over all 56 sizes, not to 396) and
 \code{R28} (the random oracle must also stand for the multi-block leaf hash, not only for the
-compression); see \cref{sec:faith-rederived} and \cref{sec:faith-opening}.
+compression); see \cref{sec:faith-rederived} and \cref{sec:faith-opening}. Row \code{R116} cites the stale
+grinding comment at a line of the moved leanVM working tree; at the pin it is
+\file{crates/pcs/src/whir.rs:1364-1365} (and \code{:1771-1772}), as the list of matters to
+report gives it (\cref{sec:opt-upstream-report}).
 \InputIfFileExists{sections/gen/register}{}{}\else\emph{[fragment pending]}\fi

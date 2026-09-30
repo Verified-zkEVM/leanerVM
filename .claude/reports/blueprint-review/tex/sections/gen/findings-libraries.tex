@@ -85,12 +85,12 @@ and of the round-by-round to plain implications (A3) \enquote{the plain corollar
 the implication lands upstream} (\file{:261}).
 \fhead{Classification} An error of the blueprint's plan.
 \fhead{Proposed change}
-\begin{change}{the ledger's actions for rows A2 and A3 (\file{protocol-blueprint.md:260-261})}
-\asis A2: \enquote{the port is deleted \dots\ when the pin moves past \#615}. A3: \enquote{the
+\begin{change}{the ledger's actions on the knowledge-soundness composition (A2) and on round-by-round to plain (A3) (\file{protocol-blueprint.md:260-261})}
+\asis Composition (A2): \enquote{the port is deleted \dots\ when the pin moves past \#615}. Round-by-round to plain (A3): \enquote{the
 plain corollary is stated once the implication lands upstream}.
-\asproposed A2: \enquote{kept until ArkLib, on whatever framework, proves a guarded-first append
+\asproposed Composition (A2): \enquote{kept until ArkLib, on whatever framework, proves a guarded-first append
 for the worst-case named form; if the legacy framework is not repaired, the port stays as a
-\lean{ToArkLib} candidate}. A3: \enquote{the plain corollary is stated from the transcript-level
+\lean{ToArkLib} candidate}. Round-by-round to plain (A3): \enquote{the plain corollary is stated from the transcript-level
 reading (the probe \code{PlainReading} proves it in 40 lines) and a union bound proved locally,
 since upstream has no plan to prove \lean{rbrKnowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{knowledgeSoundness}}. Add
 a ledger row: \enquote{typed Interaction framework: no knowledge soundness at \code{7653a901};
@@ -100,7 +100,7 @@ migration of the spine is not possible until it has one}.
 \end{finding}
 
 \begin{finding}{major}{f:lib-fs-bcs}{Fiat--Shamir and BCS: ArkLib has no statement to serve as the witness obligation}
-\fhead{Evidence} The blueprint's ledger row A5 (\file{:263}) plans \enquote{Named interfaces
+\fhead{Evidence} The blueprint's ledger row on Fiat--Shamir and BCS security (A5, \file{:263}) plans \enquote{Named interfaces
 \lean{FiatShamirSecurity} and \lean{BcsSecurity} with the upstream theorem as witness obligation}.
 At both pins: \lean{fiatShamir_completeness} (\file{FiatShamir/}\allowbreak\file{Basic.lean:163-173}) is admitted
 \textbf{and} initialises the challenge oracle to the constant function
@@ -119,7 +119,7 @@ that does not describe leanVM's compiled verifier (Merkle roots in the transcrip
 proof).
 \fhead{Classification} An error of the blueprint.
 \fhead{Proposed change}
-\begin{change}{ledger row A5 (\file{protocol-blueprint.md:263}) and the \lean{verify_iff_compiled} sketch (\file{:1218-1221})}
+\begin{change}{the ledger row on Fiat--Shamir and BCS security (A5, \file{protocol-blueprint.md:263}) and the \lean{verify_iff_compiled} sketch (\file{:1218-1221})}
 \asis \enquote{Named interfaces \lean{FiatShamirSecurity} and \lean{BcsSecurity} with the upstream
 theorem as witness obligation.}
 \asproposed State that no ArkLib theorem, at either pin, states Fiat--Shamir or BCS knowledge
@@ -159,7 +159,7 @@ does not exist (it is \lean{schwartz_zippel_counting}, root namespace);
 theorem the spine uses for completeness,
 \lean{OracleReduction.}\allowbreak\lean{append_}\allowbreak\lean{perfectCompleteness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers}, is not in the table;
 \lean{CheckClaim}'s oracle variant checks nothing at run time; the sumcheck specification's
-perfect completeness is admitted too (ledger row A1).
+perfect completeness is admitted too (the ledger row on the admitted sumcheck round, A1).
 \fhead{Classification} An error of the blueprint.
 \fhead{Proposed change} The corrected entries of \cref{tab:gen-lib-ark-table}, in the blueprint's
 table at \file{protocol-blueprint.md:232-251}.
@@ -267,8 +267,8 @@ enumerate $2^{64}$ or $2^{192}$ elements (finding P3)}. \file{:574}: \enquote{no
 at the pin}. \file{:285}: no \lean{GF(2^8) ↪ E} embedding.
 \asproposed \file{:633-635}: \enquote{ArkLib is the \code{Arklib} requirement; current pins in
 \file{upstreams.json} and \file{docs/}\allowbreak\file{dependencies.md}.} \file{:649-650}: \enquote{At CompPoly
-\code{3468b38c} a sampler through \lean{Fintype} would enumerate the field (leanISA finding P3);
-since CompPoly \#331 \lean{Fintype K} is proof-only (\lean{Fintype.ofFinite}) and the samplers go
+\code{3468b38c} a sampler through \lean{Fintype} would enumerate the field (the leanISA status's finding on the eager
+\lean{Fintype}, P3); since CompPoly \#331 \lean{Fintype K} is proof-only (\lean{Fintype.ofFinite}) and the samplers go
 through explicit equivalences.} \file{:574}: re-check \lean{LawfulBEq E} at the new pin and, if
 found, drop the restriction to $\K$-coefficient polynomials or keep it deliberately with a reason.
 \file{:285}: \enquote{\dots\ no embedding \lean{GF(2^8) ↪ K} (CompPoly now has the AES field
@@ -321,7 +321,7 @@ addition modulo $2^{64}$) and \textbf{rejected by the kernel} (\code{(kernel) de
 exit 1. So a false statement about $\K$ was not proved: the kernel is the safety net, and the axiom
 audit is a second one (after the kernel error Lean adds \lean{bad} as an axiom for error recovery,
 \code{'bad' depends on axioms: [bad, propext, Quot.sound]}, which \file{audit-axioms.lean} would
-reject). Recorded as leanISA status finding E6 at \code{b435631}. Companion: CompPoly's instances
+reject). Recorded in the leanISA status at \code{b435631}, as its finding on the eager instance (E6). Companion: CompPoly's instances
 apply to every \lean{BitVec 64} (probe \code{FieldFidelity}: \texttt{(3 : BitVec 64) + 5 = 6\#64}); no
 leanerVM misuse (\cref{sec:gen-lib-comppoly-fields}).
 \fhead{Classification} Forced by an upstream library (\lean{abbrev BF64 := BitVec 64});

@@ -355,7 +355,7 @@ Row \emph{Verifier shape}, \code{:326} &
 Add: \lean{verify} takes a typed \lean{Program} and \lean{PublicInput}, so the deployed rejection
 of a public word with a nonzero third limb and of a bytecode that is not $2^k \le 2^{32}$ decodable
 instructions is the obligation of whoever builds those values from bytes (the fixture's loader,
-T7's \lean{PublicInput.encode}); the differential fixture records a rejected public input as a
+end-to-end soundness's (T7) \lean{PublicInput.encode}); the differential fixture records a rejected public input as a
 parse failure, not as \lean{verify = false}. &
 \code{R49}; \cref{f:boundary-parse} &
 error of the blueprint (omission) & \sev{minor}\\
@@ -500,8 +500,8 @@ deliberate deviation & \sev{minor}\\
 Sketch \code{:551-553}; prose \code{:582-586} &
 Name \lean{Refinement.knowledge_transport} (the event form: accepting while the mapped extracted
 witness is invalid has probability at most the knowledge error; no prover conversion, the game's
-witness type unchanged) as what T4 composes, and keep \lean{map_option_valid} for the honest
-direction. The prose says the transport is proved and Layer 13 consumes it, and that what T4 waits
+witness type unchanged) as what the base theorem (T4) composes, and keep \lean{map_option_valid} for the honest
+direction. The prose says the transport is proved and Layer 13 consumes it, and that what the base theorem waits
 on is ArkLib's round-by-round-to-plain implication, whose existential conclusion forgets the named
 extractor. &
 \code{R72}, \code{R119}; \cref{f:boundary-refinement-polarity};
@@ -538,19 +538,19 @@ on the spine's branch}) go. &
 \code{R37}, \code{R85}, \code{R89}; \cref{f:docs-hole-comment}, \cref{f:docs-letter-codes},
 \cref{f:docs-blueprint-history}; \cref{sec:docs-text-holes} &
 error of the blueprint (the delegation); documentation & \sev{major}\\
-Table, rows G4, P6, P7--P8 (\code{:601}, \code{:609-610}) &
+Table, the rows on the fingerprint (G4), the Flock phase (P6) and the opening phase (P7--P8) (\code{:601}, \code{:609-610}) &
 \enquote{Lemma 5.1} is the specification's Lemma 5.2 (with Theorem 5.1); the spine's \lean{Weight},
 \lean{WeightedClaim} and \lean{FlockOut} leave the products of the opening and Flock holes. &
 \code{R92}; \cref{f:docs-dangling-names}, \cref{f:bus-citation-drift}; \cref{sec:docs-text-holes} &
 error of the blueprint & \sev{minor}\\
-Table, rows P6 and K3 (\code{:609}, \code{:614}) &
+Table, the rows on the Flock phase (P6) and the compiled verifier (K3) (\code{:609}, \code{:614}) &
 Split the Flock hole like every other phase: its definition with its completeness (the schedule,
 the verifier, the circuit walk transcribed, the constants in \file{Parameters}, an honest run on a
 toy circuit) can be taken now and tested against the Python verifier's walk; its security stays
 \#3's; the compiled-verifier hole (K3) says its fixture waits on it. &
 \code{R60}; \cref{f:flock-ring-verifier-needs-flock-def} &
 none given (planning) & \sev{minor}\\
-Table, row K3 (\code{:614}) &
+Table, the row on the compiled verifier (K3) (\code{:614}) &
 Its upstream work reads: \#848 and \#469 are single-salt and duplex-sponge Fiat--Shamir from
 state-restoration soundness, with an ideal per-round oracle and no proof of work; \#627 is a design
 issue for the BCS transform whose plan excludes random-oracle soundness. (In the draft of the holes
@@ -559,14 +559,16 @@ table this text moves to Layer 12's upstream work.) &
 error of the blueprint & \sev{major}\\
 Table, every row (\code{:595-615}) &
 Twenty-one obligations of the composition have no hole: add one row each, or fold each into the
-nearest hole's products: K3 gains the Merkle compilation, the chain lemma, the state-restoration
-step, the grinding model, the hash and program-hash terms, the family composition, the
-canonical-encoding checks; K1 the $\K$-valuedness lemma and \lean{encode} over $\E$; a new hole
-\enquote{list-binding compilation}, between K1 and K3, the compilation theorem with its union-bound
-lemma and the oracle-freeness of the front; L1 the strided reader and the tie order; I1 the
-boundary-block bridge and the count columns; I2 the carrier of \enquote{R1CS $⇒$ compress}; P5 the
-deployed public-input phase; G1 the normalized variant and the dropped-coefficient transport; S the
-bound on \lean{piopError}. &
+nearest hole's products: the compiled verifier (K3) gains the Merkle compilation, the chain lemma,
+the state-restoration step, the grinding model, the hash and program-hash terms, the family
+composition, the canonical-encoding checks; the WHIR opening (K1) the $\K$-valuedness lemma and
+\lean{encode} over $\E$; a new hole \enquote{list-binding compilation}, between the WHIR opening
+and the compiled verifier, the compilation theorem with its union-bound lemma and the
+oracle-freeness of the front; tables and stacking (L1) the strided reader and the tie order; Clean
+expressions as polynomials (I1) the boundary-block bridge and the count columns; the adaptor (I2)
+the carrier of \enquote{R1CS $⇒$ compress}; the public-input phase (P5) the deployed public-input
+check; the sumcheck (G1) the normalized variant and the dropped-coefficient transport; the spine
+(S) the bound on \lean{piopError}. &
 \code{R137}; \cref{f:obl-unowned,sec:obl-holes} &
 error of the blueprint (the plan is incomplete, not wrong where it is stated) & \sev{major}\\
 \midrule
@@ -596,7 +598,7 @@ and that these go when it does. &
 error of the blueprint (omission) & \sev{minor}\\
 \code{:645-647} (\code{:649-650} at \code{144c5aa}) &
 \enquote{At CompPoly \code{3468b38c} a sampler through \lean{Fintype} would enumerate the field
-(leanISA finding P3); since CompPoly \#331 \lean{Fintype K} is proof-only and the samplers go
+(the leanISA status's finding on the eager \lean{Fintype}, P3); since CompPoly \#331 \lean{Fintype K} is proof-only and the samplers go
 through explicit equivalences.} &
 \code{R84}; \cref{f:lib-layer0-stale} &
 documentation (stale at \code{144c5aa}) & \sev{minor}\\
@@ -689,7 +691,7 @@ error of the blueprint (imprecision) & \sev{minor}\\
 Sketch \code{:819}; prose \code{:822-824}; tests \code{:866-867} &
 \lean{witnessOf_stackOf} is not an equality any \lean{EnsembleWitness} satisfies: state the three
 equalities on the columns under \lean{SatisfiedBy} and \lean{Sizes.ofWitness}, test them with a
-\texttt{\#guard} on the one-row witness, and say that neither T4 composition uses it. &
+\texttt{\#guard} on the one-row witness, and say that neither composition of the base theorem (T4) uses it. &
 \code{R69}; \cref{f:boundary-witnessof-stackof} &
 error of the blueprint & \sev{minor}\\
 Prose, the auxiliary predicate, \code{:850-851} &
@@ -1029,7 +1031,7 @@ duplicated position. &
 \code{R61}; \cref{f:bus-canonical-checks}; \cref{f:opening-mutation-tests} &
 error of the blueprint (omission) & \sev{minor}\\
 \midrule
-\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 13: T4 and the fixtures (\code{:1242-1259})}}\\*
+\multicolumn{5}{@{}l}{\textsf{\bfseries Layer 13: the base theorems (T4) and the fixtures (\code{:1242-1259})}}\\*
 Sketch, \code{:1247-1250} (the program) &
 Both base theorems take \lean{hwf : WellFormedBytecode prog}, as \lean{constraintSoundness} and
 \lean{constraintCompleteness} do (a bytecode with a \lean{JUMP} in the sentinel slot has balancing
@@ -1047,7 +1049,7 @@ BLAKE2s named as the one non-formal step (and in \file{architecture.md}). The ci
 that the Merkle leaves are iterated BLAKE2s, which a random oracle for the one 64-byte compression
 does not model (recorded in the box). &
 \code{R28}, \code{R121}; \cref{f:boundary-base-soundness,f:boundary-extracted-witness}; \cref{f:opening-not-probability} &
-error of the blueprint (and of \file{architecture.md}'s T4) & \sev{major}\\
+error of the blueprint (and of the base theorem, T4, of \file{architecture.md}) & \sev{major}\\
 Sketch \code{:1249-1250}; prose \code{:1255-1257} (resources) &
 \lean{baseProver_complete} from a satisfying witness with admissible sizes and a valid rate (with
 the Flock generator), and \lean{baseProver_complete_of_execution} with a fit hypothesis
@@ -1220,7 +1222,7 @@ error of the blueprint's plan & \sev{major}\\
 \multicolumn{5}{@{}l}{\textsf{\bfseries Boundaries (\code{:1431-1453})}}\\*
 With leanISA, \code{:1433-1441} &
 A further request: a \lean{constraintCompleteness} that returns a witness of minimal heights (or
-T4 takes \lean{hfit} as its hypothesis), and a resource hypothesis for
+the base theorem (T4) takes \lean{hfit} as its hypothesis), and a resource hypothesis for
 \lean{constraintCompleteness} itself (\lean{Caps} bounds every table by $2^{32}$ rows,
 \lean{ValidExecution} bounds only $κ$). \textsf{[decision]} &
 \code{R29}, \code{R122}; \cref{f:boundary-base-completeness,f:boundary-completeness-resources} &
@@ -1232,13 +1234,13 @@ instance's layout}. &
 error of the blueprint & \sev{major}\\
 With leanISA, \code{:1440} (the reference) &
 \enquote{(finding F3 of the status file)} becomes \enquote{(the leanISA status's finding on the
-BLAKE2S value limbs)}: the protocol status's F3 is another finding. &
+BLAKE2S value limbs)}: the protocol status's finding on the one bus root (F3) is another finding. &
 \code{R85}; \cref{f:docs-letter-codes} &
 documentation & \sev{minor}\\
 \midrule
 \multicolumn{5}{@{}l}{\textsf{\bfseries Ordering and parallelism (\code{:1455-1470})}}\\*
 \code{:1457-1462} (the new hole) &
-Place the new hole \enquote{list-binding compilation} between K1 and K3, and the obligations folded
+Place the new hole \enquote{list-binding compilation} between the WHIR opening (K1) and the compiled verifier (K3), and the obligations folded
 into existing holes with them (the holes-table row of \code{R137}). &
 \code{R137}; \cref{f:obl-unowned} &
 error of the blueprint (the plan is incomplete) & \sev{major}\\

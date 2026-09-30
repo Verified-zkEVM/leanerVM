@@ -101,10 +101,10 @@ BLAKE2s-256, not the one 64-byte compression, so the random oracle of the propos
 cover it separately or through the iterated construction.
 
 \fhead{Classification} An error of the blueprint (and of \file{docs/architecture.md}'s target
-theorem T4, which it transcribes).
+theorem, base proof extraction and completeness (T4), which it transcribes).
 
 \fhead{Proposed change}
-\begin{change}{\lean{baseVerifier_extractsExecution} (\code{bp:1247-1248}), \lean{verify_knowledgeSound}, and T4 in \code{architecture.md:264-269}}
+\begin{change}{\lean{baseVerifier_extractsExecution} (\code{bp:1247-1248}), \lean{verify_knowledgeSound}, and the base theorem (T4) in \code{architecture.md:264-269}}
 \asis
 \begin{leancode}
 theorem baseVerifier_extractsExecution (fs bcs mca flock) (h : verify prog input proof = true) :
@@ -117,7 +117,7 @@ selection), the event ``$\mathit{verify}^H$ accepts and \code{witnessOf (extract
 \lean{SatisfiedBy}'' of probability $≤ \mathit{niError}\ Q$, and the existential corollary; the
 sentence ``the random-oracle heuristic, that BLAKE2s's compression function instantiates $H$, is the
 one non-formal step, named here and in \code{architecture.md}''; and in
-\code{architecture.md:264-269} the same repair of T4.
+\code{architecture.md:264-269} the same repair of the base theorem (T4).
 \reason For fixed \code{(prog, input, proof)} the hypothesis is decidable and the conclusion is a
 fixed proposition; the only randomness is the oracle's, and the only knowledge statement is about
 an extractor.
@@ -141,7 +141,7 @@ is not a pull request); the missing upstream theorems are a deviation forced by 
 workaround is to name the literature and the construction.
 
 \fhead{Proposed change}
-\begin{change}{the assumed interfaces (\code{bp:1223-1225}), \lean{verify_knowledgeSound}, the ledger row (A5, \code{bp:263}) and the holes table (\code{bp:614})}
+\begin{change}{the assumed interfaces (\code{bp:1223-1225}), \lean{verify_knowledgeSound}, the ledger row on Fiat--Shamir and BCS security (A5, \code{bp:263}) and the holes table (\code{bp:614})}
 \asis
 \begin{leancode}
 /-- Assumed interfaces, each an ArkLib theorem to come (ledger A5). -/
@@ -157,7 +157,7 @@ structure ChainFiatShamirSecurity where … -- the hash chain of fs/lib.rs with 
 \end{leancode}
 (``the IOP of E.3'' is the composed IOP of \cref{sec:gen-opening-listbinding}), and
 \code{verify_knowledgeSound (rs : RbrToStateRestoration) (bcs) (fs : ChainFiatShamirSecurity) (mca : McaJohnson) (lc : ListCompile) (flock)}.
-In the ledger row (A5, \code{bp:263}) and the holes table (\code{bp:614}): ``\#848 and \#469
+In the ledger row on Fiat--Shamir and BCS security (A5, \code{bp:263}) and the holes table (\code{bp:614}): ``\#848 and \#469
 (single-salt and duplex-sponge Fiat--Shamir from state-restoration soundness, ideal per-round
 oracle, no proof of work); \#627 is a design issue for the BCS transform whose plan excludes ROM
 soundness''.

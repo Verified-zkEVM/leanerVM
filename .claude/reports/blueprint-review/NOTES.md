@@ -464,3 +464,10 @@ different constant). origin/main == new pin 7653a901. Typed sumcheck usable for 
 only; no rbr KS/extractor/virtual/normalized/batching/grand product/GKR/WHIR/BCS/inner-product
 oracle upstream or pending. VCVio has proved Merkle trees (#4 closed → VCVio #571).
 tex-arklib launched (Opus); register asked to add rows; summary + options updated.
+### CLOSING (2026-09-30): every agent done. fix-fragments applied (27 markers filled, 77 row
+labels renamed, report-upstream.tex with 13 matters, acceptance-tests.tex, bare codes fixed);
+tex-arklib done and switched on; register at 143 findings (R141–R145 from the ArkLib survey).
+Final compile: see the commit message for pages and checks. report.pdf = tex/report.pdf.
+Left by judgement: "its gate F5" (findings-flock-ring.tex:370, a proposed ledger row); the
+T4 composition formula in boundary-statements.tex:397; the register's R116 lines (noted in
+appendix F). The user's leanVM checkout is at 248da071 (not moved back). Not pushed.

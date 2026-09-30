@@ -397,8 +397,8 @@ Neither \#446 nor \#452 is required for the balance repair (issue \#20: \enquote
 \subsection{At the new pin \texorpdfstring{\texttt{42fe4b26}}{42fe4b26}}\label{sec:gen-lib-clean-new}
 
 Clean is a \code{module} library (\#460), so \file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{CleanField.lean} became a
-\code{module} at \code{144c5aa} and the \enquote{Clean bridge is plain} convention (leanISA status
-finding C8) retires; the balance proofs were ported (\#474); \lean{balanceOf} and
+\code{module} at \code{144c5aa} and the \enquote{Clean bridge is plain} convention (recorded in the leanISA
+status as its finding C8) retires; the balance proofs were ported (\#474); \lean{balanceOf} and
 \lean{BalancedInteractions} are unchanged, and \#464 (directed channels) is not in the pin (a
 \code{git grep DirectedChannel} of \code{42fe4b26} finds nothing), so the vacuity over $\K$ and
 leanISA's workaround stand as described above.

@@ -73,7 +73,7 @@ decidable proposition about three fixed values: \lean{verify} is ``a total, comp
 ``Except with probability \lean{niError}'' then quantifies over nothing: for fixed
 \code{(prog, input, proof)} the conclusion \code{∃ t, ValidExecution prog input t} is either true or
 false, and no randomness makes the hypothesis probabilistic. The same defect is in the source it
-transcribes, the target theorem T4 in \code{architecture.md:264-269} (``\code{BaseVerifier.Accepts version proof program publicInput → except with probability baseError, ∃ assignment, …}''),
+transcribes, the target theorem base proof extraction and completeness (T4) in \code{architecture.md:264-269} (``\code{BaseVerifier.Accepts version proof program publicInput → except with probability baseError, ∃ assignment, …}''),
 whose next sentence asks for what the sketch omits: ``The theorem must expose the component
 soundness/knowledge-soundness bounds, Fiat--Shamir or random-oracle model, commitment and hash
 assumptions'' (\code{architecture.md:271-273}).
@@ -84,7 +84,7 @@ doctrine (\code{bp:96-103}, acceptance test 24) insists on a named, computable e
 oracle protocol, and then discards it at the last step. Since \lean{ValidExecution} is not what an
 extractor can output (\code{bp:96-99} says so), the right shape is: the extractor outputs a stack
 $q$; \code{witnessOf q} satisfies \lean{SatisfiedBy} except with the error;
-\lean{constraintSoundness} (the target theorem T1) then gives the trace. The knowledge statement is
+\lean{constraintSoundness} (the soundness half of arithmetization and ISA equivalence, T1) then gives the trace. The knowledge statement is
 about the first step; the existential is its corollary.
 
 \paragraph{What the randomness is over, and what the adversary is.} In the ROM the verifier is
@@ -328,7 +328,7 @@ every statement, every round, every partial transcript); the seam step needs \le
 the front's state function in the contrapositive: state false at the front's last transcript $⇒$ the
 verifier's output claims are not all true of $g$. That is exactly why the spine's \emph{worst-case}
 form is the right one (the averaged \lean{rbrKnowledgeSoundness} would not union-bound). What it
-needs and does not have: Theorem B.7 in Lean (the hole for it, K1); the lemma that every member of
+needs and does not have: Theorem B.7 in Lean (the WHIR opening's hole, K1); the lemma that every member of
 $Λ(w)$ is $\K$-valued and of the right size (\cref{sec:gen-opening-hidden}); a generic ``state
 functions indexed by a finite set'' lemma (union bound; ArkLib has none); and the identification of
 the front's oracle-free verifier with \lean{Front'}'s (a cast of \lean{OracleReduction}, which ArkLib
