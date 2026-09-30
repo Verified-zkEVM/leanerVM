@@ -4,7 +4,7 @@
 % row cites has one in tex/sections/gen/findings-*.tex (matching: probes/tex-register/boxes.py).
 \label{sec:reg}
 
-The register holds 138 findings (1 critical, 37 major, 63 minor, 37 notes) and 2 positions, 115 negative results and 58 unverified items. It is an index and a summary, never the only record: every row points to the dossier section that states it in full, and the dossier's text governs where the two differ.
+The register holds 143 findings (1 critical, 40 major, 64 minor, 38 notes) and 2 positions, 120 negative results and 63 unverified items. It is an index and a summary, never the only record: every row points to the dossier section that states it in full, and the dossier's text governs where the two differ.
 
 \paragraph{Numbering.} The rows are numbered by severity and, within a severity, by subject. \code{R1} to \code{R136} were fixed when the register was first published. Rows added later (\code{R137} onward, from the dossier on the obligations) are numbered after them and shown at the end of their severity group, so that no earlier number changes; within a group, the order by subject therefore holds for the earlier rows only.
 
@@ -41,7 +41,7 @@ Columns: the row's number; its short name; its severity as the dossiers give it 
 \textbf{R1} & The existential forms of round-by-round knowledge soundness carry no knowledge content & \textcolor{critical}{critical} (as a warning about ArkLib's definition; not a defect of a leanerVM theorem) & master theorems and error & lib-arklib §G.1 (\cref{f:lib-existential-rbr}); §D.4, §D.6 & a deviation forced by an upstream library (ArkLib has no notion of running time) & probe-run (old pin) \\
 \addlinespace[3pt]
 \midrule
-\multicolumn{7}{@{}l}{\normalsize\textsf{\bfseries\color{major}Major (37 findings, 2 positions)}}\\[2pt]
+\multicolumn{7}{@{}l}{\normalsize\textsf{\bfseries\color{major}Major (40 findings, 2 positions)}}\\[2pt]
 \textbf{R2} & The bus seam admits statements the deployed table sumcheck cannot serve & \textcolor{major}{major} (gt-table-pub, code-spine) & relation and seams & gt-table-pub §8 (first finding) (\cref{f:table-pub-bus-seam}), §6 E.1; code-spine §F ``The degree conjunct of Seam.bus'' (\cref{f:code-spine-degree-conjunct-seam-bus-guard}), §C.3 & an error of the blueprint & cited-checked; probe-run \\
 \addlinespace[3pt]
 \textbf{R3} & The real bus phase can fill the spine's bus slot; the seam's surplus generality burdens only the table phase & — (a position of gt-bus, not a finding; placed beside the row it disputes) & relation and seams & gt-bus Summary item 2, §E.1, §E.2, §E.4 & — & cited-checked; paper \\
@@ -52,15 +52,15 @@ Columns: the row's number; its short name; its severity as the dossiers give it 
 \addlinespace[3pt]
 \textbf{R6} & The composition over the prover's announced sizes is unspecified & \textcolor{major}{major} & phase: setup & boundary-adaptor §G.6 (\cref{f:boundary-announced-sizes}); §B.3 & an error of the blueprint (a missing decision) & paper; unverified (the count \code{2^34} is a hand estimate) \\
 \addlinespace[3pt]
-\textbf{R7} & The GKR layer sumcheck is the normalized variant; the blueprint gives it the wrong degree, the wrong error and no definition & \textcolor{major}{major} & phase: bus & gt-bus G1 (\cref{f:bus-gkr-normalized}) & an error of the blueprint & cited-checked; probe-run (Python) \\
+\textbf{R7} & The GKR layer sumcheck is the normalized variant; the blueprint gives it the wrong degree, the wrong error and no definition & \textcolor{major}{major} & phase: bus & gt-bus §G1 (\cref{f:bus-gkr-normalized}) & an error of the blueprint & cited-checked; probe-run (Python) \\
 \addlinespace[3pt]
 \textbf{R8} & The GKR last-layer rounds cost \code{5/|E|} each, as the blueprint says & — (a premise of gt-table-pub, not a finding; placed beside the row it disputes) & phase: bus & gt-table-pub §5 D.3 (``On the rounds of the last layer \code{ε_G = 5/|E|}''); verify-gt-table-pub §4 item 5 & — & cited-checked; paper \\
 \addlinespace[3pt]
-\textbf{R9} & One combiner more than GKR layers: the last is drawn and never used & \textcolor{major}{major} (by the brief's definition; the fix is one sentence) & phase: bus & gt-bus G2 (\cref{f:bus-extra-combiner}) & an error of the blueprint & cited-checked; probe-run (Python) \\
+\textbf{R9} & One combiner more than GKR layers: the last is drawn and never used & \textcolor{major}{major} (by the brief's definition; the fix is one sentence) & phase: bus & gt-bus §G2 (\cref{f:bus-extra-combiner}) & an error of the blueprint & cited-checked; probe-run (Python) \\
 \addlinespace[3pt]
-\textbf{R10} & Layer 5's generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause & \textcolor{major}{major} & phase: bus & gt-bus G3 (\cref{f:bus-generic-gkr}) & an error of the blueprint; the first half also a deviation forced by an upstream library & cited-checked; paper \\
+\textbf{R10} & Layer 5's generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause & \textcolor{major}{major} & phase: bus & gt-bus §G3 (\cref{f:bus-generic-gkr}) & an error of the blueprint; the first half also a deviation forced by an upstream library & cited-checked; paper \\
 \addlinespace[3pt]
-\textbf{R11} & The table sumcheck's tables are not distinguished from the instance's other tables & \textcolor{major}{major} (gt-table-pub, boundary-adaptor); note (gt-bus) & phase: table sumcheck & gt-table-pub §8 (second finding) (\cref{f:table-pub-sumcheck-tables}), §4 C.1 item 4; boundary-adaptor §G.9 (\cref{f:boundary-column-groups}), §E.4; gt-bus G16 (\cref{f:bus-table-phase-tables}) & an error of the blueprint (an omission; boundary-adaptor: a consequence of the modelling choice, unstated) & cited-checked (gt-table-pub, gt-bus parts); unverified (a reading of Layer 3's text: \code{leanIsaInstance} is not built) \\
+\textbf{R11} & The table sumcheck's tables are not distinguished from the instance's other tables & \textcolor{major}{major} (gt-table-pub, boundary-adaptor); note (gt-bus) & phase: table sumcheck & gt-table-pub §8 (second finding) (\cref{f:table-pub-sumcheck-tables}), §4 C.1 item 4; boundary-adaptor §G.9 (\cref{f:boundary-column-groups}), §E.4; gt-bus §G16 (\cref{f:bus-table-phase-tables}) & an error of the blueprint (an omission; boundary-adaptor: a consequence of the modelling choice, unstated) & cited-checked (gt-table-pub, gt-bus parts); unverified (a reading of Layer 3's text: \code{leanIsaInstance} is not built) \\
 \addlinespace[3pt]
 \textbf{R12} & The public-input theorems are about a verifier none of the three executable verifiers runs; the debt is assigned to Layer 12, which cannot pay it & \textcolor{major}{major} (gt-table-pub, code-pubinput) & phase: public input & gt-table-pub §8 (third finding) (\cref{f:table-pub-public-input-check}), §7; code-pubinput §G.2 (\cref{f:code-pub-theorems-are-about-verifier-none}), §B.1, §C.13 & gt-table-pub: a deliberate deviation (decision 15; status finding F18). code-pubinput: a disagreement between the specification and its three implementations (not an unsoundness); the blueprint follows the specification deliberately and owes the deployed verifier's theorem in the wrong place and shape & cited-checked; probe-run (key lemma); unverified (the deployed phase's full \code{Phase.Security}, on paper) \\
 \addlinespace[3pt]
@@ -104,21 +104,27 @@ Columns: the row's number; its short name; its severity as the dossiers give it 
 \addlinespace[3pt]
 \textbf{R32} & The polynomial bridge of Layer 2 is noncomputable at the pin & \textcolor{major}{major} & adaptor and leanISA boundary & boundary-adaptor §G.8 (\cref{f:boundary-poly-bridge}); §E.5 & a deviation forced by an upstream library, with a workaround; retired if CompPoly makes \code{toCMvPolynomial} computable & probe-run \\
 \addlinespace[3pt]
-\textbf{R33} & Layer 3's sizes and admissibility statements cannot be stated or hold as written (\code{Sizes}, \code{Sizes.ofWitness}, \code{Sizes.Admissible}, \texttt{admissible\_\allowbreak{}iff\_\allowbreak{}caps}, \texttt{lean\allowbreak{}Isa\allowbreak{}Instance\_\allowbreak{}fits}) & \textcolor{major}{major} (gt-bus, boundary-adaptor, code-layer1; code-layer1: ``by the scale's letter'', the fix is one line); minor (gt-opening-compile §I.15) & adaptor and leanISA boundary & gt-bus G4 (\cref{f:bus-admissible}); boundary-adaptor §G.5 (\cref{f:boundary-sizes}); code-layer1 §G.2 (\cref{f:code-l1-leanisainstance-fits-cannot-be-stated}); gt-opening-compile §I.15 (first half; \cref{f:opening-piop-error-window}), §F.1 & an error of the blueprint & cited-checked (gt-bus part); paper \\
+\textbf{R33} & Layer 3's sizes and admissibility statements cannot be stated or hold as written (\code{Sizes}, \code{Sizes.ofWitness}, \code{Sizes.Admissible}, \texttt{admissible\_\allowbreak{}iff\_\allowbreak{}caps}, \texttt{lean\allowbreak{}Isa\allowbreak{}Instance\_\allowbreak{}fits}) & \textcolor{major}{major} (gt-bus, boundary-adaptor, code-layer1; code-layer1: ``by the scale's letter'', the fix is one line); minor (gt-opening-compile §I.15) & adaptor and leanISA boundary & gt-bus §G4 (\cref{f:bus-admissible}); boundary-adaptor §G.5 (\cref{f:boundary-sizes}); code-layer1 §G.2 (\cref{f:code-l1-leanisainstance-fits-cannot-be-stated}); gt-opening-compile §I.15 (first half; \cref{f:opening-piop-error-window}), §F.1 & an error of the blueprint & cited-checked (gt-bus part); paper \\
 \addlinespace[3pt]
-\textbf{R34} & The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge & \textcolor{major}{major} & libraries & lib-arklib §G.3 (\cref{f:lib-legacy-framework}); §F.2, §C.3 & an error of the blueprint's plan & paper; probe-run (\code{PlainReading}, old pin) \\
+\textbf{R34} & The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge & \textcolor{major}{major} (lib-arklib); minor (arklib-landscape §12.6, ``reinforces'' this row) & libraries & lib-arklib §G.3 (\cref{f:lib-legacy-framework}); §F.2, §C.3; arklib-landscape §12.6, §11 & an error of the blueprint's plan & paper; probe-run (\code{PlainReading}, old pin); ArkLib \#1245 and issue \#676 read with \code{gh} \\
 \addlinespace[3pt]
 \textbf{R35} & The strided reader of the eighteen BLAKE2s limb columns exists nowhere and is assigned to no layer & \textcolor{major}{major} & Layer 1 & code-layer1 §G.1 (\cref{f:code-l1-strided-reader-eighteen-blake2s-limb}); §B.8 & an error of the blueprint (omission) & probe-run (the lemma; run outside \code{lake}, old binary); unverified (the reader and combinator are sketched) \\
 \addlinespace[3pt]
-\textbf{R36} & The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types the spine does not have & \textcolor{major}{major} (docs-debt); minor (gt-table-pub, gt-bus, code-spine) & documentation & docs-debt §H.3 (\cref{f:docs-sketch-types}), §B.4; gt-table-pub §8 ``Layer 7's sketch'' (\cref{f:table-pub-layer7-sketch}), §4 C.2; gt-bus G11 (\cref{f:bus-stale-sketch}); code-spine §E.2 & an error of the blueprint & cited-checked (gt-table-pub, gt-bus parts); paper \\
+\textbf{R36} & The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types the spine does not have & \textcolor{major}{major} (docs-debt); minor (gt-table-pub, gt-bus, code-spine) & documentation & docs-debt §H.3 (\cref{f:docs-sketch-types}), §B.4; gt-table-pub §8 ``Layer 7's sketch'' (\cref{f:table-pub-layer7-sketch}), §4 C.2; gt-bus §G11 (\cref{f:bus-stale-sketch}); code-spine §E.2 & an error of the blueprint & cited-checked (gt-table-pub, gt-bus parts); paper \\
 \addlinespace[3pt]
 \textbf{R37} & The blueprint hands the holes' specification to a tracker comment that contradicts it; its public-input section says ``the prover sends nothing'' & \textcolor{major}{major} (docs-debt); minor (gt-table-pub) & documentation & docs-debt §H.2 (\cref{f:docs-hole-comment}), §B.3; gt-table-pub §8 ``The tracker's text for the public-input phase is stale'' (\cref{f:table-pub-tracker-stale}) & an error of the blueprint (its delegated specification of the public-input phase differs from §8.2; the built phase is faithful) & cited-checked (gt-table-pub part); paper \\
 \addlinespace[3pt]
-\textbf{R38} & The status's finding that the Python verifier omits the caps is false at the pin (F9) & \textcolor{major}{major}, of the status (gt-bus); minor (gt-table-pub, gt-flock-ring, gt-opening-compile) & documentation & gt-bus G5 (\cref{f:bus-status-python-caps}), §F; gt-table-pub §8 ``Two status findings are wrong'' (\cref{f:table-pub-status-wrong}); gt-flock-ring §8.10 (\cref{f:flock-ring-status-python-caps}); gt-opening-compile §I.16 (\cref{f:opening-status-python-caps}) & an error of the status & cited-checked \\
+\textbf{R38} & The status's finding that the Python verifier omits the caps is false at the pin (F9) & \textcolor{major}{major}, of the status (gt-bus); minor (gt-table-pub, gt-flock-ring, gt-opening-compile) & documentation & gt-bus §G5 (\cref{f:bus-status-python-caps}), §F; gt-table-pub §8 ``Two status findings are wrong'' (\cref{f:table-pub-status-wrong}); gt-flock-ring §8.10 (\cref{f:flock-ring-status-python-caps}); gt-opening-compile §I.16 (\cref{f:opening-status-python-caps}) & an error of the status & cited-checked \\
 \addlinespace[3pt]
 \textbf{R137} & Twenty-one obligations of the composition have no hole, no layer and no owner & \textcolor{major}{major} & master theorems and error & obligations §5.1; §4.2, §2 & an error of the blueprint (the plan is incomplete, not wrong where it is stated) & paper (the tree rests on the sibling dossiers' recorded probes and on reading) \\
 \addlinespace[3pt]
 \textbf{R138} & The compilation needs every phase before the opening to make no oracle query, and nothing states or enforces it & \textcolor{major}{major} & phase: opening and compilation & obligations §5.2; node 2.1.2.3 & an error of the blueprint (an omission in the design of the seams) & paper \\
+\addlinespace[3pt]
+\textbf{R141} & The classical sumcheck round-by-round leaf the ledger targets is false as stated at both ArkLib pins & \textcolor{major}{major} & libraries & arklib-landscape §12.1; §2.a & an error of the blueprint's plan caused by an upstream defect; a deviation forced by an upstream library once ArkLib \#1244 is the reference & paper (the counterexample is upstream's; \#1244 read with \code{gh}) \\
+\addlinespace[3pt]
+\textbf{R142} & Holes G1 and G2 (the sumcheck) name upstream sources that do not supply what they are listed for & \textcolor{major}{major} & libraries & arklib-landscape §12.2; §2.b & stale text of the blueprint and the status (an error of the plan) & paper \\
+\addlinespace[3pt]
+\textbf{R143} & Ledger A8 and the status's coding-theory row are stale in both directions: the watched theorem stays admitted, and a proved Johnson-range bound exists & \textcolor{major}{major} & libraries & arklib-landscape §12.3; §8.b & an error of the blueprint (it plans to consume a theorem whose proof is not coming and misses the one that exists); the constant mismatch with Annex B is a deviation forced by the upstream library until compared & paper; unverified (whether \texttt{johnson\allowbreak{}Exception\allowbreak{}Count} fits Annex B's budget at leanVM's parameters) \\
 \addlinespace[3pt]
 \end{longtable}
 \endgroup
@@ -162,7 +168,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \par\medskip\noindent\textbf{R7.}\enspace\textbf{The GKR layer sumcheck is the normalized variant; the blueprint gives it the wrong degree, the wrong error and no definition}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} Each deployed GKR round sends a degree-4 cofactor (four elements on the wire, the constant coefficient derived through the equality factor); the running claim is the cofactor's value and the layer's final check has no equality factor. The blueprint says degree 5 and error \code{5/|E|}, and Layer 4 defines only the plain variant, so a verifier built as written rejects every Rust proof or is a different verifier.
 \fhead{Evidence} \texttt{gkr.\allowbreak{}rs:\allowbreak{}399-\allowbreak{}404,\allowbreak{} 410-\allowbreak{}413}; \texttt{fiat\_\allowbreak{}shamir/\allowbreak{}src/\allowbreak{}transcript.\allowbreak{}rs:\allowbreak{}297-\allowbreak{}302}; \texttt{verifier.\allowbreak{}py:\allowbreak{}411-\allowbreak{}413,\allowbreak{} 445,\allowbreak{} 449}; blueprint \code{:321}, \code{:898-901}, \code{:941-942}; Python probe H.1 (honest prover accepted by the pinned Python verifier; re-run by the check)
-\fhead{Proposed change} define both sumcheck variants in Layer 4 by name; \code{4/|E|} per GKR round in \code{gkrError} and the tracker (gt-bus.md G1)
+\fhead{Proposed change} define both sumcheck variants in Layer 4 by name; \code{4/|E|} per GKR round in \code{gkrError} and the tracker (gt-bus.md §G1)
 
 \par\medskip\noindent\textbf{R8.}\enspace\textbf{The GKR last-layer rounds cost \code{5/|E|} each, as the blueprint says}\enspace{\small\textsf{\color{note}(position)}}\par\nopagebreak
 \fhead{Claim} gt-table-pub's argument that the zerocheck escape adds nothing uses \code{ε_G = 5/|E|} per round of the last GKR layer; its check reads \texttt{next\_\allowbreak{}round\_\allowbreak{}poly(\allowbreak{}5,\allowbreak{} claim,\allowbreak{} Some(\allowbreak{}equality\_\allowbreak{}point))} as five coefficients of a degree-4 cofactor with the equality factor applied by the verifier, ``so the full round polynomial has degree 5, consistent with the dossier's \code{5/|E|} and with the blueprint's row GKR''.
@@ -172,12 +178,12 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \par\medskip\noindent\textbf{R9.}\enspace\textbf{One combiner more than GKR layers: the last is drawn and never used}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} Both verifiers draw a combiner after the roots and after every layer, the last included; the blueprint says one per layer. Harmless in the oracle model, but after Fiat–Shamir the extra squeeze changes every later challenge.
 \fhead{Evidence} \texttt{gkr.\allowbreak{}rs:\allowbreak{}369,\allowbreak{} 391,\allowbreak{} 423}; \texttt{verifier.\allowbreak{}py:\allowbreak{}435,\allowbreak{} 453}; blueprint \code{:321}, \code{:940-941}; Python probe H.1 (\code{μ²/4 + μ + 1} challenges for even \code{μ})
-\fhead{Proposed change} ``a combiner after the roots and after every layer, the last included, error 0''; add the count to acceptance test 17 (gt-bus.md G2)
+\fhead{Proposed change} ``a combiner after the roots and after every layer, the last included, error 0''; add the count to acceptance test 17 (gt-bus.md §G2)
 
 \par\medskip\noindent\textbf{R10.}\enspace\textbf{Layer 5's generic GKR cannot be appended in the bus phase and cannot carry the zerocheck clause}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} The GKR's oracles are the leaf tables, but a phase's one oracle is the stack; carrying the GKR along that map needs ArkLib's context lifting, whose completeness and knowledge soundness are admitted at the pin. And the appended state function cannot carry a clause (the zerocheck) that changes with the GKR's own challenges.
 \fhead{Evidence} blueprint \code{:262}, \code{:606}, \code{:930-937}; \texttt{Spine/\allowbreak{}Phase.\allowbreak{}lean:\allowbreak{}37-\allowbreak{}38}; \texttt{To\allowbreak{}Ark\allowbreak{}Lib/\allowbreak{}Component.\allowbreak{}lean:\allowbreak{}143-\allowbreak{}149}; ArkLib \texttt{Lift\allowbreak{}Context/\allowbreak{}Reduction.\allowbreak{}lean:\allowbreak{}355-\allowbreak{}365,\allowbreak{} 542-\allowbreak{}560} (\code{sorry}, \code{dca90385})
-\fhead{Proposed change} restate Layer 5's GKR over a context with \code{leaves} and \code{riders}; the bus phase is \texttt{[(\allowbreak{}α,\allowbreak{} β); roots] ⟫ gkr ⟫ [boundary evaluations]} (gt-bus.md G3)
+\fhead{Proposed change} restate Layer 5's GKR over a context with \code{leaves} and \code{riders}; the bus phase is \texttt{[(\allowbreak{}α,\allowbreak{} β); roots] ⟫ gkr ⟫ [boundary evaluations]} (gt-bus.md §G3)
 
 \par\medskip\noindent\textbf{R11.}\enspace\textbf{The table sumcheck's tables are not distinguished from the instance's other tables}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} Layer 3 makes the six shared columns tables of the instance, and Layer 7 takes \code{τ_max} and the final message's width over every table: at least 16 rounds and 110 values, where leanVM runs \code{τ_max} rounds over the six opcode tables (as few as 3) and sends 104 values; \texttt{verify\_\allowbreak{}iff\_\allowbreak{}compiled} would then fail.
@@ -292,12 +298,12 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \par\medskip\noindent\textbf{R33.}\enspace\textbf{Layer 3's sizes and admissibility statements cannot be stated or hold as written (\code{Sizes}, \code{Sizes.ofWitness}, \code{Sizes.Admissible}, \texttt{admissible\_\allowbreak{}iff\_\allowbreak{}caps}, \texttt{lean\allowbreak{}Isa\allowbreak{}Instance\_\allowbreak{}fits})}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} Both verifiers reject a stack outside \code{[15, 28]} and a rate outside \code{[1, 4]}, but leanISA's \code{Caps} has neither window, so either \texttt{verify\_\allowbreak{}iff\_\allowbreak{}compiled} and \code{piopError_le} are false or \texttt{admissible\_\allowbreak{}iff\_\allowbreak{}caps} is (it also has a free \code{w}); no witness determines the announced rate, so \code{Sizes.ofWitness} is ill-defined and lacks \code{prog}; \texttt{lean\allowbreak{}Isa\allowbreak{}Instance\_\allowbreak{}fits} uses a \code{total} that \code{Layout} has not, while the fit is an argument \code{Blocks.layout} needs before the instance exists.
 \fhead{Evidence} \texttt{cpu/\allowbreak{}mod.\allowbreak{}rs:\allowbreak{}157-\allowbreak{}176}; \texttt{verifier.\allowbreak{}py:\allowbreak{}1377,\allowbreak{} 1379}; blueprint \code{:795-808}, \code{:1130}, \code{:1218-1220}; \texttt{Arithmetization/\allowbreak{}Statement.\allowbreak{}lean:\allowbreak{}79-\allowbreak{}81,\allowbreak{} 250-\allowbreak{}263}; \texttt{Spine/\allowbreak{}Instance.\allowbreak{}lean:\allowbreak{}73-\allowbreak{}81}; \code{Stack.lean:97}
-\fhead{Proposed change} \code{Sizes} of the heights only; \code{leanIsaBlocks}, \code{leanIsaμ}, \texttt{lean\allowbreak{}Isa\allowbreak{}Blocks\_\allowbreak{}fits}; \code{Sizes.Admissible} with both windows; \code{validRate}; \texttt{caps\_\allowbreak{}of\_\allowbreak{}admissible}, \texttt{sizes\_\allowbreak{}of\_\allowbreak{}satisfied\allowbreak{}By}; tests for \code{μ_stack = 29}, \code{logInvRate = 5} (gt-bus.md G4; boundary-adaptor.md §G.5; code-layer1.md §G.2)
+\fhead{Proposed change} \code{Sizes} of the heights only; \code{leanIsaBlocks}, \code{leanIsaμ}, \texttt{lean\allowbreak{}Isa\allowbreak{}Blocks\_\allowbreak{}fits}; \code{Sizes.Admissible} with both windows; \code{validRate}; \texttt{caps\_\allowbreak{}of\_\allowbreak{}admissible}, \texttt{sizes\_\allowbreak{}of\_\allowbreak{}satisfied\allowbreak{}By}; tests for \code{μ_stack = 29}, \code{logInvRate = 5} (gt-bus.md §G4; boundary-adaptor.md §G.5; code-layer1.md §G.2)
 
 \par\medskip\noindent\textbf{R34.}\enspace\textbf{The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
-\fhead{Claim} ArkLib calls \code{OracleReduction} legacy; its typed interaction framework (grown to \code{7653a901}) has no knowledge soundness, no round-by-round notion and no extractor; \#615 is open and conflicting; no relevant admission was lifted between the pins. The blueprint expects \#615 to land and upstream to prove the round-by-round to plain implication.
+\fhead{Claim} ArkLib calls \code{OracleReduction} legacy; its typed interaction framework (grown to \code{7653a901}) has no knowledge soundness, no round-by-round notion and no extractor; \#615 is open and conflicting; no relevant admission was lifted between the pins. The blueprint expects \#615 to land and upstream to prove the round-by-round to plain implication. arklib-landscape adds that ArkLib \#1245 shows \texttt{Verifier.\allowbreak{}rbr\allowbreak{}Soundness\_\allowbreak{}implies\_\allowbreak{}soundness} unprovable as stated (a kernel-checked counterexample: the verifier is run from a fresh state, the prover's game from the state its queries leave) and proves it only for a stateless shared oracle; the awaited theorems are being shown false, not proved.
 \fhead{Evidence} ArkLib \code{AGENTS.md}, \texttt{docs/\allowbreak{}design/\allowbreak{}05-\allowbreak{}roadmap.\allowbreak{}md} (\code{7653a901}); issue \#676, PR \#615 (read with \code{gh}); blueprint \code{:257-267}, \code{:1143}, \code{:1429}; status \code{:201} (accurate)
-\fhead{Proposed change} keep the port until any framework proves a guarded-first append; state the plain corollary locally (probe \code{PlainReading}, 40 lines, plus a local union bound); a ledger row for the typed framework (lib-arklib.md §G.3)
+\fhead{Proposed change} keep the port until any framework proves a guarded-first append; state the plain corollary locally (probe \code{PlainReading}, 40 lines, plus a local union bound), for the stateless shared oracle \code{σ = Unit} where \#1245 shows it holds; nothing awaited upstream; a ledger row for the typed framework (lib-arklib.md §G.3; arklib-landscape.md §12.6, §11)
 
 \par\medskip\noindent\textbf{R35.}\enspace\textbf{The strided reader of the eighteen BLAKE2s limb columns exists nowhere and is assigned to no layer}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} leanVM reads the limb columns as strided slots of \code{q_flock} (the low eight coordinates frozen to the slot's bits). Layer 1 has only high-index selection, \code{Layout.comap} cannot place a limb column, and no layer sketches the selection lemma, the reader or the combinator; \code{leanIsaInstance} cannot be built without them.
@@ -317,7 +323,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \par\medskip\noindent\textbf{R38.}\enspace\textbf{The status's finding that the Python verifier omits the caps is false at the pin (F9)}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} The Python verifier's \code{build_layout} checks \texttt{16 ≤ log\_\allowbreak{}memory ≤ 32}, every height \code{≤ 32}, \code{τ_BLAKE2S ≥ 3} and a power-of-two bytecode; the Rust itself says the other two verifiers reject there. Nothing is to be reported upstream.
 \fhead{Evidence} \texttt{verifier.\allowbreak{}py:\allowbreak{}856-\allowbreak{}864}, called at \code{:1378}; \code{log2_strict} at \code{:252-254}; \texttt{cpu/\allowbreak{}mod.\allowbreak{}rs:\allowbreak{}164-\allowbreak{}165}; status \code{:164}, \code{:316-318}
-\fhead{Proposed change} delete F9 and \code{st:164}; correct the earlier reviews that cite it (gt-bus.md G5)
+\fhead{Proposed change} delete F9 and \code{st:164}; correct the earlier reviews that cite it (gt-bus.md §G5)
 
 \par\medskip\noindent\textbf{R137.}\enspace\textbf{Twenty-one obligations of the composition have no hole, no layer and no owner}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
 \fhead{Claim} Twenty-one items that some arrow of the chain from the phases to \texttt{base\allowbreak{}Verifier\_\allowbreak{}extracts\allowbreak{}Execution} needs appear in no hole's ``Produces'' column and no layer's sketch (among them the Merkle compilation, the chain lemma, the state-restoration step, the grinding model, the hash and program-hash terms, the composition over the announced sizes, the list-binding compilation, the strided reader, the boundary-block bridge, the deployed public-input phase, the bound on \code{piopError}). Filling the twenty-two planned units yields the two master theorems and a \code{verify} with no theorem tying them together.
@@ -328,6 +334,21 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \fhead{Claim} The list-binding compilation replaces the commit message by a codeword and keeps the front phases' verifiers unchanged, which is possible only if they never query the stack. The two built phases do not, but \code{Phase.Def} lets a verifier query the stack at will (neither ArkLib nor the spine counts queries), so a bundle may satisfy both master theorems and be uncompilable; no sentence of the blueprint, the tracker or the spine states the requirement.
 \fhead{Evidence} \texttt{Public\allowbreak{}Input.\allowbreak{}lean:\allowbreak{}222-\allowbreak{}231}; ArkLib \texttt{Oracle\allowbreak{}Verifier.\allowbreak{}num\allowbreak{}Queries} (\code{sorry}); code-spine §D.3 (d); gt-table-pub §6 E.4 item 6
 \fhead{Proposed change} a field of \code{Phases} (or a hypothesis of the compilation theorem) that each front phase's verifier makes no query, inhabited by the two built phases; or front phases typed as plain verifiers lifted by \code{keepOracles}; a sentence in the conventions row ``The oracle'' (obligations.md §5.2)
+
+\par\medskip\noindent\textbf{R141.}\enspace\textbf{The classical sumcheck round-by-round leaf the ledger targets is false as stated at both ArkLib pins}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
+\fhead{Claim} The admitted \texttt{Sumcheck.\allowbreak{}Spec.\allowbreak{}Single\allowbreak{}Round.\allowbreak{}Simple.\allowbreak{}verifier\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundness} claims error \code{deg/|R|} per challenge, but the verifier sets its next target from the input polynomial's own value (querying it), so at \code{deg = 0} a false input goes to an accepted true output with probability one (ArkLib issue \#1's F₅ counterexample); ledger row A1 names this as the leaf Layer 4 contributes.
+\fhead{Evidence} ArkLib \texttt{Sumcheck/\allowbreak{}Spec/\allowbreak{}Single\allowbreak{}Round.\allowbreak{}lean:\allowbreak{}354,\allowbreak{} 391-\allowbreak{}397,\allowbreak{} 423-\allowbreak{}436,\allowbreak{} 570-\allowbreak{}573,\allowbreak{} 800} (at \code{dca90385} and \code{7653a901}); ArkLib issue \#1 (comment of 2026-09-27); PR \#1244 (open)
+\fhead{Proposed change} ledger A1: Layer 4 proves the single-round knowledge bound for each of its own sumcheck shapes on the spine's notion; ArkLib's classical leaf is false as stated until \#1244 merges, the typed sumcheck proves plain soundness only; nothing contributed upstream until ArkLib has a knowledge notion (arklib-landscape.md §12.1)
+
+\par\medskip\noindent\textbf{R142.}\enspace\textbf{Holes G1 and G2 (the sumcheck) name upstream sources that do not supply what they are listed for}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
+\fhead{Claim} At \code{7653a901} the typed \texttt{Sumcheck/\allowbreak{}Interaction/\allowbreak{}Soundness.\allowbreak{}lean} proves one-round plain soundness on the typed framework, the full protocol's \texttt{Native.\allowbreak{}execute\_\allowbreak{}soundness} is plain soundness with a \code{Unit} witness, ArkLib \#1128 is honest algebra and \#1129 tests: none is an oracle reduction, round-by-round, with an extractor or a virtual summand. leanerVM \#42 is conflicting and targets the classical projection, whose verifier has the defect of the previous row.
+\fhead{Evidence} blueprint \code{:598-599}; status \code{:198}; ArkLib \texttt{Sumcheck/\allowbreak{}Interaction/\allowbreak{}Soundness.\allowbreak{}lean:\allowbreak{}131,\allowbreak{} 167} (\code{7653a901})
+\fhead{Proposed change} G1: the typed \code{Native} and \code{Computable} sumcheck (plain case, through an adaptor) and \#42 for the honest algebra; G2: nothing upstream, ArkLib's roadmap items for native round-by-round and knowledge have no pull request (arklib-landscape.md §12.2)
+
+\par\medskip\noindent\textbf{R143.}\enspace\textbf{Ledger A8 and the status's coding-theory row are stale in both directions: the watched theorem stays admitted, and a proved Johnson-range bound exists}\enspace{\small\textsf{\color{major}(major)}}\par\nopagebreak
+\fhead{Claim} ArkLib's \#907 track closed as complete with \texttt{rs\_\allowbreak{}mca\allowbreak{}Error\_\allowbreak{}le\_\allowbreak{}in\_\allowbreak{}johnson\_\allowbreak{}range} still admitted, while \texttt{Reed\allowbreak{}Solomon.\allowbreak{}mca\allowbreak{}Error\_\allowbreak{}affine\allowbreak{}Line\_\allowbreak{}johnson\_\allowbreak{}le} is a proved Johnson-range affine-line MCA bound over any finite field, with a different constant (\texttt{johnson\allowbreak{}Exception\allowbreak{}Count}); the capacity-range theorems assume characteristic 0 or \texttt{k − 1 < ring\allowbreak{}Char F}, false over \code{E}.
+\fhead{Evidence} blueprint \code{:265}; status \code{:181}; ArkLib \texttt{Capacity\allowbreak{}Bounds.\allowbreak{}lean:\allowbreak{}203}, \texttt{Johnson/\allowbreak{}Probability.\allowbreak{}lean:\allowbreak{}41-\allowbreak{}52}, \texttt{Capacity.\allowbreak{}lean:\allowbreak{}118-\allowbreak{}121,\allowbreak{} 254-\allowbreak{}263} (\code{7653a901})
+\fhead{Proposed change} \code{McaJohnson} parametrized by its constant, with two inhabitants (the admitted printed-constant one and the proved one); Layer 11 uses the proved one if its constant meets Annex B's per-level budget at the pinned parameters (to be computed); the capacity theorems are not usable (arklib-landscape.md §12.3)
 
 \endgroup
 
@@ -350,7 +371,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \endfoot
 \bottomrule
 \endlastfoot
-\multicolumn{6}{@{}l}{\normalsize\textsf{\bfseries\color{minor}Minor (63 findings)}}\\[2pt]
+\multicolumn{6}{@{}l}{\normalsize\textsf{\bfseries\color{minor}Minor (64 findings)}}\\[2pt]
 \textbf{R39} & Knowledge soundness is bundled with perfect completeness & \textcolor{minor}{minor} & relation and seams & gt-flock-ring §8.5 (\cref{f:flock-ring-security-extends-complete}) & cited-checked; paper \\
 \addlinespace[3pt]
 \textbf{R40} & The \code{outputPure} field is redundant, and \code{guarded} nearly so & \textcolor{minor}{minor} (code-spine); note (lib-arklib) & relation and seams & code-spine §F ``The outputPure field is redundant'' (\cref{f:code-spine-outputpure-field-redundant-guarded-nearly}), §D.7; lib-arklib §G.7 (\cref{f:lib-side-conditions-derivable}) & probe-run \\
@@ -359,7 +380,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R42} & The error bundled in \code{Component.Def} makes every phase, the composed verifier and the extractor noncomputable & \textcolor{minor}{minor} (auditability) & relation and seams & lib-arklib §G.5 (\cref{f:lib-err-noncomputable}) & probe-run \\
 \addlinespace[3pt]
-\textbf{R43} & Two side conditions a bus phase over an abstract instance needs & \textcolor{minor}{minor} & relation and seams & gt-bus G10 (\cref{f:bus-side-conditions}); probe H.2 & cited-checked; probe-run (not re-run by the check) \\
+\textbf{R43} & Two side conditions a bus phase over an abstract instance needs & \textcolor{minor}{minor} & relation and seams & gt-bus §G10 (\cref{f:bus-side-conditions}); probe H.2 & cited-checked; probe-run (not re-run by the check) \\
 \addlinespace[3pt]
 \textbf{R44} & \texttt{Protocol/\allowbreak{}Basic.\allowbreak{}lean} imports the arithmetization and is not a listed exception of the wall & \textcolor{minor}{minor} (code-spine, code-layer1, docs-debt) & relation and seams & code-spine §E.3 row 25; code-layer1 §G.8 (\cref{f:code-l1-protocol-basic-lean-imports-arithmetization}), §D.1; docs-debt §H.8 (\cref{f:docs-import-rule}), §B.5 item 12 & paper (git grep) \\
 \addlinespace[3pt]
@@ -367,17 +388,17 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R46} & The extracted stack is not a definition; acceptance test 24's \code{rfl} witness covers zero-round phases only & \textcolor{minor}{minor} & master theorems and error & code-spine §F ``The extracted stack is not a definition'' (\cref{f:code-spine-extracted-stack-not-definition-rfl}); §D.5 & probe-run \\
 \addlinespace[3pt]
-\textbf{R47} & The zerocheck escape is over-charged and charged three or four different ways & \textcolor{minor}{minor} (gt-table-pub, gt-bus) & master theorems and error & gt-table-pub §8 ``The zerocheck escape'' (\cref{f:table-pub-zerocheck-escape}), §5 D.1, D.3; gt-bus G6 (\cref{f:bus-zerocheck-charge}), §D.3 & cited-checked; paper \\
+\textbf{R47} & The zerocheck escape is over-charged and charged three or four different ways & \textcolor{minor}{minor} (gt-table-pub, gt-bus) & master theorems and error & gt-table-pub §8 ``The zerocheck escape'' (\cref{f:table-pub-zerocheck-escape}), §5 D.1, D.3; gt-bus §G6 (\cref{f:bus-zerocheck-charge}), §D.3 & cited-checked; paper \\
 \addlinespace[3pt]
 \textbf{R48} & ``Computable'' is not ``efficient'' for the compiled extractor & \textcolor{minor}{minor} (for T4 as stated) / note & master theorems and error & literature §A.4 (fourth finding) & paper \\
 \addlinespace[3pt]
 \textbf{R49} & Two deployed checks are discharged by type in Lean, and the blueprint does not say who parses & \textcolor{minor}{minor} & phase: setup & boundary-adaptor §G.15 (\cref{f:boundary-parse}); §B.2 item 2 & paper \\
 \addlinespace[3pt]
-\textbf{R50} & The order of the leaf stacks is nowhere stated, and the spine's \code{tuples} lists them in the opposite order & \textcolor{minor}{minor} & phase: bus & gt-bus G7 (\cref{f:bus-leaf-order}) & cited-checked \\
+\textbf{R50} & The order of the leaf stacks is nowhere stated, and the spine's \code{tuples} lists them in the opposite order & \textcolor{minor}{minor} & phase: bus & gt-bus §G7 (\cref{f:bus-leaf-order}) & cited-checked \\
 \addlinespace[3pt]
-\textbf{R51} & Orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims, the point & \textcolor{minor}{minor} & phase: bus & gt-bus G8 (\cref{f:bus-open-orders}) & cited-checked \\
+\textbf{R51} & Orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims, the point & \textcolor{minor}{minor} & phase: bus & gt-bus §G8 (\cref{f:bus-open-orders}) & cited-checked \\
 \addlinespace[3pt]
-\textbf{R52} & The binary GKR layer's combination challenge has no error assigned & \textcolor{minor}{minor} & phase: bus & gt-bus G12 (\cref{f:bus-binary-combination}) & cited-checked \\
+\textbf{R52} & The binary GKR layer's combination challenge has no error assigned & \textcolor{minor}{minor} & phase: bus & gt-bus §G12 (\cref{f:bus-binary-combination}) & cited-checked \\
 \addlinespace[3pt]
 \textbf{R53} & Sumcheck round messages: four coefficients and a check in the oracle protocol, three and none on the wire; the owed lemma is unstated & \textcolor{minor}{minor} & phase: table sumcheck & gt-table-pub §8 ``The round message'' (\cref{f:table-pub-round-message}) & cited-checked; paper \\
 \addlinespace[3pt]
@@ -395,7 +416,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R60} & The executable verifier needs the Flock phase's definition, which no roadmap has started & \textcolor{minor}{minor} (planning) & phase: Flock and ring switching & gt-flock-ring §8.11 (\cref{f:flock-ring-verifier-needs-flock-def}) & cited-checked \\
 \addlinespace[3pt]
-\textbf{R61} & The canonical-encoding and stream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little & \textcolor{minor}{minor} (gt-bus, gt-opening-compile) & phase: opening and compilation & gt-bus G9 (\cref{f:bus-canonical-checks}); gt-opening-compile §I.17 (\cref{f:opening-mutation-tests}), §C.4, §D & cited-checked (gt-bus part; its search wording was overstated, the substance holds); paper \\
+\textbf{R61} & The canonical-encoding and stream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little & \textcolor{minor}{minor} (gt-bus, gt-opening-compile) & phase: opening and compilation & gt-bus §G9 (\cref{f:bus-canonical-checks}); gt-opening-compile §I.17 (\cref{f:opening-mutation-tests}), §C.4, §D & cited-checked (gt-bus part; its search wording was overstated, the substance holds); paper \\
 \addlinespace[3pt]
 \textbf{R62} & \texttt{encode\_\allowbreak{}column\_\allowbreak{}weight} is an existence statement every linear map satisfies & \textcolor{minor}{minor} (non-vacuity) & phase: opening and compilation & gt-opening-compile §I.9 (\cref{f:opening-encode-column-weight}); §B.6 & paper \\
 \addlinespace[3pt]
@@ -427,7 +448,7 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R76} & The scalar oracle interfaces are trusted surface the blueprint does not list (Layer 0) & \textcolor{minor}{minor} & libraries & lib-others §G.4 (\cref{f:lib-scalar-interfaces}) & paper (reading) \\
 \addlinespace[3pt]
-\textbf{R77} & The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue & \textcolor{minor}{minor} (possibly avoidable audit surface) & libraries & docs-debt §H.15 (\cref{f:docs-vcvio-merkle}); §B.9 & paper; unverified (fit with leanVM's Merkle trees; state at \code{a4232d08}) \\
+\textbf{R77} & The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue & \textcolor{minor}{minor} (docs-debt, possibly avoidable audit surface; arklib-landscape) & libraries & docs-debt §H.15 (\cref{f:docs-vcvio-merkle}); §B.9; arklib-landscape §12.4 & paper; unverified (the fit with leanVM's untagged fixed-height trees) \\
 \addlinespace[3pt]
 \textbf{R78} & The order of equal-size blocks in the witness stack is pinned by no statement or test before the compiled verifier & \textcolor{minor}{minor} & Layer 1 & code-layer1 §G.3 (\cref{f:code-l1-order-equal-size-blocks-pinned}) & probe-run \\
 \addlinespace[3pt]
@@ -457,17 +478,17 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R91} & The list of public names is not the public boundary: most public declarations are unlisted, some load-bearing, three mislabelled & \textcolor{minor}{minor} (docs-debt, code-layer1); no severity given (code-spine §E.1) & documentation & docs-debt §H.13 (\cref{f:docs-public-names}); code-layer1 §G.6 (\cref{f:code-l1-interface-list-omits-load-bearing}), §F.3; code-spine §E.1 (last paragraph) & probe-run (Python) \\
 \addlinespace[3pt]
-\textbf{R92} & Broken names and citations in the blueprint, status and tracker & \textcolor{minor}{minor} (gt-bus, docs-debt, boundary-adaptor, gt-opening-compile) & documentation & gt-bus G14 (\cref{f:bus-citation-drift}); docs-debt §H.14 (\cref{f:docs-dangling-names}), §B.5, §B.10; boundary-adaptor §G.14 (\cref{f:boundary-stale-names}); gt-opening-compile §I.13 (\cref{f:opening-annex-numbers}) & cited-checked (gt-bus part); paper \\
+\textbf{R92} & Broken names and citations in the blueprint, status and tracker & \textcolor{minor}{minor} (gt-bus, docs-debt, boundary-adaptor, gt-opening-compile) & documentation & gt-bus §G14 (\cref{f:bus-citation-drift}); docs-debt §H.14 (\cref{f:docs-dangling-names}), §B.5, §B.10; boundary-adaptor §G.14 (\cref{f:boundary-stale-names}); gt-opening-compile §I.13 (\cref{f:opening-annex-numbers}) & cited-checked (gt-bus part); paper \\
 \addlinespace[3pt]
 \textbf{R93} & Source discrepancies are not recorded where both status files say they are & \textcolor{minor}{minor} & documentation & docs-debt §H.16 (\cref{f:docs-source-discrepancies}); §B.7 item 6 & paper \\
 \addlinespace[3pt]
 \textbf{R94} & The status's round-message finding says the cubic is sent ``at four nodes''; the wire carries coefficients & \textcolor{minor}{minor} & documentation & gt-table-pub §8 ``Two status findings are wrong'' (first bullet; \cref{f:table-pub-status-wrong}) & cited-checked \\
 \addlinespace[3pt]
-\textbf{R95} & The status's finding on the one bus root misreads the specification (S11) & \textcolor{minor}{minor} & documentation & gt-bus G13 (\cref{f:bus-status-one-root}) & cited-checked \\
+\textbf{R95} & The status's finding on the one bus root misreads the specification (S11) & \textcolor{minor}{minor} & documentation & gt-bus §G13 (\cref{f:bus-status-one-root}) & cited-checked \\
 \addlinespace[3pt]
 \textbf{R96} & Names and line references in the blueprint's ArkLib table are wrong in places & \textcolor{minor}{minor} & documentation & lib-arklib §G.6 (\cref{f:lib-arklib-table-names}); §B.2 & probe-run \\
 \addlinespace[3pt]
-\textbf{R97} & The status's dates for ArkLib \#615 and \#818 are last-update dates, not opening dates & \textcolor{minor}{minor} & documentation & lib-arklib §F.5 (last paragraph; \cref{f:lib-status-dates}) & paper (\code{gh} read) \\
+\textbf{R97} & The status's upstream-watch table is out of date (eight rows, among them the dates of \#615 and \#818) & \textcolor{minor}{minor} (lib-arklib, arklib-landscape) & documentation & lib-arklib §F.5 (last paragraph; \cref{f:lib-status-dates}); arklib-landscape §12.8, §11 & paper (\code{gh} read) \\
 \addlinespace[3pt]
 \textbf{R98} & Misattributed and mistitled references in the blueprint & \textcolor{minor}{minor} & documentation & literature §A.4 (fifth finding) & paper (sources downloaded) \\
 \addlinespace[3pt]
@@ -477,8 +498,10 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R139} & The per-challenge error has no carrier for the grinding bits & \textcolor{minor}{minor} & phase: opening and compilation & obligations §5.3; node 2.1.2.1.3 & paper \\
 \addlinespace[3pt]
+\textbf{R144} & The batching component's named upstream source is not a reduction and lives in a pull request that will not merge as is & \textcolor{minor}{minor} & libraries & arklib-landscape §12.5 & paper \\
+\addlinespace[3pt]
 \midrule
-\multicolumn{6}{@{}l}{\normalsize\textsf{\bfseries\color{note}Note (37 findings)}}\\[2pt]
+\multicolumn{6}{@{}l}{\normalsize\textsf{\bfseries\color{note}Note (38 findings)}}\\[2pt]
 \textbf{R101} & The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it & \textcolor{note}{note} (gt-table-pub); a conclusion (code-spine) & relation and seams & gt-table-pub §8 Notes (\cref{f:table-pub-slot-not-pinned}), §6 E.4 item 6; code-spine §0 item 2, §D.3 (d) & cited-checked (gt-table-pub part); paper; unverified (the probe of code-spine §D.3 (d) was not run) \\
 \addlinespace[3pt]
 \textbf{R102} & The instance is data the theorems trust; only the toy's relation is known inhabited & \textcolor{note}{note} & relation and seams & code-spine §F ``The instance is data the theorems trust'' (\cref{f:code-spine-instance-data-theorems-trust-nothing}); §C.1, §C.2, §D.4 & probe-run (emptiness: guard plus paper) \\
@@ -487,11 +510,11 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \addlinespace[3pt]
 \textbf{R104} & The upper per-log caps are implied by the stacking window & \textcolor{note}{note} & phase: setup & gt-opening-compile §I Notes (first bullet) (\cref{f:opening-implied-caps}); §D.1; verify-gt-bus §4 item 2 & paper \\
 \addlinespace[3pt]
-\textbf{R105} & Seven disagreements between specification, Rust and Python in the setup, commitment and bus; none between the two verifiers & \textcolor{note}{note} & phase: setup & gt-bus G15 (\cref{f:bus-disagreements}); §A.6 & cited-checked \\
+\textbf{R105} & Seven disagreements between specification, Rust and Python in the setup, commitment and bus; none between the two verifiers & \textcolor{note}{note} & phase: setup & gt-bus §G15 (\cref{f:bus-disagreements}); §A.6 & cited-checked \\
 \addlinespace[3pt]
 \textbf{R106} & The Fiat–Shamir seed binds a constant that cannot be recomputed at the pin & \textcolor{note}{note} & phase: setup & gt-flock-ring §8.14 (\cref{f:flock-ring-seed-constant}) & cited-checked \\
 \addlinespace[3pt]
-\textbf{R107} & The specification gives no round-by-round analysis of the bus phase & \textcolor{note}{note} & phase: bus & gt-bus G17 (\cref{f:bus-no-rbr-in-spec}); §D.1 & cited-checked; paper \\
+\textbf{R107} & The specification gives no round-by-round analysis of the bus phase & \textcolor{note}{note} & phase: bus & gt-bus §G17 (\cref{f:bus-no-rbr-in-spec}); §D.1 & cited-checked; paper \\
 \addlinespace[3pt]
 \textbf{R108} & The specification's batching error is loose by one, gives no error for the recycled point, and does not say which coefficient is dropped & \textcolor{note}{note} & phase: table sumcheck & gt-table-pub §8 Notes (\cref{f:table-pub-spec-errors}); §5 D.1, D.2 & cited-checked; paper \\
 \addlinespace[3pt]
@@ -552,6 +575,8 @@ For each critical and major row, in the register's order: the claim, the decisiv
 \textbf{R136} & Blueprint line numbers shift by four at \code{HEAD}; the upgrade changed more than the pins table & \textcolor{note}{note} (an observation of the citation check) & documentation & verify-gt-table-pub §4 item 1 & cited-checked \\
 \addlinespace[3pt]
 \textbf{R140} & The smallest set of unbuilt nodes that makes the master theorems about leanVM & \textcolor{note}{note} (a reading aid) & master theorems and error & obligations §5.4; §2.2, §2.3, §2.6 & paper \\
+\addlinespace[3pt]
+\textbf{R145} & The blueprint's ArkLib table cites the PMF form of Schwartz–Zippel, which the new pin restated in VCVio's form & \textcolor{note}{note} & libraries & arklib-landscape §12.7 & paper \\
 \addlinespace[3pt]
 \end{longtable}
 \endgroup
@@ -809,6 +834,16 @@ What a dossier says it checked and found right, with how and any caveat, grouped
 \addlinespace[2pt]
 \textbf{N115} & obligations §5.5 & The hypotheses table reproduces boundary-adaptor §C's rows (none found wrong) and adds six: the grinding check, the canonical encodings, \code{R1CS_DIGEST}, the \code{F_2}-independence of the fixed weights, the oracle-freeness of the front, the bound on \code{piopError}. & reading & — \\
 \addlinespace[2pt]
+\textbf{N116} & arklib-landscape §13 & Ledger rows A2, A4, A5 (the admits), A7 (WHIR absent upstream) and A9 (ring-switching leaves admitted) are confirmed at both ArkLib pins. & baselines and reading & — \\
+\addlinespace[2pt]
+\textbf{N117} & arklib-landscape §13, §10 & The status's ``the spine stays on \code{OracleReduction}, whose security definitions the new executor does not yet carry'' is confirmed. & reading & — \\
+\addlinespace[2pt]
+\textbf{N118} & arklib-landscape §13, §4.d & The status's ``GKR: to open (ArkLib \#818 is a different protocol shape)'' is confirmed. & reading & — \\
+\addlinespace[2pt]
+\textbf{N119} & arklib-landscape §13 & ArkLib's \code{ReduceClaim}, \code{CheckClaim}, \code{RandomQuery}, \code{DoNothing} are sorry-free at the new pin (\code{SendClaim}, \code{SendWitness}, \code{NoInteraction} have \code{sorry}, none consumed by the spine). & reading & — \\
+\addlinespace[2pt]
+\textbf{N120} & arklib-landscape §13 & \texttt{Verifier.\allowbreak{}fiat\allowbreak{}Shamir}, \texttt{Commitment.\allowbreak{}Scheme}, \code{MLE}/\code{eqTilde}, \code{ProtocolSpec}, \code{OracleInterface} exist at the new pin with the shapes the spine uses. & reading (agrees with lib-arklib §F.2) & — \\
+\addlinespace[2pt]
 \end{longtable}
 \endgroup
 \end{landscape}
@@ -951,6 +986,16 @@ What a dossier marks unverified, written and not run, out of task, or not checka
 \addlinespace[2pt]
 \textbf{U58} & That a grinding nonce exists for every reachable chain state. & gt-opening-compile §E.5 & none by proof; the Lean \code{prove} is fuelled instead \\
 \addlinespace[2pt]
+\textbf{U59} & The typed Interaction trees' theorems depend on the three standard axioms only. & arklib-landscape §13 & \texttt{\#print axioms Sumcheck.\allowbreak{}Interaction.\allowbreak{}Native.\allowbreak{}execute\_\allowbreak{}soundness} under the lock \\
+\addlinespace[2pt]
+\textbf{U60} & Whether \texttt{johnson\allowbreak{}Exception\allowbreak{}Count} at leanVM's parameters is within Annex B's error budget. & arklib-landscape §13 & evaluate \texttt{Finite\allowbreak{}Bounds.\allowbreak{}lean:\allowbreak{}66-\allowbreak{}108} at \texttt{ρ ∈ \{1/\allowbreak{}2,\allowbreak{} …,\allowbreak{} 1/\allowbreak{}16\}}, \code{n = 2^(κ+R)} (gt-opening-compile's \code{whir_params.py} gives the parameters) \\
+\addlinespace[2pt]
+\textbf{U61} & Whether CompPoly's \code{BF64} at \code{572f9973} provides \texttt{Algebra (\allowbreak{}ZMod 2) BF64} and a basis indexed by \code{Fin 6 → Fin 2} for ArkLib's ring-switching profile. & arklib-landscape §13 & read \texttt{Comp\allowbreak{}Poly/\allowbreak{}Fields/\allowbreak{}Binary/\allowbreak{}} \\
+\addlinespace[2pt]
+\textbf{U62} & The judgements on how close pull requests are to merging. & arklib-landscape §13 & a maintainer's statement \\
+\addlinespace[2pt]
+\textbf{U63} & The fit of VCVio's \code{NodeQueryModel} with leanVM's untagged fixed-height Merkle trees. & arklib-landscape §13 & write it \\
+\addlinespace[2pt]
 \end{longtable}
 \endgroup
 \end{landscape}
@@ -966,12 +1011,12 @@ A row's place is the highest severity any dossier gives it. \Cref{tab:reg-count-
 Severity & Rows \\
 \midrule
 critical & 1 \\
-major & 37 \\
-minor & 63 \\
-note & 37 \\
+major & 40 \\
+minor & 64 \\
+note & 38 \\
 positions (not findings, no severity) & 2 \\
 \midrule
-\textbf{total findings} & \textbf{138} \\
+\textbf{total findings} & \textbf{143} \\
 \bottomrule
 \end{tabular}
 \caption{The register's rows by severity.}\label{tab:reg-count-severity}
@@ -993,11 +1038,11 @@ phase: public input & 0 & 2 & 2 & 1 & 5 \\
 phase: Flock and ring switching & 0 & 4 & 5 & 2 & 11 \\
 phase: opening and compilation & 0 & 10 & 9 & 6 & 25 \\
 adaptor and leanISA boundary & 0 & 7 & 5 & 5 & 17 \\
-libraries & 0 & 1 & 4 & 7 & 12 \\
+libraries & 0 & 4 & 5 & 8 & 17 \\
 Layer 1 & 0 & 1 & 5 & 3 & 9 \\
 documentation & 0 & 3 & 18 & 3 & 24 \\
 \midrule
-\textbf{all} & 1 & 37 & 63 & 37 & \textbf{138} \\
+\textbf{all} & 1 & 40 & 64 & 38 & \textbf{143} \\
 \bottomrule
 \end{tabular}
 \caption{The register's findings by subject and severity (positions excluded).}\label{tab:reg-count-subject}
@@ -1031,6 +1076,7 @@ Rows that state one finding of two or more dossiers, with the dossiers each cite
 \item \textbf{R27} (The base soundness (and completeness) theorems lack \texttt{Well\allowbreak{}Formed\allowbreak{}Bytecode}): docs-debt, boundary-adaptor
 \item \textbf{R28} (The base soundness theorem is not a probability statement about \code{verify}, and concludes no extracted witness): boundary-adaptor, gt-opening-compile
 \item \textbf{R33} (Layer 3's sizes and admissibility statements cannot be stated or hold as written (\code{Sizes}, \code{Sizes.ofWitness}, \code{Sizes.Admissible}, \texttt{admissible\_\allowbreak{}iff\_\allowbreak{}caps}, \texttt{lean\allowbreak{}Isa\allowbreak{}Instance\_\allowbreak{}fits})): gt-bus, code-layer1, boundary-adaptor, gt-opening-compile
+\item \textbf{R34} (The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge): lib-arklib, arklib-landscape
 \item \textbf{R36} (The per-layer sketches (Layers 4 to 7, 9, 10) and the tracker use types the spine does not have): gt-table-pub, gt-bus, code-spine, docs-debt
 \item \textbf{R37} (The blueprint hands the holes' specification to a tracker comment that contradicts it; its public-input section says ``the prover sends nothing''): gt-table-pub, docs-debt
 \item \textbf{R38} (The status's finding that the Python verifier omits the caps is false at the pin (F9)): gt-table-pub, gt-bus, gt-flock-ring, gt-opening-compile
@@ -1040,11 +1086,13 @@ Rows that state one finding of two or more dossiers, with the dossiers each cite
 \item \textbf{R54} (The top limb is enforced only through the instance's third line and the unbuilt adaptor theorem; acceptance test 10 names the wrong witness): code-pubinput, boundary-adaptor
 \item \textbf{R58} (The Flock error quoted in acceptance test 23 leaves out ring switching): gt-flock-ring, gt-opening-compile
 \item \textbf{R61} (The canonical-encoding and stream-consumption checks are absent from the blueprint, and Layer 12's mutations exercise too little): gt-bus, gt-opening-compile
+\item \textbf{R77} (The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue): docs-debt, arklib-landscape
 \item \textbf{R79} (Acceptance test 14 names a tautology as its witness; no test compares the bytecode column with leanVM's encoder): code-layer1, docs-debt
 \item \textbf{R83} (The status and the tracker describe a repository two merges old): code-pubinput, docs-debt
 \item \textbf{R84} (After the upgrade the blueprint states superseded pins as current, and Layer 0's prose is stale): lib-others, docs-debt
 \item \textbf{R91} (The list of public names is not the public boundary: most public declarations are unlisted, some load-bearing, three mislabelled): code-spine, code-layer1, docs-debt
 \item \textbf{R92} (Broken names and citations in the blueprint, status and tracker): gt-bus, docs-debt, boundary-adaptor, gt-opening-compile
+\item \textbf{R97} (The status's upstream-watch table is out of date (eight rows, among them the dates of \#615 and \#818)): lib-arklib, arklib-landscape
 \item \textbf{R101} (The spine's slot does not pin the protocol: a phase that reads the whole oracle fills it): gt-table-pub, code-spine
 \item \textbf{R120} (The completeness base theorem composes leanISA's existence theorem, where \code{architecture.md} says witness generation): docs-debt, boundary-adaptor
 \end{itemize}

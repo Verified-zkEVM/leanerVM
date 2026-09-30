@@ -78,7 +78,16 @@ changes (\cref{ch:changes}) gives the text of each change.
   legacy and its typed successor has no knowledge notion; the composition the spine ports is
   still admitted upstream and its pull request still open. Stay on the legacy framework with
   the local port, and record the decision and its retirement condition, or plan the migration.
-  The review recommends staying, since nothing upstream is ready to receive the spine.
+  The review recommends staying, since nothing upstream is ready to receive the spine, and
+  records the trigger to revisit: a knowledge notion and a composition theorem for it in the
+  typed framework (\cref{ch:arklib-landscape}).
+\item \textbf{Rewrite the upstream ledger on what ArkLib has} (\cref{ch:arklib-landscape}).
+  Consume the typed sumcheck for the plain case only, through an adaptor from the spine's
+  oracle reductions; write the leanVM-shaped sumchecks and every knowledge leaf locally, and
+  drop the plan to contribute the classical leaf, which is false as stated; consume VCVio's
+  Merkle trees; state the proved Johnson-range bound as the coding-theory interface's candidate
+  and check its constant against the specification's budget; define the inner-product oracle
+  locally, since nothing upstream has or plans it.
 \item \textbf{Consolidate the documentation} (\code{R36} to \code{R38} and the minor rows).
   The blueprint as the one specification, its per-layer sketches rewritten on the spine's
   types, the hole comment folded into it, the status and the tracker as pointers, one

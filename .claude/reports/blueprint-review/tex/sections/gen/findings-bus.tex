@@ -170,7 +170,7 @@ does not give the second half.
 \fhead{Classification} An error of the blueprint (three of its statements cannot hold together).
 
 \fhead{Evidence} The verifiers reject $μ_{\mathrm{stack}} ∉ [15, 28]$ and $ρ ∉ [1, 4]$ (the rate
-window and the stacking window, B8 and B9 of \cref{tab:gen-bus-checks}). The blueprint:
+window and the stacking window, checks 8 and 9 of \cref{tab:gen-bus-checks}). The blueprint:
 \begin{itemize}
 \item \code{bp:800-801}: ``\code{def Sizes.Admissible (prog : Program) (s : Sizes) : Prop -- the caps; decidable}''
   and ``\code{theorem admissible_iff_caps : s.Admissible prog ↔ (Caps w ∧ Sizes.ofWitness w = some s)}''.
@@ -320,8 +320,8 @@ side's.'' And a guard in Layer 6's tests on sizes with $τ_j = κ_{\mathrm{mem}}
 \begin{finding}{minor}{f:bus-canonical-checks}{The canonical-encoding checks and the consumption check are absent from the blueprint}
 \fhead{Classification} An error of the blueprint (omission).
 
-\fhead{Evidence} The checks of the upper limbs of the announced sizes (B2), of the third limb of
-the root's halves (B10) and of the consumption of the stream (B17), in \cref{tab:gen-bus-checks}.
+\fhead{Evidence} The checks of the upper limbs of the announced sizes (check 2), of the third limb of
+the root's halves (check 10) and of the consumption of the stream (check 17), in \cref{tab:gen-bus-checks}.
 No passage of the blueprint concerns canonical encodings or the consumption of the stream: a
 search for ``canonical'' finds only \code{bp:1294}, the public word of acceptance test 10;
 ``upper limb'' finds nothing; ``consumed'' occurs only in the sense of ``used by'' (for example

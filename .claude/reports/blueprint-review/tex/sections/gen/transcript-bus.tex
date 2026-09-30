@@ -42,7 +42,7 @@ read, \code{fs/transcript.rs:283-287}), $V$ a verifier computation or check, $V�
 (one squeeze of the chain per element of $\E$, \code{fs/lib.rs:95-99}).
 
 {\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.04\linewidth}>{\raggedright\arraybackslash}p{0.28\linewidth}>{\raggedright\arraybackslash}p{0.21\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.15\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.06\linewidth}>{\raggedright\arraybackslash}p{0.26\linewidth}>{\raggedright\arraybackslash}p{0.21\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.15\linewidth}@{}}
 \caption{Setup and commitment, as deployed.}\label{tab:gen-bus-setup}\\
 \toprule
 \# & Step & Specification & Rust & Python \\
@@ -54,43 +54,43 @@ read, \code{fs/transcript.rs:283-287}), $V$ a verifier computation or check, $V�
 \endhead
 \bottomrule
 \endfoot
-S0 & $V$: seed the chain with \code{compress(iv, public input)},
+step 1 & $V$: seed the chain with \code{compress(iv, public input)},
   \code{iv = BLAKE2s("leanvm" ‖ len ‖ R1CS_DIGEST ‖ bytecode_hash)}
   & \code{08:55} ``seeded by the public input, the bytecode and Flock's BLAKE2s R1CS matrices'';
   §8.4 is \code{TODO} (\code{08:44-46})
   & \code{mod.rs:82-93}, \code{mod.rs:712}; \code{fs/lib.rs:69-73}
   & \code{py:1366-1369}, \code{py:347-351} \\
-S1 & $P→V$: 8 elements: $κ_{\mathrm{mem}}$, $τ_0 … τ_5$, $ρ$, each a small integer in the low limb
+step 2 & $P→V$: 8 elements: $κ_{\mathrm{mem}}$, $τ_0 … τ_5$, $ρ$, each a small integer in the low limb
   & \code{08:55} ``The prover sends the memory log-size $κ_{\mathrm{mem}}$ and the six table
   log-heights $τ_j$'' (no $ρ$)
   & prover \code{mod.rs:118-124}; verifier \code{mod.rs:144-149}
   & \code{py:1372-1376} \\
-S2 & $V$: each announced element has its two upper limbs zero
+step 3 & $V$: each announced element has its two upper limbs zero
   & absent
   & \code{mod.rs:133-135} \code{if word.c1 != 0 || word.c2 != 0 { return Err(CpuError::PublicInput) }}
   & \code{py:1373} \\
-S3 & $V$: each public word has its third limb zero
+step 4 & $V$: each public word has its third limb zero
   & \code{08:29} ``two 192-bit words (with top limb 0)''
   & \code{mod.rs:141-143}
   & by type: the input is a 32-byte \code{Digest} (\code{py:204-219}) \\
-S4 & $V$: the caps (the checks B4 to B9 of \cref{tab:gen-bus-checks})
+step 5 & $V$: the caps (checks 4 to 9 of \cref{tab:gen-bus-checks})
   & \code{06:80}, \code{06:86}, \code{06:90}
   & \code{mod.rs:157-170}
   & \code{py:857-864}, \code{py:1377} \\
-S5 & $V$: derive the layouts (the stack, the three leaf stacks)
+step 6 & $V$: derive the layouts (the stack, the three leaf stacks)
   & \code{08:55} ``derives the layout of every stack (PCS and GKR leaves)''
   & \code{mod.rs:171}, \code{layout.rs:328-427}, \code{witness.rs:67-102}
   & \code{py:856-895}, \code{py:506-511} \\
-S6 & $V$: the stacking window $15 ≤ μ_{\mathrm{stack}} ≤ 28$
+step 7 & $V$: the stacking window $15 ≤ μ_{\mathrm{stack}} ≤ 28$
   & absent
   & \code{mod.rs:174-176}; \code{pcs.rs:49, 51}
   & \code{py:1379}; \code{py:907-908} \\
-C1 & $P→V$: the commitment, a Merkle root as 2 elements (two 128-bit halves)
+step 8 & $P→V$: the commitment, a Merkle root as 2 elements (two 128-bit halves)
   & \code{08:60-61} ``sends its commitment''
   & prover \code{pcs.rs:118-119}, \code{mod.rs:560-562}; verifier \code{mod.rs:714},
   \code{pcs.rs:136-138}, \code{fs/transcript.rs:97-99}
   & \code{py:1382} \\
-C2 & $V$: both halves of the root have a zero third limb
+step 9 & $V$: both halves of the root have a zero third limb
   & absent
   & \code{fs/merkle.rs:26-29} (\code{NonCanonicalEncoding})
   & \code{py:223} \\
@@ -103,7 +103,7 @@ transcript, before any challenge is sampled''; the first \code{sample} is \code{
 \subsubsection{The bus phase}\label{sec:gen-bus-phase}
 
 {\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.04\linewidth}>{\raggedright\arraybackslash}p{0.30\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.06\linewidth}>{\raggedright\arraybackslash}p{0.28\linewidth}>{\raggedright\arraybackslash}p{0.18\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
 \caption{The bus phase, as deployed.}\label{tab:gen-bus-phase}\\
 \toprule
 \# & Step & Specification & Rust & Python \\
@@ -115,31 +115,31 @@ transcript, before any challenge is sampled''; the first \code{sample} is \code{
 \endhead
 \bottomrule
 \endfoot
-U0 & $V$: structural assertions on the leaf layouts (panics, not rejections)
+step 1 & $V$: structural assertions on the leaf layouts (panics, not rejections)
   & absent
   & \code{leaf.rs:875}, \code{leaf.rs:123-146}
   & absent \\
-U1 & $V→P$: $α_0, α_1, α_2, α_3$ then $β$: five squeezes, no message between them
+step 2 & $V→P$: $α_0, α_1, α_2, α_3$ then $β$: five squeezes, no message between them
   & \code{08:67}; \code{05:22}, \code{05:28}
   & \code{leaf.rs:876}, \code{leaf.rs:882}
   & \code{py:542}, \code{py:544} \\
-U2 & $P→V$: 2 elements, the bus root $R$ then the count root $R_c$
+step 3 & $P→V$: 2 elements, the bus root $R$ then the count root $R_c$
   & \code{08:68} ``Sends the count root $R_c$ and one bus root $R$'' (prose order reversed)
   & prover \code{gkr.rs:272-276}; verifier \code{gkr.rs:364-367}
   & \code{py:434}, \code{py:437} \\
-U3 & $V→P$: the first combiner $λ$
+step 4 & $V→P$: the first combiner $λ$
   & \code{05:91}
   & \code{gkr.rs:369}
   & \code{py:435} \\
-U4 & The batched GKR (\cref{sec:gen-bus-gkr}): messages, challenges and one check per layer
+step 5 & The batched GKR (\cref{sec:gen-bus-gkr}): messages, challenges and one check per layer
   & \code{05:61-95}, \code{08:69}
   & \code{gkr.rs:373-427}
   & \code{py:439-455} \\
-U5 & $V$: $R_c ≠ 0$ (evaluated after the GKR)
+step 6 & $V$: $R_c ≠ 0$ (evaluated after the GKR)
   & \code{06:78}, \code{08:69}, \code{08:100}
   & \code{leaf.rs:884-889} (\code{Error::ZeroCount})
   & \code{py:546} \\
-U6 & $P→V$: 5 elements, the evaluations of \code{mem_0}, \code{mem_1}, \code{mem_2},
+step 7 & $P→V$: 5 elements, the evaluations of \code{mem_0}, \code{mem_1}, \code{mem_2},
   \code{cntfin_mem} at $ζ_{<κ_{\mathrm{mem}}}$ and of \code{cntfin_bc} at $ζ_{<κ_{\mathrm{bc}}}$,
   in that order
   & \code{08:70} ``For their committed columns the prover sends one evaluation each'';
@@ -147,7 +147,7 @@ U6 & $P→V$: 5 elements, the evaluations of \code{mem_0}, \code{mem_1}, \code{m
   & verifier \code{leaf.rs:909-920}, \code{leaf.rs:428-439}, \code{leaf.rs:548-550}; prover
   \code{leaf.rs:500-529}
   & \code{py:552-557} \\
-U7 & $V$: computes, per side, the public part of the leaf claim (selectors, constants, index
+step 8 & $V$: computes, per side, the public part of the leaf claim (selectors, constants, index
   column, bytecode column, the five evaluations, the padding) and \textbf{derives} what the tables
   owe, $\mathit{rem}_s$; builds the tables' bus forms. No check.
   & \code{08:70}; \code{05:105-123}
@@ -156,9 +156,9 @@ U7 & $V$: computes, per side, the public part of the leaf claim (selectors, cons
 \end{longtable}
 }
 
-After the last of these steps (U7) the table sumcheck starts with the challenge $ξ$
+After the last of these steps (step 8) the table sumcheck starts with the challenge $ξ$
 (\code{mod.rs:726}, \code{py:1389}). Nothing of the bus phase is sent after the boundary
-evaluations (U6).
+evaluations (step 7).
 
 \paragraph{Element counts} (checked by the dossier's probe, dossier \file{gt-bus.md}, section
 H.1, against the pinned Python function, for $μ = 0 … 12$; the citation check re-ran the probe,
@@ -346,7 +346,7 @@ $i$ against $α_k$ (\code{leaf.rs:89-98}). The count side runs at $α = 0$, $β 
 the count cell (\code{leaf.rs:606-622}; \code{py:573}). Padding leaves are $1$
 (\code{leaf.rs:222-224}, \code{gkr.rs:61, 114}).
 
-\paragraph{Decomposition} (the last computation of the phase, U7). With
+\paragraph{Decomposition} (the last computation of the phase, step 8 of \cref{tab:gen-bus-phase}). With
 $ζ_{\mathrm{lo}} = ζ_{<κ_b}$, $ζ_{\mathrm{hi}} = ζ_{≥κ_b}$,
 $w_b = \eq(\mathit{sel}_b, ζ_{\mathrm{hi}})$:
 \begin{itemize}
@@ -355,7 +355,7 @@ $w_b = \eq(\mathit{sel}_b, ζ_{\mathrm{hi}})$:
   (\code{primitives/src/field/mod.rs:105-113}, \code{py:271-278}; \code{06:97-100}), the extension
   of the public bytecode column, or the value the prover sent for a committed column
   (\code{leaf.rs:440-457}). A committed column already valued at the same point is not sent
-  again (\code{leaf.rs:466-471}), which is why the boundary evaluations (U6) are 5 elements and
+  again (\code{leaf.rs:466-471}), which is why the boundary evaluations (step 7 of \cref{tab:gen-bus-phase}) are 5 elements and
   not 8;
 \item a block of table $j$ contributes nothing to the check: it is accumulated into the form of
   $(\mathit{side}, j)$, coefficient $w_b·\eq(α, i)$ on coordinate $i$ and $w_b·β$ on the constant

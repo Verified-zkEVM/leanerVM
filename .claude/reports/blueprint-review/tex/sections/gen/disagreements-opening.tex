@@ -46,14 +46,14 @@ compilation, and the deployed WHIR schedule against Protocol B.6.}\label{tab:gen
   of the step (\cref{f:opening-chain-step}) \\
 2 & The rate
   & The specification names no rate (\code{08:55}); both verifiers read the announced rate and
-  reject it outside $[1, 4]$ (\code{mod.rs:167}, \code{py:1377}; S-rate of
+  reject it outside $[1, 4]$ (\code{mod.rs:167}, \code{py:1377}; check 1 of
   \cref{tab:gen-opening-checks}).
   & \lean{Sizes.Admissible} lacks the rate window (\cref{f:bus-admissible}) \\
 3 & The closing list of the specification (\code{08:100})
   & ``the caps'' omits the rate window and the stacking window; ``every sumcheck's rounds'' is not a
-  check in either verifier (W1); ``the PCS opening'' stands for M1 to M7 and W2 to W5, and grinding
-  (G1, G2) is absent from Annex B altogether. The canonical encodings (B2, B3, B10 of
-  \cref{tab:gen-bus-checks}; R2), full consumption (R4) and grinding are in both verifiers and not
+  check in either verifier (check 18 of \cref{tab:gen-opening-checks}); ``the PCS opening'' stands for its checks 11 to 17 and 19 to 22, and grinding
+  (its checks 9 and 10) is absent from Annex B altogether. The canonical encodings (checks 2, 3 and 10 of
+  \cref{tab:gen-bus-checks}; check 5 of \cref{tab:gen-opening-checks}), full consumption (its check 7) and grinding are in both verifiers and not
   in the specification.
   & \lean{verify} inherits these omissions unless Layer 12 lists the checks
   (\cref{sec:gen-opening-checks}) \\
@@ -65,7 +65,7 @@ compilation, and the deployed WHIR schedule against Protocol B.6.}\label{tab:gen
   adversarial raw proof it accepts a commitment whose absent lanes are nonzero (the citation check
   agrees by reading; the Python was not run on such a proof), while the Rust
   verifier supplies the zero prefix itself (\code{fs/merkle.rs:53-58}): the Python's accepted set
-  is strictly larger than the Rust's on this point. Soundness-neutral (M2 of
+  is strictly larger than the Rust's on this point. Soundness-neutral (check 12 of
   \cref{tab:gen-opening-checks}); a divergence in accepted sets nonetheless.
   & unspecified: \lean{merkleVerify} has the raw shape, the fixture is the prover's pruned form
   (\cref{f:opening-merkle-format}) \\

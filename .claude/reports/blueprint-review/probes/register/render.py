@@ -190,7 +190,7 @@ out.append("### Merged rows (one finding stated by two or more dossiers)")
 out.append("")
 dossiers = ["gt-table-pub", "gt-bus", "gt-flock-ring", "code-spine", "code-pubinput", "code-layer1",
             "lib-arklib", "lib-others", "docs-debt", "literature", "boundary-adaptor", "gt-opening-compile",
-            "obligations"]
+            "obligations", "arklib-landscape"]
 def cites(text, d):
     return re.search(r"(?<![\w-])" + re.escape(d) + r"\.md", text) is not None
 

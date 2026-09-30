@@ -19,7 +19,7 @@ shifts the blueprint's lines after line 168 by four); \code{architecture.md} is
 \code{b435631}. ArkLib at its old pin \code{dca90385}: \code{Basic.lean}, \code{FiatShamir/Basic.lean},
 \code{BCS/Basic.lean}, \code{Security/Implications.lean} under \file{ArkLib/OracleReduction/},
 \code{Commitments/Functional/Basic.lean} under \file{ArkLib/}. The number after the colon is the
-line. The checks named (M2, M6, \dots) are those of \cref{tab:gen-opening-checks}.
+line. A check named by its number (check 12, check 16, \dots) is that row of \cref{tab:gen-opening-checks}.
 \end{sloppypar}
 
 No finding makes a stated leanerVM theorem wrong today, since none of Layers 10 to 13 is built:
@@ -271,7 +271,7 @@ existential says only that \lean{encode} is linear; the verifier evaluates the c
 
 % ---------------------------------------------------------------- I.10
 \begin{finding}{minor}{f:opening-merkle-format}{The proof object's Merkle format is unspecified}
-\fhead{Evidence} \Cref{sec:gen-opening-proof,sec:gen-opening-merkle}, check M2
+\fhead{Evidence} \Cref{sec:gen-opening-proof,sec:gen-opening-merkle}, check 12
 (\code{fs/transcript.rs:9-19, 198-203}; \code{fs/merkle.rs:78-92, 246-264}; \code{py:392-404, 1049};
 the test harness \file{crates/lean_vm/tests/verifiers/python_verifier.rs:50-80}).
 
@@ -384,7 +384,7 @@ scalar, a surplus sibling, a level-0 row of the wrong width, a duplicated positi
 
 % ---------------------------------------------------------------- notes
 \begin{finding}{note}{f:opening-implied-caps}{The upper per-log caps are implied by the stacking window}
-(\Cref{tab:gen-opening-checks}, row S-implied.) A Lean \lean{Admissible} with the window needs them
+(\Cref{tab:gen-opening-checks}, check 3.) A Lean \lean{Admissible} with the window needs them
 only to match the Rust's rejection set, not for any theorem.
 \end{finding}
 

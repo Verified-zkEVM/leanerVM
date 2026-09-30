@@ -38,7 +38,7 @@ specification §7 column lists (\code{07:12, 30, 58, 78, 99, 122}), which give t
 \subsubsection{The table sumcheck}\label{sec:gen-table-pub-transcript-table}
 
 \begingroup\footnotesize\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.04\linewidth}>{\raggedright\arraybackslash}p{0.295\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.065\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.24\linewidth}>{\raggedright\arraybackslash}p{0.16\linewidth}@{}}
 \caption{The table sumcheck, step by step, in the three sources.}\label{tab:gen-table-pub-transcript-table}\\
 \toprule
 \# & Step & Specification & Rust & Python \\
@@ -50,17 +50,17 @@ specification §7 column lists (\code{07:12, 30, 58, 78, 99, 122}), which give t
 \endhead
 \bottomrule
 \endfoot
-T0 & What precedes: the bus phase's last prover message is the five boundary evaluations
+step 1 & What precedes: the bus phase's last prover message is the five boundary evaluations
   (\code{mem₀}, \code{mem₁}, \code{mem₂}, \code{cntfin_mem} at $ζ_{<κ_{\mathrm{mem}}}$;
   \code{cntfin_bc} at $ζ_{<κ_{\mathrm{bc}}}$)
   & \code{08:70} ``For their committed columns the prover sends one evaluation each''
   & \code{leaf.rs:909-920} (\code{decompose_verify}), order fixed by \code{cpu/layout.rs:361-395}
   & \code{py:552-557} \\
-T1 & \textbf{Challenge} $ξ ← \E$ (one element), drawn after the boundary evaluations (T0)
+step 2 & \textbf{Challenge} $ξ ← \E$ (one element), drawn after the boundary evaluations (step 1)
   & \code{08:75} ``Samples and sends the batch challenge $ξ∈\E$''; \code{05:145}
   & \code{cpu/mod.rs:726} \code{let zc_xi = vs.sample();} (prover \code{:590})
   & \code{py:1389} \\
-T2 & \textbf{Powers.} Constraint $i$ (0-based) of table $t$ takes $ξ^{o_t+i}$, $o_t$ the number of
+step 3 & \textbf{Powers.} Constraint $i$ (0-based) of table $t$ takes $ξ^{o_t+i}$, $o_t$ the number of
   constraints of the tables before $t$; side $s$ takes $ξ^{B+s}$, shared by every table. For
   leanVM: $ξ⁰ → b + v_{\mathrm{cond}}·w$, $ξ¹ → v_{\mathrm{cond}}·(b+1)$, $ξ², ξ³, ξ⁴ →$ push,
   pull, count
@@ -69,16 +69,16 @@ T2 & \textbf{Powers.} Constraint $i$ (0-based) of table $t$ takes $ξ^{o_t+i}$, 
   & \code{constraints.rs:74-82} (\code{xi_offsets}), \code{:254-255, 281};
   \code{cpu/mod.rs:413-422} (\code{xi_form_base}, \code{xi_form_pows}); \code{tables.rs:70-74}
   & \code{py:1390-1392}, \code{:621-623}, \code{:798-800} \\
-T3 & \textbf{Target, derived, never sent}: $T = Σ_s ξ^{B+s}·\mathit{totals}_s$
+step 4 & \textbf{Target, derived, never sent}: $T = Σ_s ξ^{B+s}·\mathit{totals}_s$
   & \code{05:151-155} ``the verifier computing the right side itself''; \code{08:76} ``against
   the target the verifier derived from the three leaf claims''
   & \code{cpu/mod.rs:735}
   & \code{py:1393} \\
-T4 & \textbf{Number of rounds} $τ_{\max}$, the maximum over the six opcode tables
+step 5 & \textbf{Number of rounds} $τ_{\max}$, the maximum over the six opcode tables
   & \code{05:145, 155}; \code{08:76}
   & \code{constraints.rs:250} \code{airs.iter().map(|a| a.tau).max()}
   & \code{py:607} \code{max(table_log_heights)} \\
-T5 & \textbf{Round $j = 0..τ_{\max}−1$ binds variable $m = τ_{\max}−1−j$} (highest first).
+step 6 & \textbf{Round $j = 0..τ_{\max}−1$ binds variable $m = τ_{\max}−1−j$} (highest first).
   \textbf{Prover message}: three elements of $\E$, the coefficients $c₀, c₂, c₃$ of the cubic
   $h_j$, in that order
   & \code{05:155} ``Rounds bind $X_{τ_{\max}−1}$ first''; \code{08:76} ``the round check pins
@@ -87,40 +87,40 @@ T5 & \textbf{Round $j = 0..τ_{\max}−1$ binds variable $m = τ_{\max}−1−j$
   & prover \code{constraints.rs:164, 191-194} (\code{add_round_poly(&h, false)}); encoding
   \code{transcript.rs:63-71} (\code{fixed = 1})
   & \code{py:409} ``The transcript contains c0, c2, c3'' \\
-T6 & \textbf{Verifier computation}: $c₁ := \mathit{claim} + c₂ + c₃$, so that
+step 7 & \textbf{Verifier computation}: $c₁ := \mathit{claim} + c₂ + c₃$, so that
   $h_j(0)+h_j(1) = \mathit{claim}$ holds by construction. No rejection path
   & \code{03:84} states it as a check, \code{03:110} as the reason one coefficient is not sent
   & \code{transcript.rs:289-309}; \code{constraints.rs:267}
   & \code{py:409-410} \\
-T7 & \textbf{Challenge} $r_m ← \E$ after the round message; $\mathit{claim} := h_j(r_m)$
+step 8 & \textbf{Challenge} $r_m ← \E$ after the round message; $\mathit{claim} := h_j(r_m)$
   & \code{03:84}
   & \code{constraints.rs:268-270}
   & \code{py:424-426} \\
-T8 & \textbf{Joining and padding.} Table $t$ is active in the round binding $m$ iff $τ_t > m$,
+step 9 & \textbf{Joining and padding.} Table $t$ is active in the round binding $m$ iff $τ_t > m$,
   that is from round $τ_{\max} − τ_t$ on. Verifier's weight:
   $w_t := ∏_{m<τ_t}(1+ζ_m+r_m) · ∏_{τ_t ≤ m < τ_{\max}} r_m$
   & \code{05:146-150, 155}
   & \code{constraints.rs:271-274}
   & \code{py:609-614} \\
-T9 & \textbf{Final prover message}: for $t = 0..5$ in order, $n_t$ elements: the value of every
+step 10 & \textbf{Final prover message}: for $t = 0..5$ in order, $n_t$ elements: the value of every
   column of $t$, the eighteen BLAKE2S limbs included, at $r_{<τ_t} = (r_0,…,r_{τ_t−1})$. 104
   elements, no challenge in between
   & \code{08:77} ``The prover sends one value per column of every table''
   & \code{constraints.rs:224-238} (prover), \code{:279-280} (verifier); \code{cpu/mod.rs:378}
   \code{n_cols: table.n_committed_columns()}
   & \code{py:619-620} \\
-T10 & \textbf{Final check}:
+step 11 & \textbf{Final check}:
   $Σ_t w_t·(Σ_i ξ^{o_t+i}·C_{t,i}(e_t) + Σ_s ξ^{B+s}·B^s_t(e_t)) = \mathit{claim}$, else reject
   & \code{08:77} ``checks that they reproduce the sumcheck's final value''
   & \code{constraints.rs:277-290} (\code{Error::FinalMismatch}); summand
   \code{cpu/mod.rs:380-383}
   & \code{py:616-625} \\
-T11 & \textbf{Claims pooled}: for $t$, then for local column $c$: column $\mathit{base}_t + c$,
+step 12 & \textbf{Claims pooled}: for $t$, then for local column $c$: column $\mathit{base}_t + c$,
   point $r_{<τ_t}$, value $e_{t,c}$
   & \code{08:77} ``the column values then enter the claim pool, $T_j$'s at $ρ_{<τ_j}$''
   & \code{cpu/mod.rs:428-441} (\code{constraint_claims})
   & \code{py:624} \\
-T12 & \textbf{The eighteen limbs}: their claims are in the pool at their place (BLAKE2S local
+step 13 & \textbf{The eighteen limbs}: their claims are in the pool at their place (BLAKE2S local
   columns 9 to 26) and are \emph{located} on $\qflock$: low 8 coordinates frozen to the slot's
   bits, then the point, then $\qflock$'s selector
   & \code{08:77} ``live in $\qflock$, not the stack, so their claims route there'';
@@ -138,7 +138,7 @@ T12 & \textbf{The eighteen limbs}: their claims are in the pool at their place (
 Phase & Elements of $\E$ sent by the prover & Challenges drawn by the verifier \\
 \midrule
 table sumcheck & $3·τ_{\max} + 104$ & $1 + τ_{\max}$ \\
-public input & 2 (step P2) & 1 (step P1) \\
+public input & 2 (step 3 of \cref{tab:gen-table-pub-transcript-pub}) & 1 (its step 2) \\
 \bottomrule
 \end{tabular}
 \caption{Counts of the two phases.}\label{tab:gen-table-pub-counts}
@@ -188,7 +188,7 @@ three transmitted coefficients are read into indices 0, 2, 3 and
 \subsubsection{The public input}\label{sec:gen-table-pub-transcript-pub}
 
 \begingroup\footnotesize\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.15}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.04\linewidth}>{\raggedright\arraybackslash}p{0.225\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.06\linewidth}>{\raggedright\arraybackslash}p{0.205\linewidth}>{\raggedright\arraybackslash}p{0.22\linewidth}>{\raggedright\arraybackslash}p{0.27\linewidth}>{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
 \caption{The public-input phase, step by step, in the three sources.}\label{tab:gen-table-pub-transcript-pub}\\
 \toprule
 \# & Step & Specification & Rust & Python \\
@@ -200,27 +200,27 @@ three transmitted coefficients are read into indices 0, 2, 3 and
 \endhead
 \bottomrule
 \endfoot
-P0 & Precondition: each public word has top limb 0
+step 1 & Precondition: each public word has top limb 0
   & \code{08:29} ``two 192-bit words (with top limb 0)''; no check stated
   & type \code{[F192; 2]}; \code{read_public} rejects \code{half.c2 != 0} with
   \code{CpuError::PublicInput} (\code{cpu/mod.rs:141-143})
   & by type: \code{Digest} is 32 bytes, \code{halves()} builds \code{E(w0, w1)}
   (\code{py:204-219}) \\
-P1 & \textbf{Challenge} $r ← \E$, after the 104 values of the final message (T9)
+step 2 & \textbf{Challenge} $r ← \E$, after the 104 values of the final message (step 10 of \cref{tab:gen-table-pub-transcript-table})
   & \code{08:83}
   & \code{cpu/mod.rs:745} (prover \code{:610})
   & \code{py:1398} \\
-P2 & \textbf{Prover message}: two elements $c₀, c₁$
+step 3 & \textbf{Prover message}: two elements $c₀, c₁$
   & \code{08:29, 84}
   & \code{cpu/mod.rs:746-749} (prover \code{:611-618})
   & \code{py:1399} \\
-P3 & \textbf{Check}
+step 4 & \textbf{Check}
   & per limb: $c_ℓ = (1+r)·\mathrm{mem}[g⁰]_ℓ + r·\mathrm{mem}[g¹]_ℓ$, $ℓ ∈ \{0,1\}$
   (\code{08:29-32})
   & combined: $c₀ + y·c₁ = \mathrm{interp}(\mathrm{pi}₀, \mathrm{pi}₁, r)$
   (\code{cpu/mod.rs:752-755})
   & combined, the same (\code{py:1400}) \\
-P4 & \textbf{Claims pooled}: \code{mem₀}, \code{mem₁}, \code{mem₂} at $(r, 0, …, 0)$ with values
+step 5 & \textbf{Claims pooled}: \code{mem₀}, \code{mem₁}, \code{mem₂} at $(r, 0, …, 0)$ with values
   $c₀, c₁, 0$; no scalar for the third
   & \code{08:84} ``pools them, with 0 for the top limb''
   & \code{cpu/mod.rs:746} (array initialised to zero, two entries read), \code{:674-682}
@@ -249,9 +249,9 @@ first power of $λ$ & the ring-switched claim on $\qflock$ & 1
 then & bus: \code{mem₀}, \code{mem₁}, \code{mem₂}, \code{cntfin_mem} at
   $ζ_{<κ_{\mathrm{mem}}}$, \code{cntfin_bc} at $ζ_{<κ_{\mathrm{bc}}}$ & 5
   & \code{cpu/mod.rs:663}; \code{py:555-557, 1395} \\
-then & table sumcheck: the column claims (T11), of which 18 strided on $\qflock$ & 104
+then & table sumcheck: the column claims (step 12 of \cref{tab:gen-table-pub-transcript-table}), of which 18 strided on $\qflock$ & 104
   & \code{cpu/mod.rs:664}; \code{py:1395} \\
-then & public input: the pooled claims (P4) & 3 & \code{cpu/mod.rs:665}; \code{py:1402} \\
+then & public input: the pooled claims (step 5 of \cref{tab:gen-table-pub-transcript-pub}) & 3 & \code{cpu/mod.rs:665}; \code{py:1402} \\
 \end{longtable}
 \endgroup
 

@@ -6,13 +6,13 @@ It is an index and a summary, never the only record: every row points to the dos
 that states it in full, and the dossier's text governs where the two differ. No Lean was run
 for this register, no tracked file was edited, nothing was posted.
 
-**State.** Complete (2026-09-30): all thirteen dossiers processed, `boundary-adaptor.md`,
-`gt-opening-compile.md` and `obligations.md` after the coordinator's notes. 138 findings
-(1 critical, 37 major, 63 minor, 37 notes) and 2 positions; 115 negative results; 58
-unverified items.
+**State.** Complete (2026-09-30): all fourteen dossiers processed, `boundary-adaptor.md`,
+`gt-opening-compile.md`, `obligations.md` and `arklib-landscape.md` after the coordinator's
+notes. 143 findings (1 critical, 40 major,
+64 minor, 38 notes) and 2 positions; 120 negative results; 63 unverified items.
 
 **Numbering.** R1 to R136 were fixed when the register was first published. Rows added later
-(R137 onward, from `obligations.md`) are numbered after them and shown at the end of their
+(R137 onward, from `obligations.md` and `arklib-landscape.md`) are numbered after them and shown at the end of their
 severity group, so that no earlier R-number changes; within a group, the order by subject
 therefore holds for the earlier rows only.
 
@@ -57,6 +57,7 @@ the note says `DISAGREEMENT` and names both.
 | `boundary-adaptor.md` | complete (read after the coordinator's first note) | none | 9 major, 6 minor, 3 notes | two probes re-run at the new pins after a rebuild |
 | `gt-opening-compile.md` | complete (read after the coordinator's second note, 1921 lines) | none | 8 major, 9 minor, notes (§I) | its summary says \"critical: none that makes a stated leanerVM theorem wrong today\"; two Lean probes (old pin; per the dossier they elaborate at the new pins too) and Python scratch computations |
 | `obligations.md` | complete (added after the register was first published, at the coordinator's request) | none | 2 major, 1 minor, 1 note (§5) | no Lean run; its tree rests on the sibling dossiers' recorded probes; its four rows are numbered R137 to R140 and shown at the end of their severity groups |
+| `arklib-landscape.md` | complete (added after first publication, at the coordinator's request) | none | 3 major, 4 minor, 1 note (§12) | five rows new (R141 to R145); three merged into existing rows whose numbers are unchanged: §12.4 into the Merkle row, §12.6 into the legacy-framework row (R34), §12.8 into the status's upstream-watch row |
 
 The working extraction of the first ten dossiers, one block per dossier, is kept at
 `.claude/reports/blueprint-review/probes/register/staging.md` (boundary-adaptor and

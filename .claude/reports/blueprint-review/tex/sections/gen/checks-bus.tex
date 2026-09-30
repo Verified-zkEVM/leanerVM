@@ -20,7 +20,7 @@ said: inventing an attack would be padding. The steps named in the table are tho
 
 \begin{landscape}
 {\footnotesize\setlength{\tabcolsep}{4pt}
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.03\linewidth}>{\raggedright\arraybackslash}p{0.12\linewidth}>{\raggedright\arraybackslash}p{0.08\linewidth}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.08\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.29\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.055\linewidth}>{\raggedright\arraybackslash}p{0.12\linewidth}>{\raggedright\arraybackslash}p{0.08\linewidth}>{\raggedright\arraybackslash}p{0.14\linewidth}>{\raggedright\arraybackslash}p{0.08\linewidth}>{\raggedright\arraybackslash}p{0.19\linewidth}>{\raggedright\arraybackslash}p{0.265\linewidth}@{}}
 \caption{The checks of the setup, the commitment and the bus phase, as deployed.}\label{tab:gen-bus-checks}\\
 \toprule
 \# & Check & Specification & Rust & Python & Protects & Attack without it \\
@@ -32,21 +32,21 @@ said: inventing an attack would be padding. The steps named in the table are tho
 \endhead
 \bottomrule
 \endfoot
-B1 & The stream holds every element read (truncation)
+check 1 & The stream holds every element read (truncation)
   & absent
   & \code{mod.rs:132} (\code{Transcript}), \code{gkr.rs:359, 381, 401, 408} (\code{Truncated}),
   \code{leaf.rs:549} (\code{Truncated}), \code{fs/transcript.rs:184-188}
   & \code{py:363-367}
   & totality of the verifier
   & none: a verifier that read past the end would fail to run, not accept \\
-B2 & Announced sizes: upper limbs zero
+check 2 & Announced sizes: upper limbs zero
   & absent
   & \code{mod.rs:133-135}
   & \code{py:1373}
   & one encoding per size (the layout uses the low limb only, the chain binds all three)
   & none on soundness: the same layout and the same statement; $2^{128}$ encodings of each proof.
   It matters to the recursion guest, which does arithmetic on the sizes \\
-B3 & Public words: third limb zero
+check 3 & Public words: third limb zero
   & \code{08:29}
   & \code{mod.rs:141-143}
   & by type
@@ -56,21 +56,21 @@ B3 & Public words: third limb zero
   public-input phase still rejects it except with probability $1/|\E|$, the memory columns being
   $\K$-valued, so this is defence in depth (unverified beyond this argument; the public-input
   phase is another dossier's) \\
-B4 & The program has a power-of-two length, at most $2^{32}$
+check 4 & The program has a power-of-two length, at most $2^{32}$
   & \code{06:90}
   & \code{mod.rs:158-159}
   & \code{py:857}, \code{py:862} (\code{log2_strict}, \code{0 <= log_bytecode <= 32})
   & the statement's shape; the read bound
-  & see the check $τ_j ≤ 32$ (B6) \\
-B5 & $16 ≤ κ_{\mathrm{mem}} ≤ 32$
+  & see the check $τ_j ≤ 32$ (check 6) \\
+check 5 & $16 ≤ κ_{\mathrm{mem}} ≤ 32$
   & \code{06:86}
   & \code{mod.rs:160}; \code{mod.rs:51-52}
   & \code{py:859}
   & upper: the read bound; lower: the guest's range checks assume at least $2^{16}$ cells
   (\code{mod.rs:45-50})
-  & upper: see the check $τ_j ≤ 32$ (B6). Lower: none on the relation's soundness; a smaller memory makes honest range
+  & upper: see the check $τ_j ≤ 32$ (check 6). Lower: none on the relation's soundness; a smaller memory makes honest range
   checks fail \\
-B6 & $τ_j ≤ 32$
+check 6 & $τ_j ≤ 32$
   & \code{06:80}
   & \code{mod.rs:161}; \code{mod.rs:60}
   & \code{py:860}
@@ -80,14 +80,14 @@ B6 & $τ_j ≤ 32$
   & with $2^{64} − 1$ reads of one pair $(a, v)$ that is no entry of the array, counts
   $g⁰, g¹, …, g^{2^{64}−2}$: the pulled counts and the pushed counts $g·c$ are the same
   multiset, every count is nonzero, the bus balances, and the read is wrong. A mathematical
-  counterexample, not a feasible one. Given the stacking window (B9) the three upper caps are implied
+  counterexample, not a feasible one. Given the stacking window (check 9) the three upper caps are implied
   ($μ_{\mathrm{stack}} ≤ 28$ forces $τ_j ≤ 24$, $κ_{\mathrm{mem}} ≤ 26$,
   $κ_{\mathrm{bc}} ≤ 28$); they are checked first because the layout shifts by them
   (\code{witness.rs:76}). (The citation check found these implied caps true but loose: the
   tight bounds are $κ_{\mathrm{mem}} ≤ 25$, $κ_{\mathrm{bc}} ≤ 27$,
   $τ_{\mathrm{BLAKE2S}} ≤ 19$, and $τ_j ≤ 24$ is tight for the other tables; nothing depends
   on the looser figures.) \\
-B7 & $τ_{\mathrm{BLAKE2S}} ≥ 3$
+check 7 & $τ_{\mathrm{BLAKE2S}} ≥ 3$
   & absent
   & \code{mod.rs:162-166}
   & \code{py:861}
@@ -96,34 +96,34 @@ B7 & $τ_{\mathrm{BLAKE2S}} ≥ 3$
   & not constructed. Without the check the ring-switched claim covers a window larger than
   $\qflock$'s block, overlapping its neighbours in the stack. \textbf{Unverified}: a test of a
   verifier without the cap at $τ_5 = 2$ would settle whether a proof is accepted \\
-B8 & $1 ≤ ρ ≤ 4$
+check 8 & $1 ≤ ρ ≤ 4$
   & absent
   & \code{mod.rs:167}; \code{pcs/src/whir_config.rs:44-55}
   & \code{py:1377}
   & the WHIR parameters exist
   & none here: the opening's parameters are derived from $ρ$ \\
-B9 & $15 ≤ μ_{\mathrm{stack}} ≤ 28$
+check 9 & $15 ≤ μ_{\mathrm{stack}} ≤ 28$
   & absent
   & \code{mod.rs:174-176}
   & \code{py:1379}
   & the sizes WHIR is configured and tested for (\code{pcs.rs:179-188}). The lower bound never
   fires: $μ_{\mathrm{stack}}$ is floored at 15 (\code{witness.rs:97}, \code{py:890})
   & none here: the opening's \\
-B10 & The root's halves have a zero third limb
+check 10 & The root's halves have a zero third limb
   & absent
   & \code{fs/merkle.rs:26-29}
   & \code{py:223}
   & one encoding per root
   & none on soundness \\
-B11 & Layout facts, asserted: \code{push.mu = pull.mu}, \code{count.mu ≤ push.mu}, at most 16
+check 11 & Layout facts, asserted: \code{push.mu = pull.mu}, \code{count.mu ≤ push.mu}, at most 16
   coordinates, \code{soundness_bits(μ) ≥ 128}
   & absent
   & \code{leaf.rs:130-145} (\code{assert!}, a panic)
   & absent
   & the verifier's own arithmetic
-  & none: they are functions of the announced sizes and hold for every size that passes the caps and the windows (B4 to
-  B9) \\
-B12 & \textbf{One root for both sides}
+  & none: they are functions of the announced sizes and hold for every size that passes the caps and the windows (checks 4
+  to 9) \\
+check 12 & \textbf{One root for both sides}
   & \code{08:68-69}, \code{08:100} ``the one bus root for both sides''
   & structural: one element read into two slots, \code{gkr.rs:364-367}
   & structural, \code{py:434, 437}
@@ -131,7 +131,7 @@ B12 & \textbf{One root for both sides}
   & with two roots and no comparison: any unbalanced stack. Concretely, an honest stack with one
   cell of \code{mem_0} changed at an address that is read: seed and finalization agree with each
   other, the reads carry the old value \\
-B13 & $R_c ≠ 0$
+check 13 & $R_c ≠ 0$
   & \code{06:78}, \code{08:69}
   & \code{leaf.rs:887-889}
   & \code{py:546}
@@ -139,7 +139,7 @@ B13 & $R_c ≠ 0$
   & a read of any $(a, v)$ with count $0$: it pulls $(\mathit{sep}, a, 0, v)$ and pushes
   $(\mathit{sep}, a, g·0, v)$, the same tuple. The bus balances, the honest $R_c$ is $0$. The
   stack has a read of a value no cell holds \\
-B14 & \textbf{The layer check}, once per layer ($⌈μ/2⌉$ checks)
+check 14 & \textbf{The layer check}, once per layer ($⌈μ/2⌉$ checks)
   & implicit in \code{05:75, 83}
   & \code{gkr.rs:384-386}, \code{gkr.rs:411-413} (\code{LayerMismatch})
   & \code{py:449}
@@ -148,7 +148,7 @@ B14 & \textbf{The layer check}, once per layer ($⌈μ/2⌉$ checks)
   announces any $R$, passes the layers above the unchecked one by solving their one equation for
   one child, and sends the \textbf{true} children at the unchecked layer. The weakened verifier
   accepts with true leaf claims; the full verifier rejects at that layer \\
-B15 & The round identity of the layer sumcheck
+check 15 & The round identity of the layer sumcheck
   & \code{03:79-85}, \code{03:110}
   & not a check: $c_0$ is derived, \code{fs/transcript.rs:297-302}
   & not a check, \code{py:411-413}
@@ -156,13 +156,13 @@ B15 & The round identity of the layer sumcheck
   claim
   & in such a protocol without the check: the prover sends the true cofactor whatever the claim;
   every later check is then about true values, and any root is accepted \\
-B16 & $ζ$ has at least $τ_{\max}$ coordinates
+check 16 & $ζ$ has at least $τ_{\max}$ coordinates
   & absent
   & \code{constraints.rs:250-253} (start of the table sumcheck)
   & absent
   & the zerocheck point exists
   & none: a function of the announced sizes; every table has a flush, so $μ > τ_{\max}$ \\
-B17 & The stream and the openings are fully consumed (end of the proof)
+check 17 & The stream and the openings are fully consumed (end of the proof)
   & absent
   & \code{mod.rs:769}; \code{fs/transcript.rs:213-219}
   & \code{py:1414}; \code{py:415-417}
@@ -172,7 +172,7 @@ B17 & The stream and the openings are fully consumed (end of the proof)
 }
 \end{landscape}
 
-Nothing is checked at the boundary evaluations and the decomposition (U6 and U7): a wrong
+Nothing is checked at the boundary evaluations and the decomposition (steps 7 and 8 of \cref{tab:gen-bus-phase}): a wrong
 boundary evaluation is caught by the opening, a wrong $\mathit{rem}_s$ by the table sumcheck's
 final check. Rejections of these phases in the Rust are therefore \code{CpuError::PublicInput},
 \code{CpuError::Transcript}, \code{Error::Truncated}, \code{Error::ZeroCount},

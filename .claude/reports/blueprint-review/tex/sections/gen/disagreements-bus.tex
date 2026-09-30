@@ -43,9 +43,9 @@ commitment and the bus phase.}\label{tab:gen-bus-disagreements}\\
   & \code{08:55} has ``Flock's BLAKE2s R1CS matrices''; the Rust hashes one constant naming the
   circuit (\code{mod.rs:66-93}). (The status file's finding on the seed, F14.) \\
 4 & Checks of the verifiers the specification does not mention
-  & The upper limbs of the announced sizes (B2), the \code{BLAKE2S} floor (B7), the rate window
-  (B8), the stacking window (B9), the zero third limb of the root's halves (B10), the length of
-  $ζ$ (B16), the consumption of the stream (B17): the checks of \cref{tab:gen-bus-checks}. \\
+  & The upper limbs of the announced sizes (check 2), the \code{BLAKE2S} floor (check 7), the rate window
+  (check 8), the stacking window (check 9), the zero third limb of the root's halves (check 10), the length of
+  $ζ$ (check 16), the consumption of the stream (check 17): the checks of \cref{tab:gen-bus-checks}. \\
 5 & The combiner after the last layer
   & The verifiers draw one combiner more than layers (\cref{f:bus-extra-combiner}); \code{05:91}
   has one per layer. \\
@@ -58,7 +58,7 @@ commitment and the bus phase.}\label{tab:gen-bus-disagreements}\\
 7 & The fingerprint bound, the count columns, the assertions
   & The Rust's bound for the fingerprint is $5·2^μ$ (\code{leaf.rs:110}), the specification's
   $4·2^μ$ (\code{05:37}); and ``every count column'' (\code{06:78}) against the tables' read
-  counts. The Rust's assertions on the layout (B11) have no counterpart in the Python. \\
+  counts. The Rust's assertions on the layout (check 11 of \cref{tab:gen-bus-checks}) have no counterpart in the Python. \\
 8 & The table sumcheck's round message, in the Rust's own comment (added by the citation check)
   & The comment at \code{constraints.rs:265-266} says ``\code{h(0)} is derived from the running
   claim rather than transmitted'', but the call at \code{:267},

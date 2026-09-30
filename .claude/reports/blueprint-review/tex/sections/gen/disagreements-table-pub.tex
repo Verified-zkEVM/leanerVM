@@ -30,16 +30,16 @@ Subject & Disagreement & Which the blueprint follows \\
 \endhead
 \bottomrule
 \endfoot
-The public-input check (P3)
+The public-input check (step 4 of \cref{tab:gen-table-pub-transcript-pub})
   & The specification checks two equations; the Rust, the Python and the recursion guest check
   one (\cref{sec:gen-table-pub-transcript-pubcheck})
   & the specification \\
-The round consistency equation (T6)
+The round consistency equation (step 7 of \cref{tab:gen-table-pub-transcript-table})
   & The specification lists ``every sumcheck's rounds'' among the checks (\code{08:100}); in both
   verifiers it holds by construction and cannot reject
   & neither: its oracle protocol sends four coefficients and checks (dossier
   \file{gt-table-pub.md}, section 4, item 7) \\
-Which coefficient is omitted (T5)
+Which coefficient is omitted (step 6 of \cref{tab:gen-table-pub-transcript-table})
   & The specification does not say; both verifiers omit the linear coefficient $c₁$
   & the verifiers (acceptance test 8) \\
 The batching error

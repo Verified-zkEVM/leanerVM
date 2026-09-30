@@ -17,8 +17,8 @@ against the sources by a second agent (1,273 rows covering about 1,360 reference
 lines, 3 misquoted, 33 not supported, 4 unchecked; no conclusion reversed); about fifty Lean and
 Python probes, of which the twenty-two that carry a conclusion were re-run at the new pins; a
 hostile second reading of eleven major findings that do not concern the opening, which
-confirmed nine and weakened two (\cref{sec:faith-rederived}); one register of 138 findings, 115 negative results
-and 58 items not verified.
+confirmed nine and weakened two (\cref{sec:faith-rederived}); one register of 143 findings, 120 negative results
+and 63 items not verified.
 
 \paragraph{The verdict on the three criteria.}
 \begin{description}
@@ -85,6 +85,25 @@ not be reported upstream (\code{R38}). Thirteen matters are to be reported to le
 among them, the public-input check differs between the specification and its three verifiers;
 the Rust Flock prover fails at one challenge value; several constants and layouts of Flock, and
 four details of the opening's schedule, exist only in the code.
+
+\paragraph{What ArkLib now provides, and what stays ours.} At the owner's request the review
+surveyed ArkLib's history, its current \code{main} (which is the new pin) and its open pull
+requests against the blueprint's plan (\cref{ch:arklib-landscape}). Usable today: a typed,
+computable one-polynomial sumcheck with perfect completeness and plain soundness (no
+round-by-round notion, no extractor), Schwartz--Zippel on VCVio's sampler, a proved
+Johnson-range mutual-correlated-agreement bound with a constant different from the one the
+specification cites, and Merkle trees with proved completeness and single-opening
+extractability in VCVio. Pending upstream, none of it near merging: the guarded
+knowledge-soundness append (a year old, conflicting), lift-context definitions, a circuit GKR
+of the wrong shape, binary Basefold and FRI on the legacy framework, a duplex-sponge
+Fiat--Shamir that is not leanVM's chain. Ours to build: the four leanVM-shaped sumchecks with
+their knowledge leaves, the batching component, the fingerprint and product lemmas, the
+radix-4 GKR, the inner-product oracle, WHIR with grinding, the BLAKE2s chain with its
+grinding checks, the compiled-security interfaces for leanVM's construction and the
+list-binding compilation. Two facts change the blueprint's plan: the classical sumcheck leaf it
+meant to contribute upstream is false as stated at both pins (the verifier reads the input
+polynomial for its next target), and the only framework with a knowledge notion is the one
+ArkLib now calls legacy. The revised upstream ledger is in \cref{ch:arklib-landscape}.
 
 \paragraph{The owner's question.} If the verifier did not check, through some claim, that the
 top lane of both public words is zero, would the theorems catch it? Not the master theorems:

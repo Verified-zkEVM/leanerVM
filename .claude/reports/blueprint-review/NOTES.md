@@ -457,3 +457,10 @@ label families, report-upstream.tex, acceptance-tests.tex, bare codes). lint-rep
 upstream; what leanerVM builds itself → arklib-landscape agent (Fable) launched; will become a
 chapter "ArkLib: what exists, what is pending, what is ours" (sections/11b-arklib.tex) with an
 Opus LaTeX conversion, plus a revised upstream ledger.
+### arklib-landscape done (1375 lines; 8 findings, 3 major: classical sumcheck rbr leaf FALSE
+as stated at both pins (repaired by #1244); holes G1/G2 name wrong-kind sources; ledger A8/
+coding-theory row stale both ways (proved Johnson-range affine-line MCA bound upstream,
+different constant). origin/main == new pin 7653a901. Typed sumcheck usable for plain soundness
+only; no rbr KS/extractor/virtual/normalized/batching/grand product/GKR/WHIR/BCS/inner-product
+oracle upstream or pending. VCVio has proved Merkle trees (#4 closed → VCVio #571).
+tex-arklib launched (Opus); register asked to add rows; summary + options updated.

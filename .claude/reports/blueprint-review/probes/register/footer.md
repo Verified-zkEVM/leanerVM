@@ -17,6 +17,9 @@
   pass-through bus phase has no `Phase.Security` (into the row on the earlier review's
   dispositions); gt-table-pub's stale tracker text on the public-input phase (into the row on
   the hole comment); code-pubinput's stale status text (into the row on the status and tracker).
+- Merged after first publication into existing rows (numbers unchanged): arklib-landscape
+  §12.4 (the Merkle row), §12.6 (the legacy-framework row, R34) and §12.8 (the status's
+  upstream-watch row, formerly named for the dates of #615 and #818 only).
 - Not counted as findings: gt-opening-compile's notes on the moved leanVM working tree (in
   the contradictions list) and on its probe status (in Part 3).
 

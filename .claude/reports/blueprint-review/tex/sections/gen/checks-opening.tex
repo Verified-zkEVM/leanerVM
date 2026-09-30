@@ -14,7 +14,7 @@ it in the same cell. The number after the colon is the line.
 \end{sloppypar}
 
 Every check of the opening and of the compiled verifier that is not a check of an earlier phase.
-The setup and commitment checks are B1 to B10 and B17 of \cref{tab:gen-bus-checks}; they are
+The setup and commitment checks are checks 1 to 10 and 17 of \cref{tab:gen-bus-checks}; they are
 listed here only where this part adds something. ``Attack'' is a prover, committed word or proof
 that a verifier \textbf{without} the check accepts although it should not; where the check does
 not protect soundness this is said rather than invented. The dossier cites the specification row
@@ -38,7 +38,7 @@ list says nothing. The messages named are those of \cref{tab:gen-opening-whir}.
 \endfoot
 \multicolumn{7}{@{}l}{\textit{Setup: what the sizes buy the opening}} \\
 \midrule
-S-rate & $1 ≤ ρ ≤ 4$ (B8 of \cref{tab:gen-bus-checks})
+check 1 & $1 ≤ ρ ≤ 4$ (check 8 of \cref{tab:gen-bus-checks})
   & absent (\code{08:55} names no rate)
   & \code{mod.rs:167} (\code{validate_log_inv_rate}, \code{whir_config.rs:48-55})
   & \code{py:1377}
@@ -50,7 +50,7 @@ S-rate & $1 ≤ ρ ≤ 4$ (B8 of \cref{tab:gen-bus-checks})
   codewords) and $⟨W', Δ⟩$ fixing the residual claim; the $t_0$ queries miss that position with
   probability $(1 − 1/n_0)^{t_0} ≈ 1$; the deeper levels are honest for $f^{(1)}$. Accepted with
   probability near 1 \\
-S-window & $15 ≤ μ ≤ 28$ (B9 of \cref{tab:gen-bus-checks})
+check 2 & $15 ≤ μ ≤ 28$ (check 9 of \cref{tab:gen-bus-checks})
   & absent
   & \code{mod.rs:174-176}
   & \code{py:1379}
@@ -60,24 +60,24 @@ S-window & $15 ≤ μ ≤ 28$ (B9 of \cref{tab:gen-bus-checks})
   (\code{whir_config.rs:291-293}), so a verifier without the bound would fail to run rather than
   accept; above 28 the search would produce a configuration the Python has no table for. The lower
   bound never fires ($μ$ is floored at 15, \code{witness.rs:97}, \code{py:890}) \\
-S-implied & the per-log caps $κ_{\mathrm{mem}} ≤ 32$, $τ_j ≤ 32$, $κ_{\mathrm{bc}} ≤ 32$
+check 3 & the per-log caps $κ_{\mathrm{mem}} ≤ 32$, $τ_j ≤ 32$, $κ_{\mathrm{bc}} ≤ 32$
   & \code{06:80, 86, 90}
   & \code{mod.rs:158-161}
   & \code{py:857-862}
-  & (B4 to B6 of \cref{tab:gen-bus-checks})
+  & (checks 4 to 6 of \cref{tab:gen-bus-checks})
   & note: \textbf{implied} by the window, since every column's $2^κ$ is at most the stack's
   $2^μ ≤ 2^{28}$ (\code{witness.rs:67-102}, \code{py:305-311}); only the lower bounds
   $κ_{\mathrm{mem}} ≥ 16$, $τ_5 ≥ 3$ are independent \\
 \midrule
 \multicolumn{7}{@{}l}{\textit{Reading the stream and the openings}} \\
 \midrule
-R1 & the stream holds every scalar read
+check 4 & the stream holds every scalar read
   & —
   & \code{fs/transcript.rs:184-188} (\code{ExceededStream})
   & \code{py:363-367}
   & totality
   & none: the verifier would fail to run \\
-R2 & every root's two halves have a zero third limb
+check 5 & every root's two halves have a zero third limb
   & absent
   & \code{fs/merkle.rs:26-29} (\code{NonCanonicalEncoding}), for the commitment root and every level
   root (\code{whir.rs:2104, 2311})
@@ -86,19 +86,19 @@ R2 & every root's two halves have a zero third limb
   & none on soundness: $2^{128}$ streams per root, all with the same tree; a prover re-rolling every
   later challenge at the cost of one squeeze rather than one commitment, within the query bound's
   accounting. Matters to canonicality and to the recursion guest \\
-R3 & a Merkle phase exists for every opening
+check 6 & a Merkle phase exists for every opening
   & —
   & \code{fs/transcript.rs:271} (\code{MissingHint})
   & \code{py:385-390}
   & totality
   & none \\
-R4 & the stream and the phase list are fully consumed
+check 7 & the stream and the phase list are fully consumed
   & absent
   & \code{fs/transcript.rs:213-219}; \code{mod.rs:769}
   & \code{py:415-417}, \code{py:1414}
   & one encoding per proof
-  & none on soundness (B17 of \cref{tab:gen-bus-checks}) \\
-R5 & the residual $f_{\mathrm{final}}$ has exactly $2^{n_{\mathrm{res}}}$ scalars
+  & none on soundness (check 17 of \cref{tab:gen-bus-checks}) \\
+check 8 & the residual $f_{\mathrm{final}}$ has exactly $2^{n_{\mathrm{res}}}$ scalars
   & —
   & by count, \code{whir.rs:2198}
   & \code{py:1032}
@@ -107,7 +107,7 @@ R5 & the residual $f_{\mathrm{final}}$ has exactly $2^{n_{\mathrm{res}}}$ scalar
 \midrule
 \multicolumn{7}{@{}l}{\textit{Grinding}} \\
 \midrule
-G1 & at every level, before the positions are sampled: the nonce read from the stream satisfies
+check 9 & at every level, before the positions are sampled: the nonce read from the stream satisfies
   \code{compress(pow_base(cv), (nonce, 4))[0] ≡ 0 (mod 2^17)};
   the nonce is bound either way
   & absent (from Annex B altogether)
@@ -121,7 +121,7 @@ G1 & at every level, before the positions are sampled: the nonce read from the s
   each nonce gives fresh positions at the cost of one squeeze; after about $2^{111}$ nonces the
   positions all fall in the agreement set and the level passes. With the check each attempt costs
   $2^{17}$ hashes, restoring $2^{128}$ \\
-G2 & with \code{bits = 0} only the nonce \code{0} is accepted
+check 10 & with \code{bits = 0} only the nonce \code{0} is accepted
   & absent
   & \code{fs/lib.rs:167-168} (\code{bits = 0} never happens in production, all levels grind 17 bits)
   & \code{py:381}
@@ -130,13 +130,13 @@ G2 & with \code{bits = 0} only the nonce \code{0} is accepted
 \midrule
 \multicolumn{7}{@{}l}{\textit{Merkle openings, per level (\code{fs/merkle.rs:163-235}); the Python reads the raw form}} \\
 \midrule
-M1 & the phase stores one row per \textbf{distinct} position (sorted)
+check 11 & the phase stores one row per \textbf{distinct} position (sorted)
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:139-141}
   & n/a (one row per query, duplicates repeated, \code{py:395-403})
   & format
   & none \\
-M2 & every stored row has exactly \code{row_words} words (level 0: $n_{\mathrm{lanes}}$, from the
+check 12 & every stored row has exactly \code{row_words} words (level 0: $n_{\mathrm{lanes}}$, from the
   announced layout; deeper: $3·2^4$), and \code{row_words ≤ leaf_words}
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:141-148}; \code{whir.rs:2130-2131, 2213-2219}
@@ -151,25 +151,25 @@ M2 & every stored row has exactly \code{row_words} words (level 0: $n_{\mathrm{l
   claim lies inside the committed lanes, the second, the verifier's, bounds claims only by the full
   cube) and outside every column of the layout, so $Λ(w')$ restricted to the layout is the same. The Python's accepted set is strictly
   larger than the Rust's on this point \\
-M3 & \code{num_leaves} is a power of two, nonzero; the query list is nonempty
+check 13 & \code{num_leaves} is a power of two, nonzero; the query list is nonempty
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:171-173}
   & by construction
   & the tree shape
   & none: verifier data \\
-M4 & every position is below \code{num_leaves}
+check 14 & every position is below \code{num_leaves}
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:176-178}
   & \code{py:400} (shift)
   & —
   & none: positions are masked at sampling (\code{whir.rs:1189}, \code{py:950}) \\
-M5 & the octopus has exactly the siblings the paths need: none missing, none surplus
+check 15 & the octopus has exactly the siblings the paths need: none missing, none surplus
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:195, 197, 208}
-  & by fixed-length parsing and R4
+  & by fixed-length parsing and check 7
   & canonical format
   & none on soundness (a surplus sibling is never hashed) \\
-M6 & the recomputed root equals the expected root: the commitment root at level 0 (a statement
+check 16 & the recomputed root equals the expected root: the commitment root at level 0 (a statement
   value bound before any challenge, \code{pcs.rs:136-138}), the root read from the stream at level
   $i ≥ 1$
   & \code{08:100} ``the PCS opening''
@@ -180,7 +180,7 @@ M6 & the recomputed root equals the expected root: the commitment root at level 
   with a dishonest $f^{(1)}$ ($c_q := \mathrm{Enc}_0(f^{(1)})[x_q]$, recomputed after the positions
   are known), at every level likewise; every intro claim then holds and the terminal check passes
   for any batched claim \\
-M7 & height and leaf width are the verifier's (\code{height = log₂ num_leaves}, \code{leaf_words}),
+check 17 & height and leaf width are the verifier's (\code{height = log₂ num_leaves}, \code{leaf_words}),
   never read from the proof
   & \code{08:100} ``the PCS opening''
   & \code{fs/merkle.rs:174, 139-148}; \code{whir.rs:2084, 2213}
@@ -194,7 +194,7 @@ M7 & height and leaf width are the verifier's (\code{height = log₂ num_leaves}
 \midrule
 \multicolumn{7}{@{}l}{\textit{WHIR's per-level checks and the final check}} \\
 \midrule
-W1 & the round identity $h(0) + h(1) = \mathit{claim}$ at every round
+check 18 & the round identity $h(0) + h(1) = \mathit{claim}$ at every round
   & \code{08:100} ``every sumcheck's rounds''
   & not a check: $c_1$ is derived (\code{fs/transcript.rs:297-299})
   & \code{py:409-410}
@@ -202,9 +202,9 @@ W1 & the round identity $h(0) + h(1) = \mathit{claim}$ at every round
   & in such a protocol without it: send the true $h$ whatever the claim; every later check is about
   true values and any $C_λ$ is accepted. In the deployed encoding the attack has no message to
   carry it \\
-W2 & the out-of-domain answer $y$
+check 19 & the out-of-domain answer $y$
   & \code{08:100} ``the PCS opening''
-  & not checked when read (\code{whir.rs:1672}); glued into the sumcheck with $λ_i$ and settled at W5
+  & not checked when read (\code{whir.rs:1672}); glued into the sumcheck with $λ_i$ and settled at check 22
   & \code{py:1036-1037}
   & that the new oracle's list has at most one member consistent with the transcript (Lemma B.11)
   & dropping the OOD claim from the glue: the prover commits at level 1 to a word close to two
@@ -213,17 +213,17 @@ W2 & the out-of-domain answer $y$
   (\code{whir_config.rs:329-333}: ``Plain Johnson without OOD binding would be unsound at these
   parameters: the query phase would pay a union bound over the interleaved list (19 to 52 bits
   here)'') \\
-W3 & the consistency of the opened rows with the fold: \code{enforced_sum_i}
+check 20 & the consistency of the opened rows with the fold: \code{enforced_sum_i}
   $= Σ_q λ_i^q·⟨\mathit{row}_q, \eq(r_{\mathrm{level}}, ·)⟩$ is the claim of the intro polynomial
   & \code{08:100} ``the PCS opening''
-  & computed by $V$ (\code{whir.rs:2140, 2226, 2346}) and glued; settled at W5
+  & computed by $V$ (\code{whir.rs:2140, 2226, 2346}) and glued; settled at check 22
   & \code{py:1051, 1057}
   & that $f^{(i+1)}$ is the fold of the committed $C^{(i)}$ on the queried columns (steps 3(c)
   and 3(d))
   & with the intro claim taken from the prover instead: commit any $f^{(i+1)}$; all consistency
   claims are on prover-chosen values; the residual claim is discharged by the dishonest
   $f^{(i+1)}$; accepted \\
-W4 & the level batching: OOD first, queries after, powers $λ_i, λ_i^2, …$ with the running claim
+check 21 & the level batching: OOD first, queries after, powers $λ_i, λ_i^2, …$ with the running claim
   at $λ_i^0$
   & \code{08:100} ``the PCS opening''
   & \code{whir.rs:1131-1154}, \code{:1681-1701}
@@ -232,7 +232,7 @@ W4 & the level batching: OOD first, queries after, powers $λ_i, λ_i^2, …$ wi
   row, $(J_i − 1)L_i/\abs{\E}$)
   & a batch with two claims on the same power: the prover balances a false OOD claim against a
   false query claim ($λ·(y − y_{\mathrm{true}}) + λ·(s − s_{\mathrm{true}}) = 0$) with probability 1 \\
-W5 & \textbf{the terminal check} $\mathit{weight} · \mle{f}_{\mathrm{final}}(ρ_{\mathrm{tail}}) = t_r$,
+check 22 & \textbf{the terminal check} $\mathit{weight} · \mle{f}_{\mathrm{final}}(ρ_{\mathrm{tail}}) = t_r$,
   with $\mathit{weight}$ the sum of $\mle{W}_λ$ at $ρ$ rotated, of $Σ_i β_i·$(the induced weight
   of level $i$'s queries at the tail of $ρ$ from level $i$'s start) and of
   $Σ β·\eq(z, ρ\text{-part})$
@@ -241,20 +241,20 @@ W5 & \textbf{the terminal check} $\mathit{weight} · \mle{f}_{\mathrm{final}}(ρ
   & \code{py:1075-1083}
   & everything: it is the one equation the whole sumcheck chain ends on
   & without it nothing is checked about $q$: any commitment, any $C_λ$ \\
-W6 & the shape guards \code{n_current ≥ k_i}, \code{ctx.log_msg_cols ≥ yr_log_n}, \code{at.len() = 1},
+check 23 & the shape guards \code{n_current ≥ k_i}, \code{ctx.log_msg_cols ≥ yr_log_n}, \code{at.len() = 1},
   \code{prev.advance}
   & —
   & \code{whir.rs:2188-2190, 2266-2268, 2280-2282, 2374-2384}
   & absent
   & the verifier's own arithmetic on the configuration
   & none: functions of $(μ, ρ)$, true for every supported size \\
-W7 & \code{n_lanes ∈ [1, 2^6]}, $r ≥ 1$, vector lengths, \code{ood_samples[0] = 0}
+check 24 & \code{n_lanes ∈ [1, 2^6]}, $r ≥ 1$, vector lengths, \code{ood_samples[0] = 0}
   & —
   & \code{whir.rs:2064-2072}
   & absent
   & configuration sanity
   & none: verifier data \\
-W8 & ring switching: \code{s_hat_v} present, of length 64
+check 25 & ring switching: \code{s_hat_v} present, of length 64
   & —
   & \code{stack_open.rs:507-510}
   & n/a (the Python builds the target from Flock's 64 values, \code{py:1346})
@@ -265,18 +265,18 @@ W8 & ring switching: \code{s_hat_v} present, of length 64
 \end{landscape}
 
 The blueprint's \lean{Sizes.Admissible} must contain the rate window and the stacking window
-(S-rate and S-window; \cref{f:bus-admissible}).
+(checks 1 and 2; \cref{f:bus-admissible}).
 
 \paragraph{The specification's closing list.} \code{08:100}: ``Accepts if every check above passed:
 the caps, the one bus root for both sides, the nonzero count root, every sumcheck's rounds and final
 value, the public-input line, flock's reduction, and the PCS opening.'' Against
-\cref{tab:gen-opening-checks}: ``the caps'' omits the rate window and the stacking window (S-rate,
-S-window); ``every sumcheck's rounds'' is not a check in either verifier (W1); ``the PCS opening''
-stands for M1 to M7, W2 to W5 and, absent from Annex B altogether, G1. Absent from the specification
-and present in both verifiers: the canonical encodings (B2, B3, B10 of \cref{tab:gen-bus-checks};
-R2), full consumption (R4), grinding (G1, G2). The blueprint's \lean{verify} inherits the omissions of
+\cref{tab:gen-opening-checks}: ``the caps'' omits the rate window and the stacking window (checks 1
+and 2); ``every sumcheck's rounds'' is not a check in either verifier (check 18); ``the PCS opening''
+stands for checks 11 to 17 and 19 to 22 and, absent from Annex B altogether, check 9. Absent from the specification
+and present in both verifiers: the canonical encodings (checks 2, 3 and 10 of \cref{tab:gen-bus-checks};
+check 5 here), full consumption (check 7), grinding (checks 9 and 10). The blueprint's \lean{verify} inherits the omissions of
 the specification it is ``written from'' (\code{bp:1216}) unless Layer 12 lists the checks of
-\cref{tab:gen-opening-checks}; its six mutations (\code{bp:1238-1239}) exercise M6 and the scalars
+\cref{tab:gen-opening-checks}; its six mutations (\code{bp:1238-1239}) exercise check 16 and the scalars
 only (\cref{f:opening-mutation-tests}).
 
 \paragraph{Negative results.} Checked, no finding: the query sampling is exactly uniform ($d$-bit

@@ -781,7 +781,7 @@ strings:
   supplies the zero prefix (\code{fs/merkle.rs:53-58}; \code{whir.rs:2130-2131}), while the raw form
   carries the full 64-word image (\code{py:1049}: \code{lanes if level == 0 else 3 * lanes}) and
   \textbf{the Python does not check that the prefix is zero}: run standalone on an adversarial raw
-  proof it accepts a commitment whose absent lanes are nonzero (soundness-neutral, check M2 of
+  proof it accepts a commitment whose absent lanes are nonzero (soundness-neutral, check 12 of
   \cref{tab:gen-opening-checks}; a divergence in accepted sets nonetheless). The citation check
   agrees by reading, not by running: the Python never checks that a word is zero and has no notion of
   $n_{\mathrm{lanes}}$, so such a proof passes its Merkle check; that the rest of its verification
@@ -854,7 +854,7 @@ two scalars $(c_0, c_2)$ per round (\code{whir.rs:509-522}; \code{py:1012}). The
 \emph{Sumcheck messages} (\code{bp:315}) and acceptance test 8 (\code{bp:1287-1289}: ``\lean{decode}
 reconstructs $c_1$'') state this for the table sumcheck; \code{RoundPoly.decode (d) (claim) (eq? : Option E)}
 (\code{bp:1212}) has the right signature. Consequence for the oracle protocol: the round identity
-is not a check in the deployed verifier (check B15 of \cref{tab:gen-bus-checks}; the table-sumcheck
+is not a check in the deployed verifier (check 15 of \cref{tab:gen-bus-checks}; the table-sumcheck
 dossier's ``three and none on the wire'', \cref{f:table-pub-round-message}); the oracle protocol's
 explicit check is what \lean{decode} makes true by construction.
 

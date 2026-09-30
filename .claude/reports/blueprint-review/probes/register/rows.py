@@ -356,14 +356,15 @@ F("major (gt-bus, boundary-adaptor, code-layer1; code-layer1: \"by the scale's l
   "Four dossiers: gt-bus has the caps side, code-layer1 the fit, boundary-adaptor both and the rate; gt-opening-compile computes that the phase errors sum to about `2^-160` with the stacking window, so `piopError_le` holds with the window and is false at the per-log caps."),
 
 # --- libraries
-F("major", 1, "libs",
+F("major (lib-arklib); minor (arklib-landscape §12.6, \"reinforces\" this row)", 1, "libs",
   "The blueprint plans on a framework ArkLib calls legacy, and on a pull request that may not merge",
-  "lib-arklib.md §G.3; §F.2, §C.3",
+  "lib-arklib.md §G.3; §F.2, §C.3; arklib-landscape.md §12.6, §11",
   "an error of the blueprint's plan",
-  "ArkLib calls `OracleReduction` legacy; its typed interaction framework (grown to `7653a901`) has no knowledge soundness, no round-by-round notion and no extractor; #615 is open and conflicting; no relevant admission was lifted between the pins. The blueprint expects #615 to land and upstream to prove the round-by-round to plain implication.",
+  "ArkLib calls `OracleReduction` legacy; its typed interaction framework (grown to `7653a901`) has no knowledge soundness, no round-by-round notion and no extractor; #615 is open and conflicting; no relevant admission was lifted between the pins. The blueprint expects #615 to land and upstream to prove the round-by-round to plain implication. arklib-landscape adds that ArkLib #1245 shows `Verifier.rbrSoundness_implies_soundness` unprovable as stated (a kernel-checked counterexample: the verifier is run from a fresh state, the prover's game from the state its queries leave) and proves it only for a stateless shared oracle; the awaited theorems are being shown false, not proved.",
   "ArkLib `AGENTS.md`, `docs/design/05-roadmap.md` (`7653a901`); issue #676, PR #615 (read with `gh`); blueprint `:257-267`, `:1143`, `:1429`; status `:201` (accurate)",
-  "keep the port until any framework proves a guarded-first append; state the plain corollary locally (probe `PlainReading`, 40 lines, plus a local union bound); a ledger row for the typed framework (lib-arklib.md §G.3)",
-  "paper; probe-run (`PlainReading`, old pin)"),
+  "keep the port until any framework proves a guarded-first append; state the plain corollary locally (probe `PlainReading`, 40 lines, plus a local union bound), for the stateless shared oracle `σ = Unit` where #1245 shows it holds; nothing awaited upstream; a ledger row for the typed framework (lib-arklib.md §G.3; arklib-landscape.md §12.6, §11)",
+  "paper; probe-run (`PlainReading`, old pin); ArkLib #1245 and issue #676 read with `gh`",
+  "Two dossiers (merged after first publication; the R-number is unchanged)."),
 
 # --- Layer 1
 F("major", 1, "layer1",
@@ -738,14 +739,15 @@ F("minor", 2, "libs",
   "`Protocol/Field.lean:115, 118`; blueprint `:633-650`, `:1400`",
   "add both to the sketch and the list (lib-others.md §G.4)",
   "paper (reading)"),
-F("minor (possibly avoidable audit surface)", 2, "libs",
+F("minor (docs-debt, possibly avoidable audit surface; arklib-landscape)", 2, "libs",
   "The upstream ledger misses the Merkle trees of the pinned VCVio and cites a closed issue",
-  "docs-debt.md §H.15; §B.9",
-  "—",
-  "The ledger says Merkle trees are absent upstream and names ArkLib issue 4 (closed 2026-09-27 for VCVio issue 571); VCVio at `f9dc47d9` has nineteen sorry-free Merkle-tree modules.",
-  "blueprint `:265`, `:1179-1182`; VCVio `CryptoFoundations/MerkleTree/` at `f9dc47d9`",
-  "name VCVio's library and issue 571; decide whether Layer 11 builds on it (docs-debt.md §H.15)",
-  "paper; unverified (fit with leanVM's Merkle trees; state at `a4232d08`)"),
+  "docs-debt.md §H.15; §B.9; arklib-landscape.md §12.4",
+  "— (docs-debt); stale text and a missed consumable (arklib-landscape)",
+  "The ledger and hole K2 say Merkle trees are absent upstream and name ArkLib issue 4 (closed 2026-09-27 for VCVio issue 571); VCVio at `f9dc47d9` has nineteen sorry-free Merkle-tree modules, and at `a4232d08` the trees and their single-opening random-oracle extractability (`extractability_rom_bound`) are proved; ArkLib's status page says to adapt that theorem.",
+  "blueprint `:265`, `:613`, `:1179-1182`; VCVio `CryptoFoundations/MerkleTree/` at `f9dc47d9`; `MerkleTree/Extractability.lean:591`, `Hashing/Defs.lean:288` at `a4232d08`",
+  "name VCVio's library and issue 571 in the ledger and hole K2; Layer 11's `merkleRoot`, `merkleVerify` are VCVio's `build`/`verify` with BLAKE2s, plus a fit lemma for leanVM's fixed-height, fixed-width trees (docs-debt.md §H.15; arklib-landscape.md §12.4)",
+  "paper; unverified (the fit with leanVM's untagged fixed-height trees)",
+  "Two dossiers (merged after first publication; the R-number is unchanged)."),
 
 # --- Layer 1
 F("minor", 2, "layer1",
@@ -905,14 +907,15 @@ F("minor", 2, "docs",
   "blueprint `:232-251`; probe `AxiomsArkLibBuilt` (exit 1: unknown constants)",
   "corrected entries (lib-arklib.md §B.2)",
   "probe-run"),
-F("minor", 2, "docs",
-  "The status's dates for ArkLib #615 and #818 are last-update dates, not opening dates",
-  "lib-arklib.md §F.5 (last paragraph)",
+F("minor (lib-arklib, arklib-landscape)", 2, "docs",
+  "The status's upstream-watch table is out of date (eight rows, among them the dates of #615 and #818)",
+  "lib-arklib.md §F.5 (last paragraph); arklib-landscape.md §12.8, §11",
   "an error of the status",
-  "\"Open since 2026-09-08\" (#615, created 2026-07-07) and \"since 2026-09-04\" (#818, created 2026-08-31).",
-  "`gh api` (read-only), 2026-09-29",
-  "correct the dates",
-  "paper (`gh` read)"),
+  "\"Open since 2026-09-08\" (#615, created 2026-07-07) and \"since 2026-09-04\" (#818, created 2026-08-31) are last-update dates; #1128 and #1129 are said to replace the adapter when merged (they are unmerged and would not); #900 and #901 await upstream pull requests none of which opened; the \"ArkLib `main`\" row now describes the pin; rows are missing for #1214, #1242, #1243 (merged, at the pin), #1244, #1245, #1251 (open), VCVio #571 and the closed #907.",
+  "`protocol-status.md:186-206` (\"checked 2026-09-24\"); `gh api` (read-only), 2026-09-29/30",
+  "rewrite the table from arklib-landscape.md §11 at the next status rewrite",
+  "paper (`gh` read)",
+  "Two dossiers (merged after first publication; the R-number is unchanged)."),
 F("minor", 2, "docs",
   "Misattributed and mistitled references in the blueprint",
   "literature.md §A.4 (fifth finding)",
@@ -1393,6 +1396,12 @@ N("obligations §5.5", "The per-challenge errors of the built phase (`1/|E|`) an
 N("obligations §5.5", "The composition of errors through the spine is per challenge with no additive term; the seams add nothing.", "reading (lib-arklib §G.9)", "")
 N("obligations §5.5", "The hypotheses table reproduces boundary-adaptor §C's rows (none found wrong) and adds six: the grinding check, the canonical encodings, `R1CS_DIGEST`, the `F_2`-independence of the fixed weights, the oracle-freeness of the front, the bound on `piopError`.", "reading", "")
 
+N("arklib-landscape §13", "Ledger rows A2, A4, A5 (the admits), A7 (WHIR absent upstream) and A9 (ring-switching leaves admitted) are confirmed at both ArkLib pins.", "baselines and reading", "")
+N("arklib-landscape §13, §10", "The status's \"the spine stays on `OracleReduction`, whose security definitions the new executor does not yet carry\" is confirmed.", "reading", "")
+N("arklib-landscape §13, §4.d", "The status's \"GKR: to open (ArkLib #818 is a different protocol shape)\" is confirmed.", "reading", "")
+N("arklib-landscape §13", "ArkLib's `ReduceClaim`, `CheckClaim`, `RandomQuery`, `DoNothing` are sorry-free at the new pin (`SendClaim`, `SendWitness`, `NoInteraction` have `sorry`, none consumed by the spine).", "reading", "")
+N("arklib-landscape §13", "`Verifier.fiatShamir`, `Commitment.Scheme`, `MLE`/`eqTilde`, `ProtocolSpec`, `OracleInterface` exist at the new pin with the shapes the spine uses.", "reading (agrees with lib-arklib §F.2)", "")
+
 # ============================================================ PART 3: NOT VERIFIED
 # U(dossier + section, claim, status, what would verify it)
 
@@ -1466,6 +1475,12 @@ U("gt-opening-compile §0, §H", "The two Lean probes (`InnerProductOracle.lean`
 U("gt-opening-compile §E.2", "That `fiatShamir_completeness` for a constant challenge oracle is false in general.", "an inference (shared with lib-arklib)", "a counterexample probe")
 U("gt-opening-compile §E.5", "That a grinding nonce exists for every reachable chain state.", "a conjecture about BLAKE2s (in the random-oracle model the search fails with probability `(1 − 2^-17)^(2^64)`)", "none by proof; the Lean `prove` is fuelled instead")
 
+U("arklib-landscape §13", "The typed Interaction trees' theorems depend on the three standard axioms only.", "three consistent sources (baseline, grep, pull-request reports), no probe", "`#print axioms Sumcheck.Interaction.Native.execute_soundness` under the lock")
+U("arklib-landscape §13", "Whether `johnsonExceptionCount` at leanVM's parameters is within Annex B's error budget.", "not computed", "evaluate `FiniteBounds.lean:66-108` at `ρ ∈ {1/2, …, 1/16}`, `n = 2^(κ+R)` (gt-opening-compile's `whir_params.py` gives the parameters)")
+U("arklib-landscape §13", "Whether CompPoly's `BF64` at `572f9973` provides `Algebra (ZMod 2) BF64` and a basis indexed by `Fin 6 → Fin 2` for ArkLib's ring-switching profile.", "not read", "read `CompPoly/Fields/Binary/`")
+U("arklib-landscape §13", "The judgements on how close pull requests are to merging.", "inferences from review state, conflicts, dates and comments", "a maintainer's statement")
+U("arklib-landscape §13", "The fit of VCVio's `NodeQueryModel` with leanVM's untagged fixed-height Merkle trees.", "a definition to write", "write it")
+
 # ============================================================ CONTRADICTIONS WITH THE BRIEF, as the dossiers report them
 CONTRA = [
     ("verify-gt-table-pub §4 item 1", "The blueprint changed at `144c5aa` in more than its pins table: a new paragraph after line 51 and the row \"Module system\"; citations at or after line 315 are +4 at `HEAD` (brief §8 says \"pins table only\")."),
@@ -1532,6 +1547,8 @@ KEYS = {
     "publicnames": "The list of public names is not the public boundary",
     "legacy": "The blueprint plans on a framework ArkLib calls legacy",
     "slotpin": "The spine's slot does not pin the protocol",
+    "sumleaf": "The classical sumcheck round-by-round leaf",
+    "countingbound": "The local counting bound is redundant with VCVio",
     "constone": "The auxiliary predicate must include the constant-one position",
     "existential": "The existential forms of round-by-round knowledge soundness",
     "broken": "Broken names and citations",
@@ -1580,4 +1597,57 @@ F("note (a reading aid)", 3, "error",
   "none to the blueprint beyond the row on unassigned obligations; the status lists these nodes as \"what makes the master theorems about leanVM\", apart from the holes (obligations.md §5.4)",
   "paper",
   "Related: [[declerr]], [[slotpin]].",
+  late=True)
+
+
+# ============================================================ LATE ROWS: arklib-landscape.md (added after first publication)
+F("major", 1, "libs",
+  "The classical sumcheck round-by-round leaf the ledger targets is false as stated at both ArkLib pins",
+  "arklib-landscape.md §12.1; §2.a",
+  "an error of the blueprint's plan caused by an upstream defect; a deviation forced by an upstream library once ArkLib #1244 is the reference",
+  "The admitted `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness` claims error `deg/|R|` per challenge, but the verifier sets its next target from the input polynomial's own value (querying it), so at `deg = 0` a false input goes to an accepted true output with probability one (ArkLib issue #1's F₅ counterexample); ledger row A1 names this as the leaf Layer 4 contributes.",
+  "ArkLib `Sumcheck/Spec/SingleRound.lean:354, 391-397, 423-436, 570-573, 800` (at `dca90385` and `7653a901`); ArkLib issue #1 (comment of 2026-09-27); PR #1244 (open)",
+  "ledger A1: Layer 4 proves the single-round knowledge bound for each of its own sumcheck shapes on the spine's notion; ArkLib's classical leaf is false as stated until #1244 merges, the typed sumcheck proves plain soundness only; nothing contributed upstream until ArkLib has a knowledge notion (arklib-landscape.md §12.1)",
+  "paper (the counterexample is upstream's; #1244 read with `gh`)",
+  "Related: [[legacy]] (the framework and the awaited theorems); lib-arklib §B.3 records the same leaf as admitted.",
+  late=True)
+F("major", 1, "libs",
+  "Holes G1 and G2 (the sumcheck) name upstream sources that do not supply what they are listed for",
+  "arklib-landscape.md §12.2; §2.b",
+  "stale text of the blueprint and the status (an error of the plan)",
+  "At `7653a901` the typed `Sumcheck/Interaction/Soundness.lean` proves one-round plain soundness on the typed framework, the full protocol's `Native.execute_soundness` is plain soundness with a `Unit` witness, ArkLib #1128 is honest algebra and #1129 tests: none is an oracle reduction, round-by-round, with an extractor or a virtual summand. leanerVM #42 is conflicting and targets the classical projection, whose verifier has the defect of the previous row.",
+  "blueprint `:598-599`; status `:198`; ArkLib `Sumcheck/Interaction/Soundness.lean:131, 167` (`7653a901`)",
+  "G1: the typed `Native` and `Computable` sumcheck (plain case, through an adaptor) and #42 for the honest algebra; G2: nothing upstream, ArkLib's roadmap items for native round-by-round and knowledge have no pull request (arklib-landscape.md §12.2)",
+  "paper",
+  "Related: [[sumleaf]].",
+  late=True)
+F("major", 1, "libs",
+  "Ledger A8 and the status's coding-theory row are stale in both directions: the watched theorem stays admitted, and a proved Johnson-range bound exists",
+  "arklib-landscape.md §12.3; §8.b",
+  "an error of the blueprint (it plans to consume a theorem whose proof is not coming and misses the one that exists); the constant mismatch with Annex B is a deviation forced by the upstream library until compared",
+  "ArkLib's #907 track closed as complete with `rs_mcaError_le_in_johnson_range` still admitted, while `ReedSolomon.mcaError_affineLine_johnson_le` is a proved Johnson-range affine-line MCA bound over any finite field, with a different constant (`johnsonExceptionCount`); the capacity-range theorems assume characteristic 0 or `k − 1 < ringChar F`, false over `E`.",
+  "blueprint `:265`; status `:181`; ArkLib `CapacityBounds.lean:203`, `Johnson/Probability.lean:41-52`, `Capacity.lean:118-121, 254-263` (`7653a901`)",
+  "`McaJohnson` parametrized by its constant, with two inhabitants (the admitted printed-constant one and the proved one); Layer 11 uses the proved one if its constant meets Annex B's per-level budget at the pinned parameters (to be computed); the capacity theorems are not usable (arklib-landscape.md §12.3)",
+  "paper; unverified (whether `johnsonExceptionCount` fits Annex B's budget at leanVM's parameters)",
+  "Related: the notes on the preprint theorem and on the three readings of its constant (literature §C.4).",
+  late=True)
+F("minor", 2, "libs",
+  "The batching component's named upstream source is not a reduction and lives in a pull request that will not merge as is",
+  "arklib-landscape.md §12.5",
+  "stale plan",
+  "Hole G3 and the status name ArkLib #615's `gammaPowers`, a separation lemma in a retired notation inside a conflicting, pre-module pull request unreviewed since July, which ArkLib issue #893 calls a reuse candidate.",
+  "blueprint `:600`; status `:180, 189`; `Packing/Batching.lean:88-91` at `ca7a2577` (PR #615)",
+  "G3's existing work: #43 (the table pairing); the separation lemma is twenty lines, #615 a reference, not a dependency; \"never as a dependency; write and offer upstream\" (arklib-landscape.md §12.5)",
+  "paper",
+  "Related: [[legacy]] (#615 as the port's upstream).",
+  late=True)
+F("note", 3, "libs",
+  "The blueprint's ArkLib table cites the PMF form of Schwartz–Zippel, which the new pin restated in VCVio's form",
+  "arklib-landscape.md §12.7",
+  "—",
+  "At `7653a901` `prob_eval_zero_le_div` is stated with VCVio's uniform sampling (plus `prob_eval_zero_univ_le_div` for full carriers), the form leanerVM's `ToVCVio/UniformSample.lean` bridged locally at the old pin; the local bridge is now upstream for non-subsingleton bad sets.",
+  "blueprint `:250`; ArkLib `Data/MvPolynomial/SchwartzZippelCounting.lean:29, 114-124, 138` (`7653a901`)",
+  "correct the names; keep `UniformSample.lean` for its subsingleton specialization or derive it (arklib-landscape.md §12.7)",
+  "paper",
+  "Related: [[arklibtable]] (the wrong namespace, lib-arklib §G.6) and [[countingbound]] (the counting bound redundant with VCVio, lib-others §G.10).",
   late=True)
