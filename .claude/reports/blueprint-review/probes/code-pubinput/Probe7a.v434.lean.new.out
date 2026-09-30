@@ -1,0 +1,25 @@
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:318:67: error: maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:356:4: error: maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:362:49: error(lean.unknownIdentifier): Unknown identifier `stateFunction`
+
+Note: It is not possible to treat `stateFunction` as an implicitly bound variable here because the `autoImplicit` option is set to `false`.
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:406:9: error(lean.unknownIdentifier): Unknown identifier `PublicInput.stateFunction`
+'LeanerVM.Protocol.Probe7a.PublicInput.verifier_verify' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Probe7a.PublicInput.complete' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:414:14: error(lean.unknownIdentifier): Unknown constant `LeanerVM.Protocol.Probe7a.PublicInput.stateFunction`
+'LeanerVM.Protocol.Probe7a.PublicInput.rbr' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:494:0: error: (deterministic) timeout at `whnf`, maximum number of heartbeats (200000) has been reached
+
+Note: Use `set_option maxHeartbeats <num>` to set the limit.
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+.claude/reports/blueprint-review/probes/code-pubinput/Probe7a.v434.lean:555:8: error: (kernel) unknown constant 'LeanerVM.Protocol.Probe7a.PublicInput.not_perfectCompleteness'
+'LeanerVM.Protocol.Probe7a.PublicInput.not_complete' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ LeanerVM.Protocol.Probe7a.PublicInput.not_complete]
+exit=1

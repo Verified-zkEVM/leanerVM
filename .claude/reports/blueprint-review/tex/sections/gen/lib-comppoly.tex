@@ -265,6 +265,7 @@ Because \lean{BF64} is reducible, CompPoly's \lean{Add}, \lean{Mul}, \lean{Neg},
 #synth Add (BitVec 64)                                  ⟹  BF64.instAdd
 #synth Add (BitVec 32)                                  ⟹  BitVec.instAdd
 \end{leancode}
+\src{probe \code{FieldFidelity} (\file{probes/lib-others/FieldFidelity.lean}), lines 85--100 and output lines 2--12, run at the old pins}
 and the numeral \lean{(2 : K)} elaborates as \lean{BitVec.instOfNat 64 2} (the bit pattern $x$),
 not the cast of the natural number two (which is $0$): \texttt{\#guard ((2 : ℕ) : K) = 0} and
 \texttt{\#guard (2 : K) ≠ 0} both pass. No current leanerVM declaration adds or multiplies a

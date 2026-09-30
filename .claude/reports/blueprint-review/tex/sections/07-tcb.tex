@@ -1,1 +1,128 @@
-% stub: to be written
+\chapter{The trusted base}\label{ch:tcb}
+
+What a reader has to accept without a proof in this repository, in order to believe the
+master theorems and the theorems the blueprint builds on them. The accounting is in layers,
+from the kernel outward; each entry says what is trusted, why, and whether the blueprint names
+it. \Cref{ch:auditability} measures the part of it that is leanerVM's own definitions.
+
+\section{Lean and its three axioms}
+
+Every theorem of the proof system, the port of the composition theorem included, closes on
+\lean{propext}, \lean{Classical.choice} and \lean{Quot.sound} and on nothing else, at both pins
+(\cref{ch:probes}); the repository's validation rejects \lean{sorryAx} across its two
+namespaces with a planted-axiom control, and forbids \lean{native_decide}, whose trust would be
+the compiler's rather than the kernel's. A \lean{\#guard} trusts the compiled evaluator; a
+\lean{decide} the kernel's reduction (\cref{ch:libraries}). The kernel and the elaborator are
+trusted as every Lean development trusts them.
+
+\section{The libraries' definitions}
+
+The statements unfold to definitions of four libraries, which a reader must accept as meaning
+what they should: ArkLib's protocol specifications, oracle reductions, run semantics,
+completeness, knowledge state functions, extractors and round-by-round knowledge soundness;
+VCVio's oracle computations as distributions, its probabilities and its uniform sampler; and
+CompPoly's tables, polynomials and the two fields. Clean's objects enter through
+\lean{SatisfiedBy}, on the other side of the adaptor. \Cref{ch:libraries} introduces each and
+records what the review checked of it: the fields are leanVM's bit for bit, the samplers are
+uniform by the class's law, the oracle interface of the stack answers the extension in the
+specification's bit order, and ArkLib's notion of knowledge soundness is non-vacuous. Two
+caveats stay: ArkLib's definition of a knowledge state function deliberately differs from the
+literature's (its own docstring says so), and its existential notion of round-by-round
+knowledge soundness is soundness, since the extractor may be a classical choice; the spine's
+named form is knowledge with the extractor read.
+
+\section{Theorems the libraries admit, on which the chain will rest}
+
+None of leanerVM's theorems depends on an admitted theorem today; the chain the blueprint
+plans does, at both pins:
+\begin{itemize}
+\item the implication from round-by-round to plain knowledge soundness, which gives the master
+  theorem its prover-level reading (a bound on the success of a cheating prover rather than a
+  property of transcripts); its conclusion is existential in the extractor;
+\item the security of the Fiat--Shamir and Merkle (BCS) compilations, which ArkLib does not
+  state (its BCS transform is commented out, its commitment extractability has \lean{False} for
+  a body, its Fiat--Shamir completeness is admitted and stated for a constant challenge
+  oracle);
+\item the coding-theory theorem behind WHIR's soundness, mutual correlated agreement up to the
+  Johnson bound, which ArkLib admits and which in the literature is a single-version preprint
+  with a sketched proof;
+\item ring switching, whose leaves ArkLib admits, and which is in any case another protocol
+  than leanVM's.
+\end{itemize}
+The blueprint's ledger names the first and the second and the third; it describes the fourth
+as a missing profile, which it is not (\cref{sec:faith-flock}). The new pin lifts none of
+them.
+
+\section{The interfaces the blueprint assumes}
+
+Four structures are taken as arguments of the non-interactive theorems and one of the
+adaptor: the Flock phase with its security and its error, the Fiat--Shamir and BCS security
+statements, the coding-theory theorem, and the Flock witness generator. Each is meant to be a
+structure whose fields are theorems another roadmap or an upstream library owes. What the
+review found: none exists in Lean; the Flock interface as sketched has knowledge error one
+against leanVM's verifier and cannot be stated over an abstract instance; the Fiat--Shamir and
+BCS interfaces are stated for constructions that are not leanVM's single BLAKE2s map, and the
+Fiat--Shamir one, as \enquote{the query bound times the largest round error}, cannot certify
+leanVM's 128 bits, which the query rounds reach only through grinding
+(\cref{sec:faith-opening}). A structure taken as a hypothesis is trusted exactly when it is
+inhabited by a theorem; until then a theorem that takes it says nothing, and the repository's
+own rule against uninhabited load-bearing types applies.
+
+\section{The instance for leanISA}
+
+The oracle protocol is stated over an abstract instance; leanVM enters through the leanISA
+instance, which is data: the tables' shapes, the constraint polynomials and flush tuples read
+off Clean's components, the count columns, the boundary blocks with their known columns (the
+index column and the program's bytecode columns), the layout of the stack with its
+tie-breaking order, the three public lines, the Flock region and its predicate. Two theorems
+are meant to pin that data to the arithmetization (\lean{satisfiedBy_witnessOf} and
+\lean{m3Holds_stackOf}) and one fixture to the deployed layout; none exists. What the review
+established about the data's shape (\cref{ch:faithfulness}): the instance is not
+\lean{Ensemble.toM3} of the eight tables, and the adaptor's soundness direction works only
+because the seed, finalization and state blocks are boundary blocks with known columns built
+from the same program the witness is rebuilt from; the layout has no reader for the eighteen
+limb columns; the admissibility predicate must contain the stacking and rate windows; the
+polynomial bridge of Layer 2 is noncomputable at the pin. Until the adaptor is built, the
+instance is trusted in full, and no theorem on \code{main} says that its relation is inhabited.
+
+\section{Hypotheses of the chain, and who discharges each}
+
+\begin{longtable}{@{}p{0.30\linewidth}p{0.36\linewidth}p{0.30\linewidth}@{}}
+\toprule
+Hypothesis & Kind & Discharged by \\
+\midrule
+\endhead
+\lean{Phases.Complete}, \lean{Phases.Security} & the phases' proofs & four of five phases unbuilt; the built ones prove theirs \\
+a bound on \lean{piopError} & missing from the spine & nothing; to be fixed in the spine \\
+\lean{s.Admissible prog} (sizes within the caps and the windows) & a property of announced public data & the compiled verifier's setup checks; today, nothing \\
+\lean{WellFormedBytecode prog} (the sentinel is not a jump; fill blocks) & a decidable property of the public program & leanISA's constraint-soundness theorem takes it; the blueprint's target theorem omits it, and nobody is told to check it \\
+the public words' top limbs are zero & a property of the public input & by the type of \lean{PublicInput}; in the deployed verifier, a rejection at setup that the blueprint does not mention \\
+resource conditions on the execution (a memory that fits in $2^{28}$ committed cells, heights within the caps) & a property of the trace & nothing; the blueprint's completeness target is false without them \\
+\lean{HasFillBlocks prog} & a property of the program & leanISA's constraint-completeness theorem takes it \\
+the Flock witness generator and its lemma & another roadmap's & the Flock roadmap, which has not started \\
+the Fiat--Shamir, BCS and coding-theory interfaces & upstream theorems & ArkLib, which states none of them today \\
+BLAKE2s as a random oracle & a heuristic, not a theorem & nothing; the blueprint does not state it as a hypothesis \\
+the Rust verifier is \lean{verify} & an implementation correspondence & a fixture of Rust-produced proofs with mutations; evidence, not proof \\
+\bottomrule
+\end{longtable}
+
+\section{Outside Lean}
+
+Three things no theorem of the repository can reach. The random-oracle heuristic: every
+non-interactive guarantee is a statement about a verifier with a random oracle, and the
+deployed verifier hashes with BLAKE2s; the known attacks on this gap do not reach leanVM's
+structure, and the guarantee is classical (\cref{ch:options}). The implementation: the Rust
+verifier is what Ethereum would run, and it is tied to the Lean verifier by tests only; the
+review found one check on which they already differ. The hardware, the compiler and the
+toolchain, as for every Lean development.
+
+\section{What the blueprint says of its trusted surface}
+
+Its convention \emph{Trusted surface} asks that every trusted definition fit on one screen,
+cite its source line, and appear in its interface list; its interface list closes with
+\enquote{everything not listed is a proof, a helper, or a test}. The review found fourteen
+load-bearing declarations not listed and several listed names that do not exist
+(\cref{ch:faithfulness}); its \enquote{assumed interfaces a reviewer must know} are the right
+four, with the qualifications above; and its headline's account of what is proved without
+hypotheses (\enquote{everything about the oracle protocol}) overstates what is on \code{main}
+by the four unbuilt phases, the missing error bound and the instance.

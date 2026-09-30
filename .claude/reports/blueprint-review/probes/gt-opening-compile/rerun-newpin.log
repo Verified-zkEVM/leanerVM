@@ -1,0 +1,33 @@
+=== InnerProductOracle (new pins: ArkLib 7653a901, 2026-09-30T10:05:17+01:00)
+.claude/reports/blueprint-review/probes/gt-opening-compile/InnerProductOracle.lean:56:23: warning: Variable name `W` is not explicitly referenced.
+
+Hint: The binding can be removed (if unused) or named `_` (if used implicitly). Alternatively, prefix the name with `_` to silence this warning:
+  [apply] _W
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+openVerifier : (n : ℕ) → OracleVerifier []ₒ (List (Claim n)) (OneStack n) Unit (OneStack n) openSpec
+'Probe.openVerifier' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.answer_eqWeight' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+=== FiatShamirChain (new pins: ArkLib 7653a901, 2026-09-30T10:05:40+01:00)
+@runWithChain : {n : ℕ} →
+  {pSpec : ProtocolSpec n} →
+    {StmtIn StmtOut : Type} →
+      Verifier []ₒ StmtIn StmtOut pSpec →
+        Chain StmtIn pSpec → StmtIn → ((i : pSpec.MessageIdx) → pSpec.Message i) → Option StmtOut
+'Probe.runWithChain' depends on axioms: [propext, Quot.sound]
+@OracleVerifier.toVerifier : {ι : Type} →
+  {oSpec : OracleSpec ι} →
+    {StmtIn ιₛᵢ : Type} →
+      {OStmtIn : ιₛᵢ → Type} →
+        {StmtOut ιₛₒ : Type} →
+          {OStmtOut : ιₛₒ → Type} →
+            {n : ℕ} →
+              {pSpec : ProtocolSpec n} →
+                [Oₛᵢ : (i : ιₛᵢ) → OracleInterface (OStmtIn i)] →
+                  [Oₘ : (i : pSpec.MessageIdx) → OracleInterface (pSpec.Message i)] →
+                    [Oₛₒ : (i : ιₛₒ) → OracleInterface (OStmtOut i)] →
+                      OracleVerifier oSpec StmtIn OStmtIn StmtOut OStmtOut pSpec →
+                        Verifier oSpec (StmtIn × ((i : ιₛᵢ) → OStmtIn i)) (StmtOut × ((i : ιₛₒ) → OStmtOut i)) pSpec
+exit=0
+done
