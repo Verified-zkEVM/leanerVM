@@ -1,5 +1,12 @@
 # Review: the public-input phase (hole P5)
 
+> An archive of the review of one commit: names, paths, line numbers and codes are that
+> commit's. What was accepted from it is text of the
+> [protocol blueprint](../roadmap/protocol-blueprint.md), which is the specification.
+> Its finding that each of five wrong verifiers breaks a stated theorem does not hold of the
+> merged phase, whose check is not load-bearing while the verifier pools the values it
+> computes (the blueprint, Layer 8).
+
 Reviewed on 2026-09-29 against branch `worktree-proof-system-hole-impl`, whose HEAD is `main`
 at `5cb7da6`. The work is **staged and not committed** (`git diff --cached`: six files, 904
 insertions, 55 deletions), so `git diff main...HEAD` is empty. Read-only, with the repository's
