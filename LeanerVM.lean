@@ -23,12 +23,15 @@ import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
+import LeanerVM.Protocol.Spine.Errors
 import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.ToArkLib.Component
+import LeanerVM.Protocol.ToArkLib.ExtractIn
+import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
@@ -36,6 +39,7 @@ import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement
+import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
