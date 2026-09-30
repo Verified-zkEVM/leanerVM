@@ -11,7 +11,7 @@ at most \lean{piopError} of its round.} The probability is over one uniform chal
 at every prefix (the worst-case form); no prover appears. The step from this to \enquote{an
 interactive prover convinces the verifier without a good first message with probability at most
 $\sum$ \lean{piopError}} is a union bound that ArkLib admits at both pins
-(\lean{rbrKnowledgeSoundness_implies_knowledgeSoundness}); the step to Fiat--Shamir security is
+(\lean{rbrKnowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{knowledgeSoundness}); the step to Fiat--Shamir security is
 stated nowhere in ArkLib. At the oracle-protocol level this is soundness with respect to the
 committed oracle; knowledge (extracting the stack from a commitment) belongs to the compiled
 protocol, for which ArkLib offers no theorem (\lean{BCSTransform} commented out,
@@ -25,7 +25,7 @@ the upgrade (\cref{ch:probes}).
 \subsection{The statement under review}\label{sec:gen-lib-ark-statement}
 
 leanerVM's soundness master theorem is an instance of one ArkLib predicate,
-\lean{Verifier.rbrKnowledgeSoundnessWorstCaseWith}, applied to the verifier of the composed oracle
+\lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith}, applied to the verifier of the composed oracle
 protocol after it has been turned into a plain verifier (\lean{toVerifier},
 \cref{sec:gen-lib-ark-toverifier}):
 \begin{leancode}
@@ -41,7 +41,7 @@ theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
       (piopError P) :=
   S.toDef.rbr init impl
 \end{leancode}
-\src{\file{LeanerVM/Protocol/Spine/Compose.lean:167-177}, leanerVM \code{b435631}}
+\src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{Spine/}\allowbreak\file{Compose.lean:167-177}, leanerVM \code{b435631}}
 
 Its arguments are: the input relation \lean{M3Rel I} (pairs of a public input and a stack
 \lean{q}), the output relation \lean{Seam.done I} (everything), the family of intermediate
@@ -86,9 +86,9 @@ structure RoundByRound
   /-- Construct the intermediate witness for the final round from the output witness -/
   extractOut : StmtIn → FullTranscript pSpec → WitOut → WitMid (.last n)
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Security/RoundByRound.lean:77-86}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:77-86}, ArkLib \code{dca90385}}
 
-\begin{define}{The knowledge state function (\lean{Verifier.KnowledgeStateFunction})}
+\begin{define}{The knowledge state function (\lean{Verifier.}\allowbreak\lean{KnowledgeStateFunction})}
 A family of predicates $K_k \subseteq S \times \mathrm{Tr}_k \times W_k$, $k = 0, \dots, n$, with
 three laws.
 \begin{enumerate}
@@ -135,9 +135,9 @@ structure KnowledgeStateFunction
     | OptionT.mk do (simulateQ impl (verifier.run stmtIn tr)).run' (← init)] > 0 →
     toFun (.last n) stmtIn tr (extractor.extractOut stmtIn tr witOut)
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Security/RoundByRound.lean:164-189}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:164-189}, ArkLib \code{dca90385}}
 
-\begin{define}{The bound (\lean{Verifier.rbrKnowledgeSoundnessWorstCaseWith})}
+\begin{define}{The bound (\lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith})}
 For a statement $s$, a verifier round $k$ and a prefix $\tau \in \mathrm{Tr}_k$, call \emph{bad
 set} the set of challenges
 \[
@@ -170,7 +170,7 @@ def rbrKnowledgeSoundnessWorstCaseWith
           kSF i.1.succ stmtIn (transcript.concat challenge) witMid
       | $ᵗ (pSpec.Challenge i)] ≤ rbrKnowledgeError i
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Security/RoundByRound.lean:551-568}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:551-568}, ArkLib \code{dca90385}}
 
 \paragraph{What is quantified over, and what is not.}
 
@@ -189,7 +189,7 @@ Prefixes $\tau$ & universally: every list of prover messages and earlier challen
 Intermediate witnesses $w$ & existentially inside the event: the worst one counts \\
 The challenge $c$ & the only random variable: uniform on $C_k$ (the \lean{SampleableType}
   instance; its two laws, full support and equal probabilities, force the uniform distribution on
-  a finite type, \file{VCVio/OracleComp/Constructions/SampleableType.lean:44-47}) \\
+  a finite type, \file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType.lean:44-47}) \\
 Provers & \textbf{not at all}: no prover, no prover state and no input witness appears \\
 The shared oracle & only inside law 3 (can the verifier accept). The state function and the
   extractor cannot depend on the oracle's state or on a query log \\
@@ -226,11 +226,11 @@ def rbrKnowledgeSoundness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut
           return (transcript, challenge, proveQueryLog))).run' (← init)] ≤
       rbrKnowledgeError i
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Security/RoundByRound.lean:416-437}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{RoundByRound.lean:416-437}, ArkLib \code{dca90385}}
 
 The worst-case form implies the averaged one with the same errors (proved:
-\lean{Verifier.rbrKnowledgeSoundnessWorstCaseWith_implies_rbrKnowledgeSoundnessWith},
-\file{Security/RoundByRound.lean:625}, three standard axioms, probe \code{AxiomsArkLibBuilt}). The
+\lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundnessWorstCaseWith_}\allowbreak\lean{implies_}\allowbreak\lean{rbrKnowledgeSoundnessWith},
+\file{Security/}\allowbreak\file{RoundByRound.lean:625}, three standard axioms, probe \code{AxiomsArkLibBuilt}). The
 converse fails: from the averaged bound at round $k$ one gets, for one fixed value of the earlier
 challenges, only $\varepsilon_k$ multiplied by the inverse probability of those challenges. The
 difference matters exactly where it should: a Fiat--Shamir (state-restoration) prover chooses
@@ -255,7 +255,7 @@ errors: for all $s$, $\tau$, $w_{\mathrm{out}}$,
   \ \vee\ \exists\, k \text{ a verifier round},\ \tau_k \in \mathrm{Bad}_k(s, \tau_{<k}).
 \end{aligned}
 \]
-This is \lean{Probe.accept_imp_extract_or_bad} of the probe \code{PlainReading}
+This is \lean{Probe.}\allowbreak\lean{accept_}\allowbreak\lean{imp_}\allowbreak\lean{extract_}\allowbreak\lean{or_bad} of the probe \code{PlainReading}
 (\cref{ch:probes}), proved in 40 lines by induction on the round, on the three standard axioms.
 With the bound of the predicate, each bad set has probability at most $\varepsilon_k$. So the
 predicate reduces knowledge soundness to: \enquote{no challenge of the accepted transcript fell in
@@ -269,7 +269,7 @@ execution semantics, not about the protocol.
 $W_{\mathrm{in}}$ is the stack $q$, the first message is the stack, $W_{\mathrm{out}}$ is trivial
 and $R_{\mathrm{out}}$ is everything. The commit phase's extractor returns the first message
 whatever intermediate witness it is handed (\lean{Component.sendExtractor},
-\file{LeanerVM/Protocol/ToArkLib/SendOracle.lean:134-138}), so
+\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{ToArkLib/}\allowbreak\file{SendOracle.lean:134-138}), so
 $\mathrm{Ext}(s, \tau, ()) = \tau_0$. The master theorem therefore reads as in the box at the head
 of this section. At the level of the oracle protocol this is a soundness statement about the
 committed oracle. The extraction of the stack from a commitment is not in it: it belongs to the
@@ -289,7 +289,7 @@ $(x, \tau) \in D$ then $V(x, \tau) = \mathrm{reject}$. 3. If $(x, \tau)$ is an $
 partial transcript with $(x, \tau) \in D$, then for every potential prover next message $m$,
 $\Pr_{c \leftarrow C_i}[(x, \tau, m, c) \notin D] \le \varepsilon(i)$.
 \end{quote}
-ArkLib's \lean{Verifier.StateFunction} (\file{Security/RoundByRound.lean:135-152}) is this notion
+ArkLib's \lean{Verifier.StateFunction} (\file{Security/}\allowbreak\file{RoundByRound.lean:135-152}) is this notion
 for a \emph{reduction} (the final condition is \enquote{the verifier does not output a statement
 of the output language}) with two differences of shape. Condition 3 is split into a law for prover
 messages (\lean{toFun_next}: a doomed prefix stays doomed after any prover message) and the
@@ -329,13 +329,13 @@ Definition 3.13 directly.
   ArkLib's \lean{Extractor.RoundByRound} is any Lean function: classical choice is allowed
   (\cref{sec:gen-lib-ark-extractors}, probe \code{Extractors}), and nothing bounds running time.
   In the existential forms (\lean{rbrKnowledgeSoundness}, \lean{rbrKnowledgeSoundnessWorstCase},
-  and leanerVM's \lean{piop_rbrKnowledgeSoundness_exists}) this removes the knowledge content: the
+  and leanerVM's \lean{piop_}\allowbreak\lean{rbrKnowledgeSoundness_}\allowbreak\lean{exists}) this removes the knowledge content: the
   probe proves \enquote{knowledge soundness at error 0} for an arbitrary relation from a verifier
   that merely decides the language, with an extractor that chooses a witness. \textbf{This is a
   real weakening of the notion as a definition.} It is repaired only by the named form together
   with a reading of the named extractor (what leanerVM does: \lean{piopExtractor} returns the
-  first message). ArkLib's own conversion \lean{Extractor.RoundByRoundOneShot.toRoundByRoundOfRel}
-  (\file{Security/RoundByRound.lean:102-123}) uses \lean{h.choose}, and its docstring says why:
+  first message). ArkLib's own conversion \lean{Extractor.}\allowbreak\lean{RoundByRoundOneShot.}\allowbreak\lean{toRoundByRoundOfRel}
+  (\file{Security/}\allowbreak\file{RoundByRound.lean:102-123}) uses \lean{h.choose}, and its docstring says why:
   \enquote{\lean{extractMid} is a mathematical function rather than an algorithm with a tracked
   running time}.
 \item \emph{What the extractor sees and when.} Definition 3.13 extracts from the prefix
@@ -369,12 +369,12 @@ soundness (Ben-Sasson, Chiesa, Spooner 2016; Chiesa--Yogev) lets the prover rewi
 any earlier state at most $Q$ times; round-by-round soundness implies it with error about
 $Q \cdot \varepsilon$ (Theorem 3.15 of the paper above, quoted in
 \cref{sec:gen-lib-ark-implications}). ArkLib defines the state-restoration games
-(\file{Security/StateRestoration.lean:133-154} at the pin) and states no theorem from
+(\file{Security/}\allowbreak\file{StateRestoration.lean:133-154} at the pin) and states no theorem from
 round-by-round to state restoration (the statements are commented out,
-\file{Security/Implications.lean:230-254}); the theorems from state restoration to plain soundness
+\file{Security/}\allowbreak\file{Implications.lean:230-254}); the theorems from state restoration to plain soundness
 have \lean{sorry} inside their statements (\file{:269}, \file{:284}). Straight-line extraction in
 the random oracle model (the extractor reads the prover's oracle queries and never rewinds) is the
-shape of ArkLib's \lean{Extractor.Straightline} (\file{Security/Basic.lean:248-254}, which takes
+shape of ArkLib's \lean{Extractor.Straightline} (\file{Security/}\allowbreak\file{Basic.lean:248-254}, which takes
 the prover's and the verifier's query logs), but no ArkLib theorem produces such an extractor from
 a round-by-round one at the pin, and the round-by-round extractor itself receives no query log.
 
@@ -382,7 +382,7 @@ a round-by-round one at the pin, and the round-by-round extractor itself receive
 
 Status by \texttt{\#print axioms} (probe \code{AxiomsArkLibBuilt}) for the modules in leanerVM's
 build; by the source and ArkLib's committed axiom baseline (\cref{sec:gen-lib-ark-baseline}) for
-the others (\file{Security/Implications.lean} is not in leanerVM's build). Lines are those of
+the others (\file{Security/}\allowbreak\file{Implications.lean} is not in leanerVM's build). Lines are those of
 \code{dca90385}.
 
 {\footnotesize
@@ -399,7 +399,7 @@ Implication & Where & At \code{dca90385} & At \code{7653a901} \\
 \bottomrule
 \endfoot
 worst-case rbr knowledge $\Rightarrow$ averaged rbr knowledge
-  (\lean{rbrKnowledgeSoundnessWorstCase_}\allowbreak\lean{implies_rbrKnowledgeSoundness},
+  (\lean{rbrKnowledgeSoundnessWorstCase_}\allowbreak\lean{implies_}\allowbreak\lean{rbrKnowledgeSoundness},
   \lean{…With_implies_…With})
   & \file{Security/}\allowbreak\file{RoundByRound.lean:606, 625} & proved & proved \\
 worst-case rbr soundness $\Rightarrow$ averaged rbr soundness & \file{:589} & proved & proved \\
@@ -415,7 +415,7 @@ rbr knowledge $\Rightarrow$ plain knowledge soundness
   $\sum \varepsilon$)
   & \file{Security/}\allowbreak\file{Implications.lean:223-228} & \textbf{admitted}
     (\lean{by sorry}) & admitted \\
-rbr soundness $\Rightarrow$ soundness (\lean{rbrSoundness_implies_soundness}) & \file{:79-83}
+rbr soundness $\Rightarrow$ soundness (\lean{rbrSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{soundness}) & \file{:79-83}
   & \textbf{admitted} & admitted \\
 knowledge soundness $\Rightarrow$ soundness & \file{:49-63} & \textbf{admitted} & admitted \\
 rbr $\Rightarrow$ state restoration & \file{:230-254} & commented out & commented out \\
@@ -435,7 +435,7 @@ So a reader of \lean{piop_rbrKnowledgeSoundness} trusts the \emph{definition}
 transcript-level half of that reading is proved by the probe \code{PlainReading}
 (\lean{accept_imp_extract_or_bad}); the probabilistic half (a union bound over the rounds of an
 interactive execution, or over the queries of a Fiat--Shamir prover) is the admitted
-\lean{rbrKnowledgeSoundness_implies_knowledgeSoundness} and the absent Fiat--Shamir theorem. For
+\lean{rbrKnowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{knowledgeSoundness} and the absent Fiat--Shamir theorem. For
 the expected form of the latter, the paper above states (Theorem 3.15, verbatim): \enquote{if
 $(P, V)$ is a public-coin IOP for $R$ with \dots\ round-by-round knowledge error
 $\varepsilon_{\mathrm{rbr}\text{-}k}(x)$ \dots\ then $\mathrm{BCS}^H(P, V)$ is a non-interactive
@@ -443,7 +443,7 @@ random oracle proof system for $R$ with \dots\ adaptive knowledge error
 $\varepsilon_{\mathrm{fs}\text{-}k}(x, Q, \kappa) = Q\cdot\varepsilon_{\mathrm{rbr}\text{-}k}(x)
 + 3(Q^2+1)/2^{\kappa}$ against $Q$-query adversaries}. The blueprint's
 \lean{FiatShamirSecurity} interface names this shape (\enquote{\code{error Q · max_i ε_i}},
-\file{docs/roadmap/protocol-blueprint.md:1224}); nothing in ArkLib at either pin states it.
+\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1224}); nothing in ArkLib at either pin states it.
 
 \subsection{Non-vacuity of the notion}\label{sec:gen-lib-ark-nonvacuity}
 
@@ -451,11 +451,11 @@ The probe \code{NonVacuity} (\cref{ch:probes}) takes the relation \enquote{the s
 and only \lean{true} has a witness} (\lean{relIn := {p | p.1 = true}}, \lean{relOut := Set.univ}),
 for any shared oracle, any \lean{init} and any \lean{impl}.
 \begin{itemize}
-\item \textbf{No round, accept everything.} \lean{acceptAll0} (\lean{verify := fun _ _ => pure ()})
+\item \textbf{No round, accept everything.} \lean{acceptAll0} (\lean{verify := fun _}\allowbreak\lean{ _ => pure ()})
   has \emph{no} knowledge state function at all, for any extractor
-  (\lean{acceptAll0_no_stateFunction}): law 3 forces the state at \lean{false}, law 1 then puts
+  (\lean{acceptAll0_}\allowbreak\lean{no_stateFunction}): law 3 forces the state at \lean{false}, law 1 then puts
   \lean{false} in the language.
-\item \textbf{One challenge, accept everything.} \lean{acceptAll1_not_sound_at_zero}: for
+\item \textbf{One challenge, accept everything.} \lean{acceptAll1_}\allowbreak\lean{not_}\allowbreak\lean{sound_}\allowbreak\lean{at_zero}: for
   \emph{every} extractor and \emph{every} knowledge state function, the verifier is not worst-case
   round-by-round knowledge sound at error $0$. The attempt fails exactly where it should: at the
   statement \lean{false}, the empty prefix and the challenge \lean{true}, the state after the
@@ -469,9 +469,9 @@ for any shared oracle, any \lean{init} and any \lean{impl}.
   phase's definition} (\lean{Component.Def.err}), not derived from anything, and a phase may charge
   $1$ to a challenge and discharge its \lean{rbr} obligation trivially. The blueprint's planned
   \lean{piopError_le} (\lean{Σ i, piopError s i ≤ 2^40/|E| + flockError},
-  \file{docs/roadmap/protocol-blueprint.md:1130}) is therefore the load-bearing companion of the
+  \file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1130}) is therefore the load-bearing companion of the
   master theorem, and it does not exist yet.
-\item \textbf{Positive control.} \lean{checkBit} (\lean{verify := fun s _ => if s then pure () else failure})
+\item \textbf{Positive control.} \lean{checkBit} (\lean{verify := fun s _}\allowbreak\lean{ => if s then pure () else failure})
   is knowledge sound at error $0$ with the trivial extractor (\lean{checkBit_sound_at_zero}): the
   intended object inhabits the definition.
 \item \textbf{Constant state functions.} For any knowledge state function and any statement with
@@ -483,20 +483,20 @@ for any shared oracle, any \lean{init} and any \lean{impl}.
   \lean{relOut = Set.univ}, the last law of a knowledge state function is equivalent to \enquote{if
   the check passes on $(s, \mathit{tr})$ then the state at the full transcript holds at the
   extracted witness}. With the spine's \lean{Seam.done I} (\lean{fun _ _ ↦ True},
-  \file{LeanerVM/Protocol/Spine/Seams.lean:191}) and its output statement \lean{Unit},
+  \file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{Spine/}\allowbreak\file{Seams.lean:191}) and its output statement \lean{Unit},
   \enquote{accept} means \enquote{the verifier returns rather than fails}, and law 3 says exactly
   \enquote{accepted $\Rightarrow$ state true}. A design consequence: since the final output
   statement is \lean{Unit}, the last phase can only reject by failing; a verifier that returned a
   Boolean verdict would count \lean{false} as an acceptance under \lean{Set.univ}.
 \end{itemize}
 
-\subsection{The oracle verifier is judged through \texorpdfstring{\lean{toVerifier}}{toVerifier}}\label{sec:gen-lib-ark-toverifier}
+\subsection{The oracle verifier is judged through \texorpdfstring{\texttt{toVerifier}}{toVerifier}}\label{sec:gen-lib-ark-toverifier}
 
-Every security predicate ArkLib gives an \lean{OracleVerifier} (\lean{OracleVerifier.rbrSoundness},
+Every security predicate ArkLib gives an \lean{OracleVerifier} (\lean{OracleVerifier.}\allowbreak\lean{rbrSoundness},
 \lean{rbrKnowledgeSoundness}, \lean{rbrKnowledgeSoundnessWith},
-\file{Security/RoundByRound.lean:729-758}) is the predicate of its plain image \lean{toVerifier}
+\file{Security/}\allowbreak\file{RoundByRound.lean:729-758}) is the predicate of its plain image \lean{toVerifier}
 (\cref{sec:gen-lib-ark-reductions}), and leanerVM states its master theorem on
-\lean{(leanVmVerifier P).toVerifier}. \lean{simOracle2} answers each query of the oracle verifier
+\lean{(leanVmVerifier P).}\allowbreak\lean{toVerifier}. \lean{simOracle2} answers each query of the oracle verifier
 from the actual oracle statements and the actual messages of the transcript, and the output
 oracles are materialised. So the plain verifier's verdict on a transcript is the oracle verifier's
 verdict when its queries are answered faithfully; the state function and the extractor are
@@ -512,7 +512,7 @@ for soundness at the oracle-protocol level. Three things are outside the stateme
   the base field of the announced size. Whether a prover of the compiled protocol can commit to
   something else is the commitment scheme's problem (extractability or list binding of WHIR,
   Layer 11), not this theorem's;
-\item the composition \lean{OracleVerifier.append} (\file{Append/Basic.lean:619-629}) routes the
+\item the composition \lean{OracleVerifier.append} (\file{Append/}\allowbreak\file{Basic.lean:619-629}) routes the
   second verifier's queries through the first's output-oracle simulation;
   \lean{append_toVerifier} (\file{:658}, proved) says its \lean{toVerifier} is the plain
   \lean{Verifier.append} of the two \lean{toVerifier}s, which is what lets leanerVM compose state
@@ -524,16 +524,16 @@ for soundness at the oracle-protocol level. Three things are outside the stateme
 \paragraph{A classical-choice extractor is accepted by the type.} ArkLib forces nothing:
 \lean{Extractor.RoundByRound} is a structure of Lean functions with no computability requirement,
 and ArkLib itself defines a \lean{noncomputable} one with \lean{h.choose}
-(\lean{Extractor.RoundByRoundOneShot.toRoundByRoundOfRel}, \file{Security/RoundByRound.lean:118-123}).
+(\lean{Extractor.}\allowbreak\lean{RoundByRoundOneShot.}\allowbreak\lean{toRoundByRoundOfRel}, \file{Security/}\allowbreak\file{RoundByRound.lean:118-123}).
 The probe \code{Extractors} shows the consequence: \lean{chooser R} (\lean{extractOut} chooses a
 witness of \lean{(s, ·) ∈ R} if one exists, classically) is accepted as an extractor, and
-\lean{chooser_sound} proves \lean{rbrKnowledgeSoundnessWorstCaseWith … (chooser R) … (fun _ => 0)}
+\lean{chooser_sound} proves \lean{rbrKnowledgeSoundnessWorstCaseWith … (chooser R) … (fun _}\allowbreak\lean{ => 0)}
 for the verifier that decides the language of \lean{R}, for \emph{every} relation \lean{R} with
 that language. Knowledge has been proved of nothing.
 
 \paragraph{The existential form is soundness only.} In the existential forms
 (\lean{rbrKnowledgeSoundness}, \lean{rbrKnowledgeSoundnessWorstCase}, leanerVM's
-\lean{piop_rbrKnowledgeSoundness_exists}) the extractor is chosen by the prover of the theorem, so
+\lean{piop_}\allowbreak\lean{rbrKnowledgeSoundness_}\allowbreak\lean{exists}) the extractor is chosen by the prover of the theorem, so
 such a theorem proves soundness, not knowledge (\cref{f:lib-existential-rbr}).
 
 \paragraph{The named form is meaningful with the extractor read.} What tells a computable
@@ -552,8 +552,8 @@ extractor:
 \item \texttt{\#eval} is the positive test: it runs the code.
 \end{itemize}
 Applied to leanerVM (probe \code{Extractors}): \lean{commitExtractor I},
-\lean{PublicInput.extractor I}, \lean{piopExtractor P S}, \lean{(commitSecurity I).extractor},
-\lean{(publicInputSecurity I).extractor} and an appended extractor are each the body of a compiled
+\lean{PublicInput.extractor I}, \lean{piopExtractor P S}, \lean{(commitSecurity I).}\allowbreak\lean{extractor},
+\lean{(publicInputSecurity I).}\allowbreak\lean{extractor} and an appended extractor are each the body of a compiled
 \lean{def}; the commit extractor evaluated on the toy instance returns the honest stack
 (\lean{true}, twice), and the public-input extractor returns \lean{()}. The definitions are
 moreover one line each: \enquote{read the message} (\file{SendOracle.lean:137-138}) and
@@ -569,11 +569,11 @@ Two limits of the check:
   type does not enforce it.
 \item \lean{Component.Def} carries the real-valued error \lean{err : … → ℝ≥0}, so every phase
   definition with a non-zero error is \lean{noncomputable} (\lean{publicInputPhase},
-  \file{LeanerVM/Protocol/PublicInput.lean:374-381}, \enquote{noncomputable because of the error
+  \file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{PublicInput.lean:374-381}, \enquote{noncomputable because of the error
   alone}). Lean then refuses to compile anything that takes the phase's definition as an argument:
-  the probe \code{ExtractorsExpectedFailure} shows \lean{(publicInputPhase I).red.verifier} and
+  the probe \code{ExtractorsExpectedFailure} shows \lean{(publicInputPhase I).}\allowbreak\lean{red.}\allowbreak\lean{verifier} and
   \lean{extractorOf (publicInputPhase I) (publicInputSecurity I)} rejected, although the verifier
-  and the extractor are compiled when named directly. \lean{leanVmVerifier P := P.toDef.red.verifier}
+  and the extractor are compiled when named directly. \lean{leanVmVerifier P := P.}\allowbreak\lean{toDef.}\allowbreak\lean{red.}\allowbreak\lean{verifier}
   and \lean{piopExtractor P S} take \lean{P} explicitly, so on the real bundle of phases neither
   will be a compiled definition. This does not affect the theorems; it affects the blueprint's
   promises that the extractor and the honest prover \enquote{compute} and the planned
@@ -590,8 +590,8 @@ on the transcript; challenges answered uniformly by \lean{challengeQueryImpl}, s
 verifier's output statement with the prover's output witness is in the output relation,
 \textbf{and} the prover's output statement equals the verifier's, is at least $1 - \varepsilon$.
 Perfect completeness is $\varepsilon = 0$, so probability $1$
-(\lean{perfectCompleteness_eq_prob_one}, \file{:165}). Failure (the verifier rejecting) counts
-against completeness. \lean{OracleReduction.perfectCompleteness} (\file{:469}) is the same for
+(\lean{perfectCompleteness_}\allowbreak\lean{eq_prob_one}, \file{:165}). Failure (the verifier rejecting) counts
+against completeness. \lean{OracleReduction.}\allowbreak\lean{perfectCompleteness} (\file{:469}) is the same for
 \lean{toReduction}.
 \end{define}
 \begin{leancode}
@@ -613,11 +613,11 @@ def perfectCompleteness (relIn : Set (StmtIn × WitIn)) (relOut : Set (StmtOut �
     (reduction : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec) : Prop :=
   completeness init impl relIn relOut reduction 0
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Security/Basic.lean:89-105}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Security/}\allowbreak\file{Basic.lean:89-105}, ArkLib \code{dca90385}}
 
 \paragraph{What the composition theorem needs.} leanerVM's \lean{Component.Complete.append}
 (\file{Component.lean:162-169}) applies the following theorem of ArkLib,
-\lean{OracleReduction.append_perfectCompleteness_of_guarded_verifiers}, which is proved (probe
+\lean{OracleReduction.}\allowbreak\lean{append_}\allowbreak\lean{perfectCompleteness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers}, which is proved (probe
 \code{AxiomsArkLibBuilt}):
 \begin{leancode}
 /-- Oracle reductions with guarded ordinary verifiers compose perfectly when prover execution
@@ -635,43 +635,43 @@ theorem append_perfectCompleteness_of_guarded_verifiers
   simpa only [add_zero] using
     append_completeness_of_guarded_verifiers R₁ R₂ V₁ V₂ hSeam h₁ h₂
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/Composition/Sequential/OracleCompleteness.lean:54-67}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{OracleCompleteness.lean:54-67}, ArkLib \code{dca90385}}
 
 Its hypotheses: guarded forms of both plain verifiers (so that a run is \enquote{the prover's run,
 then a deterministic check and verdict}, \file{GuardedCompleteness.lean:44-48}); the seam condition
 \lean{hSeam} (if the second protocol has a round: the first prover's output is a pure function of
 its state, \lean{Prover.OutputIsPure}, \emph{or} the second protocol starts with a prover message),
 which is what makes the appended prover's execution factor into the two provers' executions
-(\lean{Prover.SimulatedAppendFactorization}, \file{Append/Simulation.lean:131-153}); completeness
+(\lean{Prover.}\allowbreak\lean{SimulatedAppendFactorization}, \file{Append/}\allowbreak\file{Simulation.lean:131-153}); completeness
 of the first component from \lean{init}; and completeness of the second \textbf{from every
 deterministic state \lean{pure s}} of the shared oracle, because the second component starts in
 whatever state the first left. leanerVM asks every component for completeness from every
 \lean{init} (\lean{Complete.complete}, \file{Component.lean:84-85}), which gives both. Over the
 empty shared oracle the guarded forms and the pure outputs are automatic
-(\lean{Verifier.GuardedForm.ofEmpty}, \lean{Prover.instOutputIsPureEmpty};
+(\lean{Verifier.}\allowbreak\lean{GuardedForm.}\allowbreak\lean{ofEmpty}, \lean{Prover.}\allowbreak\lean{instOutputIsPureEmpty};
 \cref{sec:gen-lib-ark-port}).
 
 \paragraph{Completeness with an error.} ArkLib at the old pin composes completeness \textbf{with
-errors}, and the errors add: \lean{Reduction.append_completeness_of_guarded_verifiers}
+errors}, and the errors add: \lean{Reduction.}\allowbreak\lean{append_}\allowbreak\lean{completeness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers}
 (\file{GuardedCompleteness.lean:161-173}, error $\varepsilon_1 + \varepsilon_2$),
-\lean{OracleReduction.append_completeness_of_guarded_verifiers} (\file{OracleCompleteness.lean:39-52}),
-and the $n$-ary \lean{seqCompose_completeness_of_guarded_verifiers} (\file{GuardedNary.lean:45-59},
+\lean{OracleReduction.}\allowbreak\lean{append_}\allowbreak\lean{completeness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers} (\file{OracleCompleteness.lean:39-52}),
+and the $n$-ary \lean{seqCompose_}\allowbreak\lean{completeness_}\allowbreak\lean{of_guarded_}\allowbreak\lean{verifiers} (\file{GuardedNary.lean:45-59},
 \file{OracleCompleteness.lean:77-99}, error $\sum_i \varepsilon_i$); all proved (probe
 \code{AxiomsArkLibBuilt}). The perfect versions are their $\varepsilon = 0$ corollaries. So a
 phase complete only up to an error can be composed in ArkLib today.
 
-leanerVM's spine cannot take one: \lean{Component.Complete.complete} is \lean{perfectCompleteness}
+leanerVM's spine cannot take one: \lean{Component.}\allowbreak\lean{Complete.}\allowbreak\lean{complete} is \lean{perfectCompleteness}
 (\file{Component.lean:84-85}), \lean{Complete.append} uses the perfect theorem, and the
-blueprint's \lean{FlockInterface} (\file{docs/roadmap/protocol-blueprint.md:1083}) demands
-\lean{perfectCompleteness : reduction.perfectCompleteness …}. The blueprint's list of wrong
+blueprint's \lean{FlockInterface} (\file{docs/}\allowbreak\file{roadmap/}\allowbreak\file{protocol-blueprint.md:1083}) demands
+\lean{perfectCompleteness : reduction.}\allowbreak\lean{perfectCompleteness …}. The blueprint's list of wrong
 readings, item 20 (\file{:1323-1325}), says: \enquote{Perfect completeness needs no
 exceptional-challenge clause in Layers 4--8 and 10: no inverse of a challenge is taken. Flock's
 $(1 + r_{\mathrm{eq}})^{-1}$ at $r_{\mathrm{eq}} = 1$ is \#3's, inside \lean{flockError}. Witness:
 \lean{piop_perfectCompleteness} has no side condition on challenges.} The pinned Rust Flock prover
-does take that inverse (\file{crates/flock/src/zerocheck.rs:117},
+does take that inverse (\file{crates/}\allowbreak\file{flock/}\allowbreak\file{src/}\allowbreak\file{zerocheck.rs:117},
 \code{let g0 = (claim + r_eq * g1) * (F192::ONE + r_eq).inv();}), which is undefined at
 $r_{\mathrm{eq}} = 1$ in characteristic 2 (the Rust \code{inv} returns $0$ there,
-\file{crates/primitives/src/field/gf2_64x3.rs:144-153}, so the honest prover sends a wrong
+\file{crates/}\allowbreak\file{primitives/}\allowbreak\file{src/}\allowbreak\file{field/}\allowbreak\file{gf2_64x3.rs:144-153}, so the honest prover sends a wrong
 $g_0$). Whether the honest Flock prover then fails is for the Flock review; if it does, the Flock
 phase has completeness error $1/\abs{\E}$ per such challenge, not $0$, and a completeness failure
 cannot be charged to \lean{flockError}, which is a soundness error. Then \lean{FlockInterface}'s

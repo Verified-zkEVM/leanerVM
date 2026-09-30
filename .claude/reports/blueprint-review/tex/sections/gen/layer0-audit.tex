@@ -5,9 +5,9 @@
 
 Layer 0 is the proof system's interface to the libraries: the committed column, the challenge
 samplers, the size of the challenge space, the oracle interface of the stack, and two counting
-bounds. It lives in \file{LeanerVM/Protocol/Field.lean}, \file{Basic.lean},
-\file{ToArkLib/Oracles.lean} and \file{ToVCVio/UniformSample.lean}, with tests in
-\file{tests/LeanerVMTests/Protocol/Field.lean}. Everything below is at \code{b435631}; what the
+bounds. It lives in \file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{Field.lean}, \file{Basic.lean},
+\file{ToArkLib/}\allowbreak\file{Oracles.lean} and \file{ToVCVio/}\allowbreak\file{UniformSample.lean}, with tests in
+\file{tests/}\allowbreak\file{LeanerVMTests/}\allowbreak\file{Protocol/}\allowbreak\file{Field.lean}. Everything below is at \code{b435631}; what the
 upgrade to \code{144c5aa} changes is said where it matters. The audit's five results:
 \begin{enumerate}
 \item \textbf{The samplers are uniform, by proof} (\cref{sec:gen-l0-samplers}). The instance
@@ -32,9 +32,9 @@ ArkLib's \lean{OracleInterface} (\cref{sec:gen-lib-ark-objects}) is what makes a
 \emph{oracle}: a query type, and an implementation that answers a query by reading the message.
 Its default instance, \lean{instDefault}, answers the query \lean{()} with the whole message.
 (\lean{OracleContext ι m} is VCVio's pair of an \lean{OracleSpec ι} and a \lean{QueryImpl} of it
-in \lean{m}, \file{VCVio/OracleComp/OracleContext.lean:25-27} at \code{f9dc47d9}.) ArkLib also
+in \lean{m}, \file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleContext.lean:25-27} at \code{f9dc47d9}.) ArkLib also
 registers \lean{instVector : OracleInterface (Vector α n)} answering \emph{positions}
-(\file{OracleInterface.lean:333-337}), and \lean{instance (i : Fin 0) : OracleInterface i.elim0}
+(\file{OracleInterface.lean:333-337}), and \lean{instance (i : Fin 0) : OracleInterface i.}\allowbreak\lean{elim0}
 (\file{:119}).
 \begin{leancode}
 class OracleInterface (Message : Type u) where
@@ -51,12 +51,12 @@ def instDefault {Message : Type u} : OracleInterface Message where
   toOC.spec := fun _ => Message
   toOC.impl _ := read
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/OracleInterface.lean:54-57}, \file{:75-78}, \file{:88-96}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{OracleInterface.lean:54-57}, \file{:75-78}, \file{:88-96}, ArkLib \code{dca90385}}
 
 {\footnotesize
 \begin{longtable}{@{}p{0.30\linewidth}p{0.24\linewidth}p{0.08\linewidth}p{0.27\linewidth}@{}}
 \caption{The declarations of Layer 0, at \code{b435631}. Paths are under
-\file{LeanerVM/Protocol/}.}\label{tab:gen-l0-catalogue}\\
+\file{LeanerVM/}\allowbreak\file{Protocol/}.}\label{tab:gen-l0-catalogue}\\
 \toprule
 Declaration & File:line & Kind & Plain meaning; what it rests on \\
 \midrule
@@ -100,7 +100,7 @@ Declaration & File:line & Kind & Plain meaning; what it rests on \\
   \file{ToVCVio/}\allowbreak\file{UniformSample.lean:44-51} & theorem & an event with at most one
   witness has probability at most $1/\abs{\alpha}$. The previous bound \\
 \file{Basic.lean} & \file{Basic.lean} & --- & an empty \code{public section} in
-  \lean{namespace LeanerVM.Protocol} (18 lines): nothing \\
+  \lean{namespace LeanerVM.}\allowbreak\lean{Protocol} (18 lines): nothing \\
 \end{longtable}}
 
 The declarations themselves (the counting bounds are in \cref{sec:gen-l0-bounds}):
@@ -161,7 +161,7 @@ instance instOracleInterfaceE : OracleInterface E := OracleInterface.instDefault
 /-- A list of scalars the prover sends is queried trivially: the answer is the list. -/
 instance instOracleInterfaceListE : OracleInterface (List E) := OracleInterface.instDefault
 \end{leancode}
-\src{\file{LeanerVM/Protocol/Field.lean:64-118}, leanerVM \code{b435631}}
+\src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{Field.lean:64-118}, leanerVM \code{b435631}}
 
 \begin{leancode}
 /-- No oracle: the empty family. -/
@@ -173,13 +173,13 @@ abbrev OneOracle (M : Type) : Fin 1 → Type := fun _ ↦ M
 /-- All functions out of `Fin 0` are equal, so the empty oracle family has one inhabitant. -/
 theorem noOracle_eq (o o' : ∀ i, NoOracle i) : o = o' := funext fun i ↦ i.elim0
 \end{leancode}
-\src{\file{LeanerVM/Protocol/ToArkLib/Oracles.lean:25-32}, leanerVM \code{b435631}}
+\src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{ToArkLib/}\allowbreak\file{Oracles.lean:25-32}, leanerVM \code{b435631}}
 
 \paragraph{Axioms.} Every declaration above depends on at most \lean{propext},
 \lean{Classical.choice}, \lean{Quot.sound} (\lean{noOracle_eq}: \lean{Quot.sound} only;
 \lean{finEquivK}: \lean{propext} only; probe \code{Layer0}, section 3).
 
-\paragraph{Tests.} \file{tests/LeanerVMTests/Protocol/Field.lean} (at \code{b435631}): a
+\paragraph{Tests.} \file{tests/}\allowbreak\file{LeanerVMTests/}\allowbreak\file{Protocol/}\allowbreak\file{Field.lean} (at \code{b435631}): a
 two-variable column \texttt{⟨\#v[1, 2, 3, 4]⟩} (\file{:27}); four \texttt{\#guard}s that the oracle
 returns the table entry on the cube (\file{:33-36}); one off the cube,
 \texttt{answer col \#v[y, ofK 0] = ofK 1 + ofK 3 * y} (\file{:39}, where at this pin $2$ and $3$ are
@@ -187,7 +187,7 @@ bit patterns, so $1 + y\cdot(1 \oplus 2)$); agreement with \lean{evalMle} of the
 $(y, y^2)$ (\file{:41-42}); a mutated column answers differently (\file{:44}); \lean{sampleK},
 \lean{sampleE} as compiled definitions (\file{:49}, \file{:52}: they fail to compile if a sampler
 has no compiler IR); \texttt{\#synth OracleInterface E} and \lean{(List E)} (\file{:59-60});
-\lean{example : Fintype.card E = 2 ^ 192 := card_E} (\file{:64}).
+\lean{example : Fintype.}\allowbreak\lean{card E = 2 ^ 192 := card_E} (\file{:64}).
 
 \subsection{The samplers: uniform, proved, and the diamond on \texorpdfstring{$\K$}{K}}\label{sec:gen-l0-samplers}
 
@@ -213,7 +213,7 @@ example : support ($ᵗ E) = Set.univ := support_uniformSample E
 example : ($ᵗ E) = limbsEquiv <$> ($ᵗ (Vector K 3)) := rfl
 example : ($ᵗ K) = finEquivK <$> ($ᵗ (Fin (2 ^ 64))) := rfl
 \end{leancode}
-\src{probe \code{Layer0} (\file{probes/lib-others/Layer0.lean}), section 4, run at the old pins}
+\src{probe \code{Layer0} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{Layer0.lean}), section 4, run at the old pins}
 
 Instance search (probe \code{Layer0}, section 1): \lean{SampleableType K} $\to$
 \lean{instSampleableTypeK}, \lean{SampleableType E} $\to$ \lean{instSampleableTypeE},
@@ -231,7 +231,7 @@ VCVio only) shows it:
 #synth FinEnum K               ⟹  FinEnum.instBitVec 64
 #synth SampleableType E        ⟹  error: failed to synthesize SampleableType E
 \end{leancode}
-\src{probe \code{SamplerDiamond} (\file{probes/lib-others/SamplerDiamond.lean}), run at the old pins; the last line is an intended error}
+\src{probe \code{SamplerDiamond} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{SamplerDiamond.lean}), run at the old pins; the last line is an intended error}
 
 With \lean{LeanerVM.Protocol.Field} imported, leanerVM's instance is found (declared later, same
 priority), and the two are \textbf{the same term up to unfolding}; the probe
@@ -241,7 +241,7 @@ example :
     (instSampleableTypeK).selectElem = (FinEnum.SampleableType K).selectElem := rfl
 example : (instSampleableTypeK : SampleableType K) = FinEnum.SampleableType K := rfl
 \end{leancode}
-\src{probe \code{SamplerDiamond2} (\file{probes/lib-others/SamplerDiamond2.lean}), run at the old pins}
+\src{probe \code{SamplerDiamond2} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{SamplerDiamond2.lean}), run at the old pins}
 
 In any case any two samplers on a finite type give every element the same probability (probe
 \code{SamplerDiamond}, accepted on the standard axioms):
@@ -250,18 +250,18 @@ theorem sampler_unique {α : Type} [Fintype α] (s t : SampleableType α) (x : �
     Pr[= x | @uniformSample α s] = Pr[= x | @uniformSample α t] := by
   rw [@probOutput_uniformSample α s, @probOutput_uniformSample α t]
 \end{leancode}
-\src{probe \code{SamplerDiamond} (\file{probes/lib-others/SamplerDiamond.lean}), run at the old pins}
+\src{probe \code{SamplerDiamond} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{SamplerDiamond.lean}), run at the old pins}
 
 So the diamond is harmless: no statement can depend on which instance is chosen. On $\E$ there is
 exactly one instance in scope. \textbf{Both samplers are uniform, proved; no distribution
 question remains.}
 
 \paragraph{\texorpdfstring{\lean{SampleableType K}}{SampleableType K} has no consumer.} No
-declaration outside \file{Protocol/Field.lean} mentions it (a \code{git grep} of \code{b435631}
+declaration outside \file{Protocol/}\allowbreak\file{Field.lean} mentions it (a \code{git grep} of \code{b435631}
 over \file{LeanerVM}, \file{tests} and \file{docs} finds only the blueprint's Layer 0 sketch), and
-leanVM samples every challenge in $\E$ (\file{crates/fiat_shamir/src/lib.rs:95-99},
+leanVM samples every challenge in $\E$ (\file{crates/}\allowbreak\file{fiat_shamir/}\allowbreak\file{src/}\allowbreak\file{lib.rs:95-99},
 \code{pub fn sample(&mut self) -> F192}; the module docstring
-\file{crates/primitives/src/field/mod.rs:3-6}: \enquote{challenges, sumcheck/GKR values, and
+\file{crates/}\allowbreak\file{primitives/}\allowbreak\file{src/}\allowbreak\file{field/}\allowbreak\file{mod.rs:3-6}: \enquote{challenges, sumcheck/GKR values, and
 transcript scalars are E-valued}). The blueprint's own dependency row says \enquote{Layer 0
 supplies the \lean{E} instance} (\file{protocol-blueprint.md:251}). At the old pins the instance
 is moreover a definitional duplicate of the library one. It is still needed as a \emph{building
@@ -271,7 +271,7 @@ library \lean{FinEnum} instance would serve. Finding: \cref{f:lib-k-sampler-unus
 \paragraph{At \texorpdfstring{\code{144c5aa}}{144c5aa} (new pins).} $\K$ is a structure
 (\cref{sec:gen-lib-comppoly-new}), so \lean{FinEnum (BitVec 64)} no longer applies to it and the
 diamond disappears; \lean{finEquivK} becomes
-\lean{toFun := fun i ↦ BF64.ofBitVec (BitVec.ofFin i)}, \lean{invFun := fun x ↦ x.toBitVec.toFin}
+\lean{toFun := fun i ↦ BF64.}\allowbreak\lean{ofBitVec (BitVec.}\allowbreak\lean{ofFin i)}, \lean{invFun := fun x ↦ x.}\allowbreak\lean{toBitVec.}\allowbreak\lean{toFin}
 (\code{git diff b435631 144c5aa -- LeanerVM/Protocol/Field.lean}); \lean{instSampleableTypeK} is
 then the only $\K$ sampler (by reading; not run). VCVio \code{a4232d08} states uniformity directly
 as a class law and proves sampler irrelevance upstream, the statement of the probe's
@@ -282,7 +282,7 @@ as a class law and proves sampler irrelevance upstream, the statement of the pro
 \begin{itemize}
 \item \textbf{Query}: \lean{Vector E n}, a point $r \in \E^n$. \textbf{Answer}: $\E$
   (\lean{spec := (Vector E n) →ₒ E}). \textbf{Implementation}: read the column and return
-  \lean{eval₂Mle q.values (algebraMap K E) r}, which is
+  \lean{eval₂Mle q.}\allowbreak\lean{values (algebraMap K E) r}, which is
   \lean{evalMle (map (algebraMap K E) q) r}
   $= \sum_i \mathrm{ofK}(q_i) \cdot \prod_j (\mathrm{bit}_j(i)\ ?\ r_j : 1 - r_j)$, the
   multilinear extension $\mle{q}(r)$ of the $\K$-table lifted to $\E$
@@ -295,11 +295,11 @@ example (n : ℕ) (q : Column n) (r : Vector E n) :
       CMlPolynomialEval.eval (CMlPolynomialEval.map (algebraMap K E) q.values) r := by
   rw [evalOracle_answer, CMlPolynomialEval.eval₂_mle_eq_eval₂]; rfl
 \end{leancode}
-\src{probe \code{Layer0} (\file{probes/lib-others/Layer0.lean}), section 5, run at the old pins}
+\src{probe \code{Layer0} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{Layer0.lean}), section 5, run at the old pins}
 \item This is leanVM's oracle: \enquote{we commit to a $\K$-valued multilinear, and opening claims
-  are in $\E$} (\file{doc/leanvm/body/b-polynomial-commitment-scheme.tex:4}).
+  are in $\E$} (\file{doc/}\allowbreak\file{leanvm/}\allowbreak\file{body/}\allowbreak\file{b-polynomial-commitment-scheme.tex:4}).
 \item \textbf{Name}: the code calls it \lean{evalOracle}, as the blueprint does
-  (\file{protocol-blueprint.md:638}); its full name is \lean{LeanerVM.Protocol.evalOracle} (probe
+  (\file{protocol-blueprint.md:638}); its full name is \lean{LeanerVM.}\allowbreak\lean{Protocol.}\allowbreak\lean{evalOracle} (probe
   \code{Layer0}: \texttt{\#synth OracleInterface (Column 3)} $\Rightarrow$ \lean{evalOracle 3}).
 \item \textbf{Why a structure.} \lean{CMlPolynomialEval K n} is \lean{@[reducible]}
   \lean{Vector K (2^n)}, and ArkLib has \lean{instVector : OracleInterface (Vector α n)} with
@@ -308,19 +308,19 @@ example (n : ℕ) (q : Column n) (r : Vector E n) :
   (\file{OracleInterface.lean:333-337}).
 \item \textbf{Other instances.} \lean{OracleInterface E} and \lean{OracleInterface (List E)} are
   ArkLib's \lean{instDefault}: query \lean{Unit}, answer the whole message (probe \code{Layer0}:
-  \lean{OracleInterface.Query E = Unit := rfl}, \lean{OracleInterface.answer x () = x := rfl}, the
+  \lean{OracleInterface.}\allowbreak\lean{Query E = Unit := rfl}, \lean{OracleInterface.}\allowbreak\lean{answer x () = x := rfl}, the
   same for \lean{List E}). They are the \enquote{the verifier reads what the prover sent} interface
   for scalars and coefficient lists; ArkLib registers no default instance for any type, at
   \code{dca90385} or at \code{7653a901} (a \code{git grep} for \lean{instDefault} instances finds
-  only two local ones in \file{ArkLib/ProofSystem/RingSwitching/Packing/Spec.lean:105-106} at
+  only two local ones in \file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{RingSwitching/}\allowbreak\file{Packing/}\allowbreak\file{Spec.lean:105-106} at
   \code{7653a901}), so there is no ambiguity yet. Finding: \cref{f:lib-scalar-interfaces}.
 \end{itemize}
 No issue found with the oracle interface: the query space, the answer and the lift are those of
 the specification, and the mutated-column test makes the answer depend on the column.
 
-\subsection{\texorpdfstring{\lean{card_E}}{card\_E}}\label{sec:gen-l0-card}
+\subsection{\texorpdfstring{\texttt{card\_E}}{card\_E}}\label{sec:gen-l0-card}
 
-\lean{theorem card_E : Fintype.card E = 2 ^ 192 := BF64.card_ext3} (\file{Protocol/Field.lean:96}).
+\lean{theorem card_}\allowbreak\lean{E : Fintype.}\allowbreak\lean{card E = 2 ^ 192 := BF64.}\allowbreak\lean{card_}\allowbreak\lean{ext3} (\file{Protocol/}\allowbreak\file{Field.lean:96}).
 The \lean{Fintype E} instance is CompPoly's \lean{Ext.instFintype} (probe \code{Layer0}:
 \texttt{\#synth Fintype E} $\Rightarrow$ \lean{Extension.Ext.instFintype}), and \lean{card_ext3} is
 $(2^{64})^3$ by the coefficient bijection (\cref{sec:gen-lib-comppoly-fields}). \lean{Fintype.card}
@@ -346,7 +346,7 @@ theorem probEvent_uniformSample_le_of_subsingleton (p : α → Prop)
     (h : ∀ a b, p a → p b → a = b) :
     Pr[p | $ᵗ α] ≤ ((1 / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
 \end{leancode}
-\src{\file{LeanerVM/Protocol/ToVCVio/UniformSample.lean:31-51} (proofs elided), leanerVM \code{b435631}}
+\src{\file{LeanerVM/}\allowbreak\file{Protocol/}\allowbreak\file{ToVCVio/}\allowbreak\file{UniformSample.lean:31-51} (proofs elided), leanerVM \code{b435631}}
 
 \textbf{Correct.} The left side is $\abs{\mathrm{filter}\ p} / \abs{\alpha}$ exactly (VCVio
 \lean{probEvent_uniformSample}, \cref{sec:gen-lib-vcvio-sample}); the right side is the real
@@ -371,7 +371,7 @@ theorem one_bad_challenge (c : E) :
 theorem one_bad_challenge_bound (c : E) :
     Pr[fun x : E ↦ x = c | $ᵗ E] ≤ ((1 / Fintype.card E : ℝ≥0) : ℝ≥0∞)
 \end{leancode}
-\src{probe \code{CountingBounds} (\file{probes/lib-others/CountingBounds.lean}), run at the old pins}
+\src{probe \code{CountingBounds} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{CountingBounds.lean}), run at the old pins}
 
 Consumers at \code{b435631}: \lean{…_of_subsingleton} in the public-input phase
 (\file{PublicInput.lean:362}); \lean{…_of_card_le} only through it.
@@ -383,10 +383,10 @@ binders, hypotheses and right sides are unchanged. At VCVio \code{a4232d08}, \le
 macro for the measure of the event \lean{{True}} under the computation returning the proposition
 (\cref{sec:gen-lib-vcvio-new}). \textbf{The two statements are the same mathematical statement.}
 At each pin the left side equals the same closed form by a library theorem: at \code{f9dc47d9},
-\lean{probEvent_uniformSample : Pr[ p | $ᵗ α] = (Finset.univ.filter p).card / Fintype.card α}
+\lean{probEvent_}\allowbreak\lean{uniformSample : Pr[ p | $ᵗ α] = (Finset.}\allowbreak\lean{univ.}\allowbreak\lean{filter p).}\allowbreak\lean{card / Fintype.}\allowbreak\lean{card α}
 (\file{SampleableType.lean:224-226}); at \code{a4232d08},
 \lean{SampleableType.prEvent_uniformSample : Pr{let x ← $ᵗ α}[p x] = (Finset.univ.filter p).card / (Fintype.card α : ENNReal)}
-(\file{Constructions/SampleableType/NativeMeasure.lean:41-45}). And VCVio \code{a4232d08} proves
+(\file{Constructions/}\allowbreak\file{SampleableType/}\allowbreak\file{NativeMeasure.lean:41-45}). And VCVio \code{a4232d08} proves
 its measure semantics agrees with the old mass-function semantics on discrete answer spaces. So
 the restated bounds bound the same number by the same number (verified by reading; not re-run at
 the new pin).
@@ -396,20 +396,20 @@ the equalities \lean{probEvent_uniformSample} and \lean{probOutput_uniformSample
 local bounds are their two-line corollaries. At VCVio \code{a4232d08},
 \lean{…_of_card_le} is, up to a coercion, the $\Leftarrow$ direction of the following theorem
 (section variables \lean{{α : Type} [SampleableType α] [Fintype α] (p : α → Prop) [DecidablePred p]},
-\file{:117}); the local right side \lean{((k / Fintype.card α : ℝ≥0) : ℝ≥0∞)} equals
-\lean{k / (Fintype.card α : ℝ≥0∞)} by \lean{ENNReal.coe_div}.
+\file{:117}); the local right side \lean{((k / Fintype.}\allowbreak\lean{card α : ℝ≥0) : ℝ≥0∞)} equals
+\lean{k / (Fintype.}\allowbreak\lean{card α : ℝ≥0∞)} by \lean{ENNReal.coe_div}.
 \begin{leancode}
 theorem prEvent_uniformSample_le_div_iff {c : ℕ} :
     Pr{let x ← $ᵗ α}[p x] ≤ c / (Fintype.card α : ℝ≥0∞) ↔
       (Finset.univ.filter p).card ≤ c
 \end{leancode}
-\src{\file{VCVio/OracleComp/Constructions/SampleableType/NativeMeasure.lean:126-130}, VCVio \code{a4232d08}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType/}\allowbreak\file{NativeMeasure.lean:126-130}, VCVio \code{a4232d08}}
 
 For single-witness events VCVio has
 \lean{prEvent_uniformSample_eq_singleton : Pr{let x ← $ᵗ α}[x = a] = (Fintype.card α : ℝ≥0∞)⁻¹}
 (\file{:110-111}), but no \enquote{at most one witness} form (a search for \code{subsingleton} and
-\code{card_le_one} in \file{SampleableType/} and \file{EvalDist/ProbabilityBounds.lean} finds
-none). The probe's \lean{sampler_unique} is upstream as \lean{prEvent_uniformSample_inst_irrel}
+\code{card_le_one} in \file{SampleableType/} and \file{EvalDist/}\allowbreak\file{ProbabilityBounds.lean} finds
+none). The probe's \lean{sampler_unique} is upstream as \lean{prEvent_}\allowbreak\lean{uniformSample_}\allowbreak\lean{inst_}\allowbreak\lean{irrel}
 (\file{:280-284}). So at the new pin \lean{…_of_card_le} is redundant and can be replaced by the
 upstream equivalence; \lean{…_of_subsingleton} is kept, or upstreamed
 (\cref{f:lib-counting-bound-redundant}).
@@ -432,10 +432,10 @@ Blueprint & Code & Verdict \\
 \bottomrule
 \endfoot
 \code{instance : SampleableType K  -- a uniform Fin (2^64) read as a bit pattern}
-  & \lean{instSampleableTypeK := SampleableType.ofEquiv finEquivK}
+  & \lean{instSampleableTypeK := SampleableType.}\allowbreak\lean{ofEquiv finEquivK}
   & agrees; unused (\cref{sec:gen-l0-samplers}) \\
 \code{instance : SampleableType E  -- three independent limbs through Ext.ofVector; never enumerates}
-  & \lean{instSampleableTypeE := SampleableType.ofEquiv limbsEquiv}
+  & \lean{instSampleableTypeE := SampleableType.}\allowbreak\lean{ofEquiv limbsEquiv}
   & agrees \\
 \code{theorem card_E : Fintype.card E = 2 ^ 192}
   & identical & agrees \\
@@ -447,13 +447,13 @@ Blueprint & Code & Verdict \\
     callers must write \lean{evalOracle_answer n q r} although \lean{n} is determined by \lean{q}
     (\cref{f:lib-evaloracle-answer-n}) \\
 \enquote{\lean{SampleableType.ofEquiv} on the carrier views, as ArkLib's own
-  \lean{KoalaBear.Ext6.sampleableType}, and a test probes that it has compiler IR}
+  \lean{KoalaBear.}\allowbreak\lean{Ext6.}\allowbreak\lean{sampleableType}, and a test probes that it has compiler IR}
   & yes (\lean{sampleK}, \lean{sampleE}) & agrees \\
 Tests: \enquote{\texttt{\#guard}s that the oracle answers \lean{evalMle} on a two-variable table, on
-  and off the cube, with a mutated column; \lean{example : Fintype.card E = 2 ^ 192 := card_E}}
+  and off the cube, with a mutated column; \lean{example : Fintype.}\allowbreak\lean{card E = 2 ^ 192 := card_E}}
   & yes (\cref{sec:gen-l0-catalogue}) & agrees \\
 ---
-  & \lean{instOracleInterfaceE}, \lean{instOracleInterfaceListE} in \file{Protocol/Field.lean}
+  & \lean{instOracleInterfaceE}, \lean{instOracleInterfaceListE} in \file{Protocol/}\allowbreak\file{Field.lean}
   & \textbf{not in the Layer 0 sketch}, nor in the interface list \file{protocol-blueprint.md:1400}
     (\enquote{\code{instSampleableTypeE  evalOracle  card_E}}), which also omits
     \lean{instSampleableTypeK} and \lean{Column} (the latter is at \file{:666})
@@ -472,7 +472,7 @@ Tests: \enquote{\texttt{\#guard}s that the oracle answers \lean{evalMle} on a tw
 \end{longtable}}
 
 \lean{NoOracle} and \lean{OneOracle} are specified in the spine section
-(\file{protocol-blueprint.md:472}, \file{:1377}), and \file{ToVCVio/UniformSample.lean}'s bound is
+(\file{protocol-blueprint.md:472}, \file{:1377}), and \file{ToVCVio/}\allowbreak\file{UniformSample.lean}'s bound is
 cited at \file{:1046}; both agree with the code.
 
 \par\endgroup

@@ -1,0 +1,151 @@
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:33:14: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:38:37: error: Application type mismatch: The argument
+  Eq.symm h1
+has type
+  1 =
+    𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift
+        pure (stmtOut ∈ {t | (t, ()) ∈ relOut})]
+      {True}
+but is expected to have type
+  1 =
+    probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift)
+      fun t => (t, ()) ∈ relOut
+in the application
+  lt_of_lt_of_eq zero_lt_one (Eq.symm h1)
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:39:46: error: Application type mismatch: The argument
+  hacc
+has type
+  (probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift)
+      fun t => (t, ()) ∈ relOut) >
+    0
+but is expected to have type
+  𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift
+        pure ((stmtOut, ()) ∈ relOut)]
+      {True} >
+    0
+in the application
+  K.toFun_full false default () hacc
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:75:6: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+  probEvent ?m.60 ?m.61 = 0
+in the target expression
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge ⟨0, ⋯⟩
+        pure
+            (∃ witMid,
+              ¬K.toFun (Fin.castSucc 0) false default
+                    (E.extractMid 0 false (Transcript.concat challenge default) witMid) ∧
+                K.toFun (Fin.succ 0) false (Transcript.concat challenge default) witMid)]
+      {True} =
+    0
+
+ι : Type
+oSpec : OracleSpec ι
+σ : Type
+init : ProbComp σ
+impl : QueryImpl oSpec (StateT σ ProbComp)
+W : Fin 2 → Type
+E : Extractor.RoundByRound oSpec Bool Unit Unit pSpec1 W
+K : Verifier.KnowledgeStateFunction init impl relIn relOut acceptAll1 E
+h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut acceptAll1 W E K fun x => 0
+h0 :
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge ⟨0, ⋯⟩
+        pure
+            (∃ witMid,
+              ¬K.toFun (Fin.castSucc 0) false default
+                    (E.extractMid 0 false (Transcript.concat challenge default) witMid) ∧
+                K.toFun (Fin.succ 0) false (Transcript.concat challenge default) witMid)]
+      {True} =
+    0
+⊢ False
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:134:6: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+  probEvent ?m.35 ?m.36 = 0
+in the target expression
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge i
+        pure
+            (∃ witMid,
+              ¬(checkBit_stateFunction init impl).toFun (↑i).castSucc s tr
+                    (acceptAll1_extractor.extractMid (↑i) s (Transcript.concat challenge tr) witMid) ∧
+                (checkBit_stateFunction init impl).toFun (↑i).succ s (Transcript.concat challenge tr) witMid)]
+      {True} =
+    0
+
+ι : Type
+oSpec : OracleSpec ι
+σ : Type
+init : ProbComp σ
+impl : QueryImpl oSpec (StateT σ ProbComp)
+s : Bool
+i : pSpec1.ChallengeIdx
+tr : Transcript (↑i).castSucc pSpec1
+⊢ 𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge i
+        pure
+            (∃ witMid,
+              ¬(checkBit_stateFunction init impl).toFun (↑i).castSucc s tr
+                    (acceptAll1_extractor.extractMid (↑i) s (Transcript.concat challenge tr) witMid) ∧
+                (checkBit_stateFunction init impl).toFun (↑i).succ s (Transcript.concat challenge tr) witMid)]
+      {True} =
+    0
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:163:15: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:171:37: error: Application type mismatch: The argument
+  Eq.symm h1
+has type
+  1 =
+    𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run s tr V)).run' __do_lift
+        pure (stmtOut ∈ {t | (t, w) ∈ Set.univ})]
+      {True}
+but is expected to have type
+  1 =
+    probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run s tr V)).run' __do_lift)
+      fun t => (t, w) ∈ Set.univ
+in the application
+  lt_of_lt_of_eq zero_lt_one (Eq.symm h1)
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:174:82: error: Application type mismatch: The argument
+  hp
+has type
+  (probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run s tr V)).run' __do_lift)
+      fun t => (t, w) ∈ Set.univ) >
+    0
+but is expected to have type
+  𝒟[do
+        let sample ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run s tr V)).run' __do_lift
+        pure (?m.185 sample)]
+      {True} >
+    0
+in the application
+  LeanerVM.Protocol.Verifier.GuardedForm.of_probEvent_pos G init impl s tr ?m.185 hp
+'Probe.acceptAll0_no_stateFunction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.acceptAll1_not_sound_at_zero' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.acceptAll1_sound_at_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.checkBit_sound_at_zero' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.full_iff_of_univ' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+exit=1

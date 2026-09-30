@@ -6,7 +6,7 @@
 VCVio is the library of \emph{oracle computations} on which ArkLib states every security notion.
 Every snippet of this section is from VCVio at the old pin \code{f9dc47d9} (\enquote{feat(complexity):
 add honest oracle-PPT foundations and measure-native OTP (\#545)}), read under
-\file{.lake/packages/VCVio/}; \cref{sec:gen-lib-vcvio-new} says what the new pin \code{a4232d08}
+\file{.lake/}\allowbreak\file{packages/}\allowbreak\file{VCVio/}; \cref{sec:gen-lib-vcvio-new} says what the new pin \code{a4232d08}
 changes.
 
 \subsection{Oracles and computations}\label{sec:gen-lib-vcvio-comp}
@@ -24,14 +24,14 @@ Defined as a map from each input to the type of the oracle's output. -/
 def OracleSpec (ι : Type u) : Type (max u (v + 1)) :=
   ι → Type v
 \end{leancode}
-\src{\file{VCVio/OracleComp/OracleSpec.lean:27-30}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:27-30}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Specifies access to no oracles, using the empty type as the indexing type. -/
 @[reducible] def emptySpec : OracleSpec PEmpty := PEmpty →ₒ PEmpty
 notation "[]ₒ" => emptySpec
 \end{leancode}
-\src{\file{VCVio/OracleComp/OracleSpec.lean:215-217}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:215-217}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Access to oracles for uniformly selecting from `Fin (n + 1)` for arbitrary `n : ℕ`.
@@ -39,7 +39,7 @@ By adding `1` to the index we avoid selection from the empty type `Fin 0 ≃ emp
 @[inline, reducible] def unifSpec : OracleSpec ℕ :=
   OracleSpec.ofFn fun n => Fin (n + 1)
 \end{leancode}
-\src{\file{VCVio/OracleComp/OracleSpec.lean:233-236}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleSpec.lean:233-236}, VCVio \code{f9dc47d9}}
 
 (The notation is \code{notation:25 (name := singletonSpec) A:25 " →ₒ " B:26 =>
 OracleSpec.ofFn (ι := A) (fun _ => B)}, \file{OracleSpec.lean:84-85}.)
@@ -62,7 +62,7 @@ def OracleComp {ι : Type u} (spec : OracleSpec.{u, v} ι) :
     Type w → Type (max u v w) :=
   PFunctor.FreeM spec.toPFunctor
 \end{leancode}
-\src{\file{VCVio/OracleComp/OracleComp.lean:23-29}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{OracleComp.lean:23-29}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Simplified notation for computations with no oracles besides random inputs.
@@ -70,7 +70,7 @@ This specific case can be used with `#eval` to run a random program, see `Oracle
 NOTE: Need to decide if this should be more opaque than `abbrev`, seems like no as of now.. -/
 abbrev ProbComp : Type → Type := OracleComp unifSpec
 \end{leancode}
-\src{\file{VCVio/OracleComp/ProbComp.lean:42-45}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{ProbComp.lean:42-45}, VCVio \code{f9dc47d9}}
 
 \paragraph{Failure.} An \lean{OracleComp} tree has no failure node: it always returns. Failure (a
 verifier rejecting, a guard not met) is added by Lean's \lean{OptionT} monad transformer,
@@ -84,7 +84,7 @@ sum at most `1` represented by applying an `OptionT` transformer to the `PMF` mo
 The new `failure`/`none` value holds the "missing" mass to reach the total sum of `1`. -/
 def SPMF : Type u → Type u := OptionT PMF
 \end{leancode}
-\src{\file{ToMathlib/ProbabilityTheory/SPMF.lean:55-58}, VCVio \code{f9dc47d9}}
+\src{\file{ToMathlib/}\allowbreak\file{ProbabilityTheory/}\allowbreak\file{SPMF.lean:55-58}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Lift a `MonadLiftT m SPMF` instance to `MonadLiftT (OptionT m) SPMF`. Failure in `OptionT`
@@ -94,7 +94,7 @@ noncomputable instance instMonadLiftTSPMF (m : Type u → Type v) [Monad m]
     MonadLiftT (OptionT m) SPMF where
   monadLift x := OptionT.mapM' (MonadHom.ofLift m SPMF) x
 \end{leancode}
-\src{\file{VCVio/EvalDist/Instances/OptionT.lean:126-131}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Instances/}\allowbreak\file{OptionT.lean:126-131}, VCVio \code{f9dc47d9}}
 
 \begin{define}{\lean{QueryImpl} and \lean{simulateQ}: answering the queries}
 A \lean{QueryImpl spec m} answers every query of \lean{spec} by a computation in another monad
@@ -112,7 +112,7 @@ applying the continuation, then to `OracleComp spec` by preserving `pure` and
 @[reducible] def QueryImpl {ι} (spec : OracleSpec ι) (m : Type u → Type v) :=
   (x : spec.Domain) → m (spec.Range x)
 \end{leancode}
-\src{\file{VCVio/OracleComp/SimSemantics/QueryImpl/Basic.lean:30-37}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{SimSemantics/}\allowbreak\file{QueryImpl/}\allowbreak\file{Basic.lean:30-37}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Given an implementation of `spec` in the monad `r`, convert an `OracleComp spec α` to a
@@ -121,9 +121,9 @@ def simulateQ {ι} {spec : OracleSpec ι} {r : Type u → Type _} [Monad r]
     (impl : QueryImpl spec r) {α : Type u} (mx : OracleComp spec α) : r α :=
   PFunctor.FreeM.liftM impl mx
 \end{leancode}
-\src{\file{VCVio/OracleComp/SimSemantics/SimulateQ.lean:27-31}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{SimSemantics/}\allowbreak\file{SimulateQ.lean:27-31}, VCVio \code{f9dc47d9}}
 
-\subsection{The distribution of a computation, \texorpdfstring{\lean{Pr[…]}}{Pr[...]}, and the support}\label{sec:gen-lib-vcvio-dist}
+\subsection{The distribution of a computation, \texorpdfstring{\texttt{Pr[…]}}{Pr[...]}, and the support}\label{sec:gen-lib-vcvio-dist}
 
 \begin{define}{The distribution of a computation}
 The distribution of an \lean{OracleComp} is obtained by \lean{simulateQ} with every query
@@ -142,13 +142,13 @@ once. The probabilities are then read off that sub-distribution.
 
 noncomputable instance : IsUniformSpec unifSpec := IsUniformSpec.ofFintypeInhabited _
 \end{leancode}
-\src{\file{VCVio/OracleComp/EvalDist.lean:71-80}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{EvalDist.lean:71-80}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 lemma evalSPMF_eq_simulateQ [IsProbabilitySpec spec] (mx : OracleComp spec α) :
     𝒮[mx] = simulateQ IsProbabilitySpec.toPMF mx := rfl
 \end{leancode}
-\src{\file{VCVio/OracleComp/EvalDist.lean:146-147}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{EvalDist.lean:146-147}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 def probOutput [MonadLiftT m SPMF] (mx : m α) (x : α) : ℝ≥0∞ :=
@@ -171,7 +171,7 @@ macro (name := probEventNotation) "Pr[ " p:term " | " mx:term "]" : term =>
 /-- Probability that a computation fails to return a value. -/
 notation "Pr[⊥" " | " mx "]" => probFailure mx
 \end{leancode}
-\src{\file{VCVio/EvalDist/Defs/Basic.lean:114-140}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Basic.lean:114-140}, VCVio \code{f9dc47d9}}
 
 So \lean{Pr[= x | mx]} is the probability that \lean{mx} returns \lean{x}, \lean{Pr[p | mx]}
 the probability that it returns a value satisfying \lean{p} (failure never satisfies an event),
@@ -183,7 +183,7 @@ syntactically (every answer allowed at every query):
 def support [MonadLiftT m SetM] {α : Type u} (mx : m α) : Set α :=
   SetM.run (liftM mx)
 \end{leancode}
-\src{\file{VCVio/EvalDist/Defs/Support.lean:42-44}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Support.lean:42-44}, VCVio \code{f9dc47d9}}
 
 \subsection{Uniform sampling, with uniformity as a law}\label{sec:gen-lib-vcvio-sample}
 
@@ -211,7 +211,7 @@ def uniformSample (β : Type) [h : SampleableType β] : ProbComp β := h.selectE
 
 notation:90 "$ᵗ " α:91 => uniformSample α
 \end{leancode}
-\src{\file{VCVio/OracleComp/Constructions/SampleableType.lean:37-53}, VCVio \code{f9dc47d9}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType.lean:37-53}, VCVio \code{f9dc47d9}}
 
 \begin{leancode}
 /-- Every element of a uniform sample over a `Fintype` has output probability `card⁻¹`. -/
@@ -280,13 +280,13 @@ def challengeQueryImpl {pSpec : ProtocolSpec n} [∀ i, SampleableType (pSpec.Ch
     QueryImpl ([pSpec.Challenge]ₒ'challengeOracleInterface) ProbComp :=
   fun q => $ᵗ (pSpec.Challenge q.1)
 \end{leancode}
-\src{\file{ArkLib/OracleReduction/ProtocolSpec/Basic.lean:732-734}, ArkLib \code{dca90385}}
+\src{\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{ProtocolSpec/}\allowbreak\file{Basic.lean:732-734}, ArkLib \code{dca90385}}
 
 \subsection{What a reader trusts when a theorem is a VCVio probability bound}\label{sec:gen-lib-vcvio-trust}
 
 A statement \lean{Pr[bad | game] ≤ ε} in VCVio unfolds to: interpret the program \lean{game} (a
 free-monad tree) by answering each uniform-choice query $n$ with Mathlib's
-\lean{PMF.uniformOfFintype (Fin (n+1))} and each \lean{OptionT} failure by the missing mass,
+\lean{PMF.}\allowbreak\lean{uniformOfFintype (Fin (n+1))} and each \lean{OptionT} failure by the missing mass,
 compose these distributions by Mathlib's \lean{PMF} bind, and measure the event. The reader
 trusts:
 \begin{enumerate}
@@ -305,17 +305,17 @@ trusts:
 Nothing else in VCVio is on the trusted path of a statement: its many lemmas are proofs, checked
 by the kernel. (VCVio at the old pin also has a measure-theoretic semantics \lean{𝒟[…]}; the
 \lean{Pr[…]} notation used by ArkLib and leanerVM is the discrete \lean{SPMF} one quoted above,
-\file{Defs/Basic.lean:110-125}.)
+\file{Defs/}\allowbreak\file{Basic.lean:110-125}.)
 
-\subsection{At the new pin \texorpdfstring{\code{a4232d08}}{a4232d08}}\label{sec:gen-lib-vcvio-new}
+\subsection{At the new pin \texorpdfstring{\texttt{a4232d08}}{a4232d08}}\label{sec:gen-lib-vcvio-new}
 
 \begin{sloppypar}
 At VCVio \code{a4232d08} the primary semantics is a Mathlib \lean{Measure} (\lean{𝒟[mx]}), a
 fold of the free monad with per-query measures, proved to agree with the old mass-function
 semantics on discrete answer spaces (the agreement is proved in
-\file{OracleComp/EvalDist/UniformCompatibility.lean:47} and in
-\file{EvalDist/PFunctorMeasure.lean:96-106}). \lean{probOutput}, \lean{probEvent} and
-\lean{probFailure} are deprecated since 2026-09-13 (\file{VCVio/EvalDist/Defs/Basic.lean:90-110}
+\file{OracleComp/}\allowbreak\file{EvalDist/}\allowbreak\file{UniformCompatibility.lean:47} and in
+\file{EvalDist/}\allowbreak\file{PFunctorMeasure.lean:96-106}). \lean{probOutput}, \lean{probEvent} and
+\lean{probFailure} are deprecated since 2026-09-13 (\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Basic.lean:90-110}
 at \code{a4232d08}, \code{@[deprecated "VCVio retiring probability API: use 𝒟[mx] {x | p x}"]}) in favour of
 \lean{Pr{let x ← c}[P x]}, a macro for the measure of the event \lean{{True}} under the
 computation returning the proposition:
@@ -327,11 +327,11 @@ macro_rules (kind := prEvent)
   -- `doSeqIndent`
   | `(Pr{$items*}[$t]) => `(𝒟[do $items:doSeqItem* return $t:term] {True})
 \end{leancode}
-\src{\file{VCVio/EvalDist/ProbabilityNotation.lean:65-69}, VCVio \code{a4232d08}}
+\src{\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{ProbabilityNotation.lean:65-69}, VCVio \code{a4232d08}}
 
 \lean{SampleableType}'s law is now stated directly as \enquote{the output measure is uniform},
 and sampler irrelevance is proved upstream
-(\lean{SampleableType.prEvent_uniformSample_inst_irrel}, \file{NativeMeasure.lean:280-284}):
+(\lean{SampleableType.}\allowbreak\lean{prEvent_}\allowbreak\lean{uniformSample_}\allowbreak\lean{inst_}\allowbreak\lean{irrel}, \file{NativeMeasure.lean:280-284}):
 \begin{leancode}
 class SampleableType (β : Type) where
   /-- The canonical sampler of `β`, written `$ᵗ β`. -/
@@ -341,7 +341,7 @@ class SampleableType (β : Type) where
     ∀ [MeasurableSpace β] [MeasurableSingletonClass β],
       𝒟[selectElem] = uniformOn Set.univ
 \end{leancode}
-\src{\file{VCVio/OracleComp/Constructions/SampleableType/Basic.lean:51-57}, VCVio \code{a4232d08}}
+\src{\file{VCVio/}\allowbreak\file{OracleComp/}\allowbreak\file{Constructions/}\allowbreak\file{SampleableType/}\allowbreak\file{Basic.lean:51-57}, VCVio \code{a4232d08}}
 
 \begin{sloppypar}
 What a reader trusts changes accordingly: the measure fold

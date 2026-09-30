@@ -1,0 +1,31 @@
+.claude/reports/blueprint-review/probes/lib-arklib/PlainReading.v434.lean:59:0: warning: automatically included section variable(s) unused in theorem `Probe.state_imp`:
+  [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)]
+consider restructuring your `variable` declarations so that the variables are not in scope or explicitly omit them:
+  omit [(i : pSpec.ChallengeIdx) → SampleableType (pSpec.Challenge i)] in theorem ...
+
+Note: This linter can be disabled with `set_option linter.unusedSectionVars false`
+'Probe.accept_imp_extract_or_bad' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.rbr_iff_badSet' depends on axioms: [propext, Classical.choice, Quot.sound]
+'schwartz_zippel_counting' depends on axioms: [propext, Classical.choice, Quot.sound]
+@schwartz_zippel_counting : ∀ {F : Type u_1} [inst : Field F] [inst_1 : DecidableEq F] {s : ℕ}
+  (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (S : Fin s → Finset F) (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).card) →
+            {x ∈ Fintype.piFinset S | (MvPolynomial.eval x) f = 0}.card * m ≤ d * ∏ i, (S i).card
+@prob_eval_zero_le_div : ∀ {F : Type} [inst : Field F] {s : ℕ} {S : Fin s → Set F}
+  [inst_1 : (i : Fin s) → Fintype ↑(S i)] [∀ (i : Fin s), Nonempty ↑(S i)]
+  [inst_3 : SampleableType ((i : Fin s) → ↑(S i))] (f : MvPolynomial (Fin s) F),
+  f ≠ 0 →
+    ∀ (d m : ℕ),
+      f.totalDegree ≤ d →
+        0 < m →
+          (∀ (i : Fin s), m ≤ (S i).toFinset.card) →
+            𝒟[do
+                  let x ← $ᵗ ((i : Fin s) → ↑(S i))
+                  pure ((MvPolynomial.eval fun i => ↑(x i)) f = 0)]
+                {True} ≤
+              ↑d / ↑m
+exit=0

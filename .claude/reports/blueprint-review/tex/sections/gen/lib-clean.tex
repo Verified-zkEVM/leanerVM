@@ -7,9 +7,9 @@ Clean is a library for writing zkVM circuits (AIR tables and the buses between t
 that the constraints imply a specification. leanISA (the arithmetization) is written in it; the
 proof system consumes its \emph{tables} through the spine's adaptor, not its soundness statement.
 Every snippet of this section is from Clean at the old pin \code{93c9d1ef}, read with
-\code{git show 93c9d1ef:<path>} under \file{.lake/packages/Clean}. At this pin Clean is
+\code{git show 93c9d1ef:<path>} under \file{.lake/}\allowbreak\file{packages/}\allowbreak\file{Clean}. At this pin Clean is
 \textbf{not} a Lean \code{module} library, which is why
-\file{LeanerVM/Parameters/CleanField.lean} is a plain file (\cref{sec:gen-lib-comppoly-leanervm}).
+\file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{CleanField.lean} is a plain file (\cref{sec:gen-lib-comppoly-leanervm}).
 \Cref{sec:gen-lib-clean-new} says what the new pin \code{42fe4b26} changes.
 
 \subsection{The circuit language}\label{sec:gen-lib-clean-circuit}
@@ -37,7 +37,7 @@ class FiniteField (F : Type) extends Field F where
   ...
   size : ℕ
 \end{leancode}
-\src{\file{Clean/Utils/FiniteField.lean:23-45}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Utils/}\allowbreak\file{FiniteField.lean:23-45}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 inductive Expression (F : Type) where
@@ -46,7 +46,7 @@ inductive Expression (F : Type) where
   | add : Expression F -> Expression F -> Expression F
   | mul : Expression F -> Expression F -> Expression F
 \end{leancode}
-\src{\file{Clean/Circuit/Expression.lean:12-16}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Expression.lean:12-16}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 structure Environment (F : Type) where
@@ -55,7 +55,7 @@ structure Environment (F : Type) where
   ...
   data : ProverData F
 \end{leancode}
-\src{\file{Clean/Circuit/Expression.lean:46-52}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Expression.lean:46-52}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 inductive Operation (F : Type) [FiniteField F] where
@@ -67,12 +67,12 @@ inductive Operation (F : Type) [FiniteField F] where
 ...
 def Operations (F : Type) [FiniteField F] := List (Operation F)
 \end{leancode}
-\src{\file{Clean/Circuit/Operations.lean:315-320} and \file{:355}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Operations.lean:315-320} and \file{:355}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 def Circuit (F : Type) [FiniteField F] (α : Type) := ℕ → α × List (Operation F)
 \end{leancode}
-\src{\file{Clean/Circuit/Basic.lean:29}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Basic.lean:29}, Clean \code{93c9d1ef}}
 
 \subsection{Components, tables, ensembles}\label{sec:gen-lib-clean-tables}
 
@@ -89,7 +89,7 @@ structure Component (F : Type) [FiniteField F] where
   [provableInput : ProvableType Input] [provableOutput : ProvableType Output]
   circuit : GeneralFormalCircuit F Input Output
 \end{leancode}
-\src{\file{Clean/Air/FlatComponent.lean:7-15}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatComponent.lean:7-15}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 structure Table (F : Type) [FiniteField F] where
@@ -99,7 +99,7 @@ structure Table (F : Type) [FiniteField F] where
   data : ProverData F
   uniform_width : ∀ row ∈ table, row.size = width
 \end{leancode}
-\src{\file{Clean/Air/FlatComponent.lean:150-156}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatComponent.lean:150-156}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 structure Ensemble (F : Type) [FiniteField F] (PublicIO : TypeMap) [ProvableType PublicIO] where
@@ -116,14 +116,14 @@ structure EnsembleWitness (ens : Ensemble F PublicIO) where
   same_circuits : ∀ i (hi : i < ens.tables.length), ens.tables[i] = tables[i].component
   same_data : ∀ table ∈ tables, table.data = data
 \end{leancode}
-\src{\file{Clean/Air/FlatEnsemble.lean:11-25}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:11-25}, Clean \code{93c9d1ef}}
 
 \paragraph{Why \texorpdfstring{\lean{EnsembleWitness}}{EnsembleWitness} lives in \texorpdfstring{\lean{Type 1}}{Type 1}.}
 A \lean{Table} stores its \lean{Component}, which stores its row types
 \lean{Input Output : TypeMap}, and \lean{TypeMap := Type → Type}
-(\file{Clean/Circuit/CircuitType.lean:10}) is itself a \lean{Type 1}. A structure with a field in
+(\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{CircuitType.lean:10}) is itself a \lean{Type 1}. A structure with a field in
 \lean{Type 1} is in \lean{Type 1} (probe \code{CleanBalance}, output lines 1--4:
-\lean{Air.Flat.Component : (F : Type) → [FiniteField F] → Type 1}, likewise \lean{Table},
+\lean{Air.}\allowbreak\lean{Flat.}\allowbreak\lean{Component : (F : Type) → [FiniteField F] → Type 1}, likewise \lean{Table},
 \lean{Ensemble}, \lean{EnsembleWitness}). ArkLib's statements and witnesses are in \lean{Type},
 so an \lean{EnsembleWitness} cannot be the proof system's witness; the blueprint draws exactly
 this consequence (\file{protocol-blueprint.md:367-369}, \file{:582-586}) and makes the stack
@@ -146,7 +146,7 @@ structure RawChannel (F : Type) where
   Guarantees (mult : F) (message : Vector F arity) (data : ProverData F) : Prop
   Requirements (mult : F) (message : Vector F arity) (data : ProverData F) : Prop
 \end{leancode}
-\src{\file{Clean/Circuit/Channel.lean:15-25}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Circuit/}\allowbreak\file{Channel.lean:15-25}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 def toRaw (channel : Channel F Message) : RawChannel F where
@@ -203,7 +203,7 @@ def BalancedInteractions (interactions : List (Interaction F)) : Prop :=
   (interactions.length < ringChar F ∨ ringChar F = 0) ∧
   ∀ msg : Array F, balanceOf interactions msg = 0
 \end{leancode}
-\src{\file{Clean/Air/Balance.lean:13-26}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{Balance.lean:13-26}, Clean \code{93c9d1ef}}
 
 \begin{leancode}
 abbrev BalancedChannel [DecidableEq F] {ens : Ensemble F PublicIO} (witness : EnsembleWitness ens)
@@ -220,7 +220,7 @@ def Statement (ens : Ensemble F PublicIO) (publicInput : PublicIO F) : Prop :=
 def Soundness (ens : Ensemble F PublicIO) (Assumptions Spec : PublicIO F → Prop) : Prop :=
   ∀ publicInput, Assumptions publicInput → ens.Statement publicInput → Spec publicInput
 \end{leancode}
-\src{\file{Clean/Air/FlatEnsemble.lean:334-337}, \file{:361-370}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:334-337}, \file{:361-370}, Clean \code{93c9d1ef}}
 
 The theorem that assembles per-table soundness into ensemble soundness has a proof that is plain
 logic; the bus argument is inside \lean{TableSoundness} and the channel lemmas of
@@ -234,7 +234,7 @@ theorem soundness_of_tableSoundness_and_specConsistency (ens : Ensemble F Public
   ens.SpecConsistency Spec →
     ens.Soundness Assumptions Spec := by
 \end{leancode}
-\src{\file{Clean/Air/FlatEnsemble.lean:419-424}, Clean \code{93c9d1ef}}
+\src{\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{FlatEnsemble.lean:419-424}, Clean \code{93c9d1ef}}
 
 \subsection{Why the balance argument is vacuous over a field of characteristic two}\label{sec:gen-lib-clean-vacuous}
 
@@ -253,11 +253,11 @@ theorem pushedTwice_balance (msg : Array K) : balanceOf pushedTwice msg = 0
 theorem pushedTwice_not_perm :
     ¬ (pushedTwice.map (·.msg)).Perm ([] : List (Array K))
 \end{leancode}
-\src{probe \code{CleanBalance} (\file{probes/lib-others/CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
+\src{probe \code{CleanBalance} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
   In addition $-1 = 1$ in $\K$ (\lean{example : (-1 : K) = 1 := by decide}), so
   \lean{Channel.toRaw} grants the pull guarantee to every multiplicity-$1$ push and makes every
   \lean{Requirements} vacuous (leanerVM issue \#16, table row 1, with kernel-checked examples in
-  \file{tests/LeanerVMTests/Arithmetization/Channels.lean}).
+  \file{tests/}\allowbreak\file{LeanerVMTests/}\allowbreak\file{Arithmetization/}\allowbreak\file{Channels.lean}).
 \item \textbf{With the side condition, the relation holds of no real bus.} \lean{length < 2}
   admits at most one interaction per channel, and a balanced singleton has multiplicity $0$. The
   probe \code{CleanBalance} proves all of the following on the standard axioms:
@@ -273,7 +273,7 @@ theorem statement_forces_at_most_one_interaction {PublicIO : TypeMap} [ProvableT
     (c : RawChannel K) (hc : c ∈ ens.channels) :
     (w.allTablesWitness.interactionsWith c).length ≤ 1
 \end{leancode}
-\src{probe \code{CleanBalance} (\file{probes/lib-others/CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
+\src{probe \code{CleanBalance} (\file{probes/}\allowbreak\file{lib-others/}\allowbreak\file{CleanBalance.lean}), run at the old pins; \cref{ch:probes}}
   So over $\K$ \lean{Ensemble.Statement} is false for every ensemble whose honest witness puts two
   interactions on a channel, including the smallest honest bus (one push, one matching pull):
   Clean's \lean{Soundness} is then \emph{vacuously} true and its completeness false. That is the
@@ -309,7 +309,7 @@ leanerVM \#16 & open (updated 2026-09-15) & \enquote{leanISA: Clean's bus argume
   degenerate over $\K$. \\
 leanerVM \#20 & open (updated 2026-09-24) & the Clean-side roadmap: opt-in \lean{DirectedChannel}
   (direction as a tag in the message), \lean{BalanceModel.multiset} (permutation, counted in
-  $\N$), \lean{Ensemble.StatementWith model}; Layers 0--4 on Clean \#464, Layer 5 (leanerVM
+  $\N$), \lean{Ensemble.}\allowbreak\lean{StatementWith model}; Layers 0--4 on Clean \#464, Layer 5 (leanerVM
   adoption) open. \\
 leanerVM \#23 & open (updated 2026-09-17) & fold the three named fixed-column hypotheses of
   \lean{SatisfiedBy} into Clean fixed columns and proof-committed data once Clean \#446 lands. \\
@@ -326,7 +326,7 @@ Clean \#466 & open (updated 2026-09-24) & \enquote{interpret expressions as boun
 Clean \#474 & open (updated 2026-09-29) & \enquote{preserve balance proof across Lean 4.34
   normalization}: the \textbf{new pin \code{42fe4b26}} is this branch merged with Clean
   \code{main}; it ports proofs only. At \code{42fe4b26} \lean{balanceOf} and
-  \lean{BalancedInteractions} are \textbf{unchanged} (\file{Clean/Air/Balance.lean:21-29},
+  \lean{BalancedInteractions} are \textbf{unchanged} (\file{Clean/}\allowbreak\file{Air/}\allowbreak\file{Balance.lean:21-29},
   identical text), so the vacuity stands at the new pin. \\
 \end{longtable}}
 
@@ -342,7 +342,7 @@ def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawCh
     Prop :=
   (messagesOn w push).Perm (messagesOn w pull)
 \end{leancode}
-\src{\file{LeanerVM/Arithmetization/Statement.lean:227-231}, leanerVM \code{b435631}}
+\src{\file{LeanerVM/}\allowbreak\file{Arithmetization/}\allowbreak\file{Statement.lean:227-231}, leanerVM \code{b435631}}
 
 \lean{BalancedPair} is used three times in \lean{SatisfiedBy} (\file{Statement.lean:320-324}:
 \lean{state_balanced}, \lean{mem_balanced}, \lean{bytecode_balanced}). Every interaction has
@@ -354,15 +354,15 @@ is a reordering of the other) is exact multiset equality with no characteristic 
 (\lean{Direction}, \lean{channelDir}) are deleted when (1) Clean \#464 is merged into Clean
 \code{main}, (2) leanerVM's pin reaches a Clean revision containing it, and (3) leanerVM's
 channels are rebuilt as \lean{DirectedChannel}s and \lean{SatisfiedBy} is stated through
-\lean{Ensemble.StatementWith BalanceModel.multiset} (leanerVM \#20, Layer 5, \enquote{a separate
+\lean{Ensemble.}\allowbreak\lean{StatementWith BalanceModel.}\allowbreak\lean{multiset} (leanerVM \#20, Layer 5, \enquote{a separate
 pull request}; \file{Channels.lean:71-72}). Until then the workaround is \textbf{a deviation
 forced by an upstream library}, and its correctness is by inspection of a four-line definition.
 Neither \#446 nor \#452 is required for the balance repair (issue \#20: \enquote{\#446
 (independent)}).
 
-\subsection{At the new pin \texorpdfstring{\code{42fe4b26}}{42fe4b26}}\label{sec:gen-lib-clean-new}
+\subsection{At the new pin \texorpdfstring{\texttt{42fe4b26}}{42fe4b26}}\label{sec:gen-lib-clean-new}
 
-Clean is a \code{module} library (\#460), so \file{LeanerVM/Parameters/CleanField.lean} became a
+Clean is a \code{module} library (\#460), so \file{LeanerVM/}\allowbreak\file{Parameters/}\allowbreak\file{CleanField.lean} became a
 \code{module} at \code{144c5aa} and the \enquote{Clean bridge is plain} convention (leanISA status
 finding C8) retires; the balance proofs were ported (\#474); \lean{balanceOf} and
 \lean{BalancedInteractions} are unchanged, and \#464 (directed channels) is not in the pin (a

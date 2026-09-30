@@ -1619,3 +1619,402 @@ reduction constant (20), `g = 2` (67), `g * g = 4` (68), `(2 : K) ≠ 0` (73) an
 `#synth Fintype (BitVec 64)` line (101) fails as in (a). `(3 : K) = (2 : K) + 1` (78) passes
 (`1 = 0 + 1`).
 
+### 6.2 `SamplerDiamond2.v434.lean` (two samplers on `K`: the same term?)
+
+No numeral; copied unchanged (`cp`; empty diff). Output (`SamplerDiamond2.v434.lean.new.out`),
+9 s:
+
+```text
+instSampleableTypeK
+.claude/reports/blueprint-review/probes/lib-others/SamplerDiamond2.v434.lean:15:40: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  FinEnum K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+.claude/reports/blueprint-review/probes/lib-others/SamplerDiamond2.v434.lean:18:53: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  FinEnum K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+exit=1
+```
+
+**Differs from the recorded result** (`lib-others.md`: both `example`s accepted, `exit=0`), for a
+reason the upgrade explains: at CompPoly `572f9973` `K` is a structure, not `BitVec 64`, so
+Mathlib's `FinEnum (BitVec n)` no longer applies to it, `FinEnum K` has no instance, and VCVio's
+`FinEnum.SampleableType K` (the second sampler) cannot be formed. `#synth SampleableType K` still
+finds leanerVM's `instSampleableTypeK`. The diamond the dossier examined does not exist at the
+new pins; nothing was adapted, since there is no second sampler to compare with. (Not checked
+here: whether some other route gives a second `SampleableType K`; `#synth` returns only the one
+it finds first.)
+
+### 6.3 `Layer0.unchanged.v434.lean` (Layer 0's instances, signatures, axioms, uniformity, oracle interface)
+
+No numeral other than `0`, `1` and exponents; copied unchanged (`cp`; empty diff). Output
+(`Layer0.unchanged.v434.lean.new.out`), 6 s:
+
+```text
+instSampleableTypeK
+instSampleableTypeE
+instSampleableTypeVector K 3
+instSampleableTypeFinOfNeZeroNat (2 ^ 64)
+instFintypeK
+Extension.Ext.instFintype
+instDecidableEqK
+fun a b => Extension.Ext.instDecidableEq a b
+evalOracle 3
+instOracleInterfaceE
+instOracleInterfaceListE
+finEquivK : Fin (2 ^ 64) ≃ K
+limbsEquiv : Vector K 3 ≃ E
+instSampleableTypeK : SampleableType K
+instSampleableTypeE : SampleableType E
+card_E : Fintype.card E = 2 ^ 192
+evalOracle : (n : ℕ) → OracleInterface (Column n)
+evalOracle_answer : ∀ (n : ℕ) (q : Column n) (r : Vector E n),
+  OracleInterface.answer q r = q.values.eval₂Mle (algebraMap K E) r
+@probEvent_uniformSample_le_of_card_le : ∀ {α : Type} [inst : SampleableType α] [inst_1 : Fintype α] (p : α → Prop)
+  [inst_2 : DecidablePred p] {k : ℕ},
+  (Finset.filter p Finset.univ).card ≤ k →
+    𝒟[do
+          let sample ← $ᵗ α
+          pure (p sample)]
+        {True} ≤
+      ↑(↑k / ↑(Fintype.card α))
+@probEvent_uniformSample_le_of_subsingleton : ∀ {α : Type} [inst : SampleableType α] [inst_1 : Fintype α]
+  (p : α → Prop),
+  (∀ (a b : α), p a → p b → a = b) →
+    𝒟[do
+          let sample ← $ᵗ α
+          pure (p sample)]
+        {True} ≤
+      ↑(1 / ↑(Fintype.card α))
+NoOracle : Fin 0 → Type
+OneOracle : Type → Fin 1 → Type
+noOracle_eq : ∀ (o o' : (i : Fin 0) → NoOracle i), o = o'
+class SampleableType (β : Type) : Type
+number of parameters: 1
+fields:
+  SampleableType.selectElem : ProbComp β
+  SampleableType.evalDist_selectElem_eq_uniform : ∀ [inst : MeasurableSpace β] [MeasurableSingletonClass β],
+      𝒟[SampleableType.selectElem] = ProbabilityTheory.uniformOn Set.univ
+constructor:
+  SampleableType.mk {β : Type} (selectElem : ProbComp β)
+    (evalDist_selectElem_eq_uniform :
+      ∀ [inst : MeasurableSpace β] [MeasurableSingletonClass β], 𝒟[selectElem] = ProbabilityTheory.uniformOn Set.univ) :
+    SampleableType β
+@[instance_reducible] def LeanerVM.Protocol.evalOracle : (n : ℕ) → OracleInterface (Column n) :=
+fun n =>
+  { Query := Vector E n,
+    toOC :=
+      { spec := OracleSpec.ofFn fun x => E,
+        impl := fun r => do
+          let __do_lift ← read
+          pure (__do_lift.values.eval₂Mle (algebraMap K E) r) } }
+@[instance_reducible] def LeanerVM.Protocol.instSampleableTypeK : SampleableType K :=
+SampleableType.ofEquiv finEquivK
+@[instance_reducible] def LeanerVM.Protocol.instSampleableTypeE : SampleableType E :=
+SampleableType.ofEquiv limbsEquiv
+'LeanerVM.Protocol.finEquivK' depends on axioms: [propext]
+'LeanerVM.Protocol.limbsEquiv' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instSampleableTypeK' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instSampleableTypeE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.card_E' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.evalOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.evalOracle_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instOracleInterfaceE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instOracleInterfaceListE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.probEvent_uniformSample_le_of_card_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.probEvent_uniformSample_le_of_subsingleton' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'LeanerVM.Protocol.noOracle_eq' depends on axioms: [Quot.sound]
+'BF64.card_ext3' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.card_bf64' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.basePoly_irreducible' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.ext3Poly_irreducible' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.instField' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SampleableType.ofEquiv' depends on axioms: [propext, Classical.choice, Quot.sound]
+'probOutput_uniformSample' depends on axioms: [propext, Classical.choice, Quot.sound]
+'probEvent_uniformSample' depends on axioms: [propext, Classical.choice, Quot.sound]
+'CompPoly.CMlPolynomialEval.eval_mle_eq_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'CompPoly.CMlPolynomialEval.eval₂_mle_eq_eval₂' depends on axioms: [propext, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:78:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:80:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:82:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:85:10: warning: `probFailure` has been deprecated: VCVio retiring probability API: use `1 - 𝒟[mx] Set.univ`
+exit=0
+```
+
+**Agrees** with the dossier's recorded result (`lib-others.md` H.1: `exit=0`) in everything a
+conclusion rests on: the same instances are found for `SampleableType K`, `SampleableType E`,
+`SampleableType (Vector K 3)`, `SampleableType (Fin (2 ^ 64))`, `Fintype E`, `DecidableEq E` and
+the three oracle interfaces; the same axioms for every declaration listed (the kernel's three,
+`[propext]` for `finEquivK`, `[Quot.sound]` for `noOracle_eq`); every `example` of sections 4
+and 5 compiles (uniformity of both samplers, `|E| = 2^192`, no failure, full support, the
+samplers as images of the equivalences by `rfl`, the column's oracle interface, `ofK` is
+`algebraMap K E`). **Differences in the printed text**, all from the upgrade: `Fintype K` is now
+`instFintypeK` (was `BF64.instFintype`) and `DecidableEq K` is `instDecidableEqK` (was
+`instDecidableEqBitVec`), both leanerVM's own at `144c5aa` (`LeanerVM/Parameters/Field.lean`);
+the two counting bounds are printed in the new form `𝒟[do let sample ← $ᵗ α; pure (p sample)]
+{True} ≤ …` (was `probEvent ($ᵗ α) p ≤ …`), the same bounds; VCVio's class `SampleableType` now
+has the fields `selectElem` and `evalDist_selectElem_eq_uniform` (the sampler's distribution is
+the uniform measure) instead of `mem_support_selectElem` and `probOutput_selectElem_eq`; and four
+deprecation warnings for `Pr[= x | …]` and `Pr[⊥ | …]`.
+
+## 7. ArkLib's definitions (`probes/lib-arklib/`)
+
+Command: the brief's, no `-D` option (as in `lib-arklib.md`'s appendix). No probe of this
+directory uses a numeral in `K`; the adaptations are to VCVio's new probability API only.
+
+### 7.1 `NonVacuity` (non-vacuity of round-by-round knowledge soundness)
+
+**(a) Unchanged copy** (`NonVacuity.unchanged.v434.lean`; it was first run as
+`NonVacuity.v434.lean` and renamed with its output afterwards, so the paths inside the output
+name the earlier file name; empty diff against the old file). Output
+(`NonVacuity.unchanged.v434.lean.new.out`), 54 s (including the wait for the lock):
+
+```text
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:33:14: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:38:37: error: Application type mismatch: The argument
+  Eq.symm h1
+has type
+  1 =
+    𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift
+        pure (stmtOut ∈ {t | (t, ()) ∈ relOut})]
+      {True}
+but is expected to have type
+  1 =
+    probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift)
+      fun t => (t, ()) ∈ relOut
+in the application
+  lt_of_lt_of_eq zero_lt_one (Eq.symm h1)
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:39:46: error: Application type mismatch: The argument
+  hacc
+has type
+  (probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift)
+      fun t => (t, ()) ∈ relOut) >
+    0
+but is expected to have type
+  𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run false default acceptAll0)).run' __do_lift
+        pure ((stmtOut, ()) ∈ relOut)]
+      {True} >
+    0
+in the application
+  K.toFun_full false default () hacc
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:75:6: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+  probEvent ?m.60 ?m.61 = 0
+in the target expression
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge ⟨0, ⋯⟩
+        pure
+            (∃ witMid,
+              ¬K.toFun (Fin.castSucc 0) false default
+                    (E.extractMid 0 false (Transcript.concat challenge default) witMid) ∧
+                K.toFun (Fin.succ 0) false (Transcript.concat challenge default) witMid)]
+      {True} =
+    0
+
+ι : Type
+oSpec : OracleSpec ι
+σ : Type
+init : ProbComp σ
+impl : QueryImpl oSpec (StateT σ ProbComp)
+W : Fin 2 → Type
+E : Extractor.RoundByRound oSpec Bool Unit Unit pSpec1 W
+K : Verifier.KnowledgeStateFunction init impl relIn relOut acceptAll1 E
+h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut acceptAll1 W E K fun x => 0
+h0 :
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge ⟨0, ⋯⟩
+        pure
+            (∃ witMid,
+              ¬K.toFun (Fin.castSucc 0) false default
+                    (E.extractMid 0 false (Transcript.concat challenge default) witMid) ∧
+                K.toFun (Fin.succ 0) false (Transcript.concat challenge default) witMid)]
+      {True} =
+    0
+⊢ False
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:134:6: error: Tactic `rewrite` failed: Did not find an occurrence of the pattern
+  probEvent ?m.35 ?m.36 = 0
+in the target expression
+  𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge i
+        pure
+            (∃ witMid,
+              ¬(checkBit_stateFunction init impl).toFun (↑i).castSucc s tr
+                    (acceptAll1_extractor.extractMid (↑i) s (Transcript.concat challenge tr) witMid) ∧
+                (checkBit_stateFunction init impl).toFun (↑i).succ s (Transcript.concat challenge tr) witMid)]
+      {True} =
+    0
+
+ι : Type
+oSpec : OracleSpec ι
+σ : Type
+init : ProbComp σ
+impl : QueryImpl oSpec (StateT σ ProbComp)
+s : Bool
+i : pSpec1.ChallengeIdx
+tr : Transcript (↑i).castSucc pSpec1
+⊢ 𝒟[do
+        let challenge ← $ᵗ pSpec1.Challenge i
+        pure
+            (∃ witMid,
+              ¬(checkBit_stateFunction init impl).toFun (↑i).castSucc s tr
+                    (acceptAll1_extractor.extractMid (↑i) s (Transcript.concat challenge tr) witMid) ∧
+                (checkBit_stateFunction init impl).toFun (↑i).succ s (Transcript.concat challenge tr) witMid)]
+      {True} =
+    0
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:163:15: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:171:37: error: Application type mismatch: The argument
+  Eq.symm h1
+has type
+  1 =
+    𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run s tr V)).run' __do_lift
+        pure (stmtOut ∈ {t | (t, w) ∈ Set.univ})]
+      {True}
+but is expected to have type
+  1 =
+    probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run s tr V)).run' __do_lift)
+      fun t => (t, w) ∈ Set.univ
+in the application
+  lt_of_lt_of_eq zero_lt_one (Eq.symm h1)
+.claude/reports/blueprint-review/probes/lib-arklib/NonVacuity.v434.lean:174:82: error: Application type mismatch: The argument
+  hp
+has type
+  (probEvent
+      (OptionT.mk do
+        let __do_lift ← init
+        (simulateQ impl (Verifier.run s tr V)).run' __do_lift)
+      fun t => (t, w) ∈ Set.univ) >
+    0
+but is expected to have type
+  𝒟[do
+        let sample ←
+          OptionT.mk do
+              let __do_lift ← init
+              (simulateQ impl (Verifier.run s tr V)).run' __do_lift
+        pure (?m.185 sample)]
+      {True} >
+    0
+in the application
+  LeanerVM.Protocol.Verifier.GuardedForm.of_probEvent_pos G init impl s tr ?m.185 hp
+'Probe.acceptAll0_no_stateFunction' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.acceptAll1_not_sound_at_zero' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.acceptAll1_sound_at_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.checkBit_sound_at_zero' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+'Probe.full_iff_of_univ' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+exit=1
+```
+
+Every error is the old `Pr[P | c]` (VCVio's deprecated `probEvent`) meeting ArkLib `7653a901`'s
+`Pr{…}[…]` statements, or the lemma `probEvent_eq_zero_iff` no longer matching them.
+
+**(b) Adapted copy** (`NonVacuity.v434.lean`): the two events restated in the `Pr{…}[…]` form and
+`probEvent_eq_zero_iff` replaced by `OracleComp.prEvent_eq_zero_iff`
+(`VCVio/OracleComp/EvalDist/Measure.lean:370` at `a4232d08`: `Pr{let x ← mx}[p x] = 0 ↔ ∀ x ∈
+support mx, ¬ p x`). ArkLib's `Verifier.guarded_accepting_of_mem`, which the probe uses, is now
+stated in that form (`ArkLib/OracleReduction/Security/CoordinateWiseSpecialSoundness/Guarded.lean:258-268`
+at `7653a901`). Diff:
+
+```diff
+@@ -30,8 +30,9 @@
+     (E : Extractor.RoundByRound oSpec Bool Unit Unit !p[] W) :
+     IsEmpty ((acceptAll0 (oSpec := oSpec)).KnowledgeStateFunction init impl relIn relOut E) := by
+   refine ⟨fun K => ?_⟩
+-  have hacc : Pr[fun t => (t, ()) ∈ relOut | OptionT.mk do
+-      (simulateQ impl ((acceptAll0 (oSpec := oSpec)).run false default)).run' (← init)] > 0 := by
++  have hacc : Pr{let t ← OptionT.mk do
++      (simulateQ impl ((acceptAll0 (oSpec := oSpec)).run false default)).run' (← init)}[
++        (t, ()) ∈ relOut] > 0 := by
+     have h1 := Verifier.guarded_accepting_of_mem init impl (acceptAll0 (oSpec := oSpec))
+       (fun _ _ => true) (fun _ _ => ()) (fun _ _ => by simp [acceptAll0]) false default rfl
+       {t | (t, ()) ∈ relOut} (by simp [relOut])
+@@ -72,7 +73,7 @@
+   intro h
+   have h0 := h false ⟨0, rfl⟩ (show Transcript (0 : Fin 2) pSpec1 from default)
+   simp only [ENNReal.coe_zero, nonpos_iff_eq_zero] at h0
+-  rw [probEvent_eq_zero_iff] at h0
++  rw [OracleComp.prEvent_eq_zero_iff] at h0
+   refine h0 true (by rw [support_uniformSample]; trivial) ?_
+   refine ⟨E.extractOut false _ (), ?_, acceptAll1_full init impl K false _⟩
+   intro hk
+@@ -131,7 +132,7 @@
+       (fun _ => Unit) acceptAll1_extractor (checkBit_stateFunction init impl) (fun _ => 0) := by
+   intro s i tr
+   simp only [ENNReal.coe_zero, nonpos_iff_eq_zero]
+-  rw [probEvent_eq_zero_iff]
++  rw [OracleComp.prEvent_eq_zero_iff]
+   rintro c - ⟨w, h1, h2⟩
+   exact h1 h2
+ 
+@@ -160,8 +161,9 @@
+     [∀ i, SampleableType (p.Challenge i)] {V : Verifier oSpec S T p} (G : V.GuardedForm) {W : Fin (n + 1) → Type}
+     {E : Extractor.RoundByRound oSpec S WI WO p W}
+     (F : S → p.FullTranscript → W (Fin.last n) → Prop) :
+-    (∀ s tr w, Pr[fun t => (t, w) ∈ (Set.univ : Set (T × WO)) | OptionT.mk do
+-        (simulateQ impl (V.run s tr)).run' (← init)] > 0 → F s tr (E.extractOut s tr w)) ↔
++    (∀ s tr w, Pr{let t ← OptionT.mk do
++        (simulateQ impl (V.run s tr)).run' (← init)}[(t, w) ∈ (Set.univ : Set (T × WO))] > 0 →
++        F s tr (E.extractOut s tr w)) ↔
+       ∀ s tr w, G.check s tr = true → F s tr (E.extractOut s tr w) := by
+   constructor
+   · intro h s tr w hc
+```
+
+Output (`NonVacuity.v434.lean.new.out`), 11 s:
+
+```text
+'Probe.acceptAll0_no_stateFunction' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.acceptAll1_not_sound_at_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.acceptAll1_sound_at_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.checkBit_sound_at_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.full_iff_of_univ' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`NonVacuity.out`, line for line): at the new pins, the
+accept-everything verifier with no round has no knowledge state function; with one challenge it
+is not round-by-round knowledge sound at error `0` for any extractor and state function, and is
+at error `1`; the verifier that checks the bit is at error `0`; and the last law of a knowledge
+state function of a guarded verifier, with the output relation everything, says exactly "if the
+check passes, the state holds at the extracted witness". All on the kernel's three axioms.
+
+### 7.2 `Extractors.v434.lean` (what makes an extractor an algorithm; leanerVM's three extractors)
+
+Copied unchanged (`cp`; empty diff): its only event is consumed through the repository's
+`Verifier.GuardedForm.of_probEvent_pos`, which was restated at `144c5aa`. Output
+(`Extractors.v434.lean.new.out`), 5 s:
+
+```text
+true
+true
+PUnit.unit
+'Probe.chooser_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`Extractors.out`, line for line): ArkLib's extractor
+type still accepts a classical choice of witness (`chooser_sound`, error `0`, three axioms);
+leanerVM's commit, public-input and composed extractors are compiled definitions (the `def`s
+without `noncomputable` are accepted), and the commit extractor returns the stack that was sent.
+

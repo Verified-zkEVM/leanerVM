@@ -5,7 +5,7 @@
 \subsection{Mathlib notions in the proof system's statements}\label{sec:gen-lib-lean-mathlib}
 
 \Cref{tab:gen-lib-mathlib} lists the Mathlib (and core) notions counted in the statements, not
-the proofs, of \file{LeanerVM/Protocol/} at \code{b435631} and in the library objects of the
+the proofs, of \file{LeanerVM/}\allowbreak\file{Protocol/} at \code{b435631} and in the library objects of the
 previous sections. Definitions are quoted from Mathlib at the old pin \code{v4.33.1}
 (\code{0df444a3}, read with \code{git show 0df444a3:<path>}) and core at Lean \code{v4.33.1}.
 
@@ -23,42 +23,42 @@ Notion & What it is & Definition (old pin) & Where the proof system meets it \\
 \bottomrule
 \endfoot
 \lean{ℝ≥0}, \lean{ℝ≥0∞} & non-negative reals, and with $\infty$
-  & \lean{def NNReal := { r : ℝ // 0 ≤ r }} (\file{Mathlib/Data/NNReal/}\allowbreak\file{Defs.lean:58});
-    \lean{def ENNReal := WithTop ℝ≥0} (\file{Mathlib/Data/ENNReal/}\allowbreak\file{Basic.lean:101})
-  & error bounds: \lean{piopError : … → ℝ≥0} (\file{Spine/Compose.lean:149}); every
+  & \lean{def NNReal := { r : ℝ // 0 ≤ r }} (\file{Mathlib/}\allowbreak\file{Data/}\allowbreak\file{NNReal/}\allowbreak\file{Defs.lean:58});
+    \lean{def ENNReal := WithTop ℝ≥0} (\file{Mathlib/}\allowbreak\file{Data/}\allowbreak\file{ENNReal/}\allowbreak\file{Basic.lean:101})
+  & error bounds: \lean{piopError : … → ℝ≥0} (\file{Spine/}\allowbreak\file{Compose.lean:149}); every
     \lean{Pr[…]} is an \lean{ℝ≥0∞} \\
 \lean{PMF}, \lean{uniformOf}\allowbreak\lean{Fintype} & probability mass function; the uniform one
   & \lean{def PMF (α) := { f : α → ℝ≥0∞ // HasSum f 1 }}
     (\file{Probability/}\allowbreak\file{ProbabilityMassFunction/}\allowbreak\file{Basic.lean:46-47});
-    \lean{uniformOfFintype α := uniformOfFinset Finset.univ …}
-    (\file{Probability/Distributions/}\allowbreak\file{Uniform.lean:285-286})
+    \lean{uniformOfFintype α := uniformOfFinset Finset.}\allowbreak\lean{univ …}
+    (\file{Probability/}\allowbreak\file{Distributions/}\allowbreak\file{Uniform.lean:285-286})
   & the semantics of every coin (\cref{sec:gen-lib-vcvio-dist}) \\
 \lean{Set α} & a predicate on \lean{α}
   & core/Mathlib \lean{Set α := α → Prop}
-  & ArkLib relations: \lean{M3Rel I : Set ((I.Stmt × …) × Column I.μ)}
-    (\file{Spine/Instance.lean:230}), \lean{Seam.of} (\file{Seams.lean:166}), language sets in
+  & ArkLib relations: \lean{M3Rel I : Set ((I.}\allowbreak\lean{Stmt × …) × Column I.μ)}
+    (\file{Spine/}\allowbreak\file{Instance.lean:230}), \lean{Seam.of} (\file{Seams.lean:166}), language sets in
     \file{Spine/Phase.lean} \\
 \lean{Fintype α}, \lean{Fintype.card} & a finite type with its list of elements; its size
   & \lean{class Fintype (α) where elems : Finset α; complete : ∀ x, x ∈ elems}
-    (\file{Data/Fintype/}\allowbreak\file{Defs.lean:57-61}); \lean{def card (α) [Fintype α] : ℕ := (@univ α _).card}
+    (\file{Data/Fintype/}\allowbreak\file{Defs.lean:57-61}); \lean{def card (α) [Fintype α] : ℕ := (@univ α _}\allowbreak\lean{).card}
     (\file{Data/Fintype/}\allowbreak\file{Card.lean:39-41})
   & the size of the challenge space, \lean{card_E} (\cref{sec:gen-l0-catalogue}); the counting
     bounds (\cref{sec:gen-l0-bounds}); \file{PublicInput.lean} \\
 \lean{Finset.sum} ($\sum$), \lean{Finset.prod} & finite sums and products
   & Mathlib \lean{Finset.sum s f} (fold over the underlying multiset)
   & stacking and claim weights: \file{Seams.lean:113}
-    (\lean{∑ i : Fin (2 ^ μ), W.onCube.get i * ofK (q.values.get i)}), \file{Stack},
+    (\lean{∑ i : Fin (2 ^ μ), W.}\allowbreak\lean{onCube.}\allowbreak\lean{get i * ofK (q.}\allowbreak\lean{values.}\allowbreak\lean{get i)}), \file{Stack},
     \file{Padding}, \file{ClaimWeights}, \file{FixedColumns} \\
 \lean{List.Perm} (\lean{~}) & one list is a reordering of the other (multiset equality)
   & core \lean{inductive Perm : List α → List α → Prop} with \lean{nil}, \lean{cons},
     \lean{swap}, \lean{trans} (\file{Init/Data/List/}\allowbreak\file{Basic.lean:1858-1874}, Lean \code{v4.33.1})
-  & bus balance: \lean{def Balanced (q) : Prop := (I.tuples q .push).Perm (I.tuples q .pull)}
-    (\file{Spine/Instance.lean:201}), leanISA's \lean{BalancedPair}
+  & bus balance: \lean{def Balanced (q) : Prop := (I.}\allowbreak\lean{tuples q .}\allowbreak\lean{push).}\allowbreak\lean{Perm (I.}\allowbreak\lean{tuples q .}\allowbreak\lean{pull)}
+    (\file{Spine/}\allowbreak\file{Instance.lean:201}), leanISA's \lean{BalancedPair}
     (\cref{sec:gen-lib-clean-workaround}) \\
 \lean{MvPolynomial σ R} & Mathlib's multivariate polynomials (non-computable, finitely
   supported coefficient maps)
   & \lean{abbrev MvPolynomial (σ R) := AddMonoidAlgebra R (σ →₀ ℕ)}
-    (\file{Algebra/MvPolynomial/}\allowbreak\file{Basic.lean:82-83})
+    (\file{Algebra/}\allowbreak\file{MvPolynomial/}\allowbreak\file{Basic.lean:82-83})
   & reached through \lean{fromCMvPolynomial} (\cref{sec:gen-lib-comppoly-mv}) for
     \lean{totalDegree} and Schwartz--Zippel \\
 \lean{Polynomial}, \lean{AdjoinRoot}, \lean{Irreducible} & univariate polynomials, the quotient
@@ -94,16 +94,16 @@ by native code; any user \lean{axiom}.
 \paragraph{How closed claims are checked, and what each way trusts.}
 \begin{description}
 \item[\lean{decide}] The elaborator evaluates the \lean{Decidable} instance, and the kernel
-  re-checks the resulting term \lean{of_decide_eq_true (Eq.refl true)} by its own reduction.
+  re-checks the resulting term \lean{of_decide_}\allowbreak\lean{eq_true (Eq.}\allowbreak\lean{refl true)} by its own reduction.
   Trusted: the kernel.
 \item[\lean{decide +kernel}] Skips the elaborator's evaluation and asks the kernel directly (the
-  form leanerVM uses for $\K$ powers, \file{Parameters/Generator.lean:281-299}). Trusted: the
+  form leanerVM uses for $\K$ powers, \file{Parameters/}\allowbreak\file{Generator.lean:281-299}). Trusted: the
   kernel.
 \item[\texttt{\#guard e}] Evaluates \lean{e} by the \textbf{compiler or interpreter} and fails the
   build if it is not \lean{true}. It proves nothing to the kernel and trusts compiled code,
   including \lean{@[csimp]} replacements (CompPoly's \lean{mul_eq_mulTbl} swaps \lean{Ext}
   multiplication for a table version; that equation is itself proved,
-  \file{Extension/Defs.lean:267}) and core's native \lean{Nat}/\lean{BitVec} code. leanerVM uses
+  \file{Extension/}\allowbreak\file{Defs.lean:267}) and core's native \lean{Nat}/\lean{BitVec} code. leanerVM uses
   \texttt{\#guard} only in tests, as executable evidence.
 \item[\lean{native_decide}] Decides the claim by compiled code and records the axiom
   \lean{Lean.ofReduceBool}: it trusts the compiler, the interpreter and every native replacement
@@ -111,14 +111,14 @@ by native code; any user \lean{axiom}.
 \item[\lean{rfl}] \lean{example … := rfl} is kernel definitional equality. Trusted: the kernel.
 \end{description}
 
-\subsection{What leanerVM's validation enforces (at \texorpdfstring{\code{b435631}}{b435631})}\label{sec:gen-lib-lean-validation}
+\subsection{What leanerVM's validation enforces (at \texorpdfstring{\texttt{b435631}}{b435631})}\label{sec:gen-lib-lean-validation}
 
 \begin{itemize}
-\item \file{scripts/audit-lean.sh:8-21}: a lexical ban on \lean{axiom}, \lean{sorry},
+\item \file{scripts/}\allowbreak\file{audit-lean.sh:8-21}: a lexical ban on \lean{axiom}, \lean{sorry},
   \lean{admit}, \lean{unsafe}, \lean{native_decide} in \file{LeanerVM}, \file{LeanerVM.lean} and
   \file{tests}, plus \file{check-lean-options.py} (no local override of linter or
   implicit-variable options).
-\item \file{scripts/audit-axioms.lean:17-29}: for \textbf{every} constant whose name starts with
+\item \file{scripts/}\allowbreak\file{audit-axioms.lean:17-29}: for \textbf{every} constant whose name starts with
   \lean{LeanerVM} or \lean{LeanerVMTests}, \lean{collectAxioms} (recursive, through all imported
   libraries) must return only \lean{propext}, \lean{Classical.choice}, \lean{Quot.sound}.
 \end{itemize}
@@ -130,14 +130,14 @@ for (name, _) in env.constants.toList do
       unless #[`propext, `Classical.choice, `Quot.sound].contains ax do
         unexpected := unexpected.push (name, ax)
 \end{leancode}
-\src{\file{scripts/audit-axioms.lean:17-29}, leanerVM \code{b435631}}
+\src{\file{scripts/}\allowbreak\file{audit-axioms.lean:17-29}, leanerVM \code{b435631}}
 \begin{itemize}
-\item \file{scripts/test-axiom-audit.py:28-45} re-runs the audit with a planted
-  \lean{axiom AuditNegative.hidden : False} used by one production and one test theorem, and
+\item \file{scripts/}\allowbreak\file{test-axiom-audit.py:28-45} re-runs the audit with a planted
+  \lean{axiom AuditNegative.}\allowbreak\lean{hidden : False} used by one production and one test theorem, and
   requires the audit to reject both (a negative control). CI runs the same audit through
-  \code{lean-action} (\code{axiom-audit-root: LeanerVM}, \file{.github/workflows/ci.yml:40-43}) and
+  \code{lean-action} (\code{axiom-audit-root: LeanerVM}, \file{.github/}\allowbreak\file{workflows/}\allowbreak\file{ci.yml:40-43}) and
   the script (\file{:44-45}); \file{docs/ci.md:8-9} marks both workflows required.
-\item \file{scripts/validate.sh}: the above plus the import DAG, layer and documentation checks,
+\item \file{scripts/}\allowbreak\file{validate.sh}: the above plus the import DAG, layer and documentation checks,
   \code{lake build}, \code{lake test}, and the test root with warnings as errors.
 \end{itemize}
 
@@ -148,10 +148,10 @@ three axioms, and the \emph{meaning of the definitions} in the statements
 (\cref{sec:gen-lib-vcvio-trust,sec:gen-lib-comppoly,sec:gen-lib-clean,sec:gen-lib-lean-mathlib}).
 \texttt{\#guard} evidence in tests is compiled-code evidence, never proof. (The audit covers the two
 project namespaces; an instance declared outside them would escape it. None of Layer 0's is:
-\lean{LeanerVM.Protocol.instSampleableTypeK} and the others are in the namespace, per the probe
+\lean{LeanerVM.}\allowbreak\lean{Protocol.}\allowbreak\lean{instSampleableTypeK} and the others are in the namespace, per the probe
 \code{Layer0}'s output.)
 
-At \code{144c5aa} the pins are Mathlib and Lean \code{v4.34.1}; \file{docs/dependencies.md} at
+At \code{144c5aa} the pins are Mathlib and Lean \code{v4.34.1}; \file{docs/}\allowbreak\file{dependencies.md} at
 that revision describes the upgrade.
 
 \par\endgroup

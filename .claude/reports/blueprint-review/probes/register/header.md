@@ -6,6 +6,10 @@ It is an index and a summary, never the only record: every row points to the dos
 that states it in full, and the dossier's text governs where the two differ. No Lean was run
 for this register, no tracked file was edited, nothing was posted.
 
+**State.** Complete (2026-09-30): all twelve dossiers processed, `boundary-adaptor.md` and
+`gt-opening-compile.md` after the coordinator's notes. 134 findings (1 critical, 35 major,
+62 minor, 36 notes) and 2 positions; 111 negative results; 58 unverified items.
+
 **Object and revisions.** The object of the review is leanerVM `main` at `b435631`; leanVM at
 the pin `a386121f` (read, since 2026-09-30, with `git show a386121f:<path>`: the leanVM
 checkout has moved, brief §8). Library citations name their revision: old pins ArkLib
@@ -44,9 +48,10 @@ the note says `DISAGREEMENT` and names both.
 | `lib-others.md` | complete | none | 5 minor, 5 notes | — |
 | `docs-debt.md` | complete (second pass re-checked the first draft) | none | 3 major, 13 minor, 4 notes | its §H.20 (what was found right) is in Part 2 |
 | `literature.md` | complete | none | 4 major, 7 minor, 4 notes | findings in §A.4, §B.4, §C.4, §D.3, §E.6, §F.3, §G.5 |
-| `boundary-adaptor.md` | complete (read after the coordinator's note) | none | 9 major, 6 minor, 3 notes | two probes re-run at the new pins after a rebuild |
-| `gt-opening-compile.md` | in progress when read (no findings section yet); skipped | — | — | skipped with this note; to be added when complete |
+| `boundary-adaptor.md` | complete (read after the coordinator's first note) | none | 9 major, 6 minor, 3 notes | two probes re-run at the new pins after a rebuild |
+| `gt-opening-compile.md` | complete (read after the coordinator's second note, 1921 lines) | none | 8 major, 9 minor, notes (§I) | its summary says \"critical: none that makes a stated leanerVM theorem wrong today\"; two Lean probes (old pin; per the dossier they elaborate at the new pins too) and Python scratch computations |
 
-The working extraction, one block per dossier, is kept at
-`.claude/reports/blueprint-review/probes/register/staging.md`; the data and the script that
+The working extraction of the first ten dossiers, one block per dossier, is kept at
+`.claude/reports/blueprint-review/probes/register/staging.md` (boundary-adaptor and
+gt-opening-compile went straight into the data); the data and the script that
 render this file are `rows.py`, `header.md`, `footer.md` and `render.py` in the same folder.

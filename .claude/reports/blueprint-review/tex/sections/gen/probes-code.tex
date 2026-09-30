@@ -175,7 +175,7 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut)
 
 The exclusion is only as strong as the input seam is inhabited: on an instance whose relation is empty (D.4 exhibits one) perfect completeness is vacuous and an always-rejecting bundle is a \texttt{Phases.\allowbreak{}Security}.
 
-\paragraph{(d) A phase that reads the whole stack}
+\paragraph{(d) A phase that reads the whole stack (argued on paper; the probe was not written)}
 
 In the ideal oracle model the verifier may query the stack's extension at any point of \texttt{E\textasciicircum{}μ}, any number of times: neither ArkLib's \texttt{OracleVerifier} nor the spine counts queries. At the \texttt{2\textasciicircum{}μ} points of the cube the answers are the cells. \texttt{M3Holds} and every claim's \texttt{Holds} are decidable. So for every seam there is a zero-round phase whose verifier reads the \texttt{2\textasciicircum{}μ} cells, decides the \textbf{input} seam itself, rejects if it fails and otherwise outputs any statement in the output seam (no claim at all will do). It is perfectly complete, and knowledge sound at error zero: acceptance implies the input seam. Five of them inhabit \texttt{Phases.\allowbreak{}Security I} for every \texttt{I}, with \texttt{piopError = 0} (there is no challenge).
 
@@ -313,7 +313,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 
 The output of each run is the file \texttt{<File>.\allowbreak{}out} beside it, reproduced below the source. An empty output with \texttt{exit=0} means every \texttt{\#guard}, \texttt{example} and theorem of the file was accepted.
 
-\subsubsection{\file{P1Axioms.lean}: axioms and computability of the load-bearing declarations}\label{sec:gen-probe-spine-P1Axioms}
+\subsubsection{\texttt{P1Axioms.lean}: axioms and computability of the load-bearing declarations}\label{sec:gen-probe-spine-P1Axioms}
 
 \fhead{What it establishes}Every stated theorem of the spine is proved with the kernel's three standard axioms (\texttt{propext}, \texttt{Classical.\allowbreak{}choice}, \texttt{Quot.\allowbreak{}sound}), with no \texttt{sorryAx}. \texttt{Lean.\allowbreak{}isNoncomputable} is \texttt{false} for \texttt{piopExtractor}, \texttt{commitExtractor}, \texttt{Component.\allowbreak{}sendExtractor}, \texttt{Phases.\allowbreak{}Security.\allowbreak{}toDef}, \texttt{Component.\allowbreak{}Security.\allowbreak{}append}, ArkLib's \texttt{E\allowbreak{}x\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{}.\allowbreak{}R\allowbreak{}o\allowbreak{}u\allowbreak{}n\allowbreak{}d\allowbreak{}B\allowbreak{}y\allowbreak{}R\allowbreak{}o\allowbreak{}u\allowbreak{}n\allowbreak{}d\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d}, \texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}p\allowbreak{}a\allowbreak{}s\allowbreak{}s\allowbreak{}T\allowbreak{}h\allowbreak{}r\allowbreak{}o\allowbreak{}u\allowbreak{}g\allowbreak{}h\allowbreak{}E\allowbreak{}x\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r}, \texttt{PublicInput.\allowbreak{}extractor} and \texttt{publicInputSecurity}, and \texttt{true} for \texttt{publicInputPhase} only (its error is a real number). \texttt{\#print axioms} reports \texttt{Classical.\allowbreak{}choice} for computable definitions too, because the proofs inside them (the casts between witness types) use classical lemmas: it is no evidence of computability (D.5).
 
@@ -439,7 +439,7 @@ OracleReduction.append: noncomputable=false
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P2Relation.lean}: \texttt{M3Holds} on variants of the toy instance}\label{sec:gen-probe-spine-P2Relation}
+\subsubsection{\texttt{P2Relation.lean}: \texttt{M3Holds} on variants of the toy instance}\label{sec:gen-probe-spine-P2Relation}
 
 \fhead{What it establishes}What the repository's tests leave out (D.1, D.4): the two multiplicity cases (\texttt{toyOnce}, a tuple pushed twice and pulled once; \texttt{toyNever}, pushed twice and never pulled, where a balance summed in the field accepts), each failing \texttt{Balanced} alone; the side filter (\texttt{toySwap}); the row ranges; the cells \texttt{CountsNonzero} ranges over; and a layout that reads every column from the same two cells (\texttt{toyAlias}, a \texttt{Layout}, on which the exhaustive guard finds no satisfying stack). The probe uses the numeral \texttt{(\allowbreak{}2 : K)}, which at the old CompPoly pin is the polynomial \texttt{x} and at the new pin is \texttt{0}; it must be re-run with \texttt{K.\allowbreak{}ofBits 2} after a rebuild.
 
@@ -603,7 +603,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P3aSeams.lean}: each seam, an inhabitant and its near misses}\label{sec:gen-probe-spine-P3aSeams}
+\subsubsection{\texttt{P3aSeams.lean}: each seam, an inhabitant and its near misses}\label{sec:gen-probe-spine-P3aSeams}
 
 \fhead{What it establishes}Each seam on the honest toy stack has an inhabitant and each of its conjuncts a near miss (the table of D.2): among them a true cubic claim rejected by the degree conjunct of \texttt{Seam.\allowbreak{}bus}, the wrong statement inside \texttt{Seam.\allowbreak{}pub}, and \texttt{Seam.\allowbreak{}done toy = Set.\allowbreak{}univ}. Two facts of the design follow: a seam does not imply the relation before it (the zerocheck escape on \texttt{badConstraint}), and a seam does not say which claims are emitted. The repository gives the claims no decision procedure; the probe supplies them by \texttt{inferInstanceAs} on the unfolded propositions. It uses \texttt{(\allowbreak{}2 : K)} and must be re-run with \texttt{K.\allowbreak{}ofBits 2} after a rebuild.
 
@@ -783,7 +783,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P3bCommit.lean}: the commit phase's state function and extractor}\label{sec:gen-probe-spine-P3bCommit}
+\subsubsection{\texttt{P3bCommit.lean}: the commit phase's state function and extractor}\label{sec:gen-probe-spine-P3bCommit}
 
 \fhead{What it establishes}Every statement by \texttt{Iff.\allowbreak{}rfl} or \texttt{rfl}: the commit phase's knowledge state function is \texttt{M3Holds} of the candidate witness before the message and \texttt{M3Holds} of the message after it, whatever the candidate witness; both maps of its extractor return the message (D.6).
 
@@ -846,7 +846,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P3cExtractor.lean}: the composed extractor when a phase has rounds}\label{sec:gen-probe-spine-P3cExtractor}
+\subsubsection{\texttt{P3cExtractor.lean}: the composed extractor when a phase has rounds}\label{sec:gen-probe-spine-P3cExtractor}
 
 \fhead{What it establishes}With the repository's own \texttt{publicInputPhase} in the bundle and four pass-through phases, the composed extractor's \texttt{extractOut} lives in the last phase's intermediate witness type (\texttt{Unit}); the stack is what \texttt{extractMid} returns at round 0, and there it is the transcript's first message whatever it is handed; the repository test's \texttt{rfl} statement is ill-typed for this bundle, which is the expected error of the output (D.5).
 
@@ -935,7 +935,7 @@ but is expected to have type
 exit=1
 \end{srccode}
 
-\subsubsection{\file{P4Junk.lean}: five phases that check nothing, at declared error 1}\label{sec:gen-probe-spine-P4Junk}
+\subsubsection{\texttt{P4Junk.lean}: five phases that check nothing, at declared error 1}\label{sec:gen-probe-spine-P4Junk}
 
 \fhead{What it establishes}\texttt{Phases.\allowbreak{}Security toy} is inhabited by five phases that draw a challenge, check nothing and declare error \texttt{1} (\texttt{junkSecurity}); both master theorems apply to them; \texttt{piopError junkPhases i = 1} at each of the five challenges (\texttt{piopError\_\allowbreak{}junk}). Nothing in the construction uses the toy (D.3 (b)).
 
@@ -1160,7 +1160,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P5PassThrough.lean}: the pass-through bus phase has no security}\label{sec:gen-probe-spine-P5PassThrough}
+\subsubsection{\texttt{P5PassThrough.lean}: the pass-through bus phase has no security}\label{sec:gen-probe-spine-P5PassThrough}
 
 \fhead{What it establishes}The reflection hypothesis of \texttt{Phase.\allowbreak{}passThroughSecurity} is false at the bus seam (\texttt{not\_\allowbreak{}reflects}), and the type \texttt{Phase.\allowbreak{}Security} of the pass-through bus phase is empty (\texttt{no\_\allowbreak{}security}), where the repository's test docstring only asserts it (D.3 (a)). The probe uses \texttt{(\allowbreak{}2 : K)} and must be re-run with \texttt{K.\allowbreak{}ofBits 2} after a rebuild.
 
@@ -1252,7 +1252,7 @@ flock .claude/reports/blueprint-review/logs/lean.lock lake env lean .claude/repo
 exit=0
 \end{srccode}
 
-\subsubsection{\file{P6Surface.lean}: three facts behind the audit surface and the transport}\label{sec:gen-probe-spine-P6Surface}
+\subsubsection{\texttt{P6Surface.lean}: three facts behind the audit surface and the transport}\label{sec:gen-probe-spine-P6Surface}
 
 \fhead{What it establishes}The three facts of D.7: every \texttt{Component.\allowbreak{}Def} over the empty shared oracle has a pure prover output (\texttt{outputPure\_\allowbreak{}of\_\allowbreak{}def}), so the field \texttt{outputPure} is redundant; the two witness universes of \texttt{Refinement} are independent (\texttt{\#check @Refinement}); and the probabilistic transport of knowledge along a refinement holds in the event form, in three lines (\texttt{knowledge\_\allowbreak{}transport}).
 
@@ -2934,7 +2934,7 @@ end Probe
 exit=0
 \end{srccode}
 
-\subsubsection{\texttt{DuplicatesProbe.\allowbreak{}lean} (I.5)}\label{sec:gen-layer1-I5}
+\subsubsection{\texttt{DuplicatesProbe.\allowbreak{}lean}, run with the old pin's Lean binary, not through Lake (I.5)}\label{sec:gen-layer1-I5}
 
 \fhead{What it establishes}\texttt{evalMle\_\allowbreak{}lagrangeBasis} is CompPoly's \texttt{eqTilde\_\allowbreak{}eq\_\allowbreak{}prod}, three in-layer duplicates, and largest-first is not necessary for alignment (D.2, G.5). Run with the old pin's Lean binary on the untouched \texttt{b435631} artefacts, not with \texttt{lake env lean} (see the introduction of this part).
 
@@ -3003,7 +3003,7 @@ end Probe
 exit=0
 \end{srccode}
 
-\subsubsection{\texttt{StridedProbe.\allowbreak{}lean} (I.6)}\label{sec:gen-layer1-I6}
+\subsubsection{\texttt{StridedProbe.\allowbreak{}lean}, run with the old pin's Lean binary, not through Lake (I.6)}\label{sec:gen-layer1-I6}
 
 \fhead{What it establishes}The low-index selection identity holds and is twenty lines from Layer 1's lemmas (B.8, G.1). Run with the old pin's Lean binary on the untouched \texttt{b435631} artefacts, not with \texttt{lake env lean} (see the introduction of this part).
 

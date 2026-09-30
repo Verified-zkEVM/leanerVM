@@ -10,7 +10,7 @@ Library objects (all at the pins ArkLib \texttt{dca90385}, CompPoly \texttt{3468
 
 Order of this section: the five spine modules (\texttt{Instance}, \texttt{Seams}, \texttt{Phase}, \texttt{Compose}, \texttt{Toy}), then the generic modules under \texttt{ToArkLib/}, then \texttt{Field.\allowbreak{}lean} where the spine unfolds to it. Every load-bearing and interface declaration is shown with its snippet, its source at \texttt{b435631}, and its meaning and dependencies as the dossier states them; the helpers and test fixtures of each file are listed in a table at the end of the file's subsection. The class is given at the right of each entry.
 
-\subsection{\file{LeanerVM/Protocol/Spine/Instance.lean}}\label{sec:gen-cat-spine-Instance}
+\subsection{\texttt{LeanerVM/Protocol/Spine/Instance.lean}}\label{sec:gen-cat-spine-Instance}
 
 \par\medskip\noindent\textbf{\lean{Side}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
@@ -284,7 +284,7 @@ def M3Rel (I : M3Instance) : Set ((I.Stmt × (∀ i, NoOracle i)) × Column I.μ
 
 \texttt{M3Holds} as ArkLib states relations: statement = public input with no oracle, witness = the stack. \emph{Depends on:} \texttt{M3Holds}, \texttt{NoOracle}.
 
-\subsection{\file{LeanerVM/Protocol/Spine/Seams.lean}}\label{sec:gen-cat-spine-Seams}
+\subsection{\texttt{LeanerVM/Protocol/Spine/Seams.lean}}\label{sec:gen-cat-spine-Seams}
 
 \par\medskip\noindent\textbf{\lean{ColumnClaim}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
@@ -548,7 +548,7 @@ def done := of I fun (_ : Unit) _ ↦ True
 
 After the opening: nothing (the whole set). \emph{Depends on:} \texttt{of}.
 
-\subsection{\file{LeanerVM/Protocol/Spine/Phase.lean}}\label{sec:gen-cat-spine-Phase}
+\subsection{\texttt{LeanerVM/Protocol/Spine/Phase.lean}}\label{sec:gen-cat-spine-Phase}
 
 \par\medskip\noindent\textbf{\lean{Phase.Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
@@ -629,7 +629,7 @@ def passThroughSecurity (f : StmtIn → StmtOut)
 
 Its security when the map also reflects the second seam into the first (D.3 (a): impossible at the bus seam). \emph{Depends on:} \texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}p\allowbreak{}a\allowbreak{}s\allowbreak{}s\allowbreak{}T\allowbreak{}h\allowbreak{}r\allowbreak{}o\allowbreak{}u\allowbreak{}g\allowbreak{}h\allowbreak{}S\allowbreak{}e\allowbreak{}c\allowbreak{}u\allowbreak{}r\allowbreak{}i\allowbreak{}t\allowbreak{}y}.
 
-\subsection{\file{LeanerVM/Protocol/Spine/Compose.lean}}\label{sec:gen-cat-spine-Compose}
+\subsection{\texttt{LeanerVM/Protocol/Spine/Compose.lean}}\label{sec:gen-cat-spine-Compose}
 
 \par\medskip\noindent\textbf{\lean{commitSpec}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
@@ -869,7 +869,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{P\allowbreak{}h\allowbreak{}a\allowbreak{}s\allowbreak{}e\allowbreak{}s\allowbreak{}.\allowbreak{}C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}l\allowbreak{}e\allowbreak{}t\allowbreak{}e\allowbreak{}.\allowbreak{}t\allowbreak{}o\allowbreak{}D\allowbreak{}e\allowbreak{}f} & 107-110 & helper & The composed completeness. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/Spine/Toy.lean}}\label{sec:gen-cat-spine-Toy}
+\subsection{\texttt{LeanerVM/Protocol/Spine/Toy.lean}}\label{sec:gen-cat-spine-Toy}
 
 \par\medskip\noindent\textbf{Helpers and test fixtures of \file{Toy.lean}.}
 
@@ -897,7 +897,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{honest} & 114-114 & test fixture & The honest stack \texttt{[\allowbreak{}1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 1\allowbreak{},\allowbreak{} 0\allowbreak{},\allowbreak{} 0\allowbreak{},\allowbreak{} 0\allowbreak{}]}. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/Oracles.lean}}\label{sec:gen-cat-spine-Oracles}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/Oracles.lean}}\label{sec:gen-cat-spine-Oracles}
 
 \par\medskip\noindent\textbf{\lean{NoOracle}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
@@ -936,7 +936,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{n\allowbreak{}o\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}\_\allowbreak{}e\allowbreak{}q} & 32-32 & helper & Any two empty oracle families are equal. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/Component.lean}}\label{sec:gen-cat-spine-Component}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/Component.lean}}\label{sec:gen-cat-spine-Component}
 
 \par\medskip\noindent\textbf{\lean{Component.Def}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
@@ -1029,7 +1029,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}o\allowbreak{}n\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}.\allowbreak{}S\allowbreak{}e\allowbreak{}c\allowbreak{}u\allowbreak{}r\allowbreak{}i\allowbreak{}t\allowbreak{}y\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d} & 174-184 & helper (in the named statement) & Security composes: extractors appended through the first verdict (ArkLib), state functions by the ported \texttt{a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}G\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d}, the bound by the ported theorem. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean}}\label{sec:gen-cat-spine-KnowledgeAppend}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean}}\label{sec:gen-cat-spine-KnowledgeAppend}
 
 \par\medskip\noindent\textbf{Helpers and test fixtures of \file{KnowledgeAppend.lean}.}
 
@@ -1049,7 +1049,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}a\allowbreak{}p\allowbreak{}p\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}\_\allowbreak{}r\allowbreak{}b\allowbreak{}r\allowbreak{}K\allowbreak{}n\allowbreak{}o\allowbreak{}w\allowbreak{}l\allowbreak{}e\allowbreak{}d\allowbreak{}g\allowbreak{}e\allowbreak{}S\allowbreak{}o\allowbreak{}u\allowbreak{}n\allowbreak{}d\allowbreak{}n\allowbreak{}e\allowbreak{}s\allowbreak{}s\allowbreak{}W\allowbreak{}o\allowbreak{}r\allowbreak{}s\allowbreak{}t\allowbreak{}C\allowbreak{}a\allowbreak{}s\allowbreak{}e\allowbreak{}W\allowbreak{}i\allowbreak{}t\allowbreak{}h\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}g\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d\allowbreak{}\_\allowbreak{}f\allowbreak{}i\allowbreak{}r\allowbreak{}s\allowbreak{}t} & 510-582 & helper & Round-by-round knowledge soundness composes across an append whose first verifier is guarded, each challenge keeping its error (ported from ArkLib \#615; admitted upstream at the pin). \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/PassThrough.lean}}\label{sec:gen-cat-spine-PassThrough}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/PassThrough.lean}}\label{sec:gen-cat-spine-PassThrough}
 
 \par\medskip\noindent\textbf{\lean{Component.passThrough}}\hfill\textsf{\small [interface]}\par\nopagebreak
 
@@ -1095,7 +1095,7 @@ def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w)
 
 Its security at error zero, with the extractor that keeps the witness, whenever the map also reflects the output relation into the input relation. \emph{Depends on:} \texttt{passThroughExtractor}, \texttt{passThroughStateFunction}, \texttt{passThrough\_\allowbreak{}rbr}.
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/SendOracle.lean}}\label{sec:gen-cat-spine-SendOracle}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/SendOracle.lean}}\label{sec:gen-cat-spine-SendOracle}
 
 \par\medskip\noindent\textbf{\lean{Component.sendOracle}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 
@@ -1177,7 +1177,7 @@ def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) w
 
 Its security half at error zero. \emph{Depends on:} \texttt{sendOracleComplete}, \texttt{sendExtractor}, \texttt{sendStateFunction}, \texttt{sendOracle\_\allowbreak{}rbr}.
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/Refinement.lean}}\label{sec:gen-cat-spine-Refinement}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/Refinement.lean}}\label{sec:gen-cat-spine-Refinement}
 
 \par\medskip\noindent\textbf{\lean{Refinement}}\hfill\textsf{\small [interface (the adaptor)]}\par\nopagebreak
 
@@ -1221,7 +1221,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{E\allowbreak{}x\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{}.\allowbreak{}S\allowbreak{}t\allowbreak{}r\allowbreak{}a\allowbreak{}i\allowbreak{}g\allowbreak{}h\allowbreak{}t\allowbreak{}l\allowbreak{}i\allowbreak{}n\allowbreak{}e\allowbreak{}.\allowbreak{}m\allowbreak{}a\allowbreak{}p} & 68-71 & helper (no consumer) & Post-compose ArkLib's straight-line extractor with a witness map (same universe). \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/GuardedVerdict.lean}}\label{sec:gen-cat-spine-GuardedVerdict}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/GuardedVerdict.lean}}\label{sec:gen-cat-spine-GuardedVerdict}
 
 \par\medskip\noindent\textbf{Helpers and test fixtures of \file{GuardedVerdict.lean}.}
 
@@ -1241,7 +1241,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{R\allowbreak{}e\allowbreak{}d\allowbreak{}u\allowbreak{}c\allowbreak{}t\allowbreak{}i\allowbreak{}o\allowbreak{}n\allowbreak{}.\allowbreak{}m\allowbreak{}e\allowbreak{}m\allowbreak{}\_\allowbreak{}s\allowbreak{}u\allowbreak{}p\allowbreak{}p\allowbreak{}o\allowbreak{}r\allowbreak{}t\allowbreak{}\_\allowbreak{}r\allowbreak{}u\allowbreak{}n\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}g\allowbreak{}u\allowbreak{}a\allowbreak{}r\allowbreak{}d\allowbreak{}e\allowbreak{}d} & 73-112 & helper & Every outcome of a run with a guarded verifier is a prover run with the verdict where the check passes, a rejection otherwise: how perfect completeness is proved. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/ToArkLib/KeepOracles.lean}}\label{sec:gen-cat-spine-KeepOracles}
+\subsection{\texttt{LeanerVM/Protocol/ToArkLib/KeepOracles.lean}}\label{sec:gen-cat-spine-KeepOracles}
 
 \par\medskip\noindent\textbf{Helpers and test fixtures of \file{KeepOracles.lean}.}
 
@@ -1261,7 +1261,7 @@ Declaration & Lines & Class & Meaning \\
 \texttt{O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}V\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}f\allowbreak{}i\allowbreak{}e\allowbreak{}r\allowbreak{}.\allowbreak{}m\allowbreak{}a\allowbreak{}t\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}a\allowbreak{}l\allowbreak{}i\allowbreak{}z\allowbreak{}e\allowbreak{}O\allowbreak{}u\allowbreak{}t\allowbreak{}p\allowbreak{}u\allowbreak{}t\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}k\allowbreak{}e\allowbreak{}e\allowbreak{}p\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}s} & 42-50 & helper & Such a verifier outputs the oracles it was given. \\
 \end{longtable}}
 
-\subsection{\file{LeanerVM/Protocol/Field.lean}}\label{sec:gen-cat-spine-Field}
+\subsection{\texttt{LeanerVM/Protocol/Field.lean}}\label{sec:gen-cat-spine-Field}
 
 \par\medskip\noindent\textbf{\lean{Column}}\hfill\textsf{\small [load-bearing]}\par\nopagebreak
 

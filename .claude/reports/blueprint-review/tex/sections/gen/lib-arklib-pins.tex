@@ -74,9 +74,9 @@ Blueprint row & At the pin & Proof status \\
 \bottomrule
 \endfoot
 \lean{ProtocolSpec n}, \lean{Direction}, \lean{MessageIdx}, \lean{ChallengeIdx},
-  \lean{FullTranscript}, \lean{Transcript} (\file{ProtocolSpec/Basic.lean})
+  \lean{FullTranscript}, \lean{Transcript} (\file{ProtocolSpec/}\allowbreak\file{Basic.lean})
   & exist; \lean{Direction} is in \file{OracleReduction/}\allowbreak\file{Prelude.lean:66-69}, not
-    \file{ProtocolSpec/Basic.lean}
+    \file{ProtocolSpec/}\allowbreak\file{Basic.lean}
   & definitions \\
 \lean{OracleInterface} with \lean{Query}, \lean{Response}, \lean{answer}
   (\file{OracleInterface.lean:53-73})
@@ -104,7 +104,7 @@ Blueprint row & At the pin & Proof status \\
 \lean{Verifier.}\allowbreak\lean{rbrKnowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{rbrSoundness} (\file{Implications.lean:85})
   & exists (\file{:87}, docstring at 85); correct & proved (B, S) \\
 \lean{OracleReduction.append}, \lean{OracleReduction.seqCompose}, \lean{ProtocolSpec.seqCompose}
-  (\file{Append/Basic.lean:709}, \file{General.lean:255})
+  (\file{Append/}\allowbreak\file{Basic.lean:709}, \file{General.lean:255})
   & exist (\file{:709}, \file{:255}, \file{ProtocolSpec/}\allowbreak\file{SeqCompose.lean:359}); correct
   & definitions (P) \\
 \lean{Reduction.}\allowbreak\lean{seqCompose_}\allowbreak\lean{perfectCompleteness_}\allowbreak\lean{of_pure},
@@ -121,7 +121,7 @@ Blueprint row & At the pin & Proof status \\
   (\file{Append/}\allowbreak\file{RoundByRound.lean:37}, \file{Append/}\allowbreak\file{StateFunction.lean:292, 75})
   & exist; correct & proved (P) \\
 \lean{Component.ReduceClaim}, \lean{CheckClaim}, \lean{RandomQuery}, \lean{DoNothing}
-  (\file{ProofSystem/Component/}), \enquote{all proved}
+  (\file{ProofSystem/}\allowbreak\file{Component/}), \enquote{all proved}
   & the namespaces are \lean{ReduceClaim}, \lean{CheckClaim}, \lean{RandomQuery},
     \lean{DoNothing} (no \lean{Component.} prefix)
   & no \lean{sorry} in the four files and none of their names in the baseline (B, S). But
@@ -131,7 +131,7 @@ Blueprint row & At the pin & Proof status \\
     output relation}); only the plain-reduction variant \lean{guard}s. Not consumed by leanerVM
     at \code{b435631} \\
 \lean{Sumcheck.Spec.reduction}, \lean{StatementRound}, \lean{relationRound},
-  \lean{Sumcheck.Domain} (\file{Spec/General.lean:171}, \file{SingleRound.lean:130-144},
+  \lean{Sumcheck.Domain} (\file{Spec/}\allowbreak\file{General.lean:171}, \file{SingleRound.lean:130-144},
   \file{Domain.lean})
   & exist (\file{General.lean:172}; \file{SingleRound.lean:130-145}), one line off; the domain
     structure is \lean{SumcheckDomain} in the root namespace (\file{Domain.lean:55}), not
@@ -147,7 +147,7 @@ Blueprint row & At the pin & Proof status \\
     \lean{MvPolynomial.}\allowbreak\lean{schwartz_}\allowbreak\lean{zippel_}\allowbreak\lean{counting} is an unknown constant (probe).
     \lean{prob_eval_zero_le_div} (\file{:131}) is stated with Mathlib's
     \lean{PMF.uniformOfFintype}, not with VCVio's \lean{Pr[· | $ᵗ α]} that every ArkLib error
-    bound uses; a bridge is needed (leanerVM's \file{ToVCVio/UniformSample.lean} supplies one for
+    bound uses; a bridge is needed (leanerVM's \file{ToVCVio/}\allowbreak\file{UniformSample.lean} supplies one for
     a subsingleton bad set)
   & proved (P); the name is wrong \\
 \lean{Reduction.fiatShamir}, \lean{Verifier.fiatShamir}, \lean{fsChallengeOracle}
@@ -180,17 +180,19 @@ been proved. The \code{build} check run of the pin commit concluded \code{succes
 declaration absent from the baseline is \lean{sorryAx}-free at the pin; one present may or may
 not be. The baseline lists 291 declarations (\code{"sorry"}) and no non-standard axiom
 (\code{"nonstandard": []}). Counted \lean{sorry} in code (non-comment lines) at the old pin:
-\file{Security/Implications.lean} 9, \file{Append/Security.lean} 4, \file{General.lean} 2,
-\file{Basic.lean} 1 (the \lean{numQueries} definition), \file{FiatShamir/Basic.lean} 1,
-\file{LiftContext/Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13,
-\file{Component/SendWitness.lean} 1, \file{CapacityBounds.lean} 3; none in
-\file{Security/Basic.lean}, \file{RoundByRound.lean}, \file{RbrGame.lean}, \file{Execution.lean},
-\file{OracleInterface.lean}, \file{ProtocolSpec/*.lean},
-\file{Append/{Basic,StateFunction,RoundByRound,Completeness,Execution}.lean},
+\file{Security/}\allowbreak\file{Implications.lean} 9, \file{Append/}\allowbreak\file{Security.lean} 4, \file{General.lean} 2,
+\file{Basic.lean} 1 (the \lean{numQueries} definition), \file{FiatShamir/}\allowbreak\file{Basic.lean} 1,
+\file{LiftContext/}\allowbreak\file{Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13,
+\file{Component/}\allowbreak\file{SendWitness.lean} 1, \file{CapacityBounds.lean} 3; none in
+\file{Security/}\allowbreak\file{Basic.lean}, \file{RoundByRound.lean}, \file{RbrGame.lean}, \file{Execution.lean},
+\file{OracleInterface.lean}, \file{ProtocolSpec/}\allowbreak\file{*.lean},
+\file{Append/}\allowbreak\file{Basic.lean}, \file{Append/}\allowbreak\file{StateFunction.lean}, \file{Append/}\allowbreak\file{RoundByRound.lean},
+\file{Append/}\allowbreak\file{Completeness.lean}, \file{Append/}\allowbreak\file{Execution.lean},
 \file{GuardedCompleteness.lean}, \file{GuardedNary.lean}, \file{OracleCompleteness.lean},
-\file{CWSS/Guarded.lean}, \file{Commitments/}\allowbreak\file{Functional/}\allowbreak\file{Basic.lean},
-\file{Component/{ReduceClaim,CheckClaim,RandomQuery,DoNothing}.lean},
-\file{Sumcheck/Spec/General.lean}, \file{Domain.lean}, \file{Multilinear.lean},
+\file{CWSS/}\allowbreak\file{Guarded.lean}, \file{Commitments/}\allowbreak\file{Functional/}\allowbreak\file{Basic.lean},
+\file{Component/}\allowbreak\file{ReduceClaim.lean}, \file{Component/}\allowbreak\file{CheckClaim.lean},
+\file{Component/}\allowbreak\file{RandomQuery.lean}, \file{Component/}\allowbreak\file{DoNothing.lean},
+\file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{General.lean}, \file{Domain.lean}, \file{Multilinear.lean},
 \file{SchwartzZippelCounting.lean}. Whole library at the old pin: 192 code occurrences of
 \lean{sorry} in 77 files.
 
@@ -200,9 +202,9 @@ the sumcheck specification \textbf{none was removed and none added} (the two bas
 compared by name over the prefixes \lean{Verifier.}, \lean{OracleVerifier.}, \lean{Reduction.},
 \lean{OracleReduction.}, \lean{Sumcheck.}, \lean{fiatShamir}, \lean{SendSingleWitness},
 \lean{NoInteraction}, \lean{Extractor.}, \lean{CodingTheory.rs_mca}). Code-line \lean{sorry}
-counts at the new pin: \file{Security/Implications.lean} 9 (unchanged), \file{Append/Security.lean}
-4 (unchanged), \file{General.lean} 2, \file{FiatShamir/Basic.lean} 1,
-\file{LiftContext/Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13 (one fewer than the
+counts at the new pin: \file{Security/}\allowbreak\file{Implications.lean} 9 (unchanged), \file{Append/}\allowbreak\file{Security.lean}
+4 (unchanged), \file{General.lean} 2, \file{FiatShamir/}\allowbreak\file{Basic.lean} 1,
+\file{LiftContext/}\allowbreak\file{Reduction.lean} 10, \file{Sumcheck/}\allowbreak\file{Spec/}\allowbreak\file{SingleRound.lean} 13 (one fewer than the
 old pin by the dossier's count; the leaves \lean{verifier_}\allowbreak\lean{rbrKnowledgeSoundness} and the lens
 instances remain). \Cref{tab:gen-lib-ark-admitted} sets the blueprint's ledger of admissions
 (\file{protocol-blueprint.md:257-267}) against both pins.
@@ -233,9 +235,10 @@ the sumcheck specification (A1)
 the composition of soundness notions (A2, ArkLib issue \#676)
   & \lean{Verifier.}\allowbreak\lean{append_}\allowbreak\lean{knowledgeSoundness}, \lean{append_}\allowbreak\lean{rbrKnowledgeSoundness},
     \lean{seqCompose_}\allowbreak\lean{rbrKnowledgeSoundness} (probe: \lean{sorryAx}); also \lean{append_soundness},
-    \lean{append_rbrSoundness}, \lean{seqCompose_{soundness,knowledgeSoundness,rbrSoundness}} and
+    \lean{append_rbrSoundness}, \lean{seqCompose_soundness}, \lean{seqCompose_}\allowbreak\lean{knowledgeSoundness},
+    \lean{seqCompose_rbrSoundness} and
     the \lean{OracleVerifier.*} forms
-  & admitted & admitted (\file{Append/Security.lean}: the same four \lean{sorry}) \\
+  & admitted & admitted (\file{Append/}\allowbreak\file{Security.lean}: the same four \lean{sorry}) \\
 round-by-round $\Rightarrow$ plain (A3)
   & \lean{rbrKnowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{knowledgeSoundness}, \lean{rbrSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{soundness};
     also \lean{knowledgeSoundness_}\allowbreak\lean{implies_}\allowbreak\lean{soundness}
@@ -272,7 +275,7 @@ soundness and completeness are exactly as admitted at the new pin as at the old.
 
 \subsection{The ported composition theorem}\label{sec:gen-lib-ark-port}
 
-\paragraph{Provenance, verified.} \code{git show ca7a2577:ArkLib/OracleReduction/Composition/Sequential/Append/Knowledge.lean}
+\paragraph{Provenance, verified.} \code{git show ca7a2577:}\allowbreak\file{ArkLib/}\allowbreak\file{OracleReduction/}\allowbreak\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/}\allowbreak\file{Knowledge.lean}
 in the sibling ArkLib checkout (after \code{git fetch origin}; the commit is \enquote{style(ring-switching):
 align names and streamline documentation}, 2026-09-09, head of pull request \#615,
 \enquote{feat(ring-switching): add reusable packing proofs and protocol integrations}, author
@@ -350,7 +353,7 @@ $\sum \varepsilon$ only appears when passing to plain knowledge soundness
 (\cref{sec:gen-lib-ark-implications}).
 
 \paragraph{Hypotheses.} \lean{G : V₁.GuardedForm} (the first verifier is a Boolean check followed
-by a deterministic verdict, \file{CWSS/Guarded.lean:112-118}) is the only hypothesis beyond the two
+by a deterministic verdict, \file{CWSS/}\allowbreak\file{Guarded.lean:112-118}) is the only hypothesis beyond the two
 components' soundness; the second verifier is arbitrary; either component may have no round; the
 shared oracle is arbitrary but the state functions and errors are for the same \lean{init},
 \lean{impl}. The guarded form is \emph{data}: the composed extractor and state use \lean{G.out},
@@ -374,7 +377,7 @@ oracle-protocol level, where none is.
 \textbf{open}, not a draft, \code{mergeable: CONFLICTING}, created 2026-07-07, last updated
 2026-09-08, head \code{ca7a2577}. Its \file{Knowledge.lean} is not on ArkLib's \code{main}
 (\file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/} there has the same eleven files as the pin, no
-\file{Knowledge.lean}); \file{Append/Security.lean} still admits \lean{append_soundness},
+\file{Knowledge.lean}); \file{Append/}\allowbreak\file{Security.lean} still admits \lean{append_soundness},
 \lean{append_knowledgeSoundness}, \lean{append_rbrSoundness}, \lean{append_}\allowbreak\lean{rbrKnowledgeSoundness}
 (four \lean{sorry}). Issue \#676 (\enquote{Sequential-composition and context-lifting layer is
 stubbed, making composed security theorems vacuous}) is \textbf{open}, its body refreshed
@@ -383,7 +386,7 @@ stubbed, making composed security theorems vacuous}) is \textbf{open}, its body 
 This remains an open \textbf{legacy \lean{OracleReduction}} issue. \dots\ Generic legacy append
 soundness, knowledge soundness, and round-by-round security still contain admissions in
 \file{Composition/}\allowbreak\file{Sequential/}\allowbreak\file{Append/}\allowbreak\file{Security.lean}; derived wrappers inherit them. \dots\
-\file{Security/Implications.lean} still have proof gaps. \dots\ Native Sumcheck (\#1214), shared
+\file{Security/}\allowbreak\file{Implications.lean} still have proof gaps. \dots\ Native Sumcheck (\#1214), shared
 strategy execution (\#1216), and native composition (\#1218) are separate proved results. They do
 not repair the axiom dependencies of legacy protocol clients. Use \#1 for the current interaction
 framework and \#1222--\#1229 for the next composition work. Keep this issue open until its
@@ -405,12 +408,12 @@ ArkLib contains a proved guarded-first append for \lean{rbrKnowledgeSoundnessWor
 whichever pull request brings it, and the plan should allow that this never happens on the legacy
 framework (\cref{f:lib-legacy-framework}).
 
-\subsection{What the new pin \texorpdfstring{\code{7653a901}}{7653a901} changes}\label{sec:gen-lib-ark-new}
+\subsection{What the new pin \texorpdfstring{\texttt{7653a901}}{7653a901} changes}\label{sec:gen-lib-ark-new}
 
 The upgrade (\code{144c5aa}, \enquote{chore(deps): upgrade to Lean 4.34.1}) moves ArkLib from
 \code{dca90385} to \code{7653a901}, 347 commits later (the revision the dossier had read as
 \code{origin/main}), with VCVio \code{a4232d08}, CompPoly \code{572f9973} and Lean \code{v4.34.1}.
-What follows was read in \file{.lake/packages/Arklib} at \code{7653a901}; the probes' outputs are
+What follows was read in \file{.lake/}\allowbreak\file{packages/}\allowbreak\file{Arklib} at \code{7653a901}; the probes' outputs are
 about the old pin and were not re-run.
 
 \paragraph{The admitted theorems of the old pin are still admitted.} See
@@ -422,12 +425,12 @@ is still \lean{sorry} (\file{Basic.lean:505-507}), \lean{Commitment.extractabili
 
 \paragraph{\texorpdfstring{\lean{OracleReduction}}{OracleReduction} is now the \enquote{legacy}
 framework, and the typed framework has no knowledge notion.}\label{sec:gen-lib-ark-legacy}
-ArkLib's guide already called \file{ArkLib/OracleReduction/} \enquote{legacy IOR abstractions and
-security theory} and \file{ArkLib/Interaction/} \enquote{typed interactions and dependent
+ArkLib's guide already called \file{ArkLib/}\allowbreak\file{OracleReduction/} \enquote{legacy IOR abstractions and
+security theory} and \file{ArkLib/}\allowbreak\file{Interaction/} \enquote{typed interactions and dependent
 reduction foundations} at the old pin (\file{AGENTS.md}, unchanged at \code{7653a901}). Between
-the pins \file{ArkLib/Interaction/} grew from 7 to 28 files (+7280 lines) and
+the pins \file{ArkLib/}\allowbreak\file{Interaction/} grew from 7 to 28 files (+7280 lines) and
 \file{ArkLib/}\allowbreak\file{ProofSystem/}\allowbreak\file{Sumcheck/}\allowbreak\file{Interaction/} was created (22 files, +3963 lines): the design
-documents (\file{docs/design/05-roadmap.md}, dated 2026-09-26) say the composition milestones
+documents (\file{docs/}\allowbreak\file{design/}\allowbreak\file{05-roadmap.md}, dated 2026-09-26) say the composition milestones
 \enquote{C1--C8 are merged} and \enquote{the immediate goal is to complete native Sumcheck:
 computable messages and honest execution, round-by-round security, and precisely stated extraction
 guarantees}. At \code{7653a901}:
@@ -436,8 +439,8 @@ guarantees}. At \code{7653a901}:
   and of native sumcheck (\file{Interaction/}\allowbreak\file{CompositionSoundness.lean}:
   \lean{run_appendFlat_soundness*}; \file{Sumcheck/}\allowbreak\file{Interaction/}\allowbreak\file{ProtocolSoundness.lean:201}
   \lean{execute_soundness}, \file{ProtocolCompleteness.lean:110}
-  \lean{execute_}\allowbreak\lean{perfectCompleteness}), with no \lean{sorry} under \file{ArkLib/Interaction/} or
-  \file{Sumcheck/Interaction/} per its status page;
+  \lean{execute_}\allowbreak\lean{perfectCompleteness}), with no \lean{sorry} under \file{ArkLib/}\allowbreak\file{Interaction/} or
+  \file{Sumcheck/}\allowbreak\file{Interaction/} per its status page;
 \item it defines \textbf{no} knowledge soundness, no round-by-round notion and no extractor: a
   search for \code{knowledgeSound}, \code{rbrKnowledge}, \code{RoundByRound} and \code{extractor}
   in those two trees finds nothing;
@@ -463,7 +466,7 @@ moves past \#615}) runs against upstream's stated direction, which is migration 
 keeps \lean{probEvent} with the lemma \lean{Pr{let x ← mx}[p x] = Pr[ p | mx]}
 (\file{VCVio/}\allowbreak\file{EvalDist/}\allowbreak\file{Defs/}\allowbreak\file{Basic.lean:1102}), so the two spellings denote the same number. ArkLib
 at \code{7653a901} restates every security definition in the new notation (the \code{diff} of
-\file{Security/RoundByRound.lean} between the pins is the notation and the lemma names
+\file{Security/}\allowbreak\file{RoundByRound.lean} between the pins is the notation and the lemma names
 \lean{probEvent_*} $\to$ \lean{prEvent_*}, \lean{OptionT.prEvent_mk_*}; the mathematical content
 of \lean{KnowledgeStateFunction}, \lean{rbrKnowledgeSoundnessWorstCase(With)} and the two
 implications is unchanged). leanerVM \code{144c5aa} follows:
@@ -472,7 +475,7 @@ notation (\file{GuardedVerdict.lean}, \file{UniformSample.lean}, \file{Knowledge
 \lean{Pr[P | c]} $\to$ \lean{Pr{let x ← c}[P x]}, \lean{if_pos}/\lean{dif_pos} $\to$
 \lean{ite_eq_left}/\lean{dite_eq_left}, \lean{probEvent_mono} $\to$ \lean{prEvent_mono};
 \file{PublicInput.lean} 10 lines, \file{Field.lean} 15 lines for CompPoly's new $\K$).
-\file{docs/dependencies.md} at \code{144c5aa} says the bridges' \enquote{relations, extraction
+\file{docs/}\allowbreak\file{dependencies.md} at \code{144c5aa} says the bridges' \enquote{relations, extraction
 conditions, and error bounds are retained} and asks to \enquote{review these statement changes
 alongside the kernel audit, rather than relying on successful elaboration alone}. The statements
 of the two theorems of \file{KnowledgeAppend.lean} differ from \code{b435631} only in the spelling
@@ -491,7 +494,7 @@ revisions.
 read-only). None is merged.
 
 {\footnotesize
-\begin{longtable}{@{}p{0.07\linewidth}p{0.09\linewidth}p{0.50\linewidth}p{0.10\linewidth}p{0.14\linewidth}@{}}
+\begin{longtable}{@{}p{0.07\linewidth}p{0.09\linewidth}p{0.48\linewidth}p{0.10\linewidth}p{0.14\linewidth}@{}}
 \caption{ArkLib pull requests and issues the blueprint names or depends on.}\label{tab:gen-lib-ark-prs}\\
 \toprule
 Number & Kind & Title & State & Created / updated \\

@@ -1,0 +1,90 @@
+instSampleableTypeK
+instSampleableTypeE
+instSampleableTypeVector K 3
+instSampleableTypeFinOfNeZeroNat (2 ^ 64)
+instFintypeK
+Extension.Ext.instFintype
+instDecidableEqK
+fun a b => Extension.Ext.instDecidableEq a b
+evalOracle 3
+instOracleInterfaceE
+instOracleInterfaceListE
+finEquivK : Fin (2 ^ 64) ≃ K
+limbsEquiv : Vector K 3 ≃ E
+instSampleableTypeK : SampleableType K
+instSampleableTypeE : SampleableType E
+card_E : Fintype.card E = 2 ^ 192
+evalOracle : (n : ℕ) → OracleInterface (Column n)
+evalOracle_answer : ∀ (n : ℕ) (q : Column n) (r : Vector E n),
+  OracleInterface.answer q r = q.values.eval₂Mle (algebraMap K E) r
+@probEvent_uniformSample_le_of_card_le : ∀ {α : Type} [inst : SampleableType α] [inst_1 : Fintype α] (p : α → Prop)
+  [inst_2 : DecidablePred p] {k : ℕ},
+  (Finset.filter p Finset.univ).card ≤ k →
+    𝒟[do
+          let sample ← $ᵗ α
+          pure (p sample)]
+        {True} ≤
+      ↑(↑k / ↑(Fintype.card α))
+@probEvent_uniformSample_le_of_subsingleton : ∀ {α : Type} [inst : SampleableType α] [inst_1 : Fintype α]
+  (p : α → Prop),
+  (∀ (a b : α), p a → p b → a = b) →
+    𝒟[do
+          let sample ← $ᵗ α
+          pure (p sample)]
+        {True} ≤
+      ↑(1 / ↑(Fintype.card α))
+NoOracle : Fin 0 → Type
+OneOracle : Type → Fin 1 → Type
+noOracle_eq : ∀ (o o' : (i : Fin 0) → NoOracle i), o = o'
+class SampleableType (β : Type) : Type
+number of parameters: 1
+fields:
+  SampleableType.selectElem : ProbComp β
+  SampleableType.evalDist_selectElem_eq_uniform : ∀ [inst : MeasurableSpace β] [MeasurableSingletonClass β],
+      𝒟[SampleableType.selectElem] = ProbabilityTheory.uniformOn Set.univ
+constructor:
+  SampleableType.mk {β : Type} (selectElem : ProbComp β)
+    (evalDist_selectElem_eq_uniform :
+      ∀ [inst : MeasurableSpace β] [MeasurableSingletonClass β], 𝒟[selectElem] = ProbabilityTheory.uniformOn Set.univ) :
+    SampleableType β
+@[instance_reducible] def LeanerVM.Protocol.evalOracle : (n : ℕ) → OracleInterface (Column n) :=
+fun n =>
+  { Query := Vector E n,
+    toOC :=
+      { spec := OracleSpec.ofFn fun x => E,
+        impl := fun r => do
+          let __do_lift ← read
+          pure (__do_lift.values.eval₂Mle (algebraMap K E) r) } }
+@[instance_reducible] def LeanerVM.Protocol.instSampleableTypeK : SampleableType K :=
+SampleableType.ofEquiv finEquivK
+@[instance_reducible] def LeanerVM.Protocol.instSampleableTypeE : SampleableType E :=
+SampleableType.ofEquiv limbsEquiv
+'LeanerVM.Protocol.finEquivK' depends on axioms: [propext]
+'LeanerVM.Protocol.limbsEquiv' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instSampleableTypeK' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instSampleableTypeE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.card_E' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.evalOracle' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.evalOracle_answer' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instOracleInterfaceE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.instOracleInterfaceListE' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.probEvent_uniformSample_le_of_card_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.probEvent_uniformSample_le_of_subsingleton' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+'LeanerVM.Protocol.noOracle_eq' depends on axioms: [Quot.sound]
+'BF64.card_ext3' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.card_bf64' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.basePoly_irreducible' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.ext3Poly_irreducible' depends on axioms: [propext, Classical.choice, Quot.sound]
+'BF64.instField' depends on axioms: [propext, Classical.choice, Quot.sound]
+'SampleableType.ofEquiv' depends on axioms: [propext, Classical.choice, Quot.sound]
+'probOutput_uniformSample' depends on axioms: [propext, Classical.choice, Quot.sound]
+'probEvent_uniformSample' depends on axioms: [propext, Classical.choice, Quot.sound]
+'CompPoly.CMlPolynomialEval.eval_mle_eq_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'CompPoly.CMlPolynomialEval.eval₂_mle_eq_eval₂' depends on axioms: [propext, Classical.choice, Quot.sound]
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:78:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:80:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:82:18: warning: `probOutput` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x}`
+.claude/reports/blueprint-review/probes/lib-others/Layer0.unchanged.v434.lean:85:10: warning: `probFailure` has been deprecated: VCVio retiring probability API: use `1 - 𝒟[mx] Set.univ`
+exit=0

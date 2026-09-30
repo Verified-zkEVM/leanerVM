@@ -53,13 +53,13 @@ Sketch & Code & Difference \\
 
 \begin{landscape}
 {\footnotesize
-\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.059\linewidth}>{\raggedright\arraybackslash}p{0.078\linewidth}>{\raggedright\arraybackslash}p{0.301\linewidth}>{\raggedright\arraybackslash}p{0.189\linewidth}>{\raggedright\arraybackslash}p{0.265\linewidth}@{}}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.059\linewidth}>{\raggedright\arraybackslash}p{0.078\linewidth}>{\raggedright\arraybackslash}p{0.300\linewidth}>{\raggedright\arraybackslash}p{0.190\linewidth}>{\raggedright\arraybackslash}p{0.265\linewidth}@{}}
 \toprule
-Object & Where & As stated there & The spine as built & Which the code implements \\
+Object & Where & As stated there & The spine as built (the code's version) & Which the code implements \\
 \midrule
 \endfirsthead
 \toprule
-Object & Where & As stated there & The spine as built & Which the code implements \\
+Object & Where & As stated there & The spine as built (the code's version) & Which the code implements \\
 \midrule
 \endhead
 \bottomrule
@@ -178,7 +178,7 @@ The Lean prover sends \texttt{expectedValues I input r} (\texttt{:219}), the lin
 
 Does it matter? Not for the theorems: on the accepting path the value is the same as the column's extension (on an honest stack; the phase's docstring \texttt{:40-{}41}). It matters for what the message \emph{is}: a function of public data on both sides, hence redundant for the verifier, hence (C.4) checkable by any check or by none without loss of soundness in the oracle model. The one place it is not redundant is the Fiat–Shamir transcript, where it is absorbed (\texttt{ps.\allowbreak{}add\_\allowbreak{}scalar}, \texttt{:616-{}618}) and so binds later challenges, though to a value the verifier could derive. The test file's adversary model, \enquote{a prover that sends its true evaluation} (\texttt{trueValues}, \texttt{:45-{}47}), is the right one for the deployed design (values sent pooled) and is what the refutations of C.6 and C.7 use.
 
-\subsubsection{The flag \lean{PublicLine.sent} (E)}\label{sec:gen-pubinput-E}
+\subsubsection{The flag \texttt{PublicLine.sent} (E)}\label{sec:gen-pubinput-E}
 
 At \texttt{b435631}, \texttt{Spine/\allowbreak{}Instance.\allowbreak{}lean:100-{}114}:
 
