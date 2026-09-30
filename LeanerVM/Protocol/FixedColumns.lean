@@ -83,14 +83,9 @@ def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
     (encodeSlots (prog.code p.1))[p.2]⟩
 
 /-- The cell of instruction `i` and slot `s` holds that slot, spare slots included. -/
-theorem bytecodeColumn_slot (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
+private theorem bytecodeColumn_slot (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
     (bytecodeColumn prog).values[cubeIndex (m := 4) i s] = (encodeSlots (prog.code i))[s] := by
   simp [bytecodeColumn, ← cubeSplit_apply]
-
-/-- Taking a Boolean high-coordinate slice selects the corresponding public slot column. -/
-theorem slice_bytecodeColumn (prog : Program) (s : Fin 16) :
-    slice (bytecodeColumn prog).values s = (bytecodeSlotColumn prog s).values := by
-  simp [slice, bytecodeColumn, bytecodeSlotColumn, ← cubeSplit_apply]
 
 /-- The bit order, stated at the extension: at the cube point whose low coordinates are the
 bits of the instruction index and whose high four are the bits of the slot, the column holds

@@ -419,13 +419,17 @@ modules are under `LeanerVM/Protocol/ToCompPoly/`; what specialises them to lean
 | --- | --- | --- | --- |
 | `sumCube_lagrangeBasis` | `ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
 | `placeSlice`, `sumCube_placeSlice`, `evalMle_placeSlice` | `ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886`, for any slice | #18, #40 |
-| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
+| `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
 | `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
 | `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
 | `map_stackAt`, `stack_eval₂` | `ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
 | `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
-| `unstack_eval₂_eq_sumCube`; `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `ToCompPoly/Stacking.lean`; `BlockClaims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `unstack_eval₂_eq_sumCube` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:705-777` | #38 |
 | `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
+
+The block claims of `LeanVM/Protocol.lean:8550-8602` (`BlockClaim`, `pairing_eq`,
+`isValid_iff_pairing`, `isValid_iff_of_window_eq`, ported in #38 as `BlockClaims.lean`) and
+`sumCube_prodVars` were removed with no consumer.
 
 Two changes to the ported shapes were made when the generic half was made generic: `Blocks` is
 the sizes alone and the tables are an argument (`B.Tables R`), so `Blocks.map` of #26 is gone
