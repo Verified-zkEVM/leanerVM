@@ -4,7 +4,7 @@
 \label{sec:docs-texts}
 
 \begin{sloppypar}
-Drafts, ready to apply once the owner agrees; nothing was edited and nothing was posted. Each passage is quoted as it stands at \texttt{b435631} (the status and the ``How work is tracked'' section are unchanged at \texttt{144c5aa}; the blueprint's lines after 50 are 4 higher there) and then given in full as proposed. Where a passage will have to change again because of technical findings of the review that this dossier does not know, it carries a line \texttt{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR:\allowbreak{} …]}. In the proposed texts, links are written as the blueprint writes them (relative paths from \texttt{docs/\allowbreak{}roadmap/\allowbreak{}}, GitHub anchors computed from the headings at \texttt{144c5aa}).
+Drafts, ready to apply once the owner agrees; nothing was edited and nothing was posted. Each passage is quoted as it stands at \texttt{b435631} (the status and the ``How work is tracked'' section are unchanged at \texttt{144c5aa}; the blueprint's lines after 50 are 4 higher there) and then given in full as proposed. Where a passage has to change again because of the review's technical findings, the change follows it in a short paragraph that ends with the register rows it comes from (\cref{sec:reg}). In the proposed texts, links are written as the blueprint writes them (relative paths from \texttt{docs/\allowbreak{}roadmap/\allowbreak{}}, GitHub anchors computed from the headings at \texttt{144c5aa}).
 \end{sloppypar}
 
 \section{The blueprint's section ``How work is tracked''}\label{sec:docs-text-tracking}
@@ -223,7 +223,7 @@ this hole and no other; the hole is built when the names in bold of its row are 
 \end{srccode}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: the names and shapes of the generic components of Layers 4 and 5 once they are restated as \texttt{Component.\allowbreak{}Def}s with their \texttt{Complete} and \texttt{Security} (today's sketch states \texttt{sumcheck}, \texttt{gkr} and \texttt{batchClaims} as bare \texttt{Oracle\allowbreak{}Reduction}s); the statement types of the bus, table sumcheck, Flock and opening phases; the opening phase's schedule, pending the question of specification §8.5 (``there is no separate reduction sumcheck''); whether Layer 11 reuses the Merkle trees of the VCVio pin (\cref{sec:docs-merkle}); the hypothesis on the program of the base theorems (\cref{sec:docs-leanisa}, item 1). Each may change a row's ``Produces'' or ``Needs''.]}
+With the review's technical findings, the generic rows of Layers 4 and 5 produce \texttt{Component.\allowbreak{}Def}s with their \texttt{Complete} and \texttt{Security} in the named form, the sumcheck's in both variants the verifiers run (the plain one, and the normalized one of the GKR layers, whose round message is a degree-4 cofactor); the bus phase's row produces a \texttt{BusOut I} in the shape of the Rust's \texttt{BusVerify} (one point, forms per side and sumcheck table with the degree bound in the type, three totals, the column claims), which the table sumcheck's rows need; and the Flock phase's row produces a phase from \texttt{Seam.\allowbreak{}pub} to \texttt{Seam.\allowbreak{}flock} that hands the limb claims on and adds the ring-switched claim, needing a \texttt{FlockRegion I} from the adaptor in place of \texttt{FlockInterface} and \texttt{limbColumns}. The opening phase's rows produce the batching challenge $λ$ and one weighted query of the stack and need neither sumcheck row, the WHIR row taking $λ$ as its level-0 batching; the base theorems' row states both theorems with \texttt{Well\allowbreak{}Formed\allowbreak{}Bytecode prog}. The Merkle row stays as drafted until the owner decides whether Layer 11 builds on VCVio's Merkle trees, whose fit with leanVM's trees is unverified (from \code{R36}, \code{R7}, \code{R2}, \code{R14}, \code{R16}, \code{R18}, \code{R19}, \code{R27}, \code{R77}).
 \end{sloppypar}
 
 \textbf{The heading and first paragraph of the build}, as they stand (\texttt{protocol-\allowbreak{}blueprint.\allowbreak{}md:\allowbreak{}617-\allowbreak{}623}):
@@ -254,7 +254,7 @@ proved, and its definition with its completeness lands apart from its knowledge 
 \end{srccode}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: today's sentence ``where a signature below says \texttt{(\allowbreak{}prog) (\allowbreak{}s)}, read \texttt{lean\allowbreak{}Isa\allowbreak{}Instance prog s}'' is dropped above because the sketches of Layers 4 to 7, 9 and 10 are to be restated on the spine's types (\cref{sec:docs-sketches}); if they are not restated in the same pull request, the sentence stays.]}
+The review recommends restating the sketches of Layers 4 to 7, 9 and 10 on the spine's types (\cref{sec:docs-sketches}), after which no signature below takes \texttt{(\allowbreak{}prog) (\allowbreak{}s)} and today's sentence ``where a signature below says \texttt{(\allowbreak{}prog) (\allowbreak{}s)}, read \texttt{lean\allowbreak{}Isa\allowbreak{}Instance prog s}'' has nothing left to explain; if the restatement lands in a later pull request than this text, the sentence stays until it does (from \code{R36}).
 \end{sloppypar}
 
 \textbf{The two sentences that send the reader to the hole comment.} As they stand (\texttt{protocol-\allowbreak{}blueprint.\allowbreak{}md:\allowbreak{}339-\allowbreak{}341}):
@@ -364,8 +364,16 @@ under `LeanerVM/Protocol/Generic/`, which the convention *Generic code* replaced
 \end{srccode}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: at \texttt{b435631} the status recorded that \texttt{\#print axioms} on \texttt{piop\_\allowbreak{}rbr\allowbreak{}Knowledge\allowbreak{}Soundness} and on every Layer 1 theorem gives the kernel's three axioms (\texttt{protocol-\allowbreak{}status.\allowbreak{}md:\allowbreak{}17-\allowbreak{}18,\allowbreak{} 130-\allowbreak{}131}), and an axiom audit of 3298 declarations (\texttt{:\allowbreak{}59}); this dossier ran no Lean and cannot confirm either at \texttt{144c5aa}, where the local build is not yet redone (brief, section 8). Whether the knowledge-soundness composition that ArkLib admitted at \texttt{dca90385} is still admitted at \texttt{7653a901}, which decides whether the local port stays, is a finding of the library review; the third row of the table follows it. The effect of the new CompPoly pin on numerals in \texttt{K} (brief, section 8) belongs here if any fixture of the proof system changed meaning.]}
+Settled since the draft. The review's axiom probe, re-run at \texttt{144c5aa} with the new pins, gives Lean's three axioms and no \texttt{sorryAx} for the two master theorems, the existential form, both halves of the commit and public-input phases, the composition lemmas and the extractors, exactly as at the old pins (\cref{ch:probes}); Layer 1's theorems and the audit of 3298 declarations were not re-run by the review, so the status keeps its line on them only after the owner's own audit at \texttt{144c5aa}. The composition ArkLib admits is still admitted at \texttt{7653a901} (pull request 615 open), so the port stays and the table's third row stands as drafted; and the new CompPoly pin changed what a numeral means in $\K$, which pull request 61 carried through the fixtures but not through one test comment (\texttt{tests/\allowbreak{}Leaner\allowbreak{}VMTests/\allowbreak{}Protocol/\allowbreak{}Field.\allowbreak{}lean:\allowbreak{}25-\allowbreak{}26,\allowbreak{} 37-\allowbreak{}38}, to be fixed in the same pull request), so ``At a glance'' gains the paragraph below (from \code{R34}, \code{R127}).
 \end{sloppypar}
+
+\begin{srccode}
+`#print axioms` at `144c5aa` gives the kernel's three axioms, and no `sorryAx`, for the two
+master theorems and both halves of the commit and public-input phases. The knowledge-soundness
+composition is still admitted upstream at ArkLib `7653a901` (pull request 615 is open), so the
+port stays. Since CompPoly `572f9973` a numeral in `K` has its characteristic-two value
+(`(2 : K) = 0`): fixtures and tests write an encoded word as `K.ofBits n`.
+\end{srccode}
 
 \begin{sloppypar}
 \textbf{The rest of the status, at the same revision.} The head and ``At a glance'' above replace \texttt{:\allowbreak{}1-\allowbreak{}27}. The following lines must also change, or the file contradicts its own head:
@@ -389,7 +397,7 @@ under `LeanerVM/Protocol/Generic/`, which the convention *Generic code* replaced
 \end{itemize}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: which rows of the upstream watch (\texttt{:\allowbreak{}190-\allowbreak{}206}) and of the upstream ledger (\texttt{:\allowbreak{}171-\allowbreak{}184}) the upgrade settled or changed: ArkLib \texttt{main}'s typed executor and one-round bound, ``adopt when: the pin bump'' (\texttt{:\allowbreak{}201}), are now in the pin; Clean pull requests 466, 464 and 446 against the new Clean pin \texttt{42fe4b26}; ``a CompPoly containing \#331'' (\texttt{:\allowbreak{}162}).]}
+The upgrade settled three rows and left the others standing. ArkLib's typed executor and one-round bound (\texttt{:\allowbreak{}201}, ``adopt when: the pin bump'') are in the pin, but the typed framework still has no knowledge soundness, no round-by-round notion and no extractor, so the row becomes the statement that the spine stays on \texttt{Oracle\allowbreak{}Reduction} with the port, still needed while pull request 615 is open; CompPoly \texttt{572f9973} contains \#331, so ``a CompPoly containing \#331'' (\texttt{:\allowbreak{}162}) is met and the eager-\texttt{Fintype} row is retired; Clean \texttt{42fe4b26}, Clean pull request 474 merged over Clean's \texttt{main}, ports proofs only and leaves \texttt{balanceOf} and \texttt{Balanced\allowbreak{}Interactions} unchanged, so the row on Clean's balance stands. Clean pull request 464 is not in the new pin (it has no \texttt{Directed\allowbreak{}Channel}), and 466 and 446 were open when the review read them, 446 as a draft; whether any of 446 is inside \texttt{42fe4b26} is unverified, so their rows keep their state until someone checks, and the ledger's other rows stand at the new pins (\cref{tab:gen-lib-ark-admitted}) (from \code{R34}, \code{R73}, \code{R84}, \code{R125}).
 \end{sloppypar}
 
 \section{The body of issue 12, and where the hole comment goes}\label{sec:docs-text-tracker}
@@ -479,7 +487,17 @@ State: **open**; **claimed** (the claimant's intention issue, and any pull reque
 With write access, edit its line above. Without, open an issue titled `[Intention]: protocol - <name of the hole>: …` whose body names the declarations taken; a maintainer links it here. To report a problem with the blueprint, open `[Roadmap]: protocol - …`.
 \end{srccode}
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: holes the review adds, splits, renames or removes (for example if the opening phase has no sumcheck of its own, or if Layer 11 takes VCVio's Merkle trees), mirrored from the table of \cref{sec:docs-text-holes}; the list must stay one line per row of that table.]}
+\begin{sloppypar}
+The review's findings change the checklist in three places, each mirrored by a row of the table of \cref{sec:docs-text-holes} and following the assignment of the obligations no hole owns (\cref{f:obl-unowned}): the one Flock line becomes two, its definition with completeness (which can start now and be tested against the Python verifier's walk) and its knowledge soundness (which stays the Flock roadmap's); the one public-input line becomes two, so that the ticked line stays true while the hole gains the deployed verifiers' combined check; and a line for the list-binding compilation goes between the Merkle line and the compiled verifier's. The opening lines keep their names while the specification they point to loses its sumcheck, and the other unowned obligations are folded into the specifications of existing lines and add none (from \code{R60}, \code{R12}, \code{R137}, \code{R24}, \code{R18}).
+\end{sloppypar}
+
+\begin{srccode}
+- [x] **Public-input phase: the specification's per-limb check** (Layer 8), both halves: on `main`, #60. [Specification](https://github.com/Verified-zkEVM/leanerVM/blob/main/docs/roadmap/protocol-blueprint.md#layer-8-the-public-input-phase)
+- [ ] **Public-input phase: the deployed combined check** (Layer 8): open. [Specification](https://github.com/Verified-zkEVM/leanerVM/blob/main/docs/roadmap/protocol-blueprint.md#layer-8-the-public-input-phase)
+- [ ] **Flock phase: definition and completeness** (Layer 9): open. [Specification](https://github.com/Verified-zkEVM/leanerVM/blob/main/docs/roadmap/protocol-blueprint.md#layer-9-the-flock-and-ring-switching-boundary)
+- [ ] **Flock phase: knowledge soundness** (Layer 9): open; its inhabitant is #3's. [Specification](https://github.com/Verified-zkEVM/leanerVM/blob/main/docs/roadmap/protocol-blueprint.md#layer-9-the-flock-and-ring-switching-boundary)
+- [ ] **List-binding compilation** (Layer 12): open. [Specification](https://github.com/Verified-zkEVM/leanerVM/blob/main/docs/roadmap/protocol-blueprint.md#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier)
+\end{srccode}
 
 \begin{sloppypar}
 Two notes on the proposed body. The VCVio controls line of today's checklist (\texttt{:\allowbreak{}40}) is not a hole; the controls landed upstream (VCVio pull request 784) and their two intention issues should close (\cref{sec:docs-text-issues}). The line on Clean expressions as polynomials says ``claimed'' and not ``in review'': its implementation is a Clean pull request, not a leanerVM one, and no leanerVM pull request carries the \texttt{awaiting-\allowbreak{}review} label today.
@@ -521,7 +539,9 @@ the base theorems (\texttt{:\allowbreak{}186-\allowbreak{}196}) & Layer 13 & bot
 
 Twelve of the thirteen sections end with a ``Claim'' line, in one of three forms (\cref{sec:docs-hole-comment}, item 9); none moves: the way to take a hole is the blueprint's ``How work is tracked'' (\cref{sec:docs-text-tracking}). ``Upstream watch'' rows that are still open move without their state into each layer section's ``upstream work to read first'' (\cref{sec:docs-owners}).
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: the statement types of the bus, table sumcheck, Flock and opening phases and the schedule of the opening phase, which the layer sections receive in place of the obsolete signatures of the comment; whether the adaptor's and the base theorems' hypotheses change.]}
+\begin{sloppypar}
+The layer sections receive the statement types the review fixes: the bus phase from \texttt{Seam.\allowbreak{}commit} to \texttt{Seam.\allowbreak{}bus}, with a \texttt{BusOut I} in the shape of the Rust's \texttt{BusVerify}; the table sumcheck from \texttt{Seam.\allowbreak{}bus} to \texttt{Seam.\allowbreak{}table}; the Flock phase from \texttt{Seam.\allowbreak{}pub} to \texttt{Seam.\allowbreak{}flock}, handing the limb claims on and adding the ring-switched claim; the opening phase from \texttt{Seam.\allowbreak{}flock} to \texttt{Seam.\allowbreak{}done}, whose schedule is the batching challenge $λ$ and one weighted query, with no sumcheck. The base theorems' hypotheses change: both take \texttt{Well\allowbreak{}Formed\allowbreak{}Bytecode prog}; soundness becomes a statement about a $Q$-query adversary against the random-oracle verifier, with a straight-line extractor and the error \texttt{niError Q}; completeness starts from a satisfying witness with admissible sizes and a valid rate, and its form from an execution takes a fit hypothesis. The adaptor's theorems change their hypotheses in two places: admissibility gains the rate window and the stacking window, and the Flock witness generator and the lemma ``the R1CS holds $⇒$ the limb slots compress'' come from one instance-free structure supplied by the Flock roadmap (from \code{R2}, \code{R14}, \code{R18}, \code{R27}, \code{R28}, \code{R29}, \code{R33}, \code{R15}).
+\end{sloppypar}
 
 \textbf{The comment itself.} Once its content is in the blueprint, its author edits it, in place, to one paragraph, so that the links to it still land somewhere (an edit, not a new comment):
 
@@ -568,7 +588,7 @@ The same line's ``decision 15'' should read ``leanISA decision 15'', the proof s
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: whether the new Clean pin \texttt{42fe4b26} (pull request 61) contains Clean pull request 446, and whether the eager-\texttt{Fintype} concern is retired by the new CompPoly pin, which would change ``Blocked on''.]}
+The eager-\texttt{Fintype} clause of ``Blocked on'' is deleted: the new CompPoly pin \texttt{572f9973} contains CompPoly pull request 331, which retired it. Whether the new Clean pin \texttt{42fe4b26}, Clean pull request 474 merged over Clean's \texttt{main}, contains Clean pull request 446 is unverified: 446 was an open draft when the review read it, so ``Blocked on'' keeps it until someone checks the pin's history (from \code{R125}; the state of 446 from the library review, \cref{sec:gen-lib-clean-tracking}).
 \end{sloppypar}
 
 \textbf{Issue 28 (intention: Layer 2).} Its first line, ``Tracks \#12, Layer 2/C1'', uses the code of the ledger entry on Clean, which is also the code of the knowledge-soundness composition on issue 12's checklist. Proposed:
@@ -609,4 +629,6 @@ Title: nothing (it could carry the hole's name: ``[Intention]: protocol - Clean 
 \textbf{Pull request 43 (power batching), for batching by powers.} Base \texttt{feat/\allowbreak{}leanth-\allowbreak{}reuse}; module \texttt{Leaner\allowbreak{}VM/\allowbreak{}Protocol/\allowbreak{}Generic/\allowbreak{}Power\allowbreak{}Batching.\allowbreak{}lean}; description ``Built on \#18''. Proposed: rebase onto \texttt{main}, move the module, and edit the description to name the hole (``batching by powers'', Layer 4), \#31, and the owner's comment of 2026-09-28: \texttt{pairing\_\allowbreak{}batch\allowbreak{}Weight} is stated over the same inner product as the spine's \texttt{Weight.\allowbreak{}pair}, and one of the two is to be restated through the other so that two pairings do not coexist. Title: nothing.
 \end{sloppypar}
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: whether the statements of pull requests 39 and 43 fit the statement types the review fixes for the bus and opening phases, which decides whether their descriptions promise a consumer that exists.]}
+\begin{sloppypar}
+Both fit, so both descriptions promise a consumer that exists. The fingerprint of pull request 39 enters the weights of the bus forms that the fixed \texttt{BusOut I} carries per side and sumcheck table, in the shape of the Rust's \texttt{BusVerify}, and its collision bound stays the bus phase's knowledge half; the power batching of pull request 43 is the opening phase's batching by $λ$, which the review keeps when it removes the opening's sumcheck, so its consumer is the opening phase, whose one weighted query WHIR realizes (from \code{R2}, \code{R18}).
+\end{sloppypar}

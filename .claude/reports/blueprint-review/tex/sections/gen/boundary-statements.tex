@@ -29,7 +29,7 @@
 \newcommand{\bndc}[1]{\texttt{\directlua{bndbreak("\luaescapestring{\detokenize{#1}}")}}}
 \fi
 
-\section{The adaptor: are its sketched statements well formed and provable?}\label{sec:gen-boundary-statements}
+\subsection{The adaptor: are its sketched statements well formed and provable?}\label{sec:gen-boundary-statements}
 
 \begin{sloppypar}
 Short forms in this section. \code{bp:} is the blueprint
@@ -48,7 +48,7 @@ The Layer 3 sketch (\bndc{bp:794-820}) and the Layer 2 sketch it needs (\bndc{bp
 read here as Lean to be written: for each sketched statement, whether it can be written, whether
 it can be proved, and the restatement the review proposes.
 
-\subsection{\texorpdfstring{\protect\code{witnessOf}}{witnessOf} and \texorpdfstring{\protect\code{satisfiedBy_witnessOf}}{satisfiedBy\_witnessOf}}\label{sec:gen-boundary-st-witnessof}
+\subsubsection{\texorpdfstring{\protect\code{witnessOf}}{witnessOf} and \texorpdfstring{\protect\code{satisfiedBy_witnessOf}}{satisfiedBy\_witnessOf}}\label{sec:gen-boundary-st-witnessof}
 
 \begin{leancode}
 def witnessOf (prog) (s) (q : Column (leanIsaInstance prog s).μ) :
@@ -93,7 +93,7 @@ found by instance search, as the toy is}.
 \reason \Cref{f:boundary-witnessof-input-counts,f:boundary-reducible}.
 \end{change}
 
-\subsection{\texorpdfstring{\protect\code{stackOf}}{stackOf}, \texorpdfstring{\protect\code{m3Holds_stackOf}}{m3Holds\_stackOf}, \texorpdfstring{\protect\code{witnessOf_stackOf}}{witnessOf\_stackOf}}\label{sec:gen-boundary-st-stackof}
+\subsubsection{\texorpdfstring{\protect\code{stackOf}}{stackOf}, \texorpdfstring{\protect\code{m3Holds_stackOf}}{m3Holds\_stackOf}, \texorpdfstring{\protect\code{witnessOf_stackOf}}{witnessOf\_stackOf}}\label{sec:gen-boundary-st-stackof}
 
 \begin{leancode}
 def stackOf (gen : FlockWitnessGen) (w : EnsembleWitness (leanIsaEnsemble prog))
@@ -143,7 +143,7 @@ Say in \bndc{bp:822-824} that neither composition of the base theorem uses it.
 (\cref{f:boundary-witnessof-stackof}).
 \end{change}
 
-\subsection{The rate in \texorpdfstring{\protect\code{Sizes}}{Sizes}}\label{sec:gen-boundary-st-rate}
+\subsubsection{The rate in \texorpdfstring{\protect\code{Sizes}}{Sizes}}\label{sec:gen-boundary-st-rate}
 
 \begin{leancode}
 structure Sizes where
@@ -193,7 +193,7 @@ The announcement of Layer 12 is \bndc{Sizes × logInvRate}.
 the two directions use (\cref{f:boundary-sizes}).
 \end{change}
 
-\subsection{The instance's tables, columns and blocks against \texorpdfstring{\protect\code{M3Instance}}{M3Instance} as built}\label{sec:gen-boundary-st-tables}
+\subsubsection{The instance's tables, columns and blocks against \texorpdfstring{\protect\code{M3Instance}}{M3Instance} as built}\label{sec:gen-boundary-st-tables}
 
 \begin{leancode}
 def leanIsaInstance (prog : Program) (s : Sizes) : M3Instance   -- `Ensemble.toM3` of the eight tables with
@@ -253,7 +253,7 @@ transcript from leanVM's on the leanISA instance, which \bndc{verify_iff_compile
 (\cref{f:boundary-column-groups}).
 \end{change}
 
-\subsection{Mathlib polynomials in Layer 2, CompPoly polynomials in the instance}\label{sec:gen-boundary-st-poly}
+\subsubsection{Mathlib polynomials in Layer 2, CompPoly polynomials in the instance}\label{sec:gen-boundary-st-poly}
 
 \begin{leancode}
 def Expression.toMvPolynomial : Expression F → MvPolynomial ℕ F     -- var i ↦ X i
@@ -320,7 +320,7 @@ proof-side bridge.
 retired if CompPoly makes \bndc{toCMvPolynomial} computable (\cref{f:boundary-poly-bridge}).
 \end{change}
 
-\subsection{The composition of the base theorem, arrow by arrow}\label{sec:gen-boundary-st-composition}
+\subsubsection{The composition of the base theorem, arrow by arrow}\label{sec:gen-boundary-st-composition}
 
 \begin{leancode}
    T4  =  verify_knowledgeSound  ∘  Refinement.map_option_valid satisfiedBy_witnessOf  ∘  constraintSoundness

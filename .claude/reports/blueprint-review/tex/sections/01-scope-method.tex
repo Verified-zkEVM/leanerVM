@@ -86,7 +86,7 @@ spine & the part of the blueprint, and of the code, that fixes what the phases s
   interfaces a phase has to meet, the composition and the two master theorems. \\
 seam & the relation that holds between two consecutive phases: the output relation of one and,
   by definition, the input relation of the next. \\
-hole & a unit of work the spine leaves open (a phase, a generic component, the adaptor, the
+hole & a hole the spine leaves open (a phase, a generic component, the adaptor, the
   compilation). \\
 layer & the blueprint's numbering of the same work (Layers 0 to 13). \\
 adaptor & the part, not yet built, that instantiates the abstract instance at leanISA and
@@ -101,6 +101,13 @@ master theorems & \lean{piop_perfectCompleteness} and \lean{piop_rbrKnowledgeSou
 pin & the revision of a dependency recorded in \file{upstreams.json}. \\
 load-bearing & said of a declaration that a master theorem's statement unfolds to, so that a
   reader must read it to know what the theorem says. \\
+Category A, Category B & the blueprint's two kinds of content: A is what the verifier accepts
+  and why it is sound, written from the specification and then diffed against the code; B is
+  transcribed data (layouts, encodings, constants, parameters), copied from its source and
+  wrong if it deviates. \\
+Layer $N$, acceptance test $N$, decision $N$ & the blueprint's own numbering of its sections,
+  its tests and its decisions; the report keeps these numbers, since they are the document's
+  structure and not codes for other things. \\
 \bottomrule
 \end{longtable}
 

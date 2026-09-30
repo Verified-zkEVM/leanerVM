@@ -187,7 +187,7 @@ soundness error; both are wrong (\cref{sec:faith-flock}).
 
 \paragraph{Knowledge soundness.} The specification's Annex C accounts
 $(4 k_{\mathrm{batch}} + 163) / \abs{\E}$ for the reduction, which the review re-derived term by
-term from the Rust's parameters, and Annex A accounts below $2^{32} / \abs{\E}$ for ring
+term from the Rust verifier's parameters, and Annex A accounts below $2^{32} / \abs{\E}$ for ring
 switching (a nonzero polynomial of total degree below $2^{32}$ in the six challenges). Both are
 errors for a fixed committed polynomial; after compilation the list-decoding regime multiplies
 them by the list size (\cref{sec:ph-opening}).
@@ -262,7 +262,7 @@ without the window the bus depth reaches 38 and it is false. The deployed parame
 bits round-by-round in the Johnson regime, provable given the coding-theory theorem the
 blueprint names: the query rounds close 111 bits plus 17 bits of grinding at every level, the
 fold terms sit at 128 to 146 bits, and the list size $L_0$ runs from a few hundred at
-$\mu = 15$ to about $2^{20}$ at deep levels. The review's port of the Rust's parameter search
+$\mu = 15$ to about $2^{20}$ at deep levels. The review's port of the Rust verifier's parameter search
 reproduces the Python verifier's query table for all 56 configurations, and the citation check re-ran it over all 56 sizes
 (\cref{sec:faith-opening}).
 

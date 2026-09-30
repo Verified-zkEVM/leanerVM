@@ -310,24 +310,24 @@ the spine & formerly \texttt{S} & unit of work & the instance, the relation, the
 knowledge-soundness composition & formerly hole \texttt{C1} & unit of work & the port of ArkLib pull request 615, deleted when the pin passes it & blueprint, ``The spine'' \\\addlinespace[2pt]
 Clean expressions as polynomials & Layer 2; formerly \texttt{I1} & unit of work & constraint and flush polynomials read off a Clean component & blueprint, ``The units of work'' \\\addlinespace[2pt]
 the adaptor & Layer 3; formerly \texttt{I2} & unit of work & the leanISA instance and the two maps between the stack and Clean's witness & same \\\addlinespace[2pt]
-sumcheck: definition and completeness & Layer 4; formerly \texttt{G1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: one sentence, after the review of Layer 4]} & same \\\addlinespace[2pt]
-sumcheck: knowledge soundness & Layer 4; formerly \texttt{G2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
+sumcheck: definition and completeness & Layer 4; formerly \texttt{G1} & unit of work & the sumcheck over eq-weighted virtual polynomials as a \texttt{Component.\allowbreak{}Def}, in the plain variant and the normalized one of the GKR layers, the linear coefficient derived, not sent (from \code{R36}, \code{R53}, \code{R7}) & same \\\addlinespace[2pt]
+sumcheck: knowledge soundness & Layer 4; formerly \texttt{G2} & unit of work & its round-by-round knowledge soundness at $d/\abs{\E}$ a round, in the named form, with the lemma that carries it to the wire message of three coefficients (from \code{R53}, \code{R36}) & same \\\addlinespace[2pt]
 batching by powers & Layer 4; formerly \texttt{G3} & unit of work & several claims become one by the powers of one challenge & same \\\addlinespace[2pt]
 fingerprint and collision bound & Layer 5; formerly \texttt{G4} & unit of work & specification Lemma 5.2 and Theorem 5.1 & same \\\addlinespace[2pt]
-grand-product GKR: definition and completeness & Layer 5; formerly \texttt{G5} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-grand-product GKR: knowledge soundness & Layer 5; formerly \texttt{G6} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-bus phase: definition and completeness & Layer 6; formerly \texttt{P1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-bus phase: knowledge soundness & Layer 6; formerly \texttt{P2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-table sumcheck phase: definition and completeness & Layer 7; formerly \texttt{P3} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-table sumcheck phase: knowledge soundness & Layer 7; formerly \texttt{P4} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
+grand-product GKR: definition and completeness & Layer 5; formerly \texttt{G5} & unit of work & the batched grand product of the three trees, over a context whose oracles are the leaf tables, radix 4 with one binary layer for an odd height, a combiner after the roots and after every layer, the last unused (from \code{R10}, \code{R7}, \code{R9}) & same \\\addlinespace[2pt]
+grand-product GKR: knowledge soundness & Layer 5; formerly \texttt{G6} & unit of work & its round-by-round knowledge soundness at $4/\abs{\E}$ a round of the normalized layer sumcheck and $1/\abs{\E}$ a combination challenge, the zerocheck clause riding along (from \code{R7}, \code{R9}, \code{R10}) & same \\\addlinespace[2pt]
+bus phase: definition and completeness & Layer 6; formerly \texttt{P1} & unit of work & the challenges $(α, β)$, the two roots, the GKR and the five boundary evaluations, emitting a \texttt{BusOut I} in the shape of the Rust's \texttt{BusVerify}, the orders of the leaf stacks, roots, evaluations and claims fixed (from \code{R2}, \code{R50}, \code{R51}) & same \\\addlinespace[2pt]
+bus phase: knowledge soundness & Layer 6; formerly \texttt{P2} & unit of work & one \texttt{busError}, the zerocheck a conjunct of the state function that costs nothing beyond the GKR's errors, under the two side conditions on the instance (from \code{R47}, \code{R43}) & same \\\addlinespace[2pt]
+table sumcheck phase: definition and completeness & Layer 7; formerly \texttt{P3} & unit of work & one sumcheck of $τ_{\max}$ rounds over the six opcode tables' constraints and bus forms, three coefficients a round and 104 values at the end, from the bus seam's \texttt{BusOut} (from \code{R2}, \code{R11}, \code{R53}) & same \\\addlinespace[2pt]
+table sumcheck phase: knowledge soundness & Layer 7; formerly \texttt{P4} & unit of work & its round-by-round knowledge soundness at $(B + 2)/\abs{\E}$ on $ξ$ and $3/\abs{\E}$ a round, over the tables the instance marks as the sumcheck's (from \code{R11}, \code{R2}) & same \\\addlinespace[2pt]
 public-input phase & Layer 8; formerly \texttt{P5} & unit of work & specification section 8.2: one challenge, the sent values checked per limb, one claim per public line & same \\\addlinespace[2pt]
 Flock phase & Layer 9; formerly \texttt{P6} & unit of work & the interface the Flock roadmap (issue 3) inhabits & same \\\addlinespace[2pt]
-opening phase: definition and completeness & Layer 10; formerly \texttt{P7} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: pending the question of specification section 8.5]} & same \\\addlinespace[2pt]
-opening phase: knowledge soundness & Layer 10; formerly \texttt{P8} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-WHIR opening & Layer 11; formerly \texttt{K1} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-Merkle trees, byte hasher, WHIR parameters & Layer 11; formerly \texttt{K2} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: see \cref{sec:docs-merkle} on VCVio's Merkle trees]} & same \\\addlinespace[2pt]
-transcript, proof object, compiled verifier & Layer 12; formerly \texttt{K3} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR]} & same \\\addlinespace[2pt]
-the base theorems & Layer 13; formerly \texttt{K4} & unit of work & \textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: see \cref{sec:docs-leanisa} on the program hypothesis]} & same \\\addlinespace[2pt]
+opening phase: definition and completeness & Layer 10; formerly \texttt{P7} & unit of work & the batching challenge $λ$ and one weighted query of the stack, with no sumcheck of its own (from \code{R18}) & same \\\addlinespace[2pt]
+opening phase: knowledge soundness & Layer 10; formerly \texttt{P8} & unit of work & its knowledge soundness at $(J - 1)/\abs{\E}$ on $λ$, the query answered by the stack's inner-product oracle (from \code{R18}, \code{R19}) & same \\\addlinespace[2pt]
+WHIR opening & Layer 11; formerly \texttt{K1} & unit of work & WHIR realizing the one weighted query, its level-0 batching the opening's $λ$, \texttt{encode} over $\E$ at every level with the lemma that a $\K$-valued message has a $\K$-valued codeword (from \code{R19}, \code{R18}, \code{R24}) & same \\\addlinespace[2pt]
+Merkle trees, byte hasher, WHIR parameters & Layer 11; formerly \texttt{K2} & unit of work & Merkle trees with the pruned wire paths, the byte hasher (BLAKE2s-256 of a 64-byte input, not the compression keyed by the chain state) and the parameter ladder; whether the trees are VCVio's is open (from \code{R63}, \code{R66}, \code{R77}) & same \\\addlinespace[2pt]
+transcript, proof object, compiled verifier & Layer 12; formerly \texttt{K3} & unit of work & the chain, the proof object and \texttt{verify}, compiled by a leanerVM BCS transform (roots for oracle messages, authenticated rows for queries, grinding and the encoding checks) over the family of admissible sizes, from front phases that never query the stack (from \code{R21}, \code{R6}, \code{R61}, \code{R25}, \code{R138}) & same \\\addlinespace[2pt]
+the base theorems & Layer 13; formerly \texttt{K4} & unit of work & both with \texttt{Well\allowbreak{}Formed\allowbreak{}Bytecode prog}: soundness for a $Q$-query adversary against the random-oracle verifier, with a straight-line extractor, at \texttt{niError Q}; completeness from a witness with admissible sizes and a valid rate (from \code{R27}, \code{R28}, \code{R29}) & same \\\addlinespace[2pt]
 heights are powers of two & decision 1 & decision, taken & leanISA's \texttt{Caps} requires it, so the two roadmaps state one relation & leanISA blueprint, Layer 8; issue 13 \\\addlinespace[2pt]
 statement and parameters & decision 2 & decision, taken & the public input is the statement; the instance indexes the protocol family & convention \emph{Statements and parameters} \\\addlinespace[2pt]
 where the zerocheck is charged & decision 3 & decision, taken & in the bus phase, where the point is drawn; no separate phase & convention \emph{Seams} \\\addlinespace[2pt]
@@ -378,4 +378,33 @@ admitted upstream: composition of knowledge soundness & formerly ledger \texttt{
 (the other eleven ledger entries, as in \cref{sec:docs-codes-mapping}) &  & ledger entry &  & same \\
 \end{longtable}}
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: rows for the findings against the sources that the blueprint cites, once the other agents' findings are merged into the register.]}
+\begin{sloppypar}
+The index gains one row per finding of the review against leanVM's own sources, of the same kind as the status findings on the sources mapped above: each is recorded by name in \texttt{docs/\allowbreak{}leanvm-\allowbreak{}target.\allowbreak{}md}, keeps no number, and is among the matters the owner may report to leanVM (\cref{sec:opt-upstream-report}) (from \code{R57}, \code{R105} to \code{R109}, \code{R111}, \code{R112}, \code{R116} to \code{R118}, \code{R133}).
+\end{sloppypar}
+
+{\footnotesize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.208\linewidth}>{\raggedright\arraybackslash}p{0.141\linewidth}>{\raggedright\arraybackslash}p{0.104\linewidth}>{\raggedright\arraybackslash}p{0.292\linewidth}>{\raggedright\arraybackslash}p{0.198\linewidth}@{}}
+\caption{The index, drafted: the rows for the review's findings against leanVM's sources.}\label{tab:docs-index-draft-sources}\\
+\toprule
+\textbf{Name} & \textbf{Number or former code} & \textbf{Kind} & \textbf{In one sentence} & \textbf{Specified or decided at} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Name} & \textbf{Number or former code} & \textbf{Kind} & \textbf{In one sentence} & \textbf{Specified or decided at} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+seven disagreements in the setup, the commitment and the bus & none & finding on the sources & the rate announced with the sizes, the roots' order, the seed's constant naming the circuit, checks the specification omits, the last combiner, the Python's unchecked zero slots of the stacked bytecode, the fingerprint bound $5·2^μ$ against $4·2^μ$ (\code{R105}) & \texttt{docs/\allowbreak{}leanvm-\allowbreak{}target.\allowbreak{}md} \\\addlinespace[2pt]
+the seed's circuit digest & none & finding on the sources & the Fiat–Shamir seed binds a constant that cannot be recomputed at the pin (\code{R106}) & same \\\addlinespace[2pt]
+no round-by-round analysis of the bus phase & none & finding on the sources & the specification's one round-by-round theorem is the opening's; the bus phase's errors are the blueprint's own analysis (\code{R107}) & same \\\addlinespace[2pt]
+the batching error of the table sumcheck & none & finding on the sources & the specification charges one more than its own Corollary 3.9 gives, no error for the recycled point, and does not say which coefficient is dropped (\code{R108}) & same \\\addlinespace[2pt]
+stale Rust comments on the round message & none & finding on the sources & the comments say the round polynomial is sent whole at four nodes; three coefficients are sent (\code{R109}) & same \\\addlinespace[2pt]
+Flock's circuit and constants & none & finding on the sources & the circuit, the limb slots, $g_0$, $φ_8$, $k_{\mathrm{batch}}$ and the floor on $τ_{\mathrm{BLAKE2S}}$ are fixed only by the Rust and the Python (\code{R57}) & same \\\addlinespace[2pt]
+the Rust Flock prover's exceptional point & none & finding on the sources & at $r_{\mathrm{eq}} = 1$ the pinned prover emits a proof its verifier rejects; the specification's protocol is perfectly complete (\code{R111}) & same \\\addlinespace[2pt]
+stale Rust comments on the counter and the flags & none & finding on the sources & the comments say the bytecode binds them; the table reads the metadata cell from memory, as the specification says (\code{R112}) & same \\\addlinespace[2pt]
+a stale Rust comment on level-0 grinding & none & finding on the sources & it says level 0 grinds no bits; every level grinds 17 in production (\code{R116}) & same \\\addlinespace[2pt]
+the Rust's list-size accounting & none & finding on the sources & only the algebraic checks are unioned over the Johnson list; the bus's term is not, with 23 bits of room at these sizes (\code{R117}) & same \\\addlinespace[2pt]
+a stale Rust comment on the Merkle leaf size & none & finding on the sources & it says a leaf is $16·n$ bytes; the code hashes $24·n$ (\code{R118}) & same \\\addlinespace[2pt]
+the witness stack's size and tie rule & none & finding on the sources & the specification's $M = ⌈\log_2 N⌉$ has neither the verifiers' window $[15, 28]$ nor their tie rule by column index (\code{R133}) & same \\
+\end{longtable}}

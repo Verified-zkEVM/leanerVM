@@ -50,7 +50,7 @@ A helper lemma cannot enlarge the trusted surface of a theorem it helps to prove
 checks the proof, and what the proof used does not change what the statement says. Two things
 can leak nonetheless, and were checked. An \emph{axiom} used by a helper propagates to every
 theorem that uses it: every theorem of the proof system, the port of the composition included,
-closes on the kernel's three standard axioms and on nothing else (\lean{#print\ axioms},
+closes on the kernel's three standard axioms and on nothing else (\texttt{#print axioms},
 probe \code{AxiomsLeanerVM}, re-run at the new pins in \cref{ch:probes}), and the repository's
 validation rejects \lean{sorryAx} across both namespaces with a planted-axiom control. An
 \emph{instance} used by a statement (a decidability instance, a sampler, an oracle interface)
@@ -67,7 +67,7 @@ argued in \cref{ch:faithfulness}.
 
 \begin{enumerate}
 \item \textbf{Fix the error in the spine.} Replace the phases' declared \lean{err} by a closed
-  form \lean{piopError\ I} computed from the instance, and demand each phase's knowledge
+  form \texttt{piopError I} computed from the instance, and demand each phase's knowledge
   soundness at it. Removes a field from \lean{Component.Def} and the possibility of item 1 of
   \cref{sec:nv-hypotheses}; adds one definition to the spine. Changes the statement of the
   knowledge-soundness theorem, for the better: it then says something.
@@ -81,7 +81,7 @@ argued in \cref{ch:faithfulness}.
   instance cannot state a \lean{read} that disagrees with its \lean{extend}. Costs one
   definition and a lemma; changes no statement's meaning.
 \item \textbf{Delete \lean{outputPure}.} It is derivable for every component over the empty
-  shared oracle (probe \code{P6Surface}, \code{outputPure\_of\_def}; ArkLib has the instance at
+  shared oracle (probe \code{P6Surface}, \texttt{outputPure\_of\_def}; ArkLib has the instance at
   the pin). Removes a field of \lean{Component.Complete} and one obligation per phase.
 \item \textbf{Separate the guard from completeness.} A base structure with the guarded form
   only, extended by \lean{Complete} and by \lean{Security}, so that knowledge soundness no

@@ -8,11 +8,12 @@
 \newif\ifregisterready \registerreadytrue
 \newif\ifobligationsready \obligationsreadytrue
 \newif\ifopeningready \openingreadytrue
+\newif\ifarklibready \arklibreadyfalse
 
 \title{\textsf{\bfseries The blueprint of the leanVM proof system in leanerVM}\\[4pt]
   \large\textsf{A review of its faithfulness to leanVM, its non-vacuity, and its audit surface}}
 \author{\textsf{Review session of 29 and 30 September 2026}}
-\date{\textsf{leanerVM \texttt{main} at \texttt{b435631} \quad leanVM pinned at \texttt{a386121f}}}
+\date{\textsf{leanerVM \texttt{main} at \texttt{b435631} (upgraded mid-review to \texttt{144c5aa}) \quad leanVM pinned at \texttt{a386121f}}}
 
 \begin{document}
 \maketitle
@@ -38,6 +39,7 @@
 
 \part{What to do}
 \input{sections/11-options}
+\input{sections/11b-arklib}
 \input{sections/12-documentation}
 \input{sections/13-drift}
 
@@ -50,6 +52,11 @@
 \input{sections/e-brief-review}
 \input{sections/f-register}
 
+\chapter*{References}\addcontentsline{toc}{chapter}{References}
+The works the review consulted, as the literature dossier records them; bracketed labels in the
+text are the dossier's own tags for these works.
+\nocite{*}
 \bibliographystyle{alpha}
+\renewcommand{\bibname}{}
 \bibliography{refs}
 \end{document}

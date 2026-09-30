@@ -27,7 +27,7 @@
 \newcommand{\bndc}[1]{\texttt{\directlua{bndbreak("\luaescapestring{\detokenize{#1}}")}}}
 \fi
 
-\section{The adaptor: the two relations side by side}\label{sec:gen-boundary-relations}
+\subsection{The adaptor: the two relations side by side}\label{sec:gen-boundary-relations}
 
 \begin{sloppypar}
 Short forms in this section. leanerVM is at \code{b435631}; \code{bp:} is the blueprint
@@ -53,7 +53,7 @@ one committed column (\bndc{Spine/Instance.lean:219-220}); the arithmetization c
 Layers 2 and 3 (\bndc{bp:757-867}) and is not built. This section sets the two relations side by
 side, clause by clause, and asks what the adaptor's two theorems need.
 
-\subsection{The objects}\label{sec:gen-boundary-objects}
+\subsubsection{The objects}\label{sec:gen-boundary-objects}
 
 Every object below is quoted from the pinned sources.
 \begin{itemize}
@@ -99,7 +99,7 @@ Every object below is quoted from the pinned sources.
   maps back and is \bndc{noncomputable} (\bndc{:41}).
 \end{itemize}
 
-\subsection{The relation leanISA consumes: \texorpdfstring{\protect\texttt{SatisfiedBy}}{SatisfiedBy}}\label{sec:gen-boundary-satisfiedby}
+\subsubsection{The relation leanISA consumes: \texorpdfstring{\protect\texttt{SatisfiedBy}}{SatisfiedBy}}\label{sec:gen-boundary-satisfiedby}
 
 \begin{leancode}
 structure SatisfiedBy (prog : Program) (input : PublicInput)
@@ -212,7 +212,7 @@ In \file{Boundary.lean} are the three block components and their honest rows: \b
 (\bndc{:274-276}: \bndc{⟨gpow i, cntFin, e[0], #v[e[1], …, e[7]]⟩} with
 \bndc{e := entry (prog.code i)}).
 
-\subsection{The relation the proof system proves: \texorpdfstring{\protect\texttt{M3Holds}}{M3Holds}}\label{sec:gen-boundary-m3holds}
+\subsubsection{The relation the proof system proves: \texorpdfstring{\protect\texttt{M3Holds}}{M3Holds}}\label{sec:gen-boundary-m3holds}
 
 \begin{leancode}
 -- :197-198
@@ -252,7 +252,7 @@ def tuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
 A \bndc{known} coordinate is read from data the instance holds, a \bndc{const} coordinate is a
 constant, and only a \bndc{committed} coordinate is read from \bndc{q}.
 
-\subsection{The leanISA instance the blueprint implies}\label{sec:gen-boundary-instance}
+\subsubsection{The leanISA instance the blueprint implies}\label{sec:gen-boundary-instance}
 
 Read from Layer 3 (\bndc{bp:794-867}), the status file's decision that \enquote{the fixed
 columns are \bndc{Coord.known} data} (decision 8, \bndc{protocol-status.md:220-223}) and the
@@ -282,7 +282,7 @@ ground truth (\bndc{layout.rs:352-395}; the bus dossier's table of the boundary 
   \bndc{decAux} its check.
 \end{itemize}
 
-\subsection{Conjunct by conjunct}\label{sec:gen-boundary-conjuncts}
+\subsubsection{Conjunct by conjunct}\label{sec:gen-boundary-conjuncts}
 
 \Cref{tab:gen-boundary-conjuncts} takes \bndc{w := witnessOf prog s q} and
 \bndc{I := leanIsaInstance prog s}, with the hypotheses \bndc{hs : s.Admissible prog} and
@@ -322,7 +322,7 @@ and one half-built (\bndc{seed_rows}); this is where the trap of the built parts
 conjunct has a source; none is delivered by nothing once the caps hypothesis, the boundary lemma,
 the count derivation and the Flock consequence lemma are in place.
 
-\subsection{The trap of the built parts}\label{sec:gen-boundary-trap}
+\subsubsection{The trap of the built parts}\label{sec:gen-boundary-trap}
 
 \paragraph{What \texorpdfstring{\protect\code{witnessOf}}{witnessOf} builds and what it reads.}
 From \bndc{q} through \bndc{I.layout}: the rows of tables 0--5 (the \bndc{BLAKE2S} limbs strided
@@ -402,7 +402,7 @@ and \bndc{seed_rows} is what ties them; Clean pull request \#446 would derive th
 block's columns and delete the conjunct (\bndc{Statement.lean:87-100}). Nothing in the chain
 reads the data from anywhere else.
 
-\subsection{The completeness direction}\label{sec:gen-boundary-completeness}
+\subsubsection{The completeness direction}\label{sec:gen-boundary-completeness}
 
 \bndc{stackOf gen w hs : Column I.μ} stacks the committed columns of \bndc{w} at the aligned
 offsets (Layer 1's \bndc{Blocks.stackColumn}, \bndc{Stack.lean:70}), with \bndc{q_flock} computed

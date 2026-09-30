@@ -12,7 +12,7 @@ changes (\cref{ch:changes}) gives the text of each change.
 \section{Recommendations, in priority order}\label{sec:opt-recommendations}
 
 \begin{enumerate}
-\item \textbf{Fix the error in the spine} (\code{R5}). Define \lean{piopError\ I} in closed
+\item \textbf{Fix the error in the spine} (\code{R5}). Define \texttt{piopError I} in closed
   form from the instance's sizes and demand each phase's knowledge soundness at it. Cost: one
   definition and a change of one field; every phase built later pays the bound. Without it the
   soundness theorem constrains nothing. The alternative, a bound as a field of
@@ -121,7 +121,7 @@ adaptor as the one place the semantics is met.
   recommends stating the assumed interfaces for leanVM's constructions now, so that what is
   waited for is at least written down.
 \item Lean's kernel cannot decide the fields' arithmetic fast: probes over $\K$ and $\E$ are
-  \lean{\#guard}s on tiny instances, and a numeral's meaning in $\K$ changed with the new pin.
+  \texttt{\#guard}s on tiny instances, and a numeral's meaning in $\K$ changed with the new pin.
 \item No published theorem covers Fiat--Shamir with proof of work for a multi-round protocol;
   leanVM's query rounds reach 128 bits only with it. The blueprint should say what security
   level its non-interactive theorem can certify and what remains a claim of the parameter
@@ -146,7 +146,7 @@ already makes (power-of-two heights, bus data per channel), both met.
 \paragraph{What it requires of the Flock roadmap.} A predicate on a packed column (the R1CS
 with the constant position), a phase at the spine's seams with perfect completeness for the
 specification's honest prover and knowledge soundness at the accounted error, the witness
-generator with its lemma, the constants and the slot map transcribed from the Rust (they are
+generator with its lemma, the constants and the slot map transcribed from the Rust verifier (they are
 not in the specification), and the ring-switching weight's closed form. The roadmap has not
 started; the compiled verifier's fixture cannot pass before its definition exists.
 

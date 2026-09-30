@@ -1,4 +1,4 @@
-\chapter{Keeping the Lean verifier from drifting away from the deployed one}\label{ch:drift}
+\chapter[Keeping the Lean verifier from drifting]{Keeping the Lean verifier from drifting away from the deployed one}\label{ch:drift}
 
 The requirement, stated by the owner: a verifier that omits a check leanVM makes, or makes a
 weaker one, must have no proof of knowledge soundness; a verifier that makes a wrong check, or
@@ -142,7 +142,7 @@ a \emph{refutation}: a Lean theorem that the verifier without that check has no 
 knowledge soundness against the seams at any error below one, whatever the extractor and the
 state function; and for each check the deployed verifier does not make, a theorem that the
 verifier with it is not perfectly complete. The public-input phase's audit gives the two
-generic lemmas this needs (\code{not\_rbr} and \code{not\_perfectCompleteness},
+generic lemmas this needs (\texttt{not\_rbr} and \texttt{not\_perfectCompleteness},
 \cref{ch:probes}); they belong in \file{ToArkLib/}. A mutation whose omission cannot be
 refuted is a check the verifier does not rely on, and the phase's design should be revised
 until it does (the rule of \cref{sec:drift-pubinput}). These refutations are tests under
@@ -150,8 +150,8 @@ until it does (the rule of \cref{sec:drift-pubinput}). These refutations are tes
 
 \paragraph{What ties the Lean verifier to the deployed one.} The compiled verifier's refinement
 theorem ties \lean{verify} to the oracle protocol by definition; only a fixture ties either to
-the Rust. The fixture is a proof produced by the pinned Rust prover, accepted by \lean{verify}
-under \lean{\#guard}, with a mutation per check: each of the checks of \cref{sec:drift-checks}
+the Rust verifier. The fixture is a proof produced by the pinned Rust prover, accepted by \lean{verify}
+under \texttt{\#guard}, with a mutation per check: each of the checks of \cref{sec:drift-checks}
 gets a mutated proof that the deployed verifier rejects and that \lean{verify} must reject too.
 The blueprint's six mutations become as many as there are checks. Reverse tests, transcripts
 the specification rejects run through the Rust and Python verifiers, are how the per-limb

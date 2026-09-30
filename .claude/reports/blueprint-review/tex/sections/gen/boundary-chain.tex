@@ -27,7 +27,7 @@
 \newcommand{\bndc}[1]{\texttt{\directlua{bndbreak("\luaescapestring{\detokenize{#1}}")}}}
 \fi
 
-\section{The adaptor: the program, the public input and the hypotheses along the chain}\label{sec:gen-boundary-chain}
+\subsection{The adaptor: the program, the public input and the hypotheses along the chain}\label{sec:gen-boundary-chain}
 
 \begin{sloppypar}
 Short forms in this section. \code{bp:} is the blueprint
@@ -51,7 +51,7 @@ guest correctness (T3), the base theorem of the proof system (T4), recursion (T6
 soundness (T7).
 \end{sloppypar}
 
-\subsection{How the program and the public input enter each link}\label{sec:gen-boundary-entry}
+\subsubsection{How the program and the public input enter each link}\label{sec:gen-boundary-entry}
 
 {\footnotesize
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{0.15\linewidth}>{\raggedright\arraybackslash}p{0.43\linewidth}>{\raggedright\arraybackslash}p{0.36\linewidth}@{}}
@@ -73,7 +73,7 @@ The adaptor (sketch) & \bndc{witnessOf prog s q} builds the bytecode block's row
 \bndc{ValidExecution prog input t} & \bndc{run prog t.image t.steps Regs.initial = some (Regs.final prog)}, \bndc{Program.fetch} at every step (\bndc{Execution.lean:86-90, 114-115}) & \bndc{HasPublicBoundary input t}: \bndc{16 ≤ κ ≤ 32} and the two words at \bndc{g^0}, \bndc{g^1} (\bndc{Execution.lean:108-110}) \\\addlinespace[3pt]
 \end{longtable}}
 
-\subsection{A different program or input?}\label{sec:gen-boundary-other-program}
+\subsubsection{A different program or input?}\label{sec:gen-boundary-other-program}
 
 Within one instantiation, no: \bndc{prog} and \bndc{input} are the same variables in
 \bndc{verify prog input proof}, \bndc{verify_iff_compiled}, \bndc{leanIsaInstance prog s},
@@ -117,7 +117,7 @@ answer:
   \Cref{sec:gen-boundary-sizes-exists} takes this up.
 \end{enumerate}
 
-\subsection{Is \texorpdfstring{\protect\code{∃ s}}{the existential over the sizes} sound, and who checks?}\label{sec:gen-boundary-sizes-exists}
+\subsubsection{Is \texorpdfstring{\protect\code{∃ s}}{the existential over the sizes} sound, and who checks?}\label{sec:gen-boundary-sizes-exists}
 
 \paragraph{For the conclusion, yes.} \bndc{satisfiedBy_witnessOf} is stated for every admissible
 \bndc{s}, and its conclusion \bndc{SatisfiedBy prog input (witnessOf prog s q)} does not mention
@@ -169,7 +169,7 @@ chooses; that needs adaptive soundness in the statement, which the deployed tran
 (the input seeds the chain) and which no theorem of the blueprint states
 (\cref{f:boundary-non-adaptive}).
 
-\subsection{Hypotheses, and where each is discharged}\label{sec:gen-boundary-hypotheses}
+\subsubsection{Hypotheses, and where each is discharged}\label{sec:gen-boundary-hypotheses}
 
 \begin{sloppypar}
 The chain in the soundness direction:
@@ -242,7 +242,7 @@ arithmetization requires it), the resource bounds and the constructed witness of
 the Flock consequence lemma (the adaptor consumes a theorem no interface carries). The
 random-oracle heuristic is a fifth, inherent, and must simply be written down.
 
-\subsection{The top limb of the public input, along the whole chain}\label{sec:gen-boundary-toplimb}
+\subsubsection{The top limb of the public input, along the whole chain}\label{sec:gen-boundary-toplimb}
 % The probe's line numbers are those of probes/boundary-adaptor/Shapes.lean; the dossier cites
 % them as 45-49, 51-55, 57-63, twelve lines too low (checked against the file).
 
@@ -330,7 +330,7 @@ def PublicInput.word1 (p : PublicInput) : E := E.ofLimbs (p.lanes 2) (p.lanes 3)
 \end{enumerate}
 \end{sloppypar}
 
-\subsection{The obligation map of \texorpdfstring{\protect\file{docs/architecture.md}}{docs/architecture.md} against the blueprint}\label{sec:gen-boundary-architecture}
+\subsubsection{The obligation map of \texorpdfstring{\protect\file{docs/architecture.md}}{docs/architecture.md} against the blueprint}\label{sec:gen-boundary-architecture}
 
 \Cref{tab:gen-boundary-architecture} takes the obligation map for the base theorem (T4)
 (\bndc{architecture.md:261-275}, the \enquote{Proof system} list \bndc{architecture.md:446-462},
@@ -389,7 +389,7 @@ needs no extractor at all. Stating the pointwise theorem in the form \enquote{fo
 \bndc{∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog input t}} costs
 nothing and is what recursion consumes (\cref{f:boundary-extracted-witness}).
 
-\subsection{What was checked and found consistent}\label{sec:gen-boundary-negative}
+\subsubsection{What was checked and found consistent}\label{sec:gen-boundary-negative}
 
 \begin{sloppypar}
 \begin{itemize}

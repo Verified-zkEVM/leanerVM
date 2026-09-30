@@ -33,7 +33,7 @@ and
 Reason: the named composition then typechecks, and the hypothesis is visible in the statement a reader audits.
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: the alternative, \texttt{verify} deciding the program condition on the public program and rejecting otherwise, removes the hypothesis from the soundness theorem; which one the blueprint takes is a technical decision.]}
+The review recommends the hypothesis on both theorems, as drafted above: the condition is faithful to leanVM, whose verifiers do not check it and whose compiler emits well-formed programs (\texttt{docs/\allowbreak{}leanvm-\allowbreak{}target.\allowbreak{}md:\allowbreak{}57-\allowbreak{}62}), and the proved sentinel counterexample (\texttt{tests/\allowbreak{}Leaner\allowbreak{}VMTests/\allowbreak{}Semantics/\allowbreak{}Execution.\allowbreak{}lean:\allowbreak{}415-\allowbreak{}461}) makes the soundness theorem false without it. The alternative, \texttt{verify} deciding the condition on the public program and rejecting otherwise, removes the hypothesis from the soundness theorem at the price of a check the deployed verifiers do not make; it is left to the owner (\cref{sec:chg-decisions}, item 8) (from \code{R27}).
 \end{sloppypar}
 \end{finding}
 
@@ -64,7 +64,9 @@ the blueprint sends the reader to the comment three times (\texttt{protocol-\all
 and likewise \texttt{tableSumcheck} (from \texttt{Seam.\allowbreak{}bus} to \texttt{Seam.\allowbreak{}table}), the Flock phase (\texttt{Seam.\allowbreak{}pub} to \texttt{Seam.\allowbreak{}flock}) and \texttt{openingPhase} (\texttt{Seam.\allowbreak{}flock} to \texttt{Seam.\allowbreak{}done}); delete Layer 6's \texttt{BusOut}, Layer 10's \texttt{Weight}, \texttt{WeightedClaim} and its \texttt{leanVmPiop} block (the spine's are in ``What the spine fixes''); restate the generic components of Layers 4 and 5 as \texttt{Component.\allowbreak{}Def}s with their \texttt{Complete} and \texttt{Security}, and their theorems in the \texttt{rbr\allowbreak{}Knowledge\allowbreak{}Soundness\allowbreak{}Worst\allowbreak{}Case\allowbreak{}With} form of convention \emph{Holes} (\texttt{:\allowbreak{}332}). Reason: the spine is built and is the contract.
 \end{sloppypar}
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: the message schedules, errors and internal relations of each phase, and the opening phase's schedule against specification §8.5.]}
+\begin{sloppypar}
+The schedules, errors and internal relations the restated sections receive are those of the deployed verifiers as \cref{ch:faithfulness} transcribes them (the bus phase in \cref{tab:gen-bus-phase}, with the normalized layer sumcheck of degree 4 and a combiner after the roots and after every layer, the last unused; the table sumcheck and the public-input phase in \cref{tab:gen-table-pub-transcript-table,tab:gen-table-pub-transcript-pub}; Flock in \cref{tab:gen-flock-ring-messages}; the opening in \cref{tab:gen-opening-whir}), with the errors of \cref{ch:phases}. Against specification §8.5 (\texttt{08-\allowbreak{}end-\allowbreak{}to-\allowbreak{}end-\allowbreak{}protocol.\allowbreak{}tex:\allowbreak{}94-\allowbreak{}101}: ``there is no separate reduction sumcheck'') the opening phase's schedule is settled: the batching challenge $λ$, then one weighted query of the stack, which WHIR realizes; Layer 10's $μ$-round sumcheck on $W_λ · q$ and its final evaluation query leave the sketch (from \code{R18}, \code{R36}; the bus phase's schedule from \code{R7}, \code{R9}).
+\end{sloppypar}
 \end{finding}
 
 \begin{finding}{minor}{f:docs-status-stale}{The status and the tracker describe a repository two merges old}
@@ -107,7 +109,7 @@ Layer 0 (\texttt{:\allowbreak{}633-\allowbreak{}635}) says what Layer 0 did at t
 \end{sloppypar}
 
 \begin{sloppypar}
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: which ledger rows (admitted sumcheck round, admitted composition, round-by-round to plain, Fiat–Shamir and BCS, correlated agreement, ring-switching packing) still hold at ArkLib \texttt{7653a901}, from the library review.]}
+At ArkLib \texttt{7653a901} every admission the ledger records still holds (\cref{tab:gen-lib-ark-admitted}): the sumcheck's single-round knowledge soundness (and, which the ledger omits, its perfect completeness); the composition of knowledge soundness (the same four \texttt{sorry} in \texttt{Append/\allowbreak{}Security.\allowbreak{}lean}, pull request 615 open and conflicting, so the local port stays); round-by-round to plain; context lifting; Fiat–Shamir completeness, still stated for the constant challenge oracle, with no soundness statement and the BCS transform commented out; the Johnson-range correlated agreement. The ring-switching packing is still admitted too, but its row is wrong for another reason: ArkLib's construction is Diamond–Posen's reduction, another protocol than leanVM's ring switching (\cref{f:flock-ring-ledger-ring-switching}). The ledger's column is re-read with these states, and a row is added for ArkLib's typed framework, which has no knowledge soundness at \texttt{7653a901} (from \code{R34}, \code{R59}, \code{R84}).
 \end{sloppypar}
 \end{finding}
 
@@ -234,7 +236,9 @@ not a divergence from leanVM. Unverified: whether that library fits leanVM's Mer
 \end{sloppypar}
 \fhead{Proposed change} the ledger row and Layer 11 name VCVio's Merkle-tree library and VCVio issue 571 as the upstream, with the decision whether Layer 11 builds on it.
 
-\textbf{[TECHNICAL CHANGES TO BE INSERTED BY THE ORCHESTRATOR: that decision, from the review of Layer 11 or the library review.]}
+\begin{sloppypar}
+The review does not make that decision. The library exists at the old VCVio pin \texttt{f9dc47d9}; whether it fits leanVM's trees (untagged nodes hashed by one 64-byte BLAKE2s call, leaves hashed over several blocks, the pruned paths of the wire format, \cref{f:opening-merkle-format}) and what it holds at the new pin \texttt{a4232d08} are unverified. The decision is deferred to the owner, with that check as its first step; until then Layer 11 keeps its local plan and names the library and VCVio issue 571 as the upstream work to read first (from \code{R77}; the wire format from \code{R63}).
+\end{sloppypar}
 \end{finding}
 
 \begin{finding}{minor}{f:docs-source-discrepancies}{Discrepancies in the sources are not where both status files say they are}

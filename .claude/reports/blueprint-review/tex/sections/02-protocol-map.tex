@@ -1,4 +1,4 @@
-\chapter{The proof system, as deployed and as planned}\label{ch:map}
+\chapter[The proof system, as deployed and planned]{The proof system, as deployed and as planned}\label{ch:map}
 
 This chapter is the map. It says what leanVM's proof system does at the pin, interaction by
 interaction, where the blueprint puts each part, and where the code that exists sits. The
@@ -172,6 +172,9 @@ phase adds to the claim pool (right), and the blueprint's phase and seams for it
 
 \section{What the blueprint makes of it}\label{sec:map-blueprint}
 
+\Cref{fig:chain} shows the chain of relations and theorems the blueprint builds, from the
+deployed verifier up to the semantics, with what is built and what is specified.
+
 The blueprint models the protocol as a sequential composition of ArkLib \emph{oracle
 reductions}, one per phase, in the ideal model where $q$ is an oracle and the challenges are
 uniform (\cref{ch:libraries} introduces the vocabulary). It fixes, in the spine, what the
@@ -189,7 +192,7 @@ Part & Blueprint & Code on \code{main} at \code{b435631} \\
 \midrule
 Fields, sampling, the oracle interface of $q$ & Layer 0 & \file{LeanerVM/Protocol/Field.lean}, \file{ToArkLib/Oracles.lean}; built \\
 Hypercube tables, stacking, padding, the index and bytecode columns & Layer 1 & \file{ToCompPoly/*}, \file{Stack.lean}, \file{Padding.lean}, \file{ClaimWeights.lean}, \file{BlockClaims.lean}, \file{FixedColumns.lean}; built \\
-The abstract instance, the relation, the seams, the interfaces, the composition, the master theorems & the section \enquote{The spine} & \file{Spine/\{Instance,Seams,Phase,Compose,Toy\}.lean}, \file{ToArkLib/\{Component,KnowledgeAppend,PassThrough,SendOracle,Refinement,GuardedVerdict,KeepOracles\}.lean}; built \\
+The abstract instance, the relation, the seams, the interfaces, the composition, the master theorems & the section \enquote{The spine} & \file{Spine/}: \file{Instance}, \file{Seams}, \file{Phase}, \file{Compose}, \file{Toy}; \file{ToArkLib/}: \file{Component}, \file{KnowledgeAppend}, \file{PassThrough}, \file{SendOracle}, \file{Refinement}, \file{GuardedVerdict}, \file{KeepOracles}; built \\
 Clean components as polynomials & Layer 2 & not built \\
 The leanISA instance and the adaptor & Layer 3 & not built \\
 The sumcheck and the batching component & Layer 4 & not built (an open pull request holds the honest round algebra) \\

@@ -55,11 +55,11 @@ two of them machine-checked:
   challenge, ignores it, makes no query and outputs a function of its input statement is
   perfectly complete whenever that function carries one seam into the next, and is
   round-by-round knowledge sound against \emph{any} two seams at the error it declares for its
-  challenge, namely $1$. Five of them inhabit \lean{Phases.Security\ I} for every instance
+  challenge, namely $1$. Five of them inhabit \texttt{Phases.Security I} for every instance
   $I$; both master theorems hold of the bundle; the composed error is $1$ at each of its five
   challenges (probe \code{P4Junk}, standard axioms only). The knowledge-soundness master theorem
   therefore has content only together with a bound on \lean{piopError}, and the spine states
-  none: \lean{piopError\ P} is \lean{P.toDef.err}, whatever the phases declare. The blueprint's
+  none: \texttt{piopError P} is \lean{P.toDef.err}, whatever the phases declare. The blueprint's
   \lean{piopError_le} (Layer 10) is stated over sizes the spine's \lean{piopError} does not take.
   This is the review's first major finding on the spine (\cref{sec:faith-spine}); the proposed
   repair is a closed-form error fixed by the spine from the instance and demanded of each phase.
@@ -67,7 +67,7 @@ two of them machine-checked:
   $\widetilde{q}$ at every point of the cube, and neither ArkLib nor the spine counts queries;
   \lean{M3Holds} is decidable. So a phase with no round whose verifier reads the $2^{\mu}$ cells
   and decides the input seam itself is perfectly complete and knowledge sound at error zero.
-  Five of them inhabit \lean{Phases.Security\ I} for every $I$ with \lean{piopError} $= 0$. On
+  Five of them inhabit \texttt{Phases.Security I} for every $I$ with \lean{piopError} $= 0$. On
   paper (two dossiers reach it independently); a probe was designed and not run.
 \item \textbf{A verifier that always rejects} is knowledge sound at error zero and is excluded
   only because \lean{Security} extends \lean{Complete}: on an instance whose relation is empty
@@ -75,7 +75,7 @@ two of them machine-checked:
 \end{enumerate}
 Conversely, the five pass-through phases of the repository's tests, which inhabit
 \lean{Phases.Complete}, have \emph{no} \lean{Phases.Security}: the type is empty (probe
-\code{P5PassThrough}, theorem \code{no\_security}), where the test's docstring only asserts it.
+\code{P5PassThrough}, theorem \texttt{no\_security}), where the test's docstring only asserts it.
 
 \paragraph{What this means.} The master theorems are composition theorems. They pin the
 phases to leanVM's by nothing in their statement; what does is outside the spine and, today,
@@ -127,7 +127,7 @@ bound the blueprint sketches leaves out three things that decide whether leanVM 
 
 Every extractor in the repository is a compiled definition: nothing along the chain from
 \lean{piopExtractor} to the commit phase's is marked \lean{noncomputable}, and the three of them
-run (probes \code{P1Axioms}, \code{Extractors}). \lean{#print\ axioms} says nothing about this:
+run (probes \code{P1Axioms}, \code{Extractors}). \texttt{#print axioms} says nothing about this:
 it reports the three standard axioms for computable definitions whose proofs use classical
 lemmas, and the earlier review's use of it as evidence of computability was a misreading.
 
@@ -161,7 +161,7 @@ check and a message of forty-two zeros; a check with the two cells swapped, with
 sends the swapped values. The reason is one line of the definition: \lean{pooled} takes its
 values from the statement, not from the message, and the proof of knowledge soundness never
 mentions \lean{check}. What the theorems do exclude, each refuted in Lean with no extractor,
-state function or error below one able to repair it (theorem \code{not\_rbr}, which denies
+state function or error below one able to repair it (theorem \texttt{not\_rbr}, which denies
 ArkLib's existential notion): a verifier that pools the prover's values without checking them;
 one that checks only the first value and pools the prover's values; one that does not pool the
 claim of a line whose value is not sent. The earlier review's statement that each of five wrong

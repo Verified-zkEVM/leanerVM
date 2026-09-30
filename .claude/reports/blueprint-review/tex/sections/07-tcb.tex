@@ -11,7 +11,7 @@ Every theorem of the proof system, the port of the composition theorem included,
 \lean{propext}, \lean{Classical.choice} and \lean{Quot.sound} and on nothing else, at both pins
 (\cref{ch:probes}); the repository's validation rejects \lean{sorryAx} across its two
 namespaces with a planted-axiom control, and forbids \lean{native_decide}, whose trust would be
-the compiler's rather than the kernel's. A \lean{\#guard} trusts the compiled evaluator; a
+the compiler's rather than the kernel's. A \texttt{\#guard} trusts the compiled evaluator; a
 \lean{decide} the kernel's reduction (\cref{ch:libraries}). The kernel and the elaborator are
 trusted as every Lean development trusts them.
 
@@ -111,7 +111,7 @@ the Rust verifier is \lean{verify} & an implementation correspondence & a fixtur
 Three things no theorem of the repository can reach. The random-oracle heuristic: every
 non-interactive guarantee is a statement about a verifier with a random oracle, and the
 deployed verifier hashes with BLAKE2s; the known attacks on this gap do not reach leanVM's
-structure, and the guarantee is classical (\cref{ch:options}). The implementation: the Rust
+structure, and the guarantee is classical (\cref{ch:options}). The implementation: the Rust verifier
 verifier is what Ethereum would run, and it is tied to the Lean verifier by tests only; the
 review found one check on which they already differ in strength. The hardware, the compiler and the
 toolchain, as for every Lean development.
