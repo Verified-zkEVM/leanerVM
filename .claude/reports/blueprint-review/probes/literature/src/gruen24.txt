@@ -1,0 +1,966 @@
+    Some Improvements for the PIOP for ZeroCheck
+                                 Angus Gruen
+                                 Polygon Zero
+
+
+                                    Abstract
+      Most multivariate proof systems require, at some point, an algebraic
+      check against the rows of the trace. One popular protocol for this is
+      known as zerocheck which is a sumcheck based protocol which proves
+      a constraint function is zero over the n-dimensional Boolean hyper-
+      cube. One of the drawbacks of running zerocheck over a small field, is
+      that it usually involves a large number of evaluations of the constraint
+      polynomial over a cryptographically large extension field G.
+          We describe several improvements to the zerocheck protocol over a
+      small field F which both reduce the number of constraint evaluations
+      the prover needs to perform and shifts some computation from the
+      extension field back into the base field F. Specifically, for a table of
+      length 2n , integer parameter 1 ≤ k ≤ n and constraint function C
+      of degree d with evaluation costs CF , CG we show the protocol can be
+      performed with prover cost roughly
+                                           
+                                        CG
+                             2n 1 + k         (d − 1)CF .
+                                       2 CF
+
+          To check the proof, the verifier needs to perform a single interpo-
+      lation of degree 2k d and n interpolations of degree d. Thus varying k
+      allows for a tradeoff between prover and verifier cost.
+
+
+1    Introduction
+This paper is concerned with optimizing a particular Polynomial Interactive
+Oracle Proof (PIOP).
+    Generically, PIOPs allow a prover (P) to convince a verifier (V) of the
+veracity of some claim. The “Polynomial” keyword implies that this protocol
+will consist of a set of rounds where in each round P will send V a polynomial
+(or a commitment to a polynomial) and V will reply with a vector of random
+field elements. At the end of the protocol, V can choose to either accept or
+reject the claim by querying the polynomials at a small number of points
+and testing a small set of polynomial relations.
+    The sumcheck protocol [Lun+92] is a simple PIOP which allows P to
+prove the summation of a multivariate function f over the Boolean hyper-
+
+
+                                         1
+cube                                X
+                              v=          f (X).
+                                   X∈Hn
+
+The elegance of sumcheck is that it allows P to prove that v is the sum with
+V’s workload only linear in n.
+    Thanks to its simplicity and versatility and, in part, due to a lack of
+alternatives, the sumcheck protocol is one of the key algorithms behind
+multivariate SNARKS.
+    We will be focused on a specific and common use case of sumcheck known
+as the zerocheck [Che+22]. The zerocheck protocol aims to prove that
+
+                           f (X) = 0 ∀ X ∈ Hn .
+
+As observed in [Set20; Che+22] it is possible to reduce the zerocheck protocol
+to a sumcheck protocol by taking an inner product with a suitable function
+over Hn . We will discuss this in mor detail in Section 2.3. The purpose of
+this paper is to describe some improvements to the zerocheck protocol which
+reduce how much work P needs to perform. As a rough guide
+
+   • Section 2 introduces notation and gives explicit descriptions of the
+     sumcheck and zerocheck protocols. We also discuss the cost model we
+     will be using to look for improvements.
+
+   • Section 3 describes a couple of minor protocol tweaks which improve
+     the efficiency of zerocheck in all cases with no downside. We stress
+     that there is no reason to not apply these tweaks in a performance
+     oriented implementation of zerocheck.
+
+   • Section 4 describes how P can leverage a Gröbner basis decomposition
+     of the constraint function to further reduce their workload. Note that
+     these improvements make no change to the protocol. It is simply a
+     method which allows P to compute the required information with less
+     effort.
+
+   • Section 5 discusses improvements related to skipping rounds in the
+     protocol. These reduce the work of P but do have a minor trade-off of
+     increasing V’s work somewhat (Though it remains linear in n).
+
+   • Section 6 gives an updated zerocheck protocol taking into account the
+     improvements from previous sections.
+
+   Note that Sections 3, 4 and 5 are essentially independent and so are pre-
+sented here roughly in order of the complexity required to implement them.
+The ideas contained within should also generalize to other sumcheck/ze-
+rocheck like protocols though we do not discuss such generalizations here.
+
+
+
+                                      2
+1.1     Related Work
+The recent paper [Tha23] looked at a similar problem but took an alterna-
+tive path. Broadly the ideas in [Tha23] focus on reducing the cost of each
+evaluation of the constraint polynomial. In contrast, the improvements con-
+tained in this manuscript are focused on reducing the number of evaluations
+needed. It goes without saying that these works can and should be applied
+in conjunction.
+
+
+2       Preliminaries
+2.1     Algebraic Preliminaries
+Let F = Fp denote a fixed finite field and G = Fpm an extension field of
+cryptographic size1 . Given a subset D ⊂ Fp and a function f : D → Fp , we
+use2 fˆ and [[f ]] to denote the polynomial interpolate of f and an oracle of
+f respectively.
+    The interpolant fˆ ∈ Fp [X] is the unique polynomial of degree ≤ |D| − 1
+such that fˆ|D = f . An oracle [[f ]] for f is a commitment3 which, given
+an element a, allows us to produce both f (a) and a proof that this is the
+correct value.
+    Throughout most of this document we will be dealing with multivariate
+polynomials fˆ ∈ Fp [X0 , · · · , Xn−1 ] which can make notation a little messy.
+To help with this we will always use a bold font X to denote vectors with cap-
+ital letters denoting indeterminates and lower case letters evaluation points.
+There are also a collection of different ways in which we can evaluate fˆ.
+We can evaluate it on n single elements fˆ(X0 , · · · , Xn−1 ), a vector X of
+length n, fˆ(X), or some combination of vectors whose combined length is
+n, fˆ(X0 , · · · , Xi ). We will use these three pictures interchangeably.
+                                                                      in−1
+    A monomial is a simple product of the form Xi = X0i0 · · · Xn−1        . These
+form a basis for the vector space of multivariate functions, meaning every
+such function admits a unique decomposition
+                                            X
+                                   fˆ(X) =     fi Xi
+                                              i
+
+where the sum is over all i with fi ̸= 0. We define the Xj -degree of Xi to
+be ij and the total degree to be i0 + · · · + in−1 . The Xj and total degrees of
+fˆ are the maximal Xj and total degrees of any monomial appearing in its
+decomposition.
+    1
+     In particular this usually means pm > 2128 .
+    2
+     In cases where f is already a polynomial or it is unambiguous we occasionally drop
+theˆ.
+   3
+     We ignore the specific choice of commitment here.
+
+
+
+                                          3
+   A special case occurs when all Xi -degrees are ≤ 1, in which case the
+polynomial is called multilinear.
+Remark 2.1. A multilinear polynomial is uniquely determined by its evalu-
+ations over the boolean hypercube Hn = {0, 1}n .
+    An important class of polynomials are the interpolates of δ functions.
+Given a domain D, the delta function on D is the unique function D × D →
+{0, 1} ⊂ F given by                  (
+                                      1 X=Y
+                        δD (X, Y ) =             .
+                                      0 X ̸= Y
+This function is interpolated by the polynomial
+                                       X Y (X − i)(Y − i)
+                       δ̂D (X, Y ) =                                   .
+                                                        (d − i)2
+                                       d∈D i∈D
+                                           i̸=d
+
+This can now be used to define the interpolate for any function on D as
+                                X
+                       fˆ(X) =      f (d)δ̂D (X, d).
+                                        d∈D
+
+
+These δ̂ also naturally extend to multivariate product domains. If D =
+D0 × · · · × Dn−1 then
+                                           n−1
+                                           Y
+                            δ̂D (X, Y) =            δ̂Di (Xi , Yi ).
+                                              i=0
+
+These can be used to interpolate multivariate polynomials over product
+domains in an identical way to the univariate case.
+    The reason why polynomials are so widely used in proof systems essen-
+tially comes down to the following lemma:
+
+Lemma 2.2 (Schwartz-Zippel). Let F be a field and f ∈ F[X0 , · · · , Xn−1 ] be
+a polynomial of total degree d. If we randomly sample n elements r0 , · · · , rn−1
+from F then
+                                                          d
+                        Pr[f (r0 , · · · , rn−1 ) = 0] ≤
+                                                         |F|
+    Note that this can be equivalently stated as, given 2 different polynomials
+f, g of degree d, the probability that f (r0 , · · · , rn−1 ) = g(r0 , · · · , rn−1 ) at a
+                                d
+randomly chosen point is ≤ |F|    . Translating, this means that if we work
+over a big enough field and evaluate 2 low degree polynomials at the same
+random point. Then, if the evaluations agree, we can conclude with high
+probability that our polynomials are equal. This lemma is the key cog in all
+the security analysis we will do in this paper.
+
+
+                                              4
+2.2     SumCheck
+Before getting to zerocheck, we first give a brief overview of the well known
+sumcheck protocol [Lun+92; Tha22]. Assume a prover P has committed to
+a multivariate function fˆ and wishes to prove that
+                                       X
+                             v = v0 =       fˆ(x).
+                                              x∈Hn
+
+We assume that from context4 that the verifier V knows one global piece of
+information, namely a positive integer d which satisfies
+                                    max(degxi fˆ) ≤ d.
+                                      i
+
+   The protocol works by iteratively reducing P’s claim to a summation
+over a smaller hypercube.
+   1. Setup. P sends V a value v and a commitment [[f ]].
+   2. Rounds 0 · · · n − 1. At the start of the i’th round, P wishes to prove
+                                        X
+                                 vi =         fˆ(r, x)
+                                             x∈Hn−i
+
+       where r = (r0 , · · · , ri−1 ) ∈ Gi is a vector of random elements with rj
+       sent by V in the j’th step.
+        (a) P computes                               X
+                                   vi+1 (X) =                fˆ(r, X, x)
+                                                  x∈Hn−i−1
+
+            for5 X = 0, · · · , d and send the values to V.
+        (b) V check that
+                                     vi = vi+1 (0) + vi+1 (1)
+            rejects if this fails and otherwise responds by by sending the next
+            random variable ri ∈ G.
+        (c) Both P and V interpolate vi+1 (X) to compute vi+1 = vi+1 (ri )
+   3. Round n. V queries the commitment [[f ]] at r = (r0 , · · · , rn−1 ) and
+      accepts if any only if
+                                vn = f (r).
+    As desired, V’s work consists of only an O(n) number of interpolations
+of degree d.
+    For a discussion of the completeness and soundness of this protocol, see
+A.1.
+   4
+      The standard case is that P has a collection of multilinear functions f1 , · · · , fl and
+fˆ = Q(f1 , . . . , fL ) where Q is public polynomial of small degree d
+    5
+      As vi+1 (X) has degree ≤ d this determines vi+1 . Depending on the situation, a
+different set of d + 1 points might be preferable.
+
+
+                                              5
+2.3     ZeroCheck
+Let’s turn to the situation that the remainder of the paper will focus on.
+Assume P starts with a table T of size6 2n × l and a constraint polynomial
+C with known total degree ≤ d which vanishes on every row of the table
+
+                              C(Ti,0 , · · · , Ti,l−1 ) = 0.                      (1)
+
+P wishes to prove to V that C vanishes on every row in a way such that V
+only performs O(n) work (so the naive method of sending both T and C is
+out).
+   There is a standard method to reformulate this problem in the language
+of polynomials. Reinterpret each column as evaluations of a multilinear
+polynomial ωi on the hypercube Hn and define
+
+                        C(X) = C(ω0 (X), · · · , ωl−1 (X)).
+
+Then P commits to the polynomials ωi (X) ∈ F[X0 , · · · , Xn−1 ], C(ω) ∈
+F[ω0 , · · · , ωl−1 ] and then needs to prove that C(x) = 0 for all x ∈ Hn .
+Following [Set20; Che+22], this can be reduced to a sumcheck using
+                                           n
+                                           Y
+            δ̂Hn (X, Y ) = δ̂n (X, Y ) =         (Xi Yi + (1 − Xi )(1 − Yi )).
+                                           i=1
+
+Given a random α ∈ Gn define the function
+                              X
+                    F̂ (α) =       δ̂n (α, x) C(x).
+                                     x∈Hn
+
+
+Then with high probability F̂ (α) = 0 if and only if C(X) vanishes on Hn .
+   Thus P can apply the sumcheck protocol we just introduced to prove
+that F̂ (α) = 0 for an α supplied by the verifier. For the technical details
+regarding the completeness and soundness see A.2.
+
+2.3.1    Prover Costs
+The only work outside of the usual sumcheck algorithm that V needs to
+perform is in sampling and sending α which is clearly also linear in n.
+    Thus let us turn to studying the cost to P of this protocol. This will be
+our main guiding parameter which we will seek to minimise throughout the
+rest of the paper.
+    The majority of the cost for P to run the zerocheck protocol can be split
+into 3 distinct parts.
+  6
+   For simplicity we will assume for now that the height of the table is a power of 2.
+Note that we will be able to work with a weaker assumption for our final protocol.
+
+
+
+                                            6
+        • Multilinear Interpolation. Given the evaluations of ωi (X) over Hn , in
+          the i’th round P needs to compute ωi (r, X, x) with r = (r0 , · · · , ri−1 ) ∈
+          Gi supplied by the verifier, X ∈ {0, · · · , d + 1} and x ∈ Hn−i−1 .
+
+        • Constraint Evaluation. Given the evaluations of ωi (r, X, x) for all
+          i ∈ {0, · · · , l − 1}, compute
+
+                         C(r, X, x) = C(ω0 (r, X, x), · · · , ωl−1 (r, X, x))
+
+        • Auxiliary Work. The remainder of the computations P needs to do.
+          This includes multiplying constraints by the δn factor and summing
+          up the results over x ∈ Hn−i−1 . There is also a small polynomial in-
+          terpolation of vi+1 (X) to compute vi+1 (ri ) and potentially some other
+          minor things.
+
+    We assume henceforth that the cost to P is dominated by the second
+bullet, constraint evaluation. This is often the case when T is the trace of a
+proof system which is the main use for zerocheck. Thus our goal should be
+to minimise the number of constraint evaluations we need to do.
+    That being said there is one more important consideration to make.
+Arithmetic operations in F will be much cheaper than those in G. Hence
+we use CF (CG ) to denote the cost of evaluating C when all entries are in F
+(CG ). The first case occurs only in round 0 before V has sent r0 .
+    In round i, as vi+1 (X) has degree d + 1, P needs to compute and send
+vi+1 (X) at (d + 2) locations each of which requires 2n−i−1 evaluations of
+C (As vi+1 (X) is a sum over Hn−i−1 ). Hence the number of constraint
+evaluations needed will be
+                            n−1
+                                          !
+                            X
+                   n−1            n−i−1
+                                        CF ∼ (d + 2)2n−1 CF + CG
+                                                                    
+         (d + 2) 2     CF +     2
+                                    i=1
+
+
+3        Minor Protocol Tweaks
+We start with a couple of small changes to the protocol described above
+which provide an immediate improvement.
+
+3.1        Sending less data
+The simplest tweak involves simply shifting a small amount of extra work
+onto the verifier. Recall that in round i, P sends V the values vi+1 (X) for
+X = 0, · · · , d + 1 after which V checks that vi = vi+1 (0) + vi+1 (1). Instead
+of doing this, P can simply not send vi+1 (1) and let V fill in this value via7
+
+                                   vi+1 (1) = vi − vi+1 (0).
+    7
+        Alternatively, this can equivalently be used by P to compute vi+1 (1) from vi+1 (0)
+
+
+                                                7
+Similarly, in the zeroth round, an honest prover will always send v1 (0) =
+v1 (1) = 0 meaning this doesn’t actually require any evaluations.
+    This reduces the cost to
+                              d2n−1 CF + (d + 1)2n−1 CG
+
+3.2     Slight modification of the Protocol
+Next, observe that the instance of sumcheck that we perform is more struc-
+tured than the standard sumcheck. In particular it can be viewed as a
+weighted sumcheck as discussed in [Mei13; BCS21]. This interpretation al-
+lows us to make a minor change which improves both the efficiency and
+security of the protocol.
+   Fast forwarding to the i’th round of the protocol the verifier has, over
+the previous i rounds, sent r = (r0 , · · · , ri−1 ). Currently the protocol asks
+P to send the polynomial
+                            X
+                vi+1 (X) =         δ̂n (α, (r, X, x))C(r, X, x).
+                                x∈Hn−i−1
+
+But, instead, consider what happens if P instead sends evaluations of
+                       X
+          ′
+         vi+1 (X) =         δ̂n−i−1 ((αi+1 , · · · , αn−1 ), x)C(r, X, x)
+                         x∈Hn−i−1
+
+These two functions are related via
+                      vi (X) = vi′ (X)δ̂i+1 ((α0 , · · · , αi ), (r, X))
+and this δi+1 factor is entirely known by V as they know both α and r.
+    The improvement comes from the fact that deg vi′ (X) = degX vi (X) − 1
+meaning P needs to evaluate vi′ on one fewer point.
+    The main protocol change comes from the inter-round checks. Instead
+of the constraint
+                             vi = vi+1 (0) + vi+1 (1)
+we have the modified constraint
+                                    ′             ′
+                          (1 − αi )vi+1 (0) + αi vi+1 (1) = vi′ .
+Hence we can combine this with the previous observation so P can evaluate
+and send even less data.
+   As a side benefit, δ̂n−i−1 is also cheaper8 to compute than δ̂n .
+   With these two improvements combined the cost reduces to
+                             ∼2n−1 (d − 1)CF + 2n−1 dCG
+   In the common d = 3 case these simple improvements already reduce
+the cost by a factor of 53 .
+   8
+     You can recursively construct a table of evaluations of δ̂n−i from a table of evaluations
+of δ̂n−i+1 .
+
+
+                                              8
+3.3      Improved ZeroCheck Protocol:
+Let’s quickly run through what this new and improved zerocheck protocol
+looks like. We postpone a discussion of its soundness to section A.3.
+
+  1. Setup and Round 0
+
+         (a) P commits to the constraint function C of degree d which holds
+             over the rows of table of length 2n .
+         (b) V samples9 α ∈ Gn and sends to P.
+         (c) P computes
+                                     X
+                        v1′ (X) =            δ̂n−1 ((α1 , · · · , αn−1 ), x)C(X, x)
+                                    x∈Hn−1
+
+              for X ∈ 2, · · · , d and sends to V.
+         (d) V samples r0 ∈ G and sends to P. Additionally, V interpolates
+             v1′ (X) from the data sent by P along with v1′ (0) = v1′ (1) = 0 and
+             computes v1′ = v1′ (r0 ).
+
+  2. Rounds 1 · · · (n − 1). At the start of the i’th round, V has just com-
+     puted vi′ = vi′ (ri−1 ) and sent ri−1 to the P who has added it to
+     r = (r0 , · · · , ri−2 ).
+
+         (a) P computes
+                                    X
+                    ′
+                   vi+1 (X) =                δ̂n−i ((αi+1 , · · · , αn−1 ), x)C(r, X, x)
+                                x∈Hn−i−1
+
+              for X ∈ 0, 2, 3, · · · , d and sends to V.
+                                                                    ′ (X)
+         (b) V samples ri ∈ G and sends to P. Then, V interpolates vi+1
+             from the data sent by P along with
+
+                                ′            1 ′               ′
+                                                                      
+                               vi+1 (1) =       vi − (1 − αi )vi+1 (0)
+                                             αi
+                            ′
+              and computes vi+1    ′ (r ).
+                                = vi+1 i
+
+  3. Final Check
+
+         (a) After rn has been sent, P computes C(r) and sends it to V, along
+             with a commitment proof.
+         (b) V accepts if and only if C(r) = vn′ .
+  9
+      We never actually use α0 so V can send one element less than usual too.
+
+
+
+
+                                              9
+4        Algebraic Improvements
+With some care, it is also possible for an honest prover to make use of
+computations performed in earlier rounds to avoid some work in later rounds.
+
+4.1      Algebraic Interlude
+For an honest prover, C(x0 , · · · , xn−1 ) does actually vanish on Hn and so
+admits a decomposition of the form
+                                        n−1
+                                        X
+              C(x0 , · · · , xn−1 ) =         xi (xi − 1)Qi (x0 , · · · , xn−1 ).
+                                        i=0
+
+This follows as a corollary to the Hilberts Nullstellensatz as the ideal ⟨xi (xi −
+1)⟩ is radical with vanishing set equal to Hn . As stated so far, these Qi
+are not unique10 but we can produce a decomosition with nice properties
+using polynomial long division with remainder (//). Define Rn = C and for
+i = 0, · · · , n − 1,
+                          Qi , Ri = Ri+1 //xi (xi − 1).
+Then R0 is exactly the multilinear extension of the evaluations of C on Hn
+which is 0 by assumption11 .
+   If we study the degrees of the Qi , Ri produced by this process, we find
+that                            
+                                degxi (C)
+                                                 j>i
+                   degxi (Qj ) ≤ degxi (C) − 2 i = j                    (2)
+                                
+                                  1               j < i.
+                                
+
+In particular we observe that if given a random vector r = (r0 , · · · , ri ) then
+Qj (r, X) is multilinear in X for all j ≤ i. Additionally, defining the sum
+                                        i
+                                        X
+                        Qi (r, X) =           rj (rj − 1)Qj (r, X),
+                                        j=0
+
+this is precisely the unique multilinear polynomial equal to C(r, X) for all
+X ∈ H n−i . We immediately see that for indeterminate X and x ∈ H n−i−1
+              C(r, X, x) − Qi (r, X, x) = X(X − 1)Qi+1 (r, X, x).
+Hence in each round of the protocol we only introduce 1 extra Q whose evalu-
+ations can be computed from C and Q. Additionally, when we come to com-
+puting Qi we will have already fixed the first i components by r0 , · · · , ri−1
+and so Qi (r, X, X) will be degree d − 2 in X and multilinear in X. Thus it
+is entirely determined by its evaluations over [0, · · · , d] × Hn−i−1 .
+    10
+     A counter example to uniqueness is C = x0 (x0 − 1)x1 (x1 − 1) were both Q0 = 0, Q1 =
+x0 (x0 − 1) and Q0 = x1 (x1 − 1), Q1 = 0 are valid decompositions.
+  11
+     If C did not vanish on Hn you could still compute this decomposition but R0 would
+be non 0
+
+
+                                               10
+4.2    Application
+Let’s see how the prover, P, can make use of this12 to reduce how many
+times they need to compute C.
+
+   1. Round 0. In the initial round, whenever P computes C(X, x), they
+           C(X,x)
+      save X(X−1) in a table. As
+
+                       C(X, x) = X(X − 1)Q0 (X, x) ∀x ∈ Hn−1 .
+
+       after all computations, P will have a table consisting of Q0 (X, x) for
+       X = 2, · · · , d and x ∈ Hn−1 .
+       Then when V sends r0 , for each x ∈ Hn−1 , P can interpolate Q0 (X, x)
+       to compute and store
+
+                              Q0 (r0 , x) = r0 (r0 − 1)Q0 (r0 , x).
+
+   2. Round 1. As Q0 (r0 , x) = C(r0 , x) for all x ∈ Hn−1 , we can immedi-
+      ately compute v2 (0) without needing any evaluations of C. Essentially
+      we have replaced each evaluation of C with an interpolation13 of degree
+      d − 2 which will usually be much faster.
+       Moreover, as Q0 is linear in x1 , our knowledge of Q0 (r0 , 0, x), Q0 (r0 , 1, x)
+       determines Q0 (r0 , X, x) for all X. Then, as for all x ∈ Hn−2 ,
+
+            C(r0 , X, x) = r0 (r0 − 1)Q0 (r0 , X, x) + X(X − 1)Q1 (r0 , X, x),
+
+       when P computes C(r0 , X, x) they can also save Q1 (r0 , X, x).
+       Now, when V sends r1 , for each x ∈ Hn−2 , P interpolates14 Q0 (r0 , X, x)
+       and Q1 (r0 , X, x) to compute and store
+
+           Q1 (r0 , r1 , x) = r0 (r0 − 1)Q0 (r0 , r1 , x) + r1 (r1 − 1)Q1 (r0 , r1 , x).
+
+   3. Round i. At the end of the last round, P has received the randomness
+      ri−1 and computed and stored
+                                            i−1
+                                            X
+                            Qi−1 (r, x) =         rj (rj − 1)Qj (r, x)
+                                            j=0
+
+  12
+      The is also a slightly simpler approach which the prover can use where they simply
+save all the C(r, X, x) in the i’th round and then interpolate to get C(r, ri , x) which can
+be used in the i + 1’th round. The downside compared to the approach presented here
+is that all interpolations will have degree d not d − 2. This might turn out to be more
+efficient though as you avoid some auxiliary field multiplications and adds.
+   13
+      Needed to compute Q0 (r0 , x).
+   14
+      Note again the first interpolation is degree 1, the second is degree d − 2.
+
+
+                                            11
+         for all x ∈ Hn−i . Again, P can immediately compute vi+1 (0) as
+         Qi−1 (r, 0, x) = C(r, 0, x) for all x ∈ Hn−i−1 .
+         Next, similarly to before, as P computes vi′ (X) for X = 2, · · · , d, they
+         can simultaneously determine Qi−1 (r, X, x) and use this to compute
+         and save Qi (r, X, x).
+         Then, when V sends ri , for each x ∈ Hn−i−1 , P interpolates Qi−1 (r, X, x)
+         and Qi (r, X, x) to compute and store
+
+                        Qi (r, x) = Qi−1 (r, x) + ri (ri − 1)Qi (r, x)
+
+         for all x ∈ Hn−i−1 .
+
+   Whilst there are some additional costs generated here15 , this will reduce
+the number of constraint evaluations will to
+
+                                2n−1 (d − 1)(CF + CG ).
+
+It also has no effect on soundness or completeness no changes are made to
+what is sent to V.
+
+
+5        Skipping rounds
+In the protocol, the initial round is particularly special as it is the only round
+in which we are able to evaluate C over the base field F.
+    Motivated by this it seems natural to wonder if it is possible to per-
+form more work in this first round to save ourselves work in future rounds.
+The most natural option16 would be, in the first round, to compute the
+multivariate polynomial
+                           X
+   v(X0 , · · · , Xk−1 ) =      δ̂n−k ((αk , · · · , αn−1 ), x)C(X0 , · · · , Xk−1 , x).
+                          x∈Hn−k
+
+This polynomial could then either be sent directly to V or can be used to
+more easily compute the univariate polynomials for the first k steps.
+    The problem with this idea is that as v is a polynomial of degree d in
+each Xi , to determine v we would need to compute it at (d + 1)k points. For
+obvious reasons this scales badly as k increases. The trick is to do the same
+idea but keep everything univariate.
+    15
+     Indeed it’s possible that in some cases these costs should outweigh benefits. This
+optimisation is likely to be situation specific
+  16
+     Thanks to Shahar Papini for suggesting this idea and for useful discussions about it.
+
+
+
+
+                                           12
+5.1     The Univariate Skip
+The key idea is to replace the base hypercube by some product of the form17
+D × Hj where D is a multiplicative subgroup18 of Fp . Given a column of
+our table we interpret this as the polynomial fi (x0 , x1 , · · · , xj ) with
+                                              (
+                                               |D| − 1 k = 0
+                degxk fi (x0 , · · · , xj ) ≤
+                                               1       otherwise.
+As C has maximal degree d in the fi , we see that
+                                degx0 (C) = d(|D| − 1).
+Thus, in the initial round, P computes the univariate polynomial
+                                X
+                        v(X) =      δ̂j (α, x)C(X, x)
+                                       x∈Hj
+
+which will be a polynomial of degree d(|D| − 1). If |D| = 2k (which would
+correspond to skipping the first k rounds) P needs to compute only d(2k − 1)
+evaluations which is far less than the (d+1)k evaluations the earlier attempt
+required.
+    Evaluations with x ∈ D are free as the constraint evaluates to 0 on
+D × Hj and so the total number of evaluations needed will be
+                              2j (d(|D| − 1) + 1) − 2j |D|.
+The simplest case to compare occurs when |D| = 2k and j = n − k were the
+cost becomes
+                         2n−k (d − 1)(2k − 1)CF .
+This compares very favourably to the standard approach which costs
+                    2n−1 (d − 1)CF + 2n−k (d − 1)(2k−1 − 1)CG .
+for the first k rounds. Hence this methods directly replaces CG evaluations
+with CF ones.
+    The main drawbacks are that it involves sending more data and increases
+the amount of work that V will need to do as they will need to compute a
+polynomial interpolation of size ∼ |D|d.
+    There is however also a potentially massive hidden advantage which is
+how it interacts with padding. In general padding is needed to ensure that
+the columns of the table have length 2n . However, using this approach we
+can relax this restriction to columns having size k2n for some k diving p − 1.
+Depending on the situation this may be able to massively reduce the amount
+of padding which will lead to further large speedups.
+  17
+     It is also possible here to use a collection of polynomials p̂ : D → Hi but the resulting
+polynomial is usually higher degree.
+  18
+     It’s also possible to get this working for more general D.
+
+
+                                              13
+6        An Efficient Zero Check Protocol
+Assume that P wishes to prove that a degree d polynomial C vanishes on
+every row of a table T of size19 2n × l. Additionally fix an integer parameter
+k which captures a tradeoff between prover work and verifier work.
+
+     1. Setup and Round 0
+
+          (a) P indexes the rows of the table by D × Hn−k . Each column i
+              is interpreted as evaluations of a polynomial fi (x0 , x1 , · · · , xn−k )
+              satisfying
+                                      (
+                                        |D| − 1 j = 0
+                           degxj fi =
+                                        1         j ∈ [1, · · · , n − k].
+
+              P commits to a constraint function
+                                                                                                       
+              C(x0 , x1 , · · · , xn−k ) = C ω0 (x0 , · · · , xn−k ), · · · , ωl−1 (x0 , · · · , xn−k )
+
+              of total degree ≤ d in the f ’s and which holds over the rows of
+              the table.
+         (b) V samples a vector α ∈ Gn−k and sends it to P.
+          (c) P computes
+                                                X
+                                 v0 (X) =              δ̂n−k (α, x)C(X, x)
+                                             x∈Hn−k
+
+              for (d − 1)(|D| − 1) + 1 distinct values of X all disjoint from |D|
+              and sends the results to V.
+         (d) V samples r0 ∈ G and sends to P. Additionally, V interpolates
+             v0 (X) from the data sent by P along with v0 (X) = 0 for all
+             X ∈ |D| and computes v0 = v0 (r0 ).
+
+     2. Rounds 1 · · · n − k.
+         At the start of the i’th round, V has just computed vi−1 = vi−1 (ri−1 )
+         and sent ri−1 to the P who has added it to r = (r0 , · · · , ri−1 ). Provided
+         i < n − k + 1 we repeat:
+
+          (a) P computes
+                                   X
+                   vi (X) =                 δ̂n−k−i ((αi+1 , · · · , αn−k ), x)C(r, X, x)
+                               X∈Hn−k−i
+
+              for X ∈ 0, 2, 3, · · · , d and sends to V.
+    19
+    As commented earlier, this protocol works identically (And indeed more efficiently) if
+the table has length |D|2n−k for |D| < 2k . This potentially allows for a zerocheck protocol
+with far less padding.
+
+
+                                                14
+        (b) V samples ri ∈ G and sends to P. Then, V interpolates vi (X)
+            from the data sent by P along with
+                                         1
+                             vi (1) =       (vi−1 − (1 − αi )vi (0))
+                                         αi
+            and computes vi = vi (ri ).
+
+   3. Final Check
+
+        (a) After rn has been sent, P computes C(r) and sends it to V, along
+            with a commitment proof.
+        (b) V accepts if and only if C(r) = vn′ .
+
+   The proof that this protocol is cryptographically sound follows from a
+simple tweak to the standard argument and can be found in section A.4.
+
+6.1     Prover and Verifier Costs
+It is immediate that the verifier (V) needs to perform a only a single inter-
+polation of degree (|D| − 1)d = (2k − 1)d and n − k interpolations of degree
+d.
+     In round 0, the prover needs to evaluate C(y, X) for all (y, X) ∈ [|D|, · · · , d(|D|−
+1)] × Hn−k . This is (d − 1)(|D| − 1)2n−k = (d − 1)(2k − 1)2n−k evaluations
+in total all occurring in F.
+     In round i > 0, the prover needs to evaluate C(r, y, X) for (y, X) ∈
+[0, 2, 3, · · · , d] × Hn−k−i . This initially looks like d2n−k−i evaluations but is
+actually (d − 1)2n−k−i as the y = 0 case can be determined from data com-
+puted in previous rounds using the method in Section 4. These evaluations
+are all over G.
+     Hence the total number of constraint evaluations for P is
+                                 n−k
+                                 X
+      (d − 1)(2k − 1)2n−k CF +         (d − 1)2n−k−i CG + CG
+                                 i=1
+                                 ∼ 2n−k (d − 1)(2k − 1)CF + 2n−k (d − 1)CG
+                                                
+                                    n        CG
+                                 ∼2 1+ k           (d − 1)CF .
+                                            2 CF
+
+   Letting G be an extension of degree 4 we assume that
+
+                                       CG ∼ 16CF
+
+due to the increased multiplication cost. Then setting d = 3 the cost be-
+comes                                    
+                                       16
+                            2n+1 1 + k CF
+                                       2
+
+                                           15
+Compared to the initial cost of
+
+                             5 × 17 × 2n−1 CF .
+
+Setting k = 4 we find that V needs to do a single interpolation of degree 48
+but in exchange we have reduced the work of P by a factor of
+                               5 × 17
+                                      ∼ 10.6
+                                  8
+Thus even with conservative choices of k, this improved protocol will lead
+to a decent speed up to any proof systems which use zerocheck.
+
+
+Acknowledgements
+Many thanks to Daniel Lubarov, Ulrich Haböck, Trung Can and Shahar
+Papini, Ole Spjeldnæs, for useful ideas, comments and discussions.
+
+
+
+
+                                    16
+References
+[1]   Jonathan Bootle, Alessandro Chiasa, and Katerina Sotiraki. “Sum-
+      check Arguments and their Applications”. In: CRYPTO 2021. https:
+      //eprint.iacr.org/2021/333. 2021.
+[2]   Binyi Chen et al. HyperPlonk: Plonk with Linear-Time Prover and
+      High-Degree Custom Gates. Cryptology ePrint Archive, Report 2019/1355.
+      https://eprint.iacr.org/2022/1355. Oct. 2022.
+[3]   Carsten Lund et al. “Algebraic Methods for Interactive Proof Systems”.
+      In: J. ACM 39.4 (Oct. 1992), pp. 859–868. issn: 0004-5411. doi: 10.
+      1145/146585.146605.
+[4]   Or Meir. “IP = PSPACE using Error-Correcting Codes”. In: SIAM
+      Journal on Computing. Vol. 42. Full paper: https://eccc.weizmann.
+      ac.il/report/2010/137. 2013.
+[5]   Srinath Setty. “Spartan: Efficient and General-Purpose zkSNARKs with-
+      out Trusted Setup”. In: CRYPTO 2020. Full paper: https://eprint.
+      iacr.org/2019/550. 2020.
+[6]   Justin Thaler. Proofs, Arguments, and Zero-Knowledge. Jan. 2022. isbn:
+      978-1-63828-124-5. doi: 10.1561/9781638281252.
+[7]   Justin Thaler. The Sum-Check Protocol over Fields of Small Charac-
+      teristic. https://api.semanticscholar.org/CorpusID:265352651.
+      Nov. 2023.
+
+
+A      Soundness Proofs
+Completeness and soundness are are 2 crucial properties of protocols that
+always need to be checked. Completeness refers to the probability that P
+will be unable to convince V to accept a true statement and soundness refers
+to the probability that a malicious prover (MP) will be able to convince V
+to accept a false statement. In our applications here, our protocols will all
+be complete meaning they have a completness of 1. Thus most of the work
+will be in checking that the protocol is cryptographically sound, meaning its
+soundness is < 2−δ for some δ > 100.
+     The proofs here are all either standard and appear elsewhere in other
+literature (e.g. [Lun+92; Che+22]) or are relatively simple tweaks to the
+standard proofs to match the protocol tweaks we propose. We provide them
+for completeness and for readers less familiar with the topic.
+     For our soundness proofs we will distinguish between the true function
+(vi ) and what MP sends to V (v i ) using an overbar. Additionally, for the
+protocols here, there are no interesting strategies of MP other than simply
+hoping by random chance v i and vi are equal at the chosen sampled point.
+
+
+                                     17
+A.1        SumCheck
+Completeness is essentially trivial. If the claim is true and P follows the
+protocol then V will always accept. To check soundness, assume that MP
+wishes to falsely prove that
+                                    X
+                              v0 =       fˆ(x).
+                                            x∈Hn
+
+In order to not get caught in round 0, MP must send v 1 (0), v 1 (1) such that
+v 1 (0) + v 1 (1) = v 0 ̸= v0 . Hence either v 1 (0) ̸= v1 (0) or v 1 (1) ̸= v1 (1) or
+both.
+     Applying the Schwartz-Zippel lemma to v1 , v 1 , this means that with
+                  d
+probability20 |G|   , v 1 (r0 ) ̸= v1 (r0 ). If these are equal then MP has succeeded
+in fooling the verifier and if not, we can repeat this argument for round 1
+and so on so forth. Applying the union bound21 , the probability that MP
+can fool the verifier will be
+                                           nd      nd
+                                               =
+                                          |G|     |F|m
+and so the protocol is sound provided G is sufficiently large.
+
+A.2        ZeroCheck
+Note that if C(Ti,0 , · · · , Ti,l−1 ) starts as a polynomial of total degree ≤ d,
+then all individual degrees C(X) are also bounded by d and so
+                              degXi δ̂n (α, X)C(X) ≤ d + 1                          (3)
+which is known by V assuming they already know d. Hence P and V are
+able to run the protocol as claimed22 .
+   Next observe that if C(X) = 0 for all X ∈ Hn then F̂ (α) is precisely the 0
+polynomial. Thus completeness follows from the completeness of sumcheck.
+   On the other hand, if ∃ y ∈ Hn such that C(y) ̸= 0, then
+                            X
+                   F̂ (y) =      δ(y, x)C(x) = C(y) ̸= 0
+                                   x∈Hn
+
+and so F̂ (α) is not the zero polynomial. As F̂ (α) is a multilinear polynomial
+in α, the Schwartz–Zippel lemma then shows that
+                           h                     i     n
+                       P r (F̂ (α) = 0 | α ∈ Gn ≤        .
+                                                     |G|
+  20
+       It is essential here that the rj are sampled in G and not F
+  21
+                                               !
+                                          [        X
+                                     Pr      Ei ≤      Pr(Ei )
+                                        i          i
+
+  22
+    We need to check this as the sumcheck protocol does not work if P is allowed to send
+polynomials of arbitrary degree to V.
+
+
+                                              18
+                                                                   n
+Hence by taking a union bound, the soundness of zerocheck will be |G| plus
+the soundness of sumcheck which, will be n(d+1)
+                                            |G| due to the degree bound
+computed in Equation (3) giving an overall soundness of
+
+                                         n(d + 2)
+                                                  .
+                                           |G|
+
+A.3     Tweaked ZeroCheck
+As before if the claim is true and P is honest they can simply23 follow the
+steps above and V will accept.
+    Soundness is also abstractly clear if we recall that, at every stage V is
+able to compute what P would have sent in the original protocol. Hence the
+soundness must as worst be equal. However we run through the argument
+again here just to triple check everything.
+    Assume that MP wishes to falsely prove that every row satisfies a con-
+                                               n
+straint C. This means that with probability |G|  ,
+                                    X
+                             v0 =          δ̂n (α, x)C(x) ̸= 0.
+                                    x∈Hn
+
+As
+                          v0 = α0 v1′ (1) + (1 − α0 )v1′ (0) ̸= 0,
+at least one of v1′ (0), v1′ (1) must be non 0. By construction, V always as-
+sumes v1′ (0) = v1′ (1) = 0 and so, regardless of what MP sends for the other
+values, with probability |G|  d
+                                , v ′1 (r0 ) ̸= v1′ (r0 ). If these are equal then MP has
+succeeded in fooling the verifier and if not, we can repeat a similar argument.
+In round i,
+                        vi′ = αi vi+1′
+                                         (1) + (1 − αi )vi+1  ′
+                                                                 (0)′
+and so, if vi′ ̸= v ′i then (vi+1
+                               ′ (0), v ′ (1)) ̸= (v ′ (0), v ′ (1)). Thus, again
+                                           i+1       i+1      i+1
+with probability |G| , v i (ri ) ̸= vi′ (ri ).
+                      d   ′
+
+    Applying the union bound, the probability that MP can fool the verifier
+is bounded above by24
+
+                                 n      d    n(d + 1)
+                                    +n     =          .
+                                |G|    |G|     |G|
+
+Hence not only has the cost decreased, the soundness has also improved and
+so this is a strict improvement over the standard zerocheck protocol.
+  23
+     We do need to assume that αi is never 0 but this doesn’t change the soundness analysis
+in the slightest so is fine to do. It’s a good general policy to sample α ∈ Gn \{0, 1} anyway.
+  24
+     This analysis can be improved slightly in several directions. E.g. we actually do not
+need to send/consider α0 . But the improvements are all small.
+
+
+
+
+                                             19
+A.4    Improved ZeroCheck
+As each fi has degree |D| − 1 in x0 , C has degree d(|D| − 1) in x0 and
+thus v0 (X) has degree d(|D| − 1). Hence V is able to interpolate v0 (X)
+from the data sent in round 1 along with the assumption v0 (y) = 0 for all
+y ∈ D. In future rounds, vi has degree d and the prover sends values for
+0, 2, 3, · · · d. Thus as V knows α they can compute vi (X) and so the verifier
+is able to follow the protocol as stated and if an honest prover simply follows
+the protocol it will always be accepted.
+    Assume again that a malicious prover (MP) wishes to falsely prove that
+every row satisfies a constraint C. This means that we can find a row
+(y, x) ∈ |D| × Hn−k with C(y, x) ̸= 0 and so with probability n−k  |G| ,
+                               X
+                   v0 (y) =            δ̂n−k (α, x)C(y, x) ̸= 0.
+                              x∈Hn−k
+
+As V assumes that v0 (y) = 0 for all y ∈ |D| when it interpolates v0 (X),
+regardless of what MP sends for the other values, with probability d(|D|−1)
+                                                                         |G| ,
+v 0 (r0 ) ̸= v0 (r0 ). If these are equal then MP has succeeded in fooling the
+verifier and if not, then we are in an identical situation to the tweaked
+zerocheck protocol so the soundness proof from there carries through.
+     Applying the union bound, the probability that MP can fool the verifier
+is bounded above by
+
+      n − k d(|D| − 1)            d    d(|D| − 1) + (n − k)(d + 1)
+           +           + (n − k)     =
+       |G|     |G|               |G|               |G|
+                                       d(2k − 1) + (n − k)(d + 1)
+                                     =
+                                                  |G|
+
+
+
+
+                                         20
+

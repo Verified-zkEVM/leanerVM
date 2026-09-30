@@ -1,0 +1,23 @@
+== bytecode table, 16 instructions, 256 cells (cell i + 16*s holds slot s of instruction i)
+[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 4, 8, 8, 8, 16, 32, 4, 4, 4, 4, 4, 4, 4, 4, 2, 16, 128, 256, 2097152, 16777216, 134217728, 16384, 1, 1, 1, 1, 1, 1, 1, 1, 4, 32, 11, 512, 4194304, 33554432, 268435456, 32768, 0, 0, 0, 0, 0, 0, 0, 0, 8, 64, 12, 1024, 8388608, 67108864, 536870912, 65536, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 13, 1, 0, 0, 0, 131072, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 262144, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 524288, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1048576, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+== bytecode multilinear at (zeta, alpha), as verifier.py:566 evaluates it
+(1219889995492, 3571792677380, 1279835512890)
+== with alpha reversed
+(1332010270628, 4168742050444, 1982034182034)
+== index_mle at zeta (4 variables) and at its first 2 coordinates
+(950617, 874814, 877803) (109, 29, 108)
+== the MLE of [g^0 .. g^15] at zeta, by multilinear_eval
+(950617, 874814, 877803)
+== blocks of sizes 2, 1, 0: offsets [0, 4, 6] mu 3
+eq(sel_b, zeta_hi) per block: [(3, 2, 2), (6, 8, 8), (2, 26, 30)]
+block b at zeta_lo: [(46, 11, 42), (0, 3, 0), (7, 0, 0)]
+covered part: (38, 3, 34)  ones padding: (6, 16, 20)
+zero-padded stack at zeta: (38, 3, 34)
+one-padded stack at zeta : (32, 19, 54)
+== claim on block 1 at [(3, 1, 0)] lifts to [(3, 1, 0), (0, 0, 0), (1, 0, 0)]
+weight eq(lifted, .) on the cube paired with the arbitrary stack [9,8,7,6,5,4,3,2]:
+(6, 1, 0)   block 1 of it, [5,4], at the point: (6, 1, 0)
+the weight's extension at r, eq_eval(lifted, r): (9, 18, 0)
+== back-loaded padding: [3,5] lifted by two variables, at (7 | 11, 13) over K-embedded points
+table at 7 times 11*13: (1935, 0, 0)
+MLE of [0,0,0,0,0,0,3,5] at the point: (1935, 0, 0)

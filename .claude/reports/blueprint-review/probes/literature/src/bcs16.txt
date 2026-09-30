@@ -1,0 +1,2343 @@
+                                        Interactive Oracle Proofs∗
+             Eli Ben-Sasson                       Alessandro Chiesa                        Nicholas Spooner
+      eli@cs.technion.ac.il                    alexch@berkeley.edu                   spooner@cs.toronto.edu
+             Technion                               UC Berkeley                          University of Toronto
+
+                                                   February 10, 2016
+
+
+
+                                                          Abstract
+           We initiate the study of a proof system model that naturally combines two well-known models:
+       interactive proofs (IPs) and probabilistically-checkable proofs (PCPs). An interactive oracle proof (IOP)
+       is an interactive proof in which the verifier is not required to read the prover’s messages in their entirety;
+       rather, the verifier has oracle access to the prover’s messages, and may probabilistically query them.
+           IOPs simultaneously generalize IPs and PCPs. Thus, IOPs retain the expressiveness of PCPs, capturing
+       NEXP rather than only PSPACE, and also the flexibility of IPs, allowing multiple rounds of communication
+       with the prover. These degrees of freedom allow for more efficient “PCP-like” interactive protocols,
+       because the prover does not have to compute the parts of a PCP that are not requested by the verifier.
+           As a first investigation into IOPs, we offer two main technical contributions. First, we give a compiler
+       that maps any public-coin IOP into a non-interactive proof in the random oracle model. We prove
+       that the soundness of the resulting proof is tightly characterized by the soundness of the IOP against
+       state restoration attacks, a class of rewinding attacks on the IOP verifier. Our compiler preserves zero
+       knowledge, proof of knowledge, and time complexity of the underlying IOP. As an application, we obtain
+       blackbox unconditional ZK proofs in the random oracle model with quasilinear prover and polylogarithmic
+       verifier, improving on the result of Ishai et al. (2015).
+           Second, we study the notion of state-restoration soundness of an IOP: we prove tight upper and
+       lower bounds in terms of the IOP’s (standard) soundness and round complexity; and describe a simple
+       adversarial strategy that is optimal across all state restoration attacks.
+           Our compiler can be viewed as a generalization of the Fiat–Shamir paradigm for public-coin IPs
+       (CRYPTO ’86), and of the “CS proof” constructions of Micali (FOCS ’94) and Valiant (TCC ’08) for PCPs.
+       Our analysis of the compiler gives, in particular, a unified understanding of all of these constructions, and
+       also motivates the study of state restoration attacks, not only for IOPs, but also for IPs and PCPs.
+
+
+
+
+       Keywords: probabilistically checkable proofs, interactive proofs, Fiat–Shamir paradigm, computationally-sound proofs
+
+   ∗
+     Parts of this paper appear in the third author’s master’s thesis (April 2015) in the Department of Computer Science at ETH
+Zurich, supervised by Alessandro Chiesa and Thomas Holenstein. Independent of our work, [RRR16] introduce the notion of
+Probabilistically Checkable Interactive Proofs, which is the same as our notion of Interactive Oracle Proofs.
+
+
+                                                              1
+Contents
+1   Introduction                                                                                                                                    3
+    1.1 Models of proof systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       3
+    1.2 Compiling proof systems into argument systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .         4
+    1.3 Results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     5
+    1.4 Techniques . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      9
+    1.5 Roadmap . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      11
+
+2   Preliminaries                                                                                                                                  12
+    2.1 Basic notations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .    12
+    2.2 Merkle trees . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     12
+    2.3 Non-interactive random-oracle proofs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .       12
+
+3   Extractability and privacy of Merkle trees                                                                                                   14
+    3.1 Extractability . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+    3.2 Privacy . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+
+4   Interactive oracle proofs                                                                                                                      18
+    4.1 Interactive oracle protocols . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   18
+    4.2 Interactive oracle proof systems . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     18
+    4.3 Basic complexity-theoretic properties . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      19
+
+5   State restoration attacks on interactive oracle proofs                                                                                         20
+    5.1 State restoration attacks, and soundness and proof of knowledge against these . . . . . . . . . . . . . . . . . . . . . . . . . . . .      20
+    5.2 General bounds . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .     21
+    5.3 Tightness of general bounds . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .      22
+    5.4 Restricted state restoration attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .   23
+
+6   From interactive oracle proofs to non-interactive random-oracle proofs                                                                         25
+
+7   Analysis of the transformation T                                                                                                           27
+    7.1 Upper bound for soundness . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+    7.2 Lower bound for soundness . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+    7.3 Proof of knowledge . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+    7.4 Zero knowledge . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+
+8   Tree exploration games                                                                                                                     34
+    8.1 Definition of tree exploration games . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+    8.2 A connection between tree exploration and state restoration . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+    8.3 The expected value strategy . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37
+
+Acknowledgments                                                                                                                                    39
+
+A Interactive oracle proofs characterize NEXP                                                                                                      40
+
+B Soundness error reduction                                                                                                                  41
+  B.1 Soundness error reduction for IOPs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+  B.2 Soundness error reduction for NIROPs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+  B.3 Strategies for soundness error reduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+
+C Zero knowledge with non-programmable random oracles                                                                                              44
+
+References                                                                                                                                         45
+
+
+
+
+                                                                         2
+1     Introduction
+The notion of proof is central to modern cryptography and complexity theory. The class NP, for example, is
+the set of languages whose membership can be decided by a deterministic polynomial-time verifier by reading
+proof strings of polynomial length; this class captures the traditional notion of a mathematical proof. Over the
+last three decades, researchers have introduced and studied proof systems that generalize the above traditional
+notion, and investigations from these points of view have led to breakthroughs in cryptography, hardness of
+approximation, and other areas. In this work we introduce and study a new model of proof system.
+
+1.1   Models of proof systems
+We give some context by recalling three of the most well-known among alternative models of proof systems.
+Interactive proofs (IPs). Interactive proofs were introduced by Goldwasser, Micali, and Rackoff [GMR89]:
+in a k-round interactive proof, a probabilistic polynomial-time verifier exchanges k messages with an all-
+powerful prover, and then accepts or rejects; IP[k] is the class of languages with a k-round interactive proof.
+Independently, Babai [Bab85] introduced Arthur–Merlin games: a k-round Arthur–Merlin game is a k-round
+public-coin interactive proof (i.e., the verifier messages are uniformly and independently random); AM[k] is
+the class of languages with a k-round Arthur–Merlin game. Goldwasser and Sipser [GS86] showed that the
+two models are equally powerful: for polynomial k, IP[k] ⊆ AM[k + 2]. Shamir [Sha92], building on the
+“sum-check” interactive proof of Lund, Fortnow, Karloff, and Nisan [LFKN92], proved that interactive proofs
+correspond to languages decidable in polynomial space: IP[poly(n)] = PSPACE. (Also see [Bab90].)
+Multi-prover interactive proofs (MIPs). Multi-prover interactive proofs were introduced by Ben-Or,
+Goldwasser, Kilian, and Wigderson [BGKW88]: in a k-round p-prover interactive proof, a probabilistic
+polynomial-time verifier interacts k times with p non-communicating all-powerful provers, and then accepts
+or rejects; MIP[p, k] is the class of languages that have a k-round p-prover interactive proof. In [BGKW88],
+the authors show that two provers always suffice (i.e., MIP[p, k] = MIP[2, k]), and that all languages in
+NP have perfect zero knowledge proofs in this model. Fortnow, Rompel, and Sipser [FRS88] show that
+interaction with two provers is equivalent to interaction with one prover plus oracle access to a proof string,
+and from there obtain that MIP[poly(n), poly(n)] ⊆ NEXP; Babai, Fortnow and Lund [BFL90] show that
+NEXP has 1-round 2-prover interactive proofs, thus showing that MIP[2, 1] = NEXP.
+Probabilistically checkable proofs (PCPs). Probabilistically checkable proofs were introduced by [FRS88,
+BFLS91, AS98, ALM+ 98]: in a probabilistically-checkable proof, a probabilistic polynomial-time verifier
+has oracle access to a proof string; PCP[r, q] is the class of languages for which the verifier uses at most r
+bits of randomness, and queries at most q locations of the proof (note that the proof length is at most 2r ). The
+above results on MIPs imply that PCP[poly(n), poly(n)] = NEXP. Later works “scaled down” this result to
+NP: Babai, Fortnow, Levin and Szegedy [BFLS91]√show that NP = PCP[O(log n), poly(log n)]; Arora and
+Safra [AS98] show that NP = PCP[O(log n), O( log n)]; and Arora, Lund, Motwani, Sudan, and Szegedy
+[ALM+ 92] show that NP = PCP[O(log n), O(1)]. This last is known as the PCP Theorem.
+Researchers have studied other models of proof systems, and here we name only a few: linear IPs [BCI+ 13],
+no-signaling MIPs [IKM09, Ito10, KRR13, KRR14], linear PCPs [IKO07, Gro10, Lip12, BCI+ 13, GGPR13,
+PGHR13, BCI+ 13, SBW11, SMBW12, SVP+ 12, SBV+ 13], interactive PCPs [KR08, KR09, GIMS10].
+    We introduce interactive oracle proofs (IOPs), a model of proof system that combines aspects of IPs
+and PCPs. (Later, in Section 1.3.1, we describe how interactive PCPs are a special case of IOPs.) Our work
+focuses on cryptographic applications of this proof system, as we discuss next.
+
+
+
+                                                       3
+1.2   Compiling proof systems into argument systems
+The proof systems mentioned so far share a common feature: they make no assumptions on the computational
+resources of a (malicious) prover trying to convince the verifier. Instead, many proof systems make “structural”
+assumptions on the prover: MIPs assume that the prover is a collection of non-communicating strategies
+(each representing a “sub-prover”); PCPs assume that the prover is non-adaptive (the answer to a message
+does not depend on previous messages); linear IPs assume that the prover is a linear function, and so on.
+    In contrast, in cryptography, one often considers argument systems [BC86, BCC88, Kil92, Mic00]:
+these are proof systems where soundness holds only against provers that have a bound on computational
+resources (e.g., provers that run in probabilistic polynomial time). The relaxation from statistical soundness to
+computational soundness allows circumventing various limitations of IPs [BHZ87, GH98, GVW02, PSSV07],
+while also avoiding “structural” assumptions on the prover, which can be hard to enforce in applications.
+Constructing argument systems. A common methodology to construct argument systems with desirable
+properties (e.g., sublinear communication complexity) follows these two steps: (1) give a proof system
+that achieves these properties in a model with structural restrictions on (all-powerful) provers; (2) use
+cryptographic tools to compile that proof system into an argument system, i.e., one where the only restriction
+on the prover is that it is an efficient algorithm. In other words, the compilation trades any structural
+assumptions for computational ones. This methodology has been highly productive; see Figure 1 for some
+examples that follow this paradigm. (On the flip side, many other argument systems are constructed, without
+the explicit use of underlying proof systems, using cryptographic tools “directly”; for instance see [BCC88].
+A partial list of more recent examples is [PR14, GHRW14, BGL+ 15, CHJV15, CH15, CCC+ 15, KP15].)
+Proofs in the random oracle model. An idealized model for studying computationally-bounded provers
+is the random oracle model [FS86, BR93], where every party has access to the same random function. A
+protocol proved secure in this model can potentially be instantiated in practice by replacing the random
+function with a concrete “random-looking” efficient function. While this intuition fails in the general case
+[CGH04, BBP04, GK03, BDG+ 13], the random oracle model is nonetheless a useful testbed for cryptographic
+primitives. In this paper we focus on proof systems in this model for which the proof consists of a single
+message from the prover to the verifier. A non-interactive random-oracle proof (NIROP) for a relation R
+is a pair of probabilistic polynomial-time algorithms, the prover P and verifier V, that satisfy the following.
+(1) Completeness: for every instance-witness pair (x, w) in the relation R, Pr[Vρ (x, Pρ (x, w)) = 1] = 1,
+where the probability is taken over the random oracle ρ as well as any randomness of P and V. (2) Soundness:
+for every instance x not in the language of R and every malicious prover P̃ that asks at most a polynomial
+number of queries to the random oracle, it holds that Pr[Vρ (x, P̃ρ ) = 1] is negligible in the security parameter.
+Prior NIROPs and our focus. Prior work uses the above 2-step methodology to obtain NIROPs with
+desirable properties. For example, the Fiat–Shamir paradigm maps 3-message public-coin IPs to corre-
+sponding NIROPs [FS86, PS96]; when invoked on suitable IP constructions, this yields very efficient zero
+knowledge non-interactive proofs. As another example, Micali’s “CS proof” construction, building on [Kil92],
+transforms PCPs to corresponding NIROPs; Valiant [Val08] revisits Micali’s construction and proves that it
+is a proof of knowledge; when invoked on suitable PCPs, these yield non-interactive proofs of knowledge
+that are extremely short and easy to verify. In this work we study the question of how to compile IOPs, which
+generalize both IPs and PCPs, into NIROPs. As discussed below, our work ultimately leads to formulating
+and studying a game-theoretic property of IOPs, which in turn motivates similar questions for IPs and PCPs.
+We now turn to the discussion of our results. (We do not study the question of avoiding assuming random
+oracles, as this question continues to be open for the aforementioned prior works and, also, our work.)
+
+
+
+                                                        4
+                                                           crypto tools used                      properties of argument system
+ proof model                work
+                                                           by transformation                   setup     # of messages verifiability
+ IP (public-coin)           [FS86, PS96]                   (explicitly-programmable) RO         RO              1            public
+                            [KR09]                         PIR                                 none             2           private
+ NIZK w/ hidden bits        [FLS90, PS05]                  OWF                                 CRS              1            public
+ Σ-protocols                [Lin15]                        (non-programmable) RO             CRS + RO           1            public
+ PCP                        [Kil92, BG08]                  CRF                                 none             4            public
+                            [Mic00, Val08]                 (explicitly-programmable) RO         RO              1            public
+                            [BCCT12, DFH12, GLR11]         extractable CRF                     none             2           private
+ MIP                        [BC12]                         extractable FHE                     none             2           private
+ MIP (no signaling)         [KRR13, KRR14]                 PIR                                 none             2           private
+ IPCP (public-coin)         [KR09]                         PIR                                 none             2           private
+ LIP (any)                  [BCI+ 13]                      linear-only encryption              CRS              1           private
+ LIP (algebraic)            [BCI+ 13]                      linear-only encoding                CRS              1            public
+ IOP (public-coin)          this work                      (explicitly-programmable) RO         RO              1            public
+
+          Figure 1: Summary of some works (including this work) that obtain transformations from (information-theoretic)
+          proof systems to corresponding (cryptographic) argument systems. For each, we highlight the main cryptographic
+          tools used by the transformation and properties of the resulting argument system. These properties include: the
+          setup model; the number of messages exchanged by the prover and verifier (non-interactive argument systems are 1
+          message); and whether the verifier relies on public or private randomness. The abbreviations used in the table are:
+          CRF=“collision resistant functions”, CRS=“common reference string”, FHE=“fully homomorphic encryption”,
+          PIR=“private information retrieval”, RO=“random oracle”.
+
+
+1.3      Results
+We present three main contributions: one is definitional and the other two are technical in nature.
+
+1.3.1      Interactive oracle proofs
+
+A new proof system model. We introduce a new proof system model: interactive oracle proofs (IOPs).1
+This model naturally combines aspects of interactive and probabilistically checkable proofs; namely, an
+IOP generalizes an interactive proof as follows: the verifier is not required to read the prover’s messages in
+their entirety; rather, the verifier has oracle access to the prover’s messages (viewed as strings), and may
+probabilistically query these messages. In more detail, a k-round IOP comprises k rounds of interaction. In
+the i-th round of interaction: the verifier sends a message mi to the prover, which he reads in full; then the
+prover replies with a message fi to the verifier, which he can query (via random access) in this and all later
+rounds. After the k rounds of interaction, the verifier either accepts or rejects. See Figure 2 for a diagram.
+    Like the PCP model, two fundamental measures of efficiency in the IOP model are the proof length p,
+which is the total number of bits in all of the prover’s messages, and the query complexity q, which is the
+total number of locations queried by the verifier across all of the prover’s messages. Unlike the PCP model,
+another fundamental measure of efficiency is the round complexity k; the PCP model can then be viewed as a
+special case where k = 1 (and the first verifier message is empty).
+Basic complexity-theoretic properties. We show that IOPs characterize NEXP (like PCPs); both sequential
+and parallel repetition of IOPs yield (perfect) exponential soundness error reduction (like IPs); and any IOP
+can be converted into a public-coin one (like IPs). These basic complexity-theoretic properties confirm that
+our definition of IOP is a natural way to combine aspects of PCPs and IPs.
+   1
+       Independent of our work, [RRR16] introduce Probabilistically Checkable Interactive Proofs, which are equivalent to our IOPs.
+
+
+
+                                                                  5
+Motivation: efficiency. IOPs generalize both IPs, by treating the prover’s messages as oracle strings, and
+PCPs, by allowing for more than 1 round. These degrees of freedom enable IOPs to retain the expressive
+power of PCPs (supporting all languages in NEXP, unlike IPs), while also allowing for additional efficiency.
+    For example, [BCGV16] obtain unconditional zero knowledge via a 2-round IOP with quasilinear proof
+length; in comparison, such a result is not known for PCPs (or even IPCPs [KR08]). Moreover, when com-
+bined with our compiler (see next contribution) we obtain blackbox unconditional zero-knowledge with quasi-
+linear prover and polylogarithmic verifier in the random-oracle model, improving on results of [IMSX15].
+    As another example, [BCG+ 16] obtain 3-round IOPs for circuit satisfiability with linear proof length and
+constant query complexity, while for PCPs prior work only achieves sublinear query complexity [BKK+ 13].
+To do so, [BCG+ 16] show that sumcheck [LFKN92, Sha92] and proof composition [AS98] (used in many
+PCP constructions such as [ALM+ 98, HS00, BGH+ 04]) have more efficient “IOP analogues”, which in turn
+imply a number of probabilistic checking results that are more efficient than corresponding ones that only rely
+on PCPs. We briefly sketch the intuition for why interactive proof composition, via IOPs, is more efficient.
+In a composed proof, the prover first writes a part π0 of the proof (e.g., in [ALM+ 98] π0 is an evaluation of a
+low-degree multivariate polynomial, and in [BS08] it is an evaluation of a low-degree univariate polynomial).
+Then, to demonstrate that π0 has certain good properties (e.g., it is low degree), the prover also appends
+a (long) sequence of sub-proofs, where each sub-proof allegedly demonstrates to the verifier that a subset
+of entries of π0 is “good”. Afterwards, in another invocation of the recursion, the prover appends to each
+sub-proof a sequence of sub-sub-proofs, and so on. A crucial observation is that the verifier typically queries
+locations of only a small number of such sub-proofs; moreover, once the initial proof π0 is fixed, soundness
+is not harmed if the verifier randomly selects the set of sub-proofs he wants to see and tells this to the prover.
+In sum, in many PCP constructions (including the aforementioned ones), the proof length can be greatly
+reduced via interaction between the prover and verifier, via an IOP.
+    As yet another example, [RRR16] use IOPs to obtain doubly-efficient constant-round IPs for polynomial-
+time bounded-space computations. The result relies on an “amortization theorem” for IOPs that states that,
+for a so-called unambiguous IOPs, batch verification of multiple statements can be more efficient than simply
+running an independent IOP for each statement.
+Remark 1.1 (comparison with IPCP). Kalai and Raz [KR08] introduce and study interactive PCPs (IPCPs),
+a model of proof system that also combines aspects of IPs and PCPs, but in a different way: an IPCP is an IP
+in which the verifier additionally has oracle access to a PCP provided before the start of the interactive proof.
+An IPCP can be viewed as a special case of an IOP, i.e., it is an IOP in which the verifier has oracle access to
+the first prover message, but must read in full subsequent prover messages. The works of [KR08, GKR08]
+show that boolean formulas with n variables, size m, and depth d have IPCPs where the PCP’s size is
+polynomial in d and n and the communication complexity of the subsequent IP is polynomial in d and log m.
+This shows that even IPCPs give efficiency advantages over both IPs and PCPs given separately.
+
+
+1.3.2   From interactive oracle proofs to non-interactive random-oracle proofs
+We give a polynomial-time transformation that maps any public-coin interactive oracle proof (IOP) to a
+corresponding non-interactive random-oracle proof (NIROP). We prove that the soundness of the output
+proof is tightly characterized by the soundness of the IOP verifier against state restoration attacks, a class of
+rewinding attacks on the verifier that we now describe.
+    At a high level, a state restoration attack against an IOP verifier works as follows: the malicious prover
+and the verifier start interacting, as they normally would in an IOP; at any moment, however, the prover can
+choose to set the verifier to any state at which the verifier has previously been, and the verifier then continues
+
+                                                        6
+                                𝑓       … 𝑓                                … 𝑓
+                           𝑓                              𝑓        𝑓
+                                                           𝜌
+                                                                                                      𝜌
+                          𝑚
+                                                          𝑚
+                          𝑚
+                                                           𝜋
+                 𝑃         ⋮        𝑉                   ℙ 𝑚            𝕍
+                                                                                                     𝜋
+                          𝑚                    𝑃          ⋮            𝑉                     ℙ                𝕍
+                                                          𝑚
+        Figure 2: An interactive oracle proof system.                       Figure 3: A non-interactive random-oracle proof system.
+
+
+onwards from that point with fresh randomness. Of course, if the prover could restore the verifier’s state an
+unbounded number of times, the prover would eventually succeed in making the verifier accept. We thus only
+consider malicious provers that interact with the verifier for at most a certain number of rounds: for b ∈ N,
+we say a prover is b-round if it plays at most b rounds during any interaction with any verifier. Then, we say
+that an IOP has state restoration soundness ssr (x, b) if every b-round state-restoring prover cannot make the
+IOP verifier accept an instance x (not in the language) with probability greater than ssr (x, b).
+    Informally, our result about transforming IOPs into NIROPs can be stated as follows.
+
+Theorem 1.2 (IOP → NIROP). There exists a polynomial-time transformation T such that, for every relation
+R, if (P, V ) is a public-coin interactive oracle proof system for R with state restoration soundness ssr (x, b),
+then (P, V) := T (P, V ) is a non-interactive random-oracle proof system for R with soundness
+
+                                               ssr (x, m) + O(m2 2−λ ) ,
+
+where m is an upper bound on the number of queries to the random oracle that a malicious prover can
+make, and λ is a security parameter. The aforementioned soundness is tight up to small factors. (Good state
+restoration soundness can be obtained, e.g., via parallel repetition as in Remark 1.6.)
+
+     Moreover, we prove that the transformation T is benign in the sense that it preserves natural properties of
+the IOP. Namely, (1) the runtimes of the NIROP prover and verifier are linear in those of the IOP prover
+and verifier (up to a polynomial factor in λ); (2) the NIROP is a proof of knowledge if the IOP is a proof of
+knowledge; and (3) the NIROP is (malicious-verifier) statistical zero knowledge if the IOP is honest-verifier
+statistical zero knowledge. See Theorem 7.1 for the formal statement; the statement employs the notion of
+restricted state restoration soundness (see Section 5.4) as it allows for a tighter lower bound on soundness.
+     An immediate application is obtaining blackbox unconditional ZK in the random oracle model with
+quasilinear prover and polylogarithmic verifier, improving on results of [IMSX15], by plugging the work of
+[BCGV16] into our compiler.
+     Our compiler can be viewed as a generalization of the Fiat–Shamir paradigm for public-coin IPs [FS86,
+PS96], and of the “CS proof” constructions of Micali [Mic00] and Valiant [Val08] for PCPs. Our analysis of
+the compiler gives, in particular, a unified understanding of all of these constructions, and motivates the study
+of state restoration attacks, not only for IOPs, but also for IPs and PCPs. (Indeed, we are not aware of works
+that study the security of the Fiat–Shamir paradigm, in the random oracle model, applied to a public-coin IP
+with arbitrary number of rounds; the analyses that we are aware of focus on the case of 2 rounds.)
+     Our next contribution is a first set of results about such kinds of attacks, as described in the next section.
+
+Remark 1.3 (resetting, backtracking). We compare state restoration soundness with other soundness notions:
+
+
+                                                               7
+• State restoration attacks generalize resetting attacks [BGGL01], in which the prover invokes multiple
+  verifier incarnations with the same randomness prefix. Resettable soundness is thus bounded from above
+  by state restoration soundness (and so bounds on the former do not always imply bounds on the latter).
+• State restoration is closely related to backtracking [BD16]. The two notions differ in that: (1) backtracking
+  “charges” more for restoring verifier states that are further into the past, and (2) backtracking also considers
+  the case of the verifier restoring states of the prover (as part of the completeness property of the protocol);
+  backtracking soundness is thus polynomially related to state restoration soundness.
+  Bishop and Dodis [BD16] give a compiler from a public-coin IP to an error-resilient IP, whose soundness
+  is related to the backtracking soundness of the original IP; essentially, they use hashing techniques to limit
+  a malicious prover impersonating an adversarial channel to choosing when to backtrack the protocol. Their
+  setting is a completely different example in which backtracking, and thus state restoration, plays a role.
+
+Remark 1.4 (zero knowledge and programmability). There are several notions of zero knowledge in the
+random oracle model, depending on “how programmable” the random oracle is (see Remark 2.2). The notion
+that we use is zero knowledge in the explicitly-programmable random oracle (EPRO) model; the stronger
+notion in the non-programmable random oracle model is not achievable for NIROPs (see Appendix C). (And,
+as in prior works, soundness and proof of knowledge do not rely on any programming of the random oracle.)
+
+1.3.3    State restoration attacks on interactive oracle proofs
+The analysis of our transformation from public-coin IOPs to NIROPs highlights state restoration soundness
+as a notion that merits further study. We provide two results in this direction. First, we prove tight upper and
+lower bounds on state restoration soundness in terms of the IOP’s (standard) soundness and round complexity.
+
+Theorem 1.5. For any relation R, public-coin k-round IOP for R, and instance x not in the language of R,
+
+           ∀ b ≥ k(x) + 1,                s(x)(1 − o(1)) ≤ ssr (x, b) ≤             s(x) , 2
+                                                                               
+                                  b                                         b
+                               k(x) + 1                                  k(x) + 1
+
+where ssr (x, b) is the state restoration soundness of IOP and s(x) its (standard) soundness for the instance x.
+Also, the bounds are tight: there are IOPs that meet the lower bound and IOPs that meet the upper bound.
+
+Remark 1.6 (good state restoration soundness). One way to obtain state restoration soundness 2−λ in the
+general case is to apply r-fold parallel repetition to the IOP with r = Ω( klog
+                                                                             log b+λ
+                                                                                s(x) ); note that r is polynomially
+bounded for natural choices of k, b, λ. This choice of r is pessimistic, because for IOPs that do not meet the
+upper bound (e.g., they are “robust” against such attacks) a smaller choice of r suffices.
+
+    Second, we study the structure of optimal state restoration attacks: we prove that, for any public-coin
+IOP, there is a simple state restoration attack that has optimal expected cost, where cost is the number of
+rounds until the prover wins. This result relies on a correspondence that we establish between IOP verifiers
+and certain games, which we call tree exploration games, pitting one player against Nature. We go in more
+detail about this result in later sections (see Section 1.4 and Section 8).
+   2
+     We note that [BGGL01] prove an analogous upper bound on the more restrictive notion of resettable soundness (see Remark 1.3),
+and does not imply our bound. Also, [BD16] prove an analogous, weaker upper bound on the related notion of backtracking soundness
+(see Remark 1.3). Neither of the two studies lower bounds, or tightness of bounds.
+
+
+
+
+                                                                8
+1.4   Techniques
+We summarize the techniques that we use to prove our technical contributions.
+The transformation. Our transformation maps any public-coin IOP to a corresponding NIROP, and it
+generalizes two transformations that we now recall.
+     The first transformation is the Fiat–Shamir paradigm [FS86, PS96], which maps any public-coin IP to a
+corresponding NIROP, and it works as follows. The NIROP prover runs the interaction between the IP prover
+and the IP verifier “in his head”, by setting the IP verifier’s next message to be the output of the random
+oracle on the query that equals the transcript of previously exchanged messages. The NIROP prover sends a
+non-interactive proof that contains the final transcript of interaction; the NIROP verifier checks the proof’s
+validity by checking that all of the IP verifier’s messages are computed correctly through the random oracle.
+     The second transformation is the “CS proof” construction of Micali [Mic00] and Valiant [Val08], which
+maps any PCP to a corresponding NIROP, and it works as follows. The NIROP prover first commits to the
+PCP via a Merkle tree [Mer89a] based on the random oracle, then queries the random oracle with the root of
+this tree to obtain randomness for the PCP verifier, and finally sends a non-interactive proof that contains the
+root as well as authentication paths for each query by the PCP verifier to the PCP; the NIROP verifier checks
+the proof’s validity by checking that the PCP verifier’s randomness is computed correctly through the random
+oracle, and that all authentication paths are valid. (The transformation can be viewed as a non-interactive
+variant of Kilian’s protocol [Kil92, BG08] that uses ideas from the aforementioned Fiat–Shamir paradigm.)
+     Our transformation takes as input IOPs, for which both IPs and PCPs are special cases, and hence must
+support both (i) multiple rounds of interaction between the IOP prover and IOP verifier, as well as (ii) oracle
+access by the IOP verifier to the IOP prover messages. Given an instance x, the NIROP prover thus uses the
+random oracle ρ to run the interaction between the IOP prover and the IOP verifier “in his head” in a way that
+combines the aforementioned two approaches, as follows. First, the NIROP prover computes an initial value
+σ0 := ρ(x). Then, for i = 1, 2, . . . , it simulates the i-th round by deriving the IOP verifier’s i-th message
+mi as ρ(xkσi−1 ), compressing the IOP prover’s i-th message fi via a Merkle tree to obtain the root rti , and
+computing the new value σi := ρ(rti kσi−1 ). The values σ0 , σ1 , . . . are related by the Merkle–Damgård
+transform [Dam89, Mer89b] that, intuitively, enforces ordering between rounds. If there are k(x) rounds
+of interaction, then ρ(xkσk(x) ) is used as randomness for the queries to f1 , . . . , fk(x) . The NIROP prover
+provides in the non-interactive proof all the roots rti , the final value σk(x) , the answers to the queries, and an
+authentication path for each query. This sketch omits several details; see Section 6 and Figure 6.
+Soundness analysis of the transformation. We prove that the soundness of the NIROP produced by the
+above transformation is tightly characterized by the state restoration soundness of the underlying IOP. This
+characterization comprises two arguments: an upper bound and a lower bound on the NIROP’s soundness. We
+only discuss the upper bound here: proving that the soundness (error) of the NIROP is at most the soundness
+(error) of the IOP against state restoration attacks, up to small additive factors.
+     The upper bound essentially implies that all that a malicious prover P̃ can do to attack the NIROP verifier
+is to conduct a state restoration attack against the underlying IOP verifier “in his own head”: roughly, P̃ can
+provide multiple inputs to the random oracle in order to induce multiple fresh samples of verifier messages
+for a given round so to find a lucky one, or instead go back to previous rounds and do the same there.
+     In more detail, the proof itself relies on a reduction: given a malicious prover P̃ against the NIROP
+verifier, we show how to construct a corresponding malicious prover P̃ that conducts a state restoration attack
+against the underlying IOP verifier. We prove that the winning probability of P̃ is essentially the same as that
+of P̃; moreover, we also prove that the reduction preserves the resources needed for the attack in the sense
+that if P̃ asks at most m queries to the random oracle, then P̃ plays at most m rounds during the attack.
+
+
+                                                         9
+     Intuitively, the construction of P̃ in terms of P̃ must use some form of extraction: P̃ outputs a non-
+interactive proof that contains only (i) the roots that (allegedly) are commitments to underlying IOP prover’s
+messages, and (ii) answers to the IOP verifier’s queries and corresponding authentication paths; in contrast,
+P̃ needs to actually output these IOP prover’s messages. In principle, the malicious prover P̃ may not have
+“in mind” any underlying IOP prover, and we must prove that, nevertheless, there is a way for P̃ to extract
+some IOP prover message for each round that convince the verifier with the claimed probability.
+     Our starting point is the extractor algorithm of Valiant [Val08] for the “CS proof” construction of Micali
+[Mic00]: Valiant proves that Micali’s NIROP construction is a proof of knowledge by exhibiting an algorithm,
+let us call it Valiant’s extractor, that recovers the underlying PCP whenever the NIROP prover convinces
+the NIROP verifier with sufficient probability. Our setting differs from Valiant’s in that the IOP prover P̃
+obtained from the NIROP prover P̃ needs to be able to extract multiple times, “on the fly”, while interacting
+with the IOP verifier; this more complex setting can potentially cause difficulties in terms of extractor size
+(e.g., if relying on rewinding the NIROP prover) or correlations (e.g., when extracting multiple times from
+the same NIROP prover). We tackle the more complex setting in two steps.
+     First, we prove an extractability property of Valiant’s extractor and state it as a property of Merkle trees
+in the random oracle model (see Section 3.1). Informally, we prove that, except with negligible probability,
+whenever an algorithm with access to a random oracle outputs multiple Merkle tree roots each accompanied
+with some number of (valid) authentication paths, it holds that Valiant’s extractor run separately on each of
+these roots outputs a decommitment that is consistent with each of the values revealed in authentication paths
+relative to that root. We believe that distilling and proving this extractability property of Valiant’s extractor is
+of independent interest.
+     Second, we show how the IOP prover P̃ can interact with an IOP verifier, by successively extracting
+messages to send, throughout the interaction, by invoking Valiant’s extractor multiple times on P̃ relative to
+different roots. The IOP prover P̃ does not rely on rewinding P̃, and its complexity is essentially that of a
+single run of P̃ plus a small amount of work.
+Preserving proof of knowledge. We prove that the above soundness analysis can be adapted so that, if the
+underlying IOP is a proof of knowledge, then we can construct an extractor to show that the resulting NIROP
+is also a proof of knowledge.
+Preserving zero knowledge. We prove that, if the underlying IOP is honest-verifier statistical zero knowl-
+edge, then the resulting NIROP is statistical zero knowledge (i.e., is a non-interactive statistical zero knowl-
+edge proof in the explicitly-programmable random oracle model). This is because the transformation uses a
+Merkle tree with suitable privacy guarantees (see Section 3.2) to construct the NIROP. Indeed, the authenti-
+cation path for a leaf in the Merkle tree reveals the sibling leaf, so one must ensure that the sibling leaf does
+not leak information about other values; this follows by letting leaves be commitments to the underlying
+values. A Merkle tree with privacy is similarly used by [IMS12, IMSX15], along with honest-verifier PCPs,
+to achieve zero knowledge in modifications of Kilian’s [Kil92, BG08] and Micali’s [Mic00] constructions.
+Understanding state restoration attacks. We prove tight upper and lower bounds to state restoration
+soundness in terms of the IOP’s (standard) soundness and round complexity k. The upper bound takes the
+form of a reduction: given a b-round state-restoring malicious prover P̃sr that makes the IOP verifier accept
+with probability ssr , we construct a (non state-restoring) malicious prover P̃ that makes the IOP verifier
+                                     b −1
+                                       
+accept with probability at least k+1        ssr . Informally, P̃ internally simulates P̃sr , while interacting with the
+“real” IOP verifier, as follows: P̃ first selects a random subset S of {1, . . . , b} with cardinality k + 1, and lets
+S[i] be the i-th smallest value in S; then, P̃ runs P̃sr and simulates its state restoration attack on a “virtual”
+IOP verifier, executing round j (a) by interacting with the real verifier if j = S[i] for some i; (b) by sampling
+fresh randomness otherwise. While this reduction appears wasteful (since it relies on S being a good guess),
+
+                                                          10
+we show that there are IOPs for which the upper    bound   is tight. In other words, the sharp degradation as a
+                                               b       k+1
+function of round complexity (for large b, k+1 ≈ b /(k + 1)!) is inherent for some choices of IOPs; this
+also gives a concrete answer to the intuition that compiling IOPs with large round complexity to NIROPs
+is “harder” (i.e., incurs in a greater soundness loss) than for IOPs with small round complexity. As for the
+lower bound on state restoration soundness, it takes the form of a universal state restoration attack that always
+achieves the lower bound; this bound is also tight.
+     While state restoration soundness may be far, in the worst case, from (standard) soundness for IOPs with
+large round complexity, it need not always be far. We thus investigate state restoration soundness for any
+particular IOP, and derive a simple attack strategy (which depends on the IOP) that we prove has optimal
+expected cost, where cost is the number of rounds until the prover wins. To do so, we “abstract away” various
+details of the proof system to obtain a simple game-theoretic notion, which we call tree exploration games,
+that pits a single player against Nature in reaching a node of a tree with label 1. Informally, such a game is
+specified by a rooted tree T and a predicate function φ that maps T ’s vertices to {0, 1}. The game proceeds
+in rounds: in the i-th round, a subtree Si−1 ⊆ T is accessible to the player; the player picks a node v ∈ Si−1 ,
+and Nature randomly samples a child u of v; the next accessible subtree is Si := Si−1 ∪ {u}. The initial S0
+is the set consisting of T ’s root vertex. The player wins in round r if there is v ∈ Sr with φ(v) = 1.
+     We establish a correspondence between state restoration attacks and strategies for tree exploration games,
+and then show a simple greedy strategy for such games with optimal expected cost. Via the correspondence,
+a strategy’s cost determines whether the underlying IOP is strong or weak against sate restoration attacks.
+
+1.5   Roadmap
+The rest of this paper is organized as follows. In Section 2, we provide basic notations and definitions,
+including for Merkle trees and non-interactive random-oracle proofs (NIROPs). In Section 3, we state and
+prove the extractability and privacy properties of Merkle trees that we use in this work. In Section 4, we
+introduce interactive oracle proofs (IOPs), the new proof system that we study. In Section 5, we define state
+restoration attacks against IOPs and present our results about them. In Section 6, we describe a transformation
+for compiling IOPs into NIROPs; after that, in Section 7, we present our tight analysis of this transformation.
+In Section 8, we define tree exploration games and present our results about them.
+
+
+
+
+                                                       11
+2     Preliminaries
+2.1   Basic notations
+We denote the security parameter by λ. We let f = Oλ (g) mean there exists c > 0 such that f = O(λc g).
+For f : {0, 1}∗ → R, we define fˆ: N → R as fˆ(n) := maxx∈{0,1}n f (x).
+Languages and relations. We denote by R a relation consisting of pairs (x, w), where x is the instance
+and w is the witness, and by Rn the restriction of R to instances of size exactly n. We denote by L (R)
+the language corresponding to R. For notational convenience, we define L¯(Rn ) := {x ∈ {0, 1}n | x ∈  /
+L (R)}.
+Random oracles. We denote by U(λ) the uniform distribution over all functions ρ : {0, 1}∗ → {0, 1}λ
+(implicitly defined by the probabilistic algorithm that assigns, uniformly and independently at random, a
+λ-bit string to each new input). If ρ is sampled from U(λ), then we say that ρ is a random oracle. Given
+an oracle algorithm A, NumQueries(A, ρ) is the number of oracle queries that Aρ makes. We say that A is
+m-query if NumQueries(A, ρ) ≤ m for any ρ ∈ U(λ).
+Statistical distance.PThe statistical distance between two discrete random variables X and Y with support
+V is ∆(X; Y ) := 21 v∈V | Pr[X = v] − Pr[Y = v]|. We say that X and Y are δ-close if ∆(X; Y ) ≤ δ.
+
+Remark 2.1. An oracle ρ ∈ U(λ) outputs λ bits. Occasionally we need ρ to output more than λ bits; in such
+cases (we point out where), we implicitly extend ρ’s output via a simple strategy, e.g., we set y := y1 ky2 k · · ·
+where yi := ρ(ikx) and prefix 0 to all inputs that do not require an output extension.
+
+2.2   Merkle trees
+We use Merkle trees [Mer89a] based on random oracles as succinct commitments to long lists of values for
+which one can cheaply decommit to particular values in the list. Concretely, a Merkle-tree scheme is a tuple
+MERKLE = (MERKLE.GetRoot, MERKLE.GetPath, MERKLE.CheckPath) that uses a random oracle ρ
+sampled from U(λ) and works as follows.
+• MERKLE.GetRootρ (v) → rt. Given input list v = (vi )ni=1 , the root generator MERKLE.GetRoot
+  computes, in time Oλ (n), a root rt of the Merkle tree over the list v.
+• MERKLE.GetPathρ (v, i) → ap. Given input list v and index i, the authentication path generator
+  MERKLE.GetPath computes the authentication path ap for the i-th value in v.
+• MERKLE.CheckPathρ (rt, i, v, ap) → b. Given root rt, index i, input value v, and authentication path
+  ap, the path checker MERKLE.CheckPath outputs b = 1 if ap is a valid path for v as the i-th value in a
+  Merkle tree with root rt; the check can be carried out in time Oλ (log2 n).
+We assume that an authentication path ap contains the root rt, position i, and value v; accordingly, we define
+Root(ap) := rt, Position(ap) := i, and Value(ap) := v.
+   Merkle trees are well known, so we do not review their construction. Less known, however, are the hiding
+and extractability properties of Merkle trees that we rely on in this work; we describe these in Section 3.
+
+2.3   Non-interactive random-oracle proofs
+A non-interactive random-oracle proof system for a relation R with soundness s : {0, 1}∗ → [0, 1] is a tuple
+(P, V), where P, V are (oracle) probabilistic algorithms, that satisfies the following properties.
+
+
+
+
+                                                        12
+1. C OMPLETENESS . For every (x, w) ∈ R and λ ∈ N,
+
+                              Pr V (x, π) = 1
+                                                              
+                                    ρ               ρ ← U(λ)
+                                                 π ← Pρ (x, w)
+                                                                 =1 .
+
+2. S OUNDNESS . For every x ∈
+                            / L (R), m-query P̃, and λ ∈ N,
+
+                            Pr V (x, π) = 1                 ≤ s(x, m, λ) .
+                                                         
+                                 ρ             ρ ← U(λ)
+                                                  π ← P̃ρ
+
+Complexity measures. Beyond soundness, we consider other complexity measures. Given p : {0, 1}∗ → N,
+we say that (P, V) has proof length p if π has length p(x, λ). Given tprv , tver : {0, 1}∗ → N, we say that
+(P, V) has prover time complexity tprv and verifier time complexity tver if Pρ (x, w) runs in time tprv (x, λ)
+and Vρ (x, π) runs in time tver (x, λ). In sum, we say that (P, V) has complexity (s, p, tprv , tver ) if (P, V) has
+soundness s, proof length p, prover time complexity tprv , and verifier time complexity tver .
+Proof of knowledge. Given e : {0, 1}∗ → [0, 1], we say that (P, V) has proof of knowledge e if there exists
+a probabilistic polynomial-time algorithm E (the extractor) such that, for every x, m-query P̃, and λ ∈ N,
+
+        Pr (x, w) ∈ R w ← E (x, 1 , 1 ) ≥ Pr V (x, π) = 1                                − e(x, m, λ) .
+                                                                                      
+           h
+                                    P̃     m λ
+                                                i
+                                                            ρ             ρ ← U(λ)
+                                                                            π ← P̃ρ
+
+The notation EP̃ (x, 1m , 1λ ) means that E receives as input (x, 1m , 1λ ) and may obtain an output of P̃ρ for
+choices of oracles ρ, as we now describe. At any time, E may send a λ-bit string z to P̃; then P̃ interprets z as
+the answer to its last query to ρ (if any) and then continues computing until it reaches either its next query
+θ or its output π; then this query or output is sent to E (distinguishing the two cases in some way); in the
+latter case, P̃ goes back to the start of its computation (with the same randomness and any auxiliary inputs).
+Throughout, the code, randomness, and any auxiliary inputs of P̃ are not available to E.
+Zero knowledge. Given z : {0, 1}∗ → [0, 1], we say that (P, V) has z-statistical zero knowledge (in the
+explicitly-programmable random oracle model) if there exists a probabilistic polynomial-time algorithm S (the
+simulator) such that, for every (x, w) ∈ R and unbounded distinguisher D, the following two probabilities
+are z(x, λ)-close:
+                                                                                             
+                    ρ[µ]                   ρ ← U(λ)                 ρ              ρ ← U(λ)
+                                    (π, µ) ← Sρ (x)                             π ← Pρ (x, w)
+              Pr D (π) = 1                              and Pr D (π) = 1                           .
+
+Above, ρ[µ] is the function such that, given an input x, equals µ(x) if µ is defined on x, or ρ(x) otherwise.
+Remark 2.2. Zero knowledge in the random oracle model can be defined in several ways. Wee [Wee09]
+details the following hierarchy. (i) Fully-programmable random oracle (FPRO): the simulator has access
+to the random oracle but the distinguisher does not; (ii) Explicitly-programmable random oracle (EPRO)
+[BR93]: the simulator has access to the random oracle and also outputs a function µ, but the distinguisher has
+access to the same oracle modified so that a query to an input x in the domain of µ is answered with µ(x);
+(iii) Non-programmable random oracle (NPRO) [Nie02, Pas03]: the simulator and the distinguisher have
+access to the same random oracle. ZK in the NPRO implies ZK in the EPRO, and the latter implies ZK in the
+FPRO; there exist protocols that are ZK in the EPRO but not in the NPRO, and ones that are ZK in the FPRO
+but (assuming one-way permutations exist) not in the EPRO.
+     The above definition that we use for NIROPs follows ZK in the EPRO. We do not use the stronger notion
+of ZK in the NPRO, since Pass shows that it cannot be achieved for non-trivial relations (see Appendix C). In
+particular, zero-knowledge NIROPs are not deniable in the sense of [Pas03].
+
+
+                                                        13
+3        Extractability and privacy of Merkle trees
+We describe the specific extractability and privacy properties of Merkle trees that we rely on in this work.
+
+3.1        Extractability
+We rely on a certain extractability property of Merkle trees: there is an efficient procedure for extracting
+the committed list in a Merkle-tree scheme. We call the procedure Valiant’s extractor, and denote it by VE,
+because it is described in [Val08]. Our presentation of the extractor and its guarantee differs from [Val08]
+because our use of it in this work requires “distilling” a more general property; see Lemma 3.2 below.
+The extractor. For any oracle algorithm A, integers `, i? , imax > 0 with i? ∈ {1, . . . , imax }, and ρ sampled
+from U(λ), the procedure VE, given input (A, `, i? , imax ) and with oracle access to ρ, works as follows.
+1. Run Aρ until it has asked imax unique queries to ρ (and abort if Aρ asks fewer than imax ). Along the way,
+   record the queries θ1 , . . . , θimax and answers ρ(θ1 ), . . . , ρ(θimax ), in order and omitting duplicates.
+2. Parse each query θi as θi0 kθi1 where θi0 are the first λ bits of θi and θi1 the second λ bits. For brevity, we
+   write z ∈ θi if z = θi0 or z = θi1 . (If a query has length not equal to 2λ, then z ∈      / θi for all z.)
+3. If there exist indices i, j such that i 6= j and ρ(θi ) = ρ(θj ), abort.
+4. If there exist indices i, j such that i ≤ j and ρ(θj ) ∈ θi , abort.
+5. Construct a directed graph G with nodes V = {θ1 , . . . , θimax } and edges E = {(θi , θj ) : ρ(θj ) ∈ θi }.
+   Note that G is acyclic, every node has out-degree ≤ 2, and θ1 , . . . , θimax is a (reverse) topological ordering.
+6. Output v, the string obtained by traversing in order the first ` leaf nodes of the depth-dlog2 `e binary tree
+   rooted at θi? and recording the first bit of each node. If any such node does not exist, set this entry to 0.
+A sample execution of the extractor is depicted in Figure 4.
+Remark 3.1. The queries to ρ asked by VEρ (A, `, i? , imax ) equals the first imax queries to ρ asked by Aρ
+(provided that A does not ask fewer than imax queries). Later on we use this fact.
+
+The extractor’s guarantee. We interpret A’s output as containing a (possibly empty) list of tuples of the
+form (rt, i, v, ap), where rt is a root, i an index, v a value, and ap an authentication path.3 We define the
+following events:
+   (i) E1 is the event that, for each tuple (rt, i, v, ap) output by Aρ , MERKLE.CheckPath(rt, i, v, ap) = 1;
+  (ii) E2 is the event that, for each rt ∈ {0, 1}λ , there exists an integer `rt such that if Aρ outputs a tuple of
+       the form (rt, ·, ·, ap) then ap is an authentication path for a `rt -leaf Merkle tree; and
+ (iii) E3 is the event that, for every rt ∈ {0, 1}λ such that Aρ outputs some tuple of the form (rt, ·, ·, ·),
+       there is a unique jrt ∈ {0, . . . , NumQueries(A, ρ)} such that ρ(θjrt ) = rt and, for every imax ∈
+       {jrt , . . . , NumQueries(A, ρ)}, v := VEρ (A, `rt , jrt , imax ) is such that v’s i-th entry equals vi for any
+       tuple of the form (rt, i, v, ap) output by Aρ .
+     The extractability property that we rely on is the following.
+Lemma 3.2. Let Aρ be a m-query algorithm. Then
+
+                                Pr [(¬(E1 ∧ E2 )) ∨ E3 | ρ ← U(λ)] ≥ 1 − (m2 + 1)2−λ .
+
+Proof. Observe the following.
+• By the union bound, the probability that there exist indices i, j such that (i 6= j) ∧ (ρ(θi ) = ρ(θj )) or
+  (i ≤ j) ∧ (ρ(θj ) ∈ θi ) is at most m2 2−λ . If this occurs, we say that Aρ has found a collision.
+    3
+        Note that A’s output may contain additional information not of the above form; if so, we simply ignore it for now.
+
+
+                                                                   14
+• The probability that, for a tuple (rt, i, v, ap) output by Aρ such that MERKLE.CheckPath(rt, i, v, ap) = 1,
+   the authentication path ap contains a node with no corresponding query is at most 2−λ , since this would
+   mean that Aρ has ‘guessed’ the answer to the query. In other words, no matter what strategy A uses to
+   generate the result, if it does not query the oracle on this input then it can perform no better than chance.
+Now suppose that E1 ∧ E2 occurs with probability δ. Then, with probability at least δ − (m2 + 1)2−λ :
+(a) for each root rt output by Aρ there is a unique query θi? such that ρ(θi? ) = rt; (b) for each root rt output
+by Aρ , if an authentication path ap claims to have root rt then ap appears in the tree rooted at θi? in G; and
+(c) the condition in the VE’s Step 3 or Step 4 does not hold. In such a case we may take jrt := i? , and then
+VEρ (A, `rt , jrt , imax ) outputs a list v with the desired property. Hence, Pr[E1 ∧ E2 ∧ E3 ] ≥ δ − (m2 + 1)2−λ .
+The predicate is also satisfied if ¬(E1 ∧ E2 ) occurs, which is the case with probability 1 − δ and is disjoint
+from E1 ∧ E2 ∧ E3 . The lemma follows.
+
+
+        𝜌
+
+               queries &
+                answers
+                                construct   VE                                    𝜌 𝑎 ∥𝑎                       root
+                                  graph
+         𝐴
+                                                                       𝜌 𝑏 ∥𝑏                 𝜌 𝑏 ∥𝑏
+        𝜃 =𝑣 ∥𝑟
+                                𝜃           𝜃
+        𝜃 = 𝜌(𝜃 ) ∥ 𝑥
+                                                      𝑣          𝜌 𝑣 ∥𝑟      𝜌 𝑣 ∥𝑟     𝜌 𝑣 ∥𝑟     𝜌 𝑣 ∥𝑟      leaves
+        𝜃 =𝑣 ∥𝑟                      𝜃
+        𝜃 = 𝜌(𝜃 ) ∥ 𝜌(𝜃 )   𝜃                         𝑣                                                        values
+        𝜃 =𝑦
+                                            𝜃                    𝑣           𝑣          𝑣           𝑣
+                                     𝜃
+        𝜃 = 𝜌(𝜃 ) ∥ 𝜌(𝜃 )                                               𝑟           𝑟          𝑟          𝑟    randomness
+
+
+       Figure 4: A diagram of an execution of Valiant’s              Figure 5: A diagram of the data structure of a
+       extractor VE, with input parameters ` = 2, i? = 4,            Merkle tree with privacy. An authentication path
+       and imax = 6.                                                 for v2 is shaded; the corresponding truncated au-
+                                                                     thentication path is the same minus r2 and v2 .
+
+
+
+3.2   Privacy
+We rely not only on the fact that the root rt of a Merkle tree is hiding, but also on the fact that an authentication
+path ap reveals no information about values other than the decommitted one. The latter property can be
+ensured via a slight tweak of the standard construction of Merkle trees: when committing to a list v = (vi )ni=1 ,
+the i-th leaf is not vi but, instead, is a hiding commitment to vi . In our case, we will store the value ρ(vi kri )
+in the i-th leaf, where ri ∈ {0, 1}2λ is drawn uniformly at random; see Figure 5. (An authentication path for
+vi then additionally includes ri , and path verification is modified accordingly.) In what follows, we regard
+ρ(vi kri ) as a leaf, rather than vi ; moreover, a truncated authentication path ap0i is identical to api except that
+it does not contain ri or vi , and the truncated Merkle tree for v is Tv0 := (ap0i )1≤i≤n . Note that the same
+randomness r ∈ {0, 1}2λn is used by MERKLE.GetRoot and MERKLE.GetPath (to be “in sync”).
+     We summarize the privacy property of Merkle trees as above via the following definition and lemma.
+
+Definition 3.3. A Merkle-tree scheme has z(n, λ)-statistical privacy if there exists a probabilistic polynomial-
+time simulator S such that, for every list v = (vi )ni=1 and unbounded distinguisher D, the following two
+
+
+
+
+                                                            15
+probabilities are z(n, λ)-close:
+                                                                                          
+                                                                              ρ ← U(λ)
+                       I ⊆ {1, . . . , n}                    rt ← MERKLE.GetRootρ (v; r) 
+               Pr                                                                         
+                r    Dρ (rt, (api )i∈I ) = 1                                   I ← Dρ 
+                                                 ∀ i ∈ I , api ← MERKLE.GetPathρ (v, i; r)
+
+and                                                                                        
+                                                                             ρ ← U(λ)
+                          I ⊆ {1, . . . , n}
+                    Pr  ρ                                                      I ← Dρ  .
+                        D (rt, (api )i∈I ) = 1                           ρ
+                                                     (rt, (api )i∈I ) ← S (n, (i, vi )i∈I )
+    We make no assumption on the power of the distinguisher D in the definition above. In particular, D
+may query the random oracle ρ at every input, and use the information to attempt to learn vi for some i ∈    / I.
+For example, for some ρ, it is the case that Prr [v = 1 | ρ(vkr) = x]  Prr [v = 0 | ρ(vkr) = x] for
+x = ρ(v2 kr2 ), in which case D can determine v2 from ap1 with good accuracy. The next lemma shows that
+the probability that D gains a significant statistical advantage in this way (or otherwise) is negligible in λ.
+
+Lemma 3.4. There exists a Merkle-tree scheme having z(n, λ)-statistical privacy with z(n, λ) := n2−λ/4+2 .
+
+Proof. Given v = (vi )ni=1 and I ⊆ {1, . . . , n}, we define a sequence of random variables W0 , . . . , W` for
+which W0 = Tv0 and W` contains the output of a probabilistic polynomial time simulator S (see below) on
+input (n, (i, vi )i∈I ) and with access to a random oracle ρ. The random variables are defined as follows:
+
+• We obtain W1 from W0 by (i) replacing each leaf node j ∈ [n] − I with an independently uniformly
+  random string in {0, 1}λ ; (ii) ‘marking’ each such leaf; and (iii) recomputing the rest of the tree.
+
+• For i ∈ {2, . . . , `}, we obtain Wi from Wi−1 by choosing a node whose children are both marked and
+  replacing its value with a string drawn uniformly at random from {0, 1}λ , marking that node, and then
+  recomputing the Merkle tree above it. (Note that the authentication paths for the leaves i ∈ I are still valid
+  with respect to the root and each other.) The last W` is when there are no such nodes remaining.
+
+We now argue that the statistical distance between W0 and W` is at most n2−λ/4+1 . For this, we require the
+following two facts:
+
+• FACT 1. For all but a 2−λ fraction of ρ ∈ U(λ), ρ(r) is 2−λ/4 -close to r0 where r is random in
+  {0, 1}2λ and r0 is random in {0, 1}λ . (Proof: For z ∈ {0, 1}λ and ρ ∈ U(λ) fixed, define δρ (z) :=
+  |Pr[ρ(r) = z] − Pr[X = z]| where r ∈ {0, 1}2λ and X ∈ {0, 1}λ are random. Clearly Pr[X = z] = 2−λ .
+  By a Chernoff bound, for every z ∈ {0, 1}λ : Prρ [δρ (z) ≥ 2−5λ/4 | ρ ← U(λ)] ≤ 2−2λ . By a union bound,
+  Prρ [∃ z ∈ {0, 1}λ s.t. δρ (z) ≥ 2−5λ/4 | ρ ← U(λ)] ≤ 2−λ .PHence, with probability at least 1 − 2−λ over
+  ρ, the statistical distance between ρ(r) and X is at most 2 z∈{0,1}λ δz,ρ ≤ 2λ · 2−5λ/4 = 2−λ/4 .)
+                                                            1
+
+
+• FACT 2. If X1 , . . . , Xn and Y1 , . . . , Yn are independent random variables such that, for each i, Xi and Yi
+  are δ-close, then (X1 , . . . , Xn ) and (Y1 , . . . , Yn ) are nδ-close.
+
+First we examine the statistical distance between W0 and W1 : every node we replace has the form ρ(akr) for
+a ∈ {0, 1}; since ρ(r) and ρ(akr) are identically distributed, Fact 1 holds for ρ(akr) also; thus, using Fact 2
+and the fact that we place at most n leaves, we deduce that W0 and W1 are n2−λ/4 -close for almost all ρ.
+Next we examine the statistical distance between Wi and Wi+1 for i ∈ {1, . . . , k − 1}: whenever we replace
+a node with a random string, it is of the form ρ(r) where r ∈ {0, 1}2λ is random, since we only replace nodes
+
+                                                       16
+whose children we have already replaced; so, using Fact 1, Wi and Wi+1 are n2−λ/4 -close for almost all ρ.
+Thus each step in the sequence marks a non-leaf node and ` is bounded by the number of non-leaf nodes in
+Tv0 ; so ` ≤ n. By the triangle inequality, the statistical distance between W0 and W` is at most n2−λ/4+1 .
+      We now construct the simulator S. On input (n, (i, vi )i∈I ) and with oracle access to ρ, S works as
+follows: (i) set ṽ := (ṽi )ni=1 where ṽi := vi for i ∈ I and ṽi := 0 for i 6∈ I; (ii) for every i ∈ I, compute
+api ← MERKLE.GetPathρ (ṽ, i; r), except whenever we require the value of a node which is marked in W` ,
+use a random string in {0, 1}λ ; (iii) compute rt ← MERKLE.GetRootρ (ṽ; r) in the same way; (iv) output
+(rt, (api )i∈I ). Note that S runs in probabilistic polynomial time since the number of unmarked nodes is at
+most |I| log n, and the only marked nodes we consider are those that are siblings of unmarked nodes.
+      Finally, in one case, all the information given to D is contained in W0 and (vi , ri )i∈I ; in the other case,
+all the information given to D is contained in W` and (vi , ri )i∈I . Moreover, W` was constructed from W0 in
+a way that is independent of (vi , ri )i∈I . Thus, since these two sets of random variables are n2λ/4+1 -close,
+the corresponding outputs of D must also be n2λ/4+1 -close.
+      Choosing ρ uniformly at random, the result follows by the union bound.
+
+
+
+
+                                                        17
+4     Interactive oracle proofs
+We first define interactive oracle protocols, and then use these to define interactive oracle proof systems.
+Afterwards, we make some remarks regarding basic complexity-theoretic properties of such proof systems.
+
+4.1   Interactive oracle protocols
+A k-round interactive oracle protocol between two parties, call them Alice and Bob, comprises k rounds of
+interaction. In the i-th round of interaction: Alice sends a message mi to Bob, which he reads in full; then
+Bob replies with a message fi to Alice, which she can query (via random access) in this and all later rounds.
+After the k rounds of interaction, Alice either accepts or rejects.
+     More precisely, let k be in N and A, B be two interactive probabilistic algorithms. A k-round interactive
+oracle protocol between A and B, denoted hB, Ai, works as follows. Let rA , rB denote the randomness for
+A, B; set f0 := ⊥ and state0 := ⊥. For i = 1, . . . , k, in the i-th round:
+   (i) Alice sends a message mi ∈ {0, 1}ui , where (mi , statei ) := Af0 ,...,fi−1 (statei−1 ; rA ) and ui ∈ N;
+  (ii) Bob sends a message fi ∈ {0, 1}`i , where fi := B(m1 , . . . , mi ; rB ) and `i ∈ N.
+The output of the protocol is mfin := Af0 ,...,fk (statek ; rA ), and belongs to {0, 1}.
+     The accepting probability of hB, Ai is the probability that mfin = 1 for a random choice of rA , rB ; this
+probability is denoted Pr[hB, Ai = 1] (leaving rA , rB implicit). The query complexity of hB, Ai is the
+number of queries asked by A to any of the oracles during the       Pkk rounds. The proof complexity of hB, Ai
+is the number of bits communicated by Bob to Alice (i.e., i=1 `i ). The view of A in hB, Ai, denoted
+ViewhB,Ai (A), is the random variable (a1 , . . . , aq , rA ) where aj denotes the answer to the j-th query.
+Public coins. An interactive oracle protocol is public-coin if for every i ∈ {1, . . . , k}: (i) all queries
+to f0 , . . . , fi−1 before the i-th round depend only on m1 , . . . , mi−1 (in particular, the prover knows these
+queries); (ii) mi is random in {0, 1}ui . We assume, without loss of generality, that in a public-coin protocol
+Alice does not maintain state (i.e., statei = ∅) and postpones any query to after the k-th round (i.e., all
+queries are asked when running Af0 ,...,fk (statek ; rA )). We can thus take the randomness rA to be of the form
+(m1 , . . . , mk , r), where r is additional randomness that A may use of to compute mfin after the last round.
+
+4.2   Interactive oracle proof systems
+An interactive oracle proof system for a relation R with round complexity k : {0, 1}∗ → N and soundness
+s : {0, 1}∗ → [0, 1] is a tuple (P, V ), where P, V are probabilistic algorithms, that satisfies the following
+properties.
+
+1. C OMPLETENESS . For every (x, w) ∈ R, hP (x, w), V (x)i is a k(x)-round interactive oracle protocol
+   with accepting probability 1.
+
+2. S OUNDNESS . For every x ∈ / L (R) and P̃ , hP̃ , V (x)i is a k(x)-round interactive oracle protocol with
+   accepting probability at most s(x).
+
+Message lengths. We assume the existence of polynomial-time functions that determine the message
+lengths. Namely, for any instance x and malicious prover P̃ , when considering the interactive oracle protocol
+hP̃ , V (x)i, the i-th messages mi (from V (x)) and fi (to V (x)) lie in {0, 1}ui (x) and {0, 1}`i (x) respectively.
+Complexity measures. Beyond round complexity and soundness, we consider other complexity measures.
+Given p, q : {0, 1}∗ → N, we say that (P, V ) has proof length p and query complexity q if the proof
+length and query complexity of hP̃ , V (x)i are p(x) and q(x) respectively. (Note that q(x) ≤ p(x) and
+
+                                                        18
+         Pk(x)
+p(x) = i=1 `i (x).) Given tprv , tver : {0, 1}∗ → N, we say that (P, V ) has prover time complexity tprv and
+verifier time complexity tver if P (x, w) runs in time tprv (x) and V (x) runs in time tver (x). In sum, we say
+that (P, V ) has complexity (k, s, p, q, tprv , tver ) if (P, V ) has round complexity k, soundness s, proof length
+p, query complexity q, prover time complexity tprv , and verifier time complexity tver .
+Proof of knowledge. Given e : {0, 1}∗ → [0, 1], we say that (P, V ) has proof of knowledge e if there
+exists a probabilistic polynomial-time oracle algorithm E (the extractor) such that, for every x and P̃ ,
+Pr[(x, E P̃ (x)) ∈ R] ≥ Pr[hP̃ , V (x)i = 1] − e(x).4 The notation E P̃ (x) means that E receives as input x
+and may interact with P̃ via rewinding, as we now describe. At any time, E may send a partial prover-verifier
+transcript to P̃ and then receive P̃ ’s next message (which is empty for invalid transcripts) in the subsequent
+computation step; the code, randomness, and any auxiliary inputs of P̃ are not available to E.
+Honest-verifier zero knowledge. Given z : {0, 1}∗ → [0, 1], we say that (P, V ) has z-statistical honest-
+verifier zero knowledge if there exists a probabilistic polynomial-time algorithm S (the simulator) such that,
+for every (x, w) ∈ R, S(x) is z(x)-close to ViewhP (x,w),V (x)i (V (x)).
+Public coins. We say that (P, V ) is public-coin if the underlying interactive oracle protocol is public-coin.
+
+4.3    Basic complexity-theoretic properties
+Several basic complexity-theoretic properties are straightforward to show and provide different points of
+comparison with other proof system models.
+
+• Expressivity. Interactive oracle proofs characterize NEXP (see Appendix A). This is like probabilistically-
+  checkable proofs and multi-prover interactive proofs (which also characterize NEXP), and unlike interactive
+  proofs (which characterize PSPACE).
+
+• Repetition. Both sequential and parallel repetition of interactive oracle proofs yield (perfect) exponential
+  soundness error reduction (see Appendix B.1). This is like interactive proofs and probabilistically-
+  checkable proofs (where the same holds), and unlike multi-prover interactive proofs (where parallel
+  repetition decays exponentially but not perfectly [Raz95, Hol07]).
+
+• Private vs. public coins. Any interactive oracle proof system can be converted into a public-coin one with
+  at most two additional rounds. This is like interactive proofs (where the same holds [GS86]), and unlike
+  probabilistically-checkable proofs and multi-prover interactive proofs (where correlations among queries
+  are crucial for soundness). This is because the Goldwasser–Sipser set lower-bound approach [GS86]
+  continues to apply in our setting (since the approach only relies on the verifier’s possible randomness and
+  corresponding messages, which do not differ from the standard setting of interactive proofs).
+
+
+
+
+    4
+      Proof of knowledge e implies soundness s := e. The definition that we use is equivalent to the one in [BG93, Section 6] except
+that: (a) we use extractors that run in strict, rather than expected, probabilistic polynomial time; and (b) we extend the condition to
+hold for all x, rather than for only those in L (R), so that proof of knowledge implies soundness.
+
+
+                                                                 19
+5      State restoration attacks on interactive oracle proofs
+We introduce state restoration attacks on interactive oracle proofs and discuss our results for these. First, in
+Section 5.1, we define the notion of state restoration attacks for interactive oracle proof systems; these induce
+corresponding notions of soundness (and proof of knowledge). Afterwards, in Section 5.2, we provide upper
+and lower bounds on state restoration soundness as a function of (standard) soundness and round complexity;
+in Section 5.3, we prove the tightness of these bounds. In Section 5.4, we define restricted state restoration
+attacks, a sub-class of state restoration attacks that enables us to state our results of Section 7 in a tighter way.
+
+5.1     State restoration attacks, and soundness and proof of knowledge against these
+In an interactive oracle proof, a malicious prover P̃ works as follows: for each round i, P̃ receives the i-th
+verifier message mi and then sends to the verifier a message fi computed as a function of his own randomness
+and all the verifier messages received so far, i.e., m1 , . . . , mi .
+    For the case of public-coin interactive oracle proof systems, we also consider a larger class of malicious
+provers, called state-restoring provers. Informally, a state-restoring prover receives in each round a verifier
+message as well as a complete verifier state, and then sends to the verifier a message and a previously-seen
+complete verifier state, which sets the verifier to that state; this forms a state restoration attack on the verifier.
+    More precisely, let (P, V ) be a k-round public-coin interactive proof system (see Section 4.2) and x an
+instance. A complete verifier state cvs of V (x) takes one of three forms: (1) the symbol null, which denotes
+the “empty” complete verifier state; (2) a tuple of the form (m1 , f1 , . . . , mi ), with i ∈ {1, . . . , k(x)}, where
+each mj is in {0, 1}uj (x) and each fj is in {0, 1}`j (x) ; (3) a tuple of the form (m1 , f1 , . . . , mk(x) , fk(x) , r)
+where each mj and fj is as in the previous case and r is the additional randomness of the verifier V (x).
+    The interaction between a state-restoring prover P̃ and the verifier V (x) is mediated through a game:
+
+    1. The game initializes the list SeenStates to be (null).
+    2. Repeat the following until the game halts and outputs:
+        (a) The prover chooses a complete verifier state cvs in the list SeenStates.
+       (b) The game sets the verifier to cvs.
+        (c) If cvs = null: the verifier samples a message m1 in {0, 1}u1 (x) and sends it to the prover; the game
+            appends cvs0 := (m1 ) to the list SeenStates.
+       (d) If cvs = (m1 , f1 , . . . , mi−1 ) with i ∈ {2, . . . , k(x)}: the prover outputs a message fi−1 in {0, 1}`i−1 (x) ;
+            the verifier samples a message mi in {0, 1}ui (x) and sends it to the prover; the game appends cvs0 :=
+            cvskfi−1 kmi to the list SeenStates.
+        (e) If cvs = (m1 , f1 , . . . , mk(x) ): the prover outputs a message fk(x) in {0, 1}`k(x) (x) ; the verifier samples
+            additional randomness r; the game appends cvs0 := cvskfk(x) kr to the list SeenStates.
+        (f) If cvs = (m1 , f1 , . . . , mk(x) , fk(x) , r): the verifier computes his decision b := V f0 ,...,fk(x) (x, statek(x) ; rV )
+            where statek(x) := ∅ and rV := (m1 , . . . , mk , r); then the game halts and outputs b.
+
+    Note that there are two distinct notions of a round. Verifier rounds are the rounds played by the verifier
+within a single execution, as tracked by a complete verifier state cvs; the number of such rounds lies in the
+set {0, . . . , k(x) + 1} (the extra (k(x) + 1)-th round represents the verifier V sampling r after receiving
+the last prover message). Prover rounds are all verifier rounds played by the prover across different verifier
+executions; the number of such rounds is the number of states in SeenStates above. Accordingly, for b ∈ N,
+we say a prover is b-round if it plays at most b prover rounds during any interaction with any verifier.
+    Also note that the prover is not able to set the verifier to arbitrary states but only to previously-seen ones
+(starting with the empty state null); naturally, setting the verifier multiple times to the same state may yield
+distinct new states, because the verifier samples his message afresh each time. After being set to a state cvs,
+
+                                                                   20
+the verifier does one of three things: (i) if the number of verifier rounds in cvs is less than k(x) (see Step 2c
+and Step 2d), the verifier samples a fresh next message; (ii) if the number of verifier rounds in cvs is k(x)
+(see Step 2e), the verifier samples his additional randomness r; (iii) if cvs contains a full protocol execution
+(see Step 2f), the verifier outputs the decision corresponding to this execution. The second case means that
+the prover can set the verifier even after the conclusion of the execution (after r is sampled and known to the
+prover). The game halts only in the third case.
+    The above game between a state-restoring prover and a verifier yields corresponding notions of soundness
+and proof of knowledge. Below, we denote by Pr[hP̃ , V (x)isr = 1] the probability that the state-restoring
+prover P̃ makes the verifier V accept x in this game.
+
+Definition 5.1. Given ssr , esr : {0, 1}∗ → [0, 1], a public-coin interactive oracle proof system (P, V ) has
+
+• S TATE RESTORATION SOUNDNESS ssr if, for every x ∈
+                                                   / L (R) and b-round state-restoring prover P̃ ,
+  Pr[hP̃ , V (x)isr = 1] ≤ ssr (x, b).
+
+• S TATE RESTORATION PROOF OF KNOWLEDGE esr if there exists a probabilistic polynomial-time algorithm
+  Esr (the extractor) such that, for every x and b-round state-restoring prover P̃ , Pr[(x, Esr
+                                                                                             P̃ (x)) ∈ R] ≥
+
+  Pr[hP̃ , V (x)isr = 1] − esr (x, b).
+
+Remark 5.2 (results about proof of knowledge). The discussions in Section 5.2, Section 5.3, and Section 5.4
+below mention only state restoration soundness ssr . All of these discussions (as well as theorems) also apply,
+without change, to state restoration proof of knowledge. (Just substitute esr for ssr , and e for s.)
+
+5.2   General bounds
+Let (P, V ) be a k-round public-coin interactive proof system with soundness s and state restoration soundness
+ssr . We give upper and lower bounds on ssr as a function of k and s. First, for every instance x ∈ {0, 1}∗
+and small enough budget b ∈ N there are two “degenerate” cases: if b ≤ k(x) then ssr (x, b) = 0; and if
+b = k(x) + 1 then ssr (x, b) = s(x). For larger values of b, we prove the following bounds:
+
+Lemma 5.3. Let (P, V ) be a k-round public-coin interactive proof system with soundness s and state
+restoration soundness ssr . For every instance x ∈ {0, 1}∗ and budget b ∈ N with b ≥ k(x) + 1,
+
+                                     s(x)(1 − o(1)) ≤ ssr (x, b) ≤             s(x) ,
+                                                                          
+                             b                                          b
+                        k(x) + 1                                    k(x) + 1
+
+where the lower bound holds if b k(xb)+1 cs(x) = o(1).
+
+Proof. We first prove the lower bound by exhibiting a universal “resetting” attack. Let P̃ be a prover that
+attains s(x), i.e., makes V (x) accept with probability s(x). Consider the state-restoring prover P̃sr that
+runs P̃ until it halts, then sets V (x) to the empty state null, and repeats this until either V (x) accepts or b
+prover rounds have elapsed. Note that P̃sr succeeds with probability at least b k(xb)+1 cs(x)(1 − o(1)) provided
+b k(xb)+1 cs(x) = o(1). This establishes the lower bound.
+    We now prove the upper bound. Let P̃sr be a b-round state-restoring prover that makes V accept x
+with probability ssr (x, b). We construct a prover P̃ that, using P̃sr as a subroutine, makes V accept x with
+probability k(xb)+1 ssr (x, b), without any state restoration. The prover P̃ works as follows. First, P̃
+                    −1
+
+chooses a uniformly random subset S ⊆ {1, . . . , b} of cardinality k(x) + 1; we denote by S[i] the i-th
+
+
+                                                       21
+smallest value in S. Then P̃ runs P̃sr , simulating an interaction between P̃sr and a virtual verifier using
+internal randomness, except that, in the simulated prover round S[i] with i ∈ {1, . . . , k(x)}, P̃ gives to P̃sr
+the message mi from (the real verifier) V , and sends P̃sr ’s response message fi back to V . Finally, in the
+simulated prover round S[k(x) + 1], we set the virtual verifier’s randomness to that of V . (More precisely,
+since this randomness is not visible to P̃ , we couple these two random variables for the purpose of this
+analysis; this coupling does not affect the acceptance probability of the real verifier V .)
+     The view of P̃sr is as in a real state restoration attack, so the virtual verifier accepts with probability
+ssr (x, b). If the virtual verifier accepts, there is S 0 ∈ k(x[b])+1 such that V 1 k(x) (x, statek(x) ; rV ) = 1
+                                                                                f 0 ,...,f 0
+
+where statek(x) := ∅, rV := (m01 , . . . , m0k(x) , r0 ), the m0i and fi0 are messages received and sent by P̃sr in
+prover round S 0 [i] for i ∈ {1, . . . , k(x)}, and r0 is the additional randomness of the virtual verifier for prover
+round S 0 [k(x) + 1]. So if S = S 0 then (the real verifier) V accepts x; the equality occurs with probability
+            . So P̃ makes V accept x with probability k(xb)+1 ssr (x, b); rearranging yields the claim.
+    b
+       −1                                                           −1
+ k(x)+1
+
+
+5.3     Tightness of general bounds
+We prove that the bounds of Section 5.2 are essentially tight. First, we show that the lower bound of
+Lemma 5.3 is tight up to a factor k(x).
+Theorem 5.4. For every k ∈ N there exists a k-round protocol (P, V ) with soundness s(x) and state
+restoration soundness ssr (x, b) such that ssr (x, b) ≤ bs(x).
+Proof. Take any zero-round protocol (P 0 , V 0 ) with soundness s(x), and add k dummy rounds to obtain a
+k-round protocol (P, V ). This protocol also has soundness s(x). Moreover, any b-round state-restoring
+prover P̃ for (P, V ) can be converted into a b-round state-restoring prover P̃ 0 for (P 0 , V 0 ) by restoring (null)
+whenever P̃ restores (. . . , mk ), and simulating dummy rounds for all other messages. One can verify that
+P̃ 0 convinces V 0 with the same probability as P̃ convinces V . By Lemma 5.3, (P 0 , V 0 ) has state restoration
+soundness at most bs(x), and hence so does (P, V ).
+
+    Next, we show that the upper bound of Lemma 5.3 is tight up to a polynomial factor in |x|, independent
+of b, when k(x) = O(log |x|).
+Theorem 5.5. For every R ∈ NEXP and k ∈ N there is a k-round public-coin interactive oracle proof
+system (P, V ) for R such that, for
+                                   every sufficiently large b ∈ N, (P, V ) has state restoration soundness
+ssr (x, b) ≥ 4 · 4    x
+                            k(x)+1 s(x), where s(x) is the soundness of (P, V ).
+             1    −(k( )+1)    b
+
+
+      We first prove the following lemma.
+Lemma 5.6. For every k ∈ N there exists u ∈ N for which there is a k-round public-coin interactive oracle
+                                       sufficiently large b ∈ N, (P, V ) has state restoration soundness
+proof system (P, V ) such that, for every
+                           x
+ssr (x, b) ≥ 2 ≥ 2 · 4
+             1   1     −(k( )+1)  b
+                                       s(x), where s(x) is the soundness of (P, V ). Moreover, each of V ’s
+                            j k(x)+1k
+                                  b
+messages has length u ≤ log k+1 .
+
+Proof. Let u ∈ N be a parameter to be fixed later.
+    Consider the k-round public-coin interactive oracle proof system (P, V ) defined as follows. Each message
+mi of V is sampled uniformly at random from {0, 1}u ; after k interactions with the prover, V samples r
+uniformly at random from {0, 1}u and accepts if and only if m1 = · · · = mk = r = 1u . Note that no
+malicious prover can make V accept with probability more than 2−(k+1)u without state restoration.
+    Allowing state restoration, we construct a state-restoring prover P̃ as follows.
+
+                                                         22
+    (i) Let cvs0 := null.
+   (ii) For i = 1, . . . , k, restore cvsi−1 repeatedly (and sending the verifier empty messages) until mi = 1u .
+        Let the state received when this happens be cvsi .
+  (iii) Restore cvsk (with an empty proof) repeatedly until V accepts.
+We make P̃ be a b-round state-restoring prover by having it abort after playing b rounds.
+      The prover P̃ makes V accept if and only if drawing b strings uniformly at random from {0, 1}u yields at
+least k + 1 copies of 1u . The expected number of strings we need to draw to obtain k + 1 copies is (k + 1)2u ,
+by linearity of expectation. Thus by Markov’s inequality, the probability that more than 2(k + 1)2u strings
+need to be drawn is at most 1/2, that is, with probability at least 1/2, k + 1 copies of 1u are obtained within
+2(k + 1)2u draws.
+                                                                                b −1
+      We choose u to be the smallest integer such that 2−(k+1)u ≤ 22(k+1) k+1
+                                                                                   
+                                                                                     . This condition holds for all
+                                                                                                          
+              b                                 x     x y                                                 b
+                                                  
+u ≥ log k+1 −2 (using the inequality y ≥ ( y ) for x ≥ y ≥ 1). By minimality of u, u ≤ log k+1                 −1,
+and thus 2(k + 1)2u ≤ b. With this choice of u, (P, V ) has soundness s(x) = 2−(k+1)u ≤ 4k+1 k+1       b −1
+                                                                                                         
+                                                                                                              , but
+state restoration soundness ssr (x, b) ≥ 2 ≥ 2 · 4
+                                              1     1 −(k+1)
+                                                              k+1 s(x).
+                                                                b
+                                                                  
+
+      We now return to the proof of the theorem.
+
+Proof of Theorem 5.5. The relation R has a public-coin k-round interactive oracle proof system (P̂ , V̂ ),
+because R is in NEXP (see the lemma in Appendix A). Moreover, we may assume that (P̂ , V̂ ) has soundness
+        b −1
+4k+1 k+1          = 2−O(k log b) (see parallel repetition in Appendix B.1).
+           
+
+     Construct a k-round interactive oracle proof system (P, V ). Let (P 0 , V 0 ) be the k-round IOP implied by
+Lemma 5.6, and u ∈ N the corresponding message length. The verifier V works as follows.
+   (i) Let m̂1 k . . . km̂k kr̂ denote the randomness for V̂ .
+  (ii) Simulate V̂ until round k (i.e., until before V̂ makes its first query), forwarding V̂ ’s messages to
+       the prover with the following adjustment. For each i, the i-th message mi equals m̂i padded with
+       min{0, u − |m̂i |} random bits. The randomness r equals r̂ padded with min{0, u − |r̂|} random bits.
+ (iii) If V 0f1 ,...,fk (x, m01 , . . . , m0k ; r0 ) = 1, where m0i and r0 are the first u bits of mi for i = 1, . . . , k and r
+       respectively, then halt and accept.
+ (iv) Continue to simulate V̂ until it halts, and output its decision.
+The prover P equals P̂ up to the fact that P ignores any padding in the messages received from V .
+     Clearly (P, V ) has completeness 1. Also, by the union bound, we see that for all x ∈                  / L (R) and P̃
+without state restoration, Pr[hP̃ , V (x)i = 1] ≤ 2 · 4          k+1    b −1
+                                                                           
+                                                                       k+1     . (Any additional random bits generated by
+V do not help a malicious prover make V̂ accept because they do not affect V̂ ’s decision.)
+     The malicious prover P̃ implied by Lemma 5.6 achieves the same soundness (using state restoration)
+against V as it does against V 0 . The theorem follows analogously.
+
+5.4     Restricted state restoration attacks
+We briefly discuss a technical restriction of state restoration attacks that we use for stating bounds in Section 7;
+these bounds can also be stated relative to (unrestricted) state restoration attacks, but would not be as tight.
+    A restricted state restoration attack is one where the prover cannot restore the verifier to the empty state
+cvs = null (except for in the first iteration of the game in Section 5.1), but can still restore the verifier to any
+other previously-seen verifier state. In other words, a restricted state restoration attack on a k-round protocol
+is equivalent to playing the first round as normal, and then performing an (unrestricted) state restoration
+attack on the remaining k − 1 rounds. The notion of restricted state restoration yields corresponding notions
+
+                                                              23
+of restricted state restoration soundness, which we denote s̄sr , and restricted state restoration proof of
+knowledge, which we denote ēsr .
+    The above equivalence implies the following lemma, analogous to Lemma 5.3.
+
+Lemma 5.7. Let (P, V ) be a k-round public-coin interactive oracle proof system with soundness s and
+restricted state restoration soundness s̄sr . For every instance x ∈ {0, 1}∗ and budget b ∈ N with b ≥ k(x),
+
+                                     s(x) ≤ s̄sr (x, b) ≤           s(x) .
+                                                                  
+                                                               b
+                                                              k(x)
+
+    Note that the lower bound of Lemma 5.3 no longer holds, because there are interactive oracle proof
+systems for which restricted state restoration soundness is equal to standard soundness. (E.g., consider a
+k-round proof system where every round but the first does not affect the verifier’s acceptance probability.)
+This shows that the lower bound of Lemma 5.7 is tight; also, the upper bound of Lemma 5.7 is tight in a
+similar way to the upper bound of Lemma 5.3, by the following theorem (analogous to Theorem 5.5).
+
+Theorem 5.8. For every R ∈ NEXP and k ∈ N there is a k-round public-coin interactive oracle proof
+system (P, V ) for R such that, for every      sufficiently large b ∈ N, (P, V ) has restricted state restoration
+soundness s̄sr (x, b) ≥ 14 · 4−k(x) k(
+                                    b−1
+                                             x   where s(x) is the soundness of (P, V ).
+                                         
+                                       x)  s( ),
+
+    Finally, using a similar technique to the proof of the upper bound in Lemma 5.3, we also obtain the
+following bounds for s̄sr in terms of ssr :
+
+Lemma 5.9. For every instance x ∈ {0, 1}∗ and budget b ∈ N it holds that
+
+                                        ssr (x, b) ≤ s̄sr (x, b) ≤ ssr (x, b) .
+                                      1
+                                      b
+
+
+
+
+                                                        24
+6    From interactive oracle proofs to non-interactive random-oracle proofs
+We describe a transformation T such that if (P, V ) is a public-coin interactive oracle proof system for a relation
+R then (P, V) := T (P, V ) is a non-interactive random-oracle proof system for R. The transformation T
+runs in polynomial time: given as input code for P and V , it runs in time polynomial in the size of this code
+and then outputs code for P and V. Concretely, we proceed as follows:
+• Below, we describe the polynomial-time transformation T by giving the construction of P and V.
+• In Section 7, we state and prove T ’s main properties, relating features of (P, V ) to those of (P, V).
+Notation. For convenience, we split the random oracle ρ into two random oracles, denoted ρ1 and ρ2 , as
+follows: ρ1 (x) := ρ(0kx) and ρ2 (x) := ρ(1kx). At a high level, we use ρ1 for the verifier’s randomness, and
+ρ2 for Merkle trees and other hashing purposes. When counting queries, we count queries to both ρ1 and ρ2 .
+Construction of P. The algorithm P, given input (x, w) and oracle access to ρ, works as follows.
+1. Set k := k(x), q := q(x), f0 := ⊥, and σ0 := ρ2 (x).
+2. Start running P (x, w) and, for i = 1, . . . , k:
+    (a) Compute the verifier message mi := ρ1 (xkσi−1 ) (and Remark 2.1 may apply here).
+    (b) Give mi to P (x, w) to obtain fi .
+    (c) Compute the Merkle-tree root rti := MERKLE.GetRootρ2 (fi ).
+    (d) Compute the “root hash” σi := ρ2 (rti kσi−1 ).
+3. Set statek := ∅ and rV := (m1 , . . . , mk , r), where r := ρ1 (xkσk ) (and Remark 2.1 may apply here).
+4. Run V f0 ,...,fk (x, statek ; rV ) and compute an authentication path for each query. Namely, for j = 1, . . . , q:
+   if the j-th query is to the xj -th bit of the yj -th oracle, then compute apj := MERKLE.GetPathρ2 (fyj , xj ).
+   (If MERKLE.GetRoot is probabilistic, thengive the same randomness to MERKLE.GetPath as well.)
+5. Set π := (rt1 , . . . , rtk ), (ap1 , . . . , apq ), σk . That is, π comprises the Merkle-tree roots, an authentication
+   path for each query, and the final root hash.
+6. Output π.
+See Figure 6 for a diagram of the construction above.
+Construction of V. The algorithm V, given input (x, π̃) and oracle access to ρ, works as follows.
+1. Set k := k(x), q := q(x), f0 := ⊥, and σ0 := ρ2 (x).
+2. Parse π̃ as a tuple (rt   ˜ 1 , . . . , rt
+                                           ˜ k ), (ap
+                                                    ˜ 1 , . . . , ap
+                                                                   ˜ q ), σ̃k .
+3. For i = 1, . . . , k:
+    (a) Compute mi := ρ1 (xkσi−1 ).
+    (b) Compute σi := ρ2 (rt       ˜ i kσi−1 ).
+4. Set statek := ∅ and rV := (m1 , . . . , mk , r), where r := ρ1 (xkσk ).
+5. Compute mfin := V f0 ,...,fk (x, statek ; rV ), answering the j-th query with the answer aj in the path ap   ˜ j.
+6. If σk 6= σ̃k , halt and output 0.
+7. For j = 1, . . . , q: if the j-th query is to the xj -th bit of the yj -th oracle and MERKLE.CheckPathρ2 (rtyj , xj ,
+         ˜ j ) 6= 1, halt and output 0.
+   aj , ap
+8. Output mfin .
+
+
+
+
+                                                           25
+               𝑚                                          𝜎
+                      𝜌 (𝑥| ⋅)                                             𝑓     𝑓    … 𝑓
+                𝑓                              rt
+                                  GetRoot            𝜌
+                                                          𝜎
+               𝑚
+                      𝜌 (𝑥| ⋅)
+               𝑓                               rt                            𝑉( 𝑚 , … , 𝑚 ; 𝑟)
+         𝑃                        GetRoot            𝜌
+                                                          𝜎
+                         ⋮            ⋮                             oracle query
+                                                      ⋮                                                ap
+               𝑚                                          𝜎           𝑓          𝑥         GetPath
+                      𝜌 (𝑥| ⋅)                                                                         ap
+               𝑓                               rt                     𝑓          𝑥         GetPath
+                                  GetRoot            𝜌                                         ⋮
+                                                                       ⋮          ⋮
+                                                          𝜎                                            ap
+                𝑟                                                     𝑓          𝑥         GetPath
+                      𝜌 (𝑥| ⋅)
+
+Figure 6: Diagram of how the NIROP prover P works. On the left, the diagram shows the part of P’s computation
+that involves running the IOP prover P ; on the right, the diagram shows the part of P’s computation that involves
+running the IOP verifier V . The highlighted values are those that are eventually included in the output proof π.
+
+
+
+
+                                                          26
+7       Analysis of the transformation T
+The theorem below specifies guarantees of the transformation T , described in Section 6. The statement of the
+theorem relies on the notions of soundness and proof of knowledge against state restoration attacks, described
+in Section 5 (more precisely, the statement relies on their restricted variants, described in Section 5.4).
+
+Theorem 7.1 (IOP → NIROP). For every relation R, if (P, V ) is a public-coin interactive oracle proof
+system for R with
+
+                                                          round complexity         k(x)
+                                 restricted state restoration soundness            s̄sr (x, b)
+                                                                  proof length     p(x)
+                                                                  prover time      tver (x)
+                                                                  verifier time tprv (x)
+
+then (P, V) := T (P, V ) is a non-interactive random-oracle proof system for R with
+
+                soundness                 s0 (x, m, λ) := s̄sr (x, m) + 3(m2 + 1)2−λ
+                                             p0 (x, λ) := k(x) + q(x) · (dlog2 p(x)e + 2) + 1 · λ                5
+                                                                                             
+             proof length
+              prover time                  t0prv (x, λ) := Oλ (k(x) + p(x)) + tprv (x) + tver (x)
+             verifier time                 t0ver (x, λ) := Oλ (k(x) + q(x)) + tver (x)
+
+Moreover, the transformation T preserves both proof of knowledge and zero knowledge (if present):
+
+• If (P, V ) has restricted state restoration proof of knowledge ēsr then (P, V) has proof of knowledge e0 with
+
+                                      e0 (x, m, λ) := ēsr (x, m) + 3(m2 + 1)2−λ .
+
+• If (P, V ) has z-statistical honest-verifier zero knowledge then (P, V) has z 0 -statistical zero knowledge with
+
+                                            z 0 (x, λ) := z(x) + p(x)2−λ/4+2 .
+
+Finally, the above soundness s0 (x, m, λ) and proof of knowledge e0 (x, m, λ) are tight up to a multiplicative
+factor O(λ + p(x) + u(x)) in m, where u(x) is the total number of bits sent by V (x) (for any choice of its
+randomness).
+
+    By construction, if hP (x, w), V (x)i has accepting probability δ, then the probability that Vρ (x, Pρ (x, w))
+accepts is δ. The complexities p0 , t0prv , t0ver above also directly follow from the construction. Therefore, we
+are left to discuss soundness (upper bound in Section 7.1 and lower bound in Section 7.2), proof of knowledge
+(Section 7.3), and zero knowledge (Section 7.4).
+                                                                                                               Pq(x)
+    This bound can be tightened by using additional notation: the term q(x) · dlog2 p(x)e can be replaced by
+    5
+                                                                                                                 j=1 dlog2 |fij |e
+where fij is the oracle queried by the j-th query.
+
+
+
+
+                                                             27
+7.1   Upper bound for soundness
+Let x ∈ / L (R) and let P̃ be an m-query prover for the non-interactive random-oracle proof system (P, V).
+We construct a prover P̃ (depending on x and P̃) for the interactive oracle proof system (P, V ), and show
+that P̃ ’s ability to cheat in a (restricted) state restoration attack is closely related to P̃’s ability to cheat.
+Construction of P̃ . Given no inputs or oracles, the prover P̃ works as follows.
+1. Let ρ1 , ρ2 be tables mapping {0, 1}∗ to {0, 1}λ , and let α be a table mapping λ-bit strings to verifier states.
+   The tables are initially empty and are later populated with suitable values, during the simulation of P̃.
+   Intuitively, ρ1 , ρ2 are used to simulate P̃’s access to a random oracle, while α is used to keep track of
+   which verifier states P̃ has “seen in his mind”.
+2. Draw σ0 ∈ {0, 1}λ at random, and define ρ2 (x) := σ0 (i.e., the oracle ρ2 replies the query x with the
+   answer σ0 ). After receiving V ’s first message m1 , also define ρ1 (xkσ0 ) := m1 and α(σ0 ) := (m1 ).
+3. Begin simulating P̃ρ and, for i = 1, . . . , m:
+    (a) Let θi be the i-th query made by P̃ρ .
+    (b) If θi is a query to a location of ρ1 that is defined, respond with ρ1 (θi ). Otherwise (if θi to an undefined
+          location of ρ1 ), draw a string in {0, 1}λ at random and respond with it. Then go to the next iteration
+          of Step 3.
+    (c) If θi is a query to a location of ρ2 that is defined, respond with ρ2 (θi ); then go to the next iteration of
+          Step 3. Otherwise (if θi is to an undefined location of ρ2 ), draw a string σ 0 ∈ {0, 1}λ at random and
+          respond with it; then continue as follows.
+    (d) Let rt be the first λ bits of θi , and σ be the second λ bits. (If the length of θi is not 2λ bits, go to
+          the next iteration of Step 3.) If α(σ) is defined, let cvs := α(σ) and let j be the number of verifier
+          rounds in the state cvs. If α(σ) is not defined, go to the next iteration of Step 3.
+    (e) Find the query θi? whose result is rt. If this query is not unique, or there is no such query, then answer
+          the verifier V with some dummy message (e.g., an all zero message of the correct length) and skip to
+          Step 3g. Otherwise, note the index i? and continue.
+     (f) Compute f := VEρ2 (P̃, `j (x), i? , i); if VE aborts, set f := 0`j (x) . Recall that `j (x) is the length of
+          the prover message in the j-th verifier round, and VE is Valiant’s extractor (see Section 3.1). Also
+          note that VE does not query ρ2 on any value outside the table, because we have already simulated the
+          first i queries of P̃ (see Remark 3.1).
+    (g) Send the message f to the verifier and tell the game to set the verifier to the state cvs. (Whether cvs
+          lies in the set SeenStates is a matter of analysis further below.) If the game is not over, the verifier
+          replies with a new message m0 . (If j = k(x) + 1, for the purposes of the proof, we interpret m0 as
+          the additional randomness r.) The game adds cvs0 := cvskf km0 to SeenStates. The prover defines
+          ρ1 (xkσ 0 ) := m0 and α(σ 0 ) := cvs0 .
+Analysis of P̃ . We now analyze P̃ . We first prove a simple lemma, and then discuss P̃ ’s ability to cheat.
+Lemma 7.2. Let A be an m-query algorithm. Define:
+1. E1 to be the event that Aρ2 outputs x ∈ {0, 1}n , rt1 , . . . , rtk(x) ∈ {0, 1}λ , and σk(x) ∈ {0, 1}λ that satisfy
+   the recurrence σ0 = ρ2 (x) and σi = ρ2 (rti kσi−1 ) for all i ∈ {1, . . . , k(x)};
+2. E2 to be the event that Aρ2 queries ρ2 at x, rt1 kσ0 , . . . , rtk(x) kσk(x)−1 (in order) and, if any rti is the
+   result of a query, this query first occurs before rti kσi−1 .
+Then
+                             Pr [(¬E1 ) ∨ E2 | ρ2 ← U(λ)] ≥ 1 − (m2 + 1)2−λ .
+Proof. Let rt0 be x and σ−1 be the empty string. Suppose, by contradiction, that E1 occurs and E2 does not.
+Then there exists i ∈ {0, . . . , k(x)} for which at least one of the following holds: (i) Aρ2 does not query
+
+                                                         28
+rti kσi−1 ; (ii) Aρ2 queries rti+1 kσi before it queries rti kσi−1 ; (iii) rti is the result of a query but this query
+first occurs after rti kσi−1 . Consider the largest index i for which one of the above holds.
+     In case (i), the behavior of Aρ2 is independent of ρ2 (rti kσ̃i−1 ). If i = k(x), then the output σk(x)
+of Aρ2 equals ρ2 (rtk(x) kσk(x)−1 ) with probability 2−λ . If i < k(x), then there is a sequence of queries
+rti+1 kσ̃i , . . . , rtk(x) kσ̃k(x)−1 for which σ̃i = ρ2 (rti kσ̃i−1 ) for i = 1, . . . , k(x) − 1 and ρ2 (rtk(x) kσ̃k(x)−1 ) =
+σk(x) . If this sequence is not unique, then Aρ2 has found a collision. Otherwise, the unique sequence has
+σ̃i = σi for each i, which occurs with probability at most 2−λ .
+     In cases (ii) and (iii), Aρ2 has found a collision, since σi = ρ2 (rti kσi−1 ). The fraction of oracles ρ2 for
+which Aρ2 finds a collision is at most m2 2−λ . Overall, the probability that E2 does not occur and E1 does is,
+by the union bound, at most (m2 + 1)2−λ .
+
+    We now state and prove the lemma that establishes the soundness s0 as stated in Theorem 7.1.
+
+Lemma 7.3. Define
+                                          := Pr Vρ (x, π) = 1
+                                                                                        
+                                                                          ρ ← U(λ)
+                                                                                             .
+                                                                            π ← P̃ρ
+Then there exists b ∈ N with b ≤ m such that P̃ is a b-round state-restoring prover that makes V accept with
+probability at least  − 3(m2 + 1)2−λ .
+
+Proof. We first note that P̃ described plays no more than m rounds, because P̃ sends a message to the verifier
+V only in response to P̃ making a query. Next, we define some useful notions, and use them to prove three
+claims which together imply the lemma.
+
+D EFINITION 1. We say ρ ∈ U(λ) is good if
+1. The verifier accepts relative to ρ, i.e., Vρ (x, π) = 1 where                    π ← P̃ρ .
+                                     ˜ k(x) ), (ap              ˜ q ), σ̃k(x) and setting σ0 := x, for each i ∈ {1, . . . , k(x)},
+                                                                              
+2. Parsing π as (rt    ˜ 1 , . . . , rt          ˜ 1 , . . . , ap
+                       ˜
+   where σi := ρ2 (rti kσi−1 ), there exist indices 1 ≤ j1 < · · · < jk ≤ m such that:
+    (a) P̃ρ ’s ji -th query is to ρ2 at rt      ˜ i kσi−1 ;
+    (b) if rti is the result of a query, this query first occurs before ji ;
+    (c) if P̃ρ queries ρ1 at xkσi , then this query occurs after query ji ;
+    (d) if there exists l such that Root(ap          ˜ l ) = rt  ˜ i , there is a unique (up to duplicate queries) ai ∈ {0, . . . , ji }
+         such that ρ2 (θai ) = rti and, for every imax ∈ {ai , . . . , ji }, v := VEρ2 (A, `i , ai , imax ) is such that, for
+                                      ˜
+         all l with Root(ap     ˜ l ) = rt˜ i , Value(ap  ˜ l ) equals the Position(ap    ˜ l )-th value in v; we say v is extracted
+         at i if this holds.
+3. σ̃k(x) = σk(x) .
+
+D EFINITION 2. We say that P̃ chooses ρ ∈ U(λ) if for every query θ made by P̃ρ to its oracle, P̃ supplies it
+with ρ(θ) (ignoring whether this response comes from P̃ itself or the messages sent by V ; this choice is fixed
+for a given ρ).
+
+C LAIM 1. (P̃ , V ) chooses ρ ∈ U(λ) uniformly at random.
+
+   Whenever the simulation of P̃ makes a query, P̃ responds consistently, either with a uniformly randomly
+drawn string of its own, or the uniform randomness provided by V . This is equivalent in distribution to
+drawing ρ uniformly at random at the beginning of the protocol. 
+
+C LAIM 2. For any choice of randomness such that P̃ chooses a good ρ, P̃ makes V (x) accept with a state
+restoration attack.
+
+                                                                  29
+       We begin by defining a property of the map α.
+
+D EFINITION 3. For i = 0, . . . , k, we say that α is correct at i if, immediately before P̃’s ji+1 -th query is
+simulated (for i = k, at the end of the simulation), it holds that
+
+                                         α(σi ) = (ρ1 (xkσ0 ), f1 , . . . , ρ1 (xkσi )) ,
+
+where for each l ∈ {1, . . . , i}, fl is extracted at l (see Condition 2d above), and α(σi ) ∈ SeenStates.
+
+     We show by induction that α is correct at i for every i ∈ {0, . . . , k}. First, α is correct at 0 since
+α(σ0 ) = (ρ1 (xkσ0 )) by construction. Suppose that α is correct at i − 1. When P̃ρ queries rt         ˜ i kσi−1 (i.e.,
+query θji ), P̃ restores α(σi−1 ) ∈ SeenStates. By Condition 2d, fi is extracted at i. In Step 3g, ρ1 (xkσi ) is set
+to the message (or, similarly, internal randomness) sent by V in this round, which is possible by Condition 2c.
+The newly stored state is then α(σi ) = (ρ1 (xkσ0 ), f1 , . . . , ρ1 (xkσi−1 ), fi , ρ1 (xkσi )) ∈ SeenStates. This
+state is stored before query ji+1 by Condition 2a, and so α is correct at i.
+     Hence P̃ sends a state α(σk ) = (ρ1 (xkσ1 ), f1 , . . . , ρ1 (xkσk )) ∈ SeenStates. Since V’s simulation of V
+accepts with this state, so does the real V when interacting with P̃. 
+
+C LAIM 3. The probability that ρ ∈ U(λ) is good is at least  − 3(m2 + 1)2−λ .
+
+    By assumption, the density of oracles satisfying Condition 1 is . Lemma 7.2 implies that the density
+of oracles satisfying Condition 1 but not satisfying Condition 2a, Condition 2b, and Condition 3 is at most
+(m2 + 1)2−λ .6 The density of oracles failing to satisfy Condition 2c is at most m2 2−λ , since this implies
+a ‘collision’ (in the sense of Lemma 3.2) between ρ1 and ρ2 . Finally, the density of oracles satisfying
+Condition 1, Condition 2a, and Condition 2b, but not Condition 2d is at most (m2 + 1)2−λ , by Lemma 3.2
+and Condition 2b (where Condition 2b allows us to restrict the possible values for ai to 0 ≤ ai < ji ).
+    By the union bound, the density of good oracles ρ is at least  − 3(m2 + 1)2−λ . 
+Combining the claims, we deduce that P̃ makes V accept with probability at least  − 3(m2 + 1)2−λ with a
+state restoration attack. Finally, note that this state restoration attack is restricted because P̃ never requests to
+set V to the empty verifier state null.
+
+7.2      Lower bound for soundness
+We show that the soundness analysis of Section 7.2 is essentially tight. Let x ∈
+                                                                               / L (R) and let P̃ be a b-round
+state-restoring prover for the interactive oracle proof system (P, V ). We construct an m-query prover P̃ for
+the non-interactive random-oracle proof system (P, V), and show that P̃’s ability to cheat is closely related to
+P̃ ’s ability to cheat in a state restoration attack.
+Construction of P̃. Given oracle access to ρ, the prover P̃ works as follows.
+1. Initialize SeenStates to be an empty set and α to be an empty mapping from verifier states to {0, 1}λ .
+2. Compute k := k(x), σ0 := ρ2 (x), and m1 := ρ1 (xkσ0 ).
+3. Send the verifier message m1 to the simulation of P̃ .
+4. Set the verifier state cvs := (m1 ), add cvs to SeenStates, and set α(cvs) := σ0 .
+5. For j = 1, . . . , b:
+    (a) Simulate P̃ until it selects cvs(j) = (m1 , f1 , . . . , mi(j) ) ∈ SeenStates and outputs a message f (j) .
+    (b) Compute the root rt := MERKLE.GetRootρ2 (f (j) kj), where j is encoded in {0, 1}λ .
+   6
+    More precisely, we apply Lemma 7.2 to an algorithm P̃ that does not itself output x but this does not affect the lemma’s validity
+because we can substitute into the definition of the event E1 the fixed instance x.
+
+
+                                                                30
+      (c) Set σ := α(cvsj ), σ 0 := ρ2 (rtkσ), m(j) := ρ1 (xkσ 0 ), and jf (j) := j.
+      (d) If i(j) < k, send the verifier message m(j) to the simulation of P̃ , add cvs := cvs(j) k(f (j) , m(j) ) to
+          SeenStates, set α(cvs) := σ 0 , and continue to the next iteration.
+      (e) If i(j) = k, compute the bit d := V f1 ,...,fk (x, ∅; (m1 , . . . , mk , m(j) )). If d = 0, continue to the next
+          iteration; else if d = 1, compute a proof π as in Step 4 and 5 of the construction of P in Section 6,
+          using σk := σ and replacing fi with fi kifi for i = 1, . . . , k, then output π.
+Analysis of P̃. We now analyze P̃.
+
+Lemma 7.4. There exists a constant c such that if P̃ is a b-round state-restoring prover that makes V accept
+x with probability , then P̃ is an m-query prover that makes V accept x with probability at least  − m22−λ,
+where m := c · (λ + p(x) + u(x)) · b and u(x) is the sum of the lengths of all the verifier’s messages.
+
+Proof. First, we argue that P̃ makes no more than c · (λ + p(x) + u(x)) · b oracle queries for some universal
+constant c. Whenever P̃ plays a round, P̃ makes:
+• one call to ρ1 (chained dui (x)/λe ≤ u(x) times where ui is the length of the i-th verifier message);
+• one call to ρ2 ; and
+• one call to MERKLE.GetRootρ2 on a string of length at most p(x)+λ, which requires at most c0 ·(p(x)+λ)
+   queries for some universal constant c0 .
+In Step 5e, P̃ does not need to make any new queries. Thus, the number of queries is at most m.
+     Next, we argue if (the simulation of) P̃ convinces (the simulation of) V , then P̃ convinces V. This is clear
+because P̃ constructs the proof π from messages and randomness that cause (the simulation of) V to accept.
+It is also clear that (the simulation of) P̃ sees a legal restricted state restoration transcript.
+     Finally, we argue that (the simulation of) P̃ convinces (the simulation of) V with the claimed probability.
+If all the root hashes σ 0 are distinct, then all the verifier messages are uniformly randomly drawn, because
+each message is computed as ρ1 (xkσ 0 ); hence, by assumption, P̃ convinces V with probability . Every
+Merkle tree root is computed relative to a distinct string (because we include the prover round index in the
+string), so that if two root hashes collide then this implies a collision in ρ2 , which can occur with probability
+at most m2 2−λ . By the union bound, P̃ causes V to accept with probability at least  − m2 2−λ .
+
+7.3     Proof of knowledge
+We describe how the transformation T preserves proof of knowledge. Suppose that the interactive oracle
+proof system (P, V ) has restricted state restoration proof of knowledge ēsr (x, m), and denote by Esr the
+corresponding extractor. The security reduction in Section 7.1, in which we construct P̃ from x and P̃,
+suggests a natural strategy for extracting a witness from P̃. Indeed, note that P̃ does not need to know the
+code, randomness, or auxiliary inputs of P̃, but only needs to choose answers for its queries to the random
+oracle; this means that one can compute P̃ when only given x and oracle access to P̃.
+    So consider the extractor E that, given input (x, 1m , 1λ ) and oracle access to P̃, works as follows:
+(1) construct the oracle P̃ from the instance x and oracle P̃; (2) compute w := Esr       P̃ (x); (3) output w.
+
+Note that E runs in probabilistic polynomial time because the oracle P̃ can be simulated in probabilistic
+poly(|x| + m + λ) time when given input (x, 1m , 1λ ) and the oracle P̃ and, moreover, Esr runs in probabilistic
+poly(|x|) time.
+    The extractor E shows that (P, V) := T (P, V ) has proof of knowledge e0 (x, m, λ) := ēsr (x, m)+3(m2 +
+1)2−λ (as stated in Theorem 7.1), as we now argue. By Lemma 7.3, the state-restoring prover P̃ makes
+V accept x with probability that is at least the probability that P̃ makes V accept x minus 3(m2 + 1)2−λ .
+
+
+
+                                                            31
+Moreover, (P, V ) has restricted state restoration proof of knowledge ēsr , so that Pr[(x, Esr
+                                                                                             P̃ (x)) ∈ R] ≥
+
+Pr[hP̃ , V (x)isr = 1] − ēsr (x, m). We conclude that
+
+Pr (x, w) ∈ R w ← EP̃ (x, 1m , 1λ ) = Pr[(x, Esr         (x)) ∈ R]
+   h                                     i
+                                                      P̃
+
+
+                                            ≥ Pr[hP̃ , V (x)isr = 1] − ēsr (x, m)
+
+                                            ≥ Pr V (x, π) = 1                       − 3(m2 + 1)2−λ − ēsr (x, m)
+                                                                                 
+                                                     ρ               ρ ← U(λ)
+                                                                       π ← P̃ρ
+
+                                            = Pr V (x, π) = 1                       − e0 (x, m, λ) ,
+                                                                                 
+                                                     ρ               ρ ← U(λ)
+                                                                       π ← P̃ρ
+
+as desired.
+    Finally, the tightness argument of Section 7.2 can be extended from applying to (restricted state restoration)
+soundness to also applying to (restricted state restoration) proof of knowledge.
+
+7.4   Zero knowledge
+We describe how the transformation T preserves zero knowledge, by proving the following lemma.
+
+Lemma 7.5. If (P, V ) has z-statistical honest-verifier zero knowledge, then (P, V) has z 0 -statistical zero
+knowledge (in the explicitly-programmable random oracle model) with z 0 (x, λ) := z(x) + p(x)2−λ/4+2 .
+
+Proof. Let S be the simulator for (P, V ), and SMERKLE the Merkle-tree simulator (see Section 3.2). We
+construct a (candidate) simulator S for (P, V) := T (P, V ) that uses S and SMERKLE as subroutines. To
+account for the split of ρ into the two sub-oracles ρ1 and ρ2 , we view the function µ from the definition of
+zero knowledge (see Section 2.3) as a pair (µ1 , µ2 ) such that ρ[µ] splits into the function pair (ρ1 [µ1 ], ρ2 [µ2 ]).
+The simulator S, given instance x and oracle access to ρ, works as follows:
+1. Set k := k(x), q := q(x), `1 := `1 (x), . . . , `k := `k (x), σ0 := ρ2 (x).
+2. Compute the view (a1 , . . . , aq , rV ) := S(x).
+3. Run V with randomness rV , recording its messages m1 , . . . , mk and answering its oracle queries with the
+    answers a1 , . . . , aq , to determine the oracle index yj and bit index xj of each query θj .
+4. For i = 1, . . . , k:
+      (a) Run SMERKLE to obtain the requested authentication paths corresponding to the i-th oracle by setting
+            (rti , (apj )j∈Ji ) := SMERKLE (`i , (xj , aj )j∈Ji ) where Ji := {j ∈ {1, . . . , q} s.t. yj = i}.
+     (b) Compute σi := ρ2 (rti kσi−1 ).
+      (c) Set µ1 (xkσi−1 ) := mi .                                        
+5. Set π := (rt1 , . . . , rtk ), (ap1 , . . . , apq ), (σ1 , . . . , σk ) , and output (π, µ).
+Note that S runs in probabilistic polynomial time (as its complexity is dominated by that of SMERKLE and S).
+      Next, we construct a “hybrid simulator” S0 that is identical to S except that: (a) S0 is given not only
+an instance x but also the corresponding witness w; (b) in Step 2, instead of using S’s output view, S0
+generates a uniformly random string rV and uses it to simulate (P (x, w), V (x; rV )) and obtain the answers
+a1 , . . . , aq and corresponding oracle and bit indices. We claim that, for any distinguisher D, the following
+two distributions are p(x)2−λ/4+2 -close:
+                                                                                                                 
+                      ρ                ρ ← U(λ)                            ρ[µ0 ] 0                     ρ ← U(λ)
+                                    π ← Pρ (x, w)                                          (π 0 , µ0 ) ← S0ρ (x, w)
+              Pr D (π) = 1                                and Pr D               (π ) = 1                             .
+
+
+
+                                                          32
+Indeed, note that ρ and ρ[µ0 ] are identically distributed (since the values in µ0 are uniformly random) and
+π ← Pρ[µ ] (x, w) is p(x)2−λ/4+2 -close to π 0 (by Lemma 3.4).
+         0
+
+
+   Finally, we know by hypothesis that, for any distinguisher D, the following two distributions are z-close:
+                                                                                                
+             ρ[µ0 ] 0                       ρ ← U(λ)                ρ[µ]                ρ ← U(λ)
+                               (π 0 , µ0 ) ← S0ρ (x, w)                            (π, µ) ← Sρ (x)
+      Pr D         (π ) = 1                               and Pr D (π) = 1                            .
+
+The lemma then follows by the triangle inequality.
+
+
+
+
+                                                     33
+8     Tree exploration games
+We introduce tree exploration games, which are a class of games pitting a single player against Nature.
+We prove a connection between tree exploration games and state restoration attacks on IOPs: we establish
+a correspondence between public-coin IOP verifiers and tree exploration games and, similarly, between
+state-restoring provers and strategies on these games. Finally, we describe a simple universal strategy, and
+prove that it has optimal expected cost (where cost is the number of rounds until the player wins).
+
+8.1    Definition of tree exploration games
+A tree exploration game is a complete-information game, between a single player and Nature, that is specified
+by a pair G = (T, φ), where T is a rooted tree and φ is a predicate function that maps T ’s vertices to {0, 1};
+we denote by V (T ) the vertices of T , and by rt(T ) the root vertex of T .
+    The game proceeds in rounds: for i = 1, 2, . . . , in the i-th round, a subtree Si−1 ⊆ T is accessible to the
+player; the player chooses a node v ∈ Si−1 , and Nature samples a child u of v at random; the next accessible
+subtree is Si := Si−1 ∪ {u}. The initial accessible set S0 is {rt(T )}, i.e., the set consisting of T ’s root vertex.
+The player wins in round r if there is v ∈ Sr such that φ(v) = 1.
+    A strategy for G is a probabilistic function s : 2V (T ) → V (T ) such that s(W ) ∈ W for all W ⊆ V (T ).
+Note that s(S0 ) always equals rt(T ), because the root vertex is the only vertex in the initial accessible set; if
+Nature samples the child u of rt(T ), then S1 := {rt(T ), u}, and so s(S1 ) may output rt(T ) or u (or each with
+some probability). Thus the accessible sets form a sequence of random variables each of which depends on
+the strategy s; we emphasize this by writing Si (s). Note that we have defined a strategy to be a function only
+of the current accessible set (and not also of previous choices); we justify this choice later (see Lemma 8.3).
+    The cost of a strategy s is the random variable τs that denotes the smallest index r such that there is
+v ∈ Sr (s) for which φ(v) = 1. More generally, given a set W ⊆ T containing rt(T ), τs (W ) denotes the cost
+of s when the initial accessible set equals W ; thus, in particular, τs = τs ({rt(T )}). Note that τs (W ) = 0 if
+φ(v) = 1 for some v ∈ W and τs (W ) = ∞ if φ(v) = 0 for all v ∈ W . For other cases, τs (W ) satisfies the
+following recursion:
+                                                    1        X
+                              E[τs (W )] = 1 +                      E[τs (W ∪ {v})]                              (1)
+                                                |Cs(W ) |
+                                                              v∈Cs(W )
+
+where Cv for v ∈ T is the set of children of v.
+Remark 8.1. We do not discuss probabilistic strategies in this paper. One can verify, however, that for every
+probabilistic strategy s there is a deterministic strategy s0 whose expected cost is no higher; the strategy s0
+can be obtained by iteratively fixing the random choices of s such that E[τs ] is minimized.
+
+8.2    A connection between tree exploration and state restoration
+We establish a connection between tree exploration and state restoration (discussed in Section 5).
+From IOPs to tree exploration games. First, we describe how to map an interactive oracle proof system
+to a tree exploration game. Let (P, V ) be a k-round public-coin interactive oracle proof system, and let
+x be an instance; we use V and x to construct a tree exploration game GV,x = (T, φ) as follows. The
+vertices of the rooted tree T consist of sequences of at most k(x) + 1 verifier messages: a vertex v looks
+like (m1 , . . . , mi ) with i ∈ {1, . . . , k(x)} and each mj in {0, 1}uj (x) , or looks like (m1 , . . . , mk(x) , r) with
+each mj as before and r being additional randomness for the verifier; we denote by v(j) the j-prefix of v.
+The edges of T correspond to sequences for which one sequence extends the previous one by an additional
+
+                                                            34
+message: an edge (u, v) is in the edge set if v = ukm for some message m. The predicate function
+φ : V (T ) → {0, 1} is such that for every vertex v: (a) if v is not a leaf node (i.e., contains less than k(x) + 1
+messages), φ maps v to 0; (b) if v is a leaf node (i.e., contains exactly k(x) + 1 messages), φ maps v to the bit
+V fv(1) ,...,fv(k(x)) (x; statek(x) ; rV ) where statek(x) := ∅, rV := v, and the fv(j) are defined as follows. Given
+a vertex u = (m1 , . . . , mi ), let Xu = (m1 , . . . , mi , mi+1 , . . . , mk(x) , r) be the random variable obtained by
+setting the first i coordinates according to u and choosing the rest uniformly at random. Then
+                                                                                                                 !
+                                                                                             x) (x, ∅; X ) = 1
+                                                                                  0        0
+                                                      h                                                        i
+                                                         fu(1) ,...,fu(i−1) ,fi ,fi+1 ...,fk(
+                  fu := arg max 0 max0 Pr V                                                             u          ,
+                           fi       fi+1 ,...,fk(x) Xu
+
+
+where, for j = i + 1, . . . , k(x), fj0 ranges over probabilistic functions of the random variables mi+1 , . . . , mj .
+The following lemma is an easy consequence of this definition.
+
+Lemma 8.2. Let X := (m1 , . . . , mk(x) , r) be drawn uniformly at random, with mi ∈ {0, 1}ui and r ∈
+{0, 1}∗ sufficiently long. Let f1 , . . . , fk(x) be such that, for j = 1, . . . , k(x), fj is a probabilistic function of
+the random variables m1 , . . . , mj . Then
+
+                    Pr V f1 ,...,fk(x) (x, ∅; X) = 1 ≤ Pr V fX(1) ,...,fX(k(x)) (x, ∅; X) = 1 .
+                       h                              i       h                                    i
+                      X                                        X
+
+Proof. Follows easily by induction and the definition of fu .
+
+Augmented strategies vs. standard strategies. Next, we extend the notion of a strategy to allow tracking,
+and depending on, previous choices; we use this notion in establishing a correspondence later on. We say
+a sequence H = (v1 , . . . , vh ) ∈ V (T )h is a valid history if v1 = rt(T ) and, for all j ∈ {2, . . . , h}, vj is
+adjacent to some vertex u ∈ {v1 , . . . , vj−1 }. Every nonempty prefix of a valid history is also a valid history,
+and that vertices in the sequence need not be distinct.
+     Given a tree exploration game G = (T, φ), a function s : (V (T ))≤b → V (T ) ∪ {⊥} is a b-augmented
+strategy for G if, for all valid histories (v1 , . . . , vb ), it holds that s((v1 , . . . , vj )) ∈ {v1 , . . . , vj } ∪ {⊥} for
+all j ∈ {1, . . . , b}. (The value of s(H) when H is not a valid history is irrelevant.) To play a b-augmented
+strategy on a tree, we provide it with the history H of vertices drawn so far. We prove that, in terms of
+expected cost, b-augmented strategies are no more powerful than (standard) strategies.
+
+Lemma 8.3. Let G = (T, φ) be a tree exploration game. For every b-augmented strategy s for G there is a
+(standard) strategy s0 for G such that E[τs0 ] ≤ E[τs ].
+
+Proof. For W = {v1 , . . . , vi } ⊆ T , let
+                                   (
+                                     s((vπ(1) , . . . , vπ(i) )) if s((vπ(1) , . . . , vπ(i) )) 6= ⊥
+                     s0 (W ) :=
+                                     rt(T )                      otherwise
+
+where π minimizes E[τs ((vπ(1) , . . . , vπ(i) ))] across all permutations over [i] for which (vπ(1) , . . . , vπ(i) ) is a
+valid history. Note that s0 (W ) ∈ W since if s((vπ(1) , . . . , vπ(i) )) 6= ⊥ then s((vπ(1) , . . . , vπ(i) )) ∈ W . The
+expected cost of s for any valid history (v1 , . . . , vi ) is thus bounded from below as follows
+
+                                     E[τs ((v1 , . . . , vi ))] ≥ E[τs0 ({v1 , . . . , vi })] .
+
+Hence in particular, E[τs ] = E[τs ((rt(T )))] ≥ E[τs0 ({rt(T )})] = E[τs0 ].
+
+
+                                                                35
+The correspondence. Let (P, V ) be a k-round public-coin interactive oracle proof system, and let x be an
+instance; let GV,x = (T, φ) be the tree exploration game constructed as above. We now describe, for any
+budget b ∈ N, a correspondence between (deterministic) b-round state-restoring provers for (P, V (x)) and
+b-augmented strategies for GV,x .
+    Given m1 , . . . , mi ∈ {0, 1}∗ , the state corresponding to a vertex v = (m1 , . . . , mi ) is cvs(v) :=
+(m1 , fv(1) , . . . , mi−1 , fv(i−1) , mi ). The vertex corresponding to a state cvs := (m1 , f1 , . . . , mi ) is v(cvs) :=
+(m1 , . . . , mi ). A history (v1 , . . . , vj ) corresponds to the list of states (cvs(v1 ), . . . , cvs(vj )) and vice versa.
+
+• From provers to strategies. Let P be a b-round state-restoring prover; construct a b-augmented strategy sP
+  as follows. Given a valid history (v1 , . . . , vh ) as input, sP works by simulating a state-restoration attack
+  by P on V (x), as follows. For i ∈ {1, . . . , h − 1}, in the i-th prover round, when P chooses a complete
+  verifier state cvs = (m1 , f1 , . . . , mj ), we check whether the vertex vi+1 =: (m01 , . . . , m0j 0 ) in the history
+  is a child of v(cvs). If it is not, or if P halts, then sP outputs ⊥. Otherwise, we respond to P with m0j 0 and
+  continue. In the h-th prover round, sP outputs v(cvs).
+
+• From strategies to provers. Let s be a b-augmented strategy; construct a b-round state-restoring prover
+  Ps as follows. In prover round j, Ps computes vs := s((v1 , . . . , vj )), then restores the state cvs(vs ), and
+  sends the prover message fvs . Afterwards, Ps sets vj+1 := (m1 , . . . , mi , mi+1 ), where (m1 , . . . , mi ) are
+  the messages in vs and mi+1 is the verifier’s response; if s((v1 , . . . , vj+1 )) = ⊥, Ps halts.
+
+The following lemma justifies the study of tree exploration games in relation to state restoration soundness of
+interactive oracle proof systems; namely, we prove that b-augmented strategies and b-round state-restoring
+provers are equivalent in the following sense.
+Lemma 8.4. Let b ∈ N.
+• For every b-round state-restoring prover P̃ for (P, V (x)), Pr[sP̃ wins in GV,x ] ≥ Pr[P̃ makes V accept x].
+• For every b-augmented strategy s for GV,x , Pr[P̃s makes V accept x] = Pr[s wins in GV,x ].
+Proof. First we prove the first bullet. Note that, by the definition of GV,x , a b-augmented strategy s wins in
+GV,x if and only if there exists v = (m1 , . . . , mk(x) , r) ∈ Sb such that V fv(1) ,...,fv(k(x)) (x, ∅; v) = 1.
+      Each prover message fi is a probabilistic function of the messages m1 , . . . , mi that precede it (‘proba-
+bilistic’ because P̃ can obtain independent randomness by restoring some state). Then by Lemma 8.2
+we can replace P̃ ’s messages with fu , where u is the tuple of verifier messages in the state cvs re-
+stored at the beginning of the prover round, without reducing its success probability. We call this prover
+P̃ 0 ; note that sP̃ 0 = sP̃ . We observe that P̃ 0 succeeds if and only if, after b prover rounds, there
+is some state cvs = (m1 , f(m1 ) , m2 , f(m1 ,m2 ) , . . . , mk(x) , f(m1 ,...,mk(x) ) , r) ∈ SeenStates such that for
+u := (m1 , . . . , mk(x) , r) it holds that V fu(1) ,...,fu(k(x)) (x, ∅; u) = 1.
+      Suppose that we play the tree exploration game GV,x with strategy sP̃ 0 . We couple this game to an
+interaction between P̃ 0 and V , and show that, whenever we add a state cvs to SeenStates, we also add
+the corresponding vertex v(cvs) to H, the sequence of vertices drawn during the game. These correspond
+initially because SeenStates = (null), and H = (rt(T )) = (v(null)). Now suppose that we have played GV,x
+coupled to (P̃ 0 , V ) for some number of rounds, and the current history H corresponds to SeenStates. Also,
+sP̃ 0 (H) = ⊥ if and only if P̃ 0 halts because H must be consistent with the choices of sP̃ 0 , and moreover P̃ 0
+is deterministic. Let v 0 := sP̃ 0 (H); observe that v 0 ∈ H since cvs(v 0 ) is restored by P̃ 0 and hence must be in
+SeenStates. Then the new vertex v added to H is chosen uniformly at random from the children of v 0 . This
+is equivalent in distribution to V ’s choice of message after P̃ 0 restores the state cvs(v 0 ) and sends its message
+fv0 ; hence we may couple these random choices so that the vertex v := vs km is added to H if and only if
+
+                                                              36
+cvs(v) is added to SeenStates. Hence sP̃ 0 (i.e., sP̃ ) wins in GV,x if and only if P̃ 0 makes V accept x under
+this coupling, and since the probability that this happens is at least the probability that P̃ makes V accept x,
+this concludes the proof of the first bullet.
+    Next we prove the second bullet. The proof is again via coupling argument: consider an interaction
+between P̃s and V . We couple this interaction to s played on GV,x , and show that whenever we add a vertex
+v to the history H, we also add the corresponding state cvs(v) to SeenStates. Again, SeenStates and H
+correspond initially. Suppose that (P̃s , V ) have interacted for some number of rounds, coupled to GV,x , and
+that SeenStates and H correspond. Then cvs := cvs(s(H)) ∈ SeenStates since s(H) ∈ H, and P̃s is able
+to restore cvs. Again we observe that the response of V and the choice of child of s(H) are identically
+distributed, and we may couple them. Under this coupling, a state cvs0 := cvsk(fs(H) , m) is added to
+SeenStates if and only if v(cvs0 ) is added to H. Hence P̃s makes V accept x if and only if s wins in GV,x
+under this coupling, which proves the equality.
+
+8.3   The expected value strategy
+We show how to construct, for every tree exploration game G = (T, φ), a simple strategy s? that has optimal
+expected cost with respect to all strategies of that game; we call this strategy the expected value strategy, for
+reasons that will become clear below.
+     We associate to each vertex v ∈ T a potential ∆(v). If v is a leaf and φ(v) = 0, then we set ∆(v) := 1;
+if v is a leaf and φ(v) = 0, we set ∆(v) := ∞. If v is not a leaf, we set
+                                                                           !
+                                                    1           X
+                                  ∆(v) := min           |Cv | +      ∆(u) .
+                                            U ⊆Cv |U |
+                                                                u∈U
+
+One can show that the smallest U minimizing the right hand side is C<v := {u ∈ Cv : ∆(u) < ∆(v)}. The
+expected value strategy is defined in terms of potentials: for every S ⊆ V (T ), s? (S) := arg minv∈S ∆(v).
+   We first prove that the expected cost of the expected value strategy equals the potential of the root vertex.
+
+Claim 8.5. E[τs? ] = ∆(rt(T )).
+
+Proof. Since τs? = τs? ({rt(T )}) and s? ({rt(T )}) = rt(T ), the statement is equivalent to E[τs? (W )] =
+∆(s? (W )) for W = {rt(T )}. We prove this by reverse induction on the subtree W . So first suppose that
+W = V (T ). In this case, if there is v ∈ V (T ) such that φ(v) = 1 then E[τs? (V (T ))] = 0 = ∆(s? (V (T )));
+otherwise, E[τs? (V (T ))] = ∞ = ∆(s? (V (T ))). This establishes the base case; next we establish the
+inductive step. Let W be a subtree of T , and suppose that E[τs? (W 0 )] = ∆(s? (W 0 )) for all W 0 ⊆ T that
+contain, but do not equal, W ; we now argue that E[τs? (W )] = ∆(s? (W )) as well. Letting u := s? (W ) and
+invoking Equation 1, we obtain that
+                       1 X
+      E[τs? (W )] = 1 +          E[τs? (W ∪ {v})]
+                      |Cu |
+                            v∈Cu
+                                                                           
+                       1      X                          X
+                  =1+               E[τs? (W ∪ {v})] +           E[τs? (W )]
+                      |Cu |
+                              v∈C<u                    v∈Cu −C<u
+                                                                   
+                       1      X
+                  =1+               ∆(v) + |Cu − C<u | · E[τs? (W )]     (by the inductive hypothesis)
+                      |Cu |
+                                v∈C<u
+
+
+                                                       37
+Then since |Cu − C<u | = |Cu | − |C<u |, we can rearrange to obtain
+                                                                       
+                           |C<u | E[τs? (W )]      1            X
+                                              =         |Cu | +     ∆(v)
+                                  |Cu |          |Cu |
+                                                                      v∈C<u
+
+so that                                                                 
+                                             1              X
+                           E[τs? (W )] =          |Cu | +           ∆(v) = ∆(u) ,
+                                           |C<u |
+                                                            v∈C<u
+
+as claimed.
+
+    Next we prove that the expected value strategy has optimal expected cost.
+
+Claim 8.6. For any strategy s, E[τs ] ≥ E[τs? ].
+
+Proof. Claim 8.5 states that E[τs? ] = ∆(rt(T )), so it suffices to show that E[τs ] ≥ ∆(rt(T )). We do so by
+proving the following statement: for every subtree W of T , it holds that E[τs (W )] ≥ minv∈W ∆(v). (We can
+then take W = {rt(T )} to finish the proof because τs = τs ({rt(T )}) and minv∈{rt(T )} ∆(v) = ∆(rt(T )).)
+    We proceed by a reverse induction on the subtree W . So first suppose that W = V (T ). In this
+case, if there is v ∈ V (T ) such that φ(v) = 1 then E[τs (V (T ))] = 0 = minv∈V (T ) ∆(v); otherwise,
+E[τs (V (T ))] = ∞ = minv∈V (T ) ∆(v). This establishes the base case; next we establish the inductive step.
+Let W be a subtree of T , and suppose that E[τs (W 0 )] = minv∈W 0 ∆(v) for all W 0 ⊆ T that contain, but
+do not equal, W ; we now argue that E[τs (W )] = minv∈W ∆(v) as well. By invoking Equation 1 (and
+rearranging), we obtain that
+                                                "                                    #
+                                         1                  X
+                       E[τs (W )] =               |Cu | +          E[τs (W ∪ {v})] .
+                                     |Cu − W |
+                                                            v∈Cu −W
+
+By the inductive hypothesis, the above is equal to
+           "                                 #                                                                 
+    1                  X                               1                      X
+          |Cu | +               min      ∆(x) =              |Cu | +               ∆(v) + |Cu − C<u − W |∆(w) ,
+|Cu − W |                     x∈W ∪{v}             |Cu − W |
+                    v∈Cu −W                                              v∈C<u −W
+
+where w := arg minv∈W ∆(v). Rearranging, this is equal to
+                                                           
+                                                                              
+            |C<u − W |         1                 X                  |C<u − W |
+                        ·           |Cu | +            ∆(v) + 1 −              ∆(w)
+             |Cu − W | |C<u − W |                                    |Cu − W |
+                                             v∈C<u −W
+                                                  
+             |C<u − W |               |C<u − W |
+          ≥              · ∆(u) + 1 −                ∆(w) ≥ ∆(w) ,
+              |Cu − W |                |Cu − W |
+
+where the first inequality follows from the construction of ∆(u) and that (C<u − W ) ⊆ Cu , and the second
+follows since ∆(u) ≥ ∆(w) by the choice of w; this concludes the proof the claim.
+
+
+
+                                                       38
+Acknowledgments
+The authors thank Allan Borodin and Tyrone Strangway for their input on tree exploration games, and Ran
+Canetti and Nir Bitansky for helpful discussions. This project was funded in part by the ETH Foundation.
+
+
+
+
+                                                  39
+A     Interactive oracle proofs characterize NEXP
+We prove that interactive oracle proofs characterize the complexity class NEXP.
+
+Lemma A.1. For every relation R and polynomially-bounded k : {0, 1}∗ → N, R is in NEXP if and only if
+R has an interactive oracle proof system with round complexity k and constant soundness. Moreover, the
+same is true if we restrict our attention to only interactive oracle proof systems that are public-coin.
+
+Proof. Suppose that R is in NEXP. Then R has a PCP with polynomially-bounded randomness and query
+complexity, since NEXP = PCP(poly, poly) (see, e.g., [AB09, p. 164]). The PCP immediately gives a
+public-coin interactive oracle proof with one round and the same soundness: the IOP verifier sends an empty
+first message, the IOP prover answers with the PCP proof, and the IOP verifier runs the PCP verifier.
+     Conversely, suppose that R has an interactive oracle proof system (P, V ) with round complexity k and
+constant soundness. We argue that R has a 2k-prover interactive proof system, which implies that R is
+in NEXP (since MIP = NEXP). We think of the 2k provers as k pairs of provers such that the i-th pair
+is responsible for the i-th IOP prover message fi . Following a simulation argument in [BFL90], the MIP
+verifier simulates the IOP verifier V as follows. First, run V until it halts, forwarding its output messages
+and answering its oracle queries as follows: when V outputs the i-th message mi , send the message history
+m1 , . . . , mi to each prover in the i-th pair; when V makes a query θ to the i-th oracle, send θ to the first
+prover in the i-th pair, and answer θ by returning that prover’s answer. Next, once has V halted, pick a query
+θ of V at random and send it to the second prover of the pair whose first prover had answered θ. Finally,
+reject if V had rejected or the answer to the randomly-picked query is inconsistent with the previous one.
+     Define fi to be the string such that fi (θ) is the value returned by the second prover of the i-th pair when
+receiving the query θ (and no other query). If the first prover in the i-th pair ever answers a query θ with a
+value different from fi (θ), then the MIP verifier rejects with probability at least 1/q; else, if the first prover
+in the i-th pair answers every query consistently with fi , then it behaves as the oracle fi .
+     Overall, if some pair’s first prover answers inconsistently, then the MIP verifier rejects with probability
+at least 1/q; else, if every pair’s first prover answers consistently with its second prover, then convincing
+the MIP verifier is equivalent to convincing the IOP verifier V . The soundness error is thus 1 − Ω(1/q).
+Repeating the protocol polynomially many times (sequential repetition suffices) can reduce the soundness
+error to, e.g., less than 1/3.
+
+
+
+
+                                                       40
+B      Soundness error reduction
+We discuss approaches for soundness error reduction for IOPs (Appendix B.1) and NIROPs (Appendix B.2),
+and then discuss how these interact with the transformation that compiles one into the other (Appendix B.3).
+
+B.1     Soundness error reduction for IOPs
+Similarly to the case of interactive proof systems, one can define sequential and parallel repetition of
+interactive oracle proof systems, and both yield exact exponential decay in the soundness error. Below we
+provide additional details about each, including how other parameters, in addition to soundness, change.
+
+• Sequential repetition. Given r ∈ N, the r-fold sequential repetition of an interactive oracle proof system
+  (P, V ) is the interactive oracle proof system (Pr , Vr ) that is obtained by running r independent instances
+  of (P, V ) in sequence (and where the new verifier Vr accepts if and only if all r invocations of V accept).
+    If (P, V ) has complexity (k, s, p, q, tprv , tver ) then (Pr , Vr ) has complexity (rk, sr , rp, rq, rtprv , rtver ).
+
+• Parallel repetition. Given r ∈ N, the r-fold parallel repetition of an interactive oracle proof system (P, V )
+  is the interactive oracle proof system (Pr , Vr ) that is obtained by running r independent instances of (P,
+  V ) in parallel (and where the new verifier Vr accepts if and only if all r invocations of V accept).
+    If (P, V ) has complexity (k, s, p, q, tprv , tver ) then (Pr , Vr ) has complexity (k, sr , rp, rq, rtprv , rtver ).
+
+In the case of parallel repetition, the proof of the exact exponential decay of the soundness error is similar
+to that for interactive proofs. Namely, Goldreich’s game-tree approach [Gol99, pp. 145–149] carries over,
+because it does not depend on whether the prover’s messages are read in their entirety by the verifier (as in
+interactive proofs) or are only queried at some locations (as in interactive oracle proofs); in particular, the
+prover has complete information about the game and may act to maximize V ’s acceptance probability.
+
+B.2     Soundness error reduction for NIROPs
+Because non-interactive random-oracle proof systems are not an interactive proof system, the intuitive notions
+of sequential and parallel repetition coincide; so we talk about repetition (without any qualifying adjectives).
+We now explain what this means, and show that it yields exact exponential decay in the soundness error. We
+also discuss how other parameters, in addition to soundness, change.
+Repeating a NIROP. Given r ∈ N, the r-fold repetition of a non-interactive random-oracle proof system
+(P, V) is the non-interactive random-oracle proof system (Pr , Vr ) that, letting ρi (x) denote ρ(ikx) for each
+ρ ∈ U(λ) and i ∈ {1, . . . , r}, works as follows.
+• Pρr (x, w) independently computes πi := Pρi (x, w) for each i ∈ {1, . . . , r} and outputs π := (π1 , . . . , πr ).
+• Vρr (x, π) runs Vρ1 (x, π1 ), . . . , Vρr (x, πr ) and accepts if and only if all of the verifiers accept.
+Changes in parameters. Repetition of a NIROP affects its parameters as follows.
+• If (P, V) has complexity (s, p, tprv , tver ) then (Pr , Vr ) has complexity (sr , rp, rtprv , rtver ).
+
+Lemma B.1. If (P, V) has soundness s(x, m, λ), then (Pr , Vr ) has soundness s0 satisfying
+
+                                    s(x, m/r, λ)r ≤ s0 (x, m, λ) ≤ s(x, m, λ)r .
+
+
+
+
+                                                             41
+Proof. We prove the first inequality. Let P̃ be an m/r-query prover that convinces V to accept on x ∈           /
+L (R) with probability at least s(x, m/r, λ). Consider the m-query prover P̃ that runs r copies of P̃
+                                                                                     (r)
+
+independently, with the i-th copy querying ρi ; the probability that P̃(r) convinces Vr is at least s(x, m/r, λ)r ,
+by independence.
+    We now prove the second inequality. Let P̃ be an m-query prover and x ∈            / L (R). We show that
+ ≤ s(x, m, λ)r , where
+                                   := Pr Vr (x, π) = 1
+                                                                           
+                                             ρ                ρ ← U(λ)
+                                                                              .
+                                                                 π ← P̃ρ
+Rewriting the right-hand side, we obtain that
+
+
+                                V (x, π1 ) = 1
+                                                                                               
+                                   ρ1                               ρ1 , . . . , ρr ← U(λ)
+                                         ..                  (π1 , ·, . . . , ·) ← P̃ρ1 ,...,ρr 
+                        = Pr                                                              ..  .
+                                                                                               
+                                          .
+                                  V (x, πr ) = 1
+                                ρ
+                                    r
+                                                                                             . 
+                                                             (·, . . . , ·, πr ) ← P̃ρ1 ,...,ρr
+
+The above implies that there exist m-query provers P̃1 , . . . , P̃r such that
+
+
+                                   V (x, π1 ) = 1
+                                                                                    
+                                      ρ 1
+                                                           ρ1 , . . . , ρr ← U(λ)
+                                            .                            π1 ← P̃ρ11 
+                           ≤ Pr 
+                                           ..                                 ..  ,
+                                                                                     
+
+                                    V r (x, πr ) = 1
+                                   ρ                                           . 
+                                                                         πr ← P̃ρr r
+
+because, for each i ∈ {1, . . . , r}, we can hardcode the answers to P̃i from ρj with j 6= i in order to maximize
+the probability that Vρi (x, πi ) accepts. Then, by independence, the above probability is bounded from above
+by s(x, m, λ)r , and the lemma follows.
+
+Lemma B.2. If (P, V) has z-statistical zero knowledge, then (Pr , Vr ) has rz-statistical zero knowledge.
+
+Proof. The proof is by a hybrid argument. WeS start by defining some useful notation:Sfor functions
+µ1 , . . . , µr with disjoint domains X1 , . . . , Xr , let ri=1 µi denote the function f with domain ri=1 Xi where
+f (x) = µi (x) for every i ∈ {1, . . . , r} and x ∈ Xi . Let Sr be the “repetition” of the simulator S for (P, V)
+that shows its z-statistical zero knowledge. Given any distinguisher Dr , define
+                                                                                                    
+                           ρ[µ]                    ρ ← U(λ)                ρ                ρ ← U(λ)
+                                          (π, µ) ← Sρr (x)                              π ← Pρr (x, w)
+               := Pr Dr (π) = 1                                  − Pr Dr (π) = 1                        .
+
+
+Let Ai be the oracle algorithm that, on input (x, w), outputs ((π1 , . . . , πr ), ij=1 µj ) where: (i) for j =
+                                                                                           S
+
+1, . . . , i, (πj , µj ) ← Sr j (x); and (ii) for j = i + 1, . . . , r, πj ← Pr j (x, w). Note that A0 is equivalent to Pr
+                            ρ                                                 ρ
+
+and Ar is equivalent to Sr (when discarding w). Then
+   r                                                                                                                  
+   X                                        ρ ← U(λ)                                                        ρ ← U(λ)
+      Pr Drρ[µ] (π) = 1                                                    Drρ[µ] (π) = 1
+                                    (π, µ) ← Aρi (x, w)                                           (π, µ) ← Aρi−1 (x, w)
+=                                                              − Pr                                                           .
+      i=1
+
+Consider the distinguisher D that, on input π and with oracle access to ρ, works as follows: (1) choose
+i ∈ {1, . . . , r} uniformly at random; (2) for j = 1, . . . , i − 1, compute (πj , µj ) ← Sr j (x); (3)Sfor j =
+                                                                                            ρ
+
+i + 1, . . . , r, compute πj ← Pr (x, w), where w may be hard-coded into D; (4) setting µ := i−1
+                                  ρj
+                                                                                                          j=1 µj ,
+
+
+                                                           42
+            ρ0 [µ]
+simulate Dr ((π1 , . . . , πi−1 , π, πi+1 , . . . , πr )), where ρ0 (ikx) := ρ(x) and other responses are drawn
+uniformly at random, and return its output. Note that if π is produced by P, then the distribution corresponds
+to Ai−1 ; if π is produced by S, then it corresponds to Ai instead. Therefore,
+
+z(x, λ) ≥ Pr D (π) = 1
+                                                                                             
+                    ρ[µ]                 ρ ← U(λ)                    ρ                ρ ← U(λ)
+                                   (π, µ) ← Sρ (x)                                π ← Pρ (x, w)
+                                                            − Pr D (π) = 1
+                 r                                                                                              
+             1X                                           ρ ← U(λ)                                      ρ ← U(λ)
+                      Pr Drρ[µ] (π) = 1                                         ρ[µ]
+                                             (π, µ) ← Aρi (x, w)                              (π, µ) ← Aρi−1 (x, w)
+        =                                                               − Pr  D r    (π) = 1
+             r
+               i=1
+        = /r .
+
+Rearranging, we obtain that  ≤ rz(x, λ) and the lemma follows.
+
+B.3    Strategies for soundness error reduction
+Parallel repetition of IOPs is superior to sequential repetition of IOPs because the latter increases the number
+of rounds but not does not offer advantages in return. A more interesting question is whether it is better to:
+(1) first reduce the soundness error of an IOP and then convert it to a NIROP via the transformation T , or
+(2) first transform the IOP to a NIROP and then reduce the soundness error.
+     The first method yields a soundness error of k(mx) s(x)r + O(m2 2−λ ), while the second yields one of
+( k(mx) s(x) + O(m2 2−λ ))r . The first method is the only one that is effective when k(mx) s(x)  1; indeed,
+                                                                                             
+
+the second method also amplifies the soundness loss incurred by the transformation, and hence is less effective
+for reducing soundness error. With respect to other complexity measures, both methods perform similarly. In
+sum, the first method is generally the preferable strategy for soundness error reduction.
+
+
+
+
+                                                      43
+C      Zero knowledge with non-programmable random oracles
+We provide a lemma showing that, for non-interactive random-oracle proof systems with zero knowledge in
+the non-programmable random oracle model, “simulation is as hard as decision”. The lemma is a simple
+adaptation of [Pas03, Theorem 7], and implies that non-trivial languages do not have efficient simulators.
+Lemma C.1. Let (P, V) be a non-interactive random oracle-proof system for a relation R with soundness
+s(x, m, λ) ≤ 1/3 (for all sufficiently large |x|, m, λ). If (P, V) has z-statistical zero knowledge with
+z(x, λ) ≤ 1/3 (for all sufficiently large |x|, λ) in the non-programmable random oracle model with a
+simulator S that runs in time t(n), then R ∈ BPTIME(poly(t(n))).
+Proof. Consider the probabilistic decider algorithm D that, given an instance x, seeks to decide if x belongs
+to L (R) as follows: (i) choose a sufficiently large security parameter λ; (ii) simulate a random oracle
+ρ ∈ U(λ) in the straightforward way; (iii) compute (π, µ) := Sρ (x); (iv) compute and output Vρ (x, π). Note
+that ρ[µ] = ρ (since the random oracle is non-programmable) and that D runs in time poly(t(n)).
+    We claim that D shows that R lies in BPTIME(poly(t(n))). Fixing a sufficiently large instance x,
+consider the following two cases.
+• Case 1: x ∈ L (R). We claim that Pr[D(x) = 1] ≥ 2/3. Suppose, by way of contradiction, that
+  Pr[D(x) = 1] < 2/3. By construction of D, we deduce that
+
+                         := Pr V (x, π) = 1
+                                                                 
+                                    ρ                  ρ ← U(λ)
+                                                  (π, µ) ← Sρ (x)
+                                                                    < 2/3 .
+
+    On the other hand, by the completeness of (P, V), we know that
+
+                                 Pr V (x, π) = 1
+                                                                   
+                                       ρ                  ρ ← U(λ)
+                                                      π ← Pρ (x, w)
+                                                                      =1 .
+
+    Now let X and Y be the random variables that denote the output of V in the probability distributions of the
+    above two probability statements, respectively. Then
+                                 1
+                    ∆(X; Y ) =     (| Pr[X = 0] − Pr[Y = 0]| + | Pr[X = 1] − Pr[Y = 1]|)
+                                 2
+                              = (|(1 − ) − 0| + | − 1|) = 1 −  > 1/3 ≥ z(x, λ) ,
+                                 1
+                                 2
+    which contradicts the zero knowledge property.
+• Case 2: x 6∈ L (R). We claim that Pr[D(x) = 1] ≤ 1/3. By the soundness of (P, V), for every m-query
+  P̃, and λ ∈ N,
+                            Pr V (x, π) = 1                 ≤ s(x, m, λ) .
+                                                        
+                                  ρ            ρ ← U(λ)
+                                                 π ← P̃ρ
+    In particular, for sufficiently large m, this holds for the t(|x|)-query prover P̃∗ that computes (π, µ) :=
+    Sρ (x) and outputs π. Thus, by construction of D,
+
+                     Pr[D(x) = 1] = Pr V (x, π) = 1
+                                                                              
+                                              ρ                    ρ ← U(λ)
+                                                              (π, µ) ← Sρ (x)
+
+                                     = Pr V (x, π) = 1                     ≤ s(x, m, λ) ≤ 1/3.
+                                                                        
+                                              ρ               ρ ← U(λ)
+                                                                π ← P̃ρ∗
+
+
+
+
+                                                      44
+References
+[AB09]      Sanjeev Arora and Boaz Barak. Computational Complexity: A Modern Approach. Cambridge University Press, New
+            York, NY, USA, 1st edition, 2009.
+[ALM+ 92] Sanjeev Arora, Carsten Lund, Rajeev Motwani, Madhu Sudan, and Mario Szegedy. Proof verification and hardness of
+          approximation problems. In Proceedings of the 33rd Annual Symposium on Foundations of Computer Science, pages
+          14–23, 1992.
+[ALM+ 98] Sanjeev Arora, Carsten Lund, Rajeev Motwani, Madhu Sudan, and Mario Szegedy. Proof verification and the hardness
+          of approximation problems. Journal of the ACM, 45(3):501–555, 1998. Preliminary version in FOCS ’92.
+[AS98]      Sanjeev Arora and Shmuel Safra. Probabilistic checking of proofs: a new characterization of NP. Journal of the ACM,
+            45(1):70–122, 1998. Preliminary version in FOCS ’92.
+[Bab85]     László Babai. Trading group theory for randomness. In Proceedings of the 17th Annual ACM Symposium on Theory of
+            Computing, STOC ’85, pages 421–429, 1985.
+[Bab90]     Laszlo Babai. E-mail and the Unexpected Power of Interaction. Technical report, University of Chicago, Chicago, IL,
+            USA, 1990.
+[BBP04]     Mihir Bellare, Alexandra Boldyreva, and Adriana Palacio. An uninstantiable random-oracle-model scheme for a
+            hybrid-encryption problem. In Proceedings of the 23rd Annual International Conference on Theory and Application of
+            Cryptographic Techniques, EUROCRYPT ’04, pages 171–188, 2004.
+[BC86]      G. Brassard and Claude Crepeau. Non-transitive transfer of confidence: A perfect zero-knowledge interactive protocol
+            for SAT and beyond. In 27th Annual Symposium on Foundations of Computer Science, 1986, pages 188–195, October
+            1986.
+[BC12]      Nir Bitansky and Alessandro Chiesa. Succinct arguments from multi-prover interactive proofs and their efficiency
+            benefits. In Proceedings of the 32nd Annual International Cryptology Conference, CRYPTO ’12, pages 255–272, 2012.
+[BCC88]     Gilles Brassard, David Chaum, and Claude Crépeau. Minimum disclosure proofs of knowledge. Journal of Computer
+            and System Sciences, 37(2):156–189, 1988.
+[BCCT12] Nir Bitansky, Ran Canetti, Alessandro Chiesa, and Eran Tromer. From extractable collision resistance to succinct
+         non-interactive arguments of knowledge, and back again. In Proceedings of the 3rd Innovations in Theoretical Computer
+         Science Conference, ITCS ’12, pages 326–349, 2012.
+[BCG+ 16] Eli Ben-Sasson, Alessandro Chiesa, Ariel Gabizon, Michael Riabzev, and Nicholas Spooner. Short interactive oracle
+          proofs with constant query complexity, via composition and sumcheck, 2016. Crypto ePrint 2016/324.
+[BCGV16] Eli Ben-Sasson, Alessandro Chiesa, Ariel Gabizon, and Madars Virza. Quasilinear-size zero knowledge from linear-
+         algebraic PCPs. In Proceedings of the 13th Theory of Cryptography Conference, TCC ’16, pages 33–64, 2016.
+[BCI+ 13]   Nir Bitansky, Alessandro Chiesa, Yuval Ishai, Rafail Ostrovsky, and Omer Paneth. Succinct non-interactive arguments
+            via linear interactive proofs. In Proceedings of the 10th Theory of Cryptography Conference, TCC ’13, pages 315–333,
+            2013.
+[BD16]      Allison Bishop and Yevgeniy Dodis. Interactive coding for interactive proofs. In Proceedings of the 13th Theory of
+            Cryptography Conference, TCC ’16, pages 352–366, 2016.
+[BDG+ 13] Nir Bitansky, Dana Dachman-Soled, Sanjam Garg, Abhishek Jain, Yael Tauman Kalai, Adriana López-Alt, and Daniel
+          Wichs. Why ”Fiat-Shamir for proofs” lacks a proof. In Proceedings of the 10th Theory of Cryptography Conference,
+          TCC ’13, pages 182–201, 2013.
+[BFL90]     László Babai, Lance Fortnow, and Carsten Lund. Nondeterministic exponential time has two-prover interactive
+            protocols. In Proceedings of the 31st Annual Symposium on Foundations of Computer Science, SFCS ’90, pages 16–25,
+            1990.
+[BFLS91]    László Babai, Lance Fortnow, Leonid A. Levin, and Mario Szegedy. Checking computations in polylogarithmic time.
+            In Proceedings of the 23rd Annual ACM Symposium on Theory of Computing, STOC ’91, pages 21–32, 1991.
+[BG93]      Mihir Bellare and Oded Goldreich. On defining proofs of knowledge. In Proceedings of the 12th Annual International
+            Cryptology Conference on Advances in Cryptology, CRYPTO ’92, pages 390–420, 1993.
+[BG08]      Boaz Barak and Oded Goldreich. Universal arguments and their applications. SIAM Journal on Computing, 38(5):1661–
+            1694, 2008. Preliminary version appeared in CCC ’02.
+
+
+
+                                                              45
+[BGGL01] Boaz Barak, Oded Goldreich, Shafi Goldwasser, and Yehuda Lindell. Resettably-sound zero-knowledge and its
+         applications. In Proceedings of the 42nd Annual IEEE Symposium on Foundations of Computer Science, FOCS ’01,
+         pages 116–125, 2001.
+[BGH+ 04] Eli Ben-Sasson, Oded Goldreich, Prahladh Harsha, Madhu Sudan, and Salil Vadhan. Robust PCPs of proximity,
+          shorter PCPs and applications to coding. In Proceedings of the 26th Annual ACM Symposium on Theory of Computing,
+          STOC ’04, pages 1–10, 2004.
+[BGKW88] Michael Ben-Or, Shafi Goldwasser, Joe Kilian, and Avi Wigderson. Multi-prover interactive proofs: how to remove
+         intractability assumptions. In Proceedings of the 20th Annual ACM Symposium on Theory of Computing, STOC ’88,
+         pages 113–131, 1988.
+[BGL+ 15] Nir Bitansky, Sanjam Garg, Huijia Lin, Rafael Pass, and Sidharth Telang. Succinct randomized encodings and their
+          applications. In Proceedings of the 47th ACM Symposium on the Theory of Computing, STOC ’15, pages 439–448,
+          2015.
+[BHZ87]     Ravi B. Boppana, Johan Håstad, and Stathis Zachos. Does co-NP have short interactive proofs? Information Processing
+            Letters, 25(2):127–132, 1987.
+[BKK+ 13] Eli Ben-Sasson, Yohay Kaplan, Swastik Kopparty, Or Meir, and Henning Stichtenoth. Constant rate PCPs for Circuit-
+          SAT with sublinear query complexity. In Proceedings of the 54th Annual IEEE Symposium on Foundations of Computer
+          Science, FOCS ’13, pages 320–329, 2013.
+[BR93]      Mihir Bellare and Phillip Rogaway. Random Oracles Are Practical: A Paradigm for Designing Efficient Protocols.
+            In Proceedings of the 1st ACM Conference on Computer and Communications Security, CCS ’93, pages 62–73, New
+            York, NY, USA, 1993. ACM.
+[BS08]      Eli Ben-Sasson and Madhu Sudan. Short PCPs with polylog query complexity. SIAM Journal on Computing,
+            38(2):551–607, 2008. Preliminary version appeared in STOC ’05.
+[CCC+ 15] Yu-Chi Chen, Sherman S. M. Chow, Kai-Min Chung, Russell W. F. Lai, Wei-Kai Lin, and Hong-Sheng Zhou.
+          Computation-trace indistinguishability obfuscation and its applications. Cryptology ePrint Archive, Report 2015/406,
+          2015.
+[CGH04]     Ran Canetti, Oded Goldreich, and Shai Halevi. The random oracle methodology, revisited. Journal of the ACM,
+            51(4):557–594, 2004.
+[CH15]      Ran Canetti and Justin Holmgren. Succinct garbled RAM. Cryptology ePrint Archive, Report 2015/388, 2015.
+[CHJV15]    Ran Canetti, Justin Holmgren, Abhishek Jain, and Vinod Vaikuntanathan. Succinct garbling and indistinguishability
+            obfuscation for RAM programs. In Proceedings of the 47th ACM Symposium on the Theory of Computing, STOC ’15,
+            pages 429–437, 2015.
+[Dam89]     Ivan Damgård. A design principle for hash functions. In Proceedings of the 9th Annual International Cryptology
+            Conference, CRYPTO ’89, pages 416–427, 1989.
+[DFH12]     Ivan Damgård, Sebastian Faust, and Carmit Hazay. Secure two-party computation with low communication. In
+            Proceedings of the 9th Theory of Cryptography Conference, TCC ’12, pages 54–74, 2012.
+[FLS90]     Uriel Feige, Dror Lapidot, and Adi Shamir. Multiple non-interactive zero knowledge proofs based on a single random
+            string. In Proceedings of the 31st Annual Symposium on Foundations of Computer Science, FOCS ’90, pages 308–317,
+            1990.
+[FRS88]     Lance Fortnow, John Rompel, and Michael Sipser. On the power of multi-prover interactive protocols. In Theoretical
+            Computer Science, pages 156–161, 1988.
+[FS86]      Amos Fiat and Adi Shamir. How to prove yourself: practical solutions to identification and signature problems. In
+            Proceedings of the 6th Annual International Cryptology Conference, CRYPTO ’86, pages 186–194, 1986.
+[GGPR13] Rosario Gennaro, Craig Gentry, Bryan Parno, and Mariana Raykova. Quadratic span programs and succinct NIZKs
+         without PCPs. In Proceedings of the 32nd Annual International Conference on Theory and Application of Cryptographic
+         Techniques, EUROCRYPT ’13, pages 626–645, 2013.
+[GH98]      Oded Goldreich and Johan Håstad. On the complexity of interactive proofs with bounded communication. Information
+            Processing Letters, 67(4):205–214, 1998.
+[GHRW14] Craig Gentry, Shai Halevi, Mariana Raykova, and Daniel Wichs. Outsourcing private RAM computation. In Proceedings
+         of the 55th Annual IEEE Symposium on Foundations of Computer Science, FOCS ’14, pages 404–413, 2014.
+
+
+                                                              46
+[GIMS10]   Vipul Goyal, Yuval Ishai, Mohammad Mahmoody, and Amit Sahai. Interactive locking, zero-knowledge PCPs, and
+           unconditional cryptography. In Proceedings of the 30th Annual Conference on Advances in Cryptology, CRYPTO’10,
+           pages 173–190, 2010.
+[GK03]     Shafi Goldwasser and Yael Tauman Kalai. On the (in)security of the Fiat-Shamir paradigm. In Proceedings of the 44th
+           Annual IEEE Symposium on Foundations of Computer Science, FOCS ’03, pages 102–113, 2003.
+[GKR08]    Shafi Goldwasser, Yael Tauman Kalai, and Guy N. Rothblum. Delegating computation: Interactive proofs for Muggles.
+           In Proceedings of the 40th Annual ACM Symposium on Theory of Computing, STOC ’08, pages 113–122, 2008.
+[GLR11]    Shafi Goldwasser, Huijia Lin, and Aviad Rubinstein. Delegation of computation without rejection problem from
+           designated verifier CS-proofs. Cryptology ePrint Archive, Report 2011/456, 2011.
+[GMR89]    Shafi Goldwasser, Silvio Micali, and Charles Rackoff. The knowledge complexity of interactive proof systems. SIAM
+           Journal on Computing, 18(1):186–208, 1989. Preliminary version appeared in STOC ’85.
+[Gol99]    Oded Goldreich. Modern Cryptography, Probabilistic Proofs and Pseudorandomness, volume 17 of Algorithms and
+           Combinatorics. Springer Berlin Heidelberg, Berlin, Heidelberg, 1999.
+[Gro10]    Jens Groth. Short pairing-based non-interactive zero-knowledge arguments. In Proceedings of the 16th International
+           Conference on the Theory and Application of Cryptology and Information Security, ASIACRYPT ’10, pages 321–340,
+           2010.
+[GS86]     S Goldwasser and M Sipser. Private Coins Versus Public Coins in Interactive Proof Systems. In Proceedings of the
+           Eighteenth Annual ACM Symposium on Theory of Computing, STOC ’86, pages 59–68, New York, NY, USA, 1986.
+           ACM.
+[GVW02]    Oded Goldreich, Salil Vadhan, and Avi Wigderson. On interactive proofs with a laconic prover. Computational
+           Complexity, 11(1/2):1–53, 2002.
+[Hol07]    Thomas Holenstein. Parallel repetition: simplifications and the no-signaling case. In Proceedings of the 39th Annual
+           ACM Symposium on Theory of Computing, STOC ’07, pages 411–419, 2007.
+[HS00]     Prahladh Harsha and Madhu Sudan. Small PCPs with low query complexity. Computational Complexity, 9(3–4):157–
+           201, Dec 2000. Preliminary version in STACS ’91.
+[IKM09]    Tsuyoshi Ito, Hirotada Kobayashi, and Keiji Matsumoto. Oracularization and two-prover one-round interactive proofs
+           against nonlocal strategies. In Proceedings of the 24th IEEE Annual Conference on Computational Complexity,
+           CCC ’09, pages 217–228, 2009.
+[IKO07]    Yuval Ishai, Eyal Kushilevitz, and Rafail Ostrovsky. Efficient arguments without short PCPs. In Proceedings of the
+           Twenty-Second Annual IEEE Conference on Computational Complexity, CCC ’07, pages 278–291, 2007.
+[IMS12]    Yuval Ishai, Mohammad Mahmoody, and Amit Sahai. On efficient zero-knowledge PCPs. In Proceedings of the 9th
+           International Conference on Theory of Cryptography, TCC ’12, pages 151–168, 2012.
+[IMSX15]   Yuval Ishai, Mohammad Mahmoody, Amit Sahai, and David Xiao. On zero-knowledge PCPs: Limitations, simplifica-
+           tions, and applications, 2015. Available at http://www.cs.virginia.edu/˜mohammad/files/papers/
+           ZKPCPs-Full.pdf.
+[Ito10]    Tsuyoshi Ito. Polynomial-space approximation of no-signaling provers. In Proceedings of the 37th International
+           Colloquium on Automata, Languages and Programming, ICALP ’10, pages 140–151, 2010.
+[Kil92]    Joe Kilian. A note on efficient zero-knowledge proofs and arguments. In Proceedings of the 24th Annual ACM
+           Symposium on Theory of Computing, STOC ’92, pages 723–732, 1992.
+[KP15]     Yael Tauman Kalai and Omer Paneth. Delegating RAM computations. Cryptology ePrint Archive, Report 2015/957,
+           2015.
+[KR08]     Yael Kalai and Ran Raz. Interactive PCP. In Proceedings of the 35th International Colloquium on Automata, Languages
+           and Programming, ICALP ’08, pages 536–547, 2008.
+[KR09]     Yael Tauman Kalai and Ran Raz. Probabilistically checkable arguments. In Proceedings of the 29th Annual International
+           Cryptology Conference, CRYPTO ’09, pages 143–159, 2009.
+[KRR13]    Yael Kalai, Ran Raz, and Ron Rothblum. Delegation for bounded space. In Proceedings of the 45th ACM Symposium
+           on the Theory of Computing, STOC ’13, pages 565–574, 2013.
+[KRR14]    Yael Tauman Kalai, Ran Raz, and Ron D. Rothblum. How to delegate computations: the power of no-signaling proofs.
+           In Proceedings of the 46th Annual ACM Symposium on Theory of Computing, STOC ’14, pages 485–494, 2014.
+
+
+                                                             47
+[LFKN92] Carsten Lund, Lance Fortnow, Howard J. Karloff, and Noam Nisan. Algebraic methods for interactive proof systems.
+         Journal of the ACM, 39(4):859–868, 1992.
+[Lin15]     Yehuda Lindell. An efficient transform from sigma protocols to NIZK with a CRS and non-programmable random
+            oracle. In Proceedings of the 12th Theory of Cryptography Conference, TCC ’15, pages 93–109, 2015.
+[Lip12]     Helger Lipmaa. Progression-free sets and sublinear pairing-based non-interactive zero-knowledge arguments. In
+            Proceedings of the 9th Theory of Cryptography Conference on Theory of Cryptography, TCC ’12, pages 169–189,
+            2012.
+[Mer89a]    Ralph C. Merkle. A certified digital signature. In Proceedings of the 9th Annual International Cryptology Conference,
+            CRYPTO ’89, pages 218–238, 1989.
+[Mer89b]    Ralph C. Merkle. One way hash functions and DES. In Proceedings of the 9th Annual International Cryptology
+            Conference, CRYPTO ’89, pages 428–446, 1989.
+[Mic00]     Silvio Micali. Computationally sound proofs. SIAM Journal on Computing, 30(4):1253–1298, 2000. Preliminary
+            version appeared in FOCS ’94.
+[Nie02]     Jesper Buus Nielsen. Separating random oracle proofs from complexity theoretic proofs: The non-committing
+            encryption case. In Proceedings of the 22nd Annual International Cryptology Conference, CRYPTO ’02, pages
+            111–126, 2002.
+[Pas03]     Rafael Pass. On deniability in the common reference string and random oracle model. In Proceedings of the 23rd
+            Annual International Cryptology Conference, CRYPTO ’03, pages 316–337, 2003.
+[PGHR13] Brian Parno, Craig Gentry, Jon Howell, and Mariana Raykova. Pinocchio: Nearly practical verifiable computation. In
+         Proceedings of the 34th IEEE Symposium on Security and Privacy, Oakland ’13, pages 238–252, 2013.
+[PR14]      Omer Paneth and Guy N. Rothblum. Publicly verifiable non-interactive arguments for delegating computation.
+            Cryptology ePrint Archive, Report 2014/981, 2014.
+[PS96]      David Pointcheval and Jacques Stern. Security proofs for signature schemes. In Proceedings of the 14th Annual
+            International Conference on Theory and Application of Cryptographic Techniques, EUROCRYPT ’96, pages 387–398,
+            1996.
+[PS05]      Rafael Pass and Abhi Shelat. Unconditional characterizations of non-interactive zero-knowledge. In Proceedings of the
+            25th Annual International Cryptology Conference, CRYPTO ’05, pages 118–134, 2005.
+[PSSV07]    Aduri Pavan, Alan L. Selman, Samik Sengupta, and Vinodchandranm N. V. Polylogarithmic-round interactive proofs
+            for coNP collapse the exponential hierarchy. Theoretical Computer Science, 385(1-3):167–178, 2007.
+[Raz95]     Ran Raz. A parallel repetition theorem. In Proceedings of the 27th Annual ACM Symposium on Theory of Computing,
+            STOC ’95, pages 447–456, 1995.
+[RRR16]     Omer Reingold, Ron Rothblum, and Guy Rothblum. Constant-round interactive proofs for delegating computation. In
+            Proceedings of the 48th ACM Symposium on the Theory of Computing, STOC ’16, pages ???–???, 2016.
+[SBV+ 13] Srinath Setty, Benjamin Braun, Victor Vu, Andrew J. Blumberg, Bryan Parno, and Michael Walfish. Resolving the
+          conflict between generality and plausibility in verified computation. In Proceedings of the 8th EuoroSys Conference,
+          EuroSys ’13, pages 71–84, 2013.
+[SBW11]     Srinath Setty, Andrew J. Blumberg, and Michael Walfish. Toward practical and unconditional verification of remote
+            computations. In Proceedings of the 13th USENIX Conference on Hot Topics in Operating Systems, HotOS ’11, pages
+            29–29, 2011.
+[Sha92]     Adi Shamir. IP = PSPACE. Journal of the ACM, 39(4):869–877, 1992.
+[SMBW12] Srinath Setty, Michael McPherson, Andrew J. Blumberg, and Michael Walfish. Making argument systems for outsourced
+         computation practical (sometimes). In Proceedings of the 2012 Network and Distributed System Security Symposium,
+         NDSS ’12, 2012.
+[SVP+ 12]   Srinath Setty, Victor Vu, Nikhil Panpalia, Benjamin Braun, Andrew J. Blumberg, and Michael Walfish. Taking proof-
+            based verified computation a few steps closer to practicality. In Proceedings of the 21st USENIX Security Symposium,
+            Security ’12, pages 253–268, 2012.
+[Val08]     Paul Valiant. Incrementally verifiable computation or proofs of knowledge imply time/space efficiency. In Proceedings
+            of the 5th Theory of Cryptography Conference, TCC ’08, pages 1–18, 2008.
+[Wee09]     Hoeteck Wee. Zero Knowledge in the Random Oracle Model, Revisited. In Mitsuru Matsui, editor, Advances in
+            Cryptology – ASIACRYPT 2009, number 5912 in Lecture Notes in Computer Science, pages 417–434. Springer Berlin
+            Heidelberg, 2009.
+
+
+
+                                                              48
+

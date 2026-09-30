@@ -1,0 +1,2106 @@
+arXiv:2607.23752v1 [cs.CR] 26 Jul 2026
+
+ZKP Security Tools and Verification:
+Coverage, Effectiveness, Adoption, and Challenges
+Arman Kolozyan*
+
+Tom Sorger*
+
+Alexander Hicks
+
+Stefanos Chaliasos
+
+Max Planck Institute for
+Security and Privacy (MPI-SP)
+
+KTH
+Royal Institute of Technology
+
+Ethereum Foundation
+
+University of Athens &
+zkSecurity
+
+Abstract—Zero-knowledge proofs (ZKPs) have become a core
+technology for privacy and verifiable computing. They are used
+to secure blockchains that handle billions of dollars and identity
+applications dealing with sensitive personal data. However, ZKP
+systems are complex, and subtle implementation errors can
+completely break their guarantees, letting attackers forge money
+or false proofs of identity. Researchers and practitioners have
+therefore developed a growing set of bug detection and formal
+verification methods to secure these systems. Yet their real-world
+effectiveness and adoption remain unclear.
+In this paper, we aim to shed light on the state of ZKP
+security tooling. We first systematize the landscape of these tools
+and observe that most target Circom, leaving newer DSLs and
+zkVMs with limited support. We then evaluate six tools across
+70 real-world vulnerabilities and find that while the tools detect
+45.7% of bugs on isolated targets, their effectiveness drops to
+19.6% on full codebases, with important vulnerability classes
+left unaddressed. We also present the first systematic analysis of
+formal verification efforts, revealing that current work focuses
+primarily on constraint correctness and identifying key gaps and
+risks. Finally, we survey 48 practitioners, showing that development and security remain human-led, LLMs are widely used,
+and practitioners prioritize tools with clearer guarantees and
+lower integration effort. Overall, our results highlight the need
+for better integration of security tooling with the development
+and auditing process, and we provide actionable insights for
+researchers and practitioners.
+Index Terms—ZKPs, security, formal verification
+
+I. I NTRODUCTION
+Zero-knowledge proofs (ZKPs) are cryptographic protocols
+that let a prover convince a verifier that a statement is
+true, optionally without revealing anything beyond its validity [1]. Over the last decade, advances in proof systems
+and implementations have made ZKPs practical, enabling
+emerging applications such as private payments [2], identity
+protocols [3], blockchain scaling through zk-rollups [4], and
+verifiable machine learning [5].
+These applications rely on strong properties such as succinct
+verification, privacy, and soundness [6]. Yet ZKP implementations are difficult to get right, as subtle bugs in circuits,
+proof systems, or integrations can break their guarantees,
+allowing false statements to get accepted by the verifier [7].
+These risks are not hypothetical. The Orchard vulnerability
+in Zcash remained hidden for years and could have enabled
+counterfeiting in its largest shielded pool [8], an Aztec Connect
+* These authors have equally contributed to this work.
+
+exploit drained roughly $2.1 million [9], and high-severity
+ZKP bugs continue to appear in bug-bounty programs [10].
+In response, researchers and practitioners have developed a
+growing set of defenses for ZKP implementations, including
+static analyzers [11]–[15], SMT-based verifiers [16]–[19], and
+fuzzers [20], [21]. Given the complexity and security-critical
+role of ZKPs, formal verification is becoming increasingly
+important, with recent efforts targeting zero-knowledge virtual
+machines (zkVMs), proof systems, and verifier implementations [22]–[26]. Nevertheless, the impact of these techniques
+remains unclear: tools are often evaluated on curated examples,
+formal-verification claims cover only selected components,
+and little is known about adoption in practice.
+This paper studies the state of ZKP security tooling and
+formal verification across five research questions. We combine
+a systematization of existing tools, an evaluation of six tools on
+70 real-world vulnerabilities, a systematic analysis of formalverification efforts, and a survey of 48 ZKP practitioners. This
+methodology lets us assess which languages tools cover, what
+they detect, which parts of the stack are or could be formally
+verified, and how practitioners use them. Below, we state the
+research questions and summarize representative findings.
+RQ1: What is the current landscape of ZKP security
+tools? Which DSLs do existing tools support? What analysis
+techniques do they use? Which vulnerability classes can they
+detect, and which classes remain unsupported?
+Key findings. Current tools focus almost exclusively on Circom circuits and concentrate on nondeterminism and related
+underconstraint bugs, while leaving newer DSLs, zkVMs, and
+other vulnerabilities weakly supported (Section IV).
+RQ2: How effective are automated ZKP security tools on
+real-world vulnerabilities? What affects their effectiveness?
+Key findings. Across 70 real-world bugs, at least one tool
+detects 45.7% on isolated circuits, but only 19.6% on wholeproject codebases, with errors, timeouts, and compatibility
+failures limiting practical effectiveness (Section V).
+RQ3: What parts of the ZKP stack are covered by formal
+verification efforts? Which systems and properties have been
+verified? How are models built, proofs discharged, and trusted
+assumptions defined? What verification gaps remain?
+Key findings. zkVM verification is converging on Lean and
+the Sail RISC-V specification, but results remain isolated: they
+mostly prove constraint soundness, leave key artifacts unver-
+
+ified, and rely on trusted extraction and modeling. Progress
+requires end-to-end, CI-friendly proofs with precise claims
+(Section VI).
+
+Computations
+
+RQ4: How are ZKP security tools adopted in development
+and audit workflows? Which tools and techniques are used
+by practitioners? How are tools integrated into development
+and audit workflows? What barriers limit tool adoption?
+Key findings. Workflows remain human-led even though
+interactive LLMs are already mainstream, used by 85% of
+developers and 83% of auditors; advanced tools are useful but
+costly to integrate, often requiring project-specific specifications and manual validation (Section VII).
+RQ5: What gaps do practitioners perceive in security
+tooling? Which vulnerability classes are hardest to detect
+during development and audits? Which classes are adequately
+covered by existing tools, and which remain unsupported?
+Which tool characteristics do practitioners prioritize? How do
+practitioners view emerging AI/LLM-based assistance?
+Key findings. Practitioners view underconstrained bugs as
+the most mature target for current tooling, but identify major
+gaps around semantic errors, Fiat–Shamir issues, and integrations. They prioritize formal verification, LLMs, and tools with
+clear reports and guarantees (Section VII).
+Availability. To support reproducibility and further research,
+all of our artifacts are publicly available at https://github.com/t
+-sorger/zkp-security-tools, including the extended bug dataset,
+the tool selection process, the tool-evaluation harness and its
+results, and the anonymized raw survey data.
+II. BACKGROUND
+Zero-knowledge proofs (ZKPs). A zero-knowledge proof
+(ZKP) lets a prover convince a verifier that a statement
+is true without revealing anything beyond its validity [1].
+(In practice, proofs may only be succinct rather than zeroknowledge, but the term is still used.) Typically, this statement
+asserts that a computation was performed correctly on public
+and optionally private inputs. To make this provable, the
+computation is expressed as a set of constraints, which are
+polynomial equations over a finite field. This is necessary because the proof system works on such equations, not arbitrary
+programs: any non-polynomial part of the computation, such
+as a comparison, must be re-encoded as equivalent constraints.
+A satisfying assignment of these equations, called a witness,
+then corresponds to a correct run of the computation. The
+prover produces a proof that it knows such a witness, and the
+verifier checks the proof. Developers build such ZKP programs
+in two ways, depicted in Figure 1.
+ZK-DSLs. The first approach is to write an arithmetic
+circuit by leveraging a domain-specific language (DSL) such
+as Circom [27]. When using such a DSL, the developer writes
+both the computations and the constraints themselves and must
+keep them in sync [7], [15]. A compiler then lowers the circuit
+into a constraint system (e.g., R1CS [6]), together with a
+witness generator that computes all intermediate values for a
+
+(b) zkVM
+
+(a) ZK-DSL
+
+Program
+
+Constraints
+
+(e.g., Rust)
+
+Compiler
+
+Compiler
+
+ISA binary
+
+Witness generator
+
+(e.g., RISC-V)
+
+emulator
+
+Constraint system
+Execution trace
+
+Prover
+
+Prover
+
+Proof
+
+Proof
+
+Veriﬁer
+
+Veriﬁer
+
+Computations
+
+VM circuit
+(chips + lookups)
+
+Witness
+
+Constraints
+
+System component
+
+Fig. 1: Two ways to develop a ZKP application. A ZK-DSL (a)
+compiles a hand-written circuit (computations and constraints)
+into a witness generator and a constraint system. A zkVM (b)
+instead runs an ordinary program on a fixed ISA, checking the
+resulting execution trace against a fixed circuit.
+given input. Then, the prover combines this witness with the
+constraints into a cryptographic proof that the verifier checks.
+Vulnerabilities. Developing using ZK-DSLs is error-prone,
+because a mismatch between the computations and the constraints can break two core properties. If the constraints are
+too “weak”, they accept witnesses that the computation would
+never produce. This breaks soundness, letting a malicious
+prover convince the verifier of an incorrect statement. If
+instead the constraints are too strict, they reject witnesses from
+honest runs, which breaks completeness. A soundness failure
+is the most dangerous, as it can let an attacker forge proofs of
+false statements, leading to issues such as inflation bugs [8].
+zkVMs. Beyond being a source of bugs, writing constraints
+“by hand” does not scale to large programs and is impractical
+to maintain as programs change. A zkVM removes this burden:
+the developer writes an ordinary program in a conventional
+language (e.g., Rust), compiles it to a fixed instruction set
+architecture (ISA), and the zkVM proves the program (which
+is committed to) was executed correctly [28]. In this model,
+the circuit no longer encodes the application but the fetchdecode-execute loop of a CPU, which proves the execution of
+any program for that ISA. In a zkVM, the witness generator
+corresponds to an ISA emulator. It first runs the program and
+records its execution trace, which is a step-by-step log of every
+instruction executed. This trace is then checked against the
+constraints, which are split by instruction type into chips (e.g.,
+one chip for addition, one for memory). Beyond these core
+chips, zkVMs often rely on precompiles: dedicated circuits
+for expensive, frequently used operations (e.g., hashing) that
+would be prohibitively slow to prove [29]. As each chip
+is constrained on its own, the proof must additionally tie
+them together so they describe a single, consistent execution.
+
+Lookup and permutation arguments provide this link: a lookup
+proves that a value lies in a given set (such as the rows another
+chip exposes), while a permutation argument proves that
+two sequences of values are rearrangements of one another.
+Together, they keep a shared state such as memory coherent
+across the trace, so that a value read always equals the one last
+written to that address [30], [31]. Finally, a prover backend
+turns the satisfied constraints into a proof, which a verifier
+checks. This generality comes at a cost: each stage of the
+zkVM pipeline is a separate trust assumption, and therefore,
+a separate target of formal verification.
+III. M ETHODOLOGY
+A. Qualitative Methodology
+To dissect the current state of ZKP security tooling
+(RQ1/Section IV) and the formal verification efforts for ZKPs
+(RQ3/Section VI), we conducted a qualitative analysis combining systematic review with iterative expert analysis.
+Corpus construction. For RQ1, we collected ZKP security
+analysis tools, i.e., tools that analyze ZKP circuits for securityrelevant bugs. We searched academic publications, GitHub
+repositories, and blog posts/project documentation. For RQ3,
+we collected formal verification efforts targeting ZKP systems,
+with a focus on zkVMs as they have been the primary target of
+FV due to their significance and complexity [30]. We included
+closed-source tools or verification efforts only when public
+material provided sufficient detail to classify their targets,
+techniques, and scopes. The complete process, initial corpora,
+and filtering are documented in our artifact.
+Classification and validation. Two authors independently
+classified each artifact through an iterative process. For RQ1,
+we classified tools by analysis target, technique, supported
+vulnerability classes, source availability, and automation level.
+Vulnerability coverage was mapped to existing ZKP bug
+taxonomies [7], [15], and support was marked as full, partial,
+or unsupported based on papers, documentation, and source
+code. For RQ3, we classified formal verification efforts by verification goal, model-construction method, proving technique,
+verification scope, and trusted computing base. Disagreements
+were resolved through discussion, and unresolved cases were
+reviewed by a third author. The corpus and classifications were
+revisited as we went over the full corpus.
+B. Quantitative Methodology
+To answer RQ2, we evaluate whether automated ZKP security tools can detect real-world vulnerabilities collected from
+audits and public disclosures, rather than benchmarks tailored
+to individual tools. We focus on true-positive detection, i.e.,
+whether a tool identifies a vulnerability. We do not measure
+false positives, as our goal is to assess current bug-finding
+capability. We leave a false-positive analysis to future work.
+DSL & Tool Selection. We focus on Circom as it is not only
+the DSL that most automated ZKP security tools target [7], but
+also one of the most mature and widely deployed DSLs. We
+selected all open-source tools that run non-interactively. For
+
+tools with optional specification-driven modes, we use only
+modes that do not require manual annotations.
+Dataset. We extend the dataset introduced by Chaliasos et
+al. [7], which contains real-world ZKP circuit vulnerabilities.
+For each bug, the dataset provides the circuit containing the
+vulnerable code, metadata about the vulnerable location, and,
+when available, the original vulnerable project commit. This
+lets us evaluate each tool in two settings: in a minimal wrapper
+that isolates the vulnerable code (isolated mode) and in the
+original project codebase (project mode).
+We extend the Circom dataset from 29 to 70 bugs by
+adding high-severity vulnerabilities from audit reports and
+public disclosures. All 70 bugs compile in isolated mode.
+In project mode, 56 bugs compile successfully, while the
+remaining projects fail because of stale code or deprecated
+dependencies.
+Execution and Metrics. We developed a harness to process
+bugs, execute tools, and handle timeouts. For each run, it stores
+the tool’s raw output and assigns one of four labels: detected,
+missed, error, or timeout. Detected and missed are decided by
+comparing the tool’s findings against the ground truth. When
+a tool reports a vulnerability but does not directly identify
+the ground-truth location, two authors manually inspect the
+raw output and compare it with the dataset annotation before
+assigning the final label. Experiments were executed with a
+600-second timeout on a virtual machine with 8 vCPUs, 32 GB
+RAM, and an AMD EPYC-Milan CPU running at 2.4 GHz.
+C. Survey Methodology
+Survey Design. To answer RQ4 and RQ5, we designed a
+practitioner survey following standard guidelines for survey
+research [32], similar to prior software engineering and smart
+contract security studies [33], [34]. The survey covered security tool usage, perceived tooling gaps, formal verification
+workflows, and LLM-assisted security practices.
+We created two questionnaire variants: one for developers
+and researchers building ZKP systems, and one for security
+practitioners auditing them. Both variants were anonymous,
+all questions were optional, and free-text fields were included
+where responses could benefit from additional context.
+To refine the questionnaires, two authors first drafted the
+survey independently and then converged on common versions. We then ran two pilot rounds with N = 3 participants
+per questionnaire in each round. Pilot feedback was used to
+clarify wording and adjust multiple-choice options.
+Respondent Selection and Demographics. We targeted
+practitioners with experience in high-impact ZKP systems,
+focusing on deployed protocols with substantial usage. To
+reach this specialized population, we primarily contacted practitioners at research, development, and security organizations
+through personal channels (e.g., email and instant messaging).
+In total, we contacted 200 practitioners. Since many practitioners work across multiple roles, we asked participants to
+complete the questionnaire most relevant to their work. We
+
+TABLE I: Survey participants’ experience.
+Developers
+
+Auditors
+
+Years of ZKP experience
+Less than 1
+2 (5.6%)
+2 (16.7%)
+1–2
+10 (27.8%) 6 (50.0%)
+3–5
+18 (50.0%) 4 (33.3%)
+6+
+6 (16.7%)
+0 (0.0%)
+Types of ZKP systems used (multiple allowed)
+Circuit DSLs
+29 (80.6%) 11 (91.7%)
+zkVM implementations
+23 (63.9%) 8 (66.7%)
+zkVM guest programs
+10 (27.8%) 2 (16.7%)
+Other / specialized
+3 (8.3%)
+1 (8.3%)
+Total
+
+36
+
+12
+
+received 48 responses, corresponding to a 24% response rate.
+Table I summarizes participants’ experience.
+Data Analysis. We analyzed responses based on question
+type. For multiple-choice and Likert-scale questions, we report
+response distributions and percentages over the participants
+who answered each question. For open-ended questions, two
+authors reviewed the responses qualitatively and grouped
+recurring themes through inductive coding. We report results
+separately for developers/researchers and security practitioners
+where the distinction is relevant.
+IV. ZKP S ECURITY A NALYSIS T OOL L ANDSCAPE
+This section answers RQ1 by classifying ZKP security analysis tools by their target, technique, coverage, and usability.
+Comparison Dimensions. Table II summarizes selected tools
+along three dimensions. First, it captures the artifact being analyzed (e.g., source-level DSL code, or R1CS) and the analysis
+technique. Second, it outlines the vulnerability classes the tools
+can target. Third, it reports which tools are open-source and
+whether they run automatically without specifications.
+Targets and Techniques. Most tools target Circom, operating
+at different abstraction levels that correspond to different
+stages of the DSL pipeline in Figure 1a. Source-level tools,
+such as C IRCOMSPECT, analyze Circom code directly, while
+other tools like P ICUS operate on constraint systems (R1CS).
+The latter is closer to being language-agnostic, but loses
+the witness-computation logic needed to detect computationconstraint mismatches. To achieve language-agnostic analysis
+while preserving access to computations, recent work instead
+targets high-level intermediate representations [15], [38], [39].
+The tools leverage three main techniques. Static analysis
+reasons about code structure and data flow using methods
+such as pattern matching or taint analysis. It is fast, but
+often imprecise. Formal verification tools such as C IVER
+prove properties of the constraint system using deduction rules
+and SMT solving. They provide stronger guarantees when
+they succeed, but struggle with large circuits and non-linear
+finite-field arithmetic [40]–[43]. To mitigate this, several tools
+combine static analysis with formal verification [16], [19].
+Finally, ZK F UZZ applies fuzzing to detect defects [20].
+Vulnerability Coverage. Table III summarizes tool support
+for vulnerability classes from prior ZK bug taxonomies [7],
+
+[15]. Most tools focus on nondeterminism, where constraints
+allow multiple outputs for the same input [16]. This is the
+most common form of underconstrainedness, but it is not the
+only one. A circuit is also underconstrained whenever semantic
+mismatches occur: constraints accept witnesses that do not
+correspond to valid executions, even when deterministic.
+Some tools already extend coverage beyond nondeterminism, but mostly by requiring specifications. For instance,
+C IVER and CCC-C HECK detect missing range checks through
+user-defined preconditions, while C IRCOMSPECT and ZK F UZZ
+rely on hard-coded checks that do not generalize to arbitrary
+circuits. Complex logic bugs and cryptographic issues remain
+largely unsupported and are therefore omitted from the table.
+Practical Usability. All tools except AC4 are publicly
+available, but that does not imply push-button use. While
+most tools can run automatically, some require user-provided
+preconditions and postconditions. This specification burden
+can result in stronger guarantees and support for a wider range
+of vulnerabilities, but limits automated use.
+Takeaways for RQ1
+• Current ZKP security analysis tools focus almost exclusively on Circom circuits, with limited support for
+language-agnostic workflows.
+• Tools mainly target nondeterminism and have weaker
+coverage for other important bugs, including semantic
+mismatches and overconstrainedness.
+• Stronger analyses often require specifications, limiting
+their use as fully automated tools.
+Call to action: Security tools should provide broader language support, either through language-agnostic analyses
+or support for emerging DSLs, and should expand beyond
+nondeterminism, covering a wider range of vulnerabilities.
+V. T OOLS ’ E FFECTIVENESS
+This section answers RQ2 by evaluating existing automated
+and open-source ZKP security tools against real-world vulnerabilities. We evaluate six Circom tools in two modes: isolated
+and project mode (see Section III-B for the details).
+Overall effectiveness. In isolated mode, at least one tool
+detects 32 of the 70 bugs (45.7%). Across all executions,
+the tools produce 83 true positives (TPs). However, this hides
+substantial overlap, as 38 bugs are missed by every tool, while
+20 bugs are detected by at least two tools. In project mode,
+effectiveness drops sharply: at least one tool detects only 11
+of the 56 bugs (19.6%), with 14 TPs in total (see Figure 2).
+Detection by root cause. Detection is concentrated in a
+narrow subset of bug patterns. Table IV groups bugs by their
+root cause [7], and counts a bug as detected if any tool reports
+a TP. In isolated mode, all assigned-but-unconstrained bugs
+are detected, and tools detect roughly half of the missinginput-constraint and logic-to-constraint-translation bugs. In
+contrast, no circuit-design issues are detected, and only one of
+three specification misimplementations is detected. The project
+mode results are weaker across nearly every class. Importantly,
+
+Vulnerability Class
+
+Nondeterminism ∼
+Missing range
+∼
+checks
+Division by zero ∼
+Circuit logic
+✗
+assumptions
+Other
+✗
+mismatches
+
+Underconstrained ✓
+
+✗
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+✓
+
+Overconstrained
+
+✗
+
+✗
+
+✗
+
+✓
+
+✓
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+✓
+
+Underconstrained
+
+Circ
+
+Dimension
+
+TABLE III: Detection capabilities of tools with respect to
+vulnerability categories. A single bug can fall under several
+of them. ∼ = partial support.
+
+Open source
+Automatic
+
+✓
+✓
+
+✓
+∼
+
+✓
+∼
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+✓
+
+✓
+∼
+
+✓
+✓
+
+✓
+✓
+
+✗
+✓
+
+Overconstrained
+
+Target
+Technique
+
+C IR PIL H CN C R R C R C CH
+SA SA FV SF DA SF SF SF FV FV SA FV
+
+TP
+
+FN
+
+Error
+
+Picus
+
+10
+12
+
+41
+
+19
+
+18
+
+26
+
+25
+
+Ecne
+
+14
+
+38
+13
+
+25
+
+zkFuzz
+
+16
+
+11
+
+ConsCS
+
+4
+
+25
+
+43
+
+5
+
+32
+
+All tools
+0
+
+10
+
+11
+
+38
+
+20
+
+30
+
+40
+
+50
+
+60
+
+70
+
+Project mode (n=56)
+30
+
+Picus
+
+20
+
+8
+
+Civer
+7
+
+Ecne
+
+6
+
+36
+
+11
+
+28
+
+4
+
+17
+
+54
+
+Circomspect
+4
+
+zkFuzz
+
+12
+
+4
+
+36
+
+21
+
+ConsCS
+
+9
+
+25
+
+11
+
+All tools
+0
+
+45
+
+10
+
+20
+
+30
+
+40
+
+50
+
+Total Bugs
+
+Fig. 2: Per-tool outcomes in Isolated and Project modes.
+TABLE IV: Cumulative detection by ground-truth root cause.
+Root cause
+Missing input constraints
+Logic-to-constraint translation
+Unsafe circuit reuse
+Assigned but unconstrained
+Circuit design issue
+Arithmetic field issues
+Spec. misimplementation
+Other programming errors
+
+✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+✗
+
+∼ ∼
+
+✓
+
+✗
+
+✗
+
+✓
+
+✗
+
+✓
+
+✗
+
+✗
+
+✗
+
+✓ ✓
+
+✗
+
+✗
+
+∼ ✓
+
+✗
+
+∼
+
+✗
+
+✗
+
+∼
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+∼
+
+✗
+
+✗
+
+✗
+
+✓ ∼ ∼ ∼
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+✓
+
+✗
+
+∼ ✓
+
+✗
+
+✗
+
+✓
+
+✗
+
+✗
+
+✗
+
+✗
+
+✗
+
+7
+
+57
+
+Circomspect
+
+✗
+
+✗
+✓
+
+effectiveness. Among the 56 bugs that compile in both modes,
+31 are missed in both modes, 6 are detected in both, and 14 are
+detected only in isolated mode. The common case, therefore,
+is that large codebases often introduce scalability issues.
+
+Timeout
+
+Isolated mode (n=70)
+Civer
+
+Circ
+oms
+pect
+CCC
+[11]
+-Che
+ck [
+15]
+Pilsp
+ecto
+r [14
+Korr
+]
+ekt [
+13]
+zkFu
+z z [2
+0]
+Zequ
+a l [1
+9]
+Con
+sCS
+[35]
+Picu
+s [16
+]
+Cive
+r [3 6
+]
+Ecne
+[37]
+ZKA
+P [1
+2]
+AC4
+[18]
+
+oms
+pect
+[11]
+CCC
+-Che
+ck [
+15]
+Pilsp
+ecto
+r [14
+]
+Korr
+ekt [
+13]
+zkFu
+zz [2
+0]
+Zequ
+al [1
+9]
+Con
+sCS
+[35]
+Picu
+s [1 6
+]
+Cive
+r [36
+]
+Ecne
+[37]
+ZKA
+P [1
+2]
+AC4
+[18]
+
+TABLE II: Qualitative comparison of ZKP circuit tooling. C
+= Circom, R = R1CS, CN = Circom/Noir, H = halo2, CH =
+Circom/halo2. SA = static analysis, DA = dynamic analysis,
+FV = formal verification, SF = SA+FV, ∼ partial support.
+
+Isolated
+
+Project
+
+10/22 (45.5%)
+9/18 (50.0%)
+4/10 (40.0%)
+6/6 (100.0%)
+0/6 (0.0%)
+2/4 (50.0%)
+1/3 (33.3%)
+0/1 (0.0%)
+
+3/18 (16.7%)
+3/13 (23.1%)
+2/7 (28.6%)
+2/5 (40.0%)
+0/6 (0.0%)
+1/4 (25.0%)
+0/2 (0.0%)
+0/1 (0.0%)
+
+assigned-but-unconstrained bugs fall from 100% to 20% and
+missing-input-constraint bugs from 45% to 16%.
+Isolated versus project analysis. The isolated mode benchmark is valuable because it standardizes experiments and
+isolates the vulnerable code, but it can overestimate practical
+
+Operational limitations. Tools lack maturity, as they often
+produce errors. Further, as most tools rely on SMT solvers,
+timeouts occur quite often. Specifically, C IVER detects 20 TPs
+in isolated mode, but also fails with 26 errors and 14 timeouts.
+In project mode, timeouts and errors become more common
+(see Figure 2), with most timeouts stemming from the SMT
+queries the tools perform. A recent line of dedicated finite-field
+SMT solvers aims to make exactly these queries faster [40],
+[41], [43]–[45]. A complementary direction discharges finitefield obligations in a proof assistant instead, sidestepping the
+theory combination that stalls SMT [46].
+Lightweight tools are more robust but less effective. For
+instance, C IRCOMSPECT never times out, yet it detects only
+one TP. Although we do not systematically measure falsepositive rates in this benchmark, our use of the tools on real
+codebases revealed that, as expected, E CNE and C IRCOM SPECT are substantially noisier than the remaining tools, often
+producing many false positives.
+Takeaways for RQ2
+• ZKP security tools have practical value, as they detect
+critical vulnerabilities, so developers should use them.
+• The tools are not yet mature. Errors and timeouts
+are common, while effectiveness drops when analyzing
+large codebases, suggesting that tools are currently
+better suited to focused code-fragment analysis.
+• Results differ substantially from tool-specific benchmarks presented in their research papers, highlighting
+the bias introduced by narrow evaluation suites.
+Call to action: ZKP security tools need better engineering,
+broader vulnerability coverage, and evaluation on realworld datasets. Improvements in SMT solving and comple-
+
+mentary analyses could substantially reduce timeouts and
+make more sophisticated analyses practical.
+VI. F ORMAL V ERIFICATION OF ZKP S YSTEMS
+While the tools in Section IV detect bugs in circuits, a
+complementary line of work aims to prove their absence
+through formal verification (FV). This is particularly relevant
+for general-purpose ZKP systems such as zkVMs [30], which
+we focus on here as they also subsume circuit verification.
+A zkVM is far more complex than a single circuit, and it
+concentrates risk: a single zkVM can be a point of failure for
+many independent applications. For the same reason, however,
+verifying one zkVM can secure a whole ecosystem.
+Automated tools (e.g., P ICUS) can be used to verify specific
+properties, but do not cover the full stack: reasoning about
+ISA semantics, soundness and completeness of semantics,
+the provable security of cryptographic specifications, and the
+correctness of cryptographic code against those specifications.
+This has led to broad adoption of proof assistants, often Lean,
+although Rocq [25], [47], ACL2 [24], and EasyCrypt [48]
+have also been used. Coordinated efforts such as the Ethereum
+Foundation’s verified-zkEVM project [49] pool resources and
+tooling, while parallel standardization of the zkVM target itself
+(i.e., a common RISC-V profile) [50] has helped streamline
+verification efforts. We therefore center this section on zkVMs,
+examining which systems have been verified and for which
+properties, how their formal models are built, which techniques
+are used, and what they leave in the trusted computing base.
+Figure 3 depicts the zkVM stack and its verification goals.
+Table V summarizes the verification efforts to date.
+A. Verification goals
+A zkVM composes several artifacts: a guest program compiled to the ISA, the arithmetization that encodes the ISA as
+polynomial constraints, precompiles, the cryptographic proof
+system, and a recursion layer that aggregates proofs for segments of an execution trace into a final one. Verifying a zkVM
+means establishing end-to-end soundness and completeness
+guarantees, with current work typically focusing on soundness.
+Soundness. Soundness means the verifier never accepts proofs
+of false statements. It depends on the constraints, the proof
+system, and the verifier: the witness generator and prover are
+untrusted. This reduces the verification scope to the following:
+Constraint correctness, soundness direction (CC-S). Every
+witness satisfying the constraints corresponds to an execution
+of the ISA (constraints ⇒ ISA), checked against a reference specification, such as the RISC-V Sail model extracted
+to a proof assistant. The same obligation applies to each
+precompile against its function specification. This subsumes
+determinism, which many automated tools target.
+Proof-system soundness (PS). The cryptographic argument
+prevents a malicious prover from forging a proof of a false
+statement that an honest verifier would accept, for some
+security parameter (e.g., 128 bits).
+Verifier correctness (VC). The verifier rejects invalid proofs.
+The verifier used for recursive aggregation carries the same
+
+obligation, but is implemented via constraints. Any use of a
+zkVM also involves a guest program, which must be compiled
+correctly or verified at the ISA level so that the compiler drops
+out of the trusted computing base and the intended statement is
+the one proven by the zkVM. Given that a zkVM may allow
+for any guest program to be proven, and that verifying the
+guest program is a traditional program verification task, we
+treat this as a mostly separate concern in this section.
+Completeness. Completeness requires that every honest execution of the guest program results in a proof accepted by
+an honest verifier. While soundness is typically the main
+concern, completeness is essential in some deployments; a
+completeness failure could, for example, cause liveness issues
+in a blockchain that settles via validity proofs for blocks.
+Unlike soundness, completeness depends on the witness
+generator and prover actually producing the satisfying witness
+and a valid proof, which draws in a much larger part of the
+stack, including compilers. It decomposes into the following.
+Constraint correctness, completeness direction (CC-C). For
+every ISA execution, there is a witness that satisfies the
+constraints (ISA ⇒ constraints).
+Witness-constraint consistency (WC). The witness generator produces a satisfying witness for every execution. The
+constraints alone can only show that a satisfying witness exists.
+Prover completeness (PC). The prover produces a proof the
+verifier accepts. Likewise for the recursion prover, although the
+proven statement is different.
+While constraint DSLs usually derive both constraints and
+witness computation from one circuit description, zkVMs
+often optimize the witness generator separately, so WC may
+cover an artifact untouched by constraint-correctness proofs.
+B. Making the system verifiable
+To verify any zkVM component, one must have the relevant
+formal specifications, the ability to precisely state what must
+be verified, and the ability to model the verification target in a
+proof assistant. Specification and modeling of the target largely
+determine the trusted computing base beyond the verification
+environment itself, and must therefore be validated and tested.
+Otherwise, one risks technically correct proofs that say nothing
+meaningful about the real system.
+Model creation. We distinguish four modeling approaches.
+The choice is primarily about the gap between the verified
+model and the code that actually runs, and what is trusted to
+bridge it. Whether the model is produced by a tool or by hand
+is secondary, affecting how much code structure survives and
+how costly the result is to maintain.
+Constraint extraction (E). In the case of constraints, it is
+possible to intercept the circuit-builder API (e.g., Plonky3’s
+Air trait) and export the constraints to a proof assistant.
+As extraction is automated, the model closely mirrors what
+the prover actually evaluates, and the main trust assumption
+is the correctness of the extraction tool. Nethermind’s CertiPlonk [26], OpenVM’s constraint-correctness proofs [23], and
+the original SP1 Hypercube proofs [22] follow this approach.
+
+SPECIFICATION
+(reference)
+
+ISA spec:
+RISC-V Sail
+extracted to Lean
+
+Guest program
+spec
+
+Precompile
+function spec
+
+Proof-system spec:
+IOP · PCS · Fiat–Shamir
+PS, PC · SC
+
+Witness gen.
+(emulator)
+
+IMPLEMENTATION
+(what runs)
+
+WC · C
+consistency
+
+Guest
+program
+
+compiler
+
+Prover
+(CPU / GPU)
+PC · C
+
+ISA
+program
+
+Recursion
+(verifierin-circuit)
+
+Constraints
+CC · SC
+
+ecall / libc
+
+VC · SC
+
+Verifier
+(CPU)
+
+On-chain
+verifier
+VC · S
+
+VC · S
+
+Precompile
+circuits
+CC · SC
+
+Key
+Boxes:
+implementation/artifact (runs)
+specification (reference)
+Goals: CC constraint correctness WC witness–constraint consistency
+Properties: S soundness C completeness SC both
+
+Arrows:
+data flow
+PS proof-system soundness
+
+verification link to spec
+runtime interface
+VC verifier correctness PC prover completeness
+
+Fig. 3: The zkVM verification stack: a specification band (reference models) over an implementation band (what runs), linked
+by compiler and extraction steps. Each artifact is labeled with its verification goal and its relevance to soundness/completeness.
+TABLE V: Verification efforts across the zkVM stack up to date. Verification goal refers to the goals defined in Section VI-A,
+with the targeted constraints in brackets for constraint correctness. Model lists the model-creation approaches (Section VI-B).
+Proving technique and Tooling report the techniques and tools these efforts employ. ITP = interactive theorem proving.
+Verification goal
+
+Model
+
+Soundness
+Constraint correctness (ISA)
+
+Extraction [22], [23], Translation [51], [52],
+Hand-written [24], [25], [53]
+Constraint correctness (precompiles) Extraction [54], [55], Translation [47], [52]
+Proof-system soundness
+Hand-written [56]
+Verifier correctness
+Hand-written [48]
+
+Completeness
+Constraint correctness (ISA)
+Witness-constraint consistency
+
+Correctness by construction [57]
+Correctness by construction [57],
+Hand-written [58]
+
+Extraction is lossy: reading constraints from the builder yields
+flat polynomials and lookup interactions, losing the code structure that generated them and making proofs longer, harder, and
+less reusable across similar instructions. Extraction can also
+bridge approaches: SP1’s latest effort extracts constraints but
+expresses them in Clean [59], combining (E) with (CbC).
+Translation via a compiler IR (T). A compiler lowers the
+artifact (typically constraints or Rust source code) through a
+reusable intermediate representation to a verification backend.
+This preserves more high-level structure than an extractor (e.g.,
+witness-generation logic), but makes the compiler pipeline a
+major trust assumption that requires extensive validation. On
+the constraint side, frameworks such as LLZK [39] lower
+circuits through MLIR dialects to multiple backends. These
+include an SMT solver (e.g., P ICUS [16], integrated into RISC
+Zero’s CI/CD pipeline [52]) and a proof-assistant backend.
+The backend is therefore an orthogonal choice while the
+compiler/IR pipeline joins the trusted base in place of an
+
+Proving technique
+
+Tooling
+
+ITP; SMT
+
+Lean, Rocq, ACL2; Picus-AuditHub
+
+ITP; SMT
+ITP
+ITP
+
+Lean, Rocq; Picus-AuditHub
+Lean (ArkLib, VCVio)
+EasyCrypt
+
+ITP
+ITP; SMT
+
+Clean
+Clean; ZIVER
+
+extractor. On the Rust side, it can be translated to a proof
+assistant, whether by rocq-of-rust [47] (supplemented by
+manual work and validated by comparing the Rocq and Rust
+outputs) or via the Charon frontend [60]. A limitation of automated Rust-to-proof-assistant tools is that they translate only a
+fragment of Rust1 and that translation is inherently trusted as
+there are no complete formal Rust semantics to prove against.
+Highly optimized cryptographic code not written with these
+tools in mind can therefore be hard to extract to any proof
+assistant: SIMD intrinsics, unsafe, and inline assembly are
+not supported [61], [62] and are treated as opaque. Hence,
+only a subset of the code of a prover like Plonky3 reaches
+the proof assistant. There are other Rust verification tools,
+including Verus [63] (trialed on zkVM constraints [64]), which
+do not extract to a proof assistant and fit self-contained Rust
+components well. However, they are less suited to certain
+1 For example, see https://github.com/cryspen/hax/labels/unsupported-rust.
+
+tasks such as verifying a verifier, which must ideally bridge
+a Rust implementation to a provably secure proof-system
+specification that lives in a proof assistant.
+Hand-written model (M). A human (or agent) writes the
+model directly in a proof assistant. For example, CertiK
+manually re-implemented zkWasm’s circuit logic in Rocq [25].
+This is laborious but flexible. Model-implementation correspondence must be established separately, typically by testing
+rather than formal equivalence. Jolt’s ACL2 model [24] did
+so by exhaustively comparing subtable outputs against Rust
+for all inputs when feasible (at most 216 entries), and by
+random testing otherwise. StarkWare’s Cairo effort similarly
+built a manual Lean model of VM execution semantics [53],
+complemented by a proof-producing compiler.
+Correctness by construction (CbC). Instead of deriving a
+model from existing code, the circuit is written and proven
+correct directly in the proof assistant. This removes the modelimplementation gap, but requires (re)writing the artifact there.
+It is only practical when either fast code can be generated from
+it (as in fiat-crypto [65]) or the artifact is not performancesensitive, as with constraints. Clean [59], implemented in
+Lean, follows this route and proves both CC and WC.
+In short, automated approaches stay closest to the deployed
+system but concentrate trust in unverified tooling, and extraction may discard code structure. Hand-written models recover
+structure and cover more of the system, but need separate
+validation and maintenance. CbC removes the model-code gap,
+but requires a proof-assistant implementation to be practical
+from a software-engineering perspective.
+Proving techniques. How a property is discharged also
+shapes the trusted computing base. Interactive theorem proving
+is the most expressive option and yields kernel-checked proofs,
+but proof effort is high (though tactics and AI help) and
+limited automation hinders CI integration when proofs break.
+Automated solvers such as SMT require less effort, but have
+narrower scope (e.g., only target determinism) and can struggle
+with ZKPs (Section IV). Proof assistants can sidestep this
+issue: BitModEq, for instance, proves finite-field-to-bitvector
+equivalences as a Lean tactic, outperforming general-purpose
+SMT solvers on real zkVM benchmarks [46].
+Trusted computing base. Every formal verification result
+holds only relative to a trusted computing base, which has
+two distinct sources. The first is the verification target: which
+parts of the stack were modeled, which reference specification
+serves as the ground truth, and the gap between the proven
+model and the code that actually runs. This gap is shaped directly by the model-creation choice (Section VI-B). Extraction
+(E) and compiler translation (T) each insert an unverified tool;
+hand-written models (M) assume that the model, written by
+a human or agent, matches the implementation; correctnessby-construction (CbC) has no separate model that can diverge
+but may be less performant. Any processing below the level at
+which the artifact is verified (e.g., compilation) is also trusted
+not to alter semantics. Wherever the model is not directly
+extracted, this gap must be validated rather than proven.
+
+The second source is the verification tools themselves, and
+it is the easier of the two to under-report. It includes the
+proof assistant’s trusted kernel, together with the axioms and
+library lemmas invoked, and any unverified solvers or decision
+procedures trusted to be correct. Solvers are a subtle case: even
+when they produce a kernel-checkable certificate for the proof
+assistant, the encoding of the proof obligation passed to them
+may still be trusted. It also includes the theorem statements
+themselves: a proof of a vacuous or misstated theorem passes
+the kernel while establishing nothing, so what is proven is as
+much part of the TCB as the machinery that checks it. Finally,
+an effort may simply assume a property rather than prove it.
+OpenVM’s constraint-correctness proofs, for example, assume
+the soundness of the lookup/bus argument that ties its chips
+together [23]. A subtler cost is that large verification toolchains
+exist partly just to move artifacts from one representation into
+a proof assistant or SMT-LIB, never discharging an obligation
+themselves while still enlarging the TCB and the maintenance
+burden. This is part of why tighter integration of development
+tooling with formal verification, and minimizing the set of
+trusted tools and extractions, is attractive.
+The TCB is therefore not a fixed baseline, but a function of
+both the system and the verification approach, and two verification outputs can rest on very different assumptions. This is a
+familiar lesson from software verification: even CompCert, the
+flagship verified C compiler, required an explicit and careful
+accounting of its trusted base, its specification, its extraction
+to executable code, and unverified support code [66].
+C. Verification Gaps and Risks
+Isolated components. Constraint soundness is the most
+mature goal (Table V), with proofs that have covered many
+zkVMs [23]–[25], [53]. It is, however, only one direction
+of one layer of the stack, and significant gaps remain elsewhere. No zkVM has end-to-end formal verification, and
+verified components are isolated. Constraint-correctness proofs
+cover instruction semantics, but the witness generator, the
+lookup/permutation arguments, the proof-system backend, and
+the on-chain verifier remain largely unverified.
+Shifted complexity. As the stack is large, verification
+complexity is often shifted between components rather than
+removed. Simplifying one component can burden another:
+lookup arguments are advertised as leading to simpler zkVMs
+and simpler constraints [31], [67], but end-to-end verification
+must then also cover the lookup argument’s specification, its
+underlying cryptography, and the well-formedness of its tables.
+Implementation choices can also sidestep whole tasks.
+Working directly with assembly, say, drops the compiler from
+the obligations, at the cost of different tools and specifications. In both cases the verified boundary can shrink even as
+constraint-level proofs become more tractable, with complexity reappearing in the trusted computing base.
+Witness generator. The witness generator is a core unverified
+component. WC could be checked automatically [19], but little
+work applies this to zkVMs, where it remains a research
+
+prototype [58], and extracting witness generation code to a
+proof assistant has not yet been done.
+Precompiles. Precompiles also remain largely unverified.
+Only individual precompiles have been verified in some form,
+such as Plonky3’s Keccak circuit [47] and the determinism of
+RISC Zero’s Keccak circuit [52]. In one such attempt, Nethermind found a critical bug in Scroll’s Halo2 Keccak circuit [54].
+Beyond these, most precompiles remain unverified across all
+zkVMs. A single zkVM may ship precompiles for several
+cryptographic primitives. Precompiles can also be generated
+automatically [68] and synthesized from frequently executed
+guest code, thereby multiplying their number into an openended, shifting set that cannot be chased circuit by circuit.
+This shifts what kind of verification is required to verify
+the generator. Assuming one can verify the ISA constraints,
+the task of verifying autoprecompiles is simply translation
+validation, which is far more amenable to automation.
+Proof system and verifier. As for the proof system, ArkLib [69] and VCVio [56] aim to formalize its cryptographic
+building blocks. These include the sum-check protocol [70],
+FRI [71], WHIR [72], and Fiat–Shamir [73]. Bridging such
+a library with production-grade implementations has not yet
+been done. The best verified verifier result so far targeted
+ZKsync Era (an Ethereum zk-rollup), and proved only that the
+on-chain verifier contract matches a specification for which
+no soundness properties have been verified [48]. Similarly,
+the lookup arguments and memory consistency checks [74],
+[75] are almost entirely unverified, but could be specified in a
+library such as ArkLib.
+Maintenance. There is an economic dimension to all this.
+Verification can be lengthy and expensive – it is often done by
+external contractors – while zkVMs evolve rapidly, sometimes
+with multiple releases per year. Hence, several efforts we cite
+target code that is now deprecated, making verification seem
+wasteful. The key challenge is therefore maintaining verification status as specifications and implementations change, as
+in RISC Zero’s P ICUS CI/CD integration [52]. AI is making
+it more feasible to keep pace, but the usual pitfalls remain:
+whether the specification and model faithfully capture the system, and whether verification is integrated into development.
+Guarantees not checked on every commit silently decay, while
+AI-generated proofs remain a poor fit for CI.
+Vague claims. As formal verification becomes more accessible through AI and stands to benefit from greater expertise
+in the domains to which it is applied, it will be important to
+remain clear about results. Claims have sometimes been vague,
+and issues have been found upon close inspection [76], [77].
+Takeaways for RQ3
+• Verification is converging on Lean 4, RISC-V Sail, and
+libraries such as Clean and ArkLib, but broad adoption
+remains open.
+• Verified components remain isolated: constraint soundness is the mature core, while witness generators,
+
+lookup/permutation and memory arguments, proof backends, and verifiers are largely unverified.
+• Every result depends on its trusted computing base,
+especially the gap between the verified model and
+running code, so assumptions and trusted tools must be
+reviewed explicitly.
+• Adoption depends on economics and integration:
+zkVMs evolve quickly, proofs must be cheap to reestablish in CI, and AI lowers proof cost without solving
+specification fidelity.
+Call to action: Move from isolated constraint-correctness
+proofs to repeatable, CI-friendly end-to-end guarantees,
+and state precisely which properties, components, and
+versions are verified, and under what assumptions.
+VII. P RACTITIONERS ’ P ERSPECTIVE
+This section answers RQ4 and RQ5 through targeted surveys of ZKP practitioners. We present the main highlights
+here, while complete results are in the supplementary material.
+Tool adoption and workflows. As shown in Figure 4a, interactive LLMs are already the most popular across both groups.
+Auditors additionally report broader use of specialized tooling,
+such as fuzzers, formal verification, and internal AI tools.
+Beyond which tools they adopt, practitioners also shared their
+workflows. Manual code review remains dominant, reported
+by 79% of developers and 83% of auditors. While developers
+rely more on test suites (52%) and differential testing (41%),
+auditors make heavier use of AI tools (67%) and internal
+tooling (58%). The picture is thus not one of push-button
+security, as tooling is layered around human-led review.
+Usefulness and adoption barriers. When rating usefulness,
+57% of developers and 67% of auditors rated tools as helpful.
+At the same time, the trait rankings in Figure 4b show that
+practitioners weigh how findings are reported as much as
+what is found. Report quality and confidence of completeness stand out as the most valued traits across both groups,
+alongside low false-positive rates and good documentation.
+Auditors additionally place substantial weight on proof-ofconcept generation. These results indicate that practitioners
+need tools that not only emit warnings but also clearly report
+findings. Usefulness, however, does not guarantee adoption:
+even tools that practitioners rate as helpful remain costly
+to integrate. High onboarding effort is reported by 57% of
+developers and 45% of auditors. Coverage is another barrier:
+practitioners work across languages and frameworks, which
+current open-source tools do not support. In summary, our
+survey demonstrates that the dominant adoption barriers are
+practical, such as integration cost, limited language coverage,
+and the effort required to write specifications.
+Takeaways for RQ4
+• Interactive LLMs are already mainstream in ZKP development and auditing, but workflows remain human-led.
+• Auditors rely more heavily on specialized security tool-
+
+Low false
+positives
+
+Interactive
+LLMs
+
+Ease
+
+Static
+analysis
+
+Docs
+
+Reusable
+LLM skills
+
+Theorem
+provers
+
+Report
+quality
+
+AI security
+tools
+
+Fuzzers
+
+Scale
+
+Static
+analysis
+
+PoC
+generation
+
+Formal
+verification
+
+General proof
+assistants
+
+Cost
+
+Property-based
+testing
+
+ZK-specific
+provers
+
+CI/CD
+integration
+Completeness
+confidence
+
+AI security
+tools
+0
+
+50
+
+100
+
+Fuzzers
+0
+
+%
+
+25
+
+50
+
+75
+
+0
+
+100
+
+(b) Important tool traits
+Developers
+
+25
+
+50
+
+75
+
+100
+
+%
+
+%
+
+(a) Used tool categories
+
+TABLE VI: Practitioners’ views of vulnerabilities and tools (including LLMs).
+Hard: hard to detect manually. Covered:
+adequately covered by tools.
+
+Automated
+FV
+
+(c) Missing tool categories
+
+Class
+
+Hard Covered
+
+Underconstrained circuits
+Arithmetic issues
+Semantic mismatches
+Proof-system issues
+Fiat-Shamir
+Crypto primitive misuse
+System integration
+
+72%
+44%
+53%
+60%
+44%
+33%
+26%
+
+70%
+78%
+30%
+15%
+25%
+12%
+5%
+
+Auditors
+
+Fig. 4: Practitioner survey overview.
+
+ing than developers.
+• Practitioners work across many ZKP languages, but
+most security tools still target only Circom.
+• Practitioners find tools useful, but advanced tooling still
+requires high-effort integration, project-specific specifications, and manual validation.
+Call to action: ZKP security tools should not only
+broaden language support, but also reduce onboarding cost
+through reusable specifications and integrations that fit
+both development-time and audit-time use.
+Perceived vulnerability coverage. Table VI reports, for
+each vulnerability class, the share of practitioners who consider it hard to detect manually and those who consider
+it adequately covered by current tools. The results suggest
+that current tools are perceived as most mature for local
+circuit-level checks. Underconstrained circuits are the most
+frequently selected hard-to-detect class (72%), but they are
+also widely viewed as covered by existing tools (70%). By
+contrast, proof-system issues combine high perceived difficulty
+(60%) with low perceived tool coverage (15%). Fiat–Shamir
+bugs, misuse of cryptographic primitives, system integration
+issues, and semantic errors exhibit similar mismatches. The
+largest gaps thus lie beyond local constraint checks, pointing
+to specification-centered and FV tools as a promising direction
+for future work.
+Missing tools and unmet needs. Figure 4c shows that
+automated formal verification is the most requested missing
+category for both groups. Developers also request reusable
+LLM skills and AI security tools, while auditors report
+stronger demand for domain-specific interactive provers and
+fuzzers. A similar gap appears for LLMs: while respondents
+find them useful for PoC validation and non-ZKP application
+code, they remain weak precisely for circuit- and proofsystem-level vulnerability discovery. Even so, many report
+significant productivity gains, and over 80% of both groups
+expect AI auditing to outperform 75% of security researchers
+within three years. Further, when using formal verification
+tools, a similar majority (over 80%) of both groups are at
+
+least somewhat concerned about the trusted computing base.
+Auditors also report that communicating a tool’s security
+guarantees or limitations to clients often requires substantial
+effort. This suggests that future tooling must also improve
+transparency around assumptions and guarantees.
+Takeaways for RQ5
+• Current tools are perceived as most mature for local
+circuit-level bugs, especially underconstrained issues.
+• Practitioners identify major gaps for semantic mismatches, proof-system unsoundness, Fiat–Shamir bugs,
+cryptographic primitive misuse, and system integration.
+• Demand is strongest for automated formal verification,
+domain-specific provers, reusable LLM skills, and tools
+with clear reports and auditable guarantees.
+Call to action: The ZKP tooling community should prioritize specification-centered and semantics-aware (AI) tools
+that make guarantees explicit and practical to validate.
+VIII. D ISCUSSION
+From local checks to system assurance. The four parts
+of our study converge on a common boundary. Automated
+analyses are strongest on local constraint properties, yet their
+effectiveness drops when moving from isolated circuits to
+full projects. Formal verification offers stronger guarantees,
+but mostly for the soundness of selected components, while
+practitioners identify semantic, proof-system, cryptographic,
+and integration failures as major gaps. Those observations
+show that adding further local detectors alone will not close
+the assurance gap. Future work should connect layers through
+obligations such as computation–constraint consistency, interface invariants, translation validation, and component composition, while making uncovered layers explicit.
+Specifications as shared security infrastructure. Moving
+beyond local properties requires making intended behavior
+explicit. This connects three findings: broader circuit analyses
+require user-provided specifications, formal-verification guarantees depend on the fidelity of theorem statements and models, and practitioners report specification work as an adoption
+
+barrier. Specifications should therefore be reusable, versioned,
+machine-checkable, co-owned and independently reviewed by
+those defining protocol intent and those assessing security. The
+same invariants and reference models should support testing,
+fuzzing, static analysis, and proof-assistant verification. LLMs
+may reduce the cost of authoring, translating, and maintaining
+these artifacts, but cannot establish that they faithfully capture
+protocol intent.
+From AI assistance to checkable assurance. Our survey
+separates acceleration from assurance. Most respondents report
+that AI has reduced development or audit effort, but they
+rate LLMs most highly for bounded tasks such as validating
+findings, producing proofs of concept, and analyzing conventional application code. Trust in LLMs is substantially weaker
+for circuit- and proof-system-level reasoning. This suggests
+that the near-term opportunity is verified acceleration: LLMs
+can propose specifications, invariants, tests, counterexamples,
+and proof scripts, while independent analyzers, proof kernels,
+and expert review determine which outputs become assurance
+evidence. AI-assisted results should record the provenance and
+review of generated artifacts, distinguish generated specifications from generated proofs, and identify which outputs were
+independently checked and continuously re-established in CI.
+Threats to validity. We use a standard methodology [78] to
+identify validity threats, which we mitigate where possible.
+Internal. For RQ1/RQ3, we may miss tools or verification efforts because the ZKP ecosystem evolves quickly.
+For RQ2, tool outputs may be misclassified; for RQ4/RQ5,
+survey responses may reflect misunderstandings. We mitigate
+these threats by searching academic and practitioner sources,
+preserving raw tool outputs, manually checking ambiguous
+detections, and piloting the questionnaires.
+Construct. In RQ1/RQ3, labels such as supported or partial
+may hide differences in assumptions and trusted components.
+In RQ2, we measure detection of known vulnerable components, not false positives. For RQ4/RQ5, respondents may
+interpret tool categories and vulnerability classes differently;
+we mitigate this with free-text fields and qualitative analysis.
+External. The RQ1/RQ3 results are a snapshot of a fastmoving field. The RQ2 results may not generalize beyond
+Circom and the six tools we evaluated, although Circom is
+currently the best-supported DSL by automated tools. The
+RQ4/RQ5 survey targets experienced practitioners from highprofile ZKP organizations, improving relevance for highimpact systems but limiting representativeness.
+IX. R ELATED W ORK
+Security Tools and Verification for ZKPs. Recent studies
+systematize the security of ZKP systems. Chaliasos et al. [7]
+analyze real-world SNARK vulnerabilities across the circuit,
+frontend, backend, and integration layers, whereas Tang et
+al. [79] classify ZKP vulnerabilities. Complementary to these
+works, we study the effectiveness, maturity, and adoption of
+security tools and verification techniques for ZKPs.
+Further, there has been a growing number of security tools
+for detecting vulnerabilities in ZKP implementations. These
+
+tools range from static analyses [12], [15], SMT-based symbolic techniques [13], [16], [36], to fuzzing approaches [20],
+[21]. In this work, we conduct a qualitative study of these
+tools, identify gaps in their coverage, perform the first largescale evaluation on real-world vulnerabilities, and highlight
+their limitations relative to the original papers’ evaluations.
+Due to the significance of ZKPs and the complexity of
+their implementations, substantial work has focused on formal
+verification across different parts of the stack. Existing techniques range from interactive theorem proving [17], [80], [81],
+SMT-based approaches [42], [43], [45], [82], to automated
+decision-procedure methods [18], [19], [35]. We perform the
+first systematic analysis of all these techniques and highlight
+major gaps and risks in their current applicability.
+In addition to these techniques, there have been efforts in
+different layers and specialized settings. These include proof
+systems [83], [84], ZKP compilers [85], [86], integrations
+of ZKPs with smart contracts [87]–[89], and fuzzing for
+specific implementations [90], [91]. In contrast, we focus
+on generalized security tooling and on the circuit and core
+implementation layers. We leave the systematic study and
+evaluation of more specialized techniques and targets for
+future work.
+Empirical studies of security tools and surveys. Empirical
+studies of security tools and practitioner surveys have been
+conducted in several domains. Prior work on smart contracts
+has surveyed vulnerabilities, verification methods, and analysis
+tools, and has empirically evaluated security tools against realworld exploits [34], [92]–[94]. Other studies have examined
+developers’ expectations of program analysis tools and the
+usability of security tools [33].
+X. C ONCLUSION
+Our study of ZKP security tooling, six automated tools,
+formal-verification efforts, and 48 practitioners shows that current defenses are useful but incomplete. Tools find some local
+underconstraint bugs, but detection drops on whole projects,
+while formal verification mostly covers isolated constraintcorrectness claims rather than end-to-end systems. Practitioners likewise report human-led workflows and different needs
+across developers and auditors. By mapping tool coverage,
+failures, and practitioner needs, this work gives researchers a
+concrete agenda for broader, more reliable tooling and gives
+practitioners a clearer basis for assessing defenses.
+ACKNOWLEDGMENTS
+The authors thank Shankara Pailoor for valuable feedback,
+and the anonymous survey participants for their time and
+insights. Arman further thanks Carmela Troncoso for her
+guidance and support throughout his internship at MPI-SP.
+This work was partially funded by the Ethereum Foundation
+(EF).
+
+R EFERENCES
+[1] S. Goldwasser, S. Micali, and C. Rackoff, “The knowledge complexity
+of interactive proof-systems (extended abstract),” in Proceedings of the
+17th Annual ACM Symposium on Theory of Computing, May 6-8, 1985,
+Providence, Rhode Island, USA, R. Sedgewick, Ed. ACM, 1985, pp.
+291–304.
+[2] E. Ben-Sasson, A. Chiesa, C. Garman, M. Green, I. Miers, E. Tromer,
+and M. Virza, “Zerocash: Decentralized anonymous payments from
+bitcoin,” in 2014 IEEE Symposium on Security and Privacy, SP 2014,
+Berkeley, CA, USA, May 18-21, 2014. IEEE Computer Society, 2014,
+pp. 459–474.
+[3] F. Baldimtsi, K. K. Chalkias, Y. Ji, J. Lindstrøm, D. Maram, B. Riva,
+A. Roy, M. Sedaghat, and J. Wang, “zklogin: Privacy-preserving
+blockchain authentication with existing credentials,” in Proceedings of
+the 2024 on ACM SIGSAC Conference on Computer and Communications Security, CCS 2024, Salt Lake City, UT, USA, October 14-18,
+2024, B. Luo, X. Liao, J. Xu, E. Kirda, and D. Lie, Eds. ACM, 2024,
+pp. 3182–3196.
+[4] S. Chaliasos, I. Reif, A. Torralba-Agell, J. Ernstberger, A. Kattis, and
+B. Livshits, “Analyzing and benchmarking zk-rollups,” in 6th Conference
+on Advances in Financial Technologies, AFT 2024, Vienna, Austria,
+September 23-25, 2024, ser. LIPIcs, R. Böhme and L. Kiffer, Eds., vol.
+316. Schloss Dagstuhl - Leibniz-Zentrum für Informatik, 2024, pp.
+6:1–6:24.
+[5] Z. Peng, T. Wang, C. Zhao, G. Liao, Z. Lin, Y. Liu, B. Cao, L. Shi,
+Q. Yang, and S. Zhang, “A survey of zero-knowledge proof based
+verifiable machine learning,” CoRR, vol. abs/2502.18535, 2025.
+[6] J. Groth, “On the size of pairing-based non-interactive arguments,” in
+Advances in Cryptology - EUROCRYPT 2016 - 35th Annual International Conference on the Theory and Applications of Cryptographic
+Techniques, Vienna, Austria, May 8-12, 2016, Proceedings, Part II, ser.
+Lecture Notes in Computer Science, M. Fischlin and J. Coron, Eds., vol.
+9666. Springer, 2016, pp. 305–326.
+[7] S. Chaliasos, J. Ernstberger, D. Theodore, D. Wong, M. Jahanara,
+and B. Livshits, “Sok: What don’t we know? understanding security
+vulnerabilities in snarks,” in 33rd USENIX Security Symposium, USENIX
+Security 2024, Philadelphia, PA, USA, August 14-16, 2024, D. Balzarotti
+and W. Xu, Eds. USENIX Association, 2024.
+[8] Z. Wilcox, J. McGee, and T. Hornby, “The orchard counterfeiting
+vulnerability—and next steps,” https://forum.zcashcommunity.com/t
+/the-orchard-counterfeiting-vulnerability-and-next-steps/56015, Jun.
+2026, accessed 2026-06-21.
+[9] GNcrypto, “Attacker drains $2.1M from deprecated Aztec Connect in
+exploit,” https://www.gncrypto.news/news/attacker-drains-2-1m-depre
+cated-aztec-connect-exploit/, 2026, accessed: 2026-06-18.
+[10] Matter Labs, “ZKsync OS bug bounty program,” https://immunefi.com/
+bug-bounty/zksync-os/information/, 2026, accessed: 2026-06-18.
+[11] Trail of Bits, “Circomspect,” https://github.com/trailofbits/circomspect,
+2024, accessed: 2026-06-18.
+[12] H. Wen, J. Stephens, Y. Chen, K. Ferles, S. Pailoor, K. Charbonnet,
+I. Dillig, and Y. Feng, “Practical security analysis of zero-knowledge
+proof circuits,” in 33rd USENIX Security Symposium, USENIX Security
+2024, Philadelphia, PA, USA, August 14-16, 2024, D. Balzarotti and
+W. Xu, Eds. USENIX Association, 2024.
+[13] F. H. Soureshjani, M. Hall-Andersen, M. Jahanara, J. Kam, J. Gorzny,
+and M. Ahmadvand, “Automated analysis of halo2 circuits,” in Proceedings of the 21st International Workshop on Satisfiability Modulo
+Theories (SMT 2023) co-located with the 29th International Conference
+on Automated Deduction (CADE 2023), Rome, Italy, July, 5-6, 2023,
+ser. CEUR Workshop Proceedings, S. Graham-Lengrand and M. Preiner,
+Eds., vol. 3429. CEUR-WS.org, 2023, pp. 3–17.
+[14] Thibaut Schaeffer, “Pilspector,” https://github.com/Schaeff/pilspector/,
+2023.
+[15] A. Kolozyan, B. Vandenbogaerde, J. Swalens, L. Hoste, S. Chaliasos,
+and C. De Roover, “Language-Agnostic Detection of ComputationConstraint Inconsistencies in ZKP Programs Via Value Inference,” in
+2026 IEEE Symposium on Security and Privacy (SP). Los Alamitos,
+CA, USA: IEEE Computer Society, May 2026, pp. 3091–3110.
+[16] S. Pailoor, Y. Chen, F. Wang, C. Rodrı́guez-Núñez, J. V. Geffen,
+J. Morton, M. Chu, B. Gu, Y. Feng, and I. Dillig, “Automated detection
+of under-constrained circuits in zero-knowledge proofs,” Proc. ACM
+Program. Lang., vol. 7, no. PLDI, pp. 1510–1532, 2023.
+
+[17] J. Liu, I. Kretz, H. Liu, B. Tan, J. Wang, Y. Sun, L. Pearson, A. Miltner,
+I. Dillig, and Y. Feng, “Certifying zero-knowledge circuits with refinement types,” in IEEE Symposium on Security and Privacy, SP 2024, San
+Francisco, CA, USA, May 19-23, 2024. IEEE, 2024, pp. 1741–1759.
+[18] Q. Yang, B. Liang, H. Chen, and G. Li, “AC4: algebraic computation
+checker for circuit constraints in zero-knowledge proofs,” Formal Aspects Comput., vol. 38, no. 1, pp. 11:1–11:20, 2026.
+[19] J. Stephens, S. Pailoor, and I. Dillig, “Automated verification of consistency in zero-knowledge proof circuits,” in Computer Aided Verification
+- 37th International Conference, CAV 2025, Zagreb, Croatia, July 2325, 2025, Proceedings, Part I, ser. Lecture Notes in Computer Science,
+R. Piskac and Z. Rakamaric, Eds., vol. 15931. Springer, 2025, pp.
+315–338.
+[20] H. Takahashi, J. Kim, S. Jana, and J. Yang, “ zkFuzz: Foundation and
+Framework for Effective Fuzzing of Zero-Knowledge Circuits ,” in 2026
+IEEE Symposium on Security and Privacy (SP). Los Alamitos, CA,
+USA: IEEE Computer Society, May 2026, pp. 3055–3074.
+[21] S. Chaliasos, I. Al-Fath, and A. F. Donaldson, “Towards fuzzing zeroknowledge proof circuits (short paper),” in Proceedings of the 34th ACM
+SIGSOFT International Symposium on Software Testing and Analysis,
+ISSTA Companion 2025, Clarion Hotel Trondheim, Trondheim, Norway,
+June 25-28, 2025, M. Papadakis, M. B. Cohen, and P. Tonella, Eds.
+ACM, 2025, pp. 98–104.
+[22] Succinct Labs, “Formal verification of SP1 Hypercube,” 2025. [Online].
+Available: https://blog.succinct.xyz/nethermind-lean/
+[23] OpenVM, “Announcing formal verification of OpenVM RV32IM
+constraints in Lean,” 2026, accessed: 2026-06-18. [Online]. Available:
+https://blog.openvm.dev/fv
+[24] C. Kwan, Q. Dao, and J. Thaler, “Verifying jolt zkvm lookup semantics,”
+in Financial Cryptography and Data Security - 29th International
+Conference, FC 2025, Miyakojima, Japan, April 14-18, 2025, Revised
+Selected Papers, Part I, ser. Lecture Notes in Computer Science,
+C. Garman and P. Moreno-Sanchez, Eds., vol. 15751. Springer, 2025,
+pp. 163–179.
+[25] CertiK, “Advanced formal verification of zero-knowledge proof
+blockchains,” 2024, accessed: 2026-06-18. [Online]. Available: https:
+//www.certik.com/resources/blog/advanced-formal-verification-of-zer
+o-knowledge-proof-blockchains
+[26] Nethermind, “Formally verifying zero-knowledge circuits: Introducing
+CertiPlonk,” 2025, accessed: 2026-06-18. [Online]. Available: https:
+//www.nethermind.io/blog/formally-verifying-zero-knowledge-circuit
+s-introducing-certiplonk
+[27] M. Bellés-Muñoz, M. Isabel, J. L. Muñoz-Tapia, A. Rubio, and J. B.
+Melé, “Circom: A circuit description language for building zeroknowledge applications,” IEEE Trans. Dependable Secur. Comput.,
+vol. 20, no. 6, pp. 4733–4751, 2023.
+[28] E. Ben-Sasson, A. Chiesa, E. Tromer, and M. Virza, “Succinct noninteractive zero knowledge for a von neumann architecture,” in Proceedings of the 23rd USENIX Security Symposium, San Diego, CA, USA,
+August 20-22, 2014, K. Fu and J. Jung, Eds. USENIX Association,
+2014, pp. 781–796.
+[29] RISC Zero, “Precompiles,” https://dev.risczero.com/api/zkvm/precompi
+les, 2026, accessed: 2026-06-18.
+[30] G. Yang, Y. Yang, Y. Cheng, H. Tang, B. Zhang, and K. Ren, “Sok:
+Understanding zkvm: From research to practice,” in Proceedings of the
+ACM Asia Conference on Computer and Communications Security, ASIA
+CCS 2026, Bangalore, India, June 1-5, 2026, M. Agrawal, I. Molloy,
+V. Pandit, D. Mukhopadhyay, and K. Paterson, Eds. ACM, 2026, pp.
+852–868.
+[31] A. Arun, S. T. V. Setty, and J. Thaler, “Jolt: Snarks for virtual
+machines via lookups,” in Advances in Cryptology - EUROCRYPT 2024
+- 43rd Annual International Conference on the Theory and Applications
+of Cryptographic Techniques, Zurich, Switzerland, May 26-30, 2024,
+Proceedings, Part VI, ser. Lecture Notes in Computer Science, M. Joye
+and G. Leander, Eds., vol. 14656. Springer, 2024, pp. 3–33.
+[32] B. A. Kitchenham and S. L. Pfleeger, “Personal opinion surveys,” in
+Guide to Advanced Empirical Software Engineering, F. Shull, J. Singer,
+and D. I. K. Sjøberg, Eds. Springer, 2008, pp. 63–92.
+[33] M. Christakis and C. Bird, “What developers want and need from
+program analysis: an empirical study,” in Proceedings of the 31st
+IEEE/ACM International Conference on Automated Software Engineering, ASE 2016, Singapore, September 3-7, 2016, D. Lo, S. Apel, and
+S. Khurshid, Eds. ACM, 2016, pp. 332–343.
+
+[34] S. Chaliasos, M. A. Charalambous, L. Zhou, R. Galanopoulou, A. Gervais, D. Mitropoulos, and B. Livshits, “Smart contract and defi security
+tools: Do they meet the needs of practitioners?” in Proceedings of
+the 46th IEEE/ACM International Conference on Software Engineering,
+ICSE 2024, Lisbon, Portugal, April 14-20, 2024. ACM, 2024, pp.
+60:1–60:13.
+[35] J. Jiang, X. Peng, J. Chu, and X. Luo, “Conscs: Effective and efficient
+verification of circom circuits,” in 47th IEEE/ACM International Conference on Software Engineering, ICSE 2025, Ottawa, ON, Canada, April
+26 - May 6, 2025. IEEE, 2025, pp. 616–628.
+[36] M. Isabel, C. Rodrı́guez-Núñez, and A. Rubio, “Scalable verification of
+zero-knowledge protocols,” in IEEE Symposium on Security and Privacy,
+SP 2024, San Francisco, CA, USA, May 19-23, 2024. IEEE, 2024, pp.
+1794–1812.
+[37] Franklyn Wang, “Ecneproject,” https://github.com/franklynwang/Ecne
+Project, 2022.
+[38] A. Ozdemir, F. Brown, and R. S. Wahby, “Circ: Compiler infrastructure
+for proof systems, software verification, and more,” in 43rd IEEE
+Symposium on Security and Privacy, SP 2022, San Francisco, CA, USA,
+May 22-26, 2022. IEEE, 2022, pp. 2248–2266.
+[39] Veridise, “LLZK: An MLIR-based intermediate representation for zeroknowledge circuit languages,” https://github.com/project-llzk/llzk-lib,
+2026.
+[40] T. Hader, D. Kaufmann, and L. Kovács, “SMT solving over finite field
+arithmetic,” in LPAR 2023: Proceedings of 24th International Conference on Logic for Programming, Artificial Intelligence and Reasoning,
+Manizales, Colombia, 4-9th June 2023, ser. EPiC Series in Computing,
+R. Piskac and A. Voronkov, Eds., vol. 94, 2023, pp. 238–256.
+[41] A. Ozdemir, S. Pailoor, A. Bassa, K. Ferles, C. W. Barrett, and I. Dillig,
+“Split gröbner bases for satisfiability modulo finite fields,” in Computer
+Aided Verification - 36th International Conference, CAV 2024, Montreal,
+QC, Canada, July 24-27, 2024, Proceedings, Part I, ser. Lecture Notes
+in Computer Science, A. Gurfinkel and V. Ganesh, Eds., vol. 14681.
+Springer, 2024, pp. 3–25.
+[42] T. Hader and A. Ozdemir, “An SMT-LIB theory of finite fields,” in
+Proceedings of the 22nd International Workshop on Satisfiability Modulo
+Theories co-located with the 36th International Conference on Computer
+Aided Verification (CAV 2024), Montreal, Canada, July, 22-23, 2024, ser.
+CEUR Workshop Proceedings, G. Reger and Y. Zohar, Eds., vol. 3725.
+CEUR-WS.org, 2024, pp. 3–12.
+[43] A. Ozdemir, G. Kremer, C. Tinelli, and C. W. Barrett, “Satisfiability
+modulo finite fields,” in Computer Aided Verification - 35th International
+Conference, CAV 2023, Paris, France, July 17-22, 2023, Proceedings,
+Part II, ser. Lecture Notes in Computer Science, C. Enea and A. Lal,
+Eds., vol. 13965. Springer, 2023, pp. 163–186.
+[44] T. Hader, D. Kaufmann, A. Irfan, S. Graham-Lengrand, and L. Kovács,
+“Mcsat-based finite field reasoning in the yices2 SMT solver (short
+paper),” in Automated Reasoning - 12th International Joint Conference,
+IJCAR 2024, Nancy, France, July 3-6, 2024, Proceedings, Part I, ser.
+Lecture Notes in Computer Science, C. Benzmüller, M. J. H. Heule, and
+R. A. Schmidt, Eds., vol. 14739. Springer, 2024, pp. 386–395.
+[45] M. Isabel, E. Rodrı́guez-Carbonell, C. Rodrı́guez-Núñez, and A. Rubio,
+“An effective orchestral approach to satisfiability modulo prime fields,”
+CoRR, vol. abs/2604.26709, 2026.
+[46] E. Pertseva, V. Robert, C. W. Barrett, and J. Parker, “Automating
+bitvector and finite field equivalence proofs in lean,” CoRR, vol.
+abs/2605.15163, 2026.
+[47] Formal Land, “Formal verification of the Keccak precompile
+from Plonky3,” 2026, accessed: 2026-06-18. [Online]. Available:
+https://formal.land/blog/2026/01/14/formal-verification-keccak-plonky3
+[48] Nethermind, “We verified the verifier: a first for zero-knowledge
+proof systems,” 2025, accessed: 2026-06-18. [Online]. Available:
+https://www.nethermind.io/blog/we-verified-the-verifier-a-first-for-zer
+o-knowledge-proof-systems
+[49] Ethereum Foundation, “Verified zkEVM project,” 2025, accessed:
+2026-06-18. [Online]. Available: https://verified-zkevm.org
+[50] Ethereum Foundation (eth-act), “zkVM standards for Ethereum,” https:
+//github.com/eth-act/zkvm-standards, 2026.
+[51] Veridise, “Verifying SP1 circuit determinism with Picus: A collaboration
+between Veridise and Succinct,” https://veridise.com/blog/audit-insight
+s/verifying-sp1-circuit-determinism-with-picus-a-collaboration-betwe
+en-veridise-and-succinct/, 2025.
+[52] ——, “RISC Zero’s ZK-VM security: How Veridise enabled provable
+& continuous ZK security,” 2025, accessed: 2026-06-18. [Online].
+
+Available: https://veridise.com/blog/audit-insights/risc-zeros-zk-vm-sec
+urity-how-veridise-enabled-risc-zero-to-achieve-provable-continuous-z
+k-security/
+[53] J. Avigad, A. Ganor, L. Goldberg, D. Levit, O. Nir, Y. Seginer,
+and A. Titelman, “Formal verification of the s-two AIR,” CoRR, vol.
+abs/2606.04311, 2026.
+[54] Nethermind, “Formal verification of Halo2 circuits in Lean,” 2025,
+accessed: 2026-06-18. [Online]. Available: https://www.nethermind.io/
+blog/formal-verification-of-halo2-circuits-in-lean
+[55] Y. Sun, “Releasing OpenVM 2.0 to production,” https://www.axiom.xy
+z/blog/openvm-2-production, 2026.
+[56] D. Tuma, Q. Dao, J. Waters, A. Hicks, and N. Hopper, “VCVio: Verified
+cryptography in lean via oracle effects and handlers,” Cryptology ePrint
+Archive, Paper 2026/899, 2026.
+[57] G. Dell’Immagine, “Introducing Clean, a formal verification DSL for
+ZK circuits in Lean4,” https://blog.zksecurity.xyz/posts/clean/, 2025.
+[58] J. Ke, B. Liang, and G. Li, “Consistency verification for zero-knowledge
+virtual machine on circuit-irrelevant representation,” IACR Cryptol.
+ePrint Arch., vol. 2025, p. 2204, 2025.
+[59] G. Mitscha-Baude, “Clean: Lean circuit dsl,” https://github.com/Verifie
+d-zkEVM/clean, 2026.
+[60] S. Ho, G. Boisseau, L. Franceschino, Y. Prak, A. Fromherz, and
+J. Protzenko, “Charon: An analysis framework for rust,” in Computer
+Aided Verification - 37th International Conference, CAV 2025, Zagreb,
+Croatia, July 23-25, 2025, Proceedings, Part IV, ser. Lecture Notes
+in Computer Science, R. Piskac and Z. Rakamaric, Eds., vol. 15934.
+Springer, 2025, pp. 377–391.
+[61] S. Ho and J. Protzenko, “Aeneas: Rust verification by functional translation,” Proc. ACM Program. Lang., vol. 6, no. ICFP, pp. 711–741, 2022.
+[62] K. Bhargavan, M. Buyse, L. Franceschino, L. L. Hansen, F. Kiefer,
+J. Schneider-Bensch, and B. Spitters, “hax: Verifying security-critical
+rust software using multiple provers,” in Verified Software. Theories,
+Tools and Experiments - 16th International Conference, VSTTE 2024,
+Prague, Czech Republic, October 14-15, 2024, Revised Selected Papers,
+ser. Lecture Notes in Computer Science, J. Protzenko and A. Raad, Eds.,
+vol. 15525. Springer, 2024, pp. 96–119.
+[63] A. Lattuada, T. Hance, C. Cho, M. Brun, I. Subasinghe, Y. Zhou,
+J. Howell, B. Parno, and C. Hawblitzel, “Verus: Verifying rust programs
+using linear ghost types,” Proc. ACM Program. Lang., vol. 7, no.
+OOPSLA1, pp. 286–315, 2023.
+[64] CertiK, “zkvm-verus: Ethereum foundation verus evaluation,” https://gi
+thub.com/CertiKProject/zkvm-verus, 2026.
+[65] A. Erbsen, J. Philipoom, J. Gross, R. Sloan, and A. Chlipala, “Simple
+high-level code for cryptographic arithmetic - with proofs, without
+compromises,” in 2019 IEEE Symposium on Security and Privacy, SP
+2019, San Francisco, CA, USA, May 19-23, 2019. IEEE, 2019, pp.
+1202–1219.
+[66] D. Monniaux and S. Boulmé, “The trusted computing base of the
+compcert verified compiler,” in Programming Languages and Systems
+- 31st European Symposium on Programming, ESOP 2022, Held as
+Part of the European Joint Conferences on Theory and Practice of
+Software, ETAPS 2022, Munich, Germany, April 2-7, 2022, Proceedings,
+ser. Lecture Notes in Computer Science, I. Sergey, Ed., vol. 13240.
+Springer, 2022, pp. 204–233.
+[67] J. Thaler, “Getting the bugs out of snarks: The road ahead,” 2024,
+accessed: 2026-06-18. [Online]. Available: https://a16zcrypto.com/pos
+ts/article/getting-bugs-out-of-snarks/
+[68] powdr Labs, “Accelerating Ethereum with autoprecompiles,” https://ww
+w.powdr.org/blog/accelerating-ethereum-with-autoprecompiles, 2025,
+accessed: 2026-06-18.
+[69] Verified-zkEVM, “ArkLib: Formally verified arguments of knowledge,”
+2025. [Online]. Available: https://github.com/Verified-zkEVM/ArkLib
+[70] C. Lund, L. Fortnow, H. J. Karloff, and N. Nisan, “Algebraic methods
+for interactive proof systems,” J. ACM, vol. 39, no. 4, pp. 859–868,
+1992.
+[71] E. Ben-Sasson, I. Bentov, Y. Horesh, and M. Riabzev, “Fast reedsolomon interactive oracle proofs of proximity,” in 45th International
+Colloquium on Automata, Languages, and Programming, ICALP 2018,
+Prague, Czech Republic, July 9-13, 2018, ser. LIPIcs, I. Chatzigiannakis,
+C. Kaklamanis, D. Marx, and D. Sannella, Eds., vol. 107. Schloss
+Dagstuhl - Leibniz-Zentrum für Informatik, 2018, pp. 14:1–14:17.
+[72] G. Arnon, A. Chiesa, G. Fenzi, and E. Yogev, “WHIR: reed-solomon
+proximity testing with super-fast verification,” in Advances in Cryptology
+- EUROCRYPT 2025 - 44th Annual International Conference on the
+
+Theory and Applications of Cryptographic Techniques, Madrid, Spain,
+May 4-8, 2025, Proceedings, Part IV, ser. Lecture Notes in Computer
+Science, S. Fehr and P. Fouque, Eds., vol. 15604. Springer, 2025, pp.
+214–243.
+[73] A. Chiesa and M. Orrù, “A fiat-shamir transformation from duplex
+sponges,” in Theory of Cryptography - 23rd International Conference,
+TCC 2025, Aarhus, Denmark, December 1-5, 2025, Proceedings, Part I,
+ser. Lecture Notes in Computer Science, B. Applebaum and H. R. Lin,
+Eds., vol. 16268. Springer, 2025, pp. 452–474.
+[74] U. Haböck, “Multivariate lookups based on logarithmic derivatives,”
+IACR Cryptol. ePrint Arch., vol. 2022, p. 1530, 2022.
+[75] S. T. V. Setty and J. Thaler, “Twist and shout: Faster memory checking
+arguments via one-hot addressing and increments,” IACR Cryptol. ePrint
+Arch., vol. 2025, p. 105, 2025.
+[76] C. Gunton, “On formal verification and a bug in SP1 Hypercube,”
+2026, accessed: 2026-06-18. [Online]. Available: https://zkevm.ethere
+um.foundation/blog/sp1-fv
+[77] N. Kobeissi, “Verification theatre: False assurance in formally verified
+cryptographic libraries,” Cryptology ePrint Archive, Paper 2026/192,
+2026.
+[78] R. Feldt and A. Magazinius, “Validity threats in empirical software
+engineering research - an initial survey,” in Proceedings of the 22nd
+International Conference on Software Engineering & Knowledge Engineering (SEKE’2010), Redwood City, San Francisco Bay, CA, USA, July
+1 - July 3, 2010. Knowledge Systems Institute Graduate School, 2010,
+pp. 374–379.
+[79] X. Tang, L. Shi, X. Wang, K. Charbonnet, S. Tang, and S. Sun, “Zeroknowledge proof vulnerability analysis and security auditing,” IACR
+Cryptol. ePrint Arch., vol. 2024, p. 514, 2024.
+[80] A. Coglio, E. McCarthy, and E. W. Smith, “Formal verification of zeroknowledge circuits,” in Proceedings of the 18th International Workshop
+on the ACL2 Theorem Prover and Its Applications, Austin, TX, USA and
+online, November 13-14, 2023, ser. EPTCS, A. Coglio and S. Swords,
+Eds., vol. 393, 2023, pp. 94–112.
+[81] C. Chin, H. Wu, R. Chu, A. Coglio, E. McCarthy, and E. Smith,
+“Leo: A programming language for formally verified, zero-knowledge
+applications,” IACR Cryptol. ePrint Arch., vol. 2021, p. 651, 2021.
+[82] A. Ozdemir, R. S. Wahby, F. Brown, and C. W. Barrett, “Bounded
+verification for finite-field-blasting in a compiler for zero knowledge
+proofs,” Formal Methods Syst. Des., vol. 67, no. 2, pp. 161–188, 2025.
+[83] W. D. Nguyen, D. Boneh, and S. T. V. Setty, “Revisiting the nova
+proof system on a cycle of curves,” in 5th Conference on Advances
+in Financial Technologies, AFT 2023, Princeton, NJ, USA, October 2325, 2023, ser. LIPIcs, J. Bonneau and S. M. Weinberg, Eds., vol. 282.
+Schloss Dagstuhl - Leibniz-Zentrum für Informatik, 2023, pp. 18:1–
+18:22.
+[84] D. Khovratovich, R. D. Rothblum, and L. Soukhanov, “How to prove
+false statements: Practical attacks on fiat-shamir,” in Advances in
+Cryptology - CRYPTO 2025 - 45th Annual International Cryptology
+Conference, Santa Barbara, CA, USA, August 17-21, 2025, Proceedings,
+Part VI, ser. Lecture Notes in Computer Science, Y. T. Kalai and S. F.
+Kamara, Eds., vol. 16005. Springer, 2025, pp. 3–26.
+[85] D. Xiao, Z. Liu, Y. Peng, and S. Wang, “MTZK: testing and exploring
+bugs in zero-knowledge (ZK) compilers,” in 32nd Annual Network
+and Distributed System Security Symposium, NDSS 2025, San Diego,
+California, USA, February 24-28, 2025. The Internet Society, 2025.
+[86] C. Hochrainer, A. Isychev, V. Wüstholz, and M. Christakis, “Fuzzing
+processing pipelines for zero-knowledge circuits,” in Proceedings of
+the 2025 ACM SIGSAC Conference on Computer and Communications
+Security, CCS 2025, Taipei, Taiwan, October 13-17, 2025, C. Huang,
+J. Chen, S. Shieh, D. Lie, and V. Cortier, Eds. ACM, 2025, pp. 783–
+797.
+[87] S. Chaliasos, D. Firsov, and B. Livshits, “Towards a formal foundation
+for blockchain ZK rollups,” in Proceedings of the 2025 ACM SIGSAC
+Conference on Computer and Communications Security, CCS 2025,
+Taipei, Taiwan, October 13-17, 2025, C. Huang, J. Chen, S. Shieh,
+D. Lie, and V. Cortier, Eds. ACM, 2025, pp. 2714–2728.
+[88] F. G. Figueira, M. Derka, C. L. Chiu, and J. Gorzny, “A practical
+rollup escape hatch design,” in 2025 IEEE International Conference
+on Blockchain and Cryptocurrency, ICBC 2025, Pisa, Italy, June 2-6,
+2025. IEEE, 2025, pp. 1–5.
+[89] S. Chaliasos, C. Swann, S. Pilehchiha, N. Mohnblatt, B. Livshits, and
+A. Kattis, “Unaligned incentives: Pricing attacks against blockchain
+rollups,” CoRR, vol. abs/2509.17126, 2025.
+
+[90] X. Peng, Z. Sun, K. Zhao, Z. Ma, Z. Li, J. Jiang, X. Luo, and Y. Zhang,
+“Automated soundness and completeness vetting of polygon zkevm,” in
+34th USENIX Security Symposium, USENIX Security 2025, Seattle, WA,
+USA, August 13-15, 2025, L. Bauer and G. Pellegrino, Eds. USENIX
+Association, 2025, pp. 4093–4108.
+[91] C. Hochrainer, V. Wüstholz, and M. Christakis, “Arguzz: Testing zkvms
+for soundness and completeness bugs,” CoRR, vol. abs/2509.10819,
+2025.
+[92] H. Chen, M. Pendleton, L. Njilla, and S. Xu, “A survey on ethereum
+systems security: Vulnerabilities, attacks, and defenses,” ACM Comput.
+Surv., vol. 53, no. 3, pp. 67:1–67:43, 2021.
+[93] D. Harz and W. J. Knottenbelt, “Towards safer smart contracts: A survey
+of languages and verification methods,” CoRR, vol. abs/1809.09805,
+2018.
+[94] S. S. Kushwaha, S. Joshi, D. Singh, M. Kaur, and H. Lee, “Ethereum
+smart contract analysis tools: A systematic review,” IEEE Access,
+vol. 10, pp. 57 037–57 062, 2022.
+
+

@@ -243,3 +243,41 @@ this brief. The dossier, not the message, carries the detail.
 - Clean's bus balance argument is vacuous over `K` (characteristic 2; leanerVM issues #16, #20);
   leanISA states balance with its own definition (`BalancedPair`, counted in ℕ) until Clean
   changes.
+
+## 8. Change of the ground under the review (2026-09-30)
+
+The owner merged the new `main` into the review branch mid-review. Read this before anything
+else.
+
+- `main` is now `144c5aa` ("chore(deps): upgrade to Lean 4.34.1 (#61)", merged 2026-09-29
+  22:31 UTC), and the checkout (`docs/protocol-blueprint-review`, now `8d3ea7d`) contains it.
+  **The review's object stays `main` at `b435631`** for everything already written; the report
+  states both revisions and assesses what the upgrade changes. The leanVM pin is unchanged
+  (`a386121f`), so every ground-truth fact stands.
+- **The pins moved**: ArkLib `dca90385` → `7653a901` (the commit several dossiers already
+  examined as "upstream `main`"), CompPoly `3468b38c` → `572f9973`, Clean `93c9d1ef` →
+  `42fe4b26` (Clean PR #474 over its `main`), VCVio `f9dc47d9` → `a4232d08` (VCVio PR #820),
+  Mathlib `v4.34.1`, Lean `v4.34.1`. `.lake/packages/` now holds the NEW pins. To read a file
+  at an OLD pin use `git -C .lake/packages/<pkg> show <old-commit>:<path>` (the old commits
+  are in each package's object store; verified for all four). Say, for every library citation,
+  which revision it is about.
+- **The proof-system sources changed only in proofs and imports** between `b435631` and
+  `144c5aa` (`git diff b435631 144c5aa -- LeanerVM/Protocol`: 77 lines in, 76 out; for
+  example `if_pos` → `ite_eq_left`, `probEvent_mono` → `prEvent_mono`, the import
+  `CompPoly.Multivariate.CMvPolynomial` → `CompPoly.Multivariate.Basic`). Cite Lean line
+  numbers **at `b435631`** (`git show b435631:<path>`) unless you say otherwise; the two
+  probability bridges (`ToArkLib/GuardedVerdict.lean`, `ToVCVio/UniformSample.lean`) were
+  restated on VCVio's new probability API (`Pr{let x ← c}[P x]`) with, per the pull request,
+  the same relations and bounds: a claim about their statements must name the revision.
+- **CompPoly's `K` changed meaning for numerals**: `BF64` is now a structure wrapping
+  `BitVec 64` and natural-number casts have their characteristic-two meaning, `(2 : K) = 0`;
+  encoded words are `K.ofBits n`. Any probe or fixture written with numerals other than `0`
+  and `1` in `K` means something else at the new pin.
+- **Lean probes cannot run in this checkout until it is rebuilt** (`lake env lean` fails with
+  "incompatible header"). Do not run Lean. Rely on the probe outputs already recorded; where a
+  conclusion needed a probe that has not run, say so and mark it unverified. The owner decides
+  whether the new `main` is built locally (the machine is memory limited) or whether the
+  remaining probes are deferred.
+- The blueprint changed in its pins table only (6 lines); the status file did not change.
+  `docs/dependencies.md` was rewritten for the upgrade and describes the port
+  (`git show 144c5aa:docs/dependencies.md`).

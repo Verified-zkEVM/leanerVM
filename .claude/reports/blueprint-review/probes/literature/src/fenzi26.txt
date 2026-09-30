@@ -1,0 +1,1606 @@
+               How to prove more false statements:
+           Fiat–Shamir limitations on (generated) R1CS
+
+                                      Giacomo Fenzi
+                                  giacomo.fenzi@epfl.ch
+                                          EPFL
+
+                                     September 9, 2026
+
+
+                                           Abstract
+     The Fiat–Shamir (FS) transformation is a technique that converts interactive protocols into
+non-interactive ones. FS is secure in idealized models such as the random oracle model (ROM)
+(if the interactive protocol satisfies a condition known as state-restoration soundness).
+     It is known that there are protocols whose FS transformation is secure in the ROM, yet
+insecure when instantiated with any concrete hash function. Historically, these protocols were
+contrived (as in, they were designed so their FS transformation would be unsound). Khovra-
+tovich, Rothblum and Soukhanov (CRYPTO 2025) showed that a class of natural (and practi-
+cally deployed) protocols based on a protocol of Goldwasser, Kalai and Rothblum (JACM 2015)
+was also unsound when compiled with FS and any concrete hash function.
+     We extend the attack to a different class of protocols: those whose instances are generated
+by running a program.
+     This setting covers concrete trends in modern proof systems, in which the computation
+to be proven is described by a program (often adversarialy generated) which is then either
+compiled or autonomously converted into an instance of target relation such as rank-1 constraint
+satisfaction (R1CS). We show that, when the conversion process is “expressive enough”, an
+adversary controlling the program code can break soundness of the non-interactive proof system.
+     The attacks generalize to a wide class of protocols: any protocol in which a cheating prover
+can prepare an accepting transcript before the statement is bound. We show that variants of
+the Spartan (CRYPTO 2020) and Aurora (EUROCRYPT 2019) proof systems for R1CS fall in
+this class.
+     Complementing the attacks, we formalize a mitigation: deriving the Fiat–Shamir challenges
+from the generated statement, rather than from the program that generates it, provably reduces
+the soundness of the compiled protocol to that of the underlying protocol for the non-generated
+relation.
+
+Keywords: succinct arguments; Fiat–Shamir; diagonalization
+
+
+
+
+                                               1
+1     Introduction
+Succinct non-interactive arguments (SNARGs) [Mic00] have emerged as a fundamental crypto-
+graphic primitive. They allow a prover to certify the correct execution of a computation with a
+proof that can be exponentially smaller, and substantially faster to verify, than the computation
+itself. SNARGs now support applications ranging from distributed computation to digital identity
+systems.
+Fiat–Shamir transformation. A common route to concretely efficient SNARGs, including the
+families studied here, is to apply the celebrated Fiat–Shamir transformation [FS86] to a public-
+coin interactive proof (or argument). The transformation removes interaction by replacing each
+verifier message with a hash of the transcript so far. Intuitively, the transformation is sound
+since a prover should be unable to predict the verifier message without hashing the preceding
+transcript. The intuition can be formalized in the random oracle model (ROM) [BR93], where
+the hash function is modeled as an ideal random function: on each previously unqueried input, it
+returns an independent, uniformly distributed string in {0, 1}λ . Under suitable conditions on the
+interactive protocol, Fiat–Shamir yields a secure SNARG in the ROM [PS96; BCS16; CCHLRR18].
+    The ROM, however, is an idealized model: protocols that are secure in the ROM might not be
+secure when the random oracle is instantiated with a concrete hash function.
+    We seek to understand when Fiat–Shamir remains secure after replacing the random oracle
+with a concrete hash function.
+Limitations of Fiat–Shamir. Prior work constructed protocols whose Fiat–Shamir compilations
+are secure in the ROM but insecure for every concrete choice of hash function [Bar01; GK03;
+CGH04]. More precisely, these protocols are adaptively unsound: once a concrete hash function
+is chosen, a malicious prover can prove a false statement (both the statement and the proof may
+depend on the hash choice). The protocols refuted the conjecture that any protocol that is secure in
+the ROM after Fiat–Shamir is secure when the ROM is instantiated with a sufficiently good hash
+function. However, the counterexample protocols (and subsequent work [BBHMR19; BHK26])
+were specifically designed to refute the conjecture and thus were relatively contrived, which led to
+a revised informal conjecture that any “natural” protocol that after compilation is sound in the
+ROM remains sound in the plain model for an appropriate hash function.
+    Khovratovich, Rothblum, and Soukhanov [KRS25] refuted this revised conjecture, showing
+that a natural protocol combining the GKR protocol [GKR15] with a polynomial commitment
+scheme [KZG10] was insecure after Fiat–Shamir compilation with any concrete hash function.
+    The counterexample exploited the (desirable) property of GKR that it need not commit to
+the internal wires of the computation being proved. A malicious prover can exploit this flexibility
+to construct a circuit that internally computes its own first Fiat–Shamir challenge and then uses
+the knowledge of the challenge to violate soundness. The attack affected concretely deployed
+systems [Pol24] and prompted work on mitigations [AY25].
+    Since the result of [KRS25] relied crucially on the structure of the GKR protocol (namely on
+the property that it does not commit to the internal wires), one might wonder the following:
+
+    To what extent do [KRS25]-style counterexamples to Fiat–Shamir rely on the structure of the
+                                     protocol being attacked?
+
+
+
+
+                                                 2
+1.1      Our results
+In this work, we continue the study of counterexamples to the Fiat–Shamir heuristic. We write
+FSh (IP) for the compilation of an interactive protocol IP with a hash function h. From prior work,
+we know that as long as IP is state-restoration sound (resp. state-restoration knowledge sound) and
+h is a random oracle then FSh (IP) is an adaptively sound (resp. knowledge-sound) non-interactive
+argument in the ROM (see, e.g., [CY24]).
+
+Theorem 1 (Informal). There exists a relation R such that FSh (IP) is not adaptively sound for
+any “natural” IP for R and any sufficiently efficient hash function h.
+
+   In Section 1.2 we elaborate on the details of Theorem 1 (including the definition of naturality,
+and the relation between the complexity of h and the naturality of IP).
+Concrete instantiation. We define generated R1CS RR1CS [c], which is a variant of the rank-1-
+constraint satisfaction (R1CS) relation [GGPR13] that fulfils the promise of Theorem 1: FSh (IP)
+is not adaptively sound for any IP for RR1CS [c] that satisfies the naturality condition and concrete
+hash function h.
+    We show that the compilation of two popular interactive oracle proofs (IOPs) [BCS16; RRR16]
+for R1CS (namely the univariate IOP of [BCRSVW19] and the multilinear IOP of [Set20]) yields
+protocols that are natural in the sense of Theorem 1. Letting BCSh (IOP) denote the compilation
+of IOP using a hash function h, since these IOPs are round-by-round knowledge sound, we obtain
+the following corollary.
+
+Corollary 1 (Informal). There exists an IOP for generated R1CS RR1CS [c] such that:
+
+• if h is a random oracle, BCSh (IOP) is adaptively knowledge sound in the ROM.
+
+• for any concretely efficient1 hash function h, BCSh (IOP) is not adaptively sound.
+
+1.2      Technical overview
+As in prior work, our techniques to attack the Fiat–Shamir heuristic rely on diagonalization. Our
+aim will be for the adversary to construct an instance that “knows its own Fiat–Shamir challenge”,
+and use this to attack soundness. We first recall the adaptive Fiat–Shamir transformation.
+
+Construction 1 (Informal). Let V be a k-round interactive verifier for a relation R and h a hash
+function. The adaptive Fiat–Shamir transformation yields the following verifier:
+     h (x, π):
+   VARG
+   – Parse π := (m1 , . . . , mk ).
+   – For i = 1, . . . , k, let
+                                               ρi := h (i, x, m1 , . . . , mi ) .                (1)
+   – The verifier checks that V(x, (mi , ρi )i∈[k] ) = 1.
+
+   Note that in Equation 1 x is included in the hash computation for the first round. This is
+necessary and sufficient for the Fiat–Shamir transformation to be adaptively sound in the ROM;
+  1
+      We elaborate on the efficiency requirements in Remark 1.
+
+
+
+
+                                                           3
+without it, the transformation only achieves non-adaptive soundness.2 Indeed, an adversary can
+(for many proof systems) choose an invalid instance x depending on the concrete hash function h
+and produce an accepting proof for it.
+    Our observation is that, even if x is included in Equation 1, we can construct relations where
+the instance x can predict its own hash output.
+    Given any relation R, one can construct a generated version of the relation (we give the general
+definition in Section 4); in this overview we take circuit satisfiability (CSAT) for concreteness.
+Definition 1 (Informal). Let c > 1 be an arbitrary constant3 . The c-generated CSAT relation
+is the relation consisting of x = (1T , 1n , 1m , s), w = x ∈ {0, 1}n such that:
+• When s is interpreted as a deterministic program, it runs in at most T c steps and generates a
+    circuit φ : {0, 1}n → {0, 1} of size |φ| ≤ m; and
+• φ(x) = 1.
+   Generated relations have a peculiar feature: one can diagonalize the instance using a version of
+Kleene’s second recursion theorem [Kle52].
+Claim 1 (Informal). In a standard programming model, for every program F there is an efficiently
+computable program s⋆ such that executing s⋆ yields F (s⋆ ). Further, |s⋆ | = O(|F |) and constructing
+it takes time poly(|F |). If F (s⋆ ) can be computed in T steps, then executing s⋆ takes (T + |F |) ·
+poly(|F |, log T ) steps.
+   Concretely, given an arbitrary program F , an instance x of the generated relation can contain a
+program s⋆ that computes F (s⋆ ): s⋆ computes an arbitrary function of its own code. In our attack,
+one can let F be the program that computes a prover message m1 and the Fiat–Shamir hash
+ρ1 = h(1, x, m1 ). In the context of c-generated CSAT, one can then produce a circuit that contains
+the verifier randomness ρ1 that the verifier of the Fiat–Shamir transformation would recompute.
+   Many PCPs, IOPs and interactive arguments for c-generated CSAT have the following two
+properties.
+Definition 2 (Informal). An interactive k-round verifier V for c-generated CSAT is semantic if
+its decision depends on the instance only through the generated statement: there is a verifier V
+such that V(x, ·) = V(φ, ·) whenever the program in x generates φ.
+      A semantic verifier is fooled by delayed statement choice if there exist deterministic ef-
+ficient algorithms (P̃1 , . . . , P̃k , Bind) such that, for every instance x and every challenge sequence
+ρ1 , . . . , ρk , setting mi := P̃i (x, ρ1 , . . . , ρi−1 ), the circuit φ := Bind(x, ρ1 , . . . , ρk ) is unsatisfiable and
+yet
+                                                     V φ, (mi , ρi )i∈[k] = 1 .
+                                                                         
+
+    In words: the prover chooses its messages round by round, and only after seeing all of the
+verifier’s randomness is a false statement chosen under which the transcript verifies. In our setting,
+this suffices: the instance commits only to a program, and by Claim 1 a program can compute its
+own transcript (whose challenges are determined by hashing) and generate the formula afterwards.
+This leads to our main theorem: such a protocol is insecure when Fiat–Shamir is instantiated with
+any sufficiently efficient hash function.
+   2
+     Omitting the statement is an instance of the “weak Fiat–Shamir”, which has led to concretely vulnerable imple-
+mentations. See [DMWG23] for a survey.
+   3
+     The constant c regulates how long the generator program can run. Depending on the complexity of the diago-
+nalization and the hash function used, larger values of c may be used.
+
+
+                                                             4
+Theorem 2. If V is a semantic verifier for c-generated CSAT that is fooled by delayed statement
+              h
+choice, then VARG (as in Construction 1) is not adaptively sound for any sufficiently efficient hash
+function h.
+
+Sketch. Let (P̃1 , . . . , P̃k , Bind) be as in Definition 2. For each candidate T , choose supported
+parameters n, m ≤ T , write xT,s := (1T , 1n , 1m , s), and let FT be the program that, on input s,
+computes mi := P̃i (xT,s , ρ1 , . . . , ρi−1 ) and ρi as in (1) for i = 1, . . . , k, and outputs
+
+                                   FT (s) := Bind xT,s , ρ1 , . . . , ρk .
+                                                                           
+
+
+By Claim 1, we can construct s⋆T that outputs FT (s⋆T ).
+    We now choose T . Let K be the total code length of h and the malicious algorithms. Since
+|FT | = O(K+log T ), Claim 1 gives constants C, k and an exponent d such that (letting N := |xT,s⋆T |):
+
+                     |s⋆T | ≤ C(K + log T ),       time(s⋆T ) ≤ CN d (K + log N )k .
+
+As long as d < c, one can choose a power of two T large enough that |s⋆T | ≤ T and C(4T )d (K +
+log(4T ))k ≤ T c . This T can be efficiently found by doubling. Then, N ≤ 4T , so s⋆T respects the
+time budget. Fix this T and set x⋆ := xT,s⋆T .
+    Run P̃1 , . . . , P̃k on x⋆ , deriving each challenge using (1), and set
+
+                                      φ⋆ := Bind(x⋆ , ρ1 , . . . , ρk ).
+
+By construction, the program in x⋆ generates φ⋆ = FT (s⋆T ); since φ⋆ is unsatisfiable, x⋆ is false.
+The Fiat–Shamir verifier recomputes exactly these challenges, and since V is semantic, V(x⋆ , ·) =
+V(φ⋆ , ·), which accepts the transcript by Definition 2. Hence x⋆ is false but the verifier accepts:
+ h (x⋆ , (m , . . . , m )) = 1.
+VARG        1          k
+
+Remark 1. The “sufficiently efficient” in Theorem 2 refers to the relation between the budget c in
+the c-generated CSAT relation and the exponent d in the running time of s⋆T . This latter exponent
+depends on the complexity of the hash function h, the efficiency of the malicious algorithms in the
+diagonalization and the complexity of constructing the fixed point. The attack succeeds as long as
+c > d.
+
+Remark 2. Definition 2 captures a wide class of protocols for generated relations. We are not
+aware of natural proof systems that avoid it, other than trivial ones (such as the ones where the
+prover sends the NP-witness and the verifier checks membership in the relation) or ones in which
+the generation of the instance from the program is also itself proven (instead of computed).
+
+Concrete implications. In Sections 6 and 7 we show that two round-by-round knowledge sound
+IOP families for the generated R1CS relation are semantic and fooled by delayed statement choice
+in the sense of Definition 2. The IOPs are (trivial) adaptations of existing IOPs for R1CS, where
+additionally the prover and verifier run the generating program s to derive the R1CS matrices.
+Theorem 2 straightforwardly adapts, which proves Theorem 1: there exist IOPs for generated
+R1CS that are insecure when compiled via the BCS transformation with any sufficiently efficient
+hash function h. While generated R1CS may seem like a contrived relation, it is somewhat close
+to practically relevant designs of proof systems for R1CS. In modern proof systems, the user wants
+
+
+                                                      5
+to prove a computation, say s(w) = 0, in some computation model. The code s of the computa-
+tion being proven is then interpreted or compiled into corresponding R1CS matrices. When s is
+untrusted, it is hard to guarantee that the compilation process cannot be (possibly undetectably)
+influenced to generate instances that satisfy the preconditions for our attacks. In that case, if the
+Fiat–Shamir hash contains only s (or a commitment to s in the preprocessing case) the protocol
+may be vulnerable. Luckily, there are mitigations that can be taken.
+
+• If the R1CS matrices are used as the statement identifier in Equation 1, then the attacks that
+  we describe do not apply. In fact, hashing the generated statement provably reduces adaptive
+  soundness to that of the underlying non-generated protocol (Theorem 5.5).
+
+• The attack also requires the adversary to specify a chosen computation s to be proven. We
+  recommend caution and careful audits in any setting in which such computations are fully or
+  partially under the control of third parties (e.g. when compiling user code, automatic precom-
+  piles, AI-generated circuits, and similar).
+
+• [AY25] describes a variant of the Fiat–Shamir called Extended Fiat–Shamir (XFS), designed
+  to prevent the diagonalization that this paper and [KRS25] employ. XFS prevents the attacks
+  in this paper, at the cost of a more expensive verifier. To our knowledge, the security proofs
+  in [AY25] do not give provable guarantees that XFS prevents variants of the attacks in the paper.
+
+   While our concrete IOP attacks target R1CS, the generated-relation construction of Section 4
+applies to any relation: for every relation R and every budget exponent c, the c-generated variant
+R[c] has a self-referential semantic scheme. We thus believe our attacks apply to other relations
+and designs, such as proof systems for virtual machines, as long as the relation is (partially or fully)
+generated. Other transformations such as [Fis05] are similarly vulnerable.
+Theoretical implications. Our results give limitations on showing security guarantees for in-
+teractive protocols compiled with Fiat–Shamir in the plain model. We showed that any natural
+protocol (in the sense of Definition 2 and definition 3.3) for generated relations (Definition 3.2)
+is insecure when compiled via Fiat–Shamir instantiated with a sufficiently efficient hash function
+h. Positive results on the vanilla Fiat–Shamir transformation must therefore circumvent at least
+one of these caveats. For a protocol to be secure after Fiat–Shamir in the plain model: either
+the protocol must not be natural (which seems to require deviating from common techniques in
+building interactive proof systems), or the relation must not be generated (which rules out generic
+statements that handle every NP-relation) or the hash function must be inefficient (which is, gener-
+ally, undesirable). We believe understanding the limitations of Fiat–Shamir and Fiat–Shamir-like
+transformations to be a central stepping stone for proving future positive results.
+
+1.3   Related work
+Closely related to our work is [KRS25, Section 4]. A strawman mitigation to the diagonalization
+attacks that they present would be inspecting the GKR circuit proven to ensure that it does
+not contain an implementation of the FS hash function or the commitment scheme employed.
+In [KRS25, Section 4], the authors show that this mitigation is insufficient, by using universal
+computation and quines (which also appear in our techniques). [KRS25, Section 4.1] chooses the
+GKR circuit to interpret the witness as a program, and then chooses the witness to be a self-
+referential program. The attack is impractical as the malicious prover has to prove a universal
+
+
+                                                   6
+machine execution through GKR. [KRS25, Section 4.2] extends this attack by using commitment
+decomposition to (for specific commitments) to avoid universal machine simulation.
+   Our work uses related self-reference techniques, but places the self-referential program in the
+generation of the statement, rather than in the GKR circuit. This has the advantage that it imposes
+minimal requirements on the proof system used: our attack extends to non-GKR based protocol
+such as variants of Spartan and Aurora over generated R1CS.
+
+
+
+
+                                                7
+2     Preliminaries
+We use the following conventions and notation:
+• We write [N ] := {1, . . . , N }. Coordinates of an N -entry vector are indexed by 0, . . . , N −1 unless
+  stated otherwise.
+• Logarithms are base 2 unless stated otherwise.
+• We denote by e0 = (1, 0, . . . , 0) the unit vector, whose dimension is clear from context.
+• The “hat” symbol over a function (e.g. p̂) denotes a polynomial.
+• We interchangeably interpret vectors f ∈ Σℓ as functions f : [ℓ] → Σ.
+• For a field F, number of variables m, and individual degree bound d, let F<d [X1 , . . . , Xm ] be the
+  polynomials over F whose degree in each variable is at most d − 1.
+• The notation x ← S means that x is sampled uniformly from S. If A is randomized, x ← A
+  means that x has the output distribution of A.
+In the paper, we say an algorithm is efficient if it runs in (probabilistic) polynomial time. Where
+needed, we track the exponent using the following code-sensitive definition.
+Definition 2.1. Fix the programming system used below. For θ ≥ 1, a program F is θ-tame if it
+halts within (|F | + 1)(n + 1)θ steps on every input of length n. A coded function (f, F ) is θ-tame
+if F computes f and satisfies this bound. We write Fθ for the class of these coded functions.
+   Fixed constants can be absorbed by padding the program code. Thus, for a fixed program, this
+convention is equivalent to the usual O(nθ ) bound.
+
+2.1    Error-correcting codes
+The (fractional) Hamming distance between two vectors is the fraction of positions at which they
+differ.
+Definition 2.2. Let f, g : S → Σ. The (fractional) Hamming distance between f and g is
+                                      ∆(f, g) = Pr [f (i) ̸= g(i)] .
+                                                  i←S
+
+For a non-empty set C, we write ∆(f, C) = ming∈C ∆(f, g).
+
+Basic definitions.     We recall the definition of error-correcting codes.
+Definition 2.3. An error-correcting code C over an alphabet Σ with block length ℓ is a subset
+C ⊆ Σℓ . Its minimum distance and rate are
+                                                                    log|Σ| |C|
+                              δ(C) := min ∆(f, g),        ρ(C) :=              .
+                                      f,g∈C                             ℓ
+                                       f ̸=g
+
+    When an injective encoder C : Σk → Σℓ is specified, we also use C for its image. We recall the
+definition of list-decoding.
+Definition 2.4. Let C be an error-correcting code over an alphabet Σ with block length ℓ. For any
+f : [ℓ] → Σ and δ ∈ (0, 1), we define the list around f at distance δ as
+                                  Λ(C, δ, f ) := {g ∈ C | ∆(f, g) ≤ δ} .
+Further, we write |Λ (C, δ)| := maxf |Λ(C, δ, f )|.
+
+                                                      8
+2.2    Interactive oracle proofs
+Relations. For IOPPs in this subsection, we represent a relation by triples (x, y, w):
+• x is the explicit instance of the relation.
+• y is the implicit instance of the relation.
+• w is the witness of the relation.
+     An Interactive Oracle Proof of Proximity (IOPP) [BCS16; RRR16] for a relation R is a tuple
+IOP = (P, V) that works as follows. The prover P is an interactive algorithm that receives as input
+(x, y, w) ∈ R, and the verifier V is an efficient interactive oracle algorithm that receives input x and
+query access to y (consisting of l0 symbols over some alphabet Σ0 ). They interact over k rounds: in
+each round i ∈ [k], P sends a proof string πi consisting of li symbols over some alphabet Σi , and V
+sends a uniformly random message ρi ∈ {0, 1}ri . After k rounds, V queries symbols of y, π1 , . . . , πk
+and accepts or rejects. We write ⟨P, V⟩(x, y, w) for this interaction.
+Definition 2.5. A public-coin protocol has randomness degree θV ≥ 1 if, on instances of length
+n, it has k = O(nθV ) rounds and j∈[k] rj = O(nθV ).
+                                P
+
+   Any IOP has a constant randomness degree (since the verifier is required to run in polynomial
+time).
+Definition 2.6. IOP = (P, V) has (perfect) completeness if, for every (x, y, w) ∈ R,
+
+                                   Pr [V accepts in ⟨P, V⟩(x, y, w)] = 1 .
+
+Knowledge soundness for IOPs. Applications of IOPs typically require a strengthening of the
+classical notion of soundness, known as round-by-round knowledge soundness [BCFW25], which is
+needed for the Fiat–Shamir step [FS86] in the BCS [BCS16] transformation.
+Definition 2.7. Let IOP = (P, V) be an IOP for a relation R. A knowledge state function for
+R̃ is a (possibly inefficient) function State that, given a statement (x, y), an interaction transcript
+tr, and a knowledge state witness w, outputs a bit and has the following properties.
+• Empty transcript: if tr = ∅ is the empty transcript, then State(x, y, tr, w) = 1 if and only if
+  (x, y, w) ∈ R̃.
+• Prover moves: if tr is a transcript where the prover is about to move and State(x, y, tr, w) = 0,
+  then State(x, y, tr∥π, w) = 0 for every prover message π.
+• Full transcript: if tr = (π1 , ρ1 , . . . , πk , ρk ) is a full transcript, then State(x, y, tr, w) = 1 if and
+  only if Vy,π1 ,...,πk (x, ρ1 , . . . , ρk ) accepts.
+Definition 2.8. IOP = (P, V) for a relation R has round-by-round knowledge soundness
+for R̃, errors (ε1 , . . . , εk ), and extraction times (et1 , . . . , etk ) if there exist a knowledge state
+function State for R̃ and a deterministic extractor Erbr with the following property: for every state-
+ment (x, y), round index i ∈ [k], and interaction transcript tr = (π1 , ρ1 , . . . , πi−1 , ρi−1 , πi ) where the
+verifier is about to move, Erbr runs in time at most eti and
+                          "                                                  #
+                                State x, y, tr, Erbr (x, y, tr∥ρi , w) = 0
+                                                                    
+                       Pr ∃ w :                                                  ≤ εi (x, y) .
+                       ρi       ∧ State(x, y, tr∥ρi , w) = 1
+                                    P
+The total extraction time is           i∈[k] eti .
+
+
+                                                       9
+2.3   Arguments in the random oracle model
+We recall the definition of a non-interactive argument in the random oracle model (following [CY24]).
+For λ ∈ N, let
+                                     Hλ := h : {0, 1}∗ → {0, 1}λ
+                                            
+
+be endowed with the uniform distribution; equivalently, the values h(z) are uniform and mutually
+independent over distinct inputs z.
+
+Definition 2.9. A non-interactive argument in the ROM for R is a pair ARG = (P, V)
+of oracle algorithms. Given oracle access to h ← Hλ , the prover outputs π ← Ph (x, w), and the
+verifier outputs a decision bit Vh (x, π). The argument has perfect completeness if, for every
+λ ∈ N and (x, w) ∈ R,
+                                h                                         i
+                              Pr Vh (x, π) = 1 h ← Hλ , π ← Ph (x, w) = 1 .
+
+   We recall the notion of (adaptive) soundness for a non-interactive argument in the ROM.
+
+Definition 2.10. An argument ARG = (P, V) for R has adaptive soundness error β if, for
+every output size λ ∈ N, instance-size bound n ∈ N, query bound q ∈ N, and (possibly unbounded)
+q-query malicious prover P̃,
+                          "                                         #
+                              |x| ≤ n ∧ x ∈/ L(R)    h ← Hλ
+                     Pr        ∧ Vh (x, π) = 1                          ≤ β(λ, n, q) .
+                                                     (x, π) ← P̃h
+
+   We also recall (adaptive straightline) knowledge soundness.
+
+Definition 2.11. An argument ARG = (P, V) for R has adaptive straight-line knowledge
+soundness error κ with extraction time et if there exists a probabilistic extractor E such that,
+for every λ, n, q ∈ N and every deterministic q-query malicious prover P̃,
+                                                                             
+                                                         h ← Hλ
+                 
+                                                         (x, π; τP ) ← P̃h 
+              Pr  |x| ≤ n ∧ (x, w) ∈
+                                    /R ∧ b=1                                ≤ κ(λ, n, q) ,
+                                                                          
+                                                        b ← Vh (x, π)     
+                                                         w ← E(x, π, τP )
+
+where τP is the random-oracle query–answer trace of P̃ and E runs in time et(λ, n, q).
+
+2.4   The Fiat–Shamir transformation
+A public-coin interactive protocol IP = (P, V) for a relation R works as follows. The prover
+receives (x, w) ∈ R and the verifier receives x. In each round i ∈ [k], P sends a message mi and V
+replies with a uniformly random ρi ∈ {0, 1}ri . After k rounds, V reads the transcript and accepts
+or rejects. This is the special case of Section 2.2 in which there is no implicit instance and the
+verifier reads every prover message in full; Definitions 2.5, 2.7 and 2.8 apply verbatim.
+    The Fiat–Shamir transformation compiles such a protocol into a non-interactive argument by
+deriving each verifier message from a hash of the transcript so far [FS86].
+
+
+
+
+                                                    10
+Construction 2.12 (Fiat–Shamir transformation). Let IP = (P, V) be a k-round public-coin
+interactive protocol. Fix a round-domain-separated hash family h with output length λ. For each
+round i, fix a poly(λ)-time map from {0, 1}λ to the verifier’s finite message space whose output on
+a uniform input is uniform. We denote the Fiat–Shamir transform by FSh (IP).
+• Prover. In round i, the prover computes mi and the verifier message
+
+                                   ρi := Challengeh,i (id(x), m1 , . . . , mi ) .                      (2)
+
+  Here id(x) is the canonical statement encoding. The function Challengeh,j applies the round
+  domain separator and canonical serialization, evaluates h, and applies the fixed map for round
+  j. The prover outputs π := (m1 , . . . , mk ).
+• Verifier. The Fiat–Shamir verifier recomputes the verifier messages from π by (2) and accepts
+  exactly when V accepts the resulting transcript.
+
+   The statement x enters the first challenge. Without it the transform is only non-adaptively
+sound.
+
+Theorem 2.13. Let IP be as in Construction 2.12 and suppose that it has round-by-round knowledge
+soundness for R̃, with errors (ε1 , . . . , εk ) and polynomial extraction time. Then FSh (IP) has adaptive
+straight-line knowledge soundness for R̃ in the random oracle model.
+    More precisely, for every malicious argument prover making at most q random-oracle queries,
+there is a straight-line extractor whose knowledge error on x is at most
+
+                                            (q + k) · max εi (x) .
+                                                        i∈[k]
+
+Proof. Round-by-round knowledge soundness gives straight-line state restoration with error at most
+(q + k) maxi εi . Since the verifier reads the full transcript, the state-restoration extractor applied
+to the query–answer trace of the malicious prover gives adaptive straight-line knowledge sound-
+ness [BCS16; CY24].
+
+2.5    The BCS transformation
+The Ben-Sasson–Chiesa–Spooner (BCS) transformation compiles a public-coin IOP into a non-
+interactive argument by Merkle-committing to each prover oracle and applying the Fiat–Shamir
+challenge rule to the Merkle roots [BCS16]; we follow the treatment in [CY24].
+
+Construction 2.14 (BCS transformation). Let IOP = (P, V) be a k-round public-coin IOP with-
+out an implicit instance. Fix round-domain-separated hash families h = (hMT , hFS ) with output
+length λ. For each round i, fix a poly(λ)-time map from {0, 1}λ to the verifier’s finite message
+space whose output on a uniform input is uniform. We refer the reader to [CO25] for a systematic
+description. We denote the BCS transform by BCSh (IOP).
+• Prover. In round i, the prover computes πi , its Merkle root
+
+                                          ai := MerkleRoothMT ,i (πi ) ,
+
+   and the verifier message
+                                   ρi := ChallengehFS ,i (id(x), a1 , . . . , ai ) .                   (3)
+
+
+                                                        11
+   Here id(x) is the canonical statement encoding. The function Challengeh,j applies the round
+   domain separator and canonical serialization, evaluates h, and applies the fixed map for round
+   j.
+   After all rounds, the prover emulates V to obtain its query sets Qi , and outputs
+
+                                      π := (ai , Qi , πi [Qi ], ωi ) i∈[k] ,
+                                                                    
+
+
+  where ωi contains the corresponding Merkle authentication paths.
+• Verifier. The BCS verifier recomputes the verifier messages, emulates V on the authenticated
+  entries, and accepts exactly when the IOP verifier and every Merkle opening accept.
+
+   We write εBCS (λ, q, (li )i∈[k] ) for the explicit Merkle multi-extraction and Fiat–Shamir error in
+the BCS theorem of [CY24].
+
+Theorem 2.15. Let IOP be as in Construction 2.14 and suppose that it has round-by-round knowl-
+edge soundness for R̃, with errors (ε1 , . . . , εk ) and polynomial extraction time. Then BCSh (IOP)
+has adaptive straight-line knowledge soundness for R̃ in the random oracle model.
+    More precisely, for every malicious argument prover making at most q random-oracle queries,
+there is a straight-line extractor whose knowledge error on x is at most
+
+                             (q + k) · max εi (x, ⊥) + εBCS λ, q, (li )i∈[k] ,
+                                                                               
+                                       i∈[k]
+
+where εBCS is the bound defined above.
+
+Proof. Round-by-round knowledge soundness gives straight-line state restoration with error at most
+(q + k) maxi εi . The BCS theorem then gives adaptive straight-line knowledge soundness with the
+additive error stated above [CY24].
+
+
+
+
+                                                     12
+3     Diagonalization for programmable protocols
+This section gives a general form of the diagonalization attack. We first define semantic schemes:
+relations whose membership is determined by a semantic value that is separate from the instance
+itself. Then, we define diagonalizable protocols, which we show to be susceptible to the techniques
+in this work.
+
+3.1   Semantic schemes
+A semantic scheme gives every instance x a possible “meaning” σ, where that meaning contains
+exactly the semantic information needed to decide whether x is in the relation.
+
+Definition 3.1. Let R be a relation over explicit instances x ∈ X and witnesses w. A semantic
+scheme for R is a triple S = (Σ, ⊩, R), where Σ is a set of semantic values, ⊩ ⊆ X × Σ is a
+realization relation and R is a relation, such that x ⊩ σ implies, for every w,
+
+                                 (x, w) ∈ R    ⇐⇒      (x, σ, w) ∈ R .
+
+Write L(R) = {(x, σ) : ∃w, (x, σ, w) ∈ R}. If x ⊩ σ, then
+
+                                 x ∈ L(R)     ⇐⇒      (x, σ) ∈ L(R) .
+
+    While the definition of semantic schemes might seem vacuous (every relation has a semantic
+scheme, namely the one where R = R and ⊩ is equality), this separation between instance and the
+value of the relation allows us to define schemes that are self-referential: the semantic value σ can
+depend (in an arbitrary way) on the instance x.
+
+Definition 3.2. Let S = (Σ, ⊩, R) be a semantic scheme for R and F a set of efficiently computable
+functions X → Σ. Then S is self-referential for F if there is an algorithm Fix that, given the
+description of any F ∈ F , runs in time poly(|F |) and outputs an instance x⋆ := Fix(F ) ∈ X
+satisfying
+                                          x⋆ ⊩ F (x⋆ ) .
+
+    Self-referential schemes will be crucial for our attacks. Clearly, the trivial semantic scheme is
+self-referential for the function class F containing the identity function, but we will require a more
+expressive function class (in particular, F that can compute the Fiat–Shamir hash of x).
+
+3.2   Programmability
+We define the properties that (fixing a semantic scheme) make an interactive protocol susceptible
+to the results in this paper: programmability.
+    In a nutshell: a programmable prover sends its first i messages, then uses the verifier challenge
+prefix to choose a semantic value and (only then) completes the transcript. On every instance that
+realizes the chosen semantic value, the instance must be false and the verifier must accept (thus,
+breaking soundness).
+
+Definition 3.3. Let IP = (P, V) be a k-round public-coin protocol for R, let S = (Σ, ⊩, R) be a
+semantic scheme for R, and fix i ∈ {0, 1, . . . , k} and θ ≥ 1. The protocol is (i, θ)-programmable
+
+
+                                                 13
+relative to S if there are deterministic algorithms P̃1 , . . . , P̃k , Bind such that P̃1 , . . . , P̃i , Bind ∈ Fθ ,
+the remaining provers run in polynomial time, and the following holds.
+    For every x ∈ X and every challenge sequence ρ1 , . . . , ρk , define
+
+                                            mj := P̃j (x, ρ<j )  (j ≤ i),
+                                             σ := Bind(x, ρ≤i ),
+                                            mj := P̃j (x, σ, ρ<j ) (j > i).
+
+If x ⊩ σ, then
+                               (x, σ) ∈                         V x, (mj , ρj )j∈[k] = 1 .
+                                                                                   
+                                      / L(R)         and
+
+   An interactive protocol that is programmable and whose semantic scheme is self-referential is
+susceptible4 to the diagonalization attack described in Section 3.3.
+
+Definition 3.4. A public-coin protocol IP for R is (i, θ, θ′ )-diagonalizable if R has a semantic
+scheme S that is self-referential for Fθ and IP is (i, θ′ )-programmable relative to S.
+
+    Here θ bounds the complexity of the functions covered by self-reference, whereas θ′ bounds that
+of the programmable provers and Bind in programmability.
+
+3.3       Diagonalization attacks on programmable protocols
+We first loosely bound the cost of computing the initial messages of a Fiat–Shamir compiled protocol
+when the hash function is polynomial-time computable.
+
+Lemma 3.5. Let:
+• IP be a public-coin interactive protocol with randomness degree θV ;
+• P̃1 , . . . , P̃i ∈ Fθ ; and
+• h be a hash family evaluable in time O(Lθh ) on inputs of length L.
+Then the maps
+                                     x 7−→ mh≤i (x), ρh≤i (x) ,
+                                                             
+
+defined by running P̃1 ,. . . , P̃i againstthe Fiat–Shamir challenge rule (2) of Construction 2.12, are
+computable in time O i1+θh · nθV ·θ·θh · poly(λ, |h|) given the code of h.
+
+Proof. By induction on j ≤ i. The message mj = P̃j (x, ρ<j ) depends only on data already com-
+puted. Randomness degree θV gives j≤k rj = O(nθV ); hence P̃j runs on an input of length O(nθV )
+                                           P
+
+and both its cost and its output bit length are O(nθV θ ). By (2), ρj is one evaluation of Challengeh,j ,
+on (id(x), m1 , . . . , mj ), of length O(j nθV θ + λ), costing O(j θh nθV θθh ) · poly(λ, |h|). Summing over
+the i rounds gives the claim.
+
+Remark 3.6. The above lemma is intentionally loose. For specific protocols and hash functions
+the complexity to compute the Fiat–Shamir hashes can be much smaller (in fact, often linear in
+the prover message length).
+
+    We show that diagonalizable interactive protocols are unsound when compiled via Fiat–Shamir
+for any sufficiently efficiently computable hash function h.
+   4
+       We remark that the condition is sufficient but not necessary.
+
+
+                                                           14
+Theorem 3.7. Let IP be an (i, θ, θ′ )-diagonalizable public-coin protocol for R, for some i ∈ [k],
+and let its randomness degree be θV . For every hash family h evaluable in time O(Lθh ) such that
+                                           θV 1 + (θ′ + 1)θh ≤ θ,
+                                                             
+
+                                 / L(R) and a proof πh accepted by FSh (IP).
+one can efficiently construct xh ∈
+Proof. Fix h. Let P̃1 , . . . , P̃k , Bind witness programmability, and let Fix witness self-reference. Run
+the first i provers with Fiat–Shamir challenges as in Lemma 3.5, and define
+                                        Fh (x) := Bind x, ρh≤i (x) .                                   (4)
+                                                                 
+
+By Lemma 3.5, Fh is computable in time
+                                                    ′
+                                                        
+                                    O i1+θh nθV θ θh · poly(λ, |h|).
+
+Moreover, i ≤ k = O(nθV ). Since h is fixed before Fh is formed, the exponent assumption gives
+Fh ∈ Fθ , and its code is efficiently obtained from that of h.
+   Set xh := Fix(Fh ). By self-reference,
+                                xh ⊩ Fh (xh ) = Bind xh , ρh≤i (xh ) =: σh .
+                                                                     
+
+The malicious prover now repeats the first i messages and challenges used to define Fh , then runs
+the remaining provers on (xh , σh ), deriving every later challenge by the Fiat–Shamir rule. Let πh
+be the resulting message sequence.
+    By Definition 3.3 (xh , σh ) ∈/ L(R) and the interactive verifier accepts the transcript. By the
+semantic-scheme property, xh ∈   / L(R). The Fiat–Shamir verifier recomputes the same challenges, so
+it must accept πh . All steps are polynomial time by self-reference, Lemma 3.5, and the running-time
+requirements in Definition 3.3.
+
+3.4    Lifting the attack to IOPs
+Since the [BCS16] transformation can be conceptualized as the Fiat–Shamir transformation applied
+to the interactive argument where prover messages are replaced with Merkle commitments, the
+attack translates directly with minor adaptations.
+Definition 3.8. The underlying interactive protocol of a public-coin IOP IOP = (P, V) is the
+public-coin interactive protocol whose prover messages are the strings π1 , . . . , πk and whose decision
+is Vπ1 ,...,πk (x, ρ1 , . . . , ρk ). We call IOP programmable, respectively diagonalizable, with given
+parameters if its underlying interactive protocol is.
+Lemma 3.9. Lemma 3.5 holds with running time O(i nθV θθh ) · poly(λ, |h|) for a public-coin IOP
+IOP and a pair of hash families h = (hMT , hFS ), with the maps defined by the BCS challenge rule
+(3) of Construction 2.14.
+Proof. As in Lemma 3.5, the message πj = P̃j (x, ρ<j ) has cost and bit length B = O(nθV θ ).
+Computing the Merkle root aj = MerkleRoothMT ,j (πj ) costs O(nθV θθh ) · poly(λ, |h|): the leaves
+partition the B bits, so hashing all of them costs k O(ℓθkh ) ≤ O(B θh ) as θh ≥ 1, while the O(B)
+                                                  P
+
+internal nodes hash O(λ) bits each. The challenge ρj is one evaluation of ChallengehFS ,j on an input
+of length O(n + jλ), which the Merkle term dominates up to poly(λ) since j = O(nθV ). Summing
+over the i rounds gives the claim.
+
+                                                        15
+Theorem 3.10. Let IOP be an (i, θ, θ′ )-diagonalizable public-coin IOP for R, for some i ∈ [k], and
+let its randomness degree be θV . For every pair of hash families h = (hMT , hFS ) evaluable in time
+O(Lθh ) such that
+                                        θV (1 + θ′ θh ) ≤ θ,
+                                 / L(R) and a proof πh accepted by BCSh (IOP).
+one can efficiently construct xh ∈
+
+Proof. Repeat the proof of Theorem 3.7, using the BCS challenge rule and Lemma 3.9. This gives a
+fixed-point instance xh that realizes σh . Programmability and the semantic-scheme property make
+the instance false and give oracle messages π1 , . . . , πk accepted by the IOP verifier.
+    To form the BCS proof, emulate the verifier to obtain its query sets Q1 , . . . , Qk and output
+
+                                     πh := (aj , Qj , πj [Qj ], ωj ) j∈[k] ,
+                                                                    
+
+
+where each aj is the genuine Merkle root and ωj contains the genuine authentication paths. The
+BCS verifier derives the same challenges, all Merkle openings verify, and the underlying IOP verifier
+accepts.
+
+    The exponent hypothesis above is loose, as it composes the cost of Bind with that of h over all
+k rounds. In our attacks the first malicious message is a fixed string, and the following sharpening
+applies.
+
+Corollary 3.11. Let IOP be a (1, θ, θ′ )-diagonalizable public-coin IOP for R whose first malicious
+prover P̃1 outputs a fixed string π1◦ , independent of the instance. For every pair of hash families
+h = (hMT , hFS ) evaluable in time O(Lθh ) such that
+
+                                              max{θ′ , θh } ≤ θ,
+
+                                 / L(R) and a proof πh accepted by BCSh (IOP). Moreover xh =
+one can efficiently construct xh ∈
+Fix(Fh ) for the diagonal map
+
+             Fh (x) := Bind x, ChallengehFS ,1 (id(x), a◦1 ) ,      a◦1 := MerkleRoothMT ,1 (π1◦ ) .   (5)
+                                                            
+
+
+Proof. Repeat the proof of Theorem 3.10. Its only use of the exponent hypothesis is to place the
+diagonal map (4) in Fθ , and for i = 1 that map is (5). Since π1◦ is constant, so is the root a◦1 , which
+is computed once and hard-coded. On an instance of length N , Fh therefore writes id(x) in O(N )
+steps, calls hFS once at cost O(N θh ), and runs Bind ∈ Fθ′ ; the factor poly(λ, |h|) is absorbed by
+padding, as in Lemma 3.5. Hence Fh ∈ Fmax{θ′ ,θh } ⊆ Fθ .
+
+
+
+
+                                                       16
+4     Generated relations
+In this section we show that every relation admits a generated variant that has a self-referential
+semantic scheme (Definition 3.2). We then instantiate the construction to obtain generated R1CS,
+the relation we consider in Sections 6 and 7.
+
+4.1    Universal computation
+Let ϵ be the empty string. Fix a standard programming system with a universal evaluator U and
+efficient program specialization.5 For a program P , let code(P ) denote its code. For a code s, let
+Rs (x) := U(s, x) be the partial function computed by s. We write Rs (x)↓≤T = y if it halts within
+T steps and outputs y. Specialization has linear code-size overhead. The evaluator simulates t
+steps of a code s in time t · poly(|s|, log t). Standard RAM-based programming systems have these
+properties.
+     We use the following constructive form of Kleene’s second recursion theorem [Kle52].
+
+Lemma 4.1. For every program F , one can efficiently construct a code s⋆ such that
+
+                                               Rs⋆ (ϵ) = F (s⋆ ) .
+
+The construction has linear code-size overhead. Executing s⋆ adds only the polynomial simulation
+overhead stated above.
+
+Proof. For each code a, let
+                                        diag(a) := code(ϵ 7→ U(a, a)) .
+The map diag is efficiently computable. Let
+
+                          b := code(a 7→ F (diag(a)))         and       s⋆ := diag(b) .
+
+Then
+                         Rs⋆ (ϵ) = U(diag(b), ϵ) = U(b, b) = F (diag(b)) = F (s⋆ ) .
+
+
+
+4.2    Generated relations
+Given any relation, we define a variant in which the instance is not written down explicitly, but
+is instead generated by a program. The variant is parameterized by a constant c > 1, the budget
+exponent: an instance with clock T permits its generator to run for T c steps.
+
+Definition 4.2. Let R be a relation and let c ≥ 2 be an integer. The c-generated relation R[c]
+consists of tuples (x, w) of the form x = (1T , s), where T ∈ N and s ∈ {0, 1}∗ , such that
+
+                         Rs (ϵ)↓≤T c = σ    with    |σ| ≤ T       and      (σ, w) ∈ R .
+   5
+     Given code for P and fixed data a, specialization produces code for x 7→ P (a, x) without running P . Program
+code may also be used as data. These are the standard acceptability conditions.
+
+
+
+
+                                                       17
+    If R ∈ NP then R[c] ∈ NP: the unary clock lets the verifier simulate the generator for T c
+steps, and the size bound |σ| ≤ T keeps witnesses of polynomial size. Moreover L(R) reduces to
+L(R[c]) by mapping σ to (1T , s) where s simply prints σ and T = O(|σ|). In particular, L(R[c]) is
+NP-complete whenever L(R) is.
+    We next prove a lemma that shows how to construct (efficiently) self-referential instances for
+generated relations.
+
+Lemma 4.3. For a clock T and code s, write xT,s := (1T , s). Fix an integer c ≥ 2, a degree θ < c,
+and a bound B ∈ N. Let F be a θ-tame program that, on input xT,s , outputs a string of length at
+most B. Then one can efficiently construct T ⋆ and s⋆ such that
+
+                                         Rs⋆ (ϵ)↓≤(T ⋆ )c = F (xT ⋆ ,s⋆ ) .
+
+Moreover, T ⋆ ≥ B (so the output has length at most T ⋆ ) and T ⋆ = poly |F |, B .
+                                                                                     
+
+
+Proof. For each T , let FT be the code that, on input a, constructs xT,a and runs F on it. The code
+stores T in binary and expands its unary encoding only when run. Thus |FT | = O(|F | + log T ).
+Constructing the input takes O(T ) time, which is covered because θ ≥ 1.
+    Apply Lemma 4.1 to FT . This gives, efficiently in T , a code sT such that
+
+                                     RsT (ϵ) = FT (sT ) = F (xT,sT ) .
+
+The recursion construction has linear code-size overhead. Hence |sT | = O(|F | + log T ) and
+
+                              nT := |xT,sT | = O(D + T ), where D := |F |.
+
+By Definition 2.1, F runs in at most (|F | + 1)(nT + 1)θ steps. The fixed recursion construction
+and the universal evaluator add a factor polynomial in |sT | and the logarithm of this running time.
+Therefore, for constants c, q that do not depend on F or T ,
+
+                             time RsT (ϵ) ≤ c(D + T )θ (D + log T + 1)q .
+                                             
+
+
+Choose a constant θ′ with θ < θ′ < c. For all T ≥ Dr , where r is a sufficiently large constant, the
+                              ′
+last display is at most c′ T θ . Thus it is at most T c for all T ≥ T0 , for some T0 = poly(D).
+    To find a valid clock, try T = 2, 4, 8, . . .. For each value, construct sT and simulate it for T c
+steps. Let T ⋆ be the first value with T ⋆ ≥ B for which the simulation halts. The search succeeds
+with T ⋆ ≤ 2 max(T0 , B) = poly(|F |, B) and takes poly(T ⋆ ) total time. Setting s⋆ := sT ⋆ proves the
+claim.
+
+   Using the lemma, we show every generated relation is self-referential.
+
+Lemma 4.4. Let R be a relation and fix integers c ≥ 2 and B ∈ N. There exists a semantic
+scheme S = (Σ, ⊩, R) for R[c], whose semantic values Σ are all strings of length at most B and
+whose realization relation is
+
+                          (1T , s) ⊩ σ     ⇐⇒       Rs (ϵ)↓≤T c = σ and |σ| ≤ T ,
+
+that is self-referential for Fθ , for every θ < c, with |Fix(F )| = poly(|F |, B).
+
+
+                                                        18
+Proof. Put Σ := {σ ∈ {0, 1}∗ s.t. |σ| ≤ B} and let ⊩ be as in the statement; note that Σ contains
+every candidate instance of length at most B, not only those in L(R). Let R consist of the triples
+(x, σ, w) with (σ, w) ∈ R. Set S = (Σ, ⊩, R). For the semantic-scheme property, suppose x ⊩ σ.
+Since the generator is deterministic, σ is the unique instance it produces within the budget, so by
+Definition 4.2, for every w, (x, w) ∈ R[c] if and only if (σ, w) ∈ R, i.e. if and only if (x, σ, w) ∈ R.
+    For self-reference, fix θ < c and let F lie in Fθ . Its outputs have length at most B, so Lemma 4.3
+yields T ⋆ ≥ B and s⋆ with
+                                       Rs⋆ (ϵ)↓≤(T ⋆ )c = F (xT ⋆ ,s⋆ ) .
+Set
+                                                         ⋆
+                                          Fix(F ) := (1T , s⋆ ).
+This is efficient, and since |F (xT ⋆ ,s⋆ )| ≤ B ≤ T ⋆ we get Fix(F ) ⊩ F (Fix(F )). The bound on T ⋆ also
+gives |x⋆ | = poly(|F |, B).
+
+4.3   Generated R1CS
+We instantiate the construction with the rank-1 constraint satisfaction (R1CS) relation, which
+yields the relation attacked in Sections 6 and 7.
+
+Definition 4.5. The R1CS relation RR1CS consists of tuples (x, w) where x = (F, M, N, A, B, C)
+for a finite field F, dimensions M, N ≥ 1 and matrices A, B, C ∈ FM ×N , and w = z ∈ FN is such
+that z0 = 1 and
+                                       (Az) ◦ (Bz) = Cz .
+We let B(F, M, N ) denote the length of the encoding of x; note that B(F, M, N ) = O(M N log |F|).
+
+Definition 4.6. For an integer c ≥ 2, the generated R1CS relation is RR1CS [c], the c-generated
+relation of RR1CS .
+
+   Since L(RR1CS ) is NP-complete, so is L(RR1CS [c]). Specializing Lemma 4.4 gives the semantic
+scheme used in Sections 6 and 7.
+
+Corollary 4.7. Fix an integer c ≥ 2, a finite field F, and dimensions M, N ≥ 1, and put B :=
+B(F, M, N ). There is a semantic scheme S = (Σ, ⊩, R) for RR1CS [c] that is self-referential for Fθ ,
+for every θ < c, with |Fix(F )| = poly(|F |, M, N, log |F|).
+
+Proof. Apply Lemma 4.4 to RR1CS with the bound B. Every R1CS instance over F with dimensions
+M ×N has encoding length exactly B, hence lies in Σ. Finally B = O(M N log |F|), so poly(|F |, B) =
+poly(|F |, M, N, log |F|).
+
+
+
+
+                                                   19
+5        Lifting protocols to semantic relations
+We formalize lifting a protocol from statements to encodings of statements.
+
+Definition 5.1 (Semantic lift). Let R be a relation over Σ and let val : X → Σ be an efficient
+deterministic value map6 . The lift of R along val is
+
+                                       R[val] := {(x, w) : (val(x), w) ∈ R} .                              (6)
+
+The lift of a public-coin protocol IP = (P, V) for R is the protocol IP[val] that, on input x, runs IP
+on val(x).
+
+   Completeness and soundness transfer immediately. The lifted relation R[val] has a canonical
+semantic scheme
+
+                           x ⊩ σ ⇐⇒ val(x) = σ,          (x, σ, w) ∈ R ⇐⇒ (σ, w) ∈ R .
+
+In particular, the generated relations of Section 4 are lifted relations, where the value map is the
+evaluation map of Definition 4.2 (with invalid evaluations mapped to ⊥).
+
+Definition 5.2. Let IP = (P, V) be a k-round public-coin protocol for R. It has (i, θ′ )-delayed
+statement choice if there are algorithms P̃1 , . . . , P̃k , Bind, where P̃1 , . . . , P̃i , Bind ∈ Fθ′ and the
+remaining algorithms are polynomial-time, such that, for every string z and challenge sequence,
+setting
+                                 mj = P̃j (z, ρ<j )          (j ≤ i),
+                                             σ = Bind(z, ρ≤i ),
+                                           mj = P̃j (z, σ, ρ<j ) (j > i)
+gives
+                                                          V σ, (mj , ρj )j∈[k] = 1 .
+                                                                             
+                                 σ∈
+                                  / L(R)         and
+
+   We show that if IP has delayed statement choice and the scheme is self-referential, the lifted
+protocol IP[val] is susceptible to Theorem 3.7.
+
+Proposition 5.3. If IP permits (i, θ′ )-delayed statement choice and the canonical scheme is self-
+referential for Fθ , the lift IP[val] is (i, θ, θ′ )-diagonalizable. Hence Theorem 3.7 applies.
+
+Proof. Run the delayed-choice algorithms with z = x. If x ⊩ σ, then val(x) = σ; thus the lifted
+verifier is V(σ, ·) and Definition 3.3 holds. By Definition 3.4, then the preconditions of Theorem 3.7
+hold.
+
+Fiat–Shamir compilation of lifted protocols. We show that the lifted protocols can be
+compiled by a slight modification to the Fiat–Shamir transformation, making the protocol as secure
+as the original protocol (after the standard Fiat–Shamir transformation).
+
+Construction 5.4 (Semantic Fiat–Shamir). The transform FShsem (IP[val]) is Construction 2.12 with
+challenges
+                         ρi := Challengeh,i (id(val(x)), m1 , . . . , mi ) .                  (7)
+    6
+        A partial value map can be made total by mapping invalid encodings to ⊥ ∈
+                                                                                / L(R).
+
+
+                                                         20
+Proposition 5.5. For every concrete hash family h, the soundness (resp. knowledge soundness)
+error of FShsem (IP[val]) is upper-bounded by that of FSh (IP). The reduction incurs the cost of one
+evaluation of val.
+
+Proof. Fix (x, π) and put σ := val(x). In the first round, the semantic verifier hashes (id(σ), m1 ) by
+(7), exactly as the base Fiat–Shamir verifier on statement σ. In every round j, both verifiers hash
+the same tuple (id(σ), m1 , . . . , mj ), so all challenges agree. Both verifiers then run V on σ and the
+same transcript, so they make the same decision.
+    Let P̃ be a standard-model adversary against the semantic transform. The base adversary runs
+P̃ and maps its output (x, π) to (val(x), π). By (6),
+
+                                x∈
+                                 / L(R[val])     ⇐⇒      val(x) ∈
+                                                                / L(R) .
+
+This identity, together with the agreement of decisions above, shows that the two adversaries
+succeed on exactly the same executions.
+    For knowledge soundness, apply the base extractor to the induced adversary on (val(x), π). By
+(6), every witness it outputs is also a witness for x. Thus the knowledge error does not increase.
+In both reductions the only additional cost is one evaluation of val.
+
+
+
+
+                                                   21
+6     BCS attacks against multilinear zerocheck
+In this section, we present a natural protocol for generated R1CS that resembles multilinear proof
+systems used in practice (e.g., [Set20; ACFY25; BRW26]). The protocol performs a multilinear
+zerocheck and then runs a lincheck.
+
+6.1    Preliminaries
+We recall the linear constraint relation.
+
+Definition 6.1. Let C : Fk → Σℓ be an error-correcting code. The linear constraint relation RC
+consists of tuples (x, y, w) of the form x = (µ, v) ∈ F × Fk , y = f ∈ Σℓ and w = z ∈ Fk such that
+f = C(z) and ⟨z, v⟩ = µ.
+
+   Many IOPPs and interactive linear oracle commitments use this relation [DP26; BFRW26].
+Examples appear in [ZCF24; ACFY25] and [BCFRRZ25; NA25].
+
+6.2    Construction
+We describe the protocol we target next. Fix a budget exponent c ≥ 2.
+
+Construction 6.2. The public-coin IOP IOPml = (P, V) is defined as follows. Let C : FN → Σℓ
+be an error-correcting code with polynomial block length and a polynomial-time encoder. Let
+(PC , VC ) be an IOPP for RC . The protocol is for the generated R1CS relation RR1CS [c], restricted
+to instances whose generated matrices are over F with dimensions M = 2m and N = 2n .
+
+• Inputs. The verifier V receives x = (1T , s). The honest prover P additionally receives w = z
+  such that (x, w) ∈ RR1CS [c].
+
+• Interactive phase.
+    1. Compute R1CS matrices. The parties compute σ := Rs (ϵ). The verifier rejects unless the
+       execution halts within T c steps and σ is an R1CS instance (F, M, N, A, B, C) over F with
+       the prescribed dimensions M = 2m and N = 2n , of encoding length |σ| ≤ T . Let Â, B̂, Ĉ
+       denote the multilinear extensions of the matrices, with rows indexed by {0, 1}m and columns
+       by {0, 1}n .
+    2. Witness oracle. The prover sends its first oracle π1 = f := C(z).
+    3. Zerocheck randomness. The verifier samples and sends r ← Fm .
+    4. Zerocheck. Define
+                                                                                                                   
+
+      Ĝ(X) := eq(X, r) · 
+                                X                                X                               X
+                                         Â(X, c) · z(c) ·              B̂(X, c) · z(c) −              Ĉ(X, c) · z(c) .
+                              c∈{0,1}n                         c∈{0,1}n                        c∈{0,1}n
+
+      The parties run the m-round sumcheck protocol on the claim
+
+                                                          Ĝ(b) = 0 .
+                                                 X
+
+                                               b∈{0,1}m
+
+
+      Let γ ∈ Fm be the terminal sumcheck point, and let ĥm be the final prover message.
+
+
+                                                    22
+   5. Terminal evaluations. The prover sends
+
+        µA :=                                     µB =                                 µC =
+                    X                                      X                                      X
+                           Â(γ, c) · z(c),                         B̂(γ, c) · z(c),                     Ĉ(γ, c) · z(c).
+                c∈{0,1}n                                 c∈{0,1}n                             c∈{0,1}n
+
+      The verifier checks ĥm (γm ) = eq(γ, r) · (µA µB − µC ).
+   6. Lincheck. The verifier samples ε ← F and defines
+
+                                  v := e0 + ε · Â(γ, ·) + ε2 · B̂(γ, ·) + ε3 · Ĉ(γ, ·) .
+
+      The parties run (PC , VC ) to check that
+
+                              (x = (1 + εµA + ε2 µB + ε3 µC , v), y = f, w = z) ∈ RC .
+
+• Decision phase. The verifier accepts if and only if the generator terminates correctly, every
+  sumcheck and terminal check passes, and the lincheck proof verifies.
+
+6.3   Soundness proof
+For δ ∈ (0, 1), let RC,δ denote the δ-relaxation of RC , obtained by replacing the condition f = C(z)
+with ∆(f, C(z)) ≤ δ. Write kC for the number of rounds of the lincheck, and let (εC,j (δ))j∈[kC ] be
+its round-by-round knowledge errors for RC,δ . The proof of the following theorem is essentially
+unchanged from prior work [ACFY25].
+Theorem 6.3. For every δ ∈ (0, 1) such that (PC , VC ) has round-by-round knowledge soundness for
+RC,δ with polynomial extraction time, the protocol IOPml has round-by-round knowledge soundness
+for RR1CS [c], with polynomial extraction time and round errors
+                                                                                                     
+                 m |Λ (C, δ)| 3 |Λ (C, δ)|       3 |Λ (C, δ)| 3 |Λ (C, δ)|                     
+                              ,             ,...,             ,             , (εC,j (δ))j∈[kC ]  .
+                                                                                               
+                      |F|          |F|                |F|          |F|
+                
+                                                                                               
+                                |             {z             }
+                                         m sumcheck rounds
+
+In particular, the error in every round is at most
+
+                                                  max{m, 3} · |Λ (C, δ)|
+                                              (                                          )
+                            εml (δ) := max                               , max εC,j (δ)       .                         (8)
+                                                          |F|              j∈[kC ]
+
+Here |Λ (C, δ)| is the maximum number of codewords in a ball of radius δ, as in Section 2.1.
+   Combining Theorem 6.3 with the BCS knowledge-soundness theorem gives the soundness of the
+compiled protocol.
+Corollary 6.4 (Soundness of the compiled protocol). Under the hypotheses of Theorem 6.3, let
+kml = m + 2 + kC be the number of rounds of IOPml . In the random oracle model, for every malicious
+argument prover making at most q random-oracle queries, there is an adaptive straight-line extractor
+for BCSh (IOPml ) whose knowledge error for RR1CS [c] is at most
+                                                                                  
+                                   (q + kml ) · εml (δ) + εBCS λ, q, (li )i∈[kml ] .
+
+Proof. Apply Theorem 2.15 with the uniform round error from (8).
+
+                                                            23
+6.4   Attack
+The attack is an instance of Theorem 3.10. Write S for the semantic scheme of Corollary 4.7 for
+the field F and dimensions 2m × 2n , so that every R1CS instance over F with these dimensions is
+a semantic value; the first challenge r is the only one the attack needs to control, so i = 1.
+Lemma 6.5. Assume m ≥ 1 and that the lincheck has an efficient prover and perfect completeness.
+Then IOPml is (1, 1)-programmable relative to S.
+Proof. Let P̃1 ignore its input and output f ◦ := C(z ◦ ) for z ◦ := e0 , and let
+           Bind(x, r) := (F, 2m , 2n , A, B, C),           Ab = Bb = 0,         Cb = (r1 − b1 ) · e0 .
+Both are deterministic and ignore their input except for r, running in a time O(2m+n log |F|) that
+depends only on F, m, n. Padding their code to this length, as noted after Definition 2.1, puts both
+in F1 .
+    Falsity holds for every x and every r: for z with z0 = 1 the residual in row b is (Ab z)(Bb z) −
+Cb z = b1 − r1 , and the rows with b1 = 0 and b1 = 1 cannot both vanish.
+    Now suppose x ⊩ Bind(x, r), so the generator halts within budget, outputs exactly this R1CS
+instance, and its encoding has length at most T ; hence the verifier does not reject in step 1. Fix
+the honest prover’s randomness, and let the later provers run it on z ◦ , whose encoding f ◦ is the
+message already sent. The initial sumcheck claim holds,
+                                 Ĝ(b) =              eq(b, r) · (b1 − r1 ) = r1 − r1 = 0 ,
+                        X                    X
+
+                      b∈{0,1}m             b∈{0,1}m
+
+by the multilinear interpolation identity. At the terminal point γ the honest prover supplies µA =
+µB = 0 and µC = r1 − γ1 , and Â(γ, ·) = B̂(γ, ·) = 0 while Ĉ(γ, ·) = (r1 − γ1 )e0 . Hence, for
+every later challenge ε, the lincheck vector and target are v = (1 + ε3 (r1 − γ1 ))e0 and 1 + ε3 µC , so
+⟨z ◦ , v⟩ equals the target and f ◦ = C(z ◦ ). Perfect completeness of the sumcheck and of the lincheck
+protocol makes the verifier accept, for every continuation of the challenges.
+
+Corollary 6.6. Under the hypotheses of Lemma 6.5, let θV be the randomness degree of IOPml
+and assume θV (1 + θh ) < c. Then for every pair of hash families h = (hMT , hFS ) evaluable in time
+O(Lθh ) one can efficiently construct a false instance xh ∈
+                                                          / L(RR1CS [c]) and an argument πh accepted
+by BCSh (IOPml ) with probability one.
+Proof. Fix θ with θV (1 + θh ) ≤ θ < c. By Corollary 4.7, S is self-referential for Fθ , so IOPml is
+(1, θ, 1)-diagonalizable by Lemma 6.5. Apply Theorem 3.10.
+
+   The first malicious message is a fixed codeword, so the sharper Corollary 3.11 applies and
+removes the composition of degrees in Corollary 6.6.
+Corollary 6.7. Under the hypotheses of Lemma 6.5, let h = (hMT , hFS ) be round-domain-separated
+hash families evaluable in time O(Lθh ) on inputs of length L, with max{1, θh } < c. Then one can
+                                          / L(RR1CS [c]) and an argument πh accepted by BCSh (IOPml )
+efficiently construct a false instance xh ∈
+with probability one.
+Proof. The algorithm P̃1 of Lemma 6.5 ignores its input, so its message C(e0 ) and root a◦1 are
+constants. By Corollary 4.7 the scheme S is self-referential for Fθ with θ := max{1, θh } < c, so
+IOPml is (1, θ, 1)-diagonalizable and Corollary 3.11 applies.
+
+
+                                                         24
+7     BCS attacks against univariate zerocheck
+We give a univariate counterpart of Construction 6.2, using the univariate sumcheck identity that
+underlies protocols such as Aurora [BCRSVW19] and STIR [ACFY24]. For simplicity, we restrict
+to generated R1CS instances whose generated matrices are square, with M = N = n, and assume
+that F∗ contains a multiplicative subgroup of order n.
+
+7.1    Preliminaries
+We first recall the polynomial evaluation relation.
+
+Definition 7.1. Let C : F<n [X] → Σℓ be an error-correcting code. The polynomial evaluation
+relation Reval consists of tuples (x, y, w) of the form
+
+                                                                                     w = (fˆi )i∈[t] ,
+                                                  
+                    x = α, (di )i∈[t] , (µi )i∈[t] ,        y = (fi )i∈[t] ,
+
+where α, µi ∈ F, di ≤ n, fi ∈ Σℓ , and fˆi ∈ F<di [X], such that, for every i ∈ [t],
+
+                                    fi = C(fˆi )       and          fˆi (α) = µi .
+
+   For δ ∈ (0, 1), let Reval,δ be the δ-relaxation of Reval , obtained by replacing fi = C(fˆi ) with
+∆(fi , C(fˆi )) ≤ δ.
+   Fix a multiplicative subgroup H = {1, ω, . . . , ω n−1 } ⊆ F∗ of order n, and identify ω i with
+coordinate i ∈ {0, . . . , n − 1}. In particular, n is nonzero in F. Let
+
+                                             ZH (X) := X n − 1 .
+
+For ρ ∈ F, let Pρ ∈ F<n [X] be the interpolation polynomial satisfying Pρ (ω i ) = ρi . For a matrix
+M ∈ Fn×n , let M̂ρ ∈ F<n [X] be the interpolation polynomial satisfying
+                                                            n−1
+                                            M̂ρ (ω j ) :=                                                (9)
+                                                            X
+                                                                  ρi Mi,j .
+                                                            i=0
+
+
+7.2    Construction
+Construction 7.2 (Generated-R1CS univariate zerocheck). The public-coin IOP IOPuni = (P, V)
+is defined as follows. Let C : F<n [X] → Σℓ be an error-correcting code with polynomial block length
+and a polynomial-time encoder. Let (Peval , Veval ) be an IOPP for Reval . Fix a budget exponent c ≥ 2;
+the protocol is for the generated R1CS relation RR1CS [c], restricted to instances whose generated
+matrices are over F with dimensions n × n.
+
+• Inputs. The verifier V receives x = (1T , s). The honest prover P additionally receives w = z ∈
+  Fn such that (x, w) ∈ RR1CS [c].
+
+• Interactive phase.
+    1. Compute R1CS matrices. The parties compute σ := Rs (ϵ). The verifier rejects unless
+       the execution halts within T c steps and σ is an R1CS instance (F, n, n, A, B, C) over F with
+       three matrices in Fn×n , of encoding length |σ| ≤ T .
+
+                                                        25
+2. Witness polynomial oracles. The prover sends
+
+                   π1 := (fA , fB , fC , f0 , fw ) = C(fˆA ), C(fˆB ), C(fˆC ), C(fˆ0 ), C(fˆw ) ,
+                                                                                               
+
+
+   where
+                          fˆA , fˆB , fˆC ∈ F<n [X]         and       fˆ0 , fˆw ∈ F<n−1 [X] .
+   In the honest case, let ẑ ∈ F<n [X] interpolate ẑ(ω i ) = zi , and set
+
+           fˆM (ω i ) := (M z)i                                   for M ∈ {A, B, C} and 0 ≤ i < n,
+                         fˆA (X)fˆB (X) − fˆC (X)
+             fˆ0 (X) :=                           ,
+                                  ZH (X)
+                         ẑ(X) − 1
+            fˆw (X) :=               .
+                           X −1
+3. Matrix batching randomness. The verifier samples and sends ρ ← F.
+4. Univariate sumcheck. Define
+
+                                         fˆz (X) := (X − 1)fˆw (X) + 1 ,
+
+   and
+
+                             û(X) := Pρ (X)fˆA (X) − Âρ (X)fˆz (X)
+                                         + ρn Pρ (X)fˆB (X) − B̂ρ (X)fˆz (X)
+                                                                                     
+
+
+                                         + ρ2n Pρ (X)fˆC (X) − Ĉρ (X)fˆz (X) .
+                                                                                     
+                                                                                                     (10)
+
+   The prover sends its second oracle
+
+                                      π2 := (fg1 , fg2 ) = (C(ĝ1 ), C(ĝ2 )) ,
+
+   where ĝ1 , ĝ2 ∈ F<n−1 [X]. In the honest case, they are the unique polynomials satisfying
+
+                                      û(X) = ZH (X)ĝ1 (X) + X ĝ2 (X) .
+
+   To see existence, honest data satisfy x∈H û(x) = 0. Since n is nonzero in F and deg û ≤
+                                                 P
+
+   2n − 2, this is equivalent to [X 0 ]û + [X n ]û = 0. Hence the remainder after division by ZH
+   has zero constant term and is divisible by X. Polynomial division also proves uniqueness and
+   the stated degree bounds.
+5. Evaluation randomness. The verifier samples and sends α ← F.
+6. Polynomial evaluation proof. In the first message of the polynomial evaluation proof, the
+   prover includes the claims
+
+                                     µ := (µA , µB , µC , µ0 , µw , µg1 , µg2 ) .
+
+   The parties then run (Peval , Veval ) on the polynomial evaluation instance
+
+                            xeval = (α, (n, n, n, n − 1, n − 1, n − 1, n − 1), µ) ,
+                            yeval = (fA , fB , fC , f0 , fw , fg1 , fg2 ) .
+
+                                                       26
+• Decision phase. The verifier reconstructs
+
+                                                  µz := (α − 1)µw + 1 ,
+
+   and evaluates (10) at α by replacing the prover polynomials with their claimed evaluations. It
+   accepts if and only if the generator terminates correctly, the polynomial evaluation proof accepts,
+   and
+
+                                          µA µB − µC = ZH (α)µ0 ,
+                                                   û(α) = ZH (α)µg1 + αµg2 .
+
+7.3    Soundness proof
+Write keval for the number of rounds of the polynomial evaluation proof, and let (εeval,j (δ))j∈[keval ]
+be its round-by-round knowledge errors for Reval,δ . The proof of the following theorem is almost
+identical to that in prior work [ACFY24].7
+
+Theorem 7.3. For every δ ∈ (0, 1) such that (Peval , Veval ) has round-by-round knowledge sound-
+ness for Reval,δ with polynomial extraction time, the protocol IOPuni has round-by-round knowledge
+soundness for RR1CS [c], with polynomial extraction time and round errors
+
+                        (3n − 1) |Λ (C, δ)|5 (2n − 2) |Λ (C, δ)|7
+                                                                                              !
+                                            ,                     , (εeval,j (δ))j∈[keval ]       .
+                               |F|                  |F|
+
+In particular, the error in every round is at most
+
+                                    (3n − 1) |Λ (C, δ)|5 (2n − 2) |Λ (C, δ)|7
+                                (                                                                     )
+              εuni (δ) := max                           ,                     , max εeval,j (δ)           .   (11)
+                                           |F|                  |F|            j∈[keval ]
+
+
+   Combining Theorem 7.3 with the BCS knowledge-soundness theorem gives the soundness of the
+compiled protocol.
+
+Corollary 7.4 (Soundness of the compiled protocol). Under the hypotheses of Theorem 7.3, let
+kuni = 2 + keval be the number of rounds of IOPuni . In the random oracle model, for every malicious
+argument prover making at most q random-oracle queries, there is an adaptive straight-line extractor
+for BCSh (IOPuni ) whose knowledge error for RR1CS [c] is at most
+                                                                                   
+                                    (q + kuni ) · εuni (δ) + εBCS λ, q, (li )i∈[kuni ] .
+
+Proof. Apply Theorem 2.15 with the uniform round error from (11).
+
+7.4    Attack
+As in Section 6, the attack is an instance of Theorem 3.10 with i = 1: only the matrix batching
+randomness ρ must be controlled. Write S for the semantic scheme of Corollary 4.7, now for the
+field F and dimensions n × n.
+  7
+    Better bounds can be obtained by (for example) out-of-domain sampling [BGKS20] and analyzing the oracles as
+interleaved codes. For simplicity, we do not perform these optimizations (as they do not affect the attacks).
+
+
+                                                            27
+Lemma 7.5. Assume n ≥ 2, and that the polynomial evaluation proof has an efficient prover and
+perfect completeness. Then IOPuni is (1, 1)-programmable relative to S.
+
+Proof. Let z ◦ := e0 with interpolation ẑ ◦ ∈ F<n [X], and let P̃1 ignore its input and output the
+componentwise encoding π1◦ of
+
+                                fˆA◦ , fˆB◦ , fˆC◦ , fˆ0◦ , fˆw◦ := 0, 0, 0, 0, ẑ X−1
+                                                                                  ◦ (X)−1
+                                                                                    
+                                                                                          ,
+
+which meets all declared degree bounds. Let Bind(x, ρ) output the R1CS instance (F, n, n, A, B, C)
+with
+
+      Ai = Bi = 0     (0 ≤ i < n),           C0 = −ρ · e0 ,            C1 = e0 ,           Ci = 0   (2 ≤ i < n) .
+
+As in Lemma 6.5, both are deterministic and ignore their input except for ρ, running in a time
+O(n2 log |F|) that depends only on F, n; padding puts both in F1 .
+    Falsity holds for every x and every ρ, and does not even depend on ρ: a witness would have
+z0 = 1, whereas row 1 demands 0 = C1 z = z0 .
+    Now suppose x ⊩ Bind(x, ρ), so the generator halts within budget, outputs exactly this R1CS
+instance, and its encoding has length at most T ; hence the verifier accepts the generator’s output.
+Then Âρ = B̂ρ = 0, and for every 0 ≤ j < n (9) gives Ĉρ (ω j ) = −ρ(e0 )j + ρ(e0 )j = 0, so
+Ĉρ ≡ 0. As fˆA◦ , fˆB◦ , fˆC◦ vanish, (10) gives û ≡ 0. Let P̃2 send π2◦ := (C(0), C(0)) and, at any
+evaluation challenge α, let the remaining provers claim µ◦ = (0, 0, 0, 0, fˆw◦ (α), 0, 0) and run the
+honest polynomial evaluation prover with fixed randomness. The two decision equations then
+read 0 = 0, and perfect completeness of the evaluation proof makes the verifier accept, for every
+continuation of the challenges.
+
+Corollary 7.6. Under the hypotheses of Lemma 7.5, let θV be the randomness degree of IOPuni
+and assume θV (1 + θh ) < c. Then for every pair of hash families h = (hMT , hFS ) evaluable in time
+O(Lθh ) one can efficiently construct a false instance xh ∈
+                                                          / L(RR1CS [c]) and an argument πh accepted
+by BCSh (IOPuni ) with probability one.
+
+Proof. As for Corollary 6.6, using Lemma 7.5.
+
+Corollary 7.7. Under the hypotheses of Lemma 7.5, let h = (hMT , hFS ) be round-domain-separated
+hash families evaluable in time O(Lθh ) on inputs of length L, with max{1, θh } < c. Then one can
+                                          / L(RR1CS [c]) and an argument πh accepted by BCSh (IOPuni )
+efficiently construct a false instance xh ∈
+with probability one.
+
+Proof. As for Corollary 6.7: the message π1◦ of Lemma 7.5 is a constant, so Corollary 3.11 applies
+with θ′ = 1 and θ = max{1, θh } < c, which is admissible by Corollary 4.7.
+
+
+
+
+                                                           28
+Acknowledgements
+We thank Ron Rothblum for insightful discussions on [KRS25] and this work. We thank Dan Boneh
+and Eran Tromer for helpful comments on presentation.
+The author is supported in part by the Ethereum Foundation.
+
+
+
+
+                                             29
+A      Attack generator
+We present a concrete Python program instantiating Fh of Corollary 6.7 for m = n = 1, using
+SHA-256. It is a quine: TEMPLATE reconstructs the complete program as SOURCE, which is the code
+s of the instance x = (1T , s) whose identifier is hashed, together with the Merkle root a◦1 of C(e0 ),
+to obtain r1 ; here C is the rate-1/2 Reed–Solomon code evaluating the witness, read as a polynomial
+of degree below 2, on {1, 2, 3, 4}. The generator then outputs the R1CS instance (F, 2, 2, A, B, C)
+with A = B = 0 and Cb = (r1 − b1 )e0 , over the field F = Z/(2127 − 1)Z. The clock is fixed to
+T = 4096: its encoded output is 210 bytes long, so |σ| ≤ T as Definition 4.2 requires, and the few
+hash evaluations it performs are well within T c steps already for c = 2.
+    From the repository root, verify the quine and run the generator with
+python3 poc.py | cmp - poc.py
+python3 poc.py --run
+
+The first command produces no output on success; the second prints the first oracle C(e0 ), the
+challenge r1 , and the generated instance. Only the diagonalization is implemented: the sumcheck
+and the proximity test of Construction 6.2 play no role in the attack and are omitted.
+ 1   import hashlib
+ 2   import json
+ 3   import sys
+ 4
+ 5   TEMPLATE = ’import hashlib\nimport json\nimport sys\n\nTEMPLATE = %r\nSOURCE = TEMPLATE %%
+         TEMPLATE\n\nFIELD = 2**127 - 1\nROWS = COLUMNS = 2\nDOMAIN = (1, 2, 3, 4)\nCLOCK = 4096\n\n
+         \ndef encode_field(value):\n     return (value %% FIELD).to_bytes(16, "big")\n\n\ndef
+         hash_bytes(*parts):\n     digest = hashlib.sha256()\n     for part in parts:\n         digest.
+         update(len(part).to_bytes(8, "big") + part)\n      return digest.digest()\n\n\ndef rs_encode(
+         message):\n    """Rate-1/2 Reed--Solomon encoding of a witness in FIELD^COLUMNS."""\n
+         return [sum(c * pow(x, i, FIELD) for i, c in enumerate(message)) %% FIELD\n                for
+         x in DOMAIN]\n\n\ndef merkle_root(codeword):\n      leaves = [hash_bytes(b"merkle/witness",
+         encode_field(value))\n               for value in codeword]\n     return hash_bytes(b"merkle/
+         witness", *leaves)\n\n\ndef encode_instance(matrices):\n      parts = [FIELD.to_bytes(16, "
+         big"), bytes([ROWS, COLUMNS])]\n     for matrix in matrices:\n         for row in matrix:\n
+                   for value in row:\n                 parts.append(encode_field(value))\n      return
+         b"".join(parts)\n\n\ndef statement_id():\n     return hash_bytes(b"generated-r1cs", b"1" *
+         CLOCK, SOURCE.encode("utf-8"))\n\n\ndef generate():\n      commitment = merkle_root(rs_encode
+         ([1, 0]))\n    digest = hash_bytes(b"fs/zerocheck", statement_id(), commitment)\n        r1 =
+         int.from_bytes(digest, "big") %% FIELD\n     zero = [[0] * COLUMNS for _ in range(ROWS)]\n
+           c_matrix = [[r1, 0], [(r1 - 1) %% FIELD, 0]]\n      return r1, (zero, zero, c_matrix)\n\n\
+         ndef main():\n    if "--run" not in sys.argv:\n          print(SOURCE, end="")\n
+         return\n    r1, matrices = generate()\n     encoding = encode_instance(matrices)\n       assert
+          len(encoding) <= CLOCK, "instance does not fit the clock"\n      a_matrix, b_matrix,
+         c_matrix = matrices\n     print(json.dumps({\n         "clock": CLOCK,\n         "codeword":
+         rs_encode([1, 0]),\n         "r1": r1,\n        "field": FIELD,\n         "rows": ROWS,\n
+             "columns": COLUMNS,\n         "A": a_matrix,\n         "B": b_matrix,\n         "C":
+         c_matrix,\n        "encoding_bytes": len(encoding),\n      }, indent=2))\n\n\nif __name__ ==
+         "__main__":\n    main()\n’
+ 6   SOURCE = TEMPLATE % TEMPLATE
+ 7
+ 8   FIELD = 2**127 - 1
+ 9   ROWS = COLUMNS = 2
+10   DOMAIN = (1, 2, 3, 4)
+11   CLOCK = 4096
+
+
+                                                   30
+12
+13
+14   def encode_field(value):
+15       return (value % FIELD).to_bytes(16, "big")
+16
+17
+18   def hash_bytes(*parts):
+19       digest = hashlib.sha256()
+20       for part in parts:
+21           digest.update(len(part).to_bytes(8, "big") + part)
+22       return digest.digest()
+23
+24
+25   def rs_encode(message):
+26       """Rate-1/2 Reed--Solomon encoding of a witness in FIELD^COLUMNS."""
+27       return [sum(c * pow(x, i, FIELD) for i, c in enumerate(message)) % FIELD
+28               for x in DOMAIN]
+29
+30
+31   def merkle_root(codeword):
+32       leaves = [hash_bytes(b"merkle/witness", encode_field(value))
+33                 for value in codeword]
+34       return hash_bytes(b"merkle/witness", *leaves)
+35
+36
+37   def encode_instance(matrices):
+38       parts = [FIELD.to_bytes(16, "big"), bytes([ROWS, COLUMNS])]
+39       for matrix in matrices:
+40           for row in matrix:
+41               for value in row:
+42                   parts.append(encode_field(value))
+43       return b"".join(parts)
+44
+45
+46   def statement_id():
+47       return hash_bytes(b"generated-r1cs", b"1" * CLOCK, SOURCE.encode("utf-8"))
+48
+49
+50   def generate():
+51       commitment = merkle_root(rs_encode([1, 0]))
+52       digest = hash_bytes(b"fs/zerocheck", statement_id(), commitment)
+53       r1 = int.from_bytes(digest, "big") % FIELD
+54       zero = [[0] * COLUMNS for _ in range(ROWS)]
+55       c_matrix = [[r1, 0], [(r1 - 1) % FIELD, 0]]
+56       return r1, (zero, zero, c_matrix)
+57
+58
+59   def main():
+60       if "--run" not in sys.argv:
+61           print(SOURCE, end="")
+62           return
+63       r1, matrices = generate()
+64       encoding = encode_instance(matrices)
+65       assert len(encoding) <= CLOCK, "instance does not fit the clock"
+66       a_matrix, b_matrix, c_matrix = matrices
+67       print(json.dumps({
+
+
+                                                 31
+68            "clock": CLOCK,
+69            "codeword": rs_encode([1, 0]),
+70            "r1": r1,
+71            "field": FIELD,
+72            "rows": ROWS,
+73            "columns": COLUMNS,
+74            "A": a_matrix,
+75            "B": b_matrix,
+76            "C": c_matrix,
+77            "encoding_bytes": len(encoding),
+78        }, indent=2))
+79
+80
+81   if __name__ == "__main__":
+82       main()
+
+                      Listing 1: Quine implementing the generator of Corollary 6.7.
+
+
+
+References
+[ACFY24]         Gal Arnon, Alessandro Chiesa, Giacomo Fenzi, and Eylon Yogev. “STIR: Reed–Solomon
+                 Proximity Testing with Fewer Queries”. In: Proceedings of the 44th Annual International
+                 Cryptology Conference. CRYPTO ’24. 2024, pp. 380–413.
+[ACFY25]         Gal Arnon, Alessandro Chiesa, Giacomo Fenzi, and Eylon Yogev. “WHIR: Reed–Solomon
+                 Proximity Testing with Super-Fast Verification”. In: Proceedings of the 44th Annual In-
+                 ternational Conference on Theory and Application of Cryptographic Techniques. EURO-
+                 CRYPT ’25. 2025.
+[AY25]           Gal Arnon and Eylon Yogev. “Towards a White-Box Secure Fiat-Shamir Transformation”.
+                 In: Proceedings of the 45th Annual International Cryptology Conference. CRYPTO ’25. 2025.
+[BBHMR19]        James Bartusek, Liron Bronfman, Justin Holmgren, Fermi Ma, and Ron D. Rothblum. “On
+                 the (In)security of Kilian-Based SNARGs”. In: Theory of Cryptography – 17th International
+                 Conference, TCC 2019, Nuremberg, Germany, December 1–5, 2019, Proceedings, Part II.
+                 Ed. by Dennis Hofheinz and Alon Rosen. Vol. 11892. Lecture Notes in Computer Science.
+                 Springer, 2019, pp. 522–551. doi: 10.1007/978-3-030-36033-7_20.
+[BCFRRZ25]       Martijn Brehm, Binyi Chen, Ben Fisch, Nicolas Resch, Ron D. Rothblum, and Hadas Zeil-
+                 berger. “Blaze: Fast SNARKs from Interleaved RAA Codes”. In: Proceedings of the 44th
+                 Annual International Conference on Theory and Application of Cryptographic Techniques.
+                 EUROCRYPT ’25. 2025.
+[BCFW25]         Benedikt Bünz, Alessandro Chiesa, Giacomo Fenzi, and William Wang. “Linear-Time Accu-
+                 mulation Schemes”. In: Proceedings of the 23rd Theory of Cryptography Conference. TCC ’25.
+                 2025, pp. 369–399.
+[BCRSVW19]       Eli Ben-Sasson, Alessandro Chiesa, Michael Riabzev, Nicholas Spooner, Madars Virza, and
+                 Nicholas P. Ward. “Aurora: Transparent Succinct Arguments for R1CS”. In: Proceedings of
+                 the 38th Annual International Conference on the Theory and Applications of Cryptographic
+                 Techniques. EUROCRYPT ’19. 2019, pp. 103–128.
+[BCS16]          Eli Ben-Sasson, Alessandro Chiesa, and Nicholas Spooner. “Interactive Oracle Proofs”. In:
+                 Proceedings of the 14th Theory of Cryptography Conference. TCC ’16-B. 2016, pp. 31–60.
+
+
+
+
+                                                    32
+[BFRW26]     Benedikt Bünz, Giacomo Fenzi, Ron D. Rothblum, and William Wang. “TensorSwitch:
+             Nearly Optimal Polynomial Commitments from Tensor Codes”. In: Proceedings of the 46th
+             Annual International Cryptology Conference. CRYPTO ’26. 2026, pp. 297–329.
+[BGKS20]     Eli Ben-Sasson, Lior Goldberg, Swastik Kopparty, and Shubhangi Saraf. “DEEP-FRI: Sam-
+             pling Outside the Box Improves Soundness”. In: Proceedings of the 11th Innovations in
+             Theoretical Computer Science Conference. ITCS ’20. 2020, 5:1–5:32.
+[BHK26]      Chris Brzuska, Pavel Hubáček, and Aleksi Kalsta. “Simple Attacks against (Extended) Fiat-
+             Shamir”. In: Proceedings of the 29th IACR International Conference on Practice and Theory
+             of Public-Key Cryptography. PKC ’26. 2026, pp. 510–543.
+[BR93]       Mihir Bellare and Phillip Rogaway. “Random Oracles are Practical: A Paradigm for De-
+             signing Efficient Protocols”. In: Proceedings of the 1st ACM Conference on Computer and
+             Communications Security. CCS ’93. 1993, pp. 62–73.
+[BRW26]      Benedikt Bünz, Ron D. Rothblum, and William Wang. Flock: Fast Proving for Batch Boolean
+             Computations. Cryptology ePrint Archive, Paper 2026/1329. 2026. url: https://eprint.
+             iacr.org/2026/1329.
+[Bar01]      Boaz Barak. “How to Go Beyond the Black-Box Simulation Barrier”. In: Proceedings of the
+             42nd IEEE Symposium on Foundations of Computer Science. FOCS ’11. 2001, pp. 106–115.
+[CCHLRR18]   Ran Canetti, Yilei Chen, Justin Holmgren, Alex Lombardi, Guy N. Rothblum, and Ron
+             D. Rothblum. Fiat–Shamir From Simpler Assumptions. Cryptology ePrint Archive, Report
+             2018/1004. 2018.
+[CGH04]      Ran Canetti, Oded Goldreich, and Shai Halevi. “The random oracle methodology, revisited”.
+             In: Journal of the ACM 51.4 (2004), pp. 557–594.
+[CO25]       Alessandro Chiesa and Michele Orrù. “A Fiat–Shamir Transformation From Duplex Sponges”.
+             In: Proceedings of the 23rd Theory of Cryptography Conference. TCC ’25. 2025, pp. 452–474.
+[CY24]       Alessandro Chiesa and Eylon Yogev. Building Cryptographic Proofs from Hash Functions.
+             2024. url: https://github.com/hash-based-snargs-book.
+[DMWG23]     Quang Dao, Jim Miller, Opal Wright, and Paul Grubbs. “Weak Fiat–Shamir Attacks on
+             Modern Proof Systems”. In: 2023 IEEE Symposium on Security and Privacy. IEEE, 2023,
+             pp. 199–216. doi: 10.1109/SP46215.2023.10179408.
+[DP26]       Benjamin Diamond and Jim Posen. “Polylogarithmic Proofs for Multilinears over Binary
+             Towers”. In: Proceedings of the 45th Annual International Conference on the Theory and
+             Applications of Cryptographic Techniques. EUROCRYPT ’26. 2026, pp. 3–32.
+[FS86]       Amos Fiat and Adi Shamir. “How to prove yourself: practical solutions to identification and
+             signature problems”. In: Proceedings of the 6th Annual International Cryptology Conference.
+             CRYPTO ’86. 1986, pp. 186–194.
+[Fis05]      Marc Fischlin. “Communication-Efficient Non-interactive Proofs of Knowledge with On-
+             line Extractors”. In: Proceedings of the 25th Annual International Cryptology Conference.
+             CRYPTO ’05. 2005, pp. 152–168.
+[GGPR13]     Rosario Gennaro, Craig Gentry, Bryan Parno, and Mariana Raykova. “Quadratic Span Pro-
+             grams and Succinct NIZKs without PCPs”. In: Proceedings of the 32nd Annual International
+             Conference on Theory and Application of Cryptographic Techniques. EUROCRYPT ’13.
+             2013, pp. 626–645.
+[GK03]       Shafi Goldwasser and Yael Tauman Kalai. “On the (In)security of the Fiat-Shamir Paradigm”.
+             In: Proceedings of the 44th Annual IEEE Symposium on Foundations of Computer Science.
+             FOCS ’03. 2003, pp. 102–113.
+
+
+
+                                                 33
+[GKR15]   Shafi Goldwasser, Yael Tauman Kalai, and Guy N. Rothblum. “Delegating Computation:
+          Interactive Proofs for Muggles”. In: Journal of the ACM 62.4 (2015), 27:1–27:64.
+[KRS25]   Dmitry Khovratovich, Ron D. Rothblum, and Lev Soukhanov. “How to Prove False State-
+          ments: Practical Attacks on Fiat-Shamir”. In: Proceedings of the 45th Annual International
+          Cryptology Conference. CRYPTO ’25. 2025, pp. 3–26.
+[KZG10]   Aniket Kate, Gregory M. Zaverucha, and Ian Goldberg. “Constant-Size Commitments to
+          Polynomials and Their Applications”. In: Proceedings of the 16th International Conference
+          on the Theory and Application of Cryptology and Information Security. ASIACRYPT ’10.
+          2010, pp. 177–194.
+[Kle52]   Stephen Cole Kleene. Introduction to Metamathematics. Amsterdam: North-Holland Pub-
+          lishing Company, 1952.
+[Mic00]   Silvio Micali. “Computationally Sound Proofs”. In: SIAM Journal on Computing 30.4 (2000).
+          Preliminary version appeared in FOCS ’94., pp. 1253–1298.
+[NA25]    Andrija Novakovic and Guillermo Angeris. Ligerito: A Small and Concretely Fast Polynomial
+          Commitment Scheme. Cryptology ePrint Archive, Report 2025/1187. 2025.
+[PS96]    David Pointcheval and Jacques Stern. “Security Proofs for Signature Schemes”. In: Pro-
+          ceedings of the 14th Annual International Conference on Theory and Application of Cryp-
+          tographic Techniques. EUROCRYPT ’96. 1996, pp. 387–398.
+[Pol24]   Polyhedra Network. Expander. https://github.com/PolyhedraZK/Expander. Accessed:
+          2025-01-15. 2024.
+[RRR16]   Omer Reingold, Ron Rothblum, and Guy Rothblum. “Constant-Round Interactive Proofs
+          for Delegating Computation”. In: Proceedings of the 48th ACM Symposium on the Theory
+          of Computing. STOC ’16. 2016, pp. 49–62.
+[Set20]   Srinath Setty. “Spartan: Efficient and general-purpose zkSNARKs without trusted setup”.
+          In: Proceedings of the 40th Annual International Cryptology Conference. CRYPTO ’20. 2020,
+          pp. 704–737.
+[ZCF24]   Hadas Zeilberger, Binyi Chen, and Ben Fisch. “BaseFold: Efficient Field-Agnostic Poly-
+          nomial Commitment Schemes from Foldable Codes”. In: Proceedings of the 44th Annual
+          International Cryptology Conference. Vol. 14929. CRYPTO ’24. 2024, pp. 138–169.
+
+
+
+
+                                             34
+

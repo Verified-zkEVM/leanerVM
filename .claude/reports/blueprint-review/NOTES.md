@@ -222,3 +222,73 @@ First-hand checks by the orchestrator (20:55), all confirming the dossiers:
   round check can fail; no division.
 - `flock/src/zerocheck.rs:116-123` (prover `send_round`):
   `let g0 = (claim + r_eq * g1) * (F192::ONE + r_eq).inv();` — the inverse is the PROVER's.
+
+## 2026-09-30 morning: the ground moved, nine dossiers landed, build authorised
+
+- The user merged `main` = `144c5aa` (Lean 4.34.1, pins: ArkLib 7653a901, CompPoly 572f9973,
+  Clean 42fe4b26, VCVio a4232d08, Mathlib v4.34.1; leanVM unchanged a386121f) into the review
+  branch (`8d3ea7d`). Lean probes impossible until rebuilt ("incompatible header"). BRIEF §8
+  written. The user chose "Build once, now": build started ~09:40 in the background
+  (`logs/lake-build-144c5aa.log`, `lake exe cache get` then `lake build -j 4`). The lock file
+  was removed (recreated by flock on first use).
+- The review's object stays `b435631` + a delta assessment for `144c5aa`. Per the docs-debt and
+  verify agents: at `144c5aa` the blueprint gained a 4-line paragraph after line 51 and a
+  rewritten *Module system* row, so blueprint line numbers cited at `b435631` are 4 higher at
+  HEAD; the status did not change (two landings stale).
+- At the new CompPoly pin `(2 : K) = 0`; encoded words are `K.ofBits n`; probes with numerals
+  ≥ 2 in K need rewriting before a re-run (code-spine flags three; ValuesProbe/StridedProbe).
+
+### Completed dossiers (all under dossiers/)
+| dossier | lines | verdict of the citation check |
+| lib-arklib | 2633 | — |
+| code-pubinput | 1557 | — |
+| code-spine | 3388 | — |
+| docs-debt | (finished; 3 major, 13 minor, 4 notes; section G has 29 insertion markers) | — |
+| lib-others | 2482 | — |
+| code-layer1 | (finished) | — |
+| verify-gt-table-pub | 301 citations: 294 OK, 2 wrong line, 4 wrong THEOREM NUMBERS (Cor 3.7→3.9, Fact 3.8→3.10, Thm B.2→B.7 = `thm:rbr`), 1 unchecked | dossier substantively right |
+| verify-gt-bus | ~400 refs: 300 OK, 3 wrong line, 9 not supported (Lemma 6.2→6.3; `14fbca8f` wrong commit but G5 stands; `appendGuarded` is leanerVM's port not ArkLib's; two arithmetic slips in D.2/D.3; three overstatements) | no finding weakened |
+| verify-gt-flock-ring | 381: 375 OK, 1 wrong line, 3 misquoted (abbreviations), 2 not supported; "no verifier takes an inverse" → "no inverse of a challenge-dependent value" | no finding weakened |
+Still running: literature. Not resumed yet: gt-opening-compile, boundary-adaptor.
+
+### Headline results to carry into the report
+1. (code-pubinput, major) The check on c_0, c_1 is NOT load-bearing in the phase as built
+   (`securityG`: any message, any check passing on the honest message → Phase.Security at
+   1/|E|); the fix is to pool the values SENT (`pooledFrom`); then mutations 2, 3b are refuted
+   and a wrong check breaks completeness. The deployed (combined) check's key lemma is PROVED
+   (`ProbeWordsLemma.lean`, `accepts_two_challenges`). Recommend: build the deployed phase in
+   Layer 8 with its own Security; keep the spec's as reference; report §8.2 ambiguity upstream.
+   The earlier review's claim (five wrong verifiers each break a theorem) is false of merged code.
+2. (code-spine, major) `piop_rbrKnowledgeSoundness` has content only with a bound on
+   `piopError`; junk phases at error 1 inhabit `Phases.Security I` for every I. Recommend:
+   `piopError I` closed form fixed by the spine from the instance's sizes, each phase's `rbr`
+   demanded at it; `piopError_le` becomes a spine theorem.
+3. (code-spine) the composed extractor's `extractOut` is the stack only for zero-round phases;
+   with a real phase the repository's rfl test statement is ILL-TYPED; no definition "the
+   extracted stack" exists; headline overstates. Pass-through bus phase has NO Security (P5
+   `no_security`). `outputPure` derivable (P6). Probabilistic knowledge transport along a
+   refinement is 3 lines (P6 `knowledge_transport`), contradicting the blueprint's "not proved".
+   Surface: completeness 70 decls/217 lines; KS named form 100/354 (612 with docstrings).
+4. (lib-arklib) plain reading machine-checked at transcript level (`accept_imp_extract_or_bad`);
+   existential rbr KS = soundness (classical extractor at error 0 for any relation); the
+   named form adequate only with the extractor read; FS/BCS security stated nowhere in ArkLib
+   (`Commitment.extractability` body is `False`!); new pin lifts NO relevant admission;
+   `OracleReduction` marked "legacy"; typed Interaction framework has no knowledge notion;
+   local #615 port still needed; `Component.Def` bundling the real error makes every phase
+   with a challenge noncomputable.
+5. (lib-others) fields match leanVM bit for bit (11 Rust reference products reproduced);
+   samplers uniform by VCVio's class law; Clean's balance over K is UNSATISFIABLE (side
+   condition length < 2), not merely unsound; NumeralHazard settled (kernel rejects); new pin:
+   `Fintype K` proof-only (eager-Fintype blocker lifted); ArkLib `ToCompPoly/Multilinear/Basic`
+   probably clashes with CompPoly at the new pins (`eval_zero` declared twice) — unverified.
+6. (code-layer1) Layer 1 matches leanVM where it transcribes (92 offsets reproduced; 16-instr
+   program bytecode column 256 cells); MAJOR: nothing reads the 18 limb columns (strided
+   reader missing; `Layout.comap` cannot place them; `leanIsaInstance_fits` refers to a
+   `layout.total` that does not exist); equal-size block order pinned by nothing before the
+   compiled verifier; `Layout.comap` allows aliasing; 143 public decls (20 LB, 41 iface, 82
+   helper), auditor reads none today; BlockClaims.lean has no consumer; acceptance tests 7, 14,
+   15 wrong; `Protocol/Basic.lean` imports Arithmetization.Basic (wall exception missing).
+7. (docs-debt) ≥128 codes, ≥1036 uses, 34 with ≥2 meanings (`C1` five); hole comment: 8 of 13
+   sections predate the spine, public-input section says "the prover sends nothing"; T4 sketch
+   omits `WellFormedBytecode` (major); status two landings stale; blueprint states old pins in
+   five passages.

@@ -1,0 +1,115 @@
+C    2   6  Field.lean             67-69   structure Column
+C    5   6  Field.lean             86-90   def limbsEquiv
+C    1   2  Field.lean             93-93   instance instSampleableTypeE
+C    5   7  Field.lean            102-106  instance evalOracle
+C    1   2  Oracles.lean           26-26   abbrev NoOracle
+C    1   2  Oracles.lean           29-29   abbrev OneOracle
+C    4   5  Instance.lean          51-54   inductive Side
+C    4   8  Instance.lean          57-63   structure Shape
+C    1   2  Instance.lean          66-66   abbrev Shape.ColumnId
+C    6  14  Instance.lean          73-81   structure Layout
+C    4   7  Instance.lean          86-89   inductive Coord
+C    4   8  Instance.lean          92-98   structure BoundaryBlock
+C    6  15  Instance.lean         102-114  structure PublicLine
+C   14  31  Instance.lean         119-148  structure M3Instance
+C    1   1  Instance.lean         150-150  attribute [instance] M3Instance.decAux
+C    1   2  Instance.lean         157-157  abbrev κ
+C    1   2  Instance.lean         160-160  def column
+C    2   3  Instance.lean         163-164  def row
+C    4   5  Instance.lean         167-170  def coordCell
+C    4   6  Instance.lean         174-177  def flushTuples
+C    3   4  Instance.lean         180-182  def boundaryTuples
+C    2   3  Instance.lean         185-186  def tuples
+C    2   3  Instance.lean         197-198  def ConstraintsVanish
+C    1   2  Instance.lean         201-201  def Balanced
+C    2   3  Instance.lean         204-205  def CountsNonzero
+C    4   5  Instance.lean         208-211  def PublicLinesHold
+C    2   4  Instance.lean         219-220  def M3Holds
+C    1   2  Instance.lean         226-226  abbrev TheOracle
+C    2   4  Instance.lean         230-231  def M3Rel
+C    4   8  Seams.lean             57-63   structure ColumnClaim
+C    2   3  Seams.lean             66-67   def ColumnClaim.Holds
+C    5  11  Seams.lean             71-79   structure VirtualTerm
+C    3   4  Seams.lean             82-84   def VirtualTerm.table
+C    2   3  Seams.lean             87-88   def VirtualTerm.eval
+C    3   6  Seams.lean             91-95   structure LinearClaim
+C    2   3  Seams.lean             98-99   def LinearClaim.Holds
+C    4   9  Seams.lean            103-109  structure Weight
+C    2   3  Seams.lean            112-113  def Weight.pair
+C    3   6  Seams.lean            116-120  structure WeightedClaim
+C    2   3  Seams.lean            123-124  def WeightedClaim.Holds
+C    3   7  Seams.lean            130-134  structure BusOut
+C    2   4  Seams.lean            137-139  structure TableOut
+C    2   4  Seams.lean            142-144  structure PubOut
+C    3   6  Seams.lean            147-151  structure FlockOut
+C    1   2  Seams.lean            159-159  abbrev theStack
+C    2   3  Seams.lean            166-167  def of
+C    1   3  Seams.lean            171-171  def commit
+C    3   5  Seams.lean            175-177  def bus
+C    2   3  Seams.lean            180-181  def table
+C    1   2  Seams.lean            184-184  def pub
+C    2   3  Seams.lean            187-188  def flock
+C    1   2  Seams.lean            191-191  def done
+C    9  17  Component.lean         52-66   structure Def
+C    1   1  Component.lean         68-68   attribute [instance] Def.msgOracle
+C    7  12  Component.lean         76-85   structure Complete
+C    6   7  Component.lean        143-148  def Def.append
+Kx  12  20  Component.lean         90-106  structure Security
+K    8  13  Component.lean        110-120  def stateFunctionOfEq
+K    4   5  Component.lean        156-159  def guardedAppend
+K    4   9  Component.lean        162-169  def Complete.append
+K    8  14  Component.lean        174-184  def Security.append
+K    2   3  KnowledgeAppend.lean   55-56   abbrev Witness
+K    3   5  KnowledgeAppend.lean   60-62   theorem witness_left
+K    3   5  KnowledgeAppend.lean   66-68   theorem witness_right
+K    5   6  KnowledgeAppend.lean   71-75   def left
+K    5   6  KnowledgeAppend.lean   78-82   def right
+K   15  16  KnowledgeAppend.lean  182-196  def state
+K    5  17  KnowledgeAppend.lean  474-488  def appendGuarded
+C    2   3  SendOracle.lean        38-39   def sendSpec
+C    6   7  SendOracle.lean        42-47   def sendProver
+C    2   5  SendOracle.lean        50-53   def sendEmbedding
+C    3   4  SendOracle.lean        56-58   def sendVerifier
+C    5   6  SendOracle.lean        61-65   def sendOracle
+K    3   5  SendOracle.lean        71-73   def sendOracle_relOut
+K    2   4  SendOracle.lean       101-103  def sendVerifierPure
+K    4   6  SendOracle.lean       121-125  def sendOracleComplete
+K    1   2  SendOracle.lean       130-130  abbrev sendWitMid
+K    5   7  SendOracle.lean       134-138  def sendExtractor
+K    5  19  SendOracle.lean       145-161  def sendStateFunction
+K    5   7  SendOracle.lean       172-177  def sendOracleSecurity
+C    2   3  Phase.lean             37-38   abbrev Def
+C    4   5  Phase.lean             41-44   abbrev Complete
+Kx   4   5  Phase.lean             47-50   abbrev Security
+C    1   2  Compose.lean           51-51   abbrev commitSpec
+C    2   4  Compose.lean           55-56   abbrev commitDef
+C    6  13  Compose.lean           73-84   structure Phases where
+C    3   4  Compose.lean           89-91   def Phases.toDef
+C    6  12  Compose.lean           94-104  structure Phases.Complete
+C    3   4  Compose.lean          134-136  def leanVmPiop
+C    4   6  Compose.lean          162-165  theorem piop_perfectCompleteness
+Kx   6  12  Compose.lean          113-123  structure Phases.Security
+Kx   3   4  Compose.lean          139-141  def leanVmVerifier
+Kx   1   2  Compose.lean          149-149  def piopError
+Kx   5   7  Compose.lean          181-185  theorem piop_rbrKnowledgeSoundness_exists
+K    1   2  Compose.lean           59-59   abbrev commitExtractor
+K    2   4  Compose.lean           63-64   def commitComplete
+K    2   3  Compose.lean           67-68   def commitSecurity
+K    4   5  Compose.lean          126-129  def Phases.Security.toDef
+K    4   6  Compose.lean          153-156  def piopExtractor
+K    6  11  Compose.lean          172-177  theorem piop_rbrKnowledgeSoundness
+
+per file: code lines C / Kx / K ; all lines with docstrings
+Field.lean               13    0    0     21
+Oracles.lean              2    0    0      4
+Instance.lean            75    0    0    139
+Seams.lean               55    0    0    103
+Component.lean           23   12   24     98
+KnowledgeAppend.lean      0    0   38     58
+SendOracle.lean          18    0   25     75
+Phase.lean                6    4    0     13
+Compose.lean             25   15   19    101
+
+completeness theorem (C):                   code 217, with docstrings 382, declarations 70
+knowledge theorem, existential form (C+Kx): code 248, with docstrings 432, declarations 76
+knowledge theorem, With form (C+Kx+K):      code 354, with docstrings 612, declarations 100

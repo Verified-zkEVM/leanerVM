@@ -1,0 +1,337 @@
+      A note on mutual correlated agreement for
+                Reed–Solomon codes
+                                  Ulrich Haböck
+                              ulrich@starkware.co,
+                                 November 17, 2025
+
+
+                                          Abstract
+          We outline how to generalize the Guruswami-Sudan list decoder anal-
+      ysis from Ben–Sasson, Carmon, Ishai, Kopparty and Saraf [BCI+ 20] in
+      order to obtain a “global” proximity gap, called mutual correlated agree-
+      ment in [ACFY24], or strong correlated agreement in [Zei24].
+
+
+
+1     Introduction
+
+Let C = RS[Fq , D, k] be a Reed–Solomon code over a finite field Fq , with domain
+of definition D ⊆ Fq , and dimension k + 1. Let C 2 be the interleaved code of C,
+consisting of all words [p0 , p1 ] with p0 , p1 ∈ C. We write ∆(f, g) for the relative
+Hamming distance between functions f, g : D → Fq , and we use the same
+notation for interleaved words. If two interleaved words [f0 , f1 ], [g0 , g1 ] agree
+on a set A of density α ∈ (0, 1), we say that they have correlated α-agreement.
+In terms of the relative distance, ∆([f0 , f1 ], [g0 , g1 ]) ≤ 1 − α.
+
+    For any f0 , f1 : D → Fq and distance γ ∈ (0, 1), we consider
+
+             L([f0 , f1 ], γ) = {[p0 , p1 ] ∈ C 2 : ∆([p0 , p1 ], [f0 , f1 ]) ≤ γ},
+
+be the set of all γ-proximate codewords of [f0 , f1 ]. This set is empty whenever
+∆([f0 , f1 ], C 2 ) > γ, and non-emptiness implies that ∆([f0 , f1 ], C 2 ) ≤ γ, in other
+words: the existence of some [p0 , p1 ] ∈ C 2 , which has correlated (1−γ)-agreement
+with [f0 , f1 ].
+
+
+Mutual correlated agreement. A regular proximity gap states that, if for
+sufficiently many z ∈ Fq , the linear combination fz = f0 + zf1 is γ-close to C,
+then ∆([f0 , f1 ], C 2 ) ≤ γ (and consequently ∆(fz , C) ≤ γ for every z). A global
+proximity gap instead aspires the following rough statement: For all, but a few
+
+
+                                               1
+exceptions in z ∈ Fq , every proximate of fz = f0 + zf1 is obtained as linear
+combination p0 + zp1 of some [p0 , p1 ] ∈ L([f0 , f1 ], γ). Concretely,
+
+                  L(fz , γ) = {p ∈ C : ∆(p, f0 + z · f1 ) ≤ γ}
+                            = {p0 + zp1 : [p0 , p1 ] ∈ L([f0 , f1 ], γ)},
+
+for all z ∈ Fq \ E, where E the set of exceptions is small. The crucial task is to
+bound the size of E.
+
+   We state the property in its most elementary form, restricting to the simplest
+form of combinations, i.e. the linear combination of two words.
+Definition 1 ([ACFY24]). We say that C = RS[Fq , D, k] satisfies mutual corre-
+lated agreement up to distance θ, and with soundness error ε : (0, θ) → [0, ∞),
+if: For every 0 < γ < θ, and words f0 , f1 : D → Fq ,
+                                                                     
+                       ∃A ⊂ D,             f0 + z · f1 |A ∈ C|A , but
+      Pr z ∈ Fq :                     s.t.                              ≤ ε(γ).
+                   |A| ≥ (1 − γ) · n,                       / C2 A
+                                               [f0 , f1 ] A ∈
+
+
+    Mutual correlated agreement is a recent notion which is often used to sim-
+plify the security analysis of interactive oracle proofs (or, proofs of proximities),
+in particular those in which the proximate codewords are subject to certain
+constraints. The notion was first considered useful in the soundness analysis of
+Basefold [ZCF23], for which Zeilberger, Chen and Fish observed that it holds
+for general linear codes up to θ = δ/3. An  √ early version of [Zei24] proves mu-
+tual correlated agreement up to θ = 1 − 4 1 − δ (the “double” Johnson radius),
+while concurrently
+          √          Gao, Kan, and Li [GKL24] showed its validity even up to
+θ = 1 − 3 1 − δ (the “one-and-a-half” Johnson bound).1 In the special case
+of Reed-Solomon codes, Anon, Chiesa, Fenzi and Yogev [ACFY24] proved mu-
+tual correlated agreement√ up to δ/2, and they conjectured it to hold up to the
+Johnson radius θ = 1 − 1 − δ.
+
+    In this note we demonstrate that√Reed-Solomon codes satisfy Definition 1
+                                                                        k
+up to the Johnson radius γ = 1 − 1 − δ of the code, where δ = 1 − |D|      is
+its minimum distance. We note that restricting to linear combinations is for
+the sake of simplicity. General combinations of more than two functions, in
+a multilinear manner, or using powers of z, can be proven similarly, without
+additional technical obstacles.
+
+
+Remark. We have let the proof circulate in the community for about a year.
+Since time flies, and in particular in the light of the recent progress [GG25] and
+[BCH+ 25], we decided to eventually share it publicly now, and in an essentially
+unchanged form (yet somewhat polished). A more verbose update incorporating
+the improvements from [BCH+ 25] will be posted thereafter.
+  1 In a later version, [Zei24] upgraded to the 1.5 Johnson bound as well.
+
+
+
+
+                                             2
+2     From collinearity to correlated agreement
+
+The following lemma, which goes back to Ames, Hazay, Ishai, Venkitasubrama-
+niam [AHIV17] is used as the final step in many correlated agreement theorems,
+for example [BKS18, BCI+ 20, Hab24, GKL24, Zei24, BCH+ 25]. It states that,
+given a family of proximate polynomials which lie on a line, then we can in-
+fer correlated agreement whenever the family is large enough. We present the
+lemma in the lossless form, and for general linear codes.
+Lemma 1 ([AHIV17, BKS18]). Given an arbitrary linear code C represented
+by words over the domain D, and functions f0 , f1 : D → Fq . Fix γ ∈ (0, 1), and
+assume two codewords p0 , p1 ∈ C, such that ∆(p0 + zp1 , f0 + zf1 ) ≤ γ for all z
+contained in a set S ⊆ Fq . Then, if
+
+                                    |S| > ⌈γ · n⌉ + 1,
+
+it holds that ∆([a, b], [f0 , f1 ]) ≤ γ. In other words, [f0 , f1 ] agrees with [a, b] ∈ C 2
+over a set of density 1 − γ.
+
+Proof. Without loss of generality, we assume that γ = e/n for some integer e ∈
+[0, n], where n is the size of the domain D. We show that ∆([a, b], [f1 , f2 ]) > γ
+leads to a contradiction, proving the claim of the lemma.
+
+    Assume e < n · ∆([a, b], [f1 , f2 ]). Then the disagreement set
+
+                   E = {x ∈ D : (p0 (x), p1 (x)) ̸= (f0 (x), f1 (x))}
+
+contains a subset E ′ of size e + 1. Denote fz = f0 + zf1 and cz = p0 + zp1 .
+For any scalar z ∈ S we have ∆(fz , cz ) ≤ e/n, hence there must be at least
+one x ∈ E ′ for which cz (x) = fz (x). On the other hand, each point x from the
+disagreement set E has at most one z ∈ S for which cz (x) = fz (x). In fact, by
+linearity of the selection,
+
+                cz (x) − fz (x) = p0 (x) − f0 (x) + z · (p1 (x) − f1 (x)),
+
+is a non-trivial linear functional, since (p0 (x), p1 (x)) ̸= (f0 (x), f1 (x)). Therefore,
+
+                                   |S| ≤ |E ′ | = e + 1,
+
+in contradiction to the size assumption on S.
+
+
+
+3     Generalizing the analysis from [BCI+ 20]
+
+The goal of this section is to outline the proof of the following generalization of
+[BCI+ 20, Theorem 5.1].
+
+
+                                             3
+Theorem 2. Let C = RS[Fq , D, k] be the Reed-Solomon code over F with do-
+main of definition D of size |D| = n and miminum distance δ = 1 − nk and let
+                                    √
+ρ = nk . Take γ = 1 − (1 + 2m 1
+                                 ) · ρ for some integer m ≥ 3. Then for any
+f0 , f1 ∈ FD
+           q the size of
+                                                                      
+                                ∃A ⊂ D,            f | ∈ C|A , but
+             E = z ∈ Fq :                     s.t. z A
+                           |A| ≥ (1 − γ) · n,                   / C2 A
+                                                   [f0 , f1 ] A ∈
+is bounded as
+                                        ℓ7
+                                |E| ≤      · (ρ · n)2 ,
+                                        3
+                    √
+where ℓ = (m + 1/2)/ ρ.
+Remark 3. This is essentially the same bound as for ordinary correlated agree-
+ment in [BCI+ 20, Theorem 5.1], with the minimal difference that in our notation
+ρ is the slightly reduced rate of the code.
+
+    The key idea in [BCI+ 20] is to run the Guruswami–Sudan list decoder on
+the word f = f0 + Zf1 , where Z is a formal variable, and draw conclusions from
+its known behavior for those Z = z, for which fz = f0 + zf1 is γ-proximate
+to the code C. This amounts to studying the Guruswami–Sudan decoder over
+K = Fq (Z) the field of rational functions over Fq , and its analysis requires
+certain familiarity with algebraic function fields.
+
+    Our proof of Theorem 2 requires merely a careful inspection of the steps
+in [BCI+ 20], Section 5. Given multiplicity parameter m ≥ 1, consider the
+Guruswami-Sudan interpolating polynomial of the K-valued word f0 + Zf1 as
+constructed in Section 5.2.1 therein, decomposed into polynomials
+                                          Y           fi   ei
+                 Q(X, Y, Z) = C(X, Z) ·     Ri (X, Y p , Z) ,
+                                               i
+
+where each Ri (X, Y, Z) is irreducible and separable, and p is the characteristic
+of F . The degrees of Q w.r.t. X, Y and Y Z, are
+                                  DY < ℓ,
+                                 DX < ℓ · ρ · n,
+                                          ℓ3
+                                DY Z ≤       · ρ · n,
+                                          6
+see [BCI+ 20, Claim 5.4]. The discriminant in Y has degX discY (Q) < ℓ2 · ρ · n,
+if it is not the zero polynomial, and this observation is used in [BCI+ 20, Section
+5.2.3] to argue the existence of a point x0 ∈ F for which the discriminant of
+each irreducible factor
+                              discY Ri (x0 , Y, Z) ̸= 0,
+for every i, as long as |F | > ℓ2 · ρ · n. (For |F | ≤ ℓ2 · ρ · n the statement of
+Theorem 2 is trivial.) This point x0 serves as the starting point for the power
+series construction, the Hensel lift.
+
+
+                                          4
+   In analogy2 to the decomposition used by Zeilberger [Zei24] and Gao, Kan
+and Li [GKL24], we decompose the folding proximatesSwith respect to the irre-
+ducible factor they belong to. That is, we write E = i Ei , where
+                                                                         
+                                             ∃p(X) ∈ L, with fz |A = p|A ,
+                         ∃A ⊂ D,
+          
+                                                            f
+   Ei = z ∈ Fq :                        s.t. Ri (X, p(X)p i , z) = 0, but   ,
+                     |A| ≥ (1 − γ) · n,                          2
+                                                  [f0 , f1 ] A ∈
+                                                               /C A
+                                                                         
+
+                 <k
+where L = F [X] Q . We then refine each Ei w.r.t. the irreducible components
+Ri (x0 , Y, Z) = j Hi,j (Y, Z), as required for the potentially different starting
+values of the Hensel lift. That is we consider
+                                             ∃p(X) ∈ L, with fλ |A = p|A ,
+                                                                           
+             
+                                                                fi         
+                           ∃A ⊂ D,               Ri (X, p(X)p , z) = 0,
+                                                                           
+    Ei,j = z ∈ F :                      s.t.                    fi            .
+             
+                    |A| ≥ (1 − γ) · n,          Hi,j (p(x0 )p , z) = 0,    
+                                                                            
+                                                  but [f0 , f1 ] A ∈/ C2 A
+                                                                           
+
+Still, the number of (i, j)’s is bounded by DY < ℓ, and Theorem 2 immediately
+follows from the following
+Claim 1. For each (i, j),
+                                                  ℓ6
+                                     |Ei,j | ≤       · (ρ · n)2 .
+                                                  3
+
+                                                                                   6
+Proof. We prove the claim by contradiction. Suppose that |Ei,j | > ℓ3 · (ρ · n)2
+for some (i, j), and for each z ∈ Ei,j choose any pz (X) ∈ L satisfying the claims
+in the definition of the set. Then R = Ri (X, Y, Z) is a “uselful” factor in the
+sense of [BCI+ 20], having an irreducible factor H = Hi,j (Y, Z) of Ri (x0 , Y, Z)
+for which
+                                                          fi             fi
+             Sx0 ,R,H = {z ∈ E : R(X, pz (X)p , z) ∧ H(pz (x0 )p , z) = 0}
+is of size
+                             ℓ6
+                                · (ρ · n)2 > 2 · DY2 · DX · DY Z ,
+                     |Sx0 ,R,H | >
+                              3
+as stated by [BCI+ 20, Claim 5.7]. This is sufficient to let Step 5 – Step 7 of
+the analysis go through, and their generalization [BCI+ 20, Appendix C] for the
+inseparable case fi > 0, showing that there exist polynomials a(X), b(X) ∈ L,
+so that
+                               fi                fi                      fi
+                     Ri (X, Y pi , Z) = Y p − (a(X) + Z · b(X))p
+                                                                       pfi
+                                       = (Y − (a(X) + Z · b(X)))             ,
+   2 Their proofs rely on set intersection games, and the decomposition of E is done with
+
+respect to the various lines of polynomials which are constructed from agreement set intersec-
+tions. In the algebraic world, and for fi = 0, each factor Ri (X, Y, Z) is expected to be of the
+form Y − p0 (X) + Zp1 (X) with polynomials p0 (X), p1 (X) of degree at most k, representing
+lines.
+
+
+                                                      5
+and therefore
+                            pz (X) = a(X) + z · b(X).
+In particular, the folding proximate p(X) ∈ L in the definition of Ei,j is unique.
+Hence
+                                                                          
+                            ∃A ⊂ D,             f | = a(X) + z · b(X)|A ,
+     Ei,j = z ∈ F :                        s.t. z A                          ,
+                        |A| ≥ (1 − θ) · n,                          / C2 A
+                                                   but [f0 , f1 ] A ∈
+
+meaning that every z ∈ Ei,j must improve agreement beyond the correlated
+agreement set A◦ = {x ∈ D : (a(x), b(x)) = (f0 (x), f1 (x))}. From the proof of
+Lemma 1 we understand that the number of scalars which improve agreement
+beyond A◦ is bounded by |D \ A◦ | ≤ n, in contradiction to the size of Ei,j , since
+ℓ6       2  (m+1/2)6
+ 3 ·(ρ·n) =   3·ρ    ·n2 > n regardless of the concrete choice of parameters.
+
+
+
+References
+[ACFY24] Gal Arnon, Alessandro Chiesa, Giacomo Fenzi, and Eylon Yogev.
+         WHIR: Reed–solomon proximity testing with super-fast verification.
+         In IACR preprint archive 2024/1586, 2024. https://eprint.iacr.
+         org/2024/1586.
+[AHIV17] Scott Ames, Carmit Hazay, Yuval Ishai, and Muthuramakrishnan
+         Venkitasubramaniam. Ligero: Lightweight sublinear arguments
+         without a trusted setup. In CCS 2017, 2017. Full paper: https:
+         //eprint.iacr.org/2022/1608.
+[BCH+ 25] Eli Ben-Sasson, Dan Carmon, Ulrich Haböck, Swastik Kopparty, and
+          Shubhangi Saraf. On proximity gaps for Reed–Solomon codes. Cryp-
+          tology ePrint Archive, Paper 2025/2055, 2025. https://eprint.
+          iacr.org/2025/2055.
+[BCI+ 20] Eli Ben-Sasson, Dan Carmon, Yuval Ishai, Swastik Kopparty, and
+          Shubhangi Saraf. Proximity gaps for Reed–Solomon codes. In FOCS
+          2020, 2020. Full paper: https://eprint.iacr.org/2020/654.
+[BKS18]    Eli Ben-Sasson, Swastik Kopparty, and Shubhangi Saraf. Worst-case
+           to average case reductions for the distance to a code. In CCC‘18,
+           2018. Full paper: https://eccc.weizmann.ac.il/report/2018/
+           090/.
+[GG25]     Rohan Goyal and Venkatesan Guruswami. Optimal proximity gaps
+           for subspace-design codes and (random) Reed–Solomon codes. Cryp-
+           tology ePrint Archive, Paper 2025/2054, 2025. https://eprint.
+           iacr.org/2025/2054.
+
+
+
+
+                                        6
+[GKL24]   Yiwen Gao, Haibin Kan, and Yuan Li. Linear proximity gap for
+          reed–solomon codes within the 1.5 johnson bound. In IACR ePrint
+          Archive 2024/1810, 2024. https://eprint.iacr.org/2024/1810.
+[Hab24]   Ulrich Haböck. Basefold in the list decoding regime. Cryptology
+          ePrint Archive, Paper 2024/1571, 2024. https://eprint.iacr.
+          org/2024/1571.
+[ZCF23]   Hadas Zeilberger, Binyi Chen, and Ben Fisch. BaseFold: efficient
+          field-agnostic polynomial commitment schemes from foldable codes.
+          In IACR preprint archive 2023/1705, 2023. https://eprint.iacr.
+          org/2023/1705.
+
+[Zei24]   Hadas Zeilberger. Khatam: Reducing the communication complexity
+          of code-based SNARKs. In IACR preprint archive 2024/1843, 2024.
+          https://eprint.iacr.org/2024/1843.
+
+
+
+
+                                    7
+
