@@ -292,3 +292,40 @@ Still running: literature. Not resumed yet: gt-opening-compile, boundary-adaptor
    sections predate the spine, public-input section says "the prover sends nothing"; T4 sketch
    omits `WellFormedBytecode` (major); status two landings stale; blueprint states old pins in
    five passages.
+
+### literature (complete; ~60 BibTeX entries; sources under probes/literature/src/)
+Majors: (1) the non-interactive error as sketched lacks the hash-collision term (~3.5·t²/2^256),
+the list-size factor L_0 (list-binding commitment; Flock Remark 11), and any model of grinding;
+no published theorem covers FS with proof of work for multi-round IOPs; `FiatShamirSecurity` as
+Q·max ε certifies ~111 bits where leanVM claims 128 (query rounds at ~2^-111 before 17 bits of
+grinding). (2) ArkLib's transforms (one RO on the transcript prefix / duplex sponge) and the
+textbook BCS (separate RO per role) are other constructions than leanVM's one BLAKE2s map for
+chain + Merkle nodes (untagged) + grinding: a chain lemma and a role-separation lemma are owed;
+"the upstream theorem as witness obligation" cannot discharge the interfaces. (3) proof of work
+is the one verifier check no planned theorem or mutation makes load-bearing (also canonical
+encodings, Merkle path lengths); propose mutations + reverse tests (spec-rejected transcripts
+through Rust/Python). (4, part of 1) list-size factor.
+Right: WHIR regime = Johnson with slack citing BCHKS25 Thm 4.6, the provable one (capacity
+conjectures refuted: Crites–Stewart 2025, Krachun–Kazanin–Haböck 2026; at the Johnson radius
+the bound fails in char 2, BCHKS25 Cor 1.7); Annex B states Thm 4.6 as printed (checked);
+caveat: single-version preprint with a sketched proof. KRS25/Fen26 attacks do not reach leanVM
+(statement in the seed, trace committed before any challenge, GKR only for grand products); RO
+theorems classical (quantum: ~64 bits). The cut (relation on the committed column + adaptor)
+is sound practice: every comparable effort stops at a trace relation; SP1's plan asks for the
+same exact natural-number balance. ABF26 = Arnon–Boneh–Fenzi ePrint 2026/680 (Def A.5 bounds
+extractor time; ArkLib's does not). arXiv 2607.23752 = Kolozyan–Sorger–Hicks–Chaliasos 2026;
+T1–T8 refine its six obligations; none covers the deployed verifier's correctness;
+architecture.md uses its labels without citing it. Minor: references misattributed (FS paper
+authors, Ligerito authors, BCHKS25 title, origin of rbr KNOWLEDGE soundness = CMS19), wrong
+Thaler chapter, "computable" ≠ "efficient", RO scope unstated; Rust comment `whir.rs:1210`
+stale (level 0 has grinding).
+
+### Build under 4.34.1
+`lake build -j`/`--jobs` are not Lake 5 options; packages were already built today (ArkLib
+oleans 09:40); `lake env lean` rebuilt the spine cone on demand (probe test exit 0 at 09:50).
+Full `lake build LeanerVM LeanerVMTests` started 09:55 in the background
+(`logs/lake-build-144c5aa-full.log`). Agents may probe only after it reports exit=0.
+
+### Wave 2 launched 09:52 (Opus): `register` (abab0f7d52443576b) → dossiers/register.md;
+`tex-groundtruth` (a187d67d6fb7e3def) → tex/sections/gen/. Resumed (Fable): gt-opening-compile,
+boundary-adaptor (reading only until the build is done).

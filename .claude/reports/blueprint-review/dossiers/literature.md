@@ -17,8 +17,8 @@ from those copies. "Opened" means I read the passage quoted, not only the abstra
 **Examined.** The Fiat–Shamir/BCS literature (CCHLRR18, BCS16, CMS19, the Chiesa–Yogev book,
 BGKTTZ23, CO25, ABF26), the attacks on Fiat–Shamir (KRS25, Fen26), WHIR and proximity gaps (ACFY25,
 BCHKS25, Hab25, ABF26, the 2025-2026 counterexamples), the arithmetization references (M3, Thaler,
-Gruen), the Lean libraries at both pins, the obligation outline arXiv:2607.23752, seven comparable
-zkVM verification efforts, and the security advisories of Plonky3, SP1, RISC Zero, OpenVM. Checked
+Gruen), the Lean libraries at both pins, the obligation outline arXiv:2607.23752, ten comparable
+verification efforts, and the security advisories of Plonky3, SP1, RISC Zero, OpenVM. Checked
 against the blueprint at `b435631`, leanVM's Annex B, `whir_config.rs` and `fiat_shamir/src/` at
 `a386121f`.
 
@@ -264,12 +264,13 @@ incomplete in four ways, each of which the Lean interface has to carry.
 2. **The hash term.** Every ROM compilation theorem adds a collision/extraction term for the hash
    chain and the Merkle trees: `3.5·t²/2^λ` ([CY24] Thm 25.2.1, §28.3.2) or `3(Q²+1)/2^κ`
    ([BGKTTZ23] Thm 3.15). With BLAKE2s-256 (`λ = 256`), [CY24] §28.3.2 asks `λ = 2κ + 3 = 259`
-   for `κ = 128` bits of average-case security, so the 256-bit digest gives slightly under 128
-   bits by the textbook bound; and a per-round error of exactly `2^-128` (leanVM's
-   `SECURITY_BITS`) gives, with the `(t + k)` factor and the hash term, about `2^125.8` in the
-   `t/ε` sense at `t = 2^128` (my arithmetic from the two theorems). This is the usual convention
-   ("128-bit round-by-round target"), but a Lean theorem that states `niError` must contain the
-   term, not only `Q · max ε_i`. The blueprint puts the hash side in `BcsSecurity`
+   for `κ = 128` bits of average-case security (its derivation assumes the IOP's
+   state-restoration error is at most `2^{-κ-1}`), so a 256-bit digest is at the edge for 128 bits
+   by the textbook bound. A per-round error of exactly `2^-128` (leanVM's `SECURITY_BITS`) with the
+   `(t + k)` factor and the hash term gives a work factor `t/ε(t)` slightly below `2^128` (about
+   `2^127` near `t = 2^127`; my arithmetic from the two theorems, with `ε` capped at 1). This is
+   the usual convention ("128-bit round-by-round target"), but a Lean theorem that states
+   `niError` must contain the term, not only `Q · max ε_i`. The blueprint puts the hash side in `BcsSecurity`
    ("extraction from collision resistance / ROM", line 1225) without an error term.
 3. **Grinding is outside every theorem cited.** The query rounds of leanVM's WHIR have
    interactive error `(1 − γ_i)^{t_i}` ≈ `2^-111` (the Rust closes `128 − 17` bits by queries,
@@ -344,7 +345,7 @@ not see the list; the compilation does.
 an error of the blueprint. Evidence: A.3 item 2. Proposed change: state `BcsSecurity` with its
 error term (`3.5·t²/2^256` for BLAKE2s-256 digests and chain, under [CY24] Theorem 25.2.1's
 condition `t ≥ 2(log l + 1)l`, or [BGKTTZ23]'s `3(Q²+1)/2^256`), and say in the blueprint that
-the 256-bit digest yields just under 128 bits of average-case security by [CY24] §28.3.2.
+the 256-bit digest is at the edge of 128 bits of average-case security by [CY24] §28.3.2.
 
 **Finding: "computable" is not "efficient".** Severity: minor (for T4 as stated) / note.
 Evidence: [CMS19] Def. 8.5, [CY24] Def. 31.1.6 and [ABF26] Def. A.5 require a polynomial-time
@@ -1313,8 +1314,8 @@ same time that the compilation (WHIR, Merkle, Fiat–Shamir) remains assumed.
   is the minimum of all these levels"), which matches leanVM's `SECURITY_BITS` ("every
   verifier-challenge transition", `whir_config.rs:36-38`). The non-interactive level in the ROM
   is that figure minus `log(t + k)` for a `t`-query adversary, minus the hash term ([CY24] Thm
-  31.3.1, §28.3.2), i.e. "128 bits of work factor" in the `t/ε` sense, slightly less by the
-  constants (A.3). soundcalc cites [GMW25] (A. Garreta, N. Mohnblatt, B. Wagner, *A Simplified
+  31.3.1, §28.3.2), i.e. about 128 bits of work factor in the `t/ε` sense, slightly less by the
+  constants (A.3 item 2). soundcalc cites [GMW25] (A. Garreta, N. Mohnblatt, B. Wagner, *A Simplified
   Round-by-round Soundness Proof of FRI*, ePrint 2025/1993, TCC 2026; abstract read) for this
   correspondence; its changelog records that version 2 "fixes a mistake in the state function for
   the folding rounds", a reminder that paper round-by-round proofs of folding protocols have
@@ -1416,6 +1417,29 @@ blueprint. Evidence: G.1 "Quantum adversaries". Proposed change: add to the blue
 section (after line 157): "Security against quantum adversaries (the quantum random-oracle model,
 [CMS19], ePrint 2025/2166) is out of scope; the classical bound does not transfer (the loss is
 quadratic in the query count)."
+
+## What I could not open or verify
+
+- The STOC 2019 PDF of [CCHLRRW19] (HTTP 403); its content was read in [CCHLRR18].
+- Bodies (abstracts only, or reference data only): [BCFW25], [Riv26], [AY25], [CS25], [KKH26],
+  [Kam26], [GG25], [BCGM25], [Jo26], [DKT26], [DP24], [NA25], [GMW25], [CDHZ26], [SL20], [STW24],
+  [PH23], [DT24], [HJRRR25], [TDWHH26], [Kob26], [Mar26]; not opened at all: [LCH14], [BCIKS20],
+  [BEGKN94], [Tha13], [Del25], [KDT25], [AGLST21], the Expander mitigation (`PolyhedraZK/Expander`
+  pull request 184).
+- Read through a fetch summary (not verbatim): the M3 definition page, the EF blog post of
+  2025-12-18, verified-zkevm.org, the Veridise and Nethermind (ZKsync) blog posts.
+- From the stopped helper's notes without my re-check: the SP1 Hypercube blogs (Nethermind
+  2025-05-21, Succinct 2025-10-09), the EF post on the SP1 JALR bug (2026-05-20), the SP1 audit of
+  2026-08-12, the Pico report's list of 13 gaps, and the Fiat–Shamir instances of G.3 other than
+  the Plonky3 and SP1 advisories.
+- Whether Haböck's announced "more verbose update" of [Hab25] exists; whether a Lean or refereed
+  proof of [BCHKS25] Theorem 4.6 exists (ArkLib's is admitted at both pins).
+- The value of `L_0` at leanVM's production parameters (my estimate `2^7`–`2^10` from Annex B's
+  formula; the Rust's `validate()` output would settle it).
+- Whether a cross-role input of the shared 64-byte BLAKE2s map (Merkle node versus chain block) is
+  exploitable (E.6).
+- Contradictions with the brief: none found. The brief's §7 fact that Clean's balance is vacuous
+  in characteristic 2 is consistent with Clean's own docstring at `42fe4b26` (E.4).
 
 ## BibTeX
 
