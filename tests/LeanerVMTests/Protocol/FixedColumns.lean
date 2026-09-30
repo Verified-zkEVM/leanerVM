@@ -29,7 +29,7 @@ open CompPoly CMlPolynomialEval
 @[expose] public section
 
 private def fixedColumnAnswer {n : ℕ} (q : Column n) (z : Vector E n) : E :=
-  OracleInterface.answer q z
+  eval₂Mle q.values (algebraMap K E) z
 
 /-! ## The index column -/
 
@@ -46,7 +46,7 @@ private def fixedColumnAnswer {n : ℕ} (q : Column n) (z : Vector E n) : E :=
 #guard fixedColumnAnswer (idxColumn 2) #v[y, y ^ 2] ≠
   (1 + y * (1 + ofK (g ^ 2))) * (1 + y ^ 2 * (1 + ofK g))
 
-example (z : Vector E 2) : OracleInterface.answer (idxColumn 2) z =
+example (z : Vector E 2) : eval₂Mle (idxColumn 2).values (algebraMap K E) z =
     ∏ k : Fin 2, (1 + z[k] * (1 + algebraMap K E (g ^ (2 ^ k.val)))) :=
   (idxColumn_eval z).trans (idxColumnEval_eq z)
 
@@ -73,7 +73,7 @@ example (i : Fin 2) :
       cubeIndex (k := 1) (m := 4) i (15 : Fin 16)] = 0 := by
   exact bytecodeColumn_slot fixedColumnProgram i 15
 
-example : OracleInterface.answer (bytecodeColumn fixedColumnProgram)
+example : eval₂Mle (bytecodeColumn fixedColumnProgram).values (algebraMap K E)
       (#v[y] ++ #v[0, 1, y, y ^ 2]) =
     bytecodeColumnEval fixedColumnProgram #v[y] #v[0, 1, y, y ^ 2] :=
   bytecodeColumn_eval fixedColumnProgram _ _
@@ -112,8 +112,8 @@ def singletonColumnProgram : Program where
 #guard fixedColumnAnswer (bytecodeColumn singletonColumnProgram)
     ((#v[] : Vector E 0) ++ (#v[1, 1, 1, 1] : Vector E 4)) = 0
 
-example (w : Vector E 4) : OracleInterface.answer (bytecodeColumn singletonColumnProgram)
-    ((#v[] : Vector E 0) ++ w) = bytecodeColumnEval singletonColumnProgram #v[] w :=
+example (w : Vector E 4) : eval₂Mle (bytecodeColumn singletonColumnProgram).values
+    (algebraMap K E) ((#v[] : Vector E 0) ++ w) = bytecodeColumnEval singletonColumnProgram #v[] w :=
   bytecodeColumn_eval singletonColumnProgram _ _
 
 end

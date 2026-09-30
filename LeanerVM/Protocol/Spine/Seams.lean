@@ -26,8 +26,9 @@ Three kinds of claim, each a statement about an extension read off `q` at a poin
   of weight `eq(sel_b, ζ_hi)·eq(α, i)` with the coordinate polynomials `c_{b,i}`, plus one
   constant term of weight `eq(sel_b, ζ_hi)·β`. The bus seam bounds the total degree of every
   term's polynomial by the instance's `d`, the degree the table sumcheck is built for;
-* a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` given by its cube
-  values and an evaluator the verifier can run (§3, Definition 3.13).
+* a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` a weight of the
+  stack's oracle interface (`LeanerVM.Protocol.Field`): its cube values and an evaluator the
+  verifier can run (§3, Definition 3.13).
 
 | Seam | Statement | Holds |
 | --- | --- | --- |
@@ -98,30 +99,17 @@ structure LinearClaim (I : M3Instance) where
 def LinearClaim.Holds {I : M3Instance} (q : Column I.μ) (c : LinearClaim I) : Prop :=
   (c.terms.map fun t ↦ t.eval q).sum = c.value
 
-/-- A weight on the stack (Definition 3.13): its cube values, and an evaluator for its extension
-the verifier can run, with the proof that they agree. -/
-structure Weight (μ : ℕ) where
-  /-- The values on the cube. -/
-  onCube : CMlPolynomialEval E μ
-  /-- The extension, as the verifier evaluates it. -/
-  mle : Vector E μ → E
-  /-- The evaluator computes the extension of the cube values. -/
-  mle_eq : ∀ r, mle r = CMlPolynomialEval.evalMle onCube r
-
-/-- The pairing `Σ_x W(x)·q(x)` of a weight with a column, over the cube. -/
-def Weight.pair {μ : ℕ} (W : Weight μ) (q : Column μ) : E :=
-  ∑ i : Fin (2 ^ μ), W.onCube.get i * ofK (q.values.get i)
-
-/-- A weighted claim on the stack: its pairing with a weight equals a value. -/
+/-- A weighted claim on the stack: the inner product of a weight with the stack, the stack's
+oracle answer to that weight, equals a value. -/
 structure WeightedClaim (I : M3Instance) where
   /-- The weight. -/
-  weight : Weight I.μ
+  weight : Weight E I.μ
   /-- The claimed value. -/
   value : E
 
 /-- The claim holds of the stack `q`. -/
 def WeightedClaim.Holds {I : M3Instance} (q : Column I.μ) (c : WeightedClaim I) : Prop :=
-  c.weight.pair q = c.value
+  c.weight.pair (algebraMap K E) q.values = c.value
 
 /-! ## Seam statements -/
 
