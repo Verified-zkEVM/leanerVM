@@ -1,0 +1,10 @@
+instSampleableTypeK
+.claude/reports/blueprint-review/probes/lib-others/SamplerDiamond2.v434.lean:15:40: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  FinEnum K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+.claude/reports/blueprint-review/probes/lib-others/SamplerDiamond2.v434.lean:18:53: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  FinEnum K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+exit=1

@@ -1,0 +1,4 @@
+.claude/reports/blueprint-review/probes/code-spine/P4Junk.v434.lean:99:8: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+'Probe.junkSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.piopError_junk' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0

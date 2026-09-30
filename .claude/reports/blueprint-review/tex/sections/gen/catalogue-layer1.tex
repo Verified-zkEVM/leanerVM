@@ -4,7 +4,7 @@
 
 \subsection{The objects Layer 1 is built on}
 
-\textbf{CompPoly's hypercube table} (CompPoly is the Verified-zkEVM library of computable polynomials; revision \texttt{3468b38c}, \texttt{CompPoly/\allowbreak{}Multilinear/\allowbreak{}Basic.\allowbreak{}lean}). A multilinear polynomial in \texttt{n} variables is stored by its \texttt{2\textasciicircum{}n} values on the Boolean cube, as a vector; index \texttt{i} is the cube point whose coordinate \texttt{k} is bit \texttt{k} of \texttt{i} (low bit first):
+\textbf{CompPoly's hypercube table} (CompPoly is the Verified-zkEVM library of computable polynomials; revision \texttt{3468b38c}, \texttt{C\allowbreak{}o\allowbreak{}m\allowbreak{}p\allowbreak{}P\allowbreak{}o\allowbreak{}l\allowbreak{}y\allowbreak{}/\allowbreak{}M\allowbreak{}u\allowbreak{}l\allowbreak{}t\allowbreak{}i\allowbreak{}l\allowbreak{}i\allowbreak{}n\allowbreak{}e\allowbreak{}a\allowbreak{}r\allowbreak{}/\allowbreak{}B\allowbreak{}a\allowbreak{}s\allowbreak{}i\allowbreak{}c\allowbreak{}.\allowbreak{}l\allowbreak{}e\allowbreak{}a\allowbreak{}n}). A multilinear polynomial in \texttt{n} variables is stored by its \texttt{2\textasciicircum{}n} values on the Boolean cube, as a vector; index \texttt{i} is the cube point whose coordinate \texttt{k} is bit \texttt{k} of \texttt{i} (low bit first):
 
 \begin{leancode}
 -- CompPoly/Multilinear/Basic.lean:45-47 at 3468b38c
@@ -13,7 +13,7 @@
 def CMlPolynomialEval (R : Type*) (n : ℕ) := Vector R (2 ^ n) -- coefficient of Lagrange basis
 \end{leancode}
 
-\texttt{lagrangeBasis w} is the vector of the equality kernel \texttt{eq(\allowbreak{}w,\allowbreak{} x) = ∏\_\allowbreak{}k (\allowbreak{}x\_\allowbreak{}k w\_\allowbreak{}k + (\allowbreak{}1-{}x\_\allowbreak{}k)(\allowbreak{}1-{}w\_\allowbreak{}k))} over the cube points \texttt{x}; \texttt{evalMle t x} is the multilinear extension of the table \texttt{t} evaluated at a point \texttt{x ∈ R\textasciicircum{}n} (by folding one variable at a time, low variable first); \texttt{eval₂Mle t φ x} first maps the entries through a ring homomorphism \texttt{φ : R →+* S} (for leanVM, the embedding \texttt{algebraMap K E} of \texttt{K = GF(\allowbreak{}2\textasciicircum{}64)} into \texttt{E = GF(\allowbreak{}2\textasciicircum{}192)}), then evaluates at \texttt{x ∈ S\textasciicircum{}n}:
+\texttt{lagrangeBasis w} is the vector of the equality kernel \texttt{e\allowbreak{}q\allowbreak{}(\allowbreak{}w\allowbreak{},\allowbreak{} x\allowbreak{})\allowbreak{} =\allowbreak{} ∏\allowbreak{}\_\allowbreak{}k\allowbreak{} (\allowbreak{}x\allowbreak{}\_\allowbreak{}k\allowbreak{} w\allowbreak{}\_\allowbreak{}k\allowbreak{} +\allowbreak{} (\allowbreak{}1\allowbreak{}-{}\allowbreak{}x\allowbreak{}\_\allowbreak{}k\allowbreak{})\allowbreak{}(\allowbreak{}1\allowbreak{}-{}\allowbreak{}w\allowbreak{}\_\allowbreak{}k\allowbreak{})\allowbreak{})} over the cube points \texttt{x}; \texttt{evalMle t x} is the multilinear extension of the table \texttt{t} evaluated at a point \texttt{x ∈ R\textasciicircum{}n} (by folding one variable at a time, low variable first); \texttt{eval₂Mle t φ x} first maps the entries through a ring homomorphism \texttt{φ : R →+* S} (for leanVM, the embedding \texttt{algebraMap K E} of \texttt{K = GF(\allowbreak{}2\textasciicircum{}64)} into \texttt{E = GF(\allowbreak{}2\textasciicircum{}192)}), then evaluates at \texttt{x ∈ S\textasciicircum{}n}:
 
 \begin{leancode}
 -- CompPoly/Multilinear/Basic.lean:410-411, 499-500, 520-521 at 3468b38c
@@ -25,7 +25,7 @@ def eval₂Mle (p : CMlPolynomialEval R n) (f : R →+* S) (x : Vector S n) : S 
   evalMle (map f p) x
 \end{leancode}
 
-\textbf{The spine's objects Layer 1 plugs into} (\texttt{LeanerVM/\allowbreak{}Protocol/\allowbreak{}Field.\allowbreak{}lean}, \texttt{Spine/\allowbreak{}Instance.\allowbreak{}lean}, \texttt{Spine/\allowbreak{}Seams.\allowbreak{}lean} at \texttt{b435631}). \texttt{Column n} wraps a \texttt{K}-table of \texttt{n} variables; its oracle answers a query \texttt{r ∈ E\textasciicircum{}n} with \texttt{eval₂Mle q (\allowbreak{}algebraMap K E) r} (\texttt{Field.\allowbreak{}lean:102-{}110}, \texttt{evalOracle\_\allowbreak{}answer} is \texttt{rfl}). A \texttt{Layout μ ι κ} is a \emph{reading law}: how to read column \texttt{c} (height \texttt{2\textasciicircum{}κ c}) off a stack of \texttt{2\textasciicircum{}μ} cells, how to lift a point of the column to a point of the stack, and the law that the two agree:
+\textbf{The spine's objects Layer 1 plugs into} (\texttt{LeanerVM/\allowbreak{}Protocol/\allowbreak{}Field.\allowbreak{}lean}, \texttt{Spine/\allowbreak{}Instance.\allowbreak{}lean}, \texttt{Spine/\allowbreak{}Seams.\allowbreak{}lean} at \texttt{b435631}). \texttt{Column n} wraps a \texttt{K}-table of \texttt{n} variables; its oracle answers a query \texttt{r ∈ E\textasciicircum{}n} with \texttt{e\allowbreak{}v\allowbreak{}a\allowbreak{}l\allowbreak{}₂\allowbreak{}M\allowbreak{}l\allowbreak{}e\allowbreak{} q\allowbreak{} (\allowbreak{}a\allowbreak{}l\allowbreak{}g\allowbreak{}e\allowbreak{}b\allowbreak{}r\allowbreak{}a\allowbreak{}M\allowbreak{}a\allowbreak{}p\allowbreak{} K\allowbreak{} E\allowbreak{})\allowbreak{} r} (\texttt{Field.\allowbreak{}lean:102-{}110}, \texttt{evalOracle\_\allowbreak{}answer} is \texttt{rfl}). A \texttt{Layout μ ι κ} is a \emph{reading law}: how to read column \texttt{c} (height \texttt{2\textasciicircum{}κ c}) off a stack of \texttt{2\textasciicircum{}μ} cells, how to lift a point of the column to a point of the stack, and the law that the two agree:
 
 \begin{leancode}
 -- LeanerVM/Protocol/Spine/Instance.lean:73-81
@@ -40,7 +40,7 @@ structure Layout (μ : ℕ) (ι : Type) (κ : ι → ℕ) where
       CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) (extend c z)
 \end{leancode}
 
-An \texttt{M3Instance} carries one such \texttt{layout} for all its columns (\texttt{Instance.\allowbreak{}lean:140}), and the relation \texttt{M3Holds} reads every value through it. A \texttt{Weight μ} is a weight on the stack given by its cube values \texttt{onCube} and an evaluator \texttt{mle} with the proof \texttt{mle\_\allowbreak{}eq} that it computes the extension of \texttt{onCube}; \texttt{Weight.\allowbreak{}pair W q = Σ\_\allowbreak{}i W.\allowbreak{}onCube[i] · q[i]}; a \texttt{ColumnClaim} is (column, point, value) and holds when the column's extension at the point is the value; a \texttt{WeightedClaim} is (weight, value) and holds when the pairing is the value (\texttt{Seams.\allowbreak{}lean:57-{}67,\allowbreak{} 103-{}124}).
+An \texttt{M3Instance} carries one such \texttt{layout} for all its columns (\texttt{Instance.\allowbreak{}lean:140}), and the relation \texttt{M3Holds} reads every value through it. A \texttt{Weight μ} is a weight on the stack given by its cube values \texttt{onCube} and an evaluator \texttt{mle} with the proof \texttt{mle\_\allowbreak{}eq} that it computes the extension of \texttt{onCube}; \texttt{W\allowbreak{}e\allowbreak{}i\allowbreak{}g\allowbreak{}h\allowbreak{}t\allowbreak{}.\allowbreak{}p\allowbreak{}a\allowbreak{}i\allowbreak{}r\allowbreak{} W\allowbreak{} q\allowbreak{} =\allowbreak{} Σ\allowbreak{}\_\allowbreak{}i\allowbreak{} W\allowbreak{}.\allowbreak{}o\allowbreak{}n\allowbreak{}C\allowbreak{}u\allowbreak{}b\allowbreak{}e\allowbreak{}[\allowbreak{}i\allowbreak{}]\allowbreak{} ·\allowbreak{} q\allowbreak{}[\allowbreak{}i\allowbreak{}]}; a \texttt{ColumnClaim} is (column, point, value) and holds when the column's extension at the point is the value; a \texttt{WeightedClaim} is (weight, value) and holds when the pairing is the value (\texttt{Seams.\allowbreak{}lean:57-{}67,\allowbreak{} 103-{}124}).
 
 \textbf{Mathlib vocabulary.} \texttt{Antitone f} means \texttt{a ≤ b → f b ≤ f a} (non-increasing). \texttt{Vector R n} is an array of length \texttt{n}; \texttt{z ++ s} concatenates, so \texttt{z} fills the low coordinates. \texttt{Fin m} is \texttt{\{0,\allowbreak{} …,\allowbreak{} m-{}1\}}.
 
@@ -241,7 +241,7 @@ def unstack {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
 
 \src{LeanerVM/Protocol/ToCompPoly/Stacking.lean, at b435631; further ranges in the comments}
 
-In words: a \texttt{Blocks} is a list of sizes, non-increasing; block \texttt{b} starts at \texttt{offset b}, the sum of the heights before it; \texttt{total} is the sum of all heights; \texttt{stackAt} lays given tables end to end and fills the rest with \texttt{pad}; \texttt{selector b = offset b /\allowbreak{} 2\textasciicircum{}size b}; \texttt{extendPoint b z = (\allowbreak{}z,\allowbreak{} bits of selector b)}; \texttt{unstack q b} reads block \texttt{b}'s window off any table \texttt{q}.
+In words: a \texttt{Blocks} is a list of sizes, non-increasing; block \texttt{b} starts at \texttt{offset b}, the sum of the heights before it; \texttt{total} is the sum of all heights; \texttt{stackAt} lays given tables end to end and fills the rest with \texttt{pad}; \texttt{s\allowbreak{}e\allowbreak{}l\allowbreak{}e\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{} b\allowbreak{} =\allowbreak{} o\allowbreak{}f\allowbreak{}f\allowbreak{}s\allowbreak{}e\allowbreak{}t\allowbreak{} b\allowbreak{} /\allowbreak{} 2\allowbreak{}\textasciicircum{}\allowbreak{}s\allowbreak{}i\allowbreak{}z\allowbreak{}e\allowbreak{} b}; \texttt{e\allowbreak{}x\allowbreak{}t\allowbreak{}e\allowbreak{}n\allowbreak{}d\allowbreak{}P\allowbreak{}o\allowbreak{}i\allowbreak{}n\allowbreak{}t\allowbreak{} b\allowbreak{} z\allowbreak{} =\allowbreak{} (\allowbreak{}z\allowbreak{},\allowbreak{} b\allowbreak{}i\allowbreak{}t\allowbreak{}s\allowbreak{} o\allowbreak{}f\allowbreak{} s\allowbreak{}e\allowbreak{}l\allowbreak{}e\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{} b\allowbreak{})}; \texttt{unstack q b} reads block \texttt{b}'s window off any table \texttt{q}.
 
 \par\medskip\noindent\textbf{Load-bearing and interface declarations.}
 
@@ -312,7 +312,7 @@ def selectorWeight {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (z : Vect
 
 \src{LeanerVM/Protocol/ToCompPoly/AmbientStacking.lean, at b435631; further ranges in the comments}
 
-\texttt{selectorWeight b z = eq(\allowbreak{}sel\_\allowbreak{}b,\allowbreak{} z\_\allowbreak{}hi)}, the weight of block \texttt{b} at a stack point.
+\texttt{s\allowbreak{}e\allowbreak{}l\allowbreak{}e\allowbreak{}c\allowbreak{}t\allowbreak{}o\allowbreak{}r\allowbreak{}W\allowbreak{}e\allowbreak{}i\allowbreak{}g\allowbreak{}h\allowbreak{}t\allowbreak{} b\allowbreak{} z\allowbreak{} =\allowbreak{} e\allowbreak{}q\allowbreak{}(\allowbreak{}s\allowbreak{}e\allowbreak{}l\allowbreak{}\_\allowbreak{}b\allowbreak{},\allowbreak{} z\allowbreak{}\_\allowbreak{}h\allowbreak{}i\allowbreak{})}, the weight of block \texttt{b} at a stack point.
 
 \par\medskip\noindent\textbf{Load-bearing and interface declarations.}
 
@@ -553,7 +553,7 @@ Declaration & Line & Class & Meaning \\
 \texttt{i\allowbreak{}s\allowbreak{}V\allowbreak{}a\allowbreak{}l\allowbreak{}i\allowbreak{}d\allowbreak{}\_\allowbreak{}i\allowbreak{}f\allowbreak{}f\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}m\allowbreak{}a\allowbreak{}p\allowbreak{}\_\allowbreak{}w\allowbreak{}i\allowbreak{}n\allowbreak{}d\allowbreak{}o\allowbreak{}w\allowbreak{}\_\allowbreak{}e\allowbreak{}q}, \texttt{i\allowbreak{}s\allowbreak{}V\allowbreak{}a\allowbreak{}l\allowbreak{}i\allowbreak{}d\allowbreak{}\_\allowbreak{}i\allowbreak{}f\allowbreak{}f\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}w\allowbreak{}i\allowbreak{}n\allowbreak{}d\allowbreak{}o\allowbreak{}w\allowbreak{}\_\allowbreak{}e\allowbreak{}q} & 101, 113 & helper (unused) & locality: only the window matters \\
 \end{longtable}}
 
-\texttt{git grep -{}w BlockClaim b435631 -{}-{} LeanerVM tests} finds \texttt{BlockClaims.\allowbreak{}lean} and its test only.
+\texttt{g\allowbreak{}i\allowbreak{}t\allowbreak{} g\allowbreak{}r\allowbreak{}e\allowbreak{}p\allowbreak{} -{}\allowbreak{}w\allowbreak{} B\allowbreak{}l\allowbreak{}o\allowbreak{}c\allowbreak{}k\allowbreak{}C\allowbreak{}l\allowbreak{}a\allowbreak{}i\allowbreak{}m\allowbreak{} b\allowbreak{}4\allowbreak{}3\allowbreak{}5\allowbreak{}6\allowbreak{}3\allowbreak{}1\allowbreak{} -{}\allowbreak{}-{}\allowbreak{} L\allowbreak{}e\allowbreak{}a\allowbreak{}n\allowbreak{}e\allowbreak{}r\allowbreak{}V\allowbreak{}M\allowbreak{} t\allowbreak{}e\allowbreak{}s\allowbreak{}t\allowbreak{}s} finds \texttt{BlockClaims.\allowbreak{}lean} and its test only.
 
 \subsection{\file{LeanerVM/Protocol/FixedColumns.lean}}
 

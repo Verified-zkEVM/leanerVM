@@ -2,7 +2,7 @@
 % Snippets are the declarations the dossier copied from the source at b435631.
 \section{The public-input phase, declaration by declaration}\label{sec:gen-cat-pubinput}
 
-\texttt{LeanerVM/\allowbreak{}Protocol/\allowbreak{}PublicInput.\allowbreak{}lean} at \texttt{b435631}, 400 lines, a \texttt{module}; \texttt{namespace LeanerVM.\allowbreak{}Protocol}, \texttt{@[expose] public section}, inner \texttt{namespace PublicInput}. Classes: \textbf{load-bearing} (in the statement of a top-level result, or read by later work), \textbf{interface} (what other layers name), \textbf{helper} (proof support). The future executable verifier (Layer 12) reads, per the blueprint (\texttt{:1049-{}1051}), \texttt{pSpec}, \texttt{check}, \texttt{pooled}, and through them \texttt{expectedValues}, \texttt{lineValue}, \texttt{linePoint}: marked \enquote{read by Layer 12}.
+\texttt{L\allowbreak{}e\allowbreak{}a\allowbreak{}n\allowbreak{}e\allowbreak{}r\allowbreak{}V\allowbreak{}M\allowbreak{}/\allowbreak{}P\allowbreak{}r\allowbreak{}o\allowbreak{}t\allowbreak{}o\allowbreak{}c\allowbreak{}o\allowbreak{}l\allowbreak{}/\allowbreak{}P\allowbreak{}u\allowbreak{}b\allowbreak{}l\allowbreak{}i\allowbreak{}c\allowbreak{}I\allowbreak{}n\allowbreak{}p\allowbreak{}u\allowbreak{}t\allowbreak{}.\allowbreak{}l\allowbreak{}e\allowbreak{}a\allowbreak{}n} at \texttt{b435631}, 400 lines, a \texttt{module}; \texttt{namespace LeanerVM.\allowbreak{}Protocol}, \texttt{@[expose] public section}, inner \texttt{namespace PublicInput}. Classes: \textbf{load-bearing} (in the statement of a top-level result, or read by later work), \textbf{interface} (what other layers name), \textbf{helper} (proof support). The future executable verifier (Layer 12) reads, per the blueprint (\texttt{:1049-{}1051}), \texttt{pSpec}, \texttt{check}, \texttt{pooled}, and through them \texttt{expectedValues}, \texttt{lineValue}, \texttt{linePoint}: marked \enquote{read by Layer 12}.
 
 \par\noindent{\small\textit{Cross-references.} A reference such as \enquote{(D.5)} or \enquote{section B} in this part is to a section of the dossier \file{dossiers/code-pubinput.md}, whose codes the headings keep in parentheses: A (catalogue) is \cref{sec:gen-cat-pubinput}; B (faithfulness), E (the flag \lean{PublicLine.sent}) and F (statement checks) is \cref{sec:gen-conf-pubinput}; C (mutation probes) and D (the top limb) is \cref{sec:gen-probes-pubinput}; G (findings) is \cref{sec:gen-findings-pubinput}.}\par
 
@@ -139,7 +139,7 @@ theorem verifier_verify … : (verifier I).toVerifier.verify (s, o) tr = if chec
 
 \src{LeanerVM/Protocol/PublicInput.lean, line 253, at b435631}
 
-The verdict, as an ordinary verifier. \emph{Depends on:} \texttt{materializeOutput\_\allowbreak{}of\_\allowbreak{}keepOracles}, \texttt{simulateQ\_\allowbreak{}optionT\_\allowbreak{}bind\_\allowbreak{}run} (VCVio).
+The verdict, as an ordinary verifier. \emph{Depends on:} \texttt{m\allowbreak{}a\allowbreak{}t\allowbreak{}e\allowbreak{}r\allowbreak{}i\allowbreak{}a\allowbreak{}l\allowbreak{}i\allowbreak{}z\allowbreak{}e\allowbreak{}O\allowbreak{}u\allowbreak{}t\allowbreak{}p\allowbreak{}u\allowbreak{}t\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}k\allowbreak{}e\allowbreak{}e\allowbreak{}p\allowbreak{}O\allowbreak{}r\allowbreak{}a\allowbreak{}c\allowbreak{}l\allowbreak{}e\allowbreak{}s}, \texttt{simulateQ\_\allowbreak{}optionT\_\allowbreak{}bind\_\allowbreak{}run} (VCVio).
 
 \par\medskip\noindent\textbf{\lean{guarded}}\hfill\textsf{\small [load-bearing (ArkLib's composition needs it)]}\par\nopagebreak
 
@@ -189,7 +189,7 @@ theorem rbr : (verifier I).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init im
 
 \src{LeanerVM/Protocol/PublicInput.lean, line 350, at b435631}
 
-Round-by-round knowledge soundness at \texttt{1/\allowbreak{}|E|}. \emph{Depends on:} \texttt{probEvent\_\allowbreak{}uniformSample\_\allowbreak{}le\_\allowbreak{}of\_\allowbreak{}subsingleton}, \texttt{bad\_\allowbreak{}challenge\_\allowbreak{}unique}.
+Round-by-round knowledge soundness at \texttt{1/\allowbreak{}|E|}. \emph{Depends on:} \texttt{p\allowbreak{}r\allowbreak{}o\allowbreak{}b\allowbreak{}E\allowbreak{}v\allowbreak{}e\allowbreak{}n\allowbreak{}t\allowbreak{}\_\allowbreak{}u\allowbreak{}n\allowbreak{}i\allowbreak{}f\allowbreak{}o\allowbreak{}r\allowbreak{}m\allowbreak{}S\allowbreak{}a\allowbreak{}m\allowbreak{}p\allowbreak{}l\allowbreak{}e\allowbreak{}\_\allowbreak{}l\allowbreak{}e\allowbreak{}\_\allowbreak{}o\allowbreak{}f\allowbreak{}\_\allowbreak{}s\allowbreak{}u\allowbreak{}b\allowbreak{}s\allowbreak{}i\allowbreak{}n\allowbreak{}g\allowbreak{}l\allowbreak{}e\allowbreak{}t\allowbreak{}o\allowbreak{}n}, \texttt{bad\_\allowbreak{}challenge\_\allowbreak{}unique}.
 
 \par\medskip\noindent\textbf{\lean{publicInputPhase}}\hfill\textsf{\small [interface]}\par\nopagebreak
 

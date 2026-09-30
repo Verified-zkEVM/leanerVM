@@ -1,0 +1,70 @@
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:14:0: error: Expression
+  decide (74600848310589677 * 7398065826397963919 = 5819866356501410890)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:16:0: error: Expression
+  decide (13636613004184755677 * 4251223801496226528 = 14111934185724402107)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:18:0: error: Expression
+  decide (74600848310589677 * 7398065826397963919 ≠ 5819866356501410891)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:20:0: error: Expression
+  decide (9223372036854775808 * 2 = 27)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:22:55: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  HXor ℕ ℕ K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:47:0: error: Expression
+  decide (a1 * a1 = s1)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:48:0: error: Expression
+  decide (a2 * b2 = c2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:49:0: error: Expression
+  decide (a2 * a2 = s2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:50:0: error: Expression
+  decide (a3 * b3 = c3)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:51:0: error: Expression
+  decide (a3 * a3 = s3)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:52:0: error: Expression
+  decide (a4 * b4 = c4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:53:0: error: Expression
+  decide (a4 * a4 = s4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:67:0: error: Expression
+  decide (g = 2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:68:0: error: Expression
+  decide (g * g = 4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:73:0: error: Expression
+  decide (2 ≠ 0)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:77:0: error: Expression
+  decide (2 ≠ ↑2)
+did not evaluate to `true`
+@OfNat.ofNat K (nat_lit 2) (@instOfNatAtLeastTwo K (nat_lit 2) BF64.instNatCast ⋯) : K
+8#64
+(true, false)
+15#64
+@HAdd.hAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (@instHAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+    (@BitVec.instAdd (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))))
+  u v : BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))
+8#32
+BitVec.instAdd
+BitVec.instMul
+BitVec.instAdd
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:101:0: error: failed to synthesize
+  Fintype (BitVec 64)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+BF64.instLawfulBEq
+CompPoly.Extension.Ext.instLawfulBEq
+exit=1

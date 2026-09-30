@@ -1,0 +1,21 @@
+@OfNat.ofNat K (nat_lit 2) (@instOfNatAtLeastTwo K (nat_lit 2) BF64.instNatCast ⋯) : K
+8#64
+(true, false)
+15#64
+@HAdd.hAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (@instHAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+    (@BitVec.instAdd (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))))
+  u v : BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))
+8#32
+BitVec.instAdd
+BitVec.instMul
+BitVec.instAdd
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.v434.lean:102:0: error: failed to synthesize
+  Fintype (BitVec 64)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+BF64.instLawfulBEq
+CompPoly.Extension.Ext.instLawfulBEq
+exit=1

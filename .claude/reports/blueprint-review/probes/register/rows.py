@@ -49,7 +49,7 @@ F("critical (as a warning about ArkLib's definition; not a defect of a leanerVM 
   "ArkLib `Security/RoundByRound.lean:77-86, 118-123` at `dca90385`; probe `Extractors` (`chooser_sound`, exit 0, old pin)",
   "state every interface in the named (`With`) form with a compiled extractor checked by a `def` without `noncomputable`; change `:239`, `:1084`, `:1333` (lib-arklib.md §G.1)",
   "probe-run (old pin)",
-  "Related: row on \"computable is not efficient\" (literature)."),
+  "Related: [[computable]] (literature)."),
 
 # ============================================================ MAJOR
 
@@ -62,16 +62,16 @@ F("major (gt-table-pub, code-spine)", 1, "seams",
   "`Spine/Seams.lean:130-134, 175-181` at `b435631`; probes `SeamBusShape.lean`, `SeamBusMember.lean` (exit 0 per the dossier)",
   "give `BusOut` the shape of the Rust's `BusVerify` (`leaf.rs:849-860`): one point, forms per side and sumcheck table with the degree in the type, three totals, column claims; smallest fix: make `VirtualTerm.poly` a subtype within the degree bound (gt-table-pub.md §8; code-spine.md §F)",
   "cited-checked; probe-run",
-  "DISAGREEMENT with the next row: gt-bus holds that the surplus generality costs nothing that matters. code-spine endorses gt-table-pub's redesign."),
+  "DISAGREEMENT with [[buspos]]: gt-bus holds that the surplus generality costs nothing that matters. code-spine endorses gt-table-pub's redesign."),
 F("— (a position of gt-bus, not a finding; placed beside the row it disputes)", 1, "seams",
   "The real bus phase can fill the spine's bus slot; the seam's surplus generality burdens only the table phase",
   "gt-bus.md Summary item 2, §E.1, §E.2, §E.4",
   "—",
-  "The deployed bus phase's output is expressible as a `BusOut I` (five linear and five column claims for leanVM), it is perfectly complete (given the side conditions of the row on two side conditions), and a knowledge state function exists. `Seam.bus` admits statements the bus phase never emits, but gt-bus calls that \"a burden on the table phase's completeness\", met by \"a table phase written over the terms' own points\", and finds nothing required by the spine that matters.",
+  "The deployed bus phase's output is expressible as a `BusOut I` (five linear and five column claims for leanVM), it is perfectly complete (given the side conditions of [[sideconds]]), and a knowledge state function exists. `Seam.bus` admits statements the bus phase never emits, but gt-bus calls that \"a burden on the table phase's completeness\", met by \"a table phase written over the terms' own points\", and finds nothing required by the spine that matters.",
   "gt-bus.md §E.1-E.4 (paper)",
   "none proposed beyond the side conditions and the order of the linear claims",
   "cited-checked; paper",
-  "DISAGREEMENT with the previous row: gt-table-pub and code-spine hold that the table phase which meets the seam must run checks leanVM does not run, so it is not the deployed verifier."),
+  "DISAGREEMENT with [[busseam]]: gt-table-pub and code-spine hold that the table phase which meets the seam must run checks leanVM does not run, so it is not the deployed verifier."),
 F("major", 1, "seams",
   "The spine's completeness cannot carry an error, and Flock may need one",
   "lib-arklib.md §G.2; §E.3",
@@ -80,7 +80,7 @@ F("major", 1, "seams",
   "`ToArkLib/Component.lean:84-85`; blueprint `:1083`, `:1323-1325`; `crates/flock/src/zerocheck.rs:117`; ArkLib `GuardedCompleteness.lean:161-173`",
   "add `err` to `Component.Complete`, compose by `append_completeness_of_guarded_verifiers`, state `piop_completeness` with the sum and `piop_perfectCompleteness` as its corollary (lib-arklib.md §G.2)",
   "paper",
-  "DISAGREEMENT with the row on acceptance test 20 (gt-flock-ring): there the specification's Flock is perfectly complete, only the Rust prover fails, so a Lean honest prover sending the true coefficients needs no completeness error. lib-arklib's own condition is answered by gt-flock-ring §4 and §8.12. The check of gt-flock-ring adds that ArkLib's completeness composition has side hypotheses (`hSeam`, completeness from every shared state)."),
+  "DISAGREEMENT with [[test20]] (gt-flock-ring): there the specification's Flock is perfectly complete, only the Rust prover fails, so a Lean honest prover sending the true coefficients needs no completeness error. lib-arklib's own condition is answered by gt-flock-ring §4 and §8.12. The check of gt-flock-ring adds that ArkLib's completeness composition has side hypotheses (`hSeam`, completeness from every shared state)."),
 
 # --- master theorems and the error
 F("major", 1, "error",
@@ -102,7 +102,7 @@ F("major", 1, "setup",
   "blueprint `:316`, `:1218-1221`, `:1226-1227`, `:1326-1328`; `cpu/mod.rs:130-178`; `verifier.py:1372-1379`",
   "state the non-interactive theorem for the family (`niError Q` the maximum, or the sum, over admissible sizes) and `FiatShamirSecurity` in family form with the sizes in the challenge oracle's input (boundary-adaptor.md §G.6)",
   "paper; unverified (the count `2^34` is a hand estimate)",
-  "gt-bus §C (row on the announced sizes) records the deliberate deviation this rests on and the uniform bound it owes."),
+  "gt-bus §C (its row on the announced sizes) records the deliberate deviation this rests on and the uniform bound it owes."),
 
 # --- bus
 F("major", 1, "bus",
@@ -113,7 +113,7 @@ F("major", 1, "bus",
   "`gkr.rs:399-404, 410-413`; `fiat_shamir/src/transcript.rs:297-302`; `verifier.py:411-413, 445, 449`; blueprint `:321`, `:898-901`, `:941-942`; Python probe H.1 (honest prover accepted by the pinned Python verifier; re-run by the check)",
   "define both sumcheck variants in Layer 4 by name; `4/|E|` per GKR round in `gkrError` and the tracker (gt-bus.md G1)",
   "cited-checked; probe-run (Python)",
-  "DISAGREEMENT with the next row on the GKR round error (4 against 5). The check corrected G1's wording on the table sumcheck: \"three of the cubic's four coefficients are sent\", not \"the whole cubic\" (verify-gt-bus.md §4 item 1)."),
+  "DISAGREEMENT with [[gkrpos]] on the GKR round error (4 against 5). The check corrected G1's wording on the table sumcheck: \"three of the cubic's four coefficients are sent\", not \"the whole cubic\" (verify-gt-bus.md §4 item 1)."),
 F("— (a premise of gt-table-pub, not a finding; placed beside the row it disputes)", 1, "bus",
   "The GKR last-layer rounds cost `5/|E|` each, as the blueprint says",
   "gt-table-pub.md §5 D.3 (\"On the rounds of the last layer `ε_G = 5/|E|`\"); verify-gt-table-pub.md §4 item 5",
@@ -122,7 +122,7 @@ F("— (a premise of gt-table-pub, not a finding; placed beside the row it dispu
   "`gkr.rs:399-401`",
   "—",
   "cited-checked; paper",
-  "DISAGREEMENT with the previous row: gt-bus reads the check as made on the cofactor (normalized sumcheck), so the error is `4/|E|` and the blueprint's `5/|E|` is not tight. Both are upper bounds; neither dossier's conclusion on the zerocheck changes (the escape is a maximum with `ε_G ≥ 1/|E|` either way). Both agree on the combination challenges (`1/|E|` each) and on a zero error for the unused last combiner only in gt-bus."),
+  "DISAGREEMENT with [[gkrnorm]]: gt-bus reads the check as made on the cofactor (normalized sumcheck), so the error is `4/|E|` and the blueprint's `5/|E|` is not tight. Both are upper bounds; neither dossier's conclusion on the zerocheck changes (the escape is a maximum with `ε_G ≥ 1/|E|` either way). Both agree on the combination challenges (`1/|E|` each) and on a zero error for the unused last combiner only in gt-bus."),
 F("major (by the brief's definition; the fix is one sentence)", 1, "bus",
   "One combiner more than GKR layers: the last is drawn and never used",
   "gt-bus.md G2",
@@ -187,7 +187,7 @@ F("major (gt-flock-ring, boundary-adaptor; \"cannot be stated as written\")", 1,
   "blueprint `:846-848`, `:855-857`, `:1077`; `hash_flock.rs:87-115`",
   "an instance-free structure supplied by issue #3 (`blake2sLimbSlot` in `Parameters/` in gt-flock-ring; `FlockSpec` with `slot`, `Holds`, `compress_of_holds`, `gen`, `holds_gen` in boundary-adaptor); delete `limbColumns` and `FlockWitnessGen` (gt-flock-ring.md §8.2; boundary-adaptor.md §G.7)",
   "cited-checked (gt-flock-ring part); paper",
-  "Two dossiers. Related, not merged: the row on the missing strided reader (code-layer1) and the row on the Flock phase over an abstract instance (gt-flock-ring §8.3, which boundary-adaptor's proposal also takes)."),
+  "Two dossiers. Related, not merged: [[strided]] (the missing strided reader, code-layer1) and [[flockabs]] (the Flock phase over an abstract instance, gt-flock-ring §8.3, which boundary-adaptor's proposal also takes)."),
 F("major (cannot be stated as written)", 1, "flock",
   "The Flock phase cannot be written over an abstract instance, which gives it only an opaque predicate",
   "gt-flock-ring.md §8.3; §1 item 7; probe 9.1",
@@ -196,7 +196,7 @@ F("major (cannot be stated as written)", 1, "flock",
   "`Spine/Instance.lean:143-148`; blueprint `:331`, `:1072`; probe `NoCheckFlock.lean` (exit 0 per the dossier, old pins)",
   "a `FlockRegion I` (the column, `kBatch`, its height, `aux ↔ Flock.Holds`) supplied by Layer 3 and taken by Layer 9 (gt-flock-ring.md §8.3)",
   "cited-checked; probe-run (not re-run by the check)",
-  "Related: the row on the instance as trusted data (code-spine)."),
+  "Related: [[trusted]] (the instance as trusted data, code-spine)."),
 F("major", 1, "flock",
   "Acceptance test 20 files a completeness failure under a soundness error, and attributes to the protocol an inverse only the Rust prover takes",
   "gt-flock-ring.md §8.4; §4",
@@ -205,7 +205,7 @@ F("major", 1, "flock",
   "`crates/flock/src/zerocheck.rs:116-118`; `fiat_shamir/src/transcript.rs:296-302`; blueprint `:1323-1325`; Python probe 9.2 (re-run by the check)",
   "rewrite test 20 (\"no exceptional-challenge clause, in any phase\"; the Rust prover's defect recorded in `docs/leanvm-target.md`); the same sentence drafted for issue #3 (gt-flock-ring.md §8.4)",
   "cited-checked; probe-run (Python)",
-  "DISAGREEMENT with the row on completeness errors (lib-arklib §G.2), which would give the spine a completeness error for Flock. The check notes that \"no verifier takes an inverse\" is literally false (constants are inverted); read \"no inverse of a challenge-dependent value\"."),
+  "DISAGREEMENT with [[complerr]] (lib-arklib §G.2), which would give the spine a completeness error for Flock. The check notes that \"no verifier takes an inverse\" is literally false (constants are inverted); read \"no inverse of a challenge-dependent value\"."),
 
 # --- opening and compilation
 F("major", 1, "opening",
@@ -216,7 +216,7 @@ F("major", 1, "opening",
   "ArkLib `FiatShamir/Basic.lean:130-136, 163-175`, `Implications.lean:230-254`, `BCS/Basic.lean`, `Commitments/Functional/Basic.lean:250-255` (`dca90385`); blueprint `:263`, `:1218-1221`",
   "ledger row A5: `FiatShamirSecurity` and `BcsSecurity` are assumed interfaces whose obligation is the literature; drop `Verifier.fiatShamir` from `verify_iff_compiled` or apply it to the compiled protocol (lib-arklib.md §G.4)",
   "paper (that the constant-oracle statement is false in general is the dossier's inference, not machine-checked)",
-  "Related, not merged: the next row (literature), on what an upstream theorem would be about."),
+  "Related, not merged: [[fsother]] (literature), on what an upstream theorem would be about."),
 F("major (the interface cannot be discharged by \"the upstream theorem\")", 1, "opening",
   "Upstream Fiat–Shamir and BCS theorems will be about other constructions than leanVM's one-map BLAKE2s chain",
   "literature.md §E.6 (first finding)",
@@ -241,7 +241,7 @@ F("major", 1, "opening",
   "blueprint `:1224`, `:1238-1240`; `fiat_shamir/src/merkle.rs:22-37`",
   "the change of the previous row; extend Layer 12's mutations (a wrong grinding nonce at each level, a truncated path, a nonzero third limb, a size above its cap) and run transcripts the specification rejects through the Rust and Python verifiers (literature.md §G.5)",
   "paper",
-  "Related, not merged: the row on canonical-encoding and consumption checks (gt-bus G9)."),
+  "Related, not merged: [[canon]] (canonical-encoding and consumption checks, gt-bus G9)."),
 F("major (literature, \"numerically benign\"); note (gt-flock-ring)", 1, "opening",
   "The compiled error omits the list-size factor of a list-binding commitment",
   "literature.md §A.4 (second finding), §A.3 item 4; gt-flock-ring.md §8.13",
@@ -260,7 +260,7 @@ F("major (docs-debt, boundary-adaptor; a statement cannot be proved as written)"
   "blueprint `:222`, `:1247-1255`; `leanisa-blueprint.md:1156-1166`; `architecture.md:224-228`; `leanvm-target.md:57-62`; the proved test `tests/LeanerVMTests/Semantics/Execution.lean:415-461`; probe `Transport` (examples 3-4, old pins)",
   "add `(hwf : WellFormedBytecode prog)` to both (or have `verify` decide the condition and reject); restate soundness for the compiled random-oracle verifier (`baseVerifier_sound`) plus a pointwise `execution_of_extracted` (docs-debt.md §H.1; boundary-adaptor.md §G.3)",
   "paper; probe-run (`Transport`; the sentinel counterexample is a proved repository test)",
-  "Two dossiers (the coordinator's known overlap). The completeness theorem's other defects are the next row."),
+  "Two dossiers (the coordinator's known overlap). The completeness theorem's other defects are [[basecompl]]."),
 F("major", 1, "adaptor",
   "The base completeness theorem is false without resource hypotheses and needs a witness generator",
   "boundary-adaptor.md §G.4; §C",
@@ -269,7 +269,7 @@ F("major", 1, "adaptor",
   "blueprint `:147-148`, `:1249-1250`, `:1255-1257`; `Semantics/Execution.lean:108-110`; `Arithmetization/Statement.lean:358`; `cpu/mod.rs:174-176`; `pcs.rs:51`; `verifier.py:1379`",
   "`baseProver_complete` from a satisfying witness with admissible sizes and a valid rate, and `baseProver_complete_of_execution` with a fit hypothesis `hfit`; ask leanISA for a minimal-height `constraintCompleteness` (boundary-adaptor.md §G.4)",
   "paper",
-  "Item (c) overlaps the previous row (docs-debt §H.1 also names `HasFillBlocks`). Related: the note on `constraintCompleteness`'s own resource hypothesis."),
+  "Item (c) overlaps [[wfb]] (docs-debt §H.1 also names `HasFillBlocks`). Related: [[resource]] (`constraintCompleteness`'s own resource hypothesis)."),
 F("major", 1, "adaptor",
   "The instance is not `Ensemble.toM3` of the eight tables",
   "boundary-adaptor.md §G.1; §A.5",
@@ -287,7 +287,7 @@ F("major", 1, "adaptor",
   "blueprint `:775-777`, `:810-819`; Clean `FlatEnsemble.lean:225-226` (`93c9d1ef`); `Arithmetization/Statement.lean:207-209`",
   "add `boundary_tuples_eq` to Layer 3 and a Layer 2 test on the one-row witness (boundary-adaptor.md §G.2)",
   "paper"),
-F("major (a deviation with a workaround)", 1, "adaptor",
+F("major", 1, "adaptor",
   "The polynomial bridge of Layer 2 is noncomputable at the pin",
   "boundary-adaptor.md §G.8; §E.5",
   "a deviation forced by an upstream library, with a workaround; retired if CompPoly makes `toCMvPolynomial` computable",
@@ -324,7 +324,7 @@ F("major", 1, "layer1",
   "`pcs/src/stack_open.rs:84-97`; `verifier.py:884-894`; `hash_flock.rs:87-115`; `ToCompPoly/Multilinear.lean:50-51`; blueprint `:841-848`; probe `StridedProbe.lean` (generic lemma, twenty lines)",
   "add `sliceLow`, `evalMle_boolVec_append`, `Blocks.stridedLayout`, `Layout.piecewise` to Layer 1, with tests against the Python's `Placement.stack_point` (code-layer1.md §G.1)",
   "probe-run (the lemma; run outside `lake`, old binary); unverified (the reader and combinator are sketched)",
-  "Related, not merged: the row on the limb slot map (gt-flock-ring §8.2)."),
+  "Related, not merged: [[flockcirc]] (the limb slot map, gt-flock-ring §8.2, boundary-adaptor §G.7)."),
 
 # --- documentation
 F("major (docs-debt); minor (gt-table-pub, gt-bus, code-spine)", 1, "docs",
@@ -364,7 +364,7 @@ F("minor", 2, "seams",
   "`ToArkLib/Component.lean:90-93, 176, 182-184`",
   "a `Component.Guarded` (output purity and guard) extended by both `Complete` and `Security`; convention Holes reworded (gt-flock-ring.md §8.5)",
   "cited-checked; paper",
-  "The check adds that `Security.append` also builds `toComplete` (`:176`), so the split must give it a completeness-free path. Related: the two rows on completeness errors."),
+  "The check adds that `Security.append` also builds `toComplete` (`:176`), so the split must give it a completeness-free path. Related: [[complerr]] and [[test20]] on completeness errors."),
 F("minor (code-spine); note (lib-arklib)", 2, "seams",
   "The `outputPure` field is redundant, and `guarded` nearly so",
   "code-spine.md §F \"The outputPure field is redundant\", §D.7; lib-arklib.md §G.7",
@@ -389,7 +389,7 @@ F("minor (auditability)", 2, "seams",
   "`PublicInput.lean:374-381`; blueprint `:1145`, `:1333`; probe `ExtractorsExpectedFailure` (exit 1, expected)",
   "move `err` into `Security`, or split a computable reduction structure that `Def` extends (lib-arklib.md §G.5)",
   "probe-run",
-  "Related: the row on the unconstrained error (code-spine), whose recommended design also moves `err` out of `Def`."),
+  "Related: [[declerr]] (code-spine), whose recommended design also moves `err` out of `Def`."),
 F("minor", 2, "seams",
   "Two side conditions a bus phase over an abstract instance needs",
   "gt-bus.md G10; probe H.2",
@@ -433,7 +433,7 @@ F("minor (gt-table-pub, gt-bus)", 2, "error",
   "blueprint `:333`, `:974`, `:1000-1003`, `:1283`; tracker P2 (\"`1/|E|` per coordinate per constraint\")",
   "one definition of `busError` in Layer 6 with the zerocheck as a conjunct of the state function; drop \"per constraint\" and \"the (α, β) and\" (gt-bus.md G6; gt-table-pub.md §8)",
   "cited-checked; paper",
-  "Two dossiers; they count three ways (gt-table-pub) or four (gt-bus, counting the tracker) and agree on the fix. See the disagreement on the GKR round error (rows above)."),
+  "Two dossiers; they count three ways (gt-table-pub) or four (gt-bus, counting the tracker) and agree on the fix. See the disagreement on the GKR round error, [[gkrnorm]] and [[gkrpos]]."),
 F("minor (for T4 as stated) / note", 2, "error",
   "\"Computable\" is not \"efficient\" for the compiled extractor",
   "literature.md §A.4 (fourth finding)",
@@ -452,7 +452,7 @@ F("minor", 2, "bus",
   "`cpu/layout.rs:354-410`; `verifier.py:499, 507`; `Spine/Instance.lean:185-186`",
   "a conventions row \"Leaf stacks\"; a Layer 6 test with a table height equal to `κ_mem` (gt-bus.md G7)",
   "cited-checked",
-  "Related: the row on the tie order of the witness stack (code-layer1 §G.3)."),
+  "Related: [[tieorder]] (the tie order of the witness stack, code-layer1 §G.3)."),
 F("minor", 2, "bus",
   "Orders the blueprint leaves open: the two roots, the boundary evaluations, the linear claims, the point",
   "gt-bus.md G8",
@@ -550,7 +550,7 @@ F("minor", 2, "opening",
   "`cpu/mod.rs:133-135`; `fiat_shamir/src/merkle.rs:26-29`; `verifier.py:223, 1373`; blueprint `:1238-1239`",
   "list the three checks in Layer 12 with three mutations (gt-bus.md G9)",
   "cited-checked (the dossier's search wording was overstated; the substance holds)",
-  "Related: the row on the proof of work (literature §G.5)."),
+  "Related: [[pow]] (the proof of work, literature §G.5)."),
 F("minor", 2, "opening",
   "The hash-collision term is missing from `niError`",
   "literature.md §A.4 (third finding); §A.3 item 2",
@@ -585,7 +585,7 @@ F("minor", 2, "setup",
   "`cpu/mod.rs:141-143`; `Arithmetization/Statement.lean:71-75`; blueprint `:326`, `:1217`, `:1236-1240`",
   "a sentence in the row \"Verifier shape\"; the differential fixture records a rejected public input as a parse failure (boundary-adaptor.md §G.15)",
   "paper",
-  "Related: the row on canonical-encoding checks (gt-bus G9) and the row on the top limb (code-pubinput §G.3)."),
+  "Related: [[canon]] (canonical-encoding checks, gt-bus G9) and [[toplimb]] (the top limb, code-pubinput §G.3)."),
 
 # --- adaptor
 F("minor", 2, "adaptor",
@@ -620,7 +620,7 @@ F("minor (harmless)", 2, "adaptor",
   "`ToArkLib/Refinement.lean:55-57`; ArkLib `Security/Basic.lean:316` (`dca90385`); probe `Transport` (`bad_of_bad`)",
   "name `Refinement.knowledge_transport` as what T4 composes; keep `map_option_valid` for the honest direction; fix the T4 line at `:407` and the tracker's `knowledgeSound_of_refinement` (boundary-adaptor.md §G.13)",
   "probe-run",
-  "Related: the note on knowledge transport in three lines (code-spine)."),
+  "Related: [[transport]] (knowledge transport in three lines, code-spine)."),
 F("minor", 2, "adaptor",
   "The relation ladder conflates Clean's field sum with Clean's balance relation",
   "lib-others.md §G.1; §C.5",
@@ -673,7 +673,7 @@ F("minor", 2, "layer1",
   "`ToCompPoly/Stacking.lean:62-68`; `Stack.lean:52`; `docs/reviews/protocol-layer1.md:34`; probes `OffsetsProbe.lean`, `offsets.py` (92 offsets of the pinned Python layout)",
   "a Layer 3 test on the two configurations where a table height equals `κ_mem` (code-layer1.md §G.3)",
   "probe-run",
-  "Related: the row on the leaf stacks' order (gt-bus G7), \"the same gap\"."),
+  "Related: [[leafstacks]] (the leaf stacks' order, gt-bus G7), \"the same gap\"."),
 F("minor (code-layer1, docs-debt)", 2, "layer1",
   "Acceptance test 14 names a tautology as its witness; no test compares the bytecode column with leanVM's encoder",
   "code-layer1.md §G.4, §C.3; docs-debt.md §H.14 (one item)",
@@ -789,7 +789,7 @@ F("minor (gt-bus, docs-debt, boundary-adaptor)", 2, "docs",
   "blueprint `:197`, `:220`, `:601`, `:799`, `:1280`; `05-arithmetization.tex:36, 40`; `Arithmetization/Channels.lean:138-141`; status `:177`",
   "replace each by the name that exists (gt-bus.md G14; docs-debt.md §H.14; boundary-adaptor.md §G.14)",
   "cited-checked (gt-bus part); paper",
-  "Test 14's witness (also in docs-debt §H.14) is in the Layer 1 row on test 14; the ArkLib table's names are in the row on the ArkLib table (lib-arklib §G.6)."),
+  "Test 14's witness (also in docs-debt §H.14) is in [[test14]]; the ArkLib table's names are in [[arklibtable]] (lib-arklib §G.6)."),
 F("minor", 2, "docs",
   "Source discrepancies are not recorded where both status files say they are",
   "docs-debt.md §H.16; §B.7 item 6",
@@ -884,7 +884,7 @@ F("note", 3, "seams",
   "probe `P2Relation.lean` (`toyAlias`; exhaustive `#guard` over a small range)",
   "append to \"What the spine fixes\" item 1 that the instance is trusted data (code-spine.md §F)",
   "probe-run (emptiness: guard plus paper)",
-  "Related: the Layer 1 note on `Layout.comap` aliasing; the Flock row on `aux := True`."),
+  "Related: [[comap]] (`Layout.comap` aliasing); [[flockabs]] (`aux := True`)."),
 
 # --- setup
 F("note", 3, "setup",
@@ -952,7 +952,7 @@ F("note", 3, "flock",
   "`crates/flock/src/zerocheck.rs:116-118`; Python probe 9.2 (re-run by the check)",
   "record in `docs/leanvm-target.md`",
   "cited-checked; probe-run (Python)",
-  "Bears on the disagreement between the rows on completeness errors (lib-arklib §G.2) and on acceptance test 20."),
+  "Bears on the disagreement between [[complerr]] (lib-arklib §G.2) and [[test20]]."),
 F("note", 3, "flock",
   "Stale comments in the Rust on what binds the counter and the flags",
   "gt-flock-ring.md §8.15; verify-gt-flock-ring.md §4 item 8",
@@ -1011,7 +1011,7 @@ F("note (docs-debt); part of a conclusion (boundary-adaptor §F)", 3, "adaptor",
   "a deliberate scope choice not written down as a deviation from `architecture.md`",
   "`baseProver_complete` composes the existential `constraintCompleteness`; `architecture.md` says T4's completeness composes T2 (the witness generator) with the honest prover. boundary-adaptor adds two more points where the obligation map is not met: no resource conditions are recorded, and the hash assumption (BLAKE2s as a random oracle) is nowhere an explicit hypothesis.",
   "blueprint `:147-148`, `:1255`; `architecture.md:273-275`",
-  "one sentence in Layer 13 (docs-debt.md §H.19); the resource and hash points are the rows on base completeness and base soundness",
+  "one sentence in Layer 13 (docs-debt.md §H.19); the resource and hash points are [[basecompl]] and [[wfb]]",
   "paper",
   "Two dossiers."),
 F("note", 3, "adaptor",
@@ -1020,7 +1020,7 @@ F("note", 3, "adaptor",
   "—",
   "The base soundness theorem concludes only `∃ t, ValidExecution`, a statement about a language; recursion (T6) needs the extracted witness and `AssignmentRepresents`.",
   "`architecture.md:332-335`",
-  "the pointwise `execution_of_extracted` of the row on base soundness (boundary-adaptor.md §G.3)",
+  "the pointwise `execution_of_extracted` of [[wfb]] (boundary-adaptor.md §G.3)",
   "paper"),
 F("note (leanISA's, out of scope)", 3, "adaptor",
   "`constraintCompleteness` needs a resource hypothesis of its own",
@@ -1107,7 +1107,7 @@ F("note", 3, "layer1",
   "probe `ValuesProbe.lean` (`aliased`)",
   "optional `Function.Injective f` for `leanIsaInstance`'s map",
   "probe-run",
-  "Related: the note on the instance as trusted data (code-spine)."),
+  "Related: [[trusted]] (the instance as trusted data, code-spine)."),
 F("note", 3, "layer1",
   "Unused or duplicated Layer 1 declarations",
   "code-layer1.md §G.10 (second bullet); §E proposals 2-5",
@@ -1151,3 +1151,251 @@ F("note (an observation of the citation check)", 3, "docs",
   "`git diff b435631 HEAD -- docs/roadmap/protocol-blueprint.md`",
   "the report states that citations are at `b435631`",
   "cited-checked"),
+
+# ============================================================ PART 2: NEGATIVE RESULTS
+# N(dossier + section, what was checked and found right, how, caveat)
+
+N("gt-table-pub §0 item 1, §2", "The table sumcheck's transcript agrees across specification, Rust and Python: one challenge `ξ`, `τ_max` rounds of three field elements, a final message of 104 values, one final check, a derived target.", "reading; cited-checked", "")
+N("gt-table-pub §4 C.1", "The blueprint's table-sumcheck conventions match the ground truth: variable order, joining round, padding (`padHigh`, `evalMle_padHigh` give the Rust's factor), degree, powers of `ξ`, derived target, claim-pool order, the third public claim with value 0, the limbs as strided claims.", "reading; cited-checked", "the final message matches only for the six opcode tables ([[tables]])")
+N("gt-table-pub §0 item 3, §5 D.2", "The blueprint's errors `(B+2)/|E|` on `ξ` and `3/|E|` per round are correct, tight and on the right challenges.", "paper", "")
+N("gt-table-pub §2 A.4", "Checked and agreeing across the three sources: the moment of every challenge; the power assignment; the three sides and their order; the order of the 104 values (`tables.rs:436-863` against `verifier.py:823-834`); the slot of each BLAKE2s limb; the pool order.", "reading; cited-checked", "")
+N("gt-table-pub §2 A.4", "The Rust-only guard `zeta.len() < n` is unreachable (`μ_bus ≥ τ_max + 1`); nothing to model.", "reading", "")
+N("gt-table-pub §5 D.4", "The public input's per-limb error `1/|E|` is correct, tight and on the one challenge (attained by the test `PublicInput.lean:106-110`).", "paper; repository test", "")
+N("gt-table-pub §8 Notes", "Perfect completeness needs no exceptional-challenge clause in the table sumcheck and the public input (the only inverse in the prover is of the constant `g + g²`).", "paper", "")
+N("verify-gt-table-pub §1", "301 citations checked; no quotation misquoted; the load-bearing quotations (the Rust verifier loop, the public-input checks in Rust, Python and the guest, `BusVerify`, the tex, ArkLib `RoundByRound.lean`, the spine's blocks) are verbatim.", "citation check", "four numbering corrections and two wrong lines (Dossiers processed)")
+
+N("gt-bus Summary item 1, §A.6", "Specification, Rust and Python agree on the transcript of the setup, the commitment and the bus phase, up to the specification's omissions; the Rust and Python verifiers accept the same transcripts in these phases.", "reading line by line (not a differential test)", "")
+N("gt-bus §E.5", "The spine is right on the bus: `tuples` takes every row of every flush and boundary block of a side; `Balanced` is a permutation of 16-tuples, separator included; `CountsNonzero` covers every cell of every listed column; `Seam.commit` is `M3Holds` of the oracle (`Iff.rfl`); `Seam.bus` carries the public lines and `aux`; the toy's tests make each clause fail alone.", "reading; cited-checked", "")
+N("gt-bus §E.3", "Every framework block of leanVM (state, memory, bytecode; seed and finalization) is expressible as a `BoundaryBlock`; the boundary depends on the program and the sizes, never on the public input.", "reading; cited-checked", "the instance is then not `Ensemble.toM3` of the ensemble ([[toM3]])")
+N("gt-bus §F", "Status findings confirmed at the pin: one scalar root for push and pull (F3, but an agreement, not a divergence), the count tree holds only the tables' count columns (F11), ties put the shared columns first (F17), the caps and stacking bound (F15), padding leaves 1 and stack padding 0.", "reading; cited-checked", "")
+N("gt-bus §C", "The blueprint matches: the seed; one `(α, β)` message; radix and parity; `R_c ≠ 0`; one root; the derived remainders as linear claims; the count tree; the padding; the fingerprint; the layer check; `busError` on `(α, β)`; acceptance tests 1, 2, 3, 4, 15, 17.", "reading; cited-checked", "test 18's clause is loose; test 28 is incomplete ([[sideconds]])")
+N("gt-bus §C", "Deliberate deviations to keep: the sizes index the instance instead of being a message (owes absorption before the root and a uniform bound); the commitment is sent as the oracle (Layers 11, 12 owe the compilation); the verifier's assertions become layout lemmas (owes four lemmas about `leanIsaInstance`, none listed in Layer 3); the round identity is checked in the oracle protocol (owes `RoundPoly.decode`).", "reading", "the four lemmas are not listed in Layer 3")
+N("gt-bus §E.2", "The multiset lemma (Lemma 5.2) holds as used; `CountsNonzero` against `R_c ≠ 0` is exact.", "paper", "")
+N("gt-bus §H.1", "Python probe: an honest GKR prover written from the specification is accepted by the pinned Python verifier; `ζ` never contains the last combiner.", "probe run; re-run by the check with identical output", "")
+N("verify-gt-bus §1, §4 item 7", "314 citation rows checked (about 400 references); no quotation misquoted; no finding weakened by the corrections.", "citation check", "")
+
+N("gt-flock-ring §2.6, §10", "The Flock transcript: fifteen steps, three sources, no disagreement; one equality check (the lincheck terminal identity); Flock commits nothing of its own and the verifier queries nothing during the phase.", "reading; independent check agrees (stream count `162 + 2·k_batch`, `2·k_batch + 25` challenges)", "")
+N("gt-flock-ring §10", "The blueprint's strided limb claims (`:841-846`) match `stack_open.rs:84-97, 305-323` and `verifier.py:892, 295-302`.", "reading; cited-checked", "")
+N("gt-flock-ring §10", "The claim pool order (`:324`: ring-switched claim first, then bus, table, public-input claims) matches `cpu/mod.rs:656-667`, `stack_open.rs`, `verifier.py:1413`, `08:98`.", "reading; cited-checked", "")
+N("gt-flock-ring §10", "The Fiat–Shamir seed convention (`:325`) matches `cpu/mod.rs:82-93`, `verifier.py:1366-1368`.", "reading; cited-checked", "")
+N("gt-flock-ring §10", "The strong reading of `aux` (status decision 12) is right; a predicate on the limb slots alone has no honest prover; the spine's docstrings carry it.", "reading", "the constant position must be added ([[constone]])")
+N("gt-flock-ring §10", "The phase order `pub ⟫ flock ⟫ opening` matches `cpu/mod.rs:745-768`, `verifier.py:1397-1413`.", "reading", "")
+N("gt-flock-ring §1 item 4, §5.2", "`flockError_le` is right for a fixed committed polynomial: `(4·k_batch + 163)/|E|` is Annex C.7's sum and matches the Rust's parameters term by term; `2^32/|E|` bounds the ring-switching degree.", "paper", "list size after compilation ([[listsize]])")
+N("gt-flock-ring §1 item 4", "The partially fixed zerocheck's hypothesis holds for the pinned constants: the 128 equality weights of the seven fixed coordinates are independent over `F_2` (rank 128).", "Python probe; re-run by the check", "")
+N("gt-flock-ring §10", "`Blake2sRowsValid` is what the adaptor must reach; blocks and rows correspond one to one (no padding block).", "reading", "")
+N("gt-flock-ring §1 item 6, §6", "Ring switching serves the bit witness only; `K`-valued columns need none; in leanVM it sends nothing, checks nothing and draws six challenges.", "reading; independent check agrees", "")
+N("gt-flock-ring §1 item 3, §4", "Perfect completeness of the specification's Flock protocol is attainable (a prover sending the true coefficients).", "paper; Python probe 9.2", "the Rust prover is not perfectly complete ([[rustprover]])")
+N("verify-gt-flock-ring §1", "About 381 citations checked; all eight independent checks agree with the dossier; both Python probes reproduce.", "citation check", "")
+
+N("code-spine §0 item 1; probe P1", "No theorem of the spine is wrong for what it states; every stated theorem uses only the kernel's three standard axioms.", "probe-run (old pins)", "")
+N("code-spine §C.1", "`M3Holds` says what the specification's accept list says, clause by clause (`05:10-16, 101, 111`; `06:74-78`; `08:29-33, 100`).", "reading", "")
+N("code-spine §D.1; probe P2", "`Balanced` handles the side filter, the row ranges and multiplicity (a tuple pushed twice and pulled once; pushed twice and never pulled, which a field-summed balance accepts).", "probe-run", "")
+N("code-spine §D.2; probe P3a", "Each seam is inhabited and refuted conjunct by conjunct.", "probe-run", "")
+N("code-spine §D.5, §D.6; probes P3b, P1", "The commit phase's state function and extractor are as documented; the extractor chain is computable.", "probe-run", "")
+N("code-spine §E.1", "The blueprint's spine sketch (`:442-554`) matches the code name for name and signature for signature; the differences listed change no statement.", "reading", "the interface list omits load-bearing names ([[publicnames]])")
+N("code-spine §E.3 row 25", "The spine's five modules and `ToArkLib/` import nothing from the arithmetization.", "git grep", "`Protocol/Basic.lean` does ([[basic]])")
+N("code-spine §E.2", "`Seam.done` equals `Set.univ`: same set, different spelling.", "probe-run", "")
+N("code-spine §0 item 9, §C.7", "`Refinement`'s two witness universes are independent.", "reading", "")
+N("code-spine §E.3", "Acceptance tests 26 (seams are the contract), 27 (the toy is honest) and 28 (degree at the seam) are met.", "reading", "26 says nothing about content; 28 is met at the cost of a guard ([[busseam]])")
+N("code-spine §C.6", "The quantification over the oracle state `σ`, `init`, `impl` is without content (one `impl`, never called); it is forced by ArkLib.", "reading", "it costs three binders in eleven load-bearing declarations")
+N("code-spine §B", "The audit surface was measured: 70 declarations and 217 code lines for completeness; 76 and 248 for knowledge soundness in its existential form; 100 and 354 in the named form.", "count script at `b435631`", "")
+
+N("code-pubinput §G Negative results, §B", "The public-input phase's schedule, challenge, number of scalars, point `(r, 0, …, 0)`, honest values, three claims and their order, rejection and error agree between the specification, the three implementations and the Lean.", "reading line by line", "the check itself differs ([[pubdeployed]])")
+N("code-pubinput §G Negative results", "The bit order of `linePoint` is proved (`eval₂Mle_linePoint`) and separated from the other order by a two-variable test.", "reading", "")
+N("code-pubinput §G Negative results", "`1 + r` against `1 - r` is joined by `CharTwo.sub_eq_add`, correct in characteristic two.", "reading", "")
+N("code-pubinput §F", "The error is charged to the right challenge and is tight.", "reading", "")
+N("code-pubinput §F", "No admitted ArkLib theorem is in the closure of the phase's two bundles.", "on a verbatim copy", "`#print axioms` on the original file was not run")
+N("code-pubinput §F, §C.3", "The knowledge state function's three rounds are right and none is trivial.", "probe-run", "")
+N("code-pubinput §E", "`sent` is no part of the relation (`M3Holds` does not read it).", "reading", "")
+N("code-pubinput §C.6-C.8", "What the theorems do catch: pooling the prover's values unchecked, checking the first value only and pooling the prover's values, not pooling an unsent line's claim; each refuted in Lean on a concrete instance.", "probe-run", "")
+
+N("code-layer1 §B.1", "The cube's bit order and the order of points agree with leanVM.", "reading", "")
+N("code-layer1 §B.2", "Stacking offsets and selectors agree: on the pinned Python verifier's real layout (92 blocks, `stack_log = 22`) `Blocks.offset` reproduces all 92 offsets.", "Python and Lean probes (`offsets.py`, `OffsetsProbe`)", "the tie order is supplied by nobody ([[tieorder]])")
+N("code-layer1 §B.3, §B.4", "Padding values, the one-padded leaf identity (equation (2) of §5.4) and back-loaded padding agree.", "reading and probes", "")
+N("code-layer1 §B.5", "The index column agrees (generator `g = x`; coordinate `k` carries `g^(2^k)`).", "reading", "")
+N("code-layer1 §B.6", "`bytecodeColumn` of a sixteen-instruction program covering every opcode and `DEREF` mode equals, cell for cell (256 cells), the table of a transcription of the Rust encoder, and its extension at `(ζ, α)` equals `verifier.py:566`.", "probes `ValuesProbe`, `values.py`", "the Rust encoder was transcribed, not executed")
+N("code-layer1 §B.7", "A column claim as a weighted claim on the stack agrees.", "reading and probe", "")
+N("code-layer1 §C, §0 item 2", "No Layer 1 theorem is false or vacuous; the hypotheses `B.total ≤ 2^μ`, `Antitone size` have inhabitants; seventeen declarations depend only on the three standard axioms.", "reading; `#print axioms` probe", "")
+N("code-layer1 §D.1", "No file of `LeanerVM/Protocol` imports Clean or `LeanerVM.Semantics` directly; no phase imports `FixedColumns`.", "git grep", "`Basic.lean` imports the arithmetization ([[basic]])")
+N("code-layer1 §D", "The four `ToCompPoly` modules are generic; CompPoly at both pins shares only `eqTilde_eq_prod` and `eqTilde_append` with them; ArkLib at both pins has none of them.", "reading; `DuplicatesProbe`", "")
+N("code-layer1 §F", "The Layer 1 sketch matches the code declaration by declaration.", "reading", "")
+N("code-layer1 §E", "Today an auditor of the master theorems reads no Layer 1 declaration (17 definitions, 61 lines, become trusted with the adaptor; about 8 more with the executable verifier).", "count", "")
+N("code-layer1 §G.10, §H", "`idxColumnEval` is efficient (binary exponentiation in CompPoly's `K`); the upgrade to `144c5aa` changed only proofs in Layer 1, and the tests' numerals were rewritten as `K.ofBits n`, the same words, so every test keeps its meaning.", "reading; git diff", "")
+
+N("lib-arklib §G.9", "ArkLib's `KnowledgeStateFunction`, `rbrKnowledgeSoundnessWorstCaseWith`, `perfectCompleteness`, `GuardedForm`, `OutputIsPure` read in full at `dca90385`: no way to satisfy the named worst-case form at error 0 for a verifier accepting a false statement except through the extractor or an empty output-witness type (visible in the statement).", "reading", "")
+N("lib-arklib §C.1, §G.9", "The port `KnowledgeAppend.lean` differs from ArkLib PR #615's file only in headers, the module system, docstrings and dropped wrappers.", "line-by-line diff", "")
+N("lib-arklib §G.9", "The composed error is per challenge with no additive term, and the seam round is handled (`backward_right`, `extractMid_seam`).", "reading in full", "")
+N("lib-arklib §B.1, §G.9", "Every `#print axioms` on leanerVM's declarations (master theorems, both phases, composition, port) reports the three standard axioms only.", "probe `AxiomsLeanerVM` (old pin)", "")
+N("lib-arklib §D.2", "The named form matches the literature's round-by-round knowledge soundness (Block et al. 2023, Definition 3.13) in its worst-case-per-prefix form and per-round errors.", "reading", "the extractor may be any function ([[existential]])")
+N("lib-arklib §D.4", "Non-vacuity of the notion: an accept-everything verifier has no knowledge state function and is not knowledge sound at error 0 (it is at error 1, as every verifier is).", "probe `NonVacuity`", "")
+N("lib-arklib §D.1", "The transcript-level half of the plain reading of the master theorem is proved.", "probe `PlainReading`", "")
+N("lib-arklib §D.6", "The spine's named extractor (\"return the first message\") compiles.", "probe `Extractors`", "")
+N("lib-arklib §F.1-F.4", "At `7653a901` the spine's vocabulary exists with the same shapes; the new probability notation is notation only; the two theorems of `KnowledgeAppend.lean` differ from `b435631` only in the spelling of three probabilities; the admitted theorems (sumcheck, composition, round-by-round to plain, context lifting, Fiat–Shamir completeness) are exactly as admitted as at `dca90385`; the port is still needed.", "reading; baseline comparison by name; git diff", "")
+N("lib-arklib §B.2", "Most rows of the blueprint's ArkLib table name existing, proved objects at the stated place.", "reading and probes", "the exceptions are [[arklibtable]]")
+
+N("lib-others §B.4; probe FieldFidelity", "`K`, `E`, `y`, `ofK`, `g` agree with the specification, Rust and Python bit for bit (moduli, bit order, limb order, embedding, generator, product formula); the compiled arithmetic reproduces eleven Rust reference products.", "probe-run (old pins)", "a re-run at the new pins needs `K.ofBits` literals")
+N("lib-others §B; probe Layer0", "Irreducibility, field structure and `|E| = 2^192` are proved in CompPoly without `native_decide` (a Rabin certificate checked by `rfl`), on the standard axioms.", "probe-run", "")
+N("lib-others §E.1", "Both samplers are uniform by proof (uniformity is a class law of `SampleableType`); `Pr[= x | $ᵗ E] = 2^-192`; the `K` diamond is definitional at the old pins and disappears at the new.", "probes `Layer0`, `SamplerDiamond2`", "")
+N("lib-others §E.2, §E.3", "The column oracle answers the specification's evaluation `q̃(r) = Σ ofK(q_i)·eq(r, i)` in little-endian cube order; `card_E`; `NoOracle`, `OneOracle`, `noOracle_eq` are correct.", "reading and probe", "")
+N("lib-others §E.4", "The counting bounds are correct, tight, with load-bearing hypotheses, and the same statement before and after the probability-API port.", "probe `CountingBounds`", "")
+N("lib-others §D.3", "The trusted base is the kernel and the three standard axioms, enforced lexically and transitively with a negative control; `#guard` tests are compiled-code evidence, not proof.", "reading", "")
+N("lib-others §C.5-C.7", "Clean's balance is vacuous over `K` (unsatisfiable, not merely unsound); leanISA's `BalancedPair` replaces it; unchanged at Clean `42fe4b26`.", "probe `CleanBalance`", "")
+
+N("docs-debt §B.10", "Every local Markdown link and anchor of the 24 tracked Markdown files resolves (150 links).", "probe `check_anchors.py` (re-run)", "")
+N("docs-debt §B.10", "Every one of 81 citations into the pinned leanVM sources resolves to an existing range once its crate is known.", "citation probe", "22 are ambiguous as written (`transcript.rs`, `witness.rs`, `lib.rs`, `filler.rs`, drafts)")
+N("docs-debt §B.10", "40 of 43 citations into the pinned libraries are exact (old pins).", "reading", "three drifted ([[broken]])")
+N("docs-debt §B.10", "All 30 references to numbered acceptance tests point at the intended test.", "reading", "")
+N("docs-debt §B.10, §H.3", "The spine's sketch (`:442-554`) agrees with the code; the Layer 8 sketch agrees with `PublicInput.lean`.", "reading; `check_interface_names.py`", "")
+N("docs-debt (second pass)", "The body of issue 12 and the hole comment are unchanged since 2026-09-28 14:28 UTC.", "`gh` read; diff against the saved copies", "")
+
+N("literature Summary item 1, §A.3", "\"After Fiat–Shamir the largest bound is what a random-oracle query buys\" is right at its core ([CY24] Theorems 31.2.1, 31.3.1; [BGKTTZ23] Theorem 3.15).", "literature", "the hash term, the list factor and grinding are missing ([[hashcoll]], [[listsize]], [[grinding]])")
+N("literature §A.3", "The master theorems are round-by-round (as [BCS16] Theorem 1.5 requires), with per-challenge errors ([CY24] Definition 31.1.2) and a straight-line extractor that reads the oracle ([CMS19] Definition 8.5).", "literature", "")
+N("literature Summary item 2, §C.4", "leanVM's PCS regime (Johnson with slack, [BCHKS25] Theorem 4.6) is the right, provable one; Annex B states Theorem 4.6 exactly as printed (term by term at `M = 1`).", "term-by-term comparison", "a preprint with a sketched proof; the Rust's arithmetic and `η` search not checked")
+N("literature §B.4", "The known diagonalization attacks ([KRS25], [Fen26]) do not apply: the statement is bound and the trace committed before the first challenge at the pin.", "reading `cpu/mod.rs:78-93, 108-124`, `fiat_shamir/src/lib.rs`, `08:55-73`", "")
+N("literature §D.3", "The blueprint's arithmetization references match the specification's `refs.bib`; no missed source.", "literature search", "")
+N("literature §E.6", "ArkLib's round-by-round definitions, the `KnowledgeStateFunction` docstring, the basic Fiat–Shamir query and the admitted MCA theorem are textually unchanged between `dca90385` and `7653a901`.", "`git show`", "")
+N("literature Summary item 4, §F.3", "The blueprint's cut (a relation on one committed column and an adaptor to the trace relation) matches the only published plan (SP1) and [KSHC26]'s obligations; characteristic 2 forces combinatorial balance, which the blueprint has.", "literature", "")
+N("literature §A (search)", "No published theorem states round-by-round soundness with per-round proof of work as a Fiat–Shamir compilation result for multi-round IOPs.", "negative result of a search, not proof of absence", "")
+
+N("boundary-adaptor §H, §A.4", "`M3Holds`'s five clauses against `SatisfiedBy`'s thirteen conjuncts: every conjunct has a source once the caps hypothesis, the boundary lemma, the count derivation and the Flock consequence lemma are in place.", "reading", "the boundary lemma and Flock lemma are missing ([[bridge]], [[flockcirc]])")
+N("boundary-adaptor §H", "`w.Constraints` is asserts and lookups only; leanISA emits no lookup and only `JUMP` asserts, so `toM3_constraints_iff` is provable in principle.", "reading; probe `Shapes`", "")
+N("boundary-adaptor §H", "The degree bound `d = 2` holds: every flush coordinate of the six tables has degree at most two.", "reading `Tables/*.lean`", "")
+N("boundary-adaptor §H, §E.4", "The state boundary is constants only, as `layout.rs:354-358`; the memory and bytecode blocks' committed coordinates are columns of tables whose height equals the block's by construction.", "reading", "")
+N("boundary-adaptor §H, §A.4, §A.6", "`Caps` is derivable from admissibility plus the construction of `witnessOf`; `Sizes.ofWitness w = some s` follows from `SatisfiedBy`.", "reading", "")
+N("boundary-adaptor §H, §B.2", "The chain names one program and one input throughout; no theorem lets the prover choose either.", "reading", "")
+N("boundary-adaptor §H, §D", "The top limb is anchored (agreeing with code-pubinput §D).", "reading; probe `Shapes`", "")
+N("boundary-adaptor §H", "`Refinement` accepts a `Type 1` target witness; the pointwise composition of T4 typechecks; `Extractor.Straightline.map` cannot serve.", "probes `Transport`, `UniverseFail`", "")
+N("boundary-adaptor §H", "The arithmetization declarations the chain will use, the two master theorems, `bytecodeColumn_eval`, `idxColumn_eval` depend on the kernel's three axioms only (`map_option_valid`: two).", "probe `Shapes`", "")
+
+# ============================================================ PART 3: NOT VERIFIED
+# U(dossier + section, claim, status, what would verify it)
+
+U("gt-table-pub §10", "The Rust and Python verifiers behave as read.", "read, not run", "run both on a dumped proof and on the mutations of §3 B.1, B.2")
+U("gt-table-pub §10", "The errors of §5 D.2, D.3 and §6 E.3.", "paper arguments", "Layer 4's sumcheck and the bus phase's `Security` with the zerocheck conjunct")
+U("gt-table-pub §10", "The finding on the sumcheck's tables.", "a reading of Layer 3's text", "`leanIsaInstance`, when built")
+U("gt-table-pub §10", "The combined public-input check has error `1/|E|`.", "paper; one instance tested", "the second phase proposed (code-pubinput proved the key lemma)")
+U("gt-table-pub §10", "leanISA's tables have the Rust's column order.", "not checked", "compare `Arithmetization/Tables/*.lean` with `tables.rs:436-863`")
+U("gt-table-pub §10", "leanth's `ZerocheckClaim` pattern, which the blueprint's row Seams cites.", "not read (private)", "—")
+U("verify-gt-table-pub §1 item 7", "The probes `SeamBusShape` and `SeamBusMember` still elaborate at the new pins.", "could not check (sources identical, numerals only 0 and 1)", "re-run after the rebuild")
+
+U("gt-bus §I", "The Rust verifier and prover (read only); the equality of the Rust and Python verdicts is by reading.", "not run", "a differential test (the repository's own tests compare them)")
+U("gt-bus §I, §B", "The attack without the `τ_BLAKE2S ≥ 3` floor.", "not constructed", "a verifier without the cap at `τ_5 = 2`")
+U("gt-bus §I, §B", "The public-input phase rejects a public word with a nonzero third limb (defence in depth).", "an argument", "the public-input dossiers (code-pubinput, boundary-adaptor §D)")
+U("gt-bus §I", "Not examined: Fiat–Shamir beyond absorption order; the opening; the table sumcheck beyond the seam; the recursion guest.", "out of task", "gt-opening-compile, gt-table-pub")
+U("verify-gt-bus §1 item 12", "The Lean probe `BusSeam.lean`'s output, the control copy's failure, `#print axioms Probe.x0_degree`.", "could not check (no Lean run)", "re-run after the rebuild")
+
+U("gt-flock-ring §11", "The Rust prover's behaviour at `r_eq = 1`.", "read and modelled (probe 9.2), not executed", "a Rust unit test on `send_round` and `next_round_poly`")
+U("gt-flock-ring §11", "`R1CS_DIGEST` is the digest of the matrices.", "not recomputable at the pin", "the commit the Rust's comment names")
+U("gt-flock-ring §11", "The Rust circuit computes BLAKE2s.", "not checked (the Rust tests it, `hash.rs:1121-1170`)", "the theorem of §5.3")
+U("gt-flock-ring §11", "`lincheck.rs` beyond 1400, `zerocheck/multilinear.rs` beyond 330, `univariate_skip*.rs` beyond 200.", "not read (off the verifier's path)", "—")
+U("gt-flock-ring §11", "The WHIR part of the opening; the recursive verifier's hint `M_lc`.", "out of task", "gt-opening-compile")
+U("gt-flock-ring §11", "The sketches `FlockPhase`, `FlockRegion`, `Component.Guarded`.", "proposals, not compiled", "write them")
+U("verify-gt-flock-ring §4 item 5", "What in the lincheck prover needs `n_outer ≥ 8` (the floor's reason).", "not checked", "read the lincheck prover")
+U("verify-gt-flock-ring", "The Lean probe `NoCheckFlock.lean`.", "not re-run at the new pins", "re-run after the rebuild")
+
+U("code-spine §G", "The relation of `toyAlias` is empty for every stack and statement.", "exhaustive `#guard` over a small range at the old pin; paper", "a theorem `∀ input q, ¬ M3Holds toyAlias input q`")
+U("code-spine §G", "`Layout.read` is determined by `extend`.", "paper", "a lemma `read_eq_of_extend`")
+U("code-spine §G", "An always-rejecting bundle has no `Phases.Security` on an instance with an inhabited relation.", "a reading of `Security extends Complete`", "a probe with a rejecting zero-round verifier")
+U("code-spine §G", "The read-everything phase inhabits `Phases.Security I` at error 0 for every `I`.", "paper (agrees with gt-table-pub §6)", "a probe on an instance with `μ = 0`")
+U("code-spine §G", "The probes that use `(2 : K)` at the new CompPoly pin.", "they mean something else there", "re-run `P2Relation`, `P3aSeams`, `P5PassThrough` with `K.ofBits 2`")
+U("code-spine §G", "The earlier spine review's validation paragraph.", "not re-run", "`./scripts/validate.sh` on `b435631`")
+
+U("code-pubinput §0, §C.9", "Mutation 6 (claims pooled at a wrong point).", "paper, not written", "write and run after the rebuild")
+U("code-pubinput §0, §C.13", "The deployed phase's full `Phase.Security` (mutation 4b).", "paper, not written", "write `deployedSecurity`")
+U("code-pubinput §0", "The two-line-instance display for §D.1; `#print axioms` on the original `PublicInput.lean`.", "not run", "run after the rebuild")
+U("code-pubinput §C.10, §C.11", "Probes 7a (a wrong check caught by completeness against a fixed prover) and 8 (an extra check caught by completeness).", "written, not run", "run `Probe7a.lean`, `Probe8.lean` after the rebuild")
+
+U("code-layer1 §J", "The Rust bytecode encoder was not executed (compared through a transcription).", "read", "run the pinned Rust `bytecode_table` on the same program")
+U("code-layer1 §J", "The proposed strided reader and layout combinator.", "sketched (only the selection lemma is proved)", "build them")
+U("code-layer1 §J", "No probe was run at the new pin; `ValuesProbe`, `StridedProbe` need `K.ofBits` rewrites.", "not run", "re-run after the rebuild")
+U("code-layer1 §J, §I", "`DuplicatesProbe` and `StridedProbe` ran outside `lake` (the old Lean binary on the `b435631` artefacts).", "run, by a non-standard route", "re-run with `lake env lean` after the rebuild (else §D.2 and §B.8 stand as short paper proofs)")
+U("code-layer1 §J", "Not examined: the rest of Layer 3; the leaf stacks' block order in code; the pad cells past the last lane.", "—", "—")
+
+U("lib-arklib §F.3", "The probes at the new pin (written in the old probability notation).", "not re-run", "a mechanical rewrite and a run after the rebuild")
+U("lib-arklib §G.4", "`fiatShamir_completeness` is false in general for a protocol whose honest prover fails at the default challenge.", "the dossier's inference", "a counterexample probe")
+U("lib-arklib §G.2", "Whether the honest Flock prover fails at `r_eq = 1` (the condition of [[complerr]]).", "left to \"the Flock reviewer\"", "answered by gt-flock-ring §4 and §8.12: the Rust prover does, the specification's does not")
+
+U("lib-others §F.3", "`FieldFidelity` at the new pin with `K.ofBits` literals.", "not run", "re-run after the rebuild")
+U("lib-others §E.1", "`instSampleableTypeK` is the only `K` sampler at the new pins.", "by reading", "a probe at the new pins")
+U("lib-others §G.9", "The ArkLib/CompPoly `eval_zero` clash.", "inferred", "elaborate a file importing both")
+U("lib-others §F.3", "Numerals inside vectors and other shapes at `144c5aa`.", "not scanned", "a wider scan")
+U("lib-others §H", "All seven probes at the new pins.", "not re-run", "re-run after the rebuild")
+
+U("docs-debt §H.15", "Whether VCVio's Merkle-tree library fits leanVM's Merkle trees (BLAKE2s, the leaf encoding, pruned paths), and its state at `a4232d08`.", "inference", "read VCVio's library against `fiat_shamir/src/merkle.rs:14-67` at both pins")
+U("docs-debt §D", "The counts of letter codes are lower bounds (the pattern skips codes in backticks).", "stated", "a pattern that includes backticks")
+
+U("literature (what I could not open)", "About 22 references read as abstracts only, eight not opened, four through fetch summaries; the SP1, Pico and advisory items from a stopped helper's notes not re-checked.", "—", "open and read them")
+U("literature (what I could not open)", "Whether a refereed or Lean proof of [BCHKS25] Theorem 4.6 exists (ArkLib's is admitted at both pins), and whether Haböck's update of [Hab25] exists.", "—", "search again")
+U("literature §A.4", "The list size `L_0` at leanVM's production parameters (estimated `2^7` to `2^10`).", "estimate", "the Rust's `validate()` output")
+U("literature §E.6", "Whether a cross-role input of the shared BLAKE2s map (a Merkle node against a chain block) is exploitable.", "not analysed", "an analysis of role separation")
+U("literature §E.6", "Whether an ArkLib revision after `7653a901` provides a chain-based transform.", "—", "watch upstream")
+
+U("boundary-adaptor §H", "The injectivity of `prog ↦ (prog.logSize, bytecodeColumn prog)`.", "inferred from `entry_injective` and `bytecodeColumn_slot`", "a probe proving it")
+U("boundary-adaptor §H, §D", "The counterexample program of §D (`SET_CONSTANT [g^0, y²]`): its two-line stack.", "not built (the load-bearing inequality is proved)", "build the stack")
+U("boundary-adaptor §H, §B.3", "The count of admissible size vectors (about `2^34`).", "a hand estimate", "Layer 3's `μ`")
+U("boundary-adaptor §H", "`Shapes`, `Transport`, `UniverseFail`, `DefInstance` at the new pins.", "not re-run (only `KnownColumnNew`, `PolyBridgeNew` were re-run at the new pins, and pass)", "re-run after the rebuild")
+U("boundary-adaptor §H, §G.18", "A halting run visits distinct states.", "an argument from the determinism of `step`", "a Lean proof")
+
+# ============================================================ CONTRADICTIONS WITH THE BRIEF, as the dossiers report them
+CONTRA = [
+    ("verify-gt-table-pub §4 item 1", "The blueprint changed at `144c5aa` in more than its pins table: a new paragraph after line 51 and the row \"Module system\"; citations at or after line 315 are +4 at `HEAD` (brief §8 says \"pins table only\")."),
+    ("code-pubinput §C.9", "The first `lake env lean` after the merge made Lake re-resolve the manifest and re-clone PolyFun, whose old oleans are gone; from then no probe could run without a rebuild (the restart message said \"nothing else changed\")."),
+    ("code-layer1 §J", "The checkout was moved during the task (reflog at 09:18) and `.lake/packages/` switched to the new pins; two Lean probes were then run with the old Lean binary directly on the `b435631` artefacts."),
+    ("gt-bus §I", "The specification's round-by-round theorem is in Annex B (`thm:rbr`) and about the opening only, not in §3; the status's finding on the Python caps is false."),
+    ("boundary-adaptor §H", "The leanVM checkout is no longer at the pin (`HEAD` `248da071`; brief §8 now records this). boundary-adaptor also reports that `KnownColumnNew` and `PolyBridgeNew` were re-run at the new pins after a rebuild and pass."),
+]
+
+
+# ============================================================ KEYS for cross-references ([[key]] in any text)
+KEYS = {
+    "busseam": "The bus seam admits statements the deployed table sumcheck cannot serve",
+    "buspos": "The real bus phase can fill the spine's bus slot",
+    "complerr": "The spine's completeness cannot carry an error",
+    "declerr": "The declared error is unconstrained",
+    "gkrnorm": "The GKR layer sumcheck is the normalized variant",
+    "gkrpos": "The GKR last-layer rounds cost",
+    "tables": "The table sumcheck's tables are not distinguished",
+    "pubdeployed": "The public-input theorems are about a verifier none",
+    "pubcheck": "The check on the public-input message is not load-bearing",
+    "flocklimb": "Layer 9's Flock interface consumes the eighteen limb claims",
+    "flockcirc": "The instance depends on a Flock interface that depends on the instance",
+    "flockabs": "The Flock phase cannot be written over an abstract instance",
+    "test20": "Acceptance test 20 files a completeness failure",
+    "fsnone": "ArkLib has no Fiat–Shamir or BCS statement",
+    "fsother": "Upstream Fiat–Shamir and BCS theorems will be about other constructions",
+    "grinding": "The Fiat–Shamir interface omits grinding",
+    "pow": "The proof of work is the one verifier check",
+    "listsize": "The compiled error omits the list-size factor",
+    "wfb": "The base soundness (and completeness) theorems lack `WellFormedBytecode`",
+    "basecompl": "The base completeness theorem is false without resource hypotheses",
+    "toM3": "The instance is not `Ensemble.toM3`",
+    "sizes": "Layer 3's sizes and admissibility statements",
+    "strided": "The strided reader of the eighteen BLAKE2s limb columns",
+    "sideconds": "Two side conditions a bus phase over an abstract instance needs",
+    "canon": "The canonical-encoding checks and the stream-consumption check",
+    "toplimb": "The top limb is enforced only through",
+    "transport": "Knowledge transport along the adaptor is three lines",
+    "leafstacks": "The order of the leaf stacks is nowhere stated",
+    "tieorder": "The order of equal-size blocks in the witness stack",
+    "test14": "Acceptance test 14 names a tautology",
+    "arklibtable": "Names and line references in the blueprint's ArkLib table",
+    "trusted": "The instance is data the theorems trust",
+    "comap": "`Layout.comap` accepts a non-injective renaming",
+    "resource": "`constraintCompleteness` needs a resource hypothesis of its own",
+    "computable": "\"Computable\" is not \"efficient\"",
+    "sketches": "The per-layer sketches (Layers 4 to 7, 9, 10)",
+    "caps": "The status's finding that the Python verifier omits the caps",
+    "basic": "`Protocol/Basic.lean` imports the arithmetization",
+    "zerocheck": "The zerocheck escape is over-charged",
+    "roundmsg": "Sumcheck round messages: four coefficients",
+    "rustprover": "The pinned Rust prover of Flock is not perfectly complete",
+    "stale": "The status and the tracker describe a repository two merges old",
+    "publicnames": "The list of public names is not the public boundary",
+    "legacy": "The blueprint plans on a framework ArkLib calls legacy",
+    "slotpin": "The spine's slot does not pin the protocol",
+    "constone": "The auxiliary predicate must include the constant-one position",
+    "existential": "The existential forms of round-by-round knowledge soundness",
+    "broken": "Broken names and citations",
+    "hashcoll": "The hash-collision term is missing",
+    "bridge": "No bridge lemma relates the boundary blocks",
+}

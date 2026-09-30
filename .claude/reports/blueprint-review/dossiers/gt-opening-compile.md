@@ -34,8 +34,10 @@ Layer 0 and Layers 10–13, acceptance tests, interfaces and boundaries; the Lea
 `OracleInterface`, `FiatShamir/Basic.lean`, `BCS/Basic.lean`, `Commitments/Functional/Basic.lean`,
 `Security/Implications.lean`, `CapacityBounds.lean` at both pins, and pull requests #848 and
 #469 (#627 is an issue, not a pull request). Two Lean probes ran on 2026-09-29 against the old
-pin (section H); a scratch port of the Rust parameter derivation reproduces the Python query
-table (section F).
+pins and again on 2026-09-30 against the new ones, both times `exit=0` (section H); a scratch
+port of the Rust parameter derivation reproduces the Python query table (section F). The leanVM
+working tree was moved off the pin on 2026-09-30 09:42 (not by this review); every line cited
+was read at `a386121f` and re-verified with `git show a386121f:<path>` (section B, note).
 
 **Conclusions.**
 
@@ -1173,3 +1175,749 @@ two verifiers derive `n_lanes`, the block lengths and the leaf widths from the a
 (`whir.rs:2061-2066, 2084, 2213`; `py:1040, 1048-1049`); both floor `μ` at 15
 (`witness.rs:97`, `py:890`); the Python's `derive_config` and the Rust's `configs_for_rate` give
 the same ladder for every `(μ, ρ)` in the window (H.3).
+
+---
+
+## H. Probes and scratch computations
+
+All files are under `.claude/reports/blueprint-review/probes/gt-opening-compile/`. The two Lean
+probes were run from the repository root with
+`flock .claude/reports/blueprint-review/logs/lean.lock lake env lean <file>`, first on
+2026-09-29 against the old pins (leanerVM `b435631`, ArkLib `dca90385`, CompPoly `3468b38c`,
+VCVio `f9dc47d9`; both `exit=0`), then again on 2026-09-30 after the rebuild, against the new
+pins (ArkLib `7653a901`, CompPoly `572f9973`, VCVio `a4232d08`, Lean 4.34.1; both `exit=0`,
+log `rerun-newpin.log`). They import only modules the build of `main` compiles; ArkLib's
+`Commitments/Functional/Basic.lean` and `FiatShamir/Basic.lean` are **not** compiled by that
+build (no leanerVM module imports them: 47 ArkLib `.olean`s under `.lake/packages/Arklib/.lake/build`
+on 2026-09-29, none under `Commitments/`, `FiatShamir/`, `Data/CodingTheory/`), so the two
+definitions the probes need from them are copied verbatim, with their source lines named, and
+the copies are what elaborated.
+
+### H.1 `InnerProductOracle.lean` (alternative (ii) typechecks; the opening phase as one query)
+
+```lean
+/-
+Probe (task gt-opening-compile): is alternative (ii) expressible at the pins?
+
+(ii) gives the stack an inner-product oracle interface: a query is a weight `W` on the cube, the
+answer is `Σ_w W(w)·q(w)` (specification Definition 3.13). The probe checks that
+  1. ArkLib's `OracleInterface` accepts `Weight n` (leanerVM's structure, in `Type`) as a query type;
+  2. the evaluation query is the special case of the equality weight, by the built lemma
+     `eqWeight_pair`;
+  3. ArkLib's `Commitment.Scheme` over that interface has as opening statement
+     (commitment, weight, claimed value): an inner-product commitment scheme;
+  4. the opening phase "one challenge λ, then one weighted query" is an ArkLib `OracleVerifier`
+     over a one-round schedule.
+A wrapper `Stack` is used so that the probe's instance does not overlap the built `evalOracle`.
+-/
+import LeanerVM.Protocol.ClaimWeights
+import LeanerVM.Protocol.ToArkLib.KeepOracles
+import ArkLib.OracleReduction.Security.Basic
+
+open LeanerVM.Protocol LeanerVM.Parameters CompPoly OracleComp OracleSpec ProtocolSpec
+
+namespace Probe
+
+structure Stack (n : ℕ) where
+  col : Column n
+
+/-- (ii): a query is a weight, the answer is the pairing. -/
+instance innerProductOracle (n : ℕ) : OracleInterface (Stack n) where
+  Query := Weight n
+  toOC :=
+    { spec := (Weight n) →ₒ E
+      impl := fun W ↦ do return W.pair (← read).col }
+
+theorem answer_eq (n : ℕ) (q : Stack n) (W : Weight n) :
+    OracleInterface.answer q W = W.pair q.col := rfl
+
+/-- The evaluation oracle of Layer 0 is the special case `W = eq(p, ·)`. -/
+theorem answer_eqWeight (n : ℕ) (q : Stack n) (p : Vector E n) :
+    OracleInterface.answer q (eqWeight p)
+      = CMlPolynomialEval.eval₂Mle q.col.values (algebraMap K E) p :=
+  eqWeight_pair p q.col
+
+/-- Verbatim copy of `Commitment.Opening` (ArkLib `dca90385`,
+`ArkLib/Commitments/Functional/Basic.lean:59-64`), whose module the build of `main` did not
+compile (no leanerVM module imports it). -/
+structure OpeningCopy {ι : Type} (oSpec : OracleSpec ι) (Data Commitment Decommitment ComKey VerifKey : Type)
+    [O : OracleInterface Data] {n : ℕ} (pSpec : ProtocolSpec n) where
+  opening : (ComKey × VerifKey) →
+    Proof oSpec (Commitment × (q : O.Query) × O.Response q) (Data × Decommitment) pSpec
+
+/-- Over the inner-product interface the statement of the opening is a commitment, a weight and
+a claimed value: ArkLib's functional commitment scheme is then an inner-product commitment
+scheme. -/
+example (n : ℕ) {ι : Type} (oSpec : OracleSpec ι) (Cm Dec CK VK : Type) {m : ℕ}
+    (pSpec : ProtocolSpec m)
+    (S : OpeningCopy oSpec (Stack n) Cm Dec CK VK pSpec) (ck : CK) (vk : VK) :
+    Proof oSpec (Cm × (W : Weight n) × E) (Stack n × Dec) pSpec :=
+  S.opening (ck, vk)
+
+/-! ## The opening phase as "λ, then one weighted query" -/
+
+/-- One verifier message, the batching challenge. -/
+@[reducible]
+def openSpec : ProtocolSpec 1 := ⟨!v[.V_to_P], !v[E]⟩
+
+instance : ∀ i, OracleInterface (openSpec.Message i)
+  | ⟨0, h⟩ => nomatch h
+
+instance : ∀ i, SampleableType (openSpec.Challenge i)
+  | ⟨0, _⟩ => (inferInstance : SampleableType E)
+
+abbrev OneStack (n : ℕ) : Fin 1 → Type := fun _ ↦ Stack n
+
+/-- A pooled claim. -/
+structure Claim (n : ℕ) where
+  weight : Weight n
+  value : E
+
+/-- `W_λ = Σ_j λ^j W_j` on the cube. (The probe takes the extension as the evaluator; the closed
+form the compiled verifier runs is `Σ_j λ^j W_j.mle`, equal to it by linearity.) -/
+def batchWeight {n : ℕ} (lam : E) (cs : List (Claim n)) : Weight n where
+  onCube := Vector.ofFn fun i ↦ (cs.zipIdx.map fun c ↦ lam ^ c.2 * c.1.weight.onCube.get i).sum
+  mle := fun r ↦ CMlPolynomialEval.evalMle _ r
+  mle_eq := fun _ ↦ rfl
+
+/-- `C_λ = Σ_j λ^j c_j`. -/
+def batchValue {n : ℕ} (lam : E) (cs : List (Claim n)) : E :=
+  (cs.zipIdx.map fun c ↦ lam ^ c.2 * c.1.value).sum
+
+/-- The one query of the opening phase. -/
+def queryStack {n : ℕ} (W : Weight n) : OracleComp [OneStack n]ₒ E :=
+  liftM <| OracleSpec.query (show [OneStack n]ₒ.Domain from ⟨0, W⟩)
+
+/-- The opening verifier of (ii): read λ, query the stack at `W_λ`, compare with `C_λ`. -/
+def openVerifier (n : ℕ) :
+    OracleVerifier []ₒ (List (Claim n)) (OneStack n) Unit (OneStack n) openSpec where
+  verify := fun cs chals ↦ do
+    let lam : E := chals ⟨0, rfl⟩
+    let a ← liftM (queryStack (batchWeight lam cs))
+    if a = batchValue lam cs then pure () else failure
+  outputOracle := .inl (keepOracles (OneStack n) openSpec)
+
+#check @openVerifier
+#print axioms openVerifier
+#print axioms answer_eqWeight
+
+end Probe
+```
+
+Output on 2026-09-29 (old pins) and on 2026-09-30 (new pins), identical up to the date:
+
+```text
+InnerProductOracle.lean:56:23: warning: Variable name `W` is not explicitly referenced. […]
+openVerifier : (n : ℕ) → OracleVerifier []ₒ (List (Claim n)) (OneStack n) Unit (OneStack n) openSpec
+'Probe.openVerifier' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.answer_eqWeight' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+(The warning is the unused binder `W` in the copied `OpeningCopy`; harmless.)
+
+### H.2 `FiatShamirChain.lean` (what `Verifier.fiatShamir` takes; a chain plugged in)
+
+```lean
+/-
+Probe (task gt-opening-compile): what does ArkLib's Fiat–Shamir transform take as the challenge
+oracle, and can a concrete hash chain be plugged in?
+
+`ArkLib/OracleReduction/FiatShamir/Basic.lean` is not compiled by the build of `main` (no leanerVM
+module imports it), so `Verifier.fiatShamir` is copied verbatim from ArkLib `dca90385`,
+`FiatShamir/Basic.lean:129-136`, with the section variables of `:68-70` made explicit. Everything
+it uses (`NonInteractiveVerifier`, `fsChallengeOracle`, `Messages.deriveTranscriptFS`) is in
+compiled modules.
+-/
+import ArkLib.OracleReduction.Security.Basic
+
+open ProtocolSpec OracleComp OracleSpec
+
+namespace Probe
+
+variable {n : ℕ} {pSpec : ProtocolSpec n} {ι : Type} {oSpec : OracleSpec ι}
+  {StmtIn StmtOut : Type}
+  [VCVCompatible StmtIn] [∀ i, VCVCompatible (pSpec.Challenge i)]
+
+/-- Verbatim: the (slow) Fiat-Shamir transformation for the verifier. -/
+def fiatShamirCopy (V : Verifier oSpec StmtIn StmtOut pSpec) :
+    NonInteractiveVerifier (∀ i, pSpec.Message i) (oSpec + fsChallengeOracle StmtIn pSpec)
+      StmtIn StmtOut where
+  verify := fun stmtIn proof => do
+    let messages : pSpec.Messages := proof 0
+    let transcript ← (messages.deriveTranscriptFS (oSpec := oSpec) stmtIn)
+    Option.getM (← (V.verify stmtIn transcript).run)
+
+/-- The index of a challenge-oracle query: a round that is a challenge, with the statement and
+the messages sent before it. -/
+example : (fsChallengeOracle StmtIn pSpec).Domain
+    = ((i : pSpec.ChallengeIdx) × (StmtIn × pSpec.MessagesUpTo i.1.castSucc)) := rfl
+
+/-- A "hash chain" in the only form the transform can see: a function from the statement and the
+messages so far to the challenge of each round. -/
+abbrev Chain (StmtIn : Type) (pSpec : ProtocolSpec n) :=
+  (i : pSpec.ChallengeIdx) → StmtIn × pSpec.MessagesUpTo i.1.castSucc → pSpec.Challenge i
+
+/-- The chain as a deterministic implementation of the challenge oracle (no shared oracle). -/
+def chainImpl (chain : Chain StmtIn pSpec) :
+    QueryImpl ([]ₒ + fsChallengeOracle StmtIn pSpec) Id
+  | .inl q => PEmpty.elim q
+  | .inr ⟨i, t⟩ => chain i t
+
+/-- The compiled verifier run under a concrete chain: a deterministic function of the statement
+and of ALL the prover's messages. -/
+def runWithChain (V : Verifier []ₒ StmtIn StmtOut pSpec) (chain : Chain StmtIn pSpec)
+    (stmt : StmtIn) (messages : ∀ i, pSpec.Message i) : Option StmtOut :=
+  (simulateQ (chainImpl chain) ((fiatShamirCopy V).verify stmt (fun | 0 => messages)).run).run
+
+#check @runWithChain
+#print axioms runWithChain
+
+-- An oracle verifier is not a `Verifier`: it must be converted first, and the conversion's
+-- statement and messages are the oracles in the clear.
+#check @OracleVerifier.toVerifier
+
+end Probe
+```
+
+Output (both runs):
+
+```text
+@runWithChain : {n : ℕ} → {pSpec : ProtocolSpec n} → {StmtIn StmtOut : Type} →
+  Verifier []ₒ StmtIn StmtOut pSpec → Chain StmtIn pSpec → StmtIn →
+  ((i : pSpec.MessageIdx) → pSpec.Message i) → Option StmtOut
+'Probe.runWithChain' depends on axioms: [propext, Quot.sound]
+@OracleVerifier.toVerifier : … → OracleVerifier oSpec StmtIn OStmtIn StmtOut OStmtOut pSpec →
+  Verifier oSpec (StmtIn × ((i : ιₛᵢ) → OStmtIn i)) (StmtOut × ((i : ιₛₒ) → OStmtOut i)) pSpec
+exit=0
+```
+
+Read: the copied `Verifier.fiatShamir` elaborates without the `VCVCompatible` instances of its
+file's `variable` line (they are unused by the definition); the challenge oracle's query is the
+pair (statement, messages so far) and any function of that shape is an implementation; the
+compiled verifier under a chain is a deterministic `Option StmtOut`; an oracle verifier's plain
+form carries the oracle statements and messages in the clear.
+
+### H.3 `whir_params.py` and `bus_depth.py` (scratch, Python 3; no Lean)
+
+`whir_params.py` ports `whir_config.rs:260-311, 419-707` (the ladder and the per-level search)
+to Python floats and compares with the pinned `python-verifier/verifier.py` (a copy extracted
+with `git show a386121f:python-verifier/verifier.py` as `verifier_pinned.py`, since the
+working tree moved). Command: `PYTHONDONTWRITEBYTECODE=1 python3 whir_params.py` in the probe
+directory (run 2026-09-29 against the then-pinned working tree, and 2026-09-30 against the
+extracted copy; same output).
+
+```python
+# Scratch port of crates/pcs/src/whir_config.rs (pin a386121f) parameter derivation,
+# to reproduce the query table of python-verifier/verifier.py:910 and to read off
+# eta, m, the Johnson list bound L and the per-term security bits.
+import math, sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, ".")
+
+SECURITY_BITS = 128
+QUERY_GRINDING_BITS = 17
+INITIAL_FOLDING_FACTOR = 6
+SUBSEQUENT_FOLDING_FACTOR = 4
+RS_INIT_RED = 3
+RS_SUB_RED = 1
+RESIDUAL_MAX_LOG = 5
+LOG_Q = 192.0
+RING_DEG = (1 << 31) + (1 << 15) + (1 << 7) + (1 << 3) + (1 << 1) + 1
+M_MAX = 4096
+
+def reduced_rate(lir, cols):
+    dim = 2.0 ** cols
+    return (dim - 1.0) / 2.0 ** (cols + lir)
+
+def m_param(lir, cols, eta):
+    s = math.sqrt(reduced_rate(lir, cols))
+    return float(max(math.ceil(s / eta), 3))
+
+def thm_log_a(lir, eta, cols):
+    rho = reduced_rate(lir, cols)
+    s = math.sqrt(rho)
+    gamma = 1.0 - s - eta
+    m = m_param(lir, cols, eta)
+    half = m + 0.5
+    num = 2.0 * half ** 5 + 3.0 * half * gamma * rho
+    den = 3.0 * rho ** 1.5
+    n = 2.0 ** (cols + lir)
+    a = (num / den) * n + half / s
+    return math.log2(a)
+
+def log_a(lir, eta, cols, ilv):
+    return thm_log_a(lir, eta, cols) + max(ilv - 1.0, 0.0)
+
+def per_q(lir, cols, eta):
+    rho = reduced_rate(lir, cols)
+    gamma = 1.0 - math.sqrt(rho) - eta
+    return math.log2(1.0 / (1.0 - gamma))
+
+def list_log2(lir, cols, eta):
+    rho = reduced_rate(lir, cols)
+    return math.log2(1.0 / (2.0 * eta * math.sqrt(rho)))
+
+def alg_bits(lir, cols, eta, prevq, ood):
+    deg = max(RING_DEG, prevq + ood, 2)
+    return LOG_Q - math.log2(deg) - list_log2(lir, cols, eta)
+
+def ood_bits(lir, cols, eta, mu, s):
+    l = list_log2(lir, cols, eta)
+    lm = math.log2(mu)
+    if s == 0:
+        return LOG_Q - l - lm
+    return s * (LOG_Q - lm) - (2.0 * l - 1.0)
+
+def eta_for_m(lir, cols, m):
+    s = math.sqrt(reduced_rate(lir, cols))
+    eta = s / m
+    import struct
+    while m_param(lir, cols, eta) > m:
+        eta = math.nextafter(eta, math.inf)
+    return eta
+
+def optimize(level, lir, cols, ilv, prevq):
+    target = float(SECURITY_BITS)
+    qtarget = float(max(SECURITY_BITS - QUERY_GRINDING_BITS, 1))
+    mu = cols + ilv
+    block = 1 << (cols + lir)
+    best = None
+    for m in range(3, M_MAX + 1):
+        eta = eta_for_m(lir, cols, m)
+        max_eta = 1.0 - math.sqrt(reduced_rate(lir, cols))
+        if eta >= max_eta:
+            continue
+        pg = LOG_Q - log_a(lir, eta, cols, ilv)
+        if pg + 1e-12 < target:
+            break
+        pq = per_q(lir, cols, eta)
+        if not math.isfinite(pq) or pq <= 0:
+            continue
+        q = math.ceil(qtarget / pq)
+        if q > block:
+            continue
+        if level == 0:
+            s = 0
+        else:
+            s = next((s for s in range(1, 9) if ood_bits(lir, cols, eta, mu, s) + 1e-12 >= target), None)
+            if s is None:
+                continue
+        if ood_bits(lir, cols, eta, mu, s) + 1e-12 < target or alg_bits(lir, cols, eta, prevq, s) + 1e-12 < target:
+            continue
+        if best is None or q < best["queries"]:
+            best = dict(eta=eta, queries=q, ood=s, m=m, pg=pg, pq=pq,
+                        L=2.0 ** list_log2(lir, cols, eta),
+                        oodbits=ood_bits(lir, cols, eta, mu, s),
+                        alg=alg_bits(lir, cols, eta, prevq, s),
+                        qbits=q * pq, rho=reduced_rate(lir, cols),
+                        gamma=1.0 - math.sqrt(reduced_rate(lir, cols)) - eta)
+    return best
+
+def ladder(log_n, lir):
+    rates, cols, ilv, ks = [lir], [log_n - INITIAL_FOLDING_FACTOR], [INITIAL_FOLDING_FACTOR], [INITIAL_FOLDING_FACTOR]
+    n_run, r_run, f_run, red = log_n - INITIAL_FOLDING_FACTOR, lir, INITIAL_FOLDING_FACTOR, RS_INIT_RED
+    while n_run > RESIDUAL_MAX_LOG:
+        k = min(SUBSEQUENT_FOLDING_FACTOR, n_run)
+        nxt = n_run - k
+        rate = r_run + (f_run - red)
+        red = RS_SUB_RED
+        rates.append(rate); cols.append(nxt); ilv.append(k); ks.append(k)
+        n_run -= k; r_run = rate; f_run = k
+    return rates, cols, ilv, ks, n_run
+
+def derive(log_n, lir):
+    rates, cols, ilv, ks, yr = ladder(log_n, lir)
+    levels, prevq = [], 0
+    for i in range(len(rates)):
+        b = optimize(i, rates[i], cols[i], ilv[i], prevq)
+        assert b is not None, (log_n, lir, i)
+        b.update(rate=rates[i], cols=cols[i], ilv=ilv[i], k=ks[i])
+        levels.append(b)
+        prevq = b["queries"]
+    return levels, yr
+
+if __name__ == "__main__":
+    import verifier_pinned as V
+    ok = True
+    for lir in range(1, 5):
+        for mu in range(15, 29):
+            levels, yr = derive(mu, lir)
+            mine = tuple(l["queries"] for l in levels)
+            tab = V.WHIR_QUERIES[lir - 1][mu - 15]
+            cfg = V.derive_config(mu, lir)
+            same = (mine == tab) and tuple(l["rate"] for l in levels) == cfg.log_inv_rates and tuple(l["k"] for l in levels) == cfg.folds
+            ok &= same
+            if not same:
+                print("MISMATCH", lir, mu, mine, tab)
+    print("query table of verifier.py:910 reproduced from the whir_config.rs derivation:", ok)
+    for (mu, lir) in [(15, 1), (18, 1), (22, 1), (28, 1), (28, 2), (28, 4)]:
+        levels, yr = derive(mu, lir)
+        print(f"\nmu={mu} log_inv_rate={lir} residual={yr}")
+        for i, l in enumerate(levels):
+            print(f"  L{i}: fold k={l['k']} rate=2^-{l['rate']} msg_cols=2^{l['cols']} rho_red={l['rho']:.6f} "
+                  f"m={l['m']} eta={l['eta']:.5f} gamma={l['gamma']:.5f} L<= {l['L']:.2f} "
+                  f"queries={l['queries']} ood={l['ood']} | bits: mca-fold={l['pg']:.2f} query={l['qbits']:.2f}(+17 grind) "
+                  f"ood={l['oodbits']:.2f} algebraic(list-unioned)={l['alg']:.2f}")
+```
+
+Output (2026-09-30):
+
+```text
+query table of verifier.py:910 reproduced from the whir_config.rs derivation: True
+
+mu=15 log_inv_rate=1 residual=5
+  L0: fold k=6 rate=2^-1 msg_cols=2^9 rho_red=0.499023 m=395 eta=0.00179 gamma=0.29180 L<= 395.77 queries=223 ood=0 | bits: mca-fold=132.94 query=111.00(+17 grind) ood=179.46 algebraic(list-unioned)=152.37
+  L1: fold k=4 rate=2^-4 msg_cols=2^5 rho_red=0.060547 m=306 eta=0.00080 gamma=0.75313 L<= 2526.97 queries=55 ood=1 | bits: mca-fold=133.22 query=111.00(+17 grind) ood=167.22 algebraic(list-unioned)=149.70
+
+mu=18 log_inv_rate=1 residual=4
+  L0: fold k=6 rate=2^-1 msg_cols=2^12 rho_red=0.499878 m=311 eta=0.00227 gamma=0.29071 L<= 311.08 queries=224 ood=0 | bits: mca-fold=131.67 query=111.00(+17 grind) ood=179.55 algebraic(list-unioned)=152.72
+  L1: fold k=4 rate=2^-4 msg_cols=2^8 rho_red=0.062256 m=70 eta=0.00356 gamma=0.74692 L<= 562.20 queries=56 ood=1 | bits: mca-fold=140.88 query=111.01(+17 grind) ood=171.15 algebraic(list-unioned)=151.87
+  L2: fold k=4 rate=2^-7 msg_cols=2^4 rho_red=0.007324 m=19 eta=0.00450 gamma=0.90991 L<= 1297.07 queries=32 ood=1 | bits: mca-fold=146.52 query=111.12(+17 grind) ood=169.32 algebraic(list-unioned)=150.66
+
+mu=22 log_inv_rate=1 residual=4
+  L0: fold k=6 rate=2^-1 msg_cols=2^16 rho_red=0.499992 m=216 eta=0.00327 gamma=0.28962 L<= 216.00 queries=225 ood=0 | bits: mca-fold=130.29 query=111.00(+17 grind) ood=179.79 algebraic(list-unioned)=153.25
+  L1: fold k=4 rate=2^-4 msg_cols=2^12 rho_red=0.062485 m=80 eta=0.00312 gamma=0.74691 L<= 640.16 queries=56 ood=1 | bits: mca-fold=135.93 query=111.01(+17 grind) ood=170.36 algebraic(list-unioned)=151.68
+  L2: fold k=4 rate=2^-7 msg_cols=2^8 rho_red=0.007782 m=42 eta=0.00210 gamma=0.90968 L<= 2698.54 queries=32 ood=1 | bits: mca-fold=137.03 query=111.00(+17 grind) ood=166.62 algebraic(list-unioned)=149.60
+  L3: fold k=4 rate=2^-10 msg_cols=2^4 rho_red=0.000916 m=7 eta=0.00432 gamma=0.96542 L<= 3822.93 queries=23 ood=1 | bits: mca-fold=145.91 query=111.64(+17 grind) ood=166.20 algebraic(list-unioned)=149.10
+
+mu=28 log_inv_rate=1 residual=2
+  L0: fold k=6 rate=2^-1 msg_cols=2^22 rho_red=0.500000 m=110 eta=0.00643 gamma=0.28647 L<= 110.00 queries=228 ood=0 | bits: mca-fold=129.15 query=111.02(+17 grind) ood=180.41 algebraic(list-unioned)=154.22
+  L1: fold k=4 rate=2^-4 msg_cols=2^18 rho_red=0.062500 m=81 eta=0.00309 gamma=0.74691 L<= 648.00 queries=56 ood=1 | bits: mca-fold=129.84 query=111.01(+17 grind) ood=169.86 algebraic(list-unioned)=151.66
+  L2: fold k=4 rate=2^-7 msg_cols=2^14 rho_red=0.007812 m=46 eta=0.00192 gamma=0.90969 L<= 2944.18 queries=32 ood=1 | bits: mca-fold=130.39 query=111.01(+17 grind) ood=165.78 algebraic(list-unioned)=149.48
+  L3: fold k=4 rate=2^-10 msg_cols=2^10 rho_red=0.000976 m=8 eta=0.00390 gamma=0.96486 L<= 4100.00 queries=23 ood=1 | bits: mca-fold=139.15 query=111.11(+17 grind) ood=165.19 algebraic(list-unioned)=149.00
+  L4: fold k=4 rate=2^-13 msg_cols=2^6 rho_red=0.000120 m=4 eta=0.00274 gamma=0.98630 L<= 16644.06 queries=18 ood=1 | bits: mca-fold=140.20 query=111.41(+17 grind) ood=161.63 algebraic(list-unioned)=146.98
+  L5: fold k=4 rate=2^-16 msg_cols=2^2 rho_red=0.000011 m=5 eta=0.00068 gamma=0.99594 L<= 218453.33 queries=14 ood=1 | bits: mca-fold=134.67 query=111.22(+17 grind) ood=154.94 algebraic(list-unioned)=143.26
+
+mu=28 log_inv_rate=2 residual=2
+  L0: fold k=6 rate=2^-2 msg_cols=2^22 rho_red=0.250000 m=82 eta=0.00610 gamma=0.49390 L<= 164.00 queries=113 ood=0 | bits: mca-fold=128.75 query=111.02(+17 grind) ood=179.84 algebraic(list-unioned)=153.64
+  L1: fold k=4 rate=2^-5 msg_cols=2^18 rho_red=0.031250 m=43 eta=0.00411 gamma=0.81911 L<= 688.00 queries=45 ood=1 | bits: mca-fold=131.87 query=111.01(+17 grind) ood=169.69 algebraic(list-unioned)=151.57
+  L2: fold k=4 rate=2^-8 msg_cols=2^14 rho_red=0.003906 m=40 eta=0.00156 gamma=0.93594 L<= 5120.31 queries=28 ood=1 | bits: mca-fold=128.89 query=111.00(+17 grind) ood=164.19 algebraic(list-unioned)=148.68
+  L3: fold k=4 rate=2^-11 msg_cols=2^10 rho_red=0.000488 m=7 eta=0.00316 gamma=0.97476 L<= 7175.01 queries=21 ood=1 | bits: mca-fold=137.55 query=111.47(+17 grind) ood=163.58 algebraic(list-unioned)=148.19
+  L4: fold k=4 rate=2^-14 msg_cols=2^6 rho_red=0.000060 m=3 eta=0.00258 gamma=0.98967 L<= 24966.10 queries=17 ood=1 | bits: mca-fold=139.51 query=112.14(+17 grind) ood=160.46 algebraic(list-unioned)=146.39
+  L5: fold k=4 rate=2^-17 msg_cols=2^2 rho_red=0.000006 m=9 eta=0.00027 gamma=0.99734 L<= 786432.00 queries=13 ood=1 | bits: mca-fold=128.22 query=111.22(+17 grind) ood=151.25 algebraic(list-unioned)=141.42
+
+mu=28 log_inv_rate=4 residual=2
+  L0: fold k=6 rate=2^-4 msg_cols=2^22 rho_red=0.062500 m=27 eta=0.00926 gamma=0.74074 L<= 216.00 queries=57 ood=0 | bits: mca-fold=131.68 query=111.01(+17 grind) ood=179.44 algebraic(list-unioned)=153.25
+  L1: fold k=4 rate=2^-7 msg_cols=2^18 rho_red=0.007812 m=11 eta=0.00804 gamma=0.90358 L<= 704.00 queries=33 ood=1 | bits: mca-fold=136.47 query=111.36(+17 grind) ood=169.62 algebraic(list-unioned)=151.54
+  L2: fold k=4 rate=2^-10 msg_cols=2^14 rho_red=0.000977 m=8 eta=0.00391 gamma=0.96484 L<= 4096.25 queries=23 ood=1 | bits: mca-fold=135.15 query=111.09(+17 grind) ood=164.83 algebraic(list-unioned)=149.00
+  L3: fold k=4 rate=2^-13 msg_cols=2^10 rho_red=0.000122 m=4 eta=0.00276 gamma=0.98620 L<= 16400.02 queries=18 ood=1 | bits: mca-fold=136.23 query=111.22(+17 grind) ood=161.19 algebraic(list-unioned)=147.00
+  L4: fold k=4 rate=2^-16 msg_cols=2^6 rho_red=0.000015 m=3 eta=0.00129 gamma=0.99483 L<= 99864.38 queries=15 ood=1 | bits: mca-fold=134.51 query=113.94(+17 grind) ood=156.46 algebraic(list-unioned)=144.39
+  L5: fold k=4 rate=2^-19 msg_cols=2^2 rho_red=0.000001 m=3 eta=0.00040 gamma=0.99841 L<= 1048576.00 queries=12 ood=1 | bits: mca-fold=130.43 query=111.51(+17 grind) ood=150.42 algebraic(list-unioned)=141.00
+```
+
+(A caveat on floating point: the port uses Python's `math` where the Rust uses `f64` methods;
+the reproduction of every query count of the table for all 56 `(ρ, μ)` pairs is the evidence
+that the two agree where it matters. The `m`, `η` and bit values are the port's; any last-ulp
+difference would not move them visibly.)
+
+`bus_depth.py` runs the pinned verifier's own `build_layout` and `bus_layout` over a covering
+grid of sizes to find the maximal bus depth under the stacking window, and at the per-log caps:
+
+```python
+# Scratch: bus depth and blueprint error sums at admissible sizes, from the pinned Python
+# verifier's own layout code (python-verifier/verifier.py at a386121f).
+import sys, math, itertools
+sys.dont_write_bytecode = True
+sys.path.insert(0, ".")
+import verifier_pinned as V
+
+print("tables:", [(t.opcode, t.width, len(t.flushes.push), len(t.flushes.pull), len(t.count_columns), t.n_constraints) for t in V.TABLES])
+
+def depths(log_mem, taus, kbc):
+    lay = V.build_layout(range(16 * 2**kbc), log_mem, taus)
+    fr = (0, lay.log_memory, lay.log_bytecode)
+    push = V.bus_layout(fr, lay.push)
+    pull = V.bus_layout(fr, lay.pull)
+    cnt = V.bus_layout((), lay.count)
+    return lay.stack_log, push.depth, pull.depth, cnt.depth
+
+best = None
+# exhaustive over a coarse but covering grid: all taus equal to t or at the floor, memory, bytecode
+for log_mem in range(16, 27):
+    for kbc in range(0, 29):
+        for t in range(0, 27):
+            for pattern in itertools.product([0, 1], repeat=6):
+                taus = [t if b else 0 for b in pattern]
+                taus[5] = max(taus[5], 3)
+                try:
+                    mu, dp, dl, dc = depths(log_mem, taus, kbc)
+                except V.VerificationError:
+                    continue
+                if not (15 <= mu <= 28):
+                    continue
+                if best is None or dp > best[0]:
+                    best = (dp, mu, log_mem, tuple(taus), kbc, dl, dc)
+print("max bus depth found under the window mu<=28:", best)
+# at the per-log caps alone (ignoring the stack window)
+mu, dp, dl, dc = depths(32, [32]*6, 28)
+print("per-log caps (mem 32, tau 32, kbc 28), ignoring the window: stack_log", mu, "bus depth", dp, dl, dc)
+```
+
+Output (2026-09-30, same as 2026-09-29):
+
+```text
+tables: [(0, 15, 5, 5, 4, 0), (1, 15, 5, 5, 4, 0), (2, 8, 3, 3, 2, 0), (3, 15, 5, 5, 4, 0), (4, 14, 5, 5, 4, 2), (5, 37, 11, 11, 10, 0)]
+max bus depth found under the window mu<=28: (28, 28, 16, (0, 0, 23, 0, 23, 3), 26, 28, 26)
+per-log caps (mem 32, tau 32, kbc 28), ignoring the window: stack_log 41 bus depth 38 38 37
+```
+
+(per table: opcode, width, push blocks, pull blocks, count columns, constraints; the grid is not
+exhaustive over all `33^6` height vectors, so "28" is a lower bound on the maximum that
+`gt-bus` D.4's counting argument confirms as the maximum.)
+
+---
+
+## I. Findings
+
+Each: name; severity; evidence (section); classification; the passage as it stands, as proposed,
+and the reason. Blueprint lines are those of `b435631`.
+
+### I.1 The opening phase runs a sumcheck leanVM does not run (major)
+
+Evidence: section A (`08:99`; `stack_open.rs:452-461`; `whir.rs:1324-1334`; `py:1362, 1012`).
+Classification: **an error of the blueprint**, caused by the evaluation interface of Layer 0.
+
+As it stands (`bp:1112-1114`):
+
+> `def openingPhase (μ) (J : ℕ) : OracleReduction []ₒ (StmtIn := Fin J → WeightedClaim μ) … (StmtOut := Unit) …`
+> `    (pSpec := V_to_P : E ; sumcheck (W_λ · q) rounds ; the final evaluation query)`
+> `theorem openingPhase_rbrKnowledgeSoundness : … ((J − 1)/|E| on λ, 2/|E| per round)`
+
+As proposed:
+
+> `def openingPhase (I) : Phase.Def I (I.Stmt × FlockOut I) Unit`
+> `    (pSpec := V_to_P : E)   -- λ; the verifier queries the stack once, at W_λ, and compares with C_λ`
+> `theorem openingPhase_rbrKnowledgeSoundness : … ((J − 1)/|E| on λ)   -- the batching component G3`
+
+with, in convention *The oracle* (`bp:317`), "`OracleInterface` query `Vector E μ_stack` and
+answer `eval₂Mle q`" replaced by "`OracleInterface` query `Weight μ_stack` (specification
+Definition 3.13) and answer `Σ_w W(w)·q(w)`; an evaluation is the query `eqWeight r`"; in Layer 0
+(`bp:637-642`) the instance accordingly, `Weight` moved below it; in Layer 11 the sentence "its
+level-0 batching challenge is the opening phase's `λ`: the compilation replaces the opening phase
+by `whirOpen`"; in Layer 12 (`bp:1214`) "WHIR in place of the evaluation oracle" → "WHIR in place
+of the opening phase, over the level-0 word as the commit message"; the title of Layer 10 and
+`bp:127` lose "the opening sumcheck". Reason: the deployed transcript after `λ` is WHIR's, whose
+sumcheck is interleaved with its commitments and closes on one equation; the sketched transcript
+has `μ` extra rounds and an extra scalar, so `verify_iff_compiled` cannot hold for Rust proofs.
+The alternative (iii) of A.5 is acceptable; (i) is not.
+
+### I.2 `verify_iff_compiled` names definitions that do not describe the compiled verifier (major)
+
+Evidence: E.4 (probe H.2; `Basic.lean:490-496`, `FiatShamir/Basic.lean:129-136`, `BCS/Basic.lean:59-63`
+at `dca90385`; `fs/transcript.rs:9-12, 225-228`; `fs/lib.rs:165-174`). Classification: an error
+of the blueprint; the absence of a BCS transform in ArkLib is a deviation forced upstream (issue
+#627 has no implementation and excludes ROM soundness).
+
+As it stands (`bp:1218-1221, 1231-1232`): the theorem with `Verifier.fiatShamir (leanVmIopp …).verifier`
+and "`decode s proof`", "unconditional: it is about two definitions".
+
+As proposed: the statement of E.4, with `bcsCompile` (a leanerVM definition, Layer 12: oracle
+messages replaced by roots, the openings as messages of the last round or as an appended
+message, the verifier's queries answered from authenticated rows), `blake2sChain prog s` (the
+chain as a `QueryImpl`), and `grindingChecks` conjoined; and the sentence "unconditional, about
+two definitions, **and** a check only because `verify` is written from §8.5 before the
+right-hand side is unfolded".
+
+### I.3 `baseVerifier_extractsExecution` and `verify_knowledgeSound` are not probability statements (major)
+
+Evidence: E.1 (`bp:1247-1248`, `bp:326`; `architecture.md:264-273`). Classification: an error of
+the blueprint (and of `docs/architecture.md`'s T4, which it transcribes).
+
+As it stands (`bp:1247-1248`):
+
+> `theorem baseVerifier_extractsExecution (fs bcs mca flock) (h : verify prog input proof = true) :`
+> `    except with probability niError, ∃ t, ValidExecution prog input t`
+
+As proposed: the two statements of E.1 — a random oracle `H` for the compression function, a
+`Q`-query adversary `A^H` outputting `(prog, input, proof)` with its query log, the straight-line
+extractor `extract` (leaves off the log, list decoding, selection), the event "`verify^H` accepts
+and `witnessOf (extract …)` fails `SatisfiedBy`" of probability `≤ niError Q`, and the
+existential corollary; the sentence "the random-oracle heuristic, that BLAKE2s's compression
+function instantiates `H`, is the one non-formal step, named here and in `architecture.md`";
+and in `architecture.md:264-269` the same repair of T4. Reason: for fixed `(prog, input, proof)`
+the hypothesis is decidable and the conclusion is a fixed proposition; the only randomness is
+the oracle's, and the only knowledge statement is about an extractor.
+
+### I.4 The Fiat–Shamir and BCS interfaces cannot be inhabited, and one is false as stated (major)
+
+Evidence: E.2 (`FiatShamir/Basic.lean:163-175`, `Implications.lean:230-254, 305-313`,
+`BCS/Basic.lean`, `Commitments/Functional/Basic.lean:250-255` at both pins; PR #848's
+`SingleSalt.lean:973-993`; issue #627's plan; `literature` A.3). Classification: an error of the
+blueprint (the universal claim of the comment is false; `#627` is not a pull request); the
+missing upstream theorems are a deviation forced by ArkLib, whose workaround is to name the
+literature and the construction.
+
+As it stands (`bp:1223-1225`):
+
+> `/-- Assumed interfaces, each an ArkLib theorem to come (ledger A5). -/`
+> `structure FiatShamirSecurity where …   -- rbr knowledge soundness of the IOPP ⇒ knowledge soundness of its FS compilation in the ROM, error Q · max_i ε_i`
+> `structure BcsSecurity where …          -- Merkle-compiled oracles: extraction from collision resistance / ROM`
+
+As proposed:
+
+> `/-- Assumed interfaces. No theorem of ArkLib states them at either pin (its Fiat–Shamir completeness is admitted for a constant oracle, its BCS transform is commented out, its round-by-round ⇒ state-restoration implication is commented out); their witness obligation is the literature (BCS16, CY24 Thm 25.2.1/31.2.1, BGKTTZ23 Thm 3.15) for the parts it covers, and a new statement for grinding. -/`
+> `structure RbrToStateRestoration where …  -- worst-case rbr knowledge soundness ⇒ state-restoration knowledge soundness at (Q + rounds)·max_i ε_i`
+> `structure BcsSecurity where …            -- the IOP of E.3, Merkle-compiled with H random, keeps state-restoration knowledge soundness up to 3(Q² + 1)/2^256, with the straight-line extractor reading leaves off the query log; hypothesis: leaf width and height fixed by the verifier`
+> `structure ChainFiatShamirSecurity where … -- the hash chain of fs/lib.rs with H random, with proof-of-work rounds of b_i bits, turns state-restoration knowledge soundness ε_sr(Q) into adaptive knowledge soundness ε_sr(Q) + c·Q²/2^256, a query at a ground round costing 2^{b_i} queries of H`
+
+and `verify_knowledgeSound (rs : RbrToStateRestoration) (bcs) (fs : ChainFiatShamirSecurity)
+(mca : McaJohnson) (lc : ListCompile) (flock)`. In the ledger row A5 (`bp:263`) and the holes
+table (`bp:614`): "#848 and #469 (single-salt and duplex-sponge Fiat–Shamir from
+state-restoration soundness, ideal per-round oracle, no proof of work); #627 is a design issue
+for the BCS transform whose plan excludes ROM soundness". Reason: an interface quantified over
+all IOPPs with error `Q·max ε_i` is false (hash term, oracle messages, grinding), and a
+hypothesis that is false makes the theorem vacuous.
+
+### I.5 The list-binding compilation is a theorem the blueprint names and does not state (major)
+
+Evidence: E.3, G (`B:4, 70-72, 133-137`; `whir_config.rs:593-599`; `bp:1190, 1296-1299`;
+`gt-flock-ring` 8.13; `literature` A.3 item 4, G.2). Classification: an error of the blueprint
+(omission).
+
+As it stands (`bp:1190`): "Layer 12 turns list binding into extraction of the one `q` that
+satisfies every pooled claim."
+
+As proposed: in Layer 12, the theorem of E.3 ("List-binding compilation") with its extractor
+(list-decode, select), its state function, its errors (`L_0·ε_i` at the front's challenges,
+Theorem B.7's at WHIR's), and its two lemmas: every member of `Λ(w)` is `K`-valued and of the
+right size (section G); the front's verifier makes no oracle query. In `niError`, the factor
+`L_0` on every oracle-protocol challenge. Reason: neither `FiatShamirSecurity`, `BcsSecurity` nor
+`McaJohnson` mentions the list; without the theorem the master theorems (about one `q`) do not
+reach `verify`.
+
+### I.6 Perfect completeness does not survive the transform (major)
+
+Evidence: E.5 (`fs/lib.rs:126-155`; `Compose.lean:94-104`; `gt-flock-ring` 8.4, 8.12;
+`lib-arklib` G.2). Classification: an error of the blueprint.
+
+As it stands (`bp:1255-1257`): "the second composes `constraintCompleteness`, `m3Holds_stackOf`,
+`piop_perfectCompleteness` and the determinism of the Fiat–Shamir chain (perfect completeness
+survives the transform without any assumption)."
+
+As proposed: "the second composes `constraintCompleteness`, `m3Holds_stackOf`,
+`piop_perfectCompleteness` and the determinism of the chain: an honest interactive proof on the
+chain's challenges is the compiled proof (an equation between definitions). The grinding is a
+search (`fs/lib.rs:126-155`); `prove` takes fuel and returns `Option Proof`, and
+`baseProver_complete` is `prove … = some proof → verify … proof = true`." Reason: no theorem
+gives the honest prover a nonce.
+
+### I.7 `niError` cannot carry leanVM's 128-bit claim (major)
+
+Evidence: F.2–F.3 (`whir_config.rs:25-27, 36-38, 57-60, 537-568, 593-599`; `leaf.rs:108-118`;
+H.3; `literature` A.3). Classification: an error of the blueprint.
+
+As it stands (`bp:1234-1235`): "`niError` is the round-by-round maximum times the query bound plus
+the grinding-adjusted WHIR terms."
+
+As proposed: "`niError Q` is `(Q + rounds)` times the largest per-challenge error of the
+compiled protocol — `L_0·ε_i` at each oracle-protocol challenge, Theorem B.7's fold, OOD and
+batching terms, and `2^{−17}·(1 − γ_i)^{t_i}` at each ground query round — plus the hash term
+`c·Q²/2^256`; at the deployed parameters the maximum is the query rounds' `2^{−128}` and the
+fold rounds' `2^{−128.2}`, in the Johnson regime conditional on Theorem 4.6, for every admissible
+`(μ, ρ)` (the query counts of `py:910`)." And in acceptance test 23: "`Σ piopError < 2^{-150}` is
+the interactive error of the oracle protocol at admissible sizes (below `2^{-159}` with the
+window); it is not the security level of `verify`, which the WHIR query rounds set at 128 bits
+including 17 bits of grinding." Reason: F.
+
+### I.8 Layer 11's `whirOpen` batches a second time, and its `encode` serves level 0 only (major)
+
+Evidence: B.6, A.4 (`B:108-110`; `whir.rs:419-485`; `bp:1169, 1173, 1185`). Classification: an
+error of the blueprint. As proposed: `whirOpen`'s level-0 batch is the opening phase's `λ` (I.1);
+`encode (κ R) : (Fin (2^κ) → E) → (Fin (2^(κ+R)) → E)` with the lemma that a `K`-valued message
+gives a `K`-valued word (`B:306`), level 0 being that case.
+
+### I.9 `encode_column_weight` is an existence statement every linear map satisfies (minor)
+
+Evidence: B.6 (`B:309-315`; `whir_induce.rs:220-224`). Classification: an error of the blueprint
+(non-vacuity). As it stands (`bp:1170`): "`theorem encode_column_weight (x) : ∃ W_x : Weight κ, ∀
+f, encode κ R f x = ⟨W_x, f⟩ -- Lemma B.7`". As proposed: "`def columnWeight (κ R) (x) : Weight κ`
+with `mle r = ∏ i, ((1 + r i) + r i * Ŵ_i x)` and `theorem encode_columnWeight (x) (f) : encode κ
+R f x = (columnWeight κ R x).pair f -- Lemma lem:colweight`". Reason: `Weight` is inhabited by
+any cube row with `evalMle` as evaluator, so the existential says only that `encode` is linear;
+the verifier evaluates the closed form.
+
+### I.10 The proof object's Merkle format is unspecified (minor)
+
+Evidence: C.2, B.4, D.4 (`fs/transcript.rs:9-19, 198-203`; `fs/merkle.rs:78-92, 246-264`;
+`py:392-404, 1049`; the test harness `python_verifier.rs:50-80`). Classification: an error of the
+blueprint (omission). As proposed, in Layer 12: "`Proof.merkle` is the pruned wire form
+`PrunedMerklePaths` (rows at the distinct sorted positions, one octopus), which the Rust prover
+emits; `merkleVerify` checks a phase, not a path; the raw form the Python and the guest read is
+derived from an accepting run and is not `verify`'s input. At level 0 the row holds the
+`n_lanes` committed lanes and the verifier supplies the zero prefix." Also to
+`docs/leanvm-target.md`: the Python, run standalone, accepts level-0 leaves with nonzero absent
+lanes (soundness-neutral).
+
+### I.11 Four transcript facts of WHIR are not in the blueprint (minor)
+
+Evidence: B.1. Classification: an error of the blueprint (omission), Category B. As proposed,
+in Layer 11 or the conventions: (a) the lane relayout `f(u, x) = q(x, u)` at level 0 and the
+rotation of the terminal point (`whir.rs:2297-2306`); (b) per-claim intro round polynomials for
+the OOD claim and the query batch, sent before the level's `λ_i`, the batched polynomial formed
+by linearity; (c) the last round message omitted; (d) the grinding nonce read before the
+positions at every level, 17 bits.
+
+### I.12 `Level` lacks the analysis parameter; OOD count and grinding bits are parameters (minor)
+
+Evidence: B.3 (`whir_config.rs:624-707`). As proposed: `structure Level where (fold rateExp
+queries oodSamples grindingBits : ℕ) (η : ℚ)` with `whirError` a function of `η`; the deployed
+`η_i` (or `m_i`) recorded per `(μ, ρ)` as Category B.
+
+### I.13 The blueprint's Annex B numbers are not the pinned counter's (minor)
+
+Evidence: `preamble/theorems.tex:4, 12` (`protocol` shares the theorem counter); B.5–B.6.
+"Protocol B.1" → Protocol B.6; "Theorem B.2" → Theorem B.7; "Definition B.1" (list binding) →
+Definition B.4; "Lemma B.7" (column weights) → Lemma B.14; "Annex B.3" (`bp:278`, the novel
+basis) → §B.5; "(Annex B.4)" (`bp:1172`, the protocol) → §B.3. Cite labels (`thm:rbr`,
+`def:listbinding`, `lem:colweight`, `def:enc`) instead.
+
+### I.14 The chain's step is the 64-byte hash, not the compression with `cv` as chaining value (minor)
+
+Evidence: C.1 (`fs/lib.rs:18-24`; `primitives/src/hash.rs:83-87, 209-224`; `bp:216, 325, 1204`).
+As proposed, in the *Fiat–Shamir* row: "every step is `BLAKE2s-256(cv ‖ block)` over 64 bytes,
+that is the RFC compression `F(paramIV, cv ‖ block, t = 64, f0 = 1)` with the chain state in the
+message; `compress` of leanISA Layer 1 is `F`". Reason: the two readings are different
+functions; Category B.
+
+### I.15 `piopError_le`'s bound depends on the window; test 23 omits ring switching (minor)
+
+Evidence: F.1 (agrees with `gt-bus` D.4/G4 and `gt-flock-ring` 8.8). As proposed: `piopError_le`
+states `μ_bus ≤ 28` (from `Admissible`'s window) in its comment; test 23 reads "`Σ piopError <
+2^{-159}` at admissible sizes; ring switching's `2^{-160}` dominates".
+
+### I.16 The status's finding F9 is false at the pin (minor; agrees with `gt-bus` G5, `gt-flock-ring` 8.10)
+
+Evidence: `py:856-864` at `a386121f` checks `16 ≤ log_memory ≤ 32`, `τ_j ≤ 32`, `τ_BLAKE2S ≥ 3`,
+`0 ≤ log_bytecode ≤ 32` with `log2_strict`. The status's "the Python verifier omits four caps …
+to report upstream" (`protocol-status.md:316-319, 164`) would be a false report.
+
+### I.17 Layer 12's mutation tests exercise too little (minor)
+
+Evidence: C.4, D. As proposed: add the grinding nonce, a root's third limb, a size's upper limb,
+a trailing scalar, a surplus sibling, a level-0 row of the wrong width, a duplicated position.
+
+### Notes
+
+- **The upper per-log caps are implied by the stacking window** (D.1): a Lean `Admissible` with
+  the window needs them only to match the Rust's rejection set, not for any theorem.
+- **The Rust's list-size accounting** (F.2): only the algebraic checks are unioned over the
+  Johnson list (`whir_config.rs:537-568`); the bus's `4·2^{μ_bus}` is not (`leaf.rs:108-118`),
+  with 23 bits of room at these sizes. For `docs/leanvm-target.md`.
+- **A stale comment in the source**: `whir.rs:393-395` "one Merkle leaf of `num_interleaved * 16`
+  bytes"; the code hashes `24·num_interleaved` (`:463`). For `docs/leanvm-target.md`.
+- **The leanVM working tree was moved off the pin on 2026-09-30 09:42** (reflog), not by this
+  review; the pinned objects are intact and every citation was re-verified with `git show`.
+- **Probe status.** Both Lean probes elaborate at the old and the new pins (H); nothing in this
+  dossier rests on a probe that did not run.
+
+### Negative results (what was checked and agrees)
+
+The moment and powers of `λ` across the three sources (A.2); the Python's `verify_whir` against
+the Rust's succinct verifier message by message (B.1); the Python's `derive_config` against the
+Rust's `configs_for_rate` for all 56 `(ρ, μ)` (H.3); the column weight's closed form against
+Lemma `lem:colweight` (B.2); the digest encoding, the tags, the seed, the squeeze and the
+grinding predicate between Rust and Python (C.1); the round-polynomial encoding (C.3); the
+blueprint's six WHIR constants and its `ladder_queries_eq` pin (B.3); its *Fiat–Shamir* row's
+tags, seed and squeeze (C.1); its *Claim pool order* row (A.2); `WeightedClaim.Holds` against
+Definition 3.13 (A.6); `McaJohnson` against ArkLib's admitted statement and Annex B (E.2).

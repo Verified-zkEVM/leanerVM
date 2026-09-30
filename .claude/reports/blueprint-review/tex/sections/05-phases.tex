@@ -205,14 +205,70 @@ verifier exactly as much as the instance's predicate does.
 
 \section{The opening and the compilation}\label{sec:ph-opening}
 
-\emph{This section is completed from the dossier on the opening, WHIR, Merkle trees and
-Fiat--Shamir, which is being finished as this draft is written.} What is already established:
-the specification's opening is one batching challenge followed by one inner-product opening,
-with no separate reduction sumcheck, whereas the blueprint's oracle protocol runs a sumcheck
-reducing the batched weighted claim to an evaluation and then queries the oracle once; the
-oracle interface of the stack in Layer 0 is an evaluation oracle, and an inner-product oracle,
-the idealization of the specification's Definition 3.13, would make the opening phase
-\enquote{$\lambda$, then one query} with leanVM's transcript. The compiled error the blueprint
-sketches lacks the hash-collision term, the list-size factor of a list-binding commitment and
-any account of grinding; the assumed Fiat--Shamir and BCS interfaces are stated for
-constructions that are not leanVM's single BLAKE2s map (\cref{sec:faith-opening}).
+\paragraph{What is proved.} That every pooled claim holds of the committed column: the 112
+point claims (each an evaluation of a column of $q$ at a point, turned into a weighted sum over
+the stack through the stack's selectors) and the one ring-switched weighted claim.
+
+\paragraph{How, as deployed.} The verifier draws $\lambda$; the ring-switched claim takes
+$\lambda^0$ and the pool the next powers; the batch is one weighted claim
+$\sum_w W_\lambda(w)\, \widetilde{q}(w) = C_\lambda$. The next scalar the verifier reads is the
+first round polynomial of WHIR's \emph{own} sumcheck on that claim: the $\mu$ reducing rounds
+are WHIR's, interleaved with its level roots, out-of-domain samples, grinding, queries and
+per-level batchings, and the protocol closes on one equation without ever evaluating
+$\widetilde{q}$ at a point. There is no separate reduction sumcheck, as the specification says.
+Four details of the deployed schedule are not in the specification's Protocol B.6: the
+per-claim introductory polynomials before each level's batching challenge, seventeen bits of
+grinding at every level, the level-0 lane relayout with its rotated terminal point, and the
+omission of the last round message.
+
+\paragraph{How, in the blueprint.} Layer 10 runs a sumcheck reducing the batched weighted claim
+to an evaluation and then queries the oracle once; Layer 11 then runs WHIR \enquote{in place of
+the evaluation oracle}. Composed, that is a transcript with $2\mu$ sumcheck rounds, an extra
+scalar and a second batching challenge, which no Rust proof has: the refinement theorem of
+Layer 12 cannot hold as planned. The cause is the oracle interface of Layer 0, an evaluation
+oracle; the specification's commitment scheme is an inner-product scheme (its Definition 3.13),
+whose idealization is an oracle that answers \emph{weighted sums}. With that interface the
+opening phase is \enquote{$\lambda$, then one weighted query}, with error $(J - 1)/\abs{\E}$
+on $\lambda$ and nothing else, and WHIR replaces the whole opening phase, its level-0 batching
+being that $\lambda$. The review's probe shows that the interface typechecks against ArkLib at
+both pins, that the evaluation queries every built theorem uses are its special case, and that
+nothing built queries the oracle, so nothing built breaks (\cref{sec:faith-opening}).
+
+\paragraph{Completeness.} Of the oracle protocol with the inner-product interface: perfect.
+After compilation: \emph{not} perfect. The honest prover's grind is an unbounded search for a
+nonce, so the honest \lean{prove} is a partial or fuelled function, and the blueprint's
+\enquote{perfect completeness survives the transform without any assumption} does not hold as
+written; what survives is completeness of \lean{prove} whenever it returns.
+
+\paragraph{Knowledge soundness.} Of the oracle protocol: the batching error on $\lambda$. Of
+the compiled verifier: the commitment is a Merkle root of a $\K$-valued word, not of a
+codeword, close to at most $L_0$ codewords of the code over $\E$; the compilation must show
+that some member of that list satisfies every pooled claim and charge $L_0$ times each
+front-end error on the challenges before the opening. Every such codeword is $\K$-valued
+(agreement beyond the code's dimension on a $\K$-valued word kills the $y, y^2$ components), a
+lemma the specification does not state and the extracted witness's type needs; the review
+proves it in two lines. The non-interactive error then needs the hash-collision term, the
+list-size factor and an account of grinding, which the blueprint's sketch of \lean{niError}
+lacks; and the interfaces it assumes for Fiat--Shamir and for the Merkle compilation are, as
+written, false as universals or stated for other constructions than leanVM's single BLAKE2s
+map, and inhabited by nothing at either pin of ArkLib (\cref{sec:faith-opening},
+\cref{ch:tcb}).
+
+\paragraph{The numbers.} Under the stacking window the blueprint's phase errors sum to about
+$2^{-159.7}$, ring switching's $2^{32}/\abs{\E}$ dominating, so its interactive bound holds;
+without the window the bus depth reaches 38 and it is false. The deployed parameters claim 128
+bits round-by-round in the Johnson regime, provable given the coding-theory theorem the
+blueprint names: the query rounds close 111 bits plus 17 bits of grinding at every level, the
+fold terms sit at 128 to 146 bits, and the list size $L_0$ runs from a few hundred at
+$\mu = 15$ to about $2^{20}$ at deep levels. The review's port of the Rust's parameter search
+reproduces the Python verifier's query table for all 56 configurations
+(\cref{sec:faith-opening}).
+
+\paragraph{Where the blueprint falls short.} In the shape of the oracle (an evaluation oracle
+where leanVM commits to an inner-product scheme), in the transcript of the opening (a sumcheck
+that is not there), in the form of the non-interactive theorems (no probability space, no
+adversary, soundness rather than knowledge), in the interfaces it assumes (false or empty as
+stated), in the error it sketches (three terms missing), and in the wording of the
+Fiat--Shamir chain (the chaining value is hashed as part of the message, not fed as the
+compression's chaining-value input, which the blueprint's \enquote{compress with the state as
+chaining value} invites one to get wrong).

@@ -382,3 +382,44 @@ tex-groundtruth done: 12 fragments + index-gen.tex; the leanVM checkout move con
 ### 11:00: tex-boundary (aa51a65bb3206779a, Opus) → gen/boundary-*.tex, findings-boundary.tex,
 probes-boundary.tex; obligations (ab02c85f4f6a7f994, Fable) → dossiers/obligations.md.
 Report at 97 pages (9f5e1f1). Chapters 03, 04, 12 and appendices b, c, d wired to fragments.
+### 11:10: verify-majors (a74db140b844df3a5, Fable) → dossiers/verify-majors.md: attacks 11 major findings.
+Running now: register, tex-libraries, tex-catalogue, tex-docs, probes-rerun, gt-opening-compile, tex-boundary, obligations, verify-majors.
+
+### 11:25 gt-opening-compile landed (1921 lines)
+MAJOR: (1) NO sumcheck between λ and WHIR: after λ the next message is WHIR's own first round
+polynomial (`stack_open.rs:452-461` → `whir.rs:1324-1326`; `py:1362, 1012`); the blueprint's
+Layer 10 + Layer 11 describe 2μ sumcheck rounds, an extra scalar and a second batching
+challenge: `verify_iff_compiled` cannot hold for any Rust proof. Recommend (ii): inner-product
+oracle interface (`Query := Weight μ`, answer `W.pair q`; Definition 3.13); the opening phase =
+"λ, then one weighted query", error (J−1)/|E|; WHIR replaces the whole opening phase; probe
+shows it typechecks at both pins; nothing built breaks. (2) Non-interactive theorems ill-formed
+(no probability space; soundness not knowledge; no adversary/query budget); well-formed shape
+given (RO H for the compression; Q-query adversary; straight-line extractor: leaves off the log,
+list decoding, selection; adversary-chosen sizes; program bound by its hash; ROM heuristic
+named). `verify_iff_compiled` as sketched applies `Verifier.fiatShamir` to an oracle verifier
+with the stack and codewords as messages in the clear, omits Merkle compilation (ArkLib has
+none), grinding, sizes; statable form given. `FiatShamirSecurity` ("rbr ⇒ FS KS, Q·max ε") is
+FALSE as a universal (hash term, oracle messages, grinding); nothing at either pin or in
+#848/#469 inhabits it; `BcsSecurity` empty; #627 is an issue not a PR. Missing: rbr ⇒
+state-restoration (commented out upstream, wrong error), hash-chain instantiation, grinding,
+list-binding compilation (stated in E.3 with extractor/state function/errors L_0·ε_i on the
+front's challenges; needs "list members are K-valued" lemma, proved in 2 lines). Perfect
+completeness does NOT survive compilation: the honest grind is an unbounded search
+(`fs/lib.rs:126-155`) → `prove` must be partial/fuelled. (3) Numbers: under the stacking window
+(μ_bus ≤ 28) Σ phase errors ≈ 2^-159.7 (ring switching 2^32/|E| dominates), so `piopError_le`
+holds; without the window μ_bus = 38 and it is false. Deployed set: 128 bits rbr in the Johnson
+regime given BCHKS25 4.6; query rounds 111 bits + 17 grinding per level; fold (MCA) terms
+128.2–146 bits; L_0 ≤ 396 (μ=15)…110 (μ=28), up to 2^20 at deep levels; port of
+whir_config.rs's search reproduces the Python query table for all 56 (ρ, μ). (4) Hidden
+assumption: commitment = Merkle root of a K-valued word (not a codeword) close to ≤ L_0
+codewords of the E-code; every such codeword is K-valued (lemma not in spec). Ground truth
+B/C/D: four schedule differences vs Protocol B.6 not in the blueprint (per-claim intro
+polynomials before λ_i; 17-bit grinding per level; level-0 lane relayout with terminal point
+rotated by 6; last round message omitted); RS over E with domain in K, novel basis; Merkle =
+BLAKE2s-256 leaves/nodes without domain separation; chain step = BLAKE2s-256(cv‖block) with cv
+IN the message (blueprint's "compress with cv as chaining value" wording invites the wrong
+function); proof object's Merkle format unspecified; standalone Python accepts nonzero absent
+lanes; upper per-log caps implied by the window; `encode_column_weight` near-vacuous; `encode`
+K-only; Annex B numbering: Protocol B.6, Theorem B.7, Definition B.4, Lemma B.14.
+Caveats: no probe of the list-compile theorem; ArkLib `Commitments/`, `FiatShamir/`,
+`Data/CodingTheory/` oleans absent from the build (probes copy definitions).

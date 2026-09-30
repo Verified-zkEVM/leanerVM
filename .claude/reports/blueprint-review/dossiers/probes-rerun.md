@@ -877,3 +877,745 @@ did not evaluate to `true`
 exit=1
 ```
 
+### 2.3 `P5PassThrough`: the pass-through bus phase has no `Phase.Security` on the toy
+
+**(a) The unchanged copy, as a control** (`P5PassThrough.unchanged.v434.lean`, `cp` of the old
+file; empty diff). Output (`P5PassThrough.unchanged.v434.lean.new.out`), 8 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:26:68: error: Tactic `decide` failed for proposition
+  ¬M3Holds toy 2 badConstraint
+because its `Decidable` instance
+  instDecidableNot
+did not reduce to `isTrue` or `isFalse`.
+
+Reduction got stuck at the `Decidable` instance
+  match h :
+    (↑(CMvPolynomial.eval (toy.row badConstraint ⟨0, ⋯⟩ ⟨0, ⋯⟩) constraint).1.toFin).beq
+      ↑(Fin.Internal.ofNat (2 ^ 64) ⋯ 0) with
+  | true => isTrue ⋯
+  | false => isFalse ⋯
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:50:14: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:58:11: warning: `probEvent` has been deprecated: VCVio retiring probability API: use `𝒟[mx] {x | p x}`
+.claude/reports/blueprint-review/probes/code-spine/P5PassThrough.unchanged.v434.lean:64:42: error: Application type mismatch: The argument
+  hpos
+has type
+  (probEvent
+      (OptionT.mk
+        ((simulateQ noImpl (Verifier.run stmt tr (Phase.passThrough toy dropAll).red.verifier.toVerifier)).run' ()))
+      fun stmtOut => (stmtOut, ()) ∈ Seam.bus toy) >
+    0
+but is expected to have type
+  𝒟[do
+        let stmtOut ←
+          OptionT.mk do
+              let __do_lift ← pure ()
+              (simulateQ noImpl (Verifier.run stmt tr (Phase.passThrough toy dropAll).red.verifier.toVerifier)).run'
+                  __do_lift
+        pure ((stmtOut, ()) ∈ Seam.bus toy)]
+      {True} >
+    0
+in the application
+  ksf.toFun_full stmt tr () hpos
+'Probe.no_security' depends on axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+exit=1
+```
+
+Two independent failures, both caused by the upgrade: `bad_not_m3Holds` (line 26) no longer
+holds by `decide +kernel` with `(2 : K)` (at the new pin `2 : K` is `0`, so `badConstraint`'s
+column 2 is `[0, 0]`, which is Boolean; the kernel's reduction gets stuck rather than returning
+`isFalse`, so this run does not itself show the proposition false), and the old `Pr[P | c]`
+(the deprecated `probEvent`) no longer matches the event of ArkLib `7653a901`'s `toFun_full`
+(line 64). `no_security` is therefore recorded with `sorryAx`. This is the expected behaviour
+of an unadapted probe, not a result about the spine.
+
+**(b) The adapted copy** (`P5PassThrough.v434.lean`): the numeral `2` in `K` written
+`K.ofBits 2` wherever it is a cell or a statement, and the event restated in the new
+`Pr{…}[…]` form with `OracleComp.OptionT.prEvent_mk_pos_iff`, as the repository's
+`ToArkLib/GuardedVerdict.lean` does at `144c5aa`. Diff:
+
+```diff
+@@ -17,23 +17,23 @@
+ namespace Probe
+ 
+ /-- The test's stack `badConstraint`: column 2 is `[2, 0]`. -/
+-def badConstraint : Column 3 := ⟨#v[1, 1, 1, 1, 2, 0, 0, 0]⟩
++def badConstraint : Column 3 := ⟨#v[1, 1, 1, 1, K.ofBits 2, 0, 0, 0]⟩
+ 
+ /-- The statement map of `trivPhases.bus`: no claim. -/
+ def dropAll (s : K) : K × BusOut toy := (s, ⟨[], []⟩)
+ 
+ /-- Outside the relation. -/
+-theorem bad_not_m3Holds : ¬ M3Holds toy (2 : K) badConstraint := by decide +kernel
++theorem bad_not_m3Holds : ¬ M3Holds toy (K.ofBits 2 : K) badConstraint := by decide +kernel
+ 
+ /-- Inside the bus seam, with no claim. -/
+ theorem bad_mem_bus :
+-    ((dropAll 2, fun _ : Fin 1 ↦ badConstraint), ()) ∈ Seam.bus toy :=
++    ((dropAll (K.ofBits 2), fun _ : Fin 1 ↦ badConstraint), ()) ∈ Seam.bus toy :=
+   ⟨by simp [dropAll], by simp [dropAll], by simp [dropAll], by decide +kernel, trivial⟩
+ 
+ /-- The reflection hypothesis of `Phase.passThroughSecurity` is false at the bus seam. -/
+ theorem not_reflects : ¬ ∀ (s : K) (o : ∀ i, TheOracle toy i),
+     ((dropAll s, o), ()) ∈ Seam.bus toy → ((s, o), ()) ∈ Seam.commit toy := fun h ↦
+-  bad_not_m3Holds (h 2 (fun _ ↦ badConstraint) bad_mem_bus)
++  bad_not_m3Holds (h (K.ofBits 2) (fun _ ↦ badConstraint) bad_mem_bus)
+ 
+ /-- The empty implementation of the empty shared oracle. -/
+ def noImpl : QueryImpl []ₒ (StateT Unit ProbComp) := fun t ↦ PEmpty.elim t
+@@ -43,23 +43,25 @@
+ theorem no_security (S : Phase.Security toy (Phase.passThrough toy dropAll) (Seam.commit toy)
+     (Seam.bus toy)) : False := by
+   have ksf := S.kSF (pure ()) noImpl
+-  let stmt : K × ∀ i, TheOracle toy i := (2, fun _ ↦ badConstraint)
++  let stmt : K × ∀ i, TheOracle toy i := (K.ofBits 2, fun _ ↦ badConstraint)
+   let tr : (Phase.passThrough toy dropAll).pSpec.FullTranscript := fun i ↦ Fin.elim0 i
+   have htr : tr = (default : (Phase.passThrough toy dropAll).pSpec.Transcript 0) :=
+     funext fun i ↦ Fin.elim0 i
+-  have hpos : Pr[fun stmtOut ↦ (stmtOut, ()) ∈ Seam.bus toy | OptionT.mk do
++  have hpos : Pr{let stmtOut ← OptionT.mk do
+       (simulateQ noImpl ((Phase.passThrough toy dropAll).red.verifier.toVerifier.run stmt
+-        tr)).run' (← (pure () : ProbComp Unit))] > 0 := by
++        tr)).run' (← (pure () : ProbComp Unit))}[(stmtOut, ()) ∈ Seam.bus toy] > 0 := by
+     have hrun : (Phase.passThrough toy dropAll).red.verifier.toVerifier.run stmt tr =
+-        pure (dropAll 2, fun _ ↦ badConstraint) :=
+-      Component.passThroughVerifier_toVerifier_run (TheOracle toy) dropAll 2
++        pure (dropAll (K.ofBits 2), fun _ ↦ badConstraint) :=
++      Component.passThroughVerifier_toVerifier_run (TheOracle toy) dropAll (K.ofBits 2)
+         (fun _ ↦ badConstraint) tr
+     rw [hrun]
+-    change Pr[_ | OptionT.mk (do let st ← (pure () : ProbComp Unit); (simulateQ noImpl
+-      (OptionT.run (pure (dropAll 2, fun _ : Fin 1 ↦ badConstraint)))).run' st)] > 0
++    change Pr{let sample ← OptionT.mk (do
++      let st ← (pure () : ProbComp Unit)
++      (simulateQ noImpl (OptionT.run (pure (dropAll (K.ofBits 2),
++        fun _ : Fin 1 ↦ badConstraint)))).run' st)}[(sample, ()) ∈ Seam.bus toy] > 0
+     rw [OptionT.run_pure, simulateQ_pure]
+-    rw [gt_iff_lt, probEvent_pos_iff]
+-    refine ⟨(dropAll 2, fun _ ↦ badConstraint), ?_, bad_mem_bus⟩
++    rw [gt_iff_lt, OracleComp.OptionT.prEvent_mk_pos_iff]
++    refine ⟨(dropAll (K.ofBits 2), fun _ ↦ badConstraint), ?_, bad_mem_bus⟩
+     simp
+   have hfull := ksf.toFun_full stmt tr () hpos
+   rw [htr] at hfull
+```
+
+Output (`P5PassThrough.v434.lean.new.out`), 3 s:
+
+```text
+'Probe.no_security' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-spine.md` appendix: `'Probe.no_security'
+depends on axioms: [propext, Classical.choice, Quot.sound]`, `exit=0`): at the new pins the type
+`Phase.Security toy (Phase.passThrough toy dropAll) (Seam.commit toy) (Seam.bus toy)` is still
+empty, with the counterexample stack `badConstraint` (column 2 `[K.ofBits 2, 0]`) at the
+statement `K.ofBits 2`.
+
+### 2.4 Control: `P4Junk.v434.lean` (five phases that check nothing, at declared error 1)
+
+Copied unchanged (`cp P4Junk.lean P4Junk.v434.lean`; empty diff); it has no numeral other than
+`0` and `1` in `K` and no probability event. Output (`P4Junk.v434.lean.new.out`), 3 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-spine/P4Junk.v434.lean:99:8: warning: `if_pos` has been deprecated: Use `ite_eq_left` instead
+'Probe.junkSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.piopError_junk' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-spine.md` appendix): `junkSecurity` (an
+inhabitant of `Phases.Security` of the toy by five phases that check nothing, each with one
+wasted challenge at declared error `1`) and `piopError_junk` on the kernel's three axioms. The
+one warning is Lean 4.34.1's deprecation of `if_pos` (line 99).
+
+## 3. Layer 1 (`probes/code-layer1/`)
+
+Command, from the repository root: the brief's (no `-D` option), as `code-layer1.md` section I
+records for `OffsetsProbe` and `ValuesProbe`. (`DuplicatesProbe` and `StridedProbe` were run at
+the old pin with the old Lean binary and a hand-made `LEAN_PATH`, `code-layer1.md` I; here all
+four ran through `lake env lean`.)
+
+### 3.1 `ValuesProbe.v434.lean` (Layer 1's definitions against numbers from the pinned Python verifier)
+
+Every numeral other than `0` and `1` in `K` (the limbs given to `E.ofLimbs`, the tables, the
+stack `arbitrary`, the table `short`, the points and the result `1935` of the padding check, the
+expected lists) was rewritten as `K.ofBits n`, the same word it denoted at the old pin (the
+expected values were produced by `values.py` from the pinned Python verifier and are unchanged).
+One API change: at CompPoly `572f9973` `K` is a structure wrapping `BitVec 64`, so the old
+`(·.toNat)` (which was `BitVec.toNat` when `K` was `BitVec 64`) is written `(·.toBitVec.toNat)`.
+`gpow` (`LeanerVM/Parameters/Generator.lean:46` at `144c5aa`, `abbrev gpow (i : ℕ) : K := g ^ i`)
+takes a natural exponent and was left. Diff:
+
+```diff
+@@ -24,13 +24,13 @@
+ def answer {n : ℕ} (q : Column n) (z : Vector E n) : E := OracleInterface.answer q z
+ 
+ /-- The point `ζ` of `values.py`. -/
+-def zeta : Vector E 4 := #v[E.ofLimbs 3 1 0, E.ofLimbs 5 0 7, E.ofLimbs 2 2 2, E.ofLimbs 0 1 0]
++def zeta : Vector E 4 := #v[E.ofLimbs (K.ofBits 3) 1 0, E.ofLimbs (K.ofBits 5) 0 (K.ofBits 7), E.ofLimbs (K.ofBits 2) (K.ofBits 2) (K.ofBits 2), E.ofLimbs 0 1 0]
+ 
+ /-- The point `α` of `values.py`. -/
+-def alpha : Vector E 4 := #v[E.ofLimbs 9 0 1, E.ofLimbs 0 4 0, E.ofLimbs 6 6 0, E.ofLimbs 1 2 3]
++def alpha : Vector E 4 := #v[E.ofLimbs (K.ofBits 9) 0 1, E.ofLimbs 0 (K.ofBits 4) 0, E.ofLimbs (K.ofBits 6) (K.ofBits 6) 0, E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3)]
+ 
+ /-- `α` with its coordinates reversed. -/
+-def alphaRev : Vector E 4 := #v[E.ofLimbs 1 2 3, E.ofLimbs 6 6 0, E.ofLimbs 0 4 0, E.ofLimbs 9 0 1]
++def alphaRev : Vector E 4 := #v[E.ofLimbs 1 (K.ofBits 2) (K.ofBits 3), E.ofLimbs (K.ofBits 6) (K.ofBits 6) 0, E.ofLimbs 0 (K.ofBits 4) 0, E.ofLimbs (K.ofBits 9) 0 1]
+ 
+ /-! ## B.6 The bytecode column -/
+ 
+@@ -43,7 +43,7 @@
+   code i := match i.val with
+     | 0 => .xor (gpow 1) (gpow 2) (gpow 3)
+     | 1 => .mulNative (gpow 4) (gpow 5) (gpow 6)
+-    | 2 => .setConstant (gpow 7) (E.ofLimbs 11 12 13)
++    | 2 => .setConstant (gpow 7) (E.ofLimbs (K.ofBits 11) (K.ofBits 12) (K.ofBits 13))
+     | 3 => .deref (gpow 8) (gpow 9) (gpow 10) .pc
+     | 4 => .deref (gpow 21) (gpow 22) (gpow 23) .fp
+     | 5 => .deref (gpow 24) (gpow 25) (gpow 26) .cell
+@@ -57,18 +57,18 @@
+ 
+ #guard pyTable.length = 256
+ -- All 256 cells: the encoding, the opcode values, the slot order and the cell order.
+-#guard (bytecodeColumn prog16).values.toList.map (·.toNat) = pyTable
++#guard (bytecodeColumn prog16).values.toList.map (·.toBitVec.toNat) = pyTable
+ 
+ /-- The oracle's answer at `(ζ, α)`. -/
+ def bcAnswer : E := answer (bytecodeColumn prog16) (zeta ++ alpha)
+ 
+ -- The evaluation the pinned verifier makes (`verifier.py:566`), and the native evaluator.
+-#guard bcAnswer = E.ofLimbs 1219889995492 3571792677380 1279835512890
+-#guard bytecodeColumnEval prog16 zeta alpha = E.ofLimbs 1219889995492 3571792677380 1279835512890
++#guard bcAnswer = E.ofLimbs (K.ofBits 1219889995492) (K.ofBits 3571792677380) (K.ofBits 1279835512890)
++#guard bytecodeColumnEval prog16 zeta alpha = E.ofLimbs (K.ofBits 1219889995492) (K.ofBits 3571792677380) (K.ofBits 1279835512890)
+ -- Near miss: with `α` reversed the pinned verifier gets another value, and so does the oracle.
+ #guard answer (bytecodeColumn prog16) (zeta ++ alphaRev) =
+-  E.ofLimbs 1332010270628 4168742050444 1982034182034
+-#guard bcAnswer ≠ E.ofLimbs 1332010270628 4168742050444 1982034182034
++  E.ofLimbs (K.ofBits 1332010270628) (K.ofBits 4168742050444) (K.ofBits 1982034182034)
++#guard bcAnswer ≠ E.ofLimbs (K.ofBits 1332010270628) (K.ofBits 4168742050444) (K.ofBits 1982034182034)
+ 
+ /-- The opposite layout: slot bits low, instruction bits high. -/
+ def wrongColumn (prog : Program) : Column (4 + prog.logSize) :=
+@@ -86,7 +86,7 @@
+ -- layout: cell `0 + 16 * 3` is instruction 0's opcode there, and slot 0 of instruction 3 here.
+ #guard (bytecodeColumn prog16).values.toList[48]! = Opcode.xor.code
+ #guard (wrongColumn prog16).values.toList[48]! = 0
+-#guard (wrongColumn prog16).values.toList.map (·.toNat) ≠ pyTable
++#guard (wrongColumn prog16).values.toList.map (·.toBitVec.toNat) ≠ pyTable
+ 
+ /-- What the bus phase needs and Layer 1 does not state: the program's share of a bytecode
+ block is one evaluation of the bytecode column, the slots weighted by `eq(w, ·)`. -/
+@@ -106,10 +106,10 @@
+ 
+ /-! ## B.5 The index column -/
+ 
+-#guard answer (idxColumn 4) zeta = E.ofLimbs 950617 874814 877803
+-#guard idxColumnEval zeta = E.ofLimbs 950617 874814 877803
+-#guard idxColumnEval (#v[E.ofLimbs 3 1 0, E.ofLimbs 5 0 7] : Vector E 2) = E.ofLimbs 109 29 108
+-#guard (idxColumn 4).values.toList.map (·.toNat) = (List.range 16).map (2 ^ ·)
++#guard answer (idxColumn 4) zeta = E.ofLimbs (K.ofBits 950617) (K.ofBits 874814) (K.ofBits 877803)
++#guard idxColumnEval zeta = E.ofLimbs (K.ofBits 950617) (K.ofBits 874814) (K.ofBits 877803)
++#guard idxColumnEval (#v[E.ofLimbs (K.ofBits 3) 1 0, E.ofLimbs (K.ofBits 5) 0 (K.ofBits 7)] : Vector E 2) = E.ofLimbs (K.ofBits 109) (K.ofBits 29) (K.ofBits 108)
++#guard (idxColumn 4).values.toList.map (·.toBitVec.toNat) = (List.range 16).map (2 ^ ·)
+ 
+ /-! ## B.2, B.3 Selectors and the two paddings -/
+ 
+@@ -126,15 +126,15 @@
+ /-- The tables `[1, 2, 3, 4]`, `[5, 6]`, `[7]`. -/
+ def tables : blocks.Tables K :=
+   show (b : Fin 3) → CMlPolynomialEval K (![2, 1, 0] b) from fun b ↦ match b with
+-    | 0 => (#v[1, 2, 3, 4] : CMlPolynomialEval K 2)
+-    | 1 => (#v[5, 6] : CMlPolynomialEval K 1)
+-    | 2 => (#v[7] : CMlPolynomialEval K 0)
++    | 0 => (#v[1, (K.ofBits 2), (K.ofBits 3), (K.ofBits 4)] : CMlPolynomialEval K 2)
++    | 1 => (#v[(K.ofBits 5), (K.ofBits 6)] : CMlPolynomialEval K 1)
++    | 2 => (#v[(K.ofBits 7)] : CMlPolynomialEval K 0)
+ 
+ /-- The tables over `E`. -/
+ def tablesE : blocks.Tables E := fun b ↦ CMlPolynomialEval.map (algebraMap K E) (tables b)
+ 
+ /-- The first three coordinates of `ζ`. -/
+-def z3 : Vector E 3 := #v[E.ofLimbs 3 1 0, E.ofLimbs 5 0 7, E.ofLimbs 2 2 2]
++def z3 : Vector E 3 := #v[E.ofLimbs (K.ofBits 3) 1 0, E.ofLimbs (K.ofBits 5) 0 (K.ofBits 7), E.ofLimbs (K.ofBits 2) (K.ofBits 2) (K.ofBits 2)]
+ 
+ /-- The selector weights, block by block. -/
+ def weights : List E := (List.finRange 3).map fun b ↦ blocks.selectorWeight blocks_total_le b z3
+@@ -144,42 +144,43 @@
+   eval₂Mle (tables b) (algebraMap K E) (blocks.lowPoint blocks_total_le b z3)
+ 
+ -- `eq(sel_b, ζ_hi)` as `Placement.eq_above` computes it (`verifier.py:299-302`).
+-#guard weights = [E.ofLimbs 3 2 2, E.ofLimbs 6 8 8, E.ofLimbs 2 26 30]
+-#guard blocksAt = [E.ofLimbs 46 11 42, E.ofLimbs 0 3 0, E.ofLimbs 7 0 0]
++#guard weights = [E.ofLimbs (K.ofBits 3) (K.ofBits 2) (K.ofBits 2), E.ofLimbs (K.ofBits 6) (K.ofBits 8) (K.ofBits 8), E.ofLimbs (K.ofBits 2) (K.ofBits 26) (K.ofBits 30)]
++#guard blocksAt = [E.ofLimbs (K.ofBits 46) (K.ofBits 11) (K.ofBits 42), E.ofLimbs 0 (K.ofBits 3) 0, E.ofLimbs (K.ofBits 7) 0 0]
+ -- The witness stack (pad 0) and a leaf stack (pad 1) at `ζ`.
+-#guard eval₂Mle (blocks.stackColumn tables 3).values (algebraMap K E) z3 = E.ofLimbs 38 3 34
+-#guard evalMle (blocks.stackAt tablesE 3 1) z3 = E.ofLimbs 32 19 54
++#guard eval₂Mle (blocks.stackColumn tables 3).values (algebraMap K E) z3 = E.ofLimbs (K.ofBits 38) (K.ofBits 3) (K.ofBits 34)
++#guard evalMle (blocks.stackAt tablesE 3 1) z3 = E.ofLimbs (K.ofBits 32) (K.ofBits 19) (K.ofBits 54)
+ -- The padding term of equation (2), `1 + Σ_b eq(sel_b, ζ_hi)` (`verifier.py:589`).
+-#guard 1 + weights.sum = E.ofLimbs 6 16 20
+-#guard (List.zipWith (· * ·) weights blocksAt).sum + (1 + weights.sum) = E.ofLimbs 32 19 54
++#guard 1 + weights.sum = E.ofLimbs (K.ofBits 6) (K.ofBits 16) (K.ofBits 20)
++#guard (List.zipWith (· * ·) weights blocksAt).sum + (1 + weights.sum) = E.ofLimbs (K.ofBits 32) (K.ofBits 19) (K.ofBits 54)
+ -- Near misses: the wrong pad, and the padding term read as the constant 1.
+-#guard evalMle (blocks.stackAt tablesE 3 0) z3 ≠ E.ofLimbs 32 19 54
+-#guard (List.zipWith (· * ·) weights blocksAt).sum + 1 ≠ E.ofLimbs 32 19 54
++#guard evalMle (blocks.stackAt tablesE 3 0) z3 ≠ E.ofLimbs (K.ofBits 32) (K.ofBits 19) (K.ofBits 54)
++#guard (List.zipWith (· * ·) weights blocksAt).sum + 1 ≠ E.ofLimbs (K.ofBits 32) (K.ofBits 19) (K.ofBits 54)
+ 
+ /-! ## B.7 A column claim as a weight -/
+ 
+ /-- The claim's point on block 1, lifted. -/
+-def lifted : Vector E 3 := blocks.extendPoint blocks_total_le (1 : Fin 3) #v[E.ofLimbs 3 1 0]
++def lifted : Vector E 3 := blocks.extendPoint blocks_total_le (1 : Fin 3) #v[E.ofLimbs (K.ofBits 3) 1 0]
+ 
+ /-- A stack no honest prover commits. -/
+-def arbitrary : Column 3 := ⟨#v[9, 8, 7, 6, 5, 4, 3, 2]⟩
++def arbitrary : Column 3 := ⟨#v[(K.ofBits 9), (K.ofBits 8), (K.ofBits 7), (K.ofBits 6), (K.ofBits 5), (K.ofBits 4), (K.ofBits 3), (K.ofBits 2)]⟩
+ 
+-#guard lifted = #v[E.ofLimbs 3 1 0, 0, 1]
+-#guard (eqWeight lifted).pair arbitrary = E.ofLimbs 6 1 0
+-#guard (eqWeight lifted).mle #v[E.ofLimbs 1 1 0, E.ofLimbs 0 2 0, E.ofLimbs 7 0 0] =
+-  E.ofLimbs 9 18 0
++#guard lifted = #v[E.ofLimbs (K.ofBits 3) 1 0, 0, 1]
++#guard (eqWeight lifted).pair arbitrary = E.ofLimbs (K.ofBits 6) 1 0
++#guard (eqWeight lifted).mle #v[E.ofLimbs 1 1 0, E.ofLimbs 0 (K.ofBits 2) 0, E.ofLimbs (K.ofBits 7) 0 0] =
++  E.ofLimbs (K.ofBits 9) (K.ofBits 18) 0
+ -- Near miss: the selector bits reversed, `(1, 0)`, weigh cells 2 and 3.
+-#guard (eqWeight (#v[E.ofLimbs 3 1 0, 1, 0] : Vector E 3)).pair arbitrary ≠ E.ofLimbs 6 1 0
++#guard (eqWeight (#v[E.ofLimbs (K.ofBits 3) 1 0, 1, 0] : Vector E 3)).pair arbitrary ≠ E.ofLimbs (K.ofBits 6) 1 0
+ 
+ /-! ## B.4 Back-loaded padding -/
+ 
+ /-- The table `[3, 5]` on one variable. -/
+-def short : CMlPolynomialEval K 1 := #v[3, 5]
++def short : CMlPolynomialEval K 1 := #v[(K.ofBits 3), (K.ofBits 5)]
+ 
+-#guard evalMle (padHigh short 2) ((#v[7] : Vector K 1) ++ (#v[11, 13] : Vector K 2)) = 1935
+-#guard (padHigh short 2).toList = [0, 0, 0, 0, 0, 0, 3, 5]
++#guard evalMle (padHigh short 2) ((#v[(K.ofBits 7)] : Vector K 1) ++ (#v[(K.ofBits 11), (K.ofBits 13)] : Vector K 2)) =
++  K.ofBits 1935
++#guard (padHigh short 2).toList = [0, 0, 0, 0, 0, 0, (K.ofBits 3), (K.ofBits 5)]
+ -- Near miss: padding on the low variables (front-loaded) is another table.
+-#guard (padHigh short 2).toList ≠ [0, 0, 0, 3, 0, 0, 0, 5]
++#guard (padHigh short 2).toList ≠ [0, 0, 0, (K.ofBits 3), 0, 0, 0, (K.ofBits 5)]
+ 
+ /-! ## C A layout need not separate its columns -/
+ 
+@@ -187,7 +188,8 @@
+ def aliased : Layout 3 (Fin 3) (fun _ ↦ 2) :=
+   (blocks.layout blocks_total_le).comap (fun _ ↦ (0 : Fin 3)) (fun _ ↦ rfl)
+ 
+-#guard (List.finRange 3).all fun c ↦ (aliased.read arbitrary c).values.toList = [9, 8, 7, 6]
++#guard (List.finRange 3).all fun c ↦ (aliased.read arbitrary c).values.toList =
++  [(K.ofBits 9), (K.ofBits 8), (K.ofBits 7), (K.ofBits 6)]
+ 
+ /-! ## Axioms -/
+ 
+```
+
+Output (`ValuesProbe.v434.lean.new.out`), 23 s:
+
+```text
+'LeanerVM.Protocol.Blocks.unstack_eval₂' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.unstack_getElem' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.readColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.layout' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Layout.comap' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.stack_eval_ambient' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.stack_eval_ambient_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.Blocks.stackColumn_eval_ambient' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.sumCube_padHigh' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.evalMle_padHigh' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.ColumnClaim.holds_iff_weighted' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.eqWeight' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.idxColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.idxColumnEval_eq' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.bytecodeColumn_answer_boolVec' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.bytecodeColumn_eval' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LeanerVM.Protocol.BlockClaim.isValid_iff_pairing' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Probe.bytecodeColumn_answer_slots' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-layer1.md` I.4): every `#guard` holds at the
+new pins (the bytecode column cell for cell against the transcription of the Rust encoder, the
+oracle's and the native evaluator's answers against `verifier.py:566`, the index column, the
+selector weights, both paddings, the lifted point, back-loaded padding, the aliased layout, and
+every near miss), and the same eighteen declarations depend on the kernel's three axioms only.
+
+### 3.2 `StridedProbe.v434.lean` (the strided selection identity Layer 1 lacks)
+
+The theorem `evalMle_boolVec_append` is over an arbitrary commutative ring and unchanged; the
+`#guard`s on the table `packed` used numerals `7, 10–13, 20–23` in `K`, rewritten as
+`K.ofBits n`. Diff:
+
+```diff
+@@ -47,14 +47,15 @@
+     exact absurd (Finset.mem_univ _) h
+ 
+ /-- Slot 1 of four (two low bits) of an eight-cell table: cells 1 and 5. -/
+-def packed : CMlPolynomialEval K 3 := #v[10, 11, 12, 13, 20, 21, 22, 23]
++def packed : CMlPolynomialEval K 3 := #v[K.ofBits 10, K.ofBits 11, K.ofBits 12, K.ofBits 13,
++  K.ofBits 20, K.ofBits 21, K.ofBits 22, K.ofBits 23]
+ 
+-#guard (sliceLow (k := 2) (m := 1) packed (1 : Fin 4)).toList = [11, 21]
++#guard (sliceLow (k := 2) (m := 1) packed (1 : Fin 4)).toList = [K.ofBits 11, K.ofBits 21]
+ -- The point `(slot bits 1, 0 | z)` reads the strided slice at `z`.
+-#guard evalMle packed (#v[1, 0, 7] : Vector K 3) =
+-  evalMle (#v[11, 21] : CMlPolynomialEval K 1) #v[7]
++#guard evalMle packed (#v[1, 0, K.ofBits 7] : Vector K 3) =
++  evalMle (#v[K.ofBits 11, K.ofBits 21] : CMlPolynomialEval K 1) #v[K.ofBits 7]
+ -- Near miss: the aligned slice at high index 1 is cells 2 and 3, another column.
+-#guard (slice (k := 1) (m := 2) packed (1 : Fin 4)).toList = [12, 13]
++#guard (slice (k := 1) (m := 2) packed (1 : Fin 4)).toList = [K.ofBits 12, K.ofBits 13]
+ 
+ #print axioms evalMle_boolVec_append
+ 
+```
+
+Output (`StridedProbe.v434.lean.new.out`), 3 s:
+
+```text
+.claude/reports/blueprint-review/probes/code-layer1/StridedProbe.v434.lean:36:15: warning: `if_true` has been deprecated: Use `ite_true` instead
+.claude/reports/blueprint-review/probes/code-layer1/StridedProbe.v434.lean:43:15: warning: `if_neg` has been deprecated: Use `ite_eq_right` instead
+'Probe.evalMle_boolVec_append' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-layer1.md` I.6): the identity is proved on the
+kernel's three axioms and the three guards hold. The two warnings are Lean 4.34.1's
+deprecations of `if_true`/`if_neg` inside the proof. This is also the first run of this probe
+through `lake env lean` (the old run used the old binary and a hand-made `LEAN_PATH`).
+
+### 3.3 `OffsetsProbe.v434.lean` (leanVM's `stack_offsets` against `Blocks.offset`/`Blocks.selector`)
+
+Lists of `ℕ` only; copied unchanged (`cp`; empty diff). Output
+(`OffsetsProbe.v434.lean.new.out`), 7 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-layer1.md` I.2: `exit=0`, no output).
+
+### 3.4 `DuplicatesProbe.v434.lean` (Layer 1 statements that are CompPoly's or each other's)
+
+An arbitrary commutative ring and `ℕ` only; copied unchanged (`cp`; empty diff). Output
+(`DuplicatesProbe.v434.lean.new.out`), 3 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`code-layer1.md` I.5: `exit=0`, no output). So at
+CompPoly `572f9973` `evalMle_lagrangeBasis` is still CompPoly's `eqTilde_eq_prod` up to the
+order of factors (the probe's first `example` names `eqTilde_eq_prod`, `eqTilde` and
+`eval_mle_eq_eval` and compiles), and the three in-layer duplicates still follow in one to
+three lines. This is also the first run of this probe through `lake env lean`.
+
+## 4. The table sumcheck and the bus seam (`probes/gt-table-pub/`)
+
+Both probes use only the numerals `0` and `1` in `K` and `E` (`X 2` is a variable index) and
+import `LeanerVM.Protocol.Spine.{Toy,Seams,Compose}`, which exist at `144c5aa`; copied unchanged
+(`cp`; empty diffs). Command: the brief's, no `-D` option (as in `gt-table-pub.md` section 9).
+
+### 4.1 `SeamBusShape.v434.lean` (the degree clause of `Seam.bus`, two points in one claim, no bound on the number of claims)
+
+Output (`SeamBusShape.v434.lean.new.out`), 8 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`gt-table-pub.md` section 9: no error, no output,
+`exit=0`), including the `example` that the statement with the true cubic claim is outside
+`Seam.bus` (by `decide +kernel` on the degree clause).
+
+### 4.2 `SeamBusMember.v434.lean` (each clause of the seam on `twoPoints`)
+
+Output (`SeamBusMember.v434.lean.new.out`), 4 s:
+
+```text
+exit=0
+```
+
+Agrees with the dossier's recorded result (`gt-table-pub.md` section 9: `exit=0`).
+
+## 5. The Flock phase (`probes/gt-flock-ring/NoCheckFlock.v434.lean`)
+
+Numerals `1` in `K`, `7` as an index of `Fin 8` (not a `K` numeral); imports
+`LeanerVM.Protocol.Spine.{Toy,Compose}`. Copied unchanged (`cp`; empty diff). Command: the
+brief's, no `-D` option. Output (`NoCheckFlock.v434.lean.new.out`), 4 s:
+
+```text
+'GtFlockRingProbe.noCheckFlockSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]
+exit=0
+```
+
+Agrees with the dossier's recorded result (`gt-flock-ring.md` 9.1): the do-nothing Flock phase
+has `Phase.Security toy noCheckFlock (Seam.pub toy) (Seam.flock toy)` on the kernel's three
+axioms, and part (2) (the reflection hypothesis fails on `toyAux`) compiles.
+
+## 6. Library facts (`probes/lib-others/`)
+
+Command: the brief's, no `-D` option (as in `lib-others.md` H). Outputs of the old runs are in
+`<File>.out`; the old runs appended timing lines, these do not.
+
+### 6.1 `FieldFidelity` (leanerVM's `K`, `E` against the Rust's reference vectors; numerals; instance leakage)
+
+**(a) Adapted copy** (`FieldFidelity.v434.lean`). Every hexadecimal or decimal word in `K` (the
+three base-field vectors, the reduction constant, the XOR check, the inverse check, the
+forty-eight limbs of the extension vectors and the mutated limb, the generator's `2` and `4`,
+and the numerals of the "bit patterns" section) was rewritten as `K.ofBits n`. The XOR check,
+which at the old pin used `^^^` on `K = BitVec 64`, is written with `^^^` on the natural
+numbers inside `K.ofBits` (the same 64-bit word, both operands being below `2^64`). The
+`#check (2 : K)`, the `BitVec 64` section and the `#synth` lines are unchanged: they show how a
+numeral and `BitVec 64` elaborate now. Diff:
+
+```diff
+@@ -11,37 +11,38 @@
+ 
+ /-! ## Base field: the three `(a, b, a·b)` vectors of `gf2_64.rs:271-275` -/
+ 
+-#guard (0x01090913877ed8ed : K) * 0x66ab35ac2768468f = 0x50c4519dc383744a
+-#guard (0xa7715ae18f12a3b5 : K) * 0x05743059f43fa4f5 = 0xeb64cd9cd9cda6df
+-#guard (0xbd3efb4705e79ddd : K) * 0x3aff618604de4ae0 = 0xc3d7a95fa9cb59bb
++#guard K.ofBits 0x01090913877ed8ed * K.ofBits 0x66ab35ac2768468f = K.ofBits 0x50c4519dc383744a
++#guard K.ofBits 0xa7715ae18f12a3b5 * K.ofBits 0x05743059f43fa4f5 = K.ofBits 0xeb64cd9cd9cda6df
++#guard K.ofBits 0xbd3efb4705e79ddd * K.ofBits 0x3aff618604de4ae0 = K.ofBits 0xc3d7a95fa9cb59bb
+ -- a mutated product is rejected
+-#guard (0x01090913877ed8ed : K) * 0x66ab35ac2768468f ≠ 0x50c4519dc383744b
++#guard K.ofBits 0x01090913877ed8ed * K.ofBits 0x66ab35ac2768468f ≠ K.ofBits 0x50c4519dc383744b
+ -- the reduction constant: x^63 · x = x^64 = x^4 + x^3 + x + 1 = 0x1B
+-#guard (0x8000000000000000 : K) * 0x2 = 0x1B
++#guard K.ofBits 0x8000000000000000 * K.ofBits 0x2 = K.ofBits 0x1B
+ -- addition is XOR
+-#guard (0x01090913877ed8ed : K) + 0x66ab35ac2768468f = 0x01090913877ed8ed ^^^ 0x66ab35ac2768468f
++#guard K.ofBits 0x01090913877ed8ed + K.ofBits 0x66ab35ac2768468f =
++  K.ofBits (0x01090913877ed8ed ^^^ 0x66ab35ac2768468f)
+ -- inversion, and `0⁻¹ = 0` as in the Rust (`gf2_64.rs:42`, `:318`)
+-#guard (0x01090913877ed8ed : K) * (0x01090913877ed8ed : K)⁻¹ = 1
++#guard K.ofBits 0x01090913877ed8ed * (K.ofBits 0x01090913877ed8ed)⁻¹ = 1
+ #guard (0 : K)⁻¹ = 0
+ 
+ /-! ## Extension: the four `(a, b, a·b, a·a)` vectors of `gf2_64x3.rs:991-1016` -/
+ 
+-def a1 : E := E.ofLimbs 0x950e87d7f5606615 0x2c61275c9e6b6cf8 0x1f00bca0042db923
+-def b1 : E := E.ofLimbs 0x6dbca290a9eab706 0x4c10a4fe30cffdda 0xf26fff4cc4fd394d
+-def c1 : E := E.ofLimbs 0x888a0fc35abaf5f6 0x68a84cbc132b0649 0x9fdeaf613003cabe
+-def s1 : E := E.ofLimbs 0x8fba131ad5d46b8c 0x1c170457f537a805 0x3632cc098ca15135
+-def a2 : E := E.ofLimbs 0x6814a2bc786a6d2d 0xa26b351e6c8042c5 0x54760e7fbc051c6c
+-def b2 : E := E.ofLimbs 0xd4c08880a5a4666d 0x29610ae0eed8f1e7 0xc34bd8e2fe5213e5
+-def c2 : E := E.ofLimbs 0x2ad322ebf2f9043b 0x8ac800aa67154c80 0x6d0f76651d3c4d0c
+-def s2 : E := E.ofLimbs 0xcf800ef2b83bb43a 0xefe1c6cd064dd44c 0x57dc5c7a60e2981b
+-def a3 : E := E.ofLimbs 0x6c50afb6e9fb123d 0x6f28d015a2aa0b9d 0x4e385994ebac94af
+-def b3 : E := E.ofLimbs 0x194f9545adba52ce 0xc675ce05588f882f 0x57de8c051d4b7ef2
+-def c3 : E := E.ofLimbs 0xea6b9f9d23d4a1ff 0xd82aa6058c431457 0x5fd4d8fda2f1e74a
+-def s3 : E := E.ofLimbs 0x8f30fe43aa05b396 0xe3593591eccd9efe 0x7c5a1b128788c51f
+-def a4 : E := E.ofLimbs 0xd998efd82733e933 0x6df216c33f8f3201 0x11dc6f3fcb57d5d8
+-def b4 : E := E.ofLimbs 0x8860a84722025e05 0x33176469aa6ef630 0x607507ebc5b864d7
+-def c4 : E := E.ofLimbs 0xfa3a0d66cdfbc1b3 0xbd47bd3343aad307 0xdaf50186477f6a77
+-def s4 : E := E.ofLimbs 0x69c8d8c24f416884 0x4b597d648a162147 0x95603a5d95c9512a
++def a1 : E := E.ofLimbs (K.ofBits 0x950e87d7f5606615) (K.ofBits 0x2c61275c9e6b6cf8) (K.ofBits 0x1f00bca0042db923)
++def b1 : E := E.ofLimbs (K.ofBits 0x6dbca290a9eab706) (K.ofBits 0x4c10a4fe30cffdda) (K.ofBits 0xf26fff4cc4fd394d)
++def c1 : E := E.ofLimbs (K.ofBits 0x888a0fc35abaf5f6) (K.ofBits 0x68a84cbc132b0649) (K.ofBits 0x9fdeaf613003cabe)
++def s1 : E := E.ofLimbs (K.ofBits 0x8fba131ad5d46b8c) (K.ofBits 0x1c170457f537a805) (K.ofBits 0x3632cc098ca15135)
++def a2 : E := E.ofLimbs (K.ofBits 0x6814a2bc786a6d2d) (K.ofBits 0xa26b351e6c8042c5) (K.ofBits 0x54760e7fbc051c6c)
++def b2 : E := E.ofLimbs (K.ofBits 0xd4c08880a5a4666d) (K.ofBits 0x29610ae0eed8f1e7) (K.ofBits 0xc34bd8e2fe5213e5)
++def c2 : E := E.ofLimbs (K.ofBits 0x2ad322ebf2f9043b) (K.ofBits 0x8ac800aa67154c80) (K.ofBits 0x6d0f76651d3c4d0c)
++def s2 : E := E.ofLimbs (K.ofBits 0xcf800ef2b83bb43a) (K.ofBits 0xefe1c6cd064dd44c) (K.ofBits 0x57dc5c7a60e2981b)
++def a3 : E := E.ofLimbs (K.ofBits 0x6c50afb6e9fb123d) (K.ofBits 0x6f28d015a2aa0b9d) (K.ofBits 0x4e385994ebac94af)
++def b3 : E := E.ofLimbs (K.ofBits 0x194f9545adba52ce) (K.ofBits 0xc675ce05588f882f) (K.ofBits 0x57de8c051d4b7ef2)
++def c3 : E := E.ofLimbs (K.ofBits 0xea6b9f9d23d4a1ff) (K.ofBits 0xd82aa6058c431457) (K.ofBits 0x5fd4d8fda2f1e74a)
++def s3 : E := E.ofLimbs (K.ofBits 0x8f30fe43aa05b396) (K.ofBits 0xe3593591eccd9efe) (K.ofBits 0x7c5a1b128788c51f)
++def a4 : E := E.ofLimbs (K.ofBits 0xd998efd82733e933) (K.ofBits 0x6df216c33f8f3201) (K.ofBits 0x11dc6f3fcb57d5d8)
++def b4 : E := E.ofLimbs (K.ofBits 0x8860a84722025e05) (K.ofBits 0x33176469aa6ef630) (K.ofBits 0x607507ebc5b864d7)
++def c4 : E := E.ofLimbs (K.ofBits 0xfa3a0d66cdfbc1b3) (K.ofBits 0xbd47bd3343aad307) (K.ofBits 0xdaf50186477f6a77)
++def s4 : E := E.ofLimbs (K.ofBits 0x69c8d8c24f416884) (K.ofBits 0x4b597d648a162147) (K.ofBits 0x95603a5d95c9512a)
+ 
+ #guard a1 * b1 = c1
+ #guard a1 * a1 = s1
+@@ -52,7 +53,7 @@
+ #guard a4 * b4 = c4
+ #guard a4 * a4 = s4
+ -- a mutated limb is rejected
+-def c1' : E := E.ofLimbs 0x888a0fc35abaf5f6 0x68a84cbc132b0649 0x9fdeaf613003cabf
++def c1' : E := E.ofLimbs (K.ofBits 0x888a0fc35abaf5f6) (K.ofBits 0x68a84cbc132b0649) (K.ofBits 0x9fdeaf613003cabf)
+ #guard a1 * b1 ≠ c1'
+ -- the defining relation, as the Rust checks it (`gf2_64x3.rs:1026`)
+ #guard y * y * y = y + 1
+@@ -64,18 +65,18 @@
+ 
+ /-! ## The generator -/
+ 
+-#guard g = (2 : K)
+-#guard g * g = (4 : K)
++#guard g = K.ofBits 2
++#guard g * g = K.ofBits 4
+ 
+ /-! ## Numerals of `K` are bit patterns, not casts of natural numbers -/
+ 
+ -- the numeral `2 : K` is the element `x`, and is not zero
+-#guard (2 : K) ≠ 0
++#guard K.ofBits 2 ≠ 0
+ -- whereas the cast of the natural number two is zero (characteristic two)
+ #guard ((2 : ℕ) : K) = 0
+ #guard (1 : K) + 1 = 0
+-#guard (2 : K) ≠ ((2 : ℕ) : K)
+-#guard (3 : K) = (2 : K) + 1
++#guard K.ofBits 2 ≠ ((2 : ℕ) : K)
++#guard K.ofBits 3 = K.ofBits 2 + 1
+ -- the numeral elaborates through `BitVec`'s instance
+ set_option pp.explicit true in
+ #check (2 : K)
+```
+
+(The first attempt wrote `K.ofBits 0x01090913877ed8ed⁻¹`, which parses as an inverse of a
+natural number; it was corrected to `(K.ofBits 0x01090913877ed8ed)⁻¹` before the run recorded
+here.) Output (`FieldFidelity.v434.lean.new.out`), 5 s:
+
+```text
+@OfNat.ofNat K (nat_lit 2) (@instOfNatAtLeastTwo K (nat_lit 2) BF64.instNatCast ⋯) : K
+8#64
+(true, false)
+15#64
+@HAdd.hAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (@instHAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+    (@BitVec.instAdd (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))))
+  u v : BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))
+8#32
+BitVec.instAdd
+BitVec.instMul
+BitVec.instAdd
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.v434.lean:102:0: error: failed to synthesize
+  Fintype (BitVec 64)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+BF64.instLawfulBEq
+CompPoly.Extension.Ext.instLawfulBEq
+exit=1
+```
+
+**The eleven reference products still agree.** No `#guard` of the file fails: the three
+base-field products of `gf2_64.rs:271-275`, the four products and four squares of
+`gf2_64x3.rs:991-1016` (eleven reference products in all), the mutated product and the mutated
+limb rejected, `x^63·x = 0x1B`, addition is XOR, `a·a⁻¹ = 1` in `K` and `E`, `0⁻¹ = 0`,
+`y³ = y + 1`, `y` is the limb vector `(0, 1, 0)`, `g = K.ofBits 2`, `g·g = K.ofBits 4`, and the
+words `K.ofBits 2 ≠ 0`, `K.ofBits 2 ≠ ((2 : ℕ) : K)`, `K.ofBits 3 = K.ofBits 2 + 1`.
+
+**Differs from the recorded result, in the parts about instances** (`lib-others.md` H.2 and
+B.3; the old output is `FieldFidelity.out`), all explained by CompPoly `572f9973` making `K` a
+structure:
+
+| Line | Old pin (`FieldFidelity.out`) | New pin (this run) |
+| --- | --- | --- |
+| `#check (2 : K)` | `@OfNat.ofNat K 2 (@BitVec.instOfNat 64 2)`: a `BitVec` literal | `@OfNat.ofNat K 2 (@instOfNatAtLeastTwo K 2 BF64.instNatCast ⋯)`: the characteristic-two cast |
+| `#eval u + v` on `BitVec 64` | `6#64` (CompPoly's XOR leaked onto `BitVec 64`) | `8#64` (core's addition) |
+| `#eval (u + v == 8, u + v == 6)` | `(false, true)` | `(true, false)` |
+| `#eval u * v` | `15#64` | `15#64` |
+| `#check u + v` | `BF64.instAdd` | `BitVec.instAdd` |
+| `#synth Add (BitVec 64)`, `Mul (BitVec 64)` | `BF64.instAdd`, `BF64.instMul` | `BitVec.instAdd`, `BitVec.instMul` |
+| `#synth Fintype (BitVec 64)` | `BF64.instFintype` | **error**: `failed to synthesize Fintype (BitVec 64)` (line 102) |
+| `#synth LawfulBEq K` | `instLawfulBEq` | `BF64.instLawfulBEq` |
+| `#synth LawfulBEq E` | **error** (line 103, a deliberate check: `E` had none) | `CompPoly.Extension.Ext.instLawfulBEq`: **`E` now has one** |
+
+So at the new pins the instance leakage onto `BitVec 64` that `lib-others.md` records is gone,
+and `LawfulBEq E`, which that dossier records as absent "at the pin", exists (both statements of
+the dossier were about the old pin and stand there). The one error of this run is the
+`#synth Fintype (BitVec 64)` line, which at the new pin has no leaked instance to find.
+
+**(b) The unchanged copy, as a control** (`FieldFidelity.unchanged.v434.lean`, `cp`; empty
+diff), to check the dossier's prediction (`lib-others.md` G, "the probe `FieldFidelity` at the
+new pin would read `(0x01090913877ed8ed : K) * 0x66ab35ac2768468f = 0x50c4519dc383744a` as
+`1 * 1 = 0` … and fail; its `#guard (2 : K) ≠ 0` would fail, `#guard ((2 : ℕ) : K) = 0` would
+pass, `g = (2 : K)` would fail"). Output (`FieldFidelity.unchanged.v434.lean.new.out`), 6 s:
+
+```text
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:14:0: error: Expression
+  decide (74600848310589677 * 7398065826397963919 = 5819866356501410890)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:16:0: error: Expression
+  decide (13636613004184755677 * 4251223801496226528 = 14111934185724402107)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:18:0: error: Expression
+  decide (74600848310589677 * 7398065826397963919 ≠ 5819866356501410891)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:20:0: error: Expression
+  decide (9223372036854775808 * 2 = 27)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:22:55: error(lean.synthInstanceFailed): failed to synthesize instance of type class
+  HXor ℕ ℕ K
+
+Hint: Type class instance resolution failures can be inspected with the `set_option trace.Meta.synthInstance true` command.
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:47:0: error: Expression
+  decide (a1 * a1 = s1)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:48:0: error: Expression
+  decide (a2 * b2 = c2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:49:0: error: Expression
+  decide (a2 * a2 = s2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:50:0: error: Expression
+  decide (a3 * b3 = c3)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:51:0: error: Expression
+  decide (a3 * a3 = s3)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:52:0: error: Expression
+  decide (a4 * b4 = c4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:53:0: error: Expression
+  decide (a4 * a4 = s4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:67:0: error: Expression
+  decide (g = 2)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:68:0: error: Expression
+  decide (g * g = 4)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:73:0: error: Expression
+  decide (2 ≠ 0)
+did not evaluate to `true`
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:77:0: error: Expression
+  decide (2 ≠ ↑2)
+did not evaluate to `true`
+@OfNat.ofNat K (nat_lit 2) (@instOfNatAtLeastTwo K (nat_lit 2) BF64.instNatCast ⋯) : K
+8#64
+(true, false)
+15#64
+@HAdd.hAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+  (@instHAdd (BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64))))
+    (@BitVec.instAdd (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))))
+  u v : BitVec (@OfNat.ofNat Nat (nat_lit 64) (instOfNatNat (nat_lit 64)))
+8#32
+BitVec.instAdd
+BitVec.instMul
+BitVec.instAdd
+.claude/reports/blueprint-review/probes/lib-others/FieldFidelity.unchanged.v434.lean:101:0: error: failed to synthesize
+  Fintype (BitVec 64)
+
+Hint: Additional diagnostic information may be available using the `set_option diagnostics true` command.
+BF64.instLawfulBEq
+CompPoly.Extension.Ext.instLawfulBEq
+exit=1
+```
+
+The prediction holds: the first product, `(2 : K) ≠ 0` and `g = (2 : K)` fail, and
+`((2 : ℕ) : K) = 0` passes (line 75 is not in the error list). Of the eleven reference
+products, nine fail (lines 14, 16, 47-53) and two pass spuriously, as the parity reading
+predicts (line 15: odd·odd = odd; line 46, `a1 * b1 = c1`). The mutated-product guard (18), the
+reduction constant (20), `g = 2` (67), `g * g = 4` (68), `(2 : K) ≠ 0` (73) and
+`(2 : K) ≠ ((2 : ℕ) : K)` (77) fail; the XOR check (22) does not elaborate (`HXor ℕ ℕ K`); the
+`#synth Fintype (BitVec 64)` line (101) fails as in (a). `(3 : K) = (2 : K) + 1` (78) passes
+(`1 = 0 + 1`).
+
