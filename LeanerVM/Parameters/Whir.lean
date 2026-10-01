@@ -35,6 +35,11 @@ round-by-round targets of Annex B's Theorem B.2 under a floating-point MCA formu
 module does not restate that search. The table is the one the Python verifier carries, indexed
 by rate exponent `1..4` and stack size `15..28`; outside that window `ladder` is `none`, as both
 verifiers reject (`validate_log_inv_rate`, `whir_config.rs:48-56`; `verifier.py:923`).
+
+The Rust API takes the witness size as `m = μ + LOG_PACKING` bits, `LOG_PACKING = 6`
+(`crates/pcs/src/pack.rs:7`); `ladder` takes the stack size `μ`, as the Python `derive_config`
+does. `LOG_INV_RATE_0 = 1` (`whir_config.rs:41`) is the rate the Rust test suite proves at, not a
+verifier parameter: the rate exponent is announced with the sizes.
 -/
 
 namespace LeanerVM.Parameters.Whir
@@ -85,8 +90,10 @@ def minLogInvRate : ℕ := 1
 def maxLogInvRate : ℕ := 4
 
 /-- Out-of-domain samples taken after a level's commitment: none at level 0, whose commitment the
-opening's own evaluation claim binds, and one at every later level (`whir_config.rs:108-115`;
-the production profile fixes it, `whir_config.rs:1021, 1033`). -/
+opening's own evaluation claim binds, and one at every later level (`whir_config.rs:108-115`).
+The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:1021, 1033`);
+for 15 to 21 it is the second verifier's, which takes one sample per level after the first
+(`verifier.py:1033-1037`). -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-- `whir_config.rs:80`: the first reduction never exceeds the first fold. -/
@@ -127,7 +134,8 @@ def levelsFrom : (fuel remaining prevFold prevRate reduction : ℕ) → List (�
 /-- The ladder geometry of a `μ`-variable stack at rate exponent `logInvRate`: level 0 folds
 `initialFold` at that rate, then `levelsFrom` (`derive_config`, `verifier.py:920-935`). -/
 def shape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
-  (initialFold, logInvRate) :: levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
+  (initialFold, logInvRate) ::
+    levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
 
 /-- The variables left after every fold: the size of the residual sent in the clear. -/
 def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((shape μ logInvRate).map Prod.fst).sum

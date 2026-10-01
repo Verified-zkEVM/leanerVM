@@ -18,7 +18,10 @@ A tree over `2^k` leaves is built level by level: the leaves are hashed by `hash
 parent is `hashPair` of its two children, the left child first. The authentication path of a
 leaf is the list of its siblings, leaf level first; a verifier recomputes the root by climbing
 the path, placing the running node on the left at an even index and on the right at an odd one,
-and compares it with the root it holds.
+and compares it with the root it holds, after checking that the path has one sibling per level
+of the announced depth and that the index is below the leaf count. Without the first check a
+row whose bytes are two child digests opens as a leaf one level short, since nothing separates
+the leaf hash from the node hash; without the second an index is read modulo the leaf count.
 
 Nothing here depends on the hash: `verify_path` is an identity of definitions, and
 `collision_of_rootOfPath_eq` turns two accepted openings that disagree on the leaf into a
@@ -83,9 +86,10 @@ def climb (node : D) (i : ℕ) : List D → D
 def rootOfPath (leaf : L) (i : ℕ) (path : List D) : D :=
   climb hashPair (hashLeaf leaf) i path
 
-/-- Accept a leaf at index `i` under a root when its path climbs to that root. -/
-def verify [DecidableEq D] (root : D) (i : ℕ) (leaf : L) (path : List D) : Bool :=
-  decide (rootOfPath hashLeaf hashPair leaf i path = root)
+/-- Accept a leaf at index `i` under the root of a tree of depth `k`: the path has one sibling
+per level, the index is below the leaf count, and the path climbs to the root. -/
+def verify [DecidableEq D] (k : ℕ) (root : D) (i : ℕ) (leaf : L) (path : List D) : Bool :=
+  decide (path.length = k ∧ i < 2 ^ k ∧ rootOfPath hashLeaf hashPair leaf i path = root)
 
 /-! ## An honest path is accepted -/
 
@@ -114,6 +118,17 @@ theorem climb_pathOfLevel :
       · simp only [show 2 * (i.val / 2) = i.val - 1 by omega, show i.val - 1 + 1 = i.val by omega]
     · rfl
 
+/-- A path has one sibling per level. -/
+theorem length_pathOfLevel :
+    ∀ (k : ℕ) (level : Vector D (2 ^ k)) (i : Fin (2 ^ k)),
+      (pathOfLevel hashPair k level i).length = k
+  | 0, _, _ => rfl
+  | k + 1, level, i => by simp [pathOfLevel, length_pathOfLevel k]
+
+theorem length_path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) :
+    (path hashLeaf hashPair leaves i).length = k :=
+  length_pathOfLevel hashPair k (leaves.map hashLeaf) i
+
 /-- The path of a leaf climbs to the root of the tree. -/
 theorem rootOfPath_path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) :
     rootOfPath hashLeaf hashPair leaves[i] i (path hashLeaf hashPair leaves i) =
@@ -123,9 +138,10 @@ theorem rootOfPath_path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) 
 
 /-- Completeness: the verifier accepts every leaf of a tree under its root with its path. -/
 theorem verify_path [DecidableEq D] {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) :
-    verify hashLeaf hashPair (root hashLeaf hashPair leaves) i leaves[i]
+    verify hashLeaf hashPair k (root hashLeaf hashPair leaves) i leaves[i]
       (path hashLeaf hashPair leaves i) = true :=
-  decide_eq_true (rootOfPath_path hashLeaf hashPair leaves i)
+  decide_eq_true
+    ⟨length_path hashLeaf hashPair leaves i, i.isLt, rootOfPath_path hashLeaf hashPair leaves i⟩
 
 /-! ## Two accepted openings that disagree exhibit a collision -/
 
@@ -160,15 +176,17 @@ theorem collision_of_rootOfPath_eq {leaf leaf' : L} {i : ℕ} {p p' : List D}
   · exact Or.inl ⟨leaf, leaf', hne, hd⟩
   · exact Or.inr (pairCollision_of_climb_eq hashPair p p' _ _ i hl hd h)
 
-/-- Two accepted openings of one root at one index with different leaves and paths of equal
-length exhibit a collision. -/
-theorem collision_of_verify [DecidableEq D] {root : D} {leaf leaf' : L} {i : ℕ} {p p' : List D}
-    (hl : p.length = p'.length) (hne : leaf ≠ leaf')
-    (h : verify hashLeaf hashPair root i leaf p = true)
-    (h' : verify hashLeaf hashPair root i leaf' p' = true) :
+/-- Two accepted openings of one root at one index and depth with different leaves exhibit a
+collision. -/
+theorem collision_of_verify [DecidableEq D] {k : ℕ} {root : D} {leaf leaf' : L} {i : ℕ}
+    {p p' : List D} (hne : leaf ≠ leaf')
+    (h : verify hashLeaf hashPair k root i leaf p = true)
+    (h' : verify hashLeaf hashPair k root i leaf' p' = true) :
     LeafCollision hashLeaf ∨ PairCollision hashPair := by
   simp only [verify, decide_eq_true_eq] at h h'
-  exact collision_of_rootOfPath_eq hashLeaf hashPair hl hne (h.trans h'.symm)
+  obtain ⟨hl, _, h⟩ := h
+  obtain ⟨hl', _, h'⟩ := h'
+  exact collision_of_rootOfPath_eq hashLeaf hashPair (hl.trans hl'.symm) hne (h.trans h'.symm)
 
 end
 end LeanerVM.Protocol.MerkleTree

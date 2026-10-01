@@ -5,15 +5,17 @@ import LeanerVM.Protocol.Merkle
 
 A four-leaf tree of two-word leaves against a tree computed with CPython's `hashlib.blake2s`
 (leaf `q` holds the words `2q + 1, 2q + 2`): the leaf digests, the root, and the path of leaf 2;
-the verifier accepting that path, and rejecting a tampered sibling, a wrong index, a tampered
-row, a short path, a long path and a wrong root (`fiat_shamir/src/merkle.rs`, the test
-`malformed_phases_are_rejected`); the zero-prefix leaf image; and the sibling index as
-`i ^^^ 1`, the form the pinned source uses (`merkle.rs:117, 120, 218`).
+the verifier accepting that path, and rejecting a tampered sibling, a wrong index, an index at
+or above the leaf count, a tampered row, an over-wide row, a short path, a long path, a wrong
+depth and a wrong root (`fiat_shamir/src/merkle.rs`, the test `malformed_phases_are_rejected`);
+a node opened as a leaf, which the depth and width checks alone reject; the zero-prefix leaf
+image; and the sibling index as `i ^^^ 1`, the form the pinned source uses
+(`merkle.rs:117, 120, 218`).
 -/
 
 namespace LeanerVMTests.Protocol.Merkle
 
-open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
+open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
 
 /-- The word `n`. -/
 def w (n : ℕ) : K := K.ofBits n
@@ -39,35 +41,68 @@ def path2 : List Digest := [leaf3, node01]
 
 /-! ## The honest tree -/
 
+def leaf2 : Digest :=
+  #v[0xeacefdb4, 0x9e397c69, 0xbcf9f243, 0xc7f40b56, 0x826da590, 0x3bb84405, 0xe99b0a9f, 0x03750514]
+
 #guard hashWords [w 1, w 2] = leaf0
+#guard hashWords [w 5, w 6] = leaf2
 #guard hashWords [w 7, w 8] = leaf3
 #guard hashPair leaf0 (hashWords [w 3, w 4]) = node01
 #guard merkleRoot leaves = root
 #guard merklePath leaves ⟨2, by decide⟩ = path2
-#guard merkleVerify root 2 [w 5, w 6] path2 = true
+#guard merkleVerify 2 2 root 2 [w 5, w 6] path2 = true
 
 /-- The same acceptance, decided in the kernel. -/
-example : merkleVerify root 2 [w 5, w 6] path2 = true := by decide +kernel
+example : merkleVerify 2 2 root 2 [w 5, w 6] path2 = true := by decide +kernel
 
 /-! ## Mutations rejected -/
 
 /- A tampered sibling. -/
-#guard merkleVerify root 2 [w 5, w 6] [leaf3.set 0 (leaf3[0] ^^^ 1), node01] = false
+#guard merkleVerify 2 2 root 2 [w 5, w 6] [leaf3.set 0 (leaf3[0] ^^^ 1), node01] = false
 
 /- The right leaf at the wrong index: the sibling order flips. -/
-#guard merkleVerify root 3 [w 5, w 6] path2 = false
+#guard merkleVerify 2 2 root 3 [w 5, w 6] path2 = false
+
+/- An index at or above the leaf count: `6` and `10` climb leaf 2's path bit for bit and would
+reach the root without the range check. -/
+#guard merkleVerify 2 2 root 6 [w 5, w 6] path2 = false
+#guard merkleVerify 2 2 root 10 [w 5, w 6] path2 = false
 
 /- A tampered row. -/
-#guard merkleVerify root 2 [w 5, w 7] path2 = false
+#guard merkleVerify 2 2 root 2 [w 5, w 7] path2 = false
 
-/- A path one sibling short. -/
-#guard merkleVerify root 2 [w 5, w 6] [node01] = false
+/- A row wider than the leaf, bare and as its image. -/
+#guard merkleVerify 2 2 root 2 [w 5, w 6, w 7] path2 = false
+#guard merkleVerify 2 2 root 2 (leafImage 2 [w 5, w 6, w 7]) path2 = false
 
-/- A path one sibling long. -/
-#guard merkleVerify root 2 [w 5, w 6] [leaf3, node01, node01] = false
+/- A path one sibling short, and one sibling long. -/
+#guard merkleVerify 2 2 root 2 [w 5, w 6] [node01] = false
+#guard merkleVerify 2 2 root 2 [w 5, w 6] [leaf3, node01, node01] = false
+
+/- A wrong depth announced for the right path. -/
+#guard merkleVerify 1 2 root 2 [w 5, w 6] path2 = false
+#guard merkleVerify 3 2 root 2 [w 5, w 6] path2 = false
 
 /- A wrong root. -/
-#guard merkleVerify (root.set 0 0) 2 [w 5, w 6] path2 = false
+#guard merkleVerify 2 2 (root.set 0 0) 2 [w 5, w 6] path2 = false
+
+/-! ## A node opened as a leaf -/
+
+/-- The eight words whose bytes are the digests of leaves 2 and 3: as a row they hash to the
+parent of those leaves, since a leaf of eight words and a pair of digests are the same 64 bytes
+to BLAKE2s. -/
+def nodeAsLeaf : List K :=
+  [ofWords leaf2[0] leaf2[1], ofWords leaf2[2] leaf2[3], ofWords leaf2[4] leaf2[5],
+   ofWords leaf2[6] leaf2[7], ofWords leaf3[0] leaf3[1], ofWords leaf3[2] leaf3[3],
+   ofWords leaf3[4] leaf3[5], ofWords leaf3[6] leaf3[7]]
+
+#guard hashWords nodeAsLeaf = hashPair leaf2 leaf3
+
+/- So a one-element path from it reaches the root, and only the depth and the width reject the
+opening against the four-leaf tree of two-word leaves; against a two-leaf tree of eight-word
+leaves it is the honest opening of leaf 1. -/
+#guard merkleVerify 2 2 root 1 nodeAsLeaf [node01] = false
+#guard merkleVerify 1 8 root 1 nodeAsLeaf [node01] = true
 
 /-! ## The leaf image and the sibling index -/
 
