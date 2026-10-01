@@ -16,11 +16,14 @@ import LeanerVM.Parameters.CleanField
 import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
+import LeanerVM.Parameters.Whir
 import LeanerVM.Protocol.Basic
+import LeanerVM.Protocol.Blake2sHash
 import LeanerVM.Protocol.BlockClaims
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.FixedColumns
+import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
@@ -33,6 +36,7 @@ import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
+import LeanerVM.Protocol.ToArkLib.Merkle
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement
