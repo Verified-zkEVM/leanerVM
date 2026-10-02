@@ -1,6 +1,6 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `3cf0139` (2026-10-02),
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b692351` (2026-10-02),
 checked on 2026-10-02. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
@@ -21,7 +21,9 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking (Layer 1) | #59 | `f4d858c` | 2026-09-29 |
 | the public-input phase with the specification's check (Layer 8), both halves | #60 | `b435631` | 2026-09-29 |
 | no hole: the upgrade to Lean 4.34.1 and the new pins | #61 | `144c5aa` | 2026-09-29 |
-| the wall, and the field instances' revision (the inner-product oracle) | #64 | `3cf0139` | 2026-10-02 |
+| the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
+| the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
+| tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
@@ -31,12 +33,9 @@ Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the
 
 ## What the built work owes the blueprint
 
-The blueprint was revised on 2026-09-30 after a review of its faithfulness to leanVM, its
-non-vacuity and its audit surface. The revisions the work on `main` owed it are built as three
-stacked pull requests: #64 (the wall and the field instances) is merged, #65 (the spine) and #66
-(tables and stacking, the public-input phase) are in review, each reviewed against the blueprint
-and the pinned sources in turn ([the spine's review](../reviews/protocol-spine-revision.md));
-each is a checklist line of #12. Where the built work differs from the blueprint, deliberately:
+The built work meets the blueprint except where it differs from it deliberately or settles what
+the blueprint leaves open, as listed below. The spine's review against the blueprint and the
+pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The layout's law.** `Layout` keeps the lift `extend` and one law, but the law is the
   reading law on the derived `Layout.read`, not "a cube point of the column lifts to a cube
@@ -75,9 +74,9 @@ each is a checklist line of #12. Where the built work differs from the blueprint
 - **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
   `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
   guarantee it, since `μBus` is the push side's depth.
-- **The front phases are typed** (decision 31): `Phases` holds them as `Phase.FrontDef`, whose
-  verifier is a `FrontVerifier` with no access to the stack, and their proofs are stated on the
-  lifted component `FrontDef.toDef`.
+- **How a front phase avoids the stack** (decision 31): a `Phase.FrontDef` is an honest prover
+  and a `FrontVerifier`, a verifier typed without access to the stack, so a query to the stack
+  is a typing error. The blueprint fixes only that the verifier never reads the stack.
 - **`piopError_le`** takes the sizes as hypotheses (`μ_bus ≤ 30`, `τ_max ≤ 32`, `B ≤ 2^16`,
   `kBatch ≤ 32`, `J ≤ 2^16`) and bounds the sum by `(2^32 + 2^31 + 2^20)/|E|`; the numeric
   test shows it below `2^{-159}`. That the leanISA instance meets the hypotheses at admissible
@@ -109,21 +108,13 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   `PublicInput.pSpec` is gone; the slot is `pubSpec`.
 - **The deployed public-input check** is a hole of its own, not built.
 
-Open pull requests that the revision changes: #62 (the GKR's definition) has the normalized round
-and the leaves as functions of the context, and gains the riders, the last unused combiner and
-the spine's slot shape (`gkrSpec E 3 μ` and `gkrError E (overE 1) 3 μ` of
-`ToArkLib/Schedule.lean`, generic in the challenge type and the unit error, whose grouping per
-layer is combiner, rounds, descendants, combination challenges); #42 (honest sumcheck
-algebra) serves the plain variant, and conflicts with `main`; #39 (fingerprints) and #43 (power
-batching) rebase onto `main` from the closed #18's branch and move from `Generic/` to the `To*`
-folder of their objects, #43 feeding the opening phase.
-
 ## What can start now
 
-The spine's revision first: every phase is written against its slots. Independent of it: Clean
+The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint and the GKR (Layer 5), the WHIR opening, and the Merkle trees with the WHIR
-parameters (Layer 11). The public-input phase's deployed check follows its pool's revision.
+fingerprint and the GKR (Layer 5), the public-input phase's deployed check (Layer 8), the Flock
+phase's definition and completeness (Layer 9), the WHIR opening, and the Merkle trees with the
+WHIR parameters (Layer 11).
 
 ## Upstream watch
 
