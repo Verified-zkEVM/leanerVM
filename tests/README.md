@@ -50,8 +50,8 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   (`y ^ 2 + 1`) finds none either; name such values as definitions.
 - An instance `∀ i, OracleInterface ((p₁ ++ₚ p₂).Message i)` for concrete schedules `p₁`, `p₂`
   is never found by instance search, even with the parts' instances at hand: ArkLib's instance
-  is applied by name (`msgAppend`, `chalAppend` in `Spine/Errors.lean`). A recursive schedule
-  gets a recursive instance the same way.
+  is applied by name (`msgAppend`, `chalAppend` in `ToArkLib/Schedule.lean`). A recursive
+  schedule gets a recursive instance the same way.
 - `exact le_of_eq (Finset.sum_eq_zero fun i _ ↦ …)` against a right side that is not `0` fails
   with "type of `i` is not known": the lambda is elaborated before the unification that would
   fail anyway. Write `(Finset.sum_eq_zero fun (i : T) _ ↦ …).le.trans zero_le` with the index

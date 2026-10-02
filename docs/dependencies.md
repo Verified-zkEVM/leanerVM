@@ -162,7 +162,7 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 - The instances for the messages and challenges of two schedules side by side
   (`instOracleInterfaceMessageAppend`, `instSampleableTypeChallengeAppend`) are not found by
   instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
-  does `Spine/Errors.lean` (`msgAppend`, `chalAppend`).
+  does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
 - `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
   and fail one link; a second build proceeds.
 

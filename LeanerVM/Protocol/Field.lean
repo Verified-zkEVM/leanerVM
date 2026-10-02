@@ -17,7 +17,7 @@ public import VCVio.OracleComp.Constructions.SampleableType
 # Fields for the proof system
 
 leanVM's columns take values in `K` and its challenges in `E`, the cubic extension of `K`
-(`LeanerVM.Parameters.Field`). Four things are supplied.
+(`LeanerVM.Parameters.Field`). Three things are supplied.
 
 * `SampleableType E`: the uniform sampler ArkLib requires of every challenge type. `E` is
   sampled as three independent limbs through `Ext.ofVector`; the `K` sampler it is built from
@@ -33,10 +33,8 @@ leanVM's columns take values in `K` and its challenges in `E`, the cubic extensi
   extension the verifier can run. The answer is `⟨W, q⟩ = Σ_x W(x)·q(x)` in `E`. An evaluation
   `q̃(p)` at a point `p ∈ E^n` is the answer to the equality kernel `eqWeight p`
   (`answer_eqWeight`).
-* `OracleInterface E` and `OracleInterface (List E)`: the trivial oracle, ArkLib's
-  `OracleInterface.instDefault` (the query is `Unit`, the answer is the whole message), for the
-  scalars and coefficient lists a phase sends. ArkLib registers that default for no type, and
-  every component's schedule needs an interface on each prover message.
+The scalars and coefficient lists a phase sends need no interface of their own: a one-message
+schedule (`LeanerVM.Protocol.ToArkLib.Schedule`) reads its message whole.
 
 ## Wrong readings excluded
 
@@ -110,14 +108,6 @@ theorem answer_eqWeight {n : ℕ} (q : Column n) (p : Vector E n) :
     OracleInterface.answer q (eqWeight p) =
       CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) p :=
   Weight.pair_eqWeight (algebraMap K E) p q.values
-
-/-! ## Scalar messages -/
-
-/-- A scalar the prover sends is queried trivially: the answer is the scalar. -/
-instance instOracleInterfaceE : OracleInterface E := OracleInterface.instDefault
-
-/-- A list of scalars the prover sends is queried trivially: the answer is the list. -/
-instance instOracleInterfaceListE : OracleInterface (List E) := OracleInterface.instDefault
 
 end
 end LeanerVM.Protocol

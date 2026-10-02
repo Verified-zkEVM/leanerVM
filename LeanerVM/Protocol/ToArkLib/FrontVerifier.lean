@@ -88,7 +88,7 @@ variable {OStmt}
 
 /-- The verdict of the ordinary verifier: the computation simulated with the transcript's
 messages, paired with the oracles it was given. -/
-theorem toVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i) (tr : pSpec.FullTranscript) :
+private theorem toVerifier_verify (s : StmtIn) (o : ∀ i, OStmt i) (tr : pSpec.FullTranscript) :
     (V.toOracleVerifier OStmt).toVerifier.verify (s, o) tr =
       (fun t ↦ (t, o)) <$> OptionT.mk (simulateQ (OracleInterface.simOracle oSpec tr.messages)
         (V.verify s tr.challenges).run) := by

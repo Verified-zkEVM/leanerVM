@@ -20,8 +20,9 @@ point of `E` (specification §4.1).
 * `Blocks.stackColumn` is the witness stack: block `b` at its window, zero past the last block.
 * `Blocks.readColumn` reads block `b` off *any* column of the stack's height, honest or not.
   `Blocks.readColumn_eval` is the stacking identity `q̃(z, sel_b) = P̃_b(z)`, for every `q`.
-* `Blocks.layout` packages the reader, the lift of a point and that identity as a `Layout`, the
-  reading law an `M3Instance` carries. A layout is sizes only, so it names no table.
+* `Blocks.layout` packages the lift of a point and that identity as a `Layout`, the reading law
+  an `M3Instance` carries; the reader is derived from the lift. A layout is sizes only, so it
+  names no table.
   `Layout.comap` renames its columns, which is how a layout indexed by blocks becomes one
   indexed by the columns of an instance.
 * `Blocks.stackColumn_eval_ambient` is the decomposition of the zero-padded stack at an

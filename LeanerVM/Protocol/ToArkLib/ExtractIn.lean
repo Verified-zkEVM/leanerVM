@@ -52,7 +52,8 @@ def extractIn (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid
   cast E.eqIn (foldMid E s tr n le_rfl (E.extractOut s tr w))
 
 /-- The fold of the round steps from round `k + 1` down to round `1`. -/
-def foldToOne (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid) (s : StmtIn)
+private def foldToOne (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid)
+    (s : StmtIn)
     (tr : pSpec.FullTranscript) : (k : ℕ) → (hk : k + 1 ≤ n) →
       WitMid ⟨k + 1, Nat.lt_succ_of_le hk⟩ →
         WitMid ⟨1, Nat.lt_succ_of_le (Nat.le_trans (Nat.succ_le_succ (Nat.zero_le k)) hk)⟩
@@ -62,7 +63,7 @@ def foldToOne (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid
 
 /-- The fold from a round above the first is the first round's step, on the transcript's first
 message, applied to the fold down to round `1`. -/
-theorem foldMid_succ (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid)
+private theorem foldMid_succ (E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid)
     (s : StmtIn) (tr : pSpec.FullTranscript) :
     (k : ℕ) → (hk : k + 1 ≤ n) → (w : WitMid ⟨k + 1, Nat.lt_succ_of_le hk⟩) →
       foldMid E s tr (k + 1) hk w =
@@ -79,7 +80,8 @@ end Extractor.RoundByRound
 /-- The first round's step of two extractors in sequence, when the first has a round, is the
 first extractor's step on the transcript's first message, up to the casts of the composed
 witness family and of the appended schedule. -/
-theorem Extractor.RoundByRound.append_extractMid_zero_heq {ι : Type} {oSpec : OracleSpec ι}
+private theorem Extractor.RoundByRound.append_extractMid_zero_heq {ι : Type}
+    {oSpec : OracleSpec ι}
     {Stmt₁ Stmt₂ Wit₁ Wit₂ Wit₃ : Type} {m n : ℕ} {pSpec₁ : ProtocolSpec m}
     {pSpec₂ : ProtocolSpec n} {WitMid₁ : Fin (m + 1) → Type} {WitMid₂ : Fin (n + 1) → Type}
     (E₁ : Extractor.RoundByRound oSpec Stmt₁ Wit₁ Wit₂ pSpec₁ WitMid₁)
