@@ -76,6 +76,14 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   `Gkr.layerStepsSecurity` uses one tracker, the others another) splits the index as
   `0`, `1`, `k + 2`: a `match` on a variable `k` inside the branch does not reduce, and the two
   sides of `Component.Security.append` must agree definitionally.
+- A closed statement over `E` in a definitional comparison is an evaluation of the trees: a
+  hypothesis such as `s.2.2 ≠ Φ.claim (ctxOf …) …` at `s := (s0.1, (s0.2.1, trueClaim + 1))`,
+  with `s0` and `trueClaim` the hand run's values, sends the unifier, or the kernel, through
+  `s0` and never returns (the round refutation hit the recursion limit, the descendants' one a
+  kernel timeout). The same proof on a symbolic statement, `(x, (cv, Φ.claim ((x, noO), ()) 0
+  cv + 1))` with `x` and `cv` variables, is one unfolding, since nothing closed can be
+  evaluated. State a refutation over variables and keep the hand run's values for the honest
+  runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
 
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,

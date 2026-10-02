@@ -52,8 +52,10 @@ challenge. Knowledge soundness (`roundSecurity`, `roundsSecurity`, at `d / |F|` 
 for a round that carries no witness) needs it consistent and sound (`Family.Sound`: a challenge
 restores a broken invariant at `d` values at most): a recorded polynomial that passes the check
 at a wrong claim is not the honest one, and two polynomials of degree `d` agree at `d` points at
-most. Without the check the challenge has escape probability one
-(`drawChallenge_unchecked_not_rbr`). The oracles and the witness are passed through untouched.
+most (`card_filter_evaluate_eq_le`; batching by powers is the same count,
+`card_filter_powerSum_eq_le`). Without the check, no extractor and state function make the
+challenge knowledge sound below error one (`drawChallenge_unchecked_not_rbr`). The oracles and
+the witness are passed through untouched.
 
 ArkLib's computable sumcheck (`Sumcheck.Impl.Representation.Message`, a polynomial with a
 degree bound queried by evaluation) sums its message over a unit-weight domain and is not an
@@ -210,6 +212,28 @@ theorem card_filter_evaluate_eq_le [Fintype F] [DecidableEq F] (q q' : Message F
   rw [Finset.mem_val, Finset.mem_filter] at hx
   rw [Polynomial.mem_roots hp0, Polynomial.IsRoot, heval, hx.2, sub_self]
 
+/-- Two different value vectors combine to the same scalar, by the powers of the combiner, at
+`n - 1` combiners at most: the escape count of batching by powers. -/
+theorem card_filter_powerSum_eq_le [Fintype F] [DecidableEq F] {n : ℕ} (a b : Fin n → F)
+    (hne : a ≠ b) :
+    (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t).card ≤
+      n - 1 := by
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := by
+    cases n with
+    | zero => exact absurd (funext fun t ↦ t.elim0) hne
+    | succ k => exact ⟨k, rfl⟩
+  have hne' : (Vector.ofFn a : Message F k) ≠ Vector.ofFn b := fun h ↦
+    hne (funext fun t ↦ by simpa using congrArg (fun v : Vector F (k + 1) ↦ v[t]) h)
+  have hev : ∀ (f : Fin (k + 1) → F) (l : F),
+      evaluate k (Vector.ofFn f) l = ∑ t, l ^ t.val * f t := fun f l ↦
+    Finset.sum_congr rfl fun t _ ↦ by simp [mul_comm]
+  have hfilter : (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t) =
+      Finset.univ.filter fun l ↦ evaluate k (Vector.ofFn a) l = evaluate k (Vector.ofFn b) l := by
+    refine Finset.filter_congr fun l _ ↦ ?_
+    rw [hev, hev]
+  rw [hfilter, Nat.add_sub_cancel]
+  exact card_filter_evaluate_eq_le _ _ hne'
+
 /-! ## The round -/
 
 variable [∀ i, OracleInterface (O i)] (P : Polys F X O W d) (j : ℕ)
@@ -287,12 +311,10 @@ soundness; otherwise the polynomial is not the honest one, since the honest one 
 honest claim and the running claim differs or the polynomial does, and two distinct polynomials
 agree at `d` points at most. The round carries no witness. -/
 theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m) (S : Φ.Sound m)
-    (hj : j < m) (p : MidStmt X F j d) (o : ∀ i, O i) (hc : check j wt p.1 p.2 = true)
-    (hwt : wt = Φ.weight) :
+    (hj : j < m) (p : MidStmt X F j d) (o : ∀ i, O i) (hc : check j Φ.weight p.1 p.2 = true) :
     (Finset.univ.filter fun x ↦
       Component.badChallenge O F (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
         (relIn := relMid Φ j) (relOut := rel Φ (j + 1)) p o x).card ≤ d := by
-  subst hwt
   by_cases hW : Nonempty W
   · obtain ⟨w⟩ := hW
     obtain ⟨s, q⟩ := p
@@ -336,15 +358,15 @@ theorem card_badChallenge_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consisten
     exact hW ⟨w⟩
 
 /-- The security half of the challenge, at any error at least `d / |F|`. -/
-noncomputable def drawChallengeSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
+def drawChallengeSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
     (S : Φ.Sound m) (hj : j < m) (e : ℝ≥0) (he : (d : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) :
     Component.Security (drawChallenge j Φ.weight) (relMid Φ j) (rel Φ (j + 1)) (drawError F e) :=
   (Component.sampleChallengeSecurity O F _ _ d fun p o hc ↦
-    card_badChallenge_le j Φ.weight Φ H S hj p o hc rfl).mono fun _ ↦ he
+    card_badChallenge_le j Φ H S hj p o hc).mono fun _ ↦ he
 
 /-- The security half of a round of a consistent, sound family: the message's then the
 challenge's, the error on the challenge. -/
-noncomputable def roundSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
+def roundSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
     (S : Φ.Sound m) (hj : j < m) (e : ℝ≥0) (he : (d : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) :
     Component.Security (round Φ.poly j Φ.weight) (rel Φ j) (rel Φ (j + 1))
       (errAppend (sayError (Message F d)) (drawError F e)) :=
@@ -357,12 +379,17 @@ omit [DecidableEq F] [Fintype F] in
 function: from the honest polynomial at a wrong running claim, every challenge lands in the next
 relation. The check is load-bearing. -/
 theorem drawChallenge_unchecked_not_rbr (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
-    (hj : j < m) {ε : (draw F).ChallengeIdx → ℝ≥0}
+    (hj : j < m) {WitMid : Fin 2 → Type}
+    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (MidStmt X F j d × ∀ i, O i) W W
+      (draw F) WitMid}
+    {kSF : Verifier.KnowledgeStateFunction init impl (relMid Φ j) (rel Φ (j + 1))
+      (Component.sampleVerifier O F (fun _ ↦ true)
+        (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier E}
+    {ε : (draw F).ChallengeIdx → ℝ≥0}
     (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ j) (rel Φ (j + 1))
       (Component.sampleVerifier O F (fun _ ↦ true)
         (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c)).toVerifier
-      (fun _ ↦ W) (Component.keepExtractor _ W (draw F))
-      (Component.sampleStateFunction O F _ _ init impl) ε)
+      WitMid E kSF ε)
     (s : Stmt X F j) (o : ∀ i, O i) (w : W) (hclaim : s.2.2 ≠ Φ.claim ((s.1, o), w) j s.2.1)
     (hinv : ∀ x, Φ.inv ((s.1, o), w) (j + 1) (s.2.1.push x)) : 1 ≤ ε ⟨0, rfl⟩ :=
   Component.sampleChallenge_not_rbr O F _ _ init impl h (s, Φ.poly ((s.1, o), w) j s.2.1) o
@@ -397,7 +424,7 @@ def roundsComplete (Φ : Family F X O W d) (m : ℕ) (H : Φ.Honest m) :
     (roundComplete j Φ H (by omega)).append (roundsComplete Φ m H i (j + 1) (by omega))
 
 /-- The security half of the rounds, from each round's. -/
-noncomputable def roundsSecurity (Φ : Family F X O W d) (m : ℕ)
+def roundsSecurity (Φ : Family F X O W d) (m : ℕ)
     (H : Φ.Consistent m) (S : Φ.Sound m) (e : ℝ≥0)
     (he : (d : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) :
     (i j : ℕ) → (h : j + i = m) →
@@ -414,7 +441,8 @@ noncomputable def roundsSecurity (Φ : Family F X O W d) (m : ℕ)
         subst hjm
         simpa only [Vector.cast_rfl] using hin)
   | i + 1, j, h =>
-    (roundSecurity j Φ H S (by omega) e he).append (roundsSecurity Φ m H S e he i (j + 1) (by omega))
+    (roundSecurity j Φ H S (by omega) e he).append
+      (roundsSecurity Φ m H S e he i (j + 1) (by omega))
 
 end Data
 

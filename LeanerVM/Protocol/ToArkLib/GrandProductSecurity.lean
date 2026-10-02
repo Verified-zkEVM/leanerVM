@@ -16,9 +16,10 @@ public import LeanerVM.Protocol.ToCompPoly.Restriction
 # Knowledge soundness of the grand product
 
 `gkrSecurity nside μ leaves riders u hu` is the security half of `gkr` at `gkrError F u nside μ`
-for any unit `u` at least `1 / |F|`, with the extractor that keeps the trivial witness. It is
-composed, like the completeness half, from the parts' through `Component.Security.append`, so
-every challenge keeps the error its schedule assigned it:
+for any unit `u` at least `1 / |F|`, with the extractor that keeps the trivial witness. With
+the witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.relIn`:
+nothing is extracted. It is composed, like the completeness half, from the parts' through
+`Component.Security.append`, so every challenge keeps the error its schedule assigned it:
 
 * the combiner: a statement outside the layer relation combines into the family's first claim at
   `nside − 1` combiners at most (`card_filter_lambdaNext_le`), since two different value vectors
@@ -72,7 +73,7 @@ def RidersZeroOn (x : X) (o : ∀ i, O i) (σ : Partial F) : Prop :=
 
 omit [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem ridersZeroOn_empty_iff (x : X) (o : ∀ i, O i) :
+private theorem ridersZeroOn_empty_iff (x : X) (o : ∀ i, O i) :
     RidersZeroOn μ riders x o Partial.empty ↔ RidersZero μ riders x o := by
   simp only [RidersZeroOn, RidersZero, restrictedZero_empty_iff]
 
@@ -108,13 +109,14 @@ def combPartial {i : ℕ} (u : Vector F i) : Partial F :=
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem roundsPartial_zero (ρ : ℕ) (χ : Vector F 0) : roundsPartial ρ χ = Partial.empty := by
+private theorem roundsPartial_zero (ρ : ℕ) (χ : Vector F 0) :
+    roundsPartial ρ χ = Partial.empty := by
   funext k
   simp [roundsPartial, Partial.empty]
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem roundsPartial_push (ρ : ℕ) {j : ℕ} (χ : Vector F j) (c : F) :
+private theorem roundsPartial_push (ρ : ℕ) {j : ℕ} (χ : Vector F j) (c : F) :
     roundsPartial ρ (χ.push c) = Function.update (roundsPartial ρ χ) (ρ + j) (some c) := by
   funext k
   by_cases hk : k = ρ + j
@@ -130,14 +132,15 @@ theorem roundsPartial_push (ρ : ℕ) {j : ℕ} (χ : Vector F j) (c : F) :
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem interpPartial_zero (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F 0) :
+private theorem interpPartial_zero (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F 0) :
     interpPartial ρ χ u = roundsPartial ρ χ := by
   funext k
   simp [interpPartial]
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem interpPartial_push (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u : Vector F i) (c : F) :
+private theorem interpPartial_push (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u : Vector F i)
+    (c : F) :
     interpPartial ρ χ (u.push c) = Function.update (interpPartial ρ χ u) i (some c) := by
   funext k
   by_cases hk : k = i
@@ -153,7 +156,7 @@ theorem interpPartial_push (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u :
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem interpPartial_full (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F ρ) (k : ℕ)
+private theorem interpPartial_full (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F ρ) (k : ℕ)
     (hk : k < m + ρ) :
     interpPartial ρ χ u k = some ((Vector.cast (Nat.add_comm ρ m) (u ++ χ))[k]) := by
   simp only [interpPartial, roundsPartial, Vector.getElem_cast, Vector.getElem_append]
@@ -161,13 +164,13 @@ theorem interpPartial_full (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F 
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem combPartial_zero (u : Vector F 0) : combPartial u = Partial.empty := by
+private theorem combPartial_zero (u : Vector F 0) : combPartial u = Partial.empty := by
   funext k
   simp [combPartial, Partial.empty]
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem combPartial_push {i : ℕ} (u : Vector F i) (c : F) :
+private theorem combPartial_push {i : ℕ} (u : Vector F i) (c : F) :
     combPartial (u.push c) = Function.update (combPartial u) i (some c) := by
   funext k
   by_cases hk : k = i
@@ -183,37 +186,9 @@ theorem combPartial_push {i : ℕ} (u : Vector F i) (c : F) :
 
 omit [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
-theorem combPartial_full {ρ : ℕ} (u : Vector F ρ) (k : ℕ) (hk : k < ρ) :
+private theorem combPartial_full {ρ : ℕ} (u : Vector F ρ) (k : ℕ) (hk : k < ρ) :
     combPartial u k = some u[k] := by
   simp [combPartial, hk]
-
-/-! ## The difference of two tables -/
-
-/-- The difference of two tables, entry by entry. -/
-def diffTable {n : ℕ} (t t' : CMlPolynomialEval F n) : CMlPolynomialEval F n :=
-  Vector.ofFn fun i ↦ t[i] - t'[i]
-
-omit [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-theorem evalMle_diffTable {n : ℕ} (t t' : CMlPolynomialEval F n) (p : Vector F n) :
-    evalMle (diffTable t t') p = evalMle t p - evalMle t' p := by
-  simp only [evalMle_eq_sum, diffTable, Fin.getElem_fin, Vector.getElem_ofFn, sub_mul,
-    Finset.sum_sub_distrib]
-
-omit [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-theorem diffTable_restrictedZero_empty_iff {n : ℕ} (t t' : CMlPolynomialEval F n) :
-    RestrictedZero (diffTable t t') Partial.empty ↔ t = t' := by
-  rw [restrictedZero_empty_iff]
-  constructor
-  · intro h
-    apply Vector.ext
-    intro i hi
-    have := h ⟨i, hi⟩
-    simp only [diffTable, Fin.getElem_fin, Vector.getElem_ofFn] at this
-    exact sub_eq_zero.mp this
-  · rintro rfl i
-    simp [diffTable]
 
 /-! ## How a step tracks the riders -/
 
@@ -247,7 +222,7 @@ omit [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
 open scoped Classical in
 /-- A predicate that does not depend on the challenge, false, is restored at no value. -/
-theorem card_filter_const_le {P : Prop} (hP : ¬ P) :
+private theorem card_filter_const_le {P : Prop} (hP : ¬ P) :
     (Finset.univ.filter fun _ : F ↦ P).card ≤ 1 := by
   refine le_trans (le_of_eq ?_) zero_le_one
   rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
@@ -259,9 +234,9 @@ def constTrack (ρ m : ℕ) : RiderTrack μ riders ρ m where
   invU := fun x o _ _ _ ↦ RidersZero μ riders x o
   out := fun x o _ ↦ RidersZero μ riders x o
   inv_zero := fun _ _ _ ↦ Iff.rfl
-  inv_escape := fun _ _ _ _ h ↦ card_filter_const_le h
+  inv_escape := fun _ _ _ _ h ↦ by exact card_filter_const_le h
   invU_zero := fun _ _ _ _ ↦ Iff.rfl
-  invU_escape := fun _ _ _ _ _ h ↦ card_filter_const_le h
+  invU_escape := fun _ _ _ _ _ h ↦ by exact card_filter_const_le h
   out_iff := fun _ _ _ _ ↦ Iff.rfl
 
 open scoped Classical in
@@ -308,38 +283,19 @@ def familyT (T : RiderTrack μ riders ρ m) :
   inv := fun ctx j cv ↦ T.inv (dataOf ctx) (oraclesOf ctx) j cv
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- The honest polynomials of the tracked family are consistent: the same as `family`'s. -/
 theorem familyT_consistent (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Consistent m :=
   ⟨(family_honest nside μ leaves riders ρ m).check, (family_honest nside μ leaves riders ρ m).next⟩
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- The tracked family's invariant is sound: a round's challenge restores it at one value at
+most, within the polynomial degree. -/
 theorem familyT_sound (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Sound m :=
   fun _ _ cv _ hinv ↦ (T.inv_escape _ _ _ cv hinv).trans Nat.one_le_two_pow
 
 /-! ## The combiner -/
-
-omit [BEq F] [LawfulBEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
-open scoped Classical in
-/-- Two different value vectors combine to the same scalar at `n - 1` combiners at most. -/
-theorem card_filter_powerSum_eq_le {n : ℕ} (a b : Fin n → F) (hne : a ≠ b) :
-    (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t).card ≤ n - 1 := by
-  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := by
-    cases n with
-    | zero => exact absurd (funext fun t ↦ t.elim0) hne
-    | succ k => exact ⟨k, rfl⟩
-  have hne' : (Vector.ofFn a : SumcheckRound.Message F k) ≠ Vector.ofFn b := fun h ↦
-    hne (funext fun t ↦ by simpa using congrArg (fun v : Vector F (k + 1) ↦ v[t]) h)
-  have hev : ∀ (f : Fin (k + 1) → F) (l : F),
-      SumcheckRound.evaluate k (Vector.ofFn f) l = ∑ t, l ^ t.val * f t := fun f l ↦
-    Finset.sum_congr rfl fun t _ ↦ by simp [mul_comm]
-  have hfilter : (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t) =
-      Finset.univ.filter fun l ↦ SumcheckRound.evaluate k (Vector.ofFn a) l =
-        SumcheckRound.evaluate k (Vector.ofFn b) l := by
-    refine Finset.filter_congr fun l _ ↦ ?_
-    rw [hev, hev]
-  rw [hfilter, Nat.add_sub_cancel]
-  exact SumcheckRound.card_filter_evaluate_eq_le _ _ hne'
 
 variable {S : Type} (inp : S → LayerStmt X F nside m)
 
@@ -356,7 +312,8 @@ theorem card_filter_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ �
   have hmem : ∀ l, ((lambdaNext nside m s l, o), ()) ∈
       SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 ↔
       RidersZero μ riders s.1 o ∧
-        ∑ t, l ^ t.val * s.2.2 t = ∑ t, l ^ t.val * evalMle (layerTable (leaves s.1 o t) m) s.2.1 := by
+        ∑ t, l ^ t.val * s.2.2 t =
+          ∑ t, l ^ t.val * evalMle (layerTable (leaves s.1 o t) m) s.2.1 := by
     intro l
     change T.inv s.1 o 0 #v[] ∧ (lambdaNext nside m s l).2.2 =
       partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] ↔ _
@@ -366,7 +323,8 @@ theorem card_filter_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ �
   by_cases hz : RidersZero μ riders s.1 o
   · have hval : s.2.2 ≠ fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1 := fun h ↦
       hs ⟨hz, fun t ↦ (congrFun h t).symm⟩
-    refine (Finset.card_le_card fun l hl ↦ ?_).trans (card_filter_powerSum_eq_le _ _ hval)
+    refine (Finset.card_le_card fun l hl ↦ ?_).trans
+      (SumcheckRound.card_filter_powerSum_eq_le _ _ hval)
     rw [Finset.mem_filter] at hl ⊢
     exact ⟨Finset.mem_univ _, hl.2.2⟩
   · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
@@ -375,7 +333,7 @@ theorem card_filter_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ �
 
 /-- The security half of the combiner at any error at least `(nside − 1) / |F|`, from a relation
 `inp` carries into the layer relation and back. -/
-noncomputable def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m)
     (e : ℝ≥0) (he : ((nside - 1 : ℕ) : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) :
@@ -422,7 +380,7 @@ theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
   simp [hch', children, below]
 
 /-- The security half of the descendants' message: no challenge. -/
-noncomputable def childrenSecurity (T : RiderTrack μ riders ρ m) :
+def childrenSecurity (T : RiderTrack μ riders ρ m) :
     Component.Security (sendChildren nside μ leaves ρ m)
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) m)
       (childRelT nside μ leaves riders ρ m T 0) (sayError _) :=
@@ -460,7 +418,7 @@ theorem card_filter_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
     exact ⟨Finset.mem_univ _, hc.2.1⟩
 
 /-- The security half of the first `i` combination challenges. -/
-noncomputable def interpPrefixSecurity (T : RiderTrack μ riders ρ m) (e : ℝ≥0)
+def interpPrefixSecurity (T : RiderTrack μ riders ρ m) (e : ℝ≥0)
     (he : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) : (i : ℕ) →
     Component.Security (interpPrefix nside ρ m i) (childRelT nside μ leaves riders ρ m T 0)
       (childRelT nside μ leaves riders ρ m T i) (drawsError F e i)
@@ -501,7 +459,7 @@ theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
 
 open scoped Classical in
 /-- The security half of the combination challenges. -/
-noncomputable def interpolateSecurity (T : RiderTrack μ riders ρ m) (e : ℝ≥0)
+def interpolateSecurity (T : RiderTrack μ riders ρ m) (e : ℝ≥0)
     (he : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ e) :
     Component.Security (interpolate nside ρ m) (childRelT nside μ leaves riders ρ m T 0)
       (stepOutT nside μ leaves riders ρ m T) (drawsError F e ρ) :=
@@ -532,7 +490,7 @@ noncomputable def interpolateSecurity (T : RiderTrack μ riders ρ m) (e : ℝ�
 
 /-- The security half of a step whose level below exists, the riders tracked by `T`, from a
 relation `inp` carries into the layer relation and back; `u` is the error of one degree. -/
-noncomputable def layerStepSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+def layerStepSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m)
     (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
@@ -575,7 +533,7 @@ theorem stepsIn_zero_iff (m : ℕ) (h : m + 2 * 0 = μ) (s : LayerStmt X F nside
 
 /-- The security half of the radix-four steps from layer `m`, from each step's: the last step
 tracks the riders progressively, the others keep them zero. -/
-noncomputable def layerStepsSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
+def layerStepsSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
     (k m : ℕ) → (h : m + 2 * k = μ) →
       Component.Security (layerSteps nside μ leaves k m h) (stepsIn nside μ leaves riders k m h)
         (relOut nside μ leaves riders) (stepsError F nside u k m)
@@ -636,7 +594,7 @@ theorem relIn_iff_stepsIn_zero (h : 0 + 2 * 0 = μ) (s : X × (Fin nside → F))
 /-- The security half of the first step: the roots read as layer `0` when `μ` is even, a binary
 step from the roots when `μ` is odd, tracking the riders progressively when it is also the last
 step. -/
-noncomputable def oddSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
+def oddSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
     (r : ℕ) → (hr : r ≤ 1) → (k : ℕ) → (hk : r + 2 * k = μ) →
       Component.Security (odd nside μ leaves r hr) (relIn nside μ leaves riders)
         (stepsIn nside μ leaves riders k r hk) (oddError F nside u r)
@@ -657,8 +615,9 @@ noncomputable def oddSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card 
         cases w
         exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp hin)
   | 1, _, 0, hk =>
-    layerStepSecurity nside μ leaves riders 1 0 (rootStmt nside) (progTrack μ riders 1 0 (by omega))
-      (by omega) (relIn_iff_layerRel_zero nside μ leaves riders) u hu
+    layerStepSecurity nside μ leaves riders 1 0 (rootStmt nside)
+      (progTrack μ riders 1 0 (by omega)) (by omega)
+      (relIn_iff_layerRel_zero nside μ leaves riders) u hu
   | 1, _, k + 1, hk =>
     layerStepSecurity nside μ leaves riders 1 0 (rootStmt nside) (constTrack μ riders 1 0)
       (by omega) (relIn_iff_layerRel_zero nside μ leaves riders) u hu
@@ -666,7 +625,7 @@ noncomputable def oddSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card 
 
 open scoped Classical in
 /-- The security half of the last combiner: it changes nothing, at error zero. -/
-noncomputable def lastSecurity :
+def lastSecurity :
     Component.Security (lastCombiner nside μ) (relOut nside μ leaves riders)
       (relOut nside μ leaves riders) (drawError F 0) :=
   (Component.sampleChallengeSecurity O F _ _ 0 fun s o _ ↦
@@ -684,16 +643,17 @@ variable {F : Type} [Field F] [Fintype F] [BEq F] [LawfulBEq F] [DecidableEq F]
   (nside μ : ℕ) (leaves : X → (∀ i, O i) → Fin nside → CMlPolynomialEval F μ)
   (riders : X → (∀ i, O i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval F τ))
 
-/-- **Knowledge soundness** of the grand-product argument, at the slot's error `gkrError` from
-any unit `u` at least `1 / |F|`, with the extractor that keeps the trivial witness: from any
-statement whose roots are not the products of their leaves or whose riders are not zero, each
-challenge turns the knowledge state from false to true with probability at most the error
-charged to it. -/
-noncomputable def gkrSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
+/-- **Knowledge soundness** of the grand-product argument, at the error `gkrError` its schedule
+charges from any unit `u` at least `1 / |F|`, with the extractor that keeps the trivial witness:
+from any statement whose roots are not the products of their leaves or whose riders are not
+zero, each challenge turns the knowledge state from false to true with probability at most the
+error charged to it. With the witness `Unit`, this is round-by-round soundness of `Gkr.relIn`. -/
+def gkrSecurity (u : ℝ≥0) (hu : (1 : ℝ≥0) / (Fintype.card F : ℝ≥0) ≤ u) :
     Component.Security (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
       (Gkr.relOut nside μ leaves riders) (gkrError F u nside μ) :=
   ((Gkr.oddSecurity nside μ leaves riders u hu (μ % 2) _ (μ / 2) (Nat.mod_add_div μ 2)).append
-    (Gkr.layerStepsSecurity nside μ leaves riders u hu (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))).append
+    (Gkr.layerStepsSecurity nside μ leaves riders u hu (μ / 2) (μ % 2)
+      (Nat.mod_add_div μ 2))).append
     (Gkr.lastSecurity nside μ leaves riders)
 
 end

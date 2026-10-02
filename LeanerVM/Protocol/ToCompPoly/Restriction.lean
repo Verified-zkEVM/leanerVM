@@ -51,6 +51,7 @@ def RestrictedZero {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) : Prop
 /-- The empty partial point: nothing fixed. -/
 def Partial.empty : Partial R := fun _ ↦ Option.none
 
+/-- The point of the empty partial point at a completion is the cube point itself. -/
 @[simp] theorem Partial.point_empty {n : ℕ} (b : Fin (2 ^ n)) :
     (Partial.empty : Partial R).point b = boolVec b := by
   apply Vector.ext
@@ -61,6 +62,30 @@ def Partial.empty : Partial R := fun _ ↦ Option.none
 theorem restrictedZero_empty_iff {n : ℕ} (t : CMlPolynomialEval R n) :
     RestrictedZero t Partial.empty ↔ ∀ i : Fin (2 ^ n), t[i] = 0 := by
   simp only [RestrictedZero, Partial.point_empty, evalMle_boolVec]
+
+/-- The difference of two tables, entry by entry. -/
+def diffTable {n : ℕ} (t t' : CMlPolynomialEval R n) : CMlPolynomialEval R n :=
+  Vector.ofFn fun i ↦ t[i] - t'[i]
+
+/-- The extension of a difference is the difference of the extensions. -/
+theorem evalMle_diffTable {n : ℕ} (t t' : CMlPolynomialEval R n) (p : Vector R n) :
+    evalMle (diffTable t t') p = evalMle t p - evalMle t' p := by
+  simp only [evalMle_eq_sum, diffTable, Fin.getElem_fin, Vector.getElem_ofFn, sub_mul,
+    Finset.sum_sub_distrib]
+
+/-- A difference zero on the empty partial point means the two tables are equal. -/
+theorem diffTable_restrictedZero_empty_iff {n : ℕ} (t t' : CMlPolynomialEval R n) :
+    RestrictedZero (diffTable t t') Partial.empty ↔ t = t' := by
+  rw [restrictedZero_empty_iff]
+  constructor
+  · intro h
+    apply Vector.ext
+    intro i hi
+    have := h ⟨i, hi⟩
+    simp only [diffTable, Fin.getElem_fin, Vector.getElem_ofFn] at this
+    exact sub_eq_zero.mp this
+  · rintro rfl i
+    simp [diffTable]
 
 /-- When every coordinate is fixed, zero means the extension vanishes at the point. -/
 theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) (p : Vector R n)

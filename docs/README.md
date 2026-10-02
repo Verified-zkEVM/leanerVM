@@ -58,6 +58,12 @@ This directory contains stable project and operating knowledge.
     Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the
     citations) or records for the roadmap (the depth of the pull and count trees, the schedule
     bundle).
+  - [protocol-gkr-security.md](reviews/protocol-gkr-security.md): the review of the
+    grand-product GKR's knowledge soundness (2026-10-02), which found no theorem wrong, vacuous
+    or tautological, and whose findings the branch meets (the round refutation for every
+    extractor and state function, the generic lemmas in their owners' modules, the private
+    helpers, the documentation) or half meets (the security definitions compile, but not yet
+    at `E`).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

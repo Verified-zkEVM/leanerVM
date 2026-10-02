@@ -155,7 +155,9 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec)
     D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut witMid
       extractor (kSF init impl) err
 
-/-- Security at an error is security at any larger error. -/
+/-- Security at an error is security at any larger error. Inlined before compilation, so the
+errors, real numbers, never reach compiled code and a security built with it computes. -/
+@[macro_inline]
 def Security.mono {D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec}
     {relIn : Set ((StmtIn × ∀ i, OStmtIn i) × WitIn)}
     {relOut : Set ((StmtOut × ∀ i, OStmtOut i) × WitOut)}
@@ -269,7 +271,9 @@ def Extraction.append (X₁ : Extraction D₁ rel₁ rel₂) (X₂ : Extraction 
       (X₂.kSF init impl))
 
 /-- Security composes, at the errors side by side: the extractions are appended, and the bound
-is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. -/
+is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. Inlined before
+compilation, like `Security.mono`, so a composed security computes. -/
+@[macro_inline]
 def Security.append {ε₁ : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ : pSpec₂.ChallengeIdx → ℝ≥0}
     (S₁ : Security D₁ rel₁ rel₂ ε₁) (S₂ : Security D₂ rel₂ rel₃ ε₂) :
     Security (D₁.append D₂) rel₁ rel₃ (errAppend ε₁ ε₂) where

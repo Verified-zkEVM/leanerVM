@@ -26,8 +26,13 @@ alone, so a check that reads a message checks the message the previous component
 the statement. With `check := fun _ ↦ true` the verifier is pure.
 
 Completeness (`sampleChallengeComplete`): on the input relation the check passes and `f`
-carries the relation into the output relation at every challenge. Knowledge soundness is the
-step's own, since it depends on what `f` records.
+carries the relation into the output relation at every challenge. Knowledge soundness
+(`sampleChallengeSecurity`): at `N / |C|`, with the extractor that keeps the witness, when a
+statement passing the check has at most `N` bad challenges, those that carry it from outside
+the input relation into the output relation; the count is the step's own, since it depends on
+what `f` records. A statement with no witness that passes the check and that every challenge
+carries into the output relation leaves no knowledge error below one, whatever the extractor
+and the state function (`sampleChallenge_not_rbr`).
 -/
 
 namespace LeanerVM.Protocol
@@ -212,7 +217,7 @@ theorem sample_rbr (N : ℕ)
 open scoped Classical in
 /-- The security half of a checked challenge at `N / |C|`, with the extractor that keeps the
 witness, when a statement passing the check has at most `N` bad challenges. -/
-noncomputable def sampleChallengeSecurity (N : ℕ)
+def sampleChallengeSecurity (N : ℕ)
     (hN : ∀ s o, check s = true →
       (Finset.univ.filter fun c ↦ badChallenge OStmt C f (relIn := relIn) (relOut := relOut)
         s o c).card ≤ N) :
@@ -225,17 +230,24 @@ noncomputable def sampleChallengeSecurity (N : ℕ)
   rbr := fun init impl ↦ sample_rbr OStmt C check f init impl N hN
 
 omit [Fintype C] in
-/-- The challenge is not knowledge sound below error one for its state function from a statement
-with no witness that passes the check and that every challenge carries into the output
-relation. -/
-theorem sampleChallenge_not_rbr {ε : (draw C).ChallengeIdx → ℝ≥0}
+/-- The challenge is not knowledge sound below error one, whatever the extractor and the state
+function, from a statement with no witness that passes the check and that every challenge
+carries into the output relation. -/
+theorem sampleChallenge_not_rbr {WitMid : Fin 2 → Type}
+    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (StmtIn × ∀ i, OStmt i) W W
+      (draw C) WitMid}
+    {kSF : (sampleVerifier OStmt C check f).toVerifier.KnowledgeStateFunction init impl relIn
+      relOut E}
+    {ε : (draw C).ChallengeIdx → ℝ≥0}
     (h : (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-      relIn relOut (fun _ ↦ W) (keepExtractor _ W (draw C))
-      (sampleStateFunction OStmt C check f init impl) ε)
+      relIn relOut WitMid E kSF ε)
     (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (hc : check s = true)
     (w : W) (hesc : ∀ c, ((f s c, o), w) ∈ relOut) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Verifier.not_rbr_of_escape h ⟨0, rfl⟩ (s, o) (default : (draw C).Transcript 0)
-    (fun w' hw' ↦ hin w' hw') fun c ↦ ⟨w, hc, hesc c⟩
+  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
+    (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw C).Transcript 0) fun c ↦
+      ⟨Transcript.concat c (default : (draw C).Transcript 0), rfl, w,
+        Verifier.GuardedForm.probEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
+          (s, o) _ (fun t ↦ (t, w) ∈ relOut) hc (hesc c)⟩
 
 end Component
 
