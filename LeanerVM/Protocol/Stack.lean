@@ -15,7 +15,7 @@ public import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 
 The generic stacking of `ToCompPoly/Stacking.lean`, specialised to the two fields of leanVM: the
 blocks are columns over `K`, the stack is the one committed column, and every evaluation is at a
-point of `E`, the column oracle's answer there (`evalOracle_answer`; specification §4.1).
+point of `E` (specification §4.1).
 
 * `Blocks.stackColumn` is the witness stack: block `b` at its window, zero past the last block.
 * `Blocks.readColumn` reads block `b` off *any* column of the stack's height, honest or not.

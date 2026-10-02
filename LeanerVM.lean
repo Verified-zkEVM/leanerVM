@@ -16,7 +16,6 @@ import LeanerVM.Parameters.CleanField
 import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
-import LeanerVM.Protocol.Basic
 import LeanerVM.Protocol.BlockClaims
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
@@ -31,6 +30,7 @@ import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
+import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles

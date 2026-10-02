@@ -38,6 +38,34 @@ if [[ -d LeanerVM/Applications ]]; then
     'Arithmetization|Protocol' 'Applications'
 fi
 
+# The wall of the proof system: a module of the protocol layer is written over an abstract
+# instance and imports nothing from the arithmetization, except the modules whose business the
+# arithmetization is: the fixed columns, the adaptor, the compiled verifier and the base
+# theorems.
+check_wall() {
+  local allowed='^LeanerVM/Protocol/(FixedColumns|LeanIsa|Transcript|Proof|Compile|Verify|Soundness)\.lean$'
+  local pattern="${import_prefix}LeanerVM\.Arithmetization(\.|$)"
+  local matches
+
+  if matches="$(rg --line-number --glob '*.lean' "$pattern" LeanerVM/Protocol)"; then
+    while IFS= read -r match; do
+      if [[ ! "${match%%:*}" =~ $allowed ]]; then
+        echo "Forbidden Protocol dependency on the arithmetization (the wall): $match" >&2
+        status=1
+      fi
+    done <<< "$matches"
+  else
+    local rg_status=$?
+    if [[ $rg_status -ne 1 ]]; then
+      exit "$rg_status"
+    fi
+  fi
+}
+
+if [[ -d LeanerVM/Protocol ]]; then
+  check_wall
+fi
+
 allowed_layers='^(Applications|Arithmetization|Parameters|Protocol|Semantics)$'
 while IFS= read -r entry; do
   name="${entry#LeanerVM/}"

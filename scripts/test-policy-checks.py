@@ -195,6 +195,19 @@ def test_layer_gate() -> None:
             "must belong to a registered layer",
         )
         loose.unlink()
+
+        # The wall: a protocol module importing the arithmetization is rejected unless it is one
+        # of the modules the allow-list names.
+        wall = root / "LeanerVM" / "Protocol" / "Spine" / "Phase.lean"
+        for declaration in import_forms:
+            write(wall, f"module\n\n{declaration.replace('Protocol', 'Arithmetization')}\n")
+            require_failure(run(root, "check-layers.sh"), f"wall: {declaration}", "the wall")
+        wall.unlink()
+        shutil.rmtree(wall.parent)
+        allowed = root / "LeanerVM" / "Protocol" / "FixedColumns.lean"
+        write(allowed, "module\n\npublic import LeanerVM.Arithmetization.Basic\n")
+        require_pass(run(root, "check-layers.sh"), "wall allow-list")
+        allowed.unlink()
         require_pass(run(root, "check-layers.sh"), "layer gate after cleanup")
 
 
