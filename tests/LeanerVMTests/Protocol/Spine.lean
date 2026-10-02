@@ -142,11 +142,15 @@ example : piopRounds toy = 15 := by decide
 -- The grand-product argument for trees of `2 ^ 4` leaves draws `(μ/2 + 1)² = 9` challenges:
 -- two radix-four layers of `3` and `5`, and the last combiner. For `2 ^ 5` leaves a binary
 -- layer of `2` comes first and deepens the others by one: `2 + 4 + 6 + 1 = 13`.
-example : Fintype.card (gkrSpec 3 4).ChallengeIdx = 9 := by decide
-example : Fintype.card (gkrSpec 3 5).ChallengeIdx = 13 := by decide +kernel
+example : Fintype.card (gkrSpec E 3 4).ChallengeIdx = 9 := by decide
+example : Fintype.card (gkrSpec E 3 5).ChallengeIdx = 13 := by decide +kernel
 -- The Flock phase for `2 ^ 3` compressions draws `2·3 + 25` challenges over `3·3 + 44` rounds.
 example : Fintype.card (flockSpecOf 3).ChallengeIdx = 31 := by decide +kernel
 example : flockRoundsOf 3 = 53 := by decide
+
+/-- The toy meets the hypotheses of the bound on the protocol's error. -/
+example : ∑ i, piopError toy i ≤ overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20) :=
+  piopError_le toy (by decide) (by decide) (by decide) (fun _ h ↦ by cases h) (by decide)
 
 /-- The bound of `piopError_le`, with `|E| = 2^192`, is below `2^{-159}`. -/
 example : overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20) < 1 / 2 ^ 159 := by

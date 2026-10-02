@@ -26,10 +26,10 @@ the Flock argument owns, with the predicate that argument establishes of it (for
 Flock's R1CS holds of the bits packed into `q_flock`, §4.2 and Annex C; the toy has none).
 Nothing here knows leanISA: leanISA is one instance, built by the adaptor.
 
-Three quantities are read off an instance by the protocol's schedule. The *sumcheck tables* are
-those with a constraint, a flush or a count column; the others are column groups the table
-sumcheck never visits. `τmax` is the largest log-height among them, `B` the number of their
-constraints, `μBus` the log-height of the bus's leaf stacks, and the claim counts
+Four kinds of quantity are read off an instance by the protocol's schedule. The *sumcheck
+tables* are those with a constraint, a flush or a count column; the others are column groups
+the table sumcheck never visits. `τmax` is the largest log-height among them, `B` the number of
+their constraints, `μBus` the log-height of the bus's leaf stacks, and the claim counts
 (`busClaims`, `tableClaims`, `pubClaims`, `poolSize`) are how many claims the phases pool.
 
 `M3Holds I input q` is the relation: constraints vanish, pushed and pulled tuples are one
@@ -264,7 +264,9 @@ def pushLeaves : ℕ :=
       ((I.flushes j).filter fun f ↦ decide (f.1 = .push)).length * 2 ^ I.τ j).sum
 
 /-- The log-height of the bus's leaf stacks: the push side's leaves, stacked largest first at
-aligned offsets with no floor on the depth; the three trees share it (`layout.rs:354-415`). -/
+aligned offsets with no floor on the depth (`leaf.rs:149-156`). The pull and count trees take
+the same depth, which the deployed verifier asserts of its layouts (`leaf.rs:123-146`,
+`:876-882`) and an instance does not guarantee: the bus phase assumes it of the instance. -/
 def μBus : ℕ := Nat.clog 2 I.pushLeaves
 
 /-- The committed columns the boundary blocks name, each once, in the order in which the sides,

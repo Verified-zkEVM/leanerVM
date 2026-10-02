@@ -15,11 +15,13 @@ public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 
 Two facts about what a verifier cannot have, for showing that a check is load-bearing.
 
-* `Verifier.not_rbr`: at a challenge round after which only the prover speaks, if from some
-  prefix a knowledge state function is false for every witness while the verifier can be
-  brought to accept after every challenge, then no round-by-round knowledge error below one is
-  possible at that round. `Verifier.not_rbr_zero` is the case of the first round, where the
-  prefix is empty and the state function is false because the statement has no witness.
+* `Verifier.not_rbr_of_escape`: at a challenge round, if from some prefix a knowledge state
+  function is false for every witness while after every challenge some witness makes it true,
+  then no round-by-round knowledge error below one is possible at that round: the escape event
+  is certain. `Verifier.not_rbr` is its form through acceptance, at a round after which only
+  the prover speaks: the verifier can be brought to accept after every challenge.
+  `Verifier.not_rbr_zero` is the case of the first round, where the prefix is empty and the
+  state function is false because the statement has no witness.
 * `Reduction.not_perfectCompleteness_of_reject`: if the prover, on a statement in the input
   relation, can reach a transcript on which a guarded verifier's check fails, or whose verdict
   leaves the output relation, the reduction is not perfectly complete. The reachable runs are
@@ -49,7 +51,7 @@ variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn StmtOut WitOut : Type
 
 /-- The prefix of length `j + 1` of a full transcript is its prefix of length `j` followed by
 its entry at `j`. -/
-theorem FullTranscript.take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
+private theorem FullTranscript.take_succ_eq_concat (full : pSpec.FullTranscript) (j : Fin n) :
     full.take j.succ.val j.succ.is_le =
       Transcript.concat (full j) (full.take j.val j.castSucc.is_le) :=
   Fin.take_succ_eq_snoc j.val j.isLt full
@@ -81,7 +83,7 @@ theorem Verifier.KnowledgeStateFunction.exists_toFun_take (s : StmtIn)
 
 /-- Where the statement has no witness, a knowledge state function is false at round zero for
 every witness, at any index of value zero. -/
-theorem Verifier.KnowledgeStateFunction.not_toFun_of_val_eq_zero (s : StmtIn)
+private theorem Verifier.KnowledgeStateFunction.not_toFun_of_val_eq_zero (s : StmtIn)
     (hin : ∀ w, (s, w) ∉ relIn) (m : Fin (n + 1)) (hm : m.val = 0) (tr : Transcript m pSpec)
     (w : WitMid m) : ¬ kSF.toFun m s tr w := by
   have h0 : m = 0 := Fin.ext (by simpa using hm)
@@ -102,9 +104,25 @@ variable {V : Verifier oSpec StmtIn StmtOut pSpec} [∀ i, SampleableType (pSpec
   {E : Extractor.RoundByRound oSpec StmtIn WitIn WitOut pSpec WitMid}
   {kSF : V.KnowledgeStateFunction init impl relIn relOut E} {ε : pSpec.ChallengeIdx → ℝ≥0}
 
-/-- No round-by-round knowledge error below one at a challenge round after which only the
-prover speaks, if from some prefix the state function is false for every witness while the
-verifier can be brought to accept after every challenge. -/
+/-- No round-by-round knowledge error below one at a challenge round from whose prefix the
+state function is false for every witness while, after every challenge, some witness makes it
+true: the escape event is certain. -/
+theorem Verifier.not_rbr_of_escape
+    (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
+    (i : pSpec.ChallengeIdx) (s : StmtIn) (tr : Transcript i.1.castSucc pSpec)
+    (hbad : ∀ w, ¬ kSF.toFun i.1.castSucc s tr w)
+    (hesc : ∀ c : pSpec.Challenge i, ∃ w, kSF.toFun i.1.succ s (tr.concat c) w) :
+    1 ≤ ε i := by
+  have hall : ∀ c : pSpec.Challenge i, ∃ witMid,
+      ¬ kSF.toFun i.1.castSucc s tr (E.extractMid i.1 s (tr.concat c) witMid) ∧
+        kSF.toFun i.1.succ s (tr.concat c) witMid :=
+    fun c ↦ (hesc c).elim fun w hw ↦ ⟨w, hbad _, hw⟩
+  refine ENNReal.one_le_coe_iff.mp (le_of_eq_of_le ?_ (h s i tr))
+  exact ((SampleableType.prEvent_uniformSample_eq_one_iff _).mpr hall).symm
+
+/-- `Verifier.not_rbr_of_escape` through acceptance: at a challenge round after which only the
+prover speaks, the state function is made true after every challenge when the verifier can be
+brought to accept after it. -/
 theorem Verifier.not_rbr
     (h : V.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut WitMid E kSF ε)
     (i : pSpec.ChallengeIdx) (hlater : ∀ j : Fin n, i.1 < j → pSpec.dir j = .P_to_V)
@@ -114,21 +132,15 @@ theorem Verifier.not_rbr
       full.take (i.1.val + 1) i.1.isLt = tr.concat c ∧
         ∃ witOut, 0 < Pr{let stmtOut ← OptionT.mk do
           (simulateQ impl (V.run s full)).run' (← init)}[(stmtOut, witOut) ∈ relOut]) :
-    1 ≤ ε i := by
-  -- The escape event holds after every challenge.
-  have hall : ∀ c : pSpec.Challenge i, ∃ witMid,
-      ¬ kSF.toFun i.1.castSucc s tr (E.extractMid i.1 s (tr.concat c) witMid) ∧
-        kSF.toFun i.1.succ s (tr.concat c) witMid := by
-    intro c
+    1 ≤ ε i :=
+  Verifier.not_rbr_of_escape h i s tr hbad fun c ↦ by
     obtain ⟨full, hprefix, witOut, hpos⟩ := hacc c
     obtain ⟨w', hw'⟩ := Verifier.KnowledgeStateFunction.exists_toFun_take kSF s full i.1.succ
       (fun j hj ↦ hlater j (Fin.lt_def.mpr (lt_of_lt_of_le (Nat.lt_succ_self _) hj)))
       (kSF.toFun_full s full witOut hpos)
     have hpre : full.take i.1.succ.val i.1.succ.is_le = tr.concat c := hprefix
     rw [hpre] at hw'
-    exact ⟨w', hbad _, hw'⟩
-  refine ENNReal.one_le_coe_iff.mp (le_of_eq_of_le ?_ (h s i tr))
-  exact ((SampleableType.prEvent_uniformSample_eq_one_iff _).mpr hall).symm
+    exact ⟨w', hw'⟩
 
 /-- The first-round case of `Verifier.not_rbr`: the prefix `tr` is the empty transcript, on
 which the state function is false because the statement has no witness. -/
@@ -176,7 +188,8 @@ theorem Verifier.GuardedForm.probEvent_pos_of_check {V : Verifier oSpec StmtIn S
 
 /-- The run of a reduction whose verifier is guarded: the prover's run, then the verdict when
 the check passes on the prover's transcript and a rejection otherwise. -/
-theorem Reduction.run_of_guarded (red : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec)
+private theorem Reduction.run_of_guarded
+    (red : Reduction oSpec StmtIn WitIn StmtOut WitOut pSpec)
     (G : red.verifier.GuardedForm) (stmt : StmtIn) (wit : WitIn) :
     (red.run stmt wit).run =
       (fun pr ↦ if G.check stmt pr.1 then some (pr, G.out stmt pr.1) else none) <$>
@@ -198,7 +211,7 @@ theorem Reduction.run_of_guarded (red : Reduction oSpec StmtIn WitIn StmtOut Wit
 /-- An implementation under which every answer to every query is reachable from every state
 does not shrink the support: every output of a computation is an output of its simulation from
 any state. The converse of `support_simulateQ_run'_subset`. -/
-theorem mem_support_simulateQ_run'_of_forall {ι σ α : Type} {spec : OracleSpec ι}
+private theorem mem_support_simulateQ_run'_of_forall {ι σ α : Type} {spec : OracleSpec ι}
     (impl : QueryImpl spec (StateT σ ProbComp))
     (hfull : ∀ (t : spec.Domain) (u : spec.Range t) (st : σ),
       ∃ st', (u, st') ∈ support ((impl t).run st))

@@ -72,14 +72,6 @@ def sampleK : ProbComp K := $ᵗ K
 /-- Compiles only if the `E` sampler is computable. -/
 def sampleE : ProbComp E := $ᵗ E
 
-/-! ## Scalar messages -/
-
--- The trivial oracle on scalars and scalar lists is found. ArkLib supplies neither at the pinned
--- revision; a pin bump that does will make these ambiguous, and the local instances in
--- `LeanerVM.Protocol.Field` should then be deleted.
-#synth OracleInterface E
-#synth OracleInterface (List E)
-
 /-! ## Cardinality -/
 
 example : Fintype.card E = 2 ^ 192 := card_E

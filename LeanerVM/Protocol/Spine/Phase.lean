@@ -18,9 +18,9 @@ public import LeanerVM.Protocol.Spine.Seams
 
 A phase is a `Component` (`LeanerVM.Protocol.ToArkLib.Component`) whose input and output
 oracle is the stack and whose witnesses are trivial: from the commit phase on, the oracle is the
-witness. `Phase.Def` is the phase's definition at a given schedule, `Phase.Guarded` its guarded
-form, `Phase.Complete` its completeness against two seams, `Phase.Security` its extractor and
-round-by-round knowledge soundness against two seams at a given error.
+witness. `Phase.Def` is the phase's definition at a given schedule, `Phase.Complete` its
+completeness against two seams, `Phase.Security` its extractor and round-by-round knowledge
+soundness against two seams at a given error.
 
 A `Phase.FrontDef` is a phase whose verifier reads the prover's messages and never the stack:
 its verifier is a `FrontVerifier`, so a query to the stack is a typing error, and it hands the
@@ -52,9 +52,6 @@ abbrev Def (StmtIn StmtOut : Type) {n : ℕ} (pSpec : ProtocolSpec n)
 
 variable {StmtIn StmtOut : Type} {n : ℕ} {pSpec : ProtocolSpec n}
   [∀ i, OracleInterface (pSpec.Message i)] [∀ i, SampleableType (pSpec.Challenge i)]
-
-/-- The guarded form of a phase. -/
-abbrev Guarded (D : Def I StmtIn StmtOut pSpec) : Type := Component.Guarded D
 
 /-- The completeness half of a phase, against its two seams. -/
 abbrev Complete (D : Def I StmtIn StmtOut pSpec)

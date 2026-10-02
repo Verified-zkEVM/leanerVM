@@ -47,6 +47,11 @@ This directory contains stable project and operating knowledge.
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated
     at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
+  - [protocol-spine-revision.md](reviews/protocol-spine-revision.md): the review of the spine
+    at the slots' schedules and errors (2026-10-02), whose findings the branch now meets (the
+    Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the
+    citations) or records for the roadmap (the depth of the pull and count trees, the schedule
+    bundle).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

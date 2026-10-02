@@ -39,6 +39,7 @@ import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
+import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable

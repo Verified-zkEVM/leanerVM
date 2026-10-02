@@ -15,17 +15,17 @@ public import CompPoly.Multilinear.Basic
 
 A table `t : CMlPolynomialEval R n` holds `2 ^ n` values, and `evalMle t r` is its multilinear
 extension at a point `r`. ArkLib's interface on such a table answers a position with the entry
-there. The interface here answers a *weight*: a table `W` over a ring `S` into which `R` maps,
-given with an evaluator of `W`'s own extension that the party asking can run (a weight given by
-its cube values alone would cost the asker `2 ^ n` to extend). The answer is the inner product
-`⟨W, t⟩ = Σ_x W(x)·φ(t(x))`.
+there. An interface built on `Weight.pair` answers a *weight*: a table `W` over a ring `S` into
+which `R` maps, given with an evaluator of `W`'s own extension that the party asking can run (a
+weight given by its cube values alone would cost the asker `2 ^ n` to extend). The answer is the
+inner product `⟨W, t⟩ = Σ_x W(x)·φ(t(x))`. A table is a vector, on which ArkLib registers the
+position-query interface, so a consumer wraps its tables in a type of its own and declares the
+instance there (`LeanerVM.Protocol.Field` does, on `Column`).
 
 An evaluation `t̃(p)` is the answer to the equality kernel at `p` (`Weight.pair_eqWeight`), so
 the interface subsumes the evaluation interface; a weight that is no equality kernel is what a
 sum against the table, such as a batch of claims, asks for.
 -/
-
-universe u
 
 namespace LeanerVM.Protocol
 
@@ -64,17 +64,6 @@ theorem Weight.pair_eqWeight {n : ℕ} (φ : R →+* S) (p : Vector S n)
   simp only [dotProduct, CMlPolynomialEval.map, Fin.getElem_fin, Vector.getElem_map,
     Vector.get_eq_getElem]
   exact Finset.sum_congr rfl fun i _ ↦ mul_comm _ _
-
-/-- The inner-product interface on tables over `R` with weights over `S`. It is a definition,
-not an instance: a table is a vector, on which ArkLib registers the position-query interface,
-so a consumer wraps its tables in a type of its own and declares the instance there. -/
-@[instance_reducible]
-def innerProductInterface {R S : Type u} [CommRing R] [CommRing S] (φ : R →+* S) (n : ℕ) :
-    OracleInterface (CMlPolynomialEval R n) where
-  Query := Weight S n
-  toOC :=
-    { spec := Weight S n →ₒ S
-      impl := fun W ↦ do return W.pair φ (← read) }
 
 end
 end LeanerVM.Protocol

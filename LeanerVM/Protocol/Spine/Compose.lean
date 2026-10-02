@@ -174,13 +174,13 @@ def piopExtractedStack (P : Phases I) (S : P.Security) (s : I.Stmt × ∀ i, NoO
   Extractor.RoundByRound.extractIn (piopExtractor P S) s tr ()
 
 /-- The first round of the protocol is the commit message. -/
-theorem zero_lt_piopRounds : 0 < piopRounds I := by
+private theorem zero_lt_piopRounds : 0 < piopRounds I := by
   simp only [piopRounds]
   omega
 
 /-- The extractor's first step reads the commit message: the commit phase's step does, and a
 composition keeps the first step of its first part. -/
-theorem piopExtractor_readsFirst (P : Phases I) (S : P.Security) :
+private theorem piopExtractor_readsFirst (P : Phases I) (S : P.Security) :
     Extractor.RoundByRound.ReadsFirst (piopExtractor P S) := by
   unfold piopExtractor Phases.Security.extraction
   simp only [Component.Extraction.append, commitSecurity, Component.sendOracleSecurity]
