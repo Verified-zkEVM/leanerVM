@@ -843,7 +843,7 @@ CompPoly candidates).
 def fingerprint (α : Fin 4 → E) (t : Vector K 16) : E := Σ i, eqTilde α (bits i) * ofK t[i]
 def sideProduct (α β) (P : Multiset (Vector K 16)) : E := (P.map fun t ↦ β - fingerprint α t).prod
 /-- Specification Lemma 5.2: the product polynomial determines the multiset. -/
-theorem sideProduct_poly_eq_iff (P Q) : (Π_P : MvPolynomial (Fin 5) K) = Π_Q ↔ P = Q
+theorem sideProduct_poly_eq_iff (P Q) : (Π_P : MvPolynomial (Option (Fin 4)) K) = Π_Q ↔ P = Q
 /-- Specification Theorem 5.1: unequal multisets of size ≤ 2^μ collide with probability ≤ 4·2^μ/|E|. -/
 theorem sideProduct_collision (hne : P ≠ Q) (hμ) : Pr[α β ← uniform; sideProduct α β P = sideProduct α β Q] ≤ 4·2^μ/|E|
 /-- The grand products of `nside` trees whose leaves are functions of the context. -/
@@ -854,6 +854,14 @@ def gkr (nside μ : ℕ) (leaves : S → (∀ i, OStmt i) → Fin nside → ETab
   -- relOut: the leaf claims hold at ζ, and every rider's extension vanishes at ζ_{<τ}
 def gkrError (nside μ) ; def gkrComplete ; def gkrSecurity
 ```
+
+Here `Π_P` is `grandProductPoly (n := 4) P`. Its factors use
+`fingerprintFactorPoly t : MvPolynomial (Option (Fin n)) R`, defined as
+`MvPolynomial.X none - MvPolynomial.rename some (fingerprintPoly t)`. The separate variable
+`X` is indexed by `none` and evaluates to `β`; `A_i` is indexed by `some i` and evaluates to
+`α i`, so the assignment is `fun i ↦ i.elim β α`. In `Fin (n + 1)` notation, these indices
+correspond to `0` and `i.succ`, respectively. This is a variable renaming; the bus challenge
+remains the pair `(α, β)`.
 
 `gkr` is radix 4 with a radix-2 first layer when `μ` is odd; each layer is a combiner `λ`, a
 normalized sumcheck on the layer identity (cofactor of degree 4, degree 2 in the radix-2 layer),
@@ -1284,7 +1292,7 @@ is a search with no proved bound, so `prove` takes fuel. Tests: the differential
 Each names a reading that compiles and is wrong, and the witness that rejects it. Where the
 witness is executable it is a test under `tests/`.
 
-1. **Fingerprint degree.** `π_α` is multilinear in `α : E^4`, so a leaf has total degree 4 in
+1. **Fingerprint degree.** `π_α` is multilinear in `α : E^4`, so a leaf has total degree at most 4 in
    `(α, β)` and Theorem 5.1's error is `4·2^μ/|E|`, not `2^μ/|E|`. `sideProduct_collision`
    carries the 4.
 2. **Padding leaves are 1.** A `0` pad zeroes every product, and a `0` pad in the count tree
