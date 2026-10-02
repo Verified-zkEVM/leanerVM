@@ -440,6 +440,23 @@ private theorem interpDone_mem (s : InterpStmt X F nside m ρ ρ) (o : ∀ i, O 
   rw [hch]
   exact evalMle_cast_append ρ _ s.2 s.1.2.1
 
+/-- The first `i` combination challenges are front. -/
+def interpPrefixFront : (i : ℕ) →
+    Component.Front (interpPrefix (F := F) (X := X) (O := O) nside ρ m i)
+  | 0 => Component.passThroughFront O (W := Unit) id
+  | i + 1 =>
+    (interpPrefixFront i).append
+      (Component.sampleFront O F (W := Unit) (fun _ ↦ true) (interpNext nside ρ m (i := i)))
+
+/-- The combination challenges are front. -/
+def interpolateFront : Component.Front (interpolate (F := F) (X := X) (O := O) nside ρ m) :=
+  match ρ with
+  | 0 => Component.passThroughFront O (W := Unit) (interpDone nside 0 m)
+  | ρ' + 1 =>
+    (interpPrefixFront (F := F) (X := X) (O := O) nside (ρ' + 1) m ρ').append
+      (Component.sampleFront O F (W := Unit) (fun _ ↦ true) fun s u ↦
+        interpDone nside (ρ' + 1) m (interpNext nside (ρ' + 1) m s u))
+
 /-- Completeness of the first `i` combination challenges: the values are unchanged. -/
 def interpPrefixComplete : (i : ℕ) →
     Component.Complete (interpPrefix nside ρ m i) (childRel nside μ leaves riders ρ m 0)
@@ -475,6 +492,14 @@ def layerStep : Component.Def S O Unit (LayerStmt X F nside (m + ρ)) O Unit
     (sendChildren nside μ leaves ρ m)).append
     (interpolate nside ρ m)
 
+/-- A step is front: its four parts read the statement and the transcript only. -/
+def layerStepFront : Component.Front (layerStep nside μ leaves ρ m inp) :=
+  (((Component.sampleFront O F _ _).append
+    (SumcheckRound.roundsFront (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
+      (Nat.zero_add m))).append
+    (Component.sendCheckedFront O _ _ _ _)).append
+    (interpolateFront (F := F) (X := X) (O := O) nside ρ m)
+
 /-- Completeness of a step whose level below exists, from its four parts'. -/
 def layerStepComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
@@ -499,6 +524,12 @@ def layerSteps : (k m : ℕ) → m + 2 * k = μ →
       (stepsSpec F nside k m)
   | 0, m, h => Component.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
   | k + 1, m, h => (layerStep nside μ leaves 2 m id).append (layerSteps k (m + 2) (by omega))
+
+/-- The radix-four steps are front, from each step's. -/
+def layerStepsFront : (k m : ℕ) → (h : m + 2 * k = μ) →
+    Component.Front (layerSteps nside μ leaves k m h)
+  | 0, _, _ => Component.passThroughFront O _
+  | k + 1, m, h => (layerStepFront nside μ leaves 2 m id).append (layerStepsFront k (m + 2) (by omega))
 
 /-- Completeness of the radix-four steps, from each step's. -/
 def layerStepsComplete : (k m : ℕ) → (h : m + 2 * k = μ) →
@@ -539,6 +570,12 @@ def odd : (r : ℕ) → r ≤ 1 →
     Component.Def (X × (Fin nside → F)) O Unit (LayerStmt X F nside r) O Unit (oddSpec F nside r)
   | 0, _ => Component.passThrough O (rootStmt nside)
   | 1, _ => layerStep nside μ leaves 1 0 (rootStmt nside)
+  | _ + 2, h => absurd h (by omega)
+
+/-- The first step is front. -/
+def oddFront : (r : ℕ) → (hr : r ≤ 1) → Component.Front (odd nside μ leaves r hr)
+  | 0, _ => Component.passThroughFront O _
+  | 1, _ => layerStepFront nside μ leaves 1 0 (rootStmt nside)
   | _ + 2, h => absurd h (by omega)
 
 /-- Completeness of the first step. -/
@@ -590,6 +627,14 @@ def gkr : Component.Def (X × (Fin nside → F)) O Unit (Gkr.LayerStmt X F nside
   ((Gkr.odd nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).append
     (Gkr.layerSteps nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))).append
     (Gkr.lastCombiner nside μ)
+
+/-- The grand-product argument is front: its verifier reads the roots, the messages and the
+challenges, never the oracles, and hands the oracles on. What a slot for front components
+takes, by `Component.Front.append`. -/
+def gkrFront : Component.Front (gkr nside μ leaves) :=
+  ((Gkr.oddFront nside μ leaves (μ % 2) _).append
+    (Gkr.layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))).append
+    (Component.sampleFront O F _ _)
 
 /-- **Perfect completeness** of the grand-product argument: from roots that are the products of
 their leaves, and rider tables that are zero, the honest prover leaves the verifier with each

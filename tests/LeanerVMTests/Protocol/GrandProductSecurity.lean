@@ -58,13 +58,13 @@ def nextClaim (p : MidStmt (LayerX Unit E 3 2) E 0 4) (c : E) :
     SumcheckRound.Stmt (LayerX Unit E 3 2) E 1 :=
   SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 4 p.2 c) c
 
-/-- The first round's statement with the running claim off by one. -/
-def offByOne : SumcheckRound.Stmt (LayerX Unit E 3 2) E 0 :=
-  (s0.1, (s0.2.1, Φ.claim lctx 0 s0.2.1 + 1))
+/-- The family's first claim at the second step's statement. -/
+def trueClaim : E := Φ.claim ((s0.1, noO), ()) 0 s0.2.1
 
 /-- A verifier that draws the first round's challenge without checking the polynomial has, for
-its state function, no knowledge error below one: the honest polynomial at the claim off by one
-is accepted at every challenge. -/
+its state function, no knowledge error below one: from the running claim off by one, the honest
+polynomial is accepted at every challenge. The statement is written as a tuple, not named: the
+claim's comparison with the family's is then one unfolding, not an evaluation. -/
 theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) {ε : (draw E).ChallengeIdx → ℝ≥0}
     (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ 0) (rel Φ 1)
@@ -75,25 +75,22 @@ theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
       (Component.sampleStateFunction NoOracle E (fun _ ↦ true) nextClaim init impl) ε) :
     1 ≤ ε ⟨0, rfl⟩ :=
   drawChallenge_unchecked_not_rbr 0 init impl Φ
-    (family_honest 3 4 sixteen noRiders 2 2).toConsistent (by decide) h offByOne noO ()
-    (by
-      show Φ.claim lctx 0 s0.2.1 + 1 ≠ Φ.claim lctx 0 s0.2.1
-      intro h
-      exact one_ne_zero (add_eq_left.mp h))
-    (fun _ r hr ↦ absurd hr (List.not_mem_nil))
+    (family_honest 3 4 sixteen noRiders 2 2).toConsistent (by decide) h
+    (s0.1, (s0.2.1, trueClaim + 1)) noO ()
+    (fun h ↦ one_ne_zero (add_eq_left.mp h))
+    (fun _ r hr ↦ absurd hr List.not_mem_nil)
 
 /-! ## The descendants' check is load-bearing -/
 
-/-- The final statement of the second step with the claim off by one. -/
-def finalOffByOne : SumcheckRound.Stmt (LayerX Unit E 3 2) E 2 :=
-  (s2.1, (s2.2.1, Φ.claim lctx 2 s2.2.1 + 1))
+/-- The family's final claim at the second step's final statement. -/
+def trueFinal : E := Φ.claim ((s2.1, noO), ()) 2 s2.2.1
 
 /-- The honest descendants at that statement's point. -/
 def honestChildren : Fin 3 → CMlPolynomialEval E 2 := children 3 4 sixteen 2 2 () noO s2.2.1
 
 /-- A verifier that reads the descendants without checking them has no knowledge state function
-from the sumcheck's final relation to the relation after the message: the honest descendants at
-the claim off by one are accepted. -/
+from the sumcheck's final relation to the relation after the message: from the final claim off
+by one, the honest descendants are accepted. -/
 theorem unchecked_children_no_stateFunction {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
     {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
@@ -103,13 +100,11 @@ theorem unchecked_children_no_stateFunction {σ : Type} (init : ProbComp σ)
       (childNext 3 2 2)).toVerifier.KnowledgeStateFunction init impl (rel Φ 2)
       (childRel 3 4 sixteen noRiders 2 2 0) Ex) : False :=
   Component.sendChecked_no_stateFunction NoOracle (Fin 3 → Vector E 4) _ _ init impl K
-    finalOffByOne noO
+    (s2.1, (s2.2.1, trueFinal + 1)) noO
     (fun w hmem ↦ by
       cases w
-      obtain ⟨-, hclaim⟩ := hmem
-      change Φ.claim lctx 2 s2.2.1 + 1 = Φ.claim lctx 2 s2.2.1 at hclaim
-      exact one_ne_zero (add_eq_left.mp hclaim))
-    honestChildren rfl () ⟨fun r hr ↦ absurd hr (List.not_mem_nil), rfl⟩
+      exact one_ne_zero (add_eq_left.mp hmem.2))
+    honestChildren rfl () ⟨fun r hr ↦ absurd hr List.not_mem_nil, rfl⟩
 
 /-! ## Partial points -/
 

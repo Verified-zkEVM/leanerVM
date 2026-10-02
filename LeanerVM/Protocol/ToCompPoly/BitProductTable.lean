@@ -21,8 +21,8 @@ source.
 
 Two tables of this shape:
 
-* the Lagrange basis `lagrangeBasis w` (`lagrangeBasis_eq_bitProductTable`), whose extension is
-  the equality kernel (`evalMle_lagrangeBasis`);
+* the Lagrange basis `lagrangeBasis w` (`lagrangeBasis_eq_bitProductTable`), whose extension
+  CompPoly writes as the equality kernel (`eqTilde_eq_prod`);
 * the geometric table `powersTable a n`, entry `i` being `a ^ i`
   (`powersTable_eq_bitProductTable`, from the binary expansion `pow_eq_prod_testBit`), whose
   extension is `∏ k, ((1 - x_k) + x_k * a ^ 2 ^ k)` (`evalMle_powersTable`).
@@ -151,12 +151,6 @@ theorem eval₂Mle_powersTable (φ : R →+* S) (a : R) (n : ℕ) (x : Vector S 
       ∏ k : Fin n, ((1 - x[k]) + x[k] * φ (a ^ 2 ^ k.val)) := by
   rw [eval₂Mle, map_powersTable, evalMle_powersTable]
   simp only [map_pow]
-
-/-- The extension of the Lagrange basis at `w`, evaluated at `x`, is the equality kernel. -/
-theorem evalMle_lagrangeBasis {n : ℕ} (w x : Vector R n) :
-    evalMle (lagrangeBasis w) x = ∏ k : Fin n, ((1 - x[k]) * (1 - w[k]) + x[k] * w[k]) := by
-  rw [lagrangeBasis_eq_bitProductTable, evalMle_bitProductTable]
-  simp
 
 end
 end LeanerVM.Protocol

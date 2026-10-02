@@ -102,6 +102,24 @@ structure Guarded (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec) w
   /-- The check and the verdict. -/
   guarded : D.red.toReduction.verifier.GuardedForm
 
+/-- A front component: its verifier is a check and a verdict that read the statement and the
+transcript alone and hand the oracles on, so it never reads the oracles. The witness of
+oracle-freeness a compiled verifier needs of every component before an opening. -/
+structure Front {OStmt : ιi → Type} [∀ i, OracleInterface (OStmt i)]
+    (D : Def StmtIn OStmt WitIn StmtOut OStmt WitOut pSpec) where
+  /-- The check, on the statement and the transcript. -/
+  check : StmtIn → pSpec.FullTranscript → Bool
+  /-- The verdict, on the statement and the transcript. -/
+  out : StmtIn → pSpec.FullTranscript → StmtOut
+  /-- The verifier is guarded with exactly these, the oracles handed on. -/
+  verify_eq : D.red.verifier.toVerifier.IsGuardedWith (fun p tr ↦ check p.1 tr)
+    (fun p tr ↦ (out p.1 tr, p.2))
+
+/-- A front component is guarded. -/
+def Front.toGuarded {OStmt : ιi → Type} [∀ i, OracleInterface (OStmt i)]
+    {D : Def StmtIn OStmt WitIn StmtOut OStmt WitOut pSpec} (F : Front D) : Guarded D :=
+  ⟨⟨_, _, F.verify_eq⟩⟩
+
 /-- The completeness half of a component: on every pair of the input relation, the honest run
 lands in the output relation with probability one, from any state of the shared oracle. -/
 structure Complete (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec)
@@ -214,6 +232,20 @@ def guardedAppend (G₁ : D₁.red.toReduction.verifier.GuardedForm)
 /-- Guarded forms compose. -/
 def Guarded.append (G₁ : Guarded D₁) (G₂ : Guarded D₂) : Guarded (D₁.append D₂) where
   guarded := guardedAppend G₁.guarded G₂.guarded
+
+/-- Two front components over the same oracles in sequence are front: the first check, then the
+second on the first verdict. -/
+def Front.append {OStmt : ι₁ → Type} [∀ i, OracleInterface (OStmt i)]
+    {E₁ : Def Stmt₁ OStmt Wit₁ Stmt₂ OStmt Wit₂ pSpec₁}
+    {E₂ : Def Stmt₂ OStmt Wit₂ Stmt₃ OStmt Wit₃ pSpec₂} (F₁ : Front E₁) (F₂ : Front E₂) :
+    Front (E₁.append E₂) where
+  check := fun s tr ↦ F₁.check s tr.fst && F₂.check (F₁.out s tr.fst) tr.snd
+  out := fun s tr ↦ F₂.out (F₁.out s tr.fst) tr.snd
+  verify_eq := fun p tr ↦ by
+    have h := (F₁.toGuarded.guarded.append F₂.toGuarded.guarded).verify_eq p tr
+    change (E₁.red.verifier.append E₂.red.verifier).toVerifier.verify p tr = _
+    rw [OracleVerifier.append_toVerifier]
+    exact h
 
 /-- Completeness composes (ArkLib's `append_perfectCompleteness_of_guarded_verifiers`); the
 first prover's output is pure since the shared oracle is empty. -/

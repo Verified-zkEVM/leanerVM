@@ -109,6 +109,12 @@ def sendCheckedGuarded : (sendCheckedVerifier OStmt M check out).toVerifier.Guar
   out := fun p tr ↦ (out p.1 (tr 0), p.2)
   verify_eq := fun ⟨s, o⟩ tr ↦ sendCheckedVerifier_verify OStmt M check out s o tr
 
+/-- The send-checked component is front: the check and the verdict read the message off the
+transcript. -/
+def sendCheckedFront : Front (sendChecked OStmt M honest check out) :=
+  ⟨fun s tr ↦ check s (tr 0), fun s tr ↦ out s (tr 0),
+    fun ⟨s, o⟩ tr ↦ sendCheckedVerifier_verify OStmt M check out s o tr⟩
+
 omit [∀ i, OracleInterface (OStmt i)] in
 /-- The run of the prover: its message is the honest one, its output `out` of it. -/
 private theorem sendCheckedProver_run (s : StmtIn) (o : ∀ i, OStmt i) (w : W) :

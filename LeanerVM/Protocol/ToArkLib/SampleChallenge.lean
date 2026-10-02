@@ -85,6 +85,12 @@ def sampleGuarded : (sampleVerifier OStmt C check f).toVerifier.GuardedForm wher
   out := fun p tr ↦ (f p.1 (tr 0), p.2)
   verify_eq := fun ⟨s, o⟩ tr ↦ sampleVerifier_verify OStmt C check f s o tr
 
+/-- The sample-challenge component is front: the check reads the statement, the verdict the
+challenge off the transcript. -/
+def sampleFront : Front (sampleChallenge (W := W) OStmt C check f) :=
+  ⟨fun s _ ↦ check s, fun s tr ↦ f s (tr 0),
+    fun ⟨s, o⟩ tr ↦ sampleVerifier_verify OStmt C check f s o tr⟩
+
 omit [∀ i, OracleInterface (OStmt i)] [SampleableType C] in
 /-- In every run of the prover, the output is the mapped statement at the transcript's
 challenge, with the oracles and the witness. -/

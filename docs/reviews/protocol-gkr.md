@@ -11,7 +11,7 @@
 
 | Finding | Disposition |
 | --- | --- |
-| 1. the slot's type is a `FrontDef`, `gkr` is a `Component.Def` | recorded in the status's GKR item with the two ways out and the one proposed (`Phases.bus` as a `Phase.Def` with an oracle-freeness witness); the Lean change is the bus phase's, with decision 31. A test now composes the bus phase's shape around `gkr 3 toy.μBus` as a `Phase.Def` at `busSpec toy`. |
+| 1. the slot's type is a `FrontDef`, `gkr` is a `Component.Def` | met, by the first way out: `Component.Front` is the oracle-freeness witness (a check and a verdict on the statement and the transcript, the oracles handed on), `Component.Front.append` composes it, the three bricks and the pass-through have it, `Phase.FrontDef` is now a component with that witness (`FrontDef.ofFrontVerifier` builds one from a `FrontVerifier`), and `gkrFront` is the argument's. A test builds the bus phase's shape around `gkr 3 toy.μBus` as a `Phase.FrontDef` at `busSpec toy`. Decision 31's line for the blueprint: the witness, not the typing. |
 | 2. the status promises the parts "become" Layer 4's without the conditions | the two conditions (the family form; `batch` as `sampleChallenge` at the batching map) and the three blueprint asks are in the status's GKR item. |
 | 3. roadmap vocabulary in two generic modules | reworded. |
 | 4. implementation-only imports marked `public` | plain `import` of `ToPoly.RingHom`; `ToPoly.Degree` was not needed and is gone. |

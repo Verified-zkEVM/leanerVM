@@ -72,7 +72,7 @@ only non-trivial content, big-endian).
 | Declaration | Source | Statement | Verdict | Target | Effort |
 | --- | --- | --- | --- | --- | --- |
 | `eqTilde_sum_cube` | `Polynomial/Multilinear.lean:213` | `Σ_c eq(x, c) = 1` over the cube, any `x` | port (done) | `sumCube_lagrangeBasis` | S |
-| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
+| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
 | `AlignedLayout`, `offset`, `pow_height_dvd_offset`, window lemmas | `ProofSystem/Stacking.lean:48, 71, 388, 397, 409` | blocks largest first at prefix-sum offsets; alignment from the antitone order | port (done; EX `Blocks`, `Stacking.lean:41-149`) | `Blocks`, `offset`, `pow_size_dvd_offset` | S |
 | `eval_MLE_stack_block` | `ProofSystem/Stacking.lean:603` | `P̃_b(z) = S̃(sel_b, z)`, the selection identity | port (done; EX `eval_stackPoly_sel`, `Stacking/MLE.lean:210`) | `stack_eval` | M |
 | `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port (done, for any pad value); with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` | `stack_eval_ambient` | M |
@@ -419,13 +419,17 @@ modules are under `LeanerVM/Protocol/ToCompPoly/`; what specialises them to lean
 | --- | --- | --- | --- |
 | `sumCube_lagrangeBasis` | `ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
 | `placeSlice`, `sumCube_placeSlice`, `evalMle_placeSlice` | `ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886`, for any slice | #18, #40 |
-| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
+| `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
 | `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
 | `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
 | `map_stackAt`, `stack_eval₂` | `ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
 | `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
-| `unstack_eval₂_eq_sumCube`; `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `ToCompPoly/Stacking.lean`; `BlockClaims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `unstack_eval₂_eq_sumCube` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:705-777` | #38 |
 | `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
+
+The block claims of `LeanVM/Protocol.lean:8550-8602` (`BlockClaim`, `pairing_eq`,
+`isValid_iff_pairing`, `isValid_iff_of_window_eq`, ported in #38 as `BlockClaims.lean`) and
+`sumCube_prodVars` were removed with no consumer.
 
 Two changes to the ported shapes were made when the generic half was made generic: `Blocks` is
 the sizes alone and the tables are an argument (`B.Tables R`), so `Blocks.map` of #26 is gone
