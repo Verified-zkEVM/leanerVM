@@ -20,15 +20,15 @@ One table of width 3 and height 2 on a stack of height 8: column `i` at cells `2
 6 and 7 padding. Column 2 must be Boolean, and it is the public line: its cell 0 is the public
 statement, its cell 1 is `0`, and its value on the line is sent. The table pushes `(X₀, 0, …)`
 on every row and one boundary block pulls the known column `[1, 1]`, so the bus balances exactly
-when column 0 is `[1, 1]` in some order; column 1 is a count column; the auxiliary predicate is
-`True`; the degree bound is 2.
+when column 0 is `[1, 1]` in some order; column 1 is a count column; there is no Flock region;
+the degree bound is 2.
 `M3Holds` on it is decided by evaluation, and each of its clauses can be made to fail alone
 (`tests/LeanerVMTests/Protocol/Spine.lean`).
 -/
 
 namespace LeanerVM.Protocol.Toy
 
-open LeanerVM.Parameters LeanerVM.Protocol CompPoly CPoly
+open LeanerVM.Parameters LeanerVM.Protocol CompPoly CPoly CMlPolynomialEval
 
 @[expose] public section
 
@@ -47,18 +47,25 @@ def slice (q : Column 3) (c : Col) : Column 1 :=
 def extend (c : Col) (z : Vector E 1) : Vector E 3 :=
   #v[z.head, if c.2.val % 2 = 1 then 1 else 0, if c.2.val / 2 = 1 then 1 else 0]
 
+/-- Reading through the lift is taking the slice. -/
+private theorem readWith_extend (q : Column 3) (c : Col) :
+    Layout.readWith extend q c = slice q c := by
+  fin_cases c <;>
+    (apply congrArg Column.mk; apply Vector.ext; intro i hi; interval_cases i <;>
+      simp [extend, boolIndex, boolVec, Vector.head])
+
 /-- The layout law for the three slices: the slice's extension at `z` is the stack's at
 `(z, i mod 2, i div 2)`. -/
 theorem read_eval (q : Column 3) (c : Col) (z : Vector E 1) :
-    CMlPolynomialEval.eval₂Mle (slice q c).values (algebraMap K E) z =
-      CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) (extend c z) := by
+    eval₂Mle (Layout.readWith extend q c).values (algebraMap K E) z =
+      eval₂Mle q.values (algebraMap K E) (extend c z) := by
+  rw [readWith_extend]
   fin_cases c <;> simp [CMlPolynomialEval.eval₂Mle, CMlPolynomialEval.evalMle,
     CMlPolynomialEval.evalMleValues, CMlPolynomialEval.evalMleStep, CMlPolynomialEval.map,
     Vector.head, Vector.tail, extend, slice]
 
 /-- The layout of the toy. -/
 def layout : Layout 3 Col (fun _ ↦ 1) where
-  read := slice
   extend := extend
   read_eval := read_eval
 
@@ -106,9 +113,9 @@ abbrev toy : M3Instance where
   boundary := [boundary]
   μ := 3
   layout := layout
-  publicLines := fun v ↦ [⟨⟨0, 2⟩, v, 0, true, by decide⟩]
-  aux := fun _ ↦ True
-  decAux := fun _ ↦ inferInstance
+  nLines := 1
+  publicLines := fun v ↦ #v[⟨⟨0, 2⟩, v, 0, true, by decide⟩]
+  flock := none
 
 /-- The honest stack: columns `[1, 1]`, `[1, 1]`, `[1, 0]`, then padding. -/
 def honest : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩

@@ -20,8 +20,9 @@ point of `E` (specification §4.1).
 * `Blocks.stackColumn` is the witness stack: block `b` at its window, zero past the last block.
 * `Blocks.readColumn` reads block `b` off *any* column of the stack's height, honest or not.
   `Blocks.readColumn_eval` is the stacking identity `q̃(z, sel_b) = P̃_b(z)`, for every `q`.
-* `Blocks.layout` packages the reader, the lift of a point and that identity as a `Layout`, the
-  reading law an `M3Instance` carries. A layout is sizes only, so it names no table.
+* `Blocks.layout` packages the lift of a point and that identity as a `Layout`, the reading law
+  an `M3Instance` carries; the reader is derived from the lift. A layout is sizes only, so it
+  names no table.
   `Layout.comap` renames its columns, which is how a layout indexed by blocks becomes one
   indexed by the columns of an instance.
 * `Blocks.stackColumn_eval_ambient` is the decomposition of the zero-padded stack at an
@@ -48,12 +49,25 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval
 
 /-! ## Renaming the columns of a layout -/
 
+/-- Reading through a renamed lift is reading the renamed column, cast to its height. -/
+theorem Layout.readWith_comap {μ : ℕ} {ι ι' : Type} {κ : ι → ℕ} {κ' : ι' → ℕ}
+    (extend : (c : ι) → Vector E (κ c) → Vector E μ) (f : ι' → ι) (h : ∀ c, κ (f c) = κ' c)
+    (q : Column μ) (c : ι') :
+    Layout.readWith (fun c z ↦ extend (f c) (Vector.cast (h c).symm z)) q c =
+      ⟨Vector.cast (congrArg (2 ^ ·) (h c)) (Layout.readWith extend q (f c)).values⟩ := by
+  unfold Layout.readWith
+  congr 1
+  apply Vector.ext
+  intro x hx
+  simp only [Vector.getElem_cast, Vector.getElem_ofFn, boolVec_cast]
+  rfl
+
 /-- A layout read through a renaming of its columns that keeps their heights. -/
 def Layout.comap {μ : ℕ} {ι ι' : Type} {κ : ι → ℕ} {κ' : ι' → ℕ} (L : Layout μ ι κ)
     (f : ι' → ι) (h : ∀ c, κ (f c) = κ' c) : Layout μ ι' κ' where
-  read := fun q c ↦ ⟨Vector.cast (congrArg (2 ^ ·) (h c)) (L.read q (f c)).values⟩
   extend := fun c z ↦ L.extend (f c) (Vector.cast (h c).symm z)
   read_eval := fun q c z ↦ by
+    rw [Layout.readWith_comap L.extend f h]
     have hz : z = Vector.cast (h c) (Vector.cast (h c).symm z) := by simp
     conv_lhs => rw [hz]
     rw [eval₂Mle_cast, L.read_eval]
@@ -93,11 +107,24 @@ theorem stackColumn_eval (t : B.Tables K) (hμ : B.total ≤ 2 ^ μ) (b : Fin B.
       eval₂Mle (t b) (algebraMap K E) z :=
   B.stack_eval₂ (algebraMap K E) t hμ 0 b z
 
+/-- Reading through the lift of the aligned blocks is reading the block: the cube point
+`(x, sel_b)` is the cell `x + offset_b`. -/
+theorem readWith_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n) :
+    Layout.readWith (B.extendPoint hμ) q b = B.readColumn hμ q b := by
+  unfold Layout.readWith readColumn
+  congr 1
+  apply Vector.ext
+  intro x hx
+  rw [B.unstack_getElem hμ q.values b hx]
+  simp only [Vector.getElem_ofFn, extendPoint, boolVec_append, boolIndex_cast, boolIndex_boolVec,
+    Vector.get_eq_getElem, Fin.val_cast, cubeIndex_val, selector_val]
+  congr 1
+  exact congrArg (x + ·) (Nat.mul_div_cancel' (B.pow_size_dvd_offset b))
+
 /-- The aligned blocks as a reading law on the committed column. -/
 def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
-  read := B.readColumn hμ
   extend := B.extendPoint hμ
-  read_eval := B.readColumn_eval hμ
+  read_eval := fun q b z ↦ by rw [readWith_extendPoint]; exact B.readColumn_eval hμ q b z
 
 /-- The honest stack at an arbitrary point `ζ`: every block at the low coordinates of `ζ`,
 weighted by the equality kernel of its selector at the high coordinates. -/

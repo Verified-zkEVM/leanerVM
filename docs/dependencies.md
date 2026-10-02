@@ -159,6 +159,10 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 - `OracleInterface (Vector α m)` (position queries) is a global instance, so a column type with
   another interface is a structure, not an abbreviation of `Vector`; no default interface is
   registered for scalars or lists (`OracleInterface.instDefault` is for no type).
+- The instances for the messages and challenges of two schedules side by side
+  (`instOracleInterfaceMessageAppend`, `instSampleableTypeChallengeAppend`) are not found by
+  instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
+  does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
 - `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
   and fail one link; a second build proceeds.
 
@@ -172,4 +176,4 @@ conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; insi
 
 **VCVio.** Merkle trees with proved completeness and single-opening random-oracle
 extractability (`CryptoFoundations/MerkleTree/`); `SampleableType.prEvent_uniformSample_le_div_iff`
-is the counting bound `ToVCVio/UniformSample.lean` states locally.
+is the counting bound behind `ToVCVio/UniformSample.lean`'s subsingleton form.

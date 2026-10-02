@@ -21,11 +21,13 @@ Every guard changes one thing.
   and the pool without the third claim accepts it.
 * **The two checks differ.** At one challenge the equation on the two public words holds of a
   wrong stack's true evaluations, and the check per limb rejects them.
-* **The phase** has two rounds, a challenge then a message, and error `1/|E|`; with four
-  pass-through phases it inhabits `Phases.Complete` against the spine's seams.
+* **The phase** fills its slot: two rounds, a challenge then a message, its verifier never
+  reads the stack, and its two halves typecheck against the spine's seams at the slot's error.
 
-A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with
-numerals are named as definitions before a guard uses them.
+The toy's table seam carries three received claims, one per column of its table; the fixtures
+give them true values at a cube point. A plain file, so `#guard` evaluates the compiled
+definitions. Values of `E` written with numerals are named as definitions before a guard uses
+them.
 -/
 
 namespace LeanerVMTests.Protocol.PublicInput
@@ -43,8 +45,16 @@ instance {I : M3Instance} (q : Column I.μ) (c : ColumnClaim I) : Decidable (c.H
 /-- What a prover that answers truthfully sends: the extensions of its own columns at
 `(r, 0, …, 0)`, for the lines whose value is sent. -/
 def trueValues (I : M3Instance) (q : Column I.μ) (input : I.Stmt) (r : E) : List E :=
-  ((I.publicLines input).filter (·.sent)).map fun l ↦
+  ((I.publicLines input).toList.filter (·.sent)).map fun l ↦
     CMlPolynomialEval.eval₂Mle (I.column q l.col).values (algebraMap K E) (linePoint l.pos r)
+
+/-- Three received claims on the three columns of an instance's first table, at the cube point
+`x`, with the given values: what the table seam carries into the phase. -/
+def received (I : M3Instance) (h : I.tableClaims = 3) (h0 : 0 < I.ntab)
+    (hw : 3 ≤ I.width ⟨0, h0⟩) (hτ : I.τ ⟨0, h0⟩ = 1) (x : Fin 2) (v : Fin 3 → K) :
+    Vector (ColumnClaim I) I.tableClaims :=
+  Vector.cast h.symm (Vector.ofFn fun i ↦
+    ⟨⟨⟨0, h0⟩, ⟨i.val, by omega⟩⟩, Vector.cast hτ.symm (boolVec x), ofK (v i)⟩)
 
 /-! ## The point -/
 
@@ -58,23 +68,27 @@ def onLine : List E := [y, 0]
 def offLine : Vector E 2 := #v[y, ofK 1]
 
 #guard (linePoint (n := 2) (by decide) y).toList = onLine
--- The extension at `(y, 0)` is the line through cells 0 and 1.
+-- On the line: `(1 - y)·1 + y·2`, the line through cells 0 and 1.
 #guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) (linePoint (n := 2) (by decide) y) =
   (1 - y) * ofK 1 + y * ofK (K.ofBits 2)
--- With the second coordinate `1` it is the line through cells 2 and 3 instead.
-#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine = (1 - y) * ofK (K.ofBits 3) + y * ofK (K.ofBits 4)
-#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine ≠ (1 - y) * ofK 1 + y * ofK (K.ofBits 2)
+-- Off the line the second coordinate selects cells 2 and 3.
+#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine =
+  (1 - y) * ofK (K.ofBits 3) + y * ofK (K.ofBits 4)
+#guard CMlPolynomialEval.eval₂Mle table (algebraMap K E) offLine ≠
+  (1 - y) * ofK 1 + y * ofK (K.ofBits 2)
 
 /-! ## The check -/
 
 /-- A second sampled challenge, `y² + 1`. -/
 def r₂ : E := y * y + 1
 
-/-- The toy's statement `1` with an empty pool. -/
-def stmt1 : K × TableOut toy := (1, ⟨[]⟩)
+/-- The toy's statement `1` with the three columns' cells 0 received. -/
+def stmt1 : K × TableOut toy :=
+  (1, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
 
-/-- The toy's statement `0` with an empty pool. -/
-def stmt0 : K × TableOut toy := (0, ⟨[]⟩)
+/-- The toy's statement `0` with the same received claims. -/
+def stmt0 : K × TableOut toy :=
+  (0, ⟨received toy (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
 
 /-- The value of the toy's line at statement `1` and challenge `y`: `(1 + y)·1 + y·0`. -/
 def good : List E := [1 + y]
@@ -85,15 +99,15 @@ def wrong : List E := [y]
 /-- One value too many. -/
 def extra : List E := [1 + y, 0]
 
--- The verifier expects one value, the line's.
+-- The expected value of the one line, and the check on it.
 #guard expectedValues toy (1: K) y = good
--- The check accepts it, and rejects a wrong value, a missing value and an extra value.
+-- The check accepts the value and rejects a wrong, a missing and an extra value.
 #guard check toy stmt1 y good
 #guard ¬ check toy stmt1 y wrong
 #guard ¬ check toy stmt1 y []
 #guard ¬ check toy stmt1 y extra
 
--- On the honest stack the true evaluation is the line's value, at every sampled challenge.
+-- On the honest stack, a prover that answers truthfully sends the expected values.
 #guard trueValues toy honest (1: K) y = expectedValues toy (1: K) y
 #guard trueValues toy honest (1: K) r₂ = expectedValues toy (1: K) r₂
 #guard trueValues toy honest (1: K) 0 = expectedValues toy (1: K) 0
@@ -113,9 +127,9 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 -- stack one fails at a sampled challenge, and all hold at the bad challenge. So the bound
 -- `1/|E|` is attained, and a prover that sends the expected value passes the check with a
 -- claim that is false of its stack.
-#guard ∀ c ∈ (pooled toy stmt1 y).2.columns, c.Holds honest
-#guard ¬ ∀ c ∈ (pooled toy stmt1 y).2.columns, c.Holds badLine
-#guard ∀ c ∈ (pooled toy stmt1 0).2.columns, c.Holds badLine
+#guard ∀ c ∈ (pooled toy stmt1 y).2.columns.toList, c.Holds honest
+#guard ¬ ∀ c ∈ (pooled toy stmt1 y).2.columns.toList, c.Holds badLine
+#guard ∀ c ∈ (pooled toy stmt1 0).2.columns.toList, c.Holds badLine
 
 -- A wrong statement (cell 0 is `0`, the honest stack's is `1`): rejected at a sampled
 -- challenge, accepted at the one bad challenge `r = 1`, where `(1 + r)·cell0` vanishes.
@@ -124,39 +138,41 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 
 /-! ## The pool -/
 
-/-- A pool with one received claim. -/
-def stmtWithClaim : K × TableOut toy := (1, ⟨[⟨⟨0, 0⟩, #v[y], 1⟩]⟩)
-
 -- The verifier keeps the statement and pools the received claims first, then the line.
 #guard (pooled toy stmt1 y).1 = 1
-#guard ((pooled toy stmtWithClaim y).2.columns.map fun c ↦ c.col) = [⟨0, 0⟩, ⟨0, 2⟩]
-#guard ((pooled toy stmt1 y).2.columns.map fun c ↦ c.value) = good
+#guard ((pooled toy stmt1 y).2.columns.toList.map fun c ↦ c.col) =
+  [⟨0, 0⟩, ⟨0, 1⟩, ⟨0, 2⟩, ⟨0, 2⟩]
+#guard ((pooled toy stmt1 y).2.columns.toList.map fun c ↦ c.value) = [1, 1, 1] ++ good
 
 /-! ## Which values are sent -/
 
 /-- The toy with its line's value not sent. -/
 abbrev noneSent : M3Instance :=
-  { toy with publicLines := fun v ↦ [⟨⟨0, 2⟩, v, 0, false, by decide⟩] }
+  { toy with publicLines := fun v ↦ #v[⟨⟨0, 2⟩, v, 0, false, by decide⟩] }
 
-/-- Its statement `1` with an empty pool. -/
-def stmtNone : K × TableOut noneSent := (1, ⟨[]⟩)
+/-- Its statement `1` with the received claims. -/
+def stmtNone : K × TableOut noneSent :=
+  (1, ⟨received noneSent (by decide) (by decide) (by decide) (by decide) 0 ![1, 1, 1]⟩)
 
 -- The message is empty, a value is rejected, and the line is pooled all the same.
 #guard expectedValues noneSent (1: K) y = []
 #guard check noneSent stmtNone y []
 #guard ¬ check noneSent stmtNone y good
-#guard ((pooled noneSent stmtNone y).2.columns.map fun c ↦ c.value) = good
-#guard ¬ ∀ c ∈ (pooled noneSent stmtNone y).2.columns, c.Holds badLine
+#guard ((pooled noneSent stmtNone y).2.columns.toList.map fun c ↦ c.value) = [1, 1, 1] ++ good
+#guard ¬ ∀ c ∈ (pooled noneSent stmtNone y).2.columns.toList, c.Holds badLine
 
 /-- Three lines shaped like the memory limbs: two with their value sent, and a third with cells
 `(0, 0)` and no value sent. -/
 abbrev threeLimbs : M3Instance :=
-  { toy with publicLines := fun v ↦
-      [⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
+  { toy with
+    nLines := 3
+    publicLines := fun v ↦
+      #v[⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
         ⟨⟨0, 2⟩, 0, 0, false, by decide⟩] }
 
-/-- Its statement `1` with an empty pool. -/
-def stmtLimbs : K × TableOut threeLimbs := (1, ⟨[]⟩)
+/-- Its statement `1` with the three columns' cells 1 received. -/
+def stmtLimbs : K × TableOut threeLimbs :=
+  (1, ⟨received threeLimbs (by decide) (by decide) (by decide) (by decide) 1 ![1, 1, 0]⟩)
 
 /-- A stack whose three columns hold their lines: `[1, 1]`, `[1, 1]`, `[0, 0]`. -/
 def goodLimbs : Column 3 := ⟨#v[1, 1, 1, 1, 0, 0, 0, 0]⟩
@@ -167,27 +183,32 @@ def badTopLimb : Column 3 := ⟨#v[1, 1, 1, 1, 1, 0, 0, 0]⟩
 /-- The three lines' values at any challenge: `(1 + r) + r`, twice, and `0`. -/
 def limbValues : List E := [1, 1, 0]
 
--- Two values are sent and three claims are pooled, the third with value `0`.
+-- Two values are sent and three claims are pooled after the received ones, the third with
+-- value `0`.
 #guard (expectedValues threeLimbs (1: K) y).length = 2
-#guard ((pooled threeLimbs stmtLimbs y).2.columns.map fun c ↦ c.value) = limbValues
-#guard ((pooled threeLimbs stmtLimbs y).2.columns.map fun c ↦ c.col) =
+#guard ((pooled threeLimbs stmtLimbs y).2.columns.toList.map fun c ↦ c.value).drop 3 =
+  limbValues
+#guard ((pooled threeLimbs stmtLimbs y).2.columns.toList.map fun c ↦ c.col).drop 3 =
   [⟨0, 0⟩, ⟨0, 1⟩, ⟨0, 2⟩]
-#guard ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns, c.Holds goodLimbs
+#guard ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns.toList, c.Holds goodLimbs
 -- The wrong top cell passes the check, which sees the two sent values only, and fails the third
 -- claim; the pool without the third claim accepts the stack.
 #guard check threeLimbs stmtLimbs y (trueValues threeLimbs badTopLimb 1 y)
-#guard ¬ ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns, c.Holds badTopLimb
-#guard ∀ c ∈ ((pooled threeLimbs stmtLimbs y).2.columns.take 2), c.Holds badTopLimb
+#guard ¬ ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns.toList, c.Holds badTopLimb
+#guard ∀ c ∈ ((pooled threeLimbs stmtLimbs y).2.columns.toList.take 5), c.Holds badTopLimb
 
 /-! ## The check per limb and the check on the words differ -/
 
 /-- Two limbs with zero public words, both values sent. -/
 abbrev twoLimbs : M3Instance :=
-  { toy with publicLines := fun _ ↦
-      [⟨⟨0, 0⟩, 0, 0, true, by decide⟩, ⟨⟨0, 1⟩, 0, 0, true, by decide⟩] }
+  { toy with
+    nLines := 2
+    publicLines := fun _ ↦
+      #v[⟨⟨0, 0⟩, 0, 0, true, by decide⟩, ⟨⟨0, 1⟩, 0, 0, true, by decide⟩] }
 
-/-- Its statement with an empty pool. -/
-def stmtTwo : K × TableOut twoLimbs := (0, ⟨[]⟩)
+/-- Its statement with the received claims. -/
+def stmtTwo : K × TableOut twoLimbs :=
+  (0, ⟨received twoLimbs (by decide) (by decide) (by decide) (by decide) 0 ![0, 1, 0]⟩)
 
 /-- A stack whose two limbs are `[0, 1]` and `[1, 0]`: both violate the public input. -/
 def badLimbs : Column 3 := ⟨#v[0, 1, 1, 0, 0, 0, 0, 0]⟩
@@ -209,49 +230,33 @@ def wordsEquation (c₀ c₁ : E) : Bool := c₀ + y * c₁ == 0
 #guard ¬ wordsEquation y (1 + y)
 #guard ¬ check twoLimbs stmtTwo y (trueValues twoLimbs badLimbs 0 y)
 
-/-! ## The phase against the seams -/
+/-! ## The phase in its slot -/
 
 /-- Two rounds: the challenge, then the prover's values. -/
-example : (publicInputPhase toy).n = 2 := rfl
-
-example : (publicInputPhase toy).pSpec = pSpec := rfl
-
 example : pSpec.dir 0 = .V_to_P := rfl
 
 example : pSpec.dir 1 = .P_to_V := rfl
 
-/-- The error is `1/|E|` on the one challenge. -/
-example (i : (publicInputPhase toy).pSpec.ChallengeIdx) :
-    (publicInputPhase toy).err i = 1 / Fintype.card E := rfl
+/-- The slot's error is `1/|E|` on the one challenge. -/
+example (i : pubSpec.ChallengeIdx) : pubError i = overE 1 := rfl
 
-/-- The security half typechecks against the two seams. -/
-example : Phase.Security toy (publicInputPhase toy) (Seam.table toy) (Seam.pub toy) :=
+/-- The verifier never reads the stack: it is a front verifier. -/
+example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
+  PublicInput.verifier toy
+
+/-- The two halves typecheck against the two seams, at the slot's error. -/
+example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
+  publicInputComplete toy
+
+example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
+    pubError :=
   publicInputSecurity toy
 
-/-- The public-input phase among four pass-through phases. -/
-noncomputable def phases : Phases toy where
-  bus := Phase.passThrough toy fun s ↦ (s, ⟨[], []⟩)
-  table := Phase.passThrough toy fun p ↦ (p.1, ⟨[]⟩)
-  pub := publicInputPhase toy
-  flock := Phase.passThrough toy fun p ↦ (p.1, ⟨[], []⟩)
-  opening := Phase.passThrough toy fun _ ↦ ()
-
-/-- Their completeness against the seams, with the real phase's in the middle. -/
-noncomputable def complete : phases.Complete where
-  bus := Phase.passThroughComplete toy _ fun _ _ h ↦
-    ⟨by simp, by simp, by simp, h.2.2.2.1, h.2.2.2.2⟩
-  table := Phase.passThroughComplete toy _ fun _ _ h ↦ ⟨by simp, h.2.2.2.1, h.2.2.2.2⟩
-  pub := publicInputComplete toy
-  flock := Phase.passThroughComplete toy _ fun _ _ _ ↦ ⟨by simp, by simp⟩
-  opening := Phase.passThroughComplete toy _ fun _ _ _ ↦ trivial
-
-/-- The master completeness theorem has an instance with a real phase in it. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop phases).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
-  piop_perfectCompleteness phases complete init impl
-
-/-- The composed protocol has three rounds: the commit message, the public-input challenge and
-the prover's values. -/
-example : phases.toDef.n = 3 := rfl
+/-- The phase is one field of a bundle: with the four other phases and their proofs, the master
+completeness theorem applies. -/
+example (P : Phases toy) (C : P.Complete) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (leanVmPiop P).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
+  piop_perfectCompleteness P C init impl
 
 end LeanerVMTests.Protocol.PublicInput
