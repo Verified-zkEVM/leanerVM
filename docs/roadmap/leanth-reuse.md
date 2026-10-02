@@ -72,7 +72,7 @@ only non-trivial content, big-endian).
 | Declaration | Source | Statement | Verdict | Target | Effort |
 | --- | --- | --- | --- | --- | --- |
 | `eqTilde_sum_cube` | `Polynomial/Multilinear.lean:213` | `Σ_c eq(x, c) = 1` over the cube, any `x` | port (done) | `sumCube_lagrangeBasis` | S |
-| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
+| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
 | `AlignedLayout`, `offset`, `pow_height_dvd_offset`, window lemmas | `ProofSystem/Stacking.lean:48, 71, 388, 397, 409` | blocks largest first at prefix-sum offsets; alignment from the antitone order | port (done; EX `Blocks`, `Stacking.lean:41-149`) | `Blocks`, `offset`, `pow_size_dvd_offset` | S |
 | `eval_MLE_stack_block` | `ProofSystem/Stacking.lean:603` | `P̃_b(z) = S̃(sel_b, z)`, the selection identity | port (done; EX `eval_stackPoly_sel`, `Stacking/MLE.lean:210`) | `stack_eval` | M |
 | `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port (done, for any pad value); with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` | `stack_eval_ambient` | M |

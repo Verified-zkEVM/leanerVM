@@ -34,15 +34,17 @@ both parties know them, and
 
 Over an abstract instance the memory limbs are the instance's public lines, columns whose cells
 0 and 1 the statement fixes; each line says whether its value is sent. The prover sends the
-values of the lines that are, in order, as one message. The verifier checks that message
-against the lines' values, which fixes its length too, and pools one claim per line: for a
-line whose value was sent, at the value *sent*, read off the message (`pooledFrom`), and for
-the others at the value the verifier computes. Pooling the values sent is what makes the check
-load-bearing: a verifier that pooled the values it computes would be knowledge sound with no
-check at all. When the check passes the two pools agree (`pooledFrom_expected`), and the
-proofs reason about the computed one, `pooled`. The verifier reads the transcript and never
-the stack: it is a front verifier, `verifierWith` at the check and the pool, a shape the tests
-reuse for the verifiers that omit or weaken the check.
+values of the lines that are, in order, as one message. The verifier rejects a message that
+does not have one value per sent line, checks the rest against the lines' values, and pools one
+claim per line: for a line whose value was sent, at the value *sent*, read off the message
+(`pooledFrom`), and for the others at the value the verifier computes. Pooling the values sent
+is what makes the check load-bearing: a verifier that pooled the values it computes would be
+knowledge sound with no check at all. The length is not a check that can be dropped: a pool
+exists only for a message of that length (`pooledFrom` takes the proof), so no weakened check
+pools a value the prover did not send. When the check passes the verdict is the computed pool
+(`verdict_pooledFrom_of_check`), and the proofs reason about that one, `pooled`. The verifier
+reads the transcript and never the stack: it is a front verifier, `verifierWith` at the check
+and the pool, a shape the tests reuse for the verifiers that omit or weaken the check.
 
 Perfect completeness: on a stack whose lines hold, every pooled claim is true, by the identity
 `q̃(r, 0, …, 0) = (1 - r)·q(0) + r·q(1)` and `-1 = 1` in `E`. Knowledge soundness at `1/|E|`,
@@ -99,12 +101,6 @@ theorem eval₂Mle_linePoint {n : ℕ} (hn : 0 < n) (q : CMlPolynomialEval K n) 
     Fin.coe_ofNat_eq_mod, Nat.zero_mod, Vector.getElem_ofFn, zero_add, Fin.mk_one, Nat.mod_succ,
     Fin.mk_zero']
 
-/-! ## The schedule -/
-
-/-- The schedule: the slot's, the verifier's challenge in `E`, then the prover's values as a
-list; the verifier's check fixes its length, one value per line whose value is sent. -/
-abbrev pSpec : ProtocolSpec 2 := pubSpec
-
 /-! ## Values, check and claims -/
 
 variable (I : M3Instance)
@@ -131,30 +127,23 @@ def expectedValues (input : I.Stmt) (r : E) : List E :=
 def check (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
   decide (cs = expectedValues I s.1 r)
 
-theorem check_eq_true_iff (s : I.Stmt × TableOut I) (r : E) (cs : List E) :
+private theorem check_eq_true_iff (s : I.Stmt × TableOut I) (r : E) (cs : List E) :
     check I s r cs = true ↔ cs = expectedValues I s.1 r :=
   decide_eq_true_iff
+
+/-- The number of lines whose value is sent: the length of the prover's message. -/
+def sentCount {n : ℕ} (ls : Vector (PublicLine I.toShape) n) : ℕ :=
+  (ls.toList.filter (·.sent)).length
+
+/-- The expected values are one per sent line. -/
+theorem expectedValues_length (input : I.Stmt) (r : E) :
+    (expectedValues I input r).length = sentCount I (I.publicLines input) :=
+  List.length_map ..
 
 /-- The number of lines before line `i` whose value is sent: the position of line `i`'s value
 in the message, when it is sent. -/
 def sentBefore {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (i : Fin n) : ℕ :=
   ((ls.toList.take i.val).filter (·.sent)).length
-
-/-- The claims built from the message, one per line, on the line's column at `(r, 0, …, 0)`: a
-line whose value is sent takes its value from the message, at its position among the sent
-lines, and an unsent line takes the value the verifier computes. A missing value, which the
-check never lets through, is the computed value. -/
-def claimsFrom (r : E) {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (cs : List E) :
-    Vector (ColumnClaim I) n :=
-  Vector.ofFn fun i ↦
-    ⟨ls[i].col, linePoint ls[i].pos r,
-      if ls[i].sent then cs.getD (sentBefore I ls i) (lineValue I r ls[i])
-      else lineValue I r ls[i]⟩
-
-/-- What the verifier pools from the message: the claims it received, then one claim per
-public line, from the values sent. -/
-def pooledFrom (s : I.Stmt × TableOut I) (r : E) (cs : List E) : I.Stmt × PubOut I :=
-  (s.1, ⟨s.2.columns ++ claimsFrom I r (I.publicLines s.1) cs⟩)
 
 /-- In a filtered list, the element that comes from position `i` of the original sits at the
 number of kept elements before `i`. -/
@@ -171,30 +160,63 @@ private theorem getElem?_filter_length_take {α : Type} (p : α → Bool) :
     · simp [hpa, ih]
     · simp [hpa, ih]
 
+/-- A sent line's position is inside a message with one value per sent line. -/
+theorem sentBefore_lt {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (i : Fin n)
+    (hs : ls[i].sent = true) : sentBefore I ls i < sentCount I ls :=
+  (List.getElem?_eq_some_iff.mp (getElem?_filter_length_take
+    (fun l : PublicLine I.toShape ↦ l.sent) ls.toList i.val (by simp) (by simpa using hs))).1
+
+/-- The claims built from a message with one value per sent line, one per line, on the line's
+column at `(r, 0, …, 0)`: a line whose value is sent takes it from the message, at its position
+among the sent lines, and an unsent line takes `unsent` of it. -/
+def claimsWith (r : E) (unsent : PublicLine I.toShape → E) {n : ℕ}
+    (ls : Vector (PublicLine I.toShape) n) (cs : List E) (h : cs.length = sentCount I ls) :
+    Vector (ColumnClaim I) n :=
+  Vector.ofFn fun i ↦
+    ⟨ls[i].col, linePoint ls[i].pos r,
+      if hs : ls[i].sent then
+        cs[sentBefore I ls i]'(lt_of_lt_of_eq (sentBefore_lt I ls i hs) h.symm)
+      else unsent ls[i]⟩
+
+/-- The claims from the message: an unsent line takes the value the verifier computes. -/
+abbrev claimsFrom (r : E) {n : ℕ} (ls : Vector (PublicLine I.toShape) n) (cs : List E)
+    (h : cs.length = sentCount I ls) : Vector (ColumnClaim I) n :=
+  claimsWith I r (lineValue I r) ls cs h
+
+/-- What the verifier pools from a message with one value per sent line: the claims it
+received, then one claim per public line, from the values sent. No pool exists for another
+message. -/
+def pooledFrom (s : I.Stmt × TableOut I) (r : E) (cs : List E)
+    (h : cs.length = sentCount I (I.publicLines s.1)) : I.Stmt × PubOut I :=
+  (s.1, ⟨s.2.columns ++ claimsFrom I r (I.publicLines s.1) cs h⟩)
+
 /-- The claims from the expected values are the lines' claims: the value sent for a line is
 its line value. -/
-theorem claimsFrom_expected (r : E) (input : I.Stmt) :
-    claimsFrom I r (I.publicLines input) (expectedValues I input r) =
+private theorem claimsFrom_expected (r : E) (input : I.Stmt)
+    (h : (expectedValues I input r).length = sentCount I (I.publicLines input)) :
+    claimsFrom I r (I.publicLines input) (expectedValues I input r) h =
       (I.publicLines input).map (lineClaim I r) := by
   apply Vector.ext
   intro i hi
-  simp only [claimsFrom, Vector.getElem_ofFn, Vector.getElem_map, lineClaim, expectedValues,
-    sentBefore, Fin.getElem_fin]
+  simp only [claimsFrom, claimsWith, Vector.getElem_ofFn, Vector.getElem_map, lineClaim,
+    Fin.getElem_fin]
   split_ifs with hsent
   · congr 1
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map,
+    simp only [expectedValues, sentBefore]
+    rw [List.getElem_eq_iff, List.getElem?_map,
       getElem?_filter_length_take (fun l : PublicLine I.toShape ↦ l.sent)
         (I.publicLines input).toList i (by simpa using hi) (by simpa using hsent)]
     simp
   · rfl
 
 /-- The pool from the expected values is the pool of the lines' claims. -/
-theorem pooledFrom_expected (s : I.Stmt × TableOut I) (r : E) :
-    pooledFrom I s r (expectedValues I s.1 r) = pooled I s r := by
+theorem pooledFrom_expected (s : I.Stmt × TableOut I) (r : E)
+    (h : (expectedValues I s.1 r).length = sentCount I (I.publicLines s.1)) :
+    pooledFrom I s r (expectedValues I s.1 r) h = pooled I s r := by
   simp only [pooledFrom, pooled, claimsFrom_expected]
 
 /-- A claim is in the pool exactly when it was received or is a line's claim. -/
-theorem mem_pooled (s : I.Stmt × TableOut I) (r : E) (c : ColumnClaim I) :
+private theorem mem_pooled (s : I.Stmt × TableOut I) (r : E) (c : ColumnClaim I) :
     c ∈ (pooled I s r).2.columns.toList ↔
       c ∈ s.2.columns.toList ∨ ∃ l ∈ (I.publicLines s.1).toList, lineClaim I r l = c := by
   simp only [pooled, Vector.toList_append, Vector.toList_map, List.mem_append, List.mem_map]
@@ -268,7 +290,7 @@ keeps the stack, and outputs the pool. The values are functions of the public st
 challenge; on a stack whose lines hold they are the extensions of its columns at
 `(r, 0, …, 0)`. -/
 def prover : OracleProver []ₒ (I.Stmt × TableOut I) (TheOracle I) Unit
-    (I.Stmt × PubOut I) (TheOracle I) Unit pSpec where
+    (I.Stmt × PubOut I) (TheOracle I) Unit pubSpec where
   PrvState
     | ⟨0, _⟩ => ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) × Unit
     | _ => E × (((I.Stmt × TableOut I) × ∀ i, TheOracle I i) × Unit)
@@ -282,88 +304,120 @@ def prover : OracleProver []ₒ (I.Stmt × TableOut I) (TheOracle I) Unit
   output := fun st ↦ pure ((pooled I st.2.1.1 st.1, st.2.1.2), ())
 
 /-- The verifier reads the prover's message. -/
-def queryValues : OracleComp [pSpec.Message]ₒ (List E) :=
+def queryValues : OracleComp [pubSpec.Message]ₒ (List E) :=
   liftM <| OracleSpec.query
-    (show [pSpec.Message]ₒ.Domain from ⟨⟨1, by rfl⟩, (by change Unit; exact ())⟩)
+    (show [pubSpec.Message]ₒ.Domain from ⟨⟨1, by rfl⟩, (by change Unit; exact ())⟩)
 
-/-- A verifier of the phase's shape: it reads the prover's values, rejects unless `accept`
-holds of them at the challenge, and outputs `pool` of them. It never reads the stack. -/
+/-- A verifier of the phase's shape: it reads the prover's values, rejects unless the message
+has one value per sent line and `accept` holds of it at the challenge, and outputs `pool` of
+it. It never reads the stack. The length is no check `accept` can drop: no pool exists
+without it. -/
 def verifierWith (accept : (I.Stmt × TableOut I) → E → List E → Bool)
-    (pool : (I.Stmt × TableOut I) → E → List E → I.Stmt × PubOut I) :
-    FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pSpec where
+    (pool : (s : I.Stmt × TableOut I) → E → (cs : List E) →
+      cs.length = sentCount I (I.publicLines s.1) → I.Stmt × PubOut I) :
+    FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec where
   verify := fun s chals ↦ do
     let cs ← liftM queryValues
-    if accept s (chals ⟨0, rfl⟩) cs then pure (pool s (chals ⟨0, rfl⟩) cs) else failure
+    if h : cs.length = sentCount I (I.publicLines s.1) then
+      if accept s (chals ⟨0, rfl⟩) cs then pure (pool s (chals ⟨0, rfl⟩) cs h) else failure
+    else failure
 
 /-- The verifier: the check on the prover's values, then the pool from the values sent. -/
-abbrev verifier : FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pSpec :=
+abbrev verifier : FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
   verifierWith I (check I) (pooledFrom I)
 
 /-! ## The verifier's verdict -/
 
 /-- Reading the prover's message returns the transcript's entry. -/
-private theorem simulateQ_queryValues (tr : pSpec.FullTranscript) :
+private theorem simulateQ_queryValues (tr : pubSpec.FullTranscript) :
     simulateQ (OracleInterface.simOracle []ₒ tr.messages)
       (OptionT.lift (liftM queryValues :
-        OracleComp ([]ₒ + [pSpec.Message]ₒ) (List E))).run =
+        OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E))).run =
       (pure (tr 1) : OptionT (OracleComp []ₒ) (List E)) := by
   have h : simulateQ (OracleInterface.simOracle []ₒ tr.messages)
-      (liftM queryValues : OracleComp ([]ₒ + [pSpec.Message]ₒ) (List E)) =
+      (liftM queryValues : OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E)) =
       pure (tr 1) := rfl
   rw [OptionT.run_lift, simulateQ_bind, h, pure_bind, simulateQ_pure]
   rfl
 
 variable (accept : (I.Stmt × TableOut I) → E → List E → Bool)
-  (pool : (I.Stmt × TableOut I) → E → List E → I.Stmt × PubOut I)
+  (pool : (s : I.Stmt × TableOut I) → E → (cs : List E) →
+    cs.length = sentCount I (I.publicLines s.1) → I.Stmt × PubOut I)
+
+/-- The check of a verifier of the phase's shape, as one Boolean: the message has one value
+per sent line, and `accept` holds of it at the challenge. -/
+def accepts (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  decide (cs.length = sentCount I (I.publicLines s.1)) && accept s r cs
+
+/-- The verdict of a verifier of the phase's shape: `pool` of a message with one value per
+sent line. On any other message the verifier rejects, so the value here, the computed pool, is
+never output. -/
+def verdict (s : I.Stmt × TableOut I) (r : E) (cs : List E) : I.Stmt × PubOut I :=
+  if h : cs.length = sentCount I (I.publicLines s.1) then pool s r cs h else pooled I s r
 
 /-- The computation of a verifier of the phase's shape, once the message is read off the
-transcript: `pool` of the transcript's values at its challenge if `accept` holds of them, a
+transcript: the verdict at the transcript's values and challenge if the check holds of them, a
 rejection otherwise. -/
-theorem verify_simulated (s : I.Stmt × TableOut I) (tr : pSpec.FullTranscript) :
+theorem verify_simulated (s : I.Stmt × TableOut I) (tr : pubSpec.FullTranscript) :
     OptionT.mk (simulateQ (OracleInterface.simOracle []ₒ tr.messages)
       ((verifierWith I accept pool).verify s tr.challenges).run) =
-      if accept s (tr 0) (tr 1) then pure (pool s (tr 0) (tr 1)) else failure := by
+      if accepts I accept s (tr 0) (tr 1) then pure (verdict I pool s (tr 0) (tr 1))
+      else failure := by
   simp only [verifierWith]
-  rw [show (liftM queryValues : OptionT (OracleComp ([]ₒ + [pSpec.Message]ₒ)) (List E)) =
-      OptionT.lift (liftM queryValues : OracleComp ([]ₒ + [pSpec.Message]ₒ) (List E)) from
+  rw [show (liftM queryValues : OptionT (OracleComp ([]ₒ + [pubSpec.Message]ₒ)) (List E)) =
+      OptionT.lift (liftM queryValues : OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E)) from
     (OracleComp.monadLift_liftM_OptionT _).symm]
   rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
-  by_cases h : accept s (tr 0) (tr 1) = true
-  · rw [ite_eq_left h, ite_eq_left h]
+  unfold accepts verdict
+  by_cases hl : (tr 1).length = sentCount I (I.publicLines s.1)
+  · rw [dite_eq_left hl, dite_eq_left hl, decide_eq_true hl, Bool.true_and]
+    by_cases h : accept s (tr 0) (tr 1) = true
+    · rw [ite_eq_left h, ite_eq_left h]
+      rfl
+    · rw [ite_eq_right h, ite_eq_right h]
+      rfl
+  · rw [dite_eq_right hl, decide_eq_false hl, Bool.false_and, ite_eq_right Bool.false_ne_true]
     rfl
-  · rw [ite_eq_right h, ite_eq_right h]
-    rfl
-
-/-- As an ordinary verifier: if `accept` holds of the transcript's values at its challenge, the
-verdict is `pool` of them and the stack; otherwise it rejects. -/
-theorem verifierWith_verify (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
-    (tr : pSpec.FullTranscript) :
-    ((verifierWith I accept pool).toOracleVerifier (TheOracle I)).toVerifier.verify (s, o) tr =
-      if accept s (tr 0) (tr 1) then pure (pool s (tr 0) (tr 1), o) else failure :=
-  FrontVerifier.toVerifier_verify_of_check (verifierWith I accept pool)
-    (fun s tr ↦ accept s (tr 0) (tr 1)) (fun s tr ↦ pool s (tr 0) (tr 1))
-    (verify_simulated I accept pool) s o tr
 
 /-- A verifier of the phase's shape is a check followed by a verdict, as data. -/
 def guardedWith :
     ((verifierWith I accept pool).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
-  (verifierWith I accept pool).guardedForm (TheOracle I) (fun s tr ↦ accept s (tr 0) (tr 1))
-    (fun s tr ↦ pool s (tr 0) (tr 1)) (verify_simulated I accept pool)
+  (verifierWith I accept pool).guardedForm (TheOracle I)
+    (fun s tr ↦ accepts I accept s (tr 0) (tr 1)) (fun s tr ↦ verdict I pool s (tr 0) (tr 1))
+    (verify_simulated I accept pool)
 
 /-- The verifier is the check followed by the pool from the values sent, as data. -/
 def guarded : ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
   guardedWith I (check I) (pooledFrom I)
+
+/-- The verifier's check holds exactly when the specification's check does: that check fixes
+the length. -/
+theorem accepts_check_iff (s : I.Stmt × TableOut I) (r : E) (cs : List E) :
+    accepts I (check I) s r cs = true ↔ check I s r cs = true := by
+  unfold accepts
+  rw [Bool.and_eq_true, decide_eq_true_iff]
+  exact ⟨And.right, fun hc ↦
+    ⟨by rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length], hc⟩⟩
+
+/-- When the check passes, the verdict is the pool of the lines' claims. -/
+theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+    (hc : check I s r cs = true) : verdict I (pooledFrom I) s r cs = pooled I s r := by
+  have hl : cs.length = sentCount I (I.publicLines s.1) := by
+    rw [(check_eq_true_iff I s r cs).mp hc, expectedValues_length]
+  rw [verdict, dite_eq_left hl]
+  obtain rfl := (check_eq_true_iff I s r cs).mp hc
+  exact pooledFrom_expected I s r hl
 
 /-! ## Completeness -/
 
 /-- In every run of the prover, the message is the expected values at the transcript's
 challenge and the output is the pool at that challenge, with the stack. -/
 private theorem prover_run_support (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
-    (pr : pSpec.FullTranscript × ((I.Stmt × PubOut I) × ∀ i, TheOracle I i) × Unit)
+    (pr : pubSpec.FullTranscript × ((I.Stmt × PubOut I) × ∀ i, TheOracle I i) × Unit)
     (hpr : pr ∈ support ((prover I).run (s, o) ())) :
     pr.1 1 = expectedValues I s.1 (pr.1 0) ∧ pr.2 = ((pooled I s (pr.1 0), o), ()) := by
-  have h0 : pSpec.dir 0 = .V_to_P := rfl
-  have h1 : pSpec.dir 1 = .P_to_V := rfl
+  have h0 : pubSpec.dir 0 = .V_to_P := rfl
+  have h1 : pubSpec.dir 1 = .P_to_V := rfl
   simp only [Prover.run, Prover.runToRound, Fin.induction_two,
     Prover.processRound_of_dir_eq_V_to_P 0 h0, Prover.processRound_of_dir_eq_P_to_V 1 h1] at hpr
   simp only [ChallengeIdx, Fin.vcons_fin_zero, Nat.reduceAdd, Challenge, Fin.reduceLast, prover,
@@ -380,8 +434,8 @@ theorem exists_mem_support_prover_run (s : I.Stmt × TableOut I) (o : ∀ i, The
     (r : E) :
     ∃ pr ∈ support ((prover I).run (s, o) ()),
       pr.1 0 = r ∧ pr.1 1 = expectedValues I s.1 r ∧ pr.2 = ((pooled I s r, o), ()) := by
-  have h0 : pSpec.dir 0 = .V_to_P := rfl
-  have h1 : pSpec.dir 1 = .P_to_V := rfl
+  have h0 : pubSpec.dir 0 = .V_to_P := rfl
+  have h1 : pubSpec.dir 1 = .P_to_V := rfl
   simp only [Prover.run, Prover.runToRound, Fin.induction_two,
     Prover.processRound_of_dir_eq_V_to_P 0 h0, Prover.processRound_of_dir_eq_P_to_V 1 h1]
   simp only [ChallengeIdx, Fin.vcons_fin_zero, Nat.reduceAdd, Challenge, Fin.reduceLast, prover,
@@ -402,15 +456,16 @@ theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (State
   obtain ⟨s, o⟩ := stmtIn
   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
-  have hc : (guarded I).check (s, o) pr.1 = true := decide_eq_true hmsg
-  have hpool : pooledFrom I s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) := by
-    rw [hmsg, pooledFrom_expected]
-  rw [ite_eq_left hc]
+  have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
+  have hacc : (guarded I).check (s, o) pr.1 = true := (accepts_check_iff I _ _ _).mpr hc
+  have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
+    verdict_pooledFrom_of_check I hc
+  rw [ite_eq_left hacc]
   refine ⟨_, rfl, ?_, ?_⟩
-  · show ((pooledFrom I s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
+  · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
     rw [hpool]
     exact pooled_mem_pub I s o hIn (pr.1 0)
-  · show pr.2.1 = (pooledFrom I s (pr.1 0) (pr.1 1), o)
+  · show pr.2.1 = (verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o)
     rw [hpool]
     exact congrArg Prod.fst hout
 
@@ -420,7 +475,7 @@ theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (State
 written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe
 `Extractor.RoundByRound` leaves free. -/
 def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-    ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) Unit Unit pSpec (fun _ ↦ Unit) where
+    ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) Unit Unit pubSpec (fun _ ↦ Unit) where
   eqIn := rfl
   extractMid := fun _ _ _ _ ↦ ()
   extractOut := fun _ _ _ ↦ ()
@@ -428,8 +483,8 @@ def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
 variable {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
 
 /-- The knowledge state function: before the challenge, the table seam; after the challenge,
-the public seam of the pool at it; after the prover's values, that the check passes and the
-pool from those values is in the public seam. -/
+the public seam of the pool at it; after the prover's values, that the verifier's check passes
+and its verdict is in the public seam. -/
 def stateFunction :
     ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.KnowledgeStateFunction init impl
       (Seam.table I) (Seam.pub I) (extractor I) where
@@ -438,8 +493,9 @@ def stateFunction :
     else if h1 : m.val = 1 then
       ((pooled I stmt.1 (tr ⟨0, by omega⟩), stmt.2), ()) ∈ Seam.pub I
     else
-      check I stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
-        ((pooledFrom I stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈ Seam.pub I
+      accepts I (check I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
+        ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
+          Seam.pub I
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m hm stmt tr msg w h ↦ by
     have hm1 : m = 1 := by
@@ -448,8 +504,7 @@ def stateFunction :
       · rfl
     subst hm1
     obtain ⟨hc, hp⟩ := h
-    have hpool := pooledFrom_expected I stmt.1 (tr.concat msg ⟨0, Nat.succ_pos _⟩)
-    rw [(check_eq_true_iff I _ _ _).mp hc, hpool] at hp
+    rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
     exact hp
   toFun_full := fun stmt tr _ h ↦
     Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr _ h

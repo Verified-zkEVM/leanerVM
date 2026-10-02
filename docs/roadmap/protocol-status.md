@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `32dbe65` (2026-09-30),
-checked on 2026-09-30. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `3cf0139` (2026-10-02),
+checked on 2026-10-02. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -21,6 +21,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking (Layer 1) | #59 | `f4d858c` | 2026-09-29 |
 | the public-input phase with the specification's check (Layer 8), both halves | #60 | `b435631` | 2026-09-29 |
 | no hole: the upgrade to Lean 4.34.1 and the new pins | #61 | `144c5aa` | 2026-09-29 |
+| the wall, and the field instances' revision (the inner-product oracle) | #64 | `3cf0139` | 2026-10-02 |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
@@ -31,10 +32,11 @@ Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the
 ## What the built work owes the blueprint
 
 The blueprint was revised on 2026-09-30 after a review of its faithfulness to leanVM, its
-non-vacuity and its audit surface. The revisions the work on `main` owed it are built and in
-review as three stacked pull requests, #64 (the wall and the field instances), #65 (the spine)
-and #66 (tables and stacking, the public-input phase); each is a checklist line of #12. Where
-the built work differs from the blueprint, deliberately:
+non-vacuity and its audit surface. The revisions the work on `main` owed it are built as three
+stacked pull requests: #64 (the wall and the field instances) is merged, #65 (the spine) and #66
+(tables and stacking, the public-input phase) are in review, each reviewed against the blueprint
+and the pinned sources in turn ([the spine's review](../reviews/protocol-spine-revision.md));
+each is a checklist line of #12. Where the built work differs from the blueprint, deliberately:
 
 - **The layout's law.** `Layout` keeps the lift `extend` and one law, but the law is the
   reading law on the derived `Layout.read`, not "a cube point of the column lifts to a cube
@@ -55,10 +57,24 @@ the built work differs from the blueprint, deliberately:
   slot's zerocheck rounds are two blocks, of `8` and of `kBatch` rounds, since their errors
   differ; the boundary values and the table sumcheck's final values are vectors of the
   instance's lengths; `pubSpec` and `openingSpec` are constants, the same for every instance.
-- **Instances of appended schedules are applied by name** (`msgAppend`, `chalAppend` in
-  `Spine/Errors.lean`): instance search does not find ArkLib's instances for the messages and
-  challenges of two schedules side by side when the schedules are concrete, and ArkLib's own
-  files apply them by name too.
+- **The schedule combinators are generic** (`ToArkLib/Schedule.lean`): one message, one
+  challenge, a sumcheck round of a degree, the layers of a grand-product argument and the whole
+  argument (`gkrSpec`, `gkrError`), over any challenge type, with their instances and their
+  errors from a unit; `Spine/Errors.lean` instantiates them at `E` and `overE 1`, and the
+  grand-product argument of #62 consumes them. Instances of appended schedules are applied by
+  name (`msgAppend`, `chalAppend`): instance search does not find ArkLib's instances for the
+  messages and challenges of two schedules side by side when the schedules are concrete, and
+  ArkLib's own files apply them by name too. A bundle of a schedule with its two instance
+  families and its error would replace the named instances; not tried.
+- **The Flock slot sends two values after the zerocheck**, `v_a` and `v_b`: both deployed
+  verifiers derive the third, `v_c`, from the running claim
+  (`crates/flock/src/zerocheck.rs:421-422`, `verifier.py:1148-1149`). The slot's exact error sum
+  (`sum_flockErrorOf`) is what the blueprint's `flockError_le` only bounds.
+- **Deleted as unused**: the field instances `instOracleInterfaceE` and `instOracleInterfaceListE`
+  (the message schedules carry their own interfaces) and `Phase.Guarded`.
+- **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
+  `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
+  guarantee it, since `μBus` is the push side's depth.
 - **The front phases are typed** (decision 31): `Phases` holds them as `Phase.FrontDef`, whose
   verifier is a `FrontVerifier` with no access to the stack, and their proofs are stated on the
   lifted component `FrontDef.toDef`.
@@ -66,39 +82,48 @@ the built work differs from the blueprint, deliberately:
   `kBatch ≤ 32`, `J ≤ 2^16`) and bounds the sum by `(2^32 + 2^31 + 2^20)/|E|`; the numeric
   test shows it below `2^{-159}`. That the leanISA instance meets the hypotheses at admissible
   sizes is the adaptor's to prove.
-- **The refutation lemmas** are `Verifier.not_rbr`, `Verifier.not_rbr_zero` and
-  `Reduction.not_perfectCompleteness_of_reject` (with a primed form for the empty shared
-  oracle), in `ToArkLib/Refutation.lean`.
+- **The refutation lemmas** are `Verifier.not_rbr_of_escape`, the certain-escape lemma for a
+  check that later challenges follow, `Verifier.not_rbr` and `Verifier.not_rbr_zero` derived
+  from it, and `Reduction.not_perfectCompleteness_of_reject` (with a primed form for the empty
+  shared oracle), in `ToArkLib/Refutation.lean`.
 - **`Component.Extraction`** sits between `Guarded` and `Security`: the extractor and its
   state function without the bound, so that `piopExtractor` computes while the errors, real
   numbers, make `Security.append` noncomputable. `piopExtractedStack_eq` goes through
   `Extractor.RoundByRound.ReadsFirst`: an extractor whose first step reads the first message
   returns it on every transcript, and a sequence of extractors keeps its first part's first
   step.
-- **Layer 1's pruning.** `unstack_eval` and `bytecodeColumn_slot` are private;
-  `stackColumn_eval`, `stackColumn_eval_ambient`, `stack_eval_ambient_zero`,
-  `evalMle_lagrangeBasis`, `slice_bytecodeColumn`, `prodVars` and its two lemmas are gone, with
-  `BlockClaims.lean` and its test; `bytecodeSlotColumn` stays for the adaptor's boundary blocks.
+- **Layer 1's pruning.** `unstack_eval`, `bytecodeColumn_slot` and the reading lemmas behind
+  the layouts (`Layout.readWith_comap`, `Blocks.readWith_extendPoint`, `Blocks.readWith_strided`)
+  are private; `stackColumn_eval`, `stackColumn_eval_ambient`, `stack_eval_ambient_zero`,
+  `evalMle_lagrangeBasis`, `slice_bytecodeColumn`, `readColumn_stackColumn`, `idxColumn_get`,
+  `bytecodeSlotColumn`, `prodVars` and its two lemmas are gone, with `BlockClaims.lean` and its
+  test; the adaptor builds the slot columns it needs. The generic helpers the deleted module
+  consumed (`unstack_eval₂_eq_sumCube`, `unstack_eq_of_window_eq`) stay as upstream material.
 - **Layer 8's verifier** is `verifierWith` at the check and the pool from the values sent, a
   shape the refutation tests instantiate with the check removed, weakened to its first value,
-  the unsent line's claim dropped, the cells swapped and an extra check.
+  the unsent line's claim dropped, the cells swapped and an extra check. The pool (`pooledFrom`)
+  takes the proof that the message has one value per sent line, and every verifier of that
+  shape rejects another message before its check: the length is no check a variant can drop.
+  The blueprint's `claimsFrom` on a bare list would need a value for a missing entry, and the
+  computed value, the only candidate, is the one choice no refutation can catch. The alias
+  `PublicInput.pSpec` is gone; the slot is `pubSpec`.
 - **The deployed public-input check** is a hole of its own, not built.
 
 Open pull requests that the revision changes: #62 (the GKR's definition) has the normalized round
 and the leaves as functions of the context, and gains the riders, the last unused combiner and
-the spine's slot shape (`gkrSpec 3 μ` and `gkrError 3 μ` of `Spine/Errors.lean`, whose grouping
-per layer is combiner, rounds, descendants, combination challenges); #42 (honest sumcheck
+the spine's slot shape (`gkrSpec E 3 μ` and `gkrError E (overE 1) 3 μ` of
+`ToArkLib/Schedule.lean`, generic in the challenge type and the unit error, whose grouping per
+layer is combiner, rounds, descendants, combination challenges); #42 (honest sumcheck
 algebra) serves the plain variant, and conflicts with `main`; #39 (fingerprints) and #43 (power
 batching) rebase onto `main` from the closed #18's branch and move from `Generic/` to the `To*`
 folder of their objects, #43 feeding the opening phase.
 
 ## What can start now
 
-The spine's revision first: every phase is written against its slots. Independent of it: the
-revisions of Layers 0 and 1, the wall's rule, Clean expressions as polynomials (Layer 2), the
-sumcheck variants and batching (Layer 4), the fingerprint and the GKR (Layer 5), the WHIR opening,
-and the Merkle trees with the WHIR parameters (Layer 11). The public-input phase's deployed check
-follows its pool's revision.
+The spine's revision first: every phase is written against its slots. Independent of it: Clean
+expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
+fingerprint and the GKR (Layer 5), the WHIR opening, and the Merkle trees with the WHIR
+parameters (Layer 11). The public-input phase's deployed check follows its pool's revision.
 
 ## Upstream watch
 

@@ -55,7 +55,7 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval
 /-! ## Renaming the columns of a layout -/
 
 /-- Reading through a renamed lift is reading the renamed column, cast to its height. -/
-theorem Layout.readWith_comap {μ : ℕ} {ι ι' : Type} {κ : ι → ℕ} {κ' : ι' → ℕ}
+private theorem Layout.readWith_comap {μ : ℕ} {ι ι' : Type} {κ : ι → ℕ} {κ' : ι' → ℕ}
     (extend : (c : ι) → Vector E (κ c) → Vector E μ) (f : ι' → ι) (h : ∀ c, κ (f c) = κ' c)
     (q : Column μ) (c : ι') :
     Layout.readWith (fun c z ↦ extend (f c) (Vector.cast (h c).symm z)) q c =
@@ -111,14 +111,9 @@ theorem readColumn_eval (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n)
       eval₂Mle q.values (algebraMap K E) (B.extendPoint hμ b z) :=
   (B.unstack_eval₂ (algebraMap K E) hμ q.values b z).symm
 
-/-- Reading a block off the honest stack returns the block. -/
-@[simp] theorem readColumn_stackColumn (t : B.Tables K) (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
-    B.readColumn hμ (B.stackColumn t μ) b = ⟨t b⟩ :=
-  congrArg Column.mk (B.unstack_stackAt t hμ 0 b)
-
 /-- Reading through the lift of the aligned blocks is reading the block: the cube point
 `(x, sel_b)` is the cell `x + offset_b`. -/
-theorem readWith_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n) :
+private theorem readWith_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n) :
     Layout.readWith (B.extendPoint hμ) q b = B.readColumn hμ q b := by
   unfold Layout.readWith readColumn
   congr 1
@@ -139,7 +134,7 @@ def layout (hμ : B.total ≤ 2 ^ μ) : Layout μ (Fin B.n) B.size where
 
 /-- Reading through a strided lift: the column at slot `slot c` of block `b` is the low slice
 at that slot of the block read off the stack. -/
-theorem readWith_strided (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
+private theorem readWith_strided (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
     {κ : ι → ℕ} (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = k + κ c) (q : Column μ)
     (c : ι) :
     (Layout.readWith (fun c (z : Vector E (κ c)) ↦

@@ -48,11 +48,6 @@ open CompPoly CMlPolynomialEval
 /-- The fixed address column with entry `g ^ i` at Boolean index `i`. -/
 def idxColumn (κ : ℕ) : Column κ := ⟨powersTable g κ⟩
 
-/-- Boolean readout of the public address column. -/
-theorem idxColumn_get (κ : ℕ) (i : Fin (2 ^ κ)) :
-    (idxColumn κ).values[i] = g ^ i.val := by
-  simp [idxColumn, powersTable]
-
 /-- The native index-column evaluator over the challenge field. -/
 def idxColumnEval {κ : ℕ} (z : Vector E κ) : E :=
   ∏ j : Fin κ, ((1 - z[j]) + z[j] * algebraMap K E (g ^ (2 ^ j.val)))
@@ -71,10 +66,6 @@ theorem idxColumnEval_eq {κ : ℕ} (z : Vector E κ) :
   ring
 
 /-! ## The bytecode column -/
-
-/-- One public slot as a column indexed by instruction number. -/
-def bytecodeSlotColumn (prog : Program) (s : Fin 16) : Column prog.logSize :=
-  ⟨Vector.ofFn fun i ↦ (encodeSlots (prog.code i))[s]⟩
 
 /-- The complete sixteen-slot public bytecode column, with instruction bits first. -/
 def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
