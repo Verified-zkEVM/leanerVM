@@ -132,9 +132,9 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   stands; rewritten whole when a layer lands.
 - [`docs/roadmap/protocol-blueprint.md`](docs/roadmap/protocol-blueprint.md) — proof-system
   roadmap on ArkLib: the oracle protocol, its master theorems, the compiled verifier, the
-  upstream ledger; tracked in issue #12.
-- [`docs/roadmap/protocol-status.md`](docs/roadmap/protocol-status.md) — where the proof-system
-  roadmap stands; rewritten whole when a layer lands.
+  upstream ledger, the decisions, and how work is tracked; tracked in issue #12.
+- [`docs/roadmap/protocol-status.md`](docs/roadmap/protocol-status.md) — what of the proof
+  system is on `main` and what the built work owes the blueprint.
 - [`docs/roadmap/leanth-reuse.md`](docs/roadmap/leanth-reuse.md) — what the earlier leanVM-a
   formalization contains that the proof-system roadmap reuses, with the credit convention for
   derived material.
