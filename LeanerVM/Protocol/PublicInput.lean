@@ -539,9 +539,11 @@ variable (I : M3Instance)
 
 /-- The public-input phase, at its slot: one challenge, one prover message, a front
 verifier. -/
-def publicInputPhase : Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec where
-  prover := PublicInput.prover I
-  verifier := PublicInput.verifier I
+def publicInputPhase : Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
+  Phase.FrontDef.ofFrontVerifier I (PublicInput.prover I) (PublicInput.verifier I)
+    (fun s tr ↦ PublicInput.accepts I (PublicInput.check I) s (tr 0) (tr 1))
+    (fun s tr ↦ PublicInput.verdict I (PublicInput.pooledFrom I) s (tr 0) (tr 1))
+    (PublicInput.verify_simulated I (PublicInput.check I) (PublicInput.pooledFrom I))
 
 /-- The completeness half. -/
 def publicInputComplete :

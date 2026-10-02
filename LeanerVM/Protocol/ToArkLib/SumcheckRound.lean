@@ -218,6 +218,10 @@ def roundComplete (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < 
     Component.Complete (round Φ.poly j Φ.weight) (rel Φ j) (rel Φ (j + 1)) :=
   (sendPolyComplete j Φ).append (drawChallengeComplete j Φ H hj)
 
+/-- A round is front: its verifier reads the polynomial and the challenge off the transcript. -/
+def roundFront : Component.Front (round P j wt) :=
+  (Component.sendCheckedFront O (Message F d) _ _ _).append (Component.sampleFront O F _ _)
+
 /-! ## The rounds of a sumcheck -/
 
 /-- The `i` rounds from stage `j` to stage `m = j + i`. With no round left, the statement is
@@ -226,6 +230,11 @@ def rounds (m : ℕ) : (i j : ℕ) → j + i = m →
     Component.Def (Stmt X F j) O W (Stmt X F m) O W (roundsSpec F d i)
   | 0, j, h => Component.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
   | i + 1, j, h => (round P j wt).append (rounds m i (j + 1) (by omega))
+
+/-- The rounds are front, from each round's. -/
+def roundsFront (m : ℕ) : (i j : ℕ) → (h : j + i = m) → Component.Front (rounds P wt m i j h)
+  | 0, _, _ => Component.passThroughFront O _
+  | i + 1, j, _ => (roundFront P j wt).append (roundsFront m i (j + 1) (by omega))
 
 /-- Completeness of the rounds, from those of each round. -/
 def roundsComplete (Φ : Family F X O W d) (m : ℕ) (H : Φ.Honest m) :

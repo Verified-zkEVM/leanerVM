@@ -84,9 +84,14 @@ each is a checklist line of #12. Where the built work differs from the blueprint
 - **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
   `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
   guarantee it, since `μBus` is the push side's depth.
-- **The front phases are typed** (decision 31): `Phases` holds them as `Phase.FrontDef`, whose
-  verifier is a `FrontVerifier` with no access to the stack, and their proofs are stated on the
-  lifted component `FrontDef.toDef`.
+- **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
+  a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
+  the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
+  from a `FrontVerifier`, a verifier typed without access to the stack, and
+  `Component.Front.append` composes the witnesses, so a phase assembled from generic components
+  (the grand-product argument, through `gkrFront`) fits the slot. The proofs are stated on the
+  component `FrontDef.toDef`. The spine's revision had typed the front phases instead, which no
+  composition of ArkLib oracle verifiers could meet.
 - **`piopError_le`** takes the sizes as hypotheses (`μ_bus ≤ 30`, `τ_max ≤ 32`, `B ≤ 2^16`,
   `kBatch ≤ 32`, `J ≤ 2^16`) and bounds the sum by `(2^32 + 2^31 + 2^20)/|E|`; the numeric
   test shows it below `2^{-159}`. That the leanISA instance meets the hypotheses at admissible
@@ -120,15 +125,11 @@ each is a checklist line of #12. Where the built work differs from the blueprint
 - **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
   no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
   `gkrComplete` extends `Component.Guarded`, and its knowledge soundness is to be stated at
-  `gkrError F u nside μ`. It is not at the slot's verifier type: `Phases.bus` is a
-  `Phase.FrontDef`, a prover with a `FrontVerifier`, while `gkr` is a `Component.Def` whose
-  verifier is ArkLib's `OracleVerifier.append` of its parts' verifiers, each keeping the stack
-  through `keepOracles`, and nothing composes front verifiers. The bus phase (Layer 6) needs the
-  spine's open decision 31 settled: either `Phases.bus` becomes a `Phase.Def` with a separate
-  oracle-freeness witness (every part's verifier is a lifted front verifier, and `Def.append`
-  preserves that by one lemma), or the parts get front forms with a `Component.FrontDef.append`
-  and a propositional `toDef_append` along which `Complete` and `Security` transport through
-  `stateFunctionOfEq`. The first is the smaller change and is the one proposed for the blueprint.
+  `gkrError F u nside μ`. It is at the slot's verifier type too: `Phase.FrontDef` is a component with a
+  `Component.Front` witness, a check and a verdict on the statement and the transcript that hand
+  the stack on, which `gkrFront` provides by composing the parts' witnesses through
+  `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
+  `Phase.FrontDef` at `busSpec toy`.
   Two of its parts are local stand-ins for Layer 4's components, on two conditions. Its sumcheck
   rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
   `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
