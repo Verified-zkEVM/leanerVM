@@ -448,5 +448,60 @@ theorem sumCube_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^
   · intro h
     exact absurd (Finset.mem_univ _) h
 
+/-! ## Splitting the low coordinates, and one coordinate at a time -/
+
+/-- The low split: evaluation at `z ++ s` is the sum over the low index of the evaluations at the
+Boolean low points, weighted by the Lagrange basis of `z`. -/
+theorem evalMle_split_low {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z : Vector R k)
+    (s : Vector R m) :
+    evalMle t (z ++ s) =
+      ∑ i : Fin (2 ^ k), (lagrangeBasis z)[i] * evalMle t ((boolVec i : Vector R k) ++ s) := by
+  rw [evalMle_eq_sum, sum_cube_split, Finset.sum_comm]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  rw [evalMle_eq_sum, sum_cube_split, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append, Finset.mul_sum,
+    Finset.sum_eq_single i]
+  · rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append]
+    simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_true]
+    ring
+  · intro i' _ hne
+    rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append]
+    simp [lagrangeBasis_boolVec, hne]
+  · intro h
+    exact absurd (Finset.mem_univ _) h
+
+/-- Evaluation is linear: the extension of a weighted sum of tables is the weighted sum of
+their extensions. -/
+theorem evalMle_ofFn_sum {n : ℕ} {ι : Type*} (s : Finset ι) (a : ι → R)
+    (p : ι → CMlPolynomialEval R n) (r : Vector R n) :
+    evalMle (Vector.ofFn fun x ↦ ∑ i ∈ s, a i * (p i)[x]) r = ∑ i ∈ s, a i * evalMle (p i) r := by
+  simp only [evalMle_eq_sum, Fin.getElem_fin, Vector.getElem_ofFn, Finset.sum_mul,
+    Finset.mul_sum, mul_assoc]
+  exact Finset.sum_comm
+
+/-- Evaluation is affine in each coordinate: the value at a point whose coordinate `k` is `X`
+interpolates between the values at `0` and at `1`. -/
+theorem evalMle_set {n : ℕ} (t : CMlPolynomialEval R n) (p : Vector R n) {k : ℕ} (hk : k < n)
+    (X : R) :
+    evalMle t (p.set k X) = (1 - X) * evalMle t (p.set k 0) + X * evalMle t (p.set k 1) := by
+  simp only [evalMle_eq_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl fun a _ ↦ ?_
+  simp only [Fin.getElem_fin, lagrangeBasis_getElem_nat _ a.isLt]
+  have hrest : ∀ Y : R, ∏ b ∈ Finset.univ.erase (⟨k, hk⟩ : Fin n),
+      (if a.val.testBit b then (p.set k Y)[b.val] else 1 - (p.set k Y)[b.val]) =
+      ∏ b ∈ Finset.univ.erase (⟨k, hk⟩ : Fin n),
+        (if a.val.testBit b then p[b.val] else 1 - p[b.val]) := by
+    intro Y
+    refine Finset.prod_congr rfl fun b hb ↦ ?_
+    have hbk : k ≠ b.val := fun h ↦ (Finset.mem_erase.mp hb).1 (Fin.ext h.symm)
+    rw [Vector.getElem_set_ne hk b.isLt hbk]
+  rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    hrest, hrest, hrest]
+  simp only [Vector.getElem_set_self]
+  cases a.val.testBit k <;> simp <;> ring
+
 end
 end LeanerVM.Protocol

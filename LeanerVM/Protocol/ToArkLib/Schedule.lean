@@ -198,15 +198,33 @@ challenges. -/
 abbrev stepSpec (nside ρ m : ℕ) : ProtocolSpec (stepRounds ρ m) :=
   draw C ++ₚ roundsSpec C (2 ^ ρ) m ++ₚ say (Fin nside → Vector C (2 ^ ρ)) ++ₚ draws C ρ
 
+/-! The instances of a layer's prefixes, which a component built one append at a time meets. -/
+
+instance instOracleInterfaceStepRounds (ρ m : ℕ) :
+    ∀ i, OracleInterface ((draw C ++ₚ roundsSpec C (2 ^ ρ) m).Message i) :=
+  msgAppend (instOracleInterfaceDraw C) (instOracleInterfaceRounds C _ m)
+
+instance instSampleableTypeStepRounds [SampleableType C] (ρ m : ℕ) :
+    ∀ i, SampleableType ((draw C ++ₚ roundsSpec C (2 ^ ρ) m).Challenge i) :=
+  chalAppend (instSampleableTypeDraw C) (instSampleableTypeRounds C _ m)
+
+instance instOracleInterfaceStepChildren (nside ρ m : ℕ) :
+    ∀ i, OracleInterface
+      ((draw C ++ₚ roundsSpec C (2 ^ ρ) m ++ₚ say (Fin nside → Vector C (2 ^ ρ))).Message i) :=
+  msgAppend (instOracleInterfaceStepRounds C ρ m) (instOracleInterfaceSay _)
+
+instance instSampleableTypeStepChildren [SampleableType C] (nside ρ m : ℕ) :
+    ∀ i, SampleableType
+      ((draw C ++ₚ roundsSpec C (2 ^ ρ) m ++ₚ say (Fin nside → Vector C (2 ^ ρ))).Challenge i) :=
+  chalAppend (instSampleableTypeStepRounds C ρ m) (instSampleableTypeSay _)
+
 instance instOracleInterfaceStep (nside ρ m : ℕ) :
     ∀ i, OracleInterface ((stepSpec C nside ρ m).Message i) :=
-  msgAppend (msgAppend (msgAppend (instOracleInterfaceDraw C) (instOracleInterfaceRounds C _ m))
-    (instOracleInterfaceSay _)) (instOracleInterfaceDraws C ρ)
+  msgAppend (instOracleInterfaceStepChildren C nside ρ m) (instOracleInterfaceDraws C ρ)
 
 instance instSampleableTypeStep [SampleableType C] (nside ρ m : ℕ) :
     ∀ i, SampleableType ((stepSpec C nside ρ m).Challenge i) :=
-  chalAppend (chalAppend (chalAppend (instSampleableTypeDraw C) (instSampleableTypeRounds C _ m))
-    (instSampleableTypeSay _)) (instSampleableTypeDraws C ρ)
+  chalAppend (instSampleableTypeStepChildren C nside ρ m) (instSampleableTypeDraws C ρ)
 
 /-- The error of one layer, with the combiner's error given: `2 ^ ρ · u` on each round and `u`
 on each combination challenge. -/
@@ -323,15 +341,21 @@ radix four, and a last combiner that nothing reads. -/
 abbrev gkrSpec (nside μ : ℕ) : ProtocolSpec (gkrRounds μ) :=
   oddSpec C nside (μ % 2) ++ₚ stepsSpec C nside (μ / 2) (μ % 2) ++ₚ draw C
 
+instance instOracleInterfaceGkrBody (nside r k m : ℕ) :
+    ∀ i, OracleInterface ((oddSpec C nside r ++ₚ stepsSpec C nside k m).Message i) :=
+  msgAppend (instOracleInterfaceOdd C nside r) (instOracleInterfaceSteps C nside k m)
+
+instance instSampleableTypeGkrBody [SampleableType C] (nside r k m : ℕ) :
+    ∀ i, SampleableType ((oddSpec C nside r ++ₚ stepsSpec C nside k m).Challenge i) :=
+  chalAppend (instSampleableTypeOdd C nside r) (instSampleableTypeSteps C nside k m)
+
 instance instOracleInterfaceGkr (nside μ : ℕ) :
     ∀ i, OracleInterface ((gkrSpec C nside μ).Message i) :=
-  msgAppend (msgAppend (instOracleInterfaceOdd C nside _) (instOracleInterfaceSteps C nside _ _))
-    (instOracleInterfaceDraw C)
+  msgAppend (instOracleInterfaceGkrBody C nside _ _ _) (instOracleInterfaceDraw C)
 
 instance instSampleableTypeGkr [SampleableType C] (nside μ : ℕ) :
     ∀ i, SampleableType ((gkrSpec C nside μ).Challenge i) :=
-  chalAppend (chalAppend (instSampleableTypeOdd C nside _) (instSampleableTypeSteps C nside _ _))
-    (instSampleableTypeDraw C)
+  chalAppend (instSampleableTypeGkrBody C nside _ _ _) (instSampleableTypeDraw C)
 
 /-- The error of the grand-product argument: `(nside − 1) · u` on each combiner but the last,
 which is free; `2 ^ ρ · u` on each round of radix `2 ^ ρ`; `u` on each combination challenge. -/

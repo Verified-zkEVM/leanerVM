@@ -32,6 +32,7 @@ import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
+import LeanerVM.Protocol.ToArkLib.GrandProduct
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
@@ -40,11 +41,16 @@ import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
+import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
+import LeanerVM.Protocol.ToArkLib.SendChecked
 import LeanerVM.Protocol.ToArkLib.SendOracle
+import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Multilinear
+import LeanerVM.Protocol.ToCompPoly.PartialSum
+import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Semantics.Basic
