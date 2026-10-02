@@ -33,7 +33,8 @@ Nothing here transcribes a source.
   the table that holds `t` on that subcube and zero elsewhere. `evalMle_split` writes an
   evaluation as the weighted sum of the slices; `evalMle_append_boolVec` is the selection
   identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
-  `sumCube_placeSlice` are its converse.
+  `sumCube_placeSlice` are its converse. `sliceLow t i` is the strided subcube whose low bits
+  are `i`, one entry every `2 ^ k`, and `evalMle_boolVec_append` its selection identity.
 
 A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
@@ -47,8 +48,9 @@ they go through `eval_mle_eq_eval`, the dot product with `lagrangeBasis`, and on
 
 ## Wrong readings excluded
 
-* `evalMle_append_boolVec` reads the slice at the *high* index; slicing on the low index is a
-  different, strided selection.
+* `evalMle_append_boolVec` reads the slice at the *high* index and `evalMle_boolVec_append`
+  the slice at the *low* index; the two are different subcubes, a window of consecutive entries
+  against one entry every `2 ^ k`.
 * `placeSlice` puts zero in the other slices, so the cube sum is kept. Copying the table into
   every slice multiplies the sum by `2 ^ m`.
 -/
@@ -404,6 +406,34 @@ theorem evalMle_append_boolVec {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z 
   rw [evalMle_split]
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_mul, one_mul, zero_mul,
     Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+
+/-- The slice of a table at the low index `i`: the entries whose low `k` bits are `i`, one
+every `2 ^ k` entries. -/
+def sliceLow {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
+    CMlPolynomialEval R m :=
+  Vector.ofFn fun j ↦ t[cubeIndex i j]
+
+omit [CommRing R] in
+theorem sliceLow_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k))
+    (j : Fin (2 ^ m)) : (sliceLow t i)[j] = t[cubeIndex i j] := by
+  simp [sliceLow]
+
+/-- Mapping the entries commutes with taking a low slice. -/
+theorem sliceLow_map {S : Type*} [CommRing S] (φ : R →+* S) {k m : ℕ}
+    (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
+    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i := by
+  apply Vector.ext
+  intro j hj
+  simp [sliceLow, CMlPolynomialEval.map]
+
+/-- The strided selection identity: Boolean low coordinates select the slice at that low
+index. The mirror of `evalMle_append_boolVec`. -/
+theorem evalMle_boolVec_append {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k))
+    (s : Vector R m) :
+    evalMle t ((boolVec i : Vector R k) ++ s) = evalMle (sliceLow t i) s := by
+  rw [evalMle_split, evalMle_eq_sum]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [evalMle_boolVec, slice_getElem, sliceLow_getElem, mul_comm]
 
 /-- A table placed at the high index `j`: its entries in the slice at `j`, zero in every other
 slice. -/
