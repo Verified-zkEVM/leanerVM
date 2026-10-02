@@ -27,9 +27,9 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
 kernel's three axioms, and no `sorryAx`, for the two master theorems and both halves of the commit
-and public-input phases. The grand-product GKR's definition and completeness are built
-(`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
-`gkrComplete`), on two generic one-round components, a checked message
+and public-input phases. On the branch of #62, the grand-product GKR's definition and
+completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule
+`gkrSpec`, `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
 sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
 product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`).
@@ -75,19 +75,40 @@ following; each item is a checklist line of #12.
   load-bearing: today a verifier that ignores the message has the same theorems. The refutations
   of the check removed, weakened, swapped and doubled join the tests, with the generic
   `not_rbr` and `not_perfectCompleteness` in `ToArkLib/`. The deployed check is a new hole.
-- **The grand-product GKR (Layer 5)** is at the spine's slot shape: `gkr` carries no error and
-  is typed at the schedule `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it
-  owns, and `gkrComplete` extends `Component.Guarded`; its knowledge soundness is to be stated
-  at `gkrError F u nside μ`. Two of its parts are local stand-ins for Layer 4's components: its
-  sumcheck rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, for
-  `Sumcheck.normalized`; its combiner, `Gkr.lambdaStep`, for `batch nside`. When those holes
-  land, the parts become them, and `ToArkLib/SumcheckRound.lean` merges into the sumcheck's
-  module or goes. The refutations of its two checks, the round check and the descendants'
-  check, come with its knowledge soundness, which they refute. Where it differs from Layer 5's
-  sketch: the riders are an argument of the relations (`Gkr.relIn`, `Gkr.relOut`) and of
-  `gkrComplete`, not of `gkr`, which never reads them; a rider's variable count is a
-  `Fin (μ + 1)`, so that its low point exists; a round message is the polynomial's coefficients,
-  not a polynomial with a degree bound, so the degree bound is the message's length.
+- **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
+  no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
+  `gkrComplete` extends `Component.Guarded`, and its knowledge soundness is to be stated at
+  `gkrError F u nside μ`. It is not at the slot's verifier type: `Phases.bus` is a
+  `Phase.FrontDef`, a prover with a `FrontVerifier`, while `gkr` is a `Component.Def` whose
+  verifier is ArkLib's `OracleVerifier.append` of its parts' verifiers, each keeping the stack
+  through `keepOracles`, and nothing composes front verifiers. The bus phase (Layer 6) needs the
+  spine's open decision 31 settled: either `Phases.bus` becomes a `Phase.Def` with a separate
+  oracle-freeness witness (every part's verifier is a lifted front verifier, and `Def.append`
+  preserves that by one lemma), or the parts get front forms with a `Component.FrontDef.append`
+  and a propositional `toDef_append` along which `Complete` and `Security` transport through
+  `stateFunctionOfEq`. The first is the smaller change and is the one proposed for the blueprint.
+  Two of its parts are local stand-ins for Layer 4's components, on two conditions. Its sumcheck
+  rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
+  `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
+  family form (`SumcheckRound.Family`: claims, polynomials, domain and invariant as functions of
+  the context and the challenges), since the GKR's summand reads the trees' levels from the
+  oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
+  `Gkr.lambdaStep`, stands in for `batch nside`, which can take it only as `sampleChallenge` at
+  the batching map, taking the statement maps as arguments: a relabelling pass-through on either
+  side would put a `!p[]` into the schedule and break the definitional equality with `stepSpec`.
+  When those holes land in those forms, the parts become them, and `ToArkLib/SumcheckRound.lean`
+  merges into the sumcheck's module or goes. The blueprint is asked, through a `docs(protocol)`
+  pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
+  the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
+  lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
+  The refutations of its two checks, the round check and the descendants' check, come with its
+  knowledge soundness, which they refute. Where it differs from Layer 5's sketch: the riders are
+  an argument of the relations (`Gkr.relIn`, `Gkr.relOut`) and of `gkrComplete`, not of `gkr`,
+  which never reads them; a rider's variable count is a `Fin (μ + 1)`, so that its low point
+  exists; a round message is the polynomial's coefficients, not a polynomial with a degree
+  bound, so the degree bound is the message's length; the first step reads the roots through a
+  statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
+  layer.
 - **The wall.** `LeanerVM/Protocol/Basic.lean`, an empty module, imports the arithmetization: it
   goes (with its line in `LeanerVM.lean`) or drops the import. The rule goes into
   `scripts/check-layers.sh` with the blueprint's allow-list, and a planted violation into

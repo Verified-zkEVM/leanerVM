@@ -11,8 +11,7 @@ module
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToCompPoly.ProductTree
 public import LeanerVM.Protocol.ToCompPoly.PartialSum
-public import CompPoly.Univariate.ToPoly.RingHom
-public import CompPoly.Univariate.ToPoly.Degree
+import CompPoly.Univariate.ToPoly.RingHom
 
 /-!
 # The grand product by GKR
@@ -43,9 +42,9 @@ the schedule `stepSpec F nside ρ m`:
 
 `gkr` reads the roots as the statement at layer `0`, takes one binary step first when `μ` is odd
 (`Gkr.odd`) and steps of radix four after (`Gkr.layerSteps`), and ends with one more combiner,
-which nothing reads (`Gkr.lastCombiner`); its schedule is `gkrSpec F nside μ`, the one the
-spine's bus slot names, and its errors are `gkrError`'s, which its knowledge soundness is stated
-at. `gkrComplete` is its perfect completeness, composed from its parts' through
+which nothing reads (`Gkr.lastCombiner`); its schedule is `gkrSpec F nside μ`, so that a protocol's
+slot at that schedule takes it, and its errors are `gkrError`'s, which its knowledge soundness is
+stated at. `gkrComplete` is its perfect completeness, composed from its parts' through
 `Component.Complete.append` on the layer identities of `LeanerVM.Protocol.ToCompPoly.ProductTree`.
 
 *Riders* are further tables computed from the public data and the oracles, each on at most `μ`

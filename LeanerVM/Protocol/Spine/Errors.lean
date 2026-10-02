@@ -103,13 +103,31 @@ argument for the three trees, then the boundary columns' values. -/
 def busSpec : ProtocolSpec (busRounds I) :=
   draw ((Fin 4 → E) × E) ++ₚ say (E × E) ++ₚ gkrSpec E 3 I.μBus ++ₚ say (Vector E I.busClaims)
 
+/-! The instances of the bus phase's prefixes, which the phase built one append at a time meets. -/
+
+instance instOracleInterfaceBusRoots :
+    ∀ i, OracleInterface ((draw ((Fin 4 → E) × E) ++ₚ say (E × E)).Message i) :=
+  msgAppend (instOracleInterfaceDraw _) (instOracleInterfaceSay _)
+
+instance instSampleableTypeBusRoots :
+    ∀ i, SampleableType ((draw ((Fin 4 → E) × E) ++ₚ say (E × E)).Challenge i) :=
+  chalAppend (instSampleableTypeDraw _) (instSampleableTypeSay _)
+
+instance instOracleInterfaceBusGkr :
+    ∀ i, OracleInterface
+      ((draw ((Fin 4 → E) × E) ++ₚ say (E × E) ++ₚ gkrSpec E 3 I.μBus).Message i) :=
+  msgAppend instOracleInterfaceBusRoots (instOracleInterfaceGkr E 3 I.μBus)
+
+instance instSampleableTypeBusGkr :
+    ∀ i, SampleableType
+      ((draw ((Fin 4 → E) × E) ++ₚ say (E × E) ++ₚ gkrSpec E 3 I.μBus).Challenge i) :=
+  chalAppend instSampleableTypeBusRoots (instSampleableTypeGkr E 3 I.μBus)
+
 instance instOracleInterfaceBus : ∀ i, OracleInterface ((busSpec I).Message i) :=
-  msgAppend (msgAppend (msgAppend (instOracleInterfaceDraw _) (instOracleInterfaceSay _))
-    (instOracleInterfaceGkr E 3 I.μBus)) (instOracleInterfaceSay _)
+  msgAppend (instOracleInterfaceBusGkr I) (instOracleInterfaceSay _)
 
 instance instSampleableTypeBus : ∀ i, SampleableType ((busSpec I).Challenge i) :=
-  chalAppend (chalAppend (chalAppend (instSampleableTypeDraw _) (instSampleableTypeSay _))
-    (instSampleableTypeGkr E 3 I.μBus)) (instSampleableTypeSay _)
+  chalAppend (instSampleableTypeBusGkr I) (instSampleableTypeSay _)
 
 /-- The bus phase's error: `4·2^{μ_bus}` on `(α, β)`, then the grand-product argument's. -/
 noncomputable def busError : (busSpec I).ChallengeIdx → ℝ≥0 :=

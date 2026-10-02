@@ -62,8 +62,7 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   `Fintype` on the tables, which is noncomputable for `K`, and the `#guard` fails to compile;
   give `List.decidableBAll _ _` by name.
 - A `#guard` on a subtype value built by hand with its proof (a polynomial with its degree
-  bound, `⟨q.val + C 1, …⟩`, in an earlier form of the sumcheck round's message) never returned;
-  build test values with the definitions under test.
+  bound, `⟨q.val + C 1, …⟩`) never returned; build test values with the definitions under test.
 - `draw C ++ₚ draws C k` has `1 + k` rounds and `draws C (k + 1)` has `k + 1`, which are not
   the same type for a variable `k`; so `draws` nests its new challenge last, and a component
   drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its

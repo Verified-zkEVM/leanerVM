@@ -47,10 +47,11 @@ This directory contains stable project and operating knowledge.
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated
     at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
-  - [protocol-gkr.md](reviews/protocol-gkr.md): the review of the grand-product GKR's
-    definition and completeness (2026-09-30), whose findings the branch meets (the combiner's
-    powers and the message degree pinned, the audit surface) or leaves to the blueprint (the
-    unused last combiner in a generic module, the normalized sumcheck's family form).
+  - [protocol-gkr.md](reviews/protocol-gkr.md): the review of the grand-product GKR at the
+    slot's schedule, definition and completeness (2026-10-02), whose findings the branch meets
+    (the generic modules' vocabulary and imports, the bus phase's prefix instances, the status's
+    conditions on Layer 4's components) or records for the roadmap (the slot's verifier type,
+    decision 31; the three blueprint asks), with the earlier review's findings and their fate.
   - [protocol-spine-revision.md](reviews/protocol-spine-revision.md): the review of the spine
     at the slots' schedules and errors (2026-10-02), whose findings the branch now meets (the
     Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the

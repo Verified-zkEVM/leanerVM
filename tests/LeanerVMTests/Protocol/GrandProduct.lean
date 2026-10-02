@@ -1,6 +1,9 @@
 import LeanerVM.Protocol.ToArkLib.GrandProduct
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Spine.Errors
+import LeanerVM.Protocol.Spine.Phase
+import LeanerVM.Protocol.Spine.Toy
 
 /-!
 # Grand-product tests
@@ -11,7 +14,8 @@ Over `E`, with no public data and no oracle, on trees of four, eight and sixteen
   is typed at: their rounds, their challenges (`μ²/4 + μ + 1` for even `μ`: a combiner after the
   roots and after every layer, the last included), the directions, the message types (a round
   message is the five coefficients of a quartic, the descendants four values per tree), and the
-  error `gkrError` charges to each kind of challenge, `0` on the last combiner.
+  error `gkrError` charges to each kind of challenge, `0` on the last combiner. The bus slot takes
+  the component: the bus phase's shape around `gkr 3 toy.μBus` is a phase at `busSpec toy`.
 * **An honest run of `gkr 1 2`, by hand.** The roots satisfy the input relation; the combined
   claim, the descendants' check, the two combination challenges and the output relation.
 * **An honest run of `gkr 3 4`, by hand.** On three trees of sixteen leaves: the first step from
@@ -34,7 +38,8 @@ are named as definitions before a guard uses them.
 
 namespace LeanerVMTests.Protocol.GrandProduct
 
-open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Gkr CompPoly CMlPolynomialEval
+open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Gkr LeanerVM.Protocol.Toy CompPoly
+  CMlPolynomialEval
 open scoped NNReal
 
 /-- No oracle. -/
@@ -99,6 +104,22 @@ example (u : ℝ≥0) : gkrError E u 3 4 ⟨⟨12, by decide⟩, by decide⟩ = 
 example : Component.Def (Unit × (Fin 3 → E)) NoOracle Unit (LayerStmt Unit E 3 4) NoOracle Unit
     (gkrSpec E 3 4) :=
   gkr 3 4 sixteen
+
+/-- The public data of the bus phase's argument: the statement and the fingerprint challenges. -/
+abbrev BusX : Type := toy.Stmt × ((Fin 4 → E) × E)
+
+-- The bus slot takes the component: the fingerprint challenges, the two roots, the argument for
+-- three trees of `2 ^ μ_bus` leaves read from the stack, and the boundary values, is a phase at
+-- `busSpec toy`, by definitional equality of the schedules.
+example : Phase.Def toy toy.Stmt (LayerStmt BusX E 3 toy.μBus × Vector E toy.busClaims)
+    (busSpec toy) :=
+  (((Component.sampleChallenge (TheOracle toy) ((Fin 4 → E) × E) (fun _ ↦ true)
+      fun s ab ↦ (s, ab)).append
+    (Component.sendChecked (TheOracle toy) (E × E) (fun _ ↦ (0, 0)) (fun _ _ ↦ true)
+      fun s r ↦ ((s, ![r.1, r.1, r.2]) : BusX × (Fin 3 → E)))).append
+    (gkr 3 toy.μBus fun _ _ _ ↦ Vector.replicate _ 1)).append
+    (Component.sendChecked (TheOracle toy) (Vector E toy.busClaims) (fun _ ↦ Vector.replicate _ 0)
+      (fun _ _ ↦ true) fun s v ↦ (s, v))
 
 /-! ## The relations, decided by evaluation -/
 

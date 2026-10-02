@@ -52,7 +52,7 @@ and the witness are passed through untouched.
 
 ArkLib's computable sumcheck (`Sumcheck.Impl.Representation.Message`, a polynomial with a
 degree bound queried by evaluation) sums its message over a unit-weight domain and is not an
-oracle reduction; this round sends coefficients, as the deployed verifiers read them, and
+oracle reduction; this round sends coefficients, as a verifier reading them off a wire does, and
 weights the domain.
 -/
 
@@ -112,9 +112,9 @@ abbrev Weights (F X : Type) : Type := X → ℕ → WeightedDomain F
 
 /-- The domain of the normalized round against the point `pt x`: at stage `j`, the points `0, 1`
 with the weights `1 - r_j, r_j` (`1 + r_j, r_j` in characteristic two), the check a cofactor of
-`eq(r, ·)` meets; past the point, the weights `1, 0`. -/
+`eq(r, ·)` meets; past the point, no domain. -/
 def normalizedWeights {m : ℕ} (pt : X → Vector F m) : Weights F X :=
-  fun x j ↦ if h : j < m then [(0, 1 - (pt x)[j]), (1, (pt x)[j])] else [(0, 1), (1, 0)]
+  fun x j ↦ if h : j < m then [(0, 1 - (pt x)[j]), (1, (pt x)[j])] else []
 
 /-- A family of claims to reduce, one stage per number of challenges drawn. -/
 structure Family (F X : Type) [Field F] {ι : Type} (O : ι → Type) (W : Type) (d : ℕ) where
