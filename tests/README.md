@@ -67,6 +67,15 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   the same type for a variable `k`; so `draws` nests its new challenge last, and a component
   drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its
   last step into the last challenge (`Gkr.interpolate`).
+- A `Finset.filter` in a statement under `open scoped Classical in` takes the classical instance
+  only where no other applies: a lemma stated without `[DecidableEq F]` in scope and used where
+  it is in scope fails with "synthesized type class instance is not definitionally equal". Keep
+  the instances in scope the same at the statement and at the use, or compare the filters
+  through `Finset.card_le_card` and `Finset.mem_filter`, which ignore the instance.
+- A recursion whose branch must reduce a `match` on its index (the last step of
+  `Gkr.layerStepsSecurity` uses one tracker, the others another) splits the index as
+  `0`, `1`, `k + 2`: a `match` on a variable `k` inside the branch does not reduce, and the two
+  sides of `Component.Security.append` must agree definitionally.
 
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,

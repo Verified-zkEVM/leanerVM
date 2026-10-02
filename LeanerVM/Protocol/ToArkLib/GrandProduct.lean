@@ -286,7 +286,7 @@ omit [DecidableEq F] [SampleableType F] [BEq F] [LawfulBEq F]
   [∀ i, OracleInterface (O i)] in
 /-- On a Boolean point, the summand is the combination of the trees' levels at the layer: the
 descendants' product is the node's value. -/
-private theorem summand_boolVec (hm : m + ρ ≤ μ) (ctx : LayerCtx X F O nside m) (x : Fin (2 ^ m)) :
+theorem summand_boolVec (hm : m + ρ ≤ μ) (ctx : LayerCtx X F O nside m) (x : Fin (2 ^ m)) :
     summand nside μ leaves ρ m ctx (boolVec x) =
       ∑ s, combinerOf ctx ^ s.val * (layerTable (leaves (dataOf ctx) (oraclesOf ctx) s) m)[x] := by
   unfold summand
@@ -294,6 +294,22 @@ private theorem summand_boolVec (hm : m + ρ ≤ μ) (ctx : LayerCtx X F O nside
   congr 1
   rw [layerTable_contractPow _ ρ hm, contractPow_getElem]
   exact Finset.prod_congr rfl fun c _ ↦ evalMle_childPoint_boolVec ρ _ c x
+
+omit [DecidableEq F] [SampleableType F] [BEq F] [LawfulBEq F]
+  [∀ i, OracleInterface (O i)] in
+/-- The family's first claim is the combination, by the powers of the combiner, of the trees'
+levels at the layer's point. -/
+theorem partialSum_summand_zero (hm : m + ρ ≤ μ) (s : LayerStmt X F nside m) (o : ∀ i, O i)
+    (l : F) :
+    partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] =
+      ∑ t, l ^ t.val * evalMle (layerTable (leaves s.1 o t) m) s.2.1 := by
+  rw [partialSum_zero]
+  have htab : (Vector.ofFn fun y ↦ summand nside μ leaves ρ m (((s, l), o), ()) (boolVec y)) =
+      Vector.ofFn fun y ↦ ∑ t, l ^ t.val * (layerTable (leaves s.1 o t) m)[y] :=
+    Vector.ext fun y hy ↦ by
+      simp only [Vector.getElem_ofFn]
+      exact summand_boolVec nside μ leaves ρ m hm _ ⟨y, hy⟩
+  rw [htab, evalMle_ofFn_sum]
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- From the layer relation, the combined claim at any challenge is the partial sum of the
@@ -306,13 +322,7 @@ private theorem lambdaNext_mem_rel (hm : m + ρ ≤ μ) (s : LayerStmt X F nside
   refine ⟨hz, ?_⟩
   change (lambdaNext nside m s l).2.2 =
     partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[]
-  rw [partialSum_zero]
-  have htab : (Vector.ofFn fun y ↦ summand nside μ leaves ρ m (((s, l), o), ()) (boolVec y)) =
-      Vector.ofFn fun y ↦ ∑ t, l ^ t.val * (layerTable (leaves s.1 o t) m)[y] :=
-    Vector.ext fun y hy ↦ by
-      simp only [Vector.getElem_ofFn]
-      exact summand_boolVec nside μ leaves ρ m hm _ ⟨y, hy⟩
-  rw [htab, evalMle_ofFn_sum]
+  rw [partialSum_summand_zero nside μ leaves ρ m hm s o l]
   show ∑ t, l ^ t.val * s.2.2 t = _
   exact Finset.sum_congr rfl fun t _ ↦ by rw [hval t]
 
@@ -506,15 +516,22 @@ def layerStepsComplete : (k m : ℕ) → (h : m + 2 * k = μ) →
 def rootStmt (s : X × (Fin nside → F)) : LayerStmt X F nside 0 := (s.1, (#v[], s.2))
 
 omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
-/-- Roots that are the products of their leaves are the trees' values at layer `0`. -/
-private theorem rootStmt_mem (s : X × (Fin nside → F)) (o : ∀ i, O i)
-    (h : ((s, o), ()) ∈ relIn nside μ leaves riders) :
-    ((rootStmt nside s, o), ()) ∈ layerRel nside μ leaves riders 0 := by
-  obtain ⟨hz, hroot⟩ := h
-  refine ⟨hz, fun t ↦ ?_⟩
-  show evalMle (layerTable (leaves s.1 o t) 0) #v[] = s.2 t
-  rw [evalMle_zero, hroot t, ← layerTable_zero_getElem]
-  rfl
+/-- Roots are the products of their leaves exactly when, read as the statement at layer `0`,
+they are the trees' values there. -/
+theorem relIn_iff_layerRel_zero (s : X × (Fin nside → F)) (o : ∀ i, O i) :
+    ((s, o), ()) ∈ relIn nside μ leaves riders ↔
+      ((rootStmt nside s, o), ()) ∈ layerRel nside μ leaves riders 0 := by
+  refine and_congr Iff.rfl (forall_congr' fun t ↦ ?_)
+  show s.2 t = ∏ i : Fin (2 ^ μ), (leaves s.1 o t)[i] ↔
+    evalMle (layerTable (leaves s.1 o t) 0) #v[] = s.2 t
+  constructor
+  · intro h
+    rw [evalMle_zero, h, ← layerTable_zero_getElem]
+    rfl
+  · intro h
+    rw [evalMle_zero] at h
+    rw [← h, ← layerTable_zero_getElem]
+    rfl
 
 /-- The first step from the roots when `μ` is odd (`r = 1`): a binary step read off the roots;
 nothing when `μ` is even (`r = 0`), the roots read as layer `0`. -/
@@ -530,11 +547,11 @@ def oddComplete : (r : ℕ) → (hr : r ≤ 1) → r ≤ μ →
       (layerRel nside μ leaves riders r)
   | 0, _, _ => Component.passThroughComplete O _ fun s o w h ↦ by
     cases w
-    exact rootStmt_mem nside μ leaves riders s o h
+    exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
   | 1, _, hμ =>
     layerStepComplete nside μ leaves riders 1 0 (rootStmt nside) hμ fun s o w h ↦ by
       cases w
-      exact rootStmt_mem nside μ leaves riders s o h
+      exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
   | _ + 2, h, _ => absurd h (by omega)
 
 /-- The combiner drawn after the last layer: it changes nothing, and nothing reads it. -/
