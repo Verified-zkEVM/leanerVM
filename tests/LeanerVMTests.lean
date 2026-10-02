@@ -17,6 +17,7 @@ import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
+import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
