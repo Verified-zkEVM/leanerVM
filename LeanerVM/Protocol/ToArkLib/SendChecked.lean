@@ -157,6 +157,54 @@ def sendCheckedComplete
   guarded := sendCheckedGuarded OStmt M check out
   complete := sendChecked_complete OStmt M honest check out h
 
+/-! ## Knowledge soundness -/
+
+variable (h : ∀ s o w msg, check s msg = true → ((out s msg, o), w) ∈ relOut → ((s, o), w) ∈ relIn)
+  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+
+/-- The knowledge state function of a checked message: the input relation, before and after the
+message; the message cannot make it true. -/
+def sendCheckedStateFunction :
+    (sendCheckedVerifier OStmt M check out).toVerifier.KnowledgeStateFunction init impl relIn
+      relOut (keepExtractor _ W (say M)) where
+  toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun _ _ _ _ _ _ hw ↦ hw
+  toFun_full := fun stmt tr w hpos ↦
+    have hv := Verifier.GuardedForm.of_probEvent_pos (sendCheckedGuarded OStmt M check out) init
+      impl stmt tr _ hpos
+    h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.1 hv.2
+
+/-- The security half of a checked message, at error zero: no challenge, the witness kept,
+whenever the check and the output relation together imply the input relation. -/
+def sendCheckedSecurity :
+    Security (sendChecked OStmt M honest check out) relIn relOut (sayError M) where
+  guarded := sendCheckedGuarded OStmt M check out
+  witMid := fun _ ↦ W
+  extractor := keepExtractor _ W (say M)
+  kSF := sendCheckedStateFunction OStmt M check out h
+  rbr := fun _ _ _ i ↦ (IsEmpty.false i).elim
+
+omit h in
+/-- No knowledge state function at all when some message that passes the check carries a
+statement with no witness into the output relation: the verifier accepts it, so the state is
+true after the message, and a message cannot have made it true. -/
+theorem sendChecked_no_stateFunction {W' : Fin 2 → Type}
+    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (StmtIn × ∀ i, OStmt i) W W
+      (say M) W'}
+    (K : (sendCheckedVerifier OStmt M check out).toVerifier.KnowledgeStateFunction init impl
+      relIn relOut E)
+    (s : StmtIn) (o : ∀ i, OStmt i) (hin : ∀ w, ((s, o), w) ∉ relIn) (msg : M)
+    (hc : check s msg = true) (w : W) (hout : ((out s msg, o), w) ∈ relOut) : False := by
+  let tr : (say M).FullTranscript :=
+    ProtocolSpec.Transcript.concat (m := 0) msg (default : (say M).Transcript 0)
+  have hc' : (sendCheckedGuarded OStmt M check out).check (s, o) tr = true := hc
+  have hpos := Verifier.guarded_accepting_of_mem init impl _ _ _
+    (sendCheckedGuarded OStmt M check out).verify_eq (s, o) tr hc' {t | (t, w) ∈ relOut} hout
+  have hfull := K.toFun_full (s, o) tr w (lt_of_lt_of_eq zero_lt_one hpos.symm)
+  have hnext := K.toFun_next 0 rfl (s, o) (default : (say M).Transcript 0) msg _ hfull
+  exact hin _ ((K.toFun_empty (s, o) _).mpr hnext)
+
 end Component
 
 end

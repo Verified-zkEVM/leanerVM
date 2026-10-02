@@ -67,6 +67,23 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   the same type for a variable `k`; so `draws` nests its new challenge last, and a component
   drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its
   last step into the last challenge (`Gkr.interpolate`).
+- A `Finset.filter` in a statement under `open scoped Classical in` takes the classical instance
+  only where no other applies: a lemma stated without `[DecidableEq F]` in scope and used where
+  it is in scope fails with "synthesized type class instance is not definitionally equal". Keep
+  the instances in scope the same at the statement and at the use, or compare the filters
+  through `Finset.card_le_card` and `Finset.mem_filter`, which ignore the instance.
+- A recursion whose branch must reduce a `match` on its index (the last step of
+  `Gkr.layerStepsSecurity` uses one tracker, the others another) splits the index as
+  `0`, `1`, `k + 2`: a `match` on a variable `k` inside the branch does not reduce, and the two
+  sides of `Component.Security.append` must agree definitionally.
+- A closed statement over `E` in a definitional comparison is an evaluation of the trees: a
+  hypothesis such as `s.2.2 ≠ Φ.claim (ctxOf …) …` at `s := (s0.1, (s0.2.1, trueClaim + 1))`,
+  with `s0` and `trueClaim` the hand run's values, sends the unifier, or the kernel, through
+  `s0` and never returns (the round refutation hit the recursion limit, the descendants' one a
+  kernel timeout). The same proof on a symbolic statement, `(x, (cv, Φ.claim ((x, noO), ()) 0
+  cv + 1))` with `x` and `cv` variables, is one unfolding, since nothing closed can be
+  evaluated. State a refutation over variables and keep the hand run's values for the honest
+  runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
 
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,

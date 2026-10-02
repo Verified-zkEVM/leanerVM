@@ -48,7 +48,7 @@ composes with no assumption.
 namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec ProtocolSpec
-open scoped NNReal
+open scoped NNReal ENNReal
 
 @[expose] public section
 
@@ -68,6 +68,13 @@ theorem sum_errAppend {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Protoc
   rw [← ChallengeIdx.sumEquiv.sum_comp (errAppend ε₁ ε₂)]
   simp only [errAppend, Function.comp_apply, Equiv.symm_apply_apply, Fintype.sum_sum_type,
     Sum.elim_inl, Sum.elim_inr]
+
+/-- `N / |C| ≤ N · u` when `1 / |C| ≤ u`: an error counted in degrees of one unit. -/
+theorem nat_div_card_le_mul {C : Type} [Fintype C] (N : ℕ) {u : ℝ≥0}
+    (hu : (1 : ℝ≥0) / (Fintype.card C : ℝ≥0) ≤ u) :
+    (N : ℝ≥0) / (Fintype.card C : ℝ≥0) ≤ (N : ℝ≥0) * u := by
+  rw [div_eq_mul_one_div]
+  exact mul_le_mul_of_nonneg_left hu zero_le
 
 namespace Component
 
@@ -147,6 +154,26 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec)
   rbr : ∀ {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)),
     D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut witMid
       extractor (kSF init impl) err
+
+/-- Security at an error is security at any larger error. Inlined before compilation, so the
+errors, real numbers, never reach compiled code and a security built with it computes. -/
+@[macro_inline]
+def Security.mono {D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec}
+    {relIn : Set ((StmtIn × ∀ i, OStmtIn i) × WitIn)}
+    {relOut : Set ((StmtOut × ∀ i, OStmtOut i) × WitOut)}
+    {ε ε' : pSpec.ChallengeIdx → ℝ≥0} (h : ∀ i, ε i ≤ ε' i) (S : Security D relIn relOut ε) :
+    Security D relIn relOut ε' where
+  toExtraction := S.toExtraction
+  rbr := fun init impl s i tr ↦ (S.rbr init impl s i tr).trans (ENNReal.coe_le_coe.mpr (h i))
+
+/-- The extractor that keeps the witness at every round. The shared oracle is written
+`OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe `Extractor.RoundByRound`
+leaves free. -/
+def keepExtractor (S W : Type) {n : ℕ} (pSpec : ProtocolSpec n) :
+    Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) S W W pSpec (fun _ ↦ W) where
+  eqIn := rfl
+  extractMid := fun _ _ _ w ↦ w
+  extractOut := fun _ _ w ↦ w
 
 /-! ## Composition -/
 
@@ -244,7 +271,9 @@ def Extraction.append (X₁ : Extraction D₁ rel₁ rel₂) (X₂ : Extraction 
       (X₂.kSF init impl))
 
 /-- Security composes, at the errors side by side: the extractions are appended, and the bound
-is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. -/
+is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. Inlined before
+compilation, like `Security.mono`, so a composed security computes. -/
+@[macro_inline]
 def Security.append {ε₁ : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ : pSpec₂.ChallengeIdx → ℝ≥0}
     (S₁ : Security D₁ rel₁ rel₂ ε₁) (S₂ : Security D₂ rel₂ rel₃ ε₂) :
     Security (D₁.append D₂) rel₁ rel₃ (errAppend ε₁ ε₂) where

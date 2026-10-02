@@ -34,9 +34,15 @@ completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot'
 `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
 sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
-product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`).
-Nothing else is built: the other phases, the other generic components, the Clean bridge, the
-adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
+product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On
+the branch stacked on it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`:
+`gkrSecurity` at `gkrError F u nside μ` for any unit `u` at least `1 / |F|`) stands on the two
+components' security halves, the round's (`SumcheckRound.roundsSecurity`, for a consistent and
+sound family carrying no witness) and a table's zeroness on a partial point
+(`ToCompPoly/Restriction.lean`), which tracks the riders and the descendants' values while the
+coordinates of a point are drawn one at a time. Nothing else is built: the other phases, the
+other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
+verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -124,8 +130,8 @@ each is a checklist line of #12. Where the built work differs from the blueprint
 - **The deployed public-input check** is a hole of its own, not built.
 - **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
   no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
-  `gkrComplete` extends `Component.Guarded`, and its knowledge soundness is to be stated at
-  `gkrError F u nside μ`. It is at the slot's verifier type too: `Phase.FrontDef` is a component with a
+  `gkrComplete` extends `Component.Guarded`, and its knowledge soundness `gkrSecurity` is stated
+  at `gkrError F u nside μ`. It is at the slot's verifier type too: `Phase.FrontDef` is a component with a
   `Component.Front` witness, a check and a verdict on the statement and the transcript that hand
   the stack on, which `gkrFront` provides by composing the parts' witnesses through
   `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
@@ -144,8 +150,25 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
   the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
   lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
-  The refutations of its two checks, the round check and the descendants' check, come with its
-  knowledge soundness, which they refute. Where it differs from Layer 5's sketch: the riders are
+  Its knowledge soundness, `gkrSecurity`, is proved on its local round, not on Layer 4's
+  `Sumcheck.normalizedSecurity` as the holes table's *Needs* has it: the round's knowledge
+  soundness is the generic `SumcheckRound.roundsSecurity`, which the sumcheck hole may take over
+  or replace. Its riders' state is the blueprint's: zero tables inside the argument, and at the
+  last layer zero on the coordinates drawn so far (`Gkr.progTrack`, through `RestrictedZero` on a
+  `Partial` point), so a rider's escape at a challenge is one value and is dominated by the
+  claim's; the descendants' values are tracked the same way across the combination challenges.
+  The refutations of its two checks are theorems on the generic components with the check
+  removed, whatever the extractor and the state function:
+  `SumcheckRound.drawChallenge_unchecked_not_rbr` (no knowledge error below one for the round's
+  challenge, from the honest polynomial at a wrong claim) and
+  `Component.sendChecked_no_stateFunction` (no knowledge state function at all for the
+  descendants' message), instantiated on the three sixteen-leaf trees in the tests. Its security
+  definitions are plain `def`s: `Component.Security.mono` and `Component.Security.append` are
+  inlined before compilation, so the errors, real numbers, never reach compiled code. At `E`
+  they do not compute yet: they take a `Fintype F` instance, and `Fintype E` is noncomputable,
+  so an extraction of `gkrSecurity` at `E` fails to compile. The way out is to state the counts
+  with `Nat.card` under `[Finite F]` and build the instance inside the proofs; it is open.
+  Where it differs from Layer 5's sketch: the riders are
   an argument of the relations (`Gkr.relIn`, `Gkr.relOut`) and of `gkrComplete`, not of `gkr`,
   which never reads them; a rider's variable count is a `Fin (μ + 1)`, so that its low point
   exists; a round message is the polynomial's coefficients, not a polynomial with a degree
@@ -163,8 +186,9 @@ objects, #43 feeding the opening phase.
 
 The spine's revision first: every phase is written against its slots. Independent of it: Clean
 expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint (Layer 5), the GKR's knowledge soundness on its local round (Layer 5), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The public-input phase's deployed check follows its pool's revision.
+fingerprint (Layer 5), the WHIR opening, and the Merkle trees with the WHIR parameters
+(Layer 11). The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
+stacked on #62. The public-input phase's deployed check follows its pool's revision.
 
 ## Upstream watch
 
