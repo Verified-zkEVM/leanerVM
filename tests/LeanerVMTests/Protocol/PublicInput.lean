@@ -773,6 +773,102 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
       rw [h0, h1, show decide ((expectedValues toy stmtHonest.1 y).length = 2) = false from rfl,
         Bool.and_false, Bool.and_false])⟩
 
+/-! ### The check on the words with `1` for `y` -/
+
+/-- The check on the words with `1` in place of `y`: `c₀ + c₁ = (1 + r)·w₀ + r·w₁`. -/
+def checkOnes (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  match (I.publicLines s.1).toList.filter (·.sent), cs with
+  | [l₀, l₁], [c₀, c₁] =>
+    decide (c₀ + c₁ =
+      (1 + r) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r * E.ofLimbs l₀.cell1 l₁.cell1 0)
+  | [_, _], _ => false
+  | _, _ => check I s r cs
+
+/-- The verifier with that check, on two limbs. -/
+abbrev yOne : FrontVerifier []ₒ (K × TableOut twoLimbs) (K × PubOut twoLimbs) pubSpec :=
+  verifierWith twoLimbs (checkOnes twoLimbs) (pooledFrom twoLimbs)
+
+/-- Both limbs hold the cells `(1, 1)` against the zero words. -/
+def onesLimbs : Column 3 := ⟨#v[1, 1, 1, 1, 0, 0, 0, 0]⟩
+
+/-- The statement `0` with the received claims true of `onesLimbs`. -/
+def stmtOnes : K × TableOut twoLimbs :=
+  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) onesLimbs⟩)
+
+theorem stmtOnes_not_table : ((stmtOnes, oracleOf onesLimbs), ()) ∉ Seam.table twoLimbs :=
+  fun h ↦ absurd (h.2.1 ⟨⟨0, 0⟩, 0, 0, true, by decide⟩ (by simp)).1 (by decide)
+
+/-- The message `[1, 1]` passes the check with `1` for `y` at every challenge: the two values
+sum to zero. -/
+theorem yOne_accepts (c : E) : accepts twoLimbs (checkOnes twoLimbs) stmtOnes c [1, 1] = true := by
+  simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
+  refine ⟨rfl, ?_⟩
+  show decide ((1 : E) + 1 = (1 + c) * E.ofLimbs 0 0 0 + c * E.ofLimbs 0 0 0) = true
+  rw [(ofLimbs_eq_zero_iff 0).mpr rfl]
+  simp [CharTwo.add_self_eq_zero]
+
+/-- And its verdict is in the public seam: `[1, 1]` is the stack's own values at every
+challenge, the line through the cells `(1, 1)` being constant. -/
+theorem yOne_pub (c : E) :
+    ((verdict twoLimbs (pooledFrom twoLimbs) stmtOnes c [1, 1], oracleOf onesLimbs), ()) ∈
+      Seam.pub twoLimbs := by
+  have c0 : (twoLimbs.column onesLimbs ⟨0, 0⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have c1 : (twoLimbs.column onesLimbs ⟨0, 0⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have d0 : (twoLimbs.column onesLimbs ⟨0, 1⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have d1 : (twoLimbs.column onesLimbs ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  rw [verdict, dite_eq_left (show ([1, 1] : List E).length =
+    sentCount twoLimbs (twoLimbs.publicLines stmtOnes.1) from rfl)] at hcl
+  simp only [pooledFrom, Vector.toList_append, List.mem_append] at hcl
+  rcases hcl with hcl | hcl
+  · exact receivedTrue_holds twoLimbs (by decide) (by decide) (by decide) (by decide) onesLimbs
+      cl hcl
+  · simp only [claimsFrom, claimsWith, Vector.toList_ofFn, List.mem_ofFn] at hcl
+    obtain ⟨i, rfl⟩ := hcl
+    fin_cases i
+    · show CMlPolynomialEval.eval₂Mle (twoLimbs.column onesLimbs ⟨0, 0⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, c0, c1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (twoLimbs.column onesLimbs ⟨0, 1⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, d0, d1]
+      simp
+
+/-- Reading `y` as `1` leaves no round-by-round knowledge error below one: the stack whose limbs
+both hold `(1, 1)` is accepted at every challenge with a pool inside the public seam. The check
+on the words is where `1` and `y` being independent over `K` is used, and `accepts_two_challenges`
+needs it. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {WitMid : Fin 3 → Type}
+    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      ((K × TableOut twoLimbs) × ∀ i, TheOracle twoLimbs i) Unit Unit pubSpec WitMid)
+    (kSF : (yOne.toOracleVerifier (TheOracle twoLimbs)).toVerifier.KnowledgeStateFunction
+      init impl (Seam.table twoLimbs) (Seam.pub twoLimbs) Ext)
+    (ε : pubSpec.ChallengeIdx → ℝ≥0)
+    (h : (yOne.toOracleVerifier
+      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+        (Seam.table twoLimbs) (Seam.pub twoLimbs) WitMid Ext kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOnes, oracleOf onesLimbs)
+    (fun _ h ↦ stmtOnes_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
+      ⟨fullOf c [1, 1], fullOf_take c _, (),
+        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
+          (yOne_accepts c) (yOne_pub c)⟩
+
+-- The deployed check rejects that stack at every challenge tried, whatever it sends: with the
+-- values the stack truly takes, and with the message that the mutant accepts.
+#guard checkOnes twoLimbs stmtOnes y [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes y [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes r₂ [1, 1]
+#guard trueValues twoLimbs onesLimbs 0 y = [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes y (trueValues twoLimbs onesLimbs 0 y)
+#guard ¬ checkWords twoLimbs stmtOnes 0 (trueValues twoLimbs onesLimbs 0 0)
+-- It is none of the earlier mutants either: the check on the first value only accepts `[0, 1]`
+-- on zero words, which the deployed check rejects.
+#guard decide (([0, 1] : List E).head? = (expectedValues twoLimbs (0 : K) y).head?)
+#guard ¬ checkWords twoLimbs stmtTwo y [0, 1]
+
 /-! ### The bad challenge of the deployed check -/
 
 -- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
