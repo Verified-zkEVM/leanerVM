@@ -4,7 +4,8 @@
   The public-input phase: the verifier draws a challenge, the prover sends the values it claims
   for the public columns on the line through their first two cells, and the verifier checks
   those values against the public statement and pools the claims. Both halves proved, at the
-  slot's schedule and error.
+  slot's schedule and error, for the specification's check and for the check of the deployed
+  verifiers.
 -/
 
 module
@@ -55,9 +56,21 @@ lines.
 
 Written from the specification; the Rust verifier was read afterwards. It reads the same
 transcript and checks one equation on the two public words instead of one per limb,
-`c₀ + y·c₁ = (1 + r)·w₀ + r·w₁` (`crates/lean_vm/src/cpu/mod.rs:752-755`). The two equations
-here imply that one, and it accepts transcripts they reject, so the theorems below are about
-the specification's verifier.
+`c₀ + y·c₁ = (1 + r)·w₀ + r·w₁` (`crates/lean_vm/src/cpu/mod.rs:752-755`), as do the Python
+verifier and the recursion guest (`checkWords`, transcribed from the sources at the pin). The
+two equations here imply that one (`checkWords_of_check`), and it accepts transcripts they
+reject, so the theorems up to `rbr` are about the specification's verifier.
+
+The deployed verifier (`deployedVerifier`) is the same shape, `verifierWith` at `checkWords` and
+the pool from the values sent, and its phase (`deployedPublicInputPhase`) is the specification's
+prover with it, at the same slot and error. The completeness is the specification's argument
+(`deployed_complete`). For the knowledge soundness the message is no function of the statement
+and the challenge, so the state after the challenge is that some message is accepted
+(`deployedStateFunction`). Outside the table seam, one challenge at most has such a message
+(`bad_challenge_unique_words`): the claims on the two sent lines are true of the stack, so the
+equation on the words is one on its cells, which `accepts_two_challenges` shows two challenges
+would fix to the statement's, with the top limb zero by its own claim. The bound is the
+specification's, `1/|E|` (`deployed_rbr`).
 -/
 
 namespace LeanerVM.Protocol
@@ -867,6 +880,62 @@ theorem rbr :
   rintro r ⟨_, hin, hout⟩
   exact ⟨hin, hout⟩
 
+/-- The knowledge state function of the deployed phase, with the specification's extractor: before
+the challenge, the table seam; after the challenge, that some message passes the check on the
+words with a verdict in the public seam; after the prover's values, that they pass and that their
+verdict is in the public seam. For the specification's check the message is a function of the
+statement and the challenge, and the state after the challenge is that its pool is in the public
+seam; under the check on the words it is not, so that state is the existence of a message. -/
+def deployedStateFunction :
+    ((deployedVerifier I).toOracleVerifier (TheOracle I)).toVerifier.KnowledgeStateFunction init
+      impl (Seam.table I) (Seam.pub I) (extractor I) where
+  toFun := fun m stmt tr _ ↦
+    if h0 : m.val = 0 then ((stmt, ()) ∈ Seam.table I)
+    else if h1 : m.val = 1 then
+      ∃ cs, accepts I (checkWords I) stmt.1 (tr ⟨0, by omega⟩) cs = true ∧
+        ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) cs, stmt.2), ()) ∈ Seam.pub I
+    else
+      accepts I (checkWords I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
+        ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
+          Seam.pub I
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun m hm stmt tr msg w h ↦ by
+    have hm1 : m = 1 := by
+      fin_cases m
+      · exact absurd hm (by decide)
+      · rfl
+    subst hm1
+    obtain ⟨hc, hp⟩ := h
+    exact ⟨msg, hc, hp⟩
+  toFun_full := fun stmt tr _ h ↦
+    Verifier.GuardedForm.of_probEvent_pos (deployedGuarded I) init impl stmt tr _ h
+
+/-- Round-by-round knowledge soundness of the deployed phase at the slot's error `1/|E|`: a bad
+transition is a bad challenge, and there is at most one (`bad_challenge_unique_words`). -/
+theorem deployed_rbr :
+    ((deployedVerifier I).toOracleVerifier (TheOracle I)).toVerifier
+      |>.rbrKnowledgeSoundnessWorstCaseWith init impl (Seam.table I) (Seam.pub I)
+        (fun _ ↦ Unit) (extractor I) (deployedStateFunction I init impl) pubError := by
+  intro stmtIn i tr
+  obtain ⟨s, o⟩ := stmtIn
+  obtain ⟨i, hi⟩ := i
+  have hi0 : i = 0 := by
+    fin_cases i
+    · rfl
+    · exact absurd hi (by decide)
+  subst hi0
+  show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
+  rw [Nat.cast_one]
+  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+    (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ∃ cs, accepts I (checkWords I) s r cs = true ∧
+      ((verdict I (pooledFrom I) s r cs, o), ()) ∈ Seam.pub I)
+    fun r₁ r₂ h₁ h₂ ↦ ?_)
+  · rintro r ⟨_, hin, hout⟩
+    exact ⟨hin, hout⟩
+  · obtain ⟨cs₁, hc₁⟩ := h₁.2
+    obtain ⟨cs₂, hc₂⟩ := h₂.2
+    exact bad_challenge_unique_words I s o h₁.1 hc₁ hc₂
+
 end PublicInput
 
 /-! ## The phase -/
@@ -907,6 +976,16 @@ def deployedPublicInputComplete :
     Phase.Complete I (deployedPublicInputPhase I).toDef (Seam.table I) (Seam.pub I) where
   guarded := PublicInput.deployedGuarded I
   complete := PublicInput.deployed_complete I
+
+/-- The security half of the deployed phase, at the slot's error, with the extractor that keeps
+the trivial witness. -/
+def deployedPublicInputSecurity :
+    Phase.Security I (deployedPublicInputPhase I).toDef (Seam.table I) (Seam.pub I) pubError where
+  guarded := PublicInput.deployedGuarded I
+  witMid := fun _ ↦ Unit
+  extractor := PublicInput.extractor I
+  kSF := PublicInput.deployedStateFunction I
+  rbr := PublicInput.deployed_rbr I
 
 end
 end LeanerVM.Protocol

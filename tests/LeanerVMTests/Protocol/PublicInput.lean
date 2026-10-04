@@ -445,6 +445,11 @@ example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam
 example : Phase.Complete toy (deployedPublicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
   deployedPublicInputComplete toy
 
+/-- Its security half typechecks against the same seams, at the same error. -/
+example : Phase.Security toy (deployedPublicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
+    pubError :=
+  deployedPublicInputSecurity toy
+
 example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
     pubError :=
   publicInputSecurity toy
@@ -464,6 +469,16 @@ example (P : Phases toy) (C : P.Complete) {σ : Type}
       (M3Rel toy) (Seam.done toy) :=
   piop_perfectCompleteness { P with pub := deployedPublicInputPhase toy }
     { C with pub := deployedPublicInputComplete toy } init impl
+
+/-- The same for knowledge soundness: with the deployed phase and its security half in the
+bundle, the master theorem gives the round-by-round knowledge soundness of the whole oracle
+protocol at the slots' errors. -/
+example (P : Phases toy) (S : P.Security) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (leanVmVerifier { P with pub := deployedPublicInputPhase toy }).toVerifier
+      |>.rbrKnowledgeSoundnessWorstCase init impl (M3Rel toy) (Seam.done toy) (piopError toy) :=
+  piop_rbrKnowledgeSoundness_exists { P with pub := deployedPublicInputPhase toy }
+    { S with pub := deployedPublicInputSecurity toy } init impl
 
 /-! ## The check is load-bearing -/
 
@@ -757,6 +772,33 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
           decide ((pr.1 1 : List E).length = 2))) = false
       rw [h0, h1, show decide ((expectedValues toy stmtHonest.1 y).length = 2) = false from rfl,
         Bool.and_false, Bool.and_false])⟩
+
+/-! ### The bad challenge of the deployed check -/
+
+-- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
+-- stack's true values passes the check on the words at `r = 1` and at no other challenge tried,
+-- and at that challenge every claim of the pool holds of its stack: the bound `1/|E|` of
+-- `deployedPublicInputSecurity` is attained, so it cannot be lowered.
+#guard checkWords twoLimbs stmtOneBad 1 (trueValues twoLimbs oneBadLimb 0 1)
+#guard ¬ checkWords twoLimbs stmtOneBad y (trueValues twoLimbs oneBadLimb 0 y)
+#guard ¬ checkWords twoLimbs stmtOneBad r₂ (trueValues twoLimbs oneBadLimb 0 r₂)
+#guard ∀ c ∈ (pooled twoLimbs stmtOneBad 1).2.columns.toList, c.Holds oneBadLimb
+-- On `badLimbs` the bad challenge of the deployed check is `rStar`, where the check per limb
+-- rejects: the deployed check has a bad challenge the specification's has not.
+#guard checkWords twoLimbs stmtTwo rStar (trueValues twoLimbs badLimbs 0 rStar)
+#guard ¬ check twoLimbs stmtTwo rStar (trueValues twoLimbs badLimbs 0 rStar)
+
+/-- The statement `0` with the received claims true of `badLimbs`. -/
+def stmtBadLimbs : K × TableOut twoLimbs :=
+  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) badLimbs⟩)
+
+-- The check on the words does not decide the claims. At `y` it accepts the message `[y, 1]`,
+-- which is not `badLimbs`' own values `[y, 1 + y]`, and the claim pooled from it on limb 1 is false
+-- of that stack: the claims, not the check, are what a prover cannot get past. So the state of
+-- the proof after the challenge asks whether some message is accepted with a pool that holds.
+#guard accepts twoLimbs (checkWords twoLimbs) stmtBadLimbs y [y, 1]
+#guard ¬ ∀ c ∈ (verdict twoLimbs (pooledFrom twoLimbs) stmtBadLimbs y [y, 1]).2.columns.toList,
+  c.Holds badLimbs
 
 end Refutations
 
