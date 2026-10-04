@@ -26,10 +26,12 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
-phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
-kernel's three axioms, and no `sorryAx`, for the two master theorems and both halves of the commit
-and public-input phases. Nothing else is built: the other phases, the generic components, the
-Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
+phases after the commitment; of those, the public-input phase is built, with the specification's
+check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
+axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
+each version of the public-input phase. Nothing else is built: the other phases, the generic
+components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the
+base theorems.
 
 ## What the built work owes the blueprint
 
@@ -106,15 +108,35 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   The blueprint's `claimsFrom` on a bare list would need a value for a missing entry, and the
   computed value, the only candidate, is the one choice no refutation can catch. The alias
   `PublicInput.pSpec` is gone; the slot is `pubSpec`.
-- **The deployed public-input check** is a hole of its own, not built.
+- **The deployed public-input check** is the specification phase's prover with a verifier that
+  checks one equation on the two public words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁` (`checkWords`;
+  `cpu/mod.rs:752-755`, `verifier.py:1400`, `aggregate.py:1680-1683`), at the same slot and error. Where it
+  differs from the blueprint, or what it leaves to the work after it:
+  - `deployedPublicInputPhase` is a `Phase.FrontDef`, the type `Phases.pub` has (decision 31); the
+    blueprint's signature says `Phase.Def`. Its public surface mirrors the specification phase's:
+    `deployedVerifier`, `deployedGuarded`, `deployed_complete`, `deployedStateFunction` and
+    `deployed_rbr` stand beside the declarations the hole lists.
+  - `accepts_two_challenges` states its hypotheses inline: the blueprint's `Accepts` would clash
+    with `PublicInput.accepts`, and inline it shows that the pooled claim on the top limb is one
+    of them. Off the shape of two sent lines `checkWords` is the specification's check, as the
+    blueprint's "otherwise" has it, so that `checkWords_of_check` holds of every instance.
+  - The message is no function of the statement and the challenge, as the specification's is, so
+    the knowledge state function says after the challenge that some message is accepted
+    (`deployedStateFunction`); the bound is the specification's `1/|E|`, over
+    `bad_challenge_unique_words`.
+  - The sources pool the top limb at the constant `0`; the phase pools the value computed from
+    the statement. They agree where the top line is zero, which the public words' zero top limb
+    gives (`read_public` rejects a nonzero one, `cpu/mod.rs:139-143`), and on a statement whose
+    top line is not zero the constant is unsound (tested). That `leanIsaInstance` has a zero top
+    line, and lists `mem_0` then `mem_1` as its two sent lines (`checkWords` reads their cells as
+    the limbs `y⁰` and `y¹` of the two words), is the adaptor's to prove.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint and the GKR (Layer 5), the public-input phase's deployed check (Layer 8), the Flock
-phase's definition and completeness (Layer 9), the WHIR opening, and the Merkle trees with the
-WHIR parameters (Layer 11).
+fingerprint and the GKR (Layer 5), the Flock phase's definition and completeness (Layer 9), the
+WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
 
 ## Upstream watch
 
