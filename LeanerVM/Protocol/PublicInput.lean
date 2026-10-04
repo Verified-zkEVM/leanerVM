@@ -610,6 +610,203 @@ theorem deployed_complete {σ : Type} (init : ProbComp σ)
 
 /-! ## Knowledge soundness -/
 
+/-! ### The bad challenge of the deployed check -/
+
+/-- An element of a filtered list comes from a position of the original, and its index in the
+filtered list is the number of kept elements before that position: the converse of
+`getElem?_filter_length_take`. -/
+private theorem exists_index_of_getElem?_filter {α : Type} (p : α → Bool) :
+    ∀ (l : List α) (k : ℕ) (a : α), (l.filter p)[k]? = some a →
+      ∃ (i : ℕ) (hi : i < l.length),
+        p l[i] = true ∧ ((l.take i).filter p).length = k ∧ l[i] = a
+  | [], k, a, h => by simp at h
+  | b :: l, k, a, h => by
+    by_cases hb : p b = true
+    · cases k with
+      | zero =>
+        simp only [List.filter_cons_of_pos hb, List.getElem?_cons_zero, Option.some.injEq] at h
+        exact ⟨0, by simp, hb, by simp, by simp [h]⟩
+      | succ k =>
+        simp only [List.filter_cons_of_pos hb, List.getElem?_cons_succ] at h
+        obtain ⟨i, hi, hpi, hk, hia⟩ := exists_index_of_getElem?_filter p l k a h
+        exact ⟨i + 1, by simpa using hi, by simpa using hpi,
+          by simp [List.filter_cons_of_pos hb, hk], by simpa using hia⟩
+    · simp only [List.filter_cons_of_neg hb] at h
+      obtain ⟨i, hi, hpi, hk, hia⟩ := exists_index_of_getElem?_filter p l k a h
+      exact ⟨i + 1, by simpa using hi, by simpa using hpi,
+        by simp [List.filter_cons_of_neg hb, hk], by simpa using hia⟩
+
+/-- The `k`-th sent line is some line `i` of the statement whose value is sent, with `k` sent
+lines before it. -/
+private theorem exists_sent_index {n : ℕ} (ls : Vector (PublicLine I.toShape) n) {k : ℕ}
+    {l : PublicLine I.toShape} (h : (ls.toList.filter (·.sent))[k]? = some l) :
+    ∃ i : Fin n, ls[i].sent = true ∧ sentBefore I ls i = k ∧ ls[i] = l := by
+  obtain ⟨i, hi, hp, hk, hl⟩ := exists_index_of_getElem?_filter
+    (fun l : PublicLine I.toShape ↦ l.sent) ls.toList k l h
+  exact ⟨⟨i, by simpa using hi⟩, by simpa using hp, hk, by simpa using hl⟩
+
+/-- A claim on a line's column at `(r, 0, …, 0)` holds of a stack exactly when the line through
+the stack's two cells, evaluated at `r`, is the claimed value. -/
+private theorem claim_holds_iff (q : Column I.μ) (r v : E) (l : PublicLine I.toShape) :
+    (⟨l.col, linePoint l.pos r, v⟩ : ColumnClaim I).Holds q ↔
+      (1 - r) * ofK ((I.column q l.col).values.get ⟨0, Nat.two_pow_pos _⟩) +
+          r * ofK ((I.column q l.col).values.get ⟨1, Nat.one_lt_two_pow l.pos.ne'⟩) = v := by
+  unfold ColumnClaim.Holds
+  rw [eval₂Mle_linePoint l.pos]
+
+/-- Two sent lines whose cells differ from the statement's agree on the words at one challenge at
+most: the equation on the words is `α + r·β = 0` in `E`, and by `accepts_two_challenges` two
+challenges would fix all four cells. -/
+private theorem pair_challenge_unique {a₀ b₀ a₁ b₁ c₀₀ c₀₁ c₁₀ c₁₁ : K}
+    (hne : ¬ (a₀ = c₀₀ ∧ b₀ = c₀₁ ∧ a₁ = c₁₀ ∧ b₁ = c₁₁)) {r₁ r₂ : E}
+    (h₁ : ((1 - r₁) * ofK a₀ + r₁ * ofK b₀) + y * ((1 - r₁) * ofK a₁ + r₁ * ofK b₁) =
+      (1 + r₁) * E.ofLimbs c₀₀ c₁₀ 0 + r₁ * E.ofLimbs c₀₁ c₁₁ 0)
+    (h₂ : ((1 - r₂) * ofK a₀ + r₂ * ofK b₀) + y * ((1 - r₂) * ofK a₁ + r₂ * ofK b₁) =
+      (1 + r₂) * E.ofLimbs c₀₀ c₁₀ 0 + r₂ * E.ofLimbs c₀₁ c₁₁ 0) : r₁ = r₂ := by
+  by_contra hr
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  obtain ⟨hw₀, hw₁, -, -⟩ := accepts_two_challenges (a := ![a₀, a₁, 0]) (b := ![b₀, b₁, 0])
+    (w₀ := E.ofLimbs c₀₀ c₁₀ 0) (w₁ := E.ofLimbs c₀₁ c₁₁ 0)
+    (c₀ := (1 - r₁) * ofK a₀ + r₁ * ofK b₀) (c₁ := (1 - r₁) * ofK a₁ + r₁ * ofK b₁)
+    (d₀ := (1 - r₂) * ofK a₀ + r₂ * ofK b₀) (d₁ := (1 - r₂) * ofK a₁ + r₂ * ofK b₁) hr
+    ⟨rfl, rfl, by simp [h0], h₁⟩ ⟨rfl, rfl, by simp [h0], h₂⟩
+  apply hne
+  have e₀ := congrArg (·.limb 0) hw₀
+  have e₁ := congrArg (·.limb 1) hw₀
+  have e₂ := congrArg (·.limb 0) hw₁
+  have e₃ := congrArg (·.limb 1) hw₁
+  simp only [limb_ofLimbs, Matrix.cons_val_zero, Matrix.cons_val_one] at e₀ e₁ e₂ e₃
+  exact ⟨e₀.symm, e₂.symm, e₁.symm, e₃.symm⟩
+
+/-- What the public seam says of the pool from a message with one value per sent line: the
+received claims hold, and the claim on each line holds, at the value sent for a line whose value
+is sent and at the value the verifier computes for the others. -/
+private theorem pool_holds {s : I.Stmt × TableOut I} {o : ∀ i, TheOracle I i} {r : E}
+    {cs : List E} {h : cs.length = sentCount I (I.publicLines s.1)}
+    (hp : ((pooledFrom I s r cs h, o), ()) ∈ Seam.pub I) :
+    (∀ c ∈ s.2.columns.toList, c.Holds (theStack o)) ∧
+      ∀ i : Fin I.nLines,
+        (1 - r) * ofK ((I.column (theStack o) (I.publicLines s.1)[i].col).values.get
+            ⟨0, Nat.two_pow_pos _⟩) +
+          r * ofK ((I.column (theStack o) (I.publicLines s.1)[i].col).values.get
+            ⟨1, Nat.one_lt_two_pow (I.publicLines s.1)[i].pos.ne'⟩) =
+        if hs : (I.publicLines s.1)[i].sent then
+          cs[sentBefore I (I.publicLines s.1) i]'
+            (lt_of_lt_of_eq (sentBefore_lt I _ i hs) h.symm)
+        else lineValue I r (I.publicLines s.1)[i] := by
+  obtain ⟨hcols, -⟩ := hp
+  refine ⟨fun c hc ↦ hcols c ?_, fun i ↦ ?_⟩
+  · simp only [pooledFrom, Vector.toList_append, List.mem_append]
+    exact Or.inl hc
+  · have hc := hcols _ (show _ ∈ (pooledFrom I s r cs h).2.columns.toList by
+      simp only [pooledFrom, claimsFrom, claimsWith, Vector.toList_append, Vector.toList_ofFn,
+        List.mem_append, List.mem_ofFn]
+      exact Or.inr ⟨i, rfl⟩)
+    exact (claim_holds_iff I (theStack o) r _ _).mp hc
+
+/-- The bad challenge of the deployed check is unique. Outside the table seam, at most one
+challenge has a message that the check on the words accepts with a verdict in the public seam.
+The received claims hold and some line's cells differ from the statement's. Off the deployed
+shape the check is the specification's and `bad_challenge_unique` applies. With two sent lines,
+either a line that is not sent differs, and its claim is true at one challenge at most
+(`line_challenge_unique`), or a sent line differs, and the claims on the two sent lines are
+true of the stack, so the equation on the words is an equation on the stack's cells that two
+challenges would settle (`pair_challenge_unique`). -/
+private theorem bad_challenge_unique_words (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
+    (hin : ((s, o), ()) ∉ Seam.table I) {r₁ r₂ : E} {cs₁ cs₂ : List E}
+    (h₁ : accepts I (checkWords I) s r₁ cs₁ = true ∧
+      ((verdict I (pooledFrom I) s r₁ cs₁, o), ()) ∈ Seam.pub I)
+    (h₂ : accepts I (checkWords I) s r₂ cs₂ = true ∧
+      ((verdict I (pooledFrom I) s r₂ cs₂, o), ()) ∈ Seam.pub I) : r₁ = r₂ := by
+  obtain ⟨ha₁, hp₁⟩ := h₁
+  obtain ⟨ha₂, hp₂⟩ := h₂
+  unfold accepts at ha₁ ha₂
+  rw [Bool.and_eq_true, decide_eq_true_iff] at ha₁ ha₂
+  obtain ⟨hl₁, hw₁⟩ := ha₁
+  obtain ⟨hl₂, hw₂⟩ := ha₂
+  rw [verdict, dite_eq_left hl₁] at hp₁
+  rw [verdict, dite_eq_left hl₂] at hp₂
+  obtain ⟨hold, hline₁⟩ := pool_holds I hp₁
+  obtain ⟨-, hline₂⟩ := pool_holds I hp₂
+  have haux : I.aux (theStack o) := by
+    have hp := hp₁
+    obtain ⟨-, haux⟩ := hp
+    exact haux
+  have hlines : ¬ I.PublicLinesHold s.1 (theStack o) := fun hl ↦ hin ⟨hold, hl, haux⟩
+  simp only [M3Instance.PublicLinesHold, not_forall] at hlines
+  obtain ⟨l, hl, hne⟩ := hlines
+  -- Off the deployed shape the check is the specification's.
+  have fallback : (∀ r cs, checkWords I s r cs = true → check I s r cs = true) → r₁ = r₂ := by
+    intro hfb
+    have e₁ : pooledFrom I s r₁ cs₁ hl₁ = pooled I s r₁ := by
+      have := verdict_pooledFrom_of_check I (hfb r₁ cs₁ hw₁)
+      rwa [verdict, dite_eq_left hl₁] at this
+    have e₂ : pooledFrom I s r₂ cs₂ hl₂ = pooled I s r₂ := by
+      have := verdict_pooledFrom_of_check I (hfb r₂ cs₂ hw₂)
+      rwa [verdict, dite_eq_left hl₂] at this
+    rw [e₁] at hp₁
+    rw [e₂] at hp₂
+    exact bad_challenge_unique I s o hin hp₁ hp₂
+  rcases hf : (I.publicLines s.1).toList.filter (·.sent) with _ | ⟨l₀, _ | ⟨l₁, _ | ⟨l₂, ls⟩⟩⟩
+  -- No sent line, and one sent line.
+  · exact fallback fun r cs hw ↦ by simpa [checkWords, hf] using hw
+  · exact fallback fun r cs hw ↦ by simpa [checkWords, hf] using hw
+  -- Three or more sent lines come last in the cases `rcases` gives; they are taken before the
+  -- case of two, which the rest of the proof is.
+  swap
+  · exact fallback fun r cs hw ↦ by simpa [checkWords, hf] using hw
+  -- Two sent lines, and a message of two values.
+  have hlen₁ : cs₁.length = 2 := by rw [hl₁]; simp [sentCount, hf]
+  have hlen₂ : cs₂.length = 2 := by rw [hl₂]; simp [sentCount, hf]
+  obtain ⟨c₀, c₁, rfl⟩ := List.length_eq_two.mp hlen₁
+  obtain ⟨d₀, d₁, rfl⟩ := List.length_eq_two.mp hlen₂
+  have hweq₁ : c₀ + y * c₁ =
+      (1 + r₁) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r₁ * E.ofLimbs l₀.cell1 l₁.cell1 0 := by
+    simpa [checkWords, hf] using hw₁
+  have hweq₂ : d₀ + y * d₁ =
+      (1 + r₂) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r₂ * E.ofLimbs l₀.cell1 l₁.cell1 0 := by
+    simpa [checkWords, hf] using hw₂
+  obtain ⟨i₀, hs₀, hb₀, rfl⟩ :=
+    exists_sent_index I (I.publicLines s.1) (k := 0) (l := l₀) (by rw [hf]; rfl)
+  obtain ⟨i₁, hs₁, hb₁, rfl⟩ :=
+    exists_sent_index I (I.publicLines s.1) (k := 1) (l := l₁) (by rw [hf]; rfl)
+  have idx : ∀ (x z : E) (k : ℕ) (hk : k < [x, z].length),
+      (k = 0 → [x, z][k] = x) ∧ (k = 1 → [x, z][k] = z) := by
+    rintro x z k hk
+    exact ⟨by rintro rfl; rfl, by rintro rfl; rfl⟩
+  have u₀ := hline₁ i₀
+  have u₁ := hline₁ i₁
+  have v₀ := hline₂ i₀
+  have v₁ := hline₂ i₁
+  rw [dite_eq_left hs₀, (idx _ _ _ _).1 hb₀] at u₀ v₀
+  rw [dite_eq_left hs₁, (idx _ _ _ _).2 hb₁] at u₁ v₁
+  by_cases hA : (I.column (theStack o) (I.publicLines s.1)[i₀].col).values.get
+        ⟨0, Nat.two_pow_pos _⟩ = (I.publicLines s.1)[i₀].cell0 ∧
+      (I.column (theStack o) (I.publicLines s.1)[i₀].col).values.get
+        ⟨1, Nat.one_lt_two_pow (I.publicLines s.1)[i₀].pos.ne'⟩ = (I.publicLines s.1)[i₀].cell1 ∧
+      (I.column (theStack o) (I.publicLines s.1)[i₁].col).values.get
+        ⟨0, Nat.two_pow_pos _⟩ = (I.publicLines s.1)[i₁].cell0 ∧
+      (I.column (theStack o) (I.publicLines s.1)[i₁].col).values.get
+        ⟨1, Nat.one_lt_two_pow (I.publicLines s.1)[i₁].pos.ne'⟩ = (I.publicLines s.1)[i₁].cell1
+  · -- Both sent lines hold their cells, so the line that fails is not sent.
+    by_cases hsl : l.sent = true
+    · exfalso
+      have hmem : l ∈ [(I.publicLines s.1)[i₀], (I.publicLines s.1)[i₁]] := by
+        rw [← hf]
+        exact List.mem_filter.mpr ⟨hl, hsl⟩
+      rcases List.mem_pair.mp hmem with rfl | rfl
+      · exact hne ⟨hA.1, hA.2.1⟩
+      · exact hne ⟨hA.2.2.1, hA.2.2.2⟩
+    · obtain ⟨j, hj, hjl⟩ := List.mem_iff_getElem.mp hl
+      have hjl' : (I.publicLines s.1)[(⟨j, by simpa using hj⟩ : Fin I.nLines)] = l := by
+        simpa using hjl
+      subst hjl'
+      have w₁ := hline₁ ⟨j, by simpa using hj⟩
+      have w₂ := hline₂ ⟨j, by simpa using hj⟩
+      rw [dite_eq_right hsl] at w₁ w₂
+      exact line_challenge_unique hne w₁ w₂
+  · exact pair_challenge_unique hA (by rw [u₀, u₁]; exact hweq₁) (by rw [v₀, v₁]; exact hweq₂)
+
 /-- The extractor keeps the trivial witness: the stack is the oracle. The shared oracle is
 written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe
 `Extractor.RoundByRound` leaves free. -/
