@@ -143,6 +143,11 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 #guard ¬ check toy stmt1 y (trueValues toy badLine 1 y)
 #guard ¬ check toy stmt1 r₂ (trueValues toy badLine 1 r₂)
 #guard check toy stmt1 0 (trueValues toy badLine 1 0)
+-- The check on the words is the same check where one line is sent: rejected at the sampled
+-- challenges and accepted at the one bad challenge `r = 0`.
+#guard ¬ checkWords toy stmt1 y (trueValues toy badLine 1 y)
+#guard ¬ checkWords toy stmt1 r₂ (trueValues toy badLine 1 r₂)
+#guard checkWords toy stmt1 0 (trueValues toy badLine 1 0)
 
 -- The same event on the claims: every pooled claim holds of the honest stack; of the wrong
 -- stack one fails at a sampled challenge, and all hold at the bad challenge. So the bound
@@ -156,6 +161,8 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 -- challenge, accepted at the one bad challenge `r = 1`, where `(1 + r)·cell0` vanishes.
 #guard ¬ check toy stmt0 y (trueValues toy honest 0 y)
 #guard check toy stmt0 1 (trueValues toy honest 0 1)
+#guard ¬ checkWords toy stmt0 y (trueValues toy honest 0 y)
+#guard checkWords toy stmt0 1 (trueValues toy honest 0 1)
 
 /-! ## The pool -/
 
