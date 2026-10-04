@@ -573,6 +573,41 @@ theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (State
     rw [hpool]
     exact congrArg Prod.fst hout
 
+/-- The deployed verifier's check holds wherever the specification's does, and it too fixes the
+length. -/
+private theorem accepts_checkWords_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+    (hc : check I s r cs = true) : accepts I (checkWords I) s r cs = true := by
+  have h := (accepts_check_iff I s r cs).mpr hc
+  unfold accepts at h ⊢
+  rw [Bool.and_eq_true] at h ⊢
+  exact ⟨h.1, checkWords_of_check I hc⟩
+
+/-- Perfect completeness of the deployed phase: its prover is the specification's, whose values
+pass the specification's check and so the check on the words, and its pool is the same. -/
+theorem deployed_complete {σ : Type} (init : ProbComp σ)
+    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (OracleReduction.mk (prover I)
+      ((deployedVerifier I).toOracleVerifier (TheOracle I))).perfectCompleteness init impl
+      (Seam.table I) (Seam.pub I) := by
+  apply Reduction.perfectCompleteness_of_run_support
+  intro stmtIn witIn hIn x hx
+  obtain ⟨s, o⟩ := stmtIn
+  obtain ⟨pr, hpr, rfl⟩ :=
+    Reduction.mem_support_run_of_guarded _ (deployedGuarded I) (s, o) witIn hx
+  obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
+  have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
+  have hacc : (deployedGuarded I).check (s, o) pr.1 = true := accepts_checkWords_of_check I hc
+  have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
+    verdict_pooledFrom_of_check I hc
+  rw [ite_eq_left hacc]
+  refine ⟨_, rfl, ?_, ?_⟩
+  · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
+    rw [hpool]
+    exact pooled_mem_pub I s o hIn (pr.1 0)
+  · show pr.2.1 = (verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o)
+    rw [hpool]
+    exact congrArg Prod.fst hout
+
 /-! ## Knowledge soundness -/
 
 /-- The extractor keeps the trivial witness: the stack is the oracle. The shared oracle is
@@ -669,6 +704,12 @@ def deployedPublicInputPhase :
     Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec where
   prover := PublicInput.prover I
   verifier := PublicInput.deployedVerifier I
+
+/-- The completeness half of the deployed phase. -/
+def deployedPublicInputComplete :
+    Phase.Complete I (deployedPublicInputPhase I).toDef (Seam.table I) (Seam.pub I) where
+  guarded := PublicInput.deployedGuarded I
+  complete := PublicInput.deployed_complete I
 
 end
 end LeanerVM.Protocol

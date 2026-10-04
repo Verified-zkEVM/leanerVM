@@ -300,6 +300,22 @@ def stmtWords : K × TableOut wordsTwo :=
 #guard checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) r₂)
 #guard ¬ checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) y)
 
+/-- A stack whose columns hold the two lines: `[1, 0]`, `[0, 1]`, then padding. -/
+def honestWords : Column 3 := ⟨#v[1, 0, 0, 1, 0, 0, 0, 0]⟩
+
+/-- The statement with the received claims true of that stack: its three columns at cell 0. -/
+def stmtWordsHonest : K × TableOut wordsTwo :=
+  (0, ⟨received wordsTwo (by decide) (by decide) (by decide) (by decide) 0 ![1, 0, 0]⟩)
+
+-- An honest prover sends the lines' values, which pass the check on the words at every
+-- challenge tried, and every claim of the pool holds of its stack.
+#guard trueValues wordsTwo honestWords 0 y = expectedValues wordsTwo (0 : K) y
+#guard checkWords wordsTwo stmtWordsHonest y (trueValues wordsTwo honestWords 0 y)
+#guard checkWords wordsTwo stmtWordsHonest r₂ (trueValues wordsTwo honestWords 0 r₂)
+#guard checkWords wordsTwo stmtWordsHonest 0 (trueValues wordsTwo honestWords 0 0)
+#guard checkWords wordsTwo stmtWordsHonest 1 (trueValues wordsTwo honestWords 0 1)
+#guard ∀ c ∈ (pooled wordsTwo stmtWordsHonest y).2.columns.toList, c.Holds honestWords
+
 /-- Three lines, all sent: a shape the deployed verifiers do not have. -/
 abbrev allSent : M3Instance :=
   { threeLimbs with
@@ -425,6 +441,10 @@ example : Phase.FrontDef toy (K × TableOut toy) (K × PubOut toy) pubSpec :=
 example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
   publicInputComplete toy
 
+/-- The deployed phase's completeness half typechecks against the same seams. -/
+example : Phase.Complete toy (deployedPublicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
+  deployedPublicInputComplete toy
+
 example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
     pubError :=
   publicInputSecurity toy
@@ -435,6 +455,15 @@ example (P : Phases toy) (C : P.Complete) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (leanVmPiop P).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
   piop_perfectCompleteness P C init impl
+
+/-- The deployed phase is a drop-in for the bundle's public-input phase: with the other phases
+and their proofs, the master completeness theorem applies with it in the `pub` field. -/
+example (P : Phases toy) (C : P.Complete) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (leanVmPiop { P with pub := deployedPublicInputPhase toy }).perfectCompleteness init impl
+      (M3Rel toy) (Seam.done toy) :=
+  piop_perfectCompleteness { P with pub := deployedPublicInputPhase toy }
+    { C with pub := deployedPublicInputComplete toy } init impl
 
 /-! ## The check is load-bearing -/
 
