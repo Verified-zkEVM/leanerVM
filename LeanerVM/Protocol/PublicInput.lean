@@ -300,6 +300,52 @@ private theorem line_challenge_unique {a b c0 c1 : K} (hne : ¬ (a = c0 ∧ b = 
       linear_combination e₁ - e₂
     exact sub_eq_zero.mp ((mul_eq_zero.mp h).resolve_right hβ)
 
+/-- Acceptance of the deployed check at two distinct challenges fixes the memory. The cells `a`
+and `b` are cells 0 and 1 of the three memory limbs and `w₀`, `w₁` the two public words. At the
+challenge `r` the three claims on the limbs' lines read `c_ℓ = (1 - r)·a_ℓ + r·b_ℓ` for the two
+sent limbs and `0 = (1 - r)·a₂ + r·b₂` for the top limb, whose claim the verifier pools at `0`
+(the third limb is `F192::ZERO` at `cpu/mod.rs:746`, and `bind_pi_claim` pools it, `:674-682`),
+and the check on the words reads `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`.
+Both hold at two challenges `r₁ ≠ r₂` only if the cells are the words' limbs and the top limb's
+cells are zero. At one challenge they hold of a wrong memory, at the challenge that is a root of
+a polynomial of degree one in `r`. -/
+theorem accepts_two_challenges {a b : Fin 3 → K} {w₀ w₁ r₁ r₂ c₀ c₁ d₀ d₁ : E} (hr : r₁ ≠ r₂)
+    (h₁ : c₀ = (1 - r₁) * ofK (a 0) + r₁ * ofK (b 0) ∧
+      c₁ = (1 - r₁) * ofK (a 1) + r₁ * ofK (b 1) ∧
+      0 = (1 - r₁) * ofK (a 2) + r₁ * ofK (b 2) ∧
+      c₀ + y * c₁ = (1 + r₁) * w₀ + r₁ * w₁)
+    (h₂ : d₀ = (1 - r₂) * ofK (a 0) + r₂ * ofK (b 0) ∧
+      d₁ = (1 - r₂) * ofK (a 1) + r₂ * ofK (b 1) ∧
+      0 = (1 - r₂) * ofK (a 2) + r₂ * ofK (b 2) ∧
+      d₀ + y * d₁ = (1 + r₂) * w₀ + r₂ * w₁) :
+    w₀ = E.ofLimbs (a 0) (a 1) 0 ∧ w₁ = E.ofLimbs (b 0) (b 1) 0 ∧ a 2 = 0 ∧ b 2 = 0 := by
+  obtain ⟨e₀, e₁, e₂, e₃⟩ := h₁
+  obtain ⟨f₀, f₁, f₂, f₃⟩ := h₂
+  have hr' : r₁ - r₂ ≠ 0 := sub_ne_zero.mpr hr
+  -- On the words: `α + r·β = 0` at both challenges, with `α = A - w₀`, `β = B - A - w₀ - w₁`.
+  have g₁ : (ofK (a 0) + y * ofK (a 1) - w₀) +
+      r₁ * (ofK (b 0) + y * ofK (b 1) - (ofK (a 0) + y * ofK (a 1)) - w₀ - w₁) = 0 := by
+    linear_combination e₃ - e₀ - y * e₁
+  have g₂ : (ofK (a 0) + y * ofK (a 1) - w₀) +
+      r₂ * (ofK (b 0) + y * ofK (b 1) - (ofK (a 0) + y * ofK (a 1)) - w₀ - w₁) = 0 := by
+    linear_combination f₃ - f₀ - y * f₁
+  have hβ : ofK (b 0) + y * ofK (b 1) - (ofK (a 0) + y * ofK (a 1)) - w₀ - w₁ = 0 :=
+    (mul_eq_zero.mp (show (r₁ - r₂) * (ofK (b 0) + y * ofK (b 1) -
+      (ofK (a 0) + y * ofK (a 1)) - w₀ - w₁) = 0 by linear_combination g₁ - g₂)).resolve_left hr'
+  have hα : ofK (a 0) + y * ofK (a 1) - w₀ = 0 := by linear_combination g₁ - r₁ * hβ
+  -- On the top limb: `a₂ + r·(b₂ - a₂) = 0` at both challenges.
+  have hc : ofK (b 2) - ofK (a 2) = 0 :=
+    (mul_eq_zero.mp (show (r₁ - r₂) * (ofK (b 2) - ofK (a 2)) = 0 by
+      linear_combination f₂ - e₂)).resolve_left hr'
+  have ha : ofK (a 2) = 0 := by linear_combination -e₂ - r₁ * hc
+  have hb : ofK (b 2) = 0 := by linear_combination hc + ha
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  refine ⟨?_, ?_, ofK_injective (ha.trans h0.symm), ofK_injective (hb.trans h0.symm)⟩
+  · rw [ofLimbs_eq, h0]
+    linear_combination -hα
+  · rw [ofLimbs_eq, h0]
+    linear_combination -hβ - hα - CharTwo.add_self_eq_zero w₀
+
 /-- On a stack in the table seam, the pool is in the public seam: the received claims still
 hold, and each line's claim holds by the line identity. -/
 private theorem pooled_mem_pub (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)

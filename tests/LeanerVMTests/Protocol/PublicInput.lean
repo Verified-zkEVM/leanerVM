@@ -319,6 +319,70 @@ def stmtAll : K × TableOut allSent :=
 -- Two values for three sent lines are rejected: the words of two lines do not stand for three.
 #guard ¬ checkWords allSent stmtAll y [1, 1]
 
+/-! ## Two challenges fix the memory -/
+
+/-- The cells 0, 1 and 2 of the three memory limbs' column, as `accepts_two_challenges` takes
+them. -/
+def cells (c₀ c₁ c₂ : K) : Fin 3 → K := ![c₀, c₁, c₂]
+
+/-- The equation on the words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, with the two sent values the
+values of the two limbs' lines through the cells `a` and `b`, as the pooled claims force. -/
+def wordEquation (a b : Fin 3 → K) (w₀ w₁ r : E) : Bool :=
+  decide (((1 - r) * ofK (a 0) + r * ofK (b 0)) + y * ((1 - r) * ofK (a 1) + r * ofK (b 1)) =
+    (1 + r) * w₀ + r * w₁)
+
+/-- The claim on the top limb, pooled at `0`: the line through its two cells is zero at `r`. -/
+def topClaim (a b : Fin 3 → K) (r : E) : Bool :=
+  decide (0 = (1 - r) * ofK (a 2) + r * ofK (b 2))
+
+/-- The hypotheses of `accepts_two_challenges` at one challenge. -/
+def acceptsAt (a b : Fin 3 → K) (w₀ w₁ r : E) : Bool :=
+  wordEquation a b w₀ w₁ r && topClaim a b r
+
+/-- The word `1 + y`, of the cells `(1, 1)` with a zero top limb. -/
+def wordOnes : E := E.ofLimbs 1 1 0
+
+-- The hypotheses are inhabited: the memory that holds the words is accepted at every
+-- challenge, and the conclusion holds of it.
+#guard acceptsAt (cells 1 1 0) (cells 1 1 0) wordOnes wordOnes y
+#guard acceptsAt (cells 1 1 0) (cells 1 1 0) wordOnes wordOnes r₂
+#guard wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0
+-- One challenge is not enough: limb 1's cell 0 is `1` against the word `0`, and the memory is
+-- accepted at `r = 1`, where only the cells 1 count, and at no other challenge sampled; the
+-- conclusion fails of it.
+#guard acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 1
+#guard ¬ acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 y
+#guard ¬ acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 r₂
+#guard (0 : E) ≠ E.ofLimbs ((cells 0 1 0) 0) ((cells 0 1 0) 1) 0
+-- The top limb is held by its claim alone: a nonzero top cell leaves the equation on the words
+-- true at every challenge, and the claim rejects it.
+#guard wordEquation (cells 0 0 1) (cells 0 0 0) 0 0 y
+#guard wordEquation (cells 0 0 1) (cells 0 0 0) 0 0 r₂
+#guard ¬ topClaim (cells 0 0 1) (cells 0 0 0) y
+#guard topClaim (cells 0 0 1) (cells 0 0 0) 1
+
+/-- The theorem applies to the memory that holds the words and says all four things of it, at
+any two distinct challenges: the hypotheses are met by the lines' values `[1, 1]` at every
+challenge, and each conclusion is stated, so a theorem that said less of the cells would not
+fit this type. -/
+example {r₁ r₂ : E} (hr : r₁ ≠ r₂) :
+    wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0 ∧
+      wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0 ∧
+      (cells 1 1 0) 2 = 0 ∧ (cells 1 1 0) 2 = 0 := by
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+  have key : ∀ r : E, (1 : E) = (1 - r) * ofK ((cells 1 1 0) 0) + r * ofK ((cells 1 1 0) 0) ∧
+      (1 : E) = (1 - r) * ofK ((cells 1 1 0) 1) + r * ofK ((cells 1 1 0) 1) ∧
+      0 = (1 - r) * ofK ((cells 1 1 0) 2) + r * ofK ((cells 1 1 0) 2) ∧
+      1 + y * 1 = (1 + r) * wordOnes + r * wordOnes := by
+    intro r
+    simp only [cells, wordOnes, ofLimbs_eq, Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.cons_val_two, Matrix.head_cons, Matrix.tail_cons, h0, h1]
+    refine ⟨by ring, by ring, by ring, ?_⟩
+    linear_combination (-(r * (1 + y))) * CharTwo.add_self_eq_zero (1 : E)
+  exact accepts_two_challenges (a := cells 1 1 0) (b := cells 1 1 0) (w₀ := wordOnes)
+    (w₁ := wordOnes) hr (key r₁) (key r₂)
+
 /-! ## The phase in its slot -/
 
 /-- Two rounds: the challenge, then the prover's values. -/
