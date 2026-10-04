@@ -992,6 +992,76 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 #guard ¬ ∀ c ∈ (verdict topOne (pooledFrom topOne) stmtTop y [1, 1]).2.columns.toList,
   c.Holds goodLimbs
 
+/-! ### The check on the words with the two words swapped -/
+
+/-- The check on the words with the words swapped: `c₀ + y·c₁ = (1 + r)·w₁ + r·w₀`. -/
+def checkSwappedWords (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  match (I.publicLines s.1).toList.filter (·.sent), cs with
+  | [l₀, l₁], [c₀, c₁] =>
+    decide (c₀ + y * c₁ =
+      (1 + r) * E.ofLimbs l₀.cell1 l₁.cell1 0 + r * E.ofLimbs l₀.cell0 l₁.cell0 0)
+  | [_, _], _ => false
+  | _, _ => check I s r cs
+
+/-- The verifier with that check, on the limbs with nonzero words. -/
+abbrev swappedWords : FrontVerifier []ₒ (K × TableOut wordsTwo) (K × PubOut wordsTwo) pubSpec :=
+  verifierWith wordsTwo (checkSwappedWords wordsTwo) (pooledFrom wordsTwo)
+
+/-- The statement with the received claims true of `honestWords`: in the table seam. -/
+def stmtHonestWords : K × TableOut wordsTwo :=
+  (0, ⟨receivedTrue wordsTwo (by decide) (by decide) (by decide) (by decide) honestWords⟩)
+
+theorem stmtHonestWords_table :
+    ((stmtHonestWords, oracleOf honestWords), ()) ∈ Seam.table wordsTwo :=
+  ⟨receivedTrue_holds wordsTwo (by decide) (by decide) (by decide) (by decide) honestWords,
+    by decide, aux_of_none rfl _⟩
+
+/-- The words `1` and `y` differ, by their limb 1. -/
+theorem ofLimbs_zero_one_ne_one : E.ofLimbs (0 : K) 1 0 ≠ 1 := by
+  intro h
+  have h1 : (1 : E).limb 1 = 0 := by
+    have h : (1 : E) = ofK 1 := (map_one (algebraMap K E)).symm
+    rw [h, limb_ofK]
+    rfl
+  have h2 := congrArg (fun x : E ↦ x.limb 1) h
+  simp only [limb_ofLimbs, h1] at h2
+  simp at h2
+
+/-- The check with the words swapped rejects the honest prover at the challenge `0`: the
+honest message `[1, 0]` satisfies `c₀ + y·c₁ = w₀ = 1`, and the swapped equation asks for
+`w₁ = y`. So the phase with it is not perfectly complete. The check is the right way round
+because the two words differ. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    ¬ (OracleReduction.mk (PublicInput.prover wordsTwo)
+      (swappedWords.toOracleVerifier (TheOracle wordsTwo))).perfectCompleteness init impl
+        (Seam.table wordsTwo) (Seam.pub wordsTwo) :=
+  let ⟨pr, hpr, h0, h1, _⟩ :=
+    exists_mem_support_prover_run wordsTwo stmtHonestWords (oracleOf honestWords) 0
+  Reduction.not_perfectCompleteness_of_reject' _ (guardedWith wordsTwo _ _) init impl _ _
+    stmtHonestWords_table ⟨pr, hpr, Or.inl (by
+      show (decide ((pr.1 1 : List E).length =
+          sentCount wordsTwo (wordsTwo.publicLines stmtHonestWords.1)) &&
+        checkSwappedWords wordsTwo stmtHonestWords (pr.1 0) (pr.1 1)) = false
+      rw [h0, h1]
+      have hne : checkSwappedWords wordsTwo stmtHonestWords 0
+          (expectedValues wordsTwo stmtHonestWords.1 0) = false := by
+        simp only [checkSwappedWords, expectedValues, stmtHonestWords]
+        apply decide_eq_false
+        intro h
+        apply ofLimbs_zero_one_ne_one
+        have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+        have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+        simp only [lineValue, add_zero, one_mul, zero_mul, mul_zero, h0, h1] at h
+        exact h.symm
+      rw [hne, Bool.and_false])⟩
+
+-- The deployed check accepts that honest message at every challenge tried; the swapped one
+-- rejects it at every challenge tried, as the words `1` and `y` differ.
+#guard checkWords wordsTwo stmtHonestWords 0 (expectedValues wordsTwo (0 : K) 0)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords 0 (expectedValues wordsTwo (0 : K) 0)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords y (expectedValues wordsTwo (0 : K) y)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords r₂ (expectedValues wordsTwo (0 : K) r₂)
+
 /-! ### The bad challenge of the deployed check -/
 
 -- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
