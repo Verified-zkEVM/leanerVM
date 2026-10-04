@@ -869,6 +869,129 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 #guard decide (([0, 1] : List E).head? = (expectedValues twoLimbs (0 : K) y).head?)
 #guard ¬ checkWords twoLimbs stmtTwo y [0, 1]
 
+/-! ### The unsent line pooled at the constant zero -/
+
+/-- The pool with every unsent line's claim at the constant `0`, as the deployed verifiers pool
+the top limb (`cpu/mod.rs:674-682` at leanVM `a386121f`), instead of the value computed from the
+statement. -/
+def poolZero (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E)
+    (h : cs.length = sentCount I (I.publicLines s.1)) : I.Stmt × PubOut I :=
+  (s.1, ⟨s.2.columns ++ claimsWith I r (fun _ ↦ 0) (I.publicLines s.1) cs h⟩)
+
+-- The two pools are the same where the unsent line is zero, as the top limb is: on three lines
+-- shaped like the memory limbs the claims are the same, the value pooled at `0` being the line's.
+#guard ((poolZero threeLimbs stmtLimbs y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) =
+  ((pooledFrom threeLimbs stmtLimbs y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
+
+/-- Three lines like the memory limbs, but with a top line that is not zero: cells `(1, 0)`. The
+public words have a zero top limb, so the deployed statements have no such line, and that the
+adaptor's statements do not is what the constant zero rests on. -/
+abbrev topOne : M3Instance :=
+  { toy with
+    nLines := 3
+    publicLines := fun v ↦
+      #v[⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
+        ⟨⟨0, 2⟩, 1, 0, false, by decide⟩] }
+
+-- There the two pools differ: the value computed for the top line at `y` is `1 + y`, and the
+-- constant is `0`.
+#guard ((poolZero topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
+    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) ≠
+  ((pooledFrom topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
+    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
+
+/-- The verifier with the check on the words and that pool, on the statement with the top line
+`(1, 0)`. -/
+abbrev zeroTop : FrontVerifier []ₒ (K × TableOut topOne) (K × PubOut topOne) pubSpec :=
+  verifierWith topOne (checkWords topOne) (poolZero topOne)
+
+/-- The statement `1` with the received claims true of `goodLimbs`, whose top column `[0, 0]`
+is not the top line's `(1, 0)`. -/
+def stmtTop : K × TableOut topOne :=
+  (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide) goodLimbs⟩)
+
+theorem stmtTop_not_table : ((stmtTop, oracleOf goodLimbs), ()) ∉ Seam.table topOne :=
+  fun h ↦ absurd (h.2.1 ⟨⟨0, 2⟩, 1, 0, false, by decide⟩ (by simp [stmtTop])).1 (by decide)
+
+/-- The two sent limbs hold their lines, so the message `[1, 1]`, their values at every
+challenge, passes the check on the words whatever the top column holds. -/
+theorem zeroTop_accepts (c : E) :
+    accepts topOne (checkWords topOne) stmtTop c [1, 1] = true := by
+  simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
+  refine ⟨rfl, ?_⟩
+  show decide ((1 : E) + y * 1 = (1 + c) * E.ofLimbs 1 1 0 + c * E.ofLimbs 1 1 0) = true
+  apply decide_eq_true
+  rw [ofLimbs_eq]
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+  rw [h0, h1]
+  linear_combination (-(c * (1 + y))) * CharTwo.add_self_eq_zero (1 : E)
+
+/-- The verdict is in the public seam at every challenge: the top claim at `0` is true of the
+all-zero top column. -/
+theorem zeroTop_pub (c : E) :
+    ((verdict topOne (poolZero topOne) stmtTop c [1, 1], oracleOf goodLimbs), ()) ∈
+      Seam.pub topOne := by
+  have c0 : (topOne.column goodLimbs ⟨0, 0⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have c1 : (topOne.column goodLimbs ⟨0, 0⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have d0 : (topOne.column goodLimbs ⟨0, 1⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have d1 : (topOne.column goodLimbs ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have e0 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨0, by decide⟩ = 0 := by decide
+  have e1 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨1, by decide⟩ = 0 := by decide
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  rw [verdict, dite_eq_left (show ([1, 1] : List E).length =
+    sentCount topOne (topOne.publicLines stmtTop.1) from rfl)] at hcl
+  simp only [poolZero, Vector.toList_append, List.mem_append] at hcl
+  rcases hcl with hcl | hcl
+  · exact receivedTrue_holds topOne (by decide) (by decide) (by decide) (by decide) goodLimbs
+      cl hcl
+  · simp only [claimsWith, Vector.toList_ofFn, List.mem_ofFn] at hcl
+    obtain ⟨i, rfl⟩ := hcl
+    fin_cases i
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 0⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, c0, c1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 1⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, d0, d1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 2⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 0
+      rw [eval₂Mle_linePoint, e0, e1]
+      simp
+
+set_option maxRecDepth 1000 in
+/-- Pooling the unsent line at the constant zero leaves no round-by-round knowledge error below
+one when the line is not zero: the stack whose top column is `[0, 0]` against the line's
+`(1, 0)` is accepted at every challenge. It is sound where the line is zero, which is why the
+sources may pool the top limb at `0`, and that the adaptor's statements have a zero top line
+is the obligation behind it. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {WitMid : Fin 3 → Type}
+    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      ((K × TableOut topOne) × ∀ i, TheOracle topOne i) Unit Unit pubSpec WitMid)
+    (kSF : (zeroTop.toOracleVerifier (TheOracle topOne)).toVerifier.KnowledgeStateFunction
+      init impl (Seam.table topOne) (Seam.pub topOne) Ext)
+    (ε : pubSpec.ChallengeIdx → ℝ≥0)
+    (h : (zeroTop.toOracleVerifier
+      (TheOracle topOne)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+        (Seam.table topOne) (Seam.pub topOne) WitMid Ext kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtTop, oracleOf goodLimbs)
+    (fun _ h ↦ stmtTop_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
+      ⟨fullOf c [1, 1], fullOf_take c _, (),
+        Verifier.GuardedForm.probEvent_pos_of_check
+          (guardedWith topOne (checkWords topOne) (poolZero topOne)) init impl
+          (stmtTop, oracleOf goodLimbs) (fullOf c [1, 1])
+          (fun out ↦ (out, ()) ∈ Seam.pub topOne)
+          (zeroTop_accepts c) (zeroTop_pub c)⟩
+
+-- The deployed verifier, which pools the value computed, is not fooled: the claim it pools for
+-- the top line is false of that stack.
+#guard ¬ ∀ c ∈ (verdict topOne (pooledFrom topOne) stmtTop y [1, 1]).2.columns.toList,
+  c.Holds goodLimbs
+
 /-! ### The bad challenge of the deployed check -/
 
 -- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
