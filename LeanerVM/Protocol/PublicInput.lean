@@ -131,6 +131,52 @@ private theorem check_eq_true_iff (s : I.Stmt × TableOut I) (r : E) (cs : List 
     check I s r cs = true ↔ cs = expectedValues I s.1 r :=
   decide_eq_true_iff
 
+/-! ## The check on the words -/
+
+/-- The check of the deployed verifiers, at leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`
+(`crates/lean_vm/src/cpu/mod.rs:752-755`, `python-verifier/verifier.py:1400`,
+`crates/rec_aggregation/guests/aggregate.py:1680-1683`): one equation on the two public words in
+`E`, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, where `y` is the adjoined root of `y³ + y + 1`. The
+words are the two sent lines' cells, `w₀ = E.ofLimbs l₀.cell0 l₁.cell0 0` and
+`w₁ = E.ofLimbs l₀.cell1 l₁.cell1 0`, so a line's limb is the coefficient of `y^i` in the word.
+The message must be the two values `[c₀, c₁]` and a message of another length is rejected. The
+definition is transcribed from those sources, not written from the specification.
+
+The deployed verifiers have this one shape. For any other number of sent lines there is nothing
+to transcribe, and the check is the specification's, one equation per limb: that keeps
+`checkWords_of_check` true of every instance. -/
+def checkWords (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  match (I.publicLines s.1).toList.filter (·.sent), cs with
+  | [l₀, l₁], [c₀, c₁] =>
+    decide (c₀ + y * c₁ =
+      (1 + r) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r * E.ofLimbs l₀.cell1 l₁.cell1 0)
+  | [_, _], _ => false
+  | _, _ => check I s r cs
+
+/-- The two lines' values combined by `y` are the two words' line: `(1 + r)·w₀ + r·w₁`. -/
+private theorem lineValue_pair (r : E) (l₀ l₁ : PublicLine I.toShape) :
+    lineValue I r l₀ + y * lineValue I r l₁ =
+      (1 + r) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r * E.ofLimbs l₀.cell1 l₁.cell1 0 := by
+  simp only [lineValue, ofLimbs_eq]
+  ring_nf
+  simp
+
+/-- The specification's check implies the deployed one: the limb equations give the equation on
+the words, whatever the lines. The converse is false: the tests of the public-input phase have a
+challenge where only the deployed check holds. -/
+theorem checkWords_of_check {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+    (h : check I s r cs = true) : checkWords I s r cs = true := by
+  have hcs := (check_eq_true_iff I s r cs).mp h
+  subst hcs
+  unfold checkWords expectedValues
+  rcases hf : (I.publicLines s.1).toList.filter (·.sent) with _ | ⟨l₀, _ | ⟨l₁, _ | ⟨l₂, ls⟩⟩⟩
+  · simpa [checkWords, expectedValues, hf] using h
+  · simpa [checkWords, expectedValues, hf] using h
+  · rw [hf]
+    simp only [List.map_cons, List.map_nil]
+    exact decide_eq_true (lineValue_pair I r l₀ l₁)
+  · simpa [checkWords, expectedValues, hf] using h
+
 /-- The number of lines whose value is sent: the length of the prover's message. -/
 def sentCount {n : ℕ} (ls : Vector (PublicLine I.toShape) n) : ℕ :=
   (ls.toList.filter (·.sent)).length

@@ -122,6 +122,11 @@ def extra : List E := [1 + y, 0]
 #guard ¬ check toy stmt1 y wrong
 #guard ¬ check toy stmt1 y []
 #guard ¬ check toy stmt1 y extra
+-- With one sent line there is nothing to combine, and the deployed check is the specification's.
+#guard checkWords toy stmt1 y good
+#guard ¬ checkWords toy stmt1 y wrong
+#guard ¬ checkWords toy stmt1 y []
+#guard ¬ checkWords toy stmt1 y extra
 
 -- On the honest stack, a prover that answers truthfully sends the expected values.
 #guard trueValues toy honest (1: K) y = expectedValues toy (1: K) y
@@ -187,6 +192,8 @@ def stmtNone : K × TableOut noneSent :=
 #guard expectedValues noneSent (1: K) y = []
 #guard check noneSent stmtNone y []
 #guard ¬ check noneSent stmtNone y good
+#guard checkWords noneSent stmtNone y []
+#guard ¬ checkWords noneSent stmtNone y good
 #guard ((pooled noneSent stmtNone y).2.columns.toList.map fun c ↦ c.value) = [1, 1, 1] ++ good
 #guard ¬ ∀ c ∈ (pooled noneSent stmtNone y).2.columns.toList, c.Holds badLine
 
@@ -223,6 +230,7 @@ def limbValues : List E := [1, 1, 0]
 -- The wrong top cell passes the check, which sees the two sent values only, and fails the third
 -- claim; the pool without the third claim accepts the stack.
 #guard check threeLimbs stmtLimbs y (trueValues threeLimbs badTopLimb 1 y)
+#guard checkWords threeLimbs stmtLimbs y (trueValues threeLimbs badTopLimb 1 y)
 #guard ¬ ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns.toList, c.Holds badTopLimb
 #guard ∀ c ∈ ((pooled threeLimbs stmtLimbs y).2.columns.toList.take 5), c.Holds badTopLimb
 
@@ -248,16 +256,68 @@ def rStar : E := y / (1 + y)
 /-- The two true evaluations at that challenge: `r` and `1 + r`. -/
 def atStar : List E := [rStar, 1 + rStar]
 
-/-- The equation on the two public words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, at zero words. -/
-def wordsEquation (c₀ c₁ : E) : Bool := c₀ + y * c₁ == 0
-
 #guard trueValues twoLimbs badLimbs 0 rStar = atStar
--- The equation on the words holds of the true evaluations; the check per limb rejects them.
-#guard wordsEquation rStar (1 + rStar)
+-- The check on the words accepts the true evaluations; the check per limb rejects them.
+#guard checkWords twoLimbs stmtTwo rStar atStar
 #guard ¬ check twoLimbs stmtTwo rStar atStar
 -- At a sampled challenge both reject.
-#guard ¬ wordsEquation y (1 + y)
+#guard ¬ checkWords twoLimbs stmtTwo y (trueValues twoLimbs badLimbs 0 y)
 #guard ¬ check twoLimbs stmtTwo y (trueValues twoLimbs badLimbs 0 y)
+-- The check per limb implies the check on the words (`checkWords_of_check`), and the check on
+-- the words accepts a message that is not the expected values: `[y, 1]` solves `c₀ + y·c₁ = 0`.
+#guard checkWords twoLimbs stmtTwo y (expectedValues twoLimbs (0 : K) y)
+example (r : E) (cs : List E) (h : check twoLimbs stmtTwo r cs = true) :
+    checkWords twoLimbs stmtTwo r cs = true :=
+  checkWords_of_check twoLimbs h
+#guard checkWords twoLimbs stmtTwo y [y, 1]
+#guard ¬ check twoLimbs stmtTwo y [y, 1]
+-- With two sent lines the message has two values: any other length is rejected, whatever it holds.
+#guard ¬ checkWords twoLimbs stmtTwo y []
+#guard ¬ checkWords twoLimbs stmtTwo y [0]
+#guard ¬ checkWords twoLimbs stmtTwo y [0, 0, 0]
+
+/-! ## The words -/
+
+/-- Two limbs with nonzero public words: limb 0 has cells `(1, 0)` and limb 1 has cells `(0, 1)`,
+so `w₀ = E.ofLimbs 1 0 0 = 1` and `w₁ = E.ofLimbs 0 1 0 = y`. -/
+abbrev wordsTwo : M3Instance :=
+  { toy with
+    nLines := 2
+    publicLines := fun _ ↦
+      #v[⟨⟨0, 0⟩, 1, 0, true, by decide⟩, ⟨⟨0, 1⟩, 0, 1, true, by decide⟩] }
+
+/-- Its statement with the received claims. -/
+def stmtWords : K × TableOut wordsTwo :=
+  (0, ⟨received wordsTwo (by decide) (by decide) (by decide) (by decide) 0 ![0, 1, 0]⟩)
+
+-- The limbs' values at `y` are `(1 + y)·1` and `y·1`, and `(1 + y)·1 + y·y` is the words' line
+-- `(1 + r)·w₀ + r·w₁` at `y`, which the equation on the words asks of `c₀ + y·c₁`.
+#guard expectedValues wordsTwo (0 : K) y = [1 + y, y]
+#guard checkWords wordsTwo stmtWords y [1 + y, y]
+-- The `y` goes with the second value: the values in the other order are rejected.
+#guard ¬ checkWords wordsTwo stmtWords y [y, 1 + y]
+-- At another challenge the words' line moves with it.
+#guard checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) r₂)
+#guard ¬ checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) y)
+
+/-- Three lines, all sent: a shape the deployed verifiers do not have. -/
+abbrev allSent : M3Instance :=
+  { threeLimbs with
+    publicLines := fun v ↦
+      #v[⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
+        ⟨⟨0, 2⟩, 0, 0, true, by decide⟩] }
+
+/-- Its statement `1` with the three columns' cells 1 received. -/
+def stmtAll : K × TableOut allSent :=
+  (1, ⟨received allSent (by decide) (by decide) (by decide) (by decide) 1 ![1, 1, 0]⟩)
+
+-- Off the deployed shape the check is the specification's, one equation per limb.
+#guard (expectedValues allSent (1 : K) y).length = 3
+#guard checkWords allSent stmtAll y (expectedValues allSent (1 : K) y)
+#guard ¬ checkWords allSent stmtAll y [1, 1, 1]
+#guard checkWords allSent stmtAll y [1, 1, 0] = check allSent stmtAll y [1, 1, 0]
+-- Two values for three sent lines are rejected: the words of two lines do not stand for three.
+#guard ¬ checkWords allSent stmtAll y [1, 1]
 
 /-! ## The phase in its slot -/
 
