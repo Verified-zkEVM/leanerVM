@@ -418,6 +418,12 @@ def verifierWith (accept : (I.Stmt × TableOut I) → E → List E → Bool)
 abbrev verifier : FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
   verifierWith I (check I) (pooledFrom I)
 
+/-- The deployed verifier: the check on the words, then the pool from the values sent. It is
+the specification's verifier with `checkWords` for `check`: the schedule, the length of the
+message and the pool are the same, and it never reads the stack. -/
+abbrev deployedVerifier : FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
+  verifierWith I (checkWords I) (pooledFrom I)
+
 /-! ## The verifier's verdict -/
 
 /-- Reading the prover's message returns the transcript's entry. -/
@@ -481,6 +487,12 @@ def guardedWith :
 /-- The verifier is the check followed by the pool from the values sent, as data. -/
 def guarded : ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
   guardedWith I (check I) (pooledFrom I)
+
+/-- The deployed verifier is the check on the words followed by the pool from the values sent,
+as data. -/
+def deployedGuarded :
+    ((deployedVerifier I).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
+  guardedWith I (checkWords I) (pooledFrom I)
 
 /-- The verifier's check holds exactly when the specification's check does: that check fixes
 the length. -/
@@ -650,6 +662,13 @@ def publicInputSecurity :
   extractor := PublicInput.extractor I
   kSF := PublicInput.stateFunction I
   rbr := PublicInput.rbr I
+
+/-- The public-input phase of the deployed verifiers, at its slot: the specification's prover,
+whose values are the lines' values, and a front verifier that checks them on the words. -/
+def deployedPublicInputPhase :
+    Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec where
+  prover := PublicInput.prover I
+  verifier := PublicInput.deployedVerifier I
 
 end
 end LeanerVM.Protocol

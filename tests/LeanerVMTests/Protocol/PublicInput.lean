@@ -383,6 +383,22 @@ example {r₁ r₂ : E} (hr : r₁ ≠ r₂) :
   exact accepts_two_challenges (a := cells 1 1 0) (b := cells 1 1 0) (w₀ := wordOnes)
     (w₁ := wordOnes) hr (key r₁) (key r₂)
 
+/-! ## The deployed verifier -/
+
+-- It checks on the words and pools the values sent: `[y, 1]` passes on two limbs with zero
+-- words, the specification's verifier rejects it, and the pool carries `y` and `1`, not the
+-- lines' values `0` and `0`.
+#guard accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y, 1]
+#guard ¬ accepts twoLimbs (check twoLimbs) stmtTwo y [y, 1]
+#guard ((verdict twoLimbs (pooledFrom twoLimbs) stmtTwo y [y, 1]).2.columns.toList.map
+  fun c ↦ c.value) = [0, 1, 0] ++ [y, 1]
+-- A message without two values is rejected before the check, whatever it holds.
+#guard ¬ accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y]
+#guard ¬ accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y, 1, 0]
+-- The verifier is the specification's with one check for another: on one sent line they agree.
+#guard accepts toy (checkWords toy) stmt1 y good
+#guard ¬ accepts toy (checkWords toy) stmt1 y wrong
+
 /-! ## The phase in its slot -/
 
 /-- Two rounds: the challenge, then the prover's values. -/
@@ -396,6 +412,14 @@ example (i : pubSpec.ChallengeIdx) : pubError i = overE 1 := rfl
 /-- The verifier never reads the stack: it is a front verifier. -/
 example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
   PublicInput.verifier toy
+
+/-- The deployed verifier never reads the stack either. -/
+example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
+  PublicInput.deployedVerifier toy
+
+/-- The deployed phase fills the same slot with the same types: it is what `Phases.pub` takes. -/
+example : Phase.FrontDef toy (K × TableOut toy) (K × PubOut toy) pubSpec :=
+  deployedPublicInputPhase toy
 
 /-- The two halves typecheck against the two seams, at the slot's error. -/
 example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
