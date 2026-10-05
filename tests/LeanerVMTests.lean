@@ -22,6 +22,7 @@ import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
+import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking

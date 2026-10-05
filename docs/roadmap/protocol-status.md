@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b692351` (2026-10-02),
-checked on 2026-10-02; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `a100d8b` (2026-10-05),
+checked on 2026-10-05; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -24,27 +24,34 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
-| grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
+| fingerprint and collision bound (Layer 5): the fingerprint polynomial | #39 | `24860c3` | 2026-10-05 |
+| the public-input phase with the deployed check (Layer 8) | #72 | `c9bd599` | 2026-10-05 |
+| grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
+| grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
+| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | this pull request | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
-each version of the public-input phase. On the branch of #62, the grand-product GKR's
-definition and completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the
-slot's schedule `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a
-checked message (`ToArkLib/SendChecked.lean`) and a checked challenge
-(`ToArkLib/SampleChallenge.lean`), a sumcheck round of their own composed from the two
-(`ToArkLib/SumcheckRound.lean`), and the product tree and partial sums
-(`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On the branch stacked on
-it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
-`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the
-round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
-witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
-tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. Nothing else is built: the
-other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
-trees, the compiled verifier and the base theorems.
+each version of the public-input phase. The grand-product GKR's definition and completeness
+(`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
+`gkrComplete`) stand on two generic one-round components, a checked message
+(`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
+sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
+product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`).
+Its knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
+`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the round's
+(`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no witness) and a
+table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which tracks the riders
+and the descendants' values while the coordinates of a point are drawn one at a time. The
+fingerprint polynomial of a tuple (`ToCompPoly/Fingerprint.lean`, #39) and, with this pull
+request, the product polynomial of a multiset of tuples with its injectivity and its collision
+count (`ToArkLib/GrandProductPoly.lean`), and their leanVM reading (`Fingerprint.lean`:
+`fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision`) complete the
+fingerprint hole. Nothing else is built: the other phases, the other generic components, the
+Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base
+theorems.
 
 ## What the built work owes the blueprint
 
@@ -199,14 +206,21 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   bound, so the degree bound is the message's length; the first step reads the roots through a
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
+- **The fingerprint and the collision bound (Layer 5)** are in two modules, not in the GKR's:
+  the product polynomial of a multiset of tuples over any ring, its injectivity and the count of
+  its collisions are generic (`ToArkLib/GrandProductPoly.lean`, carried from Elias Judin's
+  branch for #33, ArkLib issue #901), and the reading at `K`, `E` and sixteen coordinates is a
+  leanVM module (`Fingerprint.lean`), since a generic module names no protocol constant.
+  `sideProduct_collision` bounds the collisions of two multisets of at most `N` tuples, the
+  bus phase taking `N = 2 ^ μ_bus`; its counting form, `card_sideProduct_collision_le`, counts
+  the colliding challenges with `Nat.card`, the form a computable security consumes.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The GKR's knowledge
-soundness on its local round (Layer 5) is built on the branch stacked on #62.
+expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the bus
+phase (Layer 6), the Flock phase's definition and completeness (Layer 9), the WHIR opening, and
+the Merkle trees with the WHIR parameters (Layer 11).
 
 ## Upstream watch
 

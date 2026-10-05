@@ -1,7 +1,8 @@
 /-
   LeanerVM.Protocol.ToArkLib.GrandProductPoly
 
-  Multiset fingerprints and their finite-field collision bound.
+  The grand-product polynomial of a multiset of tuples: it determines the multiset, and two
+  different multisets give equal values at few points of a finite field. Candidate for ArkLib.
 -/
 
 module
@@ -14,29 +15,27 @@ import Mathlib.Algebra.Polynomial.Roots
 /-!
 # Grand products of multilinear fingerprints
 
+A tuple is a table on `n` variables, and its fingerprint is the symbolic multilinear extension
+`fingerprintPoly` (`LeanerVM.Protocol.ToCompPoly.Fingerprint`). The grand product of a multiset
+`M` of tuples is `grandProductPoly M = Π_{t ∈ M} (X − fingerprint(t))`, a polynomial in the `n`
+fingerprint variables and one more, `X`, indexed by `none`.
+
+* Over an integral domain the polynomial determines the multiset, multiplicities included
+  (`grandProductPoly_injective`): read as a polynomial in `X` over the fingerprint variables, it
+  is monic and its roots are the fingerprints, and fingerprints determine their tuples. No bound
+  relates the characteristic to the multiset's size.
+* Each factor has total degree at most `max 1 n`, so two different multisets of at most `cap`
+  tuples differ by a nonzero polynomial of degree at most `max 1 n · cap`, which vanishes at no
+  more than `max 1 n · cap · |F|ⁿ` of the `|F|ⁿ⁺¹` points over a finite field `F`
+  (`card_grandProduct_collision_le`, by ArkLib's counting Schwartz–Zippel). The multisets are
+  fixed before the point.
+
 Category A: leanVM specification §5.2, Lemma 5.2 and Theorem 5.1, at
-`a386121f84292f6fa663aaa3e570c15bc0240ea2`
-(`doc/leanvm/body/05-arithmetization.tex:18-62`). These are generic algebraic ingredients
-for protocol-blueprint Layer 5; the concrete `K`-to-`E` bus wrapper remains separate.
-
-A separate variable records the product challenge. Over an integral domain, the polynomial
-determines the multiset of tuples, including their natural multiplicities. The proof reads the
-roots of a monic univariate polynomial over the fingerprint coefficient ring. It does not
-require a characteristic bound on the multiset cardinality.
-
-For sixteen-coordinate tuples each factor has total degree at most four in all five challenge
-variables. Unequal multisets of size at most `N` therefore collide at a uniform point with
-probability at most `4 * N / |F|`. The probability theorem fixes both multisets before the
-uniform joint sample. It does not establish conditional freshness for a bus challenge recycled
-into the table phase, or the GKR protocol of §5.3.
-
-The fingerprint construction is derived from leanth PR 16, revision
-`23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, as attributed in `Fingerprint.lean`. The grand-product
-argument proves the current specification's product identity using Mathlib's
-`Polynomial.roots_multiset_prod_X_sub_C`. The old logarithmic-derivative bus is not a source
-for this argument.
-
-Upstream ownership: [ArkLib #901](https://github.com/Verified-zkEVM/ArkLib/issues/901).
+`a386121f84292f6fa663aaa3e570c15bc0240ea2` (`doc/leanvm/body/05-arithmetization.tex:18-62`),
+whose proof of Lemma 5.2 is `TODO`. The fingerprint is derived from leanth PR 16, revision
+`23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, as attributed in `ToCompPoly/Fingerprint.lean`; the
+product argument is new and uses Mathlib's `Polynomial.roots_multiset_prod_X_sub_C`. Requested
+upstream as [ArkLib #901](https://github.com/Verified-zkEVM/ArkLib/issues/901).
 -/
 
 namespace LeanerVM.Protocol
