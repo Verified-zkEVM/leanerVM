@@ -39,6 +39,7 @@ import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.PowerBatching
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
@@ -50,6 +51,7 @@ import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToCompPoly.PartialSum
+import LeanerVM.Protocol.ToCompPoly.PowerBatching
 import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking
