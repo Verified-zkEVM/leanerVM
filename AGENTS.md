@@ -102,6 +102,10 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   Preserve license notices and human attribution for substantially derived material.
 - Add a third-party dependency only for a named first-party consumer and a narrow import. Update
   the toolchain, upstream baseline, and manifest together where applicable.
+- Upstream candidates live under `LeanerVM/Protocol/To{ArkLib,CompPoly,VCVio}/`. The pull request
+  that moves a library pin past an upstream merge deletes every local `To*` file or declaration
+  the new pin contains, switches its consumers to the upstream names, and updates the protocol
+  blueprint's upstream ledger and the status page's watch list in the same change.
 - Treat the Lean native/C executable as an implementation and performance target in its own
   right. Benchmark semantic changes on stable workloads when they affect execution.
 - Native code is an implementation boundary, not proof evidence. Rust FFI, CUDA, and future

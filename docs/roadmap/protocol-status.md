@@ -25,6 +25,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the spine's revision: the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking, and the public-input phase, revised | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
+| sumcheck: definitions and completeness (Layer 4) | the pull request stacked on #70 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
@@ -40,7 +41,16 @@ the branch stacked on it, the GKR's knowledge soundness (`ToArkLib/GrandProductS
 components' security halves, the round's (`SumcheckRound.roundsSecurity`, for a consistent and
 sound family carrying no witness) and a table's zeroness on a partial point
 (`ToCompPoly/Restriction.lean`), which tracks the riders and the descendants' values while the
-coordinates of a point are drawn one at a time. Nothing else is built: the other phases, the
+coordinates of a point are drawn one at a time. On the branch stacked on that one, Layer 4's
+sumcheck (`ToArkLib/Sumcheck.lean`): a virtual polynomial (`Sumcheck.Virtual`: tables read off
+the context and a formula of the point and the tables' values), its sumcheck over a cube weighted
+per coordinate (`Sumcheck.weighted`, binding the highest variable first, the tables' values at the
+final point as its last message), the plain and the normalized variants as its two weightings
+(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness, and the transport of
+round-by-round knowledge soundness to a verifier that decodes a round message sent without one
+coefficient (`Sumcheck.transport`, on the generic `ToArkLib/TranscriptMap.lean`); with the
+weighted cube sums and the degree in each coordinate it needs (`ToCompPoly/WeightedCube.lean`,
+`ToCompPoly/IndividualDegree.lean`). Nothing else is built: the other phases, the
 other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
 verifier and the base theorems.
 
@@ -180,6 +190,44 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
 
+- **The sumchecks (Layer 4), definitions and completeness** stand on the GKR's round
+  (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and stays: a family of
+  claims, honest polynomials, a weighted domain per round and a side invariant, with the rounds'
+  completeness and knowledge soundness. Where the built work differs from Layer 4's sketch:
+  - `Virtual F X O W n m` carries the tables (functions of the public data, the oracles' contents
+    and the witness), and its formula reads the public data and the point as well as the tables'
+    values, so that factors the verifier evaluates itself (an equality polynomial, a padding
+    product) are part of the formula; the sketch's formula reads the values only, with the
+    heights, the padding `∏_{k ≥ τ_j} X_k` and the factor `eq(ζ_{<τ_j}, ·)` inside
+    `Sumcheck.plain`. Those are leanVM's table sumcheck's choices, so the table sumcheck (Layer 7)
+    builds them into its formula and lifts a table of `τ_j` variables to `τ_max` itself; the
+    generic sumcheck takes no heights.
+  - The degree is a hypothesis of completeness, `IndividualDegreeLE (V.summand ctx) d` (degree at
+    most `d` in each variable of the composed summand), not the sketch's `formula_poly` (a total
+    degree of the formula in the values), which says nothing of the point's factors.
+    `IndividualDegreeLE.mvPolynomial_eval` is the bridge: a polynomial of total degree `d` in
+    tables' extensions has degree `d` in each variable.
+  - Plain and normalized are one construction over weights per coordinate, unit weights and the
+    weights `(1 - p_k, p_k)` of a point; both bind the highest variable first, as leanVM's table
+    sumcheck does. The GKR's layers bind the lowest variable first through their own family on
+    `SumcheckRound.normalizedWeights`: the family form its status item asks Layer 4 for is
+    `SumcheckRound.Family`, which the GKR already uses, so its rounds stay as they are and
+    `Sumcheck.normalized` (the virtual form) is not what it consumes.
+  - The honest round polynomial interpolates the next claim at `d + 1` distinct nodes, a
+    parameter of the definition (`nodes`, injective for completeness): a field of characteristic
+    two has no `0, 1, …, d`.
+  - The rounds and the last message are exposed apart (`Sumcheck.rounds`, `Sumcheck.final`, with
+    their completeness and front witnesses), since the table slot nests its schedule to the left,
+    `draw ++ rounds ++ say`, and a test builds the table slot's shape from them.
+  - `Sumcheck.transport` is stated per round, for any security of the round, on a theorem for
+    any verifier and any causal map of its transcripts that keeps the challenges
+    (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the decoding need not be injective.
+    The map of the whole protocol's transcripts is the compiled verifier's to build.
+  - Decision 33 is taken by default: the sumcheck is written here. ArkLib's legacy sumcheck has
+    its knowledge soundness admitted; its typed sumcheck proves completeness and plain soundness
+    for one polynomial with unit weights, and no open pull request adds knowledge soundness to
+    either (the survey is in the watch list below).
+
 Open pull requests that the revision changes: #62 (the GKR's definition and completeness) is
 at the slot's schedule and error, as its item above says; #42 (honest sumcheck algebra) serves
 the plain variant, and conflicts with `main`; #39 (fingerprints) and #43 (power batching) rebase
@@ -189,9 +237,9 @@ objects, #43 feeding the opening phase.
 ## What can start now
 
 The spine's revision first: every phase is written against its slots. Independent of it: Clean
-expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint (Layer 5), the WHIR opening, and the Merkle trees with the WHIR parameters
-(Layer 11). The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
+expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
+opening, and the Merkle trees with the WHIR parameters (Layer 11). The sumcheck's knowledge
+soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
 stacked on #62. The public-input phase's deployed check follows its pool's revision.
 
 ## Upstream watch
@@ -203,7 +251,8 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
 | ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
 | ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
-| ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair; honest round identities | reference only |
+| ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
+| ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |

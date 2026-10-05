@@ -152,6 +152,11 @@ Reusable results should be proposed to their natural upstream library:
 Keep only leanVM-specific semantics, parameters, arithmetization instances, application
 specifications, protocol assembly, and implementation-correspondence results here.
 
+Until its upstream pull request merges, such a result lives under
+`LeanerVM/Protocol/To<Library>/`, written for that library's other consumers. A local copy never
+outlives the pin: the pull request that moves a pin past the upstream merge deletes the `To*`
+files and declarations the new pin contains and moves their consumers to the upstream names.
+
 ## Licensing
 
 The repository is licensed under Apache 2.0. By contributing, you agree that your
