@@ -79,6 +79,10 @@ This directory contains stable project and operating knowledge.
     completeness (2026-10-05), whose findings the branch meets (the refutation of the check
     `R_c ≠ 0`, the lines rider documented and tested, a smaller surface, the status page) but
     for a by-hand run of the grand-product argument on the bus's leaves.
+  - [protocol-bus-security.md](reviews/protocol-bus-security.md): the review of the bus phase's
+    knowledge soundness (2026-10-05), whose findings the branch meets (an unbalanced stack in the
+    tests, `|E|` written `2^192` explained, citations, the status page) or records as owed (a
+    refutation of the check `R_c ≠ 0` at the phase's seams).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

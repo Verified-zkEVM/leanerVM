@@ -30,16 +30,18 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
 | bus phase: definition and completeness (Layer 6) | #79 | on merge | on merge |
-| bus phase: knowledge soundness (Layer 6) | PRC | on merge | on merge |
+| bus phase: knowledge soundness (Layer 6) | #80 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
-check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
+check and with the check of the deployed verifiers, and the bus phase, both halves, with #79 and
+#80. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
 each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
 `card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
 (`busComplete`, `leaf_decomposition`, `Bus.sum_forms_eq_total_iff`,
-`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`, `busSecurity`). The grand-product GKR's definition and completeness
+`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`,
+`busSecurity`). The grand-product GKR's definition and completeness
 (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
 `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
@@ -58,8 +60,8 @@ fingerprint hole. The bus phase's definition and completeness (`LeanerVM/Protoco
 `busPhase` at the slot's schedule, `leaf_decomposition`, `busComplete`) stand on the
 grand-product argument, the product of a stack's cells (`Blocks.prod_stackAt`) and the
 fingerprint; its knowledge soundness (`LeanerVM/Protocol/BusSecurity.lean`: `busSecurity` at the
-slot's error `busError I`) on the grand-product argument's and the collision bound. Nothing else
-is built: the other phases, the other generic components, the Clean
+slot's error `busError I`) on the grand-product argument's knowledge soundness and the collision
+bound. Nothing else is built: the other phases, the other generic components, the Clean
 bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
@@ -262,13 +264,19 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     tests' zero-count stack is such a stack by `#guard`, since the kernel cannot evaluate a
     constraint or the bus's permutation on a concrete stack). It is at the step's relations, as
     the grand-product argument's refutations are; a refutation at the phase's seams is not
-    attempted.
+    attempted: it would take a generic backward induction over the rounds (from a statement with
+    no witness, a set of prefixes closed under every challenge, with a message for every prover
+    round, and accepted at the end, leaves an error of one at some challenge; the review's probe
+    compiles one), and that the unchecked phase's honest prover is accepted after every vector
+    of challenges, which needs the support of ArkLib's `Prover.run` round by round. Owed.
   - Its knowledge soundness, `busSecurity`, is composed from its steps' at the completeness
     half's intermediate relations: `Bus.afterChallenge` after `(α, β)` (the products agree, the
     counts are nonzero, the constraints vanish, the lines and the Flock predicate hold), then the
     grand-product argument's input and output relations. The challenges' count of bad values is
-    `card_sideProduct_collision_le` at `N = 2 ^ μ_bus`, with `|E|` written `2 ^ 192` so that the
-    security computes.
+    `card_sideProduct_collision_le` at `N = 2 ^ μ_bus`, with `|E|` written `2 ^ 192` (`card_E`):
+    the count is a number the compiled security holds, and `Nat.card E` does not compute. The
+    convention *Errors* rewrites `|E|` to `2^192` only in the numeric test, so it is owed a
+    rewording.
   - The phase is run by parts in the tests (the challenges and roots, the leaves at a point, the
     last step); the grand-product argument between them is the one its own tests run by hand.
   - The knowledge-soundness half consumes, besides the phase, `Bus.afterChallenge`,
@@ -277,8 +285,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     `Bus.lowPoint_point`, `Bus.sideTuples_perm`, `Bus.blocks_total` and `push_fits`.
   - The blueprint is owed a `docs(protocol)` edit: Layer 6's signatures (`busPhase I h` with
     `Bus.Conditions`, a `Phase.FrontDef`; `countLeaves I q` without challenges;
-    `leaf_decomposition` per side), and the Interfaces list (`Bus.Conditions`,
-    `Blocks.prod_stackAt`, `Blocks.total_eq_sum`).
+    `leaf_decomposition` per side; `busSecurity I h` at `(busPhase I h).toDef`), and the
+    Interfaces list (`Bus.Conditions`, `Blocks.prod_stackAt`, `Blocks.total_eq_sum`).
 
 ## What can start now
 

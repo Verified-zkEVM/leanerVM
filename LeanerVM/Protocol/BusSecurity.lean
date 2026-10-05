@@ -20,7 +20,8 @@ round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only thro
 challenge. It is composed from the four steps' halves, at the same intermediate relations as
 `busComplete`, so every challenge keeps the error the slot assigns it:
 
-* **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1). The
+* **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1,
+  `doc/leanvm/body/05-arithmetization.tex:36-38` at leanVM `a386121f`). The
   state after them is `afterChallenge`: the push and pull products agree at `(α, β)`, every count
   cell is nonzero, every constraint vanishes, and the public lines and the Flock predicate hold.
   It asks the products to agree, not the multisets, since a collision of the products could be
@@ -30,7 +31,8 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
 * **The roots** (`rootsSecurity`), at no error: a root that passes the check `R_c ≠ 0` and is
   the product of its leaves makes every count cell nonzero (`prod_countLeaves_ne_zero_iff`), and
   one root for both sides makes the products agree. This is where the check is load-bearing: a
-  zero count is otherwise balanced on the bus (the tests' zero-count mutation).
+  zero count is otherwise balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed
+  verifier's check is `crates/lean_vm/src/leaf.rs:885-889`).
 * **The grand-product argument** (`gkrSecurity`), at `gkrError` from the unit `1/|E|`. Its riders
   carry the constraints and the public lines with the Flock predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
@@ -42,7 +44,11 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   riders' vanishing.
 
 Every part takes no real number and no `Fintype` instance as an argument, and the compositions
-are inlined, so the security computes, its extractor included.
+are inlined, so the security computes, its extractor included. The count of bad challenges is a
+number the compiled security holds, so `|E|` is written `2^192` there (`card_E`): `Nat.card E` does
+not compute.
+
+Written from the specification and the protocol's relations; nothing is transcribed.
 -/
 
 namespace LeanerVM.Protocol
@@ -59,7 +65,7 @@ variable {I : M3Instance}
 /-! ## The challenges -/
 
 /-- A push or pull side's tuples number its leaves. -/
-theorem length_tuples {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
+private theorem length_tuples {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
     (q : Column I.μ) : (I.tuples q s).length = leafCount I k := by
   rw [← (sideTuples_perm q s).length_eq, sideTuples, List.length_flatMap, leafCount, hk]
   exact congrArg List.sum (List.map_congr_left fun src _ ↦ by simp)
