@@ -32,6 +32,7 @@ import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillBlocks
 import LeanerVMTests.Semantics.FillCycle
 import LeanerVMTests.Semantics.FillPlan
+import LeanerVMTests.Semantics.FillRows
 import LeanerVMTests.Semantics.FillSteps
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Semantics.Instruction
