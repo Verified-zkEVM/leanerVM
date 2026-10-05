@@ -320,8 +320,7 @@ sent limbs and `0 = (1 - r)·a₂ + r·b₂` for the top limb, whose claim the v
 (the third limb is `F192::ZERO` at `cpu/mod.rs:746`, and `bind_pi_claim` pools it, `:674-682`),
 and the check on the words reads `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`.
 Both hold at two challenges `r₁ ≠ r₂` only if the cells are the words' limbs and the top limb's
-cells are zero. At one challenge they hold of a wrong memory, at the challenge that is a root of
-a polynomial of degree one in `r`. -/
+cells are zero. -/
 theorem accepts_two_challenges {a b : Fin 3 → K} {w₀ w₁ r₁ r₂ c₀ c₁ d₀ d₁ : E} (hr : r₁ ≠ r₂)
     (h₁ : c₀ = (1 - r₁) * ofK (a 0) + r₁ * ofK (b 0) ∧
       c₁ = (1 - r₁) * ofK (a 1) + r₁ * ofK (b 1) ∧
@@ -562,22 +561,27 @@ theorem exists_mem_support_prover_run (s : I.Stmt × TableOut I) (o : ∀ i, The
   refine ⟨_, ⟨r, ?_, rfl⟩, rfl, rfl, rfl⟩
   exact mem_support_query _ r
 
-/-- Perfect completeness: from the table seam, the prover's values pass the check at every
-challenge and the pool lands in the public seam. -/
-theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+/-- Perfect completeness of a verifier of the phase's shape that pools the values sent, given
+that its check accepts what the specification's does: from the table seam, the prover's values
+pass the specification's check at every challenge, so they pass `accept`, and the pool lands in
+the public seam. -/
+private theorem complete_with
+    (hacc : ∀ s r cs, check I s r cs = true → accepts I accept s r cs = true)
+    {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (OracleReduction.mk (prover I)
-      ((verifier I).toOracleVerifier (TheOracle I))).perfectCompleteness init impl (Seam.table I)
-      (Seam.pub I) := by
+      ((verifierWith I accept (pooledFrom I)).toOracleVerifier (TheOracle I))).perfectCompleteness
+        init impl (Seam.table I) (Seam.pub I) := by
   apply Reduction.perfectCompleteness_of_run_support
   intro stmtIn witIn hIn x hx
   obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _ (guarded I) (s, o) witIn hx
+  obtain ⟨pr, hpr, rfl⟩ :=
+    Reduction.mem_support_run_of_guarded _ (guardedWith I accept (pooledFrom I)) (s, o) witIn hx
   obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
   have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
-  have hacc : (guarded I).check (s, o) pr.1 = true := (accepts_check_iff I _ _ _).mpr hc
+  have hacc' : (guardedWith I accept (pooledFrom I)).check (s, o) pr.1 = true := hacc _ _ _ hc
   have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
     verdict_pooledFrom_of_check I hc
-  rw [ite_eq_left hacc]
+  rw [ite_eq_left hacc']
   refine ⟨_, rfl, ?_, ?_⟩
   · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
     rw [hpool]
@@ -585,6 +589,14 @@ theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (State
   · show pr.2.1 = (verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o)
     rw [hpool]
     exact congrArg Prod.fst hout
+
+/-- Perfect completeness: from the table seam, the prover's values pass the check at every
+challenge and the pool lands in the public seam. -/
+theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (OracleReduction.mk (prover I)
+      ((verifier I).toOracleVerifier (TheOracle I))).perfectCompleteness init impl (Seam.table I)
+      (Seam.pub I) :=
+  complete_with I (check I) (fun _ _ _ hc ↦ (accepts_check_iff I _ _ _).mpr hc) init impl
 
 /-- The deployed verifier's check holds wherever the specification's does, and it too fixes the
 length. -/
@@ -601,25 +613,8 @@ theorem deployed_complete {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (OracleReduction.mk (prover I)
       ((deployedVerifier I).toOracleVerifier (TheOracle I))).perfectCompleteness init impl
-      (Seam.table I) (Seam.pub I) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ :=
-    Reduction.mem_support_run_of_guarded _ (deployedGuarded I) (s, o) witIn hx
-  obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
-  have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
-  have hacc : (deployedGuarded I).check (s, o) pr.1 = true := accepts_checkWords_of_check I hc
-  have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
-    verdict_pooledFrom_of_check I hc
-  rw [ite_eq_left hacc]
-  refine ⟨_, rfl, ?_, ?_⟩
-  · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
-    rw [hpool]
-    exact pooled_mem_pub I s o hIn (pr.1 0)
-  · show pr.2.1 = (verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o)
-    rw [hpool]
-    exact congrArg Prod.fst hout
+      (Seam.table I) (Seam.pub I) :=
+  complete_with I (checkWords I) (fun _ _ _ ↦ accepts_checkWords_of_check I) init impl
 
 /-! ## Knowledge soundness -/
 
@@ -717,14 +712,9 @@ private theorem pool_holds {s : I.Stmt × TableOut I} {o : ∀ i, TheOracle I i}
       exact Or.inr ⟨i, rfl⟩)
     exact (claim_holds_iff I (theStack o) r _ _).mp hc
 
-/-- The bad challenge of the deployed check is unique. Outside the table seam, at most one
-challenge has a message that the check on the words accepts with a verdict in the public seam.
-The received claims hold and some line's cells differ from the statement's. Off the deployed
-shape the check is the specification's and `bad_challenge_unique` applies. With two sent lines,
-either a line that is not sent differs, and its claim is true at one challenge at most
-(`line_challenge_unique`), or a sent line differs, and the claims on the two sent lines are
-true of the stack, so the equation on the words is an equation on the stack's cells that two
-challenges would settle (`pair_challenge_unique`). -/
+/-- Outside the table seam, at most one challenge has a message that the check on the words
+accepts with a verdict in the public seam: a line that is not sent differs, or a sent line does
+and the pooled claims turn the equation on the words into one on the stack's cells. -/
 private theorem bad_challenge_unique_words (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
     (hin : ((s, o), ()) ∉ Seam.table I) {r₁ r₂ : E} {cs₁ cs₂ : List E}
     (h₁ : accepts I (checkWords I) s r₁ cs₁ = true ∧
