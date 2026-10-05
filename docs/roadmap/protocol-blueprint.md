@@ -304,7 +304,7 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Hypercube | `Fin (2^n)` indexes `{0,1}^n` with bit `k` = coordinate `k` (low bit first), the CompPoly and leanVM order. A point is `Vector E n`. |
 | Tables | `Column n` wraps `CMlPolynomialEval K n` in a structure, so that its oracle interface is not ArkLib's position-query interface on `Vector`; a table over `E` is `CMlPolynomialEval E n` (`ETable n` below). Its extension is `evalMle`, lifted by `eval₂Mle` when the point is in `E`. |
 | `eq` | `eq(r, x) = ∏ (1 + r_k + x_k)` over `E` (characteristic 2); on the cube, CompPoly's `lagrangeBasis r`. |
-| The oracle | One committed oracle, the stack `q : Column μ_stack`, for the whole protocol, with the inner-product interface: a query is a `Weight μ` (a table `W` over the cube with an evaluator of its extension, specification Definition 3.13), the answer `⟨W, q⟩ = Σ_w W(w)·q(w)`; an evaluation `q̃(r)` is the query `eqWeight r`. No phase before the opening queries the stack; the opening queries it once. The compilation depends on both (decision 31 on how the first is enforced). WHIR's codewords appear only in Layer 11. |
+| The oracle | One committed oracle, the stack `q : Column μ_stack`, for the whole protocol, with the inner-product interface: a query is a `Weight μ` (a table `W` over the cube with an evaluator of its extension, specification Definition 3.13), the answer `⟨W, q⟩ = Σ_w W(w)·q(w)`; an evaluation `q̃(r)` is the query `eqWeight r`. No phase before the opening queries the stack, since each is a `Phase.FrontDef` (decision 31); the opening queries it once. The compilation depends on both. WHIR's codewords appear only in Layer 11. |
 | Sumcheck variants | *Plain*: the round message is the polynomial of degree `d`, error `d/|F|` per round, the verifier evaluating the equality factors at the end (the table sumcheck). *Normalized*: the round message is the cofactor `h` of degree `d_c`, the verifier checks `(1 + r_t)·h(0) + r_t·h(1)` against the running claim, `r_t` the point's coordinate, the new claim is `h(χ_t)`, and the final check has no equality factor; error `d_c/|F|` (the GKR layers). |
 | Sumcheck messages | The oracle protocol sends every coefficient, low degree first, and its verifier checks each round. The wire drops one (`c_1` for the plain table sumcheck, `c_0` for the normalized GKR round), which the compiled verifier derives from the running claim, so no round check remains (`transcript.rs:289-309`). Layer 4 proves the transport lemma: a verifier composed with an injective decoding of wire messages onto the messages passing its round check keeps its round-by-round knowledge soundness at the same error, with the state function composed with the decoding. Fiat–Shamir absorbs the encoded message (decision 26). |
 | Statements and parameters | The public `input : I.Stmt` is the statement of the oracle protocol, and the instance `I` (for leanISA: the program and the announced sizes) indexes the protocol family; a phase's input statement carries only what earlier phases produced. The sizes are the prover's: the compiled verifier reads them, checks them against the caps and the windows before the protocol starts, and the non-interactive theorem is stated for the family, its error the maximum over admissible sizes, the challenge oracle taking the announced sizes with the statement (decision 29). |
@@ -421,8 +421,8 @@ protocol's witness, and the stack can.
    commit phase's followed by the phases', appended through the verdicts), the extracted stack
    `piopExtractedStack` with `piopExtractedStack_eq` (it is the committed message on every
    transcript), and the two master theorems, each conditional on the phases only. The commit
-   phase is the spine's, both halves proved at error 0. The front phases make no oracle query
-   (decision 31 on how this is enforced).
+   phase is the spine's, both halves proved at error 0. The four phases before the opening are
+   `Phase.FrontDef`s, whose verifier never reads the stack (decision 31).
 7. **The toy instance** (one table of width 3 and height 2 on a stack of height 8: one
    constraint, one push, one boundary pull, one count column, one public line; `aux := True`, no
    Flock region) with an honest stack and, for each of the four checkable clauses, a stack failing
@@ -504,15 +504,19 @@ def Verifier.KnowledgeStateFunction.appendGuarded ; theorem Verifier.append_rbrK
 -- ToArkLib/PassThrough.lean, SendOracle.lean, GuardedVerdict.lean, KeepOracles.lean
 def Component.passThrough ; Component.sendOracle ; keepOracles ; Verifier.GuardedForm.of_probEvent_pos ; …
 
+-- Spine/Phase.lean: a phase is a component over the stack
+abbrev Phase.Def I StmtIn StmtOut pSpec ; abbrev Phase.Complete ; abbrev Phase.Security
+structure Phase.FrontDef I StmtIn StmtOut pSpec     -- a phase whose verifier never reads the stack; .toDef the phase
+
 -- Spine/Compose.lean: the commit phase, the bundle, the master theorems
 abbrev commitDef I := Component.sendOracle I.Stmt (Column I.μ) ; def commitComplete I ; def commitSecurity I   -- error 0
 structure Phases I where
-  bus : Phase.Def I I.Stmt (I.Stmt × BusOut I) (busSpec I)
-  table : Phase.Def I (I.Stmt × BusOut I) (I.Stmt × TableOut I) (tableSpec I)
-  pub : Phase.Def I (I.Stmt × TableOut I) (I.Stmt × PubOut I) (pubSpec I)
-  flock : Phase.Def I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpec I)
+  bus : Phase.FrontDef I I.Stmt (I.Stmt × BusOut I) (busSpec I)
+  table : Phase.FrontDef I (I.Stmt × BusOut I) (I.Stmt × TableOut I) (tableSpec I)
+  pub : Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) (pubSpec I)
+  flock : Phase.FrontDef I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpec I)
   opening : Phase.Def I (I.Stmt × FlockOut I) Unit (openingSpec I)
-structure Phases.Complete P ; structure Phases.Security P      -- bus : Phase.Security I P.bus (Seam.commit I) (Seam.bus I) (busError I), …
+structure Phases.Complete P ; structure Phases.Security P      -- bus : Phase.Security I P.bus.toDef (Seam.commit I) (Seam.bus I) (busError I), …
 def leanVmPiop P ; leanVmVerifier P ; leanVmProver P ; piopExtractor P S
 def piopExtractedStack P S : (I.Stmt × ∀ i, NoOracle i) → FullTranscript → Column I.μ
 theorem piopExtractedStack_eq : piopExtractedStack P S s tr = tr ⟨0, _⟩
@@ -843,7 +847,7 @@ CompPoly candidates).
 def fingerprint (α : Fin 4 → E) (t : Vector K 16) : E := Σ i, eqTilde α (bits i) * ofK t[i]
 def sideProduct (α β) (P : Multiset (Vector K 16)) : E := (P.map fun t ↦ β - fingerprint α t).prod
 /-- Specification Lemma 5.2: the product polynomial determines the multiset. -/
-theorem sideProduct_poly_eq_iff (P Q) : (Π_P : MvPolynomial (Fin 5) K) = Π_Q ↔ P = Q
+theorem sideProduct_poly_eq_iff (P Q) : (Π_P : MvPolynomial (Option (Fin 4)) K) = Π_Q ↔ P = Q
 /-- Specification Theorem 5.1: unequal multisets of size ≤ 2^μ collide with probability ≤ 4·2^μ/|E|. -/
 theorem sideProduct_collision (hne : P ≠ Q) (hμ) : Pr[α β ← uniform; sideProduct α β P = sideProduct α β Q] ≤ 4·2^μ/|E|
 /-- The grand products of `nside` trees whose leaves are functions of the context. -/
@@ -854,6 +858,14 @@ def gkr (nside μ : ℕ) (leaves : S → (∀ i, OStmt i) → Fin nside → ETab
   -- relOut: the leaf claims hold at ζ, and every rider's extension vanishes at ζ_{<τ}
 def gkrError (nside μ) ; def gkrComplete ; def gkrSecurity
 ```
+
+Here `Π_P` is `grandProductPoly (n := 4) P`. Its factors use
+`fingerprintFactorPoly t : MvPolynomial (Option (Fin n)) R`, defined as
+`MvPolynomial.X none - MvPolynomial.rename some (fingerprintPoly t)`. The separate variable
+`X` is indexed by `none` and evaluates to `β`; `A_i` is indexed by `some i` and evaluates to
+`α i`, so the assignment is `fun i ↦ i.elim β α`. In `Fin (n + 1)` notation, these indices
+correspond to `0` and `i.succ`, respectively. This is a variable renaming; the bus challenge
+remains the pair `(α, β)`.
 
 `gkr` is radix 4 with a radix-2 first layer when `μ` is odd; each layer is a combiner `λ`, a
 normalized sumcheck on the layer identity (cofactor of degree 4, degree 2 in the radix-2 layer),
@@ -1175,7 +1187,7 @@ theorem verify_iff_compiled (prog input proof) :
         runWithChain (bcsCompile (leanVmIopp F prog s)).verifier (blake2sChain prog s) input msgs = some () ∧
         grindingChecks prog s msgs = true
 -- The list-binding compilation
-theorem listBinding_compile (front : Phases …) (hq : the front phases make no oracle query) (mca) :
+theorem listBinding_compile (front : Phases …) (mca) :
     (front' ⟫ whirOpen) is round-by-round knowledge sound for M3Rel at L_0 · ε_i on the front's challenges
     and thm:rbr's on WHIR's, with the extractor: list-decode the level-0 word, select the member satisfying M3Holds
 /-- Assumed interfaces, their witness obligation the literature. -/
@@ -1208,8 +1220,9 @@ The list-binding compilation is where the master theorems meet WHIR: the commitm
 `K`-valued interleaved word that may be close to up to `L_0` codewords (from 110 to 648 at the
 deployed parameters), every member of the list is `K`-valued and of the stack's size, and the
 front's challenges pay `L_0` times their error. It needs the front phases to make no oracle query,
-a union bound over the list, and a cast from the committed stack to the committed word. The plain
-corollary of round-by-round knowledge soundness is stated here for the stateless shared oracle.
+which their type gives (decision 31), a union bound over the list, and a cast from the committed
+stack to the committed word. The plain corollary of round-by-round knowledge soundness is stated
+here for the stateless shared oracle.
 
 `niError Q` is `(Q + rounds)` times the largest per-challenge error of the compiled protocol
 (`L_0·ε_i` at the oracle protocol's challenges, `thm:rbr`'s fold, out-of-domain and batching
@@ -1284,7 +1297,7 @@ is a search with no proved bound, so `prove` takes fuel. Tests: the differential
 Each names a reading that compiles and is wrong, and the witness that rejects it. Where the
 witness is executable it is a test under `tests/`.
 
-1. **Fingerprint degree.** `π_α` is multilinear in `α : E^4`, so a leaf has total degree 4 in
+1. **Fingerprint degree.** `π_α` is multilinear in `α : E^4`, so a leaf has total degree at most 4 in
    `(α, β)` and Theorem 5.1's error is `4·2^μ/|E|`, not `2^μ/|E|`. `sideProduct_collision`
    carries the 4.
 2. **Padding leaves are 1.** A `0` pad zeroes every product, and a `0` pad in the count tree
@@ -1405,8 +1418,9 @@ witness is executable it is a test under `tests/`.
     `ChainFiatShamirSecurity`.
 35. **Front phases make no oracle query.** The list-binding compilation replaces the committed
     stack by a codeword and keeps the front verifiers, so a front phase that queried the stack
-    would satisfy both master theorems and be uncompilable. Witness: the built front phases meet
-    the requirement (decision 31).
+    would satisfy both master theorems and be uncompilable. Witness: `Phases` holds the front
+    phases as `Phase.FrontDef`, and `listBinding_compile` takes no hypothesis on them
+    (decision 31).
 
 ## Interfaces supplied to later work
 
@@ -1427,7 +1441,8 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       busSpec  tableSpec  pubSpec  flockSpec  openingSpec
                       busError  tableError  pubError  flockError  openingError  piopError  piopError_le
                       Component.Def  Component.Guarded  Component.Complete  Component.Security  (each with .append)
-                      Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.passThrough
+                      Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
+                      Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
                       Verifier.GuardedForm.of_probEvent_pos  Reduction.mem_support_run_of_guarded
                       probEvent_uniformSample_le_of_subsingleton
@@ -1536,8 +1551,8 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 17. GKR leaves are a function of the context | the GKR component takes its leaf tables as functions of the statement and oracles, not as oracle statements; no context lifting | Layer 5 |
 | 18. Riders | tables that must vanish at the GKR's final point ride along the GKR's state function | Layers 5, 6 |
 | 19. The stack's oracle is the inner product | a query is a weight, the answer `⟨W, q⟩`; the opening phase is `λ` and one weighted query, which WHIR realizes | *The oracle*; Layers 0, 10, 11 |
-| 20. The spine fixes the error | each slot's schedule and error are closed forms of the instance, fixed by the spine; no phase declares its own (formerly the schedules travelled with the phases' definitions) | *Errors*; the spine |
-| 21. The bus seam has leanVM's shape | `BusOut` is the Rust's `BusVerify`: one point, forms per side and sumcheck table, three totals, column claims; the seam carries the point, where the seams formerly carried claims only | *Seams*; the spine |
+| 20. The spine fixes the error | each slot's schedule and error are closed forms of the instance, fixed by the spine; no phase declares its own | *Errors*; the spine |
+| 21. The bus seam has leanVM's shape | `BusOut` is the Rust's `BusVerify`: one point, forms per side and sumcheck table, three totals, column claims; the seam carries the point | *Seams*; the spine |
 | 22. Model the deployed checks | the oracle protocol models the checks of the deployed verifier; the specification supplies the arguments; an auditable variant is admitted only if it accepts no more and its relation to the deployed one is a theorem | *Load-bearing checks*; Layer 8 |
 | 23. Completeness is perfect; the guard is separate | `Component.Guarded` carries output purity and the guard; completeness stays perfect, the Lean honest prover is the specification's | *Holes*; test 20 |
 | 24. Stay on `OracleReduction` | the spine stays on ArkLib's legacy framework, the only one with a knowledge notion, until the typed framework has round-by-round knowledge soundness and its composition | the ledger |
@@ -1547,15 +1562,13 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 28. Completeness resources | base completeness starts from a satisfying witness with admissible sizes; its form from an execution takes a fit hypothesis | Layer 13 |
 | 29. One theorem for the family | the non-interactive theorem is stated for the family over announced sizes, its error the maximum over admissible sizes | *Statements and parameters*; Layer 12 |
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |
+| 31. The front phases are `Phase.FrontDef` | `Phases` holds the four phases before the opening as `Phase.FrontDef`, a phase whose verifier never reads the stack; `FrontDef.toDef` is the phase as a component, the form its proofs are stated on; the list-binding compilation takes no hypothesis on them | *The oracle*; the spine; test 35 |
 
 Open:
 
 - **5. An end-to-end run of the honest prover.** Computable by construction; whether it is also a
   compile-time `#guard` on a tiny instance depends on the cost of the WHIR encoder, measured when
   Layer 11 lands.
-- **31. How the front phases' oracle-freeness is enforced.** A field of `Phases` inhabited by the
-  built phases, or front phases typed as plain verifiers lifted by `keepOracles` so that a query
-  is a typing error. The spine revision chooses.
 - **32. The Merkle trees.** Build Layer 11 on VCVio's Merkle-tree library if leanVM's
   fixed-height trees fit its query model (the fit lemma), otherwise write them here.
 - **33. The plain sumcheck upstream.** Write the four leanVM sumcheck shapes locally (default), or

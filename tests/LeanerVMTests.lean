@@ -13,6 +13,7 @@ import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
+import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.Multilinear
