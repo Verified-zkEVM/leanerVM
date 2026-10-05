@@ -21,10 +21,16 @@ product of two tables' extensions.
 * **What is rejected.** A round polynomial with one coefficient changed, a wrong claim, and
   values that are not the tables' at the final point.
 * **The wire.** The Rust verifier's decoding of a round (`next_round_poly`,
-  `crates/fiat_shamir/src/transcript.rs:288-309` at leanVM `a386121f`): the plain round drops
+  `crates/fiat_shamir/src/transcript.rs:289-309` at leanVM `a386121f`): the plain round drops
   `c_1`, recomputed as `claim + c_2 + … + c_d`; the normalized round drops `c_0`, recomputed as
-  `claim + r · (c_1 + … + c_d)`. `decodeRound` agrees with both on honest messages of degree two
-  and three, and returns the honest message from the wire.
+  `claim + r · (c_1 + … + c_d)`. `decodeWire` agrees with both on honest messages of degree two
+  and three, and returns the honest message from the wire of `d` values.
+* **The final check is load-bearing.** Without it the last message has no knowledge state
+  function, whatever the extractor: a statement whose claim is not the summand at its point is
+  carried into the output relation by the true values.
+* **Degree in each variable.** A summand of the table sumcheck's shape, a padding coordinate times
+  an equality factor in another coordinate times a constraint of degree two on a lifted table, has
+  degree three in each variable, though its factors' degrees add up to four.
 * **The slot.** The table sumcheck's slot `tableSpec` takes the batching challenge followed by the
   rounds and the last message of a plain sumcheck of degree three, as a front phase.
 * **Completeness** has an inhabitant for both variants.
@@ -36,6 +42,7 @@ are named as definitions before a guard uses them.
 namespace LeanerVMTests.Protocol.Sumcheck
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Sumcheck CompPoly CMlPolynomialEval
+  OracleComp OracleSpec ProtocolSpec
 
 /-- No oracle. -/
 def noO : ∀ i, NoOracle i := fun i ↦ i.elim0
@@ -155,17 +162,27 @@ def n2 : SumcheckRound.Stmt Unit E 2 :=
 
 /-! ## The wire -/
 
--- The plain round drops `c_1`: it is `claim + c_2` (the Rust's `claim + sum_from(2)`).
-#guard decodeRound (domain wtOne () 0) 1 T (q0.set 1 0) = q0
-#guard (decodeRound (domain wtOne () 0) 1 T (q0.set 1 0))[1] = T + q0[2]
--- The normalized round drops `c_0`: it is `claim + r·(c_1 + c_2)`, `r = p_1` for the first
--- round (the Rust's `claim + r * sum_from(1)`).
-#guard decodeRound (domain wtEq () 0) 0 Tn (h0.set 0 0) = h0
-#guard (decodeRound (domain wtEq () 0) 0 Tn (h0.set 0 0))[0] = Tn + c * (h0[1] + h0[2])
--- A message that fails the check is not returned: the decoding makes it pass.
-#guard decodeRound (domain wtOne () 0) 1 T (q0.set 2 (q0[2] + 1)) ≠ q0.set 2 (q0[2] + 1)
-#guard SumcheckRound.check 0 (domain wtOne) s0
-  (decodeRound (domain wtOne () 0) 1 T (q0.set 2 (q0[2] + 1)))
+-- The wire carries `d` of the `d + 1` coefficients. With unit weights the check does not see
+-- `c_0` in characteristic two (its weight is `1 + 1 = 0`), so the plain round drops `c_1`, whose
+-- weight is `1`; with the weights `1 - r, r` the weight of `c_0` is `1`, so the normalized round
+-- drops `c_0`.
+#guard coeffWeight (domain wtOne () 0) 0 = 0 ∧ coeffWeight (domain wtOne () 0) 1 = 1
+#guard coeffWeight (domain wtEq () 0) 0 = 1
+
+-- The plain round's wire is `c_0, c_2`; the decoder recomputes `c_1 = claim + c_2` (the Rust's
+-- `claim + sum_from(2)`) and returns the honest message.
+#guard encodeWire 1 q0 = #v[q0[0], q0[2]]
+#guard decodeWire (domain wtOne () 0) 1 T #v[q0[0], q0[2]] = q0
+#guard (decodeWire (domain wtOne () 0) 1 T #v[q0[0], q0[2]])[1] = T + q0[2]
+-- The normalized round's wire is `c_1, c_2`; `c_0 = claim + r·(c_1 + c_2)` with `r = p_1`, the
+-- coordinate the first round binds (the Rust's `claim + r * sum_from(1)`).
+#guard decodeWire (domain wtEq () 0) 0 Tn #v[h0[1], h0[2]] = h0
+#guard (decodeWire (domain wtEq () 0) 0 Tn #v[h0[1], h0[2]])[0] = Tn + c * (h0[1] + h0[2])
+-- Any wire decodes to a message that passes the check, and the wire is read back unchanged.
+#guard SumcheckRound.check 0 (domain wtOne) s0 (decodeWire (domain wtOne () 0) 1 T #v[a, b])
+#guard encodeWire 1 (decodeWire (domain wtOne () 0) 1 T #v[a, b]) = #v[a, b]
+-- A wrong wire decodes to a message other than the honest one.
+#guard decodeWire (domain wtOne () 0) 1 T #v[q0[0], q0[2] + 1] ≠ q0
 
 /-- A third table, for a cubic summand like the table sumcheck's. -/
 def t₃ : CMlPolynomialEval E 2 := #v[c, a, 1, b]
@@ -181,11 +198,15 @@ def nodes4 : Fin 4 → E := ![0, 1, y, y + 1]
 def T3 : E := weightedSum V3 wtOne ctx
 def k0 : SumcheckRound.Message E 3 := roundPoly V3 wtOne nodes4 ctx 0 #v[]
 
--- The cubic round: four coefficients, `c_1` dropped on the wire and recomputed from the claim as
--- `claim + c_2 + c_3`.
+-- The cubic round, as the table sumcheck sends it: the wire is `c_0, c_2, c_3`, and the decoder
+-- recomputes `c_1 = claim + c_2 + c_3`.
 #guard SumcheckRound.check 0 (domain wtOne) ((), (#v[], T3)) k0
-#guard decodeRound (domain wtOne () 0) 1 T3 (k0.set 1 0) = k0
-#guard (decodeRound (domain wtOne () 0) 1 T3 (k0.set 1 0))[1] = T3 + k0[2] + k0[3]
+#guard decodeWire (domain wtOne () 0) 1 T3 #v[k0[0], k0[2], k0[3]] = k0
+#guard (decodeWire (domain wtOne () 0) 1 T3 #v[k0[0], k0[2], k0[3]])[1] = T3 + k0[2] + k0[3]
+
+-- The round's wire schedule: one message of `d` values, then the challenge.
+example : (wireSpec E 3).«Type» ⟨0, by decide⟩ = Vector E 3 := rfl
+example : (wireSpec E 3).«Type» ⟨1, by decide⟩ = E := rfl
 
 /-! ## The slot of the table sumcheck -/
 
@@ -239,13 +260,66 @@ theorem nodes_injective : Function.Injective nodes := by
   fin_cases i <;> fin_cases j <;>
     simp_all [nodes, y_ne_zero, y_ne_one, y_ne_zero.symm, y_ne_one.symm]
 
-theorem V_degree : ∀ ctx, IndividualDegreeLE (V.summand ctx) 2 := fun ctx ↦ by
+theorem V_degree : ∀ ctx, IndividualDegreeLE (V.summand ctx) 2 := fun ctx k ↦ by
   have e : V.summand ctx = fun z ↦ evalMle t₁ z * evalMle t₂ z := by
     funext z
     simp only [Virtual.summand, Virtual.values, V, Vector.getElem_ofFn]
     rfl
   rw [e]
-  exact (IndividualDegreeLE.evalMle t₁).mul (IndividualDegreeLE.evalMle t₂)
+  exact (DegreeLEAt.evalMle t₁).mul (DegreeLEAt.evalMle t₂)
+
+/-! ## Degree in each variable -/
+
+/-- A table on the low coordinate, lifted to two: it ignores the high coordinate. -/
+def tLift : CMlPolynomialEval E 2 := #v[a, b, a, b]
+
+/-- The summand of the table sumcheck's shape on two variables, for a table of height one joining
+in the second round: the padding `z_1`, the equality factor `eq(a, z_0)`, and the constraint
+`v² + v` on the lifted table. -/
+def tableShaped (z : Vector E 2) : E :=
+  z[1] * ((1 - a) * (1 - z[0]) + a * z[0]) *
+    (evalMle tLift z * evalMle tLift z + evalMle tLift z)
+
+-- The factors' degrees in every variable add up to `1 + 1 + 2 = 4`, but in each variable the
+-- summand has degree three: the padding and the equality factor are in different variables.
+theorem tableShaped_degree : IndividualDegreeLE tableShaped 3 := by
+  intro k
+  have hc : DegreeLEAt (fun z : Vector E 2 ↦
+      evalMle tLift z * evalMle tLift z + evalMle tLift z) k 2 :=
+    ((DegreeLEAt.evalMle tLift).mul (DegreeLEAt.evalMle tLift)).add
+      ((DegreeLEAt.evalMle tLift).mono (by omega))
+  by_cases hk : k < 2
+  · rcases (show k = 0 ∨ k = 1 by omega) with rfl | rfl
+    · -- In `z_0`: the padding has degree `0`, the equality factor `1`, the constraint `2`.
+      have hz : DegreeLEAt (fun z : Vector E 2 ↦ z[0]) 0 1 := DegreeLEAt.coord_self (by omega)
+      have he : DegreeLEAt (fun z : Vector E 2 ↦ (1 - a) * (1 - z[0]) + a * z[0]) 0 1 :=
+        (((DegreeLEAt.const (1 - a)).mul
+            (((DegreeLEAt.const 1).mono (Nat.zero_le 1)).sub hz)).mono (by omega)).add
+          (((DegreeLEAt.const a).mul hz).mono (by omega))
+      exact (((DegreeLEAt.coord_ne (n := 2) (by omega) (by omega)).mul he).mul hc).mono
+        (by omega)
+    · -- In `z_1`: the padding has degree `1`, the equality factor `0`, the constraint `2`.
+      have he : DegreeLEAt (fun z : Vector E 2 ↦ (1 - a) * (1 - z[0]) + a * z[0]) 1 0 :=
+        DegreeLEAt.of_set_eq fun z hk x ↦ by
+          rw [Vector.getElem_set_ne hk (by omega) (by omega)]
+      exact (((DegreeLEAt.coord_self (n := 2) (by omega)).mul he).mul hc).mono (by omega)
+  · exact fun _ hk' ↦ absurd hk' hk
+
+/-! ## The final check is load-bearing -/
+
+-- For every statement, the one with its claim moved off the summand at its point has no
+-- knowledge state function for the last message without its check: whatever the extractor.
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {W' : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      (SumcheckRound.Stmt Unit E 2 × ∀ i, NoOracle i) Unit Unit (say (Vector E 2)) W'}
+    (s : SumcheckRound.Stmt Unit E 2)
+    (K : (Component.sendCheckedVerifier NoOracle (Vector E 2) (fun _ _ ↦ true)
+      (finalOut (X := Unit) (F := E) (n := 2) (m := 2))).toVerifier.KnowledgeStateFunction init
+      impl (SumcheckRound.rel (family V wtOne nodes) 2) (relOut V) Ex) : False :=
+  final_unchecked_no_stateFunction V wtOne nodes init impl K
+    ((), (s.2.1, V.summand ctx s.2.1.reverse + 1)) noO () fun _ h ↦
+      one_ne_zero (add_eq_left.mp h)
 
 -- Completeness of both variants on `t₁ · t₂`, as plain definitions: they compute.
 def completePlain : Component.Complete (plain V nodes) (relIn V unitWeights) (relOut V) :=

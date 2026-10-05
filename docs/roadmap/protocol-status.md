@@ -204,25 +204,42 @@ each is a checklist line of #12. Where the built work differs from the blueprint
     generic sumcheck takes no heights.
   - The degree is a hypothesis of completeness, `IndividualDegreeLE (V.summand ctx) d` (degree at
     most `d` in each variable of the composed summand), not the sketch's `formula_poly` (a total
-    degree of the formula in the values), which says nothing of the point's factors.
-    `IndividualDegreeLE.mvPolynomial_eval` is the bridge: a polynomial of total degree `d` in
-    tables' extensions has degree `d` in each variable.
+    degree of the formula in the values), which says nothing of the point's factors. The bound is
+    computed coordinate by coordinate (`DegreeLEAt`), since the table sumcheck's padding and
+    equality factors sit in different coordinates: their degrees add to four over all
+    coordinates and to three in each (tested). `DegreeLEAt.mvPolynomial_eval` bridges a
+    constraint: a polynomial of total degree `d` in tables' extensions has degree `d` in each
+    variable.
   - Plain and normalized are one construction over weights per coordinate, unit weights and the
     weights `(1 - p_k, p_k)` of a point; both bind the highest variable first, as leanVM's table
     sumcheck does. The GKR's layers bind the lowest variable first through their own family on
     `SumcheckRound.normalizedWeights`: the family form its status item asks Layer 4 for is
     `SumcheckRound.Family`, which the GKR already uses, so its rounds stay as they are and
-    `Sumcheck.normalized` (the virtual form) is not what it consumes.
+    `Sumcheck.normalized` (the virtual form) is not what it consumes. No phase consumes
+    `Sumcheck.normalized` yet; WHIR's folding rounds are interleaved with commitments and would
+    take `SumcheckRound` rounds, not the whole component. The blueprint is asked, through a
+    `docs(protocol)` pull request, to say so: the normalized sumcheck the GKR consumes
+    (decision 16, the *Sumcheck variants* convention, the GKR rows' *Needs* and the Interfaces
+    list) is `SumcheckRound.rounds` on `SumcheckRound.normalizedWeights`, and
+    `Sumcheck.normalized` is kept, with its security, only if a consumer is named, or dropped.
+    Until then both stay, since the hole names them.
   - The honest round polynomial interpolates the next claim at `d + 1` distinct nodes, a
     parameter of the definition (`nodes`, injective for completeness): a field of characteristic
     two has no `0, 1, …, d`.
   - The rounds and the last message are exposed apart (`Sumcheck.rounds`, `Sumcheck.final`, with
     their completeness and front witnesses), since the table slot nests its schedule to the left,
     `draw ++ rounds ++ say`, and a test builds the table slot's shape from them.
-  - `Sumcheck.transport` is stated per round, for any security of the round, on a theorem for
-    any verifier and any causal map of its transcripts that keeps the challenges
-    (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the decoding need not be injective.
-    The map of the whole protocol's transcripts is the compiled verifier's to build.
+  - `Sumcheck.transport` is stated per round, for any security of the round, from the wire: a
+    round sent with `d` of its `d + 1` coefficients (`wireSpec`), decoded injectively onto the
+    messages that pass the round's check (`decodeWire`, `encodeWire_decodeWire`,
+    `decodeWire_encodeWire`). It rests on a theorem for any verifier and any causal map of
+    transcripts from one schedule to another with the same directions that carries the
+    challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the
+    map need not be injective. The map of the whole protocol's transcripts, and Fiat–Shamir's
+    absorption of the wire, are the compiled verifier's to build.
+  - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
+    last message has no knowledge state function at all); the round check's is the base's
+    `SumcheckRound.drawChallenge_unchecked_not_rbr`.
   - Decision 33 is taken by default: the sumcheck is written here. ArkLib's legacy sumcheck has
     its knowledge soundness admitted; its typed sumcheck proves completeness and plain soundness
     for one polynomial with unit weights, and no open pull request adds knowledge soundness to

@@ -63,6 +63,11 @@ This directory contains stable project and operating knowledge.
     or tautological, and whose findings the branch meets (the security computes at `E`, the
     round refutation for every extractor and state function, the generic lemmas in their
     owners' modules, the private helpers, the documentation).
+  - [protocol-sumcheck.md](reviews/protocol-sumcheck.md): the review of the sumchecks'
+    definitions and completeness (2026-10-05), which found no theorem wrong, vacuous or
+    tautological, and whose findings the branch meets (the transport from the wire's `d`
+    values, the degree in each coordinate, the final check's refutation, the private helpers,
+    the documentation).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

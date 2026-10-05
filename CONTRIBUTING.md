@@ -155,7 +155,8 @@ specifications, protocol assembly, and implementation-correspondence results her
 Until its upstream pull request merges, such a result lives under
 `LeanerVM/Protocol/To<Library>/`, written for that library's other consumers. A local copy never
 outlives the pin: the pull request that moves a pin past the upstream merge deletes the `To*`
-files and declarations the new pin contains and moves their consumers to the upstream names.
+files and declarations the new pin contains, moves their consumers to the upstream names, and
+updates the protocol blueprint's upstream ledger and the status page's watch list.
 
 ## Licensing
 

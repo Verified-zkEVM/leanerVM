@@ -2,7 +2,7 @@
   LeanerVM.Protocol.ToCompPoly.IndividualDegree
 
   Functions of a point that are polynomials of bounded degree in each coordinate separately, and
-  the operations that keep the bound. Candidate for CompPoly.
+  the operations that keep the bounds. Candidate for CompPoly.
 -/
 
 module
@@ -10,21 +10,27 @@ module
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import Mathlib.Algebra.MvPolynomial.Eval
 public import Mathlib.Algebra.MvPolynomial.Degrees
-public import Mathlib.Algebra.Polynomial.BigOperators
+public import Mathlib.Algebra.Polynomial.Degree.Defs
+public import Mathlib.Algebra.Polynomial.Eval.Defs
+import Mathlib.Algebra.Polynomial.BigOperators
 
 /-!
 # Degree in each coordinate
 
-`IndividualDegreeLE f d`: fixing every coordinate of the point but one, `f` is a polynomial of
-degree at most `d` in the remaining one. It is what a sumcheck needs of its summand: the round
-polynomial, a sum of such restrictions, then has degree at most `d`.
+`DegreeLEAt f k e`: fixing every coordinate of the point but coordinate `k`, `f` is a polynomial
+of degree at most `e` in coordinate `k`. `IndividualDegreeLE f d`: that, at the bound `d`, for every
+coordinate. It is what a sumcheck needs of its summand: the round polynomial, a sum of such
+restrictions, then has degree at most `d`.
 
-Constants have degree `0` (`const`), the extension of a table has degree `1` (`evalMle`), and
-the bound adds under products (`mul`, `pow`, `prod`), takes the maximum under sums (`add`,
-`sum`), and is kept by a polynomial of total degree `d` applied to functions of degree `1`
-(`mvPolynomial_eval`): the composition by which a constraint of degree `d` on a row of
-multilinear columns has degree `d` in each variable. Over an arbitrary commutative ring;
-nothing here transcribes a source.
+The bound in one coordinate is computed by the usual rules: constants have degree `0` (`const`), a
+coordinate has degree `1` in itself (`coord_self`) and `0` in the others (`coord_ne`), so does any
+function that ignores the coordinate (`of_set_eq`), the extension of a table has degree `1`
+(`evalMle`), the bound adds under products (`mul`, `pow`, `prod`) and takes the larger of two
+under sums and differences (`add`, `sub`, `sum`), and a polynomial of total degree `d` applied to functions of degree at
+most `1` has degree at most `d` (`mvPolynomial_eval`). A product of factors in different
+coordinates, such as an equality polynomial in some coordinates times a product of others, is
+bounded coordinate by coordinate. Over an arbitrary commutative ring; nothing here transcribes a
+source.
 -/
 
 namespace LeanerVM.Protocol
@@ -35,64 +41,94 @@ open CompPoly CMlPolynomialEval Polynomial
 
 variable {R : Type*} [CommRing R] {n : ℕ}
 
-/-- Fixing every coordinate but one, `f` is a polynomial of degree at most `d` in that one. -/
-def IndividualDegreeLE (f : Vector R n → R) (d : ℕ) : Prop :=
-  ∀ (z : Vector R n) (k : ℕ) (hk : k < n),
-    ∃ p : R[X], p.natDegree ≤ d ∧ ∀ x, f (z.set k x hk) = p.eval x
+/-- Fixing every coordinate but coordinate `k`, `f` is a polynomial of degree at most `e` in
+coordinate `k`. -/
+def DegreeLEAt (f : Vector R n → R) (k e : ℕ) : Prop :=
+  ∀ (z : Vector R n) (hk : k < n), ∃ p : R[X], p.natDegree ≤ e ∧ ∀ x, f (z.set k x hk) = p.eval x
 
-namespace IndividualDegreeLE
+/-- `f` has degree at most `d` in every coordinate. -/
+def IndividualDegreeLE (f : Vector R n → R) (d : ℕ) : Prop := ∀ k, DegreeLEAt f k d
 
-variable {f g : Vector R n → R} {d e : ℕ}
+namespace DegreeLEAt
 
-theorem mono (hf : IndividualDegreeLE f d) (h : d ≤ e) : IndividualDegreeLE f e := fun z k hk ↦
-  let ⟨p, hp, hev⟩ := hf z k hk
+variable {f g : Vector R n → R} {k d e : ℕ}
+
+/-- A bound is a bound for any larger degree. -/
+theorem mono (hf : DegreeLEAt f k d) (h : d ≤ e) : DegreeLEAt f k e := fun z hk ↦
+  let ⟨p, hp, hev⟩ := hf z hk
   ⟨p, hp.trans h, hev⟩
 
-theorem const (c : R) : IndividualDegreeLE (fun _ : Vector R n ↦ c) 0 := fun _ _ _ ↦
+/-- A constant has degree `0`. -/
+theorem const (c : R) : DegreeLEAt (fun _ : Vector R n ↦ c) k 0 := fun _ _ ↦
   ⟨C c, by simp, fun _ ↦ by simp⟩
 
-theorem add (hf : IndividualDegreeLE f d) (hg : IndividualDegreeLE g d) :
-    IndividualDegreeLE (fun z ↦ f z + g z) d := fun z k hk ↦
-  let ⟨p, hp, hpe⟩ := hf z k hk
-  let ⟨q, hq, hqe⟩ := hg z k hk
+/-- A function that ignores coordinate `k` has degree `0` in it. -/
+theorem of_set_eq (h : ∀ (z : Vector R n) (hk : k < n) (x : R), f (z.set k x hk) = f z) :
+    DegreeLEAt f k 0 := fun z hk ↦
+  ⟨C (f z), by simp, fun x ↦ by rw [h z hk x, eval_C]⟩
+
+/-- Coordinate `k` has degree `1` in itself. -/
+theorem coord_self (hk : k < n) : DegreeLEAt (fun z : Vector R n ↦ z[k]) k 1 := fun _ _ ↦
+  ⟨X, natDegree_X_le, fun x ↦ by simp⟩
+
+/-- Another coordinate has degree `0` in coordinate `k`. -/
+theorem coord_ne {i : ℕ} (hi : i < n) (hik : i ≠ k) :
+    DegreeLEAt (fun z : Vector R n ↦ z[i]) k 0 :=
+  of_set_eq fun _ hk _ ↦ Vector.getElem_set_ne hk hi hik.symm
+
+/-- The bound of a sum is the larger bound. -/
+theorem add (hf : DegreeLEAt f k d) (hg : DegreeLEAt g k d) :
+    DegreeLEAt (fun z ↦ f z + g z) k d := fun z hk ↦
+  let ⟨p, hp, hpe⟩ := hf z hk
+  let ⟨q, hq, hqe⟩ := hg z hk
   ⟨p + q, (natDegree_add_le _ _).trans (max_le hp hq), fun x ↦ by simp [hpe, hqe]⟩
 
-theorem mul (hf : IndividualDegreeLE f d) (hg : IndividualDegreeLE g e) :
-    IndividualDegreeLE (fun z ↦ f z * g z) (d + e) := fun z k hk ↦
-  let ⟨p, hp, hpe⟩ := hf z k hk
-  let ⟨q, hq, hqe⟩ := hg z k hk
+/-- The bound of a difference is the larger bound. -/
+theorem sub (hf : DegreeLEAt f k d) (hg : DegreeLEAt g k d) :
+    DegreeLEAt (fun z ↦ f z - g z) k d := fun z hk ↦
+  let ⟨p, hp, hpe⟩ := hf z hk
+  let ⟨q, hq, hqe⟩ := hg z hk
+  ⟨p - q, (natDegree_sub_le _ _).trans (max_le hp hq), fun x ↦ by simp [hpe, hqe]⟩
+
+/-- The bounds of a product add. -/
+theorem mul (hf : DegreeLEAt f k d) (hg : DegreeLEAt g k e) :
+    DegreeLEAt (fun z ↦ f z * g z) k (d + e) := fun z hk ↦
+  let ⟨p, hp, hpe⟩ := hf z hk
+  let ⟨q, hq, hqe⟩ := hg z hk
   ⟨p * q, natDegree_mul_le.trans (add_le_add hp hq), fun x ↦ by simp [hpe, hqe]⟩
 
+/-- The bound of a finite sum is a common bound of its terms. -/
 theorem sum {ι : Type*} (s : Finset ι) {f : ι → Vector R n → R}
-    (hf : ∀ i ∈ s, IndividualDegreeLE (f i) d) : IndividualDegreeLE (fun z ↦ ∑ i ∈ s, f i z) d := by
+    (hf : ∀ i ∈ s, DegreeLEAt (f i) k d) : DegreeLEAt (fun z ↦ ∑ i ∈ s, f i z) k d := by
   classical
   induction s using Finset.induction_on with
   | empty => simpa using ((const (0 : R)).mono (Nat.zero_le d) :
-      IndividualDegreeLE (fun _ : Vector R n ↦ (0 : R)) d)
+      DegreeLEAt (fun _ : Vector R n ↦ (0 : R)) k d)
   | insert a s ha ih =>
     simp only [Finset.sum_insert ha]
     exact add (hf a (Finset.mem_insert_self a s))
       (ih fun i hi ↦ hf i (Finset.mem_insert_of_mem hi))
 
+/-- The bound of a finite product is the sum of its factors' bounds. -/
 theorem prod {ι : Type*} (s : Finset ι) {f : ι → Vector R n → R} {d : ι → ℕ}
-    (hf : ∀ i ∈ s, IndividualDegreeLE (f i) (d i)) :
-    IndividualDegreeLE (fun z ↦ ∏ i ∈ s, f i z) (∑ i ∈ s, d i) := by
+    (hf : ∀ i ∈ s, DegreeLEAt (f i) k (d i)) :
+    DegreeLEAt (fun z ↦ ∏ i ∈ s, f i z) k (∑ i ∈ s, d i) := by
   classical
   induction s using Finset.induction_on with
-  | empty => simpa using (const (1 : R) : IndividualDegreeLE (fun _ : Vector R n ↦ (1 : R)) 0)
+  | empty => simpa using (const (1 : R) : DegreeLEAt (fun _ : Vector R n ↦ (1 : R)) k 0)
   | insert a s ha ih =>
     simp only [Finset.prod_insert ha, Finset.sum_insert ha]
     exact mul (hf a (Finset.mem_insert_self a s))
       (ih fun i hi ↦ hf i (Finset.mem_insert_of_mem hi))
 
-theorem pow (hf : IndividualDegreeLE f d) (m : ℕ) :
-    IndividualDegreeLE (fun z ↦ f z ^ m) (m * d) := by
+/-- The bound of a power is the exponent times the bound. -/
+theorem pow (hf : DegreeLEAt f k d) (m : ℕ) : DegreeLEAt (fun z ↦ f z ^ m) k (m * d) := by
   simpa using prod (Finset.univ : Finset (Fin m)) (f := fun _ ↦ f) (d := fun _ ↦ d)
     fun _ _ ↦ hf
 
 /-- The extension of a table has degree `1` in each coordinate. -/
 theorem evalMle (t : CMlPolynomialEval R n) :
-    IndividualDegreeLE (fun z ↦ CMlPolynomialEval.evalMle t z) 1 := fun z k hk ↦
+    DegreeLEAt (fun z ↦ CMlPolynomialEval.evalMle t z) k 1 := fun z hk ↦
   ⟨C (CMlPolynomialEval.evalMle t (z.set k 0 hk)) +
       X * C (CMlPolynomialEval.evalMle t (z.set k 1 hk) -
         CMlPolynomialEval.evalMle t (z.set k 0 hk)),
@@ -104,21 +140,21 @@ theorem evalMle (t : CMlPolynomialEval R n) :
       simp only [Polynomial.eval_add, Polynomial.eval_C, Polynomial.eval_mul, Polynomial.eval_X]
       ring⟩
 
-/-- A polynomial of total degree at most `d`, applied to functions of degree `1` in each
-coordinate, has degree at most `d` in each coordinate. -/
+/-- A polynomial of total degree at most `d`, applied to functions of degree at most `1` in
+coordinate `k`, has degree at most `d` in coordinate `k`. -/
 theorem mvPolynomial_eval {σ : Type*} (p : MvPolynomial σ R) (hp : p.totalDegree ≤ d)
-    {f : σ → Vector R n → R} (hf : ∀ i, IndividualDegreeLE (f i) 1) :
-    IndividualDegreeLE (fun z ↦ MvPolynomial.eval (fun i ↦ f i z) p) d := by
+    {f : σ → Vector R n → R} (hf : ∀ i, DegreeLEAt (f i) k 1) :
+    DegreeLEAt (fun z ↦ MvPolynomial.eval (fun i ↦ f i z) p) k d := by
   classical
-  have key : ∀ m ∈ p.support, IndividualDegreeLE
-      (fun z ↦ p.coeff m * ∏ i ∈ m.support, f i z ^ m i) d := by
+  have key : ∀ m ∈ p.support, DegreeLEAt
+      (fun z ↦ p.coeff m * ∏ i ∈ m.support, f i z ^ m i) k d := by
     intro m hm
     have hdeg : ∑ i ∈ m.support, m i * 1 ≤ d := by
       simpa [Finsupp.sum] using (MvPolynomial.le_totalDegree hm).trans hp
     exact ((const _).mul (prod m.support fun i _ ↦ (hf i).pow (m i))).mono (by simpa using hdeg)
   simpa [MvPolynomial.eval_eq] using sum p.support key
 
-end IndividualDegreeLE
+end DegreeLEAt
 
 end
 end LeanerVM.Protocol

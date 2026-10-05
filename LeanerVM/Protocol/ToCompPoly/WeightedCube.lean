@@ -74,6 +74,7 @@ theorem weightedCubeSum_succ {k : ℕ} (w : Fin (k + 1) → R × R) (g : Vector 
       (w (Fin.last k)).1 * weightedCubeSum (fun a ↦ w a.castSucc) (fun v ↦ g (v.push 0)) +
         (w (Fin.last k)).2 * weightedCubeSum (fun a ↦ w a.castSucc) (fun v ↦ g (v.push 1)) := by
   rw [weightedCubeSum, sum_cube_split (k := k) (m := 1)]
+  -- The index type is `Fin (2 ^ 1)`, which is `Fin 2` only after unfolding.
   erw [Fin.sum_univ_two]
   rw [weightedCubeSum, weightedCubeSum, Finset.mul_sum, Finset.mul_sum]
   congr 1 <;> refine Finset.sum_congr rfl fun i _ ↦ ?_ <;>
@@ -85,7 +86,8 @@ theorem weightedCubeSum_succ {k : ℕ} (w : Fin (k + 1) → R × R) (g : Vector 
 /-- The weighted sum on `k` coordinates, read on `k'` coordinates when `k = k'`. -/
 theorem weightedCubeSum_cast {k k' : ℕ} (h : k = k') (w : Fin k → R × R) (g : Vector R k → R) :
     weightedCubeSum w g =
-      weightedCubeSum (fun a : Fin k' ↦ w (Fin.cast h.symm a)) fun v ↦ g (Vector.cast h.symm v) := by
+      weightedCubeSum (fun a : Fin k' ↦ w (Fin.cast h.symm a))
+        fun v ↦ g (Vector.cast h.symm v) := by
   subst h
   rfl
 
