@@ -364,20 +364,22 @@ theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = ove
   rw [overE, Nat.card_eq_fintype_card]
 
 /-- Knowledge soundness of the plain sumcheck on `t₁ · t₂`, at `overE 2` per round. -/
-def securityPlain : Component.Security (plain V nodes) (relIn V unitWeights) (relOut V)
+def securityPlain :
+    Component.Security (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide)
     (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
-  (plainSecurity V nodes V_degree nodes_injective).mono fun _ ↦ by
+  (plainSecurity V nodes noSide V_degree nodes_injective).mono fun _ ↦ by
     rw [natCast_div_card_eq_overE]
 
 /-- Knowledge soundness of the normalized sumcheck on `t₁ · t₂` against `eq(p, ·)`. -/
 def securityNormalized :
-    Component.Security (normalized V (fun _ ↦ p) nodes) (relIn V wtEq) (relOut V)
+    Component.Security (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide)
       (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
-  (normalizedSecurity V nodes (fun _ ↦ p) V_degree nodes_injective).mono fun _ ↦ by
+  (normalizedSecurity V nodes noSide (fun _ ↦ p) V_degree nodes_injective).mono fun _ ↦ by
     rw [natCast_div_card_eq_overE]
 
 /-- Their extraction, which a slot reads: it computes. -/
-def extractionPlain : Component.Extraction (plain V nodes) (relIn V unitWeights) (relOut V) :=
+def extractionPlain :
+    Component.Extraction (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide) :=
   securityPlain.toExtraction
 
 theorem y_add_one_ne_zero : y + 1 ≠ 0 := by
@@ -408,10 +410,38 @@ theorem Vtoy_degree : ∀ ctx, IndividualDegreeLE (Vtoy.summand ctx) 3 := fun ct
 /-- The rounds of the cubic plain sumcheck over the toy's stack meet the table slot's per-round
 error, `overE 3`. -/
 def tableRoundsSecurity :
-    Component.Security (rounds Vtoy unitWeights nodes4) (relIn Vtoy unitWeights)
-      (SumcheckRound.rel (family Vtoy unitWeights nodes4) Toy.toy.τmax)
+    Component.Security (rounds Vtoy unitWeights nodes4) (relIn Vtoy unitWeights fun _ ↦ True)
+      (SumcheckRound.rel (family Vtoy unitWeights nodes4 fun _ ↦ True) Toy.toy.τmax)
       (roundsError E 3 (overE 3) Toy.toy.τmax) :=
-  (roundsSecurity Vtoy unitWeights nodes4 Vtoy_degree nodes4_injective).mono fun _ ↦ by
+  (roundsSecurity Vtoy unitWeights nodes4 _ Vtoy_degree nodes4_injective).mono fun _ ↦ by
     rw [natCast_div_card_eq_overE]
+
+/-- The family of the plain sumcheck on `t₁ · t₂`. -/
+abbrev Φ : SumcheckRound.Family E Unit NoOracle Unit 2 := family V wtOne nodes noSide
+
+/-- The first round's next statement, from a recorded polynomial and a challenge. -/
+def nextClaim (p : SumcheckRound.MidStmt Unit E 0 2) (c : E) : SumcheckRound.Stmt Unit E 1 :=
+  SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 2 p.2 c) c
+
+/-- The round check is load-bearing: the first round's challenge drawn without checking the
+polynomial has no knowledge error below one, whatever the extractor and the state function, since
+from a running claim off by one the honest polynomial is carried into the next relation at every
+challenge. -/
+theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
+    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {WitMid : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      (SumcheckRound.MidStmt Unit E 0 2 × ∀ i, NoOracle i) Unit Unit (draw E) WitMid}
+    {kSF : Verifier.KnowledgeStateFunction init impl (SumcheckRound.relMid Φ 0)
+      (SumcheckRound.rel Φ 1)
+      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier Ex}
+    {ε : (draw E).ChallengeIdx → ℝ≥0}
+    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (SumcheckRound.relMid Φ 0)
+      (SumcheckRound.rel Φ 1)
+      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier WitMid Ex kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  SumcheckRound.drawChallenge_unchecked_not_rbr 0 init impl Φ
+    (family_honest V wtOne nodes noSide V_degree nodes_injective).toConsistent (by decide) h
+    ((), (#v[], Φ.claim ctx 0 #v[] + 1)) noO ()
+    (fun h ↦ one_ne_zero (add_eq_left.mp h)) fun _ ↦ trivial
 
 end LeanerVMTests.Protocol.Sumcheck

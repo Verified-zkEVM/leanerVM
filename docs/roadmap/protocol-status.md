@@ -47,13 +47,13 @@ sumcheck (`ToArkLib/Sumcheck.lean`): a virtual polynomial (`Sumcheck.Virtual`: t
 the context and a formula of the point and the tables' values), its sumcheck over a cube weighted
 per coordinate (`Sumcheck.weighted`, binding the highest variable first, the tables' values at the
 final point as its last message), the plain and the normalized variants as its two weightings
-(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness and, on the branch stacked on #75, their round-by-round knowledge
-soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`,
-`normalizedSecurity`), and the transport of
+(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness, and the transport of
 round-by-round knowledge soundness to a verifier that decodes a round message sent without one
 coefficient (`Sumcheck.transport`, on the generic `ToArkLib/TranscriptMap.lean`); with the
 weighted cube sums and the degree in each coordinate it needs (`ToCompPoly/WeightedCube.lean`,
-`ToCompPoly/IndividualDegree.lean`). Nothing else is built: the other phases, the
+`ToCompPoly/IndividualDegree.lean`). On the branch stacked on #75, their round-by-round knowledge
+soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`,
+`normalizedSecurity`). Nothing else is built: the other phases, the
 other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
 verifier and the base theorems.
 
@@ -193,10 +193,11 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
 
-- **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the GKR's round
-  (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and stays: a family of
-  claims, honest polynomials, a weighted domain per round and a side invariant, with the rounds'
-  completeness and knowledge soundness. Where the built work differs from Layer 4's sketch:
+- **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
+  GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
+  stays: a family of claims, honest polynomials, a weighted domain per round and a side
+  invariant, with the rounds' completeness and knowledge soundness. Where the built work differs
+  from Layer 4's sketch:
   - `Virtual F X O W n m` carries the tables (functions of the public data, the oracles' contents
     and the witness), and its formula reads the public data and the point as well as the tables'
     values, so that factors the verifier evaluates itself (an equality polynomial, a padding
@@ -254,7 +255,17 @@ each is a checklist line of #12. Where the built work differs from the blueprint
     degree in each variable and distinct nodes, since the round's bound compares the recorded
     polynomial with the honest one. Each security is a plain `def` that computes at `E`, stated
     at `d / |F|` with `|F|` written `Nat.card F`, and a test raises the rounds of a cubic plain
-    sumcheck over the toy's stack to the table slot's per-round error `overE 3`.
+    sumcheck over the toy's stack to the table slot's per-round error `overE 3`. What the table
+    phase composes at `tableSpec` is `roundsSecurity` and `finalSecurity` (any output map and
+    output relation from which the values and the side condition follow), with `rel_zero` and
+    `mem_rel_self` relating the seams to the family's relations.
+  - Owed: the securities take the nodes' injectivity, which the verifier does not read (its
+    verifier and the relations are the same for every choice of nodes). Dropping it needs the
+    round's security in `SumcheckRound` stated for prover polynomials apart from the family, and
+    a family whose honest polynomial is the true round polynomial, chosen classically; that
+    family is data the compiled security would have to build, so the securities would stop
+    computing (acceptance test 24). Kept until the module goes upstream, where a consumer's honest
+    prover may not interpolate; the table phase proves the injectivity once, for completeness.
   - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
     last message has no knowledge state function at all); the round check's is the base's
     `SumcheckRound.drawChallenge_unchecked_not_rbr`.
@@ -274,8 +285,8 @@ objects, #43 feeding the opening phase.
 The spine's revision first: every phase is written against its slots. Independent of it: Clean
 expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
-stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
-stacked on #62. The public-input phase's deployed check follows its pool's revision.
+stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
+its local round (Layer 5) is built on the branch stacked on #62. The public-input phase's deployed check follows its pool's revision.
 
 ## Upstream watch
 

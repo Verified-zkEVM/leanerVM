@@ -492,50 +492,62 @@ section Security
 variable {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [Finite F]
   {X : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)] {W : Type} [Subsingleton W]
   {n m : ℕ} (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
-  (nodes : Fin (d + 1) → F)
+  (nodes : Fin (d + 1) → F) (side : SumcheckRound.Ctx X O W → Prop)
 
-/-- The security half of the rounds, at `d / |F|` per round. -/
+/-- The security half of the rounds, at `d / |F|` per round: a challenge cannot make a false side
+condition true, so its soundness clause holds with no bad challenge. -/
 def roundsSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Security (rounds V wt nodes) (relIn V wt) (SumcheckRound.rel (family V wt nodes) n)
+    Component.Security (rounds V wt nodes) (relIn V wt side)
+      (SumcheckRound.rel (family V wt nodes side) n)
       (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) :=
-  rel_zero nodes V wt ▸ SumcheckRound.roundsSecurity (family V wt nodes) n
-    (family_honest V wt nodes hV hnodes).toConsistent (fun _ _ _ _ h ↦ absurd trivial h) n 0
-    (Nat.zero_add n)
+  rel_zero V wt nodes side ▸ SumcheckRound.roundsSecurity (family V wt nodes side) n
+    (family_honest V wt nodes side hV hnodes).toConsistent
+    (fun _ _ _ _ h ↦ (Nat.card_eq_zero.mpr (Or.inl ⟨fun x ↦ h x.2⟩)).trans_le (Nat.zero_le d))
+    n 0 (Nat.zero_add n)
 
-/-- The security half of the last message, at error zero: values that pass the final check and
-are the tables' values at the final point make the running claim the summand there. -/
-def finalSecurity :
-    Component.Security (final (W := W) (O := O) V) (SumcheckRound.rel (family V wt nodes) n)
-      (relOut V) (sayError (Vector F m)) :=
+omit [BEq F] [LawfulBEq F] [SampleableType F] [Finite F] [Subsingleton W] in
+/-- The security half of the last message, at error zero, for an output map and an output
+relation from which the values sent are the tables' values at the final point and the side
+condition holds: values that pass the final check then make the running claim the summand at
+the point. -/
+def finalSecurity {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w v, ((out s v, o), w) ∈ relOut' →
+      V.values ((s.1, o), w) s.2.1.reverse = v ∧ side ((s.1, o), w)) :
+    Component.Security (final V out) (SumcheckRound.rel (family V wt nodes side) n) relOut'
+      (sayError (Vector F m)) :=
   Component.sendCheckedSecurity O (Vector F m) _ _ _ fun s o w v hc hout ↦ by
-    rw [mem_rel_self V wt nodes]
+    obtain ⟨hv, hside⟩ := h s o w v hout
+    rw [mem_rel_self V wt nodes side]
     rw [finalCheck, decide_eq_true_eq] at hc
+    refine ⟨hside, ?_⟩
     rw [← hc]
-    exact congrArg (V.formula s.1 s.2.1.reverse) hout.symm
+    exact congrArg (V.formula s.1 s.2.1.reverse) hv.symm
 
 /-- The security half of the sumcheck: round-by-round knowledge soundness at `d / |F|` per round,
 with the extractor that keeps the witness, when the summand has degree at most `d` in each
 variable. -/
 def weightedSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Security (weighted V wt nodes) (relIn V wt) (relOut V)
+    Component.Security (weighted V wt nodes) (relIn V wt side) (relOut V side)
       (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
-  (roundsSecurity V wt nodes hV hnodes).append (finalSecurity V wt nodes)
+  (roundsSecurity V wt nodes side hV hnodes).append
+    (finalSecurity V wt nodes side finalOut fun _ _ _ _ h ↦ h)
 
 /-- The security half of the plain sumcheck. -/
 def plainSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Security (plain V nodes) (relIn V unitWeights) (relOut V)
+    Component.Security (plain V nodes) (relIn V unitWeights side) (relOut V side)
       (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
-  weightedSecurity V unitWeights nodes hV hnodes
+  weightedSecurity V unitWeights nodes side hV hnodes
 
 /-- The security half of the normalized sumcheck. -/
 def normalizedSecurity (pt : X → Vector F n) (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Security (normalized V pt nodes) (relIn V (eqWeights pt)) (relOut V)
+    Component.Security (normalized V pt nodes) (relIn V (eqWeights pt) side) (relOut V side)
       (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
-  weightedSecurity V (eqWeights pt) nodes hV hnodes
+  weightedSecurity V (eqWeights pt) nodes side hV hnodes
 
 end Security
 
