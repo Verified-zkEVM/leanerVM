@@ -169,27 +169,30 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the stack on, which `gkrFront` provides by composing the parts' witnesses through
   `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
   `Phase.FrontDef` at `busSpec toy`.
-  Two of its parts are local stand-ins for Layer 4's components, on two conditions. Its sumcheck
-  rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
-  `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
-  family form (`SumcheckRound.Family`: claims, polynomials, domain and invariant as functions of
-  the context and the challenges), since the GKR's summand reads the trees' levels from the
-  oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
-  `Gkr.lambdaStep`, stands in for `batch nside`, which can take it only as `sampleChallenge` at
-  the batching map, taking the statement maps as arguments: a relabelling pass-through on either
-  side would put a `!p[]` into the schedule and break the definitional equality with `stepSpec`.
-  When those holes land in those forms, the parts become them, and `ToArkLib/SumcheckRound.lean`
-  merges into the sumcheck's module or goes. The blueprint is asked, through a `docs(protocol)`
+  Its sumcheck rounds are the generic round of `ToArkLib/SumcheckRound.lean`
+  (`SumcheckRound.rounds`) on a family of its own (`Gkr.family`: the eq-weighted partial sums,
+  honest polynomials computed as sums of products of affine factors, the domain
+  `SumcheckRound.normalizedWeights`, binding the lowest variable first, and the riders'
+  condition). The table sumcheck (Layer 4, below) is the same round on another family, so the
+  module stays as the round both share. The GKR does not consume `Sumcheck.normalized`, the
+  normalized variant over a virtual polynomial, which binds the highest variable first and
+  carries a side condition no challenge changes, where the GKR's security tracks its riders
+  challenge by challenge (`Gkr.familyT`). One stand-in is left: its combiner, `Gkr.lambdaStep`,
+  stands in for `batch nside`, which can take it only as `sampleChallenge` at the batching map,
+  taking the statement maps as arguments: a relabelling pass-through on either side would put a
+  `!p[]` into the schedule and break the definitional equality with `stepSpec`. When that hole
+  lands in that form, the combiner becomes it. The blueprint is asked, through a `docs(protocol)`
   pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
   the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
-  lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
-  Its knowledge soundness, `gkrSecurity`, is proved on its local round, not on Layer 4's
-  `Sumcheck.normalizedSecurity` as the holes table's *Needs* has it: the round's knowledge
-  soundness is the generic `SumcheckRound.roundsSecurity`, which the sumcheck hole may take over
-  or replace. Its riders' state is the blueprint's: zero tables inside the argument, and at the
-  last layer zero on the coordinates drawn so far (`Gkr.progTrack`, through `RestrictedZero` on a
-  `Partial` point), so a rider's escape at a challenge is one value and is dominated by the
-  claim's; the descendants' values are tracked the same way across the combination challenges.
+  lists batching by powers among its needs; the normalized sumcheck the GKR consumes is the
+  generic round on its family (as the sumchecks' entry below asks). Its knowledge soundness,
+  `gkrSecurity`, is proved on the generic round's, `SumcheckRound.roundsSecurity` for any
+  consistent and sound family, not on Layer 4's `Sumcheck.normalizedSecurity` as the holes
+  table's *Needs* has it. Its riders' state is the blueprint's: zero tables inside the argument,
+  and at the last layer zero on the coordinates drawn so far (`Gkr.progTrack`, through
+  `RestrictedZero` on a `Partial` point), so a rider's escape at a challenge is one value and is
+  dominated by the claim's; the descendants' values are tracked the same way across the
+  combination challenges.
   The refutations of its two checks are theorems on the generic components with the check
   removed, whatever the extractor and the state function:
   `SumcheckRound.drawChallenge_unchecked_not_rbr` (no knowledge error below one for the round's
@@ -230,13 +233,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     constraint: a polynomial of total degree `d` in tables' extensions has degree `d` in each
     variable.
   - Plain and normalized are one construction over weights per coordinate, unit weights and the
-    weights `(1 - p_k, p_k)` of a point; both bind the highest variable first, as leanVM's table
-    sumcheck does. The GKR's layers bind the lowest variable first through their own family on
-    `SumcheckRound.normalizedWeights`: the family form its status item asks Layer 4 for is
-    `SumcheckRound.Family`, which the GKR already uses, so its rounds stay as they are and
-    `Sumcheck.normalized` (the virtual form) is not what it consumes. No phase consumes
-    `Sumcheck.normalized` yet; WHIR's folding rounds are interleaved with commitments and would
-    take `SumcheckRound` rounds, not the whole component. The blueprint is asked, through a
+    weights `(1 - p_k, p_k)` of a point (`Sumcheck.eqWeights`); both bind the highest variable
+    first, as leanVM's table sumcheck does. The GKR's layers bind the lowest variable first
+    through their own family on `SumcheckRound.normalizedWeights` (above), so the rounds, their
+    completeness and their knowledge soundness are written once, in `SumcheckRound`, and the
+    equality weights twice, the same weights read in opposite orders. `Sumcheck.normalized` (the
+    virtual form) is not what the GKR consumes, and no phase consumes it yet; WHIR's folding
+    rounds are interleaved with commitments and would take `SumcheckRound` rounds, not the whole
+    component. The blueprint is asked, through a
     `docs(protocol)` pull request, to say so: the normalized sumcheck the GKR consumes
     (decision 16, the *Sumcheck variants* convention, the GKR rows' *Needs* and the Interfaces
     list) is `SumcheckRound.rounds` on `SumcheckRound.normalizedWeights`, and
@@ -279,7 +283,7 @@ expressions as polynomials (Layer 2), batching (Layer 4), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The sumcheck's knowledge
 soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The
-GKR's knowledge soundness on its local round (Layer 5) is built on the branch stacked on #62.
+GKR's knowledge soundness on the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
 
