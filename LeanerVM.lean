@@ -61,6 +61,7 @@ import LeanerVM.Semantics.Executable
 import LeanerVM.Semantics.Execution
 import LeanerVM.Semantics.FillBlocks
 import LeanerVM.Semantics.FillPlan
+import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
