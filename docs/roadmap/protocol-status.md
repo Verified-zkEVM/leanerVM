@@ -25,7 +25,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the spine's revision: the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking, and the public-input phase, revised | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
-| sumcheck: definitions and completeness (Layer 4) | the pull request stacked on #70 | on merge | on merge |
+| sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
