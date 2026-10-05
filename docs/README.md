@@ -47,6 +47,12 @@ This directory contains stable project and operating knowledge.
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated
     at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
+  - [protocol-gkr.md](reviews/protocol-gkr.md): the review of the grand-product GKR at the
+    slot's schedule, definition and completeness (2026-10-02), whose findings the branch meets
+    (the slot's verifier type through `Component.Front`, the generic modules' vocabulary and
+    imports, the bus phase's prefix instances, the status's conditions on Layer 4's components)
+    or records for the roadmap (the three blueprint asks), with the earlier review's findings
+    and their fate.
   - [protocol-spine-revision.md](reviews/protocol-spine-revision.md): the review of the spine
     at the slots' schedules and errors (2026-10-02), whose findings the branch now meets (the
     Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the

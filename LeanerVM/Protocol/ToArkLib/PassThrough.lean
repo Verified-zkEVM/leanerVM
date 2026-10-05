@@ -76,6 +76,10 @@ def passThroughPure (f : StmtIn → StmtOut) :
   verify := fun p _ ↦ (f p.1, p.2)
   verify_eq := fun ⟨s, o⟩ tr ↦ passThroughVerifier_toVerifier_run OStmt f s o tr
 
+/-- The pass-through component is front: the check always passes, the verdict is `f`. -/
+def passThroughFront (f : StmtIn → StmtOut) : Front (passThrough (W := W) OStmt f) :=
+  ⟨fun _ _ ↦ true, fun s _ ↦ f s, (passThroughPure OStmt f).toGuardedForm.verify_eq⟩
+
 /-- Completeness, for any two relations `f` carries one into the other. -/
 def passThroughComplete (f : StmtIn → StmtOut)
     {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)} {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}

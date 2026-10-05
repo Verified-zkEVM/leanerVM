@@ -23,10 +23,13 @@ completeness against two seams, `Phase.Security` its extractor and round-by-roun
 soundness against two seams at a given error.
 
 A `Phase.FrontDef` is a phase whose verifier reads the prover's messages and never the stack:
-its verifier is a `FrontVerifier`, so a query to the stack is a typing error, and it hands the
-stack on. Every phase before the opening is one; the compilation replaces the committed stack
-by a codeword and keeps the front verifiers, which is why they may not query it. `FrontDef.toDef`
-is the phase as a component, the form its proofs are stated on.
+a phase with the witness that its verifier is a check and a verdict on the statement and the
+transcript alone, the stack handed on (`Component.Front`). Every phase before the opening is
+one; the compilation replaces the committed stack by a codeword and keeps the front verifiers,
+which is why they may not query it. `FrontDef.ofFrontVerifier` builds one from a `FrontVerifier`,
+a verifier typed without access to the stack, so that a query to the stack is a typing error;
+`Component.Front.append` composes the witnesses, so a phase built from generic components fits.
+`FrontDef.toDef` is the phase as a component, the form its proofs are stated on.
 
 `Phase.passThrough` is the phase with no round that maps the statement: complete whenever the
 map carries one seam into the other, and knowledge sound at error zero, with the extractor that
@@ -66,18 +69,32 @@ abbrev Security (D : Def I StmtIn StmtOut pSpec)
     (err : pSpec.ChallengeIdx → ℝ≥0) : Type 1 :=
   Component.Security D relIn relOut err
 
-/-- A front phase: an honest prover and a verifier that reads the transcript and never the
-stack. -/
+/-- A front phase: a phase with the witness that its verifier reads the transcript and never
+the stack. -/
 structure FrontDef (StmtIn StmtOut : Type) {n : ℕ} (pSpec : ProtocolSpec n)
     [∀ i, OracleInterface (pSpec.Message i)] [∀ i, SampleableType (pSpec.Challenge i)] where
-  /-- The honest prover. -/
-  prover : OracleProver []ₒ StmtIn (TheOracle I) Unit StmtOut (TheOracle I) Unit pSpec
-  /-- The verifier, with no access to the stack. -/
-  verifier : FrontVerifier []ₒ StmtIn StmtOut pSpec
+  /-- The phase as a component. -/
+  toDef : Def I StmtIn StmtOut pSpec
+  /-- Its verifier is a check and a verdict on the statement and the transcript, the stack
+  handed on. -/
+  front : Component.Front toDef
 
-/-- A front phase as a component: its verifier lifted, the stack handed on. -/
-def FrontDef.toDef (P : FrontDef I StmtIn StmtOut pSpec) : Def I StmtIn StmtOut pSpec :=
-  ⟨⟨P.prover, P.verifier.toOracleVerifier (TheOracle I)⟩⟩
+/-- A front phase from an honest prover and a verifier typed without access to the stack, whose
+simulated computation is a check followed by a verdict. -/
+def FrontDef.ofFrontVerifier
+    (prover : OracleProver []ₒ StmtIn (TheOracle I) Unit StmtOut (TheOracle I) Unit pSpec)
+    (V : FrontVerifier []ₒ StmtIn StmtOut pSpec) (check : StmtIn → pSpec.FullTranscript → Bool)
+    (out : StmtIn → pSpec.FullTranscript → StmtOut)
+    (h : ∀ s tr, OptionT.mk (simulateQ (OracleInterface.simOracle []ₒ tr.messages)
+        (V.verify s tr.challenges).run) = if check s tr then pure (out s tr) else failure) :
+    FrontDef I StmtIn StmtOut pSpec where
+  toDef := ⟨⟨prover, V.toOracleVerifier (TheOracle I)⟩⟩
+  front := ⟨check, out, fun ⟨s, o⟩ tr ↦ V.toVerifier_verify_of_check check out h s o tr⟩
+
+/-- The guarded form of a front phase, from its witness. -/
+def FrontDef.guarded (P : FrontDef I StmtIn StmtOut pSpec) :
+    P.toDef.red.toReduction.verifier.GuardedForm :=
+  P.front.toGuarded.guarded
 
 /-- The phase with no round that maps the statement and keeps the stack. -/
 abbrev passThrough (f : StmtIn → StmtOut) : Def I StmtIn StmtOut !p[] :=

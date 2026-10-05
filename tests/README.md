@@ -58,6 +58,15 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   type spelled out.
 - Since CompPoly `572f9973` a numeral in `K` has its characteristic-two value (`(2 : K) = 0`):
   write an encoded word as `K.ofBits n`.
+- A `Decidable` instance for `∀ r ∈ l, …` over a list of tables over `E` can be found through
+  `Fintype` on the tables, which is noncomputable for `K`, and the `#guard` fails to compile;
+  give `List.decidableBAll _ _` by name.
+- A `#guard` on a subtype value built by hand with its proof (a polynomial with its degree
+  bound, `⟨q.val + C 1, …⟩`) never returned; build test values with the definitions under test.
+- `draw C ++ₚ draws C k` has `1 + k` rounds and `draws C (k + 1)` has `k + 1`, which are not
+  the same type for a variable `k`; so `draws` nests its new challenge last, and a component
+  drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its
+  last step into the last challenge (`Gkr.interpolate`).
 - Handing a transcript to a guarded check in a refutation
   (`Verifier.GuardedForm.probEvent_pos_of_check` on `fullOf c msg`) can exceed the default
   recursion depth when the statement has three public lines, the unifier unfolding the count of

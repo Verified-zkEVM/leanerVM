@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
 Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b692351` (2026-10-02),
-checked on 2026-10-02. This file says what is built and what the built work still owes the
+checked on 2026-10-02; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -24,14 +24,21 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
+| grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
-each version of the public-input phase. Nothing else is built: the other phases, the generic
-components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the
-base theorems.
+each version of the public-input phase. On the branch of #62, the grand-product GKR's
+definition and completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the
+slot's schedule `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a
+checked message (`ToArkLib/SendChecked.lean`) and a checked challenge
+(`ToArkLib/SampleChallenge.lean`), a sumcheck round of their own composed from the two
+(`ToArkLib/SumcheckRound.lean`), and the product tree and partial sums
+(`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). Nothing else is built: the
+other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
+trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -76,9 +83,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 - **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
   `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
   guarantee it, since `μBus` is the push side's depth.
-- **How a front phase avoids the stack** (decision 31): a `Phase.FrontDef` is an honest prover
-  and a `FrontVerifier`, a verifier typed without access to the stack, so a query to the stack
-  is a typing error. The blueprint fixes only that the verifier never reads the stack.
+- **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
+  a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
+  the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
+  from a `FrontVerifier`, a verifier typed without access to the stack, and
+  `Component.Front.append` composes the witnesses, so a phase assembled from generic components
+  (the grand-product argument, through `gkrFront`) fits the slot. The proofs are stated on the
+  component `FrontDef.toDef`. The spine's revision had typed the front phases instead, which no
+  composition of ArkLib oracle verifiers could meet.
 - **`piopError_le`** takes the sizes as hypotheses (`μ_bus ≤ 30`, `τ_max ≤ 32`, `B ≤ 2^16`,
   `kBatch ≤ 32`, `J ≤ 2^16`) and bounds the sum by `(2^32 + 2^31 + 2^20)/|E|`; the numeric
   test shows it below `2^{-159}`. That the leanISA instance meets the hypotheses at admissible
@@ -130,13 +142,44 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     top line is not zero the constant is unsound (tested). That `leanIsaInstance` has a zero top
     line, and lists `mem_0` then `mem_1` as its two sent lines (`checkWords` reads their cells as
     the limbs `y⁰` and `y¹` of the two words), is the adaptor's to prove.
+- **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
+  no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
+  `gkrComplete` extends `Component.Guarded`, and its knowledge soundness is to be stated at
+  `gkrError F u nside μ`. It is at the slot's verifier type too: `Phase.FrontDef` is a component with a
+  `Component.Front` witness, a check and a verdict on the statement and the transcript that hand
+  the stack on, which `gkrFront` provides by composing the parts' witnesses through
+  `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
+  `Phase.FrontDef` at `busSpec toy`.
+  Two of its parts are local stand-ins for Layer 4's components, on two conditions. Its sumcheck
+  rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
+  `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
+  family form (`SumcheckRound.Family`: claims, polynomials, domain and invariant as functions of
+  the context and the challenges), since the GKR's summand reads the trees' levels from the
+  oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
+  `Gkr.lambdaStep`, stands in for `batch nside`, which can take it only as `sampleChallenge` at
+  the batching map, taking the statement maps as arguments: a relabelling pass-through on either
+  side would put a `!p[]` into the schedule and break the definitional equality with `stepSpec`.
+  When those holes land in those forms, the parts become them, and `ToArkLib/SumcheckRound.lean`
+  merges into the sumcheck's module or goes. The blueprint is asked, through a `docs(protocol)`
+  pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
+  the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
+  lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
+  The refutations of its two checks, the round check and the descendants' check, come with its
+  knowledge soundness, which they refute. Where it differs from Layer 5's sketch: the riders are
+  an argument of the relations (`Gkr.relIn`, `Gkr.relOut`) and of `gkrComplete`, not of `gkr`,
+  which never reads them; a rider's variable count is a `Fin (μ + 1)`, so that its low point
+  exists; a round message is the polynomial's coefficients, not a polynomial with a degree
+  bound, so the degree bound is the message's length; the first step reads the roots through a
+  statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
+  layer.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
-fingerprint and the GKR (Layer 5), the Flock phase's definition and completeness (Layer 9), the
-WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
+fingerprint (Layer 5), the GKR's knowledge soundness on its local round (Layer 5), the
+Flock phase's definition and completeness (Layer 9), the WHIR opening, and the Merkle trees
+with the WHIR parameters (Layer 11).
 
 ## Upstream watch
 
@@ -148,6 +191,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
 | ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair; honest round identities | reference only |
+| ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
