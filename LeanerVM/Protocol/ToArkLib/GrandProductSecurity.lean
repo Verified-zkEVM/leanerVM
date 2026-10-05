@@ -21,9 +21,10 @@ witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.r
 nothing is extracted. It is composed, like the completeness half, from the parts' through
 `Component.Security.append`, so every challenge keeps the error its schedule assigned it:
 
-* the combiner: a statement outside the layer relation combines into the family's first claim at
-  `nside − 1` combiners at most (`card_lambdaNext_le`), since two different value vectors
-  combine to the same scalar at the roots of a polynomial of degree `nside − 1`;
+* the combiner: batching by powers (`Component.batchSecurity`): a statement outside the layer
+  relation combines into the family's first claim at `nside − 1` combiners at most, since two
+  different value vectors combine to the same scalar at the roots of a polynomial of degree
+  `nside − 1`;
 * the sumcheck rounds: `SumcheckRound.roundsSecurity` on the layer's family, whose honest
   polynomials are consistent (`familyT_consistent`) and whose invariant is sound
   (`familyT_sound`);
@@ -225,52 +226,34 @@ private theorem familyT_sound (T : RiderTrack μ riders ρ m) :
 
 variable {S : Type} (inp : S → LayerStmt X F nside m)
 
-omit [SampleableType F] [∀ i, OracleInterface (O i)] in
-/-- A statement outside the layer relation combines into the family's first claim at `nside − 1`
-combiners at most: if a rider is not zero, never; otherwise some tree's value is wrong, and the
-combination of the values agrees with that of the levels at `nside − 1` combiners at most. -/
-private theorem card_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
-    (s : LayerStmt X F nside m) (o : ∀ i, O i)
-    (hs : ((s, o), ()) ∉ layerRel nside μ leaves riders m) :
-    Nat.card {l // ((lambdaNext nside m s l, o), ()) ∈
-      SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0} ≤ nside - 1 := by
-  have := Fintype.ofFinite F
-  classical
-  rw [natCard_subtype_eq_card_filter]
-  have hmem : ∀ l, ((lambdaNext nside m s l, o), ()) ∈
-      SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 ↔
+omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- After the combiner, the family's first relation is the riders' condition and the combined
+claim being the combination, by the same powers, of the trees' levels at the layer's point. -/
+private theorem mem_rel_lambdaNext (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+    (s : LayerStmt X F nside m) (o : ∀ i, O i) (l : F) :
+    ((lambdaNext nside m s l, o), ()) ∈
+        SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 ↔
       RidersZero μ riders s.1 o ∧
-        ∑ t, l ^ t.val * s.2.2 t =
-          ∑ t, l ^ t.val * evalMle (layerTable (leaves s.1 o t) m) s.2.1 := by
-    intro l
-    change T.inv s.1 o 0 #v[] ∧ (lambdaNext nside m s l).2.2 =
-      partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] ↔ _
-    rw [T.inv_zero, partialSum_summand_zero nside μ leaves ρ m hm s o l]
-    exact Iff.rfl
-  simp only [hmem]
-  by_cases hz : RidersZero μ riders s.1 o
-  · have hval : s.2.2 ≠ fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1 := fun h ↦
-      hs ⟨hz, fun t ↦ (congrFun h t).symm⟩
-    refine (Finset.card_le_card fun l hl ↦ ?_).trans
-      (SumcheckRound.card_filter_powerSum_eq_le _ _ hval)
-    rw [Finset.mem_filter] at hl ⊢
-    exact ⟨Finset.mem_univ _, hl.2.2⟩
-  · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
-    rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-    exact fun _ _ h ↦ hz h.1
+        powerBatch s.2.2 l = powerBatch (fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1) l := by
+  change T.inv s.1 o 0 #v[] ∧ (lambdaNext nside m s l).2.2 =
+    partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] ↔ _
+  rw [T.inv_zero, partialSum_summand_zero nside μ leaves ρ m hm s o l]
+  exact Iff.rfl
 
-/-- The security half of the combiner at `(nside − 1) / |F|`, from a relation `inp` carries
-into the layer relation and back. -/
+/-- The security half of the combiner at `(nside − 1) / |F|`, batching by powers, from a relation
+`inp` carries into the layer relation and back: a statement outside it has riders that are not
+zero, so no combiner lands in the family's first relation, or a wrong value, whose combination
+agrees with that of the levels at `nside − 1` combiners at most. -/
 def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m) :
     Component.Security (lambdaStep nside m inp) relS
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0)
       (drawError F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
-  Component.sampleChallengeSecurity O F _ _ (nside - 1) fun s o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ (nside - 1) s o fun hs ↦
-      by exact card_lambdaNext_le nside μ leaves riders ρ m T hm (inp s) o fun h ↦
-        hs ((hinp s o).mpr h)
+  Component.batchSecurity O F _ _ fun s o _ hs ↦
+    ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun l hl ↦ by
+      obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
+      exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
 
 /-! ## The descendants -/
 

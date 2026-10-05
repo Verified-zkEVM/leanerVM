@@ -25,6 +25,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
+| batching by powers (Layer 4) | the pull request stacked on #70 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -42,7 +43,11 @@ it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSec
 round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
 witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
 tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. Nothing else is built: the
+one at a time. On another branch stacked on that one, batching by powers
+(`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at
+`(k − 1) / |F|`), on the power combination and its root count of #43
+(`ToCompPoly/PowerBatching.lean`, `ToArkLib/PowerBatching.lean`, carried with its author); the
+GKR's combiner is `Component.batch`. Nothing else is built: the
 other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
 trees, the compiled verifier and the base theorems.
 
@@ -160,18 +165,17 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the stack on, which `gkrFront` provides by composing the parts' witnesses through
   `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
   `Phase.FrontDef` at `busSpec toy`.
-  Two of its parts are local stand-ins for Layer 4's components, on two conditions. Its sumcheck
-  rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
+  Its sumcheck rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
   `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
   family form (`SumcheckRound.Family`: claims, polynomials, domain and invariant as functions of
   the context and the challenges), since the GKR's summand reads the trees' levels from the
   oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
-  `Gkr.lambdaStep`, stands in for `batch nside`, which can take it only as `sampleChallenge` at
-  the batching map, taking the statement maps as arguments: a relabelling pass-through on either
-  side would put a `!p[]` into the schedule and break the definitional equality with `stepSpec`.
-  When those holes land in those forms, the parts become them, and `ToArkLib/SumcheckRound.lean`
-  merges into the sumcheck's module or goes. The blueprint is asked, through a `docs(protocol)`
-  pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
+  `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
+  statement maps as arguments (a relabelling pass-through on either side would put a `!p[]` into
+  the schedule and break the definitional equality with `stepSpec`), its combined claim
+  `powerBatch`, its completeness `batchComplete` and its security `batchSecurity`; the count it
+  used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for #43's `card_false_batch_le`.
+  The blueprint is asked, through a `docs(protocol)` pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
   the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
   lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
   Its knowledge soundness, `gkrSecurity`, is proved on its local round, not on Layer 4's
@@ -203,7 +207,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the
+expressions as polynomials (Layer 2), the sumcheck variants (Layer 4), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The GKR's knowledge
 soundness on its local round (Layer 5) is built on the branch stacked on #62.
