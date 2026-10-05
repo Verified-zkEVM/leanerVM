@@ -135,13 +135,11 @@ def Phases.Security.toDef {P : Phases I} (S : P.Security) :
   (((((commitSecurity I).append S.bus).append S.table).append S.pub).append S.flock).append
     S.opening
 
-/-- The whole protocol's extraction: the commit phase's, then five compositions. It is what
-`Phases.Security.toDef` carries, and it computes. -/
+/-- The whole protocol's extraction: the one `Phases.Security.toDef` carries, named so that
+`piopExtractor` reads it. -/
 def Phases.Security.extraction {P : Phases I} (S : P.Security) :
     Component.Extraction P.toDef (M3Rel I) (Seam.done I) :=
-  (((((commitSecurity I).toExtraction.append S.bus.toExtraction).append
-    S.table.toExtraction).append S.pub.toExtraction).append S.flock.toExtraction).append
-    S.opening.toExtraction
+  S.toDef.toExtraction
 
 /-! ## The oracle protocol -/
 
@@ -182,8 +180,9 @@ private theorem zero_lt_piopRounds : 0 < piopRounds I := by
 composition keeps the first step of its first part. -/
 private theorem piopExtractor_readsFirst (P : Phases I) (S : P.Security) :
     Extractor.RoundByRound.ReadsFirst (piopExtractor P S) := by
-  unfold piopExtractor Phases.Security.extraction
-  simp only [Component.Extraction.append, commitSecurity, Component.sendOracleSecurity]
+  unfold piopExtractor Phases.Security.extraction Phases.Security.toDef
+  simp only [Component.Security.append, Component.Extraction.append, commitSecurity,
+    Component.sendOracleSecurity]
   exact Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
     (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
       (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)

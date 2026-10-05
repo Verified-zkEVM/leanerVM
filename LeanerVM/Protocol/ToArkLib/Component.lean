@@ -35,7 +35,9 @@ challenge. The error is a parameter, not a field, so that the error a component 
 is the one its consumer demands. It is a real number, which compiled code cannot hold, so a
 security takes no real number as an argument: it is stated at its exact error, counting bad
 challenges with `Nat.card`, and raised with `Security.mono`, which, like `Security.append`, is
-inlined before compilation. A security then computes, its extractor included.
+inlined before compilation. A security then computes, its extractor included. A new combinator
+that takes a security is inlined the same way (`@[macro_inline]`), and a `let` binding a
+security inside a definition would bring the errors back into compiled code.
 
 Two components in sequence are again a component (`Def.append`): schedules concatenate, and so
 do the errors (`errAppend`). Completeness composes by a theorem ArkLib proves; the prover's

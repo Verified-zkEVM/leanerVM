@@ -21,47 +21,45 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking (Layer 1) | #59 | `f4d858c` | 2026-09-29 |
 | the public-input phase with the specification's check (Layer 8), both halves | #60 | `b435631` | 2026-09-29 |
 | no hole: the upgrade to Lean 4.34.1 and the new pins | #61 | `144c5aa` | 2026-09-29 |
-| the wall, and the field instances' revision (the inner-product oracle) | #64 | `3cf0139` | 2026-10-02 |
-| the spine's revision: the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
-| tables and stacking, and the public-input phase, revised | #66 | `b692351` | 2026-10-02 |
+| the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
+| the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
+| tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
-phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
-kernel's three axioms, and no `sorryAx`, for the two master theorems and both halves of the commit
-and public-input phases. On the branch of #62, the grand-product GKR's definition and
-completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule
-`gkrSpec`, `gkrComplete`) stand on two generic one-round components, a checked message
-(`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
-sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
-product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On
-the branch stacked on it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`:
-`gkrSecurity` at `gkrError F (1 / |F|) nside μ`) stands on the two
-components' security halves, the round's (`SumcheckRound.roundsSecurity`, for a consistent and
-sound family carrying no witness) and a table's zeroness on a partial point
-(`ToCompPoly/Restriction.lean`), which tracks the riders and the descendants' values while the
-coordinates of a point are drawn one at a time. On the branch stacked on that one, Layer 4's
-sumcheck (`ToArkLib/Sumcheck.lean`): a virtual polynomial (`Sumcheck.Virtual`: tables read off
-the context and a formula of the point and the tables' values), its sumcheck over a cube weighted
-per coordinate (`Sumcheck.weighted`, binding the highest variable first, the tables' values at the
-final point as its last message), the plain and the normalized variants as its two weightings
-(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness, and the transport of
-round-by-round knowledge soundness to a verifier that decodes a round message sent without one
-coefficient (`Sumcheck.transport`, on the generic `ToArkLib/TranscriptMap.lean`); with the
-weighted cube sums and the degree in each coordinate it needs (`ToCompPoly/WeightedCube.lean`,
-`ToCompPoly/IndividualDegree.lean`). Nothing else is built: the other phases, the
-other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
-verifier and the base theorems.
+phases after the commitment; of those, the public-input phase is built, with the specification's
+check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
+axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
+each version of the public-input phase. On the branch of #62, the grand-product GKR's
+definition and completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the
+slot's schedule `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a
+checked message (`ToArkLib/SendChecked.lean`) and a checked challenge
+(`ToArkLib/SampleChallenge.lean`), a sumcheck round of their own composed from the two
+(`ToArkLib/SumcheckRound.lean`), and the product tree and partial sums
+(`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On the branch stacked on
+it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
+`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the
+round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
+witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
+tracks the riders and the descendants' values while the coordinates of a point are drawn
+one at a time. On the branch stacked on that one, Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`): a
+virtual polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and
+the tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
+the highest variable first, the tables' values at the final point as its last message), the plain
+and the normalized variants as its two weightings (`Sumcheck.plain`, `Sumcheck.normalized`), their
+perfect completeness, and the transport of round-by-round knowledge soundness to a verifier that
+decodes a round message sent without one coefficient (`Sumcheck.transport`, on the generic
+`ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
+needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). Nothing else is built:
+the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
+trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
-The blueprint was revised on 2026-09-30 after a review of its faithfulness to leanVM, its
-non-vacuity and its audit surface. The revisions the work on `main` owed it are built as three
-stacked pull requests, #64 (the wall and the field instances), #65 (the spine) and #66 (tables
-and stacking, the public-input phase), all merged, each reviewed against the blueprint and the
-pinned sources in turn ([the spine's review](../reviews/protocol-spine-revision.md));
-each is a checklist line of #12. Where the built work differs from the blueprint, deliberately:
+The built work meets the blueprint except where it differs from it deliberately or settles what
+the blueprint leaves open, as listed below. The spine's review against the blueprint and the
+pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 - **The layout's law.** `Layout` keeps the lift `extend` and one law, but the law is the
   reading law on the derived `Layout.read`, not "a cube point of the column lifts to a cube
@@ -139,7 +137,28 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   The blueprint's `claimsFrom` on a bare list would need a value for a missing entry, and the
   computed value, the only candidate, is the one choice no refutation can catch. The alias
   `PublicInput.pSpec` is gone; the slot is `pubSpec`.
-- **The deployed public-input check** is a hole of its own, not built.
+- **The deployed public-input check** is the specification phase's prover with a verifier that
+  checks one equation on the two public words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁` (`checkWords`;
+  `cpu/mod.rs:752-755`, `verifier.py:1400`, `aggregate.py:1680-1683`), at the same slot and error. Where it
+  differs from the blueprint, or what it leaves to the work after it:
+  - `deployedPublicInputPhase` is a `Phase.FrontDef`, the type `Phases.pub` has (decision 31); the
+    blueprint's signature says `Phase.Def`. Its public surface mirrors the specification phase's:
+    `deployedVerifier`, `deployedGuarded`, `deployed_complete`, `deployedStateFunction` and
+    `deployed_rbr` stand beside the declarations the hole lists.
+  - `accepts_two_challenges` states its hypotheses inline: the blueprint's `Accepts` would clash
+    with `PublicInput.accepts`, and inline it shows that the pooled claim on the top limb is one
+    of them. Off the shape of two sent lines `checkWords` is the specification's check, as the
+    blueprint's "otherwise" has it, so that `checkWords_of_check` holds of every instance.
+  - The message is no function of the statement and the challenge, as the specification's is, so
+    the knowledge state function says after the challenge that some message is accepted
+    (`deployedStateFunction`); the bound is the specification's `1/|E|`, over
+    `bad_challenge_unique_words`.
+  - The sources pool the top limb at the constant `0`; the phase pools the value computed from
+    the statement. They agree where the top line is zero, which the public words' zero top limb
+    gives (`read_public` rejects a nonzero one, `cpu/mod.rs:139-143`), and on a statement whose
+    top line is not zero the constant is unsound (tested). That `leanIsaInstance` has a zero top
+    line, and lists `mem_0` then `mem_1` as its two sent lines (`checkWords` reads their cells as
+    the limbs `y⁰` and `y¹` of the two words), is the adaptor's to prove.
 - **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
   no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
   `gkrComplete` extends `Component.Guarded`, and its knowledge soundness `gkrSecurity` is stated
@@ -253,19 +272,14 @@ each is a checklist line of #12. Where the built work differs from the blueprint
     for one polynomial with unit weights, and no open pull request adds knowledge soundness to
     either (the survey is in the watch list below).
 
-Open pull requests that the revision changes: #62 (the GKR's definition and completeness) is
-at the slot's schedule and error, as its item above says; #42 (honest sumcheck algebra) serves
-the plain variant, and conflicts with `main`; #39 (fingerprints) and #43 (power batching) rebase
-onto `main` from the closed #18's branch and move from `Generic/` to the `To*` folder of their
-objects, #43 feeding the opening phase.
-
 ## What can start now
 
-The spine's revision first: every phase is written against its slots. Independent of it: Clean
-expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
+The spine's slots are on `main`, so the phases are written against them. These can start: Clean
+expressions as polynomials (Layer 2), batching (Layer 4), the
+fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The sumcheck's knowledge
-soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
-stacked on #62. The public-input phase's deployed check follows its pool's revision.
+soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The
+GKR's knowledge soundness on its local round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
 

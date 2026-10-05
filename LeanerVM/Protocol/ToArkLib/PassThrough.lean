@@ -22,7 +22,8 @@ dropping a clause the previous step consumed), and its two unfolding lemmas are 
 zero-round or pure component would otherwise prove again. It is proved in both halves: complete
 whenever `f` carries the input relation into the output relation, and knowledge sound at error
 zero, with the extractor that keeps the witness, whenever `f` also reflects the output relation
-back into the input relation.
+back into the input relation (`passThroughSecurityOfIff` takes the two directions as one
+equivalence, for the trivial witness).
 -/
 
 namespace LeanerVM.Protocol
@@ -98,14 +99,6 @@ def passThroughComplete (f : StmtIn → StmtOut)
 
 /-! ## Knowledge soundness -/
 
-/-- The extractor keeps the witness. The shared oracle is written `OracleSpec.emptySpec.{0, 0}`
-rather than `[]ₒ` to pin a universe `Extractor.RoundByRound` leaves free. -/
-def passThroughExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-    (StmtIn × ∀ i, OStmt i) W W !p[] (fun _ ↦ W) where
-  eqIn := rfl
-  extractMid := fun i ↦ Fin.elim0 i
-  extractOut := fun _ _ w ↦ w
-
 variable (f : StmtIn → StmtOut) {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)}
   {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
   (h : ∀ s o w, ((f s, o), w) ∈ relOut → ((s, o), w) ∈ relIn)
@@ -114,7 +107,7 @@ variable (f : StmtIn → StmtOut) {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)
 /-- The knowledge state function: the input relation, at the only round. -/
 def passThroughStateFunction :
     (passThroughVerifier OStmt f).toVerifier.KnowledgeStateFunction init impl relIn relOut
-      (passThroughExtractor OStmt) where
+      (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
   toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m ↦ Fin.elim0 m
@@ -125,7 +118,8 @@ def passThroughStateFunction :
 /-- Round-by-round knowledge soundness at error zero: no challenge, the witness is kept. -/
 theorem passThrough_rbr :
     (passThroughVerifier OStmt f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn
-      relOut (fun _ ↦ W) (passThroughExtractor OStmt) (passThroughStateFunction OStmt f h init impl)
+      relOut (fun _ ↦ W) (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[])
+      (passThroughStateFunction OStmt f h init impl)
       (fun i ↦ Fin.elim0 i.1) :=
   fun _ i ↦ Fin.elim0 i.1
 
@@ -135,9 +129,18 @@ def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w)
     Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
   guarded := (passThroughComplete OStmt f hc).guarded
   witMid := fun _ ↦ W
-  extractor := passThroughExtractor OStmt
+  extractor := keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]
   kSF := passThroughStateFunction OStmt f h
   rbr := passThrough_rbr OStmt f h
+
+/-- The security half with the trivial witness, whenever `f` carries a statement into the
+output relation exactly when the statement is in the input relation. -/
+def passThroughSecurityOfIff {rIn : Set ((StmtIn × ∀ i, OStmt i) × Unit)}
+    {rOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)}
+    (hf : ∀ s o, ((f s, o), ()) ∈ rOut ↔ ((s, o), ()) ∈ rIn) :
+    Security (passThrough OStmt f) rIn rOut (fun i ↦ Fin.elim0 i.1) :=
+  passThroughSecurity OStmt f (fun s o w h ↦ by cases w; exact (hf s o).mp h)
+    fun s o w h ↦ by cases w; exact (hf s o).mpr h
 
 end Component
 

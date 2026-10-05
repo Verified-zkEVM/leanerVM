@@ -87,6 +87,13 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   cv + 1))` with `x` and `cv` variables, is one unfolding, since nothing closed can be
   evaluated. State a refutation over variables and keep the hand run's values for the honest
   runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
+- Handing a transcript to a guarded check in a refutation
+  (`Verifier.GuardedForm.probEvent_pos_of_check` on `fullOf c msg`) can exceed the default
+  recursion depth when the statement has three public lines, the unifier unfolding the count of
+  sent lines to match the message: a local `set_option maxRecDepth 1000 in` on that one example
+  is enough (`zeroTop` in `tests/LeanerVMTests/Protocol/PublicInput.lean`). `simpa` on a
+  hypothesis that mixes `E` arithmetic with a structure literal can hit the same limit; name the
+  lemmas in a `simp only`.
 
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,

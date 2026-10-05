@@ -38,7 +38,8 @@ of the final point, which are the last layer's combination challenges and then i
 challenges. Inside the argument the riders stay zero tables (`constTrack`): nothing of a layer's
 point survives the next layer. At the last layer the state tracks them on the coordinates drawn
 so far (`progTrack`, through `RestrictedZero` on a `Partial` point: `roundsPartial` during the
-rounds, `interpPartial` during the combination challenges), and a rider that is not zero on the
+rounds, `interpPartial` during the combination challenges, both a challenge vector placed at its
+coordinates by `Partial.ofVector`), and a rider that is not zero on the
 coordinates so far is zero on one more at one challenge at most. A `RiderTrack` is what a step's
 security needs of either: the predicates during the rounds, during the combination challenges
 and at the new point, how each hands over to the next, and the one-escape bounds. The escape of
@@ -60,7 +61,33 @@ open scoped NNReal ENNReal
 
 namespace Gkr
 
-variable {F : Type} [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F]
+variable {F : Type}
+
+/-! ## The partial points of a step -/
+
+/-- The coordinates of a layer's new point fixed by its first `j` sumcheck challenges: the
+coordinates `ρ` to `ρ + j - 1`, the combination challenges coming first. -/
+abbrev roundsPartial (ρ : ℕ) {j : ℕ} (χ : Vector F j) : Partial F := Partial.ofVector ρ χ
+
+/-- The first `i` combination challenges as a partial point of the descendants' `ρ`
+coordinates. -/
+abbrev combPartial {i : ℕ} (u : Vector F i) : Partial F := Partial.ofVector 0 u
+
+/-- The coordinates fixed by the sumcheck challenges and the first `i` combination
+challenges. -/
+abbrev interpPartial (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u : Vector F i) : Partial F :=
+  (combPartial u).or (roundsPartial ρ χ)
+
+/-- With all `ρ` combination challenges drawn, every coordinate of the new point `(u, χ)` is
+fixed. -/
+private theorem interpPartial_full (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F ρ) (k : ℕ)
+    (hk : k < m + ρ) :
+    interpPartial ρ χ u k = some ((Vector.cast (Nat.add_comm ρ m) (u ++ χ))[k]) := by
+  simp only [interpPartial, combPartial, roundsPartial, Partial.or, Partial.ofVector,
+    Vector.getElem_cast, Vector.getElem_append]
+  split_ifs <;> first | rfl | omega
+
+variable [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F]
   [SampleableType F] {X : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)]
   (nside μ : ℕ) (leaves : X → (∀ i, O i) → Fin nside → CMlPolynomialEval F μ)
   (riders : X → (∀ i, O i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval F τ))
@@ -80,7 +107,7 @@ private theorem ridersZeroOn_empty_iff (x : X) (o : ∀ i, O i) :
 omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- Riders not all zero on a partial point are all zero on it with one more coordinate fixed
 for at most one value. -/
-theorem card_ridersZeroOn_update_le (x : X) (o : ∀ i, O i) (σ : Partial F) (k : ℕ)
+private theorem card_ridersZeroOn_update_le (x : X) (o : ∀ i, O i) (σ : Partial F) (k : ℕ)
     (hne : ¬ RidersZeroOn μ riders x o σ) :
     Nat.card {c // RidersZeroOn μ riders x o (Function.update σ k (some c))} ≤ 1 := by
   have := Fintype.ofFinite F
@@ -93,110 +120,13 @@ theorem card_ridersZeroOn_update_le (x : X) (o : ∀ i, O i) (σ : Partial F) (k
   rw [Finset.mem_filter] at hc ⊢
   exact ⟨Finset.mem_univ _, hc.2 r hr⟩
 
-/-- The coordinates of a layer's new point fixed by its first `j` sumcheck challenges: the
-coordinates `ρ` to `ρ + j - 1`, the combination challenges coming first. -/
-def roundsPartial (ρ : ℕ) {j : ℕ} (χ : Vector F j) : Partial F :=
-  fun k ↦ if h : ρ ≤ k ∧ k < ρ + j then some (χ[k - ρ]'(by omega)) else none
-
-/-- The coordinates fixed by the sumcheck challenges and the first `i` combination
-challenges. -/
-def interpPartial (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u : Vector F i) : Partial F :=
-  fun k ↦ if h : k < i then some u[k] else roundsPartial ρ χ k
-
-/-- The first `i` combination challenges as a partial point of the descendants' `ρ`
-coordinates. -/
-def combPartial {i : ℕ} (u : Vector F i) : Partial F :=
-  fun k ↦ if h : k < i then some u[k] else none
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem roundsPartial_zero (ρ : ℕ) (χ : Vector F 0) :
-    roundsPartial ρ χ = Partial.empty := by
-  funext k
-  simp [roundsPartial, Partial.empty]
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem roundsPartial_push (ρ : ℕ) {j : ℕ} (χ : Vector F j) (c : F) :
-    roundsPartial ρ (χ.push c) = Function.update (roundsPartial ρ χ) (ρ + j) (some c) := by
-  funext k
-  by_cases hk : k = ρ + j
-  · subst hk
-    simp [roundsPartial]
-  · rw [Function.update_of_ne hk]
-    simp only [roundsPartial]
-    split_ifs with h₁ h₂ h₂
-    · rw [Vector.getElem_push_lt (by omega)]
-    · omega
-    · omega
-    · rfl
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem interpPartial_zero (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F 0) :
-    interpPartial ρ χ u = roundsPartial ρ χ := by
-  funext k
-  simp [interpPartial]
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem interpPartial_push (ρ : ℕ) {m : ℕ} (χ : Vector F m) {i : ℕ} (u : Vector F i)
-    (c : F) :
-    interpPartial ρ χ (u.push c) = Function.update (interpPartial ρ χ u) i (some c) := by
-  funext k
-  by_cases hk : k = i
-  · subst hk
-    simp [interpPartial]
-  · rw [Function.update_of_ne hk]
-    simp only [interpPartial]
-    split_ifs with h₁ h₂ h₂
-    · rw [Vector.getElem_push_lt (by omega)]
-    · omega
-    · omega
-    · rfl
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem interpPartial_full (ρ : ℕ) {m : ℕ} (χ : Vector F m) (u : Vector F ρ) (k : ℕ)
-    (hk : k < m + ρ) :
-    interpPartial ρ χ u k = some ((Vector.cast (Nat.add_comm ρ m) (u ++ χ))[k]) := by
-  simp only [interpPartial, roundsPartial, Vector.getElem_cast, Vector.getElem_append]
-  split_ifs <;> first | rfl | omega
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem combPartial_zero (u : Vector F 0) : combPartial u = Partial.empty := by
-  funext k
-  simp [combPartial, Partial.empty]
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem combPartial_push {i : ℕ} (u : Vector F i) (c : F) :
-    combPartial (u.push c) = Function.update (combPartial u) i (some c) := by
-  funext k
-  by_cases hk : k = i
-  · subst hk
-    simp [combPartial]
-  · rw [Function.update_of_ne hk]
-    simp only [combPartial]
-    split_ifs with h₁ h₂ h₂
-    · rw [Vector.getElem_push_lt (by omega)]
-    · omega
-    · omega
-    · rfl
-
-omit [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
-  [∀ i, OracleInterface (O i)] in
-private theorem combPartial_full {ρ : ℕ} (u : Vector F ρ) (k : ℕ) (hk : k < ρ) :
-    combPartial u k = some u[k] := by
-  simp [combPartial, hk]
-
 /-! ## How a step tracks the riders -/
 
 /-- How a step's knowledge state tracks the riders: a predicate during the sumcheck rounds
 (`inv`), one during the combination challenges (`invU`), one at the new point (`out`); the
 first is the riders' zeroness at the start, each hands over to the next, and each challenge
-restores a broken predicate at one value at most. -/
+restores a broken predicate at one value at most. The field is finite: a `Nat.card` count of an
+infinite set is `0`, which would make the two escape bounds hold of any predicate. -/
 structure RiderTrack [Finite F] (ρ m : ℕ) where
   /-- During the rounds, after `j` challenges. -/
   inv : X → (∀ i, O i) → (j : ℕ) → Vector F j → Prop
@@ -243,13 +173,16 @@ def progTrack (ρ m : ℕ) (h : m + ρ = μ) : RiderTrack μ riders ρ m where
   inv := fun x o _ χ ↦ RidersZeroOn μ riders x o (roundsPartial ρ χ)
   invU := fun x o χ _ u ↦ RidersZeroOn μ riders x o (interpPartial ρ χ u)
   out := fun x o ζ ↦ ∀ r ∈ riders x o, evalMle r.2 (lowPoint (Vector.cast h ζ) r.1) = 0
-  inv_zero := fun x o v ↦ by rw [roundsPartial_zero, ridersZeroOn_empty_iff]
+  inv_zero := fun x o v ↦ by
+    simp only [roundsPartial, Partial.ofVector_zero, ridersZeroOn_empty_iff]
   inv_escape := fun x o j χ hne ↦ by
-    simp only [roundsPartial_push]
+    simp only [roundsPartial, Partial.ofVector_push]
     exact card_ridersZeroOn_update_le μ riders x o (roundsPartial ρ χ) (ρ + j) hne
-  invU_zero := fun x o χ v ↦ by rw [interpPartial_zero]
+  invU_zero := fun x o χ v ↦ by
+    simp only [interpPartial, combPartial, Partial.ofVector_zero, Partial.empty_or]
   invU_escape := fun x o χ i u hne ↦ by
-    simp only [interpPartial_push]
+    simp only [interpPartial, combPartial, Partial.ofVector_push, Partial.update_or,
+      Nat.zero_add]
     exact card_ridersZeroOn_update_le μ riders x o (interpPartial ρ χ u) i hne
   out_iff := fun x o χ u ↦ by
     simp only [RidersZeroOn]
@@ -267,7 +200,7 @@ section Layer
 variable (ρ m : ℕ)
 
 /-- The layer's family of claims, the riders tracked by `T`: the same claims, polynomials and
-domain as `family`, so the same rounds. -/
+domain as `family`, so the same rounds; `family` is this family at `constTrack`. -/
 def familyT (T : RiderTrack μ riders ρ m) :
     SumcheckRound.Family F (LayerX X F nside m) O Unit (2 ^ ρ) where
   claim := fun ctx j cv ↦ partialSum (summand nside μ leaves ρ m ctx) (pointOf ctx) j cv
@@ -277,14 +210,14 @@ def familyT (T : RiderTrack μ riders ρ m) :
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The honest polynomials of the tracked family are consistent: the same as `family`'s. -/
-theorem familyT_consistent (T : RiderTrack μ riders ρ m) :
+private theorem familyT_consistent (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Consistent m :=
   ⟨(family_honest nside μ leaves riders ρ m).check, (family_honest nside μ leaves riders ρ m).next⟩
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The tracked family's invariant is sound: a round's challenge restores it at one value at
 most, within the polynomial degree. -/
-theorem familyT_sound (T : RiderTrack μ riders ρ m) :
+private theorem familyT_sound (T : RiderTrack μ riders ρ m) :
     (familyT nside μ leaves riders ρ m T).Sound m :=
   fun _ _ cv _ hinv ↦ (T.inv_escape _ _ _ cv hinv).trans Nat.one_le_two_pow
 
@@ -296,7 +229,7 @@ omit [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- A statement outside the layer relation combines into the family's first claim at `nside − 1`
 combiners at most: if a rider is not zero, never; otherwise some tree's value is wrong, and the
 combination of the values agrees with that of the levels at `nside − 1` combiners at most. -/
-theorem card_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+private theorem card_lambdaNext_le (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     (s : LayerStmt X F nside m) (o : ∀ i, O i)
     (hs : ((s, o), ()) ∉ layerRel nside μ leaves riders m) :
     Nat.card {l // ((lambdaNext nside m s l, o), ()) ∈
@@ -336,12 +269,14 @@ def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
       (drawError F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
   Component.sampleChallengeSecurity O F _ _ (nside - 1) fun s o _ ↦
     Component.card_badChallenge_le_of_unit O F _ (nside - 1) s o fun hs ↦
-      card_lambdaNext_le nside μ leaves riders ρ m T hm (inp s) o fun h ↦ hs ((hinp s o).mpr h)
+      by exact card_lambdaNext_le nside μ leaves riders ρ m T hm (inp s) o fun h ↦
+        hs ((hinp s o).mpr h)
 
 /-! ## The descendants -/
 
 /-- After the descendants' message with `i` combination challenges drawn: the riders by the
-tracker, and each tree's values agree with the honest ones on the challenges drawn so far. -/
+tracker, and each tree's values agree with the honest ones on the challenges drawn so far. At
+`i = 0` and `constTrack` it is `childRel 0`: agreement on no challenge is equality. -/
 def childRelT (T : RiderTrack μ riders ρ m) (i : ℕ) :
     Set ((InterpStmt X F nside m ρ i × ∀ j, O j) × Unit) :=
   {p | T.invU p.1.1.1.1 p.1.2 p.1.1.1.2.1 i p.1.1.2 ∧
@@ -352,7 +287,7 @@ def childRelT (T : RiderTrack μ riders ρ m) (i : ℕ) :
 omit [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The descendants' check is sound: values that pass it and are the honest ones make the final
 claim the summand at the point. -/
-theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
+private theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
     (s : SumcheckRound.Stmt (LayerX X F nside m) F m) (o : ∀ i, O i)
     (ch : Fin nside → CMlPolynomialEval F ρ) (hc : combineCheck nside ρ m s ch = true)
     (hout : ((childNext nside ρ m s ch, o), ()) ∈ childRelT nside μ leaves riders ρ m T 0) :
@@ -361,7 +296,7 @@ theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
   refine ⟨(T.invU_zero _ _ _ _).mp hinv, ?_⟩
   have hch' : ∀ t, ch t = children nside μ leaves ρ m s.1.1.1 o s.2.1 t := fun t ↦ by
     have := hch t
-    rw [combPartial_zero] at this
+    simp only [combPartial, Partial.ofVector_zero] at this
     exact (diffTable_restrictedZero_empty_iff _ _).mp this
   change s.2.2 = partialSum (summand nside μ leaves ρ m ((s.1, o), ())) s.1.1.2.1 m s.2.1
   rw [partialSum_self]
@@ -388,7 +323,7 @@ omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInte
 /-- A statement outside the relation after `i` combination challenges is inside it after one
 more at one challenge at most: the riders' predicate or some tree's agreement was broken, and
 each is restored at one value at most. -/
-theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
+private theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
     (s : InterpStmt X F nside m ρ i) (o : ∀ j, O j)
     (hs : ((s, o), ()) ∉ childRelT nside μ leaves riders ρ m T i) :
     Nat.card {c // ((interpNext nside ρ m s c, o), ()) ∈
@@ -408,7 +343,9 @@ theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
     rw [Finset.mem_filter] at hc ⊢
     refine ⟨Finset.mem_univ _, ?_⟩
     have := hc.2.2 t
-    rwa [show (interpNext nside ρ m s c).2 = s.2.push c from rfl, combPartial_push] at this
+    simp only [show (interpNext nside ρ m s c).2 = s.2.push c from rfl, combPartial,
+      Partial.ofVector_push, Nat.zero_add] at this
+    exact this
   · refine (Finset.card_le_card fun c hc ↦ ?_).trans
       ((natCard_subtype_eq_card_filter _).symm.trans_le
         (T.invU_escape _ _ _ i s.2 hinv))
@@ -419,12 +356,12 @@ theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
 def interpPrefixSecurity (T : RiderTrack μ riders ρ m) : (i : ℕ) →
     Component.Security (interpPrefix nside ρ m i) (childRelT nside μ leaves riders ρ m T 0)
       (childRelT nside μ leaves riders ρ m T i) (drawsError F (1 / Nat.card F : ℝ≥0) i)
-  | 0 => Component.passThroughSecurity O id (fun _ _ _ h ↦ h) (fun _ _ _ h ↦ h)
+  | 0 => Component.passThroughSecurityOfIff O id fun _ _ ↦ Iff.rfl
   | i + 1 =>
     (interpPrefixSecurity T i).append
       ((Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
         Component.card_badChallenge_le_of_unit O F _ 1 s o fun hs ↦
-          card_interpNext_le nside μ leaves riders ρ m T s o hs).mono fun _ ↦ by
+          by exact card_interpNext_le nside μ leaves riders ρ m T s o hs).mono fun _ ↦ by
             show ((1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0) ≤ 1 / Nat.card F
             rw [Nat.cast_one])
 
@@ -438,7 +375,7 @@ def stepOutT (T : RiderTrack μ riders ρ m) :
 omit [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- The interpolated statement is in the step's output relation exactly when the statement before
 it is in the relation after all `ρ` combination challenges. -/
-theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
+private theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
     (s : InterpStmt X F nside m ρ ρ) (o : ∀ i, O i) :
     ((interpDone nside ρ m s, o), ()) ∈ stepOutT nside μ leaves riders ρ m T ↔
       ((s, o), ()) ∈ childRelT nside μ leaves riders ρ m T ρ := by
@@ -449,7 +386,8 @@ theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
       (diffTable (s.1.2.2 t) (children nside μ leaves ρ m s.1.1 o s.1.2.1 t)) (combPartial s.2))
   rw [T.out_iff]
   refine and_congr Iff.rfl (forall_congr' fun t ↦ ?_)
-  rw [restrictedZero_of_all _ _ s.2 (fun k hk ↦ combPartial_full s.2 k hk), evalMle_diffTable,
+  rw [restrictedZero_of_all _ (combPartial s.2) s.2
+      (fun k hk ↦ by simp [combPartial, Partial.ofVector, hk]), evalMle_diffTable,
     sub_eq_zero, evalMle_cast_append, eq_comm]
   exact Iff.rfl
 
@@ -459,18 +397,13 @@ def interpolateSecurity (T : RiderTrack μ riders ρ m) :
       (stepOutT nside μ leaves riders ρ m T) (drawsError F (1 / Nat.card F : ℝ≥0) ρ) :=
   match ρ, T with
   | 0, T =>
-    Component.passThroughSecurity O (interpDone nside 0 m)
-      (fun s o w h ↦ by
-        cases w
-        exact (interpDone_mem_stepOutT_iff nside μ leaves riders 0 m T s o).mp h)
-      (fun s o w h ↦ by
-        cases w
-        exact (interpDone_mem_stepOutT_iff nside μ leaves riders 0 m T s o).mpr h)
+    Component.passThroughSecurityOfIff O (interpDone nside 0 m) fun s o ↦
+      by exact interpDone_mem_stepOutT_iff nside μ leaves riders 0 m T s o
   | ρ' + 1, T =>
     (interpPrefixSecurity nside μ leaves riders (ρ' + 1) m T ρ').append
       ((Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
-        Component.card_badChallenge_le_of_unit O F _ 1 s o fun hs ↦
-          (Finite.card_le_of_embedding (Subtype.impEmbedding _ _ fun c hc ↦
+        Component.card_badChallenge_le_of_unit O F _ 1 s o fun hs ↦ by
+          exact (Finite.card_le_of_embedding (Subtype.impEmbedding _ _ fun c hc ↦
             (interpDone_mem_stepOutT_iff nside μ leaves riders (ρ' + 1) m T _ o).mp hc)).trans
             (card_interpNext_le nside μ leaves riders (ρ' + 1) m T s o hs)).mono fun _ ↦ by
           show ((1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0) ≤ 1 / Nat.card F
@@ -490,8 +423,9 @@ def layerStepSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
   ((((lambdaSecurity nside μ leaves riders ρ m inp T hm hinp).mono fun _ ↦
       (div_eq_mul_one_div _ _).le).append
     ((SumcheckRound.roundsSecurity (familyT nside μ leaves riders ρ m T) m
-      (familyT_consistent nside μ leaves riders ρ m T) (familyT_sound nside μ leaves riders ρ m T)
-      m 0 (Nat.zero_add m)).mono fun _ ↦ by rw [← div_eq_mul_one_div])).append
+      (by exact familyT_consistent nside μ leaves riders ρ m T)
+      (by exact familyT_sound nside μ leaves riders ρ m T) m 0 (Nat.zero_add m)).mono fun _ ↦ by
+        rw [← div_eq_mul_one_div])).append
     (childrenSecurity nside μ leaves riders ρ m T)).append
     (interpolateSecurity nside μ leaves riders ρ m T)
 
@@ -512,7 +446,7 @@ omit [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
   [∀ i, OracleInterface (O i)] in
 /-- With no step left, the input relation is the output relation across the equality of
 layers. -/
-theorem stepsIn_zero_iff (m : ℕ) (h : m + 2 * 0 = μ) (s : LayerStmt X F nside m)
+private theorem stepsIn_zero_iff (m : ℕ) (h : m + 2 * 0 = μ) (s : LayerStmt X F nside m)
     (o : ∀ i, O i) :
     ((s, o), ()) ∈ stepsIn nside μ leaves riders 0 m h ↔
       (((s.1, (Vector.cast (by omega) s.2.1, s.2.2)), o), ()) ∈ relOut nside μ leaves riders := by
@@ -527,13 +461,8 @@ def layerStepsSecurity : (k m : ℕ) → (h : m + 2 * k = μ) →
     Component.Security (layerSteps nside μ leaves k m h) (stepsIn nside μ leaves riders k m h)
       (relOut nside μ leaves riders) (stepsError F nside (1 / Nat.card F : ℝ≥0) k m)
   | 0, m, h =>
-    Component.passThroughSecurity O _
-      (fun s o w hout ↦ by
-        cases w
-        exact (stepsIn_zero_iff nside μ leaves riders m h s o).mpr hout)
-      (fun s o w hin ↦ by
-        cases w
-        exact (stepsIn_zero_iff nside μ leaves riders m h s o).mp hin)
+    Component.passThroughSecurityOfIff O _ fun s o ↦
+      by exact (stepsIn_zero_iff nside μ leaves riders m h s o).symm
   | 1, m, h =>
     (layerStepSecurity nside μ leaves riders 2 m id (progTrack μ riders 2 m (by omega))
       (by omega) fun _ _ ↦ Iff.rfl).append (layerStepsSecurity 0 (m + 2) (by omega))
@@ -546,7 +475,8 @@ omit [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F]
 /-- With no layer at all, the roots are in the output relation read at layer `0` exactly when
 they are in the input relation: a rider on no variable is one value, its extension at the empty
 point. -/
-theorem relIn_iff_stepsIn_zero (h : 0 + 2 * 0 = μ) (s : X × (Fin nside → F)) (o : ∀ i, O i) :
+private theorem relIn_iff_stepsIn_zero (h : 0 + 2 * 0 = μ) (s : X × (Fin nside → F))
+    (o : ∀ i, O i) :
     ((s, o), ()) ∈ relIn nside μ leaves riders ↔
       ((rootStmt nside s, o), ()) ∈ stepsIn nside μ leaves riders 0 0 h := by
   have hμ : μ = 0 := by omega
@@ -585,21 +515,11 @@ def oddSecurity : (r : ℕ) → (hr : r ≤ 1) → (k : ℕ) → (hk : r + 2 * k
     Component.Security (odd nside μ leaves r hr) (relIn nside μ leaves riders)
       (stepsIn nside μ leaves riders k r hk) (oddError F nside (1 / Nat.card F : ℝ≥0) r)
   | 0, _, 0, hk =>
-    Component.passThroughSecurity O (rootStmt nside)
-      (fun s o w hout ↦ by
-        cases w
-        exact (relIn_iff_stepsIn_zero nside μ leaves riders hk s o).mpr hout)
-      (fun s o w hin ↦ by
-        cases w
-        exact (relIn_iff_stepsIn_zero nside μ leaves riders hk s o).mp hin)
+    Component.passThroughSecurityOfIff O (rootStmt nside) fun s o ↦
+      by exact (relIn_iff_stepsIn_zero nside μ leaves riders hk s o).symm
   | 0, _, k + 1, hk =>
-    Component.passThroughSecurity O (rootStmt nside)
-      (fun s o w hout ↦ by
-        cases w
-        exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mpr hout)
-      (fun s o w hin ↦ by
-        cases w
-        exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp hin)
+    Component.passThroughSecurityOfIff O (rootStmt nside) fun s o ↦
+      by exact (relIn_iff_layerRel_zero nside μ leaves riders s o).symm
   | 1, _, 0, hk =>
     layerStepSecurity nside μ leaves riders 1 0 (rootStmt nside)
       (progTrack μ riders 1 0 (by omega)) (by omega)
