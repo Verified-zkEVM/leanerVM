@@ -19,7 +19,8 @@ each refuted by a test:
   `ValidExecution` pins the image only at the cells the run reads and at `g^0`, `g^1`, and
   `MemImage` is total. The padding rows of every table read and write cells of that same image, so
   the image must hold frames on which the fill blocks step. A valid trace whose image admits no
-  `XOR` step exists for every program that starts with a `JUMP` to the sentinel.
+  `XOR` step exists for every program that starts with a `JUMP` to the sentinel
+  (`tests/LeanerVMTests/Semantics/PaddedImageRefutation.lean`).
 * **The size.** `Caps.heights` bounds every table by `2^32` rows while `Trace.steps` is unbounded:
   a witness needs at least `steps` rows over its eight tables, and a valid run of
   `1 + 33 * 2^30` steps exists.
