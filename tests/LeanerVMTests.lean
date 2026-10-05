@@ -11,6 +11,7 @@ import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.BitProductTable
+import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint

@@ -29,6 +29,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
 | grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
+| bus phase: definition and completeness (Layer 6) | PRB | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -50,9 +51,11 @@ fingerprint polynomial of a tuple (`ToCompPoly/Fingerprint.lean`, #39) and, with
 product polynomial of a multiset of tuples with its injectivity and its collision
 count (`ToArkLib/GrandProductPoly.lean`), and their leanVM reading (`Fingerprint.lean`:
 `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision`) complete the
-fingerprint hole. Nothing else is built: the other phases, the other generic components, the
-Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base
-theorems.
+fingerprint hole. The bus phase's definition and completeness (`LeanerVM/Protocol/Bus.lean`:
+`busPhase` at the slot's schedule, `leaf_decomposition`, `busComplete`) stand on the
+grand-product argument, the product of a stack's cells (`Blocks.prod_stackAt`) and the
+fingerprint. Nothing else is built: the other phases, the other generic components, the Clean
+bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -217,13 +220,39 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the colliding challenges with `Nat.card`, the form a computable security consumes. The
   blueprint's Layer 5 file line and its Interfaces list are owed an edit for both, through a
   `docs(protocol)` pull request.
+- **The bus phase (Layer 6)** is at the slot's schedule `busSpec I`, a `Phase.FrontDef`
+  (decision 31; the blueprint's signature says `Phase.Def`), assembled from a checked challenge
+  `(α, β)`, a checked message (the roots, the check `R_c ≠ 0`), `gkr 3 μ_bus` and a message (the
+  boundary values) through `Component.Front.append`. Where it differs from Layer 6's sketch:
+  - The side conditions are one structure, `Bus.Conditions`: the blueprint's two (`1 ≤ I.d`, a
+    table with a constraint fits in the leaf stacks' depth) and that the pull and count sides fit
+    in `2 ^ μ_bus`; `τ_max ≤ μ_bus` is derived from them (`Conditions.τmax_le`).
+  - A block of leaves is a `Bus.Source` (a boundary block, one flush of one table, one count
+    column); a side's blocks are listed by `Bus.sources` and stacked by a stable sort, largest
+    first. `pushLeaves`, `pullLeaves` and `countLeaves` are the three sides of
+    `Bus.sideLeaves`; a count leaf is the count cell itself.
+  - `leaf_decomposition` is stated per side with each block's leaf extension as the verifier
+    writes it (`Source.leafEval`): `β − Σ_i eq(α, i)·c̃_i` for a block of tuples, the column's
+    extension for a count column.
+  - A form's terms: for a flush block, its weight times `β` against the constant `1` and its
+    weight times `−eq(α, i)` against coordinate `i`'s polynomial; for a count column, its weight
+    against the column's variable. The bus phase pools no claim on a table's column.
+  - The riders are the tables' constraints and one rider on no variable that is zero exactly when
+    the public lines and the Flock predicate hold (`Bus.linesRider`): the grand-product
+    argument's relations carry only its leaves and riders, and the two predicates of
+    `Seam.commit` the bus does not touch travel through it this way.
+  - A committed boundary column's value is read at its place among `I.boundaryColumns`
+    (`Bus.valueOf`), and its claim's point is the first `κ` coordinates of `ζ`.
+  - The unused last combiner stays inside `gkr`; the blueprint's request to move it into the bus
+    phase is not met.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the bus
-phase (Layer 6), the Flock phase's definition and completeness (Layer 9), the WHIR opening, and
-the Merkle trees with the WHIR parameters (Layer 11).
+expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the Flock
+phase's definition and completeness (Layer 9), the WHIR opening, and the Merkle trees with the
+WHIR parameters (Layer 11). The bus phase's knowledge soundness (Layer 6) needs this pull request
+and #78.
 
 ## Upstream watch
 
