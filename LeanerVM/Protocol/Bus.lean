@@ -19,19 +19,19 @@ import CompPoly.Multivariate.MvPolyEquiv.Eval
 /-!
 # The bus phase
 
-Specification §5.2–§5.4 (`doc/leanvm/body/05-arithmetization.tex:16-119` at leanVM
+Specification §5.2–§5.4 (`doc/leanvm/body/05-arithmetization.tex:18-123` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`), over an abstract instance `I`.
 
 The bus has three sides: the pushed tuples, the pulled tuples, and the count columns. Each side's
 tuples come in *blocks*: a boundary block's `2 ^ κ` tuples, one flush of one table (a tuple per
 row), one count column (a cell per row) (`Source`). A block's *leaves* are `β − π_α(t)` for its
 tuples `t`, with `π_α` the fingerprint, and a count column's leaves are its cells. Each side's
-blocks are stacked largest first at aligned offsets, ties in the order of `sources` (boundary
-blocks first, then each table's flushes, then the count columns), and padded with `1` to the
-depth `μ_bus` of the push side (`sideLeaves`; `pushLeaves`, `pullLeaves`, `countLeaves`). The
-product of a side's leaves is the product of its blocks' leaves (`Blocks.prod_stackAt`), so the
-push and pull roots agree when the bus balances, and the count root is nonzero when every count
-cell is.
+blocks are stacked largest first at aligned offsets, ties in the order of `sources` (on the
+push or pull side, its boundary blocks, then each table's flushes of that side; on the count
+side, each table's count columns), and padded with `1` to the depth `μ_bus` of the push side
+(`sideLeaves`; `pushLeaves`, `pullLeaves`, `countLeaves`). The product of a side's leaves is the
+product of its blocks' leaves (`Blocks.prod_stackAt`), so the push and pull roots agree when the
+bus balances, and the count root is nonzero when every count cell is.
 
 The phase (`busPhase`), at the slot's schedule `busSpec I`:
 
@@ -71,7 +71,7 @@ and the forms sum to the totals.
 
 Written from the specification; the layout and its tie order, the count blocks and the order of
 the messages are transcribed from `crates/lean_vm/src/leaf.rs` at the pin (the layout `:149-156`,
-the leaves `:187-262`, the decomposition `:389-454`, the verifier `:864-935`) and
+the leaves `:187-262`, the decomposition `:389-461`, the verifier `:864-935`) and
 `crates/lean_vm/src/gkr.rs:247-430`.
 -/
 
@@ -109,7 +109,9 @@ abbrev flushPolys (j : Fin I.ntab) (f : Fin (I.flushes j).length) :
   (I.flushes j)[f].2
 
 /-- The tuple a block contributes at row `x`, read off the stack: the boundary block's
-coordinates, the flush's polynomials on the table's row, or the count cell followed by zeros. -/
+coordinates, or the flush's polynomials on the table's row. A count column's tuple, its cell then
+zeros, is the deployed verifier's count block; no definition reads it, since a count leaf is the
+cell itself. -/
 def Source.tuple (q : Column I.μ) : (src : Source I) → Fin (2 ^ src.κ) → Vector K 16
   | .boundary b, x => b.coords.map fun co ↦ I.coordCell q co x
   | .flush j f, x => (flushPolys j f).map fun P ↦ P.eval (I.row q j x)
@@ -227,7 +229,7 @@ private theorem sum_flatMap {α : Type} (l : List α) (f : α → List ℕ) :
   | cons a l ih => rw [List.flatMap_cons, List.sum_append, ih, List.map_cons, List.sum_cons]
 
 /-- The push side's leaves are the instance's count of push leaves. -/
-theorem leafCount_push : leafCount I 0 = I.pushLeaves := by
+private theorem leafCount_push : leafCount I 0 = I.pushLeaves := by
   rw [leafCount, M3Instance.pushLeaves]
   change ((sideSources I .push).map _).sum = _
   rw [sideSources, List.map_append, List.sum_append, List.map_map]
@@ -253,7 +255,7 @@ theorem Conditions.fits (h : Conditions I) (k : Fin 3) : (blocks I k).total ≤ 
   · exact (blocks_total I 2).trans_le h.count_fits
 
 /-- A block of a side that fits is no taller than the leaf stacks. -/
-theorem κ_le_of_mem {k : Fin 3} (hfit : leafCount I k ≤ 2 ^ I.μBus) {src : Source I}
+private theorem κ_le_of_mem {k : Fin 3} (hfit : leafCount I k ≤ 2 ^ I.μBus) {src : Source I}
     (hs : src ∈ sources I k) : src.κ ≤ I.μBus := by
   have h2 : 2 ^ src.κ ≤ leafCount I k :=
     List.le_sum_of_mem (List.mem_map_of_mem (f := fun src : Source I ↦ 2 ^ src.κ) hs)
@@ -419,7 +421,7 @@ private theorem evalMle_leaf_count (α : Fin 4 → E) (β : E) (q : Column I.μ)
   simp [CMlPolynomialEval.map, Extension.Ext.algebraMap_eq_ofBase, Vector.get_eq_getElem]
 
 /-- A block's leaves have the extension `leafEval`. -/
-theorem Source.evalMle_leaf (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I)
+private theorem Source.evalMle_leaf (α : Fin 4 → E) (β : E) (q : Column I.μ) (src : Source I)
     (z : Vector E src.κ) :
     evalMle (Vector.ofFn (src.leaf α β q)) z = src.leafEval α β q z := by
   cases src with
@@ -445,7 +447,7 @@ private theorem prod_flatMap {M α β : Type} [CommMonoid M] (l : List α) (f : 
     rw [List.flatMap_cons, List.map_append, List.prod_append, ih, List.map_cons, List.prod_cons]
 
 /-- A side's tuples, block by block, are its boundary tuples followed by its flushes'. -/
-theorem sideTuples_eq (q : Column I.μ) (s : Side) :
+private theorem sideTuples_eq (q : Column I.μ) (s : Side) :
     sideTuples I q s = I.boundaryTuples q s ++ I.flushTuples q s := by
   rw [sideTuples, sideSources, List.flatMap_append, List.flatMap_map, List.flatMap_assoc]
   congr 1
@@ -786,7 +788,8 @@ variable {I : M3Instance}
 /-! ## Points inside `ζ` -/
 
 /-- Block `b`'s point inside `ζ` is `ζ`'s first `κ_b` coordinates. -/
-theorem lowAt_eq (h : Conditions I) (k : Fin 3) (b : Fin (blocks I k).n) (ζ : Vector E I.μBus) :
+private theorem lowAt_eq (h : Conditions I) (k : Fin 3) (b : Fin (blocks I k).n)
+    (ζ : Vector E I.μBus) :
     lowAt h k b ζ = Gkr.lowPoint ζ
       ⟨(src I k b).κ, Nat.lt_succ_of_le ((blocks I k).size_le (h.fits k) b)⟩ := by
   apply Vector.ext
@@ -804,12 +807,6 @@ theorem lowPoint_point (h : Conditions I) (ζ : Vector E I.μBus) (j : I.Sumchec
   intro i hi
   simp only [M3Instance.lowPoint, point, Gkr.lowPoint, Vector.getElem_cast, Vector.getElem_take,
     Vector.getElem_ofFn]
-
-/-- First coordinates read at two equal counts are the same point. -/
-theorem cast_lowPoint {μ n n' : ℕ} (ζ : Vector E μ) (e : n = n') (hn : n < μ + 1)
-    (hn' : n' < μ + 1) : Vector.cast e (Gkr.lowPoint ζ ⟨n, hn⟩) = Gkr.lowPoint ζ ⟨n', hn'⟩ := by
-  subst e
-  rfl
 
 /-! ## The values sent and the boundary blocks -/
 
@@ -969,7 +966,7 @@ private theorem source_split (h : Conditions I) (k : Fin 3) (α : Fin 4 → E) (
     · simp
 
 /-- Block `b` of side `k` is one of the side's blocks. -/
-theorem src_mem (k : Fin 3) (b : Fin (blocks I k).n) : src I k b ∈ sources I k :=
+private theorem src_mem (k : Fin 3) (b : Fin (blocks I k).n) : src I k b ∈ sources I k :=
   (List.mergeSort_perm _ _).mem_iff.mp (List.getElem_mem _)
 
 /-- **The leaf claims are owed by the forms.** With the true values of the boundary columns,

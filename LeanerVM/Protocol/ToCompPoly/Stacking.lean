@@ -28,6 +28,9 @@ block over any commutative ring, so one layout serves tables over different ring
   table or a stack when the point lies in another ring than the entries.
   `unstack_eval₂_eq_sumCube` writes it as a sum over the cube against a Lagrange basis.
 * `map_stackAt`, `unstack_map`: mapping the entries commutes with stacking and reading.
+* `total_eq_sum`, `prod_stackAt`: the total height is the sum of the blocks' heights, and the
+  product of a stack's cells is the product of its blocks' cells times the pad once per cell no
+  block covers.
 
 Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table or
 its evaluation. The request it answers is tracked upstream as

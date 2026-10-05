@@ -75,6 +75,10 @@ This directory contains stable project and operating knowledge.
   - [protocol-fingerprint.md](reviews/protocol-fingerprint.md): the review of the fingerprint
     and the collision bound (2026-10-05), whose findings the branch meets (a witness that the
     factor 4 is needed, the generic module free of the protocol, a smaller surface, citations).
+  - [protocol-bus.md](reviews/protocol-bus.md): the review of the bus phase's definition and
+    completeness (2026-10-05), whose findings the branch meets (the refutation of the check
+    `R_c ≠ 0`, the lines rider documented and tested, a smaller surface, the status page) but
+    for a by-hand run of the grand-product argument on the bus's leaves.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

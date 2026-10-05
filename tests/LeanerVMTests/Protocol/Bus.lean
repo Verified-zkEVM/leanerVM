@@ -14,7 +14,8 @@ the committed count column, and a pull block of two constant tuples `(7, 0, …)
 exactly when `a = [1, 1]`. The push side has two blocks of equal height, so the tie order decides
 the offsets; the count side has two leaves on a depth of two, so it is padded.
 
-* **The side conditions** hold, and the instance's sizes: `μ_bus = 2`, one boundary column.
+* **The side conditions** hold, and the instance's sizes: `μ_bus = 2`, one boundary column; the
+  phase's eight rounds and five challenges.
 * **The tie order.** The push side keeps its boundary block before the table's flush (a stable
   sort): the boundary block at offset 0, the flush at offset 2.
 * **The honest stack.** `M3Holds` holds; at a challenge `(α, β)` the push and pull products agree
@@ -23,10 +24,17 @@ the offsets; the count side has two leaves on a depth of two, so it is padded.
 * **The last step.** With the leaf claims true at `ζ` and the honest values, every side's forms
   sum to its total, the boundary claim holds, and the forms carry each flush's terms.
 * **The zero-count mutation.** A count cell `0` keeps the bus balanced but makes the count product
-  `0`: the honest roots fail the check, and `M3Holds` fails at the counts alone.
+  `0`: the honest roots fail the check, and `M3Holds` fails at the counts alone. Without the
+  check, the roots step has no knowledge state function (`roots_unchecked_no_stateFunction`, over
+  any instance with such a stack): the check is load-bearing.
 * **The pad.** The count side padded with `0` instead of `1` has product `0`: the honest prover
   would be rejected.
-* **The spine's toy** meets the side conditions too, and completeness has inhabitants on both.
+* **The spine's toy** meets the side conditions too; its public line makes the lines rider `0` at
+  the statement its stack satisfies and `1` at another; completeness has inhabitants on both.
+
+The phase runs here by parts (the challenges and roots, the leaves at a point, the last step): the
+grand-product argument between them is the one the grand-product tests run by hand, and the
+composed honest run is `busComplete`.
 
 A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with numerals
 are named as definitions before a guard uses them.
@@ -35,7 +43,7 @@ are named as definitions before a guard uses them.
 namespace LeanerVMTests.Protocol.Bus
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Bus CompPoly CPoly
-  CMlPolynomialEval
+  CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
 
 /-! ## The instance -/
 
@@ -114,6 +122,10 @@ abbrev busToy : M3Instance where
 #guard busToy.μBus = 2
 #guard busToy.busClaims = 1
 #guard busToy.τmax = 1
+-- The schedule: `(α, β)`, the roots, the grand-product argument on two variables (a combiner, the
+-- descendants, two combination challenges, the last combiner), the boundary values.
+#guard busRounds busToy = 1 + 1 + 5 + 1
+#guard Fintype.card (busSpec busToy).ChallengeIdx = 1 + 4
 #guard leafCount busToy 0 = 4 ∧ leafCount busToy 1 = 4 ∧ leafCount busToy 2 = 2
 
 /-- Four push leaves: `μ_bus = 2`. -/
@@ -204,7 +216,7 @@ def out : BusOut busToy := busOut conditions last (honestValues conditions hones
 -- none (its blocks are boundary blocks), the count side's one.
 #guard ∀ j, (out.forms 0 j).length = 17 ∧ (out.forms 1 j).length = 0 ∧ (out.forms 2 j).length = 1
 
-/-! ## The zero-count mutation -/
+/-! ## The zero-count mutation: the check `R_c ≠ 0` is load-bearing -/
 
 /-- A count cell `0`. -/
 def zeroCount : Column 2 := ⟨#v[1, 1, K.ofBits 2, 0]⟩
@@ -221,6 +233,37 @@ def countZero : CMlPolynomialEval E busToy.μBus := countLeaves busToy zeroCount
 -- The count product is `0`, so the roots fail the check.
 #guard (∏ x : Fin (2 ^ busToy.μBus), countZero[x]) = e0
 #guard ¬ decide ((rootsHonest busToy ((((), (α, β)), oracles zeroCount), ())).2 ≠ 0)
+
+/-- The roots' verifier without the check `R_c ≠ 0`. -/
+abbrev uncheckedVerifier (I : M3Instance) :=
+  Component.sendCheckedVerifier (TheOracle I) (E × E) (fun _ _ ↦ true)
+    fun (x : Data I) (r : E × E) ↦ (x, ![r.1, r.1, r.2])
+
+/-- Without the check `R_c ≠ 0`, the roots step has no knowledge state function from
+`afterChallenge` to the grand-product argument's input relation, whatever the extractor: a stack
+whose bus balances, whose constraints vanish and whose lines and Flock predicate hold, but with a
+zero count, has no witness, and its honest roots land in the argument's input relation.
+`zeroCount` is such a stack, by the guards above; the kernel cannot evaluate a constraint
+polynomial or the bus's permutation on a concrete stack, so the facts are hypotheses here. -/
+theorem roots_unchecked_no_stateFunction {I : M3Instance} (h : Conditions I) (s : I.Stmt)
+    (q : Column I.μ) (hb : I.Balanced q) (hc : I.ConstraintsVanish q)
+    (hl : I.PublicLinesHold s q) (ha : I.aux q) (hz : ¬ I.CountsNonzero q) (α : Fin 4 → E)
+    (β : E) {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {W' : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (Data I × ∀ i, TheOracle I i)
+      Unit Unit (say (E × E)) W'}
+    (K : (uncheckedVerifier I).toVerifier.KnowledgeStateFunction init impl (afterChallenge I)
+      (Gkr.relIn 3 I.μBus (leaves I) (riders I)) Ex) : False := by
+  let o : ∀ i, TheOracle I i := fun _ ↦ q
+  refine Component.sendChecked_no_stateFunction (TheOracle I) (E × E) (fun _ _ ↦ true) _ init
+    impl K (s, (α, β)) o (fun _ hw ↦ hz hw.2.1) (rootsHonest I (((s, (α, β)), o), ())) rfl ()
+    ⟨(ridersZero_iff h _ o).mpr ⟨hc, hl, ha⟩, fun t ↦ ?_⟩
+  fin_cases t
+  · rfl
+  · change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I α β q)[x] =
+      ∏ x : Fin (2 ^ I.μBus), (pullLeaves I α β q)[x]
+    rw [prod_pushLeaves, prod_pullLeaves h, Multiset.coe_eq_coe.mpr hb]
+  · rfl
 
 /-! ## The pad -/
 
@@ -245,6 +288,14 @@ theorem toyConditions : Conditions Toy.toy where
   constrained := fun _ _ ↦ by rw [toy_μBus_eq]
   pull_fits := by rw [toy_μBus_eq]; decide
   count_fits := by rw [toy_μBus_eq]; decide
+
+/-- `1` in `E`. -/
+def e1 : E := 1
+
+-- The spine's toy has a public line, cell 0 the statement: its rider is `0` at the honest
+-- statement `1` and `1` at the statement `0`, which its stack fails.
+#guard (linesRider Toy.toy (1 : K) Toy.honest).2.toList = [e0]
+#guard (linesRider Toy.toy (0 : K) Toy.honest).2.toList = [e1]
 
 example : Phase.Complete Toy.toy (busPhase Toy.toy toyConditions).toDef (Seam.commit Toy.toy)
     (Seam.bus Toy.toy) :=

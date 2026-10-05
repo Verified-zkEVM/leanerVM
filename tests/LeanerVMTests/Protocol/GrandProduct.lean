@@ -30,7 +30,8 @@ Over `E`, with no public data and no oracle, on trees of four, eight and sixteen
   descendants of other leaves.
 * **Riders.** A nonzero rider fails the input relation, a zero one passes; at the final point the
   output relation holds for a nonzero rider exactly when the point's low coordinate is a root of
-  its extension, the escape its challenge is charged for.
+  its extension, the escape its challenge is charged for. A nonzero rider on no variable fails
+  both relations at every point.
 * **Completeness** has an inhabitant, with a zero rider and without riders.
 
 A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with numerals
@@ -358,6 +359,15 @@ def atRoot : LayerStmt Unit E 1 2 := ((), (#v[one, a], fun _ ↦ evalMle (four (
 -- At the rider's root the output relation holds although the rider is not zero: the escape
 -- charged to that challenge.
 #guard ((atRoot, noO), ()) ∈ relOut 1 2 four rider
+
+/-- A rider on no variable whose one value is `1`: a condition that fails. -/
+def constRider : Unit → (∀ i, NoOracle i) → List (Σ τ : Fin 3, CMlPolynomialEval E τ) :=
+  fun _ _ ↦ [⟨0, #v[1]⟩]
+
+-- A rider on no variable fails the output relation at every point, the rider's root included.
+#guard ((((), root), noO), ()) ∉ relIn 1 2 four constRider
+#guard ((t1, noO), ()) ∉ relOut 1 2 four constRider
+#guard ((atRoot, noO), ()) ∉ relOut 1 2 four constRider
 
 /-! ## Completeness -/
 

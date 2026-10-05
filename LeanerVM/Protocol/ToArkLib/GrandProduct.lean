@@ -50,8 +50,10 @@ stated at. `gkrComplete` is its perfect completeness, composed from its parts' t
 *Riders* are further tables computed from the public data and the oracles, each on at most `μ`
 variables. The input relation asks each to be zero; the output relation asks each extension to
 vanish at the low coordinates of `ζ` (`lowPoint`). They are for a protocol that reuses `ζ` as a
-zerocheck point; no definition reads them. The oracles pass through untouched, and there is no
-witness.
+zerocheck point; no definition reads them. A rider on no variable is one value: it states a
+condition on the public data and the oracles, carried unchanged from the input relation to the
+output relation, which no challenge can make true. The oracles pass through untouched, and there
+is no witness.
 
 Written from the mathematics of the product-tree argument. The last combiner, which nothing
 reads, keeps the transcript of a verifier that draws a combiner after every layer.
