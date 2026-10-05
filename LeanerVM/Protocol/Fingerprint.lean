@@ -53,15 +53,21 @@ open scoped ENNReal
 
 @[expose] public section
 
-/-- The fingerprint of a bus tuple (§5.2): `π_α(t) = Σ_{i<16} eq(α, i)·t_i`, where `eq(α, i)` is
-the equality kernel at `α` and the bits of `i`, low bit first. -/
+/-- The fingerprint's weights: `eq(α, i)` for the sixteen coordinates `i`, the bits of `i` low
+first. -/
+def fingerprintWeights (α : Fin 4 → E) : CMlPolynomialEval E 4 := lagrangeBasis (Vector.ofFn α)
+
+/-- The fingerprint of a bus tuple (§5.2): `π_α(t) = Σ_{i<16} eq(α, i)·t_i`, the weights computed
+once. -/
 def fingerprint (α : Fin 4 → E) (t : Vector K 16) : E :=
-  ∑ i : Fin 16, (lagrangeBasis (Vector.ofFn α))[i.val] * ofK t[i]
+  let w := fingerprintWeights α
+  ∑ i : Fin 16, w[i.val] * ofK t[i]
 
 /-- The fingerprint is the extension of the tuple, read as a table on four variables, at `α`. -/
 theorem fingerprint_eq_eval₂Mle (α : Fin 4 → E) (t : Vector K 16) :
     fingerprint α t = eval₂Mle (n := 4) t (algebraMap K E) (Vector.ofFn α) := by
-  rw [fingerprint, eval₂Mle, evalMle_eq_sum]
+  simp only [fingerprint, fingerprintWeights]
+  rw [eval₂Mle, evalMle_eq_sum]
   refine Finset.sum_congr rfl fun i _ ↦ ?_
   simp only [CMlPolynomialEval.map, Fin.getElem_fin, Vector.getElem_map,
     Extension.Ext.algebraMap_eq_ofBase]

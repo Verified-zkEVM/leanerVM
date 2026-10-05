@@ -95,7 +95,8 @@ def zero16 : Vector K 16 := Vector.replicate 16 0
 
 /-- Coordinate 15's weight is the product of the four coordinates of `α`: all its bits are set. -/
 theorem fingerprint_e15 (a : Fin 4 → E) : fingerprint a e15 = a 0 * a 1 * a 2 * a 3 := by
-  rw [fingerprint, Finset.sum_eq_single (15 : Fin 16)]
+  simp only [fingerprint, fingerprintWeights]
+  rw [Finset.sum_eq_single (15 : Fin 16)]
   · have h15 : (e15[(15 : Fin 16)] : K) = 1 := by simp [e15]
     rw [h15, show ofK (1 : K) = 1 from _root_.map_one (algebraMap K E), mul_one,
       lagrangeBasis_getElem_nat _ (by norm_num), Fin.prod_univ_four]
