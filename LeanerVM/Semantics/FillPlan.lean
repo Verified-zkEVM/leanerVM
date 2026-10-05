@@ -25,7 +25,10 @@ floor is `8` for `BLAKE2S` only, `:43`). The fill `p = target - n` is delivered 
 the blocks of `fillSizes`: `fillGreedy p` is as many of the largest block as fit, then the binary
 digits of the rest (`:112-121`). A traversal of the size-`s` block gives the table `s` rows and
 the `JUMP` table one (the closing jump), so the traversals of one table cost `fillTraversals p`
-`JUMP` rows, at most one per `128` rows of fill plus seven.
+`JUMP` rows, at most one per `128` rows of fill plus seven. That a traversal costs the `JUMP`
+table a row whichever table it fills is forced, not chosen: a closed run shorter than `2^64 - 1`
+steps contains a taken jump, since `g` has that order
+(`tests/LeanerVMTests/Semantics/ClosedWalk.lean`).
 
 **The `JUMP` table.** It receives a closing jump from every traversal of every other table, and
 its own fill is delivered by its own blocks, whose traversals give it `s + 1` rows

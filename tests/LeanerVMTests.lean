@@ -26,6 +26,7 @@ import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Blake2sOutput
+import LeanerVMTests.Semantics.ClosedWalk
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillBlocks
