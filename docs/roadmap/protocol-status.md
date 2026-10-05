@@ -25,7 +25,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
-| batching by powers (Layer 4) | the pull request stacked on #70 | on merge | on merge |
+| batching by powers (Layer 4) | #77 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -43,7 +43,7 @@ it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSec
 round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
 witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
 tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. On another branch stacked on that one, batching by powers
+one at a time. On the branch of #77, stacked on that one, batching by powers
 (`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at
 `(k − 1) / |F|`), on the power combination and its root count of #43
 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound is
