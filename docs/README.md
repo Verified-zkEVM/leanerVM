@@ -52,6 +52,10 @@ This directory contains stable project and operating knowledge.
     Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the
     citations) or records for the roadmap (the depth of the pull and count trees, the schedule
     bundle).
+  - [deployed-public-input.md](reviews/deployed-public-input.md): the review of the deployed
+    check of the public-input phase (2026-10-05), whose findings the branch now meets (one
+    completeness proof for both verifiers, two docstrings trimmed) or records for the adaptor
+    (the two pools' agreement as a theorem).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
