@@ -48,10 +48,5 @@ def copied : CMlPolynomialEval K 3 := #v[K.ofBits 3, K.ofBits 5, K.ofBits 3, K.o
 #guard sumCube copied = 0
 #guard sumCube copied ≠ sumCube short
 
--- The product of the variables: one at the all-ones point, and its cube sum is one.
-#guard (prodVars 2 : CMlPolynomialEval K 2) = #v[0, 0, 0, 1]
-#guard sumCube (prodVars 3 : CMlPolynomialEval K 3) = 1
-#guard evalMle (prodVars 3) (#v[K.ofBits 5, K.ofBits 9, K.ofBits 11] : Vector K 3) = (K.ofBits 5) * (K.ofBits 9) * (K.ofBits 11)
-
 end
 end LeanerVMTests.Protocol

@@ -32,14 +32,14 @@ def arbitrary : Column 3 := ⟨#v[K.ofBits 9, K.ofBits 8, K.ofBits 7, K.ofBits 6
 
 -- The weight of a claim on column `c` at `z`, paired with the stack, is column `c` at `z`.
 #guard (List.finRange 3).all fun c ↦
-  (eqWeight (toy.layout.extend ⟨0, c⟩ z)).pair honest =
+  (eqWeight (toy.layout.extend ⟨0, c⟩ z)).pair (algebraMap K E) honest.values =
     eval₂Mle (toy.column honest ⟨0, c⟩).values (algebraMap K E) z
 #guard (List.finRange 3).all fun c ↦
-  (eqWeight (toy.layout.extend ⟨0, c⟩ z)).pair arbitrary =
+  (eqWeight (toy.layout.extend ⟨0, c⟩ z)).pair (algebraMap K E) arbitrary.values =
     eval₂Mle (toy.column arbitrary ⟨0, c⟩).values (algebraMap K E) z
 
 -- Mutation: the weight of column 1 does not evaluate column 2.
-#guard (eqWeight (toy.layout.extend ⟨0, 1⟩ z)).pair arbitrary ≠
+#guard (eqWeight (toy.layout.extend ⟨0, 1⟩ z)).pair (algebraMap K E) arbitrary.values ≠
   eval₂Mle (toy.column arbitrary ⟨0, 2⟩).values (algebraMap K E) z
 
 -- The verifier's closed form is the extension of the weight's cube values, off the cube.

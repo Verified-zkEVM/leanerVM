@@ -2,7 +2,9 @@
   LeanerVM.Protocol.ToArkLib.PassThrough
 
   The component with no round that maps the statement and leaves the oracles and the witness
-  alone, with its completeness and knowledge-soundness proofs. Candidate for ArkLib.
+  alone, with its completeness and knowledge-soundness proofs. Candidate for ArkLib, whose
+  `ReduceClaim.oracleReduction` is the same reduction; what is added is the packaging as a
+  component with both proofs.
 -/
 
 module
@@ -49,12 +51,9 @@ def passThroughVerifier (f : StmtIn → StmtOut) :
   verify := fun s _ ↦ pure (f s)
   outputOracle := .inl (keepOracles OStmt !p[])
 
-/-- The pass-through component: no round, no error. -/
-def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W where
-  n := 0
-  pSpec := !p[]
+/-- The pass-through component: no round. -/
+def passThrough (f : StmtIn → StmtOut) : Def StmtIn OStmt W StmtOut OStmt W !p[] where
   red := ⟨passThroughProver OStmt f, passThroughVerifier OStmt f⟩
-  err := fun i ↦ Fin.elim0 i.1
 
 /-- The output oracles are the input oracles. -/
 theorem passThrough_materializeOutput (f : StmtIn → StmtOut) (challenges : (!p[]).Challenges)
@@ -82,14 +81,13 @@ def passThroughComplete (f : StmtIn → StmtOut)
     {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)} {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
     Complete (passThrough OStmt f) relIn relOut where
-  outputPure := ⟨_, fun _ ↦ rfl⟩
   guarded := (passThroughPure OStmt f).toGuardedForm
   complete := fun init impl ↦ by
     apply Reduction.perfectCompleteness_of_run_support
     intro stmtIn witIn hIn x hx
     obtain ⟨s, o⟩ := stmtIn
     have hrun : ((passThrough OStmt f).red.toReduction.run (s, o) witIn).run =
-        pure (some (((show (passThrough OStmt f).pSpec.FullTranscript from
+        pure (some (((show (!p[] : ProtocolSpec 0).FullTranscript from
           fun i ↦ Fin.elim0 i), (f s, o), witIn), (f s, o))) := rfl
     rw [hrun, support_pure, Set.mem_singleton_iff] at hx
     exact ⟨_, hx, h s o witIn hIn, rfl⟩
@@ -127,11 +125,11 @@ theorem passThrough_rbr :
       (fun i ↦ Fin.elim0 i.1) :=
   fun _ i ↦ Fin.elim0 i.1
 
-/-- The security half, with the extractor that keeps the witness, whenever `f` carries the input
-relation into the output relation and back. -/
+/-- The security half, at error zero, with the extractor that keeps the witness, whenever `f`
+carries the input relation into the output relation and back. -/
 def passThroughSecurity (hc : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), w) ∈ relOut) :
-    Security (passThrough OStmt f) relIn relOut where
-  toComplete := passThroughComplete OStmt f hc
+    Security (passThrough OStmt f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
+  guarded := (passThroughComplete OStmt f hc).guarded
   witMid := fun _ ↦ W
   extractor := passThroughExtractor OStmt
   kSF := passThroughStateFunction OStmt f h

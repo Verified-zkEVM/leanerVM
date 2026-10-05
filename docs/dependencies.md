@@ -95,7 +95,7 @@ used by `LeanerVM/Protocol/ToArkLib/Oracles.lean` through VCVio.
 These requirements select current source over the older revisions in inherited manifests.
 ArkLib also brings cslib, checkdecls, and doc-gen4's dependencies into the graph. Tooling and
 Mathlib-owned transitive packages retain the revisions selected by those upstream manifests.
-The historical consumer table and trust ledger
+The consumer tables and the upstream ledger
 are in [roadmap/protocol-blueprint.md](roadmap/protocol-blueprint.md). Upstream admitted results
 are not proof evidence: the first-party kernel axiom audit rejects `sorryAx` transitively,
 including through upstream theorems. ArkLib's own axiom baseline is an allowlist, not a proof.
@@ -126,3 +126,54 @@ pointwise before applying `List.ofFn`, avoiding enumeration of the `2^16`-row me
 leanVM's existing `formal/xmss/` project is not imported wholesale. At the target revision it
 uses Lean `v4.31.0` and VCVio revision `cbd4144`; moving that reviewed security theorem onto this
 repository's dependency set requires a deliberate port and statement/correspondence review.
+
+## Limits that bind the proof system
+
+Facts about the pinned libraries that shape the [protocol blueprint](roadmap/protocol-blueprint.md),
+checked at the pins of `upstreams.json` unless a line names another revision.
+
+**ArkLib.**
+
+- Relations are `Set (Stmt × Wit)`. `OracleReduction` is the framework ArkLib calls legacy; its
+  typed `Interaction` framework proves plain soundness and composition, with no round-by-round
+  notion, no knowledge notion and no extractor, so the spine stays on the legacy one.
+- A round-by-round extractor is any function: the existential forms `rbrKnowledgeSoundness` and
+  `rbrKnowledgeSoundnessWorstCase` are met by an extractor chosen by classical choice (ArkLib's own
+  `toRoundByRoundOfRel` is one) and prove soundness only. The averaged `rbrKnowledgeSoundness` is
+  weaker than the literature's; the worst-case named form `rbrKnowledgeSoundnessWorstCaseWith` is
+  the one used.
+- Admitted: the knowledge-soundness composition (`Append/Security.lean`; ArkLib #615 proves it,
+  open), the round-by-round-to-plain implications, context lifting, `fiatShamir_completeness`
+  (for a constant oracle), the sumcheck's classical leaf, the correlated-agreement theorem
+  `rs_mcaError_le_in_johnson_range`, and the ring-switching packing leaves. `BCSTransform` and the
+  round-by-round to state-restoration implication are commented out;
+  `Commitments/Functional/Basic.lean`'s `extractability` has body `False`; two `addSalt`
+  implications carry `sorry` in their types.
+- False as stated: the classical leaf `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness`
+  (the verifier reads the input polynomial for its next target; ArkLib #1244 repairs it), and
+  `rbrSoundness_implies_soundness` for a stateful shared oracle (ArkLib #1245 proves it for a
+  stateless one).
+- Proved and usable: `ReedSolomon.mcaError_affineLine_johnson_le` (a Johnson-range correlated
+  agreement bound with its own constant, any characteristic); the capacity-range theorems assume
+  characteristic 0 or `k − 1 < ringChar F`, false over `E`.
+- `OracleInterface (Vector α m)` (position queries) is a global instance, so a column type with
+  another interface is a structure, not an abbreviation of `Vector`; no default interface is
+  registered for scalars or lists (`OracleInterface.instDefault` is for no type).
+- The instances for the messages and challenges of two schedules side by side
+  (`instOracleInterfaceMessageAppend`, `instSampleableTypeChallengeAppend`) are not found by
+  instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
+  does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
+- `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
+  and fail one link; a second build proceeds.
+
+**CompPoly.** No hypercube sum and no pointwise product of tables (the proof system's Layer 1
+supplies them); the additive NTT is instantiated only at `GF(2^8)`; no Frobenius on `Ext`; the
+conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; inside a `module`,
+`decide` cannot unfold `CMvPolynomial`'s `X` and `*`. `LawfulBEq (Ext P)` exists at `572f9973`.
+
+**Clean.** No degree, height or padding notion; `EnsembleWitness` has no generator
+(`Circuit.witgen` is per row); `Ensemble.Statement`'s balance over `K` is vacuous (leanerVM #16).
+
+**VCVio.** Merkle trees with proved completeness and single-opening random-oracle
+extractability (`CryptoFoundations/MerkleTree/`); `SampleableType.prEvent_uniformSample_le_div_iff`
+is the counting bound behind `ToVCVio/UniformSample.lean`'s subsingleton form.

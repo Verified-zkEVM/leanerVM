@@ -16,8 +16,11 @@ The fixture is the three blocks of heights 4, 2, 1 of `LeanerVMTests.Protocol.St
 reading law is checked on a column no honest prover would commit and at a point outside `K`; a
 selector with its bits reversed breaks it; a placement with the small block first has no
 selector at all. Three blocks of height 2, renamed to the columns of the toy instance, take the
-place of its hand-written layout, and the relation decides the same. A plain file, so `#guard`
-evaluates the compiled definitions.
+place of its hand-written layout, and the relation decides the same. One block of height 8 read
+as two strided slots: the slots against the aligned halves, the lifted points against the
+Python verifier's `Placement.stack_point`, the reading law at a point outside `K` against the
+aligned reading, and the union with the aligned layout. A plain file, so `#guard` evaluates the
+compiled definitions.
 -/
 
 namespace LeanerVMTests.Protocol.Stack
@@ -154,5 +157,74 @@ def weight : E := ∑ b : Fin blocks.n, blocks.selectorWeight blocks_total_le b 
 -- Mutations: the padding term is neither absent nor the constant `1`.
 #guard evalMle (blocks.stackAt tablesE 3 1) ζ ≠ covered
 #guard evalMle (blocks.stackAt tablesE 3 1) ζ ≠ covered + 1
+
+/-! ## Strided slots -/
+
+/-- One block of height `2 ^ 3`, filling a stack of height `2 ^ 3`. -/
+def oneBlock : Blocks where
+  n := 1
+  size := fun _ ↦ 3
+  descending := fun _ _ _ ↦ le_refl 3
+
+theorem oneBlock_total_le : oneBlock.total ≤ 2 ^ 3 := by decide
+
+/-- Stride two: slots `0` and `1` of the block, each a column of height `2 ^ 2`. -/
+def strided : Layout 3 (Fin 2) (fun _ ↦ 2) :=
+  oneBlock.stridedLayout oneBlock_total_le (0 : Fin 1) 1 (fun c ↦ c) (fun _ ↦ rfl)
+
+/-- Eight distinct cells. -/
+def cells : Column 3 :=
+  ⟨#v[K.ofBits 10, K.ofBits 11, K.ofBits 12, K.ofBits 13, K.ofBits 14, K.ofBits 15,
+    K.ofBits 16, K.ofBits 17]⟩
+
+-- Slot 0 reads the cells at even indices and slot 1 those at odd indices, where the aligned
+-- slice of height 4 at index 0 reads the first four.
+#guard (strided.read cells 0).values.toList =
+  [K.ofBits 10, K.ofBits 12, K.ofBits 14, K.ofBits 16]
+#guard (strided.read cells 1).values.toList =
+  [K.ofBits 11, K.ofBits 13, K.ofBits 15, K.ofBits 17]
+#guard (slice (k := 2) (m := 1) cells.values 0).toList =
+  [K.ofBits 10, K.ofBits 11, K.ofBits 12, K.ofBits 13]
+
+-- A claim on slot 1 at `(u, u + 1)` lifts to `(1, u, u + 1)`: the slot bit, the point, and no
+-- selector bit, the block filling the stack.
+#guard (strided.extend 1 #v[u, u + 1]).toList = [1, u, u + 1]
+
+/-- The Python verifier's `Placement.stack_point` (`python-verifier/verifier.py:287-297` at
+leanVM `a386121f84292f6fa663aaa3e570c15bc0240ea2`): the bits of `index` as a point of
+`stackLog` coordinates, low bit first; the low `low` of them, then the claim's point, then the
+bits above the window. -/
+def stackPoint (nvars index low : ℕ) (point : List E) (stackLog : ℕ) : List E :=
+  let bits := (List.range stackLog).map fun k ↦ if index.testBit k then (1 : E) else 0
+  bits.take low ++ point ++ bits.drop (low + nvars)
+
+-- The lifted point of a slot is the Python's placement of a two-variable claim at the slot's
+-- index with one low coordinate, on a stack of `2 ^ 3`; the fixture's aligned block 1, at
+-- offset 4 with no low coordinate, agrees too.
+#guard (strided.extend 1 #v[u, u + 1]).toList = stackPoint 2 1 1 [u, u + 1] 3
+#guard (strided.extend 0 #v[u, u + 1]).toList = stackPoint 2 0 1 [u, u + 1] 3
+#guard (blocks.extendPoint blocks_total_le (1 : Fin 3) (#v[u] : Vector E 1)).toList =
+  stackPoint 1 4 0 [u] 3
+
+/-- Slot 1 read off the cells, at `(u, u + 1)`. -/
+def slotValue : E := eval₂Mle (strided.read cells 1).values (algebraMap K E) #v[u, u + 1]
+
+/-- The cells at the lifted point. -/
+def liftedValue : E :=
+  eval₂Mle cells.values (algebraMap K E) (strided.extend 1 #v[u, u + 1])
+
+/-- The cells at `(u, u + 1, 1)`: the slot bit on top, the aligned reading of the upper half. -/
+def alignedValue : E := eval₂Mle cells.values (algebraMap K E) #v[u, u + 1, 1]
+
+-- The reading law at that point, and a mutation: the slot bit on top reads another column.
+#guard slotValue = liftedValue
+#guard slotValue ≠ alignedValue
+
+-- The union with the aligned layout of the block reads a slot on the left and the block on
+-- the right.
+#guard ((strided.piecewise (oneBlock.layout oneBlock_total_le)).read cells
+  (.inl 1)).values.toList = [K.ofBits 11, K.ofBits 13, K.ofBits 15, K.ofBits 17]
+#guard ((strided.piecewise (oneBlock.layout oneBlock_total_le)).read cells
+  (.inr (0 : Fin 1))).values.toList = cells.values.toList
 
 end LeanerVMTests.Protocol.Stack

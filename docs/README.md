@@ -19,17 +19,17 @@ This directory contains stable project and operating knowledge.
   - [leanisa-status.md](roadmap/leanisa-status.md): where the leanISA roadmap stands — layer
     coverage, the frontier, pending decisions, open source findings, and the survey record.
   - [protocol-blueprint.md](roadmap/protocol-blueprint.md): the proof-system roadmap on
-    ArkLib — scope, dependency contracts and the ArkLib ledger, pinned conventions, the fourteen
-    layers from the M3 relation to the executable verifier, acceptance tests, and public
-    interfaces.
-  - [protocol-status.md](roadmap/protocol-status.md): where the proof-system roadmap stands —
-    layer coverage, the frontier, the upstream ledger, pending decisions, open findings, and the
-    survey record.
+    ArkLib — scope, dependency contracts and the upstream ledger, pinned conventions, the spine
+    and its holes, the fourteen layers from the M3 relation to the executable verifier,
+    acceptance tests, public interfaces, and the decisions.
+  - [protocol-status.md](roadmap/protocol-status.md): what of the proof system is on `main`,
+    what the built work owes the blueprint, what can start now, and the upstream watch.
   - [leanth-reuse.md](roadmap/leanth-reuse.md): what the earlier leanVM-a formalization
     (private repository `leanth`) contains that the proof-system roadmap reuses — the catalog by
     layer, verdicts, credit, the port log, and the upstream candidates.
 - [reviews/](reviews/): review documents handed off for implementation, one per reviewed piece
-  of work; the status file records how each finding was met.
+  of work, each an archive of the commit it describes; what was accepted from a proof-system
+  review is text of its blueprint.
   - [leanisa-layer6-tables.md](reviews/leanisa-layer6-tables.md): the review of the Layer 6
     table contracts (2026-09-14), whose findings the tables now meet (status finding F8).
   - [leanisa-layer8-statement.md](reviews/leanisa-layer8-statement.md): the review of the
@@ -41,10 +41,17 @@ This directory contains stable project and operating knowledge.
   - [protocol-spine.md](reviews/protocol-spine.md): the review of the proof-system spine
     (2026-09-28), whose findings the branch now meets (the degree bound at the bus seam, the
     named extractor, public lines, the strong Flock predicate).
+  - [protocol-survey-record.md](reviews/protocol-survey-record.md): the proof system's survey
+    log up to 2026-09-29, archived from its status file.
   - [protocol-layer1.md](reviews/protocol-layer1.md): the review of the proof system's Layer 1
     (2026-09-29), whose findings the branch now meets (a column claim as a weighted claim, the
     aligned layout in an instance's layout field, the bit order of the bytecode column stated
     at the oracle) or records for the roadmap (the order of equal-size blocks, the wall).
+  - [protocol-spine-revision.md](reviews/protocol-spine-revision.md): the review of the spine
+    at the slots' schedules and errors (2026-10-02), whose findings the branch now meets (the
+    Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the
+    citations) or records for the roadmap (the depth of the pull and count trees, the schedule
+    bundle).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
