@@ -64,6 +64,7 @@ import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillerRows
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
+import LeanerVM.Semantics.PaddedImage
 import LeanerVM.Semantics.PaddedRun
 import LeanerVM.Semantics.PaddedTrace
 import LeanerVM.Semantics.RunTrace
