@@ -19,7 +19,9 @@ A *partial point* (`Partial R`) fixes some coordinates and leaves the others fre
 completion of the fixed coordinates by a cube point: the restriction of the extension to the
 fixed coordinates is identically zero as a polynomial in the free ones. On the empty partial
 point this says the table is zero (`restrictedZero_empty_iff`); with every coordinate fixed it
-says the extension vanishes at the point (`restrictedZero_of_all`).
+says the extension vanishes at the point (`restrictedZero_of_all`). Partial points are built by
+placing a vector at an offset (`Partial.ofVector`) and putting two side by side
+(`Partial.or`).
 
 The one fact a proof system uses: a table that is not zero on a partial point is zero on it with
 one more coordinate fixed for at most one value of that coordinate
@@ -33,10 +35,58 @@ open CompPoly CMlPolynomialEval
 
 @[expose] public section
 
-variable {R : Type} [CommRing R]
+variable {R : Type}
 
 /-- A partial point: for each coordinate, its value if fixed. -/
 abbrev Partial (R : Type) : Type := ℕ → Option R
+
+/-- The empty partial point: nothing fixed. -/
+def Partial.empty : Partial R := fun _ ↦ Option.none
+
+/-- A vector placed at an offset: coordinates `off` to `off + k - 1` fixed to `v`, the others
+free. -/
+def Partial.ofVector (off : ℕ) {k : ℕ} (v : Vector R k) : Partial R :=
+  fun i ↦ if h : off ≤ i ∧ i < off + k then some (v[i - off]'(by omega)) else none
+
+/-- Two partial points side by side: a coordinate the first fixes, at its value; otherwise the
+second's. -/
+def Partial.or (σ τ : Partial R) : Partial R := fun i ↦ (σ i).or (τ i)
+
+/-- The empty vector fixes nothing. -/
+theorem Partial.ofVector_zero (off : ℕ) (v : Vector R 0) :
+    Partial.ofVector off v = Partial.empty := by
+  funext i
+  simp [Partial.ofVector, Partial.empty]
+
+/-- One more entry fixes one more coordinate, the one after the others. -/
+theorem Partial.ofVector_push (off : ℕ) {k : ℕ} (v : Vector R k) (c : R) :
+    Partial.ofVector off (v.push c) =
+      Function.update (Partial.ofVector off v) (off + k) (some c) := by
+  funext i
+  by_cases hi : i = off + k
+  · subst hi
+    simp [Partial.ofVector]
+  · rw [Function.update_of_ne hi]
+    simp only [Partial.ofVector]
+    split_ifs with h₁ h₂ h₂
+    · rw [Vector.getElem_push_lt (by omega)]
+    · omega
+    · omega
+    · rfl
+
+/-- Nothing beside a partial point is the partial point. -/
+theorem Partial.empty_or (τ : Partial R) : Partial.empty.or τ = τ := rfl
+
+/-- A coordinate fixed in the first of two partial points side by side is fixed in both. -/
+theorem Partial.update_or (σ τ : Partial R) (i : ℕ) (c : R) :
+    Partial.or (Function.update σ i (some c)) τ = Function.update (σ.or τ) i (some c) := by
+  funext j
+  by_cases hj : j = i
+  · subst hj
+    simp [Partial.or]
+  · simp [Partial.or, Function.update_of_ne hj]
+
+variable [CommRing R]
 
 /-- The point of a partial point at a completion `b`: the fixed coordinates, the others the bits
 of `b`. -/
@@ -47,9 +97,6 @@ def Partial.point {n : ℕ} (σ : Partial R) (b : Fin (2 ^ n)) : Vector R n :=
 fixed coordinates by a cube point. -/
 def RestrictedZero {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) : Prop :=
   ∀ b : Fin (2 ^ n), evalMle t (σ.point b) = 0
-
-/-- The empty partial point: nothing fixed. -/
-def Partial.empty : Partial R := fun _ ↦ Option.none
 
 /-- The point of the empty partial point at a completion is the cube point itself. -/
 @[simp] theorem Partial.point_empty {n : ℕ} (b : Fin (2 ^ n)) :
@@ -99,7 +146,7 @@ theorem restrictedZero_of_all {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partia
   exact ⟨fun h ↦ h ⟨0, Nat.two_pow_pos n⟩, fun h _ ↦ h⟩
 
 /-- The point of a partial point with one more coordinate fixed. -/
-theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n) (c : R)
+private theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n) (c : R)
     (b : Fin (2 ^ n)) :
     Partial.point (Function.update σ k (some c)) b = (σ.point b).set k c := by
   apply Vector.ext
@@ -110,7 +157,7 @@ theorem Partial.point_update {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n) (
   · simp [Partial.point, Function.update_of_ne hjk, Vector.getElem_set_ne hk hj (Ne.symm hjk)]
 
 /-- Fixing a coordinate beyond the table's variables changes nothing. -/
-theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) (hk : n ≤ k) (c : R)
+private theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) (hk : n ≤ k) (c : R)
     (b : Fin (2 ^ n)) :
     Partial.point (Function.update σ k (some c)) b = σ.point b := by
   apply Vector.ext
@@ -118,7 +165,7 @@ theorem Partial.point_update_of_le {n : ℕ} (σ : Partial R) (k : ℕ) (hk : n 
   simp [Partial.point, Function.update_of_ne (show j ≠ k by omega)]
 
 /-- Setting a coordinate of a completion to its own value changes nothing. -/
-theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
+private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
     (b : Fin (2 ^ n)) : (σ.point b).set k ((σ.point b)[k]) = σ.point b :=
   Vector.set_getElem_self hk
 

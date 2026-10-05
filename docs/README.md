@@ -63,6 +63,11 @@ This directory contains stable project and operating knowledge.
     or tautological, and whose findings the branch meets (the security computes at `E`, the
     round refutation for every extractor and state function, the generic lemmas in their
     owners' modules, the private helpers, the documentation).
+  - [protocol-gkr-security-second.md](reviews/protocol-gkr-security-second.md): an independent
+    second review of the same work (2026-10-05), on the blueprint fit, the audit surface, the
+    non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas
+    private, the duplicated extraction and extractor gone, the unit lemma in the spine, the
+    rider tests inhabited, one generic partial-point builder) but for one repeated raise kept.
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

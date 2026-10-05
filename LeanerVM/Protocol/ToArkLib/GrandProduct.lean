@@ -529,7 +529,8 @@ def layerSteps : (k m : ℕ) → m + 2 * k = μ →
 def layerStepsFront : (k m : ℕ) → (h : m + 2 * k = μ) →
     Component.Front (layerSteps nside μ leaves k m h)
   | 0, _, _ => Component.passThroughFront O _
-  | k + 1, m, h => (layerStepFront nside μ leaves 2 m id).append (layerStepsFront k (m + 2) (by omega))
+  | k + 1, m, h =>
+    (layerStepFront nside μ leaves 2 m id).append (layerStepsFront k (m + 2) (by omega))
 
 /-- Completeness of the radix-four steps, from each step's. -/
 def layerStepsComplete : (k m : ℕ) → (h : m + 2 * k = μ) →

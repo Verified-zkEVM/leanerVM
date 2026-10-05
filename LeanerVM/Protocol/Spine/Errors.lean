@@ -85,6 +85,11 @@ theorem nat_mul_overE (n c : ℕ) : (n : ℝ≥0) * overE c = overE (n * c) := b
   simp only [overE, Nat.cast_mul]
   ring
 
+/-- The unit `overE 1` is `1 / |E|` with `|E|` counted by `Nat.card`, the form of a generic
+component's error. -/
+theorem overE_one : overE 1 = (1 / Nat.card E : ℝ≥0) := by
+  rw [overE, Nat.card_eq_fintype_card, Nat.cast_one]
+
 /-! ## The six slots -/
 
 variable (I : M3Instance)
