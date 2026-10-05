@@ -32,6 +32,7 @@ import LeanerVMTests.Semantics.FillPlan
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Semantics.Instruction
 import LeanerVMTests.Semantics.Memory
+import LeanerVMTests.Semantics.PaddedTrace
 import LeanerVMTests.Semantics.RustExport
 import LeanerVMTests.Semantics.TraceInput
 

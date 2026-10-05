@@ -63,6 +63,7 @@ import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillerRows
 import LeanerVM.Semantics.Instruction
 import LeanerVM.Semantics.Memory
+import LeanerVM.Semantics.PaddedTrace
 import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
