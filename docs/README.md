@@ -68,6 +68,10 @@ This directory contains stable project and operating knowledge.
     non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas
     private, the duplicated extraction and extractor gone, the unit lemma in the spine, the
     rider tests inhabited, one generic partial-point builder) but for one repeated raise kept.
+  - [deployed-public-input.md](reviews/deployed-public-input.md): the review of the deployed
+    check of the public-input phase (2026-10-05), whose findings the branch now meets (one
+    completeness proof for both verifiers, two docstrings trimmed) or records for the adaptor
+    (the two pools' agreement as a theorem).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
