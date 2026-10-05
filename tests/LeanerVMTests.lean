@@ -36,6 +36,7 @@ import LeanerVMTests.Semantics.FillRows
 import LeanerVMTests.Semantics.FillSteps
 import LeanerVMTests.Semantics.FillerRows
 import LeanerVMTests.Semantics.Instruction
+import LeanerVMTests.Semantics.LongRun
 import LeanerVMTests.Semantics.Memory
 import LeanerVMTests.Semantics.PaddedImage
 import LeanerVMTests.Semantics.PaddedImageRefutation

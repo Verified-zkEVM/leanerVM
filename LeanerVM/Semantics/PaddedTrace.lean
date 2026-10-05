@@ -24,7 +24,8 @@ each refuted by a test:
 * **The size.** `Caps.heights` bounds every table by `2^32` rows while `Trace.steps` is unbounded:
   a witness needs at least `steps` rows over its eight tables, and a valid run of
   `1 + 33 * 2^30` steps exists. A trace that fits has at most `6 * 2^32` steps
-  (`Trace.Fits.steps_le`), so that run is no fitting trace.
+  (`Trace.Fits.steps_le`), so that run is no fitting trace
+  (`tests/LeanerVMTests/Semantics/LongRun.lean`).
 
 **The corrected target.** Completeness is stated for a *padded* trace and under a named condition
 on the trace (roadmap decisions D1, D7 of the pull request):
