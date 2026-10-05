@@ -30,6 +30,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
 | bus phase: definition and completeness (Layer 6) | #79 | on merge | on merge |
+| bus phase: knowledge soundness (Layer 6) | PRC | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -38,7 +39,7 @@ axioms, and no `sorryAx`, for the two master theorems, both halves of the commit
 each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
 `card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
 (`busComplete`, `leaf_decomposition`, `Bus.sum_forms_eq_total_iff`,
-`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`). The grand-product GKR's definition and completeness
+`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`, `busSecurity`). The grand-product GKR's definition and completeness
 (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
 `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
@@ -56,7 +57,9 @@ count (`ToArkLib/GrandProductPoly.lean`), and their leanVM reading (`Fingerprint
 fingerprint hole. The bus phase's definition and completeness (`LeanerVM/Protocol/Bus.lean`:
 `busPhase` at the slot's schedule, `leaf_decomposition`, `busComplete`) stand on the
 grand-product argument, the product of a stack's cells (`Blocks.prod_stackAt`) and the
-fingerprint. Nothing else is built: the other phases, the other generic components, the Clean
+fingerprint; its knowledge soundness (`LeanerVM/Protocol/BusSecurity.lean`: `busSecurity` at the
+slot's error `busError I`) on the grand-product argument's and the collision bound. Nothing else
+is built: the other phases, the other generic components, the Clean
 bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
@@ -260,6 +263,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     constraint or the bus's permutation on a concrete stack). It is at the step's relations, as
     the grand-product argument's refutations are; a refutation at the phase's seams is not
     attempted.
+  - Its knowledge soundness, `busSecurity`, is composed from its steps' at the completeness
+    half's intermediate relations: `Bus.afterChallenge` after `(α, β)` (the products agree, the
+    counts are nonzero, the constraints vanish, the lines and the Flock predicate hold), then the
+    grand-product argument's input and output relations. The challenges' count of bad values is
+    `card_sideProduct_collision_le` at `N = 2 ^ μ_bus`, with `|E|` written `2 ^ 192` so that the
+    security computes.
   - The phase is run by parts in the tests (the challenges and roots, the leaves at a point, the
     last step); the grand-product argument between them is the one its own tests run by hand.
   - The knowledge-soundness half consumes, besides the phase, `Bus.afterChallenge`,
@@ -276,8 +285,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), the sumcheck variants and batching (Layer 4), the Flock
 phase's definition and completeness (Layer 9), the WHIR opening, and the Merkle trees with the
-WHIR parameters (Layer 11). The bus phase's knowledge soundness (Layer 6) needs its definition
-and #78.
+WHIR parameters (Layer 11). The table sumcheck (Layer 7) waits on the sumcheck (Layer 4).
 
 ## Upstream watch
 

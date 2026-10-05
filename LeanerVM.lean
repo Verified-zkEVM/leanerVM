@@ -17,6 +17,7 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.Bus
+import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
