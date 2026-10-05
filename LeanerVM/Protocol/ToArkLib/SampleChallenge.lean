@@ -99,7 +99,7 @@ def sampleFront : Front (sampleChallenge (W := W) OStmt C check f) :=
 omit [∀ i, OracleInterface (OStmt i)] [SampleableType C] in
 /-- In every run of the prover, the output is the mapped statement at the transcript's
 challenge, with the oracles and the witness. -/
-theorem sampleProver_run_support (s : StmtIn) (o : ∀ i, OStmt i) (w : W)
+private theorem sampleProver_run_support (s : StmtIn) (o : ∀ i, OStmt i) (w : W)
     (pr : (draw C).FullTranscript × (StmtOut × ∀ i, OStmt i) × W)
     (hpr : pr ∈ support ((sampleProver OStmt C f).run (s, o) w)) :
     pr.2 = ((f s (pr.1 0), o), w) := by

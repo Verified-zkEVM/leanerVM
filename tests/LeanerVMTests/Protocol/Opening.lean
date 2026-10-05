@@ -7,28 +7,33 @@ import Mathlib.Algebra.CharP.Two
 /-!
 # Opening phase tests
 
-Every guard changes one thing.
+Every guard changes one thing. The phase accepts a pool when the stack's answer to the pool's
+weights, combined by the powers of the challenge, is the pool's values combined the same way.
 
 * **An honest pool is accepted** on the toy: four true column claims on the honest stack,
   combined at two challenges.
 * **A false claim is rejected**: one value changed by one, at a challenge that is no root of the
   difference.
-* **The bound is attained.** Two copies of one false claim combine to a false claim at every
-  challenge but `λ = 1`, where they cancel in characteristic two: the one bad challenge exists.
+* **The bound is attained.** A pool of four claims whose differences are the coefficients of
+  `(λ + 1)(λ + y)(λ + y + 1)` is accepted at exactly those three roots, the slot's `J - 1`.
 * **The empty pool** on an instance with no table: the question is the zero weight, the value
-  `0`, every stack is accepted, and the slot's error is `0`.
+  `0`, the stack is accepted, and the slot's error is `0`.
 * **The order of the powers.** On an instance with a Flock region, the weighted claim takes
   `λ^0` and the column claim `λ^1`, and the swapped order gives another value.
 * **The phase fills its slot**: its two halves typecheck against the spine's seams at the slot's
   error, compute at `E`, and with the deployed public-input phase make a bundle the master
   theorems apply to, given the three other phases.
-* **The check is load-bearing.** On a statement outside the Flock seam, the verifier with no
-  check, the verifier that checks the first claim only, and the verifier that combines the
-  claims with unit weights each accept at every challenge, so none has a round-by-round
-  knowledge error below one, whatever extractor and state function it is given. The verifier
-  that also rejects `λ = 0` rejects the honest prover there: it is not perfectly complete.
+* **The check is load-bearing.** On a statement outside the Flock seam, four weakened verifiers
+  each accept at every challenge, so none has a round-by-round knowledge error below one,
+  whatever extractor and state function it is given: with no check on the answer; checking the
+  first pooled claim alone; combining with unit weights, where two copies of one false claim
+  cancel in characteristic two; and combining the column claims alone, dropping the Flock
+  phase's weighted claim.
 
-A plain file, so `#guard` evaluates the compiled definitions.
+Facts the refutations need are proved over an abstract instance and instantiated, and the
+weakened verifiers' steps are named definitions: on a concrete instance, unifying a term the
+library built with one elaborated here can time out. A plain file, so `#guard` evaluates the
+compiled definitions.
 -/
 
 namespace LeanerVMTests.Protocol.Opening
@@ -47,9 +52,9 @@ instance {I : M3Instance} (q : Column I.μ) (c : ColumnClaim I) : Decidable (c.H
 def trueClaim (c : toy.ColumnId) (z : E) : ColumnClaim toy :=
   ⟨c, #v[z], CMlPolynomialEval.eval₂Mle (toy.column honest c).values (algebraMap K E) #v[z]⟩
 
-/-- The same claim with its value off by one: false of the honest stack. -/
-def falseClaim (c : toy.ColumnId) (z : E) : ColumnClaim toy :=
-  ⟨c, #v[z], (trueClaim c z).value + 1⟩
+/-- The same claim with its value off by `d`. -/
+def offBy (c : toy.ColumnId) (z d : E) : ColumnClaim toy :=
+  ⟨c, #v[z], (trueClaim c z).value + d⟩
 
 /-- A statement of the Flock seam on the toy: four column claims and no weighted claim. -/
 def stmtOf (a b c d : ColumnClaim toy) : K × FlockOut toy :=
@@ -59,35 +64,51 @@ def stmtOf (a b c d : ColumnClaim toy) : K × FlockOut toy :=
 def honestStmt : K × FlockOut toy :=
   stmtOf (trueClaim ⟨0, 0⟩ y) (trueClaim ⟨0, 1⟩ y) (trueClaim ⟨0, 2⟩ y) (trueClaim ⟨0, 2⟩ (y + 1))
 
-/-- The same with the second claim false. -/
+/-- The same with the second claim off by one. -/
 def badStmt : K × FlockOut toy :=
-  stmtOf (trueClaim ⟨0, 0⟩ y) (falseClaim ⟨0, 1⟩ y) (trueClaim ⟨0, 2⟩ y) (trueClaim ⟨0, 2⟩ (y + 1))
+  stmtOf (trueClaim ⟨0, 0⟩ y) (offBy ⟨0, 1⟩ y 1) (trueClaim ⟨0, 2⟩ y) (trueClaim ⟨0, 2⟩ (y + 1))
 
-/-- Two copies of one false claim, then two true claims. -/
+/-- Two copies of one claim off by one, then two true claims. -/
 def dupStmt : K × FlockOut toy :=
-  stmtOf (falseClaim ⟨0, 0⟩ y) (falseClaim ⟨0, 0⟩ y) (trueClaim ⟨0, 1⟩ y) (trueClaim ⟨0, 2⟩ y)
+  stmtOf (offBy ⟨0, 0⟩ y 1) (offBy ⟨0, 0⟩ y 1) (trueClaim ⟨0, 1⟩ y) (trueClaim ⟨0, 2⟩ y)
 
-/-- The honest stack's answer to the question at `ρ`. -/
+/-- Four claims on one column and point whose differences are the coefficients of
+`(λ + 1)(λ + y)(λ + y + 1) = λ³ + (y² + y + 1)·λ + (y² + y)`. -/
+def tightStmt : K × FlockOut toy :=
+  stmtOf (offBy ⟨0, 0⟩ y (y * y + y)) (offBy ⟨0, 0⟩ y (y * y + y + 1)) (offBy ⟨0, 0⟩ y 0)
+    (offBy ⟨0, 0⟩ y 1)
+
+/-- The honest stack's answer to the pool's weights combined at `ρ`. -/
 def answer (s : K × FlockOut toy) (ρ : E) : E :=
-  (Opening.weight toy s.2 ρ).pair (algebraMap K E) honest.values
+  (Opening.weight toy s ρ).pair (algebraMap K E) honest.values
+
+/-- Whether the phase accepts the honest stack's answer at `ρ`. -/
+def acceptsAt (s : K × FlockOut toy) (ρ : E) : Bool :=
+  decide (answer s ρ = powerBatch (Opening.values toy s) ρ)
 
 /-- A second challenge, `y² + 1`. -/
 def ρ₂ : E := y * y + 1
 
+/-- The challenge `y + 1`. -/
+def y₁ : E := y + 1
+
 /-! ## Honest and false pools -/
 
 #guard ∀ c ∈ honestStmt.2.columns.toList, c.Holds honest
-#guard Opening.accepts toy honestStmt.2 y (answer honestStmt y)
-#guard Opening.accepts toy honestStmt.2 ρ₂ (answer honestStmt ρ₂)
+#guard acceptsAt honestStmt y
+#guard acceptsAt honestStmt ρ₂
 
 #guard ¬ ∀ c ∈ badStmt.2.columns.toList, c.Holds honest
-#guard !Opening.accepts toy badStmt.2 y (answer badStmt y)
-#guard !Opening.accepts toy badStmt.2 ρ₂ (answer badStmt ρ₂)
+#guard !acceptsAt badStmt y
+#guard !acceptsAt badStmt ρ₂
 
--- The duplicated false claim: rejected at `y`, accepted at `1`, where `1 + λ = 0`.
-#guard ¬ ∀ c ∈ dupStmt.2.columns.toList, c.Holds honest
-#guard !Opening.accepts toy dupStmt.2 y (answer dupStmt y)
-#guard Opening.accepts toy dupStmt.2 1 (answer dupStmt 1)
+-- The bound is attained: three bad challenges for four claims, the roots of a cubic.
+#guard ¬ ∀ c ∈ tightStmt.2.columns.toList, c.Holds honest
+#guard acceptsAt tightStmt 1
+#guard acceptsAt tightStmt y
+#guard acceptsAt tightStmt y₁
+#guard !acceptsAt tightStmt ρ₂
+#guard !acceptsAt tightStmt 0
 
 /-! ## The empty pool -/
 
@@ -111,16 +132,15 @@ abbrev empty : M3Instance where
 example : empty.poolSize = 0 := by decide
 
 /-- The empty pool. -/
-def emptyPool : FlockOut empty := ⟨#v[], #v[]⟩
+def emptyStmt : Unit × FlockOut empty := ((), ⟨#v[], #v[]⟩)
 
 /-- A stack of one nonzero cell. -/
 def one : Column 0 := ⟨#v[1]⟩
 
--- The question is the zero weight and the value `0`, so every stack is accepted.
-#guard (Opening.weight empty emptyPool y).onCube = #v[0]
-#guard Opening.value empty emptyPool y = 0
-#guard Opening.accepts empty emptyPool y
-  ((Opening.weight empty emptyPool y).pair (algebraMap K E) one.values)
+-- The question is the zero weight and the value `0`, so the stack is accepted.
+#guard (Opening.weight empty emptyStmt y).onCube = #v[0]
+#guard powerBatch (Opening.values empty emptyStmt) y = 0
+#guard (Opening.weight empty emptyStmt y).pair (algebraMap K E) one.values = 0
 
 /-- The slot's error on the empty pool is `0`. -/
 example (i : openingSpec.ChallengeIdx) : openingError empty i = 0 := by
@@ -167,18 +187,18 @@ example : flocky.flockClaims = 1 := rfl
 def ys : Vector E 8 := Vector.replicate 8 y
 
 /-- A weighted claim with value `y` and a column claim with value `1`. -/
-def flockyPool : FlockOut flocky := ⟨#v[⟨⟨0, 0⟩, ys, 1⟩], #v[⟨eqWeight ys, y⟩]⟩
+def flockyStmt : Unit × FlockOut flocky := ((), ⟨#v[⟨⟨0, 0⟩, ys, 1⟩], #v[⟨eqWeight ys, y⟩]⟩)
 
 -- The weighted claim takes `λ^0`, the column claim `λ^1`; the swapped order differs.
-#guard Opening.value flocky flockyPool ρ₂ = y + ρ₂ * 1
-#guard Opening.value flocky flockyPool ρ₂ ≠ 1 + ρ₂ * y
+#guard powerBatch (Opening.values flocky flockyStmt) ρ₂ = y + ρ₂ * 1
+#guard powerBatch (Opening.values flocky flockyStmt) ρ₂ ≠ 1 + ρ₂ * y
 
-example : Opening.pool flocky flockyPool ⟨0, by decide⟩ = ⟨eqWeight ys, y⟩ :=
-  Opening.pool_weighted flocky flockyPool ⟨0, by decide⟩
+example : Opening.pool flocky flockyStmt.2 ⟨0, by decide⟩ = ⟨eqWeight ys, y⟩ :=
+  Opening.pool_weighted flocky flockyStmt.2 ⟨0, by decide⟩
 
-example : Opening.pool flocky flockyPool ⟨1, by decide⟩ =
+example : Opening.pool flocky flockyStmt.2 ⟨1, by decide⟩ =
     Opening.columnWeighted flocky ⟨⟨0, 0⟩, ys, 1⟩ :=
-  Opening.pool_column flocky flockyPool ⟨0, by decide⟩
+  Opening.pool_column flocky flockyStmt.2 ⟨0, by decide⟩
 
 /-! ## The phase fills its slot -/
 
@@ -225,24 +245,75 @@ example (bus : Phase.FrontDef toy K (K × BusOut toy) (busSpec toy))
       (piopError toy) :=
   piop_rbrKnowledgeSoundness _ _ init impl
 
+/-! ## The weakened verifiers -/
 
-/-! ## The check is load-bearing -/
+section Weakened
+
+variable (I : M3Instance)
+
+/-- The opening with no check on the answer. -/
+abbrev unchecked : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
+  Component.batchQuery (TheOracle I) E (Opening.values I) (Opening.batched I)
+    (Opening.question I) (fun _ _ ↦ true) fun _ ↦ ()
+
+/-- The pool's claim `j` alone, whatever the challenge. -/
+def onlyOut (j : Fin I.poolSize) (s : I.Stmt × FlockOut I) (_ _ : E) : WeightedClaim I :=
+  Opening.pool I s.2 j
+
+/-- The opening that checks the pool's claim `j` alone. -/
+abbrev only (j : Fin I.poolSize) : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
+  Component.batchQuery (TheOracle I) E (Opening.values I) (onlyOut I j) (Opening.question I)
+    (Opening.check I) fun _ ↦ ()
+
+/-- The batched claim with unit weights, whatever the challenge. -/
+def unitOut (s : I.Stmt × FlockOut I) (_ _ : E) : WeightedClaim I :=
+  Opening.batched I s 1 (powerBatch (Opening.values I s) 1)
+
+/-- The opening that combines the claims with unit weights. -/
+abbrev unitWeights : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
+  Component.batchQuery (TheOracle I) E (Opening.values I) (unitOut I) (Opening.question I)
+    (Opening.check I) fun _ ↦ ()
+
+/-- The column claims alone, combined by the powers of the challenge. -/
+def columnsOut (s : I.Stmt × FlockOut I) (ρ _ : E) : WeightedClaim I :=
+  ⟨Weight.batch (fun j : Fin I.pubClaims ↦ (Opening.columnWeighted I s.2.columns[j]).weight) ρ,
+    powerBatch (fun j : Fin I.pubClaims ↦ s.2.columns[j].value) ρ⟩
+
+/-- The opening that drops the weighted claims. -/
+abbrev columnsOnly : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
+  Component.batchQuery (TheOracle I) E (Opening.values I) (columnsOut I) (Opening.question I)
+    (Opening.check I) fun _ ↦ ()
+
+/-- A claim that holds passes the opening's check. -/
+theorem check_of_holds (c : WeightedClaim I) (o : ∀ i, TheOracle I i)
+    (h : c.Holds (theStack o)) :
+    Opening.check I c (Component.answerOf (TheOracle I) o (Opening.question I c)) = true :=
+  (Opening.accepts_iff I c _).mpr ((Opening.answer_weight_iff I o c).mpr h)
 
 /-- Two copies of one pooled claim cancel under unit weights in characteristic two: when every
-other pooled claim holds, the combination at `1` is accepted, whether or not the copies hold. -/
-theorem accepts_one_of_copies (I : M3Instance) (s : I.Stmt × FlockOut I)
-    (o : ∀ i, TheOracle I i) (i j : Fin I.poolSize) (hij : i ≠ j)
-    (heq : Opening.pool I s.2 i = Opening.pool I s.2 j)
-    (hrest : ∀ k, k ≠ i → k ≠ j → (Opening.pool I s.2 k).Holds (theStack o)) :
-    Opening.accepts I s.2 1 (Component.answerOf (TheOracle I) o (Opening.question I s 1)) =
-      true := by
-  refine (Opening.accepts_iff I s.2 1 _).mpr ((Opening.answer_question I s o 1).trans ?_)
-  simp only [Opening.value, powerBatch, one_pow, mul_one]
-  change @Eq E _ _
+other pooled claim holds, the batched claim at `1` holds, whether or not the copies do. -/
+theorem unit_holds_of_copies (s : I.Stmt × FlockOut I) (q : Column I.μ) (i j : Fin I.poolSize)
+    (hij : i ≠ j) (heq : Opening.pool I s.2 i = Opening.pool I s.2 j)
+    (hrest : ∀ k, k ≠ i → k ≠ j → (Opening.pool I s.2 k).Holds q) (ρ c : E) :
+    (unitOut I s ρ c).Holds q := by
+  refine (Opening.batched_holds_iff I s 1 _ q).mpr ?_
+  simp only [Opening.values, powerBatch, one_pow, mul_one]
   rw [← sub_eq_zero, ← Finset.sum_sub_distrib,
     Finset.sum_eq_add i j hij (fun k _ hk ↦ sub_eq_zero.mpr (hrest k hk.1 hk.2)) (by simp)
       (by simp), heq]
   exact CharTwo.add_self_eq_zero _
+
+/-- When every column claim holds, the column claims alone, combined at any challenge, hold. -/
+theorem columns_holds (s : I.Stmt × FlockOut I) (q : Column I.μ)
+    (h : ∀ c ∈ s.2.columns.toList, c.Holds q) (ρ c : E) : (columnsOut I s ρ c).Holds q := by
+  unfold columnsOut WeightedClaim.Holds
+  rw [Weight.pair_batch]
+  exact congrArg (powerBatch · ρ) (funext fun j ↦ (Opening.columnWeighted_holds_iff I q _).mpr
+    (h _ (Vector.mem_toList_iff.mpr (Vector.getElem_mem _))))
+
+end Weakened
+
+/-! ## The check is load-bearing -/
 
 /-- The honest stack as the one oracle. -/
 def theHonest : ∀ i, TheOracle toy i := fun _ ↦ honest
@@ -253,24 +324,14 @@ theorem trueClaim_holds (c : toy.ColumnId) (z : E) : (trueClaim c z).Holds hones
 /-- `badStmt` is outside the Flock seam: its second claim is false of the honest stack. -/
 theorem badStmt_not_flock (w : Unit) : ((badStmt, theHonest), w) ∉ Seam.flock toy := by
   rintro ⟨h, -⟩
-  have h1 := h (falseClaim ⟨0, 1⟩ y) (List.mem_cons_of_mem _ (List.mem_cons_self ..))
+  have h1 := h (offBy ⟨0, 1⟩ y 1) (List.mem_cons_of_mem _ (List.mem_cons_self ..))
   exact one_ne_zero (add_left_cancel ((add_zero _).trans h1)).symm
 
 /-- `dupStmt` is outside the Flock seam: its first claim is false of the honest stack. -/
 theorem dupStmt_not_flock (w : Unit) : ((dupStmt, theHonest), w) ∉ Seam.flock toy := by
   rintro ⟨h, -⟩
-  have h0 := h (falseClaim ⟨0, 0⟩ y) (List.mem_cons_self ..)
+  have h0 := h (offBy ⟨0, 0⟩ y 1) (List.mem_cons_self ..)
   exact one_ne_zero (add_left_cancel ((add_zero _).trans h0)).symm
-
-/-- `honestStmt` is on the Flock seam. -/
-theorem honestStmt_flock : ((honestStmt, theHonest), ()) ∈ Seam.flock toy := by
-  refine ⟨?_, fun c hc ↦ absurd hc List.not_mem_nil⟩
-  have hl : honestStmt.2.columns.toList = [trueClaim ⟨0, 0⟩ y, trueClaim ⟨0, 1⟩ y,
-      trueClaim ⟨0, 2⟩ y, trueClaim ⟨0, 2⟩ (y + 1)] := rfl
-  intro c hc
-  rw [hl] at hc
-  simp only [List.mem_cons, List.not_mem_nil, or_false] at hc
-  rcases hc with rfl | rfl | rfl | rfl <;> exact trueClaim_holds _ _
 
 /-- On the toy the pool is the column claims, in order. -/
 theorem pool_toy (s : FlockOut toy) (j : Fin toy.poolSize) :
@@ -278,79 +339,47 @@ theorem pool_toy (s : FlockOut toy) (j : Fin toy.poolSize) :
   (congrArg (Opening.pool toy s) (Fin.ext (Nat.zero_add j.val).symm)).trans
     (Opening.pool_column toy s ⟨j.val, j.isLt⟩)
 
-/-- Whether an answer equals a value. -/
-def eqCheck (v a : E) : Bool := decide (a = v)
-
-theorem eqCheck_iff (v a : E) : eqCheck v a = true ↔ a = v := decide_eq_true_iff
-
-/-- The verifier with no check. -/
-abbrev unchecked : Phase.Def toy (K × FlockOut toy) Unit openingSpec :=
-  Component.sampleQuery (TheOracle toy) E (Opening.question toy) (fun _ _ _ ↦ true) fun _ _ ↦ ()
-
-/-- Without the check, a false pool is accepted at every challenge: no knowledge error below
-one. -/
+/-- Without the check on the answer, a false pool is accepted at every challenge: no knowledge
+error below one. -/
 theorem unchecked_not_rbr {σ : Type} {init : ProbComp σ}
     {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
     {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
       ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : unchecked.red.verifier.toVerifier.KnowledgeStateFunction init impl (Seam.flock toy)
-      (Seam.done toy) Ex}
+    {kSF : (unchecked toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
+      (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : unchecked.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (unchecked toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
       (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.sampleQuery_not_rbr (TheOracle toy) E _ _ _ init impl h badStmt theHonest
-    badStmt_not_flock () fun _ ↦ ⟨rfl, trivial⟩
+  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (Opening.batched toy)
+    (Opening.question toy) (fun _ _ ↦ true) (fun _ ↦ ()) h badStmt theHonest badStmt_not_flock ()
+    fun _ ↦ ⟨rfl, trivial⟩
 
 /-- The first claim of `badStmt` holds of the honest stack. -/
 theorem badStmt_first : (Opening.pool toy badStmt.2 ⟨0, by decide⟩).Holds honest := by
   rw [pool_toy, Opening.columnWeighted_holds_iff]
   exact trueClaim_holds _ _
 
-/-- The question of the verifier that checks the first pooled claim alone. -/
-def firstQuery (s : K × FlockOut toy) (_ : E) : [TheOracle toy]ₒ.Domain :=
-  Opening.ask toy (Opening.pool toy s.2 ⟨0, by decide⟩).weight
-
-/-- Its check: the answer is the first claim's value. -/
-def firstCheck (s : K × FlockOut toy) (ρ : E) (a : [TheOracle toy]ₒ.Range (firstQuery s ρ)) :
-    Bool :=
-  eqCheck (Opening.pool toy s.2 ⟨0, by decide⟩).value a
-
-/-- The verifier that checks the first pooled claim alone. -/
-abbrev firstOnly : Phase.Def toy (K × FlockOut toy) Unit openingSpec :=
-  Component.sampleQuery (TheOracle toy) E firstQuery firstCheck fun _ _ ↦ ()
-
-/-- The first claim of `badStmt`, asked alone, is accepted. -/
-theorem badStmt_first_accepted (ρ : E) :
-    firstCheck badStmt ρ (Component.answerOf (TheOracle toy) theHonest (firstQuery badStmt ρ)) =
-      true :=
-  (eqCheck_iff _ _).mpr ((Opening.answer_weight_iff toy theHonest _).mpr badStmt_first)
-
-/-- Checking the first claim alone, a pool whose first claim is true is accepted at every
+/-- Checking the first claim alone, a pool whose first claim holds is accepted at every
 challenge: no knowledge error below one. -/
-theorem firstOnly_not_rbr {σ : Type} {init : ProbComp σ}
+theorem only_not_rbr {σ : Type} {init : ProbComp σ}
     {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
     {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
       ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : firstOnly.red.verifier.toVerifier.KnowledgeStateFunction init impl (Seam.flock toy)
-      (Seam.done toy) Ex}
+    {kSF : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.KnowledgeStateFunction init impl
+      (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : firstOnly.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-      (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.sampleQuery_not_rbr (TheOracle toy) E firstQuery firstCheck (fun _ _ ↦ ()) init impl
-    h badStmt theHonest badStmt_not_flock () fun ρ ↦ ⟨badStmt_first_accepted ρ, trivial⟩
+    (h : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith
+      init impl (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
+  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy)
+    (onlyOut toy ⟨0, by decide⟩) (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h
+    badStmt theHonest badStmt_not_flock () fun _ ↦
+      ⟨check_of_holds toy _ theHonest badStmt_first, trivial⟩
 
-/-- The verifier that combines the claims with unit weights, whatever the challenge. -/
-abbrev unitWeights : Phase.Def toy (K × FlockOut toy) Unit openingSpec :=
-  Component.sampleQuery (TheOracle toy) E (fun s _ ↦ Opening.question toy s 1)
-    (fun s _ a ↦ Opening.accepts toy s.2 1 a) fun _ _ ↦ ()
-
-/-- The two false claims of `dupStmt` are copies, and its other claims hold: unit weights
-accept it. -/
-theorem dupStmt_unit :
-    Opening.accepts toy dupStmt.2 1
-      (Component.answerOf (TheOracle toy) theHonest (Opening.question toy dupStmt 1)) = true := by
-  refine accepts_one_of_copies toy dupStmt theHonest ⟨0, by decide⟩ ⟨1, by decide⟩
-    (by decide) (by rw [pool_toy, pool_toy]; rfl) fun ⟨k, hk⟩ h0 h1 ↦ ?_
+/-- The two false claims of `dupStmt` are copies, and its other claims hold: the batched claim
+at unit weights holds. -/
+theorem dupStmt_unit (ρ c : E) : (unitOut toy dupStmt ρ c).Holds honest := by
+  refine unit_holds_of_copies toy dupStmt honest ⟨0, by decide⟩ ⟨1, by decide⟩ (by decide)
+    (by rw [pool_toy, pool_toy]; rfl) (fun ⟨k, hk⟩ h0 h1 ↦ ?_) ρ c
   rw [pool_toy, Opening.columnWeighted_holds_iff]
   have hk4 : k < 4 := (show toy.poolSize = 4 by decide) ▸ hk
   interval_cases k
@@ -365,25 +394,61 @@ theorem unitWeights_not_rbr {σ : Type} {init : ProbComp σ}
     {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
     {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
       ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : unitWeights.red.verifier.toVerifier.KnowledgeStateFunction init impl (Seam.flock toy)
-      (Seam.done toy) Ex}
+    {kSF : (unitWeights toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
+      (Seam.flock toy) (Seam.done toy) Ex}
     {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : unitWeights.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+    (h : (unitWeights toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
       (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.sampleQuery_not_rbr (TheOracle toy) E (fun s _ ↦ Opening.question toy s 1)
-    (fun s _ a ↦ Opening.accepts toy s.2 1 a) (fun _ _ ↦ ()) init impl h dupStmt theHonest
-    dupStmt_not_flock () fun _ ↦ ⟨dupStmt_unit, trivial⟩
+  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (unitOut toy)
+    (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h dupStmt theHonest
+    dupStmt_not_flock () fun ρ ↦ ⟨check_of_holds toy _ theHonest (dupStmt_unit ρ _), trivial⟩
 
-/-- The verifier that also rejects the challenge `0`. -/
-abbrev rejectsZero : Phase.Def toy (K × FlockOut toy) Unit openingSpec :=
-  Component.sampleQuery (TheOracle toy) E (Opening.question toy)
-    (fun s ρ a ↦ Opening.check toy s ρ a && decide (ρ ≠ 0)) fun _ _ ↦ ()
+/-- The zero stack of `flocky`. -/
+def zero8 : Column 8 := ⟨Vector.replicate (2 ^ 8) 0⟩
 
-/-- Rejecting the challenge `0` rejects the honest prover there: no perfect completeness. -/
-theorem rejectsZero_not_complete {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    ¬ rejectsZero.red.perfectCompleteness init impl (Seam.flock toy) (Seam.done toy) :=
-  Component.sampleQuery_not_complete (TheOracle toy) E _ _ _ init impl honestStmt_flock 0
-    (by simp)
+/-- The zero stack as the one oracle. -/
+def theZero : ∀ i, TheOracle flocky i := fun _ ↦ zero8
+
+/-- The true column claim of `flocky` at `ys` on the zero stack. -/
+def zeroColumn : ColumnClaim flocky :=
+  ⟨⟨0, 0⟩, ys, CMlPolynomialEval.eval₂Mle (flocky.column zero8 ⟨0, 0⟩).values (algebraMap K E) ys⟩
+
+/-- A weighted claim at `ys` off by one on the zero stack. -/
+def offWeighted : WeightedClaim flocky :=
+  ⟨eqWeight ys, (eqWeight ys).pair (algebraMap K E) zero8.values + 1⟩
+
+/-- A true column claim and a false weighted claim. -/
+def flockyBad : Unit × FlockOut flocky := ((), ⟨#v[zeroColumn], #v[offWeighted]⟩)
+
+/-- `flockyBad` is outside the Flock seam: its weighted claim is false. -/
+theorem flockyBad_not_flock (w : Unit) : ((flockyBad, theZero), w) ∉ Seam.flock flocky := by
+  rintro ⟨-, h⟩
+  have h0 := h offWeighted (List.mem_cons_self ..)
+  exact one_ne_zero (add_left_cancel ((add_zero _).trans h0)).symm
+
+/-- The column claims of `flockyBad` hold. -/
+theorem flockyBad_columns : ∀ c ∈ flockyBad.2.columns.toList, c.Holds zero8 := by
+  have hl : flockyBad.2.columns.toList = [zeroColumn] := rfl
+  intro c hc
+  rw [hl, List.mem_singleton] at hc
+  subst hc
+  rfl
+
+/-- Dropping the weighted claims, a pool whose column claims hold is accepted at every
+challenge, whatever its weighted claims: no knowledge error below one. -/
+theorem columnsOnly_not_rbr {σ : Type} {init : ProbComp σ}
+    {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((Unit × FlockOut flocky) ×
+      ∀ i, TheOracle flocky i) Unit Unit openingSpec WitMid}
+    {kSF : (columnsOnly flocky).red.verifier.toVerifier.KnowledgeStateFunction init impl
+      (Seam.flock flocky) (Seam.done flocky) Ex}
+    {ε : openingSpec.ChallengeIdx → ℝ≥0}
+    (h : (columnsOnly flocky).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init
+      impl (Seam.flock flocky) (Seam.done flocky) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
+  Component.batchQuery_not_rbr (TheOracle flocky) E (Opening.values flocky) (columnsOut flocky)
+    (Opening.question flocky) (Opening.check flocky) (fun _ ↦ ()) h flockyBad theZero
+    flockyBad_not_flock () fun ρ ↦
+      ⟨check_of_holds flocky _ theZero (columns_holds flocky flockyBad zero8 flockyBad_columns ρ _),
+        trivial⟩
 
 end LeanerVMTests.Protocol.Opening

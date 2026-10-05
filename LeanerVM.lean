@@ -41,10 +41,10 @@ import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
-import LeanerVM.Protocol.ToArkLib.SampleQuery
 import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.SendChecked
 import LeanerVM.Protocol.ToArkLib.SendOracle

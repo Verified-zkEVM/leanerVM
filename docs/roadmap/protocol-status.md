@@ -51,10 +51,11 @@ one at a time. On the branch of #77, stacked on that one, batching by powers
 superseded by `batchSecurity` and gone); the
 GKR's combiner is `Component.batch`. On the branch of #PRNUM, stacked on #77, the opening phase
 (`LeanerVM/Protocol/Opening.lean`: `openingPhase`, `openingComplete`, `openingSecurity` at the
-slot's error `(J − 1) / |E|`, `J` the pool's size) stands on a generic one-challenge component
-whose verifier asks an input oracle one question and checks the answer
-(`ToArkLib/SampleQuery.lean`) and on the inner-product weights combined by powers
-(`ToArkLib/WeightBatch.lean`). Nothing else is built: the
+slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers followed by a generic
+zero-round step whose verifier asks an input oracle one question and checks the answer
+(`ToArkLib/QueryCheck.lean`: `Component.queryCheck`, and the composition
+`Component.batchQuery` with its two halves and its refutation), on the inner-product weights
+combined by powers (`ToArkLib/WeightBatch.lean`). Nothing else is built: the
 other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
 trees, the compiled verifier and the base theorems.
 
@@ -212,38 +213,43 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   bound, so the degree bound is the message's length; the first step reads the roots through a
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
-- **The opening phase (Layer 10)** is `Component.sampleQuery` at the slot's schedule `draw E`:
-  the verifier draws `ρ` (the specification's `λ`), asks the stack `⟨W_ρ, q⟩` with `W_ρ` the
-  pool's weights combined by the powers of `ρ` (`Weight.batch`), and checks the answer against
-  the pool's values combined the same way (`powerBatch`). The pool takes the powers as both
-  deployed sources do: the Flock phase's weighted claims first, then the column claims in their
-  order, each the weighted claim at the equality kernel of its point lifted through the layout
-  (`Opening.pool_weighted`, `Opening.pool_column`; specification §8.5,
-  `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`, `crates/pcs/src/stack_open.rs:518-526`).
-  Where it differs from Layer 10's section, or what it leaves to the work after it:
+- **The opening phase (Layer 10)** is `Component.batchQuery` at the slot's schedule `draw E`
+  (`draw E ++ₚ !p[]` is `draw E` by `rfl`, its instances included): `Component.batch` draws `ρ`
+  (the specification's `λ`) and combines the pooled values into the batched claim
+  `⟨W_ρ, C_ρ⟩`, `W_ρ` the pool's weights combined by the powers of `ρ` (`Weight.batch`); a
+  zero-round query check (`Component.queryCheck`) asks the stack `⟨W_ρ, q⟩` and accepts when the
+  answer is `C_ρ`. Its knowledge soundness is `batchSecurity`'s, the state after the challenge
+  that the batched claim holds (`Opening.BatchedHolds`). The pool takes the powers as both
+  deployed verifiers do: the Flock phase's weighted claims first, then the column claims in
+  their order, each the weighted claim at the equality kernel of its point lifted through the
+  layout (`Opening.pool_weighted`, `Opening.pool_column`; specification §8.5,
+  `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`, `crates/pcs/src/stack_open.rs:518-526`,
+  `python-verifier/verifier.py:1409-1413`). Where it differs from Layer 10's section, or what
+  it leaves to the work after it:
   - `leanVmPhases` is a block comment at the end of `Opening.lean`: it needs the bus phase, the
-    table sumcheck and the Flock phase. A test puts the deployed public-input phase and the
-    opening phase in their slots and gets both master theorems from the three other phases'
-    proofs.
+    table sumcheck and the Flock phase, which the hole's row in the blueprint does not list
+    among its *Needs*. A test puts the deployed public-input phase and the opening phase in
+    their slots and gets both master theorems from the three other phases' proofs.
   - The section's protocol-level test (the phases up to Layer 8 composed with pass-throughs
     after, an honest run accepted by `#guard`) waits with `leanVmPhases`: a pass-through has the
     empty schedule, not a slot's, so no bundle of pass-throughs fills `Phases`.
     `piopExtractedStack_eq` holds of every bundle and is the spine's test.
-  - The phase uses batching by powers' algebra (`powerBatch`, `batchWeight`,
-    `evalMle_batchWeight`, `card_false_batch_le`), not the component `Component.batch`: a
-    zero-round query after `batch` has the schedule `draw E ++ₚ !p[]`, which is not the slot's
-    `draw E`. Its knowledge soundness counts the bad challenges directly, at most `J − 1`, the
-    roots of the difference between the claimed values' combination and the stack's answers'.
-  - `Component.sampleProver_run_support` (`ToArkLib/SampleChallenge.lean`) is public: the query
-    component has the sample-challenge component's prover, and its completeness reads the same
-    runs.
-  - The refutations of its check are tests on the toy: the verifier with no check, the one that
-    checks the first pooled claim alone, and the one that combines the claims with unit weights
-    (two copies of one false claim cancel in characteristic two) each accept a pool outside the
-    Flock seam at every challenge, so none has a knowledge error below one
-    (`Component.sampleQuery_not_rbr`); the verifier that also rejects `λ = 0` is not perfectly
-    complete (`Component.sampleQuery_not_complete`). The bound is attained: the two copies are
-    accepted at `λ = 1`.
+  - The blueprint is asked, through a `docs(protocol)` pull request, to move `leanVmPhases` and
+    the protocol-level test to a hole of their own, "the oracle protocol", needing every phase,
+    and to list `Component.queryCheck` and `Component.batchQuery` among the generic components.
+  - Beyond the hole's names, the tests use `Opening.pool`, `Opening.values`, `Opening.weight`,
+    `Opening.batched`, `Opening.question`, `Opening.check`, `Opening.accepts_iff`,
+    `Opening.columnWeighted_holds_iff`, `Opening.answer_weight_iff`,
+    `Opening.batched_holds_iff`, `Opening.pool_weighted` and `Opening.pool_column`; the bodies of
+    the two halves use `Opening.batched_of_flock` and `Opening.answers_of_not_flock`.
+  - The refutations of its check are tests: on the toy, the verifier with no check on the
+    answer, the one that checks the first pooled claim alone, and the one that combines the
+    claims with unit weights (two copies of one false claim cancel in characteristic two); on an
+    instance with a Flock region, the one that combines the column claims alone and drops the
+    weighted claim. Each accepts a pool outside the Flock seam at every challenge, so none has a
+    knowledge error below one, whatever its extractor and state function
+    (`Component.batchQuery_not_rbr`). The bound is attained: a pool of four claims is accepted
+    at three challenges.
 
 ## What can start now
 
