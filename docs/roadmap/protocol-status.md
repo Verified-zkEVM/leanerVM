@@ -26,7 +26,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | batching by powers (Layer 4) | #77 | on merge | on merge |
-| the opening phase (Layer 10), without `leanVmPhases` | #PRNUM | on merge | on merge |
+| the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -49,7 +49,7 @@ one at a time. On the branch of #77, stacked on that one, batching by powers
 `(k − 1) / |F|`), on the power combination and its root count of #43
 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound is
 superseded by `batchSecurity` and gone); the
-GKR's combiner is `Component.batch`. On the branch of #PRNUM, stacked on #77, the opening phase
+GKR's combiner is `Component.batch`. On the branch of #81, stacked on #77, the opening phase
 (`LeanerVM/Protocol/Opening.lean`: `openingPhase`, `openingComplete`, `openingSecurity` at the
 slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers followed by a generic
 zero-round step whose verifier asks an input oracle one question and checks the answer
