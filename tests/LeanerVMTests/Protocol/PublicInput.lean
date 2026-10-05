@@ -35,6 +35,25 @@ Every guard changes one thing.
   the two cells, and the one with an extra check on the message's length, reject the honest
   prover: neither is perfectly complete.
 
+The deployed verifiers' check (`checkWords`, one equation on the two public words) and the phase
+built on it have their own tests, on the toy and on instances derived from it:
+
+* **The check on the words.** With one sent line, or none, or three, it is the specification's
+  check; with two it is `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, on zero words and on words that are not
+  zero, where the `y` goes with the second value; a message of another length than two is
+  rejected. It accepts what the check per limb rejects, at a concrete challenge, and the check
+  per limb implies it.
+* **Two challenges fix the memory** (`accepts_two_challenges`): its hypotheses are inhabited, a
+  wrong memory is accepted at one challenge, so a second is load-bearing, a nonzero top cell is
+  held by its own claim alone, and the theorem applies to the memory that holds the words.
+* **The deployed verifier and phase** pool the values sent, fill the slot `Phases.pub` has, and
+  with their completeness and security halves are drop-ins for the master theorems; the bound
+  `1/|E|` is attained at one challenge, and the claims, not the check, are what a prover cannot
+  get past.
+* **The deployed check is load-bearing.** Reading `y` as `1` and pooling an unsent line at the
+  constant zero, on a statement whose top line is not zero, leave no round-by-round knowledge
+  error below one; the check with its two words swapped is not perfectly complete.
+
 The toy's table seam carries three received claims, one per column of its table; the fixtures
 give them true values at a cube point. A plain file, so `#guard` evaluates the compiled
 definitions. Values of `E` written with numerals are named as definitions before a guard uses
