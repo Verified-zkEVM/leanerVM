@@ -35,6 +35,25 @@ Every guard changes one thing.
   the two cells, and the one with an extra check on the message's length, reject the honest
   prover: neither is perfectly complete.
 
+The deployed verifiers' check (`checkWords`, one equation on the two public words) and the phase
+built on it have their own tests, on the toy and on instances derived from it:
+
+* **The check on the words.** With one sent line, or none, or three, it is the specification's
+  check; with two it is `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, on zero words and on words that are not
+  zero, where the `y` goes with the second value; a message of another length than two is
+  rejected. It accepts what the check per limb rejects, at a concrete challenge, and the check
+  per limb implies it.
+* **Two challenges fix the memory** (`accepts_two_challenges`): its hypotheses are inhabited, a
+  wrong memory is accepted at one challenge, so a second is load-bearing, a nonzero top cell is
+  held by its own claim alone, and the theorem applies to the memory that holds the words.
+* **The deployed verifier and phase** pool the values sent, fill the slot `Phases.pub` has, and
+  with their completeness and security halves are drop-ins for the master theorems; the bound
+  `1/|E|` is attained at one challenge, and the claims, not the check, are what a prover cannot
+  get past.
+* **The deployed check is load-bearing.** Reading `y` as `1` and pooling an unsent line at the
+  constant zero, on a statement whose top line is not zero, leave no round-by-round knowledge
+  error below one; the check with its two words swapped is not perfectly complete.
+
 The toy's table seam carries three received claims, one per column of its table; the fixtures
 give them true values at a cube point. A plain file, so `#guard` evaluates the compiled
 definitions. Values of `E` written with numerals are named as definitions before a guard uses
@@ -122,6 +141,11 @@ def extra : List E := [1 + y, 0]
 #guard ¬ check toy stmt1 y wrong
 #guard ¬ check toy stmt1 y []
 #guard ¬ check toy stmt1 y extra
+-- With one sent line there is nothing to combine, and the deployed check is the specification's.
+#guard checkWords toy stmt1 y good
+#guard ¬ checkWords toy stmt1 y wrong
+#guard ¬ checkWords toy stmt1 y []
+#guard ¬ checkWords toy stmt1 y extra
 
 -- On the honest stack, a prover that answers truthfully sends the expected values.
 #guard trueValues toy honest (1: K) y = expectedValues toy (1: K) y
@@ -138,6 +162,11 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 #guard ¬ check toy stmt1 y (trueValues toy badLine 1 y)
 #guard ¬ check toy stmt1 r₂ (trueValues toy badLine 1 r₂)
 #guard check toy stmt1 0 (trueValues toy badLine 1 0)
+-- The check on the words is the same check where one line is sent: rejected at the sampled
+-- challenges and accepted at the one bad challenge `r = 0`.
+#guard ¬ checkWords toy stmt1 y (trueValues toy badLine 1 y)
+#guard ¬ checkWords toy stmt1 r₂ (trueValues toy badLine 1 r₂)
+#guard checkWords toy stmt1 0 (trueValues toy badLine 1 0)
 
 -- The same event on the claims: every pooled claim holds of the honest stack; of the wrong
 -- stack one fails at a sampled challenge, and all hold at the bad challenge. So the bound
@@ -151,6 +180,8 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 -- challenge, accepted at the one bad challenge `r = 1`, where `(1 + r)·cell0` vanishes.
 #guard ¬ check toy stmt0 y (trueValues toy honest 0 y)
 #guard check toy stmt0 1 (trueValues toy honest 0 1)
+#guard ¬ checkWords toy stmt0 y (trueValues toy honest 0 y)
+#guard checkWords toy stmt0 1 (trueValues toy honest 0 1)
 
 /-! ## The pool -/
 
@@ -187,6 +218,8 @@ def stmtNone : K × TableOut noneSent :=
 #guard expectedValues noneSent (1: K) y = []
 #guard check noneSent stmtNone y []
 #guard ¬ check noneSent stmtNone y good
+#guard checkWords noneSent stmtNone y []
+#guard ¬ checkWords noneSent stmtNone y good
 #guard ((pooled noneSent stmtNone y).2.columns.toList.map fun c ↦ c.value) = [1, 1, 1] ++ good
 #guard ¬ ∀ c ∈ (pooled noneSent stmtNone y).2.columns.toList, c.Holds badLine
 
@@ -223,6 +256,7 @@ def limbValues : List E := [1, 1, 0]
 -- The wrong top cell passes the check, which sees the two sent values only, and fails the third
 -- claim; the pool without the third claim accepts the stack.
 #guard check threeLimbs stmtLimbs y (trueValues threeLimbs badTopLimb 1 y)
+#guard checkWords threeLimbs stmtLimbs y (trueValues threeLimbs badTopLimb 1 y)
 #guard ¬ ∀ c ∈ (pooled threeLimbs stmtLimbs y).2.columns.toList, c.Holds badTopLimb
 #guard ∀ c ∈ ((pooled threeLimbs stmtLimbs y).2.columns.toList.take 5), c.Holds badTopLimb
 
@@ -248,16 +282,164 @@ def rStar : E := y / (1 + y)
 /-- The two true evaluations at that challenge: `r` and `1 + r`. -/
 def atStar : List E := [rStar, 1 + rStar]
 
-/-- The equation on the two public words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, at zero words. -/
-def wordsEquation (c₀ c₁ : E) : Bool := c₀ + y * c₁ == 0
-
 #guard trueValues twoLimbs badLimbs 0 rStar = atStar
--- The equation on the words holds of the true evaluations; the check per limb rejects them.
-#guard wordsEquation rStar (1 + rStar)
+-- The check on the words accepts the true evaluations; the check per limb rejects them.
+#guard checkWords twoLimbs stmtTwo rStar atStar
 #guard ¬ check twoLimbs stmtTwo rStar atStar
 -- At a sampled challenge both reject.
-#guard ¬ wordsEquation y (1 + y)
+#guard ¬ checkWords twoLimbs stmtTwo y (trueValues twoLimbs badLimbs 0 y)
 #guard ¬ check twoLimbs stmtTwo y (trueValues twoLimbs badLimbs 0 y)
+-- The check per limb implies the check on the words (`checkWords_of_check`), and the check on
+-- the words accepts a message that is not the expected values: `[y, 1]` solves `c₀ + y·c₁ = 0`.
+#guard checkWords twoLimbs stmtTwo y (expectedValues twoLimbs (0 : K) y)
+example (r : E) (cs : List E) (h : check twoLimbs stmtTwo r cs = true) :
+    checkWords twoLimbs stmtTwo r cs = true :=
+  checkWords_of_check twoLimbs h
+#guard checkWords twoLimbs stmtTwo y [y, 1]
+#guard ¬ check twoLimbs stmtTwo y [y, 1]
+-- With two sent lines the message has two values: any other length is rejected, whatever it holds.
+#guard ¬ checkWords twoLimbs stmtTwo y []
+#guard ¬ checkWords twoLimbs stmtTwo y [0]
+#guard ¬ checkWords twoLimbs stmtTwo y [0, 0, 0]
+
+/-! ## The words -/
+
+/-- Two limbs with nonzero public words: limb 0 has cells `(1, 0)` and limb 1 has cells `(0, 1)`,
+so `w₀ = E.ofLimbs 1 0 0 = 1` and `w₁ = E.ofLimbs 0 1 0 = y`. -/
+abbrev wordsTwo : M3Instance :=
+  { toy with
+    nLines := 2
+    publicLines := fun _ ↦
+      #v[⟨⟨0, 0⟩, 1, 0, true, by decide⟩, ⟨⟨0, 1⟩, 0, 1, true, by decide⟩] }
+
+/-- Its statement with the received claims. -/
+def stmtWords : K × TableOut wordsTwo :=
+  (0, ⟨received wordsTwo (by decide) (by decide) (by decide) (by decide) 0 ![0, 1, 0]⟩)
+
+-- The limbs' values at `y` are `(1 + y)·1` and `y·1`, and `(1 + y)·1 + y·y` is the words' line
+-- `(1 + r)·w₀ + r·w₁` at `y`, which the equation on the words asks of `c₀ + y·c₁`.
+#guard expectedValues wordsTwo (0 : K) y = [1 + y, y]
+#guard checkWords wordsTwo stmtWords y [1 + y, y]
+-- The `y` goes with the second value: the values in the other order are rejected.
+#guard ¬ checkWords wordsTwo stmtWords y [y, 1 + y]
+-- At another challenge the words' line moves with it.
+#guard checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) r₂)
+#guard ¬ checkWords wordsTwo stmtWords r₂ (expectedValues wordsTwo (0 : K) y)
+
+/-- A stack whose columns hold the two lines: `[1, 0]`, `[0, 1]`, then padding. -/
+def honestWords : Column 3 := ⟨#v[1, 0, 0, 1, 0, 0, 0, 0]⟩
+
+/-- The statement with the received claims true of that stack: its three columns at cell 0. -/
+def stmtWordsHonest : K × TableOut wordsTwo :=
+  (0, ⟨received wordsTwo (by decide) (by decide) (by decide) (by decide) 0 ![1, 0, 0]⟩)
+
+-- An honest prover sends the lines' values, which pass the check on the words at every
+-- challenge tried, and every claim of the pool holds of its stack.
+#guard trueValues wordsTwo honestWords 0 y = expectedValues wordsTwo (0 : K) y
+#guard checkWords wordsTwo stmtWordsHonest y (trueValues wordsTwo honestWords 0 y)
+#guard checkWords wordsTwo stmtWordsHonest r₂ (trueValues wordsTwo honestWords 0 r₂)
+#guard checkWords wordsTwo stmtWordsHonest 0 (trueValues wordsTwo honestWords 0 0)
+#guard checkWords wordsTwo stmtWordsHonest 1 (trueValues wordsTwo honestWords 0 1)
+#guard ∀ c ∈ (pooled wordsTwo stmtWordsHonest y).2.columns.toList, c.Holds honestWords
+
+/-- Three lines, all sent: a shape the deployed verifiers do not have. -/
+abbrev allSent : M3Instance :=
+  { threeLimbs with
+    publicLines := fun v ↦
+      #v[⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
+        ⟨⟨0, 2⟩, 0, 0, true, by decide⟩] }
+
+/-- Its statement `1` with the three columns' cells 1 received. -/
+def stmtAll : K × TableOut allSent :=
+  (1, ⟨received allSent (by decide) (by decide) (by decide) (by decide) 1 ![1, 1, 0]⟩)
+
+-- Off the deployed shape the check is the specification's, one equation per limb.
+#guard (expectedValues allSent (1 : K) y).length = 3
+#guard checkWords allSent stmtAll y (expectedValues allSent (1 : K) y)
+#guard ¬ checkWords allSent stmtAll y [1, 1, 1]
+#guard checkWords allSent stmtAll y [1, 1, 0] = check allSent stmtAll y [1, 1, 0]
+-- Two values for three sent lines are rejected: the words of two lines do not stand for three.
+#guard ¬ checkWords allSent stmtAll y [1, 1]
+
+/-! ## Two challenges fix the memory -/
+
+/-- The cells 0, 1 and 2 of the three memory limbs' column, as `accepts_two_challenges` takes
+them. -/
+def cells (c₀ c₁ c₂ : K) : Fin 3 → K := ![c₀, c₁, c₂]
+
+/-- The equation on the words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁`, with the two sent values the
+values of the two limbs' lines through the cells `a` and `b`, as the pooled claims force. -/
+def wordEquation (a b : Fin 3 → K) (w₀ w₁ r : E) : Bool :=
+  decide (((1 - r) * ofK (a 0) + r * ofK (b 0)) + y * ((1 - r) * ofK (a 1) + r * ofK (b 1)) =
+    (1 + r) * w₀ + r * w₁)
+
+/-- The claim on the top limb, pooled at `0`: the line through its two cells is zero at `r`. -/
+def topClaim (a b : Fin 3 → K) (r : E) : Bool :=
+  decide (0 = (1 - r) * ofK (a 2) + r * ofK (b 2))
+
+/-- The hypotheses of `accepts_two_challenges` at one challenge. -/
+def acceptsAt (a b : Fin 3 → K) (w₀ w₁ r : E) : Bool :=
+  wordEquation a b w₀ w₁ r && topClaim a b r
+
+/-- The word `1 + y`, of the cells `(1, 1)` with a zero top limb. -/
+def wordOnes : E := E.ofLimbs 1 1 0
+
+-- The hypotheses are inhabited: the memory that holds the words is accepted at every
+-- challenge, and the conclusion holds of it.
+#guard acceptsAt (cells 1 1 0) (cells 1 1 0) wordOnes wordOnes y
+#guard acceptsAt (cells 1 1 0) (cells 1 1 0) wordOnes wordOnes r₂
+#guard wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0
+-- One challenge is not enough: limb 1's cell 0 is `1` against the word `0`, and the memory is
+-- accepted at `r = 1`, where only the cells 1 count, and at no other challenge sampled; the
+-- conclusion fails of it.
+#guard acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 1
+#guard ¬ acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 y
+#guard ¬ acceptsAt (cells 0 1 0) (cells 0 0 0) 0 0 r₂
+#guard (0 : E) ≠ E.ofLimbs ((cells 0 1 0) 0) ((cells 0 1 0) 1) 0
+-- The top limb is held by its claim alone: a nonzero top cell leaves the equation on the words
+-- true at every challenge, and the claim rejects it.
+#guard wordEquation (cells 0 0 1) (cells 0 0 0) 0 0 y
+#guard wordEquation (cells 0 0 1) (cells 0 0 0) 0 0 r₂
+#guard ¬ topClaim (cells 0 0 1) (cells 0 0 0) y
+#guard topClaim (cells 0 0 1) (cells 0 0 0) 1
+
+/-- The theorem applies to the memory that holds the words and says all four things of it, at
+any two distinct challenges: the hypotheses are met by the lines' values `[1, 1]` at every
+challenge, and each conclusion is stated, so a theorem that said less of the cells would not
+fit this type. -/
+example {r₁ r₂ : E} (hr : r₁ ≠ r₂) :
+    wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0 ∧
+      wordOnes = E.ofLimbs ((cells 1 1 0) 0) ((cells 1 1 0) 1) 0 ∧
+      (cells 1 1 0) 2 = 0 ∧ (cells 1 1 0) 2 = 0 := by
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+  have key : ∀ r : E, (1 : E) = (1 - r) * ofK ((cells 1 1 0) 0) + r * ofK ((cells 1 1 0) 0) ∧
+      (1 : E) = (1 - r) * ofK ((cells 1 1 0) 1) + r * ofK ((cells 1 1 0) 1) ∧
+      0 = (1 - r) * ofK ((cells 1 1 0) 2) + r * ofK ((cells 1 1 0) 2) ∧
+      1 + y * 1 = (1 + r) * wordOnes + r * wordOnes := by
+    intro r
+    simp only [cells, wordOnes, ofLimbs_eq, Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.cons_val_two, Matrix.head_cons, Matrix.tail_cons, h0, h1]
+    refine ⟨by ring, by ring, by ring, ?_⟩
+    linear_combination (-(r * (1 + y))) * CharTwo.add_self_eq_zero (1 : E)
+  exact accepts_two_challenges (a := cells 1 1 0) (b := cells 1 1 0) (w₀ := wordOnes)
+    (w₁ := wordOnes) hr (key r₁) (key r₂)
+
+/-! ## The deployed verifier -/
+
+-- It checks on the words and pools the values sent: `[y, 1]` passes on two limbs with zero
+-- words, the specification's verifier rejects it, and the pool carries `y` and `1`, not the
+-- lines' values `0` and `0`.
+#guard accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y, 1]
+#guard ¬ accepts twoLimbs (check twoLimbs) stmtTwo y [y, 1]
+#guard ((verdict twoLimbs (pooledFrom twoLimbs) stmtTwo y [y, 1]).2.columns.toList.map
+  fun c ↦ c.value) = [0, 1, 0] ++ [y, 1]
+-- A message without two values is rejected before the check, whatever it holds.
+#guard ¬ accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y]
+#guard ¬ accepts twoLimbs (checkWords twoLimbs) stmtTwo y [y, 1, 0]
+-- The verifier is the specification's with one check for another: on one sent line they agree.
+#guard accepts toy (checkWords toy) stmt1 y good
+#guard ¬ accepts toy (checkWords toy) stmt1 y wrong
 
 /-! ## The phase in its slot -/
 
@@ -273,9 +455,26 @@ example (i : pubSpec.ChallengeIdx) : pubError i = overE 1 := rfl
 example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
   PublicInput.verifier toy
 
+/-- The deployed verifier never reads the stack either. -/
+example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
+  PublicInput.deployedVerifier toy
+
+/-- The deployed phase fills the same slot with the same types: it is what `Phases.pub` takes. -/
+example : Phase.FrontDef toy (K × TableOut toy) (K × PubOut toy) pubSpec :=
+  deployedPublicInputPhase toy
+
 /-- The two halves typecheck against the two seams, at the slot's error. -/
 example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
   publicInputComplete toy
+
+/-- The deployed phase's completeness half typechecks against the same seams. -/
+example : Phase.Complete toy (deployedPublicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
+  deployedPublicInputComplete toy
+
+/-- Its security half typechecks against the same seams, at the same error. -/
+example : Phase.Security toy (deployedPublicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
+    pubError :=
+  deployedPublicInputSecurity toy
 
 example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
     pubError :=
@@ -287,6 +486,25 @@ example (P : Phases toy) (C : P.Complete) {σ : Type}
     (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (leanVmPiop P).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
   piop_perfectCompleteness P C init impl
+
+/-- The deployed phase is a drop-in for the bundle's public-input phase: with the other phases
+and their proofs, the master completeness theorem applies with it in the `pub` field. -/
+example (P : Phases toy) (C : P.Complete) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (leanVmPiop { P with pub := deployedPublicInputPhase toy }).perfectCompleteness init impl
+      (M3Rel toy) (Seam.done toy) :=
+  piop_perfectCompleteness { P with pub := deployedPublicInputPhase toy }
+    { C with pub := deployedPublicInputComplete toy } init impl
+
+/-- The same for knowledge soundness: with the deployed phase and its security half in the
+bundle, the master theorem gives the round-by-round knowledge soundness of the whole oracle
+protocol at the slots' errors. -/
+example (P : Phases toy) (S : P.Security) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    (leanVmVerifier { P with pub := deployedPublicInputPhase toy }).toVerifier
+      |>.rbrKnowledgeSoundnessWorstCase init impl (M3Rel toy) (Seam.done toy) (piopError toy) :=
+  piop_rbrKnowledgeSoundness_exists { P with pub := deployedPublicInputPhase toy }
+    { S with pub := deployedPublicInputSecurity toy } init impl
 
 /-! ## The check is load-bearing -/
 
@@ -580,6 +798,322 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
           decide ((pr.1 1 : List E).length = 2))) = false
       rw [h0, h1, show decide ((expectedValues toy stmtHonest.1 y).length = 2) = false from rfl,
         Bool.and_false, Bool.and_false])⟩
+
+/-! ### The check on the words with `1` for `y` -/
+
+/-- The check on the words with `1` in place of `y`: `c₀ + c₁ = (1 + r)·w₀ + r·w₁`. -/
+def checkOnes (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  match (I.publicLines s.1).toList.filter (·.sent), cs with
+  | [l₀, l₁], [c₀, c₁] =>
+    decide (c₀ + c₁ =
+      (1 + r) * E.ofLimbs l₀.cell0 l₁.cell0 0 + r * E.ofLimbs l₀.cell1 l₁.cell1 0)
+  | [_, _], _ => false
+  | _, _ => check I s r cs
+
+/-- The verifier with that check, on two limbs. -/
+abbrev yOne : FrontVerifier []ₒ (K × TableOut twoLimbs) (K × PubOut twoLimbs) pubSpec :=
+  verifierWith twoLimbs (checkOnes twoLimbs) (pooledFrom twoLimbs)
+
+/-- Both limbs hold the cells `(1, 1)` against the zero words. -/
+def onesLimbs : Column 3 := ⟨#v[1, 1, 1, 1, 0, 0, 0, 0]⟩
+
+/-- The statement `0` with the received claims true of `onesLimbs`. -/
+def stmtOnes : K × TableOut twoLimbs :=
+  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) onesLimbs⟩)
+
+theorem stmtOnes_not_table : ((stmtOnes, oracleOf onesLimbs), ()) ∉ Seam.table twoLimbs :=
+  fun h ↦ absurd (h.2.1 ⟨⟨0, 0⟩, 0, 0, true, by decide⟩ (by simp)).1 (by decide)
+
+/-- The message `[1, 1]` passes the check with `1` for `y` at every challenge: the two values
+sum to zero. -/
+theorem yOne_accepts (c : E) : accepts twoLimbs (checkOnes twoLimbs) stmtOnes c [1, 1] = true := by
+  simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
+  refine ⟨rfl, ?_⟩
+  show decide ((1 : E) + 1 = (1 + c) * E.ofLimbs 0 0 0 + c * E.ofLimbs 0 0 0) = true
+  rw [(ofLimbs_eq_zero_iff 0).mpr rfl]
+  simp [CharTwo.add_self_eq_zero]
+
+/-- And its verdict is in the public seam: `[1, 1]` is the stack's own values at every
+challenge, the line through the cells `(1, 1)` being constant. -/
+theorem yOne_pub (c : E) :
+    ((verdict twoLimbs (pooledFrom twoLimbs) stmtOnes c [1, 1], oracleOf onesLimbs), ()) ∈
+      Seam.pub twoLimbs := by
+  have c0 : (twoLimbs.column onesLimbs ⟨0, 0⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have c1 : (twoLimbs.column onesLimbs ⟨0, 0⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have d0 : (twoLimbs.column onesLimbs ⟨0, 1⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have d1 : (twoLimbs.column onesLimbs ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  rw [verdict, dite_eq_left (show ([1, 1] : List E).length =
+    sentCount twoLimbs (twoLimbs.publicLines stmtOnes.1) from rfl)] at hcl
+  simp only [pooledFrom, Vector.toList_append, List.mem_append] at hcl
+  rcases hcl with hcl | hcl
+  · exact receivedTrue_holds twoLimbs (by decide) (by decide) (by decide) (by decide) onesLimbs
+      cl hcl
+  · simp only [claimsFrom, claimsWith, Vector.toList_ofFn, List.mem_ofFn] at hcl
+    obtain ⟨i, rfl⟩ := hcl
+    fin_cases i
+    · show CMlPolynomialEval.eval₂Mle (twoLimbs.column onesLimbs ⟨0, 0⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, c0, c1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (twoLimbs.column onesLimbs ⟨0, 1⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, d0, d1]
+      simp
+
+/-- Reading `y` as `1` leaves no round-by-round knowledge error below one: the stack whose limbs
+both hold `(1, 1)` is accepted at every challenge with a pool inside the public seam. The check
+on the words is where `1` and `y` being independent over `K` is used, and `accepts_two_challenges`
+needs it. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {WitMid : Fin 3 → Type}
+    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      ((K × TableOut twoLimbs) × ∀ i, TheOracle twoLimbs i) Unit Unit pubSpec WitMid)
+    (kSF : (yOne.toOracleVerifier (TheOracle twoLimbs)).toVerifier.KnowledgeStateFunction
+      init impl (Seam.table twoLimbs) (Seam.pub twoLimbs) Ext)
+    (ε : pubSpec.ChallengeIdx → ℝ≥0)
+    (h : (yOne.toOracleVerifier
+      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+        (Seam.table twoLimbs) (Seam.pub twoLimbs) WitMid Ext kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOnes, oracleOf onesLimbs)
+    (fun _ h ↦ stmtOnes_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
+      ⟨fullOf c [1, 1], fullOf_take c _, (),
+        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
+          (yOne_accepts c) (yOne_pub c)⟩
+
+-- The deployed check rejects that stack at every challenge tried, whatever it sends: with the
+-- values the stack truly takes, and with the message that the mutant accepts.
+#guard checkOnes twoLimbs stmtOnes y [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes y [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes r₂ [1, 1]
+#guard trueValues twoLimbs onesLimbs 0 y = [1, 1]
+#guard ¬ checkWords twoLimbs stmtOnes y (trueValues twoLimbs onesLimbs 0 y)
+#guard ¬ checkWords twoLimbs stmtOnes 0 (trueValues twoLimbs onesLimbs 0 0)
+-- It is none of the earlier mutants either: the check on the first value only accepts `[0, 1]`
+-- on zero words, which the deployed check rejects.
+#guard decide (([0, 1] : List E).head? = (expectedValues twoLimbs (0 : K) y).head?)
+#guard ¬ checkWords twoLimbs stmtTwo y [0, 1]
+
+/-! ### The unsent line pooled at the constant zero -/
+
+/-- The pool with every unsent line's claim at the constant `0`, as the deployed verifiers pool
+the top limb (`cpu/mod.rs:674-682` at leanVM `a386121f`), instead of the value computed from the
+statement. -/
+def poolZero (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E)
+    (h : cs.length = sentCount I (I.publicLines s.1)) : I.Stmt × PubOut I :=
+  (s.1, ⟨s.2.columns ++ claimsWith I r (fun _ ↦ 0) (I.publicLines s.1) cs h⟩)
+
+-- The two pools are the same where the unsent line is zero, as the top limb is: on three lines
+-- shaped like the memory limbs the claims are the same, the value pooled at `0` being the line's.
+#guard ((poolZero threeLimbs stmtLimbs y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) =
+  ((pooledFrom threeLimbs stmtLimbs y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
+
+/-- Three lines like the memory limbs, but with a top line that is not zero: cells `(1, 0)`. The
+public words have a zero top limb, so the deployed statements have no such line, and that the
+adaptor's statements do not is what the constant zero rests on. -/
+abbrev topOne : M3Instance :=
+  { toy with
+    nLines := 3
+    publicLines := fun v ↦
+      #v[⟨⟨0, 0⟩, v, 1, true, by decide⟩, ⟨⟨0, 1⟩, 1, 1, true, by decide⟩,
+        ⟨⟨0, 2⟩, 1, 0, false, by decide⟩] }
+
+-- There the two pools differ: the value computed for the top line at `y` is `1 + y`, and the
+-- constant is `0`.
+#guard ((poolZero topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
+    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value) ≠
+  ((pooledFrom topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
+    goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
+
+/-- The verifier with the check on the words and that pool, on the statement with the top line
+`(1, 0)`. -/
+abbrev zeroTop : FrontVerifier []ₒ (K × TableOut topOne) (K × PubOut topOne) pubSpec :=
+  verifierWith topOne (checkWords topOne) (poolZero topOne)
+
+/-- The statement `1` with the received claims true of `goodLimbs`, whose top column `[0, 0]`
+is not the top line's `(1, 0)`. -/
+def stmtTop : K × TableOut topOne :=
+  (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide) goodLimbs⟩)
+
+theorem stmtTop_not_table : ((stmtTop, oracleOf goodLimbs), ()) ∉ Seam.table topOne :=
+  fun h ↦ absurd (h.2.1 ⟨⟨0, 2⟩, 1, 0, false, by decide⟩ (by simp [stmtTop])).1 (by decide)
+
+/-- The two sent limbs hold their lines, so the message `[1, 1]`, their values at every
+challenge, passes the check on the words whatever the top column holds. -/
+theorem zeroTop_accepts (c : E) :
+    accepts topOne (checkWords topOne) stmtTop c [1, 1] = true := by
+  simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
+  refine ⟨rfl, ?_⟩
+  show decide ((1 : E) + y * 1 = (1 + c) * E.ofLimbs 1 1 0 + c * E.ofLimbs 1 1 0) = true
+  apply decide_eq_true
+  rw [ofLimbs_eq]
+  have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+  have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+  rw [h0, h1]
+  linear_combination (-(c * (1 + y))) * CharTwo.add_self_eq_zero (1 : E)
+
+/-- The verdict is in the public seam at every challenge: the top claim at `0` is true of the
+all-zero top column. -/
+theorem zeroTop_pub (c : E) :
+    ((verdict topOne (poolZero topOne) stmtTop c [1, 1], oracleOf goodLimbs), ()) ∈
+      Seam.pub topOne := by
+  have c0 : (topOne.column goodLimbs ⟨0, 0⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have c1 : (topOne.column goodLimbs ⟨0, 0⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have d0 : (topOne.column goodLimbs ⟨0, 1⟩).values.get ⟨0, by decide⟩ = 1 := by decide
+  have d1 : (topOne.column goodLimbs ⟨0, 1⟩).values.get ⟨1, by decide⟩ = 1 := by decide
+  have e0 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨0, by decide⟩ = 0 := by decide
+  have e1 : (topOne.column goodLimbs ⟨0, 2⟩).values.get ⟨1, by decide⟩ = 0 := by decide
+  refine ⟨fun cl hcl ↦ ?_, aux_of_none rfl _⟩
+  rw [verdict, dite_eq_left (show ([1, 1] : List E).length =
+    sentCount topOne (topOne.publicLines stmtTop.1) from rfl)] at hcl
+  simp only [poolZero, Vector.toList_append, List.mem_append] at hcl
+  rcases hcl with hcl | hcl
+  · exact receivedTrue_holds topOne (by decide) (by decide) (by decide) (by decide) goodLimbs
+      cl hcl
+  · simp only [claimsWith, Vector.toList_ofFn, List.mem_ofFn] at hcl
+    obtain ⟨i, rfl⟩ := hcl
+    fin_cases i
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 0⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, c0, c1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 1⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 1
+      rw [eval₂Mle_linePoint, d0, d1]
+      simp
+    · show CMlPolynomialEval.eval₂Mle (topOne.column goodLimbs ⟨0, 2⟩).values
+        (algebraMap K E) (linePoint (by decide) c) = 0
+      rw [eval₂Mle_linePoint, e0, e1]
+      simp
+
+set_option maxRecDepth 1000 in
+/-- Pooling the unsent line at the constant zero leaves no round-by-round knowledge error below
+one when the line is not zero: the stack whose top column is `[0, 0]` against the line's
+`(1, 0)` is accepted at every challenge. It is sound where the line is zero, which is why the
+sources may pool the top limb at `0`, and that the adaptor's statements have a zero top line
+is the obligation behind it. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    {WitMid : Fin 3 → Type}
+    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      ((K × TableOut topOne) × ∀ i, TheOracle topOne i) Unit Unit pubSpec WitMid)
+    (kSF : (zeroTop.toOracleVerifier (TheOracle topOne)).toVerifier.KnowledgeStateFunction
+      init impl (Seam.table topOne) (Seam.pub topOne) Ext)
+    (ε : pubSpec.ChallengeIdx → ℝ≥0)
+    (h : (zeroTop.toOracleVerifier
+      (TheOracle topOne)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+        (Seam.table topOne) (Seam.pub topOne) WitMid Ext kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtTop, oracleOf goodLimbs)
+    (fun _ h ↦ stmtTop_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
+      ⟨fullOf c [1, 1], fullOf_take c _, (),
+        Verifier.GuardedForm.probEvent_pos_of_check
+          (guardedWith topOne (checkWords topOne) (poolZero topOne)) init impl
+          (stmtTop, oracleOf goodLimbs) (fullOf c [1, 1])
+          (fun out ↦ (out, ()) ∈ Seam.pub topOne)
+          (zeroTop_accepts c) (zeroTop_pub c)⟩
+
+-- The deployed verifier, which pools the value computed, is not fooled: the claim it pools for
+-- the top line is false of that stack.
+#guard ¬ ∀ c ∈ (verdict topOne (pooledFrom topOne) stmtTop y [1, 1]).2.columns.toList,
+  c.Holds goodLimbs
+
+/-! ### The check on the words with the two words swapped -/
+
+/-- The check on the words with the words swapped: `c₀ + y·c₁ = (1 + r)·w₁ + r·w₀`. -/
+def checkSwappedWords (I : M3Instance) (s : I.Stmt × TableOut I) (r : E) (cs : List E) : Bool :=
+  match (I.publicLines s.1).toList.filter (·.sent), cs with
+  | [l₀, l₁], [c₀, c₁] =>
+    decide (c₀ + y * c₁ =
+      (1 + r) * E.ofLimbs l₀.cell1 l₁.cell1 0 + r * E.ofLimbs l₀.cell0 l₁.cell0 0)
+  | [_, _], _ => false
+  | _, _ => check I s r cs
+
+/-- The verifier with that check, on the limbs with nonzero words. -/
+abbrev swappedWords : FrontVerifier []ₒ (K × TableOut wordsTwo) (K × PubOut wordsTwo) pubSpec :=
+  verifierWith wordsTwo (checkSwappedWords wordsTwo) (pooledFrom wordsTwo)
+
+/-- The statement with the received claims true of `honestWords`: in the table seam. -/
+def stmtHonestWords : K × TableOut wordsTwo :=
+  (0, ⟨receivedTrue wordsTwo (by decide) (by decide) (by decide) (by decide) honestWords⟩)
+
+theorem stmtHonestWords_table :
+    ((stmtHonestWords, oracleOf honestWords), ()) ∈ Seam.table wordsTwo :=
+  ⟨receivedTrue_holds wordsTwo (by decide) (by decide) (by decide) (by decide) honestWords,
+    by decide, aux_of_none rfl _⟩
+
+/-- The words `1` and `y` differ, by their limb 1. -/
+theorem ofLimbs_zero_one_ne_one : E.ofLimbs (0 : K) 1 0 ≠ 1 := by
+  intro h
+  have h1 : (1 : E).limb 1 = 0 := by
+    have h : (1 : E) = ofK 1 := (map_one (algebraMap K E)).symm
+    rw [h, limb_ofK]
+    rfl
+  have h2 := congrArg (fun x : E ↦ x.limb 1) h
+  simp only [limb_ofLimbs, h1] at h2
+  simp at h2
+
+/-- The check with the words swapped rejects the honest prover at the challenge `0`: the
+honest message `[1, 0]` satisfies `c₀ + y·c₁ = w₀ = 1`, and the swapped equation asks for
+`w₁ = y`. So the phase with it is not perfectly complete. The check is the right way round
+because the two words differ. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
+    ¬ (OracleReduction.mk (PublicInput.prover wordsTwo)
+      (swappedWords.toOracleVerifier (TheOracle wordsTwo))).perfectCompleteness init impl
+        (Seam.table wordsTwo) (Seam.pub wordsTwo) :=
+  let ⟨pr, hpr, h0, h1, _⟩ :=
+    exists_mem_support_prover_run wordsTwo stmtHonestWords (oracleOf honestWords) 0
+  Reduction.not_perfectCompleteness_of_reject' _ (guardedWith wordsTwo _ _) init impl _ _
+    stmtHonestWords_table ⟨pr, hpr, Or.inl (by
+      show (decide ((pr.1 1 : List E).length =
+          sentCount wordsTwo (wordsTwo.publicLines stmtHonestWords.1)) &&
+        checkSwappedWords wordsTwo stmtHonestWords (pr.1 0) (pr.1 1)) = false
+      rw [h0, h1]
+      have hne : checkSwappedWords wordsTwo stmtHonestWords 0
+          (expectedValues wordsTwo stmtHonestWords.1 0) = false := by
+        simp only [checkSwappedWords, expectedValues, stmtHonestWords]
+        apply decide_eq_false
+        intro h
+        apply ofLimbs_zero_one_ne_one
+        have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+        have h1 : ofK (1 : K) = 1 := map_one (algebraMap K E)
+        simp only [lineValue, add_zero, one_mul, zero_mul, mul_zero, h0, h1] at h
+        exact h.symm
+      rw [hne, Bool.and_false])⟩
+
+-- The deployed check accepts that honest message at every challenge tried; the swapped one
+-- rejects it at every challenge tried, as the words `1` and `y` differ.
+#guard checkWords wordsTwo stmtHonestWords 0 (expectedValues wordsTwo (0 : K) 0)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords 0 (expectedValues wordsTwo (0 : K) 0)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords y (expectedValues wordsTwo (0 : K) y)
+#guard ¬ checkSwappedWords wordsTwo stmtHonestWords r₂ (expectedValues wordsTwo (0 : K) r₂)
+
+/-! ### The bad challenge of the deployed check -/
+
+-- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
+-- stack's true values passes the check on the words at `r = 1` and at no other challenge tried,
+-- and at that challenge every claim of the pool holds of its stack: the bound `1/|E|` of
+-- `deployedPublicInputSecurity` is attained, so it cannot be lowered.
+#guard checkWords twoLimbs stmtOneBad 1 (trueValues twoLimbs oneBadLimb 0 1)
+#guard ¬ checkWords twoLimbs stmtOneBad y (trueValues twoLimbs oneBadLimb 0 y)
+#guard ¬ checkWords twoLimbs stmtOneBad r₂ (trueValues twoLimbs oneBadLimb 0 r₂)
+#guard ∀ c ∈ (pooled twoLimbs stmtOneBad 1).2.columns.toList, c.Holds oneBadLimb
+-- On `badLimbs` the bad challenge of the deployed check is `rStar`, where the check per limb
+-- rejects: the deployed check has a bad challenge the specification's has not.
+#guard checkWords twoLimbs stmtTwo rStar (trueValues twoLimbs badLimbs 0 rStar)
+#guard ¬ check twoLimbs stmtTwo rStar (trueValues twoLimbs badLimbs 0 rStar)
+
+/-- The statement `0` with the received claims true of `badLimbs`. -/
+def stmtBadLimbs : K × TableOut twoLimbs :=
+  (0, ⟨receivedTrue twoLimbs (by decide) (by decide) (by decide) (by decide) badLimbs⟩)
+
+-- The check on the words does not decide the claims. At `y` it accepts the message `[y, 1]`,
+-- which is not `badLimbs`' own values `[y, 1 + y]`, and the claim pooled from it on limb 1 is false
+-- of that stack: the claims, not the check, are what a prover cannot get past. So the state of
+-- the proof after the challenge asks whether some message is accepted with a pool that holds.
+#guard accepts twoLimbs (checkWords twoLimbs) stmtBadLimbs y [y, 1]
+#guard ¬ ∀ c ∈ (verdict twoLimbs (pooledFrom twoLimbs) stmtBadLimbs y [y, 1]).2.columns.toList,
+  c.Holds badLimbs
 
 end Refutations
 
