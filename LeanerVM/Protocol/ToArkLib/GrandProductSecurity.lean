@@ -234,7 +234,8 @@ private theorem mem_rel_lambdaNext (T : RiderTrack μ riders ρ m) (hm : m + ρ 
     ((lambdaNext nside m s l, o), ()) ∈
         SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 ↔
       RidersZero μ riders s.1 o ∧
-        powerBatch s.2.2 l = powerBatch (fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1) l := by
+        powerBatch s.2.2 l =
+          powerBatch (fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1) l := by
   change T.inv s.1 o 0 #v[] ∧ (lambdaNext nside m s l).2.2 =
     partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] ↔ _
   rw [T.inv_zero, partialSum_summand_zero nside μ leaves ρ m hm s o l]
@@ -250,8 +251,8 @@ def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     Component.Security (lambdaStep nside m inp) relS
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0)
       (drawError F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
-  Component.batchSecurity O F _ _ fun s o _ hs ↦
-    ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun l hl ↦ by
+  Component.batchSecurity O F _ _ fun s o ↦
+    ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun _ l hs hl ↦ by
       obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
       exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
 
@@ -284,9 +285,10 @@ private theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
   change s.2.2 = partialSum (summand nside μ leaves ρ m ((s.1, o), ())) s.1.1.2.1 m s.2.1
   rw [partialSum_self]
   rw [combineCheck, decide_eq_true_eq] at hc
-  rw [hc]
+  rw [hc, powerBatch]
   unfold summand
   refine Finset.sum_congr rfl fun t _ ↦ ?_
+  rw [mul_comm]
   congr 1
   refine Finset.prod_congr rfl fun c _ ↦ ?_
   simp [hch', children, below]

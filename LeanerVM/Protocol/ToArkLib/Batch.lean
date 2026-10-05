@@ -22,10 +22,12 @@ keeps its own statement types composes with no relabelling step.
 
 Completeness (`batchComplete`): the input relation is carried into the output relation at every
 challenge. Knowledge soundness (`batchSecurity`, at `(k - 1) / |F|`, with the extractor that keeps
-a witness that carries no information): a statement outside the input relation has true values `a`
-different from the claimed ones, fixed before the challenge, and lands in the output relation only
-if the combined claim equals the combination of `a`; the difference is a nonzero polynomial of
-degree less than `k` in `ρ`, so at most `k - 1` challenges do (`card_false_batch_le`).
+the witness): a statement has true values `a`, fixed before the challenge and the witness, and
+with a witness outside the input relation it lands in the output relation only if `a` differs from
+the claimed values and the combined claim equals the combination of `a`; the difference is a
+nonzero polynomial of degree less than `k` in `ρ`, so at most `k - 1` challenges do
+(`card_false_batch_le`). Fixing `a` before the witness is what keeps the count at `k - 1`: values
+depending on the witness would let the bad challenges of different witnesses add up.
 -/
 
 namespace LeanerVM.Protocol
@@ -53,13 +55,14 @@ def batchComplete
     Complete (batch O F value out) relIn relOut :=
   sampleChallengeComplete O F _ _ fun s o w hin ↦ ⟨rfl, h s o w hin⟩
 
-variable [Finite F] [DecidableEq F] [Subsingleton W]
+variable [Finite F]
 
-/-- Its security at `(k - 1) / |F|`, whenever a statement outside the input relation has values `a`,
-fixed before the challenge, such that a challenge carrying it into the output relation makes the
-combined claim the combination of `a`, and `a` is not the claimed values. -/
+/-- Its security at `(k - 1) / |F|`, whenever every statement has values `a`, fixed before the
+challenge and the witness, such that a challenge carrying it, with a witness outside the input
+relation, into the output relation makes the combined claim the combination of `a`, and `a` is
+not the claimed values. -/
 def batchSecurity
-    (h : ∀ s o w, ((s, o), w) ∉ relIn → ∃ a : Fin k → F, ∀ ρ,
+    (h : ∀ s o, ∃ a : Fin k → F, ∀ w ρ, ((s, o), w) ∉ relIn →
       ((out s ρ (powerBatch (value s) ρ), o), w) ∈ relOut →
         a ≠ value s ∧ powerBatch (value s) ρ = powerBatch a ρ) :
     Security (batch O F value out) relIn relOut
@@ -68,29 +71,18 @@ def batchSecurity
     have := Fintype.ofFinite F
     classical
     rw [natCard_subtype_eq_card_filter]
-    by_cases hW : Nonempty W
-    · obtain ⟨w⟩ := hW
-      by_cases hin : ((s, o), w) ∈ relIn
-      · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
-        rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-        rintro ρ - ⟨w', hw', -⟩
-        exact hw' (Subsingleton.elim w w' ▸ hin)
-      · obtain ⟨a, ha⟩ := h s o w hin
-        by_cases hgood : ∃ ρ, ((out s ρ (powerBatch (value s) ρ), o), w) ∈ relOut
-        · obtain ⟨ρ₀, hρ₀⟩ := hgood
-          refine (Finset.card_le_card fun ρ hρ ↦ ?_).trans
-            (card_false_batch_le (value s) a (Function.ne_iff.mp (ha ρ₀ hρ₀).1.symm))
-          obtain ⟨w', -, hout⟩ := (Finset.mem_filter.mp hρ).2
-          rw [Subsingleton.elim w' w] at hout
-          exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, (ha ρ hout).2⟩
-        · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
-          rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-          rintro ρ - ⟨w', -, hout⟩
-          exact hgood ⟨ρ, Subsingleton.elim w' w ▸ hout⟩
+    obtain ⟨a, ha⟩ := h s o
+    by_cases hgood : ∃ ρ w, ((s, o), w) ∉ relIn ∧
+        ((out s ρ (powerBatch (value s) ρ), o), w) ∈ relOut
+    · obtain ⟨ρ₀, w₀, hin₀, hρ₀⟩ := hgood
+      refine (Finset.card_le_card fun ρ hρ ↦ ?_).trans
+        (card_false_batch_le (value s) a (Function.ne_iff.mp (ha w₀ ρ₀ hin₀ hρ₀).1.symm))
+      obtain ⟨w', hw', hout⟩ := (Finset.mem_filter.mp hρ).2
+      exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, (ha w' ρ hw' hout).2⟩
     · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
       rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-      rintro ρ - ⟨w, -⟩
-      exact hW ⟨w⟩
+      rintro ρ - ⟨w', hw', hout⟩
+      exact hgood ⟨ρ, w', hw', hout⟩
 
 end Component
 

@@ -11,7 +11,8 @@ import Mathlib.Data.ZMod.Defs
   the combination of the true values at every challenge.
 * **The count.** Over `ZMod 5`, a false family of two values collides with the true one at exactly
   one challenge (the root of the difference, degree one), a false singleton at none; equal
-  families at every challenge.
+  families at every challenge; true values that depend on the witness collide at more
+  challenges than one family's.
 * **Completeness and knowledge soundness** have inhabitants over `E`, as plain definitions that
   compute, at `(k - 1) / |E|`.
 
@@ -22,9 +23,6 @@ namespace LeanerVMTests.Protocol.Batch
 
 open LeanerVM.Parameters LeanerVM.Protocol
 open scoped NNReal
-
-/-- No oracle. -/
-def noO : ∀ i, NoOracle i := fun i ↦ i.elim0
 
 /-! ## The component -/
 
@@ -41,14 +39,11 @@ def batch3 : Component.Def (Fin 3 → E) NoOracle Unit Out NoOracle Unit (draw E
 /-- The challenge. -/
 def ρ₀ : E := y + y * y
 
--- The verifier's verdict combines by the powers of the challenge, `ρ^0 = 1` on the first value.
+-- The combined claim weighs value `j` by `ρ^j`, `ρ^0 = 1` on the first.
 #guard powerBatch v₃ ρ₀ = v₃ 0 + v₃ 1 * ρ₀ + v₃ 2 * (ρ₀ * ρ₀)
 
-/-- The truth the claims are measured against. -/
-def truth : (Fin 3 → E) → Fin 3 → E := fun _ ↦ v₃
-
-/-- The input relation: the claimed values are the true ones. -/
-def relIn : Set (((Fin 3 → E) × ∀ i, NoOracle i) × Unit) := {p | p.1.1 = truth p.1.1}
+/-- The input relation: the claimed values are the true ones, `v₃`. -/
+def relIn : Set (((Fin 3 → E) × ∀ i, NoOracle i) × Unit) := {p | p.1.1 = v₃}
 
 /-- The output relation: the combined value is the combination of the true values. -/
 def relOut : Set ((Out × ∀ i, NoOracle i) × Unit) := {p | p.1.1.2 = powerBatch v₃ p.1.1.1}
@@ -64,8 +59,8 @@ challenges at most. -/
 def batchSecurity3 :
     Component.Security batch3 relIn relOut
       (drawError E (((3 - 1 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0))) :=
-  Component.batchSecurity NoOracle E id _ fun _ _ _ hs ↦
-    ⟨v₃, fun _ hρ ↦ ⟨fun h ↦ hs h.symm, hρ⟩⟩
+  Component.batchSecurity NoOracle E id _ fun _ _ ↦
+    ⟨v₃, fun _ _ hs hρ ↦ ⟨fun h ↦ hs h.symm, hρ⟩⟩
 
 /-! ## The count -/
 
@@ -75,5 +70,12 @@ def batchSecurity3 :
   powerBatch (![2] : Fin 1 → ZMod 5) ρ = powerBatch ![3] ρ).card = 0
 #guard (Finset.univ.filter fun ρ : ZMod 5 ↦
   powerBatch (![1, 2] : Fin 2 → ZMod 5) ρ = powerBatch ![1, 2] ρ).card = 5
+
+-- Why the true values are fixed before the witness: against the claim `(0, 0)`, two witnesses
+-- with true values `(1, -1)` and `(2, -1)` each collide at one challenge, but at two between
+-- them, above `k - 1 = 1`.
+#guard (Finset.univ.filter fun ρ : ZMod 5 ↦
+  powerBatch (![1, -1] : Fin 2 → ZMod 5) ρ = powerBatch ![0, 0] ρ ∨
+    powerBatch (![2, -1] : Fin 2 → ZMod 5) ρ = powerBatch ![0, 0] ρ).card = 2
 
 end LeanerVMTests.Protocol.Batch

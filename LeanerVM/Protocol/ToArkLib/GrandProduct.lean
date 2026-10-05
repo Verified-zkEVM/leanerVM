@@ -29,8 +29,7 @@ the schedule `stepSpec F nside ρ m`:
 
 * the combiner (`lambdaStep`, one challenge, batching by powers, `Component.batch`): the verifier
   draws `λ`, and the claims become one, `Σ_s value_s · λ^s` (`powerBatch`), the sum of the layer
-  identity
-  `Σ_s λ^s Ṽ_s(r) = Σ_x eq(r, x) Σ_s λ^s ∏_c Ṽ'_s(c, x)` over the level `ρ` below;
+  identity `Σ_s Ṽ_s(r) · λ^s = Σ_x eq(r, x) Σ_s λ^s ∏_c Ṽ'_s(c, x)` over the level `ρ` below;
 * the normalized sumcheck on that identity (`m` rounds of `SumcheckRound.round` on
   `SumcheckRound.normalizedWeights`): the message is the cofactor of `eq(r, ·)` (`roundPoly`), a
   sum of products of `2 ^ ρ` affine factors, so of degree `2 ^ ρ`, sent as its `2 ^ ρ + 1`
@@ -355,7 +354,7 @@ def children (x : X) (o : ∀ i, O i) (c : Vector F m) (s : Fin nside) : CMlPoly
 the products of each tree's values. -/
 def combineCheck (s : SumcheckRound.Stmt (LayerX X F nside m) F m)
     (ch : Fin nside → CMlPolynomialEval F ρ) : Bool :=
-  decide (s.2.2 = ∑ t, s.1.2 ^ t.val * ∏ c : Fin (2 ^ ρ), (ch t)[c])
+  decide (s.2.2 = powerBatch (fun t ↦ ∏ c : Fin (2 ^ ρ), (ch t)[c]) s.1.2)
 
 /-- The statement after the message: the public data, the sumcheck's point, the values. -/
 def childNext (s : SumcheckRound.Stmt (LayerX X F nside m) F m)
@@ -385,9 +384,10 @@ private theorem combineCheck_children (s : SumcheckRound.Stmt (LayerX X F nside 
   obtain ⟨-, hclaim⟩ := h
   rw [combineCheck, decide_eq_true_eq, hclaim]
   change partialSum (summand nside μ leaves ρ m ((s.1, o), ())) s.1.1.2.1 m s.2.1 = _
-  rw [partialSum_self]
+  rw [partialSum_self, powerBatch]
   unfold summand
   refine Finset.sum_congr rfl fun t _ ↦ ?_
+  rw [mul_comm]
   congr 1
   refine Finset.prod_congr rfl fun c _ ↦ ?_
   simp [children, below]

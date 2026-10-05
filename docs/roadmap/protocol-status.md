@@ -46,7 +46,8 @@ tracks the riders and the descendants' values while the coordinates of a point a
 one at a time. On another branch stacked on that one, batching by powers
 (`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at
 `(k − 1) / |F|`), on the power combination and its root count of #43
-(`ToCompPoly/PowerBatching.lean`, `ToArkLib/PowerBatching.lean`, carried with its author); the
+(`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound is
+superseded by `batchSecurity` and gone); the
 GKR's combiner is `Component.batch`. Nothing else is built: the
 other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
 trees, the compiled verifier and the base theorems.
@@ -171,13 +172,15 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the context and the challenges), since the GKR's summand reads the trees' levels from the
   oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
   `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
-  statement maps as arguments (a relabelling pass-through on either side would put a `!p[]` into
-  the schedule and break the definitional equality with `stepSpec`), its combined claim
-  `powerBatch`, its completeness `batchComplete` and its security `batchSecurity`; the count it
-  used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for #43's `card_false_batch_le`.
-  The blueprint is asked, through a `docs(protocol)` pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
-  the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
-  lists batching by powers among its needs; the normalized sumcheck is stated in the family form.
+  statement maps as arguments (a relabelling pass-through before it would put a `!p[]` into the
+  schedule and break the definitional equality with `stepSpec`; one after it would add a step,
+  its security and a `mono` for nothing), its combined claim `powerBatch`, its completeness
+  `batchComplete` and its security `batchSecurity`, and the descendants' check combines by
+  `powerBatch` too; the count it used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for
+  #43's `card_false_batch_le`. The blueprint is asked, through a `docs(protocol)` pull request,
+  for three changes: the unused last combiner moves out of the generic `gkr` into the bus phase
+  (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness lists batching
+  by powers among its needs; the normalized sumcheck is stated in the family form.
   Its knowledge soundness, `gkrSecurity`, is proved on its local round, not on Layer 4's
   `Sumcheck.normalizedSecurity` as the holes table's *Needs* has it: the round's knowledge
   soundness is the generic `SumcheckRound.roundsSecurity`, which the sumcheck hole may take over
