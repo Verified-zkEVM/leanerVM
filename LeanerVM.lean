@@ -56,6 +56,7 @@ import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
+import LeanerVM.Semantics.Blake2sOutput
 import LeanerVM.Semantics.Executable
 import LeanerVM.Semantics.Execution
 import LeanerVM.Semantics.FillBlocks
