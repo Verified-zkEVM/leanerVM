@@ -35,8 +35,10 @@ theorem no_room_at_cap (t : Trace mulProg) (h : t.κ = maxLogMem) : ¬ t.Fits :=
 (acceptance test 5). -/
 def soloProg : Program := ⟨0, by decide, fun _ ↦ .setConstant (gpow 0) 0⟩
 
+/-- The image of the single-slot program: zeros. -/
 def soloImage : MemImage minLogMem := fun _ ↦ 0
 
+/-- Its empty execution: no steps. -/
 def soloTrace : Trace soloProg := ⟨minLogMem, soloImage, 0⟩
 
 /-- The register sequence of the empty execution is its initial state alone. -/
@@ -84,6 +86,7 @@ def mulAltered : Trace mulProg :=
   ⟨minLogMem + 1, fun i ↦ if (i : ℕ) = 2 then 0 else
     if h : (i : ℕ) < 2 ^ minLogMem then mulImage ⟨i, h⟩ else 0, 3⟩
 
+/-- The altered extension is not a padding of the executor's trace. -/
 theorem mulAltered_not_from : ¬ mulAltered.PaddedFrom mulTrace := fun h ↦ by
   have := h.image_ext 2 (by decide) (by decide)
   simp only [mulAltered, mulTrace, mulImage] at this
@@ -92,6 +95,10 @@ theorem mulAltered_not_from : ¬ mulAltered.PaddedFrom mulTrace := fun h ↦ by
 /-- A trace with a smaller memory is not a padding. -/
 example : ¬ (⟨minLogMem, mulImage, 3⟩ : Trace mulProg).PaddedFrom mulPadded := fun h ↦
   absurd h.κ_le (by decide)
+
+/-- A different number of steps is not a padding: the run would be another run. -/
+example : ¬ ({ mulPadded with steps := 4 } : Trace mulProg).PaddedFrom mulTrace := fun h ↦
+  absurd h.steps_eq (by decide)
 
 /-! ## The rows of a run -/
 

@@ -1,5 +1,6 @@
 import LeanerVM.Semantics.PaddedRows
 import LeanerVMTests.Semantics.FillPlan
+import LeanerVMTests.Semantics.PaddedTrace
 
 /-!
 # Layer 10 tests: the rows of a padded trace
@@ -15,7 +16,8 @@ break the count.
 namespace LeanerVMTests.Semantics.PaddedRows
 
 open LeanerVM.Parameters LeanerVM.Semantics
-open LeanerVMTests.Semantics.FillPlan
+open LeanerVMTests.Semantics.FillPlan LeanerVMTests.Semantics.Execution
+open LeanerVMTests.Semantics.PaddedTrace
 
 /-! ## The rows of a cycle -/
 
@@ -65,6 +67,15 @@ example (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (op : Opcode) :
       tableHeight mulRows 6 op := by
   have h := jumpOwed_le (rows := mulRows) (k := 3) le_rfl (fun op ↦ by cases op <;> simp [mulRows])
   exact plan_rows κ pcs mulRows (by omega) (by omega) op
+
+/-- The theorem for a trace: the run's skeletons followed by the fill's number the height of every
+table, for the executor's three-step run, which fits. -/
+example (κ : ℕ) (pcs : Opcode → ℕ → ℕ) (op : Opcode) :
+    ∃ τ ≤ maxLogRows,
+      Skel.count op (mulTrace.runSkels ++ padSkels κ pcs (planCount mulTrace.runRows τ)) =
+        tableHeight mulTrace.runRows τ op := by
+  obtain ⟨τ, hτ, h1, h2⟩ := mulTrace_fits.jump
+  exact ⟨τ, hτ, mulTrace.count_rows κ pcs h1 h2 op⟩
 
 /-! ## Each condition is load-bearing -/
 

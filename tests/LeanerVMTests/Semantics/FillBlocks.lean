@@ -23,6 +23,10 @@ example : fillSizes.sum = 255 := by decide
 
 example : fillTables.length = 6 := rfl
 
+-- The order is the order of the bus codes: `JUMP` is the fifth, which the fill plan and the frame
+-- layout rely on.
+example : fillTables = [.xor, .mulNative, .setConstant, .deref, .jump, .blake2s] := rfl
+
 example : fillTables.Nodup := by decide
 
 example (t : Opcode) : t ∈ fillTables := mem_fillTables t
@@ -104,6 +108,7 @@ def ladderCode (i : ℕ) : Instr :=
 /-- `1 + 6 * 263 = 1579` slots padded to `2^11`. -/
 def ladderProg : Program := ⟨11, by decide, fun i ↦ ladderCode i⟩
 
+/-- The instruction at a slot of the ladder program, fetched through the address of the slot. -/
 theorem ladder_fetch (n : ℕ) (hn : n < 2048) : ladderProg.fetch (gpow n) = some (ladderCode n) :=
   ladderProg.fetch_gpow ⟨n, hn⟩
 
@@ -161,6 +166,11 @@ theorem ladder_sentinelSafe : SentinelSafe ladderProg := by decide
 theorem ladder_wellFormed : WellFormedBytecode ladderProg :=
   ⟨ladder_sentinelSafe, ladder_hasFillBlocks⟩
 
+/-- Every size of the ladder is required, the largest and the smallest included. -/
+example (prog : Program) (h : HasFillBlocks prog) (t : Opcode) :
+    (∃ p, IsFillBlock prog t 128 p) ∧ (∃ p, IsFillBlock prog t 1 p) :=
+  ⟨h t 128 (by simp [fillSizes]), h t 1 (by simp [fillSizes])⟩
+
 /-! ## The predicate tells blocks apart -/
 
 /-- A block shifted by one slot is not a block: its last dummy would be a closing jump. -/
@@ -172,6 +182,18 @@ theorem ladder_shifted_not_block : ¬ IsFillBlock ladderProg .xor 128 2 := fun h
   rw [hc] at h127
   have := congrArg Instr.opcode (Option.some.inj h127)
   rw [fillClose_opcode, fillDummy_opcode] at this
+  exact absurd this (by decide)
+
+/-- A block one dummy short is not a block: its closing jump would be a dummy, so the `close` field
+fails while the `dummies` field holds. -/
+theorem ladder_short_block_not_block : ¬ IsFillBlock ladderProg .xor 127 1 := fun h ↦ by
+  have hc := h.close
+  rw [show (1 + 127 : ℕ) = 128 from rfl, ladder_fetch 128 (by norm_num)] at hc
+  have hd : ladderCode 128 = fillDummy .xor := by
+    simp [ladderCode, closeOffsets, tableOf, fillTables]
+  rw [hd] at hc
+  have := congrArg Instr.opcode (Option.some.inj hc)
+  rw [fillDummy_opcode, fillClose_opcode] at this
   exact absurd this (by decide)
 
 /-- A block of one table is not a block of another: the first slot holds the `XOR` dummy. -/

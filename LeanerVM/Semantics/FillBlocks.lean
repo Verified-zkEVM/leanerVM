@@ -160,9 +160,5 @@ theorem fillClose_opcode : fillClose.opcode = .jump := rfl
 theorem mem_fillTables (t : Opcode) : t ∈ fillTables := by
   cases t <;> simp [fillTables]
 
-/-- The sizes of the ladder are positive. -/
-theorem fillSizes_pos : ∀ s ∈ fillSizes, 0 < s := by
-  simp [fillSizes]
-
 end
 end LeanerVM.Semantics

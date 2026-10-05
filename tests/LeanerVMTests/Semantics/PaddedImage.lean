@@ -26,12 +26,14 @@ def pcsAny : Opcode → ℕ → ℕ := fun t s ↦ 7 * tableIdx t + s
 /-- The padded trace of the executor's run is a padding of it, with one more doubling of memory. -/
 example : (padTrace mulTrace pcsAny).κ = minLogMem + 1 := rfl
 
+/-- The padded trace is a padding of the executor's trace. -/
 theorem mulPad_from : (padTrace mulTrace pcsAny).PaddedFrom mulTrace := padTrace_from mulTrace pcsAny
 
 /-- It is a valid execution, and its register sequence is the executor's. -/
 theorem mulPad_valid : ValidExecution mulProg mulInput (padTrace mulTrace pcsAny) :=
   mulPad_from.valid (by decide) mul_valid
 
+/-- Padding leaves the register sequence of the executor's run unchanged. -/
 theorem mulPad_regs : (padTrace mulTrace pcsAny).regs = mulTrace.regs :=
   mulPad_from.regs_eq (by decide) mul_valid
 
@@ -83,5 +85,14 @@ theorem zeroDigest_ne_zero : ¬ (zeroDigest.1 = 0 ∧ zeroDigest.2 = 0) := by
 /-- The cells past the forty-eight frames are zero. -/
 example (w0 : E) (κ : ℕ) : padCell w0 pcsAny κ (12 * 48) = 0 := by
   simp [padCell]
+
+/-- The frames fit above a memory of `2^10` cells and not above one of `2^9`: `576` cells need
+`κ ≥ 10`, and the verifier's floor is above that. -/
+example : frameBase 10 47 + 11 < 2 ^ (10 + 1) := by decide
+
+example : ¬ (frameBase 9 47 + 11 < 2 ^ (9 + 1)) := by decide
+
+/-- Frames are adjacent and none shares a cell: the second starts twelve cells after the first. -/
+example (κ : ℕ) : frameBase κ 1 = frameBase κ 0 + 12 := frameBase_succ κ 0
 
 end LeanerVMTests.Semantics.PaddedImage

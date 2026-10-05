@@ -33,6 +33,7 @@ def img (fin : K) : MemImage 32 := fun n ↦
     (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (gpow (4 * ((n : ℕ) / 4 + 1))))
   else ofK g
 
+/-- The memory of `2^32` cells holds `4 J` cells, `J` frames of four. -/
 theorem two_pow_32 : (2 : ℕ) ^ 32 = 4 * J := by norm_num [J]
 
 /-- Reading the address of a cell of the image gives the cell. -/

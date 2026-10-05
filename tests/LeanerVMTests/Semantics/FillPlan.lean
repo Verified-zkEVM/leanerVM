@@ -53,6 +53,13 @@ example : fillTraversals 6072 ≤ 6072 / 128 + 7 := fillTraversals_le 6072
 example : 125000 + (List.zipWith (· * ·) (fillGreedy (fillTarget 125000 1 - 125000))
     fillSizes).sum = fillTarget 125000 1 := fill_rows_sum 125000 1
 
+/-- A target is a power of two, positive, and at least the floor. -/
+example : ∃ τ, fillTarget 5 1 = 2 ^ τ := fillTarget_pow 5 1
+
+example : 0 < fillTarget 5 1 := fillTarget_pos 5 1
+
+example : 8 ≤ fillTarget 0 8 := floor_le_fillTarget 0 8
+
 /-! ## The rows the `JUMP` table owes -/
 
 /-- The rows of the executor's `mul_192bit_word` per table: two `SET_CONSTANT`s and a
@@ -65,6 +72,10 @@ def mulRows : Opcode → ℕ
 -- `XOR`, `DEREF` and `BLAKE2S` are filled by one traversal each (a size-one block, a size-one
 -- block, a size-eight block), so the `JUMP` table owes three closing jumps.
 #guard jumpOwed mulRows = 3
+
+-- The `JUMP` table's own run rows are owed too: seven of them, and one closing jump from each of
+-- the five other tables' single traversal (the `BLAKE2S` one is the size-eight block).
+#guard jumpOwed (fun op ↦ if op = .jump then 7 else 0) = 7 + 5
 
 example : JumpFeasible (jumpOwed mulRows) :=
   jumpFeasible_of_le ((jumpOwed_le (k := 3) le_rfl (fun op ↦ by cases op <;> simp [mulRows])).trans

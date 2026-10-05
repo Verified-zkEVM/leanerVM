@@ -100,6 +100,13 @@ noncomputable def frameCell (w0 : E) (pc base : ℕ) (t : Opcode) (o : ℕ) : E 
 /-- The cell index of frame `c` for a memory of `2^κ` committed cells. -/
 def frameBase (κ c : ℕ) : ℕ := 2 ^ κ + 12 * c
 
+/-- Consecutive frames are adjacent: the next frame starts where this one's twelve cells end, so no
+two frames share a cell. -/
+theorem frameBase_succ (κ c : ℕ) : frameBase κ (c + 1) = frameBase κ c + FillFrame.cells := by
+  unfold frameBase
+  simp only [FillFrame.cells]
+  omega
+
 /-- The cell `j` above the committed image, `j = 12 c + o`: offset `o` of frame `c` when `c` is one
 of the forty-eight, `0` past them. The block of size `s` of table `t` starts at slot `pcs t s`. -/
 noncomputable def padCell (w0 : E) (pcs : Opcode → ℕ → ℕ) (κ j : ℕ) : E :=

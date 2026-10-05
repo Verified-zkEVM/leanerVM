@@ -32,6 +32,7 @@ open LeanerVMTests.Semantics.FillBlocks
 `K` terms by evaluating powers of `g`, so it is never a definition (status finding E8). -/
 local notation "d₀" => (gpow 2047 : K)
 
+/-- Reading the address of a literal index gives the cell at that index. -/
 theorem read_lit {κ : ℕ} (L : MemImage κ) (j : ℕ) (hκ : κ < 64 := by decide)
     (hj : j < 2 ^ κ := by decide) : L.read (gpow j) = some (L ⟨j, hj⟩) :=
   MemImage.read_gpow hκ L ⟨j, hj⟩
@@ -56,14 +57,17 @@ theorem S_sumfree_bool :
     (S d₀).all (fun x ↦ (S d₀).all (fun y ↦ (S d₀).all (fun z ↦ decide (z ≠ x + y)))) = true := by
   decide +kernel
 
+/-- No word of the five is the sum of two of them. -/
 theorem S_sumfree : ∀ x ∈ S d₀, ∀ y ∈ S d₀, ∀ z ∈ S d₀, z ≠ x + y := by
   intro x hx y hy z hz
   have := S_sumfree_bool
   simp only [List.all_eq_true, decide_eq_true_eq] at this
   exact this x hx y hy z hz
 
+/-- The sentinel counter of a `2^11`-slot program is not `1`. -/
 theorem d₀_ne_one : d₀ ≠ 1 := by decide +kernel
 
+/-- The sentinel counter of a `2^11`-slot program is not `0`. -/
 theorem d₀_ne_zero : d₀ ≠ 0 := by decide +kernel
 
 /-- The image: the two public words, the `JUMP` operand cells `(d, d)` and `1`, and `y²`
@@ -76,6 +80,7 @@ def badImage (d : K) : MemImage minLogMem := fun i ↦
   | 3 => ofK 1
   | _ => vS
 
+/-- Every cell of the image is one of the five words. -/
 theorem badImage_mem (d : K) (i : Fin (2 ^ minLogMem)) : badImage d i ∈ S d := by
   obtain ⟨i, hi⟩ := i
   unfold badImage
@@ -108,6 +113,7 @@ theorem no_xor_execute {κ : ℕ} (hκ : κ < 64) (L : MemImage κ)
   obtain ⟨k, -, rfl⟩ := (MemImage.read_eq_some_iff hκ L).mp hC
   simp [hA, hB, hC, hL i j k]
 
+/-- No `XOR` executes on the image, at any registers and operands. -/
 theorem badImage_no_xor (r : Regs K) (oA oB oC : K) :
     execute (badImage d₀) r (.xor oA oB oC) = none :=
   no_xor_execute (by decide) (badImage d₀)
@@ -169,6 +175,7 @@ theorem bad_run (prog : Program) (d : K) (hd : prog.finalPc = d) (hd0 : d ≠ 0)
   have hl1 : (1 : E).limb 0 = 1 := by simpa using limb_ofK (1 : K) 0
   simp [hin, hin1', hne0, limb_ofK, hl1, run_zero, Regs.final, hd]
 
+/-- The image holds the public words at `g^0` and `g^1`. -/
 theorem bad_boundary {prog : Program} (d : K) (steps : ℕ) :
     HasPublicBoundary badInput (⟨minLogMem, badImage d, steps⟩ : Trace prog) := by
   refine ⟨le_rfl, (by decide : minLogMem ≤ maxLogMem), ?_, ?_⟩
