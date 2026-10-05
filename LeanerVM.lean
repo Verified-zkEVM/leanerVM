@@ -28,6 +28,7 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
+import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
