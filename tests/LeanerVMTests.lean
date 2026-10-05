@@ -16,6 +16,7 @@ import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.GrandProduct
+import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
