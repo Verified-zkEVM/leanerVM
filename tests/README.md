@@ -34,8 +34,11 @@ a word in `E.ofLimbs` form, as `tests/LeanerVMTests/Semantics/Execution.lean` do
 Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
 
 - A structure that holds a real number (an error bound) makes every definition built from it
-  `noncomputable`; keep the reduction, the verifier and the extractor in computable definitions
-  and the error elsewhere, and check an extractor by a `def` without `noncomputable`.
+  `noncomputable`, and so does a real number or a `Fintype E` instance passed as an argument;
+  keep the reduction, the verifier and the extractor in computable definitions and the error
+  in types: state a security at its exact error, counting with `Nat.card` under `[Finite F]`,
+  raise it with `Component.Security.mono`, which is inlined before compilation, and check an
+  extractor by a `def` without `noncomputable`.
 - `simp` does not rewrite inside instance arguments carried by a structure's type: state a
   phase's lemmas on its literal prover and verifier, not on the bundle's projections.
 - A `Decidable` instance written `by unfold …; infer_instance` can elaborate and never return

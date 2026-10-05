@@ -128,9 +128,9 @@ structure Phases.Security (P : Phases I) where
   opening : Phase.Security I P.opening (Seam.flock I) (Seam.done I) (openingError I)
 
 /-- The whole protocol's security: the commit phase's, then five compositions, at
-`piopError I`. `noncomputable` since the slots' errors are real numbers it takes as arguments;
-its extractor is written out as `piopExtractor`, which computes. -/
-noncomputable def Phases.Security.toDef {P : Phases I} (S : P.Security) :
+`piopError I`. It computes, since the compositions are inlined before compilation and the
+slots' errors stay in types; its extractor is written out as `piopExtractor`. -/
+def Phases.Security.toDef {P : Phases I} (S : P.Security) :
     Component.Security P.toDef (M3Rel I) (Seam.done I) (piopError I) :=
   (((((commitSecurity I).append S.bus).append S.table).append S.pub).append S.flock).append
     S.opening

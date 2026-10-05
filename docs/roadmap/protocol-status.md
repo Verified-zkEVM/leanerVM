@@ -36,7 +36,7 @@ completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot'
 sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
 product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On
 the branch stacked on it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`:
-`gkrSecurity` at `gkrError F u nside μ` for any unit `u` at least `1 / |F|`) stands on the two
+`gkrSecurity` at `gkrError F (1 / |F|) nside μ`) stands on the two
 components' security halves, the round's (`SumcheckRound.roundsSecurity`, for a consistent and
 sound family carrying no witness) and a table's zeroness on a partial point
 (`ToCompPoly/Restriction.lean`), which tracks the riders and the descendants' values while the
@@ -107,8 +107,10 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   from it, and `Reduction.not_perfectCompleteness_of_reject` (with a primed form for the empty
   shared oracle), in `ToArkLib/Refutation.lean`.
 - **`Component.Extraction`** sits between `Guarded` and `Security`: the extractor and its
-  state function without the bound, so that `piopExtractor` computes while the errors, real
-  numbers, make `Security.append` noncomputable. `piopExtractedStack_eq` goes through
+  state function without the bound, which `piopExtractor` reads. A security computes too:
+  `Security.mono` and `Security.append` are inlined before compilation, so the errors, real
+  numbers, stay in types and proofs, and `Phases.Security.toDef` is a plain `def`; a security
+  takes no real number as an argument. `piopExtractedStack_eq` goes through
   `Extractor.RoundByRound.ReadsFirst`: an extractor whose first step reads the first message
   returns it on every transcript, and a sequence of extractors keeps its first part's first
   step.
@@ -131,8 +133,10 @@ each is a checklist line of #12. Where the built work differs from the blueprint
 - **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
   no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
   `gkrComplete` extends `Component.Guarded`, and its knowledge soundness `gkrSecurity` is stated
-  at `gkrError F u nside μ`. It is at the slot's verifier type too: `Phase.FrontDef` is a component with a
-  `Component.Front` witness, a check and a verdict on the statement and the transcript that hand
+  at `gkrError F (1 / |F|) nside μ`, with `|F|` written `Nat.card F`; the slot's unit
+  `overE 1` is the same number written with `Fintype.card E`, and the slot takes it through
+  `Component.Security.mono`. It is at the slot's verifier type too: `Phase.FrontDef` is a
+  component with a `Component.Front` witness, a check and a verdict on the statement and the transcript that hand
   the stack on, which `gkrFront` provides by composing the parts' witnesses through
   `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
   `Phase.FrontDef` at `busSpec toy`.
@@ -163,11 +167,11 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   challenge, from the honest polynomial at a wrong claim) and
   `Component.sendChecked_no_stateFunction` (no knowledge state function at all for the
   descendants' message), instantiated on the three sixteen-leaf trees in the tests. Its security
-  definitions are plain `def`s: `Component.Security.mono` and `Component.Security.append` are
-  inlined before compilation, so the errors, real numbers, never reach compiled code. At `E`
-  they do not compute yet: they take a `Fintype F` instance, and `Fintype E` is noncomputable,
-  so an extraction of `gkrSecurity` at `E` fails to compile. The way out is to state the counts
-  with `Nat.card` under `[Finite F]` and build the instance inside the proofs; it is open.
+  definitions are plain `def`s and compute at `E`: none takes a real number or a `Fintype`
+  instance (`Fintype E` is noncomputable). Each is stated at its exact error, `N / |F|` with
+  `Nat.card` under `[Finite F]`, the counts of bad challenges as `Nat.card` of a subtype, and
+  raised with `Component.Security.mono`; the tests build `gkrSecurity` at the slot's error and
+  its extraction as `def`s at `E`.
   Where it differs from Layer 5's sketch: the riders are
   an argument of the relations (`Gkr.relIn`, `Gkr.relOut`) and of `gkrComplete`, not of `gkr`,
   which never reads them; a rider's variable count is a `Fin (μ + 1)`, so that its low point

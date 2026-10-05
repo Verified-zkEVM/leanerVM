@@ -143,7 +143,7 @@ def sampleChallengeComplete
 
 /-! ## Knowledge soundness -/
 
-variable [Fintype C] {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+variable [Finite C] {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
 
 /-- The knowledge state function of a checked challenge: the input relation before the challenge;
 after it, that the check passed and the mapped statement is in the output relation. -/
@@ -164,49 +164,50 @@ def badChallenge (s : StmtIn) (o : ∀ i, OStmt i) (c : C) : Prop :=
   ∃ w, ((s, o), w) ∉ relIn ∧ ((f s c, o), w) ∈ relOut
 
 omit [∀ i, OracleInterface (OStmt i)] [SampleableType C] in
-open scoped Classical in
 /-- With a trivial witness, the bad challenges are those carrying a statement outside the input
 relation into the output relation. -/
-theorem card_filter_badChallenge_le_of_unit {relIn : Set ((StmtIn × ∀ i, OStmt i) × Unit)}
+theorem card_badChallenge_le_of_unit {relIn : Set ((StmtIn × ∀ i, OStmt i) × Unit)}
     {relOut : Set ((StmtOut × ∀ i, OStmt i) × Unit)} (N : ℕ) (s : StmtIn) (o : ∀ i, OStmt i)
-    (h : ((s, o), ()) ∉ relIn →
-      (Finset.univ.filter fun c ↦ ((f s c, o), ()) ∈ relOut).card ≤ N) :
-    (Finset.univ.filter fun c ↦ badChallenge OStmt C f (relIn := relIn) (relOut := relOut)
-      s o c).card ≤ N := by
+    (h : ((s, o), ()) ∉ relIn → Nat.card {c // ((f s c, o), ()) ∈ relOut} ≤ N) :
+    Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N := by
+  have := Fintype.ofFinite C
+  classical
+  rw [natCard_subtype_eq_card_filter]
   by_cases hin : ((s, o), ()) ∈ relIn
   · refine le_trans (le_of_eq ?_) (Nat.zero_le N)
     rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
     rintro c - ⟨w, hw, -⟩
     exact hw hin
-  · refine (Finset.card_le_card fun c hc ↦ ?_).trans (h hin)
+  · refine (Finset.card_le_card fun c hc ↦ ?_).trans
+      ((natCard_subtype_eq_card_filter _).symm.trans_le (h hin))
     rw [Finset.mem_filter] at hc ⊢
     obtain ⟨-, w, -, hw⟩ := hc
     exact ⟨Finset.mem_univ _, hw⟩
 
-open scoped Classical in
 /-- Round-by-round knowledge soundness of a checked challenge at `N / |C|`, when a statement
 passing the check has at most `N` bad challenges. -/
 theorem sample_rbr (N : ℕ)
     (hN : ∀ s o, check s = true →
-      (Finset.univ.filter fun c ↦ badChallenge OStmt C f (relIn := relIn) (relOut := relOut)
-        s o c).card ≤ N) :
+      Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N) :
     (sampleVerifier OStmt C check f).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
       relIn relOut (fun _ ↦ W) (keepExtractor _ W (draw C))
       (sampleStateFunction OStmt C check f init impl)
-      (drawError C ((N : ℝ≥0) / (Fintype.card C : ℝ≥0))) := by
+      (drawError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0))) := by
+  have := Fintype.ofFinite C
+  classical
   intro stmtIn i tr
   obtain ⟨s, o⟩ := stmtIn
   obtain ⟨⟨i, hi⟩, hdir⟩ := i
   have hi0 : i = 0 := by omega
   subst hi0
-  show _ ≤ (((N : ℝ≥0) / (Fintype.card C : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
-  rw [ENNReal.coe_div (Nat.cast_ne_zero.mpr Fintype.card_ne_zero), ENNReal.coe_natCast,
-    ENNReal.coe_natCast]
+  show _ ≤ (((N : ℝ≥0) / (Nat.card C : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
+  rw [Nat.card_eq_fintype_card, ENNReal.coe_div (Nat.cast_ne_zero.mpr Fintype.card_ne_zero),
+    ENNReal.coe_natCast, ENNReal.coe_natCast]
   by_cases hc : check s = true
   · refine le_trans (prEvent_mono _ _ _ ?_)
       ((SampleableType.prEvent_uniformSample_le_div_iff
         (p := fun c ↦ badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c)).mpr
-        (hN s o hc))
+        ((natCard_subtype_eq_card_filter _).symm.trans_le (hN s o hc)))
     rintro c ⟨w, hin, -, hout⟩
     exact ⟨w, hin, hout⟩
   · refine le_trans (le_of_eq ?_) zero_le
@@ -214,22 +215,20 @@ theorem sample_rbr (N : ℕ)
     rintro c - ⟨w, -, hcheck, -⟩
     exact hc hcheck
 
-open scoped Classical in
 /-- The security half of a checked challenge at `N / |C|`, with the extractor that keeps the
 witness, when a statement passing the check has at most `N` bad challenges. -/
 def sampleChallengeSecurity (N : ℕ)
     (hN : ∀ s o, check s = true →
-      (Finset.univ.filter fun c ↦ badChallenge OStmt C f (relIn := relIn) (relOut := relOut)
-        s o c).card ≤ N) :
+      Nat.card {c // badChallenge OStmt C f (relIn := relIn) (relOut := relOut) s o c} ≤ N) :
     Security (sampleChallenge OStmt C check f) relIn relOut
-      (drawError C ((N : ℝ≥0) / (Fintype.card C : ℝ≥0))) where
+      (drawError C ((N : ℝ≥0) / (Nat.card C : ℝ≥0))) where
   guarded := sampleGuarded OStmt C check f
   witMid := fun _ ↦ W
   extractor := keepExtractor _ W (draw C)
   kSF := sampleStateFunction OStmt C check f
   rbr := fun init impl ↦ sample_rbr OStmt C check f init impl N hN
 
-omit [Fintype C] in
+omit [Finite C] in
 /-- The challenge is not knowledge sound below error one, whatever the extractor and the state
 function, from a statement with no witness that passes the check and that every challenge
 carries into the output relation. -/

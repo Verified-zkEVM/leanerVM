@@ -8,8 +8,10 @@ import LeanerVMTests.Protocol.GrandProduct
 
 Over `E`, on the trees of the grand-product tests.
 
-* **The theorem has an inhabitant** at the slot's error: `gkrSecurity 3 4 sixteen noRiders` at
-  the unit `overE 1`, with riders, and for an odd `μ`.
+* **The theorem has an inhabitant that computes** at the slot's error: `gkrSecurity 3 4 sixteen
+  noRiders`, raised from the unit `1 / |E|` to the slot's `overE 1`, is a `def` without
+  `noncomputable`, and so is its extraction; so are the instances with a rider and for an odd
+  `μ`.
 * **The round check is load-bearing.** Without it, the challenge of the second step's first
   round is not knowledge sound below error one, whatever the extractor and the state function:
   from a statement whose running claim is the family's plus one, the honest polynomial lands in
@@ -33,24 +35,29 @@ open scoped NNReal
 
 /-! ## The theorem has an inhabitant -/
 
-/-- The slot's unit is at least `1 / |E|`. -/
-theorem overE_one : (1 : ℝ≥0) / (Fintype.card E : ℝ≥0) ≤ overE 1 := by
-  rw [overE, Nat.cast_one]
+/-- The theorem's unit `1 / |E|` is the slot's `overE 1`. -/
+theorem one_div_card_eq_overE : (1 / Nat.card E : ℝ≥0) = overE 1 := by
+  rw [overE, Nat.card_eq_fintype_card, Nat.cast_one]
 
 /-- Knowledge soundness of `gkr 3 4` at the slot's error, without riders. -/
-noncomputable example : Component.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
+def security34 : Component.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) (gkrError E (overE 1) 3 4) :=
-  gkrSecurity 3 4 sixteen noRiders (overE 1) overE_one
+  (gkrSecurity 3 4 sixteen noRiders).mono fun _ ↦ by rw [one_div_card_eq_overE]
+
+/-- Its extraction, the extractor and the knowledge state function a slot reads. -/
+def extraction34 : Component.Extraction (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
+    (relOut 3 4 sixteen noRiders) :=
+  security34.toExtraction
 
 /-- With a rider. -/
-noncomputable example : Component.Security (gkr 1 2 four) (relIn 1 2 four rider)
-    (relOut 1 2 four rider) (gkrError E (overE 1) 1 2) :=
-  gkrSecurity 1 2 four rider (overE 1) overE_one
+example : Component.Security (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider)
+    (gkrError E (overE 1) 1 2) :=
+  (gkrSecurity 1 2 four rider).mono fun _ ↦ by rw [one_div_card_eq_overE]
 
 /-- For an odd `μ`, where the binary layer comes first. -/
-noncomputable example : Component.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
+example : Component.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
     (relOut 3 3 eight noRiders) (gkrError E (overE 1) 3 3) :=
-  gkrSecurity 3 3 eight noRiders (overE 1) overE_one
+  (gkrSecurity 3 3 eight noRiders).mono fun _ ↦ by rw [one_div_card_eq_overE]
 
 /-! ## The round check is load-bearing -/
 

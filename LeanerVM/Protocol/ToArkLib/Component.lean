@@ -32,8 +32,10 @@ extends the extraction, independently of completeness, with round-by-round knowl
 in the worst case over transcript prefixes at a given error: the proof that each fresh
 challenge can turn the state from false to true with probability at most the error at that
 challenge. The error is a parameter, not a field, so that the error a component is proved at
-is the one its consumer demands; since it is a real number, whatever takes a `Security` as an
-argument does not compute, and the extractor is read off the `Extraction` instead.
+is the one its consumer demands. It is a real number, which compiled code cannot hold, so a
+security takes no real number as an argument: it is stated at its exact error, counting bad
+challenges with `Nat.card`, and raised with `Security.mono`, which, like `Security.append`, is
+inlined before compilation. A security then computes, its extractor included.
 
 Two components in sequence are again a component (`Def.append`): schedules concatenate, and so
 do the errors (`errAppend`). Completeness composes by a theorem ArkLib proves; the prover's
@@ -69,12 +71,12 @@ theorem sum_errAppend {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Protoc
   simp only [errAppend, Function.comp_apply, Equiv.symm_apply_apply, Fintype.sum_sum_type,
     Sum.elim_inl, Sum.elim_inr]
 
-/-- `N / |C| ≤ N · u` when `1 / |C| ≤ u`: an error counted in degrees of one unit. -/
-theorem nat_div_card_le_mul {C : Type} [Fintype C] (N : ℕ) {u : ℝ≥0}
-    (hu : (1 : ℝ≥0) / (Fintype.card C : ℝ≥0) ≤ u) :
-    (N : ℝ≥0) / (Fintype.card C : ℝ≥0) ≤ (N : ℝ≥0) * u := by
-  rw [div_eq_mul_one_div]
-  exact mul_le_mul_of_nonneg_left hu zero_le
+/-- The values satisfying `p`, counted as a subtype, are those of the filtered universe: errors
+count bad challenges with `Nat.card`, which needs no `Fintype` instance, and proofs count them
+with `Finset`. -/
+theorem natCard_subtype_eq_card_filter {α : Type} [Fintype α] (p : α → Prop) [DecidablePred p] :
+    Nat.card {a // p a} = (Finset.univ.filter p).card := by
+  rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
 
 namespace Component
 
