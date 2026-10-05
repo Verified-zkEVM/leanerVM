@@ -30,9 +30,7 @@ fingerprint variables and one more, `X`, indexed by `none`.
   (`card_grandProduct_collision_le`, by ArkLib's counting Schwartz–Zippel). The multisets are
   fixed before the point.
 
-Category A: leanVM specification §5.2, Lemma 5.2 and Theorem 5.1, at
-`a386121f84292f6fa663aaa3e570c15bc0240ea2` (`doc/leanvm/body/05-arithmetization.tex:18-62`),
-whose proof of Lemma 5.2 is `TODO`. The fingerprint is derived from leanth PR 16, revision
+The fingerprint is derived from leanth PR 16, revision
 `23929f8c922cd4461ab22dbfaa6520f3ad23a3b2`, as attributed in `ToCompPoly/Fingerprint.lean`; the
 product argument is new and uses Mathlib's `Polynomial.roots_multiset_prod_X_sub_C`. Requested
 upstream as [ArkLib #901](https://github.com/Verified-zkEVM/ArkLib/issues/901).
@@ -56,8 +54,9 @@ noncomputable def grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
     MvPolynomial (Option (Fin n)) R :=
   (M.map fingerprintFactorPoly).prod
 
-/-- Renaming fingerprint variables leaves the product variable unused. -/
-theorem optionEquivLeft_rename_some {R σ : Type*} [CommSemiring R]
+/-- Renaming by `some` lands in the constant coefficients of the polynomial in the variable
+`none`. -/
+private theorem optionEquivLeft_rename_some {R σ : Type*} [CommSemiring R]
     (p : MvPolynomial σ R) :
     MvPolynomial.optionEquivLeft R σ (MvPolynomial.rename some p) =
       Polynomial.C p := by
@@ -109,13 +108,6 @@ theorem totalDegree_grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
       (M.map fun t ↦ (fingerprintFactorPoly t).totalDegree) (max 1 n)
       (by simpa using fun t (_ : t ∈ M) ↦ totalDegree_fingerprintFactorPoly t))
 
-/-- The degree in the separate product variable is the number of tuples. -/
-theorem natDegree_grandProductUnivariate [Nontrivial R] (M : Multiset (CMlPolynomialEval R n)) :
-    (grandProductUnivariate M).natDegree = M.card := by
-  have h := Polynomial.natDegree_multiset_prod_X_sub_C_eq_card (M.map fingerprintPoly)
-  simpa only [Multiset.map_map, Function.comp_def, grandProductUnivariate,
-    Multiset.card_map] using h
-
 section Domain
 
 variable [IsDomain R]
@@ -145,17 +137,6 @@ theorem grandProduct_difference_ne_zero
 
 end Domain
 
-/-- Nonzero difference survives an injective embedding of tuple coordinates into a domain. -/
-theorem mapped_grandProduct_difference_ne_zero {R S : Type*} [Semiring R]
-    [CommRing S] [IsDomain S]
-    (φ : R →+* S) (hφ : Function.Injective φ)
-    {M N : Multiset (CMlPolynomialEval R n)} (hne : M ≠ N) :
-    grandProductPoly (M.map (CMlPolynomialEval.map φ)) -
-      grandProductPoly (N.map (CMlPolynomialEval.map φ)) ≠ 0 := by
-  apply grandProduct_difference_ne_zero
-  intro h
-  exact hne (map_tupleMultiset_injective φ hφ h)
-
 /-- A common cardinality cap bounds the degree of the difference; the cardinalities may differ. -/
 theorem totalDegree_grandProduct_difference_le
     (M N : Multiset (CMlPolynomialEval R n)) {cap : ℕ}
@@ -169,7 +150,8 @@ section FiniteField
 
 variable {F : Type} [Field F] [Fintype F] [DecidableEq F]
 
-/-- Counting form of the joint grand-product collision bound, including dimension zero. -/
+/-- Two different multisets of at most `cap` tuples have grand products that agree at no more
+than `max 1 n · cap · |F|ⁿ` of the `|F|ⁿ⁺¹` points, the bound attained in dimension zero. -/
 theorem card_grandProduct_collision_le
     (M N : Multiset (CMlPolynomialEval F n)) (hne : M ≠ N) {cap : ℕ}
     (hM : M.card ≤ cap) (hN : N.card ≤ cap) :

@@ -72,6 +72,9 @@ This directory contains stable project and operating knowledge.
     check of the public-input phase (2026-10-05), whose findings the branch now meets (one
     completeness proof for both verifiers, two docstrings trimmed) or records for the adaptor
     (the two pools' agreement as a theorem).
+  - [protocol-fingerprint.md](reviews/protocol-fingerprint.md): the review of the fingerprint
+    and the collision bound (2026-10-05), whose findings the branch meets (a witness that the
+    factor 4 is needed, the generic module free of the protocol, a smaller surface, citations).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

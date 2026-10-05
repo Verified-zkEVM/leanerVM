@@ -17,12 +17,15 @@ public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
 /-!
 # Fingerprints and the products of the bus
 
-Specification §5.2 (`doc/leanvm/body/05-arithmetization.tex:23-62` at leanVM
+Specification §5.2 (`doc/leanvm/body/05-arithmetization.tex:22-59` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`). A bus tuple is sixteen elements of `K`. The verifier
 draws `α ∈ E⁴` and maps a tuple `t` to `π_α(t) = Σ_{i<16} eq(α, i)·t_i` (`fingerprint`), where
 `eq(α, i)` is the equality kernel at `α` and the four bits of `i`, low bit first: the tuple read
-as a table on four variables and evaluated at `α`. It then draws `β ∈ E`, and a side of the bus
-with the multiset `P` of tuples has the product `Π_{t ∈ P} (β − π_α(t))` (`sideProduct`).
+as a table on four variables and evaluated at `α`. The bit order is the specification's
+convention for an integer's bits (Annex B, `b-polynomial-commitment-scheme.tex:278`; §8,
+`08-end-to-end-protocol.tex:9`), and the deployed verifier's weights
+(`crates/lean_vm/src/leaf.rs:89-98`). It then draws `β ∈ E`, and a side of the bus with the
+multiset `P` of tuples has the product `Π_{t ∈ P} (β − π_α(t))` (`sideProduct`).
 
 Over the five formal variables `A_0, …, A_3, X` the product is the polynomial
 `Π_P = grandProductPoly P` of `LeanerVM.Protocol.ToArkLib.GrandProductPoly`, with coefficients in
@@ -34,10 +37,13 @@ Over the five formal variables `A_0, …, A_3, X` the product is the polynomial
 * Theorem 5.1 (`card_sideProduct_collision_le`, `sideProduct_collision`): for `P ≠ Q` of at most
   `N` tuples each, at most `4·N·|E|⁴` of the `|E|⁵` challenges give equal products, so a uniform
   challenge does with probability at most `4·N / |E|`. The `4` is the total degree of a factor
-  `β − π_α(t)` in `(α, β)`, since `π_α` is multilinear in the four coordinates of `α`. The
-  multisets are fixed before the challenge is drawn.
+  `β − π_α(t)` in `(α, β)`: `π_α` is multilinear in the four coordinates of `α`, and `β` is a
+  separate term of degree one. The bound is nearly attained: a tuple whose fingerprint is
+  `α_0 α_1 α_2 α_3` and the zero tuple collide at more than `3·|E|⁴` challenges. The multisets
+  are fixed before the challenge is drawn.
 
-Written from the specification.
+Written from the specification; the bit order of the weights was then checked against the
+deployed verifier.
 -/
 
 namespace LeanerVM.Protocol

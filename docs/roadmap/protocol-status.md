@@ -33,8 +33,9 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
-axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
-each version of the public-input phase. The grand-product GKR's definition and completeness
+axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
+each version of the public-input phase, and Lemma 5.2 and Theorem 5.1
+(`sideProduct_poly_eq_iff`, `card_sideProduct_collision_le`, `sideProduct_collision`). The grand-product GKR's definition and completeness
 (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
 `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
@@ -213,7 +214,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   leanVM module (`Fingerprint.lean`), since a generic module names no protocol constant.
   `sideProduct_collision` bounds the collisions of two multisets of at most `N` tuples, the
   bus phase taking `N = 2 ^ μ_bus`; its counting form, `card_sideProduct_collision_le`, counts
-  the colliding challenges with `Nat.card`, the form a computable security consumes.
+  the colliding challenges with `Nat.card`, the form a computable security consumes. The
+  blueprint's Layer 5 file line and its Interfaces list are owed an edit for both, through a
+  `docs(protocol)` pull request.
 
 ## What can start now
 

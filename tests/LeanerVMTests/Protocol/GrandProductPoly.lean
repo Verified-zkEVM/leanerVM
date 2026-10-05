@@ -1,7 +1,7 @@
 /-
   LeanerVMTests.Protocol.GrandProductPoly
 
-  Regression controls for natural multiplicities and joint-challenge collision bounds.
+  Regression controls for natural multiplicities and the collision count.
 -/
 
 module
@@ -13,9 +13,11 @@ import Mathlib.Algebra.Field.ZMod
 # Grand-product controls
 
 Natural multiplicities remain visible in characteristic two. A collision at one evaluation
-point is compatible with symbolic injectivity; the probability bound concerns a fresh uniform
-joint point. The sixteen-coordinate factor contributes degree four, including the product
-challenge.
+point is compatible with symbolic injectivity, and in dimension zero the collision count is
+attained: a singleton and the empty multiset agree at exactly one of the two points. A `β`
+correlated with a fingerprint coordinate makes unequal multisets agree everywhere, so the
+count needs the point's coordinates independent. The sixteen-coordinate factor contributes
+degree four, including the product challenge.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -24,6 +26,7 @@ open LeanerVM.Protocol CompPoly CMlPolynomialEval
 
 @[expose] public section
 
+-- In dimension zero `{0}` and `∅` agree at the point `1`.
 example : MvPolynomial.eval (fun _ : Option (Fin 0) ↦ (1 : ZMod 2))
       (grandProductPoly ({#v[0]} : Multiset (CMlPolynomialEval (ZMod 2) 0))) =
     MvPolynomial.eval (fun _ : Option (Fin 0) ↦ (1 : ZMod 2))
@@ -62,13 +65,6 @@ example {F : Type} [Field F] [Fintype F] [DecidableEq F]
     (hM : M.card ≤ cap) (hN : N.card ≤ cap) :
     (grandProductPoly M - grandProductPoly N).totalDegree ≤ 4 * cap :=
   totalDegree_grandProduct_difference_le M N hM hN
-
-example {R : Type*} [CommRing R] [IsDomain R]
-    (M N : Multiset (CMlPolynomialEval R 0)) (h : M.card ≠ N.card) :
-    grandProductUnivariate M ≠ grandProductUnivariate N := by
-  intro hp
-  apply h
-  simpa only [natDegree_grandProductUnivariate] using congrArg Polynomial.natDegree hp
 
 -- The empty product is the identity in both representations, including dimension zero.
 example {R : Type*} [CommRing R] :
@@ -109,11 +105,15 @@ example : MvPolynomial.map (Int.castRingHom (ZMod 2))
   rw [map_grandProductPoly]
   simp only [Multiset.insert_eq_cons, Multiset.map_cons, Multiset.map_singleton, hzero, htwo]
 
--- An injective embedding preserves a nonzero multiset difference, without equal cardinalities.
-example {M N : Multiset (CMlPolynomialEval ℤ 0)} (hne : M ≠ N) :
-    grandProductPoly (M.map (CMlPolynomialEval.map (Int.castRingHom ℚ))) -
-      grandProductPoly (N.map (CMlPolynomialEval.map (Int.castRingHom ℚ))) ≠ 0 :=
-  mapped_grandProduct_difference_ne_zero (Int.castRingHom ℚ) Int.cast_injective hne
+-- The collision count is attained in dimension zero: `{0}` and `∅` agree at one of the two
+-- points, and the bound `max 1 0 · 1 · 2⁰` is `1`.
+example : (Finset.univ.filter fun x : Option (Fin 0) → ZMod 2 ↦
+      MvPolynomial.eval x (grandProductPoly ({#v[0]} : Multiset (CMlPolynomialEval (ZMod 2) 0))) =
+        MvPolynomial.eval x (grandProductPoly (0 : Multiset (CMlPolynomialEval (ZMod 2) 0)))).card =
+    max 1 0 * 1 * Fintype.card (ZMod 2) ^ 0 := by
+  refine le_antisymm (card_grandProduct_collision_le _ _ (by simp) (by simp) (by simp)) ?_
+  refine Finset.one_le_card.mpr ⟨fun _ ↦ 1, Finset.mem_filter.mpr ⟨Finset.mem_univ _, ?_⟩⟩
+  simp [grandProductPoly, fingerprintFactorPoly, fingerprintPoly]
 
 end
 end LeanerVMTests.Protocol
