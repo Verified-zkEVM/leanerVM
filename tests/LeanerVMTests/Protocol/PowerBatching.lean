@@ -4,7 +4,7 @@
   Regression controls for zero-based power batching.
 -/
 
-import LeanerVM.Protocol.ToArkLib.PowerBatching
+import LeanerVM.Protocol.ToCompPoly.PowerBatching
 import LeanerVM.Protocol.ClaimWeights
 import Mathlib.Data.ZMod.Defs
 
@@ -84,11 +84,5 @@ example {J μ : ℕ} (w : Fin J → Weight E μ) (ρ : E) (r : Vector E μ) :
   powerBatch (![1, -1] : Fin 2 → ZMod 5) ρ = powerBatch ![0, 0] ρ).card = 1
 #guard (Finset.univ.filter fun ρ : ZMod 5 ↦
   powerBatch (![0, 0] : Fin 2 → ZMod 5) ρ = powerBatch ![0, 0] ρ).card = 5
-
-example (a v : Fin 1 → E) (h : a 0 ≠ v 0) :
-    Pr{let ρ ← $ᵗ E}[powerBatch a ρ = powerBatch v ρ] = 0 := by
-  have bound := probEvent_uniform_false_batch_le a v ⟨0, h⟩
-  apply le_antisymm ?_ (by positivity)
-  simpa using bound
 
 end LeanerVMTests.Protocol

@@ -27,8 +27,7 @@ at every challenge, including zero. The empty family is handled separately.
 
 Candidate for CompPoly: finite power combinations, their multilinear table pairing and
 extension, and the finite-field root count. The values are fixed before the challenge is
-chosen. The uniform sampling bound is in `ToArkLib.PowerBatching`; neither module is a
-knowledge-soundness theorem.
+chosen.
 
 Derived from the zero-based scalar-batching results in Verified-zkEVM/leanth at
 23929f8c922cd4461ab22dbfaa6520f3ad23a3b2, by Aristotle (Harmonic), Stefano Rocca and
@@ -74,7 +73,7 @@ theorem evalMle_batchWeight (w : Fin J → CMlPolynomialEval R μ) (ρ : R) (r :
   simp_rw [mul_right_comm _ (ρ ^ _) _]
 
 /-- A family of true weighted claims always produces a true batch. -/
-theorem batch_complete (w : Fin J → CMlPolynomialEval R μ)
+theorem sumCube_hadamard_batchWeight_of_forall (w : Fin J → CMlPolynomialEval R μ)
     (q : CMlPolynomialEval R μ) (v : Fin J → R)
     (h : ∀ j, sumCube (hadamard (w j) q) = v j) (ρ : R) :
     sumCube (hadamard (batchWeight w ρ) q) = powerBatch v ρ := by
@@ -141,15 +140,6 @@ theorem card_false_batch_le (a v : Fin J → F) (h : ∃ j, a j ≠ v j) :
     _ ≤ (batchDifference a v).roots.card := Multiset.toFinset_card_le _
     _ ≤ (batchDifference a v).natDegree := Polynomial.card_roots' _
     _ ≤ J - 1 := natDegree_batchDifference_le a v
-
-/-- The exact finite-uniform event fraction is bounded by `(J - 1) / |F|`.
-Operational consumers must connect their fresh challenge to this uniform law. -/
-theorem uniform_false_batch_fraction_le (a v : Fin J → F) (h : ∃ j, a j ≠ v j) :
-    ((Finset.univ.filter fun ρ ↦ powerBatch a ρ = powerBatch v ρ).card : ℚ) /
-        Fintype.card F ≤ (J - 1 : ℕ) / (Fintype.card F : ℚ) := by
-  apply div_le_div_of_nonneg_right
-  · exact_mod_cast card_false_batch_le a v h
-  · positivity
 
 end FiniteField
 
