@@ -26,7 +26,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking, and the public-input phase, revised | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
-| sumcheck: knowledge soundness (Layer 4) | the pull request stacked on #75 | on merge | on merge |
+| sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
@@ -51,7 +51,7 @@ final point as its last message), the plain and the normalized variants as its t
 round-by-round knowledge soundness to a verifier that decodes a round message sent without one
 coefficient (`Sumcheck.transport`, on the generic `ToArkLib/TranscriptMap.lean`); with the
 weighted cube sums and the degree in each coordinate it needs (`ToCompPoly/WeightedCube.lean`,
-`ToCompPoly/IndividualDegree.lean`). On the branch stacked on #75, their round-by-round knowledge
+`ToCompPoly/IndividualDegree.lean`). On the branch of #76, their round-by-round knowledge
 soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`,
 `normalizedSecurity`). Nothing else is built: the other phases, the
 other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
