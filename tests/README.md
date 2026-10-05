@@ -95,6 +95,17 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   hypothesis that mixes `E` arithmetic with a structure literal can hit the same limit; name the
   lemmas in a `simp only`.
 
+- On the toy instance, an `abbrev`, unifying a term the library built with one the test
+  elaborates afresh can time out at `whnf` where the same unification at an abstract instance is
+  immediate: a column claim's weighted claim written as `⟨eqWeight …, c.value⟩` against
+  `Opening.columnWeighted toy c`, the stack's question `⟨0, W⟩` against `Opening.ask toy W`, or a
+  variant verifier's question and check given as lambdas to `Component.sampleQuery_not_rbr`. Use
+  the library's named terms and its lemmas stated over an abstract instance
+  (`Opening.columnWeighted_holds_iff`, `Opening.answer_weight_iff`), prove a fact once over an
+  abstract instance and instantiate it at the toy (`accepts_one_of_copies` in
+  `tests/LeanerVMTests/Protocol/Opening.lean`), and give a variant verifier's question and check
+  as named definitions.
+
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,
 traces, encodings, and rejection behavior as each surface becomes available. Optimized native,
