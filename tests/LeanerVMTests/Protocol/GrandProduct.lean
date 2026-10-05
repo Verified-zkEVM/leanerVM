@@ -31,7 +31,7 @@ Over `E`, with no public data and no oracle, on trees of four, eight and sixteen
 * **Riders.** A nonzero rider fails the input relation, a zero one passes; at the final point the
   output relation holds for a nonzero rider exactly when the point's low coordinate is a root of
   its extension, the escape its challenge is charged for.
-* **Completeness** has an inhabitant, with riders and without.
+* **Completeness** has an inhabitant, with a zero rider and without riders.
 
 A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with numerals
 are named as definitions before a guard uses them.
@@ -366,8 +366,10 @@ example : Component.Complete (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) :=
   gkrComplete 3 4 sixteen noRiders
 
-/-- The completeness half with a rider. -/
-example : Component.Complete (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider) :=
-  gkrComplete 1 2 four rider
+/-- The completeness half with a rider that is zero, so that the input relation is inhabited (a
+nonzero rider, such as `rider`, leaves it empty). -/
+example : Component.Complete (gkr 1 2 four) (relIn 1 2 four zeroRider)
+    (relOut 1 2 four zeroRider) :=
+  gkrComplete 1 2 four zeroRider
 
 end LeanerVMTests.Protocol.GrandProduct

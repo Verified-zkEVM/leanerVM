@@ -58,6 +58,16 @@ This directory contains stable project and operating knowledge.
     Flock slot's two values, the generic schedule combinators, the refutation's core lemma, the
     citations) or records for the roadmap (the depth of the pull and count trees, the schedule
     bundle).
+  - [protocol-gkr-security.md](reviews/protocol-gkr-security.md): the review of the
+    grand-product GKR's knowledge soundness (2026-10-02), which found no theorem wrong, vacuous
+    or tautological, and whose findings the branch meets (the security computes at `E`, the
+    round refutation for every extractor and state function, the generic lemmas in their
+    owners' modules, the private helpers, the documentation).
+  - [protocol-gkr-security-second.md](reviews/protocol-gkr-security-second.md): an independent
+    second review of the same work (2026-10-05), on the blueprint fit, the audit surface, the
+    non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas
+    private, the duplicated extraction and extractor gone, the unit lemma in the spine, the
+    rider tests inhabited, one generic partial-point builder) but for one repeated raise kept.
   - [deployed-public-input.md](reviews/deployed-public-input.md): the review of the deployed
     check of the public-input phase (2026-10-05), whose findings the branch now meets (one
     completeness proof for both verifiers, two docstrings trimmed) or records for the adaptor

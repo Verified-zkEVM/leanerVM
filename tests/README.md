@@ -34,8 +34,11 @@ a word in `E.ofLimbs` form, as `tests/LeanerVMTests/Semantics/Execution.lean` do
 Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
 
 - A structure that holds a real number (an error bound) makes every definition built from it
-  `noncomputable`; keep the reduction, the verifier and the extractor in computable definitions
-  and the error elsewhere, and check an extractor by a `def` without `noncomputable`.
+  `noncomputable`, and so does a real number or a `Fintype E` instance passed as an argument;
+  keep the reduction, the verifier and the extractor in computable definitions and the error
+  in types: state a security at its exact error, counting with `Nat.card` under `[Finite F]`,
+  raise it with `Component.Security.mono`, which is inlined before compilation, and check an
+  extractor by a `def` without `noncomputable`.
 - `simp` does not rewrite inside instance arguments carried by a structure's type: state a
   phase's lemmas on its literal prover and verifier, not on the bundle's projections.
 - A `Decidable` instance written `by unfold …; infer_instance` can elaborate and never return
@@ -67,6 +70,23 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   the same type for a variable `k`; so `draws` nests its new challenge last, and a component
   drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its
   last step into the last challenge (`Gkr.interpolate`).
+- A `Finset.filter` in a statement under `open scoped Classical in` takes the classical instance
+  only where no other applies: a lemma stated without `[DecidableEq F]` in scope and used where
+  it is in scope fails with "synthesized type class instance is not definitionally equal". Keep
+  the instances in scope the same at the statement and at the use, or compare the filters
+  through `Finset.card_le_card` and `Finset.mem_filter`, which ignore the instance.
+- A recursion whose branch must reduce a `match` on its index (the last step of
+  `Gkr.layerStepsSecurity` uses one tracker, the others another) splits the index as
+  `0`, `1`, `k + 2`: a `match` on a variable `k` inside the branch does not reduce, and the two
+  sides of `Component.Security.append` must agree definitionally.
+- A closed statement over `E` in a definitional comparison is an evaluation of the trees: a
+  hypothesis such as `s.2.2 ≠ Φ.claim (ctxOf …) …` at `s := (s0.1, (s0.2.1, trueClaim + 1))`,
+  with `s0` and `trueClaim` the hand run's values, sends the unifier, or the kernel, through
+  `s0` and never returns (the round refutation hit the recursion limit, the descendants' one a
+  kernel timeout). The same proof on a symbolic statement, `(x, (cv, Φ.claim ((x, noO), ()) 0
+  cv + 1))` with `x` and `cv` variables, is one unfolding, since nothing closed can be
+  evaluated. State a refutation over variables and keep the hand run's values for the honest
+  runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
 - Handing a transcript to a guarded check in a refutation
   (`Verifier.GuardedForm.probEvent_pos_of_check` on `fullOf c msg`) can exceed the default
   recursion depth when the statement has three public lines, the unifier unfolding the count of

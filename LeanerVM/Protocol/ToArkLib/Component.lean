@@ -32,8 +32,12 @@ extends the extraction, independently of completeness, with round-by-round knowl
 in the worst case over transcript prefixes at a given error: the proof that each fresh
 challenge can turn the state from false to true with probability at most the error at that
 challenge. The error is a parameter, not a field, so that the error a component is proved at
-is the one its consumer demands; since it is a real number, whatever takes a `Security` as an
-argument does not compute, and the extractor is read off the `Extraction` instead.
+is the one its consumer demands. It is a real number, which compiled code cannot hold, so a
+security takes no real number as an argument: it is stated at its exact error, counting bad
+challenges with `Nat.card`, and raised with `Security.mono`, which, like `Security.append`, is
+inlined before compilation. A security then computes, its extractor included. A new combinator
+that takes a security is inlined the same way (`@[macro_inline]`), and a `let` binding a
+security inside a definition would bring the errors back into compiled code.
 
 Two components in sequence are again a component (`Def.append`): schedules concatenate, and so
 do the errors (`errAppend`). Completeness composes by a theorem ArkLib proves; the prover's
@@ -48,7 +52,7 @@ composes with no assumption.
 namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec ProtocolSpec
-open scoped NNReal
+open scoped NNReal ENNReal
 
 @[expose] public section
 
@@ -68,6 +72,13 @@ theorem sum_errAppend {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : Protoc
   rw [← ChallengeIdx.sumEquiv.sum_comp (errAppend ε₁ ε₂)]
   simp only [errAppend, Function.comp_apply, Equiv.symm_apply_apply, Fintype.sum_sum_type,
     Sum.elim_inl, Sum.elim_inr]
+
+/-- The values satisfying `p`, counted as a subtype, are those of the filtered universe: errors
+count bad challenges with `Nat.card`, which needs no `Fintype` instance, and proofs count them
+with `Finset`. -/
+theorem natCard_subtype_eq_card_filter {α : Type} [Fintype α] (p : α → Prop) [DecidablePred p] :
+    Nat.card {a // p a} = (Finset.univ.filter p).card := by
+  rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
 
 namespace Component
 
@@ -147,6 +158,26 @@ structure Security (D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec)
   rbr : ∀ {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)),
     D.red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn relOut witMid
       extractor (kSF init impl) err
+
+/-- Security at an error is security at any larger error. Inlined before compilation, so the
+errors, real numbers, never reach compiled code and a security built with it computes. -/
+@[macro_inline]
+def Security.mono {D : Def StmtIn OStmtIn WitIn StmtOut OStmtOut WitOut pSpec}
+    {relIn : Set ((StmtIn × ∀ i, OStmtIn i) × WitIn)}
+    {relOut : Set ((StmtOut × ∀ i, OStmtOut i) × WitOut)}
+    {ε ε' : pSpec.ChallengeIdx → ℝ≥0} (h : ∀ i, ε i ≤ ε' i) (S : Security D relIn relOut ε) :
+    Security D relIn relOut ε' where
+  toExtraction := S.toExtraction
+  rbr := fun init impl s i tr ↦ (S.rbr init impl s i tr).trans (ENNReal.coe_le_coe.mpr (h i))
+
+/-- The extractor that keeps the witness at every round. The shared oracle is written
+`OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe `Extractor.RoundByRound`
+leaves free. -/
+def keepExtractor (S W : Type) {n : ℕ} (pSpec : ProtocolSpec n) :
+    Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) S W W pSpec (fun _ ↦ W) where
+  eqIn := rfl
+  extractMid := fun _ _ _ w ↦ w
+  extractOut := fun _ _ w ↦ w
 
 /-! ## Composition -/
 
@@ -244,7 +275,9 @@ def Extraction.append (X₁ : Extraction D₁ rel₁ rel₂) (X₂ : Extraction 
       (X₂.kSF init impl))
 
 /-- Security composes, at the errors side by side: the extractions are appended, and the bound
-is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. -/
+is `Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`. Inlined before
+compilation, like `Security.mono`, so a composed security computes. -/
+@[macro_inline]
 def Security.append {ε₁ : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ : pSpec₂.ChallengeIdx → ℝ≥0}
     (S₁ : Security D₁ rel₁ rel₂ ε₁) (S₂ : Security D₂ rel₂ rel₃ ε₂) :
     Security (D₁.append D₂) rel₁ rel₃ (errAppend ε₁ ε₂) where
