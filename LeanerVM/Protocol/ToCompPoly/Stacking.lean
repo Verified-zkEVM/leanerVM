@@ -24,8 +24,8 @@ block over any commutative ring, so one layout serves tables over different ring
 * `unstack hμ q b` reads block `b` off any table `q` of `μ` variables, stack or not.
 * `extendPoint hμ b z` lifts a point of block `b` to the point `(z, selector bits)` of the stack;
   `lowPoint` and `highPoint` split a point of the stack the same way.
-* The selection identity: `unstack_eval` for any table, `stack_eval` for a stack, and
-  `unstack_eval₂`, `stack_eval₂` when the point lies in another ring than the entries.
+* The selection identity: `stack_eval` for a stack, and `unstack_eval₂`, `stack_eval₂` for any
+  table or a stack when the point lies in another ring than the entries.
   `unstack_eval₂_eq_sumCube` writes it as a sum over the cube against a Lagrange basis.
 * `map_stackAt`, `unstack_map`: mapping the entries commutes with stacking and reading.
 
@@ -316,7 +316,7 @@ theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
 
 /-- The selection identity, for any table: the table at a lifted point is the block read off
 it, at the point. -/
-theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+private theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
     (b : Fin B.n) (z : Vector R (B.size b)) :
     evalMle q (B.extendPoint hμ b z) = evalMle (B.unstack hμ q b) z := by
   have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)

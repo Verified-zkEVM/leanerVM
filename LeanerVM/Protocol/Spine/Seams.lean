@@ -17,37 +17,43 @@ reduction from a statement to a statement over the one committed stack `q`. The 
 types between phases and the relations on them are fixed here, so a phase is built and proved
 knowing only its two seams.
 
-Three kinds of claim, each a statement about an extension read off `q` at a point of `E`:
+Two kinds of claim, each a statement about an extension read off `q` at a point of `E`:
 
 * a `ColumnClaim`: one column's extension at a point equals a value;
-* a `LinearClaim`: an `E`-weighted sum of virtual tables' extensions equals a value, a virtual
-  table being a `K`-polynomial of the row evaluated on every row of a table (§5.5's summand). A
-  zerocheck claim is one term, of weight 1, with the constraint; a bus form is the list of terms
-  of weight `eq(sel_b, ζ_hi)·eq(α, i)` with the coordinate polynomials `c_{b,i}`, plus one
-  constant term of weight `eq(sel_b, ζ_hi)·β`. The bus seam bounds the total degree of every
-  term's polynomial by the instance's `d`, the degree the table sumcheck is built for;
-* a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` given by its cube
-  values and an evaluator the verifier can run (§3, Definition 3.13).
+* a `WeightedClaim`: `Σ_x W(x)·q(x)` over the stack equals a value, with `W` a weight of the
+  stack's oracle interface (`LeanerVM.Protocol.Field`): its cube values and an evaluator the
+  verifier can run (§3, Definition 3.13).
 
-| Seam | Statement | Holds |
-| --- | --- | --- |
-| `commit` | the public input | `M3Holds` of the oracle itself |
-| `bus` | linear and column claims | every claim; terms of degree `≤ d`; public lines; `aux` |
-| `table` | column claims | every claim; the public lines; `aux` |
-| `pub` | column claims | every claim; `aux` |
-| `flock` | column and weighted claims | every claim |
-| `done` | nothing | nothing |
+The bus phase hands on more than claims: the point `ζ` it ended at, since the table sumcheck
+runs at it (§5.5), and the *forms* it built, one per side and sumcheck table, each a weighted
+sum of row polynomials of the table (`Form`); the forms' values at `ζ` must add up, side by
+side, to the totals the bus phase computed (`totals`). A row polynomial is one of the instance's
+degree, at most `d` by type: the table sumcheck's round polynomials have degree `d + 1`, so its
+completeness is owed only on terms within the bound. No polynomial with coefficients in `E` is
+built: the row polynomials are over `K` and the weights carry `E`.
 
-A seam says which claims hold, not which claims a phase emits: that is fixed by the phase's
-knowledge soundness (a bus phase emitting no claim typechecks and cannot be proved knowledge
-sound). Seams carry no challenge; the zerocheck point `ζ` reaches the table sumcheck inside the
-claims' points, and the escape "violated on the cube, zero at `ζ`" is charged to the bus phase
-where `ζ` is drawn (§5.5).
+* `commit`: the statement is the public input; it holds when `M3Holds` of the oracle itself.
+* `bus`: the point, the forms and totals, and the boundary claims; it holds when every
+  constraint's extension is zero at the point, the forms sum to the totals, every claim holds,
+  and so do the public lines and the Flock predicate.
+* `table`: column claims; it holds when every claim, the public lines and the Flock predicate
+  hold.
+* `pub`: column claims; it holds when every claim and the Flock predicate hold.
+* `flock`: column and weighted claims; it holds when every claim holds.
+* `done`: nothing, and holds.
+
+The claim pools have the sizes the instance fixes (`busClaims`, `tableClaims`, `pubClaims`,
+`poolSize`): one claim per boundary column, then per column of each sumcheck table, then per
+public line, then the Flock phase's weighted claim. So the number of claims the opening phase
+batches, and with it the opening's error, is a closed form of the instance. A seam says which
+claims hold, not which values a phase pools: that is fixed by the phase's knowledge soundness.
+Seams carry no challenge; the escape "violated on the cube, zero at `ζ`" is charged to the bus
+phase, where `ζ` is drawn (§5.5).
 -/
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly CPoly
+open LeanerVM.Parameters CompPoly CPoly CMlPolynomialEval
 
 @[expose] public section
 
@@ -64,91 +70,82 @@ structure ColumnClaim (I : M3Instance) where
 
 /-- The claim holds of the stack `q`. -/
 def ColumnClaim.Holds {I : M3Instance} (q : Column I.μ) (c : ColumnClaim I) : Prop :=
-  CMlPolynomialEval.eval₂Mle (I.column q c.col).values (algebraMap K E) c.point = c.value
+  eval₂Mle (I.column q c.col).values (algebraMap K E) c.point = c.value
 
-/-- One term of a linear claim: a weight in `E`, a table, a polynomial of its row with
-coefficients in `K`, and the point the table's extension is taken at. -/
-structure VirtualTerm (I : M3Instance) where
-  /-- The weight of the term in the sum. -/
-  weight : E
-  /-- The table. -/
-  j : Fin I.ntab
-  /-- The polynomial of the row. -/
-  poly : CMvPolynomial (I.width j) K
-  /-- The point the virtual table is extended to. -/
-  point : Vector E (I.τ j)
-
-/-- The virtual table of a term: its polynomial on every row of its table, lifted to `E`. -/
-def VirtualTerm.table {I : M3Instance} (q : Column I.μ) (t : VirtualTerm I) :
-    CMlPolynomialEval E (I.τ t.j) :=
-  Vector.ofFn fun x ↦ ofK (t.poly.eval (I.row q t.j x))
-
-/-- The value of a term: its weight times its virtual table's extension at its point. -/
-def VirtualTerm.eval {I : M3Instance} (q : Column I.μ) (t : VirtualTerm I) : E :=
-  t.weight * CMlPolynomialEval.evalMle (t.table q) t.point
-
-/-- A linear claim: a weighted sum of virtual-table extensions equals a value. -/
-structure LinearClaim (I : M3Instance) where
-  /-- The terms. -/
-  terms : List (VirtualTerm I)
-  /-- The claimed value. -/
-  value : E
-
-/-- The claim holds of the stack `q`. -/
-def LinearClaim.Holds {I : M3Instance} (q : Column I.μ) (c : LinearClaim I) : Prop :=
-  (c.terms.map fun t ↦ t.eval q).sum = c.value
-
-/-- A weight on the stack (Definition 3.13): its cube values, and an evaluator for its extension
-the verifier can run, with the proof that they agree. -/
-structure Weight (μ : ℕ) where
-  /-- The values on the cube. -/
-  onCube : CMlPolynomialEval E μ
-  /-- The extension, as the verifier evaluates it. -/
-  mle : Vector E μ → E
-  /-- The evaluator computes the extension of the cube values. -/
-  mle_eq : ∀ r, mle r = CMlPolynomialEval.evalMle onCube r
-
-/-- The pairing `Σ_x W(x)·q(x)` of a weight with a column, over the cube. -/
-def Weight.pair {μ : ℕ} (W : Weight μ) (q : Column μ) : E :=
-  ∑ i : Fin (2 ^ μ), W.onCube.get i * ofK (q.values.get i)
-
-/-- A weighted claim on the stack: its pairing with a weight equals a value. -/
+/-- A weighted claim on the stack: the inner product of a weight with the stack, the stack's
+oracle answer to that weight, equals a value. -/
 structure WeightedClaim (I : M3Instance) where
   /-- The weight. -/
-  weight : Weight I.μ
+  weight : Weight E I.μ
   /-- The claimed value. -/
   value : E
 
 /-- The claim holds of the stack `q`. -/
 def WeightedClaim.Holds {I : M3Instance} (q : Column I.μ) (c : WeightedClaim I) : Prop :=
-  c.weight.pair q = c.value
+  c.weight.pair (algebraMap K E) q.values = c.value
+
+/-! ## Row polynomials and forms -/
+
+namespace M3Instance
+
+variable (I : M3Instance)
+
+/-- A polynomial of a row of table `j` within the instance's degree bound. -/
+abbrev RowPoly (j : Fin I.ntab) : Type :=
+  {p : CMvPolynomial (I.width j) K // p.totalDegree ≤ I.d}
+
+/-- A form on table `j`: a weighted sum, with weights in `E`, of row polynomials. -/
+abbrev Form (j : Fin I.ntab) : Type := List (E × I.RowPoly j)
+
+/-- The virtual table of a row polynomial: its value on every row of the table, lifted to
+`E`. -/
+def virtualTable (q : Column I.μ) (j : Fin I.ntab) (P : CMvPolynomial (I.width j) K) :
+    CMlPolynomialEval E (I.τ j) :=
+  Vector.ofFn fun x ↦ ofK (P.eval (I.row q j x))
+
+/-- The value of a form on the stack at a point of its table: the weighted sum of the virtual
+tables' extensions there. -/
+def Form.eval {j : Fin I.ntab} (f : I.Form j) (q : Column I.μ) (z : Vector E (I.τ j)) : E :=
+  (f.map fun t ↦ t.1 * evalMle (I.virtualTable q j t.2.1) z).sum
+
+/-- The point of a sumcheck table inside the point of the table sumcheck: its low `τ j`
+coordinates. -/
+def lowPoint (p : Vector E I.τmax) (j : I.SumcheckTables) : Vector E (I.τ j.1) :=
+  Vector.cast (min_eq_left (I.τ_le_τmax j)) (p.take (I.τ j.1))
+
+end M3Instance
 
 /-! ## Seam statements -/
 
-/-- What the bus phase hands on: the zerocheck claims at `ζ` and the bus forms, as linear claims,
-and the boundary blocks' column claims. -/
+/-- What the bus phase hands on, in the shape of leanVM's `BusVerify`: the point `ζ` the bus
+phase ended at, the forms it built per side (push, pull, count) and sumcheck table, their
+totals per side, and the boundary columns' claims. -/
 structure BusOut (I : M3Instance) where
-  /-- The linear claims. -/
-  linear : List (LinearClaim I)
-  /-- The column claims. -/
-  columns : List (ColumnClaim I)
+  /-- The point, on the sumcheck tables' variables. -/
+  point : Vector E I.τmax
+  /-- The forms, per side and sumcheck table. -/
+  forms : Fin 3 → (j : I.SumcheckTables) → I.Form j.1
+  /-- The totals the forms must sum to, per side. -/
+  totals : Fin 3 → E
+  /-- The boundary columns' claims. -/
+  columns : Vector (ColumnClaim I) I.busClaims
 
 /-- What the table sumcheck hands on: column claims only. -/
 structure TableOut (I : M3Instance) where
   /-- The column claims. -/
-  columns : List (ColumnClaim I)
+  columns : Vector (ColumnClaim I) I.tableClaims
 
-/-- What the public-input phase hands on: column claims, now with the public words' claims. -/
+/-- What the public-input phase hands on: column claims, now with the public lines' claims. -/
 structure PubOut (I : M3Instance) where
   /-- The column claims. -/
-  columns : List (ColumnClaim I)
+  columns : Vector (ColumnClaim I) I.pubClaims
 
 /-- What the Flock phase hands on: the claim pool the opening phase batches. -/
 structure FlockOut (I : M3Instance) where
   /-- The column claims, to be weighted through the layout. -/
-  columns : List (ColumnClaim I)
+  columns : Vector (ColumnClaim I) I.pubClaims
   /-- The weighted claims, ring switched. -/
-  weighted : List (WeightedClaim I)
+  weighted : Vector (WeightedClaim I) I.flockClaims
 
 /-! ## Seam relations
 
@@ -170,22 +167,26 @@ def of {S : Type} (P : S → Column I.μ → Prop) : Set ((S × ∀ i, TheOracle
 of record. -/
 def commit := of I (M3Holds I)
 
-/-- After the bus phase: every claim holds, every term has degree at most `d`, and what the bus
-did not touch. -/
-def bus := of I fun (s : I.Stmt × BusOut I) q ↦ (∀ c ∈ s.2.linear, c.Holds q) ∧
-  (∀ c ∈ s.2.linear, ∀ t ∈ c.terms, t.poly.totalDegree ≤ I.d) ∧
-  (∀ c ∈ s.2.columns, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
+/-- After the bus phase: every constraint of every sumcheck table has extension zero at the
+point, every side's forms sum to the side's total at the point, every boundary claim holds, and
+what the bus did not touch. -/
+def bus := of I fun (s : I.Stmt × BusOut I) q ↦
+  (∀ j : I.SumcheckTables, ∀ C ∈ I.constraints j.1,
+    evalMle (I.virtualTable q j.1 C) (I.lowPoint s.2.point j) = 0) ∧
+  (∀ side, ∑ j : I.SumcheckTables,
+    M3Instance.Form.eval I (s.2.forms side j) q (I.lowPoint s.2.point j) = s.2.totals side) ∧
+  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
 
 /-- After the table sumcheck: every column claim holds, and what it did not touch. -/
 def table := of I fun (s : I.Stmt × TableOut I) q ↦
-  (∀ c ∈ s.2.columns, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
+  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.PublicLinesHold s.1 q ∧ I.aux q
 
-/-- After the public-input phase: every column claim holds, and the auxiliary predicate. -/
-def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns, c.Holds q) ∧ I.aux q
+/-- After the public-input phase: every column claim holds, and the Flock predicate. -/
+def pub := of I fun (s : I.Stmt × PubOut I) q ↦ (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ I.aux q
 
 /-- After the Flock phase: every pooled claim holds. -/
 def flock := of I fun (s : I.Stmt × FlockOut I) q ↦
-  (∀ c ∈ s.2.columns, c.Holds q) ∧ ∀ c ∈ s.2.weighted, c.Holds q
+  (∀ c ∈ s.2.columns.toList, c.Holds q) ∧ ∀ c ∈ s.2.weighted.toList, c.Holds q
 
 /-- After the opening phase: nothing is left to check. -/
 def done := of I fun (_ : Unit) _ ↦ True

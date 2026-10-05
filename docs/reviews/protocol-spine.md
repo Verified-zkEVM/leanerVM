@@ -1,5 +1,9 @@
 # Review: the proof-system spine (PR #58)
 
+> An archive of the review of one commit: names, paths, line numbers and codes are that
+> commit's. What was accepted from it is text of the
+> [protocol blueprint](../roadmap/protocol-blueprint.md), which is the specification.
+
 Reviewed on 2026-09-28 against branch `docs/protocol-spine` at `00ab835` (five commits over
 `main` at `cd5f60a`), read-only, with the repository's `adversarial-review` skill. Sources:
 leanVM at the pin `a386121f84292f6fa663aaa3e570c15bc0240ea2` (`doc/leanvm/body/03`, `04`, `05`,

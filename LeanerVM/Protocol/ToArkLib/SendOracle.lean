@@ -9,6 +9,7 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.Component
+public import LeanerVM.Protocol.ToArkLib.ExtractIn
 public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.Oracles
 
@@ -57,12 +58,9 @@ def sendVerifier : OracleVerifier []ₒ S NoOracle S (OneOracle M) (sendSpec M) 
   verify := fun s _ ↦ pure s
   outputOracle := .inl (sendEmbedding M)
 
-/-- The send-oracle component: no challenge, error zero. -/
-def sendOracle : Def S NoOracle M S (OneOracle M) Unit where
-  n := 1
-  pSpec := sendSpec M
+/-- The send-oracle component: no challenge. -/
+def sendOracle : Def S NoOracle M S (OneOracle M) Unit (sendSpec M) where
   red := ⟨sendProver S M, sendVerifier S M⟩
-  err := fun _ ↦ 0
 
 variable {S M}
 
@@ -73,9 +71,6 @@ def sendOracle_relOut (rel : Set ((S × ∀ i, NoOracle i) × M)) :
   {p | ((p.1.1, fun i ↦ i.elim0), p.1.2 0) ∈ rel}
 
 /-! ## Completeness -/
-
-/-- The prover's output makes no oracle query. -/
-theorem sendOracle_outputPure : (sendOracle S M).red.prover.OutputIsPure := ⟨_, fun _ ↦ rfl⟩
 
 /-- The output oracle is the message. -/
 theorem send_materializeOutput (challenges : (sendSpec M).Challenges) (o : ∀ i, NoOracle i)
@@ -110,7 +105,7 @@ theorem sendOracle_complete (rel : Set ((S × ∀ i, NoOracle i) × M)) {σ : Ty
   intro stmtIn witIn hIn x hx
   obtain ⟨s, o⟩ := stmtIn
   have hrun : ((sendOracle S M).red.toReduction.run (s, o) witIn).run =
-      pure (some (((show (sendOracle S M).pSpec.FullTranscript from
+      pure (some (((show (sendSpec M).FullTranscript from
         ProtocolSpec.Transcript.concat (m := 0) witIn (default : (sendSpec M).Transcript 0)),
         (s, fun _ ↦ witIn), ()), (s, fun _ ↦ witIn))) := rfl
   rw [hrun, support_pure, Set.mem_singleton_iff] at hx
@@ -120,7 +115,6 @@ theorem sendOracle_complete (rel : Set ((S × ∀ i, NoOracle i) × M)) {σ : Ty
 /-- The completeness half. -/
 def sendOracleComplete (rel : Set ((S × ∀ i, NoOracle i) × M)) :
     Complete (sendOracle S M) rel (sendOracle_relOut rel) where
-  outputPure := sendOracle_outputPure
   guarded := (sendVerifierPure (S := S) (M := M)).toGuardedForm
   complete := sendOracle_complete rel
 
@@ -136,6 +130,12 @@ def sendExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (S × �
   eqIn := rfl
   extractMid := fun m _ tr _ ↦ tr ⟨0, Nat.succ_pos m.val⟩
   extractOut := fun _ tr _ ↦ tr 0
+
+omit [OracleInterface M] in
+/-- Its first step is the message. -/
+theorem sendExtractor_readsFirst :
+    Extractor.RoundByRound.ReadsFirst (sendExtractor (S := S) (M := M)) :=
+  fun _ _ _ _ ↦ HEq.rfl
 
 variable (rel : Set ((S × ∀ i, NoOracle i) × M))
   {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
@@ -168,9 +168,9 @@ theorem sendOracle_rbr :
       (fun _ ↦ 0) :=
   fun _ i ↦ (IsEmpty.false i).elim
 
-/-- The security half, with the extractor that reads the message. -/
-def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) where
-  toComplete := sendOracleComplete rel
+/-- The security half, at error zero, with the extractor that reads the message. -/
+def sendOracleSecurity : Security (sendOracle S M) rel (sendOracle_relOut rel) (fun _ ↦ 0) where
+  guarded := (sendVerifierPure (S := S) (M := M)).toGuardedForm
   witMid := sendWitMid M
   extractor := sendExtractor
   kSF := sendStateFunction rel

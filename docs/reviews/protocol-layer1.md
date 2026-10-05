@@ -1,5 +1,9 @@
 # Review: the proof system's Layer 1 (PR #59)
 
+> An archive of the review of one commit: names, paths, line numbers and codes are that
+> commit's. What was accepted from it is text of the
+> [protocol blueprint](../roadmap/protocol-blueprint.md), which is the specification.
+
 Reviewed on 2026-09-29 against branch `feat/protocol-layer-1` at `8bc9bbd` (fourteen commits
 over `main` at `5cb7da6`), read-only, with the repository's `adversarial-review` skill. The three
 passes were run by three agents with no knowledge of the branch's history and none of each

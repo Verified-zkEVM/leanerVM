@@ -32,7 +32,7 @@ example (ρ : ZMod 5) : powerBatch (fun _ : Fin 1 ↦ (1 : ZMod 5)) ρ ≠
 
 /-! ## Mixed-field pairing and off-cube evaluation
 
-These use the existing `Weight.pair_eq_sumCube` bridge. A phase-facing batched `Weight`
+These use the existing `Weight.pair` inner-product definition. A phase-facing batched `Weight`
 constructor remains the opening phase's responsibility.
 -/
 
@@ -41,17 +41,17 @@ open scoped NNReal ENNReal
 
 private def u : E := E.ofLimbs 0 1 0
 private def q : Column 1 := ⟨#v[K.ofBits 2, K.ofBits 3]⟩
-private def weights : Fin 2 → Weight 1 := ![eqWeight #v[u], eqWeight #v[u + 1]]
+private def weights : Fin 2 → Weight E 1 := ![eqWeight #v[u], eqWeight #v[u + 1]]
 private def tables : Fin 2 → CMlPolynomialEval E 1 := fun j ↦ (weights j).onCube
 
 -- The column is over K, while both the weights and challenge are over E.
 #guard u ≠ 0 ∧ u ≠ 1
 #guard sumCube (hadamard (batchWeight tables u) (CMlPolynomialEval.map (algebraMap K E) q.values)) =
-  powerBatch (fun j ↦ (weights j).pair q) u
+  powerBatch (fun j ↦ (weights j).pair (algebraMap K E) q.values) u
 #guard sumCube (hadamard (batchWeight tables 0) (CMlPolynomialEval.map (algebraMap K E) q.values)) =
-  (weights 0).pair q
+  (weights 0).pair (algebraMap K E) q.values
 -- A positive-power mutation erases the first pairing at zero; the intended batch does not.
-#guard (weights 0).pair q ≠ 0
+#guard (weights 0).pair (algebraMap K E) q.values ≠ 0
 
 #guard evalMle (batchWeight tables u) #v[u + 1] =
   powerBatch (fun j ↦ (weights j).mle #v[u + 1]) u
@@ -59,14 +59,21 @@ private def tables : Fin 2 → CMlPolynomialEval E 1 := fun j ↦ (weights j).on
 #guard evalMle (batchWeight (Fin.elim0 : Fin 0 → CMlPolynomialEval E 1) u) #v[u] = 0
 
 -- The same bridge works for arbitrary weights and columns, without a new pairing definition.
-example {J μ : ℕ} (w : Fin J → Weight μ) (c : Column μ) (ρ : E) :
+example {J μ : ℕ} (w : Fin J → Weight E μ) (c : Column μ) (ρ : E) :
     sumCube (hadamard (batchWeight (fun j ↦ (w j).onCube) ρ)
       (CMlPolynomialEval.map (algebraMap K E) c.values)) =
-      powerBatch (fun j ↦ (w j).pair c) ρ := by
-  simp_rw [Weight.pair_eq_sumCube]
-  exact pairing_batchWeight _ _ _
+      powerBatch (fun j ↦ (w j).pair (algebraMap K E) c.values) ρ := by
+  rw [pairing_batchWeight]
+  congr 1
+  funext j
+  unfold sumCube Weight.pair
+  apply Finset.sum_congr rfl
+  intro i _
+  rw [hadamard_getElem]
+  congr 1
+  exact Vector.getElem_map _ _
 
-example {J μ : ℕ} (w : Fin J → Weight μ) (ρ : E) (r : Vector E μ) :
+example {J μ : ℕ} (w : Fin J → Weight E μ) (ρ : E) (r : Vector E μ) :
     evalMle (batchWeight (fun j ↦ (w j).onCube) ρ) r =
       powerBatch (fun j ↦ (w j).mle r) ρ := by
   simp_rw [Weight.mle_eq]

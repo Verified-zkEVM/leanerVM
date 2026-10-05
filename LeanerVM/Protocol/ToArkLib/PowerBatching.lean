@@ -32,8 +32,11 @@ theorem probEvent_uniform_false_batch_le {F : Type} [Field F] [Fintype F]
     [DecidableEq F] [SampleableType F] {J : ℕ}
     (a v : Fin J → F) (h : ∃ j, a j ≠ v j) :
     Pr{let ρ ← $ᵗ F}[powerBatch a ρ = powerBatch v ρ] ≤
-      (((J - 1 : ℕ) / Fintype.card F : ℝ≥0) : ℝ≥0∞) :=
-  probEvent_uniformSample_le_of_card_le _ (card_false_batch_le a v h)
+      (((J - 1 : ℕ) / Fintype.card F : ℝ≥0) : ℝ≥0∞) := by
+  have bound := (SampleableType.prEvent_uniformSample_le_div_iff
+    (p := fun ρ ↦ powerBatch a ρ = powerBatch v ρ)).mpr (card_false_batch_le a v h)
+  rwa [ENNReal.coe_div (Nat.cast_ne_zero.mpr Fintype.card_ne_zero),
+    ENNReal.coe_natCast]
 
 end
 end LeanerVM.Protocol
