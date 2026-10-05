@@ -9,9 +9,12 @@ import LeanerVMTests.Protocol.GrandProduct
 Over `E`, on the trees of the grand-product tests.
 
 * **The theorem has an inhabitant that computes** at the slot's error: `gkrSecurity 3 4 sixteen
-  noRiders`, raised from the unit `1 / |E|` to the slot's `overE 1`, is a `def` without
-  `noncomputable`, and so is its extraction; so are the instances with a rider and for an odd
-  `μ`.
+  noRiders`, raised from the unit `1 / |E|` to the slot's `overE 1` (`overE_one`), is a `def`
+  without `noncomputable`, and so is its extraction; so are the instances with a zero rider, whose
+  input relation is inhabited, with a nonzero rider, whose input relation is empty, and for an
+  odd `μ`.
+* **The riders are tracked.** At the last layer of `gkr 1 2`, the rider `1 - x` is zero on the
+  coordinates fixed so far exactly when the first combination challenge is its root.
 * **The round check is load-bearing.** Without it, the challenge of the second step's first
   round is not knowledge sound below error one, whatever the extractor and the state function:
   from a statement whose running claim is the family's plus one, the honest polynomial lands in
@@ -24,7 +27,10 @@ Over `E`, on the trees of the grand-product tests.
 
 The refutations take their statement at a variable layer statement and point: a statement
 built from the hand run's values puts the trees' evaluation over `E` into a definitional
-comparison, which does not finish (`tests/README.md`).
+comparison, which does not finish (`tests/README.md`). They are stated at the completeness
+half's relations, `family` and `childRel`: with no riders these are the security half's,
+`familyT` at `constTrack` definitionally and `childRelT … 0` by agreement on no challenge being
+equality, so the verifier refuted is the one `gkrSecurity` is proved for.
 -/
 
 namespace LeanerVMTests.Protocol.GrandProductSecurity
@@ -35,29 +41,47 @@ open scoped NNReal
 
 /-! ## The theorem has an inhabitant -/
 
-/-- The theorem's unit `1 / |E|` is the slot's `overE 1`. -/
-theorem one_div_card_eq_overE : (1 / Nat.card E : ℝ≥0) = overE 1 := by
-  rw [overE, Nat.card_eq_fintype_card, Nat.cast_one]
-
 /-- Knowledge soundness of `gkr 3 4` at the slot's error, without riders. -/
 def security34 : Component.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) (gkrError E (overE 1) 3 4) :=
-  (gkrSecurity 3 4 sixteen noRiders).mono fun _ ↦ by rw [one_div_card_eq_overE]
+  (gkrSecurity 3 4 sixteen noRiders).mono fun _ ↦ by rw [overE_one]
 
 /-- Its extraction, the extractor and the knowledge state function a slot reads. -/
 def extraction34 : Component.Extraction (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) :=
   security34.toExtraction
 
-/-- With a rider. -/
+/-- With a zero rider: the input relation is inhabited. -/
+example : Component.Security (gkr 1 2 four) (relIn 1 2 four zeroRider)
+    (relOut 1 2 four zeroRider) (gkrError E (overE 1) 1 2) :=
+  (gkrSecurity 1 2 four zeroRider).mono fun _ ↦ by rw [overE_one]
+
+/-- With a nonzero rider: no statement is in the input relation, and every one escapes at each
+challenge with at most the error charged to it. -/
 example : Component.Security (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider)
     (gkrError E (overE 1) 1 2) :=
-  (gkrSecurity 1 2 four rider).mono fun _ ↦ by rw [one_div_card_eq_overE]
+  (gkrSecurity 1 2 four rider).mono fun _ ↦ by rw [overE_one]
 
 /-- For an odd `μ`, where the binary layer comes first. -/
 example : Component.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
     (relOut 3 3 eight noRiders) (gkrError E (overE 1) 3 3) :=
-  (gkrSecurity 3 3 eight noRiders).mono fun _ ↦ by rw [one_div_card_eq_overE]
+  (gkrSecurity 3 3 eight noRiders).mono fun _ ↦ by rw [overE_one]
+
+/-! ## The riders are tracked -/
+
+instance {n : ℕ} (t : CMlPolynomialEval E n) (σ : Partial E) : Decidable (RestrictedZero t σ) :=
+  inferInstanceAs (Decidable (∀ b : Fin (2 ^ n), evalMle t (σ.point b) = 0))
+
+instance (rd : Unit → (∀ i, NoOracle i) → List (Σ τ : Fin 3, CMlPolynomialEval E τ))
+    (σ : Partial E) : Decidable (RidersZeroOn 2 rd () noO σ) :=
+  List.decidableBAll _ _
+
+-- At the last layer of `gkr 1 2` there is no sumcheck round, and the combination challenges fix
+-- the coordinates from `0` up. Before any, the rider is not zero; after the first, it is zero
+-- on the coordinates fixed exactly when the challenge is `1`, the root of `1 - x`.
+#guard ¬ RidersZeroOn 2 rider () noO (interpPartial 2 (#v[] : Vector E 0) (#v[] : Vector E 0))
+#guard RidersZeroOn 2 rider () noO (interpPartial 2 (#v[] : Vector E 0) (#v[one] : Vector E 1))
+#guard ¬ RidersZeroOn 2 rider () noO (interpPartial 2 (#v[] : Vector E 0) (#v[a] : Vector E 1))
 
 /-! ## The round check is load-bearing -/
 

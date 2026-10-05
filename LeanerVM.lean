@@ -68,3 +68,4 @@ import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
+import LeanerVM.Protocol.ToCompPoly.Fingerprint
