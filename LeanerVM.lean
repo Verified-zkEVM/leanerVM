@@ -60,6 +60,7 @@ import LeanerVM.Semantics.Blake2sOutput
 import LeanerVM.Semantics.Executable
 import LeanerVM.Semantics.Execution
 import LeanerVM.Semantics.FillBlocks
+import LeanerVM.Semantics.FillCycle
 import LeanerVM.Semantics.FillPlan
 import LeanerVM.Semantics.FillSteps
 import LeanerVM.Semantics.FillerRows

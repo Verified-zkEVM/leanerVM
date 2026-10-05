@@ -29,6 +29,7 @@ import LeanerVMTests.Semantics.Blake2sOutput
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillBlocks
+import LeanerVMTests.Semantics.FillCycle
 import LeanerVMTests.Semantics.FillPlan
 import LeanerVMTests.Semantics.FillSteps
 import LeanerVMTests.Semantics.FillerRows
