@@ -29,7 +29,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
 | grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
-| bus phase: definition and completeness (Layer 6) | PRB | on merge | on merge |
+| bus phase: definition and completeness (Layer 6) | #79 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
