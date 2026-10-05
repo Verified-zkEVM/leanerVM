@@ -45,7 +45,6 @@ import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
-import LeanerVM.Protocol.ToCompPoly.Fingerprint
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToVCVio.UniformSample
@@ -59,3 +58,4 @@ import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
+import LeanerVM.Protocol.ToCompPoly.Fingerprint
