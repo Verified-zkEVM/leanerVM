@@ -34,6 +34,10 @@ product of two tables' extensions.
 * **The slot.** The table sumcheck's slot `tableSpec` takes the batching challenge followed by the
   rounds and the last message of a plain sumcheck of degree three, as a front phase.
 * **Completeness** has an inhabitant for both variants.
+* **Knowledge soundness** has an inhabitant for both variants, at the slot's unit, as plain
+  definitions that compute at `E`; the rounds of a cubic plain sumcheck over the toy's stack meet
+  the table slot's per-round error `overE 3`; without its check, a round of the family has no
+  knowledge error below one.
 
 A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with numerals
 are named as definitions before a guard uses them.
@@ -350,5 +354,64 @@ example : ((((), (#v[], T)), noO), ()) ∈ relIn V wtOne firstIsA := ⟨rfl, rfl
 def completeSide :
     Component.Complete (plain V nodes) (relIn V unitWeights firstIsA) (relOut V firstIsA) :=
   plainComplete V nodes firstIsA V_degree nodes_injective
+
+/-! ## Knowledge soundness -/
+
+open scoped NNReal
+
+/-- The theorems' unit `k / |E|` is the slot's `overE k`. -/
+theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = overE k := by
+  rw [overE, Nat.card_eq_fintype_card]
+
+/-- Knowledge soundness of the plain sumcheck on `t₁ · t₂`, at `overE 2` per round. -/
+def securityPlain : Component.Security (plain V nodes) (relIn V unitWeights) (relOut V)
+    (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
+  (plainSecurity V nodes V_degree nodes_injective).mono fun _ ↦ by
+    rw [natCast_div_card_eq_overE]
+
+/-- Knowledge soundness of the normalized sumcheck on `t₁ · t₂` against `eq(p, ·)`. -/
+def securityNormalized :
+    Component.Security (normalized V (fun _ ↦ p) nodes) (relIn V wtEq) (relOut V)
+      (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
+  (normalizedSecurity V nodes (fun _ ↦ p) V_degree nodes_injective).mono fun _ ↦ by
+    rw [natCast_div_card_eq_overE]
+
+/-- Their extraction, which a slot reads: it computes. -/
+def extractionPlain : Component.Extraction (plain V nodes) (relIn V unitWeights) (relOut V) :=
+  securityPlain.toExtraction
+
+theorem y_add_one_ne_zero : y + 1 ≠ 0 := by
+  intro h
+  have h3 := y_pow_three
+  rw [h] at h3
+  exact y_ne_zero (pow_eq_zero_iff (by norm_num) |>.mp h3)
+
+theorem nodes4_injective : Function.Injective nodes4 := by
+  have h1 : y + 1 ≠ 1 := fun h ↦ y_ne_zero (add_eq_right.mp h)
+  have h2 : y + 1 ≠ y := fun h ↦ one_ne_zero (add_eq_left.mp h)
+  intro i j h
+  fin_cases i <;> fin_cases j <;>
+    simp_all [nodes4, y_ne_zero, y_ne_one, y_ne_zero.symm, y_ne_one.symm, y_add_one_ne_zero,
+      y_add_one_ne_zero.symm, h1.symm, h2.symm]
+
+theorem Vtoy_degree : ∀ ctx, IndividualDegreeLE (Vtoy.summand ctx) 3 := fun ctx k ↦ by
+  have h2 : 2 < Toy.toy.tableColumns := by decide
+  have e : Vtoy.summand ctx = fun z ↦
+      evalMle (Vtoy.tables ctx ⟨2, h2⟩) z * evalMle (Vtoy.tables ctx ⟨2, h2⟩) z +
+        evalMle (Vtoy.tables ctx ⟨2, h2⟩) z := by
+    funext z
+    simp only [Virtual.summand, Virtual.values, Vtoy, Vector.getElem_ofFn]
+  have hv := DegreeLEAt.evalMle (Vtoy.tables ctx ⟨2, h2⟩) (k := k)
+  rw [e]
+  exact ((hv.mul hv).add (hv.mono (by omega))).mono (by omega)
+
+/-- The rounds of the cubic plain sumcheck over the toy's stack meet the table slot's per-round
+error, `overE 3`. -/
+def tableRoundsSecurity :
+    Component.Security (rounds Vtoy unitWeights nodes4) (relIn Vtoy unitWeights)
+      (SumcheckRound.rel (family Vtoy unitWeights nodes4) Toy.toy.τmax)
+      (roundsError E 3 (overE 3) Toy.toy.τmax) :=
+  (roundsSecurity Vtoy unitWeights nodes4 Vtoy_degree nodes4_injective).mono fun _ ↦ by
+    rw [natCast_div_card_eq_overE]
 
 end LeanerVMTests.Protocol.Sumcheck

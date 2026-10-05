@@ -26,6 +26,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking, and the public-input phase, revised | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
+| sumcheck: knowledge soundness (Layer 4) | the pull request stacked on #75 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built. `#print axioms` gives the
@@ -46,7 +47,9 @@ sumcheck (`ToArkLib/Sumcheck.lean`): a virtual polynomial (`Sumcheck.Virtual`: t
 the context and a formula of the point and the tables' values), its sumcheck over a cube weighted
 per coordinate (`Sumcheck.weighted`, binding the highest variable first, the tables' values at the
 final point as its last message), the plain and the normalized variants as its two weightings
-(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness, and the transport of
+(`Sumcheck.plain`, `Sumcheck.normalized`), their perfect completeness and, on the branch stacked on #75, their round-by-round knowledge
+soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`,
+`normalizedSecurity`), and the transport of
 round-by-round knowledge soundness to a verifier that decodes a round message sent without one
 coefficient (`Sumcheck.transport`, on the generic `ToArkLib/TranscriptMap.lean`); with the
 weighted cube sums and the degree in each coordinate it needs (`ToCompPoly/WeightedCube.lean`,
@@ -190,7 +193,7 @@ each is a checklist line of #12. Where the built work differs from the blueprint
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
 
-- **The sumchecks (Layer 4), definitions and completeness** stand on the GKR's round
+- **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the GKR's round
   (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and stays: a family of
   claims, honest polynomials, a weighted domain per round and a side invariant, with the rounds'
   completeness and knowledge soundness. Where the built work differs from Layer 4's sketch:
@@ -245,6 +248,13 @@ each is a checklist line of #12. Where the built work differs from the blueprint
     challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the
     map need not be injective. The map of the whole protocol's transcripts, and Fiat–Shamir's
     absorption of the wire, are the compiled verifier's to build.
+  - Knowledge soundness is the rounds' (`SumcheckRound.roundsSecurity`, for the family with no
+    side invariant, so its soundness clause is vacuous) followed by the last message's at error
+    zero, with the extractor that keeps the witness; its hypotheses are completeness's, the
+    degree in each variable and distinct nodes, since the round's bound compares the recorded
+    polynomial with the honest one. Each security is a plain `def` that computes at `E`, stated
+    at `d / |F|` with `|F|` written `Nat.card F`, and a test raises the rounds of a cubic plain
+    sumcheck over the toy's stack to the table slot's per-round error `overE 3`.
   - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
     last message has no knowledge state function at all); the round check's is the base's
     `SumcheckRound.drawChallenge_unchecked_not_rbr`.
@@ -263,8 +273,8 @@ objects, #43 feeding the opening phase.
 
 The spine's revision first: every phase is written against its slots. Independent of it: Clean
 expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The sumcheck's knowledge
-soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
+opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
+stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on its local round (Layer 5) is built on the branch
 stacked on #62. The public-input phase's deployed check follows its pool's revision.
 
 ## Upstream watch

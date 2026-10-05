@@ -4,8 +4,9 @@
   The sumcheck of a virtual polynomial (a formula in the values of tables the verifier does not
   evaluate) over a weighted cube, binding the highest variable first, with the tables' values at
   the final point as its last message: the plain variant (unit weights) and the normalized one
-  (the weights of an equality polynomial). Definition, perfect completeness, and the decoding of
-  a round message sent without one coefficient. Candidate for ArkLib.
+  (the weights of an equality polynomial). Definition, perfect completeness, round-by-round
+  knowledge soundness, and the decoding of a round message sent without one coefficient.
+  Candidate for ArkLib.
 -/
 
 module
@@ -49,7 +50,12 @@ map, by default the point and the values as claims on the tables (`finalOut`, `r
 
 Completeness (`weightedComplete`) holds when the summand has degree at most `d` in each variable
 (`IndividualDegreeLE`): the round polynomial is then a polynomial of degree at most `d`, which
-`d + 1` nodes determine.
+`d + 1` nodes determine. Knowledge soundness (`weightedSecurity`, `plainSecurity`,
+`normalizedSecurity`) holds under the same hypotheses, at `d / |F|` on each round's challenge and
+with the extractor that keeps the witness, which carries no information: a recorded polynomial
+that passes the check at a wrong claim is not the true one, and two polynomials of degree `d`
+agree at `d` points at most; values that pass the final check and are the tables' values make
+the running claim the summand at the point.
 
 *The wire.* A round sent with `d` of its `d + 1` coefficients (`wireSpec`, the coefficients but
 coefficient `k`: `encodeWire`) is decoded by deriving the missing one from the running claim, the
@@ -480,6 +486,58 @@ def normalizedComplete (pt : X → Vector F n) (hV : ∀ ctx, IndividualDegreeLE
   weightedComplete V (eqWeights pt) nodes side hV hnodes
 
 end Complete
+
+section Security
+
+variable {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableType F] [Finite F]
+  {X : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)] {W : Type} [Subsingleton W]
+  {n m : ℕ} (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
+  (nodes : Fin (d + 1) → F)
+
+/-- The security half of the rounds, at `d / |F|` per round. -/
+def roundsSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Component.Security (rounds V wt nodes) (relIn V wt) (SumcheckRound.rel (family V wt nodes) n)
+      (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) :=
+  rel_zero nodes V wt ▸ SumcheckRound.roundsSecurity (family V wt nodes) n
+    (family_honest V wt nodes hV hnodes).toConsistent (fun _ _ _ _ h ↦ absurd trivial h) n 0
+    (Nat.zero_add n)
+
+/-- The security half of the last message, at error zero: values that pass the final check and
+are the tables' values at the final point make the running claim the summand there. -/
+def finalSecurity :
+    Component.Security (final (W := W) (O := O) V) (SumcheckRound.rel (family V wt nodes) n)
+      (relOut V) (sayError (Vector F m)) :=
+  Component.sendCheckedSecurity O (Vector F m) _ _ _ fun s o w v hc hout ↦ by
+    rw [mem_rel_self V wt nodes]
+    rw [finalCheck, decide_eq_true_eq] at hc
+    rw [← hc]
+    exact congrArg (V.formula s.1 s.2.1.reverse) hout.symm
+
+/-- The security half of the sumcheck: round-by-round knowledge soundness at `d / |F|` per round,
+with the extractor that keeps the witness, when the summand has degree at most `d` in each
+variable. -/
+def weightedSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Component.Security (weighted V wt nodes) (relIn V wt) (relOut V)
+      (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
+  (roundsSecurity V wt nodes hV hnodes).append (finalSecurity V wt nodes)
+
+/-- The security half of the plain sumcheck. -/
+def plainSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Component.Security (plain V nodes) (relIn V unitWeights) (relOut V)
+      (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
+  weightedSecurity V unitWeights nodes hV hnodes
+
+/-- The security half of the normalized sumcheck. -/
+def normalizedSecurity (pt : X → Vector F n) (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Component.Security (normalized V pt nodes) (relIn V (eqWeights pt)) (relOut V)
+      (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
+  weightedSecurity V (eqWeights pt) nodes hV hnodes
+
+end Security
 
 section Wire
 
