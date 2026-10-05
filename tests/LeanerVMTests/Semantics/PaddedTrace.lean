@@ -93,4 +93,13 @@ theorem mulAltered_not_from : ¬ mulAltered.PaddedFrom mulTrace := fun h ↦ by
 example : ¬ (⟨minLogMem, mulImage, 3⟩ : Trace mulProg).PaddedFrom mulPadded := fun h ↦
   absurd h.κ_le (by decide)
 
+/-! ## The rows of a run -/
+
+/-- The rows of the six tables add up to the steps: three steps, three rows. -/
+example : (fillTables.map mulTrace.runRows).sum = mulTrace.steps := Trace.sum_runRows mul_run
+
+/-- A short trace is far below the most steps a fitting trace can have. -/
+example : mulTrace.steps ≤ 6 * 2 ^ maxLogRows :=
+  mulTrace_fits.steps_le mul_run
+
 end LeanerVMTests.Semantics.PaddedTrace
