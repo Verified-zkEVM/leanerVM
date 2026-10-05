@@ -28,7 +28,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the public-input phase with the deployed check (Layer 8) | #72 | `c9bd599` | 2026-10-05 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
 | grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
-| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | this pull request | on merge | on merge |
+| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -46,8 +46,8 @@ Its knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
 (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no witness) and a
 table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which tracks the riders
 and the descendants' values while the coordinates of a point are drawn one at a time. The
-fingerprint polynomial of a tuple (`ToCompPoly/Fingerprint.lean`, #39) and, with this pull
-request, the product polynomial of a multiset of tuples with its injectivity and its collision
+fingerprint polynomial of a tuple (`ToCompPoly/Fingerprint.lean`, #39) and, with #78, the
+product polynomial of a multiset of tuples with its injectivity and its collision
 count (`ToArkLib/GrandProductPoly.lean`), and their leanVM reading (`Fingerprint.lean`:
 `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`, `sideProduct_collision`) complete the
 fingerprint hole. Nothing else is built: the other phases, the other generic components, the
