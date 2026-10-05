@@ -228,7 +228,15 @@ each is a checklist line of #12. Where the built work differs from the blueprint
     two has no `0, 1, …, d`.
   - The rounds and the last message are exposed apart (`Sumcheck.rounds`, `Sumcheck.final`, with
     their completeness and front witnesses), since the table slot nests its schedule to the left,
-    `draw ++ rounds ++ say`, and a test builds the table slot's shape from them.
+    `draw ++ rounds ++ say`, and a test builds the table slot's shape from them. The last message
+    takes its output map (`final V out`, `finalComplete` for any output relation the true values
+    land in), so that the table phase outputs its own statement, `I.Stmt × TableOut I`, at the
+    slot's schedule; `finalOut` and `relOut` are the default.
+  - The relations carry a side condition on the context (`relIn V wt side`, `relOut V side`, the
+    family's invariant), which no challenge changes: what the table phase's seams say beside the
+    claim (the column claims carried forward, the public lines, `aux`) rides through the
+    sumcheck, at no cost in the error, since a challenge cannot make a false side condition
+    true.
   - `Sumcheck.transport` is stated per round, for any security of the round, from the wire: a
     round sent with `d` of its `d + 1` coefficients (`wireSpec`), decoded injectively onto the
     messages that pass the round's check (`decodeWire`, `encodeWire_decodeWire`,

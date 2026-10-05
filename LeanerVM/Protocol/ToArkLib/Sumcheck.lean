@@ -26,7 +26,9 @@ is the formula at `z` and at the values of the tables' multilinear extensions th
 (`Virtual.summand`). The verifier never evaluates a table; the formula it evaluates itself, so
 factors such as an equality polynomial or a padding product belong to the formula. A weight per
 coordinate (`CoordWeights`, the weights of the values `0` and `1`) weighs the cube, and the
-claim is `Σ_x (∏_k w_k(x_k)) · summand(x) = T` (`relIn`). Two choices of weights:
+claim is `Σ_x (∏_k w_k(x_k)) · summand(x) = T` (`relIn`), beside a side condition on the context
+that the sumcheck carries unchanged, for a protocol that has more to say of its statement and
+oracles than the claim. Two choices of weights:
 
 * *plain* (`plain`, `unitWeights`): unit weights, the claim `Σ_x summand(x) = T`;
 * *normalized* (`normalized`, `eqWeights pt`): the weights `(1 - p_k, p_k)` of a point `p` of the
@@ -42,8 +44,8 @@ claim, `k` the coordinate the round binds (`domain`), and moves to `q(c)`. The h
 polynomial (`roundPoly`) interpolates the next claim at `d + 1` distinct nodes (`nodes`, a
 parameter: a field of characteristic two has no `0, 1, …, d`). The last message (`final`) is the
 tables' values at the final point, the challenges in coordinate order; the verifier checks that
-the formula at the point and the values is the running claim, and outputs the values as claims on
-the tables (`relOut`).
+the formula at the point and the values is the running claim, and outputs them through an output
+map, by default the point and the values as claims on the tables (`finalOut`, `relOut`).
 
 Completeness (`weightedComplete`) holds when the summand has degree at most `d` in each variable
 (`IndividualDegreeLE`): the round polynomial is then a polynomial of degree at most `d`, which
@@ -150,27 +152,31 @@ def roundPoly (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
   else SumcheckRound.ofCPolynomial d 0
 
 /-- The family of claims of the sumcheck: the running claims, the honest round polynomials, the
-domains, and no side invariant. -/
+domains, and the side condition on the context, which no challenge changes. -/
 def family (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
-    (nodes : Fin (d + 1) → F) : SumcheckRound.Family F X O W d where
+    (nodes : Fin (d + 1) → F) (side : SumcheckRound.Ctx X O W → Prop) :
+    SumcheckRound.Family F X O W d where
   claim := claim V wt
   poly := roundPoly V wt nodes
   weight := domain wt
-  inv := fun _ _ _ ↦ True
+  inv := fun ctx _ _ ↦ side ctx
 
 /-! ## The relations -/
 
 /-- The output statement: the public data, the final point, and one value per table. -/
 abbrev Out (X F : Type) (n m : ℕ) : Type := X × (Vector F n × Vector F m)
 
-/-- The input relation: the claimed sum is the weighted sum of the summand over the cube. -/
-def relIn (V : Virtual F X O W n m) (wt : CoordWeights F X n) :
-    Set ((SumcheckRound.Stmt X F 0 × ∀ i, O i) × W) :=
-  {p | p.1.1.2.2 = weightedSum V wt (SumcheckRound.ctxOf p)}
+/-- The input relation: the claimed sum is the weighted sum of the summand over the cube, and the
+side condition holds of the context. -/
+def relIn (V : Virtual F X O W n m) (wt : CoordWeights F X n)
+    (side : SumcheckRound.Ctx X O W → Prop) : Set ((SumcheckRound.Stmt X F 0 × ∀ i, O i) × W) :=
+  {p | p.1.1.2.2 = weightedSum V wt (SumcheckRound.ctxOf p) ∧ side (SumcheckRound.ctxOf p)}
 
-/-- The output relation: each value is its table's extension at the point. -/
-def relOut (V : Virtual F X O W n m) : Set ((Out X F n m × ∀ i, O i) × W) :=
-  {p | V.values ((p.1.1.1, p.1.2), p.2) p.1.1.2.1 = p.1.1.2.2}
+/-- The output relation: each value is its table's extension at the point, and the side condition
+holds of the context. -/
+def relOut (V : Virtual F X O W n m) (side : SumcheckRound.Ctx X O W → Prop) :
+    Set ((Out X F n m × ∀ i, O i) × W) :=
+  {p | V.values ((p.1.1.1, p.1.2), p.2) p.1.1.2.1 = p.1.1.2.2 ∧ side ((p.1.1.1, p.1.2), p.2)}
 
 /-! ## The components -/
 
@@ -187,16 +193,16 @@ def rounds (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
 def finalCheck (V : Virtual F X O W n m) (s : SumcheckRound.Stmt X F n) (v : Vector F m) : Bool :=
   decide (V.formula s.1 s.2.1.reverse v = s.2.2)
 
-/-- The output: the final point, in coordinate order, and the values sent. -/
+/-- The default output: the final point, in coordinate order, and the values sent. -/
 def finalOut (s : SumcheckRound.Stmt X F n) (v : Vector F m) : Out X F n m :=
   (s.1, (s.2.1.reverse, v))
 
 /-- The last message: the prover sends the tables' values at the final point, the verifier checks
-them against the running claim and outputs them. -/
-def final (V : Virtual F X O W n m) :
-    Component.Def (SumcheckRound.Stmt X F n) O W (Out X F n m) O W (say (Vector F m)) :=
+them against the running claim and outputs the statement `out` makes of them. -/
+def final (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T) :
+    Component.Def (SumcheckRound.Stmt X F n) O W T O W (say (Vector F m)) :=
   Component.sendChecked O (Vector F m)
-    (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) finalOut
+    (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) out
 
 /-- The schedule: `n` rounds of degree `d`, then the `m` values. -/
 abbrev spec (F : Type) (d n m : ℕ) : ProtocolSpec (roundsRounds n + 1) :=
@@ -214,7 +220,7 @@ instance instSampleableTypeSpec (d n m : ℕ) :
 def weighted (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
     (nodes : Fin (d + 1) → F) :
     Component.Def (SumcheckRound.Stmt X F 0) O W (Out X F n m) O W (spec F d n m) :=
-  (rounds V wt nodes).append (final V)
+  (rounds V wt nodes).append (final V finalOut)
 
 /-- The plain sumcheck: `Σ_x summand(x) = T`. -/
 abbrev plain (V : Virtual F X O W n m) {d : ℕ} (nodes : Fin (d + 1) → F) :
@@ -233,13 +239,15 @@ def roundsFront (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
   SumcheckRound.roundsFront _ _ n n 0 _
 
 /-- The last message is front. -/
-def finalFront (V : Virtual F X O W n m) : Component.Front (final (W := W) (O := O) V) :=
+def finalFront (V : Virtual F X O W n m) {T : Type}
+    (out : SumcheckRound.Stmt X F n → Vector F m → T) :
+    Component.Front (final (W := W) (O := O) V out) :=
   Component.sendCheckedFront _ _ _ _ _
 
 /-- The sumcheck is front: its verifier reads the transcript, never the oracles. -/
 def weightedFront (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
     (nodes : Fin (d + 1) → F) : Component.Front (weighted V wt nodes) :=
-  (roundsFront V wt nodes).append (finalFront V)
+  (roundsFront V wt nodes).append (finalFront V finalOut)
 
 end Def
 
@@ -384,27 +392,30 @@ private theorem weightedSum_roundPoly (hV : ∀ ctx, IndividualDegreeLE (V.summa
   rw [evaluate_roundPoly V wt nodes hV hnodes hj, evaluate_roundPoly V wt nodes hV hnodes hj,
     claim_split V wt hj]
 
-/-- The family is honest: its round polynomials pass the check and evaluate to the next claim. -/
+variable (side : SumcheckRound.Ctx X O W → Prop)
+
+/-- The family is honest: its round polynomials pass the check and evaluate to the next claim, and
+no challenge changes the side condition. -/
 theorem family_honest (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
-    (hnodes : Function.Injective nodes) : (family V wt nodes).Honest n where
+    (hnodes : Function.Injective nodes) : (family V wt nodes side).Honest n where
   check := fun ctx _ c hj ↦ weightedSum_roundPoly V wt nodes hV hnodes hj ctx c
   next := fun ctx _ c x hj ↦ evaluate_roundPoly V wt nodes hV hnodes hj ctx c x
-  inv_push := fun _ _ _ _ _ _ ↦ trivial
+  inv_push := fun _ _ _ _ _ h ↦ h
 
 /-- The family's relation before the first round is the input relation. -/
-theorem rel_zero (V : Virtual F X O W n m) (wt : CoordWeights F X n) :
-    SumcheckRound.rel (family V wt nodes) 0 = relIn V wt := by
+theorem rel_zero : SumcheckRound.rel (family V wt nodes side) 0 = relIn V wt side := by
   ext p
   have hc : p.1.1.2.1 = #v[] := Vector.ext fun i hi ↦ absurd hi (Nat.not_lt_zero i)
-  simp only [SumcheckRound.rel, family, relIn, Set.mem_ofPred_eq, true_and, hc]
-  rw [claim_zero]
+  simp only [SumcheckRound.rel, family, relIn, Set.mem_ofPred_eq, hc]
+  rw [claim_zero, and_comm]
 
-/-- The family's relation after the last round: the running claim is the summand at the
-challenges in coordinate order. -/
+/-- The family's relation after the last round: the side condition, and the running claim is the
+summand at the challenges in coordinate order. -/
 theorem mem_rel_self (p : (SumcheckRound.Stmt X F n × ∀ i, O i) × W) :
-    p ∈ SumcheckRound.rel (family V wt nodes) n ↔
-      p.1.1.2.2 = V.summand (SumcheckRound.ctxOf p) p.1.1.2.1.reverse := by
-  simp only [SumcheckRound.rel, family, Set.mem_ofPred_eq, true_and]
+    p ∈ SumcheckRound.rel (family V wt nodes side) n ↔
+      side (SumcheckRound.ctxOf p) ∧
+        p.1.1.2.2 = V.summand (SumcheckRound.ctxOf p) p.1.1.2.1.reverse := by
+  simp only [SumcheckRound.rel, family, Set.mem_ofPred_eq]
   rw [claim_self]
 
 variable [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)]
@@ -412,54 +423,61 @@ variable [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)]
 /-- The completeness half of the rounds. -/
 def roundsComplete (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Complete (rounds V wt nodes) (relIn V wt)
-      (SumcheckRound.rel (family V wt nodes) n) :=
-  rel_zero nodes V wt ▸ SumcheckRound.roundsComplete (family V wt nodes) n
-    (family_honest V wt nodes hV hnodes) n 0 (Nat.zero_add n)
+    Component.Complete (rounds V wt nodes) (relIn V wt side)
+      (SumcheckRound.rel (family V wt nodes side) n) :=
+  rel_zero V wt nodes side ▸ SumcheckRound.roundsComplete (family V wt nodes side) n
+    (family_honest V wt nodes side hV hnodes) n 0 (Nat.zero_add n)
 
-/-- The completeness half of the last message: the honest values pass the final check. -/
-def finalComplete :
-    Component.Complete (final V) (SumcheckRound.rel (family V wt nodes) n) (relOut V) :=
+/-- The completeness half of the last message, for an output map and an output relation that the
+true values at the final point land in whenever the side condition holds. -/
+def finalComplete {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w, side ((s.1, o), w) →
+      ((out s (V.values ((s.1, o), w) s.2.1.reverse), o), w) ∈ relOut') :
+    Component.Complete (final V out) (SumcheckRound.rel (family V wt nodes side) n) relOut' :=
   Component.sendCheckedComplete O (Vector F m) _ _ _ fun s o w hin ↦ by
-    refine ⟨?_, rfl⟩
-    rw [finalCheck, decide_eq_true_eq, (mem_rel_self V wt nodes _).mp hin]
+    obtain ⟨hside, hclaim⟩ := (mem_rel_self V wt nodes side _).mp hin
+    refine ⟨?_, h s o w hside⟩
+    rw [finalCheck, decide_eq_true_eq, hclaim]
     rfl
 
 omit [DecidableEq F] [SampleableType F] in
 /-- The final check is load-bearing: the last message without it has no knowledge state function
-at all, whatever the extractor, once a statement's running claim is not the summand at its
-point, since the true values then pass and land in the output relation. -/
+at all, whatever the extractor, once a statement meets the side condition and its running claim
+is not the summand at its point, since the true values then pass and land in the output
+relation. -/
 theorem final_unchecked_no_stateFunction {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
     {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
       (SumcheckRound.Stmt X F n × ∀ i, O i) W W (say (Vector F m)) W'}
     (K : (Component.sendCheckedVerifier O (Vector F m) (fun _ _ ↦ true)
       (finalOut (X := X) (F := F) (n := n) (m := m))).toVerifier.KnowledgeStateFunction init impl
-      (SumcheckRound.rel (family V wt nodes) n) (relOut V) E)
-    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W)
+      (SumcheckRound.rel (family V wt nodes side) n) (relOut V side) E)
+    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W) (hside : side ((s.1, o), w))
     (hs : ∀ w', s.2.2 ≠ V.summand ((s.1, o), w') s.2.1.reverse) : False :=
   Component.sendChecked_no_stateFunction O (Vector F m) (fun _ _ ↦ true) finalOut init impl K s o
-    (fun w' h ↦ hs w' ((mem_rel_self V wt nodes _).mp h))
-    (V.values ((s.1, o), w) s.2.1.reverse) rfl w rfl
+    (fun w' h ↦ hs w' ((mem_rel_self V wt nodes side _).mp h).2)
+    (V.values ((s.1, o), w) s.2.1.reverse) rfl w ⟨rfl, hside⟩
 
 /-- Perfect completeness of the sumcheck, when the summand has degree at most `d` in each
 variable and the nodes are distinct. -/
 def weightedComplete (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Complete (weighted V wt nodes) (relIn V wt) (relOut V) :=
-  (roundsComplete V wt nodes hV hnodes).append (finalComplete V wt nodes)
+    Component.Complete (weighted V wt nodes) (relIn V wt side) (relOut V side) :=
+  (roundsComplete V wt nodes side hV hnodes).append
+    (finalComplete V wt nodes side finalOut fun _ _ _ hside ↦ ⟨rfl, hside⟩)
 
 /-- Perfect completeness of the plain sumcheck. -/
 def plainComplete (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Complete (plain V nodes) (relIn V unitWeights) (relOut V) :=
-  weightedComplete V unitWeights nodes hV hnodes
+    Component.Complete (plain V nodes) (relIn V unitWeights side) (relOut V side) :=
+  weightedComplete V unitWeights nodes side hV hnodes
 
 /-- Perfect completeness of the normalized sumcheck. -/
 def normalizedComplete (pt : X → Vector F n) (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (hnodes : Function.Injective nodes) :
-    Component.Complete (normalized V pt nodes) (relIn V (eqWeights pt)) (relOut V) :=
-  weightedComplete V (eqWeights pt) nodes hV hnodes
+    Component.Complete (normalized V pt nodes) (relIn V (eqWeights pt) side) (relOut V side) :=
+  weightedComplete V (eqWeights pt) nodes side hV hnodes
 
 end Complete
 

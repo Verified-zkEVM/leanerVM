@@ -66,6 +66,9 @@ def V : Virtual E Unit NoOracle Unit 2 2 where
 /-- The context: no public data, no oracle, no witness. -/
 def ctx : SumcheckRound.Ctx Unit NoOracle Unit := (((), noO), ())
 
+/-- No side condition. -/
+def noSide : SumcheckRound.Ctx Unit NoOracle Unit → Prop := fun _ ↦ True
+
 /-- Three distinct nodes. -/
 def nodes : Fin 3 → E := ![0, 1, y]
 
@@ -226,20 +229,26 @@ instance : ∀ i, OracleInterface ((draw E ++ₚ roundsSpec E 3 Toy.toy.τmax).M
 instance : ∀ i, SampleableType ((draw E ++ₚ roundsSpec E 3 Toy.toy.τmax).Challenge i) :=
   chalAppend (instSampleableTypeDraw E) (instSampleableTypeRounds E 3 _)
 
+/-- The table phase's output, here the public statement and the values: the last message's output
+map makes the phase's own statement, not the sumcheck's. -/
+def tableOut (s : SumcheckRound.Stmt TableX E Toy.toy.τmax) (v : Vector E Toy.toy.tableColumns) :
+    Toy.toy.Stmt × Vector E Toy.toy.tableColumns :=
+  (s.1.1.1, v)
+
 /-- The table sumcheck's shape: the batching challenge, then the rounds and the last message of
 the plain sumcheck. -/
 def tableShape : Phase.Def Toy.toy (Toy.toy.Stmt × BusOut Toy.toy)
-    (Out TableX E Toy.toy.τmax Toy.toy.tableColumns) (tableSpec Toy.toy) :=
+    (Toy.toy.Stmt × Vector E Toy.toy.tableColumns) (tableSpec Toy.toy) :=
   ((Component.sampleChallenge (TheOracle Toy.toy) E (fun _ ↦ true)
       fun s ξ ↦ (((s, ξ), (#v[], 0)) : SumcheckRound.Stmt TableX E 0)).append
-    (rounds Vtoy unitWeights nodes4)).append (final Vtoy)
+    (rounds Vtoy unitWeights nodes4)).append (final Vtoy tableOut)
 
 -- The slot takes it as a front phase, by definitional equality of the schedules.
 example : Phase.FrontDef Toy.toy (Toy.toy.Stmt × BusOut Toy.toy)
-    (Out TableX E Toy.toy.τmax Toy.toy.tableColumns) (tableSpec Toy.toy) :=
+    (Toy.toy.Stmt × Vector E Toy.toy.tableColumns) (tableSpec Toy.toy) :=
   ⟨tableShape,
     ((Component.sampleFront _ _ _ _).append (roundsFront Vtoy unitWeights nodes4)).append
-      (finalFront Vtoy)⟩
+      (finalFront Vtoy tableOut)⟩
 
 /-! ## Completeness -/
 
@@ -316,17 +325,30 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
     (s : SumcheckRound.Stmt Unit E 2)
     (K : (Component.sendCheckedVerifier NoOracle (Vector E 2) (fun _ _ ↦ true)
       (finalOut (X := Unit) (F := E) (n := 2) (m := 2))).toVerifier.KnowledgeStateFunction init
-      impl (SumcheckRound.rel (family V wtOne nodes) 2) (relOut V) Ex) : False :=
-  final_unchecked_no_stateFunction V wtOne nodes init impl K
-    ((), (s.2.1, V.summand ctx s.2.1.reverse + 1)) noO () fun _ h ↦
+      impl (SumcheckRound.rel (family V wtOne nodes noSide) 2) (relOut V noSide) Ex) : False :=
+  final_unchecked_no_stateFunction V wtOne nodes noSide init impl K
+    ((), (s.2.1, V.summand ctx s.2.1.reverse + 1)) noO () trivial fun _ h ↦
       one_ne_zero (add_eq_left.mp h)
 
 -- Completeness of both variants on `t₁ · t₂`, as plain definitions: they compute.
-def completePlain : Component.Complete (plain V nodes) (relIn V unitWeights) (relOut V) :=
-  plainComplete V nodes V_degree nodes_injective
+def completePlain :
+    Component.Complete (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide) :=
+  plainComplete V nodes noSide V_degree nodes_injective
 
 def completeNormalized :
-    Component.Complete (normalized V (fun _ ↦ p) nodes) (relIn V wtEq) (relOut V) :=
-  normalizedComplete V nodes (fun _ ↦ p) V_degree nodes_injective
+    Component.Complete (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide) :=
+  normalizedComplete V nodes noSide (fun _ ↦ p) V_degree nodes_injective
+
+/-- A side condition: the first entry of the first table is `a`. The sumcheck carries it, in its
+input and output relations, without reading it. -/
+def firstIsA : SumcheckRound.Ctx Unit NoOracle Unit → Prop := fun ctx ↦ (V.tables ctx 0)[0] = a
+
+-- The honest statement meets the input relation with the side condition, which holds of `t₁`.
+example : ((((), (#v[], T)), noO), ()) ∈ relIn V wtOne firstIsA := ⟨rfl, rfl⟩
+
+-- Completeness carries the side condition into the output relation.
+def completeSide :
+    Component.Complete (plain V nodes) (relIn V unitWeights firstIsA) (relOut V firstIsA) :=
+  plainComplete V nodes firstIsA V_degree nodes_injective
 
 end LeanerVMTests.Protocol.Sumcheck
