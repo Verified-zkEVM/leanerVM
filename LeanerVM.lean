@@ -4,6 +4,7 @@ import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
 import LeanerVM.Arithmetization.Completeness.Balance
 import LeanerVM.Arithmetization.Completeness.Basics
+import LeanerVM.Arithmetization.Completeness.Bus
 import LeanerVM.Arithmetization.Completeness.Messages
 import LeanerVM.Arithmetization.Completeness.Rows
 import LeanerVM.Arithmetization.Statement
