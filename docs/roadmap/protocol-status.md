@@ -25,6 +25,8 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
+| sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
+| sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 | batching by powers (Layer 4) | #77 | on merge | on merge |
 | the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
 
@@ -44,20 +46,29 @@ it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSec
 round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
 witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
 tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. On the branch of #77, stacked on that one, batching by powers
-(`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at
-`(k − 1) / |F|`), on the power combination and its root count of #43
-(`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound is
-superseded by `batchSecurity` and gone); the
-GKR's combiner is `Component.batch`. On the branch of #81, stacked on #77, the opening phase
-(`LeanerVM/Protocol/Opening.lean`: `openingPhase`, `openingComplete`, `openingSecurity` at the
-slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers followed by a generic
-zero-round step whose verifier asks an input oracle one question and checks the answer
-(`ToArkLib/QueryCheck.lean`: `Component.queryCheck`, and the composition
-`Component.batchQuery` with its two halves and its refutation), on the inner-product weights
-combined by powers (`ToArkLib/WeightBatch.lean`). Nothing else is built: the
-other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
-trees, the compiled verifier and the base theorems.
+one at a time. On the branch stacked on that one, Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`): a
+virtual polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and
+the tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
+the highest variable first, the tables' values at the final point as its last message), the plain
+and the normalized variants as its two weightings (`Sumcheck.plain`, `Sumcheck.normalized`), their
+perfect completeness, and the transport of round-by-round knowledge soundness to a verifier that
+decodes a round message sent without one coefficient (`Sumcheck.transport`, on the generic
+`ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
+needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
+#76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
+`plainSecurity`, `normalizedSecurity`). On the branch of #77, also stacked on the GKR's
+knowledge soundness, batching by powers (`ToArkLib/Batch.lean`: `Component.batch`,
+`batchComplete`, `batchSecurity` at `(k − 1) / |F|`), on the power combination and its root
+count of #43 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound
+is superseded by `batchSecurity` and gone); the GKR's combiner is `Component.batch`. On the
+branch of #81, stacked on #77, the opening phase (`LeanerVM/Protocol/Opening.lean`:
+`openingPhase`, `openingComplete`, `openingSecurity` at the slot's error `(J − 1) / |E|`, `J` the
+pool's size) is batching by powers followed by a generic zero-round step whose verifier asks an
+input oracle one question and checks the answer (`ToArkLib/QueryCheck.lean`:
+`Component.queryCheck`, and the composition `Component.batchQuery` with its two halves and its
+refutation), on the inner-product weights combined by powers (`ToArkLib/WeightBatch.lean`).
+Nothing else is built: the other phases, the other generic components, the Clean bridge, the
+adaptor, WHIR, the Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -173,28 +184,32 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the stack on, which `gkrFront` provides by composing the parts' witnesses through
   `Component.Front.append`; a test builds the bus phase's shape around `gkr 3 toy.μBus` as a
   `Phase.FrontDef` at `busSpec toy`.
-  Its sumcheck rounds, `SumcheckRound.round` on `SumcheckRound.normalizedWeights`, stand in for
-  `Sumcheck.normalized`, which can take them only once Layer 4 states the normalized variant in a
-  family form (`SumcheckRound.Family`: claims, polynomials, domain and invariant as functions of
-  the context and the challenges), since the GKR's summand reads the trees' levels from the
-  oracles and the combiner and the point from the statement, not from fixed tables. Its combiner,
-  `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
+  Its sumcheck rounds are the generic round of `ToArkLib/SumcheckRound.lean`
+  (`SumcheckRound.rounds`) on a family of its own (`Gkr.family`: the eq-weighted partial sums,
+  honest polynomials computed as sums of products of affine factors, the domain
+  `SumcheckRound.normalizedWeights`, binding the lowest variable first, and the riders'
+  condition). The table sumcheck (Layer 4, below) is the same round on another family, so the
+  module stays as the round both share. The GKR does not consume `Sumcheck.normalized`, the
+  normalized variant over a virtual polynomial, which binds the highest variable first and
+  carries a side condition no challenge changes, where the GKR's security tracks its riders
+  challenge by challenge (`Gkr.familyT`). Its combiner, `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
   statement maps as arguments (a relabelling pass-through before it would put a `!p[]` into the
   schedule and break the definitional equality with `stepSpec`; one after it would add a step,
   its security and a `mono` for nothing), its combined claim `powerBatch`, its completeness
   `batchComplete` and its security `batchSecurity`, and the descendants' check combines by
   `powerBatch` too; the count it used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for
-  #43's `card_false_batch_le`. The blueprint is asked, through a `docs(protocol)` pull request,
-  for three changes: the unused last combiner moves out of the generic `gkr` into the bus phase
-  (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness lists batching
-  by powers among its needs; the normalized sumcheck is stated in the family form.
-  Its knowledge soundness, `gkrSecurity`, is proved on its local round, not on Layer 4's
-  `Sumcheck.normalizedSecurity` as the holes table's *Needs* has it: the round's knowledge
-  soundness is the generic `SumcheckRound.roundsSecurity`, which the sumcheck hole may take over
-  or replace. Its riders' state is the blueprint's: zero tables inside the argument, and at the
-  last layer zero on the coordinates drawn so far (`Gkr.progTrack`, through `RestrictedZero` on a
-  `Partial` point), so a rider's escape at a challenge is one value and is dominated by the
-  claim's; the descendants' values are tracked the same way across the combination challenges.
+  #43's `card_false_batch_le`. The blueprint is asked, through a `docs(protocol)`
+  pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
+  the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
+  lists batching by powers among its needs; the normalized sumcheck the GKR consumes is the
+  generic round on its family (as the sumchecks' entry below asks). Its knowledge soundness,
+  `gkrSecurity`, is proved on the generic round's, `SumcheckRound.roundsSecurity` for any
+  consistent and sound family, not on Layer 4's `Sumcheck.normalizedSecurity` as the holes
+  table's *Needs* has it. Its riders' state is the blueprint's: zero tables inside the argument,
+  and at the last layer zero on the coordinates drawn so far (`Gkr.progTrack`, through
+  `RestrictedZero` on a `Partial` point), so a rider's escape at a challenge is one value and is
+  dominated by the claim's; the descendants' values are tracked the same way across the
+  combination challenges.
   The refutations of its two checks are theorems on the generic components with the check
   removed, whatever the extractor and the state function:
   `SumcheckRound.drawChallenge_unchecked_not_rbr` (no knowledge error below one for the round's
@@ -251,13 +266,96 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     (`Component.batchQuery_not_rbr`). The bound is attained: a pool of four claims is accepted
     at three challenges.
 
+- **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
+  GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
+  stays: a family of claims, honest polynomials, a weighted domain per round and a side
+  invariant, with the rounds' completeness and knowledge soundness. Where the built work differs
+  from Layer 4's sketch:
+  - `Virtual F X O W n m` carries the tables (functions of the public data, the oracles' contents
+    and the witness), and its formula reads the public data and the point as well as the tables'
+    values, so that factors the verifier evaluates itself (an equality polynomial, a padding
+    product) are part of the formula; the sketch's formula reads the values only, with the
+    heights, the padding `∏_{k ≥ τ_j} X_k` and the factor `eq(ζ_{<τ_j}, ·)` inside
+    `Sumcheck.plain`. Those are leanVM's table sumcheck's choices, so the table sumcheck (Layer 7)
+    builds them into its formula and lifts a table of `τ_j` variables to `τ_max` itself; the
+    generic sumcheck takes no heights.
+  - The degree is a hypothesis of completeness, `IndividualDegreeLE (V.summand ctx) d` (degree at
+    most `d` in each variable of the composed summand), not the sketch's `formula_poly` (a total
+    degree of the formula in the values), which says nothing of the point's factors. The bound is
+    computed coordinate by coordinate (`DegreeLEAt`), since the table sumcheck's padding and
+    equality factors sit in different coordinates: their degrees add to four over all
+    coordinates and to three in each (tested). `DegreeLEAt.mvPolynomial_eval` bridges a
+    constraint: a polynomial of total degree `d` in tables' extensions has degree `d` in each
+    variable.
+  - Plain and normalized are one construction over weights per coordinate, unit weights and the
+    weights `(1 - p_k, p_k)` of a point (`Sumcheck.eqWeights`); both bind the highest variable
+    first, as leanVM's table sumcheck does. The GKR's layers bind the lowest variable first
+    through their own family on `SumcheckRound.normalizedWeights` (above), so the rounds, their
+    completeness and their knowledge soundness are written once, in `SumcheckRound`, and the
+    equality weights twice, the same weights read in opposite orders. `Sumcheck.normalized` (the
+    virtual form) is not what the GKR consumes, and no phase consumes it yet; WHIR's folding
+    rounds are interleaved with commitments and would take `SumcheckRound` rounds, not the whole
+    component. The blueprint is asked, through a
+    `docs(protocol)` pull request, to say so: the normalized sumcheck the GKR consumes
+    (decision 16, the *Sumcheck variants* convention, the GKR rows' *Needs* and the Interfaces
+    list) is `SumcheckRound.rounds` on `SumcheckRound.normalizedWeights`, and
+    `Sumcheck.normalized` is kept, with its security, only if a consumer is named, or dropped.
+    Until then both stay, since the hole names them.
+  - The honest round polynomial interpolates the next claim at `d + 1` distinct nodes, a
+    parameter of the definition (`nodes`, injective for completeness): a field of characteristic
+    two has no `0, 1, …, d`.
+  - The rounds and the last message are exposed apart (`Sumcheck.rounds`, `Sumcheck.final`, with
+    their completeness and front witnesses), since the table slot nests its schedule to the left,
+    `draw ++ rounds ++ say`, and a test builds the table slot's shape from them. The last message
+    takes its output map (`final V out`, `finalComplete` for any output relation the true values
+    land in), so that the table phase outputs its own statement, `I.Stmt × TableOut I`, at the
+    slot's schedule; `finalOut` and `relOut` are the default.
+  - The relations carry a side condition on the context (`relIn V wt side`, `relOut V side`, the
+    family's invariant), which no challenge changes: what the table phase's seams say beside the
+    claim (the column claims carried forward, the public lines, `aux`) rides through the
+    sumcheck, at no cost in the error, since a challenge cannot make a false side condition
+    true.
+  - `Sumcheck.transport` is stated per round, for any security of the round, from the wire: a
+    round sent with `d` of its `d + 1` coefficients (`wireSpec`), decoded injectively onto the
+    messages that pass the round's check (`decodeWire`, `encodeWire_decodeWire`,
+    `decodeWire_encodeWire`). It rests on a theorem for any verifier and any causal map of
+    transcripts from one schedule to another with the same directions that carries the
+    challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the
+    map need not be injective. The map of the whole protocol's transcripts, and Fiat–Shamir's
+    absorption of the wire, are the compiled verifier's to build.
+  - Knowledge soundness is the rounds' (`SumcheckRound.roundsSecurity`, for the family with no
+    side invariant, so its soundness clause is vacuous) followed by the last message's at error
+    zero, with the extractor that keeps the witness; its hypotheses are completeness's, the
+    degree in each variable and distinct nodes, since the round's bound compares the recorded
+    polynomial with the honest one. Each security is a plain `def` that computes at `E`, stated
+    at `d / |F|` with `|F|` written `Nat.card F`, and a test raises the rounds of a cubic plain
+    sumcheck over the toy's stack to the table slot's per-round error `overE 3`. What the table
+    phase composes at `tableSpec` is `roundsSecurity` and `finalSecurity` (any output map and
+    output relation from which the values and the side condition follow), with `rel_zero` and
+    `mem_rel_self` relating the seams to the family's relations.
+  - Owed: the securities take the nodes' injectivity, which the verifier does not read (its
+    verifier and the relations are the same for every choice of nodes). Dropping it needs the
+    round's security in `SumcheckRound` stated for prover polynomials apart from the family, and
+    a family whose honest polynomial is the true round polynomial, chosen classically; that
+    family is data the compiled security would have to build, so the securities would stop
+    computing (acceptance test 24). Kept until the module goes upstream, where a consumer's honest
+    prover may not interpolate; the table phase proves the injectivity once, for completeness.
+  - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
+    last message has no knowledge state function at all); the round check's is the base's
+    `SumcheckRound.drawChallenge_unchecked_not_rbr`.
+  - Decision 33 is taken by default: the sumcheck is written here. ArkLib's legacy sumcheck has
+    its knowledge soundness admitted; its typed sumcheck proves completeness and plain soundness
+    for one polynomial with unit weights, and no open pull request adds knowledge soundness to
+    either (the survey is in the watch list below).
+
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the sumcheck variants (Layer 4), the
+expressions as polynomials (Layer 2), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The GKR's knowledge
-soundness on its local round (Layer 5) is built on the branch stacked on #62.
+opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
+stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
+the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
 
@@ -268,7 +366,8 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
 | ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
 | ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
-| ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair; honest round identities | reference only |
+| ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
+| ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
