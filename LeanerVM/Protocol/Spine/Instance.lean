@@ -6,7 +6,9 @@
 
 module
 
+public import LeanerVM.Parameters.Flock
 public import LeanerVM.Protocol.Field
+public import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 public import LeanerVM.Protocol.ToArkLib.Oracles
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import CompPoly.Multivariate.Basic
@@ -140,22 +142,36 @@ structure PublicLine (S : Shape) where
   /-- The column has a cell 1. -/
   pos : 0 < S.τ col.1
 
+/-- Bit `i` of a cell, the coefficient of `x ^ i`, as `0` or `1` in `E`. -/
+def cellBit (a : K) (i : ℕ) : E := if a.toBitVec.getLsbD i then 1 else 0
+
+/-- The table of bit `i` of every cell of a column: the `i`-th of the `64` Boolean tables a
+column of `K` packs (Annex A, §A.1: `q(u) = Σ_i Q_i(u)·x^i`). -/
+def bitTable {n : ℕ} (c : Column n) (i : Fin (2 ^ Flock.kSkip)) : CMlPolynomialEval E n :=
+  Vector.ofFn fun u ↦ cellBit (c.values.get u) i
+
 /-- Where the packed witness of the Flock argument sits: a column of height `2 ^ (8 + kBatch)`,
-`2 ^ kBatch` compressions of 256 bits each, and the predicate the Flock phase establishes of it
-(Flock's R1CS on the bits, with its constant position; Annex C). -/
+`2 ^ kBatch` blocks of `2 ^ 14` bits packed 64 to a cell, and the R1CS each block satisfies,
+with the walks a verifier evaluates its matrices by (Annex C). -/
 structure FlockRegion (S : Shape) where
   /-- The column. -/
   col : S.ColumnId
   /-- The log-count of compressions. -/
   kBatch : ℕ
-  /-- The column holds `2 ^ kBatch` blocks of 256 bits. -/
+  /-- The column holds `2 ^ kBatch` blocks of `2 ^ 8` cells. -/
   height : S.τ col.1 = 8 + kBatch
-  /-- What the Flock phase proves of the column. -/
-  Holds : Column (8 + kBatch) → Prop
-  /-- The predicate is decidable, so that the relation is. -/
-  decHolds : DecidablePred Holds
+  /-- The R1CS of one block of `2 ^ 14` positions. -/
+  r1cs : BlockR1CS E (Flock.kSkip + Flock.kIn)
 
-attribute [instance] FlockRegion.decHolds
+/-- What the Flock phase establishes of the region (Annex C, §C.1): every block of `2 ^ 14`
+bits, packed 64 to a cell, satisfies the R1CS and holds `1` at the constant position. Block `t`
+holds at position `j` bit `j mod 64` of cell `j / 64 + 256·t`: within-block coordinates low,
+batch coordinates high. -/
+def FlockRegion.Holds {S : Shape} (r : FlockRegion S) (c : Column (8 + r.kBatch)) : Prop :=
+  BlockR1CS.BatchHolds r.r1cs Flock.constPos (bitTable c)
+
+instance {S : Shape} (r : FlockRegion S) (c : Column (8 + r.kBatch)) : Decidable (r.Holds c) :=
+  inferInstanceAs (Decidable (BlockR1CS.BatchHolds _ _ _))
 
 /-! ## The instance -/
 

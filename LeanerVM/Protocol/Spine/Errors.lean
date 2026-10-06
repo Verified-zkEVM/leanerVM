@@ -250,7 +250,8 @@ noncomputable def flockErrorOf (k : ℕ) : (flockSpecOf k).ChallengeIdx → ℝ�
     (roundsError E 2 (overE 2) 8)) (roundsError E 2 (overE 3) k)) (sayError _))
     (drawError E (overE 3))) (roundsError E 2 (overE 2) 8)) (sayError _)) ringError
 
-private theorem sum_flockErrorOf (k : ℕ) :
+/-- The Flock slot's errors sum to `(4k + 302 + 2^31 + 2^15) / |E|`. -/
+theorem sum_flockErrorOf (k : ℕ) :
     ∑ i, flockErrorOf k i = overE (4 * k + 302 + 2 ^ 31 + 2 ^ 15) := by
   simp only [flockErrorOf, sum_errAppend, sum_drawsError, sum_sayError, sum_drawError,
     sum_roundsError, add_zero, nat_mul_overE]

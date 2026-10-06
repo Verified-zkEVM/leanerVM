@@ -27,6 +27,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
+| Flock phase: definition and completeness (Layer 9) | the Flock pull request | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -54,8 +55,12 @@ decodes a round message sent without one coefficient (`Sumcheck.transport`, on t
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
 needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
 #76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
-`plainSecurity`, `normalizedSecurity`). Nothing else is built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
-trees, the compiled verifier and the base theorems.
+`plainSecurity`, `normalizedSecurity`). On the Flock pull request's branch, the Flock phase's
+definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
+`flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
+at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). Nothing else is
+built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the
+Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -295,15 +300,48 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     its knowledge soundness admitted; its typed sumcheck proves completeness and plain soundness
     for one polynomial with unit weights, and no open pull request adds knowledge soundness to
     either (the survey is in the watch list below).
+- **The Flock phase (Layer 9)** is the generic Flock argument of `ToArkLib/Flock/` (an ArkLib
+  candidate: block R1CS, tables, round polynomials, zerocheck, lincheck, ring switching and their
+  composition `Flock.flock`) at leanVM's sizes, constants and region (`Protocol/Flock.lean`).
+  Where it differs from Layer 9's sketch, or what it leaves to the work after it:
+  - `FlockRegion` carries the block's R1CS, `r1cs : BlockR1CS E 14` (the Boolean matrices `A`,
+    `B` with the forward and backward walks that evaluate them, and the proofs that the walks
+    compute the products), in place of the sketch's opaque `Holds` and `decHolds`, and
+    `FlockRegion.Holds` is defined from it: every block of the region's bits, packed 64 to a cell,
+    satisfies the R1CS and holds `1` at position `512` (decision 12, strengthened: the predicate
+    is the R1CS, not any predicate an instance names). The verifier's lincheck terminal needs the
+    circuit; an opaque predicate gives it nothing to evaluate.
+  - `FlockSpec` is not declared here. It names leanISA's `Blake2sRelation` and `Blake2sRow`, which
+    the wall forbids above the adaptor; it moves to the adaptor (Layer 3), where its inhabitant,
+    with the BLAKE2s circuit and its walks, supplies `leanIsaInstance`'s region (`#3`'s). The phase
+    needs only the region.
+  - The phase is written for every circuit; the BLAKE2s walk transcribed from
+    `blake2s_row_values` (`verifier.py:1180-1301`) is the region's data for the leanISA instance,
+    owed with `FlockSpec`'s inhabitant. So is the test of the circuit walk against the Python.
+  - The honest run is on a tiny argument (two skipped values, two blocks of four wires): an
+    `E` multiplication costs about 2 ms in the interpreter and an inversion about 1 s, and
+    leanVM's sizes are a block of `2^14` positions. The slot's typing, the constants and the zero
+    region's failure are checked at leanVM's sizes, by theorems and `#guard`s.
+  - The skip nodes carry their inverse Lagrange denominators (`Flock.SkipDomain`), computed once
+    per node set, so no Lagrange weight inverts at run time. The deployed verifiers keep one
+    denominator (`verifier.py:1104-1124`: the skip domain is a subspace, so every node has the same
+    one); the leanVM domain computes all 192 from the nodes (`SkipDomain.ofPts`), and the
+    one-denominator form, with the theorem that it is the same, is left to the compiled verifier.
+  - The zerocheck's and the lincheck's rounds are the generic round (`SumcheckRound.rounds`) on
+    families of their own: `Flock.zcFamily` (normalized, lowest variable first, its invariant the
+    constant position's residual on the batch coordinates drawn so far) and `Flock.linFamily`
+    (plain, highest variable first). Like the GKR's, the zerocheck binds the lowest variable first
+    and its invariant moves challenge by challenge, which `Sumcheck.normalized` does not do.
+  - `sum_flockErrorOf` is public, for `flockError_le`.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), batching (Layer 4), the
-fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
+expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
-stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
-the generic round (Layer 5) is built on the branch stacked on #62.
+stacks on the sumcheck's definitions and knowledge soundness. The Flock phase's knowledge
+soundness (Layer 9) is built on the branch stacked on the Flock phase's. The GKR's knowledge
+soundness on the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
 
@@ -318,6 +356,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
+| ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | the Merkle trees | leanVM's trees on VCVio's library | the fit lemma holds (decision 32) |
