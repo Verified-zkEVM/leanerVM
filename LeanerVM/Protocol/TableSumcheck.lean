@@ -2,8 +2,8 @@
   LeanerVM.Protocol.TableSumcheck
 
   The table sumcheck phase: the batching challenge `ξ`, one plain sumcheck over the rows of the
-  sumcheck tables, and the values of their columns at the final point. Definition and perfect
-  completeness.
+  sumcheck tables, and the values of their columns at the final point. Definition, perfect
+  completeness and round-by-round knowledge soundness.
 -/
 
 module
@@ -53,6 +53,12 @@ Perfect completeness (`tableSumcheckComplete`), from `Seam.bus` to `Seam.table`,
 degree bound `d ≤ 2`: the slot's rounds are cubic, and the summand has degree `d + 1` in each
 variable (`tableSummand_degree`). The bus phase's column claims, the public lines and the Flock
 predicate ride through the sumcheck as its side condition (`side`).
+
+Round-by-round knowledge soundness (`tableSumcheckSecurity`), between the same seams and under the
+same bound, is at the slot's error: `(B + 2)/|E|` on `ξ`, since a false claim among the `B + 3`
+batched survives only at a root of a nonzero polynomial of degree at most `B + 2` in `ξ`, the
+true values being fixed before it (`trueValues`); `3/|E|` on each round's challenge; nothing on
+the final values, which the table seam determines (`finalClaims_holds_iff`).
 
 Written from the specification; the order of the powers, the shared side powers, the weights and
 the order of the final values are checked against `crates/lean_vm/src/cpu/mod.rs:404-441,
@@ -529,6 +535,44 @@ def tableSumcheckComplete (hd : I.d ≤ 2) :
       fun s o w hside ↦ by
         cases w
         exact tableOut_mem_table I s o hside)
+
+/-! ## Knowledge soundness -/
+
+/-- The theorems' unit `k / |E|`, with `|E|` counted by `Nat.card`, is the slot's `overE k`. -/
+private theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = overE k := by
+  rw [overE, Nat.card_eq_fintype_card]
+
+/-- **Round-by-round knowledge soundness of the table sumcheck**, from the bus seam to the table
+seam at the slot's error, when the instance's degree bound is at most `2`: `(B + 2)/|E|` on `ξ`,
+since a false claim among the `B + 3` batched ones survives only at a root of a nonzero
+polynomial of degree at most `B + 2` in `ξ`, and `3/|E|` on each round's challenge, with the
+extractor that keeps the trivial witness. Its state function is the parts': the bus seam before
+`ξ`, the sumcheck's running claim with the side condition during the rounds, the table seam
+after the final values. -/
+def tableSumcheckSecurity (hd : I.d ≤ 2) :
+    Phase.Security I (tableSumcheck I).toDef (Seam.bus I) (Seam.table I) (tableError I) :=
+  (((Component.batchSecurity (TheOracle I) E (claimed I) (start I) (relIn := Seam.bus I)
+      (relOut := Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
+      fun s o ↦ ⟨trueValues I s (theStack o), fun w ρ hin hout ↦ by
+        cases w
+        obtain ⟨hsum, hside⟩ := hout
+        have hsum : powerBatch (claimed I s) ρ = powerBatch (trueValues I s (theStack o)) ρ :=
+          hsum.trans (sum_tableSummand I (s, ρ) o)
+        refine ⟨fun heq ↦ hin ?_, hsum⟩
+        simp only [Seam.bus, Seam.of, Set.mem_ofPred_eq]
+        exact ⟨((trueValues_eq_claimed_iff I s (theStack o)).mp heq).1,
+          ((trueValues_eq_claimed_iff I s (theStack o)).mp heq).2, hside⟩⟩).append
+    (Sumcheck.roundsSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I)
+      (tableSummand_degree I hd) nodes_injective)).append
+    (Sumcheck.finalSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
+      fun s o w v h ↦ by
+        cases w
+        obtain ⟨hcols, hlines, haux⟩ := h
+        simp only [tableOut, Vector.toList_append, List.mem_append] at hcols
+        exact ⟨(finalClaims_holds_iff I ((s.1, o), ()) _ v).mp fun c hc ↦ hcols c (Or.inr hc),
+          fun c hc ↦ hcols c (Or.inl hc), hlines, haux⟩)).mono fun _ ↦ by
+    rw [tableError, natCast_div_card_eq_overE, natCast_div_card_eq_overE,
+      show I.B + 3 - 1 = I.B + 2 from rfl]
 
 end TableSumcheck
 
