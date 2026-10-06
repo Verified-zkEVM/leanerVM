@@ -28,6 +28,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 | batching by powers (Layer 4) | #77 | on merge | on merge |
+| table sumcheck phase: definition and completeness (Layer 7) | #85 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -59,9 +60,18 @@ needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On t
 knowledge soundness, batching by powers (`ToArkLib/Batch.lean`: `Component.batch`,
 `batchComplete`, `batchSecurity` at `(k − 1) / |F|`), on the power combination and its root
 count of #43 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound
-is superseded by `batchSecurity` and gone); the GKR's combiner is `Component.batch`. Nothing else
-is built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR,
-the Merkle trees, the compiled verifier and the base theorems.
+is superseded by `batchSecurity` and gone); the GKR's combiner is `Component.batch`. On the
+branch of #85, stacked on #77, the table sumcheck phase's definition and completeness (Layer 7,
+`LeanerVM/Protocol/TableSumcheck.lean`): `ξ` as `Component.batch` of the constraints' and the
+sides' claims, Layer 4's plain sumcheck on `τ_max` variables of `tableSummand`, the final values,
+the sum over the cube (`sum_tableSummand`, `tableSummand_target`), the degree in each variable
+(`tableSummand_degree`) and `tableSumcheckComplete`; with tables read on more variables than they
+have (`ToCompPoly/Multilinear.lean`: `lowCoords`, `repeatHigh`), the multilinear weight of a point
+and the coordinates weighted `(0, 1)` (`ToCompPoly/WeightedCube.lean`: `prodWeight`,
+`weightedCubeSum_lowCoords`), and the degree of a polynomial with mapped coefficients and of the
+weight (`ToCompPoly/IndividualDegree.lean`). Nothing else is built: the other phases, the other
+generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier
+and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -304,13 +314,43 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     for one polynomial with unit weights, and no open pull request adds knowledge soundness to
     either (the survey is in the watch list below).
 
+- **The table sumcheck phase (Layer 7)** is at the slot's schedule `tableSpec I`. Where it differs
+  from Layer 7's sketch, or what it leaves to the work after it:
+  - `tableSumcheck` is a `Phase.FrontDef`, the type `Phases.table` has (decision 31); the sketch
+    says `Phase.Def`.
+  - `tableSummand I` is a `Sumcheck.Virtual` (Layer 4's form) whose public data is the statement,
+    the bus output and `ξ` (`TableSumcheck.Data`), where the sketch takes `s` and `ξ` as
+    arguments; the degree three is a theorem (`tableSummand_degree`), not part of the type. Its
+    tables are the sumcheck tables' columns read on the `τ_max` variables, the same in every
+    slice of the coordinates their table lacks (`repeatHigh`), so that the last message is the
+    columns' values at the final point's low coordinates; the equality factor and the padding
+    are the formula's, as the multilinear weight of each table's coordinates (`prodWeight` of
+    `tableWeights`: those of `eq(ζ_m, ·)` below `τ_t`, `(0, 1)` above), which in characteristic
+    two is the deployed `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m` (tested).
+  - `tableSummand_target` is stated under the bus seam. What the security reads is the identity
+    before it, `sum_tableSummand`: the sum over the cube is the true values (each constraint's
+    extension at `ζ`, each side's forms summed) batched by the powers of `ξ`, so it is the target
+    exactly when the bus seam's two claims hold (`trueValues_eq_claimed_iff`).
+  - Completeness takes `I.d ≤ 2`: the slot's rounds are cubic and the summand has degree `d + 1`
+    in each variable. It is the phase's side condition, as the bus phase's are (decision 30);
+    that the leanISA instance has `d = 2` is the adaptor's to state.
+  - `ξ` is #77's `Component.batch` over the `B + 3` claimed values, zero for each constraint
+    then the three totals, numbered table by table (`constraintPos`, `position_val`), so the
+    branch stacks on #77; the final values are numbered the same way (`columnPos`).
+  - The honest prover interpolates its round polynomials at `0, 1, y, y + 1`
+    (`TableSumcheck.nodes`).
+  - Owed: the spine's `M3Instance.lowPoint` is the generic `lowCoords` at a sumcheck table's
+    height (the same term); it is to be written so once the bus phase's branch, whose proofs
+    unfold `lowPoint` by name, has merged. The review is
+    [archived](../reviews/protocol-table-sumcheck.md).
+
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
-stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
+opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck's
+definition and completeness (Layer 7) are on the branch of #85. The GKR's knowledge soundness on
 the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
