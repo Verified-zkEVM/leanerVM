@@ -72,6 +72,16 @@ This directory contains stable project and operating knowledge.
     check of the public-input phase (2026-10-05), whose findings the branch now meets (one
     completeness proof for both verifiers, two docstrings trimmed) or records for the adaptor
     (the two pools' agreement as a theorem).
+  - [protocol-sumcheck.md](reviews/protocol-sumcheck.md): the review of the sumchecks'
+    definitions and completeness (2026-10-05), which found no theorem wrong, vacuous or
+    tautological, and whose findings the branch meets (the transport from the wire's `d`
+    values, the degree in each coordinate, the final check's refutation, the private helpers,
+    the documentation).
+  - [protocol-sumcheck-security.md](reviews/protocol-sumcheck-security.md): the review of the
+    sumchecks' knowledge soundness (2026-10-05), which found no theorem wrong, vacuous or
+    tautological, and whose findings the branch meets (the side condition and the output map the
+    table phase needs, the round check's refutation, the documentation) or records (the nodes'
+    injectivity, which the securities keep so that they compute).
   - [protocol-fingerprint.md](reviews/protocol-fingerprint.md): the review of the fingerprint
     and the collision bound (2026-10-05), whose findings the branch meets (a witness that the
     factor 4 is needed, the generic module free of the protocol, a smaller surface, citations).
