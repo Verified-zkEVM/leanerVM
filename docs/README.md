@@ -91,6 +91,10 @@ This directory contains stable project and operating knowledge.
     vacuous or tautological, and whose findings the branch meets (the toy's run, the generic low
     coordinates in the proof, each run computed once in the tests, the hygiene) or records (the
     spine's `lowPoint` written as `lowCoords`, after the bus phase's branch).
+  - [protocol-table-sumcheck-security.md](reviews/protocol-table-sumcheck-security.md): the
+    review of the table sumcheck phase's knowledge soundness (2026-10-06), which found no theorem
+    wrong, vacuous or tautological, and whose findings the branch meets (the state function's
+    description, one copy of the error unit's lemma in the spine, the documentation).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
