@@ -9,12 +9,13 @@ module
 
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
 public import LeanerVM.Protocol.ToCompPoly.WeightedCube
-public import CompPoly.Multivariate.MvPolyEquiv.Eval
+public import CompPoly.Multivariate.Basic
 public import Mathlib.Algebra.MvPolynomial.Eval
 public import Mathlib.Algebra.MvPolynomial.Degrees
 public import Mathlib.Algebra.Polynomial.Degree.Defs
 public import Mathlib.Algebra.Polynomial.Eval.Defs
 import Mathlib.Algebra.Polynomial.BigOperators
+import CompPoly.Multivariate.MvPolyEquiv.Eval
 
 /-!
 # Degree in each coordinate

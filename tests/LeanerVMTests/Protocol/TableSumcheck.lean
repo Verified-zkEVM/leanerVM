@@ -16,22 +16,24 @@ totals those forms reach on the honest stack.
 * **Sizes and positions.** `τ_max = 2`, `B = 3`, two final values; the constraints are numbered
   table by table and the columns too (`constraintPos`, `columnPos`, `position_val`).
 * **The weights.** A table's weight at a point is `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m`,
-  the deployed verifier's `weights[t]` (`constraints.rs:274-277`).
-* **The target** (`tableSummand_target`, acceptance test 7). On the honest stack the sum of the
-  summand over the cube is `Σ_s ξ^(B + s) · total_s`, the batch of the claimed values; the true
-  values are the claimed ones.
+  the deployed verifier's `weights[t]` (`constraints.rs:271-273` at leanVM `a386121f`).
+* **The target** (`tableSummand_target`). On the honest stack the sum of the summand over the
+  cube is `Σ_s ξ^(B + s) · total_s`, the batch of the claimed values, nonzero; the true values are
+  the claimed ones.
 * **An honest run** is accepted: each round's honest polynomial passes its check, the honest
-  values pass the final check, and every final claim holds of the stack.
+  values pass the final check, and every final claim holds of the stack. On the two-table
+  instance, and in one round on the toy instance, whose table has a form on each side of the
+  bus.
 * **A row violating a constraint** (a non-Boolean cell) makes the true value of that constraint,
   and of no other, nonzero; the honest first round fails its check against the derived target,
   and a prover that repairs each round's check from the wire's derived coefficient is caught by
   the final check.
-* **Variable order** (acceptance test 16). The running claim after the rounds is the summand at
+* **Variable order.** The running claim after the rounds is the summand at
   the challenges in coordinate order, the first challenge the highest coordinate; read in the
   order drawn, the point mismatches `eq(ζ_{<τ_t}, ·)` and the padding.
-* **Shared bus powers** (acceptance test 9). With side `s` of table `t` at its own power instead
+* **Shared bus powers.** With side `s` of table `t` at its own power instead
   of the shared `ξ^(B + s)`, the sum over the cube is not the target.
-* **Column groups** (acceptance test 30). A table with no constraint, flush or count column
+* **Column groups.** A table with no constraint, flush or count column
   takes no part: on an instance with a taller column group the number of rounds is the sumcheck
   tables' `τ_max`.
 * **Inhabitants.** The phase fills the slot `tableSpec` as a front phase on the toy instance, and
@@ -180,46 +182,78 @@ def r1 : E := y + y * y
 /-- The verifier's target: the claimed values batched by `ξ`. -/
 def T : E := powerBatch (claimed twoTab x.1) ξ
 
--- The target is `Σ_s ξ^(B + s) · total_s`, derived from the bus phase's totals.
+-- The target is `Σ_s ξ^(B + s) · total_s`, derived from the bus phase's totals, and not zero.
 #guard T = ∑ s : Fin 3, out.totals s * ξ ^ (twoTab.B + s.val)
+#guard T ≠ 0
 -- On the honest stack the true values are the claimed ones: the constraints' extensions are zero
 -- at `ζ` and the forms reach their totals.
 #guard ∀ k : Fin (twoTab.B + 3), trueValues twoTab x.1 honest k = claimed twoTab x.1 k
 -- The sum of the summand over the cube is the target (`tableSummand_target`).
 #guard Sumcheck.weightedSum (tableSummand twoTab) Sumcheck.unitWeights ctx = T
 
-/-! ## An honest run -/
+/-! ## Runs of the rounds
 
-def s0 : SumcheckRound.Stmt (Data twoTab) E 0 := start twoTab x.1 ξ T
-def q0 : SumcheckRound.Message E 3 :=
-  Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctx 0 #v[]
+The honest prover's round polynomials interpolate over `E`, which the interpreter computes slowly
+(seconds per polynomial), and a definition is evaluated again by every guard that reads it, so
+each run is computed once, inside one guard. -/
 
-#guard SumcheckRound.check 0 (dom) s0 q0
-
+/-- The challenges. -/
 def c0 : E := y * y * y + y
-def s1 : SumcheckRound.Stmt (Data twoTab) E 1 :=
-  SumcheckRound.next 0 s0 (SumcheckRound.evaluate 3 q0 c0) c0
-def q1 : SumcheckRound.Message E 3 :=
-  Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctx 1 s1.2.1
-
-#guard SumcheckRound.check 1 (dom) s1 q1
-
 def c1 : E := y * y + 1
-def s2 : SumcheckRound.Stmt (Data twoTab) E 2 :=
-  SumcheckRound.next 1 s1 (SumcheckRound.evaluate 3 q1 c1) c1
 
-/-- The honest final values: the columns' extensions at the final point. -/
-def vals : Vector E twoTab.tableColumns := (tableSummand twoTab).values ctx s2.2.1.reverse
+/-- The rounds of a run at the challenges `c0, c1`: the prover's first polynomial, and the
+polynomials sent with the statements they lead to. With `repair`, the prover sends its polynomial
+with coefficient 1 derived from the running claim, as the wire's decoder does, so that it passes
+the round's check whatever the claim. -/
+structure Run where
+  /-- The prover's first polynomial, before any repair. -/
+  p0 : SumcheckRound.Message E 3
+  /-- The first polynomial sent. -/
+  q0 : SumcheckRound.Message E 3
+  /-- The statement after the first round. -/
+  s1 : SumcheckRound.Stmt (Data twoTab) E 1
+  /-- The second polynomial sent. -/
+  q1 : SumcheckRound.Message E 3
+  /-- The statement after the second round. -/
+  s2 : SumcheckRound.Stmt (Data twoTab) E 2
 
-#guard Sumcheck.finalCheck (tableSummand twoTab) s2 vals
--- The final point is the challenges in coordinate order, the first challenge the highest.
-#guard s2.2.1.reverse = #v[c1, c0]
--- Every claim the phase hands on holds of the stack: table 0's column at `(c1, c0)`, table 1's at
--- `c1`, which is where table 1 joined, at the second round.
-#guard (tableOut twoTab s2 vals).2.columns.toList.all fun c ↦
-  decide (eval₂Mle (twoTab.column honest c.col).values (algebraMap K E) c.point = c.value)
-#guard (tableOut twoTab s2 vals).2.columns.toList.map (fun c ↦ c.point.toList) =
-  [[c1, c0], [c1]]
+/-- The run from a context and a first statement. -/
+def run (ctx : SumcheckRound.Ctx (Data twoTab) (TheOracle twoTab) Unit)
+    (s0 : SumcheckRound.Stmt (Data twoTab) E 0) (repair : Bool) : Run :=
+  let send := fun (j : ℕ) (claim : E) (q : SumcheckRound.Message E 3) ↦
+    if repair then Sumcheck.decodeRound (dom s0.1 j) 1 claim q else q
+  let p0 := Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctx 0 #v[]
+  let q0 := send 0 s0.2.2 p0
+  let s1 := SumcheckRound.next 0 s0 (SumcheckRound.evaluate 3 q0 c0) c0
+  let q1 := send 1 s1.2.2
+    (Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctx 1 s1.2.1)
+  ⟨p0, q0, s1, q1, SumcheckRound.next 1 s1 (SumcheckRound.evaluate 3 q1 c1) c1⟩
+
+/-- The honest run's first statement: the derived target. -/
+def s0 : SumcheckRound.Stmt (Data twoTab) E 0 := start twoTab x.1 ξ T
+
+/-! ## An honest run, and the variable order -/
+
+#guard
+  let r := run ctx s0 false
+  let vals := (tableSummand twoTab).values ctx r.s2.2.1.reverse
+  let claims := (tableOut twoTab r.s2 vals).2.columns.toList
+  -- Each round's honest polynomial passes its check, and the honest values the final check.
+  SumcheckRound.check 0 dom s0 r.q0 && SumcheckRound.check 1 dom r.s1 r.q1 &&
+  Sumcheck.finalCheck (tableSummand twoTab) r.s2 vals &&
+  -- The final point is the challenges in coordinate order, the first challenge the highest.
+  decide (r.s2.2.1.reverse = #v[c1, c0]) &&
+  -- Every claim the phase hands on holds of the stack: table 0's column at `(c1, c0)`, table 1's
+  -- at `c1`, the coordinate of the second round, where table 1 joined.
+  claims.all (fun c ↦
+    decide (eval₂Mle (twoTab.column honest c.col).values (algebraMap K E) c.point = c.value)) &&
+  decide (claims.map (fun c ↦ c.point.toList) = [[c1, c0], [c1]]) &&
+  -- Variable order: the running claim after the rounds is the summand at the challenges in
+  -- coordinate order; read in the order drawn, the point misses it, since `eq(ζ_{<τ_t}, ·)` and
+  -- the padding see the wrong coordinates, and the final check rejects the honest values there.
+  decide (r.s2.2.2 = (tableSummand twoTab).summand ctx #v[c1, c0]) &&
+  decide (r.s2.2.2 ≠ (tableSummand twoTab).summand ctx #v[c0, c1]) &&
+  !Sumcheck.finalCheck (tableSummand twoTab) (r.s2.1, (r.s2.2.1.reverse, r.s2.2.2)) vals
 
 /-! ## A row violating a constraint -/
 
@@ -243,42 +277,16 @@ def TBad : E := powerBatch (claimed twoTab xBad.1) ξ
 #guard Sumcheck.weightedSum (tableSummand twoTab) Sumcheck.unitWeights ctxBad ≠ TBad
 
 def b0 : SumcheckRound.Stmt (Data twoTab) E 0 := start twoTab xBad.1 ξ TBad
-def p0 : SumcheckRound.Message E 3 :=
-  Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctxBad 0 #v[]
 
--- The honest first round fails its check against the derived target.
-#guard ¬ SumcheckRound.check 0 (dom) b0 p0
-
-/-- A prover that repairs each round's check: coefficient 1 derived from the running claim, as
-the wire's decoder does. -/
-def p0' : SumcheckRound.Message E 3 :=
-  Sumcheck.decodeRound (dom xBad 0) 1 TBad p0
-
-#guard SumcheckRound.check 0 (dom) b0 p0'
-
-def b1 : SumcheckRound.Stmt (Data twoTab) E 1 :=
-  SumcheckRound.next 0 b0 (SumcheckRound.evaluate 3 p0' c0) c0
-def p1' : SumcheckRound.Message E 3 :=
-  Sumcheck.decodeRound (dom xBad 1) 1 b1.2.2
-    (Sumcheck.roundPoly (tableSummand twoTab) Sumcheck.unitWeights nodes ctxBad 1 b1.2.1)
-
-#guard SumcheckRound.check 1 (dom) b1 p1'
-
-def b2 : SumcheckRound.Stmt (Data twoTab) E 2 :=
-  SumcheckRound.next 1 b1 (SumcheckRound.evaluate 3 p1' c1) c1
-
--- The final check catches it: the true values at the final point miss the running claim.
-#guard ¬ Sumcheck.finalCheck (tableSummand twoTab) b2
-  ((tableSummand twoTab).values ctxBad b2.2.1.reverse)
-
-/-! ## Variable order -/
-
--- After the rounds, the running claim is the summand at the challenges in coordinate order.
-#guard s2.2.2 = (tableSummand twoTab).summand ctx #v[c1, c0]
--- Read in the order drawn, the point misses it: `eq(ζ_{<τ_t}, ·)` and the padding see the wrong
--- coordinates, with the values the prover would send at that point or at the right one.
-#guard s2.2.2 ≠ (tableSummand twoTab).summand ctx #v[c0, c1]
-#guard ¬ Sumcheck.finalCheck (tableSummand twoTab) (s2.1, (s2.2.1.reverse, s2.2.2)) vals
+#guard
+  let r := run ctxBad b0 true
+  -- The honest first polynomial fails its check against the derived target.
+  !SumcheckRound.check 0 dom b0 r.p0 &&
+  -- Repaired, each round passes its check.
+  SumcheckRound.check 0 dom b0 r.q0 && SumcheckRound.check 1 dom r.s1 r.q1 &&
+  -- The final check catches it: the true values at the final point miss the running claim.
+  !Sumcheck.finalCheck (tableSummand twoTab) r.s2
+    ((tableSummand twoTab).values ctxBad r.s2.2.1.reverse)
 
 /-! ## Shared bus powers -/
 
@@ -341,6 +349,51 @@ abbrev withGroup : M3Instance where
 #guard withGroup.τmax = 2
 #guard withGroup.tableColumns = 2
 example : tableRounds withGroup = 1 + roundsRounds 2 + 1 := by decide
+
+/-! ## A run on the toy instance -/
+
+/-- The row polynomial `X_i` of the toy's table, within the degree bound. -/
+def toyRow (i : Fin 3) (j : Fin Toy.toy.ntab) : Toy.toy.RowPoly j :=
+  ⟨CMvPolynomial.X i, by
+    rw [totalDegree_equiv (S := K)]
+    simp [CMvPolynomial.fromCMvPolynomial_X]⟩
+
+/-- One form per side: `w0 · X₀` pushed, `w1 · X₁` pulled, `X₂` on the count side. -/
+def toyForms : Fin 3 → (j : Toy.toy.SumcheckTables) → Toy.toy.Form j.1 :=
+  fun s j ↦ [(if s.val = 0 then w0 else if s.val = 1 then w1 else 1, toyRow s j.1)]
+
+/-- The toy's bus point. -/
+def ζToy : Vector E Toy.toy.τmax := #v[ζ0]
+
+/-- The toy's bus output on its honest stack: the totals its forms reach there. -/
+def outToy : BusOut Toy.toy where
+  point := ζToy
+  forms := toyForms
+  totals := fun s ↦
+    ∑ t, M3Instance.Form.eval Toy.toy (toyForms s t) Toy.honest (Toy.toy.lowPoint ζToy t)
+  columns := #v[]
+
+def xToy : Data Toy.toy := (((1 : K), outToy), ξ)
+def ctxToy : SumcheckRound.Ctx (Data Toy.toy) (TheOracle Toy.toy) Unit :=
+  ((xToy, fun _ ↦ Toy.honest), ())
+def TToy : E := powerBatch (claimed Toy.toy xToy.1) ξ
+def s0Toy : SumcheckRound.Stmt (Data Toy.toy) E 0 := start Toy.toy xToy.1 ξ TToy
+
+#guard Toy.toy.τmax = 1 ∧ Toy.toy.B = 1 ∧ Toy.toy.tableColumns = 3 ∧ Toy.toy.busClaims = 0
+#guard M3Holds Toy.toy (1 : K) Toy.honest
+-- The sum over the cube is the target, which every side's total enters.
+#guard Sumcheck.weightedSum (tableSummand Toy.toy) Sumcheck.unitWeights ctxToy = TToy
+#guard ∀ s : Fin 3, outToy.totals s ≠ 0
+
+#guard
+  let q0 := Sumcheck.roundPoly (tableSummand Toy.toy) Sumcheck.unitWeights nodes ctxToy 0 #v[]
+  let s1 := SumcheckRound.next 0 s0Toy (SumcheckRound.evaluate 3 q0 c0) c0
+  let vals := (tableSummand Toy.toy).values ctxToy s1.2.1.reverse
+  -- The round passes its check, the values the final check, and the three claims hold.
+  SumcheckRound.check 0 (Sumcheck.domain (n := Toy.toy.τmax) Sumcheck.unitWeights) s0Toy q0 &&
+  Sumcheck.finalCheck (tableSummand Toy.toy) s1 vals &&
+  (tableOut Toy.toy s1 vals).2.columns.toList.all (fun c ↦ decide
+    (eval₂Mle (Toy.toy.column Toy.honest c.col).values (algebraMap K E) c.point = c.value))
 
 /-! ## Inhabitants -/
 

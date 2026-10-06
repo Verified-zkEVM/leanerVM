@@ -315,8 +315,9 @@ private theorem weightedCubeSum_table (x : Data I) (o : ∀ i, TheOracle I i) (t
       fun a : Fin (I.τ t.1) ↦
         (1 - (I.lowPoint x.1.2.point t)[a], (I.lowPoint x.1.2.point t)[a]) := by
     funext a
-    simp only [tableWeights, Fin.val_castLE, a.isLt, ite_true, Fin.getElem_fin,
-      M3Instance.lowPoint, Vector.getElem_cast, Vector.getElem_take]
+    have h : (I.lowPoint x.1.2.point t)[a] = x.1.2.point[a.val]'(a.isLt.trans_le (I.τ_le_τmax t)) :=
+      getElem_lowCoords (I.τ_le_τmax t) _ a.isLt
+    simp only [tableWeights, Fin.val_castLE, a.isLt, ite_true, Fin.getElem_fin, h]
   rw [hw, weightedCubeSum_eq]
   have hrow : ∀ (y : Fin (2 ^ I.τ t.1)) (i : Fin (I.width t.1)),
       eval₂Mle (I.column (theStack o) ⟨t.1, i⟩).values (algebraMap K E) (boolVec y) =
@@ -476,14 +477,14 @@ def side (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit) : Prop :=
   (∀ c ∈ ctx.1.1.1.2.columns.toList, c.Holds (theStack ctx.1.2)) ∧
     I.PublicLinesHold ctx.1.1.1.1 (theStack ctx.1.2) ∧ I.aux (theStack ctx.1.2)
 
-/-- The final claims hold exactly when the values sent are the columns' extensions at the final
-point. -/
-theorem finalClaims_holds_iff (x : Data I) (o : ∀ i, TheOracle I i) (r : Vector E I.τmax)
-    (v : Vector E I.tableColumns) :
-    (∀ c ∈ (finalClaims I r v).toList, c.Holds (theStack o)) ↔
-      (tableSummand I).values ((x, o), ()) r = v := by
-  have hk : ∀ k : Fin I.tableColumns, (finalClaims I r v)[k].Holds (theStack o) ↔
-      ((tableSummand I).values ((x, o), ()) r)[k] = v[k] := fun k ↦ by
+/-- The final claims hold of the stack exactly when the values sent are the columns' extensions
+at the final point. -/
+theorem finalClaims_holds_iff (ctx : SumcheckRound.Ctx (Data I) (TheOracle I) Unit)
+    (r : Vector E I.τmax) (v : Vector E I.tableColumns) :
+    (∀ c ∈ (finalClaims I r v).toList, c.Holds (theStack ctx.1.2)) ↔
+      (tableSummand I).values ctx r = v := by
+  have hk : ∀ k : Fin I.tableColumns, (finalClaims I r v)[k].Holds (theStack ctx.1.2) ↔
+      ((tableSummand I).values ctx r)[k] = v[k] := fun k ↦ by
     simp only [finalClaims, Fin.getElem_fin, Vector.getElem_ofFn, Sumcheck.Virtual.values,
       tableSummand]
     rw [evalMle_table]
@@ -507,7 +508,7 @@ theorem tableOut_mem_table (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ 
   simp only [tableOut, Vector.toList_append, List.mem_append] at hc
   rcases hc with hc | hc
   · exact hside.1 c hc
-  · exact (finalClaims_holds_iff I s.1 o _ _).mpr rfl c hc
+  · exact (finalClaims_holds_iff I ((s.1, o), ()) _ _).mpr rfl c hc
 
 /-- **Perfect completeness of the table sumcheck**, from the bus seam to the table seam, when the
 instance's degree bound is at most `2`. -/
