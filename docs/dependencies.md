@@ -24,8 +24,11 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 1. update the toolchain/Lake requirement, `upstreams.json`, and manifest together;
 2. build and test the complete affected import cone;
 3. review API changes used by theorem statements;
-4. audit the first-party namespace's transitive kernel dependencies; and
-5. record semantic changes separately from mechanical porting.
+4. audit the first-party namespace's transitive kernel dependencies;
+5. record semantic changes separately from mechanical porting; and
+6. delete every `LeanerVM/Protocol/To*/` file or declaration that the new pin contains, move its
+   consumers to the upstream names, and update the protocol blueprint's upstream ledger and the
+   status page's watch list.
 
 ## Lean 4.34 port review
 
