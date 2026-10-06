@@ -28,7 +28,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 | Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
-| Flock phase: knowledge soundness (Layer 9) | the Flock security pull request | on merge | on merge |
+| Flock phase: knowledge soundness (Layer 9) | #88 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -59,8 +59,8 @@ needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On t
 `plainSecurity`, `normalizedSecurity`). On the branch of #86, the Flock phase's
 definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
-at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). On the branch
-stacked on it, its knowledge soundness (`flockSecurity`, on the generic
+at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). On the branch of
+#88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
 `ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). Nothing else is
 built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the
 Merkle trees, the compiled verifier and the base theorems.
@@ -336,7 +336,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     (plain, highest variable first). Like the GKR's, the zerocheck binds the lowest variable first
     and its invariant moves challenge by challenge, which `Sumcheck.normalized` does not do.
   - `sum_flockErrorOf` is public, for `flockError_le`.
-  - Knowledge soundness (`flockSecurity`, on the branch stacked on #86) is the generic
+  - Knowledge soundness (`flockSecurity`, #88, stacked on #86) is the generic
     `Flock.flockSecurity` at leanVM's constants, raised to the slot's error by `Security.mono`. It
     takes two facts about the constants that completeness does not, proved in
     `Protocol/FlockFields.lean`: the fixed coordinates' weights are `F_2`-independent
