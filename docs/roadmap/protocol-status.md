@@ -26,6 +26,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
+| sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -51,8 +52,9 @@ and the normalized variants as its two weightings (`Sumcheck.plain`, `Sumcheck.n
 perfect completeness, and the transport of round-by-round knowledge soundness to a verifier that
 decodes a round message sent without one coefficient (`Sumcheck.transport`, on the generic
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
-needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). Nothing else is built:
-the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
+needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
+#76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
+`plainSecurity`, `normalizedSecurity`). Nothing else is built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
 trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
@@ -212,10 +214,11 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
 
-- **The sumchecks (Layer 4), definitions and completeness** stand on the GKR's round
-  (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and stays: a family of
-  claims, honest polynomials, a weighted domain per round and a side invariant, with the rounds'
-  completeness and knowledge soundness. Where the built work differs from Layer 4's sketch:
+- **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
+  GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
+  stays: a family of claims, honest polynomials, a weighted domain per round and a side
+  invariant, with the rounds' completeness and knowledge soundness. Where the built work differs
+  from Layer 4's sketch:
   - `Virtual F X O W n m` carries the tables (functions of the public data, the oracles' contents
     and the witness), and its formula reads the public data and the point as well as the tables'
     values, so that factors the verifier evaluates itself (an equality polynomial, a padding
@@ -268,6 +271,23 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     challenges across bijectively (`Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap`); the
     map need not be injective. The map of the whole protocol's transcripts, and Fiat–Shamir's
     absorption of the wire, are the compiled verifier's to build.
+  - Knowledge soundness is the rounds' (`SumcheckRound.roundsSecurity`, for the family with no
+    side invariant, so its soundness clause is vacuous) followed by the last message's at error
+    zero, with the extractor that keeps the witness; its hypotheses are completeness's, the
+    degree in each variable and distinct nodes, since the round's bound compares the recorded
+    polynomial with the honest one. Each security is a plain `def` that computes at `E`, stated
+    at `d / |F|` with `|F|` written `Nat.card F`, and a test raises the rounds of a cubic plain
+    sumcheck over the toy's stack to the table slot's per-round error `overE 3`. What the table
+    phase composes at `tableSpec` is `roundsSecurity` and `finalSecurity` (any output map and
+    output relation from which the values and the side condition follow), with `rel_zero` and
+    `mem_rel_self` relating the seams to the family's relations.
+  - Owed: the securities take the nodes' injectivity, which the verifier does not read (its
+    verifier and the relations are the same for every choice of nodes). Dropping it needs the
+    round's security in `SumcheckRound` stated for prover polynomials apart from the family, and
+    a family whose honest polynomial is the true round polynomial, chosen classically; that
+    family is data the compiled security would have to build, so the securities would stop
+    computing (acceptance test 24). Kept until the module goes upstream, where a consumer's honest
+    prover may not interpolate; the table phase proves the injectivity once, for completeness.
   - The final check comes with its refutation (`final_unchecked_no_stateFunction`: without it the
     last message has no knowledge state function at all); the round check's is the base's
     `SumcheckRound.drawChallenge_unchecked_not_rbr`.
@@ -281,9 +301,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
 expressions as polynomials (Layer 2), batching (Layer 4), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The sumcheck's knowledge
-soundness (Layer 4) and the table sumcheck (Layer 7) stack on the sumcheck's definitions. The
-GKR's knowledge soundness on the generic round (Layer 5) is built on the branch stacked on #62.
+opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
+stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
+the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch
 

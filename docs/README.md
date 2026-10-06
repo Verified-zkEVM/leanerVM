@@ -77,6 +77,11 @@ This directory contains stable project and operating knowledge.
     tautological, and whose findings the branch meets (the transport from the wire's `d`
     values, the degree in each coordinate, the final check's refutation, the private helpers,
     the documentation).
+  - [protocol-sumcheck-security.md](reviews/protocol-sumcheck-security.md): the review of the
+    sumchecks' knowledge soundness (2026-10-05), which found no theorem wrong, vacuous or
+    tautological, and whose findings the branch meets (the side condition and the output map the
+    table phase needs, the round check's refutation, the documentation) or records (the nodes'
+    injectivity, which the securities keep so that they compute).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be
