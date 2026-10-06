@@ -27,7 +27,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
-| Flock phase: definition and completeness (Layer 9) | the Flock pull request | on merge | on merge |
+| Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -55,7 +55,7 @@ decodes a round message sent without one coefficient (`Sumcheck.transport`, on t
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
 needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
 #76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
-`plainSecurity`, `normalizedSecurity`). On the Flock pull request's branch, the Flock phase's
+`plainSecurity`, `normalizedSecurity`). On the branch of #86, the Flock phase's
 definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
 at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). Nothing else is
