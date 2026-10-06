@@ -8,6 +8,7 @@ import LeanerVM.Arithmetization.Completeness.Bus
 import LeanerVM.Arithmetization.Completeness.Messages
 import LeanerVM.Arithmetization.Completeness.Rows
 import LeanerVM.Arithmetization.Completeness.Satisfied
+import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
 import LeanerVM.Arithmetization.Statement
 import LeanerVM.Arithmetization.Tables.Basic
