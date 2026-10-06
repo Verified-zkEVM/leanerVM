@@ -149,7 +149,7 @@ module (P3).
 | 7 — boundary blocks | landed (PR #21) | plain file (C8); each block is its two flushes with no constraint, its `Spec` its pull guarantee (`MemSpec`; `BytecodeDecodes`, program-free) and the verifier's `True` (decision 12, F9; decision 14); the verifier is a function of the public program and pulls its sentinel as a constant (`leanIsaVerifier prog`, `verifier_pull_eval`); the seed rows of every word and slot are built and accepted (`mem_word_complete`, `bytecode_entry_complete`); the program's hold on the bytecode block's rows is Layer 8's conjunct, read per row by `BytecodeBindings prog` (decision 14) |
 | 8 — statement | built, proved and reviewed on this branch | plain file (C8); `SatisfiedBy` is a structure of named conjuncts; balance is `BalancedPair`, a `List.Perm` of the messages on a channel pair, channels identified by name; `CountsNonzero` covers the six tables' read counts, as leanVM's count channel does; `Caps` is the M3 part of `read_public`, power-of-two heights and the BLAKE2S floor (decision 8); the three named hypotheses are stated over the two blocks' raw rows (`memRowAt`, `List.ofFn`); `Blake2sRowsValid` is the BLAKE2s validity Flock proves, the one conjunct outside the bus (review finding A1); `AssignmentRepresents` says each step occurs as some row's `RowSteps`; one hand-built witness for the executor's program with fill blocks, at `2^16` cells, never enumerated (E8), and seven rejections |
 | 9 — bus soundness | statements in place; consumes a Clean change | the four statements are block comments at the end of `Statement.lean`; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
-| 10 — T1 | `Semantics` half of the completeness slice built (#73), `constraintCompleteness` not yet stated; soundness untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6); completeness is for a padded trace under `Trace.Fits` (F11): fill blocks, padded traces and image, the fill-block lemma, the skeleton rows of a fill and the heights a plan gives every table |
+| 10 — T1 | completeness built (#73): `constraintCompleteness` is proved for a padded trace, the `Semantics` half in the slice's first pull request and the `Arithmetization/Completeness` half in its second, which depends on it; soundness untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6); completeness is for a padded trace under `Trace.Fits` (F11): fill blocks, padded traces and image, the fill-block lemma, the skeleton rows of a fill and the heights a plan gives every table, then the padded witness, the messages its rows send, the three balances (a chain lemma for memory and bytecode, the run's rotation and the fill's closed walks for state) and the theorem; the witness is never evaluated (E8) |
 
 ### The frontier
 
@@ -924,14 +924,14 @@ be `t`'s, while `ValidExecution` pins it only where the run reads and at `g^0`, 
 program that starts with a `JUMP` to the sentinel there is a valid trace whose image admits no `XOR`
 step (acceptance test 23; a test of this slice, whose last step to "no witness" is Layer 9's
 `mem_channel_sound` and is argued, not checked). The size: `Caps.heights` bounds every table by
-`2^32` rows while `Trace.steps` is unbounded (acceptance test 25; a test of this slice shows that no
-fitting trace has that run, and the witness-level half is checked beside the completeness theorem).
+`2^32` rows while `Trace.steps` is unbounded (acceptance test 25; `long_run_exceeds_sizes` shows that
+no fitting trace has that run, and `completeness_fails_on_long_run`, beside the completeness theorem,
+that no witness satisfies the statement and represents it, for well formed bytecode too).
 A third fact couples the tables: every closed run shorter than `2^64 - 1` steps takes a jump, so
 every traversal of a fill block adds a `JUMP` row (acceptance test 27). Met in the slice's pull
-request: completeness is for a padded trace (`Trace.PaddedFrom`), under `Trace.Fits` (room above the
+requests: completeness is for a padded trace (`Trace.PaddedFrom`), under `Trace.Fits` (room above the
 image, a row cap on every table but `JUMP`, a deliverable `JUMP` gap); Layer 8 is unchanged and
-soundness is untouched. No maintainer has yet agreed to this shape; it is raised in that pull
-request.
+soundness is untouched. No maintainer has yet agreed to this shape; it is raised in the first of them.
 
 ## Survey record
 

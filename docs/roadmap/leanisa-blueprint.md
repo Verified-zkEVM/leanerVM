@@ -1348,7 +1348,8 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     one). A trace that fits has at most `6 · 2^32` steps (`Trace.Fits.steps_le`), so the long run is
     no fitting trace (`long_run_exceeds_sizes`); that no witness satisfies `Caps` and represents it
     needs `Caps` and `AssignmentRepresents`, so that half is an Arithmetization test, beside the
-    completeness theorem.
+    completeness theorem: `steps_le_rows` counts the rows and `completeness_fails_on_long_run`
+    is the refutation, for well formed bytecode too (`completeness_needs_fit`).
 26. **A `JUMP` gap of one.** The smallest block that adds `JUMP` rows adds two (a dummy jump that
     falls through and the closing jump), so no traversal delivers a single row, and the `JUMP`
     table can be filled to `2^τ` only if `2^τ ≠ rows owed + 1`. With `2^32 - 1` rows owed no plan
