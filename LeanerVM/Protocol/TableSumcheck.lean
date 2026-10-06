@@ -538,17 +538,10 @@ def tableSumcheckComplete (hd : I.d ≤ 2) :
 
 /-! ## Knowledge soundness -/
 
-/-- The theorems' unit `k / |E|`, with `|E|` counted by `Nat.card`, is the slot's `overE k`. -/
-private theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = overE k := by
-  rw [overE, Nat.card_eq_fintype_card]
-
 /-- **Round-by-round knowledge soundness of the table sumcheck**, from the bus seam to the table
-seam at the slot's error, when the instance's degree bound is at most `2`: `(B + 2)/|E|` on `ξ`,
-since a false claim among the `B + 3` batched ones survives only at a root of a nonzero
-polynomial of degree at most `B + 2` in `ξ`, and `3/|E|` on each round's challenge, with the
-extractor that keeps the trivial witness. Its state function is the parts': the bus seam before
-`ξ`, the sumcheck's running claim with the side condition during the rounds, the table seam
-after the final values. -/
+seam at the slot's error, when the instance's degree bound is at most `2`, with the extractor
+that keeps the trivial witness. Its state function is the parts': the bus seam before `ξ`, then
+the sumcheck's running claim with the side condition, round by round, up to the last message. -/
 def tableSumcheckSecurity (hd : I.d ≤ 2) :
     Phase.Security I (tableSumcheck I).toDef (Seam.bus I) (Seam.table I) (tableError I) :=
   (((Component.batchSecurity (TheOracle I) E (claimed I) (start I) (relIn := Seam.bus I)
@@ -559,9 +552,8 @@ def tableSumcheckSecurity (hd : I.d ≤ 2) :
         have hsum : powerBatch (claimed I s) ρ = powerBatch (trueValues I s (theStack o)) ρ :=
           hsum.trans (sum_tableSummand I (s, ρ) o)
         refine ⟨fun heq ↦ hin ?_, hsum⟩
-        simp only [Seam.bus, Seam.of, Set.mem_ofPred_eq]
-        exact ⟨((trueValues_eq_claimed_iff I s (theStack o)).mp heq).1,
-          ((trueValues_eq_claimed_iff I s (theStack o)).mp heq).2, hside⟩⟩).append
+        obtain ⟨hzero, htotals⟩ := (trueValues_eq_claimed_iff I s (theStack o)).mp heq
+        exact ⟨hzero, htotals, hside⟩⟩).append
     (Sumcheck.roundsSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I)
       (tableSummand_degree I hd) nodes_injective)).append
     (Sumcheck.finalSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)

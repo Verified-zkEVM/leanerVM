@@ -419,7 +419,6 @@ def completeTwo :
 /-! ## Knowledge soundness -/
 
 open OracleComp OracleSpec ProtocolSpec in
-open scoped NNReal in
 /-- The final check is load-bearing: the last message without it has no knowledge state function
 from the end of the rounds to the table seam, whatever the extractor, once a statement meets the
 side condition and its running claim is not the summand at its point, since the true values then
