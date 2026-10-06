@@ -3,6 +3,7 @@ import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Completeness.Balance
 import LeanerVMTests.Arithmetization.Completeness.Rows
+import LeanerVMTests.Arithmetization.Completeness.Witness
 import LeanerVMTests.Arithmetization.Statement
 import LeanerVMTests.Arithmetization.Tables
 import LeanerVMTests.Imports
