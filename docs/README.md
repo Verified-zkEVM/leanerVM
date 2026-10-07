@@ -67,10 +67,6 @@ This directory contains stable project and operating knowledge.
     GKR's combiner on it (2026-10-05), which found no theorem wrong, vacuous or tautological, and
     whose findings the branch meets (the true values fixed before the witness, the carried
     surface trimmed, one spelling of the combination, the documentation).
-  - [protocol-opening.md](reviews/protocol-opening.md): the review of the opening phase
-    (2026-10-05), which found no theorem wrong, vacuous or tautological, and whose findings the
-    branch meets (the phase rebuilt as batching by powers followed by a query check, the bound
-    attained, a refutation that drops the weighted claims, the blueprint ask, the surface).
   - [protocol-gkr-security-second.md](reviews/protocol-gkr-security-second.md): an independent
     second review of the same work (2026-10-05), on the blueprint fit, the audit surface, the
     non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas
@@ -90,6 +86,30 @@ This directory contains stable project and operating knowledge.
     tautological, and whose findings the branch meets (the side condition and the output map the
     table phase needs, the round check's refutation, the documentation) or records (the nodes'
     injectivity, which the securities keep so that they compute).
+  - [protocol-table-sumcheck.md](reviews/protocol-table-sumcheck.md): the review of the table
+    sumcheck phase's definition and completeness (2026-10-06), which found no theorem wrong,
+    vacuous or tautological, and whose findings the branch meets (the toy's run, the generic low
+    coordinates in the proof, each run computed once in the tests, the hygiene) or records (the
+    spine's `lowPoint` written as `lowCoords`, after the bus phase's branch).
+  - [protocol-table-sumcheck-security.md](reviews/protocol-table-sumcheck-security.md): the
+    review of the table sumcheck phase's knowledge soundness (2026-10-06), which found no theorem
+    wrong, vacuous or tautological, and whose findings the branch meets (the state function's
+    description, one copy of the error unit's lemma in the spine, the documentation).
+  - [protocol-fingerprint.md](reviews/protocol-fingerprint.md): the review of the fingerprint
+    and the collision bound (2026-10-05), whose findings the branch meets (a witness that the
+    factor 4 is needed, the generic module free of the protocol, a smaller surface, citations).
+  - [protocol-bus.md](reviews/protocol-bus.md): the review of the bus phase's definition and
+    completeness (2026-10-05), whose findings the branch meets (the refutation of the check
+    `R_c ≠ 0`, the lines rider documented and tested, a smaller surface, the status page) but
+    for a by-hand run of the grand-product argument on the bus's leaves.
+  - [protocol-bus-security.md](reviews/protocol-bus-security.md): the review of the bus phase's
+    knowledge soundness (2026-10-05), whose findings the branch meets (an unbalanced stack in the
+    tests, `|E|` written `2^192` explained, citations, the status page) or records as owed (a
+    refutation of the check `R_c ≠ 0` at the phase's seams).
+  - [protocol-opening.md](reviews/protocol-opening.md): the review of the opening phase
+    (2026-10-05), which found no theorem wrong, vacuous or tautological, and whose findings the
+    branch meets (the phase rebuilt as batching by powers followed by a query check, the bound
+    attained, a refutation that drops the weighted claims, the blueprint ask, the surface).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

@@ -216,11 +216,10 @@ def openingSecurity :
       fun c o _ hc _ ↦ (Opening.answer_weight_iff I o c).mp ((Opening.accepts_iff I c _).mp hc))
 
 /-
-The protocol's five phases, once the bus phase, the table sumcheck and the Flock phase exist,
-`h₁ h₂` the bus phase's side conditions:
+The protocol's five phases, once the Flock phase exists, `h` the bus phase's side conditions:
 
-def leanVmPhases (I : M3Instance) (h₁ h₂) : Phases I where
-  bus := busPhase I h₁ h₂
+def leanVmPhases (I : M3Instance) (h : Bus.Conditions I) : Phases I where
+  bus := busPhase I h
   table := tableSumcheck I
   pub := deployedPublicInputPhase I
   flock := flockPhase I

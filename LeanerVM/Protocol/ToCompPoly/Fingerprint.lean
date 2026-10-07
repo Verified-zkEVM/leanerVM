@@ -33,8 +33,6 @@ characteristic-versus-multiplicity assumption enters this module.
 
 The fingerprint has `n` variables. The grand-product challenge is a separate polynomial
 variable over this coefficient ring, so it cannot be confused with a fingerprint coordinate.
-At `n = 4`, the input has sixteen coordinates and the total degree is at most four.
-The separate formal variable is not one of the fingerprint coordinates.
 -/
 
 namespace LeanerVM.Protocol
@@ -126,8 +124,8 @@ theorem eval₂_fingerprintFactorPoly (t : CMlPolynomialEval R n) (φ : R →+* 
     MvPolynomial.eval₂_rename]
   exact congrArg (β - ·) (eval₂_fingerprintPoly t φ z)
 
-/-- Adding the separate grand-product challenge gives joint degree at most `max 1 n`.
-For sixteen-coordinate tuples, this remains four, rather than five. -/
+/-- Adding the separate grand-product challenge gives joint degree at most `max 1 n`, not
+`n + 1`. -/
 theorem totalDegree_fingerprintFactorPoly (t : CMlPolynomialEval R n) :
     (fingerprintFactorPoly t).totalDegree ≤ max 1 n := by
   classical
