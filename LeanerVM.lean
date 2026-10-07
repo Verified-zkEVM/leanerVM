@@ -22,6 +22,7 @@ import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
+import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
@@ -45,6 +46,7 @@ import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
@@ -54,6 +56,7 @@ import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
+import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.IndividualDegree

@@ -106,6 +106,10 @@ This directory contains stable project and operating knowledge.
     knowledge soundness (2026-10-05), whose findings the branch meets (an unbalanced stack in the
     tests, `|E|` written `2^192` explained, citations, the status page) or records as owed (a
     refutation of the check `R_c ≠ 0` at the phase's seams).
+  - [protocol-opening.md](reviews/protocol-opening.md): the review of the opening phase
+    (2026-10-05), which found no theorem wrong, vacuous or tautological, and whose findings the
+    branch meets (the phase rebuilt as batching by powers followed by a query check, the bound
+    attained, a refutation that drops the weighted claims, the blueprint ask, the surface).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

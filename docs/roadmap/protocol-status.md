@@ -1,6 +1,6 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `ad0c5f0` (2026-10-07),
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b12a9e8` (2026-10-07),
 checked on 2026-10-07; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
@@ -33,14 +33,16 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | batching by powers (Layer 4) | #77 | `a4981a4` | 2026-10-07 |
 | table sumcheck phase: definition and completeness (Layer 7) | #85 | `a6659e6` | 2026-10-07 |
 | table sumcheck phase: knowledge soundness (Layer 7) | #87 | `ad0c5f0` | 2026-10-07 |
-| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
-| bus phase: definition and completeness (Layer 6) | #79 | on merge | on merge |
-| bus phase: knowledge soundness (Layer 6) | #80 | on merge | on merge |
+| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | `3c7ecbe` | 2026-10-07 |
+| bus phase: definition and completeness (Layer 6) | #79 | `97ef4d4` | 2026-10-07 |
+| bus phase: knowledge soundness (Layer 6) | #80 | `b12a9e8` | 2026-10-07 |
+| the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
-check and with the check of the deployed verifiers, and the bus phase, both halves, with #79 and
-#80. `#print axioms` gives the kernel's three
+check and with the check of the deployed verifiers, the bus phase, both halves, with #79 and
+#80, the table sumcheck, both halves, with #85 and #87, and the opening phase, both halves, with
+#81. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
 each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
 `card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
@@ -88,9 +90,15 @@ completeness (`LeanerVM/Protocol/Bus.lean`: `busPhase` at the slot's schedule,
 `leaf_decomposition`, `busComplete`) stand on the grand-product argument, the product of a
 stack's cells (`Blocks.prod_stackAt`) and the fingerprint; its knowledge soundness
 (`LeanerVM/Protocol/BusSecurity.lean`: `busSecurity` at the slot's error `busError I`) on the
-grand-product argument's knowledge soundness and the collision bound. Nothing else is built:
-the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
-trees, the compiled verifier and the base theorems.
+grand-product argument's knowledge soundness and the collision bound. The opening phase
+(`LeanerVM/Protocol/Opening.lean`: `openingPhase`, `openingComplete`, `openingSecurity` at the
+slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers followed by a generic
+zero-round step whose verifier asks an input oracle one question and checks the answer
+(`ToArkLib/QueryCheck.lean`: `Component.queryCheck`, and the composition
+`Component.batchQuery` with its two halves and its refutation), on the inner-product weights
+combined by powers (`ToArkLib/WeightBatch.lean`). Nothing else is built: the Flock phase, the
+other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
+verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -321,6 +329,43 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     `Bus.Conditions`, a `Phase.FrontDef`; `countLeaves I q` without challenges;
     `leaf_decomposition` per side; `busSecurity I h` at `(busPhase I h).toDef`), and the
     Interfaces list (`Bus.Conditions`, `Blocks.prod_stackAt`, `Blocks.total_eq_sum`).
+- **The opening phase (Layer 10)** is `Component.batchQuery` at the slot's schedule `draw E`
+  (`draw E ++ₚ !p[]` is `draw E` by `rfl`, its instances included): `Component.batch` draws `ρ`
+  (the specification's `λ`) and combines the pooled values into the batched claim
+  `⟨W_ρ, C_ρ⟩`, `W_ρ` the pool's weights combined by the powers of `ρ` (`Weight.batch`); a
+  zero-round query check (`Component.queryCheck`) asks the stack `⟨W_ρ, q⟩` and accepts when the
+  answer is `C_ρ`. Its knowledge soundness is `batchSecurity`'s, the state after the challenge
+  that the batched claim holds (`Opening.BatchedHolds`). The pool takes the powers as both
+  deployed verifiers do: the Flock phase's weighted claims first, then the column claims in
+  their order, each the weighted claim at the equality kernel of its point lifted through the
+  layout (`Opening.pool_weighted`, `Opening.pool_column`; specification §8.5,
+  `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`, `crates/pcs/src/stack_open.rs:518-526`,
+  `python-verifier/verifier.py:1409-1413`). Where it differs from Layer 10's section, or what
+  it leaves to the work after it:
+  - `leanVmPhases` is a block comment at the end of `Opening.lean`: it needs the Flock phase,
+    which the hole's row in the blueprint does not list among its *Needs* (nor the bus phase and
+    the table sumcheck, now built). A test puts the deployed public-input phase and the opening
+    phase in their slots and gets both master theorems from the three other phases' proofs.
+  - The section's protocol-level test (the phases up to Layer 8 composed with pass-throughs
+    after, an honest run accepted by `#guard`) waits with `leanVmPhases`: a pass-through has the
+    empty schedule, not a slot's, so no bundle of pass-throughs fills `Phases`.
+    `piopExtractedStack_eq` holds of every bundle and is the spine's test.
+  - The blueprint is asked, through a `docs(protocol)` pull request, to move `leanVmPhases` and
+    the protocol-level test to a hole of their own, "the oracle protocol", needing every phase,
+    and to list `Component.queryCheck` and `Component.batchQuery` among the generic components.
+  - Beyond the hole's names, the tests use `Opening.pool`, `Opening.values`, `Opening.weight`,
+    `Opening.batched`, `Opening.question`, `Opening.check`, `Opening.accepts_iff`,
+    `Opening.columnWeighted_holds_iff`, `Opening.answer_weight_iff`,
+    `Opening.batched_holds_iff`, `Opening.pool_weighted` and `Opening.pool_column`; the bodies of
+    the two halves use `Opening.batched_of_flock` and `Opening.answers_of_not_flock`.
+  - The refutations of its check are tests: on the toy, the verifier with no check on the
+    answer, the one that checks the first pooled claim alone, and the one that combines the
+    claims with unit weights (two copies of one false claim cancel in characteristic two); on an
+    instance with a Flock region, the one that combines the column claims alone and drops the
+    weighted claim. Each accepts a pool outside the Flock seam at every challenge, so none has a
+    knowledge error below one, whatever its extractor and state function
+    (`Component.batchQuery_not_rbr`). The bound is attained: a pool of four claims is accepted
+    at three challenges.
 
 - **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
   GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
