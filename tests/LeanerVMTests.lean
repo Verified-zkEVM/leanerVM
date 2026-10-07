@@ -13,6 +13,7 @@ import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.Bus
+import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
