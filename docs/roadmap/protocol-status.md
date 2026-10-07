@@ -34,13 +34,16 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | table sumcheck phase: definition and completeness (Layer 7) | #85 | `a6659e6` | 2026-10-07 |
 | table sumcheck phase: knowledge soundness (Layer 7) | #87 | `ad0c5f0` | 2026-10-07 |
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
+| bus phase: definition and completeness (Layer 6) | #79 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
-each version of the public-input phase, and Lemma 5.2 and Theorem 5.1
-(`sideProduct_poly_eq_iff`, `card_sideProduct_collision_le`, `sideProduct_collision`). The grand-product GKR's definition and completeness
+each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
+`card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
+(`busComplete`, `leaf_decomposition`, `Bus.sum_forms_eq_total_iff`,
+`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`). The grand-product GKR's definition and completeness
 (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
 `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
@@ -77,9 +80,12 @@ weight (`ToCompPoly/IndividualDegree.lean`). The fingerprint polynomial of a tup
 (`ToCompPoly/Fingerprint.lean`, #39) and, with #78, the product polynomial of a multiset of
 tuples with its injectivity and its collision count (`ToArkLib/GrandProductPoly.lean`), and their
 leanVM reading (`Fingerprint.lean`: `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`,
-`sideProduct_collision`) complete the fingerprint hole. Nothing else is built: the other phases,
-the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
-verifier and the base theorems.
+`sideProduct_collision`) complete the fingerprint hole. The bus phase's definition and
+completeness (`LeanerVM/Protocol/Bus.lean`: `busPhase` at the slot's schedule,
+`leaf_decomposition`, `busComplete`) stand on the grand-product argument, the product of a
+stack's cells (`Blocks.prod_stackAt`) and the fingerprint. Nothing else is built: the other
+phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the
+compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -121,9 +127,6 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   (`sum_flockErrorOf`) is what the blueprint's `flockError_le` only bounds.
 - **Deleted as unused**: the field instances `instOracleInterfaceE` and `instOracleInterfaceListE`
   (the message schedules carry their own interfaces) and `Phase.Guarded`.
-- **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
-  `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
-  guarantee it, since `μBus` is the push side's depth.
 - **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
   a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
   the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
@@ -249,6 +252,58 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   the colliding challenges with `Nat.card`, the form a computable security consumes. The
   blueprint's Layer 5 file line and its Interfaces list are owed an edit for both, through a
   `docs(protocol)` pull request.
+- **The bus phase (Layer 6)** is at the slot's schedule `busSpec I`, a `Phase.FrontDef`
+  (decision 31; the blueprint's signature says `Phase.Def`), assembled from a checked challenge
+  `(α, β)`, a checked message (the roots, the check `R_c ≠ 0`), `gkr 3 μ_bus` and a message (the
+  boundary values) through `Component.Front.append`. Where it differs from Layer 6's sketch:
+  - The side conditions are one structure, `Bus.Conditions`: the blueprint's two (`1 ≤ I.d`, a
+    table with a constraint fits in the leaf stacks' depth) and that the pull and count sides fit
+    in `2 ^ μ_bus`, which an instance does not guarantee since `μ_bus` is the push side's depth,
+    and without which a side would be truncated. The deployed verifier asserts the fits of its
+    layouts (`leaf.rs:130-134`; it asks the pull side's depth to equal the push side's, which
+    is stronger) and rejects a point shorter than `τ_max` (`constraints.rs:251-253`).
+    `τ_max ≤ μ_bus` is derived (`Conditions.τmax_le`). That `leanIsaInstance` meets
+    `Bus.Conditions` at admissible sizes is the adaptor's to prove; `leanVmPhases` needs it.
+  - A block of leaves is a `Bus.Source` (a boundary block, one flush of one table, one count
+    column); a side's blocks are listed by `Bus.sources` and stacked by a stable sort, largest
+    first. `pushLeaves`, `pullLeaves` and `countLeaves` are the three sides of
+    `Bus.sideLeaves`; a count leaf is the count cell itself.
+  - `leaf_decomposition` is stated per side with each block's leaf extension as the verifier
+    writes it (`Source.leafEval`): `β − Σ_i eq(α, i)·c̃_i` for a block of tuples, the column's
+    extension for a count column.
+  - A form's terms: for a flush block, its weight times `β` against the constant `1` and its
+    weight times `−eq(α, i)` against coordinate `i`'s polynomial; for a count column, its weight
+    against the column's variable. The bus phase pools no claim on a table's column.
+  - The riders are the tables' constraints and one rider on no variable that is zero exactly when
+    the public lines and the Flock predicate hold (`Bus.linesRider`): the grand-product
+    argument's relations carry only its leaves and riders, and the two predicates of
+    `Seam.commit` the bus does not touch travel through it this way. The table sumcheck carries
+    the same two predicates, with the bus phase's column claims, as Layer 4's side condition
+    (`TableSumcheck.side`), since a sumcheck has no riders; a generic frame for front components
+    (a predicate of the data and the oracles a component hands on, conjoined to both of its
+    relations) would serve both and replace this rider.
+  - A committed boundary column's value is read at its place among `I.boundaryColumns`
+    (`Bus.valueOf`), and its claim's point is the first `κ` coordinates of `ζ`.
+  - The unused last combiner stays inside `gkr`; the blueprint's request to move it into the bus
+    phase is not met.
+  - The check `R_c ≠ 0` is refuted at the roots step: without it the step has no knowledge state
+    function from `Bus.afterChallenge` to the grand-product argument's input relation, whatever
+    the extractor, on any instance with a balanced stack whose constraints, lines and Flock
+    predicate hold but with a zero count (the bus tests' `roots_unchecked_no_stateFunction`; the
+    tests' zero-count stack is such a stack by `#guard`, since the kernel cannot evaluate a
+    constraint or the bus's permutation on a concrete stack). It is at the step's relations, as
+    the grand-product argument's refutations are; a refutation at the phase's seams is not
+    attempted.
+  - The phase is run by parts in the tests (the challenges and roots, the leaves at a point, the
+    last step); the grand-product argument between them is the one its own tests run by hand.
+  - The knowledge-soundness half consumes, besides the phase, `Bus.afterChallenge`,
+    `prod_pushLeaves`, `prod_pullLeaves`, `Bus.prod_countLeaves_ne_zero_iff`,
+    `Bus.ridersZero_iff`, `Bus.riders_vanish_iff`, `Bus.sum_forms_eq_total_iff`,
+    `Bus.lowPoint_point`, `Bus.sideTuples_perm`, `Bus.blocks_total` and `push_fits`.
+  - The blueprint is owed a `docs(protocol)` edit: Layer 6's signatures (`busPhase I h` with
+    `Bus.Conditions`, a `Phase.FrontDef`; `countLeaves I q` without challenges;
+    `leaf_decomposition` per side), and the Interfaces list (`Bus.Conditions`,
+    `Blocks.prod_stackAt`, `Blocks.total_eq_sum`).
 
 - **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
   GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
@@ -376,9 +431,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the bus phase (Layer 6), the Flock phase's definition and
-completeness (Layer 9), the WHIR opening, and the Merkle trees with the WHIR parameters (Layer
-11).
+expressions as polynomials (Layer 2), the Flock phase's definition and completeness (Layer 9),
+the WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11). The bus phase's
+knowledge soundness (Layer 6) needs its definition and #78.
 
 ## Upstream watch
 
