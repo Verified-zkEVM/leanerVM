@@ -277,10 +277,11 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - The riders are the tables' constraints and one rider on no variable that is zero exactly when
     the public lines and the Flock predicate hold (`Bus.linesRider`): the grand-product
     argument's relations carry only its leaves and riders, and the two predicates of
-    `Seam.commit` the bus does not touch travel through it this way. The table sumcheck has to
-    carry the same two predicates and a sumcheck has no riders; a generic frame for front
-    components (a predicate of the data and the oracles a component hands on, conjoined to both
-    of its relations) would serve both and replace this rider.
+    `Seam.commit` the bus does not touch travel through it this way. The table sumcheck carries
+    the same two predicates, with the bus phase's column claims, as Layer 4's side condition
+    (`TableSumcheck.side`), since a sumcheck has no riders; a generic frame for front components
+    (a predicate of the data and the oracles a component hands on, conjoined to both of its
+    relations) would serve both and replace this rider.
   - A committed boundary column's value is read at its place among `I.boundaryColumns`
     (`Bus.valueOf`), and its claim's point is the first `κ` coordinates of `ζ`.
   - The unused last combiner stays inside `gkr`; the blueprint's request to move it into the bus
