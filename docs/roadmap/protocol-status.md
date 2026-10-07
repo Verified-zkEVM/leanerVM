@@ -29,6 +29,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
 | batching by powers (Layer 4) | #77 | on merge | on merge |
 | table sumcheck phase: definition and completeness (Layer 7) | #85 | on merge | on merge |
+| table sumcheck phase: knowledge soundness (Layer 7) | #87 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -69,7 +70,9 @@ the sum over the cube (`sum_tableSummand`, `tableSummand_target`), the degree in
 have (`ToCompPoly/Multilinear.lean`: `lowCoords`, `repeatHigh`), the multilinear weight of a point
 and the coordinates weighted `(0, 1)` (`ToCompPoly/WeightedCube.lean`: `prodWeight`,
 `weightedCubeSum_lowCoords`), and the degree of a polynomial with mapped coefficients and of the
-weight (`ToCompPoly/IndividualDegree.lean`). Nothing else is built: the other phases, the other
+weight (`ToCompPoly/IndividualDegree.lean`). On the branch of #87, stacked on #85, its
+round-by-round knowledge soundness at the slot's error (`tableSumcheckSecurity`). Nothing else is
+built: the other phases, the other
 generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier
 and the base theorems.
 
@@ -339,6 +342,17 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     branch stacks on #77; the final values are numbered the same way (`columnPos`).
   - The honest prover interpolates its round polynomials at `0, 1, y, y + 1`
     (`TableSumcheck.nodes`).
+  - Knowledge soundness (`tableSumcheckSecurity`) takes `I.d ≤ 2` too, and needs it for the
+    error: a summand of higher degree in a variable would let a cubic message agree with the true
+    round polynomial at more than three challenges. It is #77's `batchSecurity` with the true
+    values `trueValues`, fixed before `ξ`, then Layer 4's `roundsSecurity` and `finalSecurity`
+    through `finalClaims_holds_iff`, raised to `tableError` by `Component.Security.mono`; a plain
+    `def`, inhabited at `E` in the tests.
+  - The refutations of the phase's two checks are tests: `final_unchecked_no_stateFunction`, from
+    `Component.sendChecked_no_stateFunction` at the phase's output map and the table seam (Layer
+    4's lemma of that name is stated at the default output map), and `round_unchecked_not_rbr`,
+    Layer 4's round refutation on the phase's family. The batching step has no check: the target
+    is derived from the bus totals, never sent.
   - Owed: the spine's `M3Instance.lowPoint` is the generic `lowCoords` at a sumcheck table's
     height (the same term); it is to be written so once the bus phase's branch, whose proofs
     unfold `lowPoint` by name, has merged. The review is
@@ -350,7 +364,8 @@ The spine's slots are on `main`, so the phases are written against them. These c
 expressions as polynomials (Layer 2), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck's
-definition and completeness (Layer 7) are on the branch of #85. The GKR's knowledge soundness on
+definition and completeness (Layer 7) are on the branch of #85, its knowledge soundness on the
+branch of #87. The GKR's knowledge soundness on
 the generic round (Layer 5) is built on the branch stacked on #62.
 
 ## Upstream watch

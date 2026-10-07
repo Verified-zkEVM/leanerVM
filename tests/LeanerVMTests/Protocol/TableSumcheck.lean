@@ -37,7 +37,11 @@ totals those forms reach on the honest stack.
   takes no part: on an instance with a taller column group the number of rounds is the sumcheck
   tables' `τ_max`.
 * **Inhabitants.** The phase fills the slot `tableSpec` as a front phase on the toy instance, and
-  completeness has inhabitants, as plain definitions, on both instances.
+  completeness and knowledge soundness at the slot's error have inhabitants, as plain
+  definitions, on both instances.
+* **The checks are load-bearing.** Without the final check the last message has no knowledge
+  state function at all, whatever the extractor; without the round check the first round's
+  challenge has no knowledge error below one.
 
 A plain file, so `#guard` evaluates the compiled definitions. Values of `E` written with numerals
 are named as definitions before a guard uses them.
@@ -411,5 +415,111 @@ def completeToy :
 def completeTwo :
     Phase.Complete twoTab (tableSumcheck twoTab).toDef (Seam.bus twoTab) (Seam.table twoTab) :=
   tableSumcheckComplete twoTab le_rfl
+
+/-! ## Knowledge soundness -/
+
+open OracleComp OracleSpec ProtocolSpec in
+/-- The final check is load-bearing: the last message without it has no knowledge state function
+from the end of the rounds to the table seam, whatever the extractor, once a statement meets the
+side condition and its running claim is not the summand at its point, since the true values then
+pass and land in the table seam. -/
+theorem final_unchecked_no_stateFunction {I : M3Instance} {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      (SumcheckRound.Stmt (Data I) E I.τmax × ∀ i, TheOracle I i) Unit Unit
+      (say (Vector E I.tableColumns)) W'}
+    (K : (Component.sendCheckedVerifier (TheOracle I) (Vector E I.tableColumns) (fun _ _ ↦ true)
+      (tableOut I)).toVerifier.KnowledgeStateFunction init impl
+      (SumcheckRound.rel (Sumcheck.family (tableSummand I) Sumcheck.unitWeights nodes (side I))
+        I.τmax) (Seam.table I) Ex)
+    (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ i, TheOracle I i)
+    (hside : side I ((s.1, o), ()))
+    (hs : s.2.2 ≠ (tableSummand I).summand ((s.1, o), ()) s.2.1.reverse) : False :=
+  Component.sendChecked_no_stateFunction (TheOracle I) (Vector E I.tableColumns) (fun _ _ ↦ true)
+    (tableOut I) init impl K s o
+    (fun w h ↦ hs (by
+      cases w
+      exact ((Sumcheck.mem_rel_self (tableSummand I) Sumcheck.unitWeights nodes (side I) _).mp
+        h).2))
+    _ rfl () (tableOut_mem_table I s o hside)
+
+/-- The side condition holds on the two-table instance's honest stack: no bus claim, no public
+line, no Flock region. -/
+theorem side_twoTab (x : Data twoTab) (q : Column 3) (hx : x.1.2.columns = #v[]) :
+    side twoTab ((x, oracles q), ()) := by
+  refine ⟨fun c hc ↦ ?_, fun l hl ↦ ?_, fun r hr ↦ ?_⟩
+  · rw [hx] at hc
+    exact absurd hc List.not_mem_nil
+  · simp at hl
+  · simp at hr
+
+open OracleComp OracleSpec ProtocolSpec in
+/-- On the two-table instance: a running claim off by one at the end of the rounds leaves the
+unchecked last message with no knowledge state function. -/
+theorem final_unchecked_twoTab {σ : Type} (init : ProbComp σ)
+    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      (SumcheckRound.Stmt (Data twoTab) E twoTab.τmax × ∀ i, TheOracle twoTab i) Unit Unit
+      (say (Vector E twoTab.tableColumns)) W'}
+    (K : (Component.sendCheckedVerifier (TheOracle twoTab) (Vector E twoTab.tableColumns)
+      (fun _ _ ↦ true) (tableOut twoTab)).toVerifier.KnowledgeStateFunction init impl
+      (SumcheckRound.rel (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
+        (side twoTab)) twoTab.τmax) (Seam.table twoTab) Ex) : False :=
+  final_unchecked_no_stateFunction init impl K
+    (x, (#v[c0, c1], (tableSummand twoTab).summand ctx (#v[c0, c1] : Vector E 2).reverse + 1))
+    (oracles honest) (side_twoTab x honest rfl) fun h ↦ one_ne_zero (add_eq_left.mp h)
+
+open OracleComp OracleSpec ProtocolSpec in
+open scoped NNReal in
+/-- The round check is load-bearing: on the two-table instance, the first round's challenge drawn
+without checking the polynomial has no knowledge error below one, whatever the extractor and the
+state function, since from a running claim off by one the honest polynomial is carried into the
+next relation at every challenge. -/
+theorem round_unchecked_not_rbr {σ : Type} (init : ProbComp σ)
+    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {WitMid : Fin 2 → Type}
+    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
+      (SumcheckRound.MidStmt (Data twoTab) E 0 3 × ∀ i, TheOracle twoTab i) Unit Unit (draw E)
+      WitMid}
+    {kSF : Verifier.KnowledgeStateFunction init impl
+      (SumcheckRound.relMid (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
+        (side twoTab)) 0)
+      (SumcheckRound.rel (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
+        (side twoTab)) 1)
+      (Component.sampleVerifier (TheOracle twoTab) E (fun _ ↦ true)
+        (fun p : SumcheckRound.MidStmt (Data twoTab) E 0 3 ↦ fun c ↦
+          SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 3 p.2 c) c)).toVerifier Ex}
+    {ε : (draw E).ChallengeIdx → ℝ≥0}
+    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl
+      (SumcheckRound.relMid (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
+        (side twoTab)) 0)
+      (SumcheckRound.rel (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes
+        (side twoTab)) 1)
+      (Component.sampleVerifier (TheOracle twoTab) E (fun _ ↦ true)
+        (fun p : SumcheckRound.MidStmt (Data twoTab) E 0 3 ↦ fun c ↦
+          SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 3 p.2 c) c)).toVerifier
+      WitMid Ex kSF ε) :
+    1 ≤ ε ⟨0, rfl⟩ :=
+  SumcheckRound.drawChallenge_unchecked_not_rbr 0 init impl
+    (Sumcheck.family (tableSummand twoTab) Sumcheck.unitWeights nodes (side twoTab))
+    (Sumcheck.family_honest (tableSummand twoTab) Sumcheck.unitWeights nodes (side twoTab)
+      (tableSummand_degree twoTab le_rfl) nodes_injective).toConsistent (by decide) h
+    (x, (#v[], Sumcheck.claim (tableSummand twoTab) Sumcheck.unitWeights ctx 0 #v[] + 1))
+    (oracles honest) () (fun h ↦ one_ne_zero (add_eq_left.mp h))
+    fun _ ↦ side_twoTab x honest rfl
+
+/-- Knowledge soundness on the toy instance, at the slot's error. -/
+def securityToy : Phase.Security Toy.toy (tableSumcheck Toy.toy).toDef (Seam.bus Toy.toy)
+    (Seam.table Toy.toy) (tableError Toy.toy) :=
+  tableSumcheckSecurity Toy.toy le_rfl
+
+/-- Knowledge soundness on the two-table instance, at the slot's error. -/
+def securityTwo : Phase.Security twoTab (tableSumcheck twoTab).toDef (Seam.bus twoTab)
+    (Seam.table twoTab) (tableError twoTab) :=
+  tableSumcheckSecurity twoTab le_rfl
+
+/-- Its extraction, which the composition reads: it computes. -/
+def extractionToy : Component.Extraction (tableSumcheck Toy.toy).toDef (Seam.bus Toy.toy)
+    (Seam.table Toy.toy) :=
+  securityToy.toExtraction
 
 end LeanerVMTests.Protocol.TableSumcheck
