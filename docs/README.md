@@ -63,6 +63,10 @@ This directory contains stable project and operating knowledge.
     or tautological, and whose findings the branch meets (the security computes at `E`, the
     round refutation for every extractor and state function, the generic lemmas in their
     owners' modules, the private helpers, the documentation).
+  - [protocol-batch.md](reviews/protocol-batch.md): the review of batching by powers and of the
+    GKR's combiner on it (2026-10-05), which found no theorem wrong, vacuous or tautological, and
+    whose findings the branch meets (the true values fixed before the witness, the carried
+    surface trimmed, one spelling of the combination, the documentation).
   - [protocol-gkr-security-second.md](reviews/protocol-gkr-security-second.md): an independent
     second review of the same work (2026-10-05), on the blueprint fit, the audit surface, the
     non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas
@@ -82,6 +86,15 @@ This directory contains stable project and operating knowledge.
     tautological, and whose findings the branch meets (the side condition and the output map the
     table phase needs, the round check's refutation, the documentation) or records (the nodes'
     injectivity, which the securities keep so that they compute).
+  - [protocol-table-sumcheck.md](reviews/protocol-table-sumcheck.md): the review of the table
+    sumcheck phase's definition and completeness (2026-10-06), which found no theorem wrong,
+    vacuous or tautological, and whose findings the branch meets (the toy's run, the generic low
+    coordinates in the proof, each run computed once in the tests, the hygiene) or records (the
+    spine's `lowPoint` written as `lowCoords`, after the bus phase's branch).
+  - [protocol-table-sumcheck-security.md](reviews/protocol-table-sumcheck-security.md): the
+    review of the table sumcheck phase's knowledge soundness (2026-10-06), which found no theorem
+    wrong, vacuous or tautological, and whose findings the branch meets (the state function's
+    description, one copy of the error unit's lemma in the spine, the documentation).
   - [protocol-fingerprint.md](reviews/protocol-fingerprint.md): the review of the fingerprint
     and the collision bound (2026-10-05), whose findings the branch meets (a witness that the
     factor 4 is needed, the generic module free of the protocol, a smaller surface, citations).

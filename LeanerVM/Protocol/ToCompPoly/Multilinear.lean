@@ -35,6 +35,9 @@ Nothing here transcribes a source.
   identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
   `sumCube_placeSlice` are its converse. `sliceLow t i` is the strided subcube whose low bits
   are `i`, one entry every `2 ^ k`, and `evalMle_boolVec_append` its selection identity.
+* **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
+  `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
+  coordinates: its extension ignores them (`evalMle_repeatHigh`).
 
 A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
@@ -532,6 +535,51 @@ theorem evalMle_set {n : ℕ} (t : CMlPolynomialEval R n) (p : Vector R n) {k : 
     hrest, hrest, hrest]
   simp only [Vector.getElem_set_self]
   cases a.val.testBit k <;> simp <;> ring
+
+/-! ## Tables of the low coordinates -/
+
+omit [CommRing R] in
+/-- The low `k` coordinates of a point on `n ≥ k` coordinates. -/
+def lowCoords {k n : ℕ} (h : k ≤ n) (z : Vector R n) : Vector R k :=
+  Vector.cast (min_eq_left h) (z.take k)
+
+omit [CommRing R] in
+@[simp] theorem getElem_lowCoords {k n : ℕ} (h : k ≤ n) (z : Vector R n) {a : ℕ} (ha : a < k) :
+    (lowCoords h z)[a] = z[a] := by
+  simp only [lowCoords, Vector.getElem_cast, Vector.getElem_take]
+
+omit [CommRing R] in
+/-- The low coordinates of a point split at `k` are its first part. -/
+@[simp] theorem lowCoords_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
+    lowCoords (Nat.le_add_right k m) (z ++ s) = z := by
+  apply Vector.ext
+  intro a ha
+  rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
+
+/-- A table on `k` coordinates read on `n ≥ k`: the entry at `x` is the table's entry at the low
+`k` bits of `x`, whatever the high bits. -/
+def repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (_ : k ≤ n) : CMlPolynomialEval R n :=
+  Vector.ofFn fun x ↦ t[x.val % 2 ^ k]'(Nat.mod_lt _ (Nat.two_pow_pos k))
+
+omit [CommRing R] in
+/-- Every slice of a repeated table is the table. -/
+theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+    slice (repeatHigh t (Nat.le_add_right k m)) j = t := by
+  apply Vector.ext
+  intro i hi
+  rw [← Fin.getElem_fin _ ⟨i, hi⟩, slice_getElem]
+  simp only [repeatHigh, Fin.getElem_fin, Vector.getElem_ofFn, cubeIndex_mod]
+
+/-- The extension of a repeated table ignores the high coordinates: it is the table's extension
+at the low ones. -/
+theorem evalMle_repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (h : k ≤ n) (z : Vector R n) :
+    evalMle (repeatHigh t h) z = evalMle t (lowCoords h z) := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le h
+  rw [← lowVec_append_highVec z, evalMle_split]
+  simp only [slice_repeatHigh, ← Finset.sum_mul, lowCoords_append]
+  have hs := sumCube_lagrangeBasis (highVec z)
+  simp only [sumCube] at hs
+  rw [hs, one_mul]
 
 end
 end LeanerVM.Protocol
