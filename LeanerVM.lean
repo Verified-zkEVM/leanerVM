@@ -29,6 +29,8 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
+import LeanerVM.Protocol.TableSumcheck
+import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
@@ -55,6 +57,7 @@ import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.IndividualDegree
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToCompPoly.PartialSum
+import LeanerVM.Protocol.ToCompPoly.PowerBatching
 import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking

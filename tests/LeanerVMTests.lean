@@ -10,6 +10,7 @@ import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.AmbientStacking
+import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
@@ -20,6 +21,7 @@ import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
+import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.SideProduct
@@ -27,6 +29,7 @@ import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.Sumcheck
+import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
