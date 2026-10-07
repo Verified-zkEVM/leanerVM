@@ -17,12 +17,14 @@ import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
 import LeanerVMTests.Protocol.GrandProduct
+import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
+import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking

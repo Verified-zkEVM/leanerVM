@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b692351` (2026-10-02),
-checked on 2026-10-02; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `ad0c5f0` (2026-10-07),
+checked on 2026-10-07; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -24,57 +24,62 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
-| grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
-| sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
-| sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
-| batching by powers (Layer 4) | #77 | on merge | on merge |
-| table sumcheck phase: definition and completeness (Layer 7) | #85 | on merge | on merge |
-| table sumcheck phase: knowledge soundness (Layer 7) | #87 | on merge | on merge |
+| fingerprint and collision bound (Layer 5): the fingerprint polynomial | #39 | `24860c3` | 2026-10-05 |
+| the public-input phase with the deployed check (Layer 8) | #72 | `c9bd599` | 2026-10-05 |
+| grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
+| grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
+| sumcheck: definitions and completeness (Layer 4) | #75 | `c70f552` | 2026-10-06 |
+| sumcheck: knowledge soundness (Layer 4) | #76 | `a11ca6d` | 2026-10-06 |
+| batching by powers (Layer 4) | #77 | `a4981a4` | 2026-10-07 |
+| table sumcheck phase: definition and completeness (Layer 7) | #85 | `a6659e6` | 2026-10-07 |
+| table sumcheck phase: knowledge soundness (Layer 7) | #87 | `ad0c5f0` | 2026-10-07 |
+| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
-axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
-each version of the public-input phase. On the branch of #62, the grand-product GKR's
-definition and completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the
-slot's schedule `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a
-checked message (`ToArkLib/SendChecked.lean`) and a checked challenge
-(`ToArkLib/SampleChallenge.lean`), a sumcheck round of their own composed from the two
-(`ToArkLib/SumcheckRound.lean`), and the product tree and partial sums
-(`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On the branch stacked on
-it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
-`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the
-round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
-witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
-tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. On the branch stacked on that one, Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`): a
-virtual polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and
-the tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
-the highest variable first, the tables' values at the final point as its last message), the plain
-and the normalized variants as its two weightings (`Sumcheck.plain`, `Sumcheck.normalized`), their
-perfect completeness, and the transport of round-by-round knowledge soundness to a verifier that
-decodes a round message sent without one coefficient (`Sumcheck.transport`, on the generic
+axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
+each version of the public-input phase, and Lemma 5.2 and Theorem 5.1
+(`sideProduct_poly_eq_iff`, `card_sideProduct_collision_le`, `sideProduct_collision`). The grand-product GKR's definition and completeness
+(`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
+`gkrComplete`) stand on two generic one-round components, a checked message
+(`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
+sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
+product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`).
+Its knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
+`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the round's
+(`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no witness) and a
+table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which tracks the riders
+and the descendants' values while the coordinates of a point are drawn one at a time. Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`) is a virtual
+polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and the
+tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
+the highest variable first, the tables' values at the final point as its last message), the
+plain and the normalized variants as its two weightings (`Sumcheck.plain`,
+`Sumcheck.normalized`), their perfect completeness and their round-by-round knowledge soundness
+at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`, `normalizedSecurity`),
+and the transport of round-by-round knowledge soundness to a verifier that decodes a round
+message sent without one coefficient (`Sumcheck.transport`, on the generic
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
-needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
-#76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
-`plainSecurity`, `normalizedSecurity`). On the branch of #77, also stacked on the GKR's
-knowledge soundness, batching by powers (`ToArkLib/Batch.lean`: `Component.batch`,
-`batchComplete`, `batchSecurity` at `(k − 1) / |F|`), on the power combination and its root
-count of #43 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound
-is superseded by `batchSecurity` and gone); the GKR's combiner is `Component.batch`. On the
-branch of #85, stacked on #77, the table sumcheck phase's definition and completeness (Layer 7,
-`LeanerVM/Protocol/TableSumcheck.lean`): `ξ` as `Component.batch` of the constraints' and the
-sides' claims, Layer 4's plain sumcheck on `τ_max` variables of `tableSummand`, the final values,
-the sum over the cube (`sum_tableSummand`, `tableSummand_target`), the degree in each variable
-(`tableSummand_degree`) and `tableSumcheckComplete`; with tables read on more variables than they
-have (`ToCompPoly/Multilinear.lean`: `lowCoords`, `repeatHigh`), the multilinear weight of a point
-and the coordinates weighted `(0, 1)` (`ToCompPoly/WeightedCube.lean`: `prodWeight`,
+needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). Batching by powers
+(`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at `(k − 1) / |F|`)
+stands on the power combination and its root count of #43 (`ToCompPoly/PowerBatching.lean`,
+carried with its author; its uniform-sample bound is superseded by `batchSecurity` and gone); the
+GKR's combiner is `Component.batch`. The table sumcheck phase (Layer 7,
+`LeanerVM/Protocol/TableSumcheck.lean`) is `ξ` as `Component.batch` of the constraints' and the
+sides' claims, Layer 4's plain sumcheck on `τ_max` variables of `tableSummand`, and the final
+values; with the sum over the cube (`sum_tableSummand`, `tableSummand_target`), the degree in
+each variable (`tableSummand_degree`), `tableSumcheckComplete` and its round-by-round knowledge
+soundness at the slot's error (`tableSumcheckSecurity`); with tables read on more variables than
+they have (`ToCompPoly/Multilinear.lean`: `lowCoords`, `repeatHigh`), the multilinear weight of a
+point and the coordinates weighted `(0, 1)` (`ToCompPoly/WeightedCube.lean`: `prodWeight`,
 `weightedCubeSum_lowCoords`), and the degree of a polynomial with mapped coefficients and of the
-weight (`ToCompPoly/IndividualDegree.lean`). On the branch of #87, stacked on #85, its
-round-by-round knowledge soundness at the slot's error (`tableSumcheckSecurity`). Nothing else is
-built: the other phases, the other
-generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled verifier
-and the base theorems.
+weight (`ToCompPoly/IndividualDegree.lean`). The fingerprint polynomial of a tuple
+(`ToCompPoly/Fingerprint.lean`, #39) and, with #78, the product polynomial of a multiset of
+tuples with its injectivity and its collision count (`ToArkLib/GrandProductPoly.lean`), and their
+leanVM reading (`Fingerprint.lean`: `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`,
+`sideProduct_collision`) complete the fingerprint hole. Nothing else is built: the other phases,
+the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the compiled
+verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -234,6 +239,16 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   bound, so the degree bound is the message's length; the first step reads the roots through a
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
+- **The fingerprint and the collision bound (Layer 5)** are in two modules, not in the GKR's:
+  the product polynomial of a multiset of tuples over any ring, its injectivity and the count of
+  its collisions are generic (`ToArkLib/GrandProductPoly.lean`, carried from Elias Judin's
+  branch for #33, ArkLib issue #901), and the reading at `K`, `E` and sixteen coordinates is a
+  leanVM module (`Fingerprint.lean`), since a generic module names no protocol constant.
+  `sideProduct_collision` bounds the collisions of two multisets of at most `N` tuples, the
+  bus phase taking `N = 2 ^ μ_bus`; its counting form, `card_sideProduct_collision_le`, counts
+  the colliding challenges with `Nat.card`, the form a computable security consumes. The
+  blueprint's Layer 5 file line and its Interfaces list are owed an edit for both, through a
+  `docs(protocol)` pull request.
 
 - **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
   GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
@@ -361,12 +376,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the
-fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck's
-definition and completeness (Layer 7) are on the branch of #85, its knowledge soundness on the
-branch of #87. The GKR's knowledge soundness on
-the generic round (Layer 5) is built on the branch stacked on #62.
+expressions as polynomials (Layer 2), the bus phase (Layer 6), the Flock phase's definition and
+completeness (Layer 9), the WHIR opening, and the Merkle trees with the WHIR parameters (Layer
+11).
 
 ## Upstream watch
 

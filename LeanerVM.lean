@@ -18,6 +18,7 @@ import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
@@ -34,6 +35,7 @@ import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GrandProduct
+import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
