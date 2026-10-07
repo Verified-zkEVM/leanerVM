@@ -27,7 +27,7 @@ error, with the extractor that keeps the witness): whenever a statement that pas
 into the output relation is in the input relation. A batching followed by a query check is not
 knowledge sound below error one, whatever the extractor and the state function, when a
 statement outside the input relation passes the check into the output relation at every
-challenge (`batch_append_queryCheck_not_rbr`).
+challenge (`batchQuery_not_rbr`).
 -/
 
 namespace LeanerVM.Protocol

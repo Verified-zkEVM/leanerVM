@@ -16,10 +16,11 @@ public import LeanerVM.Protocol.ToCompPoly.PowerBatching
 `Weight.batch W ρ` combines `k` weights on the cube by the powers of `ρ`: its values are
 `Σ_j ρ^j·W_j(x)` and its extension, the one the asker evaluates, is `Σ_j ρ^j·W̃_j(r)`, from the
 weights' own evaluators. The answer of a table to the combination is the combination of its
-answers (`Weight.pair_batch`): the inner product is linear in the weight. So `k` claims
-`⟨W_j, t⟩ = c_j` hold together exactly when one answer, at the combined weight, matches the
-combined value at every `ρ`, and a random `ρ` separates a false family from a true one except
-at the at most `k - 1` roots of their difference (`card_false_batch_le`).
+answers (`Weight.pair_batch`): the inner product is linear in the weight. So when `k` claims
+`⟨W_j, t⟩ = c_j` hold, the answer at the combined weight is the combined value at every `ρ`.
+The converse is a count, not an equivalence: a false family's combination meets the true one at
+at most `k - 1` values of `ρ` (`card_false_batch_le`, the bound `batchSecurity` charges), and in
+a field of fewer than `k` elements that can be every value.
 -/
 
 namespace LeanerVM.Protocol
