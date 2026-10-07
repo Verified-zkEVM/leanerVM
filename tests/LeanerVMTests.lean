@@ -10,6 +10,7 @@ import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.AmbientStacking
+import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
@@ -19,6 +20,7 @@ import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Padding
+import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.Spine

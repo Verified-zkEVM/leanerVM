@@ -63,6 +63,10 @@ This directory contains stable project and operating knowledge.
     or tautological, and whose findings the branch meets (the security computes at `E`, the
     round refutation for every extractor and state function, the generic lemmas in their
     owners' modules, the private helpers, the documentation).
+  - [protocol-batch.md](reviews/protocol-batch.md): the review of batching by powers and of the
+    GKR's combiner on it (2026-10-05), which found no theorem wrong, vacuous or tautological, and
+    whose findings the branch meets (the true values fixed before the witness, the carried
+    surface trimmed, one spelling of the combination, the documentation).
   - [protocol-gkr-security-second.md](reviews/protocol-gkr-security-second.md): an independent
     second review of the same work (2026-10-05), on the blueprint fit, the audit surface, the
     non-vacuity of the tests and readability, whose findings the branch meets (twelve lemmas

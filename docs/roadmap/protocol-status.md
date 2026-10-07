@@ -27,6 +27,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
 | sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
 | sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
+| batching by powers (Layer 4) | #77 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -54,8 +55,13 @@ decodes a round message sent without one coefficient (`Sumcheck.transport`, on t
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
 needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
 #76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
-`plainSecurity`, `normalizedSecurity`). Nothing else is built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle
-trees, the compiled verifier and the base theorems.
+`plainSecurity`, `normalizedSecurity`). On the branch of #77, also stacked on the GKR's
+knowledge soundness, batching by powers (`ToArkLib/Batch.lean`: `Component.batch`,
+`batchComplete`, `batchSecurity` at `(k − 1) / |F|`), on the power combination and its root
+count of #43 (`ToCompPoly/PowerBatching.lean`, carried with its author; its uniform-sample bound
+is superseded by `batchSecurity` and gone); the GKR's combiner is `Component.batch`. Nothing else
+is built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR,
+the Merkle trees, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -179,11 +185,13 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   module stays as the round both share. The GKR does not consume `Sumcheck.normalized`, the
   normalized variant over a virtual polynomial, which binds the highest variable first and
   carries a side condition no challenge changes, where the GKR's security tracks its riders
-  challenge by challenge (`Gkr.familyT`). One stand-in is left: its combiner, `Gkr.lambdaStep`,
-  stands in for `batch nside`, which can take it only as `sampleChallenge` at the batching map,
-  taking the statement maps as arguments: a relabelling pass-through on either side would put a
-  `!p[]` into the schedule and break the definitional equality with `stepSpec`. When that hole
-  lands in that form, the combiner becomes it. The blueprint is asked, through a `docs(protocol)`
+  challenge by challenge (`Gkr.familyT`). Its combiner, `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
+  statement maps as arguments (a relabelling pass-through before it would put a `!p[]` into the
+  schedule and break the definitional equality with `stepSpec`; one after it would add a step,
+  its security and a `mono` for nothing), its combined claim `powerBatch`, its completeness
+  `batchComplete` and its security `batchSecurity`, and the descendants' check combines by
+  `powerBatch` too; the count it used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for
+  #43's `card_false_batch_le`. The blueprint is asked, through a `docs(protocol)`
   pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
   the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
   lists batching by powers among its needs; the normalized sumcheck the GKR consumes is the
@@ -299,7 +307,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), batching (Layer 4), the
+expressions as polynomials (Layer 2), the
 fingerprint (Layer 5), the Flock phase's definition and completeness (Layer 9), the WHIR
 opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
 stacks on the sumcheck's definitions and knowledge soundness. The GKR's knowledge soundness on
