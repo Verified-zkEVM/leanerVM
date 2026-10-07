@@ -86,6 +86,11 @@ This directory contains stable project and operating knowledge.
     tautological, and whose findings the branch meets (the side condition and the output map the
     table phase needs, the round check's refutation, the documentation) or records (the nodes'
     injectivity, which the securities keep so that they compute).
+  - [protocol-table-sumcheck.md](reviews/protocol-table-sumcheck.md): the review of the table
+    sumcheck phase's definition and completeness (2026-10-06), which found no theorem wrong,
+    vacuous or tautological, and whose findings the branch meets (the toy's run, the generic low
+    coordinates in the proof, each run computed once in the tests, the hygiene) or records (the
+    spine's `lowPoint` written as `lowCoords`, after the bus phase's branch).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

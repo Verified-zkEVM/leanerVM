@@ -27,6 +27,7 @@ import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.Sumcheck
+import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
