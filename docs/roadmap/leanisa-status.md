@@ -149,7 +149,7 @@ module (P3).
 | 7 — boundary blocks | landed (PR #21) | plain file (C8); each block is its two flushes with no constraint, its `Spec` its pull guarantee (`MemSpec`; `BytecodeDecodes`, program-free) and the verifier's `True` (decision 12, F9; decision 14); the verifier is a function of the public program and pulls its sentinel as a constant (`leanIsaVerifier prog`, `verifier_pull_eval`); the seed rows of every word and slot are built and accepted (`mem_word_complete`, `bytecode_entry_complete`); the program's hold on the bytecode block's rows is Layer 8's conjunct, read per row by `BytecodeBindings prog` (decision 14) |
 | 8 — statement | built, proved and reviewed on this branch | plain file (C8); `SatisfiedBy` is a structure of named conjuncts; balance is `BalancedPair`, a `List.Perm` of the messages on a channel pair, channels identified by name; `CountsNonzero` covers the six tables' read counts, as leanVM's count channel does; `Caps` is the M3 part of `read_public`, power-of-two heights and the BLAKE2S floor (decision 8); the three named hypotheses are stated over the two blocks' raw rows (`memRowAt`, `List.ofFn`); `Blake2sRowsValid` is the BLAKE2s validity Flock proves, the one conjunct outside the bus (review finding A1); `AssignmentRepresents` says each step occurs as some row's `RowSteps`; one hand-built witness for the executor's program with fill blocks, at `2^16` cells, never enumerated (E8), and seven rejections |
 | 9 — bus soundness | statements in place; consumes a Clean change | the four statements are block comments at the end of `Statement.lean`; `exists_run_of_balanced` and `no_row_at_sentinel` under `WellFormedBytecode` (decisions 7 and 9) |
-| 10 — T1 | untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6) |
+| 10 — T1 | `Semantics` half of the completeness slice built (#73), `constraintCompleteness` not yet stated; soundness untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6); completeness is for a padded trace under `Trace.Fits` (F11): fill blocks, padded traces and image, the fill-block lemma, the skeleton rows of a fill and the heights a plan gives every table |
 
 ### The frontier
 
@@ -917,7 +917,21 @@ than leanVM's until Layer 8's conjunct. Met by decision 14 on this branch (2026-
 13's parameter was built first and discarded): `programOf` and the `"bytecode"` table are gone,
 the channels and tables are program-free, and the program enters through `bytecodeRowOf prog`,
 `leanIsaVerifier prog` and Layer 8's `SatisfiedBy prog` (roadmap Layers 5 to 8, convention
-"Program", acceptance test 22).
+"Program", acceptance test 22). **F11 the roadmap's completeness target was false for the same trace** (2026-10-05, the Layer 10
+slice, #73). `constraintCompleteness` concluded a witness representing `t` itself, for every valid
+`t`. Two independent counterexamples. The image: `AssignmentRepresents` forces the witness image to
+be `t`'s, while `ValidExecution` pins it only where the run reads and at `g^0`, `g^1`, so for every
+program that starts with a `JUMP` to the sentinel there is a valid trace whose image admits no `XOR`
+step (acceptance test 23; a test of this slice, whose last step to "no witness" is Layer 9's
+`mem_channel_sound` and is argued, not checked). The size: `Caps.heights` bounds every table by
+`2^32` rows while `Trace.steps` is unbounded (acceptance test 25; a test of this slice shows that no
+fitting trace has that run, and the witness-level half is checked beside the completeness theorem).
+A third fact couples the tables: every closed run shorter than `2^64 - 1` steps takes a jump, so
+every traversal of a fill block adds a `JUMP` row (acceptance test 27). Met in the slice's pull
+request: completeness is for a padded trace (`Trace.PaddedFrom`), under `Trace.Fits` (room above the
+image, a row cap on every table but `JUMP`, a deliverable `JUMP` gap); Layer 8 is unchanged and
+soundness is untouched. No maintainer has yet agreed to this shape; it is raised in that pull
+request.
 
 ## Survey record
 
