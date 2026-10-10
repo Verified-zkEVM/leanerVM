@@ -90,6 +90,11 @@ component's error. -/
 theorem overE_one : overE 1 = (1 / Nat.card E : ℝ≥0) := by
   rw [overE, Nat.card_eq_fintype_card, Nat.cast_one]
 
+/-- `k / |E|` with `|E|` counted by `Nat.card`, the form a generic component's error takes, is
+`overE k`. -/
+theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = overE k := by
+  rw [overE, Nat.card_eq_fintype_card]
+
 /-! ## The six slots -/
 
 variable (I : M3Instance)

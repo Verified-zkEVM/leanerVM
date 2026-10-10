@@ -235,6 +235,31 @@ def guardedAppend (G₁ : D₁.red.toReduction.verifier.GuardedForm)
     (D₁.append D₂).red.toReduction.verifier.GuardedForm :=
   cast (congrArg _ (OracleVerifier.append_toVerifier _ _).symm) (G₁.append G₂)
 
+/-- A guarded form carried along an equality of verifiers keeps its check and its verdict. -/
+private theorem cast_guardedForm {ι S T : Type} {oSpec : OracleSpec ι} {n : ℕ}
+    {pSpec : ProtocolSpec n} {V V' : Verifier oSpec S T pSpec} (h : V = V') (G : V.GuardedForm) :
+    (cast (congrArg Verifier.GuardedForm h) G).check = G.check ∧
+      (cast (congrArg Verifier.GuardedForm h) G).out = G.out := by
+  subst h
+  exact ⟨rfl, rfl⟩
+
+/-- The check of an appended guarded form: the first check, then the second on the first
+verdict. -/
+theorem guardedAppend_check (G₁ : D₁.red.toReduction.verifier.GuardedForm)
+    (G₂ : D₂.red.toReduction.verifier.GuardedForm) (s : Stmt₁ × ∀ i, OStmt₁ i)
+    (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
+    (guardedAppend G₁ G₂).check s tr = (G₁.check s tr.fst && G₂.check (G₁.out s tr.fst) tr.snd) :=
+  congrFun (congrFun (cast_guardedForm (OracleVerifier.append_toVerifier _ _).symm
+    (G₁.append G₂)).1 s) tr
+
+/-- The verdict of an appended guarded form: the second verdict on the first. -/
+theorem guardedAppend_out (G₁ : D₁.red.toReduction.verifier.GuardedForm)
+    (G₂ : D₂.red.toReduction.verifier.GuardedForm) (s : Stmt₁ × ∀ i, OStmt₁ i)
+    (tr : (pSpec₁ ++ₚ pSpec₂).FullTranscript) :
+    (guardedAppend G₁ G₂).out s tr = G₂.out (G₁.out s tr.fst) tr.snd :=
+  congrFun (congrFun (cast_guardedForm (OracleVerifier.append_toVerifier _ _).symm
+    (G₁.append G₂)).2 s) tr
+
 /-- Guarded forms compose. -/
 def Guarded.append (G₁ : Guarded D₁) (G₂ : Guarded D₂) : Guarded (D₁.append D₂) where
   guarded := guardedAppend G₁.guarded G₂.guarded

@@ -8,6 +8,7 @@
 
 module
 
+public import LeanerVM.Protocol.ToArkLib.Batch
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToCompPoly.ProductTree
 public import LeanerVM.Protocol.ToCompPoly.PartialSum
@@ -26,9 +27,9 @@ point of `m` coordinates and one value per tree, the extension of the tree's lev
 variables (`layerRel`). A step (`layerStep`) goes `ρ` levels down, from layer `m` to `m + ρ`, at
 the schedule `stepSpec F nside ρ m`:
 
-* the combiner (`lambdaStep`, one challenge): the verifier draws `λ`, and the claims become one,
-  `Σ_s λ^s · value_s`, the sum of the layer identity
-  `Σ_s λ^s Ṽ_s(r) = Σ_x eq(r, x) Σ_s λ^s ∏_c Ṽ'_s(c, x)` over the level `ρ` below;
+* the combiner (`lambdaStep`, one challenge, batching by powers, `Component.batch`): the verifier
+  draws `λ`, and the claims become one, `Σ_s value_s · λ^s` (`powerBatch`), the sum of the layer
+  identity `Σ_s Ṽ_s(r) · λ^s = Σ_x eq(r, x) Σ_s λ^s ∏_c Ṽ'_s(c, x)` over the level `ρ` below;
 * the normalized sumcheck on that identity (`m` rounds of `SumcheckRound.round` on
   `SumcheckRound.normalizedWeights`): the message is the cofactor of `eq(r, ·)` (`roundPoly`), a
   sum of products of `2 ^ ρ` affine factors, so of degree `2 ^ ρ`, sent as its `2 ^ ρ + 1`
@@ -50,8 +51,10 @@ stated at. `gkrComplete` is its perfect completeness, composed from its parts' t
 *Riders* are further tables computed from the public data and the oracles, each on at most `μ`
 variables. The input relation asks each to be zero; the output relation asks each extension to
 vanish at the low coordinates of `ζ` (`lowPoint`). They are for a protocol that reuses `ζ` as a
-zerocheck point; no definition reads them. The oracles pass through untouched, and there is no
-witness.
+zerocheck point; no definition reads them. A rider on no variable is one value: it states a
+condition on the public data and the oracles, carried unchanged from the input relation to the
+output relation, which no challenge can make true. The oracles pass through untouched, and there
+is no witness.
 
 Written from the mathematics of the product-tree argument. The last combiner, which nothing
 reads, keeps the transcript of a verifier that draws a combiner after every layer.
@@ -267,9 +270,9 @@ theorem family_honest : (family nside μ leaves riders ρ m).Honest m where
 /-! ## The combiner -/
 
 /-- The statement after the combiner: the layer statement with the combiner, no challenge yet,
-and the combined claim `Σ_s λ^s · value_s`. -/
+and the combined claim `Σ_s value_s · λ^s`. -/
 def lambdaNext (s : LayerStmt X F nside m) (l : F) : SumcheckRound.Stmt (LayerX X F nside m) F 0 :=
-  ((s, l), (#v[], ∑ t, l ^ t.val * s.2.2 t))
+  ((s, l), (#v[], powerBatch s.2.2 l))
 
 variable [DecidableEq F] [SampleableType F]
 
@@ -277,10 +280,10 @@ variable [DecidableEq F] [SampleableType F]
 -- step from a layer, the roots read as layer `0` for the first.
 variable {S : Type} (inp : S → LayerStmt X F nside m)
 
-/-- The combiner: one challenge, combining the claims. -/
+/-- The combiner: one challenge, batching the claims by its powers. -/
 def lambdaStep : Component.Def S O Unit (SumcheckRound.Stmt (LayerX X F nside m) F 0) O Unit
     (draw F) :=
-  Component.sampleChallenge O F (fun _ ↦ true) fun s l ↦ lambdaNext nside m (inp s) l
+  Component.batch O F (fun s ↦ (inp s).2.2) fun s l c ↦ ((inp s, l), (#v[], c))
 
 omit [DecidableEq F] [SampleableType F] [BEq F] [LawfulBEq F]
   [∀ i, OracleInterface (O i)] in
@@ -302,14 +305,15 @@ levels at the layer's point. -/
 theorem partialSum_summand_zero (hm : m + ρ ≤ μ) (s : LayerStmt X F nside m) (o : ∀ i, O i)
     (l : F) :
     partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[] =
-      ∑ t, l ^ t.val * evalMle (layerTable (leaves s.1 o t) m) s.2.1 := by
+      powerBatch (fun t ↦ evalMle (layerTable (leaves s.1 o t) m) s.2.1) l := by
   rw [partialSum_zero]
   have htab : (Vector.ofFn fun y ↦ summand nside μ leaves ρ m (((s, l), o), ()) (boolVec y)) =
       Vector.ofFn fun y ↦ ∑ t, l ^ t.val * (layerTable (leaves s.1 o t) m)[y] :=
     Vector.ext fun y hy ↦ by
       simp only [Vector.getElem_ofFn]
       exact summand_boolVec nside μ leaves ρ m hm _ ⟨y, hy⟩
-  rw [htab, evalMle_ofFn_sum]
+  rw [htab, evalMle_ofFn_sum, powerBatch]
+  exact Finset.sum_congr rfl fun t _ ↦ mul_comm _ _
 
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- From the layer relation, the combined claim at any challenge is the partial sum of the
@@ -323,8 +327,8 @@ private theorem lambdaNext_mem_rel (hm : m + ρ ≤ μ) (s : LayerStmt X F nside
   change (lambdaNext nside m s l).2.2 =
     partialSum (summand nside μ leaves ρ m (((s, l), o), ())) s.2.1 0 #v[]
   rw [partialSum_summand_zero nside μ leaves ρ m hm s o l]
-  show ∑ t, l ^ t.val * s.2.2 t = _
-  exact Finset.sum_congr rfl fun t _ ↦ by rw [hval t]
+  show powerBatch s.2.2 l = _
+  exact congrArg (powerBatch · l) (funext fun t ↦ (hval t).symm)
 
 /-- The completeness half of the combiner, from a relation `inp` carries into the layer
 relation. -/
@@ -332,9 +336,9 @@ def lambdaComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
     Component.Complete (lambdaStep nside m inp) relS
       (SumcheckRound.rel (family nside μ leaves riders ρ m) 0) :=
-  Component.sampleChallengeComplete O F _ _ fun s o w h ↦ by
+  Component.batchComplete O F _ _ fun s o w h l ↦ by
     cases w
-    exact ⟨rfl, fun l ↦ lambdaNext_mem_rel nside μ leaves riders ρ m hm (inp s) o l (hinp s o () h)⟩
+    exact lambdaNext_mem_rel nside μ leaves riders ρ m hm (inp s) o l (hinp s o () h)
 
 /-! ## The descendants -/
 
@@ -352,7 +356,7 @@ def children (x : X) (o : ∀ i, O i) (c : Vector F m) (s : Fin nside) : CMlPoly
 the products of each tree's values. -/
 def combineCheck (s : SumcheckRound.Stmt (LayerX X F nside m) F m)
     (ch : Fin nside → CMlPolynomialEval F ρ) : Bool :=
-  decide (s.2.2 = ∑ t, s.1.2 ^ t.val * ∏ c : Fin (2 ^ ρ), (ch t)[c])
+  decide (s.2.2 = powerBatch (fun t ↦ ∏ c : Fin (2 ^ ρ), (ch t)[c]) s.1.2)
 
 /-- The statement after the message: the public data, the sumcheck's point, the values. -/
 def childNext (s : SumcheckRound.Stmt (LayerX X F nside m) F m)
@@ -382,9 +386,10 @@ private theorem combineCheck_children (s : SumcheckRound.Stmt (LayerX X F nside 
   obtain ⟨-, hclaim⟩ := h
   rw [combineCheck, decide_eq_true_eq, hclaim]
   change partialSum (summand nside μ leaves ρ m ((s.1, o), ())) s.1.1.2.1 m s.2.1 = _
-  rw [partialSum_self]
+  rw [partialSum_self, powerBatch]
   unfold summand
   refine Finset.sum_congr rfl fun t _ ↦ ?_
+  rw [mul_comm]
   congr 1
   refine Finset.prod_congr rfl fun c _ ↦ ?_
   simp [children, below]
