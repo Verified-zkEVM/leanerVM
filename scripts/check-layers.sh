@@ -43,7 +43,7 @@ fi
 # arithmetization is: the fixed columns, the adaptor, the compiled verifier and the base
 # theorems.
 check_wall() {
-  local allowed='^LeanerVM/Protocol/(FixedColumns|LeanIsa|Transcript|Proof|Compile|Verify|Soundness)\.lean$'
+  local allowed='^LeanerVM/Protocol/(FixedColumns|LeanIsa(/[A-Za-z]+)?|Transcript|Proof|Compile|Verify|Soundness)\.lean$'
   local pattern="${import_prefix}LeanerVM\.Arithmetization(\.|$)"
   local matches
 

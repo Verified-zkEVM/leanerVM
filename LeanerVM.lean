@@ -29,6 +29,10 @@ import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.LeanIsa
+import LeanerVM.Protocol.LeanIsa.Bus
+import LeanerVM.Protocol.LeanIsa.Read
+import LeanerVM.Protocol.LeanIsa.Relation
+import LeanerVM.Protocol.LeanIsa.Sound
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop

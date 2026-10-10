@@ -110,9 +110,8 @@ validity", Opening step 4; `cpu/mod.rs:759-768`). Clean's `EnsembleWitness.Const
 not include a table's `Assumptions`, and its `AssumptionsConsistency` sources them from the
 public input alone, so the fact is a conjunct of the statement, and
 `assumptions_of_blake2sRowsValid` turns it into the `w.Assumptions` that Clean's
-`TableSoundness` takes. The Flock work (#3, `docs/design/blake2s-flock-boundary.md`) replaces
-the conjunct by the constraints themselves, one block of Flock's R1CS per row, and derives the
-relation; the two T1 statements do not change.
+`TableSoundness` takes. The conjunct stays: the proof system's adaptor discharges it from the
+Flock region, whose R1CS forces every block's limbs to compress (`blake2sRowsValid_witnessOf`).
 
 **The statement.** `SatisfiedBy prog input w` is the relation the proof system proves and
 extracts (issue #13), a structure with named fields so that Layers 9 and 10 project the
@@ -300,7 +299,7 @@ def BytecodeRowsAreTheProgram (prog : Program) (w : EnsembleWitness (leanIsaEnse
 /-- Every row of the `BLAKE2S` table satisfies the compression relation on its eighteen limbs
 (Layer 6's `Blake2sRelation`, the table's `Assumptions`): what Flock proves of the region the
 limb columns are routed to (§8.5 "BLAKE2s validity"; `cpu/mod.rs:759-768`). The one conjunct
-enforced outside the bus; the Flock work (#3) restates it as the constraints themselves. -/
+enforced outside the bus; the proof system discharges it from the Flock region. -/
 def Blake2sRowsValid (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
   ∀ row ∈ blake2sRows w, Blake2sRelation (blake2sRowAt w row)
 

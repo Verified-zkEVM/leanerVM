@@ -111,6 +111,19 @@ theorem readColumn_eval (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n)
       eval₂Mle q.values (algebraMap K E) (B.extendPoint hμ b z) :=
   (B.unstack_eval₂ (algebraMap K E) hμ q.values b z).symm
 
+/-- The cell a cube point of block `b` lifts to: the point's index plus the block's offset. -/
+theorem get_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n)
+    (y : Fin (2 ^ B.size b)) :
+    q.values.get (boolIndex (B.extendPoint hμ b (boolVec y : Vector E (B.size b)))) =
+      q.values[y.val + B.offset b]'(by
+        have := B.offset_add_pow_le_total b
+        have := y.isLt
+        omega) := by
+  simp only [extendPoint, boolVec_append, boolIndex_cast, boolIndex_boolVec,
+    Vector.get_eq_getElem, Fin.val_cast, cubeIndex_val, selector_val]
+  congr 1
+  exact congrArg (y.val + ·) (Nat.mul_div_cancel' (B.pow_size_dvd_offset b))
+
 /-- Reading through the lift of the aligned blocks is reading the block: the cube point
 `(x, sel_b)` is the cell `x + offset_b`. -/
 private theorem readWith_extendPoint (hμ : B.total ≤ 2 ^ μ) (q : Column μ) (b : Fin B.n) :
@@ -165,6 +178,18 @@ def stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
       ← eval₂Mle_cast (algebraMap K E) (h c)]
     simp only [Vector.cast_cast, Vector.cast_rfl]
     rw [eval₂Mle, eval₂Mle, sliceLow_map, evalMle_boolVec_append]
+
+/-- A strided slot's cell `x` is the block's cell `slot + x · 2 ^ k`, at the block's offset. -/
+theorem get_stridedLayout (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) (k : ℕ) {ι : Type}
+    {κ : ι → ℕ} (slot : ι → Fin (2 ^ k)) (h : ∀ c, B.size b = k + κ c) (q : Column μ) (c : ι)
+    (x : Fin (2 ^ κ c)) :
+    q.values.get (boolIndex ((B.stridedLayout hμ b k slot h).extend c (boolVec x))) =
+      q.values[(cubeIndex (slot c) x).val + B.offset b]'(by
+        have := B.offset_add_pow_le_total b
+        have h1 := (cubeIndex (slot c) x).isLt
+        have h2 : 2 ^ (k + κ c) = 2 ^ B.size b := by rw [h c]
+        omega) := by
+  simp only [stridedLayout, boolVec_append, boolVec_cast, get_extendPoint, Fin.val_cast]
 
 end Columns
 
