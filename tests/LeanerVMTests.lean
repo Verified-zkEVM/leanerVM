@@ -18,6 +18,7 @@ import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
+import LeanerVMTests.Protocol.Flock
 import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity

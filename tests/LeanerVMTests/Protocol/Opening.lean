@@ -178,7 +178,7 @@ abbrev flocky : M3Instance where
   layout := ⟨fun _ z ↦ z, fun q c z ↦ by rw [readWith_id]⟩
   nLines := 0
   publicLines := fun _ ↦ #v[]
-  flock := some ⟨⟨0, 0⟩, 0, rfl, fun _ ↦ True, inferInstance⟩
+  flock := some ⟨⟨0, 0⟩, 0, rfl, BlockR1CS.ofMatrices (fun _ _ ↦ false) (fun _ _ ↦ false)⟩
 
 example : flocky.pubClaims = 1 := by decide
 example : flocky.flockClaims = 1 := rfl
