@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b692351` (2026-10-02),
-checked on 2026-10-02; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b12a9e8` (2026-10-07),
+checked on 2026-10-07; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -24,43 +24,85 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | the wall, and the field instances' inner-product oracle | #64 | `3cf0139` | 2026-10-02 |
 | the spine at the slots' schedules and errors | #65 | `ca34001` | 2026-10-02 |
 | tables and stacking's strided reader, and the public-input phase's pool from the values sent | #66 | `b692351` | 2026-10-02 |
-| grand-product GKR: definition and completeness (Layer 5) | #62 | on merge | on merge |
-| sumcheck: definitions and completeness (Layer 4) | #75 | on merge | on merge |
-| sumcheck: knowledge soundness (Layer 4) | #76 | on merge | on merge |
+| fingerprint and collision bound (Layer 5): the fingerprint polynomial | #39 | `24860c3` | 2026-10-05 |
+| the public-input phase with the deployed check (Layer 8) | #72 | `c9bd599` | 2026-10-05 |
+| grand-product GKR: definition and completeness (Layer 5) | #62 | `7d8252d` | 2026-10-05 |
+| grand-product GKR: knowledge soundness (Layer 5) | #70 | `a100d8b` | 2026-10-05 |
+| sumcheck: definitions and completeness (Layer 4) | #75 | `c70f552` | 2026-10-06 |
+| sumcheck: knowledge soundness (Layer 4) | #76 | `a11ca6d` | 2026-10-06 |
+| batching by powers (Layer 4) | #77 | `a4981a4` | 2026-10-07 |
+| table sumcheck phase: definition and completeness (Layer 7) | #85 | `a6659e6` | 2026-10-07 |
+| table sumcheck phase: knowledge soundness (Layer 7) | #87 | `ad0c5f0` | 2026-10-07 |
+| fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | `3c7ecbe` | 2026-10-07 |
+| bus phase: definition and completeness (Layer 6) | #79 | `97ef4d4` | 2026-10-07 |
+| bus phase: knowledge soundness (Layer 6) | #80 | `b12a9e8` | 2026-10-07 |
+| the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
 | Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
-check and with the check of the deployed verifiers. `#print axioms` gives the kernel's three
-axioms, and no `sorryAx`, for the two master theorems and both halves of the commit phase and of
-each version of the public-input phase. On the branch of #62, the grand-product GKR's
-definition and completeness (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the
-slot's schedule `gkrSpec`, `gkrComplete`) stand on two generic one-round components, a
-checked message (`ToArkLib/SendChecked.lean`) and a checked challenge
-(`ToArkLib/SampleChallenge.lean`), a sumcheck round of their own composed from the two
-(`ToArkLib/SumcheckRound.lean`), and the product tree and partial sums
-(`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`). On the branch stacked on
-it, the GKR's knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
-`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the
-round's (`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no
-witness) and a table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which
-tracks the riders and the descendants' values while the coordinates of a point are drawn
-one at a time. On the branch stacked on that one, Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`): a
-virtual polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and
-the tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
-the highest variable first, the tables' values at the final point as its last message), the plain
-and the normalized variants as its two weightings (`Sumcheck.plain`, `Sumcheck.normalized`), their
-perfect completeness, and the transport of round-by-round knowledge soundness to a verifier that
-decodes a round message sent without one coefficient (`Sumcheck.transport`, on the generic
+check and with the check of the deployed verifiers, the bus phase, both halves, with #79 and
+#80, the table sumcheck, both halves, with #85 and #87, and the opening phase, both halves, with
+#81. `#print axioms` gives the kernel's three
+axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
+each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
+`card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
+(`busComplete`, `leaf_decomposition`, `Bus.sum_forms_eq_total_iff`,
+`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`,
+`busSecurity`). The grand-product GKR's definition and completeness
+(`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
+`gkrComplete`) stand on two generic one-round components, a checked message
+(`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
+sumcheck round of their own composed from the two (`ToArkLib/SumcheckRound.lean`), and the
+product tree and partial sums (`ToCompPoly/ProductTree.lean`, `ToCompPoly/PartialSum.lean`).
+Its knowledge soundness (`ToArkLib/GrandProductSecurity.lean`: `gkrSecurity` at
+`gkrError F (1 / |F|) nside μ`) stands on the two components' security halves, the round's
+(`SumcheckRound.roundsSecurity`, for a consistent and sound family carrying no witness) and a
+table's zeroness on a partial point (`ToCompPoly/Restriction.lean`), which tracks the riders
+and the descendants' values while the coordinates of a point are drawn one at a time. Layer 4's sumcheck (`ToArkLib/Sumcheck.lean`) is a virtual
+polynomial (`Sumcheck.Virtual`: tables read off the context and a formula of the point and the
+tables' values), its sumcheck over a cube weighted per coordinate (`Sumcheck.weighted`, binding
+the highest variable first, the tables' values at the final point as its last message), the
+plain and the normalized variants as its two weightings (`Sumcheck.plain`,
+`Sumcheck.normalized`), their perfect completeness and their round-by-round knowledge soundness
+at `d / |F|` per round (`Sumcheck.weightedSecurity`, `plainSecurity`, `normalizedSecurity`),
+and the transport of round-by-round knowledge soundness to a verifier that decodes a round
+message sent without one coefficient (`Sumcheck.transport`, on the generic
 `ToArkLib/TranscriptMap.lean`); with the weighted cube sums and the degree in each coordinate it
-needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). On the branch of
-#76, their round-by-round knowledge soundness at `d / |F|` per round (`Sumcheck.weightedSecurity`,
-`plainSecurity`, `normalizedSecurity`). On the branch of #86, the Flock phase's
+needs (`ToCompPoly/WeightedCube.lean`, `ToCompPoly/IndividualDegree.lean`). Batching by powers
+(`ToArkLib/Batch.lean`: `Component.batch`, `batchComplete`, `batchSecurity` at `(k − 1) / |F|`)
+stands on the power combination and its root count of #43 (`ToCompPoly/PowerBatching.lean`,
+carried with its author; its uniform-sample bound is superseded by `batchSecurity` and gone); the
+GKR's combiner is `Component.batch`. The table sumcheck phase (Layer 7,
+`LeanerVM/Protocol/TableSumcheck.lean`) is `ξ` as `Component.batch` of the constraints' and the
+sides' claims, Layer 4's plain sumcheck on `τ_max` variables of `tableSummand`, and the final
+values; with the sum over the cube (`sum_tableSummand`, `tableSummand_target`), the degree in
+each variable (`tableSummand_degree`), `tableSumcheckComplete` and its round-by-round knowledge
+soundness at the slot's error (`tableSumcheckSecurity`); with tables read on more variables than
+they have (`ToCompPoly/Multilinear.lean`: `lowCoords`, `repeatHigh`), the multilinear weight of a
+point and the coordinates weighted `(0, 1)` (`ToCompPoly/WeightedCube.lean`: `prodWeight`,
+`weightedCubeSum_lowCoords`), and the degree of a polynomial with mapped coefficients and of the
+weight (`ToCompPoly/IndividualDegree.lean`). The fingerprint polynomial of a tuple
+(`ToCompPoly/Fingerprint.lean`, #39) and, with #78, the product polynomial of a multiset of
+tuples with its injectivity and its collision count (`ToArkLib/GrandProductPoly.lean`), and their
+leanVM reading (`Fingerprint.lean`: `fingerprint`, `sideProduct`, `sideProduct_poly_eq_iff`,
+`sideProduct_collision`) complete the fingerprint hole. The bus phase's definition and
+completeness (`LeanerVM/Protocol/Bus.lean`: `busPhase` at the slot's schedule,
+`leaf_decomposition`, `busComplete`) stand on the grand-product argument, the product of a
+stack's cells (`Blocks.prod_stackAt`) and the fingerprint; its knowledge soundness
+(`LeanerVM/Protocol/BusSecurity.lean`: `busSecurity` at the slot's error `busError I`) on the
+grand-product argument's knowledge soundness and the collision bound. The opening phase
+(`LeanerVM/Protocol/Opening.lean`: `openingPhase`, `openingComplete`, `openingSecurity` at the
+slot's error `(J − 1) / |E|`, `J` the pool's size) is batching by powers followed by a generic
+zero-round step whose verifier asks an input oracle one question and checks the answer
+(`ToArkLib/QueryCheck.lean`: `Component.queryCheck`, and the composition
+`Component.batchQuery` with its two halves and its refutation), on the inner-product weights
+combined by powers (`ToArkLib/WeightBatch.lean`). On the branch of #86, the Flock phase's
 definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
 at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). Nothing else is
-built: the other phases, the other generic components, the Clean bridge, the adaptor, WHIR, the
-Merkle trees, the compiled verifier and the base theorems.
+built: the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the
+compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -102,9 +144,6 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   (`sum_flockErrorOf`) is what the blueprint's `flockError_le` only bounds.
 - **Deleted as unused**: the field instances `instOracleInterfaceE` and `instOracleInterfaceListE`
   (the message schedules carry their own interfaces) and `Phase.Guarded`.
-- **The bus phase's side conditions** (decision 30) gain that the pull and count leaves fit in
-  `2 ^ μBus`: the deployed verifier asserts it (`leaf.rs:123-146`) and an instance does not
-  guarantee it, since `μBus` is the push side's depth.
 - **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
   a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
   the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
@@ -184,11 +223,13 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   module stays as the round both share. The GKR does not consume `Sumcheck.normalized`, the
   normalized variant over a virtual polynomial, which binds the highest variable first and
   carries a side condition no challenge changes, where the GKR's security tracks its riders
-  challenge by challenge (`Gkr.familyT`). One stand-in is left: its combiner, `Gkr.lambdaStep`,
-  stands in for `batch nside`, which can take it only as `sampleChallenge` at the batching map,
-  taking the statement maps as arguments: a relabelling pass-through on either side would put a
-  `!p[]` into the schedule and break the definitional equality with `stepSpec`. When that hole
-  lands in that form, the combiner becomes it. The blueprint is asked, through a `docs(protocol)`
+  challenge by challenge (`Gkr.familyT`). Its combiner, `Gkr.lambdaStep`, is batching by powers: `Component.batch` at the batching map, taking the
+  statement maps as arguments (a relabelling pass-through before it would put a `!p[]` into the
+  schedule and break the definitional equality with `stepSpec`; one after it would add a step,
+  its security and a `mono` for nothing), its combined claim `powerBatch`, its completeness
+  `batchComplete` and its security `batchSecurity`, and the descendants' check combines by
+  `powerBatch` too; the count it used, `SumcheckRound.card_filter_powerSum_eq_le`, is gone for
+  #43's `card_false_batch_le`. The blueprint is asked, through a `docs(protocol)`
   pull request, for three changes: the unused last combiner moves out of the generic `gkr` into
   the bus phase (it is a leanVM transcript quirk, `gkr.rs:423`); the GKR's knowledge soundness
   lists batching by powers among its needs; the normalized sumcheck the GKR consumes is the
@@ -218,6 +259,117 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   bound, so the degree bound is the message's length; the first step reads the roots through a
   statement map (`Gkr.rootStmt`), since the schedule has no pass-through before the first
   layer.
+- **The fingerprint and the collision bound (Layer 5)** are in two modules, not in the GKR's:
+  the product polynomial of a multiset of tuples over any ring, its injectivity and the count of
+  its collisions are generic (`ToArkLib/GrandProductPoly.lean`, carried from Elias Judin's
+  branch for #33, ArkLib issue #901), and the reading at `K`, `E` and sixteen coordinates is a
+  leanVM module (`Fingerprint.lean`), since a generic module names no protocol constant.
+  `sideProduct_collision` bounds the collisions of two multisets of at most `N` tuples, the
+  bus phase taking `N = 2 ^ μ_bus`; its counting form, `card_sideProduct_collision_le`, counts
+  the colliding challenges with `Nat.card`, the form a computable security consumes. The
+  blueprint's Layer 5 file line and its Interfaces list are owed an edit for both, through a
+  `docs(protocol)` pull request.
+- **The bus phase (Layer 6)** is at the slot's schedule `busSpec I`, a `Phase.FrontDef`
+  (decision 31; the blueprint's signature says `Phase.Def`), assembled from a checked challenge
+  `(α, β)`, a checked message (the roots, the check `R_c ≠ 0`), `gkr 3 μ_bus` and a message (the
+  boundary values) through `Component.Front.append`. Where it differs from Layer 6's sketch:
+  - The side conditions are one structure, `Bus.Conditions`: the blueprint's two (`1 ≤ I.d`, a
+    table with a constraint fits in the leaf stacks' depth) and that the pull and count sides fit
+    in `2 ^ μ_bus`, which an instance does not guarantee since `μ_bus` is the push side's depth,
+    and without which a side would be truncated. The deployed verifier asserts the fits of its
+    layouts (`leaf.rs:130-134`; it asks the pull side's depth to equal the push side's, which
+    is stronger) and rejects a point shorter than `τ_max` (`constraints.rs:251-253`).
+    `τ_max ≤ μ_bus` is derived (`Conditions.τmax_le`). That `leanIsaInstance` meets
+    `Bus.Conditions` at admissible sizes is the adaptor's to prove; `leanVmPhases` needs it.
+  - A block of leaves is a `Bus.Source` (a boundary block, one flush of one table, one count
+    column); a side's blocks are listed by `Bus.sources` and stacked by a stable sort, largest
+    first. `pushLeaves`, `pullLeaves` and `countLeaves` are the three sides of
+    `Bus.sideLeaves`; a count leaf is the count cell itself.
+  - `leaf_decomposition` is stated per side with each block's leaf extension as the verifier
+    writes it (`Source.leafEval`): `β − Σ_i eq(α, i)·c̃_i` for a block of tuples, the column's
+    extension for a count column.
+  - A form's terms: for a flush block, its weight times `β` against the constant `1` and its
+    weight times `−eq(α, i)` against coordinate `i`'s polynomial; for a count column, its weight
+    against the column's variable. The bus phase pools no claim on a table's column.
+  - The riders are the tables' constraints and one rider on no variable that is zero exactly when
+    the public lines and the Flock predicate hold (`Bus.linesRider`): the grand-product
+    argument's relations carry only its leaves and riders, and the two predicates of
+    `Seam.commit` the bus does not touch travel through it this way. The table sumcheck carries
+    the same two predicates, with the bus phase's column claims, as Layer 4's side condition
+    (`TableSumcheck.side`), since a sumcheck has no riders; a generic frame for front components
+    (a predicate of the data and the oracles a component hands on, conjoined to both of its
+    relations) would serve both and replace this rider.
+  - A committed boundary column's value is read at its place among `I.boundaryColumns`
+    (`Bus.valueOf`), and its claim's point is the first `κ` coordinates of `ζ`.
+  - The unused last combiner stays inside `gkr`; the blueprint's request to move it into the bus
+    phase is not met.
+  - The check `R_c ≠ 0` is refuted at the roots step: without it the step has no knowledge state
+    function from `Bus.afterChallenge` to the grand-product argument's input relation, whatever
+    the extractor, on any instance with a balanced stack whose constraints, lines and Flock
+    predicate hold but with a zero count (the bus tests' `roots_unchecked_no_stateFunction`; the
+    tests' zero-count stack is such a stack by `#guard`, since the kernel cannot evaluate a
+    constraint or the bus's permutation on a concrete stack). It is at the step's relations, as
+    the grand-product argument's refutations are; a refutation at the phase's seams is not
+    attempted: it would take a generic backward induction over the rounds (from a statement with
+    no witness, a set of prefixes closed under every challenge, with a message for every prover
+    round, and accepted at the end, leaves an error of one at some challenge; the review's probe
+    compiles one), and that the unchecked phase's honest prover is accepted after every vector
+    of challenges, which needs the support of ArkLib's `Prover.run` round by round. Owed.
+  - Its knowledge soundness, `busSecurity`, is composed from its steps' at the completeness
+    half's intermediate relations: `Bus.afterChallenge` after `(α, β)` (the products agree, the
+    counts are nonzero, the constraints vanish, the lines and the Flock predicate hold), then the
+    grand-product argument's input and output relations. The challenges' count of bad values is
+    `card_sideProduct_collision_le` at `N = 2 ^ μ_bus`, with `|E|` written `2 ^ 192` (`card_E`):
+    the count is a number the compiled security holds, and `Nat.card E` does not compute. The
+    convention *Errors* rewrites `|E|` to `2^192` only in the numeric test, so it is owed a
+    rewording.
+  - The phase is run by parts in the tests (the challenges and roots, the leaves at a point, the
+    last step); the grand-product argument between them is the one its own tests run by hand.
+  - The knowledge-soundness half consumes, besides the phase, `Bus.afterChallenge`,
+    `prod_pushLeaves`, `prod_pullLeaves`, `Bus.prod_countLeaves_ne_zero_iff`,
+    `Bus.ridersZero_iff`, `Bus.riders_vanish_iff`, `Bus.sum_forms_eq_total_iff`,
+    `Bus.lowPoint_point`, `Bus.sideTuples_perm`, `Bus.blocks_total` and `push_fits`.
+  - The blueprint is owed a `docs(protocol)` edit: Layer 6's signatures (`busPhase I h` with
+    `Bus.Conditions`, a `Phase.FrontDef`; `countLeaves I q` without challenges;
+    `leaf_decomposition` per side; `busSecurity I h` at `(busPhase I h).toDef`), and the
+    Interfaces list (`Bus.Conditions`, `Blocks.prod_stackAt`, `Blocks.total_eq_sum`).
+- **The opening phase (Layer 10)** is `Component.batchQuery` at the slot's schedule `draw E`
+  (`draw E ++ₚ !p[]` is `draw E` by `rfl`, its instances included): `Component.batch` draws `ρ`
+  (the specification's `λ`) and combines the pooled values into the batched claim
+  `⟨W_ρ, C_ρ⟩`, `W_ρ` the pool's weights combined by the powers of `ρ` (`Weight.batch`); a
+  zero-round query check (`Component.queryCheck`) asks the stack `⟨W_ρ, q⟩` and accepts when the
+  answer is `C_ρ`. Its knowledge soundness is `batchSecurity`'s, the state after the challenge
+  that the batched claim holds (`Opening.BatchedHolds`). The pool takes the powers as both
+  deployed verifiers do: the Flock phase's weighted claims first, then the column claims in
+  their order, each the weighted claim at the equality kernel of its point lifted through the
+  layout (`Opening.pool_weighted`, `Opening.pool_column`; specification §8.5,
+  `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`, `crates/pcs/src/stack_open.rs:518-526`,
+  `python-verifier/verifier.py:1409-1413`). Where it differs from Layer 10's section, or what
+  it leaves to the work after it:
+  - `leanVmPhases` is a block comment at the end of `Opening.lean`: it needs the Flock phase,
+    which the hole's row in the blueprint does not list among its *Needs* (nor the bus phase and
+    the table sumcheck, now built). A test puts the deployed public-input phase and the opening
+    phase in their slots and gets both master theorems from the three other phases' proofs.
+  - The section's protocol-level test (the phases up to Layer 8 composed with pass-throughs
+    after, an honest run accepted by `#guard`) waits with `leanVmPhases`: a pass-through has the
+    empty schedule, not a slot's, so no bundle of pass-throughs fills `Phases`.
+    `piopExtractedStack_eq` holds of every bundle and is the spine's test.
+  - The blueprint is asked, through a `docs(protocol)` pull request, to move `leanVmPhases` and
+    the protocol-level test to a hole of their own, "the oracle protocol", needing every phase,
+    and to list `Component.queryCheck` and `Component.batchQuery` among the generic components.
+  - Beyond the hole's names, the tests use `Opening.pool`, `Opening.values`, `Opening.weight`,
+    `Opening.batched`, `Opening.question`, `Opening.check`, `Opening.accepts_iff`,
+    `Opening.columnWeighted_holds_iff`, `Opening.answer_weight_iff`,
+    `Opening.batched_holds_iff`, `Opening.pool_weighted` and `Opening.pool_column`; the bodies of
+    the two halves use `Opening.batched_of_flock` and `Opening.answers_of_not_flock`.
+  - The refutations of its check are tests: on the toy, the verifier with no check on the
+    answer, the one that checks the first pooled claim alone, and the one that combines the
+    claims with unit weights (two copies of one false claim cancel in characteristic two); on an
+    instance with a Flock region, the one that combines the column claims alone and drops the
+    weighted claim. Each accepts a pool outside the Flock seam at every challenge, so none has a
+    knowledge error below one, whatever its extractor and state function
+    (`Component.batchQuery_not_rbr`). The bound is attained: a pool of four claims is accepted
+    at three challenges.
 
 - **The sumchecks (Layer 4), definitions, completeness and knowledge soundness** stand on the
   GKR's round (`ToArkLib/SumcheckRound.lean`), which is now the sumcheck's round engine and
@@ -334,14 +486,53 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     and its invariant moves challenge by challenge, which `Sumcheck.normalized` does not do.
   - `sum_flockErrorOf` is public, for `flockError_le`.
 
+- **The table sumcheck phase (Layer 7)** is at the slot's schedule `tableSpec I`. Where it differs
+  from Layer 7's sketch, or what it leaves to the work after it:
+  - `tableSumcheck` is a `Phase.FrontDef`, the type `Phases.table` has (decision 31); the sketch
+    says `Phase.Def`.
+  - `tableSummand I` is a `Sumcheck.Virtual` (Layer 4's form) whose public data is the statement,
+    the bus output and `ξ` (`TableSumcheck.Data`), where the sketch takes `s` and `ξ` as
+    arguments; the degree three is a theorem (`tableSummand_degree`), not part of the type. Its
+    tables are the sumcheck tables' columns read on the `τ_max` variables, the same in every
+    slice of the coordinates their table lacks (`repeatHigh`), so that the last message is the
+    columns' values at the final point's low coordinates; the equality factor and the padding
+    are the formula's, as the multilinear weight of each table's coordinates (`prodWeight` of
+    `tableWeights`: those of `eq(ζ_m, ·)` below `τ_t`, `(0, 1)` above), which in characteristic
+    two is the deployed `∏_{m<τ_t} (1 + ζ_m + r_m) · ∏_{m≥τ_t} r_m` (tested).
+  - `tableSummand_target` is stated under the bus seam. What the security reads is the identity
+    before it, `sum_tableSummand`: the sum over the cube is the true values (each constraint's
+    extension at `ζ`, each side's forms summed) batched by the powers of `ξ`, so it is the target
+    exactly when the bus seam's two claims hold (`trueValues_eq_claimed_iff`).
+  - Completeness takes `I.d ≤ 2`: the slot's rounds are cubic and the summand has degree `d + 1`
+    in each variable. It is the phase's side condition, as the bus phase's are (decision 30);
+    that the leanISA instance has `d = 2` is the adaptor's to state.
+  - `ξ` is #77's `Component.batch` over the `B + 3` claimed values, zero for each constraint
+    then the three totals, numbered table by table (`constraintPos`, `position_val`), so the
+    branch stacks on #77; the final values are numbered the same way (`columnPos`).
+  - The honest prover interpolates its round polynomials at `0, 1, y, y + 1`
+    (`TableSumcheck.nodes`).
+  - Knowledge soundness (`tableSumcheckSecurity`) takes `I.d ≤ 2` too, and needs it for the
+    error: a summand of higher degree in a variable would let a cubic message agree with the true
+    round polynomial at more than three challenges. It is #77's `batchSecurity` with the true
+    values `trueValues`, fixed before `ξ`, then Layer 4's `roundsSecurity` and `finalSecurity`
+    through `finalClaims_holds_iff`, raised to `tableError` by `Component.Security.mono`; a plain
+    `def`, inhabited at `E` in the tests.
+  - The refutations of the phase's two checks are tests: `final_unchecked_no_stateFunction`, from
+    `Component.sendChecked_no_stateFunction` at the phase's output map and the table seam (Layer
+    4's lemma of that name is stated at the default output map), and `round_unchecked_not_rbr`,
+    Layer 4's round refutation on the phase's family. The batching step has no check: the target
+    is derived from the bus totals, never sent.
+  - Owed: the spine's `M3Instance.lowPoint` is the generic `lowCoords` at a sumcheck table's
+    height (the same term); it is to be written so once the bus phase's branch, whose proofs
+    unfold `lowPoint` by name, has merged. The review is
+    [archived](../reviews/protocol-table-sumcheck.md).
+
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), batching (Layer 4), the fingerprint (Layer 5), the WHIR
-opening, and the Merkle trees with the WHIR parameters (Layer 11). The table sumcheck (Layer 7)
-stacks on the sumcheck's definitions and knowledge soundness. The Flock phase's knowledge
-soundness (Layer 9) is built on the branch stacked on the Flock phase's. The GKR's knowledge
-soundness on the generic round (Layer 5) is built on the branch stacked on #62.
+expressions as polynomials (Layer 2), the WHIR opening, and the Merkle trees with the WHIR
+parameters (Layer 11). The Flock phase's knowledge soundness (Layer 9) is built on the branch
+stacked on the Flock phase's.
 
 ## Upstream watch
 

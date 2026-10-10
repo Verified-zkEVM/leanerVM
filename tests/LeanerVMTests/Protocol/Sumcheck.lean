@@ -359,10 +359,6 @@ def completeSide :
 
 open scoped NNReal
 
-/-- The theorems' unit `k / |E|` is the slot's `overE k`. -/
-theorem natCast_div_card_eq_overE (k : ℕ) : ((k : ℝ≥0) / Nat.card E) = overE k := by
-  rw [overE, Nat.card_eq_fintype_card]
-
 /-- Knowledge soundness of the plain sumcheck on `t₁ · t₂`, at `overE 2` per round. -/
 def securityPlain :
     Component.Security (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide)
