@@ -144,7 +144,7 @@ factorization exists anywhere in leanth; the two ingredients Lemma 5.2 needs do.
 | --- | --- | --- | --- | --- | --- |
 | `fingerprint`, `eval_fingerprintPoly_snoc` | `Logup.lean:90, 713` | `π_β(σ) = Σ_i σ_i · eq(β, bits i)`; the symbolic and evaluated forms agree | copy | `fingerprint` | S |
 | `fingerprintPoly`, `eval_fingerprintPoly`, `fingerprintPoly_injective`, `totalDegree_fingerprintPoly`, `aeval_fingerprintPoly` | `Logup.lean:275-444` | `π` with symbolic `β` in `MvPolynomial (Fin 5)`; distinct tuples give distinct polynomials (evaluate at the Boolean point of a differing coordinate); degree ≤ 4 | port (make `_injective` public) | half of `sideProduct_poly_eq_iff`: the factors `X - π_A(t)` are pairwise distinct | S |
-| `unbalanced_rejected` counting skeleton | `Logup.lean:804-831` | accepting `(β, γ)` pairs inject by `Fin.snoc` into roots of a 5-variable polynomial; `card_eval_zero_le` with exponent 4 | port with `commonNumerator` replaced by `Π_P - Π_Q` | `sideProduct_collision`, `4·2^μ/|E|` (joint sampling is what gives the constant) | M |
+| `unbalanced_rejected` counting skeleton | `Logup.lean:804-831` | accepting `(β, γ)` pairs inject by `Fin.snoc` into roots of a 5-variable polynomial; `card_eval_zero_le` with exponent 4 | not ported: the count was written new on ArkLib's counting Schwartz–Zippel, on `Π_P − Π_Q` | `sideProduct_collision`, `4·2^μ/|E|` (joint sampling is what gives the constant) | M |
 | `fingerprint_collision`, `diffPoly_*` | `Logup.lean:100-230` | `σ ≠ τ ⇒ #{β : π_β σ = π_β τ} ≤ 4·|F|^3` | port (private helper) | Layer 5 | S |
 | `eqTilde_cons`, `eval_MLE_cons` | `GKR.lean:439, 447` | eq splits off coordinate 0; an MLE is affine in one coordinate | copy | the radix-2 odd layer | S |
 | ξ-round argument `gkrState_xi_poly_ne_zero`, `_eval_eq`, `_bad_xi_le` | `GKR.lean:3596-3713` | false claim ⇒ sent polynomial ≠ honest one ⇒ the challenge is a root of a nonzero degree-`d` difference | port at degree 5 with four corners | `gkr_rbrKnowledgeSoundness`, `5/|E|` per round | M |
@@ -444,8 +444,9 @@ Not derived from leanth, and listed so that the layer reads whole: `bitProductTa
 and a column claim as a weighted claim (`ClaimWeights.lean`).
 
 Next port candidates, in order of value per effort, each already proposed in an open pull
-request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42); the
-fingerprint lemmas (Layer 5, S; #39). The knowledge-soundness composition (A2) was not ported
+request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42). The
+fingerprint lemmas (Layer 5) were ported by #39 and completed with the product polynomial and its
+collision count. The knowledge-soundness composition (A2) was not ported
 from leanth: it is the port of ArkLib #615, on `main` since 2026-09-28.
 
 ## Upstream candidates

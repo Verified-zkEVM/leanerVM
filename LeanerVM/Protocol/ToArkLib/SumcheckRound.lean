@@ -52,8 +52,7 @@ challenge. Knowledge soundness (`roundSecurity`, `roundsSecurity`, at `d / |F|` 
 for a round that carries no witness) needs it consistent and sound (`Family.Sound`: a challenge
 restores a broken invariant at `d` values at most): a recorded polynomial that passes the check
 at a wrong claim is not the honest one, and two polynomials of degree `d` agree at `d` points at
-most (`card_filter_evaluate_eq_le`; batching by powers is the same count,
-`card_filter_powerSum_eq_le`). Without the check, no extractor and state function make the
+most (`card_filter_evaluate_eq_le`). Without the check, no extractor and state function make the
 challenge knowledge sound below error one (`drawChallenge_unchecked_not_rbr`). The oracles and
 the witness are passed through untouched.
 
@@ -214,28 +213,6 @@ theorem card_filter_evaluate_eq_le [Fintype F] [DecidableEq F] (q q' : Message F
   intro x hx
   rw [Finset.mem_val, Finset.mem_filter] at hx
   rw [Polynomial.mem_roots hp0, Polynomial.IsRoot, heval, hx.2, sub_self]
-
-/-- Two different value vectors combine to the same scalar, by the powers of the combiner, at
-`n - 1` combiners at most: the escape count of batching by powers. -/
-theorem card_filter_powerSum_eq_le [Fintype F] [DecidableEq F] {n : ℕ} (a b : Fin n → F)
-    (hne : a ≠ b) :
-    (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t).card ≤
-      n - 1 := by
-  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := by
-    cases n with
-    | zero => exact absurd (funext fun t ↦ t.elim0) hne
-    | succ k => exact ⟨k, rfl⟩
-  have hne' : (Vector.ofFn a : Message F k) ≠ Vector.ofFn b := fun h ↦
-    hne (funext fun t ↦ by simpa using congrArg (fun v : Vector F (k + 1) ↦ v[t]) h)
-  have hev : ∀ (f : Fin (k + 1) → F) (l : F),
-      evaluate k (Vector.ofFn f) l = ∑ t, l ^ t.val * f t := fun f l ↦
-    Finset.sum_congr rfl fun t _ ↦ by simp [mul_comm]
-  have hfilter : (Finset.univ.filter fun l : F ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t) =
-      Finset.univ.filter fun l ↦ evaluate k (Vector.ofFn a) l = evaluate k (Vector.ofFn b) l := by
-    refine Finset.filter_congr fun l _ ↦ ?_
-    rw [hev, hev]
-  rw [hfilter, Nat.add_sub_cancel]
-  exact card_filter_evaluate_eq_le _ _ hne'
 
 /-! ## The round -/
 

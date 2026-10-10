@@ -28,6 +28,9 @@ block over any commutative ring, so one layout serves tables over different ring
   table or a stack when the point lies in another ring than the entries.
   `unstack_eval₂_eq_sumCube` writes it as a sum over the cube against a Lagrange basis.
 * `map_stackAt`, `unstack_map`: mapping the entries commutes with stacking and reading.
+* `total_eq_sum`, `prod_stackAt`: the total height is the sum of the blocks' heights, and the
+  product of a stack's cells is the product of its blocks' cells times the pad once per cell no
+  block covers.
 
 Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table or
 its evaluation. The request it answers is tracked upstream as
@@ -85,6 +88,11 @@ def offset (b : Fin B.n) : ℕ := B.offsetNat b.val
 
 /-- The total height of the blocks. -/
 def total : ℕ := B.offsetNat B.n
+
+/-- The total height is the sum of the blocks' heights. -/
+theorem total_eq_sum : B.total = ∑ b : Fin B.n, 2 ^ B.size b := by
+  rw [total, offsetNat, ← Fin.sum_univ_eq_sum_range]
+  exact Finset.sum_congr rfl fun b _ ↦ dite_eq_left b.isLt
 
 theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
     B.offsetNat (k + 1) = B.offsetNat k + 2 ^ B.size ⟨k, hk⟩ := by
@@ -355,6 +363,53 @@ theorem unstack_eval₂_eq_sumCube {S : Type*} [CommRing S] (φ : R →+* S) {μ
     eval₂Mle (B.unstack hμ q b) φ z =
       sumCube (hadamard (lagrangeBasis (B.extendPoint hμ b z)) (CMlPolynomialEval.map φ q)) := by
   rw [← B.unstack_eval₂, eval₂Mle, evalMle_eq_sumCube_hadamard]
+
+/-! ## The product of a stack's cells -/
+
+/-- The cells of the first `k` blocks, read off the stack as an initial segment, multiply to the
+product of those blocks' cells. -/
+private theorem prod_range_offsetNat (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R)
+    (k : ℕ) (hk : k ≤ B.n) :
+    ∏ x ∈ Finset.range (B.offsetNat k),
+        (if h : x < 2 ^ μ then (B.stackAt t μ pad)[x] else 1) =
+      ∏ c ∈ Finset.range k, if h : c < B.n then ∏ y : Fin (2 ^ B.size ⟨c, h⟩), (t ⟨c, h⟩)[y]
+        else 1 := by
+  induction k with
+  | zero => simp [offsetNat]
+  | succ k ih =>
+    have hkn : k < B.n := by omega
+    rw [B.offsetNat_succ k hkn, Finset.prod_range_add, ih (by omega), Finset.prod_range_succ,
+      dite_eq_left hkn]
+    congr 1
+    rw [← Fin.prod_univ_eq_prod_range]
+    refine Finset.prod_congr rfl fun y _ ↦ ?_
+    have hwin : B.InWindow ⟨k, hkn⟩ (B.offsetNat k + y) := ⟨by simp [offset], by simp [offset]⟩
+    have hx : B.offsetNat k + y < 2 ^ μ := by
+      have := B.offset_add_pow_le_total ⟨k, hkn⟩
+      simp only [offset] at this
+      omega
+    rw [dite_eq_left hx, B.stackAt_getElem_of_inWindow t pad hx hwin]
+    simp [offset]
+
+/-- The product of a stack's cells is the product of its blocks' cells, times the pad once for
+each cell no block covers. -/
+theorem prod_stackAt (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) :
+    ∏ x : Fin (2 ^ μ), (B.stackAt t μ pad)[x] =
+      (∏ b : Fin B.n, ∏ y : Fin (2 ^ B.size b), (t b)[y]) * pad ^ (2 ^ μ - B.total) := by
+  have hrange : ∏ x : Fin (2 ^ μ), (B.stackAt t μ pad)[x] =
+      ∏ x ∈ Finset.range (2 ^ μ), (if h : x < 2 ^ μ then (B.stackAt t μ pad)[x] else 1) := by
+    rw [← Fin.prod_univ_eq_prod_range]
+    exact Finset.prod_congr rfl fun x _ ↦ by simp
+  rw [hrange, show Finset.range (2 ^ μ) = Finset.range (B.total + (2 ^ μ - B.total)) by
+    rw [Nat.add_sub_cancel' hμ], Finset.prod_range_add]
+  congr 1
+  · rw [total, B.prod_range_offsetNat t hμ pad B.n le_rfl, ← Fin.prod_univ_eq_prod_range]
+    simp
+  · rw [← Finset.card_range (2 ^ μ - B.total), ← Finset.prod_const]
+    refine Finset.prod_congr (by simp) fun y hy ↦ ?_
+    rw [Finset.mem_range] at hy
+    have hx : B.total + y < 2 ^ μ := by omega
+    rw [dite_eq_left hx, B.stackAt_getElem_of_total_le t pad hx (by omega)]
 
 end Blocks
 

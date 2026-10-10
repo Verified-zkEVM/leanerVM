@@ -17,11 +17,15 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Flock
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
+import LeanerVM.Protocol.Bus
+import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
+import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
+import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
@@ -31,6 +35,8 @@ import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
+import LeanerVM.Protocol.TableSumcheck
+import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
@@ -47,6 +53,7 @@ import LeanerVM.Protocol.ToArkLib.Flock.Words
 import LeanerVM.Protocol.ToArkLib.Flock.Zerocheck
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GrandProduct
+import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
@@ -54,6 +61,7 @@ import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassThrough
+import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
@@ -63,6 +71,7 @@ import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
+import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
@@ -72,6 +81,7 @@ import LeanerVM.Protocol.ToCompPoly.IndividualDegree
 import LeanerVM.Protocol.ToCompPoly.Interpolation
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToCompPoly.PartialSum
+import LeanerVM.Protocol.ToCompPoly.PowerBatching
 import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking
