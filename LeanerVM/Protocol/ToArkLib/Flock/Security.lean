@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.Flock.Reduction
+import LeanerVM.Protocol.ToCompPoly.PowerBatching
 
 /-!
 # Knowledge soundness of the Flock argument
@@ -24,8 +25,8 @@ relation. The counts, per challenge, over `|F|`:
 * a zerocheck round: `2`, the sumcheck round's count. The invariant's constant-position track
   escapes at one value at most, and only where the claim is true.
 * `α`: `3`. If one of the three values or the constant position is wrong, the batched claim and
-  the lincheck sum are distinct cubics in `α` (`card_filter_powerSum_eq_le`), by the
-  block-diagonal identity.
+  the lincheck sum are distinct cubics in `α` (`card_false_batch_le`), by the block-diagonal
+  identity.
 * a lincheck round: `2`.
 * a ring-switching coefficient: `1`. A family whose `π`s do not all vanish keeps a nonzero `π`
   after a stage for every coefficient but one (`card_stage_zero_le_one`).
@@ -360,6 +361,15 @@ theorem linFamily_claim_zero {W : Type} (t : TermStmt S F (P.m + P.κ)) (α : F)
   show highSum (linFun (linM P C (t, α)) (linZ P z o (t, α))) 0 #v[] = _
   rw [highSum_zero, sum_linFun_boolVec, linM, linZ, sum_mTable_zTable, lowVec_append_highVec]
   rfl
+
+/-- Two different coefficient vectors give the same polynomial value at `n - 1` points at most. -/
+private theorem card_filter_powerSum_eq_le {G : Type*} [Field G] [Fintype G] [DecidableEq G]
+    {n : ℕ} (a b : Fin n → G) (hne : a ≠ b) :
+    (Finset.univ.filter fun l : G ↦ ∑ t, l ^ t.val * a t = ∑ t, l ^ t.val * b t).card ≤
+      n - 1 := by
+  refine le_trans (le_of_eq (congrArg Finset.card (Finset.filter_congr fun l _ ↦ ?_)))
+    (card_false_batch_le a b (Function.ne_iff.mp hne))
+  simp only [powerBatch, mul_comm]
 
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] in
 /-- A cubic in `α` by its four coefficients. -/
