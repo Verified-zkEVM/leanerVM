@@ -13,7 +13,8 @@ import LeanerVM.Protocol.ToArkLib.Flock.Words
 * **The constant position is load-bearing.** The zero block satisfies every row (the rows are
   homogeneous) and is not the trace of its inputs: determinism needs `1` at the constant.
 * **Boundedness is load-bearing.** A gate reading a later position: the circuit is not bounded,
-  and the trace of an input fails the R1CS. Two gates at one position: not bounded either.
+  and the trace of an input fails the R1CS. Two gates at one position: not bounded either, and a
+  block satisfying the R1CS fails the second gate.
 -/
 
 namespace LeanerVMTests.Protocol.FlockCircuit
@@ -162,5 +163,24 @@ def dupCircuit : ProductCircuit 2 where
   gates := #[(2, ⟨Form.var 1, Form.var 0⟩), (2, ⟨Form.var 0, Form.var 0⟩)]
 
 #guard !decide dupCircuit.Bounded
+
+/-- Two gates at one position, the second reading the input: a block satisfying the R1CS with `1`
+at the constant (the first gate's row wins) fails the second gate. So the soundness of the
+lowering needs boundedness. -/
+def dupCircuit' : ProductCircuit 2 where
+  cpos := 0
+  inputs := Form.var 1
+  gates := #[(2, ⟨Form.var 0, Form.var 0⟩), (2, ⟨Form.var 1, Form.var 0⟩)]
+
+/-- The block `1` at `0` and `2`, `0` elsewhere. -/
+def dupBlock : Pos 2 → Bool := fun j ↦ decide (j = 0 ∨ j = 2)
+
+example : (dupCircuit'.toBlockR1CS (ZMod 2)).Holds (liftBlock (ZMod 2) dupBlock) ∧
+    dupBlock dupCircuit'.cpos = true ∧
+    ¬ ∀ kg ∈ dupCircuit'.gates, dupBlock kg.1 = (kg.2.a.eval dupBlock && kg.2.b.eval dupBlock) := by
+  refine ⟨by decide +kernel, by decide +kernel, fun h ↦ ?_⟩
+  have := h (2, ⟨Form.var 1, Form.var 0⟩) (Array.mem_def.mpr (by simp [dupCircuit']))
+  revert this
+  decide +kernel
 
 end LeanerVMTests.Protocol.FlockCircuit

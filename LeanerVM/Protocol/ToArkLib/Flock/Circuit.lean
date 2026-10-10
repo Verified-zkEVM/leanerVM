@@ -33,11 +33,13 @@ the gates' forms.
 The two directions, over any nontrivial ring of characteristic two (`holds_iff_gates`):
 `trace_satisfies` (the trace of a bounded circuit satisfies the R1CS and holds `1` at the
 constant) and `holds_eq_trace` (a Boolean block satisfying it with `1` at the constant is the
-trace of its own inputs), with `gates_of_rows` (it satisfies every recorded gate).
+trace of its own inputs), with `gates_of_holds` (it satisfies every recorded gate), and their
+forms for a block known only to hold `0`/`1` entries (`gates_of_holds_isBool`,
+`eq_trace_of_holds_isBool`).
 
 Nothing here transcribes a source. ArkLib's `R1CS.relation` is the general relation with a third
-matrix; Clean's pull request 473 proves an R1CS export sound against Clean circuits, with a fresh
-signal per product.
+matrix; an R1CS export of Clean circuits allocates a fresh signal per product, so its third matrix
+is not the identity.
 -/
 
 namespace LeanerVM.Protocol
@@ -45,6 +47,13 @@ namespace LeanerVM.Protocol
 open CompPoly
 
 @[expose] public section
+
+/-- `Holds` reads only the two matrices, not the walks that evaluate them: two blocks with the
+same matrices and different walks have the same solutions. -/
+theorem BlockR1CS.holds_congr {R : Type*} [CommRing R] {m : ℕ} {C C' : BlockR1CS R m}
+    (hA : C.A = C'.A) (hB : C.B = C'.B) (z : CMlPolynomialEval R m) : C.Holds z ↔ C'.Holds z := by
+  unfold BlockR1CS.Holds
+  simp only [BlockR1CS.rows_fst, BlockR1CS.rows_snd, hA, hB]
 
 namespace ProductCircuit
 
@@ -342,11 +351,22 @@ theorem holds_iff_gates [Nontrivial R] (c : ProductCircuit m) (z : Pos m → Boo
   simp only [liftBlock, Fin.getElem_fin, Vector.getElem_ofFn]
   exact ⟨fun h ↦ (ofBool_injective h).symm, fun h ↦ by rw [h]⟩
 
+/-- The Boolean block a block of `0`/`1` entries holds: `true` where the entry is `1`. -/
+def toBools [DecidableEq R] (z : CMlPolynomialEval R m) : Pos m → Bool := fun k ↦ decide (z[k] = 1)
+
+omit [CharP R 2] in
+/-- A block of `0`/`1` entries is the lift of the Boolean block it holds. -/
+theorem eq_liftBlock_toBools [DecidableEq R] [Nontrivial R] {z : CMlPolynomialEval R m}
+    (hz : ∀ k : Pos m, BlockR1CS.IsBool z[k]) : z = liftBlock R (toBools z) := by
+  refine Vector.ext fun k hk ↦ ?_
+  simp only [liftBlock, toBools, ofBool, Vector.getElem_ofFn]
+  rcases hz ⟨k, hk⟩ with h | h <;> simp only [Fin.getElem_fin] at h <;> simp [h]
+
 end Ring
 
 /-! ## Schedules -/
 
-theorem foldl_stepF_of_not_mem (L : List (Pos m × Gate m)) (z : Pos m → Bool) (k : Pos m)
+private theorem foldl_stepF_of_not_mem (L : List (Pos m × Gate m)) (z : Pos m → Bool) (k : Pos m)
     (hk : k ∉ L.map Prod.fst) : L.foldl stepF z k = z k := by
   induction L generalizing z with
   | nil => rfl
@@ -354,7 +374,7 @@ theorem foldl_stepF_of_not_mem (L : List (Pos m × Gate m)) (z : Pos m → Bool)
     simp only [List.map_cons, List.mem_cons, not_or] at hk
     rw [List.foldl_cons, ih _ hk.2, stepF, Function.update_of_ne hk.1]
 
-theorem boundedFrom_fresh {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
+private theorem boundedFrom_fresh {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
     {k : Pos m} (hk : k ∈ L.map Prod.fst) : avail.getLsbD k = false := by
   induction L generalizing avail with
   | nil => simp at hk
@@ -369,7 +389,7 @@ theorem boundedFrom_fresh {avail : Form m} {L : List (Pos m × Gate m)} (h : Bou
       simp only [BitVec.getLsbD_or, Bool.or_eq_false_iff] at this
       exact this.1
 
-theorem mem_of_lookup {L : List (Pos m × Gate m)} {k : Pos m} {g : Gate m}
+private theorem mem_of_lookup {L : List (Pos m × Gate m)} {k : Pos m} {g : Gate m}
     (h : L.lookup k = some g) : k ∈ L.map Prod.fst := by
   induction L with
   | nil => simp at h
@@ -381,7 +401,7 @@ theorem mem_of_lookup {L : List (Pos m × Gate m)} {k : Pos m} {g : Gate m}
       rw [this] at h
       exact List.mem_cons_of_mem _ (ih h)
 
-theorem not_mem_of_lookup_none {L : List (Pos m × Gate m)} {k : Pos m} (h : L.lookup k = none) :
+private theorem not_mem_of_lookup_none {L : List (Pos m × Gate m)} {k : Pos m} (h : L.lookup k = none) :
     k ∉ L.map Prod.fst := by
   rw [List.lookup_eq_none_iff] at h
   simp only [List.mem_map, not_exists, not_and]
@@ -389,7 +409,7 @@ theorem not_mem_of_lookup_none {L : List (Pos m × Gate m)} {k : Pos m} (h : L.l
   have := h p hp
   simp [hpk] at this
 
-theorem lookup_of_mem {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
+private theorem lookup_of_mem {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
     {k : Pos m} {g : Gate m} (hm : (k, g) ∈ L) : L.lookup k = some g := by
   induction L generalizing avail with
   | nil => simp at hm
@@ -410,7 +430,7 @@ theorem lookup_of_mem {avail : Form m} {L : List (Pos m × Gate m)} (h : Bounded
       exact ih hrest (by simpa [hkk] using hm)
 
 /-- Along a bounded schedule, every gate's position holds the product of its forms at the end. -/
-theorem foldl_gate {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
+private theorem foldl_gate {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
     (z : Pos m → Bool) {k : Pos m} {g : Gate m} (hk : L.lookup k = some g) :
     L.foldl stepF z k = (g.a.eval (L.foldl stepF z) && g.b.eval (L.foldl stepF z)) := by
   induction L generalizing avail z with
@@ -446,7 +466,7 @@ theorem foldl_gate {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFro
 
 /-- A block satisfying a bounded schedule's gates is the schedule's run from any block it agrees
 with off the gate positions. -/
-theorem foldl_unique {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
+private theorem foldl_unique {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
     (z t : Pos m → Bool) (hagree : ∀ j, j ∉ L.map Prod.fst → z j = t j)
     (hgates : ∀ k g, L.lookup k = some g → z k = (g.a.eval z && g.b.eval z)) :
     z = L.foldl stepF t := by
@@ -519,12 +539,14 @@ theorem trace_holds {c : ProductCircuit m} (hc : c.Bounded) (inp : Pos m → Boo
 
 /-- Completeness of the lowering: over a nontrivial ring of characteristic two, the trace of a
 bounded circuit satisfies its R1CS and holds `1` at the constant position. -/
-theorem trace_satisfies {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
+theorem trace_satisfies {R : Type*} [CommRing R] [CharP R 2]
     {c : ProductCircuit m} (hc : c.Bounded) (inp : Pos m → Bool) :
     (c.toBlockR1CS R).Holds (liftBlock R (c.traceF inp)) ∧
       (liftBlock R (c.traceF inp))[c.cpos] = 1 := by
-  refine ⟨(holds_iff_gates c _).mpr (trace_holds hc inp), ?_⟩
-  simp [liftBlock, traceF_cpos hc, ofBool]
+  refine ⟨fun k ↦ ?_, ?_⟩
+  · rw [rows_fst_liftBlock, rows_snd_liftBlock, ← ofBool_and, ← trace_holds hc inp k]
+    simp [liftBlock]
+  · simp [liftBlock, traceF_cpos hc, ofBool]
 
 /-- Determinism: a Boolean block satisfying every row of a bounded circuit, with `1` at the
 constant position, is the trace of its own inputs. -/
@@ -567,6 +589,24 @@ theorem gates_of_holds {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
     (hz : (c.toBlockR1CS R).Holds (liftBlock R z)) :
     ∀ kg ∈ c.gates, z kg.1 = (kg.2.a.eval z && kg.2.b.eval z) :=
   gates_of_rows hc z ((holds_iff_gates c z).mp hz)
+
+/-- Soundness of the lowering for a block of `0`/`1` entries: if it satisfies the R1CS of a
+bounded circuit, its Boolean block satisfies every recorded gate. -/
+theorem gates_of_holds_isBool {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R] [DecidableEq R]
+    {c : ProductCircuit m} (hc : c.Bounded) {z : CMlPolynomialEval R m}
+    (hb : ∀ k : Pos m, BlockR1CS.IsBool z[k]) (hz : (c.toBlockR1CS R).Holds z) :
+    ∀ kg ∈ c.gates, toBools z kg.1 = (kg.2.a.eval (toBools z) && kg.2.b.eval (toBools z)) :=
+  gates_of_holds hc _ (eq_liftBlock_toBools hb ▸ hz)
+
+/-- Determinism for a block of `0`/`1` entries: if it satisfies the R1CS of a bounded circuit and
+holds `1` at the constant, it is the lift of the trace of its own inputs. -/
+theorem eq_trace_of_holds_isBool {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
+    [DecidableEq R] {c : ProductCircuit m} (hc : c.Bounded) {z : CMlPolynomialEval R m}
+    (hb : ∀ k : Pos m, BlockR1CS.IsBool z[k]) (hz : (c.toBlockR1CS R).Holds z)
+    (h1 : z[c.cpos] = 1) : z = liftBlock R (c.traceF (toBools z)) := by
+  have hz' := eq_liftBlock_toBools hb ▸ hz
+  conv_lhs => rw [eq_liftBlock_toBools hb]
+  rw [← holds_eq_trace hc _ ((holds_iff_gates c _).mp hz') (by simp [toBools, h1])]
 
 /-- The executable trace computes the mathematical one. -/
 theorem trace_getLsbD (c : ProductCircuit m) (inp : Form m) :

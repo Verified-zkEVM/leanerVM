@@ -56,15 +56,16 @@ def mul (a b : Form m) : Builder m (Form m) :=
   modifyGet fun s ↦
     (Form.var (pos s.next), { next := s.next + 1, gates := s.gates.push (pos s.next, ⟨a, b⟩) })
 
+/-- One `mul`: the gate at `next`, and `next` advanced. -/
 theorem run_mul (a b : Form m) (σ : BuildState m) :
     (mul a b).run σ =
       (Form.var (pos σ.next), { next := σ.next + 1, gates := σ.gates.push (pos σ.next, ⟨a, b⟩) }) :=
   rfl
 
-theorem run_bind' {α β : Type} (mb : Builder m α) (f : α → Builder m β) (σ : BuildState m) :
+private theorem run_bind' {α β : Type} (mb : Builder m α) (f : α → Builder m β) (σ : BuildState m) :
     (mb >>= f).run σ = (f (mb.run σ).1).run (mb.run σ).2 := rfl
 
-theorem run_map' {α β : Type} (mb : Builder m α) (f : α → β) (σ : BuildState m) :
+private theorem run_map' {α β : Type} (mb : Builder m α) (f : α → β) (σ : BuildState m) :
     (f <$> mb).run σ = (f (mb.run σ).1, (mb.run σ).2) := rfl
 
 /-! ## Soundness -/
@@ -228,6 +229,7 @@ theorem inv_push {σ : BuildState m} (hσ : S.Inv σ) (hlt : σ.next < 2 ^ m) {a
         · exact Or.inl (Or.inr ⟨h.1, hj⟩)
         · exact Or.inr (by omega)
 
+/-- The gate count of a contract, up to equality. -/
 theorem Ok.cast {α : Type} {n₀ k k' : ℕ} {mb : Builder m α} {P : α → ℕ → Prop}
     (h : S.Ok n₀ mb k P) (hk : k = k') : S.Ok n₀ mb k' P := hk ▸ h
 

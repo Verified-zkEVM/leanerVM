@@ -8,6 +8,7 @@
 
 module
 
+public import Batteries.Data.BitVec.Lemmas
 public import LeanerVM.Protocol.ToArkLib.Flock.Builder
 
 /-!
@@ -26,6 +27,10 @@ the block `w`. XOR, rotation, literals (`litW`, through the constant position) a
 
 `sound_addW`, `sound_add3W` state the specifications; `ok_addW`, `ok_add3W` the gate counts and
 that every output form reads only available positions.
+
+The gates' forms and order are part of the R1CS a circuit lowers to: an adder computing the same
+sum with other gates gives other matrices, so a verifier walking a fixed circuit sees the
+difference.
 
 Nothing here transcribes a source.
 -/
@@ -54,7 +59,8 @@ def rotrW (w : Word m) (n : ℕ) : Word m :=
 def litW (cpos : Pos m) (c : UInt32) : Word m :=
   Vector.ofFn fun i ↦ if c.toNat.testBit i then Form.var cpos else 0
 
-/-- The input word at the positions `b, …, b + 31`. -/
+/-- The input word at the positions `b, …, b + 31`, reduced modulo the block size (`subW_inW`
+requires them in range). -/
 def inW (b : ℕ) : Word m := Vector.ofFn fun i ↦ Form.var (pos (b + i))
 
 /-- The carries of `x + y` from bit `31 - n` with carry `c`: carry `i + 1` is `c + g` with the gate
@@ -116,6 +122,7 @@ def add3W (x y z : Word m) : Builder m (Word m) :=
 def Den (w : Pos m → Bool) (x : Word m) (u : UInt32) : Prop :=
   ∀ i : Fin 32, x[i].eval w = u.toBitVec.getLsbD i
 
+/-- A denotation, transported along an equality of values. -/
 theorem den_congr {w : Pos m → Bool} {x : Word m} {u u' : UInt32} (h : Den w x u)
     (e : u = u') : Den w x u' := e ▸ h
 
@@ -160,6 +167,13 @@ theorem den_inW {w : Pos m → Bool} {b : ℕ} {u : UInt32}
   intro i
   rw [inW, Fin.getElem_fin, Vector.getElem_ofFn, eval_var]
   exact h i
+
+/-- The word a block holds at the positions `b, …, b + 31`, low bit first. -/
+def readWord (w : Pos m → Bool) (b : ℕ) : UInt32 := ⟨BitVec.ofFnLE fun i : Fin 32 ↦ w (pos (b + i))⟩
+
+/-- The input word at `b` denotes the word the block holds there. -/
+theorem den_readWord (w : Pos m → Bool) (b : ℕ) : Den w (inW b) (readWord w b) :=
+  den_inW fun i ↦ by simp [readWord]
 
 /-! ## The ripple adder -/
 
