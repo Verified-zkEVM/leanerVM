@@ -27,6 +27,7 @@ import LeanerVMTests.Protocol.FlockSpec
 import LeanerVMTests.Protocol.GrandProduct
 import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
+import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Opening
 import LeanerVMTests.Protocol.Padding
