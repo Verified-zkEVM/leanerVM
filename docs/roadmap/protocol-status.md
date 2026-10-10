@@ -46,7 +46,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | Clean expressions as polynomials (Layer 2) | #96 | on merge | on merge |
 | the adaptor: the leanISA instance, its stack and the witness read off it (Layer 3) | #97 | on merge | on merge |
 | the adaptor: soundness, discharging the BLAKE2s validity (Layer 3) | #98 | on merge | on merge |
-| the adaptor: completeness and the witness read back (Layer 3) | this branch | on merge | on merge |
+| the adaptor: completeness and the witness read back (Layer 3) | #99 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
