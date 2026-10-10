@@ -314,10 +314,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     satisfies the R1CS and holds `1` at position `512` (decision 12, strengthened: the predicate
     is the R1CS, not any predicate an instance names). The verifier's lincheck terminal needs the
     circuit; an opaque predicate gives it nothing to evaluate.
-  - `FlockSpec` is not declared here. It names leanISA's `Blake2sRelation` and `Blake2sRow`, which
-    the wall forbids above the adaptor; it moves to the adaptor (Layer 3), where its inhabitant,
-    with the BLAKE2s circuit and its walks, supplies `leanIsaInstance`'s region (`#3`'s). The phase
-    needs only the region.
+  - `FlockSpec` (`Protocol/FlockSpec.lean`) is stated against the cell relation
+    `CompressCells` of `Semantics/Blake2s.lean` on eighteen limbs (`LimbsCompress`), in place of
+    the sketch's leanISA `Blake2sRelation` on `Blake2sRow`, which the wall forbids above the
+    adaptor. The adaptor relates the two: `Blake2sRelation r` is `LimbsCompress` of `r`'s eighteen
+    value limbs in column order. Its fields are the R1CS (`r1cs : BlockR1CS E 14`, matching
+    `FlockRegion`), the slots, soundness (`compress_of_holds`), the honest column `gen` and
+    completeness (`holds_gen`, `slots_gen`); the sketch's `Holds`/`decHolds` are the region's.
+    The phase needs only the region.
   - The phase is written for every circuit; the BLAKE2s walk transcribed from
     `blake2s_row_values` (`verifier.py:1180-1301`) is the region's data for the leanISA instance,
     owed with `FlockSpec`'s inhabitant. So is the test of the circuit walk against the Python.
@@ -358,8 +362,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     claim entering the pool is the output seam, which the security's output hypothesis reads.
     Counterexamples on small parameters show the two facts above are load-bearing (a Boolean
     fixed coordinate, the generator `1`).
-  - `FlockSpec`'s inhabitant, which the hole names beside `flockSecurity`, is owed with the
-    BLAKE2s circuit (#3's); the security, like the definition, holds for every circuit.
+  - `FlockSpec`'s inhabitant, which the hole names beside `flockSecurity`, is
+    `Blake2sFlock.blake2sFlockSpec` (`Protocol/FlockSpec.lean`): the R1CS of the BLAKE2s circuit,
+    the deployed slots (`hash_flock.rs:93-115`), soundness from `blake2s_sound`, and the honest
+    column of the circuit's traces. Both directions are theorems; the executor's row and the RFC
+    7693 vector round-trip through the honest column. The security, like the definition, holds
+    for every circuit.
   - The circuit library the inhabitant is written in, on the branch stacked on the Flock
     security's: product-gate circuits over GF(2) as data (`ToArkLib/Flock/Circuit.lean`: linear
     forms as bitsets, gates, the lowering `toBlockR1CS`, the honest `trace`; the lowering's two

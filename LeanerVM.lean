@@ -23,6 +23,7 @@ import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Flock
 import LeanerVM.Protocol.FlockFields
+import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
