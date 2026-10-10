@@ -55,7 +55,7 @@ theorem opcode_countsAreVariables : ∀ j : Fin 6,
 
 /-- Coordinate `1` of a counted interaction, evaluated on any row, is the row's cell at its count
 column, `0` when missing. -/
-theorem msg_one_of_countVar' {n : ℕ} {i : AbstractInteraction K} {k : Fin n}
+private theorem msg_one_of_countVar' {n : ℕ} {i : AbstractInteraction K} {k : Fin n}
     (h : countVar n i = some k) (row : Array K) (data : ProverData K) :
     (i.eval (Environment.fromArray row data)).msg[1]? = some (row[(k : ℕ)]?.getD 0) := by
   unfold countVar at h
@@ -69,7 +69,7 @@ theorem msg_one_of_countVar' {n : ℕ} {i : AbstractInteraction K} {k : Fin n}
   · exact absurd h (by simp)
 
 /-- A row of a table of known length, by its index. -/
-theorem forall_mem_table {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
+private theorem forall_mem_table {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
     {P : Array K → Prop} :
     (∀ row ∈ t.table, P row) ↔ ∀ x : Fin n, P (t.table[x.val]'(by rw [hn]; exact x.isLt)) := by
   constructor
@@ -82,7 +82,7 @@ theorem forall_mem_table {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length =
 
 /-- On a row agreeing with `r` within the width, an opcode table's Clean constraints hold exactly
 when its constraint polynomials vanish at `r`. -/
-theorem opcode_constraintsHold_iff (j : Fin 6) (row : Array K)
+private theorem opcode_constraintsHold_iff (j : Fin 6) (row : Array K)
     (r : Fin (opcodeComponent j).width → K) (hr : ∀ i : Fin (opcodeComponent j).width,
       row[(i : ℕ)]?.getD 0 = r i) (data : ProverData K) :
     (opcodeComponent j).operations.ConstraintsHold (Environment.fromArray row data) ↔
@@ -123,12 +123,13 @@ theorem balanced_iff_pairs (h : Agrees F s q w) :
 /-! ## The read counts -/
 
 /-- A counted interaction of an opcode table has at least two coordinates. -/
-theorem opcode_counted_arity : ∀ j : Fin 6, ∀ ai ∈ (opcodeComponent j).rowOperations.interactions,
+private theorem opcode_counted_arity :
+    ∀ j : Fin 6, ∀ ai ∈ (opcodeComponent j).rowOperations.interactions,
     counted ai.channel → 1 < ai.channel.arity := by
   decide +kernel
 
 /-- The first six tables of a witness are its opcode tables. -/
-theorem take_six_tables (w : EnsembleWitness (leanIsaEnsemble prog)) :
+private theorem take_six_tables (w : EnsembleWitness (leanIsaEnsemble prog)) :
     w.tables.take 6 = (List.finRange 6).map (opTable w) := by
   rw [tables_eq, show List.finRange 8 = (List.finRange 6).map (fun j : Fin 6 ↦
       (⟨j, by omega⟩ : Fin 8)) ++ [6, 7] by decide, List.map_append, List.map_map,
@@ -137,7 +138,7 @@ theorem take_six_tables (w : EnsembleWitness (leanIsaEnsemble prog)) :
 
 /-- The instance's count cells are nonzero exactly when, on every opcode table, every count column
 is nonzero on the stack's rows. -/
-theorem m3_countsNonzero_iff :
+private theorem m3_countsNonzero_iff :
     (leanIsaInstance F prog s).CountsNonzero q ↔
       ∀ j : Fin 6, ∀ k ∈ (opcodeTable j).count, ∀ x : Fin (2 ^ s.τ j),
         (leanIsaInstance F prog s).row q (opIdx j) x k ≠ 0 := by
@@ -152,7 +153,7 @@ theorem m3_countsNonzero_iff :
       exact hc ⟨j, by omega⟩
 
 /-- An interaction of a table of known length: one of its component's, on one of its rows. -/
-theorem forall_mem_interactions {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
+private theorem forall_mem_interactions {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
     {P : Interaction K → Prop} :
     (∀ i ∈ t.interactions, P i) ↔
       ∀ x : Fin n, ∀ ai ∈ t.component.rowOperations.interactions,
@@ -171,7 +172,7 @@ theorem forall_mem_interactions {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.l
     exact hP ⟨x, hn ▸ hx⟩ ai hai
 
 /-- A counted interaction's channel is the memory or bytecode pull. -/
-theorem name_of_counted {ch : RawChannel K} (h : counted ch = true) :
+private theorem name_of_counted {ch : RawChannel K} (h : counted ch = true) :
     ch.name = MemPull.name ∨ ch.name = BytecodePull.name := by
   simpa [counted] using h
 

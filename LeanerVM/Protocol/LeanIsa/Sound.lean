@@ -19,7 +19,7 @@ from admissibility, or from how the witness is read:
 
 * the Clean constraints, the three channel pairs' balances and the nonzero read counts from the
   constraints, the bus and the count clauses, through the witness agreeing with its stack
-  (`agrees_witnessOf`; `LeanIsa/Relation.lean`);
+  (`agrees_witnessOf`, with the equivalences of `LeanIsa/Relation.lean`);
 * the public input and the two public words from the three public lines, which fix the first two
   cells of the memory columns (`publicLines_cells`), and the image the data names, which is the
   memory columns at the announced size (`imageOf_witnessOf`);
@@ -144,9 +144,9 @@ theorem publicLines_cells {input : PublicInput}
 /-! ## The constraints and the caps -/
 
 /-- A component with neither constraints nor lookups holds on every row. -/
-theorem constraintsHold_of_nil (c : Component K) (h₁ : c.rowOperations.constraints = [])
-    (h₂ : c.rowOperations.lookups = []) (env : Environment K) : c.operations.ConstraintsHold env
-        := by
+private theorem constraintsHold_of_nil (c : Component K) (h₁ : c.rowOperations.constraints = [])
+    (h₂ : c.rowOperations.lookups = []) (env : Environment K) :
+    c.operations.ConstraintsHold env := by
   rw [Air.Flat.Component.constraintsHold_iff, Operations.ConstraintsHold, h₁, h₂]
   simp
 
@@ -196,14 +196,14 @@ theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf F prog s q) :=
     exact Array.size_ofFn
 
 /-- The seed rows are the image, for an image given as a dependent pair. -/
-def SeedRowsAre {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
+private def SeedRowsAre {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog))
     (d : (κ : ℕ) × MemImage κ) : Prop :=
   ∃ idx cntFin : Fin (2 ^ d.1) → K, memBlockRows w = List.ofFn fun i ↦
     (toElements (⟨idx i, cntFin i, #v[(d.2 i).limb 0, (d.2 i).limb 1, (d.2 i).limb 2]⟩ :
       MemRow K)).toArray
 
 /-- `SeedRowsAreTheImage` is `SeedRowsAre` of the image the data names. -/
-theorem seedRows_iff {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
+private theorem seedRows_iff {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
     SeedRowsAreTheImage w ↔ SeedRowsAre w (imageOf w.data) := Iff.rfl
 
 /-! ## The adaptor -/

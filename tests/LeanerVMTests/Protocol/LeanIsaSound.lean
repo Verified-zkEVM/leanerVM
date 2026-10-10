@@ -10,7 +10,11 @@ import LeanerVM.Protocol.LeanIsa.Sound
   exactly when the three channel pairs balance, and the instance's balance is that of a witness
   agreeing with the stack.
 * **The relation's clauses are equivalences**, the direction this module does not use included:
-  the counts and the constraints, on a stack and a witness that agree.
+  the counts, on a stack and a witness that agree.
+* **The limbs are read at the deployed slots.** At a size vector of the instance tests, the
+  pinned Rust places `QFLOCK` at offset `4980736`, and limb `k` of row `x` is read at the stack's
+  cell `4980736 + slot k + 256 x`, with the slots of `hash_flock.rs:93-115`; a transposed strided
+  read would fail this.
 -/
 
 namespace LeanerVMTests.Protocol.LeanIsaSound
@@ -45,5 +49,18 @@ example (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
     (w : EnsembleWitness (leanIsaEnsemble prog)) (h : Agrees F s q w) :
     CountsNonzero w ↔ (leanIsaInstance F prog s).CountsNonzero q :=
   countsNonzero_iff h
+
+/-! ## The limbs' cells -/
+
+/-- Four `XOR` instructions. -/
+def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
+
+/-- The second size vector of the instance tests, the `BLAKE2S` table at the floor. -/
+def s₂ : Sizes := ⟨18, by decide, ![2, 18, 5, 0, 7, 3]⟩
+
+#guard (List.finRange 18).all fun k ↦ (List.finRange (2 ^ s₂.τ 5)).all fun x ↦
+  (boolIndex ((layout prog4 s₂ Blake2sFlock.blake2sFlockSpec.slot).extend (limbCol k)
+      (boolVec x))).val ==
+    4980736 + [10, 11, 12, 13, 14, 15, 16, 17, 4, 5, 6, 7, 0, 1, 2, 3, 18, 19][k]! + 256 * x
 
 end LeanerVMTests.Protocol.LeanIsaSound

@@ -29,7 +29,7 @@ open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization CompPoly CM
 variable (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s))
 
 /-- A column's cell is the stack's cell at the lifted cube point. -/
-theorem column_get (c : Col) (x : Fin (2 ^ kappa prog s c)) :
+private theorem column_get (c : Col) (x : Fin (2 ^ kappa prog s c)) :
     ((leanIsaInstance F prog s).column q c).values.get x =
       q.values.get (boolIndex ((layout prog s F.slot).extend c (boolVec x))) := by
   simp only [M3Instance.column, Layout.read, Layout.readWith]

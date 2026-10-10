@@ -41,14 +41,14 @@ def channelTable : List (String × ℕ) :=
     (BytecodePull.name, 10), (BytecodePush.name, 10)]
 
 /-- The eight components of the ensemble emit on the six channels only, with their arities. -/
-theorem tables_channels :
+private theorem tables_channels :
     ∀ c ∈ ([⟨xorTable⟩, ⟨mulTable⟩, ⟨setTable⟩, ⟨derefTable⟩, ⟨jumpTable⟩, ⟨blake2sTable⟩,
       ⟨memTable⟩, ⟨bytecodeTable⟩] : List (Component K)),
       ∀ ai ∈ c.rowOperations.interactions, (ai.channel.name, ai.channel.arity) ∈ channelTable := by
   decide +kernel
 
 /-- Every component of the ensemble, the verifier included, emits on the six channels only. -/
-theorem components_channels (prog : Program) :
+private theorem components_channels (prog : Program) :
     ∀ c ∈ (leanIsaEnsemble prog).allTables, ∀ ai ∈ c.rowOperations.interactions,
       (ai.channel.name, ai.channel.arity) ∈ channelTable := by
   intro c hc
@@ -69,7 +69,7 @@ variable {prog : Program}
 
 /-- An interaction of a witness is the evaluation of one of its components' interactions on a
 row. -/
-theorem mem_interactions {w : EnsembleWitness (leanIsaEnsemble prog)} {i : Interaction K}
+private theorem mem_interactions {w : EnsembleWitness (leanIsaEnsemble prog)} {i : Interaction K}
     (hi : i ∈ w.interactions) :
     ∃ t ∈ w.allTables, ∃ row ∈ t.table, ∃ ai ∈ t.component.rowOperations.interactions,
       i = ai.eval (t.environment row) := by
@@ -102,15 +102,15 @@ def channelOf : Side → Fin 3 → RawChannel K
 def arityOf (k : Fin 3) : ℕ := ![2, 5, 10] k
 
 /-- The three separators are distinct and nonzero. -/
-theorem gpow_facts : gpow 0 ≠ gpow 1 ∧ gpow 0 ≠ gpow 2 ∧ gpow 1 ≠ gpow 2 ∧ gpow 0 ≠ 0 ∧
+private theorem gpow_facts : gpow 0 ≠ gpow 1 ∧ gpow 0 ≠ gpow 2 ∧ gpow 1 ≠ gpow 2 ∧ gpow 0 ≠ 0 ∧
     gpow 1 ≠ 0 ∧ gpow 2 ≠ 0 := by
   decide +kernel
 
 /-- An interaction's side and separator are those of pair `k` exactly on pair `k`'s channel of
 that side: the bus reads both off the channel's name. -/
-theorem view_iff (ch : RawChannel K) (side : Side) (k : Fin 3) :
-    (sideOf (channelDir ch) = side ∧ channelSep ch = gpow k) ↔ ch.name = (channelOf side k).name
-        := by
+private theorem view_iff (ch : RawChannel K) (side : Side) (k : Fin 3) :
+    (sideOf (channelDir ch) = side ∧ channelSep ch = gpow k) ↔
+      ch.name = (channelOf side k).name := by
   obtain ⟨h01, h02, h12, h0, h1, h2⟩ := gpow_facts
   unfold channelDir channelSep
   generalize ch.name = n
@@ -137,7 +137,7 @@ theorem view_iff (ch : RawChannel K) (side : Side) (k : Fin 3) :
       StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush, Ne.symm]
 
 /-- A channel of the table has the separator of one of the three pairs. -/
-theorem channelSep_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) ∈ channelTable) :
+private theorem channelSep_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) ∈ channelTable) :
     ∃ k : Fin 3, channelSep ch = gpow k := by
   unfold channelSep
   simp only [channelTable, StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
@@ -147,7 +147,8 @@ theorem channelSep_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) ∈ chann
   exacts [⟨0, by simp⟩, ⟨0, by simp⟩, ⟨1, by simp⟩, ⟨1, by simp⟩, ⟨2, by simp⟩, ⟨2, by simp⟩]
 
 /-- A channel of the table named as pair `k`'s channel of a side has pair `k`'s arity. -/
-theorem arity_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) ∈ channelTable) {side : Side}
+private theorem arity_of_mem {ch : RawChannel K} (h : (ch.name, ch.arity) ∈ channelTable)
+    {side : Side}
     {k : Fin 3} (hn : ch.name = (channelOf side k).name) : ch.arity = arityOf k := by
   simp only [channelTable, List.mem_cons, Prod.mk.injEq, List.not_mem_nil, or_false] at h
   cases side <;> fin_cases k <;>
@@ -222,7 +223,7 @@ theorem filter_tuplesOn (l : List (Interaction K)) (side : Side) (k : Fin 3) :
         exact ih
 
 /-- Every tuple of a witness's bus has the separator of one of the three pairs. -/
-theorem sideTuples_sep {w : EnsembleWitness (leanIsaEnsemble prog)} {side : Side}
+private theorem sideTuples_sep {w : EnsembleWitness (leanIsaEnsemble prog)} {side : Side}
     {v : Vector K 16} (hv : v ∈ sideTuples w side) : ∃ k : Fin 3, v[0] = gpow k := by
   simp only [sideTuples, tuplesOn, List.mem_map, List.mem_filter] at hv
   obtain ⟨_, ⟨⟨i, hi, rfl⟩, -⟩, rfl⟩ := hv
@@ -230,7 +231,7 @@ theorem sideTuples_sep {w : EnsembleWitness (leanIsaEnsemble prog)} {side : Side
   exact ⟨k, by simp [busView, flushTuple, hk]⟩
 
 /-- A message on pair `k`'s channel of a side has pair `k`'s arity. -/
-theorem size_of_mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble prog)} {side : Side}
+private theorem size_of_mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble prog)} {side : Side}
     {k : Fin 3} {m : Array K}
     (hm : m ∈ (w.interactions.filter fun i ↦ decide (i.channel.name = (channelOf side k).name)).map
       (·.msg)) : m.size = arityOf k := by
@@ -273,23 +274,23 @@ theorem balanced_iff (w : EnsembleWitness (leanIsaEnsemble prog)) :
 /-! ## A component's tuples -/
 
 /-- The direction of the channel named `n`, as `channelDir` reads it. -/
-def nameDir (n : String) : Arithmetization.Direction :=
+private def nameDir (n : String) : Arithmetization.Direction :=
   if n = StatePull.name ∨ n = MemPull.name ∨ n = BytecodePull.name then .pull else .push
 
 /-- The separator of the channel named `n`, as `channelSep` reads it. -/
-def nameSep (n : String) : K :=
+private def nameSep (n : String) : K :=
   if n = StatePull.name ∨ n = StatePush.name then gpow 0
   else if n = MemPull.name ∨ n = MemPush.name then gpow 1
   else if n = BytecodePull.name ∨ n = BytecodePush.name then gpow 2
   else 0
 
 /-- The side and tuple of a message on the channel of a name. -/
-def nameView (p : String × Array K) : Side × Vector K 16 :=
+private def nameView (p : String × Array K) : Side × Vector K 16 :=
   (sideOf (nameDir p.1), tupleOf (nameSep p.1) p.2)
 
 /-- The tuples of a list of interactions depend only on their channels' names and their
 messages. -/
-theorem tuplesOn_eq (l : List (Interaction K)) (side : Side) :
+private theorem tuplesOn_eq (l : List (Interaction K)) (side : Side) :
     tuplesOn l side = ((((l.map fun i ↦ (i.channel.name, i.msg)).map nameView).filter
       fun v ↦ decide (v.1 = side)).map (·.2)) := by
   rw [tuplesOn, List.map_map]
@@ -369,12 +370,13 @@ theorem opcode_withinWidth : ∀ j : Fin 6, ∀ ai ∈ (opcodeComponent j).rowOp
   decide +kernel
 
 /-- The tuples of two lists side by side. -/
-theorem tuplesOn_append (l₁ l₂ : List (Interaction K)) (side : Side) :
+private theorem tuplesOn_append (l₁ l₂ : List (Interaction K)) (side : Side) :
     tuplesOn (l₁ ++ l₂) side = tuplesOn l₁ side ++ tuplesOn l₂ side := by
   simp only [tuplesOn, List.map_append, List.filter_append]
 
 /-- The tuples of a list built by rows are the rows' tuples. -/
-theorem tuplesOn_flatMap {α : Type} (l : List α) (f : α → List (Interaction K)) (side : Side) :
+private theorem tuplesOn_flatMap {α : Type} (l : List α) (f : α → List (Interaction K))
+    (side : Side) :
     tuplesOn (l.flatMap f) side = l.flatMap fun a ↦ tuplesOn (f a) side := by
   induction l with
   | nil => rfl
@@ -384,7 +386,7 @@ theorem tuplesOn_flatMap {α : Type} (l : List α) (f : α → List (Interaction
 
 /-- A component whose messages read within its width flushes the same tuples on a row as on the
 row's first `width` cells. -/
-theorem tuplesOn_truncate (c : Component K)
+private theorem tuplesOn_truncate (c : Component K)
     (hw : ∀ ai ∈ c.rowOperations.interactions, ∀ e ∈ ai.msg.toList, e.WithinWidth c.width)
     (row : Array K) (r : Fin c.width → K) (hr : ∀ i : Fin c.width, row[(i : ℕ)]?.getD 0 = r i)
     (data : ProverData K) (side : Side) :
@@ -407,7 +409,7 @@ theorem tuplesOn_truncate (c : Component K)
 
 /-- On a row of its width, an opcode table flushes, on one side, its flushes of that side
 evaluated on the row. -/
-theorem tuplesOn_opcode_row (j : Fin 6) (r : Fin (opcodeComponent j).width → K)
+private theorem tuplesOn_opcode_row (j : Fin 6) (r : Fin (opcodeComponent j).width → K)
     (data : ProverData K) (side : Side) :
     tuplesOn ((opcodeComponent j).operations.interactionValues
         (Environment.fromArray (Array.ofFn r) data)) side =
@@ -425,14 +427,14 @@ theorem tuplesOn_opcode_row (j : Fin 6) (r : Fin (opcodeComponent j).width → K
   simp only [List.map_map, Function.comp_def]
 
 /-- Swapping the two loops of a product enumeration permutes it. -/
-theorem perm_flatMap_swap {α β γ : Type} (l₁ : List α) (l₂ : List β) (g : α → β → γ) :
+private theorem perm_flatMap_swap {α β γ : Type} (l₁ : List α) (l₂ : List β) (g : α → β → γ) :
     (l₁.flatMap fun a ↦ l₂.map (g a)).Perm (l₂.flatMap fun b ↦ l₁.map fun a ↦ g a b) := by
   rw [← Multiset.coe_eq_coe, ← Multiset.coe_bind, ← Multiset.coe_bind]
   simp only [← Multiset.map_coe]
   exact Multiset.bind_map_comm _ _
 
 /-- A list of known length, enumerated by its indices. -/
-theorem flatMap_eq_finRange {α β : Type} (l : List α) {n : ℕ} (hn : l.length = n)
+private theorem flatMap_eq_finRange {α β : Type} (l : List α) {n : ℕ} (hn : l.length = n)
     (g : α → List β) :
     l.flatMap g =
       (List.finRange n).flatMap fun x : Fin n ↦ g (l[x.val]'(by rw [hn]; exact x.isLt)) := by
@@ -480,7 +482,7 @@ theorem tuplesOn_opTable {w : EnsembleWitness (leanIsaEnsemble prog)} (h : Agree
 /-! ## The boundary blocks -/
 
 /-- A boundary block's coordinates, the separator first, are the tuple of the rest. -/
-theorem coords_coordCell (I : M3Instance) {κ : ℕ} (σ : K) (rest : List (Coord I.toShape κ))
+private theorem coords_coordCell (I : M3Instance) {κ : ℕ} (σ : K) (rest : List (Coord I.toShape κ))
     (q : Column I.μ) (x : Fin (2 ^ κ)) :
     (coords (.const σ :: rest)).map (fun co ↦ I.coordCell q co x) =
       tupleOf σ (rest.map fun co ↦ I.coordCell q co x).toArray := by
@@ -538,7 +540,6 @@ theorem boundaryTuples_push :
       exact Vector.get_ofFn _ _
     exact (congrArg (fun l : List K ↦ tupleOf (gpow 2) l.toArray) hl).trans rfl
 
-
 /-- The pull side's boundary tuples: the final state, the memory finalize, the bytecode finalize. -/
 theorem boundaryTuples_pull :
     (leanIsaInstance F prog s).boundaryTuples q .pull =
@@ -571,7 +572,7 @@ theorem boundaryTuples_pull :
       exact Vector.get_ofFn _ _
     exact (congrArg (fun l : List K ↦ tupleOf (gpow 2) l.toArray) hl).trans rfl
 /-- How the bus views the six channels' messages. -/
-theorem nameView_six (m : Array K) :
+private theorem nameView_six (m : Array K) :
     nameView (StatePush.name, m) = (.push, tupleOf (gpow 0) m) ∧
     nameView (StatePull.name, m) = (.pull, tupleOf (gpow 0) m) ∧
     nameView (MemPush.name, m) = (.push, tupleOf (gpow 1) m) ∧
@@ -581,12 +582,12 @@ theorem nameView_six (m : Array K) :
   refine ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 /-- The tuples of a push and a pull message, on each side. -/
-theorem tuplesOn_pair {l : List (Interaction K)} {np nu : String} {mp mu : Array K}
-    {σ : K} (h : l.map (fun i ↦ (i.channel.name, i.msg)) = [(nu, mu), (np, mp)])
-    (hu : nameView (nu, mu) = (.push, tupleOf σ mu)) (hp : nameView (np, mp) = (.pull,
-        tupleOf σ mp))
-    (side : Side) :
-    tuplesOn l side = [tupleOf σ (if side = .push then mu else mp)] := by
+private theorem tuplesOn_pair {l : List (Interaction K)} {nPull nPush : String}
+    {mPull mPush : Array K} {σ : K}
+    (h : l.map (fun i ↦ (i.channel.name, i.msg)) = [(nPush, mPush), (nPull, mPull)])
+    (hu : nameView (nPush, mPush) = (.push, tupleOf σ mPush))
+    (hp : nameView (nPull, mPull) = (.pull, tupleOf σ mPull)) (side : Side) :
+    tuplesOn l side = [tupleOf σ (if side = .push then mPush else mPull)] := by
   rw [tuplesOn_eq, h]
   cases side <;> simp [hu, hp]
 
@@ -635,7 +636,8 @@ theorem tuplesOn_verifier (w : EnsembleWitness (leanIsaEnsemble prog)) (side : S
   exact tuplesOn_pair (verifier_messages prog _) (nameView_six _).1 (nameView_six _).2.1 side
 
 /-- The instance's tables: the three column groups, then the six opcode tables. -/
-theorem finRange_nine : List.finRange 9 = [0, 1, 2] ++ (List.finRange 6).map opIdx := by decide
+private theorem finRange_nine : List.finRange 9 = [0, 1, 2] ++ (List.finRange 6).map opIdx := by
+  decide
 
 /-- The witness's tables, in order. -/
 theorem tables_eq (w : EnsembleWitness (leanIsaEnsemble prog)) :
@@ -648,13 +650,13 @@ theorem tables_eq (w : EnsembleWitness (leanIsaEnsemble prog)) :
     rfl
 
 /-- Filtering a mapped list before a loop is filtering and mapping inside it. -/
-theorem filter_map_flatMap {α β γ : Type} (l : List α) (f : α → β) (p : β → Bool)
+private theorem filter_map_flatMap {α β γ : Type} (l : List α) (f : α → β) (p : β → Bool)
     (g : β → List γ) : ((l.map f).filter p).flatMap g = (l.filter (p ∘ f)).flatMap (g ∘ f) := by
   rw [List.filter_map, List.flatMap_map]
   rfl
 
 /-- The instance's flush tuples, table by table. -/
-theorem flushTuples_eq (side : Side) :
+private theorem flushTuples_eq (side : Side) :
     (leanIsaInstance F prog s).flushTuples q side =
       (List.finRange 9).flatMap fun j ↦ ((flushes j).filter fun f ↦ decide (f.1 = side)).flatMap
         fun f ↦ (List.finRange (2 ^ height prog s j)).map fun x ↦
@@ -662,7 +664,8 @@ theorem flushTuples_eq (side : Side) :
 
 /-- The flushes of opcode table `j`, on one side: a permutation of what the table's rows emit
 there. -/
-theorem flushTuples_opIdx_perm {w : EnsembleWitness (leanIsaEnsemble prog)} (h : Agrees F s q w)
+private theorem flushTuples_opIdx_perm {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : Agrees F s q w)
     (j : Fin 6) (side : Side) :
     (((flushes (opIdx j)).filter fun f ↦ decide (f.1 = side)).flatMap
         fun f ↦ (List.finRange (2 ^ height prog s (opIdx j))).map fun x ↦

@@ -205,7 +205,8 @@ module (P3).
   which excludes the `BLAKE2S` table's `Assumptions`, so it accepted a wrong-but-canonical
   digest and the blueprint's `constraintSoundness` was false for any program whose run
   executes `BLAKE2S`; met by the conjunct `Blake2sRowsValid` and `assumptions_of_blake2sRowsValid`,
-  the shape the Flock design note's D5 later replaces by the constraints themselves. A2
+  a shape the proof system's adaptor discharges from the Flock region
+  (`blake2sRowsValid_witnessOf`). A2
   (medium): the count-`0` rejection also failed balance, so no test guarded `CountsNonzero`;
   met by `zero_count_witness`. B1 (low): `Caps` was documented as all of `read_public` while
   transcribing three of its eight checks; met in the docstrings, the rate and stacked-size
