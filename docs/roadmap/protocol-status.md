@@ -42,7 +42,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | Flock phase: the product-gate circuit library (Layer 9) | #92 | on merge | on merge |
 | Flock phase: the BLAKE2s circuit (Layer 9) | #93 | on merge | on merge |
 | Flock phase: `FlockSpec` and its BLAKE2s inhabitant (Layer 9) | #94 | on merge | on merge |
-| the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | PR_PIOP | on merge | on merge |
+| the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | #95 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
