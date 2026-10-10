@@ -21,7 +21,15 @@ function `g` of the point. Unit weights give the plain sum over the cube
 `weightedCubeSum_succ` splits off the highest coordinate: the sum on `k + 1` coordinates is
 `w_k(0)` times the sum on the first `k` with the last fixed to `0`, plus `w_k(1)` times the sum
 with it fixed to `1`. `weightedCubeSum_zero` is the sum on no coordinate, the value at the empty
-point. Over an arbitrary commutative ring; nothing here transcribes a source.
+point. `weightedCubeSum_finsetSum`: the weighted sum is linear.
+
+Off the cube, the weight of a point is `prodWeight w z = ∏_k ((1 - z_k) · w_k(0) + z_k · w_k(1))`,
+multilinear in each coordinate and `cubeWeight` on the cube (`prodWeight_boolVec`), so summing it
+times `g` with unit weights is the weighted sum of `g` (`weightedCubeSum_one_prodWeight`). A
+coordinate weighted `(0, 1)` keeps only its value `1`: a function of the low `k` coordinates,
+summed against weights `(0, 1)` on every coordinate from `k` on, is its weighted sum on the low
+`k` (`weightedCubeSum_lowCoords`). Over an arbitrary commutative ring; nothing here transcribes a
+source.
 -/
 
 namespace LeanerVM.Protocol
@@ -105,6 +113,64 @@ theorem weightedCubeSum_eq {k : ℕ} (r : Vector R k) (g : Vector R k → R) :
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   rw [cubeWeight, Fin.getElem_fin, lagrangeBasis_getElem_nat _ x.isLt]
   rfl
+
+/-- The weighted sum is linear: the weighted sum of a finite sum of functions is the sum of
+their weighted sums. -/
+theorem weightedCubeSum_finsetSum {k : ℕ} {ι : Type*} (s : Finset ι) (w : Fin k → R × R)
+    (g : ι → Vector R k → R) :
+    weightedCubeSum w (fun z ↦ ∑ i ∈ s, g i z) = ∑ i ∈ s, weightedCubeSum w (g i) := by
+  simp only [weightedCubeSum, Finset.mul_sum]
+  exact Finset.sum_comm
+
+/-! ## The weight off the cube, and coordinates weighted `(0, 1)` -/
+
+/-- The weight at any point, multilinear in each coordinate: the product over the coordinates of
+the line through the two weights, `(1 - z_k) · w_k(0) + z_k · w_k(1)`. At a cube point it is
+`cubeWeight` (`prodWeight_boolVec`). -/
+def prodWeight {k : ℕ} (w : Fin k → R × R) (z : Vector R k) : R :=
+  ∏ a : Fin k, ((1 - z[a]) * (w a).1 + z[a] * (w a).2)
+
+/-- At a cube point, the weight is the cube point's weight. -/
+theorem prodWeight_boolVec {k : ℕ} (w : Fin k → R × R) (x : Fin (2 ^ k)) :
+    prodWeight w (boolVec x) = cubeWeight w x := by
+  refine Finset.prod_congr rfl fun a _ ↦ ?_
+  simp only [boolVec, Fin.getElem_fin, Vector.getElem_ofFn, bitWeight]
+  split <;> simp
+
+/-- Summing the weight times `g` with unit weights is the weighted sum of `g`. -/
+theorem weightedCubeSum_one_prodWeight {k : ℕ} (w : Fin k → R × R) (g : Vector R k → R) :
+    weightedCubeSum (fun _ ↦ ((1 : R), (1 : R))) (fun z ↦ prodWeight w z * g z) =
+      weightedCubeSum w g := by
+  rw [weightedCubeSum_one]
+  refine Finset.sum_congr rfl fun x _ ↦ ?_
+  rw [prodWeight_boolVec]
+
+/-- Coordinates weighted `(0, 1)` keep only their value `1`: a function of the low `k` coordinates,
+summed against weights that are `(0, 1)` on every coordinate from `k` on, is its weighted sum on
+the low `k` coordinates. -/
+theorem weightedCubeSum_lowCoords {k n : ℕ} (h : k ≤ n) (w : Fin n → R × R)
+    (hw : ∀ b : Fin n, k ≤ b.val → w b = (0, 1)) (g : Vector R k → R) :
+    weightedCubeSum w (fun z ↦ g (lowCoords h z)) =
+      weightedCubeSum (fun a : Fin k ↦ w (Fin.castLE h a)) g := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le h
+  induction m with
+  | zero =>
+    congr 1
+    funext z
+    congr 1
+    apply Vector.ext
+    intro a ha
+    rw [getElem_lowCoords _ _ ha]
+  | succ m ih =>
+    rw [weightedCubeSum_succ (k := k + m), hw (Fin.last (k + m)) (by simp), zero_mul, zero_add,
+      one_mul]
+    have hlow : ∀ v : Vector R (k + m), lowCoords h (v.push 1) =
+        lowCoords (Nat.le_add_right k m) v := fun v ↦ by
+      apply Vector.ext
+      intro a ha
+      rw [getElem_lowCoords _ _ ha, getElem_lowCoords _ _ ha, Vector.getElem_push_lt]
+    simp only [hlow]
+    exact ih (Nat.le_add_right k m) _ (fun b hb ↦ hw _ hb)
 
 end
 end LeanerVM.Protocol
