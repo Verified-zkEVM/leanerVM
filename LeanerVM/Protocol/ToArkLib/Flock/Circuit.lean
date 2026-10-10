@@ -374,7 +374,8 @@ private theorem foldl_stepF_of_not_mem (L : List (Pos m × Gate m)) (z : Pos m �
     simp only [List.map_cons, List.mem_cons, not_or] at hk
     rw [List.foldl_cons, ih _ hk.2, stepF, Function.update_of_ne hk.1]
 
-private theorem boundedFrom_fresh {avail : Form m} {L : List (Pos m × Gate m)} (h : BoundedFrom avail L)
+private theorem boundedFrom_fresh {avail : Form m} {L : List (Pos m × Gate m)}
+    (h : BoundedFrom avail L)
     {k : Pos m} (hk : k ∈ L.map Prod.fst) : avail.getLsbD k = false := by
   induction L generalizing avail with
   | nil => simp at hk
@@ -401,7 +402,8 @@ private theorem mem_of_lookup {L : List (Pos m × Gate m)} {k : Pos m} {g : Gate
       rw [this] at h
       exact List.mem_cons_of_mem _ (ih h)
 
-private theorem not_mem_of_lookup_none {L : List (Pos m × Gate m)} {k : Pos m} (h : L.lookup k = none) :
+private theorem not_mem_of_lookup_none {L : List (Pos m × Gate m)} {k : Pos m}
+    (h : L.lookup k = none) :
     k ∉ L.map Prod.fst := by
   rw [List.lookup_eq_none_iff] at h
   simp only [List.mem_map, not_exists, not_and]

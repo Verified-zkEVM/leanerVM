@@ -16,10 +16,13 @@ public import LeanerVM.Semantics.Blake2s
 # The BLAKE2s compression circuit
 
 Category B: transcribed from leanVM at pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`,
-`crates/flock/src/hash.rs:1-104` (layout and gadget shapes) and `:295-358` (`forward_walk`),
-cross-checked row for row against `python-verifier/verifier.py:1180-1301`
-(`blake2s_row_values`) by the digest test. The specification fixes neither the circuit nor its
-positions.
+`crates/flock/src/hash.rs:40-63` (layout), `:143-162` (positions and gadget offsets) and
+`:295-358` (`forward_walk`), with the adder rows of `crates/flock/src/gf2.rs`, cross-checked row
+for row against `python-verifier/verifier.py:1180-1295` (`blake2s_row_values`) by the digest
+test. The specification fixes the constant at position `512` and the row of each kind of wire
+(`doc/leanvm/body/c-flock-protocol.tex:22-28`, `:205-215`: a product `(u, u')`, a committed XOR
+`(S_w, 1)`, a source `(w, 1)`, an empty position zero), which `rowOf` implements; it does not
+fix the circuit or its other positions.
 
 The block of `2 ^ 14` bits (`hash.rs:41-53`):
 
@@ -38,9 +41,11 @@ by the gadgets, so `sound_compressW` follows the specification step by step.
 
 * `blake2sCircuit`, `bounded_blake2s` (from the gate-count contracts, without evaluating the
   circuit: exactly `14720` gates from `1280`).
-* `blake2s_sound`: a Boolean block satisfying the circuit's R1CS over a nontrivial ring of
-  characteristic two, with `1` at the constant position, carries at its output positions the
-  compression of the words it carries at its input positions.
+* `blake2s_sound`, `blake2s_sound_words`: a Boolean block satisfying the circuit's R1CS over a
+  nontrivial ring of characteristic two, with `1` at the constant position, carries at its output
+  positions the compression of the words it carries at its input positions.
+* `blake2s_complete`: the trace of any input satisfies the R1CS, holds `1` at the constant, keeps
+  its inputs, and so carries the compression of the input words at its output positions.
 -/
 
 namespace LeanerVM.Protocol
@@ -148,7 +153,8 @@ theorem blake2sCircuit_inputs : blake2sCircuit.inputs = inputs := by
   unfold blake2sCircuit; rfl
 
 theorem blake2sCircuit_gates : blake2sCircuit.gates =
-    (compressW.run ⟨gateBase, #[]⟩).2.gates ++ (outRows (compressW.run ⟨gateBase, #[]⟩).1).toArray := by
+    (compressW.run ⟨gateBase, #[]⟩).2.gates ++
+      (outRows (compressW.run ⟨gateBase, #[]⟩).1).toArray := by
   unfold blake2sCircuit; rfl
 
 theorem getLsbD_inputs (j : ℕ) :
@@ -167,7 +173,7 @@ section Soundness
 
 variable {w : Pos m → Bool}
 
-theorem sound_gW {v : Vector (Word m) 16} {vu : Vector UInt32 16} (a b c d : Fin 16)
+private theorem sound_gW {v : Vector (Word m) 16} {vu : Vector UInt32 16} (a b c d : Fin 16)
     {mx my : Word m} {mxu myu : UInt32} (hv : ∀ j : Fin 16, Den w v[j] vu[j]) (hmx : Den w mx mxu)
     (hmy : Den w my myu) :
     Sound w (gW v a b c d mx my)
@@ -194,7 +200,7 @@ theorem sound_gW {v : Vector (Word m) 16} {vu : Vector UInt32 16} (a b c d : Fin
   · exact ha2
   · exact hv j
 
-theorem grows_gW (v : Vector (Word m) 16) (a b c d : Fin 16) (mx my : Word m) :
+private theorem grows_gW (v : Vector (Word m) 16) (a b c d : Fin 16) (mx my : Word m) :
     Grows (gW v a b c d mx my) := by
   unfold gW
   exact grows_bind (grows_add3W _ _ _) fun _ ↦ grows_bind (grows_addW _ _) fun _ ↦
@@ -209,12 +215,12 @@ local macro "grows_gW_chain" : tactic =>
   `(tactic| repeat' (first | refine grows_bind (grows_gW _ _ _ _ _ _ _) fun _ ↦ ?_ |
     exact grows_gW _ _ _ _ _ _ _))
 
-theorem grows_roundW (v m' : Vector (Word m) 16) (s : Vector (Fin 16) 16) :
+private theorem grows_roundW (v m' : Vector (Word m) 16) (s : Vector (Fin 16) 16) :
     Grows (roundW v m' s) := by
   unfold roundW
   grows_gW_chain
 
-theorem sound_roundW {v m' : Vector (Word m) 16} {vu mu : Vector UInt32 16}
+private theorem sound_roundW {v m' : Vector (Word m) 16} {vu mu : Vector UInt32 16}
     (s : Vector (Fin 16) 16) (hv : ∀ j : Fin 16, Den w v[j] vu[j])
     (hm : ∀ j : Fin 16, Den w m'[j] mu[j]) :
     Sound w (roundW v m' s) (fun v' ↦ ∀ j : Fin 16, Den w v'[j] (Blake2s.round vu mu s)[j]) := by
@@ -230,13 +236,13 @@ theorem sound_roundW {v m' : Vector (Word m) 16} {vu mu : Vector UInt32 16}
 
 attribute [local irreducible] roundW
 
-theorem grows_rounds (msg : Vector (Word m) 16) (l : List (Vector (Fin 16) 16))
+private theorem grows_rounds (msg : Vector (Word m) 16) (l : List (Vector (Fin 16) 16))
     (v : Vector (Word m) 16) : Grows (l.foldlM (fun v s ↦ roundW v msg s) v) := by
   induction l generalizing v with
   | nil => exact grows_pure _
   | cons s l ih => rw [List.foldlM_cons]; exact grows_bind (grows_roundW _ _ _) ih
 
-theorem sound_rounds {msg : Vector (Word m) 16} {mu : Vector UInt32 16}
+private theorem sound_rounds {msg : Vector (Word m) 16} {mu : Vector UInt32 16}
     (hm : ∀ j : Fin 16, Den w msg[j] mu[j]) (l : List (Vector (Fin 16) 16))
     (v : Vector (Word m) 16) (vu : Vector UInt32 16) (hv : ∀ j : Fin 16, Den w v[j] vu[j]) :
     Sound w (l.foldlM (fun v s ↦ roundW v msg s) v)
@@ -249,7 +255,7 @@ theorem sound_rounds {msg : Vector (Word m) 16} {mu : Vector UInt32 16}
 
 /-- The initial working vector denotes `initialState`, given the input words and the
 constant. -/
-theorem den_initW {h : Vector UInt32 8} {t : UInt64} {f0 f1 : UInt32}
+private theorem den_initW {h : Vector UInt32 8} {t : UInt64} {f0 f1 : UInt32}
     (hh : ∀ k : Fin 8, Den w (cvW k) h[k]) (ht0 : Den w (inW counterLo) t.toUInt32)
     (ht1 : Den w (inW counterHi) (t >>> 32).toUInt32) (hf0 : Den w (inW finalFlag) f0)
     (hf1 : Den w (inW lastNodeFlag) f1) (hc : w Flock.constPos = true) :
@@ -283,17 +289,18 @@ theorem den_initW {h : Vector UInt32 8} {t : UInt64} {f0 f1 : UInt32}
       (by rw [Vector.getElem_append_right (by decide) (by decide)])
 
 /-- An output word of `compress`: `h[k] ^ v[k] ^ v[k + 8]` for the final working vector `v`. -/
-theorem compress_getElem (h : Vector UInt32 8) (msg : Vector UInt32 16) (t : UInt64)
+private theorem compress_getElem (h : Vector UInt32 8) (msg : Vector UInt32 16) (t : UInt64)
     (f0 f1 : UInt32) (k : Fin 8) :
     (compress h msg t f0 f1)[k] =
       h[k] ^^^
       (sigma.foldl (fun v s ↦ Blake2s.round v msg s) (Blake2s.initialState h t f0 f1))[k.1] ^^^
-      (sigma.foldl (fun v s ↦ Blake2s.round v msg s) (Blake2s.initialState h t f0 f1))[k.1 + 8] := by
+      (sigma.foldl (fun v s ↦ Blake2s.round v msg s)
+        (Blake2s.initialState h t f0 f1))[k.1 + 8] := by
   fin_cases k <;> rfl
 
 /-- The compression gadget is sound: if its gates hold, its eight output words denote the
 compression of the words at the input positions. -/
-theorem sound_compressW {h : Vector UInt32 8} {msg : Vector UInt32 16} {t : UInt64}
+private theorem sound_compressW {h : Vector UInt32 8} {msg : Vector UInt32 16} {t : UInt64}
     {f0 f1 : UInt32} (hh : ∀ k : Fin 8, Den w (cvW k) h[k])
     (hm : ∀ k : Fin 16, Den w (msgW k) msg[k])
     (ht0 : Den w (inW counterLo) t.toUInt32) (ht1 : Den w (inW counterHi) (t >>> 32).toUInt32)
@@ -319,8 +326,9 @@ end Soundness
 
 /-! ## Boundedness -/
 
-theorem constPos_val : (Flock.constPos : ℕ) = 512 := rfl
+private theorem constPos_val : (Flock.constPos : ℕ) = 512 := rfl
 
+/-- No position from `1280` on is an input or the constant. -/
 theorem fresh_from_gateBase (j : ℕ) (hj : 1280 ≤ j) :
     (inputs ||| Form.var Flock.constPos).getLsbD j = false := by
   rw [BitVec.getLsbD_or, getLsbD_inputs, getLsbD_var, constPos_val, Bool.or_eq_false_iff,
@@ -333,30 +341,30 @@ def start : Start m where
   base := gateBase
   fresh := fresh_from_gateBase
 
-theorem start_avail (j : ℕ) :
+private theorem start_avail (j : ℕ) :
     start.avail.getLsbD j = decide (j < 256 ∨ j = 512 ∨ (640 ≤ j ∧ j < 1280)) := by
   rw [start, BitVec.getLsbD_or, getLsbD_inputs, getLsbD_var, constPos_val, Bool.eq_iff_iff]
   simp only [Bool.or_eq_true, decide_eq_true_eq]
   omega
 
-theorem start_availAt (n j : ℕ) :
+private theorem start_availAt (n j : ℕ) :
     start.AvailAt n j = true ↔ j < 256 ∨ j = 512 ∨ (640 ≤ j ∧ j < 1280) ∨ (1280 ≤ j ∧ j < n) := by
   rw [availAt_iff, start_avail, decide_eq_true_iff]
   show _ ∨ (1280 ≤ j ∧ j < n) ↔ _
   omega
 
-theorem subW_inW_start {b : ℕ} (hb : b + 32 ≤ 256 ∨ (640 ≤ b ∧ b + 32 ≤ 1280)) (n : ℕ) :
+private theorem subW_inW_start {b : ℕ} (hb : b + 32 ≤ 256 ∨ (640 ≤ b ∧ b + 32 ≤ 1280)) (n : ℕ) :
     start.SubW (inW b) n :=
   subW_inW (by show b + 32 ≤ 16384; omega)
     (fun i hi ↦ by rw [start_avail, decide_eq_true_iff]; omega) n
 
 /-- Every word of a vector reads only positions available at `n`. -/
-def SubV {k : ℕ} (v : Vector (Word m) k) (n : ℕ) : Prop := ∀ j : Fin k, start.SubW v[j] n
+private def SubV {k : ℕ} (v : Vector (Word m) k) (n : ℕ) : Prop := ∀ j : Fin k, start.SubW v[j] n
 
-theorem SubV.mono {k : ℕ} {v : Vector (Word m) k} {n n' : ℕ} (h : SubV v n) (hn : n ≤ n') :
+private theorem SubV.mono {k : ℕ} {v : Vector (Word m) k} {n n' : ℕ} (h : SubV v n) (hn : n ≤ n') :
     SubV v n' := fun j ↦ (h j).mono hn
 
-theorem SubV.set {v : Vector (Word m) 16} {n : ℕ} (hv : SubV v n) (a : Fin 16) {x : Word m}
+private theorem SubV.set {v : Vector (Word m) 16} {n : ℕ} (hv : SubV v n) (a : Fin 16) {x : Word m}
     (hx : start.SubW x n) : SubV (v.set a x) n := by
   intro j
   simp only [Fin.getElem_fin, Vector.getElem_set]
@@ -364,7 +372,7 @@ theorem SubV.set {v : Vector (Word m) 16} {n : ℕ} (hv : SubV v n) (a : Fin 16)
   · exact hx
   · exact hv j
 
-theorem ok_gW {n₀ : ℕ} {v : Vector (Word m) 16} (a b c d : Fin 16) {mx my : Word m}
+private theorem ok_gW {n₀ : ℕ} {v : Vector (Word m) 16} (a b c d : Fin 16) {mx my : Word m}
     (hv : SubV v n₀) (hmx : start.SubW mx n₀) (hmy : start.SubW my n₀) :
     start.Ok n₀ (gW v a b c d mx my) 184 SubV := by
   unfold gW
@@ -383,7 +391,8 @@ theorem ok_gW {n₀ : ℕ} {v : Vector (Word m) 16} (a b c d : Fin 16) {mx my : 
 
 attribute [local irreducible] gW
 
-theorem ok_roundW {n₀ : ℕ} {v m' : Vector (Word m) 16} (s : Vector (Fin 16) 16) (hv : SubV v n₀)
+private theorem ok_roundW {n₀ : ℕ} {v m' : Vector (Word m) 16} (s : Vector (Fin 16) 16)
+    (hv : SubV v n₀)
     (hm : SubV m' n₀) : start.Ok n₀ (roundW v m' s) 1472 SubV := by
   unfold roundW
   refine ok_bind (ok_gW 0 4 8 12 hv (hm _) (hm _)) (by omega) fun v1 n1 h1 hv1 ↦ ?_
@@ -404,7 +413,7 @@ theorem ok_roundW {n₀ : ℕ} {v m' : Vector (Word m) 16} (s : Vector (Fin 16) 
 
 attribute [local irreducible] roundW
 
-theorem ok_rounds (msg : Vector (Word m) 16) (l : List (Vector (Fin 16) 16)) :
+private theorem ok_rounds (msg : Vector (Word m) 16) (l : List (Vector (Fin 16) 16)) :
     ∀ (v : Vector (Word m) 16) (n₀ : ℕ), SubV v n₀ → SubV msg n₀ →
       start.Ok n₀ (l.foldlM (fun v s ↦ roundW v msg s) v) (1472 * l.length) SubV := by
   induction l with
@@ -419,7 +428,7 @@ theorem ok_rounds (msg : Vector (Word m) 16) (l : List (Vector (Fin 16) 16)) :
       fun v' n₁ hn₁ hv' ↦
         (ih v' n₁ hv' (hm.mono hn₁)).cast (by simp only [List.length_cons]; omega)
 
-theorem subV_initW : SubV initW gateBase := by
+private theorem subV_initW : SubV initW gateBase := by
   intro j
   rw [initW, Fin.getElem_fin, Vector.getElem_ofFn]
   have hc : start.avail.getLsbD Flock.constPos = true := by
@@ -429,14 +438,14 @@ theorem subV_initW : SubV initW gateBase := by
   · exact subW_litW hc _ _
   · exact subW_xorW (subW_litW hc _ _) (subW_inW_start (by simp only [counterLo]; omega) _)
 
-theorem subV_msg : SubV (Vector.ofFn fun w : Fin 16 ↦ msgW w) gateBase := by
+private theorem subV_msg : SubV (Vector.ofFn fun w : Fin 16 ↦ msgW w) gateBase := by
   intro j
   rw [Fin.getElem_fin, Vector.getElem_ofFn]
   exact subW_inW_start (by simp only [msgBase]; omega) _
 
 /-- The compression records exactly `14720` gates from `1280`, keeps the schedule bounded, and
 its output words read only available positions. -/
-theorem ok_compressW : start.Ok gateBase compressW 14720 SubV := by
+private theorem ok_compressW : start.Ok gateBase compressW 14720 SubV := by
   unfold compressW
   dsimp only
   rw [← Vector.foldlM_toList]
@@ -451,11 +460,12 @@ theorem ok_compressW : start.Ok gateBase compressW 14720 SubV := by
 theorem compressW_next : (compressW.run ⟨gateBase, #[]⟩).2.next = 16000 :=
   (ok_compressW ⟨gateBase, #[]⟩ inv_init le_rfl (by decide)).2.1
 
-theorem pos_out_val (w : Fin 8) (i : Fin 32) :
+private theorem pos_out_val (w : Fin 8) (i : Fin 32) :
     ((pos (256 + 32 * w.val + i.val) : Pos m) : ℕ) = 256 + 32 * w.val + i.val :=
   pos_val (by have := w.isLt; have := i.isLt; show _ < 16384; omega)
 
-theorem mem_outRows {outs : Vector (Word m) 8} {kg : Pos m × Gate m} (h : kg ∈ outRows outs) :
+private theorem mem_outRows {outs : Vector (Word m) 8} {kg : Pos m × Gate m}
+    (h : kg ∈ outRows outs) :
     ∃ (w : Fin 8) (i : Fin 32),
       kg = (pos (256 + 32 * w.val + i.val), ⟨outs[w][i], Form.var Flock.constPos⟩) := by
   unfold outRows at h
@@ -463,7 +473,7 @@ theorem mem_outRows {outs : Vector (Word m) 8} {kg : Pos m × Gate m} (h : kg �
   obtain ⟨w, i, rfl⟩ := h
   exact ⟨w, i, rfl⟩
 
-theorem nodup_outRows (outs : Vector (Word m) 8) : ((outRows outs).map Prod.fst).Nodup := by
+private theorem nodup_outRows (outs : Vector (Word m) 8) : ((outRows outs).map Prod.fst).Nodup := by
   unfold outRows
   rw [List.map_flatMap, List.nodup_flatMap]
   simp only [List.map_map]
@@ -485,7 +495,7 @@ theorem nodup_outRows (outs : Vector (Word m) 8) : ((outRows outs).map Prod.fst)
     omega
 
 /-- The output rows read only the final availability, at the fresh positions `256 … 511`. -/
-theorem boundedFrom_outRows (r : Vector (Word m) 8 × BuildState m) (hinv : start.Inv r.2)
+private theorem boundedFrom_outRows (r : Vector (Word m) 8 × BuildState m) (hinv : start.Inv r.2)
     (hout : SubV r.1 r.2.next) :
     BoundedFrom (availAfter start.avail r.2.gates.toList) (outRows r.1) := by
   have hc : start.avail.getLsbD Flock.constPos = true := by
@@ -563,6 +573,58 @@ theorem blake2s_sound_words {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R]
     apply BitVec.eq_of_getLsbD_eq
     intro i hi
     simp [hi, show 32 + i < 64 by omega, show i < 64 by omega]
+
+/-- The word a block holds depends only on its positions. -/
+theorem readWord_congr {z z' : Pos m → Bool} {b : ℕ}
+    (h : ∀ i < 32, z (pos (b + i)) = z' (pos (b + i))) :
+    readWord z b = readWord z' b := by
+  unfold readWord
+  congr 2
+  funext i
+  exact h i i.isLt
+
+/-- The trace keeps every input position. -/
+theorem traceF_inputs (inp : Pos m → Bool) {j : Pos m} (hj : inputs.getLsbD j = true) :
+    blake2sCircuit.traceF inp j = inp j := by
+  refine traceF_input bounded_blake2s inp (by rw [blake2sCircuit_inputs]; exact hj) ?_
+  rintro rfl
+  rw [blake2sCircuit_cpos, getLsbD_inputs] at hj
+  exact absurd (of_decide_eq_true hj) (by decide)
+
+/-- Completeness of the BLAKE2s circuit: over a nontrivial ring of characteristic two, the trace of
+any input satisfies the circuit's R1CS, holds `1` at the constant position, keeps its inputs, and
+carries at its output positions the compression of the input words. -/
+theorem blake2s_complete {R : Type*} [CommRing R] [CharP R 2] [Nontrivial R] (inp : Pos m → Bool) :
+    (blake2sCircuit.toBlockR1CS R).Holds (liftBlock R (blake2sCircuit.traceF inp)) ∧
+      blake2sCircuit.traceF inp Flock.constPos = true ∧
+      (∀ j : Pos m, inputs.getLsbD j = true → blake2sCircuit.traceF inp j = inp j) ∧
+      ∀ k : Fin 8, readWord (blake2sCircuit.traceF inp) (256 + 32 * k) =
+        (compress (Vector.ofFn fun j : Fin 8 ↦ readWord inp (32 * j))
+          (Vector.ofFn fun j : Fin 16 ↦ readWord inp (msgBase + 32 * j))
+          ((readWord inp counterLo).toUInt64 ||| ((readWord inp counterHi).toUInt64 <<< 32))
+          (readWord inp finalFlag) (readWord inp lastNodeFlag))[k] := by
+  have hs := trace_satisfies (R := R) bounded_blake2s inp
+  have h1 : blake2sCircuit.traceF inp Flock.constPos = true := by
+    rw [← blake2sCircuit_cpos]; exact traceF_cpos bounded_blake2s inp
+  have hin : ∀ b, (∀ i < 32, inputs.getLsbD (b + i) = true) → b + 32 ≤ 2 ^ m →
+      readWord (blake2sCircuit.traceF inp) b = readWord inp b := fun b hb hm ↦
+    readWord_congr fun i hi ↦ traceF_inputs inp (by rw [pos_val (by omega)]; exact hb i hi)
+  have hi : ∀ b, (b + 32 ≤ 256 ∨ (640 ≤ b ∧ b + 32 ≤ 1280)) →
+      ∀ i < 32, inputs.getLsbD (b + i) = true :=
+    fun b hb i hi ↦ by rw [getLsbD_inputs]; exact decide_eq_true (by omega)
+  refine ⟨hs.1, h1, fun j hj ↦ traceF_inputs inp hj, fun k ↦ ?_⟩
+  rw [blake2s_sound_words _ hs.1 h1 k]
+  have e : ∀ b, (b + 32 ≤ 256 ∨ (640 ≤ b ∧ b + 32 ≤ 1280)) →
+      readWord (blake2sCircuit.traceF inp) b = readWord inp b := fun b hb ↦
+    hin b (hi b hb) (by show b + 32 ≤ 16384; omega)
+  congr 1
+  rw [e counterLo (by simp only [counterLo]; omega), e counterHi (by simp only [counterHi]; omega),
+    e finalFlag (by simp only [finalFlag]; omega),
+    e lastNodeFlag (by simp only [lastNodeFlag]; omega)]
+  congr 1
+  · exact Vector.ext fun j hj ↦ by simp only [Vector.getElem_ofFn]; exact e _ (by omega)
+  · exact Vector.ext fun j hj ↦ by
+      simp only [Vector.getElem_ofFn]; exact e _ (by simp only [msgBase]; omega)
 
 end Blake2sCircuit
 

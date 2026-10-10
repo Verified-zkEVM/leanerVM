@@ -6,9 +6,11 @@ import LeanerVM.Protocol.Blake2sCircuit
 * **The shape.** `14720` product gates at `1280 … 15999`, then the `256` output rows; the
   circuit is bounded (by `decide`, beside the structural proof `bounded_blake2s`).
 * **The rows against the deployed walk.** `rowsDigest` digests all `2 ^ 14` rows of `A` and `B`
-  (the row table: the recorded gate, else the constant, input or zero row, as `rowOf`); the
-  value is the one `scripts/dump-flock-circuit-digest.py` prints for the pinned Python
-  verifier's `blake2s_row_values` (leanVM `a386121f`).
+  (the row table: the recorded gate, else the constant, input or zero row); the value is the one
+  `scripts/dump-flock-circuit-digest.py` prints for the pinned Python verifier's
+  `blake2s_row_values` (leanVM `a386121f`). The row table agrees with `rowOf`, which the
+  theorems are about, on a position of every row kind. This is test evidence of row equality,
+  not a theorem.
 * **The trace computes `compress`.** On the RFC 7693 Appendix B vector (`BLAKE2s-256("abc")`) and
   on pseudo-random inputs, the output words of the trace are `compress` of the inputs, and the
   trace satisfies every row.
@@ -45,9 +47,10 @@ def holdsB (c : ProductCircuit m) (z : Form m) : Bool :=
 /-- The product gates. -/
 def productGates : Array (Pos m × Gate m) := (compressW.run ⟨gateBase, #[]⟩).2.gates
 
-/-- `Σ_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P`, `P = 2 ^ 61 - 1`, over the row table. -/
+/-- `Σ_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P` over the row table, `P = 2 ^ 64 - 59`: a
+prime modulo which the powers `2 ^ j`, `j < 2 ^ 14`, are distinct. -/
 def rowsDigest (c : ProductCircuit m) : ℕ :=
-  let P := 2 ^ 61 - 1
+  let P := 2 ^ 64 - 59
   let t := rowTable c
   (List.range (2 ^ m)).foldl (fun d k ↦
     let g := t[k]!
@@ -79,7 +82,19 @@ example : (compressW.run ⟨gateBase, #[]⟩).2.next = 16000 := compressW_next
 
 /-! ## The rows against the deployed walk -/
 
-#guard rowsDigest blake2sCircuit == 2129825626724647737
+#guard rowsDigest blake2sCircuit == 4056851438423586957
+
+/-- Positions of every row kind: chaining value, output, the constant, padding, message, counter,
+flags, a majority, a ripple and a carry row of the first and last mixing steps, the end padding. -/
+def samplePositions : List ℕ :=
+  [0, 255, 256, 300, 511, 512, 513, 639, 640, 1151, 1152, 1279, 1280, 1310, 1311, 1340, 1341,
+    1371, 1372, 1463, 15815, 15876, 15968, 15999, 16000, 16383]
+
+-- The row table the digest reads is `rowOf`, the rows the theorems are about.
+#guard samplePositions.all fun k ↦
+  let g := (rowTable blake2sCircuit)[k]!
+  let g' := blake2sCircuit.rowOf (pos k)
+  g.a == g'.a && g.b == g'.b
 
 /-! ## The trace computes `compress` -/
 

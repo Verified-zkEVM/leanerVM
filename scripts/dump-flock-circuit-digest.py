@@ -5,15 +5,17 @@
 `blake2s_row_values`, a forward walk of the circuit against column weights. Run on the weights
 `w_j = x^j` of a field of characteristic two represented as bitsets (addition is XOR), the walk
 returns, for every row `k`, the bitsets of the positions in row `k` of `A` and of `B`. This
-script prints the digest `sum_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P`, `P = 2^61 - 1`,
-which `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean` compares with the Lean circuit's rows
-(`rowsDigest`), and the row statistics.
+script prints the digest `sum_k (3 (A_k mod P) + 7 (B_k mod P)) (k + 1) mod P`, with
+`P = 2^64 - 59`: a prime modulo which the powers `2^j`, `j < 2^14`, are distinct, so that no
+position is confused with another. `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean` compares
+the digest with the Lean circuit's rows (`rowsDigest`). The script also prints the row
+statistics.
 
 Usage:
     python3 scripts/dump-flock-circuit-digest.py path/to/leanVM
 
 The leanVM checkout must be at the pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`. The output
-at the pin is `digest 2129825626724647737`, `nonzero rows 15873`, `total terms 89305416`.
+at the pin is `digest 4056851438423586957`, `nonzero rows 15873`, `total terms 89305416`.
 """
 
 from __future__ import annotations
@@ -44,7 +46,7 @@ def main() -> None:
     verifier.ZERO = Bits(0)
     size = 2**verifier.BLAKE2S_R1CS_LOG_SIZE
     left, right = verifier.blake2s_row_values([Bits(1 << j) for j in range(size)])
-    p = 2**61 - 1
+    p = 2**64 - 59
     digest = 0
     for k in range(size):
         digest = (digest + ((left[k].m % p) * 3 + (right[k].m % p) * 7) * (k + 1)) % p
