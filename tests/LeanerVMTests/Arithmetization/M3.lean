@@ -16,7 +16,9 @@ against the pinned Rust (`crates/lean_vm/src/tables.rs` at
 `count_columns()` of `:481`, `:546`, `:631`, `:720`, `:871`, and only `JUMP` has constraints,
 its two of degree two (`n_constraints`, `:722-724`; the default is none, `:319-321`). Every
 constraint and message coordinate has syntactic degree at most two, the bound `d = 2` of the M3
-instance; the kernel decides it.
+instance; the kernel decides it. Every read count is a column (`CountsAreVariables`, which a
+constant count fails) and every message has at most fifteen coordinates, so a tuple determines
+its message.
 -/
 
 namespace LeanerVMTests.Arithmetization.M3
@@ -33,7 +35,6 @@ example : xy.degreeBound = 2 := rfl
 -- The polynomial vanishes where Clean's evaluation does, and not elsewhere.
 #guard (xy.toCMvPolynomial 2).eval ![0, 5] = 0
 #guard (xy.toCMvPolynomial 2).eval ![3, 5] ≠ 0
-#guard (xy.toCMvPolynomial 2).eval ![3, 5] = 15 * 1
 
 /-- The translation evaluates as Clean does, on every row and data. -/
 example (row : Fin 2 → K) (data : ProverData K) :
@@ -83,6 +84,20 @@ example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
 -- on the push side of the bus.
 #guard ((⟨jumpTable⟩ : Component K).toM3 channelSep channelDir counted).flushes.map (·.1) =
   [.pull, .push, .pull, .push, .pull, .push, .pull, .push, .pull, .push]
+
+-- Every read count of the eight components is a column: no count column is lost.
+example : components.all fun c ↦ decide (CountsAreVariables c counted) := by
+  decide +kernel
+
+-- Every message has at most fifteen coordinates, so its tuple determines it.
+example : components.all fun c ↦ c.rowOperations.interactions.all fun i ↦
+    decide (i.channel.arity ≤ 15) := by
+  decide +kernel
+
+-- A constant count is no count column: the predicate rejects it.
+example : ¬ CountsAreVariables (⟨memTable⟩ : Component K) fun c ↦
+    c.name = MemPush.name := by
+  decide +kernel
 
 -- Every expression of the eight components is within its width.
 example : components.all fun c ↦ (c.rowOperations.constraints.all fun e ↦

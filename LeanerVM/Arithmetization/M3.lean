@@ -42,16 +42,20 @@ component.
   first, then the message's coordinates, then zeros (`flushPolys`); its count columns are the
   coordinate-`1` variables of the interactions on the channels `counted` selects (the
   memory and bytecode pulls for leanISA, whose second coordinate is the read count), in
-  column order and each once. The
-  separators, the sides and the counted channels are explicit data, so the map from Clean's
-  channels to the bus is stated, not inferred.
+  column order and each once. The separators, the sides and the counted channels are explicit
+  data, so the map from Clean's channels to the bus is stated, not inferred.
 * `toM3_constraints_iff`: on a row of `c.width` cells, the constraint polynomials vanish
   exactly when Clean's constraints hold, for a component without lookups (Clean's
   `ConstraintsHold` is its `assert` expressions and its lookups).
 * `toM3_flushes_eq`: on such a row, the flush polynomials evaluate to the sixteen-slot tuples
   `flushTuple sep` of the interactions Clean evaluates on the row, with their sides.
 * `mem_toM3_count_iff` and `msg_one_of_countVar`: a count column is the variable of coordinate
-  `1` of a counted interaction, and that coordinate evaluates to the column's cell.
+  `1` of a counted interaction, and that coordinate evaluates to the column's cell. Under
+  `CountsAreVariables`, which a component's data decides, every counted interaction has one
+  (`exists_count_of_counted`).
+* `tupleMsg_flushTuple`: a message of at most fifteen coordinates is read back off its tuple, so
+  the tuples of one channel's messages determine the messages; `flushTuple_channelSep`: with
+  leanISA's separators the tuple is the bus tuple `busTuple` of the channels.
 
 Category A: written from the specification's M3 model (§5.1 "The bus", §5.5 "The zerocheck")
 and Clean's semantics of a flat component at `42fe4b26` (`Clean/Air/FlatComponent.lean`,
@@ -208,6 +212,21 @@ theorem flushPolys_eval (sep : RawChannel F → F) {n : ℕ} (row : Fin n → F)
     | none => simp [CMvPolynomial.eval_zero]
     | some e => simp [Expression.eval_toCMvPolynomial row data]
 
+/-- The first `a` message coordinates of a sixteen-slot tuple, after its separator. -/
+def tupleMsg (a : ℕ) (v : Vector F 16) : Array F := Array.ofFn fun k : Fin a ↦ v[k.val + 1]?.getD 0
+
+omit [DecidableEq F] in
+/-- A message of at most fifteen coordinates is read back off its tuple: the tuple determines
+the message, given its length. -/
+theorem tupleMsg_flushTuple (sep : RawChannel F → F) (i : Interaction F) (h : i.msg.size ≤ 15) :
+    tupleMsg i.msg.size (flushTuple sep i) = i.msg := by
+  apply Array.ext (by simp [tupleMsg])
+  intro k _ hk
+  simp only [tupleMsg, Array.getElem_ofFn]
+  rw [Vector.getElem?_eq_getElem (by omega), Option.getD_some]
+  simp only [flushTuple, Vector.getElem_ofFn, Nat.add_one_ne_zero, ite_false, Nat.add_sub_cancel]
+  rw [Array.getElem?_eq_getElem hk, Option.getD_some]
+
 /-- The flush polynomials' total degree is at most `d` when every message coordinate's
 syntactic degree is: the separator is a constant, the padding zero. -/
 theorem totalDegree_flushPolys_le (sep : RawChannel F → F) {n d : ℕ} (i : AbstractInteraction F)
@@ -315,6 +334,21 @@ theorem toM3_flushes_degree {d : ℕ}
   obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hf'
   exact totalDegree_flushPolys_le sep i (h i hi) k
 
+/-- Every counted interaction's coordinate `1` is a variable below the width: no read count
+is a constant or out of the row. -/
+def CountsAreVariables : Prop :=
+  ∀ i ∈ c.rowOperations.interactions, counted i.channel → (countVar c.width i).isSome
+
+instance : Decidable (CountsAreVariables c counted) :=
+  inferInstanceAs (Decidable (∀ i ∈ c.rowOperations.interactions, _))
+
+/-- When counts are variables, every counted interaction has a count column. -/
+theorem exists_count_of_counted (h : CountsAreVariables c counted)
+    {i : AbstractInteraction F} (hi : i ∈ c.rowOperations.interactions) (hc : counted i.channel) :
+    ∃ k ∈ (c.toM3 sep dir counted).count, countVar c.width i = some k := by
+  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.mp (h i hi hc)
+  exact ⟨k, (mem_toM3_count_iff c sep dir counted k).mpr ⟨i, hi, hc, hk⟩, hk⟩
+
 omit [DecidableEq F] in
 /-- Coordinate `1` of an interaction whose count column is `k` evaluates, on a row, to the
 row's cell `k`. -/
@@ -330,5 +364,15 @@ theorem msg_one_of_countVar {n : ℕ} {i : AbstractInteraction F} {k : Fin n}
     rw [hv]
     simp [Expression.eval, Environment.fromArray, Array.getElem?_ofFn, hn]
   · exact absurd h (by simp)
+
+/-! ## leanISA's bus tuples -/
+
+/-- With leanISA's separators, the tuple of an interaction is its bus tuple (`busTuple`). -/
+theorem flushTuple_channelSep (i : Interaction LeanerVM.Parameters.K) :
+    flushTuple channelSep i = busTuple i.channel i.msg.toList := by
+  apply Vector.ext
+  intro k hk
+  rw [busTuple_getElem]
+  simp [flushTuple, List.getD_eq_getElem?_getD]
 
 end LeanerVM.Arithmetization
