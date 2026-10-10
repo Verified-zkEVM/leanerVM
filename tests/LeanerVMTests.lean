@@ -29,6 +29,7 @@ import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.Opening
 import LeanerVMTests.Protocol.Padding
+import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
