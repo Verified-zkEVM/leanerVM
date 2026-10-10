@@ -21,7 +21,7 @@ The proof system is stated over an abstract `M3Instance`; this module builds the
 proves, from leanISA's constraint system (`leanIsaEnsemble prog`, Clean), the public program
 `prog`, the announced sizes `s` and a Flock specification `F`. It is the only place where the
 proof system meets leanISA, and it is data: what the adaptor's theorems say of it is in
-`LeanIsaSound.lean` and `LeanIsaComplete.lean`.
+`LeanIsa/Sound.lean` and `LeanIsa/Complete.lean`.
 
 **Sizes.** `Sizes` is what the prover announces: the memory log-size and the six opcode tables'
 log-heights (`cpu/mod.rs:144-149`, `read_public`); the bytecode's log-size is the program's.
@@ -40,7 +40,7 @@ channels (`channelSep`, `channelDir`, the memory and bytecode pulls). The first 
 groups: no constraint, flush or count, so the table sumcheck never visits them.
 
 **The bus.** The opcode tables' flushes, and six boundary blocks written from the Rust's
-(`layout.rs:327-386`) and equal to the interactions of leanISA's three remaining components:
+(`layout.rs:349-395`) and equal to the interactions of leanISA's three remaining components:
 the verifier's state push `(1, 1)` and pull `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory
 block's seed push `(g^i, 1, m_i)` and finalize pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the
 bytecode block's seed push and finalize pull of the program's entries (`bytecodeTable`, with the
@@ -48,7 +48,7 @@ program's eight entry columns known to both parties, `Coord.known`). The index c
 verifier's (`idxColumn`), as the Rust's `Coord::Index` is.
 
 **The stack** (`witness.rs:67-101`). Every committed column has a log-size, its table's; the
-eighteen `BLAKE2S` limb columns have none (`Placement::VIRTUAL`, `layout.rs:179-187`). The
+eighteen `BLAKE2S` limb columns have none (`Placement::VIRTUAL`, `witness.rs:21-29`; `layout.rs:160-168`). The
 committed columns, in global order, are sorted by log-size, largest first, ties in global order
 (`stack_offsets`), and laid end to end at aligned offsets (`Blocks.layout`); the stack has
 `μ = max(⌈log₂ total⌉, 15)` variables (`placements_of`). Limb `k` of the `BLAKE2S` table is read
@@ -280,7 +280,7 @@ def minMu : ℕ := 15
 def maxMu : ℕ := 28
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
-`2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/
+`2 ^ MIN_MU` (`placements_of`, `witness.rs:97`). -/
 def leanIsaμ : ℕ := max (Nat.clog 2 (blocks prog s).total) minMu
 
 /-- The blocks fit on the stack. -/
@@ -347,7 +347,7 @@ coordinate `k + 1` of the bytecode tuple at every slot. -/
 def entryColumn (k : Fin 8) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (entry (prog.code i))[k]⟩
 
-/-- The six boundary blocks (`layout.rs:327-386`): the state boundary, the memory seed and
+/-- The six boundary blocks (`layout.rs:349-395`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
@@ -547,37 +547,6 @@ end LeanIsa
 
 /-! ## The bus phase's conditions -/
 
-namespace Bus
-
-variable (I : M3Instance)
-
-/-- The log-heights of a side's blocks: its boundary blocks', then each table's, once per flush
-of that side. -/
-theorem sideSources_map_κ (s : Side) :
-    (sideSources I s).map Source.κ =
-      (I.boundary.filter fun b ↦ decide (b.side = s)).map (·.κ) ++
-        (List.finRange I.ntab).flatMap fun j ↦
-          List.replicate ((I.flushes j).filter fun f ↦ decide (f.1 = s)).length (I.τ j) := by
-  rw [sideSources, List.map_append, List.map_map, List.map_flatMap]
-  congr 1
-  refine List.flatMap_congr fun j _ ↦ ?_
-  rw [List.map_map]
-  simp only [Function.comp_def, Source.κ, List.map_const']
-  congr 1
-  conv_rhs => rw [← List.map_getElem_finRange (I.flushes j)]
-  rw [List.filter_map, List.length_map]
-  rfl
-
-/-- The log-heights of the count side's blocks: each table's, once per count column. -/
-theorem countSources_map_κ :
-    (countSources I).map Source.κ =
-      (List.finRange I.ntab).flatMap fun j ↦ List.replicate (I.counts j).length (I.τ j) := by
-  rw [countSources, List.map_flatMap]
-  refine List.flatMap_congr fun j _ ↦ ?_
-  simp only [List.map_map, Function.comp_def, Source.κ, List.map_const']
-
-end Bus
-
 namespace LeanIsa
 
 /-- Summing over a list with repetitions. -/
@@ -657,7 +626,6 @@ theorem leanIsa_conditions : Bus.Conditions (leanIsaInstance F prog s) where
     exact Bus.push_fits _
   count_fits := (leafCount_count_le F prog s).trans
     ((Bus.blocks_total _ 0).symm.trans_le (Bus.push_fits _))
-
 
 end LeanIsa
 

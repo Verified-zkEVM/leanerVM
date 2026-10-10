@@ -14,6 +14,10 @@ import LeanerVM.Protocol.LeanIsa
 * **The public lines and the bus.** The third line is `MEM_TOP` with cells `0, 0`, not sent;
   six boundary blocks, three per side; the Flock region is `QFLOCK` with `2^τ_BLAKE2S` blocks.
 * **The relation is decidable, and the instance meets the bus phase's conditions.**
+* **Not evaluated: a witness stacked and read back.** Even the smallest shape, a stack of
+  `2^15` cells with one Flock block, does not evaluate in fifteen minutes: the stacking, the
+  column reads and the Flock region's honest column (`F.gen`, the BLAKE2s trace) are written
+  for proofs, not for speed. The read-back is a theorem of the adaptor instead.
 -/
 
 namespace LeanerVMTests.Protocol.LeanIsa
