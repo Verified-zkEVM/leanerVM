@@ -629,13 +629,17 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - `witnessOf_stackOf` gives the opcode tables cell for cell within the components' widths: a
     witness's rows may carry cells past the width, which no constraint reads and the stack drops.
   - The blueprint's stacked-and-read-back test is not evaluated: even a stack of `2^15` cells
-    does not evaluate in fifteen minutes. The read-back is the theorem `witnessOf_stackOf`; the
+    does not evaluate in the interpreter in fifteen minutes. The read-back is the theorem `witnessOf_stackOf`; the
     stack's offsets are tested against the pinned Rust (`scripts/dump-leanisa-layout-rust.sh`),
     and the limbs' cells against the Flock region's slots.
-  - The adaptor is four modules under `LeanIsa/`; the wall's allow-list admits the directory.
-  - Owed: the sizes `piopError_le` assumes, at admissible sizes; the knowledge transport to
-    `SatisfiedBy` along `satisfiedBy_witnessOf`, which waits on the round-by-round-to-plain step
-    (Layer 13).
+  - The adaptor is `LeanIsa.lean` and five modules under `LeanIsa/`; the wall's allow-list
+    admits the directory.
+  - `leanIsaRefinement` is the adaptor as the spine's `Refinement` from `M3Rel` to
+    `SatisfiedBy`. Owed: the sizes `piopError_le` assumes, at admissible sizes (`μ_bus ≤ 30`
+    follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone); the
+    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 13) and
+    on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
+    `EnsembleWitness` is.
 
 ## What can start now
 

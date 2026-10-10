@@ -8,6 +8,7 @@
 module
 
 public import LeanerVM.Protocol.LeanIsa.Sound
+public import LeanerVM.Protocol.ToArkLib.Refinement
 
 /-!
 # The adaptor, completeness
@@ -26,6 +27,9 @@ Then the constraint, bus and count clauses follow from the equivalences of
 (`image_words`), which the seed rows put in the memory columns (`memLimb_stackOf`); and the Flock
 clause from `FlockSpec.holds_gen`, the region being the honest column of the limbs
 (`flockColumn_stackOf`).
+
+`leanIsaRefinement` packages the soundness direction as the spine's `Refinement` from `M3Rel` to
+`SatisfiedBy`, the witness map the knowledge transport needs.
 
 A witness's rows may carry cells past their component's width, which no constraint reads and
 the stack drops: the read-back is cell for cell within the width.
@@ -386,6 +390,20 @@ theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     refine image_sigma_eq rfl _ _ fun x ↦ ?_
     exact (congr (congr (congrArg E.ofLimbs (memLimb_stackOf h hp 0 x))
       (memLimb_stackOf h hp 1 x)) (memLimb_stackOf h hp 2 x)).trans (ofLimbs_limb _)
+
+/-! ## The refinement -/
+
+/-- `SatisfiedBy` as a relation on the protocol's statements: the public input, no oracle. -/
+def satisfiedByRel (prog : Program) :
+    Set ((PublicInput × ∀ i, NoOracle i) × EnsembleWitness (leanIsaEnsemble prog)) :=
+  {p | SatisfiedBy prog p.1.1 p.2}
+
+/-- The adaptor as a refinement: on admissible sizes, reading the witness off the stack maps the
+protocol's relation into leanISA's. -/
+def leanIsaRefinement (F : FlockSpec) (prog : Program) (s : Sizes) (hs : s.Admissible prog) :
+    Refinement (M3Rel (leanIsaInstance F prog s)) (satisfiedByRel prog) where
+  map _ q := witnessOf F prog s q
+  map_valid _ q h := satisfiedBy_witnessOf F prog s q hs h
 
 end
 
