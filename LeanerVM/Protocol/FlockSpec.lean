@@ -30,10 +30,13 @@ A `FlockSpec` says what that predicate means, with no instance in sight:
   the limbs form);
 * `gen`, `holds_gen` (completeness): the column the honest prover builds from a batch of limb
   rows satisfies the predicate;
-* `slots_gen`: if every row is a compression, the column carries the rows at the slots.
+* `slots_gen`: the column carries every row that is a compression at its block's slots.
 
 `compress_of_region`, `region_holds_gen`: the two directions for a Flock region whose matrices
-are the specification's, whatever walks it evaluates them by.
+are the specification's, whatever walks it evaluates them by. The inhabitant's `r1cs` carries the
+naive walks of `ProductCircuit.toBlockR1CS`, which sum `2 ^ 28` entries and do not run at
+leanVM's size; a region with fast walks of the same matrices inherits both directions through
+these two theorems.
 
 `blake2sFlockSpec` is the inhabitant: the R1CS of `blake2sCircuit` and the deployed slots
 (Category B: `crates/lean_vm/src/hash_flock.rs:83-115` at leanVM
@@ -91,10 +94,9 @@ structure FlockSpec where
   /-- Completeness: the honest column satisfies the predicate. -/
   holds_gen : ∀ {κ : ℕ} (rows : Vector (Fin 18 → K) (2 ^ κ)),
     BlockR1CS.BatchHolds r1cs Flock.constPos (bitTable (gen rows))
-  /-- The honest column of a batch of compressions carries the rows at the slots. -/
-  slots_gen : ∀ {κ : ℕ} (rows : Vector (Fin 18 → K) (2 ^ κ)),
-    (∀ t : Fin (2 ^ κ), LimbsCompress rows[t]) →
-      ∀ t : Fin (2 ^ κ), slotLimbs slot (gen rows) t = rows[t]
+  /-- The honest column carries every row that is a compression at its block's slots. -/
+  slots_gen : ∀ {κ : ℕ} (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ)),
+    LimbsCompress rows[t] → slotLimbs slot (gen rows) t = rows[t]
 
 namespace FlockSpec
 
@@ -124,6 +126,9 @@ open Blake2sCircuit
 `4 … 7`, chaining-value cells `0 … 3`, metadata cells `18, 19`. -/
 def slots : Fin 18 → Fin 256 := ![10, 11, 12, 13, 14, 15, 16, 17, 4, 5, 6, 7, 0, 1, 2, 3, 18, 19]
 
+/-- No two limbs share a cell. -/
+theorem slots_injective : Function.Injective slots := by decide
+
 section Blocks
 
 variable {κ : ℕ}
@@ -152,7 +157,7 @@ theorem batchBlock_bitTable (c : Column (8 + κ)) (t : Fin (2 ^ κ)) :
     ofBool, cellBit, blockBits, blockCell, Vector.get_eq_getElem, Fin.getElem_fin]
   rfl
 
-theorem blockBits_pos (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (s : Fin 256) {i : ℕ}
+private theorem blockBits_pos (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (s : Fin 256) {i : ℕ}
     (hi : i < 64) :
     blockBits c t (pos (64 * s.val + i)) = (blockCell c t s).toBitVec.getLsbD i := by
   have h1 : (64 * s.val + i) % 2 ^ m = 64 * s.val + i := Nat.mod_eq_of_lt (by
@@ -162,12 +167,12 @@ theorem blockBits_pos (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (s : Fin 256) {i 
   simp only [blockBits, pos, h1, h2, h3]
 
 /-- Word `w` of block `t`: the low (`w` even) or high (`w` odd) word of cell `w / 2`. -/
-def colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) : UInt32 :=
+private def colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) : UInt32 :=
   if w.val % 2 = 0 then lowWord (blockCell c t ⟨w.val / 2, by omega⟩)
   else highWord (blockCell c t ⟨w.val / 2, by omega⟩)
 
 /-- The input word at `32 w` of block `t` denotes word `w` of the block. -/
-theorem den_colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) {b : ℕ}
+private theorem den_colWord (c : Column (8 + κ)) (t : Fin (2 ^ κ)) (w : Fin 512) {b : ℕ}
     (hb : b = 32 * w.val) : Den (blockBits c t) (inW b) (colWord c t w) := by
   refine den_inW fun i ↦ ?_
   subst hb
@@ -188,7 +193,7 @@ section Soundness
 
 variable {κ : ℕ}
 
-theorem cellWords_ofCell (a b : K) :
+private theorem cellWords_ofCell (a b : K) :
     cellWords (E.ofCell #v[a, b]) = #v[lowWord a, highWord a, lowWord b, highWord b] := rfl
 
 private theorem append_4_4 {α : Type} (a b c d e f g h : α) :
@@ -300,7 +305,8 @@ section Completeness
 variable {κ : ℕ}
 
 /-- A cell is determined by its two words. -/
-theorem eq_of_words {a a' : K} (hl : lowWord a = lowWord a') (hh : highWord a = highWord a') :
+private theorem eq_of_words {a a' : K} (hl : lowWord a = lowWord a')
+    (hh : highWord a = highWord a') :
     a = a' := by
   apply BF64.toBitVec_injective
   apply BitVec.eq_of_getLsbD_eq
@@ -349,7 +355,7 @@ def inputCell (l : Fin 18 → K) : ℕ → K
   | 18 => l 16 | 19 => l 17
   | _ => 0
 
-theorem inputCell_slots (l : Fin 18 → K) (j : Fin 18) (hj : IsInputLimb j) :
+private theorem inputCell_slots (l : Fin 18 → K) (j : Fin 18) (hj : IsInputLimb j) :
     inputCell l (slots j) = l j := by
   fin_cases j <;> first | rfl | (exfalso; revert hj; decide)
 
@@ -374,14 +380,14 @@ computed once. -/
 def genColumn (rows : Vector (Fin 18 → K) (2 ^ κ)) : Column (8 + κ) :=
   columnOf (rows.map honestBlock)
 
-theorem blockCell_genColumn (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ))
+private theorem blockCell_genColumn (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ))
     (s : Fin 256) : blockCell (genColumn rows) t s = packCell (honestBlock rows[t]) s := by
   have h : (cubeSplit 8 κ).symm (cubeIndex s t) = (s, t) := by
     rw [← cubeSplit_apply, Equiv.symm_apply_apply]
   simp only [blockCell, genColumn, columnOf, Fin.getElem_fin, Vector.getElem_ofFn, h,
     Vector.getElem_map]
 
-theorem blockBits_genColumn (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ)) :
+private theorem blockBits_genColumn (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ)) :
     blockBits (genColumn rows) t =
       blake2sCircuit.traceF fun j ↦ (inputForm rows[t]).getLsbD j := by
   rw [← trace_getLsbD]
@@ -402,11 +408,10 @@ theorem holds_gen (rows : Vector (Fin 18 → K) (2 ^ κ)) :
   have hs := trace_satisfies (R := E) bounded_blake2s (fun j ↦ (inputForm rows[t]).getLsbD j)
   exact ⟨hs.1, by simpa [liftBlock, blake2sCircuit_cpos] using hs.2⟩
 
-/-- The honest column of a batch of compressions carries the rows at the slots. -/
-theorem slots_gen (rows : Vector (Fin 18 → K) (2 ^ κ))
-    (hrel : ∀ t : Fin (2 ^ κ), LimbsCompress rows[t]) (t : Fin (2 ^ κ)) :
-    slotLimbs slots (genColumn rows) t = rows[t] := by
-  refine limbsCompress_unique (compress_of_holds _ (holds_gen rows) t) (hrel t) fun j hj ↦ ?_
+/-- The honest column carries every row that is a compression at its block's slots. -/
+theorem slots_gen (rows : Vector (Fin 18 → K) (2 ^ κ)) (t : Fin (2 ^ κ))
+    (hrel : LimbsCompress rows[t]) : slotLimbs slots (genColumn rows) t = rows[t] := by
+  refine limbsCompress_unique (compress_of_holds _ (holds_gen rows) t) hrel fun j hj ↦ ?_
   apply BF64.toBitVec_injective
   apply BitVec.eq_of_getLsbD_eq
   intro i hi

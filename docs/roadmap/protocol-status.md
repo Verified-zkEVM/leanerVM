@@ -322,9 +322,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     `FlockRegion`), the slots, soundness (`compress_of_holds`), the honest column `gen` and
     completeness (`holds_gen`, `slots_gen`); the sketch's `Holds`/`decHolds` are the region's.
     The phase needs only the region.
-  - The phase is written for every circuit; the BLAKE2s walk transcribed from
-    `blake2s_row_values` (`verifier.py:1180-1301`) is the region's data for the leanISA instance,
-    owed with `FlockSpec`'s inhabitant. So is the test of the circuit walk against the Python.
+  - The phase is written for every circuit; the fast circuit walks of the BLAKE2s matrices (the
+    deployed `blake2s_row_values`, `verifier.py:1180-1295`, and the Rust `marginal_walk`) are owed
+    by the leanISA instance, whose region they evaluate; they enter through
+    `FlockSpec.compress_of_region` and `region_holds_gen`, which need only the matrices to agree.
   - The honest run is on a tiny argument (two skipped values, two blocks of four wires): an
     `E` multiplication costs about 2 ms in the interpreter and an inversion about 1 s, and
     leanVM's sizes are a block of `2^14` positions. The slot's typing, the constants and the zero
@@ -363,11 +364,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     Counterexamples on small parameters show the two facts above are load-bearing (a Boolean
     fixed coordinate, the generator `1`).
   - `FlockSpec`'s inhabitant, which the hole names beside `flockSecurity`, is
-    `Blake2sFlock.blake2sFlockSpec` (`Protocol/FlockSpec.lean`): the R1CS of the BLAKE2s circuit,
-    the deployed slots (`hash_flock.rs:93-115`), soundness from `blake2s_sound`, and the honest
-    column of the circuit's traces. Both directions are theorems; the executor's row and the RFC
-    7693 vector round-trip through the honest column. The security, like the definition, holds
-    for every circuit.
+    `Blake2sFlock.blake2sFlockSpec` (`Protocol/FlockSpec.lean`): the R1CS of the BLAKE2s circuit
+    with the naive walks (which do not run at leanVM's size), the deployed slots
+    (`hash_flock.rs:93-115`), soundness from `blake2s_sound`, and the honest column of the
+    circuit's traces. Both directions are theorems. As test evidence, the executor's row and the
+    RFC 7693 vector round-trip through the honest column, and the honest column of eight
+    compressions equals, by digest, the region the pinned prover commits
+    (`scripts/dump-flock-column-rust.sh`). The security, like the definition, holds for every
+    circuit.
   - The circuit library the inhabitant is written in, on the branch stacked on the Flock
     security's: product-gate circuits over GF(2) as data (`ToArkLib/Flock/Circuit.lean`: linear
     forms as bitsets, gates, the lowering `toBlockR1CS`, the honest `trace`; the lowering's two

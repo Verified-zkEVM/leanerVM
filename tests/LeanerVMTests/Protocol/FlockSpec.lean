@@ -11,6 +11,10 @@ import LeanerVM.Protocol.FlockSpec
 * **The honest column.** Two blocks, the two rows: the slots of every block read its row back, so
   the circuit's trace computes the executor's and the RFC's outputs; the column's blocks are the
   honest blocks bit for bit.
+* **The deployed prover's column.** The honest column of the two rows and six of the prover's
+  padding block has the digest of the region the pinned Rust prover commits for the same eight
+  compressions: a differential vector for the packing and the whole gate witness. The two-row
+  checks above test the packing round trip, not fidelity.
 * **What `slots_gen` needs.** The column of a row whose output is wrong carries the true output at
   the output slots, not the row's.
 * **The constant position.** The zero column fails the region predicate of the inhabitant.
@@ -65,7 +69,7 @@ def badRow : Fin 18 → K := Function.update rustRow 10 (K.ofBits 0xf1b0679a15df
 #guard (List.finRange 18).map (fun j ↦ (slots j).val) ==
   [10, 11, 12, 13, 14, 15, 16, 17, 4, 5, 6, 7, 0, 1, 2, 3, 18, 19]
 
-example : Function.Injective slots := by decide
+example : Function.Injective slots := slots_injective
 
 #guard ((List.finRange 18).filter fun j ↦ decide (IsInputLimb j)).length == 14
 
@@ -90,6 +94,32 @@ def honestChecks (col : Column (8 + 1)) : Bool :=
     blockIs col 1 (honestBlock abcRow)
 
 #guard honestChecks (genColumn rows)
+
+/-! ## The deployed prover's column -/
+
+/-- The prover's padding block, `flock::hash::padding_block`: the compression of the zero block
+under the parameter `iv`, counter `64`, last-block flag set. The output limbs are left `0`: the
+honest column computes them. -/
+def padRow : Fin 18 → K :=
+  ![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    limb 0x6b08e647 0xbb67ae85, limb 0x3c6ef372 0xa54ff53a,
+    limb 0x510e527f 0x9b05688c, limb 0x1f83d9ab 0x5be0cd19,
+    K.ofBits 64, limb 0xFFFFFFFF 0]
+
+/-- `Σ_u (word_u mod P) (u + 1) mod P`, `P = 2 ^ 64 - 59`, over a column's cells. -/
+def columnDigest {n : ℕ} (c : Column n) : ℕ :=
+  let P := 2 ^ 64 - 59
+  (List.finRange (2 ^ n)).foldl (fun d u ↦
+    (d + (c.values[u].toBitVec.toNat % P) * (u.val + 1)) % P) 0
+
+-- The honest column of the executor's row, the RFC's and six padding rows is the region the
+-- pinned prover commits for the same compressions (`scripts/dump-flock-column-rust.sh`): the
+-- packing, the gate witness and the output agree cell for cell.
+/-- The eight rows. -/
+def eightRows : Vector (Fin 18 → K) (2 ^ 3) :=
+  Vector.ofFn fun t ↦ if t.val = 0 then rustRow else if t.val = 1 then abcRow else padRow
+
+#guard columnDigest (genColumn (κ := 3) eightRows) == 13489362985207589888
 
 /-! ## What `slots_gen` needs -/
 
