@@ -80,7 +80,7 @@ theorem column_limb_stackOf (k : Fin 18) (x : Fin (2 ^ s.τ 5)) :
       (column_stackOf F prog s w flockCol not_isLimb_flockCol (cubeIndex (F.slot k) x)))
 
 /-- A raw `BLAKE2S` row is a compression exactly when its limbs, cells `9 … 26`, are. -/
-theorem blake2sRelation_array (row : Array K) (data : ProverData K) :
+private theorem blake2sRelation_array (row : Array K) (data : ProverData K) :
     Blake2sRelation (valueFromOffset Blake2sRow 0 (Environment.fromArray row data)) ↔
       LimbsCompress fun k ↦ row[9 + (k : ℕ)]?.getD 0 := by
   unfold Blake2sRelation LimbsCompress
@@ -89,7 +89,7 @@ theorem blake2sRelation_array (row : Array K) (data : ProverData K) :
 /-! ## Rows of the two blocks -/
 
 /-- The cells of a memory-block row: the finalize count at `1`, the limbs at `2, 3, 4`. -/
-theorem memRow_cells (idx cnt : K) (m : Vector K 3) :
+private theorem memRow_cells (idx cnt : K) (m : Vector K 3) :
     (toElements (⟨idx, cnt, m⟩ : MemRow K)).toArray[1]?.getD 0 = cnt ∧
     (toElements (⟨idx, cnt, m⟩ : MemRow K)).toArray[2]?.getD 0 = m[0] ∧
     (toElements (⟨idx, cnt, m⟩ : MemRow K)).toArray[3]?.getD 0 = m[1] ∧
@@ -100,7 +100,7 @@ theorem memRow_cells (idx cnt : K) (m : Vector K 3) :
     rw [Vector.getElem_append] <;> simp
 
 /-- Cell `memRowCell k` of a memory-block row is its column `k`: a limb, or the finalize count. -/
-theorem memRow_cell (idx cnt : K) (m : Vector K 3) (k : Fin 4) :
+private theorem memRow_cell (idx cnt : K) (m : Vector K 3) (k : Fin 4) :
     (toElements (⟨idx, cnt, m⟩ : MemRow K)).toArray[memRowCell k]?.getD 0 =
       ![m[0], m[1], m[2], cnt] k := by
   obtain ⟨c1, c2, c3, c4⟩ := memRow_cells idx cnt m
@@ -108,7 +108,7 @@ theorem memRow_cell (idx cnt : K) (m : Vector K 3) (k : Fin 4) :
   exacts [c2, c3, c4, c1]
 
 /-- The finalize count of a bytecode-block row is its cell `1`. -/
-theorem bytecodeRow_cell (i : Fin (2 ^ prog.logSize)) (c : K) :
+private theorem bytecodeRow_cell (i : Fin (2 ^ prog.logSize)) (c : K) :
     (toElements (bytecodeRowOf prog i c)).toArray[1]?.getD 0 = c := by
   simp [bytecodeRowOf, explicit_provable_type, ProvableStruct.componentsToElements,
     ProvableStruct.toComponents, toComponents, circuit_norm]
@@ -142,7 +142,7 @@ theorem sizes_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w
   exact ⟨_, rfl⟩
 
 /-- An opcode table of a witness within the caps has `2 ^ τ` rows at its log-height `τ`. -/
-theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input w) (j : Fin 6) :
+private theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input w) (j : Fin 6) :
     (opTable w j).table.length = 2 ^ Nat.log 2 (opTable w j).table.length := by
   have hmem : opTable w j ∈ w.tables :=
     mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩
@@ -152,7 +152,7 @@ theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input w) (j :
 /-! ## The stack of a witness agrees with it -/
 
 /-- A cell of a table, as a row's cell. -/
-theorem cellOf_eq (t : Air.Flat.Table K) {x : ℕ} (hx : x < t.table.length) (i : ℕ) :
+private theorem cellOf_eq (t : Air.Flat.Table K) {x : ℕ} (hx : x < t.table.length) (i : ℕ) :
     cellOf t x i = (t.table[x]'hx)[i]?.getD 0 := by
   rw [cellOf, List.getElem?_eq_getElem hx]
   rfl
@@ -174,7 +174,7 @@ theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog
 
 /-- Within its width, an opcode table of a witness satisfying the constraint system is the
 stack's rows. -/
-theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hp : 0 < (imageOf w.data).1) (j : Fin 6) (x : Fin (2 ^ (witnessSizes w hp).τ j))
     (i : Fin (opcodeComponent j).width) :
     cellOf (opTable w j) x i =
@@ -206,7 +206,7 @@ theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     exact Vector.getElem_ofFn _
 
 /-- The memory block of a witness satisfying the constraint system is the stack's. -/
-theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hp : 0 < (imageOf w.data).1) :
     memBlockRows w = memBlockRowsOf F prog (witnessSizes w hp)
       (stackOf F prog (witnessSizes w hp) w) := by
@@ -234,7 +234,7 @@ theorem memRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
   rfl
 
 /-- The bytecode block of a witness satisfying the constraint system is the stack's. -/
-theorem bytecodeRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem bytecodeRows_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hp : 0 < (imageOf w.data).1) :
     bytecodeBlockRows w = bytecodeBlockRowsOf F prog (witnessSizes w hp)
       (stackOf F prog (witnessSizes w hp) w) := by
@@ -265,7 +265,7 @@ theorem agrees_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
 
 /-- A limb column of the memory on the stack of a witness satisfying the constraint system is
 that limb of the image the data names. -/
-theorem memLimb_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem memLimb_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hp : 0 < (imageOf w.data).1) (k : Fin 3) (x : Fin (2 ^ (imageOf w.data).1)) :
     cell F prog (witnessSizes w hp) (stackOf F prog (witnessSizes w hp) w) (memCol k.castSucc) x =
       ((imageOf w.data).2 x).limb k := by
@@ -284,7 +284,7 @@ theorem memLimb_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
 
 /-- The image a witness satisfying the constraint system names holds the public words at
 `g^0` and `g^1`. -/
-theorem image_words {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem image_words {input : PublicInput} (h : SatisfiedBy prog input w)
     (h0 : 0 < 2 ^ (imageOf w.data).1) (h1 : 1 < 2 ^ (imageOf w.data).1) :
     (imageOf w.data).2 ⟨0, h0⟩ = input.word0 ∧ (imageOf w.data).2 ⟨1, h1⟩ = input.word1 := by
   have hκ : (imageOf w.data).1 < 64 := lt_of_le_of_lt h.caps.le_maxLogMem (by decide)
@@ -293,7 +293,7 @@ theorem image_words {input : PublicInput} (h : SatisfiedBy prog input w)
   exact ⟨Option.some.inj e0, Option.some.inj e1⟩
 
 /-- The Flock region of the stack of a witness is the honest column of its `BLAKE2S` limbs. -/
-theorem flockColumn_stackOf :
+private theorem flockColumn_stackOf :
     (leanIsaInstance F prog s).flockColumn (flockRegion prog s F) (stackOf F prog s w) =
       F.gen (blake2sLimbs prog s w) := by
   suffices hv : ((leanIsaInstance F prog s).flockColumn (flockRegion prog s F)
@@ -309,7 +309,7 @@ theorem flockColumn_stackOf :
 
 /-- The stack of a witness satisfying the constraint system holds the public lines: its memory
 columns' first two cells are the public words' limbs. -/
-theorem publicLinesHold_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+private theorem publicLinesHold_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) :
     (leanIsaInstance F prog s).PublicLinesHold input (stackOf F prog s w) := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs

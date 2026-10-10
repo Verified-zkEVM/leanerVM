@@ -43,6 +43,10 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | Flock phase: the BLAKE2s circuit (Layer 9) | #93 | on merge | on merge |
 | Flock phase: `FlockSpec` and its BLAKE2s inhabitant (Layer 9) | #94 | on merge | on merge |
 | the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | #95 | on merge | on merge |
+| Clean expressions as polynomials (Layer 2) | #96 | on merge | on merge |
+| the adaptor: the leanISA instance, its stack and the witness read off it (Layer 3) | #97 | on merge | on merge |
+| the adaptor: soundness, discharging the BLAKE2s validity (Layer 3) | #98 | on merge | on merge |
+| the adaptor: completeness and the witness read back (Layer 3) | this branch | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; on `main`, the public-input phase is built, with the specification's
@@ -110,9 +114,17 @@ definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `fl
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
 at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on the branch of
 #88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
-`ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). Nothing else
-is built: the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees,
-the compiled verifier and the base theorems.
+`ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). On the
+branches stacked on the oracle protocol's, the Clean bridge (`Arithmetization/M3.lean`:
+`Expression.toCMvPolynomial` and `Component.toM3` with their two translation theorems) and the
+adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.lean`:
+`leanIsaInstance`, `witnessOf`, `stackOf`, `leanIsa_conditions`), its soundness
+(`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
+from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
+(`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). Nothing
+else is built: the other generic components, WHIR, the Merkle trees, the compiled verifier and
+the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -165,7 +177,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 - **`piopError_le`** takes the sizes as hypotheses (`μ_bus ≤ 30`, `τ_max ≤ 32`, `B ≤ 2^16`,
   `kBatch ≤ 32`, `J ≤ 2^16`) and bounds the sum by `(2^32 + 2^31 + 2^20)/|E|`; the numeric
   test shows it below `2^{-159}`. That the leanISA instance meets the hypotheses at admissible
-  sizes is the adaptor's to prove.
+  sizes is still owed: the adaptor proves the phases' side conditions, not these sizes.
 - **The refutation lemmas** are `Verifier.not_rbr_of_escape`, the certain-escape lemma for a
   check that later challenges follow, `Verifier.not_rbr` and `Verifier.not_rbr_zero` derived
   from it, and `Reduction.not_perfectCompleteness_of_reject` (with a primed form for the empty
@@ -214,7 +226,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     gives (`read_public` rejects a nonzero one, `cpu/mod.rs:139-143`), and on a statement whose
     top line is not zero the constant is unsound (tested). That `leanIsaInstance` has a zero top
     line, and lists `mem_0` then `mem_1` as its two sent lines (`checkWords` reads their cells as
-    the limbs `y⁰` and `y¹` of the two words), is the adaptor's to prove.
+    the limbs `y⁰` and `y¹` of the two words), holds by the definition of its `publicLines`,
+    which the instance tests check.
 - **The grand-product GKR (Layer 5)** is at the spine's slot schedule and error: `gkr` carries
   no error and is typed at `gkrSpec F nside μ` of `ToArkLib/Schedule.lean`, whose design it owns,
   `gkrComplete` extends `Component.Guarded`, and its knowledge soundness `gkrSecurity` is stated
@@ -289,8 +302,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     and without which a side would be truncated. The deployed verifier asserts the fits of its
     layouts (`leaf.rs:130-134`; it asks the pull side's depth to equal the push side's, which
     is stronger) and rejects a point shorter than `τ_max` (`constraints.rs:251-253`).
-    `τ_max ≤ μ_bus` is derived (`Conditions.τmax_le`). That `leanIsaInstance` meets
-    `Bus.Conditions` at admissible sizes is the adaptor's to prove; `leanVmPhases` needs it.
+    `τ_max ≤ μ_bus` is derived (`Conditions.τmax_le`). `leanIsaInstance` meets
+    `Bus.Conditions` at every size (`leanIsa_conditions`).
   - A block of leaves is a `Bus.Source` (a boundary block, one flush of one table, one count
     column); a side's blocks are listed by `Bus.sources` and stacked by a stable sort, largest
     first. `pushLeaves`, `pullLeaves` and `countLeaves` are the three sides of
@@ -485,7 +498,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     `CompressCells` of `Semantics/Blake2s.lean` on eighteen limbs (`LimbsCompress`), in place of
     the sketch's leanISA `Blake2sRelation` on `Blake2sRow`, which the wall forbids above the
     adaptor. The adaptor relates the two: `Blake2sRelation r` is `LimbsCompress` of `r`'s eighteen
-    value limbs in column order. Its fields are the R1CS (`r1cs : BlockR1CS E 14`, matching
+    value limbs in column order (`blake2sRelation_ofFn`). Its fields are the R1CS (`r1cs : BlockR1CS E 14`, matching
     `FlockRegion`), the slots, soundness (`compress_of_holds`), the honest column `gen` and
     completeness (`holds_gen`, `slots_gen`); the sketch's `Holds`/`decHolds` are the region's.
     The phase needs only the region.
@@ -575,7 +588,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     exactly when the bus seam's two claims hold (`trueValues_eq_claimed_iff`).
   - Completeness takes `I.d ≤ 2`: the slot's rounds are cubic and the summand has degree `d + 1`
     in each variable. It is the phase's side condition, as the bus phase's are (decision 30);
-    that the leanISA instance has `d = 2` is the adaptor's to state.
+    the leanISA instance has `d = 2` by definition.
   - `ξ` is #77's `Component.batch` over the `B + 3` claimed values, zero for each constraint
     then the three totals, numbered table by table (`constraintPos`, `position_val`), so the
     branch stacks on #77; the final values are numbered the same way (`columnPos`).
@@ -597,11 +610,37 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     unfold `lowPoint` by name, has merged. The review is
     [archived](../reviews/protocol-table-sumcheck.md).
 
+- **The Clean bridge (Layer 2)** is computable over CompPoly, beside Clean #466's Mathlib-side
+  `toMvPolynomial` (claimed by #28, merged upstream after the pin). Where it differs from the
+  sketch:
+  - Flushes carry the arithmetization's `Direction`, since the arithmetization may not import the
+    spine's `Side`; the counted channels are a predicate, and the count columns are listed in
+    column order, each once, as the Rust's `count_columns()` are.
+  - `eval_toCMvPolynomial` is stated on a row of the width's cells (on a longer array it is
+    false); `eval_fromArray_truncate` covers other rows.
+- **The adaptor (Layer 3).** Where it differs from the sketch:
+  - The instance's tables are the Rust's global column order: the memory columns, `BFCNT`,
+    `QFLOCK`, then the six opcode tables. `Sizes` carries `0 < logMem`, which `PublicLine`
+    needs; `stackOf` takes the sizes rather than a proof that `Sizes.ofWitness` returns them.
+  - `boundary_tuples_eq` is subsumed by `Agrees` and `tuples_perm`, which cover the boundary
+    blocks and the opcode tables in one statement and serve both directions; `caps_witnessOf`
+    replaces `caps_of_admissible`; `witnessOf` takes the Flock specification, whose slots the
+    layout reads the limbs at.
+  - `witnessOf_stackOf` gives the opcode tables cell for cell within the components' widths: a
+    witness's rows may carry cells past the width, which no constraint reads and the stack drops.
+  - The blueprint's stacked-and-read-back test is not evaluated: even a stack of `2^15` cells
+    does not evaluate in fifteen minutes. The read-back is the theorem `witnessOf_stackOf`; the
+    stack's offsets are tested against the pinned Rust (`scripts/dump-leanisa-layout-rust.sh`),
+    and the limbs' cells against the Flock region's slots.
+  - The adaptor is four modules under `LeanIsa/`; the wall's allow-list admits the directory.
+  - Owed: the sizes `piopError_le` assumes, at admissible sizes; the knowledge transport to
+    `SatisfiedBy` along `satisfiedBy_witnessOf`, which waits on the round-by-round-to-plain step
+    (Layer 13).
+
 ## What can start now
 
-The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the Flock phase's definition and completeness (Layer 9),
-the WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
+The spine's slots are on `main`, so the phases are written against them. These can start: the
+WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
 
 ## Upstream watch
 
