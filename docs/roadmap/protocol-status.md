@@ -1,7 +1,7 @@
 # Status: the leanVM proof system on ArkLib
 
-Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `b12a9e8` (2026-10-07),
-checked on 2026-10-07; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
+Where the [protocol blueprint](protocol-blueprint.md) stands on `main` at `08dd030` (2026-10-07),
+checked on 2026-10-10; a row marked *on merge* lands with its pull request. This file says what is built and what the built work still owes the
 blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 [#12](https://github.com/Verified-zkEVM/leanerVM/issues/12)'s; discrepancies in the leanVM sources
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
@@ -36,15 +36,22 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | fingerprint and collision bound (Layer 5): the product lemma and the collision bound | #78 | `3c7ecbe` | 2026-10-07 |
 | bus phase: definition and completeness (Layer 6) | #79 | `97ef4d4` | 2026-10-07 |
 | bus phase: knowledge soundness (Layer 6) | #80 | `b12a9e8` | 2026-10-07 |
-| the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
+| the opening phase (Layer 10), without `leanVmPhases` | #81 | `08dd030` | 2026-10-07 |
 | Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
 | Flock phase: knowledge soundness (Layer 9) | #88 | on merge | on merge |
+| Flock phase: the product-gate circuit library (Layer 9) | #92 | on merge | on merge |
+| Flock phase: the BLAKE2s circuit (Layer 9) | #93 | on merge | on merge |
+| Flock phase: `FlockSpec` and its BLAKE2s inhabitant (Layer 9) | #94 | on merge | on merge |
+| the oracle protocol: `leanVmPhases` and leanVM's master theorems (Layer 10) | PR_PIOP | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
-phases after the commitment; of those, the public-input phase is built, with the specification's
+phases after the commitment; on `main`, the public-input phase is built, with the specification's
 check and with the check of the deployed verifiers, the bus phase, both halves, with #79 and
 #80, the table sumcheck, both halves, with #85 and #87, and the opening phase, both halves, with
-#81. `#print axioms` gives the kernel's three
+#81. With the Flock phase (#86, #88), all five are built, and the branch of the oracle protocol
+instantiates the master theorems at leanVM's phases (`Protocol/Piop.lean`: `leanVmPhases`,
+`leanVmComplete`, `leanVmSecurity`, `leanVm_perfectCompleteness`, `leanVm_rbrKnowledgeSoundness`)
+for every instance meeting the bus phase's conditions and the degree bound `I.d ≤ 2`. `#print axioms` gives the kernel's three
 axioms, and no `sorryAx`, for the two master theorems, both halves of the commit phase and of
 each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
 `card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
@@ -349,13 +356,21 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`, `crates/pcs/src/stack_open.rs:518-526`,
   `python-verifier/verifier.py:1409-1413`). Where it differs from Layer 10's section, or what
   it leaves to the work after it:
-  - `leanVmPhases` is a block comment at the end of `Opening.lean`: it needs the Flock phase,
-    which the hole's row in the blueprint does not list among its *Needs* (nor the bus phase and
-    the table sumcheck, now built). A test puts the deployed public-input phase and the opening
-    phase in their slots and gets both master theorems from the three other phases' proofs.
-  - The section's protocol-level test (the phases up to Layer 8 composed with pass-throughs
-    after, an honest run accepted by `#guard`) waits with `leanVmPhases`: a pass-through has the
-    empty schedule, not a slot's, so no bundle of pass-throughs fills `Phases`.
+  - `leanVmPhases` is not in `Opening.lean` but in `Protocol/Piop.lean`, on the branch that
+    composes the phases after the Flock phase's: it needs every phase, which the hole's row in the
+    blueprint does not list among its *Needs*, and the opening should not import them all. There,
+    `leanVmComplete` and `leanVmSecurity` fill the two bundles and the spine's master theorems
+    become leanVM's: `leanVm_perfectCompleteness` and `leanVm_rbrKnowledgeSoundness`, for every
+    instance meeting the bus phase's `Bus.Conditions` and the table sumcheck's `I.d ≤ 2`; the
+    toy meets both, and so does a test instance whose column is a Flock region with the BLAKE2s
+    circuit's R1CS; statement locks spell the two theorems at both. The blueprint's
+    `leanVmPhases (I) (h₁ h₂)` takes both conditions; here `leanVmPhases` takes the bus phase's
+    alone, since the phases themselves need nothing else, and the degree bound goes to the two
+    bundles.
+  - The section's protocol-level honest run accepted by `#guard` is not written: at the toy the
+    bus phase's GKR and the table sumcheck run in `E`, which the interpreter computes slowly, and a
+    pass-through has the empty schedule, not a slot's, so no bundle of pass-throughs fills
+    `Phases`.
     `piopExtractedStack_eq` holds of every bundle and is the spine's test.
   - The blueprint is asked, through a `docs(protocol)` pull request, to move `leanVmPhases` and
     the protocol-level test to a hole of their own, "the oracle protocol", needing every phase,
@@ -585,9 +600,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: Clean
-expressions as polynomials (Layer 2), the WHIR opening, and the Merkle trees with the WHIR
-parameters (Layer 11). The Flock phase's knowledge soundness (Layer 9) is built on the branch
-stacked on the Flock phase's.
+expressions as polynomials (Layer 2), the Flock phase's definition and completeness (Layer 9),
+the WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
 
 ## Upstream watch
 
