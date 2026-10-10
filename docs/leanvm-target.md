@@ -201,6 +201,25 @@ former code in parentheses is for reading older pull requests.
   (`pcs/src/whir.rs:1364-1365, 1771-1772`; every level grinds 17 bits); the size of a WHIR Merkle
   leaf (`pcs/src/whir.rs:394-395`; 24 bytes a lane).
 
+**The specification's analysis, checked by the proof.**
+
+- *The fixed coordinates' independence.* Annex C's soundness argument applies
+  `lem:fixed-zerocheck`, whose hypothesis is that the 128 weights `eq(a, b)` of the seven fixed
+  coordinates are `F_2`-independent (`c-flock-protocol.tex:278`,
+  `03-proving-primitives.tex:95-108`). The specification asserts it and the Rust tests it
+  numerically (`flock/src/zerocheck/univariate_skip_optimized.rs:920`). It holds: Lean proves it
+  from the constants (`fixedWeights_independent`).
+- *Ring switching's error.* Annex A bounds the six coefficients together by Schwartz–Zippel, at
+  total degree `2^31 + 2^15 + 2^7 + 8 + 2 + 1 < 2^32` (`a-ring-switching.tex:120-128`); the
+  blueprint spreads that as `2^{2^{5−p}−1}/|E|` on `f_p`. Round by round, each coefficient costs
+  `1/|E|`. If the `π`s of the slices' errors do not all vanish, one of them stays nonzero after a
+  stage for every coefficient but one, since Frobenius is injective (`card_stage_zero_le_one`).
+- *The constant position's error.* Annex C charges `k/|E|` for the constant position, checked at
+  the random `χ_out` (`c-flock-protocol.tex:274`); the blueprint spreads that as `1/|E|` more on
+  each batch round. Round by round it costs nothing: the constant position's track and a false
+  claim are exclusive states, so a batch round costs `2/|E|`. The proved errors sum to
+  `(3k + 169)/|E|`, against the slot's `(4k + 302 + 2^31 + 2^15)/|E|` (`sum_flockError_generic`).
+
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
 finding F9, that it omits them, was false.

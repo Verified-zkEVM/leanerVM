@@ -38,6 +38,7 @@ The pins are those of `upstreams.json`: leanVM `a386121f`, ArkLib `7653a901`, Co
 | bus phase: knowledge soundness (Layer 6) | #80 | `b12a9e8` | 2026-10-07 |
 | the opening phase (Layer 10), without `leanVmPhases` | #81 | on merge | on merge |
 | Flock phase: definition and completeness (Layer 9) | #86 | on merge | on merge |
+| Flock phase: knowledge soundness (Layer 9) | #88 | on merge | on merge |
 
 The two master theorems are proved over an abstract instance and are conditional on the five
 phases after the commitment; of those, the public-input phase is built, with the specification's
@@ -100,9 +101,11 @@ zero-round step whose verifier asks an input oracle one question and checks the 
 combined by powers (`ToArkLib/WeightBatch.lean`). On the branch of #86, the Flock phase's
 definition and completeness (`Protocol/Flock.lean`: `flockPhase` at the slot `flockSpec`,
 `flockComplete`, `flockError_le`), the generic Flock argument for a batch of Boolean R1CS blocks
-at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`). Nothing else is
-built: the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees, the
-compiled verifier and the base theorems.
+at leanVM's sizes and constants (`ToArkLib/Flock/`, `Parameters/Flock.lean`); on the branch of
+#88, stacked on it, its knowledge soundness (`flockSecurity`, on the generic
+`ToArkLib/Flock/Security.lean` and the field facts of `Protocol/FlockFields.lean`). Nothing else
+is built: the other generic components, the Clean bridge, the adaptor, WHIR, the Merkle trees,
+the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -485,6 +488,30 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     (plain, highest variable first). Like the GKR's, the zerocheck binds the lowest variable first
     and its invariant moves challenge by challenge, which `Sumcheck.normalized` does not do.
   - `sum_flockErrorOf` is public, for `flockError_le`.
+  - Knowledge soundness (`flockSecurity`, #88, stacked on #86) is the generic
+    `Flock.flockSecurity` at leanVM's constants, raised to the slot's error by `Security.mono`. It
+    takes two facts about the constants that completeness does not, proved in
+    `Protocol/FlockFields.lean`: the fixed coordinates' weights are `F_2`-independent
+    (`fixedWeights_independent`), and ring switching is injective (`ringSwitch_injective`, through
+    `1, y^{2^k}, y^{2^{k+1}}` being a `K`-basis of `E`, `limbs_eq_zero_of_frob`). The sketch's
+    third fact, that the 64 `c_k` are distinct monomials, is not needed: a stage-by-stage count
+    replaces Schwartz–Zippel.
+  - The proved error is below the slot's: `2/|E|` on a batch round where the slot charges
+    `3/|E|`, and `1/|E|` on a ring-switching coefficient where it charges `2^{2^{5−p}−1}/|E|`
+    (`flockError_le_flockErrorOf`; `(3k + 169)/|E|` in all, `sum_flockError_generic`). The slot's
+    error is kept, since the spine fixes it; the blueprint is asked, through a `docs(protocol)`
+    pull request, whether to lower it (the findings *Ring switching's error* and *The constant
+    position's error* in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin)).
+  - Refutations, as theorems on the generic components, whatever the extractor and the state
+    function: the lincheck's terminal check (`linEnd_unchecked_no_stateFunction`), the zeros on
+    the skip nodes (`skipDraw_unzeroed_not_rbr`: interpolating values sent at every node) and
+    the constant position's `α³` term (`alphaDraw_noConst_not_rbr`). The target `T` computed from
+    the `s_i` has its rejection test (wrong slices give a false weighted claim); the weighted
+    claim entering the pool is the output seam, which the security's output hypothesis reads.
+    Counterexamples on small parameters show the two facts above are load-bearing (a Boolean
+    fixed coordinate, the generator `1`).
+  - `FlockSpec`'s inhabitant, which the hole names beside `flockSecurity`, is owed with the
+    BLAKE2s circuit (#3's); the security, like the definition, holds for every circuit.
 
 - **The table sumcheck phase (Layer 7)** is at the slot's schedule `tableSpec I`. Where it differs
   from Layer 7's sketch, or what it leaves to the work after it:
