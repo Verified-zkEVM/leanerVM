@@ -367,6 +367,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     soundness and gate-count contracts (`ToArkLib/Flock/Builder.lean`) and the 32-bit adders
     (`ToArkLib/Flock/Words.lean`). Clean was measured and not used for the block: its expression
     trees are traversed unmemoised and its R1CS export allocates a fresh signal per product.
+  - The BLAKE2s compression circuit in it (`Protocol/Blake2sCircuit.lean`, Category B, from
+    `crates/flock/src/hash.rs` and `verifier.py:1180-1301`): `blake2sCircuit` (14720 product
+    gates from 1280, then the 256 output rows), `bounded_blake2s` from the gate-count contracts,
+    and `blake2s_sound`/`blake2s_sound_words`: a satisfying Boolean block with `1` at position 512
+    carries at its output positions `compress` of the words at its input positions. Its rows
+    equal the Python walk's, by digest (`scripts/dump-flock-circuit-digest.py`).
 
 ## What can start now
 
