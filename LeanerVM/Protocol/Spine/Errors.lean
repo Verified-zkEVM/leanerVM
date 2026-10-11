@@ -185,8 +185,7 @@ private theorem sum_tableError :
 
 /-- The public-input phase: the challenge `r`, then the values of the lines marked `sent`, as
 one message. It is the same for every instance. -/
-@[reducible]
-def pubSpec : ProtocolSpec 2 := ⟨!v[.V_to_P, .P_to_V], !v[E, List E]⟩
+abbrev pubSpec : ProtocolSpec 2 := ⟨!v[.V_to_P, .P_to_V], !v[E, List E]⟩
 
 instance instOracleInterfacePub : ∀ i, OracleInterface (pubSpec.Message i)
   | ⟨0, h⟩ => nomatch h

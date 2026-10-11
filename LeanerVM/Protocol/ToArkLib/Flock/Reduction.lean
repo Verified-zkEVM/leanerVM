@@ -148,30 +148,20 @@ variable {F : Type} [Field F] [DecidableEq F] [SampleableType F] (P : Params F)
 
 /-- The Flock argument as one component. -/
 def flock : Component.Def S O W StmtOut O W (flockSchedule F P.s P.m P.κ P.nRand s') :=
-  (pointDraws P.nRand).append (skipMsg P C z) |>.append (skipDraw P) |>.append
+  (Component.drawPushes O F P.nRand).append (skipMsg P C z) |>.append (skipDraw P) |>.append
     (zcRoundsLow P C z side) |>.append (zcRoundsHigh P C z side) |>.append (zcEnd P C z) |>.append
     (alphaDraw P) |>.append (linRounds P C z side) |>.append (linEnd P C z) |>.append
     (ringSwitch P s' φ g lift finish)
 
-/-- The point's draws read only the transcript. -/
-def pointDrawsFront : (j : ℕ) → Component.Front (pointDraws (S := S) (F := F) (O := O) (W := W) j)
-  | 0 => Component.passThroughFront O _
-  | j + 1 => (pointDrawsFront j).append (Component.sampleFront O F _ _)
-
-/-- The ring-switching draws read only the transcript. -/
-def ringDrawsFront : (p : ℕ) → Component.Front (ringDraws P (S := S) (O := O) (W := W) p)
-  | 0 => Component.passThroughFront O _
-  | p + 1 => (ringDrawsFront p).append (Component.sampleFront O F _ _)
-
 /-- The Flock verifier checks the statement and the transcript and hands the oracles on: it
 never reads them. -/
 def flockFront : Component.Front (flock P C z side s' φ g lift finish (W := W)) :=
-  (pointDrawsFront P.nRand).append (Component.sendCheckedFront O _ _ _ _) |>.append
+  (Component.drawPushesFront O F P.nRand).append (Component.sendCheckedFront O _ _ _ _) |>.append
     (Component.sampleFront O F _ _) |>.append (roundsFront _ _ _ _ _ _) |>.append
     (roundsFront _ _ _ _ _ _) |>.append (Component.sendCheckedFront O _ _ _ _) |>.append
     (Component.sampleFront O F _ _) |>.append (roundsFront _ _ _ _ _ _) |>.append
     (Component.sendCheckedFront O _ _ _ _) |>.append
-    ((ringDrawsFront P s').append (Component.sampleFront O F _ _))
+    ((Component.drawPushesFront O F s').append (Component.sampleFront O F _ _))
 
 variable [CharP F 2] (col : (∀ i, O i) → CMlPolynomialEval K (P.m + P.κ))
   (stack : (∀ i, O i) → CMlPolynomialEval K μ)
@@ -191,13 +181,14 @@ def flockComplete
     (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
     (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
     Component.Complete (flock P C z side s' φ g lift finish (W := W)) relIn relOut :=
-  (pointDrawsComplete P C z side relIn (fun s o w h ↦ by
+  (Component.drawPushesComplete O F (pointRel P C z side) (fun s o w h ↦ by
       obtain ⟨hside, hholds⟩ := hIn s o w h
       obtain ⟨herr, hconst⟩ := (batchHolds_iff C P.cpos (z o)).mp hholds
       refine ⟨hside, fun i b ↦ ?_, hconst⟩
       rw [evalMle_eq_sum]
       exact Finset.sum_eq_zero fun u _ ↦ by rw [herr i u, zero_mul])
-    P.nRand).append (skipMsgComplete P C z side) |>.append
+    (fun j _ ↦ drawPointComplete P C z side j) P.nRand le_rfl).append
+    (skipMsgComplete P C z side) |>.append
     (skipDrawComplete P C z side hnodes) |>.append (zcRoundsLowComplete P C z side) |>.append
     (zcRoundsHighComplete P C z side) |>.append (zcEndComplete P C z side) |>.append
     (alphaDrawComplete P C z side) |>.append (linRoundsComplete P C z side) |>.append

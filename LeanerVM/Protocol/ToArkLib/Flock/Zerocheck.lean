@@ -21,8 +21,9 @@ the argument carries along untouched. `Params` fixes the sizes and the public co
 `2 · 2 ^ s` skip nodes (the skip domain, then its coset), the fixed prefix of the zerocheck point
 and the constant position. The zerocheck is five components (Annex C, §C.2):
 
-1. `pointDraws`: the verifier draws the `nRand` coordinates of the point after the fixed ones.
-   The state (`pointRel`): every residual is zero on the coordinates fixed so far.
+1. `Component.drawPushes O F nRand`: the verifier draws the `nRand` coordinates of the point
+   after the fixed ones. The state (`pointRel`): every residual is zero on the coordinates fixed
+   so far.
 2. `skipMsg`: the prover sends `P` on the coset of the skip domain (`skipMessage`).
 3. `skipDraw`: the verifier draws `z_skip` and interpolates `P(z_skip)` from `64` assumed zeros
    and the received values (`skipClaim`): the claim of the sumcheck.
@@ -116,31 +117,14 @@ instance [∀ s o, Decidable (side s o)] (j : ℕ) (p : (PointStmt S F j × ∀ 
     Decidable (p ∈ pointRel P C z side j) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _))
 
-/-- One coordinate of the point. -/
-def drawPoint (j : ℕ) : Component.Def (PointStmt S F j) O W (PointStmt S F (j + 1)) O W (draw F) :=
-  Component.sampleChallenge O F (fun _ ↦ true) (fun s x ↦ (s.1, s.2.push x))
-
-/-- The first `j` drawn coordinates of the point. -/
-def pointDraws : (j : ℕ) → Component.Def S O W (PointStmt S F j) O W (draws F j)
-  | 0 => Component.passThrough O fun s ↦ (s, #v[])
-  | j + 1 => (pointDraws j).append (drawPoint j)
-
 /-- Completeness of one coordinate: a residual zero on the point so far stays zero with one
 more coordinate fixed. -/
 def drawPointComplete (j : ℕ) :
-    Component.Complete (drawPoint (O := O) (W := W) (S := S) (F := F) j)
+    Component.Complete (Component.drawPush (S := S) (W := W) O F j)
       (pointRel P C z side j) (pointRel P C z side (j + 1)) :=
   Component.sampleChallengeComplete O F _ _ fun _ _ _ h ↦ ⟨rfl, fun x ↦ ⟨h.1, fun i ↦ by
     simp only [P.pointPartial_push]
     exact restrictedZero_update_of_none (h.2.1 i) (P.pointPartial_next _) x, h.2.2⟩⟩
-
-/-- Completeness of the point's draws, from an input relation that gives the residuals and the
-constant position. -/
-def pointDrawsComplete (relIn : Set ((S × ∀ i, O i) × W))
-    (hIn : ∀ s o w, ((s, o), w) ∈ relIn → (((s, #v[]), o), w) ∈ pointRel P C z side 0) :
-    (j : ℕ) → Component.Complete (pointDraws j) relIn (pointRel P C z side j)
-  | 0 => Component.passThroughComplete O _ hIn
-  | j + 1 => (pointDrawsComplete relIn hIn j).append (drawPointComplete P C z side j)
 
 /-! ## The univariate skip -/
 

@@ -227,9 +227,7 @@ def Blake2sSpec (r : Blake2sRow K) (next : Regs K) (data : ProverData K) : Prop 
 def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
-    StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.blake2s.code)
+    instructionStep r.pc r.fp r.rbc next .blake2s
       #v[r.om0, r.om1, r.om2, r.om3, r.ocv, r.oout, r.omd]
     memRead (r.fp * r.om0) r.rm0 #v[r.m0[0], r.m0[1], 0]
     memRead (r.fp * r.om1) r.rm1 #v[r.m1[0], r.m1[1], 0]
@@ -245,7 +243,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
-    simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
+    simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
   -- The named assumption: Flock's proof of the compression relation on the row's limbs.
   Assumptions r _ := Blake2sRelation r
@@ -255,7 +253,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
   ProverAssumptions r data _ := Blake2sBindings (imageOf data).2 r
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
     obtain ⟨-, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_holds
     obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1, hvmd,
@@ -274,7 +272,7 @@ def blake2sTable : GeneralFormalCircuit K Blake2sRow Regs where
     · simpa only [E.ofCell, Vector.getElem_map] using hmd
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead, E.ofCell]
+      instructionStep, memRead, bytecodeRead, E.ofCell]
     -- The nine memory pull guarantees are the bindings; the tuple `main` emits decodes
     -- (Layer 4).
     obtain ⟨hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_assumptions
@@ -292,7 +290,8 @@ theorem blake2sRow_complete {r : Blake2sRow K} {data : ProverData K}
     ConstraintsHold.Completeness (rowEnv data) ((blake2sTable.main (const r)).operations 0) :=
   (blake2sTable.completeness 0 (rowEnv data) (const r)
     -- No witness slot: the row environment uses the local witnesses vacuously.
-    (by simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]) r
+    (by simp only [circuit_norm, blake2sTable, instructionStep, memRead, bytecodeRead,
+      -BitVec.reduceNeg]) r
     ProvableType.eval_const_prover h).1
 
 /-! ## Rows from executions -/

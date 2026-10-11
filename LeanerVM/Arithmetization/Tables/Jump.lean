@@ -202,9 +202,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
     let next : Var Regs K :=
       ⟨b * r.vpc + b * (Expression.const g * r.pc) + Expression.const g * r.pc,
         b * r.vfp + b * r.fp + r.fp⟩
-    StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.jump.code) #v[r.oc, r.od, r.of, 0, 0, 0, 0]
+    instructionStep r.pc r.fp r.rbc next .jump #v[r.oc, r.od, r.of, 0, 0, 0, 0]
     memRead (r.fp * r.oc) r.rc #v[r.vcond, 0, 0]
     memRead (r.fp * r.od) r.rd #v[r.vpc, 0, 0]
     memRead (r.fp * r.of) r.rf #v[r.vfp, 0, 0]
@@ -213,7 +211,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
-    simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
+    simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
   -- The row refines the relation over the data's image, to the pushed successor.
   Spec := JumpSpec
@@ -223,7 +221,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
   ProverAssumptions r data _ := ∃ next, JumpSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The bytecode guarantee, that the tuple decodes, is unused (see `XOR`).
     obtain ⟨hw, hb, -, hc, hd, hf⟩ := h_holds
     have hind := flags_sound hw hb
@@ -235,7 +233,7 @@ def jumpTable : GeneralFormalCircuit K JumpRow Regs where
       simp only [hind, one_mul, add_assoc, CharTwo.add_self_eq_zero, add_zero]
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees are the bindings of the semantic premise, the tuple `main`
     -- emits decodes (Layer 4), and the two residuals hold of the honest witnesses.
     obtain ⟨next, h⟩ := h_assumptions
@@ -268,7 +266,7 @@ theorem jump_env_iff (env : ProverEnvironment K) (offset : ℕ) (r : Var JumpRow
   -- the descent (E7).
   obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := r
   dsimp only [jumpTable]
-  simp only [↓ite_feq, circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
+  simp only [↓ite_feq, circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
   -- The two sides differ only in the instance paths of `K`'s field structure.
   exact Iff.rfl
 

@@ -197,10 +197,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
     -- `f̄ = 1 + f_pc + f_fp`: `1` at the three store modes' flags in `cell` mode, `0` otherwise.
     let fbar : Expression K := 1 + r.fpc + r.ffp
-    StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.deref.code)
-      #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
+    instructionStep r.pc r.fp r.rbc next .deref #v[r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0]
     memRead (r.fp * r.o1) r.r1 #v[r.p, 0, 0]
     memRead (r.fp * r.o3) r.r3 r.v3
     memRead (r.p * r.o2) r.r2
@@ -211,7 +208,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
   channelsWithRequirements := [StatePush.toRaw, MemPush.toRaw, BytecodePush.toRaw]
   requirementsChannelsLawful input offset := by
     -- Without core's `BitVec.reduceNeg` simproc, which misreads `-1 : K` (finding E6).
-    simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
+    simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
   -- The row refines the relation over the data's image, to the pushed successor.
   Spec := DerefSpec
@@ -220,7 +217,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
   ProverAssumptions r data _ := ∃ next, DerefSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     obtain ⟨⟨ins, hdec⟩, h1, h3, h2⟩ := h_holds
     obtain ⟨_, _, _, _, _, _, _, _, hv3, _, _, _, _⟩ := h_input
     subst hv3
@@ -236,7 +233,7 @@ def derefTable : GeneralFormalCircuit K DerefRow Regs where
     · simpa only [Vector.getElem_map] using h2
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the target read carries the coordinates of the mode's source
     -- (`storeCoords_eval`).
@@ -287,7 +284,8 @@ theorem deref_exec_complete {data : ProverData K} {pc fp o1 o2 o3 : K} {mode : D
         (const (derefRowOf (imageOf data).2 pc fp o1 o2 o3 mode r1 r2 r3 rbc))).operations 0) :=
   (derefTable.completeness 0 (rowEnv data) (const _)
     -- No witness slot: the row environment uses the local witnesses vacuously.
-    (by simp only [circuit_norm, derefTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
+    (by simp only [circuit_norm, derefTable, instructionStep, memRead, bytecodeRead,
+      -BitVec.reduceNeg]) _
     ProvableType.eval_const_prover ⟨_, derefRowOf_refines hexec r1 r2 r3 rbc⟩).1
 
 end LeanerVM.Arithmetization

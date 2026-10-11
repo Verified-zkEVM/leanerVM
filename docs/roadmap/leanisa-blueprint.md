@@ -698,12 +698,16 @@ theorem xor_refines_iff : XorRefines mem r next ↔
       next = Regs.next ⟨r.pc, r.fp⟩
 def XorSpec (r : XorRow K) (next : Regs K) (data : ProverData K) : Prop :=
   XorRefines (imageOf data).2 r next
+-- Tables/Basic.lean: the state step and fetch every opcode row shares
+def instructionStep (pc fp rbc : Expression K) (next : Var Regs K) (op : Opcode)
+    (operands : Vector (Expression K) 7) : Circuit K Unit := do
+  StatePull.pull ⟨pc, fp⟩
+  StatePush.push next
+  bytecodeRead pc rbc (Expression.const op.code) operands
 def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
-    StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.code) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
+    instructionStep r.pc r.fp r.rbc next .xor #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
     memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
@@ -1316,7 +1320,7 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   Direction  channelDir  channelSep  busTuple
                   memDataName  memRows  imageOf
                   WellShapedData
-                  rowEnv
+                  rowEnv  instructionStep
                   XorRow  MulRow  SetRow  DerefRow  JumpRow  Blake2sRow  Blake2sRelation
                   XorBindings  MulBindings  DerefBindings  JumpBindings  Blake2sBindings
                   XorRefines  MulRefines  SetRefines  DerefRefines  JumpRefines  Blake2sRefines

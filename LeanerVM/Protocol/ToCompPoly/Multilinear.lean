@@ -144,14 +144,18 @@ theorem evalMle_replicate {n : ℕ} (a : R) (x : Vector R n) :
 
 /-! ## Splitting the cube -/
 
+/-- The bound of `cubeIndex`, on natural numbers. -/
+theorem cubeIndex_lt {k m : ℕ} {i : ℕ} (hi : i < 2 ^ k) (j : Fin (2 ^ m)) :
+    i + 2 ^ k * j.val < 2 ^ (k + m) := by
+  rw [pow_add]
+  calc i + 2 ^ k * j.val < 2 ^ k + 2 ^ k * j.val := Nat.add_lt_add_right hi _
+    _ = 2 ^ k * (j.val + 1) := by ring
+    _ ≤ 2 ^ k * 2 ^ m := Nat.mul_le_mul_left _ j.isLt
+
 /-- The index of the cube `{0,1}^(k+m)` whose low `k` bits are `i` and whose high `m` bits are
 `j`. -/
 def cubeIndex {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) : Fin (2 ^ (k + m)) :=
-  ⟨i.val + 2 ^ k * j.val, by
-    rw [pow_add]
-    calc i.val + 2 ^ k * j.val < 2 ^ k + 2 ^ k * j.val := Nat.add_lt_add_right i.isLt _
-      _ = 2 ^ k * (j.val + 1) := by ring
-      _ ≤ 2 ^ k * 2 ^ m := Nat.mul_le_mul_left _ j.isLt⟩
+  ⟨i.val + 2 ^ k * j.val, cubeIndex_lt i.isLt j⟩
 
 @[simp] theorem cubeIndex_val {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val = i.val + 2 ^ k * j.val := rfl
@@ -240,15 +244,18 @@ theorem lagrangeBasis_cubeIndex {k m : ℕ} (w : Vector R (k + m)) (i : Fin (2 ^
 def boolVec {m : ℕ} (j : Fin (2 ^ m)) : Vector R m :=
   Vector.ofFn fun b ↦ if j.val.testBit b then 1 else 0
 
+/-- A bit plus twice an index of `{0,1}^m` is an index of `{0,1}^(m+1)`. -/
+theorem ite_add_two_mul_lt_two_pow_succ {m n : ℕ} {c : Prop} [Decidable c] (h : n < 2 ^ m) :
+    (if c then 1 else 0) + 2 * n < 2 ^ (m + 1) := by
+  rw [pow_succ]
+  split <;> omega
+
 /-- The index of a cube point, read bit by bit: coordinate `b` is bit `b`, and a coordinate
 that is not `1` reads as `0`. The inverse of `boolVec` on the cube (`boolIndex_boolVec`). -/
 def boolIndex [DecidableEq R] : {m : ℕ} → Vector R m → Fin (2 ^ m)
   | 0, _ => 0
-  | m + 1, p => ⟨(if p[0] = 1 then 1 else 0) + 2 * (boolIndex p.tail).val, by
-      have := (boolIndex p.tail).isLt
-      simp only [Nat.add_sub_cancel] at this
-      rw [pow_succ]
-      split <;> omega⟩
+  | m + 1, p => ⟨(if p[0] = 1 then 1 else 0) + 2 * (boolIndex p.tail).val,
+      ite_add_two_mul_lt_two_pow_succ (boolIndex p.tail).isLt⟩
 
 /-- The all-ones index of the cube `{0,1}^m`. -/
 def onesIndex (m : ℕ) : Fin (2 ^ m) :=
@@ -376,11 +383,6 @@ omit [CommRing R] in
 theorem slice_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m))
     (i : Fin (2 ^ k)) : (slice t j)[i] = t[cubeIndex i j] := by
   simp [slice]
-
-/-- The bound of `cubeIndex`, on natural numbers. -/
-theorem cubeIndex_lt {k m : ℕ} {i : ℕ} (hi : i < 2 ^ k) (j : Fin (2 ^ m)) :
-    i + 2 ^ k * j.val < 2 ^ (k + m) :=
-  (cubeIndex ⟨i, hi⟩ j).isLt
 
 omit [CommRing R] in
 /-- `slice_getElem` with a natural-number index. -/

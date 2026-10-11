@@ -185,7 +185,7 @@ variable [Field F] [DecidableEq F] [SampleableType F] [Finite F] (P : Params F)
 /-- One coordinate of the point: a residual not zero on the coordinates so far escapes at one
 value at most. -/
 def drawPointSecurity (j : ℕ) :
-    Component.Security (drawPoint (S := S) (F := F) (O := O) (W := Unit) j)
+    Component.Security (Component.drawPush (S := S) (W := Unit) O F j)
       (pointRel P C z side j) (pointRel P C z side (j + 1)) (drawError F (overF F 1)) :=
   Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
     Component.card_badChallenge_le_of_unit O F _ 1 s o fun hin ↦ by
@@ -206,7 +206,7 @@ def drawPointSecurity (j : ℕ) :
 def pointDrawsSecurity (relIn : Set ((S × ∀ i, O i) × Unit))
     (hIn : ∀ s o, ((s, o), ()) ∈ relIn → (((s, #v[]), o), ()) ∈ pointRel P C z side 0)
     (hOut : ∀ s o, (((s, #v[]), o), ()) ∈ pointRel P C z side 0 → ((s, o), ()) ∈ relIn) :
-    (j : ℕ) → Component.Security (pointDraws (S := S) (F := F) (O := O) (W := Unit) j) relIn
+    (j : ℕ) → Component.Security (Component.drawPushes (S := S) (W := Unit) O F j) relIn
       (pointRel P C z side j) (drawsError F (overF F 1) j)
   | 0 => Component.passThroughSecurity O _ (fun s o w h ↦ by cases w; exact hOut s o h)
       fun s o w h ↦ by cases w; exact hIn s o h
@@ -563,18 +563,14 @@ variable [CharP F 2] (s' : ℕ) {K : Type} [CommRing K] (φ : K →+* F) (g : K)
 def ringStartSecurity
     (hinj : ∀ δ : Fin (2 ^ P.s) → F,
       (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
-    Component.Security (ringDraws P (S := S) (O := O) (W := Unit) 0) (outRel P z side)
-      (ringRel P z side s' φ g 0) (drawsError F (overF F 1) 0) :=
+    Component.Security (Component.drawPushes (S := OutStmt S F (P.m + P.κ) P.s) (W := Unit) O F 0)
+      (outRel P z side) (ringRel P z side s' φ g 0) (drawsError F (overF F 1) 0) :=
   Component.passThroughSecurity O _
     (fun st o _ h ↦ ⟨h.1, fun i ↦ by
       have herr := hinj _ (fun k hk ↦ h.2 k (by simpa using hk)) i
       simp only [ringStages, List.ofFn_zero, frobMap, sliceError, sub_eq_zero] at herr
       exact herr⟩)
-    fun st o _ h ↦ ⟨h.1, fun k _ ↦ by
-      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
-        rw [sliceError, h.2 i, sub_self]
-      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
-      simp⟩
+    fun _ _ _ h ↦ ringRel_zero_of_outRel P z side s' φ g h
 
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [CharP F 2] in
 /-- Before the last stage the `π`s run below `2 · 2 ^ (s' - p)`. -/
@@ -584,8 +580,8 @@ private theorem two_pow_succ_sub {p : ℕ} (hp : p ≤ s') : 2 ^ (s' + 1 - p) = 
 /-- One coefficient: a family whose `π`s do not all vanish keeps a nonzero `π` after the stage
 for every coefficient but one. -/
 def ringDrawSecurity (p : ℕ) (hp : p ≤ s') :
-    Component.Security (ringDraw P (S := S) (O := O) (W := Unit) p) (ringRel P z side s' φ g p)
-      (ringRel P z side s' φ g (p + 1)) (drawError F (overF F 1)) :=
+    Component.Security (Component.drawPush (S := OutStmt S F (P.m + P.κ) P.s) (W := Unit) O F p)
+      (ringRel P z side s' φ g p) (ringRel P z side s' φ g (p + 1)) (drawError F (overF F 1)) :=
   Component.sampleChallengeSecurity O F _ _ _ fun st o _ ↦
     Component.card_badChallenge_le_of_unit O F _ _ st o fun hin ↦ by
       have := Fintype.ofFinite F
@@ -613,8 +609,8 @@ def ringDrawsSecurity
     (hinj : ∀ δ : Fin (2 ^ P.s) → F,
       (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
     (p : ℕ) → p ≤ s' →
-      Component.Security (ringDraws P (S := S) (O := O) (W := Unit) p) (outRel P z side)
-        (ringRel P z side s' φ g p) (drawsError F (overF F 1) p)
+      Component.Security (Component.drawPushes (S := OutStmt S F (P.m + P.κ) P.s) (W := Unit) O F p)
+        (outRel P z side) (ringRel P z side s' φ g p) (drawsError F (overF F 1) p)
   | 0, _ => ringStartSecurity P z side s' φ g hinj
   | p + 1, hp =>
     (ringDrawsSecurity hinj p (by omega)).append (ringDrawSecurity P z side s' φ g p (by omega))
