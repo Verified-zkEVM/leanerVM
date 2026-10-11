@@ -620,7 +620,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | the Merkle trees | leanVM's trees on VCVio's library | the fit lemma holds (decision 32) |
-| Clean #466 | Clean expressions as polynomials | the proof-side bridge | merged and the pin bumped |
+| Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 

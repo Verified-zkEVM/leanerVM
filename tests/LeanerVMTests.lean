@@ -16,6 +16,7 @@ import LeanerVMTests.Protocol.Blake2sCircuit
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ClaimWeights
+import LeanerVMTests.Protocol.ComponentPolynomial
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
