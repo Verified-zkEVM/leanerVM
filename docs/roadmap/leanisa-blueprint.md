@@ -15,9 +15,13 @@ constraintSoundness :
   WellFormedBytecode prog → SatisfiedBy prog input w →
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t
 constraintCompleteness :
-  WellFormedBytecode prog → ValidExecution prog input t →
-    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
+  WellFormedBytecode prog → ValidExecution prog input t → t.Fits →
+    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
+      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t'
 ```
+
+Completeness is for a *padded* trace of `t`, under the trace-side condition `t.Fits`: the statement
+for `t` itself is false (Layer 10; acceptance tests 23 to 25).
 
 The semantics is a single function `step`; the tables are Clean components over CompPoly's
 binary fields; the statement is on Clean's `EnsembleWitness`. The route is chosen so that the
@@ -1150,9 +1154,14 @@ only the `sentinelSafe` field of `WellFormedBytecode`. The remaining rows are th
 ### Layer 10: constraint soundness and completeness
 
 ```lean
-/-- `HasFillBlocks prog`: for every table and every size in `[128, 64, …, 1]` the program
-contains a closed walk of that many rows of the table's opcode ending in a `JUMP` back to its
-first instruction (`crates/lean_compiler/src/filler.rs`). -/
+/-- `HasFillBlocks prog`: for every table and every size in `fillSizes = [128, 64, …, 1]` the
+program contains a fill block (`IsFillBlock`): `s` dummy instructions of the table's opcode
+(`fillDummy`) at consecutive slots, then the closing `JUMP [DEST, DEST, NEXT_FP]` (`fillClose`),
+all below the sentinel slot (`crates/lean_compiler/src/filler.rs`, `lower.rs:462-533`, identical
+at leanVM `a386121f` and `48a90420`). The dummies read and write the twelve-cell frame the
+interpreter provides and the closing jump goes back to the block's first slot in that frame, so a
+block is a closed walk; the frames are not part of the program. In `Semantics`, beside
+`SentinelSafe`, since it speaks of `Program` and `Instr` only. -/
 def HasFillBlocks (prog : Program) : Prop
 
 /-- The program-shape conditions the two theorems need. A further condition the Clean proofs
@@ -1164,10 +1173,30 @@ structure WellFormedBytecode (prog : Program) : Prop where
   /-- The fill blocks are present (acceptance test 15). -/
   hasFillBlocks : HasFillBlocks prog
 
+/-- `t'` is `t` padded: the same steps, a memory log-size at least `t`'s, and `t`'s words at the
+same indices. The cells above `2^t.κ` are the fill frames. -/
+structure Trace.PaddedFrom (t' t : Trace prog) : Prop
+
+/-- What a trace needs for its tables to be filled to a power of two within the caps. Not part of
+`ValidExecution`, which is the ISA-level notion: soundness extracts its trace from a witness,
+where `Caps` already holds. -/
+structure Trace.Fits (t : Trace prog) : Prop where
+  /-- Room above the image for the forty-eight fill frames (acceptance test 24). -/
+  room : t.κ < maxLogMem
+  /-- Every table but `JUMP`, filled to its target, has at most `2^maxLogRows` rows
+  (acceptance test 25). -/
+  rows : ∀ op, op ≠ .jump → fillTarget (t.runRows op) (minRows op) ≤ 2 ^ maxLogRows
+  /-- The `JUMP` table, which also takes a closing jump from every traversal of every other
+  table's fill, can be filled: some `2^τ ≤ 2^maxLogRows` is at least the rows it owes and is not
+  one more than them (acceptance test 26). -/
+  jump : JumpFeasible t.owed
+
 theorem constraintSoundness (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t
-theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t) :
-    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
+theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+    (hfit : t.Fits) :
+    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
+      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t'
 ```
 
 Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's
@@ -1181,6 +1210,18 @@ BLAKE2S table to at least eight rows — with closed walks from the fill blocks,
 Each field is forced (acceptance tests 15 and 20), and the compiled guest satisfies both: the
 compiler pads the sentinel slot with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:162`) and
 emits the fill blocks (`filler.rs`).
+
+**The padding.** The padded image `padImage` keeps the committed image below `2^t.κ` and puts one
+twelve-cell frame for each of the forty-eight cycles (six tables, eight sizes) above it, where the
+interpreter writes them (`cpu/filler.rs:73-87`); a run valid on `t` is the same run on the padded
+trace (`PaddedFrom.valid`). A traversal of a block is a closed walk of `s + 1` states over the
+padded image (`fill_cycle_run`, the fill-block lemma), so its states cancel on the state channel
+and the skeletons of any fill are valid fillers (`padSkels_valid`). It gives its own table `s` rows
+and the `JUMP` table one, the closing jump: a closed run shorter than `2^64 - 1` steps takes a
+jump, since `g` has that order, so the tables are coupled and the plan is one for the whole trace.
+`planCount` is a plan, not the Rust's `solve`: every table other than `JUMP` is filled as
+`fillGreedy` says, and the `JUMP` gap as `jumpMix` says, and `plan_rows` is that every table then
+has its height, a power of two within the cap.
 
 ## Acceptance tests and nearby false statements
 
@@ -1284,6 +1325,39 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     `leanIsaVerifier prog` and `SatisfiedBy prog`'s conjunct `BytecodeRowsAreTheProgram prog`
     (decision 14). The guarantee is not `True` either: `DEREF`'s flag pair `(1, 1)` refutes it
     (acceptance test 18).
+23. **Completeness is for a padded trace: the image.** `AssignmentRepresents` forces the witness
+    image to be the trace's, but `ValidExecution` pins the image only at the cells the run reads
+    and at `g^0`, `g^1`, and the padding rows of every table read and write cells of that same
+    image. Witness: for every program of `2^11` slots whose first instruction is
+    `JUMP [g^2, g^2, g^3]` to the sentinel, one step is a valid execution on an image whose five
+    words `y`, `x·y`, `d`, `1`, `y²` are linearly independent over `GF(2)`, so no `XOR`
+    instruction executes on it at any registers or operands (`image_obstruction`), and the
+    repository's `FillerRowsValid` fails on any filler start that fetches an `XOR`. The `XOR`
+    table has a row (`Caps.heights` is a power of two), so a witness for this trace would put a
+    non-step on the bus; that last implication is Layer 9's `mem_channel_sound` and is argued
+    here, not checked. Hence completeness concludes a witness for a padded trace, and on the
+    padded image the same trace steps (`padded_bad_xor_step`). A version stated for the same
+    trace is false.
+24. **Room.** The frames the fill blocks run in (`48 * 12 = 576` cells) need space above the
+    image: a trace at `κ = maxLogMem` has no padding within the cap, and `PaddedFrom.valid` takes
+    the cap as a hypothesis (`no_room_at_cap`, `Trace.Fits.room`).
+25. **Size.** `Caps.heights` bounds every table by `2^32` rows while `Trace.steps` is unbounded,
+    and a witness that represents a valid trace has a row for every step: a run of
+    `1 + 33 · 2^30` steps has no witness. Hence `Trace.Fits.rows`, which bounds the padded height
+    of every table but `JUMP` (`fillTarget`, the least power of two above the rows, the floor and
+    one). A trace that fits has at most `6 · 2^32` steps (`Trace.Fits.steps_le`), so the long run is
+    no fitting trace (`long_run_exceeds_sizes`); that no witness satisfies `Caps` and represents it
+    needs `Caps` and `AssignmentRepresents`, so that half is an Arithmetization test, beside the
+    completeness theorem: `steps_le_rows` counts the rows and `completeness_fails_on_long_run`
+    is the refutation, for well formed bytecode too (`completeness_needs_fit`).
+26. **A `JUMP` gap of one.** The smallest block that adds `JUMP` rows adds two (a dummy jump that
+    falls through and the closing jump), so no traversal delivers a single row, and the `JUMP`
+    table can be filled to `2^τ` only if `2^τ ≠ rows owed + 1`. With `2^32 - 1` rows owed no plan
+    fits in the cap (`no_plan_one_below_cap`, `no_gap_of_one`, `Trace.Fits.jump`).
+27. **Padding is coupled to the `JUMP` table.** Every step but a taken `JUMP` advances the counter
+    by `g`, which has order `2^64 - 1`, so a closed run shorter than that contains a taken jump
+    (`closed_walk_has_taken_jump`): every traversal of a fill block, whatever its table, adds a
+    row to `JUMP`, and the rows `JUMP` owes (`jumpOwed`) depend on every table's fill.
 
 ## Interfaces supplied to later work
 
@@ -1308,6 +1382,13 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   execute_of_step
                   Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
                   Trace  Trace.regs  HasPublicBoundary  ValidExecution
+                  fillSizes  fillTables  fillDummy  fillClose  IsFillBlock  HasFillBlocks
+                  WellFormedBytecode
+                  minRows  fillTarget  fillGreedy  fillTraversals  jumpOwed  JumpFeasible  jumpMix
+                  Trace.PaddedFrom  Trace.runRows  Trace.owed  Trace.Fits  padImage  padTrace
+                  Trace.PaddedFrom.valid  fill_dummy_step  fill_close_step  fill_cycle_run
+                  Skel  cycleSkels  padSkels  SkelsValid  padSkels_valid
+                  Trace.runSkels  planCount  tableHeight  plan_rows  Trace.count_rows
 Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
                   decode_deref_eq_some_iff
                   MemMsg  BytecodeMsg
@@ -1347,7 +1428,7 @@ Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_e
                   assignmentRepresents_image
                   mem_channel_sound  bytecode_channel_sound
                   no_row_at_sentinel  exists_run_of_balanced
-                  HasFillBlocks  WellFormedBytecode  constraintSoundness  constraintCompleteness
+                  constraintSoundness  constraintCompleteness
 ```
 
 Everything not listed is a proof, a helper, or a test. The named hypotheses a reviewer must
@@ -1374,8 +1455,9 @@ Layers 1 and 2; Layer 5 needs Layers 3 and 4; Layer 6 needs Layer 5, and its six
 independent of one another; Layer 7 needs Layer 5 and the shared vocabulary of Layer 6
 (`Tables/Basic.lean`, `rowEnv`); Layer 8 needs Layers 6 and 7. Layer 9 needs
 Layer 8 and the Clean contract of the dependency table; until that contract is met its
-statements are block comments at their places. Layer 10 needs Layer 9, and its completeness
-half additionally needs the fill-block lemma.
+statements are block comments at their places. Layer 10 needs Layer 9. Its completeness half
+also needs the padded-trace vocabulary and the fill-block lemma, which are `Semantics` and need
+nothing above it, so they can land first.
 
 Each layer is one pull request (Layer 6 may be two), titled `feat(<layer>): …`, and it lands
 with `./scripts/validate.sh` green, its modules registered in `LeanerVM.lean` and

@@ -219,14 +219,24 @@ The public theorem ladder is:
          ISA.ValidExecution version program publicInput trace
 
    constraintCompleteness:
-     ISA.ValidExecution version program publicInput trace →
-       ∃ assignment,
-         Constraints.SatisfiedBy version program publicInput assignment ∧
-         Constraints.AssignmentRepresents assignment trace
+     ISA.ValidExecution version program publicInput trace → trace.Fits →
+       ∃ trace',
+         trace'.PaddedFrom trace ∧
+         ISA.ValidExecution version program publicInput trace' ∧
+         ∃ assignment,
+           Constraints.SatisfiedBy version program publicInput assignment ∧
+           Constraints.AssignmentRepresents assignment trace'
    ```
 
-   The advertised equivalence is therefore between valid ISA traces and constraint assignments
-   projecting to those traces. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
+   The advertised equivalence is therefore between valid ISA traces, up to padding of their
+   memory, and constraint assignments projecting to those traces. Completeness is for a padded
+   trace, with a named resource hypothesis, because the statement for the same trace is false:
+   the padding rows of every table read and write cells of the committed image, which a valid
+   execution pins only where it reads; and `Caps` bounds every table by `2^32` rows while a valid
+   execution is unbounded. `Trace.Fits` is the room above the image for the fill frames, the row
+   cap on every table, and a deliverable gap in the `JUMP` table; it is a hypothesis of
+   completeness only, since soundness extracts its trace from a witness where the caps already
+   hold. The leanISA roadmap's acceptance tests 23 to 27 give the witnesses. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
    lookup, bytecode, memory, padding, and interaction-count results; none may remain as an
    unlabelled axiom. Both directions are stated for well-formed programs: a named program-shape
    hypothesis (`WellFormedBytecode` in the leanISA roadmap: the sentinel slot is not a `JUMP`,

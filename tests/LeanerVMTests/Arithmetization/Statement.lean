@@ -1,4 +1,4 @@
-import LeanerVM.Arithmetization.Statement
+import LeanerVM.Arithmetization.Completeness.Basics
 
 /-!
 # Layer 8 tests: the constraint statement
@@ -157,20 +157,6 @@ def bcCntFin (i : Fin (2 ^ fillProg.logSize)) : K := bcCnt i
 
 /-! ## The rows -/
 
-/-- A typed row as a raw row. -/
-def rawRow {Row : TypeMap} [ProvableType Row] (r : Row K) : Array K := (toElements r).toArray
-
-theorem row_size {Row : TypeMap} [ProvableType Row] (r : Row K) : (rawRow r).size = size Row :=
-  Vector.size_toArray _
-
-/-- The rows of a table of typed rows all have the row type's width. -/
-theorem rows_size {Row : TypeMap} [ProvableType Row] (rs : List (Row K)) :
-    ∀ r ∈ rs.map rawRow, r.size = size Row := by
-  intro r hr
-  rw [List.mem_map] at hr
-  obtain ⟨_, -, rfl⟩ := hr
-  exact row_size _
-
 -- Frame `1`: the run.
 /-- Slot `0`, `SET_CONSTANT g^2 ← x`, with read count `c` (`1` for the honest prover). -/
 def setRow0 (c : K) : SetRow K :=
@@ -219,7 +205,7 @@ theorem jumpRaw_size (rs : List (JumpRow K)) :
   intro r hr
   rw [List.mem_map] at hr
   obtain ⟨_, -, rfl⟩ := hr
-  rw [jumpRaw, Array.size_append, row_size]
+  rw [jumpRaw, Array.size_append, rawRow_size]
   rfl
 
 /-- Row `i` of the memory block: `(g^i, cnt i, mem[i])`, the raw form of the typed row. -/
@@ -241,21 +227,22 @@ def mkT {Input Output : TypeMap} [ProvableType Input] [ProvableType Output]
     (h : ∀ r ∈ rows, r.size = width) : Air.Flat.Table K :=
   ⟨⟨c⟩, width, rows, fillData, h⟩
 
-def xorT : Air.Flat.Table K := mkT xorTable (size XorRow) ([xorRow].map rawRow) (rows_size [xorRow])
+def xorT : Air.Flat.Table K :=
+  mkT xorTable (size XorRow) ([xorRow].map rawRow) (rawRows_size [xorRow])
 /-- The `MUL_NATIVE` table, its row's read count of `x` `rA`. -/
 def mulT (rA : K) : Air.Flat.Table K :=
-  mkT mulTable (size MulRow) ([mulRow rA].map rawRow) (rows_size [mulRow rA])
+  mkT mulTable (size MulRow) ([mulRow rA].map rawRow) (rawRows_size [mulRow rA])
 /-- The `SET_CONSTANT` table, its first row's read count `c`. -/
 def setT (c : K) : Air.Flat.Table K :=
-  mkT setTable (size SetRow) ([setRow0 c, setRow1].map rawRow) (rows_size [setRow0 c, setRow1])
+  mkT setTable (size SetRow) ([setRow0 c, setRow1].map rawRow) (rawRows_size [setRow0 c, setRow1])
 def derefT : Air.Flat.Table K :=
-  mkT derefTable (size DerefRow) ([derefRow].map rawRow) (rows_size [derefRow])
+  mkT derefTable (size DerefRow) ([derefRow].map rawRow) (rawRows_size [derefRow])
 def jumpT : Air.Flat.Table K :=
   mkT jumpTable (size JumpRow + 2) ([jumpRow3, jumpRow5, jumpRow7, jumpRow16].map jumpRaw)
     (jumpRaw_size [jumpRow3, jumpRow5, jumpRow7, jumpRow16])
 def blakeT : Air.Flat.Table K :=
   mkT blake2sTable (size Blake2sRow) ((List.ofFn blakeRow).map rawRow)
-    (rows_size (List.ofFn blakeRow))
+    (rawRows_size (List.ofFn blakeRow))
 /-- The memory block, with finalize counts `cnt`. -/
 def memT (cnt : ℕ → K) : Air.Flat.Table K :=
   mkT memTable (size MemRow) (List.ofFn (memRowArr cnt)) (by
@@ -270,7 +257,7 @@ def bcT : Air.Flat.Table K :=
       intro r hr
       rw [List.mem_ofFn] at hr
       obtain ⟨i, rfl⟩ := hr
-      exact row_size _)
+      exact rawRow_size _)
 
 /-- A witness over the fixture's data and input with the tables `ts`, eight tables of the
 ensemble's components in order: the proofs are by cases on the list, so `ts` is a literal. -/
@@ -444,47 +431,6 @@ theorem fill_regs :
 
 /-! ## Proof helpers: the interactions the kernel evaluates -/
 
-/-- A table's interactions through the row circuit (Clean's `Component.interactions_eq`): the
-form the kernel evaluates, `Component.operations` reaching them through `instantiate` and
-`toSubcircuit`, which it does not unfold (finding E8). -/
-theorem table_interactions_eq (t : Air.Flat.Table K) :
-    t.interactions = t.table.flatMap fun row ↦
-      t.component.rowOperations.interactions.map (·.eval (t.environment row)) := by
-  simp only [Air.Flat.Table.interactions, Operations.interactionValues, Component.interactions_eq]
-
-/-- The memory block's two interactions, on a row's variables. -/
-theorem memTable_rowOps :
-    (⟨memTable⟩ : Component K).rowOperations.interactions =
-      [⟨MemPush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), false⟩,
-       ⟨MemPull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-          MemMsg (Expression K)), true⟩] := by
-  with_unfolding_all rfl
-
-/-- The bytecode block's two interactions, on a row's variables. -/
-theorem bytecodeTable_rowOps :
-    (⟨bytecodeTable⟩ : Component K).rowOperations.interactions =
-      [⟨BytecodePush.toRaw, 1, toElements (⟨var ⟨0⟩, 1, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), false⟩,
-       ⟨BytecodePull.toRaw, -1, toElements (⟨var ⟨0⟩, var ⟨1⟩, var ⟨2⟩,
-          #v[var ⟨3⟩, var ⟨4⟩, var ⟨5⟩, var ⟨6⟩, var ⟨7⟩, var ⟨8⟩, var ⟨9⟩]⟩ :
-          BytecodeMsg (Expression K)), true⟩] := by
-  with_unfolding_all rfl
-
-/-- A table whose row circuit interacts on no channel named `c` sends nothing on `c`, whatever
-its rows. -/
-theorem filter_eq_nil_of_rowOps (t : Air.Flat.Table K) (c : RawChannel K)
-    (h : ∀ i ∈ t.component.rowOperations.interactions, i.channel.name ≠ c.name) :
-    t.interactions.filter (·.channel.name = c.name) = [] := by
-  rw [List.filter_eq_nil_iff, table_interactions_eq]
-  intro i hi
-  rw [List.mem_flatMap] at hi
-  obtain ⟨r, -, hi⟩ := hi
-  rw [List.mem_map] at hi
-  obtain ⟨j, hj, rfl⟩ := hi
-  exact fun h' ↦ h j hj (of_decide_eq_true h')
-
 /-- The memory block sends nothing on a channel that is not its pair. -/
 theorem memT_filter (cnt : ℕ → K) (c : RawChannel K) (hc : c.name ≠ MemPush.name)
     (hc' : c.name ≠ MemPull.name) :
@@ -602,46 +548,6 @@ theorem fins_split (cnt : ℕ → K) (h : ∀ i, touched ≤ i → cnt i = 1) :
 
 /-! ## Proof helpers: constraints -/
 
-theorem xor_constraints (env : Environment K) :
-    (⟨xorTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-theorem mul_constraints (env : Environment K) :
-    (⟨mulTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, mulTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-theorem set_constraints (env : Environment K) :
-    (⟨setTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, setTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-theorem deref_constraints (env : Environment K) :
-    (⟨derefTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, derefTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-theorem blake2s_constraints (env : Environment K) :
-    (⟨blake2sTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, blake2sTable, memRead, bytecodeRead, -BitVec.reduceNeg]
-
-theorem mem_constraints (env : Environment K) :
-    (⟨memTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, memTable, -BitVec.reduceNeg]
-
-theorem bytecode_constraints (env : Environment K) :
-    (⟨bytecodeTable⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, bytecodeTable, -BitVec.reduceNeg]
-
-theorem verifier_constraints (env : Environment K) :
-    (⟨leanIsaVerifier fillProg⟩ : Component K).operations.ConstraintsHold env := by
-  rw [Component.constraintsHold_iff]
-  simp only [circuit_norm, leanIsaVerifier, -BitVec.reduceNeg]
-
 /-- The `JUMP` table's two residuals hold on its four rows, with the witnesses `w = b = 1`. -/
 theorem jumpT_constraints : jumpT.Constraints := by
   intro r hr
@@ -660,7 +566,7 @@ theorem fill_constraints (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).Constra
   intro t ht
   simp only [EnsembleWitness.allTables, fillW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact fun _ _ ↦ verifier_constraints _
+  · exact fun _ _ ↦ verifier_constraints _ _
   · exact fun _ _ ↦ xor_constraints _
   · exact fun _ _ ↦ mul_constraints _
   · exact fun _ _ ↦ set_constraints _
@@ -847,13 +753,6 @@ theorem fill_satisfiedBy : SatisfiedBy fillProg mulInput (fillW 1 g memCnt) wher
 
 /-! ## The witness represents the trace -/
 
-/-- A row's state messages, through the row circuit. -/
-theorem rowMessagesOn_eq (t : Air.Flat.Table K) (r : Array K) (c : RawChannel K) :
-    rowMessagesOn t r c =
-      ((t.component.rowOperations.interactions.map (·.eval (t.environment r))).filter
-        (·.channel.name = c.name)).map (·.msg) := by
-  rw [rowMessagesOn, Operations.interactionValues, Component.interactions_eq]
-
 /-- Each of the run's four steps is one row's state pull and push. -/
 theorem fill_regs_embed :
     ∀ k (hk : k + 1 < fillTrace.regs.length),
@@ -994,7 +893,7 @@ theorem blakeRow'_no_relation : ¬ Blake2sRelation blakeRow' := by
   decide +kernel
 
 def blakeT' : Air.Flat.Table K :=
-  mkT blake2sTable (size Blake2sRow) ([blakeRow'].map rawRow) (rows_size [blakeRow'])
+  mkT blake2sTable (size Blake2sRow) ([blakeRow'].map rawRow) (rawRows_size [blakeRow'])
 
 /-- The witness with the wrong digest in its `BLAKE2S` table (one row; the caps are not the
 point). -/
@@ -1048,7 +947,7 @@ example : ¬ SatisfiedBy fillProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (fillW 1
 /-- A three-row `SET_CONSTANT` table, not a power of two. -/
 def setT3 : Air.Flat.Table K :=
   mkT setTable (size SetRow) ([setRow0 1, setRow1, setRow1].map rawRow)
-    (rows_size [setRow0 1, setRow1, setRow1])
+    (rawRows_size [setRow0 1, setRow1, setRow1])
 
 def heightW : EnsembleWitness (leanIsaEnsemble fillProg) :=
   mkW [xorT, mulT g, setT3, derefT, jumpT, blakeT, memT memCnt, bcT]
@@ -1074,7 +973,7 @@ example : ¬ Caps heightW := fun h ↦ by
 def blakeT4 : Air.Flat.Table K :=
   mkT blake2sTable (size Blake2sRow)
     ((List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)).map rawRow)
-    (rows_size (List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)))
+    (rawRows_size (List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)))
 
 theorem blakeT4_table :
     blakeT4.table = (List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)).map rawRow := by
