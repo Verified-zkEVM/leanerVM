@@ -51,6 +51,9 @@
   circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
   comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
   checkout at the pinned commit.
+- `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
+  offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
+  comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.
