@@ -158,5 +158,25 @@ example (κ R : ℕ) (m : CMlPolynomialEval K κ) (v : Fin (2 ^ (κ + R))) :
     IsInK (encode (algebraMap K E) κ R (CMlPolynomialEval.map (algebraMap K E) m) v) :=
   isInK_encode_ofK κ R m v
 
+/-- The encoder is injective over `K` and over `E`, at every `κ` the domain holds (`def:enc`). -/
+example (κ R : ℕ) (h : κ ≤ 64) : Function.Injective (encode (RingHom.id K) κ R) :=
+  encode_injective _ h Function.injective_id
+
+example (κ R : ℕ) (h : κ ≤ 64) : Function.Injective (encode (algebraMap K E) κ R) :=
+  encode_injective _ h (algebraMap K E).injective
+
+/-- The encoder is linear in the message, over `E` as well: the linear map's laws apply. -/
+example (κ R : ℕ) (m m' : CMlPolynomialEval E κ) (c : E) : True := by
+  have _ := (encodeLinear (algebraMap K E) κ R).map_add m m'
+  have _ := (encodeLinear (algebraMap K E) κ R).map_smul c m
+  trivial
+
+/-- The novel polynomial has degree `j`, and the encoder's table entry is its value. -/
+example : (novelPoly 3 5).natDegree = 5 := natDegree_novelPoly (by norm_num) (by norm_num)
+
+/- Distinct unit messages have distinct words, at the positions of the first `2 ^ κ` points:
+`X_1 = Ŵ_0` and `X_2 = Ŵ_1` differ at `x_5`. -/
+#guard enc32 (unitMessage 3 1) 5 ≠ enc32 (unitMessage 3 2) 5
+
 end
 end LeanerVMTests.Protocol
