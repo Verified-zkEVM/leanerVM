@@ -23,6 +23,7 @@ import LeanerVMTests.Protocol.GrandProductPoly
 import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.NovelBasis
+import LeanerVMTests.Protocol.NovelBasisNtt
 import LeanerVMTests.Protocol.Opening
 import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.PowerBatching
