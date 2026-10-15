@@ -13,6 +13,9 @@ public import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import Mathlib.Algebra.BigOperators.Intervals
 import Mathlib.Algebra.CharP.Two
 import Mathlib.LinearAlgebra.StdBasis
+import Mathlib.Algebra.Polynomial.Roots
+import Mathlib.Algebra.Polynomial.BigOperators
+import Mathlib.Algebra.Polynomial.Eval.Algebra
 
 /-!
 # The novel basis, the encoder and the column weights
@@ -341,6 +344,229 @@ theorem encode_ofK (κ R : ℕ) (m : CMlPolynomialEval K κ) (v : Fin (2 ^ (κ +
 theorem isInK_encode_ofK (κ R : ℕ) (m : CMlPolynomialEval K κ) (v : Fin (2 ^ (κ + R))) :
     IsInK (encode (algebraMap K E) κ R (CMlPolynomialEval.map (algebraMap K E) m) v) :=
   (isInK_iff _).2 ⟨_, encode_ofK κ R m v⟩
+
+/-! ## The encoder is linear -/
+
+section Linear
+variable {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+
+/-- The encoder as an `S`-linear map of the message table: `def:enc`'s encoder is linear. The
+tables' addition and scaling are CompPoly's module structure on `CMlPolynomialEval`. -/
+noncomputable def encodeLinear : CMlPolynomialEval S κ →ₗ[S] (Fin (2 ^ (κ + R)) → S) where
+  toFun m v := encode φ κ R m v
+  map_add' m m' := by
+    funext v
+    simp only [encode_eq_sum, Pi.add_apply, ← Finset.sum_add_distrib, ← mul_add]
+    refine Finset.sum_congr rfl fun u _ ↦ ?_
+    congr 1
+    change (Vector.zipWith (· + ·) m m')[u] = m[u] + m'[u]
+    simp
+  map_smul' c m := by
+    funext v
+    simp only [encode_eq_sum, Pi.smul_apply, RingHom.id_apply, smul_eq_mul, Finset.mul_sum]
+    refine Finset.sum_congr rfl fun u _ ↦ ?_
+    change _ * (Vector.map (fun a ↦ c * a) m)[u] = _
+    have h2 : (Vector.map (fun a ↦ c * a) m)[u] = c * m[u] := by simp
+    rw [h2]
+    ring
+
+/-- The linear map is the encoder. -/
+theorem encodeLinear_apply (m : CMlPolynomialEval S κ) :
+    encodeLinear φ κ R m = encode φ κ R m := rfl
+
+end Linear
+
+/-! ## The encoder is injective -/
+
+section Injectivity
+
+open Polynomial
+
+/-- `Ŵ_k` as a polynomial over `K`: the product over `U_k` scaled by the root's inverse. -/
+noncomputable def normWPoly (k : ℕ) : K[X] :=
+  C (subspaceRoot k)⁻¹ * ∏ m ∈ Finset.range (2 ^ k), (X + C (domainPt m))
+
+/-- The polynomial `Ŵ_k` evaluates to `normW k`. -/
+theorem eval_normWPoly {k : ℕ} (hk : k < 64) (x : K) : (normWPoly k).eval x = normW k x := by
+  unfold normWPoly normW
+  simp only [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_prod, Polynomial.eval_add,
+    Polynomial.eval_X]
+  rw [vanish_eq (by omega)]
+  unfold subspaceVanish
+  rw [div_eq_inv_mul]
+
+/-- `Ŵ_k` is not the zero polynomial. -/
+theorem normWPoly_ne_zero {k : ℕ} (hk : k < 64) : normWPoly k ≠ 0 := by
+  unfold normWPoly
+  refine mul_ne_zero (by simpa using subspaceRoot_ne_zero hk) ?_
+  exact (Polynomial.monic_prod_of_monic _ _ fun m _ ↦ monic_X_add_C _).ne_zero
+
+/-- `deg Ŵ_k = 2 ^ k`. -/
+theorem natDegree_normWPoly {k : ℕ} (hk : k < 64) : (normWPoly k).natDegree = 2 ^ k := by
+  unfold normWPoly
+  rw [natDegree_C_mul (by simpa using subspaceRoot_ne_zero hk),
+    natDegree_prod_of_monic _ _ fun m _ ↦ monic_X_add_C _]
+  simp
+
+/-- The leading coefficient of `Ŵ_k` is the inverse of the root. -/
+theorem leadingCoeff_normWPoly (k : ℕ) :
+    (normWPoly k).leadingCoeff = (subspaceRoot k)⁻¹ := by
+  unfold normWPoly
+  rw [leadingCoeff_mul, leadingCoeff_C, (Polynomial.monic_prod_of_monic _ _
+    fun m _ ↦ monic_X_add_C _).leadingCoeff, mul_one]
+
+/-- The novel polynomial `X_j = ∏_{k < κ, bit k of j} Ŵ_k` (`def:enc`). -/
+noncomputable def novelPoly (κ j : ℕ) : K[X] :=
+  ∏ k ∈ (Finset.range κ).filter (j.testBit ·), normWPoly k
+
+/-- The binary expansion of `j < 2 ^ κ`: the powers of its bits sum to `j`. -/
+theorem sum_testBit_two_pow : ∀ (κ j : ℕ), j < 2 ^ κ →
+    ∑ k ∈ (Finset.range κ).filter (j.testBit ·), 2 ^ k = j
+  | 0, j, hj => by simp at hj; simp [hj]
+  | κ + 1, j, hj => by
+    have ih := sum_testBit_two_pow κ (j % 2 ^ κ) (Nat.mod_lt _ (Nat.two_pow_pos _))
+    have hmod : (Finset.range κ).filter (j.testBit ·) =
+        (Finset.range κ).filter ((j % 2 ^ κ).testBit ·) := by
+      ext k
+      simp only [Finset.mem_filter, Finset.mem_range, Nat.testBit_mod_two_pow]
+      constructor <;> rintro ⟨hk, h⟩ <;> refine ⟨hk, ?_⟩ <;> simpa [hk] using h
+    rw [← hmod] at ih
+    have hd : j / 2 ^ κ < 2 := Nat.div_lt_of_lt_mul (by rw [pow_succ] at hj; omega)
+    have hbit : j.testBit κ = decide (j / 2 ^ κ % 2 = 1) := Nat.testBit_eq_decide_div_mod_eq
+    have hdm := Nat.mod_add_div j (2 ^ κ)
+    rw [Finset.range_add_one, Finset.filter_insert]
+    by_cases hb : j.testBit κ = true
+    · simp only [hb, ↓reduceIte]
+      rw [Finset.sum_insert (by simp), ih]
+      have h1 : j / 2 ^ κ % 2 = 1 := of_decide_eq_true (hbit ▸ hb)
+      generalize j / 2 ^ κ = d at *
+      have : d = 1 := by omega
+      subst this
+      rw [mul_one] at hdm
+      linarith
+    · have hb' : j.testBit κ = false := by simpa using hb
+      simp only [hb', Bool.false_eq_true, ↓reduceIte]
+      rw [ih]
+      have h1 : ¬ (j / 2 ^ κ % 2 = 1) := fun e ↦ hb (by rw [hbit]; exact decide_eq_true e)
+      generalize j / 2 ^ κ = d at *
+      have : d = 0 := by omega
+      subst this
+      rw [mul_zero, add_zero] at hdm
+      exact hdm
+
+/-- `deg X_j = j` for `j < 2 ^ κ`: the novel basis is triangular (`def:enc`). -/
+theorem natDegree_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) :
+    (novelPoly κ j).natDegree = j := by
+  unfold novelPoly
+  rw [natDegree_prod _ _ fun k hk ↦ normWPoly_ne_zero (by
+    have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)]
+  refine Eq.trans (Finset.sum_congr rfl fun k hk ↦ natDegree_normWPoly (by
+    have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)) (sum_testBit_two_pow κ j hj)
+
+/-- `X_j` has a nonzero leading coefficient. -/
+theorem leadingCoeff_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) :
+    (novelPoly κ j).leadingCoeff ≠ 0 := by
+  unfold novelPoly
+  rw [leadingCoeff_prod]
+  refine Finset.prod_ne_zero_iff.mpr fun k hk ↦ ?_
+  have : k < 64 := by have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega
+  rw [leadingCoeff_normWPoly k]
+  simpa using subspaceRoot_ne_zero this
+
+/-- `X_j(x) = ∏_k Ŵ_k(x) ^ (bit k of j)`: the novel polynomial is the encoder's table entry. -/
+theorem eval_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (x : K) :
+    (novelPoly κ j).eval x = ∏ k : Fin κ, if j.testBit k then normW k x else 1 := by
+  unfold novelPoly
+  rw [eval_prod, Finset.prod_filter, ← Fin.prod_univ_eq_prod_range (fun k ↦
+    if j.testBit k then (normWPoly k).eval x else 1)]
+  refine Finset.prod_congr rfl fun k _ ↦ ?_
+  split_ifs
+  · exact eval_normWPoly (by omega) x
+  · rfl
+
+
+/-- The difference of two encodings at the position `v` is the evaluation at `x_v` of the
+polynomial whose novel-basis coefficients are the difference of the messages. -/
+theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
+    (m m' : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
+    encode φ κ R m v - encode φ κ R m' v =
+      (∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ).eval
+        (φ (domainPt v)) := by
+  rw [encode_eq_sum, encode_eq_sum, ← Finset.sum_sub_distrib, Polynomial.eval_finsetSum]
+  refine Finset.sum_congr rfl fun u _ ↦ ?_
+  rw [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_map, Polynomial.eval₂_at_apply,
+    eval_novelPoly hκ, map_prod]
+  simp only [apply_ite φ, map_one]
+  ring
+
+/-- The encoder is injective (`def:enc`: a linear injection). The first `2 ^ κ` positions are
+distinct points of `K` and a polynomial of degree below `2 ^ κ` that vanishes at them is zero;
+the novel polynomials have distinct degrees. `κ ≤ 64`, where the domain has `2 ^ 64` points; `S`
+is a domain into which `K` embeds, as `E` is. -/
+theorem encode_injective {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R : ℕ}
+    (hκ : κ ≤ 64) (hφ : Function.Injective φ) : Function.Injective (encode φ κ R) := by
+  classical
+  intro m m' h
+  set P : S[X] := ∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ with hPdef
+  have hpos : 0 < 2 ^ κ := Nat.two_pow_pos κ
+  have hdeg : P.natDegree < 2 ^ κ := by
+    have : P.natDegree ≤ 2 ^ κ - 1 := by
+      refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun u _ ↦ ?_
+      refine (Polynomial.natDegree_C_mul_le _ _).trans ((Polynomial.natDegree_map_le).trans ?_)
+      rw [natDegree_novelPoly hκ u.2]
+      have := u.2
+      omega
+    omega
+  have hP : P = 0 := by
+    refine Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero P
+      (ι := Fin (2 ^ κ)) (f := fun i ↦ φ (domainPt i)) ?_ ?_ (by simpa using hdeg)
+    · intro i j hij
+      have hi := i.2
+      have hj := j.2
+      have h64 : 2 ^ κ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hκ
+      exact Fin.ext (domainPt_injOn (by omega) (by omega) (hφ hij))
+    · intro i
+      have hle : 2 ^ κ ≤ 2 ^ (κ + R) :=
+        Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right κ R)
+      have := encode_sub_eq_eval φ hκ m m' ⟨i.val, lt_of_lt_of_le i.2 hle⟩
+      rw [h, sub_self] at this
+      exact this.symm
+  by_contra hne
+  have hT : (Finset.univ.filter fun u : Fin (2 ^ κ) ↦ m[u] ≠ m'[u]).Nonempty := by
+    by_contra hT
+    apply hne
+    apply Vector.ext
+    intro i hi
+    by_contra hi'
+    exact hT ⟨⟨i, hi⟩, by simpa using hi'⟩
+  set u₀ := (Finset.univ.filter fun u : Fin (2 ^ κ) ↦ m[u] ≠ m'[u]).max' hT with hu₀
+  have hu₀mem : m[u₀] ≠ m'[u₀] := (Finset.mem_filter.mp (Finset.max'_mem _ hT)).2
+  have hcoeff : P.coeff u₀.val =
+      (m[u₀] - m'[u₀]) * φ ((novelPoly κ u₀).leadingCoeff) := by
+    rw [hPdef, Polynomial.finsetSum_coeff, Finset.sum_eq_single u₀]
+    · have hd := natDegree_novelPoly hκ u₀.2
+      have hlc : (novelPoly κ u₀).coeff u₀.val = (novelPoly κ u₀).leadingCoeff := by
+        rw [Polynomial.leadingCoeff, hd]
+      rw [Polynomial.coeff_C_mul, Polynomial.coeff_map, hlc]
+    · intro u _ hu
+      rcases lt_or_gt_of_ne (fun e : u.val = u₀.val ↦ hu (Fin.ext e)) with hlt | hgt
+      · rw [Polynomial.coeff_C_mul, Polynomial.coeff_eq_zero_of_natDegree_lt, mul_zero]
+        refine lt_of_le_of_lt Polynomial.natDegree_map_le ?_
+        rw [natDegree_novelPoly hκ u.2]
+        exact hlt
+      · have : ¬ (m[u] ≠ m'[u]) := by
+          intro hmem
+          have : u ≤ u₀ := Finset.le_max' _ u (by simpa using hmem)
+          exact absurd hgt (not_lt.mpr this)
+        rw [Polynomial.coeff_C_mul, not_not.mp this, sub_self, zero_mul]
+    · intro hmem
+      exact absurd (Finset.mem_univ u₀) hmem
+  rw [hP, Polynomial.coeff_zero] at hcoeff
+  have hlc : φ ((novelPoly κ u₀).leadingCoeff) ≠ 0 := fun h0 ↦
+    leadingCoeff_novelPoly hκ (hφ (by rw [h0, map_zero]))
+  exact mul_ne_zero (sub_ne_zero.mpr hu₀mem) hlc hcoeff.symm
+
+end Injectivity
 
 end
 
