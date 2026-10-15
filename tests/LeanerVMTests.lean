@@ -31,6 +31,7 @@ import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
 import LeanerVMTests.Protocol.Multilinear
+import LeanerVMTests.Protocol.NovelBasis
 import LeanerVMTests.Protocol.Opening
 import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.Piop
