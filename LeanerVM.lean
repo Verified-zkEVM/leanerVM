@@ -22,6 +22,7 @@ import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
+import LeanerVM.Protocol.NovelBasis
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
