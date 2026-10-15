@@ -443,11 +443,10 @@ Not derived from leanth, and listed so that the layer reads whole: `bitProductTa
 (`FixedColumns.lean`, #41); the `Column`-level stack with the spine's `Layout` (`Stack.lean`);
 and a column claim as a weighted claim (`ClaimWeights.lean`).
 
-Next port candidates, in order of value per effort, each already proposed in an open pull
-request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42). The
-fingerprint lemmas (Layer 5) were ported by #39 and completed with the product polynomial and its
-collision count. The knowledge-soundness composition (A2) was not ported
-from leanth: it is the port of ArkLib #615, on `main` since 2026-09-28.
+Batching from #43 was incorporated through #77. The honest sumcheck proposal #42 was closed in
+favour of the custom leanVM sumcheck in #75/#76. Neither remains an open port candidate. The
+fingerprint work landed through #39/#78. Knowledge-soundness composition came from ArkLib #615
+through #58.
 
 ## Upstream candidates
 
