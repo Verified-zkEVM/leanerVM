@@ -63,11 +63,11 @@ The regular gate includes all maintained Lean cases:
 For the source-pinned Rust regressions and actual Rust-to-Lean fixture checks:
 
 ```sh
-python3 scripts/test-rust-contracts.py /path/to/leanVM
+python3 scripts/test-rust-contracts.py
 ```
 
-The Rust checkout must contain commit `48a904208d682848dac0e18ef8b01ebfc40df9ad`; its current
-branch and working tree are not changed. Cargo and the dependencies from that revision's
+It archives commit `48a904208d682848dac0e18ef8b01ebfc40df9ad` from the containing leanVM clone
+(or from the clone named as its argument), whose branch and working tree are not changed. Cargo and the dependencies from that revision's
 `Cargo.lock` must be cached: the script uses `--locked --offline`. Builds go to a temporary
 Cargo target directory, overridable with `--target-dir`. This optional external lane is not
 part of the dependency-local validation gate.

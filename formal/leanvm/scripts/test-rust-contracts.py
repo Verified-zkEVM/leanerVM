@@ -16,7 +16,8 @@ REVISION = "48a904208d682848dac0e18ef8b01ebfc40df9ad"
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("rust_checkout", type=Path)
+    parser.add_argument("rust_checkout", type=Path, nargs="?", default=ROOT.parent.parent,
+                        help="a leanVM clone that has the revision (default: the containing one)")
     parser.add_argument("--target-dir", type=Path,
                         default=Path(tempfile.gettempdir()) / "leanisa-rust-contract-target")
     args = parser.parse_args()

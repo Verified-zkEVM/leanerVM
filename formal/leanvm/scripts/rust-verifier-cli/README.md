@@ -9,23 +9,17 @@ Python verifier's CLI reads: `bytecode.bin`, `public_input.bin`, `stream.bin` an
 (`verifier::Proof::load`, `verifier::Bytecode::new`), so its verdicts can be set beside those of
 the Lean verifier, `lake exe leanvm-verify` (`tests/VerifyFiles.lean`), on the same bytes.
 
-The pin is leanVM `a0ca7858f2533ce51abdc20bb635c007e19b26b3`.
+The verifier is that of the containing leanVM commit.
 
 ## Building
 
-The crate depends on the `verifier` crate by path, through `leanvm`, a symbolic link to a leanVM
-source tree at the pin. `build.sh` makes the link, checks that the tree's `crates/verifier` and
-`python-verifier/verifier.py` hash to the pin's, and builds the release binary:
+The crate depends on `crates/verifier` by path. That crate has no dependencies, so the build is
+offline; this crate is its own Cargo workspace, and `crates/verifier` still inherits its edition
+and lints from leanVM's:
 
 ```sh
-mkdir -p /path/to/leanvm-main
-git -C /path/to/leanVM archive a0ca7858f2533ce51abdc20bb635c007e19b26b3 | tar -x -C /path/to/leanvm-main
-scripts/rust-verifier-cli/build.sh /path/to/leanvm-main
+cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 ```
-
-The link and `target/` are ignored by Git. The `verifier` crate has no dependencies, so the
-build is offline. The tree stays its own Cargo workspace (`exclude` in `Cargo.toml`), so the
-crate inherits its edition and lints from there.
 
 ## Running
 

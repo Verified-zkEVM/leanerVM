@@ -6,7 +6,7 @@ machine for post-quantum signature aggregation. Current leanVM uses binary field
 the historical KoalaBear/Poseidon implementation remains available on its `koalabear` branch.
 
 The primary application target is leanVM's recursive XMSS and SPHINCS aggregation guest. At
-the pinned revision, XMSS claims are grouped by epoch with one message per group, while each
+leanVM `a0ca7858`, XMSS claims are grouped by epoch with one message per group, while each
 SPHINCS claim carries its own message. The final result must be bound to that exact guest and
 imply the intended claim about every published key, message, epoch, and signature.
 
@@ -94,7 +94,8 @@ compiler/runtime assumptions.
 
 ## Getting started
 
-Install [elan](https://github.com/leanprover/elan), then clone the repository and run:
+Install [elan](https://github.com/leanprover/elan), then clone leanVM and, from `formal/leanvm`,
+run:
 
 ```sh
 ./scripts/validate.sh
@@ -152,7 +153,7 @@ The detailed ownership and dependency rules are in
 | [`bench/`](bench/) | Benchmark contracts and reproducible workloads |
 | [`docs/`](docs/) | Architecture, dependencies, development, and CI documentation |
 | [`scripts/`](scripts/) | Validation, repository checks, drift reporting, and timing tools |
-| [`.github/workflows/`](.github/workflows/) | Build, policy, review, benchmark, and maintenance automation |
+| [`lean.yml`](../../.github/workflows/lean.yml) | The `leanvm-formalization` job of leanVM's Lean workflow: build, tests, policy, imports, documentation, and the Rust-vs-Lean differential |
 
 ## Dependencies
 
@@ -189,12 +190,11 @@ should include differential vectors tied to authoritative Rust source revisions.
 Differential agreement is regression evidence; it is not presented as a proof about the Rust
 source.
 
-CI keeps build/tests, repository policy, import layering, and documentation integrity as
-independent required checks. It also provides automated PR summaries, member-triggered review,
-upstream release tracking, and informational build timing. Project releases follow reviewed
-milestones rather than Lean toolchain updates. The benchmark job records clean-build, warm-build,
-and test-path wall/user/system time with JSONL records and logs. See
-[docs/ci.md](docs/ci.md) and [bench/README.md](bench/README.md).
+CI is one job of leanVM's Lean workflow, run when this project or a leanVM source it models
+changes: repository policy, import layering, documentation integrity, the build and tests with
+the axiom audits, and the Rust-vs-Lean differential on the verifier fixtures. Project releases
+follow reviewed milestones rather than Lean toolchain updates. See [docs/ci.md](docs/ci.md) and
+[bench/README.md](bench/README.md).
 
 ## License
 

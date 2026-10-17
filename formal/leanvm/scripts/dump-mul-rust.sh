@@ -5,20 +5,17 @@
 # arithmetic the executor uses, printed as the Lean words of
 # tests/LeanerVMTests/Semantics/Execution.lean.
 #
-# Usage: scripts/dump-mul-rust.sh <path to a leanVM checkout at the pin>
+# Usage: scripts/dump-mul-rust.sh (builds the pin, exported from the containing leanVM repository)
 set -euo pipefail
 
 pin="a386121f84292f6fa663aaa3e570c15bc0240ea2"
-checkout="$(cd "${1:?usage: $0 <leanVM checkout>}" && pwd)"
-head="$(git -C "$checkout" rev-parse HEAD)"
-if [[ "$head" != "$pin" ]]; then
-  echo "leanVM checkout is at $head, not the pin $pin" >&2
-  exit 1
-fi
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/src"
+checkout="$work/leanVM"
+mkdir -p "$work/src" "$checkout"
+git -C "$root" archive "$pin" | tar -x -C "$checkout"
 cp "$checkout/Cargo.lock" "$work/Cargo.lock"
 
 cat > "$work/Cargo.toml" <<EOF

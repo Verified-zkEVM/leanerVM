@@ -70,9 +70,9 @@ runs proven-equal code.
   scalars, the roots, the nonces, the Merkle openings, the public input and the bytecode, the
   same verdict required of both verifiers. 28,800 cases in all, no difference, no Rust panic:
   * on the three committed fixtures, 8400 cases (seeds 1–4); seed 3 runs in about 3 minutes at
-    8 jobs: `python3 -I scripts/fuzz-verifier.py <leanVM tree> tests/fixtures/verifier
+    8 jobs: `python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier
     --mutations 2000 --seed 3 --jobs 8`;
-  * on a corpus of 68 honest Rust proofs (`scripts/export-verifier-fixtures-rust.sh <leanVM tree>
+  * on a corpus of 68 honest Rust proofs (`scripts/export-verifier-fixtures-rust.sh
     <out> --corpus`: every program of leanVM's compiler test suite that declares its public
     input, and the chain at 16, 1000 and 5000 steps, each at the four rates), 20,400 cases (seed
     5, 300 per proof): both verifiers accept the 68 honest proofs and reject the 20,332 mutations,

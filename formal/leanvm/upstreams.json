@@ -5,12 +5,6 @@
     "ref": "v4.34.1",
     "commit": ""
   },
-  "leanVM": {
-    "repository": "leanEthereum/leanVM",
-    "tracking": "branch",
-    "ref": "main",
-    "commit": "a0ca7858f2533ce51abdc20bb635c007e19b26b3"
-  },
   "CompPoly": {
     "repository": "Verified-zkEVM/CompPoly",
     "tracking": "branch",

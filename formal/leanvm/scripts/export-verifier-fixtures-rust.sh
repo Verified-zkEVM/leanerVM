@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Prove small guest programs with the pinned leanVM Rust prover and write each proof in the
-# format the pinned Python verifier and the `verifier` crate read (`python-verifier/verifier.py`,
+# Prove small guest programs with the leanVM Rust prover and write each proof in the
+# format the Python verifier and the `verifier` crate read (`python-verifier/verifier.py`,
 # `Proof.load` and `main`; `crates/verifier/src/transcript.rs`, `Proof::load`; and
 # `crates/leanvm_core/tests/verifiers/python_verifier.rs`, `encode` and `test_python_verifier`,
 # at leanVM 127510d14c98ade4e8a97646c44fa7f1ff5e752d):
@@ -14,39 +14,22 @@
 # the Rust `verify` walked (`verifier::Summary::merkle_paths`), written exactly as `encode` in
 # python_verifier.rs writes them. The guests are that test's program at smaller loop counts and
 # crates/lean_compiler/tests/programs/fibonacci.py, read from the source tree. Every proof is
-# verified by the Rust `cpu::verify` before it is written and by the pinned Python verifier
+# verified by the Rust `cpu::verify` before it is written and by the Python verifier
 # before the script returns. The fixtures are consumed by scripts/fuzz-verifier.py, which runs
 # the Lean and the Rust verifier on them and on mutations of them.
 #
-# Usage: scripts/export-verifier-fixtures-rust.sh <leanVM source tree at the pin> <output dir> [--corpus]
+# Usage: scripts/export-verifier-fixtures-rust.sh <output dir> [--corpus]
 #
 # With `--corpus`, the fixtures are instead every program of crates/lean_compiler/tests/programs
 # that declares its public input (with its `# witness` annotations), and the chain at 16, 1000 and
 # 5000 loop steps, each at the four rates: the differential fuzzing corpus (not committed).
 #
-# The source tree is a git checkout at the pin or an export of it
-# (`git -C <leanVM> archive <pin> | tar -x -C <dir>`); either way the Python verifier's hash is
-# checked against the pin's. Requires `cargo` and `python3`.
+# The prover and the verifiers are those of the containing leanVM commit. Requires `cargo` and
+# `python3`.
 set -euo pipefail
 
-pin="a0ca7858f2533ce51abdc20bb635c007e19b26b3"
-verifier_sha256="ecce66e3d87d84fc9f5a65426982e1afba5128769abd449165b36288fd1da1af"
-checkout="$(cd "${1:?usage: $0 <leanVM source tree> <output dir>}" && pwd)"
-out="${2:?usage: $0 <leanVM source tree> <output dir>}"
-
-if git -C "$checkout" rev-parse HEAD >/dev/null 2>&1 \
-    && [[ "$(git -C "$checkout" rev-parse --show-toplevel)" == "$checkout" ]]; then
-  head="$(git -C "$checkout" rev-parse HEAD)"
-  if [[ "$head" != "$pin" ]]; then
-    echo "leanVM checkout is at $head, not the pin $pin" >&2
-    exit 1
-  fi
-fi
-actual="$(sha256sum "$checkout/python-verifier/verifier.py" | cut -d' ' -f1)"
-if [[ "$actual" != "$verifier_sha256" ]]; then
-  echo "python-verifier/verifier.py is not the pin's (sha256 $actual)" >&2
-  exit 1
-fi
+checkout="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+out="${1:?usage: $0 <output dir> [--corpus]}"
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
@@ -257,7 +240,7 @@ fn main() {
 EOF
 
 cargo run --quiet --release --manifest-path "$work/Cargo.toml" --target-dir "$checkout/target" \
-  -- "$checkout" "$out" ${3:+"$3"}
+  -- "$checkout" "$out" ${2:+"$2"}
 
 for directory in "$out"/*/; do
   printf '%s: ' "$(basename "$directory")"

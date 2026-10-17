@@ -7,9 +7,10 @@ blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: leanVM `a0ca7858`, ArkLib `7653a901`, CompPoly
-`572f9973`, Clean `42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
-([dependencies.md](../dependencies.md#lean-434-port-review)).
+The pins are those of `upstreams.json`: ArkLib `7653a901`, CompPoly `572f9973`, Clean
+`42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
+([dependencies.md](../dependencies.md#lean-434-port-review)). leanVM is the containing commit,
+`a0ca7858` when the project moved into it.
 
 ## On `main`
 

@@ -29,7 +29,11 @@
   warnings while warning-free fixtures build under the root warning policy. Valid local overrides
   separated by line, block and nested comments build with planted warnings but fail the source audit,
   confirming why both gates are needed.
-- `test-rust-contracts.py <leanVM checkout>`: archives the named Rust revision, runs its locked
+The scripts that read leanVM read the repository they sit in. Those that cite an older leanVM
+commit, whose crates have since been renamed, build that commit from a `git archive` of it, so
+they need a clone with history; the others read the containing commit.
+
+- `test-rust-contracts.py [leanVM clone]`: archives the named Rust revision, runs its locked
   offline tests with test-only row exports, and checks actual exported fixtures in Lean. See
   [the checker guide](../docs/leanisa-checker.md) for scope and prerequisites.
 - `check-upstreams.sh`: compares `upstreams.json` with current releases and branch heads;
@@ -38,35 +42,33 @@
   Appendix D for `LeanerVM/Parameters/Blake2s.lean`; `vectors` prints the `hashlib.blake2s`
   compression vectors, including the tree-mode `last_node` flag, used by
   `tests/LeanerVMTests/Semantics/Blake2s.lean`.
-- `dump-blake2s-rust.sh <leanVM checkout>`: reproduces the BLAKE2S opcode cells of the pinned
-  leanVM executor test `blake2s_computes_the_compression` through the executor's own
-  `hash_flock` functions; requires `cargo` and a checkout at the pinned commit.
-- `dump-mul-rust.sh <leanVM checkout>`: reproduces the operands and the `E` product of the
-  pinned leanVM executor test `mul_192bit_word` through the executor's own `F192` arithmetic,
-  as the words of `tests/LeanerVMTests/Semantics/Execution.lean`; same requirements.
-- `dump-flock-column-rust.sh <leanVM checkout>`: digests the Flock region the pinned prover
-  commits for eight compressions (the executor test's, the RFC 7693 `"abc"` one and six padding
-  blocks), for the differential check of the honest column in
-  `tests/LeanerVMTests/Protocol/FlockSpec.lean`; requires `cargo`.
-- `dump-flock-circuit-digest.py <leanVM checkout>`: digests the rows of the Flock BLAKE2s
-  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
-  comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
-  checkout at the pinned commit.
-- `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
-  offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
-  comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
+- `dump-blake2s-rust.sh`: reproduces the BLAKE2S opcode cells of the leanVM executor test
+  `blake2s_computes_the_compression` at `a386121f` through the executor's own `hash_flock`
+  functions; requires `cargo`.
+- `dump-mul-rust.sh`: reproduces the operands and the `E` product of the leanVM executor test
+  `mul_192bit_word` at `a386121f` through the executor's own `F192` arithmetic, as the words of
+  `tests/LeanerVMTests/Semantics/Execution.lean`; requires `cargo`.
+- `dump-flock-column-rust.sh`: digests the Flock region the prover at `a386121f` commits for
+  eight compressions (the executor test's, the RFC 7693 `"abc"` one and six padding blocks), for
+  the differential check of the honest column in `tests/LeanerVMTests/Protocol/FlockSpec.lean`;
+  requires `cargo`.
+- `dump-flock-circuit-digest.py`: digests the rows of the Flock BLAKE2s circuit as the Python
+  verifier's `blake2s_row_values` walks them, for the row-for-row comparison in
+  `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python.
+- `dump-leanisa-layout-rust.sh`: prints the stacked size and every column's offset in the stack
+  the verifier at `a386121f` reconstructs for two announced size vectors, for the comparison in
+  `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
 
-- `export-verifier-fixtures-rust.sh <leanVM tree> <out>`: proves small guest programs with the
-  Rust prover at the pin and writes each proof as the four files `bytecode.bin`,
-  `public_input.bin`, `stream.bin`, `merkle_openings.bin` (the fixtures of
-  `tests/fixtures/verifier/`), each checked by the Rust verifier first; requires `cargo`.
-- `rust-verifier-cli/`: the deployed Rust verifier (`crates/verifier` at the pin) on the same four
-  files, one proof or a batch; `build.sh <leanVM tree>` checks the tree against the pin and builds
-  it (see its `README.md`).
-- `fuzz-verifier.py <leanVM tree> <fixtures>`: mutates the fixtures (structured and seeded random
-  edits of every phase's scalars, roots, nonces, Merkle openings, public input and bytecode) and
-  requires `lake exe leanvm-verify` and the Rust verifier to give the same verdict on every
-  mutated proof; keeps any divergent case.
+- `export-verifier-fixtures-rust.sh <out>`: proves small guest programs with the Rust prover and
+  writes each proof as the four files `bytecode.bin`, `public_input.bin`, `stream.bin`,
+  `merkle_openings.bin` (the fixtures of `tests/fixtures/verifier/`), each checked by the Rust
+  verifier first; requires `cargo`.
+- `rust-verifier-cli/`: the deployed Rust verifier (`crates/verifier`) on the same four files,
+  one proof or a batch (see its `README.md`).
+- `fuzz-verifier.py <fixtures>`: mutates the fixtures (structured and seeded random edits of
+  every phase's scalars, roots, nonces, Merkle openings, public input and bytecode) and requires
+  `lake exe leanvm-verify` and the Rust verifier to give the same verdict on every mutated proof;
+  keeps any divergent case. CI runs it on `tests/fixtures/verifier`.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.

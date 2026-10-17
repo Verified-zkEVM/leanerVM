@@ -12,16 +12,17 @@ the digest with the Lean circuit's rows (`rowsDigest`). The script also prints t
 statistics.
 
 Usage:
-    python3 scripts/dump-flock-circuit-digest.py path/to/leanVM
+    python3 scripts/dump-flock-circuit-digest.py
 
-The leanVM checkout must be at the pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`. The output
-at the pin is `digest 4056851438423586957`, `nonzero rows 15873`, `total terms 89305416`, the
-same as at `a386121f84292f6fa663aaa3e570c15bc0240ea2`.
+It reads the Python verifier of the containing leanVM commit. The output is
+`digest 4056851438423586957`, `nonzero rows 15873`, `total terms 89305416`, the same at
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d` and at `a386121f84292f6fa663aaa3e570c15bc0240ea2`.
 """
 
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 
 class Bits:
@@ -39,9 +40,9 @@ class Bits:
 
 
 def main() -> None:
-    if len(sys.argv) != 2:
+    if len(sys.argv) != 1:
         sys.exit(__doc__)
-    sys.path.insert(0, f"{sys.argv[1]}/python-verifier")
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "python-verifier"))
     import verifier  # noqa: PLC0415
 
     verifier.ZERO = Bits(0)

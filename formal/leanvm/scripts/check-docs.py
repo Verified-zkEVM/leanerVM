@@ -10,6 +10,8 @@ from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parent.parent
+# Links may leave the project for the rest of the containing leanVM repository.
+REPOSITORY = ROOT.parent.parent
 LINK = re.compile(r"!?\[[^\]]*\]\((?P<target>[^)\s]+)(?:\s+['\"][^'\"]*['\"])?\)")
 IGNORED_SCHEMES = {"http", "https", "mailto"}
 
@@ -36,7 +38,7 @@ def missing_links(path: Path) -> list[tuple[int, str]]:
                 continue
             target = (path.parent / unquote(parsed.path)).resolve()
             try:
-                target.relative_to(ROOT)
+                target.relative_to(REPOSITORY)
             except ValueError:
                 failures.append((line_number, raw_target))
                 continue

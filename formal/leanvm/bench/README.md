@@ -7,9 +7,9 @@ execution performance:
 - a warm repeat of the same build; and
 - the `lake test` path.
 
-The `Build timing` workflow records each measurement as JSON Lines, preserves the command
-logs, and publishes a compact table in the GitHub job summary. Treat the numbers as CI-runner
-observations, not stable machine-independent performance claims.
+`scripts/build_timing.py` records each measurement as JSON Lines, preserves the command logs,
+and renders a compact Markdown table; leanVM's CI does not run it. Treat the numbers as
+observations of one machine, not stable machine-independent performance claims.
 
 Runtime benchmark groups belong here once leanerVM has executable semantics. Each such group
 must name the workload, parameter revision, expected result, and whether it measures Lean code

@@ -1,12 +1,11 @@
 # Dependency policy
 
-The repository tracks eight upstreams and six direct Lake packages:
+The project tracks seven upstreams and six direct Lake packages:
 
 | Component | Tracked ref | Role |
 | --- | --- | --- |
 | Lean | `v4.34.1` | Root toolchain |
 | Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
-| leanVM | `a0ca7858f2533ce51abdc20bb635c007e19b26b3` (current main) | Audited Rust/specification target; not a Lake dependency |
 | CompPoly | `572f997390aa4fc131ef30b1186fa1dcf292ca10` (current main) | Computable polynomial and field infrastructure |
 | Clean | `42fe4b268132a46604d40cc73f642a1995f26547` (PR #474, includes current main) | Circuit, AIR, channel, and witness-generation infrastructure |
 | ArkLib | `7653a901ed466c88a2e61a3075011b73d7bb2316` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
@@ -14,10 +13,14 @@ The repository tracks eight upstreams and six direct Lake packages:
 | PolyFun | `41d3b21dcc99817fe4f9f24ca7b2b58f0578083d` (current main) | Polynomial functors and free monads underlying oracle computations |
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
-Lake graph. The weekly drift workflow reports newer releases or commits but never rewrites
-dependency files automatically. The leanVM pin names the exact behavior being formalized and
-tested even though its branch is monitored for drift. See
-[leanvm-target.md](leanvm-target.md) before updating it.
+Lake graph. `scripts/check-upstreams.sh` reports newer releases or commits but never rewrites
+dependency files.
+
+leanVM is not an upstream: the project lives in it, under `formal/leanvm`, and its target is the
+containing commit. The last external pin was `a0ca7858f2533ce51abdc20bb635c007e19b26b3`; the
+reviews below record each move of that pin. A change to a leanVM source the project models runs
+its CI job, whose Rust-vs-Lean differential fails when the Rust verifier stops agreeing with the
+Lean one on the fixtures. See [leanvm-target.md](leanvm-target.md) and [ci.md](ci.md).
 
 Add a dependency only with a named first-party use and a narrow import. A dependency PR must:
 

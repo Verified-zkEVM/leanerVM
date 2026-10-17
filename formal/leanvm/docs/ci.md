@@ -1,35 +1,38 @@
 # Continuous integration
 
-The CI layout borrows the useful separation of concerns from ArkLib, VCVio, and leanth while
-keeping only checks justified by leanerVM's current Lean-only surface.
+CI is the `leanvm-formalization` job of leanVM's Lean workflow,
+[`.github/workflows/lean.yml`](../../../.github/workflows/lean.yml), beside the XMSS and SPHINCS
+formalizations. It runs on a push to `main`, on a manual dispatch, and on a pull request that
+changes this project, the workflow, or a leanVM source the project models: `crates/verifier`,
+`python-verifier`, `crates/rec_aggregation/guests`, `crates/leanvm_core` and `crates/lean_da`.
+A pull request that changes none of them skips it, which branch protection counts as passed, so
+it can be a required check.
 
-| Workflow | Responsibility | Branch-protection status |
-| --- | --- | --- |
-| `CI` | Build with the Actions and Mathlib caches, run the Lake test driver, audit production and test axiom dependencies with a negative control, and elaborate the test root with warnings as errors | Required |
-| `Repository policy` | Audit Lean trust markers and repository hygiene, and exercise planted policy violations | Required |
-| `Imports and layers` | Keep the aggregate import complete and enforce the architecture DAG | Required |
-| `Documentation integrity` | Reject broken or unsafe local Markdown links | Required |
-| `Build timing` | Measure clean build, warm build, and test-path wall time | Informational |
-| `PR summary` | Post an automated summary using policy from the trusted base revision | Informational |
-| `PR review` | Run a member-triggered `/review` pass | Informational |
-| `Upstream drift` | Report newer Lean and tracked library releases each week | Informational |
+Its steps, each named so that a failure stays legible:
 
-Configure branch protection with the four required checks above after publishing the
-repository. Do not make timing a merge gate: hosted-runner timings are noisy and the retained
-JSONL and logs are evidence for trends, not deterministic pass/fail thresholds. This initial
-workflow reports the current run; exact-base comparisons and PR comments can be enabled once
-the new repository has a useful history of successful main-branch timing artifacts.
+| Step | Responsibility |
+| --- | --- |
+| Source and repository policy | `audit-lean.sh`, `check-repository.sh`, and the planted violations of `test-policy-checks.py` |
+| Imports and layers | `check-imports.sh` and `check-layers.sh`: the aggregate imports are complete and the architecture DAG holds |
+| Documentation | `check-docs.py`: no broken or unsafe local Markdown link |
+| Build and tests | lean-action's `lake build` and `lake test`, with its kernel axiom audit of `LeanerVM` |
+| Axioms and warnings | `test-axiom-audit.py` with its negative control, `tests/Main.lean` elaborated with warnings as errors, and `test-warning-policy.py` |
+| Rust-vs-Lean differential | `fuzz-verifier.py` on `tests/fixtures/verifier`: the Lean verifier and the containing commit's Rust verifier give the same verdict on every committed proof and on every mutation of it |
 
-`PR summary` and `PR review` require an `OPENROUTER_KEY` Actions secret. Summary uses
-`pull_request_target` without checking out or executing pull-request code. Review is restricted
-to `/review` comments from owners, members, and collaborators; it may inspect pull-request code,
-so only trusted members should invoke it on an untrusted fork.
+The differential is what ties the project to the containing commit: a change to the Rust
+verifier's accepted language fails it until the Lean verifier follows. A change to the prover
+that alters proofs leaves the committed fixtures as they are; regenerate them with
+`scripts/export-verifier-fixtures-rust.sh` when it should.
+
+`.lake` is cached without Mathlib's build, which `lake exe cache get` fetches; only `main` saves
+the cache, and every branch restores it.
+
+leanerVM's informational workflows (build timing, the automated PR summary and review, upstream
+drift, and Dependabot) are not part of leanVM. `scripts/build_timing.py` and
+`scripts/check-upstreams.sh` still run locally.
 
 Project releases are milestone-driven. A Lean toolchain update is an ordinary reviewed dependency
-change and does not create or move a release tag. Release automation should be introduced only
-when the project has a concrete milestone release process to automate.
-
-Workflows have read-only repository contents unless they must post pull-request output.
+change and does not create or move a release tag.
 
 Native/FFI isolation, CUDA, generated-blueprint, and VM-runtime benchmark jobs are deliberately
 absent. Add each only alongside the artifact it protects. Runtime benchmarks should follow the

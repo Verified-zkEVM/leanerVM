@@ -1,6 +1,6 @@
 """Differential fuzzing of the Lean verifier against the deployed Rust verifier on real proofs.
 
-The fixtures under tests/fixtures/verifier/ are proofs of the pinned leanVM Rust prover in the
+The fixtures under tests/fixtures/verifier/ are proofs of the leanVM Rust prover in the
 Python verifier's four-file format (scripts/export-verifier-fixtures-rust.sh). This driver
 mutates every fixture and runs, on the honest proof and on every mutation,
 
@@ -8,12 +8,12 @@ mutates every fixture and runs, on the honest proof and on every mutation,
     transcription of `python-verifier/verifier.py`, compiled;
   * the Rust verifier, scripts/rust-verifier-cli (`verifier::verify_execution` of leanVM's
     `crates/verifier`, the deployed one), in one `--batch` process;
-  * with `--python`, also the pinned Python verifier itself, as a tie-breaker.
+  * with `--python`, also the Python verifier itself, as a tie-breaker.
 
 It fails if the Lean and the Rust verdicts ever differ, and prints a table of verdicts by
 mutation class. A Rust panic or a Lean crash counts as a rejection but is reported.
 
-The structured mutation positions come from an instrumented run of the pinned Python verifier on
+The structured mutation positions come from an instrumented run of the Python verifier on
 the honest proof: the stream offset where every phase of `verify_execution` starts, every
 commitment root's two halves, every proof-of-work nonce, and the byte offset and shape of every
 Merkle opening. Each structured case changes one thing:
@@ -34,11 +34,13 @@ scalar replaced by a random element or by zero, two scalars of one phase swapped
 opening's leaf word replaced; a random edit that leaves the proof unchanged is drawn again.
 
 Usage (from the repository root; the two verifiers built first, see below):
-  python3 -I scripts/fuzz-verifier.py <leanVM source tree at the pin> tests/fixtures/verifier \\
+  python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier \\
       [--mutations 250] [--seed 1] [--jobs 8] [--python] [--keep <dir>] [fixture ...]
 
   ( ulimit -v 40000000; lake build leanvm-verify )
-  ( ulimit -v 60000000; scripts/rust-verifier-cli/build.sh <leanVM source tree at the pin> )
+  cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
+
+The Rust and Python verifiers are those of the containing leanVM commit.
 
 `--mutations` is the number of cases per fixture, structured ones first, then random ones up to
 it. Every child process runs under an address-space limit (`--memory-gb`, default 40). The
@@ -68,22 +70,23 @@ PIN = "a0ca7858f2533ce51abdc20bb635c007e19b26b3"
 VERIFIER_SHA256 = "ecce66e3d87d84fc9f5a65426982e1afba5128769abd449165b36288fd1da1af"
 FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
 ROOT = Path(__file__).resolve().parent.parent
+TREE = ROOT.parent.parent
 LEAN_EXE = ROOT / ".lake" / "build" / "bin" / "leanvm-verify"
 RUST_EXE = ROOT / "scripts" / "rust-verifier-cli" / "target" / "release" / "leanvm-rust-verify"
 
 
-# The pinned Python verifier, instrumented ------------------------------------------------------
+# The Python verifier, instrumented -------------------------------------------------------------
 
 
 def load_verifier(tree: Path):
-    """A fresh copy of the pinned verifier module, so that instrumenting it touches no other."""
+    """A fresh copy of the verifier module, so that instrumenting it touches no other."""
     path = tree / "python-verifier" / "verifier.py"
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     if digest != VERIFIER_SHA256:
         sys.exit(f"{path} is not the verifier at {PIN} (sha256 {digest})")
-    spec = importlib.util.spec_from_file_location("pinned_verifier", path)
+    spec = importlib.util.spec_from_file_location("instrumented_verifier", path)
     module = importlib.util.module_from_spec(spec)
-    sys.modules["pinned_verifier"] = module
+    sys.modules["instrumented_verifier"] = module
     spec.loader.exec_module(module)
     return module
 
@@ -358,13 +361,12 @@ def run_rust(exe: Path, cases: list, memory: int) -> list:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("tree", type=Path, help="leanVM source tree at the pin")
     parser.add_argument("fixtures", type=Path, help="directory of fixtures (tests/fixtures/verifier)")
     parser.add_argument("only", nargs="*", help="fixtures to fuzz (default: every one)")
     parser.add_argument("--mutations", type=int, default=250, help="cases per fixture, the honest one included")
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--jobs", type=int, default=8, help="Lean (and Python) verifiers run at once")
-    parser.add_argument("--python", action="store_true", help="also run the pinned Python verifier on every case")
+    parser.add_argument("--python", action="store_true", help="also run the Python verifier on every case")
     parser.add_argument("--lean-exe", type=Path, default=LEAN_EXE)
     parser.add_argument("--rust-exe", type=Path, default=RUST_EXE)
     parser.add_argument("--memory-gb", type=int, default=40, help="address-space limit of every child process")
@@ -372,7 +374,7 @@ def main() -> None:
     parser.add_argument("--keep", type=Path, help="where to keep the files of disagreeing cases")
     parser.add_argument("--log", type=Path, help="write one line per case here")
     arguments = parser.parse_args()
-    tree, fixtures = arguments.tree.resolve(), arguments.fixtures.resolve()
+    tree, fixtures = TREE, arguments.fixtures.resolve()
     for exe in (arguments.lean_exe, arguments.rust_exe):
         if not exe.exists():
             sys.exit(f"{exe} is not built; see the usage in {Path(__file__).name}")

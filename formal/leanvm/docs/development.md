@@ -58,6 +58,5 @@ the module-system caveats). There is no test executable (finding P3 in
 
 ## CI
 
-Build/test, repository policy, architectural imports, and documentation links are separate
-checks so branch protection and failures remain legible. Build timing is intentionally
-informational. See [ci.md](ci.md) for the complete workflow inventory and repository setup.
+CI is the `leanvm-formalization` job of leanVM's Lean workflow, one named step per check so that
+a failure stays legible. See [ci.md](ci.md) for its steps and when it runs.

@@ -6,10 +6,11 @@ uses binary fields and BLAKE2s; the historical KoalaBear/Poseidon implementation
 [`a0ca7858f2533ce51abdc20bb635c007e19b26b3`](https://github.com/leanEthereum/leanVM/commit/a0ca7858f2533ce51abdc20bb635c007e19b26b3)
 on `main`, dated 2026-10-17, one commit after `127510d14c98ade4e8a97646c44fa7f1ff5e752d` (2026-10-15), which changes only the
 aggregation guest; the verifier, the Python and the specification are those of `127510d1`, and
-citations of them name it. The baselines before, and what changed between them, are reviewed in
-[dependencies.md](dependencies.md). Source-faithful
-definitions, fixtures, and implementation-correspondence claims must name this or a later
-explicitly reviewed commit; `main` is only the drift-monitoring branch.
+citations of them name it. It was the last external pin: the project now lives in leanVM, under
+`formal/leanvm`, and targets the containing commit, the scripts reading the leanVM tree they sit
+in. The baselines before, and what changed between them, are reviewed in
+[dependencies.md](dependencies.md). Source-faithful definitions, fixtures, and
+implementation-correspondence claims must name this or a later explicitly reviewed commit.
 
 The audit also examined the local checkouts supplied for comparison:
 
@@ -19,7 +20,7 @@ The audit also examined the local checkouts supplied for comparison:
 | Transitional `leanVM-b` checkout | `f5d6e5040d666981005371742a6f21640ce865a1` | Earlier binary-field revision |
 | Transitional `leanVM-b` upstream | `c701f62b0e05a48212febfae7ed5713a37d90392` | Earlier target baseline |
 | `leanVM` upstream `main` | `a386121f84292f6fa663aaa3e570c15bc0240ea2` | Previous target baseline |
-| `leanVM` upstream `main` | `a0ca7858f2533ce51abdc20bb635c007e19b26b3` | Current target baseline |
+| `leanVM` upstream `main` | `a0ca7858f2533ce51abdc20bb635c007e19b26b3` | Last external pin; the target is now the containing commit |
 
 The historical local leanVM checkout was clean. The transitional local leanVM-b checkout contained
 unrelated modified and untracked files; the comparison used committed objects only. The current

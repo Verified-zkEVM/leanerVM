@@ -1,17 +1,16 @@
 # The deployed Rust verifier (leanVM `crates/verifier`) on the Python verifier's four files.
-# `leanvm` is a symbolic link to a leanVM source tree at the pin, made by build.sh; see README.md.
+# The verifier is that of the containing leanVM commit; see README.md.
 [package]
 name = "leanvm-rust-verify"
 version = "0.0.0"
 edition = "2024"
 publish = false
 
-# Its own workspace; the linked tree is its own workspace too, whose members inherit its settings.
+# Its own workspace, not a member of leanVM's, whose members still inherit that one's settings.
 [workspace]
-exclude = ["leanvm"]
 
 [dependencies]
-verifier = { path = "leanvm/crates/verifier" }
+verifier = { path = "../../../../crates/verifier" }
 
 [profile.release]
 codegen-units = 1
