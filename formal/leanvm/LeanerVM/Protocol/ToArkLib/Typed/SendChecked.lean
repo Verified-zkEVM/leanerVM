@@ -65,17 +65,9 @@ def sendChecked : Def O StmtIn W StmtOut W where
   oracles := ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩
   samplers := fun _ ↦ PUnit.unit
   verdict := sendCheckedVerdict M check out
-  prover := fun so w ↦ pure (pure ⟨honest (so, w), ((out so.1 (honest (so, w)), so.2), w)⟩)
+  prover := fun so w ↦ pure ⟨honest (so, w), ((out so.1 (honest (so, w)), so.2), w)⟩
 
 /-! ## Completeness -/
-
-/-- The honest execution: one outcome, the honest message with its verdict. -/
-theorem sendChecked_execute (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i) (w : W) :
-    ((sendChecked O M honest check out).reduction initial).execute impl s (o, w) =
-      pure ⟨sayPath (honest ((s, o), w)), ((out s (honest ((s, o), w)), o), w),
-        sendCheckedVerdict M check out s ⟨honest ((s, o), w), PUnit.unit⟩⟩ :=
-  rfl
 
 variable {O M honest check out}
 variable {relIn : Set ((StmtIn × ∀ i, O i) × W)} {relOut : Set ((StmtOut × ∀ i, O i) × W)}
@@ -86,11 +78,13 @@ theorem sendCheckedComplete
     (h : ∀ s o w, ((s, o), w) ∈ relIn →
       check s (honest ((s, o), w)) = true ∧ ((out s (honest ((s, o), w)), o), w) ∈ relOut) :
     Complete (sendChecked O M honest check out) relIn relOut := by
-  intro initial impl s o w hin x hx
-  rw [sendChecked_execute, support_pure, Set.mem_singleton_iff] at hx
-  subst hx
+  rintro s o w hin ⟨m, ⟨⟩⟩ a ⟨rest, hrest, rfl⟩
+  simp only [sendChecked, support_pure, Set.mem_singleton_iff] at hrest
+  obtain ⟨rfl, rfl⟩ := hrest
   obtain ⟨hc, hout⟩ := h s o w hin
-  exact ⟨by simp only [sendCheckedVerdict, hc, ite_true], rfl, hout⟩
+  refine ⟨?_, rfl, hout⟩
+  change sendCheckedVerdict M check out s ⟨honest ((s, o), w), PUnit.unit⟩ = _
+  simp only [sendCheckedVerdict, hc, ite_true]
 
 /-! ## Knowledge soundness -/
 

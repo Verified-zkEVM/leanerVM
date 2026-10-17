@@ -67,30 +67,9 @@ def sampleChallenge : Def O StmtIn W StmtOut W where
   oracles := ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩
   samplers := ($ᵗ C, fun _ ↦ PUnit.unit)
   verdict := sampleVerdict C check f
-  prover := fun so w ↦ pure fun c ↦ pure ((f so.1 c, so.2), w)
+  prover := fun so w c ↦ pure ((f so.1 c, so.2), w)
 
 /-! ## Completeness -/
-
-/-- The honest execution: the challenge drawn uniformly, then the mapped statement. -/
-theorem sampleChallenge_execute (initial : PFunctor)
-    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i) (w : W) :
-    ((sampleChallenge O C check f).reduction initial).execute impl s (o, w) =
-      (fun c ↦ ⟨drawPath c, ((f s c, o), w), sampleVerdict C check f s ⟨c, PUnit.unit⟩⟩) <$>
-        ($ᵗ C) := by
-  change executeStrategies unifSpec (drawTree C) (drawRoles C) ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩ initial
-      impl (OutP := fun _ ↦ (StmtOut × ∀ i, O i) × W) (OutV := fun _ ↦ Option StmtOut)
-      (fun c ↦ pure ((f s c, o), w))
-      (frontVerifier (drawTree C) (drawRoles C) ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩ initial
-        ($ᵗ C, fun _ ↦ PUnit.unit) (sampleVerdict C check f s)) = _
-  refine (executeStrategies_public_receiver unifSpec (Moves := C) (rest := fun _ ↦ .done)
-    (fun _ ↦ ⟨⟩) ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩ initial impl
-    (OutP := fun _ ↦ (StmtOut × ∀ i, O i) × W) (OutV := fun _ ↦ Option StmtOut)
-    (fun c ↦ pure ((f s c, o), w)) _).trans ?_
-  simp only [frontVerifier, frontFragment, bind_pure_comp, simulateQ_map]
-  rw [QueryImpl.simulateQ_liftComp_left_eq_of_apply _ (QueryImpl.id' unifSpec) (fun _ ↦ rfl),
-    simulateQ_id']
-  simp only [map_eq_bind_pure_comp, bind_assoc, Function.comp_apply, pure_bind]
-  congr 1
 
 variable {O C check f}
 variable {relIn : Set ((StmtIn × ∀ i, O i) × W)} {relOut : Set ((StmtOut × ∀ i, O i) × W)}
@@ -100,11 +79,13 @@ relation into the output relation at every challenge. -/
 theorem sampleChallengeComplete
     (h : ∀ s o w, ((s, o), w) ∈ relIn → check s = true ∧ ∀ c, ((f s c, o), w) ∈ relOut) :
     Complete (sampleChallenge O C check f) relIn relOut := by
-  intro initial impl s o w hin x hx
-  rw [sampleChallenge_execute, support_map, Set.mem_image] at hx
-  obtain ⟨c, -, rfl⟩ := hx
+  rintro s o w hin ⟨c, ⟨⟩⟩ a ⟨-, rest, hrest, rfl⟩
+  simp only [sampleChallenge, support_pure, Set.mem_singleton_iff] at hrest
+  subst hrest
   obtain ⟨hc, hout⟩ := h s o w hin
-  exact ⟨by simp only [sampleVerdict, hc, ite_true], rfl, hout c⟩
+  refine ⟨?_, rfl, hout c⟩
+  change sampleVerdict C check f s ⟨c, PUnit.unit⟩ = _
+  simp only [sampleVerdict, hc, ite_true]
 
 /-! ## Knowledge soundness -/
 

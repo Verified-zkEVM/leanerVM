@@ -568,7 +568,7 @@ def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubO
   oracles := ⟨PUnit.unit, fun _ ↦ ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩⟩
   samplers := ($ᵗ E, fun _ _ ↦ PUnit.unit)
   verdict := verdictT I
-  prover := fun so w ↦ pure fun r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
+  prover := fun so w r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
 
 /-- The backward witness maps: the table seam before the challenge; after it, the public seam of
 the pool; after the values, that the check passes and the verdict is in the public seam. -/

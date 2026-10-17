@@ -21,10 +21,12 @@ the witness, the verifier would reach them only through queries, which a front v
 make, and they are handed on unchanged. `Def.reduction` is the component as an ArkLib
 `Interaction.Oracle.Reduction`.
 
-* `Complete D relIn relOut`: from the input relation, every outcome of the honest execution, for
-  any input oracle interface and handler, is accepted with the honest prover's statement, keeps
-  the oracles, and is in the output relation. The executions are probabilistic computations with
-  no failure, so this is perfect completeness.
+* `Complete D relIn relOut`: from the input relation, every honest run (`Runs`: the paths the
+  honest prover reaches against fresh challenges, with its output) is accepted with the prover's
+  statement, keeps the oracles, and is in the output relation. `Complete.execute` reads it on
+  ArkLib's execution: every outcome of the honest execution, for any input oracle interface and
+  handler, is so. The executions are probabilistic computations with no failure, so this is
+  perfect completeness.
 * `Security D relIn relOut err`: round-by-round knowledge soundness in the worst case over
   prefixes at the errors `err`, for a named extractor. For each input statement and oracles it
   gives backward witness maps (`RoundExtractor`) from the input relation, that prover moves cannot
@@ -95,9 +97,9 @@ structure Def (StmtIn WitIn StmtOut WitOut : Type) where
   samplers : Samplers tree roles
   /-- The verdict on a branch path; `none` rejects. -/
   verdict : StmtIn → tree.BranchPath → Option StmtOut
-  /-- The honest prover. -/
+  /-- The honest prover, a strategy with no setup. -/
   prover : StmtIn × (∀ i, O i) → WitIn →
-    OracleComp unifSpec (Prover.Strategy unifSpec tree roles fun _ ↦ (StmtOut × ∀ i, O i) × WitOut)
+    Prover.Strategy unifSpec tree roles fun _ ↦ (StmtOut × ∀ i, O i) × WitOut
 
 variable {O} {StmtIn WitIn StmtOut WitOut : Type}
 
@@ -115,17 +117,34 @@ are the prover's with the witness, and the verifier reaches the oracles through 
 def Def.reduction (D : Def O StmtIn WitIn StmtOut WitOut) (initial : PFunctor) :
     Oracle.Reduction unifSpec D.protocol initial StmtIn ((∀ i, O i) × WitIn)
       (fun _ ↦ (StmtOut × ∀ i, O i) × WitOut) (fun _ ↦ Option StmtOut) where
-  prover s w := D.prover (s, w.1) w.2
+  prover s w := pure (D.prover (s, w.1) w.2)
   verifier s := D.verifier initial s
 
-/-- **Completeness**: from the input relation, every outcome of the honest execution, for any
-input oracle interface and handler, is accepted with the prover's statement, keeps the oracles,
-and is in the output relation. -/
+/-- **Completeness**: from the input relation, every honest run of the prover against fresh
+challenges from the samplers is accepted with the prover's statement, keeps the oracles, and is
+in the output relation. -/
 def Complete (D : Def O StmtIn WitIn StmtOut WitOut) (relIn : Set ((StmtIn × ∀ i, O i) × WitIn))
     (relOut : Set ((StmtOut × ∀ i, O i) × WitOut)) : Prop :=
-  ∀ (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) s o w,
-    ((s, o), w) ∈ relIn → ∀ x ∈ support ((D.reduction initial).execute impl s (o, w)),
-      x.2.2 = some x.2.1.1.1 ∧ x.2.1.1.2 = o ∧ x.2.1 ∈ relOut
+  ∀ s o w, ((s, o), w) ∈ relIn → ∀ path a,
+    Runs D.tree D.roles D.samplers (D.prover (s, o) w) path a →
+      D.verdict s path.toBranchPath = some a.1.1 ∧ a.1.2 = o ∧ a ∈ relOut
+
+/-- **Perfect completeness of the execution**: from the input relation, every outcome of the
+honest execution, for any input oracle interface and handler, is accepted with the prover's
+statement, keeps the oracles, and is in the output relation. -/
+theorem Complete.execute {D : Def O StmtIn WitIn StmtOut WitOut}
+    {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
+    (C : Complete D relIn relOut) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i)
+    (w : WitIn) (hin : ((s, o), w) ∈ relIn) :
+    ∀ x ∈ support ((D.reduction initial).execute impl s (o, w)),
+      x.2.2 = some x.2.1.1.1 ∧ x.2.1.1.2 = o ∧ x.2.1 ∈ relOut := by
+  intro x hx
+  simp only [Oracle.Reduction.execute, Def.reduction, pure_bind] at hx
+  obtain ⟨hruns, hverdict⟩ := runs_of_mem_support D.tree D.roles D.oracles initial impl
+    D.samplers _ (D.verdict s) x hx
+  rw [hverdict]
+  exact C s o w hin x.1 x.2.1 hruns
 
 /-- **Round-by-round knowledge soundness** at the errors `err`, worst case over prefixes, for a
 named extractor: for each input statement and oracles, backward witness maps from the input

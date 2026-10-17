@@ -113,6 +113,15 @@ theorem simulateQ_liftComp_sampler {initial : PFunctor}
   rw [QueryImpl.simulateQ_liftComp_left_eq_of_apply _ (QueryImpl.id' unifSpec) (fun _ ↦ rfl),
     simulateQ_id', simulateQ_id']
 
+/-- Running a lifted sampler against any handler of the input oracles, before the ambient
+handler, is the sampler. -/
+theorem simulateQ_liftComp_sampler' {initial : PFunctor}
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) {α : Type} (sampler : ProbComp α) :
+    simulateQ (Verifier.liftAccessImpl unifSpec initial impl)
+      (OracleComp.liftComp sampler (unifSpec + OracleSpec.ofPFunctor initial)) = sampler := by
+  rw [QueryImpl.simulateQ_liftComp_left_eq_of_apply _ (QueryImpl.id' unifSpec) (fun _ ↦ rfl),
+    simulateQ_id']
+
 /-- **The front verifier draws the schedule's challenges**: at each of its nodes, the challenge
 it draws has exactly the sampler's law, whatever the errors, the input oracles and their
 handler. -/
@@ -148,6 +157,85 @@ theorem samplesChallenges_frontFragment : (tree : Oracle.TypeTree.{0}) →
         (oracles.2 PUnit.unit) (Access.extend initial oracles.1)
         (Access.extendImpl initial oracles.1 impl message) s e
         (fun path ↦ leaf ⟨PUnit.unit, path⟩)
+
+/-! ## Honest runs -/
+
+attribute [local implicit_reducible] Interaction.Oracle.TypeTree.runtimeLens
+
+/-- The honest runs of a prover against fresh challenges from the samplers: the execution paths it
+reaches, with its output at each. -/
+def Runs : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) → Samplers tree roles →
+    {A : Type} → Prover.Strategy unifSpec tree roles (fun _ ↦ A) → tree.ExecutionPath → A → Prop
+  | .done, _, _, _, p, _, a => a = p
+  | .public _ next, ⟨.sender, roles⟩, s, _, p, path, a =>
+      ∃ rest, Sigma.mk path.1 rest ∈ support p ∧
+        Runs (next path.1) (roles path.1) (s path.1) rest path.2 a
+  | .public _ next, ⟨.receiver, roles⟩, s, _, p, path, a =>
+      path.1 ∈ support s.1 ∧ ∃ rest ∈ support (p path.1),
+        Runs (next path.1) (roles path.1) (s.2 path.1) rest path.2 a
+  | .oracle _ next, roles, s, _, p, path, a =>
+      ∃ rest, Sigma.mk path.1 rest ∈ support p ∧
+        Runs (next PUnit.unit) (roles.2 PUnit.unit) s rest path.2 a
+
+/-- **Every outcome of an execution against a front verifier is an honest run**, with the
+verdict at its path. -/
+theorem runs_of_mem_support : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
+    (oracles : tree.OracleDecoration) → (initial : PFunctor) →
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) → (s : Samplers tree roles) →
+    {A : Type} → (p : Prover.Strategy unifSpec tree roles fun _ ↦ A) →
+    {Out : tree.BranchPath → Type} → (verdict : (path : tree.BranchPath) → Out path) →
+    ∀ x ∈ support (executeStrategies unifSpec tree roles oracles initial impl p
+      (frontVerifier tree roles oracles initial s verdict)),
+      Runs tree roles s p x.1 x.2.1 ∧ x.2.2 = verdict x.1.toBranchPath
+  | .done, ⟨⟩, ⟨⟩, initial, impl, _, _, p, _, verdict, x, hx => by
+      rw [executeStrategies_done] at hx
+      obtain ⟨out, hout, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      simp only [frontVerifier, frontFragment, support_pure, Set.mem_singleton_iff] at hout hx
+      subst hout hx
+      exact ⟨rfl, rfl⟩
+  | .public _ next, ⟨.sender, roles⟩, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+      rw [executeStrategies_public_sender] at hx
+      obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      obtain ⟨after, hafter, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      simp only [frontVerifier, frontFragment, simulateQ_pure, support_pure,
+        Set.mem_singleton_iff] at hafter
+      subst hafter
+      obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      rw [support_pure, Set.mem_singleton_iff] at hx
+      subst hx
+      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next chosen.1) (roles chosen.1)
+        (oracles.2 chosen.1) initial impl (s chosen.1) chosen.2
+        (fun path ↦ verdict ⟨chosen.1, path⟩) result hresult
+      exact ⟨⟨chosen.2, hchosen, hruns⟩, hverdict⟩
+  | .public _ next, ⟨.receiver, roles⟩, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+      rw [executeStrategies_public_receiver] at hx
+      obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      simp only [frontVerifier, frontFragment, simulateQ_bind, simulateQ_pure,
+        simulateQ_liftComp_sampler', mem_support_bind_iff, support_pure,
+        Set.mem_singleton_iff] at hchosen
+      obtain ⟨c, hc, rfl⟩ := hchosen
+      obtain ⟨rest, hrest, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      rw [support_pure, Set.mem_singleton_iff] at hx
+      subst hx
+      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next c) (roles c) (oracles.2 c) initial
+        impl (s.2 c) rest (fun path ↦ verdict ⟨c, path⟩) result hresult
+      exact ⟨⟨hc, rest, hrest, hruns⟩, hverdict⟩
+  | .oracle _ next, roles, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+      rw [executeStrategies_oracle] at hx
+      obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      obtain ⟨after, hafter, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      simp only [frontVerifier, frontFragment, simulateQ_pure, support_pure,
+        Set.mem_singleton_iff] at hafter
+      subst hafter
+      obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
+      rw [support_pure, Set.mem_singleton_iff] at hx
+      subst hx
+      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next PUnit.unit) (roles.2 PUnit.unit)
+        (oracles.2 PUnit.unit) (Access.extend initial oracles.1)
+        (Access.extendImpl initial oracles.1 impl chosen.1) s chosen.2
+        (fun path ↦ verdict ⟨PUnit.unit, path⟩) result hresult
+      exact ⟨⟨chosen.2, hchosen, hruns⟩, hverdict⟩
 
 end
 end LeanerVM.Protocol.Typed
