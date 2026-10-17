@@ -24,6 +24,10 @@ This directory contains stable project and operating knowledge.
     acceptance tests, public interfaces, and the decisions.
   - [protocol-status.md](roadmap/protocol-status.md): what of the proof system is on `main`,
     what the built work owes the blueprint, what can start now, and the upstream watch.
+  - [typed-migration.md](roadmap/typed-migration.md): the move of the proof system from
+    ArkLib's `OracleReduction` framework to its typed `Interaction` framework (decision 24
+    reopened): what uses the legacy framework, the typed counterparts and gaps, what is built,
+    the order of work, the risks and the progress log.
   - [leanth-reuse.md](roadmap/leanth-reuse.md): what the earlier leanVM-a formalization
     (private repository `leanth`) contains that the proof-system roadmap reuses — the catalog by
     layer, verdicts, credit, the port log, and the upstream candidates.
