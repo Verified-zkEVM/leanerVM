@@ -33,22 +33,22 @@ theorem truncate_from_halves (high low : Digest) :
   congrArg Prod.snd (Rom.hashOutputEquivDigestPair.apply_symm_apply (high, low))
 
 theorem evalDist_chainOutputs_from_halves :
-    𝒮[$ᵗ ChainOutputs] = 𝒮[do
+    ($ᵗ ChainOutputs) =ᵈ (do
       let low ← $ᵗ ChainSecrets
       let high ← $ᵗ ChainSecrets
-      pure (chainOutputHalves.symm (high, low))] := by
+      pure (chainOutputHalves.symm (high, low))) := by
   calc
-    _ = 𝒮[chainOutputHalves.symm <$> ($ᵗ (ChainSecrets × ChainSecrets))] :=
-      (evalSPMF_map_bijective_uniform_cross (α := ChainSecrets × ChainSecrets) (β := ChainOutputs)
-        chainOutputHalves.symm chainOutputHalves.symm.bijective).symm
-    _ = 𝒮[chainOutputHalves.symm <$> (do
+    _ =ᵈ (chainOutputHalves.symm <$> ($ᵗ (ChainSecrets × ChainSecrets))) :=
+      (SampleableType.map_uniformSample_evalDistEq_of_bijective
+        chainOutputHalves.symm.bijective).symm
+    _ =ᵈ (chainOutputHalves.symm <$> (do
         let high ← $ᵗ ChainSecrets
         let low ← $ᵗ ChainSecrets
-        pure (high, low))] := by
-      rw [evalSPMF_map, evalSPMF_map, evalDist_independent_uniform_pair]
-    _ = _ := by
+        pure (high, low))) :=
+      evalDist_independent_uniform_pair.symm.map _
+    _ =ᵈ _ := by
       simp only [map_bind, map_pure]
-      exact OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
+      exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 def programmedCache (seed : MasterSeed) (parameter : PublicParameter) (secret : ChainSecrets)
     (parameterHigh : Digest) (secretHigh : ChainSecrets) : QueryCache HashSpec :=
@@ -56,72 +56,66 @@ def programmedCache (seed : MasterSeed) (parameter : PublicParameter) (secret : 
     (chainOutputHalves.symm (secretHigh, secret))
 
 theorem evalDist_parameterOutput_from_halves :
-    𝒮[$ᵗ HashOutput] = 𝒮[do
+    ($ᵗ HashOutput) =ᵈ (do
       let low ← $ᵗ Digest
       let high ← $ᵗ Digest
-      pure (Rom.hashOutputEquivDigestPair.symm (high, low))] := by
+      pure (Rom.hashOutputEquivDigestPair.symm (high, low))) := by
   calc
-    _ = 𝒮[Rom.hashOutputEquivDigestPair.symm <$> ($ᵗ (Digest × Digest))] :=
-      (evalSPMF_map_bijective_uniform_cross (α := Digest × Digest) (β := HashOutput)
-        Rom.hashOutputEquivDigestPair.symm Rom.hashOutputEquivDigestPair.symm.bijective).symm
-    _ = 𝒮[Rom.hashOutputEquivDigestPair.symm <$> (do
+    _ =ᵈ (Rom.hashOutputEquivDigestPair.symm <$> ($ᵗ (Digest × Digest))) :=
+      (SampleableType.map_uniformSample_evalDistEq_of_bijective
+        Rom.hashOutputEquivDigestPair.symm.bijective).symm
+    _ =ᵈ (Rom.hashOutputEquivDigestPair.symm <$> (do
         let high ← $ᵗ Digest
         let low ← $ᵗ Digest
-        pure (high, low))] := by
-      rw [evalSPMF_map, evalSPMF_map, evalDist_independent_uniform_pair]
-    _ = _ := by
+        pure (high, low))) :=
+      evalDist_independent_uniform_pair.symm.map _
+    _ =ᵈ _ := by
       simp only [map_bind, map_pure]
-      exact OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
+      exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
-theorem evalDist_samplePublicParameter : 𝒮[Concrete.samplePublicParameter] = 𝒮[$ᵗ Digest] := by
+theorem evalDist_samplePublicParameter : Concrete.samplePublicParameter =ᵈ ($ᵗ Digest) := by
   unfold Concrete.samplePublicParameter
-  rw [evalSPMF_uniformSample, evalSPMF_uniformSample]
-  rfl
+  exact EvalDistEq.of_forall_prEvent_eq (SampleableType.prEvent_uniformSample_inst_irrel _ _)
 
-theorem evalDist_sampleSecret : 𝒮[Concrete.sampleSecret] = 𝒮[$ᵗ ChainSecrets] := by
-  apply evalSPMF_ext
-  intro secret
+theorem evalDist_sampleSecret : Concrete.sampleSecret =ᵈ ($ᵗ ChainSecrets) := by
   unfold Concrete.sampleSecret
-  simp only [probOutput_uniformSample]
+  exact EvalDistEq.of_forall_prEvent_eq (SampleableType.prEvent_uniformSample_inst_irrel _ _)
 
 /-- The same independent parameter and secret sampler as the existing proof, with full derivation answers retained. -/
 theorem evalDist_deriveParametersAndSecrets_eq_independent (seed : MasterSeed) :
-    𝒮[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
-      𝒮[do
+    ((simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅) =ᵈ (do
         let parameter ← Concrete.samplePublicParameter
         let secret ← Concrete.sampleSecret
         let parameterHigh ← $ᵗ Digest
         let secretHigh ← Concrete.sampleSecret
-        pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)] := by
-  rw [evalDist_deriveParametersAndSecrets]
-  trans 𝒮[do
+        pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)) := by
+  refine (evalDist_deriveParametersAndSecrets seed).trans ?_
+  refine EvalDistEq.trans (my := (do
     let parameter ← $ᵗ Digest
     let secret ← $ᵗ ChainSecrets
     let parameterHigh ← $ᵗ Digest
     let secretHigh ← $ᵗ ChainSecrets
-    pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)]
-  · rw [evalSPMF_bind, evalDist_parameterOutput_from_halves, ← evalSPMF_bind]
+    pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh) :
+      ProbComp _)) ?_ ?_
+  · refine (evalDist_parameterOutput_from_halves.bind_left _).trans ?_
     simp only [bind_assoc, pure_bind, truncate_from_halves]
-    apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
+    apply EvalDistEq.bind_right
     intro parameter
-    trans 𝒮[do
+    refine EvalDistEq.trans (my := (do
       let parameterHigh ← $ᵗ Digest
       let secret ← $ᵗ ChainSecrets
       let secretHigh ← $ᵗ ChainSecrets
-      pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh)]
-    · apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
+      pure ((parameter, secret), programmedCache seed parameter secret parameterHigh secretHigh) :
+        ProbComp _)) ?_ ?_
+    · apply EvalDistEq.bind_right
       intro parameterHigh
-      rw [evalSPMF_bind, evalDist_chainOutputs_from_halves, ← evalSPMF_bind]
-      simp only [bind_assoc, pure_bind, outputSecrets_from_halves, programmedCache]
-    · exact OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
-  · rw [evalSPMF_bind, evalSPMF_bind, evalDist_samplePublicParameter]
-    apply bind_congr
-    intro parameter
-    rw [evalSPMF_bind, evalSPMF_bind, evalDist_sampleSecret]
-    apply bind_congr
-    intro secret
-    apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
-    intro parameterHigh
-    rw [evalSPMF_bind, evalSPMF_bind, evalDist_sampleSecret]
+      refine (evalDist_chainOutputs_from_halves.bind_left _).trans ?_
+      simp only [bind_assoc, pure_bind, outputSecrets_from_halves, programmedCache,
+        EvalDistEq.refl]
+    · exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
+  · exact evalDist_samplePublicParameter.symm.bind fun _ =>
+      evalDist_sampleSecret.symm.bind fun _ =>
+        EvalDistEq.bind_right _ fun _ => evalDist_sampleSecret.symm.bind_left _
+
 
 end XmssSecurity.Seeded

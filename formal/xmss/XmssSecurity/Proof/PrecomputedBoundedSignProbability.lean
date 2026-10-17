@@ -76,13 +76,11 @@ set_option linter.constructorNameAsVariable false in
 theorem Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit_le_cachedCount
     (attempts : Nat) (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message)
     (referenceCache workingCache : QueryCache HashSpec) :
-    Pr[fun result : Option Signature × QueryCache HashSpec =>
-      ∃ signature, result.1 = some signature ∧ ∃ output,
-        referenceCache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
-          (message, signature.randomness)) = some output |
-      (simulateQ romImpl
+    Pr{let result ← ((simulateQ romImpl
         (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run
-          workingCache] ≤
+          workingCache)}[∃ signature, result.1 = some signature ∧ ∃ output,
+        referenceCache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
+          (message, signature.randomness)) = some output] ≤
       (attempts : ℝ≥0∞) *
         cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
@@ -91,21 +89,22 @@ theorem Concrete.precomputedSignBoundedAttempts_encodingInput_referenceCache_hit
       simp [Concrete.precomputedSignBoundedAttempts]
   | succ attempts ih =>
       rw [Concrete.precomputedSignBoundedAttempts_run_succ_eq]
-      refine (probEvent_bind_le_probEvent_add
+      refine (prEvent_bind_le_prEvent_add_of_support
         (p := fun randomness : Randomness => ∃ output,
           referenceCache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
             (message, randomness)) = some output)
         (ε := (attempts : ℝ≥0∞) *
           cachedEncodingEntryCount referenceCache secretKey.parameter leafIndex *
-          ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹) ?_).trans ?_
+          ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹) _ _ _ ?_).trans ?_
       · intro randomness _hrandomness hmiss
-        refine probEvent_bind_le_of_forall_le fun attemptResult hattempt => ?_
+        refine prEvent_bind_le_of_forall_le_of_support _ _ _ fun attemptResult hattempt => ?_
         cases hresult : attemptResult.1 with
         | none =>
             simpa [Concrete.precomputedSignBoundedAttemptsContinuation, hresult] using
               ih attemptResult.2
         | some signature =>
-            refine le_of_eq_of_le (probEvent_eq_zero ?_) zero_le
+            refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ ?_) zero_le
+
             intro result hsupport hevent
             have hsupport' : result ∈ support
                 (pure (some signature, attemptResult.2) :
@@ -146,12 +145,10 @@ set_option linter.constructorNameAsVariable false in
 theorem Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedCount
     (secretKey : SecretKey)
     (leafIndex : LeafIndex) (message : Message) (cache : QueryCache HashSpec) :
-    Pr[fun result : Option Signature × QueryCache HashSpec =>
-      ∃ signature, result.1 = some signature ∧ ∃ output,
+    Pr{let result ← ((simulateQ romImpl
+        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache)}[∃ signature, result.1 = some signature ∧ ∃ output,
         cache (Concrete.CacheView.encodingInput secretKey.parameter leafIndex
-          (message, signature.randomness)) = some output |
-      (simulateQ romImpl
-        (Concrete.precomputedCappedSign secretKey leafIndex message)).run cache] ≤
+          (message, signature.randomness)) = some output] ≤
       (signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount cache secretKey.parameter leafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by

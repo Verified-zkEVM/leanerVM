@@ -9,7 +9,7 @@ module
 
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import VCVio.EvalDist.ProbabilityNotation
 import ToMathlib.Probability.UniformOn
 

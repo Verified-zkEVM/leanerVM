@@ -7,9 +7,9 @@ blueprint. What is wanted is the blueprint's; who is taking which hole is issue
 are in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin). Open pull requests
 are not part of `main`.
 
-The pins are those of `upstreams.json`: ArkLib `7653a901`, CompPoly `572f9973`, Clean
-`42fe4b26`, VCVio `a4232d08`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
-([dependencies.md](../dependencies.md#lean-434-port-review)). leanVM is the containing commit,
+The pins are those of `upstreams.json`: ArkLib `4dae3acf`, CompPoly `572f9973`, Clean
+`42fe4b26`, VCVio `afa6593f`, PolyFun `41d3b21d`, Lean and Mathlib `v4.34.1`
+([dependencies.md](../dependencies.md#arklib-4dae3acf-and-vcvio-afa6593f-review)). leanVM is the containing commit,
 `a0ca7858` when the project moved into it.
 
 ## On `main`
@@ -650,16 +650,17 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
 | ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
-| ArkLib's typed framework (its roadmap items 3–4; #1251) | the spine | the framework decision (decision 24) | it has round-by-round knowledge soundness and its composition |
+| ArkLib's typed framework (its roadmap items 3–4; #1251; at the pin #1259, #1260, #1263, #1264) | the spine | the framework decision (decision 24), due for review: at the pin the framework has round-by-round knowledge certificates (backward witness maps), their sequential composition and state-restoration knowledge soundness, but no adaptor to `OracleReduction` and no sumcheck with a knowledge notion | a review of decision 24 finds a port worth it |
 | ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
-| ArkLib #1261, #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed framework proves round-by-round knowledge soundness (decision 24) |
+| ArkLib #1261 (at the pin), #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed sumcheck proves round-by-round knowledge soundness (decision 24) |
 | ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | the Merkle trees | leanVM's trees on VCVio's library | the fit lemma holds (decision 32) |
+| VCVio #823, #824, #826 (at the pin) | the compiled verifier's random-oracle bounds | `ToVCVio/Rom/`, whose potential bounds over the log of fresh queries these do not state (they bound fresh-query bad events by table resampling and expected distinct-query charges, over a log of every query) | VCVio states a potential bound that `ToVCVio/Rom/`'s consumers can use |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |

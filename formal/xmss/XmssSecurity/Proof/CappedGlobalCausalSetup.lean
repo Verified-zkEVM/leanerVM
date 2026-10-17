@@ -14,18 +14,21 @@ open OracleComp.ProgramLogic.Relational
 
 namespace XmssSecurity.CappedChain
 
+/-- Computations equal in distribution reach the same outputs. -/
+private theorem mem_support_iff_of_evalDistEq {α : Type} {mx my : ProbComp α}
+    (h : mx =ᵈ my) (x : α) : x ∈ support mx ↔ x ∈ support my := by
+  rw [OracleComp.support_eq_of_evalDistEq h]
+
 noncomputable def trajectoryProgrammedGlobalChainKeygen :
     ProbComp ProgrammedGlobalChainKeygenView :=
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
 
 theorem evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalSPMF coupledGlobalChainKeygen =
-      evalSPMF trajectoryProgrammedGlobalChainKeygen :=
+    coupledGlobalChainKeygen =ᵈ trajectoryProgrammedGlobalChainKeygen :=
   evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories
 
 theorem evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalSPMF actualGlobalChainKeygen =
-      evalSPMF trajectoryProgrammedGlobalChainKeygen :=
+    actualGlobalChainKeygen =ᵈ trajectoryProgrammedGlobalChainKeygen :=
   evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_table
@@ -33,7 +36,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_table
     (hresult : result ∈ support trajectoryProgrammedGlobalChainKeygen) :
     globalKeygenChainValueTable result.cache result.secretKey = result.table := by
   apply actualGlobalChainKeygen_support_table result
-  exact (mem_support_iff_of_evalSPMF_eq
+  exact (mem_support_iff_of_evalDistEq
     evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed result).mpr hresult
 
 abbrev GlobalChainActionTracedResult :=
@@ -390,7 +393,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_keyResult
     view.keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅) := by
   apply actualGlobalChainKeygen_support_keyResult view
-  exact (mem_support_iff_of_evalSPMF_eq
+  exact (mem_support_iff_of_evalDistEq
     evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed view).mpr hview
 
 theorem keygen_support_treeCacheStable

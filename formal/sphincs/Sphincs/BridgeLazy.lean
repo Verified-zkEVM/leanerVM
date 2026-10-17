@@ -121,13 +121,11 @@ theorem evalDist_ordinary_step {α : Type} (bytes : HashInput) (hshort : IsShort
     (next : HashOutput → OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) (cache : QueryCache HashSpec)
     (ih : ∀ answer (cache' : QueryCache HashSpec),
-      𝒮[($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stopped model table (extend cache' outside) (next answer) known] =
-      𝒮[Option.map Prod.fst <$> HiddenOutside.stopped model table (next answer) known cache']) :
-    𝒮[($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stopped model table (extend cache outside) (next (extend cache outside bytes)) known] =
-      𝒮[Option.map Prod.fst <$> (HiddenOutside.outsideRead bytes cache >>= fun result =>
-        HiddenOutside.stopped model table (next result.1) known result.2)] := by
+      (($ᵗ Eager.Table) >>= fun outside =>
+        HiddenRows.stopped model table (extend cache' outside) (next answer) known) =ᵈ (Option.map Prod.fst <$> HiddenOutside.stopped model table (next answer) known cache')) :
+    (($ᵗ Eager.Table) >>= fun outside =>
+        HiddenRows.stopped model table (extend cache outside) (next (extend cache outside bytes)) known) =ᵈ (Option.map Prod.fst <$> (HiddenOutside.outsideRead bytes cache >>= fun result =>
+        HiddenOutside.stopped model table (next result.1) known result.2)) := by
   cases hc : cache bytes with
   | some answer =>
       have hext : ∀ outside, extend cache outside bytes = answer := fun outside => by simp [extend, hc]
@@ -144,36 +142,30 @@ theorem evalDist_ordinary_step {α : Type} (bytes : HashInput) (hshort : IsShort
         intro answer outside
         simp only [ψ, extend_update_self cache outside hshort hc answer,
           extend_cacheQuery' cache outside hshort hc answer]
-      change 𝒮[($ᵗ Eager.Table) >>= ψ] = _
-      calc 𝒮[($ᵗ Eager.Table) >>= ψ]
-          = 𝒮[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
-              fun outside => pure (Function.update outside ⟨bytes, hshort⟩ answer)) >>= ψ] := by
-            symm
-            rw [evalSPMF_bind, evalSPMF_uniformSample_bind_update (D := ShortIn) (R := HashOutput)
-              ⟨bytes, hshort⟩, ← evalSPMF_bind]
-        _ = 𝒮[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
-              HiddenRows.stopped model table (extend (cache.cacheQuery bytes answer) outside) (next answer) known] := by
-            simp only [bind_assoc, pure_bind, hupdate]
-        _ = _ := by
-            rw [evalSPMF_bind, evalSPMF_bind]
-            congr 1
-            funext answer
-            exact ih answer _
+      change ($ᵗ Eager.Table) >>= ψ =ᵈ _
+      have hassoc : (($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
+            fun outside => pure (Function.update outside ⟨bytes, hshort⟩ answer)) >>= ψ =
+          ($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
+            HiddenRows.stopped model table (extend (cache.cacheQuery bytes answer) outside) (next answer) known := by
+        simp only [bind_assoc, pure_bind, hupdate]
+      refine ((uniformSample_bind_update_evalDistEq (D := ShortIn) (R := HashOutput)
+        ⟨bytes, hshort⟩).bind_left ψ).symm.trans ?_
+      rw [hassoc]
+      exact EvalDistEq.bind_right _ fun answer => ih answer _
 
 /-- **Eager to lazy outside oracle** inside the stopped execution of a short-only program. -/
 theorem evalDist_stopped_lazy {α : Type}
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cache : QueryCache HashSpec) :
-    𝒮[($ᵗ Eager.Table) >>= fun outside =>
-        HiddenRows.stopped model table (extend cache outside) computation known] =
-      𝒮[Option.map Prod.fst <$> HiddenOutside.stopped model table computation known cache] := by
+    (($ᵗ Eager.Table) >>= fun outside =>
+        HiddenRows.stopped model table (extend cache outside) computation known) =ᵈ (Option.map Prod.fst <$> HiddenOutside.stopped model table computation known cache) := by
   induction computation using OracleComp.inductionOn generalizing known cache with
   | pure value =>
-      change 𝒮[($ᵗ Eager.Table) >>= fun _ => (pure (some value) : ProbComp _)] =
-        𝒮[Option.map Prod.fst <$> (pure (some (value, cache)) : ProbComp _)]
-      rw [DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample _), map_pure]
-      rfl
+      change ($ᵗ Eager.Table) >>= (fun _ => (pure (some value) : ProbComp _)) =ᵈ
+        Option.map Prod.fst <$> (pure (some (value, cache)) : ProbComp _)
+      rw [map_pure]
+      exact OracleComp.EvalDistEq.bind_const _ _
   | query_bind input next ih =>
       rw [OnlyShort, isQueryBoundP_query_bind_iff] at hshort
       have hnext : ∀ answer, OnlyShort (next answer) := fun answer => by
@@ -182,10 +174,8 @@ theorem evalDist_stopped_lazy {α : Type}
       rcases input with draw | (bytes | coordinate)
       · simp only [HiddenRows.stopped_private]
         rw [outside_stopped_private, map_bind]
-        rw [evalSPMF_bind_bind_swap, evalSPMF_bind, evalSPMF_bind]
-        congr 1
-        funext value
-        exact ih value (hnext value) known cache
+        refine (OracleComp.EvalDistEq.bind_bind_swap _ _ _).trans ?_
+        exact EvalDistEq.bind_right _ fun value => ih value (hnext value) known cache
       · have hlong : IsShort bytes := by
           rcases hshort.1 with hnot | hzero
           · simpa [LongSource] using hnot
@@ -201,8 +191,7 @@ theorem evalDist_stopped_lazy {α : Type}
             dsimp only
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
             · simp only [hstop, and_self, ↓reduceIte, map_pure]
-              rw [DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample _)]
-              rfl
+              exact OracleComp.EvalDistEq.bind_const _ _
             · by_cases hmatch : query.2 = table (model.incoming query.1)
               · have hknown : ¬known (model.incoming query.1) = none := fun h => hstop ⟨h, hmatch⟩
                 simp only [hmatch, and_true, hknown, ↓reduceIte,

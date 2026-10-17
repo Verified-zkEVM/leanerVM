@@ -87,10 +87,9 @@ noncomputable def prepareRandomizers (parameter : PublicParameter) (seed : Maste
 
 theorem evalDist_prepareRandomizers (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) :
-    𝒮[(simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)).run
-      (derivationCache seed parameterOutput outputs)] =
-        𝒮[(fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>
-          sampleRandomizerOutputs] :=
+    ((simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)).run
+      (derivationCache seed parameterOutput outputs)) =ᵈ ((fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>
+          sampleRandomizerOutputs) :=
   evalDist_queryTable_fresh _ (randomizerInputs_injective _ seed) _
     (derivationCache_randomizer_fresh seed parameterOutput outputs)
 

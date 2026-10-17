@@ -32,36 +32,31 @@ def programmedGlobalChainMaterialBaseHighView
 
 theorem evalDist_programmedGlobalChainMaterialBaseHighView_eq_independent
     (parameter : PublicParameter) :
-    evalSPMF (programmedGlobalChainMaterialBaseHighView <$>
-      programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) =
-    evalSPMF independentGlobalChainTableHigh := by
+    (programmedGlobalChainMaterialBaseHighView <$>
+      programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) =ᵈ
+    independentGlobalChainTableHigh := by
   unfold programmedGlobalChainTrajectoryMaterialWithBaseHigh
     programmedGlobalChainMaterialBaseHighView
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
   calc
-    _ = evalSPMF ((globalChainTrajectoryMaterialBase <$>
+    _ =ᵈ ((globalChainTrajectoryMaterialBase <$>
           programmedGlobalChainTrajectoryMaterialWithBase parameter) >>=
         fun table => independentGlobalChainHigh >>= fun high =>
           pure (table, high)) := by
       simp [globalChainTrajectoryMaterialBase, map_eq_bind_pure_comp,
         bind_assoc]
-    _ = evalSPMF ((globalChainTrajectoryMaterialTable <$>
+    _ =ᵈ ((globalChainTrajectoryMaterialTable <$>
           programmedGlobalChainTrajectoryMaterial parameter) >>=
         fun table => independentGlobalChainHigh >>= fun high =>
-          pure (table, high)) := by
-      rw [evalSPMF_bind,
-        ← evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
-          parameter,
-        ← evalSPMF_bind]
-    _ = evalSPMF (independentGlobalChainValueTable >>= fun table =>
+          pure (table, high)) :=
+      (evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
+        parameter).symm.bind_left _
+    _ =ᵈ (independentGlobalChainValueTable >>= fun table =>
         independentGlobalChainHigh >>= fun high => pure (table, high)) := by
-      rw [evalSPMF_bind,
-        evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
-          parameter,
-        evalSPMF_uniformSample,
-        ← evalDist_independentGlobalChainValueTable_eq_uniformMeasure,
-        ← evalSPMF_bind]
+      rw [independentGlobalChainValueTable_eq_uniform]
+      exact (evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
+        parameter).bind_left _
     _ = _ := by rfl
 
 def ProgrammedGlobalChainMaterialBaseHighRelation
@@ -81,18 +76,18 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
       (programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter)
       (ProgrammedGlobalChainMaterialBaseHighRelation parameter) := by
   classical
-  letI : DecidableEq ((GlobalChainValueIndex → Digest) ×
+  let : DecidableEq ((GlobalChainValueIndex → Digest) ×
       (GlobalChainEdgeIndex → Digest)) := Classical.decEq _
   have hprojection :
-      evalSPMF ((fun material : GlobalChainTrajectoryMaterial =>
+      ((fun material : GlobalChainTrajectoryMaterial =>
         (globalChainTrajectoryMaterialTable material,
           globalChainEdgeHighTableOfCache material.2.2 parameter
             (globalChainTrajectoryMaterialTable material))) <$>
-        programmedGlobalChainTrajectoryMaterial parameter) =
-      evalSPMF (programmedGlobalChainMaterialBaseHighView <$>
+        programmedGlobalChainTrajectoryMaterial parameter) =ᵈ
+      (programmedGlobalChainMaterialBaseHighView <$>
         programmedGlobalChainTrajectoryMaterialWithBaseHigh parameter) := by
     calc
-      _ = evalSPMF (globalChainTableHighViewOfMaterial parameter <$>
+      _ =ᵈ (globalChainTableHighViewOfMaterial parameter <$>
           outputGlobalChainTrajectoryMaterial parameter) := by
         have hfunction : (fun material : GlobalChainTrajectoryMaterial =>
             (globalChainTrajectoryMaterialTable material,
@@ -102,10 +97,8 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
           funext material
           rfl
         rw [hfunction]
-        rw [evalSPMF_map,
-          evalDist_programmedGlobalChainTrajectoryMaterial_eq_output parameter,
-          ← evalSPMF_map]
-      _ = evalSPMF (globalChainKeygenRandomnessView <$>
+        exact (evalDist_programmedGlobalChainTrajectoryMaterial_eq_output parameter).map _
+      _ =ᵈ (globalChainKeygenRandomnessView <$>
           (globalChainRandomnessOfMaterial parameter <$>
             outputGlobalChainTrajectoryMaterial parameter)) := by
         simp only [Functor.map_map]
@@ -116,14 +109,12 @@ theorem relTriple_programmedGlobalChainTrajectoryMaterial_withBaseHigh
           exact globalChainKeygenRandomnessView_ofView
             (globalChainTableHighViewOfMaterial parameter material)
         rw [hview]
-      _ = evalSPMF (globalChainKeygenRandomnessView <$>
-          uniformGlobalChainKeygenRandomness) := by
-        rw [evalSPMF_map,
-          evalDist_outputGlobalChainRandomness_eq_uniform parameter,
-          ← evalSPMF_map]
-      _ = evalSPMF independentGlobalChainTableHigh :=
+      _ =ᵈ (globalChainKeygenRandomnessView <$>
+          uniformGlobalChainKeygenRandomness) :=
+        (evalDist_outputGlobalChainRandomness_eq_uniform parameter).map _
+      _ =ᵈ independentGlobalChainTableHigh :=
         evalDist_globalChainKeygenRandomnessView_eq_independent
-      _ = _ :=
+      _ =ᵈ _ :=
         (evalDist_programmedGlobalChainMaterialBaseHighView_eq_independent
           parameter).symm
   apply relTriple_post_mono
@@ -347,9 +338,8 @@ theorem coupledGlobalChainKeygenWithBaseHighFull_support_keyView
       by simp [expected, expectedCoupled]⟩
   have hexpected : expected ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
-    (mem_support_iff_of_evalSPMF_eq
-      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed expected).mp
-        hcoupled
+    (OracleComp.support_eq_of_evalDistEq
+      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed).subset hcoupled
   have hkeyView : result.1.1 = expected := by
     rw [hpureView, hpureTree, hpureHigh, hpureMaterial]
   rw [hkeyView]
@@ -376,9 +366,10 @@ theorem relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable :
   obtain ⟨hbaseHigh, hleftCoupledSupport, hrightSupport⟩ := hrel
   have hleftSupport : left ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
-    (mem_support_iff_of_evalSPMF_eq
-      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed left).mp
+    (OracleComp.support_eq_of_evalDistEq
+      evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed).subset
         hleftCoupledSupport
+
   have hrightViewSupport : right.1.1 ∈ support
       trajectoryProgrammedGlobalChainKeygen :=
     coupledGlobalChainKeygenWithBaseHighFull_support_keyView right
@@ -414,7 +405,7 @@ theorem relTriple_trajectoryProgrammedGlobalChainKeygen_withBaseHigh_stable :
     RelTriple trajectoryProgrammedGlobalChainKeygen
       coupledGlobalChainKeygenWithBaseHighFull
       ProgrammedGlobalChainKeygenBaseHighStableRelation := by
-  exact relTriple_of_evalSPMF_eq_left
+  exact relTriple_of_evalDistEq_left
     evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed.symm
     relTriple_coupledGlobalChainKeygen_withBaseHigh_fullCacheStable
 
@@ -1309,7 +1300,7 @@ theorem relTriple_programmed_globalFilteredCausalSigningQuery
   simp only [Concrete.scheme, globalFilteredCausalSigningQuery]
   have hleftKey := trajectoryProgrammedGlobalChainKeygen_support_keyResult
     left hleftSupport
-  apply relTriple_of_evalSPMF_eq_left
+  apply relTriple_of_evalDistEq_left
     (Concrete.evalDist_precomputedCappedSign_materialized_eq_cappedSign
       left.keyResult hleftKey hrel.1.2.1 leftCache hstate.2.2.1
         request.leafIndex request.message)

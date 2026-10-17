@@ -11,7 +11,7 @@ rev = "v4.34.1"
 [[require]]
 name = "VCVio"
 git = "https://github.com/Verified-zkEVM/VCVio.git"
-rev = "a4232d084aa18aa71f75b92b64082b457ffdb77b"
+rev = "afa6593f15e1e79ecb3cf22fc56191cecb452bb0"
 
 [[require]]
 name = "PolyFun"

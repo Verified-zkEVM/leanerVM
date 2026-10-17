@@ -28,9 +28,8 @@ potential for `LeanerVM.Protocol.ToVCVio.Rom.Potential`.
   the cache, so the potential is budgeted (`birthdayPotential`): `1` on a cache with a
   collision, and otherwise `∑_{j < n} (k + j) / |R|` with `n` queries left. From the empty cache
   the bound is `∑_{j < Q} j / |R| = Q (Q - 1) / (2 |R|)`, the same tight birthday bound as
-  VCVio's `probEvent_cacheCollision_le_birthday_total_tight`, which states it for
-  `cachingOracle` with the retiring `Pr[…]` notation; here it is stated for `randomOracle` with
-  the measure notation `Pr{…}[…]`.
+  VCVio's `prEvent_cacheCollision_le_birthday_total_tight`, which states it for
+  `cachingOracle`; here it is stated for `randomOracle`.
 -/
 
 namespace LeanerVM.Protocol

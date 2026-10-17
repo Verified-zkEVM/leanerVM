@@ -7,7 +7,7 @@
 
 module
 
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # The subsingleton bound for uniform samples
@@ -32,7 +32,7 @@ variable {α : Type} [SampleableType α] [Fintype α]
 
 /-- An event any two of whose witnesses are equal has probability at most `1/|α|` under a
 uniform sample. -/
-theorem probEvent_uniformSample_le_of_subsingleton (p : α → Prop)
+theorem prEvent_uniformSample_le_of_subsingleton (p : α → Prop)
     (h : ∀ a b, p a → p b → a = b) :
     Pr{let sample ← $ᵗ α}[p sample] ≤ ((1 / Fintype.card α : ℝ≥0) : ℝ≥0∞) := by
   classical

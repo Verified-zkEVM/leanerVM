@@ -1,4 +1,5 @@
 import XmssSecurity.Proof.IdealStatement
+import XmssSecurity.Proof.EvalDistEq
 import VCVio.OracleComp.QueryTracking.RandomOracle.DeferredSampling
 import VCVio.OracleComp.QueryTracking.Unpredictability
 
@@ -17,8 +18,8 @@ end XmssSecurity
 
 namespace XmssSecurity.Rom
 
-noncomputable local instance : IsUniformSpec HashSpec :=
-  IsUniformSpec.ofFintypeInhabited _
+noncomputable local instance : UniformAnswerMeasure HashSpec :=
+  UniformAnswerMeasure.ofFiniteNonempty _
 
 theorem card_hashOutput : Fintype.card HashOutput = 2 ^ hashOutputBits := by
   simp
@@ -74,44 +75,29 @@ noncomputable def independentDigestHalves : ProbComp (Digest × Digest) := do
 
 /-- Splitting a uniform 256-bit answer gives two independent uniform 128-bit halves. -/
 theorem evalDist_split_uniformHashOutput_eq_independent :
-    𝒮[hashOutputEquivDigestPair <$> ($ᵗ HashOutput)] =
-      𝒮[independentDigestHalves] := by
-  apply SPMF.ext
-  intro target
-  change Pr[= target | hashOutputEquivDigestPair <$> ($ᵗ HashOutput)] =
-    Pr[= target | independentDigestHalves]
-  rw [probOutput_map_bijective_uniform_cross
-    (α := HashOutput) (β := Digest × Digest)
-    hashOutputEquivDigestPair hashOutputEquivDigestPair.bijective]
+    (hashOutputEquivDigestPair <$> ($ᵗ HashOutput)) =ᵈ independentDigestHalves := by
   calc
-    Pr[= target | $ᵗ (Digest × Digest)] =
-        Pr[= target.1 | $ᵗ Digest] * Pr[= target.2 | $ᵗ Digest] := by
-      simp [probOutput_uniformSample, Fintype.card_prod, ENNReal.mul_inv]
-    _ = Pr[= target | independentDigestHalves] := by
+    (hashOutputEquivDigestPair <$> ($ᵗ HashOutput)) =ᵈ ($ᵗ (Digest × Digest)) :=
+      SampleableType.map_uniformSample_evalDistEq_of_bijective
+        hashOutputEquivDigestPair.bijective
+    _ =ᵈ independentDigestHalves := by
       unfold independentDigestHalves
-      symm
-      simp
+      rw [SampleableType.uniformSample_prod_eq_bind]
 
 /-- Truncating a uniform 256-bit answer gives a uniform XMSS digest. -/
 theorem evalDist_truncate_uniformHashOutput :
-    𝒮[truncateHash <$> ($ᵗ HashOutput)] = 𝒮[$ᵗ Digest] := by
+    (truncateHash <$> ($ᵗ HashOutput)) =ᵈ ($ᵗ Digest) := by
   calc
-    𝒮[truncateHash <$> ($ᵗ HashOutput)] =
-        𝒮[Prod.snd <$> (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))] := by
+    (truncateHash <$> ($ᵗ HashOutput)) =ᵈ
+        (Prod.snd <$> (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))) := by
       simp [Functor.map_map, hashOutputEquivDigestPair]
-    _ = 𝒮[Prod.snd <$> independentDigestHalves] := by
-      rw [evalSPMF_map, evalDist_split_uniformHashOutput_eq_independent,
-        ← evalSPMF_map]
-    _ = 𝒮[$ᵗ Digest] := by
+    _ =ᵈ (Prod.snd <$> independentDigestHalves) :=
+      evalDist_split_uniformHashOutput_eq_independent.map _
+    _ =ᵈ ($ᵗ Digest) := by
       unfold independentDigestHalves
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
-        Function.comp_apply]
-      apply SPMF.ext
-      intro target
-      change Pr[= target | do let _ ← $ᵗ Digest; $ᵗ Digest] =
-        Pr[= target | $ᵗ Digest]
-      rw [probOutput_bind_const, probFailure_uniformSample]
-      simp
+        Function.comp_apply, bind_pure]
+      exact OracleComp.EvalDistEq.bind_const _ _
 
 /-- Sample a 256-bit oracle answer whose low XMSS digest is fixed while its high half remains uniform. -/
 noncomputable def sampleHashOutputWithDigest (target : Digest) :
@@ -128,30 +114,27 @@ noncomputable def sampledHashOutputWithDigest :
 
 /-- A programmed answer together with its chosen low digest has the same joint distribution as a uniform answer together with its truncation. -/
 theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
-    𝒮[sampledHashOutputWithDigest] =
-      𝒮[(fun output : HashOutput => (truncateHash output, output)) <$>
-        ($ᵗ HashOutput)] := by
+    sampledHashOutputWithDigest =ᵈ ((fun output : HashOutput => (truncateHash output, output)) <$>
+        ($ᵗ HashOutput)) := by
   calc
-    𝒮[sampledHashOutputWithDigest] =
-        𝒮[$ᵗ Digest >>= fun high =>
+    (sampledHashOutputWithDigest) =ᵈ
+        ($ᵗ Digest >>= fun high =>
           $ᵗ Digest >>= fun low =>
-            pure (low, hashOutputEquivDigestPair.symm (high, low))] := by
+            pure (low, hashOutputEquivDigestPair.symm (high, low))) := by
       unfold sampledHashOutputWithDigest sampleHashOutputWithDigest
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_apply]
-      exact OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
-    _ = 𝒮[(fun halves : Digest × Digest =>
+      exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
+    _ =ᵈ ((fun halves : Digest × Digest =>
           (halves.2, hashOutputEquivDigestPair.symm halves)) <$>
-        independentDigestHalves] := by
+        independentDigestHalves) := by
       simp [independentDigestHalves, map_eq_bind_pure_comp, bind_assoc]
-    _ = 𝒮[(fun halves : Digest × Digest =>
+    _ =ᵈ ((fun halves : Digest × Digest =>
           (halves.2, hashOutputEquivDigestPair.symm halves)) <$>
-        (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))] := by
-      conv_lhs => rw [evalSPMF_map]
-      conv_rhs => rw [evalSPMF_map]
-      rw [evalDist_split_uniformHashOutput_eq_independent]
-    _ = 𝒮[(fun output : HashOutput => (truncateHash output, output)) <$>
-        ($ᵗ HashOutput)] := by
+        (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))) :=
+      evalDist_split_uniformHashOutput_eq_independent.symm.map _
+    _ =ᵈ ((fun output : HashOutput => (truncateHash output, output)) <$>
+        ($ᵗ HashOutput)) := by
       have hfunction :
           (fun halves : Digest × Digest =>
             (halves.2, hashOutputEquivDigestPair.symm halves)) ∘
@@ -162,25 +145,22 @@ theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
         · rfl
         · exact hashOutputEquivDigestPair.symm_apply_apply output
       rw [Functor.map_map]
-      change 𝒮[((fun halves : Digest × Digest =>
-        (halves.2, hashOutputEquivDigestPair.symm halves)) ∘
-          hashOutputEquivDigestPair) <$> ($ᵗ HashOutput)] = _
-      rw [hfunction]
+      exact .of_eq (congrArg (· <$> ($ᵗ HashOutput)) hfunction)
+
 
 /-- A programmed low digest and its independent high half may be replaced by one ordinary random-oracle output inside any continuation. -/
 theorem evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind
     (continuation : Digest × HashOutput → ProbComp α) :
-    evalSPMF (sampledHashOutputWithDigest >>= continuation) =
-      evalSPMF ($ᵗ HashOutput >>= fun output =>
+    (sampledHashOutputWithDigest >>= continuation) =ᵈ
+      ($ᵗ HashOutput >>= fun output =>
         continuation (truncateHash output, output)) := by
   calc
-    evalSPMF (sampledHashOutputWithDigest >>= continuation) =
-        evalSPMF (((fun output : HashOutput => (truncateHash output, output)) <$>
-          ($ᵗ HashOutput)) >>= continuation) := by
-      conv_lhs => rw [evalSPMF_bind]
-      conv_rhs => rw [evalSPMF_bind]
-      rw [evalDist_sampledHashOutputWithDigest_eq_uniform]
-    _ = evalSPMF ($ᵗ HashOutput >>= fun output =>
+    (sampledHashOutputWithDigest >>= continuation) =ᵈ
+        (((fun output : HashOutput => (truncateHash output, output)) <$>
+          ($ᵗ HashOutput)) >>= continuation) :=
+      evalDist_sampledHashOutputWithDigest_eq_uniform.bind_left _
+
+    _ =ᵈ ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) := by
       simp [map_eq_bind_pure_comp, bind_assoc]
 

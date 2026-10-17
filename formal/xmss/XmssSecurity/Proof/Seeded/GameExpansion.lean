@@ -65,14 +65,14 @@ noncomputable def programmedGame (adversary : Adversary) : ProbComp Bool := do
 
 /-- The seeded forgery game is exactly the independent-secret game with its derivation answers installed. -/
 theorem evalDist_gameCore_eq_programmed (adversary : Adversary) :
-    𝒮[(simulateQ romImpl (gameCore randomizedScheme adversary)).run' ∅] =
-      𝒮[programmedGame adversary] := by
+    ((simulateQ romImpl (gameCore randomizedScheme adversary)).run' ∅) =ᵈ programmedGame adversary := by
   rw [gameCore_seeded_eq, run'_lift_sample_bind]
   unfold programmedGame
-  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
+  apply EvalDistEq.bind_right
   intro seed
-  rw [run'_lift_hash_bind, evalSPMF_bind, evalDist_deriveParametersAndSecrets_eq_independent,
-    ← evalSPMF_bind]
-  simp only [bind_assoc, pure_bind]
+  rw [run'_lift_hash_bind]
+  refine ((evalDist_deriveParametersAndSecrets_eq_independent seed).bind_left _).trans ?_
+  simp only [bind_assoc, pure_bind, EvalDistEq.refl]
+
 
 end XmssSecurity.Seeded

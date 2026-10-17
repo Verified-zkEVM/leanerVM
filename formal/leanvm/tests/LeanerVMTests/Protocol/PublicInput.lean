@@ -389,7 +389,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtBad, oracleOf badLine)
     (fun _ h ↦ stmtBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c (trueValues toy badLine 1 c), fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith toy _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith toy _ _) init impl _ _ _
           (by
             show accepts toy (fun _ _ _ ↦ true) stmtBad c (trueValues toy badLine 1 c) = true
             simp only [accepts, Bool.and_true, decide_eq_true_eq]
@@ -461,7 +461,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOneBad, oracleOf oneBadLimb)
     (fun _ h ↦ stmtOneBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c (firstOnlyMsg c), fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
           (by
             show accepts twoLimbs
               (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?))
@@ -527,7 +527,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtDropped, oracleOf goodLimbs)
     (fun _ h ↦ stmtDropped_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c [], fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check (guardedWith noneSent _ _) init impl _ _ _
+        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith noneSent _ _) init impl _ _ _
           (by
             show accepts noneSent (check noneSent) stmtDropped c [] = true
             rfl)
@@ -697,7 +697,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtTop, oracleOf goodLimbs)
     (fun _ h ↦ stmtTop_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨fullOf c [1, 1], fullOf_take c _, (),
-        Verifier.GuardedForm.probEvent_pos_of_check
+        Verifier.GuardedForm.prEvent_pos_of_check
           (guardedWith topOne (check topOne) (poolZero topOne)) init impl
           (stmtTop, oracleOf goodLimbs) (fullOf c [1, 1])
           (fun out ↦ (out, ()) ∈ Seam.pub topOne)

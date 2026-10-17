@@ -157,7 +157,7 @@ def sendStateFunction :
     obtain ⟨s, o⟩ := stmt
     simp only [Fin.val_last, one_ne_zero, dite_false]
     rw [noOracle_eq o (fun i ↦ i.elim0)]
-    exact (Verifier.GuardedForm.of_probEvent_pos
+    exact (Verifier.GuardedForm.of_prEvent_pos
       (sendVerifierPure (S := S) (M := M)).toGuardedForm init impl (s, o) tr _ h).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the extractor reads the

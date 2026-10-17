@@ -30,8 +30,8 @@ theorem advantage_embed (adversary : Adversary) :
     (countHashQueries_forget (XmssSecurity.gameCore Seeded.scheme (embed adversary)))
   simp only [simulateQ_map, StateT.run'_map'] at h
   rw [← h]
-  simpa only [probEvent_eq_eq_probOutput, Function.comp_def] using probEvent_map (mx := (simulateQ romImpl
+  simpa only [Function.comp_def] using prEvent_map (mx := (simulateQ romImpl
     (countHashQueries (XmssSecurity.gameCore Seeded.scheme (embed adversary)))).run' ∅)
-    (f := Prod.fst) (q := fun result => result = true)
+    (f := Prod.fst) (p := fun result => result = true)
 
 end XmssSecurity.Security

@@ -177,7 +177,7 @@ theorem cumF_succ (d : ℕ) (g : (Fin (d + 1) → FPos) → ℝ) (y0 : FPos) (m'
   rw [sum_fin_succ_fun]
   refine Finset.sum_congr rfl fun y _ => ?_
   by_cases hy : y ≤ y0
-  · rw [if_pos hy]
+  · rw [ite_eq_left hy]
     refine Finset.sum_congr rfl fun z _ => ?_
     congr 1
     apply propext
@@ -188,9 +188,9 @@ theorem cumF_succ (d : ℕ) (g : (Fin (d + 1) → FPos) → ℝ) (y0 : FPos) (m'
       refine Fin.cases ?_ (fun j => ?_) i
       · simpa using hy
       · simpa using h j
-  · rw [if_neg hy]
+  · rw [ite_eq_right hy]
     refine Finset.sum_eq_zero fun z _ => ?_
-    rw [if_neg]
+    rw [ite_eq_right]
     intro h
     exact hy (by simpa using h 0)
 
@@ -205,7 +205,7 @@ theorem getT_cumT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
     (getT d (cumT d a) m : ℝ) = cumF d (fun m => (getT d a m : ℝ)) m
   | 0, _, m => by
       unfold cumF
-      rw [Fintype.sum_unique, if_pos (fun i => i.elim0)]
+      rw [Fintype.sum_unique, ite_eq_left (fun i => i.elim0)]
       congr 2
       funext i
       exact i.elim0
@@ -222,7 +222,7 @@ theorem getT_cumT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
 theorem getT_incT : ∀ (d : ℕ) (a : NT d) (c m : Fin d → FPos),
     getT d (incT d a c) m = getT d a m + if m = c then 1 else 0
   | 0, _, c, m => by
-      rw [if_pos (funext fun i => i.elim0)]
+      rw [ite_eq_left (funext fun i => i.elim0)]
       rfl
   | d + 1, a, c, m => by
       have hm : m = Fin.cons (m 0) (Fin.tail m) := (Fin.cons_self_tail m).symm

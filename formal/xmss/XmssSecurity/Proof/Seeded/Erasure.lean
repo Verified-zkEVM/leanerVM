@@ -94,12 +94,12 @@ theorem romImpl_preserves_known (known cache : QueryCache HashSpec) (h : known �
 theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
     {left right : OracleComp OracleWorld α} (h : Erases (worldKnown known) left right)
     (cache : QueryCache HashSpec) (hcache : known ≤ cache) :
-    𝒮[(simulateQ romImpl left).run cache] = 𝒮[(simulateQ romImpl right).run cache] := by
+    ((simulateQ romImpl left).run cache) =ᵈ ((simulateQ romImpl right).run cache) := by
   induction h generalizing cache with
   | pure value => rfl
   | query input left right _ ih =>
       simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-      exact evalSPMF_bind_congr fun result hresult =>
+      exact OracleComp.EvalDistEq.bind_congr_of_support _ fun result hresult =>
         ih result.1 result.2 (romImpl_preserves_known known cache hcache input result hresult)
   | skip input answer hknown next right _ ih =>
       cases input with
@@ -107,7 +107,8 @@ theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
       | inr input =>
           have hc : cache input = some answer := hcache hknown
           simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-          change 𝒮[(randomOracle (spec := HashSpec) input).run cache >>= _] = _
+          change ((randomOracle (spec := HashSpec) input).run cache >>= _) =ᵈ _
+
           rw [QueryImpl.withCaching_run_some _ hc, pure_bind]
           exact ih cache hcache
   | cached input answer hknown left right _ ih =>
@@ -116,8 +117,8 @@ theorem Erases.evalDist_run {α : Type} {known : QueryCache HashSpec}
       | inr input =>
           have hc : cache input = some answer := hcache hknown
           simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
-          change 𝒮[(randomOracle (spec := HashSpec) input).run cache >>= _] =
-            𝒮[(randomOracle (spec := HashSpec) input).run cache >>= _]
+          change ((randomOracle (spec := HashSpec) input).run cache >>= _) =ᵈ
+            ((randomOracle (spec := HashSpec) input).run cache >>= _)
           rw [QueryImpl.withCaching_run_some _ hc, pure_bind, pure_bind]
           exact ih cache hcache
   | trans _ _ first second => exact (first cache hcache).trans (second cache hcache)

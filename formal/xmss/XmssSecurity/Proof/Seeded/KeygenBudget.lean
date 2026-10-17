@@ -29,9 +29,8 @@ attribute [local irreducible] gameAfterSeed sampleMasterSeed deriveChainSecrets 
   derivationCache drawChainOutputs
 
 theorem mem_support_drawChainOutputs (outputs : ChainOutputs) : outputs ∈ support drawChainOutputs := by
-  rw [mem_support_iff_evalSPMF_apply_ne_zero, evalDist_drawChainOutputs, ← probOutput_def,
-    probOutput_uniformSample]
-  exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+  rw [OracleComp.support_eq_of_evalDistEq evalDist_drawChainOutputs, support_uniformSample]
+  trivial
 
 theorem hashQueryBound_after_derivation (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound randomizedScheme adversary q) (seed : MasterSeed)
@@ -40,10 +39,10 @@ theorem hashQueryBound_after_derivation (adversary : Adversary) (q : Nat)
       (derivationCache seed parameterOutput outputs) (q - 1) := by
   rw [hasHashQueryBound_iff, gameCore_seeded_split] at hbound
   have hs : seed ∈ support sampleMasterSeed := by
-    rw [mem_support_iff]
     unfold sampleMasterSeed
-    rw [probOutput_uniformSample]
-    exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+    rw [support_uniformSample]
+    trivial
+
   have hseed : HashQueryBound (gameAfterSeed adversary seed) ∅ q :=
     hashQueryBound_of_sampling_bind sampleMasterSeed (gameAfterSeed adversary) ∅ q hbound seed hs
   rw [afterSeed_first_query] at hseed

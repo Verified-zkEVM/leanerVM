@@ -136,12 +136,12 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
       keyResult.1.2.chainStart keyResult.2)
     (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
     (leafIndex : LeafIndex) (message : Message) (randomness : Randomness) :
-    evalSPMF ((simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.precomputedSignAttempt
         (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
           leafIndex message randomness : OracleComp HashSpec (Option Signature))).run
-        largerCache) =
-      evalSPMF ((simulateQ randomOracle
+        largerCache) =ᵈ
+      ((simulateQ randomOracle
         (Concrete.signAttempt keyResult.1.2 leafIndex message randomness :
           OracleComp HashSpec (Option Signature))).run largerCache) := by
   have hmaterialized :=
@@ -152,7 +152,7 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
   rw [simulateQ_bind, StateT.run_bind, simulateQ_bind, StateT.run_bind]
   simp only [Concrete.materializePrecomputation,
     Concrete.precomputedSecretKey]
-  apply evalSPMF_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro digestResult hdigestResult
   have hdigestLe := Concrete.CacheReplay.randomOracle_cache_le
     (Concrete.encodingHash keyResult.1.2.parameter leafIndex message randomness)
@@ -161,6 +161,7 @@ theorem Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
   cases hdecode : TargetSum.decodeDigest digestResult.1 with
   | none =>
     simp only
+    rfl
   | some encoding =>
     simp only
     rw [simulateQ_map, StateT.run_map]
@@ -191,11 +192,11 @@ theorem Concrete.evalDist_precomputedSignBoundedAttempts_materialized_eq
       keyResult.1.2.chainStart keyResult.2)
     (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
     (leafIndex : LeafIndex) (message : Message) :
-    evalSPMF ((simulateQ romImpl
+    ((simulateQ romImpl
       (Concrete.precomputedSignBoundedAttempts attempts
         (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
-          leafIndex message)).run largerCache) =
-      evalSPMF ((simulateQ romImpl
+          leafIndex message)).run largerCache) =ᵈ
+      ((simulateQ romImpl
         (Concrete.signBoundedAttempts attempts keyResult.1.2 leafIndex message)).run
           largerCache) := by
   induction attempts generalizing largerCache with
@@ -203,32 +204,32 @@ theorem Concrete.evalDist_precomputedSignBoundedAttempts_materialized_eq
   | succ attempts ih =>
       rw [Concrete.precomputedSignBoundedAttempts_run_succ_eq,
         Concrete.signBoundedAttempts_run_succ_eq]
-      apply evalSPMF_bind_congr
+      apply OracleComp.EvalDistEq.bind_congr_of_support
       intro randomness _hrandomness
       calc
-        evalSPMF ((simulateQ randomOracle
+        ((simulateQ randomOracle
               (Concrete.precomputedSignAttempt
                 (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
                   leafIndex message randomness :
                     OracleComp HashSpec (Option Signature))).run largerCache >>=
             Concrete.precomputedSignBoundedAttemptsContinuation attempts
               (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
-                leafIndex message) =
-            evalSPMF ((simulateQ randomOracle
+                leafIndex message) =ᵈ
+            ((simulateQ randomOracle
               (Concrete.signAttempt keyResult.1.2 leafIndex message randomness :
                 OracleComp HashSpec (Option Signature))).run largerCache >>=
               Concrete.precomputedSignBoundedAttemptsContinuation attempts
                 (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
-                  leafIndex message) := by
-          rw [evalSPMF_bind, evalSPMF_bind,
-            Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
-              keyResult hkeyResult hstable largerCache hle leafIndex message randomness]
-        _ = evalSPMF ((simulateQ randomOracle
+                  leafIndex message) :=
+          (Concrete.precomputedSignAttempt_materialized_run_eq_signAttempt
+              keyResult hkeyResult hstable largerCache hle leafIndex message randomness).bind_left _
+
+        _ =ᵈ ((simulateQ randomOracle
               (Concrete.signAttempt keyResult.1.2 leafIndex message randomness :
                 OracleComp HashSpec (Option Signature))).run largerCache >>=
               Concrete.signBoundedAttemptsContinuation attempts keyResult.1.2
                 leafIndex message) := by
-          apply evalSPMF_bind_congr
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro result hresult
           cases hoption : result.1 with
           | none =>
@@ -252,11 +253,11 @@ theorem Concrete.evalDist_precomputedCappedSign_materialized_eq_cappedSign
       keyResult.1.2.chainStart keyResult.2)
     (largerCache : QueryCache HashSpec) (hle : keyResult.2 ≤ largerCache)
     (leafIndex : LeafIndex) (message : Message) :
-    evalSPMF ((simulateQ romImpl
+    ((simulateQ romImpl
       (Concrete.precomputedCappedSign
         (Concrete.materializePrecomputation keyResult.2 keyResult.1.2)
-          leafIndex message)).run largerCache) =
-      evalSPMF ((simulateQ romImpl
+          leafIndex message)).run largerCache) =ᵈ
+      ((simulateQ romImpl
         (Concrete.cappedSign keyResult.1.2 leafIndex message)).run
           largerCache) := by
   rw [Concrete.precomputedCappedSign, Concrete.cappedSign_eq]

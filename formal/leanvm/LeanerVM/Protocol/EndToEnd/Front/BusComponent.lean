@@ -45,8 +45,8 @@ open scoped NNReal ENNReal
 
 /-- If a guarded verifier's check passes and its verdict satisfies `P`, it outputs a statement
 satisfying `P` with positive probability. The converse of
-`Verifier.GuardedForm.of_probEvent_pos`. -/
-theorem guarded_probEvent_pos {ι : Type} {oSpec : OracleSpec ι}
+`Verifier.GuardedForm.of_prEvent_pos`. -/
+theorem guarded_prEvent_pos {ι : Type} {oSpec : OracleSpec ι}
     {StmtIn StmtOut : Type} {n : ℕ} {pSpec : ProtocolSpec n}
     {V : Verifier oSpec StmtIn StmtOut pSpec} (G : V.GuardedForm) {σ : Type} (s₀ : σ)
     (impl : QueryImpl oSpec (StateT σ ProbComp)) (stmt : StmtIn) (tr : pSpec.FullTranscript)
@@ -110,7 +110,7 @@ theorem Security.say_in_of_out (S : Component.Security D relIn relOut ε) (F : C
     ⟨fun p tr ↦ F.check p.1 tr, fun p tr ↦ (F.out p.1 tr, p.2), F.verify_eq⟩
   let K := S.kSF (pure ()) emptyImpl
   have hpos :=
-    guarded_probEvent_pos G () emptyImpl (s, o) (sayTr m) (fun x ↦ (x, ()) ∈ relOut) hc hout
+    guarded_prEvent_pos G () emptyImpl (s, o) (sayTr m) (fun x ↦ (x, ()) ∈ relOut) hc hout
   have hfull := K.toFun_full (s, o) (sayTr m) () hpos
   have h0 := K.toFun_next 0 rfl (s, o) (default : (say M).Transcript 0) m _ hfull
   have hin := (K.toFun_empty (s, o) _).mpr h0
@@ -144,7 +144,7 @@ theorem Security.draw_prEvent_le (S : Component.Security D relIn relOut ε)
   · have := (K.toFun_empty (s, o) _).mpr h0
     simpa using this
   · exact K.toFun_full (s, o) (drawTr c) ()
-      (guarded_probEvent_pos G () emptyImpl (s, o) (drawTr c) (fun x ↦ (x, ()) ∈ relOut) hc hout)
+      (guarded_prEvent_pos G () emptyImpl (s, o) (drawTr c) (fun x ↦ (x, ()) ∈ relOut) hc hout)
 
 end Draw
 

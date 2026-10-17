@@ -9,7 +9,7 @@
 module
 
 public import LeanerVM.Protocol.EndToEnd.Front.BusComponent
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import LeanerVM.Protocol.Field
 
 /-!

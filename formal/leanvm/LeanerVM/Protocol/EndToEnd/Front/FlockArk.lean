@@ -61,7 +61,7 @@ theorem sample_escape {check : StmtIn → Bool} {f : StmtIn → E → StmtOut}
   let K := S.kSF (pure ()) noImpl
   let tr : (draw E).FullTranscript := Transcript.concat (m := 0) c tr0
   have hfull := K.toFun_full (s, o) tr ()
-    (Verifier.GuardedForm.probEvent_pos_of_check (Component.sampleGuarded O E check f)
+    (Verifier.GuardedForm.prEvent_pos_of_check (Component.sampleGuarded O E check f)
       (pure ()) noImpl (s, o) tr (fun t ↦ (t, ()) ∈ relOut) hc hc')
   refine ⟨S.extractor.extractOut (s, o) tr (), fun h0 ↦ hin ?_, hfull⟩
   have hd : tr0 = default := funext fun i ↦ Fin.elim0 i
@@ -81,7 +81,7 @@ theorem sendChecked_reflect {M : Type} {honest : (StmtIn × ∀ i, O i) × Unit 
   let K := S.kSF (pure ()) noImpl
   let tr : (say M).FullTranscript :=
     ProtocolSpec.Transcript.concat (m := 0) msg (default : (say M).Transcript 0)
-  have hpos := Verifier.GuardedForm.probEvent_pos_of_check
+  have hpos := Verifier.GuardedForm.prEvent_pos_of_check
     (Component.sendCheckedGuarded O M check out) (pure ()) noImpl (s, o) tr
     (fun t ↦ (t, ()) ∈ relOut) hc hout
   have hfull := K.toFun_full (s, o) tr () hpos

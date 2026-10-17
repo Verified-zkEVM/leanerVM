@@ -101,13 +101,13 @@ theorem relTriple_globalHighMonitored_firstLane_action
               input).run (GlobalHighDirectTracedState.mk highState.1.causal
                 highState.2))).run)) := by
   classical
-  letI : DecidableEq
+  let : DecidableEq
       (((OracleWorld + SigningSpec).Range input ×
         GlobalHighDirectTracedState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalSPMF
+  exact .of_eq
     (map_globalHighMonitored_action_eq_firstLane keyView base edgeHigh input
       highState)
 
@@ -484,12 +484,12 @@ theorem relTriple_globalHighMonitored_firstLane_verifier_action
               (GlobalHighDirectTracedState.mk highState.1.causal
                 highState.2))).run)) := by
   classical
-  letI : DecidableEq
+  let : DecidableEq
       ((OracleWorld.Range input × GlobalHighDirectTracedState) ×
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalSPMF
+  exact .of_eq
     (map_globalHighMonitored_verifier_action_eq_firstLane keyView base
       edgeHigh input highState)
 
@@ -1148,37 +1148,36 @@ theorem globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
 
 theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
     (adversary : Adversary) :
-    evalSPMF (globalFirstLaneExactCoupledProjection <$>
-      globalFirstLaneExactCoupledProgram adversary) =
-    evalSPMF (FirstLaneOracleSimulation.eagerExperiment
+    (globalFirstLaneExactCoupledProjection <$>
+      globalFirstLaneExactCoupledProgram adversary) =ᵈ
+    (FirstLaneOracleSimulation.eagerExperiment
       (globalFirstLaneExactTracedProgram adversary)) := by
   rw [globalFirstLaneExactCoupledProgram_projection_eq_parameterFirst]
   calc
-    evalSPMF (do
+    (do
         let parameter ← Concrete.samplePublicParameter
         let base ← independentGlobalChainValueTable
-        globalFirstLaneExactCoupledContinuation adversary parameter base) =
-      evalSPMF (do
+        globalFirstLaneExactCoupledContinuation adversary parameter base) =ᵈ
+      (do
         let base ← independentGlobalChainValueTable
         let parameter ← Concrete.samplePublicParameter
         globalFirstLaneExactCoupledContinuation adversary parameter base) := by
-          exact OracleComp.DeferredSampling.evalSPMF_bind_comm
+          exact OracleComp.EvalDistEq.bind_bind_swap
             Concrete.samplePublicParameter independentGlobalChainValueTable _
-    _ = evalSPMF (do
+    _ =ᵈ (do
         let base ← independentGlobalChainValueTable
         let result ← (simulateQ
           (FirstLaneOracleSimulation.eagerTraceImpl base)
           (globalFirstLaneExactTracedProgram adversary)).run
-        pure (base, result)) := by
-          rw [evalSPMF_bind, evalSPMF_bind]
-          apply bind_congr
-          intro base
-          exact congrArg evalSPMF
+        pure (base, result) : ProbComp _) := by
+
+          exact EvalDistEq.bind_right _ fun base => .of_eq
             (globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
               adversary base)
-    _ = _ := by
+    _ = (FirstLaneOracleSimulation.eagerExperiment
+          (globalFirstLaneExactTracedProgram adversary)) := by
       unfold FirstLaneOracleSimulation.eagerExperiment
-      rw [evalSPMF_bind, evalSPMF_bind]
+
       unfold independentGlobalChainValueTable
         RevealProbeOracleSimulation.eagerTableSample
       rfl
@@ -1252,7 +1251,7 @@ theorem simulate_eagerTrace_lift_emitObservedTrace
             FirstLaneOracleSimulation.eagerTraceImpl,
             FirstLaneOracleSimulation.eagerImpl,
             FirstLaneOracleSimulation.traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell,
+            WriterT.run_tell,
             liftGlobalChainTrace]
           change (fun x => (x.1,
               FirstLaneOracleSimulation.ObservedAction.chain
@@ -1272,7 +1271,7 @@ theorem simulate_eagerTrace_lift_emitObservedTrace
             FirstLaneOracleSimulation.eagerTraceImpl,
             FirstLaneOracleSimulation.eagerImpl,
             FirstLaneOracleSimulation.traceFragment,
-            QueryImpl.withTraceAppend_apply, WriterT.run_tell, hvalue,
+            WriterT.run_tell, hvalue,
             liftGlobalChainTrace]
           change (fun x => (x.1,
               FirstLaneOracleSimulation.ObservedAction.chain
@@ -1525,8 +1524,8 @@ theorem sourceWinningExactFirstLane_good_implies_public_combinedHit
     exact ⟨left, hleftSupport, rfl⟩
   have hboth : both ∈ support
       (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) :=
-    (mem_support_iff_of_evalSPMF_eq
-      (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary) both).mp
+    (OracleComp.support_eq_of_evalDistEq
+      (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary)).subset
         hbothMapped
   have hencodingSupport : cappedBothEncodingProjection both ∈ support
       (cappedDetailedGameWithEncodingTrace adversary) := by
@@ -1730,29 +1729,24 @@ theorem sourceWinningExactFirstLane_implies_coupled_enforcedHit
 
 theorem evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
     (adversary : Adversary) :
-    evalSPMF (globalFirstLaneExactCoupledPublicProjection <$>
-      globalFirstLaneExactCoupledProgram adversary) =
-    evalSPMF (globalFirstLaneExactPublicEagerExperiment adversary) := by
+    (globalFirstLaneExactCoupledPublicProjection <$>
+      globalFirstLaneExactCoupledProgram adversary) =ᵈ
+    (globalFirstLaneExactPublicEagerExperiment adversary) := by
   calc
-    evalSPMF (globalFirstLaneExactCoupledPublicProjection <$>
-        globalFirstLaneExactCoupledProgram adversary) =
-      evalSPMF (appendGlobalFirstLaneExactPublicTrace <$>
+    (globalFirstLaneExactCoupledPublicProjection <$>
+        globalFirstLaneExactCoupledProgram adversary) =ᵈ
+      (appendGlobalFirstLaneExactPublicTrace <$>
         (globalFirstLaneExactCoupledProjection <$>
           globalFirstLaneExactCoupledProgram adversary)) := by
-            apply congrArg evalSPMF
+            refine .of_eq ?_
             rw [Functor.map_map]
             rfl
-    _ = evalSPMF (appendGlobalFirstLaneExactPublicTrace <$>
+    _ =ᵈ (appendGlobalFirstLaneExactPublicTrace <$>
         FirstLaneOracleSimulation.eagerExperiment
           (globalFirstLaneExactTracedProgram adversary)) := by
-      exact evalDist_map_congr_of_evalDist_eq
-        appendGlobalFirstLaneExactPublicTrace
-        (globalFirstLaneExactCoupledProjection <$>
-          globalFirstLaneExactCoupledProgram adversary)
-        (FirstLaneOracleSimulation.eagerExperiment
-          (globalFirstLaneExactTracedProgram adversary))
-        (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
-          adversary)
+      exact (evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
+        adversary).map appendGlobalFirstLaneExactPublicTrace
+
     _ = _ := by
       unfold globalFirstLaneExactPublicEagerExperiment
       rw [eagerExperiment_globalFirstLaneExactTracedPublicProgram_eq_append]
@@ -1767,11 +1761,9 @@ theorem sourceWinningExactFirstLane_probability_le_coupled_enforcedHit
     (adversary : Adversary)
     (hbound : HasHashQueryBound Concrete.scheme adversary q)
     (hfuel : q - treeHashQueryCount treeHeight + numChains ≤ fuel) :
-    Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] ≤
-      Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] := by
-  apply probEvent_le_of_relTriple
+    Pr{let x ← sourceGlobalExactTracedProgram adversary}[SourceWinningExactFirstLaneEvent x] ≤
+      Pr{let x ← globalFirstLaneExactCoupledProgram adversary}[(GlobalFirstLaneExactCoupledEnforcedHit fuel) x] := by
+  apply prEvent_le_of_relTriple
     (relTriple_with_support
       (relTriple_sourceGlobalExact_firstLane_program_boundedHit_sub_keygen
         q fuel adversary hbound (by omega)))
@@ -1782,15 +1774,12 @@ theorem sourceWinningExactFirstLane_probability_le_coupled_enforcedHit
 
 theorem coupled_enforcedHit_probability_eq_public_eager
     (fuel : Nat) (adversary : Adversary) :
-    Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] =
-      Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] := by
+    Pr{let x ← globalFirstLaneExactCoupledProgram adversary}[(GlobalFirstLaneExactCoupledEnforcedHit fuel) x] =
+      Pr{let x ← globalFirstLaneExactPublicEagerExperiment adversary}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] := by
   calc
-    _ = Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactCoupledPublicProjection <$>
-          globalFirstLaneExactCoupledProgram adversary] := by
-      rw [probEvent_map]
+    _ = Pr{let x ← (globalFirstLaneExactCoupledPublicProjection <$>
+          globalFirstLaneExactCoupledProgram adversary)}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] := by
+      rw [prEvent_map]
       rfl
     _ = _ := probEvent_eq_of_evalDist_eq _
       (evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
@@ -1798,29 +1787,25 @@ theorem coupled_enforcedHit_probability_eq_public_eager
 
 theorem public_eager_enforcedHit_probability_le
     (fuel : Nat) (adversary : Adversary) :
-    Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] ≤
+    Pr{let x ← globalFirstLaneExactPublicEagerExperiment adversary}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] ≤
       (fuel : ENNReal) / ((2 ^ digestBits : Nat) : ENNReal) := by
   calc
-    _ = Pr[FirstLaneOracleSimulation.ExperimentHit |
-        FirstLaneOracleSimulation.enforceEagerResult fuel <$>
+    _ = Pr{let x ← (FirstLaneOracleSimulation.enforceEagerResult fuel <$>
           FirstLaneOracleSimulation.eagerExperiment
-            (globalFirstLaneExactTracedPublicProgram adversary)] := by
+            (globalFirstLaneExactTracedPublicProgram adversary))}[FirstLaneOracleSimulation.ExperimentHit x] := by
       unfold GlobalFirstLaneExactPublicEnforcedHit
         globalFirstLaneExactPublicEagerExperiment
-      rw [probEvent_map]
+      rw [prEvent_map]
       rfl
-    _ = Pr[FirstLaneOracleSimulation.ExperimentHit |
-        FirstLaneOracleSimulation.eagerExperiment
+    _ = Pr{let x ← (FirstLaneOracleSimulation.eagerExperiment
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary))] := by
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[FirstLaneOracleSimulation.ExperimentHit x] := by
       rw [FirstLaneOracleSimulation.eagerExperiment_enforceHazardBound_eq_map]
-    _ = Pr[(fun hit : Bool => hit = true) |
-        FirstLaneOracleSimulation.structuralExperiment
+    _ = Pr{let hit ← (FirstLaneOracleSimulation.structuralExperiment
           (some EncodingMonitor.State.empty)
           AdaptiveRevealMonitor.State.empty fuel
           (FirstLaneOracleSimulation.enforceHazardBound fuel
-            (globalFirstLaneExactTracedPublicProgram adversary))] := by
+            (globalFirstLaneExactTracedPublicProgram adversary)))}[hit = true] := by
       exact FirstLaneOracleSimulation.combinedHit_probability_eq_structuralExperiment
         fuel (FirstLaneOracleSimulation.enforceHazardBound fuel
           (globalFirstLaneExactTracedPublicProgram adversary))
@@ -1834,18 +1819,15 @@ theorem sourceWinningExactFirstLane_probability_le
     (q : Nat)
     (adversary : Adversary)
     (hbound : HasHashQueryBound Concrete.scheme adversary q) :
-    Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] ≤
+    Pr{let x ← sourceGlobalExactTracedProgram adversary}[SourceWinningExactFirstLaneEvent x] ≤
       ((q - treeHashQueryCount treeHeight + numChains : Nat) : ENNReal) /
         ((2 ^ digestBits : Nat) : ENNReal) := by
   let fuel := q - treeHashQueryCount treeHeight + numChains
   calc
-    _ ≤ Pr[GlobalFirstLaneExactCoupledEnforcedHit fuel |
-        globalFirstLaneExactCoupledProgram adversary] :=
+    _ ≤ Pr{let x ← globalFirstLaneExactCoupledProgram adversary}[(GlobalFirstLaneExactCoupledEnforcedHit fuel) x] :=
       sourceWinningExactFirstLane_probability_le_coupled_enforcedHit q fuel
         adversary hbound (by simp [fuel])
-    _ = Pr[GlobalFirstLaneExactPublicEnforcedHit fuel |
-        globalFirstLaneExactPublicEagerExperiment adversary] :=
+    _ = Pr{let x ← globalFirstLaneExactPublicEagerExperiment adversary}[(GlobalFirstLaneExactPublicEnforcedHit fuel) x] :=
       coupled_enforcedHit_probability_eq_public_eager fuel adversary
     _ ≤ _ := public_eager_enforcedHit_probability_le fuel adversary
 

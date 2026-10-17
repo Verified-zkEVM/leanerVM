@@ -9,7 +9,7 @@
 module
 
 public import ArkLib.OracleReduction.Security.RoundByRound
-import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # Decoding the transcript

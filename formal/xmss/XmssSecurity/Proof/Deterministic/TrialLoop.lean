@@ -39,7 +39,7 @@ def earlierTrials (trial : Nat) : Set Trial := {value | value.toNat < trial}
 theorem earlierTrials_succ (trial : Nat) (htrial : trial < 2 ^ 32) :
     earlierTrials (trial + 1) = insert (BitVec.ofNat 32 trial) (earlierTrials trial) := by
   ext value
-  simp only [earlierTrials, Set.mem_setOf_eq, Set.mem_insert_iff]
+  simp only [earlierTrials, Set.mem_ofPred_eq, Set.mem_insert_iff]
   have heq : value = BitVec.ofNat 32 trial ↔ value.toNat = trial := by
     rw [← BitVec.toNat_inj, BitVec.toNat_ofNat, Nat.mod_eq_of_lt htrial]
   rw [heq]

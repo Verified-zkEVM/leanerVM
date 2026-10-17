@@ -183,8 +183,7 @@ theorem completeness {prog : Program} {input : PublicInput} {t : Trace prog}
   rw [← hV, ← completenessError_eq] at h
   rw [experiment_eq]
   unfold honestProver
-  rw [Rom.romExperiment_map]
-  simp only [bind_map_left]
+  rw [Rom.romExperiment_map, prEvent_map]
   exact h
 
 /-- **The numbers**: at a fuel of `2^25` nonces per proof of work, the completeness error is

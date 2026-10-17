@@ -224,7 +224,7 @@ theorem accepted_recovered_classification (f : QueryImpl HashSpec Id) (pk : Publ
         · simp only [chosenCounter, hselected, Option.map_some]
         · funext level
           have hp := hopen.2 level.val level.isLt
-          simpa only [index, signaturePath, canonicalTreePath, dif_pos level.isLt] using hp
+          simpa only [index, signaturePath, canonicalTreePath, dite_eq_left level.isLt] using hp
       · exact Or.inr (Or.inr ⟨hland, Or.inl hencoding⟩)
       · exact Or.inr (Or.inr ⟨hland, Or.inr (Or.inl hleafMatch)⟩)
       · exact Or.inr (Or.inr ⟨hland, Or.inr (Or.inr hchain)⟩)

@@ -237,8 +237,8 @@ Consumed as named declarations of its
 ArkLib is a Lean `module` library that carries admitted theorems under its own baseline; a
 leanerVM declaration may not depend on one (the kernel axiom audit rejects `sorryAx`), so every
 ArkLib theorem is checked with `#print axioms` before it is consumed. ArkLib calls the
-`OracleReduction` framework below *legacy*; its typed successor has no knowledge notion, so the
-spine stays on it (decision 24).
+`OracleReduction` framework below *legacy*; its typed successor has round-by-round knowledge
+certificates and their composition but no adaptor to it, so the spine stays on it (decision 24).
 
 | Declaration | Contract used here |
 | --- | --- |
@@ -281,8 +281,8 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | --- | --- | --- |
 | Knowledge-soundness composition (a guarded first verifier) | admitted (`Append/Security.lean`); ArkLib #615 proves it, open and conflicting; issue #676 | Proved locally: `ToArkLib/KnowledgeAppend.lean`, the port of #615's `Append/Knowledge.lean`. Deleted when some ArkLib framework proves a guarded-first append for `rbrKnowledgeSoundnessWorstCaseWith`. |
 | Round-by-round implies plain | admitted; ArkLib #1245 proves the soundness half for a stateless shared oracle and refutes it otherwise | The plain corollary is stated locally for the stateless oracle (`σ = Unit`), the spine's case; nothing is awaited. |
-| A knowledge notion in the typed framework | absent: the typed `Interaction` framework proves plain soundness and composition only | The spine stays on `OracleReduction` (decision 24); revisit at each pin bump. |
-| Sumcheck, both leanVM variants, with round-by-round knowledge | the classical leaf `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness` is admitted and false as stated (its verifier reads the input polynomial for its next target; ArkLib #1244 repairs it); the typed sumcheck (`Sumcheck/Interaction/`) is one polynomial, plain soundness, no extractor | Written here (Layer 4), with their knowledge leaves; nothing contributed upstream until ArkLib has a knowledge notion for the sumcheck (decision 33). |
+| A knowledge notion in the typed framework | present since ArkLib #1259 and #1260: round-by-round knowledge certificates with backward witness maps, their sequential composition, and state-restoration knowledge soundness (#1263, #1264); no adaptor to `OracleReduction`, and the typed sumcheck has round-by-round soundness only | The spine stays on `OracleReduction` (decision 24), whose review this is due for; revisit at each pin bump. |
+| Sumcheck, both leanVM variants, with round-by-round knowledge | the classical leaf `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness` is admitted and false as stated (its verifier reads the input polynomial for its next target; ArkLib #1244 repairs it); the typed sumcheck (`Sumcheck/Interaction/`) is one polynomial, plain and round-by-round soundness, no extractor | Written here (Layer 4), with their knowledge leaves; nothing contributed upstream until ArkLib has a knowledge notion for the sumcheck (decision 33). |
 | Batching by powers | absent (#615's `gammaPowers` is a lemma, not a reduction) | Written here (Layer 4); offered upstream as its own pull request. |
 | Fingerprint, product lemma, collision bound | absent; ArkLib issue #901 | Written here (Layer 5). |
 | Grand-product GKR | absent (#818 is a circuit GKR, radix 2, completeness only) | Written here (Layer 5); #818 is a pattern. |
@@ -503,7 +503,7 @@ def Component.Def.append ; Component.Complete.append ; Component.Security.append
 -- ToArkLib/KnowledgeAppend.lean: the port of ArkLib #615's Append/Knowledge.lean
 def Verifier.KnowledgeStateFunction.appendGuarded ; theorem Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first
 -- ToArkLib/PassThrough.lean, SendOracle.lean, GuardedVerdict.lean, KeepOracles.lean
-def Component.passThrough ; Component.sendOracle ; keepOracles ; Verifier.GuardedForm.of_probEvent_pos ; …
+def Component.passThrough ; Component.sendOracle ; keepOracles ; Verifier.GuardedForm.of_prEvent_pos ; …
 
 -- Spine/Phase.lean: a phase is a component over the stack
 abbrev Phase.Def I StmtIn StmtOut pSpec ; abbrev Phase.Complete ; abbrev Phase.Security
@@ -1467,8 +1467,8 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
-                      Verifier.GuardedForm.of_probEvent_pos  Reduction.mem_support_run_of_guarded
-                      probEvent_uniformSample_le_of_subsingleton
+                      Verifier.GuardedForm.of_prEvent_pos  Reduction.mem_support_run_of_guarded
+                      prEvent_uniformSample_le_of_subsingleton
                       Verifier.KnowledgeStateFunction.appendGuarded
                       Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first
                       commitDef  commitComplete  commitExtractor  commitSecurity

@@ -82,18 +82,18 @@ theorem run_deriveChainSecrets (seed : MasterSeed) (parameterOutput : HashOutput
       _ (parameterCache_chain_fresh seed parameterOutput _)]
   simp only [bind_pure_comp, Functor.map_map, drawChainOutputs, derivationCache]
 
-theorem evalDist_drawChainOutputs : 𝒮[drawChainOutputs] = 𝒮[$ᵗ ChainOutputs] := by
+theorem evalDist_drawChainOutputs : drawChainOutputs =ᵈ ($ᵗ ChainOutputs) := by
   calc
-    _ = 𝒮[Concrete.sequenceFin fun _ : LeafIndex => ($ᵗ (ChainIndex → HashOutput))] :=
+    _ =ᵈ (Concrete.sequenceFin fun _ : LeafIndex => ($ᵗ (ChainIndex → HashOutput))) :=
       evalDist_sequenceFin_congr _ _ (fun _ => evalDist_sequenceFin_uniform _)
-    _ = _ := evalDist_sequenceFin_uniform _
+    _ =ᵈ _ := evalDist_sequenceFin_uniform _
 
 theorem evalDist_deriveChainSecrets (seed : MasterSeed) (parameterOutput : HashOutput) :
-    𝒮[(simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
-      (parameterCache seed parameterOutput)] =
-        𝒮[(fun outputs => (outputSecrets outputs, derivationCache seed parameterOutput outputs)) <$>
-          ($ᵗ ChainOutputs)] := by
-  rw [run_deriveChainSecrets, evalSPMF_map, evalSPMF_map, evalDist_drawChainOutputs]
+    ((simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
+      (parameterCache seed parameterOutput)) =ᵈ ((fun outputs => (outputSecrets outputs, derivationCache seed parameterOutput outputs)) <$>
+          ($ᵗ ChainOutputs)) := by
+  rw [run_deriveChainSecrets]
+  exact evalDist_drawChainOutputs.map _
 
 def deriveParametersAndSecrets (seed : MasterSeed) :
     OracleComp HashSpec (PublicParameter × (LeafIndex → ChainIndex → Digest)) := do
@@ -116,23 +116,21 @@ theorem run_deriveParameter (seed : MasterSeed) :
 
 /-- Exact joint distribution of the derived values and every full answer retained by the oracle. -/
 theorem evalDist_deriveParametersAndSecrets (seed : MasterSeed) :
-    𝒮[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
-      𝒮[do
+    ((simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅) =ᵈ (do
         let parameterOutput ← $ᵗ HashOutput
         let outputs ← $ᵗ ChainOutputs
         pure ((truncateHash parameterOutput, outputSecrets outputs),
-          derivationCache seed parameterOutput outputs)] := by
+          derivationCache seed parameterOutput outputs)) := by
   simp only [deriveParametersAndSecrets, simulateQ_bind, simulateQ_pure,
     StateT.run_bind, StateT.run_pure]
   rw [run_deriveParameter]
   simp only [bind_map_left, bind_pure_comp]
-  change 𝒮[($ᵗ HashOutput) >>= _] = 𝒮[($ᵗ HashOutput) >>= _]
-  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
+  change (($ᵗ HashOutput) >>= _) =ᵈ (($ᵗ HashOutput) >>= _)
+  apply EvalDistEq.bind_right
   intro parameterOutput
-  change 𝒮[(fun result => ((truncateHash parameterOutput, result.1), result.2)) <$>
-    (simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
-      (parameterCache seed parameterOutput)] = _
-  rw [evalSPMF_map, evalDist_deriveChainSecrets, ← evalSPMF_map]
+  refine ((evalDist_deriveChainSecrets seed parameterOutput).map
+    (fun result => ((truncateHash parameterOutput, result.1), result.2))).trans (.of_eq ?_)
   simp only [Functor.map_map]
+
 
 end XmssSecurity.Seeded

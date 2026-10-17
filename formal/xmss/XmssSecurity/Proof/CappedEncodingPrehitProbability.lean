@@ -84,11 +84,9 @@ theorem cappedCacheTracedSigningQuery_encodingInputPrehit_probability_le_cachedC
     (publicKey : PublicKey) (secretKey : SecretKey)
     (request : SignRequest) (initialCache : QueryCache HashSpec)
     (initialTrace : SigningCacheTrace) :
-    Pr[fun result : Option Signature ×
-        (QueryCache HashSpec × SigningCacheTrace) =>
-      (SigningCacheEntry.mk request result.1 initialCache result.2.1)
-        |>.EncodingInputPrehit secretKey |
-      cappedCacheTracedSigningQuery publicKey secretKey request initialCache initialTrace] ≤
+    Pr{let result ← cappedCacheTracedSigningQuery publicKey secretKey request initialCache
+        initialTrace}[(SigningCacheEntry.mk request result.1 initialCache result.2.1)
+          |>.EncodingInputPrehit secretKey] ≤
       (signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount initialCache secretKey.parameter request.leafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
@@ -106,20 +104,17 @@ theorem cappedCacheTracedSigningQuery_encodingInputPrehit_probability_le_cachedC
             request.message)).run initialCache >>= _) = _
     simp
   calc
-    _ = Pr[fun result : Option Signature × QueryCache HashSpec =>
-        (SigningCacheEntry.mk request result.1 initialCache result.2)
-          |>.EncodingInputPrehit secretKey |
-        Prod.map id Prod.fst <$>
+    _ = Pr{let result ← Prod.map id Prod.fst <$>
           cappedCacheTracedSigningQuery publicKey secretKey request initialCache
-            initialTrace] := by
-      rw [probEvent_map]
+            initialTrace}[(SigningCacheEntry.mk request result.1 initialCache result.2)
+              |>.EncodingInputPrehit secretKey] := by
+      rw [prEvent_map]
       rfl
-    _ = Pr[fun result : Option Signature × QueryCache HashSpec =>
-        (SigningCacheEntry.mk request result.1 initialCache result.2)
-          |>.EncodingInputPrehit secretKey |
-        (simulateQ romImpl
+    _ = Pr{let result ← (simulateQ romImpl
           (Concrete.precomputedCappedSign secretKey request.leafIndex
-            request.message)).run initialCache] := by rw [hprojection]
+            request.message)).run initialCache}[(SigningCacheEntry.mk request result.1 initialCache
+              result.2) |>.EncodingInputPrehit secretKey] := by rw [hprojection]
+
     _ ≤ _ := by
       simpa [SigningCacheEntry.EncodingInputPrehit] using
         Concrete.precomputedCappedSign_encodingInput_initialCache_hit_le_cachedCount

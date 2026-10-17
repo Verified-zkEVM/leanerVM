@@ -124,10 +124,9 @@ theorem fullDigestView_bijective : Function.Bijective fullDigestView := by
   congr 1
 
 theorem evalDist_fullDigestView_uniform :
-    𝒮[fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)] =
-    𝒮[($ᵗ FullDigestView : ProbComp FullDigestView)] :=
-  evalSPMF_map_bijective_uniform_cross (α := MessageDigest) (β := FullDigestView)
-    fullDigestView fullDigestView_bijective
+    (fullDigestView <$> ($ᵗ MessageDigest : ProbComp MessageDigest)) =ᵈ ($ᵗ FullDigestView : ProbComp FullDigestView) :=
+  SampleableType.map_uniformSample_evalDistEq_of_bijective (α := MessageDigest) (β := FullDigestView)
+    fullDigestView_bijective
 
 /-! ### Decoding a field -/
 

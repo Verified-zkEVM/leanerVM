@@ -8,11 +8,10 @@ set_option backward.isDefEq.respectTransparency false
 
 theorem evalDist_tableSign {State : Type} (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (leafIndex : LeafIndex) (message : Message) (state : State) :
-    𝒮[do
+    (do
       let tape ← sampleTrialTape
       (simulateQ (worldHandler hash) (liftM (tableSign (fun position => tape position.2)
-        secretKey leafIndex message : OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld _)).run state] =
-      𝒮[(simulateQ (worldHandler hash) (Concrete.precomputedCappedSign secretKey leafIndex message)).run state] := by
+        secretKey leafIndex message : OracleComp HashSpec (Option Signature)) : OracleComp OracleWorld _)).run state) =ᵈ ((simulateQ (worldHandler hash) (Concrete.precomputedCappedSign secretKey leafIndex message)).run state) := by
   unfold tableSign Concrete.precomputedCappedSign
   exact evalDist_tableSignFrom hash secretKey leafIndex message signingAttemptLimit 0 (by decide) state
 

@@ -557,7 +557,7 @@ theorem finalFn_unparsed (parameterOutput : HashOutput) (highs : CoordinateHighs
   | none => rfl
   | some query =>
       simp only [Option.elim_some]
-      rw [if_neg (hnot query hparse)]
+      rw [ite_eq_right (hnot query hparse)]
 
 theorem encoding_not_row (parameterOutput : HashOutput) (highs : CoordinateHighs) (table : HiddenGraph.Table)
     (leaf : LeafIndex) (message : Digest) (counter : Counter) :

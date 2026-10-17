@@ -28,13 +28,12 @@ theorem hashQueryBound_bind_replace {α β γ : Type} (first : OracleComp Oracle
 
 theorem prob_tableGameAfterSecrets_le_memo (adversary : Adversary) (parameter : PublicParameter)
     (outputs : ChainSecrets) (randomizers : RandomizerOutputs) (cache : QueryCache HashSpec) :
-    Pr[= true | (simulateQ romImpl (tableGameAfterSecrets adversary parameter outputs randomizers)).run' cache] ≤
-      Pr[= true | (simulateQ romImpl (tableGameAfterSecrets (memoAdversary adversary) parameter outputs randomizers)).run' cache] := by
+    Pr{let x ← (simulateQ romImpl (tableGameAfterSecrets adversary parameter outputs randomizers)).run' cache}[x = true] ≤
+      Pr{let x ← (simulateQ romImpl (tableGameAfterSecrets (memoAdversary adversary) parameter outputs randomizers)).run' cache}[x = true] := by
   unfold tableGameAfterSecrets
   rw [run'_lift_hash_bind, run'_lift_hash_bind]
-  apply probOutput_bind_mono
-  intro result _
-  rw [← runSigning_sourceGame, ← runSigning_sourceGame]
+  refine (OracleComp.prEvent_bind_congr_le_add (ε := 0) fun result _ => ?_).trans_eq (add_zero _)
+  rw [add_zero, ← runSigning_sourceGame, ← runSigning_sourceGame]
   exact prob_sourceGame_le_memo _ _ _ _
 
 theorem tableBudget_memo (adversary : Adversary) (q : Nat) (hbound : HasTableBudget adversary q) :
@@ -48,10 +47,11 @@ theorem tableBudget_memo (adversary : Adversary) (q : Nat) (hbound : HasTableBud
   exact hashQueryBound_sourceGame_memo _ _ _ cache q hrest
 
 theorem prob_independentTableGame_le_memo (adversary : Adversary) :
-    Pr[= true | independentTableGame adversary] ≤ Pr[= true | independentTableGame (memoAdversary adversary)] := by
+    Pr{let x ← independentTableGame adversary}[x = true] ≤ Pr{let x ← independentTableGame (memoAdversary adversary)}[x = true] := by
   unfold independentTableGame
-  apply probOutput_bind_mono
-  intro material _
+  refine (OracleComp.prEvent_bind_congr_le_add (ε := 0) fun material _ => ?_).trans_eq (add_zero _)
+  rw [add_zero]
   exact prob_tableGameAfterSecrets_le_memo _ _ _ _ ∅
+
 
 end XmssSecurity.Seeded

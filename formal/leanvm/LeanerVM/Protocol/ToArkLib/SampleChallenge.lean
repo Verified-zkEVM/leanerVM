@@ -156,7 +156,7 @@ def sampleStateFunction :
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m hm ↦ nomatch hm
   toFun_full := fun stmt tr w hpos ↦
-    Verifier.GuardedForm.of_probEvent_pos (sampleGuarded OStmt C check f) init impl stmt tr _ hpos
+    Verifier.GuardedForm.of_prEvent_pos (sampleGuarded OStmt C check f) init impl stmt tr _ hpos
 
 /-- A bad challenge: some witness fails the input relation at the statement and meets the output
 relation at the mapped statement. -/
@@ -245,7 +245,7 @@ theorem sampleChallenge_not_rbr {WitMid : Fin 2 → Type}
   Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw C).Transcript 0) fun c ↦
       ⟨Transcript.concat c (default : (draw C).Transcript 0), rfl, w,
-        Verifier.GuardedForm.probEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
+        Verifier.GuardedForm.prEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
           (s, o) _ (fun t ↦ (t, w) ∈ relOut) hc (hesc c)⟩
 
 end Component

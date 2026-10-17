@@ -112,7 +112,7 @@ def passThroughStateFunction :
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m ↦ Fin.elim0 m
   toFun_full := fun stmt tr w hpos ↦
-    h stmt.1 stmt.2 w (Verifier.GuardedForm.of_probEvent_pos
+    h stmt.1 stmt.2 w (Verifier.GuardedForm.of_prEvent_pos
       (passThroughPure OStmt f).toGuardedForm init impl stmt tr _ hpos).2
 
 /-- Round-by-round knowledge soundness at error zero: no challenge, the witness is kept. -/

@@ -115,10 +115,10 @@ theorem Concrete.allChainTrajectoriesFromCache_chainWalk_run_eq_pure
       ((simulateQ randomOracle
         (Concrete.chainWalk parameter leafIndex chain 0 (chainLength - 1)
           (secret leafIndex chain) : OracleComp HashSpec Digest)).run walkBefore) :=
-    (mem_support_iff_of_evalSPMF_eq
+    OracleComp.support_eq_of_evalDistEq
       (evalDist_chainTrajectory_run_cache_eq_chainWalk_run_cache
         parameter leafIndex chain 0 (chainLength - 1) (secret leafIndex chain)
-          walkBefore) (trajectory.back, walkAfter)).mp hmapped
+          walkBefore) ▸ hmapped
   have hwalkLe : walkAfter ≤ largerCache :=
     hwalkAfter.trans (hafter.trans hle)
   have hreplay :=
@@ -375,10 +375,11 @@ theorem programmedGlobalChainTrajectoryMaterial_support_as_actual
     material.2 ∈ support
       (Concrete.allChainTrajectoriesFromCache parameter material.1 ∅
         allChains) := by
-  apply (mem_support_iff_of_evalSPMF_eq
+  rw [OracleComp.support_eq_of_evalDistEq
     (evalDist_allChainTrajectories_eq_programmed parameter material.1
       allChains ∅ allChains_nodup (by
-        simp [AllChainAddressesAbsent])) material.2).mpr
+        simp [AllChainAddressesAbsent]))]
+
   exact programmedGlobalChainTrajectoryMaterial_support_trajectories
     parameter material hmaterial
 
@@ -655,7 +656,7 @@ theorem relTriple_globalMaterial_leafTreeValues_run
         intro input hinput
         apply hleftFresh current (by simp) input
         unfold TreeValueIndex.domain
-        rw [dif_pos hcurrentZero]
+        rw [dite_eq_left hcurrentZero]
         exact hinput
       have hrightAbsent : ∀ input,
           AtHashAddress parameter (.leaf current.node) input →
@@ -663,7 +664,7 @@ theorem relTriple_globalMaterial_leafTreeValues_run
         intro input hinput
         apply hrightFresh current (by simp) input
         unfold TreeValueIndex.domain
-        rw [dif_pos hcurrentZero]
+        rw [dite_eq_left hcurrentZero]
         exact hinput
       have hhead : RelTriple
           ((simulateQ randomOracle

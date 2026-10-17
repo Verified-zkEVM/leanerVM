@@ -171,7 +171,7 @@ def sendCheckedStateFunction :
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun _ _ _ _ _ _ hw ↦ hw
   toFun_full := fun stmt tr w hpos ↦
-    have hv := Verifier.GuardedForm.of_probEvent_pos (sendCheckedGuarded OStmt M check out) init
+    have hv := Verifier.GuardedForm.of_prEvent_pos (sendCheckedGuarded OStmt M check out) init
       impl stmt tr _ hpos
     h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.1 hv.2
 

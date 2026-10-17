@@ -520,7 +520,7 @@ def stateFunction :
     rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
     exact hp
   toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_probEvent_pos (guarded I) init impl stmt tr _ h
+    Verifier.GuardedForm.of_prEvent_pos (guarded I) init impl stmt tr _ h
 
 /-- Round-by-round knowledge soundness at the slot's error `1/|E|`: a bad transition is a bad
 challenge, and there is at most one. -/
@@ -538,7 +538,7 @@ theorem rbr :
   subst hi0
   show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
   rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (probEvent_uniformSample_le_of_subsingleton (α := E)
+  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
     (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
   rintro r ⟨_, hin, hout⟩

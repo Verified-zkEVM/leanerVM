@@ -174,7 +174,7 @@ theorem hNearOf_le (b N qtop : ℕ) (hb : subtreeHeight = b) (hN : signatureLimi
         by_cases hE : (0 : ℝ) ≤ (o.En : ℝ)
         · rw [show ((2 ^ b * o.En : ℚ) : ℝ) = (2 : ℝ) ^ b * (o.En : ℝ) by push_cast; ring,
             ENNReal.ofReal_mul (by positivity), ENNReal.ofReal_pow (by norm_num), ENNReal.ofReal_ofNat]
-        · push_neg at hE
+        · push Not at hE
           rw [ENNReal.ofReal_of_nonpos hE.le, mul_zero, ENNReal.ofReal_of_nonpos]
           push_cast
           exact mul_nonpos_of_nonneg_of_nonpos (by positivity) hE.le

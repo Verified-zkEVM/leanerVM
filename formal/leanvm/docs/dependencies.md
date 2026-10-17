@@ -8,8 +8,8 @@ The project tracks seven upstreams and six direct Lake packages:
 | Mathlib | `v4.34.1` (`d13f23b7`) | Algebra, finite types, probability measures, and tactics |
 | CompPoly | `572f997390aa4fc131ef30b1186fa1dcf292ca10` (current main) | Computable polynomial and field infrastructure |
 | Clean | `42fe4b268132a46604d40cc73f642a1995f26547` (PR #474, includes current main) | Circuit, AIR, channel, and witness-generation infrastructure |
-| ArkLib | `7653a901ed466c88a2e61a3075011b73d7bb2316` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
-| VCVio | `a4232d084aa18aa71f75b92b64082b457ffdb77b` (compatibility fix over current main) | Native probability measures and oracle computation security carriers |
+| ArkLib | `4dae3acff846125521b7b3998010885071746f16` (current main) | Oracle reductions, security definitions, composition, sumcheck, and multilinear theory |
+| VCVio | `afa6593f15e1e79ecb3cf22fc56191cecb452bb0` (current main) | Native probability measures and oracle computation security carriers |
 | PolyFun | `41d3b21dcc99817fe4f9f24ca7b2b58f0578083d` (current main) | Polynomial functors and free monads underlying oracle computations |
 
 The machine-readable baseline is `upstreams.json`; `lake-manifest.json` records the resolved
@@ -36,6 +36,48 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 6. delete every `LeanerVM/Protocol/To*/` file or declaration that the new pin contains, move its
    consumers to the upstream names, and update the protocol blueprint's upstream ledger and the
    status page's watch list.
+
+## ArkLib `4dae3acf` and VCVio `afa6593f` review
+
+The previous pins were ArkLib `7653a901` and VCVio `a4232d08` (the head of VCVio #820 over
+`f5119c64`, which `main` merged as `bc3433e3`). VCVio `afa6593f` is `main`, 22 commits after
+`f5119c64`; ArkLib `4dae3acf` is `main`, 13 commits later, and is the ArkLib commit that targets
+exactly this VCVio. Lean,
+Mathlib, CompPoly, Clean and PolyFun are unchanged.
+
+VCVio removed its discrete probability layer (`SPMF`, `Pr[…]`, `probOutput`, `probEvent`,
+`NeverFail`) and renamed modules; its migration guide is `docs/agents/probability-migration.md`
+and its codemod `scripts/migrate-native-probability.py`. This project used none of the removed
+API by name. What it adapted to, all mechanical:
+
+1. *Module renames.* `VCVio.OracleComp.Constructions.SampleableType.NativeMeasure` is now
+   `…SampleableType.Measure` (six imports, rewritten by the codemod).
+2. *The event normal form.* `Pr{let x ← mx}[p x]` is a `do` sequence whose selector is mapped
+   last, so `bind_map_left` no longer moves an output map out of an event; `LeanVM.completeness`
+   uses `prEvent_map` instead. Its statement is unchanged.
+3. *Names.* VCVio's lemmas about events are now named `prEvent_…`, and the codemod reports a
+   local `probEvent_…` name as legacy. The four local ones are renamed:
+   `Verifier.GuardedForm.of_prEvent_pos`, `Verifier.GuardedForm.prEvent_pos_of_check`,
+   `guarded_prEvent_pos` and `prEvent_uniformSample_le_of_subsingleton`, statements unchanged.
+   A docstring of `ToVCVio/Rom/Bounds.lean` no longer says that VCVio states its birthday bound
+   with `Pr[…]`.
+
+ArkLib needed no change. Its legacy `OracleReduction` framework changed only in proofs and in
+the binders of `Extractor.Straightline.IsMonotone`; the admitted results this project avoids are
+still admitted, and the kernel axiom audit passes. The definitions under `LeanerVM/Spec/` and
+the front-page theorems are unchanged.
+
+Nothing was upstreamed: no `To*` declaration is contained in either pin. VCVio's new
+random-oracle bounds (#823, #824, #826: fresh-query bad events by table resampling and expected
+distinct-query charges, over a log of every query) and its subsingleton union bound
+(`prEvent_exists_and_le_of_subsingleton`) are other statements than `ToVCVio/Rom/`'s potential
+bounds over the log of fresh queries and `ToVCVio/UniformSample.lean`'s bound. ArkLib's typed
+`Interaction` framework now has round-by-round soundness, round-by-round knowledge certificates
+with backward witness maps, their sequential composition, and state-restoration knowledge
+soundness (#1259, #1260, #1261, #1263, #1264), but still nothing adapts it to an
+`OracleReduction` and its sumcheck has no knowledge notion, so the spine stays on the legacy
+framework and `ToArkLib/KnowledgeAppend.lean` stays; decision 24 is due for review
+([protocol-status.md](roadmap/protocol-status.md#upstream-watch)).
 
 ## leanVM `a0ca7858` review
 
@@ -216,8 +258,10 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 **ArkLib.**
 
 - Relations are `Set (Stmt × Wit)`. `OracleReduction` is the framework ArkLib calls legacy; its
-  typed `Interaction` framework proves plain soundness and composition, with no round-by-round
-  notion, no knowledge notion and no extractor, so the spine stays on the legacy one.
+  typed `Interaction` framework proves soundness, round-by-round soundness, round-by-round
+  knowledge certificates (backward witness maps) and their composition, but nothing adapts it to
+  an `OracleReduction` and its sumcheck has no knowledge notion, so the spine stays on the
+  legacy one.
 - A round-by-round extractor is any function: the existential forms `rbrKnowledgeSoundness` and
   `rbrKnowledgeSoundnessWorstCase` are met by an extractor chosen by classical choice (ArkLib's own
   `toRoundByRoundOfRel` is one) and prove soundness only. The averaged `rbrKnowledgeSoundness` is

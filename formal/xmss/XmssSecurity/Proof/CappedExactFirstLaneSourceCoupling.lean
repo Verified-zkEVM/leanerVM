@@ -220,36 +220,30 @@ theorem globalSigningMonitoredTracedStateRelation_initial
     hleftSupport hrightSupport
 
 theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :
-    evalSPMF
-        ((fun view : ProgrammedGlobalChainKeygenView =>
+    ((fun view : ProgrammedGlobalChainKeygenView =>
           Concrete.materializeCachedKeyResult view.keyResult) <$>
-            trajectoryProgrammedGlobalChainKeygen) =
-      evalSPMF ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
+            trajectoryProgrammedGlobalChainKeygen) =ᵈ
+      ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
   calc
-    _ = evalSPMF
-        ((fun view : ProgrammedGlobalChainKeygenView =>
+    _ =ᵈ ((fun view : ProgrammedGlobalChainKeygenView =>
           Concrete.materializeCachedKeyResult view.keyResult) <$>
-            actualGlobalChainKeygen) := by
-      apply evalDist_map_congr_of_evalDist_eq
-      exact evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed.symm
-    _ = evalSPMF
-        (Concrete.materializeCachedKeyResult <$>
+            actualGlobalChainKeygen) :=
+      evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed.symm.map _
+    _ =ᵈ (Concrete.materializeCachedKeyResult <$>
           (simulateQ romImpl Concrete.keygen).run ∅) := by
       unfold actualGlobalChainKeygen
       simp [ProgrammedGlobalChainKeygenView.keyResult,
         map_eq_bind_pure_comp]
-    _ = evalSPMF
-        ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) :=
+    _ =ᵈ ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) :=
       Concrete.evalDist_materialized_keygen_eq_precomputedKeygen
     _ = _ := by rfl
 
 theorem probEvent_eq_of_evalDist_eq
     {computation₁ computation₂ : ProbComp α}
     (event : α → Prop)
-    (heval : evalSPMF computation₁ = evalSPMF computation₂) :
-    Pr[event | computation₁] = Pr[event | computation₂] := by
-  simp only [probEvent_eq_tsum_indicator, probOutput_def]
-  rw [heval]
+    (heval : computation₁ =ᵈ computation₂) :
+    Pr{let x ← computation₁}[event x] = Pr{let x ← computation₂}[event x] :=
+  heval.prEvent_eq event
 
 
 theorem encodingObservation?_eq_of_globalSigningCachesAgree
@@ -638,29 +632,28 @@ theorem sourceGlobalExactTracedProgram_eq_trajectoryBothTraces
 
 theorem evalDist_sourceGlobalExact_eq_cappedBothTraces
     (adversary : Adversary) :
-    evalSPMF (sourceGlobalExactProgramResult <$>
-        sourceGlobalExactTracedProgram adversary) =
-      evalSPMF (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) := by
+    (sourceGlobalExactProgramResult <$>
+        sourceGlobalExactTracedProgram adversary) =ᵈ
+      (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) := by
   rw [sourceGlobalExactTracedProgram_eq_trajectoryBothTraces]
   unfold cappedDetailedGameWithKeygenCacheAndBothTraces
-  rw [evalSPMF_bind, evalSPMF_bind]
   let project := fun view : ProgrammedGlobalChainKeygenView =>
     Concrete.materializeCachedKeyResult view.keyResult
   calc
-    _ = evalSPMF (project <$> trajectoryProgrammedGlobalChainKeygen) >>=
-        fun keyResult => evalSPMF
-          ((fun execution => (keyResult, execution)) <$>
+    _ =ᵈ ((project <$> trajectoryProgrammedGlobalChainKeygen) >>=
+        fun keyResult =>
+          (fun execution => (keyResult, execution)) <$>
             cappedDetailedGameAfterKeygenWithBothTraces adversary
               keyResult.1.1 keyResult.1.2 keyResult.2) := by
-      rw [evalSPMF_map, map_eq_bind_pure_comp, bind_assoc]
+      refine .of_eq ?_
       simp [project, ProgrammedGlobalChainKeygenView.keyResult,
-        Concrete.materializeCachedKeyResult]
-    _ = evalSPMF ((simulateQ romImpl Concrete.scheme.keygen).run ∅) >>=
-        fun keyResult => evalSPMF
-          ((fun execution => (keyResult, execution)) <$>
+        Concrete.materializeCachedKeyResult, map_eq_bind_pure_comp]
+    _ =ᵈ (((simulateQ romImpl Concrete.scheme.keygen).run ∅) >>=
+        fun keyResult =>
+          (fun execution => (keyResult, execution)) <$>
             cappedDetailedGameAfterKeygenWithBothTraces adversary
-              keyResult.1.1 keyResult.1.2 keyResult.2) := by
-      rw [evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
+              keyResult.1.1 keyResult.1.2 keyResult.2) :=
+      evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen.bind_left _
     _ = _ := by
       simp only [bind_pure_comp]
 
@@ -671,25 +664,21 @@ def SourceWinningExactFirstLaneEvent
 
 theorem cappedExactFirstLane_probability_eq_sourceGlobalExact
     (adversary : Adversary) :
-    Pr[WinningExactFirstLaneBadEventOccurs |
-        cappedDetailedGameWithEncodingTrace adversary] =
-      Pr[SourceWinningExactFirstLaneEvent |
-        sourceGlobalExactTracedProgram adversary] := by
+    Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningExactFirstLaneBadEventOccurs x] =
+      Pr{let x ← sourceGlobalExactTracedProgram adversary}[SourceWinningExactFirstLaneEvent x] := by
   calc
-    _ = Pr[WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection |
-        cappedDetailedGameWithKeygenCacheAndBothTraces adversary] := by
-      rw [← probEvent_map]
-      exact probEvent_congr' (fun _ _ => Iff.rfl)
-        (congrArg evalSPMF
-          (cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
-            adversary)).symm
-    _ = Pr[WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection |
-        sourceGlobalExactProgramResult <$>
-          sourceGlobalExactTracedProgram adversary] :=
+    _ = Pr{let x ← cappedDetailedGameWithKeygenCacheAndBothTraces adversary}[(WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection) x] := by
+      rw [← cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq adversary,
+        prEvent_map]
+      rfl
+
+
+    _ = Pr{let x ← (sourceGlobalExactProgramResult <$>
+          sourceGlobalExactTracedProgram adversary)}[(WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection) x] :=
       probEvent_eq_of_evalDist_eq _
         (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary).symm
     _ = _ := by
-      rw [probEvent_map]
+      rw [prEvent_map]
       rfl
 
 theorem cappedExactEncodingBranch_implies_monitorHit

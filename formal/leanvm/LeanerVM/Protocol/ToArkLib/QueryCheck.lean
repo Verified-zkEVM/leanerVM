@@ -151,7 +151,7 @@ def queryCheckStateFunction :
   toFun_empty := fun _ _ ↦ Iff.rfl
   toFun_next := fun m ↦ Fin.elim0 m
   toFun_full := fun stmt tr w hpos ↦
-    have hg := Verifier.GuardedForm.of_probEvent_pos (queryCheckGuarded OStmt query check f)
+    have hg := Verifier.GuardedForm.of_prEvent_pos (queryCheckGuarded OStmt query check f)
       init impl stmt tr _ hpos
     h stmt.1 stmt.2 w hg.1 hg.2
 
@@ -242,7 +242,7 @@ theorem batchQuery_not_rbr {σ : Type} {init : ProbComp σ}
   refine Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl (fun j hj ↦ absurd hj (by have := j.isLt; omega))
     (s, o) (fun w' hw' ↦ hin w' hw') (default : (draw F).Transcript 0) fun c ↦ ?_
   refine ⟨Transcript.concat c (default : (draw F).Transcript 0), rfl, w, ?_⟩
-  apply Verifier.GuardedForm.probEvent_pos_of_check
+  apply Verifier.GuardedForm.prEvent_pos_of_check
     (guardedAppend (D₁ := batch OStmt F value out) (D₂ := queryCheck OStmt query check f)
       (sampleGuarded OStmt F _ _) (queryCheckGuarded OStmt query check f))
     init impl (s, o) _ (fun t ↦ (t, w) ∈ relOut)

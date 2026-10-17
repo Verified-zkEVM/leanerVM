@@ -247,7 +247,7 @@ theorem CountGood.ne_top {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (k
   exact ne_top_of_le_ne_top (ENNReal.mul_ne_top ENNReal.coe_ne_top (ENNReal.pow_ne_top ENNReal.coe_ne_top)) (h k)
 
 theorem sum_add_single (k : ι → ℕ) (l : ι) (n : ℕ) : ∑ i, (k + Pi.single l n : ι → ℕ) i = ∑ i, k i + n := by
-  simp only [Pi.add_apply, Finset.sum_add_distrib, Finset.sum_pi_single', Finset.mem_univ, if_true]
+  simp only [Pi.add_apply, Finset.sum_add_distrib, Finset.sum_pi_single', Finset.mem_univ, ite_true]
 
 theorem CountGood.pois {G : (ι → ℕ) → ℝ≥0∞} (hG : CountGood G) (a : ℝ≥0) (l : ι) : CountGood (pois a l G) where
   mono := fun k k' hk => ENNReal.tsum_le_tsum fun _ => by gcongr; exact hG.mono (add_le_add_left hk _)
@@ -593,7 +593,7 @@ theorem cnt_add_single_fun (d : Multiset V) (u : V) :
   rw [cnt_add_single, Pi.add_apply, Pi.single_apply]
   by_cases h : idx u = l
   · subst h; simp
-  · rw [if_neg h, if_neg (Ne.symm h)]
+  · rw [ite_eq_right h, ite_eq_right (Ne.symm h)]
 
 theorem cnt_zero_fun : cnt idx (0 : Multiset V) = 0 := by
   funext l; exact cnt_zero idx l

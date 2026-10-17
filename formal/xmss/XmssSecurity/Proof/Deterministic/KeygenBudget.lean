@@ -36,10 +36,9 @@ theorem hashQueryBound_after_deterministic_derivation (adversary : Adversary) (q
       (derivationCache seed parameterOutput outputs) (q - 1) := by
   rw [hasHashQueryBound_iff, gameCore_deterministic_split] at hbound
   have hs : seed ∈ support sampleMasterSeed := by
-    rw [mem_support_iff]
     unfold sampleMasterSeed
-    rw [probOutput_uniformSample]
-    exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+    rw [support_uniformSample]
+    trivial
   have hseed : HashQueryBound (deterministicGameAfterSeed adversary seed) ∅ q :=
     hashQueryBound_of_sampling_bind sampleMasterSeed (deterministicGameAfterSeed adversary) ∅ q hbound seed hs
   rw [deterministicAfterSeed_first_query] at hseed
@@ -68,12 +67,13 @@ theorem hashQueryBound_after_signing_derivation (adversary : Adversary) (q : Nat
       support ((simulateQ romImpl (liftM (prepareRandomizers (truncateHash parameterOutput) seed) :
         OracleComp OracleWorld _)).run (derivationCache seed parameterOutput outputs)) := by
     rw [romImpl, QueryImpl.simulateQ_add_liftM_right,
-      mem_support_iff_of_evalSPMF_eq (evalDist_prepareRandomizers seed parameterOutput outputs), support_map]
+      OracleComp.support_eq_of_evalDistEq (evalDist_prepareRandomizers seed parameterOutput outputs),
+      support_map]
     refine ⟨randomizers, ?_, rfl⟩
-    rw [mem_support_iff]
     unfold sampleRandomizerOutputs
-    rw [probOutput_uniformSample]
-    exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+    rw [support_uniformSample]
+    trivial
+
   have hprepared := hashQueryBound_after_preparation _ _ _ _ hfirst.2 _ hrandomizers
   exact ⟨hfirst.1, (erases_deterministicGameAfterSecrets _ seed _ _ randomizers
     (signingDerivationCache_randomizer seed parameterOutput outputs randomizers) adversary).hashQueryBound

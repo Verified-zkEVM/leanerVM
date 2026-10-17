@@ -109,7 +109,7 @@ theorem digestView_injective : Function.Injective digestView := by
     have hoffset : digitOffset chain + offsetBit = bit := by
       unfold digitOffset
       change 3 * (bit / 3) + (if bit / 3 < 21 then 0 else 1) + bit % 3 = bit
-      rw [if_pos (by omega)]
+      rw [ite_eq_left (by omega)]
       have hdiv := Nat.mod_add_div bit 3
       omega
     have hextract :
@@ -132,7 +132,7 @@ theorem digestView_injective : Function.Injective digestView := by
       unfold digitOffset
       change 3 * (21 + (bit - 64) / 3) +
         (if 21 + (bit - 64) / 3 < 21 then 0 else 1) + (bit - 64) % 3 = bit
-      rw [if_neg (by omega)]
+      rw [ite_eq_right (by omega)]
       have hdiv := Nat.mod_add_div (bit - 64) 3
       omega
     have hextract :
@@ -149,14 +149,14 @@ theorem decodeView_eq_some_iff {view : EncodingView} {x : Encoding} :
   rcases view with ⟨digits, padding⟩
   simp only [decodeView]
   by_cases hview : ValidView (digits, padding)
-  · rw [if_pos hview]
+  · rw [ite_eq_left hview]
     simp only [Option.some.injEq, Prod.mk.injEq]
     constructor
     · intro hdigits
       subst x
       exact ⟨⟨rfl, hview.1⟩, hview.2⟩
     · exact fun h => h.1.1
-  · rw [if_neg hview]
+  · rw [ite_eq_right hview]
     simp only [Prod.mk.injEq]
     constructor
     · intro heq

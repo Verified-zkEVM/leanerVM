@@ -9,7 +9,7 @@
 module
 
 public import LeanerVM.Protocol.Compile.Prog
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # Escape averages of front phases

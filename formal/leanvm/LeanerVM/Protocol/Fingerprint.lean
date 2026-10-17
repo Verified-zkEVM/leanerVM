@@ -12,7 +12,7 @@ module
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.ToArkLib.GrandProductPoly
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
-public import VCVio.OracleComp.Constructions.SampleableType.NativeMeasure
+public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 /-!
 # Fingerprints and the products of the bus

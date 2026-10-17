@@ -12,8 +12,7 @@ def WinningExactFirstLaneBadEventOccurs
 
 def HasExactFirstLaneBound
     (q : Nat) (adversary : Adversary) : Prop :=
-  Pr[WinningExactFirstLaneBadEventOccurs |
-      cappedDetailedGameWithEncodingTrace adversary] ≤
+  Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningExactFirstLaneBadEventOccurs x] ≤
     ((q - treeHashQueryCount treeHeight : Nat) + numChains : Nat) /
       ((2 ^ digestBits : Nat) : ENNReal)
 
@@ -38,27 +37,21 @@ theorem capped_winning_implies_exactFirstLane_or_secondLane
 theorem capped_forgeAdvantage_le_exactFirstLane_add_secondLane
     (adversary : Adversary) :
     forgeAdvantage Concrete.scheme adversary ≤
-      Pr[WinningExactFirstLaneBadEventOccurs |
-        cappedDetailedGameWithEncodingTrace adversary] +
-      Pr[WinningSecondLaneBadEventOccurs |
-        cappedDetailedGameWithEncodingTrace adversary] := by
+      Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningExactFirstLaneBadEventOccurs x] +
+      Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningSecondLaneBadEventOccurs x] := by
   calc
     forgeAdvantage Concrete.scheme adversary =
-        Pr[fun execution : CappedEncodingTraceExecution =>
-          execution.1.won = true |
-          cappedDetailedGameWithEncodingTrace adversary] := by
+        Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[execution.1.won = true] := by
       rw [forgeAdvantage_eq_detailedGameWithCache,
-        ← cappedDetailedGameWithEncodingTrace_cache_projection, probEvent_map]
-      rfl
-    _ ≤ Pr[fun execution : CappedEncodingTraceExecution =>
-          WinningExactFirstLaneBadEventOccurs execution ∨
-            WinningSecondLaneBadEventOccurs execution |
-          cappedDetailedGameWithEncodingTrace adversary] := by
-      apply probEvent_mono
+        ← cappedDetailedGameWithEncodingTrace_cache_projection, prEvent_map]
+
+    _ ≤ Pr{let execution ← cappedDetailedGameWithEncodingTrace adversary}[WinningExactFirstLaneBadEventOccurs execution ∨
+            WinningSecondLaneBadEventOccurs execution] := by
+      apply prEvent_mono_of_support
       intro execution hmem hwin
       exact capped_winning_implies_exactFirstLane_or_secondLane
         adversary execution hmem hwin
-    _ ≤ _ := probEvent_or_le _ _ _
+    _ ≤ _ := prEvent_or_le _ _ _
 
 theorem capped_xmss_forgeAdvantage_le_127_of_exactTwoLaneBounds
     (q : Nat) (adversary : Adversary)
@@ -69,10 +62,8 @@ theorem capped_xmss_forgeAdvantage_le_127_of_exactTwoLaneBounds
       (q : ENNReal) / ((2 ^ 127 : Nat) : ENNReal) := by
   calc
     forgeAdvantage Concrete.scheme adversary ≤
-        Pr[WinningExactFirstLaneBadEventOccurs |
-          cappedDetailedGameWithEncodingTrace adversary] +
-        Pr[WinningSecondLaneBadEventOccurs |
-          cappedDetailedGameWithEncodingTrace adversary] :=
+        Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningExactFirstLaneBadEventOccurs x] +
+        Pr{let x ← cappedDetailedGameWithEncodingTrace adversary}[WinningSecondLaneBadEventOccurs x] :=
       capped_forgeAdvantage_le_exactFirstLane_add_secondLane adversary
     _ ≤ ((q - treeHashQueryCount treeHeight : Nat) + numChains : Nat) /
           ((2 ^ digestBits : Nat) : ENNReal) +

@@ -124,8 +124,9 @@ theorem programmedWarmedFixedChainKeygen_support_treeCacheStable
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
       view.cache := by
   apply coupledWarmedFixedChainKeygen_support_treeCacheStable chain view
-  exact (mem_support_iff_of_evalSPMF_eq
-    (evalDist_coupledWarmedFixedChainKeygen_eq_programmed chain) view).mpr hview
+  rw [OracleComp.support_eq_of_evalDistEq
+    (evalDist_coupledWarmedFixedChainKeygen_eq_programmed chain)]
+  exact hview
 
 theorem actualFixedChainKeygen_support_treeCacheStable
     (chain : ChainIndex) (view : ProgrammedFixedChainKeygenView)
@@ -133,7 +134,9 @@ theorem actualFixedChainKeygen_support_treeCacheStable
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
       view.cache := by
   apply programmedWarmedFixedChainKeygen_support_treeCacheStable chain view
-  exact (mem_support_iff_of_evalSPMF_eq
-    (evalDist_actualFixedChainKeygen_eq_programmedWarmed chain) view).mp hview
+  rw [← OracleComp.support_eq_of_evalDistEq
+    (evalDist_actualFixedChainKeygen_eq_programmedWarmed chain)]
+  exact hview
+
 
 end XmssSecurity.CappedChain

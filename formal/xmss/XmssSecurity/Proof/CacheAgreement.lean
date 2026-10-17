@@ -54,21 +54,10 @@ theorem relTriple_strengthen_support
   rw [relTriple_iff_relWP, relWP_iff_couplingPost] at hrel ⊢
   obtain ⟨coupling, hcoupling⟩ := hrel
   refine ⟨coupling, ?_⟩
-  intro pair hpair
-  have hleftSupportDist : pair.1 ∈ SPMF.support 𝒮[left] := by
-    rw [← coupling.2.map_fst, spmf_support_map]
-    exact ⟨pair, hpair, rfl⟩
-  have hrightSupportDist : pair.2 ∈ SPMF.support 𝒮[right] := by
-    rw [← coupling.2.map_snd, spmf_support_map]
-    exact ⟨pair, hpair, rfl⟩
-  have hleftSupport : pair.1 ∈ support left := by
-    rw [mem_support_iff_evalSPMF_apply_ne_zero]
-    exact (SPMF.mem_support_iff _ _).mp hleftSupportDist
-  have hrightSupport : pair.2 ∈ support right := by
-    rw [mem_support_iff_evalSPMF_apply_ne_zero]
-    exact (SPMF.mem_support_iff _ _).mp hrightSupportDist
-  exact ⟨hcoupling pair hpair,
-    hleft pair.1 hleftSupport, hright pair.2 hrightSupport⟩
+  filter_upwards [hcoupling,
+    OracleComp.ProgramLogic.Relational.ae_mem_support_prod coupling] with pair hpair hsupport
+  exact ⟨hpair, hleft pair.1 hsupport.1, hright pair.2 hsupport.2⟩
+
 
 theorem relTriple_with_support
     {alpha beta : Type}

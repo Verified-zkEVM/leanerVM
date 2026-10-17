@@ -64,7 +64,7 @@ theorem treeValueIndicesBelow_succ (height : Nat)
     treeValueIndicesBelow (height + 1) =
       treeValueIndicesBelow height ++
         treeValueIndicesAtHeight ⟨height, hheight⟩ := by
-  rw [treeValueIndicesBelow, dif_pos hheight]
+  rw [treeValueIndicesBelow, dite_eq_left hheight]
 
 theorem mem_treeValueIndicesAtHeight_iff
     (height : Fin (treeHeight + 1)) (index : TreeValueIndex) :

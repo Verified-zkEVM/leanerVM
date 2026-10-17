@@ -21,7 +21,7 @@
     "repository": "Verified-zkEVM/ArkLib",
     "tracking": "branch",
     "ref": "main",
-    "commit": "7653a901ed466c88a2e61a3075011b73d7bb2316"
+    "commit": "4dae3acff846125521b7b3998010885071746f16"
   },
   "Mathlib": {
     "repository": "leanprover-community/mathlib4",
@@ -33,7 +33,7 @@
     "repository": "Verified-zkEVM/VCVio",
     "tracking": "branch",
     "ref": "main",
-    "commit": "a4232d084aa18aa71f75b92b64082b457ffdb77b"
+    "commit": "afa6593f15e1e79ecb3cf22fc56191cecb452bb0"
   },
   "PolyFun": {
     "repository": "Verified-zkEVM/PolyFun",

@@ -137,18 +137,19 @@ theorem precomputedKeygen_support_secretKey_uses_finalCache
   rw [hcache]
 
 theorem evalDist_materialized_keygen_eq_precomputedKeygen :
-    evalSPMF (materializeCachedKeyResult <$>
-      (simulateQ romImpl keygen).run ∅) =
-      evalSPMF ((simulateQ romImpl precomputedKeygen).run ∅) := by
+    (materializeCachedKeyResult <$>
+      (simulateQ romImpl keygen).run ∅) =ᵈ
+      ((simulateQ romImpl precomputedKeygen).run ∅) := by
   rw [← erasePrecomputedKeygen_eq_keygen, simulateQ_map, StateT.run_map]
   simp only [Functor.map_map]
   rw [map_eq_bind_pure_comp]
   conv_rhs => rw [← bind_pure
     ((simulateQ romImpl precomputedKeygen).run ∅)]
-  apply evalSPMF_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro keyResult hmem
-  apply congrArg evalSPMF
+  apply EvalDistEq.of_eq
   apply congrArg pure
+
   simp only [materializeCachedKeyResult,
     erasePrecomputedKeyResult, erasePrecomputation]
   change ((keyResult.1.1,

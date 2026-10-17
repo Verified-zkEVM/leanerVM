@@ -18,7 +18,7 @@ followed by a deterministic verdict: it outputs the verdict when the check passe
 otherwise (`Verifier.GuardedForm`). Two facts follow for every such verifier, whatever its
 schedule, and they are what a component's two proofs start from.
 
-* `Verifier.GuardedForm.of_probEvent_pos`: if the verifier can output a statement satisfying a
+* `Verifier.GuardedForm.of_prEvent_pos`: if the verifier can output a statement satisfying a
   predicate, then the check passes and the verdict satisfies it. This is the last obligation of
   a knowledge state function.
 * `Reduction.mem_support_run_of_guarded`: every outcome of a run is a transcript and output of
@@ -37,7 +37,7 @@ variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn StmtOut WitOut : Type
 
 /-- If a guarded verifier can output a statement satisfying `P`, its check passes and its
 verdict satisfies `P`. -/
-theorem Verifier.GuardedForm.of_probEvent_pos {V : Verifier oSpec StmtIn StmtOut pSpec}
+theorem Verifier.GuardedForm.of_prEvent_pos {V : Verifier oSpec StmtIn StmtOut pSpec}
     (G : V.GuardedForm) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl oSpec (StateT σ ProbComp)) (stmt : StmtIn) (tr : pSpec.FullTranscript)
     (P : StmtOut → Prop)

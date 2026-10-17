@@ -20,47 +20,48 @@ noncomputable def materialCache (seed : MasterSeed) (material : KeyMaterial) : Q
   programmedCache seed material.1 material.2.1 material.2.2.1 material.2.2.2
 
 theorem evalDist_programmedGame_seed_last (adversary : Adversary) :
-    𝒮[programmedGame adversary] = 𝒮[do
+    programmedGame adversary =ᵈ (do
       let material ← drawKeyMaterial
       let seed ← sampleMasterSeed
       (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run'
-        (materialCache seed material)] := by
+        (materialCache seed material)) := by
   have heq : programmedGame adversary = (do
       let seed ← sampleMasterSeed
       let material ← drawKeyMaterial
       (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run'
         (materialCache seed material)) := by
     simp only [programmedGame, drawKeyMaterial, materialCache, bind_assoc, pure_bind]
-  rw [heq, evalSPMF_bind_bind_swap]
+  rw [heq]
+  exact OracleComp.EvalDistEq.bind_bind_swap _ _ _
 
 theorem evalDist_independentGame_material (adversary : Adversary) :
-    𝒮[(simulateQ romImpl (gameCore Concrete.scheme adversary)).run' ∅] = 𝒮[do
+    ((simulateQ romImpl (gameCore Concrete.scheme adversary)).run' ∅) =ᵈ (do
       let material ← drawKeyMaterial
-      (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run' ∅] := by
+      (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run' ∅) := by
   rw [gameCore_independent_eq, run'_lift_sample_bind]
   unfold drawKeyMaterial
   simp only [bind_assoc, pure_bind]
-  apply evalSPMF_bind_congr'
+  apply EvalDistEq.bind_right
   intro parameter
   rw [run'_lift_sample_bind]
-  apply evalSPMF_bind_congr'
+  apply EvalDistEq.bind_right
   intro secret
-  apply evalSPMF_ext
-  intro value
-  simp
+  refine EvalDistEq.symm ?_
+  refine (EvalDistEq.bind_right _ fun _ => OracleComp.EvalDistEq.bind_const _ _).trans ?_
+  exact OracleComp.EvalDistEq.bind_const _ _
 
 theorem hashQueryBound_gameAfterSecrets (adversary : Adversary) (q : Nat)
     (hbound : HasHashQueryBound Concrete.scheme adversary q)
     (parameter : PublicParameter) (secret : ChainSecrets) :
     HashQueryBound (gameAfterSecrets adversary parameter secret) ∅ q := by
   have hpSupport : parameter ∈ support Concrete.samplePublicParameter := by
-    rw [mem_support_iff_of_evalSPMF_eq evalDist_samplePublicParameter]
+    rw [OracleComp.support_eq_of_evalDistEq evalDist_samplePublicParameter]
     exact mem_support_uniformSample Digest
   have hsSupport : secret ∈ support Concrete.sampleSecret := by
-    rw [mem_support_iff]
     unfold Concrete.sampleSecret
-    rw [probOutput_uniformSample]
-    exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
+    rw [support_uniformSample]
+    trivial
+
   rw [hasHashQueryBound_iff, gameCore_independent_eq] at hbound
   have hp := hashQueryBound_of_sampling_bind Concrete.samplePublicParameter _ ∅ q hbound
     parameter hpSupport
@@ -73,15 +74,12 @@ theorem forgeAdvantage_seeded_le_of_independent_budget (adversary : Adversary) (
       q / ((2 ^ 256 : Nat) : ℝ≥0∞) := by
   classical
   unfold forgeAdvantage
-  simp only [probOutput_def, evalDist_gameCore_eq_programmed,
-    evalDist_programmedGame_seed_last, evalDist_independentGame_material]
-  change Pr[= true | drawKeyMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
-      (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run'
-        (materialCache seed material)] ≤
-    Pr[= true | drawKeyMaterial >>= fun material =>
-      (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run' ∅] + _
-  rw [← probEvent_eq_eq_probOutput, ← probEvent_eq_eq_probOutput]
-  apply probEvent_bind_congr_le_add
+  refine le_of_eq_of_le (((evalDist_gameCore_eq_programmed adversary).trans
+    (evalDist_programmedGame_seed_last adversary)).prEvent_eq (· = true)) ?_
+  refine le_of_le_of_eq ?_
+    (congrArg (· + _) ((evalDist_independentGame_material adversary).prEvent_eq (· = true)).symm)
+  apply OracleComp.prEvent_bind_congr_le_add
+
   intro material _
   exact probEvent_random_cache_change_le _ (fun seed => materialCache seed material) ∅
     (fun seed => programmedCache_agreeOutside seed _ _ _ _) q

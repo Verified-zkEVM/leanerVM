@@ -26,7 +26,7 @@ theorem scheme_has_127_bits_of_classical_security :
       exact hcomparison.trans ((add_le_add hsecurity le_rfl).trans (seed_loss_absorbed q hq hsmall))
   · have hlarge : 2 ^ 127 ≤ q := Nat.le_of_not_gt hsmall
     calc
-      forgeAdvantage scheme adversary ≤ 1 := probOutput_le_one
+      forgeAdvantage scheme adversary ≤ 1 := (prEvent_le_one _)
       _ = ((2 ^ 127 : Nat) : ℝ≥0∞) / ((2 ^ 127 : Nat) : ℝ≥0∞) :=
         (ENNReal.div_self (by norm_num) (ENNReal.natCast_ne_top _)).symm
       _ ≤ _ := ENNReal.div_le_div (by exact_mod_cast hlarge) le_rfl

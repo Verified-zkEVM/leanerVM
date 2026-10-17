@@ -32,6 +32,12 @@ jobs:
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/xmss
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/xmss
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: XmssSecurity.*has been deprecated' "$RUNNER_TEMP/build.log"
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
@@ -90,7 +96,9 @@ jobs:
           done
       - name: Build
         working-directory: formal/sphincs
-        run: lake build
+        run: lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+      - name: Forbid deprecated API
+        run: "! grep -E '^warning: Sphincs(Fors|Base)?/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
       - name: Check the axiom footprint
         working-directory: formal/sphincs
         run: |

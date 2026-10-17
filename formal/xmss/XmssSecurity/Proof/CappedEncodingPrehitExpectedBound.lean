@@ -13,9 +13,8 @@ noncomputable def expectedFinalLeafIndexEncodingEntryCount
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
     (targetLeafIndex : LeafIndex) : ℝ≥0∞ :=
   ∑' result,
-    Pr[= result |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, initialTrace)] *
+    Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+        computation).run (initialCache, initialTrace))}[x = result] *
       cachedEncodingEntryCount result.2.1 secretKey.parameter targetLeafIndex
 
 noncomputable def expectedFinalLeafIndexPrehitRisk
@@ -24,46 +23,45 @@ noncomputable def expectedFinalLeafIndexPrehitRisk
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
     (targetLeafIndex : LeafIndex) : ℝ≥0∞ :=
   ∑' result,
-    Pr[= result |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, initialTrace)] *
+    Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+        computation).run (initialCache, initialTrace))}[x = result] *
       ((signingAttemptLimit : ℝ≥0∞) *
         cachedEncodingEntryCount result.2.1 secretKey.parameter targetLeafIndex *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹)
 
 attribute [irreducible] expectedFinalLeafIndexPrehitRisk
 
-theorem probEvent_bind_le_expected_of_support
+theorem prEvent_bind_le_expected_of_support
     (headComp : ProbComp β) (continuation : β → ProbComp γ)
     (event : γ → Prop) (cost : γ → ℝ≥0∞)
     (hcontinuation : ∀ middle ∈ support headComp,
-      Pr[event | continuation middle] ≤
-        ∑' result, Pr[= result | continuation middle] * cost result) :
-    Pr[event | headComp >>= continuation] ≤
-      ∑' result, Pr[= result | headComp >>= continuation] * cost result := by
-  rw [probEvent_bind_eq_tsum, tsum_probOutput_bind_mul]
+      Pr{let x ← continuation middle}[event x] ≤
+        ∑' result, Pr{let x ← continuation middle}[x = result] * cost result) :
+    Pr{let x ← headComp >>= continuation}[event x] ≤
+      ∑' result, Pr{let x ← headComp >>= continuation}[x = result] * cost result := by
+  rw [OracleComp.prEvent_bind_eq_tsum, OracleComp.tsum_prEvent_bind_mul]
   apply ENNReal.tsum_le_tsum
   intro middle
   by_cases hmiddle : middle ∈ support headComp
   · exact mul_le_mul_right (hcontinuation middle hmiddle) _
-  · rw [probOutput_eq_zero_of_not_mem_support hmiddle]
+  · rw [(prEvent_eq_zero_of_not_mem_support _) hmiddle]
     simp
 
 theorem le_expected_of_support
     (computation : ProbComp β) (cost : β → ℝ≥0∞) (lower : ℝ≥0∞)
-    (hmass : ∑' result, Pr[= result | computation] = 1)
+    (hmass : ∑' result, Pr{let x ← computation}[x = result] = 1)
     (hlower : ∀ result ∈ support computation, lower ≤ cost result) :
-    lower ≤ ∑' result, Pr[= result | computation] * cost result := by
+    lower ≤ ∑' result, Pr{let x ← computation}[x = result] * cost result := by
   calc
-    lower = (∑' result, Pr[= result | computation]) * lower := by rw [hmass, one_mul]
-    _ = ∑' result, Pr[= result | computation] * lower :=
+    lower = (∑' result, Pr{let x ← computation}[x = result]) * lower := by rw [hmass, one_mul]
+    _ = ∑' result, Pr{let x ← computation}[x = result] * lower :=
       ENNReal.tsum_mul_right.symm
-    _ ≤ ∑' result, Pr[= result | computation] * cost result := by
+    _ ≤ ∑' result, Pr{let x ← computation}[x = result] * cost result := by
       apply ENNReal.tsum_le_tsum
       intro result
       by_cases hresult : result ∈ support computation
       · exact mul_le_mul_right (hlower result hresult) _
-      · rw [probOutput_eq_zero_of_not_mem_support hresult]
+      · rw [(prEvent_eq_zero_of_not_mem_support _) hresult]
         simp
 
 theorem initialLeafIndexPrehitRisk_le_expectedFinalLeafIndexPrehitRisk
@@ -78,7 +76,7 @@ theorem initialLeafIndexPrehitRisk_le_expectedFinalLeafIndexPrehitRisk
         initialTrace targetLeafIndex := by
   rw [expectedFinalLeafIndexPrehitRisk]
   apply le_expected_of_support
-  · exact tsum_probOutput_eq_one' (by simp)
+  · exact OracleComp.tsum_prEvent_eq_one _
   · intro result hresult
     have hcacheLe := cappedCacheTracedMappedAdversaryImpl_cache_le
       publicKey secretKey computation initialCache initialTrace result hresult
@@ -87,7 +85,7 @@ theorem initialLeafIndexPrehitRisk_le_expectedFinalLeafIndexPrehitRisk
         (cachedEncodingEntryCount_mono initialCache result.2.1
           secretKey.parameter targetLeafIndex hcacheLe)) le_rfl
 
-theorem probEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
+theorem prEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
     (publicKey : PublicKey) (secretKey : SecretKey)
     (input : (OracleWorld + SigningSpec).Domain)
     (next : (OracleWorld + SigningSpec).Range input →
@@ -97,20 +95,18 @@ theorem probEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
     (hnext : ∀ middle ∈ support
       ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run
         (initialCache, initialTrace)),
-      Pr[event |
-        (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-          (next middle.1)).run middle.2] ≤
+      Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+          (next middle.1)).run middle.2)}[event x] ≤
         expectedFinalLeafIndexPrehitRisk publicKey secretKey (next middle.1)
           middle.2.1 middle.2.2 targetLeafIndex) :
-    Pr[event |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+    Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
         (liftM ((OracleWorld + SigningSpec).query input) >>= next)).run
-          (initialCache, initialTrace)] ≤
+          (initialCache, initialTrace))}[event x] ≤
       expectedFinalLeafIndexPrehitRisk publicKey secretKey
         (liftM ((OracleWorld + SigningSpec).query input) >>= next)
           initialCache initialTrace targetLeafIndex := by
   rw [expectedFinalLeafIndexPrehitRisk, simulateQ_bind, StateT.run_bind]
-  apply probEvent_bind_le_expected_of_support
+  apply prEvent_bind_le_expected_of_support
   intro middle hmiddle
   have hmiddle' : middle ∈ support
       ((cappedCacheTracedMappedAdversaryImpl publicKey secretKey input).run
@@ -126,17 +122,15 @@ theorem cappedCacheTracedMappedAdversary_fixedLeafIndex_prehit_probability_le_ex
     (initialCache : QueryCache HashSpec) (initialTrace : SigningCacheTrace)
     (targetLeafIndex : LeafIndex)
     (htargetAbsent : targetLeafIndex ∉ initialTrace.leafIndices) :
-    Pr[fun result : α × (QueryCache HashSpec × SigningCacheTrace) =>
-      result.2.2.leafIndices.Nodup ∧
-        result.2.2.HasEncodingInputPrehitAt secretKey targetLeafIndex |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, initialTrace)] ≤
+    Pr{let result ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+        computation).run (initialCache, initialTrace))}[result.2.2.leafIndices.Nodup ∧
+        result.2.2.HasEncodingInputPrehitAt secretKey targetLeafIndex] ≤
       expectedFinalLeafIndexPrehitRisk publicKey secretKey computation initialCache
         initialTrace targetLeafIndex := by
   induction computation using OracleComp.inductionOn generalizing
       initialCache initialTrace with
   | pure value =>
-      refine le_of_eq_of_le (probEvent_eq_zero ?_) zero_le
+      refine le_of_eq_of_le (prEvent_eq_zero_of_forall_mem_support _ _ ?_) zero_le
       intro result hresult hevent
       simp only [simulateQ_pure, StateT.run_pure, support_pure,
         Set.mem_singleton_iff] at hresult
@@ -148,7 +142,7 @@ theorem cappedCacheTracedMappedAdversary_fixedLeafIndex_prehit_probability_le_ex
   | query_bind input next ih =>
       cases input with
       | inl worldInput =>
-          apply probEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
+          apply prEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
           intro middle hmiddle
           have htrace := cappedCacheTracedMappedAdversaryImpl_query_trace_update
             publicKey secretKey (.inl worldInput) initialCache initialTrace middle hmiddle
@@ -160,13 +154,13 @@ theorem cappedCacheTracedMappedAdversary_fixedLeafIndex_prehit_probability_le_ex
           by_cases hleafIndex : request.leafIndex = targetLeafIndex
           · rw [simulateQ_bind, StateT.run_bind]
             simp only [simulateQ_spec_query]
-            refine (probEvent_bind_le_probEvent
-                (p := fun middle : Option Signature ×
+            refine (prEvent_bind_le_prEvent_of_support _ _
+                (fun middle : Option Signature ×
                     (QueryCache HashSpec × SigningCacheTrace) =>
                   (SigningCacheEntry.mk request middle.1 initialCache middle.2.1)
-                    |>.EncodingInputPrehit secretKey) ?_).trans ?_
+                    |>.EncodingInputPrehit secretKey) _ ?_).trans ?_
             · intro middle hmiddle hmiss
-              apply probEvent_eq_zero
+              apply prEvent_eq_zero_of_forall_mem_support
               intro result hresult hevent
               have htrace := cappedCacheTracedMappedAdversaryImpl_query_trace_update
                 publicKey secretKey (.inr request) initialCache initialTrace middle hmiddle
@@ -192,7 +186,7 @@ theorem cappedCacheTracedMappedAdversary_fixedLeafIndex_prehit_probability_le_ex
                 publicKey secretKey
                 (liftM ((OracleWorld + SigningSpec).query (.inr request)) >>= next)
                 initialCache initialTrace targetLeafIndex
-          · apply probEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
+          · apply prEvent_query_bind_le_expectedFinalLeafIndexPrehitRisk
             intro middle hmiddle
             have htrace := cappedCacheTracedMappedAdversaryImpl_query_trace_update
               publicKey secretKey (.inr request) initialCache initialTrace middle hmiddle
@@ -208,11 +202,9 @@ theorem cappedCacheTracedMappedAdversary_prehit_probability_le_sum_expectedRisk
     (publicKey : PublicKey) (secretKey : SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) :
-    Pr[fun result : α × (QueryCache HashSpec × SigningCacheTrace) =>
-      result.2.2.leafIndices.Nodup ∧
-        result.2.2.HasEncodingInputPrehit secretKey |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, [])] ≤
+    Pr{let result ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+        computation).run (initialCache, []))}[result.2.2.leafIndices.Nodup ∧
+        result.2.2.HasEncodingInputPrehit secretKey] ≤
       ∑ targetLeafIndex ∈ (Finset.univ : Finset LeafIndex),
         expectedFinalLeafIndexPrehitRisk publicKey secretKey computation initialCache []
           targetLeafIndex := by
@@ -224,16 +216,16 @@ theorem cappedCacheTracedMappedAdversary_prehit_probability_le_sum_expectedRisk
     result.2.2.leafIndices.Nodup ∧
       result.2.2.HasEncodingInputPrehitAt secretKey targetLeafIndex
   calc
-    _ ≤ Pr[fun result => ∃ targetLeafIndex ∈ (Finset.univ : Finset LeafIndex),
-          fixedEvent targetLeafIndex result | run] := by
-      apply probEvent_mono''
+    _ ≤ Pr{let result ← run}[∃ targetLeafIndex ∈ (Finset.univ : Finset LeafIndex),
+          fixedEvent targetLeafIndex result] := by
+      apply prEvent_mono
       intro result hevent
       obtain ⟨hnodup, entry, hentry, hprehit⟩ := hevent
       exact ⟨entry.request.leafIndex, Finset.mem_univ _, hnodup, entry, hentry, rfl,
         hprehit⟩
     _ ≤ ∑ targetLeafIndex ∈ (Finset.univ : Finset LeafIndex),
-        Pr[fixedEvent targetLeafIndex | run] :=
-      probEvent_exists_finset_le_sum Finset.univ run fixedEvent
+        Pr{let x ← run}[(fixedEvent targetLeafIndex) x] :=
+      prEvent_exists_finset_le Finset.univ run fixedEvent
     _ ≤ ∑ targetLeafIndex ∈ (Finset.univ : Finset LeafIndex),
         expectedFinalLeafIndexPrehitRisk publicKey secretKey computation initialCache []
           targetLeafIndex := by
@@ -249,9 +241,8 @@ noncomputable def expectedFinalEncodingEntryCount
     (computation : OracleComp (OracleWorld + SigningSpec) α)
     (initialCache : QueryCache HashSpec) : ℝ≥0∞ :=
   ∑' result,
-    Pr[= result |
-      (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-        computation).run (initialCache, [])] *
+    Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+        computation).run (initialCache, []))}[x = result] *
       ∑ leafIndex ∈ (Finset.univ : Finset LeafIndex),
         cachedEncodingEntryCount result.2.1 secretKey.parameter leafIndex
 
@@ -282,9 +273,8 @@ theorem sum_expectedFinalLeafIndexPrehitRisk_eq
   simp_rw [expectedFinalLeafIndexPrehitRisk, expectedFinalEncodingEntryCount]
   rw [← tsum_fintype (L := .unconditional _) (fun leafIndex : LeafIndex =>
     ∑' result : α × (QueryCache HashSpec × SigningCacheTrace),
-      Pr[= result |
-        (simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
-          computation).run (initialCache, [])] *
+      Pr{let x ← ((simulateQ (cappedCacheTracedMappedAdversaryImpl publicKey secretKey)
+          computation).run (initialCache, []))}[x = result] *
         ((signingAttemptLimit : ℝ≥0∞) *
           cachedEncodingEntryCount result.2.1 secretKey.parameter leafIndex *
           ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹)), ENNReal.tsum_comm]
@@ -357,7 +347,7 @@ theorem expectedFinalEncodingInputCount_le_initial_add_expectedQueries
     (parameter : PublicParameter) (computation : OracleComp OracleWorld α)
     (initialCache : QueryCache HashSpec) :
     (∑' result,
-      Pr[= result | (simulateQ romImpl computation).run initialCache] *
+      Pr{let x ← (simulateQ romImpl computation).run initialCache}[x = result] *
         cachedEncodingInputCount result.2 parameter) ≤
       cachedEncodingInputCount initialCache parameter +
         expectedSimulatedQueryCount romImpl
@@ -376,7 +366,7 @@ theorem Concrete.keygen_cachedEncodingInputCount_eq_zero
   unfold cachedEncodingInputCount
   have hempty : cachedEncodingInputSet keyResult.2 keyResult.1.2.parameter = ∅ := by
     ext entry
-    simp only [cachedEncodingInputSet, Set.mem_setOf_eq, Set.mem_empty_iff_false,
+    simp only [cachedEncodingInputSet, Set.mem_ofPred_eq, Set.mem_empty_iff_false,
       iff_false, not_and]
     intro hcache
     change keyResult.2 entry.1 = some entry.2 at hcache
@@ -438,7 +428,7 @@ theorem expectedFinalEncodingEntryCount_afterKeygen_le_sourceQueries
         publicKey secretKey
         (adversary.main publicKey) initialCache
   have hheadResource :
-      (∑' result, Pr[= result | (simulateQ romImpl sourceHead).run initialCache] *
+      (∑' result, Pr{let x ← (simulateQ romImpl sourceHead).run initialCache}[x = result] *
         cachedEncodingInputCount result.2 secretKey.parameter) ≤
       cachedEncodingInputCount initialCache secretKey.parameter +
         expectedSimulatedQueryCount romImpl
@@ -460,17 +450,15 @@ theorem expectedFinalEncodingEntryCount_afterKeygen_le_sourceQueries
   unfold expectedFinalEncodingEntryCount
   simp_rw [sum_cachedEncodingEntryCount_univ_eq_cachedEncodingInputCount]
   calc
-    (∑' result, Pr[= result | tracedRun] *
+    (∑' result, Pr{let x ← tracedRun}[x = result] *
         cachedEncodingInputCount result.2.1 secretKey.parameter) =
-      ∑' result, Pr[= result |
-          Prod.map id Prod.fst <$> tracedRun] *
+      ∑' result, Pr{let x ← Prod.map id Prod.fst <$> tracedRun}[x = result] *
         cachedEncodingInputCount result.2 secretKey.parameter := by
-      rw [tsum_probOutput_map_mul]
+      rw [OracleComp.tsum_prEvent_map_mul]
       rfl
-    _ = ∑' result, Pr[= result | unloggedRun] *
+    _ = ∑' result, Pr{let x ← unloggedRun}[x = result] *
         cachedEncodingInputCount result.2 secretKey.parameter := by rw [hprojection]
-    _ = ∑' result, Pr[= result |
-          (simulateQ romImpl sourceHead).run initialCache] *
+    _ = ∑' result, Pr{let x ← (simulateQ romImpl sourceHead).run initialCache}[x = result] *
         cachedEncodingInputCount result.2 secretKey.parameter := by rw [hunlogged]
     _ ≤ cachedEncodingInputCount initialCache secretKey.parameter +
         expectedSimulatedQueryCount romImpl
@@ -493,12 +481,9 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_probability
     (keyResult : (PublicKey × SecretKey) × QueryCache HashSpec)
     (hkeyResult : keyResult ∈ support
       ((simulateQ romImpl Concrete.scheme.keygen).run ∅)) :
-    Pr[fun execution : GameOutcome ×
-        (QueryCache HashSpec × SigningCacheTrace) =>
-      WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
-        execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
-      cappedDetailedGameAfterKeygenWithSigningTrace adversary keyResult.1.1
-        keyResult.1.2 keyResult.2] ≤
+    Pr{let execution ← (cappedDetailedGameAfterKeygenWithSigningTrace adversary keyResult.1.1
+        keyResult.1.2 keyResult.2)}[WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
+        execution.2.2.HasEncodingInputPrehit execution.1.secretKey] ≤
       (signingAttemptLimit : ℝ≥0∞) *
         expectedSimulatedQueryCount romImpl
           (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
@@ -506,12 +491,13 @@ theorem cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_probability
             keyResult.1.1 keyResult.1.2) keyResult.2 *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
   unfold cappedDetailedGameAfterKeygenWithSigningTrace
-  refine (probEvent_bind_le_probEvent
-    (p := fun result : Forgery × (QueryCache HashSpec × SigningCacheTrace) =>
+  refine (prEvent_bind_le_prEvent_of_support _ _
+    (fun result : Forgery × (QueryCache HashSpec × SigningCacheTrace) =>
       result.2.2.leafIndices.Nodup ∧
-        result.2.2.HasEncodingInputPrehit keyResult.1.2) ?_).trans ?_
+        result.2.2.HasEncodingInputPrehit keyResult.1.2) _ ?_).trans ?_
   · intro adversaryResult hadversaryResult hprefix
-    apply probEvent_eq_zero
+    apply prEvent_eq_zero_of_forall_mem_support
+
     intro execution hexecution hevent
     have htail := hexecution
     rw [mem_support_bind_iff] at hexecution
@@ -559,19 +545,16 @@ theorem tsum_probability_mul_scaledCost
 
 theorem cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expected
     (adversary : Adversary) :
-    Pr[fun execution : GameOutcome ×
-        (QueryCache HashSpec × SigningCacheTrace) =>
-      WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
-        execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
-      cappedDetailedGameWithSigningTrace adversary] ≤
+    Pr{let execution ← cappedDetailedGameWithSigningTrace adversary}[WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
+        execution.2.2.HasEncodingInputPrehit execution.1.secretKey] ≤
       (signingAttemptLimit : ℝ≥0∞) *
         CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary *
         ((2 ^ randomnessBits : Nat) : ℝ≥0∞)⁻¹ := by
   unfold cappedDetailedGameWithSigningTrace
-  rw [probEvent_bind_eq_tsum]
+  rw [OracleComp.prEvent_bind_eq_tsum]
   calc
     _ ≤ ∑' keyResult,
-        Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+        Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
           ((signingAttemptLimit : ℝ≥0∞) *
             expectedSimulatedQueryCount romImpl
               (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
@@ -585,11 +568,11 @@ theorem cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expecte
       · exact mul_le_mul_right
           (cappedDetailedGameAfterKeygenWithSigningTrace_winning_prehit_probability_le_expected
             adversary keyResult hkeyResult) _
-      · rw [probOutput_eq_zero_of_not_mem_support hkeyResult]
+      · rw [(prEvent_eq_zero_of_not_mem_support _) hkeyResult]
         simp
     _ = (signingAttemptLimit : ℝ≥0∞) *
         (∑' keyResult,
-          Pr[= keyResult | (simulateQ romImpl Concrete.scheme.keygen).run ∅] *
+          Pr{let x ← (simulateQ romImpl Concrete.scheme.keygen).run ∅}[x = keyResult] *
             expectedSimulatedQueryCount romImpl
               (CappedEncodingMonitor.IsEncodingHashQuery keyResult.1.2.parameter)
               (cappedSourceUnloggedDetailedGameAfterKeygen adversary
@@ -622,11 +605,8 @@ theorem signingAttemptLimit_mul_randomness_loss_le_digest_loss
 
 theorem cappedDetailedGameWithSigningTrace_winning_prehit_probability_le_expectedDigest
     (adversary : Adversary) :
-    Pr[fun execution : GameOutcome ×
-        (QueryCache HashSpec × SigningCacheTrace) =>
-      WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
-        execution.2.2.HasEncodingInputPrehit execution.1.secretKey |
-      cappedDetailedGameWithSigningTrace adversary] ≤
+    Pr{let execution ← cappedDetailedGameWithSigningTrace adversary}[WinningOutcomeBadEventOccurs execution.2.1 execution.1 .encoding ∧
+        execution.2.2.HasEncodingInputPrehit execution.1.secretKey] ≤
       CappedEncodingMonitor.expectedPostKeygenEncodingQueries adversary /
         ((2 ^ digestBits : Nat) : ℝ≥0∞) := by
   exact

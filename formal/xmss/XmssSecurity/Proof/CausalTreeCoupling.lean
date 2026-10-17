@@ -24,10 +24,9 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
     (leafIndex : LeafIndex) :
     ∀ (count : Nat) (chainAt : Fin count → ChainIndex)
       (initialCache : QueryCache HashSpec),
-      𝒮[(simulateQ randomOracle
+      ((simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run initialCache] =
-      𝒮[(simulateQ randomOracle
+          OracleComp HashSpec Digest)).run initialCache) =ᵈ ((simulateQ randomOracle
         (Concrete.sequenceFin fun index =>
           Concrete.chainWalk parameter leafIndex (chainAt index) 0
             (chainLength - 1) (secret leafIndex (chainAt index)) :
@@ -35,7 +34,7 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
           fun _warmResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                OracleComp HashSpec Digest)).run _warmResult.2] := by
+                OracleComp HashSpec Digest)).run _warmResult.2) := by
   intro count
   induction count with
   | zero =>
@@ -44,19 +43,19 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
   | succ count ih =>
       intro chainAt initialCache
       calc
-        𝒮[(simulateQ randomOracle
+        ((simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run initialCache] =
-          𝒮[(simulateQ randomOracle
+              OracleComp HashSpec Digest)).run initialCache) =ᵈ
+          ((simulateQ randomOracle
             (Concrete.chainWalk parameter leafIndex (chainAt 0) 0
               (chainLength - 1) (secret leafIndex (chainAt 0)) :
               OracleComp HashSpec Digest)).run initialCache >>= fun headResult =>
                 (simulateQ randomOracle
                   (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                    OracleComp HashSpec Digest)).run headResult.2] :=
+                    OracleComp HashSpec Digest)).run headResult.2) :=
           evalDist_rootTree_run_eq_chainWalk_then_rootTree
             parameter secret leafIndex (chainAt 0) (chainLength - 1) le_rfl initialCache
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
             (Concrete.chainWalk parameter leafIndex (chainAt 0) 0
               (chainLength - 1) (secret leafIndex (chainAt 0)) :
               OracleComp HashSpec Digest)).run initialCache >>= fun headResult =>
@@ -68,11 +67,11 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
                   fun tailResult =>
                     (simulateQ randomOracle
                       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                        OracleComp HashSpec Digest)).run tailResult.2] := by
-          apply evalSPMF_bind_congr
+                        OracleComp HashSpec Digest)).run tailResult.2) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro headResult _hheadResult
           exact ih (fun index => chainAt index.succ) headResult.2
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
             (Concrete.sequenceFin fun index =>
               Concrete.chainWalk parameter leafIndex (chainAt index) 0
                 (chainLength - 1) (secret leafIndex (chainAt index)) :
@@ -80,10 +79,10 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
                 fun warmResult =>
                   (simulateQ randomOracle
                     (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                      OracleComp HashSpec Digest)).run warmResult.2] := by
+                      OracleComp HashSpec Digest)).run warmResult.2) := by
           rw [Concrete.sequenceFin, simulateQ_bind, StateT.run_bind]
           simp only [bind_assoc]
-          apply evalSPMF_bind_congr
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro headResult _hheadResult
           rw [simulateQ_bind, StateT.run_bind]
           simp
@@ -91,16 +90,15 @@ theorem evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
 theorem evalDist_rootTree_run_eq_oneTimePublicKey_then_rootTree
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (leafIndex : LeafIndex) (initialCache : QueryCache HashSpec) :
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-        OracleComp HashSpec Digest)).run initialCache] =
-    𝒮[(simulateQ randomOracle
+        OracleComp HashSpec Digest)).run initialCache) =ᵈ ((simulateQ randomOracle
       (Concrete.oneTimePublicKey parameter secret leafIndex :
         OracleComp HashSpec (ChainIndex → Digest))).run initialCache >>=
           fun warmResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                OracleComp HashSpec Digest)).run warmResult.2] := by
+                OracleComp HashSpec Digest)).run warmResult.2) := by
   simpa [Concrete.oneTimePublicKey] using
     (evalDist_rootTree_run_eq_sequenceFin_chainWalk_then_rootTree
       parameter secret leafIndex numChains (fun chain => chain) initialCache)
@@ -110,20 +108,21 @@ set_option maxRecDepth 100000 in
 theorem evalDist_rootTree_run_eq_leafAt_then_rootTree
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (leafIndex : LeafIndex) (initialCache : QueryCache HashSpec) :
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-        OracleComp HashSpec Digest)).run initialCache] =
-    𝒮[(simulateQ randomOracle
+        OracleComp HashSpec Digest)).run initialCache) =ᵈ ((simulateQ randomOracle
       (Concrete.leafAt parameter secret leafIndex : OracleComp HashSpec Digest)).run
         initialCache >>= fun warmResult =>
           (simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run warmResult.2] := by
-  rw [evalDist_rootTree_run_eq_oneTimePublicKey_then_rootTree]
+              OracleComp HashSpec Digest)).run warmResult.2) := by
+  refine (evalDist_rootTree_run_eq_oneTimePublicKey_then_rootTree
+    parameter secret leafIndex initialCache).trans ?_
   unfold Concrete.leafAt
+
   rw [simulateQ_bind, StateT.run_bind]
   simp only [bind_assoc]
-  apply evalSPMF_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro endpointsResult hendpointsResult
   let target : HashInput := Concrete.CacheView.leafInput parameter leafIndex endpointsResult.1
   have hcached : ∀ rootResult ∈ support
@@ -162,24 +161,24 @@ theorem evalDist_rootTree_run_eq_leafAt_then_rootTree
     rw [← hreplay]
     exact houtput
   calc
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run endpointsResult.2] =
-      𝒮[(randomOracle (spec := HashSpec) target).run endpointsResult.2 >>=
+          OracleComp HashSpec Digest)).run endpointsResult.2) =ᵈ
+      ((randomOracle (spec := HashSpec) target).run endpointsResult.2 >>=
         fun queryResult =>
           (simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run queryResult.2] :=
+              OracleComp HashSpec Digest)).run queryResult.2) :=
         OracleComp.evalDist_randomOracle_run_eq_query_then_of_cached
           (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
             OracleComp HashSpec Digest)
           endpointsResult.2 target hcached
-    _ = 𝒮[(simulateQ randomOracle
+    _ =ᵈ ((simulateQ randomOracle
         (Concrete.leafHash parameter leafIndex endpointsResult.1 :
           OracleComp HashSpec Digest)).run endpointsResult.2 >>= fun leafResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                OracleComp HashSpec Digest)).run leafResult.2] := by
+                OracleComp HashSpec Digest)).run leafResult.2) := by
       simp [Concrete.leafHash, Concrete.tweakableHash, Concrete.oracleHash,
         Concrete.CacheView.leafInput, target]
 
@@ -201,16 +200,15 @@ theorem evalDist_rootTree_run_eq_nodeHash_then_rootTree
         (Concrete.treeNode parameter secret level
           (Concrete.childNode node true) : OracleComp HashSpec Digest)).run
             leftResult.2)) :
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-        OracleComp HashSpec Digest)).run rightResult.2] =
-    𝒮[(simulateQ randomOracle
+        OracleComp HashSpec Digest)).run rightResult.2) =ᵈ ((simulateQ randomOracle
       (Concrete.nodeHash parameter ⟨level, hlevel⟩ node
         leftResult.1 rightResult.1 : OracleComp HashSpec Digest)).run
           rightResult.2 >>= fun nodeResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                OracleComp HashSpec Digest)).run nodeResult.2] := by
+                OracleComp HashSpec Digest)).run nodeResult.2) := by
   let target : HashInput := Concrete.CacheView.merkleInput parameter
     ⟨level, hlevel⟩ node leftResult.1 rightResult.1
   have hnode : node.val < 2 ^ (treeHeight - (level + 1)) := by
@@ -274,25 +272,25 @@ theorem evalDist_rootTree_run_eq_nodeHash_then_rootTree
     rw [hleftReplay, hrightReplay] at houtput
     exact houtput
   calc
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run rightResult.2] =
-      𝒮[(randomOracle (spec := HashSpec) target).run rightResult.2 >>=
+          OracleComp HashSpec Digest)).run rightResult.2) =ᵈ
+      ((randomOracle (spec := HashSpec) target).run rightResult.2 >>=
         fun queryResult =>
           (simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run queryResult.2] :=
+              OracleComp HashSpec Digest)).run queryResult.2) :=
         OracleComp.evalDist_randomOracle_run_eq_query_then_of_cached
           (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
             OracleComp HashSpec Digest)
           rightResult.2 target hcached
-    _ = 𝒮[(simulateQ randomOracle
+    _ =ᵈ ((simulateQ randomOracle
         (Concrete.nodeHash parameter ⟨level, hlevel⟩ node
           leftResult.1 rightResult.1 : OracleComp HashSpec Digest)).run
             rightResult.2 >>= fun nodeResult =>
               (simulateQ randomOracle
                 (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                  OracleComp HashSpec Digest)).run nodeResult.2] := by
+                  OracleComp HashSpec Digest)).run nodeResult.2) := by
       simp [Concrete.nodeHash, Concrete.tweakableHash, Concrete.oracleHash,
         Concrete.CacheView.merkleInput, target]
 
@@ -303,15 +301,14 @@ theorem evalDist_rootTree_run_eq_treeNode_then_rootTree
     ∀ (levels : Nat) (node : MerkleNode), levels ≤ treeHeight →
       TreeSubtreeValid levels node →
       ∀ initialCache : QueryCache HashSpec,
-      𝒮[(simulateQ randomOracle
+      ((simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run initialCache] =
-      𝒮[(simulateQ randomOracle
+          OracleComp HashSpec Digest)).run initialCache) =ᵈ ((simulateQ randomOracle
         (Concrete.treeNode parameter secret levels node :
           OracleComp HashSpec Digest)).run initialCache >>= fun warmResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                OracleComp HashSpec Digest)).run warmResult.2] := by
+                OracleComp HashSpec Digest)).run warmResult.2) := by
   intro levels
   induction levels with
   | zero =>
@@ -325,19 +322,19 @@ theorem evalDist_rootTree_run_eq_treeNode_then_rootTree
       have hleftValid := childNode_subtreeValid levels node false hvalid
       have hrightValid := childNode_subtreeValid levels node true hvalid
       calc
-        𝒮[(simulateQ randomOracle
+        ((simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run initialCache] =
-          𝒮[(simulateQ randomOracle
+              OracleComp HashSpec Digest)).run initialCache) =ᵈ
+          ((simulateQ randomOracle
             (Concrete.treeNode parameter secret levels
               (Concrete.childNode node false) : OracleComp HashSpec Digest)).run
                 initialCache >>= fun leftResult =>
               (simulateQ randomOracle
                 (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                  OracleComp HashSpec Digest)).run leftResult.2] :=
+                  OracleComp HashSpec Digest)).run leftResult.2) :=
           ih (Concrete.childNode node false) (Nat.le_of_succ_le hlevels)
             hleftValid initialCache
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
             (Concrete.treeNode parameter secret levels
               (Concrete.childNode node false) : OracleComp HashSpec Digest)).run
                 initialCache >>= fun leftResult =>
@@ -347,12 +344,12 @@ theorem evalDist_rootTree_run_eq_treeNode_then_rootTree
                     leftResult.2 >>= fun rightResult =>
                 (simulateQ randomOracle
                   (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                    OracleComp HashSpec Digest)).run rightResult.2] := by
-          apply evalSPMF_bind_congr
+                    OracleComp HashSpec Digest)).run rightResult.2) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro leftResult _hleftResult
           exact ih (Concrete.childNode node true) (Nat.le_of_succ_le hlevels)
             hrightValid leftResult.2
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
             (Concrete.treeNode parameter secret levels
               (Concrete.childNode node false) : OracleComp HashSpec Digest)).run
                 initialCache >>= fun leftResult =>
@@ -366,27 +363,27 @@ theorem evalDist_rootTree_run_eq_treeNode_then_rootTree
                       rightResult.2 >>= fun nodeResult =>
                   (simulateQ randomOracle
                     (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                      OracleComp HashSpec Digest)).run nodeResult.2] := by
-          apply evalSPMF_bind_congr
+                      OracleComp HashSpec Digest)).run nodeResult.2) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro leftResult hleftResult
-          apply evalSPMF_bind_congr
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro rightResult hrightResult
           exact evalDist_rootTree_run_eq_nodeHash_then_rootTree
             parameter secret levels node hlevel hvalid initialCache
               leftResult rightResult hleftResult hrightResult
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
             (Concrete.treeNode parameter secret (levels + 1) node :
               OracleComp HashSpec Digest)).run initialCache >>= fun warmResult =>
                 (simulateQ randomOracle
                   (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                    OracleComp HashSpec Digest)).run warmResult.2] := by
+                    OracleComp HashSpec Digest)).run warmResult.2) := by
           rw [Concrete.treeNode_succ_eq, simulateQ_bind, StateT.run_bind]
           simp only [bind_assoc]
-          apply evalSPMF_bind_congr
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro leftResult _hleftResult
           rw [simulateQ_bind, StateT.run_bind]
           simp only [bind_assoc]
-          apply evalSPMF_bind_congr
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro rightResult _hrightResult
           simp [hlevel]
 
@@ -508,7 +505,7 @@ theorem treeValue_preserves_fresh_later
       · intro candidate heq
         subst candidate
         unfold TreeValueIndex.domain at hinput
-        rw [dif_pos htargetZero] at hinput
+        rw [dite_eq_left htargetZero] at hinput
         exact hinput
       · have hbound := Concrete.treeNode_queryBound_leafAddress
           parameter secret targetLeafIndex current.1.val current.node
@@ -529,7 +526,7 @@ theorem treeValue_preserves_fresh_later
       · intro candidate heq
         subst candidate
         unfold TreeValueIndex.domain at hinput
-        rw [dif_neg htargetZero] at hinput
+        rw [dite_eq_right htargetZero] at hinput
         exact hinput
       · have hbound := Concrete.treeNode_queryBound_merkleAddress
           parameter secret targetLevel target.node current.1.val current.node
@@ -602,13 +599,12 @@ set_option maxRecDepth 1000000 in
 theorem evalDist_rootTree_run_eq_treeValues_then_rootTree
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
     ∀ (indices : List TreeValueIndex) (initialCache : QueryCache HashSpec),
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-        OracleComp HashSpec Digest)).run initialCache] =
-    𝒮[treeValues parameter secret indices initialCache >>= fun tree =>
+        OracleComp HashSpec Digest)).run initialCache) =ᵈ (treeValues parameter secret indices initialCache >>= fun tree =>
       (simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run tree.2] := by
+          OracleComp HashSpec Digest)).run tree.2) := by
   intro indices
   induction indices with
   | nil =>
@@ -617,32 +613,32 @@ theorem evalDist_rootTree_run_eq_treeValues_then_rootTree
   | cons index indices ih =>
       intro initialCache
       calc
-        𝒮[(simulateQ randomOracle
+        ((simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run initialCache] =
-          𝒮[(simulateQ randomOracle
+              OracleComp HashSpec Digest)).run initialCache) =ᵈ
+          ((simulateQ randomOracle
               (index.computation parameter secret)).run initialCache >>=
             fun head =>
               (simulateQ randomOracle
                 (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                  OracleComp HashSpec Digest)).run head.2] :=
+                  OracleComp HashSpec Digest)).run head.2) :=
           evalDist_rootTree_run_eq_treeNode_then_rootTree parameter secret
             index.1.val index.node (by omega) index.subtreeValid initialCache
-        _ = 𝒮[(simulateQ randomOracle
+        _ =ᵈ ((simulateQ randomOracle
               (index.computation parameter secret)).run initialCache >>=
             fun head =>
               treeValues parameter secret indices head.2 >>= fun tree =>
                 (simulateQ randomOracle
                   (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                    OracleComp HashSpec Digest)).run tree.2] := by
-          apply evalSPMF_bind_congr
+                    OracleComp HashSpec Digest)).run tree.2) := by
+          apply OracleComp.EvalDistEq.bind_congr_of_support
           intro head _hhead
           exact ih head.2
-        _ = 𝒮[treeValues parameter secret (index :: indices) initialCache >>=
+        _ =ᵈ (treeValues parameter secret (index :: indices) initialCache >>=
             fun tree =>
               (simulateQ randomOracle
                 (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-                  OracleComp HashSpec Digest)).run tree.2] := by
+                  OracleComp HashSpec Digest)).run tree.2) := by
           rw [treeValues_cons]
           simp [bind_assoc]
 
@@ -831,35 +827,34 @@ set_option maxRecDepth 1000000 in
 theorem evalDist_rootTree_run_eq_treeValues_root_cache
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (initialCache : QueryCache HashSpec) :
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-        OracleComp HashSpec Digest)).run initialCache] =
-    𝒮[(fun tree : List Digest × QueryCache HashSpec =>
+        OracleComp HashSpec Digest)).run initialCache) =ᵈ ((fun tree : List Digest × QueryCache HashSpec =>
       (Concrete.CacheReplay.treeNode tree.2 parameter secret
         treeHeight Concrete.rootNode, tree.2)) <$>
-          treeValues parameter secret allTreeValueIndices initialCache] := by
+          treeValues parameter secret allTreeValueIndices initialCache) := by
   calc
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-          OracleComp HashSpec Digest)).run initialCache] =
-      𝒮[treeValues parameter secret allTreeValueIndices initialCache >>=
+          OracleComp HashSpec Digest)).run initialCache) =ᵈ
+      (treeValues parameter secret allTreeValueIndices initialCache >>=
         fun tree =>
           (simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-              OracleComp HashSpec Digest)).run tree.2] :=
+              OracleComp HashSpec Digest)).run tree.2) :=
       evalDist_rootTree_run_eq_treeValues_then_rootTree parameter secret
         allTreeValueIndices initialCache
-    _ = 𝒮[treeValues parameter secret allTreeValueIndices initialCache >>=
+    _ =ᵈ (treeValues parameter secret allTreeValueIndices initialCache >>=
         fun tree => pure
           (Concrete.CacheReplay.treeNode tree.2 parameter secret
-            treeHeight Concrete.rootNode, tree.2)] := by
-      apply evalSPMF_bind_congr
+            treeHeight Concrete.rootNode, tree.2)) := by
+      apply OracleComp.EvalDistEq.bind_congr_of_support
       intro tree htree
       rw [treeValues_rerun_root_eq_pure parameter secret initialCache tree htree]
-    _ = 𝒮[(fun tree : List Digest × QueryCache HashSpec =>
+    _ =ᵈ ((fun tree : List Digest × QueryCache HashSpec =>
         (Concrete.CacheReplay.treeNode tree.2 parameter secret
           treeHeight Concrete.rootNode, tree.2)) <$>
-            treeValues parameter secret allTreeValueIndices initialCache] := by
+            treeValues parameter secret allTreeValueIndices initialCache) := by
       simp [map_eq_bind_pure_comp]
 
 theorem globalTreeValuesReplay_eq_treeNode
@@ -957,9 +952,8 @@ set_option maxHeartbeats 1600000 in
 set_option maxRecDepth 1000000 in
 theorem evalDist_coupledWarmedKeygen_toProgrammedView_eq
     (parameter : PublicParameter) (chain : ChainIndex) :
-    𝒮[CoupledWarmedKeygenView.toProgrammedView parameter <$>
-      coupledWarmedKeygenExperiment parameter chain] =
-    𝒮[programmedWarmedTrajectoryMaterial parameter chain >>= fun material =>
+    (CoupledWarmedKeygenView.toProgrammedView parameter <$>
+      coupledWarmedKeygenExperiment parameter chain) =ᵈ (programmedWarmedTrajectoryMaterial parameter chain >>= fun material =>
       (simulateQ randomOracle
         (Concrete.treeNode parameter (unflattenSecret material.1.2)
           treeHeight Concrete.rootNode : OracleComp HashSpec Digest)).run
@@ -970,11 +964,11 @@ theorem evalDist_coupledWarmedKeygen_toProgrammedView_eq
           (unflattenSecret material.1.2)
         cache := rootResult.2
         table := chainValueTableOfList material.2.1
-      } : ProgrammedFixedChainKeygenView)] := by
+      } : ProgrammedFixedChainKeygenView)) := by
   unfold coupledWarmedKeygenExperiment
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
-  apply evalSPMF_bind_congr
+  apply OracleComp.EvalDistEq.bind_congr_of_support
   intro material _hmaterial
   let secret := unflattenSecret material.1.2
   let finish : Digest × QueryCache HashSpec →
@@ -986,24 +980,23 @@ theorem evalDist_coupledWarmedKeygen_toProgrammedView_eq
   }
   symm
   calc
-    𝒮[(simulateQ randomOracle
+    ((simulateQ randomOracle
           (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
-            OracleComp HashSpec Digest)).run material.2.2 >>= finish] =
-      𝒮[((fun tree : List Digest × QueryCache HashSpec =>
+            OracleComp HashSpec Digest)).run material.2.2 >>= finish) =ᵈ
+      (((fun tree : List Digest × QueryCache HashSpec =>
           (Concrete.CacheReplay.treeNode tree.2 parameter secret
             treeHeight Concrete.rootNode, tree.2)) <$>
             treeValues parameter secret allTreeValueIndices material.2.2) >>=
-              finish] := by
-        rw [evalSPMF_bind,
-          evalDist_rootTree_run_eq_treeValues_root_cache,
-          ← evalSPMF_bind]
-    _ = 𝒮[treeValues parameter secret allTreeValueIndices material.2.2 >>=
+              finish) :=
+        (evalDist_rootTree_run_eq_treeValues_root_cache parameter secret
+          material.2.2).bind_left _
+    _ =ᵈ (treeValues parameter secret allTreeValueIndices material.2.2 >>=
           fun tree => pure (CoupledWarmedKeygenView.toProgrammedView parameter {
             secret
             table := chainValueTableOfList material.2.1
             values := tree.1
             cache := tree.2
-          })] := by
+          })) := by
       simp [finish, CoupledWarmedKeygenView.toProgrammedView,
         CoupledWarmedKeygenView.root, map_eq_bind_pure_comp, bind_assoc]
 
@@ -1017,10 +1010,9 @@ set_option maxHeartbeats 1600000 in
 set_option maxRecDepth 1000000 in
 theorem evalDist_coupledWarmedFixedChainKeygen_eq_programmed
     (chain : ChainIndex) :
-    𝒮[coupledWarmedFixedChainKeygen chain] =
-      𝒮[programmedWarmedFixedChainKeygen chain] := by
+    coupledWarmedFixedChainKeygen chain =ᵈ programmedWarmedFixedChainKeygen chain := by
   unfold coupledWarmedFixedChainKeygen programmedWarmedFixedChainKeygen
-  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
+  apply EvalDistEq.bind_right
   intro parameter
   simpa [programmedWarmedTrajectoryMaterial, map_eq_bind_pure_comp,
     bind_assoc] using

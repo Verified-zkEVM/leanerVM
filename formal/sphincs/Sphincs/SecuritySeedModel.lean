@@ -327,10 +327,10 @@ theorem programCache_derivation (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) (derivation : Derivation) :
     programCache base seed material (derivationInput seed material derivation) =
       some (derivedOutput material.2 derivation) := by
-  rw [programCache, QueryCache.ofFn_apply, if_neg (derivationInput_ne_parameterInput seed material derivation)]
+  rw [programCache, QueryCache.ofFn_apply, ite_eq_right (derivationInput_ne_parameterInput seed material derivation)]
   have h : ∃ other, derivationInput seed material derivation = derivationInput seed material other :=
     ⟨derivation, rfl⟩
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact congrArg (fun p => some (derivedOutput material.2 p))
     (derivationInput_injective seed material (Classical.choose_spec h).symm)
 
@@ -349,7 +349,7 @@ theorem programCache_other (base : QueryCache HashSpec) (seed : MasterSeed) (mat
     (hsecret : ∀ position, input ≠ secretInput seed material position) :
     programCache base seed material input = base input := by
   simp only [programCache, QueryCache.ofFn_apply, hparameter, ↓reduceIte]
-  refine dif_neg ?_
+  refine dite_eq_right ?_
   rintro ⟨derivation, hd⟩
   obtain ⟨position, rfl⟩ := secretDerivation_surjective derivation
   exact hsecret position hd

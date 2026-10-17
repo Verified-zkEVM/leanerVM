@@ -24,9 +24,9 @@ theorem decode_valid {digest : Digest} {word : Encoding} (hdecode : decode diges
   rw [decode_def] at hdecode
   rw [Valid_def]
   by_cases hvalid : digest.getLsbD 63 = false ∧ digest.getLsbD 127 = false ∧ TargetSum.Valid (TargetSum.digestEncoding digest)
-  · rw [TargetSum.decodeDigest, if_pos hvalid] at hdecode
+  · rw [TargetSum.decodeDigest, ite_eq_left hvalid] at hdecode
     exact Option.some.inj hdecode ▸ hvalid.2.2
-  · rw [TargetSum.decodeDigest, if_neg hvalid] at hdecode
+  · rw [TargetSum.decodeDigest, ite_eq_right hvalid] at hdecode
     simp at hdecode
 
 private theorem digest_eq_of_encoding_eq_of_padding {left right : Digest}
@@ -46,7 +46,7 @@ private theorem digest_eq_of_encoding_eq_of_padding {left right : Digest}
     have hword := BitVec.toFin_injective hchain
     have hchainVal : chainIdx.val = bit / 3 := rfl
     have hoffset : TargetSum.digitOffset chainIdx = 3 * chainIdx.val := by
-      rw [TargetSum.digitOffset, if_pos]
+      rw [TargetSum.digitOffset, ite_eq_left]
       · norm_num [winternitzBits]
       · rw [hchainVal]
         norm_num [TargetSum.digitsPerHalf, numChains]
@@ -76,7 +76,7 @@ private theorem digest_eq_of_encoding_eq_of_padding {left right : Digest}
         have hword := BitVec.toFin_injective hchain
         have hchainVal : chainIdx.val = 21 + (bit - 64) / 3 := rfl
         have hoffset : TargetSum.digitOffset chainIdx = 64 + 3 * ((bit - 64) / 3) := by
-          rw [TargetSum.digitOffset, if_neg (by rw [hchainVal]; norm_num [TargetSum.digitsPerHalf, numChains])]
+          rw [TargetSum.digitOffset, ite_eq_right (by rw [hchainVal]; norm_num [TargetSum.digitsPerHalf, numChains])]
           rw [hchainVal]
           norm_num [winternitzBits]
           omega

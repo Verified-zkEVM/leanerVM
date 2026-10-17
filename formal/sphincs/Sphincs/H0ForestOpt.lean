@@ -78,7 +78,7 @@ theorem checkOptF_parts {b : ℕ} {t : PoisT} {o : OptF} (h : checkOptF b t o = 
   exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17, h18, h19, h20⟩
 
 theorem leafQ_of_lt {tab : List ℚ} {J : ℚ} {n : ℕ} (h : n < tab.length) : leafQ tab J n = tab.getD n 0 := by
-  unfold leafQ; rw [if_pos h]
+  unfold leafQ; rw [ite_eq_left h]
 
 theorem leafQ_ge_end {tab : List ℚ} {J : ℚ} (hl : checkLeaf tab J = true) {n : ℕ} (hn : tab.length ≤ n) :
     tab.getD (tab.length - 1) 0 + J ≤ leafQ tab J n := by
@@ -86,7 +86,7 @@ theorem leafQ_ge_end {tab : List ℚ} {J : ℚ} (hl : checkLeaf tab J = true) {n
   have hm := leafQ_mono hl hn
   have he : leafQ tab J tab.length = tab.getD (tab.length - 1) 0 + J := by
     unfold leafQ
-    rw [if_neg (lt_irrefl _), show tab.length - (tab.length - 1) = 1 by omega]
+    rw [ite_eq_right (lt_irrefl _), show tab.length - (tab.length - 1) = 1 by omega]
     push_cast
     ring
   rw [he] at hm

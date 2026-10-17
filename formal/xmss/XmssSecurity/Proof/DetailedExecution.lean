@@ -57,11 +57,10 @@ theorem gameWithCache_eq_map_detailedGameWithCache
 theorem forgeAdvantage_eq_detailedGameWithCache
     (scheme : Scheme SecretKey) (adversary : Adversary) :
     forgeAdvantage scheme adversary =
-      Pr[fun outcome : GameOutcome × QueryCache HashSpec => outcome.1.won = true |
-        detailedGameWithCache scheme adversary] := by
+      Pr{let outcome ← detailedGameWithCache scheme adversary}[outcome.1.won = true] := by
   rw [forgeAdvantage_eq_gameWithCache, gameWithCache_eq_map_detailedGameWithCache,
-    probEvent_map]
-  rfl
+    prEvent_map]
+
 
 /-- Retaining the detailed outcome does not change the hash-query count. -/
 theorem hasHashQueryBound_iff_detailedGameCore

@@ -165,8 +165,8 @@ end NotRbr
 
 /-- If a guarded verifier's check passes and its verdict satisfies `P`, the verifier outputs a
 statement satisfying `P` with positive probability: the converse of
-`Verifier.GuardedForm.of_probEvent_pos`. -/
-theorem Verifier.GuardedForm.probEvent_pos_of_check {V : Verifier oSpec StmtIn StmtOut pSpec}
+`Verifier.GuardedForm.of_prEvent_pos`. -/
+theorem Verifier.GuardedForm.prEvent_pos_of_check {V : Verifier oSpec StmtIn StmtOut pSpec}
     (G : V.GuardedForm) {σ : Type} (init : ProbComp σ)
     (impl : QueryImpl oSpec (StateT σ ProbComp)) (stmt : StmtIn) (tr : pSpec.FullTranscript)
     (P : StmtOut → Prop) (hc : G.check stmt tr = true) (hP : P (G.out stmt tr)) :
@@ -349,7 +349,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
     () (fun _ h ↦ h) (fun j ↦ Fin.elim0 j) fun c ↦
       ⟨Fin.snoc (Transcript.concat c fun j ↦ Fin.elim0 j) true,
         funext fun j ↦ Fin.snoc_castSucc _ _ j, (),
-        Verifier.GuardedForm.probEvent_pos_of_check acceptAllGuarded init impl () _ _ rfl
+        Verifier.GuardedForm.prEvent_pos_of_check acceptAllGuarded init impl () _ _ rfl
           (Set.mem_univ _)⟩
 
 /-- The verifier that rejects every transcript. -/

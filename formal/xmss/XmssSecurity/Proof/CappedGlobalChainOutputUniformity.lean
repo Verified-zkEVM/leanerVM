@@ -78,18 +78,18 @@ theorem globalChainRandomnessOfMaterial_eq_outputTraceRandomness
 
 theorem evalDist_outputGlobalChainRandomness_eq_uniform
     (parameter : PublicParameter) :
-    evalSPMF (globalChainRandomnessOfMaterial parameter <$>
-      outputGlobalChainTrajectoryMaterial parameter) =
-    evalSPMF uniformGlobalChainKeygenRandomness := by
+    (globalChainRandomnessOfMaterial parameter <$>
+      outputGlobalChainTrajectoryMaterial parameter) =ᵈ
+    uniformGlobalChainKeygenRandomness := by
   calc
-    _ = evalSPMF ((globalChainRandomnessOfMaterial parameter ∘ Prod.fst) <$>
+    _ =ᵈ ((globalChainRandomnessOfMaterial parameter ∘ Prod.fst) <$>
         outputGlobalChainTrajectoryMaterialTrace parameter) := by
       rw [← outputGlobalChainTrajectoryMaterialTrace_fst parameter,
         Functor.map_map]
       rfl
-    _ = evalSPMF (outputTraceRandomness <$>
+    _ =ᵈ (outputTraceRandomness <$>
         outputGlobalChainTrajectoryMaterialTrace parameter) := by
-      apply congrArg evalSPMF
+      refine EvalDistEq.of_eq ?_
       simp only [map_eq_bind_pure_comp]
       apply OracleComp.bind_congr_of_forall_mem_support
       intro trace htrace
@@ -97,7 +97,7 @@ theorem evalDist_outputGlobalChainRandomness_eq_uniform
         pure (outputTraceRandomness trace)
       rw [globalChainRandomnessOfMaterial_eq_outputTraceRandomness parameter
         trace htrace]
-    _ = evalSPMF uniformGlobalChainKeygenRandomness :=
+    _ =ᵈ uniformGlobalChainKeygenRandomness :=
       evalDist_outputTraceRandomness_eq_uniform parameter
 
 end XmssSecurity.CappedChain
