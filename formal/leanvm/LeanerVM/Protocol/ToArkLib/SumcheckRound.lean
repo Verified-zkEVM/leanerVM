@@ -15,6 +15,7 @@ public import LeanerVM.Protocol.ToArkLib.SendChecked
 public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
 public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
+public import LeanerVM.Protocol.ToArkLib.Typed.Schedule
 public import CompPoly.Univariate.ToPoly.Impl
 
 /-!
@@ -259,23 +260,55 @@ def drawChallengeT : Typed.Def O (MidStmt X F j d) W (Stmt X F (j + 1)) W (Typed
 def round : Component.Def (Stmt X F j) O W (Stmt X F (j + 1)) O W (roundSpec F d) :=
   (sendPoly P j).append (drawChallenge j wt)
 
+/-- The round, as a typed component. -/
+def roundT : Typed.Def O (Stmt X F j) W (Stmt X F (j + 1)) W (Typed.roundSlot F d) :=
+  (sendPolyT P j).append (drawChallengeT j wt)
+
 /-- Completeness of the message: the honest polynomial is recorded. -/
 def sendPolyComplete (Φ : Family F X O W d) :
     Component.Complete (sendPoly Φ.poly j) (rel Φ j) (relMid Φ j) :=
   Component.sendCheckedComplete O (Message F d) _ _ _ fun _ _ _ h ↦ ⟨rfl, h, rfl⟩
 
+omit [∀ i, OracleInterface (O i)] [SampleableType F] in
+/-- On an honest family, the recorded polynomial passes the check and the next statement is at
+stage `j + 1`, at every challenge. -/
+theorem drawChallenge_honest (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < m)
+    (p : MidStmt X F j d) (o : ∀ i, O i) (w : W) (h : ((p, o), w) ∈ relMid Φ j) :
+    check j Φ.weight p.1 p.2 = true ∧
+      ∀ c, ((next j p.1 (evaluate d p.2 c) c, o), w) ∈ rel Φ (j + 1) := by
+  obtain ⟨⟨hinv, hclaim⟩, hq⟩ := h
+  refine ⟨?_, fun c ↦ ⟨H.inv_push _ j _ c hj hinv, ?_⟩⟩
+  · show check j Φ.weight p.1 p.2 = true
+    rw [check, decide_eq_true_eq, hq, hclaim]
+    exact H.check _ j _ hj
+  · show evaluate d p.2 c = Φ.claim _ (j + 1) (p.1.2.1.push c)
+    rw [hq]
+    exact H.next _ j _ c hj
+
 /-- Completeness of the challenge of an honest family: the recorded polynomial passes the check
 and the next statement is at stage `j + 1`. -/
 def drawChallengeComplete (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < m) :
     Component.Complete (drawChallenge j Φ.weight) (relMid Φ j) (rel Φ (j + 1)) :=
-  Component.sampleChallengeComplete O F _ _ fun p o w ⟨⟨hinv, hclaim⟩, hq⟩ ↦ by
-    refine ⟨?_, fun c ↦ ⟨H.inv_push _ j _ c hj hinv, ?_⟩⟩
-    · show check j Φ.weight p.1 p.2 = true
-      rw [check, decide_eq_true_eq, hq, hclaim]
-      exact H.check _ j _ hj
-    · show evaluate d p.2 c = Φ.claim _ (j + 1) (p.1.2.1.push c)
-      rw [hq]
-      exact H.next _ j _ c hj
+  Component.sampleChallengeComplete O F _ _ (drawChallenge_honest j Φ H hj)
+
+omit [∀ i, OracleInterface (O i)] [DecidableEq F] [SampleableType F] in
+/-- Typed completeness of the message: the honest polynomial is recorded. -/
+theorem sendPolyCompleteT (Φ : Family F X O W d) :
+    Typed.Complete (sendPolyT Φ.poly j) (rel Φ j) (relMid Φ j) :=
+  Typed.sendCheckedComplete fun _ _ _ h ↦ ⟨rfl, h, rfl⟩
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the challenge of an honest family. -/
+theorem drawChallengeCompleteT (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < m) :
+    Typed.Complete (drawChallengeT (O := O) (W := W) (d := d) j Φ.weight) (relMid Φ j)
+      (rel Φ (j + 1)) :=
+  Typed.sampleChallengeComplete (drawChallenge_honest j Φ H hj)
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of a round. -/
+theorem roundCompleteT (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < m) :
+    Typed.Complete (roundT Φ.poly j Φ.weight) (rel Φ j) (rel Φ (j + 1)) :=
+  (sendPolyCompleteT j Φ).append (drawChallengeCompleteT j Φ H hj)
 
 /-- The completeness half of a round. -/
 def roundComplete (Φ : Family F X O W d) {m : ℕ} (H : Φ.Honest m) (hj : j < m) :
@@ -379,6 +412,14 @@ def roundSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
       (errAppend (sayError (Message F d)) (drawError F ((d : ℝ≥0) / (Nat.card F : ℝ≥0)))) :=
   (sendPolySecurity j Φ).append (drawChallengeSecurity j Φ H S hj)
 
+/-- The typed security half of a round of a consistent, sound family, the error on the
+challenge. -/
+def roundSecurityT (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
+    (S : Φ.Sound m) (hj : j < m) :
+    Typed.Security (roundT Φ.poly j Φ.weight) (rel Φ j) (rel Φ (j + 1))
+      (Typed.roundErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
+  (sendPolySecurityT j Φ).append (drawChallengeSecurityT j Φ H S hj)
+
 variable {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
 
 omit [DecidableEq F] [Finite F] in
@@ -414,6 +455,12 @@ def rounds (m : ℕ) : (i j : ℕ) → j + i = m →
   | 0, j, h => Component.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
   | i + 1, j, h => (round P j wt).append (rounds m i (j + 1) (by omega))
 
+/-- The `i` rounds from stage `j` to stage `m = j + i`, as a typed component. -/
+def roundsT (m : ℕ) : (i j : ℕ) → j + i = m →
+    Typed.Def O (Stmt X F j) W (Stmt X F m) W (Typed.roundsSlot F d i)
+  | 0, j, h => Typed.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
+  | i + 1, j, h => (roundT P j wt).append (roundsT m i (j + 1) (by omega))
+
 /-- The rounds are front, from each round's. -/
 def roundsFront (m : ℕ) : (i j : ℕ) → (h : j + i = m) → Component.Front (rounds P wt m i j h)
   | 0, _, _ => Component.passThroughFront O _
@@ -429,6 +476,18 @@ def roundsComplete (Φ : Family F X O W d) (m : ℕ) (H : Φ.Honest m) :
     simpa only [Vector.cast_rfl] using hin
   | i + 1, j, h =>
     (roundComplete j Φ H (by omega)).append (roundsComplete Φ m H i (j + 1) (by omega))
+
+omit [Finite F] [Subsingleton W] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the rounds, from those of each round. -/
+theorem roundsCompleteT (Φ : Family F X O W d) (m : ℕ) (H : Φ.Honest m) :
+    (i j : ℕ) → (h : j + i = m) →
+      Typed.Complete (roundsT Φ.poly Φ.weight m i j h) (rel Φ j) (rel Φ m)
+  | 0, j, h => Typed.passThroughComplete fun s o w hin ↦ by
+    have hjm : j = m := by omega
+    subst hjm
+    simpa only [Vector.cast_rfl] using hin
+  | i + 1, j, h =>
+    (roundCompleteT j Φ H (by omega)).append (roundsCompleteT Φ m H i (j + 1) (by omega))
 
 /-- The security half of the rounds, from each round's, at `d / |F|` per challenge. -/
 def roundsSecurity (Φ : Family F X O W d) (m : ℕ) (H : Φ.Consistent m) (S : Φ.Sound m) :
@@ -447,6 +506,18 @@ def roundsSecurity (Φ : Family F X O W d) (m : ℕ) (H : Φ.Consistent m) (S : 
         simpa only [Vector.cast_rfl] using hin)
   | i + 1, j, h =>
     (roundSecurity j Φ H S (by omega)).append (roundsSecurity Φ m H S i (j + 1) (by omega))
+
+/-- The typed security half of the rounds, from each round's, at `d / |F|` per challenge. -/
+def roundsSecurityT (Φ : Family F X O W d) (m : ℕ) (H : Φ.Consistent m) (S : Φ.Sound m) :
+    (i j : ℕ) → (h : j + i = m) →
+      Typed.Security (roundsT Φ.poly Φ.weight m i j h) (rel Φ j) (rel Φ m)
+        (Typed.roundsErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) i)
+  | 0, j, h => Typed.passThroughSecurity fun s o w ↦ by
+    have hjm : j = m := by omega
+    subst hjm
+    simp only [Vector.cast_rfl]
+  | i + 1, j, h =>
+    (roundSecurityT j Φ H S (by omega)).append (roundsSecurityT Φ m H S i (j + 1) (by omega))
 
 end Data
 

@@ -13,7 +13,7 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
-public import LeanerVM.Protocol.ToArkLib.Typed.Component
+public import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import Mathlib.Algebra.CharP.Two
@@ -547,26 +547,13 @@ theorem rbr :
 
 /-! ## The phase on the typed framework -/
 
-/-- The phase's tree: the challenge, then the values sent. -/
-abbrev tree : Interaction.Oracle.TypeTree.{0} := .public E fun _ ↦ .public (List E) fun _ ↦ .done
-
-/-- The verifier draws the challenge, the prover sends the values. -/
-abbrev roles : tree.RoleDecoration := ⟨.receiver, fun _ ↦ ⟨.sender, fun _ ↦ ⟨⟩⟩⟩
-
-/-- The slot's error `1/|E|` at the challenge. -/
-noncomputable abbrev errors : Typed.Errors tree roles := (overE 1, fun _ _ ↦ PUnit.unit)
-
 /-- The verdict on a branch path: the pool from the values sent, if the check passes. -/
-def verdictT (s : I.Stmt × TableOut I) (p : tree.BranchPath) : Option (I.Stmt × PubOut I) :=
+def verdictT (s : I.Stmt × TableOut I) (p : pubTree.BranchPath) : Option (I.Stmt × PubOut I) :=
   if accepts I (check I) s p.1 p.2.1 then some (verdict I (pooledFrom I) s p.1 p.2.1) else none
-
-/-- The phase's slot: the challenge drawn uniformly, then the values sent. -/
-abbrev slot : Typed.Slot :=
-  ⟨tree, roles, ⟨PUnit.unit, fun _ ↦ ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩⟩, ($ᵗ E, fun _ _ ↦ PUnit.unit)⟩
 
 /-- The public-input phase as a typed component: the honest prover sends the expected values at
 the challenge and outputs the pool. -/
-def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit slot where
+def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit pubSlot where
   verdict := verdictT I
   prover := fun so w r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
 
@@ -592,7 +579,8 @@ theorem completeT : Typed.Complete (phaseT I) (Seam.table I) (Seam.pub I) := by
 /-- The backward witness maps: the table seam before the challenge; after it, the public seam of
 the pool; after the values, that the check passes and the verdict is in the public seam. -/
 def extractorT (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
-    Interaction.Oracle.Security.RoundExtractor tree (Typed.inState (TheOracle I) (Seam.table I) s o) :=
+    Interaction.Oracle.Security.RoundExtractor pubTree
+      (Typed.inState (TheOracle I) (Seam.table I) s o) :=
   fun r ↦ ⟨⟨Unit, fun _ ↦ ((pooled I s r, o), ()) ∈ Seam.pub I⟩, id, fun cs ↦
     ⟨⟨Unit, fun _ ↦ accepts I (check I) s r cs = true ∧
       ((verdict I (pooledFrom I) s r cs, o), ()) ∈ Seam.pub I⟩, id, PUnit.unit⟩⟩
@@ -600,7 +588,7 @@ def extractorT (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
 /-- **Round-by-round knowledge soundness on the typed framework**, at the slot's error `1/|E|`:
 a bad transition is a bad challenge, and there is at most one; the values sent that pass the
 check carry the public seam back to the pool. -/
-def securityT : Typed.Security (phaseT I) (Seam.table I) (Seam.pub I) (errors) where
+def securityT : Typed.Security (phaseT I) (Seam.table I) (Seam.pub I) pubErrors where
   extractor := extractorT I
   prover_preserving s o := ⟨fun _ h ↦ (nomatch h), fun r ↦ ⟨fun cs _ _ h ↦ by
     obtain ⟨hc, hp⟩ := h

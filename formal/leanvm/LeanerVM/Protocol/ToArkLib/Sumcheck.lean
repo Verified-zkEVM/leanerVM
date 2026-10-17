@@ -195,6 +195,13 @@ def rounds (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
       (roundsSpec F d n) :=
   SumcheckRound.rounds (roundPoly V wt nodes) (domain wt) n n 0 (Nat.zero_add n)
 
+/-- The `n` rounds, as a typed component. -/
+def roundsT (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
+    (nodes : Fin (d + 1) → F) :
+    Typed.Def O (SumcheckRound.Stmt X F 0) W (SumcheckRound.Stmt X F n) W
+      (Typed.roundsSlot F d n) :=
+  SumcheckRound.roundsT (roundPoly V wt nodes) (domain wt) n n 0 (Nat.zero_add n)
+
 /-- The final check: the formula at the final point and the values sent is the running claim. -/
 def finalCheck (V : Virtual F X O W n m) (s : SumcheckRound.Stmt X F n) (v : Vector F m) : Bool :=
   decide (V.formula s.1 s.2.1.reverse v = s.2.2)
@@ -215,6 +222,27 @@ def finalT (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n 
     Typed.Def O (SumcheckRound.Stmt X F n) W T W (Typed.saySlot (Vector F m)) :=
   Typed.sendChecked O (Vector F m)
     (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) out
+
+/-- The typed slot: `n` rounds of degree `d`, then the `m` values. -/
+abbrev slot (F : Type) [SampleableType F] (d n m : ℕ) : Typed.Slot :=
+  (Typed.roundsSlot F d n).append (Typed.saySlot (Vector F m))
+
+/-- The typed sumcheck over a weighted cube: the rounds, then the values. -/
+def weightedT (V : Virtual F X O W n m) (wt : CoordWeights F X n) {d : ℕ}
+    (nodes : Fin (d + 1) → F) :
+    Typed.Def O (SumcheckRound.Stmt X F 0) W (Out X F n m) W (slot F d n m) :=
+  (roundsT V wt nodes).append (finalT V finalOut)
+
+/-- The typed plain sumcheck. -/
+abbrev plainT (V : Virtual F X O W n m) {d : ℕ} (nodes : Fin (d + 1) → F) :
+    Typed.Def O (SumcheckRound.Stmt X F 0) W (Out X F n m) W (slot F d n m) :=
+  weightedT V unitWeights nodes
+
+/-- The typed normalized sumcheck. -/
+abbrev normalizedT (V : Virtual F X O W n m) (pt : X → Vector F n) {d : ℕ}
+    (nodes : Fin (d + 1) → F) :
+    Typed.Def O (SumcheckRound.Stmt X F 0) W (Out X F n m) W (slot F d n m) :=
+  weightedT V (eqWeights pt) nodes
 
 /-- The schedule: `n` rounds of degree `d`, then the `m` values. -/
 abbrev spec (F : Type) (d n m : ℕ) : ProtocolSpec (roundsRounds n + 1) :=
@@ -453,6 +481,48 @@ def finalComplete {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → 
     rw [finalCheck, decide_eq_true_eq, hclaim]
     rfl
 
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the rounds. -/
+theorem roundsCompleteT (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Typed.Complete (roundsT V wt nodes) (relIn V wt side)
+      (SumcheckRound.rel (family V wt nodes side) n) :=
+  rel_zero V wt nodes side ▸ SumcheckRound.roundsCompleteT (family V wt nodes side) n
+    (family_honest V wt nodes side hV hnodes) n 0 (Nat.zero_add n)
+
+omit [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- The true values at the final point pass the final check and land in an output relation they
+land in whenever the side condition holds. -/
+theorem final_honest {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w, side ((s.1, o), w) →
+      ((out s (V.values ((s.1, o), w) s.2.1.reverse), o), w) ∈ relOut')
+    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W)
+    (hin : ((s, o), w) ∈ SumcheckRound.rel (family V wt nodes side) n) :
+    finalCheck V s (V.values ((s.1, o), w) s.2.1.reverse) = true ∧
+      ((out s (V.values ((s.1, o), w) s.2.1.reverse), o), w) ∈ relOut' := by
+  obtain ⟨hside, hclaim⟩ := (mem_rel_self V wt nodes side _).mp hin
+  refine ⟨?_, h s o w hside⟩
+  rw [finalCheck, decide_eq_true_eq, hclaim]
+  rfl
+
+omit [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the last message. -/
+theorem finalCompleteT {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w, side ((s.1, o), w) →
+      ((out s (V.values ((s.1, o), w) s.2.1.reverse), o), w) ∈ relOut') :
+    Typed.Complete (finalT V out) (SumcheckRound.rel (family V wt nodes side) n) relOut' :=
+  Typed.sendCheckedComplete fun s o w hin ↦ final_honest V wt nodes side out h s o w hin
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed perfect completeness of the sumcheck. -/
+theorem weightedCompleteT (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Typed.Complete (weightedT V wt nodes) (relIn V wt side) (relOut V side) :=
+  (roundsCompleteT V wt nodes side hV hnodes).append
+    (finalCompleteT V wt nodes side finalOut fun _ _ _ hside ↦ ⟨rfl, hside⟩)
+
 omit [DecidableEq F] [SampleableType F] in
 /-- The final check is load-bearing: the last message without it has no knowledge state function
 at all, whatever the extractor, once a statement meets the side condition and its running claim
@@ -553,6 +623,17 @@ def finalSecurityT {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m →
       (Typed.sayErrors (Vector F m)) :=
   Typed.sendCheckedSecurity (final_reflect V wt nodes side out h)
 
+/-- The typed security half of the rounds, at `d / |F|` per round. -/
+def roundsSecurityT (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Typed.Security (roundsT V wt nodes) (relIn V wt side)
+      (SumcheckRound.rel (family V wt nodes side) n)
+      (Typed.roundsErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) :=
+  rel_zero V wt nodes side ▸ SumcheckRound.roundsSecurityT (family V wt nodes side) n
+    (family_honest V wt nodes side hV hnodes).toConsistent
+    (fun _ _ _ _ h ↦ (Nat.card_eq_zero.mpr (Or.inl ⟨fun x ↦ h x.2⟩)).trans_le (Nat.zero_le d))
+    n 0 (Nat.zero_add n)
+
 /-- The security half of the sumcheck: round-by-round knowledge soundness at `d / |F|` per round,
 with the extractor that keeps the witness, when the summand has degree at most `d` in each
 variable. -/
@@ -562,6 +643,16 @@ def weightedSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
       (errAppend (roundsError F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n) (sayError (Vector F m))) :=
   (roundsSecurity V wt nodes side hV hnodes).append
     (finalSecurity V wt nodes side finalOut fun _ _ _ _ h ↦ h)
+
+/-- The typed security half of the sumcheck, at `d / |F|` per round. -/
+def weightedSecurityT (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
+    (hnodes : Function.Injective nodes) :
+    Typed.Security (weightedT V wt nodes) (relIn V wt side) (relOut V side)
+      (Typed.Errors.append (Typed.roundsSlot F d n).tree (Typed.roundsSlot F d n).roles
+        (Typed.roundsErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0)) n)
+        (Typed.sayErrors (Vector F m))) :=
+  (roundsSecurityT V wt nodes side hV hnodes).append
+    (finalSecurityT V wt nodes side finalOut fun _ _ _ _ h ↦ h)
 
 /-- The security half of the plain sumcheck. -/
 def plainSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)

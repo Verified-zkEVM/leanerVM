@@ -66,6 +66,20 @@ def Errors.Le : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) �
       e.1 ≤ e'.1 ∧ ∀ move, Errors.Le (next move) (roles move) (e.2 move) (e'.2 move)
   | .oracle _ next, roles, e, e' => Errors.Le (next PUnit.unit) (roles.2 PUnit.unit) e e'
 
+/-- Errors are at most themselves. -/
+theorem Errors.Le.refl : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
+    (e : Errors tree roles) → Errors.Le tree roles e e
+  | .done, _, _ => trivial
+  | .public _ next, ⟨.sender, roles⟩, e => fun move ↦ Errors.Le.refl (next move) (roles move) (e move)
+  | .public _ next, ⟨.receiver, roles⟩, e =>
+      ⟨le_rfl, fun move ↦ Errors.Le.refl (next move) (roles move) (e.2 move)⟩
+  | .oracle _ next, roles, e => Errors.Le.refl (next PUnit.unit) (roles.2 PUnit.unit) e
+
+/-- Equal errors are at most one another. -/
+theorem Errors.Le.of_eq {tree : Oracle.TypeTree.{0}} {roles : tree.RoleDecoration}
+    {e e' : Errors tree roles} (h : e = e') : Errors.Le tree roles e e' :=
+  h ▸ Errors.Le.refl tree roles e
+
 /-- The samplers and the errors as a knowledge certificate's challenge schedule. -/
 def schedule : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
     Samplers tree roles → Errors tree roles → RoundExtractor.ChallengeSchedule tree roles

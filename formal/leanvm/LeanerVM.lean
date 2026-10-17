@@ -61,6 +61,7 @@ import LeanerVM.Protocol.Spine.Errors
 import LeanerVM.Protocol.Spine.Instance
 import LeanerVM.Protocol.Spine.Phase
 import LeanerVM.Protocol.Spine.Seams
+import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.TableSumcheck
@@ -104,7 +105,9 @@ import LeanerVM.Protocol.ToArkLib.Typed.Append
 import LeanerVM.Protocol.ToArkLib.Typed.Batch
 import LeanerVM.Protocol.ToArkLib.Typed.Component
 import LeanerVM.Protocol.ToArkLib.Typed.Front
+import LeanerVM.Protocol.ToArkLib.Typed.PassThrough
 import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
+import LeanerVM.Protocol.ToArkLib.Typed.Schedule
 import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination

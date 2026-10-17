@@ -11,6 +11,7 @@ module
 public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.Batch
+public import LeanerVM.Protocol.Spine.Slots
 public import LeanerVM.Protocol.ToArkLib.Sumcheck
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import Mathlib.Algebra.BigOperators.Fin
@@ -570,6 +571,96 @@ def tableSumcheckSecurity (hd : I.d ≤ 2) :
           fun c hc ↦ hcols c (Or.inl hc), hlines, haux⟩)).mono fun _ ↦ by
     rw [tableError, natCast_div_card_eq_overE, natCast_div_card_eq_overE,
       show I.B + 3 - 1 = I.B + 2 from rfl]
+
+/-! ## The phase on the typed framework -/
+
+/-- From the bus seam, the combined claimed values are the combination of the true ones at every
+challenge, and the side condition holds. -/
+theorem batch_complete (s : I.Stmt × BusOut I) (o : ∀ i, TheOracle I i) (w : Unit)
+    (hin : ((s, o), w) ∈ Seam.bus I) (ρ : E) :
+    ((start I s ρ (powerBatch (claimed I s) ρ), o), w) ∈
+      Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I) := by
+  cases w
+  simp only [Seam.bus, Seam.of, Set.mem_ofPred_eq] at hin
+  refine ⟨?_, hin.2.2⟩
+  show powerBatch (claimed I s) ρ = Sumcheck.weightedSum _ _ (((s, ρ), o), ())
+  rw [sum_tableSummand, (trueValues_eq_claimed_iff I s (theStack o)).mpr ⟨hin.1, hin.2.1⟩]
+
+/-- The batching challenge's hypothesis: the true values, fixed before the challenge, are what a
+challenge carrying a statement outside the bus seam into the rounds' input relation makes the
+combined claim the combination of, and they differ from the claimed values. -/
+theorem xi_batch (s : I.Stmt × BusOut I) (o : ∀ i, TheOracle I i) :
+    ∃ a : Fin (I.B + 3) → E, ∀ w ρ, ((s, o), w) ∉ Seam.bus I →
+      ((start I s ρ (powerBatch (claimed I s) ρ), o), w) ∈
+        Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I) →
+        a ≠ claimed I s ∧ powerBatch (claimed I s) ρ = powerBatch a ρ :=
+  ⟨trueValues I s (theStack o), fun w ρ hin hout ↦ by
+    cases w
+    obtain ⟨hsum, hside⟩ := hout
+    have hsum : powerBatch (claimed I s) ρ = powerBatch (trueValues I s (theStack o)) ρ :=
+      hsum.trans (sum_tableSummand I (s, ρ) o)
+    refine ⟨fun heq ↦ hin ?_, hsum⟩
+    obtain ⟨hzero, htotals⟩ := (trueValues_eq_claimed_iff I s (theStack o)).mp heq
+    exact ⟨hzero, htotals, hside⟩⟩
+
+/-- Values whose output is in the table seam are the tables' values at the final point, and the
+side condition holds. -/
+theorem finalValues_reflect (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ i, TheOracle I i)
+    (w : Unit) (v : Vector E I.tableColumns) (h : ((tableOut I s v, o), w) ∈ Seam.table I) :
+    (tableSummand I).values ((s.1, o), w) s.2.1.reverse = v ∧ side I ((s.1, o), w) := by
+  cases w
+  obtain ⟨hcols, hlines, haux⟩ := h
+  simp only [tableOut, Vector.toList_append, List.mem_append] at hcols
+  exact ⟨(finalClaims_holds_iff I ((s.1, o), ()) _ v).mp fun c hc ↦ hcols c (Or.inr hc),
+    fun c hc ↦ hcols c (Or.inl hc), hlines, haux⟩
+
+/-- The table sumcheck phase on the typed framework, at its slot `tableSlot I`: the batching
+challenge, the rounds of the plain sumcheck, and the final values. -/
+def tableSumcheckT : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit (I.Stmt × TableOut I) Unit
+    (tableSlot I) :=
+  ((batchStepT I).append (Sumcheck.roundsT (tableSummand I) Sumcheck.unitWeights nodes)).append
+    (Sumcheck.finalT (tableSummand I) (tableOut I))
+
+/-- **Completeness on the typed framework.** -/
+theorem tableSumcheckCompleteT (hd : I.d ≤ 2) :
+    Typed.Complete (tableSumcheckT I) (Seam.bus I) (Seam.table I) :=
+  ((Typed.batchComplete (batch_complete I)).append
+    (Sumcheck.roundsCompleteT (tableSummand I) Sumcheck.unitWeights nodes (side I)
+      (tableSummand_degree I hd) nodes_injective)).append
+    (Sumcheck.finalCompleteT (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
+      fun s o w hside ↦ by
+        cases w
+        exact tableOut_mem_table I s o hside)
+
+/-- The batching challenge's security, the phase's first part, at `(B + 2)/|E|`. -/
+def xiSecurity :
+    Typed.Security (batchStepT I) (Seam.bus I)
+      (Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
+      (Typed.drawErrors E (((I.B + 3 - 1 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0))) :=
+  Typed.batchSecurity (xi_batch I)
+
+/-- The final values' security, the phase's last part, at no error. -/
+def finalValuesSecurity :
+    Typed.Security (Sumcheck.finalT (tableSummand I) (tableOut I))
+      (SumcheckRound.rel (Sumcheck.family (tableSummand I) Sumcheck.unitWeights nodes (side I))
+        I.τmax) (Seam.table I) (Typed.sayErrors _) :=
+  Sumcheck.finalSecurityT (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
+    (finalValues_reflect I)
+
+/-- **Knowledge soundness on the typed framework**, at the slot's errors `tableErrors I`, with
+the extractor that keeps the trivial witness. -/
+def tableSumcheckSecurityT (hd : I.d ≤ 2) :
+    Typed.Security (tableSumcheckT I) (Seam.bus I) (Seam.table I) (tableErrors I) :=
+  (((xiSecurity I).append (Sumcheck.roundsSecurityT (tableSummand I) Sumcheck.unitWeights nodes
+      (side I) (tableSummand_degree I hd) nodes_injective)).append
+    (finalValuesSecurity I)).mono (by
+      refine Typed.Errors.Le.append ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).tree
+        ((Typed.drawSlot E).append (Typed.roundsSlot E 3 I.τmax)).roles
+        (Typed.Errors.Le.append (Typed.drawSlot E).tree (Typed.drawSlot E).roles ?_ ?_)
+        (Typed.Errors.Le.refl _ _ _)
+      · exact ⟨le_of_eq (by rw [natCast_div_card_eq_overE]; rfl), fun _ ↦ trivial⟩
+      · rw [natCast_div_card_eq_overE]
+        exact Typed.Errors.Le.refl _ _ _)
 
 end TableSumcheck
 
