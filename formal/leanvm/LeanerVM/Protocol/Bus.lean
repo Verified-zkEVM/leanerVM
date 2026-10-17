@@ -13,6 +13,8 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.Stack
 public import LeanerVM.Protocol.ToArkLib.GrandProduct
+public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
+public import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
 import CompPoly.Multivariate.Operations
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 
@@ -792,6 +794,22 @@ def rootsStep : Component.Def (Data I) (TheOracle I) Unit (Data I × (Fin 3 → 
 def valuesStep (h : Conditions I) : Component.Def (Gkr.LayerStmt (Data I) E 3 I.μBus)
     (TheOracle I) Unit (I.Stmt × BusOut I) (TheOracle I) Unit (say (Vector E I.busClaims)) :=
   Component.sendChecked (TheOracle I) (Vector E I.busClaims)
+    (fun p ↦ honestValues h (theStack p.1.2) p.1.1.2.1) (fun _ _ ↦ true)
+    fun ℓ vals ↦ (ℓ.1.1, busOut h ℓ vals)
+
+/-- The fingerprint challenges, as a typed component. -/
+def challengeStepT : Typed.Def (TheOracle I) I.Stmt Unit (Data I) Unit :=
+  Typed.sampleChallenge (TheOracle I) ((Fin 4 → E) × E) (fun _ ↦ true) fun s ab ↦ (s, ab)
+
+/-- The roots, as a typed component. -/
+def rootsStepT : Typed.Def (TheOracle I) (Data I) Unit (Data I × (Fin 3 → E)) Unit :=
+  Typed.sendChecked (TheOracle I) (E × E) (rootsHonest I) (fun _ r ↦ decide (r.2 ≠ 0))
+    fun x r ↦ (x, ![r.1, r.1, r.2])
+
+/-- The boundary values, as a typed component. -/
+def valuesStepT (h : Conditions I) :
+    Typed.Def (TheOracle I) (Gkr.LayerStmt (Data I) E 3 I.μBus) Unit (I.Stmt × BusOut I) Unit :=
+  Typed.sendChecked (TheOracle I) (Vector E I.busClaims)
     (fun p ↦ honestValues h (theStack p.1.2) p.1.1.2.1) (fun _ _ ↦ true)
     fun ℓ vals ↦ (ℓ.1.1, busOut h ℓ vals)
 

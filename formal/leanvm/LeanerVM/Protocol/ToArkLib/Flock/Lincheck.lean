@@ -58,6 +58,10 @@ def alphaDraw : Component.Def (TermStmt S F (P.m + P.κ)) O W (Stmt (LinX S F (P
     (draw F) :=
   Component.sampleChallenge O F (fun _ ↦ true) alphaNext
 
+/-- `α`, as a typed component. -/
+def alphaDrawT : Typed.Def O (TermStmt S F (P.m + P.κ)) W (Stmt (LinX S F (P.m + P.κ)) F 0) W :=
+  Typed.sampleChallenge O F (fun _ ↦ true) alphaNext
+
 /-- The lincheck's column weights `M_α`, from the oracles and its public data. -/
 def linM (x : LinX S F (P.m + P.κ)) : CMlPolynomialEval F (P.s + P.m) :=
   mTable C P.cpos (eRow P.nodes x.1.1.2.2 (lowVec x.1.2.1)) x.2
@@ -153,6 +157,10 @@ def linNext (st : Stmt (LinX S F (P.m + P.κ)) F P.m) (sv : Vector F (2 ^ P.s)) 
 def linEnd : Component.Def (Stmt (LinX S F (P.m + P.κ)) F P.m) O W (OutStmt S F (P.m + P.κ) P.s)
     O W (say (Vector F (2 ^ P.s))) :=
   Component.sendChecked O _ (linHonest P z) (linCheck P C) (linNext P)
+
+/-- The slices, as a typed component. -/
+def linEndT : Typed.Def O (Stmt (LinX S F (P.m + P.κ)) F P.m) W (OutStmt S F (P.m + P.κ) P.s) W :=
+  Typed.sendChecked O _ (linHonest P z) (linCheck P C) (linNext P)
 
 /-- After the lincheck: the side condition, and the slices are the witness tables' extensions at
 the point. -/

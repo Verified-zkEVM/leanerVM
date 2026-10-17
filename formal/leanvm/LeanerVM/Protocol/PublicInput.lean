@@ -13,6 +13,7 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
+public import LeanerVM.Protocol.ToArkLib.Typed.Component
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import Mathlib.Algebra.CharP.Two
@@ -543,6 +544,73 @@ theorem rbr :
     fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
   rintro r ⟨_, hin, hout⟩
   exact ⟨hin, hout⟩
+
+/-! ## The phase on the typed framework -/
+
+/-- The phase's tree: the challenge, then the values sent. -/
+abbrev tree : Interaction.Oracle.TypeTree.{0} := .public E fun _ ↦ .public (List E) fun _ ↦ .done
+
+/-- The verifier draws the challenge, the prover sends the values. -/
+abbrev roles : tree.RoleDecoration := ⟨.receiver, fun _ ↦ ⟨.sender, fun _ ↦ ⟨⟩⟩⟩
+
+/-- The slot's error `1/|E|` at the challenge. -/
+noncomputable abbrev errors : Typed.Errors tree roles := (overE 1, fun _ _ ↦ PUnit.unit)
+
+/-- The verdict on a branch path: the pool from the values sent, if the check passes. -/
+def verdictT (s : I.Stmt × TableOut I) (p : tree.BranchPath) : Option (I.Stmt × PubOut I) :=
+  if accepts I (check I) s p.1 p.2.1 then some (verdict I (pooledFrom I) s p.1 p.2.1) else none
+
+/-- The public-input phase as a typed component: the honest prover sends the expected values at
+the challenge and outputs the pool. -/
+def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit where
+  tree := tree
+  roles := roles
+  oracles := ⟨PUnit.unit, fun _ ↦ ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩⟩
+  samplers := ($ᵗ E, fun _ _ ↦ PUnit.unit)
+  verdict := verdictT I
+  prover := fun so w ↦ pure fun r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
+
+/-- The backward witness maps: the table seam before the challenge; after it, the public seam of
+the pool; after the values, that the check passes and the verdict is in the public seam. -/
+def extractorT (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
+    Interaction.Oracle.Security.RoundExtractor tree (Typed.inState (TheOracle I) (Seam.table I) s o) :=
+  fun r ↦ ⟨⟨Unit, fun _ ↦ ((pooled I s r, o), ()) ∈ Seam.pub I⟩, id, fun cs ↦
+    ⟨⟨Unit, fun _ ↦ accepts I (check I) s r cs = true ∧
+      ((verdict I (pooledFrom I) s r cs, o), ()) ∈ Seam.pub I⟩, id, PUnit.unit⟩⟩
+
+/-- **Round-by-round knowledge soundness on the typed framework**, at the slot's error `1/|E|`:
+a bad transition is a bad challenge, and there is at most one; the values sent that pass the
+check carry the public seam back to the pool. -/
+def securityT : Typed.Security (phaseT I) (Seam.table I) (Seam.pub I) (errors) where
+  extractor := extractorT I
+  prover_preserving s o := ⟨fun _ h ↦ (nomatch h), fun r ↦ ⟨fun cs _ _ h ↦ by
+    obtain ⟨hc, hp⟩ := h
+    rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
+    exact hp, fun _ ↦ trivial⟩⟩
+  local_bound s o := by
+    refine ⟨?_, fun _ ↦ fun _ ↦ trivial⟩
+    rw [_root_.RoundByRound.GameFamily.isBounded_iff]
+    intro _ _
+    change Pr{let r ← $ᵗ E}[∃ w : Unit, ¬ ((s, o), w) ∈ Seam.table I ∧
+      ((pooled I s r, o), ()) ∈ Seam.pub I] ≤ ((overE 1 : ℝ≥0) : ℝ≥0∞)
+    rw [overE, Nat.cast_one]
+    refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
+      (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
+      fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
+    rintro r ⟨w, hin, hout⟩
+    cases w
+    exact ⟨hin, hout⟩
+  terminal s o :=
+    { witnessEquiv := fun _ ↦ Equiv.refl Unit
+      knowledge_iff := fun path w ↦ by
+        cases w
+        change (accepts I (check I) s path.1 path.2.1 = true ∧
+            ((verdict I (pooledFrom I) s path.1 path.2.1, o), ()) ∈ Seam.pub I) ↔
+          ∃ t, verdictT I s ⟨path.1, path.2.1, PUnit.unit⟩ = some t ∧ ((t, o), ()) ∈ Seam.pub I
+        simp only [verdictT]
+        by_cases hc : accepts I (check I) s path.1 path.2.1 = true
+        · simp [hc]
+        · simp [hc] }
 
 end PublicInput
 

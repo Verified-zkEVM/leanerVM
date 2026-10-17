@@ -120,6 +120,10 @@ instance [∀ s o, Decidable (side s o)] (j : ℕ) (p : (PointStmt S F j × ∀ 
 def drawPoint (j : ℕ) : Component.Def (PointStmt S F j) O W (PointStmt S F (j + 1)) O W (draw F) :=
   Component.sampleChallenge O F (fun _ ↦ true) (fun s x ↦ (s.1, s.2.push x))
 
+/-- One coordinate of the point, as a typed component. -/
+def drawPointT (j : ℕ) : Typed.Def O (PointStmt S F j) W (PointStmt S F (j + 1)) W :=
+  Typed.sampleChallenge O F (fun _ ↦ true) (fun s x ↦ (s.1, s.2.push x))
+
 /-- The first `j` drawn coordinates of the point. -/
 def pointDraws : (j : ℕ) → Component.Def S O W (PointStmt S F j) O W (draws F j)
   | 0 => Component.passThrough O fun s ↦ (s, #v[])
@@ -182,6 +186,11 @@ def skipNext (s : PointStmt S F P.nRand × Vector F (2 ^ P.s)) (Y : F) :
 def skipDraw : Component.Def (PointStmt S F P.nRand × Vector F (2 ^ P.s)) O W
     (Stmt (ZcX S F (P.m + P.κ)) F 0) O W (draw F) :=
   Component.sampleChallenge O F (fun _ ↦ true) (skipNext P)
+
+/-- `z_skip`, as a typed component. -/
+def skipDrawT : Typed.Def O (PointStmt S F P.nRand × Vector F (2 ^ P.s)) W
+    (Stmt (ZcX S F (P.m + P.κ)) F 0) W :=
+  Typed.sampleChallenge O F (fun _ ↦ true) (skipNext P)
 
 /-! ## The multilinear rounds -/
 
@@ -295,6 +304,11 @@ def termNext {n : ℕ} (s : Stmt (ZcX S F n) F n) (v : Vector F 2) : TermStmt S 
 def zcEnd : Component.Def (Stmt (ZcX S F (P.m + P.κ)) F (P.m + P.κ)) O W
     (TermStmt S F (P.m + P.κ)) O W (say (Vector F 2)) :=
   Component.sendChecked O _ (termHonest P C z) (fun _ _ ↦ true) termNext
+
+/-- The terminal values, as a typed component. -/
+def zcEndT : Typed.Def O (Stmt (ZcX S F (P.m + P.κ)) F (P.m + P.κ)) W (TermStmt S F (P.m + P.κ))
+    W :=
+  Typed.sendChecked O _ (termHonest P C z) (fun _ _ ↦ true) termNext
 
 /-- After the zerocheck: the side condition, the constant position's residual zero at the batch
 coordinates of `χ`, and the three values are the quirky extensions at `(z_skip, χ)`. -/

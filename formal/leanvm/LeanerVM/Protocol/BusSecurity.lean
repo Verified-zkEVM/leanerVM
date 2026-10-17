@@ -127,7 +127,32 @@ def challengeSecurity (h : Conditions I) :
     Component.card_badChallenge_le_of_unit _ _ _ _ s o fun hs ↦
       by exact card_afterChallenge_le h s o hs).mono fun _ ↦ by exact le_of_eq challenge_error_eq
 
+/-- The challenges' typed security half, at `4·2^{μ_bus}/|E|` (Theorem 5.1). -/
+def challengeSecurityT (h : Conditions I) :
+    Typed.Security (challengeStepT I) (Seam.commit I) (afterChallenge I)
+      (Typed.drawErrors _ (overE (4 * 2 ^ I.μBus))) :=
+  (Typed.sampleChallengeSecurity (4 * 2 ^ I.μBus * (2 ^ 192) ^ 4) fun s o _ ↦
+    Typed.card_badChallenge_le_of_unit _ s o fun hs ↦
+      by exact card_afterChallenge_le h s o hs).mono
+      (by exact ⟨le_of_eq challenge_error_eq, fun _ ↦ trivial⟩)
+
 /-! ## The roots -/
+
+/-- A root that passes the check `R_c ≠ 0` and is the product of its leaves makes every count
+cell nonzero, and one root for push and pull makes their products agree. -/
+theorem roots_reflect (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i) (w : Unit)
+    (r : E × E) (hc : decide (r.2 ≠ 0) = true)
+    (hout : (((x, ![r.1, r.1, r.2]), o), w) ∈ Gkr.relIn 3 I.μBus (leaves I) (riders I)) :
+    ((x, o), w) ∈ afterChallenge I := by
+  cases w
+  obtain ⟨hz, hroots⟩ := hout
+  obtain ⟨hcons, hl, ha⟩ := (ridersZero_iff h x o).mp hz
+  have h0 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 0)[i] := hroots 0
+  have h1 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 1)[i] := hroots 1
+  have h2 : r.2 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 2)[i] := hroots 2
+  have hnz : r.2 ≠ 0 := of_decide_eq_true hc
+  rw [h2] at hnz
+  exact ⟨h0.symm.trans h1, (prod_countLeaves_ne_zero_iff h _ _ _).mp hnz, hcons, hl, ha⟩
 
 /-- The roots' security half, at no error: a nonzero count root that is the product of its
 leaves makes every count cell nonzero, and one root for push and pull makes their products
@@ -135,18 +160,35 @@ agree. -/
 def rootsSecurity (h : Conditions I) :
     Component.Security (rootsStep I) (afterChallenge I)
       (Gkr.relIn 3 I.μBus (leaves I) (riders I)) (sayError _) :=
-  Component.sendCheckedSecurity _ _ _ _ _ fun x o w r hc hout ↦ by
-    cases w
-    obtain ⟨hz, hroots⟩ := hout
-    obtain ⟨hcons, hl, ha⟩ := (ridersZero_iff h x o).mp hz
-    have h0 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 0)[i] := hroots 0
-    have h1 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 1)[i] := hroots 1
-    have h2 : r.2 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 2)[i] := hroots 2
-    have hnz : r.2 ≠ 0 := of_decide_eq_true hc
-    rw [h2] at hnz
-    exact ⟨h0.symm.trans h1, (prod_countLeaves_ne_zero_iff h _ _ _).mp hnz, hcons, hl, ha⟩
+  Component.sendCheckedSecurity _ _ _ _ _ (roots_reflect h)
+
+/-- The roots' typed security half, at no error. -/
+def rootsSecurityT (h : Conditions I) :
+    Typed.Security (rootsStepT I) (afterChallenge I)
+      (Gkr.relIn 3 I.μBus (leaves I) (riders I)) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity (roots_reflect h)
 
 /-! ## The boundary values -/
+
+/-- The boundary claims force the values sent, the forms summing to the totals then force the
+leaf claims, and the zerocheck clause the riders' vanishing. -/
+theorem values_reflect (h : Conditions I) (ℓ : Gkr.LayerStmt (Data I) E 3 I.μBus)
+    (o : ∀ i, TheOracle I i) (w : Unit) (vals : Vector E I.busClaims)
+    (_ : (fun (_ : Gkr.LayerStmt (Data I) E 3 I.μBus) (_ : Vector E I.busClaims) ↦ true) ℓ vals
+      = true)
+    (hout : (((ℓ.1.1, busOut h ℓ vals), o), w) ∈ Seam.bus I) :
+    ((ℓ, o), w) ∈ Gkr.relOut 3 I.μBus (leaves I) (riders I) := by
+  cases w
+  obtain ⟨hzero, hforms, hclaims, hl, ha⟩ := hout
+  have hvals : ∀ i : Fin I.busClaims, vals[i] = eval₂Mle
+      (I.column (theStack o) I.boundaryColumns[i]).values (algebraMap K E)
+      (columnPoint h ℓ.2.1 i) := fun i ↦
+    (hclaims ⟨I.boundaryColumns[i], columnPoint h ℓ.2.1 i, vals[i]⟩
+      (by simp only [busOut, Vector.toList_ofFn, List.mem_ofFn]; exact ⟨i, rfl⟩)).symm
+  refine ⟨fun k ↦ (sum_forms_eq_total_iff h k _ _ _ _ _ _ hvals).mp (hforms k),
+    (riders_vanish_iff ℓ.1 o ℓ.2.1).mpr ⟨fun j hj C hC ↦ ?_, hl, ha⟩⟩
+  have := hzero ⟨j, Or.inl (List.ne_nil_of_mem hC)⟩ C hC
+  rwa [show (busOut h ℓ vals).point = point h ℓ.2.1 from rfl, lowPoint_point] at this
 
 /-- The values' security half, at no error: the boundary claims force the values sent, the forms
 summing to the totals then force the leaf claims, and the zerocheck clause the riders'
@@ -154,18 +196,13 @@ vanishing. -/
 def valuesSecurity (h : Conditions I) :
     Component.Security (valuesStep I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I))
       (Seam.bus I) (sayError _) :=
-  Component.sendCheckedSecurity _ _ _ _ _ fun ℓ o w vals _ hout ↦ by
-    cases w
-    obtain ⟨hzero, hforms, hclaims, hl, ha⟩ := hout
-    have hvals : ∀ i : Fin I.busClaims, vals[i] = eval₂Mle
-        (I.column (theStack o) I.boundaryColumns[i]).values (algebraMap K E)
-        (columnPoint h ℓ.2.1 i) := fun i ↦
-      (hclaims ⟨I.boundaryColumns[i], columnPoint h ℓ.2.1 i, vals[i]⟩
-        (by simp only [busOut, Vector.toList_ofFn, List.mem_ofFn]; exact ⟨i, rfl⟩)).symm
-    refine ⟨fun k ↦ (sum_forms_eq_total_iff h k _ _ _ _ _ _ hvals).mp (hforms k),
-      (riders_vanish_iff ℓ.1 o ℓ.2.1).mpr ⟨fun j hj C hC ↦ ?_, hl, ha⟩⟩
-    have := hzero ⟨j, Or.inl (List.ne_nil_of_mem hC)⟩ C hC
-    rwa [show (busOut h ℓ vals).point = point h ℓ.2.1 from rfl, lowPoint_point] at this
+  Component.sendCheckedSecurity _ _ _ _ _ (values_reflect h)
+
+/-- The values' typed security half, at no error. -/
+def valuesSecurityT (h : Conditions I) :
+    Typed.Security (valuesStepT I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I))
+      (Seam.bus I) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity (values_reflect h)
 
 end Bus
 

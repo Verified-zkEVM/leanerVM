@@ -10,6 +10,7 @@ module
 
 public import LeanerVM.Protocol.ToArkLib.SampleChallenge
 public import LeanerVM.Protocol.ToCompPoly.PowerBatching
+public import LeanerVM.Protocol.ToArkLib.Typed.Batch
 
 /-!
 # Batching by powers
@@ -67,22 +68,7 @@ def batchSecurity
         a ≠ value s ∧ powerBatch (value s) ρ = powerBatch a ρ) :
     Security (batch O F value out) relIn relOut
       (drawError F (((k - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
-  sampleChallengeSecurity O F _ _ (k - 1) fun s o _ ↦ by
-    have := Fintype.ofFinite F
-    classical
-    rw [natCard_subtype_eq_card_filter]
-    obtain ⟨a, ha⟩ := h s o
-    by_cases hgood : ∃ ρ w, ((s, o), w) ∉ relIn ∧
-        ((out s ρ (powerBatch (value s) ρ), o), w) ∈ relOut
-    · obtain ⟨ρ₀, w₀, hin₀, hρ₀⟩ := hgood
-      refine (Finset.card_le_card fun ρ hρ ↦ ?_).trans
-        (card_false_batch_le (value s) a (Function.ne_iff.mp (ha w₀ ρ₀ hin₀ hρ₀).1.symm))
-      obtain ⟨w', hw', hout⟩ := (Finset.mem_filter.mp hρ).2
-      exact Finset.mem_filter.mpr ⟨Finset.mem_univ _, (ha w' ρ hw' hout).2⟩
-    · refine le_trans (le_of_eq ?_) (Nat.zero_le _)
-      rw [Finset.card_eq_zero, Finset.filter_eq_empty_iff]
-      rintro ρ - ⟨w', hw', hout⟩
-      exact hgood ⟨ρ, w', hw', hout⟩
+  sampleChallengeSecurity O F _ _ (k - 1) fun s o _ ↦ Typed.card_badBatch_le (O := O) s o (h s o)
 
 end Component
 

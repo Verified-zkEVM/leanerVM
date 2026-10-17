@@ -91,7 +91,7 @@ theorem ring_hOut_gen {I : M3Instance} (r : FlockRegion I.toShape) (h : I.flock 
 
 /-- The last coefficient's security, at the instance's region (`ringFinalSecurity`). -/
 noncomputable def ringFinalSec :=
-  Flock.ringFinalSecurity (fP F prog s) (fz F prog s) (fside F prog s) 5 (algebraMap K E) g
+  Flock.ringFinalSecurityT (fP F prog s) (fz F prog s) (fside F prog s) 5 (algebraMap K E) g
     (FlockPhase.lift (fR F prog s))
     (fun o ↦ ((fI F prog s).flockColumn (fR F prog s) (theStack o)).values)
     (fun o ↦ (theStack o).values) (FlockPhase.finish (fR F prog s) (fR_eq F prog s))
@@ -117,7 +117,7 @@ theorem ring_escape (pt sv acc : List E) (q : Column layout.stackLog)
             acc.length := fun h ↦ hq (by
         simp only [RingAlive, show acc.length ≤ 5 from hp.le, ↓reduceIte]
         exact ⟨hG, h⟩)
-      have h := sample_escape (Flock.ringDrawSecurity (fP F prog s) (fz F prog s)
+      have h := sample_escape (Flock.ringDrawSecurityT (fP F prog s) (fz F prog s)
         (fside F prog s) 5 (algebraMap K E) g acc.length (by omega)) _ _ hin rfl
       rw [← overF_eq_overE]
       refine (avgE_mono fun c ↦ indE_mono fun hc ↦ ?_).trans h

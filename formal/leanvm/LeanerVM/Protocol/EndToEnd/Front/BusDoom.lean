@@ -8,25 +8,29 @@
 
 module
 
-public import LeanerVM.Protocol.EndToEnd.Front.BusComponent
+public import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
+public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
 public import VCVio.OracleComp.Constructions.SampleableType.Measure
 public import LeanerVM.Protocol.Field
 
 /-!
 # Doom on a relation
 
-A front phase's security is appended from one-round components, each between two relations on
-`(statement, oracles)`. The verifier program carries the statement in its variables (the GKR
-state, the sumcheck's claim and point), so its doom after a sub-program can be stated on the
-component's relation: `RelDoom C R x`, no oracle `o` of the candidate set `C` has
-`((x, o), ()) ∈ R`. A prover message keeps it (`Security.say_in_of_out`), and a challenge escapes
-it, over the candidates, with probability at most `|C|` times the component's error
-(`draw_escape_le`): the count of bad challenges that `Spec.sampleE` asks for.
+A front phase's security is appended from one-round components on ArkLib's typed framework, a
+checked message (`Typed.sendChecked`) or a checked challenge (`Typed.sampleChallenge`), each
+between two relations on `(statement, oracles)`. The verifier program carries the statement in
+its variables (the GKR state, the sumcheck's claim and point), so its doom after a sub-program can
+be stated on the component's relation: `RelDoom C R x`, no oracle `o` of the candidate set `C` has
+`((x, o), ()) ∈ R`. A prover message that passes its check keeps it (`say_keep`, from any
+security of the message by `Typed.sendChecked_reflect`), and a challenge escapes it, over the
+candidates, with probability at most `|C|` times the component's error (`draw_escape_le`, from
+any security of the challenge by `Typed.sample_escape`): the count of bad challenges that
+`Spec.sampleE` asks for.
 -/
 
 namespace LeanerVM.Protocol.EndToEnd.Front
 
-open LeanerVM.Parameters LeanerVM.Protocol OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters LeanerVM.Protocol OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -76,53 +80,47 @@ theorem card_exists_le {β : Type} {C : Set β} (hfin : C.Finite) {L₀ : ℕ} (
 
 section Say
 
-variable {S T : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)] {M : Type}
-  [∀ i, OracleInterface ((say M).Message i)] [∀ i, SampleableType ((say M).Challenge i)]
-  {D : Component.Def S O Unit T O Unit (say M)}
+variable {S T : Type} {ι : Type} {O : ι → Type} {M : Type} {honest : (S × ∀ i, O i) × Unit → M}
+  {chk : S → M → Bool} {f : S → M → T}
   {relIn : Set ((S × ∀ i, O i) × Unit)} {relOut : Set ((T × ∀ i, O i) × Unit)}
-  {ε : (say M).ChallengeIdx → ℝ≥0}
+  {err : Typed.Errors (Typed.sayTree M) (Typed.sayRoles M)}
 
 /-- **A checked message keeps doom**: a message that passes the check carries a doomed statement
 to a doomed statement. -/
-theorem say_keep (Sec : Component.Security D relIn relOut ε) (F : Component.Front D)
-    (chk : S → M → Bool) (f : S → M → T) (hc : ∀ s m, F.check s (sayTr m) = chk s m)
-    (ho : ∀ s m, F.out s (sayTr m) = f s m) {C : Set (∀ i, O i)} {s : S}
-    (hpre : RelDoom C relIn s) (m : M) (hchk : chk s m = true) : RelDoom C relOut (f s m) :=
-  fun o ho' hout ↦ hpre o ho' (Security.say_in_of_out Sec F s o m (by rw [hc]; exact hchk)
-    (by rw [ho]; exact hout))
+theorem say_keep (Sec : Typed.Security (Typed.sendChecked O M honest chk f) relIn relOut err)
+    {C : Set (∀ i, O i)} {s : S} (hpre : RelDoom C relIn s) (m : M) (hchk : chk s m = true) :
+    RelDoom C relOut (f s m) := fun o ho hout ↦ by
+  obtain ⟨w, hw⟩ := Typed.sendChecked_reflect Sec s o m hchk () hout
+  cases w
+  exact hpre o ho hw
 
 end Say
 
 section Draw
 
-variable {S T : Type} {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)]
-  {D : Component.Def S O Unit T O Unit (draw E)}
-  {relIn : Set ((S × ∀ i, O i) × Unit)} {relOut : Set ((T × ∀ i, O i) × Unit)}
-  {ε : (draw E).ChallengeIdx → ℝ≥0}
+variable {S T : Type} {ι : Type} {O : ι → Type} {chk : S → Bool} {f : S → E → T}
+  {relIn : Set ((S × ∀ i, O i) × Unit)} {relOut : Set ((T × ∀ i, O i) × Unit)} {e : ℝ≥0}
 
 open Classical in
 /-- **A challenge escapes doom** with probability at most `L₀` times the component's error, over
 at most `L₀` candidates: the challenges that pass the check and carry the statement into the
-output relation for some candidate. `chk` and `f` are the front verifier's check and verdict on
-a one-challenge transcript. -/
-theorem draw_escape_le (Sec : Component.Security D relIn relOut ε) (F : Component.Front D)
-    (chk : S → Bool) (f : S → E → T) (hc : ∀ s c, F.check s (drawTr c) = chk s)
-    (ho : ∀ s c, F.out s (drawTr c) = f s c) {C : Set (∀ i, O i)} (hfin : C.Finite) {L₀ : ℕ}
-    (hcard : C.ncard ≤ L₀) {s : S} (hpre : RelDoom C relIn s) (hchk : chk s = true) :
+output relation for some candidate. -/
+theorem draw_escape_le
+    (Sec : Typed.Security (Typed.sampleChallenge O E chk f) relIn relOut (Typed.drawErrors E e))
+    {C : Set (∀ i, O i)} (hfin : C.Finite) {L₀ : ℕ} (hcard : C.ncard ≤ L₀) {s : S}
+    (hpre : RelDoom C relIn s) (hchk : chk s = true) :
     (Fintype.card E : ℝ≥0∞)⁻¹ *
-        ((Finset.univ.filter fun c ↦ ¬ RelDoom C relOut (f s c)).card : ℝ≥0∞) ≤
-      L₀ * ε ⟨0, rfl⟩ := by
+        ((Finset.univ.filter fun c ↦ ¬ RelDoom C relOut (f s c)).card : ℝ≥0∞) ≤ L₀ * e := by
   classical
   have hev : (Finset.univ.filter fun c ↦ ¬ RelDoom C relOut (f s c)) =
       Finset.univ.filter fun c ↦ ∃ o ∈ C, ((f s c, o), ()) ∈ relOut := by
     ext c
     simp [RelDoom]
   rw [hev]
-  refine card_exists_le hfin hcard (fun o c ↦ ((f s c, o), ()) ∈ relOut) fun o ho' ↦ ?_
-  have h := Security.draw_prEvent_le Sec F s o (hpre o ho')
-  simp only [hc, ho, hchk, true_and] at h
+  refine card_exists_le hfin hcard (fun o c ↦ ((f s c, o), ()) ∈ relOut) fun o ho ↦ ?_
+  have h := Typed.sample_escape Sec s o (fun w hw ↦ by cases w; exact hpre o ho hw) hchk
   rw [← prEvent_uniform_E]
-  exact h
+  exact le_trans (prEvent_mono _ _ _ fun c hc ↦ ⟨(), hc⟩) h
 
 end Draw
 

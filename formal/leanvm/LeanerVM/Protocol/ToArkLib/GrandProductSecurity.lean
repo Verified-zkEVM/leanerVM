@@ -241,6 +241,24 @@ private theorem mem_rel_lambdaNext (T : RiderTrack μ riders ρ m) (hm : m + ρ 
   rw [T.inv_zero, partialSum_summand_zero nside μ leaves ρ m hm s o l]
   exact Iff.rfl
 
+omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- The combiner's batching hypothesis: a statement outside the relation has the levels' values
+as true values, fixed before the combiner, which a combiner landing in the family's first relation
+makes the combined claim's, and which differ from the claimed values. -/
+theorem lambda_batch (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+    {relS : Set ((S × ∀ i, O i) × Unit)}
+    (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m)
+    (s : S) (o : ∀ i, O i) :
+    ∃ a : Fin nside → F, ∀ w ρ', ((s, o), w) ∉ relS →
+      (((((inp s, ρ'), (#v[], powerBatch (inp s).2.2 ρ')) :
+          SumcheckRound.Stmt (LayerX X F nside m) F 0), o), w) ∈
+        SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 →
+        a ≠ (inp s).2.2 ∧ powerBatch (inp s).2.2 ρ' = powerBatch a ρ' :=
+  ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun w l hs hl ↦ by
+    cases w
+    obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
+    exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
+
 /-- The security half of the combiner at `(nside − 1) / |F|`, batching by powers, from a relation
 `inp` carries into the layer relation and back: a statement outside it has riders that are not
 zero, so no combiner lands in the family's first relation, or a wrong value, whose combination
@@ -251,10 +269,16 @@ def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     Component.Security (lambdaStep nside m inp) relS
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0)
       (drawError F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
-  Component.batchSecurity O F _ _ fun s o ↦
-    ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun _ l hs hl ↦ by
-      obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
-      exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
+  Component.batchSecurity O F _ _ (lambda_batch nside μ leaves riders ρ m inp T hm hinp)
+
+/-- The typed security half of the combiner at `(nside − 1) / |F|`. -/
+def lambdaSecurityT (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+    {relS : Set ((S × ∀ i, O i) × Unit)}
+    (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m) :
+    Typed.Security (lambdaStepT nside m inp) relS
+      (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0)
+      (Typed.drawErrors F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
+  Typed.batchSecurity (lambda_batch nside μ leaves riders ρ m inp T hm hinp)
 
 /-! ## The descendants -/
 
@@ -299,6 +323,15 @@ def childrenSecurity (T : RiderTrack μ riders ρ m) :
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) m)
       (childRelT nside μ leaves riders ρ m T 0) (sayError _) :=
   Component.sendCheckedSecurity O _ _ _ _ fun s o w ch hc hout ↦ by
+    cases w
+    exact combineCheck_sound nside μ leaves riders ρ m T s o ch hc hout
+
+/-- The typed security half of the descendants' message: no challenge. -/
+def childrenSecurityT (T : RiderTrack μ riders ρ m) :
+    Typed.Security (sendChildrenT nside μ leaves ρ m)
+      (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) m)
+      (childRelT nside μ leaves riders ρ m T 0) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity fun s o w ch hc hout ↦ by
     cases w
     exact combineCheck_sound nside μ leaves riders ρ m T s o ch hc hout
 

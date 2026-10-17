@@ -42,8 +42,9 @@ reads a candidate as a stack of the instance:
 The challenge escapes with average at most `L₀ · 1/|E|` (`pub_escape`) for at most `L₀`
 candidates: for each candidate satisfying the earlier claims, the phase's statement whose
 received claims are true of it (`trueStmt`) is outside the table seam, and the phase's
-round-by-round knowledge soundness (`PublicInput.rbr`) bounds by `1/|E|` the challenges at which
-its pool is in the public seam; a good challenge of the program makes it so (`good_imp_state`).
+round-by-round knowledge soundness on ArkLib's typed framework (`PublicInput.securityT`, its
+local bound at the challenge) bounds by `1/|E|` the challenges at which its pool is in the
+public seam; a good challenge of the program makes it so (`good_imp_state`).
 The phase makes no prover move, so its challenge joins the group of the challenges after it:
 the specification's lead is `L₀/|E|` plus the follower's.
 
@@ -235,7 +236,7 @@ theorem good_imp_state (hlayout : pubLayoutHyp F prog s layout toI)
 
 /-- **The challenge's escape.** Under `PubPre`, the average over the challenge of "the challenge is
 good" is at most `L₀ / |E|`, `L₀` bounding the number of candidates: per candidate, the phase's
-round-by-round knowledge soundness at `pubError = 1/|E|`, and the union bound. -/
+round-by-round knowledge soundness at the slot's error `1/|E|`, and the union bound. -/
 theorem pub_escape (hlayout : pubLayoutHyp F prog s layout toI)
     {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
     {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀) {h₀ : List Ev}
@@ -258,10 +259,10 @@ theorem pub_escape (hlayout : pubLayoutHyp F prog s layout toI)
         fun h ↦ hpre q hq ⟨hcl, h⟩
       refine (avgE_mono fun r ↦ indE_mono fun hP ↦ hP.2).trans ?_
       rw [avgE_indE_eq_prEvent]
-      refine le_trans (prEvent_mono _ _ _ fun r hr ↦ ⟨(), hnot, hr⟩)
-        (PublicInput.rbr (leanIsaInstance F prog s) (pure ())
-          (fun x ↦ x.elim) (trueStmt F prog s input (toI q), stackOracle F prog s (toI q))
-          ⟨0, rfl⟩ fun i ↦ Fin.elim0 i)
+      have hb := ((PublicInput.securityT (leanIsaInstance F prog s)).local_bound
+        (trueStmt F prog s input (toI q)) (stackOracle F prog s (toI q))).1
+      rw [_root_.RoundByRound.GameFamily.isBounded_iff] at hb
+      exact le_trans (prEvent_mono _ _ _ fun r hr ↦ ⟨(), hnot, hr⟩) (hb () ())
     · refine (avgE_mono fun r ↦ indE_mono (q := False) fun hP ↦ absurd hP.1 hcl).trans ?_
       refine (avgE_le_of_le fun r ↦ (indE_of_not not_false).le).trans ?_
       exact zero_le

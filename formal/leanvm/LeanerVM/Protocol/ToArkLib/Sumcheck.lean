@@ -210,6 +210,12 @@ def final (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n �
   Component.sendChecked O (Vector F m)
     (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) out
 
+/-- The values at the final point, as a typed component. -/
+def finalT (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T) :
+    Typed.Def O (SumcheckRound.Stmt X F n) W T W :=
+  Typed.sendChecked O (Vector F m)
+    (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) out
+
 /-- The schedule: `n` rounds of degree `d`, then the `m` values. -/
 abbrev spec (F : Type) (d n m : ℕ) : ProtocolSpec (roundsRounds n + 1) :=
   roundsSpec F d n ++ₚ say (Vector F m)
@@ -506,6 +512,24 @@ def roundsSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)
     (fun _ _ _ _ h ↦ (Nat.card_eq_zero.mpr (Or.inl ⟨fun x ↦ h x.2⟩)).trans_le (Nat.zero_le d))
     n 0 (Nat.zero_add n)
 
+omit [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [Subsingleton W] in
+/-- Values that pass the final check, for an output relation from which they are the tables'
+values at the final point and the side condition holds, make the running claim the summand at
+the point. -/
+theorem final_reflect {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w v, ((out s v, o), w) ∈ relOut' →
+      V.values ((s.1, o), w) s.2.1.reverse = v ∧ side ((s.1, o), w))
+    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W) (v : Vector F m)
+    (hc : finalCheck V s v = true) (hout : ((out s v, o), w) ∈ relOut') :
+    ((s, o), w) ∈ SumcheckRound.rel (family V wt nodes side) n := by
+  obtain ⟨hv, hside⟩ := h s o w v hout
+  rw [mem_rel_self V wt nodes side]
+  rw [finalCheck, decide_eq_true_eq] at hc
+  refine ⟨hside, ?_⟩
+  rw [← hc]
+  exact congrArg (V.formula s.1 s.2.1.reverse) hv.symm
+
 omit [BEq F] [LawfulBEq F] [SampleableType F] [Finite F] [Subsingleton W] in
 /-- The security half of the last message, at error zero, for an output map and an output
 relation from which the values sent are the tables' values at the final point and the side
@@ -517,13 +541,17 @@ def finalSecurity {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → 
       V.values ((s.1, o), w) s.2.1.reverse = v ∧ side ((s.1, o), w)) :
     Component.Security (final V out) (SumcheckRound.rel (family V wt nodes side) n) relOut'
       (sayError (Vector F m)) :=
-  Component.sendCheckedSecurity O (Vector F m) _ _ _ fun s o w v hc hout ↦ by
-    obtain ⟨hv, hside⟩ := h s o w v hout
-    rw [mem_rel_self V wt nodes side]
-    rw [finalCheck, decide_eq_true_eq] at hc
-    refine ⟨hside, ?_⟩
-    rw [← hc]
-    exact congrArg (V.formula s.1 s.2.1.reverse) hv.symm
+  Component.sendCheckedSecurity O (Vector F m) _ _ _ (final_reflect V wt nodes side out h)
+
+omit [BEq F] [LawfulBEq F] [SampleableType F] [Finite F] [Subsingleton W] in
+/-- The typed security half of the last message, at error zero. -/
+def finalSecurityT {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T)
+    {relOut' : Set ((T × ∀ i, O i) × W)}
+    (h : ∀ s o w v, ((out s v, o), w) ∈ relOut' →
+      V.values ((s.1, o), w) s.2.1.reverse = v ∧ side ((s.1, o), w)) :
+    Typed.Security (finalT V out) (SumcheckRound.rel (family V wt nodes side) n) relOut'
+      (Typed.sayErrors (Vector F m)) :=
+  Typed.sendCheckedSecurity (final_reflect V wt nodes side out h)
 
 /-- The security half of the sumcheck: round-by-round knowledge soundness at `d / |F|` per round,
 with the extractor that keeps the witness, when the summand has degree at most `d` in each

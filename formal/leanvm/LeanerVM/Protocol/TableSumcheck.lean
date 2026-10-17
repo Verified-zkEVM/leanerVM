@@ -190,6 +190,11 @@ def batchStep : Component.Def (I.Stmt × BusOut I) (TheOracle I) Unit
     (SumcheckRound.Stmt (Data I) E 0) (TheOracle I) Unit (draw E) :=
   Component.batch (TheOracle I) E (claimed I) (start I)
 
+/-- The batching challenge `ξ`, as a typed component. -/
+def batchStepT : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit
+    (SumcheckRound.Stmt (Data I) E 0) Unit :=
+  Typed.batch (TheOracle I) E (claimed I) (start I)
+
 /-- Four distinct points of `E`, at which the honest prover interpolates its cubic round
 polynomials. -/
 def nodes : Fin 4 → E := ![0, 1, y, y + 1]

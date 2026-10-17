@@ -13,6 +13,8 @@ module
 public import LeanerVM.Protocol.ToArkLib.SampleChallenge
 public import LeanerVM.Protocol.ToArkLib.SendChecked
 public import LeanerVM.Protocol.ToArkLib.PassThrough
+public import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
+public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
 public import CompPoly.Univariate.ToPoly.Impl
 
 /-!
@@ -228,6 +230,11 @@ def sendPoly : Component.Def (Stmt X F j) O W (MidStmt X F j d) O W (say (Messag
   Component.sendChecked O (Message F d) (fun p ↦ P (ctxOf p) j p.1.1.2.1) (fun _ _ ↦ true)
     (fun s q ↦ (s, q))
 
+/-- The message, as a typed component. -/
+def sendPolyT : Typed.Def O (Stmt X F j) W (MidStmt X F j d) W :=
+  Typed.sendChecked O (Message F d) (fun p ↦ P (ctxOf p) j p.1.1.2.1) (fun _ _ ↦ true)
+    (fun s q ↦ (s, q))
+
 variable [DecidableEq F] (wt : Weights F X)
 
 /-- The verifier's check: the weighted sum of the polynomial over the domain is the running
@@ -241,6 +248,11 @@ variable [SampleableType F]
 the challenge, and carries the polynomial's value there as the next claim. -/
 def drawChallenge : Component.Def (MidStmt X F j d) O W (Stmt X F (j + 1)) O W (draw F) :=
   Component.sampleChallenge O F (fun p ↦ check j wt p.1 p.2)
+    (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
+
+/-- The challenge, as a typed component. -/
+def drawChallengeT : Typed.Def O (MidStmt X F j d) W (Stmt X F (j + 1)) W :=
+  Typed.sampleChallenge O F (fun p ↦ check j wt p.1 p.2)
     (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
 
 /-- The round: the message, then the challenge. -/
@@ -280,6 +292,11 @@ def roundFront : Component.Front (round P j wt) :=
 def sendPolySecurity (Φ : Family F X O W d) :
     Component.Security (sendPoly Φ.poly j) (rel Φ j) (relMid Φ j) (sayError (Message F d)) :=
   Component.sendCheckedSecurity O (Message F d) _ _ _ fun _ _ _ _ _ h ↦ h.1
+
+/-- The typed security half of the message: no challenge, the polynomial recorded. -/
+def sendPolySecurityT (Φ : Family F X O W d) :
+    Typed.Security (sendPolyT Φ.poly j) (rel Φ j) (relMid Φ j) (Typed.sayErrors (Message F d)) :=
+  Typed.sendCheckedSecurity fun _ _ _ _ _ h ↦ h.1
 
 variable [Finite F] [Subsingleton W]
 
@@ -346,6 +363,13 @@ def drawChallengeSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m
     Component.Security (drawChallenge j Φ.weight) (relMid Φ j) (rel Φ (j + 1))
       (drawError F ((d : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
   Component.sampleChallengeSecurity O F _ _ d fun p o hc ↦ card_badChallenge_le j Φ H S hj p o hc
+
+/-- The typed security half of the challenge, at `d / |F|`. -/
+def drawChallengeSecurityT (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
+    (S : Φ.Sound m) (hj : j < m) :
+    Typed.Security (drawChallengeT (O := O) (W := W) (d := d) j Φ.weight) (relMid Φ j)
+      (rel Φ (j + 1)) (Typed.drawErrors F ((d : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
+  Typed.sampleChallengeSecurity d fun p o hc ↦ card_badChallenge_le j Φ H S hj p o hc
 
 /-- The security half of a round of a consistent, sound family: the message's then the
 challenge's, the error on the challenge. -/
