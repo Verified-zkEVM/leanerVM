@@ -180,6 +180,8 @@ jobs:
           use-mathlib-cache: auto
           axiom-audit: true
           axiom-audit-root: LeanerVM
+      - name: Check the Rust vectors' costly checks, compiled
+        run: lake exe node-vectors
       - name: Audit production and test axiom dependencies
         run: python3 scripts/test-axiom-audit.py
       - name: Elaborate the test root with warnings as errors

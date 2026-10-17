@@ -1,4 +1,4 @@
-import LeanerVM.Spec.Node
+import LeanerVMTests.Spec.NodeVectors
 
 /-!
 # The deferring verifier and the node's statement: inhabitants and the conditions doing the work
@@ -10,6 +10,11 @@ import LeanerVM.Spec.Node
   cannot tell apart (`statementDigest` carries no lengths).
 * `batch` on no children is inhabited; `verifyAggregate`'s vector-digest condition rejects a
   digest other than the root's.
+* The Rust vectors (`NodeVectors.lean`, written by `node_spec_vectors` in
+  `crates/rec_aggregation/src/aggregation/node_vectors.rs`): every encoding of the statement and
+  the DA commitment are the deployed ones. The batching of two children's true claims, the matrix
+  values and the DA vector digests take minutes in the interpreter, so `lake exe node-vectors`
+  (`cli/NodeVectors.lean`) checks them compiled.
 -/
 
 namespace LeanerVMTests.Spec.Node
@@ -57,5 +62,30 @@ example : ¬ ({ zeroClaim with bytecodePoint := List.replicate 4 0 }).Shaped byt
 def root : Digest := blake2sBytes []
 
 #guard LeanVM.Da.vectorDigest (LeanVM.Da.membershipVector root) != root
+
+/-! ## The Rust vectors -/
+
+#guard r1csDigest == NodeVectors.r1csDigest
+#guard NodeVectors.xmss.map (keyListDigest ·.keys) == NodeVectors.keyListDigests
+#guard sphincsListDigest NodeVectors.sphincs == NodeVectors.sphincsListDigest
+#guard signersDigest NodeVectors.xmss NodeVectors.sphincs == NodeVectors.signersDigest
+
+/-- The DA claims: each root with its vector digest. -/
+def daClaims : List DaClaim := NodeVectors.daRoots.zip NodeVectors.daVectorDigests
+
+#guard daListDigest daClaims == NodeVectors.daListDigest
+
+/-- The matrix of the first DA root, three rows of the Rust test's `da_symbol`. -/
+def daMatrix : List (List K) :=
+  (List.range 3).map fun i ↦ (List.range (2 ^ LeanVM.Da.logM)).map fun j ↦
+    K.ofBits ((i * 2 ^ LeanVM.Da.logM + j + 1) * 0x9e3779b97f4a7c15)
+
+#guard [LeanVM.Da.commitCodewords daMatrix] == NodeVectors.daRoots.take 1
+
+/-- The statement of these claims, deferring the batching's claim. -/
+def statement : NodeStatement :=
+  ⟨⟨NodeVectors.xmss, NodeVectors.sphincs, daClaims⟩, NodeVectors.batched⟩
+
+#guard statementDigest NodeVectors.seed statement == NodeVectors.statementDigest
 
 end LeanerVMTests.Spec.Node

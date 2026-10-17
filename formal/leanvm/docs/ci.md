@@ -15,7 +15,7 @@ Its steps, each named so that a failure stays legible:
 | Source and repository policy | `audit-lean.sh`, `check-repository.sh`, and the planted violations of `test-policy-checks.py` |
 | Imports and layers | `check-imports.sh` and `check-layers.sh`: the aggregate imports are complete and the architecture DAG holds |
 | Documentation | `check-docs.py`: no broken or unsafe local Markdown link |
-| Build and tests | lean-action's `lake build` and `lake test`, with its kernel axiom audit of `LeanerVM` |
+| Build and tests | lean-action's `lake build` and `lake test`, with its kernel axiom audit of `LeanerVM`, then `lake exe node-vectors`: the checks of the Rust vectors too costly to interpret |
 | Axioms and warnings | `test-axiom-audit.py` with its negative control, `tests/Main.lean` elaborated with warnings as errors, and `test-warning-policy.py` |
 | Rust-vs-Lean differential | `fuzz-verifier.py` on `tests/fixtures/verifier`: the Lean verifier and the containing commit's Rust verifier give the same verdict on every committed proof and on every mutation of it |
 

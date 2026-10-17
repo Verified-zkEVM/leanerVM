@@ -17,5 +17,6 @@ python3 ./scripts/test-warning-policy.py
 # every first-party elaboration warning, including imported leaves. See docs/dependencies.md.
 lake build
 lake test
+lake exe node-vectors
 python3 ./scripts/test-axiom-audit.py
 lake env lean -E warning tests/Main.lean
