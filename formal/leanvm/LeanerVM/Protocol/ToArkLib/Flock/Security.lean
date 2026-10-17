@@ -225,6 +225,15 @@ def pointDrawsSecurity (relIn : Set ((S × ∀ i, O i) × Unit))
       fun s o w h ↦ by cases w; exact hIn s o h
   | j + 1 => (pointDrawsSecurity relIn hIn hOut j).append (drawPointSecurity P C z side j)
 
+/-- The point's draws, typed. -/
+def pointDrawsSecurityT (relIn : Set ((S × ∀ i, O i) × Unit))
+    (hIn : ∀ s o, ((s, o), ()) ∈ relIn → (((s, #v[]), o), ()) ∈ pointRel P C z side 0)
+    (hOut : ∀ s o, (((s, #v[]), o), ()) ∈ pointRel P C z side 0 → ((s, o), ()) ∈ relIn) :
+    (j : ℕ) → Typed.Security (pointDrawsT (S := S) (F := F) (O := O) (W := Unit) j) relIn
+      (pointRel P C z side j) (Typed.drawsErrors F (overF F 1) j)
+  | 0 => Typed.passThroughSecurityOfIff fun s o ↦ ⟨hOut s o, hIn s o⟩
+  | j + 1 => (pointDrawsSecurityT relIn hIn hOut j).append (drawPointSecurityT P C z side j)
+
 /-! ## The univariate skip -/
 
 /-- The skip message checks nothing: the next relation contains the point's. -/
@@ -232,6 +241,12 @@ def skipMsgSecurity :
     Component.Security (skipMsg P C z (S := S) (W := Unit)) (pointRel P C z side P.nRand)
       (skipRel P C z side) (sayError _) :=
   Component.sendCheckedSecurity O _ _ _ _ fun _ _ _ _ _ h ↦ h.1
+
+/-- The skip message, typed. -/
+def skipMsgSecurityT :
+    Typed.Security (skipMsgT P C z (S := S) (O := O) (W := Unit)) (pointRel P C z side P.nRand)
+      (skipRel P C z side) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity fun _ _ _ _ _ h ↦ h.1
 
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] in
 /-- The zerocheck's first claim is `P` at `z_skip`. -/
@@ -361,6 +376,25 @@ def zcRoundsHighSecurity :
   roundsSecurity (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side).toConsistent
     (zcFamily_sound P C z side) P.κ P.m rfl
 
+/-- The rounds on the within-block coordinates, typed. -/
+def zcRoundsLowSecurityT :
+    Typed.Security (zcRoundsLowT P C z side (O := O) (W := Unit))
+      (rel (zcFamily P C z side) 0) (rel (zcFamily P C z side) P.m)
+      (Typed.roundsErrors F 2 (overF F 2) P.m) :=
+  roundsSecurityT (zcFamily P C z side) P.m
+    { check := fun ctx j c hj ↦ (zcFamily_honest P C z side).check ctx j c (by omega)
+      next := fun ctx j c x hj ↦ (zcFamily_honest P C z side).next ctx j c x (by omega) }
+    (fun ctx j c hj ↦ zcFamily_sound P C z side ctx j c (by omega))
+    P.m 0 (Nat.zero_add _)
+
+/-- The rounds on the batch coordinates, typed. -/
+def zcRoundsHighSecurityT :
+    Typed.Security (zcRoundsHighT P C z side (O := O) (W := Unit))
+      (rel (zcFamily P C z side) P.m) (rel (zcFamily P C z side) (P.m + P.κ))
+      (Typed.roundsErrors F 2 (overF F 2) P.κ) :=
+  roundsSecurityT (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side).toConsistent
+    (zcFamily_sound P C z side) P.κ P.m rfl
+
 omit [DecidableEq F] [∀ i, OracleInterface (O i)] [SampleableType F] [Finite F] in
 /-- The reflection behind `zcEndSecurity`. -/
 theorem zcEnd_reflect (s : Stmt (ZcX S F (P.m + P.κ)) F (P.m + P.κ)) (o : ∀ i, O i) (w : Unit)
@@ -486,6 +520,14 @@ def linRoundsSecurity :
       (rel (linFamily P C z side) 0) (rel (linFamily P C z side) P.m)
       (roundsError F 2 (overF F 2) P.m) :=
   roundsSecurity (linFamily P C z side) P.m (linFamily_honest P C z side).toConsistent
+    (linFamily_sound P C z side) P.m 0 (Nat.zero_add _)
+
+/-- The lincheck's rounds, typed. -/
+def linRoundsSecurityT :
+    Typed.Security (linRoundsT P C z side (O := O) (W := Unit))
+      (rel (linFamily P C z side) 0) (rel (linFamily P C z side) P.m)
+      (Typed.roundsErrors F 2 (overF F 2) P.m) :=
+  roundsSecurityT (linFamily P C z side) P.m (linFamily_honest P C z side).toConsistent
     (linFamily_sound P C z side) P.m 0 (Nat.zero_add _)
 
 omit [∀ i, OracleInterface (O i)] [SampleableType F] [Finite F] in
@@ -648,6 +690,23 @@ def ringStartSecurity
       simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
       simp⟩
 
+/-- With no stage, typed. -/
+def ringStartSecurityT
+    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
+      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
+    Typed.Security (ringDrawsT P (S := S) (O := O) (W := Unit) 0) (outRel P z side)
+      (ringRel P z side s' φ g 0) (Typed.drawsErrors F (overF F 1) 0) :=
+  Typed.passThroughSecurity fun st o _ ↦
+    ⟨fun h ↦ ⟨h.1, fun i ↦ by
+      have herr := hinj _ (fun k hk ↦ h.2 k (by simpa using hk)) i
+      simp only [ringStages, List.ofFn_zero, frobMap, sliceError, sub_eq_zero] at herr
+      exact herr⟩,
+    fun h ↦ ⟨h.1, fun k _ ↦ by
+      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
+        rw [sliceError, h.2 i, sub_self]
+      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
+      simp⟩⟩
+
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [CharP F 2] in
 /-- Before the last stage the `π`s run below `2 · 2 ^ (s' - p)`. -/
 private theorem two_pow_succ_sub {p : ℕ} (hp : p ≤ s') : 2 ^ (s' + 1 - p) = 2 * 2 ^ (s' - p) := by
@@ -703,6 +762,17 @@ def ringDrawsSecurity
   | 0, _ => ringStartSecurity P z side s' φ g hinj
   | p + 1, hp =>
     (ringDrawsSecurity hinj p (by omega)).append (ringDrawSecurity P z side s' φ g p (by omega))
+
+/-- The first `p` coefficients, typed. -/
+def ringDrawsSecurityT
+    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
+      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
+    (p : ℕ) → p ≤ s' →
+      Typed.Security (ringDrawsT P (S := S) (O := O) (W := Unit) p) (outRel P z side)
+        (ringRel P z side s' φ g p) (Typed.drawsErrors F (overF F 1) p)
+  | 0, _ => ringStartSecurityT P z side s' φ g hinj
+  | p + 1, hp =>
+    (ringDrawsSecurityT hinj p (by omega)).append (ringDrawSecurityT P z side s' φ g p (by omega))
 
 variable {μ : ℕ} (lift : Vector F (P.m + P.κ) → Vector F μ)
   (col : (∀ i, O i) → CMlPolynomialEval K (P.m + P.κ))
@@ -802,6 +872,22 @@ def ringSwitchSecurity {StmtOut : Type} (finish : S → Weight F μ → F → St
   (ringDrawsSecurity P z side s' φ g hinj s' le_rfl).append
     (ringFinalSecurity P z side s' φ g lift col stack finish relOut hOut hcell hbool hread)
 
+/-- Ring switching, typed. -/
+def ringSwitchSecurityT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
+    (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
+    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
+      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0)
+    (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
+      side sIn o ∧ Wt.pair φ (stack o) = T)
+    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
+      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
+    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
+    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
+    Typed.Security (ringSwitchT P s' φ g lift finish (O := O) (W := Unit)) (outRel P z side)
+      relOut (Typed.drawsErrors F (overF F 1) (s' + 1)) :=
+  (ringDrawsSecurityT P z side s' φ g hinj s' le_rfl).append
+    (ringFinalSecurityT P z side s' φ g lift col stack finish relOut hOut hcell hbool hread)
+
 /-! ## The argument -/
 
 omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [CharP F 2] in
@@ -853,6 +939,52 @@ def flockSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut
     (alphaDrawSecurity P C z side) |>.append (linRoundsSecurity P C z side) |>.append
     (linEndSecurity P C z side) |>.append
     (ringSwitchSecurity P z side s' φ g lift col stack finish relOut hinj hOut hcell hbool hread)
+
+/-- The typed errors of the Flock argument, challenge by challenge, as `flockError`. -/
+noncomputable abbrev flockErrorsT :
+    Typed.Errors (flockSlot F P.s P.m P.κ P.nRand s').tree (flockSlot F P.s P.m P.κ P.nRand s').roles :=
+  Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.drawsErrors F (overF F 1) P.nRand) (Typed.sayErrors _))
+    (Typed.drawErrors F (overF F (2 ^ P.s + 2 ^ P.s - 1)))) (Typed.roundsErrors F 2 (overF F 2) P.m))
+    (Typed.roundsErrors F 2 (overF F 2) P.κ)) (Typed.sayErrors _)) (Typed.drawErrors F (overF F 3)))
+    (Typed.roundsErrors F 2 (overF F 2) P.m)) (Typed.sayErrors _))
+    (Typed.drawsErrors F (overF F 1) (s' + 1))
+
+/-- **Knowledge soundness of the Flock argument on the typed framework**, at `flockErrorsT`. -/
+def flockSecurityT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
+    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
+    (hfixed : ∀ c : Fin (2 ^ P.nFix) → F, (∀ v, c v = 0 ∨ c v = 1) →
+      ∑ v, (lagrangeBasis P.fixed)[v] * c v = 0 → ∀ v, c v = 0)
+    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
+      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0)
+    (relIn : Set ((S × ∀ i, O i) × Unit)) (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
+    (hIn : ∀ s o, ((s, o), ()) ∈ relIn ↔ side s o ∧ BatchHolds C P.cpos (z o))
+    (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
+      side sIn o ∧ Wt.pair φ (stack o) = T)
+    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
+      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
+    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
+    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
+    Typed.Security (flockT P C z side s' φ g lift finish (W := Unit)) relIn relOut
+      (flockErrorsT P s') :=
+  (pointDrawsSecurityT P C z side relIn
+      (fun s o h ↦ by
+        obtain ⟨hside, hholds⟩ := (hIn s o).mp h
+        obtain ⟨herr, hconst⟩ := (batchHolds_iff C P.cpos (z o)).mp hholds
+        refine ⟨hside, fun i b ↦ ?_, hconst⟩
+        rw [evalMle_eq_sum]
+        exact Finset.sum_eq_zero fun u _ ↦ by rw [herr i u, zero_mul])
+      (fun s o h ↦ (hIn s o).mpr ⟨h.1, (batchHolds_iff C P.cpos (z o)).mpr ⟨fun i u ↦
+        eq_zero_of_restrictedZero_fixed P hfixed _ (isBool_errTable C (hbool o) i) (h.2.1 i) u,
+        h.2.2⟩⟩)
+      P.nRand).append (skipMsgSecurityT P C z side) |>.append
+    (skipDrawSecurityT P C z side hnodes) |>.append (zcRoundsLowSecurityT P C z side) |>.append
+    (zcRoundsHighSecurityT P C z side) |>.append (zcEndSecurityT P C z side) |>.append
+    (alphaDrawSecurityT P C z side) |>.append (linRoundsSecurityT P C z side) |>.append
+    (linEndSecurityT P C z side) |>.append
+    (ringSwitchSecurityT P z side s' φ g lift col stack finish relOut hinj hOut hcell hbool hread)
 
 end Ring
 

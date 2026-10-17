@@ -153,6 +153,20 @@ def flock : Component.Def S O W StmtOut O W (flockSchedule F P.s P.m P.κ P.nRan
     (alphaDraw P) |>.append (linRounds P C z side) |>.append (linEnd P C z) |>.append
     (ringSwitch P s' φ g lift finish)
 
+/-- The typed slot of a Flock argument. -/
+abbrev flockSlot (F : Type) [SampleableType F] (s m κ nRand s' : ℕ) : Typed.Slot :=
+  (((((((((Typed.drawsSlot F nRand).append (Typed.saySlot (Vector F (2 ^ s)))).append
+    (Typed.drawSlot F)).append (Typed.roundsSlot F 2 m)).append (Typed.roundsSlot F 2 κ)).append
+    (Typed.saySlot (Vector F 2))).append (Typed.drawSlot F)).append (Typed.roundsSlot F 2 m)).append
+    (Typed.saySlot (Vector F (2 ^ s)))).append (Typed.drawsSlot F (s' + 1))
+
+/-- The Flock argument as one typed component. -/
+def flockT : Typed.Def O S W StmtOut W (flockSlot F P.s P.m P.κ P.nRand s') :=
+  (pointDrawsT P.nRand).append (skipMsgT P C z) |>.append (skipDrawT P) |>.append
+    (zcRoundsLowT P C z side) |>.append (zcRoundsHighT P C z side) |>.append (zcEndT P C z) |>.append
+    (alphaDrawT P) |>.append (linRoundsT P C z side) |>.append (linEndT P C z) |>.append
+    (ringSwitchT P s' φ g lift finish)
+
 /-- The point's draws read only the transcript. -/
 def pointDrawsFront : (j : ℕ) → Component.Front (pointDraws (S := S) (F := F) (O := O) (W := W) j)
   | 0 => Component.passThroughFront O _
@@ -203,6 +217,32 @@ def flockComplete
     (alphaDrawComplete P C z side) |>.append (linRoundsComplete P C z side) |>.append
     (linEndComplete P C z side) |>.append
     (ringSwitchComplete P z side s' φ g lift col stack finish relOut hout hcell hbool hread)
+
+omit [∀ i, OracleInterface (O i)] in
+/-- **Completeness of the Flock argument on the typed framework.** -/
+theorem flockCompleteT
+    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
+    (relIn : Set ((S × ∀ i, O i) × W)) (relOut : Set ((StmtOut × ∀ i, O i) × W))
+    (hIn : ∀ s o w, ((s, o), w) ∈ relIn → side s o ∧ BatchHolds C P.cpos (z o))
+    (hout : ∀ sIn o w (Wt : Weight F μ) T, side sIn o → Wt.pair φ (stack o) = T →
+      ((finish sIn Wt T, o), w) ∈ relOut)
+    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
+      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
+    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
+    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
+    Typed.Complete (flockT P C z side s' φ g lift finish (W := W)) relIn relOut :=
+  (pointDrawsCompleteT P C z side relIn (fun s o w h ↦ by
+      obtain ⟨hside, hholds⟩ := hIn s o w h
+      obtain ⟨herr, hconst⟩ := (batchHolds_iff C P.cpos (z o)).mp hholds
+      refine ⟨hside, fun i b ↦ ?_, hconst⟩
+      rw [evalMle_eq_sum]
+      exact Finset.sum_eq_zero fun u _ ↦ by rw [herr i u, zero_mul])
+    P.nRand).append (skipMsgCompleteT P C z side) |>.append
+    (skipDrawCompleteT P C z side hnodes) |>.append (zcRoundsLowCompleteT P C z side) |>.append
+    (zcRoundsHighCompleteT P C z side) |>.append (zcEndCompleteT P C z side) |>.append
+    (alphaDrawCompleteT P C z side) |>.append (linRoundsCompleteT P C z side) |>.append
+    (linEndCompleteT P C z side) |>.append
+    (ringSwitchCompleteT P z side s' φ g lift col stack finish relOut hout hcell hbool hread)
 
 end
 

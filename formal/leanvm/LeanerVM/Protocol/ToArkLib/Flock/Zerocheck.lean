@@ -337,6 +337,106 @@ def zcEndComplete :
     simp only [zcFamily, partialSum_self, prodSub]
     ring⟩
 
+
+/-! ## On the typed framework -/
+
+/-- The first `j` drawn coordinates of the point, as a typed component. -/
+def pointDrawsT : (j : ℕ) → Typed.Def O S W (PointStmt S F j) W (Typed.drawsSlot F j)
+  | 0 => Typed.passThrough O fun s ↦ (s, #v[])
+  | j + 1 => (pointDrawsT j).append (drawPointT j)
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of one coordinate. -/
+theorem drawPointCompleteT (j : ℕ) :
+    Typed.Complete (drawPointT (O := O) (W := W) (S := S) (F := F) j)
+      (pointRel P C z side j) (pointRel P C z side (j + 1)) :=
+  Typed.sampleChallengeComplete fun _ _ _ h ↦ ⟨rfl, fun x ↦ ⟨h.1, fun i ↦ by
+    simp only [P.pointPartial_push]
+    exact restrictedZero_update_of_none (h.2.1 i) (P.pointPartial_next _) x, h.2.2⟩⟩
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the point's draws. -/
+theorem pointDrawsCompleteT (relIn : Set ((S × ∀ i, O i) × W))
+    (hIn : ∀ s o w, ((s, o), w) ∈ relIn → (((s, #v[]), o), w) ∈ pointRel P C z side 0) :
+    (j : ℕ) → Typed.Complete (pointDrawsT j) relIn (pointRel P C z side j)
+  | 0 => Typed.passThroughComplete hIn
+  | j + 1 => (pointDrawsCompleteT relIn hIn j).append (drawPointCompleteT P C z side j)
+
+/-- The skip message, as a typed component. -/
+def skipMsgT : Typed.Def O (PointStmt S F P.nRand) W (PointStmt S F P.nRand × Vector F (2 ^ P.s))
+    W (Typed.saySlot (Vector F (2 ^ P.s))) :=
+  Typed.sendChecked O _ (skipHonest P C z) (fun _ _ ↦ true) fun s msg ↦ (s, msg)
+
+omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the skip message. -/
+theorem skipMsgCompleteT :
+    Typed.Complete (skipMsgT P C z (S := S) (W := W)) (pointRel P C z side P.nRand)
+      (skipRel P C z side) :=
+  Typed.sendCheckedComplete fun _ _ _ h ↦ ⟨rfl, h, rfl⟩
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of `z_skip`. -/
+theorem skipDrawCompleteT
+    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j]) :
+    Typed.Complete (skipDrawT P (S := S) (O := O) (W := W)) (skipRel P C z side)
+      (rel (zcFamily P C z side) 0) :=
+  Typed.sampleChallengeComplete fun s o w h ↦ ⟨rfl, fun Y ↦ by
+    obtain ⟨⟨hside, hres, hconst⟩, hmsg⟩ := h
+    refine ⟨⟨hside, ?_⟩, ?_⟩
+    · show RestrictedZero _ (Partial.ofSuffix P.m (#v[] : Vector F 0))
+      rw [Partial.ofSuffix_of_le _ _ (Nat.zero_le _), restrictedZero_empty_iff]
+      exact hconst
+    · show skipClaim P.nodes s.2 Y = partialSum _ (P.point s.1.2) 0 #v[]
+      have hzero : ∀ i, evalMle (errTable C (z o) i) (P.point s.1.2) = 0 := fun i ↦
+        (restrictedZero_of_all _ _ _ (P.pointPartial_all s.1.2)).mp (hres i)
+      rw [hmsg, skipHonest, skipClaim_skipMessage P.nodes hnodes C (z o) _ hzero,
+        partialSum_zero, pValue_eq]
+      rfl⟩
+
+/-- The rounds on the within-block coordinates, as a typed component. -/
+def zcRoundsLowT : Typed.Def O (Stmt (ZcX S F (P.m + P.κ)) F 0) W
+    (Stmt (ZcX S F (P.m + P.κ)) F P.m) W (Typed.roundsSlot F 2 P.m) :=
+  roundsT (zcFamily P C z side (W := W)).poly (zcFamily P C z side (W := W)).weight P.m P.m 0
+    (Nat.zero_add _)
+
+/-- The rounds on the batch coordinates, as a typed component. -/
+def zcRoundsHighT : Typed.Def O (Stmt (ZcX S F (P.m + P.κ)) F P.m) W
+    (Stmt (ZcX S F (P.m + P.κ)) F (P.m + P.κ)) W (Typed.roundsSlot F 2 P.κ) :=
+  roundsT (zcFamily P C z side (W := W)).poly (zcFamily P C z side (W := W)).weight (P.m + P.κ)
+    P.κ P.m rfl
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the rounds on the within-block coordinates. -/
+theorem zcRoundsLowCompleteT :
+    Typed.Complete (zcRoundsLowT P C z side (O := O) (W := W))
+      (rel (zcFamily P C z side) 0) (rel (zcFamily P C z side) P.m) :=
+  roundsCompleteT (zcFamily P C z side) P.m
+    { check := fun ctx j c hj ↦ (zcFamily_honest P C z side).check ctx j c (by omega)
+      next := fun ctx j c x hj ↦ (zcFamily_honest P C z side).next ctx j c x (by omega)
+      inv_push := fun ctx j c x hj ↦ (zcFamily_honest P C z side).inv_push ctx j c x (by omega) }
+    P.m 0 (Nat.zero_add _)
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the rounds on the batch coordinates. -/
+theorem zcRoundsHighCompleteT :
+    Typed.Complete (zcRoundsHighT P C z side (O := O) (W := W))
+      (rel (zcFamily P C z side) P.m) (rel (zcFamily P C z side) (P.m + P.κ)) :=
+  roundsCompleteT (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side) P.κ P.m rfl
+
+omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the terminal message. -/
+theorem zcEndCompleteT :
+    Typed.Complete (zcEndT P C z (S := S) (O := O) (W := W))
+      (rel (zcFamily P C z side) (P.m + P.κ)) (termRel P C z side) :=
+  Typed.sendCheckedComplete fun s o w h ↦ ⟨rfl, by
+    obtain ⟨⟨hside, hconst⟩, hclaim⟩ := h
+    refine ⟨hside, hconst, rfl, rfl, ?_⟩
+    show evalMle (zcC P z o s.1.2.2) s.2.1 =
+      evalMle (zcA P C z o s.1.2.2) s.2.1 * evalMle (zcB P C z o s.1.2.2) s.2.1 - s.2.2
+    rw [hclaim]
+    simp only [zcFamily, partialSum_self, prodSub]
+    ring⟩
+
 end
 
 end Flock

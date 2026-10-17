@@ -101,6 +101,13 @@ def ringDraws : (p : ℕ) →
   | 0 => Component.passThrough O fun st ↦ (st, #v[])
   | p + 1 => (ringDraws p).append (ringDraw P p)
 
+/-- The first `p` coefficients, as a typed component. -/
+def ringDrawsT : (p : ℕ) →
+    Typed.Def O (OutStmt S F (P.m + P.κ) P.s) W (RingStmt S F (P.m + P.κ) P.s p) W
+      (Typed.drawsSlot F p)
+  | 0 => Typed.passThrough O fun st ↦ (st, #v[])
+  | p + 1 => (ringDrawsT p).append (ringDrawT P p)
+
 variable {μ : ℕ} (lift : Vector F (P.m + P.κ) → Vector F μ)
 
 /-- The weight of the switched claim: `Σ_{(c, e)} c · eq(lift(r'^(2^e)), ·)` over the terms of the
@@ -131,6 +138,11 @@ def ringFinalT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
 def ringSwitch {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
     Component.Def (OutStmt S F (P.m + P.κ) P.s) O W StmtOut O W (draws F (s' + 1)) :=
   (ringDraws P s').append (ringFinal P s' φ g lift finish)
+
+/-- Ring switching, as a typed component. -/
+def ringSwitchT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
+    Typed.Def O (OutStmt S F (P.m + P.κ) P.s) W StmtOut W (Typed.drawsSlot F (s' + 1)) :=
+  (ringDrawsT P s').append (ringFinalT P s' φ g lift finish)
 
 /-! ## Completeness -/
 
@@ -264,6 +276,60 @@ def ringSwitchComplete {StmtOut : Type} (finish : S → Weight F μ → F → St
       relOut :=
   (ringDrawsComplete P z side s' φ g s' le_rfl).append
     (Component.sampleChallengeComplete O F _ _ fun st o w h ↦ ⟨rfl, fun x ↦
+      hout _ _ _ _ _ h.1 (pair_ringWeight_eq_ringTarget P z s' φ g lift col stack hcell hbool
+        hread o st.1 st.2 x (h.2 0 (by simp)) (h.2 1 (by simp)))⟩)
+
+
+/-! ## Completeness on the typed framework -/
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of one coefficient. -/
+theorem ringDrawCompleteT (p : ℕ) (hp : p ≤ s') :
+    Typed.Complete (ringDrawT P (S := S) (O := O) (W := W) p) (ringRel P z side s' φ g p)
+      (ringRel P z side s' φ g (p + 1)) :=
+  Typed.sampleChallengeComplete fun st o w h ↦ ⟨rfl, fun x ↦ ⟨h.1, fun k hk ↦ by
+    show frobPair _ _ (fun i ↦ frobMap (ringStages s' (st.2.push x)) _) k = 0
+    simp only [frobMap_ringStages_push]
+    rw [frobPair_stage, h.2 k (by
+        have : 2 ^ (s' - p) < 2 ^ (s' + 1 - p) :=
+          Nat.pow_lt_pow_right (by norm_num) (by omega)
+        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
+        omega),
+      h.2 (2 ^ (s' - p) + k) (by
+        have h2 : 2 ^ (s' + 1 - p) = 2 * 2 ^ (s' - p) := by
+          rw [show s' + 1 - p = (s' - p) + 1 by omega, pow_succ]
+          ring
+        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
+        omega)]
+    simp⟩⟩
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the first `p` coefficients. -/
+theorem ringDrawsCompleteT : (p : ℕ) → p ≤ s' →
+    Typed.Complete (ringDrawsT P (S := S) (O := O) (W := W) p) (outRel P z side)
+      (ringRel P z side s' φ g p)
+  | 0, _ => Typed.passThroughComplete fun st o w h ↦ ⟨h.1, fun k _ ↦ by
+      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
+        rw [sliceError, h.2 i, sub_self]
+      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
+      simp⟩
+  | p + 1, hp =>
+    (ringDrawsCompleteT p (by omega)).append (ringDrawCompleteT P z side s' φ g p (by omega))
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of ring switching. -/
+theorem ringSwitchCompleteT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
+    (relOut : Set ((StmtOut × ∀ i, O i) × W))
+    (hout : ∀ sIn o w (Wt : Weight F μ) T, side sIn o → Wt.pair φ (stack o) = T →
+      ((finish sIn Wt T, o), w) ∈ relOut)
+    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
+      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
+    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
+    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
+    Typed.Complete (ringSwitchT P s' φ g lift finish (O := O) (W := W)) (outRel P z side)
+      relOut :=
+  (ringDrawsCompleteT P z side s' φ g s' le_rfl).append
+    (Typed.sampleChallengeComplete fun st o w h ↦ ⟨rfl, fun x ↦
       hout _ _ _ _ _ h.1 (pair_ringWeight_eq_ringTarget P z s' φ g lift col stack hcell hbool
         hread o st.1 st.2 x (h.2 0 (by simp)) (h.2 1 (by simp)))⟩)
 

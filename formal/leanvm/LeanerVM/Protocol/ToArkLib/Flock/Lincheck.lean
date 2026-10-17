@@ -189,6 +189,53 @@ def linEndComplete :
     rw [← evalMle_sliceLow_zTable]
     rfl, h.1, fun i ↦ by simp [linHonest, linNext]⟩
 
+
+/-! ## On the typed framework -/
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of `α`. -/
+theorem alphaDrawCompleteT :
+    Typed.Complete (alphaDrawT P (S := S) (O := O) (W := W)) (termRel P C z side)
+      (rel (linFamily P C z side) 0) :=
+  Typed.sampleChallengeComplete fun t o w h ↦ ⟨rfl, fun α ↦ by
+    obtain ⟨hside, hconst, ha, hb, hc⟩ := h
+    refine ⟨hside, ?_⟩
+    show t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 + α ^ 3 =
+      highSum (linFun (linM P C (t, α)) (linZ P z o (t, α))) 0 #v[]
+    rw [highSum_zero, sum_linFun_boolVec, linM, linZ, sum_mTable_zTable, lowVec_append_highVec,
+      evalMle_constTable_eq_zero P z hconst]
+    simp only [zcA, zcB, zcC] at ha hb hc
+    rw [ha, hb, hc]
+    ring⟩
+
+/-- The lincheck's rounds, as a typed component. -/
+def linRoundsT : Typed.Def O (Stmt (LinX S F (P.m + P.κ)) F 0) W
+    (Stmt (LinX S F (P.m + P.κ)) F P.m) W (Typed.roundsSlot F 2 P.m) :=
+  roundsT (linFamily P C z side (W := W)).poly (linFamily P C z side (W := W)).weight P.m P.m 0
+    (Nat.zero_add _)
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the lincheck's rounds. -/
+theorem linRoundsCompleteT :
+    Typed.Complete (linRoundsT P C z side (O := O) (W := W)) (rel (linFamily P C z side) 0)
+      (rel (linFamily P C z side) P.m) :=
+  roundsCompleteT (linFamily P C z side) P.m (linFamily_honest P C z side) P.m 0 (Nat.zero_add _)
+
+omit [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the slices. -/
+theorem linEndCompleteT :
+    Typed.Complete (linEndT P C z (S := S) (O := O) (W := W)) (rel (linFamily P C z side) P.m)
+      (outRel P z side) :=
+  Typed.sendCheckedComplete fun st o w h ↦ ⟨by
+    obtain ⟨_, hclaim⟩ := h
+    rw [linCheck, decide_eq_true_eq, hclaim, linTerminal_eq]
+    show highSum (linFun (linM P C st.1) (linZ P z o st.1)) P.m st.2.1 = _
+    rw [highSum_self, linFun]
+    refine Finset.sum_congr rfl fun i _ ↦ ?_
+    simp only [linHonest, Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, linPoint]
+    rw [← evalMle_sliceLow_zTable]
+    rfl, h.1, fun i ↦ by simp [linHonest, linNext]⟩
+
 end
 
 end Flock

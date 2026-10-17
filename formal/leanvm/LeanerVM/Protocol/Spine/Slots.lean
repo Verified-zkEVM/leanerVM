@@ -77,5 +77,49 @@ abbrev pubSlot : Slot :=
 noncomputable abbrev pubErrors : Errors pubSlot.tree pubSlot.roles :=
   (overE 1, fun _ _ ↦ PUnit.unit)
 
+/-! ## Flock -/
+
+/-- The Flock phase's slot for `2 ^ k` compressions: the `k + 1` coordinates of the point, the 64
+values, `z_skip`, `8 + k` zerocheck rounds, the two values `v_a, v_b`, `α_lc`, 8 lincheck
+rounds, the 64 values, and the six ring-switching challenges. -/
+abbrev flockSlotOf (k : ℕ) : Slot :=
+  (((((((((drawsSlot E (k + 1)).append (saySlot (Vector E 64))).append (drawSlot E)).append
+    (roundsSlot E 2 8)).append (roundsSlot E 2 k)).append (saySlot (Vector E 2))).append
+    (drawSlot E)).append (roundsSlot E 2 8)).append (saySlot (Vector E 64))).append
+    (drawsSlot E 6)
+
+/-- The ring-switching challenges' errors: `2^{2^{5−p}−1}` over `|E|` on the `p`-th, that is
+`2^31, 2^15, 2^7, 8, 2, 1`. -/
+noncomputable abbrev ringErrors : Errors (drawsSlot E 6).tree (drawsSlot E 6).roles :=
+  drawsErrorsOf E (fun p ↦ overE (2 ^ (2 ^ (5 - p) - 1))) 6
+
+/-- The Flock phase's errors for `2 ^ k` compressions: `1` on each coordinate of the point, `127`
+on `z_skip`, `2` on each within-block and lincheck round, `3` on each batch round and on `α_lc`,
+and the ring-switching challenges'. -/
+noncomputable abbrev flockErrorsOf (k : ℕ) : Errors (flockSlotOf k).tree (flockSlotOf k).roles :=
+  Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _
+    (Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append _ _
+    (drawsErrors E (overE 1) (k + 1)) (sayErrors _)) (drawErrors E (overE 127)))
+    (roundsErrors E 2 (overE 2) 8)) (roundsErrors E 2 (overE 3) k)) (sayErrors _))
+    (drawErrors E (overE 3))) (roundsErrors E 2 (overE 2) 8)) (sayErrors _)) ringErrors
+
+/-- The Flock slot: the Flock phase for the region's compressions, or nothing. -/
+def flockSlotOpt : Option (FlockRegion I.toShape) → Slot
+  | none => doneSlot
+  | some r => flockSlotOf r.kBatch
+
+/-- The Flock phase's errors on the slot of a region or of none. -/
+noncomputable def flockErrorsOpt :
+    (o : Option (FlockRegion I.toShape)) → Errors (flockSlotOpt I o).tree (flockSlotOpt I o).roles
+  | none => doneErrors
+  | some r => flockErrorsOf r.kBatch
+
+/-- The Flock phase's slot. -/
+abbrev flockPhaseSlot : Slot := flockSlotOpt I I.flock
+
+/-- The Flock phase's errors. -/
+noncomputable abbrev flockErrors : Errors (flockPhaseSlot I).tree (flockPhaseSlot I).roles :=
+  flockErrorsOpt I I.flock
+
 end
 end LeanerVM.Protocol
