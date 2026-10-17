@@ -37,7 +37,7 @@ variable {ι : Type} (O : ι → Type) {S T W : Type}
   (F : Type) [Field F] [SampleableType F] {k : ℕ} (value : S → Fin k → F) (out : S → F → F → T)
 
 /-- Batching by powers: draw `ρ`, combine the claimed values by its powers. -/
-def batch : Def O S W T W :=
+def batch : Def O S W T W (drawSlot F) :=
   sampleChallenge O F (fun _ ↦ true) fun s ρ ↦ out s ρ (powerBatch (value s) ρ)
 
 variable {O F value out}

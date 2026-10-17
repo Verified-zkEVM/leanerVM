@@ -288,7 +288,8 @@ def lambdaStep : Component.Def S O Unit (SumcheckRound.Stmt (LayerX X F nside m)
   Component.batch O F (fun s ↦ (inp s).2.2) fun s l c ↦ ((inp s, l), (#v[], c))
 
 /-- The combiner, as a typed component. -/
-def lambdaStepT : Typed.Def O S Unit (SumcheckRound.Stmt (LayerX X F nside m) F 0) Unit :=
+def lambdaStepT :
+    Typed.Def O S Unit (SumcheckRound.Stmt (LayerX X F nside m) F 0) Unit (Typed.drawSlot F) :=
   Typed.batch O F (fun s ↦ (inp s).2.2) fun s l c ↦ ((inp s, l), (#v[], c))
 
 omit [DecidableEq F] [SampleableType F] [BEq F] [LawfulBEq F]
@@ -379,7 +380,7 @@ def sendChildren : Component.Def (SumcheckRound.Stmt (LayerX X F nside m) F m) O
 /-- The descendants' message, as a typed component. -/
 def sendChildrenT :
     Typed.Def O (SumcheckRound.Stmt (LayerX X F nside m) F m) Unit (InterpStmt X F nside m ρ 0)
-      Unit :=
+      Unit (Typed.saySlot (Fin nside → Vector F (2 ^ ρ))) :=
   Typed.sendChecked O (Fin nside → Vector F (2 ^ ρ))
     (fun p ↦ children nside μ leaves ρ m p.1.1.1.1.1 p.1.2 p.1.1.2.1) (combineCheck nside ρ m)
     (childNext nside ρ m)

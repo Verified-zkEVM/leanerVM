@@ -37,7 +37,7 @@ def noO : ∀ i, NoO i := fun i ↦ i.elim0
 
 /-- The prover sends its witness; the verifier checks it is the target and outputs its
 successor. -/
-def say1 : Def NoO ℕ ℕ ℕ ℕ :=
+def say1 : Def NoO ℕ ℕ ℕ ℕ (saySlot ℕ) :=
   sendChecked NoO ℕ (fun p ↦ p.2) (fun s m ↦ s == m) (fun _ m ↦ m + 1)
 
 /-- The input relation: the target is the witness. -/
@@ -79,7 +79,7 @@ theorem say1_unchecked_no_security {err : Errors (sayTree ℕ) (sayRoles ℕ)}
 /-! ## A checked challenge -/
 
 /-- The verifier scales the claim by the challenge. -/
-def draw1 : Def NoO E Unit E Unit :=
+def draw1 : Def NoO E Unit E Unit (drawSlot E) :=
   sampleChallenge NoO E (fun _ ↦ true) fun a c ↦ a * c
 
 /-- The claim is true when zero. -/
@@ -130,7 +130,7 @@ theorem drawZero_one_le {e : ℝ≥0}
 /-! ## In sequence -/
 
 /-- The prover sends the claim; the verifier checks it is the statement and records it. -/
-def sayZero : Def NoO E Unit E Unit :=
+def sayZero : Def NoO E Unit E Unit (saySlot E) :=
   sendChecked NoO E (fun p ↦ p.1.1) (fun a m ↦ a == m) fun _ m ↦ m
 
 /-- The message's security: a message equal to the claim, recorded as zero, means a zero
@@ -143,7 +143,7 @@ def sayZeroSecurity : Security sayZero zeroRel zeroRel (sayErrors E) :=
     rw [hm, h0]
 
 /-- The message, then the challenge. -/
-def twoSteps : Def NoO E Unit E Unit := sayZero.append draw1
+def twoSteps : Def NoO E Unit E Unit ((saySlot E).append (drawSlot E)) := sayZero.append draw1
 
 /-- Completeness in sequence. -/
 theorem twoStepsComplete : Complete twoSteps zeroRel zeroRel :=

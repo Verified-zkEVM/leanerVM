@@ -212,7 +212,7 @@ def final (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n �
 
 /-- The values at the final point, as a typed component. -/
 def finalT (V : Virtual F X O W n m) {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → T) :
-    Typed.Def O (SumcheckRound.Stmt X F n) W T W :=
+    Typed.Def O (SumcheckRound.Stmt X F n) W T W (Typed.saySlot (Vector F m)) :=
   Typed.sendChecked O (Vector F m)
     (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (finalCheck V) out
 

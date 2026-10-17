@@ -49,6 +49,10 @@ abbrev drawRoles (C : Type) : (drawTree C).RoleDecoration := ⟨.receiver, fun _
 abbrev drawErrors (C : Type) (e : ℝ≥0) : Errors (drawTree C) (drawRoles C) :=
   (e, fun _ ↦ PUnit.unit)
 
+/-- The slot of one uniform challenge. -/
+abbrev drawSlot (C : Type) [SampleableType C] : Slot :=
+  ⟨drawTree C, drawRoles C, ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩, ($ᵗ C, fun _ ↦ PUnit.unit)⟩
+
 /-- The execution path of one challenge. -/
 abbrev drawPath {C : Type} (c : C) : (drawTree C).ExecutionPath := ⟨c, PUnit.unit⟩
 
@@ -61,11 +65,7 @@ def sampleVerdict (s : StmtIn) (p : (drawTree C).BranchPath) : Option StmtOut :=
   if check s then some (f s p.1) else none
 
 /-- The sample-challenge component. -/
-def sampleChallenge : Def O StmtIn W StmtOut W where
-  tree := drawTree C
-  roles := drawRoles C
-  oracles := ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩
-  samplers := ($ᵗ C, fun _ ↦ PUnit.unit)
+def sampleChallenge : Def O StmtIn W StmtOut W (drawSlot C) where
   verdict := sampleVerdict C check f
   prover := fun so w c ↦ pure ((f so.1 c, so.2), w)
 

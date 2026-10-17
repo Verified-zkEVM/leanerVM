@@ -46,6 +46,10 @@ abbrev sayRoles (M : Type) : (sayTree M).RoleDecoration := ⟨.sender, fun _ ↦
 /-- No error: a message has no challenge. -/
 abbrev sayErrors (M : Type) : Errors (sayTree M) (sayRoles M) := fun _ ↦ PUnit.unit
 
+/-- The slot of one prover message. -/
+abbrev saySlot (M : Type) : Slot :=
+  ⟨sayTree M, sayRoles M, ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩, fun _ ↦ PUnit.unit⟩
+
 /-- The execution path of one message. -/
 abbrev sayPath {M : Type} (m : M) : (sayTree M).ExecutionPath := ⟨m, PUnit.unit⟩
 
@@ -59,11 +63,7 @@ def sendCheckedVerdict (s : StmtIn) (p : (sayTree M).BranchPath) : Option StmtOu
   if check s p.1 then some (out s p.1) else none
 
 /-- The send-checked component. -/
-def sendChecked : Def O StmtIn W StmtOut W where
-  tree := sayTree M
-  roles := sayRoles M
-  oracles := ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩
-  samplers := fun _ ↦ PUnit.unit
+def sendChecked : Def O StmtIn W StmtOut W (saySlot M) where
   verdict := sendCheckedVerdict M check out
   prover := fun so w ↦ pure ⟨honest (so, w), ((out so.1 (honest (so, w)), so.2), w)⟩
 

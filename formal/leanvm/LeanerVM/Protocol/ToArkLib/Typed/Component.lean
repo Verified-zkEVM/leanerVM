@@ -13,7 +13,8 @@ public import LeanerVM.Protocol.ToArkLib.Typed.Front
 /-!
 # Front components
 
-A `Typed.Def O StmtIn WitIn StmtOut WitOut` is a reduction on a typed interaction tree whose
+A `Typed.Def O StmtIn WitIn StmtOut WitOut σ` is a reduction at the slot `σ` (a typed interaction
+tree with its roles, oracle interfaces and challenge samplers) whose
 verifier is front (`frontVerifier`): it samples its challenges with the component's samplers,
 reads the prover's moves, and returns a verdict of the branch path, an `Option` (`none`
 rejects). The oracles `O` are the input oracles: the honest prover receives their contents with
@@ -82,39 +83,45 @@ theorem terminal_holds_of_rel {tree : Oracle.TypeTree.{0}} {state : KnowledgeSta
 
 /-! ## Components -/
 
-/-- A front component: a typed interaction tree with its roles and oracle interfaces, a sampler
-at each verifier node, the verdict of a branch path, and the honest prover, which receives the
-statement, the oracles' contents and the witness and outputs the next statement, the oracles and
-the next witness. -/
-structure Def (StmtIn WitIn StmtOut WitOut : Type) where
-  /-- The interaction tree. -/
-  tree : Oracle.TypeTree.{0}
-  /-- Who moves at each public node. -/
-  roles : tree.RoleDecoration
-  /-- The oracle interface of each oracle message. -/
-  oracles : tree.OracleDecoration
-  /-- The challenge samplers. -/
-  samplers : Samplers tree roles
+/-- A front component at a slot: the verdict of a branch path, and the honest prover, which
+receives the statement, the oracles' contents and the witness and outputs the next statement, the
+oracles and the next witness. The slot is part of the type, so a component fills a slot only when
+its schedule is the one written down. -/
+structure Def (StmtIn WitIn StmtOut WitOut : Type) (σ : Slot) where
   /-- The verdict on a branch path; `none` rejects. -/
-  verdict : StmtIn → tree.BranchPath → Option StmtOut
+  verdict : StmtIn → σ.tree.BranchPath → Option StmtOut
   /-- The honest prover, a strategy with no setup. -/
   prover : StmtIn × (∀ i, O i) → WitIn →
-    Prover.Strategy unifSpec tree roles fun _ ↦ (StmtOut × ∀ i, O i) × WitOut
+    Prover.Strategy unifSpec σ.tree σ.roles fun _ ↦ (StmtOut × ∀ i, O i) × WitOut
 
-variable {O} {StmtIn WitIn StmtOut WitOut : Type}
+variable {O} {StmtIn WitIn StmtOut WitOut : Type} {σ : Slot}
+
+/-- The component's tree. -/
+abbrev Def.tree (_ : Def O StmtIn WitIn StmtOut WitOut σ) : Oracle.TypeTree.{0} := σ.tree
+
+/-- The component's roles. -/
+abbrev Def.roles (_ : Def O StmtIn WitIn StmtOut WitOut σ) : σ.tree.RoleDecoration := σ.roles
+
+/-- The component's oracle interfaces. -/
+abbrev Def.oracles (_ : Def O StmtIn WitIn StmtOut WitOut σ) : σ.tree.OracleDecoration :=
+  σ.oracles
+
+/-- The component's samplers. -/
+abbrev Def.samplers (_ : Def O StmtIn WitIn StmtOut WitOut σ) : Samplers σ.tree σ.roles :=
+  σ.samplers
 
 /-- The component's protocol. -/
-abbrev Def.protocol (D : Def O StmtIn WitIn StmtOut WitOut) : Oracle.Protocol.{0} :=
+abbrev Def.protocol (D : Def O StmtIn WitIn StmtOut WitOut σ) : Oracle.Protocol.{0} :=
   ⟨D.tree, D.roles, D.oracles⟩
 
 /-- The component's verifier at a statement, for an input oracle interface. -/
-def Def.verifier (D : Def O StmtIn WitIn StmtOut WitOut) (initial : PFunctor) (s : StmtIn) :
+def Def.verifier (D : Def O StmtIn WitIn StmtOut WitOut σ) (initial : PFunctor) (s : StmtIn) :
     Verifier.Strategy unifSpec D.tree D.roles D.oracles initial fun _ ↦ Option StmtOut :=
   frontVerifier D.tree D.roles D.oracles initial D.samplers (D.verdict s)
 
 /-- The component as an ArkLib oracle reduction: the statement is public, the oracles' contents
 are the prover's with the witness, and the verifier reaches the oracles through `initial`. -/
-def Def.reduction (D : Def O StmtIn WitIn StmtOut WitOut) (initial : PFunctor) :
+def Def.reduction (D : Def O StmtIn WitIn StmtOut WitOut σ) (initial : PFunctor) :
     Oracle.Reduction unifSpec D.protocol initial StmtIn ((∀ i, O i) × WitIn)
       (fun _ ↦ (StmtOut × ∀ i, O i) × WitOut) (fun _ ↦ Option StmtOut) where
   prover s w := pure (D.prover (s, w.1) w.2)
@@ -123,7 +130,7 @@ def Def.reduction (D : Def O StmtIn WitIn StmtOut WitOut) (initial : PFunctor) :
 /-- **Completeness**: from the input relation, every honest run of the prover against fresh
 challenges from the samplers is accepted with the prover's statement, keeps the oracles, and is
 in the output relation. -/
-def Complete (D : Def O StmtIn WitIn StmtOut WitOut) (relIn : Set ((StmtIn × ∀ i, O i) × WitIn))
+def Complete (D : Def O StmtIn WitIn StmtOut WitOut σ) (relIn : Set ((StmtIn × ∀ i, O i) × WitIn))
     (relOut : Set ((StmtOut × ∀ i, O i) × WitOut)) : Prop :=
   ∀ s o w, ((s, o), w) ∈ relIn → ∀ path a,
     Runs D.tree D.roles D.samplers (D.prover (s, o) w) path a →
@@ -132,7 +139,7 @@ def Complete (D : Def O StmtIn WitIn StmtOut WitOut) (relIn : Set ((StmtIn × �
 /-- **Perfect completeness of the execution**: from the input relation, every outcome of the
 honest execution, for any input oracle interface and handler, is accepted with the prover's
 statement, keeps the oracles, and is in the output relation. -/
-theorem Complete.execute {D : Def O StmtIn WitIn StmtOut WitOut}
+theorem Complete.execute {D : Def O StmtIn WitIn StmtOut WitOut σ}
     {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
     (C : Complete D relIn relOut) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i)
@@ -151,7 +158,7 @@ named extractor: for each input statement and oracles, backward witness maps fro
 relation that prover moves keep, that a fresh challenge at any verifier prefix breaks with
 probability at most the error there, and whose state after the last move is the output relation
 at the verdict. -/
-structure Security (D : Def O StmtIn WitIn StmtOut WitOut)
+structure Security (D : Def O StmtIn WitIn StmtOut WitOut σ)
     (relIn : Set ((StmtIn × ∀ i, O i) × WitIn)) (relOut : Set ((StmtOut × ∀ i, O i) × WitOut))
     (err : Errors D.tree D.roles) where
   /-- The backward witness maps. -/
@@ -166,7 +173,7 @@ structure Security (D : Def O StmtIn WitIn StmtOut WitOut)
     fun path ↦ D.verdict s path.toBranchPath
 
 /-- The security's knowledge certificate at a statement and oracles. -/
-noncomputable def Security.certificate {D : Def O StmtIn WitIn StmtOut WitOut}
+noncomputable def Security.certificate {D : Def O StmtIn WitIn StmtOut WitOut σ}
     {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
     {err : Errors D.tree D.roles} (S : Security D relIn relOut err) (s : StmtIn) (o : ∀ i, O i) :
     KnowledgeCertificate D.tree D.roles (inState O relIn s o) where
@@ -176,7 +183,7 @@ noncomputable def Security.certificate {D : Def O StmtIn WitIn StmtOut WitOut}
   local_bound := S.local_bound s o
 
 /-- The component's verifier draws its security's challenges, for any input oracles. -/
-theorem Security.samplesChallenges {D : Def O StmtIn WitIn StmtOut WitOut}
+theorem Security.samplesChallenges {D : Def O StmtIn WitIn StmtOut WitOut σ}
     {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
     {err : Errors D.tree D.roles} (S : Security D relIn relOut err) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : StmtIn) (o : ∀ i, O i) :
@@ -208,7 +215,7 @@ theorem isLocallyBounded_mono : (tree : Oracle.TypeTree.{0}) → (roles : tree.R
 /-- Security at errors is security at any larger errors. Inlined before compilation, so the
 errors, real numbers, never reach compiled code and a security built with it computes. -/
 @[macro_inline]
-def Security.mono {D : Def O StmtIn WitIn StmtOut WitOut}
+def Security.mono {D : Def O StmtIn WitIn StmtOut WitOut σ}
     {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
     {err err' : Errors D.tree D.roles} (h : Errors.Le D.tree D.roles err err')
     (S : Security D relIn relOut err) : Security D relIn relOut err' where

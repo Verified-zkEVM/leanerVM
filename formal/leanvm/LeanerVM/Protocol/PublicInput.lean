@@ -560,15 +560,34 @@ noncomputable abbrev errors : Typed.Errors tree roles := (overE 1, fun _ _ ↦ P
 def verdictT (s : I.Stmt × TableOut I) (p : tree.BranchPath) : Option (I.Stmt × PubOut I) :=
   if accepts I (check I) s p.1 p.2.1 then some (verdict I (pooledFrom I) s p.1 p.2.1) else none
 
+/-- The phase's slot: the challenge drawn uniformly, then the values sent. -/
+abbrev slot : Typed.Slot :=
+  ⟨tree, roles, ⟨PUnit.unit, fun _ ↦ ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩⟩, ($ᵗ E, fun _ _ ↦ PUnit.unit)⟩
+
 /-- The public-input phase as a typed component: the honest prover sends the expected values at
 the challenge and outputs the pool. -/
-def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit where
-  tree := tree
-  roles := roles
-  oracles := ⟨PUnit.unit, fun _ ↦ ⟨PUnit.unit, fun _ ↦ ⟨⟩⟩⟩
-  samplers := ($ᵗ E, fun _ _ ↦ PUnit.unit)
+def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit slot where
   verdict := verdictT I
   prover := fun so w r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
+
+/-- **Completeness on the typed framework**: from the table seam, the prover's values pass the
+check at every challenge and the pool lands in the public seam. -/
+theorem completeT : Typed.Complete (phaseT I) (Seam.table I) (Seam.pub I) := by
+  rintro s o w hin ⟨r, cs, ⟨⟩⟩ a ⟨-, rest, hrest, rest', hrest', rfl⟩
+  have hrest := (mem_support_pure_iff _ _).mp hrest
+  subst hrest
+  have hrest' := (mem_support_pure_iff _ _).mp hrest'
+  obtain ⟨hcs, hrest'⟩ := Sigma.mk.inj_iff.mp hrest'
+  change cs = expectedValues I s.1 r at hcs
+  subst hcs
+  obtain rfl := eq_of_heq hrest'
+  have hc : check I s r (expectedValues I s.1 r) = true := decide_eq_true rfl
+  refine ⟨?_, rfl, ?_⟩
+  · change verdictT I s ⟨r, expectedValues I s.1 r, PUnit.unit⟩ = _
+    simp only [verdictT, (accepts_check_iff I _ _ _).mpr hc, ite_true,
+      verdict_pooledFrom_of_check I hc]
+  · cases w
+    exact pooled_mem_pub I s o hin r
 
 /-- The backward witness maps: the table seam before the challenge; after it, the public seam of
 the pool; after the values, that the check passes and the verdict is in the public seam. -/

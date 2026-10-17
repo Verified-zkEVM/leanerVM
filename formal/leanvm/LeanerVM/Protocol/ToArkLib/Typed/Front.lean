@@ -77,6 +77,18 @@ def schedule : (tree : Oracle.TypeTree.{0}) â†’ (roles : tree.RoleDecoration) â†
   | .oracle _ next, roles, s, e =>
       fun _ => schedule (next PUnit.unit) (roles.2 PUnit.unit) s e
 
+/-- A slot: a tree of public moves and oracle messages, who moves at each public node, the oracle
+interface of each oracle message, and the challenge samplers. The schedule a component runs at. -/
+structure Slot where
+  /-- The interaction tree. -/
+  tree : Oracle.TypeTree.{0}
+  /-- Who moves at each public node. -/
+  roles : tree.RoleDecoration
+  /-- The oracle interface of each oracle message. -/
+  oracles : tree.OracleDecoration
+  /-- The challenge samplers. -/
+  samplers : Samplers tree roles
+
 /-! ## The front verifier -/
 
 /-- The front verifier fragment: samples with `samplers` at its nodes, reads the prover's moves

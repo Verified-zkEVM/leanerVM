@@ -231,7 +231,7 @@ def sendPoly : Component.Def (Stmt X F j) O W (MidStmt X F j d) O W (say (Messag
     (fun s q ↦ (s, q))
 
 /-- The message, as a typed component. -/
-def sendPolyT : Typed.Def O (Stmt X F j) W (MidStmt X F j d) W :=
+def sendPolyT : Typed.Def O (Stmt X F j) W (MidStmt X F j d) W (Typed.saySlot (Message F d)) :=
   Typed.sendChecked O (Message F d) (fun p ↦ P (ctxOf p) j p.1.1.2.1) (fun _ _ ↦ true)
     (fun s q ↦ (s, q))
 
@@ -251,7 +251,7 @@ def drawChallenge : Component.Def (MidStmt X F j d) O W (Stmt X F (j + 1)) O W (
     (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
 
 /-- The challenge, as a typed component. -/
-def drawChallengeT : Typed.Def O (MidStmt X F j d) W (Stmt X F (j + 1)) W :=
+def drawChallengeT : Typed.Def O (MidStmt X F j d) W (Stmt X F (j + 1)) W (Typed.drawSlot F) :=
   Typed.sampleChallenge O F (fun p ↦ check j wt p.1 p.2)
     (fun p c ↦ next j p.1 (evaluate d p.2 c) c)
 

@@ -192,7 +192,7 @@ def batchStep : Component.Def (I.Stmt × BusOut I) (TheOracle I) Unit
 
 /-- The batching challenge `ξ`, as a typed component. -/
 def batchStepT : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit
-    (SumcheckRound.Stmt (Data I) E 0) Unit :=
+    (SumcheckRound.Stmt (Data I) E 0) Unit (Typed.drawSlot E) :=
   Typed.batch (TheOracle I) E (claimed I) (start I)
 
 /-- Four distinct points of `E`, at which the honest prover interpolates its cubic round

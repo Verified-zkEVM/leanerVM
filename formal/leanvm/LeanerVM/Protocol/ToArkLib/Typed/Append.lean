@@ -155,24 +155,26 @@ theorem runs_append : (t₁ : Oracle.TypeTree.{0}) → (r₁ : t₁.RoleDecorati
 
 /-! ## Components in sequence -/
 
+/-- Two slots in sequence. -/
+abbrev Slot.append (σ₁ σ₂ : Slot) : Slot :=
+  ⟨PFunctor.FreeM.append σ₁.tree fun _ ↦ σ₂.tree, Decoration.append σ₁.roles fun _ ↦ σ₂.roles,
+    Decoration.append σ₁.oracles fun _ ↦ σ₂.oracles,
+    Samplers.append σ₁.tree σ₁.roles σ₁.samplers σ₂.samplers⟩
+
 variable {ι : Type} {O : ι → Type}
 
 /-- **Two components in sequence**: the trees, decorations, samplers and provers appended, the
 second verdict on the first, a rejection of either rejecting. -/
-def Def.append {S₁ S₂ S₃ W₁ W₂ W₃ : Type} (D₁ : Def O S₁ W₁ S₂ W₂) (D₂ : Def O S₂ W₂ S₃ W₃) :
-    Def O S₁ W₁ S₃ W₃ where
-  tree := PFunctor.FreeM.append D₁.tree fun _ ↦ D₂.tree
-  roles := Decoration.append D₁.roles fun _ ↦ D₂.roles
-  oracles := Decoration.append D₁.oracles fun _ ↦ D₂.oracles
-  samplers := Samplers.append D₁.tree D₁.roles D₁.samplers D₂.samplers
+def Def.append {S₁ S₂ S₃ W₁ W₂ W₃ : Type} {σ₁ σ₂ : Slot} (D₁ : Def O S₁ W₁ S₂ W₂ σ₁)
+    (D₂ : Def O S₂ W₂ S₃ W₃ σ₂) : Def O S₁ W₁ S₃ W₃ (σ₁.append σ₂) where
   verdict s p := (D₁.verdict s (PFunctor.FreeM.Path.split D₁.tree _ p).1).bind fun t ↦
     D₂.verdict t (PFunctor.FreeM.Path.split D₁.tree _ p).2
   prover so w := proverAppend D₁.tree D₁.roles (D₁.prover so w) fun x ↦ D₂.prover x.1 x.2
 
 /-- The verdict in sequence on an execution path: the first verdict on its first piece, then the
 second on its second piece. -/
-theorem Def.append_verdict {S₁ S₂ S₃ W₁ W₂ W₃ : Type} (D₁ : Def O S₁ W₁ S₂ W₂)
-    (D₂ : Def O S₂ W₂ S₃ W₃) (s : S₁) (path : (D₁.append D₂).tree.ExecutionPath) :
+theorem Def.append_verdict {S₁ S₂ S₃ W₁ W₂ W₃ : Type} {σ₁ σ₂ : Slot} (D₁ : Def O S₁ W₁ S₂ W₂ σ₁)
+    (D₂ : Def O S₂ W₂ S₃ W₃ σ₂) (s : S₁) (path : (D₁.append D₂).tree.ExecutionPath) :
     (D₁.append D₂).verdict s path.toBranchPath =
       (D₁.verdict s (ExecutionPath.toBranchPath
         (PFunctor.FreeM.PathAlong.split runtimeLens D₁.tree _ path).1)).bind fun t ↦
@@ -184,8 +186,8 @@ theorem Def.append_verdict {S₁ S₂ S₃ W₁ W₂ W₃ : Type} (D₁ : Def O 
     ExecutionPath.toBranchPath_split D₁.tree (fun _ ↦ D₂.tree) path]
 
 /-- **Completeness composes.** -/
-theorem Complete.append {S₁ S₂ S₃ W₁ W₂ W₃ : Type} {D₁ : Def O S₁ W₁ S₂ W₂}
-    {D₂ : Def O S₂ W₂ S₃ W₃} {rel₁ : Set ((S₁ × ∀ i, O i) × W₁)}
+theorem Complete.append {S₁ S₂ S₃ W₁ W₂ W₃ : Type} {σ₁ σ₂ : Slot} {D₁ : Def O S₁ W₁ S₂ W₂ σ₁}
+    {D₂ : Def O S₂ W₂ S₃ W₃ σ₂} {rel₁ : Set ((S₁ × ∀ i, O i) × W₁)}
     {rel₂ : Set ((S₂ × ∀ i, O i) × W₂)} {rel₃ : Set ((S₃ × ∀ i, O i) × W₃)}
     (C₁ : Complete D₁ rel₁ rel₂) (C₂ : Complete D₂ rel₂ rel₃) :
     Complete (D₁.append D₂) rel₁ rel₃ := by
@@ -277,7 +279,7 @@ end Security
 
 section SecurityAppend
 
-variable {S₁ S₂ S₃ W : Type} {D₁ : Def O S₁ W S₂ W} {D₂ : Def O S₂ W S₃ W}
+variable {S₁ S₂ S₃ W : Type} {σ₁ σ₂ : Slot} {D₁ : Def O S₁ W S₂ W σ₁} {D₂ : Def O S₂ W S₃ W σ₂}
   {rel₁ : Set ((S₁ × ∀ i, O i) × W)} {rel₂ : Set ((S₂ × ∀ i, O i) × W)}
   {rel₃ : Set ((S₃ × ∀ i, O i) × W)} {e₁ : Errors D₁.tree D₁.roles} {e₂ : Errors D₂.tree D₂.roles}
 

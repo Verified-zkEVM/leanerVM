@@ -91,7 +91,8 @@ def ringDraw (p : ℕ) :
 
 /-- One coefficient, as a typed component. -/
 def ringDrawT (p : ℕ) :
-    Typed.Def O (RingStmt S F (P.m + P.κ) P.s p) W (RingStmt S F (P.m + P.κ) P.s (p + 1)) W :=
+    Typed.Def O (RingStmt S F (P.m + P.κ) P.s p) W (RingStmt S F (P.m + P.κ) P.s (p + 1)) W
+      (Typed.drawSlot F) :=
   Typed.sampleChallenge O F (fun _ ↦ true) fun st x ↦ (st.1, st.2.push x)
 
 /-- The first `p` coefficients. -/
@@ -121,7 +122,7 @@ def ringFinal {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
 
 /-- The last coefficient, as a typed component. -/
 def ringFinalT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
-    Typed.Def O (RingStmt S F (P.m + P.κ) P.s s') W StmtOut W :=
+    Typed.Def O (RingStmt S F (P.m + P.κ) P.s s') W StmtOut W (Typed.drawSlot F) :=
   Typed.sampleChallenge O F (fun _ ↦ true) fun st x ↦
     finish st.1.1 (ringWeight P s' lift st.1.2.1 (st.2.push x))
       (ringTarget P s' φ g st.1.2.2 (st.2.push x))
