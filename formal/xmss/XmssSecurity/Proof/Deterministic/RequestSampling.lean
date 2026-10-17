@@ -20,8 +20,8 @@ noncomputable local instance : SampleableType RandomizerOutputs := randomizerOut
 noncomputable def sampleRequestTapes : ProbComp RequestTapes := $ᵗ RequestTapes
 
 theorem evalDist_curry_randomizers :
-    𝒟[Equiv.curry SignRequest Trial HashOutput <$> sampleRandomizerOutputs] = 𝒟[sampleRequestTapes] :=
-  evalDist_map_bijective_uniform_cross (α := RandomizerOutputs) (β := RequestTapes) _ (Equiv.curry SignRequest Trial HashOutput).bijective
+    𝒮[Equiv.curry SignRequest Trial HashOutput <$> sampleRandomizerOutputs] = 𝒮[sampleRequestTapes] :=
+  evalSPMF_map_bijective_uniform_cross (α := RandomizerOutputs) (β := RequestTapes) _ (Equiv.curry SignRequest Trial HashOutput).bijective
 
 variable {m : Type → Type} [Monad m] [LawfulMonad m] [HasQuery HashSpec m]
 
@@ -106,19 +106,19 @@ theorem evalDist_freshRun_of_kernel {α Tape : Type} [SampleableType Tape]
     (handler : QueryImpl OracleWorld (StateT State ProbComp))
     (kernel : SignRequest → Tape → StateT State ProbComp (Option Signature))
     (sign : SignRequest → StateT State ProbComp (Option Signature))
-    (hkernel : ∀ message state, 𝒟[do
+    (hkernel : ∀ message state, 𝒮[do
       let tape ← ($ᵗ Tape : ProbComp Tape)
-      (kernel message tape).run state] = 𝒟[(sign message).run state])
+      (kernel message tape).run state] = 𝒮[(sign message).run state])
     (computation : OracleComp (OracleWorld + SigningSpec) α) (state : State) :
-    𝒟[(freshRun handler kernel computation).run state] =
-      𝒟[(simulateQ (handler + sign) computation).run state] := by
+    𝒮[(freshRun handler kernel computation).run state] =
+      𝒮[(simulateQ (handler + sign) computation).run state] := by
   unfold freshRun
-  apply evalDist_simulateQ_run_congr
+  apply evalSPMF_simulateQ_run_congr
   intro input state
   cases input with
   | inl input => rfl
   | inr message =>
-      change 𝒟[((do
+      change 𝒮[((do
         let tape ← liftM ($ᵗ Tape : ProbComp Tape)
         kernel message tape) : StateT State ProbComp (Option Signature)).run state] = _
       simp only [StateT.run_bind, StateT.run_liftM, bind_assoc, pure_bind]
@@ -126,8 +126,8 @@ theorem evalDist_freshRun_of_kernel {α Tape : Type} [SampleableType Tape]
 
 theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (computation : OracleComp (OracleWorld + SigningSpec) α) (state : State) :
-    𝒟[(freshRun (worldHandler hash) (requestKernel hash secretKey) computation).run state] =
-      𝒟[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
+    𝒮[(freshRun (worldHandler hash) (requestKernel hash secretKey) computation).run state] =
+      𝒮[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
         (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state] := by
   exact evalDist_freshRun_of_kernel (worldHandler hash) (requestKernel hash secretKey)
     (fun (message : SignRequest) => simulateQ (worldHandler hash)
@@ -136,18 +136,18 @@ theorem evalDist_freshRequests {α : Type} (hash : QueryImpl HashSpec (StateT St
     computation state
 
 theorem evalDist_uncurry_tapes :
-    𝒟[Function.uncurry <$> sampleRequestTapes] = 𝒟[sampleRandomizerOutputs] :=
-  evalDist_map_bijective_uniform_cross (α := RequestTapes) (β := RandomizerOutputs) _ (Equiv.curry SignRequest Trial HashOutput).symm.bijective
+    𝒮[Function.uncurry <$> sampleRequestTapes] = 𝒮[sampleRandomizerOutputs] :=
+  evalSPMF_map_bijective_uniform_cross (α := RequestTapes) (β := RandomizerOutputs) _ (Equiv.curry SignRequest Trial HashOutput).symm.bijective
 
 theorem evalDist_tableRequests {α : Type} {used : Set SignRequest}
     (hash : QueryImpl HashSpec (StateT State ProbComp)) (secretKey : XmssSecurity.SecretKey)
     (computation : OracleComp (OracleWorld + SigningSpec) α) (hfresh : FreshRequests used computation) (state : State) :
-    𝒟[do
+    𝒮[do
       let randomizers ← sampleRandomizerOutputs
       (simulateQ (worldHandler hash) (runSigning (fun (message : SignRequest) => tableSign randomizers secretKey message.leafIndex message.message) computation)).run state] =
-      𝒟[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
+      𝒮[(simulateQ ((worldHandler hash) + fun (message : SignRequest) => simulateQ (worldHandler hash)
         (Concrete.precomputedCappedSign secretKey message.leafIndex message.message)) computation).run state] := by
-  conv_lhs => rw [evalDist_bind, ← evalDist_uncurry_tapes, ← evalDist_bind, bind_map_left]
+  conv_lhs => rw [evalSPMF_bind, ← evalDist_uncurry_tapes, ← evalSPMF_bind, bind_map_left]
   simp_rw [← tableRun_requests]
   exact (hfresh.evalDist_tableRun (worldHandler hash) (requestKernel hash secretKey) state).trans
     (evalDist_freshRequests hash secretKey computation state)

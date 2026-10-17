@@ -140,7 +140,7 @@ theorem sep_countGood {g h : ℕ → ℝ≥0∞} (hg : SepGood g) (hh : SepGood 
       pow_le_pow_right₀ (by norm_num) (Finset.single_le_sum (fun l' _ => Nat.zero_le (k l')) (Finset.mem_univ l))
     have h1 : ∑ l, g (k l) ≤ (Fintype.card ι : ℝ≥0∞) * Cg * 2 ^ ∑ l, k l := by
       calc ∑ l, g (k l) ≤ ∑ _l : ι, (Cg : ℝ≥0∞) * 2 ^ ∑ l', k l' :=
-            Finset.sum_le_sum fun l _ => le_trans (hCg _) (mul_le_mul_left' (hpow l) _)
+            Finset.sum_le_sum fun l _ => le_trans (hCg _) (mul_le_mul_right (hpow l) _)
         _ = _ := by rw [Finset.sum_const, Finset.card_univ, nsmul_eq_mul]; ring
     have h2 : ∏ l, h (k l) ≤ (Ch : ℝ≥0∞) ^ Fintype.card ι * 2 ^ ∑ l, k l := by
       calc ∏ l, h (k l) ≤ ∏ l, (Ch : ℝ≥0∞) * 2 ^ k l := Finset.prod_le_prod' fun l _ => hCh _

@@ -471,8 +471,8 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedQueryMonitor leafIndex resume state) =
-      evalDist (applyHashOutputQueryMonitor leafIndex resume state) := by
+    evalSPMF (applyProgrammedQueryMonitor leafIndex resume state) =
+      evalSPMF (applyHashOutputQueryMonitor leafIndex resume state) := by
   let continuation := fun result : Digest × HashOutput =>
     match state.signed leafIndex with
     | some target =>
@@ -482,11 +482,11 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
           resume result.2 (state.addPending leafIndex result.1)
         else resume result.2 state
   calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
+    _ = evalSPMF ($ᵗ Digest >>= fun digest =>
           Rom.sampleHashOutputWithDigest digest >>= fun output =>
             continuation (digest, output)) := by
       unfold applyProgrammedQueryMonitor applyUniformQueryMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro digest
       cases hsigned : state.signed leafIndex with
       | none =>
@@ -496,13 +496,13 @@ theorem applyProgrammedQueryMonitor_evalDist_eq
           by_cases heq : digest = target
           · simp only [heq, ↓reduceIte]
             symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+            exact OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
               (Rom.sampleHashOutputWithDigest target)
               (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
           · simp only [heq, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
+    _ = evalSPMF (Rom.sampledHashOutputWithDigest >>= continuation) := by
       congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
+    _ = evalSPMF ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := by
@@ -512,8 +512,8 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
     (leafIndex : LeafIndex)
     (resume : HashOutput → EncodingMonitor.State → ProbComp Bool)
     (state : EncodingMonitor.State) :
-    evalDist (applyProgrammedSignAttemptMonitor leafIndex resume state) =
-      evalDist (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
+    evalSPMF (applyProgrammedSignAttemptMonitor leafIndex resume state) =
+      evalSPMF (applyHashOutputSignAttemptMonitor leafIndex resume state) := by
   let continuation := fun result : Digest × HashOutput =>
     if TargetSum.ValidDigest result.1 then
       match state.signed leafIndex with
@@ -523,32 +523,32 @@ theorem applyProgrammedSignAttemptMonitor_evalDist_eq
           else resume result.2 (state.install leafIndex result.1)
     else resume result.2 state
   calc
-    _ = evalDist ($ᵗ Digest >>= fun digest =>
+    _ = evalSPMF ($ᵗ Digest >>= fun digest =>
           Rom.sampleHashOutputWithDigest digest >>= fun output =>
             continuation (digest, output)) := by
       unfold applyProgrammedSignAttemptMonitor applyUniformSignAttemptMonitor continuation
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro digest
       by_cases hvalid : TargetSum.ValidDigest digest
       · simp only [hvalid, ↓reduceIte]
         cases hsigned : state.signed leafIndex with
         | some target =>
             symm
-            exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+            exact OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
               (Rom.sampleHashOutputWithDigest digest)
               (by simp [Rom.sampleHashOutputWithDigest]) (pure false)
         | none =>
             by_cases hmem : digest ∈ state.pending leafIndex
             · simp only [hmem, ↓reduceIte]
               symm
-              exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+              exact OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
                 (Rom.sampleHashOutputWithDigest digest)
                 (by simp [Rom.sampleHashOutputWithDigest]) (pure true)
             · simp only [hmem, ↓reduceIte]
       · simp only [hvalid, ↓reduceIte]
-    _ = evalDist (Rom.sampledHashOutputWithDigest >>= continuation) := by
+    _ = evalSPMF (Rom.sampledHashOutputWithDigest >>= continuation) := by
       congr 1
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
+    _ = evalSPMF ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) :=
       Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind continuation
     _ = _ := by

@@ -164,9 +164,9 @@ noncomputable def independentGlobalChainTableMaterial :
     ($ᵗ (GlobalChainEdgeIndex → Digest))
 
 theorem evalDist_split_uniformGlobalChainTable_eq_independent :
-    𝒟[globalChainTableMaterialEquiv <$>
+    𝒮[globalChainTableMaterialEquiv <$>
         ($ᵗ (GlobalChainValueIndex → Digest))] =
-      𝒟[independentGlobalChainTableMaterial] := by
+      𝒮[independentGlobalChainTableMaterial] := by
   apply SPMF.ext
   intro target
   change Pr[= target | globalChainTableMaterialEquiv <$>
@@ -238,8 +238,8 @@ noncomputable def explicitGlobalChainKeygen :
   }
 
 theorem evalDist_actualGlobalChainKeygen_eq_explicit :
-    evalDist actualGlobalChainKeygen =
-      evalDist explicitGlobalChainKeygen := by
+    evalSPMF actualGlobalChainKeygen =
+      evalSPMF explicitGlobalChainKeygen := by
   unfold actualGlobalChainKeygen explicitGlobalChainKeygen Concrete.keygen
   simp only [simulateQ_bind, StateT.run_bind, simulateQ_pure,
     StateT.run_pure, bind_assoc, pure_bind]
@@ -255,7 +255,7 @@ theorem evalDist_actualGlobalChainKeygen_eq_explicit :
         Concrete.samplePublicParameter ∅)
   rw [hparameter]
   simp only [map_eq_bind_pure_comp, Function.comp_apply, bind_assoc, pure_bind]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
   have hsecret :
       (simulateQ romImpl (liftM Concrete.sampleSecret)).run ∅ =
@@ -267,7 +267,7 @@ theorem evalDist_actualGlobalChainKeygen_eq_explicit :
         Concrete.sampleSecret ∅)
   rw [hsecret]
   simp only [map_eq_bind_pure_comp, Function.comp_apply, bind_assoc, pure_bind]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secret
   have htree :
       simulateQ romImpl
@@ -378,7 +378,7 @@ theorem globalChainEdgeOutputTableOfOutputTape_map
     mem_globalOutputEdgeOrder table
 
 theorem evalDist_globalChainEdgeOutputTableOfOutputTape_uniformSnoc_eq_uniform :
-    evalDist (globalChainEdgeOutputTableOfOutputTape <$>
+    evalSPMF (globalChainEdgeOutputTableOfOutputTape <$>
       uniformSnocList HashOutput globalOutputEdgeOrder.length) =
     (liftM (PMF.uniformOfFintype GlobalChainEdgeOutputTable) :
       SPMF GlobalChainEdgeOutputTable) :=
@@ -436,7 +436,7 @@ theorem globalChainEdgeOutputTableOfTape_map
     globalTrajectoryEdgeOrder_nodup mem_globalTrajectoryEdgeOrder table
 
 theorem evalDist_globalChainEdgeOutputTableOfTape_drawList_eq_uniform :
-    evalDist (globalChainEdgeOutputTableOfTape <$>
+    evalSPMF (globalChainEdgeOutputTableOfTape <$>
       OracleComp.drawList ($ᵗ HashOutput)
         globalTrajectoryEdgeOrder.length) =
     (liftM (PMF.uniformOfFintype GlobalChainEdgeOutputTable) :
@@ -557,12 +557,12 @@ theorem independentGlobalChainValueTable_eq_uniform :
       ($ᵗ (GlobalChainValueIndex → Digest)) := rfl
 
 theorem evalDist_independentGlobalChainValueTable_eq_uniformMeasure :
-    evalDist independentGlobalChainValueTable =
+    evalSPMF independentGlobalChainValueTable =
       (liftM (PMF.uniformOfFintype
         (GlobalChainValueIndex → Digest)) :
         SPMF (GlobalChainValueIndex → Digest)) := by
   rw [independentGlobalChainValueTable_eq_uniform,
-    evalDist_uniformSample]
+    evalSPMF_uniformSample]
 
 noncomputable def independentGlobalChainTableHigh :
     ProbComp ((GlobalChainValueIndex → Digest) ×
@@ -578,18 +578,18 @@ noncomputable def uniformGlobalChainKeygenRandomness :
     ($ᵗ GlobalChainEdgeOutputTable)
 
 theorem Concrete.evalDist_sampleSecret_eq_uniformMeasure :
-    evalDist Concrete.sampleSecret =
+    evalSPMF Concrete.sampleSecret =
     (liftM (PMF.uniformOfFintype (LeafIndex → ChainIndex → Digest)) :
       SPMF (LeafIndex → ChainIndex → Digest)) := by
   calc
-    _ = evalDist ($ᵗ (LeafIndex → ChainIndex → Digest)) :=
-      congrArg evalDist Concrete.sampleSecret_eq
-    _ = _ := evalDist_uniformSample (LeafIndex → ChainIndex → Digest)
+    _ = evalSPMF ($ᵗ (LeafIndex → ChainIndex → Digest)) :=
+      congrArg evalSPMF Concrete.sampleSecret_eq
+    _ = _ := evalSPMF_uniformSample (LeafIndex → ChainIndex → Digest)
 
 set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
-    evalDist uniformGlobalChainKeygenRandomness =
-      evalDist ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
+    evalSPMF uniformGlobalChainKeygenRandomness =
+      evalSPMF ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
         GlobalChainEdgeOutputTable)) := by
   apply SPMF.ext
   intro target
@@ -605,21 +605,21 @@ theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniform :
   · exact Or.inl (ENNReal.natCast_ne_top _)
 
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_uniformMeasure :
-    evalDist uniformGlobalChainKeygenRandomness =
+    evalSPMF uniformGlobalChainKeygenRandomness =
     (liftM (PMF.uniformOfFintype
       ((LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable)) :
       SPMF ((LeafIndex → ChainIndex → Digest) ×
         GlobalChainEdgeOutputTable)) :=
   evalDist_uniformGlobalChainKeygenRandomness_eq_uniform.trans
-    (evalDist_uniformSample
+    (evalSPMF_uniformSample
       ((LeafIndex → ChainIndex → Digest) × GlobalChainEdgeOutputTable))
 
 set_option maxRecDepth 100000 in
 theorem evalDist_uniformGlobalChainKeygenRandomness_eq_independent :
-    evalDist (globalChainKeygenRandomnessView <$>
+    evalSPMF (globalChainKeygenRandomnessView <$>
       ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
         GlobalChainEdgeOutputTable))) =
-    evalDist independentGlobalChainTableHigh := by
+    evalSPMF independentGlobalChainTableHigh := by
   apply SPMF.ext
   intro target
   change Pr[= target | globalChainKeygenRandomnessView <$>
@@ -646,16 +646,16 @@ theorem evalDist_uniformGlobalChainKeygenRandomness_eq_independent :
   · exact Or.inl (ENNReal.natCast_ne_top _)
 
 theorem evalDist_globalChainKeygenRandomnessView_eq_independent :
-    evalDist (globalChainKeygenRandomnessView <$>
+    evalSPMF (globalChainKeygenRandomnessView <$>
       uniformGlobalChainKeygenRandomness) =
-    evalDist independentGlobalChainTableHigh := by
+    evalSPMF independentGlobalChainTableHigh := by
   calc
-    _ = evalDist (globalChainKeygenRandomnessView <$>
+    _ = evalSPMF (globalChainKeygenRandomnessView <$>
           ($ᵗ ((LeafIndex → ChainIndex → Digest) ×
             GlobalChainEdgeOutputTable))) := by
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         evalDist_uniformGlobalChainKeygenRandomness_eq_uniform,
-        ← evalDist_map]
+        ← evalSPMF_map]
     _ = _ := evalDist_uniformGlobalChainKeygenRandomness_eq_independent
 
 
@@ -896,9 +896,9 @@ theorem evalDist_allChainTrajectories_eq_programmed
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
       chains.Nodup → AllChainAddressesAbsent parameter chains cache →
-      evalDist (Concrete.allChainTrajectoriesFromCache parameter secret cache
+      evalSPMF (Concrete.allChainTrajectoriesFromCache parameter secret cache
         chains) =
-      evalDist (programmedAllChainTrajectoriesFromCache parameter secret cache
+      evalSPMF (programmedAllChainTrajectoriesFromCache parameter secret cache
         chains) := by
   intro chains
   induction chains with
@@ -914,25 +914,25 @@ theorem evalDist_allChainTrajectories_eq_programmed
         secret chain (chainLength - 1) cache allLeafIndices
       let programmedFirst := programmedFixedSeedChainTrajectoriesFromCache
         parameter secret chain (chainLength - 1) cache allLeafIndices
-      have hfirst : evalDist actualFirst = evalDist programmedFirst := by
+      have hfirst : evalSPMF actualFirst = evalSPMF programmedFirst := by
         apply evalDist_fixedSeedChainTrajectories_eq_programmed parameter secret
           chain (chainLength - 1) le_rfl allLeafIndices cache allLeafIndices_nodup
         intro leafIndex _hleafIndex step input haddress
         exact habsent chain (by simp) leafIndex step input haddress
       calc
-        _ = evalDist (programmedFirst >>= fun first =>
+        _ = evalSPMF (programmedFirst >>= fun first =>
               Concrete.allChainTrajectoriesFromCache parameter secret first.2
                 chains >>= fun rest =>
               pure (Function.update rest.1 chain first.1, rest.2)) := by
-          rw [evalDist_bind, hfirst, ← evalDist_bind]
-        _ = evalDist (programmedFirst >>= fun first =>
+          rw [evalSPMF_bind, hfirst, ← evalSPMF_bind]
+        _ = evalSPMF (programmedFirst >>= fun first =>
               programmedAllChainTrajectoriesFromCache parameter secret first.2
                 chains >>= fun rest =>
               pure (Function.update rest.1 chain first.1, rest.2)) := by
-          apply evalDist_bind_congr
+          apply evalSPMF_bind_congr
           intro first hfirstProgrammed
           have hfirstActual : first ∈ support actualFirst :=
-            (mem_support_iff_of_evalDist_eq hfirst first).mpr hfirstProgrammed
+            (mem_support_iff_of_evalSPMF_eq hfirst first).mpr hfirstProgrammed
           have htailAbsent : AllChainAddressesAbsent parameter chains first.2 := by
             intro later hlater leafIndex step input haddress
             apply Concrete.fixedSeedChainTrajectories_preserves_otherChain_none
@@ -944,7 +944,7 @@ theorem evalDist_allChainTrajectories_eq_programmed
             · exact haddress
             · exact habsent later (by simp [hlater]) leafIndex step input haddress
           have hrest := ih first.2 htailNodup htailAbsent
-          rw [evalDist_bind, hrest, ← evalDist_bind]
+          rw [evalSPMF_bind, hrest, ← evalSPMF_bind]
 
 noncomputable def uniformTrajectoryFromSeed :
     (steps : Nat) → Digest → ProbComp (Vector Digest (steps + 1))
@@ -985,32 +985,32 @@ theorem trajectoryTailTape_push {steps : Nat}
 
 theorem evalDist_uniformTrajectoryFromSeed_tailTape
     (steps : Nat) (seed : Digest) :
-    evalDist (trajectoryTailTape <$>
+    evalSPMF (trajectoryTailTape <$>
       uniformTrajectoryFromSeed steps seed) =
-      evalDist (uniformSnocList Digest steps) := by
+      evalSPMF (uniformSnocList Digest steps) := by
   induction steps with
   | zero => simp [uniformSnocList]
   | succ steps ih =>
       rw [uniformTrajectoryFromSeed_succ, uniformSnocList]
       simp only [map_bind, bind_pure_comp]
       calc
-        _ = evalDist (uniformTrajectoryFromSeed steps seed >>= fun prior =>
+        _ = evalSPMF (uniformTrajectoryFromSeed steps seed >>= fun prior =>
               ($ᵗ Digest) >>= fun next =>
               pure (trajectoryTailTape prior ++ [next])) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro prior
           simp [trajectoryTailTape_push]
-        _ = evalDist (uniformSnocList Digest steps >>= fun prior =>
+        _ = evalSPMF (uniformSnocList Digest steps >>= fun prior =>
               ($ᵗ Digest) >>= fun next =>
               pure (prior ++ [next])) := by
           calc
-            _ = evalDist ((trajectoryTailTape <$>
+            _ = evalSPMF ((trajectoryTailTape <$>
                   uniformTrajectoryFromSeed steps seed) >>= fun prior =>
                 ($ᵗ Digest) >>= fun next =>
                 pure (prior ++ [next])) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
             _ = _ := by
-              rw [evalDist_bind, ih, ← evalDist_bind]
+              rw [evalSPMF_bind, ih, ← evalSPMF_bind]
 
 def trajectoryDrawTape {steps : Nat}
     (trajectory : Vector Digest (steps + 1)) : List Digest :=
@@ -1029,27 +1029,27 @@ theorem trajectoryDrawTape_ofDigitTable (values : Digit → Digest) :
 
 theorem evalDist_uniformTrajectoryFromSeed_drawTape
     (steps : Nat) (seed : Digest) :
-    evalDist (trajectoryDrawTape <$>
+    evalSPMF (trajectoryDrawTape <$>
       uniformTrajectoryFromSeed steps seed) =
-      evalDist (OracleComp.drawList ($ᵗ Digest) steps) := by
+      evalSPMF (OracleComp.drawList ($ᵗ Digest) steps) := by
   calc
-    _ = evalDist (List.reverse <$>
+    _ = evalSPMF (List.reverse <$>
           (trajectoryTailTape <$>
             uniformTrajectoryFromSeed steps seed)) := by
       rw [Functor.map_map]
       rfl
-    _ = evalDist (List.reverse <$>
+    _ = evalSPMF (List.reverse <$>
           uniformSnocList Digest steps) := by
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         evalDist_uniformTrajectoryFromSeed_tailTape steps seed,
-        ← evalDist_map]
-    _ = evalDist (List.reverse <$>
+        ← evalSPMF_map]
+    _ = evalSPMF (List.reverse <$>
           (List.reverse <$>
             OracleComp.drawList ($ᵗ Digest) steps)) := by
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         evalDist_uniformSnocList_eq_reverse_drawList Digest steps,
-        ← evalDist_map]
-    _ = evalDist (OracleComp.drawList ($ᵗ Digest) steps) := by
+        ← evalSPMF_map]
+    _ = evalSPMF (OracleComp.drawList ($ᵗ Digest) steps) := by
       simp [Functor.map_map]
 
 theorem drawList_append (firstLength secondLength : Nat) :
@@ -1088,32 +1088,32 @@ theorem drawList_append (firstLength secondLength : Nat) :
           omega
 
 theorem evalDist_sampledHashOutputWithDigest_fst_eq_uniform :
-    evalDist (Prod.fst <$> Rom.sampledHashOutputWithDigest) =
-      evalDist ($ᵗ Digest) := by
+    evalSPMF (Prod.fst <$> Rom.sampledHashOutputWithDigest) =
+      evalSPMF ($ᵗ Digest) := by
   calc
-    _ = evalDist (truncateHash <$> ($ᵗ HashOutput)) := by
-      rw [evalDist_map, Rom.evalDist_sampledHashOutputWithDigest_eq_uniform,
-        ← evalDist_map]
+    _ = evalSPMF (truncateHash <$> ($ᵗ HashOutput)) := by
+      rw [evalSPMF_map, Rom.evalDist_sampledHashOutputWithDigest_eq_uniform,
+        ← evalSPMF_map]
       simp [Functor.map_map]
-    _ = evalDist ($ᵗ Digest) := Rom.evalDist_truncate_uniformHashOutput
+    _ = evalSPMF ($ᵗ Digest) := Rom.evalDist_truncate_uniformHashOutput
 
 theorem evalDist_programmedChainExtension_fst
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
-    evalDist (Prod.fst <$>
+    evalSPMF (Prod.fst <$>
       programmedChainExtension parameter leafIndex chain step values cache) =
-      evalDist ((fun next : Digest => values.push next) <$> ($ᵗ Digest)) := by
+      evalSPMF ((fun next : Digest => values.push next) <$> ($ᵗ Digest)) := by
   unfold programmedChainExtension
   simp only [bind_pure_comp]
   calc
-    _ = evalDist ((fun next : Digest => values.push next) <$>
+    _ = evalSPMF ((fun next : Digest => values.push next) <$>
           (Prod.fst <$> Rom.sampledHashOutputWithDigest)) := by
       simp [Functor.map_map]
-    _ = evalDist ((fun next : Digest => values.push next) <$>
+    _ = evalSPMF ((fun next : Digest => values.push next) <$>
           ($ᵗ Digest)) := by
-      rw [evalDist_map,
-        evalDist_sampledHashOutputWithDigest_fst_eq_uniform, ← evalDist_map]
+      rw [evalSPMF_map,
+        evalDist_sampledHashOutputWithDigest_fst_eq_uniform, ← evalSPMF_map]
 
 set_option maxRecDepth 100000 in
 theorem evalDist_programmedChainTrajectory_fst_eq_uniform
@@ -1121,10 +1121,10 @@ theorem evalDist_programmedChainTrajectory_fst_eq_uniform
     (position : Nat) : ∀ (steps : Nat) (seed : Digest)
       (cache : QueryCache HashSpec),
       position + steps ≤ chainLength - 1 →
-      evalDist (Prod.fst <$>
+      evalSPMF (Prod.fst <$>
         programmedChainTrajectory parameter leafIndex chain position steps seed
           cache) =
-      evalDist (uniformTrajectoryFromSeed steps seed) := by
+      evalSPMF (uniformTrajectoryFromSeed steps seed) := by
   intro steps
   induction steps with
   | zero =>
@@ -1137,23 +1137,23 @@ theorem evalDist_programmedChainTrajectory_fst_eq_uniform
       let prior := programmedChainTrajectory parameter leafIndex chain position
         steps seed cache
       calc
-        _ = evalDist (prior >>= fun priorResult =>
+        _ = evalSPMF (prior >>= fun priorResult =>
               (fun next : Digest => priorResult.1.push next) <$>
                 ($ᵗ Digest)) := by
-          apply evalDist_bind_congr
+          apply evalSPMF_bind_congr
           intro priorResult _hpriorResult
           exact evalDist_programmedChainExtension_fst parameter leafIndex chain
             ⟨position + steps, hvalid⟩ priorResult.1 priorResult.2
-        _ = evalDist ((Prod.fst <$> prior) >>= fun priorValues =>
+        _ = evalSPMF ((Prod.fst <$> prior) >>= fun priorValues =>
               (fun next : Digest => priorValues.push next) <$>
                 ($ᵗ Digest)) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (uniformTrajectoryFromSeed steps seed >>=
+        _ = evalSPMF (uniformTrajectoryFromSeed steps seed >>=
               fun priorValues =>
               (fun next : Digest => priorValues.push next) <$>
                 ($ᵗ Digest)) := by
-          rw [evalDist_bind, ih seed cache (by omega), ← evalDist_bind]
-        _ = evalDist (uniformTrajectoryFromSeed (steps + 1) seed) := by
+          rw [evalSPMF_bind, ih seed cache (by omega), ← evalSPMF_bind]
+        _ = evalSPMF (uniformTrajectoryFromSeed (steps + 1) seed) := by
           simp [uniformTrajectoryFromSeed_succ, map_eq_bind_pure_comp]
 
 noncomputable def uniformFixedChainTrajectories
@@ -1187,9 +1187,9 @@ def fixedChainTrajectoryDrawTape {steps : Nat}
 theorem evalDist_uniformFixedChainTrajectories_drawTape
     (secret : LeafIndex → ChainIndex → Digest) (chain : ChainIndex)
     (steps : Nat) : ∀ leafIndices : List LeafIndex,
-    evalDist (fixedChainTrajectoryDrawTape <$>
+    evalSPMF (fixedChainTrajectoryDrawTape <$>
       uniformFixedChainTrajectories secret chain steps leafIndices) =
-      evalDist (OracleComp.drawList ($ᵗ Digest)
+      evalSPMF (OracleComp.drawList ($ᵗ Digest)
         (leafIndices.length * steps)) := by
   intro leafIndices
   induction leafIndices with
@@ -1198,33 +1198,33 @@ theorem evalDist_uniformFixedChainTrajectories_drawTape
       rw [uniformFixedChainTrajectories_cons]
       simp only [map_bind, bind_pure_comp]
       calc
-        _ = evalDist (uniformTrajectoryFromSeed steps
+        _ = evalSPMF (uniformTrajectoryFromSeed steps
               (secret leafIndex chain) >>= fun first =>
             uniformFixedChainTrajectories secret chain steps leafIndices >>=
               fun rest =>
             pure (trajectoryDrawTape first ++
               fixedChainTrajectoryDrawTape rest)) := by
           simp [fixedChainTrajectoryDrawTape]
-        _ = evalDist ((trajectoryDrawTape <$>
+        _ = evalSPMF ((trajectoryDrawTape <$>
               uniformTrajectoryFromSeed steps (secret leafIndex chain)) >>=
             fun first =>
             (fixedChainTrajectoryDrawTape <$>
               uniformFixedChainTrajectories secret chain steps leafIndices) >>=
             fun rest => pure (first ++ rest)) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest) steps >>= fun first =>
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest) steps >>= fun first =>
             OracleComp.drawList ($ᵗ Digest) (leafIndices.length * steps) >>=
               fun rest => pure (first ++ rest)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_uniformTrajectoryFromSeed_drawTape steps
-              (secret leafIndex chain), ← evalDist_bind]
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+              (secret leafIndex chain), ← evalSPMF_bind]
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
-          rw [evalDist_bind, ih, ← evalDist_bind]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest)
+          rw [evalSPMF_bind, ih, ← evalSPMF_bind]
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest)
               (steps + leafIndices.length * steps)) := by
           rw [drawList_append]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest)
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest)
               ((leafIndex :: leafIndices).length * steps)) := by
           congr 3
           simp only [List.length_cons]
@@ -1235,10 +1235,10 @@ theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1) :
     ∀ (leafIndices : List LeafIndex) (cache : QueryCache HashSpec),
-      evalDist (Prod.fst <$>
+      evalSPMF (Prod.fst <$>
         programmedFixedSeedChainTrajectoriesFromCache parameter secret chain
           steps cache leafIndices) =
-      evalDist (uniformFixedChainTrajectories secret chain steps leafIndices) := by
+      evalSPMF (uniformFixedChainTrajectories secret chain steps leafIndices) := by
   intro leafIndices
   induction leafIndices with
   | nil =>
@@ -1252,37 +1252,39 @@ theorem evalDist_programmedFixedChainTrajectories_fst_eq_uniform
       let firstProgram := programmedChainTrajectory parameter leafIndex chain 0
         steps (secret leafIndex chain) cache
       calc
-        _ = evalDist (firstProgram >>= fun first =>
+        _ = evalSPMF (firstProgram >>= fun first =>
               uniformFixedChainTrajectories secret chain steps leafIndices >>=
                 fun rest =>
               pure (first.1 :: rest)) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
           calc
-            _ = evalDist ((fun rest => first.1 :: rest) <$>
+            _ = evalSPMF ((fun rest => first.1 :: rest) <$>
                   (Prod.fst <$>
                     programmedFixedSeedChainTrajectoriesFromCache parameter
                       secret chain steps first.2 leafIndices)) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
-            _ = evalDist ((fun rest => first.1 :: rest) <$>
+            _ = evalSPMF ((fun rest => first.1 :: rest) <$>
                   uniformFixedChainTrajectories secret chain steps leafIndices) := by
-              rw [evalDist_map, ih first.2, ← evalDist_map]
+              rw [evalSPMF_map, ih first.2, ← evalSPMF_map]
             _ = _ := by
               simp [map_eq_bind_pure_comp]
-        _ = evalDist ((Prod.fst <$> firstProgram) >>= fun first =>
+        _ = evalSPMF ((Prod.fst <$> firstProgram) >>= fun first =>
               uniformFixedChainTrajectories secret chain steps leafIndices >>=
                 fun rest =>
               pure (first :: rest)) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (uniformTrajectoryFromSeed steps (secret leafIndex chain) >>=
+        _ = evalSPMF (uniformTrajectoryFromSeed steps (secret leafIndex chain) >>=
               fun first =>
               uniformFixedChainTrajectories secret chain steps leafIndices >>=
                 fun rest =>
               pure (first :: rest)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_programmedChainTrajectory_fst_eq_uniform parameter leafIndex
               chain 0 steps (secret leafIndex chain) cache (by simpa using hsteps),
-            ← evalDist_bind]
+            ← evalSPMF_bind]
+        _ = _ := by
+          simp only [bind_pure_comp]
 
 noncomputable def uniformAllChainTrajectories
     (secret : LeafIndex → ChainIndex → Digest) :
@@ -1495,10 +1497,10 @@ theorem allChainTrajectoryDrawTape_update_cons
 theorem evalDist_uniformAllChainTrajectories_drawTape
     (secret : LeafIndex → ChainIndex → Digest) :
     ∀ chains : List ChainIndex, chains.Nodup →
-    evalDist ((fun trajectories =>
+    evalSPMF ((fun trajectories =>
       allChainTrajectoryDrawTape trajectories chains) <$>
         uniformAllChainTrajectories secret chains) =
-      evalDist (OracleComp.drawList ($ᵗ Digest)
+      evalSPMF (OracleComp.drawList ($ᵗ Digest)
         (chains.length * (allLeafIndices.length * (chainLength - 1)))) := by
   intro chains
   induction chains with
@@ -1512,19 +1514,19 @@ theorem evalDist_uniformAllChainTrajectories_drawTape
       simp only [map_bind, bind_pure_comp]
       let blockSize := allLeafIndices.length * (chainLength - 1)
       calc
-        _ = evalDist (uniformFixedChainTrajectories secret chain
+        _ = evalSPMF (uniformFixedChainTrajectories secret chain
               (chainLength - 1) allLeafIndices >>= fun first =>
             uniformAllChainTrajectories secret chains >>= fun rest =>
             pure (fixedChainTrajectoryDrawTape first ++
               allChainTrajectoryDrawTape rest chains)) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
           calc
-            _ = evalDist ((fun rest => allChainTrajectoryDrawTape
+            _ = evalSPMF ((fun rest => allChainTrajectoryDrawTape
                   (Function.update rest chain first) (chain :: chains)) <$>
                 uniformAllChainTrajectories secret chains) := by
               rw [Functor.map_map]
-            _ = evalDist ((fun rest => fixedChainTrajectoryDrawTape first ++
+            _ = evalSPMF ((fun rest => fixedChainTrajectoryDrawTape first ++
                   allChainTrajectoryDrawTape rest chains) <$>
                 uniformAllChainTrajectories secret chains) := by
               congr 2
@@ -1533,28 +1535,28 @@ theorem evalDist_uniformAllChainTrajectories_drawTape
                 chains hnotMem
             _ = _ := by
               simp [map_eq_bind_pure_comp]
-        _ = evalDist ((fixedChainTrajectoryDrawTape <$>
+        _ = evalSPMF ((fixedChainTrajectoryDrawTape <$>
               uniformFixedChainTrajectories secret chain
                 (chainLength - 1) allLeafIndices) >>= fun first =>
             ((fun rest => allChainTrajectoryDrawTape rest chains) <$>
               uniformAllChainTrajectories secret chains) >>= fun rest =>
             pure (first ++ rest)) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest) blockSize >>=
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest) blockSize >>=
             fun first =>
             OracleComp.drawList ($ᵗ Digest)
               (chains.length * blockSize) >>= fun rest =>
             pure (first ++ rest)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_uniformFixedChainTrajectories_drawTape secret chain
-              (chainLength - 1) allLeafIndices, ← evalDist_bind]
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+              (chainLength - 1) allLeafIndices, ← evalSPMF_bind]
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
-          rw [evalDist_bind, ih htailNodup, ← evalDist_bind]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest)
+          rw [evalSPMF_bind, ih htailNodup, ← evalSPMF_bind]
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest)
               (blockSize + chains.length * blockSize)) := by
           rw [drawList_append]
-        _ = evalDist (OracleComp.drawList ($ᵗ Digest)
+        _ = evalSPMF (OracleComp.drawList ($ᵗ Digest)
               ((chain :: chains).length *
                 (allLeafIndices.length * (chainLength - 1)))) := by
           congr 3
@@ -1602,29 +1604,29 @@ theorem globalTrajectoryEdgeTableOfTape_map
     exact (hlength (by simp)).elim
 
 theorem evalDist_uniformGlobalTrajectoryEdgeTableTape_eq_drawList :
-    evalDist ((fun table : GlobalChainEdgeIndex → Digest =>
+    evalSPMF ((fun table : GlobalChainEdgeIndex → Digest =>
       globalTrajectoryEdgeOrder.map table) <$>
         ($ᵗ (GlobalChainEdgeIndex → Digest))) =
-      evalDist (OracleComp.drawList ($ᵗ Digest)
+      evalSPMF (OracleComp.drawList ($ᵗ Digest)
         globalTrajectoryEdgeOrder.length) := by
   calc
-    _ = evalDist (List.ofFn <$>
+    _ = evalSPMF (List.ofFn <$>
         (globalTrajectoryEdgeTableTapeEquiv <$>
           ($ᵗ (GlobalChainEdgeIndex → Digest)))) := by
       simp only [Functor.map_map]
       congr 2
       funext table
       exact (listOfFn_globalTrajectoryEdgeTableTapeEquiv table).symm
-    _ = evalDist (List.ofFn <$>
+    _ = evalSPMF (List.ofFn <$>
         ($ᵗ (Fin globalTrajectoryEdgeOrder.length → Digest))) := by
-      rw [evalDist_map]
-      rw [evalDist_map_bijective_uniform_cross
+      rw [evalSPMF_map]
+      rw [evalSPMF_map_bijective_uniform_cross
         (α := GlobalChainEdgeIndex → Digest)
         (β := Fin globalTrajectoryEdgeOrder.length → Digest)
         globalTrajectoryEdgeTableTapeEquiv
           globalTrajectoryEdgeTableTapeEquiv.bijective]
-      rw [← evalDist_map]
-    _ = evalDist (OracleComp.drawList ($ᵗ Digest)
+      rw [← evalSPMF_map]
+    _ = evalSPMF (OracleComp.drawList ($ᵗ Digest)
         globalTrajectoryEdgeOrder.length) :=
       evalDist_listOfFn_uniform_eq_drawList
         globalTrajectoryEdgeOrder.length
@@ -1632,18 +1634,18 @@ theorem evalDist_uniformGlobalTrajectoryEdgeTableTape_eq_drawList :
 set_option maxHeartbeats 1000000 in
 set_option maxRecDepth 1000000 in
 theorem evalDist_globalTrajectoryEdgeTableOfTape_drawList_eq_uniform :
-    evalDist (globalTrajectoryEdgeTableOfTape <$>
+    evalSPMF (globalTrajectoryEdgeTableOfTape <$>
       OracleComp.drawList ($ᵗ Digest)
         globalTrajectoryEdgeOrder.length) =
-      evalDist ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
+      evalSPMF ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
   calc
-    _ = evalDist (globalTrajectoryEdgeTableOfTape <$>
+    _ = evalSPMF (globalTrajectoryEdgeTableOfTape <$>
         ((fun table : GlobalChainEdgeIndex → Digest =>
           globalTrajectoryEdgeOrder.map table) <$>
             ($ᵗ (GlobalChainEdgeIndex → Digest)))) := by
-      rw [evalDist_map, evalDist_map,
+      rw [evalSPMF_map, evalSPMF_map,
         evalDist_uniformGlobalTrajectoryEdgeTableTape_eq_drawList]
-    _ = evalDist ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
+    _ = evalSPMF ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
       simp [Functor.map_map]
 
 noncomputable def globalChainEdgeTableOfTrajectories
@@ -1717,36 +1719,36 @@ theorem globalTrajectoryEdgeTableOfTape_drawTape
 set_option maxRecDepth 100000 in
 theorem evalDist_uniformAllChainTrajectories_edgeTable_eq_uniform
     (secret : LeafIndex → ChainIndex → Digest) :
-    evalDist (globalChainEdgeTableOfTrajectories <$>
+    evalSPMF (globalChainEdgeTableOfTrajectories <$>
       uniformAllChainTrajectories secret allChains) =
-      evalDist ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
+      evalSPMF ($ᵗ (GlobalChainEdgeIndex → Digest)) := by
   calc
-    _ = evalDist (globalTrajectoryEdgeTableOfTape <$>
+    _ = evalSPMF (globalTrajectoryEdgeTableOfTape <$>
           ((fun trajectories =>
             allChainTrajectoryDrawTape trajectories allChains) <$>
               uniformAllChainTrajectories secret allChains)) := by
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_apply]
-      apply evalDist_bind_congr
+      apply evalSPMF_bind_congr
       intro trajectories htrajectories
       have hinfo := uniformAllChainTrajectories_support_info secret allChains
         trajectories allChains_nodup htrajectories
       rw [globalTrajectoryEdgeTableOfTape_drawTape trajectories
         (fun chain => (hinfo chain (mem_allChains chain)).1)]
       simp
-    _ = evalDist (globalTrajectoryEdgeTableOfTape <$>
+    _ = evalSPMF (globalTrajectoryEdgeTableOfTape <$>
           OracleComp.drawList ($ᵗ Digest)
             (allChains.length *
               (allLeafIndices.length * (chainLength - 1)))) := by
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         evalDist_uniformAllChainTrajectories_drawTape secret allChains
           allChains_nodup,
-        ← evalDist_map]
-    _ = evalDist (globalTrajectoryEdgeTableOfTape <$>
+        ← evalSPMF_map]
+    _ = evalSPMF (globalTrajectoryEdgeTableOfTape <$>
           OracleComp.drawList ($ᵗ Digest)
             globalTrajectoryEdgeOrder.length) := by
       rw [globalTrajectoryEdgeOrder_length]
-    _ = evalDist ($ᵗ (GlobalChainEdgeIndex → Digest)) :=
+    _ = evalSPMF ($ᵗ (GlobalChainEdgeIndex → Digest)) :=
       evalDist_globalTrajectoryEdgeTableOfTape_drawList_eq_uniform
 
 theorem globalChainTableMaterialEquiv_trajectories
@@ -1777,8 +1779,8 @@ noncomputable def sampleSecretGlobalChainMaterial :
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 2000000 in
 theorem evalDist_sampleSecretGlobalChainMaterial_eq_independent :
-    evalDist sampleSecretGlobalChainMaterial =
-      evalDist independentGlobalChainTableMaterial := by
+    evalSPMF sampleSecretGlobalChainMaterial =
+      evalSPMF independentGlobalChainTableMaterial := by
   apply SPMF.ext
   intro target
   change Pr[= target | sampleSecretGlobalChainMaterial] =
@@ -1791,43 +1793,43 @@ theorem evalDist_sampleSecretGlobalChainMaterial_eq_independent :
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 2000000 in
 theorem evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform :
-    evalDist uniformGlobalChainTableFromTrajectories =
-      evalDist ($ᵗ (GlobalChainValueIndex → Digest)) := by
+    evalSPMF uniformGlobalChainTableFromTrajectories =
+      evalSPMF ($ᵗ (GlobalChainValueIndex → Digest)) := by
   unfold uniformGlobalChainTableFromTrajectories
   calc
-    _ = evalDist (Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF (Concrete.sampleSecret >>= fun secret =>
           uniformAllChainTrajectories secret allChains >>= fun trajectories =>
           pure (globalChainTableMaterialEquiv.symm
             (secret, globalChainEdgeTableOfTrajectories trajectories))) := by
-      apply evalDist_bind_congr
+      apply evalSPMF_bind_congr
       intro secret _hsecret
-      apply evalDist_bind_congr
+      apply evalSPMF_bind_congr
       intro trajectories htrajectories
       rw [← globalChainTableMaterialEquiv_trajectories secret trajectories
         htrajectories, globalChainTableMaterialEquiv.symm_apply_apply]
-    _ = evalDist (Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF (Concrete.sampleSecret >>= fun secret =>
           (globalChainEdgeTableOfTrajectories <$>
             uniformAllChainTrajectories secret allChains) >>= fun edges =>
           pure (globalChainTableMaterialEquiv.symm (secret, edges))) := by
       simp [map_eq_bind_pure_comp, bind_assoc]
-    _ = evalDist (Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF (Concrete.sampleSecret >>= fun secret =>
           ($ᵗ (GlobalChainEdgeIndex → Digest)) >>= fun edges =>
           pure (globalChainTableMaterialEquiv.symm (secret, edges))) := by
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro secret
-      rw [evalDist_bind,
+      rw [evalSPMF_bind,
         evalDist_uniformAllChainTrajectories_edgeTable_eq_uniform secret,
-        ← evalDist_bind]
-    _ = evalDist (globalChainTableMaterialEquiv.symm <$>
+        ← evalSPMF_bind]
+    _ = evalSPMF (globalChainTableMaterialEquiv.symm <$>
           sampleSecretGlobalChainMaterial) := by
       simp [sampleSecretGlobalChainMaterial, monad_norm]
-    _ = evalDist (globalChainTableMaterialEquiv.symm <$>
+    _ = evalSPMF (globalChainTableMaterialEquiv.symm <$>
           independentGlobalChainTableMaterial) := by
-      exact evalDist_map_eq_of_evalDist_eq
+      exact evalSPMF_map_eq_of_evalSPMF_eq
         evalDist_sampleSecretGlobalChainMaterial_eq_independent
         globalChainTableMaterialEquiv.symm
-    _ = evalDist ($ᵗ (GlobalChainValueIndex → Digest)) := by
-      have h := evalDist_map_eq_of_evalDist_eq
+    _ = evalSPMF ($ᵗ (GlobalChainValueIndex → Digest)) := by
+      have h := evalSPMF_map_eq_of_evalSPMF_eq
         evalDist_split_uniformGlobalChainTable_eq_independent
         globalChainTableMaterialEquiv.symm
       simpa [Functor.map_map] using h.symm
@@ -1836,9 +1838,9 @@ set_option maxRecDepth 100000 in
 theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
-      evalDist (Prod.fst <$>
+      evalSPMF (Prod.fst <$>
         programmedAllChainTrajectoriesFromCache parameter secret cache chains) =
-      evalDist (uniformAllChainTrajectories secret chains) := by
+      evalSPMF (uniformAllChainTrajectories secret chains) := by
   intro chains
   induction chains with
   | nil =>
@@ -1852,42 +1854,44 @@ theorem evalDist_programmedAllChainTrajectories_fst_eq_uniform
       let firstProgram := programmedFixedSeedChainTrajectoriesFromCache
         parameter secret chain (chainLength - 1) cache allLeafIndices
       calc
-        _ = evalDist (firstProgram >>= fun first =>
+        _ = evalSPMF (firstProgram >>= fun first =>
               uniformAllChainTrajectories secret chains >>= fun rest =>
               pure (Function.update rest chain first.1)) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
           calc
-            _ = evalDist ((fun rest => Function.update rest chain first.1) <$>
+            _ = evalSPMF ((fun rest => Function.update rest chain first.1) <$>
                   (Prod.fst <$>
                     programmedAllChainTrajectoriesFromCache parameter secret
                       first.2 chains)) := by
               simp [map_eq_bind_pure_comp, bind_assoc]
-            _ = evalDist ((fun rest => Function.update rest chain first.1) <$>
+            _ = evalSPMF ((fun rest => Function.update rest chain first.1) <$>
                   uniformAllChainTrajectories secret chains) := by
-              rw [evalDist_map, ih first.2, ← evalDist_map]
+              rw [evalSPMF_map, ih first.2, ← evalSPMF_map]
             _ = _ := by
               simp [map_eq_bind_pure_comp]
-        _ = evalDist ((Prod.fst <$> firstProgram) >>= fun first =>
+        _ = evalSPMF ((Prod.fst <$> firstProgram) >>= fun first =>
               uniformAllChainTrajectories secret chains >>= fun rest =>
               pure (Function.update rest chain first)) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (uniformFixedChainTrajectories secret chain
+        _ = evalSPMF (uniformFixedChainTrajectories secret chain
               (chainLength - 1) allLeafIndices >>= fun first =>
               uniformAllChainTrajectories secret chains >>= fun rest =>
               pure (Function.update rest chain first)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_programmedFixedChainTrajectories_fst_eq_uniform parameter
               secret chain (chainLength - 1) le_rfl allLeafIndices cache,
-            ← evalDist_bind]
+            ← evalSPMF_bind]
+        _ = _ := by
+          simp only [bind_pure_comp]
 
 theorem evalDist_rootTree_run_eq_allChainTrajectories_then_rootTree
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (chains : List ChainIndex) (initialCache : QueryCache HashSpec) :
-    evalDist ((simulateQ randomOracle
+    evalSPMF ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
         OracleComp HashSpec Digest)).run initialCache) =
-      evalDist (Concrete.allChainTrajectoriesFromCache parameter secret
+      evalSPMF (Concrete.allChainTrajectoriesFromCache parameter secret
         initialCache chains >>= fun trajectoryResult =>
           (simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
@@ -1896,10 +1900,10 @@ theorem evalDist_rootTree_run_eq_allChainTrajectories_then_rootTree
   | nil => simp
   | cons chain chains ih =>
       calc
-        evalDist ((simulateQ randomOracle
+        evalSPMF ((simulateQ randomOracle
             (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
               OracleComp HashSpec Digest)).run initialCache) =
-          evalDist (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret
+          evalSPMF (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret
             chain (chainLength - 1) initialCache allLeafIndices >>=
               fun first =>
             (simulateQ randomOracle
@@ -1908,7 +1912,7 @@ theorem evalDist_rootTree_run_eq_allChainTrajectories_then_rootTree
           evalDist_rootTree_run_eq_fixedSeedTrajectories_then_rootTree
             parameter secret chain (chainLength - 1) le_rfl allLeafIndices
               initialCache
-        _ = evalDist (Concrete.fixedSeedChainTrajectoriesFromCache parameter
+        _ = evalSPMF (Concrete.fixedSeedChainTrajectoriesFromCache parameter
               secret chain (chainLength - 1) initialCache allLeafIndices >>=
             fun first =>
             Concrete.allChainTrajectoriesFromCache parameter secret first.2
@@ -1916,10 +1920,10 @@ theorem evalDist_rootTree_run_eq_allChainTrajectories_then_rootTree
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
                 OracleComp HashSpec Digest)).run rest.2) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
           exact ih first.2
-        _ = evalDist (Concrete.allChainTrajectoriesFromCache parameter secret
+        _ = evalSPMF (Concrete.allChainTrajectoriesFromCache parameter secret
               initialCache (chain :: chains) >>= fun trajectoryResult =>
             (simulateQ randomOracle
               (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
@@ -1962,15 +1966,15 @@ noncomputable def programmedAllChainTrajectoryKeygen :
   }, trajectoryResult.1)
 
 theorem evalDist_allChainTrajectoryKeygen_eq_programmed :
-    evalDist allChainTrajectoryKeygen =
-      evalDist programmedAllChainTrajectoryKeygen := by
+    evalSPMF allChainTrajectoryKeygen =
+      evalSPMF programmedAllChainTrajectoryKeygen := by
   unfold allChainTrajectoryKeygen programmedAllChainTrajectoryKeygen
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secret
-  conv_lhs => rw [evalDist_bind]
-  conv_rhs => rw [evalDist_bind]
+  conv_lhs => rw [evalSPMF_bind]
+  conv_rhs => rw [evalSPMF_bind]
   rw [evalDist_allChainTrajectories_eq_programmed parameter secret allChains ∅
     allChains_nodup (by simp [AllChainAddressesAbsent])]
 
@@ -1979,14 +1983,14 @@ def eraseAllChainTrajectories
     ProgrammedGlobalChainKeygenView := result.1
 
 theorem evalDist_explicitGlobalChainKeygen_eq_allChainTrajectoryKeygen :
-    evalDist explicitGlobalChainKeygen =
-      evalDist (eraseAllChainTrajectories <$> allChainTrajectoryKeygen) := by
+    evalSPMF explicitGlobalChainKeygen =
+      evalSPMF (eraseAllChainTrajectories <$> allChainTrajectoryKeygen) := by
   unfold explicitGlobalChainKeygen allChainTrajectoryKeygen
     eraseAllChainTrajectories
   simp only [map_bind, bind_pure_comp, Functor.map_map]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secret
   let finish : Digest × QueryCache HashSpec →
       ProbComp ProgrammedGlobalChainKeygenView := fun rootResult =>
@@ -1997,38 +2001,39 @@ theorem evalDist_explicitGlobalChainKeygen_eq_allChainTrajectoryKeygen :
       cache := rootResult.2
       table := globalKeygenChainValueTable rootResult.2 secretKey
     }
-  change evalDist ((simulateQ randomOracle
+  simp only [← bind_pure_comp]
+  change evalSPMF ((simulateQ randomOracle
       (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
         OracleComp HashSpec Digest)).run ∅ >>= finish) =
-    evalDist (Concrete.allChainTrajectoriesFromCache parameter secret ∅
+    evalSPMF (Concrete.allChainTrajectoriesFromCache parameter secret ∅
       allChains >>= fun trajectoryResult =>
       (simulateQ randomOracle
         (Concrete.treeNode parameter secret treeHeight Concrete.rootNode :
           OracleComp HashSpec Digest)).run trajectoryResult.2 >>= finish)
-  conv_lhs => rw [evalDist_bind]
-  conv_rhs => rw [evalDist_bind]
+  conv_lhs => rw [evalSPMF_bind]
+  conv_rhs => rw [evalSPMF_bind]
   rw [evalDist_rootTree_run_eq_allChainTrajectories_then_rootTree parameter
     secret allChains ∅]
-  simp only [evalDist_bind, bind_assoc]
+  simp only [evalSPMF_bind, bind_assoc]
 
 theorem evalDist_actualGlobalChainKeygen_eq_allChainTrajectoryKeygen :
-    evalDist actualGlobalChainKeygen =
-      evalDist (eraseAllChainTrajectories <$> allChainTrajectoryKeygen) :=
+    evalSPMF actualGlobalChainKeygen =
+      evalSPMF (eraseAllChainTrajectories <$> allChainTrajectoryKeygen) :=
   evalDist_actualGlobalChainKeygen_eq_explicit.trans
     evalDist_explicitGlobalChainKeygen_eq_allChainTrajectoryKeygen
 
 theorem evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories :
-    evalDist actualGlobalChainKeygen =
-      evalDist (eraseAllChainTrajectories <$>
+    evalSPMF actualGlobalChainKeygen =
+      evalSPMF (eraseAllChainTrajectories <$>
         programmedAllChainTrajectoryKeygen) := by
   calc
-    _ = evalDist (eraseAllChainTrajectories <$>
+    _ = evalSPMF (eraseAllChainTrajectories <$>
         allChainTrajectoryKeygen) :=
       evalDist_actualGlobalChainKeygen_eq_allChainTrajectoryKeygen
-    _ = evalDist (eraseAllChainTrajectories <$>
+    _ = evalSPMF (eraseAllChainTrajectories <$>
         programmedAllChainTrajectoryKeygen) := by
-      rw [evalDist_map, evalDist_allChainTrajectoryKeygen_eq_programmed,
-        ← evalDist_map]
+      rw [evalSPMF_map, evalDist_allChainTrajectoryKeygen_eq_programmed,
+        ← evalSPMF_map]
 
 
 theorem Concrete.fixedSeedChainTrajectoriesFromCache_avoids_leaf
@@ -2197,7 +2202,7 @@ theorem programmedAllChainTrajectories_treeValuesFresh
   have hactual : result ∈ support
       (Concrete.allChainTrajectoriesFromCache parameter secret ∅
         allChains) := by
-    apply (mem_support_iff_of_evalDist_eq
+    apply (mem_support_iff_of_evalSPMF_eq
       (evalDist_allChainTrajectories_eq_programmed parameter secret allChains ∅
         allChains_nodup (by simp [AllChainAddressesAbsent])) result).mpr
     exact hresult
@@ -2255,31 +2260,32 @@ theorem programmedGlobalChainTrajectoryMaterial_support_trajectories
 
 theorem evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
     (parameter : PublicParameter) :
-    evalDist (globalChainTrajectoryMaterialTable <$>
+    evalSPMF (globalChainTrajectoryMaterialTable <$>
       programmedGlobalChainTrajectoryMaterial parameter) =
-      evalDist ($ᵗ (GlobalChainValueIndex → Digest)) := by
+      evalSPMF ($ᵗ (GlobalChainValueIndex → Digest)) := by
   unfold programmedGlobalChainTrajectoryMaterial
     globalChainTrajectoryMaterialTable
   simp only [map_eq_bind_pure_comp, bind_assoc]
   calc
-    _ = evalDist (Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF (Concrete.sampleSecret >>= fun secret =>
           globalChainValueTableOfTrajectories <$>
             (Prod.fst <$> programmedAllChainTrajectoriesFromCache parameter
               secret ∅ allChains)) := by
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro secret
       simp [map_eq_bind_pure_comp, bind_assoc]
-    _ = evalDist (Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF (Concrete.sampleSecret >>= fun secret =>
           globalChainValueTableOfTrajectories <$>
             uniformAllChainTrajectories secret allChains) := by
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro secret
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         evalDist_programmedAllChainTrajectories_fst_eq_uniform parameter
           secret allChains ∅,
-        ← evalDist_map]
-    _ = evalDist uniformGlobalChainTableFromTrajectories := rfl
-    _ = evalDist ($ᵗ (GlobalChainValueIndex → Digest)) :=
+        ← evalSPMF_map]
+    _ = evalSPMF uniformGlobalChainTableFromTrajectories := by
+      simp only [uniformGlobalChainTableFromTrajectories, bind_pure_comp]
+    _ = evalSPMF ($ᵗ (GlobalChainValueIndex → Digest)) :=
       evalDist_uniformGlobalChainTableFromTrajectories_eq_uniform
 
 def globalChainTrajectoryMaterialBase
@@ -2292,26 +2298,26 @@ set_option maxRecDepth 1000000 in
 set_option linter.constructorNameAsVariable false in
 theorem evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_base
     (parameter : PublicParameter) :
-    evalDist (globalChainTrajectoryMaterialTable <$>
+    evalSPMF (globalChainTrajectoryMaterialTable <$>
         programmedGlobalChainTrajectoryMaterial parameter) =
-      evalDist (globalChainTrajectoryMaterialBase <$>
+      evalSPMF (globalChainTrajectoryMaterialBase <$>
         programmedGlobalChainTrajectoryMaterialWithBase parameter) := by
   calc
-    _ = evalDist ($ᵗ (GlobalChainValueIndex → Digest)) :=
+    _ = evalSPMF ($ᵗ (GlobalChainValueIndex → Digest)) :=
       evalDist_programmedGlobalChainTrajectoryMaterial_table_eq_uniform
         parameter
-    _ = evalDist (globalChainTrajectoryMaterialBase <$>
+    _ = evalSPMF (globalChainTrajectoryMaterialBase <$>
         programmedGlobalChainTrajectoryMaterialWithBase parameter) := by
       unfold programmedGlobalChainTrajectoryMaterialWithBase
         globalChainTrajectoryMaterialBase
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind]
       symm
       calc
-        _ = evalDist ($ᵗ (GlobalChainValueIndex → Digest) >>= fun base =>
+        _ = evalSPMF ($ᵗ (GlobalChainValueIndex → Digest) >>= fun base =>
               pure base) := by
-          apply evalDist_bind_congr
+          apply evalSPMF_bind_congr
           intro base _hbase
-          exact OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+          exact OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
             (programmedGlobalChainTrajectoryMaterial parameter)
             (probFailure_eq_zero' inferInstance) (pure base)
         _ = _ := by simp
@@ -2378,7 +2384,7 @@ theorem programmedGlobalChainTrajectoryMaterial_table_eq_keygenTable
   have hactual : material.2 ∈ support
       (Concrete.allChainTrajectoriesFromCache parameter material.1 ∅
         allChains) := by
-    apply (mem_support_iff_of_evalDist_eq
+    apply (mem_support_iff_of_evalSPMF_eq
       (evalDist_allChainTrajectories_eq_programmed parameter material.1
         allChains ∅ allChains_nodup
           (by simp [AllChainAddressesAbsent])) material.2).mpr
@@ -2401,9 +2407,9 @@ set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 1000000 in
 theorem evalDist_coupledGlobalChainKeygen_toProgrammedView_eq
     (parameter : PublicParameter) :
-    evalDist (CoupledGlobalChainKeygenView.toProgrammedView parameter <$>
+    evalSPMF (CoupledGlobalChainKeygenView.toProgrammedView parameter <$>
       coupledGlobalChainKeygenExperiment parameter) =
-    evalDist (programmedGlobalChainTrajectoryMaterial parameter >>=
+    evalSPMF (programmedGlobalChainTrajectoryMaterial parameter >>=
       fun material =>
       (simulateQ randomOracle
         (Concrete.treeNode parameter material.1 treeHeight Concrete.rootNode :
@@ -2418,7 +2424,7 @@ theorem evalDist_coupledGlobalChainKeygen_toProgrammedView_eq
   unfold coupledGlobalChainKeygenExperiment
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
-  apply evalDist_bind_congr
+  apply evalSPMF_bind_congr
   intro material hmaterial
   let finish : Digest × QueryCache HashSpec →
       ProbComp ProgrammedGlobalChainKeygenView := fun rootResult => pure {
@@ -2430,18 +2436,18 @@ theorem evalDist_coupledGlobalChainKeygen_toProgrammedView_eq
   }
   symm
   calc
-    evalDist ((simulateQ randomOracle
+    evalSPMF ((simulateQ randomOracle
           (Concrete.treeNode parameter material.1 treeHeight Concrete.rootNode :
             OracleComp HashSpec Digest)).run material.2.2 >>= finish) =
-      evalDist (((fun tree : List Digest × QueryCache HashSpec =>
+      evalSPMF (((fun tree : List Digest × QueryCache HashSpec =>
           (Concrete.CacheReplay.treeNode tree.2 parameter material.1
             treeHeight Concrete.rootNode, tree.2)) <$>
             treeValues parameter material.1 allTreeValueIndices
               material.2.2) >>= finish) := by
-        rw [evalDist_bind,
+        rw [evalSPMF_bind,
           evalDist_rootTree_run_eq_treeValues_root_cache,
-          ← evalDist_bind]
-    _ = evalDist (treeValues parameter material.1 allTreeValueIndices
+          ← evalSPMF_bind]
+    _ = evalSPMF (treeValues parameter material.1 allTreeValueIndices
           material.2.2 >>= fun tree =>
         pure (CoupledGlobalChainKeygenView.toProgrammedView parameter {
           secret := material.1
@@ -2451,7 +2457,7 @@ theorem evalDist_coupledGlobalChainKeygen_toProgrammedView_eq
         })) := by
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_apply]
-      apply evalDist_bind_congr
+      apply evalSPMF_bind_congr
       intro tree htree
       unfold finish CoupledGlobalChainKeygenView.toProgrammedView
         CoupledGlobalChainKeygenView.root
@@ -2467,18 +2473,16 @@ noncomputable def coupledGlobalChainKeygen :
 set_option maxHeartbeats 2000000 in
 set_option maxRecDepth 1000000 in
 theorem evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories :
-    evalDist coupledGlobalChainKeygen =
-      evalDist (eraseAllChainTrajectories <$>
+    evalSPMF coupledGlobalChainKeygen =
+      evalSPMF (eraseAllChainTrajectories <$>
         programmedAllChainTrajectoryKeygen) := by
   unfold coupledGlobalChainKeygen programmedAllChainTrajectoryKeygen
     eraseAllChainTrajectories
   simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
     Function.comp_apply]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
-  change evalDist
-      (CoupledGlobalChainKeygenView.toProgrammedView parameter <$>
-        coupledGlobalChainKeygenExperiment parameter) = _
+  conv_lhs => rw [bind_pure_comp]
   rw [evalDist_coupledGlobalChainKeygen_toProgrammedView_eq parameter]
   unfold programmedGlobalChainTrajectoryMaterial
   simp only [bind_assoc, pure_bind]

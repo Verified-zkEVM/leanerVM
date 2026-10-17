@@ -125,7 +125,7 @@ theorem Concrete.rootTree_queryBound_leafAddress
     unfold TreeCovers Concrete.rootNode
     constructor
     · simp
-    · simp [lifetime]
+    · simpa [lifetime] using targetLeafIndex.isLt
   simpa [hcover] using hbound
 
 /-- A supported root-tree execution from an empty cache contains at most one input at each leaf address. -/
@@ -222,7 +222,7 @@ theorem Concrete.rootTree_queryBound_chainAddress
     unfold TreeCovers Concrete.rootNode
     constructor
     · simp
-    · simp [lifetime]
+    · simpa [lifetime] using targetLeafIndex.isLt
   simpa [hcover] using hbound
 
 /-- A supported root-tree execution from an empty cache contains at most one input at each chain-step address. -/

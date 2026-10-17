@@ -115,7 +115,7 @@ theorem Concrete.allChainTrajectoriesFromCache_chainWalk_run_eq_pure
       ((simulateQ randomOracle
         (Concrete.chainWalk parameter leafIndex chain 0 (chainLength - 1)
           (secret leafIndex chain) : OracleComp HashSpec Digest)).run walkBefore) :=
-    (mem_support_iff_of_evalDist_eq
+    (mem_support_iff_of_evalSPMF_eq
       (evalDist_chainTrajectory_run_cache_eq_chainWalk_run_cache
         parameter leafIndex chain 0 (chainLength - 1) (secret leafIndex chain)
           walkBefore) (trajectory.back, walkAfter)).mp hmapped
@@ -350,6 +350,7 @@ theorem relTriple_globalLeafHash_fixed_run
           OracleComp HashSpec Digest)).run rightCache)
       (TreeCacheResult parameter leftSecret rightSecret leftEndpoints
         rightEndpoints) := by
+  rw [Concrete.simulateQ_leafHash_run, Concrete.simulateQ_leafHash_run]
   change RelTriple
     ((fun result : HashOutput × QueryCache HashSpec =>
       (truncateHash result.1, result.2)) <$>
@@ -374,7 +375,7 @@ theorem programmedGlobalChainTrajectoryMaterial_support_as_actual
     material.2 ∈ support
       (Concrete.allChainTrajectoriesFromCache parameter material.1 ∅
         allChains) := by
-  apply (mem_support_iff_of_evalDist_eq
+  apply (mem_support_iff_of_evalSPMF_eq
     (evalDist_allChainTrajectories_eq_programmed parameter material.1
       allChains ∅ allChains_nodup (by
         simp [AllChainAddressesAbsent])) material.2).mpr
@@ -537,6 +538,7 @@ theorem relTriple_globalNodeHash_run_with_endpoint_matches
           OracleComp HashSpec Digest)).run rightCache)
       (TreeCacheResult parameter leftSecret rightSecret leftEndpoints
         rightEndpoints) := by
+  rw [Concrete.simulateQ_nodeHash_run, Concrete.simulateQ_nodeHash_run]
   change RelTriple
     ((fun result : HashOutput × QueryCache HashSpec =>
       (truncateHash result.1, result.2)) <$>
@@ -718,12 +720,13 @@ theorem relTriple_globalMaterial_allLeafValues_run
   have hzero : ∀ index ∈ treeValueIndicesAtHeight 0,
       index.1.val = 0 := by
     intro index hindex
-    rw [treeValueIndicesAtHeight, List.mem_ofFn] at hindex
-    obtain ⟨node, rfl⟩ := hindex
+    rw [treeValueIndicesAtHeight] at hindex
+    obtain ⟨node, rfl⟩ := List.mem_ofFn.mp hindex
     rfl
   have hordered : (treeValueIndicesAtHeight 0).Pairwise
       TreeValueIndex.Precedes := by
-    simp only [treeValueIndicesAtHeight, List.pairwise_ofFn]
+    rw [treeValueIndicesAtHeight]
+    refine List.pairwise_ofFn.mpr ?_
     intro leftNode rightNode hlt
     exact Or.inr ⟨rfl, hlt⟩
   have hleftFresh : TreeValuesFresh parameter
@@ -1084,7 +1087,8 @@ theorem relTriple_globalMaterial_merkleHeight_run
         (childTreeValueIndex_mem_below current hcurrentPositive true)
   have hordered : (treeValueIndicesAtHeight height).Pairwise
       TreeValueIndex.Precedes := by
-    simp only [treeValueIndicesAtHeight, List.pairwise_ofFn]
+    rw [treeValueIndicesAtHeight]
+    refine List.pairwise_ofFn.mpr ?_
     intro leftNode rightNode hlt
     exact Or.inr ⟨rfl, hlt⟩
   have hcoupling := relTriple_globalMaterial_merkleTreeValues_run parameter

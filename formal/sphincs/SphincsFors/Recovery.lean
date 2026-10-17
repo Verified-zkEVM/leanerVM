@@ -463,7 +463,9 @@ theorem ftsTopPair_eq_iff (g : Nat → Digest) (leaf : FtsLeaf) (node other : Di
       node = g (leaf.val / 2 ^ ftsTopLevel) ∧ other = g (Nat.xor (leaf.val / 2 ^ ftsTopLevel) 1) := by
   have hlt : leaf.val / 2 ^ ftsTopLevel < 2 := by
     rw [Nat.div_lt_iff_lt_mul (Nat.two_pow_pos _)]
-    simp [ftsTopLevel, ftsTreeHeight]
+    have hleaf := leaf.isLt
+    simp [ftsTopLevel, ftsTreeHeight] at hleaf ⊢
+    omega
   unfold ftsTopPair
   rw [Nat.testBit_eq_decide_div_mod_eq]
   obtain h | h : leaf.val / 2 ^ ftsTopLevel = 0 ∨ leaf.val / 2 ^ ftsTopLevel = 1 := by

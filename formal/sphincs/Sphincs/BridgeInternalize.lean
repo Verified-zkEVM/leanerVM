@@ -119,25 +119,25 @@ theorem bind_map_congr' {α β β' γ : Type} (x : ProbComp α) (f : α → β) 
 
 /-- Overlay the short entries of one cache on the long entries of another. -/
 def merge (short long : QueryCache HashSpec) : QueryCache HashSpec :=
-  fun input => if IsShort input then short input else long input
+  QueryCache.ofFn fun input => if IsShort input then short input else long input
 
 theorem merge_cacheQuery_short (short long : QueryCache HashSpec) {input : HashInput}
     (hinput : IsShort input) (answer : HashOutput) :
     (merge short long).cacheQuery input answer = merge (short.cacheQuery input answer) long := by
-  funext query
+  refine QueryCache.ext fun query => ?_
   by_cases hq : query = input
   · subst query
     simp [merge, hinput, QueryCache.cacheQuery_self]
-  · simp only [merge, QueryCache.cacheQuery_of_ne _ _ hq]
+  · simp only [merge, QueryCache.ofFn_apply, QueryCache.cacheQuery_of_ne _ _ hq]
 
 theorem merge_cacheQuery_long (short long : QueryCache HashSpec) {input : HashInput}
     (hinput : ¬IsShort input) (answer : HashOutput) :
     (merge short long).cacheQuery input answer = merge short (long.cacheQuery input answer) := by
-  funext query
+  refine QueryCache.ext fun query => ?_
   by_cases hq : query = input
   · subst query
     simp [merge, hinput, QueryCache.cacheQuery_self]
-  · simp only [merge, QueryCache.cacheQuery_of_ne _ _ hq]
+  · simp only [merge, QueryCache.ofFn_apply, QueryCache.cacheQuery_of_ne _ _ hq]
 
 /-- A short-only world computation sees only the short part of the cache and leaves the long
 part unchanged. -/
@@ -253,31 +253,31 @@ theorem leftRun_short {α : Type} (oa : OracleComp OracleWorld α) (h : OnlyW oa
 
 /-- Relating two computations through a shared distributional quotient. -/
 theorem evalDist_bind_rel {X Y Z W : Type} (x : ProbComp X) (y : ProbComp Y)
-    (F : X → W) (G : Y → W) (hxy : 𝒟[F <$> x] = 𝒟[G <$> y])
+    (F : X → W) (G : Y → W) (hxy : 𝒮[F <$> x] = 𝒮[G <$> y])
     (f : X → ProbComp Z) (g : Y → ProbComp Z) (k : W → ProbComp Z)
-    (hf : ∀ r, 𝒟[f r] = 𝒟[k (F r)]) (hg : ∀ r, 𝒟[g r] = 𝒟[k (G r)]) :
-    𝒟[x >>= f] = 𝒟[y >>= g] := by
-  calc 𝒟[x >>= f] = 𝒟[x >>= fun r => k (F r)] := evalDist_bind_congr' x (fun r => hf r)
-    _ = 𝒟[(F <$> x) >>= k] := by rw [bind_map_left]
-    _ = 𝒟[(G <$> y) >>= k] := by rw [evalDist_bind, hxy, ← evalDist_bind]
-    _ = 𝒟[y >>= fun r => k (G r)] := by rw [bind_map_left]
-    _ = 𝒟[y >>= g] := (evalDist_bind_congr' y (fun r => hg r)).symm
+    (hf : ∀ r, 𝒮[f r] = 𝒮[k (F r)]) (hg : ∀ r, 𝒮[g r] = 𝒮[k (G r)]) :
+    𝒮[x >>= f] = 𝒮[y >>= g] := by
+  calc 𝒮[x >>= f] = 𝒮[x >>= fun r => k (F r)] := evalSPMF_bind_congr' x (fun r => hf r)
+    _ = 𝒮[(F <$> x) >>= k] := by rw [bind_map_left]
+    _ = 𝒮[(G <$> y) >>= k] := by rw [evalSPMF_bind, hxy, ← evalSPMF_bind]
+    _ = 𝒮[y >>= fun r => k (G r)] := by rw [bind_map_left]
+    _ = 𝒮[y >>= g] := (evalSPMF_bind_congr' y (fun r => hg r)).symm
 
-theorem evalDist_map_congr_of_evalDist_eq {X W : Type} (x y : ProbComp X) (h : 𝒟[x] = 𝒟[y])
-    (f g : X → W) (hfg : ∀ a, f a = g a) : 𝒟[f <$> x] = 𝒟[g <$> y] := by
-  rw [evalDist_map, evalDist_map, h, funext hfg]
+theorem evalDist_map_congr_of_evalDist_eq {X W : Type} (x y : ProbComp X) (h : 𝒮[x] = 𝒮[y])
+    (f g : X → W) (hfg : ∀ a, f a = g a) : 𝒮[f <$> x] = 𝒮[g <$> y] := by
+  rw [evalSPMF_map, evalSPMF_map, h, funext hfg]
 
 theorem evalDist_map_rel {X Y V W : Type} (x : ProbComp X) (y : ProbComp Y) (vX : X → V)
-    (vY : Y → V) (h : 𝒟[vX <$> x] = 𝒟[vY <$> y]) (c : V → W) (f : X → W) (g : Y → W)
-    (hf : ∀ a, f a = c (vX a)) (hg : ∀ b, g b = c (vY b)) : 𝒟[f <$> x] = 𝒟[g <$> y] := by
+    (vY : Y → V) (h : 𝒮[vX <$> x] = 𝒮[vY <$> y]) (c : V → W) (f : X → W) (g : Y → W)
+    (hf : ∀ a, f a = c (vX a)) (hg : ∀ b, g b = c (vY b)) : 𝒮[f <$> x] = 𝒮[g <$> y] := by
   have hf' : f = c ∘ vX := funext hf
   have hg' : g = c ∘ vY := funext hg
   rw [hf', hg']
-  calc 𝒟[(c ∘ vX) <$> x] = 𝒟[c <$> (vX <$> x)] := by rw [Functor.map_map]; rfl
-    _ = c <$> 𝒟[vX <$> x] := evalDist_map _ _
-    _ = c <$> 𝒟[vY <$> y] := by rw [h]
-    _ = 𝒟[c <$> (vY <$> y)] := (evalDist_map _ _).symm
-    _ = 𝒟[(c ∘ vY) <$> y] := by rw [Functor.map_map]; rfl
+  calc 𝒮[(c ∘ vX) <$> x] = 𝒮[c <$> (vX <$> x)] := by rw [Functor.map_map]; rfl
+    _ = c <$> 𝒮[vX <$> x] := evalSPMF_map _ _
+    _ = c <$> 𝒮[vY <$> y] := by rw [h]
+    _ = 𝒮[c <$> (vY <$> y)] := (evalSPMF_map _ _).symm
+    _ = 𝒮[(c ∘ vY) <$> y] := by rw [Functor.map_map]; rfl
 
 /-! ### The internalized adversary -/
 
@@ -353,8 +353,8 @@ def rightView {β : Type}
   ((result.1.1.1.1, result.1.1.2), result.1.2, merge result.2 result.1.1.1.2)
 
 def Block (sk : Sphincs.Seeded.SecretKey) {β : Type} (M : OracleComp AdvSpec β) : Prop :=
-  ∀ short long, 𝒟[leftView <$> leftRun (leftProg sk M) (merge short long)] =
-    𝒟[rightView <$> rightRun (rightProg sk M long) short]
+  ∀ short long, 𝒮[leftView <$> leftRun (leftProg sk M) (merge short long)] =
+    𝒮[rightView <$> rightRun (rightProg sk M long) short]
 
 theorem Block.bind {sk : Sphincs.Seeded.SecretKey} {β γ : Type} {M : OracleComp AdvSpec β}
     {k : β → OracleComp AdvSpec γ} (hM : Block sk M) (hk : ∀ value, Block sk (k value)) :
@@ -539,7 +539,7 @@ theorem Block.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬Is
       simp only [leftRun, countShort, rightRun, countHashQueries, simulateQ_pure, WriterT.run_pure,
         SphincsBase.QueryCap.counted_pure, StateT.run_pure, map_pure]
       rw [PreparedScheme.counted_query, simulateQ_map, simulateQ_spec_query, StateT.run_map]
-      change 𝒟[_ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long)))] = _
+      change 𝒮[_ <$> (_ <$> (_ <$> (randomOracle (spec := HashSpec) input).run (merge short long)))] = _
       rw [QueryImpl.withCaching_run_some _ (hlookup.trans hc)]
       simp [leftView, rightView, ShortQuery, h]
   | none =>
@@ -551,10 +551,10 @@ theorem Block.long (sk : Sphincs.Seeded.SecretKey) {input : HashInput} (h : ¬Is
         rightRun_map, rightRun_liftProb, Functor.map_map, Functor.map_map, leftRun_longQuery h,
         QueryImpl.withCaching_run_none _ (hlookup.trans hc)]
       simp only [Functor.map_map]
-      have hsample : 𝒟[(uniformSampleImpl (spec := HashSpec) input : ProbComp HashOutput)] =
-          𝒟[($ᵗ HashOutput : ProbComp HashOutput)] := by
-        change 𝒟[($ᵗ (HashSpec.Range input) : ProbComp _)] = _
-        rw [evalDist_uniformSample]
+      have hsample : 𝒮[(uniformSampleImpl (spec := HashSpec) input : ProbComp HashOutput)] =
+          𝒮[($ᵗ HashOutput : ProbComp HashOutput)] := by
+        change 𝒮[($ᵗ (HashSpec.Range input) : ProbComp _)] = _
+        rw [evalSPMF_uniformSample]
       refine evalDist_map_congr_of_evalDist_eq _ _ hsample _ _ (fun answer => ?_)
       simp only [leftView, rightView, merge_cacheQuery_long short long h]
 
@@ -583,7 +583,7 @@ theorem OnlyW.verifyPart (publicKey : PublicKey) (output : Forgery × QueryLog S
 
 omit [Params] in
 theorem merge_empty : merge ∅ ∅ = (∅ : QueryCache HashSpec) := by
-  funext input
+  refine QueryCache.ext fun input => ?_
   simp [merge]
 
 omit [Params] in

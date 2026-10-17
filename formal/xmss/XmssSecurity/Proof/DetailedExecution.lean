@@ -52,8 +52,7 @@ theorem gameWithCache_eq_map_detailedGameWithCache
       (fun outcome : GameOutcome × QueryCache HashSpec =>
         (outcome.1.won, outcome.2)) <$> detailedGameWithCache scheme adversary := by
   unfold gameWithCache detailedGameWithCache
-  rw [gameCore_eq_map_detailedGameCore, simulateQ_map]
-  rfl
+  rw [gameCore_eq_map_detailedGameCore, simulateQ_map, StateT.run_map]
 
 theorem forgeAdvantage_eq_detailedGameWithCache
     (scheme : Scheme SecretKey) (adversary : Adversary) :

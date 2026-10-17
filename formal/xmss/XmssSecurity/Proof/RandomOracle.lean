@@ -74,8 +74,8 @@ noncomputable def independentDigestHalves : ProbComp (Digest × Digest) := do
 
 /-- Splitting a uniform 256-bit answer gives two independent uniform 128-bit halves. -/
 theorem evalDist_split_uniformHashOutput_eq_independent :
-    𝒟[hashOutputEquivDigestPair <$> ($ᵗ HashOutput)] =
-      𝒟[independentDigestHalves] := by
+    𝒮[hashOutputEquivDigestPair <$> ($ᵗ HashOutput)] =
+      𝒮[independentDigestHalves] := by
   apply SPMF.ext
   intro target
   change Pr[= target | hashOutputEquivDigestPair <$> ($ᵗ HashOutput)] =
@@ -94,15 +94,15 @@ theorem evalDist_split_uniformHashOutput_eq_independent :
 
 /-- Truncating a uniform 256-bit answer gives a uniform XMSS digest. -/
 theorem evalDist_truncate_uniformHashOutput :
-    𝒟[truncateHash <$> ($ᵗ HashOutput)] = 𝒟[$ᵗ Digest] := by
+    𝒮[truncateHash <$> ($ᵗ HashOutput)] = 𝒮[$ᵗ Digest] := by
   calc
-    𝒟[truncateHash <$> ($ᵗ HashOutput)] =
-        𝒟[Prod.snd <$> (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))] := by
+    𝒮[truncateHash <$> ($ᵗ HashOutput)] =
+        𝒮[Prod.snd <$> (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))] := by
       simp [Functor.map_map, hashOutputEquivDigestPair]
-    _ = 𝒟[Prod.snd <$> independentDigestHalves] := by
-      rw [evalDist_map, evalDist_split_uniformHashOutput_eq_independent,
-        ← evalDist_map]
-    _ = 𝒟[$ᵗ Digest] := by
+    _ = 𝒮[Prod.snd <$> independentDigestHalves] := by
+      rw [evalSPMF_map, evalDist_split_uniformHashOutput_eq_independent,
+        ← evalSPMF_map]
+    _ = 𝒮[$ᵗ Digest] := by
       unfold independentDigestHalves
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_apply]
@@ -128,29 +128,29 @@ noncomputable def sampledHashOutputWithDigest :
 
 /-- A programmed answer together with its chosen low digest has the same joint distribution as a uniform answer together with its truncation. -/
 theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
-    𝒟[sampledHashOutputWithDigest] =
-      𝒟[(fun output : HashOutput => (truncateHash output, output)) <$>
+    𝒮[sampledHashOutputWithDigest] =
+      𝒮[(fun output : HashOutput => (truncateHash output, output)) <$>
         ($ᵗ HashOutput)] := by
   calc
-    𝒟[sampledHashOutputWithDigest] =
-        𝒟[$ᵗ Digest >>= fun high =>
+    𝒮[sampledHashOutputWithDigest] =
+        𝒮[$ᵗ Digest >>= fun high =>
           $ᵗ Digest >>= fun low =>
             pure (low, hashOutputEquivDigestPair.symm (high, low))] := by
       unfold sampledHashOutputWithDigest sampleHashOutputWithDigest
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
         Function.comp_apply]
-      exact OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
-    _ = 𝒟[(fun halves : Digest × Digest =>
+      exact OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
+    _ = 𝒮[(fun halves : Digest × Digest =>
           (halves.2, hashOutputEquivDigestPair.symm halves)) <$>
         independentDigestHalves] := by
       simp [independentDigestHalves, map_eq_bind_pure_comp, bind_assoc]
-    _ = 𝒟[(fun halves : Digest × Digest =>
+    _ = 𝒮[(fun halves : Digest × Digest =>
           (halves.2, hashOutputEquivDigestPair.symm halves)) <$>
         (hashOutputEquivDigestPair <$> ($ᵗ HashOutput))] := by
-      conv_lhs => rw [evalDist_map]
-      conv_rhs => rw [evalDist_map]
+      conv_lhs => rw [evalSPMF_map]
+      conv_rhs => rw [evalSPMF_map]
       rw [evalDist_split_uniformHashOutput_eq_independent]
-    _ = 𝒟[(fun output : HashOutput => (truncateHash output, output)) <$>
+    _ = 𝒮[(fun output : HashOutput => (truncateHash output, output)) <$>
         ($ᵗ HashOutput)] := by
       have hfunction :
           (fun halves : Digest × Digest =>
@@ -162,7 +162,7 @@ theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
         · rfl
         · exact hashOutputEquivDigestPair.symm_apply_apply output
       rw [Functor.map_map]
-      change 𝒟[((fun halves : Digest × Digest =>
+      change 𝒮[((fun halves : Digest × Digest =>
         (halves.2, hashOutputEquivDigestPair.symm halves)) ∘
           hashOutputEquivDigestPair) <$> ($ᵗ HashOutput)] = _
       rw [hfunction]
@@ -170,17 +170,17 @@ theorem evalDist_sampledHashOutputWithDigest_eq_uniform :
 /-- A programmed low digest and its independent high half may be replaced by one ordinary random-oracle output inside any continuation. -/
 theorem evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind
     (continuation : Digest × HashOutput → ProbComp α) :
-    evalDist (sampledHashOutputWithDigest >>= continuation) =
-      evalDist ($ᵗ HashOutput >>= fun output =>
+    evalSPMF (sampledHashOutputWithDigest >>= continuation) =
+      evalSPMF ($ᵗ HashOutput >>= fun output =>
         continuation (truncateHash output, output)) := by
   calc
-    evalDist (sampledHashOutputWithDigest >>= continuation) =
-        evalDist (((fun output : HashOutput => (truncateHash output, output)) <$>
+    evalSPMF (sampledHashOutputWithDigest >>= continuation) =
+        evalSPMF (((fun output : HashOutput => (truncateHash output, output)) <$>
           ($ᵗ HashOutput)) >>= continuation) := by
-      conv_lhs => rw [evalDist_bind]
-      conv_rhs => rw [evalDist_bind]
+      conv_lhs => rw [evalSPMF_bind]
+      conv_rhs => rw [evalSPMF_bind]
       rw [evalDist_sampledHashOutputWithDigest_eq_uniform]
-    _ = evalDist ($ᵗ HashOutput >>= fun output =>
+    _ = evalSPMF ($ᵗ HashOutput >>= fun output =>
           continuation (truncateHash output, output)) := by
       simp [map_eq_bind_pure_comp, bind_assoc]
 

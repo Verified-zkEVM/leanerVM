@@ -19,11 +19,11 @@ theorem evalDist_stoppedExperiment_lazy {A α : Type}
     (cache : QueryCache HashSpec)
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+    𝒮[($ᵗ Eager.Table) >>= fun outside =>
         HiddenRows.stoppedExperiment model (extend cache outside) computation known] =
-      𝒟[Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known cache] := by
+      𝒮[Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known cache] := by
   unfold HiddenRows.stoppedExperiment HiddenOutside.stoppedExperiment
-  rw [evalDist_bind_bind_swap, map_bind, evalDist_bind, evalDist_bind]
+  rw [evalSPMF_bind_bind_swap, map_bind, evalSPMF_bind, evalSPMF_bind]
   congr 1
   funext table
   exact evalDist_stopped_lazy model table computation hshort known cache

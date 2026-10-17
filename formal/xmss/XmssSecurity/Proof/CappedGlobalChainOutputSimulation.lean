@@ -21,8 +21,8 @@ theorem evalDist_programmedChainExtension_eq_output
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (step : ChainStep) (values : Vector Digest (n + 1))
     (cache : QueryCache HashSpec) :
-    evalDist (programmedChainExtension parameter leafIndex chain step values cache) =
-      evalDist (outputChainExtension parameter leafIndex chain step values cache) := by
+    evalSPMF (programmedChainExtension parameter leafIndex chain step values cache) =
+      evalSPMF (outputChainExtension parameter leafIndex chain step values cache) := by
   unfold programmedChainExtension outputChainExtension
   exact Rom.evalDist_sampledHashOutputWithDigest_bind_eq_uniform_bind
     (fun sampled => pure (values.push sampled.1,
@@ -48,9 +48,9 @@ theorem evalDist_programmedChainTrajectory_eq_output
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex)
     (position : Nat) : ∀ (steps : Nat) (value : Digest)
       (cache : QueryCache HashSpec),
-      evalDist (programmedChainTrajectory parameter leafIndex chain position steps
+      evalSPMF (programmedChainTrajectory parameter leafIndex chain position steps
         value cache) =
-      evalDist (outputChainTrajectory parameter leafIndex chain position steps
+      evalSPMF (outputChainTrajectory parameter leafIndex chain position steps
         value cache) := by
   intro steps
   induction steps with
@@ -60,8 +60,8 @@ theorem evalDist_programmedChainTrajectory_eq_output
   | succ steps ih =>
       intro value cache
       rw [programmedChainTrajectory, outputChainTrajectory]
-      conv_lhs => rw [evalDist_bind]
-      conv_rhs => rw [evalDist_bind]
+      conv_lhs => rw [evalSPMF_bind]
+      conv_rhs => rw [evalSPMF_bind]
       rw [ih value cache]
       apply bind_congr
       intro prior
@@ -100,9 +100,9 @@ theorem evalDist_programmedFixedSeedChainTrajectories_eq_output
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest)
     (chain : ChainIndex) (steps : Nat) :
     ∀ (leafIndices : List LeafIndex) (cache : QueryCache HashSpec),
-      evalDist (programmedFixedSeedChainTrajectoriesFromCache parameter secret
+      evalSPMF (programmedFixedSeedChainTrajectoriesFromCache parameter secret
         chain steps cache leafIndices) =
-      evalDist (outputFixedSeedChainTrajectoriesFromCache parameter secret chain
+      evalSPMF (outputFixedSeedChainTrajectoriesFromCache parameter secret chain
         steps cache leafIndices) := by
   intro leafIndices
   induction leafIndices with
@@ -114,19 +114,19 @@ theorem evalDist_programmedFixedSeedChainTrajectories_eq_output
       rw [programmedFixedSeedChainTrajectoriesFromCache_cons,
         outputFixedSeedChainTrajectoriesFromCache_cons]
       calc
-        _ = evalDist (outputChainTrajectory parameter leafIndex chain 0 steps
+        _ = evalSPMF (outputChainTrajectory parameter leafIndex chain 0 steps
               (secret leafIndex chain) cache >>= fun first =>
             programmedFixedSeedChainTrajectoriesFromCache parameter secret chain
               steps first.2 leafIndices >>= fun rest =>
             pure (first.1 :: rest.1, rest.2)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_programmedChainTrajectory_eq_output parameter leafIndex chain 0
               steps (secret leafIndex chain) cache,
-            ← evalDist_bind]
+            ← evalSPMF_bind]
         _ = _ := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
-          rw [evalDist_bind, ih first.2, ← evalDist_bind]
+          rw [evalSPMF_bind, ih first.2, ← evalSPMF_bind]
 
 
 
@@ -157,9 +157,9 @@ theorem outputAllChainTrajectoriesFromCache_cons
 theorem evalDist_programmedAllChainTrajectories_eq_output
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec),
-      evalDist (programmedAllChainTrajectoriesFromCache parameter secret cache
+      evalSPMF (programmedAllChainTrajectoriesFromCache parameter secret cache
         chains) =
-      evalDist (outputAllChainTrajectoriesFromCache parameter secret cache
+      evalSPMF (outputAllChainTrajectoriesFromCache parameter secret cache
         chains) := by
   intro chains
   induction chains with
@@ -171,19 +171,19 @@ theorem evalDist_programmedAllChainTrajectories_eq_output
       rw [programmedAllChainTrajectoriesFromCache_cons,
         outputAllChainTrajectoriesFromCache_cons]
       calc
-        _ = evalDist (outputFixedSeedChainTrajectoriesFromCache parameter secret
+        _ = evalSPMF (outputFixedSeedChainTrajectoriesFromCache parameter secret
               chain (chainLength - 1) cache allLeafIndices >>= fun first =>
             programmedAllChainTrajectoriesFromCache parameter secret first.2
               chains >>= fun rest =>
             pure (Function.update rest.1 chain first.1, rest.2)) := by
-          rw [evalDist_bind,
+          rw [evalSPMF_bind,
             evalDist_programmedFixedSeedChainTrajectories_eq_output parameter
               secret chain (chainLength - 1) allLeafIndices cache,
-            ← evalDist_bind]
+            ← evalSPMF_bind]
         _ = _ := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
-          rw [evalDist_bind, ih first.2, ← evalDist_bind]
+          rw [evalSPMF_bind, ih first.2, ← evalSPMF_bind]
 
 
 
@@ -196,16 +196,16 @@ noncomputable def outputGlobalChainTrajectoryMaterial
 
 theorem evalDist_programmedGlobalChainTrajectoryMaterial_eq_output
     (parameter : PublicParameter) :
-    evalDist (programmedGlobalChainTrajectoryMaterial parameter) =
-      evalDist (outputGlobalChainTrajectoryMaterial parameter) := by
+    evalSPMF (programmedGlobalChainTrajectoryMaterial parameter) =
+      evalSPMF (outputGlobalChainTrajectoryMaterial parameter) := by
   unfold programmedGlobalChainTrajectoryMaterial
     outputGlobalChainTrajectoryMaterial
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secret
-  rw [evalDist_bind,
+  rw [evalSPMF_bind,
     evalDist_programmedAllChainTrajectories_eq_output parameter secret allChains
       ∅,
-    ← evalDist_bind]
+    ← evalSPMF_bind]
 
 theorem outputGlobalChainTrajectoryMaterial_support_as_programmed
     (parameter : PublicParameter) (material : GlobalChainTrajectoryMaterial)
@@ -213,7 +213,7 @@ theorem outputGlobalChainTrajectoryMaterial_support_as_programmed
       (outputGlobalChainTrajectoryMaterial parameter)) :
     material ∈ support
       (programmedGlobalChainTrajectoryMaterial parameter) :=
-  (mem_support_iff_of_evalDist_eq
+  (mem_support_iff_of_evalSPMF_eq
     (evalDist_programmedGlobalChainTrajectoryMaterial_eq_output parameter)
     material).mpr hmaterial
 
@@ -232,7 +232,7 @@ theorem outputGlobalChainTrajectoryMaterial_support_as_actual
       material hprogrammed
   have heq := evalDist_allChainTrajectories_eq_programmed parameter material.1
     allChains ∅ allChains_nodup (by simp [AllChainAddressesAbsent])
-  exact (mem_support_iff_of_evalDist_eq heq material.2).mpr
+  exact (mem_support_iff_of_evalSPMF_eq heq material.2).mpr
     hprogrammedTrajectories
 
 theorem outputGlobalChainTrajectoryMaterial_seedsMatch
@@ -325,7 +325,7 @@ theorem programmedGlobalChainTrajectoryMaterial_edgesMatch
       material hmaterial
   have heq := evalDist_allChainTrajectories_eq_programmed parameter material.1
     allChains ∅ allChains_nodup (by simp [AllChainAddressesAbsent])
-  have hactual := (mem_support_iff_of_evalDist_eq heq material.2).mpr
+  have hactual := (mem_support_iff_of_evalSPMF_eq heq material.2).mpr
     hprogrammedTrajectories
   exact Concrete.allChainTrajectoriesFromCache_edgesMatch parameter material.1
     material.2 hactual
@@ -380,38 +380,38 @@ theorem evalDist_outputTrace_bind_snd
     (rest : α → List HashOutput → ProbComp (OutputTrace β))
     (combine : α → β → γ) (outputs : List HashOutput)
     (firstCount secondCount : Nat)
-    (hfirst : evalDist (Prod.snd <$> first) =
-      evalDist ((outputs ++ ·) <$>
+    (hfirst : evalSPMF (Prod.snd <$> first) =
+      evalSPMF ((outputs ++ ·) <$>
         uniformSnocList HashOutput firstCount))
     (hrest : ∀ value nextOutputs,
-      evalDist (Prod.snd <$> rest value nextOutputs) =
-      evalDist ((nextOutputs ++ ·) <$>
+      evalSPMF (Prod.snd <$> rest value nextOutputs) =
+      evalSPMF ((nextOutputs ++ ·) <$>
         uniformSnocList HashOutput secondCount)) :
-    evalDist (Prod.snd <$> (do
+    evalSPMF (Prod.snd <$> (do
       let left ← first
       let right ← rest left.1 left.2
       pure (combine left.1 right.1, right.2))) =
-    evalDist ((outputs ++ ·) <$>
+    evalSPMF ((outputs ++ ·) <$>
       uniformSnocList HashOutput (firstCount + secondCount)) := by
   calc
-    _ = evalDist (first >>= fun left =>
+    _ = evalSPMF (first >>= fun left =>
         Prod.snd <$> rest left.1 left.2) := by
       simp [map_eq_bind_pure_comp, bind_assoc]
-    _ = evalDist (first >>= fun left =>
+    _ = evalSPMF (first >>= fun left =>
         (left.2 ++ ·) <$> uniformSnocList HashOutput secondCount) := by
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro left
       exact hrest left.1 left.2
-    _ = evalDist ((Prod.snd <$> first) >>= fun leftOutputs =>
+    _ = evalSPMF ((Prod.snd <$> first) >>= fun leftOutputs =>
         (leftOutputs ++ ·) <$>
           uniformSnocList HashOutput secondCount) := by
       simp [map_eq_bind_pure_comp, bind_assoc]
-    _ = evalDist (((outputs ++ ·) <$>
+    _ = evalSPMF (((outputs ++ ·) <$>
           uniformSnocList HashOutput firstCount) >>= fun leftOutputs =>
         (leftOutputs ++ ·) <$>
           uniformSnocList HashOutput secondCount) := by
-      rw [evalDist_bind, hfirst, ← evalDist_bind]
-    _ = evalDist ((outputs ++ ·) <$>
+      rw [evalSPMF_bind, hfirst, ← evalSPMF_bind]
+    _ = evalSPMF ((outputs ++ ·) <$>
         (do
           let left ← uniformSnocList HashOutput firstCount
           let right ← uniformSnocList HashOutput secondCount
@@ -586,9 +586,9 @@ theorem evalDist_outputChainTrajectoryTrace_snd
     (position : Nat) : ∀ (steps : Nat) (value : Digest)
       (cache : QueryCache HashSpec) (outputs : List HashOutput),
       position + steps ≤ chainLength - 1 →
-      evalDist (Prod.snd <$> outputChainTrajectoryTrace parameter leafIndex chain
+      evalSPMF (Prod.snd <$> outputChainTrajectoryTrace parameter leafIndex chain
         position steps value cache outputs) =
-      evalDist ((outputs ++ ·) <$> uniformSnocList HashOutput steps) := by
+      evalSPMF ((outputs ++ ·) <$> uniformSnocList HashOutput steps) := by
   intro steps
   induction steps with
   | zero =>
@@ -600,15 +600,15 @@ theorem evalDist_outputChainTrajectoryTrace_snd
       rw [outputChainTrajectoryTrace]
       simp only [hvalid, ↓reduceDIte]
       calc
-        _ = evalDist ((Prod.snd <$> outputChainTrajectoryTrace parameter leafIndex
+        _ = evalSPMF ((Prod.snd <$> outputChainTrajectoryTrace parameter leafIndex
               chain position steps value cache outputs) >>= fun prior =>
             ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (((outputs ++ ·) <$>
+        _ = evalSPMF (((outputs ++ ·) <$>
               uniformSnocList HashOutput steps) >>= fun prior =>
             ($ᵗ HashOutput) >>= fun output => pure (prior ++ [output])) := by
-          rw [evalDist_bind, ih value cache outputs (by omega), ← evalDist_bind]
-        _ = evalDist ((outputs ++ ·) <$>
+          rw [evalSPMF_bind, ih value cache outputs (by omega), ← evalSPMF_bind]
+        _ = evalSPMF ((outputs ++ ·) <$>
               uniformSnocList HashOutput (steps + 1)) := by
           simp [uniformSnocList, map_eq_bind_pure_comp, bind_assoc,
             List.append_assoc]
@@ -618,9 +618,9 @@ theorem evalDist_outputFixedSeedChainTrajectoriesTrace_snd
     (chain : ChainIndex) (steps : Nat) (hsteps : steps ≤ chainLength - 1) :
     ∀ (leafIndices : List LeafIndex) (cache : QueryCache HashSpec)
       (outputs : List HashOutput),
-      evalDist (Prod.snd <$> outputFixedSeedChainTrajectoriesTrace parameter
+      evalSPMF (Prod.snd <$> outputFixedSeedChainTrajectoriesTrace parameter
         secret chain steps cache leafIndices outputs) =
-      evalDist ((outputs ++ ·) <$>
+      evalSPMF ((outputs ++ ·) <$>
         uniformSnocList HashOutput (leafIndices.length * steps)) := by
   intro leafIndices
   induction leafIndices with
@@ -631,7 +631,7 @@ theorem evalDist_outputFixedSeedChainTrajectoriesTrace_snd
       intro cache outputs
       rw [outputFixedSeedChainTrajectoriesTrace]
       calc
-        _ = evalDist ((outputs ++ ·) <$> uniformSnocList HashOutput
+        _ = evalSPMF ((outputs ++ ·) <$> uniformSnocList HashOutput
               (steps + leafIndices.length * steps)) :=
           evalDist_outputTrace_bind_snd
             (outputChainTrajectoryTrace parameter leafIndex chain 0 steps
@@ -653,9 +653,9 @@ theorem evalDist_outputAllChainTrajectoriesTrace_snd
     (parameter : PublicParameter) (secret : LeafIndex → ChainIndex → Digest) :
     ∀ (chains : List ChainIndex) (cache : QueryCache HashSpec)
       (outputs : List HashOutput),
-      evalDist (Prod.snd <$> outputAllChainTrajectoriesTrace parameter secret
+      evalSPMF (Prod.snd <$> outputAllChainTrajectoriesTrace parameter secret
         cache chains outputs) =
-      evalDist ((outputs ++ ·) <$> uniformSnocList HashOutput
+      evalSPMF ((outputs ++ ·) <$> uniformSnocList HashOutput
         (chains.length * (allLeafIndices.length * (chainLength - 1)))) := by
   intro chains
   induction chains with
@@ -667,7 +667,7 @@ theorem evalDist_outputAllChainTrajectoriesTrace_snd
       rw [outputAllChainTrajectoriesTrace]
       let blockSize := allLeafIndices.length * (chainLength - 1)
       calc
-        _ = evalDist ((outputs ++ ·) <$> uniformSnocList HashOutput
+        _ = evalSPMF ((outputs ++ ·) <$> uniformSnocList HashOutput
               (blockSize + chains.length * blockSize)) :=
           evalDist_outputTrace_bind_snd
             (outputFixedSeedChainTrajectoriesTrace parameter secret chain
@@ -691,9 +691,9 @@ noncomputable def outputTraceRandomness
 
 theorem evalDist_outputTraceRandomness_eq_uniform
     (parameter : PublicParameter) :
-    evalDist (outputTraceRandomness <$>
+    evalSPMF (outputTraceRandomness <$>
       outputGlobalChainTrajectoryMaterialTrace parameter) =
-    evalDist uniformGlobalChainKeygenRandomness := by
+    evalSPMF uniformGlobalChainKeygenRandomness := by
   let secretMeasure :=
     (liftM (PMF.uniformOfFintype (LeafIndex → ChainIndex → Digest)) :
       SPMF (LeafIndex → ChainIndex → Digest))
@@ -701,15 +701,15 @@ theorem evalDist_outputTraceRandomness_eq_uniform
     (liftM (PMF.uniformOfFintype GlobalChainEdgeOutputTable) :
       SPMF GlobalChainEdgeOutputTable)
   have hconditional (secret : LeafIndex → ChainIndex → Digest) :
-      evalDist ((fun result =>
+      evalSPMF ((fun result =>
         (secret, globalChainEdgeOutputTableOfOutputTape result.2)) <$>
           outputAllChainTrajectoriesTrace parameter secret ∅ allChains []) =
       (fun table => (secret, table)) <$> outputTableMeasure := by
     let trace := outputAllChainTrajectoriesTrace parameter secret ∅ allChains []
-    have htape : evalDist (Prod.snd <$> trace) =
-        evalDist (uniformSnocList HashOutput globalOutputEdgeOrder.length) := by
+    have htape : evalSPMF (Prod.snd <$> trace) =
+        evalSPMF (uniformSnocList HashOutput globalOutputEdgeOrder.length) := by
       calc
-        _ = evalDist (uniformSnocList HashOutput
+        _ = evalSPMF (uniformSnocList HashOutput
             (allChains.length *
               (allLeafIndices.length * (chainLength - 1)))) := by
           simpa [trace] using
@@ -717,37 +717,37 @@ theorem evalDist_outputTraceRandomness_eq_uniform
               allChains ∅ []
         _ = _ := by rw [globalOutputEdgeOrder_length]
     calc
-      _ = evalDist ((fun table => (secret, table)) <$>
+      _ = evalSPMF ((fun table => (secret, table)) <$>
           (globalChainEdgeOutputTableOfOutputTape <$>
             (Prod.snd <$> trace))) := by
         simp [trace, Functor.map_map]
       _ = (fun table => (secret, table)) <$>
           (globalChainEdgeOutputTableOfOutputTape <$>
-            evalDist (Prod.snd <$> trace)) := by
-        rw [evalDist_map, evalDist_map]
+            evalSPMF (Prod.snd <$> trace)) := by
+        rw [evalSPMF_map, evalSPMF_map]
       _ = (fun table => (secret, table)) <$>
           (globalChainEdgeOutputTableOfOutputTape <$>
-            evalDist (uniformSnocList HashOutput
+            evalSPMF (uniformSnocList HashOutput
               globalOutputEdgeOrder.length)) :=
         congrArg (fun distribution => (fun table => (secret, table)) <$>
           (globalChainEdgeOutputTableOfOutputTape <$> distribution)) htape
       _ = (fun table => (secret, table)) <$>
-          evalDist (globalChainEdgeOutputTableOfOutputTape <$>
+          evalSPMF (globalChainEdgeOutputTableOfOutputTape <$>
             uniformSnocList HashOutput globalOutputEdgeOrder.length) := by
-        rw [evalDist_map]
+        rw [evalSPMF_map]
       _ = (fun table => (secret, table)) <$> outputTableMeasure := by
         exact congrArg (fun distribution =>
           (fun table => (secret, table)) <$> distribution)
             evalDist_globalChainEdgeOutputTableOfOutputTape_uniformSnoc_eq_uniform
   calc
-    _ = evalDist Concrete.sampleSecret >>= fun secret =>
+    _ = evalSPMF Concrete.sampleSecret >>= fun secret =>
         (fun table => (secret, table)) <$> outputTableMeasure := by
       unfold outputTraceRandomness outputGlobalChainTrajectoryMaterialTrace
       simp only [map_eq_bind_pure_comp, bind_assoc, pure_bind,
-        Function.comp_apply, evalDist_bind]
+        Function.comp_apply, evalSPMF_bind]
       apply bind_congr
       intro secret
-      simpa [evalDist_map, map_eq_bind_pure_comp] using hconditional secret
+      simpa [evalSPMF_map, map_eq_bind_pure_comp] using hconditional secret
     _ = secretMeasure >>= fun secret =>
         outputTableMeasure >>= fun table => pure (secret, table) := by
       rw [Concrete.evalDist_sampleSecret_eq_uniformMeasure]
@@ -758,7 +758,7 @@ theorem evalDist_outputTraceRandomness_eq_uniform
           GlobalChainEdgeOutputTable)) := by
       exact uniformMeasure_prod
         (LeafIndex → ChainIndex → Digest) GlobalChainEdgeOutputTable
-    _ = evalDist uniformGlobalChainKeygenRandomness :=
+    _ = evalSPMF uniformGlobalChainKeygenRandomness :=
       evalDist_uniformGlobalChainKeygenRandomness_eq_uniformMeasure.symm
 
 theorem outputChainTrajectoryTrace_support_info

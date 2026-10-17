@@ -21,7 +21,7 @@ attribute [local irreducible] programCache
 /-- An already present material table is unchanged by programming it again. -/
 theorem programCache_eq_self (base : QueryCache HashSpec) (seed : MasterSeed) (material : Material)
     (hknown : programCache ∅ seed material ≤ base) : programCache base seed material = base := by
-  funext input
+  refine QueryCache.ext fun input => ?_
   rw [programCache_lookup]
   cases hentry : programCache ∅ seed material input with
   | none => rfl
@@ -82,7 +82,7 @@ theorem targetRun_eq_counted {α : Type} (computation : OracleComp PreparedWorld
 
 def Related {α : Type} (known : QueryCache HashSpec) (left : OracleComp OracleWorld α)
     (right : OracleComp PreparedWorld α) : Prop :=
-  ∀ cache, known ≤ cache → 𝒟[sourceRun left cache] = 𝒟[targetRun right cache]
+  ∀ cache, known ≤ cache → 𝒮[sourceRun left cache] = 𝒮[targetRun right cache]
 
 /-- Honest compilation is valid on a shared cache already containing the material table.
 This version keeps that table in the target cache, so ordinary adversarial calls remain valid. -/
@@ -96,10 +96,10 @@ theorem Related.honest {α : Type} (seed : MasterSeed) (material : Material)
   rw [hreplay]
   let target := (simulateQ preparedCountedOracle
     (simulateQ (compileWorld seed material) computation)).run.run cache
-  change 𝒟[(fun result => (result.1, programCache result.2 seed material)) <$> target] = 𝒟[target]
-  trans 𝒟[target >>= fun result => pure result]
+  change 𝒮[(fun result => (result.1, programCache result.2 seed material)) <$> target] = 𝒮[target]
+  trans 𝒮[target >>= fun result => pure result]
   · rw [← bind_pure_comp]
-    apply evalDist_bind_congr
+    apply evalSPMF_bind_congr
     intro result hresult
     have hcache : cache ≤ result.2 := by
       dsimp only [target] at hresult
@@ -139,13 +139,13 @@ theorem Related.bind {α β : Type} {known : QueryCache HashSpec}
     Related known (left >>= nextLeft) (right >>= nextRight) := by
   intro cache hknown
   rw [sourceRun_bind, targetRun_bind]
-  trans 𝒟[targetRun right cache >>= fun a => sourceRun (nextLeft a.1.1) a.2 >>= fun b =>
+  trans 𝒮[targetRun right cache >>= fun a => sourceRun (nextLeft a.1.1) a.2 >>= fun b =>
     pure ((b.1.1, a.1.2 + b.1.2), b.2)]
-  · rw [evalDist_bind, h cache hknown, evalDist_bind]
-  · apply evalDist_bind_congr
+  · rw [evalSPMF_bind, h cache hknown, evalSPMF_bind]
+  · apply evalSPMF_bind_congr
     intro a ha
     have hcache := prepared_support_cache_le (countPreparedQueries right) cache a.1 a.2 ha
-    rw [bind_pure_comp, bind_pure_comp, evalDist_map, evalDist_map,
+    rw [bind_pure_comp, bind_pure_comp, evalSPMF_map, evalSPMF_map,
       hnext a.1.1 a.2 (hknown.trans hcache)]
 
 theorem Related.map {α β : Type} {known : QueryCache HashSpec}
@@ -256,13 +256,13 @@ theorem Related.bind_on_support {α β : Type} {known : QueryCache HashSpec}
     Related known (left >>= nextLeft) (right >>= nextRight) := by
   intro cache hknown
   rw [sourceRun_bind, targetRun_bind]
-  trans 𝒟[targetRun right cache >>= fun a => sourceRun (nextLeft a.1.1) a.2 >>= fun b =>
+  trans 𝒮[targetRun right cache >>= fun a => sourceRun (nextLeft a.1.1) a.2 >>= fun b =>
     pure ((b.1.1, a.1.2 + b.1.2), b.2)]
-  · rw [evalDist_bind, h cache hknown, evalDist_bind]
-  · apply evalDist_bind_congr
+  · rw [evalSPMF_bind, h cache hknown, evalSPMF_bind]
+  · apply evalSPMF_bind_congr
     intro a ha
     have hcache := prepared_support_cache_le (countPreparedQueries right) cache a.1 a.2 ha
-    rw [bind_pure_comp, bind_pure_comp, evalDist_map, evalDist_map,
+    rw [bind_pure_comp, bind_pure_comp, evalSPMF_map, evalSPMF_map,
       hnext cache hknown a ha a.2 (hknown.trans hcache)]
 
 noncomputable def sourceRest (adversary : Adversary) (publicKey : PublicKey)

@@ -1,5 +1,7 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+module
+
+public import VCVio.OracleComp.QueryTracking.LoggingOracle
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 
 /-!
 # XMSS scheme
@@ -10,6 +12,8 @@ Parameters, serialized hash inputs, key generation, signing, and verification fo
 open OracleComp OracleSpec ENNReal
 
 namespace XmssSecurity
+
+@[expose] public section
 
 /-! ## The instance: parameters, types, and hash-input layout -/
 
@@ -444,5 +448,7 @@ def sign (secretKey : SecretKey) (leafIndex : LeafIndex) (message : Message) : m
   signFrom secretKey leafIndex message signingAttemptLimit 0
 
 end Seeded
+
+end
 
 end XmssSecurity

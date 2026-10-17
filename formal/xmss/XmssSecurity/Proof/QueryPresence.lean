@@ -138,7 +138,7 @@ theorem rootTree_leaf_query_cached
   · unfold TreeCovers Concrete.rootNode
     constructor
     · simp
-    · simp [lifetime]
+    · simpa [lifetime] using leafIndex.isLt
   · exact hmem
   · exact le_rfl
 
@@ -260,7 +260,7 @@ theorem rootTree_oneTimePublicKey_eq_in_largerCache
   · unfold TreeCovers Concrete.rootNode
     constructor
     · simp
-    · simp [lifetime]
+    · simpa [lifetime] using leafIndex.isLt
   · exact hmem
   · exact hle
 

@@ -102,9 +102,9 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
                   pure ((show OracleWorld.Range (.inr hashInput) from output), cache) := by
               change (randomOracle (spec := HashSpec) hashInput).run cache = _
               rw [QueryImpl.withCaching_run_some _ houtput]
-              simp
             rw [hhandler, tsum_probOutput_pure_mul]
             convert rfl
+            by_cases hrel : relevant hashInput <;> simp [hrel]
           rw [hrun, hcount]
           by_cases hrelevant : relevant hashInput
           · simp only [hrelevant, if_true]
@@ -149,6 +149,7 @@ theorem mixed_adaptive_truncated_output_fresh_relevant_hit_from_cache_le_expecte
               simp [uniformSampleImpl]
             rw [hhandler, tsum_probOutput_map_mul]
             convert rfl
+            by_cases hrel : relevant hashInput <;> simp [hrel]
           rw [hrun, probEvent_bind_eq_tsum]
           by_cases hrelevant : relevant hashInput
           · have hrest : ∀ output : HashOutput,

@@ -71,16 +71,16 @@ theorem mem_treeValueIndicesAtHeight_iff
     index ∈ treeValueIndicesAtHeight height ↔ index.1 = height := by
   constructor
   · intro hindex
-    rw [treeValueIndicesAtHeight, List.mem_ofFn] at hindex
-    obtain ⟨node, rfl⟩ := hindex
+    rw [treeValueIndicesAtHeight] at hindex
+    obtain ⟨node, rfl⟩ := List.mem_ofFn.mp hindex
     rfl
   · intro hheight
     cases index with
     | mk indexHeight node =>
         dsimp only at hheight
         subst indexHeight
-        rw [treeValueIndicesAtHeight, List.mem_ofFn]
-        exact ⟨node, rfl⟩
+        rw [treeValueIndicesAtHeight]
+        exact List.mem_ofFn.mpr ⟨node, rfl⟩
 
 def TreeValueIndex.child (current : TreeValueIndex)
     (hpositive : 0 < current.1.val) (right : Bool) : TreeValueIndex :=

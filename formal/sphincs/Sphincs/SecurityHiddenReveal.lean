@@ -34,8 +34,8 @@ theorem completion_known (known : Knowledge ι) (coordinate : ι) (value : Diges
 This includes the full residual table, so arbitrary adaptive continuations may follow. -/
 theorem completion_reveal {α : Type} (known : Knowledge ι) (coordinate : ι)
     (next : Digest → (ι → Digest) → ProbComp α) :
-    𝒟[completion known >>= fun table => next (table coordinate) table] =
-      𝒟[do
+    𝒮[completion known >>= fun table => next (table coordinate) table] =
+      𝒮[do
         let (value, known') ← (randomOracle (spec := ι →ₒ Digest) coordinate).run known
         completion known' >>= next value] := by
   cases hc : known coordinate with
@@ -47,13 +47,13 @@ theorem completion_reveal {α : Type} (known : Knowledge ι) (coordinate : ι)
       simp only [completion, bind_map_left]
       let continuation := fun table : ι → Digest =>
         next (tableExtending known table coordinate) (tableExtending known table)
-      change 𝒟[($ᵗ (ι → Digest)) >>= continuation] = _
-      rw [evalDist_bind, ← evalDist_uniformSample_bind_update (D := ι) (R := Digest) coordinate,
-        ← evalDist_bind]
+      change 𝒮[($ᵗ (ι → Digest)) >>= continuation] = _
+      rw [evalSPMF_bind, ← evalSPMF_uniformSample_bind_update (D := ι) (R := Digest) coordinate,
+        ← evalSPMF_bind]
       simp only [bind_assoc, pure_bind]
-      apply evalDist_bind_congr'
+      apply evalSPMF_bind_congr'
       intro value
-      apply evalDist_bind_congr'
+      apply evalSPMF_bind_congr'
       intro table
       have heq : tableExtending known (Function.update table coordinate value) =
           tableExtending (known.cacheQuery coordinate value) table := by
@@ -71,13 +71,13 @@ theorem completion_guess (known : Knowledge ι) (coordinate : ι) (value : Diges
   change Pr[(fun x : Digest => x = value) ∘ (fun table : ι → Digest => table coordinate) |
     ($ᵗ (ι → Digest) : ProbComp (ι → Digest))] = _
   rw [← probEvent_map]
-  have h := evalDist_uniformSample_bind_update (D := ι) (R := Digest) coordinate
-  have hmap := evalDist_map_eq_of_evalDist_eq h (fun table : ι → Digest => table coordinate)
+  have h := evalSPMF_uniformSample_bind_update (D := ι) (R := Digest) coordinate
+  have hmap := evalSPMF_map_eq_of_evalSPMF_eq h (fun table : ι → Digest => table coordinate)
   simp only [map_bind, map_pure, Function.update_self] at hmap
-  have hdist : 𝒟[(fun table : ι → Digest => table coordinate) <$> ($ᵗ (ι → Digest))] =
-      𝒟[($ᵗ Digest : ProbComp Digest)] := by
+  have hdist : 𝒮[(fun table : ι → Digest => table coordinate) <$> ($ᵗ (ι → Digest))] =
+      𝒮[($ᵗ Digest : ProbComp Digest)] := by
     rw [← hmap]
-    apply evalDist_ext
+    apply evalSPMF_ext
     intro target
     trans Pr[= target | (($ᵗ Digest : ProbComp Digest) >>= fun value => pure value)]
     · apply probOutput_bind_congr'

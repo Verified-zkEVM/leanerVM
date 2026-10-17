@@ -52,23 +52,23 @@ def randomizerHalves : HashOutput ≃ (BitVec 64 × Randomness) where
 noncomputable local instance : SampleableType Randomness := SampleableType.ofFintype Randomness
 
 theorem evalDist_uniform_discard {A B : Type} [SampleableType A] (next : ProbComp B) :
-    𝒟[do let _ ← $ᵗ A; next] = 𝒟[next] :=
-  OracleComp.DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample _) _
+    𝒮[do let _ ← $ᵗ A; next] = 𝒮[next] :=
+  OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample _) _
 
 theorem evalDist_randomizer :
-    𝒟[(fun output : HashOutput => output.extractLsb' 0 randomnessBits) <$> ($ᵗ HashOutput)] =
-      𝒟[Concrete.signingRandomness] := by
-  have h := evalDist_map_bijective_uniform_cross
+    𝒮[(fun output : HashOutput => output.extractLsb' 0 randomnessBits) <$> ($ᵗ HashOutput)] =
+      𝒮[Concrete.signingRandomness] := by
+  have h := evalSPMF_map_bijective_uniform_cross
     (α := HashOutput) (β := BitVec 64 × Randomness) randomizerHalves randomizerHalves.bijective
   have hpair := evalDist_independent_uniform_pair (α := BitVec 64) (β := Randomness)
   calc
-    _ = 𝒟[Prod.snd <$> (randomizerHalves <$> ($ᵗ HashOutput))] := by
+    _ = 𝒮[Prod.snd <$> (randomizerHalves <$> ($ᵗ HashOutput))] := by
       simp only [Functor.map_map]; rfl
-    _ = 𝒟[Prod.snd <$> ($ᵗ (BitVec 64 × Randomness))] := by rw [evalDist_map, h, ← evalDist_map]
-    _ = 𝒟[Prod.snd <$> (do
+    _ = 𝒮[Prod.snd <$> ($ᵗ (BitVec 64 × Randomness))] := by rw [evalSPMF_map, h, ← evalSPMF_map]
+    _ = 𝒮[Prod.snd <$> (do
         let high ← $ᵗ (BitVec 64)
         let low ← $ᵗ Randomness
-        pure (high, low))] := by rw [evalDist_map, ← hpair, ← evalDist_map]
+        pure (high, low))] := by rw [evalSPMF_map, ← hpair, ← evalSPMF_map]
     _ = _ := by
       simp only [map_bind, bind_pure_comp, Functor.map_map, id_map', Concrete.signingRandomness_eq]
       exact evalDist_uniform_discard (A := BitVec 64) ($ᵗ Randomness)
@@ -112,16 +112,16 @@ theorem run_randomTrialLoop_succ (hash : QueryImpl HashSpec (StateT State ProbCo
 
 theorem evalDist_freshTrialLoop (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : Nat) (state : State) :
-    𝒟[(freshRun (worldHandler hash) trialKernel (trialLoop secretKey leafIndex message attempts trial)).run state] =
-      𝒟[(simulateQ (worldHandler hash) (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run state] := by
+    𝒮[(freshRun (worldHandler hash) trialKernel (trialLoop secretKey leafIndex message attempts trial)).run state] =
+      𝒮[(simulateQ (worldHandler hash) (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run state] := by
   induction attempts generalizing trial state with
   | zero => rfl
   | succ attempts ih =>
       rw [run_freshTrialLoop_succ, run_randomTrialLoop_succ]
-      conv_rhs => rw [evalDist_bind, ← evalDist_randomizer, ← evalDist_bind, bind_map_left]
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      conv_rhs => rw [evalSPMF_bind, ← evalDist_randomizer, ← evalSPMF_bind, bind_map_left]
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro output
-      apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+      apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
       intro result
       cases result.1 with
       | none => exact ih (trial + 1) result.2
@@ -132,11 +132,11 @@ noncomputable local instance : SampleableType TrialTape := trialTapeSampleableTy
 theorem evalDist_tableSignFrom (hash : QueryImpl HashSpec (StateT State ProbComp))
     (secretKey : XmssSecurity.SecretKey) (leafIndex : LeafIndex) (message : Message) (attempts trial : Nat)
     (hbound : trial + attempts ≤ 2 ^ 32) (state : State) :
-    𝒟[do
+    𝒮[do
       let tape ← sampleTrialTape
       (simulateQ (worldHandler hash) (liftM (tableSignFrom (fun position => tape position.2)
         secretKey leafIndex message attempts trial : OracleComp HashSpec TrialResult) : OracleComp OracleWorld TrialResult)).run state] =
-      𝒟[(simulateQ (worldHandler hash) (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run state] := by
+      𝒮[(simulateQ (worldHandler hash) (Concrete.precomputedSignBoundedAttempts attempts secretKey leafIndex message)).run state] := by
   simp_rw [← trialTableRun_eq]
   exact ((freshRequests_trialLoop secretKey leafIndex message attempts trial hbound).evalDist_tableRun
     (worldHandler hash) trialKernel state).trans

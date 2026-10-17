@@ -52,7 +52,7 @@ theorem poisW_zero_rate (n : ℕ) : poisW 0 n = if n = 0 then 1 else 0 := by
 
 /-- **Poisson convolution.** -/
 theorem poisW_conv (a b : ℝ≥0) (s : ℕ) :
-    ∑ x ∈ Finset.antidiagonal s, poisW a x.1 * poisW b x.2 = poisW (a + b) s := by
+    ∑ x ∈ Finset.HasAntidiagonal.antidiagonal s, poisW a x.1 * poisW b x.2 = poisW (a + b) s := by
   unfold poisW
   rw [Finset.sum_congr rfl fun x _ => (ENNReal.ofReal_mul (by positivity)).symm,
     ← ENNReal.ofReal_sum_of_nonneg (fun _ _ => by positivity)]
@@ -134,15 +134,15 @@ theorem pois_pois (a b : ℝ≥0) (l : ι) (G : (ι → ℕ) → ℝ≥0∞) (k 
   unfold pois
   simp only [← ENNReal.tsum_mul_left]
   rw [← ENNReal.tsum_prod]
-  rw [← (Finset.sigmaAntidiagonalEquivProd).tsum_eq, ENNReal.tsum_sigma']
+  rw [← (Finset.HasAntidiagonal.sigmaAntidiagonalEquivProd).tsum_eq, ENNReal.tsum_sigma']
   congr 1; funext s
-  change ∑' x : ↥(Finset.antidiagonal s),
+  change ∑' x : ↥(Finset.HasAntidiagonal.antidiagonal s),
     (fun p : ℕ × ℕ => poisW a p.1 * (poisW b p.2 * G (k + Pi.single l p.1 + Pi.single l p.2))) x = _
-  refine (Finset.tsum_subtype (Finset.antidiagonal s)
+  refine (Finset.tsum_subtype (Finset.HasAntidiagonal.antidiagonal s)
     (fun p : ℕ × ℕ => poisW a p.1 * (poisW b p.2 * G (k + Pi.single l p.1 + Pi.single l p.2)))).trans ?_
   rw [← poisW_conv, Finset.sum_mul]
   refine Finset.sum_congr rfl fun p hp => ?_
-  rw [Finset.mem_antidiagonal] at hp
+  rw [Finset.HasAntidiagonal.mem_antidiagonal] at hp
   rw [add_assoc, ← Pi.single_add, hp]
   ring
 

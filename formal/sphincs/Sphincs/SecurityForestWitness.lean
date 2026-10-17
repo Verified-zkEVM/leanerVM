@@ -1,5 +1,7 @@
 import Sphincs.SecurityChainWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic extraction for the forest opening, the analogue of `SecurityForsWitness`. An opening
 that recovers the canonical forest key either opens every needed chain at its canonical value with

@@ -21,11 +21,11 @@ def finHeadTailEquiv (α : Type) (count : Nat) :
 theorem evalDist_independent_uniform_pair
     {α β : Type} [Fintype α] [Fintype β]
     [SampleableType α] [SampleableType β] :
-    evalDist (do
+    evalSPMF (do
       let left ← $ᵗ α
       let right ← $ᵗ β
       pure (left, right)) =
-    evalDist ($ᵗ (α × β)) := by
+    evalSPMF ($ᵗ (α × β)) := by
   apply SPMF.ext
   intro target
   rw [show (do
@@ -49,19 +49,19 @@ theorem uniformMeasure_prod
         pure (left, right)) =
     (liftM (PMF.uniformOfFintype (α × β)) : SPMF (α × β)) := by
   calc
-    _ = evalDist ($ᵗ α) >>= fun left =>
-        evalDist ($ᵗ β) >>= fun right => pure (left, right) := by
-      rw [evalDist_uniformSample, evalDist_uniformSample]
-    _ = evalDist (do
+    _ = evalSPMF ($ᵗ α) >>= fun left =>
+        evalSPMF ($ᵗ β) >>= fun right => pure (left, right) := by
+      rw [evalSPMF_uniformSample, evalSPMF_uniformSample]
+    _ = evalSPMF (do
         let left ← $ᵗ α
         let right ← $ᵗ β
         pure (left, right)) := by
-      rw [evalDist_bind]
+      rw [evalSPMF_bind]
       apply bind_congr
       intro left
       simp
-    _ = evalDist ($ᵗ (α × β)) := evalDist_independent_uniform_pair
-    _ = _ := evalDist_uniformSample (α × β)
+    _ = evalSPMF ($ᵗ (α × β)) := evalDist_independent_uniform_pair
+    _ = _ := evalSPMF_uniformSample (α × β)
 
 noncomputable def uniformSnocList
     (α : Type) [SampleableType α] : Nat → ProbComp (List α)
@@ -85,30 +85,30 @@ theorem uniformSnocList_append
 
 theorem evalDist_uniformSnocList_eq_reverse_drawList
     (α : Type) [SampleableType α] (count : Nat) :
-    evalDist (uniformSnocList α count) =
-      evalDist (List.reverse <$>
+    evalSPMF (uniformSnocList α count) =
+      evalSPMF (List.reverse <$>
         OracleComp.drawList ($ᵗ α) count) := by
   induction count with
   | zero => simp [uniformSnocList, OracleComp.drawList]
   | succ count ih =>
       rw [uniformSnocList]
       calc
-        _ = evalDist ((List.reverse <$>
+        _ = evalSPMF ((List.reverse <$>
               OracleComp.drawList ($ᵗ α) count) >>= fun prior =>
             ($ᵗ α) >>= fun next =>
             pure (prior ++ [next])) := by
-          rw [evalDist_bind, ih, ← evalDist_bind]
-        _ = evalDist (OracleComp.drawList ($ᵗ α) count >>= fun prior =>
+          rw [evalSPMF_bind, ih, ← evalSPMF_bind]
+        _ = evalSPMF (OracleComp.drawList ($ᵗ α) count >>= fun prior =>
             ($ᵗ α) >>= fun next =>
             pure (prior.reverse ++ [next])) := by
           simp [map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (($ᵗ α) >>= fun next =>
+        _ = evalSPMF (($ᵗ α) >>= fun next =>
             OracleComp.drawList ($ᵗ α) count >>= fun prior =>
             pure (prior.reverse ++ [next])) :=
-          OracleComp.DeferredSampling.evalDist_bind_comm
+          OracleComp.DeferredSampling.evalSPMF_bind_comm
             (OracleComp.drawList ($ᵗ α) count) ($ᵗ α)
               (fun prior next => pure (prior.reverse ++ [next]))
-        _ = evalDist (List.reverse <$>
+        _ = evalSPMF (List.reverse <$>
             OracleComp.drawList ($ᵗ α) (count + 1)) := by
           simp [OracleComp.drawList, map_eq_bind_pure_comp, bind_assoc]
 
@@ -128,32 +128,32 @@ def finInitLastEquiv (α : Type) (count : Nat) :
 set_option maxRecDepth 100000 in
 theorem evalDist_uniformSnocList_eq_uniformFunction
     (α : Type) [Fintype α] [SampleableType α] (count : Nat) :
-    evalDist (uniformSnocList α count) =
-      evalDist (List.ofFn <$> ($ᵗ (Fin count → α))) := by
+    evalSPMF (uniformSnocList α count) =
+      evalSPMF (List.ofFn <$> ($ᵗ (Fin count → α))) := by
   induction count with
   | zero =>
       rw [uniformSnocList]
       symm
       rw [map_eq_bind_pure_comp]
       calc
-        evalDist (($ᵗ (Fin 0 → α)) >>= fun values =>
+        evalSPMF (($ᵗ (Fin 0 → α)) >>= fun values =>
             pure (List.ofFn values)) =
-            evalDist (($ᵗ (Fin 0 → α)) >>= fun _values => pure []) := by
-          apply evalDist_bind_congr
+            evalSPMF (($ᵗ (Fin 0 → α)) >>= fun _values => pure []) := by
+          apply evalSPMF_bind_congr
           intro values _hvalues
           have hnil : List.ofFn values = [] :=
             List.eq_nil_of_length_eq_zero (by simp)
           rw [hnil]
-        _ = evalDist (pure []) :=
-          OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+        _ = evalSPMF (pure []) :=
+          OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
             ($ᵗ (Fin 0 → α)) (probFailure_eq_zero' inferInstance) (pure [])
   | succ count ih =>
       rw [uniformSnocList]
       calc
-        _ = evalDist ((List.ofFn <$> ($ᵗ (Fin count → α))) >>= fun prior =>
+        _ = evalSPMF ((List.ofFn <$> ($ᵗ (Fin count → α))) >>= fun prior =>
             ($ᵗ α) >>= fun next => pure (prior ++ [next])) := by
-          rw [evalDist_bind, ih, ← evalDist_bind]
-        _ = evalDist (List.ofFn <$> (finInitLastEquiv α count <$> (do
+          rw [evalSPMF_bind, ih, ← evalSPMF_bind]
+        _ = evalSPMF (List.ofFn <$> (finInitLastEquiv α count <$> (do
               let prior ← $ᵗ (Fin count → α)
               let next ← $ᵗ α
               pure (prior, next)))) := by
@@ -167,64 +167,64 @@ theorem evalDist_uniformSnocList_eq_uniformFunction
           congr 1
           rw [List.ofFn_succ']
           simp [finInitLastEquiv]
-        _ = evalDist (List.ofFn <$> (finInitLastEquiv α count <$>
+        _ = evalSPMF (List.ofFn <$> (finInitLastEquiv α count <$>
               ($ᵗ ((Fin count → α) × α)))) := by
-          rw [evalDist_map, evalDist_map,
-            evalDist_independent_uniform_pair, ← evalDist_map, ← evalDist_map]
-        _ = evalDist (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) := by
-          rw [evalDist_map]
-          rw [evalDist_map_bijective_uniform_cross
+          rw [evalSPMF_map, evalSPMF_map,
+            evalDist_independent_uniform_pair, ← evalSPMF_map, ← evalSPMF_map]
+        _ = evalSPMF (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) := by
+          rw [evalSPMF_map]
+          rw [evalSPMF_map_bijective_uniform_cross
             (α := (Fin count → α) × α) (β := Fin (count + 1) → α)
             (finInitLastEquiv α count) (finInitLastEquiv α count).bijective]
-          rw [← evalDist_map]
+          rw [← evalSPMF_map]
 
 set_option maxRecDepth 100000 in
 theorem evalDist_drawList_uniform_eq_uniformFunction
     (α : Type) [Fintype α] [SampleableType α] (count : Nat) :
-    evalDist (OracleComp.drawList ($ᵗ α) count) =
-      evalDist (List.ofFn <$> ($ᵗ (Fin count → α))) := by
+    evalSPMF (OracleComp.drawList ($ᵗ α) count) =
+      evalSPMF (List.ofFn <$> ($ᵗ (Fin count → α))) := by
   induction count with
   | zero =>
       rw [OracleComp.drawList]
       symm
       rw [map_eq_bind_pure_comp]
       calc
-        evalDist (($ᵗ (Fin 0 → α)) >>= fun values =>
+        evalSPMF (($ᵗ (Fin 0 → α)) >>= fun values =>
             pure (List.ofFn values)) =
-            evalDist (($ᵗ (Fin 0 → α)) >>= fun _values => pure []) := by
-          apply evalDist_bind_congr
+            evalSPMF (($ᵗ (Fin 0 → α)) >>= fun _values => pure []) := by
+          apply evalSPMF_bind_congr
           intro values _hvalues
           have hnil : List.ofFn values = [] :=
             List.eq_nil_of_length_eq_zero (by simp)
           rw [hnil]
-        _ = evalDist (pure []) :=
-          OracleComp.DeferredSampling.evalDist_bind_const_neverFails
+        _ = evalSPMF (pure []) :=
+          OracleComp.DeferredSampling.evalSPMF_bind_const_neverFails
             ($ᵗ (Fin 0 → α)) (probFailure_eq_zero' inferInstance) (pure [])
   | succ count ih =>
       rw [OracleComp.drawList]
       calc
-        _ = evalDist (($ᵗ α) >>= fun first =>
+        _ = evalSPMF (($ᵗ α) >>= fun first =>
               (List.ofFn <$> ($ᵗ (Fin count → α))) >>= fun rest =>
               pure (first :: rest)) := by
-          apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+          apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
           intro first
-          rw [evalDist_bind, ih, ← evalDist_bind]
-        _ = evalDist (List.ofFn <$> (finHeadTailEquiv α count <$> (do
+          rw [evalSPMF_bind, ih, ← evalSPMF_bind]
+        _ = evalSPMF (List.ofFn <$> (finHeadTailEquiv α count <$> (do
               let first ← $ᵗ α
               let rest ← $ᵗ (Fin count → α)
               pure (first, rest)))) := by
           simp [finHeadTailEquiv, map_eq_bind_pure_comp, bind_assoc]
-        _ = evalDist (List.ofFn <$> (finHeadTailEquiv α count <$>
+        _ = evalSPMF (List.ofFn <$> (finHeadTailEquiv α count <$>
               ($ᵗ (α × (Fin count → α))))) := by
-          rw [evalDist_map, evalDist_map,
-            evalDist_independent_uniform_pair, ← evalDist_map, ← evalDist_map]
-        _ = evalDist (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) := by
-          rw [evalDist_map,
-            evalDist_map_bijective_uniform_cross
+          rw [evalSPMF_map, evalSPMF_map,
+            evalDist_independent_uniform_pair, ← evalSPMF_map, ← evalSPMF_map]
+        _ = evalSPMF (List.ofFn <$> ($ᵗ (Fin (count + 1) → α))) := by
+          rw [evalSPMF_map,
+            evalSPMF_map_bijective_uniform_cross
               (α := α × (Fin count → α))
               (β := Fin (count + 1) → α)
               (finHeadTailEquiv α count) (finHeadTailEquiv α count).bijective,
-            ← evalDist_map]
+            ← evalSPMF_map]
 
 noncomputable def finiteTableTapeEquiv
     {ι α : Type} [DecidableEq ι] (order : List ι)
@@ -276,54 +276,54 @@ theorem evalDist_finiteTableOfTape_drawList_eq_uniform
     {ι α : Type} [DecidableEq ι] [Inhabited α] [Fintype α]
     [SampleableType α] [Fintype ι] (order : List ι)
     (hnodup : order.Nodup) (hcover : ∀ index, index ∈ order) :
-    evalDist (finiteTableOfTape order hnodup hcover <$>
+    evalSPMF (finiteTableOfTape order hnodup hcover <$>
       OracleComp.drawList ($ᵗ α) order.length) =
     (liftM (PMF.uniformOfFintype (ι → α)) : SPMF (ι → α)) := by
-  have htape : evalDist ((fun table : ι → α => order.map table) <$>
+  have htape : evalSPMF ((fun table : ι → α => order.map table) <$>
       ($ᵗ (ι → α))) =
-      evalDist (OracleComp.drawList ($ᵗ α) order.length) := by
+      evalSPMF (OracleComp.drawList ($ᵗ α) order.length) := by
     calc
-      _ = evalDist (List.ofFn <$>
+      _ = evalSPMF (List.ofFn <$>
           (finiteTableTapeEquiv order hnodup hcover <$>
             ($ᵗ (ι → α)))) := by
         simp only [Functor.map_map]
         congr 2
         funext table
         exact (listOfFn_finiteTableTapeEquiv order hnodup hcover table).symm
-      _ = evalDist (List.ofFn <$>
+      _ = evalSPMF (List.ofFn <$>
           ($ᵗ (Fin order.length → α))) := by
-        rw [evalDist_map]
-        rw [evalDist_map_bijective_uniform_cross
+        rw [evalSPMF_map]
+        rw [evalSPMF_map_bijective_uniform_cross
           (α := ι → α) (β := Fin order.length → α)
           (finiteTableTapeEquiv order hnodup hcover)
           (finiteTableTapeEquiv order hnodup hcover).bijective]
-        rw [← evalDist_map]
+        rw [← evalSPMF_map]
       _ = _ := (evalDist_drawList_uniform_eq_uniformFunction α
         order.length).symm
   calc
-    _ = evalDist (finiteTableOfTape order hnodup hcover <$>
+    _ = evalSPMF (finiteTableOfTape order hnodup hcover <$>
         ((fun table : ι → α => order.map table) <$>
           ($ᵗ (ι → α)))) := by
-      rw [evalDist_map, evalDist_map, htape]
-    _ = evalDist ($ᵗ (ι → α)) := by
+      rw [evalSPMF_map, evalSPMF_map, htape]
+    _ = evalSPMF ($ᵗ (ι → α)) := by
       simp [Functor.map_map]
     _ = (liftM (PMF.uniformOfFintype (ι → α)) : SPMF (ι → α)) :=
-      evalDist_uniformSample (ι → α)
+      evalSPMF_uniformSample (ι → α)
 
 theorem evalDist_finiteTableOfTape_uniformSnoc_eq_uniform
     {ι α : Type} [DecidableEq ι] [Inhabited α] [Fintype α]
     [SampleableType α] [Fintype ι] (order : List ι)
     (hnodup : order.Nodup) (hcover : ∀ index, index ∈ order) :
-    evalDist (finiteTableOfTape order hnodup hcover <$>
+    evalSPMF (finiteTableOfTape order hnodup hcover <$>
       uniformSnocList α order.length) =
     (liftM (PMF.uniformOfFintype (ι → α)) : SPMF (ι → α)) := by
   calc
-    _ = evalDist (finiteTableOfTape order hnodup hcover <$>
+    _ = evalSPMF (finiteTableOfTape order hnodup hcover <$>
         OracleComp.drawList ($ᵗ α) order.length) := by
-      rw [evalDist_map,
+      rw [evalSPMF_map,
         (evalDist_uniformSnocList_eq_uniformFunction α order.length).trans
           (evalDist_drawList_uniform_eq_uniformFunction α order.length).symm,
-        ← evalDist_map]
+        ← evalSPMF_map]
     _ = _ := evalDist_finiteTableOfTape_drawList_eq_uniform order hnodup hcover
 
 end XmssSecurity

@@ -331,7 +331,7 @@ theorem hTermO_le_optF {b : ℕ} (hb : subtreeHeight = b) (t : PoisT) (o : OptF)
   calc hTermO (Finset.univ : Finset View) w lam N q (ForsPotential.excess b0)
       ≤ (2 : ℝ≥0∞) ^ b * ENNReal.ofReal (o.Eg : ℝ) +
           ENNReal.ofReal (prefQ : ℝ) * ENNReal.ofReal ((1 + o.Ee : ℚ) : ℝ) ^ (2 ^ b) := by
-        refine le_trans hmain (add_le_add (mul_le_mul_left' hEg' _) (mul_le_mul' (ENNReal.ofReal_le_ofReal hp) ?_))
+        refine le_trans hmain (add_le_add (mul_le_mul_right hEg' _) (mul_le_mul' (ENNReal.ofReal_le_ofReal hp) ?_))
         refine pow_le_pow_left' ?_ _
         rw [show ((1 + o.Ee : ℚ) : ℝ) = 1 + (o.Ee : ℝ) by push_cast; ring, ENNReal.ofReal_add zero_le_one
           (by exact_mod_cast hEe0), ENNReal.ofReal_one]

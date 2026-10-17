@@ -48,12 +48,14 @@ theorem derivationCache_randomizer_fresh (seed : MasterSeed) (parameterOutput : 
     (outputs : ChainOutputs) (position : RandomizerPosition) :
     derivationCache seed parameterOutput outputs
       (randomizerInputs (truncateHash parameterOutput) seed position) = none := by
-  unfold derivationCache
-  rw [cacheRows_apply_of_not_mem]
-  · exact QueryCache.cacheQuery_of_ne _ _
-      (randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ .parameter)
-  · intro leafIndex chain
-    exact randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ (.chain leafIndex chain)
+  have hchain : ∀ leafIndex chain,
+      randomizerInputs (truncateHash parameterOutput) seed position ≠
+        chainInputs (truncateHash parameterOutput) seed leafIndex chain := fun leafIndex chain =>
+    randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ (.chain leafIndex chain)
+  rw [derivationCache, cacheRows_apply_of_not_mem _ _ _ _ hchain, parameterCache]
+  exact (QueryCache.cacheQuery_of_ne (spec := HashSpec) ∅ _
+    (randomizerHashInput_ne_keygenHashInput _ _ _ _ _ _ _ .parameter)).trans
+      (QueryCache.empty_apply _)
 
 noncomputable def signingDerivationCache (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) (randomizers : RandomizerOutputs) : QueryCache HashSpec :=
@@ -63,28 +65,31 @@ noncomputable def signingDerivationCache (seed : MasterSeed) (parameterOutput : 
 theorem signingDerivationCache_randomizer (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) (randomizers : RandomizerOutputs) (position : RandomizerPosition) :
     signingDerivationCache seed parameterOutput outputs randomizers
-      (randomizerInputs (truncateHash parameterOutput) seed position) = some (randomizers position) :=
-  cacheTable_apply _ _ (randomizerInputs_injective _ _) _ _
+      (randomizerInputs (truncateHash parameterOutput) seed position) = some (randomizers position) := by
+  rw [signingDerivationCache]
+  exact cacheTable_apply _ _ (randomizerInputs_injective _ _) _ _
 
 theorem signingDerivationCache_agreeOutside (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) (randomizers : RandomizerOutputs) :
     AgreeOutside (fun input => SeedHit input seed)
       (signingDerivationCache seed parameterOutput outputs randomizers) ∅ := by
   intro input hinput
-  unfold signingDerivationCache
-  rw [cacheTable_apply_of_not_mem]
-  · exact derivationCache_of_not_seedHit seed parameterOutput outputs input hinput
-  · intro position heq
-    exact hinput (heq.symm ▸ derivationSeedHit_randomizer (truncateHash parameterOutput) seed position.1.leafIndex position.1.message position.2)
+  have hrandomizer : ∀ position, input ≠ randomizerInputs (truncateHash parameterOutput) seed position := by
+    rintro position rfl
+    exact hinput (derivationSeedHit_randomizer (truncateHash parameterOutput) seed position.1.leafIndex
+      position.1.message position.2)
+  rw [signingDerivationCache, cacheTable_apply_of_not_mem _ _ _ _ hrandomizer,
+    derivationCache_of_not_seedHit seed parameterOutput outputs input hinput]
+  exact (QueryCache.empty_apply _).symm
 
 noncomputable def prepareRandomizers (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec RandomizerOutputs := queryTable (randomizerInputs parameter seed)
 
 theorem evalDist_prepareRandomizers (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) :
-    𝒟[(simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)).run
+    𝒮[(simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)).run
       (derivationCache seed parameterOutput outputs)] =
-        𝒟[(fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>
+        𝒮[(fun randomizers => (randomizers, signingDerivationCache seed parameterOutput outputs randomizers)) <$>
           sampleRandomizerOutputs] :=
   evalDist_queryTable_fresh _ (randomizerInputs_injective _ seed) _
     (derivationCache_randomizer_fresh seed parameterOutput outputs)

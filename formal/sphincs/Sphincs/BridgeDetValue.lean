@@ -160,7 +160,7 @@ theorem tsum_uniform_update {D R : Type} [Fintype D] [DecidableEq D] [Fintype R]
     ∑' table, Pr[= table | ($ᵗ (D → R) : ProbComp (D → R))] * G table =
       ∑' a, Pr[= a | ($ᵗ R : ProbComp R)] * ∑' table, Pr[= table | ($ᵗ (D → R) : ProbComp (D → R))] *
         G (Function.update table i a) := by
-  have h := evalDist_uniformSample_bind_update (D := D) (R := R) i
+  have h := evalSPMF_uniformSample_bind_update (D := D) (R := R) i
   calc
     _ = ∑' table, Pr[= table | (do
           let u ← ($ᵗ R : ProbComp R)

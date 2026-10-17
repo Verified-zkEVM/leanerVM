@@ -124,7 +124,7 @@ theorem programmedWarmedFixedChainKeygen_support_treeCacheStable
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
       view.cache := by
   apply coupledWarmedFixedChainKeygen_support_treeCacheStable chain view
-  exact (mem_support_iff_of_evalDist_eq
+  exact (mem_support_iff_of_evalSPMF_eq
     (evalDist_coupledWarmedFixedChainKeygen_eq_programmed chain) view).mpr hview
 
 theorem actualFixedChainKeygen_support_treeCacheStable
@@ -133,7 +133,7 @@ theorem actualFixedChainKeygen_support_treeCacheStable
     TreeCacheStable view.secretKey.parameter view.secretKey.chainStart
       view.cache := by
   apply programmedWarmedFixedChainKeygen_support_treeCacheStable chain view
-  exact (mem_support_iff_of_evalDist_eq
+  exact (mem_support_iff_of_evalSPMF_eq
     (evalDist_actualFixedChainKeygen_eq_programmedWarmed chain) view).mp hview
 
 end XmssSecurity.CappedChain

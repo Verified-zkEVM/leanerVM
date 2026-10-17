@@ -41,13 +41,13 @@ theorem knownAgrees_exposeT (table : ι → Digest) :
 /-- **Exposure commutes with completion.** -/
 theorem evalDist_completion_exposeT {β : Type} (next : (ι → Digest) → Knowledge ι → ProbComp β) :
     ∀ (cs : List ι) (known : Knowledge ι),
-      𝒟[completion known >>= fun table => next table (exposeT table cs known)] =
-        𝒟[exposeR cs known >>= fun known' => completion known' >>= fun table => next table known']
+      𝒮[completion known >>= fun table => next table (exposeT table cs known)] =
+        𝒮[exposeR cs known >>= fun known' => completion known' >>= fun table => next table known']
   | [], _ => by simp only [exposeT, exposeR, pure_bind]
   | c :: cs, known => by
       simp only [exposeT, exposeR, bind_assoc]
       rw [completion_reveal known c (fun value table => next table (exposeT table cs (known.cacheQuery c value)))]
-      apply evalDist_bind_congr
+      apply evalSPMF_bind_congr
       rintro ⟨value, known'⟩ hr
       have hcache := HiddenDebt.randomOracle_known_support known c _ hr
       dsimp only at hcache ⊢
@@ -129,16 +129,16 @@ theorem evalDist_expose_prep {A α : Type}
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cs : (Index → Option (Counter × Encoding)) → List Coordinate) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+    𝒮[($ᵗ Eager.Table) >>= fun outside =>
         exposeR (cs (resultsOf parameter forsKey (extend base outside))) known >>= fun known' =>
           HiddenRows.stoppedExperiment model (extend base outside) computation known'] =
-      𝒟[(simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
+      𝒮[(simulateQ randomOracle (searchAll parameter forsKey)).run base >>= fun prepared =>
         exposeR (cs prepared.1) known >>= fun known' =>
           Option.map Prod.fst <$> HiddenOutside.stoppedExperiment model computation known' prepared.2] := by
   rw [evalDist_eager_prefix (searchAll parameter forsKey) (Only.searchAll parameter forsKey) base
     (fun f => exposeR (cs (resultsOf parameter forsKey f)) known >>= fun known' =>
       HiddenRows.stoppedExperiment model f computation known')]
-  apply evalDist_bind_congr
+  apply evalSPMF_bind_congr
   intro prepared hprepared
   have hres : ∀ outside, resultsOf parameter forsKey (extend prepared.2 outside) = prepared.1 := by
     intro outside
@@ -146,8 +146,8 @@ theorem evalDist_expose_prep {A α : Type}
     exact (preparation_support parameter forsKey base prepared hprepared (extend prepared.2 outside)
       (extend_agrees _ _)).2 leaf
   simp only [hres]
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
+  rw [evalSPMF_bind_bind_swap]
+  apply evalSPMF_bind_congr'
   intro known'
   exact evalDist_stoppedExperiment_lazy model _ computation hshort known'
 

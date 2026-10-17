@@ -441,9 +441,9 @@ omit [SampleableType R] in
 /-- A reveal commutes with completion: the table value at a sampled coordinate. -/
 theorem withTable_reveal {β : Type} (coordinate : ι) (state : DebtState D R ι)
     (continuation : Digest → DebtState D R ι → (ι → Digest) → ProbComp β) :
-    𝒟[completion state.known >>= fun table =>
+    𝒮[completion state.known >>= fun table =>
         continuation (table coordinate) (state.expose coordinate (table coordinate)) table] =
-      𝒟[sampleCoordinate coordinate state >>= fun result =>
+      𝒮[sampleCoordinate coordinate state >>= fun result =>
         completion result.2.known >>= continuation result.1 result.2] := by
   rw [completion_reveal state.known coordinate
     (fun value table => continuation value (state.expose coordinate value) table)]
@@ -459,9 +459,9 @@ omit [SampleableType R] in
 theorem withTable_swap {β Y : Type} (step : ProbComp (Y × DebtState D R ι)) (state : DebtState D R ι)
     (hknown : ∀ result ∈ support step, result.2.known = state.known)
     (continuation : Y → DebtState D R ι → (ι → Digest) → ProbComp β) :
-    𝒟[completion state.known >>= fun table => step >>= fun result => continuation result.1 result.2 table] =
-      𝒟[step >>= fun result => completion result.2.known >>= continuation result.1 result.2] := by
-  rw [evalDist_bind_bind_swap]
+    𝒮[completion state.known >>= fun table => step >>= fun result => continuation result.1 result.2 table] =
+      𝒮[step >>= fun result => completion result.2.known >>= continuation result.1 result.2] := by
+  rw [evalSPMF_bind_bind_swap]
   congr 1
   apply bind_congr_of_forall_mem_support
   intro result hresult
@@ -479,8 +479,8 @@ theorem readOutside_known (bytes : D) (state : DebtState D R ι) :
 same joint law as the lazy comparison followed by completion of what remains unexposed. -/
 theorem withTable_fixedRun {α : Type} (model : HiddenRows.Model D R A ι)
     (computation : OracleComp (HiddenRows.SourceSpec D R ι) α) (state : DebtState D R ι) :
-    𝒟[withTable (fun table => fixedRun model table computation state) state.known] =
-      𝒟[lazyRun model computation state >>= fun result =>
+    𝒮[withTable (fun table => fixedRun model table computation state) state.known] =
+      𝒮[lazyRun model computation state >>= fun result =>
         (fun table => (table, result)) <$> completion result.2.known] := by
   induction computation using OracleComp.inductionOn generalizing state with
   | pure value =>
@@ -491,27 +491,27 @@ theorem withTable_fixedRun {α : Type} (model : HiddenRows.Model D R A ι)
       simp only [withTable, fixedRun_query_bind, lazyRun_query_bind, map_bind]
       have hstep : ∀ (step : ProbComp ((HiddenRows.SourceSpec D R ι).Range input × DebtState D R ι)),
           (∀ result ∈ support step, result.2.known = state.known) →
-          𝒟[completion state.known >>= fun table => step >>= fun result =>
+          𝒮[completion state.known >>= fun table => step >>= fun result =>
               (fun r => (table, r)) <$> fixedRun model table (next result.1) result.2] =
-            𝒟[step >>= fun result => lazyRun model (next result.1) result.2 >>= fun r =>
+            𝒮[step >>= fun result => lazyRun model (next result.1) result.2 >>= fun r =>
               (fun table => (table, r)) <$> completion r.2.known] := by
         intro step hknown
         refine (withTable_swap step state hknown
           (fun value after table => (fun r => (table, r)) <$> fixedRun model table (next value) after)).trans ?_
-        apply evalDist_bind_congr'
+        apply evalSPMF_bind_congr'
         intro result
         exact ih result.1 result.2
       have hreveal : ∀ (coordinate : ι) (label : Digest → (HiddenRows.SourceSpec D R ι).Range input),
-          𝒟[completion state.known >>= fun table =>
+          𝒮[completion state.known >>= fun table =>
               (fun r => (table, r)) <$> fixedRun model table (next (label (table coordinate)))
                 (state.expose coordinate (table coordinate))] =
-            𝒟[sampleCoordinate coordinate state >>= fun result =>
+            𝒮[sampleCoordinate coordinate state >>= fun result =>
               lazyRun model (next (label result.1)) result.2 >>= fun r =>
                 (fun table => (table, r)) <$> completion r.2.known] := by
         intro coordinate label
         refine (withTable_reveal coordinate state
           (fun value after table => (fun r => (table, r)) <$> fixedRun model table (next (label value)) after)).trans ?_
-        apply evalDist_bind_congr'
+        apply evalSPMF_bind_congr'
         intro result
         exact ih (label result.1) result.2
       rcases input with draw | (bytes | coordinate)

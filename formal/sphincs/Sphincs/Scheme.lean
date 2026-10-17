@@ -1,5 +1,7 @@
-import VCVio.OracleComp.QueryTracking.LoggingOracle
-import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
+module
+
+public import VCVio.OracleComp.QueryTracking.LoggingOracle
+public import VCVio.OracleComp.QueryTracking.RandomOracle.Simulation
 
 /-!
 # leanSPHINCS with a two-level WOTS forest
@@ -43,6 +45,8 @@ grinding attempts, comes last, alone in the second block.
 open OracleComp OracleSpec ENNReal
 
 namespace Sphincs
+
+@[expose] public section
 
 /-! ## The instance: parameters, types, and hash-input layout -/
 
@@ -1018,5 +1022,7 @@ def sign (secretKey : SecretKey) (message : Message) : m (Option Signature) := d
   return some ⟨randomness, opening, layers⟩
 
 end Seeded
+
+end
 
 end Sphincs

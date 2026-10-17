@@ -107,7 +107,7 @@ theorem relTriple_globalHighMonitored_firstLane_action
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalDist
+  exact congrArg evalSPMF
     (map_globalHighMonitored_action_eq_firstLane keyView base edgeHigh input
       highState)
 
@@ -489,7 +489,7 @@ theorem relTriple_globalHighMonitored_firstLane_verifier_action
         RevealProbeOracleSimulation.ActionTrace GlobalChainValueIndex) :=
     Classical.decEq _
   apply relTriple_of_evalDist_map_eq_with_support_general
-  exact congrArg evalDist
+  exact congrArg evalSPMF
     (map_globalHighMonitored_verifier_action_eq_firstLane keyView base
       edgeHigh input highState)
 
@@ -855,6 +855,7 @@ theorem relTriple_sourceExact_firstLane_detailedExecution_boundedHit
   have hfullBound : Budget (adversary.main left.publicKey) countLimit sourceInitial := by
     unfold Budget finish
     unfold sourceUnloggedDetailedGameAfterKeygen at hsourceBound
+    simp only [bind_pure_comp] at hsourceBound
     exact hsourceBound
   have hcoupling := relTriple_simulateQ_bind_bounded_firstLane right.1.2
     (cappedBothTracedMappedAdversaryImpl left.publicKey secretKey)
@@ -1147,37 +1148,37 @@ theorem globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
 
 theorem evalDist_globalFirstLaneExactCoupledProjection_eq_eagerExperiment
     (adversary : Adversary) :
-    evalDist (globalFirstLaneExactCoupledProjection <$>
+    evalSPMF (globalFirstLaneExactCoupledProjection <$>
       globalFirstLaneExactCoupledProgram adversary) =
-    evalDist (FirstLaneOracleSimulation.eagerExperiment
+    evalSPMF (FirstLaneOracleSimulation.eagerExperiment
       (globalFirstLaneExactTracedProgram adversary)) := by
   rw [globalFirstLaneExactCoupledProgram_projection_eq_parameterFirst]
   calc
-    evalDist (do
+    evalSPMF (do
         let parameter ← Concrete.samplePublicParameter
         let base ← independentGlobalChainValueTable
         globalFirstLaneExactCoupledContinuation adversary parameter base) =
-      evalDist (do
+      evalSPMF (do
         let base ← independentGlobalChainValueTable
         let parameter ← Concrete.samplePublicParameter
         globalFirstLaneExactCoupledContinuation adversary parameter base) := by
-          exact OracleComp.DeferredSampling.evalDist_bind_comm
+          exact OracleComp.DeferredSampling.evalSPMF_bind_comm
             Concrete.samplePublicParameter independentGlobalChainValueTable _
-    _ = evalDist (do
+    _ = evalSPMF (do
         let base ← independentGlobalChainValueTable
         let result ← (simulateQ
           (FirstLaneOracleSimulation.eagerTraceImpl base)
           (globalFirstLaneExactTracedProgram adversary)).run
         pure (base, result)) := by
-          rw [evalDist_bind, evalDist_bind]
+          rw [evalSPMF_bind, evalSPMF_bind]
           apply bind_congr
           intro base
-          exact congrArg evalDist
+          exact congrArg evalSPMF
             (globalFirstLaneExactCoupledContinuation_eq_eagerAfterBase
               adversary base)
     _ = _ := by
       unfold FirstLaneOracleSimulation.eagerExperiment
-      rw [evalDist_bind, evalDist_bind]
+      rw [evalSPMF_bind, evalSPMF_bind]
       unfold independentGlobalChainValueTable
         RevealProbeOracleSimulation.eagerTableSample
       rfl
@@ -1305,7 +1306,7 @@ theorem simulate_eagerTrace_bind_lift_emitObservedTrace_keep
       (result.1, result.2 ++ liftGlobalChainTrace (suffix result.1))) <$>
       (simulateQ (FirstLaneOracleSimulation.eagerTraceImpl table)
         computation).run := by
-  rw [simulateQ_bind, WriterT.run_bind']
+  rw [simulateQ_bind, WriterT.run_bind', map_eq_bind_pure_comp]
   apply bind_congr
   intro result
   rcases result with ⟨result, trace⟩
@@ -1524,7 +1525,7 @@ theorem sourceWinningExactFirstLane_good_implies_public_combinedHit
     exact ⟨left, hleftSupport, rfl⟩
   have hboth : both ∈ support
       (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) :=
-    (mem_support_iff_of_evalDist_eq
+    (mem_support_iff_of_evalSPMF_eq
       (evalDist_sourceGlobalExact_eq_cappedBothTraces adversary) both).mp
         hbothMapped
   have hencodingSupport : cappedBothEncodingProjection both ∈ support
@@ -1729,19 +1730,19 @@ theorem sourceWinningExactFirstLane_implies_coupled_enforcedHit
 
 theorem evalDist_globalFirstLaneExactCoupledPublicProjection_eq_eager
     (adversary : Adversary) :
-    evalDist (globalFirstLaneExactCoupledPublicProjection <$>
+    evalSPMF (globalFirstLaneExactCoupledPublicProjection <$>
       globalFirstLaneExactCoupledProgram adversary) =
-    evalDist (globalFirstLaneExactPublicEagerExperiment adversary) := by
+    evalSPMF (globalFirstLaneExactPublicEagerExperiment adversary) := by
   calc
-    evalDist (globalFirstLaneExactCoupledPublicProjection <$>
+    evalSPMF (globalFirstLaneExactCoupledPublicProjection <$>
         globalFirstLaneExactCoupledProgram adversary) =
-      evalDist (appendGlobalFirstLaneExactPublicTrace <$>
+      evalSPMF (appendGlobalFirstLaneExactPublicTrace <$>
         (globalFirstLaneExactCoupledProjection <$>
           globalFirstLaneExactCoupledProgram adversary)) := by
-            apply congrArg evalDist
+            apply congrArg evalSPMF
             rw [Functor.map_map]
             rfl
-    _ = evalDist (appendGlobalFirstLaneExactPublicTrace <$>
+    _ = evalSPMF (appendGlobalFirstLaneExactPublicTrace <$>
         FirstLaneOracleSimulation.eagerExperiment
           (globalFirstLaneExactTracedProgram adversary)) := by
       exact evalDist_map_congr_of_evalDist_eq

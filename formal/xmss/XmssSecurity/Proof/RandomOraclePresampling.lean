@@ -13,7 +13,7 @@ theorem QueryCache.cacheQuery_comm_of_ne
     (leftValue rightValue : R) :
     (cache.cacheQuery left leftValue).cacheQuery right rightValue =
       (cache.cacheQuery right rightValue).cacheQuery left leftValue := by
-  funext input
+  ext input
   by_cases hleft : input = left
   · subst input
     simp [QueryCache.cacheQuery_of_ne, h]
@@ -30,8 +30,8 @@ theorem evalDist_randomOracle_run_eq_presample_of_cached
     (hcached : ∀ result ∈ support
       ((simulateQ randomOracle computation).run cache),
       ∃ output, result.2 target = some output) :
-    𝒟[(simulateQ randomOracle computation).run cache] =
-      𝒟[do
+    𝒮[(simulateQ randomOracle computation).run cache] =
+      𝒮[do
         let value ← $ᵗ R
         (simulateQ randomOracle computation).run
           (cache.cacheQuery target value)] := by
@@ -54,7 +54,7 @@ theorem evalDist_randomOracle_run_eq_presample_of_cached
         rw [hrun, QueryImpl.withCaching_run_none _ habsent,
           map_eq_bind_pure_comp]
         simp only [Function.comp_apply, bind_assoc, pure_bind]
-        apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+        apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
         intro sampled
         rw [hrun, QueryImpl.withCaching_run_some _
           (QueryCache.cacheQuery_self cache target sampled), pure_bind]
@@ -71,18 +71,18 @@ theorem evalDist_randomOracle_run_eq_presample_of_cached
               rw [QueryImpl.withCaching_run_some _ hinput]
               simp
             calc
-              𝒟[(simulateQ randomOracle (next answer)).run cache] =
-                  𝒟[do
+              𝒮[(simulateQ randomOracle (next answer)).run cache] =
+                  𝒮[do
                     let sampled ← $ᵗ R
                     (simulateQ randomOracle (next answer)).run
                       (cache.cacheQuery target sampled)] :=
                 ih answer cache habsent hnextCached
-              _ = 𝒟[do
+              _ = 𝒮[do
                     let sampled ← $ᵗ R
                     (simulateQ randomOracle
                       (liftM ((D →ₒ R).query input) >>= next)).run
                         (cache.cacheQuery target sampled)] := by
-                apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
                 intro sampled
                 have hcachedInput :
                     (cache.cacheQuery target sampled) input = some answer := by
@@ -109,37 +109,37 @@ theorem evalDist_randomOracle_run_eq_presample_of_cached
               rw [QueryImpl.withCaching_run_none _ hinput, support_map]
               exact ⟨answer, mem_support_uniformSample R, rfl⟩
             calc
-              𝒟[$ᵗ R >>= fun answer =>
+              𝒮[$ᵗ R >>= fun answer =>
                   (simulateQ randomOracle (next answer)).run
                     (cache.cacheQuery input answer)] =
-                  𝒟[$ᵗ R >>= fun answer =>
+                  𝒮[$ᵗ R >>= fun answer =>
                     $ᵗ R >>= fun sampled =>
                       (simulateQ randomOracle (next answer)).run
                         ((cache.cacheQuery input answer).cacheQuery target sampled)] := by
-                apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
                 intro answer
                 exact ih answer (cache.cacheQuery input answer)
                   (htargetAfterInput answer) (hnextCached answer)
-              _ = 𝒟[$ᵗ R >>= fun sampled =>
+              _ = 𝒮[$ᵗ R >>= fun sampled =>
                     $ᵗ R >>= fun answer =>
                       (simulateQ randomOracle (next answer)).run
                         ((cache.cacheQuery input answer).cacheQuery target sampled)] :=
-                OracleComp.DeferredSampling.evalDist_bind_comm _ _ _
-              _ = 𝒟[$ᵗ R >>= fun sampled =>
+                OracleComp.DeferredSampling.evalSPMF_bind_comm _ _ _
+              _ = 𝒮[$ᵗ R >>= fun sampled =>
                     $ᵗ R >>= fun answer =>
                       (simulateQ randomOracle (next answer)).run
                         ((cache.cacheQuery target sampled).cacheQuery input answer)] := by
-                apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
                 intro sampled
-                apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
                 intro answer
                 rw [QueryCache.cacheQuery_comm_of_ne cache htarget]
-              _ = 𝒟[do
+              _ = 𝒮[do
                     let sampled ← $ᵗ R
                     (simulateQ randomOracle
                       (liftM ((D →ₒ R).query input) >>= next)).run
                         (cache.cacheQuery target sampled)] := by
-                apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+                apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
                 intro sampled
                 have hnone : (cache.cacheQuery target sampled) input = none := by
                   rw [QueryCache.cacheQuery_of_ne cache sampled htarget]
@@ -157,8 +157,8 @@ theorem evalDist_randomOracle_run_eq_query_then_of_cached
     (hcached : ∀ result ∈ support
       ((simulateQ randomOracle computation).run cache),
       ∃ output, result.2 target = some output) :
-    𝒟[(simulateQ randomOracle computation).run cache] =
-      𝒟[(randomOracle (spec := D →ₒ R) target).run cache >>= fun queryResult =>
+    𝒮[(simulateQ randomOracle computation).run cache] =
+      𝒮[(randomOracle (spec := D →ₒ R) target).run cache >>= fun queryResult =>
         (simulateQ randomOracle computation).run queryResult.2] := by
   cases htarget : cache target with
   | none =>

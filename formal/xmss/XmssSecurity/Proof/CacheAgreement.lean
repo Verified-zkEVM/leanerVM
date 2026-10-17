@@ -55,18 +55,18 @@ theorem relTriple_strengthen_support
   obtain ⟨coupling, hcoupling⟩ := hrel
   refine ⟨coupling, ?_⟩
   intro pair hpair
-  have hleftSupportDist : pair.1 ∈ support 𝒟[left] := by
-    rw [← coupling.2.map_fst, support_map]
+  have hleftSupportDist : pair.1 ∈ SPMF.support 𝒮[left] := by
+    rw [← coupling.2.map_fst, spmf_support_map]
     exact ⟨pair, hpair, rfl⟩
-  have hrightSupportDist : pair.2 ∈ support 𝒟[right] := by
-    rw [← coupling.2.map_snd, support_map]
+  have hrightSupportDist : pair.2 ∈ SPMF.support 𝒮[right] := by
+    rw [← coupling.2.map_snd, spmf_support_map]
     exact ⟨pair, hpair, rfl⟩
   have hleftSupport : pair.1 ∈ support left := by
-    rw [mem_support_iff_evalDist_apply_ne_zero] at hleftSupportDist ⊢
-    simpa using hleftSupportDist
+    rw [mem_support_iff_evalSPMF_apply_ne_zero]
+    exact (SPMF.mem_support_iff _ _).mp hleftSupportDist
   have hrightSupport : pair.2 ∈ support right := by
-    rw [mem_support_iff_evalDist_apply_ne_zero] at hrightSupportDist ⊢
-    simpa using hrightSupportDist
+    rw [mem_support_iff_evalSPMF_apply_ne_zero]
+    exact (SPMF.mem_support_iff _ _).mp hrightSupportDist
   exact ⟨hcoupling pair hpair,
     hleft pair.1 hleftSupport, hright pair.2 hrightSupport⟩
 

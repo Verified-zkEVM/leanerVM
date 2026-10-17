@@ -68,7 +68,7 @@ theorem hashQueryBound_after_signing_derivation (adversary : Adversary) (q : Nat
       support ((simulateQ romImpl (liftM (prepareRandomizers (truncateHash parameterOutput) seed) :
         OracleComp OracleWorld _)).run (derivationCache seed parameterOutput outputs)) := by
     rw [romImpl, QueryImpl.simulateQ_add_liftM_right,
-      mem_support_iff_of_evalDist_eq (evalDist_prepareRandomizers seed parameterOutput outputs), support_map]
+      mem_support_iff_of_evalSPMF_eq (evalDist_prepareRandomizers seed parameterOutput outputs), support_map]
     refine ⟨randomizers, ?_, rfl⟩
     rw [mem_support_iff]
     unfold sampleRandomizerOutputs

@@ -25,10 +25,12 @@ def parameterCache (seed : MasterSeed) (output : HashOutput) : QueryCache HashSp
 theorem parameterCache_chain_fresh (seed : MasterSeed) (output : HashOutput)
     (parameter : PublicParameter) (leafIndex : LeafIndex) (chain : ChainIndex) :
     parameterCache seed output (chainInputs parameter seed leafIndex chain) = none := by
-  apply QueryCache.cacheQuery_of_ne
-  intro h
-  have hdomain := (keygenHashInput_injective h).2.1
-  cases hdomain
+  have hne : chainInputs parameter seed leafIndex chain ≠ keygenHashInput 0 .parameter seed := by
+    intro h
+    have hdomain := (keygenHashInput_injective h).2.1
+    cases hdomain
+  rw [parameterCache]
+  exact (QueryCache.cacheQuery_of_ne (spec := HashSpec) ∅ output hne).trans (QueryCache.empty_apply _)
 
 def derivationCache (seed : MasterSeed) (parameterOutput : HashOutput) (outputs : ChainOutputs) :
     QueryCache HashSpec :=
@@ -38,13 +40,16 @@ def derivationCache (seed : MasterSeed) (parameterOutput : HashOutput) (outputs 
 theorem derivationCache_of_not_seedHit (seed : MasterSeed) (parameterOutput : HashOutput)
     (outputs : ChainOutputs) (input : HashInput) (hinput : ¬ SeedHit input seed) :
     derivationCache seed parameterOutput outputs input = none := by
-  unfold derivationCache
-  rw [cacheRows_apply_of_not_mem]
-  · apply QueryCache.cacheQuery_of_ne
-    intro h
-    exact hinput (h.symm ▸ derivationSeedHit_keygen 0 .parameter seed)
-  · intro leafIndex chain h
-    exact hinput (h.symm ▸ derivationSeedHit_keygen (truncateHash parameterOutput) (.chain leafIndex chain) seed)
+  have hparameter : input ≠ keygenHashInput 0 .parameter seed := by
+    rintro rfl
+    exact hinput (derivationSeedHit_keygen 0 .parameter seed)
+  have hchain : ∀ leafIndex chain,
+      input ≠ chainInputs (truncateHash parameterOutput) seed leafIndex chain := by
+    rintro leafIndex chain rfl
+    exact hinput (derivationSeedHit_keygen (truncateHash parameterOutput) (.chain leafIndex chain) seed)
+  rw [derivationCache, cacheRows_apply_of_not_mem _ _ _ _ hchain, parameterCache]
+  exact (QueryCache.cacheQuery_of_ne (spec := HashSpec) ∅ parameterOutput hparameter).trans
+    (QueryCache.empty_apply _)
 
 def deriveChainSecrets (parameter : PublicParameter) (seed : MasterSeed) :
     OracleComp HashSpec (LeafIndex → ChainIndex → Digest) :=
@@ -77,18 +82,18 @@ theorem run_deriveChainSecrets (seed : MasterSeed) (parameterOutput : HashOutput
       _ (parameterCache_chain_fresh seed parameterOutput _)]
   simp only [bind_pure_comp, Functor.map_map, drawChainOutputs, derivationCache]
 
-theorem evalDist_drawChainOutputs : 𝒟[drawChainOutputs] = 𝒟[$ᵗ ChainOutputs] := by
+theorem evalDist_drawChainOutputs : 𝒮[drawChainOutputs] = 𝒮[$ᵗ ChainOutputs] := by
   calc
-    _ = 𝒟[Concrete.sequenceFin fun _ : LeafIndex => ($ᵗ (ChainIndex → HashOutput))] :=
+    _ = 𝒮[Concrete.sequenceFin fun _ : LeafIndex => ($ᵗ (ChainIndex → HashOutput))] :=
       evalDist_sequenceFin_congr _ _ (fun _ => evalDist_sequenceFin_uniform _)
     _ = _ := evalDist_sequenceFin_uniform _
 
 theorem evalDist_deriveChainSecrets (seed : MasterSeed) (parameterOutput : HashOutput) :
-    𝒟[(simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
+    𝒮[(simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
       (parameterCache seed parameterOutput)] =
-        𝒟[(fun outputs => (outputSecrets outputs, derivationCache seed parameterOutput outputs)) <$>
+        𝒮[(fun outputs => (outputSecrets outputs, derivationCache seed parameterOutput outputs)) <$>
           ($ᵗ ChainOutputs)] := by
-  rw [run_deriveChainSecrets, evalDist_map, evalDist_map, evalDist_drawChainOutputs]
+  rw [run_deriveChainSecrets, evalSPMF_map, evalSPMF_map, evalDist_drawChainOutputs]
 
 def deriveParametersAndSecrets (seed : MasterSeed) :
     OracleComp HashSpec (PublicParameter × (LeafIndex → ChainIndex → Digest)) := do
@@ -111,8 +116,8 @@ theorem run_deriveParameter (seed : MasterSeed) :
 
 /-- Exact joint distribution of the derived values and every full answer retained by the oracle. -/
 theorem evalDist_deriveParametersAndSecrets (seed : MasterSeed) :
-    𝒟[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
-      𝒟[do
+    𝒮[(simulateQ randomOracle (deriveParametersAndSecrets seed)).run ∅] =
+      𝒮[do
         let parameterOutput ← $ᵗ HashOutput
         let outputs ← $ᵗ ChainOutputs
         pure ((truncateHash parameterOutput, outputSecrets outputs),
@@ -121,13 +126,13 @@ theorem evalDist_deriveParametersAndSecrets (seed : MasterSeed) :
     StateT.run_bind, StateT.run_pure]
   rw [run_deriveParameter]
   simp only [bind_map_left, bind_pure_comp]
-  change 𝒟[($ᵗ HashOutput) >>= _] = 𝒟[($ᵗ HashOutput) >>= _]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  change 𝒮[($ᵗ HashOutput) >>= _] = 𝒮[($ᵗ HashOutput) >>= _]
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameterOutput
-  change 𝒟[(fun result => ((truncateHash parameterOutput, result.1), result.2)) <$>
+  change 𝒮[(fun result => ((truncateHash parameterOutput, result.1), result.2)) <$>
     (simulateQ randomOracle (deriveChainSecrets (truncateHash parameterOutput) seed)).run
       (parameterCache seed parameterOutput)] = _
-  rw [evalDist_map, evalDist_deriveChainSecrets, ← evalDist_map]
+  rw [evalSPMF_map, evalDist_deriveChainSecrets, ← evalSPMF_map]
   simp only [Functor.map_map]
 
 end XmssSecurity.Seeded

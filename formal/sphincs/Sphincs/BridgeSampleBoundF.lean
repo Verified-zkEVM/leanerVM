@@ -196,7 +196,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
         le_trans (H0.hNearOf_le b N qtop hbb hNN t on hrt hpt hon q' hqtop) (ofReal_le_two_halfF c)
       have hsum := start_sum_leF hfair.le_one q' φ _ hnear
       refine add_le_add (add_le_add le_rfl ?_) le_rfl
-      exact mul_le_mul_left' hsum _
+      exact mul_le_mul_right hsum _
     · rw [hrunA hK, tsum_probOutput_pure_mul]
       refine le_trans (le_of_eq ?_) bot_le
       rfl

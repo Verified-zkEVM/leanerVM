@@ -50,18 +50,18 @@ theorem extend_cacheQuery (cache : QueryCache HashSpec) (table : Table) {input :
     · rfl
 
 theorem evalDist_map_bind' {α β γ : Type} (x : ProbComp α) (f : α → β) (g : β → ProbComp γ) :
-    𝒟[(f <$> x) >>= g] = 𝒟[x >>= fun a => g (f a)] := by
+    𝒮[(f <$> x) >>= g] = 𝒮[x >>= fun a => g (f a)] := by
   rw [bind_map_left]
 
 /-- Lazy sampling equals eager table sampling, from any cache. -/
 theorem evalDist_romImpl_eq_table {α : Type} (oa : OracleComp OracleWorld α) (h : OnlyW oa)
     (cache : QueryCache HashSpec) :
-    𝒟[(simulateQ romImpl oa).run' cache] =
-      𝒟[do let table ← $ᵗ Table; simulateQ (fixedRom (extend cache table)) oa] := by
+    𝒮[(simulateQ romImpl oa).run' cache] =
+      𝒮[do let table ← $ᵗ Table; simulateQ (fixedRom (extend cache table)) oa] := by
   induction oa using OracleComp.inductionOn generalizing cache with
   | pure value =>
       simp only [simulateQ_pure, StateT.run'_eq, StateT.run_pure, map_pure]
-      rw [DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample Table)]
+      rw [DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample Table)]
   | query_bind input next ih =>
       rw [OnlyW, isQueryBoundP_query_bind_iff] at h
       have hnext : ∀ answer, OnlyW (next answer) := fun answer => by
@@ -73,18 +73,18 @@ theorem evalDist_romImpl_eq_table {α : Type} (oa : OracleComp OracleWorld α) (
       | inl draw =>
           refine (evalDist_map_bind' (liftM (unifSpec.query draw) : ProbComp _)
             (fun answer => (answer, cache)) _).trans ?_
-          trans 𝒟[(liftM (unifSpec.query draw) : ProbComp _) >>= fun answer =>
+          trans 𝒮[(liftM (unifSpec.query draw) : ProbComp _) >>= fun answer =>
             ($ᵗ Table) >>= fun table => simulateQ (fixedRom (extend cache table)) (next answer)]
-          · refine evalDist_bind_congr' _ (fun answer => ?_)
+          · refine evalSPMF_bind_congr' _ (fun answer => ?_)
             rw [← StateT.run'_eq]
             exact ih answer (hnext answer) cache
-          · exact evalDist_bind_bind_swap _ _ _
+          · exact evalSPMF_bind_bind_swap _ _ _
       | inr bytes =>
           have hshort : IsShort bytes := by
             rcases h.1 with hnot | hzero
             · simpa [LongQuery] using hnot
             · omega
-          change 𝒟[(randomOracle (spec := HashSpec) bytes).run cache >>= _] = _
+          change 𝒮[(randomOracle (spec := HashSpec) bytes).run cache >>= _] = _
           have hfixed : ∀ table : Table,
               (fixedRom (extend cache table) (.inr bytes) >>= fun answer =>
                 simulateQ (fixedRom (extend cache table)) (next answer)) =
@@ -113,21 +113,21 @@ theorem evalDist_romImpl_eq_table {α : Type} (oa : OracleComp OracleWorld α) (
                 simp only [ψ, extend_cacheQuery cache table hshort hc answer]
                 congr 2
                 simp [extend, hc, hshort]
-              trans 𝒟[(uniformSampleImpl (spec := HashSpec) bytes : ProbComp HashOutput) >>= fun answer =>
+              trans 𝒮[(uniformSampleImpl (spec := HashSpec) bytes : ProbComp HashOutput) >>= fun answer =>
                 ($ᵗ Table) >>= fun table => ψ (Function.update table ⟨bytes, hshort⟩ answer)]
-              · refine evalDist_bind_congr' _ (fun answer => ?_)
+              · refine evalSPMF_bind_congr' _ (fun answer => ?_)
                 rw [← StateT.run'_eq, ih answer (hnext answer) (cache.cacheQuery bytes answer)]
                 simp_rw [hupdate]
-              · change 𝒟[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+              · change 𝒮[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
                   ($ᵗ Table) >>= fun table => ψ (Function.update table ⟨bytes, hshort⟩ answer)] =
-                    𝒟[($ᵗ Table) >>= ψ]
-                calc 𝒟[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
+                    𝒮[($ᵗ Table) >>= ψ]
+                calc 𝒮[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer =>
                       ($ᵗ Table) >>= fun table => ψ (Function.update table ⟨bytes, hshort⟩ answer)]
-                    = 𝒟[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Table) >>=
+                    = 𝒮[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Table) >>=
                           fun table => pure (Function.update table ⟨bytes, hshort⟩ answer)) >>= ψ] := by
                       simp only [bind_assoc, pure_bind]
-                  _ = 𝒟[($ᵗ Table) >>= ψ] := by
-                      rw [evalDist_bind, evalDist_uniformSample_bind_update (D := ShortIn)
-                        (R := HashOutput) ⟨bytes, hshort⟩, ← evalDist_bind]
+                  _ = 𝒮[($ᵗ Table) >>= ψ] := by
+                      rw [evalSPMF_bind, evalSPMF_uniformSample_bind_update (D := ShortIn)
+                        (R := HashOutput) ⟨bytes, hshort⟩, ← evalSPMF_bind]
 
 end SphincsFors.Security.Eager

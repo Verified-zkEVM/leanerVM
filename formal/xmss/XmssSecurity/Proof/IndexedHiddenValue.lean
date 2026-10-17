@@ -33,15 +33,15 @@ theorem uniform_table_coordinate_probability (index : Index) (target : Digest) :
     · intro value
       exact ⟨fun _ => value, rfl⟩
   have hmarginal :
-      𝒟[evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))] =
-        𝒟[$ᵗ Digest] := by
+      𝒮[evaluate <$> ((fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest)))] =
+        𝒮[$ᵗ Digest] := by
     have hrestrict :
-        𝒟[(fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest))] =
-          𝒟[$ᵗ (Unit → Digest)] := by
+        𝒮[(fun table : Index → Digest => table ∘ embed) <$> ($ᵗ (Index → Digest))] =
+          𝒮[$ᵗ (Unit → Digest)] := by
       simpa [bind_pure_comp] using
-        evalDist_uniformSample_map_comp_injective (R := Digest) hembed
-    rw [evalDist_map, hrestrict, ← evalDist_map]
-    exact evalDist_map_bijective_uniform_cross
+        evalSPMF_uniformSample_map_comp_injective (R := Digest) hembed
+    rw [evalSPMF_map, hrestrict, ← evalSPMF_map]
+    exact evalSPMF_map_bijective_uniform_cross
       (α := Unit → Digest) (β := Digest) evaluate hevaluate
   calc
     Pr[fun table : Index → Digest => table index = target | $ᵗ (Index → Digest)] =

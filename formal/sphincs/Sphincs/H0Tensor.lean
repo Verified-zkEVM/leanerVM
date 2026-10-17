@@ -126,6 +126,13 @@ theorem sel_of_val {α : Type} (t : Five α) (y : FPos) :
   unfold Five.sel
   rcases fpos_val_cases y with h | h | h | h | h <;> simp [h]
 
+/-- `sel_of_val` for a tensor, whose type is `Five` only after unfolding `NT`. -/
+theorem sel_of_valN {d : ℕ} (t : NT (d + 1)) (y : FPos) :
+    Five.sel (α := NT d) t y = if y.val = 0 then Five.c0 (α := NT d) t
+      else if y.val = 1 then Five.c1 (α := NT d) t else if y.val = 2 then Five.c2 (α := NT d) t
+      else if y.val = 3 then Five.c3 (α := NT d) t else Five.c4 (α := NT d) t :=
+  sel_of_val (α := NT d) t y
+
 theorem getT_zeroT : ∀ (d : ℕ) (m : Fin d → FPos), getT d (zeroT d) m = 0
   | 0, _ => rfl
   | d + 1, m => by
@@ -155,7 +162,7 @@ theorem getT_deltaT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
       have hcons : ∀ y : FPos, (fun m' => (getT (d + 1) a (Fin.cons y m') : ℝ)) =
           fun m' => (getT d ((show Five (NT d) from a).sel y) m' : ℝ) := fun y => funext fun m' => by
         rw [getT_cons]
-      simp only [hcons, sel_of_val]
+      simp only [hcons, sel_of_val, sel_of_valN]
       rcases fpos_val_cases (m 0) with h | h | h | h | h <;> simp only [h, chainTop] <;>
         simp [deltaT, getT_zipT, getT_deltaT d]
 
@@ -208,7 +215,7 @@ theorem getT_cumT : ∀ (d : ℕ) (a : NT d) (m : Fin d → FPos),
       have hcons : ∀ y : FPos, (fun m'' => (getT (d + 1) a (Fin.cons y m'') : ℝ)) =
           fun m'' => (getT d ((show Five (NT d) from a).sel y) m'' : ℝ) := fun y => funext fun m' => by
         rw [getT_cons]
-      simp only [hcons, sum_fpos, sel_of_val, Fin.le_iff_val_le_val]
+      simp only [hcons, sum_fpos, sel_of_val, sel_of_valN, Fin.le_iff_val_le_val]
       rcases fpos_val_cases (m 0) with h | h | h | h | h <;> simp only [h] <;>
         simp [cumT, getT_zipT, getT_cumT d] <;> ring
 
@@ -243,7 +250,7 @@ theorem getT_incT : ∀ (d : ℕ) (a : NT d) (c m : Fin d → FPos),
           ⟨(show Five (NT d) from a).c0, (show Five (NT d) from a).c1, (show Five (NT d) from a).c2,
             (show Five (NT d) from a).c3, incT d (show Five (NT d) from a).c4 (Fin.tail c)⟩) := by
         simp only [incT]
-        rcases fpos_val_cases (c 0) with h | h | h | h | h <;> simp [h]
+        rcases fpos_val_cases (c 0) with h | h | h | h | h <;> simp [h] <;> rfl
       rw [hinc]
       have ih := getT_incT d
       rcases fpos_val_cases (c 0) with hc0 | hc0 | hc0 | hc0 | hc0 <;>
@@ -255,7 +262,7 @@ theorem sumT2_eq (f : ℤ → ℤ → ℤ) : ∀ (d : ℕ) (a b : NT d),
   | 0, _, _ => by rw [Fintype.sum_unique]; rfl
   | d + 1, a, b => by
       rw [sum_fin_succ_fun]
-      simp only [getT_cons, sum_fpos, sel_of_val]
+      simp only [getT_cons, sum_fpos, sel_of_val, sel_of_valN]
       simp only [sumT2, Int.cast_add, sumT2_eq f d]
       simp
 

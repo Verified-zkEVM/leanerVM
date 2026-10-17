@@ -407,18 +407,18 @@ theorem uniformDigest_mem_finset_le (targets : Finset Digest) :
 
 theorem evalDist_uniformTable_eq_bind_update
     (index : Index) (continuation : (Index → Digest) → ProbComp α) :
-    𝒟[($ᵗ (Index → Digest)) >>= continuation] =
-      𝒟[do
+    𝒮[($ᵗ (Index → Digest)) >>= continuation] =
+      𝒮[do
         let value ← $ᵗ Digest
         let base ← $ᵗ (Index → Digest)
         continuation (Function.update base index value)] := by
   calc
-    𝒟[($ᵗ (Index → Digest)) >>= continuation] =
-        𝒟[(do
+    𝒮[($ᵗ (Index → Digest)) >>= continuation] =
+        𝒮[(do
           let value ← $ᵗ Digest
           let base ← $ᵗ (Index → Digest)
           pure (Function.update base index value)) >>= continuation] := by
-      rw [evalDist_bind, evalDist_bind, evalDist_uniformSample_bind_update index]
+      rw [evalSPMF_bind, evalSPMF_bind, evalSPMF_uniformSample_bind_update index]
     _ = _ := by simp [bind_assoc]
 
 set_option maxRecDepth 100000 in

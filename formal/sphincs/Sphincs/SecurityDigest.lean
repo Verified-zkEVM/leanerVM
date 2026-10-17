@@ -15,8 +15,8 @@ open Concrete
 
 /-- The oracle block induces exactly the uniform 234-bit digest law. -/
 theorem evalDist_digestBlock_uniform :
-    𝒟[truncateMessageDigest <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ MessageDigest : ProbComp MessageDigest)] :=
+    𝒮[truncateMessageDigest <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒮[($ᵗ MessageDigest : ProbComp MessageDigest)] :=
   evalDist_hashOutput_extract_uniform (width := messageDigestBits) (by decide)
 
 /-- The exact byte string queried for a message digest. -/

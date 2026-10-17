@@ -33,7 +33,7 @@ theorem splitHashOutput_bijective {width : Nat} (hwidth : width ≤ hashOutputBi
     Function.Bijective (splitHashOutput width) := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨splitHashOutput_injective hwidth, ?_⟩
-  rw [Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, ← pow_add]
+  rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add]
   congr
   omega
 
@@ -57,9 +57,9 @@ theorem joinHalves_halves (output : HashOutput) :
   (splitHashOutputEquiv digestBits (by decide)).symm_apply_apply output
 
 theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ hashOutputBits) :
-    𝒟[(fun output : HashOutput => output.extractLsb' 0 width) <$>
+    𝒮[(fun output : HashOutput => output.extractLsb' 0 width) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+      𝒮[($ᵗ BitVec width : ProbComp (BitVec width))] := by
   let split := splitHashOutput width
   have hmap :
       (fun output : HashOutput => output.extractLsb' 0 width) <$>
@@ -68,33 +68,33 @@ theorem evalDist_hashOutput_extract_uniform {width : Nat} (hwidth : width ≤ ha
     simp [Functor.map_map, split, splitHashOutput]
   rw [hmap]
   have hsplit :
-      𝒟[split <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-        𝒟[($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
+      𝒮[split <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+        𝒮[($ᵗ (BitVec width × BitVec (hashOutputBits - width)) :
           ProbComp (BitVec width × BitVec (hashOutputBits - width)))] :=
-    evalDist_map_bijective_uniform_cross
+    evalSPMF_map_bijective_uniform_cross
       (α := HashOutput) (β := BitVec width × BitVec (hashOutputBits - width))
       split (splitHashOutput_bijective hwidth)
-  rw [evalDist_map, hsplit, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+  rw [evalSPMF_map, hsplit, ← evalSPMF_map]
+  exact evalSPMF_map_fst_uniformSample_prod
 
 /-- A field of a hash output is uniform when some other field completes it into an injective
 reading of the output and the two widths add up to the output's. -/
 theorem evalDist_hashOutput_field_uniform {width rest : Nat} (hsum : width + rest = hashOutputBits)
     (field : HashOutput → BitVec width) (other : HashOutput → BitVec rest)
     (hinj : Function.Injective fun output => (field output, other output)) :
-    𝒟[field <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec width : ProbComp (BitVec width))] := by
+    𝒮[field <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒮[($ᵗ BitVec width : ProbComp (BitVec width))] := by
   have hbij : Function.Bijective fun output : HashOutput => (field output, other output) := by
     apply (Fintype.bijective_iff_injective_and_card _).2
     refine ⟨hinj, ?_⟩
-    rw [Fintype.card_prod, card_bitVec, card_bitVec, card_bitVec, ← pow_add, hsum]
+    rw [Fintype.card_prod, Fintype.card_bitVec, Fintype.card_bitVec, Fintype.card_bitVec, ← pow_add, hsum]
   have hmap : field <$> ($ᵗ HashOutput : ProbComp HashOutput) =
       Prod.fst <$> ((fun output : HashOutput => (field output, other output)) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) := by
     simp [Functor.map_map]
-  rw [hmap, evalDist_map, evalDist_map_bijective_uniform_cross
-    (α := HashOutput) (β := BitVec width × BitVec rest) _ hbij, ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+  rw [hmap, evalSPMF_map, evalSPMF_map_bijective_uniform_cross
+    (α := HashOutput) (β := BitVec width × BitVec rest) _ hbij, ← evalSPMF_map]
+  exact evalSPMF_map_fst_uniformSample_prod
 
 /-- Equal fields give equal bits. -/
 theorem getLsbD_eq_of_extract_eq {n start width : Nat} {x y : BitVec n}
@@ -285,28 +285,28 @@ theorem blockIndexBits_injective :
 
 /-- The fields of digest call `0` of a uniform output are uniform. -/
 theorem evalDist_firstCallFields_uniform :
-    𝒟[firstCallFields <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec 146 : ProbComp (BitVec 146))] :=
+    𝒮[firstCallFields <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒮[($ᵗ BitVec 146 : ProbComp (BitVec 146))] :=
   evalDist_hashOutput_field_uniform (by decide) firstCallFields firstCallRest
     firstCallFields_injective
 
 /-- The `12` FORS indices of a uniform output are uniform. -/
 theorem evalDist_callIndices_uniform :
-    𝒟[callIndices <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec 120 : ProbComp (BitVec 120))] :=
+    𝒮[callIndices <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒮[($ᵗ BitVec 120 : ProbComp (BitVec 120))] :=
   evalDist_hashOutput_field_uniform (by decide) callIndices callIndicesRest callIndices_injective
 
 /-- The index bits of digest call `0` of a uniform output are uniform. -/
 theorem evalDist_blockIndexBits_uniform :
-    𝒟[(fun output : HashOutput => output.extractLsb' digestBits totalHeight) <$>
+    𝒮[(fun output : HashOutput => output.extractLsb' digestBits totalHeight) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ BitVec totalHeight : ProbComp (BitVec totalHeight))] :=
+      𝒮[($ᵗ BitVec totalHeight : ProbComp (BitVec totalHeight))] :=
   evalDist_hashOutput_field_uniform (by decide) _ blockIndexRest blockIndexBits_injective
 
 theorem evalDist_truncateHash_uniform :
-    𝒟[truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-      𝒟[($ᵗ Digest : ProbComp Digest)] := by
-  change 𝒟[(fun output : HashOutput => output.extractLsb' 0 digestBits) <$>
+    𝒮[truncateHash <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+      𝒮[($ᵗ Digest : ProbComp Digest)] := by
+  change 𝒮[(fun output : HashOutput => output.extractLsb' 0 digestBits) <$>
       ($ᵗ HashOutput : ProbComp HashOutput)] = _
   exact evalDist_hashOutput_extract_uniform (width := digestBits) (by decide)
 

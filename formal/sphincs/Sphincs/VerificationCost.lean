@@ -2,6 +2,8 @@ import Sphincs.Layout
 import Sphincs.Code
 import Sphincs.Correctness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Compression counts for the actual verifier's logged hash-input bytes. A hash of `n` bytes costs
 `max 1 (ceil (n / 64))`, the BLAKE2s accounting used by `crates/sphincs/src/hash.rs` and

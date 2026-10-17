@@ -53,8 +53,8 @@ theorem uniform_mix (parameter : PublicParameter) :
 
 omit [Params] in
 theorem evalDist_uniform_congr {α : Type} [Fintype α] [Nonempty α] (left right : SampleableType α) :
-    𝒟[(@uniformSample α left : ProbComp α)] = 𝒟[(@uniformSample α right : ProbComp α)] := by
-  rw [@evalDist_uniformSample α left, @evalDist_uniformSample α right]
+    𝒮[(@uniformSample α left : ProbComp α)] = 𝒮[(@uniformSample α right : ProbComp α)] := by
+  rw [@evalSPMF_uniformSample α left, @evalSPMF_uniformSample α right]
 
 noncomputable local instance sampleCellFintypeInst : Fintype SampleCell := sampleCellFintype
 noncomputable local instance sampleCellDecEq : DecidableEq SampleCell := Classical.decEq _
@@ -78,33 +78,33 @@ private theorem lift_pmf_map {α β : Type} (distribution : PMF α) (next : α �
     (liftM (distribution.map next) : SPMF β) = next <$> liftM distribution := liftM_map next distribution
 
 theorem evalDist_mix (parameter : PublicParameter) :
-    𝒟[($ᵗ HiddenGraph.Table) >>= fun fixed => mix parameter fixed <$> ($ᵗ HiddenGraph.Table)] =
-      𝒟[($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)] := by
+    𝒮[($ᵗ HiddenGraph.Table) >>= fun fixed => mix parameter fixed <$> ($ᵗ HiddenGraph.Table)] =
+      𝒮[($ᵗ HiddenGraph.Table : ProbComp HiddenGraph.Table)] := by
   have h := congrArg (fun distribution : PMF HiddenGraph.Table =>
     (liftM distribution : SPMF HiddenGraph.Table)) (uniform_mix parameter)
   simp only [lift_pmf_bind, lift_pmf_map] at h
-  simp only [evalDist_bind, evalDist_map, evalDist_uniformSample]
+  simp only [evalSPMF_bind, evalSPMF_map, evalSPMF_uniformSample]
   exact h
 
 theorem evalDist_mix_bind {β : Type} (parameter : PublicParameter) (next : HiddenGraph.Table → ProbComp β) :
-    𝒟[($ᵗ HiddenGraph.Table) >>= next] =
-      𝒟[($ᵗ HiddenGraph.Table) >>= fun fixed => ($ᵗ HiddenGraph.Table) >>= fun fresh =>
+    𝒮[($ᵗ HiddenGraph.Table) >>= next] =
+      𝒮[($ᵗ HiddenGraph.Table) >>= fun fixed => ($ᵗ HiddenGraph.Table) >>= fun fresh =>
         next (mix parameter fixed fresh)] := by
-  have h := congrArg (fun distribution : SPMF HiddenGraph.Table => distribution >>= fun table => 𝒟[next table])
+  have h := congrArg (fun distribution : SPMF HiddenGraph.Table => distribution >>= fun table => 𝒮[next table])
     (evalDist_mix parameter)
-  simp only [← evalDist_bind, bind_assoc, bind_map_left] at h
+  simp only [← evalSPMF_bind, bind_assoc, bind_map_left] at h
   exact h.symm
 
 omit [Params] in
 theorem evalDist_completion_bind {β : Type} (known : HiddenReveal.Knowledge Coordinate)
     (next : HiddenGraph.Table → ProbComp β) :
-    𝒟[HiddenReveal.completion known >>= next] =
-      𝒟[($ᵗ HiddenGraph.Table) >>= fun fresh => next (tableExtending known fresh)] := by
+    𝒮[HiddenReveal.completion known >>= next] =
+      𝒮[($ᵗ HiddenGraph.Table) >>= fun fresh => next (tableExtending known fresh)] := by
   unfold HiddenReveal.completion
   refine (Eager.evalDist_map_bind' _ _ _).trans ?_
   have h := evalDist_uniform_congr HiddenReveal.tableSampleable hiddenTableSampleable
-  exact (evalDist_bind _ _).trans ((congrArg (fun distribution : SPMF HiddenGraph.Table =>
-    distribution >>= fun fresh => 𝒟[next (tableExtending known fresh)]) h).trans (evalDist_bind _ _).symm)
+  exact (evalSPMF_bind _ _).trans ((congrArg (fun distribution : SPMF HiddenGraph.Table =>
+    distribution >>= fun fresh => 𝒮[next (tableExtending known fresh)]) h).trans (evalSPMF_bind _ _).symm)
 
 /-- One public/structural sample's hidden-row run at coordinate table `table`. -/
 noncomputable def hiddenRun (adversary : Adversary) (q : Nat) (parameterOutput : HashOutput)
@@ -124,8 +124,8 @@ noncomputable def hiddenRun (adversary : Adversary) (q : Nat) (parameterOutput :
 /-- **Hidden decomposition.** The seed-free experiment samples every public and structural
 value first and then the coordinate table as an exact completion of the known coordinates. -/
 theorem evalDist_seedFree_completion (adversary : Adversary) (q : Nat) :
-    𝒟[seedFreeExperiment adversary q] =
-      𝒟[do
+    𝒮[seedFreeExperiment adversary q] =
+      𝒮[do
         let parameterOutput ← $ᵗ HashOutput
         let fixed ← $ᵗ HiddenGraph.Table
         let highs ← $ᵗ CoordinateHighs
@@ -135,27 +135,27 @@ theorem evalDist_seedFree_completion (adversary : Adversary) (q : Nat) :
         hiddenRun adversary q parameterOutput fixed highs remaining outsideTable table] := by
   unfold seedFreeExperiment
   rw [evalDist_material_graph_continuation]
-  apply evalDist_bind_congr'
+  apply evalSPMF_bind_congr'
   intro parameterOutput
   simp only [sampleSplitPair, bind_assoc, bind_map_left]
   rw [evalDist_mix_bind (truncateHash parameterOutput)]
-  apply evalDist_bind_congr'
+  apply evalSPMF_bind_congr'
   intro fixed
   simp only [joinedPair]
-  change 𝒟[($ᵗ HiddenGraph.Table) >>= fun fresh => ($ᵗ CoordinateHighs) >>= fun highs =>
+  change 𝒮[($ᵗ HiddenGraph.Table) >>= fun fresh => ($ᵗ CoordinateHighs) >>= fun highs =>
       ($ᵗ RemainingOutputs) >>= fun remaining => ($ᵗ Eager.Table) >>= fun outsideTable =>
         seedFreeRun adversary q
           (splitMaterial parameterOutput highs remaining (mix (truncateHash parameterOutput) fixed fresh))
           (splitAnswers highs remaining (mix (truncateHash parameterOutput) fixed fresh)) outsideTable] = _
   simp only [seedFreeRun_mix]
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
+  rw [evalSPMF_bind_bind_swap]
+  apply evalSPMF_bind_congr'
   intro highs
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
+  rw [evalSPMF_bind_bind_swap]
+  apply evalSPMF_bind_congr'
   intro remaining
-  rw [evalDist_bind_bind_swap]
-  apply evalDist_bind_congr'
+  rw [evalSPMF_bind_bind_swap]
+  apply evalSPMF_bind_congr'
   intro outsideTable
   rw [evalDist_completion_bind]
   rfl

@@ -10,6 +10,7 @@ the sibling may be a surrogate rather than the root of a constructed subtree.
 -/
 
 open OracleComp OracleSpec
+set_option backward.isDefEq.respectTransparency false
 
 namespace SphincsFors.Security
 open Concrete

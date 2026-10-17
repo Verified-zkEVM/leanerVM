@@ -2,6 +2,8 @@ import SphincsFors.BridgeFixedRun
 import SphincsFors.SecurityReferenceSignature
 import SphincsFors.SecurityHiddenWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Accepted-signature classification retaining that every non-tree exception is at a
 retained leaf. -/
 

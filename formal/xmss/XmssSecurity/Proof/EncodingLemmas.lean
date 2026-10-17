@@ -147,15 +147,17 @@ theorem decodeView_eq_some_iff {view : EncodingView} {x : Encoding} :
     decodeView view = some x ↔ view = (x, 0) ∧ Valid x := by
   classical
   rcases view with ⟨digits, padding⟩
-  simp only [decodeView, ValidView]
-  split <;> rename_i hview
-  · simp only [Option.some.injEq, Prod.mk.injEq]
+  simp only [decodeView]
+  by_cases hview : ValidView (digits, padding)
+  · rw [if_pos hview]
+    simp only [Option.some.injEq, Prod.mk.injEq]
     constructor
     · intro hdigits
       subst x
       exact ⟨⟨rfl, hview.1⟩, hview.2⟩
     · exact fun h => h.1.1
-  · simp only [Prod.mk.injEq]
+  · rw [if_neg hview]
+    simp only [Prod.mk.injEq]
     constructor
     · intro heq
       cases heq

@@ -61,25 +61,25 @@ theorem run_withAddCost_trace {m : Type → Type} [Monad m] [LawfulMonad m] {α 
 theorem liftM_id_pmf {α : Type} (x : α) : (liftM (show Id α from x) : PMF α) = PMF.pure x := rfl
 
 theorem evalDist_liftM_id {α : Type} (x : α) :
-    𝒟[(liftM (show Id α from x) : PMF α)] = 𝒟[(pure x : ProbComp α)] := by
+    𝒮[(liftM (show Id α from x) : PMF α)] = 𝒮[(pure x : ProbComp α)] := by
   rw [liftM_id_pmf]
   simp
 
 theorem evalDist_fixedCostSource {α : Type} (f : QueryImpl HashSpec Id) (table : HiddenGraph.Table)
     (computation : OracleComp CostSpec α) :
-    𝒟[(simulateQ (fixedCostSource f table) computation).run] =
-      𝒟[(fun result => (result.1, Multiplicative.ofAdd (traceCost result.2))) <$>
+    𝒮[(simulateQ (fixedCostSource f table) computation).run] =
+      𝒮[(fun result => (result.1, Multiplicative.ofAdd (traceCost result.2))) <$>
         costRun f table computation] := by
   rw [show fixedCostSource f table = (fixedCostPMF f table).withAddCost sourceCost from rfl,
-    run_withAddCost_trace, evalDist_map, evalDist_map, costRun]
+    run_withAddCost_trace, evalSPMF_map, evalSPMF_map, costRun]
   congr 1
   refine Assembly.evalDist_simulateQ_congr _ _ (fun input => ?_) _
   rcases input with (draw | (bytes | coordinate)) | amount
-  · change 𝒟[PMF.uniformOfFintype (Fin (draw + 1))] = 𝒟[(liftM (unifSpec.query draw) : ProbComp _)]
-    rw [evalDist_query]
+  · change 𝒮[PMF.uniformOfFintype (Fin (draw + 1))] = 𝒮[(liftM (unifSpec.query draw) : ProbComp _)]
+    rw [evalSPMF_query]
   · exact evalDist_liftM_id (f bytes)
   · exact evalDist_liftM_id (table coordinate)
-  · change 𝒟[PMF.pure ()] = 𝒟[(pure () : ProbComp _)]
+  · change 𝒮[PMF.pure ()] = 𝒮[(pure () : ProbComp _)]
     simp
 
 /-! ### Identical until a marked ordinary input -/

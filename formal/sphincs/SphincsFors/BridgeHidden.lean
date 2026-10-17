@@ -404,7 +404,7 @@ noncomputable def mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.T
 
 noncomputable def knownOf (parameter : PublicParameter) (fixed : HiddenGraph.Table) :
     HiddenReveal.Knowledge Coordinate :=
-  fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
+  QueryCache.ofFn fun coordinate => if KnownCoordinate parameter coordinate then some (masked parameter fixed coordinate)
     else none
 
 theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) (coordinate : Coordinate)
@@ -414,7 +414,7 @@ theorem mix_known (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table
 theorem masked_mix (parameter : PublicParameter) (fixed fresh : HiddenGraph.Table) :
     masked parameter (mix parameter fixed fresh) = tableExtending (knownOf parameter fixed) fresh := by
   funext coordinate
-  simp only [masked, mix, tableExtending, knownOf]
+  simp only [masked, mix, tableExtending, knownOf, QueryCache.ofFn_apply]
   by_cases hknown : KnownCoordinate parameter coordinate
   · simp [hknown]
   · have hmask : ¬Masked parameter coordinate := fun h => hknown (known_of_masked _ _ h)

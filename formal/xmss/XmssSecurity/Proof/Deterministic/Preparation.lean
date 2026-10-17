@@ -49,12 +49,12 @@ theorem resolves_prepareSigning (sign : Request → OracleComp HashSpec Answer)
 /-- Memoization preserves the output distribution of any complete continuation. -/
 theorem evalDist_runSigning_memoize {α : Type} (sign : Request → OracleComp HashSpec Answer)
     (computation : OracleComp (OracleWorld + (Request →ₒ Answer)) α) (cache : QueryCache HashSpec) :
-    𝒟[(simulateQ romImpl (runSigning sign computation)).run' cache] =
-      𝒟[(simulateQ romImpl (runSigning sign (memoize computation ∅))).run' cache] := by
+    𝒮[(simulateQ romImpl (runSigning sign computation)).run' cache] =
+      𝒮[(simulateQ romImpl (runSigning sign (memoize computation ∅))).run' cache] := by
   let preparation : OracleComp OracleWorld (Request → Answer) := liftM (prepareSigning sign)
   rw [evalDist_presample_computation _ preparation cache,
     evalDist_presample_computation (runSigning sign (memoize computation ∅)) preparation cache]
-  apply evalDist_bind_congr
+  apply evalSPMF_bind_congr
   intro prepared hprepared
   have hrun : simulateQ romImpl preparation = simulateQ randomOracle (prepareSigning sign) :=
     QueryImpl.simulateQ_add_liftM_right _ _ _
@@ -62,7 +62,7 @@ theorem evalDist_runSigning_memoize {α : Type} (sign : Request → OracleComp H
   have hknown := resolves_prepareSigning sign cache prepared hprepared
   have herases := erases_memoize prepared.2 sign prepared.1 hknown computation ∅
     (fun request answer h => by simp at h)
-  rw [StateT.run'_eq, StateT.run'_eq, evalDist_map, evalDist_map,
+  rw [StateT.run'_eq, StateT.run'_eq, evalSPMF_map, evalSPMF_map,
     herases.evalDist_run prepared.2 le_rfl]
 
 theorem hashQueryBound_runSigning_memoize {α : Type} (sign : Request → OracleComp HashSpec Answer)
@@ -71,7 +71,7 @@ theorem hashQueryBound_runSigning_memoize {α : Type} (sign : Request → Oracle
     HashQueryBound (runSigning sign (memoize computation ∅)) cache q := by
   let preparation : OracleComp OracleWorld (Request → Answer) := liftM (prepareSigning sign)
   intro result hresult
-  rw [mem_support_iff_of_evalDist_eq (evalDist_presample_computation
+  rw [mem_support_iff_of_evalSPMF_eq (evalDist_presample_computation
     (countHashQueries (runSigning sign (memoize computation ∅))) preparation cache),
     mem_support_bind_iff] at hresult
   obtain ⟨prepared, hprepared, hresult⟩ := hresult

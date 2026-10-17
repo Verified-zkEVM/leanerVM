@@ -19,7 +19,7 @@ noncomputable def independentTableGame (adversary : Adversary) : ProbComp Bool :
   (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1) (outputSecrets material.2.1) material.2.2)).run' ∅
 
 theorem evalDist_programmedDeterministicGame_seed_last (adversary : Adversary) :
-    𝒟[programmedDeterministicGame adversary] = 𝒟[do
+    𝒮[programmedDeterministicGame adversary] = 𝒮[do
       let material ← drawSigningMaterial
       let seed ← sampleMasterSeed
       (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1) (outputSecrets material.2.1) material.2.2)).run'
@@ -30,7 +30,7 @@ theorem evalDist_programmedDeterministicGame_seed_last (adversary : Adversary) :
       (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash material.1) (outputSecrets material.2.1) material.2.2)).run'
         (signingDerivationCache seed material.1 material.2.1 material.2.2)) := by
     simp only [programmedDeterministicGame, drawSigningMaterial, bind_assoc, pure_bind]
-  rw [heq, evalDist_bind_bind_swap]
+  rw [heq, evalSPMF_bind_bind_swap]
 
 theorem forgeAdvantage_deterministic_le_table (adversary : Adversary) (q : Nat)
     (hbound : HasTableBudget adversary q) :

@@ -1,5 +1,7 @@
 import SphincsFors.SecurityChainWitness
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic FORS extraction for the candidate's 24 trees. An opening recovering the canonical
 FORS key either exposes the canonical secrets and paths, or one of its actual oracle queries

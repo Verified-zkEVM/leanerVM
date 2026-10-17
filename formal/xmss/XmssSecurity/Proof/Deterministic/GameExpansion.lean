@@ -80,9 +80,9 @@ attribute [local irreducible] deterministicGameAfterSecrets tableGameAfterSecret
 
 theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) (seed : MasterSeed)
     (parameterOutput : HashOutput) (outputs : ChainOutputs) :
-    𝒟[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (truncateHash parameterOutput)
+    𝒮[(simulateQ romImpl (deterministicGameAfterSecrets adversary seed (truncateHash parameterOutput)
         (outputSecrets outputs))).run' (derivationCache seed parameterOutput outputs)] =
-      𝒟[do
+      𝒮[do
         let randomizers ← sampleRandomizerOutputs
         (simulateQ romImpl (tableGameAfterSecrets adversary (truncateHash parameterOutput)
             (outputSecrets outputs) randomizers)).run'
@@ -92,12 +92,16 @@ theorem evalDist_deterministicGameAfterSecrets_prepared (adversary : Adversary) 
   rw [show simulateQ romImpl (liftM (prepareRandomizers (truncateHash parameterOutput) seed) : OracleComp OracleWorld RandomizerOutputs) =
       simulateQ randomOracle (prepareRandomizers (truncateHash parameterOutput) seed)
       from QueryImpl.simulateQ_add_liftM_right _ _ _,
-    evalDist_bind, evalDist_prepareRandomizers, ← evalDist_bind, bind_map_left]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+    evalSPMF_bind, evalDist_prepareRandomizers, ← evalSPMF_bind, bind_map_left]
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro randomizers
-  rw [StateT.run'_eq, StateT.run'_eq, evalDist_map, evalDist_map]
-  exact congrArg _ ((erases_deterministicGameAfterSecrets _ seed _ _ randomizers
-    (signingDerivationCache_randomizer seed parameterOutput outputs randomizers) adversary).evalDist_run _ le_rfl)
+  rw [StateT.run'_eq, StateT.run'_eq, evalSPMF_map, evalSPMF_map]
+  have herase := erases_deterministicGameAfterSecrets
+    (signingDerivationCache seed parameterOutput outputs randomizers) seed (truncateHash parameterOutput)
+    (outputSecrets outputs) randomizers
+    (signingDerivationCache_randomizer seed parameterOutput outputs randomizers) adversary
+  exact congrArg _
+    (herase.evalDist_run (signingDerivationCache seed parameterOutput outputs randomizers) le_rfl)
 
 noncomputable def programmedDeterministicGame (adversary : Adversary) : ProbComp Bool := do
   let seed ← sampleMasterSeed
@@ -109,17 +113,17 @@ noncomputable def programmedDeterministicGame (adversary : Adversary) : ProbComp
     (signingDerivationCache seed parameterOutput outputs randomizers)
 
 theorem evalDist_gameCore_deterministic_programmed (adversary : Adversary) :
-    𝒟[(simulateQ romImpl (gameCore scheme adversary)).run' ∅] =
-      𝒟[programmedDeterministicGame adversary] := by
+    𝒮[(simulateQ romImpl (gameCore scheme adversary)).run' ∅] =
+      𝒮[programmedDeterministicGame adversary] := by
   rw [gameCore_deterministic_eq, run'_lift_sample_bind]
   unfold programmedDeterministicGame
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro seed
-  rw [run'_lift_hash_bind, evalDist_bind, evalDist_deriveParametersAndSecrets, ← evalDist_bind]
+  rw [run'_lift_hash_bind, evalSPMF_bind, evalDist_deriveParametersAndSecrets, ← evalSPMF_bind]
   simp only [bind_assoc, pure_bind]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameterOutput
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro outputs
   exact evalDist_deterministicGameAfterSecrets_prepared adversary seed parameterOutput outputs
 

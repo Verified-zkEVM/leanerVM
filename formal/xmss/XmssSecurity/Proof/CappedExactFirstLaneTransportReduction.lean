@@ -177,7 +177,7 @@ theorem globalFirstLaneErase_exactTracedLift
       ((globalExactTracedLift keyView input sourceBase).run state)
       ((globalExactTracedLift keyView input targetBase).run state) := by
   unfold globalExactTracedLift
-  simp only [StateT.run_mk]
+  simp only [StateT.run_mk, ← bind_pure_comp]
   apply hbase.bind
   intro result
   exact GlobalFirstLaneErases.pure _
@@ -254,7 +254,7 @@ theorem globalFirstLaneErase_exactTracedVerifierImpl
         state) := by
   unfold globalFirstLaneExactTracedVerifierImpl
     globalHighDirectTracedVerifierImpl
-  simp only [StateT.run_mk]
+  simp only [StateT.run_mk, ← bind_pure_comp]
   apply (globalFirstLaneOracleErasure keyView edgeHigh input
     state.causalState).bind
   intro result

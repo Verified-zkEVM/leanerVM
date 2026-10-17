@@ -121,12 +121,12 @@ theorem evalDist_ordinary_step {α : Type} (bytes : HashInput) (hshort : IsShort
     (next : HashOutput → OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (known : HiddenReveal.Knowledge HiddenGraph.Coordinate) (cache : QueryCache HashSpec)
     (ih : ∀ answer (cache' : QueryCache HashSpec),
-      𝒟[($ᵗ Eager.Table) >>= fun outside =>
+      𝒮[($ᵗ Eager.Table) >>= fun outside =>
         HiddenRows.stopped model table (extend cache' outside) (next answer) known] =
-      𝒟[Option.map Prod.fst <$> HiddenOutside.stopped model table (next answer) known cache']) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+      𝒮[Option.map Prod.fst <$> HiddenOutside.stopped model table (next answer) known cache']) :
+    𝒮[($ᵗ Eager.Table) >>= fun outside =>
         HiddenRows.stopped model table (extend cache outside) (next (extend cache outside bytes)) known] =
-      𝒟[Option.map Prod.fst <$> (HiddenOutside.outsideRead bytes cache >>= fun result =>
+      𝒮[Option.map Prod.fst <$> (HiddenOutside.outsideRead bytes cache >>= fun result =>
         HiddenOutside.stopped model table (next result.1) known result.2)] := by
   cases hc : cache bytes with
   | some answer =>
@@ -144,18 +144,18 @@ theorem evalDist_ordinary_step {α : Type} (bytes : HashInput) (hshort : IsShort
         intro answer outside
         simp only [ψ, extend_update_self cache outside hshort hc answer,
           extend_cacheQuery' cache outside hshort hc answer]
-      change 𝒟[($ᵗ Eager.Table) >>= ψ] = _
-      calc 𝒟[($ᵗ Eager.Table) >>= ψ]
-          = 𝒟[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
+      change 𝒮[($ᵗ Eager.Table) >>= ψ] = _
+      calc 𝒮[($ᵗ Eager.Table) >>= ψ]
+          = 𝒮[(($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>=
               fun outside => pure (Function.update outside ⟨bytes, hshort⟩ answer)) >>= ψ] := by
             symm
-            rw [evalDist_bind, evalDist_uniformSample_bind_update (D := ShortIn) (R := HashOutput)
-              ⟨bytes, hshort⟩, ← evalDist_bind]
-        _ = 𝒟[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
+            rw [evalSPMF_bind, evalSPMF_uniformSample_bind_update (D := ShortIn) (R := HashOutput)
+              ⟨bytes, hshort⟩, ← evalSPMF_bind]
+        _ = 𝒮[($ᵗ HashOutput : ProbComp HashOutput) >>= fun answer => ($ᵗ Eager.Table) >>= fun outside =>
               HiddenRows.stopped model table (extend (cache.cacheQuery bytes answer) outside) (next answer) known] := by
             simp only [bind_assoc, pure_bind, hupdate]
         _ = _ := by
-            rw [evalDist_bind, evalDist_bind]
+            rw [evalSPMF_bind, evalSPMF_bind]
             congr 1
             funext answer
             exact ih answer _
@@ -165,14 +165,14 @@ theorem evalDist_stopped_lazy {α : Type}
     (computation : OracleComp (HiddenRows.SourceSpec HashInput HashOutput HiddenGraph.Coordinate) α)
     (hshort : OnlyShort computation) (known : HiddenReveal.Knowledge HiddenGraph.Coordinate)
     (cache : QueryCache HashSpec) :
-    𝒟[($ᵗ Eager.Table) >>= fun outside =>
+    𝒮[($ᵗ Eager.Table) >>= fun outside =>
         HiddenRows.stopped model table (extend cache outside) computation known] =
-      𝒟[Option.map Prod.fst <$> HiddenOutside.stopped model table computation known cache] := by
+      𝒮[Option.map Prod.fst <$> HiddenOutside.stopped model table computation known cache] := by
   induction computation using OracleComp.inductionOn generalizing known cache with
   | pure value =>
-      change 𝒟[($ᵗ Eager.Table) >>= fun _ => (pure (some value) : ProbComp _)] =
-        𝒟[Option.map Prod.fst <$> (pure (some (value, cache)) : ProbComp _)]
-      rw [DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample _), map_pure]
+      change 𝒮[($ᵗ Eager.Table) >>= fun _ => (pure (some value) : ProbComp _)] =
+        𝒮[Option.map Prod.fst <$> (pure (some (value, cache)) : ProbComp _)]
+      rw [DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample _), map_pure]
       rfl
   | query_bind input next ih =>
       rw [OnlyShort, isQueryBoundP_query_bind_iff] at hshort
@@ -182,7 +182,7 @@ theorem evalDist_stopped_lazy {α : Type}
       rcases input with draw | (bytes | coordinate)
       · simp only [HiddenRows.stopped_private]
         rw [outside_stopped_private, map_bind]
-        rw [evalDist_bind_bind_swap, evalDist_bind, evalDist_bind]
+        rw [evalSPMF_bind_bind_swap, evalSPMF_bind, evalSPMF_bind]
         congr 1
         funext value
         exact ih value (hnext value) known cache
@@ -201,7 +201,7 @@ theorem evalDist_stopped_lazy {α : Type}
             dsimp only
             by_cases hstop : known (model.incoming query.1) = none ∧ query.2 = table (model.incoming query.1)
             · simp only [hstop, and_self, ↓reduceIte, map_pure]
-              rw [DeferredSampling.evalDist_bind_const_neverFails _ (probFailure_uniformSample _)]
+              rw [DeferredSampling.evalSPMF_bind_const_neverFails _ (probFailure_uniformSample _)]
               rfl
             · by_cases hmatch : query.2 = table (model.incoming query.1)
               · have hknown : ¬known (model.incoming query.1) = none := fun h => hstop ⟨h, hmatch⟩

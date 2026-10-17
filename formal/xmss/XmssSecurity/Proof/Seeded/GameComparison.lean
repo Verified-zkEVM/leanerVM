@@ -20,7 +20,7 @@ noncomputable def materialCache (seed : MasterSeed) (material : KeyMaterial) : Q
   programmedCache seed material.1 material.2.1 material.2.2.1 material.2.2.2
 
 theorem evalDist_programmedGame_seed_last (adversary : Adversary) :
-    𝒟[programmedGame adversary] = 𝒟[do
+    𝒮[programmedGame adversary] = 𝒮[do
       let material ← drawKeyMaterial
       let seed ← sampleMasterSeed
       (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run'
@@ -31,21 +31,21 @@ theorem evalDist_programmedGame_seed_last (adversary : Adversary) :
       (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run'
         (materialCache seed material)) := by
     simp only [programmedGame, drawKeyMaterial, materialCache, bind_assoc, pure_bind]
-  rw [heq, evalDist_bind_bind_swap]
+  rw [heq, evalSPMF_bind_bind_swap]
 
 theorem evalDist_independentGame_material (adversary : Adversary) :
-    𝒟[(simulateQ romImpl (gameCore Concrete.scheme adversary)).run' ∅] = 𝒟[do
+    𝒮[(simulateQ romImpl (gameCore Concrete.scheme adversary)).run' ∅] = 𝒮[do
       let material ← drawKeyMaterial
       (simulateQ romImpl (gameAfterSecrets adversary material.1 material.2.1)).run' ∅] := by
   rw [gameCore_independent_eq, run'_lift_sample_bind]
   unfold drawKeyMaterial
   simp only [bind_assoc, pure_bind]
-  apply evalDist_bind_congr'
+  apply evalSPMF_bind_congr'
   intro parameter
   rw [run'_lift_sample_bind]
-  apply evalDist_bind_congr'
+  apply evalSPMF_bind_congr'
   intro secret
-  apply evalDist_ext
+  apply evalSPMF_ext
   intro value
   simp
 
@@ -54,7 +54,7 @@ theorem hashQueryBound_gameAfterSecrets (adversary : Adversary) (q : Nat)
     (parameter : PublicParameter) (secret : ChainSecrets) :
     HashQueryBound (gameAfterSecrets adversary parameter secret) ∅ q := by
   have hpSupport : parameter ∈ support Concrete.samplePublicParameter := by
-    rw [mem_support_iff_of_evalDist_eq evalDist_samplePublicParameter]
+    rw [mem_support_iff_of_evalSPMF_eq evalDist_samplePublicParameter]
     exact mem_support_uniformSample Digest
   have hsSupport : secret ∈ support Concrete.sampleSecret := by
     rw [mem_support_iff]

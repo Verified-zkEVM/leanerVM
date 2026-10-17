@@ -411,7 +411,7 @@ theorem factor_insert_mean (count : ℕ) (hcount : count ≤ 2 ^ 128) :
 
 /-- Truncation of a uniform answer is uniform. -/
 def UniformTruncation : Prop :=
-  𝒟[tg.trunc <$> ($ᵗ R : ProbComp R)] = 𝒟[($ᵗ Digest : ProbComp Digest)]
+  𝒮[tg.trunc <$> ($ᵗ R : ProbComp R)] = 𝒮[($ᵗ Digest : ProbComp Digest)]
 
 omit [Fintype ι] in
 theorem truncation_mean (htrunc : UniformTruncation (R := R) tg) (φ : Digest → ℝ≥0∞) :

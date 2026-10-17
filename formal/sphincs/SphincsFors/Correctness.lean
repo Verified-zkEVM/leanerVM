@@ -58,8 +58,10 @@ omit [Params] in
 theorem leafIndexAt_eq (index : Index) (lay : Layer) : leafIndexAt index lay = index := by
   rw [only_layer lay]
   apply Fin.ext
+  have hindex := index.isLt
   simp [leafIndexAt, heightBelow, heightAbove, topLayer, layerHeight,
-    totalHeight, maxLayerHeight]
+    totalHeight, maxLayerHeight] at hindex ⊢
+  omega
 
 omit [Params] in
 theorem digestIndex_truncate (first second : HashOutput) :
@@ -117,8 +119,8 @@ theorem sequenceLayers_spec {α : Layer → Type}
   cases ht : evalWithAnswerFn f (computation topLayer) with
   | none => simp [ht] at h
   | some top =>
-      simp only [ht, evalWithAnswerFn_pure, Option.some.injEq] at h
-      subst h
+      simp only [ht, evalWithAnswerFn_pure] at h
+      obtain rfl := Option.some.inj h
       intro lay
       rw [only_layer lay]
       exact ht
@@ -176,7 +178,8 @@ theorem eval_layer (secretKey : Seeded.SecretKey) (index : Index) (lay : Layer)
   obtain ⟨hots, hpath⟩ := signLayer_spec f secretKey index lay h
   refine ⟨?_, ?_⟩
   · rw [eval_otsLeaf_of_otsSign f secretKey.parameter lay (treeIndexAt index lay)
-      (leafIndexAt index lay) secretKey.seed _ hots, node_zero, leafIndexAt_eq]
+      (leafIndexAt index lay) secretKey.seed _ hots,
+      ← congrArg Fin.val (leafIndexAt_eq index lay), node_zero]
   · rw [leafIndexAt_eq] at hpath ⊢
     apply eval_treeFold_pruned_path f _ _ _ _ _ hland
     intro level hlevel

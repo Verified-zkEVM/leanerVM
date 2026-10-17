@@ -346,15 +346,15 @@ theorem generalSuccessPMF_map_eq_of_spmf_map_eq
 noncomputable def generalMarginalCoupling
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob]) : SPMF (α × β) :=
-  let left := 𝒟[oa]
-  let right := 𝒟[ob]
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob]) : SPMF (α × β) :=
+  let left := 𝒮[oa]
+  let right := 𝒮[ob]
   let hleft : left.toPMF none = 0 := probFailure_eq_zero (mx := oa)
   let hright : right.toPMF none = 0 := probFailure_eq_zero (mx := ob)
   let hPMFMap : (generalSuccessPMF left hleft).map f =
       (generalSuccessPMF right hright).map g :=
     generalSuccessPMF_map_eq_of_spmf_map_eq left right f g hleft hright (by
-      simpa [evalDist_map] using hmap)
+      simpa [evalSPMF_map] using hmap)
   liftM (generalFiberCoupling
     (generalSuccessPMF left hleft) (generalSuccessPMF right hright)
     f g hPMFMap)
@@ -362,16 +362,16 @@ noncomputable def generalMarginalCoupling
 theorem generalMarginalCoupling_isCoupling
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob]) :
-    SPMF.IsCoupling (generalMarginalCoupling oa ob f g hmap) 𝒟[oa] 𝒟[ob] := by
-  let left := 𝒟[oa]
-  let right := 𝒟[ob]
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob]) :
+    SPMF.IsCoupling (generalMarginalCoupling oa ob f g hmap) 𝒮[oa] 𝒮[ob] := by
+  let left := 𝒮[oa]
+  let right := 𝒮[ob]
   let hleft : left.toPMF none = 0 := probFailure_eq_zero (mx := oa)
   let hright : right.toPMF none = 0 := probFailure_eq_zero (mx := ob)
   let hPMFMap : (generalSuccessPMF left hleft).map f =
       (generalSuccessPMF right hright).map g :=
     generalSuccessPMF_map_eq_of_spmf_map_eq left right f g hleft hright (by
-      simpa [evalDist_map] using hmap)
+      simpa [evalSPMF_map] using hmap)
   have hcoupling := generalFiberCoupling_isCoupling
     (generalSuccessPMF left hleft) (generalSuccessPMF right hright) f g hPMFMap
   constructor
@@ -395,19 +395,19 @@ theorem generalMarginalCoupling_isCoupling
 theorem generalMarginalCoupling_support_eq
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob])
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob])
     (pair : α × β)
-    (hpair : pair ∈ support (generalMarginalCoupling oa ob f g hmap)) :
+    (hpair : pair ∈ SPMF.support (generalMarginalCoupling oa ob f g hmap)) :
     f pair.1 = g pair.2 := by
-  let left := 𝒟[oa]
-  let right := 𝒟[ob]
+  let left := 𝒮[oa]
+  let right := 𝒮[ob]
   let hleft : left.toPMF none = 0 := probFailure_eq_zero (mx := oa)
   let hright : right.toPMF none = 0 := probFailure_eq_zero (mx := ob)
   let hPMFMap : (generalSuccessPMF left hleft).map f =
       (generalSuccessPMF right hright).map g :=
     generalSuccessPMF_map_eq_of_spmf_map_eq left right f g hleft hright (by
-      simpa [evalDist_map] using hmap)
-  change pair ∈ support (liftM (generalFiberCoupling
+      simpa [evalSPMF_map] using hmap)
+  change pair ∈ SPMF.support (liftM (generalFiberCoupling
     (generalSuccessPMF left hleft) (generalSuccessPMF right hright)
     f g hPMFMap)) at hpair
   have hpair' : (generalFiberCoupling
@@ -427,31 +427,31 @@ theorem generalMarginalCoupling_support_eq
 theorem generalMarginalCoupling_support_marginals
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob])
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob])
     (pair : α × β)
-    (hpair : pair ∈ support (generalMarginalCoupling oa ob f g hmap)) :
+    (hpair : pair ∈ SPMF.support (generalMarginalCoupling oa ob f g hmap)) :
     pair.1 ∈ support oa ∧ pair.2 ∈ support ob := by
   have hcoupling := generalMarginalCoupling_isCoupling oa ob f g hmap
   constructor
-  · have hmapped : pair.1 ∈ support
+  · have hmapped : pair.1 ∈ SPMF.support
         (Prod.fst <$> generalMarginalCoupling oa ob f g hmap) := by
-      rw [support_map]
+      rw [spmf_support_map]
       exact ⟨pair, hpair, rfl⟩
     rw [hcoupling.map_fst] at hmapped
-    rw [mem_support_iff_evalDist_apply_ne_zero]
+    rw [mem_support_iff_evalSPMF_apply_ne_zero]
     exact (SPMF.mem_support_iff _ _).mp hmapped
-  · have hmapped : pair.2 ∈ support
+  · have hmapped : pair.2 ∈ SPMF.support
         (Prod.snd <$> generalMarginalCoupling oa ob f g hmap) := by
-      rw [support_map]
+      rw [spmf_support_map]
       exact ⟨pair, hpair, rfl⟩
     rw [hcoupling.map_snd] at hmapped
-    rw [mem_support_iff_evalDist_apply_ne_zero]
+    rw [mem_support_iff_evalSPMF_apply_ne_zero]
     exact (SPMF.mem_support_iff _ _).mp hmapped
 
 theorem relTriple_of_evalDist_map_eq_general
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob]) :
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob]) :
     RelTriple oa ob (fun left right => f left = g right) := by
   rw [relTriple_iff_relWP]
   refine ⟨⟨generalMarginalCoupling oa ob f g hmap,
@@ -462,7 +462,7 @@ theorem relTriple_of_evalDist_map_eq_general
 theorem relTriple_of_evalDist_map_eq_with_support_general
     (oa : OracleComp spec₁ α) (ob : OracleComp spec₂ β)
     (f : α → γ) (g : β → γ)
-    (hmap : 𝒟[f <$> oa] = 𝒟[g <$> ob]) :
+    (hmap : 𝒮[f <$> oa] = 𝒮[g <$> ob]) :
     RelTriple oa ob (fun left right =>
       f left = g right ∧ left ∈ support oa ∧ right ∈ support ob) := by
   rw [relTriple_iff_relWP]
@@ -488,7 +488,7 @@ theorem relTriple_trans_exists
     have hmap := cab.2.map_fst
     rw [SPMF.fmap_eq_map] at hmap
     change PMF.map (Option.map Prod.fst) cab.1.toPMF =
-      (evalDist oa).toPMF at hmap
+      (evalSPMF oa).toPMF at hmap
     have h := congrArg (fun p : PMF (Option α) => p none) hmap
     rw [PMF.map_apply] at h
     simpa using h.trans (probFailure_eq_zero (mx := oa))
@@ -496,7 +496,7 @@ theorem relTriple_trans_exists
     have hmap := cbc.2.map_fst
     rw [SPMF.fmap_eq_map] at hmap
     change PMF.map (Option.map Prod.fst) cbc.1.toPMF =
-      (evalDist ob).toPMF at hmap
+      (evalSPMF ob).toPMF at hmap
     have h := congrArg (fun p : PMF (Option β) => p none) hmap
     rw [PMF.map_apply] at h
     simpa using h.trans (probFailure_eq_zero (mx := ob))
@@ -524,7 +524,7 @@ theorem relTriple_trans_exists
           Prod.fst <$> (liftM (generalSuccessPMF cab.1 hcabFail) : SPMF (α × β)) :=
         liftM_map Prod.fst (generalSuccessPMF cab.1 hcabFail)
       _ = Prod.fst <$> cab.1 := by rw [liftM_generalSuccessPMF_eq]
-      _ = evalDist oa := cab.2.map_fst
+      _ = evalSPMF oa := cab.2.map_fst
   · dsimp only [c]
     rw [← liftM_map]
     change liftM ((d.map project).map Prod.snd) = _
@@ -537,9 +537,8 @@ theorem relTriple_trans_exists
           Prod.snd <$> (liftM (generalSuccessPMF cbc.1 hcbcFail) : SPMF (β × δ)) :=
         liftM_map Prod.snd (generalSuccessPMF cbc.1 hcbcFail)
       _ = Prod.snd <$> cbc.1 := by rw [liftM_generalSuccessPMF_eq]
-      _ = evalDist oc := cbc.2.map_snd
+      _ = evalSPMF oc := cbc.2.map_snd
   · intro pair hpair
-    change pair ∈ support (liftM (d.map project) : SPMF (α × δ)) at hpair
     change pair ∈ (liftM (d.map project) : SPMF (α × δ)).support at hpair
     rw [SPMF.support_liftM, PMF.mem_support_map_iff] at hpair
     obtain ⟨z, hz, hproject⟩ := hpair
@@ -559,12 +558,10 @@ theorem relTriple_trans_exists
       intro hqzero
       apply hweight
       simp [generalFiberCouplingWeight, heq, hqzero]
-    have hzLeft : z.1 ∈ support cab.1 := by
-      change z.1 ∈ SPMF.support cab.1
+    have hzLeft : z.1 ∈ SPMF.support cab.1 := by
       apply (SPMF.mem_support_iff cab.1 z.1).2
       simpa [p] using hp
-    have hzRight : z.2 ∈ support cbc.1 := by
-      change z.2 ∈ SPMF.support cbc.1
+    have hzRight : z.2 ∈ SPMF.support cbc.1 := by
       apply (SPMF.mem_support_iff cbc.1 z.2).2
       simpa [q] using hq
     have hleft := hR z.1 hzLeft

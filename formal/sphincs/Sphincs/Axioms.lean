@@ -1247,15 +1247,15 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenDebt.tsum_digest_one
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_bind' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_bind
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_bind_pure_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_bind_pure_det' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_bind_pure_det
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_cap' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_cap' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_cap
 
@@ -1271,11 +1271,11 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_liftProb
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_map' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_map
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_plainQuery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_plainQuery' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_plainQuery
 
@@ -1287,19 +1287,19 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_query_bind
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_reveal' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_reveal' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_reveal
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceFin_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceFin_det' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceFin_det
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceReveal' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceReveal' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_sequenceReveal
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_tick' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_tick' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_tick
 
@@ -3135,11 +3135,11 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_entries_short
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_support_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_support_congr' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_support_congr
 
-/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_cap_cost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.costRun_withReveals_cap_cost' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.costRun_withReveals_cap_cost
 
@@ -3403,7 +3403,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyAdv.liftWorldProb
 
-/-- info: 'Sphincs.Security.Internalize.OnlyAdv.map' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.Internalize.OnlyAdv.map' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyAdv.map
 
@@ -3431,7 +3431,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyW.liftProb
 
-/-- info: 'Sphincs.Security.Internalize.OnlyW.map' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.Internalize.OnlyW.map' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyW.map
 
@@ -3459,7 +3459,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyW.verifyPart
 
-/-- info: 'Sphincs.Security.Internalize.OnlyW.writerLift' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.Internalize.OnlyW.writerLift' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Internalize.OnlyW.writerLift
 
@@ -4739,7 +4739,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenDebt.store_comm
 
-/-- info: 'Sphincs.Security.Reduce.costRun_cap_cost_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.Reduce.costRun_cap_cost_le' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Reduce.costRun_cap_cost_le
 
@@ -5739,7 +5739,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Only.leafHash
 
-/-- info: 'Sphincs.Security.Short.Only.map' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.Short.Only.map' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Short.Only.map
 
@@ -6135,7 +6135,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.GraphView.payload_randomness_injective
 
-/-- info: 'Sphincs.Security.GraphView.post_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.GraphView.post_bind' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.GraphView.post_bind
 
@@ -6247,7 +6247,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.lazy_support
 
-/-- info: 'Sphincs.Security.HiddenBridge.mem_support_option_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Security.HiddenBridge.mem_support_option_map' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenBridge.mem_support_option_map
 
@@ -7279,11 +7279,11 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0Avg.marksAt.congr_simp
 
-/-- info: 'Sphincs.Security.H0Avg.marksAt_add_single' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.H0Avg.marksAt_add_single' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0Avg.marksAt_add_single
 
-/-- info: 'Sphincs.Security.H0Avg.marksAt_zero' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.H0Avg.marksAt_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0Avg.marksAt_zero
 
@@ -7383,7 +7383,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.SepGood.ne_top
 
-/-- info: 'Sphincs.Security.H0.cnt_id' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.H0.cnt_id' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.cnt_id
 
@@ -8107,7 +8107,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.fpos_val_cases
 
-/-- info: 'Sphincs.Security.H0.getT_cons' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.H0.getT_cons' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.getT_cons
 
@@ -8127,7 +8127,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.getT_mapT
 
-/-- info: 'Sphincs.Security.H0.getT_succ' depends on axioms: [propext, Quot.sound] -/
+/-- info: 'Sphincs.Security.H0.getT_succ' depends on axioms: [propext] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.H0.getT_succ
 
@@ -8175,7 +8175,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.subtree_size_mul
 
-/-- info: 'Sphincs.digest_vector_length' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.digest_vector_length' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.digest_vector_length
 
@@ -10303,7 +10303,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenCost.trace_pure
 
-/-- info: 'Sphincs.Security.HiddenCost.trace_query_bind' depends on axioms: [propext] -/
+/-- info: 'Sphincs.Security.HiddenCost.trace_query_bind' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.HiddenCost.trace_query_bind
 
@@ -11843,7 +11843,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Cost.compressions_chainWalk
 
-/-- info: 'Sphincs.Cost.compressions_childLeafHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Cost.compressions_childLeafHash' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Cost.compressions_childLeafHash
 
@@ -11871,7 +11871,7 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Cost.compressions_forestWalk
 
-/-- info: 'Sphincs.Cost.compressions_leafHash' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'Sphincs.Cost.compressions_leafHash' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Cost.compressions_leafHash
 

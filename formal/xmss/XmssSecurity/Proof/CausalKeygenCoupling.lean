@@ -18,6 +18,7 @@ theorem simulate_chainHash_run_of_fresh
           (Concrete.CacheView.chainInput parameter leafIndex chain step value)
           output)) <$> uniformHashOutput := by
   let input := Concrete.CacheView.chainInput parameter leafIndex chain step value
+  rw [Concrete.simulateQ_chainHash_run]
   change (fun result : HashOutput × QueryCache HashSpec =>
       (truncateHash result.1, result.2)) <$> (randomOracle input).run cache = _
   rw [randomOracle_run_none_eq_uniformHashOutput _ _ habsent]
@@ -41,12 +42,12 @@ theorem evalDist_chainExtension_eq_programmed
     (cache : QueryCache HashSpec)
     (habsent : cache
       (Concrete.CacheView.chainInput parameter leafIndex chain step values.back) = none) :
-    evalDist ((simulateQ randomOracle ((do
+    evalSPMF ((simulateQ randomOracle ((do
       let next ← Concrete.chainHash parameter leafIndex chain step values.back
       pure (values.push next)) :
         OracleComp HashSpec (Vector Digest ((n + 1) + 1)))).run
         cache) =
-    evalDist (programmedChainExtension parameter leafIndex chain step values cache) := by
+    evalSPMF (programmedChainExtension parameter leafIndex chain step values cache) := by
   rw [simulateQ_bind, StateT.run_bind,
     simulate_chainHash_run_of_fresh parameter leafIndex chain step values.back
       cache habsent]
@@ -86,10 +87,10 @@ theorem evalDist_chainTrajectory_eq_programmed
       (∀ step : ChainStep, ∀ input,
         AtHashAddress parameter (.chain leafIndex chain step) input →
           cache input = none) →
-      evalDist ((simulateQ randomOracle
+      evalSPMF ((simulateQ randomOracle
         (Concrete.chainTrajectory parameter leafIndex chain position steps value)).run
           cache) =
-      evalDist (programmedChainTrajectory parameter leafIndex chain position steps
+      evalSPMF (programmedChainTrajectory parameter leafIndex chain position steps
         value cache) := by
   intro steps
   induction steps with
@@ -119,18 +120,18 @@ theorem evalDist_chainTrajectory_eq_programmed
           Vector Digest (steps + 1) × QueryCache HashSpec =>
         programmedChainExtension parameter leafIndex chain
           ⟨position + steps, hvalid⟩ prior.1 prior.2
-      change evalDist (actualPrior >>= actualExtension) =
-        evalDist (programmedPrior >>= programmedExtension)
+      change evalSPMF (actualPrior >>= actualExtension) =
+        evalSPMF (programmedPrior >>= programmedExtension)
       calc
-        evalDist (actualPrior >>= actualExtension) =
-            evalDist (programmedPrior >>= actualExtension) := by
-          rw [evalDist_bind, ih value cache (by omega) habsent,
-            ← evalDist_bind]
-        _ = evalDist (programmedPrior >>= programmedExtension) := by
-          apply evalDist_bind_congr
+        evalSPMF (actualPrior >>= actualExtension) =
+            evalSPMF (programmedPrior >>= actualExtension) := by
+          rw [evalSPMF_bind, ih value cache (by omega) habsent,
+            ← evalSPMF_bind]
+        _ = evalSPMF (programmedPrior >>= programmedExtension) := by
+          apply evalSPMF_bind_congr
           intro prior hprior
           have hpriorActual : prior ∈ support actualPrior :=
-            (mem_support_iff_of_evalDist_eq
+            (mem_support_iff_of_evalSPMF_eq
               (ih value cache (by omega) habsent) prior).mpr hprior
           have hfresh : prior.2
               (Concrete.CacheView.chainInput parameter leafIndex chain
@@ -196,9 +197,9 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
       (∀ leafIndex ∈ leafIndices, ∀ step : ChainStep, ∀ input,
         AtHashAddress parameter (.chain leafIndex chain step) input →
           cache input = none) →
-      evalDist (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret
+      evalSPMF (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret
         chain steps cache leafIndices) =
-      evalDist (programmedFixedSeedChainTrajectoriesFromCache parameter secret
+      evalSPMF (programmedFixedSeedChainTrajectoriesFromCache parameter secret
         chain steps cache leafIndices) := by
   intro leafIndices
   induction leafIndices with
@@ -226,23 +227,23 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
         programmedFixedSeedChainTrajectoriesFromCache parameter secret chain
           steps first.2 leafIndices >>= fun rest =>
         pure (first.1 :: rest.1, rest.2)
-      change evalDist (actualFirst >>= actualRest) =
-        evalDist (programmedFirst >>= programmedRest)
-      have hfirst : evalDist actualFirst = evalDist programmedFirst := by
+      change evalSPMF (actualFirst >>= actualRest) =
+        evalSPMF (programmedFirst >>= programmedRest)
+      have hfirst : evalSPMF actualFirst = evalSPMF programmedFirst := by
         apply evalDist_chainTrajectory_eq_programmed parameter leafIndex chain 0
           steps (secret leafIndex chain) cache
         · simpa using hsteps
         · intro step input haddress
           exact habsent leafIndex (by simp) step input haddress
       calc
-        evalDist (actualFirst >>= actualRest) =
-            evalDist (programmedFirst >>= actualRest) := by
-          rw [evalDist_bind, hfirst, ← evalDist_bind]
-        _ = evalDist (programmedFirst >>= programmedRest) := by
-          apply evalDist_bind_congr
+        evalSPMF (actualFirst >>= actualRest) =
+            evalSPMF (programmedFirst >>= actualRest) := by
+          rw [evalSPMF_bind, hfirst, ← evalSPMF_bind]
+        _ = evalSPMF (programmedFirst >>= programmedRest) := by
+          apply evalSPMF_bind_congr
           intro first hfirstProgrammed
           have hfirstActual : first ∈ support actualFirst :=
-            (mem_support_iff_of_evalDist_eq hfirst first).mpr hfirstProgrammed
+            (mem_support_iff_of_evalSPMF_eq hfirst first).mpr hfirstProgrammed
           have htailAbsent : ∀ later ∈ leafIndices, ∀ step : ChainStep, ∀ input,
               AtHashAddress parameter (.chain later chain step) input →
                 first.2 input = none := by
@@ -263,7 +264,7 @@ theorem evalDist_fixedSeedChainTrajectories_eq_programmed
             · exact hfirstActual
           have hrest := ih first.2 htailNodup htailAbsent
           simp only [actualRest, programmedRest]
-          rw [evalDist_bind, hrest, ← evalDist_bind]
+          rw [evalSPMF_bind, hrest, ← evalSPMF_bind]
 
 noncomputable def programmedWarmedFixedChainKeygenReplayTable
     (chain : ChainIndex) : ProbComp ProgrammedFixedChainKeygenView := do
@@ -286,13 +287,13 @@ set_option maxHeartbeats 2400000 in
 set_option maxRecDepth 100000 in
 theorem evalDist_chronologicallyWarmedFixedChainKeygen_eq_programmedReplay
     (chain : ChainIndex) :
-    evalDist (chronologicallyWarmedExtractedFixedChainKeygen chain) =
-      evalDist (programmedWarmedFixedChainKeygenReplayTable chain) := by
+    evalSPMF (chronologicallyWarmedExtractedFixedChainKeygen chain) =
+      evalSPMF (programmedWarmedFixedChainKeygenReplayTable chain) := by
   unfold chronologicallyWarmedExtractedFixedChainKeygen
     programmedWarmedFixedChainKeygenReplayTable
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secretView
   let secret := unflattenSecret secretView.2
   let finish := fun trajectoryResult :
@@ -309,16 +310,16 @@ theorem evalDist_chronologicallyWarmedFixedChainKeygen_eq_programmedReplay
     } : ProgrammedFixedChainKeygenView)
   dsimp only
   simp only [bind_assoc]
-  change evalDist
+  change evalSPMF
       (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret chain
         (chainLength - 1) ∅ allLeafIndices >>= finish) =
-    evalDist
+    evalSPMF
       (programmedFixedSeedChainTrajectoriesFromCache parameter secret chain
         (chainLength - 1) ∅ allLeafIndices >>= finish)
-  rw [evalDist_bind,
+  rw [evalSPMF_bind,
     evalDist_fixedSeedChainTrajectories_eq_programmed parameter secret chain
       (chainLength - 1) le_rfl allLeafIndices ∅ allLeafIndices_nodup (by simp),
-    ← evalDist_bind]
+    ← evalSPMF_bind]
 
 noncomputable def programmedWarmedFixedChainKeygen
     (chain : ChainIndex) : ProbComp ProgrammedFixedChainKeygenView := do
@@ -341,21 +342,21 @@ set_option maxHeartbeats 2400000 in
 set_option maxRecDepth 100000 in
 theorem evalDist_programmedWarmedFixedChainKeygenReplayTable_eq_explicit
     (chain : ChainIndex) :
-    evalDist (programmedWarmedFixedChainKeygenReplayTable chain) =
-      evalDist (programmedWarmedFixedChainKeygen chain) := by
+    evalSPMF (programmedWarmedFixedChainKeygenReplayTable chain) =
+      evalSPMF (programmedWarmedFixedChainKeygen chain) := by
   unfold programmedWarmedFixedChainKeygenReplayTable
     programmedWarmedFixedChainKeygen
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro parameter
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro secretView
   let secret := unflattenSecret secretView.2
-  apply evalDist_bind_congr
+  apply evalSPMF_bind_congr
   intro trajectoryResult hprogrammed
-  have htrajectories : evalDist
+  have htrajectories : evalSPMF
       (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret chain
         (chainLength - 1) ∅ allLeafIndices) =
-      evalDist
+      evalSPMF
       (programmedFixedSeedChainTrajectoriesFromCache parameter secret chain
         (chainLength - 1) ∅ allLeafIndices) :=
     evalDist_fixedSeedChainTrajectories_eq_programmed parameter secret chain
@@ -363,9 +364,9 @@ theorem evalDist_programmedWarmedFixedChainKeygenReplayTable_eq_explicit
   have hactual : trajectoryResult ∈ support
       (Concrete.fixedSeedChainTrajectoriesFromCache parameter secret chain
         (chainLength - 1) ∅ allLeafIndices) :=
-    (mem_support_iff_of_evalDist_eq htrajectories trajectoryResult).mpr
+    (mem_support_iff_of_evalSPMF_eq htrajectories trajectoryResult).mpr
       hprogrammed
-  apply evalDist_bind_congr
+  apply evalSPMF_bind_congr
   intro rootResult hroot
   have hcacheLe : trajectoryResult.2 ≤ rootResult.2 :=
     Concrete.CacheReplay.randomOracle_cache_le
@@ -379,15 +380,15 @@ theorem evalDist_programmedWarmedFixedChainKeygenReplayTable_eq_explicit
 
 theorem evalDist_chronologicallyWarmedFixedChainKeygen_eq_programmed
     (chain : ChainIndex) :
-    evalDist (chronologicallyWarmedExtractedFixedChainKeygen chain) =
-      evalDist (programmedWarmedFixedChainKeygen chain) :=
+    evalSPMF (chronologicallyWarmedExtractedFixedChainKeygen chain) =
+      evalSPMF (programmedWarmedFixedChainKeygen chain) :=
   (evalDist_chronologicallyWarmedFixedChainKeygen_eq_programmedReplay chain).trans
     (evalDist_programmedWarmedFixedChainKeygenReplayTable_eq_explicit chain)
 
 theorem evalDist_actualFixedChainKeygen_eq_programmedWarmed
     (chain : ChainIndex) :
-    evalDist (actualFixedChainKeygen chain) =
-      evalDist (programmedWarmedFixedChainKeygen chain) :=
+    evalSPMF (actualFixedChainKeygen chain) =
+      evalSPMF (programmedWarmedFixedChainKeygen chain) :=
   (evalDist_actualFixedChainKeygen_eq_chronologicallyWarmed chain).trans
     (evalDist_chronologicallyWarmedFixedChainKeygen_eq_programmed chain)
 

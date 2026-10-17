@@ -1,5 +1,7 @@
 import Sphincs.BridgeClassify
 
+set_option backward.isDefEq.respectTransparency false
+
 /-! Accepted-signature classification keeping the recovered forest key. An accepted signature is a
 canonical WOTS and tree opening at a retained leaf whose forest part recovers the canonical forest
 key, a tree hit, or a WOTS exception at a retained leaf. A recovered canonical forest key is a

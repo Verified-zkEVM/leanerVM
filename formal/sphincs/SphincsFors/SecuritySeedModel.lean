@@ -282,7 +282,7 @@ theorem secretInput_ne_parameterInput (seed : MasterSeed) (material : Material)
 a derived value, answered with `pairOutput`. This definition overwrites its specified entries; a
 later lemma explicitly requires those entries fresh to preserve the base. -/
 noncomputable def programCache (base : QueryCache HashSpec) (seed : MasterSeed)
-    (material : Material) : QueryCache HashSpec := fun input =>
+    (material : Material) : QueryCache HashSpec := QueryCache.ofFn fun input =>
   if input = parameterInput seed then some material.1
   else if h : ∃ position, input = secretInput seed material position then
     some (pairOutput material.2 (Classical.choose h))
@@ -296,7 +296,7 @@ theorem programCache_secret (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) (position : SecretPosition) :
     programCache base seed material (secretInput seed material position) =
       some (pairOutput material.2 position) := by
-  rw [programCache, if_neg (secretInput_ne_parameterInput seed material position)]
+  rw [programCache, QueryCache.ofFn_apply, if_neg (secretInput_ne_parameterInput seed material position)]
   have h : ∃ other, secretInput seed material position = secretInput seed material other := ⟨position, rfl⟩
   rw [dif_pos h]
   exact congrArg (fun p => some (mix material.2 p))
@@ -308,7 +308,7 @@ theorem programCache_other (base : QueryCache HashSpec) (seed : MasterSeed) (mat
     (input : HashInput) (hparameter : input ≠ parameterInput seed)
     (hsecret : ∀ position, input ≠ secretInput seed material position) :
     programCache base seed material input = base input := by
-  simp only [programCache, hparameter, ↓reduceIte]
+  simp only [programCache, QueryCache.ofFn_apply, hparameter, ↓reduceIte]
   exact dif_neg (by simpa only [not_exists] using hsecret)
 
 def AgreeOutsideSeed (seed : MasterSeed) (left right : QueryCache HashSpec) : Prop :=

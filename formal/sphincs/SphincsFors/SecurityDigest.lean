@@ -28,7 +28,7 @@ theorem joinDigest_injective : Function.Injective joinDigest := by
 theorem joinDigest_bijective : Function.Bijective joinDigest := by
   apply (Fintype.bijective_iff_injective_and_card _).2
   refine ⟨joinDigest_injective, ?_⟩
-  simp only [Fintype.card_prod, card_bitVec, ← pow_add]
+  simp only [Fintype.card_prod, Fintype.card_bitVec, ← pow_add]
   rfl
 
 theorem truncateMessageDigest_eq_join (first second : HashOutput) :
@@ -43,26 +43,26 @@ theorem truncateMessageDigest_eq_join (first second : HashOutput) :
 
 /-- The two independent oracle blocks induce exactly the uniform 266-bit digest law. -/
 theorem evalDist_digestBlocks_uniform :
-    𝒟[(do
+    𝒮[(do
       let first ← ($ᵗ HashOutput : ProbComp HashOutput)
       let second ← ($ᵗ HashOutput : ProbComp HashOutput)
       pure (truncateMessageDigest first second))] =
-      𝒟[($ᵗ MessageDigest : ProbComp MessageDigest)] := by
+      𝒮[($ᵗ MessageDigest : ProbComp MessageDigest)] := by
   let pairs : ProbComp (BitVec 146 × BitVec 120) := do
     let first ← ($ᵗ HashOutput : ProbComp HashOutput)
     let second ← ($ᵗ HashOutput : ProbComp HashOutput)
     pure (firstCallFields first, callIndices second)
-  have hpairs : 𝒟[pairs] = 𝒟[($ᵗ (BitVec 146 × BitVec 120) :
+  have hpairs : 𝒮[pairs] = 𝒮[($ᵗ (BitVec 146 × BitVec 120) :
       ProbComp (BitVec 146 × BitVec 120))] := by
-    apply evalDist_ext
+    apply evalSPMF_ext
     intro pair
     change Pr[= pair | (do
       let first ← ($ᵗ HashOutput : ProbComp HashOutput)
       let second ← ($ᵗ HashOutput : ProbComp HashOutput)
       pure (firstCallFields first, callIndices second))] = _
     rw [probOutput_bind_bind_prod_mk_eq_mul]
-    rw [evalDist_ext_iff.mp evalDist_firstCallFields_uniform pair.1,
-      evalDist_ext_iff.mp evalDist_callIndices_uniform pair.2]
+    rw [evalSPMF_ext_iff.mp evalDist_firstCallFields_uniform pair.1,
+      evalSPMF_ext_iff.mp evalDist_callIndices_uniform pair.2]
     simp only [probOutput_uniformSample, Fintype.card_prod, Nat.cast_mul]
     rw [ENNReal.mul_inv (Or.inl (by simp)) (Or.inl (by simp))]
   have hjoin : (do
@@ -70,8 +70,8 @@ theorem evalDist_digestBlocks_uniform :
       let second ← ($ᵗ HashOutput : ProbComp HashOutput)
       pure (truncateMessageDigest first second)) = joinDigest <$> pairs := by
     simp only [pairs, map_bind, map_pure, truncateMessageDigest_eq_join]
-  rw [hjoin, evalDist_map, hpairs, ← evalDist_map]
-  exact evalDist_map_bijective_uniform_cross (α := BitVec 146 × BitVec 120)
+  rw [hjoin, evalSPMF_map, hpairs, ← evalSPMF_map]
+  exact evalSPMF_map_bijective_uniform_cross (α := BitVec 146 × BitVec 120)
     (β := MessageDigest) joinDigest joinDigest_bijective
 
 /-- The exact byte string queried for one block of a message digest. -/

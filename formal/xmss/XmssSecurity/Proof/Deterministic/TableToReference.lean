@@ -18,15 +18,15 @@ attribute [local irreducible] tableSign
 
 theorem evalDist_tableGameAfterSecrets_memo (hash : QueryImpl HashSpec (StateT State ProbComp))
     (adversary : Adversary) (parameter : PublicParameter) (outputs : ChainSecrets) (state : State) :
-    𝒟[do
+    𝒮[do
       let randomizers ← sampleRandomizerOutputs
       (simulateQ (worldHandler hash) (tableGameAfterSecrets (memoAdversary adversary) parameter outputs randomizers)).run state] =
-      𝒟[(simulateQ (worldHandler hash) (gameAfterSecrets (memoAdversary adversary)
+      𝒮[(simulateQ (worldHandler hash) (gameAfterSecrets (memoAdversary adversary)
         parameter outputs)).run state] := by
   unfold tableGameAfterSecrets gameAfterSecrets
   simp only [simulateQ_bind, StateT.run_bind]
-  rw [evalDist_bind_bind_swap]
-  apply OracleComp.DeferredSampling.evalDist_bind_congr_left
+  rw [evalSPMF_bind_bind_swap]
+  apply OracleComp.DeferredSampling.evalSPMF_bind_congr_left
   intro result
   have hleft (randomizers) := runSigning_sourceGame randomizers (Concrete.precomputedSecretKey parameter outputs (hashCacheOfLog result.1.2))
     ⟨result.1.1, parameter⟩ (memoAdversary adversary)
@@ -44,7 +44,7 @@ theorem hashQueryBound_reference_afterSecrets (adversary : Adversary) (parameter
       (truncateHash parameterOutput) outputs) ∅ q := by
   rw [hashQueryBound_iff_costState]
   intro result hresult
-  rw [← mem_support_iff_of_evalDist_eq (evalDist_tableGameAfterSecrets_memo costHash adversary
+  rw [← mem_support_iff_of_evalSPMF_eq (evalDist_tableGameAfterSecrets_memo costHash adversary
     (truncateHash parameterOutput) outputs (∅, 0)), mem_support_bind_iff] at hresult
   obtain ⟨randomizers, _, hresult⟩ := hresult
   exact (hashQueryBound_iff_costState _ ∅ q).1 (hbound randomizers) result hresult

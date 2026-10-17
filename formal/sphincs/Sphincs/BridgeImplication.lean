@@ -357,6 +357,7 @@ theorem knownOf_known (parameter : PublicParameter) (fixed : HiddenGraph.Table) 
     (value : Digest) (h : knownOf parameter fixed coordinate = some value) :
     KnownCoordinate parameter coordinate := by
   unfold knownOf at h
+  rw [QueryCache.toFn_ofFn] at h
   split at h
   · assumption
   · cases h

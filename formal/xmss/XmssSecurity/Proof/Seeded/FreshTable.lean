@@ -137,20 +137,20 @@ theorem sequenceFin_map {m : Type → Type} [Monad m] [LawfulMonad m] {A B : Typ
       cases i using Fin.cases <;> rfl
 
 theorem evalDist_sequenceFin_congr {A : Type} {n : Nat}
-    (left right : Fin n → ProbComp A) (h : ∀ i, 𝒟[left i] = 𝒟[right i]) :
-    𝒟[Concrete.sequenceFin left] = 𝒟[Concrete.sequenceFin right] := by
+    (left right : Fin n → ProbComp A) (h : ∀ i, 𝒮[left i] = 𝒮[right i]) :
+    𝒮[Concrete.sequenceFin left] = 𝒮[Concrete.sequenceFin right] := by
   induction n with
   | zero => rfl
   | succ n ih =>
-      simp only [Concrete.sequenceFin, bind_pure_comp, evalDist_bind]
+      simp only [Concrete.sequenceFin, bind_pure_comp, evalSPMF_bind]
       rw [h 0]
       congr 1
       funext head
-      rw [evalDist_map, evalDist_map, ih _ _ (fun i => h i.succ)]
+      rw [evalSPMF_map, evalSPMF_map, ih _ _ (fun i => h i.succ)]
 
 theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
-    𝒟[Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)] =
-      𝒟[$ᵗ (Fin n → R)] := by
+    𝒮[Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)] =
+      𝒮[$ᵗ (Fin n → R)] := by
   classical
   induction n with
   | zero =>
@@ -160,19 +160,19 @@ theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
       simp [Concrete.sequenceFin, heq]
   | succ n ih =>
       calc
-        _ = 𝒟[finHeadTailEquiv R n <$> (do
+        _ = 𝒮[finHeadTailEquiv R n <$> (do
             let head ← $ᵗ R
             let tail ← $ᵗ (Fin n → R)
             pure (head, tail))] := by
           simp only [Concrete.sequenceFin, map_bind, finHeadTailEquiv,
             Equiv.coe_fn_mk, bind_pure_comp]
-          rw [evalDist_bind, evalDist_bind]
+          rw [evalSPMF_bind, evalSPMF_bind]
           congr 1
           funext head
-          rw [evalDist_map, ih, evalDist_map, evalDist_map, Functor.map_map]
-        _ = 𝒟[finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))] := by
-          rw [evalDist_map, evalDist_map, evalDist_independent_uniform_pair]
-        _ = _ := evalDist_map_bijective_uniform_cross
+          rw [evalSPMF_map, ih, evalSPMF_map, evalSPMF_map, Functor.map_map]
+        _ = 𝒮[finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))] := by
+          rw [evalSPMF_map, evalSPMF_map, evalDist_independent_uniform_pair]
+        _ = _ := evalSPMF_map_bijective_uniform_cross
           (α := R × (Fin n → R)) (β := Fin (n + 1) → R)
           (finHeadTailEquiv R n) (finHeadTailEquiv R n).bijective
 

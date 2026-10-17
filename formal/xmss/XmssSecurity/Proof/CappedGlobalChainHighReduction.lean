@@ -449,7 +449,7 @@ theorem observedProbeCount_globalForgeryPrimaryProbeTrace
         exact hprobes candidate (by simp [hcandidate])
   rw [hcount]
   · unfold globalForgeryPrimaryProbeTrace
-    simp [numChains]
+    exact List.length_ofFn
   · intro action haction
     unfold globalForgeryPrimaryProbeTrace at haction
     simp only [List.mem_ofFn] at haction
@@ -540,9 +540,9 @@ theorem globalHighMonitoredPublicProjection_eq_append_direct
 
 theorem evalDist_map_congr_of_evalDist_eq
     (project : α → β) (left right : ProbComp α)
-    (hdist : evalDist left = evalDist right) :
-    evalDist (project <$> left) = evalDist (project <$> right) := by
-  rw [evalDist_map, evalDist_map, hdist]
+    (hdist : evalSPMF left = evalSPMF right) :
+    evalSPMF (project <$> left) = evalSPMF (project <$> right) := by
+  rw [evalSPMF_map, evalSPMF_map, hdist]
 
 
 abbrev GlobalHighDirectTracedState :=

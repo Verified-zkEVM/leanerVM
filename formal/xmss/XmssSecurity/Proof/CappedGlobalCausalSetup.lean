@@ -19,13 +19,13 @@ noncomputable def trajectoryProgrammedGlobalChainKeygen :
   eraseAllChainTrajectories <$> programmedAllChainTrajectoryKeygen
 
 theorem evalDist_coupledGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist coupledGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    evalSPMF coupledGlobalChainKeygen =
+      evalSPMF trajectoryProgrammedGlobalChainKeygen :=
   evalDist_coupledGlobalChainKeygen_eq_programmedTrajectories
 
 theorem evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed :
-    evalDist actualGlobalChainKeygen =
-      evalDist trajectoryProgrammedGlobalChainKeygen :=
+    evalSPMF actualGlobalChainKeygen =
+      evalSPMF trajectoryProgrammedGlobalChainKeygen :=
   evalDist_actualGlobalChainKeygen_eq_programmedAllChainTrajectories
 
 theorem trajectoryProgrammedGlobalChainKeygen_support_table
@@ -33,7 +33,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_table
     (hresult : result ∈ support trajectoryProgrammedGlobalChainKeygen) :
     globalKeygenChainValueTable result.cache result.secretKey = result.table := by
   apply actualGlobalChainKeygen_support_table result
-  exact (mem_support_iff_of_evalDist_eq
+  exact (mem_support_iff_of_evalSPMF_eq
     evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed result).mpr hresult
 
 abbrev GlobalChainActionTracedResult :=
@@ -390,7 +390,7 @@ theorem trajectoryProgrammedGlobalChainKeygen_support_keyResult
     view.keyResult ∈ support
       ((simulateQ romImpl Concrete.keygen).run ∅) := by
   apply actualGlobalChainKeygen_support_keyResult view
-  exact (mem_support_iff_of_evalDist_eq
+  exact (mem_support_iff_of_evalSPMF_eq
     evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed view).mpr hview
 
 theorem keygen_support_treeCacheStable

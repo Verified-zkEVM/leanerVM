@@ -29,11 +29,11 @@ def finHeadTailEquiv (α : Type) (count : Nat) :
 theorem evalDist_independent_uniform_pair
     {α β : Type} [Fintype α] [Fintype β]
     [SampleableType α] [SampleableType β] [SampleableType (α × β)] :
-    evalDist (do
+    evalSPMF (do
       let left ← $ᵗ α
       let right ← $ᵗ β
       pure (left, right)) =
-    evalDist ($ᵗ (α × β)) := by
+    evalSPMF ($ᵗ (α × β)) := by
   apply SPMF.ext
   intro target
   rw [show (do
@@ -114,8 +114,8 @@ theorem run_sequenceFin_fresh {n : Nat} (inputs : Fin n → D)
       rfl
 
 theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
-    𝒟[Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)] =
-      𝒟[$ᵗ (Fin n → R)] := by
+    𝒮[Concrete.sequenceFin fun _ : Fin n => ($ᵗ R : ProbComp R)] =
+      𝒮[$ᵗ (Fin n → R)] := by
   classical
   induction n with
   | zero =>
@@ -125,19 +125,19 @@ theorem evalDist_sequenceFin_uniform [Fintype R] (n : Nat) :
       simp [Concrete.sequenceFin, heq]
   | succ n ih =>
       calc
-        _ = 𝒟[finHeadTailEquiv R n <$> (do
+        _ = 𝒮[finHeadTailEquiv R n <$> (do
             let head ← $ᵗ R
             let tail ← $ᵗ (Fin n → R)
             pure (head, tail))] := by
           simp only [Concrete.sequenceFin, map_bind, finHeadTailEquiv,
             Equiv.coe_fn_mk, bind_pure_comp]
-          rw [evalDist_bind, evalDist_bind]
+          rw [evalSPMF_bind, evalSPMF_bind]
           congr 1
           funext head
-          rw [evalDist_map, ih, evalDist_map, evalDist_map, Functor.map_map]
-        _ = 𝒟[finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))] := by
-          rw [evalDist_map, evalDist_map, evalDist_independent_uniform_pair]
-        _ = _ := evalDist_map_bijective_uniform_cross
+          rw [evalSPMF_map, ih, evalSPMF_map, evalSPMF_map, Functor.map_map]
+        _ = 𝒮[finHeadTailEquiv R n <$> ($ᵗ (R × (Fin n → R)))] := by
+          rw [evalSPMF_map, evalSPMF_map, evalDist_independent_uniform_pair]
+        _ = _ := evalSPMF_map_bijective_uniform_cross
           (α := R × (Fin n → R)) (β := Fin (n + 1) → R)
           (finHeadTailEquiv R n) (finHeadTailEquiv R n).bijective
 
@@ -184,18 +184,18 @@ variable [SampleableType R] [Fintype R] [SampleableType (J → R)]
 
 theorem evalDist_queryTable_fresh (inputs : J → D) (hinj : Function.Injective inputs)
     (cache : QueryCache (D →ₒ R)) (hfresh : ∀ j, cache (inputs j) = none) :
-    𝒟[(simulateQ randomOracle (queryTable inputs)).run cache] =
-      𝒟[(fun outputs => (outputs, cacheTable cache inputs outputs)) <$> ($ᵗ (J → R))] := by
+    𝒮[(simulateQ randomOracle (queryTable inputs)).run cache] =
+      𝒮[(fun outputs => (outputs, cacheTable cache inputs outputs)) <$> ($ᵗ (J → R))] := by
   classical
   rw [queryTable, simulateQ_map, StateT.run_map,
     run_sequenceFin_fresh (fun i => inputs ((Fintype.equivFin J).symm i))
       (fun _ _ h => (Fintype.equivFin J).symm.injective (hinj h)) cache (fun _ => hfresh _)]
   simp only [bind_pure_comp, Functor.map_map]
-  rw [evalDist_map, evalDist_sequenceFin_uniform]
-  have htable := evalDist_map_bijective_uniform_cross
+  rw [evalSPMF_map, evalDist_sequenceFin_uniform]
+  have htable := evalSPMF_map_bijective_uniform_cross
     (α := Fin (Fintype.card J) → R) (β := J → R) (finTableEquiv J R) (finTableEquiv J R).bijective
-  rw [evalDist_map, ← htable]
-  simp only [evalDist_map, Functor.map_map]
+  rw [evalSPMF_map, ← htable]
+  simp only [evalSPMF_map, Functor.map_map]
   congr 1
   funext outputs
   simp only [cacheTable, Equiv.symm_apply_apply]
@@ -267,7 +267,7 @@ noncomputable def hashAnswers (outputs : SecretOutputs) : HashOutputs :=
 /-- **The programmed answers are independent uniform outputs.** `mix` is a bijection of the table
 of uniform values, and the answers are its coordinates at the first values. -/
 theorem evalDist_hashAnswers :
-    𝒟[hashAnswers <$> ($ᵗ SecretOutputs)] = 𝒟[$ᵗ HashOutputs] := by
+    𝒮[hashAnswers <$> ($ᵗ SecretOutputs)] = 𝒮[$ᵗ HashOutputs] := by
   classical
   let split := Equiv.piEquivPiSubtypeProd (fun position : SecretPosition => isSecond position = false)
     (fun _ => HashOutput)
@@ -277,27 +277,27 @@ theorem evalDist_hashAnswers :
     rfl
   have hbij : Function.Bijective (fun outputs : SecretOutputs => split (mix outputs)) :=
     split.bijective.comp mix_involutive.bijective
-  rw [hmap, evalDist_map,
-    evalDist_map_bijective_uniform_cross (α := SecretOutputs) (β := HashOutputs × UnusedOutputs) _ hbij,
-    ← evalDist_map]
-  exact evalDist_map_fst_uniformSample_prod
+  rw [hmap, evalSPMF_map,
+    evalSPMF_map_bijective_uniform_cross (α := SecretOutputs) (β := HashOutputs × UnusedOutputs) _ hbij,
+    ← evalSPMF_map]
+  exact evalSPMF_map_fst_uniformSample_prod
 
 /-- Any function of the programmed answers has the law it has on independent uniform outputs. -/
 theorem evalDist_map_hashAnswers {β : Type} (g : HashOutputs → β) :
-    𝒟[(g ∘ hashAnswers) <$> ($ᵗ SecretOutputs)] = 𝒟[g <$> ($ᵗ HashOutputs)] := by
+    𝒮[(g ∘ hashAnswers) <$> ($ᵗ SecretOutputs)] = 𝒮[g <$> ($ᵗ HashOutputs)] := by
   have hsplit : (g ∘ hashAnswers) <$> ($ᵗ SecretOutputs) =
       g <$> (hashAnswers <$> ($ᵗ SecretOutputs)) := (Functor.map_map hashAnswers g ($ᵗ SecretOutputs)).symm
   rw [hsplit]
-  exact (evalDist_map _ _).trans
+  exact (evalSPMF_map _ _).trans
     ((congrArg (fun distribution => g <$> distribution) evalDist_hashAnswers).trans
-      (evalDist_map _ _).symm)
+      (evalSPMF_map _ _).symm)
 
 /-- The sequential finite-cache construction implements exactly the candidate programming map. -/
 theorem cacheTable_eq_programCache (base : QueryCache HashSpec) (seed : MasterSeed)
     (material : Material) :
     cacheTable (base.cacheQuery (parameterInput seed) material.1)
       (hashInputs seed material.1) (hashAnswers material.2) = programCache base seed material := by
-  funext input
+  refine QueryCache.ext fun input => ?_
   by_cases hp : input = parameterInput seed
   · subst input
     rw [cacheTable_apply_of_not_mem (base.cacheQuery (parameterInput seed) material.1)
@@ -332,14 +332,14 @@ attribute [local irreducible] cacheTable cacheFin programCache
 sampled material. No assertion about an arbitrary preexisting honest cache is needed: preparation
 starts empty. -/
 theorem evalDist_prepareMaterial (seed : MasterSeed) :
-    𝒟[Prod.snd <$> (simulateQ randomOracle (prepareMaterial seed)).run ∅] =
-      𝒟[(fun material => programCache ∅ seed material) <$> sampleMaterial] := by
+    𝒮[Prod.snd <$> (simulateQ randomOracle (prepareMaterial seed)).run ∅] =
+      𝒮[(fun material => programCache ∅ seed material) <$> sampleMaterial] := by
   unfold prepareMaterial
   simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
   rw [QueryImpl.withCaching_run_none _ (by rfl)]
   simp only [bind_map_left, simulateQ_pure, StateT.run_pure, bind_pure_comp,
     sampleMaterial, map_bind]
-  apply evalDist_bind_congr'
+  apply evalSPMF_bind_congr'
   intro parameterOutput
   have hfresh : ∀ position, ((∅ : QueryCache HashSpec).cacheQuery
       (parameterInput seed) parameterOutput) (hashInputs seed parameterOutput position) = none := by
@@ -355,11 +355,11 @@ theorem evalDist_prepareMaterial (seed : MasterSeed) :
         (parameterInput seed) parameterOutput) (hashInputs seed parameterOutput) answers) ∘ hashAnswers := by
     funext outputs
     exact (cacheTable_eq_programCache (∅ : QueryCache HashSpec) seed (parameterOutput, outputs)).symm
-  rw [Functor.map_map, evalDist_map, htable, ← evalDist_map, Functor.map_map, Functor.map_map]
-  change 𝒟[(fun answers : HashOutputs => cacheTable ((∅ : QueryCache HashSpec).cacheQuery
+  rw [Functor.map_map, evalSPMF_map, htable, ← evalSPMF_map, Functor.map_map, Functor.map_map]
+  change 𝒮[(fun answers : HashOutputs => cacheTable ((∅ : QueryCache HashSpec).cacheQuery
       (parameterInput seed) parameterOutput) (hashInputs seed parameterOutput) answers) <$>
         ($ᵗ HashOutputs)] =
-    𝒟[(fun outputs : SecretOutputs => programCache ∅ seed (parameterOutput, outputs)) <$>
+    𝒮[(fun outputs : SecretOutputs => programCache ∅ seed (parameterOutput, outputs)) <$>
       ($ᵗ SecretOutputs)]
   rw [hcache]
   exact (evalDist_map_hashAnswers _).symm
@@ -375,7 +375,7 @@ theorem run'_query_bind {α : Type} (input : OracleWorld.Domain)
 theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
     (h : left ≠ right) (a b : HashOutput) :
     (cache.cacheQuery left a).cacheQuery right b = (cache.cacheQuery right b).cacheQuery left a := by
-  funext input
+  refine QueryCache.ext fun input => ?_
   by_cases hl : input = left
   · subst input
     simp [QueryCache.cacheQuery_of_ne, h]
@@ -387,12 +387,12 @@ theorem cacheQuery_comm (cache : QueryCache HashSpec) (left right : HashInput)
 /-- An unobserved query may be sampled early, whether or not the computation later uses it. -/
 theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (target : HashInput) (hfresh : cache target = none) :
-    𝒟[(simulateQ romImpl computation).run' cache] = 𝒟[do
+    𝒮[(simulateQ romImpl computation).run' cache] = 𝒮[do
       let output ← $ᵗ HashOutput
       (simulateQ romImpl computation).run' (cache.cacheQuery target output)] := by
   induction computation using OracleComp.inductionOn generalizing cache with
   | pure value =>
-      apply evalDist_ext
+      apply evalSPMF_ext
       intro result
       simp
   | query_bind input next ih =>
@@ -409,13 +409,13 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
               (liftM (unifSpec.query input) : ProbComp _)
               (fun result => (simulateQ romImpl (next result.1)).run' result.2)
           rw [hrun]
-          trans 𝒟[do
+          trans 𝒮[do
             let answer ← (liftM (unifSpec.query input) : ProbComp _)
             let output ← $ᵗ HashOutput
             (simulateQ romImpl (next answer)).run' (cache.cacheQuery target output)]
-          · exact evalDist_bind_congr' _ (fun answer => ih answer cache hfresh)
-          · rw [evalDist_bind_bind_swap]
-            apply evalDist_bind_congr'
+          · exact evalSPMF_bind_congr' _ (fun answer => ih answer cache hfresh)
+          · rw [evalSPMF_bind_bind_swap]
+            apply evalSPMF_bind_congr'
             intro output
             rw [hrun]
       | inr input =>
@@ -427,7 +427,7 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
           by_cases heq : input = target
           · subst target
             rw [hrun, QueryImpl.withCaching_run_none _ hfresh, bind_map_left]
-            apply evalDist_bind_congr'
+            apply evalSPMF_bind_congr'
             intro output
             rw [hrun, QueryImpl.withCaching_run_some _ (QueryCache.cacheQuery_self _ _ _), pure_bind]
           · have hfresh' (output : HashOutput) : (cache.cacheQuery input output) target = none := by
@@ -435,30 +435,30 @@ theorem evalDist_presample_fresh {α : Type} (computation : OracleComp OracleWor
             cases hinput : cache input with
             | some answer =>
                 rw [hrun, QueryImpl.withCaching_run_some _ hinput, pure_bind, ih answer cache hfresh]
-                apply evalDist_bind_congr'
+                apply evalSPMF_bind_congr'
                 intro output
                 rw [hrun, QueryImpl.withCaching_run_some _ (by
                   rw [QueryCache.cacheQuery_of_ne _ _ heq, hinput]), pure_bind]
             | none =>
                 rw [hrun, QueryImpl.withCaching_run_none _ hinput, bind_map_left]
-                trans 𝒟[do
+                trans 𝒮[do
                   let answer ← $ᵗ HashOutput
                   let output ← $ᵗ HashOutput
                   (simulateQ romImpl (next answer)).run' ((cache.cacheQuery input answer).cacheQuery target output)]
-                · exact evalDist_bind_congr' _ (fun answer => ih answer _ (hfresh' answer))
-                · rw [evalDist_bind_bind_swap]
-                  apply evalDist_bind_congr'
+                · exact evalSPMF_bind_congr' _ (fun answer => ih answer _ (hfresh' answer))
+                · rw [evalSPMF_bind_bind_swap]
+                  apply evalSPMF_bind_congr'
                   intro output
                   rw [hrun, QueryImpl.withCaching_run_none _ (by
                     rw [QueryCache.cacheQuery_of_ne _ _ heq, hinput]), bind_map_left]
-                  apply evalDist_bind_congr'
+                  apply evalSPMF_bind_congr'
                   intro answer
                   rw [cacheQuery_comm cache input target heq]
 
 theorem evalDist_presample_query {α : Type} (computation : OracleComp OracleWorld α)
     (cache : QueryCache HashSpec) (target : HashInput) :
-    𝒟[(simulateQ romImpl computation).run' cache] =
-      𝒟[(randomOracle (spec := HashSpec) target).run cache >>= fun result =>
+    𝒮[(simulateQ romImpl computation).run' cache] =
+      𝒮[(randomOracle (spec := HashSpec) target).run cache >>= fun result =>
         (simulateQ romImpl computation).run' result.2] := by
   cases hc : cache target with
   | none =>
@@ -469,37 +469,37 @@ theorem evalDist_presample_query {α : Type} (computation : OracleComp OracleWor
 
 theorem evalDist_presample_computation {α β : Type} (computation : OracleComp OracleWorld α)
     (preparation : OracleComp OracleWorld β) (cache : QueryCache HashSpec) :
-    𝒟[(simulateQ romImpl computation).run' cache] =
-      𝒟[(simulateQ romImpl preparation).run cache >>= fun result =>
+    𝒮[(simulateQ romImpl computation).run' cache] =
+      𝒮[(simulateQ romImpl preparation).run cache >>= fun result =>
         (simulateQ romImpl computation).run' result.2] := by
   induction preparation using OracleComp.inductionOn generalizing cache with
   | pure value => simp
   | query_bind input next ih =>
       simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind, bind_assoc]
-      trans 𝒟[(romImpl input).run cache >>= fun result =>
+      trans 𝒮[(romImpl input).run cache >>= fun result =>
         (simulateQ romImpl computation).run' result.2]
       · cases input with
         | inl input =>
-            apply evalDist_ext
+            apply evalSPMF_ext
             intro value
-            simp [romImpl, unifFwdImpl]
+            simp [Completeness.romImpl, unifFwdImpl]
         | inr input => exact evalDist_presample_query computation cache input
-      · exact evalDist_bind_congr' _ (fun result => ih result.1 result.2)
+      · exact evalSPMF_bind_congr' _ (fun result => ih result.1 result.2)
 
 /-- Every complete continuation has the same output distribution after table preparation.
 The seed is fixed in this statement, so the continuation may perform actual seeded keygen,
 signing, and verification. Its oracle state still contains the seed-addressed entries. -/
 theorem evalDist_prepared_continuation {α : Type} (computation : OracleComp OracleWorld α)
     (seed : MasterSeed) :
-    𝒟[(simulateQ romImpl computation).run' ∅] =
-      𝒟[sampleMaterial >>= fun material =>
+    𝒮[(simulateQ romImpl computation).run' ∅] =
+      𝒮[sampleMaterial >>= fun material =>
         (simulateQ romImpl computation).run' (programCache ∅ seed material)] := by
   rw [evalDist_presample_computation computation
     (liftM (prepareMaterial seed) : OracleComp OracleWorld (HashOutput × HashOutputs)) ∅,
     simulate_lift_hash]
-  trans 𝒟[((fun material => programCache ∅ seed material) <$> sampleMaterial) >>=
+  trans 𝒮[((fun material => programCache ∅ seed material) <$> sampleMaterial) >>=
     fun cache => (simulateQ romImpl computation).run' cache]
-  · rw [← bind_map_left Prod.snd, evalDist_bind, evalDist_prepareMaterial, evalDist_bind]
+  · rw [← bind_map_left Prod.snd, evalSPMF_bind, evalDist_prepareMaterial, evalSPMF_bind]
   · rw [bind_map_left]
 
 /-- Pure instrumentation counts all hash calls, including cached calls, and no private draws. -/
@@ -517,17 +517,17 @@ theorem simulateQ_countHashQueries {α : Type} (computation : OracleComp OracleW
 /-- Uniform hidden seed sampling can be moved after seed-independent material sampling.
 The oracle cache in the continuation remains programmed at the sampled seed's addresses. -/
 theorem evalDist_seeded_prepared {α : Type} (next : MasterSeed → OracleComp OracleWorld α) :
-    𝒟[(simulateQ romImpl ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= next)).run' ∅] =
-      𝒟[sampleMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
+    𝒮[(simulateQ romImpl ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= next)).run' ∅] =
+      𝒮[sampleMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
         (simulateQ romImpl (next seed)).run' (programCache ∅ seed material)] := by
   simp only [simulateQ_bind, StateT.run'_eq, StateT.run_bind, run_lift_prob,
     bind_map_left, map_bind]
-  trans 𝒟[sampleMasterSeed >>= fun seed => sampleMaterial >>= fun material =>
+  trans 𝒮[sampleMasterSeed >>= fun seed => sampleMaterial >>= fun material =>
     (simulateQ romImpl (next seed)).run' (programCache ∅ seed material)]
-  · apply evalDist_bind_congr'
+  · apply evalSPMF_bind_congr'
     intro seed
     exact evalDist_prepared_continuation (next seed) seed
-  · exact evalDist_bind_bind_swap _ _ _
+  · exact evalSPMF_bind_bind_swap _ _ _
 
 theorem countHashQueries_query_bind {α : Type} (input : OracleWorld.Domain)
     (next : OracleWorld.Range input → OracleComp OracleWorld α) :
@@ -560,9 +560,9 @@ theorem countHashQueries_sampling_bind {α β : Type} (sampling : ProbComp α)
 /-- The seed can be sampled after the material while preserving the counted continuation. -/
 theorem evalDist_seeded_prepared_counted {α : Type}
     (next : MasterSeed → OracleComp OracleWorld α) :
-    𝒟[(simulateQ countedOracle
+    𝒮[(simulateQ countedOracle
       ((liftM sampleMasterSeed : OracleComp OracleWorld MasterSeed) >>= next)).run.run' ∅] =
-      𝒟[sampleMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
+      𝒮[sampleMaterial >>= fun material => sampleMasterSeed >>= fun seed =>
         (simulateQ countedOracle (next seed)).run.run' (programCache ∅ seed material)] := by
   rw [← simulateQ_countHashQueries, countHashQueries_sampling_bind]
   simpa only [simulateQ_countHashQueries] using

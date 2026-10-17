@@ -135,7 +135,7 @@ theorem marked_hit_le {Ω : Type} (program : ProbComp Ω) (entries : Ω → List
     _ = Pr[fun pair : MasterSeed × Ω => Hits (Marked pair.1) (entries pair.2) |
           program >>= fun result => (fun seed => (seed, result)) <$> sampleMasterSeed] := by
       simp only [← bind_pure_comp]
-      exact probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_bind_bind_swap _ _ _)
+      exact probEvent_congr' (fun _ _ => Iff.rfl) (evalSPMF_bind_bind_swap _ _ _)
     _ ≤ ∑' result, Pr[= result | program] * (q * (2 / (2 : ℝ≥0∞) ^ 256)) := by
       rw [probEvent_bind_eq_tsum]
       refine ENNReal.tsum_le_tsum fun result => ?_
@@ -208,34 +208,34 @@ noncomputable local instance pairSampleable : SampleableType (Eager.Table × RTa
 uniform randomizer table. -/
 theorem evalDist_table_split {β : Type} (parameter : PublicParameter) (seed : MasterSeed)
     (F : Eager.Table → ProbComp β) :
-    𝒟[($ᵗ Eager.Table : ProbComp Eager.Table) >>= F] =
-      𝒟[do
+    𝒮[($ᵗ Eager.Table : ProbComp Eager.Table) >>= F] =
+      𝒮[do
         let table ← ($ᵗ Eager.Table : ProbComp Eager.Table)
         let rnd ← ($ᵗ RTable : ProbComp RTable)
         F (plant parameter seed table rnd)] := by
-  have hfst : 𝒟[Prod.fst <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] =
-      𝒟[($ᵗ Eager.Table : ProbComp Eager.Table)] := evalDist_map_fst_uniformSample_prod
-  have hswap : 𝒟[swapPair parameter seed <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] =
-      𝒟[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] :=
-    evalDist_map_bijective_uniform_cross _ _ (swapPair_involutive parameter seed).bijective
+  have hfst : 𝒮[Prod.fst <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] =
+      𝒮[($ᵗ Eager.Table : ProbComp Eager.Table)] := evalSPMF_map_fst_uniformSample_prod
+  have hswap : 𝒮[swapPair parameter seed <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] =
+      𝒮[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))] :=
+    evalSPMF_map_bijective_uniform_cross _ _ (swapPair_involutive parameter seed).bijective
   have hpair := evalDist_independent_uniform_pair (α := Eager.Table) (β := RTable)
   calc
-    _ = 𝒟[(Prod.fst <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))) >>= F] := by
-      rw [evalDist_bind, evalDist_bind, hfst]
-    _ = 𝒟[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable)) >>= fun pair => F pair.1] := by
+    _ = 𝒮[(Prod.fst <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))) >>= F] := by
+      rw [evalSPMF_bind, evalSPMF_bind, hfst]
+    _ = 𝒮[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable)) >>= fun pair => F pair.1] := by
       rw [bind_map_left]
-    _ = 𝒟[(swapPair parameter seed <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))) >>=
+    _ = 𝒮[(swapPair parameter seed <$> ($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable))) >>=
           fun pair => F pair.1] := by
-      rw [evalDist_bind, evalDist_bind, hswap]
-    _ = 𝒟[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable)) >>=
+      rw [evalSPMF_bind, evalSPMF_bind, hswap]
+    _ = 𝒮[($ᵗ (Eager.Table × RTable) : ProbComp (Eager.Table × RTable)) >>=
           fun pair => F (plant parameter seed pair.1 pair.2)] := by
       rw [bind_map_left]
       simp only [swapPair]
-    _ = 𝒟[(do
+    _ = 𝒮[(do
           let table ← ($ᵗ Eager.Table : ProbComp Eager.Table)
           let rnd ← ($ᵗ RTable : ProbComp RTable)
           pure (table, rnd)) >>= fun pair => F (plant parameter seed pair.1 pair.2)] := by
-      rw [evalDist_bind, evalDist_bind, hpair]
+      rw [evalSPMF_bind, evalSPMF_bind, hpair]
     _ = _ := by simp only [bind_assoc, pure_bind]
 
 /-! ### One sample -/
@@ -288,10 +288,10 @@ theorem sampleFn_plant_agree (material : Material) (seed : MasterSeed) (answers 
 /-- Every sample of the internalized deterministic game equals its graph-view cost game. -/
 theorem sample_costGameDet (adversary : Adversary) (material : Material) (seed : MasterSeed)
     (answers : CanonicalGraphLabels) (table : Eager.Table) (rnd : RTable) :
-    𝒟[simulateQ (fixedRom (extend (preparedCache material seed answers)
+    𝒮[simulateQ (fixedRom (extend (preparedCache material seed answers)
           (plant (SeedModel.parameter material) seed table rnd)))
         (countHashQueries (gameAfterSeedDet adversary seed))] =
-      𝒟[(simulateQ (GraphView.fixedCostSource
+      𝒮[(simulateQ (GraphView.fixedCostSource
           (sampleFn material seed answers (plant (SeedModel.parameter material) seed table rnd))
           (sampleCoordinates material seed answers (plant (SeedModel.parameter material) seed table rnd)))
         (costGameDet (SeedModel.parameter material) (GraphView.publicData (labelsOf material answers)) rnd
@@ -380,8 +380,8 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
               (plant (SeedModel.parameter material) seed table rnd)))
             (countHashQueries (gameAfterSeedDet (internalize adversary) seed))] := by
       refine probEvent_congr' (fun _ _ => Iff.rfl) ?_
-      refine evalDist_bind_congr' _ fun material => evalDist_bind_congr' _ fun seed =>
-        evalDist_bind_congr' _ fun answers => ?_
+      refine evalSPMF_bind_congr' _ fun material => evalSPMF_bind_congr' _ fun seed =>
+        evalSPMF_bind_congr' _ fun answers => ?_
       exact evalDist_table_split (SeedModel.parameter material) seed _
     _ ≤ Pr[Win | do
           let material ← sampleMaterial
@@ -419,13 +419,13 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
           (SeedModel.parameter material) (publicData (labelsOf material answers)) (internalize adversary)
           (noRepeat_internalize_memoAdv adversary) q
       · refine probEvent_bind_le_of _ _ _ _ fun material => ?_
-        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_bind_bind_swap sampleMasterSeed
+        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalSPMF_bind_bind_swap sampleMasterSeed
           ($ᵗ CanonicalGraphLabels) _)]
         refine probEvent_bind_le_of _ _ _ _ fun answers => ?_
-        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_bind_bind_swap sampleMasterSeed
+        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalSPMF_bind_bind_swap sampleMasterSeed
           ($ᵗ Eager.Table) _)]
         refine probEvent_bind_le_of _ _ _ _ fun table => ?_
-        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalDist_bind_bind_swap sampleMasterSeed
+        rw [probEvent_congr' (fun _ _ => Iff.rfl) (evalSPMF_bind_bind_swap sampleMasterSeed
           ($ᵗ RTable) _)]
         refine probEvent_bind_le_of _ _ _ _ fun rnd => ?_
         exact marked_hit_le (detRun (internalize adversary) q material answers table rnd)

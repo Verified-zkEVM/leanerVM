@@ -38,7 +38,7 @@ noncomputable def excessW (W : View → Multiset View → ℝ≥0∞) (b0 : ℝ�
 theorem priceW_props {W : View → Multiset View → ℝ≥0∞} (hW : WitnessProps W) : MonoFin (priceW W) := by
   refine ⟨fun a b hab => ?_, fun D => ?_⟩
   · unfold priceW
-    exact mul_le_mul_left' (freshAvg_mono _ fun v _ => (hW v).1 a b hab) _
+    exact mul_le_mul_right (freshAvg_mono _ fun v _ => (hW v).1 a b hab) _
   · unfold priceW
     refine ENNReal.mul_ne_top (ne_top_of_le_ne_top ENNReal.one_ne_top landing_le_one) ?_
     exact freshAvg_ne_top Finset.univ_nonempty fun v => (hW v).2 D

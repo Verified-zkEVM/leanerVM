@@ -29,7 +29,7 @@ attribute [local irreducible] gameAfterSeed sampleMasterSeed deriveChainSecrets 
   derivationCache drawChainOutputs
 
 theorem mem_support_drawChainOutputs (outputs : ChainOutputs) : outputs ∈ support drawChainOutputs := by
-  rw [mem_support_iff_evalDist_apply_ne_zero, evalDist_drawChainOutputs, ← probOutput_def,
+  rw [mem_support_iff_evalSPMF_apply_ne_zero, evalDist_drawChainOutputs, ← probOutput_def,
     probOutput_uniformSample]
   exact ENNReal.inv_ne_zero.mpr (ENNReal.natCast_ne_top _)
 

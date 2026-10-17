@@ -128,7 +128,8 @@ theorem defaultWord_valid : Valid defaultWord := by
   change (∑ index : ChainIndex, (defaultWord index).val) = 191
   simp only [defaultWord_def]
   change (∑ index : Fin 42, if index.val < 27 then (7 : Nat) else if index.val = 27 then 2 else 0) = 191
-  norm_num [Fin.sum_univ_succ]
+  rw [Fin.sum_univ_eq_sum_range (fun i => if i < 27 then (7 : Nat) else if i = 27 then 2 else 0)]
+  decide
 
 /-- The chain steps a signer walks to reveal a word. -/
 def signingSteps (word : Encoding) : Nat := ∑ index, (word index).val

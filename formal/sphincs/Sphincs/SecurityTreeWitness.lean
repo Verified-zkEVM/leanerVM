@@ -2,6 +2,8 @@ import Sphincs.Pruning
 import Sphincs.Landing
 import Sphincs.Bytes
 
+set_option backward.isDefEq.respectTransparency false
+
 /-!
 Deterministic Merkle extraction, adapted from leanVM b7a107256's first-divergence argument.
 Two paths reaching the same root either agree, cross into the other path's sibling, or make a

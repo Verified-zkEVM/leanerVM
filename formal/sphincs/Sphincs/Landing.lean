@@ -47,13 +47,13 @@ theorem landed_card (parameter : PublicParameter) :
 
 omit [Params] in
 theorem evalDist_blockIndex_uniform :
-    𝒟[Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
-    𝒟[($ᵗ Index : ProbComp Index)] := by
+    𝒮[Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput)] =
+    𝒮[($ᵗ Index : ProbComp Index)] := by
   have heq : Concrete.blockIndex <$> ($ᵗ HashOutput : ProbComp HashOutput) =
       BitVec.toFin <$> ((fun u : HashOutput => u.extractLsb' Concrete.indexOffset totalHeight) <$>
         ($ᵗ HashOutput : ProbComp HashOutput)) := by rw [Functor.map_map]; rfl
-  rw [heq, evalDist_map, evalDist_hashOutput_extractAt_uniform (by decide), ← evalDist_map]
-  exact evalDist_map_bijective_uniform_cross (α := BitVec totalHeight) (β := Index) BitVec.toFin
+  rw [heq, evalSPMF_map, evalDist_hashOutput_extractAt_uniform (by decide), ← evalSPMF_map]
+  exact evalSPMF_map_bijective_uniform_cross (α := BitVec totalHeight) (β := Index) BitVec.toFin
     ⟨fun _ _ h => congrArg BitVec.ofFin h, fun i => ⟨BitVec.ofFin i, rfl⟩⟩
 
 /-- A fresh first message-digest block lands with probability exactly `2^b / 2^26`. -/

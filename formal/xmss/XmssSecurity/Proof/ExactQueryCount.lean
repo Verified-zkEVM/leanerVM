@@ -59,7 +59,7 @@ theorem withQueryLog {computation : OracleComp spec α} {count : Nat}
           exact (ih output).map (Prod.map id ([⟨input, output⟩] ++ ·)))
 
 theorem liftComp_predicate
-    {superIndex : Type} {superSpec : OracleSpec superIndex}
+    {index : Type} {spec : OracleSpec index} {superIndex : Type} {superSpec : OracleSpec superIndex}
     [inclusion : spec ⊂ₒ superSpec]
     {computation : OracleComp spec α} {count : Nat}
     (hexact : ExactQueryCount computation count)
@@ -70,7 +70,8 @@ theorem liftComp_predicate
   induction hexact with
   | pure value => exact .pure value
   | query input next count hnext ih =>
-      rw [OracleComp.liftComp_bind, OracleComp.liftComp_query]
+      rw [OracleComp.liftComp_bind (spec := spec) superSpec,
+        OracleComp.liftComp_query (spec := spec) superSpec]
       change ExactPredicateQueryCount predicate
         (((liftM (spec.query input) : OracleComp superSpec (spec.Range input)) >>=
           fun output => OracleComp.liftComp (next output) superSpec)) (count + 1)
@@ -157,7 +158,7 @@ theorem bind_right_of_mem_support
         · simpa [hinput] using hrec.2
 
 theorem le_of_isQueryBoundP
-    {index : Type} {spec : OracleSpec index} [OracleSpec.Inhabited spec]
+    {index : Type} {spec : OracleSpec index} [∀ input, Inhabited (spec.Range input)]
     {predicate : spec.Domain → Prop} [DecidablePred predicate]
     {computation : OracleComp spec α} {count bound : Nat}
     (hexact : ExactPredicateQueryCount predicate computation count)

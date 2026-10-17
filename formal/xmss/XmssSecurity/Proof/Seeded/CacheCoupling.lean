@@ -81,6 +81,7 @@ theorem programmedCache_agreeOutside (seed : MasterSeed) (parameter : PublicPara
     AgreeOutside (fun input => SeedHit input seed)
       (programmedCache seed parameter secret parameterHigh secretHigh) ∅ := by
   intro input hinput
-  exact derivationCache_of_not_seedHit seed _ _ input hinput
+  rw [programmedCache, derivationCache_of_not_seedHit seed _ _ input hinput]
+  exact (QueryCache.empty_apply _).symm
 
 end XmssSecurity.Seeded

@@ -40,23 +40,23 @@ theorem evalDist_simulateQ_congr {ι : Type} {spec : OracleSpec ι} {m₁ m₂ :
     [Monad m₁] [LawfulMonad m₁] [Monad m₂] [LawfulMonad m₂]
     [MonadLiftT m₁ SPMF] [LawfulMonadLiftT m₁ SPMF] [MonadLiftT m₂ SPMF] [LawfulMonadLiftT m₂ SPMF]
     (impl₁ : QueryImpl spec m₁) (impl₂ : QueryImpl spec m₂)
-    (h : ∀ input, 𝒟[impl₁ input] = 𝒟[impl₂ input]) {α : Type} (oa : OracleComp spec α) :
-    𝒟[simulateQ impl₁ oa] = 𝒟[simulateQ impl₂ oa] := by
+    (h : ∀ input, 𝒮[impl₁ input] = 𝒮[impl₂ input]) {α : Type} (oa : OracleComp spec α) :
+    𝒮[simulateQ impl₁ oa] = 𝒮[simulateQ impl₂ oa] := by
   induction oa using OracleComp.inductionOn with
   | pure value => simp
   | query_bind input next ih =>
       rw [simulateQ_bind, simulateQ_bind, simulateQ_spec_query, simulateQ_spec_query,
-        evalDist_bind, evalDist_bind, h input]
+        evalSPMF_bind, evalSPMF_bind, h input]
       exact congrArg _ (funext ih)
 
 theorem evalDist_fixedRom_eq_fixedHashWorld (f : HashInput → HashOutput) {α : Type}
     (oa : OracleComp OracleWorld α) :
-    𝒟[simulateQ (fixedRom f) oa] = 𝒟[simulateQ (Prefix.fixedHashWorld f) oa] := by
+    𝒮[simulateQ (fixedRom f) oa] = 𝒮[simulateQ (Prefix.fixedHashWorld f) oa] := by
   refine evalDist_simulateQ_congr _ _ (fun input => ?_) oa
   cases input with
   | inl draw =>
-      change 𝒟[(liftM (unifSpec.query draw) : ProbComp _)] = 𝒟[PMF.uniformOfFintype (Fin (draw + 1))]
-      rw [evalDist_query]
+      change 𝒮[(liftM (unifSpec.query draw) : ProbComp _)] = 𝒮[PMF.uniformOfFintype (Fin (draw + 1))]
+      rw [evalSPMF_query]
   | inr bytes => simp [fixedRom, Prefix.fixedHashWorld]
 
 noncomputable local instance assemblyLabelsSampleable : SampleableType CanonicalGraphLabels :=

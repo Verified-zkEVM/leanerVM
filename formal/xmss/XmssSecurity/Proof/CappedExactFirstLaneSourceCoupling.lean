@@ -220,25 +220,25 @@ theorem globalSigningMonitoredTracedStateRelation_initial
     hleftSupport hrightSupport
 
 theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :
-    evalDist
+    evalSPMF
         ((fun view : ProgrammedGlobalChainKeygenView =>
           Concrete.materializeCachedKeyResult view.keyResult) <$>
             trajectoryProgrammedGlobalChainKeygen) =
-      evalDist ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
+      evalSPMF ((simulateQ romImpl Concrete.scheme.keygen).run ∅) := by
   calc
-    _ = evalDist
+    _ = evalSPMF
         ((fun view : ProgrammedGlobalChainKeygenView =>
           Concrete.materializeCachedKeyResult view.keyResult) <$>
             actualGlobalChainKeygen) := by
       apply evalDist_map_congr_of_evalDist_eq
       exact evalDist_actualGlobalChainKeygen_eq_trajectoryProgrammed.symm
-    _ = evalDist
+    _ = evalSPMF
         (Concrete.materializeCachedKeyResult <$>
           (simulateQ romImpl Concrete.keygen).run ∅) := by
       unfold actualGlobalChainKeygen
       simp [ProgrammedGlobalChainKeygenView.keyResult,
         map_eq_bind_pure_comp]
-    _ = evalDist
+    _ = evalSPMF
         ((simulateQ romImpl Concrete.precomputedKeygen).run ∅) :=
       Concrete.evalDist_materialized_keygen_eq_precomputedKeygen
     _ = _ := by rfl
@@ -246,7 +246,7 @@ theorem evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen :
 theorem probEvent_eq_of_evalDist_eq
     {computation₁ computation₂ : ProbComp α}
     (event : α → Prop)
-    (heval : evalDist computation₁ = evalDist computation₂) :
+    (heval : evalSPMF computation₁ = evalSPMF computation₂) :
     Pr[event | computation₁] = Pr[event | computation₂] := by
   simp only [probEvent_eq_tsum_indicator, probOutput_def]
   rw [heval]
@@ -638,30 +638,31 @@ theorem sourceGlobalExactTracedProgram_eq_trajectoryBothTraces
 
 theorem evalDist_sourceGlobalExact_eq_cappedBothTraces
     (adversary : Adversary) :
-    evalDist (sourceGlobalExactProgramResult <$>
+    evalSPMF (sourceGlobalExactProgramResult <$>
         sourceGlobalExactTracedProgram adversary) =
-      evalDist (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) := by
+      evalSPMF (cappedDetailedGameWithKeygenCacheAndBothTraces adversary) := by
   rw [sourceGlobalExactTracedProgram_eq_trajectoryBothTraces]
   unfold cappedDetailedGameWithKeygenCacheAndBothTraces
-  rw [evalDist_bind, evalDist_bind]
+  rw [evalSPMF_bind, evalSPMF_bind]
   let project := fun view : ProgrammedGlobalChainKeygenView =>
     Concrete.materializeCachedKeyResult view.keyResult
   calc
-    _ = evalDist (project <$> trajectoryProgrammedGlobalChainKeygen) >>=
-        fun keyResult => evalDist
+    _ = evalSPMF (project <$> trajectoryProgrammedGlobalChainKeygen) >>=
+        fun keyResult => evalSPMF
           ((fun execution => (keyResult, execution)) <$>
             cappedDetailedGameAfterKeygenWithBothTraces adversary
               keyResult.1.1 keyResult.1.2 keyResult.2) := by
-      rw [evalDist_map, map_eq_bind_pure_comp, bind_assoc]
+      rw [evalSPMF_map, map_eq_bind_pure_comp, bind_assoc]
       simp [project, ProgrammedGlobalChainKeygenView.keyResult,
         Concrete.materializeCachedKeyResult]
-    _ = evalDist ((simulateQ romImpl Concrete.scheme.keygen).run ∅) >>=
-        fun keyResult => evalDist
+    _ = evalSPMF ((simulateQ romImpl Concrete.scheme.keygen).run ∅) >>=
+        fun keyResult => evalSPMF
           ((fun execution => (keyResult, execution)) <$>
             cappedDetailedGameAfterKeygenWithBothTraces adversary
               keyResult.1.1 keyResult.1.2 keyResult.2) := by
       rw [evalDist_materializedTrajectoryGlobalChainKeygen_eq_cappedKeygen]
-    _ = _ := rfl
+    _ = _ := by
+      simp only [bind_pure_comp]
 
 def SourceWinningExactFirstLaneEvent
     (result : SourceGlobalExactTracedProgramResult) : Prop :=
@@ -679,7 +680,7 @@ theorem cappedExactFirstLane_probability_eq_sourceGlobalExact
         cappedDetailedGameWithKeygenCacheAndBothTraces adversary] := by
       rw [← probEvent_map]
       exact probEvent_congr' (fun _ _ => Iff.rfl)
-        (congrArg evalDist
+        (congrArg evalSPMF
           (cappedDetailedGameWithKeygenCacheAndBothTraces_encodingProjection_eq
             adversary)).symm
     _ = Pr[WinningExactFirstLaneBadEventOccurs ∘ cappedBothEncodingProjection |
