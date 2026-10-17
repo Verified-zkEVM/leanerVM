@@ -216,5 +216,16 @@ def busSecurity (I : M3Instance) (h : Bus.Conditions I) :
     ((gkrSecurity 3 I.μBus (Bus.leaves I) (Bus.riders I)).mono fun _ ↦ by rw [overE_one])).append
     (Bus.valuesSecurity h)
 
+/-- **Knowledge soundness of the bus phase on the typed framework**, at the slot's errors
+`busErrors I`, from `Seam.commit` to `Seam.bus`, with the extractor that keeps the trivial
+witness. It computes, extractor included. -/
+def busSecurityT (I : M3Instance) (h : Bus.Conditions I) :
+    Typed.Security (busPhaseT I h) (Seam.commit I) (Seam.bus I) (busErrors I) :=
+  (((Bus.challengeSecurityT h).append (Bus.rootsSecurityT h)).append
+    ((gkrSecurityT 3 I.μBus (Bus.leaves I) (Bus.riders I)).mono (by
+      rw [overE_one]
+      exact Typed.Errors.Le.refl _ _ _))).append
+    (Bus.valuesSecurityT h)
+
 end
 end LeanerVM.Protocol
