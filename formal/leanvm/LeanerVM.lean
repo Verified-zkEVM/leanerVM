@@ -100,6 +100,10 @@ import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
+import LeanerVM.Protocol.ToArkLib.Typed.Component
+import LeanerVM.Protocol.ToArkLib.Typed.Front
+import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
+import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
@@ -251,7 +255,6 @@ import LeanerVM.Protocol.EndToEnd.Complete.Theorem
 import LeanerVM.Protocol.EndToEnd.Completeness
 import LeanerVM.Protocol.EndToEnd.Complete.Small
 import LeanerVM.Protocol.EndToEnd.Complete.Rom
-import LeanerVM.Protocol.EndToEnd.Front.BusComponent
 import LeanerVM.Protocol.EndToEnd.Front.BusDoom
 import LeanerVM.Protocol.EndToEnd.Front.BusSpec
 import LeanerVM.Protocol.EndToEnd.Front.BusGkrArk
