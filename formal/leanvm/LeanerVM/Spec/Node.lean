@@ -8,8 +8,8 @@
 module
 
 public import LeanerVM.Spec.Statement
-public import LeanerVM.Spec.Xmss
-public import LeanerVM.Spec.Sphincs
+public import XmssSecurity.Scheme
+public import Sphincs.Scheme
 public import LeanerVM.Spec.Da
 
 /-!
@@ -19,7 +19,8 @@ public import LeanerVM.Spec.Da
 
 Category B: transcribed from leanVM `a0ca7858f2533ce51abdc20bb635c007e19b26b3`,
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the outer verifier) and
-`crates/rec_aggregation/guests/lean_ethereum.py` (the guest).
+`crates/rec_aggregation/guests/lean_ethereum.py` (the guest). The signature schemes are those whose
+security `formal/xmss` and `formal/sphincs` prove, imported from their `Scheme` modules.
 
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomials that the protocol fixes (the guest's bytecode, flock's matrices), which the node

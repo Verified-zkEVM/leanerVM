@@ -112,8 +112,9 @@ jobs:
           name: sphincs-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  # `formal/leanvm` models the verifier, the guest, the prover's proofs and LeanDA, so a change
-  # to any of them re-checks it. A skipped job counts as passed for branch protection.
+  # `formal/leanvm` models the verifier, the guest, the prover's proofs and LeanDA, and imports
+  # the two signature schemes, so a change to any of them re-checks it. A skipped job counts as
+  # passed for branch protection.
   leanvm-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -127,7 +128,8 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
           elif git diff --name-only "$BASE" HEAD -- formal/leanvm crates/verifier python-verifier \
-              crates/rec_aggregation/guests crates/leanvm_core crates/lean_da .github/workflows/lean.yml | grep -q .; then
+              crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/xmss/XmssSecurity/Scheme.lean \
+              formal/sphincs/Sphincs/Scheme.lean .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -165,7 +167,7 @@ jobs:
           path: |
             formal/leanvm/.lake
             !formal/leanvm/.lake/packages/mathlib/.lake
-          key: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-${{ hashFiles('formal/leanvm/**/*.lean') }}
+          key: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-${{ hashFiles('formal/leanvm/**/*.lean', 'formal/xmss/XmssSecurity/Scheme.lean', 'formal/sphincs/Sphincs/Scheme.lean') }}
           restore-keys: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-
       # Plain `lake build` and `lake test`; the package's `warningAsError` rejects every
       # first-party warning. The audit admits only `propext`, `Classical.choice`, `Quot.sound`.

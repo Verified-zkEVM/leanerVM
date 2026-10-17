@@ -3,8 +3,10 @@
 CI is the `leanvm-formalization` job of leanVM's Lean workflow,
 [`.github/workflows/lean.yml`](../../../.github/workflows/lean.yml), beside the XMSS and SPHINCS
 formalizations. It runs on a push to `main`, on a manual dispatch, and on a pull request that
-changes this project, the workflow, or a leanVM source the project models: `crates/verifier`,
-`python-verifier`, `crates/rec_aggregation/guests`, `crates/leanvm_core` and `crates/lean_da`.
+changes this project, the workflow, a leanVM source the project models (`crates/verifier`,
+`python-verifier`, `crates/rec_aggregation/guests`, `crates/leanvm_core` and `crates/lean_da`),
+or one of the two signature schemes it imports (`formal/xmss/XmssSecurity/Scheme.lean`,
+`formal/sphincs/Sphincs/Scheme.lean`).
 A pull request that changes none of them skips it, which branch protection counts as passed, so
 it can be a required check.
 
