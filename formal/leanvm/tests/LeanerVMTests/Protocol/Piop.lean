@@ -12,15 +12,17 @@ import Mathlib.Algebra.MvPolynomial.CommRing
   rows with a push flush and a count column whose whole column is a Flock region with the BLAKE2s
   circuit's R1CS, both meet the bus phase's conditions and the degree bound. At `blocky` the
   Flock slot is the Flock phase itself.
+* **The extractor computes**: on the toy, the composed extractor's first step evaluates and reads
+  the committed stack back.
 * **The statements, by type.** The two master theorems at both instances, with the relation, the
-  seam, the extractor and the error spelled out: a change to their hypotheses or conclusions
+  extractor, the errors and the verifier spelled out: a change to their hypotheses or conclusions
   fails here.
 -/
 
 namespace LeanerVMTests.Protocol.Piop
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy OracleComp OracleSpec CompPoly
-  CPoly
+  CPoly Interaction Interaction.Oracle Interaction.Oracle.Security
 
 /-! ## The toy, with no Flock region -/
 
@@ -33,20 +35,28 @@ theorem toy_conditions : Bus.Conditions toy where
 
 example : toy.d ≤ 2 := by decide
 
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop (leanVmPhases toy toy_conditions)).perfectCompleteness init impl (M3Rel toy)
-      (Seam.done toy) :=
-  leanVm_perfectCompleteness toy toy_conditions (by decide) init impl
+example (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K)
+    (q : Column toy.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    Pr{let x ← (leanVmPiop (leanVmPhases toy toy_conditions) initial).execute impl input q}[
+      x.2.2 = some ()] = 1 :=
+  leanVm_perfectCompleteness toy toy_conditions (by decide) initial impl input q h
 
 /-- The verifier at the toy. -/
-abbrev toyVerifier := (leanVmVerifier (leanVmPhases toy toy_conditions)).toVerifier
+abbrev toyVerifier := leanVmVerifier (leanVmPhases toy toy_conditions)
 
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    toyVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy) (Seam.done toy)
-      (leanVmSecurity toy toy_conditions (by decide)).extraction.witMid
-      (piopExtractor _ (leanVmSecurity toy toy_conditions (by decide)))
-      ((leanVmSecurity toy toy_conditions (by decide)).extraction.kSF init impl) (piopError toy) :=
-  leanVm_rbrKnowledgeSoundness toy toy_conditions (by decide) init impl
+example (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : K) :
+    ∃ cert : KnowledgeCertificate (piopSlot toy).tree (piopSlot toy).roles
+        ⟨Column toy.μ, M3Holds toy s⟩,
+      cert.extractor = piopExtractor _ (leanVmSecurity toy toy_conditions (by decide)) s ∧
+      cert.challenges = Typed.schedule (piopSlot toy).tree (piopSlot toy).roles
+        (piopSlot toy).samplers (piopErrors toy) ∧
+      SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot toy).tree (piopSlot toy).roles
+        (piopSlot toy).oracles initial impl _ (toyVerifier initial s) cert.challenges :=
+  leanVm_knowledgeSoundness toy toy_conditions (by decide) initial impl s
+
+-- The composed extractor computes: its commitment step reads the honest stack back.
+#guard ((piopExtractor _ (leanVmSecurity toy toy_conditions (by decide)) (1 : K) honest).2.1
+  ()).values = honest.values
 
 /-! ## An instance with a Flock region -/
 
@@ -101,20 +111,19 @@ theorem blocky_conditions : Bus.Conditions blocky where
 
 example : blocky.flock.isSome := rfl
 
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop (leanVmPhases blocky blocky_conditions)).perfectCompleteness init impl
-      (M3Rel blocky) (Seam.done blocky) :=
-  leanVm_perfectCompleteness blocky blocky_conditions (by decide) init impl
+example (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : Unit)
+    (q : Column blocky.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel blocky) :
+    Pr{let x ← (leanVmPiop (leanVmPhases blocky blocky_conditions) initial).execute impl input q}[
+      x.2.2 = some ()] = 1 :=
+  leanVm_perfectCompleteness blocky blocky_conditions (by decide) initial impl input q h
 
-/-- The verifier at `blocky`. -/
-abbrev blockyVerifier := (leanVmVerifier (leanVmPhases blocky blocky_conditions)).toVerifier
-
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    blockyVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel blocky) (Seam.done blocky)
-      (leanVmSecurity blocky blocky_conditions (by decide)).extraction.witMid
-      (piopExtractor _ (leanVmSecurity blocky blocky_conditions (by decide)))
-      ((leanVmSecurity blocky blocky_conditions (by decide)).extraction.kSF init impl)
-      (piopError blocky) :=
-  leanVm_rbrKnowledgeSoundness blocky blocky_conditions (by decide) init impl
+/-- The knowledge certificate at `blocky`, with the composed extractor and the slots' errors. -/
+example (initial : PFunctor.{0, 0}) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id)
+    (s : Unit) :
+    ∃ cert : KnowledgeCertificate (piopSlot blocky).tree (piopSlot blocky).roles
+        ⟨Column blocky.μ, M3Holds blocky s⟩,
+      cert.extractor = piopExtractor _ (leanVmSecurity blocky blocky_conditions (by decide)) s :=
+  have ⟨cert, h, _⟩ := leanVm_knowledgeSoundness blocky blocky_conditions (by decide) initial impl s
+  ⟨cert, h⟩
 
 end LeanerVMTests.Protocol.Piop

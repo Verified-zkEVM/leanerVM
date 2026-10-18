@@ -12,6 +12,8 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.QueryCheck
 public import LeanerVM.Protocol.ToArkLib.WeightBatch
+public import LeanerVM.Protocol.ToArkLib.Typed.Batch
+public import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.ClaimWeights
 
 /-!
@@ -214,6 +216,30 @@ def openingSecurity :
     (Component.batchQuerySecurity (TheOracle I) E (Opening.values I) (Opening.batched I) _
       (Opening.check I) _ (relMid := Opening.BatchedHolds I) (Opening.answers_of_not_flock I)
       fun c o _ hc _ ↦ (Opening.answer_weight_iff I o c).mp ((Opening.accepts_iff I c _).mp hc))
+
+/-! ## The phase on the typed framework
+
+The opening phase as a typed component is the batching alone, at the opening's slot: the question
+to the stack is the spine's (`stackQuestion`), asked at the protocol's leaf, so the phase reaches
+`Seam.opened`, the batched claim holding of the stack. -/
+
+/-- The opening phase, typed: batching by powers into the batched claim. -/
+def openingT : Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit
+    openingSlot :=
+  Typed.batch (TheOracle I) E (Opening.values I) (Opening.batched I)
+
+/-- The typed completeness half. -/
+theorem openingCompleteT : Typed.Complete (openingT I) (Seam.flock I) (Seam.opened I) :=
+  Typed.batchComplete fun _ o w h ρ ↦ (Seam.opened_iff I _ o w).mpr (Opening.batched_of_flock I h ρ)
+
+/-- The typed security half, at the slot's error, with the extractor that keeps the trivial
+witness. -/
+def openingSecurityT :
+    Typed.Security (openingT I) (Seam.flock I) (Seam.opened I) (openingErrors I) :=
+  Typed.Security.mono (by exact ⟨le_of_eq (natCast_div_card_eq_overE _), fun _ ↦ trivial⟩)
+    (Typed.batchSecurity fun s o ↦
+      have ⟨a, ha⟩ := Opening.answers_of_not_flock I s o
+      ⟨a, fun w ρ hin hout ↦ ha w ρ hin ((Seam.opened_iff I _ o w).mp hout)⟩)
 
 end
 end LeanerVM.Protocol

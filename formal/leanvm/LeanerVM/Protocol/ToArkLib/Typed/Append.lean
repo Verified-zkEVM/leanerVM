@@ -97,6 +97,31 @@ theorem Errors.Le.append : (t₁ : Oracle.TypeTree.{0}) → (r₁ : t₁.RoleDec
   | .oracle _ next, roles, _, _, h₁, _, _, _, _, h₂ =>
       Errors.Le.append (next PUnit.unit) (roles.2 PUnit.unit) h₁ h₂
 
+/-- The errors side by side, summed along a path: the first's along its first piece, plus the
+second's along the rest. -/
+theorem Errors.along_append : (t₁ : Oracle.TypeTree.{0}) → (r₁ : t₁.RoleDecoration) →
+    (e₁ : Errors t₁ r₁) → {t₂ : Oracle.TypeTree.{0}} → {r₂ : t₂.RoleDecoration} →
+    (e₂ : Errors t₂ r₂) →
+    (path : Oracle.TypeTree.BranchPath (PFunctor.FreeM.append t₁ fun _ ↦ t₂)) →
+    Errors.along _ _ (Errors.append t₁ r₁ e₁ e₂) path =
+      Errors.along t₁ r₁ e₁ (PFunctor.FreeM.Path.split t₁ _ path).1 +
+        Errors.along t₂ r₂ e₂ (PFunctor.FreeM.Path.split t₁ _ path).2
+  | .done, _, _, _, _, _, _ => (zero_add _).symm
+  | .public _ next, ⟨.sender, roles⟩, e₁, _, _, e₂, path =>
+      Errors.along_append (next path.1) (roles path.1) (e₁ path.1) e₂ path.2
+  | .public _ next, ⟨.receiver, roles⟩, e₁, _, _, e₂, path =>
+      (congrArg (e₁.1 + ·) (Errors.along_append (next path.1) (roles path.1) (e₁.2 path.1) e₂
+        path.2)).trans (add_assoc _ _ _).symm
+  | .oracle _ next, roles, e₁, _, _, e₂, path =>
+      Errors.along_append (next PUnit.unit) (roles.2 PUnit.unit) e₁ e₂ path.2
+
+/-- Bounds add side by side. -/
+theorem Errors.Bounded.append {t₁ : Oracle.TypeTree.{0}} {r₁ : t₁.RoleDecoration}
+    {e₁ : Errors t₁ r₁} {c₁ : ℝ≥0} (h₁ : Errors.Bounded t₁ r₁ e₁ c₁) {t₂ : Oracle.TypeTree.{0}}
+    {r₂ : t₂.RoleDecoration} {e₂ : Errors t₂ r₂} {c₂ : ℝ≥0} (h₂ : Errors.Bounded t₂ r₂ e₂ c₂) :
+    Errors.Bounded _ _ (Errors.append t₁ r₁ e₁ e₂) (c₁ + c₂) :=
+  fun path ↦ (Errors.along_append t₁ r₁ e₁ e₂ path).trans_le (add_le_add (h₁ _) (h₂ _))
+
 /-- A prover on a tree, then, from its output, a prover on a second tree. -/
 def proverAppend : (t₁ : Oracle.TypeTree.{0}) → (r₁ : t₁.RoleDecoration) → {A : Type} →
     Prover.Strategy unifSpec t₁ r₁ (fun _ ↦ A) → {t₂ : Oracle.TypeTree.{0}} →

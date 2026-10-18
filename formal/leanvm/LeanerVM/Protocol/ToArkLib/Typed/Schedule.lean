@@ -25,6 +25,10 @@ charges:
 
 A component built by appending components at these slots has the slot in its type by the
 definitions alone, as the legacy components have their schedules.
+
+The errors summed along every path are bounded in closed form (`Errors.Bounded`): `m · e` for
+`m` rounds, `k · e` for `k` challenges, and for the grand-product argument
+`((μ + 1)(nside − 1) + 2μ² + 3μ + 3) · u` (`gkrErrors_bounded`).
 -/
 
 namespace LeanerVM.Protocol.Typed
@@ -145,6 +149,96 @@ abbrev gkrErrors (u : ℝ≥0) (nside μ : ℕ) :
     Errors (gkrSlot C nside μ).tree (gkrSlot C nside μ).roles :=
   Errors.append (oddSlot C nside (μ % 2)).tree (oddSlot C nside (μ % 2)).roles
     (oddErrors C nside u (μ % 2)) (stepsErrors C nside u (μ / 2) (μ % 2))
+
+/-! ## Bounds along a path -/
+
+/-- No error on the empty slot. -/
+theorem doneErrors_bounded : Errors.Bounded doneSlot.tree doneSlot.roles doneErrors 0 :=
+  fun _ ↦ le_rfl
+
+/-- No error on a message. -/
+theorem sayErrors_bounded (M : Type) : Errors.Bounded (sayTree M) (sayRoles M) (sayErrors M) 0 :=
+  fun _ ↦ le_rfl
+
+omit [SampleableType C] in
+/-- A challenge's error. -/
+theorem drawErrors_bounded (e : ℝ≥0) : Errors.Bounded (drawTree C) (drawRoles C) (drawErrors C e) e :=
+  fun _ ↦ le_of_eq (add_zero e)
+
+/-- A round's error. -/
+theorem roundErrors_bounded (d : ℕ) (e : ℝ≥0) :
+    Errors.Bounded (roundSlot C d).tree (roundSlot C d).roles (roundErrors C d e) e :=
+  ((sayErrors_bounded _).append (drawErrors_bounded C e)).mono (zero_add e).le
+
+/-- `m` rounds' errors: `m · e`. -/
+theorem roundsErrors_bounded (d : ℕ) (e : ℝ≥0) : (m : ℕ) →
+    Errors.Bounded (roundsSlot C d m).tree (roundsSlot C d m).roles (roundsErrors C d e m) (m * e)
+  | 0 => doneErrors_bounded.mono (by simp)
+  | m + 1 => ((roundErrors_bounded C d e).append (roundsErrors_bounded d e m)).mono
+      (le_of_eq (by push_cast; ring))
+
+/-- `k` challenges' errors: `k · e`. -/
+theorem drawsErrors_bounded (e : ℝ≥0) : (k : ℕ) →
+    Errors.Bounded (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrors C e k) (k * e)
+  | 0 => doneErrors_bounded.mono (by simp)
+  | k + 1 => ((drawsErrors_bounded e k).append (drawErrors_bounded C e)).mono
+      (le_of_eq (by push_cast; ring))
+
+/-- `k` challenges' errors `f p`: their sum. -/
+theorem drawsErrorsOf_bounded (f : ℕ → ℝ≥0) : (k : ℕ) →
+    Errors.Bounded (drawsSlot C k).tree (drawsSlot C k).roles (drawsErrorsOf C f k)
+      (∑ p ∈ Finset.range k, f p)
+  | 0 => doneErrors_bounded.mono (by simp)
+  | k + 1 => ((drawsErrorsOf_bounded f k).append (drawErrors_bounded C (f k))).mono
+      (le_of_eq (Finset.sum_range_succ f k).symm)
+
+/-- One layer's errors: the combiner's, `2 ^ ρ · u` per round, `u` per combination challenge. -/
+theorem stepErrors_bounded (nside ρ m : ℕ) (combiner u : ℝ≥0) :
+    Errors.Bounded (stepSlot C nside ρ m).tree (stepSlot C nside ρ m).roles
+      (stepErrors C nside ρ m combiner u) (combiner + m * (((2 ^ ρ : ℕ) : ℝ≥0) * u) + ρ * u) :=
+  ((((drawErrors_bounded C combiner).append (roundsErrors_bounded C (2 ^ ρ) _ m)).append
+    (sayErrors_bounded _)).append (drawsErrors_bounded C u ρ)).mono (le_of_eq (by ring))
+
+/-- `k` layers of radix four from depth `m`. -/
+theorem stepsErrors_bounded (nside : ℕ) (u : ℝ≥0) : (k m : ℕ) →
+    Errors.Bounded (stepsSlot C nside k m).tree (stepsSlot C nside k m).roles
+      (stepsErrors C nside u k m) (((k * ((nside - 1) + (m + 2 * k) * 4 + 2) : ℕ) : ℝ≥0) * u)
+  | 0, _ => doneErrors_bounded.mono (by simp)
+  | k + 1, m => by
+    refine ((stepErrors_bounded C nside 2 m _ u).append (stepsErrors_bounded nside u k (m + 2))).mono ?_
+    have hnat : (nside - 1) + m * 2 ^ 2 + 2 + k * ((nside - 1) + (m + 2 + 2 * k) * 4 + 2) ≤
+        (k + 1) * ((nside - 1) + (m + 2 * (k + 1)) * 4 + 2) := by
+      nlinarith
+    calc _ = (((nside - 1) + m * 2 ^ 2 + 2 + k * ((nside - 1) + (m + 2 + 2 * k) * 4 + 2) : ℕ) :
+          ℝ≥0) * u := by
+          push_cast
+          ring
+      _ ≤ _ := mul_le_mul_of_nonneg_right (Nat.cast_le.mpr hnat) zero_le
+
+/-- The binary layer. -/
+theorem oddErrors_bounded (nside : ℕ) (u : ℝ≥0) : (r : ℕ) →
+    Errors.Bounded (oddSlot C nside r).tree (oddSlot C nside r).roles (oddErrors C nside u r)
+      ((((nside - 1) + 1 : ℕ) : ℝ≥0) * u)
+  | 0 => doneErrors_bounded.mono zero_le
+  | _ + 1 => (stepErrors_bounded C nside 1 0 _ u).mono (le_of_eq (by push_cast; ring))
+
+/-- **The grand-product argument's errors**: at most
+`((μ + 1)(nside − 1) + 2μ² + 3μ + 3) · u` along every path. -/
+theorem gkrErrors_bounded (u : ℝ≥0) (nside μ : ℕ) :
+    Errors.Bounded (gkrSlot C nside μ).tree (gkrSlot C nside μ).roles (gkrErrors C u nside μ)
+      ((((μ + 1) * (nside - 1) + 2 * μ * μ + 3 * μ + 3 : ℕ) : ℝ≥0) * u) := by
+  refine ((oddErrors_bounded C nside u (μ % 2)).append
+    (stepsErrors_bounded C nside u (μ / 2) (μ % 2))).mono ?_
+  have hnat : (nside - 1) + 1 + μ / 2 * ((nside - 1) + (μ % 2 + 2 * (μ / 2)) * 4 + 2) ≤
+      (μ + 1) * (nside - 1) + 2 * μ * μ + 3 * μ + 3 := by
+    rw [Nat.mod_add_div μ 2]
+    have hk : μ / 2 * 2 ≤ μ := Nat.div_mul_le_self μ 2
+    nlinarith [Nat.mul_le_mul_right (nside - 1) hk, Nat.mul_le_mul_right μ hk]
+  calc _ = (((nside - 1) + 1 + μ / 2 * ((nside - 1) + (μ % 2 + 2 * (μ / 2)) * 4 + 2) : ℕ) :
+        ℝ≥0) * u := by
+        push_cast
+        ring
+    _ ≤ _ := mul_le_mul_of_nonneg_right (Nat.cast_le.mpr hnat) zero_le
 
 end
 end LeanerVM.Protocol.Typed

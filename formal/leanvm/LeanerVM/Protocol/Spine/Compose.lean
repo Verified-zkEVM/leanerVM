@@ -1,238 +1,254 @@
 /-
   LeanerVM.Protocol.Spine.Compose
 
-  The commit phase, the bundle of the five other phases at their slots, the composed oracle
-  protocol, its extractor and the stack it extracts, and the two master theorems.
+  The oracle protocol on ArkLib's typed framework: the commitment, the bundle of the five phases
+  at their slots, the composed protocol, its extractor and the stack it extracts, and the two
+  master theorems.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.SendOracle
-public import LeanerVM.Protocol.ToArkLib.ExtractIn
-public import LeanerVM.Protocol.Spine.Phase
-public import LeanerVM.Protocol.Spine.Errors
+public import LeanerVM.Protocol.Spine.Slots
 
 /-!
 # The oracle protocol and its master theorems
 
-The oracle protocol is `commit ⟫ bus ⟫ table ⟫ pub ⟫ flock ⟫ opening`. The commit phase sends
-the stack as the one oracle message; it is the send-oracle component of
-`LeanerVM.Protocol.ToArkLib.SendOracle` at the stack, both its proofs included. The five other
-phases are the fields of a `Phases I`, each at its slot's schedule (`LeanerVM.Protocol.Spine.
-Errors`), the four before the opening as front phases that never query the stack; their proofs
-are the fields of `Phases.Complete` and `Phases.Security`, the latter at the slots' errors. The
-protocol starts from `M3Rel I` and ends with nothing left to check.
+The oracle protocol is the stack sent as an oracle message, then `bus ⟫ table ⟫ pub ⟫ flock ⟫
+opening`, then one question to the stack (`stackQuestion`): the commit-reduce-open protocol of
+`LeanerVM.Protocol.ToArkLib.Typed.Commit` at the stack, over the five phases in sequence. The five
+phases are the fields of a `Phases I`, each a typed front component at its slot
+(`LeanerVM.Protocol.Spine.Slots`), so that none can query the stack; their proofs are the fields of
+`Phases.Complete` and `Phases.Security`, the latter at the slots' errors. The opening ends in
+`Seam.opened`: the final weighted claim holds of the stack, which is what the question checks.
+The protocol starts from `M3Holds` of the statement and the stack and ends with nothing left to
+check (`Seam.done`).
 
-`piop_perfectCompleteness`: given every phase's completeness, the honest prover convinces the
-verifier with probability one on every stack satisfying `M3Holds`.
-`piop_rbrKnowledgeSoundness`: given every phase's security, the verifier is round-by-round
-knowledge sound at `piopError I`, the slots' errors side by side, for the extractor
-`piopExtractor`: the commit phase's, which reads the stack off the first message, followed by
-the phases' own, each appended through the verdict of the verifiers before it. The composition
-across phases is proved (`Component.Security.append`). The stack the extractor returns on a
-transcript, `piopExtractedStack`, is the committed message, whatever the phases' extractors do
-(`piopExtractedStack_eq`).
-`piop_rbrKnowledgeSoundness_exists` is the same with the extractor forgotten. Its plain reading,
-"a straight-line extractor returns a stack satisfying `M3Holds` except with probability the sum
-of `piopError`", is ArkLib's `rbrKnowledgeSoundness_implies_knowledgeSoundness`, admitted at the
-pinned revision.
+`piop_completeness`: given every phase's completeness, on every statement and stack satisfying
+`M3Holds` every outcome of the honest execution is accepted; `piop_perfectCompleteness` is its
+reading as probability one. `piop_knowledgeSoundness`: given every phase's security, the protocol
+has a knowledge certificate (round-by-round knowledge soundness, worst case over prefixes) from
+`M3Holds` at `piopErrors I`, the slots' errors side by side, for the named extractor
+`piopExtractor` (the commitment's step, which reads the stack off the message, then the phases'
+own, composed by ArkLib's composition of backward witness maps), whose terminal state is
+`Seam.done` at the verifier's output (`piopTerminal`) and whose challenges the verifier draws. The
+stack the extractor returns on a path is the committed message (`piopExtractedStack_eq`), and a
+path the verifier accepts on whose committed stack `M3Holds` fails has a bad challenge
+(`piop_badChallenge`, ArkLib's `extraction_failure_implies_bad_challenge`).
 
-Both theorems are stated in the ideal oracle model, over an abstract instance, and are
-conditional only on the phases' proofs; the compiled verifier and the leanISA instance are built
-on top of them.
+Both theorems are stated in the ideal oracle model, over an abstract instance, and are conditional
+only on the phases' proofs; `LeanerVM.Protocol.Piop` fills them at every instance.
 -/
 
 namespace LeanerVM.Protocol
 
-open OracleComp OracleSpec ProtocolSpec
-open scoped NNReal
+open Interaction Interaction.TwoParty Interaction.Oracle Interaction.Oracle.Security
+open OracleComp OracleSpec Typed
+open scoped NNReal ENNReal
 
 @[expose] public section
 
 variable (I : M3Instance)
 
-/-! ## The commit phase -/
+/-! ## Slots and errors -/
 
-/-- The commit phase: the prover sends the stack, the verifier keeps the statement and exposes
-the message as the oracle. No challenge. -/
-abbrev commitDef : Component.Def I.Stmt NoOracle (Column I.μ) I.Stmt (TheOracle I) Unit
-    (commitSpec I) :=
-  Component.sendOracle I.Stmt (Column I.μ)
+/-- The slot of the five phases: the bus, the table sumcheck, the public input, Flock and the
+opening, side by side. -/
+abbrev phasesSlot : Slot :=
+  ((((busSlot I).append (tableSlot I)).append pubSlot).append (flockPhaseSlot I)).append
+    openingSlot
 
-/-- Its extractor: read the stack off the message. -/
-abbrev commitExtractor := Component.sendExtractor (S := I.Stmt) (M := Column I.μ)
+/-- The protocol's slot: the stack as an oracle message, then the five phases. -/
+abbrev piopSlot : Slot := commitSlot (Column I.μ) (phasesSlot I)
 
-/-- Perfect completeness of the commit phase: on `M3Holds I input q`, sending `q` lands in
-`Seam.commit`, which is `M3Holds` of the message. -/
-def commitComplete : Component.Complete (commitDef I) (M3Rel I) (Seam.commit I) :=
-  Component.sendOracleComplete (M3Rel I)
+/-- The protocol's errors: the five slots' side by side; the commitment has no challenge. -/
+noncomputable abbrev piopErrors : Errors (piopSlot I).tree (piopSlot I).roles :=
+  Errors.append _ _ (Errors.append _ _ (Errors.append _ _ (Errors.append (busSlot I).tree
+    (busSlot I).roles (busErrors I) (tableErrors I)) pubErrors) (flockErrors I)) (openingErrors I)
 
-/-- Knowledge soundness of the commit phase, at error zero. -/
-def commitSecurity : Component.Security (commitDef I) (M3Rel I) (Seam.commit I) (commitError I) :=
-  Component.sendOracleSecurity (M3Rel I)
+/-- **The protocol's error is small at admissible sizes.** With the bus's leaf stacks of
+log-height at most 30, tables of log-height at most 32, at most `2^16` constraints, at most `2^32`
+batched compressions and at most `2^16` pooled claims, the errors along every path sum to at most
+`(2^32 + 2^31 + 2^20) / |E|`, less than `2^{-159}`, the fingerprint's `2^32` and the ring
+switching's `2^31` dominating. -/
+theorem piopErrors_bounded (hμ : I.μBus ≤ 30) (hτ : I.τmax ≤ 32) (hB : I.B ≤ 2 ^ 16)
+    (hk : ∀ r ∈ I.flock, r.kBatch ≤ 32) (hJ : I.poolSize ≤ 2 ^ 16) :
+    Errors.Bounded (piopSlot I).tree (piopSlot I).roles (piopErrors I)
+      (overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20)) := by
+  have h := ((((busErrors_bounded I).append (tableErrors_bounded I)).append
+    pubErrors_bounded).append (flockErrors_bounded I hk)).append (openingErrors_bounded I)
+  refine fun path ↦ (h path.2).trans (le_of_eq_of_le (b := overE (4 * 2 ^ I.μBus +
+    ((I.μBus + 1) * 2 + 2 * I.μBus * I.μBus + 3 * I.μBus + 3) + (I.B + 2 + I.τmax * 3) + 1 +
+    (4 * 32 + 302 + 2 ^ 31 + 2 ^ 15) + (I.poolSize - 1))) ?_ (overE_mono ?_))
+  · simp only [nat_mul_overE, overE_add]
+  · have h2μ : 2 ^ I.μBus ≤ 2 ^ 30 := Nat.pow_le_pow_right (by norm_num) hμ
+    have hμμ : I.μBus * I.μBus ≤ 30 * 30 := Nat.mul_le_mul hμ hμ
+    have hμμ' : 2 * I.μBus * I.μBus = 2 * (I.μBus * I.μBus) := by ring
+    rw [hμμ']
+    omega
 
 /-! ## The bundle of phases -/
 
-/-- The five phases after the commit, each at its slot. -/
+/-- The five phases after the commitment, each a typed front component at its slot. -/
 structure Phases where
   /-- The bus phase: from `M3Holds` of the oracle to the point, the forms and the boundary
   claims (§5.2 to §5.4). -/
-  bus : Phase.FrontDef I I.Stmt (I.Stmt × BusOut I) (busSpec I)
+  bus : Typed.Def (TheOracle I) I.Stmt Unit (I.Stmt × BusOut I) Unit (busSlot I)
   /-- The table sumcheck: from the forms to column claims (§5.5). -/
-  table : Phase.FrontDef I (I.Stmt × BusOut I) (I.Stmt × TableOut I) (tableSpec I)
+  table : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit (I.Stmt × TableOut I) Unit
+    (tableSlot I)
   /-- The public-input phase: the public lines become column claims (§8.2). -/
-  pub : Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec
+  pub : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit pubSlot
   /-- The Flock phase: the Flock predicate becomes a weighted claim (Annex C). -/
-  flock : Phase.FrontDef I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpec I)
-  /-- The opening phase: the pool is batched and opened against the oracle (§8.5). -/
-  opening : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec
+  flock : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
+    (flockPhaseSlot I)
+  /-- The opening phase: the pool is batched into one weighted claim, which the protocol's
+  question then asks the stack (§8.5). -/
+  opening : Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit openingSlot
 
 variable {I}
 
-/-- The whole protocol as one component. -/
+/-- The five phases in sequence. -/
 def Phases.toDef (P : Phases I) :
-    Component.Def I.Stmt NoOracle (Column I.μ) Unit (TheOracle I) Unit (piopSpec I) :=
-  (((((commitDef I).append P.bus.toDef).append P.table.toDef).append P.pub.toDef).append
-    P.flock.toDef).append P.opening
+    Typed.Def (TheOracle I) I.Stmt Unit (WeightedClaim I) Unit (phasesSlot I) :=
+  (((P.bus.append P.table).append P.pub).append P.flock).append P.opening
 
 /-- The completeness halves of the five phases, against the seams. -/
-structure Phases.Complete (P : Phases I) where
+structure Phases.Complete (P : Phases I) : Prop where
   /-- The bus phase's. -/
-  bus : Phase.Complete I P.bus.toDef (Seam.commit I) (Seam.bus I)
+  bus : Typed.Complete P.bus (Seam.commit I) (Seam.bus I)
   /-- The table sumcheck's. -/
-  table : Phase.Complete I P.table.toDef (Seam.bus I) (Seam.table I)
+  table : Typed.Complete P.table (Seam.bus I) (Seam.table I)
   /-- The public-input phase's. -/
-  pub : Phase.Complete I P.pub.toDef (Seam.table I) (Seam.pub I)
+  pub : Typed.Complete P.pub (Seam.table I) (Seam.pub I)
   /-- The Flock phase's. -/
-  flock : Phase.Complete I P.flock.toDef (Seam.pub I) (Seam.flock I)
+  flock : Typed.Complete P.flock (Seam.pub I) (Seam.flock I)
   /-- The opening phase's. -/
-  opening : Phase.Complete I P.opening (Seam.flock I) (Seam.done I)
+  opening : Typed.Complete P.opening (Seam.flock I) (Seam.opened I)
 
-/-- The whole protocol's completeness: the commit phase's, then five compositions. -/
-def Phases.Complete.toDef {P : Phases I} (C : P.Complete) :
-    Component.Complete P.toDef (M3Rel I) (Seam.done I) :=
-  (((((commitComplete I).append C.bus).append C.table).append C.pub).append C.flock).append
-    C.opening
+/-- The five phases' completeness in sequence. -/
+theorem Phases.Complete.toDef {P : Phases I} (C : P.Complete) :
+    Typed.Complete P.toDef (Seam.commit I) (Seam.opened I) :=
+  (((C.bus.append C.table).append C.pub).append C.flock).append C.opening
 
 /-- The security halves of the five phases, against the seams, at the slots' errors. -/
 structure Phases.Security (P : Phases I) where
   /-- The bus phase's. -/
-  bus : Phase.Security I P.bus.toDef (Seam.commit I) (Seam.bus I) (busError I)
+  bus : Typed.Security P.bus (Seam.commit I) (Seam.bus I) (busErrors I)
   /-- The table sumcheck's. -/
-  table : Phase.Security I P.table.toDef (Seam.bus I) (Seam.table I) (tableError I)
+  table : Typed.Security P.table (Seam.bus I) (Seam.table I) (tableErrors I)
   /-- The public-input phase's. -/
-  pub : Phase.Security I P.pub.toDef (Seam.table I) (Seam.pub I) pubError
+  pub : Typed.Security P.pub (Seam.table I) (Seam.pub I) pubErrors
   /-- The Flock phase's. -/
-  flock : Phase.Security I P.flock.toDef (Seam.pub I) (Seam.flock I) (flockError I)
+  flock : Typed.Security P.flock (Seam.pub I) (Seam.flock I) (flockErrors I)
   /-- The opening phase's. -/
-  opening : Phase.Security I P.opening (Seam.flock I) (Seam.done I) (openingError I)
+  opening : Typed.Security P.opening (Seam.flock I) (Seam.opened I) (openingErrors I)
 
-/-- The whole protocol's security: the commit phase's, then five compositions, at
-`piopError I`. It computes, since the compositions are inlined before compilation and the
-slots' errors stay in types; its extractor is written out as `piopExtractor`. -/
+/-- The five phases' security in sequence, at the slots' errors side by side. It computes: the
+compositions are inlined before compilation and the errors stay in types. -/
 def Phases.Security.toDef {P : Phases I} (S : P.Security) :
-    Component.Security P.toDef (M3Rel I) (Seam.done I) (piopError I) :=
-  (((((commitSecurity I).append S.bus).append S.table).append S.pub).append S.flock).append
-    S.opening
-
-/-- The whole protocol's extraction: the one `Phases.Security.toDef` carries, named so that
-`piopExtractor` reads it. -/
-def Phases.Security.extraction {P : Phases I} (S : P.Security) :
-    Component.Extraction P.toDef (M3Rel I) (Seam.done I) :=
-  S.toDef.toExtraction
+    Typed.Security P.toDef (Seam.commit I) (Seam.opened I) (piopErrors I) :=
+  (((S.bus.append S.table).append S.pub).append S.flock).append S.opening
 
 /-! ## The oracle protocol -/
 
-/-- The oracle protocol: the commit phase, then the five phases of `P`. -/
-def leanVmPiop (P : Phases I) :
-    OracleReduction []ₒ I.Stmt NoOracle (Column I.μ) Unit (TheOracle I) Unit (piopSpec I) :=
-  P.toDef.red
+/-- The oracle protocol as an ArkLib oracle reduction: the statement public, the stack the
+witness, sent as the first message; `initial` is whatever the verifier may query before it. -/
+def leanVmPiop (P : Phases I) (initial : PFunctor) :=
+  commitReduction P.toDef (stackQuestion I) initial
 
-/-- Its verifier. -/
-def leanVmVerifier (P : Phases I) :
-    OracleVerifier []ₒ I.Stmt NoOracle Unit (TheOracle I) (piopSpec I) :=
-  P.toDef.red.verifier
+/-- Its verifier at a statement. -/
+def leanVmVerifier (P : Phases I) (initial : PFunctor) (s : I.Stmt) :=
+  commitVerifier P.toDef (stackQuestion I) initial s
 
-/-- Its honest prover. -/
-def leanVmProver (P : Phases I) :
-    OracleProver []ₒ I.Stmt NoOracle (Column I.μ) Unit (TheOracle I) Unit (piopSpec I) :=
-  P.toDef.red.prover
+/-- The verifier's verdict on an execution path: the five phases' verdicts in sequence, then the
+stack's answer to the final claim checked. -/
+def piopVerdict (P : Phases I) (s : I.Stmt) (path : (piopSlot I).tree.ExecutionPath) :
+    Option Unit :=
+  commitVerdict P.toDef (stackQuestion I) s path
 
-/-- Its extractor: the commit phase's, which reads the stack off the first message, followed by
-the five phases', each appended through the verdict of the verifiers before it. -/
-def piopExtractor (P : Phases I) (S : P.Security) :
-    Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) (I.Stmt × ∀ i, NoOracle i)
-      (Column I.μ) Unit (piopSpec I) S.extraction.witMid :=
-  S.extraction.extractor
-
-/-- The stack the extractor returns on a transcript: the fold of the phases' extractors down to
-the commit round. -/
-def piopExtractedStack (P : Phases I) (S : P.Security) (s : I.Stmt × ∀ i, NoOracle i)
-    (tr : (piopSpec I).FullTranscript) : Column I.μ :=
-  Extractor.RoundByRound.extractIn (piopExtractor P S) s tr ()
-
-/-- The first round of the protocol is the commit message. -/
-private theorem zero_lt_piopRounds : 0 < piopRounds I := by
-  simp only [piopRounds]
-  omega
-
-/-- The extractor's first step reads the commit message: the commit phase's step does, and a
-composition keeps the first step of its first part. -/
-private theorem piopExtractor_readsFirst (P : Phases I) (S : P.Security) :
-    Extractor.RoundByRound.ReadsFirst (piopExtractor P S) := by
-  unfold piopExtractor Phases.Security.extraction Phases.Security.toDef
-  simp only [Component.Security.append, Component.Extraction.append, commitSecurity,
-    Component.sendOracleSecurity]
-  exact Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
-    (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
-      (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
-        (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
-          (Extractor.RoundByRound.readsFirst_append _ _ _ (by omega)
-            Component.sendExtractor_readsFirst))))
-
-/-- **The extractor reads the stack.** On every transcript the extracted stack is the committed
-message, the first entry of the commit phase's part of the transcript, whatever the five
-phases' extractors do: the fold of the extractors ends with the first round's step, which is
-the commit phase's, and that step reads its message. -/
-theorem piopExtractedStack_eq (P : Phases I) (S : P.Security) (s : I.Stmt × ∀ i, NoOracle i)
-    (tr : (piopSpec I).FullTranscript) :
-    piopExtractedStack P S s tr = tr.fst.fst.fst.fst.fst 0 := by
-  apply eq_of_heq
-  refine (Extractor.RoundByRound.extractIn_heq_of_readsFirst _ (piopExtractor_readsFirst P S)
-    zero_lt_piopRounds s tr ()).trans ?_
-  exact ((FullTranscript.fst_heq tr.fst.fst.fst.fst 0).trans
-    ((FullTranscript.fst_heq tr.fst.fst.fst _).trans ((FullTranscript.fst_heq tr.fst.fst _).trans
-      ((FullTranscript.fst_heq tr.fst _).trans (FullTranscript.fst_heq tr _))))).symm
+/-- **The verifier outputs the verdict**: on every outcome of an execution, with any prover, the
+verifier's output is the verdict on the execution path. -/
+theorem piop_output (P : Phases I) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : I.Stmt) {A : Type}
+    (p : Prover.Strategy unifSpec (piopSlot I).tree (piopSlot I).roles fun _ ↦ A) :
+    ∀ x ∈ support (executeStrategies unifSpec (piopSlot I).tree (piopSlot I).roles
+      (piopSlot I).oracles initial impl p (leanVmVerifier P initial s)),
+      x.2.2 = piopVerdict P s x.1 :=
+  fun x hx ↦ (commit_output P.toDef (stackQuestion I) initial impl s p x hx).2
 
 /-! ## The master theorems -/
 
-/-- **Perfect completeness.** On every `(input, q)` with `M3Holds I input q`, the honest prover
+/-- **Completeness.** On every statement and stack with `M3Holds`, every outcome of the honest
+execution, for any input oracles, sends the stack and is accepted. -/
+theorem piop_completeness (P : Phases I) (C : P.Complete) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    ∀ x ∈ support ((leanVmPiop P initial).execute impl input q),
+      x.1.1 = q ∧ x.2.2 = some () ∧ (((), sent q), ()) ∈ Seam.done I :=
+  commit_complete (relIn := M3Holds I) C.toDef initial impl input q h
+
+/-- **Perfect completeness.** On every statement and stack with `M3Holds`, the honest prover
 convinces the verifier with probability one. -/
-theorem piop_perfectCompleteness (P : Phases I) (C : P.Complete) {σ : Type}
-    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop P).perfectCompleteness init impl (M3Rel I) (Seam.done I) :=
-  C.toDef.complete init impl
+theorem piop_perfectCompleteness (P : Phases I) (C : P.Complete) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
+  (OracleComp.prEvent_eq_one_iff _ _).mpr fun x hx ↦
+    (piop_completeness P C initial impl input q h x hx).2.1
 
-/-- **Round-by-round knowledge soundness** at `piopError I`, for the extractor
-`piopExtractor P S` (the commit phase's, then the phases') and its knowledge state function,
-composed from the phases' own by a proved composition: each challenge can turn the state from
-false to true with probability at most its slot's error. The extractor's stack is the committed
-message (`piopExtractedStack_eq`); see the module docstring for the plain reading and what it
-waits on. -/
-theorem piop_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) {σ : Type}
-    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel I)
-      (Seam.done I) S.extraction.witMid (piopExtractor P S) (S.extraction.kSF init impl)
-      (piopError I) :=
-  S.toDef.rbr init impl
+/-- The extractor: the commitment's step, which reads the stack off the message, then the five
+phases' backward witness maps with the message as the oracle. It computes. -/
+def piopExtractor (P : Phases I) (S : P.Security) (s : I.Stmt) :
+    RoundExtractor (piopSlot I).tree ⟨Column I.μ, M3Holds I s⟩ :=
+  commitExtractor S.toDef.extractor s
 
-/-- The same with the extractor forgotten: some extractor and knowledge state function exist
-(ArkLib's existential form). A soundness statement only. -/
-theorem piop_rbrKnowledgeSoundness_exists (P : Phases I) (S : P.Security) {σ : Type}
-    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCase init impl (M3Rel I)
-      (Seam.done I) (piopError I) :=
-  ⟨_, _, _, piop_rbrKnowledgeSoundness P S init impl⟩
+/-- **The extractor reads the stack.** On every execution path, whatever the terminal witness, the
+extracted stack is the committed message. -/
+theorem piopExtractedStack_eq (P : Phases I) (S : P.Security) (s : I.Stmt)
+    (path : (piopSlot I).tree.ExecutionPath)
+    (w : ((piopExtractor P S s).terminalState path).Witness) :
+    (piopExtractor P S s).extractWitness path w = path.1 :=
+  rfl
+
+/-- The protocol's knowledge certificate at a statement: the extractor `piopExtractor`, the
+challenges at `piopErrors I`. -/
+noncomputable def piopCertificate (P : Phases I) (S : P.Security) (s : I.Stmt) :
+    KnowledgeCertificate (piopSlot I).tree (piopSlot I).roles ⟨Column I.μ, M3Holds I s⟩ :=
+  S.toDef.commitCertificate s
+
+/-- The certificate's terminal relation: after the last move, its state is `Seam.done` at the
+verifier's verdict, with the committed stack as the oracle. -/
+noncomputable def piopTerminal (P : Phases I) (S : P.Security) (s : I.Stmt) :
+    TerminalRelation (piopExtractor P S s) (commitProblem (Seam.done I)) (fun path ↦ sent path.1)
+      (piopVerdict P s) :=
+  S.toDef.commitTerminal s
+
+/-- **Round-by-round knowledge soundness** at `piopErrors I`, worst case over prefixes, for the
+extractor `piopExtractor P S`: a knowledge certificate from `M3Holds` whose extractor is that
+one, whose challenges are the slots' samplers at the slots' errors and are what the verifier
+draws, and whose terminal state is the verdict's acceptance (`piopTerminal`). Each challenge can
+turn the state from false to true with probability at most its error. -/
+theorem piop_knowledgeSoundness (P : Phases I) (S : P.Security) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : I.Stmt) :
+    ∃ cert : KnowledgeCertificate (piopSlot I).tree (piopSlot I).roles ⟨Column I.μ, M3Holds I s⟩,
+      cert.extractor = piopExtractor P S s ∧
+      cert.challenges = schedule (piopSlot I).tree (piopSlot I).roles (piopSlot I).samplers
+        (piopErrors I) ∧
+      SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot I).tree (piopSlot I).roles
+        (piopSlot I).oracles initial impl _ (leanVmVerifier P initial s) cert.challenges :=
+  ⟨piopCertificate P S s, rfl, rfl, S.toDef.commit_samplesChallenges initial impl s⟩
+
+/-- **A bad challenge explains every false acceptance.** On a path the verifier accepts whose
+committed stack fails `M3Holds`, some challenge on the path turned the extractor's state from
+false to true: ArkLib's `extraction_failure_implies_bad_challenge` on the certificate. -/
+theorem piop_badChallenge (P : Phases I) (S : P.Security) (s : I.Stmt)
+    (path : (piopSlot I).tree.ExecutionPath) (hacc : piopVerdict P s path = some ())
+    (hbad : ¬ M3Holds I s path.1) :
+    RoundExtractor.BadChallengeOnPath (piopExtractor P S s) (piopSlot I).roles path
+      (((piopTerminal P S s).witnessEquiv path).symm ()) :=
+  RoundExtractor.extraction_failure_implies_bad_challenge _ _
+    (piopCertificate P S s).prover_preserving path _
+    (terminal_holds_of_rel (piopTerminal P S s) path () ⟨(), hacc, trivial⟩) hbad
 
 end
 end LeanerVM.Protocol

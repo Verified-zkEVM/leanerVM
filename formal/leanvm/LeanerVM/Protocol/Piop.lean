@@ -19,81 +19,86 @@ public import LeanerVM.Protocol.TableSumcheck
 # The oracle protocol
 
 The specification's unrolled protocol (§8, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) after the commitment is five phases, each a reduction
-from one seam to the next: the bus phase (`busPhase`), the table sumcheck (`tableSumcheck`), the
-public-input phase (`publicInputPhase`, the deployed verifiers' since they compute every limb's
-claim themselves), the Flock phase (`flockPhase`) and the opening (`openingPhase`).
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) after the commitment is five phases, each a typed
+front component from one seam to the next: the bus phase (`busPhaseT`), the table sumcheck
+(`tableSumcheckT`), the public-input phase (`PublicInput.phaseT`, the deployed verifiers' since
+they compute every limb's claim themselves), the Flock phase (`flockPhaseT`) and the opening's
+batching (`openingT`), after which the protocol asks the stack the batched claim.
 `leanVmPhases` fills the spine's five slots with them, `leanVmComplete` and `leanVmSecurity` fill
 the two bundles with their halves, and the spine's master theorems give the protocol's:
 
 * `leanVm_perfectCompleteness`: on every statement and stack with `M3Holds`, the honest prover
   convinces the verifier with probability one;
-* `leanVm_rbrKnowledgeSoundness`: round-by-round knowledge soundness at `piopError I`, with the
-  composed extractor, whose stack is the committed message.
+* `leanVm_knowledgeSoundness`: round-by-round knowledge soundness at `piopErrors I`, with the
+  composed extractor, whose stack is the committed message (`piopExtractedStack_eq`).
 
 Two side conditions of the instance, which the adaptor is to prove of the leanISA instance: the
-bus phase's
-(`Bus.Conditions`: the count columns' degree, the zerocheck point covering every constrained
-table, and the two other sides fitting in the push side's depth) and the degree bound `I.d ≤ 2`
-of the table sumcheck. No further hypothesis: the Flock phase holds for every circuit, and the
-pass-through stands in for it on an instance with no Flock region.
+bus phase's (`Bus.Conditions`: the count columns' degree, the zerocheck point covering every
+constrained table, and the two other sides fitting in the push side's depth) and the degree bound
+`I.d ≤ 2` of the table sumcheck. No further hypothesis: the Flock phase holds for every circuit,
+and the empty component stands in for it on an instance with no Flock region.
 -/
 
 namespace LeanerVM.Protocol
 
-open OracleComp OracleSpec ProtocolSpec
+open OracleComp OracleSpec
 
 @[expose] public section
 
 section Phases
 
-variable (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
+variable (I : M3Instance) (h : Bus.Conditions I)
 
-/-- leanVM's five phases after the commitment. -/
+/-- leanVM's five phases after the commitment, as typed front components. -/
 def leanVmPhases : Phases I where
-  bus := busPhase I h
-  table := TableSumcheck.tableSumcheck I
-  pub := publicInputPhase I
-  flock := flockPhase I
-  opening := openingPhase I
+  bus := busPhaseT I h
+  table := TableSumcheck.tableSumcheckT I
+  pub := PublicInput.phaseT I
+  flock := flockPhaseT I
+  opening := openingT I
 
-/-- Their completeness halves. -/
-def leanVmComplete : (leanVmPhases I h).Complete where
-  bus := busComplete I h
-  table := TableSumcheck.tableSumcheckComplete I hd
-  pub := publicInputComplete I
-  flock := flockComplete I
-  opening := openingComplete I
+/-- Their typed completeness halves. -/
+theorem leanVmComplete (hd : I.d ≤ 2) : (leanVmPhases I h).Complete where
+  bus := busCompleteT I h
+  table := TableSumcheck.tableSumcheckCompleteT I hd
+  pub := PublicInput.completeT I
+  flock := flockCompleteT I
+  opening := openingCompleteT I
 
-/-- Their knowledge-soundness halves, each at its slot's error. -/
-def leanVmSecurity : (leanVmPhases I h).Security where
-  bus := busSecurity I h
-  table := TableSumcheck.tableSumcheckSecurity I hd
-  pub := publicInputSecurity I
-  flock := flockSecurity I
-  opening := openingSecurity I
+/-- Their typed knowledge-soundness halves, each at its slot's errors. -/
+def leanVmSecurity (hd : I.d ≤ 2) : (leanVmPhases I h).Security where
+  bus := busSecurityT I h
+  table := TableSumcheck.tableSumcheckSecurityT I hd
+  pub := PublicInput.securityT I
+  flock := flockSecurityT I
+  opening := openingSecurityT I
 
 end Phases
 
-/-- **Perfect completeness of leanVM's oracle protocol**: on every statement and stack with
+/-- **Perfect completeness of leanVM's oracle protocol**, typed: on every statement and stack with
 `M3Holds`, the honest prover convinces the verifier with probability one. -/
 theorem leanVm_perfectCompleteness (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
-    {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop (leanVmPhases I h)).perfectCompleteness init impl (M3Rel I) (Seam.done I) :=
-  piop_perfectCompleteness _ (leanVmComplete I h hd) init impl
+    (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt)
+    (q : Column I.μ) (hq : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    Pr{let x ← (leanVmPiop (leanVmPhases I h) initial).execute impl input q}[x.2.2 = some ()] =
+      1 :=
+  piop_perfectCompleteness _ (leanVmComplete I h hd) initial impl input q hq
 
-/-- **Round-by-round knowledge soundness of leanVM's oracle protocol** at `piopError I`, with the
-composed extractor and knowledge state function: each challenge turns the state from false to
-true with probability at most its slot's error. -/
-theorem leanVm_rbrKnowledgeSoundness (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
-    {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier (leanVmPhases I h)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-      (M3Rel I) (Seam.done I) (leanVmSecurity I h hd).extraction.witMid
-      (piopExtractor _ (leanVmSecurity I h hd))
-      ((leanVmSecurity I h hd).extraction.kSF init impl) (piopError I) :=
-  piop_rbrKnowledgeSoundness _ (leanVmSecurity I h hd) init impl
+/-- **Round-by-round knowledge soundness of leanVM's oracle protocol**, typed, at `piopErrors I`,
+with the composed extractor: a knowledge certificate from `M3Holds` whose challenges the verifier
+draws, each turning the extractor's state from false to true with probability at most its slot's
+error. -/
+theorem leanVm_knowledgeSoundness (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
+    (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : I.Stmt) :
+    ∃ cert : Interaction.Oracle.Security.KnowledgeCertificate (piopSlot I).tree (piopSlot I).roles
+        ⟨Column I.μ, M3Holds I s⟩,
+      cert.extractor = piopExtractor _ (leanVmSecurity I h hd) s ∧
+      cert.challenges = Typed.schedule (piopSlot I).tree (piopSlot I).roles (piopSlot I).samplers
+        (piopErrors I) ∧
+      Interaction.Oracle.Security.SamplesChallenges unifSpec (QueryImpl.id' unifSpec)
+        (piopSlot I).tree (piopSlot I).roles (piopSlot I).oracles initial impl _
+        (leanVmVerifier (leanVmPhases I h) initial s) cert.challenges :=
+  piop_knowledgeSoundness _ (leanVmSecurity I h hd) initial impl s
 
 end
 end LeanerVM.Protocol

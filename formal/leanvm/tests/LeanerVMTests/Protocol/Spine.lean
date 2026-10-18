@@ -2,6 +2,7 @@ import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.ToArkLib.Refinement
+import LeanerVM.Protocol.ToArkLib.Typed.PassThrough
 
 /-!
 # Protocol spine tests
@@ -10,20 +11,19 @@ import LeanerVM.Protocol.ToArkLib.Refinement
 a stack with one cell changed (the public line on either of its two cells), and balance is a
 multiset equality (a stack a field-summed balance would accept is rejected). The instance's
 closed forms on the toy: one sumcheck table of height 2 and width 3, one constraint, two push
-leaves, no boundary column, four pooled claims. The slots: their round and challenge counts on
-the toy and on a bus of `2 ^ 4` leaves (the grand-product argument draws `μ²/4 + μ + 1`
-challenges for even `μ`), the opening's one challenge, and the numeric bound on the whole
-protocol's error. The composition: the commit phase has one round and no challenge, its
-extractor reads the stack back; the public-input phase fills its slot, so the master theorems
-have a bundle with a real phase in it; a pass-through that keeps the statement is knowledge
-sound at any seam; a refinement transports an extracted witness slot. A plain file, so
-`#guard` evaluates the compiled decision procedures and the kernel computes degrees.
+leaves, no boundary column, four pooled claims. The slots: the protocol's tree opens with the
+stack as an oracle message, the errors along every path are bounded on the toy, and the numeric
+bound on the whole protocol's error. The composition: the commitment's extractor reads the stack
+back; the public-input phase fills its slot, so the master theorems have a bundle with a real
+phase in it; a pass-through that keeps the statement is knowledge sound at any seam; a refinement
+transports an extracted witness slot. A plain file, so `#guard` evaluates the compiled decision
+procedures and the kernel computes degrees.
 -/
 
 namespace LeanerVMTests.Protocol.Spine
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy CompPoly CPoly OracleComp
-  ProtocolSpec
+  Interaction Interaction.Oracle Interaction.Oracle.Security Typed
 open scoped NNReal
 
 /-! ## The toy instance is honest -/
@@ -123,97 +123,87 @@ example : toy.poolSize = 4 := by decide
 
 /-! ## The slots -/
 
--- The bus phase on the toy: `(α, β)`, the roots, one binary layer (its combiner, no round, the
--- descendants, one combination challenge), the boundary values.
-example : busRounds toy = 6 := by decide
-example : Fintype.card (busSpec toy).ChallengeIdx = 3 := by decide
--- The table sumcheck on the toy: `ξ`, one cubic round, the final values.
-example : tableRounds toy = 4 := by decide
-example : Fintype.card (tableSpec toy).ChallengeIdx = 2 := by decide
--- The public-input phase: a challenge, then the values.
-example : pubSpec.dir 0 = .V_to_P := rfl
-example : pubSpec.dir 1 = .P_to_V := rfl
--- No Flock region, no Flock rounds; the opening is one challenge.
-example : flockRounds toy toy.flock = 0 := by decide
-example : Fintype.card openingSpec.ChallengeIdx = 1 := by decide
--- The whole protocol on the toy.
-example : piopRounds toy = 14 := by decide
+/-- The protocol's tree opens with the stack as an oracle message, before the five phases. -/
+example : (piopSlot toy).tree = .oracle (Column 3) fun _ ↦ (phasesSlot toy).tree := rfl
 
--- The grand-product argument for trees of `2 ^ 4` leaves draws `(μ/2 + 1)² - 1 = 8` challenges:
--- two radix-four layers of `3` and `5`, each opening with its combiner. For `2 ^ 5` leaves a
--- binary layer of `2` comes first and deepens the others by one: `2 + 4 + 6 = 12`.
-example : Fintype.card (gkrSpec E 3 4).ChallengeIdx = 8 := by decide
-example : Fintype.card (gkrSpec E 3 5).ChallengeIdx = 12 := by decide +kernel
--- The Flock phase for `2 ^ 3` compressions draws `2·3 + 25` challenges over `3·3 + 44` rounds.
-example : Fintype.card (flockSpecOf 3).ChallengeIdx = 31 := by decide +kernel
-example : flockRoundsOf 3 = 53 := by decide
+/-- The opening's slot is one challenge, at error `J - 1 = 3` over `|E|` on the toy. -/
+example : (openingErrors toy).1 = overE 3 := rfl
+
+/-- The bus phase's errors on the toy: `4 · 2` on `(α, β)` and the binary layer's `2 + 1`. -/
+example : Errors.Bounded (busSlot toy).tree (busSlot toy).roles (busErrors toy)
+    (overE (4 * 2 ^ 1 + ((1 + 1) * 2 + 2 * 1 * 1 + 3 * 1 + 3))) :=
+  busErrors_bounded toy
+
+/-- The toy has no Flock region: its Flock slot has no error. -/
+example : Errors.Bounded (flockPhaseSlot toy).tree (flockPhaseSlot toy).roles (flockErrors toy)
+    0 :=
+  doneErrors_bounded
 
 /-- The toy meets the hypotheses of the bound on the protocol's error. -/
-example : ∑ i, piopError toy i ≤ overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20) :=
-  piopError_le toy (by decide) (by decide) (by decide) (fun _ h ↦ by cases h) (by decide)
+example : Errors.Bounded (piopSlot toy).tree (piopSlot toy).roles (piopErrors toy)
+    (overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20)) :=
+  piopErrors_bounded toy (by decide) (by decide) (by decide) (fun _ h ↦ by cases h) (by decide)
 
-/-- The bound of `piopError_le`, with `|E| = 2^192`, is below `2^{-159}`. -/
+/-- The bound of `piopErrors_bounded`, with `|E| = 2^192`, is below `2^{-159}`. -/
 example : overE (2 ^ 32 + 2 ^ 31 + 2 ^ 20) < 1 / 2 ^ 159 := by
   rw [overE, card_E]
   norm_num
 
 /-! ## The composition -/
 
-/-- The commit phase has one round, a prover message. -/
-example : (commitSpec toy).dir 0 = .P_to_V := rfl
+/-- The commitment's step of the whole protocol's extractor reads the stack off the message,
+whatever the phases' extractors. -/
+example (P : Phases toy) (S : P.Security) (s : K) (q : Column 3) :
+    ((piopExtractor P S s) q).2.1 () = q := rfl
 
-/-- The commit phase has no challenge, so its error is the empty function. -/
-example (i : (commitSpec toy).ChallengeIdx) : commitError toy i = 0 := rfl
-
-/-- The transcript of the commit phase on the honest stack: one message, the stack. -/
-def honestTranscript : (commitSpec toy).FullTranscript := fun i ↦ match i with
-  | ⟨0, _⟩ => honest
-
-/-- What the commit phase's extractor returns on the honest transcript. -/
-def extracted : Column 3 :=
-  (commitExtractor toy).extractOut ((1: K), fun i : Fin 0 ↦ i.elim0) honestTranscript ()
-
--- The commit phase's extractor reads the stack off the message, and it computes.
-#guard extracted.values = honest.values
-
-/-- The commit phase's extractor, folded to the input, reads the stack off the message. -/
-example : (commitExtractor toy).extractIn ((1: K), fun i : Fin 0 ↦ i.elim0) honestTranscript () =
-    honest := rfl
+/-- The stack the whole protocol's extractor returns is the committed message, at every instance.
+-/
+example (I : M3Instance) (P : Phases I) (S : P.Security) (s : I.Stmt)
+    (path : (piopSlot I).tree.ExecutionPath)
+    (w : ((piopExtractor P S s).terminalState path).Witness) :
+    (piopExtractor P S s).extractWitness path w = path.1 :=
+  piopExtractedStack_eq P S s path w
 
 /-- The public-input phase fills its slot: its two halves typecheck against the spine's seams
-and at the slot's error. -/
-example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
-  publicInputComplete toy
+and at the slot's errors. -/
+example : Typed.Complete (PublicInput.phaseT toy) (Seam.table toy) (Seam.pub toy) :=
+  PublicInput.completeT toy
 
-example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
-    pubError :=
-  publicInputSecurity toy
+example : Typed.Security (PublicInput.phaseT toy) (Seam.table toy) (Seam.pub toy) pubErrors :=
+  PublicInput.securityT toy
 
 /-- A bundle whose public-input phase is the built one has both master theorems, given the four
 other phases' proofs: the slots line up. -/
-example (P : Phases toy) (C : P.Complete) {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop P).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
-  piop_perfectCompleteness P C init impl
+example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column 3)
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
+  piop_perfectCompleteness P C initial impl input q h
 
-example (P : Phases toy) (S : P.Security) {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmVerifier P).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy)
-      (Seam.done toy) S.extraction.witMid (piopExtractor P S) (S.extraction.kSF init impl)
-      (piopError toy) :=
-  piop_rbrKnowledgeSoundness P S init impl
+example (P : Phases toy) (S : P.Security) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : K) :
+    ∃ cert : KnowledgeCertificate (piopSlot toy).tree (piopSlot toy).roles
+        ⟨Column 3, M3Holds toy s⟩,
+      cert.extractor = piopExtractor P S s ∧
+      cert.challenges = schedule (piopSlot toy).tree (piopSlot toy).roles (piopSlot toy).samplers
+        (piopErrors toy) ∧
+      SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot toy).tree (piopSlot toy).roles
+        (piopSlot toy).oracles initial impl _ (leanVmVerifier P initial s) cert.challenges :=
+  piop_knowledgeSoundness P S initial impl s
 
-/-- The stack the whole protocol's extractor returns is the committed message. -/
-example (P : Phases toy) (S : P.Security) (s : K × ∀ i, NoOracle i)
-    (tr : (piopSpec toy).FullTranscript) :
-    piopExtractedStack P S s tr = tr.fst.fst.fst.fst.fst 0 :=
-  piopExtractedStack_eq P S s tr
+/-- A false acceptance has a bad challenge on its path, at every instance. -/
+example (I : M3Instance) (P : Phases I) (S : P.Security) (s : I.Stmt)
+    (path : (piopSlot I).tree.ExecutionPath) (hacc : piopVerdict P s path = some ())
+    (hbad : ¬ M3Holds I s path.1) :
+    RoundExtractor.BadChallengeOnPath (piopExtractor P S s) (piopSlot I).roles path
+      (((piopTerminal P S s).witnessEquiv path).symm ()) :=
+  piop_badChallenge P S s path hacc hbad
 
-/-- A pass-through that keeps the statement is knowledge sound at any seam, at error zero: the
+/-- A pass-through that keeps the statement is knowledge sound at any seam, at no error: the
 identity at the public-input seam. -/
-example : Phase.Security toy (Phase.passThrough toy id) (Seam.pub toy) (Seam.pub toy)
-    (fun i ↦ Fin.elim0 i.1) :=
-  Phase.passThroughSecurity toy id (fun _ _ h ↦ h) fun _ _ h ↦ h
+example : Typed.Security (passThrough (TheOracle toy) (id : K × PubOut toy → K × PubOut toy))
+    (Seam.pub toy) (Seam.pub toy) doneErrors :=
+  passThroughSecurity fun _ _ _ ↦ Iff.rfl
 
 /-- The relation the protocol starts from is `M3Holds`, in ArkLib's shape. -/
 example (input : K) (q : Column 3) :
@@ -225,6 +215,11 @@ example (input : K) (q : Column 3) :
 
 /-- The last seam leaves nothing to check. -/
 example (o : ∀ i, TheOracle toy i) : (((), o), ()) ∈ Seam.done toy := trivial
+
+/-- Before the question, the opened seam is the final claim holding of the stack. -/
+example (c : WeightedClaim toy) (q : Column 3) :
+    ((c, fun _ : Fin 1 ↦ q), ()) ∈ Seam.opened toy ↔ c.Holds q :=
+  Seam.opened_iff toy c _ ()
 
 /-! ## The bus seam bounds the degree of its row polynomials -/
 

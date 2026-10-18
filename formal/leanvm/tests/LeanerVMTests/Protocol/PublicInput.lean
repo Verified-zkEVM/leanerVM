@@ -287,10 +287,11 @@ example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam
 
 /-- The phase is one field of a bundle: with the four other phases and their proofs, the master
 completeness theorem applies. -/
-example (P : Phases toy) (C : P.Complete) {σ : Type}
-    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop P).perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
-  piop_perfectCompleteness P C init impl
+example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column toy.μ)
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
+  piop_perfectCompleteness P C initial impl input q h
 
 /-! ## The check is load-bearing -/
 

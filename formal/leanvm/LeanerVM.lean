@@ -103,6 +103,7 @@ import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.Typed.Append
 import LeanerVM.Protocol.ToArkLib.Typed.Batch
+import LeanerVM.Protocol.ToArkLib.Typed.Commit
 import LeanerVM.Protocol.ToArkLib.Typed.Component
 import LeanerVM.Protocol.ToArkLib.Typed.Front
 import LeanerVM.Protocol.ToArkLib.Typed.PassThrough

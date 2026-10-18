@@ -20,7 +20,8 @@ opening has this shape (the protocol blueprint's decision 31).
 
 * `Samplers tree roles`: a sampler at each verifier node, constant across oracle messages (the
   verifier cannot see them);
-* `Errors tree roles`: an error at each verifier node;
+* `Errors tree roles`: an error at each verifier node, with `Errors.along` their sum along a path
+  and `Errors.Bounded` a bound on it over every path;
 * `schedule`: the two as the `RoundExtractor.ChallengeSchedule` a knowledge certificate carries;
 * `frontFragment samplers leaf`: the verifier fragment that samples with `samplers` and returns
   `leaf` of the branch path, with `samplesChallenges_frontFragment`: it draws exactly the
@@ -79,6 +80,28 @@ theorem Errors.Le.refl : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDeco
 theorem Errors.Le.of_eq {tree : Oracle.TypeTree.{0}} {roles : tree.RoleDecoration}
     {e e' : Errors tree roles} (h : e = e') : Errors.Le tree roles e e' :=
   h ▸ Errors.Le.refl tree roles e
+
+/-- The errors along a branch path, summed: the total error charged to the challenges a run along
+the path draws. -/
+def Errors.along : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
+    Errors tree roles → tree.BranchPath → ℝ≥0
+  | .done, _, _, _ => 0
+  | .public _ next, ⟨.sender, roles⟩, e, path =>
+      Errors.along (next path.1) (roles path.1) (e path.1) path.2
+  | .public _ next, ⟨.receiver, roles⟩, e, path =>
+      e.1 + Errors.along (next path.1) (roles path.1) (e.2 path.1) path.2
+  | .oracle _ next, roles, e, path => Errors.along (next PUnit.unit) (roles.2 PUnit.unit) e path.2
+
+/-- Errors whose sum along every branch path is at most `c`. -/
+def Errors.Bounded (tree : Oracle.TypeTree.{0}) (roles : tree.RoleDecoration)
+    (e : Errors tree roles) (c : ℝ≥0) : Prop :=
+  ∀ path, Errors.along tree roles e path ≤ c
+
+/-- A bound is a bound at anything larger. -/
+theorem Errors.Bounded.mono {tree : Oracle.TypeTree.{0}} {roles : tree.RoleDecoration}
+    {e : Errors tree roles} {c c' : ℝ≥0} (h : Errors.Bounded tree roles e c) (hc : c ≤ c') :
+    Errors.Bounded tree roles e c' :=
+  fun path ↦ (h path).trans hc
 
 /-- The samplers and the errors as a knowledge certificate's challenge schedule. -/
 def schedule : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
@@ -203,40 +226,87 @@ def Runs : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) → Sa
       ∃ rest, Sigma.mk path.1 rest ∈ support p ∧
         Runs (next PUnit.unit) (roles.2 PUnit.unit) s rest path.2 a
 
-/-- **Every outcome of an execution against a front verifier is an honest run**, with the
-verdict at its path. -/
-theorem runs_of_mem_support : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
+/-! ## Querying the earlier oracles at the leaf -/
+
+/-- The handler of the oracles available after an execution path: the prior handler, extended at
+each oracle message on the path by that message's answers. -/
+def implAfter : (tree : Oracle.TypeTree.{0}) → (oracles : tree.OracleDecoration) →
+    (initial : PFunctor) → QueryImpl (OracleSpec.ofPFunctor initial) Id →
+    (path : tree.ExecutionPath) →
+    QueryImpl (OracleSpec.ofPFunctor (TypeTree.accessAfter tree oracles initial path.toBranchPath)) Id
+  | .done, _, _, impl, _ => impl
+  | .public _ next, oracles, initial, impl, path =>
+      implAfter (next path.1) (oracles.2 path.1) initial impl path.2
+  | .oracle _ next, oracles, initial, impl, path =>
+      implAfter (next PUnit.unit) (oracles.2 PUnit.unit) (Access.extend initial oracles.1)
+        (Access.extendImpl initial oracles.1 impl path.1) path.2
+
+/-- A query to the oracles available before a tree, asked at the leaf of a path through it:
+routed past each oracle message on the path. -/
+def priorQuery : (tree : Oracle.TypeTree.{0}) → (oracles : tree.OracleDecoration) →
+    (access : PFunctor) → (path : tree.BranchPath) → (q : access.A) →
+    OracleComp (unifSpec + OracleSpec.ofPFunctor (TypeTree.accessAfter tree oracles access path))
+      (access.B q)
+  | .done, _, access, _, q =>
+      (liftM ((unifSpec + OracleSpec.ofPFunctor access).query (.inr q)) :
+        OracleComp (unifSpec + OracleSpec.ofPFunctor access) _)
+  | .public _ next, oracles, access, path, q =>
+      priorQuery (next path.1) (oracles.2 path.1) access path.2 q
+  | .oracle _ next, oracles, access, path, q =>
+      priorQuery (next PUnit.unit) (oracles.2 PUnit.unit) (Access.extend access oracles.1) path.2
+        (.inl q)
+
+/-- **A prior query is answered by the prior handler**, whatever oracle messages the path sends. -/
+theorem simulateQ_priorQuery : (tree : Oracle.TypeTree.{0}) → (oracles : tree.OracleDecoration) →
+    (access : PFunctor) → (impl : QueryImpl (OracleSpec.ofPFunctor access) Id) →
+    (path : tree.ExecutionPath) → (q : access.A) →
+    simulateQ (Verifier.liftAccessImpl unifSpec _ (implAfter tree oracles access impl path))
+      (priorQuery tree oracles access path.toBranchPath q) = pure (impl q)
+  | .done, _, _, _, _, _ => simulateQ_spec_query _ _
+  | .public _ next, oracles, access, impl, path, q =>
+      simulateQ_priorQuery (next path.1) (oracles.2 path.1) access impl path.2 q
+  | .oracle _ next, oracles, access, impl, path, q =>
+      simulateQ_priorQuery (next PUnit.unit) (oracles.2 PUnit.unit)
+        (Access.extend access oracles.1) (Access.extendImpl access oracles.1 impl path.1) path.2
+        (.inl q)
+
+/-- **Every outcome of an execution against a front fragment is an honest run**, with an output
+of the fragment's leaf at its path, run against the handler after the path. -/
+theorem runs_of_mem_support_leaf : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
     (oracles : tree.OracleDecoration) → (initial : PFunctor) →
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) → (s : Samplers tree roles) →
     {A : Type} → (p : Prover.Strategy unifSpec tree roles fun _ ↦ A) →
-    {Out : tree.BranchPath → Type} → (verdict : (path : tree.BranchPath) → Out path) →
+    {Out : tree.BranchPath → Type} →
+    (leaf : (path : tree.BranchPath) → OracleComp (unifSpec +
+      OracleSpec.ofPFunctor (TypeTree.accessAfter tree oracles initial path)) (Out path)) →
     ∀ x ∈ support (executeStrategies unifSpec tree roles oracles initial impl p
-      (frontVerifier tree roles oracles initial s verdict)),
-      Runs tree roles s p x.1 x.2.1 ∧ x.2.2 = verdict x.1.toBranchPath
-  | .done, ⟨⟩, ⟨⟩, initial, impl, _, _, p, _, verdict, x, hx => by
+      (frontFragment tree roles oracles initial s leaf)),
+      Runs tree roles s p x.1 x.2.1 ∧ x.2.2 ∈ support (simulateQ
+        (Verifier.liftAccessImpl unifSpec _ (implAfter tree oracles initial impl x.1))
+        (leaf x.1.toBranchPath))
+  | .done, ⟨⟩, ⟨⟩, initial, impl, _, _, p, _, leaf, x, hx => by
       rw [executeStrategies_done] at hx
       obtain ⟨out, hout, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
-      simp only [frontVerifier, frontFragment, support_pure, Set.mem_singleton_iff] at hout hx
-      subst hout hx
-      exact ⟨rfl, rfl⟩
-  | .public _ next, ⟨.sender, roles⟩, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+      rw [support_pure, Set.mem_singleton_iff] at hx
+      subst hx
+      exact ⟨rfl, hout⟩
+  | .public _ next, ⟨.sender, roles⟩, oracles, initial, impl, s, _, p, _, leaf, x, hx => by
       rw [executeStrategies_public_sender] at hx
       obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
       obtain ⟨after, hafter, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
-      simp only [frontVerifier, frontFragment, simulateQ_pure, support_pure,
-        Set.mem_singleton_iff] at hafter
+      simp only [frontFragment, simulateQ_pure, support_pure, Set.mem_singleton_iff] at hafter
       subst hafter
       obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
       rw [support_pure, Set.mem_singleton_iff] at hx
       subst hx
-      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next chosen.1) (roles chosen.1)
+      obtain ⟨hruns, hleaf⟩ := runs_of_mem_support_leaf (next chosen.1) (roles chosen.1)
         (oracles.2 chosen.1) initial impl (s chosen.1) chosen.2
-        (fun path ↦ verdict ⟨chosen.1, path⟩) result hresult
-      exact ⟨⟨chosen.2, hchosen, hruns⟩, hverdict⟩
-  | .public _ next, ⟨.receiver, roles⟩, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+        (fun path ↦ leaf ⟨chosen.1, path⟩) result hresult
+      exact ⟨⟨chosen.2, hchosen, hruns⟩, hleaf⟩
+  | .public _ next, ⟨.receiver, roles⟩, oracles, initial, impl, s, _, p, _, leaf, x, hx => by
       rw [executeStrategies_public_receiver] at hx
       obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
-      simp only [frontVerifier, frontFragment, simulateQ_bind, simulateQ_pure,
+      simp only [frontFragment, simulateQ_bind, simulateQ_pure,
         simulateQ_liftComp_sampler', mem_support_bind_iff, support_pure,
         Set.mem_singleton_iff] at hchosen
       obtain ⟨c, hc, rfl⟩ := hchosen
@@ -244,24 +314,39 @@ theorem runs_of_mem_support : (tree : Oracle.TypeTree.{0}) → (roles : tree.Rol
       obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
       rw [support_pure, Set.mem_singleton_iff] at hx
       subst hx
-      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next c) (roles c) (oracles.2 c) initial
-        impl (s.2 c) rest (fun path ↦ verdict ⟨c, path⟩) result hresult
-      exact ⟨⟨hc, rest, hrest, hruns⟩, hverdict⟩
-  | .oracle _ next, roles, oracles, initial, impl, s, _, p, _, verdict, x, hx => by
+      obtain ⟨hruns, hleaf⟩ := runs_of_mem_support_leaf (next c) (roles c) (oracles.2 c) initial
+        impl (s.2 c) rest (fun path ↦ leaf ⟨c, path⟩) result hresult
+      exact ⟨⟨hc, rest, hrest, hruns⟩, hleaf⟩
+  | .oracle _ next, roles, oracles, initial, impl, s, _, p, _, leaf, x, hx => by
       rw [executeStrategies_oracle] at hx
       obtain ⟨chosen, hchosen, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
       obtain ⟨after, hafter, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
-      simp only [frontVerifier, frontFragment, simulateQ_pure, support_pure,
-        Set.mem_singleton_iff] at hafter
+      simp only [frontFragment, simulateQ_pure, support_pure, Set.mem_singleton_iff] at hafter
       subst hafter
       obtain ⟨result, hresult, hx⟩ := (mem_support_bind_iff _ _ _).mp hx
       rw [support_pure, Set.mem_singleton_iff] at hx
       subst hx
-      obtain ⟨hruns, hverdict⟩ := runs_of_mem_support (next PUnit.unit) (roles.2 PUnit.unit)
+      obtain ⟨hruns, hleaf⟩ := runs_of_mem_support_leaf (next PUnit.unit) (roles.2 PUnit.unit)
         (oracles.2 PUnit.unit) (Access.extend initial oracles.1)
         (Access.extendImpl initial oracles.1 impl chosen.1) s chosen.2
-        (fun path ↦ verdict ⟨PUnit.unit, path⟩) result hresult
-      exact ⟨⟨chosen.2, hchosen, hruns⟩, hverdict⟩
+        (fun path ↦ leaf ⟨PUnit.unit, path⟩) result hresult
+      exact ⟨⟨chosen.2, hchosen, hruns⟩, hleaf⟩
+
+/-- **Every outcome of an execution against a front verifier is an honest run**, with the
+verdict at its path. -/
+theorem runs_of_mem_support (tree : Oracle.TypeTree.{0}) (roles : tree.RoleDecoration)
+    (oracles : tree.OracleDecoration) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : Samplers tree roles)
+    {A : Type} (p : Prover.Strategy unifSpec tree roles fun _ ↦ A)
+    {Out : tree.BranchPath → Type} (verdict : (path : tree.BranchPath) → Out path) :
+    ∀ x ∈ support (executeStrategies unifSpec tree roles oracles initial impl p
+      (frontVerifier tree roles oracles initial s verdict)),
+      Runs tree roles s p x.1 x.2.1 ∧ x.2.2 = verdict x.1.toBranchPath := by
+  intro x hx
+  obtain ⟨hruns, hleaf⟩ := runs_of_mem_support_leaf tree roles oracles initial impl s p
+    (fun path ↦ pure (verdict path)) x hx
+  rw [simulateQ_pure, support_pure, Set.mem_singleton_iff] at hleaf
+  exact ⟨hruns, hleaf⟩
 
 end
 end LeanerVM.Protocol.Typed
