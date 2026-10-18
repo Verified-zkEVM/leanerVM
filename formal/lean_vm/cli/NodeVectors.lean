@@ -19,8 +19,8 @@ def checks : List (String × (Unit → Bool)) := [
     { NodeVectors.hints with bytecodeValue := NodeVectors.hints.bytecodeValue + 1 }).isNone),
   ("matrixValues", fun _ ↦ (NodeVectors.children.map (·.carried) ++ [NodeVectors.batched]).all
     fun c ↦ matrixValues c.matrixPoint == (c.matrixA, c.matrixB)),
-  ("vectorDigest", fun _ ↦ NodeVectors.daRoots.map
-    (fun r ↦ LeanVM.Da.vectorDigest (LeanVM.Da.membershipVector r)) == NodeVectors.daVectorDigests)]
+  ("vectorDigest", fun _ ↦ NodeVectors.daRoots.map LeanVM.Da.vectorDigestOf ==
+    NodeVectors.daVectorDigests.map LeanVM.Da.toBytes)]
 
 /-- The driver. -/
 def main : IO UInt32 := do

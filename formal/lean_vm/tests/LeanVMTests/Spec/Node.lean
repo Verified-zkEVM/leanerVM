@@ -61,7 +61,7 @@ example : ¬ ({ zeroClaim with bytecodePoint := List.replicate 4 0 }).Shaped byt
 /-- A root. -/
 def root : Digest := blake2sBytes []
 
-#guard LeanVM.Da.vectorDigest (LeanVM.Da.membershipVector root) != root
+#guard LeanVM.Da.vectorDigestOf root != LeanVM.Da.toBytes root
 
 /-! ## The Rust vectors -/
 
@@ -77,10 +77,11 @@ def daClaims : List DaClaim := NodeVectors.daRoots.zip NodeVectors.daVectorDiges
 
 /-- The matrix of the first DA root, three rows of the Rust test's `da_symbol`. -/
 def daMatrix : List (List K) :=
-  (List.range 3).map fun i ↦ (List.range (2 ^ LeanVM.Da.logM)).map fun j ↦
-    K.ofBits ((i * 2 ^ LeanVM.Da.logM + j + 1) * 0x9e3779b97f4a7c15)
+  (List.range 3).map fun i ↦ (List.range (2 ^ LeanDa.logM)).map fun j ↦
+    K.ofBits ((i * 2 ^ LeanDa.logM + j + 1) * 0x9e3779b97f4a7c15)
 
-#guard [LeanVM.Da.commitCodewords daMatrix] == NodeVectors.daRoots.take 1
+#guard [LeanDa.commitCodewords LeanVM.Da.blake2s daMatrix] ==
+  (NodeVectors.daRoots.take 1).map LeanVM.Da.toBytes
 
 /-- The statement of these claims, deferring the batching's claim. -/
 def statement : NodeStatement :=

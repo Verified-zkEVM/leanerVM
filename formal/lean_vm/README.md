@@ -13,7 +13,7 @@ The statements are in [`LeanVM/Spec/`](LeanVM/Spec/README.md), which imports not
 | [`Isa.lean`](LeanVM/Spec/Isa.lean) | leanISA: memory, the six instructions, programs, one step, `ValidExecution` |
 | [`Verifier.lean`](LeanVM/Spec/Verifier.lean) | the verifier, `python-verifier/verifier.py` transcribed section by section, for any hash function |
 | [`Statement.lean`](LeanVM/Spec/Statement.lean) | `KnowledgeSoundness` and `Completeness` |
-| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | LeanDA's claim, and what a node of the aggregation guest establishes (`NodeSpec`): stated, not proved |
+| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`formal/lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`): stated, not proved |
 
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` ([`LeanVM/Protocol/LeanVM.lean`](LeanVM/Protocol/LeanVM.lean)). [`LeanVM.lean`](LeanVM.lean) fails the build if their axioms grow beyond `propext`, `Classical.choice` and `Quot.sound`.
 

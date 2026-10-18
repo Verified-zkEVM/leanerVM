@@ -13,9 +13,9 @@ Read in this order:
 The aggregation guest (stated, not yet proved):
 
 6. The two signature schemes, leanXMSS and leanSPHINCS, imported from the projects that prove their security: [`formal/lean_xmss/LeanXmss/Scheme.lean`](../../../lean_xmss/LeanXmss/Scheme.lean) and [`formal/lean_sphincs/Sphincs/Scheme.lean`](../../../lean_sphincs/Sphincs/Scheme.lean).
-7. [`Da.lean`](Da.lean): LeanDA's commitment and the claim on a DA root.
+7. [`Da.lean`](Da.lean): the claim on a DA root, in terms of LeanDA as [`formal/lean_da/LeanDa/Scheme.lean`](../../../lean_da/LeanDa/Scheme.lean) defines it (the deployed commitment, the membership vector and its digest), on this project's BLAKE2s.
 8. [`Node.lean`](Node.lean): a node's statement and its digest, the batching of deferred claims, `NodeSpec` (what a node establishes) and the outer verifier.
 
-[`Fast/`](Fast/) needs no review: it holds `@[csimp]` theorems, each proved, that make the compiled field arithmetic and BLAKE2s fast. They change no definition.
+[`Fast/`](Fast/) needs no review: it holds `@[csimp]` theorems, each proved, that make the compiled field arithmetic, BLAKE2s and LeanDA's membership vector fast. They change no definition.
 
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` in [`LeanVM/Protocol/LeanVM.lean`](../Protocol/LeanVM.lean).

@@ -21,7 +21,7 @@ Transcribed from leanVM `55f8b0389c6cceab02dee82a003e40f7d80d0699`,
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the outer verifier) and
 `crates/rec_aggregation/guests/lean_ethereum.py` (the guest). The signature schemes, leanXMSS and
 leanSPHINCS, are those whose security `formal/lean_xmss` and `formal/lean_sphincs` prove, imported
-from their `Scheme` modules.
+from their `Scheme` modules, and LeanDA is `formal/lean_da`'s (`LeanVM.Spec.Da`).
 
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomials that the protocol fixes (the guest's bytecode, flock's matrices), which the node
@@ -380,7 +380,7 @@ statement's digest under the guest's IV. It omits the deployed verifier's checks
 form (`check_signer_set`, `check_da_roots`: each list sorted without repeats, fewer than `2^16`
 signature claims and at most `16` DA roots), so it accepts more. -/
 def verifyAggregate (guest : Program) (s : NodeStatement) (π : Proof) : Prop :=
-  (∀ c ∈ s.claims.da, c.2 = Da.vectorDigest (Da.membershipVector c.1)) ∧
+  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧
     s.defer.Holds (bytecodeWords guest) ∧
     Verifier.verify (bytecodeWords guest)
       (statementDigest (fiatShamirIv (bytecodeWords guest)) s) π = true

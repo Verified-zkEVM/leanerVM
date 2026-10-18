@@ -122,8 +122,61 @@ jobs:
           name: lean-sphincs-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  # `formal/lean_vm` models the verifier, the guest, the prover's proofs and LeanDA, and imports
-  # the two signature schemes, so a change to any of them re-checks it. A skipped job counts as
+  lean-da-formalization:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Forbid proof escapes
+        run: |
+          ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+              --include='*.lean' --exclude-dir=.lake formal/lean_da | grep -vE ':[0-9]+: *(--|/-)'
+      # As for sphincs: VCVio and CompPoly build from source, so `main` saves the Lake build,
+      # without Mathlib's, which `lake exe cache get` fetches.
+      - name: Restore the Lake build
+        id: lake-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            formal/lean_da/.lake
+            !formal/lean_da/.lake/packages/mathlib/.lake
+          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json') }}-${{ hashFiles('formal/lean_da/**/*.lean') }}
+          restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json') }}-
+      # Builds the default target, whose root module checks the front-page theorems' axioms with
+      # `#guard_msgs` and runs the BLAKE2s known-answer tests.
+      - uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: formal/lean_da
+          use-github-cache: false
+      # Lake replays a cached module's warnings, so a second build lists every one.
+      - name: Forbid deprecated API
+        working-directory: formal/lean_da
+        run: |
+          lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: (LeanDa|PqDas).*has been deprecated' "$RUNNER_TEMP/build.log"
+      - name: Check the axiom footprint
+        working-directory: formal/lean_da
+        run: |
+          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells"
+          { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
+          lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
+      - name: Save the Lake build
+        if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            formal/lean_da/.lake
+            !formal/lean_da/.lake/packages/mathlib/.lake
+          key: ${{ steps.lake-cache.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lean-da-axioms
+          path: ${{ runner.temp }}/axioms.txt
+
+  # `formal/lean_vm` models the verifier, the guest and the prover's proofs, and imports the two
+  # signature schemes and LeanDA, so a change to any of them re-checks it. A skipped job counts as
   # passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
@@ -139,7 +192,8 @@ jobs:
             echo changed=true >> "$GITHUB_OUTPUT"
           elif git diff --name-only "$BASE" HEAD -- formal/lean_vm crates/verifier python-verifier \
               crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/lean_xmss/LeanXmss/Scheme.lean \
-              formal/lean_sphincs/Sphincs/Scheme.lean .github/workflows/lean.yml | grep -q .; then
+              formal/lean_sphincs/Sphincs/Scheme.lean formal/lean_da/LeanDa/Scheme.lean formal/lean_da/LeanDa/Field.lean \
+              formal/lean_da/LeanDa/Blake2s.lean .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -171,7 +225,7 @@ jobs:
           path: |
             formal/lean_vm/.lake
             !formal/lean_vm/.lake/packages/mathlib/.lake
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean') }}
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean', 'formal/lean_da/LeanDa/Scheme.lean', 'formal/lean_da/LeanDa/Field.lean', 'formal/lean_da/LeanDa/Blake2s.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`); `lake test` builds the tests.
