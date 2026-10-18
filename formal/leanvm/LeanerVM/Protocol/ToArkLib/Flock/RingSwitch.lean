@@ -41,7 +41,7 @@ namespace LeanerVM.Protocol
 
 namespace Flock
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 
 @[expose] public section
 
@@ -83,16 +83,17 @@ instance [∀ s o, Decidable (side s o)] (p : ℕ)
     Decidable (q ∈ ringRel P z side s' φ g p) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-- One coefficient. -/
+/-- One coefficient, as a typed component. -/
 def ringDraw (p : ℕ) :
-    Component.Def (RingStmt S F (P.m + P.κ) P.s p) O W (RingStmt S F (P.m + P.κ) P.s (p + 1)) O W
-      (draw F) :=
-  Component.sampleChallenge O F (fun _ ↦ true) fun st x ↦ (st.1, st.2.push x)
+    Typed.Def O (RingStmt S F (P.m + P.κ) P.s p) W (RingStmt S F (P.m + P.κ) P.s (p + 1)) W
+      (Typed.drawSlot F) :=
+  Typed.sampleChallenge O F (fun _ ↦ true) fun st x ↦ (st.1, st.2.push x)
 
-/-- The first `p` coefficients. -/
+/-- The first `p` coefficients, as a typed component. -/
 def ringDraws : (p : ℕ) →
-    Component.Def (OutStmt S F (P.m + P.κ) P.s) O W (RingStmt S F (P.m + P.κ) P.s p) O W (draws F p)
-  | 0 => Component.passThrough O fun st ↦ (st, #v[])
+    Typed.Def O (OutStmt S F (P.m + P.κ) P.s) W (RingStmt S F (P.m + P.κ) P.s p) W
+      (Typed.drawsSlot F p)
+  | 0 => Typed.passThrough O fun st ↦ (st, #v[])
   | p + 1 => (ringDraws p).append (ringDraw P p)
 
 variable {μ : ℕ} (lift : Vector F (P.m + P.κ) → Vector F μ)
@@ -107,16 +108,16 @@ def ringWeight (r' : Vector F (P.m + P.κ)) (fs : Vector F (s' + 1)) : Weight F 
 def ringTarget (sv : Vector F (2 ^ P.s)) (fs : Vector F (s' + 1)) : F :=
   ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * frobMap (ringStages s' fs) sv[i]
 
-/-- The last coefficient, and the weighted claim handed on. -/
+/-- The last coefficient, as a typed component. -/
 def ringFinal {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
-    Component.Def (RingStmt S F (P.m + P.κ) P.s s') O W StmtOut O W (draw F) :=
-  Component.sampleChallenge O F (fun _ ↦ true) fun st x ↦
+    Typed.Def O (RingStmt S F (P.m + P.κ) P.s s') W StmtOut W (Typed.drawSlot F) :=
+  Typed.sampleChallenge O F (fun _ ↦ true) fun st x ↦
     finish st.1.1 (ringWeight P s' lift st.1.2.1 (st.2.push x))
       (ringTarget P s' φ g st.1.2.2 (st.2.push x))
 
-/-- Ring switching: the coefficients, then the weighted claim. -/
+/-- Ring switching, as a typed component. -/
 def ringSwitch {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut) :
-    Component.Def (OutStmt S F (P.m + P.κ) P.s) O W StmtOut O W (draws F (s' + 1)) :=
+    Typed.Def O (OutStmt S F (P.m + P.κ) P.s) W StmtOut W (Typed.drawsSlot F (s' + 1)) :=
   (ringDraws P s').append (ringFinal P s' φ g lift finish)
 
 /-! ## Completeness -/
@@ -174,39 +175,6 @@ theorem frobMap_ringStages_push {p : ℕ} (fs : Vector F p) (x a : F) :
   rw [ringStages_push, frobMap_append]
   rfl
 
-/-- Completeness of one coefficient: the zero `π`s of the slices' errors stay zero, half as
-many. -/
-def ringDrawComplete (p : ℕ) (hp : p ≤ s') :
-    Component.Complete (ringDraw P (S := S) (O := O) (W := W) p) (ringRel P z side s' φ g p)
-      (ringRel P z side s' φ g (p + 1)) :=
-  Component.sampleChallengeComplete O F _ _ fun st o w h ↦ ⟨rfl, fun x ↦ ⟨h.1, fun k hk ↦ by
-    show frobPair _ _ (fun i ↦ frobMap (ringStages s' (st.2.push x)) _) k = 0
-    simp only [frobMap_ringStages_push]
-    rw [frobPair_stage, h.2 k (by
-        have : 2 ^ (s' - p) < 2 ^ (s' + 1 - p) :=
-          Nat.pow_lt_pow_right (by norm_num) (by omega)
-        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
-        omega),
-      h.2 (2 ^ (s' - p) + k) (by
-        have h2 : 2 ^ (s' + 1 - p) = 2 * 2 ^ (s' - p) := by
-          rw [show s' + 1 - p = (s' - p) + 1 by omega, pow_succ]
-          ring
-        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
-        omega)]
-    simp⟩⟩
-
-/-- Completeness of the first `p` coefficients: true slices have zero errors. -/
-def ringDrawsComplete : (p : ℕ) → p ≤ s' →
-    Component.Complete (ringDraws P (S := S) (O := O) (W := W) p) (outRel P z side)
-      (ringRel P z side s' φ g p)
-  | 0, _ => Component.passThroughComplete O _ fun st o w h ↦ ⟨h.1, fun k _ ↦ by
-      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
-        rw [sliceError, h.2 i, sub_self]
-      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
-      simp⟩
-  | p + 1, hp =>
-    (ringDrawsComplete p (by omega)).append (ringDrawComplete P z side s' φ g p (by omega))
-
 omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
 /-- With every `π` of the errors zero before the last stage, the target is the answer of `stack`
 to the weight. -/
@@ -237,9 +205,45 @@ theorem pair_ringWeight_eq_ringTarget
   congr 1
   exact (map_sub (frobMapHom (ringStages s' (fs.push x))) _ _).symm
 
-/-- Completeness of ring switching: true slices give a true weighted claim, which `finish` hands
-on into `relOut`. -/
-def ringSwitchComplete {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
+/-! ## The components and their completeness -/
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of one coefficient. -/
+theorem ringDrawComplete (p : ℕ) (hp : p ≤ s') :
+    Typed.Complete (ringDraw P (S := S) (O := O) (W := W) p) (ringRel P z side s' φ g p)
+      (ringRel P z side s' φ g (p + 1)) :=
+  Typed.sampleChallengeComplete fun st o w h ↦ ⟨rfl, fun x ↦ ⟨h.1, fun k hk ↦ by
+    show frobPair _ _ (fun i ↦ frobMap (ringStages s' (st.2.push x)) _) k = 0
+    simp only [frobMap_ringStages_push]
+    rw [frobPair_stage, h.2 k (by
+        have : 2 ^ (s' - p) < 2 ^ (s' + 1 - p) :=
+          Nat.pow_lt_pow_right (by norm_num) (by omega)
+        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
+        omega),
+      h.2 (2 ^ (s' - p) + k) (by
+        have h2 : 2 ^ (s' + 1 - p) = 2 * 2 ^ (s' - p) := by
+          rw [show s' + 1 - p = (s' - p) + 1 by omega, pow_succ]
+          ring
+        have : 2 ^ (s' + 1 - (p + 1)) = 2 ^ (s' - p) := by congr 1; omega
+        omega)]
+    simp⟩⟩
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the first `p` coefficients. -/
+theorem ringDrawsComplete : (p : ℕ) → p ≤ s' →
+    Typed.Complete (ringDraws P (S := S) (O := O) (W := W) p) (outRel P z side)
+      (ringRel P z side s' φ g p)
+  | 0, _ => Typed.passThroughComplete fun st o w h ↦ ⟨h.1, fun k _ ↦ by
+      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
+        rw [sliceError, h.2 i, sub_self]
+      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
+      simp⟩
+  | p + 1, hp =>
+    (ringDrawsComplete p (by omega)).append (ringDrawComplete P z side s' φ g p (by omega))
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of ring switching. -/
+theorem ringSwitchComplete {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
     (relOut : Set ((StmtOut × ∀ i, O i) × W))
     (hout : ∀ sIn o w (Wt : Weight F μ) T, side sIn o → Wt.pair φ (stack o) = T →
       ((finish sIn Wt T, o), w) ∈ relOut)
@@ -247,13 +251,12 @@ def ringSwitchComplete {StmtOut : Type} (finish : S → Weight F μ → F → St
       φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
     (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
     (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Component.Complete (ringSwitch P s' φ g lift finish (O := O) (W := W)) (outRel P z side)
+    Typed.Complete (ringSwitch P s' φ g lift finish (O := O) (W := W)) (outRel P z side)
       relOut :=
   (ringDrawsComplete P z side s' φ g s' le_rfl).append
-    (Component.sampleChallengeComplete O F _ _ fun st o w h ↦ ⟨rfl, fun x ↦
+    (Typed.sampleChallengeComplete fun st o w h ↦ ⟨rfl, fun x ↦
       hout _ _ _ _ _ h.1 (pair_ringWeight_eq_ringTarget P z s' φ g lift col stack hcell hbool
         hread o st.1 st.2 x (h.2 0 (by simp)) (h.2 1 (by simp)))⟩)
-
 
 end
 

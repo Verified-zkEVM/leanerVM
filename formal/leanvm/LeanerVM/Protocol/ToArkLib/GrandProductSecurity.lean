@@ -15,13 +15,13 @@ public import LeanerVM.Protocol.ToCompPoly.Restriction
 /-!
 # Knowledge soundness of the grand product
 
-`gkrSecurity nside μ leaves riders` is the security half of `gkr` at the error
-`gkrError F (1 / |F|) nside μ`, with the extractor that keeps the trivial witness. With the
-witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.relIn`:
+`gkrSecurity nside μ leaves riders` is the security half of `gkr` at the errors
+`Typed.gkrErrors F (1 / |F|) nside μ`, with the extractor that keeps the trivial witness. With
+the witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.relIn`:
 nothing is extracted. It is composed, like the completeness half, from the parts' through
-`Component.Security.append`, so every challenge keeps the error its schedule assigned it:
+`Typed.Security.append`, so every challenge keeps the error its slot assigned it:
 
-* the combiner: batching by powers (`Component.batchSecurity`): a statement outside the layer
+* the combiner: batching by powers (`Typed.batchSecurity`): a statement outside the layer
   relation combines into the family's first claim at `nside − 1` combiners at most, since two
   different value vectors combine to the same scalar at the roots of a polynomial of degree
   `nside − 1`;
@@ -45,7 +45,7 @@ coordinates so far is zero on one more at one challenge at most. A `RiderTrack` 
 security needs of either: the predicates during the rounds, during the combination challenges
 and at the new point, how each hands over to the next, and the one-escape bounds. The escape of
 a rider at a challenge is dominated by the claim's at the same challenge, so the riders add
-nothing to `gkrError`.
+nothing to `Typed.gkrErrors`.
 
 The step from layer `m` with `k` radix-four steps to follow uses the progressive tracker when
 `k = 0` and the constant one otherwise (`layerStepsSecurity` splits on `k`); so does the first
@@ -55,7 +55,7 @@ relation, or, with no step left, the output relation read at the layer.
 
 namespace LeanerVM.Protocol
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -241,20 +241,32 @@ private theorem mem_rel_lambdaNext (T : RiderTrack μ riders ρ m) (hm : m + ρ 
   rw [T.inv_zero, partialSum_summand_zero nside μ leaves ρ m hm s o l]
   exact Iff.rfl
 
-/-- The security half of the combiner at `(nside − 1) / |F|`, batching by powers, from a relation
-`inp` carries into the layer relation and back: a statement outside it has riders that are not
-zero, so no combiner lands in the family's first relation, or a wrong value, whose combination
-agrees with that of the levels at `nside − 1` combiners at most. -/
+omit [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- The combiner's batching hypothesis: a statement outside the relation has the levels' values
+as true values, fixed before the combiner, which a combiner landing in the family's first relation
+makes the combined claim's, and which differ from the claimed values. -/
+theorem lambda_batch (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
+    {relS : Set ((S × ∀ i, O i) × Unit)}
+    (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m)
+    (s : S) (o : ∀ i, O i) :
+    ∃ a : Fin nside → F, ∀ w ρ', ((s, o), w) ∉ relS →
+      (((((inp s, ρ'), (#v[], powerBatch (inp s).2.2 ρ')) :
+          SumcheckRound.Stmt (LayerX X F nside m) F 0), o), w) ∈
+        SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0 →
+        a ≠ (inp s).2.2 ∧ powerBatch (inp s).2.2 ρ' = powerBatch a ρ' :=
+  ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun w l hs hl ↦ by
+    cases w
+    obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
+    exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
+
+/-- The typed security half of the combiner at `(nside − 1) / |F|`. -/
 def lambdaSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m) :
-    Component.Security (lambdaStep nside m inp) relS
+    Typed.Security (lambdaStep nside m inp) relS
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) 0)
-      (drawError F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
-  Component.batchSecurity O F _ _ fun s o ↦
-    ⟨fun t ↦ evalMle (layerTable (leaves (inp s).1 o t) m) (inp s).2.1, fun _ l hs hl ↦ by
-      obtain ⟨hz, hval⟩ := (mem_rel_lambdaNext nside μ leaves riders ρ m T hm (inp s) o l).mp hl
-      exact ⟨fun he ↦ hs ((hinp s o).mpr ⟨hz, fun t ↦ congrFun he t⟩), hval⟩⟩
+      (Typed.drawErrors F (((nside - 1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
+  Typed.batchSecurity (lambda_batch nside μ leaves riders ρ m inp T hm hinp)
 
 /-! ## The descendants -/
 
@@ -293,12 +305,12 @@ private theorem combineCheck_sound (T : RiderTrack μ riders ρ m)
   refine Finset.prod_congr rfl fun c _ ↦ ?_
   simp [hch', children, below]
 
-/-- The security half of the descendants' message: no challenge. -/
+/-- The typed security half of the descendants' message: no challenge. -/
 def childrenSecurity (T : RiderTrack μ riders ρ m) :
-    Component.Security (sendChildren nside μ leaves ρ m)
+    Typed.Security (sendChildren nside μ leaves ρ m)
       (SumcheckRound.rel (familyT nside μ leaves riders ρ m T) m)
-      (childRelT nside μ leaves riders ρ m T 0) (sayError _) :=
-  Component.sendCheckedSecurity O _ _ _ _ fun s o w ch hc hout ↦ by
+      (childRelT nside μ leaves riders ρ m T 0) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity fun s o w ch hc hout ↦ by
     cases w
     exact combineCheck_sound nside μ leaves riders ρ m T s o ch hc hout
 
@@ -337,18 +349,19 @@ private theorem card_interpNext_le (T : RiderTrack μ riders ρ m) {i : ℕ}
     rw [Finset.mem_filter] at hc ⊢
     exact ⟨Finset.mem_univ _, hc.2.1⟩
 
-/-- The security half of the first `i` combination challenges, at `1 / |F|` each. -/
+/-- The typed security half of the first `i` combination challenges, at `1 / |F|` each. -/
 def interpPrefixSecurity (T : RiderTrack μ riders ρ m) : (i : ℕ) →
-    Component.Security (interpPrefix nside ρ m i) (childRelT nside μ leaves riders ρ m T 0)
-      (childRelT nside μ leaves riders ρ m T i) (drawsError F (1 / Nat.card F : ℝ≥0) i)
-  | 0 => Component.passThroughSecurityOfIff O id fun _ _ ↦ Iff.rfl
+    Typed.Security (interpPrefix nside ρ m i) (childRelT nside μ leaves riders ρ m T 0)
+      (childRelT nside μ leaves riders ρ m T i) (Typed.drawsErrors F (1 / Nat.card F : ℝ≥0) i)
+  | 0 => Typed.passThroughSecurityOfIff (f := id) fun _ _ ↦ Iff.rfl
   | i + 1 =>
     (interpPrefixSecurity T i).append
-      ((Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
-        Component.card_badChallenge_le_of_unit O F _ 1 s o fun hs ↦
-          by exact card_interpNext_le nside μ leaves riders ρ m T s o hs).mono fun _ ↦ by
+      ((Typed.sampleChallengeSecurity 1 fun s o _ ↦
+        Typed.card_badChallenge_le_of_unit _ s o fun hs ↦
+          by exact card_interpNext_le nside μ leaves riders ρ m T s o hs).mono (by
+            refine ⟨?_, fun _ ↦ trivial⟩
             show ((1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0) ≤ 1 / Nat.card F
-            rw [Nat.cast_one])
+            rw [Nat.cast_one]))
 
 /-- The step's output relation, the riders by the tracker: the new values are the level below
 at the new point. -/
@@ -376,41 +389,41 @@ private theorem interpDone_mem_stepOutT_iff (T : RiderTrack μ riders ρ m)
     sub_eq_zero, evalMle_cast_append, eq_comm]
   exact Iff.rfl
 
-/-- The security half of the combination challenges, at `1 / |F|` each. -/
+/-- The typed security half of the combination challenges, at `1 / |F|` each. -/
 def interpolateSecurity (T : RiderTrack μ riders ρ m) :
-    Component.Security (interpolate nside ρ m) (childRelT nside μ leaves riders ρ m T 0)
-      (stepOutT nside μ leaves riders ρ m T) (drawsError F (1 / Nat.card F : ℝ≥0) ρ) :=
+    Typed.Security (interpolate nside ρ m) (childRelT nside μ leaves riders ρ m T 0)
+      (stepOutT nside μ leaves riders ρ m T) (Typed.drawsErrors F (1 / Nat.card F : ℝ≥0) ρ) :=
   match ρ, T with
   | 0, T =>
-    Component.passThroughSecurityOfIff O (interpDone nside 0 m) fun s o ↦
+    Typed.passThroughSecurityOfIff (f := interpDone nside 0 m) fun s o ↦
       by exact interpDone_mem_stepOutT_iff nside μ leaves riders 0 m T s o
   | ρ' + 1, T =>
     (interpPrefixSecurity nside μ leaves riders (ρ' + 1) m T ρ').append
-      ((Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
-        Component.card_badChallenge_le_of_unit O F _ 1 s o fun hs ↦ by
+      ((Typed.sampleChallengeSecurity 1 fun s o _ ↦
+        Typed.card_badChallenge_le_of_unit _ s o fun hs ↦ by
           exact (Finite.card_le_of_embedding (Subtype.impEmbedding _ _ fun c hc ↦
             (interpDone_mem_stepOutT_iff nside μ leaves riders (ρ' + 1) m T _ o).mp hc)).trans
-            (card_interpNext_le nside μ leaves riders (ρ' + 1) m T s o hs)).mono fun _ ↦ by
+            (card_interpNext_le nside μ leaves riders (ρ' + 1) m T s o hs)).mono (by
+          refine ⟨?_, fun _ ↦ trivial⟩
           show ((1 : ℕ) : ℝ≥0) / (Nat.card F : ℝ≥0) ≤ 1 / Nat.card F
-          rw [Nat.cast_one])
+          rw [Nat.cast_one]))
 
 /-! ## A step down -/
 
-/-- The security half of a step whose level below exists, the riders tracked by `T`, from a
-relation `inp` carries into the layer relation and back, at the unit `1 / |F|`. -/
+/-- The typed security half of a step whose level below exists, at the unit `1 / |F|`. -/
 def layerStepSecurity (T : RiderTrack μ riders ρ m) (hm : m + ρ ≤ μ)
     {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o, ((s, o), ()) ∈ relS ↔ ((inp s, o), ()) ∈ layerRel nside μ leaves riders m) :
-    Component.Security (layerStep nside μ leaves ρ m inp) relS
+    Typed.Security (layerStep nside μ leaves ρ m inp) relS
       (stepOutT nside μ leaves riders ρ m T)
-      (stepError F nside ρ m (((nside - 1 : ℕ) : ℝ≥0) * (1 / Nat.card F))
+      (Typed.stepErrors F nside ρ m (((nside - 1 : ℕ) : ℝ≥0) * (1 / Nat.card F))
         (1 / Nat.card F : ℝ≥0)) :=
-  ((((lambdaSecurity nside μ leaves riders ρ m inp T hm hinp).mono fun _ ↦
-      (div_eq_mul_one_div _ _).le).append
+  ((((lambdaSecurity nside μ leaves riders ρ m inp T hm hinp).mono
+      (by exact ⟨(div_eq_mul_one_div _ _).le, fun _ ↦ trivial⟩)).append
     ((SumcheckRound.roundsSecurity (familyT nside μ leaves riders ρ m T) m
       (by exact familyT_consistent nside μ leaves riders ρ m T)
-      (by exact familyT_sound nside μ leaves riders ρ m T) m 0 (Nat.zero_add m)).mono fun _ ↦ by
-        rw [← div_eq_mul_one_div])).append
+      (by exact familyT_sound nside μ leaves riders ρ m T) m 0 (Nat.zero_add m)).mono
+      (by exact Typed.roundsErrors_le F (2 ^ ρ) (div_eq_mul_one_div _ _).le m))).append
     (childrenSecurity nside μ leaves riders ρ m T)).append
     (interpolateSecurity nside μ leaves riders ρ m T)
 
@@ -440,13 +453,12 @@ private theorem stepsIn_zero_iff (m : ℕ) (h : m + 2 * 0 = μ) (s : LayerStmt X
   simp only [stepsIn, relOut, Vector.cast_rfl, layerTable_self, Set.mem_ofPred_eq]
   exact and_comm
 
-/-- The security half of the radix-four steps from layer `m`, from each step's: the last step
-tracks the riders progressively, the others keep them zero. -/
+/-- The typed security half of the radix-four steps from layer `m`. -/
 def layerStepsSecurity : (k m : ℕ) → (h : m + 2 * k = μ) →
-    Component.Security (layerSteps nside μ leaves k m h) (stepsIn nside μ leaves riders k m h)
-      (relOut nside μ leaves riders) (stepsError F nside (1 / Nat.card F : ℝ≥0) k m)
+    Typed.Security (layerSteps nside μ leaves k m h) (stepsIn nside μ leaves riders k m h)
+      (relOut nside μ leaves riders) (Typed.stepsErrors F nside (1 / Nat.card F : ℝ≥0) k m)
   | 0, m, h =>
-    Component.passThroughSecurityOfIff O _ fun s o ↦
+    Typed.passThroughSecurityOfIff fun s o ↦
       by exact (stepsIn_zero_iff nside μ leaves riders m h s o).symm
   | 1, m, h =>
     (layerStepSecurity nside μ leaves riders 2 m id (progTrack μ riders 2 m (by omega))
@@ -493,17 +505,15 @@ private theorem relIn_iff_stepsIn_zero (h : 0 + 2 * 0 = μ) (s : X × (Fin nside
       rw [← h, ← layerTable_zero_getElem]
       rfl
 
-/-- The security half of the first step: the roots read as layer `0` when `μ` is even, a binary
-step from the roots when `μ` is odd, tracking the riders progressively when it is also the last
-step. -/
+/-- The typed security half of the first step. -/
 def oddSecurity : (r : ℕ) → (hr : r ≤ 1) → (k : ℕ) → (hk : r + 2 * k = μ) →
-    Component.Security (odd nside μ leaves r hr) (relIn nside μ leaves riders)
-      (stepsIn nside μ leaves riders k r hk) (oddError F nside (1 / Nat.card F : ℝ≥0) r)
+    Typed.Security (odd nside μ leaves r hr) (relIn nside μ leaves riders)
+      (stepsIn nside μ leaves riders k r hk) (Typed.oddErrors F nside (1 / Nat.card F : ℝ≥0) r)
   | 0, _, 0, hk =>
-    Component.passThroughSecurityOfIff O (rootStmt nside) fun s o ↦
+    Typed.passThroughSecurityOfIff (f := rootStmt nside) fun s o ↦
       by exact (relIn_iff_stepsIn_zero nside μ leaves riders hk s o).symm
   | 0, _, k + 1, hk =>
-    Component.passThroughSecurityOfIff O (rootStmt nside) fun s o ↦
+    Typed.passThroughSecurityOfIff (f := rootStmt nside) fun s o ↦
       by exact (relIn_iff_layerRel_zero nside μ leaves riders s o).symm
   | 1, _, 0, hk =>
     layerStepSecurity nside μ leaves riders 1 0 (rootStmt nside)
@@ -521,15 +531,12 @@ variable {F : Type} [Field F] [Finite F] [BEq F] [LawfulBEq F] [DecidableEq F]
   (nside μ : ℕ) (leaves : X → (∀ i, O i) → Fin nside → CMlPolynomialEval F μ)
   (riders : X → (∀ i, O i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval F τ))
 
-/-- **Knowledge soundness** of the grand-product argument, at the error `gkrError` its schedule
-charges from the unit `1 / |F|`, with the extractor that keeps the trivial witness: from any
-statement whose roots are not the products of their leaves or whose riders are not zero, each
-challenge turns the knowledge state from false to true with probability at most the error
-charged to it. With the witness `Unit`, this is round-by-round soundness of `Gkr.relIn`. It
-computes, extractor included. -/
+/-- **Knowledge soundness** of the grand-product argument on the typed framework, at the errors
+`Typed.gkrErrors` its slot charges from the unit `1 / |F|`, with the extractor that keeps the
+trivial witness. It computes, extractor included. -/
 def gkrSecurity :
-    Component.Security (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
-      (Gkr.relOut nside μ leaves riders) (gkrError F (1 / Nat.card F : ℝ≥0) nside μ) :=
+    Typed.Security (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
+      (Gkr.relOut nside μ leaves riders) (Typed.gkrErrors F (1 / Nat.card F : ℝ≥0) nside μ) :=
   (Gkr.oddSecurity nside μ leaves riders (μ % 2) _ (μ / 2) (Nat.mod_add_div μ 2)).append
     (Gkr.layerStepsSecurity nside μ leaves riders (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))
 

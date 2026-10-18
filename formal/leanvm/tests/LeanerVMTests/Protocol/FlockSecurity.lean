@@ -27,9 +27,8 @@ Two of the verifier's checks, on the tiny argument of the definition's tests:
   false.
 
 At leanVM's constants both hold (`fixedWeights_independent`, `ringSwitch_injective`), and the
-phase's security is stated at the slot's error, which dominates the proved one challenge by
-challenge (`flockError_le_flockErrorOf`); the proved errors sum to `(3k + 169) / |E|`
-(`sum_flockError_generic`).
+phase's security is stated at the slot's errors, which dominate the proved ones challenge by
+challenge (`flockErrorsT_le_flockErrorsOf`).
 
 A plain file, so `#guard` evaluates the compiled definitions.
 -/
@@ -128,11 +127,9 @@ example (δ : Fin (2 ^ (flockParams 3).s) → E)
     ∀ i, δ i = 0 :=
   ringSwitch_injective δ h
 
--- The slot's error dominates the proved one, and the proved one sums to `(3k + 169) / |E|`.
-example (k : ℕ) (i : (flockSpecOf k).ChallengeIdx) :
-    Flock.flockError (flockParams k) 5 i ≤ flockErrorOf k i :=
-  flockError_le_flockErrorOf k i
-
-example : ∑ i, Flock.flockError (flockParams 3) 5 i = overE 178 := sum_flockError_generic 3
+-- The slot's errors dominate the proved ones, challenge by challenge.
+example (k : ℕ) : Typed.Errors.Le (flockSlotOf k).tree (flockSlotOf k).roles
+    (Flock.flockErrorsT (flockParams k) 5) (flockErrorsOf k) :=
+  flockErrorsT_le_flockErrorsOf k
 
 end LeanerVMTests.Protocol.FlockSecurity

@@ -53,6 +53,7 @@ import LeanerVMTests.Protocol.Stack
 import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.TableSumcheck
+import LeanerVMTests.Protocol.Typed
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Arithmetization.Padding.Blake2sOutput
 import LeanerVMTests.Arithmetization.Padding.ClosedWalk

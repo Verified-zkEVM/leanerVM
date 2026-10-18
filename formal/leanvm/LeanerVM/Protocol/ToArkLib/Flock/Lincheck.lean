@@ -34,7 +34,7 @@ namespace LeanerVM.Protocol
 
 namespace Flock
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec SumcheckRound BlockR1CS
+open CompPoly CMlPolynomialEval OracleComp OracleSpec SumcheckRound BlockR1CS
 
 @[expose] public section
 
@@ -53,10 +53,11 @@ abbrev LinX (S F : Type) (n : ℕ) : Type := TermStmt S F n × F
 def alphaNext {n : ℕ} (t : TermStmt S F n) (α : F) : Stmt (LinX S F n) F 0 :=
   ((t, α), (#v[], t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 + α ^ 3))
 
-/-- The verifier draws `α`. -/
-def alphaDraw : Component.Def (TermStmt S F (P.m + P.κ)) O W (Stmt (LinX S F (P.m + P.κ)) F 0) O W
-    (draw F) :=
-  Component.sampleChallenge O F (fun _ ↦ true) alphaNext
+/-- `α`, as a typed component. -/
+def alphaDraw :
+    Typed.Def O (TermStmt S F (P.m + P.κ)) W (Stmt (LinX S F (P.m + P.κ)) F 0) W
+      (Typed.drawSlot F) :=
+  Typed.sampleChallenge O F (fun _ ↦ true) alphaNext
 
 /-- The lincheck's column weights `M_α`, from the oracles and its public data. -/
 def linM (x : LinX S F (P.m + P.κ)) : CMlPolynomialEval F (P.s + P.m) :=
@@ -95,34 +96,7 @@ theorem evalMle_constTable_eq_zero {χ : Vector F (P.m + P.κ)} {o : ∀ i, O i}
     rw [Partial.ofSuffix_all _ χ k hk]
     simp [highVec]).mp h
 
-/-- Completeness of `α`: by the block-diagonal identity, the batched claim is the lincheck sum. -/
-def alphaDrawComplete :
-    Component.Complete (alphaDraw P (S := S) (O := O) (W := W)) (termRel P C z side)
-      (rel (linFamily P C z side) 0) :=
-  Component.sampleChallengeComplete O F _ _ fun t o w h ↦ ⟨rfl, fun α ↦ by
-    obtain ⟨hside, hconst, ha, hb, hc⟩ := h
-    refine ⟨hside, ?_⟩
-    show t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 + α ^ 3 =
-      highSum (linFun (linM P C (t, α)) (linZ P z o (t, α))) 0 #v[]
-    rw [highSum_zero, sum_linFun_boolVec, linM, linZ, sum_mTable_zTable, lowVec_append_highVec,
-      evalMle_constTable_eq_zero P z hconst]
-    simp only [zcA, zcB, zcC] at ha hb hc
-    rw [ha, hb, hc]
-    ring⟩
-
 /-! ## The rounds -/
-
-/-- The lincheck's rounds. -/
-def linRounds : Component.Def (Stmt (LinX S F (P.m + P.κ)) F 0) O W
-    (Stmt (LinX S F (P.m + P.κ)) F P.m) O W (roundsSpec F 2 P.m) :=
-  rounds (linFamily P C z side (W := W)).poly (linFamily P C z side (W := W)).weight P.m P.m 0
-    (Nat.zero_add _)
-
-/-- Completeness of the lincheck's rounds. -/
-def linRoundsComplete :
-    Component.Complete (linRounds P C z side (O := O) (W := W)) (rel (linFamily P C z side) 0)
-      (rel (linFamily P C z side) P.m) :=
-  roundsComplete (linFamily P C z side) P.m (linFamily_honest P C z side) P.m 0 (Nat.zero_add _)
 
 /-! ## The claimed slices -/
 
@@ -149,10 +123,11 @@ def linNext (st : Stmt (LinX S F (P.m + P.κ)) F P.m) (sv : Vector F (2 ^ P.s)) 
     OutStmt S F (P.m + P.κ) P.s :=
   (st.1.1.1.1, linPoint P st, sv)
 
-/-- The slices, checked against the native terminal. -/
-def linEnd : Component.Def (Stmt (LinX S F (P.m + P.κ)) F P.m) O W (OutStmt S F (P.m + P.κ) P.s)
-    O W (say (Vector F (2 ^ P.s))) :=
-  Component.sendChecked O _ (linHonest P z) (linCheck P C) (linNext P)
+/-- The slices, as a typed component. -/
+def linEnd :
+    Typed.Def O (Stmt (LinX S F (P.m + P.κ)) F P.m) W (OutStmt S F (P.m + P.κ) P.s) W
+      (Typed.saySlot (Vector F (2 ^ P.s))) :=
+  Typed.sendChecked O _ (linHonest P z) (linCheck P C) (linNext P)
 
 /-- After the lincheck: the side condition, and the slices are the witness tables' extensions at
 the point. -/
@@ -163,11 +138,43 @@ instance [∀ s o, Decidable (side s o)] (p : (OutStmt S F (P.m + P.κ) P.s × �
     Decidable (p ∈ outRel P z side) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-- Completeness of the slices: the honest slices pass the native terminal. -/
-def linEndComplete :
-    Component.Complete (linEnd P C z (S := S) (W := W)) (rel (linFamily P C z side) P.m)
+/-! ## The components -/
+
+omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of `α`. -/
+theorem alphaDrawComplete :
+    Typed.Complete (alphaDraw P (S := S) (O := O) (W := W)) (termRel P C z side)
+      (rel (linFamily P C z side) 0) :=
+  Typed.sampleChallengeComplete fun t o w h ↦ ⟨rfl, fun α ↦ by
+    obtain ⟨hside, hconst, ha, hb, hc⟩ := h
+    refine ⟨hside, ?_⟩
+    show t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 + α ^ 3 =
+      highSum (linFun (linM P C (t, α)) (linZ P z o (t, α))) 0 #v[]
+    rw [highSum_zero, sum_linFun_boolVec, linM, linZ, sum_mTable_zTable, lowVec_append_highVec,
+      evalMle_constTable_eq_zero P z hconst]
+    simp only [zcA, zcB, zcC] at ha hb hc
+    rw [ha, hb, hc]
+    ring⟩
+
+/-- The lincheck's rounds, as a typed component. -/
+def linRounds : Typed.Def O (Stmt (LinX S F (P.m + P.κ)) F 0) W
+    (Stmt (LinX S F (P.m + P.κ)) F P.m) W (Typed.roundsSlot F 2 P.m) :=
+  rounds (linFamily P C z side (W := W)).poly (linFamily P C z side (W := W)).weight P.m P.m 0
+    (Nat.zero_add _)
+
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the lincheck's rounds. -/
+theorem linRoundsComplete :
+    Typed.Complete (linRounds P C z side (O := O) (W := W)) (rel (linFamily P C z side) 0)
+      (rel (linFamily P C z side) P.m) :=
+  roundsComplete (linFamily P C z side) P.m (linFamily_honest P C z side) P.m 0 (Nat.zero_add _)
+
+omit [SampleableType F] [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of the slices. -/
+theorem linEndComplete :
+    Typed.Complete (linEnd P C z (S := S) (O := O) (W := W)) (rel (linFamily P C z side) P.m)
       (outRel P z side) :=
-  Component.sendCheckedComplete O _ _ _ _ fun st o w h ↦ ⟨by
+  Typed.sendCheckedComplete fun st o w h ↦ ⟨by
     obtain ⟨_, hclaim⟩ := h
     rw [linCheck, decide_eq_true_eq, hclaim, linTerminal_eq]
     show highSum (linFun (linM P C st.1) (linZ P z o st.1)) P.m st.2.1 = _

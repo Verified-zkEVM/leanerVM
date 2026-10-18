@@ -130,6 +130,16 @@ the base theorems.
 
 ## What the built work owes the blueprint
 
+*On the typed framework.* On `FV-typed` the proof system moved to ArkLib's typed `Interaction`
+framework (decision 24 reversed; [typed-migration.md](typed-migration.md), its progress log
+the record). The entries below describe the work as merged on the legacy framework; a legacy
+name reads as its typed counterpart (the blueprint's *The spine* lists the correspondence):
+`Component.*`, `Phase.*` and `FrontVerifier` are `Typed.*` front components at slots, a
+schedule `…Spec` is a slot `…Slot`, an error `…Error` the errors `…Errors`, the guarded form and
+the knowledge state function are gone into the verdict and the `RoundExtractor`, a refutation
+`…_not_rbr` or `…_no_stateFunction` is `…_one_le` or `…_no_security` on typed securities, and
+the master theorems are `piop_perfectCompleteness` and `piop_knowledgeSoundness`.
+
 The built work meets the blueprint except where it differs from it deliberately or settles what
 the blueprint leaves open, as listed below. The spine's review against the blueprint and the
 pinned sources is [archived](../reviews/protocol-spine-revision.md).
@@ -649,12 +659,12 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 
 | Upstream | Hole | What it would replace or feed | Adopt when |
 | --- | --- | --- | --- |
-| ArkLib #615 | the knowledge-soundness composition | the port `ToArkLib/KnowledgeAppend.lean` | some ArkLib framework proves a guarded-first append for the named form |
-| ArkLib's typed framework (its roadmap items 3–4; #1251; at the pin #1259, #1260, #1263, #1264) | the spine | the framework decision (decision 24), due for review: at the pin the framework has round-by-round knowledge certificates (backward witness maps), their sequential composition and state-restoration knowledge soundness, but no adaptor to `OracleReduction` and no sumcheck with a knowledge notion | a review of decision 24 finds a port worth it |
+| ArkLib's typed framework (its roadmap items 3–4; #1251; at the pin #1259, #1260, #1263, #1264) | the spine | adopted on `FV-typed` (decision 24 reversed): the generic typed components of `ToArkLib/Typed/` are upstream candidates on it, among them the bundle of a front component with its certificate and the commit-then-open protocol | the candidates are offered upstream |
+| ArkLib's state-restoration knowledge soundness (#1263, #1264, at the pin) | the compiled verifier | the round-by-round to state-restoration step on the typed certificates | the compilation is stated on the typed framework |
 | ArkLib #1245 | the list-binding compilation | the local stateless round-by-round-to-plain corollary | merged, for its soundness half |
 | ArkLib #1244, #1128, #1129 | the sumchecks | the classical leaf's repair (the verifier evaluates the sent polynomial; its knowledge soundness stays admitted); honest round identities over one `MvPolynomial` | reference only |
-| ArkLib #1261 (at the pin), #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed sumcheck proves round-by-round knowledge soundness (decision 24) |
-| ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | an adaptor to `OracleReduction` and a weighted domain exist (decision 33) |
+| ArkLib #1261 (at the pin), #1269, #1274, #1277 | the sumchecks | the typed sumcheck's round-by-round soundness and state-restoration security, for one polynomial with unit weights and no witness | when the typed sumcheck proves round-by-round knowledge soundness with a weighted domain |
+| ArkLib's computable sumcheck (#1214, #1242, #1243; at the pin) | the sumchecks; the GKR's rounds | the round of `ToArkLib/SumcheckRound.lean`, which sends the coefficients as one message and weights the domain | a knowledge notion and a weighted domain exist (decision 33) |
 | ArkLib #818, #383, #992 | the GKR; WHIR | patterns for a layer and for a proximity test as reductions | never as they are |
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |

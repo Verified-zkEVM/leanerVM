@@ -21,14 +21,14 @@ weights, combined by the powers of the challenge, is the pool's values combined 
 * **The order of the powers.** On an instance with a Flock region, the weighted claim takes
   `λ^0` and the column claim `λ^1`, and the swapped order gives another value.
 * **The phase fills its slot**: its two halves typecheck against the spine's seams at the slot's
-  error, compute at `E`, and with the public-input phase make a bundle the master
+  errors, compute at `E`, and with the public-input phase make a bundle the master
   theorems apply to, given the three other phases.
-* **The check is load-bearing.** On a statement outside the Flock seam, four weakened verifiers
+* **The check is load-bearing.** On a statement outside the Flock seam, four weakened openings
   each accept at every challenge, so none has a round-by-round knowledge error below one,
-  whatever extractor and state function it is given: with no check on the answer; checking the
-  first pooled claim alone; combining with unit weights, where two copies of one false claim
-  cancel in characteristic two; and combining the column claims alone, dropping the Flock
-  phase's weighted claim.
+  whatever extractor it is given: with no check on the answer; checking the first pooled claim
+  alone; combining with unit weights, where two copies of one false claim cancel in
+  characteristic two; and combining the column claims alone, dropping the Flock phase's weighted
+  claim.
 
 Facts the refutations need are proved over an abstract instance and instantiated, and the
 weakened verifiers' steps are named definitions: on a concrete instance, unifying a term the
@@ -39,6 +39,7 @@ compiled definitions.
 namespace LeanerVMTests.Protocol.Opening
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy CompPoly OracleComp
+open Interaction Interaction.Oracle Interaction.Oracle.Security
 open scoped NNReal
 
 /-- A column claim is decided by evaluating the column's extension. -/
@@ -143,9 +144,7 @@ def one : Column 0 := ⟨#v[1]⟩
 #guard (Opening.weight empty emptyStmt y).pair (algebraMap K E) one.values = 0
 
 /-- The slot's error on the empty pool is `0`. -/
-example (i : openingSpec.ChallengeIdx) : openingError empty i = 0 := by
-  rw [openingError, show empty.poolSize - 1 = 0 by decide]
-  simp [drawError, overE]
+example : openingErrors empty = (overE 0, fun _ ↦ PUnit.unit) := rfl
 
 /-! ## The order of the powers -/
 
@@ -203,47 +202,57 @@ example : Opening.pool flocky flockyStmt.2 ⟨1, by decide⟩ =
 /-! ## The phase fills its slot -/
 
 /-- The completeness half, at the spine's seams. -/
-def complete : Phase.Complete toy (openingPhase toy) (Seam.flock toy) (Seam.done toy) :=
+theorem complete : Typed.Complete (opening toy) (Seam.flock toy) (Seam.opened toy) :=
   openingComplete toy
 
-/-- The security half, at the spine's seams and the slot's error; a plain definition, so it
+/-- The security half, at the spine's seams and the slot's errors; a plain definition, so it
 computes at `E`. -/
-def security : Phase.Security toy (openingPhase toy) (Seam.flock toy) (Seam.done toy)
-    (openingError toy) :=
+def security : Typed.Security (opening toy) (Seam.flock toy) (Seam.opened toy)
+    (openingErrors toy) :=
   openingSecurity toy
 
 /-- The slot's error on the toy: three, for the four pooled claims. -/
-example : ∑ i, openingError toy i = overE 3 := by
-  rw [openingError, sum_drawError]
-  rfl
+example : openingErrors toy = (overE 3, fun _ ↦ PUnit.unit) := rfl
 
 /-- With the public-input phase and the opening phase in their slots, the master
-theorems hold of the bundle, given the three other phases' proofs. -/
-example (bus : Phase.FrontDef toy K (K × BusOut toy) (busSpec toy))
-    (table : Phase.FrontDef toy (K × BusOut toy) (K × TableOut toy) (tableSpec toy))
-    (flock : Phase.FrontDef toy (K × PubOut toy) (K × FlockOut toy) (flockSpec toy))
-    (cb : Phase.Complete toy bus.toDef (Seam.commit toy) (Seam.bus toy))
-    (ct : Phase.Complete toy table.toDef (Seam.bus toy) (Seam.table toy))
-    (cf : Phase.Complete toy flock.toDef (Seam.pub toy) (Seam.flock toy))
-    {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (leanVmPiop ⟨bus, table, publicInputPhase toy, flock, openingPhase toy⟩)
-      |>.perfectCompleteness init impl (M3Rel toy) (Seam.done toy) :=
-  piop_perfectCompleteness _ ⟨cb, ct, publicInputComplete toy, cf, openingComplete toy⟩
-    init impl
+theorems hold of the bundle, given the three other phases' proofs, at every instance. -/
+example (I : M3Instance)
+    (bus : Typed.Def (TheOracle I) I.Stmt Unit (I.Stmt × BusOut I) Unit (busSlot I))
+    (table : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit (I.Stmt × TableOut I) Unit
+      (tableSlot I))
+    (flock : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
+      (flockPhaseSlot I))
+    (cb : Typed.Complete bus (Seam.commit I) (Seam.bus I))
+    (ct : Typed.Complete table (Seam.bus I) (Seam.table I))
+    (cf : Typed.Complete flock (Seam.pub I) (Seam.flock I)) (initial : PFunctor)
+    (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    Pr{let x ← (leanVmPiop ⟨bus, table, PublicInput.phase I, flock, opening I⟩
+      initial).execute impl input q}[x.2.2 = some ()] = 1 :=
+  piop_perfectCompleteness _ ⟨cb, ct, PublicInput.complete I, cf, openingComplete I⟩
+    initial impl input q h
 
-example (bus : Phase.FrontDef toy K (K × BusOut toy) (busSpec toy))
-    (table : Phase.FrontDef toy (K × BusOut toy) (K × TableOut toy) (tableSpec toy))
-    (flock : Phase.FrontDef toy (K × PubOut toy) (K × FlockOut toy) (flockSpec toy))
-    (sb : Phase.Security toy bus.toDef (Seam.commit toy) (Seam.bus toy) (busError toy))
-    (st : Phase.Security toy table.toDef (Seam.bus toy) (Seam.table toy) (tableError toy))
-    (sf : Phase.Security toy flock.toDef (Seam.pub toy) (Seam.flock toy) (flockError toy))
-    {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    let S : Phases.Security ⟨bus, table, publicInputPhase toy, flock, openingPhase toy⟩ :=
-      ⟨sb, st, publicInputSecurity toy, sf, openingSecurity toy⟩
-    (leanVmVerifier _).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl (M3Rel toy)
-      (Seam.done toy) S.extraction.witMid (piopExtractor _ S) (S.extraction.kSF init impl)
-      (piopError toy) :=
-  piop_rbrKnowledgeSoundness _ _ init impl
+example (I : M3Instance)
+    (bus : Typed.Def (TheOracle I) I.Stmt Unit (I.Stmt × BusOut I) Unit (busSlot I))
+    (table : Typed.Def (TheOracle I) (I.Stmt × BusOut I) Unit (I.Stmt × TableOut I) Unit
+      (tableSlot I))
+    (flock : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
+      (flockPhaseSlot I))
+    (sb : Typed.Security bus (Seam.commit I) (Seam.bus I) (busErrors I))
+    (st : Typed.Security table (Seam.bus I) (Seam.table I) (tableErrors I))
+    (sf : Typed.Security flock (Seam.pub I) (Seam.flock I) (flockErrors I))
+    (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : I.Stmt) :
+    ∃ cert : KnowledgeCertificate (piopSlot I).tree (piopSlot I).roles
+        ⟨Column I.μ, M3Holds I s⟩,
+      cert.extractor = piopExtractor ⟨bus, table, PublicInput.phase I, flock, opening I⟩
+        ⟨sb, st, PublicInput.security I, sf, openingSecurity I⟩ s ∧
+      cert.challenges = Typed.schedule (piopSlot I).tree (piopSlot I).roles
+        (piopSlot I).samplers (piopErrors I) ∧
+      SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot I).tree (piopSlot I).roles
+        (piopSlot I).oracles initial impl _
+        (leanVmVerifier ⟨bus, table, PublicInput.phase I, flock, opening I⟩ initial s)
+        cert.challenges :=
+  piop_knowledgeSoundness _ _ initial impl s
 
 /-! ## The weakened verifiers -/
 
@@ -251,28 +260,29 @@ section Weakened
 
 variable (I : M3Instance)
 
-/-- The opening with no check on the answer. -/
-abbrev unchecked : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
-  Component.batchQuery (TheOracle I) E (Opening.values I) (Opening.batched I)
-    (Opening.question I) (fun _ _ ↦ true) fun _ ↦ ()
+/-- The question with no check on the answer. -/
+def unchecked : Typed.Question (Column I.μ) (WeightedClaim I) Unit where
+  query c := c.weight
+  check _ _ := true
+  out _ := ()
 
 /-- The pool's claim `j` alone, whatever the challenge. -/
 def onlyOut (j : Fin I.poolSize) (s : I.Stmt × FlockOut I) (_ _ : E) : WeightedClaim I :=
   Opening.pool I s.2 j
 
 /-- The opening that checks the pool's claim `j` alone. -/
-abbrev only (j : Fin I.poolSize) : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
-  Component.batchQuery (TheOracle I) E (Opening.values I) (onlyOut I j) (Opening.question I)
-    (Opening.check I) fun _ ↦ ()
+abbrev only (j : Fin I.poolSize) :
+    Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit openingSlot :=
+  Typed.batch (TheOracle I) E (Opening.values I) (onlyOut I j)
 
 /-- The batched claim with unit weights, whatever the challenge. -/
 def unitOut (s : I.Stmt × FlockOut I) (_ _ : E) : WeightedClaim I :=
   Opening.batched I s 1 (powerBatch (Opening.values I s) 1)
 
 /-- The opening that combines the claims with unit weights. -/
-abbrev unitWeights : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
-  Component.batchQuery (TheOracle I) E (Opening.values I) (unitOut I) (Opening.question I)
-    (Opening.check I) fun _ ↦ ()
+abbrev unitWeights :
+    Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit openingSlot :=
+  Typed.batch (TheOracle I) E (Opening.values I) (unitOut I)
 
 /-- The column claims alone, combined by the powers of the challenge. -/
 def columnsOut (s : I.Stmt × FlockOut I) (ρ _ : E) : WeightedClaim I :=
@@ -280,15 +290,9 @@ def columnsOut (s : I.Stmt × FlockOut I) (ρ _ : E) : WeightedClaim I :=
     powerBatch (fun j : Fin I.pubClaims ↦ s.2.columns[j].value) ρ⟩
 
 /-- The opening that drops the weighted claims. -/
-abbrev columnsOnly : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
-  Component.batchQuery (TheOracle I) E (Opening.values I) (columnsOut I) (Opening.question I)
-    (Opening.check I) fun _ ↦ ()
-
-/-- A claim that holds passes the opening's check. -/
-theorem check_of_holds (c : WeightedClaim I) (o : ∀ i, TheOracle I i)
-    (h : c.Holds (theStack o)) :
-    Opening.check I c (Component.answerOf (TheOracle I) o (Opening.question I c)) = true :=
-  (Opening.accepts_iff I c _).mpr ((Opening.answer_weight_iff I o c).mpr h)
+abbrev columnsOnly :
+    Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit openingSlot :=
+  Typed.batch (TheOracle I) E (Opening.values I) (columnsOut I)
 
 /-- Two copies of one pooled claim cancel under unit weights in characteristic two: when every
 other pooled claim holds, the batched claim at `1` holds, whether or not the copies do. -/
@@ -341,18 +345,11 @@ theorem pool_toy (s : FlockOut toy) (j : Fin toy.poolSize) :
 
 /-- Without the check on the answer, a false pool is accepted at every challenge: no knowledge
 error below one. -/
-theorem unchecked_not_rbr {σ : Type} {init : ProbComp σ}
-    {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
-      ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : (unchecked toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
-      (Seam.flock toy) (Seam.done toy) Ex}
-    {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (unchecked toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-      (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (Opening.batched toy)
-    (Opening.question toy) (fun _ _ ↦ true) (fun _ ↦ ()) h badStmt theHonest badStmt_not_flock ()
-    fun _ ↦ ⟨rfl, trivial⟩
+theorem unchecked_one_le {e : ℝ≥0}
+    (S : Typed.Security (opening toy) (Seam.flock toy) ((unchecked toy).rel (Seam.done toy))
+      (Typed.drawErrors E e)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le S badStmt theHonest badStmt_not_flock rfl fun _ ↦
+    ⟨(), rfl, trivial⟩
 
 /-- The first claim of `badStmt` holds of the honest stack. -/
 theorem badStmt_first : (Opening.pool toy badStmt.2 ⟨0, by decide⟩).Holds honest := by
@@ -361,19 +358,11 @@ theorem badStmt_first : (Opening.pool toy badStmt.2 ⟨0, by decide⟩).Holds ho
 
 /-- Checking the first claim alone, a pool whose first claim holds is accepted at every
 challenge: no knowledge error below one. -/
-theorem only_not_rbr {σ : Type} {init : ProbComp σ}
-    {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
-      ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.KnowledgeStateFunction init impl
-      (Seam.flock toy) (Seam.done toy) Ex}
-    {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (only toy ⟨0, by decide⟩).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith
-      init impl (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy)
-    (onlyOut toy ⟨0, by decide⟩) (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h
-    badStmt theHonest badStmt_not_flock () fun _ ↦
-      ⟨check_of_holds toy _ theHonest badStmt_first, trivial⟩
+theorem only_one_le {e : ℝ≥0}
+    (S : Typed.Security (only toy ⟨0, by decide⟩) (Seam.flock toy) (Seam.opened toy)
+      (Typed.drawErrors E e)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le S badStmt theHonest badStmt_not_flock rfl fun _ ↦
+    ⟨(), (Seam.opened_iff toy _ theHonest ()).mpr badStmt_first⟩
 
 /-- The two false claims of `dupStmt` are copies, and its other claims hold: the batched claim
 at unit weights holds. -/
@@ -390,18 +379,11 @@ theorem dupStmt_unit (ρ c : E) : (unitOut toy dupStmt ρ c).Holds honest := by
 
 /-- With unit weights, two copies of one false claim cancel in characteristic two, so the pool
 is accepted at every challenge: no knowledge error below one. -/
-theorem unitWeights_not_rbr {σ : Type} {init : ProbComp σ}
-    {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((K × FlockOut toy) ×
-      ∀ i, TheOracle toy i) Unit Unit openingSpec WitMid}
-    {kSF : (unitWeights toy).red.verifier.toVerifier.KnowledgeStateFunction init impl
-      (Seam.flock toy) (Seam.done toy) Ex}
-    {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (unitWeights toy).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-      (Seam.flock toy) (Seam.done toy) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.batchQuery_not_rbr (TheOracle toy) E (Opening.values toy) (unitOut toy)
-    (Opening.question toy) (Opening.check toy) (fun _ ↦ ()) h dupStmt theHonest
-    dupStmt_not_flock () fun ρ ↦ ⟨check_of_holds toy _ theHonest (dupStmt_unit ρ _), trivial⟩
+theorem unitWeights_one_le {e : ℝ≥0}
+    (S : Typed.Security (unitWeights toy) (Seam.flock toy) (Seam.opened toy)
+      (Typed.drawErrors E e)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le S dupStmt theHonest dupStmt_not_flock rfl fun ρ ↦
+    ⟨(), (Seam.opened_iff toy _ theHonest ()).mpr (dupStmt_unit ρ _)⟩
 
 /-- The zero stack of `flocky`. -/
 def zero8 : Column 8 := ⟨Vector.replicate (2 ^ 8) 0⟩
@@ -436,19 +418,11 @@ theorem flockyBad_columns : ∀ c ∈ flockyBad.2.columns.toList, c.Holds zero8 
 
 /-- Dropping the weighted claims, a pool whose column claims hold is accepted at every
 challenge, whatever its weighted claims: no knowledge error below one. -/
-theorem columnsOnly_not_rbr {σ : Type} {init : ProbComp σ}
-    {impl : QueryImpl []ₒ (StateT σ ProbComp)} {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0}) ((Unit × FlockOut flocky) ×
-      ∀ i, TheOracle flocky i) Unit Unit openingSpec WitMid}
-    {kSF : (columnsOnly flocky).red.verifier.toVerifier.KnowledgeStateFunction init impl
-      (Seam.flock flocky) (Seam.done flocky) Ex}
-    {ε : openingSpec.ChallengeIdx → ℝ≥0}
-    (h : (columnsOnly flocky).red.verifier.toVerifier.rbrKnowledgeSoundnessWorstCaseWith init
-      impl (Seam.flock flocky) (Seam.done flocky) WitMid Ex kSF ε) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.batchQuery_not_rbr (TheOracle flocky) E (Opening.values flocky) (columnsOut flocky)
-    (Opening.question flocky) (Opening.check flocky) (fun _ ↦ ()) h flockyBad theZero
-    flockyBad_not_flock () fun ρ ↦
-      ⟨check_of_holds flocky _ theZero (columns_holds flocky flockyBad zero8 flockyBad_columns ρ _),
-        trivial⟩
+theorem columnsOnly_one_le {e : ℝ≥0}
+    (S : Typed.Security (columnsOnly flocky) (Seam.flock flocky) (Seam.opened flocky)
+      (Typed.drawErrors E e)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le S flockyBad theZero flockyBad_not_flock rfl fun ρ ↦
+    ⟨(), (Seam.opened_iff flocky _ theZero ()).mpr
+      (columns_holds flocky flockyBad zero8 flockyBad_columns ρ _)⟩
 
 end LeanerVMTests.Protocol.Opening

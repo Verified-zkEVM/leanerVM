@@ -2,7 +2,7 @@ import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Spine.Errors
-import LeanerVM.Protocol.Spine.Phase
+import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.Spine.Toy
 
 /-!
@@ -24,15 +24,16 @@ product of two tables' extensions.
   `crates/verifier/src/transcript.rs:186-202` at leanVM `127510d1`): the plain round drops
   `c_1`, recomputed as `claim + c_2 + … + c_d`; the normalized round drops `c_0`, recomputed as
   `claim + r · (c_1 + … + c_d)`. `decodeWire` agrees with both on honest messages of degree two
-  and three, and returns the honest message from the wire of `d` values.
-* **The final check is load-bearing.** Without it the last message has no knowledge state
-  function, whatever the extractor: a statement whose claim is not the summand at its point is
-  carried into the output relation by the true values.
+  and three, and returns the honest message from the wire of `d` values; a round read on the wire
+  keeps its security at the same errors (`transport`).
+* **The final check is load-bearing.** Without it the last message has no security at any error,
+  whatever the extractor: a statement whose claim is not the summand at its point is carried
+  into the output relation by the true values.
 * **Degree in each variable.** A summand of the table sumcheck's shape, a padding coordinate times
   an equality factor in another coordinate times a constraint of degree two on a lifted table, has
   degree three in each variable, though its factors' degrees add up to four.
-* **The slot.** The table sumcheck's slot `tableSpec` takes the batching challenge followed by the
-  rounds and the last message of a plain sumcheck of degree three, as a front phase.
+* **The slot.** The table sumcheck's slot `tableSlot` takes the batching challenge followed by the
+  rounds and the last message of a plain sumcheck of degree three, by definitional equality.
 * **Completeness** has an inhabitant for both variants.
 * **Knowledge soundness** has an inhabitant for both variants, at the slot's unit, as plain
   definitions that compute at `E`; the rounds of a cubic plain sumcheck over the toy's stack meet
@@ -46,7 +47,7 @@ are named as definitions before a guard uses them.
 namespace LeanerVMTests.Protocol.Sumcheck
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Sumcheck CompPoly CMlPolynomialEval
-  OracleComp OracleSpec ProtocolSpec
+  OracleComp OracleSpec
 
 /-- No oracle. -/
 def noO : ∀ i, NoOracle i := fun i ↦ i.elim0
@@ -211,10 +212,6 @@ def k0 : SumcheckRound.Message E 3 := roundPoly V3 wtOne nodes4 ctx 0 #v[]
 #guard decodeWire (domain wtOne () 0) 1 T3 #v[k0[0], k0[2], k0[3]] = k0
 #guard (decodeWire (domain wtOne () 0) 1 T3 #v[k0[0], k0[2], k0[3]])[1] = T3 + k0[2] + k0[3]
 
--- The round's wire schedule: one message of `d` values, then the challenge.
-example : (wireSpec E 3).«Type» ⟨0, by decide⟩ = Vector E 3 := rfl
-example : (wireSpec E 3).«Type» ⟨1, by decide⟩ = E := rfl
-
 /-! ## The slot of the table sumcheck -/
 
 /-- The public data of the table sumcheck after its batching challenge. -/
@@ -227,32 +224,19 @@ def Vtoy : Virtual E TableX (TheOracle Toy.toy) Unit Toy.toy.τmax Toy.toy.table
     (Toy.slice (ctx.1.2 0) ⟨0, ⟨i.val, i.isLt⟩⟩).values
   formula := fun _ _ v ↦ v[2] * v[2] + v[2]
 
-instance : ∀ i, OracleInterface ((draw E ++ₚ roundsSpec E 3 Toy.toy.τmax).Message i) :=
-  msgAppend (instOracleInterfaceDraw E) (instOracleInterfaceRounds E 3 _)
-
-instance : ∀ i, SampleableType ((draw E ++ₚ roundsSpec E 3 Toy.toy.τmax).Challenge i) :=
-  chalAppend (instSampleableTypeDraw E) (instSampleableTypeRounds E 3 _)
-
 /-- The table phase's output, here the public statement and the values: the last message's output
 map makes the phase's own statement, not the sumcheck's. -/
 def tableOut (s : SumcheckRound.Stmt TableX E Toy.toy.τmax) (v : Vector E Toy.toy.tableColumns) :
     Toy.toy.Stmt × Vector E Toy.toy.tableColumns :=
   (s.1.1.1, v)
 
-/-- The table sumcheck's shape: the batching challenge, then the rounds and the last message of
-the plain sumcheck. -/
-def tableShape : Phase.Def Toy.toy (Toy.toy.Stmt × BusOut Toy.toy)
-    (Toy.toy.Stmt × Vector E Toy.toy.tableColumns) (tableSpec Toy.toy) :=
-  ((Component.sampleChallenge (TheOracle Toy.toy) E (fun _ ↦ true)
+/-- The table sumcheck's shape, at the table slot by definitional equality: the batching
+challenge, then the rounds and the last message of the plain sumcheck. -/
+def tableShape : Typed.Def (TheOracle Toy.toy) (Toy.toy.Stmt × BusOut Toy.toy) Unit
+    (Toy.toy.Stmt × Vector E Toy.toy.tableColumns) Unit (tableSlot Toy.toy) :=
+  ((Typed.sampleChallenge (TheOracle Toy.toy) E (fun _ ↦ true)
       fun s ξ ↦ (((s, ξ), (#v[], 0)) : SumcheckRound.Stmt TableX E 0)).append
     (rounds Vtoy unitWeights nodes4)).append (final Vtoy tableOut)
-
--- The slot takes it as a front phase, by definitional equality of the schedules.
-example : Phase.FrontDef Toy.toy (Toy.toy.Stmt × BusOut Toy.toy)
-    (Toy.toy.Stmt × Vector E Toy.toy.tableColumns) (tableSpec Toy.toy) :=
-  ⟨tableShape,
-    ((Component.sampleFront _ _ _ _).append (roundsFront Vtoy unitWeights nodes4)).append
-      (finalFront Vtoy tableOut)⟩
 
 /-! ## Completeness -/
 
@@ -321,27 +305,27 @@ theorem tableShaped_degree : IndividualDegreeLE tableShaped 3 := by
 /-! ## The final check is load-bearing -/
 
 -- For every statement, the one with its claim moved off the summand at its point has no
--- knowledge state function for the last message without its check: whatever the extractor.
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {W' : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (SumcheckRound.Stmt Unit E 2 × ∀ i, NoOracle i) Unit Unit (say (Vector E 2)) W'}
-    (s : SumcheckRound.Stmt Unit E 2)
-    (K : (Component.sendCheckedVerifier NoOracle (Vector E 2) (fun _ _ ↦ true)
-      (finalOut (X := Unit) (F := E) (n := 2) (m := 2))).toVerifier.KnowledgeStateFunction init
-      impl (SumcheckRound.rel (family V wtOne nodes noSide) 2) (relOut V noSide) Ex) : False :=
-  final_unchecked_no_stateFunction V wtOne nodes noSide init impl K
-    ((), (s.2.1, V.summand ctx s.2.1.reverse + 1)) noO () trivial fun _ h ↦
-      one_ne_zero (add_eq_left.mp h)
+-- security for the last message without its check, at any error: the true values carry it into
+-- the output relation.
+example {err : Typed.Errors (Typed.sayTree (Vector E 2)) (Typed.sayRoles _)}
+    (S : Typed.Security (Typed.sendChecked NoOracle (Vector E 2)
+      (fun p ↦ V.values (SumcheckRound.ctxOf p) p.1.1.2.1.reverse) (fun _ _ ↦ true)
+      (finalOut (X := Unit) (F := E) (n := 2) (m := 2)))
+      (SumcheckRound.rel (family V wtOne nodes noSide) 2) (relOut V noSide) err)
+    (s : SumcheckRound.Stmt Unit E 2) : False :=
+  Typed.sendChecked_no_security S ((), (s.2.1, V.summand ctx s.2.1.reverse + 1)) noO
+    (fun _ h ↦ one_ne_zero (add_eq_left.mp ((mem_rel_self V wtOne nodes noSide _).mp h).2))
+    (V.values ctx s.2.1.reverse) rfl ()
+    ⟨rfl, trivial⟩
 
--- Completeness of both variants on `t₁ · t₂`, as plain definitions: they compute.
-def completePlain :
-    Component.Complete (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide) :=
-  plainComplete V nodes noSide V_degree nodes_injective
+-- Completeness of both variants on `t₁ · t₂`.
+theorem completePlain :
+    Typed.Complete (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide) :=
+  weightedComplete V unitWeights nodes noSide V_degree nodes_injective
 
-def completeNormalized :
-    Component.Complete (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide) :=
-  normalizedComplete V nodes noSide (fun _ ↦ p) V_degree nodes_injective
+theorem completeNormalized :
+    Typed.Complete (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide) :=
+  weightedComplete V (eqWeights fun _ ↦ p) nodes noSide V_degree nodes_injective
 
 /-- A side condition: the first entry of the first table is `a`. The sumcheck carries it, in its
 input and output relations, without reading it. -/
@@ -351,32 +335,32 @@ def firstIsA : SumcheckRound.Ctx Unit NoOracle Unit → Prop := fun ctx ↦ (V.t
 example : ((((), (#v[], T)), noO), ()) ∈ relIn V wtOne firstIsA := ⟨rfl, rfl⟩
 
 -- Completeness carries the side condition into the output relation.
-def completeSide :
-    Component.Complete (plain V nodes) (relIn V unitWeights firstIsA) (relOut V firstIsA) :=
-  plainComplete V nodes firstIsA V_degree nodes_injective
+theorem completeSide :
+    Typed.Complete (plain V nodes) (relIn V unitWeights firstIsA) (relOut V firstIsA) :=
+  weightedComplete V unitWeights nodes firstIsA V_degree nodes_injective
 
 /-! ## Knowledge soundness -/
 
 open scoped NNReal
 
-/-- Knowledge soundness of the plain sumcheck on `t₁ · t₂`, at `overE 2` per round. -/
+/-- Knowledge soundness of the plain sumcheck on `t₁ · t₂`, at `overE 2` per round; a plain
+definition, so it computes. -/
 def securityPlain :
-    Component.Security (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide)
-    (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
-  (plainSecurity V nodes noSide V_degree nodes_injective).mono fun _ ↦ by
-    rw [natCast_div_card_eq_overE]
+    Typed.Security (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide)
+      (Typed.Errors.append (Typed.roundsSlot E 2 2).tree (Typed.roundsSlot E 2 2).roles
+        (Typed.roundsErrors E 2 (overE 2) 2) (Typed.sayErrors (Vector E 2))) :=
+  (weightedSecurity V unitWeights nodes noSide V_degree nodes_injective).mono
+    (Typed.Errors.Le.append _ _ (Typed.roundsErrors_le E 2
+      (le_of_eq (natCast_div_card_eq_overE 2)) 2) (Typed.Errors.Le.refl _ _ _))
 
 /-- Knowledge soundness of the normalized sumcheck on `t₁ · t₂` against `eq(p, ·)`. -/
 def securityNormalized :
-    Component.Security (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide)
-      (errAppend (roundsError E 2 (overE 2) 2) (sayError (Vector E 2))) :=
-  (normalizedSecurity V nodes noSide (fun _ ↦ p) V_degree nodes_injective).mono fun _ ↦ by
-    rw [natCast_div_card_eq_overE]
-
-/-- Their extraction, which a slot reads: it computes. -/
-def extractionPlain :
-    Component.Extraction (plain V nodes) (relIn V unitWeights noSide) (relOut V noSide) :=
-  securityPlain.toExtraction
+    Typed.Security (normalized V (fun _ ↦ p) nodes) (relIn V wtEq noSide) (relOut V noSide)
+      (Typed.Errors.append (Typed.roundsSlot E 2 2).tree (Typed.roundsSlot E 2 2).roles
+        (Typed.roundsErrors E 2 (overE 2) 2) (Typed.sayErrors (Vector E 2))) :=
+  (weightedSecurity V (eqWeights fun _ ↦ p) nodes noSide V_degree nodes_injective).mono
+    (Typed.Errors.Le.append _ _ (Typed.roundsErrors_le E 2
+      (le_of_eq (natCast_div_card_eq_overE 2)) 2) (Typed.Errors.Le.refl _ _ _))
 
 theorem y_add_one_ne_zero : y + 1 ≠ 0 := by
   intro h
@@ -406,11 +390,11 @@ theorem Vtoy_degree : ∀ ctx, IndividualDegreeLE (Vtoy.summand ctx) 3 := fun ct
 /-- The rounds of the cubic plain sumcheck over the toy's stack meet the table slot's per-round
 error, `overE 3`. -/
 def tableRoundsSecurity :
-    Component.Security (rounds Vtoy unitWeights nodes4) (relIn Vtoy unitWeights fun _ ↦ True)
+    Typed.Security (rounds Vtoy unitWeights nodes4) (relIn Vtoy unitWeights fun _ ↦ True)
       (SumcheckRound.rel (family Vtoy unitWeights nodes4 fun _ ↦ True) Toy.toy.τmax)
-      (roundsError E 3 (overE 3) Toy.toy.τmax) :=
-  (roundsSecurity Vtoy unitWeights nodes4 _ Vtoy_degree nodes4_injective).mono fun _ ↦ by
-    rw [natCast_div_card_eq_overE]
+      (Typed.roundsErrors E 3 (overE 3) Toy.toy.τmax) :=
+  (roundsSecurity Vtoy unitWeights nodes4 _ Vtoy_degree nodes4_injective).mono
+    (Typed.roundsErrors_le E 3 (le_of_eq (natCast_div_card_eq_overE 3)) _)
 
 /-- The family of the plain sumcheck on `t₁ · t₂`. -/
 abbrev Φ : SumcheckRound.Family E Unit NoOracle Unit 2 := family V wtOne nodes noSide
@@ -420,24 +404,24 @@ def nextClaim (p : SumcheckRound.MidStmt Unit E 0 2) (c : E) : SumcheckRound.Stm
   SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 2 p.2 c) c
 
 /-- The round check is load-bearing: the first round's challenge drawn without checking the
-polynomial has no knowledge error below one, whatever the extractor and the state function, since
-from a running claim off by one the honest polynomial is carried into the next relation at every
-challenge. -/
-theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (SumcheckRound.MidStmt Unit E 0 2 × ∀ i, NoOracle i) Unit Unit (draw E) WitMid}
-    {kSF : Verifier.KnowledgeStateFunction init impl (SumcheckRound.relMid Φ 0)
-      (SumcheckRound.rel Φ 1)
-      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier Ex}
-    {ε : (draw E).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (SumcheckRound.relMid Φ 0)
-      (SumcheckRound.rel Φ 1)
-      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier WitMid Ex kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ :=
-  SumcheckRound.drawChallenge_unchecked_not_rbr 0 init impl Φ
-    (family_honest V wtOne nodes noSide V_degree nodes_injective).toConsistent (by decide) h
-    ((), (#v[], Φ.claim ctx 0 #v[] + 1)) noO ()
-    (fun h ↦ one_ne_zero (add_eq_left.mp h)) fun _ ↦ trivial
+polynomial has no knowledge error below one, whatever the extractor, since from a running claim
+off by one the honest polynomial is carried into the next relation at every challenge. -/
+theorem unchecked_round_one_le {e : ℝ≥0}
+    (S : Typed.Security (Typed.sampleChallenge NoOracle E (fun _ ↦ true) nextClaim)
+      (SumcheckRound.relMid Φ 0) (SumcheckRound.rel Φ 1) (Typed.drawErrors E e)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le S
+    (((), (#v[], Φ.claim ctx 0 #v[] + 1)), Φ.poly ctx 0 #v[]) noO
+    (fun _ h ↦ one_ne_zero (add_eq_left.mp h.1.2)) rfl fun c ↦
+      ⟨(), trivial, (family_honest V wtOne nodes noSide V_degree nodes_injective).next ctx 0 #v[] c
+        (by decide)⟩
+
+/-- The wire: a round read on the wire, `d` of its coefficients, keeps the round's security at
+the same errors. -/
+example (S : Typed.Security (SumcheckRound.round Φ.poly 0 Φ.weight) (SumcheckRound.rel Φ 0)
+      (SumcheckRound.rel Φ 1) (Typed.roundErrors E 2 (overE 2))) :
+    Nonempty (Typed.Security ((SumcheckRound.round Φ.poly 0 Φ.weight).decode
+        (fun s w ↦ decodeWire (Φ.weight s.1 0) 1 s.2.2 w) fun _ q ↦ encodeWire 1 q)
+      (SumcheckRound.rel Φ 0) (SumcheckRound.rel Φ 1) fun _ ↦ Typed.drawErrors E (overE 2)) :=
+  ⟨transport S 1⟩
 
 end LeanerVMTests.Protocol.Sumcheck

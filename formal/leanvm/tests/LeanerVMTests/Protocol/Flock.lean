@@ -225,7 +225,7 @@ def st2Rust : Stmt (ZcX Unit E (toyP.m + toyP.κ)) E 2 := next 1 st1 (evaluate 2
 /-! ## leanVM's sizes -/
 
 -- The generic argument at `6, 8, k` is the spine's slot.
-example (k : ℕ) : flockSchedule E Flock.kSkip Flock.kIn k (k + 1) 5 = flockSpecOf k := rfl
+example (k : ℕ) : flockSlot E Flock.kSkip Flock.kIn k (k + 1) 5 = flockSlotOf k := rfl
 
 -- The ring-switching shifts are `2^(5 - p)`, those of `Parameters.Flock`.
 #guard (List.ofFn fun p : Fin 6 ↦ 2 ^ (5 - p.val)) = Flock.ringShifts.toList

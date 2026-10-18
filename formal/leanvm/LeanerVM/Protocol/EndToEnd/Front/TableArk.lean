@@ -14,9 +14,9 @@ public import LeanerVM.Protocol.TableSumcheck
 /-!
 # The table sumcheck's relations
 
-`tableSumcheckSecurity` (`LeanerVM.Protocol.TableSumcheck`) appends three securities, the first
-and the last written inline. This module restates them as public objects with the same proofs
-(`xiSecurity`, `finalValuesSecurity`), and reads them as doom transitions:
+The table sumcheck phase's security on the typed framework (`tableSumcheckSecurity`,
+`LeanerVM.Protocol.TableSumcheck`) appends three securities, the first and the last of them public
+(`xiSecurity`, `finalValuesSecurity`). This module reads them as doom transitions:
 
 * `xi_escape`: the batching challenge `ξ` escapes doom on the bus seam with probability at most
   `L₀ · (B + 2) / |E|`;
@@ -29,28 +29,12 @@ and the last written inline. This module restates them as public objects with th
 namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.TableSumcheck
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
 
 variable (I : M3Instance)
-
-/-- The batching challenge's security, `tableSumcheckSecurity`'s first part. -/
-def xiSecurity :
-    Component.Security (batchStep I) (Seam.bus I)
-      (Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
-      (drawError E (((I.B + 3 - 1 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0))) :=
-  Component.batchSecurity (TheOracle I) E (claimed I) (start I) (relIn := Seam.bus I)
-    (relOut := Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
-    fun s o ↦ ⟨trueValues I s (theStack o), fun w ρ hin hout ↦ by
-      cases w
-      obtain ⟨hsum, hside⟩ := hout
-      have hsum : powerBatch (claimed I s) ρ = powerBatch (trueValues I s (theStack o)) ρ :=
-        hsum.trans (sum_tableSummand I (s, ρ) o)
-      refine ⟨fun heq ↦ hin ?_, hsum⟩
-      obtain ⟨hzero, htotals⟩ := (trueValues_eq_claimed_iff I s (theStack o)).mp heq
-      exact ⟨hzero, htotals, hside⟩⟩
 
 /-- The error of the batching challenge over at most `L₀` candidates: `L₀ · (B + 2) / |E|`. -/
 noncomputable def xiError (L₀ : ℕ) : ℝ≥0∞ :=
@@ -64,10 +48,7 @@ theorem xi_escape {L₀ : ℕ} {C : Set (∀ i, TheOracle I i)} (hfin : C.Finite
     (Fintype.card E : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun ξ ↦ ¬ RelDoom C
       (Sumcheck.relIn (tableSummand I) Sumcheck.unitWeights (side I))
       (start I s ξ (powerBatch (claimed I s) ξ))).card : ℝ≥0∞) ≤ xiError I L₀ :=
-  draw_escape_le (xiSecurity I) (Component.sampleFront (TheOracle I) _ _ _) (fun _ ↦ true)
-    (fun s ξ ↦ start I s ξ (powerBatch (claimed I s) ξ)) (fun _ _ ↦ rfl)
-    (fun s c ↦ congrArg (fun z ↦ start I s z (powerBatch (claimed I s) z)) (drawTr_zero c))
-    hfin hcard hpre rfl
+  draw_escape_le (xiSecurity I) hfin hcard hpre rfl
 
 /-- The rounds' family. -/
 noncomputable abbrev tableFamily : SumcheckRound.Family E (Data I) (TheOracle I) Unit 3 :=
@@ -83,18 +64,6 @@ changes. -/
 theorem tableFamily_sound : (tableFamily I).Sound I.τmax :=
   fun _ _ _ _ h ↦ (Nat.card_eq_zero.mpr (Or.inl ⟨fun x ↦ h x.2⟩)).trans_le (Nat.zero_le 3)
 
-/-- The final values' security, `tableSumcheckSecurity`'s last part. -/
-def finalValuesSecurity :
-    Component.Security (Sumcheck.final (tableSummand I) (tableOut I))
-      (SumcheckRound.rel (tableFamily I) I.τmax) (Seam.table I) (sayError _) :=
-  Sumcheck.finalSecurity (tableSummand I) Sumcheck.unitWeights nodes (side I) (tableOut I)
-    fun s o w v h ↦ by
-      cases w
-      obtain ⟨hcols, hlines, haux⟩ := h
-      simp only [tableOut, Vector.toList_append, List.mem_append] at hcols
-      exact ⟨(finalClaims_holds_iff I ((s.1, o), ()) _ v).mp fun c hc ↦ hcols c (Or.inr hc),
-        fun c hc ↦ hcols c (Or.inl hc), hlines, haux⟩
-
 /-- **The final values keep doom**: values that pass the final check carry doom on the rounds'
 last stage to doom on the table seam. -/
 theorem finalValues_keep {C : Set (∀ i, TheOracle I i)}
@@ -102,10 +71,7 @@ theorem finalValues_keep {C : Set (∀ i, TheOracle I i)}
     (hpre : RelDoom C (SumcheckRound.rel (tableFamily I) I.τmax) s) (v : Vector E I.tableColumns)
     (hc : Sumcheck.finalCheck (tableSummand I) s v = true) :
     RelDoom C (Seam.table I) (tableOut I s v) :=
-  say_keep (finalValuesSecurity I) (Component.sendCheckedFront (TheOracle I) _ _ _ _)
-    (Sumcheck.finalCheck (tableSummand I)) (tableOut I)
-    (fun s v ↦ congrArg (Sumcheck.finalCheck (tableSummand I) s) (sayTr_zero v))
-    (fun s v ↦ congrArg (tableOut I s) (sayTr_zero v)) hpre v hc
+  say_keep (finalValuesSecurity I) hpre v hc
 
 end
 end LeanerVM.Protocol.EndToEnd.Front

@@ -1,4 +1,4 @@
-import LeanerVM.Protocol.ToArkLib.Batch
+import LeanerVM.Protocol.ToArkLib.Typed.Batch
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.Field
 import Mathlib.Data.ZMod.Defs
@@ -13,8 +13,8 @@ import Mathlib.Data.ZMod.Defs
   one challenge (the root of the difference, degree one), a false singleton at none; equal
   families at every challenge; true values that depend on the witness collide at more
   challenges than one family's.
-* **Completeness and knowledge soundness** have inhabitants over `E`, as plain definitions that
-  compute, at `(k - 1) / |E|`.
+* **Completeness and knowledge soundness** have inhabitants over `E`, the security a plain
+  definition that computes, at `(k - 1) / |E|`.
 
 A plain file, so `#guard` evaluates the compiled definitions.
 -/
@@ -33,8 +33,8 @@ abbrev Out : Type := E × E
 def v₃ : Fin 3 → E := ![y, y + 1, y * y]
 
 /-- Batching three claims; the output records the challenge and the combination. -/
-def batch3 : Component.Def (Fin 3 → E) NoOracle Unit Out NoOracle Unit (draw E) :=
-  Component.batch NoOracle E id fun _ ρ c ↦ (ρ, c)
+def batch3 : Typed.Def NoOracle (Fin 3 → E) Unit Out Unit (Typed.drawSlot E) :=
+  Typed.batch NoOracle E id fun _ ρ c ↦ (ρ, c)
 
 /-- The challenge. -/
 def ρ₀ : E := y + y * y
@@ -49,17 +49,17 @@ def relIn : Set (((Fin 3 → E) × ∀ i, NoOracle i) × Unit) := {p | p.1.1 = v
 def relOut : Set ((Out × ∀ i, NoOracle i) × Unit) := {p | p.1.1.2 = powerBatch v₃ p.1.1.1}
 
 /-- Completeness: true claims combine into a true claim at every challenge. -/
-def batchComplete3 : Component.Complete batch3 relIn relOut :=
-  Component.batchComplete NoOracle E id _ fun s _ _ h ρ ↦ by
+theorem batchComplete3 : Typed.Complete batch3 relIn relOut :=
+  Typed.batchComplete fun s _ _ h ρ ↦ by
     show powerBatch (id s) ρ = powerBatch v₃ ρ
     rw [show id s = v₃ from h]
 
 /-- Knowledge soundness at `2 / |E|`: a false claim combines into the true combination at two
 challenges at most. -/
 def batchSecurity3 :
-    Component.Security batch3 relIn relOut
-      (drawError E (((3 - 1 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0))) :=
-  Component.batchSecurity NoOracle E id _ fun _ _ ↦
+    Typed.Security batch3 relIn relOut
+      (Typed.drawErrors E (((3 - 1 : ℕ) : ℝ≥0) / (Nat.card E : ℝ≥0))) :=
+  Typed.batchSecurity fun _ _ ↦
     ⟨v₃, fun _ _ hs hρ ↦ ⟨fun h ↦ hs h.symm, hρ⟩⟩
 
 /-! ## The count -/

@@ -16,8 +16,8 @@ public import VCVio.OracleComp.Constructions.SampleableType.Measure
 
 The calculus of verifier programs (`LeanerVM.Protocol.Compile.Spec`) states the probability of an
 event over one challenge as an average, `|E|⁻¹ · Σ_c [p c]` (`avgE`, `indE`). A front phase's
-ArkLib security states it as `Pr{let c ← $ᵗ E}[p c] ≤ ε` for one statement and one stack, worst
-case over the transcript prefix (`rbrKnowledgeSoundnessWorstCaseWith`). The front phases' doom
+security on ArkLib's typed framework states it as `Pr{let c ← $ᵗ E}[p c] ≤ ε` for one statement
+and one stack, at every verifier prefix (`IsLocallyBounded`). The front phases' doom
 quantifies over the candidates of the level-0 commitment, a finite set of stacks, so a challenge
 escapes it when it escapes for one candidate:
 

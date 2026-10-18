@@ -38,7 +38,7 @@ namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
 open LeanerVM.Protocol.TableSumcheck
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section

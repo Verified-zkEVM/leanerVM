@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 /-!
 # Knowledge soundness of the bus phase
 
-`busSecurity I h` is the security half of `busPhase I h` at the slot's error `busError I`, from
+`busSecurity I h` is the security half of `busPhase I h` at the slot's errors `busErrors I`, from
 `Seam.commit` to `Seam.bus`. The stack is the oracle and every witness is trivial, so it is
 round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only through a bad
 challenge. It is composed from the four steps' halves, at the same intermediate relations as
@@ -33,7 +33,7 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   one root for both sides makes the products agree. This is where the check is load-bearing: a
   zero count is otherwise balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed
   verifier's check is `crates/verifier/src/bus.rs:117-119`).
-* **The grand-product argument** (`gkrSecurity`), at `gkrError` from the unit `1/|E|`. Its riders
+* **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
   carry the constraints and the public lines with the Flock predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
   restricted to the coordinates of `ζ` drawn so far, which a coordinate makes zero at one value at
@@ -53,7 +53,7 @@ Written from the specification and the protocol's relations; nothing is transcri
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal
 
 @[expose] public section
@@ -119,64 +119,78 @@ private theorem challenge_error_eq :
   rw [mul_comm ((Nat.card E : ℝ≥0) ^ 4) (Nat.card E : ℝ≥0),
     mul_div_mul_right _ _ (pow_ne_zero 4 hE)]
 
-/-- The challenges' security half, at `4·2^{μ_bus}/|E|` (Theorem 5.1). -/
+/-- The challenges' typed security half, at `4·2^{μ_bus}/|E|` (Theorem 5.1). -/
 def challengeSecurity (h : Conditions I) :
-    Component.Security (challengeStep I) (Seam.commit I) (afterChallenge I)
-      (drawError _ (overE (4 * 2 ^ I.μBus))) :=
-  (Component.sampleChallengeSecurity _ _ _ _ (4 * 2 ^ I.μBus * (2 ^ 192) ^ 4) fun s o _ ↦
-    Component.card_badChallenge_le_of_unit _ _ _ _ s o fun hs ↦
-      by exact card_afterChallenge_le h s o hs).mono fun _ ↦ by exact le_of_eq challenge_error_eq
+    Typed.Security (challengeStep I) (Seam.commit I) (afterChallenge I)
+      (Typed.drawErrors _ (overE (4 * 2 ^ I.μBus))) :=
+  (Typed.sampleChallengeSecurity (4 * 2 ^ I.μBus * (2 ^ 192) ^ 4) fun s o _ ↦
+    Typed.card_badChallenge_le_of_unit _ s o fun hs ↦
+      by exact card_afterChallenge_le h s o hs).mono
+      (by exact ⟨le_of_eq challenge_error_eq, fun _ ↦ trivial⟩)
 
 /-! ## The roots -/
 
-/-- The roots' security half, at no error: a nonzero count root that is the product of its
-leaves makes every count cell nonzero, and one root for push and pull makes their products
-agree. -/
+/-- A root that passes the check `R_c ≠ 0` and is the product of its leaves makes every count
+cell nonzero, and one root for push and pull makes their products agree. -/
+theorem roots_reflect (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i) (w : Unit)
+    (r : E × E) (hc : decide (r.2 ≠ 0) = true)
+    (hout : (((x, ![r.1, r.1, r.2]), o), w) ∈ Gkr.relIn 3 I.μBus (leaves I) (riders I)) :
+    ((x, o), w) ∈ afterChallenge I := by
+  cases w
+  obtain ⟨hz, hroots⟩ := hout
+  obtain ⟨hcons, hl, ha⟩ := (ridersZero_iff h x o).mp hz
+  have h0 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 0)[i] := hroots 0
+  have h1 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 1)[i] := hroots 1
+  have h2 : r.2 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 2)[i] := hroots 2
+  have hnz : r.2 ≠ 0 := of_decide_eq_true hc
+  rw [h2] at hnz
+  exact ⟨h0.symm.trans h1, (prod_countLeaves_ne_zero_iff h _ _ _).mp hnz, hcons, hl, ha⟩
+
+/-- The roots' typed security half, at no error. -/
 def rootsSecurity (h : Conditions I) :
-    Component.Security (rootsStep I) (afterChallenge I)
-      (Gkr.relIn 3 I.μBus (leaves I) (riders I)) (sayError _) :=
-  Component.sendCheckedSecurity _ _ _ _ _ fun x o w r hc hout ↦ by
-    cases w
-    obtain ⟨hz, hroots⟩ := hout
-    obtain ⟨hcons, hl, ha⟩ := (ridersZero_iff h x o).mp hz
-    have h0 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 0)[i] := hroots 0
-    have h1 : r.1 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 1)[i] := hroots 1
-    have h2 : r.2 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 2)[i] := hroots 2
-    have hnz : r.2 ≠ 0 := of_decide_eq_true hc
-    rw [h2] at hnz
-    exact ⟨h0.symm.trans h1, (prod_countLeaves_ne_zero_iff h _ _ _).mp hnz, hcons, hl, ha⟩
+    Typed.Security (rootsStep I) (afterChallenge I)
+      (Gkr.relIn 3 I.μBus (leaves I) (riders I)) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity (roots_reflect h)
 
 /-! ## The boundary values -/
 
-/-- The values' security half, at no error: the boundary claims force the values sent, the forms
-summing to the totals then force the leaf claims, and the zerocheck clause the riders'
-vanishing. -/
+/-- The boundary claims force the values sent, the forms summing to the totals then force the
+leaf claims, and the zerocheck clause the riders' vanishing. -/
+theorem values_reflect (h : Conditions I) (ℓ : Gkr.LayerStmt (Data I) E 3 I.μBus)
+    (o : ∀ i, TheOracle I i) (w : Unit) (vals : Vector E I.busClaims)
+    (_ : (fun (_ : Gkr.LayerStmt (Data I) E 3 I.μBus) (_ : Vector E I.busClaims) ↦ true) ℓ vals
+      = true)
+    (hout : (((ℓ.1.1, busOut h ℓ vals), o), w) ∈ Seam.bus I) :
+    ((ℓ, o), w) ∈ Gkr.relOut 3 I.μBus (leaves I) (riders I) := by
+  cases w
+  obtain ⟨hzero, hforms, hclaims, hl, ha⟩ := hout
+  have hvals : ∀ i : Fin I.busClaims, vals[i] = eval₂Mle
+      (I.column (theStack o) I.boundaryColumns[i]).values (algebraMap K E)
+      (columnPoint h ℓ.2.1 i) := fun i ↦
+    (hclaims ⟨I.boundaryColumns[i], columnPoint h ℓ.2.1 i, vals[i]⟩
+      (by simp only [busOut, Vector.toList_ofFn, List.mem_ofFn]; exact ⟨i, rfl⟩)).symm
+  refine ⟨fun k ↦ (sum_forms_eq_total_iff h k _ _ _ _ _ _ hvals).mp (hforms k),
+    (riders_vanish_iff ℓ.1 o ℓ.2.1).mpr ⟨fun j hj C hC ↦ ?_, hl, ha⟩⟩
+  have := hzero ⟨j, Or.inl (List.ne_nil_of_mem hC)⟩ C hC
+  rwa [show (busOut h ℓ vals).point = point h ℓ.2.1 from rfl, lowPoint_point] at this
+
+/-- The values' typed security half, at no error. -/
 def valuesSecurity (h : Conditions I) :
-    Component.Security (valuesStep I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I))
-      (Seam.bus I) (sayError _) :=
-  Component.sendCheckedSecurity _ _ _ _ _ fun ℓ o w vals _ hout ↦ by
-    cases w
-    obtain ⟨hzero, hforms, hclaims, hl, ha⟩ := hout
-    have hvals : ∀ i : Fin I.busClaims, vals[i] = eval₂Mle
-        (I.column (theStack o) I.boundaryColumns[i]).values (algebraMap K E)
-        (columnPoint h ℓ.2.1 i) := fun i ↦
-      (hclaims ⟨I.boundaryColumns[i], columnPoint h ℓ.2.1 i, vals[i]⟩
-        (by simp only [busOut, Vector.toList_ofFn, List.mem_ofFn]; exact ⟨i, rfl⟩)).symm
-    refine ⟨fun k ↦ (sum_forms_eq_total_iff h k _ _ _ _ _ _ hvals).mp (hforms k),
-      (riders_vanish_iff ℓ.1 o ℓ.2.1).mpr ⟨fun j hj C hC ↦ ?_, hl, ha⟩⟩
-    have := hzero ⟨j, Or.inl (List.ne_nil_of_mem hC)⟩ C hC
-    rwa [show (busOut h ℓ vals).point = point h ℓ.2.1 from rfl, lowPoint_point] at this
+    Typed.Security (valuesStep I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I))
+      (Seam.bus I) (Typed.sayErrors _) :=
+  Typed.sendCheckedSecurity (values_reflect h)
 
 end Bus
 
-/-- **Knowledge soundness of the bus phase**, at the slot's error `busError I`, from
-`Seam.commit` to `Seam.bus`, with the extractor that keeps the trivial witness: from a stack
-outside `M3Holds`, each challenge turns the state from false to true with probability at most the
-error the slot charges it. It computes, extractor included. -/
+/-- **Knowledge soundness of the bus phase on the typed framework**, at the slot's errors
+`busErrors I`, from `Seam.commit` to `Seam.bus`, with the extractor that keeps the trivial
+witness. It computes, extractor included. -/
 def busSecurity (I : M3Instance) (h : Bus.Conditions I) :
-    Phase.Security I (busPhase I h).toDef (Seam.commit I) (Seam.bus I) (busError I) :=
+    Typed.Security (busPhase I h) (Seam.commit I) (Seam.bus I) (busErrors I) :=
   (((Bus.challengeSecurity h).append (Bus.rootsSecurity h)).append
-    ((gkrSecurity 3 I.μBus (Bus.leaves I) (Bus.riders I)).mono fun _ ↦ by rw [overE_one])).append
+    ((gkrSecurity 3 I.μBus (Bus.leaves I) (Bus.riders I)).mono (by
+      rw [overE_one]
+      exact Typed.Errors.Le.refl _ _ _))).append
     (Bus.valuesSecurity h)
 
 end

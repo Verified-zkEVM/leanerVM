@@ -2,7 +2,7 @@ import LeanerVM.Protocol.ToArkLib.GrandProduct
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Spine.Errors
-import LeanerVM.Protocol.Spine.Phase
+import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.Spine.Toy
 
 /-!
@@ -10,13 +10,9 @@ import LeanerVM.Protocol.Spine.Toy
 
 Over `E`, with no public data and no oracle, on trees of four, eight and sixteen leaves.
 
-* **The schedule.** `gkrSpec E 1 2`, `gkrSpec E 3 3` and `gkrSpec E 3 4`, the schedules `gkr`
-  is typed at: their rounds, their challenges (`μ²/4 + μ` for even `μ`: a combiner opening every
-  layer and none after the last), the directions, the message types (a round message is the five
-  coefficients of a quartic, the descendants four values per tree), and the error `gkrError`
-  charges to each kind of challenge. The bus slot takes
-  the component at its type: the bus phase's shape around `gkr 3 toy.μBus` is a front phase at
-  `busSpec toy`.
+* **The slot.** `gkr 3 4` is typed at `gkrSlot E 3 4`, and the errors `gkrErrors` charges along
+  every path are within their closed form. The bus slot takes the component at its type: the bus
+  phase's shape around `gkr 3 toy.μBus` is at `busSlot toy`.
 * **An honest run of `gkr 1 2`, by hand.** The roots satisfy the input relation; the combined
   claim, the descendants' check, the two combination challenges and the output relation.
 * **An honest run of `gkr 3 4`, by hand.** On three trees of sixteen leaves: the first step from
@@ -66,71 +62,35 @@ def sixteen : Unit → (∀ i, NoOracle i) → Fin 3 → CMlPolynomialEval E 4 :
 def noRiders {μ : ℕ} : Unit → (∀ i, NoOracle i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval E τ) :=
   fun _ _ ↦ []
 
-/-! ## The schedule -/
+/-! ## The slot -/
 
--- Rounds: per step a combiner, two per sumcheck round, the descendants, one per combination
--- challenge. No combiner follows the last step (leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`,
--- `verifier.py:438-452`).
-example : gkrRounds 2 = 4 := by decide
-example : gkrRounds 3 = 9 := by decide
-example : gkrRounds 4 = 12 := by decide
-example : gkrRounds 0 = 0 := by decide
+-- The errors of `gkr 3 4` from a unit `u` along every path: `(nside - 1)·u` on each of the two
+-- combiners, `4·u` on each of the two sumcheck rounds of radix four, `u` on each of the four
+-- combination challenges, within the closed form `((μ + 1)(nside - 1) + 2μ² + 3μ + 3)·u`.
+example (u : ℝ≥0) : Typed.Errors.Bounded (Typed.gkrSlot E 3 4).tree (Typed.gkrSlot E 3 4).roles
+    (Typed.gkrErrors E u 3 4) ((((4 + 1) * (3 - 1) + 2 * 4 * 4 + 3 * 4 + 3 : ℕ) : ℝ≥0) * u) :=
+  Typed.gkrErrors_bounded E u 3 4
 
--- Challenges: `μ²/4 + μ` for even `μ`, six for `μ = 3`.
-example : Fintype.card (gkrSpec E 1 2).ChallengeIdx = 3 := by decide
-example : Fintype.card (gkrSpec E 3 3).ChallengeIdx = 6 := by decide
-example : Fintype.card (gkrSpec E 3 4).ChallengeIdx = 8 := by decide
-
--- `gkr 1 2`: the combiner, the descendants, `u_0`, `u_1`.
-example : List.ofFn (gkrSpec E 1 2).dir = [.V_to_P, .P_to_V, .V_to_P, .V_to_P] := by
-  decide
--- `gkr 3 4`: the first step as above; the second a combiner, two sumcheck rounds, the
--- descendants, `u_0`, `u_1`.
-example : List.ofFn (gkrSpec E 3 4).dir =
-    [.V_to_P, .P_to_V, .V_to_P, .V_to_P,
-      .V_to_P, .P_to_V, .V_to_P, .P_to_V, .V_to_P, .P_to_V, .V_to_P, .V_to_P] := by
-  decide
-
--- A round message of radix four is the five coefficients of a polynomial of degree at most four;
--- the descendants' message is four values per tree.
-example : (gkrSpec E 3 4).«Type» ⟨5, by decide⟩ = Vector E 5 := rfl
-example : (gkrSpec E 3 4).«Type» ⟨9, by decide⟩ = (Fin 3 → Vector E 4) := rfl
-
--- The errors of `gkr 3 4` from a unit `u`: `(nside - 1)·u` on a combiner, `4·u` on a sumcheck
--- round of radix four, `u` on a combination challenge.
-example (u : ℝ≥0) : gkrError E u 3 4 ⟨⟨4, by decide⟩, by decide⟩ = ((3 - 1 : ℕ) : ℝ≥0) * u := rfl
-example (u : ℝ≥0) : gkrError E u 3 4 ⟨⟨6, by decide⟩, by decide⟩ = ((2 ^ 2 : ℕ) : ℝ≥0) * u := rfl
-example (u : ℝ≥0) : gkrError E u 3 4 ⟨⟨10, by decide⟩, by decide⟩ = u := rfl
-example (u : ℝ≥0) : gkrError E u 3 4 ⟨⟨11, by decide⟩, by decide⟩ = u := rfl
-
--- The component is typed at the slot's schedule.
-example : Component.Def (Unit × (Fin 3 → E)) NoOracle Unit (LayerStmt Unit E 3 4) NoOracle Unit
-    (gkrSpec E 3 4) :=
+-- The component is typed at the slot.
+example : Typed.Def NoOracle (Unit × (Fin 3 → E)) Unit (LayerStmt Unit E 3 4) Unit
+    (Typed.gkrSlot E 3 4) :=
   gkr 3 4 sixteen
 
 /-- The public data of the bus phase's argument: the statement and the fingerprint challenges. -/
 abbrev BusX : Type := toy.Stmt × ((Fin 4 → E) × E)
 
 /-- The bus phase's shape around the argument: the fingerprint challenges, the two roots, the
-argument for three trees of `2 ^ μ_bus` leaves read from the stack, and the boundary values. -/
-def busShape : Phase.Def toy toy.Stmt (LayerStmt BusX E 3 toy.μBus × Vector E toy.busClaims)
-    (busSpec toy) :=
-  (((Component.sampleChallenge (TheOracle toy) ((Fin 4 → E) × E) (fun _ ↦ true)
+argument for three trees of `2 ^ μ_bus` leaves read from the stack, and the boundary values. The
+bus slot takes it at the slot's type, by definitional equality of the slots. -/
+def busShape : Typed.Def (TheOracle toy) toy.Stmt Unit
+    (LayerStmt BusX E 3 toy.μBus × Vector E toy.busClaims) Unit (busSlot toy) :=
+  (((Typed.sampleChallenge (TheOracle toy) ((Fin 4 → E) × E) (fun _ ↦ true)
       fun s ab ↦ (s, ab)).append
-    (Component.sendChecked (TheOracle toy) (E × E) (fun _ ↦ (0, 0)) (fun _ _ ↦ true)
+    (Typed.sendChecked (TheOracle toy) (E × E) (fun _ ↦ (0, 0)) (fun _ _ ↦ true)
       fun s r ↦ ((s, ![r.1, r.1, r.2]) : BusX × (Fin 3 → E)))).append
     (gkr 3 toy.μBus fun _ _ _ ↦ Vector.replicate _ 1)).append
-    (Component.sendChecked (TheOracle toy) (Vector E toy.busClaims) (fun _ ↦ Vector.replicate _ 0)
+    (Typed.sendChecked (TheOracle toy) (Vector E toy.busClaims) (fun _ ↦ Vector.replicate _ 0)
       (fun _ _ ↦ true) fun s v ↦ (s, v))
-
--- The bus slot takes the component at the slot's type: the shape is a front phase at
--- `busSpec toy`, by definitional equality of the schedules and the composition of the parts'
--- front witnesses.
-example : Phase.FrontDef toy toy.Stmt (LayerStmt BusX E 3 toy.μBus × Vector E toy.busClaims)
-    (busSpec toy) :=
-  ⟨busShape,
-    (((Component.sampleFront _ _ _ _).append (Component.sendCheckedFront _ _ _ _ _)).append
-      (gkrFront 3 toy.μBus _)).append (Component.sendCheckedFront _ _ _ _ _)⟩
 
 /-! ## The relations, decided by evaluation -/
 
@@ -373,13 +333,13 @@ def constRider : Unit → (∀ i, NoOracle i) → List (Σ τ : Fin 3, CMlPolyno
 /-! ## Completeness -/
 
 /-- The completeness half of the whole argument, without riders. -/
-example : Component.Complete (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
+example : Typed.Complete (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
     (relOut 3 4 sixteen noRiders) :=
   gkrComplete 3 4 sixteen noRiders
 
 /-- The completeness half with a rider that is zero, so that the input relation is inhabited (a
 nonzero rider, such as `rider`, leaves it empty). -/
-example : Component.Complete (gkr 1 2 four) (relIn 1 2 four zeroRider)
+example : Typed.Complete (gkr 1 2 four) (relIn 1 2 four zeroRider)
     (relOut 1 2 four zeroRider) :=
   gkrComplete 1 2 four zeroRider
 

@@ -236,22 +236,19 @@ Consumed as named declarations of its
 
 ArkLib is a Lean `module` library that carries admitted theorems under its own baseline; a
 leanerVM declaration may not depend on one (the kernel axiom audit rejects `sorryAx`), so every
-ArkLib theorem is checked with `#print axioms` before it is consumed. ArkLib calls the
-`OracleReduction` framework below *legacy*; its typed successor has round-by-round knowledge
-certificates and their composition but no adaptor to it, so the spine stays on it (decision 24).
+ArkLib theorem is checked with `#print axioms` before it is consumed. The proof system is on
+ArkLib's typed `Interaction` framework (decision 24, reversed by
+[typed-migration.md](typed-migration.md)); of the framework ArkLib calls legacy,
+`OracleReduction`, only `OracleInterface` is imported, as the typed framework itself does.
 
 | Declaration | Contract used here |
 | --- | --- |
-| `ProtocolSpec n`, `MessageIdx`, `ChallengeIdx`, `FullTranscript` (`OracleReduction/ProtocolSpec/`), `Direction` (`OracleReduction/Prelude.lean`) | The message schedule of every reduction; challenges are `V_to_P` rounds. |
-| `OracleInterface` (`OracleReduction/OracleInterface.lean`) | The query type and answer of an oracle message; Layer 0 gives the stack the inner-product interface. ArkLib registers no default interface for scalars or lists. |
-| `Prover`, `Verifier`, `OracleVerifier`, `OracleReduction` (`OracleReduction/Basic.lean`) | The carriers. |
-| `perfectCompleteness`, `completeness` (`OracleReduction/Security/Basic.lean`) | Completeness, error `ℝ≥0`. |
-| `KnowledgeStateFunction`, `Extractor.RoundByRound`, `rbrKnowledgeSoundnessWorstCaseWith` (`Security/RoundByRound.lean`) | Round-by-round knowledge soundness for a named extractor and state function, error `ChallengeIdx → ℝ≥0`: the form every theorem here takes. The existential forms `rbrKnowledgeSoundness`, `rbrKnowledgeSoundnessWorstCase` prove soundness only, since the extractor may be a classical choice. |
-| `rbrKnowledgeSoundness_implies_rbrSoundness` (`Security/Implications.lean`) | Proved; plain round-by-round soundness as a corollary. |
-| `OracleReduction.append` (`Composition/Sequential/Append/`); `append_perfectCompleteness_of_guarded_verifiers`, `append_completeness_of_guarded_verifiers` (`Composition/Sequential/GuardedCompleteness.lean`) | Sequential composition, and its completeness, proved for guarded verifiers. |
-| `Extractor.RoundByRound.append`, `Verifier.StateFunction.append` (`Composition/Sequential/Append/StateFunction.lean`) | The appended extractor, ArkLib's; its knowledge state function and bound are the local port (the ledger). |
-| `Component.ReduceClaim`, `CheckClaim`, `RandomQuery`, `DoNothing` (`ProofSystem/Component/`) | Zero-round components; `CheckClaim`'s oracle variant checks nothing at run time (it carries the check in the output relation). |
-| `SumcheckDomain` (`ProofSystem/Sumcheck/Domain.lean`) | Per-coordinate evaluation domains, reused by Layer 4. The classical `Sumcheck.Spec` is not consumed (the ledger). |
+| `Oracle.TypeTree`, `RoleDecoration`, `OracleDecoration`, `ExecutionPath`, `BranchPath` (`Interaction/Oracle/TypeTree/`) | The interaction tree of every component: public moves with a role, oracle messages with an interface. |
+| `OracleInterface` (`OracleReduction/OracleInterface.lean`) | The query type and answer of an oracle message; Layer 0 gives the stack the inner-product interface. |
+| `Prover.Strategy`, `Verifier.Fragment`, `Verifier.Strategy`, `Oracle.Reduction`, `executeStrategies` with its four node equations (`Interaction/Oracle/Execution.lean`) | The carriers and the execution; a verifier's leaf is a computation over the oracles accumulated so far (`TypeTree.accessAfter`, `Access.extend`). |
+| `RoundExtractor`, `IsProverPreserving`, `IsLocallyBounded`, `ChallengeSchedule`, `KnowledgeCertificate`, `TerminalRelation`, `extraction_failure_implies_bad_challenge` (`Oracle/Security/Knowledge.lean`) | Round-by-round knowledge soundness, worst case over prefixes, for named backward witness maps: the form every security here takes. |
+| `RoundExtractor.append`, `appendSchedule`, `isProverPreserving_append`, `isLocallyBounded_append`, `TerminalRelation.append`, `changeInputState` (`Oracle/Security/KnowledgeAppend.lean`, `KnowledgeComposition.lean`) | Sequential composition of knowledge, proved at the pin; `Typed.Security.append` is built on it. |
+| `SamplesChallenges` (`KnowledgeComposition.lean`) | The link from a certificate's challenge schedule to the verifier's samplers. |
 | `MvPolynomial.MLE`, `eqPolynomial`, `eqTilde`, `MLE_eq_zero_iff` (`Data/MvPolynomial/Multilinear.lean`) | Multilinear extensions and the equality kernel; the bridge to CompPoly's tables is `CMlPolynomialEval.eval_eq_MvPolynomial_MLE` (`ToCompPoly/Multilinear/Basic.lean`), imported only after a file importing it with CompPoly's `Multilinear/Basic` elaborates (both declare `eval_zero`). |
 | `schwartz_zippel_counting`, `prob_eval_zero_le_div`, `prob_eval_zero_univ_le_div` (`Data/MvPolynomial/SchwartzZippelCounting.lean`) | Every per-challenge bound; the probability forms are stated on VCVio's uniform sampler. |
 | `ReedSolomon.mcaError_affineLine_johnson_le` (`Data/CodingTheory/ReedSolomon/MutualCorrelatedAgreement/Johnson/Probability.lean`); `rs_mcaError_le_in_johnson_range` (`ProximityGap/CapacityBounds.lean`, admitted) | The two candidate inhabitants of `McaJohnson` (Layer 11). |
@@ -279,9 +276,10 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 
 | Needed | Upstream at the pin | Action here |
 | --- | --- | --- |
-| Knowledge-soundness composition (a guarded first verifier) | admitted (`Append/Security.lean`); ArkLib #615 proves it, open and conflicting; issue #676 | Proved locally: `ToArkLib/KnowledgeAppend.lean`, the port of #615's `Append/Knowledge.lean`. Deleted when some ArkLib framework proves a guarded-first append for `rbrKnowledgeSoundnessWorstCaseWith`. |
-| Round-by-round implies plain | admitted; ArkLib #1245 proves the soundness half for a stateless shared oracle and refutes it otherwise | The plain corollary is stated locally for the stateless oracle (`σ = Unit`), the spine's case; nothing is awaited. |
-| A knowledge notion in the typed framework | present since ArkLib #1259 and #1260: round-by-round knowledge certificates with backward witness maps, their sequential composition, and state-restoration knowledge soundness (#1263, #1264); no adaptor to `OracleReduction`, and the typed sumcheck has round-by-round soundness only | The spine stays on `OracleReduction` (decision 24), whose review this is due for; revisit at each pin bump. |
+| Knowledge-soundness composition | proved in the typed framework (`RoundExtractor.append` and its laws); admitted in the legacy one (ArkLib #615, issue #676) | Consumed: `Typed.Security.append`. The local port of #615 (`ToArkLib/KnowledgeAppend.lean`) is deleted with the legacy spine. |
+| Round-by-round implies plain | admitted in the legacy framework; ArkLib #1245 proves the soundness half for a stateless shared oracle and refutes it otherwise | The plain corollary is stated locally for the stateless oracle (`σ = Unit`), the spine's case; nothing is awaited. |
+| A knowledge notion in the typed framework | present since ArkLib #1259 and #1260: round-by-round knowledge certificates with backward witness maps and their sequential composition | Consumed: the spine is on it (decision 24 reversed, [typed-migration.md](typed-migration.md)). |
+| Front components on the typed framework | absent: ArkLib's certificates live on a bare tree, with no bundle tying one to a verifier and its relations, no front verifier, no completeness of a composition for relations, and no commit-then-open protocol | Written here as upstream candidates (`ToArkLib/Typed/`): `Front` (front verifiers, `SamplesChallenges` for them, `implAfter`, `priorQuery`, path sums of errors), `Component` (the bundle, `Security.one_le_of_escape`), `SendChecked`, `SampleChallenge`, `Batch`, `PassThrough`, `Append`, `Schedule`, `Decode` (the wire transport), `Commit` (the witness sent as an oracle message, one question at the leaf). |
 | Sumcheck, both leanVM variants, with round-by-round knowledge | the classical leaf `Sumcheck.Spec.SingleRound.Simple.verifier_rbrKnowledgeSoundness` is admitted and false as stated (its verifier reads the input polynomial for its next target; ArkLib #1244 repairs it); the typed sumcheck (`Sumcheck/Interaction/`) is one polynomial, plain and round-by-round soundness, no extractor | Written here (Layer 4), with their knowledge leaves; nothing contributed upstream until ArkLib has a knowledge notion for the sumcheck (decision 33). |
 | Batching by powers | absent (#615's `gammaPowers` is a lemma, not a reduction) | Written here (Layer 4); offered upstream as its own pull request. |
 | Fingerprint, product lemma, collision bound | absent; ArkLib issue #901 | Written here (Layer 5). |
@@ -334,9 +332,15 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 
 The spine fixes everything two neighbouring pieces of work would otherwise have to agree on, and
 proves the composition once. It lives under `LeanerVM/Protocol/Spine/` (`Instance`, `Seams`,
-`Phase`, `Compose`, `Toy`) and, for the parts that belong in ArkLib, `LeanerVM/Protocol/ToArkLib/`
-(`Oracles`, `Component`, `KnowledgeAppend`, `PassThrough`, `SendOracle`, `GuardedVerdict`,
-`KeepOracles`, `Refinement`), with its tests in `tests/LeanerVMTests/Protocol/Spine.lean`. After
+`Errors`, `Slots`, `Compose`, `Toy`) and, for the parts that belong in ArkLib,
+`LeanerVM/Protocol/ToArkLib/` (`Oracles`, `Refinement`, and the typed components of
+`ToArkLib/Typed/`), with its tests in `tests/LeanerVMTests/Protocol/Spine.lean`. Since decision 24
+was reversed, a legacy name below reads as its typed counterpart: a schedule `…Spec` is a slot
+`…Slot`, an error `…Error` the errors `…Errors` charged per verifier node, `piopError_le` is
+`piopErrors_bounded` (along every path), `Component.*` and `Phase.*` are `Typed.*`, a
+`KnowledgeStateFunction` is a `RoundExtractor`'s knowledge state,
+`rbrKnowledgeSoundnessWorstCaseWith` is a `KnowledgeCertificate`, and the master theorems are
+`piop_perfectCompleteness` and `piop_knowledgeSoundness`. After
 it, every phase, generic component, the instance and the compilation is a unit of work that
 consumes spine names only, is tested on the toy instance, and lands in two halves. It restates the
 shape of leanth's explore branch (a `Type 0` witness, a relation anchored to Clean, a commit stage
@@ -380,8 +384,8 @@ protocol's witness, and the stack can.
                     │  commit ⟫ bus ⟫ table ⟫ public ⟫ flock ⟫ opening          │  the spine: seams,
                     │  Seam.bus  Seam.table  Seam.pub  Seam.flock  Seam.done     │  schedules, errors
                     ├───────────────────────────────────────────────────────────┤
-                    │  piop_perfectCompleteness   piop_rbrKnowledgeSoundness     │  ideal oracle model,
-                    │  at piopError I, extractor piopExtractor                   │  inner-product oracle
+                    │  piop_perfectCompleteness   piop_knowledgeSoundness        │  ideal oracle model,
+                    │  at piopErrors I, extractor piopExtractor                  │  inner-product oracle
                     └───────────────────────────▲───────────────────────────────┘
                                                 │  list-binding compilation, Merkle, Fiat–Shamir (Layers 11, 12)
                     ┌───────────────────────────┴───────────────────────────────┐
@@ -414,10 +418,10 @@ protocol's witness, and the stack can.
    opening `(J − 1)/|E|` on `λ`. `piopError_le` bounds their sum at admissible sizes.
 5. **The hole interfaces**: per phase and per generic component a `Def` (the reduction, no
    error), a `Guarded` (output purity, derived for an empty shared oracle, and the verifier's
-   guarded form), a `Complete` and a `Security` extending `Guarded` (`Component.*`, specialised to
-   the one oracle as `Phase.*`); a `Security` carries its extractor, its knowledge state function
-   and the bound at a given error. The knowledge-soundness composition ArkLib admits is ported
-   from ArkLib #615 and proved here (`ToArkLib/KnowledgeAppend.lean`).
+   guarded form), a `Complete` and a `Security` extending `Guarded` (on the typed framework a
+   `Typed.Def` at a slot, its `Typed.Complete` on honest runs and its `Typed.Security` at the
+   slot's errors); a `Security` carries its extractor and the bounds at given errors. The
+   knowledge-soundness composition is ArkLib's (`Typed.Security.append`).
 6. **The composition** `leanVmPiop` over a bundle `Phases I`, its extractor `piopExtractor` (the
    commit phase's followed by the phases', appended through the verdicts), the extracted stack
    `piopExtractedStack` with `piopExtractedStack_eq` (it is the committed message on every
@@ -1564,7 +1568,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 7. Phases over an abstract instance | every phase is written over `I : M3Instance` and tested on the toy | *The wall* |
 | 8. Five clauses, caps outside | the caps are the compiled verifier's check and a hypothesis of the adaptor's soundness | *What the spine fixes* |
 | 9. Balance is a permutation | the pushed and pulled tuple lists are permutations of each other | `M3Holds` |
-| 10. Worst-case round-by-round knowledge, named | each component proves `rbrKnowledgeSoundnessWorstCaseWith` for a named extractor | *Holes*, *Extractors* |
+| 10. Worst-case round-by-round knowledge, named | each component's `Typed.Security` gives, at each statement, a `KnowledgeCertificate` (backward witness maps bounded at every verifier prefix) for a named extractor | *Holes*, *Extractors* |
 | 11. Extractors compute | every extractor is a computable definition; the protocol's is `piopExtractor` | the extractor computes (test 24) |
 | 12. The strong Flock predicate | `aux` is Flock's R1CS, with the constant position, on the committed region | Layers 3, 9 |
 | 13. Public lines, not cells | the statement fixes cells 0 and 1 of listed columns | *Public input* |
@@ -1577,15 +1581,15 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 20. The spine fixes the error | each slot's schedule and error are closed forms of the instance, fixed by the spine; no phase declares its own | *Errors*; the spine |
 | 21. The bus seam has leanVM's shape | `BusOut` is the Rust's `BusVerify`: one point, forms per side and sumcheck table, three totals, column claims; the seam carries the point | *Seams*; the spine |
 | 22. Model the deployed checks | the oracle protocol models the checks of the deployed verifier; the specification supplies the arguments; an auditable variant is admitted only if it accepts no more and its relation to the deployed one is a theorem | *Load-bearing checks*; Layer 8 |
-| 23. Completeness is perfect; the guard is separate | `Component.Guarded` carries output purity and the guard; completeness stays perfect, the Lean honest prover is the specification's | *Holes*; test 20 |
-| 24. Stay on `OracleReduction` | the spine stays on ArkLib's legacy framework, the only one with a knowledge notion, until the typed framework has round-by-round knowledge soundness and its composition | the ledger |
+| 23. Completeness is perfect | `Typed.Complete` is stated on every honest run, so completeness is perfect; the Lean honest prover is the specification's | *Holes*; test 20 |
+| 24. The typed framework (reversed) | first "stay on `OracleReduction`"; reversed once the typed framework had knowledge certificates and their composition: the spine, the phases and the generic components are on ArkLib's typed `Interaction` framework, and only `OracleInterface` is imported from `OracleReduction` | the ledger; [typed-migration.md](typed-migration.md) |
 | 25. Flock enters through two structures | an instance-free `FlockSpec` from the Flock roadmap; a `FlockRegion` in the instance, from which the auxiliary clause is defined | the spine; Layers 3, 9 |
-| 26. The wire drops a coefficient | the oracle protocol sends every coefficient and checks the round; the compiled verifier decodes the wire, and Layer 4 proves the transport lemma | *Sumcheck messages* |
+| 26. The wire drops a coefficient | the oracle protocol sends every coefficient and checks the round; the compiled verifier decodes the wire, and Layer 4 proves the transport (`Sumcheck.transport`, by `Typed.Security.decode`) | *Sumcheck messages* |
 | 27. The program hypothesis | both base theorems take `WellFormedBytecode prog` | Layer 13 |
 | 28. Completeness resources | base completeness starts from a satisfying witness with admissible sizes; its form from an execution takes a fit hypothesis | Layer 13 |
 | 29. One theorem for the family | the non-interactive theorem is stated for the family over announced sizes, its error the maximum over admissible sizes | *Statements and parameters*; Layer 12 |
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |
-| 31. The front phases are `Phase.FrontDef` | `Phases` holds the four phases before the opening as `Phase.FrontDef`, a phase whose verifier never reads the stack; `FrontDef.toDef` is the phase as a component, the form its proofs are stated on; the list-binding compilation takes no hypothesis on them | *The oracle*; the spine; test 35 |
+| 31. The front phases are typed front components | `Phases` holds the five phases as `Typed.Def`s, whose verdict is a function of the statement and the path, so none can read the stack; the protocol's one question to the stack is asked at the leaf (`stackQuestion`); the list-binding compilation takes no hypothesis on them | *The oracle*; the spine; test 35 |
 
 Open:
 

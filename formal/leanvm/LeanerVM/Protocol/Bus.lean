@@ -9,10 +9,12 @@
 module
 
 public import LeanerVM.Protocol.Fingerprint
-public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.Stack
 public import LeanerVM.Protocol.ToArkLib.GrandProduct
+public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
+public import LeanerVM.Protocol.ToArkLib.Typed.SampleChallenge
+public import LeanerVM.Protocol.Spine.Slots
 import CompPoly.Multivariate.Operations
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 
@@ -33,7 +35,7 @@ side, each table's count columns), and padded with `1` to the depth `μ_bus` of 
 product of its blocks' leaves (`Blocks.prod_stackAt`), so the push and pull roots agree when the
 bus balances, and the count root is nonzero when every count cell is.
 
-The phase (`busPhase`), at the slot's schedule `busSpec I`:
+The phase (`busPhase`), a typed front component at the slot `busSlot I`:
 
 1. the verifier draws `(α, β)`;
 2. the prover sends the roots `(R, R_c)`: one scalar for push and pull, which share their root,
@@ -82,7 +84,7 @@ the messages are transcribed from `crates/leanvm_core/src/leaf.rs` at the pin (t
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly CPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters CompPoly CPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal
 
 @[expose] public section
@@ -770,28 +772,28 @@ def honestValues (h : Conditions I) (q : Column I.μ) (ζ : Vector E I.μBus) :
 
 variable (I)
 
-/-- The fingerprint challenges `(α, β)`. -/
-def challengeStep : Component.Def I.Stmt (TheOracle I) Unit (Data I) (TheOracle I) Unit
-    (draw ((Fin 4 → E) × E)) :=
-  Component.sampleChallenge (TheOracle I) ((Fin 4 → E) × E) (fun _ ↦ true) fun s ab ↦ (s, ab)
-
 /-- The honest roots: the push side's product, which is the pull side's on a balanced bus, and
 the count side's. -/
 def rootsHonest (p : (Data I × ∀ i, TheOracle I i) × Unit) : E × E :=
   (∏ x : Fin (2 ^ I.μBus), (leaves I p.1.1 p.1.2 0)[x],
     ∏ x : Fin (2 ^ I.μBus), (leaves I p.1.1 p.1.2 2)[x])
 
-/-- The roots `(R, R_c)`: one scalar for push and pull, and the count root, which must not be
-`0`. -/
-def rootsStep : Component.Def (Data I) (TheOracle I) Unit (Data I × (Fin 3 → E)) (TheOracle I)
-    Unit (say (E × E)) :=
-  Component.sendChecked (TheOracle I) (E × E) (rootsHonest I) (fun _ r ↦ decide (r.2 ≠ 0))
+/-- The fingerprint challenges, as a typed component. -/
+def challengeStep :
+    Typed.Def (TheOracle I) I.Stmt Unit (Data I) Unit (Typed.drawSlot ((Fin 4 → E) × E)) :=
+  Typed.sampleChallenge (TheOracle I) ((Fin 4 → E) × E) (fun _ ↦ true) fun s ab ↦ (s, ab)
+
+/-- The roots, as a typed component. -/
+def rootsStep :
+    Typed.Def (TheOracle I) (Data I) Unit (Data I × (Fin 3 → E)) Unit (Typed.saySlot (E × E)) :=
+  Typed.sendChecked (TheOracle I) (E × E) (rootsHonest I) (fun _ r ↦ decide (r.2 ≠ 0))
     fun x r ↦ (x, ![r.1, r.1, r.2])
 
-/-- The boundary columns' values at `ζ`, and the bus phase's output. -/
-def valuesStep (h : Conditions I) : Component.Def (Gkr.LayerStmt (Data I) E 3 I.μBus)
-    (TheOracle I) Unit (I.Stmt × BusOut I) (TheOracle I) Unit (say (Vector E I.busClaims)) :=
-  Component.sendChecked (TheOracle I) (Vector E I.busClaims)
+/-- The boundary values, as a typed component. -/
+def valuesStep (h : Conditions I) :
+    Typed.Def (TheOracle I) (Gkr.LayerStmt (Data I) E 3 I.μBus) Unit (I.Stmt × BusOut I) Unit
+      (Typed.saySlot (Vector E I.busClaims)) :=
+  Typed.sendChecked (TheOracle I) (Vector E I.busClaims)
     (fun p ↦ honestValues h (theStack p.1.2) p.1.1.2.1) (fun _ _ ↦ true)
     fun ℓ vals ↦ (ℓ.1.1, busOut h ℓ vals)
 
@@ -1037,29 +1039,39 @@ def afterChallenge : Set ((Data I × ∀ i, TheOracle I i) × Unit) :=
 
 variable {I}
 
-/-- The challenges' completeness: on a balanced bus the two products agree at every `(α, β)`. -/
-def challengeComplete (h : Conditions I) :
-    Component.Complete (challengeStep I) (Seam.commit I) (afterChallenge I) :=
-  Component.sampleChallengeComplete _ _ _ _ fun s o w hin ↦ by
-    obtain ⟨hc, hb, hn, hl, ha⟩ := hin
-    refine ⟨rfl, fun ab ↦ ⟨?_, hn, hc, hl, ha⟩⟩
-    change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 (theStack o))[x] =
-      ∏ x : Fin (2 ^ I.μBus), (pullLeaves I ab.1 ab.2 (theStack o))[x]
-    rw [prod_pushLeaves, prod_pullLeaves h, Multiset.coe_eq_coe.mpr hb]
+/-- On a balanced bus the two products agree at every `(α, β)`. -/
+theorem challenge_honest (h : Conditions I) (s : I.Stmt) (o : ∀ i, TheOracle I i) (w : Unit)
+    (hin : ((s, o), w) ∈ Seam.commit I) :
+    (fun _ ↦ true) s = true ∧ ∀ ab : (Fin 4 → E) × E, (((s, ab), o), w) ∈ afterChallenge I := by
+  obtain ⟨hc, hb, hn, hl, ha⟩ := hin
+  refine ⟨rfl, fun ab ↦ ⟨?_, hn, hc, hl, ha⟩⟩
+  change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 (theStack o))[x] =
+    ∏ x : Fin (2 ^ I.μBus), (pullLeaves I ab.1 ab.2 (theStack o))[x]
+  rw [prod_pushLeaves, prod_pullLeaves h, Multiset.coe_eq_coe.mpr hb]
 
-/-- The roots' completeness: the honest roots are the products, the count root is nonzero, and
-every rider is zero. -/
-def rootsComplete (h : Conditions I) :
-    Component.Complete (rootsStep I) (afterChallenge I)
-      (Gkr.relIn 3 I.μBus (leaves I) (riders I)) :=
-  Component.sendCheckedComplete _ _ _ _ _ fun x o w hin ↦ by
-    obtain ⟨hp, hn, hc, hl, ha⟩ := hin
-    refine ⟨decide_eq_true ((prod_countLeaves_ne_zero_iff h x.2.1 x.2.2 _).mpr hn),
-      (ridersZero_iff h x o).mpr ⟨hc, hl, ha⟩, fun s ↦ ?_⟩
-    fin_cases s
-    · rfl
-    · exact hp
-    · rfl
+/-- The challenges' typed completeness. -/
+theorem challengeComplete (h : Conditions I) :
+    Typed.Complete (challengeStep I) (Seam.commit I) (afterChallenge I) :=
+  Typed.sampleChallengeComplete (challenge_honest h)
+
+/-- The honest roots are the products, the count root is nonzero, and every rider is zero. -/
+theorem roots_honest (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i) (w : Unit)
+    (hin : ((x, o), w) ∈ afterChallenge I) :
+    decide ((rootsHonest I ((x, o), w)).2 ≠ 0) = true ∧
+      (((x, ![(rootsHonest I ((x, o), w)).1, (rootsHonest I ((x, o), w)).1,
+        (rootsHonest I ((x, o), w)).2]), o), w) ∈ Gkr.relIn 3 I.μBus (leaves I) (riders I) := by
+  obtain ⟨hp, hn, hc, hl, ha⟩ := hin
+  refine ⟨decide_eq_true ((prod_countLeaves_ne_zero_iff h x.2.1 x.2.2 _).mpr hn),
+    (ridersZero_iff h x o).mpr ⟨hc, hl, ha⟩, fun s ↦ ?_⟩
+  fin_cases s
+  · rfl
+  · exact hp
+  · rfl
+
+/-- The roots' typed completeness. -/
+theorem rootsComplete (h : Conditions I) :
+    Typed.Complete (rootsStep I) (afterChallenge I) (Gkr.relIn 3 I.μBus (leaves I) (riders I)) :=
+  Typed.sendCheckedComplete (roots_honest h)
 
 /-- The honest values are the boundary columns' extensions. -/
 theorem honestValues_getElem (h : Conditions I) (q : Column I.μ) (ζ : Vector E I.μBus)
@@ -1068,44 +1080,44 @@ theorem honestValues_getElem (h : Conditions I) (q : Column I.μ) (ζ : Vector E
       eval₂Mle (I.column q I.boundaryColumns[i]).values (algebraMap K E) (columnPoint h ζ i) := by
   simp [honestValues]
 
-/-- The values' completeness: the honest values make every boundary claim true, the forms sum
-to the totals since the leaf claims hold, and the riders give the zerocheck, the public lines
-and the Flock predicate. -/
-def valuesComplete (h : Conditions I) :
-    Component.Complete (valuesStep I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I))
-      (Seam.bus I) :=
-  Component.sendCheckedComplete _ _ _ _ _ fun ℓ o w hout ↦ by
-    obtain ⟨hleaf, hr⟩ := hout
-    obtain ⟨hcons, hl, ha⟩ := (riders_vanish_iff ℓ.1 o ℓ.2.1).mp hr
-    refine ⟨rfl, ?_, ?_, ?_, hl, ha⟩
-    · intro j C hC
-      rw [show (busOut h ℓ (honestValues h (theStack o) ℓ.2.1)).point = point h ℓ.2.1 from rfl,
-        lowPoint_point]
-      exact hcons j.1 ((I.τ_le_τmax j).trans h.τmax_le) C hC
-    · intro side
-      exact (sum_forms_eq_total_iff h side _ _ _ _ _ _
-        (honestValues_getElem h (theStack o) ℓ.2.1)).mpr (hleaf side)
-    · intro c hc
-      obtain ⟨i, rfl⟩ := List.mem_ofFn.mp (by simpa [busOut] using hc)
-      exact (honestValues_getElem h (theStack o) ℓ.2.1 i).symm
+/-- The honest values are the boundary columns' extensions: the leaf claims force the forms to
+the totals, and the riders' vanishing gives the zerocheck clause. -/
+theorem values_honest (h : Conditions I) (ℓ : Gkr.LayerStmt (Data I) E 3 I.μBus)
+    (o : ∀ i, TheOracle I i) (w : Unit)
+    (hout : ((ℓ, o), w) ∈ Gkr.relOut 3 I.μBus (leaves I) (riders I)) :
+    (fun (_ : Gkr.LayerStmt (Data I) E 3 I.μBus) (_ : Vector E I.busClaims) ↦ true) ℓ
+        (honestValues h (theStack o) ℓ.2.1) = true ∧
+      (((ℓ.1.1, busOut h ℓ (honestValues h (theStack o) ℓ.2.1)), o), w) ∈ Seam.bus I := by
+  obtain ⟨hleaf, hr⟩ := hout
+  obtain ⟨hcons, hl, ha⟩ := (riders_vanish_iff ℓ.1 o ℓ.2.1).mp hr
+  refine ⟨rfl, ?_, ?_, ?_, hl, ha⟩
+  · intro j C hC
+    rw [show (busOut h ℓ (honestValues h (theStack o) ℓ.2.1)).point = point h ℓ.2.1 from rfl,
+      lowPoint_point]
+    exact hcons j.1 ((I.τ_le_τmax j).trans h.τmax_le) C hC
+  · intro side
+    exact (sum_forms_eq_total_iff h side _ _ _ _ _ _
+      (honestValues_getElem h (theStack o) ℓ.2.1)).mpr (hleaf side)
+  · intro c hc
+    obtain ⟨i, rfl⟩ := List.mem_ofFn.mp (by simpa [busOut] using hc)
+    exact (honestValues_getElem h (theStack o) ℓ.2.1 i).symm
+
+/-- The values' typed completeness. -/
+theorem valuesComplete (h : Conditions I) :
+    Typed.Complete (valuesStep I h) (Gkr.relOut 3 I.μBus (leaves I) (riders I)) (Seam.bus I) :=
+  Typed.sendCheckedComplete (values_honest h)
 
 end Bus
 
-/-- **The bus phase** (§5.2–§5.4), at the slot's schedule: the challenges `(α, β)`, the roots,
-the grand-product argument on the three leaf stacks, and the boundary columns' values. Its
-verifier reads the messages and never the stack. -/
+/-- The bus phase on the typed framework, at its slot `busSlot I`. -/
 def busPhase (I : M3Instance) (h : Bus.Conditions I) :
-    Phase.FrontDef I I.Stmt (I.Stmt × BusOut I) (busSpec I) where
-  toDef := (((Bus.challengeStep I).append (Bus.rootsStep I)).append
+    Typed.Def (TheOracle I) I.Stmt Unit (I.Stmt × BusOut I) Unit (busSlot I) :=
+  (((Bus.challengeStep I).append (Bus.rootsStep I)).append
     (gkr 3 I.μBus (Bus.leaves I))).append (Bus.valuesStep I h)
-  front := (((Component.sampleFront _ _ _ _).append (Component.sendCheckedFront _ _ _ _ _)).append
-    (gkrFront 3 I.μBus _)).append (Component.sendCheckedFront _ _ _ _ _)
 
-/-- **Perfect completeness of the bus phase**: on a stack satisfying `M3Holds`, the honest prover
-leaves the verifier with the point, the forms and totals and the boundary claims of `Seam.bus`,
-with probability one. -/
-def busComplete (I : M3Instance) (h : Bus.Conditions I) :
-    Phase.Complete I (busPhase I h).toDef (Seam.commit I) (Seam.bus I) :=
+/-- **Perfect completeness of the bus phase on the typed framework.** -/
+theorem busComplete (I : M3Instance) (h : Bus.Conditions I) :
+    Typed.Complete (busPhase I h) (Seam.commit I) (Seam.bus I) :=
   (((Bus.challengeComplete h).append (Bus.rootsComplete h)).append
     (gkrComplete 3 I.μBus (Bus.leaves I) (Bus.riders I))).append (Bus.valuesComplete h)
 

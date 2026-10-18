@@ -30,7 +30,7 @@ relations, in the calculus of verifier programs:
 namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -206,10 +206,11 @@ theorem ab_card_le (hI : Bus.Conditions I) (o : ∀ i, TheOracle I i)
     (Fintype.card ((Fin 4 → E) × E) : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun ab ↦
       (((input, ab), o), ()) ∈ Bus.afterChallenge I).card : ℝ≥0∞) ≤
         (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) := by
-  have h := Security.draw_prEvent_le (Bus.challengeSecurity hI)
-    (Component.sampleFront (TheOracle I) _ _ _) input o ho
-  simp only [Component.sampleFront, drawTr_zero, true_and] at h
-  change Pr{let c ← $ᵗ ((Fin 4 → E) × E)}[(((input, c), o), ()) ∈ Bus.afterChallenge I] ≤ _ at h
+  have h := Typed.sample_escape (Bus.challengeSecurity hI) input o
+    (fun w hw ↦ by cases w; exact ho hw) rfl
+  have h : Pr{let c ← $ᵗ ((Fin 4 → E) × E)}[(((input, c), o), ()) ∈ Bus.afterChallenge I] ≤
+      (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) :=
+    le_trans (prEvent_mono _ _ _ fun c hc ↦ ⟨(), hc⟩) h
   rw [SampleableType.prEvent_uniformSample, div_eq_mul_inv, mul_comm] at h
   exact h
 
@@ -273,11 +274,7 @@ root makes doom on the grand product's input relation. -/
 theorem roots_keep (hI : Bus.Conditions I) {C : Set (∀ i, TheOracle I i)}
     (hpre : RelDoom C (Bus.afterChallenge I) data) (shared count : E) (hc : count ≠ 0) :
     RelDoom C (Gkr.relIn 3 I.μBus (Bus.leaves I) (Bus.riders I)) (data, ![shared, shared, count]) :=
-  say_keep (Bus.rootsSecurity hI) (Component.sendCheckedFront (TheOracle I) _ _ _ _)
-    (fun _ r ↦ decide (r.2 ≠ 0)) (fun x r ↦ (x, ![r.1, r.1, r.2]))
-    (fun x r ↦ congrArg (fun z : E × E ↦ decide (z.2 ≠ 0)) (sayTr_zero r))
-    (fun x r ↦ congrArg (fun z : E × E ↦ (x, ![z.1, z.1, z.2])) (sayTr_zero r)) hpre
-    (shared, count) (by simpa using hc)
+  say_keep (Bus.rootsSecurity hI) hpre (shared, count) (by simpa using hc)
 
 /-- The protocol's roots statement is the wire's GKR state at layer `0`. -/
 theorem rootStmt_eq (shared count : E) :
@@ -425,9 +422,7 @@ theorem values_keep {C : Set (∀ i, TheOracle I i)}
     {ℓ : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus}
     (hpre : RelDoom C (Gkr.relOut 3 I.μBus (Bus.leaves I) (Bus.riders I)) ℓ)
     (vals : Vector E I.busClaims) : RelDoom C (Seam.bus I) (ℓ.1.1, Bus.busOut hI ℓ vals) :=
-  say_keep (Bus.valuesSecurity hI) (Component.sendCheckedFront (TheOracle I) _ _ _ _)
-    (fun _ _ ↦ true) (fun ℓ vals ↦ (ℓ.1.1, Bus.busOut hI ℓ vals)) (fun _ _ ↦ rfl)
-    (fun ℓ v ↦ congrArg (fun z ↦ (ℓ.1.1, Bus.busOut hI ℓ z)) (sayTr_zero v)) hpre vals rfl
+  say_keep (Bus.valuesSecurity hI) hpre vals rfl
 
 /-- The grand product's last statement on what the bus phase read. -/
 def BusWit.layer (w : BusWit) : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus :=

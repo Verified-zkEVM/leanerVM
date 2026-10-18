@@ -33,7 +33,7 @@ keep it. This module specifies, in the calculus of `LeanerVM.Protocol.Compile.Sp
 namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
-open OracleComp OracleSpec ProtocolSpec
+open OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -91,9 +91,7 @@ variable {I : M3Instance} {X : Type} {d : ℕ}
 theorem sendPoly_keep {C : Set (∀ i, TheOracle I i)} {s : SumcheckRound.Stmt X E j}
     (hpre : RelDoom C (SumcheckRound.rel Φ j) s) (q : SumcheckRound.Message E d) :
     RelDoom C (SumcheckRound.relMid Φ j) (s, q) :=
-  say_keep (SumcheckRound.sendPolySecurity j Φ) (Component.sendCheckedFront (TheOracle I) _ _ _ _)
-    (fun _ _ ↦ true) (fun s q ↦ (s, q)) (fun _ _ ↦ rfl)
-    (fun s m ↦ congrArg (fun z ↦ (s, z)) (sayTr_zero m)) hpre q rfl
+  say_keep (SumcheckRound.sendPolySecurity j Φ) hpre q rfl
 
 open Classical in
 /-- **The round's challenge escapes doom** with probability at most `L₀ · d / |E|`, when the
@@ -106,13 +104,7 @@ theorem drawChallenge_escape {m : ℕ} (H : Φ.Consistent m) (S : Φ.Sound m) (h
         (SumcheckRound.rel Φ (j + 1)) (SumcheckRound.next j p.1
           (SumcheckRound.evaluate d p.2 c) c)).card : ℝ≥0∞) ≤
       L₀ * (((d : ℝ≥0) / (Nat.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞) :=
-  draw_escape_le (SumcheckRound.drawChallengeSecurity j Φ H S hj)
-    (Component.sampleFront (TheOracle I) _ _ _)
-    (fun p ↦ SumcheckRound.check j Φ.weight p.1 p.2)
-    (fun p c ↦ SumcheckRound.next j p.1 (SumcheckRound.evaluate d p.2 c) c)
-    (fun _ _ ↦ rfl) (fun s c ↦ congrArg (fun z : E ↦
-      SumcheckRound.next j s.1 (SumcheckRound.evaluate d s.2 z) z) (drawTr_zero c))
-    hfin hcard hpre hchk
+  draw_escape_le (SumcheckRound.drawChallengeSecurity j Φ H S hj) hfin hcard hpre hchk
 
 end Round
 
