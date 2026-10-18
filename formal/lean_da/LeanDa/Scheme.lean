@@ -1,6 +1,5 @@
 module
 
-public import LeanDa.Blake2s
 public import LeanDa.Field
 public import Mathlib.LinearAlgebra.Lagrange
 
@@ -46,7 +45,8 @@ The erasure code commitment of `crates/lean_da` at leanVM `b64b3d41f`, specified
   whose agreement with `dual` is not proved; and the vector's digest (`vectorDigest`).
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
-the statements hold for every `r ≥ 1`.
+the statements hold for every `r ≥ 1`. So is the hash `H`: the crate's is BLAKE2s-256, which
+`formal/lean_vm` supplies (`LeanVM.Da.blake2s`), and the statements hold for every `H`.
 -/
 
 open Polynomial
@@ -54,6 +54,9 @@ open Polynomial
 namespace LeanDa
 
 @[expose] public section
+
+/-- A digest of the hash, 32 bytes (`fiat_shamir::merkle::Hash`, `[u8; 32]`). -/
+abbrev Digest := Vector UInt8 32
 
 /-! ## Shapes (`lib.rs:23-39`) -/
 

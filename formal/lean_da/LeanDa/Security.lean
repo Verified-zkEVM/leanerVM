@@ -17,8 +17,8 @@ The building blocks of `PqDas`, instantiated with LeanDA (`LeanDa.Scheme`) for `
 * the code checker `checker r`: the membership test, complete (`checker_complete`) and
   `14 / 2^192`-sound over uniform `z ∈ E^14` (`checker_sound`).
 
-`leanDa r ps` is the scheme with BLAKE2s and an argument of knowledge `ps` for the relation
-`Relation r`: the cells commit to the root and pass the membership test on the challenges.
+`leanDa r H ps` is the scheme with the hash `H` and an argument of knowledge `ps` for the relation
+`Relation r H`: the cells commit to the root and pass the membership test on the challenges.
 -/
 
 open PqDas OracleComp OracleSpec ENNReal
@@ -170,16 +170,16 @@ theorem posBindingExp_le_hashCollisionExp (r : ℕ) (H : List UInt8 → Digest)
 
 /-- The relation the argument proves: the cells commit to the root and pass the membership test
 on the challenges. -/
-noncomputable abbrev Relation (r : ℕ) := schemeRel (merkleVC r blake2s) (checker r)
+noncomputable abbrev Relation (r : ℕ) (H : List UInt8 → Digest) := schemeRel (merkleVC r H) (checker r)
 
-/-- An argument of knowledge for `Relation r`. -/
-abbrev Argument (r : ℕ) (Crs Proof : Type) :=
-  Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r)
+/-- An argument of knowledge for `Relation r H`. -/
+abbrev Argument (r : ℕ) (H : List UInt8 → Digest) (Crs Proof : Type) :=
+  Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof (Relation r H)
 
-/-- **LeanDA**: Wagner's erasure code commitment from the code, the Merkle commitment with
-BLAKE2s, the membership test and an argument of knowledge `ps`. -/
-noncomputable def leanDa (r : ℕ) {Crs Proof : Type} (ps : Argument r Crs Proof) :=
-  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r blake2s)
+/-- **LeanDA**: Wagner's erasure code commitment from the code, the Merkle commitment with the
+hash `H`, the membership test and an argument of knowledge `ps`. -/
+noncomputable def leanDa (r : ℕ) (H : List UInt8 → Digest) {Crs Proof : Type} (ps : Argument r H Crs Proof) :=
+  scheme (m := OracleComp (unifSpec + (Digest →ₒ Challenges))) (code r) (merkleVC r H)
     (checker r) ps
 
 end LeanDa

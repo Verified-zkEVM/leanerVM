@@ -142,7 +142,7 @@ jobs:
           key: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json') }}-${{ hashFiles('formal/lean_da/**/*.lean') }}
           restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('formal/lean_da/lean-toolchain', 'formal/lean_da/lake-manifest.json') }}-
       # Builds the default target, whose root module checks the front-page theorems' axioms with
-      # `#guard_msgs` and runs the BLAKE2s known-answer tests.
+      # `#guard_msgs`.
       - uses: leanprover/lean-action@v1
         with:
           lake-package-directory: formal/lean_da
@@ -193,7 +193,7 @@ jobs:
           elif git diff --name-only "$BASE" HEAD -- formal/lean_vm crates/verifier python-verifier \
               crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/lean_xmss/LeanXmss/Scheme.lean \
               formal/lean_sphincs/Sphincs/Scheme.lean formal/lean_da/LeanDa/Scheme.lean formal/lean_da/LeanDa/Field.lean \
-              formal/lean_da/LeanDa/Blake2s.lean .github/workflows/lean.yml | grep -q .; then
+              .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -225,7 +225,7 @@ jobs:
           path: |
             formal/lean_vm/.lake
             !formal/lean_vm/.lake/packages/mathlib/.lake
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean', 'formal/lean_da/LeanDa/Scheme.lean', 'formal/lean_da/LeanDa/Field.lean', 'formal/lean_da/LeanDa/Blake2s.lean') }}
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-${{ hashFiles('formal/lean_vm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean', 'formal/lean_da/LeanDa/Scheme.lean', 'formal/lean_da/LeanDa/Field.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('formal/lean_vm/lean-toolchain', 'formal/lean_vm/lake-manifest.json') }}-
       # `lake build` fails on any warning (`warningAsError`) and on an axiom footprint beyond
       # Lean's three (`LeanVM.lean`'s `#guard_msgs`); `lake test` builds the tests.
