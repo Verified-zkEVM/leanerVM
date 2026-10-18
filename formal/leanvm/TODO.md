@@ -8,9 +8,3 @@ instructions. The deployed verifier admits more: its only limit is a commitment 
 `BLAKE2S` steps, each of which costs about 275 cells. A run with few `BLAKE2S` steps
 could have about six million steps. Replace the step bound with a condition that counts
 `BLAKE2S` steps separately.
-
-## `Spec/Node.lean` against Rust
-
-The digests (statement, signer set, key and SPHINCS lists, DA list), the batching transcript and
-`fixedCells` are transcribed and reviewed, not tested. Check them against vectors from
-`rec_aggregation`.

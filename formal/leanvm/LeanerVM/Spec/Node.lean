@@ -8,7 +8,7 @@
 module
 
 public import LeanerVM.Spec.Statement
-public import XmssSecurity.Scheme
+public import LeanXmss.Scheme
 public import Sphincs.Scheme
 public import LeanerVM.Spec.Da
 
@@ -17,19 +17,20 @@ public import LeanerVM.Spec.Da
 
 **Status: stated, not proved.** No theorem of the repository is about these definitions yet.
 
-Category B: transcribed from leanVM `a0ca7858f2533ce51abdc20bb635c007e19b26b3`,
+Category B: transcribed from leanVM `55f8b0389c6cceab02dee82a003e40f7d80d0699`,
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the outer verifier) and
-`crates/rec_aggregation/guests/lean_ethereum.py` (the guest). The signature schemes are those whose
-security `formal/xmss` and `formal/sphincs` prove, imported from their `Scheme` modules.
+`crates/rec_aggregation/guests/lean_ethereum.py` (the guest). The signature schemes, leanXMSS and
+leanSPHINCS, are those whose security `formal/lean_xmss` and `formal/lean_sphincs` prove, imported
+from their `Scheme` modules.
 
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomials that the protocol fixes (the guest's bytecode, flock's matrices), which the node
 defers rather than evaluates (`NodeStatement`). Its public input is the statement's digest under
 a seed, the guest's Fiat–Shamir IV (`statementDigest`).
 
-A node holds every claim either directly, by an XMSS or SPHINCS signature or a blob matrix, or
-through a child that makes the same claim. A child is a statement under the same seed and a
-proof that the deferring verifier accepts for it
+A node holds every claim either directly, by a leanXMSS or leanSPHINCS signature or a blob
+matrix, or through a child that makes the same claim. A child is a statement under the same seed
+and a proof that the deferring verifier accepts for it
 (`LeanerVM.Protocol.Verifier.verifyDeferred`). The node batches the claims that its children's
 proofs make of the fixed polynomials, with those its children's statements defer, into its own
 deferred claim (`batch`). `NodeRel bytecode seed s w` says all of it of the statement `s`, with
@@ -59,13 +60,13 @@ open LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
 def blake2sBits (input : List UInt8) : BitVec 256 :=
   BitVec.ofNat 256 ((digestBytes (blake2sBytes input)).foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
 
-/-- XMSS verification with BLAKE2s. -/
-def xmssVerify (pk : XmssSecurity.PublicKey) (leafIndex : XmssSecurity.LeafIndex)
-    (message : XmssSecurity.Message) (σ : XmssSecurity.Signature) : Bool :=
-  letI : HasQuery XmssSecurity.HashSpec Id := ⟨blake2sBits⟩
-  Id.run (XmssSecurity.Concrete.verify pk leafIndex message σ)
+/-- leanXMSS verification with BLAKE2s. The leaf index is the signature's. -/
+def xmssVerify (pk : LeanXmss.PublicKey) (message : LeanXmss.Message) (σ : LeanXmss.Signature) :
+    Bool :=
+  letI : HasQuery LeanXmss.HashSpec Id := ⟨blake2sBits⟩
+  Id.run (LeanXmss.Concrete.verify pk message σ)
 
-/-- SPHINCS verification with BLAKE2s. -/
+/-- leanSPHINCS verification with BLAKE2s. -/
 def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sphincs.Signature) :
     Bool :=
   letI : HasQuery Sphincs.HashSpec Id := ⟨blake2sBits⟩
@@ -73,28 +74,21 @@ def sphincsVerify (pk : Sphincs.PublicKey) (message : Sphincs.Message) (σ : Sph
 
 /-! ## The statement -/
 
-/-- XMSS signers that signed one message at one leaf index (`XmssClaimGroup`). The leaf index is
-the 128-bit cell the statement carries; the guest bounds it below `2^32` only where it verifies
-a signature at it. -/
-structure XmssGroup where
-  /-- The leaf index. -/
-  leafIndex : BitVec 128
-  /-- The message. -/
-  message : XmssSecurity.Message
-  /-- The keys. -/
-  keys : List XmssSecurity.PublicKey
+/-- A leanXMSS key and a message it signed, at a leaf index the claim does not record
+(`LeanXmssClaim`). -/
+abbrev XmssClaim : Type := LeanXmss.PublicKey × LeanXmss.Message
 
-/-- A SPHINCS key and a message it signed (`SphincsClaim`). -/
+/-- A leanSPHINCS key and a message it signed (`LeanSphincsClaim`). -/
 abbrev SphincsClaim : Type := Sphincs.PublicKey × Sphincs.Message
 
 /-- A DA claim: a root and the digest of the vector its rows are orthogonal to. -/
 abbrev DaClaim : Type := Digest × Digest
 
-/-- A node's claims: XMSS signers by leaf index and message, SPHINCS signers, and DA claims. -/
+/-- A node's claims: leanXMSS claims, leanSPHINCS claims, and DA claims. -/
 structure Claims where
-  /-- The XMSS groups. -/
-  xmss : List XmssGroup
-  /-- The SPHINCS claims. -/
+  /-- The leanXMSS claims. -/
+  xmss : List XmssClaim
+  /-- The leanSPHINCS claims. -/
   sphincs : List SphincsClaim
   /-- The DA claims. -/
   da : List DaClaim
@@ -162,31 +156,25 @@ def fixedCells (c : FixedClaims) : List E :=
 /-! ## The statement's digest -/
 
 /-- The 16 bytes of a 128-bit value, least significant byte first: a cell's two limbs. -/
-def bytes16 (value : BitVec 128) : List UInt8 := XmssSecurity.bytesLE 16 value
+def bytes16 (value : BitVec 128) : List UInt8 := LeanXmss.bytesLE 16 value
 
-/-- A count as the statement carries it: `g^n` in the low limb of a cell (`scalar_count`). -/
-def countBytes (n : ℕ) : List UInt8 := kBytes (gpow n) ++ kBytes 0
+/-- A claim as the `64` bytes its list hashes: the key's root and parameter, then the message
+(`claim_cells`). -/
+def claimBytes (root parameter : BitVec 128) (message : BitVec 256) : List UInt8 :=
+  bytes16 root ++ bytes16 parameter ++ LeanXmss.bytesLE 32 message
 
-/-- The digest of one group's keys, `32` bytes a key: its root, then its parameter
-(`key_list_digest`). -/
-def keyListDigest (keys : List XmssSecurity.PublicKey) : Digest :=
-  blake2sBytes (keys.flatMap fun pk ↦ bytes16 pk.root ++ bytes16 pk.parameter)
+/-- The digest of the leanXMSS claims (`claim_list_digest`). -/
+def xmssListDigest (claims : List XmssClaim) : Digest :=
+  blake2sBytes (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
-/-- The digest of the SPHINCS claims, `64` bytes a claim: the key's root and parameter, then the
-message (`sphincs_list_digest`). -/
+/-- The digest of the leanSPHINCS claims (`claim_list_digest`). -/
 def sphincsListDigest (claims : List SphincsClaim) : Digest :=
-  blake2sBytes (claims.flatMap fun c ↦
-    bytes16 c.1.root ++ bytes16 c.1.parameter ++ XmssSecurity.bytesLE 32 c.2)
+  blake2sBytes (claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2)
 
-/-- **The signer set's digest** (`signers_hash`): both lengths and the SPHINCS list's digest,
-then two blocks a group, its leaf index, key count and message, then its keys' digest. -/
-def signersDigest (xmss : List XmssGroup) (sphincs : List SphincsClaim) : Digest :=
-  blake2sBytes (countBytes xmss.length ++ countBytes sphincs.length ++
-    digestBytes (sphincsListDigest sphincs) ++
-    xmss.flatMap fun group ↦
-      bytes16 group.leafIndex ++ countBytes group.keys.length ++
-        XmssSecurity.bytesLE 32 group.message ++ digestBytes (keyListDigest group.keys) ++
-        List.replicate 32 0)
+/-- **The signer set's digest** (`signers_hash`): the two lists' digests, one block. Each binds its
+list's length through BLAKE2s's byte counter. -/
+def signersDigest (xmss : List XmssClaim) (sphincs : List SphincsClaim) : Digest :=
+  blake2sBytes (digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs))
 
 /-- The DA claims' digest: each root, then its vector digest (`da_list_digest` in the guest;
 the outer verifier's `verifier::da::list_digest` derives the vector digests from the roots). -/
@@ -330,30 +318,26 @@ inductive Holder (W : Type) where
   /-- Through child `i`. -/
   | child (i : ℕ)
 
-/-- What a node holds its statement by: its children, a holder for every claim (per XMSS group,
-one per key), and the batching's hints. -/
+/-- What a node holds its statement by: its children, a holder for every claim, and the batching's
+hints. -/
 structure NodeWitness where
   /-- The children. -/
   children : List Child
-  /-- The XMSS claims' holders. -/
-  xmss : List (List (Holder XmssSecurity.Signature))
-  /-- The SPHINCS claims' holders. -/
+  /-- The leanXMSS claims' holders. -/
+  xmss : List (Holder LeanXmss.Signature)
+  /-- The leanSPHINCS claims' holders. -/
   sphincs : List (Holder Sphincs.Signature)
   /-- The DA claims' holders. -/
   da : List (Holder Da.Witness)
   /-- The batching's hints. -/
   hints : BatchHints
 
-/-- The XMSS key `pk` of `group` is held: by a signature at the group's leaf index, which is
-below `2^32`, and message, or by a child's group of the same leaf index and message. -/
-def XmssHeld (children : List Child) (group : XmssGroup) (pk : XmssSecurity.PublicKey) :
-    Holder XmssSecurity.Signature → Prop
-  | .direct σ => ∃ h : group.leafIndex.toNat < XmssSecurity.lifetime,
-      xmssVerify pk ⟨group.leafIndex.toNat, h⟩ group.message σ = true
-  | .child i => ∃ c, children[i]? = some c ∧ ∃ group' ∈ c.statement.claims.xmss,
-      group'.leafIndex = group.leafIndex ∧ group'.message = group.message ∧ pk ∈ group'.keys
+/-- The leanXMSS claim is held: by a signature, at any leaf index, or by a child making it. -/
+def XmssHeld (children : List Child) (claim : XmssClaim) : Holder LeanXmss.Signature → Prop
+  | .direct σ => xmssVerify claim.1 claim.2 σ = true
+  | .child i => ∃ c, children[i]? = some c ∧ claim ∈ c.statement.claims.xmss
 
-/-- The SPHINCS claim is held: by a signature, or by a child making it. -/
+/-- The leanSPHINCS claim is held: by a signature, or by a child making it. -/
 def SphincsHeld (children : List Child) (claim : SphincsClaim) :
     Holder Sphincs.Signature → Prop
   | .direct σ => sphincsVerify claim.1 claim.2 σ = true
@@ -376,8 +360,7 @@ def NodeRel (bytecode : List K) (seed : Digest) (s : NodeStatement) (w : NodeWit
   s.defer.Shaped bytecode ∧
   (∀ c ∈ w.children, c.statement.defer.Shaped bytecode ∧
     verifyDeferred bytecode seed (statementDigest seed c.statement) c.fresh c.proof = true) ∧
-  List.Forall₂ (fun group holders ↦ List.Forall₂ (XmssHeld w.children group) group.keys holders)
-    s.claims.xmss w.xmss ∧
+  List.Forall₂ (XmssHeld w.children) s.claims.xmss w.xmss ∧
   List.Forall₂ (SphincsHeld w.children) s.claims.sphincs w.sphincs ∧
   List.Forall₂ (DaHeld w.children) s.claims.da w.da ∧
   if w.children = [] then s.defer.AtZero bytecode
@@ -394,8 +377,8 @@ def NodeSpec (bytecode : List K) (seed : Digest) (s : NodeStatement) : Prop :=
 /-- **The outer verifier** of an aggregate of the guest `guest` (`EthereumProof::verify`): every
 DA claim's vector digest is its root's, the deferred claim holds, and the proof verifies on the
 statement's digest under the guest's IV. It omits the deployed verifier's checks on the lists'
-form (`check_signer_set`, `check_da_roots`: sorted without repeats, non-empty groups, fewer than
-`2^16` signature claims, at most `1024` groups and `16` DA roots), so it accepts more. -/
+form (`check_signer_set`, `check_da_roots`: each list sorted without repeats, fewer than `2^16`
+signature claims and at most `16` DA roots), so it accepts more. -/
 def verifyAggregate (guest : Program) (s : NodeStatement) (π : Proof) : Prop :=
   (∀ c ∈ s.claims.da, c.2 = Da.vectorDigest (Da.membershipVector c.1)) ∧
     s.defer.Holds (bytecodeWords guest) ∧

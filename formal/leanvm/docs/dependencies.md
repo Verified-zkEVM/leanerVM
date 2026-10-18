@@ -22,8 +22,8 @@ reviews below record each move of that pin. A change to a leanVM source the proj
 its CI job, whose Rust-vs-Lean differential fails when the Rust verifier stops agreeing with the
 Lean one on the fixtures. See [leanvm-target.md](leanvm-target.md) and [ci.md](ci.md).
 
-`formal/xmss` and `formal/sphincs` are path dependencies: `Spec/Node.lean` imports their `Scheme`
-modules, which Lake builds with this project's toolchain and pins. Their `lean-toolchain`,
+`formal/lean_xmss` and `formal/lean_sphincs` are path dependencies: `Spec/Node.lean` imports
+their `Scheme` modules, which Lake builds with this project's toolchain and pins. Their `lean-toolchain`,
 Mathlib, VCVio and PolyFun pins are therefore this project's, and a bump moves all three together.
 
 Add a dependency only with a named first-party use and a narrow import. A dependency PR must:
@@ -246,9 +246,9 @@ pointwise before applying `List.ofFn`, avoiding enumeration of the `2^16`-row me
 [CONTRIBUTING.md](../CONTRIBUTING.md) and the historical finding C8 in
 [roadmap/leanisa-status.md](roadmap/leanisa-status.md).
 
-leanVM's existing `formal/xmss/` project is not imported wholesale. At the target revision it
-uses Lean `v4.31.0` and VCVio revision `cbd4144`; moving that reviewed security theorem onto this
-repository's dependency set requires a deliberate port and statement/correspondence review.
+leanVM's `formal/lean_xmss/` and `formal/lean_sphincs/` projects are not imported wholesale:
+only their `Scheme` modules are. Using their reviewed security theorems here requires a deliberate
+statement and correspondence review.
 
 ## Limits that bind the proof system
 

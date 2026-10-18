@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  xmss-formalization:
+  lean-xmss-formalization:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,44 +24,44 @@ jobs:
       - name: Forbid proof escapes
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
-              --include='*.lean' --exclude-dir=.lake formal/xmss | grep -vE ':[0-9]+: *(--|/-)'
-      # Installs the toolchain from `formal/xmss/lean-toolchain`, fetches the
-      # mathlib cache, and runs `lake build` on the default target, which
-      # elaborates the root module and with it the `#guard_msgs` check. The
+              --include='*.lean' --exclude-dir=.lake formal/lean_xmss | grep -vE ':[0-9]+: *(--|/-)'
+      # Installs the toolchain from `formal/lean_xmss/lean-toolchain`, fetches the
+      # mathlib cache, and runs `lake build` on the default targets, which
+      # elaborate the root module and with it the `#guard_msgs` check. The
       # checked-in manifest is used as is: no `lake update`.
       - uses: leanprover/lean-action@v1
         with:
-          lake-package-directory: formal/xmss
+          lake-package-directory: formal/lean_xmss
       # Lake replays a cached module's warnings, so a second build lists every one.
       - name: Forbid deprecated API
-        working-directory: formal/xmss
+        working-directory: formal/lean_xmss
         run: |
           lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
-          ! grep -E '^warning: XmssSecurity.*has been deprecated' "$RUNNER_TEMP/build.log"
+          ! grep -E '^warning: (LeanXmss|XmssSecurity).*has been deprecated' "$RUNNER_TEMP/build.log"
       # The root module guards its own footprint with `#guard_msgs`, which an
       # edit to the expected message would silence. This asks again from
       # outside, against the list written here.
       - name: Check the axiom footprint
-        working-directory: formal/xmss
+        working-directory: formal/lean_xmss
         run: |
-          printf 'import XmssSecurity\n#print axioms XmssSecurity.xmss_has_127_bits_of_classical_security\n' \
+          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n' \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'XmssSecurity.xmss_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+          grep -qF "'XmssSecurity.leanXmss_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
             "$RUNNER_TEMP/axioms.txt"
       - uses: actions/upload-artifact@v4
         with:
-          name: xmss-axioms
+          name: lean-xmss-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  sphincs-formalization:
+  lean-sphincs-formalization:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Forbid proof escapes
         run: |
           ! grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
-              --include='*.lean' --exclude-dir=.lake formal/sphincs | grep -vE ':[0-9]+: *(--|/-)'
+              --include='*.lean' --exclude-dir=.lake formal/lean_sphincs | grep -vE ':[0-9]+: *(--|/-)'
       # Without Mathlib's build, which `lake exe cache get` fetches, an entry takes
       # a small share of the repository's cache. Only `main` saves one; every
       # branch restores it, and GitHub drops it after a week unused.
@@ -70,37 +70,39 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            formal/sphincs/.lake
-            !formal/sphincs/.lake/packages/mathlib/.lake
-          key: lake-sphincs-${{ runner.os }}-${{ hashFiles('formal/sphincs/lean-toolchain', 'formal/sphincs/lake-manifest.json') }}-${{ hashFiles('formal/sphincs/**/*.lean') }}
-          restore-keys: lake-sphincs-${{ runner.os }}-${{ hashFiles('formal/sphincs/lean-toolchain', 'formal/sphincs/lake-manifest.json') }}-
-      # Each kernel-checked table (`decide +kernel`) takes most of the runner's
-      # memory, so it is built alone, before Lake builds the rest in parallel,
-      # with some swap as margin.
+            formal/lean_sphincs/.lake
+            !formal/lean_sphincs/.lake/packages/mathlib/.lake
+          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-${{ hashFiles('formal/lean_sphincs/**/*.lean') }}
+          restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('formal/lean_sphincs/lean-toolchain', 'formal/lean_sphincs/lake-manifest.json') }}-
+      # Each kernel-checked table (`decide +kernel`) is built alone, before Lake
+      # builds the rest in parallel. The largest needs more than the runner's
+      # memory, so the swap goes on the runner's scratch disk, which has room.
       - name: Add swap
         run: |
-          sudo fallocate -l 8G /swapfile.lean
-          sudo chmod 600 /swapfile.lean
-          sudo mkswap /swapfile.lean
-          sudo swapon /swapfile.lean
+          dir=/mnt; [ -d /mnt ] || dir=/
+          sudo fallocate -l 16G "$dir/swapfile.lean"
+          sudo chmod 600 "$dir/swapfile.lean"
+          sudo mkswap "$dir/swapfile.lean"
+          sudo swapon "$dir/swapfile.lean"
+          free -g
       - uses: leanprover/lean-action@v1
         with:
-          lake-package-directory: formal/sphincs
+          lake-package-directory: formal/lean_sphincs
           use-github-cache: false
           build: false
       - name: Build the kernel tables one at a time
-        working-directory: formal/sphincs
+        working-directory: formal/lean_sphincs
         run: |
           for m in Sphincs.H0FTab Sphincs.H0PTab Sphincs.H0NTab Sphincs.LifetimeCertificates; do
             lake build "$m"
           done
       - name: Build
-        working-directory: formal/sphincs
+        working-directory: formal/lean_sphincs
         run: lake build 2>&1 | tee "$RUNNER_TEMP/build.log"
       - name: Forbid deprecated API
         run: "! grep -E '^warning: Sphincs(Fors|Base)?/.*has been deprecated' \"$RUNNER_TEMP/build.log\""
       - name: Check the axiom footprint
-        working-directory: formal/sphincs
+        working-directory: formal/lean_sphincs
         run: |
           printf 'import Sphincs\n#print axioms Sphincs.Lifetimes.requestedSecurity\n' \
             > "$RUNNER_TEMP/axioms.lean"
@@ -112,12 +114,12 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            formal/sphincs/.lake
-            !formal/sphincs/.lake/packages/mathlib/.lake
+            formal/lean_sphincs/.lake
+            !formal/lean_sphincs/.lake/packages/mathlib/.lake
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
-          name: sphincs-axioms
+          name: lean-sphincs-axioms
           path: ${{ runner.temp }}/axioms.txt
 
   # `formal/leanvm` models the verifier, the guest, the prover's proofs and LeanDA, and imports
@@ -136,8 +138,8 @@ jobs:
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
           elif git diff --name-only "$BASE" HEAD -- formal/leanvm crates/verifier python-verifier \
-              crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/xmss/XmssSecurity/Scheme.lean \
-              formal/sphincs/Sphincs/Scheme.lean .github/workflows/lean.yml | grep -q .; then
+              crates/rec_aggregation/guests crates/leanvm_core crates/lean_da formal/lean_xmss/LeanXmss/Scheme.lean \
+              formal/lean_sphincs/Sphincs/Scheme.lean .github/workflows/lean.yml | grep -q .; then
             echo changed=true >> "$GITHUB_OUTPUT"
           else
             echo changed=false >> "$GITHUB_OUTPUT"
@@ -175,7 +177,7 @@ jobs:
           path: |
             formal/leanvm/.lake
             !formal/leanvm/.lake/packages/mathlib/.lake
-          key: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-${{ hashFiles('formal/leanvm/**/*.lean', 'formal/xmss/XmssSecurity/Scheme.lean', 'formal/sphincs/Sphincs/Scheme.lean') }}
+          key: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-${{ hashFiles('formal/leanvm/**/*.lean', 'formal/lean_xmss/LeanXmss/Scheme.lean', 'formal/lean_sphincs/Sphincs/Scheme.lean') }}
           restore-keys: lake-leanvm-${{ runner.os }}-${{ hashFiles('formal/leanvm/lean-toolchain', 'formal/leanvm/lake-manifest.json') }}-
       # Plain `lake build` and `lake test`; the package's `warningAsError` rejects every
       # first-party warning. The audit admits only `propext`, `Classical.choice`, `Quot.sound`.

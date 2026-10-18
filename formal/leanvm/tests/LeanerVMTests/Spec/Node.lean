@@ -66,7 +66,7 @@ def root : Digest := blake2sBytes []
 /-! ## The Rust vectors -/
 
 #guard r1csDigest == NodeVectors.r1csDigest
-#guard NodeVectors.xmss.map (keyListDigest ·.keys) == NodeVectors.keyListDigests
+#guard xmssListDigest NodeVectors.xmss == NodeVectors.xmssListDigest
 #guard sphincsListDigest NodeVectors.sphincs == NodeVectors.sphincsListDigest
 #guard signersDigest NodeVectors.xmss NodeVectors.sphincs == NodeVectors.signersDigest
 

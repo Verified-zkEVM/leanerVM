@@ -91,12 +91,14 @@ At the pinned revision:
 - Call `setup_prover` before `aggregate`; `setup_verifier` is the verification-only
   initialization path. The process-wide arena and `setup_prover_without_arena` were removed with
   `crates/zk_alloc` after `a386121f`: a proof's buffers are ordinary heap allocations.
-- XMSS claims are grouped by strictly increasing `(leaf_index, message)` pairs (by epoch, one
-  message each, at `a386121f`); each group is non-empty with a strictly sorted key list. SPHINCS
-  claims are sorted, deduplicated `(key, message)` pairs. Raw signatures and child proofs
-  populate group-specific write-once coverage regions.
-- A child can map its XMSS groups into parent groups with the same leaf index and message.
-  Overlap is accounted for through duplicate slots; a published claim must still be covered.
+- Since `55f8b038` (Double XMSS), leanXMSS, two layers of XMSS of height 16 over WOTS+C,
+  replaces XMSS, and the claims of both schemes are sorted, deduplicated `(key, message)` pairs.
+  A leanXMSS signature carries its own leaf index, which the statement does not record. (Before
+  it, XMSS claims were grouped by strictly increasing `(leaf_index, message)` pairs, each group
+  non-empty with a strictly sorted key list.) Raw signatures and child proofs populate one
+  write-once coverage region per scheme.
+- A child's claim lists are rebuilt from the parent's tables through hinted indices. Overlap is
+  accounted for through duplicate slots; a published claim must still be covered.
 - The guest is self-referential. Three evaluations that are too expensive in-circuit—stacked
   bytecode and Flock matrices `A0` and `B0`—are recursively batched as deferred claims and are
   discharged natively only by root `EthereumProof::verify`.
@@ -111,14 +113,17 @@ At the pinned revision:
   digest, LeanDA root list, and deferred claims. The bare Rust `verify()` validates the statement
   carried by the object; a consumer must separately compare the exposed signer lists (and DA
   roots) with the statement it expected.
-- `formal/xmss/` contains a separate VCVio-based Lean theorem
-  `xmss_has_127_bits_of_classical_security`. It proves 127-bit classical random-oracle security
-  for its reviewed scheme statement with only `propext`, `Classical.choice`, and `Quot.sound` in
-  the reported axiom footprint. It does not by itself prove correspondence with the Rust XMSS
-  implementation, the zkDSL guest, or the VM constraints. Since `a386121f`, `formal/sphincs/`
-  proves 127-bit classical SUF-CMA random-oracle security for its functional model of the SPHINCS
-  scheme (`Sphincs.Lifetimes.requestedSecurity`, same axiom footprint); its README states the
-  model was checked against `crates/sphincs` by reading, not by a mechanized refinement.
+- `formal/lean_xmss/` (replacing `formal/xmss/` since `55f8b038`) contains a separate
+  VCVio-based Lean theorem `XmssSecurity.leanXmss_has_127_bits_of_classical_security`. It proves
+  127-bit classical SUF-CMA random-oracle security for the scheme of `LeanXmss/Scheme.lean` with
+  only `propext`, `Classical.choice`, and `Quot.sound` in the reported axiom footprint. It does
+  not by itself prove correspondence with the Rust implementation
+  (`crates/signatures/src/lean_xmss`), the zkDSL guest, or the VM constraints.
+  `formal/lean_sphincs/` (`formal/sphincs/` before `55f8b038`) proves 127-bit classical SUF-CMA
+  random-oracle security for its functional model of the leanSPHINCS scheme
+  (`Sphincs.Lifetimes.requestedSecurity`, same axiom footprint); its README states the model was
+  checked against the Rust implementation (`crates/signatures/src/lean_sphincs`) by reading, not
+  by a mechanized refinement.
 
 ## Known discrepancies at the pin
 
@@ -287,8 +292,8 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | Proof system | Protocol document with component bounds; Rust prover/verifier | T4: formal component notions, Fiat–Shamir assumptions, composed error bound, and verifier refinement |
 | Verifier implementations | Rust, Python, and recursive zkDSL implementations; differential tests | T4/T5: each accepts exactly the specified protocol and statement encoding |
 | Recursion and deferred claims | Self-recursive guest, native root discharge, end-to-end tests | T5 plus provisional T6: verifier-in-circuit equivalence, batching/root discharge, well-foundedness, and the unresolved inner-ROM/outer-topology extraction bridge |
-| XMSS security | Existing machine-checked 127-bit ROM theorem in `formal/xmss/` | Port plus Rust/guest/spec correspondence and integration into T7's assumptions and claim |
-| SPHINCS security | Prose specification, Rust implementation/tests, and the 127-bit ROM theorem for the Lean model in `formal/sphincs/` (since `a386121f`) | Port plus Rust/guest/spec correspondence and integration into T7's assumptions and claim |
+| leanXMSS security | Existing machine-checked 127-bit ROM theorem in `formal/lean_xmss/` | Port plus Rust/guest/spec correspondence and integration into T7's assumptions and claim |
+| leanSPHINCS security | Prose specification, Rust implementation/tests, and the 127-bit ROM theorem for the Lean model in `formal/lean_sphincs/` (since `a386121f`, as `formal/sphincs/` until `55f8b038`) | Port plus Rust/guest/spec correspondence and integration into T7's assumptions and claim |
 | Final audited claim | No single machine-checked end-to-end theorem | T7 soundness schema, conditional on the open recursion bridge, plus T8 completeness |
 
 ## Formalization order implied by the audit

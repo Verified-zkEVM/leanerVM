@@ -18,9 +18,10 @@ Read in this order:
 
 The aggregation guest (in progress: stated, not yet proved):
 
-6. The two signature schemes, imported from the leanVM projects that prove their security:
-   [`formal/xmss/XmssSecurity/Scheme.lean`](../../../xmss/XmssSecurity/Scheme.lean) and
-   [`formal/sphincs/Sphincs/Scheme.lean`](../../../sphincs/Sphincs/Scheme.lean).
+6. The two signature schemes, leanXMSS and leanSPHINCS, imported from the leanVM projects that
+   prove their security:
+   [`formal/lean_xmss/LeanXmss/Scheme.lean`](../../../lean_xmss/LeanXmss/Scheme.lean) and
+   [`formal/lean_sphincs/Sphincs/Scheme.lean`](../../../lean_sphincs/Sphincs/Scheme.lean).
 7. [`Da.lean`](Da.lean): LeanDA's commitment and the claim on a DA root.
 8. [`Node.lean`](Node.lean): a node's statement and its digest, the batching of deferred claims,
    `NodeSpec` (what a node establishes) and the outer verifier.

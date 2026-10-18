@@ -13,16 +13,16 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
-# The signature schemes whose security leanVM's formal/xmss and formal/sphincs prove: Spec/Node.lean
-# imports their Scheme modules, built here with this package's toolchain and dependencies, so
-# they come first: a later requirement's versions take precedence.
+# The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove:
+# Spec/Node.lean imports their Scheme modules, built here with this package's toolchain and
+# dependencies, so they come first: a later requirement's versions take precedence.
 [[require]]
-name = "xmss-security"
-path = "../xmss"
+name = "lean-xmss-security"
+path = "../lean_xmss"
 
 [[require]]
-name = "sphincs-security"
-path = "../sphincs"
+name = "lean-sphincs-security"
+path = "../lean_sphincs"
 
 [[require]]
 name = "mathlib"

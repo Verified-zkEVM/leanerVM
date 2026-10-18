@@ -5,10 +5,11 @@
 machine for post-quantum signature aggregation. Current leanVM uses binary fields and BLAKE2s;
 the historical KoalaBear/Poseidon implementation remains available on its `koalabear` branch.
 
-The primary application target is leanVM's recursive XMSS and SPHINCS aggregation guest. At
-leanVM `a0ca7858`, XMSS claims are grouped by epoch with one message per group, while each
-SPHINCS claim carries its own message. The final result must be bound to that exact guest and
-imply the intended claim about every published key, message, epoch, and signature.
+The primary application target is leanVM's recursive leanXMSS and leanSPHINCS aggregation guest.
+Since leanVM `55f8b038`, a claim of either scheme is a `(key, message)` pair, and a leanXMSS
+signature carries its own leaf index, which the statement does not record. The final result must
+be bound to that exact guest and imply the intended claim about every published key, message, and
+signature.
 
 The executable Lean semantics serves three complementary purposes: it anchors proofs from VM
 execution through the proof system, provides an implementation worth optimizing in its own
