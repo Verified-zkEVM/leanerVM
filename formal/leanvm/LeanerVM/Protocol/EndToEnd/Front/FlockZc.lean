@@ -110,7 +110,7 @@ theorem point_escape (acc : List E) (q : Column layout.stackLog)
   simp only [List.length_append, List.length_singleton]
   by_cases hG : fG layout claims q
   · have hin := fun h ↦ hq ⟨hG, h⟩
-    have h := sample_escape (Flock.drawPointSecurityT (fP F prog s) (fC F prog s) (fz F prog s)
+    have h := sample_escape (Flock.drawPointSecurity (fP F prog s) (fC F prog s) (fz F prog s)
       (fside F prog s) acc.length) _ _ hin rfl
     rw [← overF_eq_overE]
     refine (avgE_mono fun c ↦ indE_mono fun hc ↦ ?_).trans h
@@ -148,7 +148,7 @@ theorem skip_escape (sampled pCoset : List E) (hp : pCoset.length = 64) (q : Col
         (toVec 64 pCoset : Vector E (2 ^ (fP F prog s).s))), fO F prog s layout toI q), ()) ∉
         Flock.skipRel (fP F prog s) (fC F prog s) (fz F prog s) (fside F prog s) :=
       fun h ↦ hq ⟨hG, h.1⟩
-    have h := sample_escape (Flock.skipDrawSecurityT (fP F prog s) (fC F prog s) (fz F prog s)
+    have h := sample_escape (Flock.skipDrawSecurity (fP F prog s) (fC F prog s) (fz F prog s)
       (fside F prog s) flockNodes_injective) _ _ hin rfl
     rw [← overF_eq_overE]
     refine (avgE_mono fun Y ↦ indE_mono fun hY ↦ ?_).trans h
@@ -179,7 +179,7 @@ theorem term_reflect (sampled : List E) (zSkip : E) (chi : List E) (running vA v
       ((fP F prog s).m + (fP F prog s).κ) chi running q) :
     ¬ TermAlive F prog s layout toI claims input ⟨zSkip, chi, vA, vB, running + vA * vB⟩ q := by
   rintro ⟨hG, ht⟩
-  refine hq ⟨hG, sendChecked_reflect (Flock.zcEndSecurityT (fP F prog s) (fC F prog s)
+  refine hq ⟨hG, sendChecked_reflect (Flock.zcEndSecurity (fP F prog s) (fC F prog s)
     (fz F prog s) (fside F prog s)) _ _ #v[vA, vB] rfl ?_⟩
   have heq : vA * vB - running = running + vA * vB := by rw [CharTwo.sub_eq_add, add_comm]
   simp only [Flock.termNext, Vector.getElem_mk, List.getElem_toArray, List.getElem_cons_zero,

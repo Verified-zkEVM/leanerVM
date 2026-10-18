@@ -31,7 +31,7 @@ The first four restate private facts of `GrandProductSecurity` with the same pro
 
 namespace LeanerVM.Protocol.Gkr
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section

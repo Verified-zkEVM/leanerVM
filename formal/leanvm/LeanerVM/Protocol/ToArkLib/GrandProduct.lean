@@ -8,7 +8,6 @@
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Batch
 public import LeanerVM.Protocol.ToArkLib.Typed.Batch
 public import LeanerVM.Protocol.ToArkLib.Typed.Schedule
 public import LeanerVM.Protocol.ToArkLib.SumcheckRound
@@ -75,7 +74,7 @@ This module goes when ArkLib carries a product-tree GKR with round-by-round know
 
 namespace LeanerVM.Protocol
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal Polynomial
 
 @[expose] public section
@@ -283,13 +282,8 @@ variable [DecidableEq F] [SampleableType F]
 -- step from a layer, the roots read as layer `0` for the first.
 variable {S : Type} (inp : S → LayerStmt X F nside m)
 
-/-- The combiner: one challenge, batching the claims by its powers. -/
-def lambdaStep : Component.Def S O Unit (SumcheckRound.Stmt (LayerX X F nside m) F 0) O Unit
-    (draw F) :=
-  Component.batch O F (fun s ↦ (inp s).2.2) fun s l c ↦ ((inp s, l), (#v[], c))
-
 /-- The combiner, as a typed component. -/
-def lambdaStepT :
+def lambdaStep :
     Typed.Def O S Unit (SumcheckRound.Stmt (LayerX X F nside m) F 0) Unit (Typed.drawSlot F) :=
   Typed.batch O F (fun s ↦ (inp s).2.2) fun s l c ↦ ((inp s, l), (#v[], c))
 
@@ -338,21 +332,11 @@ private theorem lambdaNext_mem_rel (hm : m + ρ ≤ μ) (s : LayerStmt X F nside
   show powerBatch s.2.2 l = _
   exact congrArg (powerBatch · l) (funext fun t ↦ (hval t).symm)
 
-/-- The completeness half of the combiner, from a relation `inp` carries into the layer
-relation. -/
-def lambdaComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
-    (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
-    Component.Complete (lambdaStep nside m inp) relS
-      (SumcheckRound.rel (family nside μ leaves riders ρ m) 0) :=
-  Component.batchComplete O F _ _ fun s o w h l ↦ by
-    cases w
-    exact lambdaNext_mem_rel nside μ leaves riders ρ m hm (inp s) o l (hinp s o () h)
-
 omit [∀ i, OracleInterface (O i)] [DecidableEq F] in
 /-- Typed completeness of the combiner. -/
-theorem lambdaCompleteT (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
+theorem lambdaComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
-    Typed.Complete (lambdaStepT nside m inp) relS
+    Typed.Complete (lambdaStep nside m inp) relS
       (SumcheckRound.rel (family nside μ leaves riders ρ m) 0) :=
   Typed.batchComplete fun s o w h l ↦ by
     cases w
@@ -381,15 +365,8 @@ def childNext (s : SumcheckRound.Stmt (LayerX X F nside m) F m)
     (ch : Fin nside → CMlPolynomialEval F ρ) : InterpStmt X F nside m ρ 0 :=
   ((s.1.1.1, (s.2.1, ch)), #v[])
 
-/-- The descendants' message and its check: one message, the values per tree. -/
-def sendChildren : Component.Def (SumcheckRound.Stmt (LayerX X F nside m) F m) O Unit
-    (InterpStmt X F nside m ρ 0) O Unit (say (Fin nside → Vector F (2 ^ ρ))) :=
-  Component.sendChecked O (Fin nside → Vector F (2 ^ ρ))
-    (fun p ↦ children nside μ leaves ρ m p.1.1.1.1.1 p.1.2 p.1.1.2.1) (combineCheck nside ρ m)
-    (childNext nside ρ m)
-
 /-- The descendants' message, as a typed component. -/
-def sendChildrenT :
+def sendChildren :
     Typed.Def O (SumcheckRound.Stmt (LayerX X F nside m) F m) Unit (InterpStmt X F nside m ρ 0)
       Unit (Typed.saySlot (Fin nside → Vector F (2 ^ ρ))) :=
   Typed.sendChecked O (Fin nside → Vector F (2 ^ ρ))
@@ -420,17 +397,9 @@ private theorem combineCheck_children (s : SumcheckRound.Stmt (LayerX X F nside 
   refine Finset.prod_congr rfl fun c _ ↦ ?_
   simp [children, below]
 
-/-- The completeness half of the descendants' message. -/
-def childrenComplete : Component.Complete (sendChildren nside μ leaves ρ m)
-    (SumcheckRound.rel (family nside μ leaves riders ρ m) m)
-    (childRel nside μ leaves riders ρ m 0) :=
-  Component.sendCheckedComplete O _ _ _ _ fun s o w h ↦ by
-    cases w
-    exact ⟨combineCheck_children nside μ leaves riders ρ m s o h, h.1, rfl⟩
-
 omit [∀ i, OracleInterface (O i)] [SampleableType F] in
 /-- Typed completeness of the descendants' message. -/
-theorem childrenCompleteT : Typed.Complete (sendChildrenT nside μ leaves ρ m)
+theorem childrenComplete : Typed.Complete (sendChildren nside μ leaves ρ m)
     (SumcheckRound.rel (family nside μ leaves riders ρ m) m)
     (childRel nside μ leaves riders ρ m 0) :=
   Typed.sendCheckedComplete fun s o w h ↦ by
@@ -449,41 +418,21 @@ and each tree's values interpolated at `u`. -/
 def interpDone (s : InterpStmt X F nside m ρ ρ) : LayerStmt X F nside (m + ρ) :=
   (s.1.1, (Vector.cast (Nat.add_comm ρ m) (s.2 ++ s.1.2.1), fun t ↦ evalMle (s.1.2.2 t) s.2))
 
-/-- The first `i` combination challenges, appended to the statement one by one. -/
-def interpPrefix : (i : ℕ) →
-    Component.Def (InterpStmt X F nside m ρ 0) O Unit (InterpStmt X F nside m ρ i) O Unit
-      (draws F i)
-  | 0 => Component.passThrough O id
-  | i + 1 =>
-    (interpPrefix i).append
-      (Component.sampleChallenge O F (fun _ ↦ true) (interpNext nside ρ m (i := i)))
-
-/-- The `ρ` combination challenges, then the layer statement: the last challenge, if there is
-one, also interpolates. -/
-def interpolate : Component.Def (InterpStmt X F nside m ρ 0) O Unit
-    (LayerStmt X F nside (m + ρ)) O Unit (draws F ρ) :=
-  match ρ with
-  | 0 => Component.passThrough O (interpDone nside 0 m)
-  | ρ' + 1 =>
-    (interpPrefix nside (ρ' + 1) m ρ').append
-      (Component.sampleChallenge O F (fun _ ↦ true) fun s u ↦
-        interpDone nside (ρ' + 1) m (interpNext nside (ρ' + 1) m s u))
-
 /-- The first `i` combination challenges, as a typed component. -/
-def interpPrefixT : (i : ℕ) →
+def interpPrefix : (i : ℕ) →
     Typed.Def O (InterpStmt X F nside m ρ 0) Unit (InterpStmt X F nside m ρ i) Unit
       (Typed.drawsSlot F i)
   | 0 => Typed.passThrough O id
   | i + 1 =>
-    (interpPrefixT i).append (Typed.sampleChallenge O F (fun _ ↦ true) (interpNext nside ρ m (i := i)))
+    (interpPrefix i).append (Typed.sampleChallenge O F (fun _ ↦ true) (interpNext nside ρ m (i := i)))
 
 /-- The combination challenges, then the layer statement, as a typed component. -/
-def interpolateT : Typed.Def O (InterpStmt X F nside m ρ 0) Unit (LayerStmt X F nside (m + ρ)) Unit
+def interpolate : Typed.Def O (InterpStmt X F nside m ρ 0) Unit (LayerStmt X F nside (m + ρ)) Unit
     (Typed.drawsSlot F ρ) :=
   match ρ with
   | 0 => Typed.passThrough O (interpDone nside 0 m)
   | ρ' + 1 =>
-    (interpPrefixT nside (ρ' + 1) m ρ').append
+    (interpPrefix nside (ρ' + 1) m ρ').append
       (Typed.sampleChallenge O F (fun _ ↦ true) fun s u ↦
         interpDone nside (ρ' + 1) m (interpNext nside (ρ' + 1) m s u))
 
@@ -498,120 +447,51 @@ private theorem interpDone_mem (s : InterpStmt X F nside m ρ ρ) (o : ∀ i, O 
   rw [hch]
   exact evalMle_cast_append ρ _ s.2 s.1.2.1
 
-/-- The first `i` combination challenges are front. -/
-def interpPrefixFront : (i : ℕ) →
-    Component.Front (interpPrefix (F := F) (X := X) (O := O) nside ρ m i)
-  | 0 => Component.passThroughFront O (W := Unit) id
-  | i + 1 =>
-    (interpPrefixFront i).append
-      (Component.sampleFront O F (W := Unit) (fun _ ↦ true) (interpNext nside ρ m (i := i)))
-
-/-- The combination challenges are front. -/
-def interpolateFront : Component.Front (interpolate (F := F) (X := X) (O := O) nside ρ m) :=
-  match ρ with
-  | 0 => Component.passThroughFront O (W := Unit) (interpDone nside 0 m)
-  | ρ' + 1 =>
-    (interpPrefixFront (F := F) (X := X) (O := O) nside (ρ' + 1) m ρ').append
-      (Component.sampleFront O F (W := Unit) (fun _ ↦ true) fun s u ↦
-        interpDone nside (ρ' + 1) m (interpNext nside (ρ' + 1) m s u))
-
-/-- Completeness of the first `i` combination challenges: the values are unchanged. -/
-def interpPrefixComplete : (i : ℕ) →
-    Component.Complete (interpPrefix nside ρ m i) (childRel nside μ leaves riders ρ m 0)
-      (childRel nside μ leaves riders ρ m i)
-  | 0 => Component.passThroughComplete O _ fun _ _ _ h ↦ h
-  | i + 1 =>
-    (interpPrefixComplete i).append
-      (Component.sampleChallengeComplete O F _ _ fun _ _ _ h ↦ ⟨rfl, fun _ ↦ h⟩)
-
-/-- Completeness of the combination challenges: the values interpolated at `u` are the level
-below at the new point `(u, c)`. -/
-def interpolateComplete : Component.Complete (interpolate nside ρ m)
-    (childRel nside μ leaves riders ρ m 0) (layerRel nside μ leaves riders (m + ρ)) :=
-  match ρ with
-  | 0 => Component.passThroughComplete O _ fun s o w hin ↦ by
-    cases w
-    exact interpDone_mem nside μ leaves riders 0 m s o hin
-  | ρ' + 1 =>
-    (interpPrefixComplete nside μ leaves riders (ρ' + 1) m ρ').append
-      (Component.sampleChallengeComplete O F _ _ fun s o w hin ↦ by
-        cases w
-        exact ⟨rfl, fun u ↦ interpDone_mem nside μ leaves riders (ρ' + 1) m _ o ⟨hin.1, hin.2⟩⟩)
-
 omit [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] [DecidableEq F] in
 /-- Typed completeness of the first `i` combination challenges. -/
-theorem interpPrefixCompleteT : (i : ℕ) →
-    Typed.Complete (interpPrefixT nside ρ m i) (childRel nside μ leaves riders ρ m 0)
+theorem interpPrefixComplete : (i : ℕ) →
+    Typed.Complete (interpPrefix nside ρ m i) (childRel nside μ leaves riders ρ m 0)
       (childRel nside μ leaves riders ρ m i)
   | 0 => Typed.passThroughComplete fun _ _ _ h ↦ h
   | i + 1 =>
-    (interpPrefixCompleteT i).append (Typed.sampleChallengeComplete fun _ _ _ h ↦ ⟨rfl, fun _ ↦ h⟩)
+    (interpPrefixComplete i).append (Typed.sampleChallengeComplete fun _ _ _ h ↦ ⟨rfl, fun _ ↦ h⟩)
 
 omit [BEq F] [LawfulBEq F] [∀ i, OracleInterface (O i)] [DecidableEq F] in
 /-- Typed completeness of the combination challenges. -/
-theorem interpolateCompleteT : Typed.Complete (interpolateT nside ρ m)
+theorem interpolateComplete : Typed.Complete (interpolate nside ρ m)
     (childRel nside μ leaves riders ρ m 0) (layerRel nside μ leaves riders (m + ρ)) :=
   match ρ with
   | 0 => Typed.passThroughComplete fun s o w hin ↦ by
     cases w
     exact interpDone_mem nside μ leaves riders 0 m s o hin
   | ρ' + 1 =>
-    (interpPrefixCompleteT nside μ leaves riders (ρ' + 1) m ρ').append
+    (interpPrefixComplete nside μ leaves riders (ρ' + 1) m ρ').append
       (Typed.sampleChallengeComplete fun s o w hin ↦ by
         cases w
         exact ⟨rfl, fun u ↦ interpDone_mem nside μ leaves riders (ρ' + 1) m _ o ⟨hin.1, hin.2⟩⟩)
 
 /-! ## A step down -/
 
-/-- A step of radix `2 ^ ρ` from layer `m`, read off the input statement through `inp`: the
-combiner, `m` sumcheck rounds, the descendants, the `ρ` combination challenges. -/
-def layerStep : Component.Def S O Unit (LayerStmt X F nside (m + ρ)) O Unit
-    (stepSpec F nside ρ m) :=
+/-- A step, as a typed component. -/
+def layerStep : Typed.Def O S Unit (LayerStmt X F nside (m + ρ)) Unit
+    (Typed.stepSlot F nside ρ m) :=
   (((lambdaStep nside m inp).append
     (SumcheckRound.rounds (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
       (Nat.zero_add m))).append
     (sendChildren nside μ leaves ρ m)).append
     (interpolate nside ρ m)
 
-/-- A step, as a typed component. -/
-def layerStepT : Typed.Def O S Unit (LayerStmt X F nside (m + ρ)) Unit
-    (Typed.stepSlot F nside ρ m) :=
-  (((lambdaStepT nside m inp).append
-    (SumcheckRound.roundsT (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
-      (Nat.zero_add m))).append
-    (sendChildrenT nside μ leaves ρ m)).append
-    (interpolateT nside ρ m)
-
-/-- A step is front: its four parts read the statement and the transcript only. -/
-def layerStepFront : Component.Front (layerStep nside μ leaves ρ m inp) :=
-  (((Component.sampleFront O F _ _).append
-    (SumcheckRound.roundsFront (roundPoly nside μ leaves ρ m) (weights nside m) m m 0
-      (Nat.zero_add m))).append
-    (Component.sendCheckedFront O _ _ _ _)).append
-    (interpolateFront (F := F) (X := X) (O := O) nside ρ m)
-
-/-- Completeness of a step whose level below exists, from its four parts'. -/
-def layerStepComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
+omit [∀ i, OracleInterface (O i)] in
+/-- Typed completeness of a step whose level below exists. -/
+theorem layerStepComplete (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
     (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
-    Component.Complete (layerStep nside μ leaves ρ m inp) relS
+    Typed.Complete (layerStep nside μ leaves ρ m inp) relS
       (layerRel nside μ leaves riders (m + ρ)) :=
   (((lambdaComplete nside μ leaves riders ρ m inp hm hinp).append
     (SumcheckRound.roundsComplete (family nside μ leaves riders ρ m) m
       (family_honest nside μ leaves riders ρ m) m 0 (Nat.zero_add m))).append
     (childrenComplete nside μ leaves riders ρ m)).append
     (interpolateComplete nside μ leaves riders ρ m)
-
-omit [∀ i, OracleInterface (O i)] in
-/-- Typed completeness of a step whose level below exists. -/
-theorem layerStepCompleteT (hm : m + ρ ≤ μ) {relS : Set ((S × ∀ i, O i) × Unit)}
-    (hinp : ∀ s o w, ((s, o), w) ∈ relS → ((inp s, o), w) ∈ layerRel nside μ leaves riders m) :
-    Typed.Complete (layerStepT nside μ leaves ρ m inp) relS
-      (layerRel nside μ leaves riders (m + ρ)) :=
-  (((lambdaCompleteT nside μ leaves riders ρ m inp hm hinp).append
-    (SumcheckRound.roundsCompleteT (family nside μ leaves riders ρ m) m
-      (family_honest nside μ leaves riders ρ m) m 0 (Nat.zero_add m))).append
-    (childrenCompleteT nside μ leaves riders ρ m)).append
-    (interpolateCompleteT nside μ leaves riders ρ m)
 
 end Layer
 
@@ -629,51 +509,24 @@ private theorem layerRel_subset_relOut :
   rw [evalMle_eq_sum]
   exact Finset.sum_eq_zero fun i _ ↦ by rw [hz r hr i, zero_mul]
 
-/-- `k` steps of radix four from layer `m` to the leaves, `m + 2k = μ`. With no step left, the
-statement is carried across the equality of layers. -/
-def layerSteps : (k m : ℕ) → m + 2 * k = μ →
-    Component.Def (LayerStmt X F nside m) O Unit (LayerStmt X F nside μ) O Unit
-      (stepsSpec F nside k m)
-  | 0, m, h => Component.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
-  | k + 1, m, h => (layerStep nside μ leaves 2 m id).append (layerSteps k (m + 2) (by omega))
-
 /-- The radix-four steps, as a typed component. -/
-def layerStepsT : (k m : ℕ) → m + 2 * k = μ →
+def layerSteps : (k m : ℕ) → m + 2 * k = μ →
     Typed.Def O (LayerStmt X F nside m) Unit (LayerStmt X F nside μ) Unit (Typed.stepsSlot F nside k m)
   | 0, m, h => Typed.passThrough O fun s ↦ (s.1, (Vector.cast (by omega) s.2.1, s.2.2))
-  | k + 1, m, h => (layerStepT nside μ leaves 2 m id).append (layerStepsT k (m + 2) (by omega))
-
-/-- The radix-four steps are front, from each step's. -/
-def layerStepsFront : (k m : ℕ) → (h : m + 2 * k = μ) →
-    Component.Front (layerSteps nside μ leaves k m h)
-  | 0, _, _ => Component.passThroughFront O _
-  | k + 1, m, h =>
-    (layerStepFront nside μ leaves 2 m id).append (layerStepsFront k (m + 2) (by omega))
-
-/-- Completeness of the radix-four steps, from each step's. -/
-def layerStepsComplete : (k m : ℕ) → (h : m + 2 * k = μ) →
-    Component.Complete (layerSteps nside μ leaves k m h) (layerRel nside μ leaves riders m)
-      (relOut nside μ leaves riders)
-  | 0, m, h => Component.passThroughComplete O _ fun s o w hin ↦ by
-    have hm : m = μ := by omega
-    subst hm
-    exact layerRel_subset_relOut nside m leaves riders (by simpa only [Vector.cast_rfl] using hin)
-  | k + 1, m, h =>
-    (layerStepComplete nside μ leaves riders 2 m id (by omega) fun _ _ _ h ↦ h).append
-      (layerStepsComplete k (m + 2) (by omega))
+  | k + 1, m, h => (layerStep nside μ leaves 2 m id).append (layerSteps k (m + 2) (by omega))
 
 omit [∀ i, OracleInterface (O i)] in
 /-- Typed completeness of the radix-four steps. -/
-theorem layerStepsCompleteT : (k m : ℕ) → (h : m + 2 * k = μ) →
-    Typed.Complete (layerStepsT nside μ leaves k m h) (layerRel nside μ leaves riders m)
+theorem layerStepsComplete : (k m : ℕ) → (h : m + 2 * k = μ) →
+    Typed.Complete (layerSteps nside μ leaves k m h) (layerRel nside μ leaves riders m)
       (relOut nside μ leaves riders)
   | 0, m, h => Typed.passThroughComplete fun s o w hin ↦ by
     have hm : m = μ := by omega
     subst hm
     exact layerRel_subset_relOut nside m leaves riders (by simpa only [Vector.cast_rfl] using hin)
   | k + 1, m, h =>
-    (layerStepCompleteT nside μ leaves riders 2 m id (by omega) fun _ _ _ h ↦ h).append
-      (layerStepsCompleteT k (m + 2) (by omega))
+    (layerStepComplete nside μ leaves riders 2 m id (by omega) fun _ _ _ h ↦ h).append
+      (layerStepsComplete k (m + 2) (by omega))
 
 /-- The roots as the statement at layer `0`, whose point is empty. -/
 def rootStmt (s : X × (Fin nside → F)) : LayerStmt X F nside 0 := (s.1, (#v[], s.2))
@@ -696,50 +549,23 @@ theorem relIn_iff_layerRel_zero (s : X × (Fin nside → F)) (o : ∀ i, O i) :
     rw [← h, ← layerTable_zero_getElem]
     rfl
 
-/-- The first step from the roots when `μ` is odd (`r = 1`): a binary step read off the roots;
-nothing when `μ` is even (`r = 0`), the roots read as layer `0`. -/
+/-- The first step, as a typed component. -/
 def odd : (r : ℕ) → r ≤ 1 →
-    Component.Def (X × (Fin nside → F)) O Unit (LayerStmt X F nside r) O Unit (oddSpec F nside r)
-  | 0, _ => Component.passThrough O (rootStmt nside)
+    Typed.Def O (X × (Fin nside → F)) Unit (LayerStmt X F nside r) Unit (Typed.oddSlot F nside r)
+  | 0, _ => Typed.passThrough O (rootStmt nside)
   | 1, _ => layerStep nside μ leaves 1 0 (rootStmt nside)
   | _ + 2, h => absurd h (by omega)
 
-/-- The first step, as a typed component. -/
-def oddT : (r : ℕ) → r ≤ 1 →
-    Typed.Def O (X × (Fin nside → F)) Unit (LayerStmt X F nside r) Unit (Typed.oddSlot F nside r)
-  | 0, _ => Typed.passThrough O (rootStmt nside)
-  | 1, _ => layerStepT nside μ leaves 1 0 (rootStmt nside)
-  | _ + 2, h => absurd h (by omega)
-
-/-- The first step is front. -/
-def oddFront : (r : ℕ) → (hr : r ≤ 1) → Component.Front (odd nside μ leaves r hr)
-  | 0, _ => Component.passThroughFront O _
-  | 1, _ => layerStepFront nside μ leaves 1 0 (rootStmt nside)
-  | _ + 2, h => absurd h (by omega)
-
-/-- Completeness of the first step. -/
-def oddComplete : (r : ℕ) → (hr : r ≤ 1) → r ≤ μ →
-    Component.Complete (odd nside μ leaves r hr) (relIn nside μ leaves riders)
-      (layerRel nside μ leaves riders r)
-  | 0, _, _ => Component.passThroughComplete O _ fun s o w h ↦ by
-    cases w
-    exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
-  | 1, _, hμ =>
-    layerStepComplete nside μ leaves riders 1 0 (rootStmt nside) hμ fun s o w h ↦ by
-      cases w
-      exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
-  | _ + 2, h, _ => absurd h (by omega)
-
 omit [∀ i, OracleInterface (O i)] in
 /-- Typed completeness of the first step. -/
-theorem oddCompleteT : (r : ℕ) → (hr : r ≤ 1) → r ≤ μ →
-    Typed.Complete (oddT nside μ leaves r hr) (relIn nside μ leaves riders)
+theorem oddComplete : (r : ℕ) → (hr : r ≤ 1) → r ≤ μ →
+    Typed.Complete (odd nside μ leaves r hr) (relIn nside μ leaves riders)
       (layerRel nside μ leaves riders r)
   | 0, _, _ => Typed.passThroughComplete fun s o w h ↦ by
     cases w
     exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
   | 1, _, hμ =>
-    layerStepCompleteT nside μ leaves riders 1 0 (rootStmt nside) hμ fun s o w h ↦ by
+    layerStepComplete nside μ leaves riders 1 0 (rootStmt nside) hμ fun s o w h ↦ by
       cases w
       exact (relIn_iff_layerRel_zero nside μ leaves riders s o).mp h
   | _ + 2, h, _ => absurd h (by omega)
@@ -751,43 +577,19 @@ variable {F : Type} [Field F] [BEq F] [LawfulBEq F] [DecidableEq F] [SampleableT
   (nside μ : ℕ) (leaves : X → (∀ i, O i) → Fin nside → CMlPolynomialEval F μ)
   (riders : X → (∀ i, O i) → List (Σ τ : Fin (μ + 1), CMlPolynomialEval F τ))
 
-/-- The grand-product argument for `nside` trees of `2 ^ μ` leaves, at the schedule
-`gkrSpec F nside μ`: the roots read as the statement at layer `0`, one binary step first when
-`μ` is odd, then steps of radix four, each opening with its combiner. -/
-def gkr : Component.Def (X × (Fin nside → F)) O Unit (Gkr.LayerStmt X F nside μ) O Unit
-    (gkrSpec F nside μ) :=
+/-- The grand-product argument, as a typed component at the slot `Typed.gkrSlot F nside μ`. -/
+def gkr : Typed.Def O (X × (Fin nside → F)) Unit (Gkr.LayerStmt X F nside μ) Unit
+    (Typed.gkrSlot F nside μ) :=
   (Gkr.odd nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).append
     (Gkr.layerSteps nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))
 
-/-- The grand-product argument is front: its verifier reads the roots, the messages and the
-challenges, never the oracles, and hands the oracles on. What a slot for front components
-takes, by `Component.Front.append`. -/
-def gkrFront : Component.Front (gkr nside μ leaves) :=
-  (Gkr.oddFront nside μ leaves (μ % 2) _).append
-    (Gkr.layerStepsFront nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))
-
-/-- **Perfect completeness** of the grand-product argument: from roots that are the products of
-their leaves, and rider tables that are zero, the honest prover leaves the verifier with each
-tree's leaves' extension at the final point, where every rider's extension vanishes. -/
-def gkrComplete :
-    Component.Complete (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
+omit [∀ i, OracleInterface (O i)] in
+/-- **Perfect completeness** of the grand-product argument on the typed framework. -/
+theorem gkrComplete :
+    Typed.Complete (gkr nside μ leaves) (Gkr.relIn nside μ leaves riders)
       (Gkr.relOut nside μ leaves riders) :=
   (Gkr.oddComplete nside μ leaves riders (μ % 2) _ (Nat.mod_le μ 2)).append
     (Gkr.layerStepsComplete nside μ leaves riders (μ / 2) (μ % 2) _)
-
-/-- The grand-product argument, as a typed component at the slot `Typed.gkrSlot F nside μ`. -/
-def gkrT : Typed.Def O (X × (Fin nside → F)) Unit (Gkr.LayerStmt X F nside μ) Unit
-    (Typed.gkrSlot F nside μ) :=
-  (Gkr.oddT nside μ leaves (μ % 2) (Nat.le_of_lt_succ (Nat.mod_lt μ two_pos))).append
-    (Gkr.layerStepsT nside μ leaves (μ / 2) (μ % 2) (Nat.mod_add_div μ 2))
-
-omit [∀ i, OracleInterface (O i)] in
-/-- **Perfect completeness** of the grand-product argument on the typed framework. -/
-theorem gkrCompleteT :
-    Typed.Complete (gkrT nside μ leaves) (Gkr.relIn nside μ leaves riders)
-      (Gkr.relOut nside μ leaves riders) :=
-  (Gkr.oddCompleteT nside μ leaves riders (μ % 2) _ (Nat.mod_le μ 2)).append
-    (Gkr.layerStepsCompleteT nside μ leaves riders (μ / 2) (μ % 2) _)
 
 end
 end LeanerVM.Protocol

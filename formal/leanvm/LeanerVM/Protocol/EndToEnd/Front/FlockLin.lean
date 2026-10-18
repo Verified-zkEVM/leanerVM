@@ -116,7 +116,7 @@ theorem alpha_escape (zc : LeanerVM.Protocol.Verifier.ZerocheckResult) (q : Colu
       (zc.vA + α * zc.vB + α ^ 2 * zc.vC + α ^ 3) q)) ≤ ((overE 3 : ℝ≥0) : ℝ≥0∞) := by
   by_cases hG : fG layout claims q
   · have hin := fun h ↦ hq ⟨hG, h⟩
-    have h := sample_escape (Flock.alphaDrawSecurityT (fP F prog s) (fC F prog s) (fz F prog s)
+    have h := sample_escape (Flock.alphaDrawSecurity (fP F prog s) (fC F prog s) (fz F prog s)
       (fside F prog s)) (linStmt F prog s layout toI input zc q) _ hin rfl
     rw [← overF_eq_overE]
     refine (avgE_mono fun α ↦ indE_mono fun hα ↦ ?_).trans h
@@ -166,7 +166,7 @@ theorem out_reflect (hterm : TerminalFaithful F prog s)
     ¬ OutAlive F prog s layout toI claims input
       (rc.reverse ++ zc.chi.drop LeanerVM.Protocol.Verifier.flockNumLincheckRounds) sv q := by
   rintro ⟨hG, hout⟩
-  refine hq ⟨hG, sendChecked_reflect (Flock.linEndSecurityT (fP F prog s) (fC F prog s)
+  refine hq ⟨hG, sendChecked_reflect (Flock.linEndSecurity (fP F prog s) (fC F prog s)
     (fz F prog s) (fside F prog s)) _ _ (toVec (2 ^ (fP F prog s).s) sv) ?_ ?_⟩
   · unfold Flock.linCheck
     rw [decide_eq_true_eq, ← hc, hterm zc alpha rc sv hz hrc hsv]

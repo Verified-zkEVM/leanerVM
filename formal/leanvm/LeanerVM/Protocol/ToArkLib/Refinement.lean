@@ -7,27 +7,22 @@
 
 module
 
-public import ArkLib.OracleReduction.Security.Basic
+public import ArkLib.Interaction.Oracle.Security.Knowledge
 
 /-!
 # Refinements
 
 A `Refinement R S` between two relations over the same statements is a map on witnesses that
-sends every witness valid for `R` to one valid for `S`. Knowledge of `R` then yields knowledge
-of `S` by applying the map to whatever an extractor returns: `map_option_valid` is that step on
-an extractor's output slot (a witness, or a failure), `Extractor.Straightline.map` is the same
-post-composition on ArkLib's straight-line extractor, and `knowledge_transport` is the
-probabilistic statement: in the same knowledge-soundness game, with the same provers and the
-same extractor, accepting while the mapped extracted witness is invalid for `S` has probability
-at most the knowledge error for `R`. It is stated as that event, not as
-`knowledgeSoundnessWith` for `S`: ArkLib's game fixes the malicious prover's input-witness type
-to the relation's, so the game for `S` is another game.
+sends every witness valid for `R` to one valid for `S`. Knowledge of `R` then yields knowledge of
+`S` by applying the map to whatever an extractor returns: `map_option_valid` is that step on an
+extractor's output slot (a witness, or a failure), and `knowledge_transport` is the step on a
+knowledge certificate: on a path whose terminal witness holds, if the extracted witness mapped by
+the refinement is invalid for `S`, the extracted witness is invalid for `R`, so a challenge on
+the path was bad (ArkLib's `extraction_failure_implies_bad_challenge`), the event each challenge's
+error bounds.
 -/
 
 namespace LeanerVM.Protocol
-
-open OracleComp OracleSpec ProtocolSpec
-open scoped NNReal
 
 @[expose] public section
 
@@ -65,43 +60,19 @@ theorem map_option_valid {R : Set (Stmt × W₁)} {S : Set (Stmt × W₂)} (f : 
 
 end Refinement
 
-variable {ι : Type} {oSpec : OracleSpec ι} {StmtIn WitIn WitIn' WitOut : Type}
-  {n : ℕ} {pSpec : ProtocolSpec n}
-
-/-- Post-compose a straight-line extractor with a witness map. -/
-def Extractor.Straightline.map (f : StmtIn → WitIn → WitIn')
-    (E : Extractor.Straightline oSpec StmtIn WitIn WitOut pSpec) :
-    Extractor.Straightline oSpec StmtIn WitIn' WitOut pSpec :=
-  fun stmtIn witOut tr log₁ log₂ ↦ f stmtIn <$> E stmtIn witOut tr log₁ log₂
-
-/-- **Knowledge transports along a refinement.** In the knowledge-soundness game of a verifier
-for `R`, with any prover and the certified extractor, the probability that the verifier accepts
-while the extracted witness, mapped by the refinement, is invalid for `S` is at most the
-knowledge error: that event is contained in the game's own bad event, since a witness whose
-image is invalid for `S` is invalid for `R`. -/
-theorem Refinement.knowledge_transport {StmtOut : Type} {W₁ W₂ : Type}
-    {R : Set (StmtIn × W₁)} {S : Set (StmtIn × W₂)} (f : Refinement R S)
-    {relOut : Set (StmtOut × WitOut)} {V : Verifier oSpec StmtIn StmtOut pSpec}
-    [∀ i, SampleableType (pSpec.Challenge i)]
-    {E : Extractor.Straightline oSpec StmtIn W₁ WitOut pSpec} {ε : ℝ≥0} {σ : Type}
-    {init : ProbComp σ} {impl : QueryImpl oSpec (StateT σ ProbComp)}
-    (h : V.knowledgeSoundnessWith init impl R relOut E ε)
-    (stmtIn : StmtIn) (witIn : W₁) (prover : Prover oSpec StmtIn W₁ StmtOut WitOut pSpec) :
-    let pImpl : QueryImpl (oSpec + [pSpec.Challenge]ₒ) (StateT σ ProbComp) :=
-      impl.addLift challengeQueryImpl
-    let exec := do
-      let ⟨⟨⟨transcript, ⟨_, witOut⟩⟩, stmtOut⟩, proveQueryLog, verifyQueryLog⟩
-        ← (Reduction.mk prover V).runWithLog stmtIn witIn
-      let extractedWitIn? ←
-        liftM (E stmtIn witOut transcript proveQueryLog.fst verifyQueryLog).run
-      return (stmtIn, extractedWitIn?, stmtOut, witOut)
-    Pr{let ⟨stmtIn, extractedWitIn?, stmtOut, witOut⟩ ← OptionT.mk do
-      (simulateQ pImpl exec.run).run' (← init)}[
-        (∀ extractedWitIn ∈ extractedWitIn?, (stmtIn, f.map stmtIn extractedWitIn) ∉ S) ∧
-          (stmtOut, witOut) ∈ relOut] ≤ ε := by
-  refine le_trans (prEvent_mono _ _ _ ?_) (h stmtIn witIn prover)
-  rintro ⟨s, w?, t, w⟩ ⟨hbad, hout⟩
-  exact ⟨fun w' hw' hR ↦ hbad w' hw' (f.map_valid s w' hR), hout⟩
+open Interaction.Oracle.Security in
+/-- **Knowledge transports along a refinement.** For a knowledge certificate from `R` at a
+statement, on a path whose terminal witness holds, if the extracted witness mapped by the
+refinement is invalid for `S`, a challenge on the path turned the state from false to true. -/
+theorem Refinement.knowledge_transport {Stmt W₁ W₂ : Type} {R : Set (Stmt × W₁)}
+    {S : Set (Stmt × W₂)} (f : Refinement R S) (x : Stmt) {tree : Interaction.Oracle.TypeTree}
+    {roles : tree.RoleDecoration} (cert : KnowledgeCertificate tree roles ⟨W₁, fun w ↦ (x, w) ∈ R⟩)
+    (path : tree.ExecutionPath) (w : (cert.extractor.terminalState path).Witness)
+    (hgood : (cert.extractor.terminalState path).holds w)
+    (hbad : (x, f.map x (cert.extractor.extractWitness path w)) ∉ S) :
+    RoundExtractor.BadChallengeOnPath cert.extractor roles path w :=
+  RoundExtractor.extraction_failure_implies_bad_challenge _ _ cert.prover_preserving path w hgood
+    fun h ↦ hbad (f.map_valid x _ h)
 
 end
 end LeanerVM.Protocol

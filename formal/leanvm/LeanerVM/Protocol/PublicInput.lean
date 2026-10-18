@@ -9,10 +9,7 @@
 
 module
 
-public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
-public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
-public import LeanerVM.Protocol.ToArkLib.KeepOracles
 public import LeanerVM.Protocol.Spine.Slots
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToVCVio.UniformSample
@@ -63,7 +60,7 @@ Written from the specification.
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters CompPoly OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -284,62 +281,7 @@ private theorem bad_challenge_unique (s : I.Stmt × TableOut I) (o : ∀ i, TheO
   rw [lineClaim_holds_iff] at hc₁ hc₂
   exact line_challenge_unique hne hc₁ hc₂
 
-/-! ## The reduction -/
-
-/-- The prover: receives the challenge, sends the values of the lines whose value is sent,
-keeps the stack, and outputs the pool. The values are functions of the public statement and the
-challenge; on a stack whose lines hold they are the extensions of its columns at
-`(r, 0, …, 0)`. -/
-def prover : OracleProver []ₒ (I.Stmt × TableOut I) (TheOracle I) Unit
-    (I.Stmt × PubOut I) (TheOracle I) Unit pubSpec where
-  PrvState
-    | ⟨0, _⟩ => ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) × Unit
-    | _ => E × (((I.Stmt × TableOut I) × ∀ i, TheOracle I i) × Unit)
-  input := _root_.id
-  receiveChallenge
-    | ⟨0, _⟩ => fun st ↦ pure fun r ↦ (r, st)
-    | ⟨1, h⟩ => nomatch h
-  sendMessage
-    | ⟨0, h⟩ => nomatch h
-    | ⟨1, _⟩ => fun st ↦ pure (expectedValues I st.2.1.1.1 st.1, st)
-  output := fun st ↦ pure ((pooled I st.2.1.1 st.1, st.2.1.2), ())
-
-/-- The verifier reads the prover's message. -/
-def queryValues : OracleComp [pubSpec.Message]ₒ (List E) :=
-  liftM <| OracleSpec.query
-    (show [pubSpec.Message]ₒ.Domain from ⟨⟨1, by rfl⟩, (by change Unit; exact ())⟩)
-
-/-- A verifier of the phase's shape: it reads the prover's values, rejects unless the message
-has one value per sent line and `accept` holds of it at the challenge, and outputs `pool` of
-it. It never reads the stack. The length is no check `accept` can drop: no pool exists
-without it. -/
-def verifierWith (accept : (I.Stmt × TableOut I) → E → List E → Bool)
-    (pool : (s : I.Stmt × TableOut I) → E → (cs : List E) →
-      cs.length = sentCount I (I.publicLines s.1) → I.Stmt × PubOut I) :
-    FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec where
-  verify := fun s chals ↦ do
-    let cs ← liftM queryValues
-    if h : cs.length = sentCount I (I.publicLines s.1) then
-      if accept s (chals ⟨0, rfl⟩) cs then pure (pool s (chals ⟨0, rfl⟩) cs h) else failure
-    else failure
-
-/-- The verifier: the check on the prover's values, then the pool from the values sent. -/
-abbrev verifier : FrontVerifier []ₒ (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
-  verifierWith I (check I) (pooledFrom I)
-
 /-! ## The verifier's verdict -/
-
-/-- Reading the prover's message returns the transcript's entry. -/
-private theorem simulateQ_queryValues (tr : pubSpec.FullTranscript) :
-    simulateQ (OracleInterface.simOracle []ₒ tr.messages)
-      (OptionT.lift (liftM queryValues :
-        OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E))).run =
-      (pure (tr 1) : OptionT (OracleComp []ₒ) (List E)) := by
-  have h : simulateQ (OracleInterface.simOracle []ₒ tr.messages)
-      (liftM queryValues : OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E)) =
-      pure (tr 1) := rfl
-  rw [OptionT.run_lift, simulateQ_bind, h, pure_bind, simulateQ_pure]
-  rfl
 
 variable (accept : (I.Stmt × TableOut I) → E → List E → Bool)
   (pool : (s : I.Stmt × TableOut I) → E → (cs : List E) →
@@ -355,41 +297,6 @@ sent line. On any other message the verifier rejects, so the value here, the com
 never output. -/
 def verdict (s : I.Stmt × TableOut I) (r : E) (cs : List E) : I.Stmt × PubOut I :=
   if h : cs.length = sentCount I (I.publicLines s.1) then pool s r cs h else pooled I s r
-
-/-- The computation of a verifier of the phase's shape, once the message is read off the
-transcript: the verdict at the transcript's values and challenge if the check holds of them, a
-rejection otherwise. -/
-theorem verify_simulated (s : I.Stmt × TableOut I) (tr : pubSpec.FullTranscript) :
-    OptionT.mk (simulateQ (OracleInterface.simOracle []ₒ tr.messages)
-      ((verifierWith I accept pool).verify s tr.challenges).run) =
-      if accepts I accept s (tr 0) (tr 1) then pure (verdict I pool s (tr 0) (tr 1))
-      else failure := by
-  simp only [verifierWith]
-  rw [show (liftM queryValues : OptionT (OracleComp ([]ₒ + [pubSpec.Message]ₒ)) (List E)) =
-      OptionT.lift (liftM queryValues : OracleComp ([]ₒ + [pubSpec.Message]ₒ) (List E)) from
-    (OracleComp.monadLift_liftM_OptionT _).symm]
-  rw [simulateQ_optionT_bind_run, simulateQ_queryValues, pure_bind]
-  unfold accepts verdict
-  by_cases hl : (tr 1).length = sentCount I (I.publicLines s.1)
-  · rw [dite_eq_left hl, dite_eq_left hl, decide_eq_true hl, Bool.true_and]
-    by_cases h : accept s (tr 0) (tr 1) = true
-    · rw [ite_eq_left h, ite_eq_left h]
-      rfl
-    · rw [ite_eq_right h, ite_eq_right h]
-      rfl
-  · rw [dite_eq_right hl, decide_eq_false hl, Bool.false_and, ite_eq_right Bool.false_ne_true]
-    rfl
-
-/-- A verifier of the phase's shape is a check followed by a verdict, as data. -/
-def guardedWith :
-    ((verifierWith I accept pool).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
-  (verifierWith I accept pool).guardedForm (TheOracle I)
-    (fun s tr ↦ accepts I accept s (tr 0) (tr 1)) (fun s tr ↦ verdict I pool s (tr 0) (tr 1))
-    (verify_simulated I accept pool)
-
-/-- The verifier is the check followed by the pool from the values sent, as data. -/
-def guarded : ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.GuardedForm :=
-  guardedWith I (check I) (pooledFrom I)
 
 /-- The verifier's check holds exactly when the specification's check does: that check fixes
 the length. -/
@@ -409,143 +316,30 @@ theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : Lis
   obtain rfl := (check_eq_true_iff I s r cs).mp hc
   exact pooledFrom_expected I s r hl
 
-/-! ## Completeness -/
-
-/-- In every run of the prover, the message is the expected values at the transcript's
-challenge and the output is the pool at that challenge, with the stack. -/
-private theorem prover_run_support (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
-    (pr : pubSpec.FullTranscript × ((I.Stmt × PubOut I) × ∀ i, TheOracle I i) × Unit)
-    (hpr : pr ∈ support ((prover I).run (s, o) ())) :
-    pr.1 1 = expectedValues I s.1 (pr.1 0) ∧ pr.2 = ((pooled I s (pr.1 0), o), ()) := by
-  have h0 : pubSpec.dir 0 = .V_to_P := rfl
-  have h1 : pubSpec.dir 1 = .P_to_V := rfl
-  simp only [Prover.run, Prover.runToRound, Fin.induction_two,
-    Prover.processRound_of_dir_eq_V_to_P 0 h0, Prover.processRound_of_dir_eq_P_to_V 1 h1] at hpr
-  simp only [ChallengeIdx, Fin.vcons_fin_zero, Nat.reduceAdd, Challenge, Fin.reduceLast, prover,
-    Fin.isValue, MessageIdx, Message, Fin.castSucc_zero, Fin.succ_zero_eq_one, Fin.castSucc_one,
-    Fin.succ_one_eq_two, id_eq, HasQuery.instOfMonadLift_query, toPFunctor_emptySpec, liftM_pure,
-    bind_pure_comp, map_pure, pure_bind, Functor.map_map, support_map, Set.mem_image] at hpr
-  obtain ⟨r, -, rfl⟩ := hpr
-  -- The transcript is the challenge followed by the message; its two entries are read off.
-  exact ⟨rfl, rfl⟩
-
-/-- For every challenge, some run of the prover receives it, sends the expected values at it
-and outputs the pool at it, with the stack. -/
-theorem exists_mem_support_prover_run (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i)
-    (r : E) :
-    ∃ pr ∈ support ((prover I).run (s, o) ()),
-      pr.1 0 = r ∧ pr.1 1 = expectedValues I s.1 r ∧ pr.2 = ((pooled I s r, o), ()) := by
-  have h0 : pubSpec.dir 0 = .V_to_P := rfl
-  have h1 : pubSpec.dir 1 = .P_to_V := rfl
-  simp only [Prover.run, Prover.runToRound, Fin.induction_two,
-    Prover.processRound_of_dir_eq_V_to_P 0 h0, Prover.processRound_of_dir_eq_P_to_V 1 h1]
-  simp only [ChallengeIdx, Fin.vcons_fin_zero, Nat.reduceAdd, Challenge, Fin.reduceLast, prover,
-    Fin.isValue, MessageIdx, Message, Fin.castSucc_zero, Fin.succ_zero_eq_one, Fin.castSucc_one,
-    Fin.succ_one_eq_two, id_eq, HasQuery.instOfMonadLift_query, toPFunctor_emptySpec, liftM_pure,
-    bind_pure_comp, map_pure, pure_bind, Functor.map_map, support_map, Set.mem_image]
-  refine ⟨_, ⟨r, ?_, rfl⟩, rfl, rfl, rfl⟩
-  exact mem_support_query _ r
-
-/-- Perfect completeness of a verifier of the phase's shape that pools the values sent, given
-that its check accepts what the specification's does: from the table seam, the prover's values
-pass the specification's check at every challenge, so they pass `accept`, and the pool lands in
-the public seam. -/
-private theorem complete_with
-    (hacc : ∀ s r cs, check I s r cs = true → accepts I accept s r cs = true)
-    {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (OracleReduction.mk (prover I)
-      ((verifierWith I accept (pooledFrom I)).toOracleVerifier (TheOracle I))).perfectCompleteness
-        init impl (Seam.table I) (Seam.pub I) := by
-  apply Reduction.perfectCompleteness_of_run_support
-  intro stmtIn witIn hIn x hx
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨pr, hpr, rfl⟩ :=
-    Reduction.mem_support_run_of_guarded _ (guardedWith I accept (pooledFrom I)) (s, o) witIn hx
-  obtain ⟨hmsg, hout⟩ := prover_run_support I s o pr hpr
-  have hc : check I s (pr.1 0) (pr.1 1) = true := decide_eq_true hmsg
-  have hacc' : (guardedWith I accept (pooledFrom I)).check (s, o) pr.1 = true := hacc _ _ _ hc
-  have hpool : verdict I (pooledFrom I) s (pr.1 0) (pr.1 1) = pooled I s (pr.1 0) :=
-    verdict_pooledFrom_of_check I hc
-  rw [ite_eq_left hacc']
-  refine ⟨_, rfl, ?_, ?_⟩
-  · show ((verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o), ()) ∈ Seam.pub I
-    rw [hpool]
-    exact pooled_mem_pub I s o hIn (pr.1 0)
-  · show pr.2.1 = (verdict I (pooledFrom I) s (pr.1 0) (pr.1 1), o)
-    rw [hpool]
-    exact congrArg Prod.fst hout
-
-/-- Perfect completeness: from the table seam, the prover's values pass the check at every
-challenge and the pool lands in the public seam. -/
-theorem complete {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    (OracleReduction.mk (prover I)
-      ((verifier I).toOracleVerifier (TheOracle I))).perfectCompleteness init impl (Seam.table I)
-      (Seam.pub I) :=
-  complete_with I (check I) (fun _ _ _ hc ↦ (accepts_check_iff I _ _ _).mpr hc) init impl
-
-/-! ## Knowledge soundness -/
-
-/-- The extractor keeps the trivial witness: the stack is the oracle. The shared oracle is
-written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to pin a universe
-`Extractor.RoundByRound` leaves free. -/
-def extractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-    ((I.Stmt × TableOut I) × ∀ i, TheOracle I i) Unit Unit pubSpec (fun _ ↦ Unit) where
-  eqIn := rfl
-  extractMid := fun _ _ _ _ ↦ ()
-  extractOut := fun _ _ _ ↦ ()
-
-variable {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-
-/-- The knowledge state function: before the challenge, the table seam; after the challenge,
-the public seam of the pool at it; after the prover's values, that the verifier's check passes
-and its verdict is in the public seam. -/
-def stateFunction :
-    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.KnowledgeStateFunction init impl
-      (Seam.table I) (Seam.pub I) (extractor I) where
-  toFun := fun m stmt tr _ ↦
-    if h0 : m.val = 0 then ((stmt, ()) ∈ Seam.table I)
-    else if h1 : m.val = 1 then
-      ((pooled I stmt.1 (tr ⟨0, by omega⟩), stmt.2), ()) ∈ Seam.pub I
-    else
-      accepts I (check I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩) = true ∧
-        ((verdict I (pooledFrom I) stmt.1 (tr ⟨0, by omega⟩) (tr ⟨1, by omega⟩), stmt.2), ()) ∈
-          Seam.pub I
-  toFun_empty := fun _ _ ↦ Iff.rfl
-  toFun_next := fun m hm stmt tr msg w h ↦ by
-    have hm1 : m = 1 := by
-      fin_cases m
-      · exact absurd hm (by decide)
-      · rfl
-    subst hm1
-    obtain ⟨hc, hp⟩ := h
-    rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
-    exact hp
-  toFun_full := fun stmt tr _ h ↦
-    Verifier.GuardedForm.of_prEvent_pos (guarded I) init impl stmt tr _ h
-
-/-- Round-by-round knowledge soundness at the slot's error `1/|E|`: a bad transition is a bad
-challenge, and there is at most one. -/
-theorem rbr :
-    ((verifier I).toOracleVerifier (TheOracle I)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
-      init impl (Seam.table I) (Seam.pub I) (fun _ ↦ Unit) (extractor I)
-      (stateFunction I init impl) pubError := by
-  intro stmtIn i tr
-  obtain ⟨s, o⟩ := stmtIn
-  obtain ⟨i, hi⟩ := i
-  have hi0 : i = 0 := by
-    fin_cases i
-    · rfl
-    · exact absurd hi (by decide)
-  subst hi0
-  show _ ≤ ((((1 : ℕ) : ℝ≥0) / (Fintype.card E : ℝ≥0) : ℝ≥0) : ℝ≥0∞)
-  rw [Nat.cast_one]
-  refine le_trans (prEvent_mono _ _ _ ?_) (prEvent_uniformSample_le_of_subsingleton (α := E)
-    (fun r ↦ ((s, o), ()) ∉ Seam.table I ∧ ((pooled I s r, o), ()) ∈ Seam.pub I)
-    fun r₁ r₂ h₁ h₂ ↦ bad_challenge_unique I s o h₁.1 h₁.2 h₂.2)
-  rintro r ⟨_, hin, hout⟩
-  exact ⟨hin, hout⟩
-
 /-! ## The phase on the typed framework -/
+
+/-- The verdict of a verifier of the phase's shape on a branch path: `pool` of the values sent,
+if `accept` passes. -/
+def verdictWith (s : I.Stmt × TableOut I) (p : pubTree.BranchPath) :
+    Option (I.Stmt × PubOut I) :=
+  if accepts I accept s p.1 p.2.1 then some (verdict I pool s p.1 p.2.1) else none
+
+/-- A message that passes `accept` is pooled. -/
+theorem verdictWith_of_accepts {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+    (h : accepts I accept s r cs = true) :
+    verdictWith I accept pool s ⟨r, cs, PUnit.unit⟩ = some (verdict I pool s r cs) := by
+  simp [verdictWith, h]
+
+/-- A message that fails `accept` is rejected. -/
+theorem verdictWith_of_reject {s : I.Stmt × TableOut I} {r : E} {cs : List E}
+    (h : accepts I accept s r cs = false) : verdictWith I accept pool s ⟨r, cs, PUnit.unit⟩ = none := by
+  simp [verdictWith, h]
+
+/-- A component of the phase's shape: the honest prover, a verifier with `accept` and `pool`. -/
+def phaseWith :
+    Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit pubSlot where
+  verdict := verdictWith I accept pool
+  prover := fun so w r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
 
 /-- The verdict on a branch path: the pool from the values sent, if the check passes. -/
 def verdictT (s : I.Stmt × TableOut I) (p : pubTree.BranchPath) : Option (I.Stmt × PubOut I) :=
@@ -553,13 +347,13 @@ def verdictT (s : I.Stmt × TableOut I) (p : pubTree.BranchPath) : Option (I.Stm
 
 /-- The public-input phase as a typed component: the honest prover sends the expected values at
 the challenge and outputs the pool. -/
-def phaseT : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit pubSlot where
+def phase : Typed.Def (TheOracle I) (I.Stmt × TableOut I) Unit (I.Stmt × PubOut I) Unit pubSlot where
   verdict := verdictT I
   prover := fun so w r ↦ pure (pure ⟨expectedValues I so.1.1 r, ((pooled I so.1 r, so.2), w)⟩)
 
 /-- **Completeness on the typed framework**: from the table seam, the prover's values pass the
 check at every challenge and the pool lands in the public seam. -/
-theorem completeT : Typed.Complete (phaseT I) (Seam.table I) (Seam.pub I) := by
+theorem complete : Typed.Complete (phase I) (Seam.table I) (Seam.pub I) := by
   rintro s o w hin ⟨r, cs, ⟨⟩⟩ a ⟨-, rest, hrest, rest', hrest', rfl⟩
   have hrest := (mem_support_pure_iff _ _).mp hrest
   subst hrest
@@ -578,7 +372,7 @@ theorem completeT : Typed.Complete (phaseT I) (Seam.table I) (Seam.pub I) := by
 
 /-- The backward witness maps: the table seam before the challenge; after it, the public seam of
 the pool; after the values, that the check passes and the verdict is in the public seam. -/
-def extractorT (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
+def extractor (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
     Interaction.Oracle.Security.RoundExtractor pubTree
       (Typed.inState (TheOracle I) (Seam.table I) s o) :=
   fun r ↦ ⟨⟨Unit, fun _ ↦ ((pooled I s r, o), ()) ∈ Seam.pub I⟩, id, fun cs ↦
@@ -588,8 +382,8 @@ def extractorT (s : I.Stmt × TableOut I) (o : ∀ i, TheOracle I i) :
 /-- **Round-by-round knowledge soundness on the typed framework**, at the slot's error `1/|E|`:
 a bad transition is a bad challenge, and there is at most one; the values sent that pass the
 check carry the public seam back to the pool. -/
-def securityT : Typed.Security (phaseT I) (Seam.table I) (Seam.pub I) pubErrors where
-  extractor := extractorT I
+def security : Typed.Security (phase I) (Seam.table I) (Seam.pub I) pubErrors where
+  extractor := extractor I
   prover_preserving s o := ⟨fun _ h ↦ (nomatch h), fun r ↦ ⟨fun cs _ _ h ↦ by
     obtain ⟨hc, hp⟩ := h
     rw [verdict_pooledFrom_of_check I ((accepts_check_iff I _ _ _).mp hc)] at hp
@@ -620,34 +414,6 @@ def securityT : Typed.Security (phaseT I) (Seam.table I) (Seam.pub I) pubErrors 
         · simp [hc] }
 
 end PublicInput
-
-/-! ## The phase -/
-
-variable (I : M3Instance)
-
-/-- The public-input phase, at its slot: one challenge, one prover message, a front
-verifier. -/
-def publicInputPhase : Phase.FrontDef I (I.Stmt × TableOut I) (I.Stmt × PubOut I) pubSpec :=
-  Phase.FrontDef.ofFrontVerifier I (PublicInput.prover I) (PublicInput.verifier I)
-    (fun s tr ↦ PublicInput.accepts I (PublicInput.check I) s (tr 0) (tr 1))
-    (fun s tr ↦ PublicInput.verdict I (PublicInput.pooledFrom I) s (tr 0) (tr 1))
-    (PublicInput.verify_simulated I (PublicInput.check I) (PublicInput.pooledFrom I))
-
-/-- The completeness half. -/
-def publicInputComplete :
-    Phase.Complete I (publicInputPhase I).toDef (Seam.table I) (Seam.pub I) where
-  guarded := PublicInput.guarded I
-  complete := PublicInput.complete I
-
-/-- The security half, at the slot's error, with the extractor that keeps the trivial
-witness. -/
-def publicInputSecurity :
-    Phase.Security I (publicInputPhase I).toDef (Seam.table I) (Seam.pub I) pubError where
-  guarded := PublicInput.guarded I
-  witMid := fun _ ↦ Unit
-  extractor := PublicInput.extractor I
-  kSF := PublicInput.stateFunction I
-  rbr := PublicInput.rbr I
 
 end
 end LeanerVM.Protocol

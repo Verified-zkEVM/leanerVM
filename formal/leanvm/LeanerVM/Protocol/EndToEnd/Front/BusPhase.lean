@@ -30,7 +30,7 @@ relations, in the calculus of verifier programs:
 namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -206,7 +206,7 @@ theorem ab_card_le (hI : Bus.Conditions I) (o : ∀ i, TheOracle I i)
     (Fintype.card ((Fin 4 → E) × E) : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun ab ↦
       (((input, ab), o), ()) ∈ Bus.afterChallenge I).card : ℝ≥0∞) ≤
         (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) := by
-  have h := Typed.sample_escape (Bus.challengeSecurityT hI) input o
+  have h := Typed.sample_escape (Bus.challengeSecurity hI) input o
     (fun w hw ↦ by cases w; exact ho hw) rfl
   have h : Pr{let c ← $ᵗ ((Fin 4 → E) × E)}[(((input, c), o), ()) ∈ Bus.afterChallenge I] ≤
       (overE (4 * 2 ^ I.μBus) : ℝ≥0∞) :=
@@ -274,7 +274,7 @@ root makes doom on the grand product's input relation. -/
 theorem roots_keep (hI : Bus.Conditions I) {C : Set (∀ i, TheOracle I i)}
     (hpre : RelDoom C (Bus.afterChallenge I) data) (shared count : E) (hc : count ≠ 0) :
     RelDoom C (Gkr.relIn 3 I.μBus (Bus.leaves I) (Bus.riders I)) (data, ![shared, shared, count]) :=
-  say_keep (Bus.rootsSecurityT hI) hpre (shared, count) (by simpa using hc)
+  say_keep (Bus.rootsSecurity hI) hpre (shared, count) (by simpa using hc)
 
 /-- The protocol's roots statement is the wire's GKR state at layer `0`. -/
 theorem rootStmt_eq (shared count : E) :
@@ -422,7 +422,7 @@ theorem values_keep {C : Set (∀ i, TheOracle I i)}
     {ℓ : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus}
     (hpre : RelDoom C (Gkr.relOut 3 I.μBus (Bus.leaves I) (Bus.riders I)) ℓ)
     (vals : Vector E I.busClaims) : RelDoom C (Seam.bus I) (ℓ.1.1, Bus.busOut hI ℓ vals) :=
-  say_keep (Bus.valuesSecurityT hI) hpre vals rfl
+  say_keep (Bus.valuesSecurity hI) hpre vals rfl
 
 /-- The grand product's last statement on what the bus phase read. -/
 def BusWit.layer (w : BusWit) : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus :=

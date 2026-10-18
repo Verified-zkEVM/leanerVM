@@ -44,7 +44,7 @@ is the interpolated value (`multilinearEval_eq_evalMle`).
 namespace LeanerVM.Protocol.EndToEnd.Front
 
 open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Compile LeanerVM.Protocol.Verifier
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open CompPoly CMlPolynomialEval OracleComp OracleSpec
 open scoped NNReal ENNReal
 
 @[expose] public section
@@ -246,7 +246,7 @@ theorem children_keep {C : Set (∀ i, TheOracle I i)}
     (hpre : RelDoom C (SumcheckRound.rel (Gkr.familyT 3 μ leaves riders ρ m T) m) st)
     (ch : Fin 3 → CMlPolynomialEval E ρ) (hc : Gkr.combineCheck 3 ρ m st ch = true) :
     RelDoom C (Gkr.childRelT 3 μ leaves riders ρ m T 0) (Gkr.childNext 3 ρ m st ch) :=
-  say_keep (Gkr.childrenSecurityT 3 μ leaves riders ρ m T) hpre ch hc
+  say_keep (Gkr.childrenSecurity 3 μ leaves riders ρ m T) hpre ch hc
 
 /-- The wire's check of the descendants is the protocol's. -/
 theorem combineCheck_eq (st : SumcheckRound.Stmt (Gkr.LayerX X E 3 m) E m)
@@ -281,7 +281,7 @@ theorem lambda_escape {ρ' m' : ℕ} (T' : Gkr.RiderTrack μ riders ρ' m') (hm 
     (hR : RelDoom (cands W) (Gkr.layerRel 3 μ leaves riders m') ls) :
     (Fintype.card E : ℝ≥0∞)⁻¹ * ((Finset.univ.filter fun c ↦
       ¬ LambdaDoom leaves riders cands T' W ls c).card : ℝ≥0∞) ≤ lambdaError L₀ :=
-  draw_escape_le (Gkr.lambdaSecurityT 3 μ leaves riders ρ' m' id T' hm
+  draw_escape_le (Gkr.lambdaSecurity 3 μ leaves riders ρ' m' id T' hm
       (relS := Gkr.layerRel 3 μ leaves riders m') fun _ _ ↦ Iff.rfl) (hfin W) (hcard W) hR rfl
 
 variable {εmax T' : ℝ≥0∞}

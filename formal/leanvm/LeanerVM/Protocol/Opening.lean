@@ -8,9 +8,7 @@
 
 module
 
-public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
-public import LeanerVM.Protocol.ToArkLib.QueryCheck
 public import LeanerVM.Protocol.ToArkLib.WeightBatch
 public import LeanerVM.Protocol.ToArkLib.Typed.Batch
 public import LeanerVM.Protocol.Spine.Slots
@@ -54,7 +52,7 @@ order of the powers.
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters CompPoly OracleComp OracleSpec
 open scoped NNReal
 
 @[expose] public section
@@ -142,13 +140,6 @@ theorem columnWeighted_holds_iff (q : Column I.μ) (c : ColumnClaim I) :
     (columnWeighted I c).Holds q ↔ c.Holds q :=
   (ColumnClaim.holds_iff_weighted q c).symm
 
-/-- Asked a weighted claim's weight, the stack answers the claimed value exactly when the claim
-holds. -/
-theorem answer_weight_iff (o : ∀ i, TheOracle I i) (c : WeightedClaim I) :
-    @Eq E (Component.answerOf (TheOracle I) o (question I c)) c.value ↔
-      c.Holds (theStack o) :=
-  Iff.rfl
-
 /-- Every claim of the pool holds of the stack exactly when every claim the Flock seam carries
 does. -/
 private theorem pool_holds_iff (s : FlockOut I) (q : Column I.μ) :
@@ -193,30 +184,6 @@ end Opening
 
 variable (I : M3Instance)
 
-/-- The opening phase, at its slot: batching by powers, then one question to the stack. -/
-def openingPhase : Phase.Def I (I.Stmt × FlockOut I) Unit openingSpec :=
-  Component.batchQuery (TheOracle I) E (Opening.values I) (Opening.batched I)
-    (Opening.question I) (Opening.check I) fun _ ↦ ()
-
-/-- The completeness half. -/
-def openingComplete : Phase.Complete I (openingPhase I) (Seam.flock I) (Seam.done I) :=
-  Component.batchQueryComplete (TheOracle I) E (Opening.values I) (Opening.batched I) _
-    (Opening.check I) _ (relMid := Opening.BatchedHolds I)
-    (fun _ _ _ h ρ ↦ Opening.batched_of_flock I h ρ)
-    fun c o _ h ↦ ⟨(Opening.accepts_iff I c _).mpr ((Opening.answer_weight_iff I o c).mpr h),
-      trivial⟩
-
-/-- The security half, at the slot's error, with the extractor that keeps the trivial
-witness. -/
-def openingSecurity :
-    Phase.Security I (openingPhase I) (Seam.flock I) (Seam.done I) (openingError I) :=
-  Component.Security.mono
-    (fun _ ↦ le_of_eq (by rw [drawError, openingError, drawError, overE,
-      Nat.card_eq_fintype_card]))
-    (Component.batchQuerySecurity (TheOracle I) E (Opening.values I) (Opening.batched I) _
-      (Opening.check I) _ (relMid := Opening.BatchedHolds I) (Opening.answers_of_not_flock I)
-      fun c o _ hc _ ↦ (Opening.answer_weight_iff I o c).mp ((Opening.accepts_iff I c _).mp hc))
-
 /-! ## The phase on the typed framework
 
 The opening phase as a typed component is the batching alone, at the opening's slot: the question
@@ -224,18 +191,18 @@ to the stack is the spine's (`stackQuestion`), asked at the protocol's leaf, so 
 `Seam.opened`, the batched claim holding of the stack. -/
 
 /-- The opening phase, typed: batching by powers into the batched claim. -/
-def openingT : Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit
+def opening : Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit
     openingSlot :=
   Typed.batch (TheOracle I) E (Opening.values I) (Opening.batched I)
 
 /-- The typed completeness half. -/
-theorem openingCompleteT : Typed.Complete (openingT I) (Seam.flock I) (Seam.opened I) :=
+theorem openingComplete : Typed.Complete (opening I) (Seam.flock I) (Seam.opened I) :=
   Typed.batchComplete fun _ o w h ρ ↦ (Seam.opened_iff I _ o w).mpr (Opening.batched_of_flock I h ρ)
 
 /-- The typed security half, at the slot's error, with the extractor that keeps the trivial
 witness. -/
-def openingSecurityT :
-    Typed.Security (openingT I) (Seam.flock I) (Seam.opened I) (openingErrors I) :=
+def openingSecurity :
+    Typed.Security (opening I) (Seam.flock I) (Seam.opened I) (openingErrors I) :=
   Typed.Security.mono (by exact ⟨le_of_eq (natCast_div_card_eq_overE _), fun _ ↦ trivial⟩)
     (Typed.batchSecurity fun s o ↦
       have ⟨a, ha⟩ := Opening.answers_of_not_flock I s o

@@ -166,11 +166,11 @@ example (I : M3Instance) (P : Phases I) (S : P.Security) (s : I.Stmt)
 
 /-- The public-input phase fills its slot: its two halves typecheck against the spine's seams
 and at the slot's errors. -/
-example : Typed.Complete (PublicInput.phaseT toy) (Seam.table toy) (Seam.pub toy) :=
-  PublicInput.completeT toy
+example : Typed.Complete (PublicInput.phase toy) (Seam.table toy) (Seam.pub toy) :=
+  PublicInput.complete toy
 
-example : Typed.Security (PublicInput.phaseT toy) (Seam.table toy) (Seam.pub toy) pubErrors :=
-  PublicInput.securityT toy
+example : Typed.Security (PublicInput.phase toy) (Seam.table toy) (Seam.pub toy) pubErrors :=
+  PublicInput.security toy
 
 /-- A bundle whose public-input phase is the built one has both master theorems, given the four
 other phases' proofs: the slots line up. -/

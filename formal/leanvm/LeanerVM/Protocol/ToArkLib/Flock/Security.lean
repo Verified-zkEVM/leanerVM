@@ -54,38 +54,12 @@ namespace LeanerVM.Protocol
 
 namespace Flock
 
-open CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec SumcheckRound BlockR1CS
+open CompPoly CMlPolynomialEval OracleComp OracleSpec SumcheckRound BlockR1CS
 open scoped NNReal
 
 @[expose] public section
 
 /-! ## Errors -/
-
-/-- The errors of two schedules side by side grow with the errors of each. -/
-theorem errAppend_le {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
-    {ε₁ ε₁' : pSpec₁.ChallengeIdx → ℝ≥0} {ε₂ ε₂' : pSpec₂.ChallengeIdx → ℝ≥0}
-    (h₁ : ∀ i, ε₁ i ≤ ε₁' i) (h₂ : ∀ i, ε₂ i ≤ ε₂' i) (i : (pSpec₁ ++ₚ pSpec₂).ChallengeIdx) :
-    errAppend ε₁ ε₂ i ≤ errAppend ε₁' ε₂' i := by
-  simp only [errAppend, Function.comp_apply]
-  cases ChallengeIdx.sumEquiv.symm i with
-  | inl j => exact h₁ j
-  | inr j => exact h₂ j
-
-/-- One challenge's error grows with its bound. -/
-theorem drawError_mono {C : Type} {e e' : ℝ≥0} (h : e ≤ e') (i : (draw C).ChallengeIdx) :
-    drawError C e i ≤ drawError C e' i := h
-
-/-- The draws' errors grow with their bound. -/
-theorem drawsError_mono {C : Type} {e e' : ℝ≥0} (h : e ≤ e') :
-    (k : ℕ) → ∀ i, drawsError C e k i ≤ drawsError C e' k i
-  | 0 => fun i ↦ Fin.elim0 i.1
-  | k + 1 => errAppend_le (drawsError_mono h k) (drawError_mono h)
-
-/-- The rounds' errors grow with their bound. -/
-theorem roundsError_mono {C : Type} {d : ℕ} {e e' : ℝ≥0} (h : e ≤ e') :
-    (m : ℕ) → ∀ i, roundsError C d e m i ≤ roundsError C d e' m i
-  | 0 => fun i ↦ Fin.elim0 i.1
-  | m + 1 => errAppend_le (errAppend_le (fun _ ↦ le_rfl) (drawError_mono h)) (roundsError_mono h m)
 
 variable {F : Type}
 
@@ -200,51 +174,27 @@ theorem drawPoint_card (j : ℕ) (s : PointStmt S F j) (o : ∀ i, O i)
     rw [natCard_subtype_eq_zero fun x hx ↦ hall ⟨hx.1, hx.2.2⟩]
     exact zero_le_one
 
-/-- One coordinate of the point: a residual not zero on the coordinates so far escapes at one
-value at most. -/
-def drawPointSecurity (j : ℕ) :
-    Component.Security (drawPoint (S := S) (F := F) (O := O) (W := Unit) j)
-      (pointRel P C z side j) (pointRel P C z side (j + 1)) (drawError F (overF F 1)) :=
-  Component.sampleChallengeSecurity O F _ _ 1 fun s o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ _ s o (drawPoint_card P C z side j s o)
-
 /-- One coordinate of the point, typed. -/
-def drawPointSecurityT (j : ℕ) :
-    Typed.Security (drawPointT (S := S) (F := F) (O := O) (W := Unit) j)
+def drawPointSecurity (j : ℕ) :
+    Typed.Security (drawPoint (S := S) (F := F) (O := O) (W := Unit) j)
       (pointRel P C z side j) (pointRel P C z side (j + 1)) (Typed.drawErrors F (overF F 1)) :=
   Typed.sampleChallengeSecurity _ fun s o _ ↦
     Typed.card_badChallenge_le_of_unit _ s o (drawPoint_card P C z side j s o)
 
-/-- The point's draws, from an input relation the point's first relation is equivalent to. -/
+/-- The point's draws, typed. -/
 def pointDrawsSecurity (relIn : Set ((S × ∀ i, O i) × Unit))
     (hIn : ∀ s o, ((s, o), ()) ∈ relIn → (((s, #v[]), o), ()) ∈ pointRel P C z side 0)
     (hOut : ∀ s o, (((s, #v[]), o), ()) ∈ pointRel P C z side 0 → ((s, o), ()) ∈ relIn) :
-    (j : ℕ) → Component.Security (pointDraws (S := S) (F := F) (O := O) (W := Unit) j) relIn
-      (pointRel P C z side j) (drawsError F (overF F 1) j)
-  | 0 => Component.passThroughSecurity O _ (fun s o w h ↦ by cases w; exact hOut s o h)
-      fun s o w h ↦ by cases w; exact hIn s o h
-  | j + 1 => (pointDrawsSecurity relIn hIn hOut j).append (drawPointSecurity P C z side j)
-
-/-- The point's draws, typed. -/
-def pointDrawsSecurityT (relIn : Set ((S × ∀ i, O i) × Unit))
-    (hIn : ∀ s o, ((s, o), ()) ∈ relIn → (((s, #v[]), o), ()) ∈ pointRel P C z side 0)
-    (hOut : ∀ s o, (((s, #v[]), o), ()) ∈ pointRel P C z side 0 → ((s, o), ()) ∈ relIn) :
-    (j : ℕ) → Typed.Security (pointDrawsT (S := S) (F := F) (O := O) (W := Unit) j) relIn
+    (j : ℕ) → Typed.Security (pointDraws (S := S) (F := F) (O := O) (W := Unit) j) relIn
       (pointRel P C z side j) (Typed.drawsErrors F (overF F 1) j)
   | 0 => Typed.passThroughSecurityOfIff fun s o ↦ ⟨hOut s o, hIn s o⟩
-  | j + 1 => (pointDrawsSecurityT relIn hIn hOut j).append (drawPointSecurityT P C z side j)
+  | j + 1 => (pointDrawsSecurity relIn hIn hOut j).append (drawPointSecurity P C z side j)
 
 /-! ## The univariate skip -/
 
-/-- The skip message checks nothing: the next relation contains the point's. -/
-def skipMsgSecurity :
-    Component.Security (skipMsg P C z (S := S) (W := Unit)) (pointRel P C z side P.nRand)
-      (skipRel P C z side) (sayError _) :=
-  Component.sendCheckedSecurity O _ _ _ _ fun _ _ _ _ _ h ↦ h.1
-
 /-- The skip message, typed. -/
-def skipMsgSecurityT :
-    Typed.Security (skipMsgT P C z (S := S) (O := O) (W := Unit)) (pointRel P C z side P.nRand)
+def skipMsgSecurity :
+    Typed.Security (skipMsg P C z (S := S) (O := O) (W := Unit)) (pointRel P C z side P.nRand)
       (skipRel P C z side) (Typed.sayErrors _) :=
   Typed.sendCheckedSecurity fun _ _ _ _ _ h ↦ h.1
 
@@ -317,19 +267,10 @@ theorem skipDraw_card
       rwa [Partial.ofSuffix_of_le _ _ (Nat.zero_le _), restrictedZero_empty_iff] at hres⟩]
     exact Nat.zero_le _
 
-/-- `z_skip`: if a residual is not zero at the point or the message is not `P` on the coset, the
-interpolated polynomial is not `P`, and the two agree at `2 · 2 ^ s - 1` values at most. -/
+/-- `z_skip`, typed. -/
 def skipDrawSecurity
     (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j]) :
-    Component.Security (skipDraw P (S := S) (O := O) (W := Unit)) (skipRel P C z side)
-      (rel (zcFamily P C z side) 0) (drawError F (overF F (2 ^ P.s + 2 ^ P.s - 1))) :=
-  Component.sampleChallengeSecurity O F _ _ _ fun s o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ _ s o (skipDraw_card P C z side hnodes s o)
-
-/-- `z_skip`, typed. -/
-def skipDrawSecurityT
-    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j]) :
-    Typed.Security (skipDrawT P (S := S) (O := O) (W := Unit)) (skipRel P C z side)
+    Typed.Security (skipDraw P (S := S) (O := O) (W := Unit)) (skipRel P C z side)
       (rel (zcFamily P C z side) 0) (Typed.drawErrors F (overF F (2 ^ P.s + 2 ^ P.s - 1))) :=
   Typed.sampleChallengeSecurity _ fun s o _ ↦
     Typed.card_badChallenge_le_of_unit _ s o (skipDraw_card P C z side hnodes s o)
@@ -357,42 +298,23 @@ theorem zcFamily_sound {W : Type} : (zcFamily P C z side (W := W)).Sound (P.m + 
   · rw [natCard_subtype_eq_zero fun x hx ↦ hside hx.1]
     exact Nat.zero_le _
 
-/-- The rounds on the within-block coordinates, at `2 / |F|` each. -/
+/-- The rounds on the within-block coordinates, typed. -/
 def zcRoundsLowSecurity :
-    Component.Security (zcRoundsLow P C z side (O := O) (W := Unit))
+    Typed.Security (zcRoundsLow P C z side (O := O) (W := Unit))
       (rel (zcFamily P C z side) 0) (rel (zcFamily P C z side) P.m)
-      (roundsError F 2 (overF F 2) P.m) :=
+      (Typed.roundsErrors F 2 (overF F 2) P.m) :=
   roundsSecurity (zcFamily P C z side) P.m
     { check := fun ctx j c hj ↦ (zcFamily_honest P C z side).check ctx j c (by omega)
       next := fun ctx j c x hj ↦ (zcFamily_honest P C z side).next ctx j c x (by omega) }
     (fun ctx j c hj ↦ zcFamily_sound P C z side ctx j c (by omega))
     P.m 0 (Nat.zero_add _)
 
-/-- The rounds on the batch coordinates, at `2 / |F|` each. -/
-def zcRoundsHighSecurity :
-    Component.Security (zcRoundsHigh P C z side (O := O) (W := Unit))
-      (rel (zcFamily P C z side) P.m) (rel (zcFamily P C z side) (P.m + P.κ))
-      (roundsError F 2 (overF F 2) P.κ) :=
-  roundsSecurity (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side).toConsistent
-    (zcFamily_sound P C z side) P.κ P.m rfl
-
-/-- The rounds on the within-block coordinates, typed. -/
-def zcRoundsLowSecurityT :
-    Typed.Security (zcRoundsLowT P C z side (O := O) (W := Unit))
-      (rel (zcFamily P C z side) 0) (rel (zcFamily P C z side) P.m)
-      (Typed.roundsErrors F 2 (overF F 2) P.m) :=
-  roundsSecurityT (zcFamily P C z side) P.m
-    { check := fun ctx j c hj ↦ (zcFamily_honest P C z side).check ctx j c (by omega)
-      next := fun ctx j c x hj ↦ (zcFamily_honest P C z side).next ctx j c x (by omega) }
-    (fun ctx j c hj ↦ zcFamily_sound P C z side ctx j c (by omega))
-    P.m 0 (Nat.zero_add _)
-
 /-- The rounds on the batch coordinates, typed. -/
-def zcRoundsHighSecurityT :
-    Typed.Security (zcRoundsHighT P C z side (O := O) (W := Unit))
+def zcRoundsHighSecurity :
+    Typed.Security (zcRoundsHigh P C z side (O := O) (W := Unit))
       (rel (zcFamily P C z side) P.m) (rel (zcFamily P C z side) (P.m + P.κ))
       (Typed.roundsErrors F 2 (overF F 2) P.κ) :=
-  roundsSecurityT (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side).toConsistent
+  roundsSecurity (zcFamily P C z side) (P.m + P.κ) (zcFamily_honest P C z side).toConsistent
     (zcFamily_sound P C z side) P.κ P.m rfl
 
 omit [DecidableEq F] [∀ i, OracleInterface (O i)] [SampleableType F] [Finite F] in
@@ -413,16 +335,9 @@ theorem zcEnd_reflect (s : Stmt (ZcX S F (P.m + P.κ)) F (P.m + P.κ)) (o : ∀ 
   rw [ha, hb, hc]
   ring
 
-/-- The terminal values check what the next relation reads: the running claim is `â · b̂ - ĉ`
-there. -/
-def zcEndSecurity :
-    Component.Security (zcEnd P C z (S := S) (W := Unit))
-      (rel (zcFamily P C z side) (P.m + P.κ)) (termRel P C z side) (sayError _) :=
-  Component.sendCheckedSecurity O _ _ _ _ (zcEnd_reflect P C z side)
-
 /-- The terminal values, typed. -/
-def zcEndSecurityT :
-    Typed.Security (zcEndT P C z (S := S) (O := O) (W := Unit))
+def zcEndSecurity :
+    Typed.Security (zcEnd P C z (S := S) (O := O) (W := Unit))
       (rel (zcFamily P C z side) (P.m + P.κ)) (termRel P C z side) (Typed.sayErrors _) :=
   Typed.sendCheckedSecurity (zcEnd_reflect P C z side)
 
@@ -491,17 +406,9 @@ theorem alphaDraw_card (t : TermStmt S F (P.m + P.κ)) (o : ∀ i, O i)
   · rw [natCard_subtype_eq_zero fun l hl ↦ hside hl.1]
     exact Nat.zero_le _
 
-/-- `α`: if one of the three values or the constant position is wrong, the batched claim and the
-lincheck sum are distinct cubics in `α`, which agree at three values at most. -/
-def alphaDrawSecurity :
-    Component.Security (alphaDraw P (S := S) (O := O) (W := Unit)) (termRel P C z side)
-      (rel (linFamily P C z side) 0) (drawError F (overF F 3)) :=
-  Component.sampleChallengeSecurity O F _ _ _ fun t o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ _ t o (alphaDraw_card P C z side t o)
-
 /-- `α`, typed. -/
-def alphaDrawSecurityT :
-    Typed.Security (alphaDrawT P (S := S) (O := O) (W := Unit)) (termRel P C z side)
+def alphaDrawSecurity :
+    Typed.Security (alphaDraw P (S := S) (O := O) (W := Unit)) (termRel P C z side)
       (rel (linFamily P C z side) 0) (Typed.drawErrors F (overF F 3)) :=
   Typed.sampleChallengeSecurity _ fun t o _ ↦
     Typed.card_badChallenge_le_of_unit _ t o (alphaDraw_card P C z side t o)
@@ -514,20 +421,12 @@ theorem linFamily_sound {W : Type} : (linFamily P C z side (W := W)).Sound P.m :
     fun x hx ↦ hinv hx]
   exact Nat.zero_le _
 
-/-- The lincheck's rounds, at `2 / |F|` each. -/
-def linRoundsSecurity :
-    Component.Security (linRounds P C z side (O := O) (W := Unit))
-      (rel (linFamily P C z side) 0) (rel (linFamily P C z side) P.m)
-      (roundsError F 2 (overF F 2) P.m) :=
-  roundsSecurity (linFamily P C z side) P.m (linFamily_honest P C z side).toConsistent
-    (linFamily_sound P C z side) P.m 0 (Nat.zero_add _)
-
 /-- The lincheck's rounds, typed. -/
-def linRoundsSecurityT :
-    Typed.Security (linRoundsT P C z side (O := O) (W := Unit))
+def linRoundsSecurity :
+    Typed.Security (linRounds P C z side (O := O) (W := Unit))
       (rel (linFamily P C z side) 0) (rel (linFamily P C z side) P.m)
       (Typed.roundsErrors F 2 (overF F 2) P.m) :=
-  roundsSecurityT (linFamily P C z side) P.m (linFamily_honest P C z side).toConsistent
+  roundsSecurity (linFamily P C z side) P.m (linFamily_honest P C z side).toConsistent
     (linFamily_sound P C z side) P.m 0 (Nat.zero_add _)
 
 omit [∀ i, OracleInterface (O i)] [SampleableType F] [Finite F] in
@@ -546,36 +445,11 @@ theorem linEnd_reflect (st : Stmt (LinX S F (P.m + P.κ)) F P.m) (o : ∀ i, O i
   have hsv : sv[i] = evalMle (z o i) (linPoint P st) := hout.2 i
   rw [hsv, linPoint, linZ, evalMle_sliceLow_zTable]
 
-/-- The slices: the native terminal at true slices is the lincheck's terminal value, so a
-running claim that passes the check at true slices is the true claim. -/
-def linEndSecurity :
-    Component.Security (linEnd P C z (S := S) (W := Unit)) (rel (linFamily P C z side) P.m)
-      (outRel P z side) (sayError _) :=
-  Component.sendCheckedSecurity O _ _ _ _ (linEnd_reflect P C z side)
-
 /-- The slices, typed. -/
-def linEndSecurityT :
-    Typed.Security (linEndT P C z (S := S) (O := O) (W := Unit)) (rel (linFamily P C z side) P.m)
+def linEndSecurity :
+    Typed.Security (linEnd P C z (S := S) (O := O) (W := Unit)) (rel (linFamily P C z side) P.m)
       (outRel P z side) (Typed.sayErrors _) :=
   Typed.sendCheckedSecurity (linEnd_reflect P C z side)
-
-omit [DecidableEq F] [SampleableType F] [Finite F] in
-/-- The lincheck's terminal check is load-bearing: the slices without it have no knowledge state
-function at all, whatever the extractor, once a statement meets the side condition with a false
-running claim, since the true slices then pass and land in the output relation. -/
-theorem linEnd_unchecked_no_stateFunction {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
-    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (Stmt (LinX S F (P.m + P.κ)) F P.m × ∀ i, O i) Unit Unit (say (Vector F (2 ^ P.s))) W'}
-    (K : (Component.sendCheckedVerifier O (Vector F (2 ^ P.s)) (fun _ _ ↦ true)
-      (linNext P (S := S))).toVerifier.KnowledgeStateFunction init impl
-      (rel (linFamily P C z side) P.m) (outRel P z side) E)
-    (st : Stmt (LinX S F (P.m + P.κ)) F P.m) (o : ∀ i, O i) (hside : side st.1.1.1.1 o)
-    (hclaim : st.2.2 ≠ (linFamily P C z side (W := Unit)).claim ((st.1, o), ()) P.m st.2.1) :
-    False :=
-  Component.sendChecked_no_stateFunction O _ (fun _ _ ↦ true) (linNext P) init impl K st o
-    (fun w h ↦ hclaim (by cases w; exact h.2)) (linHonest P z ((st, o), ())) rfl ()
-    ⟨hside, fun i ↦ by simp [linHonest, linNext]⟩
 
 /-- The verifier's claim from values at every node, the skip nodes' among them: `z_skip` with the
 zeros not assumed. -/
@@ -583,89 +457,9 @@ def skipNextAll (s : PointStmt S F P.nRand × Vector F (2 ^ P.s + 2 ^ P.s)) (Y :
     Stmt (ZcX S F (P.m + P.κ)) F 0 :=
   ((s.1.1, P.point s.1.2, Y), (#v[], interpolateWith P.nodes.pts P.nodes.allInv s.2 Y))
 
-omit [DecidableEq F] [Finite F] in
-/-- The zeros the verifier assumes on the skip nodes are load-bearing: a verifier that
-interpolates the claim from values the prover sends at every node is not knowledge sound below
-error one, whatever the extractor and the state function, against any input relation within the
-point's. A batch with a residual not zero at the point, sent `P`'s values, starts the zerocheck
-at the true claim for every `z_skip`. -/
-theorem skipDraw_unzeroed_not_rbr
-    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
-    {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {WitMid : Fin 2 → Type}
-    {relIn : Set (((PointStmt S F P.nRand × Vector F (2 ^ P.s + 2 ^ P.s)) × ∀ i, O i) × Unit)}
-    (hrel : ∀ s msg o, (((s, msg), o), ()) ∈ relIn → ((s, o), ()) ∈ pointRel P C z side P.nRand)
-    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      ((PointStmt S F P.nRand × Vector F (2 ^ P.s + 2 ^ P.s)) × ∀ i, O i) Unit Unit (draw F)
-      WitMid}
-    {kSF : (Component.sampleVerifier O F (fun _ ↦ true)
-      (skipNextAll P (S := S))).toVerifier.KnowledgeStateFunction init impl relIn
-      (rel (zcFamily P C z side) 0) E}
-    {ε : (draw F).ChallengeIdx → ℝ≥0}
-    (h : (Component.sampleVerifier O F (fun _ ↦ true)
-      (skipNextAll P (S := S))).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl relIn
-      (rel (zcFamily P C z side) 0) WitMid E kSF ε)
-    (s : PointStmt S F P.nRand) (o : ∀ i, O i) (hside : side s.1 o)
-    (hconst : ∀ t : Fin (2 ^ P.κ), (constTable P.cpos (z o))[t] = 0) (i : Fin (2 ^ P.s))
-    (hres : evalMle (errTable C (z o) i) (P.point s.2) ≠ 0) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.sampleChallenge_not_rbr O F _ _ init impl h
-    (s, Vector.ofFn fun j ↦ pValue P.nodes C (z o) (P.point s.2) P.nodes.pts[j]) o
-    (fun w hw ↦ by
-      cases w
-      exact hres ((restrictedZero_of_all _ _ _ (P.pointPartial_all s.2)).mp
-        ((hrel _ _ _ hw).2.1 i)))
-    rfl () fun Y ↦ ⟨⟨hside, by
-      show RestrictedZero _ (Partial.ofSuffix P.m (#v[] : Vector F 0))
-      rw [Partial.ofSuffix_of_le _ _ (Nat.zero_le _), restrictedZero_empty_iff]
-      exact hconst⟩, by
-      show interpolateWith P.nodes.pts P.nodes.allInv
-          (Vector.ofFn fun j ↦ pValue P.nodes C (z o) (P.point s.2) P.nodes.pts[j]) Y =
-        (zcFamily P C z side).claim (((s.1, P.point s.2, Y), o), ()) 0 #v[]
-      rw [zcFamily_claim_zero, P.nodes.allInv_eq, interpolateWith_lagrangeInv]
-      simp only [← eval_pPoly]
-      exact interpolateAt_eval P.nodes.pts hnodes _ (degree_pPoly_lt P.nodes C (z o) _) Y⟩
-
 /-- The verifier's batched claim without the constant position's term. -/
 def alphaNextNoConst {n : ℕ} (t : TermStmt S F n) (α : F) : Stmt (LinX S F n) F 0 :=
   ((t, α), (#v[], t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2))
-
-omit [DecidableEq F] [Finite F] in
-/-- The constant position's `α³` term is load-bearing: without it, the batching challenge is not
-knowledge sound below error one, whatever the extractor and the state function, against any
-input relation within the zerocheck's terminal one. A batch whose constant positions are all `0`,
-with its true terminal values, starts the lincheck at the true claim for every `α`. -/
-theorem alphaDraw_noConst_not_rbr {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {WitMid : Fin 2 → Type}
-    {relIn : Set ((TermStmt S F (P.m + P.κ) × ∀ i, O i) × Unit)}
-    (hrel : ∀ t o, ((t, o), ()) ∈ relIn → ((t, o), ()) ∈ termRel P C z side)
-    {E : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (TermStmt S F (P.m + P.κ) × ∀ i, O i) Unit Unit (draw F) WitMid}
-    {kSF : (Component.sampleVerifier O F (fun _ ↦ true)
-      (alphaNextNoConst (S := S) (n := P.m + P.κ))).toVerifier.KnowledgeStateFunction init impl
-      relIn (rel (linFamily P C z side) 0) E}
-    {ε : (draw F).ChallengeIdx → ℝ≥0}
-    (h : (Component.sampleVerifier O F (fun _ ↦ true)
-      (alphaNextNoConst (S := S) (n := P.m + P.κ))).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
-      init impl relIn (rel (linFamily P C z side) 0) WitMid E kSF ε)
-    (t : TermStmt S F (P.m + P.κ)) (o : ∀ i, O i) (hside : side t.1.1 o)
-    (ha : t.2.2.1 = evalMle (zcA P C z o t.1.2.2) t.2.1)
-    (hb : t.2.2.2.1 = evalMle (zcB P C z o t.1.2.2) t.2.1)
-    (hc : t.2.2.2.2 = evalMle (zcC P z o t.1.2.2) t.2.1)
-    (hconst : evalMle (constTable P.cpos (z o)) (highVec t.2.1) = 1) : 1 ≤ ε ⟨0, rfl⟩ :=
-  Component.sampleChallenge_not_rbr O F _ _ init impl h t o
-    (fun w hw ↦ by
-      cases w
-      have hrz := (hrel t o hw).2.1
-      rw [restrictedZero_of_all _ _ (highVec t.2.1) fun k hk ↦ by
-        rw [Partial.ofSuffix_all _ t.2.1 k hk]
-        simp [highVec]] at hrz
-      rw [hrz] at hconst
-      exact zero_ne_one hconst)
-    rfl () fun α ↦ ⟨hside, by
-      show t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 =
-        (linFamily P C z side).claim (((t, α), o), ()) 0 #v[]
-      rw [linFamily_claim_zero, hconst, ← ha, ← hb, ← hc]
-      ring⟩
 
 /-! ## Ring switching -/
 
@@ -673,28 +467,11 @@ section Ring
 
 variable [CharP F 2] (s' : ℕ) {K : Type} [CommRing K] (φ : K →+* F) (g : K)
 
-/-- With no stage, the `π`s of the slices' errors all vanish only for true slices. -/
+/-- With no stage, typed. -/
 def ringStartSecurity
     (hinj : ∀ δ : Fin (2 ^ P.s) → F,
       (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
-    Component.Security (ringDraws P (S := S) (O := O) (W := Unit) 0) (outRel P z side)
-      (ringRel P z side s' φ g 0) (drawsError F (overF F 1) 0) :=
-  Component.passThroughSecurity O _
-    (fun st o _ h ↦ ⟨h.1, fun i ↦ by
-      have herr := hinj _ (fun k hk ↦ h.2 k (by simpa using hk)) i
-      simp only [ringStages, List.ofFn_zero, frobMap, sliceError, sub_eq_zero] at herr
-      exact herr⟩)
-    fun st o _ h ↦ ⟨h.1, fun k _ ↦ by
-      have herr : ∀ i, sliceError P z o st i = 0 := fun i ↦ by
-        rw [sliceError, h.2 i, sub_self]
-      simp only [ringStages, List.ofFn_zero, frobMap, frobPair, herr]
-      simp⟩
-
-/-- With no stage, typed. -/
-def ringStartSecurityT
-    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
-      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
-    Typed.Security (ringDrawsT P (S := S) (O := O) (W := Unit) 0) (outRel P z side)
+    Typed.Security (ringDraws P (S := S) (O := O) (W := Unit) 0) (outRel P z side)
       (ringRel P z side s' φ g 0) (Typed.drawsErrors F (overF F 1) 0) :=
   Typed.passThroughSecurity fun st o _ ↦
     ⟨fun h ↦ ⟨h.1, fun i ↦ by
@@ -737,42 +514,23 @@ theorem ringDraw_card (p : ℕ) (hp : p ≤ s') (st : RingStmt S F (P.m + P.κ) 
   · rw [natCard_subtype_eq_zero fun x hx ↦ hside hx.1]
     exact zero_le_one
 
-/-- One coefficient: a family whose `π`s do not all vanish keeps a nonzero `π` after the stage
-for every coefficient but one. -/
-def ringDrawSecurity (p : ℕ) (hp : p ≤ s') :
-    Component.Security (ringDraw P (S := S) (O := O) (W := Unit) p) (ringRel P z side s' φ g p)
-      (ringRel P z side s' φ g (p + 1)) (drawError F (overF F 1)) :=
-  Component.sampleChallengeSecurity O F _ _ _ fun st o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ _ st o (ringDraw_card P z side s' φ g p hp st o)
-
 /-- One coefficient, typed. -/
-def ringDrawSecurityT (p : ℕ) (hp : p ≤ s') :
-    Typed.Security (ringDrawT P (S := S) (O := O) (W := Unit) p) (ringRel P z side s' φ g p)
+def ringDrawSecurity (p : ℕ) (hp : p ≤ s') :
+    Typed.Security (ringDraw P (S := S) (O := O) (W := Unit) p) (ringRel P z side s' φ g p)
       (ringRel P z side s' φ g (p + 1)) (Typed.drawErrors F (overF F 1)) :=
   Typed.sampleChallengeSecurity _ fun st o _ ↦
     Typed.card_badChallenge_le_of_unit _ st o (ringDraw_card P z side s' φ g p hp st o)
 
-/-- The first `p` coefficients. -/
+/-- The first `p` coefficients, typed. -/
 def ringDrawsSecurity
     (hinj : ∀ δ : Fin (2 ^ P.s) → F,
       (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
     (p : ℕ) → p ≤ s' →
-      Component.Security (ringDraws P (S := S) (O := O) (W := Unit) p) (outRel P z side)
-        (ringRel P z side s' φ g p) (drawsError F (overF F 1) p)
+      Typed.Security (ringDraws P (S := S) (O := O) (W := Unit) p) (outRel P z side)
+        (ringRel P z side s' φ g p) (Typed.drawsErrors F (overF F 1) p)
   | 0, _ => ringStartSecurity P z side s' φ g hinj
   | p + 1, hp =>
     (ringDrawsSecurity hinj p (by omega)).append (ringDrawSecurity P z side s' φ g p (by omega))
-
-/-- The first `p` coefficients, typed. -/
-def ringDrawsSecurityT
-    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
-      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0) :
-    (p : ℕ) → p ≤ s' →
-      Typed.Security (ringDrawsT P (S := S) (O := O) (W := Unit) p) (outRel P z side)
-        (ringRel P z side s' φ g p) (Typed.drawsErrors F (overF F 1) p)
-  | 0, _ => ringStartSecurityT P z side s' φ g hinj
-  | p + 1, hp =>
-    (ringDrawsSecurityT hinj p (by omega)).append (ringDrawSecurityT P z side s' φ g p (by omega))
 
 variable {μ : ℕ} (lift : Vector F (P.m + P.κ) → Vector F μ)
   (col : (∀ i, O i) → CMlPolynomialEval K (P.m + P.κ))
@@ -825,9 +583,7 @@ theorem ringFinal_card {StmtOut : Type} (finish : S → Weight F μ → F → St
   · rw [natCard_subtype_eq_zero fun x hx ↦ hside (hOut _ _ _ _ hx).1]
     exact zero_le_one
 
-/-- The last coefficient: the weighted claim is true exactly when `π_0` of the slices' errors
-after the last stage vanishes, which a family with `π_0` or `π_1` nonzero allows for one
-coefficient at most. -/
+/-- The last coefficient, typed. -/
 def ringFinalSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
     (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
     (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
@@ -836,27 +592,12 @@ def ringFinalSecurity {StmtOut : Type} (finish : S → Weight F μ → F → Stm
       φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
     (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
     (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Component.Security (ringFinal P s' φ g lift finish (O := O) (W := Unit))
-      (ringRel P z side s' φ g s') relOut (drawError F (overF F 1)) :=
-  Component.sampleChallengeSecurity O F _ _ _ fun st o _ ↦
-    Component.card_badChallenge_le_of_unit O F _ _ st o
-      (ringFinal_card P z side s' φ g lift col stack finish relOut hOut hcell hbool hread st o)
-
-/-- The last coefficient, typed. -/
-def ringFinalSecurityT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
-    (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
-    (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
-      side sIn o ∧ Wt.pair φ (stack o) = T)
-    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
-      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
-    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
-    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Typed.Security (ringFinalT P s' φ g lift finish (O := O) (W := Unit))
+    Typed.Security (ringFinal P s' φ g lift finish (O := O) (W := Unit))
       (ringRel P z side s' φ g s') relOut (Typed.drawErrors F (overF F 1)) :=
   Typed.sampleChallengeSecurity _ fun st o _ ↦ Typed.card_badChallenge_le_of_unit _ st o
     (ringFinal_card P z side s' φ g lift col stack finish relOut hOut hcell hbool hread st o)
 
-/-- Ring switching: the coefficients, then the weighted claim. -/
+/-- Ring switching, typed. -/
 def ringSwitchSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
     (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
     (hinj : ∀ δ : Fin (2 ^ P.s) → F,
@@ -867,46 +608,26 @@ def ringSwitchSecurity {StmtOut : Type} (finish : S → Weight F μ → F → St
       φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
     (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
     (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Component.Security (ringSwitch P s' φ g lift finish (O := O) (W := Unit)) (outRel P z side)
-      relOut (drawsError F (overF F 1) (s' + 1)) :=
+    Typed.Security (ringSwitch P s' φ g lift finish (O := O) (W := Unit)) (outRel P z side)
+      relOut (Typed.drawsErrors F (overF F 1) (s' + 1)) :=
   (ringDrawsSecurity P z side s' φ g hinj s' le_rfl).append
     (ringFinalSecurity P z side s' φ g lift col stack finish relOut hOut hcell hbool hread)
 
-/-- Ring switching, typed. -/
-def ringSwitchSecurityT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
-    (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
-    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
-      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0)
-    (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
-      side sIn o ∧ Wt.pair φ (stack o) = T)
-    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
-      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
-    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
-    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Typed.Security (ringSwitchT P s' φ g lift finish (O := O) (W := Unit)) (outRel P z side)
-      relOut (Typed.drawsErrors F (overF F 1) (s' + 1)) :=
-  (ringDrawsSecurityT P z side s' φ g hinj s' le_rfl).append
-    (ringFinalSecurityT P z side s' φ g lift col stack finish relOut hOut hcell hbool hread)
-
 /-! ## The argument -/
 
-omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] [CharP F 2] in
-/-- The errors of the Flock argument, challenge by challenge: `1` on each drawn coordinate of the
-point, `2 · 2 ^ s - 1` on `z_skip`, `2` on each zerocheck and lincheck round, `3` on `α`, `1` on
-each ring-switching coefficient, over `|F|`. -/
-noncomputable def flockError : (flockSchedule F P.s P.m P.κ P.nRand s').ChallengeIdx → ℝ≥0 :=
-  errAppend (errAppend (errAppend (errAppend (errAppend (errAppend (errAppend (errAppend
-    (errAppend (drawsError F (overF F 1) P.nRand) (sayError _))
-    (drawError F (overF F (2 ^ P.s + 2 ^ P.s - 1)))) (roundsError F 2 (overF F 2) P.m))
-    (roundsError F 2 (overF F 2) P.κ)) (sayError _)) (drawError F (overF F 3)))
-    (roundsError F 2 (overF F 2) P.m)) (sayError _)) (drawsError F (overF F 1) (s' + 1))
+/-- The typed errors of the Flock argument, challenge by challenge, as `flockError`. -/
+noncomputable abbrev flockErrorsT :
+    Typed.Errors (flockSlot F P.s P.m P.κ P.nRand s').tree (flockSlot F P.s P.m P.κ P.nRand s').roles :=
+  Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.Errors.append _ _ (Typed.Errors.append _ _
+    (Typed.drawsErrors F (overF F 1) P.nRand) (Typed.sayErrors _))
+    (Typed.drawErrors F (overF F (2 ^ P.s + 2 ^ P.s - 1)))) (Typed.roundsErrors F 2 (overF F 2) P.m))
+    (Typed.roundsErrors F 2 (overF F 2) P.κ)) (Typed.sayErrors _)) (Typed.drawErrors F (overF F 3)))
+    (Typed.roundsErrors F 2 (overF F 2) P.m)) (Typed.sayErrors _))
+    (Typed.drawsErrors F (overF F 1) (s' + 1))
 
-/-- **Knowledge soundness of the Flock argument.** For an input relation that holds exactly of
-the side condition and a batch satisfying its R1CS, and an output relation that `finish` enters
-exactly with the side condition and a true weighted claim: at distinct skip nodes, fixed
-coordinates with `F_2`-independent weights, an injective ring switching, and Boolean tables
-packed into a table read off `stack`, the Flock argument is round-by-round knowledge sound at
-`flockError`. -/
+/-- **Knowledge soundness of the Flock argument on the typed framework**, at `flockErrorsT`. -/
 def flockSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
     (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
     (hfixed : ∀ c : Fin (2 ^ P.nFix) → F, (∀ v, c v = 0 ∨ c v = 1) →
@@ -921,8 +642,8 @@ def flockSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut
       φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
     (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
     (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Component.Security (flock P C z side s' φ g lift finish (W := Unit)) relIn relOut
-      (flockError P s') :=
+    Typed.Security (flock P C z side s' φ g lift finish (W := Unit)) relIn relOut
+      (flockErrorsT P s') :=
   (pointDrawsSecurity P C z side relIn
       (fun s o h ↦ by
         obtain ⟨hside, hholds⟩ := (hIn s o).mp h
@@ -939,52 +660,6 @@ def flockSecurity {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut
     (alphaDrawSecurity P C z side) |>.append (linRoundsSecurity P C z side) |>.append
     (linEndSecurity P C z side) |>.append
     (ringSwitchSecurity P z side s' φ g lift col stack finish relOut hinj hOut hcell hbool hread)
-
-/-- The typed errors of the Flock argument, challenge by challenge, as `flockError`. -/
-noncomputable abbrev flockErrorsT :
-    Typed.Errors (flockSlot F P.s P.m P.κ P.nRand s').tree (flockSlot F P.s P.m P.κ P.nRand s').roles :=
-  Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
-    (Typed.Errors.append _ _ (Typed.Errors.append _ _ (Typed.Errors.append _ _
-    (Typed.Errors.append _ _ (Typed.Errors.append _ _
-    (Typed.drawsErrors F (overF F 1) P.nRand) (Typed.sayErrors _))
-    (Typed.drawErrors F (overF F (2 ^ P.s + 2 ^ P.s - 1)))) (Typed.roundsErrors F 2 (overF F 2) P.m))
-    (Typed.roundsErrors F 2 (overF F 2) P.κ)) (Typed.sayErrors _)) (Typed.drawErrors F (overF F 3)))
-    (Typed.roundsErrors F 2 (overF F 2) P.m)) (Typed.sayErrors _))
-    (Typed.drawsErrors F (overF F 1) (s' + 1))
-
-/-- **Knowledge soundness of the Flock argument on the typed framework**, at `flockErrorsT`. -/
-def flockSecurityT {StmtOut : Type} (finish : S → Weight F μ → F → StmtOut)
-    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
-    (hfixed : ∀ c : Fin (2 ^ P.nFix) → F, (∀ v, c v = 0 ∨ c v = 1) →
-      ∑ v, (lagrangeBasis P.fixed)[v] * c v = 0 → ∀ v, c v = 0)
-    (hinj : ∀ δ : Fin (2 ^ P.s) → F,
-      (∀ k < 2 ^ (s' + 1), frobPair Finset.univ (fun i ↦ φ (g ^ i.val)) δ k = 0) → ∀ i, δ i = 0)
-    (relIn : Set ((S × ∀ i, O i) × Unit)) (relOut : Set ((StmtOut × ∀ i, O i) × Unit))
-    (hIn : ∀ s o, ((s, o), ()) ∈ relIn ↔ side s o ∧ BatchHolds C P.cpos (z o))
-    (hOut : ∀ sIn o (Wt : Weight F μ) T, ((finish sIn Wt T, o), ()) ∈ relOut →
-      side sIn o ∧ Wt.pair φ (stack o) = T)
-    (hcell : ∀ o (u : Fin (2 ^ (P.m + P.κ))),
-      φ (col o)[u] = ∑ i : Fin (2 ^ P.s), φ (g ^ i.val) * (z o i)[u])
-    (hbool : ∀ o i (u : Fin (2 ^ (P.m + P.κ))), (z o i)[u] = 0 ∨ (z o i)[u] = 1)
-    (hread : ∀ o p, eval₂Mle (col o) φ p = eval₂Mle (stack o) φ (lift p)) :
-    Typed.Security (flockT P C z side s' φ g lift finish (W := Unit)) relIn relOut
-      (flockErrorsT P s') :=
-  (pointDrawsSecurityT P C z side relIn
-      (fun s o h ↦ by
-        obtain ⟨hside, hholds⟩ := (hIn s o).mp h
-        obtain ⟨herr, hconst⟩ := (batchHolds_iff C P.cpos (z o)).mp hholds
-        refine ⟨hside, fun i b ↦ ?_, hconst⟩
-        rw [evalMle_eq_sum]
-        exact Finset.sum_eq_zero fun u _ ↦ by rw [herr i u, zero_mul])
-      (fun s o h ↦ (hIn s o).mpr ⟨h.1, (batchHolds_iff C P.cpos (z o)).mpr ⟨fun i u ↦
-        eq_zero_of_restrictedZero_fixed P hfixed _ (isBool_errTable C (hbool o) i) (h.2.1 i) u,
-        h.2.2⟩⟩)
-      P.nRand).append (skipMsgSecurityT P C z side) |>.append
-    (skipDrawSecurityT P C z side hnodes) |>.append (zcRoundsLowSecurityT P C z side) |>.append
-    (zcRoundsHighSecurityT P C z side) |>.append (zcEndSecurityT P C z side) |>.append
-    (alphaDrawSecurityT P C z side) |>.append (linRoundsSecurityT P C z side) |>.append
-    (linEndSecurityT P C z side) |>.append
-    (ringSwitchSecurityT P z side s' φ g lift col stack finish relOut hinj hOut hcell hbool hread)
 
 end Ring
 

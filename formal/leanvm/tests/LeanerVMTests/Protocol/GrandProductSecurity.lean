@@ -8,19 +8,19 @@ import LeanerVMTests.Protocol.GrandProduct
 
 Over `E`, on the trees of the grand-product tests.
 
-* **The theorem has an inhabitant that computes** at the slot's error: `gkrSecurity 3 4 sixteen
+* **The theorem has an inhabitant that computes** at the slot's errors: `gkrSecurity 3 4 sixteen
   noRiders`, raised from the unit `1 / |E|` to the slot's `overE 1` (`overE_one`), is a `def`
-  without `noncomputable`, and so is its extraction; so are the instances with a zero rider, whose
+  without `noncomputable`, and so is its extractor; so are the instances with a zero rider, whose
   input relation is inhabited, with a nonzero rider, whose input relation is empty, and for an
   odd `μ`.
 * **The riders are tracked.** At the last layer of `gkr 1 2`, the rider `1 - x` is zero on the
   coordinates fixed so far exactly when the first combination challenge is its root.
 * **The round check is load-bearing.** Without it, the challenge of the second step's first
-  round is not knowledge sound below error one, whatever the extractor and the state function:
+  round is not knowledge sound below error one, whatever the extractor:
   from a statement whose running claim is the family's plus one, the honest polynomial lands in
   the next relation at every challenge.
-* **The descendants' check is load-bearing.** Without it, no knowledge state function exists for
-  the descendants' message, whatever the extractor: from a statement whose final claim is the
+* **The descendants' check is load-bearing.** Without it, no security exists for the
+  descendants' message, at any error and whatever the extractor: from a statement whose final claim is the
   family's plus one, the honest descendants are accepted into the relation after the message.
 * **Partial points.** The coordinates the state function tracks: the sumcheck challenges fill
   `ρ, …, ρ + j − 1`, the combination challenges `0, …, i − 1`, and together the whole new point.
@@ -41,31 +41,29 @@ open scoped NNReal
 
 /-! ## The theorem has an inhabitant -/
 
-/-- Knowledge soundness of `gkr 3 4` at the slot's error, without riders. -/
-def security34 : Component.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
-    (relOut 3 4 sixteen noRiders) (gkrError E (overE 1) 3 4) :=
-  (gkrSecurity 3 4 sixteen noRiders).mono fun _ ↦ by rw [overE_one]
+/-- Knowledge soundness of `gkr 3 4` at the slot's errors, without riders. -/
+def security34 : Typed.Security (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
+    (relOut 3 4 sixteen noRiders) (Typed.gkrErrors E (overE 1) 3 4) :=
+  (gkrSecurity 3 4 sixteen noRiders).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
 
-/-- Its extraction, the extractor and the knowledge state function a slot reads. -/
-def extraction34 : Component.Extraction (gkr 3 4 sixteen) (relIn 3 4 sixteen noRiders)
-    (relOut 3 4 sixteen noRiders) :=
-  security34.toExtraction
+/-- Its extractor at a statement, which a slot reads. -/
+def extractor34 := security34.extractor
 
 /-- With a zero rider: the input relation is inhabited. -/
-example : Component.Security (gkr 1 2 four) (relIn 1 2 four zeroRider)
-    (relOut 1 2 four zeroRider) (gkrError E (overE 1) 1 2) :=
-  (gkrSecurity 1 2 four zeroRider).mono fun _ ↦ by rw [overE_one]
+example : Typed.Security (gkr 1 2 four) (relIn 1 2 four zeroRider)
+    (relOut 1 2 four zeroRider) (Typed.gkrErrors E (overE 1) 1 2) :=
+  (gkrSecurity 1 2 four zeroRider).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
 
 /-- With a nonzero rider: no statement is in the input relation, and every one escapes at each
 challenge with at most the error charged to it. -/
-example : Component.Security (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider)
-    (gkrError E (overE 1) 1 2) :=
-  (gkrSecurity 1 2 four rider).mono fun _ ↦ by rw [overE_one]
+example : Typed.Security (gkr 1 2 four) (relIn 1 2 four rider) (relOut 1 2 four rider)
+    (Typed.gkrErrors E (overE 1) 1 2) :=
+  (gkrSecurity 1 2 four rider).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
 
 /-- For an odd `μ`, where the binary layer comes first. -/
-example : Component.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
-    (relOut 3 3 eight noRiders) (gkrError E (overE 1) 3 3) :=
-  (gkrSecurity 3 3 eight noRiders).mono fun _ ↦ by rw [overE_one]
+example : Typed.Security (gkr 3 3 eight) (relIn 3 3 eight noRiders)
+    (relOut 3 3 eight noRiders) (Typed.gkrErrors E (overE 1) 3 3) :=
+  (gkrSecurity 3 3 eight noRiders).mono (Typed.Errors.Le.of_eq (by rw [overE_one]))
 
 /-! ## The riders are tracked -/
 
@@ -95,42 +93,32 @@ def nextClaim (p : MidStmt (LayerX Unit E 3 2) E 0 4) (c : E) :
   SumcheckRound.next 0 p.1 (SumcheckRound.evaluate 4 p.2 c) c
 
 /-- A verifier that draws the first round's challenge without checking the polynomial has no
-knowledge error below one, whatever the extractor and the state function: from a running claim
-off by one, the honest polynomial is accepted at every challenge. -/
-theorem unchecked_round_not_rbr {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {WitMid : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (MidStmt (LayerX Unit E 3 2) E 0 4 × ∀ i, NoOracle i) Unit Unit (draw E) WitMid}
-    {kSF : Verifier.KnowledgeStateFunction init impl (relMid Φ 0) (rel Φ 1)
-      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier Ex}
-    {ε : (draw E).ChallengeIdx → ℝ≥0}
-    (h : Verifier.rbrKnowledgeSoundnessWorstCaseWith init impl (relMid Φ 0) (rel Φ 1)
-      (Component.sampleVerifier NoOracle E (fun _ ↦ true) nextClaim).toVerifier WitMid Ex kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ := by
+knowledge error below one, whatever the extractor: from a running claim off by one, the honest
+polynomial is accepted at every challenge. -/
+theorem unchecked_round_one_le {e : ℝ≥0}
+    (S : Typed.Security (Typed.sampleChallenge NoOracle E (fun _ ↦ true) nextClaim)
+      (relMid Φ 0) (rel Φ 1) (Typed.drawErrors E e)) : 1 ≤ e := by
   obtain ⟨x⟩ : Nonempty (LayerX Unit E 3 2) := ⟨(((), (#v[0, 0], fun _ ↦ 0)), 0)⟩
-  exact drawChallenge_unchecked_not_rbr 0 init impl Φ
-    (family_honest 3 4 sixteen noRiders 2 2).toConsistent (by decide) h
-    (x, (#v[], Φ.claim ((x, noO), ()) 0 #v[] + 1)) noO ()
-    (fun h ↦ one_ne_zero (add_eq_left.mp h))
-    (fun _ r hr ↦ absurd hr List.not_mem_nil)
+  exact Typed.sampleChallenge_one_le S
+    ((x, (#v[], Φ.claim ((x, noO), ()) 0 #v[] + 1)), Φ.poly ((x, noO), ()) 0 #v[]) noO
+    (fun _ h ↦ one_ne_zero (add_eq_left.mp h.1.2)) rfl fun c ↦
+      ⟨(), fun r hr ↦ absurd hr List.not_mem_nil,
+        (family_honest 3 4 sixteen noRiders 2 2).next ((x, noO), ()) 0 #v[] c (by decide)⟩
 
 /-! ## The descendants' check is load-bearing -/
 
-/-- A verifier that reads the descendants without checking them has no knowledge state function
-from the sumcheck's final relation to the relation after the message, whatever the extractor:
-from a final claim off by one, the honest descendants are accepted. -/
-theorem unchecked_children_no_stateFunction {σ : Type} (init : ProbComp σ)
-    (impl : QueryImpl []ₒ (StateT σ ProbComp)) {W' : Fin 2 → Type}
-    {Ex : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      (SumcheckRound.Stmt (LayerX Unit E 3 2) E 2 × ∀ i, NoOracle i) Unit Unit
-      (say (Fin 3 → Vector E 4)) W'}
-    (K : (Component.sendCheckedVerifier NoOracle (Fin 3 → Vector E 4) (fun _ _ ↦ true)
-      (childNext 3 2 2)).toVerifier.KnowledgeStateFunction init impl (rel Φ 2)
-      (childRel 3 4 sixteen noRiders 2 2 0) Ex) : False := by
+/-- A verifier that reads the descendants without checking them has no security from the
+sumcheck's final relation to the relation after the message, at any error and whatever the
+extractor: from a final claim off by one, the honest descendants are accepted. -/
+theorem unchecked_children_no_security
+    {hp : (SumcheckRound.Stmt (LayerX Unit E 3 2) E 2 × ∀ i, NoOracle i) × Unit →
+      (Fin 3 → Vector E 4)}
+    {err : Typed.Errors (Typed.sayTree (Fin 3 → Vector E 4)) (Typed.sayRoles _)}
+    (S : Typed.Security (Typed.sendChecked NoOracle (Fin 3 → Vector E 4) hp (fun _ _ ↦ true)
+      (childNext 3 2 2)) (rel Φ 2) (childRel 3 4 sixteen noRiders 2 2 0) err) : False := by
   obtain ⟨x⟩ : Nonempty (LayerX Unit E 3 2) := ⟨(((), (#v[0, 0], fun _ ↦ 0)), 0)⟩
   obtain ⟨cv⟩ : Nonempty (Vector E 2) := ⟨#v[0, 0]⟩
-  exact Component.sendChecked_no_stateFunction NoOracle (Fin 3 → Vector E 4) _ _ init impl K
-    (x, (cv, Φ.claim ((x, noO), ()) 2 cv + 1)) noO
+  exact Typed.sendChecked_no_security S (x, (cv, Φ.claim ((x, noO), ()) 2 cv + 1)) noO
     (fun w hmem ↦ by
       cases w
       exact one_ne_zero (add_eq_left.mp hmem.2))

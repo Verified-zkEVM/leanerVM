@@ -49,6 +49,13 @@ open scoped NNReal ENNReal
 
 @[expose] public section
 
+/-- The values satisfying `p`, counted as a subtype, are those of the filtered universe: errors
+count bad challenges with `Nat.card`, which needs no `Fintype` instance, and proofs count them
+with `Finset`. -/
+theorem _root_.LeanerVM.Protocol.natCard_subtype_eq_card_filter {α : Type} [Fintype α]
+    (p : α → Prop) [DecidablePred p] : Nat.card {a // p a} = (Finset.univ.filter p).card := by
+  rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
+
 variable {ι : Type} (O : ι → Type)
 
 /-! ## The relations as knowledge states -/
@@ -224,6 +231,63 @@ def Security.mono {D : Def O StmtIn WitIn StmtOut WitOut σ}
   local_bound s o := isLocallyBounded_mono D.tree D.roles D.samplers err err' h _
     (S.local_bound s o)
   terminal := S.terminal
+
+
+/-! ## No security below error one -/
+
+/-- A path with no challenge on it: every node is the prover's. -/
+def NoChallenge : (tree : Oracle.TypeTree.{0}) → tree.RoleDecoration → tree.ExecutionPath → Prop
+  | .done, _, _ => True
+  | .public _ next, ⟨.sender, roles⟩, path => NoChallenge (next path.1) (roles path.1) path.2
+  | .public _ _, ⟨.receiver, _⟩, _ => False
+  | .oracle _ next, roles, path => NoChallenge (next PUnit.unit) (roles.2 PUnit.unit) path.2
+
+/-- Along a path with no challenge, prover-preserving maps carry the terminal state's knowledge
+back to the input state at the extracted witness. -/
+theorem holds_of_noChallenge : (tree : Oracle.TypeTree.{0}) → (roles : tree.RoleDecoration) →
+    {state : KnowledgeState.{0}} → (X : RoundExtractor tree state) →
+    X.IsProverPreserving roles → (path : tree.ExecutionPath) → NoChallenge tree roles path →
+    (w : (X.terminalState path).Witness) → (X.terminalState path).holds w →
+    state.holds (X.extractWitness path w)
+  | .done, _, _, _, _, _, _, _, h => h
+  | .public _ next, ⟨.sender, roles⟩, _, X, hX, path, hn, w, h =>
+      hX.1 path.1 rfl _ (holds_of_noChallenge (next path.1) (roles path.1) (X path.1).2.2
+        (hX.2 path.1) path.2 hn w h)
+  | .public _ _, ⟨.receiver, _⟩, _, _, _, _, hn, _, _ => hn.elim
+  | .oracle _ next, roles, _, X, hX, path, hn, w, h =>
+      hX.1 path.1 _ (holds_of_noChallenge (next PUnit.unit) (roles.2 PUnit.unit) (X path.1).2.2
+        (hX.2 path.1) path.2 hn w h)
+
+/-- **No security below error one at a first challenge from which every value escapes.** For a
+component whose first move is a challenge: if a statement with no witness has, at every
+challenge, a rest of the path with no further challenge on which the verdict accepts into the
+output relation, the error at the challenge is at least one, whatever the extractor. -/
+theorem Security.one_le_of_escape {Ch : Type} {rest : Oracle.TypeTree.{0}}
+    {r : rest.RoleDecoration} {ors : (Oracle.TypeTree.public Ch fun _ ↦ rest).OracleDecoration}
+    {smp : ProbComp Ch} {sr : Ch → Samplers rest r}
+    {D : Def O StmtIn WitIn StmtOut WitOut
+      ⟨.public Ch fun _ ↦ rest, ⟨.receiver, fun _ ↦ r⟩, ors, (smp, sr)⟩}
+    {relIn : Set ((StmtIn × ∀ i, O i) × WitIn)} {relOut : Set ((StmtOut × ∀ i, O i) × WitOut)}
+    {err : Errors (.public Ch fun _ ↦ rest) ⟨.receiver, fun _ ↦ r⟩}
+    (Sec : Security D relIn relOut err) (s : StmtIn) (o : ∀ i, O i)
+    (hin : ∀ w, ((s, o), w) ∉ relIn)
+    (hesc : ∀ c, ∃ p : rest.ExecutionPath, NoChallenge rest r p ∧ ∃ t w,
+      D.verdict s (Oracle.TypeTree.ExecutionPath.toBranchPath
+        (tree := .public Ch fun _ ↦ rest) ⟨c, p⟩) = some t ∧ ((t, o), w) ∈ relOut) :
+    1 ≤ err.1 := by
+  have hb := (Sec.local_bound s o).1
+  rw [_root_.RoundByRound.GameFamily.isBounded_iff] at hb
+  have h1 : Pr{let c ← smp}[RoundExtractor.badChallenge (Sec.extractor s o) c] = 1 := by
+    refine (OracleComp.prEvent_eq_one_iff _ _).mpr fun c _ ↦ ?_
+    obtain ⟨p, hn, t, w, hv, hout⟩ := hesc c
+    let path : (Oracle.TypeTree.public Ch fun _ ↦ rest).ExecutionPath := ⟨c, p⟩
+    have hterm := terminal_holds_of_rel (Sec.terminal s o) path w ⟨t, hv, hout⟩
+    exact ⟨_, hin _, holds_of_noChallenge rest r _ ((Sec.prover_preserving s o).2 c) p hn _ hterm⟩
+  have h := hb () ()
+  change Pr{let c ← smp}[RoundExtractor.badChallenge (Sec.extractor s o) c] ≤ (err.1 : ℝ≥0∞)
+    at h
+  rw [h1] at h
+  exact_mod_cast h
 
 end
 end LeanerVM.Protocol.Typed

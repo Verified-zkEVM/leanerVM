@@ -4,16 +4,16 @@ import LeanerVMTests.Protocol.Bus
 /-!
 # Bus phase knowledge-soundness tests
 
-* **The theorem has an inhabitant that computes** at the slot's error `busError`: `busSecurity`
+* **The theorem has an inhabitant that computes** at the slot's errors `busErrors`: `busSecurity`
   on the bus tests' instance and on the spine's toy is a `def` without `noncomputable`, and so is
-  its extraction, the extractor and the knowledge state function the spine's composition reads.
+  its extractor, which the spine's composition reads.
 
 * **The challenges' bound rests on the products.** A stack whose only failing clause is the
   balance (`a = [1, 0]`: the push tuple `(0, x + 1)` is pulled as `(1, x + 1)`) has different
   products at the tests' challenge: the state after the challenges is false there, and true only
   at a collision.
 
-The refutation of the check `R_c ≠ 0` is in the bus tests (`roots_unchecked_no_stateFunction`).
+The refutation of the check `R_c ≠ 0` is in the bus tests (`roots_unchecked_no_security`).
 -/
 
 namespace LeanerVMTests.Protocol.BusSecurity
@@ -24,18 +24,16 @@ open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Bus LeanerVMTests.P
 /-! ## The theorem has an inhabitant -/
 
 /-- Knowledge soundness of the bus phase on the bus tests' instance, at the slot's error. -/
-def security : Phase.Security busToy (busPhase busToy conditions).toDef (Seam.commit busToy)
-    (Seam.bus busToy) (busError busToy) :=
+def security : Typed.Security (busPhase busToy conditions) (Seam.commit busToy)
+    (Seam.bus busToy) (busErrors busToy) :=
   busSecurity busToy conditions
 
-/-- Its extraction. -/
-def extraction : Component.Extraction (busPhase busToy conditions).toDef (Seam.commit busToy)
-    (Seam.bus busToy) :=
-  security.toExtraction
+/-- Its extractor. -/
+def extractor := security.extractor
 
 /-- Knowledge soundness of the bus phase on the spine's toy. -/
-def toySecurity : Phase.Security Toy.toy (busPhase Toy.toy toyConditions).toDef
-    (Seam.commit Toy.toy) (Seam.bus Toy.toy) (busError Toy.toy) :=
+def toySecurity : Typed.Security (busPhase Toy.toy toyConditions) (Seam.commit Toy.toy)
+    (Seam.bus Toy.toy) (busErrors Toy.toy) :=
   busSecurity Toy.toy toyConditions
 
 /-! ## The challenges' bound rests on the products -/

@@ -20,10 +20,10 @@ public import LeanerVM.Protocol.TableSumcheck
 
 The specification's unrolled protocol (§8, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) after the commitment is five phases, each a typed
-front component from one seam to the next: the bus phase (`busPhaseT`), the table sumcheck
-(`tableSumcheckT`), the public-input phase (`PublicInput.phaseT`, the deployed verifiers' since
-they compute every limb's claim themselves), the Flock phase (`flockPhaseT`) and the opening's
-batching (`openingT`), after which the protocol asks the stack the batched claim.
+front component from one seam to the next: the bus phase (`busPhase`), the table sumcheck
+(`tableSumcheck`), the public-input phase (`PublicInput.phase`, the deployed verifiers' since
+they compute every limb's claim themselves), the Flock phase (`flockPhase`) and the opening's
+batching (`opening`), after which the protocol asks the stack the batched claim.
 `leanVmPhases` fills the spine's five slots with them, `leanVmComplete` and `leanVmSecurity` fill
 the two bundles with their halves, and the spine's master theorems give the protocol's:
 
@@ -51,27 +51,27 @@ variable (I : M3Instance) (h : Bus.Conditions I)
 
 /-- leanVM's five phases after the commitment, as typed front components. -/
 def leanVmPhases : Phases I where
-  bus := busPhaseT I h
-  table := TableSumcheck.tableSumcheckT I
-  pub := PublicInput.phaseT I
-  flock := flockPhaseT I
-  opening := openingT I
+  bus := busPhase I h
+  table := TableSumcheck.tableSumcheck I
+  pub := PublicInput.phase I
+  flock := flockPhase I
+  opening := opening I
 
 /-- Their typed completeness halves. -/
 theorem leanVmComplete (hd : I.d ≤ 2) : (leanVmPhases I h).Complete where
-  bus := busCompleteT I h
-  table := TableSumcheck.tableSumcheckCompleteT I hd
-  pub := PublicInput.completeT I
-  flock := flockCompleteT I
-  opening := openingCompleteT I
+  bus := busComplete I h
+  table := TableSumcheck.tableSumcheckComplete I hd
+  pub := PublicInput.complete I
+  flock := flockComplete I
+  opening := openingComplete I
 
 /-- Their typed knowledge-soundness halves, each at its slot's errors. -/
 def leanVmSecurity (hd : I.d ≤ 2) : (leanVmPhases I h).Security where
-  bus := busSecurityT I h
-  table := TableSumcheck.tableSumcheckSecurityT I hd
-  pub := PublicInput.securityT I
-  flock := flockSecurityT I
-  opening := openingSecurityT I
+  bus := busSecurity I h
+  table := TableSumcheck.tableSumcheckSecurity I hd
+  pub := PublicInput.security I
+  flock := flockSecurity I
+  opening := openingSecurity I
 
 end Phases
 

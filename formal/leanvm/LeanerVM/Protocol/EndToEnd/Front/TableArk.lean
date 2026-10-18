@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.TableSumcheck
 /-!
 # The table sumcheck's relations
 
-The table sumcheck phase's security on the typed framework (`tableSumcheckSecurityT`,
+The table sumcheck phase's security on the typed framework (`tableSumcheckSecurity`,
 `LeanerVM.Protocol.TableSumcheck`) appends three securities, the first and the last of them public
 (`xiSecurity`, `finalValuesSecurity`). This module reads them as doom transitions:
 

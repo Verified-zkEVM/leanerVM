@@ -42,7 +42,7 @@ reads a candidate as a stack of the instance:
 The challenge escapes with average at most `L₀ · 1/|E|` (`pub_escape`) for at most `L₀`
 candidates: for each candidate satisfying the earlier claims, the phase's statement whose
 received claims are true of it (`trueStmt`) is outside the table seam, and the phase's
-round-by-round knowledge soundness on ArkLib's typed framework (`PublicInput.securityT`, its
+round-by-round knowledge soundness on ArkLib's typed framework (`PublicInput.security`, its
 local bound at the challenge) bounds by `1/|E|` the challenges at which its pool is in the
 public seam; a good challenge of the program makes it so (`good_imp_state`).
 The phase makes no prover move, so its challenge joins the group of the challenges after it:
@@ -259,7 +259,7 @@ theorem pub_escape (hlayout : pubLayoutHyp F prog s layout toI)
         fun h ↦ hpre q hq ⟨hcl, h⟩
       refine (avgE_mono fun r ↦ indE_mono fun hP ↦ hP.2).trans ?_
       rw [avgE_indE_eq_prEvent]
-      have hb := ((PublicInput.securityT (leanIsaInstance F prog s)).local_bound
+      have hb := ((PublicInput.security (leanIsaInstance F prog s)).local_bound
         (trueStmt F prog s input (toI q)) (stackOracle F prog s (toI q))).1
       rw [_root_.RoundByRound.GameFamily.isBounded_iff] at hb
       exact le_trans (prEvent_mono _ _ _ fun r hr ↦ ⟨(), hnot, hr⟩) (hb () ())

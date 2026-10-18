@@ -202,14 +202,14 @@ example : Opening.pool flocky flockyStmt.2 ⟨1, by decide⟩ =
 /-! ## The phase fills its slot -/
 
 /-- The completeness half, at the spine's seams. -/
-theorem complete : Typed.Complete (openingT toy) (Seam.flock toy) (Seam.opened toy) :=
-  openingCompleteT toy
+theorem complete : Typed.Complete (opening toy) (Seam.flock toy) (Seam.opened toy) :=
+  openingComplete toy
 
 /-- The security half, at the spine's seams and the slot's errors; a plain definition, so it
 computes at `E`. -/
-def security : Typed.Security (openingT toy) (Seam.flock toy) (Seam.opened toy)
+def security : Typed.Security (opening toy) (Seam.flock toy) (Seam.opened toy)
     (openingErrors toy) :=
-  openingSecurityT toy
+  openingSecurity toy
 
 /-- The slot's error on the toy: three, for the four pooled claims. -/
 example : openingErrors toy = (overE 3, fun _ ↦ PUnit.unit) := rfl
@@ -227,9 +227,9 @@ example (I : M3Instance)
     (cf : Typed.Complete flock (Seam.pub I) (Seam.flock I)) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
     (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
-    Pr{let x ← (leanVmPiop ⟨bus, table, PublicInput.phaseT I, flock, openingT I⟩
+    Pr{let x ← (leanVmPiop ⟨bus, table, PublicInput.phase I, flock, opening I⟩
       initial).execute impl input q}[x.2.2 = some ()] = 1 :=
-  piop_perfectCompleteness _ ⟨cb, ct, PublicInput.completeT I, cf, openingCompleteT I⟩
+  piop_perfectCompleteness _ ⟨cb, ct, PublicInput.complete I, cf, openingComplete I⟩
     initial impl input q h
 
 example (I : M3Instance)
@@ -244,13 +244,13 @@ example (I : M3Instance)
     (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (s : I.Stmt) :
     ∃ cert : KnowledgeCertificate (piopSlot I).tree (piopSlot I).roles
         ⟨Column I.μ, M3Holds I s⟩,
-      cert.extractor = piopExtractor ⟨bus, table, PublicInput.phaseT I, flock, openingT I⟩
-        ⟨sb, st, PublicInput.securityT I, sf, openingSecurityT I⟩ s ∧
+      cert.extractor = piopExtractor ⟨bus, table, PublicInput.phase I, flock, opening I⟩
+        ⟨sb, st, PublicInput.security I, sf, openingSecurity I⟩ s ∧
       cert.challenges = Typed.schedule (piopSlot I).tree (piopSlot I).roles
         (piopSlot I).samplers (piopErrors I) ∧
       SamplesChallenges unifSpec (QueryImpl.id' unifSpec) (piopSlot I).tree (piopSlot I).roles
         (piopSlot I).oracles initial impl _
-        (leanVmVerifier ⟨bus, table, PublicInput.phaseT I, flock, openingT I⟩ initial s)
+        (leanVmVerifier ⟨bus, table, PublicInput.phase I, flock, opening I⟩ initial s)
         cert.challenges :=
   piop_knowledgeSoundness _ _ initial impl s
 
@@ -346,7 +346,7 @@ theorem pool_toy (s : FlockOut toy) (j : Fin toy.poolSize) :
 /-- Without the check on the answer, a false pool is accepted at every challenge: no knowledge
 error below one. -/
 theorem unchecked_one_le {e : ℝ≥0}
-    (S : Typed.Security (openingT toy) (Seam.flock toy) ((unchecked toy).rel (Seam.done toy))
+    (S : Typed.Security (opening toy) (Seam.flock toy) ((unchecked toy).rel (Seam.done toy))
       (Typed.drawErrors E e)) : 1 ≤ e :=
   Typed.sampleChallenge_one_le S badStmt theHonest badStmt_not_flock rfl fun _ ↦
     ⟨(), rfl, trivial⟩

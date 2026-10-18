@@ -9,7 +9,6 @@
 module
 
 public import LeanerVM.Parameters.Generator
-public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.Spine.Slots
 public import LeanerVM.Protocol.FlockFields
@@ -52,7 +51,7 @@ the fixed coordinates are `F_2`-independent, and ring switching is injective.
 
 namespace LeanerVM.Protocol
 
-open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec
 
 @[expose] public section
 
@@ -204,30 +203,45 @@ end FlockPhase
 
 variable (I : M3Instance)
 
-/-- The Flock phase on a region. -/
+/-! ## Knowledge soundness -/
+
+/-- `N / |E|`, counted by `Nat.card`, is `overE N`. -/
+theorem overF_eq_overE (N : ℕ) : Flock.overF E N = overE N := by
+  rw [Flock.overF, overE, Nat.card_eq_fintype_card]
+
+/-- The switched claim is among the claims the phase hands on. -/
+theorem FlockPhase.mem_weighted_finish {I : M3Instance} (r : FlockRegion I.toShape)
+    (h : I.flock = some r) (s : I.Stmt × PubOut I) (W : Weight E I.μ) (T : E) :
+    (⟨W, T⟩ : WeightedClaim I) ∈ (FlockPhase.finish r h s W T).2.weighted.toList := by
+  simp only [FlockPhase.finish, Vector.toList_cast, Vector.toList_mk, List.mem_singleton]
+
+/-! ## On the typed framework -/
+
+/-- The Flock phase on a region, typed. -/
 def flockPhaseSome (r : FlockRegion I.toShape) (h : I.flock = some r) :
-    Phase.FrontDef I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpecOf r.kBatch) where
-  toDef := Flock.flock (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
-    (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
-  front := Flock.flockFront (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
+    Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
+      (flockSlotOf r.kBatch) :=
+  Flock.flock (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
     (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
 
-/-- The Flock phase on the slot of a region or of none: with no region it hands the claims on. -/
+/-- The Flock phase on the slot of a region or of none, typed. -/
 def flockPhaseOpt : (o : Option (FlockRegion I.toShape)) → I.flock = o →
-    Phase.FrontDef I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpecOpt I o)
-  | none, h => ⟨Phase.passThrough I fun s ↦
-      (s.1, ⟨s.2.columns, Vector.cast (by simp [M3Instance.flockClaims, h]) #v[]⟩),
-    Component.passThroughFront _ _⟩
+    Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit (flockSlotOpt I o)
+  | none, h => Typed.passThrough _ fun s ↦
+      (s.1, ⟨s.2.columns, Vector.cast (by simp [M3Instance.flockClaims, h]) #v[]⟩)
   | some r, h => flockPhaseSome I r h
 
-/-- **The Flock phase** (Annex C, Annex A): at the slot `flockSpec`, a front phase. -/
-def flockPhase : Phase.FrontDef I (I.Stmt × PubOut I) (I.Stmt × FlockOut I) (flockSpec I) :=
+/-- **The Flock phase on the typed framework**, at its slot `flockPhaseSlot I`. -/
+def flockPhase : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
+    (flockPhaseSlot I) :=
   flockPhaseOpt I I.flock rfl
 
-/-- Completeness of the Flock phase on a slot. -/
-def flockCompleteOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
-    Phase.Complete I (flockPhaseOpt I o h).toDef (Seam.pub I) (Seam.flock I)
-  | none, h => Phase.passThroughComplete I _ fun s o hin ↦ ⟨hin.1, by simp⟩
+/-- Typed completeness of the Flock phase on a slot. -/
+theorem flockCompleteOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
+    Typed.Complete (flockPhaseOpt I o h) (Seam.pub I) (Seam.flock I)
+  | none, h => Typed.passThroughComplete fun s o w hin ↦ by
+      cases w
+      exact ⟨hin.1, by simp⟩
   | some r, h =>
     Flock.flockComplete (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
       (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
@@ -244,158 +258,9 @@ def flockCompleteOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o
       (fun o i u ↦ bitTable_isBool (I.flockColumn r (theStack o)) i u)
       (fun o p ↦ FlockPhase.eval₂Mle_flockColumn r (theStack o) p)
 
-/-- **Completeness of the Flock phase**: from the public-input seam to the Flock seam, the honest
-prover is accepted with probability one. -/
-def flockComplete : Phase.Complete I (flockPhase I).toDef (Seam.pub I) (Seam.flock I) :=
-  flockCompleteOpt I I.flock rfl
-
-/-- **The Flock slot's error.** With a region of `2 ^ k` compressions, the errors of the slot sum
-to at most `(4k + 163) / |E| + 2^32 / |E|`: the zerocheck and lincheck's `(4k + 163) / |E|`
-(Annex C, §C.5) and ring switching's below `2^32 / |E|` (Annex A, §A.4). -/
-theorem flockError_le {r : FlockRegion I.toShape} (h : I.flock = some r) :
-    ∑ i, flockError I i ≤ overE (4 * r.kBatch + 163) + overE (2 ^ 32) := by
-  have key : ∀ o (_ : o = some r), ∑ i, flockErrorOpt I o i ≤
-      overE (4 * r.kBatch + 163) + overE (2 ^ 32) := by
-    rintro o rfl
-    refine (sum_flockErrorOf r.kBatch).trans_le ?_
-    rw [← overE_add]
-    exact overE_mono (by omega)
-  exact key _ h
-
-
-/-! ## Knowledge soundness -/
-
-/-- `N / |E|`, counted by `Nat.card`, is `overE N`. -/
-theorem overF_eq_overE (N : ℕ) : Flock.overF E N = overE N := by
-  rw [Flock.overF, overE, Nat.card_eq_fintype_card]
-
-private theorem drawError_le_overE {N : ℕ} (M : ℕ) (h : N ≤ M) (i : (draw E).ChallengeIdx) :
-    drawError E (Flock.overF E N) i ≤ drawError E (overE M) i := by
-  rw [overF_eq_overE]
-  exact overE_mono h
-
-/-- The ring-switching coefficients at `1/|E|` each, below the slot's `2^{2^{5−p}−1}/|E|`. -/
-private theorem drawsError_le_ringError (i : (draws E 6).ChallengeIdx) :
-    drawsError E (Flock.overF E 1) 6 i ≤ ringError i :=
-  Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le
-    (Flock.errAppend_le (Flock.errAppend_le (fun j ↦ Fin.elim0 j.1)
-    (drawError_le_overE _ Nat.one_le_two_pow)) (drawError_le_overE _ Nat.one_le_two_pow))
-    (drawError_le_overE _ Nat.one_le_two_pow)) (drawError_le_overE _ (by norm_num)))
-    (drawError_le_overE _ (by norm_num))) (drawError_le_overE _ le_rfl) i
-
-/-- **The Flock argument's errors are within the slot's.** At leanVM's sizes the generic
-argument's error is at most the slot's on every challenge: equal on the point, the skip, `α` and
-the within-block and lincheck rounds; `2/|E|` on a batch round where the slot charges `3/|E|`; and
-`1/|E|` on each ring-switching coefficient where it charges `2^{2^{5−p}−1}/|E|`. -/
-theorem flockError_le_flockErrorOf (k : ℕ) (i : (flockSpecOf k).ChallengeIdx) :
-    Flock.flockError (flockParams k) 5 i ≤ flockErrorOf k i :=
-  Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le
-    (Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le (Flock.errAppend_le
-    (Flock.errAppend_le (Flock.drawsError_mono (overF_eq_overE 1).le _) fun _ ↦ le_rfl)
-    (drawError_le_overE _ (by norm_num [flockParams, Flock.kSkip])))
-    (Flock.roundsError_mono (overF_eq_overE 2).le _))
-    (Flock.roundsError_mono ((overF_eq_overE 2).trans_le (overE_mono (by norm_num))) _))
-    (fun _ ↦ le_rfl)) (drawError_le_overE _ le_rfl))
-    (Flock.roundsError_mono (overF_eq_overE 2).le _)) (fun _ ↦ le_rfl))
-    drawsError_le_ringError i
-
-/-- **The proved error.** At leanVM's sizes the generic argument's errors sum to
-`(3k + 169) / |E|`: `k + 1` for the point, `127` for `z_skip`, `2` for each of the `8 + k`
-zerocheck and `8` lincheck rounds, `3` for `α` and `6` for ring switching. The slot charges
-`(4k + 302 + 2^31 + 2^15) / |E|` (`sum_flockErrorOf`). -/
-theorem sum_flockError_generic (k : ℕ) :
-    ∑ i, Flock.flockError (flockParams k) 5 i = overE (3 * k + 169) := by
-  simp only [Flock.flockError, sum_errAppend, sum_drawsError, sum_sayError, sum_drawError,
-    sum_roundsError, add_zero, overF_eq_overE, nat_mul_overE]
-  simp only [← overE_add]
-  congr 1
-  simp only [flockParams, Flock.kSkip, Flock.kIn]
-  ring
-
-/-- The switched claim is among the claims the phase hands on. -/
-theorem FlockPhase.mem_weighted_finish {I : M3Instance} (r : FlockRegion I.toShape)
-    (h : I.flock = some r) (s : I.Stmt × PubOut I) (W : Weight E I.μ) (T : E) :
-    (⟨W, T⟩ : WeightedClaim I) ∈ (FlockPhase.finish r h s W T).2.weighted.toList := by
-  simp only [FlockPhase.finish, Vector.toList_cast, Vector.toList_mk, List.mem_singleton]
-
-/-- Knowledge soundness of the Flock phase on a slot. -/
-def flockSecurityOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
-    Phase.Security I (flockPhaseOpt I o h).toDef (Seam.pub I) (Seam.flock I) (flockErrorOpt I o)
-  | none, h => Phase.passThroughSecurity I _ (fun s o hin ↦ ⟨hin.1, by simp⟩)
-      fun s o hout ↦ ⟨hout.1, fun r hr ↦ by simp [h] at hr⟩
-  | some r, h =>
-    Component.Security.mono (flockError_le_flockErrorOf r.kBatch)
-      (Flock.flockSecurity (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
-        (algebraMap K E) g (FlockPhase.lift r) (fun o ↦ (I.flockColumn r (theStack o)).values)
-        (fun o ↦ (theStack o).values) (FlockPhase.finish r h) flockNodes_injective
-        fixedWeights_independent (fun δ hδ ↦ ringSwitch_injective δ fun k hk ↦ hδ k hk)
-        (Seam.pub I) (Seam.flock I)
-        (fun s o ↦ ⟨fun hin ↦ ⟨hin.1, hin.2 r (by rw [h]; rfl)⟩,
-          fun hin ↦ ⟨hin.1, fun r' hr' ↦ by
-            rw [h] at hr'
-            cases hr'
-            exact hin.2⟩⟩)
-        (fun s o W T hout ↦ by
-          have h1 : FlockPhase.side s o := hout.1
-          have h2 : WeightedClaim.Holds (theStack o) ⟨W, T⟩ :=
-            hout.2 _ (FlockPhase.mem_weighted_finish r h s W T)
-          exact ⟨h1, h2⟩)
-        (fun o u ↦ ofK_eq_sum_bitTable (I.flockColumn r (theStack o)) u)
-        (fun o i u ↦ bitTable_isBool (I.flockColumn r (theStack o)) i u)
-        (fun o p ↦ FlockPhase.eval₂Mle_flockColumn r (theStack o) p))
-
-/-- **Knowledge soundness of the Flock phase**: from the public-input seam to the Flock seam,
-round-by-round knowledge sound at the slot's error. -/
-def flockSecurity : Phase.Security I (flockPhase I).toDef (Seam.pub I) (Seam.flock I)
-    (flockError I) :=
-  flockSecurityOpt I I.flock rfl
-
-/-! ## On the typed framework -/
-
-/-- The Flock phase on a region, typed. -/
-def flockPhaseSomeT (r : FlockRegion I.toShape) (h : I.flock = some r) :
-    Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
-      (flockSlotOf r.kBatch) :=
-  Flock.flockT (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
-    (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
-
-/-- The Flock phase on the slot of a region or of none, typed. -/
-def flockPhaseOptT : (o : Option (FlockRegion I.toShape)) → I.flock = o →
-    Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit (flockSlotOpt I o)
-  | none, h => Typed.passThrough _ fun s ↦
-      (s.1, ⟨s.2.columns, Vector.cast (by simp [M3Instance.flockClaims, h]) #v[]⟩)
-  | some r, h => flockPhaseSomeT I r h
-
-/-- **The Flock phase on the typed framework**, at its slot `flockPhaseSlot I`. -/
-def flockPhaseT : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
-    (flockPhaseSlot I) :=
-  flockPhaseOptT I I.flock rfl
-
-/-- Typed completeness of the Flock phase on a slot. -/
-theorem flockCompleteOptT : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
-    Typed.Complete (flockPhaseOptT I o h) (Seam.pub I) (Seam.flock I)
-  | none, h => Typed.passThroughComplete fun s o w hin ↦ by
-      cases w
-      exact ⟨hin.1, by simp⟩
-  | some r, h =>
-    Flock.flockCompleteT (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
-      (algebraMap K E) g (FlockPhase.lift r) (FlockPhase.finish r h)
-      (fun o ↦ (I.flockColumn r (theStack o)).values) (fun o ↦ (theStack o).values)
-      flockNodes_injective (Seam.pub I) (Seam.flock I)
-      (fun s o _ hin ↦ ⟨hin.1, hin.2 r (by rw [h]; rfl)⟩)
-      (fun s o _ W T hside hpair ↦ ⟨hside, by
-        simp only [FlockPhase.finish, Vector.toList_cast]
-        intro c hc
-        simp only [Vector.toList_mk, List.mem_singleton] at hc
-        subst hc
-        exact hpair⟩)
-      (fun o u ↦ ofK_eq_sum_bitTable (I.flockColumn r (theStack o)) u)
-      (fun o i u ↦ bitTable_isBool (I.flockColumn r (theStack o)) i u)
-      (fun o p ↦ FlockPhase.eval₂Mle_flockColumn r (theStack o) p)
-
 /-- **Completeness of the Flock phase on the typed framework.** -/
-theorem flockCompleteT : Typed.Complete (flockPhaseT I) (Seam.pub I) (Seam.flock I) :=
-  flockCompleteOptT I I.flock rfl
+theorem flockComplete : Typed.Complete (flockPhase I) (Seam.pub I) (Seam.flock I) :=
+  flockCompleteOpt I I.flock rfl
 
 /-- The generic argument's typed errors are within the slot's on every challenge. -/
 theorem flockErrorsT_le_flockErrorsOf (k : ℕ) :
@@ -418,12 +283,12 @@ theorem flockErrorsT_le_flockErrorsOf (k : ℕ) :
   · exact ⟨(overF_eq_overE 3).le, fun _ ↦ trivial⟩
 
 /-- Typed knowledge soundness of the Flock phase on a slot. -/
-def flockSecurityOptT : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
-    Typed.Security (flockPhaseOptT I o h) (Seam.pub I) (Seam.flock I) (flockErrorsOpt I o)
+def flockSecurityOpt : (o : Option (FlockRegion I.toShape)) → (h : I.flock = o) →
+    Typed.Security (flockPhaseOpt I o h) (Seam.pub I) (Seam.flock I) (flockErrorsOpt I o)
   | none, h => Typed.passThroughSecurityOfIff fun s o ↦
       ⟨fun hout ↦ ⟨hout.1, fun r hr ↦ by simp [h] at hr⟩, fun hin ↦ ⟨hin.1, by simp⟩⟩
   | some r, h =>
-    (Flock.flockSecurityT (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
+    (Flock.flockSecurity (flockParams r.kBatch) r.r1cs (FlockPhase.bits r) FlockPhase.side 5
         (algebraMap K E) g (FlockPhase.lift r) (fun o ↦ (I.flockColumn r (theStack o)).values)
         (fun o ↦ (theStack o).values) (FlockPhase.finish r h) flockNodes_injective
         fixedWeights_independent (fun δ hδ ↦ ringSwitch_injective δ fun k hk ↦ hδ k hk)
@@ -444,8 +309,8 @@ def flockSecurityOptT : (o : Option (FlockRegion I.toShape)) → (h : I.flock = 
       (flockErrorsT_le_flockErrorsOf r.kBatch)
 
 /-- **Knowledge soundness of the Flock phase on the typed framework**, at the slot's errors. -/
-def flockSecurityT : Typed.Security (flockPhaseT I) (Seam.pub I) (Seam.flock I) (flockErrors I) :=
-  flockSecurityOptT I I.flock rfl
+def flockSecurity : Typed.Security (flockPhase I) (Seam.pub I) (Seam.flock I) (flockErrors I) :=
+  flockSecurityOpt I I.flock rfl
 
 end
 end LeanerVM.Protocol

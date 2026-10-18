@@ -1,7 +1,6 @@
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Toy
 import LeanerVM.Protocol.Spine.Compose
-import LeanerVM.Protocol.ToArkLib.Refutation
 
 /-!
 # Public-input phase tests
@@ -27,16 +26,15 @@ Every guard changes one thing.
 * **The pool reads the message.** A wrong value that passes no check is what the pool would
   carry; at the expected values the pool from the message is the pool of the lines' claims; a
   message without one value per sent line is rejected before any check.
-* **The phase** fills its slot: two rounds, a challenge then a message, its verifier never
-  reads the stack, and its two halves typecheck against the spine's seams at the slot's error.
+* **The phase** fills its slot: two rounds, a challenge then a message, its verdict a function of
+  the path alone, and its two halves typecheck against the spine's seams at the slot's errors.
 * **The check is load-bearing.** On a statement outside the table seam, a prover that sends its
   stack's true values is accepted with a pool inside the public seam by the verifier without
   the check, by the verifier that checks the first value only, by the verifier that pools an
   unsent line's claim at zero, and by the one that pools it at the constant zero where the line
   is not zero; so none of them has a round-by-round knowledge error below one, whatever extractor
-  and state function it is given. The verifier whose check swaps the two cells, and the one with
-  an extra check on the message's length, reject the honest prover: neither is perfectly
-  complete. The bound `1/|E|` is attained at one challenge.
+  it is given. The verifier whose check swaps the two cells, and the one with an extra check on
+  the message's length, reject the honest prover: neither is complete. The bound `1/|E|` is attained at one challenge.
 
 The toy's table seam carries three received claims, one per column of its table; the fixtures
 give them true values at a cube point. A plain file, so `#guard` evaluates the compiled
@@ -265,25 +263,16 @@ def atStar : List E := [rStar, 1 + rStar]
 
 /-! ## The phase in its slot -/
 
-/-- Two rounds: the challenge, then the prover's values. -/
-example : pubSpec.dir 0 = .V_to_P := rfl
+/-- Two rounds: the challenge, then the prover's values, which the verdict reads and nothing
+else; the slot's error is `1/|E|` on the one challenge. -/
+example : pubSlot.tree = .public E fun _ ↦ .public (List E) fun _ ↦ .done := rfl
 
-example : pubSpec.dir 1 = .P_to_V := rfl
+example : pubErrors = (overE 1, fun _ _ ↦ PUnit.unit) := rfl
 
-/-- The slot's error is `1/|E|` on the one challenge. -/
-example (i : pubSpec.ChallengeIdx) : pubError i = overE 1 := rfl
+/-- The two halves typecheck against the two seams, at the slot's errors. -/
+example : Typed.Complete (phase toy) (Seam.table toy) (Seam.pub toy) := complete toy
 
-/-- The verifier never reads the stack: it is a front verifier. -/
-example : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
-  PublicInput.verifier toy
-
-/-- The two halves typecheck against the two seams, at the slot's error. -/
-example : Phase.Complete toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy) :=
-  publicInputComplete toy
-
-example : Phase.Security toy (publicInputPhase toy).toDef (Seam.table toy) (Seam.pub toy)
-    pubError :=
-  publicInputSecurity toy
+example : Typed.Security (phase toy) (Seam.table toy) (Seam.pub toy) pubErrors := security toy
 
 /-- The phase is one field of a bundle: with the four other phases and their proofs, the master
 completeness theorem applies. -/
@@ -297,7 +286,7 @@ example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
 
 section Refutations
 
-open OracleComp OracleSpec ProtocolSpec
+open OracleComp OracleSpec
 open scoped NNReal
 
 /-- Three received claims true of a stack by construction: the three columns of the first
@@ -327,30 +316,15 @@ theorem aux_of_none {I : M3Instance} (h : I.flock = none) (q : Column I.μ) : I.
   rw [h] at hr
   exact (Option.not_mem_none r hr).elim
 
-/-- Rounds after the challenge are the prover's. -/
-theorem later_P_to_V : ∀ j : Fin 2, 0 < j.val → pubSpec.dir j = .P_to_V := by
-  intro j hj
-  fin_cases j
-  · exact absurd hj (Nat.lt_irrefl 0)
-  · rfl
-
-/-- The full transcript with challenge `c` and message `m`, as the prefix of length one
-followed by the message. -/
-abbrev fullOf (c : pubSpec.Challenge ⟨0, rfl⟩) (m : List E) : pubSpec.FullTranscript :=
-  Fin.snoc (Transcript.concat c fun j ↦ Fin.elim0 j) m
-
-theorem fullOf_take (c : pubSpec.Challenge ⟨0, rfl⟩) (m : List E) :
-    (fullOf c m).take 1 (by decide) = Transcript.concat c fun j ↦ Fin.elim0 j := by
-  funext j
-  show Fin.snoc (α := fun i ↦ pubSpec.Type i) (Transcript.concat c fun j ↦ Fin.elim0 j) m
-    (Fin.castSucc j) = _
-  exact Fin.snoc_castSucc _ _ j
+/-- The path through the phase with challenge `c` and message `m`: no challenge after `c`. -/
+abbrev restOf (m : List E) :
+    (Interaction.Oracle.TypeTree.public (List E) fun _ ↦ .done).ExecutionPath :=
+  ⟨m, PUnit.unit⟩
 
 /-! ### The check removed -/
 
-/-- The verifier that accepts every message and pools the values sent. -/
-abbrev noCheck : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
-  verifierWith toy (fun _ _ _ ↦ true) (pooledFrom toy)
+/-- The phase that accepts every message and pools the values sent. -/
+abbrev noCheck := phaseWith toy (fun _ _ _ ↦ true) (pooledFrom toy)
 
 /-- The statement `1` with the received claims true of `badLine`, whose line fails. -/
 def stmtBad : K × TableOut toy :=
@@ -376,34 +350,21 @@ theorem noCheck_pub (c : E) :
 
 /-- Without the check there is no round-by-round knowledge error below one: at `stmtBad`, a
 prover that sends its stack's true value at any challenge is accepted with a pool inside the
-public seam. Whatever the extractor and the state function. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {WitMid : Fin 3 → Type}
-    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      ((K × TableOut toy) × ∀ i, TheOracle toy i) Unit Unit pubSpec WitMid)
-    (kSF : (noCheck.toOracleVerifier (TheOracle toy)).toVerifier.KnowledgeStateFunction init
-      impl (Seam.table toy) (Seam.pub toy) Ext)
-    (ε : pubSpec.ChallengeIdx → ℝ≥0)
-    (h : (noCheck.toOracleVerifier (TheOracle toy)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith
-      init impl (Seam.table toy) (Seam.pub toy) WitMid Ext kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ :=
-  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtBad, oracleOf badLine)
-    (fun _ h ↦ stmtBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
-      ⟨fullOf c (trueValues toy badLine 1 c), fullOf_take c _, (),
-        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith toy _ _) init impl _ _ _
-          (by
-            show accepts toy (fun _ _ _ ↦ true) stmtBad c (trueValues toy badLine 1 c) = true
-            simp only [accepts, Bool.and_true, decide_eq_true_eq]
-            exact trueValues_length toy badLine 1 c)
-          (noCheck_pub c)⟩
+public seam. Whatever the extractor. -/
+example {err : Typed.Errors pubSlot.tree pubSlot.roles}
+    (S : Typed.Security noCheck (Seam.table toy) (Seam.pub toy) err) : 1 ≤ err.1 :=
+  S.one_le_of_escape stmtBad (oracleOf badLine) (fun _ h ↦ stmtBad_not_table h) fun c ↦
+    ⟨restOf (trueValues toy badLine 1 c), trivial, _, (),
+      (@verdictWith_of_accepts toy (fun _ _ _ ↦ true) (pooledFrom toy) stmtBad c
+        (trueValues toy badLine 1 c) (by
+          simp only [accepts, Bool.and_true, decide_eq_true_eq]
+          exact trueValues_length toy badLine 1 c)), noCheck_pub c⟩
 
 /-! ### The check weakened to its first value -/
 
-/-- The verifier that checks the first value only, on `twoLimbs`. -/
-abbrev firstOnly : FrontVerifier []ₒ (K × TableOut twoLimbs) (K × PubOut twoLimbs) pubSpec :=
-  verifierWith twoLimbs
-    (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?))
-    (pooledFrom twoLimbs)
+/-- The phase that checks the first value only, on `twoLimbs`. -/
+abbrev firstOnly := phaseWith twoLimbs
+  (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?)) (pooledFrom twoLimbs)
 
 /-- Limb 0 is `[0, 0]`, as its line says; limb 1 is `[1, 0]`, against its line. -/
 def oneBadLimb : Column 3 := ⟨#v[0, 0, 1, 0, 0, 0, 0, 0]⟩
@@ -448,28 +409,15 @@ theorem firstOnly_pub (c : E) :
 
 /-- Checking the first value only leaves no round-by-round knowledge error below one: the
 second value is pooled unchecked. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {WitMid : Fin 3 → Type}
-    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      ((K × TableOut twoLimbs) × ∀ i, TheOracle twoLimbs i) Unit Unit pubSpec WitMid)
-    (kSF : (firstOnly.toOracleVerifier (TheOracle twoLimbs)).toVerifier.KnowledgeStateFunction
-      init impl (Seam.table twoLimbs) (Seam.pub twoLimbs) Ext)
-    (ε : pubSpec.ChallengeIdx → ℝ≥0)
-    (h : (firstOnly.toOracleVerifier
-      (TheOracle twoLimbs)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-        (Seam.table twoLimbs) (Seam.pub twoLimbs) WitMid Ext kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ :=
-  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtOneBad, oracleOf oneBadLimb)
-    (fun _ h ↦ stmtOneBad_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
-      ⟨fullOf c (firstOnlyMsg c), fullOf_take c _, (),
-        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith twoLimbs _ _) init impl _ _ _
-          (by
-            show accepts twoLimbs
-              (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?))
-              stmtOneBad c (firstOnlyMsg c) = true
-            simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
-            exact ⟨rfl, by simp [firstOnlyMsg, expectedValues]⟩)
-          (firstOnly_pub c)⟩
+example {err : Typed.Errors pubSlot.tree pubSlot.roles}
+    (S : Typed.Security firstOnly (Seam.table twoLimbs) (Seam.pub twoLimbs) err) : 1 ≤ err.1 :=
+  S.one_le_of_escape stmtOneBad (oracleOf oneBadLimb) (fun _ h ↦ stmtOneBad_not_table h)
+    fun c ↦ ⟨restOf (firstOnlyMsg c), trivial, _, (),
+      (@verdictWith_of_accepts twoLimbs
+        (fun s r cs ↦ decide (cs.head? = (expectedValues twoLimbs s.1 r).head?))
+        (pooledFrom twoLimbs) stmtOneBad c (firstOnlyMsg c) (by
+          simp only [accepts, Bool.and_eq_true, decide_eq_true_eq]
+          exact ⟨rfl, by simp [firstOnlyMsg, expectedValues]⟩)), firstOnly_pub c⟩
 
 /-! ### An unsent line's claim dropped -/
 
@@ -479,9 +427,8 @@ def poolDropped (s : K × TableOut noneSent) (r : E) (cs : List E)
     (h : cs.length = sentCount noneSent (noneSent.publicLines s.1)) : K × PubOut noneSent :=
   (s.1, ⟨s.2.columns ++ claimsWith noneSent r (fun _ ↦ 0) (noneSent.publicLines s.1) cs h⟩)
 
-/-- The verifier with the check and the dropped claim. -/
-abbrev dropped : FrontVerifier []ₒ (K × TableOut noneSent) (K × PubOut noneSent) pubSpec :=
-  verifierWith noneSent (check noneSent) poolDropped
+/-- The phase with the check and the dropped claim. -/
+abbrev dropped := phaseWith noneSent (check noneSent) poolDropped
 
 /-- The statement `1` with the received claims true of `goodLimbs`, whose column 2 is `[0, 0]`
 against the line's cells `(1, 0)`. -/
@@ -514,25 +461,12 @@ theorem dropped_pub (c : E) :
 
 /-- Dropping an unsent line's claim leaves no round-by-round knowledge error below one: the
 empty message passes the check and the pool says nothing of the line. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {WitMid : Fin 3 → Type}
-    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      ((K × TableOut noneSent) × ∀ i, TheOracle noneSent i) Unit Unit pubSpec WitMid)
-    (kSF : (dropped.toOracleVerifier (TheOracle noneSent)).toVerifier.KnowledgeStateFunction
-      init impl (Seam.table noneSent) (Seam.pub noneSent) Ext)
-    (ε : pubSpec.ChallengeIdx → ℝ≥0)
-    (h : (dropped.toOracleVerifier
-      (TheOracle noneSent)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-        (Seam.table noneSent) (Seam.pub noneSent) WitMid Ext kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ :=
-  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtDropped, oracleOf goodLimbs)
-    (fun _ h ↦ stmtDropped_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
-      ⟨fullOf c [], fullOf_take c _, (),
-        Verifier.GuardedForm.prEvent_pos_of_check (guardedWith noneSent _ _) init impl _ _ _
-          (by
-            show accepts noneSent (check noneSent) stmtDropped c [] = true
-            rfl)
-          (dropped_pub c)⟩
+example {err : Typed.Errors pubSlot.tree pubSlot.roles}
+    (S : Typed.Security dropped (Seam.table noneSent) (Seam.pub noneSent) err) : 1 ≤ err.1 :=
+  S.one_le_of_escape stmtDropped (oracleOf goodLimbs) (fun _ h ↦ stmtDropped_not_table h)
+    fun c ↦ ⟨restOf [], trivial, _, (),
+      (@verdictWith_of_accepts noneSent (check noneSent) poolDropped stmtDropped c [] rfl),
+      dropped_pub c⟩
 
 /-! ### A check the honest prover fails -/
 
@@ -549,42 +483,44 @@ def swappedValues (input : K) (r : E) : List E :=
   ((toy.publicLines input).toList.filter (·.sent)).map fun l ↦
     (1 + r) * ofK l.cell1 + r * ofK l.cell0
 
-/-- The verifier with the swapped check. -/
-abbrev swapped : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
-  verifierWith toy (fun s r cs ↦ decide (cs = swappedValues s.1 r)) (pooledFrom toy)
+/-- The phase with the swapped check. -/
+abbrev swapped := phaseWith toy (fun s r cs ↦ decide (cs = swappedValues s.1 r)) (pooledFrom toy)
+
+/-- The honest run at challenge `r`: the expected values sent, the pool output. -/
+theorem honest_runs {I : M3Instance} (accept) (pool) (s : I.Stmt × TableOut I)
+    (o : ∀ i, TheOracle I i) (r : E) :
+    Typed.Runs pubSlot.tree pubSlot.roles pubSlot.samplers
+      ((phaseWith I accept pool).prover (s, o) ()) ⟨r, expectedValues I s.1 r, PUnit.unit⟩
+      ((pooled I s r, o), ()) :=
+  ⟨mem_support_uniformSample E, _, (mem_support_pure_iff _ _).mpr rfl, _,
+    (mem_support_pure_iff _ _).mpr rfl, rfl⟩
+
+/-- A phase of this shape whose check rejects the honest message at some challenge, on a
+statement in the table seam, is not complete. -/
+theorem not_complete_of_reject {I : M3Instance} (accept) (pool) (s : I.Stmt × TableOut I)
+    (o : ∀ i, TheOracle I i) (hin : ((s, o), ()) ∈ Seam.table I) (r : E)
+    (h : accepts I accept s r (expectedValues I s.1 r) = false) :
+    ¬ Typed.Complete (phaseWith I accept pool) (Seam.table I) (Seam.pub I) := fun C ↦
+  nomatch (verdictWith_of_reject I accept pool h).symm.trans
+    (C s o () hin _ _ (honest_runs accept pool s o r)).1
 
 /-- The swapped check rejects the honest prover at the challenge `y`: the line's value is
-`1 + y` and the swapped one `y`. So the phase is not perfectly complete. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    ¬ (OracleReduction.mk (PublicInput.prover toy)
-      (swapped.toOracleVerifier (TheOracle toy))).perfectCompleteness init impl
-        (Seam.table toy) (Seam.pub toy) :=
-  let ⟨pr, hpr, h0, h1, _⟩ := exists_mem_support_prover_run toy stmtHonest (oracleOf honest) y
-  Reduction.not_perfectCompleteness_of_reject' _ (guardedWith toy _ _) init impl _ _
-    stmtHonest_table ⟨pr, hpr, Or.inl (by
-      show (decide ((pr.1 1 : List E).length = sentCount toy (toy.publicLines stmtHonest.1)) &&
-        decide (@Eq (List E) (pr.1 1) (swappedValues stmtHonest.1 (pr.1 0)))) = false
-      rw [h0, h1, show decide (expectedValues toy stmtHonest.1 y = swappedValues stmtHonest.1 y) =
-        false from decide_eq_false fun h ↦ by
-          simp [expectedValues, swappedValues, lineValue, stmtHonest] at h, Bool.and_false])⟩
+`1 + y` and the swapped one `y`. So the phase is not complete. -/
+example : ¬ Typed.Complete swapped (Seam.table toy) (Seam.pub toy) :=
+  not_complete_of_reject _ _ stmtHonest (oracleOf honest) stmtHonest_table y (by
+    rw [accepts, show decide (expectedValues toy stmtHonest.1 y = swappedValues stmtHonest.1 y) =
+      false from decide_eq_false fun h ↦ by
+        simp [expectedValues, swappedValues, lineValue, stmtHonest] at h, Bool.and_false])
 
-/-- The verifier with an extra check: the message has two values. -/
-abbrev extraCheck : FrontVerifier []ₒ (K × TableOut toy) (K × PubOut toy) pubSpec :=
-  verifierWith toy (fun s r cs ↦ check toy s r cs && decide (cs.length = 2)) (pooledFrom toy)
+/-- The phase with an extra check: the message has two values. -/
+abbrev extraCheck :=
+  phaseWith toy (fun s r cs ↦ check toy s r cs && decide (cs.length = 2)) (pooledFrom toy)
 
 /-- The extra check rejects the honest prover, whose message has one value. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
-    ¬ (OracleReduction.mk (PublicInput.prover toy)
-      (extraCheck.toOracleVerifier (TheOracle toy))).perfectCompleteness init impl
-        (Seam.table toy) (Seam.pub toy) :=
-  let ⟨pr, hpr, h0, h1, _⟩ := exists_mem_support_prover_run toy stmtHonest (oracleOf honest) y
-  Reduction.not_perfectCompleteness_of_reject' _ (guardedWith toy _ _) init impl _ _
-    stmtHonest_table ⟨pr, hpr, Or.inl (by
-      show (decide ((pr.1 1 : List E).length = sentCount toy (toy.publicLines stmtHonest.1)) &&
-        (check toy stmtHonest (pr.1 0 : E) (pr.1 1 : List E) &&
-          decide ((pr.1 1 : List E).length = 2))) = false
-      rw [h0, h1, show decide ((expectedValues toy stmtHonest.1 y).length = 2) = false from rfl,
-        Bool.and_false, Bool.and_false])⟩
+example : ¬ Typed.Complete extraCheck (Seam.table toy) (Seam.pub toy) :=
+  not_complete_of_reject _ _ stmtHonest (oracleOf honest) stmtHonest_table y (by
+    rw [accepts, show decide ((expectedValues toy stmtHonest.1 y).length = 2) = false from rfl,
+      Bool.and_false, Bool.and_false])
 
 /-! ### The unsent line pooled at the constant zero -/
 
@@ -618,10 +554,9 @@ abbrev topOne : M3Instance :=
   ((pooledFrom topOne (1, ⟨receivedTrue topOne (by decide) (by decide) (by decide) (by decide)
     goodLimbs⟩) y [1, 1] rfl).2.columns.toList.map fun c ↦ c.value)
 
-/-- The verifier with the specification's check and that pool, on the statement with the top line
+/-- The phase with the specification's check and that pool, on the statement with the top line
 `(1, 0)`. -/
-abbrev zeroTop : FrontVerifier []ₒ (K × TableOut topOne) (K × PubOut topOne) pubSpec :=
-  verifierWith topOne (check topOne) (poolZero topOne)
+abbrev zeroTop := phaseWith topOne (check topOne) (poolZero topOne)
 
 /-- The statement `1` with the received claims true of `goodLimbs`, whose top column `[0, 0]`
 is not the top line's `(1, 0)`. -/
@@ -678,31 +613,17 @@ theorem zeroTop_pub (c : E) :
       rw [eval₂Mle_linePoint, e0, e1]
       simp
 
-set_option maxRecDepth 1000 in
 /-- Pooling the unsent line at the constant zero leaves no round-by-round knowledge error below
 one when the line is not zero: the stack whose top column is `[0, 0]` against the line's
 `(1, 0)` is accepted at every challenge. It is sound where the line is zero, which is why the
 sources may pool the top limb at `0`, and that the adaptor's statements have a zero top line
 is the obligation behind it. -/
-example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
-    {WitMid : Fin 3 → Type}
-    (Ext : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
-      ((K × TableOut topOne) × ∀ i, TheOracle topOne i) Unit Unit pubSpec WitMid)
-    (kSF : (zeroTop.toOracleVerifier (TheOracle topOne)).toVerifier.KnowledgeStateFunction
-      init impl (Seam.table topOne) (Seam.pub topOne) Ext)
-    (ε : pubSpec.ChallengeIdx → ℝ≥0)
-    (h : (zeroTop.toOracleVerifier
-      (TheOracle topOne)).toVerifier.rbrKnowledgeSoundnessWorstCaseWith init impl
-        (Seam.table topOne) (Seam.pub topOne) WitMid Ext kSF ε) :
-    1 ≤ ε ⟨0, rfl⟩ :=
-  Verifier.not_rbr_zero h ⟨0, rfl⟩ rfl later_P_to_V (stmtTop, oracleOf goodLimbs)
-    (fun _ h ↦ stmtTop_not_table h) (fun j ↦ Fin.elim0 j) fun c ↦
-      ⟨fullOf c [1, 1], fullOf_take c _, (),
-        Verifier.GuardedForm.prEvent_pos_of_check
-          (guardedWith topOne (check topOne) (poolZero topOne)) init impl
-          (stmtTop, oracleOf goodLimbs) (fullOf c [1, 1])
-          (fun out ↦ (out, ()) ∈ Seam.pub topOne)
-          (zeroTop_accepts c) (zeroTop_pub c)⟩
+example {err : Typed.Errors pubSlot.tree pubSlot.roles}
+    (S : Typed.Security zeroTop (Seam.table topOne) (Seam.pub topOne) err) : 1 ≤ err.1 :=
+  S.one_le_of_escape stmtTop (oracleOf goodLimbs) (fun _ h ↦ stmtTop_not_table h) fun c ↦
+    ⟨restOf [1, 1], trivial, _, (),
+      (@verdictWith_of_accepts topOne (check topOne) (poolZero topOne) stmtTop c [1, 1]
+        (zeroTop_accepts c)), zeroTop_pub c⟩
 
 -- The specification's verifier, which pools the value computed, as the deployed verifiers now
 -- do, is not fooled: the claim it pools for the top line is false of that stack.
@@ -714,7 +635,7 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 -- On `oneBadLimb`, limb 1 holds the cells `(1, 0)` against `(0, 0)`. A prover that sends its
 -- stack's true values passes the check at `r = 1` and at no other challenge tried, and at that
 -- challenge every claim of the pool holds of its stack: the bound `1/|E|` of
--- `publicInputSecurity` is attained, so it cannot be lowered.
+-- `PublicInput.security` is attained, so it cannot be lowered.
 #guard check twoLimbs stmtOneBad 1 (trueValues twoLimbs oneBadLimb 0 1)
 #guard ¬ check twoLimbs stmtOneBad y (trueValues twoLimbs oneBadLimb 0 y)
 #guard ¬ check twoLimbs stmtOneBad r₂ (trueValues twoLimbs oneBadLimb 0 r₂)
