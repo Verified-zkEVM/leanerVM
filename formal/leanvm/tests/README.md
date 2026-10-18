@@ -37,8 +37,10 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   `noncomputable`, and so does a real number or a `Fintype E` instance passed as an argument;
   keep the reduction, the verifier and the extractor in computable definitions and the error
   in types: state a security at its exact error, counting with `Nat.card` under `[Finite F]`,
-  raise it with `Component.Security.mono`, which is inlined before compilation, and check an
-  extractor by a `def` without `noncomputable`.
+  raise it with `Typed.Security.mono`, which is inlined before compilation, and check an
+  extractor by a `def` without `noncomputable`. A call that passes noncomputable errors as an
+  argument to a definition (not a projection) makes the caller noncomputable too: mark a
+  terminal relation `noncomputable`, never the extractor.
 - `simp` does not rewrite inside instance arguments carried by a structure's type: state a
   phase's lemmas on its literal prover and verifier, not on the bundle's projections.
 - A `Decidable` instance written `by unfold …; infer_instance` can elaborate and never return
@@ -51,10 +53,6 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
 - `#guard v = w` finds no `Decidable` instance when the vectors' length is a computed size;
   compare `.toList`. A `#guard` whose proposition has a numeral of `E` next to an operation
   (`y ^ 2 + 1`) finds none either; name such values as definitions.
-- An instance `∀ i, OracleInterface ((p₁ ++ₚ p₂).Message i)` for concrete schedules `p₁`, `p₂`
-  is never found by instance search, even with the parts' instances at hand: ArkLib's instance
-  is applied by name (`msgAppend`, `chalAppend` in `ToArkLib/Schedule.lean`). A recursive
-  schedule gets a recursive instance the same way.
 - `exact le_of_eq (Finset.sum_eq_zero fun i _ ↦ …)` against a right side that is not `0` fails
   with "type of `i` is not known": the lambda is elaborated before the unification that would
   fail anyway. Write `(Finset.sum_eq_zero fun (i : T) _ ↦ …).le.trans zero_le` with the index
@@ -66,10 +64,9 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   give `List.decidableBAll _ _` by name.
 - A `#guard` on a subtype value built by hand with its proof (a polynomial with its degree
   bound, `⟨q.val + C 1, …⟩`) never returned; build test values with the definitions under test.
-- `draw C ++ₚ draws C k` has `1 + k` rounds and `draws C (k + 1)` has `k + 1`, which are not
-  the same type for a variable `k`; so `draws` nests its new challenge last, and a component
-  drawing `k` challenges one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its
-  last step into the last challenge (`Gkr.interpolate`).
+- `drawsSlot C (k + 1)` appends its new challenge last, so a component drawing `k` challenges
+  one at a time recurses on a prefix (`Gkr.interpPrefix`) and folds its last step into the last
+  challenge (`Gkr.interpolate`).
 - A `Finset.filter` in a statement under `open scoped Classical in` takes the classical instance
   only where no other applies: a lemma stated without `[DecidableEq F]` in scope and used where
   it is in scope fails with "synthesized type class instance is not definitionally equal". Keep
@@ -78,7 +75,7 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
 - A recursion whose branch must reduce a `match` on its index (the last step of
   `Gkr.layerStepsSecurity` uses one tracker, the others another) splits the index as
   `0`, `1`, `k + 2`: a `match` on a variable `k` inside the branch does not reduce, and the two
-  sides of `Component.Security.append` must agree definitionally.
+  sides of `Typed.Security.append` must agree definitionally.
 - A closed statement over `E` in a definitional comparison is an evaluation of the trees: a
   hypothesis such as `s.2.2 ≠ Φ.claim (ctxOf …) …` at `s := (s0.1, (s0.2.1, trueClaim + 1))`,
   with `s0` and `trueClaim` the hand run's values, sends the unifier, or the kernel, through
@@ -87,28 +84,27 @@ Pitfalls met while building the proof system (`LeanerVM/Protocol/`):
   cv + 1))` with `x` and `cv` variables, is one unfolding, since nothing closed can be
   evaluated. State a refutation over variables and keep the hand run's values for the honest
   runs; never `simp`, `show` or `change` between two spellings of a claim over `E`.
-- Handing a transcript to a guarded check in a refutation
-  (`Verifier.GuardedForm.prEvent_pos_of_check` on `fullOf c msg`) can exceed the default
-  recursion depth when the statement has three public lines, the unifier unfolding the count of
-  sent lines to match the message: a local `set_option maxRecDepth 1000 in` on that one example
-  is enough (`zeroTop` in `tests/LeanerVMTests/Protocol/PublicInput.lean`). `simpa` on a
-  hypothesis that mixes `E` arithmetic with a structure literal can hit the same limit; name the
-  lemmas in a `simp only`.
+- A refutation of a weakened phase at a concrete instance unifies the phase's verdict on a path
+  with the library's: state the step once over an abstract instance (`not_complete_of_reject` in
+  `tests/LeanerVMTests/Protocol/PublicInput.lean`) or apply the library's lemma with every
+  argument explicit (`@verdictWith_of_accepts …`); `simpa` on a hypothesis that mixes `E`
+  arithmetic with a structure literal can exceed the recursion depth, so name the lemmas in a
+  `simp only`.
+- A binder at a concrete instance whose type is a terminal knowledge state (`(X.terminalState
+  path).Witness`) makes the `constructorNameAsVariable` linter unfold the whole tree and time
+  out; state such examples over an abstract instance (`tests/LeanerVMTests/Protocol/Spine.lean`).
 
 - On the toy instance, an `abbrev`, unifying a term the library built with one the test
   elaborates afresh can time out at `whnf` where the same unification at an abstract instance is
   immediate: a column claim's weighted claim written as `⟨eqWeight …, c.value⟩` against
   `Opening.columnWeighted toy c`, the stack's question `⟨0, W⟩` against the library's, or a
-  variant verifier's steps given as lambdas mentioning the pool to
-  `Component.batchQuery_not_rbr`. Use the library's named terms and its lemmas stated over an
-  abstract instance (`Opening.columnWeighted_holds_iff`, `Opening.answer_weight_iff`), prove a
-  fact once over an abstract instance and instantiate it (`unit_holds_of_copies` in
-  `tests/LeanerVMTests/Protocol/Opening.lean`), and define a variant verifier's steps over an
-  abstract instance.
-- A component appended with a zero-round one has the schedule `draw F ++ₚ !p[]`, which is
-  `draw F` by `rfl`, instances included, but instance search does not find the appended
-  instances for statements about it; give the composition the type at `draw F` by an
-  abbreviation (`Component.batchQuery`), and pin `ChallengeIdx.sumEquiv`'s schedules by name.
+  variant's steps given as lambdas mentioning the pool. Use the library's named terms and its
+  lemmas stated over an abstract instance (`Opening.columnWeighted_holds_iff`,
+  `Seam.opened_iff`), prove a fact once over an abstract instance and instantiate it
+  (`unit_holds_of_copies` in `tests/LeanerVMTests/Protocol/Opening.lean`), and define a variant's
+  steps over an abstract instance. The master theorems' full statements are checked over an
+  abstract instance: at a concrete one with a Flock region, unifying the verifier's leaf type
+  times out.
 
 Implementation-validation tests should run identical versioned workloads through the Lean
 reference and a pinned Rust leanVM revision, comparing decoding, state transitions, outputs,

@@ -1,11 +1,11 @@
 # The proof spine on ArkLib's typed framework: the migration plan
 
-This page reopens the protocol blueprint's decision 24 ("stay on `OracleReduction`") and plans
-the move of the proof system from ArkLib's legacy `OracleReduction` framework to its typed
+This page reopened the protocol blueprint's decision 24 ("stay on `OracleReduction`"), which is
+now reversed, and planned the move of the proof system from ArkLib's legacy `OracleReduction` framework to its typed
 `Interaction` framework (`ArkLib/Interaction/`, over PolyFun's interaction trees), at the pins of
 `upstreams.json` (ArkLib `4dae3acf`, VCVio `afa6593f`, PolyFun `41d3b21d`, Lean `v4.34.1`). It
-says what uses the legacy framework, what the typed framework has, what has to be built, in what
-order the work moves, and where it stands (the progress log at the end, kept current).
+says what used the legacy framework, what the typed framework has, what was built, in what
+order the work moved, what was restated, and where it stands (the progress log at the end).
 
 Nothing proved changes: the definitions and statements of `LeanerVM/Spec/` stay as they are, the
 front page (`LeanVM.knowledgeSoundness_holds`, `LeanVM.completeness_holds`) keeps its statements
@@ -156,6 +156,34 @@ after stage 7 the front again rests on the phases' proved securities and nothing
   data, and the typed securities keep errors out of compiled code as the legacy ones do
   (`@[macro_inline]` on `mono` and `append`).
 
+## The result
+
+The proof system is on the typed framework. `git grep ArkLib.OracleReduction -- LeanerVM` finds
+two imports, both of `ArkLib.OracleReduction.OracleInterface`, in `ToArkLib/Oracles.lean` and
+`ToArkLib/InnerProduct.lean`: `OracleInterface` is the class the typed framework itself imports
+for its oracle messages (`Oracle/TypeTree/Decoration.lean`), not part of the legacy framework's
+reductions or security notions. The legacy component layer and every legacy half of a phase are
+deleted; the typed declarations carry the legacy names.
+
+Statements restated, at the same errors and the same knowledge notion (worst case over prefixes,
+a named computable extractor):
+
+| Legacy | Typed | Why |
+| --- | --- | --- |
+| `piop_perfectCompleteness`: `(leanVmPiop P).perfectCompleteness init impl (M3Rel I) (Seam.done I)` | `piop_completeness`: every outcome of the honest execution, for any input oracles, sends the stack, is accepted and lands in `Seam.done`; `piop_perfectCompleteness`: the acceptance has probability one | the typed execution is an `OracleComp` with no failure and no shared-oracle state, so perfect completeness is a statement on the support |
+| `piop_rbrKnowledgeSoundness` at `piopError I` for `piopExtractor P S` and its state function | `piop_knowledgeSoundness`: a `KnowledgeCertificate` from `M3Holds` whose extractor is `piopExtractor P S s`, whose challenges are the slots' samplers at `piopErrors I` and are what the verifier draws (`SamplesChallenges`); `piopTerminal` its terminal relation, `Seam.done` at the verifier's verdict; `piop_badChallenge` the reading of a false acceptance | ArkLib's typed knowledge notion is the certificate; the state function becomes the backward maps' knowledge state |
+| `piopExtractedStack_eq`: the fold of the extractors returns the committed message | `piopExtractedStack_eq`: `extractWitness` on every execution path is the message the path sends | the transcript is an execution path |
+| `piopError_le`: `∑ i, piopError I i ≤ overE (2^32 + 2^31 + 2^20)` | `piopErrors_bounded`: the errors along every path sum to at most the same | a typed schedule is a tree; its errors are summed along paths |
+| `leanVm_perfectCompleteness`, `leanVm_rbrKnowledgeSoundness` | `leanVm_perfectCompleteness`, `leanVm_knowledgeSoundness` | the same at every instance |
+| `Sumcheck.transport` along a `TranscriptMap` | `Sumcheck.transport` by `Typed.Security.decode` | the wire message decoded at the first node |
+| `Refinement.knowledge_transport` in ArkLib's straight-line game | `Refinement.knowledge_transport`: a false mapped extraction on an accepting path has a bad challenge | the typed framework states knowledge as a certificate, not a game |
+| each `…_not_rbr`, `…_no_stateFunction` | `…_one_le`, `…_no_security` (and `Typed.sampleChallenge_one_le`, `sendChecked_no_security`, `Security.one_le_of_escape`) | refutations of a typed security at any extractor |
+| a phase's `Complete` (a reduction's perfect completeness) and `Security` (a state function and its bound) | `Typed.Complete` on honest runs and `Typed.Security` (backward maps, prover preservation, local bounds, terminal relation) | the typed bundle |
+
+The opening's query check had no round; it is now the protocol's leaf (`Typed/Commit`): the
+verifier asks the stack the batched claim after the five phases, and the opening phase is the
+batching, ending in `Seam.opened`.
+
 ## Progress log
 
 | Date | Stage | State |
@@ -169,3 +197,4 @@ after stage 7 the front again rests on the phases' proved securities and nothing
 | 2026-10-18 | 6 | The grand-product argument (`gkr`, both halves at `Typed.gkrErrors`) and the bus phase (`busPhase`, both halves at `busErrors I`). |
 | 2026-10-18 | 7 | Flock's components, the Flock argument (`Flock.flock`, `flockComplete`, `flockSecurity` at `flockErrorsT`) and the Flock phase (`flockPhase`, both halves at `flockErrors I`, the generic errors within the slot's by `flockErrorsT_le_flockErrorsOf`). Each front phase is now built, on the typed framework, from the one-round securities the end-to-end front reads. |
 | 2026-10-18 | 8 | The spine typed: `Typed/Commit` (the witness sent as an oracle message, a front component over it, one question at the leaf through `priorQuery`; completeness, and the knowledge certificate whose extractor reads the witness off the message), `implAfter` and `runs_of_mem_support_leaf` in `Typed/Front`, path sums of errors (`Errors.along`, `Errors.Bounded`) with the slots' bounds; the opening as batching (`opening`) into `Seam.opened`, the question to the stack (`stackQuestion`) the spine's; `Spine/Compose` replaced by the typed bundle and master theorems (`piop_perfectCompleteness`, `piop_knowledgeSoundness`, `piopExtractedStack_eq`, `piop_badChallenge`, `piopErrors_bounded`), and `Piop` on it. |
+| 2026-10-18 | 9 | The legacy framework deleted: the component layer (`Component`, `KnowledgeAppend`, `ExtractIn`, `PassThrough`, `SendOracle`, `GuardedVerdict`, `KeepOracles`, `FrontVerifier`, `Refutation`, `TranscriptMap`, `Schedule`, `SendChecked`, `SampleChallenge`, `QueryCheck`, `Batch`, `Spine/Phase`) and every legacy half of a phase; `Spine/Errors` keeps `overE`. The typed declarations take the legacy names. `Typed/Decode` and `Sumcheck.transport`; `Refinement.knowledge_transport` on certificates; `Typed.Security.one_le_of_escape`; the library's refutations ported. The tests moved to the typed statements. Gate on `h1`: `./scripts/validate.sh` and `lake exe node-vectors`. |

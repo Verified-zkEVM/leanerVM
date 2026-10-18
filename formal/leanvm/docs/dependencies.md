@@ -212,8 +212,8 @@ CompPoly supplies leanVM's fields (see [leanvm-target.md](leanvm-target.md)):
 
 ArkLib's Lake package name is `Arklib`, which is what the `[[require]]` must say. Its first
 consumer is `LeanerVM/Protocol/Field.lean`. VCVio is an explicit root requirement because
-`LeanerVM/Protocol/ToArkLib/KnowledgeAppend.lean` and the probability bridges consume its native
-measure and security interfaces. PolyFun is an explicit root requirement for the free-monad carrier of the oracle computations
+the typed components (`LeanerVM/Protocol/ToArkLib/Typed/`) and the probability bridges consume
+its native measure and security interfaces. PolyFun is an explicit root requirement for the free-monad carrier of the oracle computations
 used by `LeanerVM/Protocol/ToArkLib/Oracles.lean` through VCVio.
 These requirements select current source over the older revisions in inherited manifests.
 ArkLib also brings cslib, checkdecls, and doc-gen4's dependencies into the graph. Tooling and
@@ -257,18 +257,19 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 
 **ArkLib.**
 
-- Relations are `Set (Stmt × Wit)`. `OracleReduction` is the framework ArkLib calls legacy; its
-  typed `Interaction` framework proves soundness, round-by-round soundness, round-by-round
-  knowledge certificates (backward witness maps) and their composition, but nothing adapts it to
-  an `OracleReduction` and its sumcheck has no knowledge notion, so the spine stays on the
-  legacy one.
-- A round-by-round extractor is any function: the existential forms `rbrKnowledgeSoundness` and
-  `rbrKnowledgeSoundnessWorstCase` are met by an extractor chosen by classical choice (ArkLib's own
-  `toRoundByRoundOfRel` is one) and prove soundness only. The averaged `rbrKnowledgeSoundness` is
-  weaker than the literature's; the worst-case named form `rbrKnowledgeSoundnessWorstCaseWith` is
-  the one used.
-- Admitted: the knowledge-soundness composition (`Append/Security.lean`; ArkLib #615 proves it,
-  open), the round-by-round-to-plain implications, context lifting, `fiatShamir_completeness`
+- `OracleReduction` is the framework ArkLib calls legacy; the proof system is on its typed
+  `Interaction` framework (decision 24 reversed, [typed-migration.md](roadmap/typed-migration.md)),
+  whose round-by-round knowledge certificates (named backward witness maps, bounded at every
+  verifier prefix), their composition (`RoundExtractor.append` and its laws) and its execution
+  equations (`executeStrategies_done`, `_public_sender`, `_public_receiver`, `_oracle`) are free of
+  `sorryAx` at the pin. Of `OracleReduction`, only `OracleInterface` is imported, as the typed
+  framework itself does.
+- In the typed framework a certificate lives on a bare tree: what ties it to a verifier is
+  `SamplesChallenges` and a terminal relation on the verifier's output, which the proof system's
+  `Typed.Security` bundles. A tree with no move has its input state as its terminal state, so a
+  zero-round check is fused into the round before it or asked at the leaf.
+- Admitted in the legacy framework, and not consumed: the knowledge-soundness composition
+  (`Append/Security.lean`; ArkLib #615), the round-by-round-to-plain implications, context lifting, `fiatShamir_completeness`
   (for a constant oracle), the sumcheck's classical leaf, the correlated-agreement theorem
   `rs_mcaError_le_in_johnson_range`, and the ring-switching packing leaves. `BCSTransform` and the
   round-by-round to state-restoration implication are commented out;
@@ -284,15 +285,11 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 - `OracleInterface (Vector α m)` (position queries) is a global instance, so a column type with
   another interface is a structure, not an abbreviation of `Vector`; no default interface is
   registered for scalars or lists (`OracleInterface.instDefault` is for no type).
-- The instances for the messages and challenges of two schedules side by side
-  (`instOracleInterfaceMessageAppend`, `instSampleableTypeChallengeAppend`) are not found by
-  instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
-  does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
 - The typed framework's computable sumcheck (`ProofSystem/Sumcheck/Impl/Representation.lean`,
   `ProofSystem/Sumcheck/Interaction/Protocol.lean`) sums a round message, a polynomial with a
-  degree bound queried by evaluation, over its domain with unit weights, and nothing adapts a
-  protocol of the typed framework to an `OracleReduction`; the proof system's normalized round
-  (`ToArkLib/SumcheckRound.lean`) sends the coefficients as one message and weights the domain.
+  degree bound queried by evaluation, over its domain with unit weights, and has no knowledge
+  notion; the proof system's normalized round (`ToArkLib/SumcheckRound.lean`) sends the
+  coefficients as one message and weights the domain.
 - `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
   and fail one link; a second build proceeds.
 
