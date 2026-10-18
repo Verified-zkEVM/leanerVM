@@ -33,9 +33,6 @@ The scripts that read leanVM read the repository they sit in. Those that cite an
 commit, whose crates have since been renamed, build that commit from a `git archive` of it, so
 they need a clone with history; the others read the containing commit.
 
-- `test-rust-contracts.py [leanVM clone]`: archives the named Rust revision, runs its locked
-  offline tests with test-only row exports, and checks actual exported fixtures in Lean. See
-  [the checker guide](../docs/leanisa-checker.md) for scope and prerequisites.
 - `check-upstreams.sh`: compares `upstreams.json` with current releases and branch heads;
   requires `gh`, `jq`, and network access.
 - `dump-blake2s.py`: `constants` extracts the BLAKE2s `IV` and `SIGMA` tables from RFC 7693

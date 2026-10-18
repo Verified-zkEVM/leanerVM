@@ -18,6 +18,7 @@ import LeanerVM.Arithmetization.Completeness.Bus
 import LeanerVM.Arithmetization.Completeness.Messages
 import LeanerVM.Arithmetization.Completeness.Rows
 import LeanerVM.Arithmetization.Completeness.Satisfied
+import LeanerVM.Arithmetization.Completeness.Skeletons
 import LeanerVM.Arithmetization.Completeness.Theorem
 import LeanerVM.Arithmetization.Completeness.Witness
 import LeanerVM.Arithmetization.Statement
@@ -114,20 +115,8 @@ import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Semantics.Lemmas
-import LeanerVM.Arithmetization.Padding.Blake2sOutput
 import LeanerVM.Semantics.Executable
-import LeanerVM.Arithmetization.Padding.FillBlocks
-import LeanerVM.Arithmetization.Padding.FillCycle
-import LeanerVM.Arithmetization.Padding.FillPlan
-import LeanerVM.Arithmetization.Padding.FillRows
-import LeanerVM.Arithmetization.Padding.FillSteps
-import LeanerVM.Arithmetization.Padding.FillerRows
-import LeanerVM.Arithmetization.Padding.PaddedImage
-import LeanerVM.Arithmetization.Padding.PaddedRows
-import LeanerVM.Arithmetization.Padding.PaddedRun
-import LeanerVM.Arithmetization.Padding.PaddedTrace
-import LeanerVM.Arithmetization.Padding.RunTrace
-import LeanerVM.Arithmetization.Padding.TraceInput
+import LeanerVM.Semantics.RunTrace
 import LeanerVM.Protocol.ToCompPoly.Fingerprint
 import LeanerVM.Protocol.Compile.Prog
 import LeanerVM.Protocol.ToVCVio.Rom.Potential
@@ -232,6 +221,7 @@ import LeanerVM.Protocol.EndToEnd.Complete.Public
 import LeanerVM.Protocol.EndToEnd.Complete.Gkr
 import LeanerVM.Protocol.EndToEnd.Complete.Flushes
 import LeanerVM.Protocol.EndToEnd.Complete.BusStack
+import LeanerVM.Protocol.EndToEnd.Complete.BusLayout
 import LeanerVM.Protocol.EndToEnd.Complete.BusSide
 import LeanerVM.Protocol.EndToEnd.Complete.BusFramework
 import LeanerVM.Protocol.EndToEnd.Complete.BusTables
@@ -253,6 +243,7 @@ import LeanerVM.Protocol.EndToEnd.Front.BusGkr
 import LeanerVM.Protocol.EndToEnd.Front.BusPhase
 import LeanerVM.Protocol.EndToEnd.Front.BusStack
 import LeanerVM.Protocol.EndToEnd.Front.BusForms
+import LeanerVM.Protocol.EndToEnd.Front.BusPadding
 import LeanerVM.Protocol.EndToEnd.Front.TableArk
 import LeanerVM.Protocol.EndToEnd.Front.TableTerms
 import LeanerVM.Protocol.EndToEnd.Front.TablePhase

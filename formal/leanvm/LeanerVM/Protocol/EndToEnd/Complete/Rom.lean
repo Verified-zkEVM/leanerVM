@@ -17,7 +17,7 @@ public import LeanerVM.Protocol.Verifier.Cost
 # Completeness against the random oracle
 
 `honestComp prog input t ρ fuel` is the honest prover of `honestProofOf` as an oracle
-computation: the same classically chosen witness of a padded execution of `t`, proved by
+computation: the same classically chosen witness of `t`, proved by
 `Rom.honestComp` with every hash a query to the random oracle. In the experiment of the
 knowledge-soundness theorem with this prover as the adversary, the verifier rejects with
 probability at most
@@ -63,25 +63,22 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
   (completenessQueries fuel : ℝ≥0∞) *
     (missProb Whir.queryGrindingBits ^ fuel + (completenessQueries fuel : ℝ≥0∞) / 2 ^ 256)
 
-/-- **Completeness in the random-oracle model.** For a valid execution of a program with the fill
-blocks that is small, at a valid rate, and a fuel of at most `2^64` nonces, the verifier rejects
+/-- **Completeness in the random-oracle model.** For a valid execution that is small, at a valid
+rate, and a fuel of at most `2^64` nonces, the verifier rejects
 the honest prover's proof with probability at most `completenessError fuel`. -/
 theorem romComplete_leanVm {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
-    (hfill : HasFillBlocks prog) (hv : ValidExecution prog input t) (hsmall : t.Small)
+    (hv : ValidExecution prog input t) (hsmall : t.Small)
     (hρ : validRate ρ) {fuel : ℕ} (hfuel : fuel ≤ 2 ^ 64) :
     Pr{let z ← romExperiment (honestComp prog input t ρ fuel)
         (verifierComp (leanVmSeed (bytecodeWords prog) (publicDigest input))
           (leanVmProgram (bytecodeWords prog) (publicDigest input)))}[z.1.2 = false] ≤
       completenessError fuel := by
-  have hm : 2 ^ t.κ ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.mem_le
-  have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.code_le
-  obtain ⟨t', hp, hv', w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness_of_budget (n := 19)
-    hfill hv hsmall.steps_le (by norm_num) (by unfold maxMu; omega)
-  have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, t', hp, hv', hrep⟩
+  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hsmall
+  have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   unfold honestComp
   simp only [hex, ↓reduceDIte]
   obtain ⟨-, hw', hs', hadm', -⟩ := hex.choose_spec.choose_spec
-  have hq := m3Holds_stackOf (F := Blake2sFlock.blake2sFlockSpec) hw' hs'
+  have hq := m3Honest_stackOf (F := Blake2sFlock.blake2sFlockSpec) hw' hs' padLimbs_compress
   have hrun := runI_leanVmProgram hadm' hρ hq walkFaithful_blake2sFlockSpec
   have h := Rom.romComplete (leanVmProgram (bytecodeWords prog) (publicDigest input)) _
     (leanVmSeed (bytecodeWords prog) (publicDigest input)) (bits := Whir.queryGrindingBits)

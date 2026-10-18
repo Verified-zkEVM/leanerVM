@@ -53,8 +53,8 @@ states only that the pulled entry decodes, through Layer 4's `decode`, to an ins
 static fact about the tuple that names no program (the paragraph on the program below), which
 is all a table needs (`DEREF`'s flag pair must be a store mode's) and which Layer 9 derives from
 the lookup theorem together with the strong fact, that the entry is the program's at the pulled
-counter. The state pull carries no guarantee: a pulled state need not be reachable, since the
-fill blocks of §8.3 are closed walks disjoint from the run, and what the state channel yields is
+counter. The state pull carries no guarantee: a pulled state need not be reachable, since a
+balanced witness may hold closed walks disjoint from the run, and what the state channel yields is
 the walk decomposition of Layer 9 (roadmap acceptance test 21, issue #10). Pushes carry no
 guarantee; what a push must satisfy is the emitting component's `Spec`.
 

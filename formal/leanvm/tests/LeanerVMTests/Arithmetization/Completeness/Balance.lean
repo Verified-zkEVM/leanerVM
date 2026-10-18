@@ -67,7 +67,7 @@ example : ¬ [1, 1].Nodup := by decide
 
 /-! ## The regrouping -/
 
-/-- The rows of the run and the fill, regrouped into the tables, are the same rows. -/
+/-- The rows of the run, regrouped into the tables, are the same rows. -/
 example : ([1, 2].flatMap fun o ↦ [1, 2, 1, 2, 2].filter fun x ↦ x = o).Perm [1, 2, 1, 2, 2] :=
   regroup_perm [1, 2] id _ (by decide) (by decide)
 

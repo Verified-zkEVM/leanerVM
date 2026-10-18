@@ -28,8 +28,9 @@ they are one layout, for every program and every size vector:
 * `pyCol c`: the Python's global column number of the instance's column `c`, its position in the
   instance's global order (`columns`): the memory columns `0–3`, `BFCNT` `4`, `QFLOCK` `5`, then
   the six opcode tables' columns in order. `pyCol_*` give the named columns.
-* `buildLayout_eq`: the layout is built exactly when the sizes are in the windows `buildLayout`
-  checks (`LayoutOk`), and is then `verifierLayout prog s`.
+* `buildLayout_eq`: the layout is built from the announced rows (`tableRows`) exactly when the
+  sizes are in the windows `buildLayout` checks (`LayoutOk`), and is then `verifierLayout prog s`,
+  whose log-heights are `tableLogs s` (`map_log2Ceil_tableRows`).
 * `stackLog_verifierLayout`: its stacked size is the instance's `μ`.
 * `placement_committed`, `placement_limb`: every committed column at its block's offset, every
   `BLAKE2S` limb at its Flock slot (for the deployed slots `Blake2sFlock.slots`).
@@ -103,8 +104,16 @@ theorem log2Strict_length_bytecodeWords (prog : Program) :
 
 /-! ## The global columns -/
 
-/-- The table heights the prover announces, in opcode order. -/
+/-- The table row counts the prover announces, in opcode order. -/
+def tableRows (s : Sizes) : List ℕ := List.ofFn s.rows
+
+/-- The tables' log-heights, in opcode order. -/
 def tableLogs (s : Sizes) : List ℕ := List.ofFn s.τ
+
+/-- The verifier's log-heights of the announced rows (`log2_ceil`) are the tables'. -/
+theorem map_log2Ceil_tableRows (s : Sizes) : (tableRows s).map log2Ceil = tableLogs s := by
+  simp only [tableRows, tableLogs, List.map_ofFn, Function.comp_def, log2Ceil_eq_clog]
+  rfl
 
 /-- The Python's global column number of the instance's column `c`: its position in the global
 order. -/
@@ -156,11 +165,10 @@ theorem width_opIdx (j : Fin 6) : width (opIdx j) = (tables.getD j default).widt
 /-! ## The layout -/
 
 /-- The checks `build_layout` makes of the sizes (`verifier.py:858-866`) for the program's
-bytecode: the memory window `[16, 32]`, the height cap `32`, the `BLAKE2S` floor `3`. The
-bytecode's checks hold by construction (`Program.logSize_le`). -/
+bytecode: the memory window `[16, 32]` and the row cap `2 ^ 32`. The bytecode's checks hold by
+construction (`Program.logSize_le`). -/
 def LayoutOk (s : Sizes) : Prop :=
-  minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ (∀ j, s.τ j ≤ maxLogRows) ∧
-    minLogRowsBlake2s ≤ s.τ 5
+  minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ ∀ j, s.rows j ≤ 2 ^ maxLogRows
 
 instance (s : Sizes) : Decidable (LayoutOk s) := inferInstanceAs (Decidable (_ ∧ _))
 
@@ -171,44 +179,41 @@ abbrev pyKappas (prog : Program) (s : Sizes) : List ℕ :=
 /-- The layout the verifier builds for the program `prog` at the sizes `s`: `build_layout`'s
 value when its checks pass. -/
 def verifierLayout (prog : Program) (s : Sizes) : Verifier.Layout :=
-  let (push, pull, count) := busBlocks (tableLogs s)
+  let (push, pull, count) := busBlocks (tableLogs s) (tableRows s)
   let (placements, stackLog) := placementsOf (pyKappas prog s)
   ⟨s.logMem, prog.logSize, bytecodeWords prog, push, pull, count, placements, stackLog,
     tableLogs s⟩
 
-/-- Every table's announced height is within the cap, as a list. -/
-private theorem all_tableLogs (s : Sizes) :
-    ((tableLogs s).all fun t ↦ decide (t ≤ 32)) = true ↔ ∀ j, s.τ j ≤ maxLogRows := by
-  simp [tableLogs, maxLogRows, Fin.forall_fin_succ]
+/-- Every table's announced row count is within the cap, as a list. -/
+private theorem all_tableRows (s : Sizes) :
+    ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ↔ ∀ j, s.rows j ≤ 2 ^ maxLogRows := by
+  simp [tableRows, maxLogRows, Fin.forall_fin_succ]
 
 /-- **The layout is built** exactly when the sizes pass `build_layout`'s checks, and it is then
 `verifierLayout prog s`. -/
 theorem buildLayout_eq (prog : Program) (s : Sizes) :
-    buildLayout (bytecodeWords prog) s.logMem (tableLogs s) =
+    buildLayout (bytecodeWords prog) s.logMem (tableRows s) =
       if LayoutOk s then some (verifierLayout prog s) else none := by
   have hL := prog.logSize_le
   unfold buildLayout
   rw [log2Strict_length_bytecodeWords]
-  simp only [busBits, Nat.add_sub_cancel]
-  have h5 : (tableLogs s).getD opBlake2s 0 = s.τ 5 := by
-    simp [tableLogs, opBlake2s]
-  have hlen : (tableLogs s).length = tables.length := by
-    simp [tableLogs, tables]
-  rw [h5]
+  simp only [busBits, Nat.add_sub_cancel, map_log2Ceil_tableRows]
+  have hlen : (tableRows s).length = tables.length := by
+    simp [tableRows, tables]
   by_cases hok : LayoutOk s
-  · obtain ⟨h1, h2, h3, h4⟩ := hok
+  · obtain ⟨h1, h2, h3⟩ := hok
     have hc : 4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
-        ((tableLogs s).all fun t ↦ decide (t ≤ 32)) = true ∧ 3 ≤ s.τ 5 ∧
-        prog.logSize ≤ 32 ∧ (tableLogs s).length = tables.length :=
-      ⟨by omega, h1, h2, (all_tableLogs s).mpr h3, h4, by simpa [maxLogBytecode] using hL, hlen⟩
-    have hok : LayoutOk s := ⟨h1, h2, h3, h4⟩
+        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
+        prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length :=
+      ⟨by omega, h1, h2, (all_tableRows s).mpr h3, by simpa [maxLogBytecode] using hL, hlen⟩
+    have hok : LayoutOk s := ⟨h1, h2, h3⟩
     simp only [hc, hok, and_self, ↓reduceIte]
     rfl
   · have hc : ¬ (4 ≤ prog.logSize + 4 ∧ 16 ≤ s.logMem ∧ s.logMem ≤ 32 ∧
-        ((tableLogs s).all fun t ↦ decide (t ≤ 32)) = true ∧ 3 ≤ s.τ 5 ∧
-        prog.logSize ≤ 32 ∧ (tableLogs s).length = tables.length) := by
-      rintro ⟨-, h1, h2, h3, h4, -, -⟩
-      exact hok ⟨h1, h2, (all_tableLogs s).mp h3, h4⟩
+        ((tableRows s).all fun t ↦ decide (t ≤ 2 ^ 32)) = true ∧
+        prog.logSize ≤ 32 ∧ (tableRows s).length = tables.length) := by
+      rintro ⟨-, h1, h2, h3, -, -⟩
+      exact hok ⟨h1, h2, (all_tableRows s).mp h3⟩
     simp only [hc, hok, ↓reduceIte]
 
 /-! ## The column sizes and the blocks -/

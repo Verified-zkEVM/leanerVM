@@ -1,10 +1,10 @@
 import LeanerVM.Arithmetization.Completeness.Witness
-import LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
-# Layer 10 tests: the prover data of the padded witness
+# Layer 10 tests: the prover data of the witness
 
-`padWitness` is never evaluated: its memory block has `2^κ` rows. Every test here is a statement
+`skelWitness` is never evaluated: its memory block has `2^κ` rows. Every test here is a statement
 about the prover data of an image, generic in the image, through the lemmas that rewrite and never
 unfold (`imageOf_imageData`). The memory log-size at most `maxLogMem` is load-bearing: the data's
 `imageOf` clamps it, so a memory of `2^33` cells is named as one of `2^32`.
@@ -13,7 +13,7 @@ unfold (`imageOf_imageData`). The memory log-size at most `maxLogMem` is load-be
 namespace LeanerVMTests.Arithmetization.Completeness.Witness
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
-open LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+open LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term (status finding E8). -/
 local notation "d₀" => (gpow 2047 : K)

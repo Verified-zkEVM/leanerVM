@@ -14,8 +14,8 @@ public import LeanerVM.Protocol.EndToEnd.Front.LayoutInstance
 # The announced sizes
 
 Step 1 of the verifier program (`readSizes`, `verifier.py:1364-1372` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) reads eight scalars, the memory's and the six tables'
-log-sizes and the WHIR rate, checks them, and builds the layout. For the program's bytecode
+`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) reads eight scalars, the memory's log-size, the six
+tables' row counts and the WHIR rate, checks them, and builds the layout. For the program's bytecode
 (`bytecodeWords prog`):
 
 * `readSizes_ret`: what the program checks, on the history it read;
@@ -27,7 +27,7 @@ log-sizes and the WHIR rate, checks them, and builds the layout. For the program
   `leanIsaμ prog s` (`stackLog_verifierLayout`) and its placements are the instance's.
 
 The `require`s of `readSizes` are exactly `Sizes.Admissible` and `validRate`: `buildLayout`'s
-windows are the memory, height and `BLAKE2S` checks (`buildLayout_eq`), and the stacked-size window
+windows are the memory and row checks (`buildLayout_eq`), and the stacked-size window
 `[15, 28]` is the cap `leanIsaμ prog s ≤ 28` (the floor holds by construction).
 -/
 
@@ -77,7 +77,7 @@ theorem eq_eOfNat_of_limbs {x : E} (h1 : x.limb 1 = 0) (h2 : x.limb 2 = 0) :
   exact E.ext fun i ↦ by fin_cases i <;> simp [h1, h2]
 
 /-- The eight scalars that announce the sizes `s` and the rate `ρ`, as the Python reads them. -/
-def announce (s : Sizes) (ρ : ℕ) : List E := (s.logMem :: List.ofFn s.τ ++ [ρ]).map eOfNat
+def announce (s : Sizes) (ρ : ℕ) : List E := (s.logMem :: List.ofFn s.rows ++ [ρ]).map eOfNat
 
 /-- A program with no event returns only at the empty history. -/
 theorem pure_after_ret {α : Type} {p : Prog α} {l : List Ev} {a : α}
@@ -202,9 +202,9 @@ theorem readSizes_ret_sizes (prog : Program) {l : List Ev} {a : Verifier.Layout 
     let s : Sizes := ⟨kToNat (x0.limb 0), by simp at hlm; omega,
       ![kToNat (x1.limb 0), kToNat (x2.limb 0), kToNat (x3.limb 0), kToNat (x4.limb 0),
         kToNat (x5.limb 0), kToNat (x6.limb 0)]⟩
-    have htl : tableLogs s = ((([x0, x1, x2, x3, x4, x5, x6, x7].drop 1).take 6).map
+    have htl : tableRows s = ((([x0, x1, x2, x3, x4, x5, x6, x7].drop 1).take 6).map
         fun value ↦ kToNat (value.limb 0)) := by
-      simp [tableLogs, s, List.ofFn_succ]
+      simp [tableRows, s, List.ofFn_succ]
     have hb' := buildLayout_eq prog s
     rw [show s.logMem = kToNat (([x0, x1, x2, x3, x4, x5, x6, x7].headD 0).limb 0) from rfl, htl,
       hb] at hb'
@@ -212,7 +212,7 @@ theorem readSizes_ret_sizes (prog : Program) {l : List Ev} {a : Verifier.Layout 
     · simp only [Option.some.injEq] at hb'
       have hμ : (verifierLayout prog s).stackLog ≤ maxStackedLog := hb' ▸ hμ2
       rw [stackLog_verifierLayout] at hμ
-      refine ⟨s, ⟨hok.1, hok.2.1, hok.2.2.1, hok.2.2.2, hμ⟩, ⟨hρ1, hρ2⟩, hb', ?_⟩
+      refine ⟨s, ⟨hok.1, hok.2.1, hok.2.2, hμ⟩, ⟨hρ1, hρ2⟩, hb', ?_⟩
       simp only [List.all_cons, List.all_nil, Bool.and_true, Bool.and_eq_true,
         decide_eq_true_eq] at hall
       simp only [announce, List.map_cons, List.map_nil, List.cons_append,

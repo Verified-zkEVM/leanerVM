@@ -12,16 +12,17 @@ constraint system that proves its executions, and states the two theorems that c
 
 ```text
 constraintSoundness :
-  WellFormedBytecode prog → SatisfiedBy prog input w →
+  SentinelSafe prog → SatisfiedBy prog input w →
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t
 constraintCompleteness :
-  WellFormedBytecode prog → ValidExecution prog input t → t.Fits →
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t'
+  ValidExecution prog input t → t.steps ≤ 2 ^ maxLogRows →
+    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
 ```
 
-Completeness is for a *padded* trace of `t`, under the trace-side condition `t.Fits`: the statement
-for `t` itself is false (Layer 10; acceptance tests 23 to 25).
+Completeness takes the row cap as a trace-side condition: without it the statement is false
+(Layer 10; acceptance test 25). A table holds exactly its executed rows, any number of them; the
+protocol pads it to a power of two with public padding rows that are not on the bus (leanVM
+`3a37fb6e1`, `doc/leanvm` §`sec:e2e-pad`), so no padding reaches the constraint statement.
 
 The semantics is a single function `step`; the tables are Clean components over CompPoly's
 binary fields; the statement is on Clean's `EnsembleWitness`. The route is chosen so that the
@@ -62,9 +63,9 @@ completeness proofs. **The statement**: a witness satisfies every component, the
 channel pairs balance as multisets, read counts are nonzero, the caps hold, and the public words
 are in place. The bus theorems that turn balance into an execution are the last layers and
 consume a change to Clean's bus that is described exactly in
-[Dependencies](#dependencies-and-exact-contracts). Both theorems are stated for *well-formed*
-bytecode: the sentinel slot is not a `JUMP` and the fill blocks the prover pads tables with are
-present. The compiled guest has both properties; the constraint system alone enforces neither.
+[Dependencies](#dependencies-and-exact-contracts). Soundness is stated for *well-formed*
+bytecode: the sentinel slot is not a `JUMP`. The compiled guest has this property; the constraint
+system alone does not enforce it.
 
 ## Scope
 
@@ -134,7 +135,6 @@ section or file and lines, and the pin.
 | Seed/read/finalize and boundary blocks | B | specification §6.1–§6.2; `crates/leanvm_core/src/cpu/layout.rs:354-394` |
 | BLAKE2s constants | B | RFC 7693 §2.6–§2.7 |
 | BLAKE2s cell and metadata encoding | B | `crates/leanvm_core/src/cpu/mod.rs` (`blake2s_compress`); `crates/leanvm_core/src/hash_flock.rs:129-132` |
-| Table row minimums and fill blocks | B | `crates/leanvm_core/src/cpu/filler.rs:36-57`, `crates/lean_compiler/src/filler.rs` |
 
 ### CompPoly
 
@@ -214,7 +214,7 @@ not change (decision 14).
 | Registers | `pc`, `fp` are `K` elements, never exponents. Initial `(1, 1)`; fall-through successor `(g·pc, fp)`; final `(g^(N_prog - 1), 1)`. One structure `Regs F`: `Regs K` is the machine's pair, `Regs (Expression K)` a row's state message. |
 | Operands | `K` elements, the g-powers `o = g^j`; `SET_CONSTANT`'s immediate is one `E` word. |
 | Memory | A committed image `MemImage κ = Fin (2^κ) → E`, total on its addresses. All nondeterminism is the image. |
-| Halting | Tested before each fetch; the sentinel slot `g^(N_prog - 1)` is never executed by the semantics; final `fp = 1` is required. The constraints let a `JUMP` sentinel execute (acceptance test 20), which `WellFormedBytecode` excludes. |
+| Halting | Tested before each fetch; the sentinel slot `g^(N_prog - 1)` is never executed by the semantics; final `fp = 1` is required. The constraints let a `JUMP` sentinel execute (acceptance test 20), which `SentinelSafe` excludes. |
 | `DEREF` | Reads the pointer `fp·o1` (in `K`), the local `fp·o3` (in every mode), and the target `p·o2`; modes `(f_pc, f_fp) ∈ {(0,0), (1,0), (0,1)}`; `src(pc) = g²·pc`. |
 | `JUMP` | The three `K` assertions are unconditional; taken iff `c ≠ 0`; flags `b = c·w`, `c·(b + 1) = 0`. |
 | `BLAKE2S` | Tree-mode compression with both flags, each a 32-bit word (`0xFFFFFFFF` when set), never a `Bool`; metadata `counter = limb 0`, `final = low 32 bits of limb 1`, `last_node = high 32 bits of limb 1`; all nine cells canonical 128-bit; word order transcribed from the Rust. |
@@ -223,8 +223,8 @@ not change (decision 14).
 | Boundary blocks | Three components owned by no table (§8.5): the memory and bytecode blocks push `(idx, 1, entry)` and pull `(idx, cntFin, entry)` per row, the verifier `leanIsaVerifier prog` pushes `(1, 1)` and pulls `(prog.finalPc, 1)`, both constants, the counter the public program's as in `layout(prog, …)`; none has a constraint. A block's `Spec` is its pull guarantee, the verifier's `True` (acceptance test 21). `PublicIO` is the four input lanes; the ensemble is `leanIsaEnsemble prog`. |
 | Opcode codes | `g^0 … g^5` in the order XOR, MUL_NATIVE, SET_CONSTANT, DEREF, JUMP, BLAKE2S. |
 | Bytecode slots | Sixteen `K` slots; opcode in slot 3; operands in slots 4..10; `SET`'s `k2` in slot 7; `BLAKE2S` uses all seven; zero elsewhere. |
-| Caps | `16 ≤ κ_mem ≤ 32`; every table height is a power of two `≤ 2^32`; the bytecode length is `2^logSize ≤ 2^32`; the BLAKE2S table has at least `2^3` rows. |
-| Well-formed bytecode | `WellFormedBytecode prog`: the sentinel slot is not a `JUMP`, and the fill blocks are present. The hypothesis of both T1 theorems, and the home of every further program-shape condition the Clean proofs need. |
+| Caps | `16 ≤ κ_mem ≤ 32`; every table has at most `2^32` rows, any number of them; the bytecode length is `2^logSize ≤ 2^32`. |
+| Well-formed bytecode | `SentinelSafe prog`: the sentinel slot is not a `JUMP`. The program-shape hypothesis of constraint soundness; completeness needs none. |
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); hypotheses appear in signatures, never in `variable` blocks or unstated instances. |
 | Unproved targets | A statement that cannot yet be proved is a block comment at its place, carrying the statement and the consumed dependency. Never `sorry`, `axiom`, or a local re-derivation of the dependency. |
 | Proof helpers | `private`, under `/-! ## Proof helpers -/`, never cited from another file. |
@@ -335,7 +335,6 @@ def minLogMem : ℕ := 16
 def maxLogMem : ℕ := 32
 def maxLogRows : ℕ := 32
 def maxLogBytecode : ℕ := 32
-def minLogRowsBlake2s : ℕ := 3
 
 inductive DerefMode | cell | pc | fp
 inductive Instr
@@ -569,8 +568,8 @@ and Theorem 6.4 for the bytecode pair, that the entry is the public program's at
 counter, is Layer 9's `bytecode_channel_sound`, derived from the block's rows (Layer 8). The
 guarantee is not `True`, under which `DEREF`'s soundness would have to speak about the flag pair
 `(1, 1)`, at which the AIR is defined and Lean's `Instr` is not (acceptance test 18). The state
-pull carries no guarantee. A pulled state need not be reachable, since the fill blocks of §8.3
-are closed walks disjoint from the run (acceptance test 21, issue
+pull carries no guarantee. A pulled state need not be reachable, since a balanced witness may
+hold closed walks disjoint from the run (acceptance test 21, issue
 [#10](https://github.com/Verified-zkEVM/leanerVM/issues/10)); what the state channel yields is
 the walk decomposition of Layer 9, and a table's `Spec` never needed reachability. Pushes carry
 no guarantee; what a push must satisfy is the emitting component's `Spec`.
@@ -930,8 +929,7 @@ def CountsNonzero (w) : Prop :=
 structure Caps (w) : Prop where           -- the M3 part of the setup, `verifier/src/lib.rs:208-222`
   minLogMem_le : minLogMem ≤ (imageOf w.data).1
   le_maxLogMem : (imageOf w.data).1 ≤ maxLogMem
-  heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
-  blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length
+  heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows   -- any row count; no BLAKE2S floor
   well_shaped : WellShapedData w.data       -- not a check: Layer 5's shape of the `"mem"` table
 
 /-- `idx` of row `i` of the memory block is `g^i`. -/
@@ -1073,20 +1071,18 @@ theorem assumptions_of_blake2sRowsValid : Blake2sRowsValid w → w.Assumptions
   cannot take), and each consecutive pair of the trace's register sequence `r_0, …, r_steps`
   (`Trace.regs`) occurs as the state pull and the state push of some row of some table
   (`RowSteps`): occurrence, not an injection of steps into rows, since the image determines the
-  run. The remaining rows are the closed walks of §8.3, about which nothing is claimed
+  run. The remaining rows are closed walks, about which nothing is claimed
   (acceptance test 21).
 - **Layer 9's four statements** are block comments at the end of the file, as the pinned
   convention requires, each with its consumed dependency.
 
 Tests: one hand-built `SatisfiedBy` witness for the Layer 3 program, the executor's
-`mul_192bit_word`, extended in the shape of the compiler's fill blocks: a `JUMP` to the
-sentinel and the fill blocks every table needs to reach a power-of-two height (§8.3;
-`crates/leanvm_core/src/cpu/filler.rs:36-87`; acceptance test 15), one `XOR`, one `DEREF` and
-eight `BLAKE2S` rows, each block a closed walk ending in a `JUMP` back to its first instruction
+`mul_192bit_word`, extended with closed walks: a `JUMP` to the sentinel and three loops, one
+`XOR`, one `DEREF` and eight `BLAKE2S` rows, each ending in a `JUMP` back to its first instruction
 in a frame disjoint from the run's. The thirty-two-slot program is a `ValidExecution` in four
 steps; its honest witness at the minimum memory size `2^16` satisfies every conjunct
-(`fill_satisfiedBy`) and represents the trace (`fill_represents`): the completeness instance
-of T1 for that program, by hand (`fill_t1_instance`). The witness is parametric in two read
+(`walk_satisfiedBy`) and represents the trace (`walk_represents`): the completeness instance
+of T1 for that program, by hand (`walk_t1_instance`). The witness is parametric in two read
 counts and the finalize counts, and every conjunct but the balances and the count product is
 proved for every count. The `2^16`-row memory block is built by `List.ofFn` and never
 enumerated: its constraints hold row-generically, its messages on a foreign channel are `[]`
@@ -1097,8 +1093,8 @@ and will not evaluate there). Rejections, each the honest witness with one thing
 each failing the conjunct named: a wrong finalize count unbalances the memory pair (§6.2); a
 read count of `0` that balances satisfies every other conjunct and fails `CountsNonzero` alone
 (`zero_count_witness`); a wrong digest fails `Blake2sRowsValid`; a shifted index column fails
-`IndexColumnsAreRowIndices`; a wrong public word fails `word0_eq`; a three-row table and a
-four-row `BLAKE2S` table fail `Caps`.
+`IndexColumnsAreRowIndices`; a wrong public word fails `word0_eq`. A three-row table and a
+four-row `BLAKE2S` table are within `Caps`.
 
 **After Clean #446** (issue [#23](https://github.com/Verified-zkEVM/leanerVM/issues/23)).
 The three named hypotheses are what leanVM's verifier computes itself and Clean at
@@ -1139,12 +1135,12 @@ theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
         ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧ #v[m.opcode] ++ m.op = entry (prog.code k)
 /-- No row sits at the sentinel counter: its bytecode entry is not a `JUMP`, so the row would
 push `(g^N_prog, fp)`, a counter no bytecode read can balance (acceptance test 20). -/
-theorem no_row_at_sentinel (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
+theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
       ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ prog.finalPc
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
 from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
+theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
@@ -1155,81 +1151,33 @@ full order (Layer 0). The read bound is derived from `Caps` (`≤ 10 · 6 · 2^3
 registers: the decomposition gives a walk of steps from `(1, 1)` to `(g^(N_prog - 1), 1)`,
 `no_row_at_sentinel` says no state before the last carries the sentinel counter, and
 `run_succ_of_ne` chains the walk into `run` (issue #10; acceptance tests 20 and 21). Both consume
-only the `sentinelSafe` field of `WellFormedBytecode`. The remaining rows are the closed walks
+`SentinelSafe`. The remaining rows are the closed walks
 `AssignmentRepresents` names; nothing is claimed about them beyond being steps.
 
 ### Layer 10: constraint soundness and completeness
 
 ```lean
-/-- `HasFillBlocks prog`: for every table and every size in `fillSizes = [128, 64, …, 1]` the
-program contains a fill block (`IsFillBlock`): `s` dummy instructions of the table's opcode
-(`fillDummy`) at consecutive slots, then the closing `JUMP [DEST, DEST, NEXT_FP]` (`fillClose`),
-all below the sentinel slot (`crates/lean_compiler/src/filler.rs`, `lower.rs:435-506`, identical
-at leanVM `48a90420`, `a386121f` and `127510d1` up to the crate rename). The dummies read and
-write the twelve-cell frame the interpreter provides and the closing jump goes back to the
-block's first slot in that frame, so a block is a closed walk; the frames are not part of the
-program. In `Semantics`, beside
-`SentinelSafe`, since it speaks of `Program` and `Instr` only. -/
-def HasFillBlocks (prog : Program) : Prop
-
-/-- The program-shape conditions the two theorems need. A further condition the Clean proofs
-require is one more field here, never a new hypothesis on a theorem. -/
-structure WellFormedBytecode (prog : Program) : Prop where
-  /-- The sentinel slot is not a `JUMP`: a row there pushes a counter outside the bytecode
-  (acceptance test 20). Layer 3's `SentinelSafe prog`, not restated here. -/
-  sentinelSafe : SentinelSafe prog
-  /-- The fill blocks are present (acceptance test 15). -/
-  hasFillBlocks : HasFillBlocks prog
-
-/-- `t'` is `t` padded: the same steps, a memory log-size at least `t`'s, and `t`'s words at the
-same indices. The cells above `2^t.κ` are the fill frames. -/
-structure Trace.PaddedFrom (t' t : Trace prog) : Prop
-
-/-- What a trace needs for its tables to be filled to a power of two within the caps. Not part of
-`ValidExecution`, which is the ISA-level notion: soundness extracts its trace from a witness,
-where `Caps` already holds. -/
-structure Trace.Fits (t : Trace prog) : Prop where
-  /-- Room above the image for the forty-eight fill frames (acceptance test 24). -/
-  room : t.κ < maxLogMem
-  /-- Every table but `JUMP`, filled to its target, has at most `2^maxLogRows` rows
-  (acceptance test 25). -/
-  rows : ∀ op, op ≠ .jump → fillTarget (t.runRows op) (minRows op) ≤ 2 ^ maxLogRows
-  /-- The `JUMP` table, which also takes a closing jump from every traversal of every other
-  table's fill, can be filled: some `2^τ ≤ 2^maxLogRows` is at least the rows it owes and is not
-  one more than them (acceptance test 26). -/
-  jump : JumpFeasible t.owed
-
-theorem constraintSoundness (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
+theorem constraintSoundness (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
     ∃ t, AssignmentRepresents w t ∧ ValidExecution prog input t
-theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
-    (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t'
+theorem constraintCompleteness (h : ValidExecution prog input t)
+    (hsteps : t.steps ≤ 2 ^ maxLogRows) :
+    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
 ```
 
 Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's
 `TableSoundness`, applied directly to the witness with `w.Assumptions` supplied by
 `assumptions_of_blake2sRowsValid h.blake2s_valid` (never through
 `soundness_of_tableSoundness_and_specConsistency`, whose `AssumptionsConsistency` sources a
-table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`.
-Completeness builds the rows of the run, then pads each table to a power of two — and the
-BLAKE2S table to at least eight rows — with closed walks from the fill blocks, and uses only
-`hwf.hasFillBlocks`. Both take the whole structure so that T1 reads "for well-formed bytecode".
-Each field is forced (acceptance tests 15 and 20), and the compiled guest satisfies both: the
-compiler pads the sentinel slot with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:194`) and
-emits the fill blocks (`crates/lean_compiler/src/filler.rs`).
+table's `Assumptions` from the public input alone), and uses `SentinelSafe` (acceptance test 20);
+the compiler pads the sentinel slot with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:194`).
 
-**The padding.** The padded image `padImage` keeps the committed image below `2^t.κ` and puts one
-twelve-cell frame for each of the forty-eight cycles (six tables, eight sizes) above it, where the
-interpreter writes them (`cpu/filler.rs:73-87`); a run valid on `t` is the same run on the padded
-trace (`PaddedFrom.valid`). A traversal of a block is a closed walk of `s + 1` states over the
-padded image (`fill_cycle_run`, the fill-block lemma), so its states cancel on the state channel
-and the skeletons of any fill are valid fillers (`padSkels_valid`). It gives its own table `s` rows
-and the `JUMP` table one, the closing jump: a closed run shorter than `2^64 - 1` steps takes a
-jump, since `g` has that order, so the tables are coupled and the plan is one for the whole trace.
-`planCount` is a plan, not the Rust's `solve`: every table other than `JUMP` is filled as
-`fillGreedy` says, and the `JUMP` gap as `jumpMix` says, and `plan_rows` is that every table then
-has its height, a power of two within the cap.
+Completeness writes one row per step of the run (`Trace.runSkels`, the states stepped from with
+the instructions fetched there) in the table of its opcode, the image as the memory block and the
+program as the bytecode block, with the read counts that balance the memory and bytecode pairs
+(a chain lemma); the state pair is the run's rotation against the boundary. A table's row count
+is its run rows (`constraintCompleteness_rows`), any number, zero included, and the witness
+represents `t` over `t`'s own image. `hsteps` (or, finer, every `t.runRows op ≤ 2^maxLogRows`) is
+the row cap, the one hypothesis beyond validity (acceptance test 25).
 
 ## Acceptance tests and nearby false statements
 
@@ -1283,12 +1231,14 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     `2 = 0` in `K`. `BalancedPair` is a `List.Perm`. The same fact makes Clean's
     `Ensemble.Statement` unsatisfiable over `K` beyond one interaction, so no theorem may be
     stated through it.
-15. **No empty tables.** Every table has at least one row and the BLAKE2S table at least eight
-    (`cpu/filler.rs:43`; the verifier enforces `τ_BLAKE2S ≥ 3`). A program with no `BLAKE2S`
-    instruction and no fill block has *no* satisfying witness: the eight mandatory rows each
-    pull a bytecode entry with opcode `g^5` that the public program lacks. Hence
-    `constraintCompleteness` carries `WellFormedBytecode prog`, whose `hasFillBlocks` field this
-    is; a version without it is false.
+15. **Empty tables are allowed.** A table holds its executed rows, zero included, and the
+    `BLAKE2S` table has no floor (leanVM `3a37fb6e1` dropped the floor of eight compressions and
+    the fill blocks): the protocol pads each table to a power of two with a public padding row,
+    zero but for the `BLAKE2S` limbs (Flock's padding instance), whose bus leaves the verifier
+    replaces by `1`. A statement requiring power-of-two heights or eight `BLAKE2S` rows would
+    have no witness for a program without a `BLAKE2S` instruction, since every row pulls its
+    entry from the public program (`tests/LeanerVMTests/Arithmetization/Completeness/
+    Theorem.lean`: the witness of a one-`JUMP` run has an empty `XOR` table).
 16. **Slot layout.** `SET_CONSTANT`'s `k2` rides slot 7 and `BLAKE2S`'s `om3, ocv, oout, omd` ride
     slots 7–10 (specification §8.1). `decode_entry` on every constructor is the test.
 17. **Public words.** `word0 = in0 + in1·y` and `word1 = in2 + in3·y`, top limbs zero. Packing
@@ -1300,7 +1250,7 @@ witness that rejects it. Where the witness is executable it is a test under `tes
 19. **One semantics.** Relational views and executable checkers are proved equivalent to the
     fixed-image reference step; none supplies an independent meaning of an instruction.
     The Rust executor's write-once conflicts, zero reads of unset cells, `MUL` back-solving,
-    `DEREF` fill and deferral, hints, step cap, and filler phase are witness-generation
+    `DEREF` fill and deferral, hints and step cap are witness-generation
     behaviour, specified later against `step`, never a second meaning of the machine.
 20. **A `JUMP` sentinel executes.** The instruction tables (§7) place no condition on a row's
     `pc`, so a row may sit at the sentinel counter. Every instruction but `JUMP` then pushes
@@ -1309,12 +1259,13 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     two-slot program `[JUMP; JUMP]` whose first row jumps to `(g, g)` and whose sentinel row,
     read in frame `g`, jumps to `(g, 1)`. Both rows are `step`s and the state channel balances
     against the boundary, yet `run` halts at `(g, g)` for every step count, so no
-    `ValidExecution` exists. Hence `constraintSoundness` carries `WellFormedBytecode prog`, whose
-    `sentinelSafe` field excludes a `JUMP` sentinel; a version without it is false. The
+    `ValidExecution` exists. Hence `constraintSoundness` carries `SentinelSafe prog`, which
+    excludes a `JUMP` sentinel; a version without it is false. The
     compiler pads the sentinel with `SET_CONSTANT` (`crates/lean_compiler/src/lib.rs:194`).
-21. **Closed walks are not reachable.** The fill blocks of §8.3 run in frames disjoint from the
-    program's own run, so their pulled states are not `run`-reachable from `(1, 1)`, and a state
-    pull guarantee stating reachability is refuted by every padded honest witness (issue #10).
+21. **Closed walks are not reachable.** A balanced witness may hold loops run in frames disjoint
+    from the program's own run, whose pulled states are not `run`-reachable from `(1, 1)`, and a
+    state pull guarantee stating reachability is refuted by such a witness (issue #10; the
+    Layer 8 fixture).
     The state pull carries no guarantee, and Proposition 6.1 is stated once, as
     `exists_run_of_balanced`.
 22. **The program is neither prover data nor a table's parameter.** Clean's `ProverData` is a
@@ -1333,39 +1284,22 @@ witness that rejects it. Where the witness is executable it is a test under `tes
     `leanIsaVerifier prog` and `SatisfiedBy prog`'s conjunct `BytecodeRowsAreTheProgram prog`
     (decision 14). The guarantee is not `True` either: `DEREF`'s flag pair `(1, 1)` refutes it
     (acceptance test 18).
-23. **Completeness is for a padded trace: the image.** `AssignmentRepresents` forces the witness
-    image to be the trace's, but `ValidExecution` pins the image only at the cells the run reads
-    and at `g^0`, `g^1`, and the padding rows of every table read and write cells of that same
-    image. Witness: for every program of `2^11` slots whose first instruction is
-    `JUMP [g^2, g^2, g^3]` to the sentinel, one step is a valid execution on an image whose five
-    words `y`, `x·y`, `d`, `1`, `y²` are linearly independent over `GF(2)`, so no `XOR`
-    instruction executes on it at any registers or operands (`image_obstruction`), and the
-    repository's `FillerRowsValid` fails on any filler start that fetches an `XOR`. The `XOR`
-    table has a row (`Caps.heights` is a power of two), so a witness for this trace would put a
-    non-step on the bus; that last implication is Layer 9's `mem_channel_sound` and is argued
-    here, not checked. Hence completeness concludes a witness for a padded trace, and on the
-    padded image the same trace steps (`padded_bad_xor_step`). A version stated for the same
-    trace is false.
-24. **Room.** The frames the fill blocks run in (`48 * 12 = 576` cells) need space above the
-    image: a trace at `κ = maxLogMem` has no padding within the cap, and `PaddedFrom.valid` takes
-    the cap as a hypothesis (`no_room_at_cap`, `Trace.Fits.room`).
+23. **The witness represents the trace itself.** With fill blocks, a table needed rows the run
+    did not give, and they had to step on cells the image need not hold: for a program of `2^11`
+    slots whose first instruction is `JUMP [g^2, g^2, g^3]` to the sentinel, one step is a valid
+    execution on an image whose five words `y`, `x·y`, `d`, `1`, `y²` are linearly independent over
+    `GF(2)`, so no `XOR` executes on it (`badImage_no_xor`), and completeness was for a padded
+    trace. Without fill blocks the same trace has a witness representing it, with an empty `XOR`
+    table (`bad_trace_witness_rows`).
+24. (Retired with the fill blocks: there are no fill frames, so no room above the image is
+    needed.)
 25. **Size.** `Caps.heights` bounds every table by `2^32` rows while `Trace.steps` is unbounded,
     and a witness that represents a valid trace has a row for every step: a run of
-    `1 + 33 · 2^30` steps has no witness. Hence `Trace.Fits.rows`, which bounds the padded height
-    of every table but `JUMP` (`fillTarget`, the least power of two above the rows, the floor and
-    one). A trace that fits has at most `6 · 2^32` steps (`Trace.Fits.steps_le`), so the long run is
-    no fitting trace (`long_run_exceeds_sizes`); that no witness satisfies `Caps` and represents it
-    needs `Caps` and `AssignmentRepresents`, so that half is an Arithmetization test, beside the
-    completeness theorem: `steps_le_rows` counts the rows and `completeness_fails_on_long_run`
-    is the refutation, for well formed bytecode too (`completeness_needs_fit`).
-26. **A `JUMP` gap of one.** The smallest block that adds `JUMP` rows adds two (a dummy jump that
-    falls through and the closing jump), so no traversal delivers a single row, and the `JUMP`
-    table can be filled to `2^τ` only if `2^τ ≠ rows owed + 1`. With `2^32 - 1` rows owed no plan
-    fits in the cap (`no_plan_one_below_cap`, `no_gap_of_one`, `Trace.Fits.jump`).
-27. **Padding is coupled to the `JUMP` table.** Every step but a taken `JUMP` advances the counter
-    by `g`, which has order `2^64 - 1`, so a closed run shorter than that contains a taken jump
-    (`closed_walk_has_taken_jump`): every traversal of a fill block, whatever its table, adds a
-    row to `JUMP`, and the rows `JUMP` owes (`jumpOwed`) depend on every table's fill.
+    `1 + 33 · 2^30` steps has no witness (`steps_le_rows`, `completeness_fails_on_long_run`), for
+    a program whose sentinel slot is not a `JUMP` too (`completeness_needs_rows`). Hence the row
+    cap of `constraintCompleteness`.
+26. (Retired with the fill blocks: no table is filled, so the `JUMP` table has no gap.)
+27. (Retired with the fill blocks.)
 
 ## Interfaces supplied to later work
 
@@ -1379,7 +1313,7 @@ Parameters:       K  E  y  ofK  E.limb  E.ofLimbs  E.ofCell  IsInK  IsCanonical1
                   ofLimbs_of_isInK  ofLimbs_eq_zero_iff  add_limbs  mul_limbs
                   g  gpow  orderOf_g  gpow_injOn
                   Opcode  Opcode.code
-                  minLogMem  maxLogMem  maxLogRows  maxLogBytecode  minLogRowsBlake2s
+                  minLogMem  maxLogMem  maxLogRows  maxLogBytecode
                   iv  sigma
 Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   DerefMode  Instr  Instr.opcode  Program  Program.fetch
@@ -1390,13 +1324,8 @@ Semantics:        compress  cellWords  unpackMetadata  CompressCells
                   execute_of_step
                   Regs.initial  Program.finalPc  Regs.final  run  run_add  run_intermediate
                   Trace  Trace.regs  HasPublicBoundary  ValidExecution
-                  fillSizes  fillTables  fillDummy  fillClose  IsFillBlock  HasFillBlocks
-                  WellFormedBytecode
-                  minRows  fillTarget  fillGreedy  fillTraversals  jumpOwed  JumpFeasible  jumpMix
-                  Trace.PaddedFrom  Trace.runRows  Trace.owed  Trace.Fits  padImage  padTrace
-                  Trace.PaddedFrom.valid  fill_dummy_step  fill_close_step  fill_cycle_run
-                  Skel  cycleSkels  padSkels  SkelsValid  padSkels_valid
-                  Trace.runSkels  planCount  tableHeight  plan_rows  Trace.count_rows
+                  SentinelSafe
+                  Skel  Trace.runSkels  Trace.runRows  Trace.count_runSkels
 Arithmetization:  derefFlags  entry  encodeSlots  decode  decode_entry  decode_eq_some_iff
                   decode_deref_eq_some_iff
                   MemMsg  BytecodeMsg
@@ -1443,8 +1372,8 @@ Everything not listed is a proof, a helper, or a test. The named hypotheses a re
 know are assumed rather than proved are exactly: `IndexColumnsAreRowIndices`,
 `SeedRowsAreTheImage`, `BytecodeRowsAreTheProgram` (until Clean #446), `Blake2sRowsValid` (the
 `blake2s_valid` conjunct of `SatisfiedBy`, which discharges the `Assumptions` field of
-`blake2sTable` and is established by Flock, #3), `WellFormedBytecode` (both fields forced,
-acceptance tests 15 and 20), and the balance conjuncts of `SatisfiedBy`, which the proof system
+`blake2sTable` and is established by Flock, #3), `SentinelSafe` (forced, acceptance test 20),
+and the balance conjuncts of `SatisfiedBy`, which the proof system
 establishes. There are no axioms and no
 `variable`-block hypotheses.
 
@@ -1463,9 +1392,7 @@ Layers 1 and 2; Layer 5 needs Layers 3 and 4; Layer 6 needs Layer 5, and its six
 independent of one another; Layer 7 needs Layer 5 and the shared vocabulary of Layer 6
 (`Tables/Basic.lean`, `rowEnv`); Layer 8 needs Layers 6 and 7. Layer 9 needs
 Layer 8 and the Clean contract of the dependency table; until that contract is met its
-statements are block comments at their places. Layer 10 needs Layer 9. Its completeness half
-also needs the padded-trace vocabulary and the fill-block lemma, which are `Semantics` and need
-nothing above it, so they can land first.
+statements are block comments at their places. Layer 10 needs Layer 9.
 
 Each layer is one pull request (Layer 6 may be two), titled `feat(<layer>): …`, and it lands
 with `./scripts/validate.sh` green, its modules registered in `LeanerVM.lean` and
@@ -1516,7 +1443,7 @@ declaration also enables the kernel axiom audit (`axiom-audit-root: LeanerVM`).
   pin. Section numbers in this document are the pinned source's.
 - leanVM implementation at the same pin,
   [`crates/leanvm_core/src/`](https://github.com/leanEthereum/leanVM/tree/127510d14c98ade4e8a97646c44fa7f1ff5e752d/crates/leanvm_core/src):
-  `cpu/{isa,execute,layout,filler}.rs`,
+  `cpu/{isa,execute,layout}.rs`,
   `crates/leanvm_core/src/tables.rs`, `crates/primitives/src/field/`.
 - RFC 7693, *The BLAKE2 Cryptographic Hash and Message Authentication Code (MAC)*, §2.6–§2.7,
   §3.2; and the BLAKE2 specification's tree-mode finalization flags.

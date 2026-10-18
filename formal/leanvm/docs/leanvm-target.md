@@ -65,7 +65,7 @@ At the pinned revision:
   the first arrival and rejects a frame other than `main`'s, `Fault::HaltOutsideMain`,
   `crates/leanvm_core/src/cpu/execute.rs:452-461`; it asserted `fp = 1` at `a386121f`).
   leanISA's constraint soundness therefore carries a well-formed-bytecode hypothesis
-  (`WellFormedBytecode`, roadmap Layer 10); the compiler pads the sentinel with `SET_CONSTANT`
+  (`SentinelSafe`, roadmap Layer 10); the compiler pads the sentinel with `SET_CONSTANT`
   (`crates/lean_compiler/src/lib.rs:194`), which satisfies it.
 - `doc/leanvm/body/05-arithmetization.tex` through `08-end-to-end-protocol.tex`, together with
   `crates/leanvm_core/src/`, define the tables, bus, witness/proof pipeline, statement binding,

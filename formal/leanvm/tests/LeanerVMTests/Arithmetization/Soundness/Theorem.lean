@@ -1,12 +1,12 @@
 import LeanerVM.Arithmetization.Soundness.Theorem
-import LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
 # Layers 9 and 10 tests: constraint soundness
 
 `constraintSoundness` is inhabited at an instance and its trust base is the kernel's three axioms.
 The instance is a round trip through both T1 directions: the valid execution `badTrace` of
-`PaddedImageRefutation` (one `JUMP` to the sentinel) has, by `constraintCompleteness`, a witness
+`Completeness.Fixture` (one `JUMP` to the sentinel) has, by `constraintCompleteness`, a witness
 satisfying the statement; `constraintSoundness` extracts from that witness a trace that is a valid
 execution on the witness's image, and its step count is the run's, `1` (runs are deterministic and
 halt at the sentinel, `run_steps_unique`).
@@ -29,8 +29,7 @@ namespace LeanerVMTests.Arithmetization.Soundness.Theorem
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open Air.Flat (EnsembleWitness)
-open LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
-open LeanerVMTests.Arithmetization.Padding.FillBlocks
+open LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-! ## The trust base -/
 
@@ -89,35 +88,21 @@ theorem run_steps_unique {κ : ℕ} {prog : Program} {L : MemImage κ} {r : Regs
   · exact h
   · exact (key n m hn hm h).elim
 
-/-- The trace `badTrace`: one `JUMP` to the sentinel. -/
-def badTrace : Trace ladderJumpProg := ⟨minLogMem, badImage (gpow 2047), 1⟩
-
-/-- It is a valid execution. -/
-theorem badTrace_valid : ValidExecution ladderJumpProg badInput badTrace :=
-  bad_valid ladderJumpProg rfl ladderJump_fetch_one
-
-/-- It fits. -/
-theorem badTrace_fits : badTrace.Fits :=
-  Trace.Fits.of_short (rf := Regs.final ladderJumpProg) badTrace_valid.2 (by decide) (by decide)
-
 /-- **Constraint soundness at an instance, after completeness.** The witness completeness builds
 for `badTrace` satisfies the statement, and soundness extracts from it a valid execution that the
 witness represents, of one step, the run's. -/
 theorem bad_roundtrip :
-    ∃ w, SatisfiedBy ladderJumpProg badInput w ∧
-      ∃ t, AssignmentRepresents w t ∧ ValidExecution ladderJumpProg badInput t ∧ t.steps = 1 := by
-  obtain ⟨t', hp, hv', w, hs, hr'⟩ :=
-    constraintCompleteness ladderJump_wellFormed badTrace_valid badTrace_fits
-  obtain ⟨t, hr, hv⟩ := constraintSoundness ladderJump_wellFormed.sentinelSafe hs
+    ∃ w, SatisfiedBy jumpProg badInput w ∧
+      ∃ t, AssignmentRepresents w t ∧ ValidExecution jumpProg badInput t ∧ t.steps = 1 := by
+  obtain ⟨w, hs, hr'⟩ := constraintCompleteness badTrace_valid (by decide)
+  obtain ⟨t, hr, hv⟩ := constraintSoundness jumpProg_sentinelSafe hs
   refine ⟨w, hs, t, hr, hv, ?_⟩
   have himg := (assignmentRepresents_image hr).symm.trans (assignmentRepresents_image hr')
   show t.steps = badTrace.steps
-  rw [← hp.steps_eq]
   obtain ⟨κ, img, n⟩ := t
-  obtain ⟨κ', img', n'⟩ := t'
   obtain ⟨rfl, himg⟩ := Sigma.mk.inj himg
   obtain rfl := eq_of_heq himg
-  exact run_steps_unique hv.2 hv'.2
+  exact run_steps_unique hv.2 badTrace_valid.2
 
 /-! ## The roadmap's `no_row_at_sentinel` -/
 
@@ -142,9 +127,9 @@ theorem verifier_pulls_sentinel (prog : Program) (w : EnsembleWitness (leanIsaEn
   exact hall i hi (of_decide_eq_true hn) _ _ hmsg rfl
 
 /-- The roadmap's statement fails on the round-trip witness, which satisfies the statement. -/
-example : ∃ w, SatisfiedBy ladderJumpProg badInput w ∧
+example : ∃ w, SatisfiedBy jumpProg badInput w ∧
     ¬ ∀ i ∈ w.interactions, i.channel.name = StatePull.name →
-      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ ladderJumpProg.finalPc := by
+      ∀ pc fp : K, i.msg = #[pc, fp] → pc ≠ jumpProg.finalPc := by
   obtain ⟨w, hs, -⟩ := bad_roundtrip
   exact ⟨w, hs, verifier_pulls_sentinel _ w⟩
 

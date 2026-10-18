@@ -9,7 +9,7 @@ module
 
 public import LeanerVM.Arithmetization.Completeness.Rows
 public import LeanerVM.Arithmetization.Completeness.Balance
-public import LeanerVM.Arithmetization.Padding.PaddedRows
+public import LeanerVM.Arithmetization.Completeness.Skeletons
 
 @[expose] public section
 
@@ -17,7 +17,7 @@ public import LeanerVM.Arithmetization.Padding.PaddedRows
 # Rows with their counts
 
 leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`). Category A. A row of the witness
-is a skeleton (`Semantics.FillRows`: a state and the instruction fetched there) together with the
+is a skeleton (`Completeness.Skeletons`: a state and the instruction fetched there) together with the
 numbers of its reads: `PRow`. The `j`-th memory read of a row has count `g^(exps j)` and its
 bytecode read `g^bc`. `mkRows` writes the rows of a list of skeletons, threading two counters
 through it: how many times each memory cell and each bytecode slot has been read so far, so the

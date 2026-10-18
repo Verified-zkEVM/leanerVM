@@ -8,23 +8,24 @@
 
 module
 
-public import LeanerVM.Protocol.EndToEnd.Complete.BusTables
+public import LeanerVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanerVM.Protocol.EndToEnd.Complete.Gkr
+public import LeanerVM.Protocol.EndToEnd.Front.BusPadding
 
 /-!
 # The bus phase
 
-The verifier program's bus phase (`verifyBusBalance`, `python-verifier/verifier.py:534-593` at
-leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`), against the honest prover of a stack `q`
-satisfying the leanISA instance's relation.
+The verifier program's bus phase (`verifyBusBalance`, `python-verifier/verifier.py:544-606` at
+leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`), against the honest prover of a stack `q`
+satisfying the leanISA instance's relation with honest padding (`M3Honest`).
 
 **The leaves.** Each side of the bus is a grand product over the cube of `2^D` leaves, `D` the
 push side's depth (`busDepth`), every block placed where `bus_layout` places it (`stackLeaves`):
 
 * push and pull: the framework blocks (`stateTab`, `memTab`, `bcTab`: `β` plus the fingerprint of
   the boundary tuple of each row) and one block per flush of every table (`tableTab`: `β` plus the
-  fingerprint of the flushed tuple of each row, `blockVal`);
-* count: one block per count column of every table, its cells.
+  fingerprint of the flushed tuple of each executed row, `blockVal`, and `1` on a padding row);
+* count: one block per count column of every table, its executed cells, `1` on a padding row.
 
 **The checks.** `prod_push_eq_pull`: the push and pull leaves multiply to the same root, since
 they are the fingerprints of the instance's push and pull tuples (`prod_framework_push`,
@@ -35,8 +36,11 @@ finalize counts' extensions at the point (`memVals`, `mfVal`, `bfVal`).
 
 **The result** (`honestBus`, `busGood_honestBus`): its five framework claims are true, its forms
 are the fold `accumulate_side` makes of the blocks, and each side's total, the tree value plus the
-framework and the padding, is the stacking identity's table part (`honestBus_totals`), which is
-the true total of the forms (`fold_trueTotal`).
+framework, the unused leaves and the padding rows' public term, is the stacking identity's table
+part plus that term (`honestBus_totals`), which is the true total of the forms over every row,
+padding rows included (`fold_trueTotal`): on a padding row, which holds the public padding row,
+the honest leaf `1` and the public term `pad_n · (φ(p) + 1)` add up, in characteristic two, to the
+row's own fingerprint `φ(p)` (`sum_block_true`, with `paddingWeight_eq_sum`).
 
 `follows_verifyBusBalance`: the honest prover `hBus` follows `verifyBusBalance` at the verifier's
 layout, ending in `BusGood`. The admissibility of the sizes is not used. No `require` of the bus
@@ -50,169 +54,6 @@ open LeanerVM.Protocol.LeanIsa LeanerVM.Protocol.EndToEnd LeanerVM.Protocol.EndT
 open LeanerVM.Protocol.Whir.Complete Finset
 
 @[expose] public section
-
-/-- The tail of `verify_bus_balance` after the reads: the claims, the point, the forms and the
-totals (`verifier.py:572-593`). -/
-def busOut (layout : Verifier.Layout) (alphas : List E) (beta : E)
-    (point treeValues memory : List E)
-    (memoryFinal bytecodeFinal : E) : BusResult :=
-  let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
-  let pushLayout := busLayout frameworkLogRows layout.push
-  let pullLayout := busLayout frameworkLogRows layout.pull
-  let countLayout := busLayout [] layout.count
-  let weights := eqKernel alphas
-  let memoryLow := point.take layout.logMemory
-  let bytecodeLow := point.take layout.logBytecode
-  let claims : List Verifier.ColumnClaim :=
-    (List.zipWith (fun column value ↦ ⟨column, memoryLow, value⟩) [memory0, memory1, memory2]
-      memory) ++
-    [⟨memoryFinalCounters, memoryLow, memoryFinal⟩, ⟨bytecodeFinalCounters, bytecodeLow,
-      bytecodeFinal⟩]
-  let fp := fingerprints weights memory memoryLow bytecodeLow
-    (multilinearEval (layout.bytecode.map ofK) (bytecodeLow ++ alphas))
-  let finalPc := Verifier.gpow (2 ^ layout.logBytecode - 1)
-  let forms0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
-  let r1 := accumulateSide forms0 0 layout.push pushLayout (fp (Verifier.gpow 0) 1 1)
-    weights beta point (treeValues.getD 0 0)
-  let r2 := accumulateSide r1.1 1 layout.pull pullLayout
-    (fp finalPc memoryFinal bytecodeFinal) weights beta point (treeValues.getD 1 0)
-  let r3 := accumulateSide r2.1 2 layout.count countLayout [] [1] 0 point (treeValues.getD 2 0)
-  ⟨claims, point, r3.1, [r1.2, r2.2, r3.2]⟩
-
-/-- `verify_bus_balance` reads, then computes `busOut`. -/
-theorem verifyBusBalance_eq (layout : Verifier.Layout) :
-    verifyBusBalance .computed layout = (do
-      let alphas ← Prog.sampleN busBits
-      let beta ← Prog.sampleE
-      let g ← verifyGkrGrandProducts
-        (busLayout [0, layout.logMemory, layout.logBytecode] layout.push).depth
-      Prog.require (g.1 ≠ 0)
-      let memory ← Prog.readN 3
-      let memoryFinal ← Prog.readE
-      let bytecodeFinal ← Prog.readE
-      return busOut layout alphas beta g.2.1 g.2.2 memory memoryFinal bytecodeFinal) := by
-  rfl
-
-/-! ## The blocks and the depth -/
-
-/-- The push side's table blocks. -/
-def pushBlocks (s : Sizes) : List BusBlock :=
-  (List.ofFn fun t : Fin 6 ↦ (pySide t .push).map fun c ↦ (⟨s.τ t, c, t⟩ : BusBlock)).flatten
-
-/-- The pull side's table blocks. -/
-def pullBlocks (s : Sizes) : List BusBlock :=
-  (List.ofFn fun t : Fin 6 ↦ (pySide t .pull).map fun c ↦ (⟨s.τ t, c, t⟩ : BusBlock)).flatten
-
-/-- The count side's blocks. -/
-def countBlocks (s : Sizes) : List BusBlock :=
-  (List.ofFn fun t : Fin 6 ↦ (tables.getD t default).countColumns.map fun l ↦
-    (⟨s.τ t, [Form.col l], t⟩ : BusBlock)).flatten
-
-theorem layout_push (prog : Program) (s : Sizes) : (verifierLayout prog s).push = pushBlocks s := by
-  show (busBlocks (tableLogs s)).1 = _
-  rw [busBlocks_eq]; rfl
-
-theorem layout_pull (prog : Program) (s : Sizes) : (verifierLayout prog s).pull = pullBlocks s := by
-  show (busBlocks (tableLogs s)).2.1 = _
-  rw [busBlocks_eq]; rfl
-
-theorem layout_count (prog : Program) (s : Sizes) :
-    (verifierLayout prog s).count = countBlocks s := by
-  show (busBlocks (tableLogs s)).2.2 = _
-  rw [busBlocks_eq]; rfl
-
-/-- The framework blocks' log-sizes. -/
-def fwLogs (prog : Program) (s : Sizes) : List ℕ := [0, s.logMem, prog.logSize]
-
-/-- The bus's depth: the push side's. -/
-def busDepth (prog : Program) (s : Sizes) : ℕ :=
-  log2Ceil (blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)))
-
-theorem map_range_getD {α β' : Type} (l : List α) (d : α) (f : α → β') :
-    (List.range l.length).map (fun b ↦ f (l.getD b d)) = l.map f := by
-  apply List.ext_getElem (by simp)
-  intro i h1 h2
-  simp only [List.getElem_map, List.getElem_range]
-  rw [List.getD_eq_getElem _ _ (by simpa using h1)]
-
-theorem blockTotal_eq (sizes : List ℕ) : blockTotal sizes = (sizes.map (2 ^ ·)).sum := by
-  rw [blockTotal, map_range_getD sizes 0 (2 ^ ·)]
-
-theorem blockTotal_sideSizes (fw : List ℕ) (blocks : List BusBlock) :
-    blockTotal (sideSizes fw blocks) =
-      (fw.map (2 ^ ·)).sum + (blocks.map fun b ↦ 2 ^ b.logRows).sum := by
-  rw [blockTotal_eq, sideSizes, List.map_append, List.sum_append, List.map_map]
-  rfl
-
-theorem sum_flatten_ofFn {α : Type} (f : Fin 6 → List α) (g : α → ℕ) :
-    (((List.ofFn f).flatten).map g).sum = ∑ t : Fin 6, ((f t).map g).sum := by
-  rw [List.map_flatten, List.sum_flatten, List.map_ofFn, List.map_ofFn, List.sum_ofFn]
-  rfl
-
-/-- Each table pulls as often as it pushes. -/
-theorem length_pySide_pull : ∀ t : Fin 6, (pySide t .pull).length = (pySide t .push).length := by
-  decide +kernel
-
-/-- Each table has at least one count column per push, at most. -/
-theorem length_countColumns_le :
-    ∀ t : Fin 6, (tables.getD t default).countColumns.length ≤ (pySide t .push).length := by
-  intro t
-  rw [pyCountColumns t, List.length_map]
-  revert t
-  decide +kernel
-
-/-- Each table pushes. -/
-theorem pySide_push_ne_nil : ∀ t : Fin 6, pySide t .push ≠ [] := by
-  decide +kernel
-
-theorem total_pull (prog : Program) (s : Sizes) :
-    blockTotal (sideSizes (fwLogs prog s) (pullBlocks s)) =
-      blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) := by
-  rw [blockTotal_sideSizes, blockTotal_sideSizes, pullBlocks, pushBlocks, sum_flatten_ofFn,
-    sum_flatten_ofFn]
-  congr 1
-
-theorem total_count_le (prog : Program) (s : Sizes) :
-    blockTotal (sideSizes [] (countBlocks s)) ≤
-      blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) := by
-  rw [blockTotal_sideSizes, blockTotal_sideSizes, countBlocks, pushBlocks, sum_flatten_ofFn,
-    sum_flatten_ofFn]
-  simp only [List.map_nil, List.sum_nil, zero_add, List.map_map, Function.comp_def,
-    List.map_const', List.sum_replicate, smul_eq_mul]
-  refine le_add_left (Finset.sum_le_sum fun t _ ↦ ?_)
-  exact Nat.mul_le_mul_right _ (length_countColumns_le t)
-
-theorem total_le_depth (prog : Program) (s : Sizes) :
-    blockTotal (sideSizes (fwLogs prog s) (pushBlocks s)) ≤ 2 ^ busDepth prog s :=
-  blockTotal_le _
-
-/-- A size whose block is in the push side is at most the depth. -/
-theorem le_busDepth (prog : Program) (s : Sizes) {v : ℕ}
-    (h : 2 ^ v ≤ blockTotal (sideSizes (fwLogs prog s) (pushBlocks s))) : v ≤ busDepth prog s :=
-  (Nat.pow_le_pow_iff_right (by norm_num)).mp (h.trans (total_le_depth prog s))
-
-theorem logMem_le_busDepth (prog : Program) (s : Sizes) : s.logMem ≤ busDepth prog s := by
-  refine le_busDepth prog s ?_
-  rw [blockTotal_sideSizes, fwLogs]
-  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero]
-  exact le_add_right (le_add_left (le_add_right le_rfl))
-
-theorem logSize_le_busDepth (prog : Program) (s : Sizes) : prog.logSize ≤ busDepth prog s := by
-  refine le_busDepth prog s ?_
-  rw [blockTotal_sideSizes, fwLogs]
-  simp only [List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, pow_zero]
-  exact le_add_right (le_add_left (le_add_left (le_add_right le_rfl)))
-
-theorem tau_le_busDepth (prog : Program) (s : Sizes) (t : Fin 6) : s.τ t ≤ busDepth prog s := by
-  refine le_busDepth prog s ?_
-  rw [blockTotal_sideSizes, pushBlocks, sum_flatten_ofFn]
-  obtain ⟨c, cs, hc⟩ := List.exists_cons_of_ne_nil (pySide_push_ne_nil t)
-  have : 2 ^ s.τ t ≤ (((pySide t .push).map fun c ↦ (⟨s.τ t, c, t⟩ : BusBlock)).map
-      fun b ↦ 2 ^ b.logRows).sum := by
-    rw [hc]; simp
-  exact this.trans (le_add_left (Finset.single_le_sum (f := fun t' : Fin 6 ↦
-    (((pySide t' .push).map fun c ↦ (⟨s.τ t', c, t'⟩ : BusBlock)).map
-      fun b ↦ 2 ^ b.logRows).sum) (fun _ _ ↦ Nat.zero_le _) (Finset.mem_univ t)))
 
 /-! ## The honest leaves -/
 
@@ -380,33 +221,100 @@ theorem sum_map_filter_cons {α : Type} (p : α → Prop) [DecidablePred p] (g :
       (if p y then g y else 0) + ((l.filter fun a ↦ decide (p a)).map g).sum := by
   by_cases h : p y <;> simp [h]
 
-/-- One block's contribution to the true total: its selector times its extension. -/
-theorem sum_block_true (β : E) (w : List E) (p : List E) (sel : E) (t : Fin 6)
-    (coords : List Form) (hp : s.τ t ≤ p.length) :
+/-- `1 + 1 = 0` in `E`. -/
+private theorem one_add_one_E : (1 : E) + 1 = 0 := by
+  rw [one_add_one_eq_two]
+  exact CharTwo.two_eq_zero
+
+/-- The verifier's tables have the instance's widths. -/
+theorem columns_length : ∀ t : Fin 6, (tables.getD t default).columns.length = width (opIdx t) := by
+  decide +kernel
+
+/-- The verifier's padding weight is the padding rows' share of the equality weight. -/
+theorem paddingWeight_eq_sum (z : List E) (n : ℕ) (hn : n ≤ 2 ^ z.length) :
+    paddingWeight z n =
+      ∑ y ∈ range (2 ^ z.length), (if n ≤ y then 1 else 0) * eqEval (boolPoint z.length y) z := by
+  rw [Front.paddingWeight_eq_padWeight z n hn, Bus.padWeight, ← Front.multilinearEval_eq_evalMle]
+  have h1 : (Front.vecList z).toList = z := by
+    apply List.ext_getElem (by simp)
+    intro i h1 h2
+    simp [List.getElem?_eq_getElem h2]
+  have h2 : (Vector.ofFn fun x : Fin (2 ^ z.length) ↦ if n ≤ x.val then (1 : E) else 0).toList =
+      (List.range (2 ^ z.length)).map fun y ↦ if n ≤ y then 1 else 0 := by
+    apply List.ext_getElem (by simp)
+    intro i h1 h2
+    simp
+  rw [h1, h2, multilinearEval_range _ _ _ rfl]
+
+/-- A padding row of an honest stack reads, column by column, as the verifier's padding row. -/
+theorem rowVal_padding (hP : (inst prog s).PaddingHonest q) (t : Fin 6) (x : Fin (2 ^ s.τ t))
+    (hx : s.rows t ≤ x.val) :
+    rowVal prog s q t x = fun i ↦ (tables.getD t default).padding.getD i 0 := by
+  funext i
+  rw [rowVal, padding_eq_map_ofK]
+  split_ifs with hi
+  · rw [hP (opIdx t) x hx]
+    show ofK (padRow (opIdx t) ⟨i, hi⟩) = _
+    simp only [padRow, opIdx, show 3 ≤ t.val + 3 by omega, ↓reduceIte, Nat.add_sub_cancel,
+      List.getD_eq_getElem?_getD, List.getElem?_map]
+    have h0 : ofK (0 : K) = 0 := map_zero (algebraMap K E)
+    cases h : (padRowK (tables[(t : ℕ)]?.getD default))[i]? <;> simp [h0]
+  · have hl : ((padRowK (tables.getD t default)).map ofK).length = width (opIdx t) := by
+      simp only [padRowK, List.length_map]
+      exact columns_length t
+    rw [List.getD_eq_default _ _ (by omega)]
+
+/-- **One block's contribution to the true total**: its selector times its extension, and the
+padding term the verifier adds, `pad_n · (φ(p) + 1)`: in characteristic two, the honest leaves `1`
+of the padding rows and that term add up to the padding rows' fingerprints. -/
+theorem sum_block_true (hP : (inst prog s).PaddingHonest q) (β : E) (w : List E) (p : List E)
+    (sel : E) (t : Fin 6) (coords : List Form) (hp : s.τ t ≤ p.length) :
     ∑ x : Fin (2 ^ s.τ t), eqEval (p.take (s.τ t)) (boolPoint (s.τ t) x) *
-        (sel * blockVal β w ⟨s.τ t, coords, t⟩ (rowVal prog s q t x)) =
-      sel * multilinearEval (tableTab prog s q β w ⟨s.τ t, coords, t⟩) (p.take (s.τ t)) := by
-  rw [tableTab, multilinearEval_range _ _ _ (by simp only [List.length_take]; omega), mul_sum,
-    Finset.sum_range]
+        (sel * blockVal β w ⟨s.τ t, s.rows t, coords, t⟩ (rowVal prog s q t x)) =
+      sel * multilinearEval (tableTab prog s q β w ⟨s.τ t, s.rows t, coords, t⟩)
+          (p.take (s.τ t)) +
+        sel * paddingWeight (p.take (s.τ t)) (s.rows t) *
+          (blockVal β w ⟨s.τ t, s.rows t, coords, t⟩
+            ((tables.getD t default).padding.getD · 0) + 1) := by
+  have hz : (p.take (s.τ t)).length = s.τ t := by simp only [List.length_take]; omega
+  rw [tableTab, multilinearEval_range _ _ _ hz,
+    paddingWeight_eq_sum _ _ (by rw [hz]; exact s.rows_le t), hz, mul_sum, Finset.sum_range,
+    Finset.sum_range, mul_sum, Finset.sum_mul, ← Finset.sum_add_distrib]
   refine Finset.sum_congr rfl fun x _ ↦ ?_
   simp only
-  rw [rowAt_eq prog s q t x, eqEval_comm]
-  ring
+  rw [eqEval_comm]
+  by_cases hx : x.val < s.rows t
+  · simp only [hx, ↓reduceIte, show ¬ s.rows t ≤ x.val by omega, rowAt_eq prog s q t x]
+    ring
+  · simp only [hx, ↓reduceIte, Nat.le_of_not_lt hx, rowVal_padding prog s q hP t x
+      (Nat.le_of_not_lt hx)]
+    linear_combination (-(sel * eqEval (boolPoint (s.τ t) x) (p.take (s.τ t)))) * one_add_one_E
+
+/-- `padSum` of a cons. -/
+theorem padSum_cons (w : List E) (β : E) (p : List E) (sel : E) (b : BusBlock)
+    (l : List (E × BusBlock)) :
+    padSum w β p ((sel, b) :: l) = sel * paddingWeight (p.take b.logRows) b.rows *
+      (blockVal β w b ((tables.getD b.owner default).padding.getD · 0) + 1) + padSum w β p l := by
+  simp only [padSum, List.map_cons, List.sum_cons]
 
 /-- **The true total of a fold**: the forms a side's blocks accumulate, summed over every table's
-rows against the point, are the blocks' selector-weighted extensions. -/
-theorem sum_owner_tables (β : E) (w : List E) (p : List E) (hp : ∀ t, s.τ t ≤ p.length) :
-    ∀ l : List (E × BusBlock), (∀ y ∈ l, ∃ t : Fin 6, y.2 = ⟨s.τ t, y.2.coordinates, t⟩) →
+rows against the point, are the blocks' selector-weighted extensions plus the padding terms, on an
+honest stack. -/
+theorem sum_owner_tables (hP : (inst prog s).PaddingHonest q) (β : E) (w : List E) (p : List E)
+    (hp : ∀ t, s.τ t ≤ p.length) :
+    ∀ l : List (E × BusBlock),
+      (∀ y ∈ l, ∃ t : Fin 6, y.2 = ⟨s.τ t, s.rows t, y.2.coordinates, t⟩) →
       ∑ t : Fin 6, ∑ x : Fin (2 ^ s.τ t), eqEval (p.take (s.τ t)) (boolPoint (s.τ t) x) *
         ((l.filter fun y ↦ decide (y.2.owner = (t : ℕ))).map
           fun y ↦ y.1 * blockVal β w y.2 (rowVal prog s q t x)).sum =
-      (l.map fun y ↦ y.1 * multilinearEval (tableTab prog s q β w y.2) (p.take y.2.logRows)).sum
-  | [], _ => by simp
+      (l.map fun y ↦ y.1 * multilinearEval (tableTab prog s q β w y.2) (p.take y.2.logRows)).sum +
+        padSum w β p l
+  | [], _ => by simp [padSum]
   | (sel, b) :: l, hl => by
     obtain ⟨ty, hb⟩ := hl (sel, b) (by simp)
     simp only at hb
-    rw [List.map_cons, List.sum_cons, ← sum_owner_tables β w p hp l
-      fun y hy ↦ hl y (by simp [hy])]
+    rw [List.map_cons, List.sum_cons, padSum_cons, add_add_add_comm,
+      ← sum_owner_tables hP β w p hp l fun y hy ↦ hl y (by simp [hy])]
     simp only [sum_map_filter_cons, mul_add, sum_add_distrib]
     refine congrArg (· + _) ?_
     have hcond : ∀ t : Fin 6, (b.owner = ↑t) ↔ (ty = t) := fun t ↦ by
@@ -414,8 +322,9 @@ theorem sum_owner_tables (β : E) (w : List E) (p : List E) (hp : ∀ t, s.τ t 
     simp only [hcond, mul_ite, mul_zero, Finset.sum_ite_irrel, Finset.sum_const_zero]
     rw [Finset.sum_ite_eq]
     simp only [Finset.mem_univ, ↓reduceIte]
-    rw [hb]
-    exact sum_block_true prog s q β w p sel ty b.coordinates (hp ty)
+    rw [hb, sum_block_true prog s q hP β w p sel ty b.coordinates (hp ty)]
+    dsimp only
+    ring
 
 /-- A list zipped with a function of its indices. -/
 theorem sum_zip_range (l : List BusBlock) (f : ℕ → E) (g : E × BusBlock → E) :
@@ -427,16 +336,6 @@ theorem sum_zip_range (l : List BusBlock) (f : ℕ → E) (g : E × BusBlock →
   intro i h1 h2
   simp only [List.length_map, List.length_range] at h2
   simp [List.getElem?_eq_getElem h2]
-
-/-- The blocks of every side are owned by a table at its height. -/
-theorem blocks_owned {α : Type} (f : Fin 6 → List α) (g : Fin 6 → α → List Form) :
-    ∀ b ∈ (List.ofFn fun t : Fin 6 ↦ (f t).map fun a ↦ (⟨s.τ t, g t a, t⟩ : BusBlock)).flatten,
-      ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩ := by
-  intro b hb
-  obtain ⟨l, hl, hbl⟩ := List.mem_flatten.mp hb
-  obtain ⟨t, rfl⟩ := List.mem_ofFn.mp hl
-  obtain ⟨a, -, rfl⟩ := List.mem_map.mp hbl
-  exact ⟨t, rfl⟩
 
 /-! ## The framework's fingerprints -/
 
@@ -457,9 +356,6 @@ def bfVal (point : List E) : E :=
 theorem multilinearEval_onesList (z : List E) (n : ℕ) (hz : z.length = n) :
     multilinearEval (onesList n) z = 1 := by
   subst hz; exact multilinearEval_replicate 1 z
-
-theorem length_take_of_le {p : List E} {n : ℕ} (h : n ≤ p.length) : (p.take n).length = n := by
-  rw [List.length_take]; omega
 
 /-- **The push framework blocks extend to the verifier's push fingerprints.** -/
 theorem fw_push (L : Verifier.Layout) (hbc : L.bytecode = bytecodeWords prog) (alphas : List E)
@@ -508,54 +404,6 @@ theorem fw_pull (L : Verifier.Layout) (hlb : L.logBytecode = prog.logSize)
 
 /-! ## The bus's result is true -/
 
-/-- The forms the bus starts from: every entry is the empty form. -/
-theorem forms0_entry (t side : ℕ) :
-    ((tables.map fun _ ↦ ([{}, {}, {}] : List Form)).getD t []).getD side {} = {} := by
-  have hrow : ∀ r ∈ tables.map fun _ ↦ ([{}, {}, {}] : List Form), r = [{}, {}, {}] := by
-    intro r hr
-    obtain ⟨_, -, rfl⟩ := List.mem_map.mp hr
-    rfl
-  rw [show (tables.map fun _ ↦ ([{}, {}, {}] : List Form)).getD t [] =
-    ((tables.map fun _ ↦ ([{}, {}, {}] : List Form))[t]?).getD [] from List.getD_eq_getElem?_getD]
-  rcases h : (tables.map fun _ ↦ ([{}, {}, {}] : List Form))[t]? with _ | r
-  · rfl
-  · rw [hrow r (List.mem_of_getElem? h), Option.getD_some]
-    rcases side with _ | _ | _ | side <;> rfl
-
-theorem forms0_length : (tables.map fun _ ↦ ([{}, {}, {}] : List Form)).length = 6 := rfl
-
-theorem forms0_row :
-    ∀ t < 6, ((tables.map fun _ ↦ ([{}, {}, {}] : List Form)).getD t []).length = 3 := by
-  intro t ht
-  rw [List.getD_eq_getElem _ _ (by simpa [tables] using ht)]
-  simp
-
-theorem forms0_deg : FormsDeg2 (tables.map fun _ ↦ ([{}, {}, {}] : List Form)) := by
-  intro t side term hterm
-  rw [forms0_entry] at hterm
-  simp at hterm
-
-/-- Every block of a list owned by a table is owned below six. -/
-theorem owner_lt_six {l : List BusBlock} (h : ∀ b ∈ l, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩)
-    (sels : List E) : ∀ x ∈ List.zip sels l, x.2.owner < 6 := by
-  intro x hx
-  obtain ⟨t, ht⟩ := h x.2 (List.of_mem_zip hx).2
-  rw [ht]; exact t.isLt
-
-/-- The zipped blocks of a side are owned by tables at their heights. -/
-theorem zip_owned {l : List BusBlock} (h : ∀ b ∈ l, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩)
-    (sels : List E) : ∀ y ∈ List.zip sels l, ∃ t : Fin 6, y.2 = ⟨s.τ t, y.2.coordinates, t⟩ :=
-  fun y hy ↦ h y.2 (List.of_mem_zip hy).2
-
-theorem pushBlocks_owned : ∀ b ∈ pushBlocks s, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩ :=
-  blocks_owned s _ fun _ c ↦ c
-
-theorem pullBlocks_owned : ∀ b ∈ pullBlocks s, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩ :=
-  blocks_owned s _ fun _ c ↦ c
-
-theorem countBlocks_owned : ∀ b ∈ countBlocks s, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩ :=
-  blocks_owned s _ fun _ l ↦ [Form.col l]
-
 /-- The honest tree values: the three sides' leaves' extensions at the point. -/
 def treeVals (alphas : List E) (β : E) (p : List E) : List E :=
   [multilinearEval (pushLeaves prog s q alphas β) p,
@@ -591,9 +439,15 @@ def sideTotal (fw : List ℕ) (blocks : List BusBlock) (tabs : ℕ → List E) (
 theorem honestBus_totals (alphas : List E) (halpha : alphas.length = 4) (β : E) (p : List E)
     (hp : p.length = busDepth prog s) :
     (honestBus prog s q alphas β p).totals =
-      [sideTotal prog s (fwLogs prog s) (pushBlocks s) (pushTabs prog s q β (eqKernel alphas)) p,
-        sideTotal prog s (fwLogs prog s) (pullBlocks s) (pullTabs prog s q β (eqKernel alphas)) p,
-        sideTotal prog s [] (countBlocks s) (countTabs prog s q) p] := by
+      [sideTotal prog s (fwLogs prog s) (pushBlocks s) (pushTabs prog s q β (eqKernel alphas)) p +
+          padSum (eqKernel alphas) β p (List.zip (sideSels (fwLogs prog s) (pushBlocks s) p
+            (fwLogs prog s).length (pushBlocks s).length) (pushBlocks s)),
+        sideTotal prog s (fwLogs prog s) (pullBlocks s) (pullTabs prog s q β (eqKernel alphas)) p +
+          padSum (eqKernel alphas) β p (List.zip (sideSels (fwLogs prog s) (pullBlocks s) p
+            (fwLogs prog s).length (pullBlocks s).length) (pullBlocks s)),
+        sideTotal prog s [] (countBlocks s) (countTabs prog s q) p +
+          padSum [1] 0 p (List.zip (sideSels [] (countBlocks s) p 0 (countBlocks s).length)
+            (countBlocks s))] := by
   simp only [honestBus, busOut, treeVals, List.getD_cons_zero, List.getD_cons_succ]
   rw [layout_push, layout_pull, layout_count]
   simp only [List.cons.injEq, and_true]
@@ -613,10 +467,11 @@ theorem trueTotal_congr (p : List E) {F G : List (List Form)} (side : ℕ)
     trueTotal prog s q p F side = trueTotal prog s q p G side := by
   simp only [trueTotal, h]
 
-/-- **The true total of a side's fold** is the side's total, when the forms start empty. -/
-theorem fold_trueTotal (side : ℕ) (hside : side < 3) (w : List E) (β : E)
-    (blocks : List BusBlock)
-    (hown : ∀ b ∈ blocks, ∃ t : Fin 6, b = ⟨s.τ t, b.coordinates, t⟩) (fw : List ℕ)
+/-- **The true total of a side's fold** is the side's total with its padding terms, when the forms
+start empty and the stack is honest. -/
+theorem fold_trueTotal (hP : (inst prog s).PaddingHonest q) (side : ℕ) (hside : side < 3)
+    (w : List E) (β : E) (blocks : List BusBlock)
+    (hown : ∀ b ∈ blocks, ∃ t : Fin 6, b = ⟨s.τ t, s.rows t, b.coordinates, t⟩) (fw : List ℕ)
     (tabs : ℕ → List E)
     (htabs : ∀ i, tabs (fw.length + i) = tableTab prog s q β w (blocks.getD i default))
     (p : List E) (hp : p.length = busDepth prog s) (forms : List (List Form))
@@ -625,14 +480,17 @@ theorem fold_trueTotal (side : ℕ) (hside : side < 3) (w : List E) (β : E)
     trueTotal prog s q p
         (accFold side w β (List.zip (sideSels fw blocks p fw.length blocks.length) blocks) forms)
         side =
-      sideTotal prog s fw blocks tabs p := by
+      sideTotal prog s fw blocks tabs p +
+        padSum w β p (List.zip (sideSels fw blocks p fw.length blocks.length) blocks) := by
   have hspec := (accFold_spec side hside w β
     (List.zip (sideSels fw blocks p fw.length blocks.length) blocks) forms h6 h3
     (owner_lt_six s hown _)).2.2.2
   unfold trueTotal
   simp only [hspec, hzero, evaluate_empty, zero_add]
-  rw [sum_owner_tables prog s q β w p (fun t ↦ hp ▸ tau_le_busDepth prog s t) _
-    (zip_owned s hown _), sideSels, sum_zip_range, sideTotal]
+  rw [sum_owner_tables prog s q hP β w p (fun t ↦ hp ▸ tau_le_busDepth prog s t) _
+    (zip_owned s hown _)]
+  refine congrArg (· + _) ?_
+  rw [sideSels, sum_zip_range, sideTotal]
   refine Finset.sum_congr rfl fun i hi ↦ ?_
   rw [htabs, hp]
 
@@ -669,7 +527,7 @@ theorem trueClaims_honestBus (alphas : List E) (β : E) (p : List E)
 /-- The table blocks' coordinates have degree at most two. -/
 theorem blocks_deg2 (side : Side) (sels : List E) :
     ∀ x ∈ List.zip sels ((List.ofFn fun t : Fin 6 ↦
-      (pySide t side).map fun c ↦ (⟨s.τ t, c, t⟩ : BusBlock)).flatten),
+      (pySide t side).map fun c ↦ (⟨s.τ t, s.rows t, c, t⟩ : BusBlock)).flatten),
       ∀ c ∈ x.2.coordinates, Deg2 c := by
   intro x hx c hc
   obtain ⟨l, hl, hbl⟩ := List.mem_flatten.mp (List.of_mem_zip hx).2
@@ -695,8 +553,9 @@ theorem countBlocks_deg2 (sels : List E) :
   rw [hterm]; simp
 
 /-- **The honest bus result is true.** -/
-theorem busGood_honestBus (alphas : List E) (halpha : alphas.length = 4) (β : E) (p : List E)
-    (hp : p.length = busDepth prog s) : BusGood prog s q (honestBus prog s q alphas β p) := by
+theorem busGood_honestBus (hP : (inst prog s).PaddingHonest q) (alphas : List E)
+    (halpha : alphas.length = 4) (β : E) (p : List E) (hp : p.length = busDepth prog s) :
+    BusGood prog s q (honestBus prog s q alphas β p) := by
   set w := eqKernel alphas
   set F0 : List (List Form) := tables.map fun _ ↦ [{}, {}, {}]
   set l1 := List.zip (sideSels (fwLogs prog s) (pushBlocks s) p 3 (pushBlocks s).length)
@@ -727,14 +586,14 @@ theorem busGood_honestBus (alphas : List E) (halpha : alphas.length = 4) (β : E
     rcases side with _ | _ | _ | side
     · rw [trueTotal_congr prog s q p 0 fun t ↦ c3 t 0 (by norm_num),
         trueTotal_congr prog s q p 0 fun t ↦ c2 t 0 (by norm_num)]
-      exact (fold_trueTotal prog s q 0 (by norm_num) w β (pushBlocks s) (pushBlocks_owned s)
+      exact (fold_trueTotal prog s q hP 0 (by norm_num) w β (pushBlocks s) (pushBlocks_owned s)
         (fwLogs prog s) _ (fun i ↦ pushTabs_add_three prog s q β w i) p hp F0 forms0_length
         forms0_row fun t ↦ forms0_entry t 0).symm
     · rw [trueTotal_congr prog s q p 1 fun t ↦ c3 t 1 (by norm_num)]
-      exact (fold_trueTotal prog s q 1 (by norm_num) w β (pullBlocks s) (pullBlocks_owned s)
+      exact (fold_trueTotal prog s q hP 1 (by norm_num) w β (pullBlocks s) (pullBlocks_owned s)
         (fwLogs prog s) _ (fun i ↦ pullTabs_add_three prog s q β w i) p hp F1 a1 b1
         fun t ↦ (c1 t 1 (by norm_num)).trans (forms0_entry t 1)).symm
-    · exact (fold_trueTotal prog s q 2 (by norm_num) [1] 0 (countBlocks s) (countBlocks_owned s)
+    · exact (fold_trueTotal prog s q hP 2 (by norm_num) [1] 0 (countBlocks s) (countBlocks_owned s)
         [] _ (fun i ↦ by simp [countTabs]) p hp F2 a2 b2
         fun t ↦ (c2 t 2 (by norm_num)).trans ((c1 t 2 (by norm_num)).trans
           (forms0_entry t 2))).symm
@@ -792,23 +651,17 @@ noncomputable def hBus (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog 
     Script BusResult :=
   (Script.sampleN busBits).bind (hBusK1 prog s q)
 
-theorem busLayout_depth_verifier (prog : Program) (s : Sizes) :
-    (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
-      (verifierLayout prog s).push).depth = busDepth prog s := by
-  rw [layout_push, busLayout_depth]
-  rfl
-
 attribute [local irreducible] Follows in
 /-- **Perfect completeness of the bus phase.** For a stack satisfying the leanISA instance's
 relation, the honest prover follows the verifier program's bus phase at the verifier's layout:
 every `require` holds (the shared root and the nonzero count root), and the result is true
 (`BusGood`): true framework claims, and totals that are the true totals of the forms. -/
 theorem follows_verifyBusBalance {prog : Program} {s : Sizes} {input : PublicInput}
-    {q : Column (leanIsaμ prog s)} (_hs : s.Admissible prog) (hq : M3Holds (inst prog s) input q)
-    (cs : Commits) :
+    {q : Column (leanIsaμ prog s)} (_hs : s.Admissible prog)
+    (hq : M3Honest (inst prog s) input q) (cs : Commits) :
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
       (verifyBusBalance .computed (verifierLayout prog s)) cs := by
-  obtain ⟨-, hbal, hcnt, -, -⟩ := hq
+  obtain ⟨⟨-, hbal, hcnt, -, -⟩, hP⟩ := hq
   rw [verifyBusBalance_eq', busLayout_depth_verifier, hBus]
   refine Follows.bind (fun cs₁ a b h ↦ ?_) _ _ _ (Follows.sampleN_sampleN cs busBits)
   obtain ⟨rfl, rfl, hlen⟩ := h
@@ -835,7 +688,7 @@ theorem follows_verifyBusBalance {prog : Program} {s : Sizes} {input : PublicInp
       (memVals prog s q g.2.1) (mfVal prog s q g.2.1) (bfVal prog s q g.2.1) := by
     rw [honestBus, htv]
     rfl
-  exact Follows.ret_ret ⟨rfl, heq, heq ▸ busGood_honestBus prog s q a hlen c g.2.1 hpl⟩
+  exact Follows.ret_ret ⟨rfl, heq, heq ▸ busGood_honestBus prog s q hP a hlen c g.2.1 hpl⟩
 
 end
 end LeanerVM.Protocol.EndToEnd.Complete

@@ -1,7 +1,7 @@
 /-
   LeanerVM.Arithmetization.Completeness.Satisfied
 
-  The witness of a padded execution satisfies the constraint statement: the three balances, the
+  The witness of a list of skeletons satisfies the constraint statement: the three balances, the
   caps, the blocks' rows, the compression, and the public words.
 -/
 
@@ -14,14 +14,13 @@ public import LeanerVM.Arithmetization.Completeness.Witness
 /-!
 # The witness satisfies the statement
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`). Category A. `padWitness prog input
-img S` satisfies every conjunct of `SatisfiedBy prog input` (`padWitness_satisfiedBy`) when the
+leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`). Category A. `skelWitness prog input
+img S` satisfies every conjunct of `SatisfiedBy prog input` (`skelWitness_satisfiedBy`) when the
 skeletons `S` are sound for the program and the image (`SkelOk`: fetched, and they execute), the
-state pair balances (the hypothesis `hstate`, proved from the run and the fill in
-`Completeness`), every table's height is a power of two within the cap and the `BLAKE2S` table has
-at least eight rows, and the image has the public words.
+state pair balances (the hypothesis `hstate`, proved from the run in `Completeness.Theorem`),
+every table has at most `2^maxLogRows` rows, and the image has the public words.
 
-The proof is the bus computation. `messagesOn_padWitness` says what each channel carries: the
+The proof is the bus computation. `messagesOn_skelWitness` says what each channel carries: the
 verifier's message, then the rows of each table, then the blocks'. For the memory pair and the
 bytecode pair the rows are the reads of one list of skeletons, numbered by the chain
 (`Completeness.Bus`), so `chain_balance` (`Completeness.Balance`) balances them against the blocks'
@@ -146,21 +145,21 @@ theorem chanOf_flatMap {α : Type} (n : String) (l : List α) (F : α → List (
     chanOf n (l.flatMap F) = l.flatMap fun a ↦ chanOf n (F a) := by
   simp only [chanOf, List.filter_flatMap, List.map_flatMap]
 
-/-- Everything the padded witness sends, in the ensemble's order: the verifier's two messages, the
+/-- Everything the witness sends, in the ensemble's order: the verifier's two messages, the
 rows of the six tables, the memory block, the bytecode block. -/
-noncomputable def padSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
+noncomputable def skelSends (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel) :
     List (String × Array K) :=
   [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] ++
-    (fillTables.flatMap fun op ↦
-      ((padRows img S).filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img)) ++
-    memBlockSends img (padMemFin img S) ++ bcBlockSends prog (padBcFin S)
+    (tableOpcodes.flatMap fun op ↦
+      ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img)) ++
+    memBlockSends img (skelMemFin img S) ++ bcBlockSends prog (skelBcFin S)
 
-/-- **The sends of the padded witness.** -/
-theorem padWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+/-- **The sends of the witness.** -/
+theorem skelWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
-    ((padWitness prog input img S).allTables.flatMap fun t ↦ t.table.flatMap fun row ↦
-      rowSends t.component (t.environment row)) = padSends prog img S := by
-  have hR : ∀ r ∈ padRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
+    ((skelWitness prog input img S).allTables.flatMap fun t ↦ t.table.flatMap fun row ↦
+      rowSends t.component (t.environment row)) = skelSends prog img S := by
+  have hR : ∀ r ∈ skelRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
     fun r hr ↦ hS _ (mem_mkRows_sk hr)
   have hV : ∀ (w : EnsembleWitness (leanIsaEnsemble prog)),
       (w.verifierTable.table.flatMap fun row ↦
@@ -168,32 +167,28 @@ theorem padWitness_sends (prog : Program) (input : PublicInput) {κ : ℕ} (img 
       [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] := fun w ↦ by
     simp only [EnsembleWitness.verifierTable, List.flatMap_singleton]
     exact verifier_sends prog _
-  simp only [EnsembleWitness.allTables, padWitness, List.flatMap_cons, List.flatMap_nil,
+  simp only [EnsembleWitness.allTables, skelWitness, List.flatMap_cons, List.flatMap_nil,
     List.append_nil, hV]
-  simp only [opTable_sends _ _ _ _ hR, memBlock_sends, bcBlock_sends, padSends, fillTables,
+  simp only [opTable_sends _ _ _ _ hR, memBlock_sends, bcBlock_sends, skelSends, tableOpcodes,
     List.flatMap_cons, List.flatMap_nil, List.append_nil, List.append_assoc]
-
-/-- Every opcode has a table. -/
-theorem opcode_mem_fillTables (o : Opcode) : o ∈ fillTables := by
-  cases o <;> decide
 
 /-- **The six tables hold the rows of `R` regrouped by opcode**: on every channel their messages
 are a permutation of those of the rows in order. -/
 theorem chanOf_tables_perm {κ : ℕ} (img : MemImage κ) (n : String) (R : List PRow) :
-    (chanOf n (fillTables.flatMap fun op ↦
+    (chanOf n (tableOpcodes.flatMap fun op ↦
       (R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img))).Perm
       (R.flatMap fun r ↦ chanOf n (r.sends img)) := by
   rw [chanOf_flatMap]
-  have h : (fillTables.flatMap fun op ↦ chanOf n
+  have h : (tableOpcodes.flatMap fun op ↦ chanOf n
       ((R.filter fun r ↦ r.sk.ins.opcode = op).flatMap (PRow.sends img))) =
-      (fillTables.flatMap fun op ↦ R.filter fun r ↦ r.sk.ins.opcode = op).flatMap
+      (tableOpcodes.flatMap fun op ↦ R.filter fun r ↦ r.sk.ins.opcode = op).flatMap
         fun r ↦ chanOf n (r.sends img) := by
     rw [List.flatMap_assoc]
     refine List.flatMap_congr fun op _ ↦ ?_
     rw [chanOf_flatMap]
   rw [h]
-  exact (regroup_perm fillTables (fun r : PRow ↦ r.sk.ins.opcode) R (by decide)
-    fun r _ ↦ opcode_mem_fillTables _).flatMap_right _
+  exact (regroup_perm tableOpcodes (fun r : PRow ↦ r.sk.ins.opcode) R (by decide)
+    fun r _ ↦ mem_tableOpcodes _).flatMap_right _
 
 /-- A channel no send of the list names carries nothing. -/
 theorem chanOf_eq_nil {n : String} {l : List (String × Array K)} (h : ∀ x ∈ l, x.1 ≠ n) :
@@ -202,18 +197,18 @@ theorem chanOf_eq_nil {n : String} {l : List (String × Array K)} (h : ∀ x ∈
   rw [List.filter_eq_nil_iff.mpr (fun x hx ↦ by simpa using h x hx)]
   rfl
 
-/-- The padded witness's messages on a channel: the verifier's, the rows' of the six tables in
+/-- The witness's messages on a channel: the verifier's, the rows' of the six tables in
 order, the memory block's, the bytecode block's, up to the regrouping of the rows. -/
-theorem chanOf_padSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
+theorem chanOf_skelSends_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (n : String) :
-    (chanOf n (padSends prog img S)).Perm
+    (chanOf n (skelSends prog img S)).Perm
       (chanOf n [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] ++
-        (padRows img S).flatMap (fun r ↦ chanOf n (r.sends img)) ++
-        chanOf n (memBlockSends img (padMemFin img S)) ++
-        chanOf n (bcBlockSends prog (padBcFin S))) := by
-  unfold padSends
+        (skelRows img S).flatMap (fun r ↦ chanOf n (r.sends img)) ++
+        chanOf n (memBlockSends img (skelMemFin img S)) ++
+        chanOf n (bcBlockSends prog (skelBcFin S))) := by
+  unfold skelSends
   simp only [chanOf_append]
-  exact (((chanOf_tables_perm img n (padRows img S)).append_left _).append_right _).append_right _
+  exact (((chanOf_tables_perm img n (skelRows img S)).append_left _).append_right _).append_right _
 
 /-! ### The blocks' channels -/
 
@@ -304,8 +299,8 @@ theorem block_balance {ι α : Type} [DecidableEq ι] (keys : List ι) (hnd : ke
 and finalizes. -/
 theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img : MemImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
-    (chanOf MemPush.name (padSends prog img S)).Perm
-      (chanOf MemPull.name (padSends prog img S)) := by
+    (chanOf MemPush.name (skelSends prog img S)).Perm
+      (chanOf MemPull.name (skelSends prog img S)) := by
   have hκ64 : κ < 64 := by unfold maxLogMem at hκ; omega
   have hmem : ∀ a ∈ S.flatMap (fun sk ↦ readAddrs img sk.fp sk.ins),
       a ∈ (List.finRange (2 ^ κ)).map fun i : Fin (2 ^ κ) ↦ gpow (i : ℕ) := by
@@ -316,12 +311,12 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
     obtain ⟨i, rfl, -⟩ := (MemImage.read_eq_some_iff hκ64 img).mp hw
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, rfl⟩
   have hb := block_balance _ (gpow_keys_nodup κ hκ) (memMsg img) _ hmem
-  have h1 : (padRows img S).flatMap (fun r ↦ chanOf MemPush.name (r.sends img)) =
+  have h1 : (skelRows img S).flatMap (fun r ↦ chanOf MemPush.name (r.sends img)) =
       List.zipWith (fun a e ↦ memMsg img a (e + 1))
         (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
         (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
     mkRows_memPushes img (fun _ ↦ 0) (fun _ ↦ 0) S
-  have h2 : (padRows img S).flatMap (fun r ↦ chanOf MemPull.name (r.sends img)) =
+  have h2 : (skelRows img S).flatMap (fun r ↦ chanOf MemPull.name (r.sends img)) =
       List.zipWith (fun a e ↦ memMsg img a e)
         (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
         (readExps (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)) :=
@@ -332,26 +327,26 @@ theorem mem_pair_perm (prog : Program) {κ : ℕ} (hκ : κ ≤ maxLogMem) (img 
   have hv2 : chanOf MemPull.name
       [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, MemPull])
-  have hc1 : chanOf MemPush.name (bcBlockSends prog (padBcFin S)) = [] :=
+  have hc1 : chanOf MemPush.name (bcBlockSends prog (skelBcFin S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
       rcases bcBlockSends_names prog _ x hx with h | h <;> simp [h, MemPush, BytecodePush,
         BytecodePull]
-  have hc2 : chanOf MemPull.name (bcBlockSends prog (padBcFin S)) = [] :=
+  have hc2 : chanOf MemPull.name (bcBlockSends prog (skelBcFin S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
       rcases bcBlockSends_names prog _ x hx with h | h <;> simp [h, MemPull, BytecodePush,
         BytecodePull]
-  refine (chanOf_padSends_perm prog img S _).trans
-    (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _).symm)
+  refine (chanOf_skelSends_perm prog img S _).trans
+    (List.Perm.trans ?_ (chanOf_skelSends_perm prog img S _).symm)
   rw [hv1, hv2, hc1, hc2, h1, h2, memBlock_push hκ64, memBlock_pull hκ64]
   simp only [List.nil_append, List.append_nil]
-  simpa only [List.map_map, Function.comp_def, padMemFin] using hb
+  simpa only [List.map_map, Function.comp_def, skelMemFin] using hb
 
 /-- **The bytecode pair balances**: the rows' fetches, numbered by the chain, against the block's
 seeds and finalizes. -/
 theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, SkelOk prog img sk) :
-    (chanOf BytecodePush.name (padSends prog img S)).Perm
-      (chanOf BytecodePull.name (padSends prog img S)) := by
+    (chanOf BytecodePush.name (skelSends prog img S)).Perm
+      (chanOf BytecodePull.name (skelSends prog img S)) := by
   have hmem : ∀ a ∈ S.map (·.pc),
       a ∈ (List.finRange (2 ^ prog.logSize)).map fun i : Fin (2 ^ prog.logSize) ↦
         gpow (i : ℕ) := by
@@ -361,11 +356,11 @@ theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List S
     exact List.mem_map.mpr ⟨i, List.mem_finRange _, hi.symm⟩
   have hb := block_balance _ (gpow_keys_nodup prog.logSize prog.logSize_le) (bcMsg prog) _ hmem
   have hF : ∀ sk ∈ S, prog.fetch sk.pc = some sk.ins := fun sk h ↦ (hS sk h).1
-  have h1 : (padRows img S).flatMap (fun r ↦ chanOf BytecodePush.name (r.sends img)) =
+  have h1 : (skelRows img S).flatMap (fun r ↦ chanOf BytecodePush.name (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc (e + 1)) (S.map (·.pc))
         (readExps (fun _ ↦ 0) (S.map (·.pc))) :=
     mkRows_bcPushes img (fun _ ↦ 0) (fun _ ↦ 0) S hF
-  have h2 : (padRows img S).flatMap (fun r ↦ chanOf BytecodePull.name (r.sends img)) =
+  have h2 : (skelRows img S).flatMap (fun r ↦ chanOf BytecodePull.name (r.sends img)) =
       List.zipWith (fun pc e ↦ bcMsg prog pc e) (S.map (·.pc))
         (readExps (fun _ ↦ 0) (S.map (·.pc))) :=
     mkRows_bcPulls img (fun _ ↦ 0) (fun _ ↦ 0) S hF
@@ -375,19 +370,19 @@ theorem bc_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List S
   have hv2 : chanOf BytecodePull.name
       [(StatePush.name, #[1, 1]), (StatePull.name, #[prog.finalPc, 1])] = [] :=
     chanOf_eq_nil (by simp [StatePush, StatePull, BytecodePull])
-  have hc1 : chanOf BytecodePush.name (memBlockSends img (padMemFin img S)) = [] :=
+  have hc1 : chanOf BytecodePush.name (memBlockSends img (skelMemFin img S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
       rcases memBlockSends_names img _ x hx with h | h <;> simp [h, MemPush, MemPull,
         BytecodePush]
-  have hc2 : chanOf BytecodePull.name (memBlockSends img (padMemFin img S)) = [] :=
+  have hc2 : chanOf BytecodePull.name (memBlockSends img (skelMemFin img S)) = [] :=
     chanOf_eq_nil fun x hx ↦ by
       rcases memBlockSends_names img _ x hx with h | h <;> simp [h, MemPush, MemPull,
         BytecodePull]
-  refine (chanOf_padSends_perm prog img S _).trans
-    (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _).symm)
+  refine (chanOf_skelSends_perm prog img S _).trans
+    (List.Perm.trans ?_ (chanOf_skelSends_perm prog img S _).symm)
   rw [hv1, hv2, hc1, hc2, h1, h2, bcBlock_push, bcBlock_pull]
   simp only [List.nil_append, List.append_nil]
-  simpa only [List.map_map, Function.comp_def, padBcFin] using hb
+  simpa only [List.map_map, Function.comp_def, skelBcFin] using hb
 
 /-- **The state pair balances**, from the hypothesis that the skeletons' states and successors
 balance with the initial and final states: the rows' pulls and pushes are those states, regrouped
@@ -395,12 +390,12 @@ by the six tables. -/
 theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : List Skel)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
       (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp])) :
-    (chanOf StatePush.name (padSends prog img S)).Perm
-      (chanOf StatePull.name (padSends prog img S)) := by
-  have h1 : (padRows img S).flatMap (fun r ↦ chanOf StatePush.name (r.sends img)) =
+    (chanOf StatePush.name (skelSends prog img S)).Perm
+      (chanOf StatePull.name (skelSends prog img S)) := by
+  have h1 : (skelRows img S).flatMap (fun r ↦ chanOf StatePush.name (r.sends img)) =
       S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp] :=
     mkRows_statePushes img (fun _ ↦ 0) (fun _ ↦ 0) S
-  have h2 : (padRows img S).flatMap (fun r ↦ chanOf StatePull.name (r.sends img)) =
+  have h2 : (skelRows img S).flatMap (fun r ↦ chanOf StatePull.name (r.sends img)) =
       S.map fun sk ↦ #[sk.pc, sk.fp] :=
     mkRows_statePulls img (fun _ ↦ 0) (fun _ ↦ 0) S
   have hv1 : chanOf StatePush.name
@@ -411,8 +406,8 @@ theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : Lis
       [#[prog.finalPc, 1]] := by
     simp [chanOf, StatePush, StatePull]
   have hc : ∀ n, (n = StatePush.name ∨ n = StatePull.name) →
-      chanOf n (memBlockSends img (padMemFin img S)) = [] ∧
-        chanOf n (bcBlockSends prog (padBcFin S)) = [] := by
+      chanOf n (memBlockSends img (skelMemFin img S)) = [] ∧
+        chanOf n (bcBlockSends prog (skelBcFin S)) = [] := by
     intro n hn
     refine ⟨chanOf_eq_nil fun x hx ↦ ?_, chanOf_eq_nil fun x hx ↦ ?_⟩
     · rcases memBlockSends_names img _ x hx with h | h <;>
@@ -421,8 +416,8 @@ theorem state_pair_perm (prog : Program) {κ : ℕ} (img : MemImage κ) (S : Lis
         rcases hn with rfl | rfl <;> simp [h, StatePush, StatePull, BytecodePush, BytecodePull]
   obtain ⟨hm1, hb1⟩ := hc _ (Or.inl rfl)
   obtain ⟨hm2, hb2⟩ := hc _ (Or.inr rfl)
-  refine (chanOf_padSends_perm prog img S _).trans
-    (List.Perm.trans ?_ (chanOf_padSends_perm prog img S _).symm)
+  refine (chanOf_skelSends_perm prog img S _).trans
+    (List.Perm.trans ?_ (chanOf_skelSends_perm prog img S _).symm)
   rw [hv1, hv2, hm1, hb1, hm2, hb2, h1, h2]
   simpa only [List.append_nil, List.singleton_append] using hstate
 
@@ -474,12 +469,12 @@ theorem jumpRaw_constraints (r : JumpRow K) (w b : K) (h1 : b + r.vcond * w = 0)
       (Environment.fromArray (jumpRaw r w b) data) :=
   (jumpRaw_constraints_iff r w b data).mpr ⟨h1, h2⟩
 
-/-- **Every table of the padded witness satisfies its constraints**: only the `JUMP` table
+/-- **Every table of the witness satisfies its constraints**: only the `JUMP` table
 asserts anything, and its rows carry the honest inverse and indicator. -/
-theorem padWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
-    (S : List Skel) : (padWitness prog input img S).Constraints := by
+theorem skelWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+    (S : List Skel) : (skelWitness prog input img S).Constraints := by
   intro t ht
-  simp only [EnsembleWitness.allTables, padWitness, List.mem_cons, List.not_mem_nil,
+  simp only [EnsembleWitness.allTables, skelWitness, List.mem_cons, List.not_mem_nil,
     or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact fun _ _ ↦ verifier_constraints _ _
@@ -488,7 +483,7 @@ theorem padWitness_constraints (prog : Program) (input : PublicInput) {κ : ℕ}
   · exact fun _ _ ↦ set_constraints _
   · exact fun _ _ ↦ deref_constraints _
   · intro row hrow
-    have hrow' : row ∈ ((padRows img S).filter fun r ↦ r.sk.ins.opcode = .jump).map
+    have hrow' : row ∈ ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = .jump).map
         (PRow.raw img) := hrow
     obtain ⟨⟨⟨pc, fp, ins⟩, exps, bc⟩, hr, rfl⟩ := List.mem_map.mp hrow'
     have h := (List.mem_filter.mp hr).2
@@ -547,14 +542,14 @@ theorem mem_interactions_sends (t : Air.Flat.Table K) {i : Interaction K}
     List.mem_map_of_mem (f := fun i : Interaction K ↦ (i.channel.name, i.msg)) hi⟩
 
 /-- **Every read pull of the six tables carries a nonzero count.** -/
-theorem padWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : ℕ}
+theorem skelWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
-    CountsNonzero (padWitness prog input img S) := by
-  have hR : ∀ r ∈ padRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
+    CountsNonzero (skelWitness prog input img S) := by
+  have hR : ∀ r ∈ skelRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
     fun r hr ↦ hS _ (mem_mkRows_sk hr)
-  have h6 : (padWitness prog input img S).tables.take 6 =
-      fillTables.map (opTable img (imageData img) (padRows img S)) := rfl
+  have h6 : (skelWitness prog input img S).tables.take 6 =
+      tableOpcodes.map (opTable img (imageData img) (skelRows img S)) := rfl
   intro t ht i hi hn h
   rw [h6, List.mem_map] at ht
   obtain ⟨op, -, rfl⟩ := ht
@@ -568,12 +563,12 @@ theorem padWitness_counts_nonzero (prog : Program) (input : PublicInput) {κ : �
 
 /-- **Every `BLAKE2S` row compresses**: the row of an executing instruction satisfies the
 relation its execution checks. -/
-theorem padWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : ℕ}
+theorem skelWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) :
-    Blake2sRowsValid (padWitness prog input img S) := by
+    Blake2sRowsValid (skelWitness prog input img S) := by
   intro row hrow
-  have hrow' : row ∈ ((padRows img S).filter fun r ↦ r.sk.ins.opcode = .blake2s).map
+  have hrow' : row ∈ ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = .blake2s).map
       (PRow.raw img) := hrow
   obtain ⟨⟨⟨pc, fp, ins⟩, exps, bc⟩, hr, rfl⟩ := List.mem_map.mp hrow'
   obtain ⟨hr1, hr2⟩ := List.mem_filter.mp hr
@@ -595,47 +590,47 @@ theorem padWitness_blake2s_valid (prog : Program) (input : PublicInput) {κ : �
 
 /-- The memory block holds `2^κ` rows. -/
 theorem memBlockRows_length (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
-    (S : List Skel) : (memBlockRows (padWitness prog input img S)).length = 2 ^ κ := by
+    (S : List Skel) : (memBlockRows (skelWitness prog input img S)).length = 2 ^ κ := by
   show (List.ofFn _).length = _
   rw [List.length_ofFn]
 
 /-- **The memory block's index column is the row index.** -/
-theorem padWitness_index_columns (prog : Program) (input : PublicInput) {κ : ℕ}
+theorem skelWitness_index_columns (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel) :
-    IndexColumnsAreRowIndices (padWitness prog input img S) := by
+    IndexColumnsAreRowIndices (skelWitness prog input img S) := by
   intro i hi
   have hi' : i < 2 ^ κ := by rwa [memBlockRows_length] at hi
-  have h : (memBlockRows (padWitness prog input img S))[i] =
-      rawRow (memRowOf img ⟨i, hi'⟩ (g ^ padMemFin img S (gpow i))) := by
-    have e : memBlockRows (padWitness prog input img S) = List.ofFn fun j : Fin (2 ^ κ) ↦
-        rawRow (memRowOf img j (g ^ padMemFin img S (gpow j))) := rfl
+  have h : (memBlockRows (skelWitness prog input img S))[i] =
+      rawRow (memRowOf img ⟨i, hi'⟩ (g ^ skelMemFin img S (gpow i))) := by
+    have e : memBlockRows (skelWitness prog input img S) = List.ofFn fun j : Fin (2 ^ κ) ↦
+        rawRow (memRowOf img j (g ^ skelMemFin img S (gpow j))) := rfl
     rw [List.getElem_of_eq e hi, List.getElem_ofFn]
   rw [h]
   exact congrArg MemRow.idx (memRowAt_toElements _ _)
 
 /-- **The memory block's rows are the image.** -/
-theorem padWitness_seed_rows (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_seed_rows (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκ : κ ≤ maxLogMem) :
-    SeedRowsAreTheImage (padWitness prog input img S) := by
+    SeedRowsAreTheImage (skelWitness prog input img S) := by
   have hs := imageOf_imageData img hκ
   unfold SeedRowsAreTheImage
   show ∃ idx cntFin : Fin (2 ^ (imageOf (imageData img)).1) → K,
-    memBlockRows (padWitness prog input img S) = List.ofFn fun i ↦
+    memBlockRows (skelWitness prog input img S) = List.ofFn fun i ↦
       (toElements (⟨idx i, cntFin i, #v[((imageOf (imageData img)).2 i).limb 0,
         ((imageOf (imageData img)).2 i).limb 1, ((imageOf (imageData img)).2 i).limb 2]⟩ :
           MemRow K)).toArray
   generalize imageOf (imageData img) = s at hs ⊢
   subst hs
-  exact ⟨fun i ↦ gpow i, fun i ↦ g ^ padMemFin img S (gpow i), rfl⟩
+  exact ⟨fun i ↦ gpow i, fun i ↦ g ^ skelMemFin img S (gpow i), rfl⟩
 
 /-- **The bytecode block's rows are the program's.** -/
-theorem padWitness_bytecode_rows (prog : Program) (input : PublicInput) {κ : ℕ}
+theorem skelWitness_bytecode_rows (prog : Program) (input : PublicInput) {κ : ℕ}
     (img : MemImage κ) (S : List Skel) :
-    BytecodeRowsAreTheProgram prog (padWitness prog input img S) :=
-  ⟨fun i ↦ g ^ padBcFin S (gpow i), rfl⟩
+    BytecodeRowsAreTheProgram prog (skelWitness prog input img S) :=
+  ⟨fun i ↦ g ^ skelBcFin S (gpow i), rfl⟩
 
 /-- **The public words are the image's first two words.** -/
-theorem padWitness_words (input : PublicInput) {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem)
+theorem skelWitness_words (input : PublicInput) {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem)
     (hw0 : img.read (gpow 0) = some input.word0) (hw1 : img.read (gpow 1) = some input.word1) :
     (imageOf (imageData img)).2.read (gpow 0) = some input.word0 ∧
       (imageOf (imageData img)).2.read (gpow 1) = some input.word1 := by
@@ -644,7 +639,7 @@ theorem padWitness_words (input : PublicInput) {κ : ℕ} (img : MemImage κ) (h
 
 /-! ## The caps -/
 
-/-- The rows of a table of the padded witness are the skeletons of its opcode. -/
+/-- The rows of a table of the witness are the skeletons of its opcode. -/
 theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) (S : List Skel)
     (op : Opcode) :
     ((mkRows img sm sb S).filter fun r ↦ r.sk.ins.opcode = op).length = Skel.count op S := by
@@ -653,13 +648,12 @@ theorem length_filter_mkRows {κ : ℕ} (img : MemImage κ) (sm sb : K → ℕ) 
   rw [List.filter_map, List.length_map]
   rfl
 
-/-- **The announced sizes are within the caps**: the memory window, every table's height a power
-of two within the cap, the `BLAKE2S` floor, and the data's shape. -/
-theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+/-- **The announced sizes are within the caps**: the memory window, every table within the row
+cap, and the data's shape. -/
+theorem skelWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem)
-    (hheights : ∀ op, ∃ σ ≤ maxLogRows, Skel.count op S = 2 ^ σ)
-    (hblake : 2 ^ minLogRowsBlake2s ≤ Skel.count .blake2s S) :
-    Caps (padWitness prog input img S) where
+    (hrows : ∀ op, Skel.count op S ≤ 2 ^ maxLogRows) :
+    Caps (skelWitness prog input img S) where
   minLogMem_le := by
     show minLogMem ≤ (imageOf (imageData img)).1
     rw [imageData_logSize img hκ]
@@ -670,15 +664,14 @@ theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img :
     exact hκ
   heights := by
     intro t ht
-    simp only [padWitness, List.mem_cons, List.not_mem_nil, or_false] at ht
-    have hop : ∀ op, ∃ σ ≤ maxLogRows,
-        (opTable img (imageData img) (padRows img S) op).table.length = 2 ^ σ := by
+    simp only [skelWitness, List.mem_cons, List.not_mem_nil, or_false] at ht
+    have hop : ∀ op,
+        (opTable img (imageData img) (skelRows img S) op).table.length ≤ 2 ^ maxLogRows := by
       intro op
-      obtain ⟨σ, hσ, h⟩ := hheights op
-      refine ⟨σ, hσ, ?_⟩
-      show (List.map (PRow.raw img) ((padRows img S).filter fun r ↦ r.sk.ins.opcode = op)).length
-        = _
-      rw [List.length_map, padRows, length_filter_mkRows, h]
+      show (List.map (PRow.raw img) ((skelRows img S).filter fun r ↦ r.sk.ins.opcode = op)).length
+        ≤ _
+      rw [List.length_map, skelRows, length_filter_mkRows]
+      exact hrows op
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     · exact hop _
     · exact hop _
@@ -686,62 +679,60 @@ theorem padWitness_caps (prog : Program) (input : PublicInput) {κ : ℕ} (img :
     · exact hop _
     · exact hop _
     · exact hop _
-    · exact ⟨κ, hκ, by show (List.ofFn _).length = _; rw [List.length_ofFn]⟩
-    · exact ⟨prog.logSize, prog.logSize_le, by show (List.ofFn _).length = _; rw [List.length_ofFn]⟩
-  blake2s_height := by
-    show 2 ^ minLogRowsBlake2s ≤
-      (List.map (PRow.raw img) ((padRows img S).filter fun r ↦ r.sk.ins.opcode = .blake2s)).length
-    rw [List.length_map, padRows, length_filter_mkRows]
-    exact hblake
+    · show (List.ofFn _).length ≤ _
+      rw [List.length_ofFn]
+      exact Nat.pow_le_pow_right (by norm_num) (hκ.trans (by decide))
+    · show (List.ofFn _).length ≤ _
+      rw [List.length_ofFn]
+      exact Nat.pow_le_pow_right (by norm_num) (prog.logSize_le.trans (by decide))
   well_shaped := imageData_wellShaped img hκ
 
 /-! ## The witness satisfies the statement -/
 
-/-- The messages the padded witness sends on a channel. -/
-theorem messagesOn_padWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+/-- The messages the witness sends on a channel. -/
+theorem messagesOn_skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next)
     (c : RawChannel K) :
-    messagesOn (padWitness prog input img S) c = chanOf c.name (padSends prog img S) := by
-  rw [messagesOn_eq_sends, padWitness_sends prog input img S hS]
+    messagesOn (skelWitness prog input img S) c = chanOf c.name (skelSends prog img S) := by
+  rw [messagesOn_eq_sends, skelWitness_sends prog input img S hS]
   rfl
 
-/-- **The witness of a padded execution satisfies the constraint statement.** When the skeletons
+/-- **The witness of a list of skeletons satisfies the constraint statement.** When the skeletons
 `S` are sound for the program and the image, their state pulls and pushes balance with the
-initial and final states, every table's height is a power of two within the cap and the `BLAKE2S`
-table has at least eight rows, the memory log-size is in the window and the image has the two
-public words, `padWitness prog input img S` satisfies every conjunct of `SatisfiedBy`. -/
-theorem padWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+initial and final states, every table has at most `2^maxLogRows` rows, the memory log-size is in
+the window and the image has the two
+public words, `skelWitness prog input img S` satisfies every conjunct of `SatisfiedBy`. -/
+theorem skelWitness_satisfiedBy (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hκmin : minLogMem ≤ κ) (hκ : κ ≤ maxLogMem)
     (hS : ∀ sk ∈ S, SkelOk prog img sk)
     (hstate : (#[1, 1] :: S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
       (#[prog.finalPc, 1] :: S.map fun sk ↦ #[sk.pc, sk.fp]))
-    (hheights : ∀ op, ∃ σ ≤ maxLogRows, Skel.count op S = 2 ^ σ)
-    (hblake : 2 ^ minLogRowsBlake2s ≤ Skel.count .blake2s S)
+    (hrows : ∀ op, Skel.count op S ≤ 2 ^ maxLogRows)
     (hw0 : img.read (gpow 0) = some input.word0) (hw1 : img.read (gpow 1) = some input.word1) :
-    SatisfiedBy prog input (padWitness prog input img S) := by
+    SatisfiedBy prog input (skelWitness prog input img S) := by
   have hex : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next := fun sk h ↦ (hS sk h).2
-  obtain ⟨hwa, hwb⟩ := padWitness_words input img hκ hw0 hw1
+  obtain ⟨hwa, hwb⟩ := skelWitness_words input img hκ hw0 hw1
   exact
     { public_input_eq := rfl
-      constraints := padWitness_constraints prog input img S
+      constraints := skelWitness_constraints prog input img S
       state_balanced := by
         unfold BalancedPair
-        rw [messagesOn_padWitness prog input img S hex, messagesOn_padWitness prog input img S hex]
+        rw [messagesOn_skelWitness prog input img S hex, messagesOn_skelWitness prog input img S hex]
         exact state_pair_perm prog img S hstate
       mem_balanced := by
         unfold BalancedPair
-        rw [messagesOn_padWitness prog input img S hex, messagesOn_padWitness prog input img S hex]
+        rw [messagesOn_skelWitness prog input img S hex, messagesOn_skelWitness prog input img S hex]
         exact mem_pair_perm prog hκ img S hex
       bytecode_balanced := by
         unfold BalancedPair
-        rw [messagesOn_padWitness prog input img S hex, messagesOn_padWitness prog input img S hex]
+        rw [messagesOn_skelWitness prog input img S hex, messagesOn_skelWitness prog input img S hex]
         exact bc_pair_perm prog img S hS
-      counts_nonzero := padWitness_counts_nonzero prog input img S hex
-      caps := padWitness_caps prog input img S hκmin hκ hheights hblake
-      index_columns := padWitness_index_columns prog input img S
-      seed_rows := padWitness_seed_rows prog input img S hκ
-      bytecode_rows := padWitness_bytecode_rows prog input img S
-      blake2s_valid := padWitness_blake2s_valid prog input img S hex
+      counts_nonzero := skelWitness_counts_nonzero prog input img S hex
+      caps := skelWitness_caps prog input img S hκmin hκ hrows
+      index_columns := skelWitness_index_columns prog input img S
+      seed_rows := skelWitness_seed_rows prog input img S hκ
+      bytecode_rows := skelWitness_bytecode_rows prog input img S
+      blake2s_valid := skelWitness_blake2s_valid prog input img S hex
       word0_eq := hwa
       word1_eq := hwb }
 

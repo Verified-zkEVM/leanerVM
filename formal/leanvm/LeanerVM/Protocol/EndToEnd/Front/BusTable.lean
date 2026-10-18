@@ -10,6 +10,7 @@ module
 public import LeanerVM.Protocol.EndToEnd.Front.TablePhase
 public import LeanerVM.Protocol.EndToEnd.Front.LayoutBridgeB
 public import LeanerVM.Protocol.EndToEnd.Front.CommitDoom
+public import LeanerVM.Protocol.EndToEnd.Complete.BusLayout
 
 /-!
 # The bus phase and the table sumcheck
@@ -112,16 +113,38 @@ theorem candsOf_ncard (ρ : ℕ) (A : ℕ → ℕ → ℕ) (W : Word) :
       (EndToEnd.Candidates (leanIsaμ prog s) ρ (A (leanIsaμ prog s) ρ) W).ncard :=
   Set.ncard_image_of_injective _ fun _ _ h ↦ congrFun h 0
 
-/-- The verifier's layout determines the sizes. -/
+/-- Every opcode table has a push block, at its row count. -/
+theorem exists_pushBlock (s : Sizes) (t : Fin 6) :
+    ∃ b ∈ Complete.pushBlocks s, b.owner = t.val ∧ b.rows = s.rows t := by
+  obtain ⟨c, cs, hc⟩ := List.exists_cons_of_ne_nil (Complete.pySide_push_ne_nil t)
+  refine ⟨⟨s.τ t, s.rows t, c, t⟩, ?_, rfl, rfl⟩
+  rw [Complete.pushBlocks, List.mem_flatten]
+  exact ⟨_, List.mem_ofFn.mpr ⟨t, rfl⟩, by rw [hc]; exact List.mem_map_of_mem List.mem_cons_self⟩
+
+/-- A push block of an opcode table has the table's row count. -/
+theorem rows_of_mem_pushBlocks (s : Sizes) {b : BusBlock} (hb : b ∈ Complete.pushBlocks s)
+    (t : Fin 6) (ht : b.owner = t.val) : b.rows = s.rows t := by
+  obtain ⟨t', he⟩ := Complete.pushBlocks_owned s b hb
+  have : t' = t := Fin.ext (by rw [← ht, he])
+  subst this
+  rw [he]
+
+/-- The verifier's layout determines the sizes: the memory's log-size, and each table's row count,
+which its push blocks carry. -/
 theorem verifierLayout_injective {s s' : Sizes}
     (h : verifierLayout prog s = verifierLayout prog s') : s = s' := by
   have hm : s.logMem = s'.logMem := congrArg Verifier.Layout.logMemory h
-  have ht : List.ofFn s.τ = List.ofFn s'.τ := congrArg Verifier.Layout.tableLogHeights h
-  obtain ⟨m, hm0, τ⟩ := s
-  obtain ⟨m', hm0', τ'⟩ := s'
+  have hp : Complete.pushBlocks s = Complete.pushBlocks s' := by
+    rw [← Complete.layout_push prog s, ← Complete.layout_push prog s', h]
+  have hr : ∀ t, s.rows t = s'.rows t := fun t ↦ by
+    obtain ⟨b, hb, ho, hr⟩ := exists_pushBlock s t
+    rw [← hr]
+    exact rows_of_mem_pushBlocks s' (hp ▸ hb) t ho
+  obtain ⟨m, hm0, r⟩ := s
+  obtain ⟨m', hm0', r'⟩ := s'
   simp only at hm
   subst hm
-  have : τ = τ' := List.ofFn_injective ht
+  have : r = r' := funext hr
   subst this
   rfl
 

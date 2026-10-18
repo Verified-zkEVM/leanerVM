@@ -7,7 +7,7 @@
 
 module
 
-public import LeanerVM.Protocol.EndToEnd.Complete.Bus
+public import LeanerVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanerVM.Protocol.EndToEnd.Front.LayoutStack
 
 /-!

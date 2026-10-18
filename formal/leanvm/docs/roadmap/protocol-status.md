@@ -61,8 +61,9 @@ axioms, and no `sorryAx`, for the two master theorems, both halves of the commit
 each version of the public-input phase, Lemma 5.2 and Theorem 5.1 (`sideProduct_poly_eq_iff`,
 `card_sideProduct_collision_le`, `sideProduct_collision`), and the bus phase's results
 (`busComplete`, `leaf_decomposition`, `Bus.sum_forms_eq_total_iff`,
-`Bus.prod_countLeaves_ne_zero_iff`, `Bus.ridersZero_iff`, `Blocks.prod_stackAt`,
-`busSecurity`). The grand-product GKR's definition and completeness
+`Bus.countsNonzero_of_prod`, `Bus.prod_countLeaves_ne_zero`, `Bus.ridersZero_iff`,
+`Blocks.prod_stackAt`, `busSecurity`), and Proposition `prop:pad`
+(`paddedProductPoly_eq`, `card_paddedSideProduct_collision_le`). The grand-product GKR's definition and completeness
 (`LeanerVM/Protocol/ToArkLib/GrandProduct.lean`: `gkr` at the slot's schedule `gkrSpec`,
 `gkrComplete`) stand on two generic one-round components, a checked message
 (`ToArkLib/SendChecked.lean`) and a checked challenge (`ToArkLib/SampleChallenge.lean`), a
@@ -342,16 +343,23 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     of challenges, which needs the support of ArkLib's `Prover.run` round by round. Owed.
   - Its knowledge soundness, `busSecurity`, is composed from its steps' at the completeness
     half's intermediate relations: `Bus.afterChallenge` after `(α, β)` (the products agree, the
-    counts are nonzero, the constraints vanish, the lines and the Flock predicate hold), then the
-    grand-product argument's input and output relations. The challenges' count of bad values is
-    `card_sideProduct_collision_le` at `N = 2 ^ μ_bus`, with `|E|` written `2 ^ 192` (`card_E`):
+    count product is nonzero, the constraints vanish, the lines and the Flock predicate hold),
+    then the grand-product argument's input and output relations. Since leanVM `3a37fb6e1` a
+    table's announced row count leaves its other rows as padding rows, whose leaves are
+    `1 − π_α(t − t(p))` for the public padding row `p`, whatever they hold: the relation
+    `M3Holds` reads the executed rows only, completeness starts from `M3Honest` (the padding
+    rows honest, `Seam.commitHonest`), and the challenges' count of bad values is
+    `card_paddedSideProduct_collision_le` (Proposition `prop:pad`: the padding leaves are
+    fingerprints of nonzero tuples, by `Bus.Conditions.separator`, so a padded product determines
+    the executed tuples) at `N = 2 ^ μ_bus`, the error unchanged, with `|E|` written `2 ^ 192` (`card_E`):
     the count is a number the compiled security holds, and `Nat.card E` does not compute. The
     convention *Errors* rewrites `|E|` to `2^192` only in the numeric test, so it is owed a
     rewording.
   - The phase is run by parts in the tests (the challenges and roots, the leaves at a point, the
     last step); the grand-product argument between them is the one its own tests run by hand.
   - The knowledge-soundness half consumes, besides the phase, `Bus.afterChallenge`,
-    `prod_pushLeaves`, `prod_pullLeaves`, `Bus.prod_countLeaves_ne_zero_iff`,
+    `prod_pushLeaves`, `prod_pullLeaves`, `Bus.countsNonzero_of_prod`, `Bus.padTuple_ne_zero`,
+    `Bus.length_side`,
     `Bus.ridersZero_iff`, `Bus.riders_vanish_iff`, `Bus.sum_forms_eq_total_iff`,
     `Bus.lowPoint_point`, `Bus.sideTuples_perm`, `Bus.blocks_total` and `push_fits`.
   - The blueprint is owed a `docs(protocol)` edit: Layer 6's signatures (`busPhase I h` with

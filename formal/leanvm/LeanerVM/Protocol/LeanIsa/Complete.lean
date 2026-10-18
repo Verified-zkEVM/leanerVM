@@ -9,21 +9,27 @@ module
 
 public import LeanerVM.Protocol.LeanIsa.Sound
 public import LeanerVM.Protocol.ToArkLib.Refinement
+import LeanerVM.Arithmetization.Completeness.Satisfied
 
 /-!
 # The adaptor, completeness
 
 `m3Holds_stackOf`: a witness `w` satisfying `SatisfiedBy prog input w` stacks, at the sizes it
 carries (`Sizes.ofWitness`, which `sizes_of_satisfiedBy` shows it has), into a column satisfying
-`M3Holds` of the leanISA instance. `witnessOf_stackOf`: reading a witness back off that stack
+`M3Holds` of the leanISA instance; `m3Honest_stackOf` adds that every padding row of the stack
+holds its table's public padding row (`paddingHonest_stackOf`), the relation the protocol's
+completeness starts from. `witnessOf_stackOf`: reading a witness back off that stack
 gives `w`'s opcode tables within their widths, its two blocks, its public input and its image.
 
 The stack agrees with the witness (`agrees_stackOf`): its committed columns are the witness's
 cells (`column_stackOf`), and its limb columns are the cells the honest Flock column carries at
 the specification's slots (`column_limb_stackOf`), which are the witness's limbs by
 `FlockSpec.slots_gen`, since every `BLAKE2S` row compresses (`limbsCompress_of_satisfiedBy`).
-Then the constraint, bus and count clauses follow from the equivalences of
-`LeanIsa/Relation.lean`; the public lines from the two public words of the image
+Past a table's rows the stack holds the padding row (`paddingHonest_stackOf`): zero committed
+cells, and at a padding block of the Flock region Flock's padding instance, which compresses
+(`padLimbs_compress`, checked in the kernel). Then the bus and count clauses follow from the
+equivalences of `LeanIsa/Relation.lean`, the constraint clause from them on the executed rows and
+from the padding row on the others (`padRow_constraints`); the public lines from the two public words of the image
 (`image_words`), which the seed rows put in the memory columns (`memLimb_stackOf`); and the Flock
 clause from `FlockSpec.holds_gen`, the region being the honest column of the limbs
 (`flockColumn_stackOf`).
@@ -125,10 +131,10 @@ private theorem bytecodeRow_cell (i : Fin (2 ^ prog.logSize)) (c : K) :
 
 variable {F prog s w}
 
-/-- The sizes a witness carries: its memory size and its tables' log-heights. -/
+/-- The sizes a witness carries: its memory size and its tables' row counts. -/
 def witnessSizes (w : EnsembleWitness (leanIsaEnsemble prog)) (h : 0 < (imageOf w.data).1) :
     Sizes :=
-  ⟨(imageOf w.data).1, h, fun j ↦ Nat.log 2 (opTable w j).table.length⟩
+  ⟨(imageOf w.data).1, h, fun j ↦ (opTable w j).table.length⟩
 
 /-- `Sizes.ofWitness` returns the sizes the witness carries. -/
 theorem eq_of_ofWitness (hs : Sizes.ofWitness w = some s) :
@@ -145,14 +151,6 @@ theorem sizes_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w
   simp only [hp, dite_true]
   exact ⟨_, rfl⟩
 
-/-- An opcode table of a witness within the caps has `2 ^ τ` rows at its log-height `τ`. -/
-private theorem opTable_length {input : PublicInput} (h : SatisfiedBy prog input w) (j : Fin 6) :
-    (opTable w j).table.length = 2 ^ Nat.log 2 (opTable w j).table.length := by
-  have hmem : opTable w j ∈ w.tables :=
-    mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩
-  obtain ⟨τ, -, hτ⟩ := h.caps.heights _ hmem
-  rw [hτ, Nat.log_pow (by norm_num)]
-
 /-! ## The stack of a witness agrees with it -/
 
 /-- A cell of a table, as a row's cell. -/
@@ -161,36 +159,35 @@ private theorem cellOf_eq (t : Air.Flat.Table K) {x : ℕ} (hx : x < t.table.len
   rw [cellOf, List.getElem?_eq_getElem hx]
   rfl
 
-/-- Every `BLAKE2S` row of a witness satisfying the constraint system has compressing limbs. -/
+/-- Every executed `BLAKE2S` row of a witness satisfying the constraint system has compressing
+limbs. -/
 theorem limbsCompress_of_satisfiedBy {input : PublicInput} (h : SatisfiedBy prog input w)
-    (hs : Sizes.ofWitness w = some s) (x : Fin (2 ^ s.τ 5)) :
+    (hs : Sizes.ofWitness w = some s) (x : Fin (2 ^ s.τ 5)) (hx : x.val < s.rows 5) :
     LimbsCompress (blake2sLimbs prog s w)[x] := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
-  have hx : x.val < (tableAt w 5).table.length :=
-    lt_of_lt_of_eq x.isLt (opTable_length h 5).symm
-  have hv := h.blake2s_valid _ (List.getElem_mem hx)
+  have hx' : x.val < (tableAt w 5).table.length := hx
+  have hv := h.blake2s_valid _ (List.getElem_mem hx')
   rw [blake2sRowAt, blake2sRelation_array] at hv
-  have hl : (blake2sLimbs prog _ w)[x] = fun k : Fin 18 ↦ cellOf (tableAt w 5) x (9 + k) :=
-    Vector.getElem_ofFn _
+  have hl : (blake2sLimbs prog _ w)[x] = fun k : Fin 18 ↦ cellOf (tableAt w 5) x (9 + k) := by
+    refine (Vector.getElem_ofFn _).trans (funext fun k ↦ ?_)
+    simp only [hx, ↓reduceIte]
   rw [hl]
-  simp only [cellOf_eq _ hx]
+  simp only [cellOf_eq _ hx']
   exact hv
 
 /-- Within its width, an opcode table of a witness satisfying the constraint system is the
-stack's rows. -/
+stack's executed rows. -/
 private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
-    (hp : 0 < (imageOf w.data).1) (j : Fin 6) (x : Fin (2 ^ (witnessSizes w hp).τ j))
+    (hp : 0 < (imageOf w.data).1) (j : Fin 6) (x : Fin ((witnessSizes w hp).rows j))
     (i : Fin (opcodeComponent j).width) :
     cellOf (opTable w j) x i =
       (leanIsaInstance F prog (witnessSizes w hp)).row
-        (stackOf F prog (witnessSizes w hp) w) (opIdx j) x i := by
+        (stackOf F prog (witnessSizes w hp) w) (opIdx j)
+          (Fin.castLE ((witnessSizes w hp).rows_le j) x) i := by
   have hs : Sizes.ofWitness w = some (witnessSizes w hp) := by
     unfold Sizes.ofWitness
     simp only [hp, dite_true]
     rfl
-  have hLC := limbsCompress_of_satisfiedBy h hs
-  have hx : x.val < (opTable w j).table.length :=
-    lt_of_lt_of_eq x.isLt (opTable_length h j).symm
   by_cases hl : IsLimb ⟨opIdx j, i⟩
   · have hj : j = 5 := Fin.ext (by have := congrArg Fin.val hl.1; simp [opIdx] at this; omega)
     subst hj
@@ -199,14 +196,15 @@ private theorem cells_stackOf {input : PublicInput} (h : SatisfiedBy prog input 
     have hk : i.val - 9 < 18 := by omega
     have hi : i = ⟨9 + (i.val - 9), by rw [Nat.add_sub_cancel' h1]; exact i.isLt⟩ :=
       Fin.ext (by simp only; omega)
+    have hx : (Fin.castLE ((witnessSizes w hp).rows_le 5) x).val < (witnessSizes w hp).rows 5 :=
+      x.isLt
     rw [hi]
-    refine Eq.symm ((column_limb_stackOf F prog _ w ⟨i.val - 9, hk⟩ x).trans ?_)
-    rw [F.slots_gen _ x (hLC x)]
-    have hl' : (blake2sLimbs prog _ w)[x] = fun k : Fin 18 ↦ cellOf (tableAt w 5) x (9 + k) :=
-      Vector.getElem_ofFn _
-    rw [hl']
+    refine Eq.symm ((column_limb_stackOf F prog _ w ⟨i.val - 9, hk⟩ _).trans ?_)
+    refine (congrFun (F.slots_gen _ _ (limbsCompress_of_satisfiedBy h hs _ hx)) _).trans ?_
+    refine (congrFun (Vector.getElem_ofFn _) _).trans ?_
+    simp only [hx, ↓reduceIte]
     rfl
-  · refine Eq.symm ((column_stackOf F prog _ w ⟨opIdx j, i⟩ hl x).trans ?_)
+  · refine Eq.symm ((column_stackOf F prog _ w ⟨opIdx j, i⟩ hl _).trans ?_)
     exact Vector.getElem_ofFn _
 
 /-- The memory block of a witness satisfying the constraint system is the stack's. -/
@@ -262,8 +260,7 @@ private theorem bytecodeRows_stackOf {input : PublicInput} (h : SatisfiedBy prog
 theorem agrees_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) : Agrees F s (stackOf F prog s w) w := by
   obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
-  exact ⟨fun j ↦ opTable_length h j, cells_stackOf h hp, memRows_stackOf h hp,
-    bytecodeRows_stackOf h hp⟩
+  exact ⟨fun j ↦ rfl, cells_stackOf h hp, memRows_stackOf h hp, bytecodeRows_stackOf h hp⟩
 
 /-! ## The relation of the stack -/
 
@@ -342,12 +339,114 @@ private theorem publicLinesHold_stackOf {input : PublicInput} (h : SatisfiedBy p
   · exact ⟨(hl 2).1.trans (by simp [PublicInput.word0]),
       (hl 2).2.trans (by simp [PublicInput.word1])⟩
 
+/-! ## Honest padding -/
+
+/-- The limbs a padding row of the `BLAKE2S` table holds (`padRow`): Flock's padding instance. -/
+def padLimbs : Fin 18 → K := fun k ↦ padRow (opIdx 5) ⟨9 + k, by rw [width_blake2s]; omega⟩
+
+/-- Flock's padding instance is a compression, of BLAKE2s-256 of `64` zero bytes: checked in the
+kernel. -/
+theorem padLimbs_compress : LimbsCompress padLimbs := by
+  decide +kernel
+
+/-- The padding row is zero off the `BLAKE2S` limbs. -/
+theorem padRow_of_not_isLimb :
+    ∀ (j : Fin 6) (i : Fin (width (opIdx j))), ¬ IsLimb ⟨opIdx j, i⟩ → padRow (opIdx j) i = 0 := by
+  decide +kernel
+
+/-- **The padding is honest.** On the stack of any witness, at the sizes it carries, every padding row holds its table's public padding row: the committed cells are
+zero past the table's rows, and the limbs the Flock region carries at a padding block are the
+padding instance, when it compresses. -/
+theorem paddingHonest_stackOf (hs : Sizes.ofWitness w = some s)
+    (hpad : LimbsCompress padLimbs) :
+    (leanIsaInstance F prog s).PaddingHonest (stackOf F prog s w) := by
+  obtain ⟨hp, rfl⟩ := eq_of_ofWitness hs
+  rintro ⟨j, hj⟩ x hx
+  funext i
+  have h9 : j < 9 := hj
+  match j, hj, h9, x, hx, i with
+  | 0, _, _, x, hx, _ => exact absurd (lt_of_lt_of_le x.isLt hx) (lt_irrefl _)
+  | 1, _, _, x, hx, _ => exact absurd (lt_of_lt_of_le x.isLt hx) (lt_irrefl _)
+  | 2, _, _, x, hx, _ => exact absurd (lt_of_lt_of_le x.isLt hx) (lt_irrefl _)
+  | j + 3, hj, h9, x, hx, i =>
+    have hrows : (opTable w ⟨j, by omega⟩).table.length ≤ x.val := hx
+    by_cases hl : IsLimb ⟨⟨j + 3, hj⟩, i⟩
+    · have hj5 : j = 5 := by have := congrArg Fin.val hl.1; simp [opIdx] at this; omega
+      subst hj5
+      have h1 : 9 ≤ i.val := hl.2.1
+      have h2 : i.val < 27 := hl.2.2
+      have hw : (leanIsaInstance F prog (witnessSizes w hp)).width ⟨5 + 3, hj⟩ = 37 :=
+        width_blake2s
+      obtain ⟨k, rfl⟩ : ∃ k : Fin 18,
+          i = ⟨9 + k.val, by clear hl h1 h2; have := k.isLt; rw [hw]; omega⟩ :=
+        ⟨⟨i.val - 9, by omega⟩, Fin.ext (by simp only; omega)⟩
+      let x' : Fin (2 ^ (witnessSizes w hp).τ 5) := x
+      have hx' : (witnessSizes w hp).rows 5 ≤ x'.val := hx
+      have hrow : (blake2sLimbs prog (witnessSizes w hp) w)[x'] = padLimbs := by
+        refine (Vector.getElem_ofFn _).trans (funext fun k ↦ ?_)
+        simp only [padLimbs, show ¬ x'.val < (witnessSizes w hp).rows 5 from Nat.not_lt.mpr hx',
+          ↓reduceIte]
+      refine (column_limb_stackOf F prog (witnessSizes w hp) w k x').trans ?_
+      refine (congrFun (F.slots_gen _ x' (hrow ▸ hpad)) k).trans ?_
+      exact congrFun hrow k
+    · refine (column_stackOf F prog (witnessSizes w hp) w ⟨⟨j + 3, hj⟩, i⟩ hl x).trans ?_
+      refine Eq.trans ?_ (padRow_of_not_isLimb ⟨j, by omega⟩ i hl).symm
+      refine (Vector.getElem_ofFn _).trans ?_
+      simp [cellOf, List.getElem?_eq_none hrows]
+
+/-- The constraint polynomials of the opcode tables but `JUMP` are none. -/
+theorem opcode_constraints_nil :
+    ∀ j : Fin 6, j ≠ 4 → (opcodeTable j).constraints.length = 0 := by
+  decide +kernel
+
+/-- The zero row of the `JUMP` table. -/
+private def jumpZeroRow : JumpRow K := ⟨0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0⟩
+
+/-- The zero row with zero local witnesses is fourteen zeros. -/
+private theorem jumpRaw_zero : jumpRaw jumpZeroRow 0 0 = Array.replicate 14 0 := by
+  simp [jumpRaw, rawRow, jumpZeroRow, explicit_provable_type,
+    ProvableStruct.componentsToElements, ProvableStruct.toComponents, toComponents, circuit_norm]
+  rfl
+
+/-- The `JUMP` table has fourteen columns. -/
+private theorem width_jump : (opcodeComponent 4).width = 14 := by decide +kernel
+
+/-- `JUMP`'s constraint polynomials vanish at the zero row: `b + v_cond · w` and
+`v_cond · (b + 1)` at zero. -/
+theorem jump_constraints_zero :
+    ∀ C ∈ (opcodeTable 4).constraints, C.eval (fun _ ↦ (0 : K)) = 0 := by
+  have hl := List.isEmpty_iff.mp (opcode_lookups 4)
+  refine (toM3_constraints_iff (opcodeComponent 4) channelSep channelDir counted hl (fun _ ↦ 0)
+    (fun _ _ ↦ #[])).mpr ?_
+  have he : (Array.ofFn fun _ : Fin (opcodeComponent 4).width ↦ (0 : K)) =
+      jumpRaw jumpZeroRow 0 0 := by
+    rw [jumpRaw_zero]
+    exact Array.ext (by simp [width_jump]) (fun i _ _ ↦ by simp)
+  rw [he]
+  exact jumpRaw_constraints jumpZeroRow 0 0 (by simp [jumpZeroRow]) (by simp [jumpZeroRow]) _
+
+/-- Every opcode table's constraints vanish at its padding row: zero but for the `BLAKE2S` limbs,
+a table without constraints. -/
+theorem padRow_constraints (j : Fin 6) :
+    ∀ C ∈ (opcodeTable j).constraints, C.eval (padRow (opIdx j)) = 0 := by
+  by_cases h4 : j = 4
+  · subst h4
+    have hz : padRow (opIdx 4) = fun _ ↦ 0 := funext fun i ↦
+      padRow_of_not_isLimb 4 i fun hi ↦ by have := congrArg Fin.val hi.1; simp [opIdx] at this
+    rw [hz]
+    exact jump_constraints_zero
+  · intro C hC
+    exact absurd (List.length_pos_of_mem hC) (by rw [opcode_constraints_nil j h4]; omega)
+
 /-- **The adaptor, completeness.** A witness satisfying leanISA's constraint system on the input
-stacks, at the sizes it carries, into a column satisfying the leanISA instance's relation. -/
+stacks, at the sizes it carries, into a column satisfying the leanISA instance's relation, given
+that Flock's padding instance compresses (`padLimbs_compress`): the executed rows are the
+witness's, the padding rows its tables' padding rows. -/
 theorem m3Holds_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
-    (hs : Sizes.ofWitness w = some s) :
+    (hs : Sizes.ofWitness w = some s) (hpad : LimbsCompress padLimbs) :
     M3Holds (leanIsaInstance F prog s) input (stackOf F prog s w) := by
   have hA := agrees_stackOf (F := F) h hs
+  have hP := paddingHonest_stackOf (F := F) hs hpad
   refine ⟨?_, (balanced_iff_pairs hA).mpr fun k ↦ ?_, (countsNonzero_iff hA).mp h.counts_nonzero,
     ?_, ?_⟩
   · intro j' C hC x
@@ -356,9 +455,12 @@ theorem m3Holds_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     · exact absurd hC List.not_mem_nil
     · exact absurd hC List.not_mem_nil
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
-      have hmem : opTable w ⟨j, by omega⟩ ∈ w.allTables :=
-        EnsembleWitness.mem_allTables_of_mem_tables _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
-      exact (opcode_constraints_iff hA ⟨j, by omega⟩).mp (h.constraints _ hmem) x C hC
+      by_cases hx : x.val < s.rows ⟨j, by omega⟩
+      · have hmem : opTable w ⟨j, by omega⟩ ∈ w.allTables :=
+          EnsembleWitness.mem_allTables_of_mem_tables _ (mem_tables_iff.mpr ⟨⟨j, by omega⟩, rfl⟩)
+        exact (opcode_constraints_iff hA ⟨j, by omega⟩).mp (h.constraints _ hmem) ⟨x.val, hx⟩ C hC
+      · rw [hP ⟨j + 3, hj⟩ x (Nat.not_lt.mp hx)]
+        exact padRow_constraints ⟨j, by omega⟩ C hC
   · fin_cases k
     exacts [h.state_balanced, h.mem_balanced, h.bytecode_balanced]
   · exact publicLinesHold_stackOf h hs
@@ -367,12 +469,21 @@ theorem m3Holds_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     rw [flockColumn_stackOf]
     exact F.region_holds_gen _ rfl rfl _
 
+/-- **The adaptor, completeness, with honest padding.** A witness satisfying leanISA's constraint
+system stacks, at the sizes it carries, into a column satisfying the leanISA instance's relation
+whose padding rows hold the public padding row, the relation the protocol's completeness starts
+from. -/
+theorem m3Honest_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
+    (hs : Sizes.ofWitness w = some s) (hpad : LimbsCompress padLimbs) :
+    M3Honest (leanIsaInstance F prog s) input (stackOf F prog s w) :=
+  ⟨m3Holds_stackOf h hs hpad, paddingHonest_stackOf (F := F) hs hpad⟩
+
 /-- **The witness read back.** Reading a witness back off the stack of a witness satisfying the
 constraint system gives the witness's opcode tables within their widths, its memory and bytecode
 blocks, its public input and the image its data names. -/
 theorem witnessOf_stackOf {input : PublicInput} (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) :
-    (∀ (j : Fin 6) (x : Fin (2 ^ s.τ j)) (i : Fin (opcodeComponent j).width),
+    (∀ (j : Fin 6) (x : Fin (s.rows j)) (i : Fin (opcodeComponent j).width),
       cellOf (opTable (witnessOf F prog s (stackOf F prog s w)) j) x i = cellOf (opTable w j) x i) ∧
     memBlockRows (witnessOf F prog s (stackOf F prog s w)) = memBlockRows w ∧
     bytecodeBlockRows (witnessOf F prog s (stackOf F prog s w)) = bytecodeBlockRows w ∧

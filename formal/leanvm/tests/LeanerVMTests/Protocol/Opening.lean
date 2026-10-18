@@ -123,6 +123,9 @@ abbrev empty : M3Instance where
   constraints_degree := fun j ↦ j.elim0
   flushes_degree := fun j ↦ j.elim0
   counts := fun j ↦ j.elim0
+  rows := fun j ↦ j.elim0
+  rows_le := fun j ↦ j.elim0
+  padRow := fun j ↦ j.elim0
   boundary := []
   μ := 0
   layout := ⟨fun c ↦ c.1.elim0, fun _ c ↦ c.1.elim0⟩
@@ -172,6 +175,9 @@ abbrev flocky : M3Instance where
   constraints_degree := fun _ _ h ↦ absurd h (List.not_mem_nil)
   flushes_degree := fun _ _ h ↦ absurd h (List.not_mem_nil)
   counts := fun _ ↦ [0]
+  rows := fun j ↦ 2 ^ flockShape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := []
   μ := 8
   layout := ⟨fun _ z ↦ z, fun q c z ↦ by rw [readWith_id]⟩
@@ -222,11 +228,11 @@ example (I : M3Instance)
       (tableSlot I))
     (flock : Typed.Def (TheOracle I) (I.Stmt × PubOut I) Unit (I.Stmt × FlockOut I) Unit
       (flockPhaseSlot I))
-    (cb : Typed.Complete bus (Seam.commit I) (Seam.bus I))
+    (cb : Typed.Complete bus (Seam.commitHonest I) (Seam.bus I))
     (ct : Typed.Complete table (Seam.bus I) (Seam.table I))
     (cf : Typed.Complete flock (Seam.pub I) (Seam.flock I)) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel I) :
     Pr{let x ← (leanVmPiop ⟨bus, table, PublicInput.phase I, flock, opening I⟩
       initial).execute impl input q}[x.2.2 = some ()] = 1 :=
   piop_perfectCompleteness _ ⟨cb, ct, PublicInput.complete I, cf, openingComplete I⟩

@@ -17,12 +17,12 @@ within their widths, the memory and bytecode blocks the stack's), three clauses 
 relation are three conjuncts of leanISA's, in both directions:
 
 * `opcode_constraints_iff`: an opcode table's Clean constraints hold on every row exactly when
-  the instance's constraint polynomials vanish on the stack's rows of that table. Clean reads a
+  the instance's constraint polynomials vanish on the stack's executed rows of that table. Clean reads a
   row only within the component's width, and the table has no lookups.
 * `balanced_iff_pairs`: the instance's bus balances exactly when leanISA's three channel pairs
   do.
 * `countsNonzero_iff`: every read count of the six opcode tables is nonzero exactly when every
-  cell of the instance's count columns is: a count column is the coordinate-`1` variable of a
+  executed cell of the instance's count columns is: a count column is the coordinate-`1` variable of a
   memory or bytecode pull, and every such pull has one.
 -/
 
@@ -99,11 +99,11 @@ private theorem opcode_constraintsHold_iff (j : Fin 6) (row : Array K)
   rw [Expression.eval_fromArray_truncate row data (opcode_constraints_withinWidth j e he), hrow]
 
 /-- Opcode table `j`'s Clean constraints hold on every row exactly when the instance's constraint
-polynomials of that table vanish on every row of the stack. -/
+polynomials of that table vanish on every executed row of the stack. -/
 theorem opcode_constraints_iff (h : Agrees F s q w) (j : Fin 6) :
     (opTable w j).Constraints ↔
-      ∀ x : Fin (2 ^ s.τ j), ∀ C ∈ (opcodeTable j).constraints,
-        C.eval ((leanIsaInstance F prog s).row q (opIdx j) x) = 0 := by
+      ∀ x : Fin (s.rows j), ∀ C ∈ (opcodeTable j).constraints,
+        C.eval ((leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x)) = 0 := by
   rw [Air.Flat.Table.Constraints, forall_mem_table (h.length j)]
   refine forall_congr' fun x ↦ ?_
   rw [Air.Flat.Table.environment, opTable_component]
@@ -140,17 +140,17 @@ private theorem take_six_tables (w : EnsembleWitness (leanIsaEnsemble prog)) :
 is nonzero on the stack's rows. -/
 private theorem m3_countsNonzero_iff :
     (leanIsaInstance F prog s).CountsNonzero q ↔
-      ∀ j : Fin 6, ∀ k ∈ (opcodeTable j).count, ∀ x : Fin (2 ^ s.τ j),
-        (leanIsaInstance F prog s).row q (opIdx j) x k ≠ 0 := by
+      ∀ j : Fin 6, ∀ k ∈ (opcodeTable j).count, ∀ x : Fin (s.rows j),
+        (leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k ≠ 0 := by
   constructor
-  · exact fun hc j k hk x ↦ hc (opIdx j) k hk x
+  · exact fun hc j k hk x ↦ hc (opIdx j) k hk _ x.isLt
   · intro hc j'
     rcases j' with ⟨_ | _ | _ | j, hj⟩
     · exact fun i hi ↦ absurd hi List.not_mem_nil
     · exact fun i hi ↦ absurd hi List.not_mem_nil
     · exact fun i hi ↦ absurd hi List.not_mem_nil
     · have h9 : (leanIsaInstance F prog s).ntab = 9 := rfl
-      exact hc ⟨j, by omega⟩
+      exact fun k hk x hx ↦ hc ⟨j, by omega⟩ k hk ⟨x.val, hx⟩
 
 /-- An interaction of a table of known length: one of its component's, on one of its rows. -/
 private theorem forall_mem_interactions {t : Air.Flat.Table K} {n : ℕ} (hn : t.table.length = n)
@@ -184,9 +184,9 @@ theorem countsNonzero_iff (h : Agrees F s q w) :
   refine forall_congr' fun j ↦ ?_
   simp only [List.mem_finRange, true_implies]
   rw [forall_mem_interactions (h.length j), opTable_component]
-  have hcell : ∀ (x : Fin (2 ^ s.τ j)) (k : Fin (opcodeComponent j).width),
+  have hcell : ∀ (x : Fin (s.rows j)) (k : Fin (opcodeComponent j).width),
       ((opTable w j).table[x.val]'(by rw [h.length j]; exact x.isLt))[k.val]?.getD 0 =
-        (leanIsaInstance F prog s).row q (opIdx j) x k := fun x k ↦ by
+        (leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) k := fun x k ↦ by
     rw [← h.cells j x k, cellOf, List.getElem?_eq_getElem]
     rfl
   constructor

@@ -1,7 +1,8 @@
 # Status: end-to-end soundness and completeness of the deployed verifier
 
 Branch `e2e/rom-knowledge-soundness`, built on the open stack #86–#99, #82/#83 and #67, at leanVM
-`a0ca7858f2533ce51abdc20bb635c007e19b26b3`. Design: [e2e-rom-design.md](e2e-rom-design.md).
+`a0ca7858f2533ce51abdc20bb635c007e19b26b3`, adapted to `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`
+(announced row counts with padding rows, no `BLAKE2S` floor). Design: [e2e-rom-design.md](e2e-rom-design.md).
 Every theorem below depends only on `propext`, `Classical.choice`, `Quot.sound` (`#print axioms`,
 locked in the tests).
 
@@ -9,7 +10,7 @@ locked in the tests).
 
 The statements are in [`LeanerVM/Spec/`](../../LeanerVM/Spec/README.md), which imports nothing
 else from the repository: the fields, BLAKE2s, the ISA (`Isa.lean`: `Program`, `PublicInput`,
-`Trace`, `ValidExecution`, `SentinelSafe`, `HasFillBlocks`), the verifier (`Verifier.lean`, with
+`Trace`, `ValidExecution`, `SentinelSafe`), the verifier (`Verifier.lean`, with
 the WHIR and Flock constants and the Fiat–Shamir transcript), and `Statement.lean`, which states
 `KnowledgeSoundness` and `Completeness` as propositions, the extractor and the honest prover
 existentially quantified. [`LeanerVM/Protocol/LeanVM.lean`](../../LeanerVM/Protocol/LeanVM.lean)
@@ -28,9 +29,7 @@ honest prover:
   an execution (`Trace`): the memory image the proof commits to, run until it halts;
 * `soundnessError_le`: at most `2^-63` for `Q ≤ 2^64`;
 * `completeness`: for a valid execution of at most `2^19` steps, a memory of at most `2^23` words
-  and a bytecode of at most `2^23` instructions, of a program carrying the fill blocks
-  (`HasFillBlocks`, the one trace of padding in a statement: the deployed prover pads its tables
-  with blocks the compiler appends to the bytecode), at a rate `1 ≤ ρ ≤ 4`, the honest prover
+  and a bytecode of at most `2^23` instructions, at a rate `1 ≤ ρ ≤ 4`, the honest prover
   (`honestProver`), run as the adversary of the same random-oracle experiment with a fuel of
   `fuel` nonces per proof of work, makes the verifier reject with probability at most
   `completenessError fuel = Q·((1 - 2^-17)^fuel + Q/2^256)`,
@@ -38,9 +37,10 @@ honest prover:
 * `completenessError_le`: below `2^-128` at `fuel = 2^25`.
 
 The size bounds trade against each other (`Complete.exists_admissible_witness_of_budget`:
-`8·2^κ + 2^logSize + 356·2^n ≤ 2^28` for `2^n` steps); `2^20` steps never fit the deployed
+`4·2^κ + 2^logSize + 342·2^n ≤ 2^28` for `2^n` steps); `2^20` steps never fit the deployed
 `MAX_MU = 28`, whatever the program (the BLAKE2S table's Flock region alone would have `2^28`
-rows).
+rows). Since leanVM `3a37fb6e1` (no fill blocks, tables of any row count padded with a public row)
+the budget has room: with the others fixed, `κ = 24` or `logSize = 25` also fits.
 
 ## The verifier the theorems are about
 
@@ -79,6 +79,10 @@ runs proven-equal code.
     which reach 32 distinct Rust rejection reasons (Merkle, every GKR layer, the table sumcheck,
     the public input, Flock, ring switching, WHIR, proof of work, the announced sizes, the file
     lengths); about 11 minutes at 8 jobs.
+  * at `3a37fb6e1`, on the regenerated fixtures, with a new structured class `rows` (each
+    table's announced row count one fewer, one more, zero, its full height, above the cap,
+    which moves its padding rows): 750 cases (seed 1, the Python verifier as tie-breaker) and
+    1800 (seed 2, 600 per fixture), no difference; about 4 minutes at 12 jobs.
 
 ## Soundness (`LeanerVM/Protocol/EndToEnd/Sound/Statements.lean`)
 
@@ -119,6 +123,18 @@ the pin states the smaller `2L/|E| + ε` (`lem:fold-list`, citing Jo, ePrint 202
 under which 25 of the 56 query counts were lowered (`b977f5fa`); the table certifies the lowered
 counts under the larger, proved bound, so the Annex's bound is not used.
 
+**Padding rows** (`doc/leanvm` §`sec:e2e-pad`, Proposition `prop:pad`). The relation reads the
+executed rows only (`M3Instance.executed`): a padding row is free, and its leaf is the verifier's
+`1 − π_α(t − t(p))` against the public padding row `p` (`Bus.Source.leaf`, `Table.padding`). The
+bus phase's challenge step bounds the collision of the two padded products at the unchanged
+`4·2^μBus/|E|` (`card_paddedSideProduct_collision_le`, from `paddedProductPoly_eq`: a padded
+product, a nonzero constant in `X` times the grand product, has the same roots); the padding
+tuples are nonzero since a flush's first coordinate is its constant separator
+(`Bus.Conditions.separator`). The verifier's public padding term is the protocol's
+(`Front/TableFidLeanIsaBus.lean`, `flushSrcs_map_arkB`), its `padding_weight` the multilinear
+extension of `[x ≥ n]` (`Front/BusPadding.lean`, `paddingWeight_eq_padWeight`, Lemma
+`lem:suffix`). `KnowledgeSoundness` and `soundnessError` are unchanged.
+
 **No open input.** The theorems take no hypothesis beyond the adversary's query bound (and
 well-formed bytecode). The deployed computations of every phase are proved equal to the analysed
 protocol's: the bus and the table sumcheck (`Front/TableFidLeanIsa*.lean`), the public input,
@@ -132,16 +148,16 @@ Flock and ring switching (`Front/{Pub,Flock,Ring}*.lean`), the BLAKE2s circuit w
 * `leanVm_complete` (every hash function) and `leanVm_complete_blake2s` (the deployed `verify`):
   the compiled honest prover's proof is accepted whenever its proof-of-work searches find nonces
   below the fuel;
-* `leanVm_complete_of_execution`: from a valid execution of well-formed bytecode that fits
+* `leanVm_complete_of_execution`: from a valid execution of at most `2^32` steps
   (`constraintCompleteness`).
-* In ISA terms (`EndToEnd/Complete/Small.lean`): a valid execution of a program with the fill
-  blocks (`HasFillBlocks`) that is small (`Trace.Small`: at most `2^19` steps, `2^23` words of
-  memory, `2^23` instructions) has a witness at admissible sizes (`exists_admissible_witness`;
-  the budget form `8·2^κ + 2^logSize + 356·2^n ≤ 2^28` for `2^n` steps is
-  `exists_admissible_witness_of_budget`), and the honest proof of the execution (`honestProofOf`)
-  exists when the proof-of-work searches succeed and is accepted (`complete_of_small`). The
-  witness's heights come from `constraintCompleteness_heights`, which needs of the bytecode only
-  its fill blocks.
+* In ISA terms (`EndToEnd/Complete/Small.lean`): a valid execution that is small
+  (`Trace.Small`: at most `2^19` steps, `2^23` words of memory, `2^23` instructions) has a witness
+  representing it at admissible sizes (`exists_admissible_witness`; the budget form
+  `4·2^κ + 2^logSize + 342·2^n ≤ 2^28` for `2^n` steps is `exists_admissible_witness_of_budget`),
+  and the honest proof of the execution (`honestProofOf`) exists when the proof-of-work searches
+  succeed and is accepted (`complete_of_small`). The witness's row counts are the run's
+  (`constraintCompleteness_rows`); the honest stack fills each table's padding rows with the
+  public padding row (`m3Honest_stackOf`), which the bus phase's completeness needs.
 * In the random-oracle model (`EndToEnd/Complete/Rom.lean`, `Compile/Rom/Complete.lean`): the
   honest prover is an oracle computation (`proveM`, equal to the pure prover at `Id`,
   `proveM_id`), run as the adversary of the soundness experiment. On every outcome where it

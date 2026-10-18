@@ -1,5 +1,5 @@
 import LeanerVM.Arithmetization.Completeness.Bus
-import LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
 # Layer 10 tests: the rows of executed instructions
@@ -7,7 +7,7 @@ import LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
 `rowOf_sends` says that the row of an instruction that executes sends the state step, the bytecode
 read of its entry and the reads of the cells it reads, each with the limbs the image holds there.
 An `XOR` on the all-zero image executes, and its row sends exactly that. On the image of
-`PaddedImageRefutation`, where no word is the sum of two, no `XOR` executes, and the same row
+`Fixture`, where no word is the sum of two, no `XOR` executes, and the same row
 sends something else: its third read carries the sum, not the cell. A `JUMP`'s pushed successor
 is the one thing that depends on a local witness, the indicator `b`: a taken jump with `b = 0`
 pushes the fall-through (the constraints that reject that witness are in
@@ -18,7 +18,7 @@ the chain's (`Completeness.Bus`): two rows reading one cell number its reads `0,
 namespace LeanerVMTests.Arithmetization.Completeness.Rows
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
-open LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+open LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term (status finding E8). -/
 local notation "d₀" => (gpow 2047 : K)

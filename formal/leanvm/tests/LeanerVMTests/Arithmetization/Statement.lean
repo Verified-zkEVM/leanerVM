@@ -8,18 +8,16 @@ bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the Layer 3 program, the executor's
 `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:887-904`, `tests/LeanerVMTests/
-Semantics.lean`), extended in the shape of the compiler's fill blocks, simplified: a
-`JUMP` to the sentinel after the three instructions, and the fill blocks every table needs to reach
-a power-of-two height (§8.3; `crates/leanvm_core/src/cpu/filler.rs:36-87`, emitted by
-`crates/lean_compiler/src/filler.rs`; roadmap acceptance test 15): one `XOR`, one `DEREF`, eight
-`BLAKE2S` rows (the verifier's floor, `crates/verifier/src/layout.rs:392`), each block a closed walk
-ending in a `JUMP` back to its first instruction, run in a frame disjoint from the program's own
-(the compiler's closing `JUMP` reuses one frame cell as condition and destination and its dummy
-`JUMP` falls through; the fixture's use distinct cells). The thirty-two-slot program `fillProg` runs
-four steps from `(1, 1)` to `(g^31, 1)` (`fill_run`, a `ValidExecution`), and its honest witness
-`fillW 1 g memCnt` at the minimum memory size `2^16` satisfies every conjunct of `SatisfiedBy`
-(`fill_satisfiedBy`) and represents the trace (`fill_represents`): the completeness instance of T1
-for this program, by hand (`fill_t1_instance`). The witness is parametric in the first
+Semantics.lean`), extended with closed walks: a `JUMP` to the sentinel after the three
+instructions, and three blocks run in frames disjoint from the program's own, each a loop ending in
+a `JUMP` back to its first instruction: one `XOR`, one `DEREF`, eight `BLAKE2S` rows. The statement
+accepts rows that are not steps of the run as long as the state pair balances (Prop. 6.1: one walk
+from the initial to the final registers, and closed walks), and the fixture exercises that.
+The thirty-two-slot program `walkProg` runs
+four steps from `(1, 1)` to `(g^31, 1)` (`walk_run`, a `ValidExecution`), and its honest witness
+`walkW 1 g memCnt` at the minimum memory size `2^16` satisfies every conjunct of `SatisfiedBy`
+(`walk_satisfiedBy`) and represents the trace (`walk_represents`): the completeness instance of T1
+for this program, by hand (`walk_t1_instance`). The witness is parametric in the first
 `SET_CONSTANT` row's read count, the product row's read count of `x`, and the memory block's
 finalize counts, so that the rejections below are the honest witness with one thing changed.
 
@@ -41,7 +39,9 @@ row reads `x` with count `0`, a pull and a push of one tuple, the product row th
 first, and every other conjunct still holds (`zero_count_witness`). A wrong digest fails
 `Blake2sRowsValid` (§8.5). A memory block whose index column is shifted fails
 `IndexColumnsAreRowIndices` (§6.5). A wrong public word fails `word0_eq` (§8.2). A three-row
-table and a four-row `BLAKE2S` table fail `Caps` (`read_public`).
+table and a four-row `BLAKE2S` table are within `Caps`: a table's row count need not be a power
+of two, and there is no `BLAKE2S` floor (the protocol pads every table with public padding rows,
+`doc/leanvm` §`sec:e2e-pad`).
 -/
 
 namespace LeanerVMTests.Arithmetization.Statement
@@ -49,7 +49,7 @@ namespace LeanerVMTests.Arithmetization.Statement
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## The fixture: `mul_192bit_word` with fill blocks -/
+/-! ## The fixture: `mul_192bit_word` with closed walks -/
 
 -- scripts/dump-mul-rust.sh at leanVM a386121f
 def mulX : E :=
@@ -77,11 +77,11 @@ def mulInput : PublicInput := ⟨![1, 0, K.ofBits 2, 0]⟩
 def cellK (a : K) : E := E.ofLimbs a 0 0
 
 /-- The program: the executor's three instructions in frame `1` (slots `0..2`), a `JUMP` to the
-sentinel (`3`), an `XOR` fill block in frame `g^5` (`4`, `5`), a `DEREF` fill block in the same
-frame (`6`, `7`), a `BLAKE2S` fill block of eight rows in frame `g^14` (`8..16`), never-executed
-filler (`17..30`) and the sentinel (`31`, not a `JUMP`). Each block's `JUMP` reads `c = 1`, its
+sentinel (`3`), an `XOR` loop in frame `g^5` (`4`, `5`), a `DEREF` loop in the same frame
+(`6`, `7`), a `BLAKE2S` loop of eight rows in frame `g^14` (`8..16`), never-executed slots
+(`17..30`) and the sentinel (`31`, not a `JUMP`). Each block's `JUMP` reads `c = 1`, its
 block's first counter `d`, and its own frame `f`. -/
-def fillProg : Program :=
+def walkProg : Program :=
   ⟨5, by decide, fun i ↦
     match (i : ℕ) with
     | 0 => .setConstant (gpow 2) mulX
@@ -97,12 +97,12 @@ def fillProg : Program :=
     | 16 => .jump (gpow 9) (gpow 10) (gpow 11)
     | _ => .xor 1 1 1⟩
 
-/-- The twenty-nine cells the run and the fill blocks touch, by index; every other cell of the
+/-- The twenty-nine cells the run and the loops touch, by index; every other cell of the
 image is `0`. Frame `1`: the public words (`0`, `1`), the operands and the product (`2..4`),
 the sentinel `JUMP`'s `c, d, f` (`26..28`). Frame `g^5`: the `XOR` and `DEREF` cell (`5`),
 `c` (`6`), the two blocks' `d` (`7`, `8`), the pointer and `f` (`11`). Frame `g^14`: the
 `BLAKE2S` cells in the executor's layout (`14..22`) and the block's `c, d, f` (`23..25`). -/
-def fillCells : Array E :=
+def walkCells : Array E :=
   #[cellK 1, cellK (K.ofBits 2), mulX, mulY, mulXY,
     0, cellK 1, cellK (gpow 4), cellK (gpow 6), 0, 0, cellK (gpow 5), 0, 0,
     rustCv0, rustCv1, rustM0, rustM1, rustM2, rustM3, rustOut0, rustOut1, rustMd,
@@ -110,40 +110,40 @@ def fillCells : Array E :=
     cellK 1, cellK (gpow 31), cellK 1]
 
 /-- The image, at the minimum size `2^16`. -/
-def fillImage : MemImage minLogMem := fun i ↦ (fillCells[(i : ℕ)]?).getD 0
+def walkImage : MemImage minLogMem := fun i ↦ (walkCells[(i : ℕ)]?).getD 0
 
 /-- The trace: four steps. -/
-def fillTrace : Trace fillProg := ⟨minLogMem, fillImage, 4⟩
+def walkTrace : Trace walkProg := ⟨minLogMem, walkImage, 4⟩
 
 /-- The `"mem"` table of the prover data: the image, one row of limbs per word. -/
-def fillRows : Array (Vector K 3) :=
+def walkRows : Array (Vector K 3) :=
   Array.ofFn fun i : Fin (2 ^ minLogMem) ↦
-    #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]
+    #v[(walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2]
 
 /-- The prover data: the image as its `"mem"` table, matched on arity (as in the Layer 5 to 7
 tests). -/
-def fillData : ProverData K := fun _ n ↦
+def walkData : ProverData K := fun _ n ↦
   match n with
-  | 3 => fillRows
+  | 3 => walkRows
   | _ => #[]
 
 /-- The table, read back. By `unfold` and not by `rfl`: the match on the arity `3` is stuck for
 definitional unfolding, which then unrolls `Array.ofFn` over the `2^16` rows (finding E8). -/
-theorem memRows_fill : memRows fillData = fillRows := by
-  unfold memRows fillData
+theorem memRows_walk : memRows walkData = walkRows := by
+  unfold memRows walkData
   rfl
 
 /-- The honest finalize counts `g^A[i]` of the touched cells; `1` elsewhere (`memCnt`). -/
-def fillCounts : Array K :=
+def walkCounts : Array K :=
   #[1, 1, g ^ 2, g ^ 2, g, g ^ 5, g ^ 2, g, g, 1, 1, g ^ 3, 1, 1,
     g ^ 8, g ^ 8, g ^ 8, g ^ 8, g ^ 8, g ^ 8, g ^ 8, g ^ 8, g ^ 8, g, g, g, g, g, g]
 
 /-- The finalize count of cell `i`. -/
-def memCnt (i : ℕ) : K := (fillCounts[i]?).getD 1
+def memCnt (i : ℕ) : K := (walkCounts[i]?).getD 1
 
 /-- Past the touched cells every finalize count is `1`: the cell was never read. -/
 theorem memCnt_of_ge {i : ℕ} (h : 29 ≤ i) : memCnt i = 1 := by
-  have hs : fillCounts.size = 29 := rfl
+  have hs : walkCounts.size = 29 := rfl
   unfold memCnt
   rw [Array.getElem?_eq_none (hs ▸ h)]
   rfl
@@ -152,7 +152,7 @@ theorem memCnt_of_ge {i : ℕ} (h : 29 ≤ i) : memCnt i = 1 := by
 def bcCnt (i : ℕ) : K := if i ≤ 16 then g else 1
 
 /-- The same, as the bytecode block's finalize-count column. -/
-def bcCntFin (i : Fin (2 ^ fillProg.logSize)) : K := bcCnt i
+def bcCntFin (i : Fin (2 ^ walkProg.logSize)) : K := bcCnt i
 
 /-! ## The rows -/
 
@@ -210,12 +210,12 @@ theorem jumpRaw_size (rs : List (JumpRow K)) :
 /-- Row `i` of the memory block: `(g^i, cnt i, mem[i])`, the raw form of the typed row. -/
 def memRowArr (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
   (toElements (⟨gpow i, cnt i,
-    #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩ : MemRow K)).toArray
+    #v[(walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2]⟩ : MemRow K)).toArray
 
 /-- The memory row's five coordinates, without evaluating the block's row list. -/
 theorem memRowArr_eq (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
     memRowArr cnt i =
-      #[gpow i, cnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2] := by
+      #[gpow i, cnt i, (walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2] := by
   with_unfolding_all rfl
 
 /-! ## The tables and the witness -/
@@ -224,7 +224,7 @@ theorem memRowArr_eq (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) :
 def mkT {Input Output : TypeMap} [ProvableType Input] [ProvableType Output]
     (c : GeneralFormalCircuit K Input Output) (width : ℕ) (rows : List (Array K))
     (h : ∀ r ∈ rows, r.size = width) : Air.Flat.Table K :=
-  ⟨⟨c⟩, width, rows, fillData, h⟩
+  ⟨⟨c⟩, width, rows, walkData, h⟩
 
 def xorT : Air.Flat.Table K :=
   mkT xorTable (size XorRow) ([xorRow].map rawRow) (rawRows_size [xorRow])
@@ -252,7 +252,7 @@ def memT (cnt : ℕ → K) : Air.Flat.Table K :=
 /-- The bytecode block: the program's rows (Layer 7's `bytecodeRowOf`). -/
 def bcT : Air.Flat.Table K :=
   mkT bytecodeTable (size BytecodeRow)
-    (List.ofFn fun i ↦ (toElements (bytecodeRowOf fillProg i (bcCntFin i))).toArray) (by
+    (List.ofFn fun i ↦ (toElements (bytecodeRowOf walkProg i (bcCntFin i))).toArray) (by
       intro r hr
       rw [List.mem_ofFn] at hr
       obtain ⟨i, rfl⟩ := hr
@@ -261,31 +261,31 @@ def bcT : Air.Flat.Table K :=
 /-- A witness over the fixture's data and input with the tables `ts`, eight tables of the
 ensemble's components in order: the proofs are by cases on the list, so `ts` is a literal. -/
 def mkW (ts : List (Air.Flat.Table K))
-    (hlen : (leanIsaEnsemble fillProg).tables.length = ts.length := by rfl)
-    (hc : ∀ i (hi : i < (leanIsaEnsemble fillProg).tables.length),
-      (leanIsaEnsemble fillProg).tables[i] = (ts[i]'(hlen ▸ hi)).component := by
+    (hlen : (leanIsaEnsemble walkProg).tables.length = ts.length := by rfl)
+    (hc : ∀ i (hi : i < (leanIsaEnsemble walkProg).tables.length),
+      (leanIsaEnsemble walkProg).tables[i] = (ts[i]'(hlen ▸ hi)).component := by
         intro i hi
         have hi' : i < 8 := hi
         interval_cases i <;> rfl)
-    (hd : ∀ t ∈ ts, t.data = fillData := by
+    (hd : ∀ t ∈ ts, t.data = walkData := by
       intro t ht
       simp only [List.mem_cons, List.not_mem_nil, or_false] at ht
       rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> rfl) :
-    EnsembleWitness (leanIsaEnsemble fillProg) :=
-  ⟨ts, fillData, PublicIO.ofInput mulInput, hlen, hc, hd⟩
+    EnsembleWitness (leanIsaEnsemble walkProg) :=
+  ⟨ts, walkData, PublicIO.ofInput mulInput, hlen, hc, hd⟩
 
 /-- The witness, with the first `SET_CONSTANT` row's read count `c`, the product row's read
 count of `x` `rA`, and the memory block's finalize counts `cnt`; the honest one is
-`fillW 1 g memCnt`. -/
-def fillW (c rA : K) (cnt : ℕ → K) : EnsembleWitness (leanIsaEnsemble fillProg) :=
+`walkW 1 g memCnt`. -/
+def walkW (c rA : K) (cnt : ℕ → K) : EnsembleWitness (leanIsaEnsemble walkProg) :=
   mkW [xorT, mulT rA, setT c, derefT, jumpT, blakeT, memT cnt, bcT]
 
 /-! ## The tables of the witness, read back -/
 
 /-- The three blocks the statement names, read off the witness. -/
-theorem tableAt_five (c rA : K) (cnt : ℕ → K) : tableAt (fillW c rA cnt) 5 = blakeT := rfl
-theorem tableAt_six (c rA : K) (cnt : ℕ → K) : tableAt (fillW c rA cnt) 6 = memT cnt := rfl
-theorem tableAt_seven (c rA : K) (cnt : ℕ → K) : tableAt (fillW c rA cnt) 7 = bcT := rfl
+theorem tableAt_five (c rA : K) (cnt : ℕ → K) : tableAt (walkW c rA cnt) 5 = blakeT := rfl
+theorem tableAt_six (c rA : K) (cnt : ℕ → K) : tableAt (walkW c rA cnt) 6 = memT cnt := rfl
+theorem tableAt_seven (c rA : K) (cnt : ℕ → K) : tableAt (walkW c rA cnt) 7 = bcT := rfl
 
 /-- Their rows. By `dsimp`, never by `rfl`: a definitional comparison of a stuck projection
 against a `List.ofFn` unrolls the `2^16` rows (finding E8). -/
@@ -294,137 +294,137 @@ theorem blakeT_table : blakeT.table = (List.ofFn blakeRow).map rawRow := by
 theorem memT_table (cnt : ℕ → K) : (memT cnt).table = List.ofFn (memRowArr cnt) := by
   dsimp only [memT, mkT]
 theorem bcT_table :
-    bcT.table = List.ofFn fun i ↦ (toElements (bytecodeRowOf fillProg i (bcCntFin i))).toArray := by
+    bcT.table = List.ofFn fun i ↦ (toElements (bytecodeRowOf walkProg i (bcCntFin i))).toArray := by
   dsimp only [bcT, mkT]
 theorem memBlockRows_eq (c rA : K) (cnt : ℕ → K) :
-    memBlockRows (fillW c rA cnt) = List.ofFn (memRowArr cnt) := by
+    memBlockRows (walkW c rA cnt) = List.ofFn (memRowArr cnt) := by
   rw [memBlockRows, tableAt_six, memT_table]
 
 /-! ## The image the data names -/
 
-theorem fill_logSize : (imageOf fillData).1 = minLogMem := by
-  show min (Nat.log 2 (memRows fillData).size) maxLogMem = minLogMem
-  rw [memRows_fill, fillRows, Array.size_ofFn, Nat.log_pow (by norm_num)]
+theorem walk_logSize : (imageOf walkData).1 = minLogMem := by
+  show min (Nat.log 2 (memRows walkData).size) maxLogMem = minLogMem
+  rw [memRows_walk, walkRows, Array.size_ofFn, Nat.log_pow (by norm_num)]
   rfl
 
-theorem fill_wellShaped : WellShapedData fillData :=
-  ⟨by rw [fill_logSize, memRows_fill, fillRows, Array.size_ofFn]⟩
+theorem walk_wellShaped : WellShapedData walkData :=
+  ⟨by rw [walk_logSize, memRows_walk, walkRows, Array.size_ofFn]⟩
 
-theorem fill_pow_eq : 2 ^ (imageOf fillData).1 = 2 ^ minLogMem := by rw [fill_logSize]
+theorem walk_pow_eq : 2 ^ (imageOf walkData).1 = 2 ^ minLogMem := by rw [walk_logSize]
 
 /-- Row `k` of the table, through `getElem?`: a `getElem` with a bound on the `2^16`-row table
 makes both the elaborator and the kernel unroll it (finding E8). -/
-theorem fillRows_get? (k : ℕ) (hk : k < 2 ^ minLogMem) :
-    fillRows[k]? = some #v[(fillImage ⟨k, hk⟩).limb 0, (fillImage ⟨k, hk⟩).limb 1,
-      (fillImage ⟨k, hk⟩).limb 2] := by
-  rw [fillRows, Array.getElem?_ofFn, dite_eq_left hk]
+theorem walkRows_get? (k : ℕ) (hk : k < 2 ^ minLogMem) :
+    walkRows[k]? = some #v[(walkImage ⟨k, hk⟩).limb 0, (walkImage ⟨k, hk⟩).limb 1,
+      (walkImage ⟨k, hk⟩).limb 2] := by
+  rw [walkRows, Array.getElem?_ofFn, dite_eq_left hk]
 
-theorem fill_image_apply' (k : ℕ) (hk : k < 2 ^ (imageOf fillData).1) :
-    (imageOf fillData).2 ⟨k, hk⟩ = fillImage ⟨k, by rw [← fill_pow_eq]; exact hk⟩ := by
-  conv_rhs => rw [← ofLimbs_limb (fillImage ⟨k, _⟩)]
-  refine imageOf_apply fill_wellShaped ⟨k, hk⟩ (v := #v[(fillImage ⟨k, _⟩).limb 0,
-    (fillImage ⟨k, _⟩).limb 1, (fillImage ⟨k, _⟩).limb 2]) ?_
-  rw [Array.getElem_eq_iff, memRows_fill]
-  exact fillRows_get? k _
+theorem walk_image_apply' (k : ℕ) (hk : k < 2 ^ (imageOf walkData).1) :
+    (imageOf walkData).2 ⟨k, hk⟩ = walkImage ⟨k, by rw [← walk_pow_eq]; exact hk⟩ := by
+  conv_rhs => rw [← ofLimbs_limb (walkImage ⟨k, _⟩)]
+  refine imageOf_apply walk_wellShaped ⟨k, hk⟩ (v := #v[(walkImage ⟨k, _⟩).limb 0,
+    (walkImage ⟨k, _⟩).limb 1, (walkImage ⟨k, _⟩).limb 2]) ?_
+  rw [Array.getElem_eq_iff, memRows_walk]
+  exact walkRows_get? k _
 
 /-- Every word the data names is the fixture's image. -/
-theorem fill_image_apply (i : Fin (2 ^ (imageOf fillData).1)) :
-    (imageOf fillData).2 i = fillImage (Fin.cast fill_pow_eq i) :=
-  fill_image_apply' i i.isLt
+theorem walk_image_apply (i : Fin (2 ^ (imageOf walkData).1)) :
+    (imageOf walkData).2 i = walkImage (Fin.cast walk_pow_eq i) :=
+  walk_image_apply' i i.isLt
 
 /-- The image the data names, as one equality of dependent pairs: what every conjunct over
 `imageOf w.data` is rewritten with, so that nothing compares the data's log-size against
 `minLogMem` definitionally (finding E8). -/
-theorem fill_imageOf : imageOf fillData = ⟨minLogMem, fillImage⟩ := by
-  have hκ : (imageOf fillData).1 = minLogMem := fill_logSize
-  have hpow : 2 ^ (imageOf fillData).1 = 2 ^ minLogMem := fill_pow_eq
-  have hf : ∀ i, (imageOf fillData).2 i = fillImage (Fin.cast hpow i) := fill_image_apply
+theorem walk_imageOf : imageOf walkData = ⟨minLogMem, walkImage⟩ := by
+  have hκ : (imageOf walkData).1 = minLogMem := walk_logSize
+  have hpow : 2 ^ (imageOf walkData).1 = 2 ^ minLogMem := walk_pow_eq
+  have hf : ∀ i, (imageOf walkData).2 i = walkImage (Fin.cast hpow i) := walk_image_apply
   revert hκ hpow hf
-  generalize imageOf fillData = s
+  generalize imageOf walkData = s
   obtain ⟨κ, img⟩ := s
   intro hκ hpow hf
   dsimp only at hκ hpow hf
   subst hκ
-  exact congrArg _ (funext fun i ↦ (hf i).trans (congrArg fillImage (Fin.ext rfl)))
+  exact congrArg _ (funext fun i ↦ (hf i).trans (congrArg walkImage (Fin.ext rfl)))
 
-theorem data_eq (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).data = fillData := rfl
+theorem data_eq (c rA : K) (cnt : ℕ → K) : (walkW c rA cnt).data = walkData := rfl
 
 /-! ## The run (Layer 3) -/
 
 /-- The instruction at `g^i`. -/
-theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ fillProg.logSize := by decide)
-    (hd : fillProg.code ⟨i, hi⟩ = ins := by rfl) : fillProg.fetch (gpow i) = some ins := by
-  rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ fillProg.logSize)) : ℕ) from rfl,
+theorem fetch_at (i : ℕ) (ins : Instr) (hi : i < 2 ^ walkProg.logSize := by decide)
+    (hd : walkProg.code ⟨i, hi⟩ = ins := by rfl) : walkProg.fetch (gpow i) = some ins := by
+  rw [show gpow i = gpow ((⟨i, hi⟩ : Fin (2 ^ walkProg.logSize)) : ℕ) from rfl,
     Program.fetch_gpow, hd]
 
 /-- The instruction at the counter `1 = g^0`. -/
-theorem fetch_one : fillProg.fetch 1 = some (.setConstant (gpow 2) mulX) := by
+theorem fetch_one : walkProg.fetch 1 = some (.setConstant (gpow 2) mulX) := by
   simpa using fetch_at 0 (.setConstant (gpow 2) mulX)
 
 /-- The word at `g^k`. -/
 theorem read_at (k : ℕ) (v : E) (hk : k < 2 ^ minLogMem := by decide)
-    (hv : fillImage ⟨k, hk⟩ = v := by rfl) : fillImage.read (gpow k) = some v := by
+    (hv : walkImage ⟨k, hk⟩ = v := by rfl) : walkImage.read (gpow k) = some v := by
   rw [show gpow k = gpow ((⟨k, hk⟩ : Fin (2 ^ minLogMem)) : ℕ) from rfl,
     MemImage.read_gpow (by decide), hv]
 
-theorem fill_step0 : step fillProg fillImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
+theorem walk_step0 : step walkProg walkImage ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨1, 1⟩) fetch_one]
-  show execute fillImage ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
+  show execute walkImage ⟨1, 1⟩ (.setConstant (gpow 2) mulX) = _
   simp only [execute, executeWith, one_mul, read_at 2 mulX]
   decide +kernel
 
-theorem fill_step1 : step fillProg fillImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
+theorem walk_step1 : step walkProg walkImage ⟨gpow 1, 1⟩ = some ⟨gpow 2, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 1, 1⟩) (fetch_at 1 (.setConstant (gpow 3) mulY))]
-  show execute fillImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
+  show execute walkImage ⟨gpow 1, 1⟩ (.setConstant (gpow 3) mulY) = _
   simp only [execute, executeWith, one_mul, read_at 3 mulY]
   decide +kernel
 
-theorem fill_step2 : step fillProg fillImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
+theorem walk_step2 : step walkProg walkImage ⟨gpow 2, 1⟩ = some ⟨gpow 3, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 2, 1⟩) (fetch_at 2 (.mulNative (gpow 2) (gpow 3) (gpow 4)))]
-  show execute fillImage ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
+  show execute walkImage ⟨gpow 2, 1⟩ (.mulNative (gpow 2) (gpow 3) (gpow 4)) = _
   simp only [execute, executeWith, one_mul, read_at 2 mulX, read_at 3 mulY, read_at 4 mulXY]
   decide +kernel
 
-theorem fill_step3 : step fillProg fillImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
+theorem walk_step3 : step walkProg walkImage ⟨gpow 3, 1⟩ = some ⟨gpow 31, 1⟩ := by
   rw [step_of_fetch_eq_some (r := ⟨gpow 3, 1⟩) (fetch_at 3 (.jump (gpow 26) (gpow 27) (gpow 28)))]
-  show execute fillImage ⟨gpow 3, 1⟩ (.jump (gpow 26) (gpow 27) (gpow 28)) = _
+  show execute walkImage ⟨gpow 3, 1⟩ (.jump (gpow 26) (gpow 27) (gpow 28)) = _
   simp only [execute, executeWith, one_mul, read_at 26 (cellK 1), read_at 27 (cellK (gpow 31)),
     read_at 28 (cellK 1)]
   decide +kernel
 
-theorem fill_run1 : run fillProg fillImage 1 ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
-  simp (disch := decide +kernel) only [run_succ_of_ne, fill_step0, Option.bind_eq_bind,
+theorem walk_run1 : run walkProg walkImage 1 ⟨1, 1⟩ = some ⟨gpow 1, 1⟩ := by
+  simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, Option.bind_eq_bind,
     Option.bind_some, run_zero]
 
-theorem fill_run2 : run fillProg fillImage 2 ⟨1, 1⟩ = some ⟨gpow 2, 1⟩ := by
-  simp (disch := decide +kernel) only [run_succ_of_ne, fill_step0, fill_step1,
+theorem walk_run2 : run walkProg walkImage 2 ⟨1, 1⟩ = some ⟨gpow 2, 1⟩ := by
+  simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1,
     Option.bind_eq_bind, Option.bind_some, run_zero]
 
-theorem fill_run3 : run fillProg fillImage 3 ⟨1, 1⟩ = some ⟨gpow 3, 1⟩ := by
-  simp (disch := decide +kernel) only [run_succ_of_ne, fill_step0, fill_step1, fill_step2,
+theorem walk_run3 : run walkProg walkImage 3 ⟨1, 1⟩ = some ⟨gpow 3, 1⟩ := by
+  simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1, walk_step2,
     Option.bind_eq_bind, Option.bind_some, run_zero]
 
-theorem fill_run4 : run fillProg fillImage 4 ⟨1, 1⟩ = some ⟨gpow 31, 1⟩ := by
-  simp (disch := decide +kernel) only [run_succ_of_ne, fill_step0, fill_step1, fill_step2,
-    fill_step3, Option.bind_eq_bind, Option.bind_some, run_zero]
+theorem walk_run4 : run walkProg walkImage 4 ⟨1, 1⟩ = some ⟨gpow 31, 1⟩ := by
+  simp (disch := decide +kernel) only [run_succ_of_ne, walk_step0, walk_step1, walk_step2,
+    walk_step3, Option.bind_eq_bind, Option.bind_some, run_zero]
 
 /-- The run: four steps from `(1, 1)` to the final registers `(g^31, 1)`. -/
-theorem fill_run : run fillProg fillImage 4 Regs.initial = some (Regs.final fillProg) :=
-  fill_run4
+theorem walk_run : run walkProg walkImage 4 Regs.initial = some (Regs.final walkProg) :=
+  walk_run4
 
 /-- The public words are in place. -/
-theorem fill_boundary : HasPublicBoundary mulInput fillTrace :=
+theorem walk_boundary : HasPublicBoundary mulInput walkTrace :=
   ⟨le_rfl, by decide, read_at 0 (cellK 1), read_at 1 (cellK (K.ofBits 2))⟩
 
 /-- The extended program is a valid execution of the executor's on the same input. -/
-example : ValidExecution fillProg mulInput fillTrace := ⟨fill_boundary, fill_run⟩
+example : ValidExecution walkProg mulInput walkTrace := ⟨walk_boundary, walk_run⟩
 
 /-- Its register sequence. -/
-theorem fill_regs :
-    fillTrace.regs = [⟨1, 1⟩, ⟨gpow 1, 1⟩, ⟨gpow 2, 1⟩, ⟨gpow 3, 1⟩, ⟨gpow 31, 1⟩] := by
-  show (List.range 5).filterMap (fun n ↦ run fillProg fillImage n ⟨1, 1⟩) = _
+theorem walk_regs :
+    walkTrace.regs = [⟨1, 1⟩, ⟨gpow 1, 1⟩, ⟨gpow 2, 1⟩, ⟨gpow 3, 1⟩, ⟨gpow 31, 1⟩] := by
+  show (List.range 5).filterMap (fun n ↦ run walkProg walkImage n ⟨1, 1⟩) = _
   simp only [List.range_succ, List.range_zero, List.nil_append, List.filterMap_append,
-    List.filterMap_cons, List.filterMap_nil, run_zero, fill_run1, fill_run2, fill_run3, fill_run4,
+    List.filterMap_cons, List.filterMap_nil, run_zero, walk_run1, walk_run2, walk_run3, walk_run4,
     List.singleton_append]
   rfl
 
@@ -452,7 +452,7 @@ theorem bcT_filter (c : RawChannel K) (hc : c.name ≠ BytecodePush.name)
     · exact fun h ↦ hc (h.symm.trans rfl)
     · exact fun h ↦ hc' (h.symm.trans rfl))
 
-/-- The cells the run and the fill blocks touch are the first `touched`; the `untouched` rest
+/-- The cells the run and the loops touch are the first `touched`; the `untouched` rest
 of the `2^16` are seeded and finalized with count `1` and cancel. -/
 abbrev touched : ℕ := 29
 abbrev untouched : ℕ := 65507
@@ -460,16 +460,16 @@ theorem touched_add_untouched : touched + untouched = 2 ^ minLogMem := by decide
 
 /-- The seed message of cell `i`: `(g^i, 1, mem[i])`. -/
 def seedMsg (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[gpow i, 1, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]
+  #[gpow i, 1, (walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2]
 
 /-- The finalize message of cell `i`: `(g^i, cnt i, mem[i])`. -/
 def finMsg (cnt : ℕ → K) (i : Fin (2 ^ minLogMem)) : Array K :=
-  #[gpow i, cnt i, (fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]
+  #[gpow i, cnt i, (walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2]
 
 /-- A row of the memory block pushes its seed message … -/
 theorem memRow_push (a : Array K) :
     (((⟨memTable⟩ : Component K).rowOperations.interactions.map
-      (·.eval (Environment.fromArray a fillData))).filter
+      (·.eval (Environment.fromArray a walkData))).filter
         (·.channel.name = MemPush.toRaw.name)).map (·.msg) =
       [#[a[0]?.getD 0, 1, a[2]?.getD 0, a[3]?.getD 0, a[4]?.getD 0]] := by
   rw [memTable_rowOps]
@@ -477,7 +477,7 @@ theorem memRow_push (a : Array K) :
   -- evaluated (`Vector.map` is defined by well-founded recursion, so it is rewritten, not
   -- unfolded).
   show [((toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K))).map
-    (Expression.eval (Environment.fromArray a fillData))).toArray] = _
+    (Expression.eval (Environment.fromArray a walkData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, 1, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ : MemMsg (Expression K)) =
     #v[var ⟨0⟩, 1, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
@@ -486,12 +486,12 @@ theorem memRow_push (a : Array K) :
 /-- … and pulls its finalize message. -/
 theorem memRow_pull (a : Array K) :
     (((⟨memTable⟩ : Component K).rowOperations.interactions.map
-      (·.eval (Environment.fromArray a fillData))).filter
+      (·.eval (Environment.fromArray a walkData))).filter
         (·.channel.name = MemPull.toRaw.name)).map (·.msg) =
       [#[a[0]?.getD 0, a[1]?.getD 0, a[2]?.getD 0, a[3]?.getD 0, a[4]?.getD 0]] := by
   rw [memTable_rowOps]
   show [((toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
-    MemMsg (Expression K))).map (Expression.eval (Environment.fromArray a fillData))).toArray] = _
+    MemMsg (Expression K))).map (Expression.eval (Environment.fromArray a walkData))).toArray] = _
   rw [show toElements (⟨var ⟨0⟩, var ⟨1⟩, #v[var ⟨2⟩, var ⟨3⟩, var ⟨4⟩]⟩ :
     MemMsg (Expression K)) = #v[var ⟨0⟩, var ⟨1⟩, var ⟨2⟩, var ⟨3⟩, var ⟨4⟩] from by with_unfolding_all rfl]
   simp only [Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil, Vector.toArray_mk]
@@ -540,8 +540,8 @@ theorem fins_split (cnt : ℕ → K) (h : ∀ i, touched ≤ i → cnt i = 1) :
   rw [show List.ofFn (finMsg cnt) = List.ofFn fun i : Fin (touched + untouched) ↦ finMsg cnt i
     from rfl, List.ofFn_add]
   refine congrArg₂ _ rfl (congrArg _ (funext fun j ↦ ?_))
-  show #[gpow (touched + j), cnt (touched + j), (fillImage (Fin.natAdd touched j)).limb 0,
-    (fillImage (Fin.natAdd touched j)).limb 1, (fillImage (Fin.natAdd touched j)).limb 2] = _
+  show #[gpow (touched + j), cnt (touched + j), (walkImage (Fin.natAdd touched j)).limb 0,
+    (walkImage (Fin.natAdd touched j)).limb 1, (walkImage (Fin.natAdd touched j)).limb 2] = _
   rw [h _ (Nat.le_add_right touched j)]
   rfl
 
@@ -561,9 +561,9 @@ theorem jumpT_constraints : jumpT.Constraints := by
 
 /-- Every component's constraints hold, for every count: the counts are never constrained,
 only balanced (§6.2), so the rejections below fail on their conjunct alone. -/
-theorem fill_constraints (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).Constraints := by
+theorem walk_constraints (c rA : K) (cnt : ℕ → K) : (walkW c rA cnt).Constraints := by
   intro t ht
-  simp only [EnsembleWitness.allTables, fillW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
+  simp only [EnsembleWitness.allTables, walkW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
   rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · exact fun _ _ ↦ verifier_constraints _ _
   · exact fun _ _ ↦ xor_constraints _
@@ -576,10 +576,10 @@ theorem fill_constraints (c rA : K) (cnt : ℕ → K) : (fillW c rA cnt).Constra
   · exact fun _ _ ↦ bytecode_constraints _
 
 /-- The state pair balances: the run's four steps against the boundary, and the three closed
-walks of the fill blocks. -/
-theorem fill_state_balanced : BalancedPair (fillW 1 g memCnt) StatePull.toRaw StatePush.toRaw := by
+walks of the loops. -/
+theorem walk_state_balanced : BalancedPair (walkW 1 g memCnt) StatePull.toRaw StatePush.toRaw := by
   unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, fillW, mkW, List.flatMap_cons,
+  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, walkW, mkW, List.flatMap_cons,
     List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter memCnt StatePush.toRaw (by decide) (by decide),
     memT_filter memCnt StatePull.toRaw (by decide) (by decide),
@@ -590,10 +590,10 @@ theorem fill_state_balanced : BalancedPair (fillW 1 g memCnt) StatePull.toRaw St
 
 /-- The bytecode pair balances: every executed slot read once, the seeds and finalizes of all
 thirty-two. -/
-theorem fill_bytecode_balanced :
-    BalancedPair (fillW 1 g memCnt) BytecodePull.toRaw BytecodePush.toRaw := by
+theorem walk_bytecode_balanced :
+    BalancedPair (walkW 1 g memCnt) BytecodePull.toRaw BytecodePush.toRaw := by
   unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, fillW, mkW, List.flatMap_cons,
+  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, walkW, mkW, List.flatMap_cons,
     List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter memCnt BytecodePush.toRaw (by decide) (by decide),
     memT_filter memCnt BytecodePull.toRaw (by decide) (by decide)]
@@ -604,20 +604,20 @@ theorem fill_bytecode_balanced :
 at cell `touched` and the untouched suffix cancelled, balance is a permutation the kernel
 decides. -/
 theorem mem_balanced_iff (c rA : K) (cnt : ℕ → K) (h : ∀ i, touched ≤ i → cnt i = 1) :
-    BalancedPair (fillW c rA cnt) MemPull.toRaw MemPush.toRaw ↔
+    BalancedPair (walkW c rA cnt) MemPull.toRaw MemPush.toRaw ↔
       (List.map (·.msg) (List.filter (·.channel.name = MemPush.toRaw.name)
-        ((fillW c rA cnt).verifierTable.interactions ++ xorT.interactions ++
+        ((walkW c rA cnt).verifierTable.interactions ++ xorT.interactions ++
           (mulT rA).interactions ++ (setT c).interactions ++ derefT.interactions ++
           jumpT.interactions ++ blakeT.interactions)) ++
         List.ofFn fun i : Fin touched ↦ seedMsg (Fin.castAdd untouched i)).Perm
       (List.map (·.msg) (List.filter (·.channel.name = MemPull.toRaw.name)
-        ((fillW c rA cnt).verifierTable.interactions ++ xorT.interactions ++
+        ((walkW c rA cnt).verifierTable.interactions ++ xorT.interactions ++
           (mulT rA).interactions ++ (setT c).interactions ++ derefT.interactions ++
           jumpT.interactions ++ blakeT.interactions)) ++
         List.ofFn fun i : Fin touched ↦ finMsg cnt (Fin.castAdd untouched i)) := by
   unfold BalancedPair messagesOn
   rw [EnsembleWitness.interactions]
-  simp only [EnsembleWitness.allTables, fillW, mkW, List.flatMap_cons, List.flatMap_nil,
+  simp only [EnsembleWitness.allTables, walkW, mkW, List.flatMap_cons, List.flatMap_nil,
     List.append_nil, List.filter_append, List.map_append,
     bcT_filter MemPush.toRaw (by decide) (by decide),
     bcT_filter MemPull.toRaw (by decide) (by decide), memT_pushes, memT_pulls,
@@ -625,42 +625,38 @@ theorem mem_balanced_iff (c rA : K) (cnt : ℕ → K) (h : ∀ i, touched ≤ i 
   exact List.perm_append_right_iff _
 
 /-- The memory pair balances. -/
-theorem fill_mem_balanced : BalancedPair (fillW 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
+theorem walk_mem_balanced : BalancedPair (walkW 1 g memCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff 1 g memCnt fun _ ↦ memCnt_of_ge]
   simp only [table_interactions_eq]
   decide +kernel
 
 /-- Every read count is nonzero. -/
-theorem fill_countsNonzero : CountsNonzero (fillW 1 g memCnt) := by
+theorem walk_countsNonzero : CountsNonzero (walkW 1 g memCnt) := by
   unfold CountsNonzero
-  simp only [fillW, mkW, table_interactions_eq]
+  simp only [walkW, mkW, table_interactions_eq]
   decide +kernel
 
-/-- The caps: `κ = 16`, heights `1, 1, 2, 1, 4, 8, 2^16, 2^5`, eight `BLAKE2S` rows; for
-every count. -/
-theorem fill_caps (c rA : K) (cnt : ℕ → K) : Caps (fillW c rA cnt) where
-  minLogMem_le := by rw [data_eq, fill_logSize]
-  le_maxLogMem := by rw [data_eq, fill_logSize]; decide
+/-- The caps: `κ = 16`, heights `1, 1, 2, 1, 4, 8, 2^16, 2^5`; for every count. -/
+theorem walk_caps (c rA : K) (cnt : ℕ → K) : Caps (walkW c rA cnt) where
+  minLogMem_le := by rw [data_eq, walk_logSize]
+  le_maxLogMem := by rw [data_eq, walk_logSize]; decide
   heights := by
     intro t ht
-    simp only [fillW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
+    simp only [walkW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨1, by decide, rfl⟩
-    · exact ⟨0, by decide, rfl⟩
-    · exact ⟨2, by decide, rfl⟩
-    · exact ⟨3, by decide, by rw [blakeT_table, List.length_map, List.length_ofFn]; rfl⟩
-    · exact ⟨minLogMem, by decide, by rw [memT_table, List.length_ofFn]⟩
-    · exact ⟨5, by decide, by rw [bcT_table, List.length_ofFn]; rfl⟩
-  blake2s_height := by
-    rw [blake2sRows, tableAt_five, blakeT_table, List.length_map, List.length_ofFn]
-    decide
-  well_shaped := fill_wellShaped
+    · decide
+    · exact (show (mulT rA).table.length = 1 from rfl).trans_le (by decide)
+    · exact (show (setT c).table.length = 2 from rfl).trans_le (by decide)
+    · decide
+    · decide
+    · rw [blakeT_table, List.length_map, List.length_ofFn]; decide
+    · rw [memT_table, List.length_ofFn]; decide
+    · rw [bcT_table, List.length_ofFn]; decide
+  well_shaped := walk_wellShaped
 
 /-- The index column is the row index, for every count. -/
-theorem fill_indexColumns (c rA : K) (cnt : ℕ → K) :
-    IndexColumnsAreRowIndices (fillW c rA cnt) := by
+theorem walk_indexColumns (c rA : K) (cnt : ℕ → K) :
+    IndexColumnsAreRowIndices (walkW c rA cnt) := by
   intro i hi
   simp only [memBlockRows_eq]
   rw [List.getElem_ofFn, memRowArr, memRowAt_toElements]
@@ -669,12 +665,12 @@ theorem fill_indexColumns (c rA : K) (cnt : ℕ → K) :
 before anything is compared, since a rewrite under the conjunct's dependent binders unrolls
 the data (finding E8). -/
 theorem seedRows_gen {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2 h3}
-    (cnt : ℕ → K) (hrows : memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) = List.ofFn (memRowArr cnt))
-    (s : (κ : ℕ) × MemImage κ) (hs : s = ⟨minLogMem, fillImage⟩) :
+    (cnt : ℕ → K) (hrows : memBlockRows (⟨tables, walkData, pi, h1, h2, h3⟩ :
+      EnsembleWitness (leanIsaEnsemble walkProg)) = List.ofFn (memRowArr cnt))
+    (s : (κ : ℕ) × MemImage κ) (hs : s = ⟨minLogMem, walkImage⟩) :
     ∃ idx cntFin : Fin (2 ^ s.1) → K,
-      memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-        EnsembleWitness (leanIsaEnsemble fillProg)) = List.ofFn fun i ↦
+      memBlockRows (⟨tables, walkData, pi, h1, h2, h3⟩ :
+        EnsembleWitness (leanIsaEnsemble walkProg)) = List.ofFn fun i ↦
           (toElements (⟨idx i, cntFin i, #v[(s.2 i).limb 0, (s.2 i).limb 1, (s.2 i).limb 2]⟩ :
             MemRow K)).toArray := by
   subst hs
@@ -682,23 +678,23 @@ theorem seedRows_gen {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2
 
 /-- A witness over the fixture's data whose memory block is the honest one, with any finalize
 counts, has the image as its seed rows. Stated over a destructured witness, so that its
-`data` is the constant `fillData` (finding E8). -/
+`data` is the constant `walkData` (finding E8). -/
 theorem seedRows_of {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2 h3}
-    (cnt : ℕ → K) (hrows : memBlockRows (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) = List.ofFn (memRowArr cnt)) :
-    SeedRowsAreTheImage (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) := by
+    (cnt : ℕ → K) (hrows : memBlockRows (⟨tables, walkData, pi, h1, h2, h3⟩ :
+      EnsembleWitness (leanIsaEnsemble walkProg)) = List.ofFn (memRowArr cnt)) :
+    SeedRowsAreTheImage (⟨tables, walkData, pi, h1, h2, h3⟩ :
+      EnsembleWitness (leanIsaEnsemble walkProg)) := by
   unfold SeedRowsAreTheImage
   dsimp only
-  exact seedRows_gen cnt hrows (imageOf fillData) fill_imageOf
+  exact seedRows_gen cnt hrows (imageOf walkData) walk_imageOf
 
 /-- The memory block's rows are the image, for every count. -/
-theorem fill_seedRows (c rA : K) (cnt : ℕ → K) : SeedRowsAreTheImage (fillW c rA cnt) :=
+theorem walk_seedRows (c rA : K) (cnt : ℕ → K) : SeedRowsAreTheImage (walkW c rA cnt) :=
   seedRows_of cnt (memBlockRows_eq c rA cnt)
 
 /-- The bytecode block's rows are the program's, with the honest counts. -/
-theorem fill_bytecodeRows (c rA : K) (cnt : ℕ → K) :
-    BytecodeRowsAreTheProgram fillProg (fillW c rA cnt) :=
+theorem walk_bytecodeRows (c rA : K) (cnt : ℕ → K) :
+    BytecodeRowsAreTheProgram walkProg (walkW c rA cnt) :=
   ⟨bcCntFin, by rw [bytecodeBlockRows, tableAt_seven, bcT_table]⟩
 
 /-- The executor's nine cells compress, as the row carries them (Layer 6's `blake2s_relation`
@@ -714,7 +710,7 @@ and differ in their read counts. -/
 theorem blakeRow_relation (j : Fin 8) : Blake2sRelation (blakeRow j) := blake_cells_compress
 
 /-- The `BLAKE2S` table is valid, for every count. -/
-theorem fill_blake2sValid (c rA : K) (cnt : ℕ → K) : Blake2sRowsValid (fillW c rA cnt) := by
+theorem walk_blake2sValid (c rA : K) (cnt : ℕ → K) : Blake2sRowsValid (walkW c rA cnt) := by
   intro r hr
   rw [blake2sRows, tableAt_five, blakeT_table, List.mem_map] at hr
   obtain ⟨rj, hrj, rfl⟩ := hr
@@ -724,87 +720,87 @@ theorem fill_blake2sValid (c rA : K) (cnt : ℕ → K) : Blake2sRowsValid (fillW
   exact blakeRow_relation j
 
 /-- The two public words sit at `g^0` and `g^1` of the image the data names. -/
-theorem fill_word0 (c rA : K) (cnt : ℕ → K) :
-    (imageOf (fillW c rA cnt).data).2.read (gpow 0) = some mulInput.word0 := by
-  rw [data_eq, fill_imageOf]
+theorem walk_word0 (c rA : K) (cnt : ℕ → K) :
+    (imageOf (walkW c rA cnt).data).2.read (gpow 0) = some mulInput.word0 := by
+  rw [data_eq, walk_imageOf]
   exact read_at 0 mulInput.word0
 
-theorem fill_word1 (c rA : K) (cnt : ℕ → K) :
-    (imageOf (fillW c rA cnt).data).2.read (gpow 1) = some mulInput.word1 := by
-  rw [data_eq, fill_imageOf]
+theorem walk_word1 (c rA : K) (cnt : ℕ → K) :
+    (imageOf (walkW c rA cnt).data).2.read (gpow 1) = some mulInput.word1 := by
+  rw [data_eq, walk_imageOf]
   exact read_at 1 mulInput.word1
 
 /-- The honest witness satisfies the constraint statement. -/
-theorem fill_satisfiedBy : SatisfiedBy fillProg mulInput (fillW 1 g memCnt) where
+theorem walk_satisfiedBy : SatisfiedBy walkProg mulInput (walkW 1 g memCnt) where
   public_input_eq := rfl
-  constraints := fill_constraints 1 g memCnt
-  state_balanced := fill_state_balanced
-  mem_balanced := fill_mem_balanced
-  bytecode_balanced := fill_bytecode_balanced
-  counts_nonzero := fill_countsNonzero
-  caps := fill_caps 1 g memCnt
-  index_columns := fill_indexColumns 1 g memCnt
-  seed_rows := fill_seedRows 1 g memCnt
-  bytecode_rows := fill_bytecodeRows 1 g memCnt
-  blake2s_valid := fill_blake2sValid 1 g memCnt
-  word0_eq := fill_word0 1 g memCnt
-  word1_eq := fill_word1 1 g memCnt
+  constraints := walk_constraints 1 g memCnt
+  state_balanced := walk_state_balanced
+  mem_balanced := walk_mem_balanced
+  bytecode_balanced := walk_bytecode_balanced
+  counts_nonzero := walk_countsNonzero
+  caps := walk_caps 1 g memCnt
+  index_columns := walk_indexColumns 1 g memCnt
+  seed_rows := walk_seedRows 1 g memCnt
+  bytecode_rows := walk_bytecodeRows 1 g memCnt
+  blake2s_valid := walk_blake2sValid 1 g memCnt
+  word0_eq := walk_word0 1 g memCnt
+  word1_eq := walk_word1 1 g memCnt
 
 /-! ## The witness represents the trace -/
 
 /-- Each of the run's four steps is one row's state pull and push. -/
-theorem fill_regs_embed :
-    ∀ k (hk : k + 1 < fillTrace.regs.length),
-      RowSteps (fillW 1 g memCnt) fillTrace.regs[k] fillTrace.regs[k + 1] := by
+theorem walk_regs_embed :
+    ∀ k (hk : k + 1 < walkTrace.regs.length),
+      RowSteps (walkW 1 g memCnt) walkTrace.regs[k] walkTrace.regs[k + 1] := by
   intro k hk
-  have hk' : k < 4 := by rw [fill_regs] at hk; exact Nat.lt_of_succ_lt_succ hk
-  simp only [fill_regs]
+  have hk' : k < 4 := by rw [walk_regs] at hk; exact Nat.lt_of_succ_lt_succ hk
+  simp only [walk_regs]
   interval_cases k
-  · show RowSteps (fillW 1 g memCnt) ⟨1, 1⟩ ⟨gpow 1, 1⟩
+  · show RowSteps (walkW 1 g memCnt) ⟨1, 1⟩ ⟨gpow 1, 1⟩
     exact ⟨setT 1, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self),
       rawRow (setRow0 1), List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (fillW 1 g memCnt) ⟨gpow 1, 1⟩ ⟨gpow 2, 1⟩
+  · show RowSteps (walkW 1 g memCnt) ⟨gpow 1, 1⟩ ⟨gpow 2, 1⟩
     exact ⟨setT 1, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ List.mem_cons_self),
       rawRow setRow1, List.mem_cons_of_mem _ List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (fillW 1 g memCnt) ⟨gpow 2, 1⟩ ⟨gpow 3, 1⟩
+  · show RowSteps (walkW 1 g memCnt) ⟨gpow 2, 1⟩ ⟨gpow 3, 1⟩
     exact ⟨mulT g, List.mem_cons_of_mem _ List.mem_cons_self, rawRow (mulRow g),
       List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
-  · show RowSteps (fillW 1 g memCnt) ⟨gpow 3, 1⟩ ⟨gpow 31, 1⟩
+  · show RowSteps (walkW 1 g memCnt) ⟨gpow 3, 1⟩ ⟨gpow 31, 1⟩
     exact ⟨jumpT, List.mem_cons_of_mem _ (List.mem_cons_of_mem _ (List.mem_cons_of_mem _
       (List.mem_cons_of_mem _ List.mem_cons_self))), jumpRaw jumpRow3, List.mem_cons_self,
       by rw [rowMessagesOn_eq]; decide +kernel, by rw [rowMessagesOn_eq]; decide +kernel⟩
 
 /-- A witness over the fixture's data whose rows step the trace represents it. Stated over a
-destructured witness, so that its `data` is the constant `fillData` and no field is compared
+destructured witness, so that its `data` is the constant `walkData` and no field is compared
 against a projection of the witness (finding E8). -/
 theorem represents_of {tables : List (Air.Flat.Table K)} {pi : PublicIO K} {h1 h2 h3}
-    (hregs : ∀ k (hk : k + 1 < fillTrace.regs.length),
-      RowSteps (⟨tables, fillData, pi, h1, h2, h3⟩ : EnsembleWitness (leanIsaEnsemble fillProg))
-        fillTrace.regs[k] fillTrace.regs[k + 1]) :
-    AssignmentRepresents (⟨tables, fillData, pi, h1, h2, h3⟩ :
-      EnsembleWitness (leanIsaEnsemble fillProg)) fillTrace where
-  κ_eq := fill_logSize
-  image_eq := fun i hi ↦ fill_image_apply' i (by rw [fill_logSize]; exact hi)
+    (hregs : ∀ k (hk : k + 1 < walkTrace.regs.length),
+      RowSteps (⟨tables, walkData, pi, h1, h2, h3⟩ : EnsembleWitness (leanIsaEnsemble walkProg))
+        walkTrace.regs[k] walkTrace.regs[k + 1]) :
+    AssignmentRepresents (⟨tables, walkData, pi, h1, h2, h3⟩ :
+      EnsembleWitness (leanIsaEnsemble walkProg)) walkTrace where
+  κ_eq := walk_logSize
+  image_eq := fun i hi ↦ walk_image_apply' i (by rw [walk_logSize]; exact hi)
   regs_embed := hregs
 
 /-- The honest witness represents the trace: the completeness instance of T1 for this program,
 by hand. -/
-theorem fill_represents : AssignmentRepresents (fillW 1 g memCnt) fillTrace :=
-  represents_of fill_regs_embed
+theorem walk_represents : AssignmentRepresents (walkW 1 g memCnt) walkTrace :=
+  represents_of walk_regs_embed
 
 /-- The completeness instance of T1 for this program: the trace is a valid execution, the
 witness satisfies the statement and represents the trace. -/
-theorem fill_t1_instance : ValidExecution fillProg mulInput fillTrace ∧
-    SatisfiedBy fillProg mulInput (fillW 1 g memCnt) ∧
-      AssignmentRepresents (fillW 1 g memCnt) fillTrace :=
-  ⟨⟨fill_boundary, fill_run⟩, fill_satisfiedBy, fill_represents⟩
+theorem walk_t1_instance : ValidExecution walkProg mulInput walkTrace ∧
+    SatisfiedBy walkProg mulInput (walkW 1 g memCnt) ∧
+      AssignmentRepresents (walkW 1 g memCnt) walkTrace :=
+  ⟨⟨walk_boundary, walk_run⟩, walk_satisfiedBy, walk_represents⟩
 
 /-- The image the witness names is the trace's, as one equality. -/
-example : imageOf (fillW 1 g memCnt).data = ⟨minLogMem, fillImage⟩ :=
-  assignmentRepresents_image fill_represents
+example : imageOf (walkW 1 g memCnt).data = ⟨minLogMem, walkImage⟩ :=
+  assignmentRepresents_image walk_represents
 
 /-! ## Rejections -/
 
@@ -817,7 +813,7 @@ theorem wrongCnt_of_ge {i : ℕ} (h : 29 ≤ i) : wrongCnt i = 1 := by
 
 /-- Nothing checks the finalize counts (§6.2): the block accepts the row, and the bus does not
 balance. -/
-example : ¬ BalancedPair (fillW 1 g wrongCnt) MemPull.toRaw MemPush.toRaw := by
+example : ¬ BalancedPair (walkW 1 g wrongCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff 1 g wrongCnt fun _ ↦ wrongCnt_of_ge]
   simp only [table_interactions_eq]
   decide +kernel
@@ -833,15 +829,15 @@ theorem zeroCnt_of_ge {i : ℕ} (h : 29 ≤ i) : zeroCnt i = 1 := by
 
 /-- The zero-count witness balances the memory pair: a pull and a push of one tuple cancel,
 which is what the count product exists to reject (§6.2 "The count product", Theorem 6.4). -/
-theorem zero_mem_balanced : BalancedPair (fillW 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw := by
+theorem zero_mem_balanced : BalancedPair (walkW 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw := by
   rw [mem_balanced_iff 0 1 zeroCnt fun _ ↦ zeroCnt_of_ge]
   simp only [table_interactions_eq]
   decide +kernel
 
 theorem zero_state_balanced :
-    BalancedPair (fillW 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw := by
+    BalancedPair (walkW 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw := by
   unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, fillW, mkW,
+  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, walkW, mkW,
     List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter zeroCnt StatePush.toRaw (by decide) (by decide),
     memT_filter zeroCnt StatePull.toRaw (by decide) (by decide),
@@ -851,9 +847,9 @@ theorem zero_state_balanced :
   decide +kernel
 
 theorem zero_bytecode_balanced :
-    BalancedPair (fillW 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw := by
+    BalancedPair (walkW 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw := by
   unfold BalancedPair messagesOn
-  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, fillW, mkW,
+  simp only [EnsembleWitness.interactions, EnsembleWitness.allTables, walkW, mkW,
     List.flatMap_cons, List.flatMap_nil, List.append_nil, List.filter_append, List.map_append,
     memT_filter zeroCnt BytecodePush.toRaw (by decide) (by decide),
     memT_filter zeroCnt BytecodePull.toRaw (by decide) (by decide)]
@@ -863,24 +859,24 @@ theorem zero_bytecode_balanced :
 /-- The count product is load-bearing: the zero-count witness satisfies every other conjunct
 of `SatisfiedBy` and fails `CountsNonzero` (§6.2 "The count product"). -/
 theorem zero_count_witness :
-    (fillW 0 1 zeroCnt).publicInput = PublicIO.ofInput mulInput ∧
-    (fillW 0 1 zeroCnt).Constraints ∧
-    BalancedPair (fillW 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw ∧
-    BalancedPair (fillW 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw ∧
-    BalancedPair (fillW 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw ∧
-    Caps (fillW 0 1 zeroCnt) ∧ IndexColumnsAreRowIndices (fillW 0 1 zeroCnt) ∧
-    SeedRowsAreTheImage (fillW 0 1 zeroCnt) ∧
-    BytecodeRowsAreTheProgram fillProg (fillW 0 1 zeroCnt) ∧
-    Blake2sRowsValid (fillW 0 1 zeroCnt) ∧
-    (imageOf (fillW 0 1 zeroCnt).data).2.read (gpow 0) = some mulInput.word0 ∧
-    (imageOf (fillW 0 1 zeroCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
-    ¬ CountsNonzero (fillW 0 1 zeroCnt) :=
-  ⟨rfl, fill_constraints 0 1 zeroCnt, zero_state_balanced, zero_mem_balanced,
-    zero_bytecode_balanced, fill_caps 0 1 zeroCnt, fill_indexColumns 0 1 zeroCnt,
-    fill_seedRows 0 1 zeroCnt, fill_bytecodeRows 0 1 zeroCnt, fill_blake2sValid 0 1 zeroCnt,
-    fill_word0 0 1 zeroCnt, fill_word1 0 1 zeroCnt, by
+    (walkW 0 1 zeroCnt).publicInput = PublicIO.ofInput mulInput ∧
+    (walkW 0 1 zeroCnt).Constraints ∧
+    BalancedPair (walkW 0 1 zeroCnt) StatePull.toRaw StatePush.toRaw ∧
+    BalancedPair (walkW 0 1 zeroCnt) MemPull.toRaw MemPush.toRaw ∧
+    BalancedPair (walkW 0 1 zeroCnt) BytecodePull.toRaw BytecodePush.toRaw ∧
+    Caps (walkW 0 1 zeroCnt) ∧ IndexColumnsAreRowIndices (walkW 0 1 zeroCnt) ∧
+    SeedRowsAreTheImage (walkW 0 1 zeroCnt) ∧
+    BytecodeRowsAreTheProgram walkProg (walkW 0 1 zeroCnt) ∧
+    Blake2sRowsValid (walkW 0 1 zeroCnt) ∧
+    (imageOf (walkW 0 1 zeroCnt).data).2.read (gpow 0) = some mulInput.word0 ∧
+    (imageOf (walkW 0 1 zeroCnt).data).2.read (gpow 1) = some mulInput.word1 ∧
+    ¬ CountsNonzero (walkW 0 1 zeroCnt) :=
+  ⟨rfl, walk_constraints 0 1 zeroCnt, zero_state_balanced, zero_mem_balanced,
+    zero_bytecode_balanced, walk_caps 0 1 zeroCnt, walk_indexColumns 0 1 zeroCnt,
+    walk_seedRows 0 1 zeroCnt, walk_bytecodeRows 0 1 zeroCnt, walk_blake2sValid 0 1 zeroCnt,
+    walk_word0 0 1 zeroCnt, walk_word1 0 1 zeroCnt, by
       unfold CountsNonzero
-      simp only [fillW, mkW, table_interactions_eq]
+      simp only [walkW, mkW, table_interactions_eq]
       decide +kernel⟩
 
 /-- A wrong digest: the executor's row with the low bit of `out1` flipped. -/
@@ -896,7 +892,7 @@ def blakeT' : Air.Flat.Table K :=
 
 /-- The witness with the wrong digest in its `BLAKE2S` table (one row; the caps are not the
 point). -/
-def digestW : EnsembleWitness (leanIsaEnsemble fillProg) :=
+def digestW : EnsembleWitness (leanIsaEnsemble walkProg) :=
   mkW [xorT, mulT g, setT 1, derefT, jumpT, blakeT', memT memCnt, bcT]
 
 /-- The compression is checked (§8.5): the wrong digest fails `Blake2sRowsValid`. It fails no
@@ -911,7 +907,7 @@ example : ¬ Blake2sRowsValid digestW := fun h ↦
 /-- The memory block with its index column shifted by one row. -/
 def memRowArrShift (i : Fin (2 ^ minLogMem)) : Array K :=
   (toElements (⟨gpow (i + 1), memCnt i,
-    #v[(fillImage i).limb 0, (fillImage i).limb 1, (fillImage i).limb 2]⟩ : MemRow K)).toArray
+    #v[(walkImage i).limb 0, (walkImage i).limb 1, (walkImage i).limb 2]⟩ : MemRow K)).toArray
 
 def memTShift : Air.Flat.Table K :=
   mkT memTable (size MemRow) (List.ofFn memRowArrShift) (by
@@ -920,7 +916,7 @@ def memTShift : Air.Flat.Table K :=
     obtain ⟨i, rfl⟩ := hr
     exact Vector.size_toArray _)
 
-def idxW : EnsembleWitness (leanIsaEnsemble fillProg) :=
+def idxW : EnsembleWitness (leanIsaEnsemble walkProg) :=
   mkW [xorT, mulT g, setT 1, derefT, jumpT, blakeT, memTShift, bcT]
 
 theorem idxW_memBlockRows : memBlockRows idxW = List.ofFn memRowArrShift := by
@@ -936,9 +932,9 @@ example : ¬ IndexColumnsAreRowIndices idxW := fun h ↦ by
   decide +kernel
 
 /-- The public words are checked (§8.2): `input₀ = 3` in place of `1` fails `word0_eq`. -/
-example : ¬ SatisfiedBy fillProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (fillW 1 g memCnt) := fun h ↦ by
+example : ¬ SatisfiedBy walkProg ⟨![K.ofBits 3, 0, K.ofBits 2, 0]⟩ (walkW 1 g memCnt) := fun h ↦ by
   have h0 := h.word0_eq
-  rw [fill_word0] at h0
+  rw [walk_word0] at h0
   have h1 := congrArg (fun o : Option E ↦ (o.getD 0).limb 0) h0
   revert h1
   decide +kernel
@@ -948,27 +944,25 @@ def setT3 : Air.Flat.Table K :=
   mkT setTable (size SetRow) ([setRow0 1, setRow1, setRow1].map rawRow)
     (rawRows_size [setRow0 1, setRow1, setRow1])
 
-def heightW : EnsembleWitness (leanIsaEnsemble fillProg) :=
+def heightW : EnsembleWitness (leanIsaEnsemble walkProg) :=
   mkW [xorT, mulT g, setT3, derefT, jumpT, blakeT, memT memCnt, bcT]
 
-theorem three_ne_two_pow (τ : ℕ) : (3 : ℕ) ≠ 2 ^ τ := by
-  intro h
-  rcases τ with _ | _ | τ
-  · exact absurd h (by decide)
-  · exact absurd h (by decide)
-  · rw [Nat.pow_succ, Nat.pow_succ] at h
-    have := Nat.one_le_two_pow (n := τ)
-    omega
+/-- A row count that is not a power of two is within the caps (`crates/verifier/src/layout.rs`,
+`build_layout`, at `3a37fb6e1`: a table's height is the least power of two holding its rows). -/
+example : ∀ t ∈ heightW.tables, t.table.length ≤ 2 ^ maxLogRows := by
+  intro t ht
+  simp only [heightW, mkW, List.mem_cons, List.not_mem_nil, or_false] at ht
+  rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · decide
+  · decide
+  · decide
+  · decide
+  · decide
+  · rw [blakeT_table, List.length_map, List.length_ofFn]; decide
+  · rw [memT_table, List.length_ofFn]; decide
+  · rw [bcT_table, List.length_ofFn]; decide
 
-/-- The heights are checked (`crates/verifier/src/layout.rs:389-391`; announced as logs,
-`crates/leanvm_core/src/cpu/mod.rs:110-113`): a height that is not a power of two fails `Caps`. -/
-example : ¬ Caps heightW := fun h ↦ by
-  obtain ⟨τ, -, hτ⟩ := h.heights setT3 (by
-    simp only [heightW, mkW, List.mem_cons, true_or, or_true])
-  rw [show setT3.table.length = 3 from rfl] at hτ
-  exact three_ne_two_pow τ hτ
-
-/-- Four `BLAKE2S` rows, below the floor `2^3`. -/
+/-- Four `BLAKE2S` rows. -/
 def blakeT4 : Air.Flat.Table K :=
   mkT blake2sTable (size Blake2sRow)
     ((List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)).map rawRow)
@@ -978,14 +972,12 @@ theorem blakeT4_table :
     blakeT4.table = (List.ofFn fun j : Fin 4 ↦ blakeRow (j.castAdd 4)).map rawRow := by
   dsimp only [blakeT4, mkT]
 
-def floorW : EnsembleWitness (leanIsaEnsemble fillProg) :=
+def floorW : EnsembleWitness (leanIsaEnsemble walkProg) :=
   mkW [xorT, mulT g, setT 1, derefT, jumpT, blakeT4, memT memCnt, bcT]
 
-/-- The `BLAKE2S` floor is checked (`crates/verifier/src/layout.rs:392`): four rows fail `Caps`. -/
-example : ¬ Caps floorW := fun h ↦ by
-  have h8 := h.blake2s_height
-  rw [blake2sRows, show tableAt floorW 5 = blakeT4 from rfl, blakeT4_table, List.length_map,
-    List.length_ofFn] at h8
-  exact absurd h8 (by decide)
+/-- There is no `BLAKE2S` floor: four rows are within the caps. -/
+example : (tableAt floorW 5).table.length ≤ 2 ^ maxLogRows := by
+  rw [show tableAt floorW 5 = blakeT4 from rfl, blakeT4_table, List.length_map, List.length_ofFn]
+  decide
 
 end LeanerVMTests.Arithmetization.Statement

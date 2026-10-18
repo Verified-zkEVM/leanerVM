@@ -8,9 +8,13 @@ import LeanerVM.Protocol.LeanIsa
   reconstructs (`lean_vm::cpu::layout`, printed by `scripts/dump-leanisa-layout-rust.sh` at
   `a386121f84292f6fa663aaa3e570c15bc0240ea2`). The first has a table as tall as the memory and
   three more: ties go to the lower global index, the shared columns first. The second mixes
-  heights and has a `BLAKE2S` table at the floor.
-* **Admissible sizes.** The first vector is admissible; the memory below `2^16`, a `BLAKE2S`
-  table below eight rows and a stack above `2^28` are rejected, and so is the WHIR rate `5`.
+  heights and has a `BLAKE2S` table of eight rows. Both announce full tables (`2^τ` rows); a
+  table's height is the least power of two holding its rows, so the stack is the same for any
+  row count of the same height.
+* **Admissible sizes.** The first vector is admissible, and so is one with row counts that are
+  not powers of two, an empty table among them, and a `BLAKE2S` table of five rows (there is
+  no floor); the memory below `2^16`, a table above `2^32` rows and a stack above `2^28` are
+  rejected, and so is the WHIR rate `5`.
 * **The public lines and the bus.** The third line is `MEM_TOP` with cells `0, 0`, not sent;
   six boundary blocks, three per side; the Flock region is `QFLOCK` with `2^τ_BLAKE2S` blocks.
 * **The relation is decidable, and the instance meets the bus phase's conditions.**
@@ -29,10 +33,18 @@ open LeanerVM.Protocol.LeanIsa
 def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- A table as tall as the memory, and three more. -/
-def s₁ : Sizes := ⟨16, by decide, ![16, 3, 16, 4, 16, 16]⟩
+def s₁ : Sizes := ⟨16, by decide, ![2 ^ 16, 2 ^ 3, 2 ^ 16, 2 ^ 4, 2 ^ 16, 2 ^ 16]⟩
 
-/-- Mixed heights, the `BLAKE2S` table at the floor. -/
-def s₂ : Sizes := ⟨18, by decide, ![2, 18, 5, 0, 7, 3]⟩
+/-- Mixed heights, the `BLAKE2S` table of eight rows. -/
+def s₂ : Sizes := ⟨18, by decide, ![2 ^ 2, 2 ^ 18, 2 ^ 5, 2 ^ 0, 2 ^ 7, 2 ^ 3]⟩
+
+/-- The heights of `s₂`, from row counts that are not powers of two, an empty table among them. -/
+def s₃ : Sizes := ⟨18, by decide, ![3, 2 ^ 17 + 1, 17, 0, 100, 5]⟩
+
+-- A table's height is the least power of two holding its rows; an empty table has one row, a
+-- padding row.
+#guard (List.finRange 6).map s₃.τ = (List.finRange 6).map s₂.τ
+#guard (List.finRange 6).map s₂.τ = [2, 18, 5, 0, 7, 3]
 
 /-- Every column's offset in the stack, in global order; `none` for a limb. -/
 def offsets (prog : Program) (s : Sizes) : List (Option ℕ) :=
@@ -82,10 +94,12 @@ def offsets (prog : Program) (s : Sizes) : List (Option ℕ) :=
 
 #guard decide (s₁.Admissible prog4)
 #guard decide (s₂.Admissible prog4)
-#guard !decide (Sizes.Admissible prog4 ⟨15, by decide, ![16, 3, 16, 4, 16, 16]⟩)
-#guard !decide (Sizes.Admissible prog4 ⟨16, by decide, ![16, 3, 16, 4, 16, 2]⟩)
-#guard !decide (Sizes.Admissible prog4 ⟨28, by decide, ![16, 3, 16, 4, 16, 16]⟩)
-#guard leanIsaμ prog4 ⟨28, by decide, ![16, 3, 16, 4, 16, 16]⟩ = 31
+#guard decide (s₃.Admissible prog4)
+#guard leanIsaμ prog4 s₃ = leanIsaμ prog4 s₂
+#guard !decide (Sizes.Admissible prog4 ⟨15, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
+#guard !decide (Sizes.Admissible prog4 ⟨16, by decide, ![2 ^ 32 + 1, 8, 1, 1, 1, 1]⟩)
+#guard !decide (Sizes.Admissible prog4 ⟨28, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩)
+#guard leanIsaμ prog4 ⟨28, by decide, ![2 ^ 16, 8, 2 ^ 16, 16, 2 ^ 16, 2 ^ 16]⟩ = 31
 #guard (List.range 6).map (fun ρ ↦ decide (validRate ρ)) = [false, true, true, true, true, false]
 
 /-! ## The public lines, the bus, the Flock region -/

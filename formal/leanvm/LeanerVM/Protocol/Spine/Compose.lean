@@ -24,7 +24,7 @@ The protocol starts from `M3Holds` of the statement and the stack and ends with 
 check (`Seam.done`).
 
 `piop_completeness`: given every phase's completeness, on every statement and stack satisfying
-`M3Holds` every outcome of the honest execution is accepted; `piop_perfectCompleteness` is its
+`M3Honest` (`M3Holds`, the padding rows honest) every outcome of the honest execution is accepted; `piop_perfectCompleteness` is its
 reading as probability one. `piop_knowledgeSoundness`: given every phase's security, the protocol
 has a knowledge certificate (round-by-round knowledge soundness, worst case over prefixes) from
 `M3Holds` at `piopErrors I`, the slots' errors side by side, for the named extractor
@@ -115,7 +115,7 @@ def Phases.toDef (P : Phases I) :
 /-- The completeness halves of the five phases, against the seams. -/
 structure Phases.Complete (P : Phases I) : Prop where
   /-- The bus phase's. -/
-  bus : Typed.Complete P.bus (Seam.commit I) (Seam.bus I)
+  bus : Typed.Complete P.bus (Seam.commitHonest I) (Seam.bus I)
   /-- The table sumcheck's. -/
   table : Typed.Complete P.table (Seam.bus I) (Seam.table I)
   /-- The public-input phase's. -/
@@ -127,7 +127,7 @@ structure Phases.Complete (P : Phases I) : Prop where
 
 /-- The five phases' completeness in sequence. -/
 theorem Phases.Complete.toDef {P : Phases I} (C : P.Complete) :
-    Typed.Complete P.toDef (Seam.commit I) (Seam.opened I) :=
+    Typed.Complete P.toDef (Seam.commitHonest I) (Seam.opened I) :=
   (((C.bus.append C.table).append C.pub).append C.flock).append C.opening
 
 /-- The security halves of the five phases, against the seams, at the slots' errors. -/
@@ -178,20 +178,21 @@ theorem piop_output (P : Phases I) (initial : PFunctor)
 
 /-! ## The master theorems -/
 
-/-- **Completeness.** On every statement and stack with `M3Holds`, every outcome of the honest
-execution, for any input oracles, sends the stack and is accepted. -/
+/-- **Completeness.** On every statement and stack with `M3Honest` (`M3Holds`, the padding rows
+honest), every outcome of the honest execution, for any input oracles, sends the stack and is
+accepted. -/
 theorem piop_completeness (P : Phases I) (C : P.Complete) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel I) :
     ∀ x ∈ support ((leanVmPiop P initial).execute impl input q),
       x.1.1 = q ∧ x.2.2 = some () ∧ (((), sent q), ()) ∈ Seam.done I :=
-  commit_complete (relIn := M3Holds I) C.toDef initial impl input q h
+  commit_complete (relIn := M3Honest I) C.toDef initial impl input q h
 
-/-- **Perfect completeness.** On every statement and stack with `M3Holds`, the honest prover
+/-- **Perfect completeness.** On every statement and stack with `M3Honest`, the honest prover
 convinces the verifier with probability one. -/
 theorem piop_perfectCompleteness (P : Phases I) (C : P.Complete) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt) (q : Column I.μ)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel I) :
     Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
   (OracleComp.prEvent_eq_one_iff _ _).mpr fun x hx ↦
     (piop_completeness P C initial impl input q h x hx).2.1

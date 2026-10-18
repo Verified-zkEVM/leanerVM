@@ -451,11 +451,12 @@ variable (F : FlockSpec) (s : Sizes) (q : Column (leanIsaμ prog s))
 /-- A stack and a witness agree: the opcode tables have the announced heights and, within their
 widths, the stack's rows; the memory and bytecode blocks are the stack's. -/
 structure Agrees (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
-  /-- Opcode table `j` has `2 ^ τ_j` rows. -/
-  length : ∀ j : Fin 6, (opTable w j).table.length = 2 ^ s.τ j
-  /-- Its cells within its width are the stack's row. -/
-  cells : ∀ (j : Fin 6) (x : Fin (2 ^ s.τ j)) (i : Fin (opcodeComponent j).width),
-    cellOf (opTable w j) x i = (leanIsaInstance F prog s).row q (opIdx j) x i
+  /-- Opcode table `j` has the announced `rows_j` rows, its executed ones. -/
+  length : ∀ j : Fin 6, (opTable w j).table.length = s.rows j
+  /-- Its cells within its width are the stack's executed row. -/
+  cells : ∀ (j : Fin 6) (x : Fin (s.rows j)) (i : Fin (opcodeComponent j).width),
+    cellOf (opTable w j) x i =
+      (leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x) i
   /-- The memory block's rows are the stack's. -/
   memRows : memBlockRows w = memBlockRowsOf F prog s q
   /-- The bytecode block's rows are the stack's. -/
@@ -463,18 +464,20 @@ structure Agrees (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
 
 variable {F s q}
 
-/-- Opcode table `j` flushes, on one side, its flushes of that side on every row of the stack. -/
+/-- Opcode table `j` flushes, on one side, its flushes of that side on every executed row of the
+stack. -/
 theorem tuplesOn_opTable {w : EnsembleWitness (leanIsaEnsemble prog)} (h : Agrees F s q w)
     (j : Fin 6) (side : Side) :
     tuplesOn (opTable w j).interactions side =
-      (List.finRange (2 ^ s.τ j)).flatMap fun x ↦
-        ((opcodeTable j).flushes.filter fun f ↦ decide (sideOf f.1 = side)).map
-          fun f ↦ f.2.map (·.eval ((leanIsaInstance F prog s).row q (opIdx j) x)) := by
+      (List.finRange (s.rows j)).flatMap fun x ↦
+        ((opcodeTable j).flushes.filter fun f ↦ decide (sideOf f.1 = side)).map fun f ↦
+          f.2.map (·.eval ((leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x))) := by
   rw [Air.Flat.Table.interactions, tuplesOn_flatMap, flatMap_eq_finRange _ (h.length j)]
   refine List.flatMap_congr fun x _ ↦ ?_
   rw [Air.Flat.Table.environment, opTable_component]
   refine (tuplesOn_truncate (opcodeComponent j) (opcode_withinWidth j) _
-    ((leanIsaInstance F prog s).row q (opIdx j) x) (fun i ↦ ?_) _ side).trans
+    ((leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x)) (fun i ↦ ?_) _
+      side).trans
     (tuplesOn_opcode_row j _ _ side)
   rw [← h.cells j x i, cellOf, List.getElem?_eq_getElem]
   rfl
@@ -659,7 +662,7 @@ private theorem filter_map_flatMap {α β γ : Type} (l : List α) (f : α → �
 private theorem flushTuples_eq (side : Side) :
     (leanIsaInstance F prog s).flushTuples q side =
       (List.finRange 9).flatMap fun j ↦ ((flushes j).filter fun f ↦ decide (f.1 = side)).flatMap
-        fun f ↦ (List.finRange (2 ^ height prog s j)).map fun x ↦
+        fun f ↦ ((leanIsaInstance F prog s).executed j).map fun x ↦
           f.2.map fun P ↦ P.eval ((leanIsaInstance F prog s).row q j x) := rfl
 
 /-- The flushes of opcode table `j`, on one side: a permutation of what the table's rows emit
@@ -668,13 +671,17 @@ private theorem flushTuples_opIdx_perm {w : EnsembleWitness (leanIsaEnsemble pro
     (h : Agrees F s q w)
     (j : Fin 6) (side : Side) :
     (((flushes (opIdx j)).filter fun f ↦ decide (f.1 = side)).flatMap
-        fun f ↦ (List.finRange (2 ^ height prog s (opIdx j))).map fun x ↦
+        fun f ↦ ((leanIsaInstance F prog s).executed (opIdx j)).map fun x ↦
           f.2.map fun P ↦ P.eval ((leanIsaInstance F prog s).row q (opIdx j) x)).Perm
       (tuplesOn (opTable w j).interactions side) := by
+  have he : (leanIsaInstance F prog s).executed (opIdx j) =
+      (List.finRange (s.rows j)).map (Fin.castLE (s.rows_le j)) :=
+    M3Instance.executed_eq _ _
   rw [tuplesOn_opTable h]
-  refine List.Perm.trans ?_ (perm_flatMap_swap _ _ _)
-  show (((opcodeTable j).flushes.map fun f ↦ (sideOf f.1, f.2)).filter _).flatMap _ |>.Perm _
-  exact List.Perm.of_eq (filter_map_flatMap _ _ _ _)
+  refine List.Perm.trans (List.Perm.of_eq ?_) (perm_flatMap_swap _ _ _)
+  show (((opcodeTable j).flushes.map fun f ↦ (sideOf f.1, f.2)).filter _).flatMap _ = _
+  refine (filter_map_flatMap _ _ _ _).trans (List.flatMap_congr fun f _ ↦ ?_)
+  exact (congrArg (List.map _) he).trans List.map_map
 
 /-- **The bus, read off a stack, is the bus of a witness that agrees with it**: on each side, the
 instance's tuples (the opcode tables' flushes and the six boundary blocks) are a permutation of
@@ -695,7 +702,7 @@ theorem tuples_perm {w : EnsembleWitness (leanIsaEnsemble prog)} (h : Agrees F s
     rw [flushTuples_eq, finRange_nine, List.flatMap_append, List.flatMap_map]
     have h0 : ([0, 1, 2] : List (Fin 9)).flatMap (fun j ↦
         ((flushes j).filter fun f ↦ decide (f.1 = side)).flatMap fun f ↦
-          (List.finRange (2 ^ height prog s j)).map fun x ↦
+          ((leanIsaInstance F prog s).executed j).map fun x ↦
             f.2.map fun P ↦ P.eval ((leanIsaInstance F prog s).row q j x)) = [] := rfl
     rw [h0, List.nil_append]
     exact List.Perm.flatMap_left _ fun j _ ↦ flushTuples_opIdx_perm h j side

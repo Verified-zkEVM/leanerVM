@@ -21,8 +21,9 @@ the same shapes and query positions, and the same arithmetic, since every check 
 values the Python computed. Mutations of a prover message, of the bytecode, of the public input,
 and of a committed word are rejected.
 
-The run is at the smallest sizes the verifier admits (memory `2^16`, stack `2^19`, the
-`BLAKE2S` table at its floor) and rate exponent `4`.
+The run is at memory `2^16`, stack `2^19` and rate exponent `4`. The driver announced the
+tables' log-heights `2, 1, 1, 2, 2, 3`; the script announces the row counts `4, 2, 2, 4, 4, 8`,
+which give those heights and leave no padding row, so the program's run is the recorded one.
 -/
 
 namespace LeanerVMTests.Protocol.Verifier.Replay
@@ -108,8 +109,8 @@ def replayToQuery {α : Type} : Prog α → Script → Option (Prog α × Script
 
 /-- The prover messages the mock prover fixed (stream index, value). -/
 def rate4Overrides : List (ℕ × E) :=
-  [(0, (e 0x10 0x0 0x0)), (1, (e 0x2 0x0 0x0)), (2, (e 0x1 0x0 0x0)), (3, (e 0x1 0x0 0x0)),
-   (4, (e 0x2 0x0 0x0)), (5, (e 0x2 0x0 0x0)), (6, (e 0x3 0x0 0x0)), (7, (e 0x4 0x0 0x0)),
+  [(0, (e 0x10 0x0 0x0)), (1, (e 0x4 0x0 0x0)), (2, (e 0x2 0x0 0x0)), (3, (e 0x2 0x0 0x0)),
+   (4, (e 0x4 0x0 0x0)), (5, (e 0x4 0x0 0x0)), (6, (e 0x8 0x0 0x0)), (7, (e 0x4 0x0 0x0)),
    (17, (e 0x4cc9bc95018ab843 0xe49f82eb12a0b9da 0x449f7a773e19fee8)),
    (33, (e 0x177cdc0d56abd95b 0xa1abc88d45768960 0x78458064b5757945)),
    (57, (e 0x68abf01c4c82c636 0x337f3743ae34f5a8 0x74fa11f729a09a09)),

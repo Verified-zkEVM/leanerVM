@@ -43,6 +43,11 @@ Over the five formal variables `A_0, …, A_3, X` the product is the polynomial
   separate term of degree one. The bound is nearly attained: a tuple whose fingerprint is
   `α_0 α_1 α_2 α_3` and the zero tuple collide at more than `3·|E|⁴` challenges. The multisets
   are fixed before the challenge is drawn.
+* Proposition `prop:pad` (`card_paddedSideProduct_collision_le`): a side whose padding rows add
+  leaves `π_α(u)` (`padProduct`) for tuples `u` that are not zero collides with another at no
+  more than the same `4·N·|E|⁴` challenges when its tuples `P ≠ Q`, `N` now counting the padding
+  leaves too: a padded product is a nonzero polynomial in `α` times `Π_P`, so it still determines
+  `P` (`paddedProductPoly_eq`). The padding tuples may be anything else, chosen by the prover.
 
 Written from the specification; the bit order of the weights was then checked against the
 deployed verifier.
@@ -91,6 +96,38 @@ theorem sideProduct_eq_eval₂ (α : Fin 4 → E) (β : E) (P : Multiset (Vector
   rw [h, sideProduct]
   exact congrArg Multiset.prod (Multiset.map_congr rfl fun t _ ↦ by rw [fingerprint_eq_eval₂Mle])
 
+/-- The fingerprint of `1 − a + b`, slot by slot, is `1 − π_α(a) + π_α(b)`: the weights sum to
+`1`. -/
+theorem fingerprint_one_sub_add (α : Fin 4 → E) (a b : Vector K 16) :
+    fingerprint α (Vector.ofFn fun i ↦ 1 - a[i] + b[i]) =
+      1 - fingerprint α a + fingerprint α b := by
+  have hw : ∑ i : Fin 16, (fingerprintWeights α)[i.val] = 1 := by
+    have h1 := sumCube_lagrangeBasis (Vector.ofFn α)
+    simpa [sumCube, fingerprintWeights] using h1
+  have hk (i : Fin 16) : ofK (1 - a[i.val] + b[i.val]) = 1 - ofK a[i.val] + ofK b[i.val] := by
+    change algebraMap K E _ = _
+    rw [map_add, map_sub, map_one]
+    rfl
+  simp only [fingerprint, Fin.getElem_fin, Vector.getElem_ofFn]
+  simp only [hk, mul_add, mul_sub, mul_one, Finset.sum_add_distrib, Finset.sum_sub_distrib, hw]
+
+/-- The product of the fingerprints of a multiset of tuples: a side's padding leaves
+(`doc/leanvm`, Proposition `prop:pad`). -/
+def padProduct (α : Fin 4 → E) (U : Multiset (Vector K 16)) : E :=
+  (U.map (fingerprint α)).prod
+
+/-- The padding product is the value at `α` of the product of the fingerprint polynomials. -/
+theorem padProduct_eq_eval₂ (α : Fin 4 → E) (β : E) (U : Multiset (Vector K 16)) :
+    padProduct α U =
+      MvPolynomial.eval₂ (algebraMap K E) (fun i ↦ i.elim β α) (fingerprintProdPoly (n := 4) U) := by
+  have h := eval₂_fingerprintProdPoly (n := 4) U (algebraMap K E) (Vector.ofFn α) β
+  have hpt : (fun i : Option (Fin 4) ↦ i.elim β fun j ↦ (Vector.ofFn α)[j]) =
+      fun i ↦ i.elim β α :=
+    funext fun i ↦ by cases i <;> simp
+  rw [hpt] at h
+  rw [h, padProduct]
+  exact congrArg Multiset.prod (Multiset.map_congr rfl fun t _ ↦ by rw [fingerprint_eq_eval₂Mle])
+
 /-- **Lemma 5.2**: the product polynomial determines the multiset of tuples. -/
 theorem sideProduct_poly_eq_iff (P Q : Multiset (Vector K 16)) :
     grandProductPoly (n := 4) P = grandProductPoly (n := 4) Q ↔ P = Q :=
@@ -124,6 +161,42 @@ theorem card_sideProduct_collision_le {P Q : Multiset (Vector K 16)} (hne : P �
     (by simpa [Q'] using hQ)
   rw [Nat.card_congr (challengeEquiv.subtypeEquiv (q := fun x ↦
       MvPolynomial.eval x (grandProductPoly P') = MvPolynomial.eval x (grandProductPoly Q'))
+      fun ab ↦ by rw [hval, hval]),
+    Nat.card_eq_fintype_card, Fintype.card_subtype, Nat.card_eq_fintype_card]
+  exact hcount.trans_eq (by simp)
+
+/-- **Proposition `prop:pad`, counting form**: two sides whose tuples `P ≠ Q` come with padding
+leaves the fingerprints of `U` and `V`, none of them a zero tuple, and at most `N` leaves each,
+have equal products at no more than `4·N·|E|⁴` challenges `(α, β)`, whatever the padding. -/
+theorem card_paddedSideProduct_collision_le {P Q U V : Multiset (Vector K 16)} (hne : P ≠ Q)
+    (hU : ∀ u ∈ U, ∃ i : Fin 16, u[i] ≠ 0) (hV : ∀ v ∈ V, ∃ i : Fin 16, v[i] ≠ 0) {N : ℕ}
+    (hP : U.card + P.card ≤ N) (hQ : V.card + Q.card ≤ N) :
+    Nat.card {ab : (Fin 4 → E) × E // sideProduct ab.1 ab.2 P * padProduct ab.1 U =
+      sideProduct ab.1 ab.2 Q * padProduct ab.1 V} ≤ 4 * N * Nat.card E ^ 4 := by
+  classical
+  let φ := algebraMap K E
+  let m := Multiset.map (CMlPolynomialEval.map (n := 4) φ)
+  have hne' : m P ≠ m Q := fun h ↦ hne (map_tupleMultiset_injective φ φ.injective h)
+  have hnz (W : Multiset (Vector K 16)) (hW : ∀ w ∈ W, ∃ i : Fin 16, w[i] ≠ 0) :
+      ∀ w ∈ m W, ∃ i : Fin (2 ^ 4), w[i] ≠ 0 := by
+    intro w' hw'
+    obtain ⟨w, hw, rfl⟩ := Multiset.mem_map.mp hw'
+    obtain ⟨i, hi⟩ := hW w hw
+    refine ⟨i, ?_⟩
+    simp only [CMlPolynomialEval.map, Fin.getElem_fin, Vector.getElem_map]
+    exact fun h0 ↦ hi (φ.injective (h0.trans (map_zero φ).symm))
+  have hval (ab : (Fin 4 → E) × E) (M W : Multiset (Vector K 16)) :
+      sideProduct ab.1 ab.2 M * padProduct ab.1 W =
+        MvPolynomial.eval (challengeEquiv ab) (paddedProductPoly (m W) (m M)) := by
+    rw [sideProduct_eq_eval₂ _ ab.2, padProduct_eq_eval₂ _ ab.2, paddedProductPoly,
+      MvPolynomial.eval_mul, ← map_grandProductPoly, ← map_fingerprintProdPoly,
+      MvPolynomial.eval_map, MvPolynomial.eval_map, mul_comm]
+    rfl
+  have hcount := card_paddedProduct_collision_le (hnz U hU) (hnz V hV) hne' (cap := N)
+    (by simpa [m] using hP) (by simpa [m] using hQ)
+  rw [Nat.card_congr (challengeEquiv.subtypeEquiv (q := fun x ↦
+      MvPolynomial.eval x (paddedProductPoly (m U) (m P)) =
+        MvPolynomial.eval x (paddedProductPoly (m V) (m Q)))
       fun ab ↦ by rw [hval, hval]),
     Nat.card_eq_fintype_card, Fintype.card_subtype, Nat.card_eq_fintype_card]
   exact hcount.trans_eq (by simp)

@@ -1,15 +1,15 @@
 import LeanerVM.Arithmetization.Completeness.Satisfied
 import LeanerVMTests.Arithmetization.Completeness.Rows
-import LeanerVMTests.Arithmetization.Padding.FillBlocks
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
-# Layer 10 tests: the padded witness satisfies the statement
+# Layer 10 tests: the witness of a list of skeletons satisfies the statement
 
-`padWitness_satisfiedBy` takes the state balance, the heights and the public words as hypotheses
-and proves the other conjuncts from the construction. Each hypothesis is load-bearing and has a
-rejection: the witness of no skeletons has empty tables, and an empty table is not a power of two
-(`Caps.heights`); the witness of the wrong image is not a witness of the input (`word0_eq`); a
-lone skeleton leaves the state pair unbalanced. The `JUMP` table is the one component with
+`skelWitness_satisfiedBy` takes the state balance, the row cap and the public words as hypotheses
+and proves the other conjuncts from the construction. The witness of no skeletons has empty
+tables, which are within the caps: a table need not be a power of two, the protocol pads it. The
+witness of the wrong image is not a witness of the input (`word0_eq`), and a lone skeleton leaves
+the state pair unbalanced. The row cap's rejection is the long run of `LongRun`. The `JUMP` table is the one component with
 constraints, and its two residuals hold of the honest witnesses and fail for `b = 0` on a nonzero
 condition.
 -/
@@ -18,8 +18,7 @@ namespace LeanerVMTests.Arithmetization.Completeness.Satisfied
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open Air.Flat (Component)
-open LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
-open LeanerVMTests.Arithmetization.Padding.FillBlocks
+open LeanerVMTests.Arithmetization.Completeness.Fixture
 open LeanerVMTests.Arithmetization.Completeness.Rows
 
 /-- The sentinel counter of a `2^11`-slot program, as a literal term (status finding E8). -/
@@ -45,22 +44,20 @@ example (w : K) (data : ProverData K) :
 
 /-! ## What the witness satisfies -/
 
-/-- The witness of no skeletons has empty tables, and an empty table is not a power of two: it
-does not satisfy `Caps`, so it is not a witness. This is why the fill pads every table, the
-`BLAKE2S` table to at least eight rows. -/
-theorem empty_witness_not_satisfied (img : MemImage minLogMem) :
-    ¬ SatisfiedBy ladderJumpProg badInput (padWitness ladderJumpProg badInput img []) := by
-  intro h
-  obtain ⟨τ, -, hτ⟩ := h.caps.heights (opTable img (imageData img) (padRows img []) .xor)
-    (by simp [padWitness])
-  have h0 : (opTable img (imageData img) (padRows img []) .xor).table.length = 0 := rfl
-  rw [h0] at hτ
-  exact absurd hτ.symm (Nat.pos_iff_ne_zero.mp (Nat.two_pow_pos τ))
+/-- The witness of no skeletons has empty tables, and they are within the caps: no table needs a
+power-of-two height, nor the `BLAKE2S` table eight rows. -/
+theorem empty_witness_caps (img : MemImage minLogMem) :
+    Caps (skelWitness jumpProg badInput img []) :=
+  skelWitness_caps jumpProg badInput img [] le_rfl (by decide) fun _ ↦ Nat.zero_le _
+
+/-- Its `XOR` table is empty. -/
+example (img : MemImage minLogMem) :
+    (opTable img (imageData img) (skelRows img []) .xor).table.length = 0 := rfl
 
 /-- The witness of the all-zero image is not a witness of the input whose first word is `y`: the
 first public word is read from the image the data names, and the all-zero image holds `0` there. -/
 theorem zero_image_not_satisfied (S : List Skel) :
-    ¬ SatisfiedBy ladderJumpProg badInput (padWitness ladderJumpProg badInput zeroImage S) := by
+    ¬ SatisfiedBy jumpProg badInput (skelWitness jumpProg badInput zeroImage S) := by
   intro h
   have hw := h.word0_eq
   change (imageOf (imageData zeroImage)).2.read (gpow 0) = some badInput.word0 at hw
@@ -71,21 +68,21 @@ theorem zero_image_not_satisfied (S : List Skel) :
   simp [badInput, PublicInput.word0, limb_zero] at h1
 
 /-- The state pair does not balance on its own: a single skeleton stepping from `(g^5, 1)` pushes
-a state nobody pulls. `padWitness_satisfiedBy` takes the balance as a hypothesis, and the run's
-rotation and the fill's closed walks are what discharge it (`Completeness.Theorem`). -/
+a state nobody pulls. `skelWitness_satisfiedBy` takes the balance as a hypothesis, and the run's
+rotation with the boundary is what discharges it (`Completeness.Theorem`). -/
 theorem lone_skeleton_state_unbalanced :
     ¬ (#[1, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦
         #[(nextOf zeroImage sk).pc, (nextOf zeroImage sk).fp])).Perm
-      (#[ladderJumpProg.finalPc, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map
+      (#[jumpProg.finalPc, 1] :: ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map
         fun sk ↦ #[sk.pc, sk.fp])) := by
   intro h
-  have hmem : (#[1, 1] : Array K) ∈ (#[ladderJumpProg.finalPc, 1] ::
+  have hmem : (#[1, 1] : Array K) ∈ (#[jumpProg.finalPc, 1] ::
       ([(⟨gpow 5, 1, .xor (gpow 0) (gpow 0) (gpow 0)⟩ : Skel)].map fun sk ↦ #[sk.pc, sk.fp])) :=
     h.mem_iff.mp List.mem_cons_self
   simp only [List.map_cons, List.map_nil, List.mem_cons, List.not_mem_nil, or_false] at hmem
-  have hfin : ladderJumpProg.finalPc = d₀ := by
+  have hfin : jumpProg.finalPc = d₀ := by
     unfold Program.finalPc
-    rw [show 2 ^ ladderJumpProg.logSize - 1 = 2047 by decide]
+    rw [show 2 ^ jumpProg.logSize - 1 = 2047 by decide]
   rcases hmem with h1 | h1
   · have h4 := congrArg Array.toList h1
     simp only [List.cons.injEq] at h4

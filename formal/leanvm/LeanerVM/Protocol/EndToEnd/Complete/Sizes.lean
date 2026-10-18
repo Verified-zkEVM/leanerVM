@@ -15,9 +15,9 @@ public import LeanerVM.Protocol.Whir.Complete.Opening
 # The announced sizes and the commitment
 
 Steps 1 and 2 of `verify_execution` (`readSizes`, `commitStack`; `python-verifier/verifier.py:
-1364-1375` at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`). The honest prover sends the
-eight scalars `announce s ρ` (`Front.announce`: the memory's and the six tables' log-sizes, then
-the WHIR rate, each the Python's `E(n)`), then the stack's level-0 word.
+1384-1395` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`). The honest prover sends the
+eight scalars `announce s ρ` (`Front.announce`: the memory's log-size, the six tables' row counts,
+then the WHIR rate, each the Python's `E(n)`), then the stack's level-0 word.
 
 * `follows_readSizes`: for sizes admissible for the program and a valid rate, every `require` of
   `readSizes` passes, and it returns `(verifierLayout prog s, ρ)`: the converse of
@@ -55,7 +55,7 @@ theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) 
     (hρ : validRate ρ) (cs : Commits) :
     Follows (fun cs' _ b ↦ cs' = cs ∧ b = (verifierLayout prog s, ρ))
       (Script.sendList (announce s ρ)) (readSizes (bytecodeWords prog)) cs := by
-  obtain ⟨h1, h2, h3, h4, h5⟩ := hs
+  obtain ⟨h1, h2, h3, h5⟩ := hs
   have hlen : (announce s ρ).length = 2 + tables.length := by
     simp [announce, tables]
   unfold readSizes
@@ -78,16 +78,16 @@ theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) 
     simp only [List.getLast?_singleton, Option.some_or, Option.getD_some]
     exact kToNat_eOfNat (by have := hρ.2; omega)
   have htab : (((announce s ρ).drop 1).take tables.length).map (fun value ↦ kToNat (value.limb 0))
-      = tableLogs s := by
+      = tableRows s := by
     have ht : tables.length = 6 := rfl
     simp only [announce, ht, List.cons_append, List.map_cons, List.drop_succ_cons, List.drop_zero,
-      List.map_append, List.map_nil, tableLogs, List.ofFn_succ, List.ofFn_zero]
+      List.map_append, List.map_nil, tableRows, List.ofFn_succ, List.ofFn_zero]
     simp only [List.nil_append, List.take_succ_cons, List.take_zero,
       List.map_cons, List.map_nil, List.cons.injEq, and_true]
-    have hτ : ∀ j, kToNat ((eOfNat (s.τ j)).limb 0) = s.τ j := fun j ↦
-      kToNat_eOfNat (by have : s.τ j ≤ 32 := h3 j; omega)
+    have hτ : ∀ j, kToNat ((eOfNat (s.rows j)).limb 0) = s.rows j := fun j ↦
+      kToNat_eOfNat (lt_of_le_of_lt (h3 j) (by decide))
     exact ⟨hτ 0, hτ 1, hτ 2, hτ 3, hτ 4, hτ 5⟩
-  have hok : LayoutOk s := ⟨h1, h2, h3, h4⟩
+  have hok : LayoutOk s := ⟨h1, h2, h3⟩
   have hb := buildLayout_eq prog s
   simp only [hok, ↓reduceIte] at hb
   have hwin : minStackedLog ≤ (verifierLayout prog s).stackLog ∧
@@ -102,7 +102,7 @@ theorem follows_readSizes (prog : Program) {s : Sizes} (hs : s.Admissible prog) 
 /-- The stack's size and an admissible rate are in WHIR's window. -/
 theorem whirAdmissible (prog : Program) {s : Sizes} (hs : s.Admissible prog) {ρ : ℕ}
     (hρ : validRate ρ) : Whir.Admissible (leanIsaμ prog s) ρ :=
-  ⟨le_max_right _ _, hs.2.2.2.2, hρ.1, hρ.2⟩
+  ⟨le_max_right _ _, hs.2.2.2, hρ.1, hρ.2⟩
 
 end
 end LeanerVM.Protocol.EndToEnd.Complete

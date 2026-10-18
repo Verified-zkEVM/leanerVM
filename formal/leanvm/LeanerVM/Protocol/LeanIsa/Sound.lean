@@ -73,9 +73,8 @@ theorem blake2sRowsValid_witnessOf (h : (leanIsaInstance F prog s).aux q) :
   rw [blake2sRows_witnessOf, opcodeRows, List.mem_ofFn] at hrow
   obtain ⟨x, rfl⟩ := hrow
   refine (blake2sRelation_ofFn _ (le_trans (by decide : 27 ≤ 37) width_blake2s.ge) _).mpr ?_
-  have hc := F.compress_of_holds _ (h (flockRegion prog s F) rfl) x
-  rw [slotLimbs_flockColumn] at hc
-  exact hc
+  have hc := F.compress_of_holds _ (h (flockRegion prog s F) rfl) (Fin.castLE (s.rows_le 5) x)
+  exact (congrArg LimbsCompress (slotLimbs_flockColumn F prog s q _)).mp hc
 
 /-! ## The witness agrees with its stack -/
 
@@ -160,7 +159,7 @@ theorem constraints_witnessOf (hcv : (leanIsaInstance F prog s).ConstraintsVanis
   · obtain ⟨⟨j, hj⟩, rfl⟩ := mem_tables_iff.mp ht
     by_cases h6 : j < 6
     · exact (opcode_constraints_iff (agrees_witnessOf F prog s q) ⟨j, h6⟩).mpr
-        fun x C hC ↦ hcv (opIdx ⟨j, h6⟩) C hC x
+        fun x C hC ↦ hcv (opIdx ⟨j, h6⟩) C hC _
     · have : j = 6 ∨ j = 7 := by omega
       rcases this with rfl | rfl
       · intro row _
@@ -170,28 +169,29 @@ theorem constraints_witnessOf (hcv : (leanIsaInstance F prog s).ConstraintsVanis
         rw [tableAt_component]
         exact constraintsHold_of_nil _ rfl rfl _
 
-/-- The tables of the witness read off a stack have the announced heights. -/
+/-- The tables of the witness read off a stack have the announced row counts. -/
 private theorem table_length_witnessOf (j : Fin 8) :
     (tableAt (witnessOf F prog s q) j).table.length =
-      2 ^ (![s.τ 0, s.τ 1, s.τ 2, s.τ 3, s.τ 4, s.τ 5, s.logMem, prog.logSize] j) := by
+      ![s.rows 0, s.rows 1, s.rows 2, s.rows 3, s.rows 4, s.rows 5, 2 ^ s.logMem,
+        2 ^ prog.logSize] j := by
   fin_cases j <;> exact List.length_ofFn
 
 /-- On admissible sizes, the witness read off a stack is within the caps. -/
 theorem caps_witnessOf (hs : s.Admissible prog) : Caps (witnessOf F prog s q) := by
-  obtain ⟨hmin, hmax, hτ, hb2, -⟩ := hs
+  obtain ⟨hmin, hmax, hrows, -⟩ := hs
   have himg := imageOf_witnessOf F prog s q hmax
-  refine ⟨?_, ?_, ?_, ?_, ⟨?_⟩⟩
+  refine ⟨?_, ?_, ?_, ⟨?_⟩⟩
   · rw [himg]
     exact hmin
   · rw [himg]
     exact hmax
   · intro t ht
     obtain ⟨j, rfl⟩ := mem_tables_iff.mp ht
-    refine ⟨_, ?_, table_length_witnessOf F prog s q j⟩
+    rw [table_length_witnessOf F prog s q j]
     fin_cases j
-    exacts [hτ 0, hτ 1, hτ 2, hτ 3, hτ 4, hτ 5, hmax, prog.logSize_le]
-  · rw [blake2sRows, table_length_witnessOf F prog s q 5]
-    exact Nat.pow_le_pow_right (by norm_num) hb2
+    exacts [hrows 0, hrows 1, hrows 2, hrows 3, hrows 4, hrows 5,
+      Nat.pow_le_pow_right (by norm_num) hmax,
+      Nat.pow_le_pow_right (by norm_num) prog.logSize_le]
   · rw [memRows_witnessOf, himg]
     exact Array.size_ofFn
 

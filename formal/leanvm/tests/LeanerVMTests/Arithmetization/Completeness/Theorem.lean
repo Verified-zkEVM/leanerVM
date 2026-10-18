@@ -1,63 +1,55 @@
 import LeanerVM.Arithmetization.Completeness.Theorem
-import LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
 # Layer 10 tests: constraint completeness
 
-`constraintCompleteness` is inhabited. The trace of `PaddedImageRefutation` is a valid execution of
-well formed bytecode, one `JUMP` to the sentinel on an image where no `XOR` executes at all; it
-fits (`Trace.Fits.of_short`), so the theorem gives it a padded trace and a witness that satisfies
-the statement and represents the padded trace. The witness has an `XOR` row for every power of two
-its table must have, which the image alone could not give (`image_obstruction`): they are fill
-rows, on the frames above the image. What the theorem needs is checked at the instance: the run
-has one step, and a padded trace has the same.
+`constraintCompleteness` is inhabited. The trace of `Fixture` is a valid execution, one `JUMP` to
+the sentinel on an image where no `XOR` executes at all. The theorem gives it a witness that
+satisfies the statement and represents the trace itself, and whose tables hold the run's rows: one
+`JUMP` row, and an empty `XOR` table, which the image could not give a row anyway
+(`badImage_no_xor`). A table of any number of rows, zero included, is within the caps: the protocol
+pads it with public padding rows that are not on the bus.
 -/
 
 namespace LeanerVMTests.Arithmetization.Completeness.Theorem
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
-open LeanerVMTests.Arithmetization.Padding.PaddedImageRefutation
-open LeanerVMTests.Arithmetization.Padding.FillBlocks
+open LeanerVMTests.Arithmetization.Completeness.Fixture
 
-/-- The sentinel counter of a `2^11`-slot program, as a literal term (status finding E8). -/
-local notation "d₀" => (gpow 2047 : K)
-
-/-- The trace of the obstruction: one step, `JUMP` to the sentinel. -/
-def badTrace : Trace ladderJumpProg := ⟨minLogMem, badImage d₀, 1⟩
-
-/-- It is a valid execution. -/
-theorem badTrace_valid : ValidExecution ladderJumpProg badInput badTrace :=
-  bad_valid ladderJumpProg rfl ladderJump_fetch_one
-
-/-- It fits: one step, with room above the image. -/
-theorem badTrace_fits : badTrace.Fits :=
-  Trace.Fits.of_short (rf := Regs.final ladderJumpProg) badTrace_valid.2 (by decide) (by decide)
-
-/-- **Completeness at an instance.** The padded trace and the witness exist. -/
+/-- **Completeness at an instance.** The witness exists and represents the trace. -/
 theorem bad_trace_complete :
-    ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
-      ValidExecution ladderJumpProg badInput t' ∧
-      ∃ w, SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' :=
-  constraintCompleteness ladderJump_wellFormed badTrace_valid badTrace_fits
+    ∃ w, SatisfiedBy jumpProg badInput w ∧ AssignmentRepresents w badTrace :=
+  constraintCompleteness badTrace_valid (by decide)
 
-/-- The witness has an `XOR` row: the table's height is a power of two, which is at least `1`. The
-image of `badTrace` admits no `XOR` step (`badImage_no_xor`), so these rows are fill rows, and the
-witness represents the padded trace, not `badTrace`. -/
-theorem bad_trace_witness_has_xor_row :
-    ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧
-      ∃ w, SatisfiedBy ladderJumpProg badInput w ∧ AssignmentRepresents w t' ∧
-        0 < (tableAt w 0).table.length := by
-  obtain ⟨t', hp, -, w, hs, hr⟩ := bad_trace_complete
-  refine ⟨t', hp, w, hs, hr, ?_⟩
-  obtain ⟨τ, -, hτ⟩ := hs.caps.heights (tableAt w 0)
-    (mem_tables_iff.mpr ⟨0, rfl⟩)
-  rw [hτ]
-  exact Nat.two_pow_pos τ
+/-- The run has one row, a `JUMP`, and none of any other opcode. -/
+theorem badTrace_runRows (op : Opcode) :
+    badTrace.runRows op = if op = .jump then 1 else 0 := by
+  have h1 : stateAt badTrace 1 = Regs.final jumpProg := by
+    have := run_stateAt badTrace_valid.2 (k := badTrace.steps) le_rfl
+    rw [badTrace_valid.2] at this
+    exact (Option.some.inj this).symm
+  have hregs : badTrace.regs = [Regs.initial, Regs.final jumpProg] := by
+    rw [regs_eq_map badTrace_valid.2]
+    show [stateAt badTrace 0, stateAt badTrace 1] = _
+    rw [h1]
+    rfl
+  unfold Trace.runRows
+  rw [hregs]
+  cases op <;> simp [jumpProg_fetch_one, Regs.initial, Instr.opcode]
 
-/-- The padded trace has the one step of the run: padding adds no step of the main run. -/
-theorem bad_trace_padded_steps :
-    ∃ t' : Trace ladderJumpProg, t'.PaddedFrom badTrace ∧ t'.steps = 1 := by
-  obtain ⟨t', hp, -⟩ := bad_trace_complete
-  exact ⟨t', hp, hp.steps_eq⟩
+/-- The witness's `XOR` table is empty and its `JUMP` table has the one row of the run. -/
+theorem bad_trace_witness_rows :
+    ∃ w, SatisfiedBy jumpProg badInput w ∧ AssignmentRepresents w badTrace ∧
+      (tableAt w 0).table.length = 0 ∧ (tableAt w 4).table.length = 1 := by
+  obtain ⟨w, hs, hr, hlen⟩ := constraintCompleteness_rows badTrace_valid
+    fun op ↦ (badTrace_runRows op).trans_le (by split_ifs <;> decide)
+  refine ⟨w, hs, hr, ?_, ?_⟩
+  · have h := (hlen 0).trans (badTrace_runRows _)
+    simp only [tableOpcode, tableOpcodes] at h
+    exact h
+  · have h := (hlen 4).trans (badTrace_runRows _)
+    simp only [tableOpcode, tableOpcodes] at h
+    exact h
 
 end LeanerVMTests.Arithmetization.Completeness.Theorem

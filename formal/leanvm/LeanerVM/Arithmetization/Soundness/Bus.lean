@@ -402,9 +402,8 @@ theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEns
       x ≤ 2 ^ 32 := by
     intro x hx
     obtain ⟨t, ht, rfl⟩ := List.mem_map.mp hx
-    obtain ⟨τ, hτ, hlen⟩ := h.caps.heights t (List.mem_of_mem_take ht)
-    rw [List.length_map, hlen]
-    exact Nat.pow_le_pow_right (by norm_num) hτ
+    rw [List.length_map]
+    exact h.caps.heights t (List.mem_of_mem_take ht)
   have hsum := List.sum_le_length_nsmul _ _ hb
   rw [List.length_map, smul_eq_mul] at hsum
   have h6 : (w.tables.take 6).length ≤ 6 := List.length_take_le _ _

@@ -250,17 +250,18 @@ theorem stackOffsets_snd_le (sizes : List ℕ) (M c : ℕ) (hs : ∀ x ∈ sizes
     exact Nat.mul_le_mul_right _ hl
 
 /-- Every push block has the log-height of a table. -/
-theorem busBlocks_push_logRows (hs : List ℕ) : ∀ b ∈ (busBlocks hs).1, b.logRows ∈ hs := by
+theorem busBlocks_push_logRows (hs rows : List ℕ) :
+    ∀ b ∈ (busBlocks hs rows).1, b.logRows ∈ hs := by
   intro b hb
   simp only [busBlocks, List.mem_flatMap, List.mem_map] at hb
-  obtain ⟨⟨t, h⟩, hmem, c, -, rfl⟩ := hb
-  exact (List.of_mem_zip hmem).2
+  obtain ⟨⟨t, h, n⟩, hmem, c, -, rfl⟩ := hb
+  exact (List.of_mem_zip (List.of_mem_zip hmem).2).1
 
 /-- The tables flush `34` pushes. -/
-theorem busBlocks_push_length (hs : List ℕ) (h : hs.length = 6) :
-    (busBlocks hs).1.length = 34 := by
-  match hs, h with
-  | [_, _, _, _, _, _], _ => rfl
+theorem busBlocks_push_length (hs rows : List ℕ) (h : hs.length = 6) (hr : rows.length = 6) :
+    (busBlocks hs rows).1.length = 34 := by
+  match hs, rows, h, hr with
+  | [_, _, _, _, _, _], [_, _, _, _, _, _], _, _ => rfl
 
 /-! ## The announced sizes -/
 
@@ -274,28 +275,31 @@ structure LayoutBounds (layout : Layout) : Prop where
   heights_length : layout.tableLogHeights.length = 6
   /-- Every table has at most `2^32` rows. -/
   heights_le : ∀ h ∈ layout.tableLogHeights, h ≤ 32
-  /-- The push side's blocks are the tables' push flushes. -/
-  push_eq : layout.push = (busBlocks layout.tableLogHeights).1
+  /-- The push side's blocks are the tables' push flushes, at some row count per table. -/
+  push_eq : ∃ tableRows : List ℕ, tableRows.length = 6 ∧
+    layout.push = (busBlocks layout.tableLogHeights tableRows).1
 
 /-- A layout `buildLayout` returns is within its bounds. -/
-theorem layoutBounds_of_buildLayout {bytecode : List K} {logMemory : ℕ} {tableLogs : List ℕ}
-    {layout : Layout} (h : buildLayout bytecode logMemory tableLogs = some layout) :
+theorem layoutBounds_of_buildLayout {bytecode : List K} {logMemory : ℕ} {tableRows : List ℕ}
+    {layout : Layout} (h : buildLayout bytecode logMemory tableRows = some layout) :
     LayoutBounds layout := by
   unfold buildLayout at h
   split at h
   · simp at h
   · split_ifs at h with hc
     rename_i logLength _
-    obtain ⟨-, -, hm, hall, -, hb, hlen⟩ := hc
-    rcases hbb : busBlocks tableLogs with ⟨push, pull, count⟩
-    rcases hpl : placementsOf (columnKappas logMemory (logLength - busBits) tableLogs) with
-      ⟨pl, sl⟩
+    obtain ⟨-, -, hm, hall, hb, hlen⟩ := hc
+    rcases hbb : busBlocks (tableRows.map log2Ceil) tableRows with ⟨push, pull, count⟩
+    rcases hpl : placementsOf (columnKappas logMemory (logLength - busBits)
+      (tableRows.map log2Ceil)) with ⟨pl, sl⟩
     simp only [hbb, hpl, Option.some.injEq] at h
     subst h
-    refine ⟨hm, hb, ?_, ?_, ?_⟩
+    refine ⟨hm, hb, ?_, ?_, ⟨tableRows, by simpa [tables] using hlen, by simp [hbb]⟩⟩
     · simpa [tables] using hlen
-    · simpa using hall
-    · simp [hbb]
+    · simp only [List.all_eq_true, decide_eq_true_eq] at hall
+      simp only [List.mem_map]
+      rintro _ ⟨r, hr, rfl⟩
+      exact log2Ceil_le (hall r hr)
 
 /-- The sizes a run of `readSizes` returns: a layout `buildLayout` built, the stack in the
 window, the rate exponent in `1..4`. -/
@@ -323,9 +327,11 @@ theorem pushDepth_le {layout : Layout} (h : LayoutBounds layout) :
     · omega
     · exact h.logMemory_le
     · exact h.logBytecode_le
-    · rw [h.push_eq] at hb
-      exact h.heights_le _ (busBlocks_push_logRows _ _ hb)
-  · simp [h.push_eq, busBlocks_push_length _ h.heights_length]
+    · obtain ⟨rows, -, hp⟩ := h.push_eq
+      rw [hp] at hb
+      exact h.heights_le _ (busBlocks_push_logRows _ _ _ hb)
+  · obtain ⟨rows, hr, hp⟩ := h.push_eq
+    simp [hp, busBlocks_push_length _ _ h.heights_length hr]
 
 /-- The GKR walk over at most `38` levels costs at most `gkrBound`. -/
 theorem gkrCost_le : ∀ D ≤ 38, gkrCost D 0 ≤ gkrBound := by decide

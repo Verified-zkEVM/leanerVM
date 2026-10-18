@@ -225,12 +225,12 @@ Consumed as named declarations of its
 | --- | --- |
 | `K`, `E`, `y`, `ofK`, `E.limb`, `E.ofLimbs`, `g`, `gpow`, `orderOf_g` (Layer 0) | Challenges are `E`; columns are `K`; `gpow` is the index column. |
 | `iv`, `sigma`, `compress` (Layer 1) | The RFC compression `F`, which the Fiat–Shamir step, the Merkle nodes, the grinding and the Flock circuit share. |
-| `Program`, `PublicInput`, `word0`, `word1`, `minLogMem`, `maxLogMem`, `maxLogRows`, `maxLogBytecode`, `minLogRowsBlake2s` (Layer 2) | The typed statement and the caps; the top limb of a public word is zero by type. |
+| `Program`, `PublicInput`, `word0`, `word1`, `minLogMem`, `maxLogMem`, `maxLogRows`, `maxLogBytecode` (Layer 2) | The typed statement and the caps; the top limb of a public word is zero by type. |
 | `encodeSlots` (Layer 4) | The bytecode multilinear is `encodeSlots` laid out on `2^(k_bc + 4)` points. |
 | `xorTable` … `blake2sTable`, `memTable`, `bytecodeTable`, `leanIsaVerifier` (Layers 6–8) | The opcode tables become tables of the instance; the memory, bytecode and verifier rows become boundary blocks. |
 | `StatePull` … `BytecodePush`, `MemMsg`, `Regs`, `BytecodeMsg`, `channelSep`, `channelDir`, `busTuple` (Layer 5) | A channel names its domain separator and coordinate order on the 16-slot bus. |
 | `SatisfiedBy`, `BalancedPair`, `CountsNonzero`, `Caps`, `imageOf`, `Blake2sRowsValid` (Layer 8) | The relation the adaptor targets; nothing above the adaptor mentions it (convention *The wall*). |
-| `constraintSoundness`, `constraintCompleteness`, `WellFormedBytecode` (Layer 10) | Consumed by Layer 13; both take `WellFormedBytecode prog`. |
+| `constraintSoundness`, `constraintCompleteness`, `SentinelSafe` (Layer 10) | Consumed by Layer 13; soundness takes `SentinelSafe prog`, completeness the row cap `t.steps ≤ 2^32`. |
 
 ### ArkLib
 
@@ -1282,17 +1282,17 @@ Rust and Python verifiers. The fixture waits on the Flock phase's definition.
 
 ```lean
 theorem baseVerifier_extractsExecution (rs bcs fs mca flock) (Q) (A : Adversary H Q) :   -- s as above
-    Pr_H[let (prog, input, proof, log) ← A^H ; verify^H prog input proof = true ∧ WellFormedBytecode prog ∧
+    Pr_H[let (prog, input, proof, log) ← A^H ; verify^H prog input proof = true ∧ SentinelSafe prog ∧
          ¬ SatisfiedBy prog input (witnessOf prog s (extract prog input proof log))] ≤ niError Q
-theorem baseVerifier_sound … : Pr_H[… accepts ∧ WellFormedBytecode prog ∧ ¬ ∃ t, ValidExecution prog input t] ≤ niError Q
-theorem execution_of_extracted (hwf : WellFormedBytecode prog) (hs : s.Admissible prog)
+theorem baseVerifier_sound … : Pr_H[… accepts ∧ SentinelSafe prog ∧ ¬ ∃ t, ValidExecution prog input t] ≤ niError Q
+theorem execution_of_extracted (hsafe : SentinelSafe prog) (hs : s.Admissible prog)
     (h : M3Holds (leanIsaInstance F prog s) input q) :
     ∃ t, AssignmentRepresents (witnessOf prog s q) t ∧ ValidExecution prog input t
 def prove (fuel : ℕ) (F) (prog input) (w) (ρ) : Option Proof          -- the grinding is a search
-theorem baseProver_complete (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w)
+theorem baseProver_complete (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) (hadm : s.Admissible prog) (hρ : validRate ρ) :
     prove fuel F prog input w ρ = some proof → verify prog input proof = true
-theorem baseProver_complete_of_execution (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t)
+theorem baseProver_complete_of_execution (h : ValidExecution prog input t)
     (hfit : ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog) :
     ∃ proof, verify prog input proof = true
 ```
@@ -1303,10 +1303,12 @@ list-decodes and selects; their error is `niError Q`, over the prover's choice o
 compose `verify_knowledgeSound`, `Refinement.knowledge_transport` with `satisfiedBy_witnessOf`,
 and `constraintSoundness`. `verify` is `verify^H` with BLAKE2s's compression for `H`: that
 instantiation is the one non-formal step, a hypothesis of the deployment and of no theorem.
-`execution_of_extracted` keeps the extracted witness, which recursion (T6) needs. Both directions
-take `WellFormedBytecode prog`, as `constraintSoundness` and `constraintCompleteness` do (decision
-27): a bytecode with a `JUMP` in the sentinel slot has balancing steps and no execution (a proved
-repository test); leanVM's compiler establishes it (`lean_compiler/src/lib.rs:194`).
+`execution_of_extracted` keeps the extracted witness, which recursion (T6) needs. Soundness takes
+`SentinelSafe prog`, as `constraintSoundness` does (decision 27): a bytecode with a `JUMP` in the
+sentinel slot has balancing steps and no execution (a proved repository test); leanVM's compiler
+establishes it (`lean_compiler/src/lib.rs:194`). Completeness takes no hypothesis on the program:
+since leanVM `3a37fb6e1` the prover announces row counts and pads with public rows, so no fill
+blocks are needed.
 
 Completeness starts from a satisfying witness with admissible sizes and a valid rate
 (decision 28): `baseProver_complete` is existential in the witness, composing
@@ -1530,12 +1532,11 @@ composition ArkLib admits is not among them: the port proves it.
 and bytecode length, and the channels record, per channel, the domain separator and coordinate
 order of the 16-slot bus tuple. This roadmap consumes `SatisfiedBy` as it stands, with its
 integer-counted balance, its fixed-column conjuncts and its public-word conjunct (the top limb is
-zero by type), and `constraintSoundness` and `constraintCompleteness` with their hypothesis
-`WellFormedBytecode`. Two open matters for leanISA: `constraintCompleteness` returns a witness of
-some heights, while base completeness from an execution needs admissible ones (the hypothesis
-`hfit` of Layer 13 stands in; a minimal-height `constraintCompleteness` would replace it); and
-`constraintCompleteness` itself needs a resource hypothesis (`Caps` bounds every table by `2^32`
-rows, `ValidExecution` bounds only the memory). The eighteen BLAKE2S value limbs are columns of
+zero by type), and `constraintSoundness` with its hypothesis `SentinelSafe` and
+`constraintCompleteness` with its row cap (`Caps` bounds every table by `2^32` rows,
+`ValidExecution` bounds only the memory). Since leanVM `3a37fb6e1` a table holds exactly the run's
+rows, any number, so the witness's sizes are the run's (`constraintCompleteness_rows`) and base
+completeness from an execution needs only that they be admissible. The eighteen BLAKE2S value limbs are columns of
 `blake2sTable` there and strided slots of `q_flock` here, reconciled by the instance's layout.
 
 **With the Flock roadmap (#3).** This roadmap owns the stacked WHIR, its parameters, the Merkle
@@ -1585,7 +1586,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 24. The typed framework (reversed) | first "stay on `OracleReduction`"; reversed once the typed framework had knowledge certificates and their composition: the spine, the phases and the generic components are on ArkLib's typed `Interaction` framework, and only `OracleInterface` is imported from `OracleReduction` | the ledger; [typed-migration.md](typed-migration.md) |
 | 25. Flock enters through two structures | an instance-free `FlockSpec` from the Flock roadmap; a `FlockRegion` in the instance, from which the auxiliary clause is defined | the spine; Layers 3, 9 |
 | 26. The wire drops a coefficient | the oracle protocol sends every coefficient and checks the round; the compiled verifier decodes the wire, and Layer 4 proves the transport (`Sumcheck.transport`, by `Typed.Security.decode`) | *Sumcheck messages* |
-| 27. The program hypothesis | both base theorems take `WellFormedBytecode prog` | Layer 13 |
+| 27. The program hypothesis | soundness takes `SentinelSafe prog`; completeness, since leanVM `3a37fb6e1` (padding rows, no fill blocks), takes nothing of the program | Layer 13 |
 | 28. Completeness resources | base completeness starts from a satisfying witness with admissible sizes; its form from an execution takes a fit hypothesis | Layer 13 |
 | 29. One theorem for the family | the non-interactive theorem is stated for the family over announced sizes, its error the maximum over admissible sizes | *Statements and parameters*; Layer 12 |
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |

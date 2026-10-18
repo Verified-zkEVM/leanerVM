@@ -54,6 +54,18 @@ noncomputable def grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
     MvPolynomial (Option (Fin n)) R :=
   (M.map fingerprintFactorPoly).prod
 
+/-- The product of the fingerprints of a multiset of tuples, in the fingerprint variables of the
+joint ones: a factor that involves no `X`. -/
+noncomputable def fingerprintProdPoly (U : Multiset (CMlPolynomialEval R n)) :
+    MvPolynomial (Option (Fin n)) R :=
+  (U.map fun u ↦ MvPolynomial.rename some (fingerprintPoly u)).prod
+
+/-- A grand product times a product of fingerprints: a bus side whose padding leaves are the
+fingerprints of `U` (`doc/leanvm`, Proposition `prop:pad`). -/
+noncomputable def paddedProductPoly (U M : Multiset (CMlPolynomialEval R n)) :
+    MvPolynomial (Option (Fin n)) R :=
+  fingerprintProdPoly U * grandProductPoly M
+
 /-- Renaming by `some` lands in the constant coefficients of the polynomial in the variable
 `none`. -/
 private theorem optionEquivLeft_rename_some {R σ : Type*} [CommSemiring R]
@@ -83,6 +95,24 @@ theorem eval₂_grandProductPoly {S : Type*} [CommRing S]
   simp only [grandProductPoly, map_multiset_prod, Multiset.map_map, Function.comp_def,
     MvPolynomial.coe_eval₂Hom, eval₂_fingerprintFactorPoly]
 
+/-- Evaluation of the product of fingerprints is the product of the extensions. -/
+theorem eval₂_fingerprintProdPoly {S : Type*} [CommRing S]
+    (U : Multiset (CMlPolynomialEval R n)) (φ : R →+* S) (z : Vector S n) (β : S) :
+    MvPolynomial.eval₂ φ (fun i ↦ i.elim β (fun j ↦ z[j])) (fingerprintProdPoly U) =
+      (U.map fun u ↦ eval₂Mle u φ z).prod := by
+  change MvPolynomial.eval₂Hom φ (fun i ↦ i.elim β (fun j ↦ z[j])) (fingerprintProdPoly U) = _
+  simp only [fingerprintProdPoly, map_multiset_prod, Multiset.map_map, Function.comp_def,
+    MvPolynomial.coe_eval₂Hom, MvPolynomial.eval₂_rename]
+  exact congrArg Multiset.prod (Multiset.map_congr rfl fun u _ ↦ eval₂_fingerprintPoly u φ z)
+
+/-- Products of fingerprints commute with coefficient maps. -/
+theorem map_fingerprintProdPoly {S : Type*} [CommRing S]
+    (φ : R →+* S) (U : Multiset (CMlPolynomialEval R n)) :
+    MvPolynomial.map φ (fingerprintProdPoly U) =
+      fingerprintProdPoly (U.map (CMlPolynomialEval.map φ)) := by
+  simp [fingerprintProdPoly, map_multiset_prod, Multiset.map_map, MvPolynomial.map_rename,
+    map_fingerprintPoly]
+
 /-- Grand products commute with coefficient maps, including noninjective maps. -/
 theorem map_grandProductPoly {S : Type*} [CommRing S]
     (φ : R →+* S) (M : Multiset (CMlPolynomialEval R n)) :
@@ -107,6 +137,35 @@ theorem totalDegree_grandProductPoly (M : Multiset (CMlPolynomialEval R n)) :
     (Multiset.sum_le_card_nsmul
       (M.map fun t ↦ (fingerprintFactorPoly t).totalDegree) (max 1 n)
       (by simpa using fun t (_ : t ∈ M) ↦ totalDegree_fingerprintFactorPoly t))
+
+/-- A product of `|U|` fingerprints has total degree at most `n·|U|`. -/
+theorem totalDegree_fingerprintProdPoly (U : Multiset (CMlPolynomialEval R n)) :
+    (fingerprintProdPoly U).totalDegree ≤ n * U.card := by
+  refine (MvPolynomial.totalDegree_multiset_prod _).trans ?_
+  simp only [Multiset.map_map, Function.comp_def]
+  simpa [Nat.mul_comm] using
+    (Multiset.sum_le_card_nsmul
+      (U.map fun u ↦ (MvPolynomial.rename some (fingerprintPoly u)).totalDegree) n
+      (by simpa using fun u (_ : u ∈ U) ↦
+        (MvPolynomial.totalDegree_rename_le _ _).trans (totalDegree_fingerprintPoly u)))
+
+/-- A padded product has total degree at most `max 1 n` per tuple, padding or not. -/
+theorem totalDegree_paddedProductPoly (U M : Multiset (CMlPolynomialEval R n)) :
+    (paddedProductPoly U M).totalDegree ≤ max 1 n * (U.card + M.card) := by
+  refine (MvPolynomial.totalDegree_mul _ _).trans ?_
+  have hU := totalDegree_fingerprintProdPoly U
+  have hM := totalDegree_grandProductPoly M
+  have : n * U.card ≤ max 1 n * U.card := Nat.mul_le_mul_right _ (le_max_right _ _)
+  rw [Nat.mul_add]
+  omega
+
+/-- A tuple with a nonzero entry has a nonzero fingerprint. -/
+theorem fingerprintPoly_ne_zero {u : CMlPolynomialEval R n} {i : Fin (2 ^ n)} (hu : u[i] ≠ 0) :
+    fingerprintPoly u ≠ 0 := by
+  intro h
+  have := eval_fingerprintPoly_boolVec u i
+  rw [h, map_zero] at this
+  exact hu this.symm
 
 section Domain
 
@@ -134,6 +193,30 @@ theorem grandProduct_difference_ne_zero
     grandProductPoly M - grandProductPoly N ≠ 0 := by
   intro hz
   exact h (grandProductPoly_injective (sub_eq_zero.mp hz))
+
+/-- **Padded grand products determine their unpadded tuples** (`doc/leanvm`, Proposition
+`prop:pad`): if no padding tuple is zero, equal padded products have equal multisets of tuples,
+whatever the padding. As a polynomial in `X`, a padded product is a nonzero constant times the
+grand product, so it has the same roots. -/
+theorem paddedProductPoly_eq {U V M N : Multiset (CMlPolynomialEval R n)}
+    (hU : ∀ u ∈ U, ∃ i : Fin (2 ^ n), u[i] ≠ 0)
+    (hV : ∀ v ∈ V, ∃ i : Fin (2 ^ n), v[i] ≠ 0)
+    (h : paddedProductPoly U M = paddedProductPoly V N) : M = N := by
+  have hc (W : Multiset (CMlPolynomialEval R n)) (hW : ∀ w ∈ W, ∃ i : Fin (2 ^ n), w[i] ≠ 0) :
+      MvPolynomial.optionEquivLeft R (Fin n) (fingerprintProdPoly W) =
+        Polynomial.C (W.map fingerprintPoly).prod ∧ (W.map fingerprintPoly).prod ≠ 0 := by
+    refine ⟨?_, Multiset.prod_ne_zero fun h0 ↦ ?_⟩
+    · simp [fingerprintProdPoly, map_multiset_prod, Multiset.map_map, optionEquivLeft_rename_some]
+    · obtain ⟨w, hw, h0⟩ := Multiset.mem_map.mp h0
+      obtain ⟨i, hi⟩ := hW w hw
+      exact fingerprintPoly_ne_zero hi h0
+  have hu := congrArg (MvPolynomial.optionEquivLeft R (Fin n)) h
+  simp only [paddedProductPoly, map_mul, (hc U hU).1, (hc V hV).1,
+    optionEquivLeft_grandProductPoly] at hu
+  have hr := congrArg Polynomial.roots hu
+  rw [Polynomial.roots_C_mul _ (hc U hU).2, Polynomial.roots_C_mul _ (hc V hV).2,
+    roots_grandProductUnivariate, roots_grandProductUnivariate] at hr
+  exact Multiset.map_injective fingerprintPoly_injective hr
 
 end Domain
 
@@ -163,6 +246,26 @@ theorem card_grandProduct_collision_le
     (grandProductPoly M - grandProductPoly N)
     (grandProduct_difference_ne_zero hne)
     (totalDegree_grandProduct_difference_le M N hM hN)
+  simpa only [MvPolynomial.eval_sub, sub_eq_zero, Fintype.card_option,
+    Fintype.card_fin, Nat.add_sub_cancel] using h
+
+/-- **Proposition `prop:pad`, counting form**: with no zero padding tuple, two sides with
+different multisets of tuples and at most `cap` leaves each, padding included, have padded
+products that agree at no more than `max 1 n · cap · |F|ⁿ` of the `|F|ⁿ⁺¹` points. -/
+theorem card_paddedProduct_collision_le
+    {U V M N : Multiset (CMlPolynomialEval F n)} (hU : ∀ u ∈ U, ∃ i : Fin (2 ^ n), u[i] ≠ 0) (hV : ∀ v ∈ V, ∃ i : Fin (2 ^ n), v[i] ≠ 0)
+    (hne : M ≠ N) {cap : ℕ} (hM : U.card + M.card ≤ cap) (hN : V.card + N.card ≤ cap) :
+    (Finset.univ.filter fun x : Option (Fin n) → F ↦
+      MvPolynomial.eval x (paddedProductPoly U M) =
+        MvPolynomial.eval x (paddedProductPoly V N)).card ≤
+      (max 1 n * cap) * Fintype.card F ^ n := by
+  have hd : paddedProductPoly U M - paddedProductPoly V N ≠ 0 :=
+    fun hz ↦ hne (paddedProductPoly_eq hU hV (sub_eq_zero.mp hz))
+  have hdeg : (paddedProductPoly U M - paddedProductPoly V N).totalDegree ≤ max 1 n * cap :=
+    (MvPolynomial.totalDegree_sub _ _).trans (max_le
+      ((totalDegree_paddedProductPoly U M).trans (Nat.mul_le_mul_left _ hM))
+      ((totalDegree_paddedProductPoly V N).trans (Nat.mul_le_mul_left _ hN)))
+  have h := MvPolynomial.card_zeros_le_of_totalDegree_le _ hd hdeg
   simpa only [MvPolynomial.eval_sub, sub_eq_zero, Fintype.card_option,
     Fintype.card_fin, Nat.add_sub_cancel] using h
 

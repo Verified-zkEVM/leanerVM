@@ -20,7 +20,7 @@ An arrow points from a lower layer to a layer allowed to depend on it.
 ### Spec
 
 Owns what is proved, for review: the definitions the two end-to-end statements mention (the
-fields, BLAKE2s, leanISA, the instruction encoding, the fill blocks, the verifier with its
+fields, BLAKE2s, leanISA, the instruction encoding, the verifier with its
 constants and transcript, the random-oracle experiment) and the statements themselves, as
 propositions (`LeanerVM/Spec/Statement.lean`); and the aggregation guest's statement, `NodeSpec`,
 with LeanDA (`Spec/Node.lean`, `Spec/Da.lean`) and the signature schemes, imported from the
@@ -236,30 +236,23 @@ The public theorem ladder is:
          ISA.ValidExecution version program publicInput trace
 
    constraintCompleteness:
-     ISA.ValidExecution version program publicInput trace → trace.Fits →
-       ∃ trace',
-         trace'.PaddedFrom trace ∧
-         ISA.ValidExecution version program publicInput trace' ∧
-         ∃ assignment,
-           Constraints.SatisfiedBy version program publicInput assignment ∧
-           Constraints.AssignmentRepresents assignment trace'
+     ISA.ValidExecution version program publicInput trace → trace.steps ≤ 2 ^ 32 →
+       ∃ assignment,
+         Constraints.SatisfiedBy version program publicInput assignment ∧
+         Constraints.AssignmentRepresents assignment trace
    ```
 
-   The advertised equivalence is therefore between valid ISA traces, up to padding of their
-   memory, and constraint assignments projecting to those traces. Completeness is for a padded
-   trace, with a named resource hypothesis, because the statement for the same trace is false:
-   the padding rows of every table read and write cells of the committed image, which a valid
-   execution pins only where it reads; and `Caps` bounds every table by `2^32` rows while a valid
-   execution is unbounded. `Trace.Fits` is the room above the image for the fill frames, the row
-   cap on every table, and a deliverable gap in the `JUMP` table; it is a hypothesis of
+   The advertised equivalence is therefore between valid ISA traces and constraint assignments
+   projecting to those traces. A table holds exactly its executed rows, any number of them; the
+   protocol pads it to a power of two with public padding rows that are not on the bus (leanVM
+   `doc/leanvm` §`sec:e2e-pad`). Completeness carries a named resource hypothesis because `Caps`
+   bounds every table by `2^32` rows while a valid execution is unbounded; it is a hypothesis of
    completeness only, since soundness extracts its trace from a witness where the caps already
-   hold. The leanISA roadmap's acceptance tests 23 to 27 give the witnesses. Its proof consumes the per-opcode, BLAKE2s, boundary, bus,
-   lookup, bytecode, memory, padding, and interaction-count results; none may remain as an
-   unlabelled axiom. Both directions are stated for well-formed programs: a named program-shape
-   hypothesis (`WellFormedBytecode` in the leanISA roadmap: the sentinel slot is not a `JUMP`,
-   and the fill blocks the prover pads tables with are present) is a hypothesis of each, since
-   the constraint system enforces neither and the compiled guest satisfies both;
-   [leanvm-target.md](leanvm-target.md) records why.
+   hold. Its proof consumes the per-opcode, BLAKE2s, boundary, bus, lookup, bytecode, memory and
+   interaction-count results; none may remain as an unlabelled axiom. Soundness is stated for
+   programs whose sentinel slot is not a `JUMP` (`SentinelSafe`), which the constraint system
+   does not enforce and the compiled guest satisfies; [leanvm-target.md](leanvm-target.md)
+   records why.
 
 2. **T2 — witness-generator correctness (`witnessGen_correct`).** Whenever the executable
    interpreter produces `trace` and witness generation succeeds, its concrete `assignment`
@@ -298,7 +291,7 @@ The public theorem ladder is:
    log:
 
    ```text
-   WellFormedBytecode program →
+   SentinelSafe program →
      Pr_H [ the Q-query prover makes BaseVerifier^H accept on (program, publicInput) ∧
             ¬ Constraints.SatisfiedBy version program publicInput (extract log) ] ≤ baseError Q
    ```

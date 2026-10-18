@@ -28,8 +28,10 @@ open scoped NNReal
 
 /-! ## The toy instance is honest -/
 
--- The honest stack satisfies the relation at statement `1` (cell 0 of column 2 is `1`).
+-- The honest stack satisfies the relation at statement `1` (cell 0 of column 2 is `1`). The toy
+-- has no padding row (its row count is its height), so its padding rows are honest vacuously.
 #guard M3Holds toy (1: K) honest
+#guard toy.PaddingHonest honest
 
 -- Each clause can fail alone.
 
@@ -76,7 +78,7 @@ def badLine : Column 3 := ⟨#v[1, 1, 1, 1, 1, 1, 0, 0]⟩
 #guard ¬ toy.PublicLinesHold (1: K) badLine
 #guard ¬ M3Holds toy (1: K) badLine
 
-/-- Column 0 changed to `[0, 0]`: the pushed separators `0, 0` against the pulled `1, 1`. Their
+/-- Column 0 changed to `[0, 0]`: the pushed values `0, 0` against the pulled `1, 1`. Their
 sum in `K` is `0` on both sides, so a field-summed balance (Clean's, over characteristic two)
 would accept it; the multiset balance rejects it, and only it fails. -/
 def badBalanceSum : Column 3 := ⟨#v[0, 0, 1, 1, 1, 0, 0, 0]⟩
@@ -86,9 +88,9 @@ def badBalanceSum : Column 3 := ⟨#v[0, 0, 1, 1, 1, 0, 0, 0]⟩
 #guard toy.CountsNonzero badBalanceSum
 #guard toy.PublicLinesHold (1: K) badBalanceSum
 #guard ¬ M3Holds toy (1: K) badBalanceSum
--- The separator coordinates of both sides sum to zero: the sum does not see the imbalance.
-#guard ((toy.tuples badBalanceSum .push).map fun t ↦ t.get 0).sum =
-  ((toy.tuples badBalanceSum .pull).map fun t ↦ t.get 0).sum
+-- The value coordinates of both sides sum to zero: the sum does not see the imbalance.
+#guard ((toy.tuples badBalanceSum .push).map fun t ↦ t.get 1).sum =
+  ((toy.tuples badBalanceSum .pull).map fun t ↦ t.get 1).sum
 
 -- The toy has no Flock region, so its Flock predicate holds of every stack.
 #guard toy.aux badBalanceSum
@@ -100,12 +102,13 @@ def badBalanceSum : Column 3 := ⟨#v[0, 0, 1, 1, 1, 0, 0, 0]⟩
 #guard boolIndex (toy.layout.extend ⟨0, 2⟩ (boolVec (1 : Fin 2))) = (5 : Fin 8)
 
 -- One pushed tuple per row of the table, one pulled tuple per row of the boundary block; the
--- separator slot carries column 0, the other slots are zero.
+-- separator slot is `0`, slot 1 carries column 0, the other slots are zero.
 #guard (toy.tuples honest .push).length = 2
 #guard (toy.tuples honest .pull).length = 2
 #guard toy.tuples honest .push = toy.tuples honest .pull
-#guard (toy.tuples honest .push).map (fun t ↦ t.get 0) = [1, 1]
-#guard (toy.tuples honest .push).map (fun t ↦ t.get 1) = [0, 0]
+#guard (toy.tuples honest .push).map (fun t ↦ t.get 0) = [0, 0]
+#guard (toy.tuples honest .push).map (fun t ↦ t.get 1) = [1, 1]
+#guard (toy.tuples honest .push).map (fun t ↦ t.get 2) = [0, 0]
 
 /-! ## What the schedule reads off the toy -/
 
@@ -176,7 +179,7 @@ example : Typed.Security (PublicInput.phase toy) (Seam.table toy) (Seam.pub toy)
 other phases' proofs: the slots line up. -/
 example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column 3)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel toy) :
     Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
   piop_perfectCompleteness P C initial impl input q h
 
@@ -212,6 +215,14 @@ example (input : K) (q : Column 3) :
 /-- The commit seam pins the oracle to the witness of record. -/
 example (input : K) (q : Column 3) :
     ((input, fun _ : Fin 1 ↦ q), ()) ∈ Seam.commit toy ↔ M3Holds toy input q := Iff.rfl
+
+/-- Completeness starts from `M3Honest`: `M3Holds`, and every padding row holds its public row. -/
+example (input : K) (q : Column 3) :
+    ((input, fun i : Fin 0 ↦ i.elim0), q) ∈ M3HonestRel toy ↔
+      M3Holds toy input q ∧ toy.PaddingHonest q := Iff.rfl
+
+example (input : K) (q : Column 3) :
+    ((input, fun _ : Fin 1 ↦ q), ()) ∈ Seam.commitHonest toy ↔ M3Honest toy input q := Iff.rfl
 
 /-- The last seam leaves nothing to check. -/
 example (o : ∀ i, TheOracle toy i) : (((), o), ()) ∈ Seam.done toy := trivial

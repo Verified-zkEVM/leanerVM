@@ -16,20 +16,21 @@ public import LeanerVM.Protocol.Verifier
 /-!
 # One side of the leaf decomposition
 
-`accumulateSide` (`python-verifier/verifier.py:578-591` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`) takes a side's GKR value and its layout
-(`bus_layout`, `verifier.py:504-509`) and returns the forms with the side's table blocks added and
+`accumulateSide` (`python-verifier/verifier.py:589-604` at leanVM
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`) takes a side's GKR value and its layout
+(`bus_layout`, `verifier.py:514-519`) and returns the forms with the side's table blocks added and
 the side's total. This module states what it computes:
 
 * `busLayout_framework`, `busLayout_tables`, `busLayout_depth`: the layout's selectors at a point
   are the blocks' selectors `blockSel` (`Placement.eq_above` at an aligned placement), and its
   depth is the ceiling logarithm of the blocks' total;
 * `evaluate_addScaled`: `Form.add_scaled` adds the scaled form's value;
-* `accumulateSide_forms`: each table's form for the side evaluates, at any row, to its value
-  before plus `Σ_b sel_b · blockVal_b(row)` over the side's blocks the table owns, where
-  `blockVal` is `β + Σ_slot w_slot · coordinate_slot(row)`; the other sides are untouched;
-* `accumulateSide_total`: the total is the tree value plus the framework's
-  selector-weighted fingerprints plus `Σ_b sel_b + 1`.
+* `accFold_spec`: each table's form for the side evaluates, at any row, to its value before plus
+  `Σ_b sel_b · blockVal_b(row)` over the side's blocks the table owns, where `blockVal` is
+  `β + Σ_slot w_slot · coordinate_slot(row)`, the value of the block's form (`blockForm`); the
+  other sides are untouched;
+* `padSum`: the padding term the side's total adds, `Σ_b sel_b · pad_{rows_b} · (blockVal_b(p) +
+  1)` at the owner's padding row `p`.
 -/
 
 namespace LeanerVM.Protocol.EndToEnd.Complete
@@ -195,36 +196,54 @@ coordinate_slot(row)`. -/
 def blockVal (β : E) (w : List E) (b : BusBlock) (col : ℕ → E) : E :=
   β + (b.coordinates.zipIdx.map fun cs ↦ w.getD cs.2 0 * cs.1.evaluate col).sum
 
-/-- The coordinates' fold adds their weighted values. -/
-theorem evaluate_foldl_coords (sel : E) (w : List E) (col : ℕ → E) :
+/-- The weighted coordinates' fold adds their weighted values. -/
+theorem evaluate_foldl_coords' (w : List E) (col : ℕ → E) :
     ∀ (l : List (Form × ℕ)) (init : Form),
-      (l.foldl (fun form (cs : Form × ℕ) ↦ form.addScaled cs.1 (sel * w.getD cs.2 0)) init).evaluate
+      (l.foldl (fun form (cs : Form × ℕ) ↦ form.addScaled cs.1 (w.getD cs.2 0)) init).evaluate
           col =
-        init.evaluate col + sel * (l.map fun cs ↦ w.getD cs.2 0 * cs.1.evaluate col).sum
+        init.evaluate col + (l.map fun cs ↦ w.getD cs.2 0 * cs.1.evaluate col).sum
   | [], init => by simp
   | cs :: l, init => by
-    rw [List.foldl_cons, evaluate_foldl_coords sel w col l, evaluate_addScaled]
+    rw [List.foldl_cons, evaluate_foldl_coords' w col l, evaluate_addScaled]
     simp only [List.map_cons, List.sum_cons]
     ring
 
-theorem deg2_foldl_coords (sel : E) (w : List E) :
+theorem deg2_foldl_coords' (w : List E) :
     ∀ (l : List (Form × ℕ)) (init : Form), Deg2 init → (∀ cs ∈ l, Deg2 cs.1) →
-      Deg2 (l.foldl (fun form (cs : Form × ℕ) ↦ form.addScaled cs.1 (sel * w.getD cs.2 0)) init)
+      Deg2 (l.foldl (fun form (cs : Form × ℕ) ↦ form.addScaled cs.1 (w.getD cs.2 0)) init)
   | [], init, h, _ => h
   | cs :: l, init, h, hl => by
     rw [List.foldl_cons]
-    exact deg2_foldl_coords sel w l _ (deg2_addScaled h (hl cs (by simp)) _)
+    exact deg2_foldl_coords' w l _ (deg2_addScaled h (hl cs (by simp)) _)
       fun cs' h' ↦ hl cs' (by simp [h'])
 
-/-- The fold of `accumulateSide` over a side's blocks. -/
+/-- A block's form (`blockForm`, `verifier.py:596-598`) evaluates to its fingerprint with the
+side's challenge. -/
+theorem evaluate_blockForm (b : BusBlock) (w : List E) (β : E) (col : ℕ → E) :
+    (blockForm b w β).evaluate col = blockVal β w b col :=
+  (evaluate_foldl_coords' w col b.coordinates.zipIdx (Form.const β)).trans (by
+    rw [evaluate_const, blockVal])
+
+/-- A block's form has degree at most two when its coordinates do. -/
+theorem deg2_blockForm (b : BusBlock) (w : List E) (β : E) (h : ∀ c ∈ b.coordinates, Deg2 c) :
+    Deg2 (blockForm b w β) :=
+  deg2_foldl_coords' w b.coordinates.zipIdx (Form.const β) (deg2_const β)
+    fun cs hcs ↦ h cs.1 (List.fst_mem_of_mem_zipIdx hcs)
+
+/-- The fold of `accumulateSide` over a side's blocks: each block's form added to its owner's form
+of the side, at its selector. -/
 def accFold (side : ℕ) (sideWeights : List E) (sideBeta : E) (l : List (E × BusBlock))
     (forms : List (List Form)) : List (List Form) :=
   l.foldl (fun forms (selector, block) ↦
-    forms.modify block.owner fun row ↦ row.modify side fun form ↦
-      block.coordinates.zipIdx.foldl
-        (fun form (coordinate, slot) ↦
-          form.addScaled coordinate (selector * sideWeights.getD slot 0))
-        (form.addScaled (Form.const sideBeta) selector)) forms
+    forms.modify block.owner fun row ↦ row.modify side fun f ↦
+      f.addScaled (blockForm block sideWeights sideBeta) selector) forms
+
+/-- The padding term of `accumulateSide` (`padding_rows`, `verifier.py:594-601`): each block's
+selector, times the padding weight of its owner's rows, times its form at the padding row plus
+one. -/
+def padSum (sideWeights : List E) (sideBeta : E) (point : List E) (l : List (E × BusBlock)) : E :=
+  (l.map fun x ↦ x.1 * paddingWeight (point.take x.2.logRows) x.2.rows *
+    (blockVal sideBeta sideWeights x.2 ((tables.getD x.2.owner default).padding.getD · 0) + 1)).sum
 
 /-- The invariant the fold keeps: the forms' shape, the other sides, the side's values. -/
 theorem accFold_spec (side : ℕ) (hside : side < 3) (w : List E) (β : E) :
@@ -241,16 +260,13 @@ theorem accFold_spec (side : ℕ) (hside : side < 3) (w : List E) (β : E) :
   | [], forms, h6, h3, _ => ⟨h6, h3, fun _ _ _ ↦ rfl, fun _ _ ↦ by simp [accFold]⟩
   | (sel, b) :: l, forms, h6, h3, hl => by
     have hb : b.owner < 6 := hl (sel, b) (by simp)
-    set forms' := forms.modify b.owner fun row ↦ row.modify side fun form ↦
-      b.coordinates.zipIdx.foldl
-        (fun form (coordinate, slot) ↦ form.addScaled coordinate (sel * w.getD slot 0))
-        (form.addScaled (Form.const β) sel)
+    set forms' := forms.modify b.owner fun row ↦ row.modify side fun f ↦
+      f.addScaled (blockForm b w β) sel
     have hstep : accFold side w β ((sel, b) :: l) forms = accFold side w β l forms' := rfl
     have h6' : forms'.length = 6 := by simp [forms', h6]
     have hrow : ∀ t, (forms'.getD t []) = if b.owner = t ∧ t < forms.length then
-        (forms.getD t []).modify side (fun form ↦ b.coordinates.zipIdx.foldl
-          (fun form (coordinate, slot) ↦ form.addScaled coordinate (sel * w.getD slot 0))
-          (form.addScaled (Form.const β) sel)) else forms.getD t [] := fun t ↦
+        (forms.getD t []).modify side (fun f ↦ f.addScaled (blockForm b w β) sel)
+        else forms.getD t [] := fun t ↦
       getD_modify _ _ _ _ _
     have h3' : ∀ t < 6, (forms'.getD t []).length = 3 := by
       intro t ht
@@ -271,7 +287,7 @@ theorem accFold_spec (side : ℕ) (hside : side < 3) (w : List E) (β : E) :
         simp only [hlt, and_self, ↓reduceIte, decide_true, List.map_cons, List.sum_cons]
         rw [getD_modify, h3 _ hb]
         simp only [hside, and_self, ↓reduceIte]
-        rw [evaluate_foldl_coords, evaluate_addScaled, evaluate_const, blockVal]
+        rw [evaluate_addScaled, evaluate_blockForm]
         ring
       · simp [hbt]
 
@@ -287,10 +303,9 @@ theorem accFold_deg2 (side : ℕ) (w : List E) (β : E) :
     split_ifs at hterm with h1
     · rw [getD_modify] at hterm
       split_ifs at hterm with h2
-      · refine deg2_foldl_coords sel w _ _ (deg2_addScaled ?_ (deg2_const β) sel) ?_ term hterm
-        · exact fun term' ht' ↦ h t side' term' (h2.1 ▸ ht')
-        · intro cs hcs
-          exact hl (sel, b) (by simp) cs.1 (List.fst_mem_of_mem_zipIdx hcs)
+      · refine deg2_addScaled ?_ (deg2_blockForm b w β fun c hc ↦ hl (sel, b) (by simp) c hc) sel
+          term hterm
+        exact fun term' ht' ↦ h t side' term' (h2.1 ▸ ht')
       · exact h t side' term hterm
     · exact h t side' term hterm
 

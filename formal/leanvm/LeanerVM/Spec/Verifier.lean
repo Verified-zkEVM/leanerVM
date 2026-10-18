@@ -2,7 +2,7 @@
   LeanerVM.Spec.Verifier
 
   The leanVM verifier: `python-verifier/verifier.py` at leanVM
-  `127510d14c98ade4e8a97646c44fa7f1ff5e752d`, transcribed into Lean, with the constants it reads
+  `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`, transcribed into Lean, with the constants it reads
   (the WHIR parameters and the Flock constants) and the Fiat–Shamir transcript it runs on.
 -/
 
@@ -17,24 +17,24 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 Category B: transcribed from `python-verifier/verifier.py` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`; every citation `verifier.py:N` below is a line of
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; every citation `verifier.py:N` below is a line of
 that file. The sections follow the Python's:
 
 | Section | `verifier.py` |
 |---|---|
-| Arithmetic: `eq_kernel`, `multilinear_eval`, `eq_eval`, Lagrange | 180-315, 1091-1123 |
-| The layout: tables, flushes, forms, `build_layout` | 285-315, 458-531, 631-897 |
-| Sumcheck rounds | 405-412, 419-426 |
-| The bus phase: GKR, `verify_bus_balance` | 432-455, 526-593 |
-| The table sumcheck | 599-628 |
-| WHIR: `derive_config`, `verify_whir`, `verify_stacked_opening` | 900-1086, 1346-1355 |
-| Flock and ring switching | 1089-1340 |
-| `verify_execution`, the seed, `verify` | 345-349, 631, 1358-1408 |
+| Arithmetic: `eq_kernel`, `multilinear_eval`, `eq_eval`, Lagrange | 180-324, 1111-1143 |
+| The layout: tables, flushes, forms, `build_layout` | 294-324, 467-541, 644-917 |
+| Sumcheck rounds | 414-421, 428-435 |
+| The bus phase: GKR, `verify_bus_balance` | 441-464, 536-606 |
+| The table sumcheck | 612-641 |
+| WHIR: `derive_config`, `verify_whir`, `verify_stacked_opening` | 920-1106, 1366-1375 |
+| Flock and ring switching | 1109-1360 |
+| `verify_execution`, the seed, `verify` | 354-358, 644, 1378-1428 |
 
 The file has three parts:
 
 1. **The constants** the verifier reads: the WHIR parameters (`crates/pcs/src/whir_config.rs`,
-   the query table of `verifier.py:902-937`) and the Flock constants.
+   the query table of `verifier.py:922-957`) and the Flock constants.
 2. **The transcript**: the verifier is a program `Prog` of a small language with five operations
    on the proof (read a scalar, sample a challenge, check a proof of work, read a Merkle root,
    open rows), and `runProof` reads such a program on a proof with a hash function `H : Bytes →
@@ -61,10 +61,10 @@ outside the specification, in `LeanerVM.Protocol.Verifier`.
 ## The WHIR parameters
 
 Category B. The constants are transcribed from `crates/pcs/src/whir_config.rs:38-86` of the
-pinned leanVM (`127510d14c98ade4e8a97646c44fa7f1ff5e752d`), the ladder geometry from its
+pinned leanVM (`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`), the ladder geometry from its
 `derive_ladder` and `derive_ladder_shape` (`:252-301`), the stacking window from
 `crates/leanvm_core/src/pcs.rs:49-51`, and the query counts from the second verifier,
-`python-verifier/verifier.py:902-937` (`WHIR_QUERIES`, `derive_config`), which the portable Rust
+`python-verifier/verifier.py:922-957` (`WHIR_QUERIES`, `derive_config`), which the portable Rust
 verifier carries verbatim (`crates/verifier/src/whir.rs:10-56`). The specification
 describes the protocol these parameters instantiate (Annex B, Protocol B.1,
 `doc/leanvm/body/b-polynomial-commitment-scheme.tex`) and gives no numbers.
@@ -85,7 +85,7 @@ MCA error `ε` (`paper_thm_ca_johnson_log_a`, `whir_config.rs:431-447`, citing J
 2026/891, Thm 4.4), not the row-union `2^(ℓ-j) ε` of the earlier pin, so 25 of the 56 shapes
 query one to three positions fewer. The table is the one the Python verifier carries, indexed
 by rate exponent `1..4` and stack size `15..28`; outside that window `ladder` is `none`, as both
-verifiers reject (`validate_log_inv_rate`, `whir_config.rs:48-56`; `verifier.py:925`).
+verifiers reject (`validate_log_inv_rate`, `whir_config.rs:48-56`; `verifier.py:945`).
 
 The Rust API takes the witness size as `m = μ + LOG_PACKING` bits, `LOG_PACKING = 6`
 (`crates/pcs/src/pack.rs:5`); `ladder` takes the stack size `μ`, as the Python `derive_config`
@@ -126,12 +126,12 @@ def queryGrindingBits : ℕ := 17
 def securityBits : ℕ := 128
 
 /-- The smallest stack the PCS commits: `MIN_MU` (`pcs.rs:49`;
-`MIN_STACKED_LOG`, `verifier.py:909`). A
+`MIN_STACKED_LOG`, `verifier.py:929`). A
 smaller witness is padded up to it. -/
 def minLogStack : ℕ := 15
 
 /-- The largest stack the PCS commits: `MAX_MU` (`pcs.rs:51`;
-`MAX_STACKED_LOG`, `verifier.py:910`). -/
+`MAX_STACKED_LOG`, `verifier.py:930`). -/
 def maxLogStack : ℕ := 28
 
 /-- The smallest rate exponent of level 0 (`MIN_LOG_INV_RATE`, `whir_config.rs:44`). -/
@@ -144,7 +144,7 @@ def maxLogInvRate : ℕ := 4
 opening's own evaluation claim binds, and one at every later level (`whir_config.rs:107-114`).
 The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.rs:983, 995`);
 for 15 to 21 it is the second verifier's, which takes one sample per level after the first
-(`verifier.py:1033-1037`). -/
+(`verifier.py:1053-1057`). -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-! ### The ladder -/
@@ -173,7 +173,7 @@ def levelsFrom : (fuel remaining prevFold prevRate reduction : ℕ) → List (�
       (fold, rate) :: levelsFrom fuel (remaining - fold) fold rate subsequentReduction
 
 /-- The ladder geometry of a `μ`-variable stack at rate exponent `logInvRate`: level 0 folds
-`initialFold` at that rate, then `levelsFrom` (`derive_config`, `verifier.py:922-937`). -/
+`initialFold` at that rate, then `levelsFrom` (`derive_config`, `verifier.py:942-957`). -/
 def shape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
   (initialFold, logInvRate) ::
     levelsFrom μ (μ - initialFold) initialFold logInvRate initialReduction
@@ -181,7 +181,7 @@ def shape (μ logInvRate : ℕ) : List (ℕ × ℕ) :=
 /-- The variables left after every fold: the size of the residual sent in the clear. -/
 def residualLog (μ logInvRate : ℕ) : ℕ := μ - ((shape μ logInvRate).map Prod.fst).sum
 
-/-- The query counts `WHIR_QUERIES` of `verifier.py:912`, verbatim: row `R - 1` for the rate
+/-- The query counts `WHIR_QUERIES` of `verifier.py:932`, verbatim: row `R - 1` for the rate
 exponent `R`, entry `μ - 15` for the stack size `μ`, one count per level. -/
 def queryTable : List (List (List ℕ)) := [
   [[222, 55], [223, 56, 30], [223, 56, 31], [223, 56, 32], [223, 56, 32], [223, 56, 32, 22],
@@ -198,7 +198,7 @@ def queryTable : List (List (List ℕ)) := [
    [56, 32, 23, 18, 14], [56, 32, 23, 18, 14], [56, 32, 23, 18, 15], [56, 32, 23, 18, 15, 12]]]
 
 /-- The window the parameters are defined on: the stacking window and the rate range
-(`verifier.py:925`; `crates/verifier/src/whir.rs:33-36`; `whir_config.rs:48-56` the rate). -/
+(`verifier.py:945`; `crates/verifier/src/whir.rs:33-36`; `whir_config.rs:48-56` the rate). -/
 def Admissible (μ logInvRate : ℕ) : Prop :=
   minLogStack ≤ μ ∧ μ ≤ maxLogStack ∧ minLogInvRate ≤ logInvRate ∧ logInvRate ≤ maxLogInvRate
 
@@ -207,7 +207,7 @@ instance {μ logInvRate : ℕ} : Decidable (Admissible μ logInvRate) :=
 
 /-- The ladder of an admissible stack size and rate: the geometry of `shape` paired with the
 tabulated query counts, level by level. `none` outside the window, and `none` if the table did
-not have one count per level (`verifier.py:936`), so that no level is silently dropped. -/
+not have one count per level (`verifier.py:956`), so that no level is silently dropped. -/
 def ladder (μ logInvRate : ℕ) : Option (List Level) :=
   if Admissible μ logInvRate then
     let geometry := shape μ logInvRate
@@ -233,27 +233,27 @@ namespace LeanerVM.Parameters
 /-!
 ## The Flock constants
 
-Category B: transcribed from leanVM at pin `127510d14c98ade4e8a97646c44fa7f1ff5e752d`. The
+Category B: transcribed from leanVM at pin `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`. The
 specification fixes the sizes and the shape of the fixed coordinates (Annex C, §C.1–§C.2) but
 not their values; the values below are the Rust's, cross-checked against the Python verifier.
 
-* `kBlock`, `kSkip`, `kIn` = `14`, `6`, `8`: `python-verifier/verifier.py:637-642`;
+* `kBlock`, `kSkip`, `kIn` = `14`, `6`, `8`: `python-verifier/verifier.py:650-655`;
   `crates/flock/src/zerocheck.rs:45`.
-* `constPos` = `512`: `crates/flock/src/hash.rs:144`; `verifier.py:644`.
+* `constPos` = `512`: `crates/flock/src/hash.rs:144`; `verifier.py:657`.
 * `phi8Basis`, the images of `1, t, …, t^7` under `φ_8 : GF(2^8) → K`:
-  `crates/primitives/src/field/phi8_tower.rs:15-24`; `verifier.py:1091`.
+  `crates/primitives/src/field/phi8_tower.rs:15-24`; `verifier.py:1111`.
 * `fixedBytes` = `0xF7, 0x53, 0xB5`: `crates/flock/src/zerocheck/univariate_skip_optimized.rs:68`;
-  `verifier.py:1096-1099`.
+  `verifier.py:1116-1119`.
 * `g0`, the limbs `0x243F…08D3, 0x1319…7344, 0xA409…31D0` (π in hexadecimal):
-  `univariate_skip_optimized.rs:104-106`; `verifier.py:1094`.
-* `ringShifts` = `32, 16, 8, 4, 2, 1`: `crates/pcs/src/ring_switch.rs:80`; `verifier.py:1307`.
+  `univariate_skip_optimized.rs:104-106`; `verifier.py:1114`.
+* `ringShifts` = `32, 16, 8, 4, 2, 1`: `crates/pcs/src/ring_switch.rs:80`; `verifier.py:1327`.
 
 `φ_8` is `F_2`-linear in its byte, the sum of the basis images of the byte's set bits
-(`phi8_tower.rs:27-42`, `verifier.py:1092`); its image lies in `K`, the `y^0` limb of `E`. The
+(`phi8_tower.rs:27-42`, `verifier.py:1112`); its image lies in `K`, the `y^0` limb of `E`. The
 skip domain is `φ_8(0), …, φ_8(63)` and its coset `φ_8(64), …, φ_8(127)` (Annex C,
 §C.2). The fixed coordinates of the zerocheck point are `φ_8` of the three bytes, then
 `g0^(2^j) / (1 + g0^(2^j))` for `j < 4` (`univariate_skip_optimized.rs:90-101`,
-`verifier.py:1096-1099`). The modulus of `GF(2^8)` is not needed: only the images are used.
+`verifier.py:1116-1119`). The modulus of `GF(2^8)` is not needed: only the images are used.
 -/
 
 namespace Flock
@@ -316,7 +316,7 @@ end LeanerVM.Parameters
 ## The verifier language
 
 leanVM's verifier (`python-verifier/verifier.py` at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`, class `Transcript`, lines 345-416) touches the proof
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`, class `Transcript`, lines 354-425) touches the proof
 through five operations, and computes everything else from their results:
 
 * `next_scalar`: read the next field element of the proof stream and absorb it into the
@@ -344,7 +344,7 @@ and the point of the language is that they are one program:
 ## Reading a program on a proof
 
 Category B, transcribed from the Python verifier at leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d` (`python-verifier/verifier.py:321-416`, `Proof`,
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45` (`python-verifier/verifier.py:330-425`, `Proof`,
 `compress`, `Transcript`), whose Fiat–Shamir chain is the Rust's (the prover's
 `crates/fiat_shamir/src/lib.rs:18-174`, the verifier's `crates/verifier/src/transcript.rs:32-216`):
 
@@ -473,12 +473,12 @@ def tagBytes (tag : ℕ) : Bytes := [tag.toUInt8, 0, 0, 0, 0, 0, 0, 0]
 def blockOf (x : E) (tag : ℕ) : Bytes :=
   kBytes (x.limb 0) ++ kBytes (x.limb 1) ++ kBytes (x.limb 2) ++ tagBytes tag
 
-/-- The challenge squeezed into a state: its three low 64-bit words (`verifier.py:355-357`). -/
+/-- The challenge squeezed into a state: its three low 64-bit words (`verifier.py:364-366`). -/
 def challengeOf (d : Digest) : E :=
   E.ofLimbs (ofWords d[0] d[1]) (ofWords d[2] d[3]) (ofWords d[4] d[5])
 
 /-- The proof-of-work predicate: at `bits = 0` the nonce is `0`; otherwise the low `bits` bits
-of the digest's first 64-bit word are zero (`verifier.py:376-382`). -/
+of the digest's first 64-bit word are zero (`verifier.py:385-391`). -/
 def powOk (bits : ℕ) (nonce : E) (d : Digest) : Bool :=
   if bits = 0 then decide (nonce.limb 0 = 0 ∧ nonce.limb 1 = 0 ∧ nonce.limb 2 = 0)
   else decide ((d[0].toNat + 2 ^ 32 * d[1].toNat) % 2 ^ bits = 0)
@@ -493,7 +493,7 @@ structure Opening where
   path : List Digest
 
 /-- A proof: the scalar stream and the Merkle openings, in the order the verifier reads them
-(`verifier.py:321-331`). -/
+(`verifier.py:330-340`). -/
 structure Proof where
   /-- The scalars. -/
   stream : List E
@@ -522,7 +522,7 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest)
 def absorbBlock (cv : Digest) (block : Bytes) : m Digest := H (digestBytes cv ++ block)
 
 /-- Climb a Merkle path from `node` at position `q`: at each level the position's low bit says
-whether `node` is the left child (`verifier.py:395-396`). -/
+whether `node` is the left child (`verifier.py:404-405`). -/
 def climb : Digest → ℕ → List Digest → m Digest
   | node, _, [] => pure node
   | node, q, s :: ss => do
@@ -587,7 +587,7 @@ def run {α : Type} : Prog α → St → m (Option (α × St))
       | none => pure none
 
 /-- Run a program on a proof from a seed state, and accept when it returns `true` with the
-stream and the openings fully consumed (`verifier.py:414-416`, `finish`). -/
+stream and the openings fully consumed (`verifier.py:423-425`, `finish`). -/
 def runProof (P : Prog Bool) (seed : Digest) (π : Proof) : m Bool := do
   match ← run H P ⟨seed, π.stream, π.openings, []⟩ with
   | some (true, s) => pure (s.stream.isEmpty && s.openings.isEmpty)
@@ -609,7 +609,7 @@ open LeanerVM.Parameters
 /-!
 ## Verifier arithmetic
 
-From `verifier.py`, lines 180-315 and 1091-1123. Every function has the
+From `verifier.py`, lines 180-324 and 1111-1143. Every function has the
 Python's name in `lowerCamelCase` and computes the same value on the inputs the verifier gives it;
 the products and sums are taken in the Python's order where it is visible (`foldl` from `1` or
 `0`), although `E` is a field and the order does not change a value.
@@ -652,7 +652,7 @@ def gen : E := eOfNat 2
 /-- `E(0, 1)`, the tower generator `y` with `y^3 = y + 1`. -/
 def yE : E := E.ofLimbs 0 1 0
 
-/-- `_gpow(index) = GEN ** index` (`verifier.py:665-666`). -/
+/-- `_gpow(index) = GEN ** index` (`verifier.py:678-679`). -/
 def gpow (index : ℕ) : E := gen ^ index
 
 /-- `E.sum(values)`: the sum from `ZERO`, left to right (`verifier.py:121-123`). -/
@@ -690,8 +690,8 @@ def multilinearEval (mle point : List E) : E :=
 /-- Python's `int.bit_length` on a natural number. -/
 def bitLength (n : ℕ) : ℕ := if n = 0 then 0 else Nat.log2 n + 1
 
-/-- `log2_ceil(value) = (value - 1).bit_length()` (`verifier.py:247-248`). The Python gives `1` at
-`value = 0`, which no caller passes (every total is positive); here it is `0`. -/
+/-- `log2_ceil(value) = (max(value, 1) - 1).bit_length()` (`verifier.py:247-248`): `0` at
+`value = 0`, the height of a table with no row. -/
 def log2Ceil (value : ℕ) : ℕ := bitLength (value - 1)
 
 /-- `log2_strict(value)`: the exponent of a power of two, `none` otherwise
@@ -707,37 +707,46 @@ def eqEval (left right : List E) : E :=
 def dot (left right : List E) : E :=
   (List.zipWith (· * ·) left right).foldl (· + ·) 0
 
+/-- `padding_weight(point, n)`: `pad_n(point)`, the multilinear extension of `[z ≥ n]` for
+`n ≤ 2^|point|`, unrolled from the low bit (`verifier.py:270-276`; `doc/leanvm`, Lemma
+`lem:suffix`). -/
+def paddingWeight (point : List E) (n : ℕ) : E :=
+  (1 + eOfNat ((n >>> point.length) % 2)) *
+    point.zipIdx.foldl (fun pad (r, k) ↦
+      let b := eOfNat ((n >>> k) % 2)
+      (1 + b) * r + (1 + b + r) * pad) 1
+
 /-- `index_mle(point)`: the multilinear extension of `[1, g, g², …]` at an LSB-first point,
-`Π (1 + r_i·(1 + g^(2^i)))` (`verifier.py:270-277`). -/
+`Π (1 + r_i·(1 + g^(2^i)))` (`verifier.py:279-286`). -/
 def indexMleFrom (generatorPower : E) : List E → E → E
   | [], acc => acc
   | r :: rs, acc => indexMleFrom (generatorPower ^ 2) rs (acc * (1 + r * (1 + generatorPower)))
 
-/-- `index_mle(point)` (`verifier.py:270-277`). -/
+/-- `index_mle(point)` (`verifier.py:279-286`). -/
 def indexMle (point : List E) : E := indexMleFrom gen point 1
 
 /-- `poly_eval(coefficients, point)`: Horner's rule over the coefficients, constant first
-(`verifier.py:280-282`). -/
+(`verifier.py:289-291`). -/
 def polyEval (coefficients : List E) (point : E) : E :=
   coefficients.foldr (fun c acc ↦ acc * point + c) 0
 
 /-- `_selector_point(selector, length)`: the low `length` bits of `selector` as `0/1` elements,
-lowest first (`verifier.py:313-314`). -/
+lowest first (`verifier.py:322-323`). -/
 def selectorPoint (selector length : ℕ) : List E :=
   (List.range length).map fun bit ↦ eOfNat ((selector >>> bit) % 2)
 
-/-! ### The Flock skip domain (`verifier.py:1091-1123`) -/
+/-! ### The Flock skip domain (`verifier.py:1111-1143`) -/
 
-/-- `PHI[value]`: the image of the byte `value` under `φ_8`, in `E` (`verifier.py:1092`). -/
+/-- `PHI[value]`: the image of the byte `value` under `φ_8`, in `E` (`verifier.py:1112`). -/
 def phi (value : ℕ) : E := ofK (Flock.phi8 value)
 
 /-- `_window_denominator(count)`: the inverse of `Π_{0 < k < count} PHI[k]`
-(`verifier.py:1102-1109`). -/
+(`verifier.py:1122-1129`). -/
 def windowDenominator (count : ℕ) : E :=
   (((List.range (count - 1)).map fun k ↦ phi (k + 1)).foldl (· * ·) 1)⁻¹
 
 /-- `lagrange_weights(count, point)`: the barycentric weights of the nodes `PHI[:count]` at
-`point`, from prefix and suffix products of the differences (`verifier.py:1112-1118`). -/
+`point`, from prefix and suffix products of the differences (`verifier.py:1132-1138`). -/
 def lagrangeWeights (count : ℕ) (point : E) : List E :=
   let differences := (List.range count).map fun k ↦ point + phi k
   let prefixes := differences.scanl (· * ·) 1
@@ -745,16 +754,16 @@ def lagrangeWeights (count : ℕ) (point : E) : List E :=
   let denominator := windowDenominator count
   List.zipWith (fun p s ↦ p * s * denominator) (prefixes.take count) (suffixes.drop 1)
 
-/-- `lagrange_interpolate(count, values, point)` (`verifier.py:1121-1122`). -/
+/-- `lagrange_interpolate(count, values, point)` (`verifier.py:1141-1142`). -/
 def lagrangeInterpolate (count : ℕ) (values : List E) (point : E) : E :=
   dot (lagrangeWeights count point) values
 
 /-!
 ## The verifier's layout
 
-From `verifier.py`, lines 285-315 (`Placement`, `stack_offsets`,
-`_selector_point`), 458-531 (`Form`, `BusBlock`, `BusLayout`, `bus_layout`, `ColumnClaim`), and
-631-897 (the constants, `Layout`, `Flushes`, `Table`, the six tables, `build_layout`).
+From `verifier.py`, lines 294-324 (`Placement`, `stack_offsets`,
+`_selector_point`), 467-541 (`Form`, `BusBlock`, `BusLayout`, `bus_layout`, `ColumnClaim`), and
+644-917 (the constants, `Layout`, `Flushes`, `Table`, the six tables, `build_layout`).
 
 ### Representation
 
@@ -771,7 +780,7 @@ From `verifier.py`, lines 285-315 (`Placement`, `stack_offsets`,
   `log_bytecode`), the size window, and a list of heights not one per table (the strict `zip`).
 -/
 
-/-! ### Constants (`verifier.py:523, 631-645, 681-683, 823-855`) -/
+/-! ### Constants (`verifier.py:533, 644-658, 694-696, 842-879`) -/
 
 /-- The bus communicates tuples of `2^BUS_BITS` field elements. -/
 def busBits : ℕ := 4
@@ -839,7 +848,7 @@ def opJump : ℕ := 4
 /-- Opcode `BLAKE2S`. -/
 def opBlake2s : ℕ := 5
 
-/-! ### Placements (`verifier.py:285-315`) -/
+/-! ### Placements (`verifier.py:294-324`) -/
 
 /-- Where something sits in the stacked cube: a claim's point fills the `vars` coordinates
 above `low`, the bits of `index` fixing the rest. -/
@@ -864,7 +873,7 @@ def Placement.eqAbove (p : Placement) (point : List E) : E :=
   eqEval bits (point.drop (p.low + p.vars))
 
 /-- `stack_offsets(sizes)`: blocks of `2^size` laid end to end, largest first, ties by index;
-their offsets, and the log-size of the total (`verifier.py:304-310`). -/
+their offsets, and the log-size of the total (`verifier.py:313-319`). -/
 def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
   let size := fun i ↦ sizes.getD i 0
   let order := (List.range sizes.length).mergeSort fun i j ↦
@@ -873,7 +882,7 @@ def stackOffsets (sizes : List ℕ) : List ℕ × ℕ :=
     (acc.1.set i acc.2, acc.2 + 2 ^ size i)) (List.replicate sizes.length 0, 0)
   (placed.1, log2Ceil placed.2)
 
-/-! ### Forms (`verifier.py:458-480`) -/
+/-! ### Forms (`verifier.py:467-489`) -/
 
 /-- A polynomial of degree at most two in a table's columns: monomial (sorted column indices) to
 coefficient, in insertion order. -/
@@ -912,7 +921,7 @@ def Form.col (index : ℕ) (exponent : ℕ := 0) : Form := ⟨[([index], gpow ex
 /-- `_prod(a, b, exponent)`: `g^exponent · x_a · x_b`. -/
 def Form.prod (a b : ℕ) (exponent : ℕ := 0) : Form := ⟨[([min a b, max a b], gpow exponent)]⟩
 
-/-! ### Flushes (`verifier.py:686-711`) -/
+/-! ### Flushes (`verifier.py:699-724`) -/
 
 /-- A table's bus flushes: the tuples it pushes and pulls, in pairs. -/
 structure Flushes where
@@ -954,7 +963,7 @@ def memoryCols (f : Flushes) (address : Form) (count : ℕ) (columns : List ℕ)
 
 end Flushes
 
-/-! ### The instruction tables (`verifier.py:717-855`) -/
+/-! ### The instruction tables (`verifier.py:730-879`) -/
 
 /-- `_cols(columns, name)`: the index of a column by name. -/
 def colIdx (columns : List String) (name : String) : ℕ := columns.idxOf name
@@ -991,7 +1000,7 @@ def towerLanes : List (List (ℕ × ℕ)) :=
   [[(0, 0), (1, 2), (2, 1)], [(0, 1), (1, 0), (1, 2), (2, 1), (2, 2)],
     [(0, 2), (1, 1), (2, 0), (2, 2)]]
 
-/-- `_flushes_arith(opcode, multiply)` (`verifier.py:740-755`). -/
+/-- `_flushes_arith(opcode, multiply)` (`verifier.py:759-774`). -/
 def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let c := colIdx arithColumns
   let va := [c "va_0", c "va_1", c "va_2"]
@@ -1009,7 +1018,7 @@ def flushesArith (opcode : ℕ) (multiply : Bool) : Flushes :=
   let f := f.memoryCols (Form.prod (c "fp") (c "o_b")) (c "cnt_b") vb
   f.memory (Form.prod (c "fp") (c "o_c")) (c "cnt_c") result
 
-/-- `_flushes_set()` (`verifier.py:758-765`). -/
+/-- `_flushes_set()` (`verifier.py:777-784`). -/
 def flushesSet : Flushes :=
   let c := colIdx setColumns
   let k := [c "k_0", c "k_1", c "k_2"]
@@ -1019,7 +1028,7 @@ def flushesSet : Flushes :=
     (Form.col (c "o") :: k.map (Form.col ·) ++ [Form.const 0])
   f.memoryCols (Form.prod (c "fp") (c "o")) (c "cnt") k
 
-/-- `_flushes_deref()` (`verifier.py:768-784`). -/
+/-- `_flushes_deref()` (`verifier.py:787-803`). -/
 def flushesDeref : Flushes :=
   let c := colIdx derefColumns
   let pc := c "pc"
@@ -1039,7 +1048,7 @@ def flushesDeref : Flushes :=
   let f := f.memory (Form.prod (c "ptr") (c "o2")) (c "cnt_target") store
   f.memoryCols (Form.prod fp (c "o3")) (c "cnt_local") v3
 
-/-- `_flushes_jump()` (`verifier.py:787-797`): `next_pc = b·dest + (b + 1)·g·pc`,
+/-- `_flushes_jump()` (`verifier.py:806-816`): `next_pc = b·dest + (b + 1)·g·pc`,
 `next_fp = b·frame + (b + 1)·fp`. -/
 def flushesJump : Flushes :=
   let c := colIdx jumpColumns
@@ -1056,7 +1065,7 @@ def flushesJump : Flushes :=
   let f := f.memoryCols (Form.prod fp (c "o_d")) (c "cnt_d") [c "v_pc"]
   f.memoryCols (Form.prod fp (c "o_f")) (c "cnt_f") [c "v_fp"]
 
-/-- `_jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`verifier.py:800-802`). -/
+/-- `_jump_constraints(columns)`: `b + cond·w` and `cond·(b + 1)` (`verifier.py:819-821`). -/
 def jumpConstraints (columns : List E) : List E :=
   let c := colIdx jumpColumns
   let condition := columns.getD (c "v_cond") 0
@@ -1064,13 +1073,13 @@ def jumpConstraints (columns : List E) : List E :=
   let flag := columns.getD (c "b") 0
   [flag + condition * inverse, condition * (flag + 1)]
 
-/-- The nine `BLAKE2S` cells read, as (cell, operand, offset): `verifier.py:814-816`. -/
+/-- The nine `BLAKE2S` cells read, as (cell, operand, offset): `verifier.py:833-835`. -/
 def blake2sCells : List (String × String × ℕ) :=
   [("m0", "o_0", 0), ("m1", "o_1", 0), ("m2", "o_2", 0), ("m3", "o_3", 0),
     ("cv0", "o_v", 0), ("cv1", "o_v", 1), ("out0", "o_out", 0), ("out1", "o_out", 1),
     ("md", "o_md", 0)]
 
-/-- `_flushes_blake2s()` (`verifier.py:805-820`). -/
+/-- `_flushes_blake2s()` (`verifier.py:824-839`). -/
 def flushesBlake2s : Flushes :=
   let c := colIdx blake2sColumns
   let operands := ["o_0", "o_1", "o_2", "o_3", "o_v", "o_out", "o_md"].map c
@@ -1082,7 +1091,7 @@ def flushesBlake2s : Flushes :=
       [c (cell ++ "_lo"), c (cell ++ "_hi")]) f
 
 /-- One instruction's table: its columns, its bus flushes, its constraints
-(`verifier.py:717-737`). -/
+(`verifier.py:730-750`). -/
 structure Table where
   /-- The table's name. -/
   name : String
@@ -1106,7 +1115,7 @@ def Table.nConstraints (t : Table) : ℕ := (t.constraints (List.replicate t.wid
 def Table.countColumns (t : Table) : List ℕ :=
   (t.columns.zipIdx.filter fun (name, _) ↦ name.startsWith "cnt").map (·.2)
 
-/-- `TABLES`, in opcode order (`verifier.py:838-845`). -/
+/-- `TABLES`, in opcode order (`verifier.py:857-864`). -/
 def tables : List Table :=
   [⟨"xor", opXor, arithColumns, flushesArith opXor false, fun _ ↦ []⟩,
     ⟨"mul", opMul, arithColumns, flushesArith opMul true, fun _ ↦ []⟩,
@@ -1116,12 +1125,29 @@ def tables : List Table :=
     ⟨"blake2s", opBlake2s, blake2sColumns, flushesBlake2s, fun _ ↦ []⟩]
 
 /-- `BLAKE2S_SLOTS`: the `BLAKE2S` limb each Flock slot carries; slots 8 and 9 carry none
-(`verifier.py:849-852`). -/
+(`verifier.py:868-871`). -/
 def blake2sSlots : List (Option String) :=
   [some "cv0_lo", some "cv0_hi", some "cv1_lo", some "cv1_hi", some "out0_lo", some "out0_hi",
     some "out1_lo", some "out1_hi", none, none,
     some "m0_lo", some "m0_hi", some "m1_lo", some "m1_hi", some "m2_lo", some "m2_hi",
     some "m3_lo", some "m3_hi", some "md_lo", some "md_hi"]
+
+/-- `PADDING_INSTANCE`: Flock's padding instance, the compression of BLAKE2s-256 of 64 zero
+bytes, in `BLAKE2S_SLOTS` order: the parameterized IV, the digest, a zero message, then the
+one-block final metadata, counter 64 and the last-block flag (`verifier.py:875-876`). -/
+def paddingInstance : List ℕ :=
+  let word := fun (v : Vector UInt32 8) (k : ℕ) ↦
+    (v.getD (2 * k) 0).toNat ||| (v.getD (2 * k + 1) 0).toNat <<< 32
+  let digest := Blake2sHash.blake2sBytes (List.replicate 64 0)
+  (List.range 4).map (word Blake2sHash.paramIv) ++ (List.range 4).map (word digest) ++
+    List.replicate 10 0 ++ [64, 0xFFFFFFFF]
+
+/-- `Table.padding`: the row a padding row holds, zero but for `BLAKE2S`'s value limbs, which are
+`q_flock`'s slots and so hold its padding instance (`verifier.py:752-756`). -/
+def Table.padding (t : Table) : List E :=
+  let slots := if t.opcode = opBlake2s then blake2sSlots else []
+  t.columns.map fun name ↦
+    if some name ∈ slots then eOfNat (paddingInstance.getD (slots.idxOf (some name)) 0) else 0
 
 /-- `TABLE_WIDTHS`. -/
 def tableWidths : List ℕ := tables.map Table.width
@@ -1130,12 +1156,15 @@ def tableWidths : List ℕ := tables.map Table.width
 def globalColumnBases : List ℕ :=
   (List.range tables.length).map fun t ↦ numGlobalColumns + (tableWidths.take t).sum
 
-/-! ### The bus layout (`verifier.py:482-531`) -/
+/-! ### The bus layout (`verifier.py:491-541`) -/
 
 /-- One block of a bus side, owned by a table. -/
 structure BusBlock where
-  /-- The owner's log-height. -/
+  /-- The owner's log-height: the block spans `2 ^ logRows` rows. -/
   logRows : ℕ
+  /-- The owner's row count: the first `rows` rows flush, the others are padding rows, whose
+  leaves are `1`. -/
+  rows : ℕ
   /-- The tuple flushed, over the owner's local columns. -/
   coordinates : List Form
   /-- The owner's opcode. -/
@@ -1151,7 +1180,7 @@ structure BusLayout where
   /-- The table blocks' placements, in the side's block order. -/
   tables : List Placement
 
-/-- `bus_layout(framework_log_rows, blocks)` (`verifier.py:504-509`). -/
+/-- `bus_layout(framework_log_rows, blocks)` (`verifier.py:514-519`). -/
 def busLayout (frameworkLogRows : List ℕ) (blocks : List BusBlock) : BusLayout :=
   let sizes := frameworkLogRows ++ blocks.map (·.logRows)
   let (offsets, depth) := stackOffsets sizes
@@ -1171,7 +1200,7 @@ structure ColumnClaim where
 /-- A claim on the stack: the weight it puts on the stack, and the value it claims for it. -/
 abbrev StackClaim : Type := (List E → E) × E
 
-/-! ### `build_layout` (`verifier.py:647-657, 858-897`) -/
+/-! ### `build_layout` (`verifier.py:660-670, 882-917`) -/
 
 /-- The layout the verifier derives from the bytecode and the announced sizes. -/
 structure Layout where
@@ -1191,7 +1220,7 @@ structure Layout where
   placements : List Placement
   /-- The stacked cube's log-size. -/
   stackLog : ℕ
-  /-- The tables' log-heights. -/
+  /-- The tables' log-heights, each the least `h` with `rows ≤ 2 ^ h`. -/
   tableLogHeights : List ℕ
 
 /-- `ColumnClaim.on_stack`: the claim as an equality weight on the stack. -/
@@ -1199,28 +1228,29 @@ def ColumnClaim.onStack (c : ColumnClaim) (layout : Layout) : StackClaim :=
   let point := (layout.placements.getD c.column default).stackPoint c.point layout.stackLog
   (fun x ↦ eqEval point x, c.value)
 
-/-- The bus blocks of every table, side by side: pushes, pulls, counts
-(`verifier.py:868-878`). -/
-def busBlocks (tableLogHeights : List ℕ) : List BusBlock × List BusBlock × List BusBlock :=
-  let rows := List.zip tables tableLogHeights
-  (rows.flatMap fun (t, h) ↦ t.flushes.push.map fun c ↦ ⟨h, c, t.opcode⟩,
-    rows.flatMap fun (t, h) ↦ t.flushes.pull.map fun c ↦ ⟨h, c, t.opcode⟩,
-    rows.flatMap fun (t, h) ↦ t.countColumns.map fun l ↦ ⟨h, [Form.col l], t.opcode⟩)
+/-- The bus blocks of every table, side by side: pushes, pulls, counts, each block at its
+table's log-height and row count (`verifier.py:888-898`). -/
+def busBlocks (tableLogHeights tableRows : List ℕ) :
+    List BusBlock × List BusBlock × List BusBlock :=
+  let rows := List.zip tables (List.zip tableLogHeights tableRows)
+  (rows.flatMap fun (t, h, n) ↦ t.flushes.push.map fun c ↦ ⟨h, n, c, t.opcode⟩,
+    rows.flatMap fun (t, h, n) ↦ t.flushes.pull.map fun c ↦ ⟨h, n, c, t.opcode⟩,
+    rows.flatMap fun (t, h, n) ↦ t.countColumns.map fun l ↦ ⟨h, n, [Form.col l], t.opcode⟩)
 
 /-- The Flock slot of a global column that is an embedded `BLAKE2S` limb
-(`verifier.py:888`). -/
+(`verifier.py:908`). -/
 def limbSlot (column : ℕ) : Option ℕ :=
   blake2sSlots.zipIdx.findSome? fun (name?, slot) ↦ name?.bind fun name ↦
     if globalColumnBases.getD opBlake2s 0 + colIdx blake2sColumns name = column then some slot
     else none
 
-/-- Every column's log-size, in global order (`verifier.py:881-884`). -/
+/-- Every column's log-size, in global order (`verifier.py:901-904`). -/
 def columnKappas (logMemory logBytecode : ℕ) (tableLogHeights : List ℕ) : List ℕ :=
   let qflockKappa := tableLogHeights.getD opBlake2s 0 + qflockSlotBits
   [logMemory, logMemory, logMemory, logMemory, logBytecode, qflockKappa] ++
     tables.flatMap fun t ↦ List.replicate t.width (tableLogHeights.getD t.opcode 0)
 
-/-- The placements of every column, and the stack's log-size (`verifier.py:886-896`): the
+/-- The placements of every column, and the stack's log-size (`verifier.py:906-916`): the
 committed columns stacked by `stack_offsets`, each limb at `q_flock`'s offset plus its slot. -/
 def placementsOf (kappas : List ℕ) : List Placement × ℕ :=
   let blockCols := (List.range kappas.length).filter fun c ↦ (limbSlot c).isNone
@@ -1233,17 +1263,18 @@ def placementsOf (kappas : List ℕ) : List Placement × ℕ :=
     | none => { vars := kappa, index := offsetOf column }
   (placements, max minStackedLog totalLog)
 
-/-- `build_layout(bytecode, log_memory, table_log_heights)` (`verifier.py:858-897`); `none`
-where the Python raises. -/
-def buildLayout (bytecode : List K) (logMemory : ℕ) (tableLogHeights : List ℕ) : Option Layout :=
+/-- `build_layout(bytecode, log_memory, table_rows)` (`verifier.py:882-917`); `none` where the
+Python raises. A table's log-height is the least `h` with `rows ≤ 2^h` (`log2Ceil`). -/
+def buildLayout (bytecode : List K) (logMemory : ℕ) (tableRows : List ℕ) : Option Layout :=
   match log2Strict bytecode.length with
   | none => none
   | some logLength =>
     if busBits ≤ logLength ∧ 16 ≤ logMemory ∧ logMemory ≤ 32 ∧
-        tableLogHeights.all (· ≤ 32) ∧ 3 ≤ tableLogHeights.getD opBlake2s 0 ∧
-        logLength - busBits ≤ 32 ∧ tableLogHeights.length = tables.length then
+        tableRows.all (· ≤ 2 ^ 32) ∧ logLength - busBits ≤ 32 ∧
+        tableRows.length = tables.length then
       let logBytecode := logLength - busBits
-      let (push, pull, count) := busBlocks tableLogHeights
+      let tableLogHeights := tableRows.map log2Ceil
+      let (push, pull, count) := busBlocks tableLogHeights tableRows
       let (placements, stackLog) :=
         placementsOf (columnKappas logMemory logBytecode tableLogHeights)
       some ⟨logMemory, logBytecode, bytecode, push, pull, count, placements, stackLog,
@@ -1255,8 +1286,8 @@ open LeanerVM.Protocol.Compile
 /-!
 ## Sumcheck rounds
 
-From `verifier.py`, lines 405-412 (`Transcript.sumcheck_round_poly`) and
-419-426 (`sumcheck`).
+From `verifier.py`, lines 414-421 (`Transcript.sumcheck_round_poly`) and
+428-435 (`sumcheck`).
 
 A round polynomial `q(X) = c0 + c1·X + c2·X² + …` of `count` coefficients is sent with one
 coefficient left out, which the verifier derives from the running claim:
@@ -1278,7 +1309,7 @@ def liftOption {α : Type} : Option α → Prog α
 
 /-- `Transcript.sumcheck_round_poly(count, claim, eq_factor)`: read a round polynomial of `count`
 coefficients, deriving the one the claim fixes; its coefficients, constant first
-(`verifier.py:405-412`). -/
+(`verifier.py:414-421`). -/
 def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → Prog (List E)
   | none => do
     let constant ← Prog.readE
@@ -1290,7 +1321,7 @@ def sumcheckRoundPoly (count : ℕ) (claim : E) : Option E → Prog (List E)
 
 /-- `sumcheck(transcript, claim, count, equalities)`: one round per entry of `equalities`, each
 reading its polynomial and sampling its challenge; the challenges in order, and the final claim
-(`verifier.py:419-426`). -/
+(`verifier.py:428-435`). -/
 def sumcheck (claim : E) (count : ℕ) : List (Option E) → Prog (List E × E)
   | [] => return ([], claim)
   | equality :: equalities => do
@@ -1302,8 +1333,8 @@ def sumcheck (claim : E) (count : ℕ) : List (Option E) → Prog (List E × E)
 /-!
 ## The bus phase
 
-From `verifier.py`, lines 432-455 (`verify_gkr_grand_products`) and
-526-593 (`BusResult`, `verify_bus_balance`).
+From `verifier.py`, lines 441-464 (`verify_gkr_grand_products`) and
+536-606 (`BusResult`, `verify_bus_balance`).
 
 **GKR.** The three trees (push, pull, count) are batched: the roots are read as
 `shared, count` (push and pull share their root, which is the balance), and the layers are
@@ -1318,7 +1349,7 @@ outright, its table blocks accumulate into the owner's form for that side, and t
 is the GKR value less the framework and the padding.
 -/
 
-/-! ### GKR (`verifier.py:432-455`) -/
+/-! ### GKR (`verifier.py:441-464`) -/
 
 /-- The state of the GKR walk: the three trees' values at `point`. -/
 structure GkrState where
@@ -1327,7 +1358,7 @@ structure GkrState where
   /-- The point the values are at. -/
   point : List E
 
-/-- One step of `step` levels of the GKR walk (`verifier.py:441-452`). -/
+/-- One step of `step` levels of the GKR walk (`verifier.py:450-461`). -/
 def gkrStep (step : ℕ) (s : GkrState) : Prog GkrState := do
   let combiner ← Prog.sampleE
   let claim := polyEval s.values combiner
@@ -1357,7 +1388,7 @@ def gkrLayers : ℕ → GkrState → Prog GkrState
       gkrLayers n s
 
 /-- `verify_gkr_grand_products(depth)`: the count root, the GKR point, and the three trees'
-values there (`verifier.py:432-455`). -/
+values there (`verifier.py:441-464`). -/
 def verifyGkrGrandProducts (depth : ℕ) : Prog (E × List E × List E) := do
   let shared ← Prog.readE
   let count ← Prog.readE
@@ -1384,7 +1415,7 @@ structure Evaluations where
   give. -/
   matrices (alpha zSkip : E) (chiIn chiInPrime s : List E) : Prog E
 
-/-! ### The leaf decomposition (`verifier.py:526-593`) -/
+/-! ### The leaf decomposition (`verifier.py:536-606`) -/
 
 /-- `BusResult`: the framework columns' claims, the GKR point, each table's form per side
 (`forms[table][side]`), and what the tables owe each side. -/
@@ -1398,7 +1429,7 @@ structure BusResult where
   /-- The three sides' totals. -/
   totals : List E
 
-/-- The three framework fingerprints of a side (`verifier.py:556-568`, `fingerprints`; the
+/-- The three framework fingerprints of a side (`verifier.py:566-578`, `fingerprints`; the
 Python hoists `memory_index` and `bytecode_index`, pure values inlined here; `bytecode_value` is
 the bytecode's value, from `Evaluations`). -/
 def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeValue : E)
@@ -1407,25 +1438,33 @@ def fingerprints (weights memory memoryLow bytecodeLow : List E) (bytecodeValue 
     dot (weights.take 6) ([sepMem, indexMle memoryLow, memoryCount] ++ memory),
     dot (weights.take 3) [sepBytecode, indexMle bytecodeLow, bytecodeCount] + bytecodeValue]
 
-/-- One side of the leaf decomposition (`verifier.py:578-591`): the forms with the side's table
-blocks added, and the side's total. -/
+/-- One table block's form on a side: `side_beta` plus the block's fingerprint, one tuple slot at
+a time (`verifier.py:596-598`). -/
+def blockForm (block : BusBlock) (sideWeights : List E) (sideBeta : E) : Form :=
+  block.coordinates.zipIdx.foldl
+    (fun form (coordinate, slot) ↦ form.addScaled coordinate (sideWeights.getD slot 0))
+    (Form.const sideBeta)
+
+/-- One side of the leaf decomposition (`verifier.py:589-604`): the forms with the side's table
+blocks added, and the side's total. A table's form is summed over its padding rows too, whose
+leaves hold `1` instead: the difference, `padding_rows`, is public. -/
 def accumulateSide (forms : List (List Form)) (side : ℕ) (blocks : List BusBlock)
     (sideLayout : BusLayout) (frameworkFingerprints sideWeights : List E) (sideBeta : E)
     (point : List E) (treeValue : E) : List (List Form) × E :=
   let frameworkSelectors := sideLayout.framework.map (·.eqAbove point)
   let tableSelectors := sideLayout.tables.map (·.eqAbove point)
   let known := dot frameworkSelectors (frameworkFingerprints.map (sideBeta + ·))
-  let betaForm := Form.const sideBeta
-  let forms := (List.zip tableSelectors blocks).foldl (fun forms (selector, block) ↦
-    forms.modify block.owner fun row ↦ row.modify side fun form ↦
-      block.coordinates.zipIdx.foldl
-        (fun form (coordinate, slot) ↦
-          form.addScaled coordinate (selector * sideWeights.getD slot 0))
-        (form.addScaled betaForm selector)) forms
+  let (forms, paddingRows) := (List.zip tableSelectors blocks).foldl
+    (fun (forms, paddingRows) (selector, block) ↦
+      let form := blockForm block sideWeights sideBeta
+      let padding := (tables.getD block.owner default).padding
+      (forms.modify block.owner fun row ↦ row.modify side fun f ↦ f.addScaled form selector,
+        paddingRows + selector * paddingWeight (point.take block.logRows) block.rows *
+          (form.evaluate (padding.getD · 0) + 1))) (forms, 0)
   let onesPadding := sumE (frameworkSelectors ++ tableSelectors) + 1
-  (forms, treeValue + known + onesPadding)
+  (forms, treeValue + known + onesPadding + paddingRows)
 
-/-- `verify_bus_balance(layout)` (`verifier.py:534-593`), the bytecode's value from `ev`. -/
+/-- `verify_bus_balance(layout)` (`verifier.py:544-606`), the bytecode's value from `ev`. -/
 def verifyBusBalance (ev : Evaluations) (layout : Layout) : Prog BusResult := do
   let frameworkLogRows := [0, layout.logMemory, layout.logBytecode]
   let pushLayout := busLayout frameworkLogRows layout.push
@@ -1461,7 +1500,7 @@ def verifyBusBalance (ev : Evaluations) (layout : Layout) : Prog BusResult := do
 /-!
 ## The table sumcheck
 
-From `verifier.py`, lines 599-628 (`table_sumcheck`).
+From `verifier.py`, lines 612-641 (`table_sumcheck`).
 
 One plain-mode sumcheck of four coefficients per round runs over `max` of the tables'
 log-heights. Its challenges, reversed, are the point; a table of log-height `h` weighs the first
@@ -1472,7 +1511,7 @@ range of `constraint_powers` per table and the three sides' forms by `form_power
 evaluation becomes a claim on its global column at the point's first `h` coordinates.
 -/
 
-/-- The tables' weights at the point (`verifier.py:611-615`): coordinate `v` contributes
+/-- The tables' weights at the point (`verifier.py:624-628`): coordinate `v` contributes
 `1 + equality_point[v] + r_v` to a table taller than `v`, and `r_v` to the others. -/
 def tableWeights (heights : List ℕ) (equalityPoint point : List E) : List E :=
   point.zipIdx.foldl (fun weights (challenge, coord) ↦
@@ -1480,7 +1519,7 @@ def tableWeights (heights : List ℕ) (equalityPoint point : List E) : List E :=
     List.zipWith (fun weight height ↦ weight * if coord < height then equality else challenge)
       weights heights) (heights.map fun _ ↦ 1)
 
-/-- The per-table loop of `table_sumcheck` (`verifier.py:617-626`): read each table's row
+/-- The per-table loop of `table_sumcheck` (`verifier.py:630-639`): read each table's row
 evaluations, add its weighted terms to `final`, and collect its column claims. -/
 def tableTerms (constraintPowers formPowers point : List E) :
     List (Table × ℕ × List Form × E) → ℕ → E → List ColumnClaim → Prog (E × List ColumnClaim)
@@ -1496,7 +1535,7 @@ def tableTerms (constraintPowers formPowers point : List E) :
     tableTerms constraintPowers formPowers point rest (cursor + table.nConstraints) final claims
 
 /-- `table_sumcheck(table_log_heights, bus_forms, constraint_powers, form_powers,
-equality_point, target)` (`verifier.py:599-628`). -/
+equality_point, target)` (`verifier.py:612-641`). -/
 def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
     (constraintPowers formPowers equalityPoint : List E) (target : E) :
     Prog (List ColumnClaim) := do
@@ -1512,9 +1551,9 @@ def tableSumcheck (heights : List ℕ) (busForms : List (List Form))
 /-!
 ## The WHIR opening
 
-From `verifier.py`, lines 900-1086 (`derive_config`, `_ext_row`,
+From `verifier.py`, lines 920-1106 (`derive_config`, `_ext_row`,
 `sample_queries`, `_enforced_sum`, `_subspace_roots`, `_induced_weight`, `GluedClaim`,
-`verify_whir`) and 1346-1355 (`verify_stacked_opening`).
+`verify_whir`) and 1366-1375 (`verify_stacked_opening`).
 
 ### Commitments in the verifier language
 
@@ -1551,11 +1590,11 @@ level-0 reversal and the regrouping of deeper rows into `E` (`_ext_row`) are the
 /-! ### Configuration and queries -/
 
 /-- `derive_config(log_n, log_inv_rate)`: the ladder of levels, `none` outside the window
-(`verifier.py:922-937`). -/
+(`verifier.py:942-957`). -/
 def deriveConfig (logN logInvRate : ℕ) : Option (List Whir.Level) := Whir.ladder logN logInvRate
 
 /-- The loop of `sample_queries`: each sample yields up to `192 / depth` positions of `depth`
-bits, low bits first (`verifier.py:945-953`). -/
+bits, low bits first (`verifier.py:965-973`). -/
 def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → Prog (List ℕ)
   | 0, _ => return []
   | fuel + 1, remaining =>
@@ -1567,11 +1606,11 @@ def sampleQueriesAux (depth : ℕ) : ℕ → ℕ → Prog (List ℕ)
       let rest ← sampleQueriesAux depth fuel (remaining - n)
       return chunk ++ rest
 
-/-- `sample_queries(transcript, 2^depth, count)` (`verifier.py:945-953`). -/
+/-- `sample_queries(transcript, 2^depth, count)` (`verifier.py:965-973`). -/
 def sampleQueries (depth count : ℕ) : Prog (List ℕ) := sampleQueriesAux depth count count
 
 /-- `_ext_row(words)`: a deeper level's leaf words regrouped into the `E` values they encode,
-three per lane (`verifier.py:940-942`). -/
+three per lane (`verifier.py:960-962`). -/
 def extRow : List K → List E
   | c0 :: c1 :: c2 :: rest => E.ofLimbs c0 c1 c2 :: extRow rest
   | [c0, c1] => [E.ofLimbs c0 c1 0]
@@ -1579,13 +1618,13 @@ def extRow : List K → List E
   | [] => []
 
 /-- `_enforced_sum(rows, folds, query_weights)`: `Σ_q w_q · ⟨row_q, eq(folds, ·)⟩`
-(`verifier.py:956-961`). -/
+(`verifier.py:976-981`). -/
 def enforcedSum (rows : List (List E)) (folds queryWeights : List E) : E :=
   let laneWeights := eqKernel folds
   (List.zip queryWeights rows).foldl (fun total (w, row) ↦ total + w * dot row laneWeights) 0
 
 /-- The layers of `_subspace_roots`: square-and-shift the layer by the last root, pop the next
-root (`verifier.py:967-969`). -/
+root (`verifier.py:987-989`). -/
 def subspaceRootsAux : ℕ → E → List E → List E
   | 0, _, _ => []
   | n + 1, last, layer =>
@@ -1594,13 +1633,13 @@ def subspaceRootsAux : ℕ → E → List E → List E
     | root :: rest => root :: subspaceRootsAux n root rest
 
 /-- `_subspace_roots(log_n)`: `1`, then the `log_n` subspace polynomial values
-(`verifier.py:964-970`). -/
+(`verifier.py:984-990`). -/
 def subspaceRoots (logN : ℕ) : List E :=
   1 :: subspaceRootsAux logN 1 ((List.range logN).map fun i ↦ eOfNat (2 ^ (i + 1)))
 
 /-- `_induced_weight(message_log, queries, query_weights, point)`: the level's batched query
 claims as one weight at `point`, `Σ_q w_q Π_k (1 + p_k (1 + Ŵ_k(x_q)))`
-(`verifier.py:973-991`). -/
+(`verifier.py:993-1011`). -/
 def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights point : List E) : E :=
   let roots := subspaceRoots messageLog
   let inverses := roots.map fun value ↦ if value = 0 then 0 else value⁻¹
@@ -1611,7 +1650,7 @@ def inducedWeight (messageLog : ℕ) (queries : List ℕ) (queryWeights point : 
     total + product.1) 0
 
 /-- `GluedClaim`: a claim folded into the running sumcheck, and the weight it owes back
-(`verifier.py:994-1005`). -/
+(`verifier.py:1014-1025`). -/
 structure GluedClaim where
   /-- The power of the level's `λ` it was glued with. -/
   scalar : E
@@ -1620,7 +1659,7 @@ structure GluedClaim where
   /-- Its weight at the terminal point, restricted to the level's message coordinates. -/
   weightAt : List E → E
 
-/-! ### The level loop (`verifier.py:1008-1086`) -/
+/-! ### The level loop (`verifier.py:1028-1106`) -/
 
 /-- The running state of `verify_whir`. -/
 structure WhirState where
@@ -1635,7 +1674,7 @@ structure WhirState where
   glued : List GluedClaim
 
 /-- A level's fold rounds: sample, fold the running claim, read the next quadratic
-(`verifier.py:1020-1024`). Returns the state and the level's own challenges. -/
+(`verifier.py:1040-1044`). Returns the state and the level's own challenges. -/
 def foldRounds : ℕ → WhirState → List E → Prog (WhirState × List E)
   | 0, s, levelFolds => return (s, levelFolds)
   | n + 1, s, levelFolds => do
@@ -1646,7 +1685,7 @@ def foldRounds : ℕ → WhirState → List E → Prog (WhirState × List E)
       (levelFolds ++ [challenge])
 
 /-- The final level's tail rounds: sample, fold, and read the next quadratic unless it is the
-last round (`verifier.py:1067-1073`). The tail challenges and the final running claim. -/
+last round (`verifier.py:1087-1093`). The tail challenges and the final running claim. -/
 def tailRounds : ℕ → E → List E → Prog (List E × E)
   | 0, target, _ => return ([], target)
   | n + 1, _, quad => do
@@ -1659,7 +1698,7 @@ def tailRounds : ℕ → E → List E → Prog (List E × E)
       return (challenge :: rest, target)
 
 /-- Glue a level's pending claims into the running sumcheck with powers of `λ`, the running claim
-keeping `λ⁰` (`verifier.py:1058-1062`, which no longer adds the values to `running_target`). -/
+keeping `λ⁰` (`verifier.py:1078-1082`, which no longer adds the values to `running_target`). -/
 def glue (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) : WhirState :=
   (pending.foldl (fun (acc : WhirState × E) (value, intro, weightAt) ↦
     let scalar := acc.2 * lam
@@ -1673,7 +1712,7 @@ words, the message log being the one after the level's folds. -/
 def levelShape (messageLogBefore : ℕ) (level : Whir.Level) (width : ℕ) : ℕ × ℕ :=
   (messageLogBefore - level.fold + level.logInvRate, width)
 
-/-- One level of `verify_whir` and every level after it (`verifier.py:1018-1086`). `index` is
+/-- One level of `verify_whir` and every level after it (`verifier.py:1038-1106`). `index` is
 the level's index, which is also the index of the commitment it opens; `laneFolds` is
 `config.folds[0]`. -/
 def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
@@ -1720,14 +1759,14 @@ def whirLevels (logN laneFolds : ℕ) (evaluateBasis : List E → E) :
     | _ :: _ => whirLevels logN laneFolds evaluateBasis (index + 1) rest s
 
 /-- `verify_whir(log_n, log_inv_rate, target, root, evaluate_basis)`, the root being commitment
-`0` (`verifier.py:1008-1086`). -/
+`0` (`verifier.py:1028-1106`). -/
 def verifyWhir (logN logInvRate : ℕ) (target : E) (evaluateBasis : List E → E) : Prog Unit := do
   let config ← liftOption (deriveConfig logN logInvRate)
   let quad ← sumcheckRoundPoly 3 target none
   whirLevels logN ((config.head?.map (·.fold)).getD 0) evaluateBasis 0 config
     ⟨target, quad, [], []⟩
 
-/-- Read the stack's root (`verify_execution`, step 2, `verifier.py:1375`): commitment `0`, the
+/-- Read the stack's root (`verify_execution`, step 2, `verifier.py:1395`): commitment `0`, the
 shape level `0` opens it at. -/
 def commitStack (logN logInvRate : ℕ) : Prog Unit := do
   let config ← liftOption (deriveConfig logN logInvRate)
@@ -1738,7 +1777,7 @@ def commitStack (logN logInvRate : ℕ) : Prog Unit := do
     Prog.commitP height width
 
 /-- `verify_stacked_opening(root, stack_log, log_inv_rate, claims)`: batch the claims with powers
-of one challenge into one WHIR opening (`verifier.py:1349-1355`). -/
+of one challenge into one WHIR opening (`verifier.py:1369-1375`). -/
 def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) : Prog Unit := do
   let scales := powers (← Prog.sampleE) claims.length
   verifyWhir stackLog logInvRate (dot scales (claims.map (·.2)))
@@ -1747,7 +1786,7 @@ def verifyStackedOpening (stackLog logInvRate : ℕ) (claims : List StackClaim) 
 /-!
 ## Flock and ring switching
 
-From `verifier.py`, lines 1089-1340: the constants (`FIXED_CHALLENGES`,
+From `verifier.py`, lines 1109-1360: the constants (`FIXED_CHALLENGES`,
 `RING_MAP_SHIFTS`), `verify_flock_zerocheck`, `verify_flock_lincheck`, `blake2s_row_values`,
 `blake2s_bilinear`, `verify_flock`, `_phi`, `_ring_weight` and `ring_switch`.
 
@@ -1763,13 +1802,13 @@ closures do, and return the same output words.
 /-! ### Constants -/
 
 /-- `FIXED_CHALLENGES`: the seven fixed coordinates of the zerocheck point
-(`verifier.py:1096-1099`). -/
+(`verifier.py:1116-1119`). -/
 def fixedChallenges : List E := Flock.fixedPoint.toList
 
-/-- `RING_MAP_SHIFTS` (`verifier.py:1307`). -/
+/-- `RING_MAP_SHIFTS` (`verifier.py:1327`). -/
 def ringMapShifts : List ℕ := Flock.ringShifts.toList
 
-/-! ### The zerocheck (`verifier.py:1125-1149`) -/
+/-! ### The zerocheck (`verifier.py:1145-1169`) -/
 
 /-- `ZerocheckResult`. -/
 structure ZerocheckResult where
@@ -1784,7 +1823,7 @@ structure ZerocheckResult where
   /-- The claim on `C·z`. -/
   vC : E
 
-/-- `verify_flock_zerocheck(log_n)` (`verifier.py:1134-1149`): the point is the seven fixed
+/-- `verify_flock_zerocheck(log_n)` (`verifier.py:1154-1169`): the point is the seven fixed
 coordinates then sampled ones; one univariate skip round over the coset, then quadratic
 equality-mode rounds, closed by `v_a, v_b`, with `v_c = running + v_a·v_b`. -/
 def verifyFlockZerocheck (logN : ℕ) : Prog ZerocheckResult := do
@@ -1798,7 +1837,7 @@ def verifyFlockZerocheck (logN : ℕ) : Prog ZerocheckResult := do
   let vB ← Prog.readE
   return ⟨zSkip, chi, vA, vB, running + vA * vB⟩
 
-/-! ### The BLAKE2s row vectors (`verifier.py:1179-1294`) -/
+/-! ### The BLAKE2s row vectors (`verifier.py:1199-1314`) -/
 
 /-- `BLAKE2S_G_LANES` (`verifier.py:194`). -/
 def blake2sGLanes : List (ℕ × ℕ × ℕ × ℕ) :=
@@ -1873,7 +1912,7 @@ def linearRows (columnWeights : Array E) (values : Array E) (base : ℕ) : RowM 
   for bit in List.range 32 do
     setRow (base + bit) (values.getD bit 0) (weightAt columnWeights blake2sConstantColumn)
 
-/-- The forward walk of `blake2s_row_values` (`verifier.py:1249-1287`). -/
+/-- The forward walk of `blake2s_row_values` (`verifier.py:1269-1307`). -/
 def blake2sWalk (cw : Array E) : RowM Unit := do
   let constant := weightAt cw blake2sConstantColumn
   for (base, length) in [(0, 256), (640, 512), (1152, 128)] do
@@ -1911,18 +1950,18 @@ def blake2sWalk (cw : Array E) : RowM Unit := do
   setRow blake2sConstantColumn constant constant
 
 /-- `blake2s_row_values(column_weights)`: `A0·w` and `B0·w` by one forward walk of the circuit
-(`verifier.py:1179-1288`). -/
+(`verifier.py:1199-1308`). -/
 def blake2sRowValues (columnWeights : List E) : Array E × Array E :=
   let size := 2 ^ blake2sR1csLogSize
   ((blake2sWalk columnWeights.toArray).run (Array.replicate size 0, Array.replicate size 0)).2
 
 /-- `blake2s_bilinear(alpha, row_weights, column_weights)`: `e_rowᵀ (A0 + α B0) w_col`
-(`verifier.py:1291-1294`). -/
+(`verifier.py:1311-1314`). -/
 def blake2sBilinear (alpha : E) (rowWeights columnWeights : List E) : E :=
   let (left, right) := blake2sRowValues columnWeights
   dot rowWeights left.toList + alpha * dot rowWeights right.toList
 
-/-! ### The lincheck (`verifier.py:1152-1176`) -/
+/-! ### The lincheck (`verifier.py:1172-1196`) -/
 
 /-- The lincheck's row weights: the Lagrange weights at the skip challenge, along the
 equality weights of the row point (`verify_flock_lincheck`'s `e_row`). -/
@@ -1934,7 +1973,7 @@ def lincheckRowWeights (zSkip : E) (chiIn : List E) : List E :=
 def lincheckColumnWeights (chiInPrime s : List E) : List E :=
   (eqKernel chiInPrime).flatMap fun weight ↦ s.map (· * weight)
 
-/-- `verify_flock_lincheck(zc)` (`verifier.py:1152-1176`): eight plain-mode rounds bind the
+/-- `verify_flock_lincheck(zc)` (`verifier.py:1172-1196`): eight plain-mode rounds bind the
 high column coordinates; the 64 slices `s` close the terminal identity, the matrices' value from
 `ev`. Returns the claim's point and the slices. -/
 def verifyFlockLincheck (ev : Evaluations) (zc : ZerocheckResult) : Prog (List E × List E) := do
@@ -1954,21 +1993,21 @@ def verifyFlockLincheck (ev : Evaluations) (zc : ZerocheckResult) : Prog (List E
   Prog.require (terminal = rLc)
   return (chiInPrime ++ zc.chi.drop flockNumLincheckRounds, s)
 
-/-- `verify_flock(log_n)`: the zerocheck, then the lincheck (`verifier.py:1297-1301`). -/
+/-- `verify_flock(log_n)`: the zerocheck, then the lincheck (`verifier.py:1317-1321`). -/
 def verifyFlock (ev : Evaluations) (logN : ℕ) : Prog (List E × List E) := do
   let zc ← verifyFlockZerocheck logN
   verifyFlockLincheck ev zc
 
-/-! ### Ring switching (`verifier.py:1304-1340`) -/
+/-! ### Ring switching (`verifier.py:1324-1360`) -/
 
 /-- `_phi(value, challenges)`: `a ↦ a + f_p · a^(2^shift)`, stage by stage
-(`verifier.py:1310-1314`). -/
+(`verifier.py:1330-1334`). -/
 def phiMap (value : E) (challenges : List E) : E :=
   (List.zip challenges ringMapShifts).foldl
     (fun value (challenge, shift) ↦ value + challenge * value ^ (2 ^ shift)) value
 
 /-- `_ring_weight(r, r_prime, coefficients)`: `Σ_k c_k Π_n (1 + r_n^(2^k) + r'_n)`
-(`verifier.py:1317-1328`). -/
+(`verifier.py:1337-1348`). -/
 def ringWeight (r rPrime coefficients : List E) : E :=
   (coefficients.foldl (fun (acc : E × List E) c ↦
     let product := (List.zip acc.2 rPrime).foldl
@@ -1976,13 +2015,13 @@ def ringWeight (r rPrime coefficients : List E) : E :=
     (acc.1 + product, acc.2.map (· ^ 2))) (0, r)).1
 
 /-- The Frobenius coefficients of the drawn map, `Φ(a) = Σ_{k < 64} c_k a^(2^k)`
-(`verifier.py:1338`). -/
+(`verifier.py:1358`). -/
 def ringCoefficients (challenges : List E) : List E :=
   (List.range kBits).map fun k ↦
     ((List.zip challenges ringMapShifts).filter fun (_, s) ↦ k &&& s ≠ 0).foldl
       (fun acc (f, s) ↦ acc * f ^ (2 ^ (k % s))) 1
 
-/-- `ring_switch(point, s)` (`verifier.py:1331-1340`): draw the map, and return the target
+/-- `ring_switch(point, s)` (`verifier.py:1351-1360`): draw the map, and return the target
 `Σ_i g^i Φ(s_i)` and the weight `W(u) = Φ(eq(point, u))` as a function of the opening point. -/
 def ringSwitch (point s : List E) : Prog (E × (List E → E)) := do
   let challenges ← Prog.sampleN ringMapShifts.length
@@ -1995,13 +2034,14 @@ open LeanerVM.Semantics LeanerVM.Protocol.Blake2sHash
 /-!
 ## The leanVM verifier
 
-From `verifier.py`, lines 631 (`R1CS_DIGEST`), 1358-1408
-(`verify_execution`) and 346-349 (`Transcript.__init__`).
+From `verifier.py`, lines 644 (`R1CS_DIGEST`), 1378-1428
+(`verify_execution`) and 355-358 (`Transcript.__init__`).
 
 `leanVmProgram bytecode publicInput` is `verify_execution` in the verifier language, one
 `Prog` function per phase of the Python:
 
-1. the announced sizes (`readN 8`), their checks and `buildLayout`;
+1. the announced sizes (`readN 8`: the memory's log-size, the six tables' row counts, the rate),
+   their checks and `buildLayout`;
 2. the stack's root (`commitStack`, commitment `0`);
 3. the bus (`verifyBusBalance`);
 4. the table sumcheck (`tableSumcheck`) at the bus point;
@@ -2027,19 +2067,19 @@ on machine words, as `LeanerVM.Spec.Fast.FieldWords` compiles the field arithmet
 /-! ### The program -/
 
 /-- The announced sizes, read and checked, and the layout they give
-(`verifier.py:1364-1372`): the layout and the WHIR rate exponent. -/
+(`verifier.py:1384-1392`): the layout and the WHIR rate exponent. -/
 def readSizes (bytecode : List K) : Prog (Layout × ℕ) := do
   let announced ← Prog.readN (2 + tables.length)
   Prog.require (announced.all fun value ↦ value.limb 1 = 0 ∧ value.limb 2 = 0)
   let logMemory := kToNat ((announced.headD 0).limb 0)
-  let tableLogs := ((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
+  let tableRows := ((announced.drop 1).take tables.length).map fun value ↦ kToNat (value.limb 0)
   let logInverseRate := kToNat ((announced.getLastD 0).limb 0)
   Prog.require (1 ≤ logInverseRate ∧ logInverseRate ≤ 4)
-  let layout ← liftOption (buildLayout bytecode logMemory tableLogs)
+  let layout ← liftOption (buildLayout bytecode logMemory tableRows)
   Prog.require (minStackedLog ≤ layout.stackLog ∧ layout.stackLog ≤ maxStackedLog)
   return (layout, logInverseRate)
 
-/-- Step 4, the table sumcheck at the bus point (`verifier.py:1380-1388`): the claims of the bus
+/-- Step 4, the table sumcheck at the bus point (`verifier.py:1400-1408`): the claims of the bus
 and of the tables. -/
 def tablePhase (layout : Layout) (bus : BusResult) : Prog (List ColumnClaim) := do
   let xi ← Prog.sampleE
@@ -2052,7 +2092,7 @@ def tablePhase (layout : Layout) (bus : BusResult) : Prog (List ColumnClaim) := 
     bus.point target
   return bus.claims ++ tableClaims
 
-/-- Step 5, binding the public input (`verifier.py:1390-1396`): a challenge, and claims on the
+/-- Step 5, binding the public input (`verifier.py:1410-1416`): a challenge, and claims on the
 three memory columns at `(challenge, 0, …, 0)`, each limb's claim the line through that limb of
 the public input's two halves, evaluated at the challenge by the verifier itself. The prover sends
 nothing. -/
@@ -2067,13 +2107,13 @@ def publicInputPhase (layout : Layout) (publicInput : Digest) : Prog (List Colum
     [memory0, memory1, memory2] publicLimbs
 
 /-- Step 7's ring-switching claim on the stack: supported on `q_flock`'s region, its weight
-carries the placement's selector (`verifier.py:1405-1406`). -/
+carries the placement's selector (`verifier.py:1425-1426`). -/
 def ringSwitchClaim (layout : Layout) (target : E) (weight : List E → E) : StackClaim :=
   let qflockPlacement := layout.placements.getD qflock default
   (fun x ↦ qflockPlacement.eqAbove x * weight (x.take qflockPlacement.vars), target)
 
 /-- `verify_execution(bytecode, public_input, proof)` without its `finish`
-(`verifier.py:1358-1407`), the fixed polynomials' values from `ev`. -/
+(`verifier.py:1378-1427`), the fixed polynomials' values from `ev`. -/
 def verifyExecution (ev : Evaluations) (bytecode : List K) (publicInput : Digest) :
     Prog Unit := do
   -- 1] memory log-size, table log-sizes, and the WHIR rate
@@ -2157,13 +2197,13 @@ def deferredProgram (c : FixedClaims) (bytecode : List K) (publicInput : Digest)
 
 /-! ### The seed and the compiled verifier -/
 
-/-- `R1CS_DIGEST` (`verifier.py:631`). -/
+/-- `R1CS_DIGEST` (`verifier.py:644`). -/
 def r1csDigest : List UInt8 :=
   [0x53, 0x7a, 0xd2, 0x07, 0x90, 0x30, 0x8f, 0x8e, 0xb8, 0xc0, 0xe8, 0xbd, 0x3e, 0x6c, 0x58, 0xee,
     0x64, 0x57, 0x33, 0x71, 0xe3, 0xd5, 0x3c, 0x30, 0x61, 0x3d, 0xd0, 0x4d, 0x87, 0xc0, 0xb7, 0xea]
 
 /-- The IV's preimage, `"leanvm" ‖ u64le(len R1CS_DIGEST) ‖ R1CS_DIGEST ‖ H(bytecode)`
-(`verifier.py:1360`). -/
+(`verifier.py:1380`). -/
 def ivPreimage (bytecodeHash : Digest) : Bytes :=
   [0x6c, 0x65, 0x61, 0x6e, 0x76, 0x6d] ++ [32, 0, 0, 0, 0, 0, 0, 0] ++ r1csDigest ++
     digestBytes bytecodeHash
@@ -2173,7 +2213,7 @@ section Hash
 variable {m : Type → Type} [Monad m] (H : Bytes → m Digest)
 
 /-- The chain's initial state with the hash `H`: `compress(IV, public_input)`, the IV being the
-hash of `ivPreimage` (`verifier.py:1359-1362`, `Transcript.__init__`). -/
+hash of `ivPreimage` (`verifier.py:1379-1382`, `Transcript.__init__`). -/
 def seedWith (bytecode : List K) (publicInput : Digest) : m Digest := do
   let bytecodeHash ← H (bytecode.flatMap kBytes)
   let fiatShamirIv ← H (ivPreimage bytecodeHash)

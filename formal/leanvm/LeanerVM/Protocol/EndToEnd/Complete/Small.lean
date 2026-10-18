@@ -1,9 +1,8 @@
 /-
   LeanerVM.Protocol.EndToEnd.Complete.Small
 
-  Completeness in the ISA's terms: a valid execution of a program that has the fill blocks, small
-  enough in steps, memory and bytecode, has a witness at sizes the verifier admits, and the honest
-  prover's proof of it is accepted.
+  Completeness in the ISA's terms: a valid execution small enough in steps, memory and bytecode
+  has a witness at sizes the verifier admits, and the honest prover's proof of it is accepted.
 -/
 
 module
@@ -15,41 +14,38 @@ public import LeanerVM.Protocol.EndToEnd.Completeness
 
 The completeness theorems of `EndToEnd.Completeness` start from a witness at admissible sizes
 (`Sizes.Admissible`), an arithmetization notion. This file closes the gap to the ISA: a valid
-execution (`ValidExecution`) of a program with the fill blocks the deployed prover pads with
-(`HasFillBlocks`), which is small in the ISA's own terms (`Trace.Small`), has a padded execution and
-a witness representing it at admissible sizes (`exists_admissible_witness`), and the honest proof of
-that witness (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the
+execution (`ValidExecution`) that is small in the ISA's own terms (`Trace.Small`) has a witness
+representing it at admissible sizes (`exists_admissible_witness`), and the honest proof of that
+witness (`honestProofOf`) is accepted (`verify_honestProofOf`), and exists as soon as the
 proof-of-work searches succeed (`honestProofOf_isSome`).
 
 ## The sizes of the witness
 
-The witness is `constraintCompleteness_heights`'s, with the `JUMP` table filled to `2^(n + 1)` for a
-run of at most `2^n` steps. Its memory log-size is `κ + 1` (the padded image), and its tables have
-log-heights at most `n`, `n + 1` for `JUMP`, at least `3` for `BLAKE2S`. The stacked size counts
-every committed column at its table's height (`blocks_total_eq`):
+The witness is `constraintCompleteness_rows`'s: its memory is the trace's, `2^κ` words, and each
+opcode table holds the run's rows of its opcode, at most `2^n` for a run of at most `2^n` steps,
+so its log-height `⌈log₂ rows⌉` is at most `n`. The stacked size counts every committed column at
+its table's height (`blocks_total_eq`):
 
   `4·2^logMem + 2^logSize + 2^(8 + τ₅) + 15·2^τ₀ + 15·2^τ₁ + 8·2^τ₂ + 15·2^τ₃ + 14·2^τ₄ + 19·2^τ₅`
 
 (the four memory columns, `BFCNT`, the Flock region of `2^8` rows per `BLAKE2S` row, and the
 committed columns of `XOR`, `MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `BLAKE2S`, the last
 without its eighteen limbs). At the witness's sizes it is at most
-`8·2^κ + 2^logSize + (72 + 28 + 256)·2^n = 8·2^κ + 2^logSize + 356·2^n`, and the verifier admits it
+`4·2^κ + 2^logSize + (86 + 256)·2^n = 4·2^κ + 2^logSize + 342·2^n`, and the verifier admits it
 when that is at most `2^maxMu = 2^28` (`exists_admissible_witness_of_budget`).
 
 ## The constants
 
 `Trace.Small` takes `n = 19`, `κ ≤ 23` and `logSize ≤ 23`:
-`8·2^23 + 2^23 + 356·2^19 = 262 144 000 ≤ 268 435 456 = 2^28`. Each constant is the largest the
-budget allows with the other two fixed (`tests/LeanerVMTests/Protocol/EndToEnd/Complete/
-Small.lean`), and `2^20` steps is past every bound: a run of `2^20` `BLAKE2S` steps alone fills
-the Flock region to `2^28` rows.
+`4·2^23 + 2^23 + 342·2^19 = 221 249 536 ≤ 268 435 456 = 2^28`. The budget has room: with the other
+two fixed, `κ = 24` or `logSize = 25` still fits, `2^20` steps does not
+(`tests/LeanerVMTests/Protocol/EndToEnd/Complete/Small.lean`): a run of `2^20` `BLAKE2S` steps
+alone fills the Flock region to `2^28` rows.
 
 ## Wrong readings excluded
 
-* The witness does not represent `t`: it represents a padding of `t` (`Trace.PaddedFrom`), the same
-  run over a memory twice the size, whose upper half holds the fill frames.
 * `Trace.Small` is sufficient, not necessary, and its three bounds trade against each other: a
-  memory of `2^24` words with a run of `2^6` steps is within the budget of
+  memory of `2^25` words with a run of `2^6` steps is within the budget of
   `exists_admissible_witness_of_budget`, which `Trace.Small` excludes.
 * The honest prover is a specification: `honestProofOf` chooses its witness classically, and is
   `none` only for an invalid rate, an execution without an admissible witness, or a proof-of-work
@@ -119,143 +115,76 @@ theorem leanIsaμ_le_of_total_le {prog : Program} {s : Sizes}
 
 /-! ## The admissible witness -/
 
-/-- A table of a run of at most `2^n` steps, `n ≥ 3`, other than `JUMP`, is filled to at most
-`2^n` rows. -/
-theorem tableHeight_le {prog : Program} {t : Trace prog} {rf : Regs K} {n τ : ℕ}
-    (hrun : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) (h3 : 3 ≤ n)
-    {op : Opcode} (hop : op ≠ .jump) : tableHeight t.runRows τ op ≤ 2 ^ n := by
-  have h8 : 8 ≤ 2 ^ n := (Nat.pow_le_pow_right (by norm_num) h3).trans_eq' (by norm_num)
-  simp only [tableHeight, hop, ↓reduceIte]
-  refine fillTarget_le ((t.runRows_le_steps hrun op).trans hn) ?_
-  cases op <;> simp only [minRows] <;> omega
+/-- An opcode table of `rows ≤ 2^n` rows has log-height at most `n`. -/
+theorem pow_clog_le {rows n : ℕ} (h : rows ≤ 2 ^ n) : 2 ^ Nat.clog 2 rows ≤ 2 ^ n :=
+  Nat.pow_le_pow_right (by norm_num) (Nat.clog_le_of_le_pow h)
 
-/-- The `JUMP` table of a run of at most `2^n` steps, `n ≥ 6`, owes at most `2^(n + 1) - 2` rows:
-it can be filled to `2^(n + 1)`. -/
-theorem owed_add_two_le {prog : Program} {t : Trace prog} {rf : Regs K} {n : ℕ}
-    (hrun : run prog t.image t.steps Regs.initial = some rf) (hn : t.steps ≤ 2 ^ n) (h6 : 6 ≤ n) :
-    t.owed + 2 ≤ 2 ^ (n + 1) := by
-  have h := jumpOwed_le (rows := t.runRows) (k := n) (by omega)
-    fun op ↦ (t.runRows_le_steps hrun op).trans hn
-  have h64 : 64 ≤ 2 ^ n := (Nat.pow_le_pow_right (by norm_num) h6).trans_eq' (by norm_num)
-  have hpow : 2 ^ (n + 1) = 2 * 2 ^ n := by ring
-  unfold Trace.owed
-  omega
-
-/-- **An admissible witness, under a budget.** A valid execution of a program with the fill blocks,
-of at most `2^n` steps (`n ≥ 6`), whose memory, bytecode and steps fit the stacked size's cap as
-`8·2^κ + 2^logSize + 356·2^n ≤ 2^28`, has a padded valid execution and a witness representing it
-that satisfies leanISA's constraint system at sizes the verifier admits. -/
+/-- **An admissible witness, under a budget.** A valid execution of at most `2^n` steps, whose
+memory, bytecode and steps fit the stacked size's cap as `4·2^κ + 2^logSize + 342·2^n ≤ 2^28`, has a
+witness representing it that satisfies leanISA's constraint system at sizes the verifier admits. -/
 theorem exists_admissible_witness_of_budget {prog : Program} {input : PublicInput}
-    {t : Trace prog} {n : ℕ} (hfill : HasFillBlocks prog) (hv : ValidExecution prog input t)
-    (hn : t.steps ≤ 2 ^ n) (h6 : 6 ≤ n)
-    (hbudget : 8 * 2 ^ t.κ + 2 ^ prog.logSize + 356 * 2 ^ n ≤ 2 ^ maxMu) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        Sizes.ofWitness w = some s ∧ s.Admissible prog := by
-  have hrun := hv.2
+    {t : Trace prog} {n : ℕ} (hv : ValidExecution prog input t) (hn : t.steps ≤ 2 ^ n)
+    (hbudget : 4 * 2 ^ t.κ + 2 ^ prog.logSize + 342 * 2 ^ n ≤ 2 ^ maxMu) :
+    ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
+      Sizes.ofWitness w = some s ∧ s.Admissible prog := by
   have hmax : 2 ^ maxMu = 2 ^ 28 := rfl
   rw [hmax] at hbudget
   -- `omega` takes `2 ^ x` for an atom without its sign: the bounds it needs, stated.
   have hL : 0 < 2 ^ prog.logSize := Nat.two_pow_pos _
-  have h64 : 64 ≤ 2 ^ n := (Nat.pow_le_pow_right (by norm_num) h6).trans_eq' (by norm_num)
-  -- The budget bounds the memory below `2^32` cells and the steps below `2^20`.
-  have hκ : t.κ < maxLogMem := by
-    have : 2 ^ t.κ < 2 ^ 25 := by omega
-    have := (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
-    unfold maxLogMem
-    omega
-  have hn20 : n < 20 := by
-    have : 2 ^ n < 2 ^ 20 := by omega
-    exact (Nat.pow_lt_pow_iff_right (by norm_num)).mp this
-  have hnrows : 2 ^ n ≤ 2 ^ maxLogRows :=
-    Nat.pow_le_pow_right (by norm_num) (by unfold maxLogRows; omega)
-  have hrows : ∀ op, op ≠ .jump → fillTarget (t.runRows op) (minRows op) ≤ 2 ^ maxLogRows :=
-    fun op hop ↦ by
-      have := tableHeight_le (τ := 0) hrun hn (by omega) hop
-      simp only [tableHeight, hop, ↓reduceIte] at this
-      exact this.trans hnrows
-  have howed := owed_add_two_le hrun hn h6
-  obtain ⟨t', hp, hκ', hv', w, hw, hrep, hlen⟩ :=
-    constraintCompleteness_heights hfill hv hκ hrows (τ := n + 1) (by unfold maxLogRows; omega)
-      (by omega) (by omega)
+  have hcap : 2 ^ n ≤ 2 ^ maxLogRows := by
+    have : 2 ^ n ≤ 2 ^ 28 := by omega
+    exact this.trans (Nat.pow_le_pow_right (by norm_num) (by unfold maxLogRows; omega))
+  have hrows : ∀ op, t.runRows op ≤ 2 ^ n := fun op ↦ (t.runRows_le_steps hv.2 op).trans hn
+  obtain ⟨w, hw, hrep, hlen⟩ := constraintCompleteness_rows hv fun op ↦ (hrows op).trans hcap
   obtain ⟨s, hs⟩ := sizes_of_satisfiedBy hw
-  refine ⟨t', hp, hv', w, s, hw, hrep, hs, ?_⟩
+  refine ⟨w, s, hw, hrep, hs, ?_⟩
   obtain ⟨hpos, rfl⟩ := eq_of_ofWitness hs
-  -- The sizes: memory `κ + 1`, and each table's log-height that of its fill-plan height.
-  have hmem : (witnessSizes w hpos).logMem = t.κ + 1 := hrep.κ_eq.trans hκ'
-  have hτ : ∀ j : Fin 6, 2 ^ (witnessSizes w hpos).τ j =
-      tableHeight t.runRows (n + 1) (fillTables.getD j .xor) := by
-    intro j
-    show 2 ^ Nat.log 2 (tableAt w ⟨j, by omega⟩).table.length = _
-    rw [hlen j]
-    obtain ⟨σ, -, hσ⟩ := tableHeight_pow (τ := n + 1) (by unfold maxLogRows; omega) hrows
-      (fillTables.getD j .xor)
-    rw [hσ, Nat.log_pow (by norm_num)]
-  have hle : ∀ j : Fin 6, j ≠ 4 → 2 ^ (witnessSizes w hpos).τ j ≤ 2 ^ n := by
-    intro j hj
-    rw [hτ j]
-    refine tableHeight_le hrun hn (by omega) ?_
-    fin_cases j <;> first | exact absurd rfl hj | decide
-  have h4 : 2 ^ (witnessSizes w hpos).τ 4 = 2 ^ (n + 1) := by
-    rw [hτ 4]
-    rfl
-  have h5 : 2 ^ 3 ≤ 2 ^ (witnessSizes w hpos).τ 5 := by
-    rw [hτ 5]
-    exact (floor_le_fillTarget _ _).trans_eq' rfl
-  have hcap : ∀ j : Fin 6, (witnessSizes w hpos).τ j ≤ maxLogRows := by
-    intro j
-    have : 2 ^ (witnessSizes w hpos).τ j ≤ 2 ^ (n + 1) := by
-      by_cases hj : j = 4
-      · subst hj
-        exact h4.le
-      · exact (hle j hj).trans (Nat.pow_le_pow_right (by norm_num) (by omega))
-    have := (Nat.pow_le_pow_iff_right (by norm_num)).mp this
-    unfold maxLogRows
-    omega
-  refine ⟨?_, ?_, hcap, (Nat.pow_le_pow_iff_right (by norm_num)).mp h5, ?_⟩
+  -- The sizes: the trace's memory, and each table's row count that of the run.
+  have hmem : (witnessSizes w hpos).logMem = t.κ := hrep.κ_eq
+  have hr : ∀ j : Fin 6, (witnessSizes w hpos).rows j = t.runRows (tableOpcode j) := hlen
+  have hle : ∀ j : Fin 6, 2 ^ (witnessSizes w hpos).τ j ≤ 2 ^ n := fun j ↦
+    pow_clog_le ((hr j).trans_le (hrows _))
+  refine ⟨?_, ?_, fun j ↦ ((hr j).trans_le (hrows _)).trans hcap, ?_⟩
   · rw [hmem]
-    have := hv.1.1
-    omega
+    exact hv.1.1
   · rw [hmem]
-    exact hκ
+    exact hv.1.2.1
   · refine leanIsaμ_le_of_total_le ?_
-    rw [blocks_total_eq, hmem, pow_add 2 8, h4]
-    have h0 := hle 0 (by decide)
-    have h1 := hle 1 (by decide)
-    have h2 := hle 2 (by decide)
-    have h3 := hle 3 (by decide)
-    have h5' := hle 5 (by decide)
-    have e1 : 2 ^ (t.κ + 1) = 2 * 2 ^ t.κ := by ring
-    have e2 : 2 ^ (n + 1) = 2 * 2 ^ n := by ring
-    rw [e1, e2]
+    rw [blocks_total_eq, hmem, pow_add 2 8]
+    have h0 := hle 0
+    have h1 := hle 1
+    have h2 := hle 2
+    have h3 := hle 3
+    have h4 := hle 4
+    have h5 := hle 5
     generalize 2 ^ (witnessSizes w hpos).τ 0 = a0 at *
     generalize 2 ^ (witnessSizes w hpos).τ 1 = a1 at *
     generalize 2 ^ (witnessSizes w hpos).τ 2 = a2 at *
     generalize 2 ^ (witnessSizes w hpos).τ 3 = a3 at *
+    generalize 2 ^ (witnessSizes w hpos).τ 4 = a4 at *
     generalize 2 ^ (witnessSizes w hpos).τ 5 = a5 at *
+    rw [hmax]
     omega
 
-/-- **An admissible witness for a small execution.** A valid execution of a program with the fill
-blocks that is small (`Trace.Small`: at most `2^19` steps, `2^23` words of memory and `2^23`
-instructions) has a witness satisfying leanISA's constraint system at sizes the verifier admits. -/
+/-- **An admissible witness for a small execution.** A valid execution that is small
+(`Trace.Small`: at most `2^19` steps, `2^23` words of memory and `2^23` instructions) has a witness
+representing it that satisfies leanISA's constraint system at sizes the verifier admits. -/
 theorem exists_admissible_witness {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hfill : HasFillBlocks prog) (hv : ValidExecution prog input t) (hsmall : t.Small) :
-    ∃ w s, SatisfiedBy prog input w ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog := by
+    (hv : ValidExecution prog input t) (hsmall : t.Small) :
+    ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
+      Sizes.ofWitness w = some s ∧ s.Admissible prog := by
   have hm : 2 ^ t.κ ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.mem_le
   have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.code_le
-  obtain ⟨-, -, -, w, s, hw, -, hs, hadm⟩ := exists_admissible_witness_of_budget (n := 19) hfill hv
-    hsmall.steps_le (by norm_num) (by unfold maxMu; omega)
-  exact ⟨w, s, hw, hs, hadm⟩
+  exact exists_admissible_witness_of_budget (n := 19) hv hsmall.steps_le (by unfold maxMu; omega)
 
 /-! ## The honest proof of an execution -/
 
 /-- The honest prover's witness for an execution `t` at rate `ρ`: the rate is valid, and `w`
-satisfies leanISA's constraint system at sizes `s` the verifier admits and represents a padded
-valid execution of `t`. -/
+satisfies leanISA's constraint system at sizes `s` the verifier admits and represents `t`. -/
 def HonestFor (prog : Program) (input : PublicInput) (t : Trace prog) (ρ : ℕ)
     (w : EnsembleWitness (leanIsaEnsemble prog)) (s : Sizes) : Prop :=
   validRate ρ ∧ SatisfiedBy prog input w ∧ Sizes.ofWitness w = some s ∧ s.Admissible prog ∧
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧ AssignmentRepresents w t'
+    AssignmentRepresents w t
 
 open Classical in
 /-- **The honest proof of an execution**: the compiled honest prover's proof, with the hash `H`, of
@@ -279,34 +208,30 @@ theorem verify_honestProofOf (H : Bytes → Digest) {prog : Program} {input : Pu
   unfold honestProofOf at h
   split_ifs at h with hc
   obtain ⟨hρ, hw, hs, hadm, -⟩ := hc.choose_spec.choose_spec
-  have hq := m3Holds_stackOf (F := Blake2sFlock.blake2sFlockSpec) hw hs
+  have hq := m3Honest_stackOf (F := Blake2sFlock.blake2sFlockSpec) hw hs padLimbs_compress
   have hrun := runI_leanVmProgram hadm hρ hq walkFaithful_blake2sFlockSpec
   exact runProof_prove H _ _ _ fuel (fun chal ↦ (hrun chal).1) (fun chal ↦ (hrun chal).2) h
 
-/-- **The honest prover succeeds on a small execution.** For a valid execution of a program with
-the fill blocks that is small, at a valid rate, the honest proof exists as soon as every
+/-- **The honest prover succeeds on a small execution.** For a valid execution that is small, at a
+valid rate, the honest proof exists as soon as every
 proof-of-work search the verifier program asks for finds a nonce below `fuel`. -/
 theorem honestProofOf_isSome {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
-    (hfill : HasFillBlocks prog) (hv : ValidExecution prog input t) (hsmall : t.Small)
+    (hv : ValidExecution prog input t) (hsmall : t.Small)
     (hρ : validRate ρ) (H : Bytes → Digest) (fuel : ℕ)
     (hpow : ∀ hist bits k cv,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
           some (.grind bits k) → findNonce H bits cv fuel ≠ none) :
     (honestProofOf H prog input t ρ fuel).isSome := by
-  have hm : 2 ^ t.κ ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.mem_le
-  have hc : 2 ^ prog.logSize ≤ 2 ^ 23 := Nat.pow_le_pow_right (by norm_num) hsmall.code_le
-  obtain ⟨t', hp, hv', w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness_of_budget (n := 19)
-    hfill hv hsmall.steps_le (by norm_num) (by unfold maxMu; omega)
-  have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, t', hp, hv', hrep⟩
+  obtain ⟨w, s, hw, hrep, hs, hadm⟩ := exists_admissible_witness hv hsmall
+  have hex : ∃ w s, HonestFor prog input t ρ w s := ⟨w, s, hρ, hw, hs, hadm, hrep⟩
   unfold honestProofOf
   split_ifs
   exact Option.isSome_iff_ne_none.mpr (prove_ne_none H _ _ _ fuel hpow)
 
-/-- **Completeness for a small execution.** A valid execution of a program with the fill blocks
-that is small, at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest
+/-- **Completeness for a small execution.** A valid execution that is small, at a valid rate: when every proof-of-work search succeeds below `fuel`, the honest
 prover outputs a proof, and the verifier accepts it, for every hash function. -/
 theorem complete_of_small {prog : Program} {input : PublicInput} {t : Trace prog} {ρ : ℕ}
-    (hfill : HasFillBlocks prog) (hv : ValidExecution prog input t) (hsmall : t.Small)
+    (hv : ValidExecution prog input t) (hsmall : t.Small)
     (hρ : validRate ρ) (H : Bytes → Digest) (fuel : ℕ)
     (hpow : ∀ hist bits k cv,
       (leanVmProgram (bytecodeWords prog) (publicDigest input)).after hist =
@@ -314,7 +239,7 @@ theorem complete_of_small {prog : Program} {input : PublicInput} {t : Trace prog
     ∃ proof, honestProofOf H prog input t ρ fuel = some proof ∧
       verifyWith (m := Id) H (bytecodeWords prog) (publicDigest input) proof = true := by
   obtain ⟨proof, h⟩ := Option.isSome_iff_exists.mp
-    (honestProofOf_isSome hfill hv hsmall hρ H fuel hpow)
+    (honestProofOf_isSome hv hsmall hρ H fuel hpow)
   exact ⟨proof, h, verify_honestProofOf H h⟩
 
 end

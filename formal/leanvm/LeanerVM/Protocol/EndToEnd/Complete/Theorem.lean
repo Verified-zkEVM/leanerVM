@@ -30,17 +30,17 @@ transcription of `verify_execution` of `python-verifier/verifier.py` at leanVM
 input (`Complete.Public`), Flock (`Complete.Flock`), ring switching (`Complete.Ring`) and the WHIR
 opening (`Whir.Complete.Opening`).
 
-* `runI_leanVmProgram`: from a stack satisfying `M3Holds` of the leanISA instance at admissible
-  sizes, for a valid rate, the honest strategy wins every interactive run with well-shaped words.
+* `runI_leanVmProgram`: from a stack satisfying `M3Honest` of the leanISA instance (`M3Holds`,
+  and every padding row holds its table's public padding row) at admissible sizes, for a valid rate, the honest strategy wins every interactive run with well-shaped words.
 * `leanVm_complete`: from a witness `w` satisfying leanISA's constraint system (`SatisfiedBy`) at
-  admissible sizes, through the adaptor's completeness (`m3Holds_stackOf`).
+  admissible sizes, through the adaptor's completeness (`m3Honest_stackOf`).
 * `exists_prove_verifyWith`: for every hash function the compiled honest prover produces a proof
   the compiled verifier accepts from the seed of the program and the public digest, as soon as
   every proof-of-work search finds its nonce below `fuel` (`exists_prove_runProof`); at BLAKE2s
   this is the deployed verifier `verify`.
-* `leanVm_complete_of_execution`: a valid execution of well-formed bytecode that fits
-  (`constraintCompleteness`) has a padded execution and a witness, at sizes for which, when they
-  are admissible, the honest strategy wins.
+* `leanVm_complete_of_execution`: a valid execution of at most `2^32` steps
+  (`constraintCompleteness`) has a witness representing it, at sizes for which, when they are
+  admissible, the honest strategy wins.
 
 The honest prover's public statement is the public input's digest `publicDigest input`, whose
 halves are the input's two memory words (`digestScalars_publicDigest`).
@@ -72,14 +72,14 @@ noncomputable def leanVmPhases (prog : Program) (s : Sizes) (q : Column (leanIsa
   ⟨hBus prog s q, hTable prog s q, hFlock prog s q, hRing⟩
 
 attribute [local irreducible] Follows in
-/-- The phases are honest for a stack satisfying `M3Holds` at admissible sizes. -/
+/-- The phases are honest for a stack satisfying `M3Honest` at admissible sizes. -/
 theorem leanVmPhases_honest {prog : Program} {s : Sizes} {input : PublicInput}
-    {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hq : M3Holds (inst prog s) input q)
+    {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hq : M3Honest (inst prog s) input q)
     (hwalk : WalkFaithful Blake2sFlock.blake2sFlockSpec) :
     (leanVmPhases prog s q).Honest prog s q where
   bus cs := follows_verifyBusBalance hs hq cs
-  table bus hb cs := follows_tablePhase hq bus hb cs
-  flock cs := follows_verifyFlock hq (terminalFaithful _ prog s hwalk) cs
+  table bus hb cs := follows_tablePhase hq.1 bus hb cs
+  flock cs := follows_verifyFlock hq.1 (terminalFaithful _ prog s hwalk) cs
   ring r hr cs := follows_ringSwitch r hr cs
 
 /-- The honest strategy of the leanVM verifier for the stack `q` and the rate `ρ`. -/
@@ -88,18 +88,18 @@ noncomputable def leanVmProver (prog : Program) (s : Sizes) (ρ : ℕ)
   honestStrategy prog s ρ q (leanVmPhases prog s q)
 
 /-- **Interactive perfect completeness from the relation.** For sizes admissible for the program,
-a valid rate and a stack satisfying `M3Holds` of the leanISA instance on the input, the honest
+a valid rate and a stack satisfying `M3Honest` of the leanISA instance on the input, the honest
 strategy makes the verifier program accept against every challenge function, committing
 well-shaped words. -/
 theorem runI_leanVmProgram {prog : Program} {s : Sizes} {input : PublicInput} {ρ : ℕ}
     {q : Column (leanIsaμ prog s)} (hs : s.Admissible prog) (hρ : validRate ρ)
-    (hq : M3Holds (inst prog s) input q) (hwalk : WalkFaithful Blake2sFlock.blake2sFlockSpec)
+    (hq : M3Honest (inst prog s) input q) (hwalk : WalkFaithful Blake2sFlock.blake2sFlockSpec)
     (chal : List Ev → E) :
     runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) (leanVmProver prog s ρ q)
         chal = some true ∧
       shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) (leanVmProver prog s ρ q)
         chal :=
-  runI_leanVmProgram_of hs hρ hq _ (leanVmPhases_honest hs hq hwalk) chal
+  runI_leanVmProgram_of hs hρ hq.1 _ (leanVmPhases_honest hs hq hwalk) chal
 
 /-- **Perfect completeness of the leanVM verifier, interactively.** A witness satisfying
 leanISA's constraint system on the input, at admissible sizes, gives, for every valid rate, a
@@ -112,8 +112,7 @@ theorem leanVm_complete {prog : Program} {input : PublicInput}
     ∃ S : Strategy, ∀ chal : List Ev → E,
       runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
         shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal :=
-  ⟨_, runI_leanVmProgram hs hρ (m3Holds_stackOf (F := Blake2sFlock.blake2sFlockSpec) h hsz)
-    hwalk⟩
+  ⟨_, runI_leanVmProgram hs hρ (m3Honest_stackOf h hsz padLimbs_compress) hwalk⟩
 
 /-- **Perfect completeness of the compiled leanVM verifier.** A witness satisfying leanISA's
 constraint system at admissible sizes and a valid rate give, for every hash function `H`, a
@@ -147,22 +146,19 @@ theorem exists_prove_verify {prog : Program} {input : PublicInput}
       verify (bytecodeWords prog) (publicDigest input) π = true :=
   exists_prove_verifyWith blake2sBytes h hsz hs hρ hwalk fuel hg
 
-/-- **From an execution.** A valid execution of well-formed bytecode that fits has a padded valid
-execution and a witness representing it at some sizes; when those sizes are admissible, for every
-valid rate the honest strategy makes the verifier program accept against every challenge
-function. -/
+/-- **From an execution.** A valid execution of at most `2^32` steps has a witness representing
+it at some sizes; when those sizes are admissible, for every valid rate the honest strategy makes
+the verifier program accept against every challenge function. -/
 theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hwf : WellFormedBytecode prog) (hv : ValidExecution prog input t) (hfit : t.Fits)
+    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ maxLogRows)
     (hwalk : WalkFaithful Blake2sFlock.blake2sFlockSpec) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        Sizes.ofWitness w = some s ∧
-        (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
-          runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
-            shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) := by
-  obtain ⟨t', ht', hv', w, hw, hrep⟩ := constraintCompleteness hwf hv hfit
+    ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
+      (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
+        runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
+          shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) := by
+  obtain ⟨w, hw, hrep⟩ := constraintCompleteness hv hsteps
   obtain ⟨s, hsz⟩ := sizes_of_satisfiedBy hw
-  exact ⟨t', ht', hv', w, s, hw, hrep, hsz, fun hs ρ hρ ↦ leanVm_complete hw hsz hs hρ hwalk⟩
+  exact ⟨w, s, hw, hrep, hsz, fun hs ρ hρ ↦ leanVm_complete hw hsz hs hρ hwalk⟩
 
 end
 end LeanerVM.Protocol.EndToEnd.Complete

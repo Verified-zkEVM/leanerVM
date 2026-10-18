@@ -278,7 +278,7 @@ example : Typed.Security (phase toy) (Seam.table toy) (Seam.pub toy) pubErrors :
 completeness theorem applies. -/
 example (P : Phases toy) (C : P.Complete) (initial : PFunctor)
     (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K) (q : Column toy.μ)
-    (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel toy) :
     Pr{let x ← (leanVmPiop P initial).execute impl input q}[x.2.2 = some ()] = 1 :=
   piop_perfectCompleteness P C initial impl input q h
 

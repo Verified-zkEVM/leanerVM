@@ -30,7 +30,7 @@ open CompPoly CPoly
 def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
 /-- A size vector with a table as tall as the memory. -/
-def s₁ : Sizes := ⟨16, by decide, ![16, 3, 16, 4, 16, 16]⟩
+def s₁ : Sizes := ⟨16, by decide, ![2 ^ 16, 2 ^ 3, 2 ^ 16, 2 ^ 4, 2 ^ 16, 2 ^ 16]⟩
 
 /-- The instance at the test's sizes, with the deployed Flock specification. -/
 abbrev I₁ : M3Instance := leanIsaInstance Blake2sFlock.blake2sFlockSpec prog4 s₁
@@ -95,7 +95,7 @@ def α₅ : List E := [0, 0, 0, 0, 1]
 #guard (fingerprintWeights (toAlpha α₅))[0] == 1
 
 /-- Sizes with a one-variable memory and one-row tables, to evaluate the boundary blocks. -/
-def sTiny : Sizes := ⟨1, by decide, ![0, 0, 0, 0, 0, 0]⟩
+def sTiny : Sizes := ⟨1, by decide, ![1, 1, 1, 1, 1, 1]⟩
 
 /-- Whether the protocol's push boundary values at a read are the Python's framework
 fingerprints (`bnd_push`). -/

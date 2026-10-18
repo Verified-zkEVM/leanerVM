@@ -99,6 +99,9 @@ abbrev twoTab : M3Instance where
     · rw [List.mem_singleton.mp h]; exact bool_totalDegree
   flushes_degree := fun _ f h ↦ absurd h List.not_mem_nil
   counts := fun _ ↦ []
+  rows := fun j ↦ 2 ^ shape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := []
   μ := 3
   layout := layout
@@ -341,6 +344,9 @@ abbrev withGroup : M3Instance where
     · rw [List.mem_singleton.mp h]; exact bool_totalDegree
   flushes_degree := fun _ f h ↦ absurd h List.not_mem_nil
   counts := fun _ ↦ []
+  rows := fun j ↦ 2 ^ groupShape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := []
   μ := 4
   layout := (groupBlocks.layout groupBlocks_total).comap (fun c ↦ c.1) fun _ ↦ rfl

@@ -1,7 +1,7 @@
 /-
   LeanerVM.Arithmetization.Completeness.Witness
 
-  The witness of a padded execution: the prover data of an image, the eight tables, and what the
+  The witness of a list of skeletons: the prover data of an image, the eight tables, and what the
   bus carries.
 -/
 
@@ -12,22 +12,22 @@ public import LeanerVM.Arithmetization.Completeness.Bus
 @[expose] public section
 
 /-!
-# The witness of a padded execution
+# The witness of a list of skeletons
 
 leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`). Category A. Given the program,
 the public input, the image `img` and a list of skeletons `S` (the states stepped from and the
-instructions fetched there: the run and the fill), `padWitness prog input img S` is Clean's
+instructions fetched there: the run's), `skelWitness prog input img S` is Clean's
 `EnsembleWitness` of the leanISA ensemble:
 
 * the prover data is the image as its `"mem"` table (`imageData`, whose `imageOf` is the image,
   `imageOf_imageData`);
-* the six opcode tables hold the rows of the skeletons of their opcode (`opTable`): `padRows img S`
+* the six opcode tables hold the rows of the skeletons of their opcode (`opTable`): `skelRows img S`
   are the rows of `S` with their counts, threaded through `S` (`Completeness.Bus`), and a table
   holds those whose instruction has its opcode;
 * the memory block holds one row per cell, `(g^i, g^(finalizes of i), the word at i)`, and the
   bytecode block one row per slot of the program, with the finalize counts the reads leave.
 
-What the bus carries (`padWitness_sends`, `messagesOn_padWitness` in `Completeness.Satisfied`) is
+What the bus carries (`skelWitness_sends`, `messagesOn_skelWitness` in `Completeness.Satisfied`) is
 the verifier's two messages, then each table's, in the ensemble's order, as the list of
 `(channel, message)` pairs the rows send. The witness is never evaluated: the memory block has
 `2^κ` rows, and every statement about it is about its rows generically (status finding E8).
@@ -114,16 +114,16 @@ theorem imageOf_imageData {κ : ℕ} (img : MemImage κ) (hκ : κ ≤ maxLogMem
 /-! ## The rows of a list of skeletons -/
 
 /-- The rows of a list of skeletons over the image `img`, numbered from zero. -/
-noncomputable def padRows {κ : ℕ} (img : MemImage κ) (S : List Skel) : List PRow :=
+noncomputable def skelRows {κ : ℕ} (img : MemImage κ) (S : List Skel) : List PRow :=
   mkRows img (fun _ ↦ 0) (fun _ ↦ 0) S
 
 /-- How many times each memory cell is read by the rows of `S`: the exponent of its finalize
 count. -/
-noncomputable def padMemFin {κ : ℕ} (img : MemImage κ) (S : List Skel) : K → ℕ :=
+noncomputable def skelMemFin {κ : ℕ} (img : MemImage κ) (S : List Skel) : K → ℕ :=
   readBump (fun _ ↦ 0) (S.flatMap fun sk ↦ readAddrs img sk.fp sk.ins)
 
 /-- How many times each bytecode slot is read by the rows of `S`. -/
-noncomputable def padBcFin (S : List Skel) : K → ℕ :=
+noncomputable def skelBcFin (S : List Skel) : K → ℕ :=
   readBump (fun _ ↦ 0) (S.map (·.pc))
 
 /-- A row of the rows of `S` is a row of a skeleton of `S`. -/
@@ -175,17 +175,17 @@ noncomputable def bcBlock (prog : Program) (data : ProverData K) (fin : K → �
     obtain ⟨i, rfl⟩ := hr
     exact rawRow_size _
 
-/-- **The witness of a padded execution.** -/
-noncomputable def padWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+/-- **The witness of a list of skeletons.** -/
+noncomputable def skelWitness (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) : EnsembleWitness (leanIsaEnsemble prog) where
-  tables := [opTable img (imageData img) (padRows img S) .xor,
-    opTable img (imageData img) (padRows img S) .mulNative,
-    opTable img (imageData img) (padRows img S) .setConstant,
-    opTable img (imageData img) (padRows img S) .deref,
-    opTable img (imageData img) (padRows img S) .jump,
-    opTable img (imageData img) (padRows img S) .blake2s,
-    memBlock img (imageData img) (padMemFin img S),
-    bcBlock prog (imageData img) (padBcFin S)]
+  tables := [opTable img (imageData img) (skelRows img S) .xor,
+    opTable img (imageData img) (skelRows img S) .mulNative,
+    opTable img (imageData img) (skelRows img S) .setConstant,
+    opTable img (imageData img) (skelRows img S) .deref,
+    opTable img (imageData img) (skelRows img S) .jump,
+    opTable img (imageData img) (skelRows img S) .blake2s,
+    memBlock img (imageData img) (skelMemFin img S),
+    bcBlock prog (imageData img) (skelBcFin S)]
   data := imageData img
   publicInput := PublicIO.ofInput input
   same_length := rfl

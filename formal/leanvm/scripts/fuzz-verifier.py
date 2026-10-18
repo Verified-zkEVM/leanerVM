@@ -25,6 +25,8 @@ Merkle opening. Each structured case changes one thing:
   opening     one bit of a level's first or last leaf word, its first sibling, its top sibling,
               and of a random opening of the level;
   public      one bit of a public input byte (0, 15, 16, 31);
+  rows        a table's announced row count one fewer, one more, zero, its full height and above
+              the cap, which moves its padding rows (or its height);
   bytecode    one bit of the first, the first nonzero, a middle and the last bytecode byte;
   length      truncations and appends of every file (whole and partial elements, words, digests).
 
@@ -66,8 +68,8 @@ from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-PIN = "a0ca7858f2533ce51abdc20bb635c007e19b26b3"
-VERIFIER_SHA256 = "ecce66e3d87d84fc9f5a65426982e1afba5128769abd449165b36288fd1da1af"
+PIN = "3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45"
+VERIFIER_SHA256 = "16ac4c0dd33894ddb14e8dad92eb7f9d75ef7d543764903aec983b45e862beef"
 FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
 ROOT = Path(__file__).resolve().parent.parent
 TREE = ROOT.parent.parent
@@ -204,6 +206,15 @@ def structured_cases(events: dict, sizes: dict, data: dict, rng: random.Random) 
         cases.append(("opening", f"opening batch {level} random byte {at - start} of the batch", [flip(O, at, rng.randrange(8))]))
     for at in (0, 15, 16, 31):
         cases.append(("public", f"public input byte {at}", [flip("public_input.bin", at)]))
+    stream = data[S]
+    for table in range(6):  # the announced row counts, scalars 1..6: the padding rows move
+        at = 24 * (1 + table)
+        rows = int.from_bytes(stream[at : at + 8], "little")
+        full = 1 << max(rows - 1, 0).bit_length()
+        changes = (("one fewer", rows - 1), ("one more", rows + 1), ("none", 0), ("a full table", full), ("above the cap", 2**32 + 1))
+        for label, value in changes:
+            if 0 <= value != rows:
+                cases.append(("rows", f"table {table} rows {rows} -> {value} ({label})", [("set", S, at, value.to_bytes(8, "little"))]))
     bytecode = data["bytecode.bin"]
     nonzero = next(i for i, b in enumerate(bytecode) if b)
     for label, at in (("byte 0", 0), (f"first nonzero byte {nonzero}", nonzero),

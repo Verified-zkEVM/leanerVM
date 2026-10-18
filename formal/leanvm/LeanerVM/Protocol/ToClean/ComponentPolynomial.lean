@@ -318,6 +318,19 @@ theorem toM3_flushes_eq (row : Fin c.width → F) (data : ProverData F) :
   intro i _
   simp only [Function.comp_apply, flushPolys_eval sep row data, AbstractInteraction.eval]
 
+/-- A flush's first coordinate is its channel's separator, a constant: it takes one value on every
+row. -/
+theorem toM3_separator {f : σ × Vector (CMvPolynomial c.width F) 16}
+    (hf : f ∈ (c.toM3 sep dir counted).flushes) (r r' : Fin c.width → F) :
+    (f.2[0]).eval r = (f.2[0]).eval r' := by
+  obtain ⟨i, -, rfl⟩ := List.mem_map.mp hf
+  have h0 : (flushPolys sep c.width i)[0] = CMvPolynomial.C (sep i.channel) := by
+    simp [flushPolys]
+  show (flushPolys sep c.width i)[0].eval r = (flushPolys sep c.width i)[0].eval r'
+  rw [h0]
+  show CMvPolynomial.eval₂ (RingHom.id F) r _ = CMvPolynomial.eval₂ (RingHom.id F) r' _
+  rw [CMvPolynomial.eval₂_C, CMvPolynomial.eval₂_C]
+
 /-- A count column is the coordinate-`1` variable of a counted interaction. -/
 theorem mem_toM3_count_iff (k : Fin c.width) :
     k ∈ (c.toM3 sep dir counted).count ↔

@@ -26,7 +26,7 @@ attribute [local irreducible] Follows
 /-! ## The phases -/
 
 example : ∀ {prog : Program} {s : Sizes} {input : PublicInput} {q : Column (leanIsaμ prog s)},
-    s.Admissible prog → M3Holds (inst prog s) input q → ∀ (cs : Commits),
+    s.Admissible prog → M3Honest (inst prog s) input q → ∀ (cs : Commits),
     Follows (fun cs' a b ↦ cs' = cs ∧ a = b ∧ BusGood prog s q b) (hBus prog s q)
       (verifyBusBalance .computed (verifierLayout prog s)) cs :=
   follows_verifyBusBalance
@@ -101,14 +101,13 @@ example : ∀ {prog : Program} {input : PublicInput} {w : EnsembleWitness (leanI
       verify (bytecodeWords prog) (publicDigest input) π = true :=
   exists_prove_verify
 
-example : ∀ {prog : Program} {input : PublicInput} {t : Trace prog}, WellFormedBytecode prog →
-    ValidExecution prog input t → t.Fits → WalkFaithful Blake2sFlock.blake2sFlockSpec →
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        Sizes.ofWitness w = some s ∧
-        (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
-          runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
-            shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) :=
+example : ∀ {prog : Program} {input : PublicInput} {t : Trace prog},
+    ValidExecution prog input t → t.steps ≤ 2 ^ maxLogRows →
+    WalkFaithful Blake2sFlock.blake2sFlockSpec →
+    ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
+      (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
+        runI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal = some true ∧
+          shapedI (leanVmProgram (bytecodeWords prog) (publicDigest input)) S chal) :=
   leanVm_complete_of_execution
 
 end LeanerVMTests.Protocol.EndToEnd.Complete.Theorem

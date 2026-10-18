@@ -455,7 +455,7 @@ example : (step jumpSentinelProg ctlImage Regs.initial >>= step jumpSentinelProg
   rw [jumpSentinel_row1, Option.bind_eq_bind, Option.bind_some, jumpSentinel_row2]
 
 /-- Yet `run` halts at `(g, g)`, so no step count is a `ValidExecution`: without
-`WellFormedBytecode`, constraint soundness would be false for this program. -/
+`SentinelSafe`, constraint soundness would be false for this program. -/
 example :
     ∀ n, run jumpSentinelProg ctlImage n Regs.initial ≠ some (Regs.final jumpSentinelProg) := by
   intro n

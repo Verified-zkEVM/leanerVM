@@ -33,6 +33,8 @@ completeness is owed only on terms within the bound. No polynomial with coeffici
 built: the row polynomials are over `K` and the weights carry `E`.
 
 * `commit`: the statement is the public input; it holds when `M3Holds` of the oracle itself.
+  Completeness starts from `commitHonest`, which also asks the padding rows to be honest
+  (`M3Honest`): soundness cannot extract them.
 * `bus`: the point, the forms and totals, and the boundary claims; it holds when every
   constraint's extension is zero at the point, the forms sum to the totals, every claim holds,
   and so do the public lines and the Flock predicate.
@@ -166,6 +168,9 @@ def of {S : Type} (P : S → Column I.μ → Prop) : Set ((S × ∀ i, TheOracle
 /-- After the commit phase: `M3Holds` of the oracle itself, which pins the oracle to the witness
 of record. -/
 def commit := of I (M3Holds I)
+
+/-- Before the bus phase, for completeness: `M3Honest`, the stack's padding rows honest too. -/
+def commitHonest := of I (M3Honest I)
 
 /-- After the bus phase: every constraint of every sumcheck table has extension zero at the
 point, every side's forms sum to the side's total at the point, every boundary claim holds, and

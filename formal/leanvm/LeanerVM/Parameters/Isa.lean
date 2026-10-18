@@ -53,9 +53,5 @@ theorem Opcode.code_injective : Function.Injective Opcode.code := by
 /-- The greatest log-height of an opcode table (`cpu/mod.rs:60`, `MAX_LOG_ROWS`). -/
 def maxLogRows : ℕ := 32
 
-/-- The least log-height of the BLAKE2S table, eight rows (`crates/flock/src/hash.rs:281-284`,
-`min_n_blocks_log`; `cpu/filler.rs:43`). -/
-def minLogRowsBlake2s : ℕ := 3
-
 end
 end LeanerVM.Parameters

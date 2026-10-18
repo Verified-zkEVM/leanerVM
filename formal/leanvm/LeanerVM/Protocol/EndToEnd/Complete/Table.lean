@@ -623,6 +623,8 @@ theorem consPart_rowEvals {input : PublicInput} (hq : M3Holds (inst prog s) inpu
       ((List.finRange (width (opIdx 4))).map fun i ↦ ofK (rowCell prog s q 4 y i)) from rfl, h]
   exact hz
 
+-- The table heights are `Nat.clog` of the row counts, which unification unfolds.
+set_option maxHeartbeats 800000 in
 variable {prog s q} in
 /-- **The honest prover follows the table phase.** On a stack satisfying `M3Holds`, from a true
 bus result, every check of `tablePhase` passes and every claim it returns is true. -/

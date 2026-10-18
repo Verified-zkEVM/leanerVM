@@ -249,7 +249,7 @@ def trueValues (s : I.Stmt × BusOut I) (q : Column I.μ) : Fin (I.B + 3) → E 
 
 variable {I} in
 /-- A row polynomial at the lift of values in `K` is the lift of its value. -/
-private theorem evalRow_ofK {j : Fin I.ntab} (P : CMvPolynomial (I.width j) K)
+theorem evalRow_ofK {j : Fin I.ntab} (P : CMvPolynomial (I.width j) K)
     (r : Fin (I.width j) → K) : evalRow P (fun i ↦ ofK (r i)) = ofK (P.eval r) := by
   rw [evalRow, CPoly.eval₂_equiv, CMvPolynomial.eval, CPoly.eval₂_equiv]
   show _ = algebraMap K E _

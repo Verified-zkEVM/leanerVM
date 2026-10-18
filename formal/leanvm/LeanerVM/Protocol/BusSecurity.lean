@@ -20,19 +20,23 @@ round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only thro
 challenge. It is composed from the four steps' halves, at the same intermediate relations as
 `busComplete`, so every challenge keeps the error the slot assigns it:
 
-* **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1,
-  `doc/leanvm/body/05-arithmetization.tex:36-38` at leanVM `127510d1`). The
-  state after them is `afterChallenge`: the push and pull products agree at `(α, β)`, every count
-  cell is nonzero, every constraint vanishes, and the public lines and the Flock predicate hold.
-  It asks the products to agree, not the multisets, since a collision of the products could be
-  charged to no later challenge. A stack outside `M3Holds` that meets the clauses no challenge
-  touches is unbalanced, and its two multisets of at most `2^{μ_bus}` tuples collide at no more
-  than `4·2^{μ_bus}·|E|⁴` of the `|E|⁵` challenges (`card_sideProduct_collision_le`).
+* **The challenges `(α, β)`** (`challengeSecurity`), at `4·2^{μ_bus}/|E|` (Theorem 5.1 and
+  Proposition `prop:pad`, `doc/leanvm/body/08-end-to-end-protocol.tex` at leanVM `3a37fb6e1`).
+  The state after them is `afterChallenge`: the push and pull products agree at `(α, β)`, the
+  count product is nonzero, every constraint vanishes, and the public lines and the Flock
+  predicate hold. It asks the products to agree, not the multisets, since a collision of the
+  products could be charged to no later challenge. A stack outside `M3Holds` whose executed count
+  cells are nonzero and that meets the clauses no challenge touches is unbalanced: its executed
+  rows' two multisets differ. Each side's product is then its executed tuples' product times its
+  padding leaves, the fingerprints of nonzero tuples whatever the padding rows hold, so the two
+  sides of at most `2^{μ_bus}` leaves collide at no more than `4·2^{μ_bus}·|E|⁴` of the `|E|⁵`
+  challenges (`card_paddedSideProduct_collision_le`). A zero executed count cell makes the count
+  product zero at every challenge (`countsNonzero_of_prod`).
 * **The roots** (`rootsSecurity`), at no error: a root that passes the check `R_c ≠ 0` and is
-  the product of its leaves makes every count cell nonzero (`prod_countLeaves_ne_zero_iff`), and
-  one root for both sides makes the products agree. This is where the check is load-bearing: a
-  zero count is otherwise balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed
-  verifier's check is `crates/verifier/src/bus.rs:117-119`).
+  the product of its leaves makes the count product nonzero, and one root for push and pull makes
+  their products agree. This is where the check is load-bearing: a zero count is otherwise
+  balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed verifier's check is
+  `crates/verifier/src/bus.rs:117-119`).
 * **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
   carry the constraints and the public lines with the Flock predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
@@ -64,19 +68,14 @@ variable {I : M3Instance}
 
 /-! ## The challenges -/
 
-/-- A push or pull side's tuples number its leaves. -/
-private theorem length_tuples {k : Fin 3} {s : Side} (hk : sources I k = sideSources I s)
-    (q : Column I.μ) : (I.tuples q s).length = leafCount I k := by
-  rw [← (sideTuples_perm q s).length_eq, sideTuples, List.length_flatMap, leafCount, hk]
-  exact congrArg List.sum (List.map_congr_left fun src _ ↦ by simp)
-
 /-- `|E| = 2^192`, counted with `Nat.card`. -/
 private theorem natCard_E : Nat.card E = 2 ^ 192 := by
   rw [Nat.card_eq_fintype_card, card_E]
 
 /-- From a stack outside `M3Holds`, at most `4·2^{μ_bus}·|E|⁴` challenges `(α, β)` lead into
-`afterChallenge`: none if a clause no challenge touches fails, a collision of the two products
-otherwise. -/
+`afterChallenge`: none if an executed count cell is zero (the count product is then zero) or a
+clause no challenge touches fails, a collision of the two products otherwise, whatever the padding
+rows hold (Proposition `prop:pad`). -/
 private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ i, TheOracle I i)
     (hs : ¬ M3Holds I s (theStack o)) :
     Nat.card {ab : (Fin 4 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} ≤
@@ -89,20 +88,24 @@ private theorem card_afterChallenge_le (h : Conditions I) (s : I.Stmt) (o : ∀ 
     have hne : (I.tuples (theStack o) .push : Multiset (Vector K 16)) ≠
         (I.tuples (theStack o) .pull : Multiset (Vector K 16)) :=
       fun he ↦ hb (Multiset.coe_eq_coe.mp he)
-    have hP : (I.tuples (theStack o) .push : Multiset (Vector K 16)).card ≤ 2 ^ I.μBus := by
-      rw [Multiset.coe_card, length_tuples (k := 0) rfl, ← blocks_total]
+    have hP : (sidePadTuples I (theStack o) .push : Multiset (Vector K 16)).card +
+        (I.tuples (theStack o) .push : Multiset (Vector K 16)).card ≤ 2 ^ I.μBus := by
+      rw [Multiset.coe_card, Multiset.coe_card, length_side (k := 0) rfl, ← blocks_total]
       exact push_fits I
-    have hQ : (I.tuples (theStack o) .pull : Multiset (Vector K 16)).card ≤ 2 ^ I.μBus := by
-      rw [Multiset.coe_card, length_tuples (k := 1) rfl]
+    have hQ : (sidePadTuples I (theStack o) .pull : Multiset (Vector K 16)).card +
+        (I.tuples (theStack o) .pull : Multiset (Vector K 16)).card ≤ 2 ^ I.μBus := by
+      rw [Multiset.coe_card, Multiset.coe_card, length_side (k := 1) rfl]
       exact h.pull_fits
     refine (Finite.card_le_of_embedding (Subtype.impEmbedding _ _ fun ab hab ↦ ?_)).trans
-      (card_sideProduct_collision_le hne hP hQ)
+      (card_paddedSideProduct_collision_le hne (fun u hu ↦ padTuple_ne_zero h hu)
+        (fun u hu ↦ padTuple_ne_zero h hu) hP hQ)
     have hprod := hab.1
     change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I ab.1 ab.2 (theStack o))[x] =
       ∏ x : Fin (2 ^ I.μBus), (pullLeaves I ab.1 ab.2 (theStack o))[x] at hprod
-    rwa [prod_pushLeaves, prod_pullLeaves h] at hprod
+    rw [prod_pushLeaves, prod_pullLeaves h] at hprod
+    exact hprod
   · have : IsEmpty {ab : (Fin 4 → E) × E // (((s, ab), o), ()) ∈ afterChallenge I} :=
-      ⟨fun ab ↦ hrest ab.2.2⟩
+      ⟨fun ab ↦ hrest ⟨countsNonzero_of_prod h _ _ _ ab.2.2.1, ab.2.2.2⟩⟩
     rw [Nat.card_of_isEmpty]
     exact Nat.zero_le _
 
@@ -130,8 +133,8 @@ def challengeSecurity (h : Conditions I) :
 
 /-! ## The roots -/
 
-/-- A root that passes the check `R_c ≠ 0` and is the product of its leaves makes every count
-cell nonzero, and one root for push and pull makes their products agree. -/
+/-- A root that passes the check `R_c ≠ 0` and is the product of its leaves makes the count
+product nonzero, and one root for push and pull makes their products agree. -/
 theorem roots_reflect (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i) (w : Unit)
     (r : E × E) (hc : decide (r.2 ≠ 0) = true)
     (hout : (((x, ![r.1, r.1, r.2]), o), w) ∈ Gkr.relIn 3 I.μBus (leaves I) (riders I)) :
@@ -144,7 +147,7 @@ theorem roots_reflect (h : Conditions I) (x : Data I) (o : ∀ i, TheOracle I i)
   have h2 : r.2 = ∏ i : Fin (2 ^ I.μBus), (leaves I x o 2)[i] := hroots 2
   have hnz : r.2 ≠ 0 := of_decide_eq_true hc
   rw [h2] at hnz
-  exact ⟨h0.symm.trans h1, (prod_countLeaves_ne_zero_iff h _ _ _).mp hnz, hcons, hl, ha⟩
+  exact ⟨h0.symm.trans h1, hnz, hcons, hl, ha⟩
 
 /-- The roots' typed security half, at no error. -/
 def rootsSecurity (h : Conditions I) :

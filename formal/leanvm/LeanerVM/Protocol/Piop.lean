@@ -27,7 +27,7 @@ batching (`opening`), after which the protocol asks the stack the batched claim.
 `leanVmPhases` fills the spine's five slots with them, `leanVmComplete` and `leanVmSecurity` fill
 the two bundles with their halves, and the spine's master theorems give the protocol's:
 
-* `leanVm_perfectCompleteness`: on every statement and stack with `M3Holds`, the honest prover
+* `leanVm_perfectCompleteness`: on every statement and stack with `M3Honest`, the honest prover
   convinces the verifier with probability one;
 * `leanVm_knowledgeSoundness`: round-by-round knowledge soundness at `piopErrors I`, with the
   composed extractor, whose stack is the committed message (`piopExtractedStack_eq`).
@@ -76,10 +76,10 @@ def leanVmSecurity (hd : I.d ≤ 2) : (leanVmPhases I h).Security where
 end Phases
 
 /-- **Perfect completeness of leanVM's oracle protocol**, typed: on every statement and stack with
-`M3Holds`, the honest prover convinces the verifier with probability one. -/
+`M3Honest`, the honest prover convinces the verifier with probability one. -/
 theorem leanVm_perfectCompleteness (I : M3Instance) (h : Bus.Conditions I) (hd : I.d ≤ 2)
     (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : I.Stmt)
-    (q : Column I.μ) (hq : ((input, fun i ↦ i.elim0), q) ∈ M3Rel I) :
+    (q : Column I.μ) (hq : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel I) :
     Pr{let x ← (leanVmPiop (leanVmPhases I h) initial).execute impl input q}[x.2.2 = some ()] =
       1 :=
   piop_perfectCompleteness _ (leanVmComplete I h hd) initial impl input q hq

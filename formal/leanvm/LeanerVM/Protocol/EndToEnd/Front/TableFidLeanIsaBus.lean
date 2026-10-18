@@ -12,8 +12,9 @@ public import LeanerVM.Protocol.EndToEnd.Front.TableFidLeanIsaRows
 public import LeanerVM.Protocol.EndToEnd.Front.TablePhase
 public import LeanerVM.Protocol.EndToEnd.Front.BusStack
 public import LeanerVM.Protocol.EndToEnd.Front.LayoutInstance
-public import LeanerVM.Protocol.EndToEnd.Complete.Bus
+public import LeanerVM.Protocol.EndToEnd.Complete.BusLayout
 public import LeanerVM.Protocol.EndToEnd.Front.FlockTerminal
+public import LeanerVM.Protocol.EndToEnd.Front.BusPadding
 
 /-!
 # The bus phase's forms and totals are the protocol's
@@ -296,11 +297,11 @@ def countSrcs (t : Fin 6) : List (Bus.Source (leanIsaInstance F prog s)) :=
 
 /-- The Python's blocks of opcode table `t` on a side. -/
 def pyBlocks (side : Side) (t : Fin 6) : List BusBlock :=
-  (Complete.pySide t side).map fun c ↦ ⟨s.τ t, c, t⟩
+  (Complete.pySide t side).map fun c ↦ ⟨s.τ t, s.rows t, c, t⟩
 
 /-- The Python's count blocks of opcode table `t`. -/
 def pyCountBlocks (t : Fin 6) : List BusBlock :=
-  (tables.getD t default).countColumns.map fun l ↦ ⟨s.τ t, [Form.col l], t⟩
+  (tables.getD t default).countColumns.map fun l ↦ ⟨s.τ t, s.rows t, [Form.col l], t⟩
 
 /-- **A side's blocks** at the instance: its boundary blocks, then the opcode tables' flushes of the
 side, table by table. -/
@@ -372,7 +373,8 @@ theorem countSrcs_map_κ (t : Fin 6) :
   have h2 : (pyCountBlocks s t).map (·.logRows) =
       List.replicate (LeanIsa.counts (opIdx t)).length (s.τ t) := by
     rw [pyCountBlocks, Complete.pyCountColumns, List.map_map, List.map_map]
-    exact (List.map_congr_left fun _ _ ↦ rfl).trans (List.map_const'.trans (by simp))
+    exact (List.map_congr_left fun _ _ ↦ rfl).trans
+      (List.map_const'.trans rfl)
   rw [h1, h2]
   rfl
 
@@ -583,7 +585,7 @@ theorem countSrcs_map_arkG (α : Fin 4 → E) (t t₀ : Fin 6)
   show ((leanIsaInstance F prog s).counts (opI F prog s t)).map (fun c ↦
       arkG F prog s α β t₀ e (Bus.Source.count (opI F prog s t) c)) =
     ((leanIsaInstance F prog s).counts (opI F prog s t)).map (fun c ↦
-      pyG 0 t₀ [1] (rowE e) ⟨s.τ t, [Form.col c.val], t⟩)
+      pyG 0 t₀ [1] (rowE e) ⟨s.τ t, s.rows t, [Form.col c.val], t⟩)
   refine List.map_congr_left fun c _ ↦ ?_
   unfold pyG
   by_cases ht : t = t₀
@@ -883,7 +885,7 @@ variable (F : FlockSpec) (prog : Program) (s : Sizes)
 /-- A boundary block's value at the low coordinates of a point, as the verifier has it. -/
 def arkB (α : Fin 4 → E) (β : E) (vals : Vector E (leanIsaInstance F prog s).busClaims)
     (p : List E) (src : Bus.Source (leanIsaInstance F prog s)) : E :=
-  src.boundaryValue α β vals (vecOf src.κ p)
+  src.publicValue α β vals (vecOf src.κ p)
 
 /-- The weighted coordinates of a boundary block written from a list. -/
 theorem sum_coords {alphas : List E} (ha : alphas.length = 4) {κ : ℕ}
@@ -1025,7 +1027,7 @@ theorem bnd_push (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
     match h : w.memory, hm with
     | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
   simp only [boundary, List.filter_cons, List.filter_nil, decide_true, decide_false, reduceCtorEq,
-    ↓reduceIte, List.map_cons, List.map_nil, arkB, Bus.Source.boundaryValue, Bus.Source.κ,
+    ↓reduceIte, List.map_cons, List.map_nil, arkB, Bus.Source.publicValue, Bus.Source.κ,
     fingerprints]
   rw [sum_coords_dot F prog s ha _ _ (by simp), sum_coords_dot F prog s ha _ _ (by simp),
     sum_coords_dot F prog s ha _ _ (by simp)]
@@ -1055,7 +1057,7 @@ theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
     match h : w.memory, hm with
     | [a, b, c], _ => exact ⟨a, b, c, rfl⟩
   simp only [boundary, List.filter_cons, List.filter_nil, decide_true, decide_false, reduceCtorEq,
-    ↓reduceIte, List.map_cons, List.map_nil, arkB, Bus.Source.boundaryValue, Bus.Source.κ,
+    ↓reduceIte, List.map_cons, List.map_nil, arkB, Bus.Source.publicValue, Bus.Source.κ,
     fingerprints]
   rw [sum_coords_dot F prog s ha _ _ (by simp), sum_coords_dot F prog s ha _ _ (by simp),
     sum_coords_dot F prog s ha _ _ (by simp)]
@@ -1074,21 +1076,166 @@ theorem bnd_pull (w : BusWit) (ha : w.alphas.length = 4) (hm : w.memory.length =
 
 end Boundary
 
+/-! ## The padding rows -/
+
+section Padding
+
+variable (F : FlockSpec) (prog : Program) (s : Sizes)
+
+/-- The Python's padding term of a block (`padding_rows`, `verifier.py:601`): the padding weight of
+its owner's rows times its form at the owner's padding row, plus one. -/
+def pyPad (w : List E) (β : E) (p : List E) (b : BusBlock) : E :=
+  paddingWeight (p.take b.logRows) b.rows *
+    (Complete.blockVal β w b ((tables.getD b.owner default).padding.getD · 0) + 1)
+
+/-- Opcode table `t`'s padding row, lifted to `E`. -/
+def padE (t : Fin 6) : Fin ((leanIsaInstance F prog s).width (opI F prog s t)) → E :=
+  fun i ↦ ofK ((leanIsaInstance F prog s).padRow (opI F prog s t) i)
+
+/-- Lifting a list's entry is reading the lifted list. -/
+private theorem ofK_getD : ∀ (l : List K) (i : ℕ), ofK (l.getD i 0) = (l.map ofK).getD i 0
+  | [], _ => by
+    simp only [List.getD_nil, List.map_nil]
+    exact map_zero (algebraMap K E)
+  | _ :: _, 0 => rfl
+  | _ :: l, i + 1 => ofK_getD l i
+
+/-- The padding row, as the Python reads columns, is the Python's `Table.padding`. -/
+theorem rowE_padE (t : Fin 6) :
+    rowE (padE F prog s t) = fun i ↦ (tables.getD t default).padding.getD i 0 := by
+  funext i
+  have hw : (padRowK (tables.getD t default)).length = width (opIdx t) := by
+    rw [width_opIdx, padRowK, List.length_map]
+    rfl
+  have h3 : (opIdx t).val - 3 = t.val := by simp [opIdx]
+  have hrow : ∀ j : Fin (width (opIdx t)),
+      (leanIsaInstance F prog s).padRow (opI F prog s t) j =
+        (padRowK (tables.getD t default)).getD j 0 := by
+    intro j
+    show (if 3 ≤ (opIdx t).val then
+      (padRowK (tables.getD ((opIdx t).val - 3) default)).getD j 0 else 0) = _
+    rw [ite_eq_left (by simp [opIdx]), h3]
+  rw [padding_eq_map_ofK]
+  unfold rowE
+  split_ifs with h
+  · rw [padE]
+    exact (congrArg ofK (hrow ⟨i, h⟩)).trans (ofK_getD _ _)
+  · rw [List.getD_eq_default ((padRowK (tables.getD t default)).map ofK) 0
+      (by rw [List.length_map, hw]; exact Nat.le_of_not_lt h)]
+
+/-- A table's rows fit in the bus point. -/
+theorem tau_le_point (t : Fin 6) {p : List E} (hp : p.length = (leanIsaInstance F prog s).μBus) :
+    s.τ t ≤ p.length :=
+  hp ▸ ((leanIsaInstance F prog s).τ_le_τmax (stEquiv F prog s t)).trans
+    (leanIsa_conditions F prog s).τmax_le
+
+/-- The padding weight of a table's rows at the low coordinates of the bus point is the
+Python's `padding_weight`. -/
+theorem padWeight_vecOf (t : Fin 6) {p : List E} (hp : p.length = (leanIsaInstance F prog s).μBus) :
+    Bus.padWeight (s.rows t) (vecOf (s.τ t) p) = paddingWeight (p.take (s.τ t)) (s.rows t) :=
+  padWeight_ofFn_take p _ (tau_le_point F prog s t hp) (s.rows_le t)
+
+/-- A flush block's public value is its padding term: one less its form at the padding row,
+times the padding weight. -/
+theorem arkB_flush (α : Fin 4 → E) (β : E)
+    (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E) (t : Fin 6)
+    (f : Fin ((leanIsaInstance F prog s).flushes (opI F prog s t)).length) :
+    arkB F prog s α β vals p (.flush (opI F prog s t) f) =
+      (1 - arkG F prog s α β t (padE F prog s t) (.flush (opI F prog s t) f)) *
+        Bus.padWeight (s.rows t) (vecOf (s.τ t) p) := by
+  rw [arkG_flush_self]
+  have hfp : fingerprint α (Bus.padTuple (opI F prog s t) f) = ∑ i : Fin 16,
+      (fingerprintWeights α)[i.val] *
+        evalRow ((leanIsaInstance F prog s).flushes (opI F prog s t))[f].2[i] (padE F prog s t) := by
+    simp only [fingerprint, Bus.padTuple, Bus.flushPolys]
+    refine Finset.sum_congr rfl fun i _ ↦ congrArg (_ * ·) ?_
+    rw [Fin.getElem_fin, Vector.getElem_map]
+    show _ = evalRow _ (fun j ↦ ofK ((leanIsaInstance F prog s).padRow (opI F prog s t) j))
+    rw [TableSumcheck.evalRow_ofK]
+    rfl
+  rw [← hfp]
+  rfl
+
+/-- **A side's flush blocks' public values are the Python's padding terms.** -/
+theorem flushSrcs_map_arkB {alphas : List E} (ha : alphas.length = 4) (side : Side) (β : E)
+    (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E)
+    (hp : p.length = (leanIsaInstance F prog s).μBus) :
+    ((List.finRange 6).flatMap (flushSrcs F prog s side)).map
+        (arkB F prog s (toAlpha alphas) β vals p) =
+      ((List.finRange 6).flatMap (pyBlocks s side)).map (pyPad (eqKernel alphas) β p) := by
+  rw [List.map_flatMap, List.map_flatMap]
+  refine congrArg (fun g ↦ (List.finRange 6).flatMap g) (funext fun t ↦ ?_)
+  have h1 : (flushSrcs F prog s side t).map (arkB F prog s (toAlpha alphas) β vals p) =
+      ((flushSrcs F prog s side t).map
+        (arkG F prog s (toAlpha alphas) β t (padE F prog s t))).map
+          fun a ↦ (1 - a) * Bus.padWeight (s.rows t) (vecOf (s.τ t) p) := by
+    rw [List.map_map]
+    refine List.map_congr_left fun src hsrc ↦ ?_
+    obtain ⟨f, -, rfl⟩ := List.mem_map.mp hsrc
+    exact arkB_flush F prog s _ β vals p t f
+  rw [h1, flushSrcs_map_arkG F prog s β ha side t t, List.map_map]
+  refine List.map_congr_left fun b hb ↦ ?_
+  obtain ⟨c, -, rfl⟩ := List.mem_map.mp hb
+  show (1 - pyG β t (eqKernel alphas) (rowE (padE F prog s t)) ⟨s.τ t, s.rows t, c, t⟩) *
+      Bus.padWeight (s.rows t) (vecOf (s.τ t) p) = pyPad (eqKernel alphas) β p ⟨s.τ t, s.rows t, c, t⟩
+  rw [pyG, ite_eq_left rfl, rowE_padE, pyPad, padWeight_vecOf F prog s t hp, CharTwo.sub_eq_add]
+  ring
+
+/-- **The count blocks' public values are the Python's padding terms.** -/
+theorem countSources_map_arkB (α : Fin 4 → E) (β : E)
+    (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E)
+    (hp : p.length = (leanIsaInstance F prog s).μBus) :
+    (Bus.countSources (leanIsaInstance F prog s)).map (arkB F prog s α β vals p) =
+      [] ++ (Complete.countBlocks s).map (pyPad [1] 0 p) := by
+  rw [countSources_leanIsa, countBlocks_eq, List.nil_append, List.map_flatMap, List.map_flatMap]
+  refine congrArg (fun g ↦ (List.finRange 6).flatMap g) (funext fun t ↦ ?_)
+  rw [pyCountBlocks, Complete.pyCountColumns, List.map_map, List.map_map, countSrcs, List.map_map]
+  refine List.map_congr_left fun c _ ↦ ?_
+  show (1 - ofK ((leanIsaInstance F prog s).padRow (opI F prog s t) c)) *
+      Bus.padWeight (s.rows t) (vecOf (s.τ t) p) =
+    pyPad [1] 0 p ⟨s.τ t, s.rows t, [Form.col c.val], t⟩
+  have hcol : (tables.getD t default).padding.getD c.val 0 =
+      ofK ((leanIsaInstance F prog s).padRow (opI F prog s t) c) := by
+    have h := congrFun (rowE_padE F prog s t) c.val
+    simp only [rowE, c.isLt, dite_true, Fin.eta, padE] at h
+    exact h.symm
+  have hbv : Complete.blockVal 0 [1] ⟨s.τ t, s.rows t, [Form.col c.val], t⟩
+      ((tables.getD t default).padding.getD · 0) = (tables.getD t default).padding.getD c.val 0 := by
+    simp [Complete.blockVal, Complete.evaluate_eq_sum, Form.col, Verifier.gpow]
+  rw [pyPad, hbv, hcol, padWeight_vecOf F prog s t hp, CharTwo.sub_eq_add]
+  ring
+
+end Padding
+
 /-! ## The totals are the Python's -/
 
-/-- **A side's boundary sum**: boundary values first, zeros after, summed against the blocks'
-selectors. -/
+/-- A sum against a framework's values followed by the blocks'. -/
+theorem sum_append_blocks (sel : ℕ → E) (A B : List E) :
+    ∑ i ∈ range (A.length + B.length), sel i * (A ++ B).getD i 0 =
+      ∑ i ∈ range A.length, sel i * A.getD i 0 +
+        ∑ i ∈ range B.length, sel (A.length + i) * B.getD i 0 := by
+  rw [Finset.sum_range_add]
+  refine congrArg₂ (· + ·) (Finset.sum_congr rfl fun i hi ↦ ?_)
+    (Finset.sum_congr rfl fun i _ ↦ ?_)
+  · rw [List.getD_append _ _ _ _ (Finset.mem_range.mp hi)]
+  · rw [List.getD_append_right _ _ _ _ (by omega), Nat.add_sub_cancel_left]
+
+/-- **A side's public sum**: the boundary values, then the table blocks' padding terms, summed
+against the blocks' selectors. -/
 theorem side_total_eq {X : Type} (L : List X) (κ : X → ℕ) (G : X → E) (fw : List ℕ)
-    (blocks : List BusBlock) (A : List E) (hκ : L.map κ = Complete.sideSizes fw blocks)
-    (hA : A.length = fw.length) (hG : L.map G = A ++ List.replicate blocks.length 0) (D : ℕ)
-    (p : List E) :
+    (blocks : List BusBlock) (A : List E) (pyv : BusBlock → E)
+    (hκ : L.map κ = Complete.sideSizes fw blocks) (hA : A.length = fw.length)
+    (hG : L.map G = A ++ blocks.map pyv) (D : ℕ) (p : List E) :
     ∑ i ∈ range L.length, Complete.blockSel (L.map κ) D i p * (L.map G).getD i 0 =
       ∑ i ∈ range fw.length,
-        Complete.blockSel (Complete.sideSizes fw blocks) D i p * A.getD i 0 := by
-  have hlen : L.length = A.length + blocks.length := by
+        Complete.blockSel (Complete.sideSizes fw blocks) D i p * A.getD i 0 +
+      ∑ i ∈ range blocks.length,
+        Complete.blockSel (Complete.sideSizes fw blocks) D (fw.length + i) p *
+          (blocks.map pyv).getD i 0 := by
+  have hlen : L.length = A.length + (blocks.map pyv).length := by
     rw [← List.length_map (f := κ), hκ, Complete.sideSizes, List.length_append, List.length_map,
-      hA]
-  rw [hκ, hG, hlen, sum_append_replicate, hA]
+      List.length_map, hA]
+  rw [hκ, hG, hlen, sum_append_blocks, hA, List.length_map]
 
 /-- A side's selectors summed. -/
 theorem side_ones_eq {X : Type} (L : List X) (κ : X → ℕ) (fw : List ℕ) (blocks : List BusBlock)
@@ -1100,7 +1247,21 @@ theorem side_ones_eq {X : Type} (L : List X) (κ : X → ℕ) (fw : List ℕ) (b
     rw [← List.length_map (f := κ), hκ, Complete.sideSizes, List.length_append, List.length_map]
   rw [sum_map_one, hκ, hlen]
 
-/-- The Python's side total, as a sum over the framework and the selectors. -/
+/-- A sum over selectors zipped with blocks, as a sum over the indices. -/
+theorem sum_zip_map (g : BusBlock → E) :
+    ∀ (sels : List E) (bs : List BusBlock), sels.length = bs.length →
+      ((List.zip sels bs).map fun x ↦ x.1 * g x.2).sum =
+        ∑ i ∈ range bs.length, sels.getD i 0 * (bs.map g).getD i 0
+  | [], [], _ => by simp
+  | [], _ :: _, h => by simp at h
+  | _ :: _, [], h => by simp at h
+  | a :: sels, b :: bs, h => by
+    rw [List.zip_cons_cons, List.map_cons, List.sum_cons, List.length_cons,
+      Finset.sum_range_succ', sum_zip_map g sels bs (by simpa using h)]
+    simp only [List.getD_cons_succ, List.getD_cons_zero, List.map_cons]
+    rw [add_comm]
+
+/-- The Python's side total, as a sum over the framework, the selectors and the padding terms. -/
 theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List ℕ)
     (blocks : List BusBlock) (fps w : List E) (β : E) (p : List E) (tv : E)
     (hfps : fps.length = fw.length) :
@@ -1108,16 +1269,37 @@ theorem accumulateSide_snd_eq (forms : List (List Form)) (side : ℕ) (fw : List
       tv + ∑ i ∈ range fw.length, Complete.blockSel (Complete.sideSizes fw blocks) p.length i p *
           (fps.map (β + ·)).getD i 0 +
         (∑ i ∈ range (fw.length + blocks.length),
-          Complete.blockSel (Complete.sideSizes fw blocks) p.length i p + 1) := by
-  rw [Complete.accumulateSide_snd]
-  congr 2
-  · rw [Whir.Complete.dot_eq_sum _ _ (by simp [Complete.sideSels, hfps])]
+          Complete.blockSel (Complete.sideSizes fw blocks) p.length i p + 1) +
+        ∑ i ∈ range blocks.length,
+          Complete.blockSel (Complete.sideSizes fw blocks) p.length (fw.length + i) p *
+            (blocks.map (pyPad w β p)).getD i 0 := by
+  have h1 : dot (Complete.sideSels fw blocks p 0 fw.length) (fps.map (β + ·)) =
+      ∑ i ∈ range fw.length, Complete.blockSel (Complete.sideSizes fw blocks) p.length i p *
+        (fps.map (β + ·)).getD i 0 := by
+    rw [Whir.Complete.dot_eq_sum _ _ (by simp [Complete.sideSels, hfps])]
     simp only [Complete.sideSels, List.length_map, List.length_range]
     refine Finset.sum_congr rfl fun i hi ↦ ?_
     rw [Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi), zero_add]
-  · rw [Whir.Complete.sumE_eq, List.sum_append, Complete.sideSels, Complete.sideSels,
+  have h2 : sumE (Complete.sideSels fw blocks p 0 fw.length ++
+      Complete.sideSels fw blocks p fw.length blocks.length) =
+      ∑ i ∈ range (fw.length + blocks.length),
+        Complete.blockSel (Complete.sideSizes fw blocks) p.length i p := by
+    rw [Whir.Complete.sumE_eq, List.sum_append, Complete.sideSels, Complete.sideSels,
       ← Complete.sum_range_eq_list, ← Complete.sum_range_eq_list, Finset.sum_range_add]
     simp only [zero_add]
+  have h3 : Complete.padSum w β p
+      (List.zip (Complete.sideSels fw blocks p fw.length blocks.length) blocks) =
+      ∑ i ∈ range blocks.length,
+        Complete.blockSel (Complete.sideSizes fw blocks) p.length (fw.length + i) p *
+          (blocks.map (pyPad w β p)).getD i 0 := by
+    unfold Complete.padSum
+    rw [show (fun x : E × BusBlock ↦ x.1 * paddingWeight (p.take x.2.logRows) x.2.rows *
+        (Complete.blockVal β w x.2 ((tables.getD x.2.owner default).padding.getD · 0) + 1)) =
+        fun x ↦ x.1 * pyPad w β p x.2 from funext fun x ↦ by rw [pyPad, mul_assoc],
+      sum_zip_map _ _ _ (by simp [Complete.sideSels])]
+    refine Finset.sum_congr rfl fun i hi ↦ ?_
+    rw [Complete.sideSels, Complete.getD_map_range _ _ _ (Finset.mem_range.mp hi)]
+  rw [Complete.accumulateSide_snd, h1, h2, h3]
 
 section Totals
 
@@ -1131,13 +1313,13 @@ theorem lowAt_eq (k : Fin 3) (b : Fin (Bus.blocks (leanIsaInstance F prog s) k).
   simp only [Bus.lowAt, Blocks.lowPoint, lowVec, vecOf, Vector.getElem_ofFn, Vector.getElem_cast]
   exact Vector.getElem_ofFn hi
 
-/-- The protocol's boundary sum of a side, read over the side's blocks in order. -/
-theorem sum_weight_boundaryValue (k : Fin 3) (α : Fin 4 → E) (β : E)
+/-- The protocol's public sum of a side, read over the side's blocks in order. -/
+theorem sum_weight_publicValue (k : Fin 3) (α : Fin 4 → E) (β : E)
     (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E)
     (hp : p.length = (leanIsaInstance F prog s).μBus) :
     ∑ b : Fin (Bus.blocks (leanIsaInstance F prog s) k).n,
         Bus.weight (leanIsa_conditions F prog s) k b (vecOf _ p) *
-          (Bus.src (leanIsaInstance F prog s) k b).boundaryValue α β vals
+          (Bus.src (leanIsaInstance F prog s) k b).publicValue α β vals
             (Bus.lowAt (leanIsa_conditions F prog s) k b (vecOf _ p)) =
       ∑ i ∈ range (Bus.sources (leanIsaInstance F prog s) k).length,
         Complete.blockSel ((Bus.sources (leanIsaInstance F prog s) k).map Bus.Source.κ)
@@ -1151,50 +1333,29 @@ theorem sum_weight_boundaryValue (k : Fin 3) (α : Fin 4 → E) (β : E)
   rw [lowAt_eq F prog s k b p]
   rfl
 
-/-- The flush blocks of a side are worth nothing on the boundary. -/
-theorem flushSrcs_map_arkB (side : Side) (α : Fin 4 → E) (β : E)
-    (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E) :
-    ((List.finRange 6).flatMap (flushSrcs F prog s side)).map (arkB F prog s α β vals p) =
-      List.replicate ((List.finRange 6).flatMap (pyBlocks s side)).length 0 := by
-  rw [map_eq_zeros _ _ fun src hsrc ↦ ?_]
-  · simp only [List.length_flatMap, length_flushSrcs]
-  · obtain ⟨t, -, ht⟩ := List.mem_flatMap.mp hsrc
-    obtain ⟨f, -, rfl⟩ := List.mem_map.mp ht
-    rfl
-
-/-- The count blocks are worth nothing on the boundary. -/
-theorem countSources_map_arkB (α : Fin 4 → E) (β : E)
-    (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E) :
-    (Bus.countSources (leanIsaInstance F prog s)).map (arkB F prog s α β vals p) =
-      [] ++ List.replicate (Complete.countBlocks s).length 0 := by
-  have hl := congrArg List.length (countSources_map_κ F prog s)
-  simp only [List.length_map, Complete.sideSizes, List.nil_append] at hl
-  rw [map_eq_zeros _ _ fun src hsrc ↦ ?_, hl, List.nil_append]
-  rw [countSources_leanIsa] at hsrc
-  obtain ⟨t, -, ht⟩ := List.mem_flatMap.mp hsrc
-  obtain ⟨c, -, rfl⟩ := List.mem_map.mp ht
-  rfl
-
-/-- A side's total, from its blocks' heights and boundary values over the Python's framework and
+/-- A side's total, from its blocks' heights and public values over the Python's framework and
 blocks. -/
 theorem total_eq (k : Fin 3) (α : Fin 4 → E) (β v : E)
     (vals : Vector E (leanIsaInstance F prog s).busClaims) (p : List E)
     (hp : p.length = (leanIsaInstance F prog s).μBus) (fw : List ℕ) (blocks : List BusBlock)
-    (A : List E) (hκ : (Bus.sources (leanIsaInstance F prog s) k).map Bus.Source.κ =
-      Complete.sideSizes fw blocks) (hA : A.length = fw.length)
+    (A : List E) (pyv : BusBlock → E) (hκ : (Bus.sources (leanIsaInstance F prog s) k).map
+      Bus.Source.κ = Complete.sideSizes fw blocks) (hA : A.length = fw.length)
     (hG : (Bus.sources (leanIsaInstance F prog s) k).map (arkB F prog s α β vals p) =
-      A ++ List.replicate blocks.length 0) :
+      A ++ blocks.map pyv) :
     Bus.total (leanIsa_conditions F prog s) k α β (vecOf _ p) v vals =
       v + ∑ i ∈ range fw.length, Complete.blockSel (Complete.sideSizes fw blocks) p.length i p *
           A.getD i 0 +
         (∑ i ∈ range (fw.length + blocks.length),
-          Complete.blockSel (Complete.sideSizes fw blocks) p.length i p + 1) := by
+          Complete.blockSel (Complete.sideSizes fw blocks) p.length i p + 1) +
+        ∑ i ∈ range blocks.length,
+          Complete.blockSel (Complete.sideSizes fw blocks) p.length (fw.length + i) p *
+            (blocks.map pyv).getD i 0 := by
   have hw1 := sum_weight_src (leanIsa_conditions F prog s) k (srcDefault F prog s)
     (fun _ ↦ (1 : E)) (vecOf _ p)
   simp only [mul_one] at hw1
   rw [toList_vecOf _ hp] at hw1
   unfold Bus.total
-  rw [sum_weight_boundaryValue F prog s k _ _ _ _ hp, hw1, side_total_eq _ _ _ _ _ _ hκ hA hG,
+  rw [sum_weight_publicValue F prog s k _ _ _ _ hp, hw1, side_total_eq _ _ _ _ _ _ _ hκ hA hG,
     side_ones_eq _ _ _ _ hκ, hp, CharTwo.sub_eq_add]
   ring
 
@@ -1221,11 +1382,11 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaInstance F pro
         (fingerprints (eqKernel w.alphas) w.memory (w.point.take s.logMem)
           (w.point.take prog.logSize)
           (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas)) (Verifier.gpow 0) 1 1).map
-            (w.beta + ·) ++ List.replicate (Complete.pushBlocks s).length 0 := by
+            (w.beta + ·) ++ (Complete.pushBlocks s).map (pyPad (eqKernel w.alphas) w.beta w.point) := by
       rw [sources_zero, sideSources_leanIsa, List.map_append, List.map_map,
-        flushSrcs_map_arkB, ← pushBlocks_eq]
+        flushSrcs_map_arkB F prog s ha .push w.beta _ _ hp, ← pushBlocks_eq]
       exact congrArg (· ++ _) (bnd_push F prog s w ha hm hlm hls)
-    refine (total_eq F prog s 0 _ _ _ _ _ hp _ _ _
+    refine (total_eq F prog s 0 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ F prog s .push _ (pushBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
     simp only [Complete.busOut, List.getD_cons_zero]
@@ -1238,19 +1399,19 @@ theorem busOut_totals (w : BusWit) (hp : w.point.length = (leanIsaInstance F pro
           (w.point.take prog.logSize)
           (multilinearEval ((verifierLayout prog s).bytecode.map ofK) (w.point.take prog.logSize ++ w.alphas))
           (Verifier.gpow (2 ^ (verifierLayout prog s).logBytecode - 1)) w.mf w.bf).map
-            (w.beta + ·) ++ List.replicate (Complete.pullBlocks s).length 0 := by
+            (w.beta + ·) ++ (Complete.pullBlocks s).map (pyPad (eqKernel w.alphas) w.beta w.point) := by
       rw [sources_one, sideSources_leanIsa, List.map_append, List.map_map,
-        flushSrcs_map_arkB, ← pullBlocks_eq]
+        flushSrcs_map_arkB F prog s ha .pull w.beta _ _ hp, ← pullBlocks_eq]
       exact congrArg (· ++ _) (bnd_pull F prog s w ha hm hlm hls)
-    refine (total_eq F prog s 1 _ _ _ _ _ hp _ _ _
+    refine (total_eq F prog s 1 _ _ _ _ _ hp _ _ _ _
       (sideSources_map_κ F prog s .pull _ (pullBlocks_eq s)) (by simp [fingerprints]; rfl)
       hG).trans ?_
     simp only [Complete.busOut, List.getD_cons_succ, List.getD_cons_zero]
     rw [Complete.layout_pull, accumulateSide_snd_eq _ _ _ _ _ _ _ _ _ (by simp [fingerprints])]
     rfl
   | ⟨2, _⟩ =>
-    refine (total_eq F prog s 2 _ _ _ _ _ hp [] (Complete.countBlocks s) []
-      (countSources_map_κ F prog s) rfl (countSources_map_arkB F prog s _ _ _ _)).trans ?_
+    refine (total_eq F prog s 2 _ _ _ _ _ hp [] (Complete.countBlocks s) [] _
+      (countSources_map_κ F prog s) rfl (countSources_map_arkB F prog s _ _ _ _ hp)).trans ?_
     simp only [Complete.busOut, List.getD_cons_succ, List.getD_cons_zero]
     rw [Complete.layout_count, accumulateSide_snd_eq _ _ _ _ _ _ _ _ _ rfl]
     rfl

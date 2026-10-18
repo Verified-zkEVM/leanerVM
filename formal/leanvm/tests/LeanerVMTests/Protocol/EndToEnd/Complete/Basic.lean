@@ -97,12 +97,13 @@ def claimFor (mode : Option E) (c : List E) : E :=
 /-- Four `XOR` instructions. -/
 def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
-/-- Sizes with a table as tall as the memory. -/
-def s₁ : Sizes := ⟨16, by decide, ![16, 3, 16, 4, 16, 16]⟩
+/-- Row counts with a table as tall as the memory, and others not powers of two: heights
+`2^16, 2^3, 2^16, 2^4, 2^16, 2^16`. -/
+def s₁ : Sizes := ⟨16, by decide, ![65536, 5, 40000, 9, 65536, 50000]⟩
 
 /-- The sizes are admissible for the program (their stacked size is `25 ≤ 28`). -/
 theorem admissible_s₁ : s₁.Admissible prog4 := by
-  refine ⟨by decide, by decide, by decide, by decide, max_le ?_ (by decide)⟩
+  refine ⟨by decide, by decide, by decide, max_le ?_ (by decide)⟩
   refine Nat.clog_le_of_le_pow ?_
   have hsum : (blocks prog4 s₁).total =
       (committedColumns.map fun c ↦ 2 ^ kappa prog4 s₁ c).sum := by

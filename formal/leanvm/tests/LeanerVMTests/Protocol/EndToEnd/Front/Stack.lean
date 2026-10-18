@@ -59,8 +59,8 @@ def col (i : ℕ) : E := (i + 2 : ℕ)
 example (w : E) : (f₁.addScaled f₂ w).evaluate col = f₁.evaluate col + w * f₂.evaluate col :=
   Form.evaluate_addScaled f₁ f₂ w col
 
-/-- A block owned by table `1`, two coordinates. -/
-def blk : BusBlock := ⟨2, [Form.col 0, Form.col 1 3], 1⟩
+/-- A block owned by table `1`, two coordinates, three of its four rows flushing. -/
+def blk : BusBlock := ⟨2, 3, [Form.col 0, Form.col 1 3], 1⟩
 
 /-- Three tables of two sides of empty forms. -/
 def forms₀ : List (List Form) := List.replicate 3 (List.replicate 2 {})

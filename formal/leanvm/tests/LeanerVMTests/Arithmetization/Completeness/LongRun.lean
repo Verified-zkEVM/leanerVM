@@ -1,30 +1,262 @@
 import LeanerVM.Arithmetization.Completeness.Theorem
-import LeanerVMTests.Arithmetization.Padding.FillBlocks
-import LeanerVMTests.Arithmetization.Padding.LongRun
+import LeanerVMTests.Arithmetization.Completeness.Fixture
 
 /-!
-# Layer 10 tests: no witness represents a run that does not fit
+# Layer 10 tests: no witness represents a run over the row cap
 
-`Trace.Fits` bounds every table's padded height by `2^32`. A witness that satisfies `Caps` has at
-most `2^32` rows in each of its eight tables, and one that represents a trace has a row for every
-step of it, with the state it steps from: distinct steps of a run that halts are distinct states,
-so distinct rows. Hence a witness that satisfies `Caps` and represents a valid trace has at most
-`8 * 2^32` steps in the trace (`steps_le_rows`).
+A valid execution is unbounded: its steps are limited only by the memory `κ ≤ 32`, and `JUMP` loads
+the frame pointer from memory, so frames `g^(4 j)` can fill all `2^32` cells. For every program
+that starts with thirty-three `SET_CONSTANT [g^0] g` and a `JUMP [g^1, g^2, g^3]` and has a
+sentinel slot (`Shape`), the run that loops over `2^30` frames, thirty-three steps each, is a valid
+execution of `33 * 2^30 + 1` steps (`long_run_valid`).
 
-The run of `Semantics.LongRun` loops `2^30` frames of thirty-three steps and a `JUMP`: it has
-`33 * 2^30 + 1 > 8 * 2^32` steps and is valid. So for every program of its shape,
-`constraintCompleteness` without the size hypothesis `hfit` is false: no witness satisfies the
-statement and represents this trace (`completeness_fails_on_long_run`), and the trace is not one
-that fits (`Semantics.LongRun`). The shape is inhabited by well formed bytecode, the compiler's
-layout with the loop in front (`completeness_needs_fit`), so the other hypothesis of the theorem
-holds and the failure is about the sizes alone.
+A witness that satisfies `Caps` has at most `2^32` rows in each of its eight tables, and one that
+represents a trace has a row for every step of it, with the state it steps from: distinct steps of
+a run that halts are distinct states, so distinct rows. Hence a witness that satisfies `Caps` and
+represents a valid trace has at most `8 * 2^32` steps in the trace (`steps_le_rows`), and no
+witness represents the long run (`completeness_fails_on_long_run`). So the row cap `hrows` of
+`constraintCompleteness_rows` cannot be dropped (`completeness_needs_rows`), on a program whose
+sentinel slot is not a `JUMP`.
 -/
 
 namespace LeanerVMTests.Arithmetization.Completeness.LongRun
 
 open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Arithmetization
 open Air.Flat (EnsembleWitness)
-open LeanerVMTests.Arithmetization.Padding.FillBlocks LeanerVMTests.Arithmetization.Padding.LongRun
+open LeanerVMTests.Arithmetization.Completeness.Fixture
+
+/-- The number of frames. -/
+def J : ℕ := 2 ^ 30
+
+/-- The image, at `κ = 32`, for the sentinel counter `fin`. -/
+def img (fin : K) : MemImage 32 := fun n ↦
+  if (n : ℕ) % 4 = 2 then (if (n : ℕ) / 4 = J - 1 then ofK fin else ofK g)
+  else if (n : ℕ) % 4 = 3 then
+    (if (n : ℕ) / 4 = J - 1 then ofK 1 else ofK (gpow (4 * ((n : ℕ) / 4 + 1))))
+  else ofK g
+
+/-- The memory of `2^32` cells holds `4 J` cells, `J` frames of four. -/
+theorem two_pow_32 : (2 : ℕ) ^ 32 = 4 * J := by norm_num [J]
+
+/-- Reading the address of a cell of the image gives the cell. -/
+theorem read_img (fin : K) (n : ℕ) (hn : n < 2 ^ 32) :
+    (img fin).read (gpow n) = some (img fin ⟨n, hn⟩) :=
+  MemImage.read_gpow (by decide) (img fin) ⟨n, hn⟩
+
+/-- Cell `4 j` of the image holds `g`: the operand of the `SET_CONSTANT`. -/
+theorem img_cell0 (fin : K) (j : ℕ) (hj : j < J) :
+    img fin ⟨4 * j, by have := two_pow_32; omega⟩ = ofK g := by
+  unfold img
+  simp
+
+/-- Cell `4 j + 1` holds `g`: the `JUMP` condition, nonzero. -/
+theorem img_cell1 (fin : K) (j : ℕ) (hj : j < J) :
+    img fin ⟨4 * j + 1, by have := two_pow_32; omega⟩ = ofK g := by
+  unfold img
+  simp
+
+/-- Cell `4 j + 2` holds `g`, the `JUMP` destination (slot `1`), except in the last frame. -/
+theorem img_cell2 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
+    img fin ⟨4 * j + 2, by have := two_pow_32; omega⟩ = ofK g := by
+  unfold img
+  have h1 : (4 * j + 2) % 4 = 2 := by omega
+  have h2 : (4 * j + 2) / 4 ≠ J - 1 := by omega
+  simp [h1, h2]
+
+/-- In the last frame that cell holds the sentinel counter. -/
+theorem img_cell2_last (fin : K) :
+    img fin ⟨4 * (J - 1) + 2, by have := two_pow_32; unfold J at *; omega⟩ = ofK fin := by
+  unfold img
+  have h1 : (4 * (J - 1) + 2) % 4 = 2 := by unfold J; omega
+  have h2 : (4 * (J - 1) + 2) / 4 = J - 1 := by unfold J; omega
+  simp [h1, h2]
+
+/-- Cell `4 j + 3` holds the next frame pointer `g^(4 (j + 1))`, except in the last frame. -/
+theorem img_cell3 (fin : K) (j : ℕ) (hj : j < J) (hne : j ≠ J - 1) :
+    img fin ⟨4 * j + 3, by have := two_pow_32; omega⟩ = ofK (gpow (4 * (j + 1))) := by
+  unfold img
+  have h1 : (4 * j + 3) % 4 ≠ 2 := by omega
+  have h2 : (4 * j + 3) % 4 = 3 := by omega
+  have h3 : (4 * j + 3) / 4 ≠ J - 1 := by omega
+  have h4 : (4 * j + 3) / 4 = j := by omega
+  simp [h2, h4, hne]
+
+/-- In the last frame that cell holds `1`, the final frame pointer. -/
+theorem img_cell3_last (fin : K) :
+    img fin ⟨4 * (J - 1) + 3, by have := two_pow_32; unfold J at *; omega⟩ = ofK 1 := by
+  unfold img
+  have h2 : (4 * (J - 1) + 3) % 4 = 3 := by unfold J; omega
+  have h3 : (4 * (J - 1) + 3) / 4 = J - 1 := by unfold J; omega
+  simp [h2, h3]
+
+/-- Slots `0 … 32` are `SET_CONSTANT [g^0] g`, slot `33` is `JUMP [g^1, g^2, g^3]`, and the
+sentinel slot lies beyond them. -/
+structure Shape (prog : Program) : Prop where
+  /-- The first thirty-three slots set the cell at the frame pointer to `g`. -/
+  sets : ∀ s, s ≤ 32 → prog.fetch (gpow s) = some (.setConstant (gpow 0) (ofK g))
+  /-- Slot `33` jumps to slot `1` in the frame its third cell names. -/
+  jump : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))
+  /-- The program has at least `2^6` slots, so the sentinel is past slot `33`. -/
+  big : 6 ≤ prog.logSize
+
+/-- The sentinel counter is none of the slots `0 … 33`. -/
+theorem Shape.finalPc_ne {prog : Program} (h : Shape prog) {s : ℕ} (hs : s ≤ 33) :
+    prog.finalPc ≠ gpow s := fun heq ↦
+  gpow_ne_finalPc prog (n := s) (by
+    have := Nat.pow_le_pow_right (show 0 < 2 by norm_num) h.big
+    omega) heq.symm
+
+/-! ## Steps -/
+
+theorem set_step (prog : Program) (fin : K) {s j : ℕ}
+    (hs : prog.fetch (gpow s) = some (.setConstant (gpow 0) (ofK g))) (hj : j < J) :
+    step prog (img fin) ⟨gpow s, gpow (4 * j)⟩ = some ⟨gpow (s + 1), gpow (4 * j)⟩ := by
+  have hlt : 4 * j < 2 ^ 32 := by have := two_pow_32; omega
+  have hr : (img fin).read (gpow (4 * j)) = some (ofK g) := by
+    rw [read_img fin (4 * j) hlt, img_cell0 fin j hj]
+  have hmul : gpow (4 * j) * gpow 0 = gpow (4 * j) := by
+    show g ^ (4 * j) * g ^ 0 = g ^ (4 * j)
+    rw [pow_zero, mul_one]
+  rw [step_of_fetch_eq_some (r := ⟨gpow s, gpow (4 * j)⟩) hs]
+  have hex := executeWith_set_of_read (read := (img fin).read) (r := ⟨gpow s, gpow (4 * j)⟩) (o := gpow 0)
+    (k := ofK g) (by show (img fin).read (gpow (4 * j) * gpow 0) = _; rw [hmul]; exact hr)
+  show executeWith (img fin).read ⟨gpow s, gpow (4 * j)⟩ (.setConstant (gpow 0) (ofK g)) = _
+  rw [hex, gpow_succ]
+  rfl
+
+/-- The `JUMP` in frame `4 j` goes to slot `1` in frame `4 (j + 1)`. -/
+theorem jump_loop (prog : Program) (fin : K) {j : ℕ} (hj : j < J) (hne : j ≠ J - 1)
+    (h33 : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))) :
+    step prog (img fin) ⟨gpow 33, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ := by
+  have hlt : ∀ o, o ≤ 3 → 4 * j + o < 2 ^ 32 := by intro o ho; have := two_pow_32; omega
+  have m1 : gpow (4 * j) * gpow 1 = gpow (4 * j + 1) := (pow_add g (4 * j) 1).symm
+  have m2 : gpow (4 * j) * gpow 2 = gpow (4 * j + 2) := (pow_add g (4 * j) 2).symm
+  have m3 : gpow (4 * j) * gpow 3 = gpow (4 * j + 3) := (pow_add g (4 * j) 3).symm
+  have hc : (img fin).read (gpow (4 * j) * gpow 1) = some (ofK g) := by
+    rw [m1, read_img fin _ (hlt 1 (by norm_num)), img_cell1 fin j hj]
+  have hd : (img fin).read (gpow (4 * j) * gpow 2) = some (ofK g) := by
+    rw [m2, read_img fin _ (hlt 2 (by norm_num)), img_cell2 fin j hj hne]
+  have hf : (img fin).read (gpow (4 * j) * gpow 3) = some (ofK (gpow (4 * (j + 1)))) := by
+    rw [m3, read_img fin _ (hlt 3 (by norm_num)), img_cell3 fin j hj hne]
+  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨gpow 33, gpow (4 * j)⟩)
+    (oc := gpow 1) (od := gpow 2) (of := gpow 3) (c := g) (d := g) (f := gpow (4 * (j + 1)))
+    hc hd hf g_ne_zero
+  rw [step_of_fetch_eq_some (r := ⟨gpow 33, gpow (4 * j)⟩) h33]
+  show executeWith (img fin).read ⟨gpow 33, gpow (4 * j)⟩ (.jump (gpow 1) (gpow 2) (gpow 3)) = _
+  rw [hex, show gpow 1 = g from pow_one g]
+
+/-- The `JUMP` in the last frame goes to the sentinel with frame pointer `1`. -/
+theorem jump_last (prog : Program) (fin : K)
+    (h33 : prog.fetch (gpow 33) = some (.jump (gpow 1) (gpow 2) (gpow 3))) :
+    step prog (img fin) ⟨gpow 33, gpow (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
+  have hlt : ∀ o, o ≤ 3 → 4 * (J - 1) + o < 2 ^ 32 := by
+    intro o ho; have := two_pow_32; unfold J at *; omega
+  have m1 : gpow (4 * (J - 1)) * gpow 1 = gpow (4 * (J - 1) + 1) :=
+    (pow_add g (4 * (J - 1)) 1).symm
+  have m2 : gpow (4 * (J - 1)) * gpow 2 = gpow (4 * (J - 1) + 2) :=
+    (pow_add g (4 * (J - 1)) 2).symm
+  have m3 : gpow (4 * (J - 1)) * gpow 3 = gpow (4 * (J - 1) + 3) :=
+    (pow_add g (4 * (J - 1)) 3).symm
+  have hJ : J - 1 < J := by unfold J; omega
+  have hc : (img fin).read (gpow (4 * (J - 1)) * gpow 1) = some (ofK g) := by
+    rw [m1, read_img fin _ (hlt 1 (by norm_num)), img_cell1 fin (J - 1) hJ]
+  have hd : (img fin).read (gpow (4 * (J - 1)) * gpow 2) = some (ofK fin) := by
+    rw [m2, read_img fin _ (hlt 2 (by norm_num)), img_cell2_last fin]
+  have hf : (img fin).read (gpow (4 * (J - 1)) * gpow 3) = some (ofK (1 : K)) := by
+    rw [m3, read_img fin _ (hlt 3 (by norm_num)), img_cell3_last fin]
+  have hex := executeWith_jump_taken (read := (img fin).read) (r := ⟨gpow 33, gpow (4 * (J - 1))⟩)
+    (oc := gpow 1) (od := gpow 2) (of := gpow 3) (c := g) (d := fin) (f := 1) hc hd hf g_ne_zero
+  rw [step_of_fetch_eq_some (r := ⟨gpow 33, gpow (4 * (J - 1))⟩) h33]
+  exact hex
+
+/-! ## Runs -/
+
+theorem run_sets (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
+    ∀ m s, s + m ≤ 33 →
+      run prog (img fin) m ⟨gpow s, gpow (4 * j)⟩ = some ⟨gpow (s + m), gpow (4 * j)⟩ := by
+  intro m
+  induction m with
+  | zero => intro s _; rfl
+  | succ m ih =>
+    intro s hs
+    have hpc : (⟨gpow s, gpow (4 * j)⟩ : Regs K).pc ≠ prog.finalPc :=
+      fun h ↦ sh.finalPc_ne (by omega) h.symm
+    have h1 := run_one hpc (set_step prog fin (sh.sets s (by omega)) hj)
+    have h2 := ih (s + 1) (by omega)
+    have := run_trans h1 h2
+    rw [show 1 + m = m + 1 by omega, show s + 1 + m = s + (m + 1) by omega] at this
+    exact this
+
+/-- The 32 `SET_CONSTANT`s of an iteration. -/
+theorem run_body (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J) :
+    run prog (img fin) 32 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 33, gpow (4 * j)⟩ :=
+  run_sets prog fin sh hj 32 1 (by norm_num)
+
+/-- Slot `33` is not the sentinel. -/
+theorem pc33_ne (prog : Program) (sh : Shape prog) (j : ℕ) :
+    (⟨gpow 33, gpow (4 * j)⟩ : Regs K).pc ≠ prog.finalPc :=
+  fun h ↦ sh.finalPc_ne (le_refl 33) h.symm
+
+/-- One iteration that loops. -/
+theorem run_iter (prog : Program) (fin : K) (sh : Shape prog) {j : ℕ} (hj : j < J)
+    (hne : j ≠ J - 1) :
+    run prog (img fin) 33 ⟨gpow 1, gpow (4 * j)⟩ = some ⟨gpow 1, gpow (4 * (j + 1))⟩ :=
+  run_trans (run_body prog fin sh hj)
+    (run_one (pc33_ne prog sh j) (jump_loop prog fin hj hne sh.jump))
+
+/-- The last iteration, which jumps to the sentinel. -/
+theorem run_last (prog : Program) (fin : K) (sh : Shape prog) :
+    run prog (img fin) 33 ⟨gpow 1, gpow (4 * (J - 1))⟩ = some ⟨fin, 1⟩ := by
+  have hJ : J - 1 < J := by unfold J; omega
+  exact run_trans (run_body prog fin sh hJ)
+    (run_one (pc33_ne prog sh (J - 1)) (jump_last prog fin sh.jump))
+
+/-- `m` looping iterations from slot `1` in frame `0` end at slot `1` in frame `4 m`. -/
+theorem run_iters (prog : Program) (fin : K) (sh : Shape prog) :
+    ∀ m, m ≤ J - 1 →
+      run prog (img fin) (33 * m) ⟨gpow 1, gpow (4 * 0)⟩ = some ⟨gpow 1, gpow (4 * m)⟩ := by
+  intro m
+  induction m with
+  | zero => intro _; rfl
+  | succ m ih =>
+    intro hm
+    have hJ : m < J := by omega
+    have := run_trans (ih (by omega)) (run_iter prog fin sh hJ (by omega))
+    rw [show 33 * m + 33 = 33 * (m + 1) by ring] at this
+    exact this
+
+/-- The whole run: slot `0`, then `J - 1` looping iterations, then the last one. -/
+theorem run_full (prog : Program) (sh : Shape prog) :
+    run prog (img prog.finalPc) (33 * J + 1) Regs.initial = some (Regs.final prog) := by
+  have hJ : 0 < J := by unfold J; omega
+  have e : (Regs.initial : Regs K) = ⟨gpow 0, gpow (4 * 0)⟩ := by
+    unfold Regs.initial
+    rw [Nat.mul_zero]
+    simp [gpow]
+  have hpc : (⟨gpow 0, gpow (4 * 0)⟩ : Regs K).pc ≠ prog.finalPc :=
+    fun h ↦ sh.finalPc_ne (by norm_num : 0 ≤ 33) h.symm
+  have h0 := run_one hpc (set_step prog prog.finalPc (sh.sets 0 (by norm_num)) hJ)
+  have h1 := run_trans h0 (run_iters prog prog.finalPc sh (J - 1) le_rfl)
+  have h2 := run_trans h1 (run_last prog prog.finalPc sh)
+  rw [e, show 33 * J + 1 = 1 + 33 * (J - 1) + 33 by omega]
+  exact h2
+
+/-- **The long valid execution.**  For every program of the shape, a valid execution with more
+than `2^35 = 8 * 2^32` steps. -/
+theorem long_run_valid (prog : Program) (sh : Shape prog) :
+    ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧ 2 ^ 35 < t.steps := by
+  have hJ : 0 < J := by unfold J; omega
+  refine ⟨⟨![g, 0, g, 0]⟩, ⟨32, img prog.finalPc, 33 * J + 1⟩, ⟨?_, run_full prog sh⟩, ?_⟩
+  · refine ⟨by show minLogMem ≤ 32; decide, by show 32 ≤ maxLogMem; decide, ?_, ?_⟩
+    · show (img prog.finalPc).read (gpow 0) = some (E.ofLimbs g 0 0)
+      have hc : img prog.finalPc ⟨0, by norm_num⟩ = ofK g := img_cell0 prog.finalPc 0 hJ
+      rw [read_img prog.finalPc 0 (by norm_num), hc, ofK_eq_ofLimbs]
+    · show (img prog.finalPc).read (gpow 1) = some (E.ofLimbs g 0 0)
+      have hc : img prog.finalPc ⟨1, by norm_num⟩ = ofK g := img_cell1 prog.finalPc 0 hJ
+      rw [read_img prog.finalPc 1 (by norm_num), hc, ofK_eq_ofLimbs]
+  · show 2 ^ 35 < 33 * J + 1
+    unfold J
+    norm_num
 
 /-! ## Distinct states -/
 
@@ -118,11 +350,8 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
     exact Fin.ext (run_inj hrun rfl ha hb)
   let T : Finset (Σ _ : Fin 8, Array K) :=
     (Finset.univ : Finset (Fin 8)).sigma fun j ↦ (tableAt w j).table.toFinset
-  have hlen' : ∀ j : Fin 8, (tableAt w j).table.length ≤ 2 ^ 32 := by
-    intro j
-    obtain ⟨τ, hτ, hl⟩ := hc.heights (tableAt w j) (mem_tables_iff.mpr ⟨j, rfl⟩)
-    rw [hl]
-    exact Nat.pow_le_pow_right (by norm_num) (by unfold maxLogRows at hτ; omega)
+  have hlen' : ∀ j : Fin 8, (tableAt w j).table.length ≤ 2 ^ 32 :=
+    fun j ↦ hc.heights (tableAt w j) (mem_tables_iff.mpr ⟨j, rfl⟩)
   calc t.steps = (Finset.univ : Finset (Fin t.steps)).card := by simp
     _ ≤ T.card := Finset.card_le_card_of_injOn (fun k ↦ (⟨j k, row k⟩ : Σ _ : Fin 8, Array K))
         (fun k _ ↦ by
@@ -138,7 +367,7 @@ theorem steps_le_rows {prog : Program} {input : PublicInput}
 
 /-! ## The refutation -/
 
-/-- **`constraintCompleteness` fails on long runs.**  For every program of the shape, there is a
+/-- **Completeness fails on long runs without the row cap.**  For every program of the shape, there is a
 valid execution that no witness of `SatisfiedBy` represents. -/
 theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
     ∃ (input : PublicInput) (t : Trace prog), ValidExecution prog input t ∧
@@ -152,110 +381,47 @@ theorem completeness_fails_on_long_run (prog : Program) (sh : Shape prog) :
   omega
 
 
-/-! ## Well formed bytecode of the shape
+/-- A program of `2^11` slots with the shape: `SET_CONSTANT [g^0] g` in slots `0 … 32`, the `JUMP`
+in slot `33`, and `SET_CONSTANT` elsewhere, the sentinel included. -/
+def shapeProg : Program :=
+  ⟨11, by decide, fun i ↦
+    if (i : ℕ) = 33 then .jump (gpow 1) (gpow 2) (gpow 3) else .setConstant (gpow 0) (ofK g)⟩
 
-The compiler's layout with the loop in front: thirty-three `SET_CONSTANT [g^0] g`, the `JUMP`, then
-for each of the six tables its blocks of sizes `128 .. 1` back to back (`263` slots a table), then
-`SET_CONSTANT` up to the sentinel at slot `2047`. -/
-
-/-- The instruction at slot `i`. -/
-def longCode (i : ℕ) : Instr :=
-  if i ≤ 32 then .setConstant (gpow 0) (ofK g)
-  else if i = 33 then .jump (gpow 1) (gpow 2) (gpow 3)
-  else if i ≤ 1611 then
-    (if (i - 34) % 263 ∈ closeOffsets then fillClose else fillDummy (tableOf ((i - 34) / 263)))
-  else .setConstant (gpow 0) (ofK g)
-
-/-- `34 + 6 * 263 = 1612` slots padded to `2^11`. -/
-def longProg : Program := ⟨11, by decide, fun i ↦ longCode i⟩
-
-/-- The instruction at a slot, fetched through the address of the slot. -/
-theorem long_fetch (n : ℕ) (hn : n < 2048) : longProg.fetch (gpow n) = some (longCode n) :=
-  longProg.fetch_gpow ⟨n, hn⟩
-
-/-- A block of the layout: size `s` at offset `c` of the `k`-th table's slots. -/
-theorem long_block (t : Opcode) (k : ℕ) (hk : k < 6) (ht : tableOf k = t) (s c : ℕ)
-    (hc : c + s < 263) (hclose : c + s ∈ closeOffsets)
-    (hdummy : ∀ j, j < s → c + j ∉ closeOffsets) :
-    IsFillBlock longProg t s (34 + 263 * k + c) := by
-  refine ⟨?_, ?_, ?_⟩
-  · show 34 + 263 * k + c + s + 1 < 2 ^ 11
-    norm_num
-    omega
-  · intro j hj
-    have hn : 34 + 263 * k + c + j < 2048 := by omega
-    rw [long_fetch _ hn]
-    congr 1
-    unfold longCode
-    have h0 : ¬ 34 + 263 * k + c + j ≤ 32 := by omega
-    have h0' : 34 + 263 * k + c + j ≠ 33 := by omega
-    have h1 : 34 + 263 * k + c + j ≤ 1611 := by omega
-    have h2 : (34 + 263 * k + c + j - 34) % 263 = c + j := by omega
-    have h3 : (34 + 263 * k + c + j - 34) / 263 = k := by omega
-    simp only [h0, h0', h1, h2, h3, hdummy j hj, ht, ↓reduceIte]
-  · have hn : 34 + 263 * k + c + s < 2048 := by omega
-    rw [long_fetch _ hn]
-    congr 1
-    unfold longCode
-    have h0 : ¬ 34 + 263 * k + c + s ≤ 32 := by omega
-    have h0' : 34 + 263 * k + c + s ≠ 33 := by omega
-    have h1 : 34 + 263 * k + c + s ≤ 1611 := by omega
-    have h2 : (34 + 263 * k + c + s - 34) % 263 = c + s := by omega
-    simp only [h0, h0', h1, h2, hclose, ↓reduceIte]
-
-/-- Every table has a block of every size. -/
-theorem long_hasFillBlocks : HasFillBlocks longProg := by
-  intro t s hs
-  obtain ⟨k, hk, ht⟩ : ∃ k, k < 6 ∧ tableOf k = t := by
-    cases t
-    exacts [⟨0, by decide, rfl⟩, ⟨1, by decide, rfl⟩, ⟨2, by decide, rfl⟩,
-      ⟨3, by decide, rfl⟩, ⟨4, by decide, rfl⟩, ⟨5, by decide, rfl⟩]
-  simp only [fillSizes, List.mem_cons, List.not_mem_nil, or_false] at hs
-  rcases hs with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-  · exact ⟨_, long_block t k hk ht 128 0 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 64 129 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 32 194 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 16 227 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 8 244 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 4 253 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 2 258 (by norm_num) (by decide) (by decide)⟩
-  · exact ⟨_, long_block t k hk ht 1 261 (by norm_num) (by decide) (by decide)⟩
-
-/-- The sentinel slot holds a `SET_CONSTANT`. -/
-theorem long_sentinelSafe : SentinelSafe longProg := by decide
-
-/-- The layout is well formed bytecode. -/
-theorem long_wellFormed : WellFormedBytecode longProg :=
-  ⟨long_sentinelSafe, long_hasFillBlocks⟩
-
-/-- It has the shape of the long run. -/
-theorem long_shape : Shape longProg where
+/-- It has the shape. -/
+theorem shapeProg_shape : Shape shapeProg where
   sets := fun s hs ↦ by
-    rw [long_fetch s (by omega)]
-    simp [longCode, hs]
+    have h := shapeProg.fetch_gpow ⟨s, by show s < 2 ^ 11; omega⟩
+    rw [h]
+    simp only [shapeProg]
+    simp [show s ≠ 33 by omega]
   jump := by
-    rw [long_fetch 33 (by norm_num)]
-    simp [longCode]
+    have h := shapeProg.fetch_gpow ⟨33, by show 33 < 2 ^ 11; norm_num⟩
+    rw [h]
+    simp [shapeProg]
   big := by decide
 
-/-- **The size hypothesis is load-bearing, for well formed bytecode.** Well formed bytecode has a
-valid execution that no witness of `SatisfiedBy` represents: `constraintCompleteness` needs `hfit`,
-and `Semantics.LongRun` shows that this trace does not fit. -/
-theorem completeness_needs_fit :
-    WellFormedBytecode longProg ∧
-      ∃ (input : PublicInput) (t : Trace longProg), ValidExecution longProg input t ∧ ¬ t.Fits ∧
-        ¬ ∃ w : EnsembleWitness (leanIsaEnsemble longProg),
-            SatisfiedBy longProg input w ∧ AssignmentRepresents w t := by
-  refine ⟨long_wellFormed, ?_⟩
-  obtain ⟨input, t, hv, hbig⟩ := long_run_valid longProg long_shape
-  have h35 : (2 : ℕ) ^ 35 = 8 * 2 ^ 32 := by norm_num
-  refine ⟨input, t, hv, fun hf ↦ ?_, ?_⟩
-  · have := hf.steps_le hv.2
-    have hcap : maxLogRows = 32 := rfl
-    rw [hcap] at this
-    omega
-  · rintro ⟨w, hsat, hrep⟩
+/-- The sentinel slot is not a `JUMP`. -/
+theorem shapeProg_sentinelSafe : SentinelSafe shapeProg := by decide
+
+/-- **The row cap is load-bearing.** A program whose sentinel slot is not a `JUMP` has a valid
+execution that no witness of `SatisfiedBy` represents; its run has more than `2^32` rows of some
+opcode, so `constraintCompleteness_rows` needs `hrows`. -/
+theorem completeness_needs_rows :
+    SentinelSafe shapeProg ∧
+      ∃ (input : PublicInput) (t : Trace shapeProg), ValidExecution shapeProg input t ∧
+        ¬ (∀ op, t.runRows op ≤ 2 ^ maxLogRows) ∧
+        ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
+            SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by
+  refine ⟨shapeProg_sentinelSafe, ?_⟩
+  obtain ⟨input, t, hv, hbig⟩ := long_run_valid shapeProg shapeProg_shape
+  have hno : ¬ ∃ w : EnsembleWitness (leanIsaEnsemble shapeProg),
+      SatisfiedBy shapeProg input w ∧ AssignmentRepresents w t := by
+    rintro ⟨w, hsat, hrep⟩
     have hle := steps_le_rows hv hsat.caps hrep
+    norm_num at hle hbig
     omega
+  refine ⟨input, t, hv, fun hrows ↦ hno ?_, hno⟩
+  obtain ⟨w, hw, hrep, -⟩ := constraintCompleteness_rows hv hrows
+  exact ⟨w, hw, hrep⟩
 
 end LeanerVMTests.Arithmetization.Completeness.LongRun

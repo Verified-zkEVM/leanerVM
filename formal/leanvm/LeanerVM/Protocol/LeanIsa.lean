@@ -135,8 +135,16 @@ structure Sizes where
   logMem : ℕ
   /-- The memory has at least two cells. -/
   logMem_pos : 0 < logMem
-  /-- The opcode tables' log-heights, in the ensemble's order. -/
-  τ : Fin 6 → ℕ
+  /-- The opcode tables' row counts, in the ensemble's order. -/
+  rows : Fin 6 → ℕ
+
+/-- An opcode table's log-height: the least `τ` with `rows ≤ 2^τ` (`log2_ceil`,
+`python-verifier/verifier.py:886`), `0` for no row. -/
+def Sizes.τ (s : Sizes) (j : Fin 6) : ℕ := Nat.clog 2 (s.rows j)
+
+/-- An opcode table's rows fit in its height. -/
+theorem Sizes.rows_le (s : Sizes) (j : Fin 6) : s.rows j ≤ 2 ^ s.τ j :=
+  Nat.le_pow_clog (by norm_num) _
 
 /-! ## The tables -/
 
@@ -160,6 +168,21 @@ def height (prog : Program) (s : Sizes) : Fin 9 → ℕ
 
 /-- The tables of the instance. -/
 def shape (prog : Program) (s : Sizes) : Shape := ⟨9, height prog s, width⟩
+
+/-- The row counts: every row of the memory, bytecode and Flock column groups, then the
+announced ones. -/
+def rows (prog : Program) (s : Sizes) : Fin 9 → ℕ
+  | ⟨0, _⟩ => 2 ^ s.logMem
+  | ⟨1, _⟩ => 2 ^ prog.logSize
+  | ⟨2, _⟩ => 2 ^ (8 + s.τ 5)
+  | ⟨j + 3, h⟩ => s.rows ⟨j, by omega⟩
+
+/-- Every table's rows fit in its height. -/
+theorem rows_le (prog : Program) (s : Sizes) : ∀ j, rows prog s j ≤ 2 ^ height prog s j
+  | ⟨0, _⟩ => le_rfl
+  | ⟨1, _⟩ => le_rfl
+  | ⟨2, _⟩ => le_rfl
+  | ⟨j + 3, h⟩ => s.rows_le ⟨j, by omega⟩
 
 /-- The constraint polynomials: the opcode tables' only. -/
 def constraints : (j : Fin 9) → List (CMvPolynomial (width j) K)
@@ -375,6 +398,27 @@ def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 3 :=
     ⟨memCol 1, input.lanes 1, input.lanes 3, false, s.logMem_pos⟩,
     ⟨memCol 2, 0, 0, false, s.logMem_pos⟩]
 
+/-- The verifier's padding row of a table, in `K` (`Table.padding`,
+`python-verifier/verifier.py:752-756`): zero, but for the `BLAKE2S` value limbs, which hold
+Flock's padding instance at their `BLAKE2S_SLOTS` slot. -/
+def padRowK (t : Verifier.Table) : List K :=
+  let slots := if t.opcode = Verifier.opBlake2s then Verifier.blake2sSlots else []
+  t.columns.map fun name ↦
+    if some name ∈ slots then K.ofBits (Verifier.paddingInstance.getD (slots.idxOf (some name)) 0)
+    else 0
+
+/-- The verifier's padding row is `padRowK`, lifted to `E`. -/
+theorem padding_eq_map_ofK (t : Verifier.Table) : t.padding = (padRowK t).map ofK := by
+  simp only [Verifier.Table.padding, padRowK, List.map_map]
+  refine List.map_congr_left fun name _ ↦ ?_
+  simp only [Function.comp_apply]
+  split_ifs <;> first | rfl | exact (map_zero (algebraMap K E)).symm
+
+/-- The public row a padding row holds: the verifier's (`padRowK`) for an opcode table, zero for
+the column groups, which have no padding row. -/
+def padRow (j : Fin 9) (i : Fin (width j)) : K :=
+  if 3 ≤ j.val then (padRowK (Verifier.tables.getD (j.val - 3) default)).getD i 0 else 0
+
 /-- The Flock region: `QFLOCK`, `2 ^ τ_BLAKE2S` blocks, with the specification's R1CS. -/
 def flockRegion (F : FlockSpec) : FlockRegion (shape prog s) := ⟨flockCol, s.τ 5, rfl, F.r1cs⟩
 
@@ -393,6 +437,9 @@ abbrev leanIsaInstance (F : FlockSpec) (prog : Program) (s : Sizes) : M3Instance
   constraints_degree := constraints_degree
   flushes_degree := flushes_degree
   counts := counts
+  rows := rows prog s
+  rows_le := rows_le prog s
+  padRow := padRow
   boundary := boundary prog s
   μ := leanIsaμ prog s
   layout := layout prog s F.slot
@@ -404,13 +451,13 @@ namespace LeanIsa
 
 /-! ## Admissible sizes -/
 
-/-- The checks the verifier makes of the announced sizes (`crates/verifier/src/layout.rs:381-395`,
-`lib.rs:219-222`): the memory window, the height cap, the `BLAKE2S` floor, and the stacked size's
-cap. The bytecode cap is `Program`'s by type, and the stacked size's floor holds by construction
+/-- The checks the verifier makes of the announced sizes (`build_layout`,
+`python-verifier/verifier.py:884`, and `:1392`): the memory window, the row cap, and the stacked
+size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor holds by construction
 (`leanIsaμ`). -/
 def Sizes.Admissible (prog : Program) (s : Sizes) : Prop :=
-  minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ (∀ j, s.τ j ≤ maxLogRows) ∧
-    minLogRowsBlake2s ≤ s.τ 5 ∧ leanIsaμ prog s ≤ maxMu
+  minLogMem ≤ s.logMem ∧ s.logMem ≤ maxLogMem ∧ (∀ j, s.rows j ≤ 2 ^ maxLogRows) ∧
+    leanIsaμ prog s ≤ maxMu
 
 instance (prog : Program) (s : Sizes) : Decidable (s.Admissible prog) :=
   inferInstanceAs (Decidable (_ ∧ _))
@@ -421,12 +468,12 @@ def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4
 
 instance (ρ : ℕ) : Decidable (validRate ρ) := inferInstanceAs (Decidable (_ ∧ _))
 
-/-- The sizes a witness carries: the memory log-size of its image and the log-heights of its six
+/-- The sizes a witness carries: the memory log-size of its image and the row counts of its six
 opcode tables; none when the image has a single word. -/
 def Sizes.ofWitness {prog : Program} (w : EnsembleWitness (leanIsaEnsemble prog)) :
     Option Sizes :=
   if h : 0 < (imageOf w.data).1 then
-    some ⟨_, h, fun j ↦ Nat.log 2 (tableAt w ⟨j, by omega⟩).table.length⟩
+    some ⟨_, h, fun j ↦ (tableAt w ⟨j, by omega⟩).table.length⟩
   else none
 
 /-! ## The witness read off a stack -/
@@ -439,9 +486,11 @@ variable (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ pro
 abbrev cell (c : Col) (x : Fin (2 ^ kappa prog s c)) : K :=
   ((leanIsaInstance F prog s).column q c).values.get x
 
-/-- The rows of opcode table `j`, read off the stack. -/
+/-- The executed rows of opcode table `j`, read off the stack: its padding rows are not the
+witness's. -/
 def opcodeRows (j : Fin 6) : List (Array K) :=
-  List.ofFn fun x : Fin (2 ^ s.τ j) ↦ Array.ofFn ((leanIsaInstance F prog s).row q (opIdx j) x)
+  List.ofFn fun x : Fin (s.rows j) ↦
+    Array.ofFn ((leanIsaInstance F prog s).row q (opIdx j) (Fin.castLE (s.rows_le j) x))
 
 /-- The memory block's rows: the index `g^x`, the finalize count `MFCNT`, the three limbs. -/
 def memBlockRowsOf : List (Array K) :=
@@ -527,9 +576,11 @@ def cellOf (t : Air.Flat.Table K) (x i : ℕ) : K := ((t.table[x]?).bind (·[i]?
 /-- The memory block's cell of memory column `i`: the limbs at `2, 3, 4`, `MFCNT` at `1`. -/
 def memRowCell : Fin 4 → ℕ := ![2, 3, 4, 1]
 
-/-- The `BLAKE2S` rows' eighteen limbs, columns `9 … 26`. -/
+/-- The `BLAKE2S` rows' eighteen limbs, columns `9 … 26`; a padding row's are the padding row's
+(`padRow`), Flock's padding instance. -/
 def blake2sLimbs (w : EnsembleWitness (leanIsaEnsemble prog)) : Vector (Fin 18 → K) (2 ^ s.τ 5) :=
-  Vector.ofFn fun x ↦ fun k ↦ cellOf (tableAt w 5) x (9 + k)
+  Vector.ofFn fun x k ↦ if x.val < s.rows 5 then cellOf (tableAt w 5) x (9 + k)
+    else padRow (opIdx 5) ⟨9 + k, by rw [width_blake2s]; omega⟩
 
 /-- The column `c` a witness carries: the memory and bytecode blocks' committed cells, `F.gen` of
 the `BLAKE2S` limbs as the Flock region, the opcode tables' cells. -/
@@ -615,6 +666,17 @@ private theorem leafCount_count_le :
   refine le_add_left (List.sum_le_sum fun j _ ↦ ?_)
   exact Nat.mul_le_mul_right _ (counts_le_pushes j)
 
+/-- Every flush's first coordinate is its channel's separator, a constant. -/
+theorem flushes_separator : ∀ j : Fin 9, ∀ g ∈ LeanIsa.flushes j, ∀ r r' : Fin (width j) → K,
+    (g.2[0]).eval r = (g.2[0]).eval r'
+  | ⟨0, _⟩ => by simp [LeanIsa.flushes]
+  | ⟨1, _⟩ => by simp [LeanIsa.flushes]
+  | ⟨2, _⟩ => by simp [LeanIsa.flushes]
+  | ⟨j + 3, h⟩ => by
+    intro g hg r r'
+    obtain ⟨g', hg', rfl⟩ := List.mem_map.mp hg
+    exact toM3_separator _ _ _ _ hg' r r'
+
 /-- The leanISA instance meets the bus phase's side conditions, at every size. -/
 theorem leanIsa_conditions : Bus.Conditions (leanIsaInstance F prog s) where
   one_le_d := by norm_num
@@ -631,6 +693,7 @@ theorem leanIsa_conditions : Bus.Conditions (leanIsaInstance F prog s) where
     exact Bus.push_fits _
   count_fits := (leafCount_count_le F prog s).trans
     ((Bus.blocks_total _ 0).symm.trans_le (Bus.push_fits _))
+  separator j f r r' := flushes_separator j _ (List.getElem_mem f.isLt) r r'
 
 end LeanIsa
 

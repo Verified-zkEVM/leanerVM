@@ -81,14 +81,14 @@ and (2) the two public words have a zero third limb (`cpu/mod.rs:688-690`), both
 (`PublicInput.word0`, `word1`); (3) the bytecode length is a power of two at most `2^32`
 (`cpu/mod.rs:688`, `verifier/src/layout.rs:386` and `:393`), `Program`'s by type (Layer 2's
 `logSize_le`); (4) the memory log-size is within `[MIN_LOG_MEM, MAX_LOG_MEM] = [16, 32]`
-(`verifier/src/layout.rs:388`); (5) every table height is a power of two at most
-`2^MAX_LOG_ROWS` (`verifier/src/layout.rs:389-391`; heights are announced as logs,
-`cpu/mod.rs:110-113`, and the two blocks' heights `2^κ_mem` and `2^κ_bc` are within the same
-cap by the other conjuncts); (6) the `BLAKE2S` table has at least `2^n_blocks_log(1) = 2^3`
-rows (`verifier/src/layout.rs:392`); (7) the WHIR rate (`verifier/src/lib.rs:217`) and (8) the
+(`verifier/src/layout.rs:388`); (5) every table has at most `2^MAX_LOG_ROWS` rows
+(`verifier/src/layout.rs:417` at leanVM `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; the prover
+announces each table's row count, the rows past it in the table's height being padding rows,
+which the bus never sees, so the witness's tables are the executed rows only); (6) there is no
+`BLAKE2S` floor since that commit; (7) the WHIR rate (`verifier/src/lib.rs:217`) and (8) the
 stacked size `mu ∈ [MIN_MU, MAX_MU]` (`verifier/src/lib.rs:219-222`) are parameters of the
 commitment, left to the protocol layer, which reads them off the same announcement. `Caps`
-transcribes (4), (5) and (6) and adds `WellShapedData w.data`, a representation hypothesis
+transcribes (4) and (5) and adds `WellShapedData w.data`, a representation hypothesis
 rather than a check: the shape the announced `log_mem` already implies for an honest prover,
 so that Layer 5's `imageOf` drops no row of the prover data. These caps are what keeps the
 total read count below `2^64 - 1`, the bound Layer 9's bus argument needs (Lemma 6.3).
@@ -249,9 +249,9 @@ def CountsNonzero (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop :=
     (i.channel.name = MemPull.name ∨ i.channel.name = BytecodePull.name) →
       ∀ h : 1 < i.msg.size, i.msg[1] ≠ 0
 
-/-- The M3 checks of the announced instance, three of the verifier's eight announcement checks
-(`crates/verifier/src/layout.rs:387-395`; §6.2 "Instance caps"): the memory log-size window, the
-height cap and the `BLAKE2S` floor. The bytecode length and the public words' third limbs are
+/-- The M3 checks of the announced instance, two of the verifier's announcement checks
+(`crates/verifier/src/layout.rs:414-418`; §6.2 "Instance caps"): the memory log-size window and
+the row cap. The bytecode length and the public words' third limbs are
 checked by type (`Program`, `PublicInput`); the WHIR rate and the stacked size are the protocol
 layer's (see the module docstring). -/
 structure Caps (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
@@ -259,13 +259,10 @@ structure Caps (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
   minLogMem_le : minLogMem ≤ (imageOf w.data).1
   /-- `log_mem ≤ MAX_LOG_MEM` (`:388`). -/
   le_maxLogMem : (imageOf w.data).1 ≤ maxLogMem
-  /-- Every table's height is a power of two at most `2^MAX_LOG_ROWS` (`:389-391`; announced
-  as logs, `crates/leanvm_core/src/cpu/mod.rs:110-113`).
-  The verifier's own table has one row and is not among `w.tables`. -/
-  heights : ∀ t ∈ w.tables, ∃ τ ≤ maxLogRows, t.table.length = 2 ^ τ
-  /-- The `BLAKE2S` table has at least `2^n_blocks_log(1)` rows (`:392`; Layer 2's
-  `minLogRowsBlake2s`). -/
-  blake2s_height : 2 ^ minLogRowsBlake2s ≤ (blake2sRows w).length
+  /-- Every table has at most `2^MAX_LOG_ROWS` rows (`rows <= 2**32`, `verifier.py:884`; the
+  rows are the executed ones, announced as counts). The verifier's own table has one row and is
+  not among `w.tables`. -/
+  heights : ∀ t ∈ w.tables, t.table.length ≤ 2 ^ maxLogRows
   /-- Not a verifier check: the data's `"mem"` table has exactly the `2^κ` rows of its image
   (Layer 5), the shape the announced `log_mem` implies for an honest prover. -/
   well_shaped : WellShapedData w.data
@@ -483,7 +480,7 @@ theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog
 ```
 
 The read bound `mem_channel_sound` needs is derived from `Caps` (`≤ 10 · 6 · 2^32`), never
-assumed; `WellFormedBytecode` is Layer 10's.
+assumed; `SentinelSafe prog` is the one hypothesis on the program, and only soundness takes it.
 -/
 
 end LeanerVM.Arithmetization

@@ -55,8 +55,8 @@ example (F : FlockSpec) (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog
 /-- Four `XOR` instructions. -/
 def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
-/-- The second size vector of the instance tests, the `BLAKE2S` table at the floor. -/
-def s₂ : Sizes := ⟨18, by decide, ![2, 18, 5, 0, 7, 3]⟩
+/-- The second size vector of the instance tests, the `BLAKE2S` table of eight rows. -/
+def s₂ : Sizes := ⟨18, by decide, ![2 ^ 2, 2 ^ 18, 2 ^ 5, 2 ^ 0, 2 ^ 7, 2 ^ 3]⟩
 
 #guard (List.finRange 18).all fun k ↦ (List.finRange (2 ^ s₂.τ 5)).all fun x ↦
   (boolIndex ((layout prog4 s₂ Blake2sFlock.blake2sFlockSpec.slot).extend (limbCol k)

@@ -25,9 +25,8 @@ circuit computes the Flock R1CS's rows, discharged by `walkFaithful_blake2sFlock
 * `leanVm_complete`: for every hash function, the compiled honest prover produces a proof the
   compiled verifier accepts, as soon as its proof-of-work searches find nonces below the fuel;
   `leanVm_complete_blake2s` is the deployed instance.
-* `leanVm_complete_of_execution`: from a valid execution of well-formed bytecode that fits, a
-  padded execution and a witness representing it, accepted as above when its sizes are
-  admissible.
+* `leanVm_complete_of_execution`: from a valid execution of at most `2^32` steps, a witness
+  representing it, accepted as above when its sizes are admissible.
 
 Completeness is perfect: the only way the honest prover fails is a proof-of-work search that finds
 no nonce below the fuel, a search over BLAKE2s outputs about which nothing is claimed.
@@ -81,15 +80,13 @@ theorem leanVm_complete_blake2s {prog : Program} {input : PublicInput}
 
 /-- **Completeness from an execution.** -/
 theorem leanVm_complete_of_execution {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hwf : WellFormedBytecode prog) (hv : ValidExecution prog input t) (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        Sizes.ofWitness w = some s ∧
-        (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
-          runI (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S chal =
-              some true ∧
-            shapedI (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S chal) :=
-  Complete.leanVm_complete_of_execution hwf hv hfit walkFaithful_blake2sFlockSpec
+    (hv : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ maxLogRows) :
+    ∃ w s, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧ Sizes.ofWitness w = some s ∧
+      (s.Admissible prog → ∀ ρ, validRate ρ → ∃ S : Strategy, ∀ chal : List Ev → E,
+        runI (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S chal =
+            some true ∧
+          shapedI (leanVmProgram (bytecodeWords prog) (Complete.publicDigest input)) S chal) :=
+  Complete.leanVm_complete_of_execution hv hsteps walkFaithful_blake2sFlockSpec
 
 end
 end LeanerVM.Protocol.EndToEnd

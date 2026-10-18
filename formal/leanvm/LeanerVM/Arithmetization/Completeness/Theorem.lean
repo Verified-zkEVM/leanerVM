@@ -1,8 +1,8 @@
 /-
   LeanerVM.Arithmetization.Completeness.Theorem
 
-  Constraint completeness for a padded trace: a valid, fitting execution has a padded trace and a
-  witness that satisfies the constraint statement and represents it.
+  Constraint completeness: a valid execution whose tables fit the row cap has a witness that
+  satisfies the constraint statement and represents it.
 -/
 
 module
@@ -14,41 +14,36 @@ public import LeanerVM.Arithmetization.Completeness.Satisfied
 /-!
 # Constraint completeness
 
-leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at leanVM pin
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`. Category A, completeness direction of `T1`, for the
-proof system's constraint statement (`SatisfiedBy`). `constraintCompleteness` is the roadmap's
-statement for a padded trace, as the Semantics half of this slice (`Semantics.PaddedTrace`)
-restated it: a valid execution of well-formed bytecode that `Fits` has a padded trace `t'` (valid,
-its words those of `t`) and a witness satisfying `SatisfiedBy prog input` and representing `t'`.
+leanISA roadmap Layer 10 (`docs/roadmap/leanisa-blueprint.md`), at leanVM
+`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`. Category A, completeness direction of `T1`, for the proof system's constraint
+statement (`SatisfiedBy`). `constraintCompleteness`: a valid execution of at most `2^32` steps has a
+witness satisfying `SatisfiedBy prog input` and representing it.
 
-**The witness.** Take the fill blocks the bytecode has (`HasFillBlocks.exists_starts`), the
-traversal counts of the plan for a power of two `2^τ` of `JUMP` rows (`planCount`), and the padded
-trace `padTrace t pcs`. The skeletons `S` are the run's (`Trace.runSkels`: the states stepped from
-and the instructions fetched there) followed by the fill's (`padSkels`). `padWitness`
-(`Completeness.Witness`) writes one row per skeleton in the table of its opcode, the image as the
-memory block and the program as the bytecode block, with the read counts that make the three
-channel pairs balance (`Completeness.Bus`, `Completeness.Balance`). `padWitness_satisfiedBy`
-(`Completeness.Satisfied`) reduces `SatisfiedBy` to facts about `S` and the image, which this file proves:
+**The witness.** The skeletons are the run's (`Trace.runSkels`: the states stepped from and the
+instructions fetched there), and nothing else: a table holds exactly its run rows, any number of
+them, and the protocol pads it to a power of two with public padding rows that are not on the bus
+(`doc/leanvm` §`sec:e2e-pad`). `skelWitness` (`Completeness.Witness`) writes one row per skeleton in
+the table of its opcode, the image as the memory block and the program as the bytecode block, with
+the read counts that make the three channel pairs balance (`Completeness.Bus`,
+`Completeness.Balance`). `skelWitness_satisfiedBy` (`Completeness.Satisfied`) reduces `SatisfiedBy`
+to facts about the skeletons and the image, which this file proves:
 
-* the skeletons are sound: the run's from the valid run (`skAt_ok`), the fill's from the fill
-  blocks (`padSkels_ok`);
-* the state pair balances: the run's pushes and pulls rotate (`runSkels_state_perm`, from
-  `shift_perm`), the fill's are the closed walks (`perm_of_skelsValid`, from the fill-block lemma);
-* the heights (`Trace.count_rows`, `tableHeight_pow`) and the `BLAKE2S` floor;
-* the memory window and the two public words (`PaddedFrom.valid`).
+* the skeletons are sound: the run's from the valid run (`skAt_ok`);
+* the state pair balances: the run's pushes and pulls rotate with the boundary's initial push and
+  final pull (`runSkels_state_perm`, from `shift_perm`);
+* every table is within the row cap (`Trace.count_runSkels`);
+* the memory window and the two public words, from `ValidExecution`.
 
-`AssignmentRepresents` follows from `padWitness_rowSteps`: every skeleton is a row whose state
+`AssignmentRepresents` follows from `skelWitness_rowSteps`: every skeleton is a row whose state
 pull is its state and push its successor, and the run's register sequence is the run's skeletons.
 
 ## Wrong readings excluded
 
-* The witness does not represent `t` itself: the committed memory has no room for the fill
-  frames, so the witness represents the padded trace, which is `t` with frames above it
-  (`Semantics.PaddedImage`, and the refutation in `tests/LeanerVMTests/Semantics`).
-* `Fits` is not part of validity: a valid execution too long to fill within the row caps has no
-  witness at all (`Caps`), which is why the theorem takes `hfit`.
-* The skeletons are not the trace's registers: a fill row is a state in the frame of its cycle,
-  and its successor is another fill row (`perm_of_skelsValid`), not a step of the run.
+* The row cap is not part of validity: a valid execution with more than `2^32` rows of one opcode
+  has no witness at all (`Caps`), which is why the theorem takes `hrows`
+  (`tests/LeanerVMTests/Arithmetization/Completeness/LongRun.lean`).
+* The witness represents `t` itself, over its own image: no row reads or writes a cell the run
+  does not, and the memory is not grown.
 -/
 
 open scoped List
@@ -68,7 +63,7 @@ noncomputable def stateAt (t : Trace prog) (k : ℕ) : Regs K :=
 
 /-- The skeleton stepped from at step `k`: the state and the instruction fetched there. -/
 noncomputable def skAt (t : Trace prog) (k : ℕ) : Skel :=
-  ⟨(stateAt t k).pc, (stateAt t k).fp, (prog.fetch (stateAt t k).pc).getD fillClose⟩
+  ⟨(stateAt t k).pc, (stateAt t k).fp, (prog.fetch (stateAt t k).pc).getD (.setConstant 0 0)⟩
 
 /-- A list all of whose entries map to `some` is the `filterMap` of the entries' values. -/
 theorem filterMap_eq_map_of {α β : Type} (p : α → Option β) (f : α → β) (l : List α)
@@ -192,93 +187,25 @@ theorem runSkels_state_perm (hv : run prog t.image t.steps Regs.initial = some (
 
 end Run
 
-/-! ## The skeletons of the fill -/
-
-section Fill
-
-variable {prog : Program}
-
-/-- A skeleton of a fill is a skeleton of one traversal of one cycle. -/
-theorem mem_padSkels {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {count : Opcode → ℕ → ℕ} {sk : Skel}
-    (h : sk ∈ padSkels κ pcs count) : ∃ t, ∃ k < 8, sk ∈ cycleSkels κ pcs t k := by
-  unfold padSkels at h
-  obtain ⟨t, -, h⟩ := List.mem_flatMap.mp h
-  obtain ⟨k, hk, h⟩ := List.mem_flatMap.mp h
-  obtain ⟨l, hl, h⟩ := List.mem_flatten.mp h
-  rw [List.eq_of_mem_replicate hl] at h
-  exact ⟨t, k, List.mem_range.mp hk, h⟩
-
-/-- A skeleton of a traversal of a block is the instruction fetched at its counter. -/
-theorem cycleSkels_fetch {κ : ℕ} {pcs : Opcode → ℕ → ℕ} {t : Opcode} {k : ℕ}
-    (hb : IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k))) {sk : Skel}
-    (h : sk ∈ cycleSkels κ pcs t k) : prog.fetch sk.pc = some sk.ins := by
-  unfold cycleSkels at h
-  obtain ⟨i, hi, rfl⟩ := List.mem_map.mp h
-  have hi' := List.mem_range.mp hi
-  by_cases hlt : i < sizeAt k
-  · simpa [hlt] using hb.dummies i hlt
-  · obtain rfl : i = sizeAt k := by omega
-    simpa using hb.close
-
-/-- **The skeletons of a fill are sound**: fetched, and they execute over the padded image. -/
-theorem padSkels_ok {κ : ℕ} (hκ : 10 ≤ κ) (hκ' : κ < 63) (img : MemImage κ)
-    (pcs : Opcode → ℕ → ℕ)
-    (hpcs : ∀ t, ∀ k < 8, IsFillBlock prog t (sizeAt k) (pcs t (sizeAt k)))
-    (count : Opcode → ℕ → ℕ) :
-    ∀ sk ∈ padSkels κ pcs count, SkelOk prog (padImage img pcs) sk := by
-  intro sk hsk
-  obtain ⟨t, k, hk, hmem⟩ := mem_padSkels hsk
-  have hfetch := cycleSkels_fetch (hpcs t k hk) hmem
-  obtain ⟨next, -, hstep⟩ := FillerRowsValid.step_mem
-    (padSkels_valid hκ hκ' img pcs hpcs count) (List.mem_map_of_mem (f := Skel.regs) hsk)
-  exact ⟨hfetch, next, execute_of_step hfetch hstep⟩
-
-/-- Skeletons that are valid fillers and sound have the states pushed that they pull. -/
-theorem perm_of_skelsValid {κ : ℕ} {img : MemImage κ} {S : List Skel}
-    (hv : SkelsValid prog img S) (hok : ∀ sk ∈ S, SkelOk prog img sk) :
-    (S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp]).Perm
-      (S.map fun sk ↦ #[sk.pc, sk.fp]) := by
-  let m : Option (Regs K) → Array K := fun o ↦
-    match o with
-    | some r => #[r.pc, r.fp]
-    | none => #[]
-  have h := hv.2.map m
-  simp only [List.map_map] at h
-  have hl : (fun sk : Skel ↦ #[sk.pc, sk.fp]) = m ∘ some ∘ Skel.regs := rfl
-  have hr : S.map (m ∘ step prog img ∘ Skel.regs) =
-      S.map fun sk ↦ #[(nextOf img sk).pc, (nextOf img sk).fp] := by
-    refine List.map_congr_left fun sk hsk ↦ ?_
-    obtain ⟨hf, next, hex⟩ := hok sk hsk
-    have hs : step prog img sk.regs = some next := by
-      rw [step_of_fetch_eq_some hf]
-      exact hex
-    simp only [Function.comp_apply, hs]
-    simp [nextOf, hex, m]
-  rw [hl]
-  rw [← hr]
-  exact h.symm
-
-end Fill
-
 /-! ## The witness represents the trace -/
 
 /-- **A skeleton's row steps.** Every skeleton of the list the witness is built from is a row
 whose one state pull is its state and one state push its successor. -/
-theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
+theorem skelWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (img : MemImage κ)
     (S : List Skel) (hS : ∀ sk ∈ S, ∃ next, execute img sk.regs sk.ins = some next) {sk : Skel}
-    (hsk : sk ∈ S) : RowSteps (padWitness prog input img S) sk.regs (nextOf img sk) := by
-  have hR : ∀ r ∈ padRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
+    (hsk : sk ∈ S) : RowSteps (skelWitness prog input img S) sk.regs (nextOf img sk) := by
+  have hR : ∀ r ∈ skelRows img S, ∃ next, execute img r.sk.regs r.sk.ins = some next :=
     fun r hr ↦ hS _ (mem_mkRows_sk hr)
-  obtain ⟨r, hr, rfl⟩ : ∃ r ∈ padRows img S, r.sk = sk := by
+  obtain ⟨r, hr, rfl⟩ : ∃ r ∈ skelRows img S, r.sk = sk := by
     have h := hsk
     rw [← mkRows_sk img (fun _ ↦ 0) (fun _ ↦ 0) S] at h
     obtain ⟨r, hr, h⟩ := List.mem_map.mp h
     exact ⟨r, hr, h⟩
-  have hmemT : ∀ op, opTable img (imageData img) (padRows img S) op ∈
-      (padWitness prog input img S).tables := by
+  have hmemT : ∀ op, opTable img (imageData img) (skelRows img S) op ∈
+      (skelWitness prog input img S).tables := by
     intro op
-    cases op <;> simp [padWitness]
-  refine ⟨opTable img (imageData img) (padRows img S) r.sk.ins.opcode, hmemT _, PRow.raw img r,
+    cases op <;> simp [skelWitness]
+  refine ⟨opTable img (imageData img) (skelRows img S) r.sk.ins.opcode, hmemT _, PRow.raw img r,
     List.mem_map.mpr ⟨r, List.mem_filter.mpr ⟨hr, by simp⟩, rfl⟩, ?_, ?_⟩
   · rw [rowMessagesOn_eq_rowSends]
     show ((rowSends (opComponent r.sk.ins.opcode)
@@ -291,14 +218,14 @@ theorem padWitness_rowSteps (prog : Program) (input : PublicInput) {κ : ℕ} (i
     rw [PRow.rowSends_raw (hR r hr) (imageData img)]
     exact sendsOf_statePush _ _ _ _ _ _
 
-/-- **The witness of a padded execution represents the trace**: the image the data names is the
+/-- **The witness of a run represents its trace**: the image the data names is the
 trace's, and every step of the trace's register sequence is a row. -/
-theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
+theorem skelWitness_represents (prog : Program) (input : PublicInput) {T : Trace prog}
     (hκ : T.κ ≤ maxLogMem)
     (hv : run prog T.image T.steps Regs.initial = some (Regs.final prog)) (S : List Skel)
     (hS : ∀ sk ∈ S, ∃ next, execute T.image sk.regs sk.ins = some next)
     (hrun : ∀ k < T.steps, skAt T k ∈ S) :
-    AssignmentRepresents (padWitness prog input T.image S) T where
+    AssignmentRepresents (skelWitness prog input T.image S) T where
   κ_eq := imageData_logSize T.image hκ
   image_eq := fun i hi ↦ imageData_apply' T.image hκ i _
   regs_embed := by
@@ -309,99 +236,51 @@ theorem padWitness_represents (prog : Program) (input : PublicInput) {T : Trace 
       simp
     have hk' : k < T.steps := by omega
     rw [e k (by omega), e (k + 1) hk]
-    have := padWitness_rowSteps prog input T.image S hS (hrun k hk')
+    have := skelWitness_rowSteps prog input T.image S hS (hrun k hk')
     rwa [nextOf_skAt hv hk'] at this
 
 /-! ## The theorem -/
 
-/-- **Constraint completeness, with the heights.** A valid execution of a program that has the
-fill blocks, with room above its image, every table but `JUMP` within the row cap once filled, and
-a power of two `2^τ` within the cap that the `JUMP` table can be filled to, has a padded trace `t'`
-one doubling of memory above `t`, valid, and a witness satisfying the constraint statement and
-representing `t'` whose six opcode tables, in the ensemble's order, have the heights
-`tableHeight t.runRows τ` of the fill plan. Only the fill blocks of the program are used, not the
-rest of `WellFormedBytecode`. -/
-theorem constraintCompleteness_heights {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hfill : HasFillBlocks prog) (h : ValidExecution prog input t) (hroom : t.κ < maxLogMem)
-    (hrows : ∀ op, op ≠ .jump → fillTarget (t.runRows op) (minRows op) ≤ 2 ^ maxLogRows)
-    {τ : ℕ} (hτ : τ ≤ maxLogRows) (h1 : t.owed ≤ 2 ^ τ) (h2 : 2 ^ τ ≠ t.owed + 1) :
-    ∃ t', t'.PaddedFrom t ∧ t'.κ = t.κ + 1 ∧ ValidExecution prog input t' ∧
-      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t' ∧
-        ∀ j : Fin 6, (tableAt w ⟨j, by omega⟩).table.length =
-          tableHeight t.runRows τ (fillTables.getD j .xor) := by
-  obtain ⟨pcs, hpcs⟩ := hfill.exists_starts
-  have hcap : (padTrace t pcs).κ ≤ maxLogMem := hroom
-  have hp := padTrace_from t pcs
-  have hT : ValidExecution prog input (padTrace t pcs) := hp.valid hcap h
-  obtain ⟨⟨hmin, -, hw0, hw1⟩, hrunT⟩ := hT
-  have hκ10 : 10 ≤ t.κ := by
-    have := h.1.1
-    unfold minLogMem at this
-    omega
-  have hκ63 : t.κ < 63 := by
-    unfold maxLogMem at hroom
-    omega
-  have hrs : (padTrace t pcs).runSkels = t.runSkels := by
-    unfold Trace.runSkels
-    rw [hp.regs_eq hcap h]
-  have hF := padSkels_valid hκ10 hκ63 t.image pcs hpcs (planCount t.runRows τ)
-  have hFok := padSkels_ok hκ10 hκ63 t.image pcs hpcs (planCount t.runRows τ)
-  have hrunok : ∀ sk ∈ (padTrace t pcs).runSkels, SkelOk prog (padTrace t pcs).image sk := by
+/-- **Constraint completeness, with the row counts.** A valid execution whose run has at most
+`2^maxLogRows` rows of every opcode has a witness satisfying the constraint statement and
+representing it, whose six opcode tables, in the ensemble's order, hold exactly the run's rows. -/
+theorem constraintCompleteness_rows {prog : Program} {input : PublicInput} {t : Trace prog}
+    (h : ValidExecution prog input t) (hrows : ∀ op, t.runRows op ≤ 2 ^ maxLogRows) :
+    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t ∧
+      ∀ j : Fin 6, (tableAt w ⟨j, by omega⟩).table.length = t.runRows (tableOpcode j) := by
+  obtain ⟨⟨hmin, hcap, hw0, hw1⟩, hrun⟩ := h
+  have hS : ∀ sk ∈ t.runSkels, SkelOk prog t.image sk := by
     intro sk hsk
-    rw [runSkels_eq hrunT] at hsk
+    rw [runSkels_eq hrun] at hsk
     obtain ⟨k, hk, rfl⟩ := List.mem_map.mp hsk
-    exact skAt_ok hrunT (List.mem_range.mp hk)
-  have hS : ∀ sk ∈ (padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ),
-      SkelOk prog (padTrace t pcs).image sk := by
-    intro sk hsk
-    rcases List.mem_append.mp hsk with hsk | hsk
-    · exact hrunok sk hsk
-    · exact hFok sk hsk
-  have hcount := fun op ↦ Trace.count_rows t t.κ pcs h1 h2 op
-  rw [← hrs] at hcount
-  have hlen : ∀ op, (opTable (padTrace t pcs).image (imageData (padTrace t pcs).image)
-      (padRows (padTrace t pcs).image
-        ((padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ))) op).table.length =
-      tableHeight t.runRows τ op := by
+    exact skAt_ok hrun (List.mem_range.mp hk)
+  have hlen : ∀ op, List.length
+      (opTable t.image (imageData t.image) (skelRows t.image t.runSkels) op).table =
+        t.runRows op := by
     intro op
     show (List.map _ (List.filter _ _)).length = _
-    rw [List.length_map, padRows, length_filter_mkRows, hcount op]
-  refine ⟨padTrace t pcs, hp, rfl, ⟨⟨hmin, hcap, hw0, hw1⟩, hrunT⟩,
-    padWitness prog input (padTrace t pcs).image
-      ((padTrace t pcs).runSkels ++ padSkels t.κ pcs (planCount t.runRows τ)), ?_, ?_, ?_⟩
-  · refine padWitness_satisfiedBy prog input (padTrace t pcs).image _ hmin hcap hS ?_ ?_ ?_ hw0 hw1
-    · simp only [List.map_append, ← List.cons_append]
-      exact (runSkels_state_perm hrunT).append (perm_of_skelsValid hF hFok)
-    · intro op
-      rw [hcount op]
-      exact tableHeight_pow hτ hrows op
-    · rw [hcount .blake2s]
-      have := floor_le_fillTarget (t.runRows .blake2s) (minRows .blake2s)
-      simp only [tableHeight, reduceCtorEq, ↓reduceIte]
-      refine le_trans ?_ this
-      decide
-  · refine padWitness_represents prog input hcap hrunT _ (fun sk hsk ↦ (hS sk hsk).2) ?_
+    rw [List.length_map, skelRows, length_filter_mkRows, Trace.count_runSkels]
+  refine ⟨skelWitness prog input t.image t.runSkels, ?_, ?_, ?_⟩
+  · refine skelWitness_satisfiedBy prog input t.image _ hmin hcap hS (runSkels_state_perm hrun)
+      (fun op ↦ (t.count_runSkels op).trans_le (hrows op)) hw0 hw1
+  · refine skelWitness_represents prog input hcap hrun _ (fun sk hsk ↦ (hS sk hsk).2) ?_
     intro k hk
-    refine List.mem_append_left _ ?_
-    rw [runSkels_eq hrunT]
+    rw [runSkels_eq hrun]
     exact List.mem_map_of_mem (List.mem_range.mpr hk)
   · intro j
     fin_cases j
     exacts [hlen .xor, hlen .mulNative, hlen .setConstant, hlen .deref, hlen .jump, hlen .blake2s]
 
-/-- **Constraint completeness for a padded trace** (leanISA roadmap Layer 10, `T1`, Category A).
-A valid execution of well-formed bytecode that fits has a padded trace `t'`, valid, and a witness
-satisfying the constraint statement and representing `t'`. The witness is the rows of the run and
-the closed walks of the fill, in the six tables, the image as the memory block and the program as
-the bytecode block, with the counts that balance the buses (`constraintCompleteness_heights`,
-which also gives the heights and needs of the bytecode only its fill blocks). -/
+/-- **Constraint completeness** (leanISA roadmap Layer 10, `T1`, Category A). A valid execution of
+at most `2^maxLogRows` steps has a witness satisfying the constraint statement and representing
+it: the rows of the run in the six tables, the image as the memory block and the program as the
+bytecode block, with the counts that balance the buses (`constraintCompleteness_rows`, which also
+gives the tables' row counts). -/
 theorem constraintCompleteness {prog : Program} {input : PublicInput} {t : Trace prog}
-    (hwf : WellFormedBytecode prog) (h : ValidExecution prog input t) (hfit : t.Fits) :
-    ∃ t', t'.PaddedFrom t ∧ ValidExecution prog input t' ∧
-      ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t' := by
-  obtain ⟨τ, hτ, h1, h2⟩ := hfit.jump
-  obtain ⟨t', hp, -, hv, w, hw, hrep, -⟩ :=
-    constraintCompleteness_heights hwf.hasFillBlocks h hfit.room hfit.rows hτ h1 h2
-  exact ⟨t', hp, hv, w, hw, hrep⟩
+    (h : ValidExecution prog input t) (hsteps : t.steps ≤ 2 ^ maxLogRows) :
+    ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t := by
+  obtain ⟨w, hw, hrep, -⟩ := constraintCompleteness_rows h
+    fun op ↦ (t.runRows_le_steps h.2 op).trans hsteps
+  exact ⟨w, hw, hrep⟩
 
 end LeanerVM.Arithmetization

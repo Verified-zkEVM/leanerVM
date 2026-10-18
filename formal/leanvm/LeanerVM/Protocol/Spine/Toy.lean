@@ -18,9 +18,10 @@ import Mathlib.Algebra.MvPolynomial.CommRing
 
 One table of width 3 and height 2 on a stack of height 8: column `i` at cells `2i, 2i + 1`, cells
 6 and 7 padding. Column 2 must be Boolean, and it is the public line: its cell 0 is the public
-statement, its cell 1 is `0`, and its value on the line is sent. The table pushes `(X₀, 0, …)`
-on every row and one boundary block pulls the known column `[1, 1]`, so the bus balances exactly
-when column 0 is `[1, 1]` in some order; column 1 is a count column; there is no Flock region;
+statement, its cell 1 is `0`, and its value on the line is sent. The table pushes `(0, X₀, 0, …)`
+on every row, slot 0 its constant domain separator, and one boundary block pulls
+`(0, [1, 1], 0, …)`, the known column `[1, 1]` in slot 1, so the bus balances exactly when
+column 0 is `[1, 1]` in some order; column 1 is a count column; there is no Flock region;
 the degree bound is 2.
 `M3Holds` on it is decided by evaluation, and each of its clauses can be made to fail alone
 (`tests/LeanerVMTests/Protocol/Spine.lean`).
@@ -80,9 +81,9 @@ private theorem constraint_totalDegree : constraint.totalDegree ≤ 2 := by
   exact (MvPolynomial.totalDegree_sub _ _).trans
     (max_le ((MvPolynomial.totalDegree_mul _ _).trans (by simp)) (by simp))
 
-/-- The one flush: `(X₀, 0, …)`, pushed. -/
+/-- The one flush: `(0, X₀, 0, …)`, pushed; slot 0, the domain separator, is constant. -/
 def flush : Side × Vector (CMvPolynomial 3 K) 16 :=
-  (.push, Vector.ofFn fun k ↦ if k.val = 0 then CMvPolynomial.X 0 else 0)
+  (.push, Vector.ofFn fun k ↦ if k.val = 1 then CMvPolynomial.X 0 else 0)
 
 /-- Every coordinate of the flush has total degree at most one. -/
 private theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤ 1 := by
@@ -92,11 +93,11 @@ private theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤
   · simp [CMvPolynomial.fromCMvPolynomial_X]
   · simp
 
-/-- The one boundary block: pulls `([1, 1], 0, …)`. -/
+/-- The one boundary block: pulls `(0, [1, 1], 0, …)`. -/
 def boundary : BoundaryBlock shape where
   κ := 1
   side := .pull
-  coords := Vector.ofFn fun k ↦ if k.val = 0 then .known ⟨#v[1, 1]⟩ else .const 0
+  coords := Vector.ofFn fun k ↦ if k.val = 1 then .known ⟨#v[1, 1]⟩ else .const 0
 
 /-- The toy instance. An `abbrev`, so that its fields reduce wherever a test names it. -/
 abbrev toy : M3Instance where
@@ -110,6 +111,9 @@ abbrev toy : M3Instance where
   flushes_degree := fun _ f h k ↦ by
     rw [List.mem_singleton.mp h]; exact (flush_totalDegree k).trans (by decide)
   counts := fun _ ↦ [1]
+  rows := fun j ↦ 2 ^ shape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := [boundary]
   μ := 3
   layout := layout

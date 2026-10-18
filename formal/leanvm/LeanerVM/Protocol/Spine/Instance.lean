@@ -37,10 +37,14 @@ the table sumcheck never visits. `τmax` is the largest log-height among them, `
 their constraints, `μBus` the log-height of the bus's leaf stacks, and the claim counts
 (`busClaims`, `tableClaims`, `pubClaims`, `poolSize`) are how many claims the phases pool.
 
-`M3Holds I input q` is the relation: constraints vanish, pushed and pulled tuples are one
-multiset (a permutation, counted in the integers: in characteristic two a tuple pushed twice and
-never pulled would sum to zero), count cells are nonzero, the public lines hold, the Flock
-predicate holds of its region. It is decidable, and every value is read from `q` through
+Each table also has a row count `rows j ≤ 2 ^ τ j`, the announced one: its rows `x < rows j`
+are the *executed* rows, the others *padding* rows, which an honest prover fills with the
+public row `padRow j` (§8.3). `M3Holds I input q` is the relation: constraints vanish on every
+row, the tuples the executed rows and the boundary push and pull are one multiset (a
+permutation, counted in the integers: in characteristic two a tuple pushed twice and never
+pulled would sum to zero), executed count cells are nonzero, the public lines hold, the Flock
+predicate holds of its region. A padding row is free (Proposition `prop:pad`); completeness
+starts from `M3Honest`, which also asks the padding rows to be `padRow` (`PaddingHonest`). It is decidable, and every value is read from `q` through
 `I.layout`, so knowledge of `q` is exactly as strong as the layout is. Polynomials are CompPoly's
 computable `CMvPolynomial` and degrees its `totalDegree`; `fromCMvPolynomial` bridges to
 Mathlib's, whose degree lemmas prove a concrete instance's bound. The announced sizes are not a
@@ -195,6 +199,13 @@ structure M3Instance extends Shape where
   flushes_degree : ∀ j, ∀ f ∈ flushes j, ∀ k, (f.2.get k).totalDegree ≤ d
   /-- The count columns of each table. -/
   counts : (j : Fin ntab) → List (Fin (width j))
+  /-- The row count of each table: its rows `x < rows j` are the *executed* rows, the others
+  *padding* rows (§5.1, §8.3): the announced row counts. -/
+  rows : Fin ntab → ℕ
+  /-- A table's rows fit in its height. -/
+  rows_le : ∀ j, rows j ≤ 2 ^ τ j
+  /-- The public row an honest prover fills a padding row of each table with (§8.3). -/
+  padRow : (j : Fin ntab) → Fin (width j) → K
   /-- The boundary blocks. -/
   boundary : List (BoundaryBlock toShape)
   /-- Log-height of the committed stack. -/
@@ -229,12 +240,40 @@ def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ)
   | .known col, x => col.values.get x
   | .committed c h, x => (I.column q c).values.get (Fin.cast (congrArg (2 ^ ·) h.symm) x)
 
+/-- The executed rows of table `j`, in order: the rows `x < rows j`. -/
+def executed (j : Fin I.ntab) : List (Fin (2 ^ I.τ j)) :=
+  (List.finRange (2 ^ I.τ j)).filter fun x ↦ decide (x.val < I.rows j)
+
+/-- The first `m` of `N` indices, by filtering or by casting. -/
+theorem filter_finRange_lt : ∀ {N m : ℕ} (h : m ≤ N),
+    (List.finRange N).filter (fun x ↦ decide (x.val < m)) = (List.finRange m).map (Fin.castLE h)
+  | 0, 0, _ => rfl
+  | N + 1, m, h => by
+    rw [List.finRange_succ_last, List.filter_append, List.filter_map]
+    by_cases hm : m ≤ N
+    · have hl : ¬ (Fin.last N).val < m := by simp; omega
+      rw [List.filter_cons_of_neg (by simpa using hl), List.filter_nil, List.append_nil]
+      have ih := filter_finRange_lt hm
+      rw [show (fun x : Fin (N + 1) ↦ decide (x.val < m)) ∘ Fin.castSucc =
+        fun x : Fin N ↦ decide (x.val < m) from rfl, ih, List.map_map]
+      rfl
+    · have hmN : m = N + 1 := by omega
+      subst hmN
+      rw [List.filter_cons_of_pos (by simp), List.filter_eq_self.mpr (fun x _ ↦ by simp),
+        List.finRange_succ_last, List.map_append, List.map_map, List.map_cons, List.map_nil]
+      rfl
+
+/-- The executed rows of table `j` are its first `rows j` rows. -/
+theorem executed_eq (j : Fin I.ntab) :
+    I.executed j = (List.finRange (I.rows j)).map (Fin.castLE (I.rows_le j)) :=
+  filter_finRange_lt (I.rows_le j)
+
 /-- The tuples of one side flushed by the tables: every table, every flush of that side, every
-row. -/
+executed row. A padding row flushes nothing (§8.3, Proposition `prop:pad`). -/
 def flushTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
   (List.finRange I.ntab).flatMap fun j ↦
     ((I.flushes j).filter fun f ↦ decide (f.1 = s)).flatMap fun f ↦
-      (List.finRange (2 ^ I.τ j)).map fun x ↦ f.2.map fun P ↦ P.eval (I.row q j x)
+      (I.executed j).map fun x ↦ f.2.map fun P ↦ P.eval (I.row q j x)
 
 /-- The tuples of one side on the boundary blocks. -/
 def boundaryTuples (q : Column I.μ) (s : Side) : List (Vector K 16) :=
@@ -336,9 +375,15 @@ def ConstraintsVanish (q : Column I.μ) : Prop :=
 /-- The pushed tuples are one multiset with the pulled tuples (the bus, §5.2), counted in `ℕ`. -/
 def Balanced (q : Column I.μ) : Prop := (I.tuples q .push).Perm (I.tuples q .pull)
 
-/-- Every cell of every count column is nonzero (the count product `R_c ≠ 0`, §6.2). -/
+/-- Every executed cell of every count column is nonzero (the count product `R_c ≠ 0`, §6.2). -/
 def CountsNonzero (q : Column I.μ) : Prop :=
-  ∀ j, ∀ i ∈ I.counts j, ∀ x, (I.column q ⟨j, i⟩).values.get x ≠ 0
+  ∀ j, ∀ i ∈ I.counts j, ∀ x : Fin (2 ^ I.τ j), x.val < I.rows j →
+    (I.column q ⟨j, i⟩).values.get x ≠ 0
+
+/-- Every padding row holds its table's public padding row: what an honest prover commits
+(§8.3), and what completeness, not soundness, needs. -/
+def PaddingHonest (q : Column I.μ) : Prop :=
+  ∀ j, ∀ x : Fin (2 ^ I.τ j), I.rows j ≤ x.val → I.row q j x = I.padRow j
 
 /-- Cells 0 and 1 of every column the statement fixes hold their values (§8.2). -/
 def PublicLinesHold (input : I.Stmt) (q : Column I.μ) : Prop :=
@@ -354,7 +399,8 @@ def aux (q : Column I.μ) : Prop := ∀ r ∈ I.flock, r.Holds (I.flockColumn r 
 instance instDecidableAux (q : Column I.μ) : Decidable (I.aux q) :=
   inferInstanceAs (Decidable (∀ r ∈ I.flock, r.Holds (I.flockColumn r q)))
 
-deriving instance Decidable for ConstraintsVanish, Balanced, CountsNonzero, PublicLinesHold
+deriving instance Decidable for ConstraintsVanish, Balanced, CountsNonzero, PublicLinesHold,
+  PaddingHonest
 
 end M3Instance
 
@@ -366,6 +412,12 @@ def M3Holds (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Prop :=
 -- The relation is decidable: every clause is a finite check over computable data.
 deriving instance Decidable for M3Holds
 
+/-- The relation completeness starts from: `M3Holds`, and every padding row holds its public row.
+Knowledge soundness extracts `M3Holds` only, since a padding row is free (Proposition
+`prop:pad`). -/
+def M3Honest (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Prop :=
+  M3Holds I input q ∧ I.PaddingHonest q
+
 /-- The one oracle of the protocol from the commit phase on: the stack. -/
 abbrev TheOracle (I : M3Instance) : Fin 1 → Type := OneOracle (Column I.μ)
 
@@ -373,6 +425,10 @@ abbrev TheOracle (I : M3Instance) : Fin 1 → Type := OneOracle (Column I.μ)
 witness is the stack. -/
 def M3Rel (I : M3Instance) : Set ((I.Stmt × (∀ i, NoOracle i)) × Column I.μ) :=
   {p | M3Holds I p.1.1 p.2}
+
+/-- `M3Honest` as ArkLib states relations: the relation completeness starts from. -/
+def M3HonestRel (I : M3Instance) : Set ((I.Stmt × (∀ i, NoOracle i)) × Column I.μ) :=
+  {p | M3Honest I p.1.1 p.2}
 
 end
 end LeanerVM.Protocol

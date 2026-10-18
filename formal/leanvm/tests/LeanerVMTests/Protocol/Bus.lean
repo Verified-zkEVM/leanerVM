@@ -1,5 +1,6 @@
 import LeanerVM.Protocol.Bus
 import LeanerVM.Protocol.Spine.Toy
+import CompPoly.Multivariate.Eval
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import CompPoly.Multivariate.Operations
 import Mathlib.Algebra.MvPolynomial.CommRing
@@ -8,13 +9,15 @@ import Mathlib.Algebra.MvPolynomial.CommRing
 # Bus phase tests
 
 On an instance built for the bus (`busToy`): one table of height 2 with a value column `a` and a
-count column `c`, one constraint (`a` is Boolean), one push flush `(a, c, 0, …)`; a push boundary
-block of two constant tuples `(7, 0, …)`, a pull block `(1, c, 0, …)` whose second coordinate is
-the committed count column, and a pull block of two constant tuples `(7, 0, …)`. The bus balances
-exactly when `a = [1, 1]`. The push side has two blocks of equal height, so the tie order decides
-the offsets; the count side has two leaves on a depth of two, so it is padded.
+count column `c`, one constraint (`a` is Boolean), one push flush `(0, a, c, 0, …)`, its slot 0 the
+constant domain separator; a push boundary block of two constant tuples `(7, 0, …)`, a pull block
+`(0, 1, c, 0, …)` whose third coordinate is the committed count column, and a pull block of two
+constant tuples `(7, 0, …)`. Both rows are executed. The bus balances exactly when `a = [1, 1]`.
+The push side has two blocks of equal height, so the tie order decides the offsets; the count
+side has two leaves on a depth of two, so it is padded.
 
-* **The side conditions** hold, and the instance's sizes: `μ_bus = 2`, one boundary column.
+* **The side conditions** hold, the separator among them, and the instance's sizes: `μ_bus = 2`,
+  one boundary column.
 * **The tie order.** The push side keeps its boundary block before the table's flush (a stable
   sort): the boundary block at offset 0, the flush at offset 2.
 * **The honest stack.** `M3Holds` holds; at a challenge `(α, β)` the push and pull products agree
@@ -25,7 +28,7 @@ the offsets; the count side has two leaves on a depth of two, so it is padded.
 * **The zero-count mutation.** A count cell `0` keeps the bus balanced but makes the count product
   `0`: the honest roots fail the check, and `M3Holds` fails at the counts alone. Without the
   check, the roots step has no security at any error (`roots_unchecked_no_security`, over any
-  instance with such a stack): the check is load-bearing.
+  instance with such a stack and honest padding rows): the check is load-bearing.
 * **The pad.** The count side padded with `0` instead of `1` has product `0`: the honest prover
   would be rejected.
 * **The spine's toy** meets the side conditions too; its public line makes the lines rider `0` at
@@ -70,10 +73,10 @@ private theorem constraint_totalDegree : constraint.totalDegree ≤ 2 := by
   exact (MvPolynomial.totalDegree_sub _ _).trans
     (max_le ((MvPolynomial.totalDegree_mul _ _).trans (by simp)) (by simp))
 
-/-- The push flush `(a, c, 0, …)`. -/
+/-- The push flush `(0, a, c, 0, …)`: slot 0, the domain separator, is constant. -/
 def flush : Side × Vector (CMvPolynomial 2 K) 16 :=
   (.push, Vector.ofFn fun k ↦
-    if k.val = 0 then CMvPolynomial.X 0 else if k.val = 1 then CMvPolynomial.X 1 else 0)
+    if k.val = 1 then CMvPolynomial.X 0 else if k.val = 2 then CMvPolynomial.X 1 else 0)
 
 private theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤ 1 := by
   rw [totalDegree_equiv (S := K)]
@@ -90,12 +93,13 @@ def constBlock (s : Side) : BoundaryBlock shape where
   side := s
   coords := Vector.ofFn fun k ↦ if k.val = 0 then .const (K.ofBits 7) else .const 0
 
-/-- The pull block `(1, c, 0, …)`: a known column of ones and the committed count column. -/
+/-- The pull block `(0, 1, c, 0, …)`: the flush's separator, a known column of ones and the
+committed count column. -/
 def countPull : BoundaryBlock shape where
   κ := 1
   side := .pull
   coords := Vector.ofFn fun k ↦
-    if k.val = 0 then .known ⟨#v[1, 1]⟩ else if k.val = 1 then .committed ⟨0, 1⟩ rfl else .const 0
+    if k.val = 1 then .known ⟨#v[1, 1]⟩ else if k.val = 2 then .committed ⟨0, 1⟩ rfl else .const 0
 
 /-- The instance. -/
 abbrev busToy : M3Instance where
@@ -109,6 +113,9 @@ abbrev busToy : M3Instance where
   flushes_degree := fun _ f h k ↦ by
     rw [List.mem_singleton.mp h]; exact (flush_totalDegree k).trans (by decide)
   counts := fun _ ↦ [1]
+  rows := fun j ↦ 2 ^ shape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := [constBlock .push, countPull, constBlock .pull]
   μ := 2
   layout := layout
@@ -128,12 +135,24 @@ theorem μBus_eq : busToy.μBus = 2 := by
   change Nat.clog 2 busToy.pushLeaves = 2
   rw [show busToy.pushLeaves = 2 ^ 2 by decide, Nat.clog_pow _ _ one_lt_two]
 
+/-- A flush whose slot 0 is the zero polynomial meets the separator condition. -/
+theorem separator_of_zero {I : M3Instance}
+    (h0 : ∀ j (f : Fin (I.flushes j).length), (flushPolys j f)[0] = 0) :
+    ∀ j (f : Fin (I.flushes j).length) (r r' : Fin (I.width j) → K),
+      ((flushPolys j f)[0]).eval r = ((flushPolys j f)[0]).eval r' := fun j f r r' ↦ by
+  rw [h0 j f, CMvPolynomial.eval_zero, CMvPolynomial.eval_zero]
+
 /-- The side conditions hold. -/
 theorem conditions : Conditions busToy where
   one_le_d := by decide
   constrained := fun j _ ↦ by rw [μBus_eq]; fin_cases j; decide
   pull_fits := by rw [μBus_eq]; decide
   count_fits := by rw [μBus_eq]; decide
+  separator := separator_of_zero fun _ f ↦ by
+    obtain ⟨_ | _, hf⟩ := f
+    · show (LeanerVMTests.Protocol.Bus.flush.2)[0] = 0
+      simp [LeanerVMTests.Protocol.Bus.flush]
+    · simp at hf
 
 /-! ## The tie order -/
 
@@ -155,6 +174,7 @@ def kind {I : M3Instance} : Source I → String
 def honest : Column 2 := ⟨#v[1, 1, K.ofBits 2, K.ofBits 3]⟩
 
 #guard M3Holds busToy () honest
+#guard busToy.PaddingHonest honest
 
 /-- Challenges off the cube. -/
 def α : Fin 4 → E := ![y, y + 1, y * y, y * y + y]
@@ -217,7 +237,8 @@ def out : BusOut busToy := busOut conditions last (honestValues conditions hones
 def zeroCount : Column 2 := ⟨#v[1, 1, K.ofBits 2, 0]⟩
 
 -- The bus still balances, and the constraint still holds; only the counts fail.
-#guard busToy.Balanced zeroCount ∧ busToy.ConstraintsVanish zeroCount
+#guard busToy.Balanced zeroCount ∧ busToy.ConstraintsVanish zeroCount ∧
+  busToy.PaddingHonest zeroCount
 #guard ¬ busToy.CountsNonzero zeroCount
 /-- The three leaf stacks of the zero-count stack. -/
 def pushZero : CMlPolynomialEval E busToy.μBus := pushLeaves busToy α β zeroCount
@@ -232,26 +253,30 @@ def countZero : CMlPolynomialEval E busToy.μBus := countLeaves busToy zeroCount
 /-- Without the check `R_c ≠ 0`, the roots step has no security from `afterChallenge` to the
 grand-product argument's input relation, at any error and whatever the extractor: a stack whose
 bus balances, whose constraints vanish and whose lines and Flock predicate hold, but with a zero
-count, has no witness, and its honest roots land in the argument's input relation. `zeroCount` is
-such a stack, by the guards above; the kernel cannot evaluate a constraint polynomial or the
-bus's permutation on a concrete stack, so the facts are hypotheses here. -/
+count, has no witness, and its honest roots land in the argument's input relation, its padding
+rows honest. `zeroCount` is such a stack, by the guards above; the kernel cannot evaluate a
+constraint polynomial or the bus's permutation on a concrete stack, so the facts are hypotheses
+here. -/
 theorem roots_unchecked_no_security {I : M3Instance} (h : Conditions I) (s : I.Stmt)
     (q : Column I.μ) (hb : I.Balanced q) (hc : I.ConstraintsVanish q)
-    (hl : I.PublicLinesHold s q) (ha : I.aux q) (hz : ¬ I.CountsNonzero q) (α : Fin 4 → E)
+    (hl : I.PublicLinesHold s q) (ha : I.aux q) (hpad : I.PaddingHonest q)
+    (hz : ¬ I.CountsNonzero q) (α : Fin 4 → E)
     (β : E) {hp : (Data I × ∀ i, TheOracle I i) × Unit → E × E}
     {err : Typed.Errors (Typed.sayTree (E × E)) (Typed.sayRoles _)}
     (S : Typed.Security (Typed.sendChecked (TheOracle I) (E × E) hp (fun _ _ ↦ true)
       fun (x : Data I) (r : E × E) ↦ (x, ![r.1, r.1, r.2]))
       (afterChallenge I) (Gkr.relIn 3 I.μBus (leaves I) (riders I)) err) : False := by
   let o : ∀ i, TheOracle I i := fun _ ↦ q
-  refine Typed.sendChecked_no_security S (s, (α, β)) o (fun _ hw ↦ hz hw.2.1)
+  refine Typed.sendChecked_no_security S (s, (α, β)) o
+    (fun _ hw ↦ hz (countsNonzero_of_prod h α β q hw.2.1))
     (rootsHonest I (((s, (α, β)), o), ())) rfl ()
     ⟨(ridersZero_iff h _ o).mpr ⟨hc, hl, ha⟩, fun t ↦ ?_⟩
   fin_cases t
   · rfl
   · change ∏ x : Fin (2 ^ I.μBus), (pushLeaves I α β q)[x] =
       ∏ x : Fin (2 ^ I.μBus), (pullLeaves I α β q)[x]
-    rw [prod_pushLeaves, prod_pullLeaves h, Multiset.coe_eq_coe.mpr hb]
+    rw [prod_pushLeaves, prod_pullLeaves h, padProduct_of_honest hpad, padProduct_of_honest hpad,
+      Multiset.coe_eq_coe.mpr hb]
   · rfl
 
 /-! ## The pad -/
@@ -262,7 +287,8 @@ theorem roots_unchecked_no_security {I : M3Instance} (h : Conditions I) (s : I.S
 
 /-! ## Completeness -/
 
-example : Typed.Complete (busPhase busToy conditions) (Seam.commit busToy) (Seam.bus busToy) :=
+example : Typed.Complete (busPhase busToy conditions) (Seam.commitHonest busToy)
+    (Seam.bus busToy) :=
   busComplete busToy conditions
 
 /-- The spine's toy has two push leaves: `μ_bus = 1`. -/
@@ -270,12 +296,17 @@ theorem toy_μBus_eq : Toy.toy.μBus = 1 := by
   change Nat.clog 2 Toy.toy.pushLeaves = 1
   rw [show Toy.toy.pushLeaves = 2 ^ 1 by decide, Nat.clog_pow _ _ one_lt_two]
 
-/-- The spine's toy meets the side conditions. -/
+/-- The spine's toy meets the side conditions: its flush's slot 0 is the constant `0`. -/
 theorem toyConditions : Conditions Toy.toy where
   one_le_d := by decide
   constrained := fun _ _ ↦ by rw [toy_μBus_eq]
   pull_fits := by rw [toy_μBus_eq]; decide
   count_fits := by rw [toy_μBus_eq]; decide
+  separator := separator_of_zero fun _ f ↦ by
+    obtain ⟨_ | _, hf⟩ := f
+    · show (Toy.flush.2)[0] = 0
+      simp [Toy.flush]
+    · simp at hf
 
 /-- `1` in `E`. -/
 def e1 : E := 1
@@ -285,7 +316,7 @@ def e1 : E := 1
 #guard (linesRider Toy.toy (1 : K) Toy.honest).2.toList = [e0]
 #guard (linesRider Toy.toy (0 : K) Toy.honest).2.toList = [e1]
 
-example : Typed.Complete (busPhase Toy.toy toyConditions) (Seam.commit Toy.toy)
+example : Typed.Complete (busPhase Toy.toy toyConditions) (Seam.commitHonest Toy.toy)
     (Seam.bus Toy.toy) :=
   busComplete Toy.toy toyConditions
 

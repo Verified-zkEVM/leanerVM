@@ -1,6 +1,7 @@
 import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.Piop
 import LeanerVM.Protocol.Spine.Toy
+import CompPoly.Multivariate.Eval
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import Mathlib.Algebra.MvPolynomial.CommRing
 
@@ -26,17 +27,29 @@ open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Toy OracleComp Orac
 
 /-! ## The toy, with no Flock region -/
 
+/-- A flush whose slot 0 is the zero polynomial meets the separator condition. -/
+theorem separator_of_zero {I : M3Instance}
+    (h0 : ∀ j (f : Fin (I.flushes j).length), (Bus.flushPolys j f)[0] = 0) :
+    ∀ j (f : Fin (I.flushes j).length) (r r' : Fin (I.width j) → K),
+      ((Bus.flushPolys j f)[0]).eval r = ((Bus.flushPolys j f)[0]).eval r' := fun j f r r' ↦ by
+  rw [h0 j f, CMvPolynomial.eval_zero, CMvPolynomial.eval_zero]
+
 /-- The toy meets the bus phase's conditions. -/
 theorem toy_conditions : Bus.Conditions toy where
   one_le_d := by decide
   constrained := by decide
   pull_fits := by decide
   count_fits := by decide
+  separator := separator_of_zero fun _ f ↦ by
+    obtain ⟨_ | _, hf⟩ := f
+    · show (Toy.flush.2)[0] = 0
+      simp [Toy.flush]
+    · simp at hf
 
 example : toy.d ≤ 2 := by decide
 
 example (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : K)
-    (q : Column toy.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel toy) :
+    (q : Column toy.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel toy) :
     Pr{let x ← (leanVmPiop (leanVmPhases toy toy_conditions) initial).execute impl input q}[
       x.2.2 = some ()] = 1 :=
   leanVm_perfectCompleteness toy toy_conditions (by decide) initial impl input q h
@@ -73,9 +86,9 @@ theorem readWith_id (q : Column 8) (c : blockyShape.ColumnId) :
   rw [Vector.getElem_ofFn, boolIndex_boolVec]
   rfl
 
-/-- The one flush: `(X₀, 0, …)`, pushed. -/
+/-- The one flush: `(0, X₀, 0, …)`, pushed; slot 0, the domain separator, is constant. -/
 def flush : Side × Vector (CMvPolynomial 1 K) 16 :=
-  (.push, Vector.ofFn fun k ↦ if k.val = 0 then CMvPolynomial.X 0 else 0)
+  (.push, Vector.ofFn fun k ↦ if k.val = 1 then CMvPolynomial.X 0 else 0)
 
 theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤ 2 := by
   rw [totalDegree_equiv (S := K)]
@@ -95,6 +108,9 @@ abbrev blocky : M3Instance where
   constraints_degree := fun _ _ h ↦ absurd h (List.not_mem_nil)
   flushes_degree := fun _ f h k ↦ by rw [List.mem_singleton.mp h]; exact flush_totalDegree k
   counts := fun _ ↦ [0]
+  rows := fun j ↦ 2 ^ blockyShape.τ j
+  rows_le := fun _ ↦ le_rfl
+  padRow := fun _ _ ↦ 0
   boundary := []
   μ := 8
   layout := ⟨fun _ z ↦ z, fun q c z ↦ by rw [readWith_id]⟩
@@ -108,11 +124,16 @@ theorem blocky_conditions : Bus.Conditions blocky where
   constrained := by decide
   pull_fits := by decide
   count_fits := by decide
+  separator := separator_of_zero fun _ f ↦ by
+    obtain ⟨_ | _, hf⟩ := f
+    · show (LeanerVMTests.Protocol.Piop.flush.2)[0] = 0
+      simp [LeanerVMTests.Protocol.Piop.flush]
+    · simp at hf
 
 example : blocky.flock.isSome := rfl
 
 example (initial : PFunctor) (impl : QueryImpl (OracleSpec.ofPFunctor initial) Id) (input : Unit)
-    (q : Column blocky.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3Rel blocky) :
+    (q : Column blocky.μ) (h : ((input, fun i ↦ i.elim0), q) ∈ M3HonestRel blocky) :
     Pr{let x ← (leanVmPiop (leanVmPhases blocky blocky_conditions) initial).execute impl input q}[
       x.2.2 = some ()] = 1 :=
   leanVm_perfectCompleteness blocky blocky_conditions (by decide) initial impl input q h

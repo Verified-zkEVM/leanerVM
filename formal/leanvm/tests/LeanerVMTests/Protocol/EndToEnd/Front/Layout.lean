@@ -4,13 +4,16 @@ import LeanerVM.Protocol.EndToEnd.Front.CommitDoom
 /-!
 # Tests: the verifier's layout is the instance's
 
-* **Two size vectors against the pinned Rust.** For the two size vectors of
+* **Two size vectors against the pinned Rust.** For the two height vectors of
   `tests/LeanerVMTests/Protocol/LeanIsa.lean`, whose offsets were checked against the pinned Rust,
-  the verifier program builds its layout, its stacked size is the instance's, every committed
+  announced as full tables, the verifier program builds its layout, its stacked size is the instance's, every committed
   column's placement is at the instance's block offset with the instance's log-size, and every
   `BLAKE2S` limb sits at the Flock region's offset plus its deployed slot, below `8` coordinates.
+* **Row counts.** Row counts that are not powers of two give the placements and the stacked size
+  of the least powers of two holding them.
 * **The announced sizes.** `readSizes` returns on the announcement of admissible sizes, and
-  rejects a memory below `2^16`, a `BLAKE2S` table below eight rows and the rate `5`.
+  rejects a memory below `2^16`, a table above `2^32` rows and the rate `5`; a `BLAKE2S` table
+  of two rows is accepted.
 * **Mutations.** Breaking ties by the higher index, or reading the limbs at the identity slots,
   moves placements: the tie order and the deployed slots are load-bearing.
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
@@ -29,18 +32,28 @@ open LeanerVM.Protocol.EndToEnd LeanerVM.Protocol.EndToEnd.Front
 /-- Four `XOR` instructions. -/
 def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 
-/-- The first size vector of the instance's tests: a table as tall as the memory. -/
-def s₁ : Sizes := ⟨16, by decide, ![16, 3, 16, 4, 16, 16]⟩
+/-- The first size vector of the instance's tests, heights `16, 3, 16, 4, 16, 16`: a table as
+tall as the memory. -/
+def s₁ : Sizes := ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩
 
-/-- The second size vector: mixed heights, `BLAKE2S` at the floor. -/
-def s₂ : Sizes := ⟨18, by decide, ![2, 18, 5, 0, 7, 3]⟩
+/-- The second size vector, heights `2, 18, 5, 0, 7, 3`: mixed heights. -/
+def s₂ : Sizes := ⟨18, by decide, ![4, 262144, 32, 1, 128, 8]⟩
+
+/-- The second size vector's heights, from row counts that are not powers of two. -/
+def s₃ : Sizes := ⟨18, by decide, ![3, 200000, 17, 0, 65, 5]⟩
 
 /-! ## The layout -/
 
-#guard (buildLayout (bytecodeWords prog4) s₁.logMem (tableLogs s₁)).isSome
-#guard (buildLayout (bytecodeWords prog4) s₂.logMem (tableLogs s₂)).isSome
+#guard tableLogs s₁ == [16, 3, 16, 4, 16, 16]
+#guard tableLogs s₂ == [2, 18, 5, 0, 7, 3]
+#guard tableLogs s₃ == tableLogs s₂
+#guard (buildLayout (bytecodeWords prog4) s₁.logMem (tableRows s₁)).isSome
+#guard (buildLayout (bytecodeWords prog4) s₂.logMem (tableRows s₂)).isSome
+#guard (buildLayout (bytecodeWords prog4) s₃.logMem (tableRows s₃)).isSome
 #guard (verifierLayout prog4 s₁).stackLog = 25
 #guard (verifierLayout prog4 s₂).stackLog = 23
+#guard (verifierLayout prog4 s₃).stackLog = 23
+#guard decide ((verifierLayout prog4 s₃).placements = (verifierLayout prog4 s₂).placements)
 #guard decide (LayoutOk s₁)
 
 /-- The placement the instance gives a column: its block's offset, or the Flock region's offset
@@ -59,6 +72,7 @@ def placementsAgree (prog : Program) (s : Sizes) : Bool :=
 
 #guard placementsAgree prog4 s₁
 #guard placementsAgree prog4 s₂
+#guard placementsAgree prog4 s₃
 
 /-- The general statements, at the test's sizes. -/
 example : (verifierLayout prog4 s₁).stackLog = leanIsaμ prog4 s₁ := stackLog_verifierLayout _ _
@@ -91,8 +105,10 @@ def rejects (s : Sizes) (ρ : ℕ) : Bool :=
 
 #guard readsTo s₁ 2 25
 #guard readsTo s₂ 4 23
-#guard rejects ⟨15, by decide, ![16, 3, 16, 4, 16, 16]⟩ 2
-#guard rejects ⟨16, by decide, ![16, 3, 16, 4, 16, 2]⟩ 2
+#guard readsTo s₃ 4 23
+#guard readsTo ⟨16, by decide, ![65536, 8, 65536, 16, 65536, 2]⟩ 2 22
+#guard rejects ⟨15, by decide, ![65536, 8, 65536, 16, 65536, 65536]⟩ 2
+#guard rejects ⟨16, by decide, ![65536, 8, 2 ^ 32 + 1, 16, 65536, 65536]⟩ 2
 #guard rejects s₁ 5
 #guard rejects s₁ 0
 

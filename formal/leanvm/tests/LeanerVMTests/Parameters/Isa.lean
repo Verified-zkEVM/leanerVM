@@ -34,12 +34,11 @@ example : Opcode.deref.code ≠ Opcode.jump.code :=
 
 /-! ## Caps -/
 
-example : minLogMem = 16 ∧ maxLogMem = 32 ∧ maxLogRows = 32 ∧ maxLogBytecode = 32 ∧
-    minLogRowsBlake2s = 3 := by
+example : minLogMem = 16 ∧ maxLogMem = 32 ∧ maxLogRows = 32 ∧ maxLogBytecode = 32 := by
   decide
 
-/-- The floors are below the caps: the smallest announcement is admissible. -/
-example : minLogMem ≤ maxLogMem ∧ minLogRowsBlake2s ≤ maxLogRows := by decide
+/-- The floor is below the cap: the smallest announcement is admissible. -/
+example : minLogMem ≤ maxLogMem := by decide
 
 /-- Every cap keeps its address space inside the order of `g`, which `gLog?_spec` needs. -/
 example : maxLogMem < 64 ∧ maxLogBytecode < 64 := by decide

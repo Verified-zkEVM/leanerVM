@@ -65,12 +65,13 @@ def bilinearProbe : E × E × E :=
 /-- The sample bytecode: 32 words, so `log_bytecode = 1`. -/
 def sampleBytecode : List K := (List.range 32).map fun i ↦ K.ofBits (fw i 9)
 
-/-- The sample heights: `xor, mul, set, deref, jump, blake2s`. -/
-def sampleHeights : List ℕ := [2, 1, 1, 2, 2, 3]
+/-- The sample row counts: `xor, mul, set, deref, jump, blake2s`. The driver announced their
+log-heights `2, 1, 1, 2, 2, 3`, which these give. -/
+def sampleRows : List ℕ := [3, 2, 2, 4, 3, 5]
 
 /-- The sample layout, at memory log-size 16. -/
 def sampleLayout : Layout :=
-  (buildLayout sampleBytecode 16 sampleHeights).getD ⟨0, 0, [], [], [], [], [], 0, []⟩
+  (buildLayout sampleBytecode 16 sampleRows).getD ⟨0, 0, [], [], [], [], [], 0, []⟩
 
 /-- Each block's log-height, owner, arity, and its flushed tuple at the row `fe(200 + i)`,
 batched by powers of `fe 300`. -/
@@ -93,7 +94,9 @@ def samplePublicInput : Digest :=
 
 #guard yE = y
 #guard gen = ofK (K.ofBits 2)
-#guard (buildLayout sampleBytecode 16 sampleHeights).isSome
+#guard (buildLayout sampleBytecode 16 sampleRows).isSome
+#guard sampleLayout.tableLogHeights = [2, 1, 1, 2, 2, 3]
+#guard sampleLayout.push.all fun b ↦ b.rows == sampleRows.getD b.owner 0
 #guard [16, 15, 17, 1, 0, 2 ^ 20].map log2Strict = [some 4, none, none, some 0, none, some 20]
 #guard flockKSkip = 6 ∧ logPacking = 6 ∧ flockNumLincheckRounds = 8 ∧ qflockSlotBits = 8
 
@@ -105,16 +108,17 @@ def samplePublicInput : Digest :=
 /-! ## `build_layout` rejects what the Python rejects -/
 
 /- A bytecode length that is not a power of two; one shorter than `2^BUS_BITS`. -/
-#guard (buildLayout (sampleBytecode.take 24) 16 sampleHeights).isNone
-#guard (buildLayout (sampleBytecode.take 8) 16 sampleHeights).isNone
+#guard (buildLayout (sampleBytecode.take 24) 16 sampleRows).isNone
+#guard (buildLayout (sampleBytecode.take 8) 16 sampleRows).isNone
 /- The memory window `[16, 32]`. -/
-#guard (buildLayout sampleBytecode 15 sampleHeights).isNone
-#guard (buildLayout sampleBytecode 33 sampleHeights).isNone
-/- The `BLAKE2S` floor `3` and the height cap `32`. -/
-#guard (buildLayout sampleBytecode 16 [2, 1, 1, 2, 2, 2]).isNone
-#guard (buildLayout sampleBytecode 16 [33, 1, 1, 2, 2, 3]).isNone
-/- Not one height per table. -/
-#guard (buildLayout sampleBytecode 16 [2, 1, 1, 2, 2, 3, 0]).isNone
+#guard (buildLayout sampleBytecode 15 sampleRows).isNone
+#guard (buildLayout sampleBytecode 33 sampleRows).isNone
+/- The row cap `2^32`, and no `BLAKE2S` floor. -/
+#guard (buildLayout sampleBytecode 16 [2 ^ 32 + 1, 2, 2, 4, 3, 5]).isNone
+#guard (buildLayout sampleBytecode 16 [2 ^ 32, 2, 2, 4, 3, 5]).isSome
+#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 0]).isSome
+/- Not one row count per table. -/
+#guard (buildLayout sampleBytecode 16 [3, 2, 2, 4, 3, 5, 0]).isNone
 
 /-! ## `derive_config` outside the window -/
 

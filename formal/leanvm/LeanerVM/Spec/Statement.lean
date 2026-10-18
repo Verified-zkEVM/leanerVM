@@ -33,11 +33,10 @@ required to be efficient, so the proposition says no more than soundness: the ve
 a statement that has no valid execution with probability at most `soundnessError Q`.
 
 **Completeness** (`Completeness`): there is an honest prover which, given a valid execution of a
-program carrying the fill blocks (`HasFillBlocks`), of at most `2^19` steps, with a memory of at
-most `2^23` words and a bytecode of at most `2^23` instructions, at an inverse rate `2^ρ` with
-`1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64` nonces per proof of work, makes the verifier reject
-with probability at most `completenessError fuel`. The honest prover is not required to be
-efficient either.
+program of at most `2^19` steps, with a memory of at most `2^23` words and a bytecode of at most
+`2^23` instructions, at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
+nonces per proof of work, makes the verifier reject with probability at most
+`completenessError fuel`. The honest prover is not required to be efficient either.
 
 **Scope and trust.**
 
@@ -158,7 +157,7 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
 /-- **Completeness in the random-oracle model.** -/
 def Completeness : Prop :=
   ∃ prover : HonestProver, ∀ (prog : Program) (input : PublicInput) (t : Trace prog) (ρ fuel : ℕ),
-    HasFillBlocks prog → ValidExecution prog input t →
+    ValidExecution prog input t →
     t.steps ≤ 2 ^ 19 → t.κ ≤ 23 → prog.logSize ≤ 23 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[
       z.1.2 = false] ≤ completenessError fuel
