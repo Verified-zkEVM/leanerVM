@@ -15,16 +15,15 @@ public import LeanerVM.Protocol.ToArkLib.Typed.SendChecked
 /-!
 # Typed slots and their errors
 
-The typed counterparts of `ToArkLib/Schedule.lean`'s schedules, as slots built from the
-one-message and one-challenge slots in sequence, each with the errors the legacy schedule
-charges:
+The slots of leanVM's components, built from the one-message and one-challenge slots in
+sequence, each with the errors it charges:
 
 * `roundSlot C d`: a sumcheck round, the `d + 1` coefficients then one challenge;
 * `roundsSlot C d m`: `m` rounds, `roundsErrors C d e m` charging `e` per challenge;
 * `drawsSlot C k`: `k` challenges, `drawsErrors C e k` charging `e` each.
 
 A component built by appending components at these slots has the slot in its type by the
-definitions alone, as the legacy components have their schedules.
+definitions alone.
 
 The errors summed along every path are bounded in closed form (`Errors.Bounded`): `m · e` for
 `m` rounds, `k · e` for `k` challenges, and for the grand-product argument

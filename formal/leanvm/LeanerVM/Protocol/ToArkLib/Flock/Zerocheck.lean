@@ -230,7 +230,7 @@ instance [∀ s o, Decidable (side s o)] (p : (TermStmt S F (P.m + P.κ) × ∀ 
     Decidable (p ∈ termRel P C z side) :=
   inferInstanceAs (Decidable (_ ∧ _ ∧ _ ∧ _ ∧ _))
 
-/-! ## On the typed framework -/
+/-! ## The components -/
 
 /-- The first `j` drawn coordinates of the point, as a typed component. -/
 def pointDraws : (j : ℕ) → Typed.Def O S W (PointStmt S F j) W (Typed.drawsSlot F j)

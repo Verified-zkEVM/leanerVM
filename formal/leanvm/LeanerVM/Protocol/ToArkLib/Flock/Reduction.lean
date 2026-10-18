@@ -17,9 +17,9 @@ public import LeanerVM.Protocol.ToArkLib.Flock.RingSwitch
 coordinates of the zerocheck point; `P` on the coset of the skip domain; `z_skip`; the `m`
 zerocheck rounds on the within-block coordinates and the `κ` on the batch coordinates; `â, b̂`;
 `α`; the `m` lincheck rounds; the slices `s`, checked against the native terminal; the `s' + 1`
-ring-switching coefficients and the weighted claim. Its schedule is `flockSchedule`. The
-verifier only checks the statement and the transcript (`flockFront`), and an honest prover with
-a batch that satisfies its R1CS makes it accept a true weighted claim (`flockComplete`).
+ring-switching coefficients and the weighted claim. Its slot is `flockSlot`. It is a typed
+front component, so its verifier reads the statement and the path alone, and an honest prover
+with a batch that satisfies its R1CS makes it accept a true weighted claim (`flockComplete`).
 
 Nothing here transcribes a source.
 -/
@@ -31,15 +31,6 @@ namespace Flock
 open CompPoly CMlPolynomialEval OracleComp OracleSpec SumcheckRound BlockR1CS
 
 @[expose] public section
-
-/-! The instances of the schedule's prefixes, which the argument built one append at a time
-meets; instance search does not find them for appended schedules. -/
-
-section Instances
-
-variable (F : Type) [SampleableType F] (s m κ nRand : ℕ)
-
-end Instances
 
 variable {F : Type} [Field F] [DecidableEq F] [SampleableType F] (P : Params F)
   {ι : Type} {O : ι → Type} [∀ i, OracleInterface (O i)] {W : Type}

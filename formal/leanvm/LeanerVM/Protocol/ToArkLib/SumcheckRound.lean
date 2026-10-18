@@ -32,18 +32,18 @@ a protocol uses to carry facts the round does not touch. Two domains give the tw
   the challenges, with no equality factor.
 
 A round message is the `d + 1` coefficients of a polynomial of degree at most `d`, low degree
-first (`Message`, the type `roundSpec` names), read whole; `evaluate` is its value at a point,
+first (`Message`), read whole; `evaluate` is its value at a point,
 and `ofCPolynomial` reads the coefficients off a computable polynomial of that degree. The
 degree bound is the length of the message: a prover cannot send more coefficients.
 
-`round P wt j` is the round from stage `j` to stage `j + 1`, at the schedule `roundSpec F d`,
-in two components: `sendPoly` (the prover's polynomial, which the verifier records in the
+`round P wt j` is the round from stage `j` to stage `j + 1`, at the slot `Typed.roundSlot F d`,
+in two typed components: `sendPoly` (the prover's polynomial, which the verifier records in the
 statement) and `drawChallenge` (the verifier rejects unless the recorded polynomial's weighted
 sum over the domain is the running claim, draws the challenge, and carries the polynomial's
 value there as the next claim). It is built from the honest polynomials `P` and the weights
 `wt` alone, so that a family's claims and invariant, which only the relations mention, never
 enter a definition. `rounds P wt m i j` is the `i` rounds from stage `j` to stage `m = j + i`
-at `roundsSpec F d i`, so that a sumcheck of `m` rounds is `rounds P wt m m 0`. The relations
+at `Typed.roundsSlot F d i`, so that a sumcheck of `m` rounds is `rounds P wt m m 0`. The relations
 are `rel Φ j`: the invariant holds and the running claim is the family's; between the two
 components of a round, `relMid Φ j` adds that the recorded polynomial is the honest one.
 Completeness needs the family to be honest (`Family.Honest`): the honest polynomial passes the
@@ -52,9 +52,9 @@ challenge. Knowledge soundness (`roundSecurity`, `roundsSecurity`, at `d / |F|` 
 for a round that carries no witness) needs it consistent and sound (`Family.Sound`: a challenge
 restores a broken invariant at `d` values at most): a recorded polynomial that passes the check
 at a wrong claim is not the honest one, and two polynomials of degree `d` agree at `d` points at
-most (`card_filter_evaluate_eq_le`). Without the check, no extractor and state function make the
-challenge knowledge sound below error one (`drawChallenge_unchecked_not_rbr`). The oracles and
-the witness are passed through untouched.
+most (`card_filter_evaluate_eq_le`). Without the check, no extractor makes the challenge
+knowledge sound below error one (`drawChallenge_unchecked_one_le`). The oracles and the witness
+are passed through untouched.
 
 ArkLib's computable sumcheck (`Sumcheck.Impl.Representation.Message`, a polynomial with a
 degree bound queried by evaluation) sums its message over a unit-weight domain and is not an
@@ -361,7 +361,23 @@ def roundSecurity (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
       (Typed.roundErrors F d ((d : ℝ≥0) / (Nat.card F : ℝ≥0))) :=
   (sendPolySecurity j Φ).append (drawChallengeSecurity j Φ H S hj)
 
-variable {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+omit [∀ i, OracleInterface (O i)] [DecidableEq F] [Finite F] in
+/-- **The round check is load-bearing**: the challenge drawn without checking the recorded
+polynomial has no knowledge error below one, whatever the extractor, once a statement's running
+claim is off the family's and the invariant holds after every challenge: the honest polynomial
+is carried into the next relation at every challenge. -/
+theorem drawChallenge_unchecked_one_le (Φ : Family F X O W d) {m : ℕ} (H : Φ.Consistent m)
+    (hj : j < m) {e : ℝ≥0}
+    (Sec : Typed.Security (Typed.sampleChallenge O F (fun _ ↦ true)
+        (fun p : MidStmt X F j d ↦ fun c ↦ next j p.1 (evaluate d p.2 c) c))
+      (relMid Φ j) (rel Φ (j + 1)) (Typed.drawErrors F e))
+    (s : Stmt X F j) (o : ∀ i, O i) (w : W) (hclaim : s.2.2 ≠ Φ.claim ((s.1, o), w) j s.2.1)
+    (hinv : ∀ x, Φ.inv ((s.1, o), w) (j + 1) (s.2.1.push x)) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le Sec (s, Φ.poly ((s.1, o), w) j s.2.1) o
+    (fun w' hmid ↦ by
+      rw [Subsingleton.elim w' w] at hmid
+      exact hclaim hmid.1.2)
+    rfl fun x ↦ ⟨w, hinv x, H.next ((s.1, o), w) j s.2.1 x hj⟩
 
 /-! ## The rounds of a sumcheck -/
 

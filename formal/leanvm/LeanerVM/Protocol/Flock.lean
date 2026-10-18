@@ -34,12 +34,12 @@ the instance's layout (`crates/verifier/src/lib.rs:271-281`, `crates/verifier/sr
 `crates/leanvm_core/src/cpu/mod.rs:718-724`).
 With no region, the phase hands the claims on.
 
-* `flockPhase`: the phase, a `Phase.FrontDef` at the slot `flockSpec`.
+* `flockPhase`: the phase, a typed front component at the slot `flockPhaseSlot`.
 * `flockComplete`: its completeness from `Seam.pub` to `Seam.flock`.
-* `flockError_le`: the slot's error is at most `(4·kBatch + 163) / |E| + 2^32 / |E|`.
 * `flockSecurity`: its round-by-round knowledge soundness from `Seam.pub` to `Seam.flock`, at the
-  slot's error, which dominates the proved one (`flockError_le_flockErrorOf`,
-  `sum_flockError_generic`: `(3·kBatch + 169) / |E|`).
+  slot's errors (`flockErrors`, summing to `(4·kBatch + 302 + 2^31 + 2^15) / |E|` along every path,
+  `flockErrorsOf_bounded`), which dominate the proved ones challenge by challenge
+  (`flockErrorsT_le_flockErrorsOf`).
 
 The phase rests on two facts about leanVM's constants and fields: the 128 skip nodes are
 distinct (`flockNodes_injective`, from the `F_2`-linearity of `φ_8` and a kernel check of its
@@ -203,7 +203,7 @@ end FlockPhase
 
 variable (I : M3Instance)
 
-/-! ## Knowledge soundness -/
+/-! ## Errors and the switched claim -/
 
 /-- `N / |E|`, counted by `Nat.card`, is `overE N`. -/
 theorem overF_eq_overE (N : ℕ) : Flock.overF E N = overE N := by
@@ -215,7 +215,7 @@ theorem FlockPhase.mem_weighted_finish {I : M3Instance} (r : FlockRegion I.toSha
     (⟨W, T⟩ : WeightedClaim I) ∈ (FlockPhase.finish r h s W T).2.weighted.toList := by
   simp only [FlockPhase.finish, Vector.toList_cast, Vector.toList_mk, List.mem_singleton]
 
-/-! ## On the typed framework -/
+/-! ## The phase -/
 
 /-- The Flock phase on a region, typed. -/
 def flockPhaseSome (r : FlockRegion I.toShape) (h : I.flock = some r) :

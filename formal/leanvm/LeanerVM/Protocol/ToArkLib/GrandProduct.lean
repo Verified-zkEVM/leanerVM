@@ -1,9 +1,9 @@
 /-
   LeanerVM.Protocol.ToArkLib.GrandProduct
 
-  The batched grand-product argument as a component: from the roots of several product trees to
-  one evaluation claim per tree at one shared point, layer by layer, at the schedule
-  `gkrSpec`. Definition and perfect completeness. Candidate for ArkLib.
+  The batched grand-product argument as a typed component: from the roots of several product
+  trees to one evaluation claim per tree at one shared point, layer by layer, at the slot
+  `Typed.gkrSlot`. Definition and completeness. Candidate for ArkLib.
 -/
 
 module
@@ -26,9 +26,9 @@ one value per tree, and the output relation (`Gkr.relOut`) says each value is th
 extension of its tree's leaves at `ζ`. In between, the statement at layer `m` (`LayerStmt`) is a
 point of `m` coordinates and one value per tree, the extension of the tree's level on `m`
 variables (`layerRel`). A step (`layerStep`) goes `ρ` levels down, from layer `m` to `m + ρ`, at
-the schedule `stepSpec F nside ρ m`:
+the slot `Typed.stepSlot F nside ρ m`:
 
-* the combiner (`lambdaStep`, one challenge, batching by powers, `Component.batch`): the verifier
+* the combiner (`lambdaStep`, one challenge, batching by powers, `Typed.batch`): the verifier
   draws `λ`, and the claims become one, `Σ_s value_s · λ^s` (`powerBatch`), the sum of the layer
   identity `Σ_s Ṽ_s(r) · λ^s = Σ_x eq(r, x) Σ_s λ^s ∏_c Ṽ'_s(c, x)` over the level `ρ` below;
 * the normalized sumcheck on that identity (`m` rounds of `SumcheckRound.round` on
@@ -44,9 +44,9 @@ the schedule `stepSpec F nside ρ m`:
 
 `gkr` reads the roots as the statement at layer `0`, takes one binary step first when `μ` is odd
 (`Gkr.odd`) and steps of radix four after (`Gkr.layerSteps`), each step opening with its
-combiner; its schedule is `gkrSpec F nside μ`, so that a protocol's slot at that schedule takes
-it, and its errors are `gkrError`'s, which its knowledge soundness is stated at. `gkrComplete` is
-its perfect completeness, composed from its parts' through `Component.Complete.append` on the
+combiner; its slot is `Typed.gkrSlot F nside μ`, so that a protocol's slot that appends it takes
+it, and its errors are `Typed.gkrErrors`, which its knowledge soundness is stated at.
+`gkrComplete` is its completeness, composed from its parts' through `Typed.Complete.append` on the
 layer identities of `LeanerVM.Protocol.ToCompPoly.ProductTree`.
 
 *Riders* are further tables computed from the public data and the oracles, each on at most `μ`
@@ -67,7 +67,7 @@ ArkLib's pull request 818 formalizes GKR for layered circuits of addition and mu
 gates: a sumcheck over the `2k` variables of the two children's indices against the wiring
 predicates, and Thaler's line restriction. It is another protocol, whose shapes correspond:
 `LayerStmt` and `layerRel` to its `GKRStatement` and `Materialized.layerRel`, `layerStep` and
-`layerSteps` to its `gkrLayer` and `gkrReduction` (with `Component.Def.append` for
+`layerSteps` to its `gkrLayer` and `gkrReduction` (with `Typed.Def.append` for
 `seqCompose`), `sendChildren` with `interpolate` to its `Combine` (interpolation for the line).
 This module goes when ArkLib carries a product-tree GKR with round-by-round knowledge soundness.
 -/

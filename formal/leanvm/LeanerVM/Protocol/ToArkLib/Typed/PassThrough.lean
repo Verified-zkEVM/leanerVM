@@ -13,14 +13,13 @@ public import LeanerVM.Protocol.ToArkLib.Typed.Component
 # The pass-through component
 
 `Typed.passThrough O f` runs on the empty slot `doneSlot`: the verdict is `f` of the statement,
-always accepted. It relabels a statement, as the legacy `Component.passThrough` does: the empty
-tail of a sequence of rounds carries its statement across an equality of stages.
+always accepted. It relabels a statement: the empty tail of a sequence of rounds carries its
+statement across an equality of stages.
 
 Completeness (`passThroughComplete`): `f` carries the input relation into the output relation.
 Knowledge soundness (`passThroughSecurity`, at no error, the extractor empty): the output relation
 at `f` of a statement is the input relation at it. A tree with no move has its input state as its
-terminal state, so the typed framework asks the two relations to agree there; the legacy security
-of `Component.passThrough` asks the same, in its two directions.
+terminal state, so the typed framework asks the two relations to agree there.
 -/
 
 namespace LeanerVM.Protocol.Typed

@@ -205,7 +205,7 @@ theorem pair_ringWeight_eq_ringTarget
   congr 1
   exact (map_sub (frobMapHom (ringStages s' (fs.push x))) _ _).symm
 
-/-! ## Completeness on the typed framework -/
+/-! ## The components and their completeness -/
 
 omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
 /-- Typed completeness of one coefficient. -/

@@ -2,8 +2,8 @@
   LeanerVM.Protocol.Opening
 
   The opening phase: the verifier draws the batching challenge, combines the pooled claims by
-  its powers into one weighted claim on the stack, and asks the stack that one question. Both
-  halves, at the slot's schedule and error.
+  its powers into one weighted claim on the stack, and the protocol asks the stack that one
+  question. Both halves, at the slot and its error.
 -/
 
 module
@@ -28,20 +28,22 @@ claims after; the verifier forms `W_λ = Σ_j λ^j·W_j` and `C_λ = Σ_j λ^j·
 inner-product oracle answers the one question, and the compilation replaces the question by an
 opening of the commitment.
 
-The phase is batching by powers followed by a query check (`Component.batchQuery`), at the
-slot's schedule `draw E`: `Component.batch` draws `ρ` (the specification's `λ`, a keyword in
-Lean) and combines the pooled values into the batched claim `⟨W_ρ, C_ρ⟩` (`batched`); the query
-check asks the stack the batched claim's weight and accepts when the answer is its value. The
+The phase is batching by powers (`opening`, `Typed.batch`) at the slot `openingSlot`, one
+challenge: it draws `ρ` (the specification's `λ`, a keyword in Lean) and combines the pooled
+values into the batched claim `⟨W_ρ, C_ρ⟩` (`batched`). The question is the spine's
+(`stackQuestion`): at the protocol's leaf the verifier asks the stack the batched claim's weight
+and accepts when the answer is its value, so the phase ends in `Seam.opened`, the batched claim
+holding of the stack. The
 claim values were sent by the earlier phases, so they are in the statement before `ρ` is drawn.
 The pool's order (`pool_weighted`, `pool_column`) is the deployed verifiers': the ring-switched
 claims take the first powers (`crates/verifier/src/lib.rs:118-142, 272-289`,
 `python-verifier/verifier.py:1403-1407`).
 
-Perfect completeness: on the Flock seam every pooled claim holds, so the batched claim holds at
-every challenge (`Weight.pair_batch`), and the stack's answer is its value. Knowledge soundness
-at the slot's error `(J - 1)/|E|`, `J = I.poolSize`, with the extractor that keeps the trivial
-witness, since the stack is the oracle: before the challenge, every pooled claim holds; after
-it, the batched claim holds (`BatchedHolds`). The stack's answers to the pooled weights are
+Completeness (`openingComplete`): on the Flock seam every pooled claim holds, so the batched
+claim holds at every challenge (`Weight.pair_batch`), and the stack's answer is its value.
+Knowledge soundness (`openingSecurity`) at the slot's error `(J - 1)/|E|`, `J = I.poolSize`,
+with the extractor that keeps the trivial witness, since the stack is the oracle: before the
+challenge, every pooled claim holds; after it, the batched claim holds (`Seam.opened`). The stack's answers to the pooled weights are
 fixed before the challenge; outside the Flock seam they differ from the claimed values, and the
 batched claim holds only at a root of their difference, a nonzero polynomial of degree less
 than `J` in `ρ` (`batchSecurity`).
@@ -180,15 +182,13 @@ theorem answers_of_not_flock (s : I.Stmt × FlockOut I) (o : ∀ i, TheOracle I 
 
 end Opening
 
-/-! ## The phase -/
-
-variable (I : M3Instance)
-
-/-! ## The phase on the typed framework
+/-! ## The phase
 
 The opening phase as a typed component is the batching alone, at the opening's slot: the question
 to the stack is the spine's (`stackQuestion`), asked at the protocol's leaf, so the phase reaches
 `Seam.opened`, the batched claim holding of the stack. -/
+
+variable (I : M3Instance)
 
 /-- The opening phase, typed: batching by powers into the batched claim. -/
 def opening : Typed.Def (TheOracle I) (I.Stmt × FlockOut I) Unit (WeightedClaim I) Unit

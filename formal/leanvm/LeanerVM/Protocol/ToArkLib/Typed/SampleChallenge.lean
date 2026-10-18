@@ -16,8 +16,7 @@ public import VCVio.OracleComp.Constructions.SampleableType
 
 `Typed.sampleChallenge O C check f` is the one-challenge tree `drawTree C`: the verifier
 rejects unless the input statement `s` passes `check`, draws `c : C` uniformly, and outputs
-`f s c`; the oracles and the witness are handed on. It is the typed counterpart of
-`Component.sampleChallenge`.
+`f s c`; the oracles and the witness are handed on.
 
 Completeness (`sampleChallengeComplete`): on the input relation the check passes and `f`
 carries the relation into the output relation at every challenge. Knowledge soundness

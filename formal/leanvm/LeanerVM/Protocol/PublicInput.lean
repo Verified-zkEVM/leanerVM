@@ -4,7 +4,7 @@
   The public-input phase: the verifier draws a challenge, the prover sends the values it claims
   for the public columns on the line through their first two cells whose value is sent, and the
   verifier checks those values against the public statement and pools the claims. Both halves
-  proved, at the slot's schedule and error.
+  proved, at the slot and its error.
 -/
 
 module
@@ -316,7 +316,7 @@ theorem verdict_pooledFrom_of_check {s : I.Stmt × TableOut I} {r : E} {cs : Lis
   obtain rfl := (check_eq_true_iff I s r cs).mp hc
   exact pooledFrom_expected I s r hl
 
-/-! ## The phase on the typed framework -/
+/-! ## The phase -/
 
 /-- The verdict of a verifier of the phase's shape on a branch path: `pool` of the values sent,
 if `accept` passes. -/

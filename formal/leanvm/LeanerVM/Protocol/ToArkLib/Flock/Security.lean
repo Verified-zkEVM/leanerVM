@@ -13,8 +13,8 @@ import LeanerVM.Protocol.ToCompPoly.PowerBatching
 /-!
 # Knowledge soundness of the Flock argument
 
-Every component keeps the trivial witness, so its knowledge state function is its input relation
-and a challenge is bad when it carries a statement outside the input relation into the output
+Every component keeps the trivial witness, so its knowledge state is its input relation and a
+challenge is bad when it carries a statement outside the input relation into the output
 relation. The counts, per challenge, over `|F|`:
 
 * a drawn coordinate of the point: `1`. A residual that is not zero on the coordinates fixed so far
@@ -40,12 +40,11 @@ here, discharged for each instance:
 
 The messages, which check nothing or check what the next relation reads, have error zero.
 
-Three of the verifier's checks come with refutations, whatever the extractor and the state
-function: without the lincheck's terminal check the slices have no knowledge state function
-(`linEnd_unchecked_no_stateFunction`); interpolating values sent at every node instead of
-assuming zeros on the skip nodes (`skipDraw_unzeroed_not_rbr`), or batching without the constant
-position's `α³` term (`alphaDraw_noConst_not_rbr`), leaves a challenge with no knowledge error
-below one.
+Three of the verifier's checks come with refutations, whatever the extractor: without the
+lincheck's terminal check the slices have no security at any error
+(`linEnd_unchecked_no_security`); interpolating values sent at every node instead of assuming
+zeros on the skip nodes (`skipDraw_unzeroed_one_le`), or batching without the constant position's
+`α³` term (`alphaDraw_noConst_one_le`), leaves a challenge with no knowledge error below one.
 
 Nothing here transcribes a source.
 -/
@@ -460,6 +459,82 @@ def skipNextAll (s : PointStmt S F P.nRand × Vector F (2 ^ P.s + 2 ^ P.s)) (Y :
 /-- The verifier's batched claim without the constant position's term. -/
 def alphaNextNoConst {n : ℕ} (t : TermStmt S F n) (α : F) : Stmt (LinX S F n) F 0 :=
   ((t, α), (#v[], t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2))
+
+/-! ## The checks are load-bearing -/
+
+omit [DecidableEq F] [SampleableType F] [Finite F] [∀ i, OracleInterface (O i)] in
+/-- Without the lincheck's terminal check, the slices have no security at any error, whatever
+the extractor: from a running claim off the family's, the honest slices are accepted. -/
+theorem linEnd_unchecked_no_security
+    {err : Typed.Errors (Typed.sayTree (Vector F (2 ^ P.s))) (Typed.sayRoles _)}
+    (Sec : Typed.Security (Typed.sendChecked O _ (linHonest P z) (fun _ _ ↦ true)
+      (linNext P (S := S))) (rel (linFamily P C z side (W := Unit)) P.m) (outRel P z side) err)
+    (st : Stmt (LinX S F (P.m + P.κ)) F P.m) (o : ∀ i, O i) (hside : side st.1.1.1.1 o)
+    (hclaim : st.2.2 ≠ (linFamily P C z side (W := Unit)).claim ((st.1, o), ()) P.m st.2.1) :
+    False :=
+  Typed.sendChecked_no_security Sec st o (fun w h ↦ hclaim (by cases w; exact h.2))
+    (linHonest P z ((st, o), ())) rfl () ⟨hside, fun i ↦ by simp [linHonest, linNext]⟩
+
+omit [DecidableEq F] [Finite F] [∀ i, OracleInterface (O i)] in
+/-- Interpolating values sent at every node, the skip nodes' included, instead of assuming zeros
+on the skip nodes, leaves `z_skip` with no knowledge error below one, whatever the extractor:
+from a residual not zero at the point, the honest coset values carry the true claim. -/
+theorem skipDraw_unzeroed_one_le
+    (hnodes : Function.Injective fun j : Fin (2 ^ P.s + 2 ^ P.s) ↦ P.nodes.pts[j])
+    {relIn : Set (((PointStmt S F P.nRand × Vector F (2 ^ P.s + 2 ^ P.s)) × ∀ i, O i) × Unit)}
+    (hrel : ∀ s msg o, (((s, msg), o), ()) ∈ relIn → ((s, o), ()) ∈ pointRel P C z side P.nRand)
+    {e : ℝ≥0}
+    (Sec : Typed.Security (Typed.sampleChallenge O F (fun _ ↦ true) (skipNextAll P (S := S)))
+      relIn (rel (zcFamily P C z side) 0) (Typed.drawErrors F e))
+    (s : PointStmt S F P.nRand) (o : ∀ i, O i) (hside : side s.1 o)
+    (hconst : ∀ t : Fin (2 ^ P.κ), (constTable P.cpos (z o))[t] = 0) (i : Fin (2 ^ P.s))
+    (hres : evalMle (errTable C (z o) i) (P.point s.2) ≠ 0) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le Sec
+    (s, Vector.ofFn fun j ↦ pValue P.nodes C (z o) (P.point s.2) P.nodes.pts[j]) o
+    (fun w hw ↦ by
+      cases w
+      exact hres ((restrictedZero_of_all _ _ _ (P.pointPartial_all s.2)).mp
+        ((hrel _ _ _ hw).2.1 i)))
+    rfl fun Y ↦ ⟨(), ⟨hside, by
+      show RestrictedZero _ (Partial.ofSuffix P.m (#v[] : Vector F 0))
+      rw [Partial.ofSuffix_of_le _ _ (Nat.zero_le _), restrictedZero_empty_iff]
+      exact hconst⟩, by
+      show interpolateWith P.nodes.pts P.nodes.allInv
+          (Vector.ofFn fun j ↦ pValue P.nodes C (z o) (P.point s.2) P.nodes.pts[j]) Y =
+        (zcFamily P C z side).claim (((s.1, P.point s.2, Y), o), ()) 0 #v[]
+      rw [zcFamily_claim_zero, P.nodes.allInv_eq, interpolateWith_lagrangeInv]
+      simp only [← eval_pPoly]
+      exact interpolateAt_eval P.nodes.pts hnodes _ (degree_pPoly_lt P.nodes C (z o) _) Y⟩
+
+omit [DecidableEq F] [Finite F] [∀ i, OracleInterface (O i)] in
+/-- Batching the lincheck's claims without the constant position's `α³` term leaves `α_lc` with
+no knowledge error below one, whatever the extractor: at true terminal values of a batch whose
+constant position fails, the batched claim is true at every `α`. -/
+theorem alphaDraw_noConst_one_le
+    {relIn : Set ((TermStmt S F (P.m + P.κ) × ∀ i, O i) × Unit)}
+    (hrel : ∀ t o, ((t, o), ()) ∈ relIn → ((t, o), ()) ∈ termRel P C z side) {e : ℝ≥0}
+    (Sec : Typed.Security (Typed.sampleChallenge O F (fun _ ↦ true)
+      (alphaNextNoConst (S := S) (n := P.m + P.κ))) relIn (rel (linFamily P C z side) 0)
+      (Typed.drawErrors F e))
+    (t : TermStmt S F (P.m + P.κ)) (o : ∀ i, O i) (hside : side t.1.1 o)
+    (ha : t.2.2.1 = evalMle (zcA P C z o t.1.2.2) t.2.1)
+    (hb : t.2.2.2.1 = evalMle (zcB P C z o t.1.2.2) t.2.1)
+    (hc : t.2.2.2.2 = evalMle (zcC P z o t.1.2.2) t.2.1)
+    (hconst : evalMle (constTable P.cpos (z o)) (highVec t.2.1) = 1) : 1 ≤ e :=
+  Typed.sampleChallenge_one_le Sec t o
+    (fun w hw ↦ by
+      cases w
+      have hrz := (hrel t o hw).2.1
+      rw [restrictedZero_of_all _ _ (highVec t.2.1) fun k hk ↦ by
+        rw [Partial.ofSuffix_all _ t.2.1 k hk]
+        simp [highVec]] at hrz
+      rw [hrz] at hconst
+      exact zero_ne_one hconst)
+    rfl fun α ↦ ⟨(), hside, by
+      show t.2.2.1 + α * t.2.2.2.1 + α ^ 2 * t.2.2.2.2 =
+        (linFamily P C z side).claim (((t, α), o), ()) 0 #v[]
+      rw [linFamily_claim_zero, hconst, ← ha, ← hb, ← hc]
+      ring⟩
 
 /-! ## Ring switching -/
 

@@ -138,7 +138,7 @@ instance [∀ s o, Decidable (side s o)] (p : (OutStmt S F (P.m + P.κ) P.s × �
     Decidable (p ∈ outRel P z side) :=
   inferInstanceAs (Decidable (_ ∧ _))
 
-/-! ## On the typed framework -/
+/-! ## The components -/
 
 omit [DecidableEq F] [∀ i, OracleInterface (O i)] in
 /-- Typed completeness of `α`. -/

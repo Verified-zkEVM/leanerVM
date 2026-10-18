@@ -15,13 +15,13 @@ public import LeanerVM.Protocol.ToCompPoly.Restriction
 /-!
 # Knowledge soundness of the grand product
 
-`gkrSecurity nside μ leaves riders` is the security half of `gkr` at the error
-`gkrError F (1 / |F|) nside μ`, with the extractor that keeps the trivial witness. With the
-witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.relIn`:
+`gkrSecurity nside μ leaves riders` is the security half of `gkr` at the errors
+`Typed.gkrErrors F (1 / |F|) nside μ`, with the extractor that keeps the trivial witness. With
+the witness `Unit` throughout, it is round-by-round soundness of the language `Gkr.relIn`:
 nothing is extracted. It is composed, like the completeness half, from the parts' through
-`Component.Security.append`, so every challenge keeps the error its schedule assigned it:
+`Typed.Security.append`, so every challenge keeps the error its slot assigned it:
 
-* the combiner: batching by powers (`Component.batchSecurity`): a statement outside the layer
+* the combiner: batching by powers (`Typed.batchSecurity`): a statement outside the layer
   relation combines into the family's first claim at `nside − 1` combiners at most, since two
   different value vectors combine to the same scalar at the roots of a polynomial of degree
   `nside − 1`;
@@ -45,7 +45,7 @@ coordinates so far is zero on one more at one challenge at most. A `RiderTrack` 
 security needs of either: the predicates during the rounds, during the combination challenges
 and at the new point, how each hands over to the next, and the one-escape bounds. The escape of
 a rider at a challenge is dominated by the claim's at the same challenge, so the riders add
-nothing to `gkrError`.
+nothing to `Typed.gkrErrors`.
 
 The step from layer `m` with `k` radix-four steps to follow uses the progressive tracker when
 `k = 0` and the constant one otherwise (`layerStepsSecurity` splits on `k`); so does the first

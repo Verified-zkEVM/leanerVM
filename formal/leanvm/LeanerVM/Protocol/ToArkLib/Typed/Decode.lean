@@ -19,8 +19,7 @@ slot after any message. A component `D` on it reads its first message on the wir
 reads it, and the honest prover encodes its message with `enc`.
 
 `Security.decode`: a security of `D` at errors constant across the first message is a security of
-the decoded component at the same errors, with `D`'s extractor read on the decoded message. This
-is the typed counterpart of the legacy transport along a `TranscriptMap`.
+the decoded component at the same errors, with `D`'s extractor read on the decoded message.
 -/
 
 namespace LeanerVM.Protocol.Typed

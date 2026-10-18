@@ -35,7 +35,7 @@ side, each table's count columns), and padded with `1` to the depth `μ_bus` of 
 product of its blocks' leaves (`Blocks.prod_stackAt`), so the push and pull roots agree when the
 bus balances, and the count root is nonzero when every count cell is.
 
-The phase (`busPhase`), at the slot's schedule `busSpec I`:
+The phase (`busPhase`), a typed front component at the slot `busSlot I`:
 
 1. the verifier draws `(α, β)`;
 2. the prover sends the roots `(R, R_c)`: one scalar for push and pull, which share their root,

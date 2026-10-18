@@ -2,8 +2,8 @@
   LeanerVM.Protocol.Spine.Slots
 
   The slot of every phase on ArkLib's typed framework, with the error charged to each of its
-  challenges, as closed forms of the instance: the typed counterparts of `Spine/Errors.lean`'s
-  schedules and errors.
+  challenges, as closed forms of the instance, their bounds along every path, and the question
+  the protocol asks the stack at the end.
 -/
 
 module

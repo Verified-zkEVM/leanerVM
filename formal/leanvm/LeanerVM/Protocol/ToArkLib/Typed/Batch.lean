@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.ToCompPoly.PowerBatching
 /-!
 # Batching by powers
 
-`Typed.batch O F value out` is the typed counterpart of `Component.batch`: the statement `s`
+`Typed.batch O F value out` is batching by powers as a typed component: the statement `s`
 claims the values `value s : Fin k → F`, the verifier draws `ρ`, and the output statement is
 `out s ρ (Σ_j value_j · ρ^j)` (`powerBatch`).
 

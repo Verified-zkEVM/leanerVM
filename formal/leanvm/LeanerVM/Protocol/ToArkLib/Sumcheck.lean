@@ -50,24 +50,24 @@ map, by default the point and the values as claims on the tables (`finalOut`, `r
 
 Completeness (`weightedComplete`) holds when the summand has degree at most `d` in each variable
 (`IndividualDegreeLE`): the round polynomial is then a polynomial of degree at most `d`, which
-`d + 1` nodes determine. Knowledge soundness (`weightedSecurity`, `plainSecurity`,
-`normalizedSecurity`) holds under the same hypotheses, at `d / |F|` on each round's challenge and
-with the extractor that keeps the witness, which carries no information: a recorded polynomial
-that passes the check at a wrong claim is not the true one, and two polynomials of degree `d`
-agree at `d` points at most; values that pass the final check and are the tables' values make
-the running claim the summand at the point.
+`d + 1` nodes determine. Knowledge soundness (`weightedSecurity`, for either weights) holds under
+the same hypotheses, at `d / |F|` on each round's challenge and with the extractor that keeps the
+witness, which carries no information: a recorded polynomial that passes the check at a wrong
+claim is not the true one, and two polynomials of degree `d` agree at `d` points at most; values
+that pass the final check and are the tables' values make the running claim the summand at the
+point. Without the final check the last message has no security at any error
+(`final_unchecked_no_security`).
 
-*The wire.* A round sent with `d` of its `d + 1` coefficients (`wireSpec`, the coefficients but
-coefficient `k`: `encodeWire`) is decoded by deriving the missing one from the running claim, the
+*The wire.* A round sent with `d` of its `d + 1` coefficients (the coefficients but coefficient
+`k`: `encodeWire`) is decoded by deriving the missing one from the running claim, the
 value that makes the round's check hold (`decodeRound`, `decodeWire`); this needs the coefficient's
 weight in the check, `Σ_x w(x) · x^k` (`coeffWeight`), to be invertible, which is why a plain round
 drops `c_1` (the weight of `c_0` is `1 + 1`, zero in characteristic two) and a normalized round
 `c_0`. The decoding is injective (`encodeWire_decodeWire`), and every message that passes the
 check is the decoding of its wire (`decodeWire_encodeWire`), so the honest prover's message
-survives. `transport`: the round's verifier composed with the decoding, a verifier of the wire,
-is round-by-round knowledge sound at the round's error, with the extractor and the state function
-read on the decoded transcript; it is `Verifier.rbrKnowledgeSoundnessWorstCaseWith_comap` on the
-map that decodes the round's wire (`roundDecoding`).
+survives. `transport`: the round reading its message on the wire and decoding it
+(`Typed.Def.decode`) is knowledge sound at the round's errors, with the extractor read on the
+decoded message (`Typed.Security.decode`).
 -/
 
 namespace LeanerVM.Protocol
@@ -479,6 +479,22 @@ def finalSecurity {T : Type} (out : SumcheckRound.Stmt X F n → Vector F m → 
     Typed.Security (final V out) (SumcheckRound.rel (family V wt nodes side) n) relOut'
       (Typed.sayErrors (Vector F m)) :=
   Typed.sendCheckedSecurity (final_reflect V wt nodes side out h)
+
+omit [Finite F] [DecidableEq F] [SampleableType F] [∀ i, OracleInterface (O i)] [Subsingleton W] in
+/-- **The final check is load-bearing**: the values at the final point read without the check
+have no security at any error, whatever the extractor, once a statement meets the side condition
+and its running claim is not the summand at its point: the true values are carried into the
+output relation. -/
+theorem final_unchecked_no_security
+    {hp : (SumcheckRound.Stmt X F n × ∀ i, O i) × W → Vector F m}
+    {err : Typed.Errors (Typed.sayTree (Vector F m)) (Typed.sayRoles _)}
+    (Sec : Typed.Security (Typed.sendChecked O (Vector F m) hp (fun _ _ ↦ true)
+        (finalOut (X := X) (F := F) (n := n) (m := m)))
+      (SumcheckRound.rel (family V wt nodes side) n) (relOut V side) err)
+    (s : SumcheckRound.Stmt X F n) (o : ∀ i, O i) (w : W) (hside : side ((s.1, o), w))
+    (hs : ∀ w', s.2.2 ≠ V.summand ((s.1, o), w') s.2.1.reverse) : False :=
+  Typed.sendChecked_no_security Sec s o (fun w' h ↦ hs w' ((mem_rel_self V wt nodes side _).mp h).2)
+    (V.values ((s.1, o), w) s.2.1.reverse) rfl w ⟨rfl, hside⟩
 
 /-- The typed security half of the rounds, at `d / |F|` per round. -/
 def roundsSecurity (hV : ∀ ctx, IndividualDegreeLE (V.summand ctx) d)

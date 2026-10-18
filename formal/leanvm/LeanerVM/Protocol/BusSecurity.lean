@@ -14,7 +14,7 @@ public import LeanerVM.Protocol.ToArkLib.GrandProductSecurity
 /-!
 # Knowledge soundness of the bus phase
 
-`busSecurity I h` is the security half of `busPhase I h` at the slot's error `busError I`, from
+`busSecurity I h` is the security half of `busPhase I h` at the slot's errors `busErrors I`, from
 `Seam.commit` to `Seam.bus`. The stack is the oracle and every witness is trivial, so it is
 round-by-round soundness: a stack outside `M3Holds` reaches `Seam.bus` only through a bad
 challenge. It is composed from the four steps' halves, at the same intermediate relations as
@@ -33,7 +33,7 @@ challenge. It is composed from the four steps' halves, at the same intermediate 
   one root for both sides makes the products agree. This is where the check is load-bearing: a
   zero count is otherwise balanced on the bus (§6.2, `06-bus-interactions.tex:78`; the deployed
   verifier's check is `crates/verifier/src/bus.rs:117-119`).
-* **The grand-product argument** (`gkrSecurity`), at `gkrError` from the unit `1/|E|`. Its riders
+* **The grand-product argument** (`gkrSecurity`), at `Typed.gkrErrors` from the unit `1/|E|`. Its riders
   carry the constraints and the public lines with the Flock predicate, so its state function
   carries the zerocheck: a constraint that does not vanish on the cube has a nonzero extension
   restricted to the coordinates of `ζ` drawn so far, which a coordinate makes zero at one value at

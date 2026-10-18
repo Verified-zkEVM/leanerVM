@@ -16,7 +16,7 @@ public import LeanerVM.Protocol.ToArkLib.Typed.Component
 `Typed.sendChecked O M honest check out` is the one-message tree `sayTree M`: the prover sends
 `honest` of its input (the statement, the oracles' contents and the witness), the verifier reads
 the message `msg`, rejects unless `check s msg` passes, and outputs `out s msg`; the oracles and
-the witness are handed on. It is the typed counterpart of `Component.sendChecked`.
+the witness are handed on.
 
 Completeness (`sendCheckedComplete`): on the input relation the honest message passes the check
 and `out` of it lands in the output relation. Knowledge soundness (`sendCheckedSecurity`): a

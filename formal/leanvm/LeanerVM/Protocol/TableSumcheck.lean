@@ -28,7 +28,7 @@ tables sum to the side's total at `ζ` (`Seam.bus`). Each is a sum over one tabl
 by `eq(ζ_{<τ_t}, ·)` of a polynomial of degree at most `d` in the table's columns, and one
 sumcheck proves them all:
 
-1. the verifier draws `ξ` and batches the claims by its powers (`batchStep`, `Component.batch`):
+1. the verifier draws `ξ` and batches the claims by its powers (`batchStep`, `Typed.batch`):
    constraint `i` of table `t` gets `ξ^{o_t + i}`, with the constraints numbered table by table
    (`constraintPos`), and side `s` gets `ξ^{B + s}`, the three powers shared by the tables, so the
    target `Σ_s ξ^{B+s} · total_s` is derived by the verifier and never sent;
@@ -498,9 +498,7 @@ theorem tableOut_mem_table (s : SumcheckRound.Stmt (Data I) E I.τmax) (o : ∀ 
   · exact hside.1 c hc
   · exact (finalClaims_holds_iff I ((s.1, o), ()) _ _).mpr rfl c hc
 
-/-! ## Knowledge soundness -/
-
-/-! ## The phase on the typed framework -/
+/-! ## The phase -/
 
 /-- From the bus seam, the combined claimed values are the combination of the true ones at every
 challenge, and the side condition holds. -/

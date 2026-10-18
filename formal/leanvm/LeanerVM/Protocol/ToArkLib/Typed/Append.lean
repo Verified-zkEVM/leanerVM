@@ -22,14 +22,13 @@ verdict followed by `D₂`'s on it, a rejection of either rejecting.
 
 * `Complete.append`: completeness composes, through the honest runs of a front component
   (`Runs`): every outcome of the honest execution is an honest run with the verdict at its path
-  (`mem_support_execute`), and conversely (`execute_mem_support`).
+  (`runs_of_mem_support`).
 * `Security.append`: security composes at the errors side by side. The backward witness maps are
   ArkLib's `RoundExtractor.append`, the second component's maps entered at the first's terminal
   state through its terminal relation (`RoundExtractor.changeInputState`) where the first accepts,
   and the maps of a false state where it rejects (`falseExtractor`); the bounds are ArkLib's
   `isProverPreserving_append`, `isLocallyBounded_append` and `TerminalRelation.append`. This is
-  the composition the legacy framework admits and `ToArkLib/KnowledgeAppend.lean` ports, here
-  ArkLib's own.
+  ArkLib's own composition of knowledge, proved at the pin.
 -/
 
 namespace LeanerVM.Protocol.Typed
