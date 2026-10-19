@@ -667,9 +667,11 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 
-Two checks are owed at the current pins and have not been made: whether
-`ReedSolomon.mcaError_affineLine_johnson_le`'s constant meets Annex B's per-level budget at the
-pinned parameters, and whether Clean `42fe4b26` contains any of Clean #446.
+One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
+any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
+budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
+(least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
+([whir-mca-budget.md](../reviews/whir-mca-budget.md)).
 
 The survey log kept here until 2026-09-29 is archived in
 [protocol-survey-record.md](../reviews/protocol-survey-record.md); the library limits it recorded

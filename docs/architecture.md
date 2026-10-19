@@ -282,9 +282,13 @@ The public theorem ladder is:
    randomness in it. The theorem must expose the component knowledge-soundness bounds, the
    list-binding compilation of the commitment, the Fiat–Shamir and Merkle assumptions for the
    deployed construction with its proof of work, the family over the prover's announced sizes,
-   transcript/serialization agreement, and executable-verifier refinement. Instantiating `H` by
-   the deployed hash is the one non-formal step: an assumption of the deployment, named, never a
-   hypothesis of a theorem. Its completeness dual composes T2 with the honest prover and records
+   transcript/serialization agreement, and executable-verifier refinement. The headline theorem
+   is about the deployed verifier, `BaseVerifier^H` with `H` the deployed hash. Its one
+   assumption is a named hypothesis in its statement: for the adversary at hand, answering its
+   queries with the deployed hash instead of a random function raises the probability that it
+   beats the extractor by at most `δ`. It is per adversary because the form for all adversaries
+   is false: an adversary replaying a stored proof makes no query, so a log-reading extractor
+   learns nothing from it. It is never an axiom. Its completeness dual composes T2 with the honest prover and records
    the failure and resource conditions: a valid execution may need more memory than the verifier
    accepts, and the prover's proof-of-work search has no proved bound.
 
