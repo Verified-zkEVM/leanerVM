@@ -209,6 +209,31 @@ variable (I : M3Instance)
 
 /-! ## The layouts fit -/
 
+/-- The log-heights of a side's blocks: its boundary blocks', then each table's, once per flush
+of that side. -/
+theorem sideSources_map_κ (s : Side) :
+    (sideSources I s).map Source.κ =
+      (I.boundary.filter fun b ↦ decide (b.side = s)).map (·.κ) ++
+        (List.finRange I.ntab).flatMap fun j ↦
+          List.replicate ((I.flushes j).filter fun f ↦ decide (f.1 = s)).length (I.τ j) := by
+  rw [sideSources, List.map_append, List.map_map, List.map_flatMap]
+  congr 1
+  refine List.flatMap_congr fun j _ ↦ ?_
+  rw [List.map_map]
+  simp only [Function.comp_def, Source.κ, List.map_const']
+  congr 1
+  conv_rhs => rw [← List.map_getElem_finRange (I.flushes j)]
+  rw [List.filter_map, List.length_map]
+  rfl
+
+/-- The log-heights of the count side's blocks: each table's, once per count column. -/
+theorem countSources_map_κ :
+    (countSources I).map Source.κ =
+      (List.finRange I.ntab).flatMap fun j ↦ List.replicate (I.counts j).length (I.τ j) := by
+  rw [countSources, List.map_flatMap]
+  refine List.flatMap_congr fun j _ ↦ ?_
+  simp only [List.map_map, Function.comp_def, Source.κ, List.map_const']
+
 /-- A side's layout covers its leaves exactly. -/
 theorem blocks_total (k : Fin 3) : (blocks I k).total = leafCount I k := by
   rw [Blocks.total_eq_sum]
