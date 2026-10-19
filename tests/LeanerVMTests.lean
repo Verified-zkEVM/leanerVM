@@ -39,6 +39,7 @@ import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.PublicInput
+import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
