@@ -752,8 +752,8 @@ and the Flock roadmap's `FlockSpec` (Layer 9).
 ```lean
 structure Sizes where (logMem : ℕ) (τ : Fin 6 → ℕ)                    -- heights only; the family index
 def Sizes.ofWitness (w : EnsembleWitness (leanIsaEnsemble prog)) : Option Sizes
-def leanIsaBlocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ     -- witness.rs:67-101
-theorem leanIsaBlocks_fits : (leanIsaBlocks prog s).total ≤ 2 ^ leanIsaμ prog s
+def LeanIsa.blocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ    -- witness.rs:67-101
+theorem LeanIsa.blocks_fits : (LeanIsa.blocks prog s).total ≤ 2 ^ leanIsaμ prog s
 def Sizes.Admissible (prog) (s) : Prop   -- 16 ≤ logMem ≤ 32, τ j ≤ 32, 3 ≤ τ BLAKE2S, leanIsaμ prog s ≤ 28
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4                           -- whir_config.rs:48-55
 theorem caps_witnessOf (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
@@ -977,7 +977,7 @@ kept as the reference of §8.2, and the deployed verifiers' (one equation on the
 
 ```lean
 namespace PublicInput
-def pSpec : ProtocolSpec 2                          -- V_to_P : E, then P_to_V : List E
+-- the schedule is the spine's pubSpec: V_to_P : E, then P_to_V : List E
 def linePoint (hn : 0 < n) (r : E) : Vector E n     -- (r, 0, …, 0)
 theorem eval₂Mle_linePoint : q̃(linePoint hn r) = (1 - r)·q(0) + r·q(1)
 def lineValue I r l : E := (1 + r)·cell0 + r·cell1
@@ -1456,7 +1456,7 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       busSpec  tableSpec  pubSpec  flockSpec  openingSpec
                       busError  tableError  pubError  flockError  openingError  piopError  piopError_le
                       Component.Def  Component.Guarded  Component.Complete  Component.Security  (each with .append)
-                      Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
+                      Phase.Def  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
                       Verifier.GuardedForm.of_probEvent_pos  Reduction.mem_support_run_of_guarded
@@ -1481,15 +1481,16 @@ Tables and stacking:  sumCube  hadamard  slice  sliceLow  placeSlice  boolVec
                       bytecodeColumn  bytecodeColumnEval  bytecodeColumn_answer_boolVec  bytecodeColumn_eval
 Clean polynomials:    Expression.toCMvPolynomial  eval_toCMvPolynomial  fromCMvPolynomial_toCMvPolynomial  M3Table  Component.toM3
                       toM3_constraints_iff  toM3_flushes_eq
-The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  leanIsaBlocks  leanIsaμ
+The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  LeanIsa.blocks  LeanIsa.blocks_fits  leanIsaμ
                       leanIsaInstance  stackOf  witnessOf  Agrees  agrees_witnessOf  agrees_stackOf  tuples_perm
                       satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf  caps_witnessOf
 Generic components:   Virtual  Sumcheck.plain  Sumcheck.normalized  Sumcheck.transport  batch
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision  gkr  gkrError
 Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_target  tableSumcheck
-                      PublicInput.pSpec  PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom
-                      PublicInput.prover  PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifier_verify
-                      PublicInput.accepts_two_challenges  publicInputPhase  deployedPublicInputPhase
+                      PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom  PublicInput.prover
+                      PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifierWith
+                      PublicInput.verify_simulated  PublicInput.accepts_two_challenges
+                      publicInputPhase  deployedPublicInputPhase
                       FlockSpec  flockPhase  flockError_le  openingPhase  leanVmPhases
                       (each phase with its Complete and Security)
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError

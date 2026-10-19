@@ -165,7 +165,6 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   verifiers derive the third, `v_c`, from the running claim
   (`crates/flock/src/zerocheck.rs:421-422`, `verifier.py:1148-1149`). The slot's exact error sum
   (`sum_flockErrorOf`) is what the blueprint's `flockError_le` only bounds.
-- **Deleted as unused**: `Phase.Guarded`.
 - **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
   a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
   the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
@@ -203,8 +202,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   takes the proof that the message has one value per sent line, and every verifier of that
   shape rejects another message before its check: the length is no check a variant can drop.
   The blueprint's `claimsFrom` on a bare list would need a value for a missing entry, and the
-  computed value, the only candidate, is the one choice no refutation can catch. The alias
-  `PublicInput.pSpec` is gone; the slot is `pubSpec`.
+  computed value, the only candidate, is the one choice no refutation can catch.
 - **The deployed public-input check** is the specification phase's prover with a verifier that
   checks one equation on the two public words, `c₀ + y·c₁ = (1 + r)·w₀ + r·w₁` (`checkWords`;
   `cpu/mod.rs:752-755`, `verifier.py:1400`, `aggregate.py:1680-1683`), at the same slot and error. Where it
