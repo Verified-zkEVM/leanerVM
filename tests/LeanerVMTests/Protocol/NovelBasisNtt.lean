@@ -8,7 +8,7 @@ import Mathlib.Algebra.Algebra.ZMod
 `encode` is `def:enc` read directly. CompPoly's `computableAdditiveNTT` is the fast algorithm of
 `app:ntt` (Lin-Chung-Han, proved equal to the evaluation of the novel-basis polynomial in
 `CompPoly.Fields.Binary.AdditiveNTT.Correctness`), instantiated here at `K` and the basis
-`β c = e_c = g ^ c`, the blueprint's test "`encode` against CompPoly's additive NTT at `κ = 3`".
+`β c = e_c = g ^ c`, at `κ = 3`.
 The two are compared in the kernel at position `5`, for the unit messages at `1` (`X_1 = Ŵ_0`) and
 at `2` (`X_2 = Ŵ_1`, the first novel polynomial that is not a monomial). Kernel evaluation of
 CompPoly's NTT is the limit: these take under two minutes, while a unit message at `6` or `7` and
