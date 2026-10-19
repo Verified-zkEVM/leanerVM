@@ -110,6 +110,10 @@ This directory contains stable project and operating knowledge.
     (2026-10-05), which found no theorem wrong, vacuous or tautological, and whose findings the
     branch meets (the phase rebuilt as batching by powers followed by a query check, the bound
     attained, a refutation that drops the weighted claims, the blueprint ask, the surface).
+  - [whir-encoder.md](reviews/whir-encoder.md): the review of the novel basis, the encoder and
+    the column weights (2026-10-19), whose findings the branch meets (the column weight evaluable
+    at deployed sizes, vectors there, the encoder's distance) or puts to the maintainer (the port
+    of the polynomial half to CompPoly's names).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

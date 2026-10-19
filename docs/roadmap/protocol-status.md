@@ -646,6 +646,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 The spine's slots are on `main`, so the phases are written against them. These can start: the
 WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
 
+*On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
+encoder as a linear injection with its distance, and the column weights with their `κ`-step
+extension (`Protocol/NovelBasis.lean`: `encode`, `encode_eq_eval`, `encode_eq_of_agree`,
+`encode_injective`, `encodeLinear`, `columnWeight`, `columnWeightMle`, `vanish_eq`). The blueprint
+then owes two edits: its `novelBasis` is `basisElt` (the novel basis is `novelPoly`), and the reuse
+row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test against
+`computableAdditiveNTT`, with the polynomial half restated at `K` (the module docstring says why).
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
