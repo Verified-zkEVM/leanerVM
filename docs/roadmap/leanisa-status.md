@@ -205,7 +205,8 @@ module (P3).
   which excludes the `BLAKE2S` table's `Assumptions`, so it accepted a wrong-but-canonical
   digest and the blueprint's `constraintSoundness` was false for any program whose run
   executes `BLAKE2S`; met by the conjunct `Blake2sRowsValid` and `assumptions_of_blake2sRowsValid`,
-  the shape the Flock design note's D5 later replaces by the constraints themselves. A2
+  a shape the proof system's adaptor discharges from the Flock region
+  (`blake2sRowsValid_witnessOf`). A2
   (medium): the count-`0` rejection also failed balance, so no test guarded `CountsNonzero`;
   met by `zero_count_witness`. B1 (low): `Caps` was documented as all of `read_public` while
   transcribing three of its eight checks; met in the docstrings, the rate and stacked-size
@@ -337,8 +338,8 @@ module (P3).
 - **Layer 6 landed** as PR #19 (squash `a999d03`, 2026-09-15; `feat/leanisa-opcode-tables`),
   revised on 2026-09-14 for the review
   [`docs/reviews/leanisa-layer6-tables.md`](../reviews/leanisa-layer6-tables.md). Its reading
-  list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean`: `rowEnv` and
-  the two `Option` lemmas, all the tables share beyond Layers 0 and 2), `tests/LeanerVMTests/Arithmetization/Tables.lean`,
+  list is the seven files under `LeanerVM/Arithmetization/Tables/` (`Basic.lean`: `rowEnv`,
+  `instructionStep` and the two `Option` lemmas, all the tables share beyond Layers 0 and 2), `tests/LeanerVMTests/Arithmetization/Tables.lean`,
   the two-line change to `BytecodePull` in `LeanerVM/Arithmetization/Channels.lean`, and the
   roadmap's Layer 6 section, which shows the built shapes. Every Layer 6 target of the roadmap
   is present and proved. The review's three findings (F8) are met: (R1) the step-only `Spec`

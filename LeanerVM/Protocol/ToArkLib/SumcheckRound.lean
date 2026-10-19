@@ -150,6 +150,10 @@ the family's. -/
 def rel (Φ : Family F X O W d) (j : ℕ) : Set ((Stmt X F j × ∀ i, O i) × W) :=
   {p | Φ.inv (ctxOf p) j p.1.1.2.1 ∧ p.1.1.2.2 = Φ.claim (ctxOf p) j p.1.1.2.1}
 
+instance [DecidableEq F] (Φ : Family F X O W d) [∀ ctx j c, Decidable (Φ.inv ctx j c)] (j : ℕ)
+    (p : (Stmt X F j × ∀ i, O i) × W) : Decidable (p ∈ rel Φ j) :=
+  inferInstanceAs (Decidable (_ ∧ _))
+
 /-- The relation between a round's message and its challenge: the stage's relation, and the
 polynomial received is the honest one. -/
 def relMid (Φ : Family F X O W d) (j : ℕ) : Set ((MidStmt X F j d × ∀ i, O i) × W) :=

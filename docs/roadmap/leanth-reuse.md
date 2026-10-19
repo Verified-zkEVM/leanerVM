@@ -92,7 +92,7 @@ The generic core of `ProofSystem/ZeroCheck.lean` is the polynomial view of a con
 | --- | --- | --- | --- | --- | --- |
 | `AIR`, `Trace`, `Trace.Satisfies` | `ZeroCheck.lean:53-84` | a constraint family over `Fin width` variables; a trace as cube tables; row-wise satisfaction | pattern (`M3Table` is `AIR` with no shifted columns) | `M3Table` | — |
 | `Trace.constraintRowPolynomial`, `eval_constraintRowPolynomial`, `_boolean`, `_eq_zero_on_cube` | `ZeroCheck.lean:99-148` | `Φ_j := bind₁ (MLE ∘ columns) C_j`; `Φ_j(z) = C_j(column MLEs at z)`; on the cube it is the row residual | port (substitution, not interpolation: the MLE of the residual table is the wrong object off the cube) | `Virtual.eval`, `tableSummand`, `toM3_constraints_iff` | M |
-| `degreeOf_bind₁_le_totalDegree`, `degreeOf_constraintRowPolynomial_le`, `degreeOf_map_le`, `totalDegree_map_le`, `degreeOf_rename_le` | `ZeroCheck.lean:161-186, 297-334` | substituting individual-degree-≤1 polynomials bounds each `degreeOf` by the total degree; coefficient maps and injective renames keep bounds | copy (Mathlib only, `Nontrivial` for `X`) | `totalDegree_le_degreeBound`, the degree-3 round bound of Layer 7 | S |
+| `degreeOf_bind₁_le_totalDegree`, `degreeOf_constraintRowPolynomial_le`, `degreeOf_map_le`, `totalDegree_map_le`, `degreeOf_rename_le` | `ZeroCheck.lean:161-186, 297-334` | substituting individual-degree-≤1 polynomials bounds each `degreeOf` by the total degree; coefficient maps and injective renames keep bounds | copy (Mathlib only, `Nontrivial` for `X`) | `totalDegree_toCMvPolynomial_le`, the degree-3 round bound of Layer 7 | S |
 | `eval_map_eq_zero_of_eval_eq_zero` | `Arith/Residual.lean:211-234` | a `K`-polynomial vanishing at a Boolean point vanishes there after `map (algebraMap K E)` | copy | Layer 7 (constraints over `K` hold over `E`) | S |
 
 ### Layer 3: the M3 instance
@@ -443,11 +443,10 @@ Not derived from leanth, and listed so that the layer reads whole: `bitProductTa
 (`FixedColumns.lean`, #41); the `Column`-level stack with the spine's `Layout` (`Stack.lean`);
 and a column claim as a weighted claim (`ClaimWeights.lean`).
 
-Next port candidates, in order of value per effort, each already proposed in an open pull
-request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42). The
-fingerprint lemmas (Layer 5) were ported by #39 and completed with the product polynomial and its
-collision count. The knowledge-soundness composition (A2) was not ported
-from leanth: it is the port of ArkLib #615, on `main` since 2026-09-28.
+Batching from #43 was incorporated through #77. The honest sumcheck proposal #42 was closed in
+favour of the custom leanVM sumcheck in #75/#76. Neither remains an open port candidate. The
+fingerprint work landed through #39/#78. Knowledge-soundness composition came from ArkLib #615
+through #58.
 
 ## Upstream candidates
 

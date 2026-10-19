@@ -31,13 +31,17 @@ open CompPoly CMlPolynomialEval
 
 variable {R S : Type*} [CommRing R] [CommRing S]
 
+/-- The batched evaluator computes the extension of the batched cube values. -/
+theorem Weight.powerBatch_mle_eq {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) (r : Vector S n) :
+    powerBatch (fun j ↦ (W j).mle r) ρ = evalMle (batchWeight (fun j ↦ (W j).onCube) ρ) r := by
+  rw [evalMle_batchWeight]
+  exact congrArg (powerBatch · ρ) (funext fun j ↦ (W j).mle_eq r)
+
 /-- The weights `W_j` combined by the powers of `ρ`: values and extension both `Σ_j ρ^j·W_j`. -/
 def Weight.batch {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) : Weight S n where
   onCube := batchWeight (fun j ↦ (W j).onCube) ρ
   mle := fun r ↦ powerBatch (fun j ↦ (W j).mle r) ρ
-  mle_eq := fun r ↦ by
-    rw [evalMle_batchWeight]
-    exact congrArg (powerBatch · ρ) (funext fun j ↦ (W j).mle_eq r)
+  mle_eq := Weight.powerBatch_mle_eq W ρ
 
 /-- The answer of a table to combined weights is the combination of its answers. -/
 theorem Weight.pair_batch {k n : ℕ} (φ : R →+* S) (W : Fin k → Weight S n) (ρ : S)

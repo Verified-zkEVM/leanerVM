@@ -36,10 +36,10 @@ leanVM's BLAKE2s chain with proof of work), each a structure with an owner and a
 obligation, never an axiom.
 
 Home: `LeanerVM/Protocol/Spine/` (the spine), `LeanerVM/Protocol/` (the phases over an abstract
-instance, the adaptor, the compilation), the Clean bridge in `LeanerVM/Arithmetization/`, the
+instance, the adaptor, the compilation), the Clean bridge in `LeanerVM/Protocol/ToClean/`, the
 transcribed constants in `LeanerVM/Parameters/`, following [architecture.md](../architecture.md).
-Generic components live under `LeanerVM/Protocol/ToArkLib/` (and `ToCompPoly/`, `ToVCVio/`) until
-their upstream pull request merges.
+Generic components live under `LeanerVM/Protocol/ToArkLib/` (and `ToClean/`, `ToCompPoly/`,
+`ToVCVio/`) until their upstream pull request merges.
 
 This document is the specification: what is wanted and what was decided. It records no state;
 what is built is in [protocol-status.md](protocol-status.md), who is taking what in issue
@@ -266,9 +266,10 @@ spine stays on it (decision 24).
 | `MerkleTree` `build`, `verify`, `extractability_rom_bound` (VCVio `CryptoFoundations/MerkleTree/`) | Merkle trees with proved completeness and single-opening random-oracle extractability; the candidate for Layer 11 (decision 32). |
 | `BF64`, `BF64.Ext3`, `card_bf64`, `card_ext3`, `Ext.coeff`, `Ext.ofFn` (CompPoly) | As in the leanISA roadmap; `Fintype.card E = 2^192` is the only cardinality fact the errors use. |
 | `CMlPolynomialEval R n`, `evalMle`, `evalMleLayer`, `eval₂Mle`, `eqTilde`, `lagrangeBasis`, `evalManyMleByLayers` (CompPoly `Multilinear/`) | Hypercube tables and their multilinear evaluation, computable; `eval₂Mle` is the `K → E` lift. |
-| `CMvPolynomial`, `CPolynomial` (CompPoly) | Constraint and flush polynomials of the instance; round polynomials. The conversion to Mathlib's `MvPolynomial` is noncomputable, so Layer 2 translates Clean expressions directly. |
+| `CMvPolynomial`, `CPolynomial` (CompPoly) | Constraint and flush polynomials of the instance; round polynomials. The conversion to Mathlib's `MvPolynomial` is noncomputable, so Layer 2 translates Clean expressions directly and proves the translation equal to Clean's polynomial. |
 | `AdditiveNTT` (CompPoly `Fields/Binary/AdditiveNTT/`) | The novel basis and the encoder of Annex B, generic over a basis; instantiated only at `GF(2^8)`, so Layer 11 supplies the `K` basis. |
 | `Expression`, `Expression.eval`, `Operations.constraints`, `Operations.interactions`, `AbstractInteraction`, `EnsembleWitness`, `Table.environment`, `Environment.fromArray` (Clean `Circuit/`, `Air/`) | Constraints and flushes as syntax over the row's variables (out-of-range variables read `0`); the witness. Clean's own balance over `K` is vacuous (#16), so `SatisfiedBy` uses `BalancedPair`. |
+| `Expression.degreeBound`, `Expression.WithinWidth`, `Expression.toBoundedPolynomial` (Clean `Circuit/ExpressionPolynomial`, held as a local copy until the pin contains it) | An expression's syntactic degree, the claim that its variables lie below a width, and its noncomputable Mathlib polynomial in that many variables; Layer 2's computable translation is proved equal to it. |
 | `MvPolynomial`, `Polynomial.card_roots'`, `UniqueFactorizationMonoid`, `Multiset.prod` (Mathlib) | Degrees and root counts behind every Schwartz–Zippel step; Lemma 5.2 by unique factorization. |
 
 ### The upstream ledger
@@ -293,7 +294,7 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Correlated agreement up to Johnson | `rs_mcaError_le_in_johnson_range` admitted (the printed [BCHKS25] constant); `ReedSolomon.mcaError_affineLine_johnson_le` proved (another constant, any characteristic); the capacity-range theorems exclude characteristic two | `McaJohnson` is parametrized by its constant; Layer 11 uses the proved inhabitant if its constant meets Annex B's budget at the pinned parameters, else names the admitted one as the obligation. |
 | Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue | Assumed interfaces for leanVM's constructions (Layer 12), their obligation the literature; upstream theorems, when they come, are about other constructions, so a chain lemma and a role-separation lemma are owed here. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
-| Clean expressions as polynomials | absent; Clean #466 | Written here (Layer 2), computable. |
+| Clean expressions as polynomials | on Clean's main since #466 (2026-10-05), but in no revision built for Lean 4.34 (Clean #474, the port, does not contain it) | `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module; deleted when the pin contains #466 and its file is still `b449bf59`'s, its importer then importing `Clean.Circuit.ExpressionPolynomial` and the aggregate dropping it. The computable translation and the component tables (`ToClean/ComponentPolynomial.lean`) are written over Clean's names and stay. |
 | Balance counted in ℕ, direction-tagged | absent; Clean #464, #20 | leanISA's `BalancedPair` stands in. |
 | Fixed columns, sound prover data | absent; Clean #446, #23 | The instance states them as known coordinates (`Coord.known`). |
 
@@ -321,9 +322,9 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Load-bearing checks | Every check of a phase's verifier comes with a theorem that the verifier without it (or with it weakened) has no round-by-round knowledge soundness at the phase's seams below error 1, whatever the extractor; every check the deployed verifier does not make comes with a theorem that the verifier with it is not perfectly complete. A check is load-bearing only if the verifier commits to what it checked: a claim pooled from a prover's message pools the value *sent*. A check whose omission cannot be refuted is one the design does not rely on, and the design is revised until it does. The generic lemmas (`not_rbr`, `not_perfectCompleteness`) live in `ToArkLib/`; the refutations are tests, listed in the phase's pull request. |
 | Trusted surface | Every trusted definition fits on one screen, cites its source line, and appears in [Interfaces](#interfaces-supplied-to-later-work); assumed interfaces are structures whose docstring names the owner and the witness obligation, never `variable`-block hypotheses or `axiom`s. The instance is trusted data: the spine proves nothing of it beyond its layout law, and the master theorems hold of instances whose relation is empty; the leanISA instance's non-vacuity is `m3Holds_stackOf`, its faithfulness the fixture of Layer 12. |
 | Unproved targets | A statement whose dependency is not yet available is a block comment at its place, with the statement and the dependency. Never `sorry`. |
-| Generic code | A definition or theorem that belongs upstream lives under `LeanerVM/Protocol/ToArkLib/`, `ToCompPoly/` or `ToVCVio/`, by the library that owns its objects (read off its imports), in a module of its own saying it is a candidate for that library; the local copy is deleted in the pull request that moves the pin past its upstream merge. It is written for that library's other consumers: general definitions and helper lemmas, no special case the protocol chose (a slot, a pad value, a particular point) and no protocol vocabulary; the special case is derived in a leanVM module, which cites the specification. Comments everywhere are brief and self-contained and never cite this roadmap. |
+| Generic code | A definition or theorem that belongs upstream lives under `LeanerVM/Protocol/ToArkLib/`, `ToClean/`, `ToCompPoly/` or `ToVCVio/`, by the library that owns its objects (read off its imports), in a module of its own saying it is a candidate for that library; the local copy is deleted in the pull request that moves the pin past its upstream merge. It is written for that library's other consumers: general definitions and helper lemmas, no special case the protocol chose (a slot, a pad value, a particular point) and no protocol vocabulary; the special case is derived in a leanVM module, which cites the specification. Comments everywhere are brief and self-contained and never cite this roadmap. |
 | Module system | Production files, including Clean bridges, are modules; kernel-evaluation tests and root aggregates stay classic. The spine carries polynomials and tables, never a Clean circuit. |
-| The wall | Every module of the proof system is written over an abstract `I : M3Instance` and imports nothing from `LeanerVM/Arithmetization/`, except the fixed columns (`FixedColumns.lean`), the Clean bridge (Layer 2), the adaptor (Layer 3), the compiled verifier (Layer 12) and the base theorems (Layer 13). `scripts/check-layers.sh` enforces it with that allow-list, and the policy tests plant a violation. A leanISA change touches the leanISA instance, the adaptor and T1, and nothing else. |
+| The wall | Every module of the proof system is written over an abstract `I : M3Instance` and imports nothing from `LeanerVM/Arithmetization/`, except the fixed columns (`FixedColumns.lean`), the adaptor (Layer 3), the compiled verifier (Layer 12) and the base theorems (Layer 13). `scripts/check-layers.sh` enforces it with that allow-list, and the policy tests plant a violation. A leanISA change touches the leanISA instance, the adaptor and T1, and nothing else. |
 | Holes | A phase or generic component is three structures. `X.Def`: the reduction, computable, with no error in it. `X.Guarded`: the prover's output is pure and the verifier is a guard followed by a verdict. `X.Complete` extends `Guarded` with perfect completeness; `X.Security` extends `Guarded` with an extractor, a knowledge state function and `rbrKnowledgeSoundnessWorstCaseWith` at the spine's error, so that knowledge soundness does not presuppose completeness (decision 23). A `Def` lands with its `Complete` and an honest run on the toy instance; its `Security` may land later; neither contains `sorry`. Until every hole is filled, the fields of `Phases.Complete` and `Phases.Security` are assumed interfaces. |
 | Seams | The output relation of a phase is the input relation of the next, by definition (`Seam.*`), never by a bridge lemma (test 26). The bus seam carries the point the bus phase ended at, since the table sumcheck runs at it, and the forms the bus phase built, their row polynomials of degree at most `I.d` by type. The zerocheck escape, "violated on the cube, zero at `ζ`", is carried by the bus phase's state function as one more conjunct (every constraint extension, restricted to the coordinates of `ζ` drawn so far, is identically zero), which a coordinate makes true with probability at most `1/|E|` whatever the number of constraints: the bus phase's error has no term for it. |
 | Extractors | Every extractor is a computable definition, checked by a `def` without `noncomputable` at each `Security`. The protocol's is `piopExtractor`; the stack it extracts is `piopExtractedStack`, the fold of the phases' extractors down to the commit round, which equals the committed message on every transcript; the adaptor applies `witnessOf` to it. Knowledge soundness of `verify` is claimed in the information-theoretic sense (Lean does not measure running time); the intended compiled extractor names an efficient list decoder. |
@@ -569,12 +570,12 @@ no other; the hole is built when the names in bold of its row are declared and m
 
 | Hole | Specified in | Produces | Needs |
 | --- | --- | --- | --- |
-| field instances | [Layer 0](#layer-0-the-arklib-dependency-and-the-field-instances) | **`instSampleableTypeE`**, **`card_E`**, `instOracleInterfaceE`, `instOracleInterfaceListE`, `Weight`, `Weight.pair`, `eqWeight`, **`innerProductOracle`**, **`answer_eqWeight`** | nothing |
+| field instances | [Layer 0](#layer-0-the-arklib-dependency-and-the-field-instances) | **`instSampleableTypeE`**, **`card_E`**, `Weight`, `Weight.pair`, `eqWeight`, **`innerProductOracle`**, **`answer_eqWeight`** | nothing |
 | the spine | [The spine](#the-spine) | everything under [What the spine fixes](#what-the-spine-fixes); marked by **`M3Holds`**, **`Phases`**, **`piopError_le`**, **`piopExtractedStack_eq`**, **`piop_perfectCompleteness`**, **`piop_rbrKnowledgeSoundness`**, **`Refinement.knowledge_transport`** | field instances |
 | the knowledge-soundness composition | [What the spine fixes](#what-the-spine-fixes), item 5 | **`Verifier.KnowledgeStateFunction.appendGuarded`**, **`Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`** (the port of ArkLib #615) | ArkLib only |
 | tables and stacking | [Layer 1](#layer-1-hypercube-tables-stacking-the-strided-reader-the-index-and-bytecode-columns) | **`Blocks.stack_eval`**, **`Blocks.unstack_eval₂`**, **`Blocks.stack_eval_ambient`**, **`evalMle_boolVec_append`**, **`Blocks.layout`**, **`Blocks.stridedLayout`**, **`Layout.piecewise`**, **`ColumnClaim.holds_iff_weighted`**, **`idxColumn_eval`**, **`bytecodeColumn_answer_boolVec`**, `bytecodeColumn_eval` | field instances; the spine's `Layout` and claims |
-| Clean expressions as polynomials | [Layer 2](#layer-2-clean-components-as-polynomials) | **`Expression.toCMvPolynomial`**, **`eval_toCMvPolynomial`**, `Expression.degreeBound`, **`Component.toM3`**, **`toM3_constraints_iff`**, **`toM3_flushes_eq`** | Clean |
-| the adaptor | [Layer 3](#layer-3-the-leanisa-instance-and-the-adaptor) | `Sizes`, **`Sizes.Admissible`**, `validRate`, **`leanIsaInstance`**, **`boundary_tuples_eq`**, `stackOf`, `witnessOf`, **`satisfiedBy_witnessOf`**, **`m3Holds_stackOf`**, `witnessOf_stackOf` | the spine; Clean expressions as polynomials; tables and stacking; leanISA Layers 5–8; `FlockSpec` from #3 |
+| Clean expressions as polynomials | [Layer 2](#layer-2-clean-components-as-polynomials) | **`Expression.toCMvPolynomial`**, **`eval_toCMvPolynomial`**, `fromCMvPolynomial_toCMvPolynomial`, **`Component.toM3`**, **`toM3_constraints_iff`**, **`toM3_flushes_eq`** | Clean |
+| the adaptor | [Layer 3](#layer-3-the-leanisa-instance-and-the-adaptor) | `Sizes`, **`Sizes.Admissible`**, `validRate`, **`leanIsaInstance`**, `Agrees`, **`tuples_perm`**, `stackOf`, `witnessOf`, **`satisfiedBy_witnessOf`**, **`m3Holds_stackOf`**, `witnessOf_stackOf` | the spine; Clean expressions as polynomials; tables and stacking; leanISA Layers 5–8; `FlockSpec` from #3 |
 | sumcheck: definitions and completeness | [Layer 4](#layer-4-the-sumchecks-and-batching) | `Virtual`, **`Sumcheck.plain`**, **`Sumcheck.normalized`**, their `Complete`, **`Sumcheck.transport`** | nothing |
 | sumcheck: knowledge soundness | [Layer 4](#layer-4-the-sumchecks-and-batching) | **`Sumcheck.plainSecurity`**, **`Sumcheck.normalizedSecurity`** | sumcheck: definitions and completeness |
 | batching by powers | [Layer 4](#layer-4-the-sumchecks-and-batching) | **`batch`**, `batchComplete`, **`batchSecurity`** | nothing |
@@ -620,8 +621,6 @@ structure Column (n : ℕ) where values : CMlPolynomialEval K n      -- not an a
 instance : SampleableType K                 -- only the building block of the E sampler
 instance : SampleableType E                 -- three limbs through an equivalence; never enumerates
 theorem card_E : Fintype.card E = 2 ^ 192
-instance instOracleInterfaceE : OracleInterface E              -- a scalar message is read whole
-instance instOracleInterfaceListE : OracleInterface (List E)   -- ArkLib registers no default; these go when it does
 structure Weight (n) where (onCube : CMlPolynomialEval E n) (mle : Vector E n → E) (mle_eq : …)
 def Weight.pair (W : Weight n) (q : Column n) : E := Σ_w W(w)·q(w)
 def eqWeight (p : Vector E n) : Weight n                       -- eq(p, ·) with its product evaluator
@@ -635,7 +634,8 @@ theorem answer_eqWeight {n} (q : Column n) (p) : OracleInterface.answer q (eqWei
 The samplers go through explicit equivalences on the carriers, as ArkLib's
 `KoalaBear.Ext6.sampleableType` does; `Fintype K` is proof-only. Tests: the oracle answers
 `⟨W, q⟩` on a two-variable table for an equality weight and for another weight, with a mutated
-column; `answer_eqWeight` on and off the cube; `card_E`; the scalar interfaces found by `#synth`.
+column; `answer_eqWeight` on and off the cube; `card_E`. No scalar or list interface on `E` is
+registered: each message schedule carries the interfaces of its own messages.
 
 ### Layer 1: hypercube tables, stacking, the strided reader, the index and bytecode columns
 
@@ -704,36 +704,45 @@ written with `K.ofBits`.
 
 ### Layer 2: Clean components as polynomials
 
-`LeanerVM/Arithmetization/M3.lean` (module; generic over any Clean component). Upstream: Clean's
-pull request #466 is the proof-side bridge.
+`LeanerVM/Protocol/ToClean/ExpressionPolynomial.lean` (an expression as a polynomial) and
+`LeanerVM/Protocol/ToClean/ComponentPolynomial.lean` (a component as a table; generic over any
+Clean component, its field and its type of bus sides). Upstream: Clean's pull request #466
+defines `degreeBound`, `WithinWidth` and the Mathlib polynomial `toBoundedPolynomial`; the first
+module is a verbatim copy of it until the pin contains it (the upstream ledger).
 
 ```lean
-def Expression.toCMvPolynomial (n) : Expression K → CMvPolynomial n K   -- var i < n ↦ X i, else 0
-theorem eval_toCMvPolynomial (row) (e) :
-    (e.toCMvPolynomial n).eval (fun i ↦ row[i]?.getD 0) = e.eval (Environment.fromArray row data)
-def Expression.degreeBound : Expression F → ℕ                           -- syntactic
-theorem totalDegree_toCMvPolynomial_le (e) : (e.toCMvPolynomial n).totalDegree ≤ e.degreeBound
-structure M3Table where
+def Expression.toCMvPolynomial (n) : Expression F → CMvPolynomial n F   -- var i < n ↦ X i, else 0
+theorem eval_toCMvPolynomial (row : Fin n → F) (data) (e) :
+    (e.toCMvPolynomial n).eval row = e.eval (Environment.fromArray (Array.ofFn row) data)
+theorem fromCMvPolynomial_toCMvPolynomial (e) (h : e.WithinWidth n) :
+    fromCMvPolynomial (e.toCMvPolynomial n) = e.toBoundedPolynomial n h   -- Clean's polynomial
+theorem totalDegree_toCMvPolynomial_le (n) (e) : (e.toCMvPolynomial n).totalDegree ≤ e.degreeBound
+structure M3Table (F) (σ) where                                          -- σ: the bus sides
   width : ℕ
-  constraints : List (CMvPolynomial width K)
-  flushes : List (Side × Vector (CMvPolynomial width K) 16)             -- separator first
+  constraints : List (CMvPolynomial width F)
+  flushes : List (σ × Vector (CMvPolynomial width F) 16)                 -- separator first
   count : List (Fin width)
-def Component.toM3 (c : Component K) (sep) (dir) (lookups : List (RawChannel K)) : M3Table
-  -- `count`: coordinate 2 of every pull on a lookup channel, required to be a variable (`count_is_var`)
-theorem toM3_constraints_iff (t : Table K) (row ∈ t.table) :
-    (∀ C ∈ (t.component.toM3 …).constraints, C.eval row = 0) ↔ t.component.operations.ConstraintsHold (t.environment row)
-theorem toM3_flushes_eq (t : Table K) : (evaluated flush tuples) = (t.interactions as 16-tuples)
+def Component.toM3 (c : Component F) (sep : RawChannel F → F) (dir : RawChannel F → σ)
+    (counted : RawChannel F → Bool) : M3Table F σ
+  -- `count`: coordinate 1 of every interaction on a counted channel, when it is a variable
+theorem toM3_constraints_iff (hl : c.rowOperations.lookups = []) (row : Fin c.width → F) (data) :
+    (∀ C ∈ (c.toM3 sep dir counted).constraints, C.eval row = 0) ↔
+      c.operations.ConstraintsHold (Environment.fromArray (Array.ofFn row) data)
+theorem toM3_flushes_eq (row) (data) : (evaluated flushes) = (Clean's interactions as 16-tuples)
+def CountsAreVariables (c) (counted) : Prop                   -- decidable; every count a column
+def UnitMultiplicities (c) : Prop                             -- decidable; every multiplicity ±1
 ```
 
-The translation is direct and computable, since CompPoly's conversion from Mathlib polynomials
-is noncomputable, which would make `M3Holds` of the leanISA instance undecidable by evaluation and
-`verify` noncomputable; the degree bound goes through CompPoly's `totalDegree_equiv`. The
-separator and direction are given per channel, so the map from Clean's typed channels to the bus
-is explicit data. A component whose expressions mention a variable at or beyond its width reads
-`0` there, as `Environment.fromArray` does. Tests: a two-column component whose constraint `x·y`
-has `degreeBound = 2`, checked on a satisfying and a failing row; the six tables' count columns
-against `count_columns()` (`layout.rs:412-414`); the memory, bytecode and verifier components
-against the boundary blocks of Layer 3 on the one-row witness.
+The translation is direct and computable: Clean's polynomial is a Mathlib polynomial, and both it
+and CompPoly's conversion from one are noncomputable, which would make `M3Holds` of the leanISA
+instance undecidable by evaluation and `verify` noncomputable. Within the width the translation is
+Clean's polynomial; the degree bound is Clean's `degreeBound` and goes through CompPoly's
+`totalDegree_equiv`. The separator and direction are given per channel, so the map from Clean's
+typed channels to the bus is explicit data. A component whose expressions mention a variable at or
+beyond its width reads `0` there, as `Environment.fromArray` does. Tests: a two-column component
+whose constraint `x·y` has `degreeBound = 2`, checked on a satisfying and a failing row; the six
+tables' count columns against `count_columns()` (`layout.rs:412-414`); the memory, bytecode and
+verifier components against the boundary blocks of Layer 3 on the one-row witness.
 
 ### Layer 3: the leanISA instance and the adaptor
 
@@ -743,11 +752,11 @@ and the Flock roadmap's `FlockSpec` (Layer 9).
 ```lean
 structure Sizes where (logMem : ℕ) (τ : Fin 6 → ℕ)                    -- heights only; the family index
 def Sizes.ofWitness (w : EnsembleWitness (leanIsaEnsemble prog)) : Option Sizes
-def leanIsaBlocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ     -- witness.rs:67-101
-theorem leanIsaBlocks_fits : (leanIsaBlocks prog s).total ≤ 2 ^ leanIsaμ prog s
+def LeanIsa.blocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ    -- witness.rs:67-101
+theorem LeanIsa.blocks_fits : (LeanIsa.blocks prog s).total ≤ 2 ^ leanIsaμ prog s
 def Sizes.Admissible (prog) (s) : Prop   -- 16 ≤ logMem ≤ 32, τ j ≤ 32, 3 ≤ τ BLAKE2S, leanIsaμ prog s ≤ 28
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4                           -- whir_config.rs:48-55
-theorem caps_of_admissible (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
+theorem caps_witnessOf (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
 theorem sizes_of_satisfiedBy (h : SatisfiedBy prog input w) : ∃ s, Sizes.ofWitness w = some s
 
 abbrev leanIsaInstance (F : FlockSpec) (prog) (s) : M3Instance         -- reducible
@@ -755,9 +764,12 @@ abbrev leanIsaInstance (F : FlockSpec) (prog) (s) : M3Instance         -- reduci
 
 def stackOf (F) (w : EnsembleWitness (leanIsaEnsemble prog)) (hs : Sizes.ofWitness w = some s) : Column (leanIsaμ prog s)
 def witnessOf (prog) (s) (q : Column (leanIsaμ prog s)) : EnsembleWitness (leanIsaEnsemble prog)   -- total, computable
-theorem boundary_tuples_eq (h₁ : IndexColumnsAreRowIndices w) (h₂ : SeedRowsAreTheImage w)
-    (h₃ : BytecodeRowsAreTheProgram prog w) (hs) :
-    the messages of w's memory, bytecode and verifier rows on each side = the instance's boundary tuples of stackOf F w hs
+structure Agrees (F) (s) (q : Column (leanIsaμ prog s)) (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+  -- w's opcode tables have 2^τ_j rows and, within their widths, q's rows; its memory and bytecode blocks are q's
+theorem agrees_witnessOf : Agrees F s q (witnessOf prog s q)
+theorem agrees_stackOf (h : SatisfiedBy prog input w) (hs) : Agrees F s (stackOf F w hs) w
+theorem tuples_perm (h : Agrees F s q w) (side : Side) :
+    ((leanIsaInstance F prog s).tuples q side).Perm (the tuples w's interactions flush on side)
 theorem satisfiedBy_witnessOf (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance F prog s) input q) :
     SatisfiedBy prog input (witnessOf prog s q)
 theorem m3Holds_stackOf (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
@@ -783,8 +795,11 @@ strided reader of the limb slots `F.slot`; `d := 2`; three public lines, on `mem
 
 `M3Holds` is the target of extraction and the source of completeness; the theorems around it are
 the whole bridge between polynomials and Clean's witness, and the only place the proof system
-meets leanISA. `boundary_tuples_eq` is what both directions need: `SatisfiedBy`'s balances range
-over the memory, bytecode and verifier rows, which the instance states as boundary tuples.
+meets leanISA. `tuples_perm` is what both directions need: `SatisfiedBy`'s balances range over
+the tuples the witness's interactions flush, which the instance states as the opcode tables'
+flushes and the boundary tuples of the memory, bytecode and verifier rows. On each side the two
+lists are permutations of each other whenever the witness `Agrees` with the stack, and
+`agrees_witnessOf` and `agrees_stackOf` give that agreement in the two directions.
 `satisfiedBy_witnessOf` takes admissibility as a hypothesis: `Caps` does not follow from
 `M3Holds`, and `verify` checks the announced sizes first. It discharges `Blake2sRowsValid` by
 `F.compress_of_holds`, and the two public-word conjuncts by the three public lines, whose third
@@ -962,7 +977,7 @@ kept as the reference of §8.2, and the deployed verifiers' (one equation on the
 
 ```lean
 namespace PublicInput
-def pSpec : ProtocolSpec 2                          -- V_to_P : E, then P_to_V : List E
+-- the schedule is the spine's pubSpec: V_to_P : E, then P_to_V : List E
 def linePoint (hn : 0 < n) (r : E) : Vector E n     -- (r, 0, …, 0)
 theorem eval₂Mle_linePoint : q̃(linePoint hn r) = (1 - r)·q(0) + r·q(1)
 def lineValue I r l : E := (1 + r)·cell0 + r·cell1
@@ -1431,7 +1446,7 @@ is `private` where the module system allows; a layer's pull request checks its n
 this list.
 
 ```text
-Field instances:      instSampleableTypeK  instSampleableTypeE  card_E  instOracleInterfaceE  instOracleInterfaceListE
+Field instances:      instSampleableTypeK  instSampleableTypeE  card_E
                       Column  Weight  Weight.pair  eqWeight  innerProductOracle  answer_eqWeight
 Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.read_eval  Coord  BoundaryBlock  PublicLine
                       M3Instance  M3Instance.SumcheckTable  τmax  μBus  B  column  row  tuples  FlockRegion  aux
@@ -1441,7 +1456,7 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       busSpec  tableSpec  pubSpec  flockSpec  openingSpec
                       busError  tableError  pubError  flockError  openingError  piopError  piopError_le
                       Component.Def  Component.Guarded  Component.Complete  Component.Security  (each with .append)
-                      Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
+                      Phase.Def  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
                       Verifier.GuardedForm.of_probEvent_pos  Reduction.mem_support_run_of_guarded
@@ -1464,17 +1479,18 @@ Tables and stacking:  sumCube  hadamard  slice  sliceLow  placeSlice  boolVec
                       padHigh  sumCube_padHigh  evalMle_padHigh  ColumnClaim.holds_iff_weighted
                       idxColumn  idxColumnEval  idxColumn_eval  idxColumnEval_eq
                       bytecodeColumn  bytecodeColumnEval  bytecodeColumn_answer_boolVec  bytecodeColumn_eval
-Clean polynomials:    Expression.toCMvPolynomial  eval_toCMvPolynomial  Expression.degreeBound  M3Table  Component.toM3
+Clean polynomials:    Expression.toCMvPolynomial  eval_toCMvPolynomial  fromCMvPolynomial_toCMvPolynomial  M3Table  Component.toM3
                       toM3_constraints_iff  toM3_flushes_eq
-The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  leanIsaBlocks  leanIsaμ
-                      leanIsaInstance  stackOf  witnessOf  boundary_tuples_eq
-                      satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf  caps_of_admissible
+The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  LeanIsa.blocks  LeanIsa.blocks_fits  leanIsaμ
+                      leanIsaInstance  stackOf  witnessOf  Agrees  agrees_witnessOf  agrees_stackOf  tuples_perm
+                      satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf  caps_witnessOf
 Generic components:   Virtual  Sumcheck.plain  Sumcheck.normalized  Sumcheck.transport  batch
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision  gkr  gkrError
 Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_target  tableSumcheck
-                      PublicInput.pSpec  PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom
-                      PublicInput.prover  PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifier_verify
-                      PublicInput.accepts_two_challenges  publicInputPhase  deployedPublicInputPhase
+                      PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom  PublicInput.prover
+                      PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifierWith
+                      PublicInput.verify_simulated  PublicInput.accepts_two_challenges
+                      publicInputPhase  deployedPublicInputPhase
                       FlockSpec  flockPhase  flockError_le  openingPhase  leanVmPhases
                       (each phase with its Complete and Security)
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError

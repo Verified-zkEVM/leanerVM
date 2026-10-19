@@ -2,8 +2,9 @@
   LeanerVM.Protocol.ToArkLib.SampleChallenge
 
   The component with one round, a verifier challenge: the verifier checks the statement, draws
-  the challenge and maps the statement by it, leaving the oracles and the witness alone. Its
-  completeness proof. Candidate for ArkLib.
+  the challenge and maps the statement by it, leaving the oracles and the witness alone, with
+  its completeness and knowledge soundness; and `j` such challenges recorded in a vector.
+  Candidate for ArkLib.
 -/
 
 module
@@ -11,6 +12,7 @@ module
 public import LeanerVM.Protocol.ToArkLib.Component
 public import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 public import LeanerVM.Protocol.ToArkLib.KeepOracles
+public import LeanerVM.Protocol.ToArkLib.PassThrough
 public import LeanerVM.Protocol.ToArkLib.Schedule
 public import LeanerVM.Protocol.ToArkLib.Refutation
 
@@ -33,6 +35,11 @@ the input relation into the output relation; the count is the step's own, since 
 what `f` records. A statement with no witness that passes the check and that every challenge
 carries into the output relation leaves no knowledge error below one, whatever the extractor
 and the state function (`sampleChallenge_not_rbr`).
+
+`Component.drawPushes OStmt C j` is `j` challenges in a row (`draws C j`) with no check, each
+pushed onto a vector beside the statement: the shape of an evaluation point or of a list of
+coefficients drawn one at a time. `drawPushesComplete` composes the draws' completeness from
+relation `0` at the empty vector and one draw at a time.
 -/
 
 namespace LeanerVM.Protocol
@@ -247,6 +254,39 @@ theorem sampleChallenge_not_rbr {WitMid : Fin 2 → Type}
       ⟨Transcript.concat c (default : (draw C).Transcript 0), rfl, w,
         Verifier.GuardedForm.probEvent_pos_of_check (sampleGuarded OStmt C check f) init impl
           (s, o) _ (fun t ↦ (t, w) ∈ relOut) hc (hesc c)⟩
+
+/-! ## Challenges recorded in a vector -/
+
+section Pushes
+
+variable {S : Type}
+
+/-- One challenge, appended to the vector of challenges beside the statement. -/
+def drawPush (j : ℕ) : Def (S × Vector C j) OStmt W (S × Vector C (j + 1)) OStmt W (draw C) :=
+  sampleChallenge OStmt C (fun _ ↦ true) fun s x ↦ (s.1, s.2.push x)
+
+/-- `j` challenges, appended one by one to a vector beside the statement. -/
+def drawPushes : (j : ℕ) → Def S OStmt W (S × Vector C j) OStmt W (draws C j)
+  | 0 => passThrough OStmt fun s ↦ (s, #v[])
+  | j + 1 => (drawPushes j).append (drawPush OStmt C j)
+
+/-- The draws read only the transcript. -/
+def drawPushesFront : (j : ℕ) → Front (drawPushes (S := S) (W := W) OStmt C j)
+  | 0 => passThroughFront OStmt _
+  | j + 1 => (drawPushesFront j).append (sampleFront OStmt C _ _)
+
+variable {relIn : Set ((S × ∀ i, OStmt i) × W)}
+  (rel : (j : ℕ) → Set (((S × Vector C j) × ∀ i, OStmt i) × W)) {n : ℕ}
+
+/-- Completeness of the first `j ≤ n` draws: the input relation holds at the empty vector in
+relation `0`, and each draw below `n` carries relation `j` into relation `j + 1`. -/
+def drawPushesComplete (hIn : ∀ s o w, ((s, o), w) ∈ relIn → (((s, #v[]), o), w) ∈ rel 0)
+    (step : ∀ j < n, Complete (drawPush (S := S) (W := W) OStmt C j) (rel j) (rel (j + 1))) :
+    (j : ℕ) → j ≤ n → Complete (drawPushes OStmt C j) relIn (rel j)
+  | 0, _ => passThroughComplete OStmt _ hIn
+  | j + 1, hj => (drawPushesComplete hIn step j (by omega)).append (step j hj)
+
+end Pushes
 
 end Component
 

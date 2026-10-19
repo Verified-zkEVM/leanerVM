@@ -86,6 +86,51 @@ theorem Partial.update_or (σ τ : Partial R) (i : ℕ) (c : R) :
     simp [Partial.or]
   · simp [Partial.or, Function.update_of_ne hj]
 
+/-- The challenges of `c` from offset `off` on, placed at coordinates `0, 1, …`: the partial point
+a table on the last coordinates of a longer point sees while that point is drawn. -/
+def Partial.ofSuffix (off : ℕ) {j : ℕ} (c : Vector R j) : Partial R :=
+  fun i ↦ if h : off + i < j then some c[off + i] else Option.none
+
+/-- Before the offset is reached, nothing is fixed. -/
+theorem Partial.ofSuffix_of_le (off : ℕ) {j : ℕ} (c : Vector R j) (h : j ≤ off) :
+    Partial.ofSuffix off c = Partial.empty := by
+  funext i
+  simp only [Partial.ofSuffix, Partial.empty]
+  rw [dite_eq_right (by omega)]
+
+/-- A challenge before the offset fixes nothing. -/
+theorem Partial.ofSuffix_push_of_lt (off : ℕ) {j : ℕ} (c : Vector R j) (x : R) (h : j < off) :
+    Partial.ofSuffix off (c.push x) = Partial.ofSuffix off c := by
+  rw [Partial.ofSuffix_of_le _ _ (by omega), Partial.ofSuffix_of_le _ _ h.le]
+
+/-- A challenge past the offset fixes one more coordinate. -/
+theorem Partial.ofSuffix_push_of_le (off : ℕ) {j : ℕ} (c : Vector R j) (x : R) (h : off ≤ j) :
+    Partial.ofSuffix off (c.push x) =
+      Function.update (Partial.ofSuffix off c) (j - off) (some x) := by
+  funext i
+  by_cases hi : i = j - off
+  · subst hi
+    simp only [Partial.ofSuffix, Function.update_self]
+    rw [dite_eq_left (by omega), Vector.getElem_push, dite_eq_right (by omega)]
+  · rw [Function.update_of_ne hi]
+    simp only [Partial.ofSuffix]
+    by_cases hlt : off + i < j
+    · rw [dite_eq_left (by omega), dite_eq_left hlt, Vector.getElem_push, dite_eq_left hlt]
+    · rw [dite_eq_right (by omega), dite_eq_right hlt]
+
+/-- The coordinate the next challenge past the offset will fix is free. -/
+theorem Partial.ofSuffix_next (off : ℕ) {j : ℕ} (c : Vector R j) :
+    Partial.ofSuffix off c (j - off) = Option.none := by
+  simp only [Partial.ofSuffix]
+  rw [dite_eq_right (by omega)]
+
+/-- With every coordinate past the offset drawn, the partial point fixes the suffix. -/
+theorem Partial.ofSuffix_all {k : ℕ} (off : ℕ) (c : Vector R (off + k)) (i : ℕ) (hi : i < k) :
+    Partial.ofSuffix off c i = some c[off + i] := by
+  simp only [Partial.ofSuffix]
+  rw [dite_eq_left (by omega)]
+
+
 variable [CommRing R]
 
 /-- The point of a partial point at a completion `b`: the fixed coordinates, the others the bits
@@ -97,6 +142,10 @@ def Partial.point {n : ℕ} (σ : Partial R) (b : Fin (2 ^ n)) : Vector R n :=
 fixed coordinates by a cube point. -/
 def RestrictedZero {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) : Prop :=
   ∀ b : Fin (2 ^ n), evalMle t (σ.point b) = 0
+
+instance [DecidableEq R] {n : ℕ} (t : CMlPolynomialEval R n) (σ : Partial R) :
+    Decidable (RestrictedZero t σ) :=
+  inferInstanceAs (Decidable (∀ _b : Fin (2 ^ n), _ = _))
 
 /-- The point of the empty partial point at a completion is the cube point itself. -/
 @[simp] theorem Partial.point_empty {n : ℕ} (b : Fin (2 ^ n)) :
@@ -169,6 +218,57 @@ private theorem Partial.point_set_self {n : ℕ} (σ : Partial R) (k : ℕ) (hk 
     (b : Fin (2 ^ n)) : (σ.point b).set k ((σ.point b)[k]) = σ.point b :=
   Vector.set_getElem_self hk
 
+/-- Flip bit `k` of a cube index to `β`: the cube point that differs from `b` in coordinate `k`
+at most, and has `β` there. -/
+private def setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool) : Fin (2 ^ n) :=
+  ⟨b.val ^^^ (if b.val.testBit k == β then 0 else 2 ^ k),
+    Nat.xor_lt_two_pow b.isLt (by
+      split
+      · exact Nat.two_pow_pos n
+      · exact Nat.pow_lt_pow_right (by norm_num) hk)⟩
+
+private theorem testBit_setBitIndex {n : ℕ} (b : Fin (2 ^ n)) (k : ℕ) (hk : k < n) (β : Bool)
+    (i : ℕ) : (setBitIndex b k hk β).val.testBit i = if i = k then β else b.val.testBit i := by
+  simp only [setBitIndex, Nat.testBit_xor]
+  by_cases hi : i = k
+  · subst hi
+    simp only [↓reduceIte]
+    split <;> rename_i h
+    · simp_all
+    · cases β <;> cases hb : b.val.testBit i <;> simp_all [Nat.testBit_two_pow_self]
+  · simp only [hi, ↓reduceIte]
+    split <;> simp [Ne.symm hi]
+
+/-- A completion with coordinate `k` free and then set to `0` or `1` is another completion. -/
+private theorem Partial.point_set_bool {n : ℕ} (σ : Partial R) (k : ℕ) (hk : k < n)
+    (hσ : σ k = Option.none) (b : Fin (2 ^ n)) (β : Bool) :
+    (σ.point b).set k (if β then 1 else 0) = σ.point (setBitIndex b k hk β) := by
+  apply Vector.ext
+  intro j hj
+  by_cases hjk : j = k
+  · subst hjk
+    simp [Partial.point, hσ, boolVec, testBit_setBitIndex]
+  · rw [Vector.getElem_set_ne hk hj (Ne.symm hjk)]
+    simp [Partial.point, boolVec, testBit_setBitIndex, hjk]
+
+/-- **Zero stays zero.** A table zero on a partial point is zero on it with one more coordinate
+fixed, if that coordinate was free: the extension is affine in the coordinate and vanishes at
+both cube values. -/
+theorem restrictedZero_update_of_none {n : ℕ} {t : CMlPolynomialEval R n} {σ : Partial R}
+    (h : RestrictedZero t σ) {k : ℕ} (hσ : σ k = Option.none) (c : R) :
+    RestrictedZero t (Function.update σ k (some c)) := by
+  intro b
+  by_cases hk : k < n
+  · rw [Partial.point_update σ k hk c b, evalMle_set t _ hk]
+    have h0 := h (setBitIndex b k hk false)
+    have h1 := h (setBitIndex b k hk true)
+    rw [← Partial.point_set_bool σ k hk hσ b] at h0 h1
+    simp only [Bool.false_eq_true, ite_false, ite_true] at h0 h1
+    rw [h0, h1]
+    ring
+  · rw [Partial.point_update_of_le σ k (by omega) c b]
+    exact h b
+
 open scoped Classical in
 /-- **One escape at most.** A table that is not zero on a partial point is zero on it with one
 more coordinate fixed for at most one value of that coordinate: its extension is affine in
@@ -205,6 +305,15 @@ theorem card_filter_restrictedZero_update_le [IsDomain R] [Fintype R] {n : ℕ}
   · intro b
     have := h₁.2 b
     rwa [Partial.point_update_of_le σ k (by omega) c₁ b] at this
+
+/-- **One escape at most**, counted by `Nat.card`: no decidability in the statement. -/
+theorem natCard_restrictedZero_update_le [IsDomain R] [Finite R] {n : ℕ}
+    (t : CMlPolynomialEval R n) (σ : Partial R) (k : ℕ) (hne : ¬ RestrictedZero t σ) :
+    Nat.card {c // RestrictedZero t (Function.update σ k (some c))} ≤ 1 := by
+  have := Fintype.ofFinite R
+  classical
+  rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
+  convert card_filter_restrictedZero_update_le t σ k hne
 
 end
 end LeanerVM.Protocol

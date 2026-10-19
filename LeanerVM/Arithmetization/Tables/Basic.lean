@@ -2,7 +2,8 @@
   LeanerVM.Arithmetization.Tables.Basic
 
   The vocabulary the six opcode tables share, and that the boundary blocks of Layer 7 reuse: the
-  row environment, and the two `Option` facts that turn a `guard` of `execute` into an equation.
+  state step and fetch of an opcode row, the row environment, and the two `Option` facts that
+  turn a `guard` of `execute` into an equation.
 -/
 
 module
@@ -22,6 +23,8 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 (`LeanerVM.Semantics.Memory`). A row's three-limb column `v` is the word
 `E.ofLimbs v[0] v[1] v[2]`, spelled as Layer 5's `MemPull.Guarantees` spells it.
 
+* `instructionStep` is what every opcode row does first: pull its state `(pc, fp)`, push its
+  successor, and read its bytecode entry at `pc`.
 * `rowEnv data` is the prover environment of a row of a table without local witnesses: no
   witness slots, the data, no hints. `*_exec_complete` states completeness in it, and so do the
   boundary blocks of Layer 7 (`LeanerVM.Arithmetization.Boundary`).
@@ -33,6 +36,14 @@ word of the image back as a row's limbs (`MemImage.limbsAt`, `MemImage.cellAt`) 
 namespace LeanerVM.Arithmetization
 
 open LeanerVM.Parameters LeanerVM.Semantics
+
+/-- The state step and fetch of an opcode row: pull the state `(pc, fp)`, push the successor
+`next`, and read the bytecode entry `(op, operands)` at `pc` with count `rbc`. -/
+def instructionStep (pc fp rbc : Expression K) (next : Var Regs K) (op : Opcode)
+    (operands : Vector (Expression K) 7) : Circuit K Unit := do
+  StatePull.pull ⟨pc, fp⟩
+  StatePush.push next
+  bytecodeRead pc rbc (Expression.const op.code) operands
 
 /-- The prover environment of a row of a table without local witnesses: no witness slots
 (every slot reads `0`), the data, no hints. -/

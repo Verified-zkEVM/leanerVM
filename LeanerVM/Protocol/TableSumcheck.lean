@@ -194,17 +194,12 @@ def batchStep : Component.Def (I.Stmt × BusOut I) (TheOracle I) Unit
 polynomials. -/
 def nodes : Fin 4 → E := ![0, 1, y, y + 1]
 
-/-- The final claim on column `k` of the sumcheck tables: its value at the final point's low
-coordinates is value `k`. -/
-def finalClaim (r : Vector E I.τmax) (v : Vector E I.tableColumns) (k : Fin I.tableColumns) :
-    ColumnClaim I :=
-  ⟨⟨((columnPos I).symm k).1.1, ((columnPos I).symm k).2⟩, I.lowPoint r ((columnPos I).symm k).1,
-    v[k]⟩
-
-/-- The final claims: one per column of each sumcheck table, table by table. -/
+/-- The final claims: one per column of each sumcheck table, table by table; the claim on
+column `k` says its value at the final point's low coordinates is value `k`. -/
 def finalClaims (r : Vector E I.τmax) (v : Vector E I.tableColumns) :
     Vector (ColumnClaim I) I.tableColumns :=
-  Vector.ofFn (finalClaim I r v)
+  Vector.ofFn fun k ↦ ⟨⟨((columnPos I).symm k).1.1, ((columnPos I).symm k).2⟩,
+    I.lowPoint r ((columnPos I).symm k).1, v[k]⟩
 
 /-- The phase's output: the bus phase's column claims carried forward, then the final claims at
 the final point in coordinate order. -/
