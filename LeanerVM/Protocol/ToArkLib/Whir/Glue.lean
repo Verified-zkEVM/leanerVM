@@ -174,6 +174,26 @@ def queryWeight (κ R : ℕ) {t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam
     Weight E κ :=
   Weight.batch (fun q ↦ columnWeight (algebraMap K E) κ R (pos q)) lam
 
+/-- The equality kernel's claim on a table is the table's extension at its point. -/
+theorem pair_eqWeight_id {κ : ℕ} (z : Vector E κ) (f : CMlPolynomialEval E κ) :
+    (eqWeight z).pair (RingHom.id E) f = evalMle f z := by
+  have hmap : CMlPolynomialEval.map (RingHom.id E) f = f := by
+    apply Vector.ext
+    intro i hi
+    simp [CMlPolynomialEval.map]
+  rw [Weight.pair_eqWeight]
+  unfold CMlPolynomialEval.eval₂Mle
+  rw [hmap]
+
+/-- The query batch's claim on a table is the batch of the table's encodings at the positions. -/
+theorem pair_queryWeight {κ R t : ℕ} (pos : Fin t → Fin (2 ^ (κ + R))) (lam : E)
+    (f : CMlPolynomialEval E κ) :
+    (queryWeight κ R pos lam).pair (RingHom.id E) f =
+      powerBatch (fun q ↦ encode (algebraMap K E) κ R f (pos q)) lam := by
+  unfold queryWeight
+  rw [Weight.pair_batch]
+  rfl
+
 /-- The weight of the running sumcheck after the boundary: the residual weight, the
 out-of-domain weight and the query batch combined at `λ` with the scalars `1, λ, λ²`
 (`λ^0, λ^1, λ^(2+q)` on the queries). -/
@@ -194,18 +214,8 @@ theorem pair_gluedWeight {κ R t : ℕ} (W' : Weight E κ) (z : Vector E κ)
   funext i
   fin_cases i
   · rfl
-  · have hmap : CMlPolynomialEval.map (RingHom.id E) f = f := by
-      apply Vector.ext
-      intro i hi
-      simp [CMlPolynomialEval.map]
-    change Weight.pair (RingHom.id E) (eqWeight z) f = evalMle f z
-    rw [Weight.pair_eqWeight]
-    unfold CMlPolynomialEval.eval₂Mle
-    rw [hmap]
-  · change Weight.pair (RingHom.id E) (queryWeight κ R pos lam) f = _
-    unfold queryWeight
-    rw [Weight.pair_batch]
-    rfl
+  · exact pair_eqWeight_id z f
+  · exact pair_queryWeight pos lam f
 
 
 /-- The residual weight: the weight with its lane coordinates bound at the fold point `r`;

@@ -39,9 +39,10 @@ namespace Component
 variable {ι : Type} (OStmt : ι → Type) [∀ i, OracleInterface (OStmt i)]
   (M : Type) [OracleInterface M]
 
-/-- One prover message of type `M`, to be queried through `M`'s own oracle interface, written
-like `say` with its direction a function (so that appended schedules find their instances). -/
-abbrev sayO : ProtocolSpec 1 := ⟨fun _ ↦ .P_to_V, !v[M]⟩
+/-- One prover message of type `M`, to be queried through `M`'s own oracle interface. It is
+`say M` in all but name: a definition, not an abbreviation, so that instance search does not take
+it for `say M`, whose message interface is the trivial one. -/
+def sayO : ProtocolSpec 1 := ⟨fun _ ↦ .P_to_V, !v[M]⟩
 
 /-- The message of `sayO M` is queried as `M` is. -/
 instance instOracleInterfaceSayO : ∀ i, OracleInterface ((sayO M).Message i)
