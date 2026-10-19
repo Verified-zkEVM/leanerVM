@@ -34,16 +34,20 @@ open CompPoly CMlPolynomialEval
 @[expose] public section
 
 /-- A weight on the cube: its values, and an evaluator of its multilinear extension, with the
-proof that the two agree. -/
+proof that the two agree. The values are a thunk, built on the first sum over the cube and
+cached: an asker that only evaluates the extension never pays the `2 ^ n` cells. -/
 structure Weight (S : Type*) [CommRing S] (n : ℕ) where
-  /-- The values on the cube. -/
-  onCube : CMlPolynomialEval S n
+  /-- The values on the cube, built when first read. -/
+  cube : Thunk (CMlPolynomialEval S n)
   /-- The extension, as the asker evaluates it. -/
   mle : Vector S n → S
   /-- The evaluator computes the extension of the cube values. -/
-  mle_eq : ∀ r, mle r = evalMle onCube r
+  mle_eq : ∀ r, mle r = evalMle cube.get r
 
 variable {R S : Type*} [CommRing R] [CommRing S]
+
+/-- The values of a weight on the cube. -/
+abbrev Weight.onCube {n : ℕ} (W : Weight S n) : CMlPolynomialEval S n := W.cube.get
 
 /-- The inner product `Σ_x W(x)·φ(t(x))` of a weight over `S` with a table over `R`. -/
 def Weight.pair {n : ℕ} (φ : R →+* S) (W : Weight S n) (t : CMlPolynomialEval R n) : S :=
@@ -52,9 +56,9 @@ def Weight.pair {n : ℕ} (φ : R →+* S) (W : Weight S n) (t : CMlPolynomialEv
 /-- The equality kernel at `p` as a weight: its values are the Lagrange basis at `p`, its
 extension the product of the coordinatewise factors. -/
 def eqWeight {n : ℕ} (p : Vector S n) : Weight S n where
-  onCube := lagrangeBasis p
+  cube := .mk fun _ ↦ lagrangeBasis p
   mle := fun r ↦ ∏ k : Fin n, (p[k] * r[k] + (1 - p[k]) * (1 - r[k]))
-  mle_eq := fun r ↦ by rw [← eqTilde_eq_prod, eqTilde, eval_mle_eq_eval]
+  mle_eq := fun r ↦ by rw [← eqTilde_eq_prod, eqTilde, eval_mle_eq_eval]; rfl
 
 /-- Pairing the equality kernel at `p` with a table evaluates the table's extension at `p`. -/
 theorem Weight.pair_eqWeight {n : ℕ} (φ : R →+* S) (p : Vector S n)

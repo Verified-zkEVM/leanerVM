@@ -49,9 +49,15 @@ def answer (q : Column 2) (W : Weight E 2) : E := OracleInterface.answer q W
 /-- A weight that is no equality kernel: `1` on every cube point, so the answer is the sum of
 the column's cells. Its extension is the constant `1`. -/
 def sumWeight : Weight E 2 where
-  onCube := Vector.replicate 4 1
+  cube := .mk fun _ ↦ Vector.replicate 4 1
   mle := fun _ ↦ 1
   mle_eq := fun r ↦ (evalMle_replicate 1 r).symm
+
+/- A weight's cube values are built only when a sum over the cube reads them: the equality kernel
+on 40 variables, whose table has `2 ^ 40` cells, answers its extension at once. At the point
+itself the kernel is `1`; one coordinate flipped gives `0`. -/
+#guard (eqWeight (Vector.replicate 40 (1 : E))).mle (Vector.replicate 40 1) = 1
+#guard (eqWeight (Vector.replicate 40 (1 : E))).mle ((Vector.replicate 40 1).set 7 0) = 0
 
 -- The sum of the cells `1, x, x + 1, x²` is `x²`, the word `4`; the mutated column sums to the
 -- word `5`.

@@ -39,15 +39,19 @@ theorem Weight.powerBatch_mle_eq {k n : ℕ} (W : Fin k → Weight S n) (ρ : S)
 
 /-- The weights `W_j` combined by the powers of `ρ`: values and extension both `Σ_j ρ^j·W_j`. -/
 def Weight.batch {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) : Weight S n where
-  onCube := batchWeight (fun j ↦ (W j).onCube) ρ
+  cube := .mk fun _ ↦ batchWeight (fun j ↦ (W j).onCube) ρ
   mle := fun r ↦ powerBatch (fun j ↦ (W j).mle r) ρ
   mle_eq := Weight.powerBatch_mle_eq W ρ
+
+theorem Weight.onCube_batch {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) :
+    (Weight.batch W ρ).onCube = batchWeight (fun j ↦ (W j).onCube) ρ :=
+  rfl
 
 /-- The answer of a table to combined weights is the combination of its answers. -/
 theorem Weight.pair_batch {k n : ℕ} (φ : R →+* S) (W : Fin k → Weight S n) (ρ : S)
     (t : CMlPolynomialEval R n) :
     (Weight.batch W ρ).pair φ t = powerBatch (fun j ↦ (W j).pair φ t) ρ := by
-  simp only [Weight.pair, Weight.batch, batchWeight, powerBatch, Fin.getElem_fin,
+  simp only [Weight.pair, Weight.onCube_batch, batchWeight, powerBatch, Fin.getElem_fin,
     Vector.getElem_ofFn]
   simp_rw [Finset.sum_mul]
   rw [Finset.sum_comm]

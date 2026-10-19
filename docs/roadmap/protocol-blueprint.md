@@ -621,7 +621,7 @@ structure Column (n : ℕ) where values : CMlPolynomialEval K n      -- not an a
 instance : SampleableType K                 -- only the building block of the E sampler
 instance : SampleableType E                 -- three limbs through an equivalence; never enumerates
 theorem card_E : Fintype.card E = 2 ^ 192
-structure Weight (n) where (onCube : CMlPolynomialEval E n) (mle : Vector E n → E) (mle_eq : …)
+structure Weight (n) where (cube : Thunk (CMlPolynomialEval E n)) (mle : Vector E n → E) (mle_eq : …)  -- cube built on first read
 def Weight.pair (W : Weight n) (q : Column n) : E := Σ_w W(w)·q(w)
 def eqWeight (p : Vector E n) : Weight n                       -- eq(p, ·) with its product evaluator
 /-- The stack as an oracle: a query is a weight, the answer the inner product (Definition 3.13). -/
