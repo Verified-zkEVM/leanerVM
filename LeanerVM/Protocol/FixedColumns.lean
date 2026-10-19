@@ -29,7 +29,8 @@ The two columns both parties know, at leanVM revision
   `encodeSlots`, the one definition of the encoding, zero slots included.
 
 Every index of the program is encoded, the last one too: the column knows no sentinel. These
-are equalities about the column oracle; no theorem here proves that the Rust computes them.
+are equalities about the columns' extensions; no theorem here proves that the Rust computes
+them.
 
 This module names the program, so it imports the bytecode encoding. It belongs with the leanISA
 instance and the compiled verifier; no phase of the oracle protocol imports it.
@@ -47,18 +48,13 @@ open CompPoly CMlPolynomialEval
 /-- The fixed address column with entry `g ^ i` at Boolean index `i`. -/
 def idxColumn (κ : ℕ) : Column κ := ⟨powersTable g κ⟩
 
-/-- Boolean readout of the public address column. -/
-theorem idxColumn_get (κ : ℕ) (i : Fin (2 ^ κ)) :
-    (idxColumn κ).values[i] = g ^ i.val := by
-  simp [idxColumn, powersTable]
-
 /-- The native index-column evaluator over the challenge field. -/
 def idxColumnEval {κ : ℕ} (z : Vector E κ) : E :=
   ∏ j : Fin κ, ((1 - z[j]) + z[j] * algebraMap K E (g ^ (2 ^ j.val)))
 
-/-- The native evaluator is the column oracle's answer. -/
+/-- The native evaluator is the column's extension. -/
 theorem idxColumn_eval {κ : ℕ} (z : Vector E κ) :
-    OracleInterface.answer (idxColumn κ) z = idxColumnEval z :=
+    eval₂Mle (idxColumn κ).values (algebraMap K E) z = idxColumnEval z :=
   eval₂Mle_powersTable (algebraMap K E) g κ z
 
 /-- The evaluator as the specification writes it in characteristic two (§6.5):
@@ -71,10 +67,6 @@ theorem idxColumnEval_eq {κ : ℕ} (z : Vector E κ) :
 
 /-! ## The bytecode column -/
 
-/-- One public slot as a column indexed by instruction number. -/
-def bytecodeSlotColumn (prog : Program) (s : Fin 16) : Column prog.logSize :=
-  ⟨Vector.ofFn fun i ↦ (encodeSlots (prog.code i))[s]⟩
-
 /-- The complete sixteen-slot public bytecode column, with instruction bits first. -/
 def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
   ⟨Vector.ofFn fun i ↦
@@ -82,24 +74,18 @@ def bytecodeColumn (prog : Program) : Column (prog.logSize + 4) :=
     (encodeSlots (prog.code p.1))[p.2]⟩
 
 /-- The cell of instruction `i` and slot `s` holds that slot, spare slots included. -/
-theorem bytecodeColumn_slot (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
+private theorem bytecodeColumn_slot (prog : Program) (i : Fin (2 ^ prog.logSize)) (s : Fin 16) :
     (bytecodeColumn prog).values[cubeIndex (m := 4) i s] = (encodeSlots (prog.code i))[s] := by
   simp [bytecodeColumn, ← cubeSplit_apply]
 
-/-- Taking a Boolean high-coordinate slice selects the corresponding public slot column. -/
-theorem slice_bytecodeColumn (prog : Program) (s : Fin 16) :
-    slice (bytecodeColumn prog).values s = (bytecodeSlotColumn prog s).values := by
-  simp [slice, bytecodeColumn, bytecodeSlotColumn, ← cubeSplit_apply]
-
-/-- The bit order, stated at the oracle: queried at the cube point whose low coordinates are the
-bits of the instruction index and whose high four are the bits of the slot, the column answers
+/-- The bit order, stated at the extension: at the cube point whose low coordinates are the
+bits of the instruction index and whose high four are the bits of the slot, the column holds
 that slot of that instruction (§8.1: the opcode of instruction `z` is `P(z, 1, 1, 0, 0)`). -/
 theorem bytecodeColumn_answer_boolVec (prog : Program) (i : Fin (2 ^ prog.logSize))
     (s : Fin 16) :
-    OracleInterface.answer (bytecodeColumn prog)
+    eval₂Mle (bytecodeColumn prog).values (algebraMap K E)
         ((boolVec i : Vector E prog.logSize) ++ (boolVec (m := 4) s : Vector E 4)) =
       algebraMap K E ((encodeSlots (prog.code i))[s]) := by
-  change eval₂Mle (bytecodeColumn prog).values (algebraMap K E) _ = _
   rw [eval₂Mle, evalMle_append_boolVec, evalMle_boolVec, slice_getElem]
   simpa only [CMlPolynomialEval.map, Fin.getElem_fin, Vector.getElem_map] using
     congrArg (algebraMap K E) (bytecodeColumn_slot prog i s)
@@ -110,10 +96,10 @@ def bytecodeColumnEval (prog : Program) (z : Vector E prog.logSize) (w : Vector 
     ∑ i : Fin (2 ^ prog.logSize),
       algebraMap K E ((encodeSlots (prog.code i))[s]) * (lagrangeBasis z)[i]
 
-/-- The native evaluator is the column oracle's answer, at every point of `E`. -/
+/-- The native evaluator is the column's extension, at every point of `E`. -/
 theorem bytecodeColumn_eval (prog : Program) (z : Vector E prog.logSize) (w : Vector E 4) :
-    OracleInterface.answer (bytecodeColumn prog) (z ++ w) = bytecodeColumnEval prog z w := by
-  change eval₂Mle (bytecodeColumn prog).values (algebraMap K E) (z ++ w) = _
+    eval₂Mle (bytecodeColumn prog).values (algebraMap K E) (z ++ w) =
+      bytecodeColumnEval prog z w := by
   rw [eval₂Mle, evalMle_split]
   unfold bytecodeColumnEval
   apply Finset.sum_congr rfl

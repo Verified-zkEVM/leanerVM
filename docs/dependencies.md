@@ -24,8 +24,11 @@ Add a dependency only with a named first-party use and a narrow import. A depend
 1. update the toolchain/Lake requirement, `upstreams.json`, and manifest together;
 2. build and test the complete affected import cone;
 3. review API changes used by theorem statements;
-4. audit the first-party namespace's transitive kernel dependencies; and
-5. record semantic changes separately from mechanical porting.
+4. audit the first-party namespace's transitive kernel dependencies;
+5. record semantic changes separately from mechanical porting; and
+6. delete every `LeanerVM/Protocol/To*/` file or declaration that the new pin contains, move its
+   consumers to the upstream names, and update the protocol blueprint's upstream ledger and the
+   status page's watch list.
 
 ## Lean 4.34 port review
 
@@ -159,6 +162,15 @@ checked at the pins of `upstreams.json` unless a line names another revision.
 - `OracleInterface (Vector α m)` (position queries) is a global instance, so a column type with
   another interface is a structure, not an abbreviation of `Vector`; no default interface is
   registered for scalars or lists (`OracleInterface.instDefault` is for no type).
+- The instances for the messages and challenges of two schedules side by side
+  (`instOracleInterfaceMessageAppend`, `instSampleableTypeChallengeAppend`) are not found by
+  instance search when the schedules are concrete; ArkLib's own files apply them by name, and so
+  does `ToArkLib/Schedule.lean` (`msgAppend`, `chalAppend`).
+- The typed framework's computable sumcheck (`ProofSystem/Sumcheck/Impl/Representation.lean`,
+  `ProofSystem/Sumcheck/Interaction/Protocol.lean`) sums a round message, a polynomial with a
+  degree bound queried by evaluation, over its domain with unit weights, and nothing adapts a
+  protocol of the typed framework to an `OracleReduction`; the proof system's normalized round
+  (`ToArkLib/SumcheckRound.lean`) sends the coefficients as one message and weights the domain.
 - `lake build` with several explicit ArkLib targets can schedule `ArkLibLintPlugin:shared` twice
   and fail one link; a second build proceeds.
 
@@ -172,4 +184,4 @@ conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; insi
 
 **VCVio.** Merkle trees with proved completeness and single-opening random-oracle
 extractability (`CryptoFoundations/MerkleTree/`); `SampleableType.prEvent_uniformSample_le_div_iff`
-is the counting bound `ToVCVio/UniformSample.lean` states locally.
+is the counting bound behind `ToVCVio/UniformSample.lean`'s subsingleton form.

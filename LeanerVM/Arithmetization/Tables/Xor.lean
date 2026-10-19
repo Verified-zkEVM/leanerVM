@@ -196,9 +196,7 @@ limb-wise sum. Returns the pushed successor `(g·pc, fp)`. -/
 def xorTable : GeneralFormalCircuit K XorRow Regs where
   main r := do
     let next : Var Regs K := ⟨Expression.const g * r.pc, r.fp⟩
-    StatePull.pull ⟨r.pc, r.fp⟩
-    StatePush.push next
-    bytecodeRead r.pc r.rbc (Expression.const Opcode.xor.code) #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
+    instructionStep r.pc r.fp r.rbc next .xor #v[r.oA, r.oB, r.oC, 0, 0, 0, 0]
     memRead (r.fp * r.oA) r.rA r.vA
     memRead (r.fp * r.oB) r.rB r.vB
     memRead (r.fp * r.oC) r.rC #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]]
@@ -209,7 +207,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     -- Clean's default tactic decides channel equalities through `Channel.toRaw_ext_iff`, whose
     -- `-1 : K` core's `BitVec.reduceNeg` simproc then rewrites as the two's-complement word,
     -- which the kernel rejects (status finding E6); neither is needed here.
-    simp only [circuit_norm, memRead, bytecodeRead, -BitVec.reduceNeg]
+    simp only [circuit_norm, instructionStep, memRead, bytecodeRead, -BitVec.reduceNeg]
     tauto
   -- The row refines the relation over the data's image, to the pushed successor.
   Spec := XorSpec
@@ -219,7 +217,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
   ProverAssumptions r data _ := ∃ next, XorSpec r next data
   soundness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The bytecode guarantee, that the tuple decodes, is unused: the tuple `main` emits is
     -- `XOR`'s entry by construction, and the program is the bus's (Layer 9).
     obtain ⟨-, hA, hB, hC⟩ := h_holds
@@ -231,7 +229,7 @@ def xorTable : GeneralFormalCircuit K XorRow Regs where
     · simpa only [add_limbs, Vector.getElem_map] using hC
   completeness := by
     circuit_proof_start [StatePull, StatePush, MemPull, MemPush, BytecodePull, BytecodePush,
-      memRead, bytecodeRead]
+      instructionStep, memRead, bytecodeRead]
     -- The four pull guarantees, from the semantic premise: the tuple `main` emits decodes
     -- (Layer 4), and the result read carries the limbs of the sum a valid execution reads
     -- (`add_limbs`).
@@ -278,7 +276,8 @@ theorem xor_exec_complete {data : ProverData K} {pc fp oA oB oC : K} {next : Reg
         0) :=
   (xorTable.completeness 0 (rowEnv data) (const _)
     -- No witness slot: the row environment uses the local witnesses vacuously.
-    (by simp only [circuit_norm, xorTable, memRead, bytecodeRead, -BitVec.reduceNeg]) _
+    (by simp only [circuit_norm, xorTable, instructionStep, memRead, bytecodeRead,
+      -BitVec.reduceNeg]) _
     ProvableType.eval_const_prover ⟨_, xorRowOf_refines hexec rA rB rC rbc⟩).1
 
 end LeanerVM.Arithmetization

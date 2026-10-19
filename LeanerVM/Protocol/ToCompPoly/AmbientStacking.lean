@@ -25,8 +25,8 @@ At a point whose high coordinates are not selector bits, every block contributes
 `b` contributes its extension at the point's low coordinates, weighted by
 `selectorWeight b`, the Lagrange basis of the high coordinates at the block's selector; the
 cells no block covers contribute the pad, weighted by what is left of the partition of unity
-(`stack_eval_ambient`). With pad zero the last term vanishes (`stack_eval_ambient_zero`), and
-when the blocks fill the stack the weights sum to one (`sum_selectorWeight_of_total_eq`).
+(`stack_eval_ambient`). When the blocks fill the stack the weights sum to one
+(`sum_selectorWeight_of_total_eq`).
 `stack_eval₂_ambient` is the statement at a point of another ring than the entries. Over an
 arbitrary commutative ring.
 
@@ -154,13 +154,6 @@ theorem stack_eval_ambient (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ
   simp_rw [ht, mul_sub, Finset.sum_sub_distrib]
   rw [← Finset.sum_mul]
   ring
-
-/-- The zero-padded stack at an arbitrary point: the weighted sum of its blocks. -/
-theorem stack_eval_ambient_zero (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
-    (z : Vector R μ) :
-    evalMle (B.stackAt t μ 0) z =
-      ∑ b : Fin B.n, B.selectorWeight hμ b z * evalMle (t b) (B.lowPoint hμ b z) := by
-  simpa using B.stack_eval_ambient t hμ 0 z
 
 /-- When the blocks fill the stack, their weights sum to one at every point. -/
 theorem sum_selectorWeight_of_total_eq {μ : ℕ} (h : B.total = 2 ^ μ) (z : Vector R μ) :

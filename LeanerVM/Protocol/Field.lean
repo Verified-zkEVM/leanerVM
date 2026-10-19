@@ -2,56 +2,48 @@
   LeanerVM.Protocol.Field
 
   The instances that make leanVM's fields usable by ArkLib's oracle-reduction framework: uniform
-  sampling of challenges in `E`, and the evaluation oracle on a committed column.
+  sampling of challenges in `E`, the inner-product oracle on a committed column, and the trivial
+  interface on scalar messages.
 -/
 
 module
 
 public import LeanerVM.Parameters.Field
+public import LeanerVM.Protocol.ToArkLib.InnerProduct
 public import CompPoly.Multilinear.Basic
-public import ArkLib.OracleReduction.OracleInterface
 public import VCVio.OracleComp.Constructions.SampleableType
 
 /-!
 # Fields for the proof system
 
-Protocol roadmap Layer 0 (`docs/roadmap/protocol-blueprint.md`). This is the first consumer of
-ArkLib (pin `7653a901ed466c88a2e61a3075011b73d7bb2316`) and of VCVio through it
-(`a4232d084aa18aa71f75b92b64082b457ffdb77b`). Category A: nothing here transcribes a source; the
-field and its cardinality are the leanISA Layer 0 declarations and CompPoly's `card_ext3`.
+leanVM's columns take values in `K` and its challenges in `E`, the cubic extension of `K`
+(`LeanerVM.Parameters.Field`). Three things are supplied.
 
-Four things are supplied.
-
-* `SampleableType K` and `SampleableType E`: the uniform samplers ArkLib requires of every
-  challenge type (`[∀ i, SampleableType (pSpec.Challenge i)]` on its security definitions).
-  `K` is sampled as a uniform `Fin (2^64)` through `BitVec.ofFin` and `BF64.ofBitVec`, and `E`
-  as three independent limbs through `Ext.ofVector`; neither enumerates the field.
-  `Fintype K` is proof-only; compiled sampling uses the explicit equivalences (leanISA status
-  finding P3). The shape follows ArkLib's
-  own `KoalaBear.Ext6.sampleableType`.
-* `card_E`: `Fintype.card E = 2^192`, the one cardinality fact every error bound of the roadmap
-  rewrites with.
-* `evalOracle`: the `OracleInterface` on a column `Column n = CMlPolynomialEval K n`, the value
-  table of a multilinear on `n` variables. A query is a point of `E^n`, as CompPoly's
-  `Vector E n`, and the answer is the multilinear extension there, lifted from `K` to `E` by
-  `algebraMap`. This is the interface of the one committed oracle of the oracle protocol
-  (roadmap convention *The oracle*); the Reed–Solomon codeword oracles of Layer 11 are a
-  different instance on a different type.
-* `OracleInterface E` and `OracleInterface (List E)`: the trivial oracle, ArkLib's
-  `OracleInterface.instDefault` (the query is `Unit`, the answer is the whole message), for the
-  scalars and coefficient lists a phase sends. ArkLib registers that default for no type, and
-  every component's schedule needs an interface on each prover message.
+* `SampleableType E`: the uniform sampler ArkLib requires of every challenge type. `E` is
+  sampled as three independent limbs through `Ext.ofVector`; the `K` sampler it is built from
+  reads a uniform `Fin (2^64)` as a bit pattern through `BitVec.ofFin` and `BF64.ofBitVec`.
+  Neither enumerates its field: `Fintype K` is proof-only, and a sampler built from it would
+  enumerate `2^64` elements at initialization. The shape follows ArkLib's own
+  `KoalaBear.Ext6.sampleableType`.
+* `card_E`: `Fintype.card E = 2^192`, the one cardinality fact every error bound rewrites with.
+* `innerProductOracle`: the interface of the one committed oracle, the stack, on `Column n`,
+  the value table of a `K`-multilinear on `n` variables. A query is a weight `W : Weight E n`
+  (specification Definition 3.13, `def:ipcs`, `doc/leanvm/body/03-proving-primitives.tex:112-115`
+  at `a386121f84292f6fa663aaa3e570c15bc0240ea2`): a table over the cube with an evaluator of its
+  extension the verifier can run. The answer is `⟨W, q⟩ = Σ_x W(x)·q(x)` in `E`. An evaluation
+  `q̃(p)` at a point `p ∈ E^n` is the answer to the equality kernel `eqWeight p`
+  (`answer_eqWeight`).
+The scalars and coefficient lists a phase sends need no interface of their own: a one-message
+schedule (`LeanerVM.Protocol.ToArkLib.Schedule`) reads its message whole.
 
 ## Wrong readings excluded
 
-* A sampler built from `Fintype E` (`SampleableType.ofFintype`) is noncomputable and, on `K`,
-  enumerates `2^64` elements at initialization; `samplerProbe` in the tests fails to compile if
-  either instance stops having compiler IR.
-* The oracle answers `q̃(r)` for `r ∈ E^n`, not `q(r)` for `r` on the cube; on a cube point the
-  two agree (`CMlPolynomialEval.eval_mle_eq_eval`).
-* `Column n` is not `Vector K (2^n)`: were it an abbreviation, instance search would also find
-  ArkLib's `OracleInterface (Vector α m)`, whose queries are positions, and a column could be
-  queried as a codeword.
+* The oracle answers a weighted sum over the cube, `Σ_x W(x)·q(x)`, not the value `q(x)` at a
+  position: a column is a structure, not `Vector K (2^n)`, so that instance search cannot also
+  find ArkLib's position-query interface on `Vector` and read the column as a codeword.
+* On a cube point `p`, `eqWeight p` is an indicator and the answer is the cell there; off the
+  cube it is the multilinear extension (`CMlPolynomialEval.eval_mle_eq_eval`).
+* The `K` sampler is only the building block of the `E` sampler; no challenge is drawn in `K`.
 -/
 
 namespace LeanerVM.Protocol
@@ -63,8 +55,8 @@ open LeanerVM.Parameters CompPoly OracleComp
 /-! ## Columns -/
 
 /-- A column of height `2^n`: the values of a `K`-multilinear on the cube, low bit first. A
-structure rather than an abbreviation so that its evaluation oracle below does not overlap
-ArkLib's position-query interface on `Vector`, which Layer 11's codeword oracles use. -/
+structure rather than an abbreviation so that its oracle interface below does not overlap
+ArkLib's position-query interface on `Vector`. -/
 structure Column (n : ℕ) where
   /-- The value table, CompPoly's hypercube representation. -/
   values : CMlPolynomialEval K n
@@ -78,7 +70,8 @@ def finEquivK : Fin (2 ^ 64) ≃ K where
   left_inv _ := rfl
   right_inv _ := rfl
 
-/-- Uniform sampling of `K`: a uniform `Fin (2^64)` read as a bit pattern. -/
+/-- Uniform sampling of `K`: a uniform `Fin (2^64)` read as a bit pattern. It is only the
+building block of the `E` sampler; no challenge of the protocol is drawn in `K`. -/
 instance instSampleableTypeK : SampleableType K :=
   haveI : NeZero (2 ^ 64) := ⟨by norm_num⟩
   SampleableType.ofEquiv finEquivK
@@ -96,27 +89,25 @@ instance instSampleableTypeE : SampleableType E := SampleableType.ofEquiv limbsE
 /-- `|E| = 2^192`: the size of the challenge space in every error bound. -/
 theorem card_E : Fintype.card E = 2 ^ 192 := BF64.card_ext3
 
-/-! ## The evaluation oracle -/
+/-! ## The inner-product oracle -/
 
-/-- A column as an oracle: a query is a point `r ∈ E^n`, the answer is the multilinear extension
-`q̃(r)`, lifted from `K` to `E`. -/
-instance evalOracle (n : ℕ) : OracleInterface (Column n) where
-  Query := Vector E n
+/-- The stack as an oracle: a query is a weight `W` on the cube, the answer is the inner
+product `⟨W, q⟩ = Σ_x W(x)·q(x)` in `E` (Definition 3.13). -/
+instance innerProductOracle (n : ℕ) : OracleInterface (Column n) where
+  Query := Weight E n
   toOC :=
-    { spec := (Vector E n) →ₒ E
-      impl := fun r ↦ do return CMlPolynomialEval.eval₂Mle (← read).values (algebraMap K E) r }
+    { spec := Weight E n →ₒ E
+      impl := fun W ↦ do return W.pair (algebraMap K E) (← read).values }
 
-/-- The oracle answers the lifted multilinear extension. -/
-theorem evalOracle_answer (n : ℕ) (q : Column n) (r : Vector E n) :
-    OracleInterface.answer q r = CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) r := rfl
+/-- The oracle answers the inner product of the weight with the column. -/
+theorem innerProductOracle_answer {n : ℕ} (q : Column n) (W : Weight E n) :
+    OracleInterface.answer q W = W.pair (algebraMap K E) q.values := rfl
 
-/-! ## Scalar messages -/
-
-/-- A scalar the prover sends is queried trivially: the answer is the scalar. -/
-instance instOracleInterfaceE : OracleInterface E := OracleInterface.instDefault
-
-/-- A list of scalars the prover sends is queried trivially: the answer is the list. -/
-instance instOracleInterfaceListE : OracleInterface (List E) := OracleInterface.instDefault
+/-- The answer to the equality kernel at `p` is the column's extension at `p`. -/
+theorem answer_eqWeight {n : ℕ} (q : Column n) (p : Vector E n) :
+    OracleInterface.answer q (eqWeight p) =
+      CMlPolynomialEval.eval₂Mle q.values (algebraMap K E) p :=
+  Weight.pair_eqWeight (algebraMap K E) p q.values
 
 end
 end LeanerVM.Protocol

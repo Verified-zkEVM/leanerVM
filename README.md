@@ -108,7 +108,9 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
 ```
 
 An arrow points from a foundational layer to a layer that may depend on it.
-[`scripts/check-layers.sh`](scripts/check-layers.sh) enforces the forbidden reverse edges.
+[`scripts/check-layers.sh`](scripts/check-layers.sh) enforces the forbidden reverse edges, and
+the proof system's wall: no protocol module imports the arithmetization except the few that meet
+it ([`docs/architecture.md`](docs/architecture.md)).
 
 | Layer | Responsibility |
 | --- | --- |

@@ -72,7 +72,7 @@ only non-trivial content, big-endian).
 | Declaration | Source | Statement | Verdict | Target | Effort |
 | --- | --- | --- | --- | --- | --- |
 | `eqTilde_sum_cube` | `Polynomial/Multilinear.lean:213` | `Σ_c eq(x, c) = 1` over the cube, any `x` | port (done) | `sumCube_lagrangeBasis` | S |
-| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_prodVars`, `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
+| `sum_prod_cube_eq_one`, `sum_prefix_collapse` | `ProofSystem/ZeroCheck.lean:836-886` | `Σ_x ∏ x_i = 1`; a prefix-mask-weighted sum collapses to the sum over the suffix | port (done) | `sumCube_placeSlice`, `evalMle_placeSlice` (any slice); `sumCube_padHigh`, `evalMle_padHigh` (the all-ones slice) | S |
 | `AlignedLayout`, `offset`, `pow_height_dvd_offset`, window lemmas | `ProofSystem/Stacking.lean:48, 71, 388, 397, 409` | blocks largest first at prefix-sum offsets; alignment from the antitone order | port (done; EX `Blocks`, `Stacking.lean:41-149`) | `Blocks`, `offset`, `pow_size_dvd_offset` | S |
 | `eval_MLE_stack_block` | `ProofSystem/Stacking.lean:603` | `P̃_b(z) = S̃(sel_b, z)`, the selection identity | port (done; EX `eval_stackPoly_sel`, `Stacking/MLE.lean:210`) | `stack_eval` | M |
 | `eval_MLE_stack_ambient` | `LeanVM/Protocol.lean:9818` | `S̃(ζ) = Σ_b eq(sel_b, ζ_hi) · P̃_b(ζ_lo)` for a zero-padded stack; 500 lines of private bit lemmas | port (done, for any pad value); with pad `1` the pad term is `1 - Σ_b eq(sel_b, ζ_hi)` | `stack_eval_ambient` | M |
@@ -92,7 +92,7 @@ The generic core of `ProofSystem/ZeroCheck.lean` is the polynomial view of a con
 | --- | --- | --- | --- | --- | --- |
 | `AIR`, `Trace`, `Trace.Satisfies` | `ZeroCheck.lean:53-84` | a constraint family over `Fin width` variables; a trace as cube tables; row-wise satisfaction | pattern (`M3Table` is `AIR` with no shifted columns) | `M3Table` | — |
 | `Trace.constraintRowPolynomial`, `eval_constraintRowPolynomial`, `_boolean`, `_eq_zero_on_cube` | `ZeroCheck.lean:99-148` | `Φ_j := bind₁ (MLE ∘ columns) C_j`; `Φ_j(z) = C_j(column MLEs at z)`; on the cube it is the row residual | port (substitution, not interpolation: the MLE of the residual table is the wrong object off the cube) | `Virtual.eval`, `tableSummand`, `toM3_constraints_iff` | M |
-| `degreeOf_bind₁_le_totalDegree`, `degreeOf_constraintRowPolynomial_le`, `degreeOf_map_le`, `totalDegree_map_le`, `degreeOf_rename_le` | `ZeroCheck.lean:161-186, 297-334` | substituting individual-degree-≤1 polynomials bounds each `degreeOf` by the total degree; coefficient maps and injective renames keep bounds | copy (Mathlib only, `Nontrivial` for `X`) | `totalDegree_le_degreeBound`, the degree-3 round bound of Layer 7 | S |
+| `degreeOf_bind₁_le_totalDegree`, `degreeOf_constraintRowPolynomial_le`, `degreeOf_map_le`, `totalDegree_map_le`, `degreeOf_rename_le` | `ZeroCheck.lean:161-186, 297-334` | substituting individual-degree-≤1 polynomials bounds each `degreeOf` by the total degree; coefficient maps and injective renames keep bounds | copy (Mathlib only, `Nontrivial` for `X`) | `totalDegree_toCMvPolynomial_le`, the degree-3 round bound of Layer 7 | S |
 | `eval_map_eq_zero_of_eval_eq_zero` | `Arith/Residual.lean:211-234` | a `K`-polynomial vanishing at a Boolean point vanishes there after `map (algebraMap K E)` | copy | Layer 7 (constraints over `K` hold over `E`) | S |
 
 ### Layer 3: the M3 instance
@@ -144,7 +144,7 @@ factorization exists anywhere in leanth; the two ingredients Lemma 5.2 needs do.
 | --- | --- | --- | --- | --- | --- |
 | `fingerprint`, `eval_fingerprintPoly_snoc` | `Logup.lean:90, 713` | `π_β(σ) = Σ_i σ_i · eq(β, bits i)`; the symbolic and evaluated forms agree | copy | `fingerprint` | S |
 | `fingerprintPoly`, `eval_fingerprintPoly`, `fingerprintPoly_injective`, `totalDegree_fingerprintPoly`, `aeval_fingerprintPoly` | `Logup.lean:275-444` | `π` with symbolic `β` in `MvPolynomial (Fin 5)`; distinct tuples give distinct polynomials (evaluate at the Boolean point of a differing coordinate); degree ≤ 4 | port (make `_injective` public) | half of `sideProduct_poly_eq_iff`: the factors `X - π_A(t)` are pairwise distinct | S |
-| `unbalanced_rejected` counting skeleton | `Logup.lean:804-831` | accepting `(β, γ)` pairs inject by `Fin.snoc` into roots of a 5-variable polynomial; `card_eval_zero_le` with exponent 4 | port with `commonNumerator` replaced by `Π_P - Π_Q` | `sideProduct_collision`, `4·2^μ/|E|` (joint sampling is what gives the constant) | M |
+| `unbalanced_rejected` counting skeleton | `Logup.lean:804-831` | accepting `(β, γ)` pairs inject by `Fin.snoc` into roots of a 5-variable polynomial; `card_eval_zero_le` with exponent 4 | not ported: the count was written new on ArkLib's counting Schwartz–Zippel, on `Π_P − Π_Q` | `sideProduct_collision`, `4·2^μ/|E|` (joint sampling is what gives the constant) | M |
 | `fingerprint_collision`, `diffPoly_*` | `Logup.lean:100-230` | `σ ≠ τ ⇒ #{β : π_β σ = π_β τ} ≤ 4·|F|^3` | port (private helper) | Layer 5 | S |
 | `eqTilde_cons`, `eval_MLE_cons` | `GKR.lean:439, 447` | eq splits off coordinate 0; an MLE is affine in one coordinate | copy | the radix-2 odd layer | S |
 | ξ-round argument `gkrState_xi_poly_ne_zero`, `_eval_eq`, `_bad_xi_le` | `GKR.lean:3596-3713` | false claim ⇒ sent polynomial ≠ honest one ⇒ the challenge is a root of a nonzero degree-`d` difference | port at degree 5 with four corners | `gkr_rbrKnowledgeSoundness`, `5/|E|` per round | M |
@@ -419,13 +419,17 @@ modules are under `LeanerVM/Protocol/ToCompPoly/`; what specialises them to lean
 | --- | --- | --- | --- |
 | `sumCube_lagrangeBasis` | `ToCompPoly/Multilinear.lean` | `Polynomial/Multilinear.lean:213` | #18 |
 | `placeSlice`, `sumCube_placeSlice`, `evalMle_placeSlice` | `ToCompPoly/Multilinear.lean` | `ProofSystem/ZeroCheck.lean:836-886`, for any slice | #18, #40 |
-| `sumCube_prodVars`, `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
+| `padHigh`, `sumCube_padHigh`, `evalMle_padHigh` | `Padding.lean` | `ProofSystem/ZeroCheck.lean:836-886` | #18 |
 | `cubeIndex`, `sum_cube_split`, `lagrangeBasis_cubeIndex`, `boolVec`, `slice`, `evalMle_split`, `evalMle_append_boolVec` | `ToCompPoly/Multilinear.lean` | `ProofSystem/Stacking.lean:271-366, 603` and EX `Stacking/MLE.lean` | #18 (new proofs on CompPoly) |
 | `Blocks`, `offset`, `pow_size_dvd_offset`, `offset_add_pow_le_offset`, `stackAt`, `selector`, `stack_eval` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:48-133, 388-479, 603` and EX `Stacking.lean`, `Stacking/MLE.lean` | #18 |
 | `map_stackAt`, `stack_eval₂` | `ToCompPoly/Stacking.lean` | the same, across a ring homomorphism | #26 |
 | `unstack`, `unstack_stackAt`, `unstack_eval`, `unstack_eval₂`, `unstack_eq_of_window_eq` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:724-777` | #38 |
-| `unstack_eval₂_eq_sumCube`; `BlockClaim`, `pairing_eq`, `isValid_iff_pairing`, `isValid_iff_of_window_eq` | `ToCompPoly/Stacking.lean`; `BlockClaims.lean` | `ProofSystem/Stacking.lean:705-777`; `LeanVM/Protocol.lean:8550-8602` | #38 |
+| `unstack_eval₂_eq_sumCube` | `ToCompPoly/Stacking.lean` | `ProofSystem/Stacking.lean:705-777` | #38 |
 | `windowTable`, `stackAt_decomposition`, `stack_eval_ambient`, `stack_eval₂_ambient` | `ToCompPoly/AmbientStacking.lean` | `LeanVM/Protocol.lean:9818-9850`, extended from zero padding to any padding | #40 |
+
+The block claims of `LeanVM/Protocol.lean:8550-8602` (`BlockClaim`, `pairing_eq`,
+`isValid_iff_pairing`, `isValid_iff_of_window_eq`, ported in #38 as `BlockClaims.lean`) and
+`sumCube_prodVars` were removed with no consumer.
 
 Two changes to the ported shapes were made when the generic half was made generic: `Blocks` is
 the sizes alone and the tables are an argument (`B.Tables R`), so `Blocks.map` of #26 is gone
@@ -439,10 +443,10 @@ Not derived from leanth, and listed so that the layer reads whole: `bitProductTa
 (`FixedColumns.lean`, #41); the `Column`-level stack with the spine's `Layout` (`Stack.lean`);
 and a column claim as a weighted claim (`ClaimWeights.lean`).
 
-Next port candidates, in order of value per effort, each already proposed in an open pull
-request: `scalarBatch_rejection` (Layer 4, S; #43); the `sumcheck_*` core (Layer 4, S; #42); the
-fingerprint lemmas (Layer 5, S; #39). The knowledge-soundness composition (A2) was not ported
-from leanth: it is the port of ArkLib #615, on `main` since 2026-09-28.
+Batching from #43 was incorporated through #77. The honest sumcheck proposal #42 was closed in
+favour of the custom leanVM sumcheck in #75/#76. Neither remains an open port candidate. The
+fingerprint work landed through #39/#78. Knowledge-soundness composition came from ArkLib #615
+through #58.
 
 ## Upstream candidates
 

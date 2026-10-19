@@ -43,6 +43,17 @@
 - `dump-mul-rust.sh <leanVM checkout>`: reproduces the operands and the `E` product of the
   pinned leanVM executor test `mul_192bit_word` through the executor's own `F192` arithmetic,
   as the words of `tests/LeanerVMTests/Semantics/Execution.lean`; same requirements.
+- `dump-flock-column-rust.sh <leanVM checkout>`: digests the Flock region the pinned prover
+  commits for eight compressions (the executor test's, the RFC 7693 `"abc"` one and six padding
+  blocks), for the differential check of the honest column in
+  `tests/LeanerVMTests/Protocol/FlockSpec.lean`; requires `cargo`.
+- `dump-flock-circuit-digest.py <leanVM checkout>`: digests the rows of the Flock BLAKE2s
+  circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
+  comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
+  checkout at the pinned commit.
+- `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
+  offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
+  comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.

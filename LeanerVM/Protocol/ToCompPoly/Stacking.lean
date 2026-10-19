@@ -24,10 +24,13 @@ block over any commutative ring, so one layout serves tables over different ring
 * `unstack hμ q b` reads block `b` off any table `q` of `μ` variables, stack or not.
 * `extendPoint hμ b z` lifts a point of block `b` to the point `(z, selector bits)` of the stack;
   `lowPoint` and `highPoint` split a point of the stack the same way.
-* The selection identity: `unstack_eval` for any table, `stack_eval` for a stack, and
-  `unstack_eval₂`, `stack_eval₂` when the point lies in another ring than the entries.
+* The selection identity: `stack_eval` for a stack, and `unstack_eval₂`, `stack_eval₂` for any
+  table or a stack when the point lies in another ring than the entries.
   `unstack_eval₂_eq_sumCube` writes it as a sum over the cube against a Lagrange basis.
 * `map_stackAt`, `unstack_map`: mapping the entries commutes with stacking and reading.
+* `total_eq_sum`, `prod_stackAt`: the total height is the sum of the blocks' heights, and the
+  product of a stack's cells is the product of its blocks' cells times the pad once per cell no
+  block covers.
 
 Candidate for CompPoly, beside `CompPoly.Multilinear`: every object here is a CompPoly table or
 its evaluation. The request it answers is tracked upstream as
@@ -85,6 +88,11 @@ def offset (b : Fin B.n) : ℕ := B.offsetNat b.val
 
 /-- The total height of the blocks. -/
 def total : ℕ := B.offsetNat B.n
+
+/-- The total height is the sum of the blocks' heights. -/
+theorem total_eq_sum : B.total = ∑ b : Fin B.n, 2 ^ B.size b := by
+  rw [total, offsetNat, ← Fin.sum_univ_eq_sum_range]
+  exact Finset.sum_congr rfl fun b _ ↦ dite_eq_left b.isLt
 
 theorem offsetNat_succ (k : ℕ) (hk : k < B.n) :
     B.offsetNat (k + 1) = B.offsetNat k + 2 ^ B.size ⟨k, hk⟩ := by
@@ -208,16 +216,20 @@ theorem size_le {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : B.size b �
     le_trans (by have := B.offset_add_pow_le_total b; omega) hμ
   exact (Nat.pow_le_pow_iff_right (by norm_num)).mp h1
 
+/-- A block's offset over its height indexes the high `μ - size_b` coordinates. -/
+theorem offset_div_lt {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
+    B.offset b / 2 ^ B.size b < 2 ^ (μ - B.size b) := by
+  have h1 := B.offset_add_pow_le_total b
+  have h2 : B.offset b < 2 ^ B.size b * 2 ^ (μ - B.size b) := by
+    rw [← pow_add, Nat.add_sub_cancel' (B.size_le hμ b)]
+    have h3 := Nat.two_pow_pos (B.size b)
+    omega
+  exact Nat.div_lt_of_lt_mul h2
+
 /-- The selector of block `b` in a stack of `μ` variables: the index `offset_b >> size_b` of
 the high `μ - size_b` coordinates. -/
 def selector {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : Fin (2 ^ (μ - B.size b)) :=
-  ⟨B.offset b / 2 ^ B.size b, by
-    have h1 := B.offset_add_pow_le_total b
-    have h2 : B.offset b < 2 ^ B.size b * 2 ^ (μ - B.size b) := by
-      rw [← pow_add, Nat.add_sub_cancel' (B.size_le hμ b)]
-      have h3 := Nat.two_pow_pos (B.size b)
-      omega
-    exact Nat.div_lt_of_lt_mul h2⟩
+  ⟨B.offset b / 2 ^ B.size b, B.offset_div_lt hμ b⟩
 
 @[simp] theorem selector_val {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
     (B.selector hμ b).val = B.offset b / 2 ^ B.size b := rfl
@@ -316,7 +328,7 @@ theorem unstack_eq_of_window_eq {μ : ℕ} (hμ : B.total ≤ 2 ^ μ)
 
 /-- The selection identity, for any table: the table at a lifted point is the block read off
 it, at the point. -/
-theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
+private theorem unstack_eval {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (q : CMlPolynomialEval R μ)
     (b : Fin B.n) (z : Vector R (B.size b)) :
     evalMle q (B.extendPoint hμ b z) = evalMle (B.unstack hμ q b) z := by
   have hk : B.size b + (μ - B.size b) = μ := Nat.add_sub_cancel' (B.size_le hμ b)
@@ -355,6 +367,53 @@ theorem unstack_eval₂_eq_sumCube {S : Type*} [CommRing S] (φ : R →+* S) {μ
     eval₂Mle (B.unstack hμ q b) φ z =
       sumCube (hadamard (lagrangeBasis (B.extendPoint hμ b z)) (CMlPolynomialEval.map φ q)) := by
   rw [← B.unstack_eval₂, eval₂Mle, evalMle_eq_sumCube_hadamard]
+
+/-! ## The product of a stack's cells -/
+
+/-- The cells of the first `k` blocks, read off the stack as an initial segment, multiply to the
+product of those blocks' cells. -/
+private theorem prod_range_offsetNat (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R)
+    (k : ℕ) (hk : k ≤ B.n) :
+    ∏ x ∈ Finset.range (B.offsetNat k),
+        (if h : x < 2 ^ μ then (B.stackAt t μ pad)[x] else 1) =
+      ∏ c ∈ Finset.range k, if h : c < B.n then ∏ y : Fin (2 ^ B.size ⟨c, h⟩), (t ⟨c, h⟩)[y]
+        else 1 := by
+  induction k with
+  | zero => simp [offsetNat]
+  | succ k ih =>
+    have hkn : k < B.n := by omega
+    rw [B.offsetNat_succ k hkn, Finset.prod_range_add, ih (by omega), Finset.prod_range_succ,
+      dite_eq_left hkn]
+    congr 1
+    rw [← Fin.prod_univ_eq_prod_range]
+    refine Finset.prod_congr rfl fun y _ ↦ ?_
+    have hwin : B.InWindow ⟨k, hkn⟩ (B.offsetNat k + y) := ⟨by simp [offset], by simp [offset]⟩
+    have hx : B.offsetNat k + y < 2 ^ μ := by
+      have := B.offset_add_pow_le_total ⟨k, hkn⟩
+      simp only [offset] at this
+      omega
+    rw [dite_eq_left hx, B.stackAt_getElem_of_inWindow t pad hx hwin]
+    simp [offset]
+
+/-- The product of a stack's cells is the product of its blocks' cells, times the pad once for
+each cell no block covers. -/
+theorem prod_stackAt (t : B.Tables R) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (pad : R) :
+    ∏ x : Fin (2 ^ μ), (B.stackAt t μ pad)[x] =
+      (∏ b : Fin B.n, ∏ y : Fin (2 ^ B.size b), (t b)[y]) * pad ^ (2 ^ μ - B.total) := by
+  have hrange : ∏ x : Fin (2 ^ μ), (B.stackAt t μ pad)[x] =
+      ∏ x ∈ Finset.range (2 ^ μ), (if h : x < 2 ^ μ then (B.stackAt t μ pad)[x] else 1) := by
+    rw [← Fin.prod_univ_eq_prod_range]
+    exact Finset.prod_congr rfl fun x _ ↦ by simp
+  rw [hrange, show Finset.range (2 ^ μ) = Finset.range (B.total + (2 ^ μ - B.total)) by
+    rw [Nat.add_sub_cancel' hμ], Finset.prod_range_add]
+  congr 1
+  · rw [total, B.prod_range_offsetNat t hμ pad B.n le_rfl, ← Fin.prod_univ_eq_prod_range]
+    simp
+  · rw [← Finset.card_range (2 ^ μ - B.total), ← Finset.prod_const]
+    refine Finset.prod_congr (by simp) fun y hy ↦ ?_
+    rw [Finset.mem_range] at hy
+    have hx : B.total + y < 2 ^ μ := by omega
+    rw [dite_eq_left hx, B.stackAt_getElem_of_total_le t pad hx (by omega)]
 
 end Blocks
 

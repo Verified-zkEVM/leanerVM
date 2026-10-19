@@ -39,22 +39,6 @@ open CompPoly CMlPolynomialEval
 
 variable {R : Type*} [CommRing R]
 
-/-- The table of `x_0 ⋯ x_{m-1}` on the cube: one at the all-ones point, zero elsewhere. -/
-def prodVars (m : ℕ) : CMlPolynomialEval R m :=
-  Vector.ofFn fun i ↦ if i = onesIndex m then 1 else 0
-
-/-- `Σ_x x_0 ⋯ x_{m-1} = 1`. -/
-theorem sumCube_prodVars (m : ℕ) : sumCube (prodVars m : CMlPolynomialEval R m) = 1 := by
-  simp [sumCube, prodVars]
-
-/-- The extension of `x_0 ⋯ x_{m-1}` at `s` is the product of the coordinates of `s`. -/
-theorem evalMle_prodVars {m : ℕ} (s : Vector R m) :
-    evalMle (prodVars m) s = ∏ b : Fin m, s[b] := by
-  rw [evalMle_eq_sum]
-  simp only [Fin.getElem_fin, prodVars, Vector.getElem_ofFn, Fin.eta, ite_mul, one_mul,
-    zero_mul, Finset.sum_ite_eq', Finset.mem_univ, ite_true]
-  exact lagrangeBasis_onesIndex s
-
 /-- A table of `k` variables lifted to `k + m` variables by `∏_{c ≥ k} X_c`: its entries sit
 where the high coordinates are all ones, and everything else is zero. -/
 def padHigh {k : ℕ} (t : CMlPolynomialEval R k) (m : ℕ) : CMlPolynomialEval R (k + m) :=

@@ -33,7 +33,11 @@ Nothing here transcribes a source.
   the table that holds `t` on that subcube and zero elsewhere. `evalMle_split` writes an
   evaluation as the weighted sum of the slices; `evalMle_append_boolVec` is the selection
   identity, a Boolean high coordinate selects a slice; `evalMle_placeSlice` and
-  `sumCube_placeSlice` are its converse.
+  `sumCube_placeSlice` are its converse. `sliceLow t i` is the strided subcube whose low bits
+  are `i`, one entry every `2 ^ k`, and `evalMle_boolVec_append` its selection identity.
+* **Low coordinates.** `lowCoords h z` is the low `k` coordinates of a point on `n ≥ k`, and
+  `repeatHigh t h` reads a table on `k` variables on `n`, the same in every slice of the high
+  coordinates: its extension ignores them (`evalMle_repeatHigh`).
 
 A point is a `Vector R n`, and `z ++ s` puts `z` in the low coordinates.
 
@@ -47,8 +51,9 @@ they go through `eval_mle_eq_eval`, the dot product with `lagrangeBasis`, and on
 
 ## Wrong readings excluded
 
-* `evalMle_append_boolVec` reads the slice at the *high* index; slicing on the low index is a
-  different, strided selection.
+* `evalMle_append_boolVec` reads the slice at the *high* index and `evalMle_boolVec_append`
+  the slice at the *low* index; the two are different subcubes, a window of consecutive entries
+  against one entry every `2 ^ k`.
 * `placeSlice` puts zero in the other slices, so the cube sum is kept. Copying the table into
   every slice multiplies the sum by `2 ^ m`.
 -/
@@ -139,14 +144,18 @@ theorem evalMle_replicate {n : ℕ} (a : R) (x : Vector R n) :
 
 /-! ## Splitting the cube -/
 
+/-- The bound of `cubeIndex`, on natural numbers. -/
+theorem cubeIndex_lt {k m : ℕ} {i : ℕ} (hi : i < 2 ^ k) (j : Fin (2 ^ m)) :
+    i + 2 ^ k * j.val < 2 ^ (k + m) := by
+  rw [pow_add]
+  calc i + 2 ^ k * j.val < 2 ^ k + 2 ^ k * j.val := Nat.add_lt_add_right hi _
+    _ = 2 ^ k * (j.val + 1) := by ring
+    _ ≤ 2 ^ k * 2 ^ m := Nat.mul_le_mul_left _ j.isLt
+
 /-- The index of the cube `{0,1}^(k+m)` whose low `k` bits are `i` and whose high `m` bits are
 `j`. -/
 def cubeIndex {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) : Fin (2 ^ (k + m)) :=
-  ⟨i.val + 2 ^ k * j.val, by
-    rw [pow_add]
-    calc i.val + 2 ^ k * j.val < 2 ^ k + 2 ^ k * j.val := Nat.add_lt_add_right i.isLt _
-      _ = 2 ^ k * (j.val + 1) := by ring
-      _ ≤ 2 ^ k * 2 ^ m := Nat.mul_le_mul_left _ j.isLt⟩
+  ⟨i.val + 2 ^ k * j.val, cubeIndex_lt i.isLt j⟩
 
 @[simp] theorem cubeIndex_val {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
     (cubeIndex i j).val = i.val + 2 ^ k * j.val := rfl
@@ -235,6 +244,19 @@ theorem lagrangeBasis_cubeIndex {k m : ℕ} (w : Vector R (k + m)) (i : Fin (2 ^
 def boolVec {m : ℕ} (j : Fin (2 ^ m)) : Vector R m :=
   Vector.ofFn fun b ↦ if j.val.testBit b then 1 else 0
 
+/-- A bit plus twice an index of `{0,1}^m` is an index of `{0,1}^(m+1)`. -/
+theorem ite_add_two_mul_lt_two_pow_succ {m n : ℕ} {c : Prop} [Decidable c] (h : n < 2 ^ m) :
+    (if c then 1 else 0) + 2 * n < 2 ^ (m + 1) := by
+  rw [pow_succ]
+  split <;> omega
+
+/-- The index of a cube point, read bit by bit: coordinate `b` is bit `b`, and a coordinate
+that is not `1` reads as `0`. The inverse of `boolVec` on the cube (`boolIndex_boolVec`). -/
+def boolIndex [DecidableEq R] : {m : ℕ} → Vector R m → Fin (2 ^ m)
+  | 0, _ => 0
+  | m + 1, p => ⟨(if p[0] = 1 then 1 else 0) + 2 * (boolIndex p.tail).val,
+      ite_add_two_mul_lt_two_pow_succ (boolIndex p.tail).isLt⟩
+
 /-- The all-ones index of the cube `{0,1}^m`. -/
 def onesIndex (m : ℕ) : Fin (2 ^ m) :=
   ⟨(2 ^ m - 1 : ℕ), by have := Nat.two_pow_pos m; omega⟩
@@ -252,6 +274,55 @@ theorem boolVec_onesIndex {m : ℕ} :
   apply Vector.ext
   intro b hb
   simp [boolVec, onesIndex, Nat.testBit_two_pow_sub_one]
+
+/-- The tail of a cube point is the cube point of the index halved. -/
+theorem boolVec_tail {m : ℕ} (j : Fin (2 ^ (m + 1))) :
+    (boolVec j : Vector R (m + 1)).tail =
+      boolVec (⟨j.val / 2, Nat.div_lt_of_lt_mul (by rw [← pow_succ']; exact j.isLt)⟩ :
+        Fin (2 ^ m)) := by
+  apply Vector.ext
+  intro i hi
+  simp only [boolVec, Vector.getElem_tail, Vector.getElem_ofFn, Nat.testBit_add_one]
+
+/-- On the cube, the decoder inverts the encoder. -/
+theorem boolIndex_boolVec [DecidableEq R] [Nontrivial R] :
+    {m : ℕ} → (j : Fin (2 ^ m)) → boolIndex (boolVec j : Vector R m) = j
+  | 0, j => by
+    apply Fin.ext
+    have hj : j.val = 0 := Nat.lt_one_iff.mp (by simp)
+    simp only [boolIndex, Fin.val_zero, hj]
+  | m + 1, j => by
+    apply Fin.ext
+    simp only [boolIndex, boolVec_tail, boolIndex_boolVec (m := m)]
+    have h0 : (boolVec j : Vector R (m + 1))[0] = if j.val % 2 = 1 then 1 else 0 := by
+      simp [boolVec, Nat.testBit_zero]
+    rw [h0]
+    have h := Nat.mod_add_div j.val 2
+    by_cases hj : j.val % 2 = 1
+    · rw [ite_eq_left hj, ite_eq_left rfl]
+      omega
+    · rw [ite_eq_right hj, ite_eq_right zero_ne_one]
+      omega
+
+/-- The decoder commutes with casting the number of variables. -/
+theorem boolIndex_cast [DecidableEq R] {m m' : ℕ} (h : m = m') (p : Vector R m) :
+    boolIndex (Vector.cast h p) = Fin.cast (congrArg (2 ^ ·) h) (boolIndex p) := by
+  subst h
+  rfl
+
+/-- Casting the number of variables of a cube point casts its index. -/
+theorem boolVec_cast {m m' : ℕ} (h : m = m') (j : Fin (2 ^ m)) :
+    Vector.cast h (boolVec j : Vector R m) = boolVec (Fin.cast (congrArg (2 ^ ·) h) j) := by
+  subst h
+  rfl
+
+/-- Two cube points side by side are the cube point of the combined index. -/
+theorem boolVec_append {k m : ℕ} (i : Fin (2 ^ k)) (j : Fin (2 ^ m)) :
+    (boolVec i : Vector R k) ++ (boolVec j : Vector R m) = boolVec (cubeIndex i j) := by
+  apply Vector.ext
+  intro a ha
+  simp only [boolVec, Vector.getElem_append, Vector.getElem_ofFn, testBit_cubeIndex]
+  split <;> rfl
 
 /-- Two indices below `2 ^ m` agree iff their `m` low bits agree. -/
 theorem fin_eq_iff_testBit {m : ℕ} (i j : Fin (2 ^ m)) :
@@ -313,11 +384,6 @@ theorem slice_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin (2 
     (i : Fin (2 ^ k)) : (slice t j)[i] = t[cubeIndex i j] := by
   simp [slice]
 
-/-- The bound of `cubeIndex`, on natural numbers. -/
-theorem cubeIndex_lt {k m : ℕ} {i : ℕ} (hi : i < 2 ^ k) (j : Fin (2 ^ m)) :
-    i + 2 ^ k * j.val < 2 ^ (k + m) :=
-  (cubeIndex ⟨i, hi⟩ j).isLt
-
 omit [CommRing R] in
 /-- `slice_getElem` with a natural-number index. -/
 theorem slice_getElem_nat {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (j : Fin (2 ^ m)) {i : ℕ}
@@ -345,6 +411,34 @@ theorem evalMle_append_boolVec {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z 
   rw [evalMle_split]
   simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_mul, one_mul, zero_mul,
     Finset.sum_ite_eq', Finset.mem_univ, ite_true]
+
+/-- The slice of a table at the low index `i`: the entries whose low `k` bits are `i`, one
+every `2 ^ k` entries. -/
+def sliceLow {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
+    CMlPolynomialEval R m :=
+  Vector.ofFn fun j ↦ t[cubeIndex i j]
+
+omit [CommRing R] in
+theorem sliceLow_getElem {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k))
+    (j : Fin (2 ^ m)) : (sliceLow t i)[j] = t[cubeIndex i j] := by
+  simp [sliceLow]
+
+/-- Mapping the entries commutes with taking a low slice. -/
+theorem sliceLow_map {S : Type*} [CommRing S] (φ : R →+* S) {k m : ℕ}
+    (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k)) :
+    CMlPolynomialEval.map φ (sliceLow t i) = sliceLow (CMlPolynomialEval.map φ t) i := by
+  apply Vector.ext
+  intro j hj
+  simp [sliceLow, CMlPolynomialEval.map]
+
+/-- The strided selection identity: Boolean low coordinates select the slice at that low
+index. The mirror of `evalMle_append_boolVec`. -/
+theorem evalMle_boolVec_append {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (i : Fin (2 ^ k))
+    (s : Vector R m) :
+    evalMle t ((boolVec i : Vector R k) ++ s) = evalMle (sliceLow t i) s := by
+  rw [evalMle_split, evalMle_eq_sum]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [evalMle_boolVec, slice_getElem, sliceLow_getElem, mul_comm]
 
 /-- A table placed at the high index `j`: its entries in the slice at `j`, zero in every other
 slice. -/
@@ -388,6 +482,106 @@ theorem sumCube_placeSlice {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^
     simp
   · intro h
     exact absurd (Finset.mem_univ _) h
+
+/-! ## Splitting the low coordinates, and one coordinate at a time -/
+
+/-- The low split: evaluation at `z ++ s` is the sum over the low index of the evaluations at the
+Boolean low points, weighted by the Lagrange basis of `z`. -/
+theorem evalMle_split_low {k m : ℕ} (t : CMlPolynomialEval R (k + m)) (z : Vector R k)
+    (s : Vector R m) :
+    evalMle t (z ++ s) =
+      ∑ i : Fin (2 ^ k), (lagrangeBasis z)[i] * evalMle t ((boolVec i : Vector R k) ++ s) := by
+  rw [evalMle_eq_sum, sum_cube_split, Finset.sum_comm]
+  refine Finset.sum_congr rfl fun i _ ↦ ?_
+  rw [evalMle_eq_sum, sum_cube_split, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j _ ↦ ?_
+  rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append, Finset.mul_sum,
+    Finset.sum_eq_single i]
+  · rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append]
+    simp only [Fin.getElem_fin, lagrangeBasis_boolVec, ite_true]
+    ring
+  · intro i' _ hne
+    rw [lagrangeBasis_cubeIndex, lowVec_append, highVec_append]
+    simp [lagrangeBasis_boolVec, hne]
+  · intro h
+    exact absurd (Finset.mem_univ _) h
+
+/-- Evaluation is linear: the extension of a weighted sum of tables is the weighted sum of
+their extensions. -/
+theorem evalMle_ofFn_sum {n : ℕ} {ι : Type*} (s : Finset ι) (a : ι → R)
+    (p : ι → CMlPolynomialEval R n) (r : Vector R n) :
+    evalMle (Vector.ofFn fun x ↦ ∑ i ∈ s, a i * (p i)[x]) r = ∑ i ∈ s, a i * evalMle (p i) r := by
+  simp only [evalMle_eq_sum, Fin.getElem_fin, Vector.getElem_ofFn, Finset.sum_mul,
+    Finset.mul_sum, mul_assoc]
+  exact Finset.sum_comm
+
+/-- Evaluation is affine in each coordinate: the value at a point whose coordinate `k` is `X`
+interpolates between the values at `0` and at `1`. -/
+theorem evalMle_set {n : ℕ} (t : CMlPolynomialEval R n) (p : Vector R n) {k : ℕ} (hk : k < n)
+    (X : R) :
+    evalMle t (p.set k X) = (1 - X) * evalMle t (p.set k 0) + X * evalMle t (p.set k 1) := by
+  simp only [evalMle_eq_sum, Finset.mul_sum, ← Finset.sum_add_distrib]
+  refine Finset.sum_congr rfl fun a _ ↦ ?_
+  simp only [Fin.getElem_fin, lagrangeBasis_getElem_nat _ a.isLt]
+  have hrest : ∀ Y : R, ∏ b ∈ Finset.univ.erase (⟨k, hk⟩ : Fin n),
+      (if a.val.testBit b then (p.set k Y)[b.val] else 1 - (p.set k Y)[b.val]) =
+      ∏ b ∈ Finset.univ.erase (⟨k, hk⟩ : Fin n),
+        (if a.val.testBit b then p[b.val] else 1 - p[b.val]) := by
+    intro Y
+    refine Finset.prod_congr rfl fun b hb ↦ ?_
+    have hbk : k ≠ b.val := fun h ↦ (Finset.mem_erase.mp hb).1 (Fin.ext h.symm)
+    rw [Vector.getElem_set_ne hk b.isLt hbk]
+  rw [← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    ← Finset.mul_prod_erase Finset.univ _ (Finset.mem_univ (⟨k, hk⟩ : Fin n)),
+    hrest, hrest, hrest]
+  simp only [Vector.getElem_set_self]
+  cases a.val.testBit k <;> simp <;> ring
+
+/-! ## Tables of the low coordinates -/
+
+omit [CommRing R] in
+/-- The low `k` coordinates of a point on `n ≥ k` coordinates. -/
+def lowCoords {k n : ℕ} (h : k ≤ n) (z : Vector R n) : Vector R k :=
+  Vector.cast (min_eq_left h) (z.take k)
+
+omit [CommRing R] in
+@[simp] theorem getElem_lowCoords {k n : ℕ} (h : k ≤ n) (z : Vector R n) {a : ℕ} (ha : a < k) :
+    (lowCoords h z)[a] = z[a] := by
+  simp only [lowCoords, Vector.getElem_cast, Vector.getElem_take]
+
+omit [CommRing R] in
+/-- The low coordinates of a point split at `k` are its first part. -/
+@[simp] theorem lowCoords_append {k m : ℕ} (z : Vector R k) (s : Vector R m) :
+    lowCoords (Nat.le_add_right k m) (z ++ s) = z := by
+  apply Vector.ext
+  intro a ha
+  rw [getElem_lowCoords _ _ ha, Vector.getElem_append_left ha]
+
+/-- A table on `k` coordinates read on `n ≥ k`: the entry at `x` is the table's entry at the low
+`k` bits of `x`, whatever the high bits. -/
+def repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (_ : k ≤ n) : CMlPolynomialEval R n :=
+  Vector.ofFn fun x ↦ t[x.val % 2 ^ k]'(Nat.mod_lt _ (Nat.two_pow_pos k))
+
+omit [CommRing R] in
+/-- Every slice of a repeated table is the table. -/
+theorem slice_repeatHigh {k m : ℕ} (t : CMlPolynomialEval R k) (j : Fin (2 ^ m)) :
+    slice (repeatHigh t (Nat.le_add_right k m)) j = t := by
+  apply Vector.ext
+  intro i hi
+  rw [← Fin.getElem_fin _ ⟨i, hi⟩, slice_getElem]
+  simp only [repeatHigh, Fin.getElem_fin, Vector.getElem_ofFn, cubeIndex_mod]
+
+/-- The extension of a repeated table ignores the high coordinates: it is the table's extension
+at the low ones. -/
+theorem evalMle_repeatHigh {k n : ℕ} (t : CMlPolynomialEval R k) (h : k ≤ n) (z : Vector R n) :
+    evalMle (repeatHigh t h) z = evalMle t (lowCoords h z) := by
+  obtain ⟨m, rfl⟩ := Nat.exists_eq_add_of_le h
+  rw [← lowVec_append_highVec z, evalMle_split]
+  simp only [slice_repeatHigh, ← Finset.sum_mul, lowCoords_append]
+  have hs := sumCube_lagrangeBasis (highVec z)
+  simp only [sumCube] at hs
+  rw [hs, one_mul]
 
 end
 end LeanerVM.Protocol
