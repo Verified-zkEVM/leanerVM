@@ -85,6 +85,9 @@ import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
+import LeanerVM.Protocol.ToArkLib.Whir.Glue
+import LeanerVM.Protocol.ToArkLib.Whir.Word
+import LeanerVM.Protocol.ToArkLib.WhirSumcheck
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
 import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
@@ -112,4 +115,5 @@ import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
 import LeanerVM.Protocol.ToCompPoly.Fingerprint
+import LeanerVM.Protocol.ToCompPoly.PlainSum
 import LeanerVM.Protocol.WhirFold

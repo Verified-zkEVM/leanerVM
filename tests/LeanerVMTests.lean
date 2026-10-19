@@ -47,6 +47,7 @@ import LeanerVMTests.Protocol.Stacking
 import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.WhirFold
+import LeanerVMTests.Protocol.WhirGlue
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
