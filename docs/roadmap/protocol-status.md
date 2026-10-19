@@ -123,9 +123,12 @@ adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
 from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
-the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). Nothing
-else is built: the other generic components, WHIR, the Merkle trees, the compiled verifier and
-the base theorems.
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). *On
+merge* of #67: the Merkle trees over BLAKE2s with completeness and binding as a computed collision
+(`Protocol/Merkle.lean`, generic in `ToArkLib/Merkle.lean`), the byte hasher and the digest
+encoding (`Protocol/Blake2sHash.lean`), and the WHIR parameters (`Parameters/Whir.lean`). Nothing
+else is built: the other generic components, the WHIR opening, the compiled verifier and the base
+theorems.
 
 ## What the built work owes the blueprint
 
