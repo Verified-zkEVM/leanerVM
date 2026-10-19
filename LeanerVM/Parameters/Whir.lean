@@ -74,13 +74,12 @@ def queryGrindingBits : ℕ := 17
 (`SECURITY_BITS`, `whir_config.rs:38`). -/
 def securityBits : ℕ := 128
 
-/-- The smallest stack the PCS commits: `MIN_MU` (`pcs.rs:49`;
-`MIN_STACKED_LOG`, `verifier.py:907`). A
-smaller witness is padded up to it. -/
+/-- The smallest stack the PCS commits: `MIN_MU` (`pcs.rs:49`; `MIN_STACKED_LOG`,
+`verifier.py:907`). A smaller witness is padded up to it. -/
 def minLogStack : ℕ := 15
 
-/-- The largest stack the PCS commits: `MAX_MU` (`pcs.rs:51`;
-`MAX_STACKED_LOG`, `verifier.py:908`). -/
+/-- The largest stack the PCS commits: `MAX_MU` (`pcs.rs:51`; `MAX_STACKED_LOG`,
+`verifier.py:908`). -/
 def maxLogStack : ℕ := 28
 
 /-- The smallest rate exponent of level 0 (`MIN_LOG_INV_RATE`, `whir_config.rs:44`). -/
@@ -95,16 +94,6 @@ The Rust production test fixes the count for stack sizes 22 to 28 (`whir_config.
 for 15 to 21 it is the second verifier's, which takes one sample per level after the first
 (`verifier.py:1033-1037`). -/
 def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
-
-/-- `whir_config.rs:80`: the first reduction never exceeds the first fold. -/
-theorem initialReduction_le_initialFold : initialReduction ≤ initialFold := by decide
-
-/-- `whir_config.rs:81`: a later reduction never exceeds a later fold. -/
-theorem subsequentReduction_le_subsequentFold : subsequentReduction ≤ subsequentFold := by
-  decide
-
-/-- `whir_config.rs:92`: the residual is never longer than the lane fold. -/
-theorem residualMaxLog_le_initialFold : residualMaxLog ≤ initialFold := by decide
 
 /-! ## The ladder -/
 
@@ -191,49 +180,38 @@ def blockLogs (μ : ℕ) : List Level → List ℕ
 Each fact below is decided over the 56 admissible pairs; the general statement follows by
 bounding the quantifiers. -/
 
-private theorem admissible_bounded {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    μ < maxLogStack + 1 ∧ logInvRate < maxLogInvRate + 1 := by
-  obtain ⟨_, h2, _, h4⟩ := h
-  exact ⟨Nat.lt_succ_of_le h2, Nat.lt_succ_of_le h4⟩
+@[elab_as_elim]
+private theorem of_window {P : ℕ → ℕ → Prop}
+    (key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r → P μ r)
+    {μ logInvRate : ℕ} (h : Admissible μ logInvRate) : P μ logInvRate :=
+  key μ (Nat.lt_succ_of_le h.2.1) logInvRate (Nat.lt_succ_of_le h.2.2.2) h
 
 /-- The table has one query count per level of the geometry: `ladder` is defined on the whole
 window. -/
 theorem ladder_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    (ladder μ logInvRate).isSome := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r → (ladder μ r).isSome :=
-    by decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 logInvRate h2 h
+    (ladder μ logInvRate).isSome :=
+  of_window (by decide +kernel) h
 
 /-- Every ladder has at least two levels (`whir_config.rs:291-293`). -/
 theorem ladder_length {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    ∀ levels, ladder μ logInvRate = some levels → 2 ≤ levels.length := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
-      ∀ levels, ladder μ r = some levels → 2 ≤ levels.length := by decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 logInvRate h2 h
+    ∀ levels, ladder μ logInvRate = some levels → 2 ≤ levels.length :=
+  of_window (by decide +kernel) h
 
 /-- The residual is at most `residualMaxLog` variables. -/
 theorem residualLog_le {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    residualLog μ logInvRate ≤ residualMaxLog := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
-      residualLog μ r ≤ residualMaxLog := by decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
-  exact key μ h1 logInvRate h2 h
+    residualLog μ logInvRate ≤ residualMaxLog :=
+  of_window (by decide +kernel) h
 
 /-- Every level's code fits in `K`: its block length is at most `2^64` (Annex B, §B.2 requires
 `κ_i + R_i ≤ 64`), and its query count is at most its block length (`whir_config.rs:673`). -/
 theorem ladder_blocks {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     ∀ levels, ladder μ logInvRate = some levels →
       ∀ p ∈ List.zip (blockLogs μ levels) levels, p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1 := by
-  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
-      ∀ levels, ladder μ r = some levels →
-        (List.zip (blockLogs μ levels) levels).all
-          (fun p ↦ decide (p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1)) = true := by
-    decide +kernel
-  obtain ⟨h1, h2⟩ := admissible_bounded h
   intro levels hl p hp
-  exact of_decide_eq_true ((List.all_eq_true.mp (key μ h1 logInvRate h2 h levels hl)) p hp)
+  have key := of_window (P := fun μ r ↦ ∀ levels, ladder μ r = some levels →
+    (List.zip (blockLogs μ levels) levels).all (fun p ↦ p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1))
+    (by decide +kernel) h
+  exact of_decide_eq_true (List.all_eq_true.mp (key levels hl) p hp)
 
 end
 end LeanerVM.Parameters.Whir

@@ -56,19 +56,17 @@ def root {k : ℕ} (leaves : Vector L (2 ^ k)) : D :=
 an odd one (`i ^^^ 1`). -/
 def sibling (i : ℕ) : ℕ := if i % 2 = 0 then i + 1 else i - 1
 
-theorem sibling_lt {k i : ℕ} (hi : i < 2 ^ (k + 1)) : sibling i < 2 ^ (k + 1) := by
+private theorem sibling_lt {k i : ℕ} (hi : i < 2 ^ (k + 1)) : sibling i < 2 ^ (k + 1) := by
   unfold sibling; rw [Nat.pow_succ] at *; split <;> omega
-
-theorem div_two_lt {k i : ℕ} (hi : i < 2 ^ (k + 1)) : i / 2 < 2 ^ k := by
-  rw [Nat.pow_succ] at hi; omega
 
 /-- The authentication path of node `i` of a level of `2^k` nodes: its sibling at this level,
 then the path of its parent. -/
 def pathOfLevel : (k : ℕ) → Vector D (2 ^ k) → Fin (2 ^ k) → List D
   | 0, _, _ => []
   | k + 1, level, i =>
-    level[sibling i.val]'(sibling_lt i.isLt) ::
-      pathOfLevel k (parents hashPair level) ⟨i.val / 2, div_two_lt i.isLt⟩
+    level[sibling i.val]'(by exact sibling_lt i.isLt) ::
+      pathOfLevel k (parents hashPair level)
+        ⟨i.val / 2, Nat.div_lt_of_lt_mul (Nat.pow_succ' ▸ i.isLt)⟩
 
 /-- The authentication path of leaf `i`: its siblings from the leaf level up to the root. -/
 def path {k : ℕ} (leaves : Vector L (2 ^ k)) (i : Fin (2 ^ k)) : List D :=
@@ -93,25 +91,17 @@ def verify [DecidableEq D] (k : ℕ) (root : D) (i : ℕ) (leaf : L) (path : Lis
 
 /-! ## An honest path is accepted -/
 
-theorem getElem_parents {k : ℕ} (level : Vector D (2 ^ (k + 1))) (j : ℕ) (hj : j < 2 ^ k) :
-    (parents hashPair level)[j] =
-      hashPair (level[2 * j]'(by rw [Nat.pow_succ]; omega))
-        (level[2 * j + 1]'(by rw [Nat.pow_succ]; omega)) := by
-  simp [parents]
-
 /-- Climbing the path of a node reaches the root of its level. -/
 theorem climb_pathOfLevel :
     ∀ (k : ℕ) (level : Vector D (2 ^ k)) (i : Fin (2 ^ k)),
       climb hashPair level[i] i (pathOfLevel hashPair k level i) = rootOfLevel hashPair k level
-  | 0, level, i => by
-    obtain ⟨i, hi⟩ := i
-    have : i = 0 := by simp at hi; omega
-    subst this
-    simp [pathOfLevel, climb, rootOfLevel]
+  | 0, level, ⟨i, hi⟩ => by
+    obtain rfl : i = 0 := by simpa using hi
+    rfl
   | k + 1, level, i => by
     rw [pathOfLevel, climb, rootOfLevel, ← climb_pathOfLevel k (parents hashPair level)]
     congr 1
-    · simp only [Fin.getElem_fin, getElem_parents]
+    · simp only [Fin.getElem_fin, parents, Vector.getElem_ofFn]
       unfold sibling
       split
       · simp only [show 2 * (i.val / 2) = i.val by omega]

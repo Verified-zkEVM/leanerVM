@@ -6,8 +6,8 @@ import LeanerVM.Parameters.Whir
 The ladder against the second verifier's table (`python-verifier/verifier.py:910-935` at the
 pin): the smallest stack at rate 1/2, the largest at rate 1/16, and one three-level case, each
 with its residual; the window's four edges rejected; the table's shape; the block lengths of the
-first ladder; and a nearby false statement, the rate exponent of level 1 under a wrong domain
-reduction.
+first ladder; the Rust's assertions on the constants; and a nearby false statement, the rate
+exponent of level 1 under a wrong domain reduction.
 -/
 
 namespace LeanerVMTests.Parameters.Whir
@@ -51,6 +51,11 @@ example : queryTable.length = 4 ∧ ∀ row ∈ queryTable, row.length = 14 := b
 example : ∀ levels, ladder 15 1 = some levels → blockLogs 15 levels = [10, 9] := by decide
 
 example : oodSamples 0 = 0 ∧ oodSamples 1 = 1 ∧ oodSamples 5 = 1 := by decide
+
+/-- The Rust's assertions on the constants (`whir_config.rs:80, 81, 92`): a reduction never
+exceeds its fold, and the residual is never longer than the lane fold. -/
+example : initialReduction ≤ initialFold ∧ subsequentReduction ≤ subsequentFold ∧
+    residualMaxLog ≤ initialFold := by decide
 
 /-! ## A nearby false statement -/
 

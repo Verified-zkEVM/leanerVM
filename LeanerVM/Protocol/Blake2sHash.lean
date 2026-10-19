@@ -65,14 +65,7 @@ def leWord (b0 b1 b2 b3 : UInt8) : UInt32 :=
 (`hash.rs:118-120`, `block_words`). -/
 def blockWords (block : List UInt8) : Vector UInt32 16 :=
   let b := fun i ↦ block.getD i 0
-  #v[leWord (b 0) (b 1) (b 2) (b 3), leWord (b 4) (b 5) (b 6) (b 7),
-     leWord (b 8) (b 9) (b 10) (b 11), leWord (b 12) (b 13) (b 14) (b 15),
-     leWord (b 16) (b 17) (b 18) (b 19), leWord (b 20) (b 21) (b 22) (b 23),
-     leWord (b 24) (b 25) (b 26) (b 27), leWord (b 28) (b 29) (b 30) (b 31),
-     leWord (b 32) (b 33) (b 34) (b 35), leWord (b 36) (b 37) (b 38) (b 39),
-     leWord (b 40) (b 41) (b 42) (b 43), leWord (b 44) (b 45) (b 46) (b 47),
-     leWord (b 48) (b 49) (b 50) (b 51), leWord (b 52) (b 53) (b 54) (b 55),
-     leWord (b 56) (b 57) (b 58) (b 59), leWord (b 60) (b 61) (b 62) (b 63)]
+  Vector.ofFn fun j ↦ leWord (b (4 * j)) (b (4 * j + 1)) (b (4 * j + 2)) (b (4 * j + 3))
 
 /-- Absorb `data` into the chaining value `h` after `t` bytes: `blocks` more non-final blocks of
 64 bytes, each compressed at the byte count including it with no flag, then the rest as the
@@ -123,14 +116,14 @@ def digestScalars (d : Digest) : E × E :=
 def digestOfScalars (s : E × E) : Option Digest :=
   if IsCanonical128 s.1 ∧ IsCanonical128 s.2 then some (cellWords s.1 ++ cellWords s.2) else none
 
-/-! ## Load-bearing lemmas -/
+/-! ## The encoding round trip -/
 
-theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
+private theorem lowWord_ofWords (lo hi : UInt32) : lowWord (ofWords lo hi) = lo := by
   apply UInt32.toBitVec_inj.mp
   simp only [lowWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
   exact BitVec.extractLsb'_append_eq_right
 
-theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
+private theorem highWord_ofWords (lo hi : UInt32) : highWord (ofWords lo hi) = hi := by
   apply UInt32.toBitVec_inj.mp
   simp only [highWord, ofWords, UInt32.toBitVec_ofBitVec, BF64.toBitVec_ofBitVec]
   exact BitVec.extractLsb'_append_eq_left
@@ -141,13 +134,14 @@ private theorem vector4_eta {α : Type} (v : Vector α 4) : #v[v[0], v[1], v[2],
   rcases i with _ | _ | _ | _ | i <;> first | rfl | omega
 
 /-- Reading the words of the cell built from four words gives the words back. -/
-theorem cellWords_wordsCell (w : Vector UInt32 4) : cellWords (wordsCell w) = w := by
+private theorem cellWords_wordsCell (w : Vector UInt32 4) : cellWords (wordsCell w) = w := by
   simp only [cellWords, wordsCell, limb_ofLimbs, lowWord_ofWords, highWord_ofWords,
     Matrix.cons_val_zero, Matrix.cons_val_one]
   exact vector4_eta w
 
 /-- The cell built from four words is canonical. -/
-theorem isCanonical128_wordsCell (w : Vector UInt32 4) : IsCanonical128 (wordsCell w) := by
+private theorem isCanonical128_wordsCell (w : Vector UInt32 4) :
+    IsCanonical128 (wordsCell w) := by
   show (E.ofLimbs _ _ 0).limb 2 = 0
   rw [limb_ofLimbs]; rfl
 
@@ -185,13 +179,10 @@ theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
   unfold digestOfScalars at h
   split at h
   · rename_i hc
-    have ha : IsCanonical128 a := hc.1
-    have hb : IsCanonical128 b := hc.2
-    rw [Option.some.injEq] at h
-    subst h
+    cases h
     show (wordsCell _, wordsCell _) = (a, b)
-    rw [append_left4, append_right4, wordsCell_cellWords ha, wordsCell_cellWords hb]
-  · exact absurd h (by simp)
+    rw [append_left4, append_right4, wordsCell_cellWords hc.1, wordsCell_cellWords hc.2]
+  · cases h
 
 end Blake2sHash
 
