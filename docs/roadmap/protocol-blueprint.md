@@ -570,12 +570,12 @@ no other; the hole is built when the names in bold of its row are declared and m
 
 | Hole | Specified in | Produces | Needs |
 | --- | --- | --- | --- |
-| field instances | [Layer 0](#layer-0-the-arklib-dependency-and-the-field-instances) | **`instSampleableTypeE`**, **`card_E`**, `instOracleInterfaceE`, `instOracleInterfaceListE`, `Weight`, `Weight.pair`, `eqWeight`, **`innerProductOracle`**, **`answer_eqWeight`** | nothing |
+| field instances | [Layer 0](#layer-0-the-arklib-dependency-and-the-field-instances) | **`instSampleableTypeE`**, **`card_E`**, `Weight`, `Weight.pair`, `eqWeight`, **`innerProductOracle`**, **`answer_eqWeight`** | nothing |
 | the spine | [The spine](#the-spine) | everything under [What the spine fixes](#what-the-spine-fixes); marked by **`M3Holds`**, **`Phases`**, **`piopError_le`**, **`piopExtractedStack_eq`**, **`piop_perfectCompleteness`**, **`piop_rbrKnowledgeSoundness`**, **`Refinement.knowledge_transport`** | field instances |
 | the knowledge-soundness composition | [What the spine fixes](#what-the-spine-fixes), item 5 | **`Verifier.KnowledgeStateFunction.appendGuarded`**, **`Verifier.append_rbrKnowledgeSoundnessWorstCaseWith_of_guarded_first`** (the port of ArkLib #615) | ArkLib only |
 | tables and stacking | [Layer 1](#layer-1-hypercube-tables-stacking-the-strided-reader-the-index-and-bytecode-columns) | **`Blocks.stack_eval`**, **`Blocks.unstack_eval₂`**, **`Blocks.stack_eval_ambient`**, **`evalMle_boolVec_append`**, **`Blocks.layout`**, **`Blocks.stridedLayout`**, **`Layout.piecewise`**, **`ColumnClaim.holds_iff_weighted`**, **`idxColumn_eval`**, **`bytecodeColumn_answer_boolVec`**, `bytecodeColumn_eval` | field instances; the spine's `Layout` and claims |
 | Clean expressions as polynomials | [Layer 2](#layer-2-clean-components-as-polynomials) | **`Expression.toCMvPolynomial`**, **`eval_toCMvPolynomial`**, `fromCMvPolynomial_toCMvPolynomial`, **`Component.toM3`**, **`toM3_constraints_iff`**, **`toM3_flushes_eq`** | Clean |
-| the adaptor | [Layer 3](#layer-3-the-leanisa-instance-and-the-adaptor) | `Sizes`, **`Sizes.Admissible`**, `validRate`, **`leanIsaInstance`**, **`boundary_tuples_eq`**, `stackOf`, `witnessOf`, **`satisfiedBy_witnessOf`**, **`m3Holds_stackOf`**, `witnessOf_stackOf` | the spine; Clean expressions as polynomials; tables and stacking; leanISA Layers 5–8; `FlockSpec` from #3 |
+| the adaptor | [Layer 3](#layer-3-the-leanisa-instance-and-the-adaptor) | `Sizes`, **`Sizes.Admissible`**, `validRate`, **`leanIsaInstance`**, `Agrees`, **`tuples_perm`**, `stackOf`, `witnessOf`, **`satisfiedBy_witnessOf`**, **`m3Holds_stackOf`**, `witnessOf_stackOf` | the spine; Clean expressions as polynomials; tables and stacking; leanISA Layers 5–8; `FlockSpec` from #3 |
 | sumcheck: definitions and completeness | [Layer 4](#layer-4-the-sumchecks-and-batching) | `Virtual`, **`Sumcheck.plain`**, **`Sumcheck.normalized`**, their `Complete`, **`Sumcheck.transport`** | nothing |
 | sumcheck: knowledge soundness | [Layer 4](#layer-4-the-sumchecks-and-batching) | **`Sumcheck.plainSecurity`**, **`Sumcheck.normalizedSecurity`** | sumcheck: definitions and completeness |
 | batching by powers | [Layer 4](#layer-4-the-sumchecks-and-batching) | **`batch`**, `batchComplete`, **`batchSecurity`** | nothing |
@@ -621,8 +621,6 @@ structure Column (n : ℕ) where values : CMlPolynomialEval K n      -- not an a
 instance : SampleableType K                 -- only the building block of the E sampler
 instance : SampleableType E                 -- three limbs through an equivalence; never enumerates
 theorem card_E : Fintype.card E = 2 ^ 192
-instance instOracleInterfaceE : OracleInterface E              -- a scalar message is read whole
-instance instOracleInterfaceListE : OracleInterface (List E)   -- ArkLib registers no default; these go when it does
 structure Weight (n) where (onCube : CMlPolynomialEval E n) (mle : Vector E n → E) (mle_eq : …)
 def Weight.pair (W : Weight n) (q : Column n) : E := Σ_w W(w)·q(w)
 def eqWeight (p : Vector E n) : Weight n                       -- eq(p, ·) with its product evaluator
@@ -636,7 +634,8 @@ theorem answer_eqWeight {n} (q : Column n) (p) : OracleInterface.answer q (eqWei
 The samplers go through explicit equivalences on the carriers, as ArkLib's
 `KoalaBear.Ext6.sampleableType` does; `Fintype K` is proof-only. Tests: the oracle answers
 `⟨W, q⟩` on a two-variable table for an equality weight and for another weight, with a mutated
-column; `answer_eqWeight` on and off the cube; `card_E`; the scalar interfaces found by `#synth`.
+column; `answer_eqWeight` on and off the cube; `card_E`. No scalar or list interface on `E` is
+registered: each message schedule carries the interfaces of its own messages.
 
 ### Layer 1: hypercube tables, stacking, the strided reader, the index and bytecode columns
 
@@ -753,11 +752,11 @@ and the Flock roadmap's `FlockSpec` (Layer 9).
 ```lean
 structure Sizes where (logMem : ℕ) (τ : Fin 6 → ℕ)                    -- heights only; the family index
 def Sizes.ofWitness (w : EnsembleWitness (leanIsaEnsemble prog)) : Option Sizes
-def leanIsaBlocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ     -- witness.rs:67-101
-theorem leanIsaBlocks_fits : (leanIsaBlocks prog s).total ≤ 2 ^ leanIsaμ prog s
+def LeanIsa.blocks (prog) (s) : Blocks ; def leanIsaμ (prog) (s) : ℕ    -- witness.rs:67-101
+theorem LeanIsa.blocks_fits : (LeanIsa.blocks prog s).total ≤ 2 ^ leanIsaμ prog s
 def Sizes.Admissible (prog) (s) : Prop   -- 16 ≤ logMem ≤ 32, τ j ≤ 32, 3 ≤ τ BLAKE2S, leanIsaμ prog s ≤ 28
 def validRate (ρ : ℕ) : Prop := 1 ≤ ρ ∧ ρ ≤ 4                           -- whir_config.rs:48-55
-theorem caps_of_admissible (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
+theorem caps_witnessOf (hs : s.Admissible prog) (q) : Caps (witnessOf prog s q)
 theorem sizes_of_satisfiedBy (h : SatisfiedBy prog input w) : ∃ s, Sizes.ofWitness w = some s
 
 abbrev leanIsaInstance (F : FlockSpec) (prog) (s) : M3Instance         -- reducible
@@ -765,9 +764,12 @@ abbrev leanIsaInstance (F : FlockSpec) (prog) (s) : M3Instance         -- reduci
 
 def stackOf (F) (w : EnsembleWitness (leanIsaEnsemble prog)) (hs : Sizes.ofWitness w = some s) : Column (leanIsaμ prog s)
 def witnessOf (prog) (s) (q : Column (leanIsaμ prog s)) : EnsembleWitness (leanIsaEnsemble prog)   -- total, computable
-theorem boundary_tuples_eq (h₁ : IndexColumnsAreRowIndices w) (h₂ : SeedRowsAreTheImage w)
-    (h₃ : BytecodeRowsAreTheProgram prog w) (hs) :
-    the messages of w's memory, bytecode and verifier rows on each side = the instance's boundary tuples of stackOf F w hs
+structure Agrees (F) (s) (q : Column (leanIsaμ prog s)) (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop
+  -- w's opcode tables have 2^τ_j rows and, within their widths, q's rows; its memory and bytecode blocks are q's
+theorem agrees_witnessOf : Agrees F s q (witnessOf prog s q)
+theorem agrees_stackOf (h : SatisfiedBy prog input w) (hs) : Agrees F s (stackOf F w hs) w
+theorem tuples_perm (h : Agrees F s q w) (side : Side) :
+    ((leanIsaInstance F prog s).tuples q side).Perm (the tuples w's interactions flush on side)
 theorem satisfiedBy_witnessOf (hs : s.Admissible prog) (h : M3Holds (leanIsaInstance F prog s) input q) :
     SatisfiedBy prog input (witnessOf prog s q)
 theorem m3Holds_stackOf (h : SatisfiedBy prog input w) (hs : Sizes.ofWitness w = some s) :
@@ -793,8 +795,11 @@ strided reader of the limb slots `F.slot`; `d := 2`; three public lines, on `mem
 
 `M3Holds` is the target of extraction and the source of completeness; the theorems around it are
 the whole bridge between polynomials and Clean's witness, and the only place the proof system
-meets leanISA. `boundary_tuples_eq` is what both directions need: `SatisfiedBy`'s balances range
-over the memory, bytecode and verifier rows, which the instance states as boundary tuples.
+meets leanISA. `tuples_perm` is what both directions need: `SatisfiedBy`'s balances range over
+the tuples the witness's interactions flush, which the instance states as the opcode tables'
+flushes and the boundary tuples of the memory, bytecode and verifier rows. On each side the two
+lists are permutations of each other whenever the witness `Agrees` with the stack, and
+`agrees_witnessOf` and `agrees_stackOf` give that agreement in the two directions.
 `satisfiedBy_witnessOf` takes admissibility as a hypothesis: `Caps` does not follow from
 `M3Holds`, and `verify` checks the announced sizes first. It discharges `Blake2sRowsValid` by
 `F.compress_of_holds`, and the two public-word conjuncts by the three public lines, whose third
@@ -972,7 +977,7 @@ kept as the reference of §8.2, and the deployed verifiers' (one equation on the
 
 ```lean
 namespace PublicInput
-def pSpec : ProtocolSpec 2                          -- V_to_P : E, then P_to_V : List E
+-- the schedule is the spine's pubSpec: V_to_P : E, then P_to_V : List E
 def linePoint (hn : 0 < n) (r : E) : Vector E n     -- (r, 0, …, 0)
 theorem eval₂Mle_linePoint : q̃(linePoint hn r) = (1 - r)·q(0) + r·q(1)
 def lineValue I r l : E := (1 + r)·cell0 + r·cell1
@@ -1441,7 +1446,7 @@ is `private` where the module system allows; a layer's pull request checks its n
 this list.
 
 ```text
-Field instances:      instSampleableTypeK  instSampleableTypeE  card_E  instOracleInterfaceE  instOracleInterfaceListE
+Field instances:      instSampleableTypeK  instSampleableTypeE  card_E
                       Column  Weight  Weight.pair  eqWeight  innerProductOracle  answer_eqWeight
 Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.read_eval  Coord  BoundaryBlock  PublicLine
                       M3Instance  M3Instance.SumcheckTable  τmax  μBus  B  column  row  tuples  FlockRegion  aux
@@ -1451,7 +1456,7 @@ Spine:                Side  Shape  Shape.ColumnId  Layout  Layout.read  Layout.r
                       busSpec  tableSpec  pubSpec  flockSpec  openingSpec
                       busError  tableError  pubError  flockError  openingError  piopError  piopError_le
                       Component.Def  Component.Guarded  Component.Complete  Component.Security  (each with .append)
-                      Phase.Def  Phase.Guarded  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
+                      Phase.Def  Phase.Complete  Phase.Security  Phase.FrontDef  Phase.FrontDef.toDef
                       Phase.passThrough
                       Component.passThrough  Component.sendOracle  keepOracles  OracleVerifier.materializeOutput_of_keepOracles
                       Verifier.GuardedForm.of_probEvent_pos  Reduction.mem_support_run_of_guarded
@@ -1476,15 +1481,16 @@ Tables and stacking:  sumCube  hadamard  slice  sliceLow  placeSlice  boolVec
                       bytecodeColumn  bytecodeColumnEval  bytecodeColumn_answer_boolVec  bytecodeColumn_eval
 Clean polynomials:    Expression.toCMvPolynomial  eval_toCMvPolynomial  fromCMvPolynomial_toCMvPolynomial  M3Table  Component.toM3
                       toM3_constraints_iff  toM3_flushes_eq
-The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  leanIsaBlocks  leanIsaμ
-                      leanIsaInstance  stackOf  witnessOf  boundary_tuples_eq
-                      satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf  caps_of_admissible
+The adaptor:          Sizes  Sizes.ofWitness  Sizes.Admissible  validRate  LeanIsa.blocks  LeanIsa.blocks_fits  leanIsaμ
+                      leanIsaInstance  stackOf  witnessOf  Agrees  agrees_witnessOf  agrees_stackOf  tuples_perm
+                      satisfiedBy_witnessOf  m3Holds_stackOf  witnessOf_stackOf  caps_witnessOf
 Generic components:   Virtual  Sumcheck.plain  Sumcheck.normalized  Sumcheck.transport  batch
                       fingerprint  sideProduct  sideProduct_poly_eq_iff  sideProduct_collision  gkr  gkrError
 Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_target  tableSumcheck
-                      PublicInput.pSpec  PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom
-                      PublicInput.prover  PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifier_verify
-                      PublicInput.accepts_two_challenges  publicInputPhase  deployedPublicInputPhase
+                      PublicInput.check  PublicInput.checkWords  PublicInput.pooledFrom  PublicInput.prover
+                      PublicInput.verifier  PublicInput.deployedVerifier  PublicInput.verifierWith
+                      PublicInput.verify_simulated  PublicInput.accepts_two_challenges
+                      publicInputPhase  deployedPublicInputPhase
                       FlockSpec  flockPhase  flockError_le  openingPhase  leanVmPhases
                       (each phase with its Complete and Security)
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError
