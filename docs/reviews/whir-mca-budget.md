@@ -7,7 +7,7 @@ deployed WHIR parameters, or must the admitted `rs_mcaError_le_in_johnson_range`
 obligation? The numbers are reproduced by `scripts/whir-mca-budget.py`, which uses only Python's
 standard library, and the deployed `η` dumped from the pinned Rust by
 `scripts/dump-whir-eta-rust.sh`. The Lean evidence was checked with `lake env lean` against ArkLib alone, and its
-source is in the description of the pull request that added this record. It is not production
+source is in the description of pull request #107, which added this record. It is not production
 code; Layer 11 builds `mcaJohnson_annexB` from it.
 
 ## Verdict
