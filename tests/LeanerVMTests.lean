@@ -34,6 +34,7 @@ import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.NovelBasis
 import LeanerVMTests.Protocol.NovelBasisNtt
 import LeanerVMTests.Protocol.Opening
+import LeanerVMTests.Protocol.PassCheck
 import LeanerVMTests.Protocol.Padding
 import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
@@ -48,6 +49,7 @@ import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.WhirFold
 import LeanerVMTests.Protocol.WhirGlue
+import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Semantics.Blake2s
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
