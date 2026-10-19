@@ -42,27 +42,40 @@ Enc_{κ,R}(g)[x_v] = Σ_u g(u) · ∏_k Ŵ_k(x_v) ^ u_k          x_v = Σ_c v_c 
 fast way to compute this table and is not defined here: the verifier never runs it
 (Annex B, end of `app:ntt`), it touches the code through `columnWeight`, the weight `W_x` with
 `Enc(g)[x] = <W_x, g>` (`encode_columnWeight`, `lem:colweight`) and its multilinear extension
-`∏_k ((1 - r_k) + r_k Ŵ_k(x))`, the `mle` field of `columnWeight`, whose agreement with the
-table is the structure's proof field.
+`∏_k ((1 - r_k) + r_k Ŵ_k(x))` (`columnWeightMle`, the `mle` field of `columnWeight`), whose
+agreement with the table is the structure's proof field. The extension is evaluated in `κ`
+steps; building the table costs `2^κ`, so a verifier evaluates `columnWeightMle` directly.
 
 `V_k(x)` is computed as the Rust and the Python compute it, not as the product over `U_k`:
 `V_0(x) = x` and `V_{k+1}(x) = V_k(x) · (V_k(x) + V_k(e_k))` (`lem:subspace` (i) with (ii)),
-the roots `V_k(e_k)` coming from the layers `V_k(e_c)` (`subspaceLayer`). The Annex's definition,
+the roots `V_k(e_k)` read off the layers `V_k(e_c)` (`subspaceLayer`) once, in one pass
+(`subspaceRoots`). The Annex's definition,
 the product over `U_k` (`subspaceVanish`), is what the recursion is proved to compute
 (`vanish_eq`, `subspaceRoot_eq`), with `Ŵ_k(e_k) = 1` (`normW_basisElt`), `Ŵ_k = 0` on `U_k`
 (`normW_domainPt_of_lt`) and `F_2`-linearity (`normW_add`); `basisElt_linearIndependent` is the
-premise of CompPoly's additive NTT at this basis
-(`tests/LeanerVMTests/Protocol/NovelBasisNtt.lean`).
+premise of CompPoly's additive NTT at this basis.
 
 The encoder commutes with ring maps of the message ring (`encode_map`), so a `K`-valued message
 has a `K`-valued word (`encode_ofK`, `isInK_encode_ofK`): level 0 of the protocol is the `K`
-code, the later levels the `E` code. The encoder is linear (`encodeLinear`) and injective
-(`encode_injective`), since the novel basis is triangular (`natDegree_novelPoly`, `def:enc`).
+code, the later levels the `E` code. The encoder is linear (`encodeLinear`), evaluates the
+polynomial with novel-basis coefficients `g` on the domain (`encode_eq_eval`), and two words that
+agree on `2^κ` positions encode one message (`encode_eq_of_agree`, the distance
+`2^(κ+R) - 2^κ + 1`; `encode_injective`), since the novel basis is triangular
+(`natDegree_novelPoly`, `def:enc`).
+
+CompPoly's `Fields/Binary/AdditiveNTT/NovelPolynomialBasis.lean` has the polynomial half generically
+over a basis `β` of a binary field: `W` is `subspaceVanish` as a polynomial, `normalizedW` is
+`normWPoly`, `Xⱼ` is `novelPoly` with `degree_Xⱼ`, `polynomialFromNovelCoeffs` is the polynomial
+of `encode_eq_eval`, and `inductive_linear_map_W`, `inductive_rec_form_W_comp` are
+`subspaceVanish_add`, `subspaceVanish_succ'`. They are restated here at `K` rather than
+instantiated: CompPoly's definitions are noncomputable, take `[Fintype L]` (noncomputable at `K`)
+and an index `Fin r` bounding the stage, while the verifier runs the recursion; the bridge is
+`vanish_eq`.
 
 ## Wrong readings excluded
 
-* `e_c` is the field element `x ^ c`, the word `2 ^ c`, not the `c`-th novel polynomial: the
-  blueprint's sketch names this basis `novelBasis`, here `basisElt`.
+* `e_c` (`basisElt`) is the field element `x ^ c`, the word `2 ^ c`, not the `c`-th novel
+  polynomial `X_c`.
 * The message is not converted between bases before encoding (`def:enc`, last sentence).
 * A query position `v` is an integer whose bits are the coordinates of `x_v` in the basis `e_c`:
   `domainPt v = K.ofBits v`, as in the Python's `E(query)`.
@@ -88,8 +101,20 @@ def subspaceLayer : ℕ → List K
     let root := layer.getD k 0
     layer.map fun v ↦ v * (v + root)
 
-/-- The root `V_k(e_k)` of stage `k`. -/
-def subspaceRoot (k : ℕ) : K := (subspaceLayer k).getD k 0
+/-- The diagonal of the layers from stage `k` on: the roots of `n` stages, each layer computed
+once from the previous one. -/
+def rootsFrom : ℕ → ℕ → List K → List K
+  | 0, _, _ => []
+  | n + 1, k, layer =>
+    let root := layer.getD k 0
+    root :: rootsFrom n (k + 1) (layer.map fun v ↦ v * (v + root))
+
+/-- The roots `V_k(e_k)`, `k < 64`, in one pass over the layers (`_subspace_roots`). -/
+def subspaceRoots : List K := rootsFrom 64 0 (subspaceLayer 0)
+
+/-- The root `V_k(e_k)` of stage `k`. From stage `64` on it is `0`: `U_64` is all of `K`, the
+normalization `Ŵ_k` is `0` there, and every theorem below bounds the stage. -/
+def subspaceRoot (k : ℕ) : K := subspaceRoots.getD k 0
 
 /-- `V_k(x)`, the subspace vanishing polynomial of `U_k` at `x`: `V_0(x) = x`,
 `V_{k+1}(x) = V_k(x) · (V_k(x) + V_k(e_k))`. -/
@@ -188,9 +213,18 @@ private theorem subspaceLayer_getD : ∀ {k : ℕ}, k ≤ 64 → ∀ {c : ℕ}, 
     rw [← List.getD_eq_getElem _ 0 (by omega), ih hc, hroot, basisElt_eq_domainPt k (by omega),
       subspaceVanish_succ' (by omega), ← basisElt_eq_domainPt k (by omega)]
 
+private theorem getD_rootsFrom : ∀ n k j : ℕ, j < n →
+    (rootsFrom n k (subspaceLayer k)).getD j 0 = (subspaceLayer (k + j)).getD (k + j) 0
+  | 0, _, _, h => absurd h (Nat.not_lt_zero _)
+  | _ + 1, _, 0, _ => rfl
+  | n + 1, k, j + 1, h => by
+    rw [show k + (j + 1) = k + 1 + j by omega]
+    exact getD_rootsFrom n (k + 1) j (by omega)
+
 /-- The root `V_k(e_k)` of the implementation is the Annex's. -/
 theorem subspaceRoot_eq {k : ℕ} (hk : k < 64) : subspaceRoot k = subspaceVanish k (basisElt k) :=
-  subspaceLayer_getD (by omega) hk
+  ((getD_rootsFrom 64 0 k hk).trans (by rw [Nat.zero_add])).trans
+    (subspaceLayer_getD (by omega) hk)
 
 /-- The recursion computes the Annex's product: `vanish x k = V_k(x)`, for `k ≤ 64`. -/
 theorem vanish_eq : ∀ {k : ℕ}, k ≤ 64 → ∀ x : K, vanish x k = subspaceVanish k x
@@ -225,7 +259,8 @@ theorem normW_add {k : ℕ} (hk : k ≤ 64) (x y : K) :
 
 /-- `Ŵ_0 = X`, since `e_0 = 1`. -/
 theorem normW_zero (x : K) : normW 0 x = x := by
-  rw [normW, vanish, show subspaceRoot 0 = 1 by decide +kernel, div_one]
+  rw [normW, vanish, subspaceRoot_eq (by omega), subspaceVanish_zero, show basisElt 0 = 1 from
+    pow_zero g, div_one]
 
 /-! ## The basis `e_c` -/
 
@@ -261,15 +296,22 @@ theorem basisElt_linearIndependent [Module (ZMod 2) K] :
 
 /-! ## The encoder and the column weights -/
 
-/-- The weight `W_x(u) = ∏_k Ŵ_k(x) ^ u_k` of the column at `x`, as a table over the cube, with
-its extension `∏_k ((1 - r_k) + r_k Ŵ_k(x))` (`lem:colweight`). -/
+/-- The extension `∏_k ((1 - r_k) + r_k Ŵ_k(x_v))` of the weight of the column at `x_v`
+(`lem:colweight`): what a verifier evaluates, in `κ` steps and without the table. -/
+def columnWeightMle {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (v : Fin (2 ^ (κ + R)))
+    (r : Vector S κ) : S :=
+  ∏ k : Fin κ, ((1 - r[k]) + r[k] * φ (normW k (domainPt v)))
+
+/-- The weight `W_x(u) = ∏_k Ŵ_k(x) ^ u_k` of the column at `x`, as a table over the cube built
+from its `κ` factors, with its extension `columnWeightMle`. -/
 def columnWeight {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
-    Weight S κ where
-  onCube := bitProductTable fun (k : Fin κ) b ↦ if b then φ (normW k (domainPt v)) else 1
-  mle := fun r ↦ ∏ k : Fin κ, ((1 - r[k]) + r[k] * φ (normW k (domainPt v)))
-  mle_eq := fun r ↦ by
-    rw [evalMle_bitProductTable]
-    exact Finset.prod_congr rfl fun k _ ↦ by simp
+    Weight S κ :=
+  let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
+  { onCube := bitProductTable fun k b ↦ if b then w[k] else 1
+    mle := columnWeightMle φ κ R v
+    mle_eq := fun r ↦ by
+      rw [evalMle_bitProductTable]
+      exact Finset.prod_congr rfl fun k _ ↦ by simp [w] }
 
 /-- The encoder `Enc_{κ,R}`: the message `m`, read as novel-basis coefficients, evaluated on
 the domain. -/
@@ -277,7 +319,9 @@ def encode {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (m : CMlPolyno
     (v : Fin (2 ^ (κ + R))) : S :=
   (columnWeight φ κ R v).pair (RingHom.id S) m
 
-/-- `lem:colweight`, first identity: the encoder is the inner product with the column weight. -/
+/-- `lem:colweight`, first identity: the encoder is the inner product with the column weight.
+It holds by definition, `encode` being that pairing; the identity's content, that the pairing is
+`def:enc`, is `encode_eq_sum` with `eval_novelPoly`, or `encode_eq_eval`. -/
 theorem encode_columnWeight {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
     (m : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
     encode φ κ R m v = (columnWeight φ κ R v).pair (RingHom.id S) m := rfl
@@ -409,42 +453,47 @@ theorem eval_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (x : K) :
   · exact eval_normWPoly (by omega) x
   · rfl
 
-/-- The difference of two encodings at the position `v` is the evaluation at `x_v` of the
-polynomial whose novel-basis coefficients are the difference of the messages. -/
-private theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
-    (m m' : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
-    encode φ κ R m v - encode φ κ R m' v =
-      (∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ).eval
-        (φ (domainPt v)) := by
-  rw [encode_eq_sum, encode_eq_sum, ← Finset.sum_sub_distrib, Polynomial.eval_finsetSum]
+/-- `def:enc`: the word at the position `v` is the polynomial with novel-basis coefficients `m`
+evaluated at `x_v`. -/
+theorem encode_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
+    (m : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
+    encode φ κ R m v =
+      (∑ u : Fin (2 ^ κ), C m[u] * (novelPoly κ u).map φ).eval (φ (domainPt v)) := by
+  rw [encode_eq_sum, Polynomial.eval_finsetSum]
   refine Finset.sum_congr rfl fun u _ ↦ ?_
   rw [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_map, Polynomial.eval₂_at_apply,
     eval_novelPoly hκ, map_prod]
   simp only [apply_ite φ, map_one]
   ring
 
-/-- The encoder is injective (`def:enc`: a linear injection). The first `2 ^ κ` positions are
-distinct points of `K` and a polynomial of degree below `2 ^ κ` that vanishes at them is zero;
-the novel polynomials have distinct degrees. `κ ≤ 64`, where the domain has `2 ^ 64` points; `S`
-is a domain into which `K` embeds, as `E` is. -/
-theorem encode_injective {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R : ℕ}
-    (hκ : κ ≤ 64) (hφ : Function.Injective φ) : Function.Injective (encode φ κ R) := by
+/-- The difference of two encodings at `v` is the evaluation at `x_v` of the polynomial whose
+novel-basis coefficients are the difference of the messages. -/
+private theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
+    (m m' : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
+    encode φ κ R m v - encode φ κ R m' v =
+      (∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ).eval
+        (φ (domainPt v)) := by
+  rw [encode_eq_eval φ hκ, encode_eq_eval φ hκ, ← Polynomial.eval_sub, ← Finset.sum_sub_distrib]
+  simp only [C_sub, sub_mul]
+
+/-- Two messages whose words agree on `2 ^ κ` distinct points of `K` are equal: the difference
+polynomial has degree below `2 ^ κ` and vanishes there, and the novel polynomials have distinct
+degrees. -/
+private theorem eq_of_agree {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R : ℕ}
+    (hκ : κ ≤ 64) (hφ : Function.Injective φ) {m m' : CMlPolynomialEval S κ}
+    (T : Finset (Fin (2 ^ (κ + R)))) (hT64 : ∀ v ∈ T, v.val < 2 ^ 64) (hT : 2 ^ κ ≤ T.card)
+    (h : ∀ v ∈ T, encode φ κ R m v = encode φ κ R m' v) : m = m' := by
   classical
-  intro m m' h
   set P : S[X] := ∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ with hPdef
   have hP : P = 0 := by
-    have h64 : 2 ^ κ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hκ
     refine eq_zero_of_natDegree_lt_card_of_eval_eq_zero P
-      (f := fun i : Fin (2 ^ κ) ↦ φ (domainPt i)) (fun i j hij ↦ ?_) (fun i ↦ ?_) ?_
-    · have := i.2
-      have := j.2
-      exact Fin.ext (domainPt_injOn (by omega) (by omega) (hφ hij))
-    · have hle : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right κ R)
-      have := encode_sub_eq_eval φ hκ m m' ⟨i.val, i.2.trans_le hle⟩
-      rw [h, sub_self] at this
+      (f := fun v : T ↦ φ (domainPt v)) (fun i j hij ↦ ?_) (fun i ↦ ?_) ?_
+    · exact Subtype.ext (Fin.ext (domainPt_injOn (hT64 _ i.2) (hT64 _ j.2) (hφ hij)))
+    · have := encode_sub_eq_eval φ hκ m m' i.1
+      rw [h _ i.2, sub_self] at this
       exact this.symm
     · refine (natDegree_sum_le_of_forall_le _ _ (n := 2 ^ κ - 1) fun u _ ↦ ?_).trans_lt
-        (by simp)
+        (by rw [Fintype.card_coe]; have := Nat.two_pow_pos κ; omega)
       refine (natDegree_C_mul_le _ _).trans (natDegree_map_le.trans ?_)
       rw [natDegree_novelPoly hκ u.2]
       omega
@@ -465,6 +514,27 @@ theorem encode_injective {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) 
   rw [hP, coeff_zero] at hcoeff
   exact mul_ne_zero (sub_ne_zero.mpr (Finset.mem_filter.mp (Finset.max'_mem _ hT)).2)
     ((map_ne_zero_iff φ hφ).mpr (leadingCoeff_ne_zero.mpr (novelPoly_ne_zero hκ))) hcoeff.symm
+
+/-- The code has distance `2 ^ (κ + R) - 2 ^ κ + 1`: two words that agree on `2 ^ κ` positions
+encode one message. `κ + R ≤ 64` keeps the positions distinct points of `K`; `S` is a domain into
+which `K` embeds, as `E` is. -/
+theorem encode_eq_of_agree {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R : ℕ}
+    (hκR : κ + R ≤ 64) (hφ : Function.Injective φ) {m m' : CMlPolynomialEval S κ}
+    (T : Finset (Fin (2 ^ (κ + R)))) (hT : 2 ^ κ ≤ T.card)
+    (h : ∀ v ∈ T, encode φ κ R m v = encode φ κ R m' v) : m = m' :=
+  eq_of_agree φ (by omega) hφ T
+    (fun v _ ↦ v.2.trans_le (Nat.pow_le_pow_right (by norm_num) hκR)) hT h
+
+/-- The encoder is injective (`def:enc`: a linear injection), already on the first `2 ^ κ`
+positions. `κ ≤ 64`, where the domain has `2 ^ 64` points. -/
+theorem encode_injective {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R : ℕ}
+    (hκ : κ ≤ 64) (hφ : Function.Injective φ) : Function.Injective (encode φ κ R) := by
+  intro m m' h
+  have hle : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right κ R)
+  refine eq_of_agree φ hκ hφ (Finset.univ.map (Fin.castLEEmb hle)) (fun v hv ↦ ?_) (by simp)
+    fun v _ ↦ congrFun h v
+  obtain ⟨u, -, rfl⟩ := Finset.mem_map.mp hv
+  exact u.2.trans_le (Nat.pow_le_pow_right (by norm_num) hκ)
 
 end Injectivity
 
