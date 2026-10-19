@@ -512,6 +512,13 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     fixed coordinate, the generator `1`).
   - `FlockSpec`'s inhabitant, which the hole names beside `flockSecurity`, is owed with the
     BLAKE2s circuit (#3's); the security, like the definition, holds for every circuit.
+  - The circuit library the inhabitant is written in, with #92, stacked on #88: product-gate
+    circuits over GF(2) as data (`ToArkLib/Flock/Circuit.lean`: linear
+    forms as bitsets, gates, the lowering `toBlockR1CS`, the honest `trace`; the lowering's two
+    directions `trace_satisfies` and `holds_eq_trace`, `gates_of_holds`), a builder with
+    soundness and gate-count contracts (`ToArkLib/Flock/Builder.lean`) and the 32-bit adders
+    (`ToArkLib/Flock/Words.lean`). Clean was measured and not used for the block: its expression
+    trees are traversed unmemoised and its R1CS export allocates a fresh signal per product.
 
 - **The table sumcheck phase (Layer 7)** is at the slot's schedule `tableSpec I`. Where it differs
   from Layer 7's sketch, or what it leaves to the work after it:

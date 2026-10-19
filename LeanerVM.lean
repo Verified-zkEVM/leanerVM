@@ -40,6 +40,8 @@ import LeanerVM.Protocol.ToArkLib.Batch
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
+import LeanerVM.Protocol.ToArkLib.Flock.Builder
+import LeanerVM.Protocol.ToArkLib.Flock.Circuit
 import LeanerVM.Protocol.ToArkLib.Flock.FrobeniusMap
 import LeanerVM.Protocol.ToArkLib.Flock.Lincheck
 import LeanerVM.Protocol.ToArkLib.Flock.Reduction
@@ -47,6 +49,7 @@ import LeanerVM.Protocol.ToArkLib.Flock.RingSwitch
 import LeanerVM.Protocol.ToArkLib.Flock.Rounds
 import LeanerVM.Protocol.ToArkLib.Flock.Security
 import LeanerVM.Protocol.ToArkLib.Flock.Tables
+import LeanerVM.Protocol.ToArkLib.Flock.Words
 import LeanerVM.Protocol.ToArkLib.Flock.Zerocheck
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
 import LeanerVM.Protocol.ToArkLib.GrandProduct
