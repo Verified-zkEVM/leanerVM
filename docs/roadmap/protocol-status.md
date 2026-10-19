@@ -165,8 +165,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   verifiers derive the third, `v_c`, from the running claim
   (`crates/flock/src/zerocheck.rs:421-422`, `verifier.py:1148-1149`). The slot's exact error sum
   (`sum_flockErrorOf`) is what the blueprint's `flockError_le` only bounds.
-- **Deleted as unused**: the field instances `instOracleInterfaceE` and `instOracleInterfaceListE`
-  (the message schedules carry their own interfaces) and `Phase.Guarded`.
+- **Deleted as unused**: `Phase.Guarded`.
 - **The front phases carry a witness** (decision 31): `Phases` holds them as `Phase.FrontDef`,
   a component with a `Component.Front`, the proof that its verifier is a check and a verdict on
   the statement and the transcript that hand the stack on. `FrontDef.ofFrontVerifier` builds one
@@ -628,10 +627,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - The instance's tables are the Rust's global column order: the memory columns, `BFCNT`,
     `QFLOCK`, then the six opcode tables. `Sizes` carries `0 < logMem`, which `PublicLine`
     needs; `stackOf` takes the sizes rather than a proof that `Sizes.ofWitness` returns them.
-  - `boundary_tuples_eq` is subsumed by `Agrees` and `tuples_perm`, which cover the boundary
-    blocks and the opcode tables in one statement and serve both directions; `caps_witnessOf`
-    replaces `caps_of_admissible`; `witnessOf` takes the Flock specification, whose slots the
-    layout reads the limbs at.
+  - `witnessOf` takes the Flock specification, whose slots the layout reads the limbs at.
   - `witnessOf_stackOf` gives the opcode tables cell for cell within the components' widths: a
     witness's rows may carry cells past the width, which no constraint reads and the stack drops.
   - The blueprint's stacked-and-read-back test is not evaluated: even a stack of `2^15` cells
