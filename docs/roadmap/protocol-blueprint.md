@@ -34,18 +34,19 @@ verifier. The headline theorem (Layer 13) is its knowledge soundness, with a com
 extractor of the execution:
 
 ```text
-baseVerifier_extractsExecution (hwf : WellFormedBytecode prog) (hQ : A.IsQueryBound Q)
+baseVerifier_extractsExecution (hwf : WellFormedBytecode prog) (hQ : HashQueryBound A Q)
     (hRO : Blake2sActsAsRandomOracle (extractionGame prog input A) (ExtractionFails prog input) δ) :
   Pr over A's coins, its hash queries answered by BLAKE2s-256, that
       verify prog input proof = true  and  extractTrace prog input proof log is not a valid execution
     ≤ niError Q + δ
 ```
 
-Every step to it is proved in the random-oracle model: Flock's security, WHIR's correlated
-agreement, the Merkle compilation, and Fiat–Shamir for leanVM's BLAKE2s chain with proof of
-work. Its one assumption is `hRO`, the random-oracle heuristic stated for the adversary at hand,
-a hypothesis in the statement and never an axiom. `niError_le` bounds `niError Q` by
-`(Q + rounds)·2^{−128}` plus the hash terms.
+Every step to it is a theorem: Flock's security (with the Flock roadmap's inhabitant, #3), WHIR's
+correlated agreement (ArkLib's), and the Merkle compilation and Fiat–Shamir for leanVM's BLAKE2s
+chain with proof of work (Layer 12, in the random-oracle model). Its one assumption is `hRO`, the
+random-oracle heuristic stated for the adversary at hand, a hypothesis in the statement and never
+an axiom. `niError_le` bounds `niError Q` by `(Q + rounds)/2^128` plus a hash term quadratic in
+`Q` over `2^256`.
 
 Home: `LeanerVM/Protocol/Spine/` (the spine), `LeanerVM/Protocol/` (the phases over an abstract
 instance, the adaptor, the compilation), the Clean bridge in `LeanerVM/Protocol/ToClean/`, the
@@ -114,17 +115,14 @@ T6), zero knowledge (leanVM has none), security against quantum adversaries.
 
 The random-oracle model here stands for one function: BLAKE2s-256 on byte strings. The
 Fiat–Shamir chain, the Merkle nodes and the grinding call it on 64-byte inputs, and the Merkle
-leaves on 384- or 512-byte ones. The headline theorem is about the deployed `verify`, and it has
-exactly one assumption, a hypothesis in its statement: `Blake2sActsAsRandomOracle`. It says that,
-for the adversary at hand, answering its queries with BLAKE2s instead of a uniformly random
-function raises its chance of beating the extractor by at most `δ`.
-
-The hypothesis is about one adversary because no statement about all adversaries is true. An
-adversary that replays a stored proof makes no query, so an extractor that reads the query log
-learns nothing from it (acceptance test 36). An attack that uses the code of BLAKE2s ([KRS25],
-[Fen26]) is an adversary for which the hypothesis fails, and the theorem then says nothing about
-it. leanVM binds the statement and commits the trace before the first challenge, so the known
-attacks do not apply, but no theorem here says so.
+leaves on 384- or 512-byte ones. The statement's seed (a 78-byte string) and the program hash
+are constants of the statement, computed by BLAKE2s outside the oracle. The headline theorem's
+one assumption, `Blake2sActsAsRandomOracle`, says that for the adversary at hand, answering its
+queries with BLAKE2s instead of a uniformly random function raises its chance of beating the
+extractor by at most `δ`. Why it must be per adversary, and what it excludes (attacks that use
+the code of BLAKE2s, [KRS25], [Fen26]), is in Layer 13. leanVM binds the statement and commits
+the trace before the first challenge, so the known attacks do not apply, but no theorem here
+says so.
 
 Why the relation is polynomial and not "a valid execution exists": sumcheck, GKR and WHIR
 manipulate polynomials, and a knowledge extractor recovers column data, never an execution; a
@@ -183,8 +181,8 @@ theorem that refutes its omission (convention *Load-bearing checks*).
   recursion (T6); `verify` is the native verifier, shaped so that the deferred variant is a
   one-function change;
 - adaptive statement soundness in the random-oracle model, where the statement may depend on the
-  oracle: the theorems here quantify over the statement outside the probability, and the
-  deployment theorem (T7) states the adaptive form;
+  oracle: the theorems here quantify over the statement outside the probability, as
+  architecture.md's T7 schema does with its fixed expected statement;
 - zero knowledge, and security against quantum adversaries (the classical bound does not transfer:
   the loss is quadratic in the query count);
 - the proximity-gap theorem for Reed–Solomon codes up to the Johnson bound ([BCHKS25] Theorem
@@ -192,8 +190,9 @@ theorem that refutes its omission (convention *Load-bearing checks*).
   `McaJohnson`, inhabited from ArkLib's theorem (Layer 11);
 - whether BLAKE2s behaves as a random oracle: a hypothesis of the headline theorem, per
   adversary, never discharged (Layer 13);
-- performance of the honest prover: it is a specification that runs. The extractor is computable
-  and runs on toy instances; an efficient list decoder is a refinement, not a requirement.
+- performance of the honest prover and of the extractor: both are specifications that run. The
+  extractor is computable and runs on toy instances; an efficient list decoder is a refinement,
+  not a requirement.
 
 ## Dependencies and exact contracts
 
@@ -315,7 +314,7 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | WHIR over binary Reed–Solomon codes | absent (#383 binary Basefold and #992 FRI, both legacy and open, are patterns) | Written here (Layer 11). |
 | Merkle trees | in VCVio, proved (VCVio issue 571 tracks it) | Consumed if the fit lemma holds (decision 32); the BLAKE2s instantiation is ours. |
 | Correlated agreement up to Johnson | `ReedSolomon.mcaError_affineLine_johnson_le` proved, any characteristic, with its constant bounded by [BCHKS25]'s printed one (`johnsonExceptionCount_le_comparisonEstimate`); `rs_mcaError_le_in_johnson_range` admitted; the capacity-range theorems exclude characteristic two | `McaJohnson` at Annex B's constant, inhabited from the proved theorem (Layer 11, decision 35); it meets Annex B's per-level budget at every deployed level ([whir-mca-budget.md](../reviews/whir-mca-budget.md)). The admitted theorem is not consumed. |
-| Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Open, not at the pin: #1267–#1283 (state restoration with cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir knowledge soundness from round-by-round certificates) | Proved here (Layer 12) for leanVM's constructions: round-by-round to state-restoration knowledge soundness, the Merkle compilation, the chain with proof of work, the chain lemma and the role-separation lemma. The generic halves are ArkLib candidates; the open stack is where to start, since its constructions are not leanVM's. |
+| Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Open, not at the pin: #1267–#1283 (state restoration with cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir knowledge soundness from round-by-round certificates) | Proved here (Layer 12) for leanVM's constructions: round-by-round to state-restoration knowledge soundness, the Merkle compilation, the chain with proof of work, the chain lemma, and the role-separation lemma (tags and lengths only: a Merkle node is an untagged 64-byte input, so the Merkle compilation is proved on the one shared function). The generic halves are ArkLib candidates; the open stack is where to start, since its constructions are not leanVM's. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
 | Clean expressions as polynomials | on Clean's main since #466 (2026-10-05), but in no revision built for Lean 4.34 (Clean #474, the port, does not contain it) | `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module; deleted when the pin contains #466 and its file is still `b449bf59`'s, its importer then importing `Clean.Circuit.ExpressionPolynomial` and the aggregate dropping it. The computable translation and the component tables (`ToClean/ComponentPolynomial.lean`) are written over Clean's names and stay. |
 | Balance counted in ℕ, direction-tagged | absent; Clean #464, #20 | leanISA's `BalancedPair` stands in. |
@@ -619,9 +618,9 @@ no other; the hole is built when the names in bold of its row are declared and m
 | WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`** | field instances; tables and stacking; sumcheck: definitions |
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | **`merkleRoot`**, **`merkleVerify`**, **`merkle_fits`**, **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`listBinding_compile`**, the plain corollary for the stateless oracle | the phases' knowledge soundness; WHIR opening |
-| transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `roSpec`, `runBlake2s`, `runRandom`, `FsState`, `chainWith`, `blake2sChain`, `Proof`, `RoundPoly.decode`, `bcsCompile`, `leanVmIopp`, **`verifyWith`**, **`verify`**, **`verify_simulated`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`stateRestoration_of_rbr`**, **`bcsCompile_stateRestoration`**, **`chain_knowledgeSound`**, the chain lemma, the role-separation lemma, `Adversary`, `extract`, `niError`, **`niError_le`**, **`verify_knowledgeSound`** | the compiled verifier; list-binding compilation |
-| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`Blake2sActsAsRandomOracle`**, `extractTrace`, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution`**, `proveWith`, `prove`, **`baseProver_complete`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; leanISA Layer 10 and its `traceOf` |
+| transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `roSpec`, `runBlake2s`, `runRandom`, `FsState`, `chainWith`, `blake2sChain`, `Proof`, `RoundPoly.decode`, `bcsCompile`, `leanVmIopp`, `Proof.sizes?`, **`verifyWith`**, **`verify`**, **`verify_simulated`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`stateRestoration_of_rbr`**, **`bcsCompile_stateRestoration`**, **`chain_knowledgeSound`**, **`chain_randomOracle`**, **`roles_separated`**, `HashQueryBound`, `Adversary`, `extract`, `rounds`, `verifierQueries`, `hashTerm`, `niError`, **`niError_le`**, **`verify_knowledgeSound`** | the compiled verifier; list-binding compilation |
+| the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`Blake2sActsAsRandomOracle`**, `extractTrace`, `honestAdversary`, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution`**, `proveWith`, `prove`, **`baseProver_complete`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; leanISA Layer 10 and its `traceOf` |
 
 What can start is what the column *Needs* allows; the status file says what is built.
 
@@ -1157,7 +1156,7 @@ PCS), `LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`,
 def initialFold := 6 ; subsequentFold := 4 ; initialReduction := 3 ; subsequentReduction := 1
 def residualMaxLog := 5 ; queryGrindingBits := 17
 structure Level where (fold rateExp queries oodSamples grindingBits : ℕ) (η : ℚ)
-def ladder (μ ρ : ℕ) : List Level                     -- the deployed η per (μ, ρ), the exact value of the Rust's double
+def ladder (μ ρ : ℕ) : List Level                     -- the deployed η per (μ, ρ), the exact value of the Rust's double (dumped)
 theorem ladder_queries_eq : (ladder 15 1).map (·.queries) = [223, 55]   -- py:910
 -- Codes (def:enc)
 def novelBasis : Fin 64 → K := fun c ↦ g ^ c.val
@@ -1196,14 +1195,15 @@ commitment is list binding (`def:listbinding`), and the invariant is "every code
 `γ_i` of the current fold violates the current claim"; Layer 12 turns list binding into
 extraction.
 
-`McaJohnson` is at Annex B's constant (decision 35). ArkLib's
-`johnsonComparisonEstimate n D η` is Annex B's `a` of `thm:mca-johnson`. With `ρ = D/n`, the
-reduced rate (`whir_config.rs:426-430`), `θ = max ⌈√ρ/η⌉ 3` and `γ = 1 − √ρ − η`, it reads
+`McaJohnson` is at Annex B's constant (decision 35). ArkLib's `johnsonComparisonEstimate n D η` is
+Annex B's `a` of `thm:mca-johnson`. With `ρ = D/n`, the reduced rate (`whir_config.rs:426-429`),
+`θ = max ⌈√ρ/η⌉ 3` and `γ = 1 − √ρ − η`, it reads
 `a = (2(θ + ½)^5 + 3(θ + ½)γρ)/(3ρ^{3/2})·n + (θ + ½)/√ρ`. ArkLib proves the bound
-(`ReedSolomon.mcaError_affineLine_johnson_le`) with its own exception count, and proves that
-count at most `a` (`johnsonExceptionCount_le_comparisonEstimate`). Their composition is
-`mcaJohnson_annexB`, over every finite field, so `whirOpen_rbrSoundness` at leanVM's parameters
-takes no hypothesis; `card_E` turns its bound into numbers. The admitted `rs_mcaError_le_in_johnson_range` is not consumed.
+(`ReedSolomon.mcaError_affineLine_johnson_le`) with its own exception count, and proves that count
+at most `a` (`johnsonExceptionCount_le_comparisonEstimate`). Their composition is `mcaJohnson_annexB`, over
+every finite field, so `whirOpen_rbrSoundness` at leanVM's parameters takes no hypothesis;
+`card_E` turns its bound into numbers. The admitted `rs_mcaError_le_in_johnson_range` is not
+consumed.
 
 ArkLib's line is `u₀ + x·u₁`, while Annex B folds `(1 − z)·u₀ + z·u₁`.
 `mcaError_foldLine_eq_affineLine` equates the two over any field: the substitution
@@ -1215,9 +1215,10 @@ At the deployed ladder, the MCA share of every fold challenge, `2^{ℓ−1}·a/|
 10 to 21 bits smaller, so the margin there is `2^{−143.16}`. The record, with the reproduction
 of the Rust's η search, is [whir-mca-budget.md](../reviews/whir-mca-budget.md).
 
-`η` is transcribed as the exact dyadic rational of the Rust's double, and `a` is computed from it
-exactly. The Rust tunes `η` until its floating-point `⌈√ρ/η⌉` equals the target `m`, but at 108
-of the 224 deployed levels the exact ceiling is `m + 1`. So `θ` is computed, never set to `m`
+`η` is transcribed as the exact dyadic rational of the Rust's double, dumped by
+`scripts/dump-whir-eta-rust.sh`, and `a` is computed from it exactly. The Rust tunes `η` until its
+floating-point `⌈√ρ/η⌉` equals the target `m`, but at 108 of the 224 deployed levels the exact
+ceiling is `m + 1`. So `θ` is computed, never set to `m`
 ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin)).
 
 The Merkle trees are VCVio's (`CryptoFoundations/MerkleTree/`), with BLAKE2s nodes and leaves, if
@@ -1232,6 +1233,8 @@ Tests:
 - the honest `whirOpen` at toy parameters (`μ = 4`, rate `1/2`), accepted;
 - the parameter tables against `py:910`;
 - every pinned coding parameter, with a witness that it is achievable;
+- `mcaConstant n D η` unfolded to Annex B's formula, transcribed from `thm:mca-johnson`, so that
+  a pin bump that changes ArkLib's definition is caught;
 - at every level of the ladder, the hypotheses of `mcaJohnson_annexB` (`1 ≤ D ≤ n − 2`,
   `√ρ + η ≤ 1`) and the bound `2^{ℓ−1}·a ≤ 2^{64}`. Each level's ceilings are proved from
   rational bounds on `√ρ`, as the record does by hand at two levels.
@@ -1243,8 +1246,10 @@ Tests:
 ```lean
 -- The random oracle: BLAKE2s-256 on byte strings, beside the adversary's coins
 def roSpec := unifSpec + (List UInt8 →ₒ Vector UInt32 8)
-def runBlake2s : OracleComp roSpec α → ProbComp α    -- the hash answered by `blake2sBytes`
-def runRandom : OracleComp roSpec α → ProbComp α     -- the hash a uniformly random function, sampled lazily
+def runBlake2s : OracleComp roSpec α → ProbComp α    -- coins kept, the hash answered by `blake2sBytes`
+def runRandom (oa : OracleComp roSpec α) : ProbComp α :=  -- coins kept, the hash VCVio's cached `randomOracle`
+  (simulateQ (idImpl + randomOracle) oa).run' ∅      -- (fresh queries uniform, repeated ones cached)
+abbrev HashQueryBound (oa : OracleComp roSpec α) (Q : ℕ) := oa.IsQueryBoundP (·.isRight) Q   -- coins not charged
 -- The Fiat–Shamir chain (transcribed, fiat_shamir/src/lib.rs), over any way of answering the hash
 structure FsState where cv : Vector UInt32 8
 def FsState.seed (prog) (input) ; observe (x : E) ; sample ; grind (bits : ℕ) (nonce : E)   -- each in `m`, given `H`
@@ -1252,6 +1257,7 @@ def chainWith [Monad m] (H : List UInt8 → m (Vector UInt32 8)) (prog) (s) : Ch
 def blake2sChain (prog) (s) := chainWith (m := Id) blake2sBytes prog s
 -- The proof object (transcribed, transcript.rs:9-19)
 structure Proof where (stream : List E) (merkle : List PrunedMerklePaths)
+def Proof.sizes? : Proof → Option Sizes                         -- the announced sizes, read off the stream
 def RoundPoly.decode (d) (claim) (eq? : Option E) : List E → Option (Fin (d+1) → E)
 def decode (prog) (s) : Proof → Option Messages
 -- The compiled oracle protocol: WHIR in place of the opening phase
@@ -1277,35 +1283,42 @@ theorem listBinding_compile (front : Phases …) (mca) :
 theorem stateRestoration_of_rbr …       -- worst-case rbr knowledge soundness ⇒ state-restoration knowledge soundness at (Q + rounds)·max_i ε_i
 theorem bcsCompile_stateRestoration …   -- the Merkle compilation keeps it up to 3(Q² + 1)/2^256; its extractor reads the leaves off the query log
 theorem chain_knowledgeSound …          -- leanVM's chain, with proof-of-work rounds of `grind i` bits: knowledge soundness + c·Q²/2^256
+theorem chain_randomOracle …           -- the chain lemma: the chain of a random 64-byte map is a random oracle on transcript prefixes
+theorem roles_separated …              -- what the tags and the lengths separate, and no more
 abbrev Adversary := OracleComp roSpec Proof                       -- a cheating prover: its coins, and the hash
 def extract (prog input proof) (log : QueryLog roSpec) : Option (theStack …)   -- computable: leaves off the log, list-decode, select
+def rounds : ℕ                       -- the compiled protocol's challenges at the largest admissible sizes; a numeral
+def verifierQueries : ℕ              -- the hash evaluations of one run of `verify` at the largest sizes; a numeral
+def hashTerm (Q : ℕ) : ℝ≥0 := c * (Q + verifierQueries) ^ 2 / 2^256   -- `c` a numeral fixed by the two proofs
 def niError (Q) : ℝ≥0                                             -- the maximum over admissible sizes
 theorem niError_le (Q) : niError Q ≤ (Q + rounds) / 2^128 + hashTerm Q   -- every per-challenge error ≤ 2^-128 at the deployed ladder
-theorem verify_knowledgeSound (prog input) (A : Adversary) (hQ : A.IsQueryBound Q) :
-    Pr[fun (ok, s, q?) => ok = true ∧ ¬ ∃ q, q? = some q ∧ M3Holds (leanIsaInstance F prog s) input q
+theorem verify_knowledgeSound (prog input) (A : Adversary) (hQ : HashQueryBound A Q) :
+    Pr[fun (ok, s?, q?) => ok = true ∧ ¬ ∃ s q, s? = some s ∧ q? = some q ∧ M3Holds (leanIsaInstance F prog s) input q
       | runRandom do
           let (proof, log) ← A.withQueryLog
-          return (← verifyWith query prog input proof, proof.sizes, extract prog input proof log)]
+          return (← verifyWith query prog input proof, proof.sizes?, extract prog input proof log)]
       ≤ niError Q
 ```
 
 `verify` is one function, phase by phase in the stream order, total and computable, and the first
 module whose code-generation probe is a test. It is `verifyWith` at the deployed hash. The
 random-oracle theorems run the same `verifyWith` with the hash as an oracle, and
-`verify_simulated`, which holds by unfolding, says that answering that oracle with BLAKE2s is
-`verify`. A verifier written separately for the random-oracle model would make every theorem
-below a statement about a model of `verify` (acceptance test 38). `verify_iff_compiled` is unconditional, a theorem
-about two definitions, and a check only because `verify` is written from §8.5 before the
-right-hand side is unfolded. The compilation is leanerVM's `bcsCompile`, not ArkLib's
-`Verifier.fiatShamir` of the oracle verifier (which would hash whole oracle messages); messages are
-absorbed in their wire encoding (one round coefficient dropped, a root as two scalars, Merkle
-openings not absorbed); the grinding checks read the chain state, which a verifier does not see,
-so they are conjoined. `verify`'s checks, each with a mutation of the dumped proof that it rejects
-(convention *Load-bearing checks*): the setup's (upper limbs of the sizes zero, the caps, the
-stacking and rate windows), each phase's, the Merkle openings' (one row per distinct sorted
-position, the row width the verifier's, no missing or surplus sibling, the recomputed root), a
-zero third limb in each half of a root, the grinding at each level, WHIR's terminal check, and the
-stream and openings fully consumed.
+`verify_simulated` says that answering that oracle with BLAKE2s is `verify`. Lean has no
+parametricity theorem, so it is proved by pushing `simulateQ` through `verifyWith`'s body
+(`simulateQ_bind`, `simulateQ_query`). `verifyWith` is therefore written by structural recursion
+on the stream, with no `partial` definition. A verifier written separately for the random-oracle
+model would make every theorem below a statement about a model of `verify` (acceptance test 38).
+`verify_iff_compiled` is unconditional, a theorem about two definitions, and a check only because
+`verify` is written from §8.5 before the right-hand side is unfolded. The compilation is
+leanerVM's `bcsCompile`, not ArkLib's `Verifier.fiatShamir` of the oracle verifier (which would
+hash whole oracle messages); messages are absorbed in their wire encoding (one round coefficient
+dropped, a root as two scalars, Merkle openings not absorbed); the grinding checks read the chain
+state, which a verifier does not see, so they are conjoined. `verify`'s checks, each with a
+mutation of the dumped proof that it rejects (convention *Load-bearing checks*): the setup's
+(upper limbs of the sizes zero, the caps, the stacking and rate windows), each phase's, the Merkle
+openings' (one row per distinct sorted position, the row width the verifier's, no missing or
+surplus sibling, the recomputed root), a zero third limb in each half of a root, the grinding at
+each level, WHIR's terminal check, and the stream and openings fully consumed.
 
 The list-binding compilation is where the master theorems meet WHIR: the commitment binds a
 `K`-valued interleaved word that may be close to up to `L_0` codewords (from 110 to 648 at the
@@ -1318,25 +1331,35 @@ here for the stateless shared oracle.
 `niError Q` is `(Q + rounds)` times the largest per-challenge error of the compiled protocol
 (`L_0·ε_i` at the oracle protocol's challenges, `thm:rbr`'s fold, out-of-domain and batching
 terms at WHIR's, `2^{−17}·(1 − γ_i)^{t_i}` at each ground query round), plus the hash term
-`c·Q²/2^256` and the program-hash collision, maximized over the admissible sizes, which the
-challenge oracle takes with the statement (decision 29).
+`hashTerm Q`, maximized over the admissible sizes, which the challenge oracle takes with the
+statement (decision 29). The hash term counts the adversary's queries and the verifier's own,
+since a node the verifier recomputes is a fresh value too. A program-hash collision does not
+enter: the statement is fixed outside the probability, and it would enter only in the adaptive
+form.
 
 `niError_le` states the closed form an auditor reads: at the deployed parameters every
-per-challenge error is at most `2^{−128}`. The MCA share of the fold rows is
+per-challenge error is at most `2^{−128}`, and `rounds` and `verifierQueries` are numerals. A test
+checks `niError (2^64) ≤ 2^{−60}` by `norm_num` on `niError_le`. The MCA share of the fold rows is
 `mcaJohnson_annexB`'s bound at the ladder (Layer 11), and the query rounds reach `2^{−128}` only
 with the proof-of-work factor. Without that factor the statement certifies about 111 bits.
-`chain_knowledgeSound` proves the factor, since no published theorem covers Fiat–Shamir with
-proof of work for a multi-round protocol. Two lemmas lead to it:
-- the *chain lemma*: a Merkle–Damgård chain of a random 64-byte map, with tagged absorb and
-  squeeze blocks, is a random oracle on transcript prefixes, for state-restoration soundness;
-- the *role-separation lemma*: the chain, the Merkle nodes and the grinding share one map,
-  separated by their tags and the Merkle leaves by their length, so one random function serves
-  as independent oracles per role.
+`chain_knowledgeSound` proves the factor, since no published theorem covers Fiat–Shamir with proof
+of work for a multi-round protocol. Two lemmas lead to it:
+- the *chain lemma* (`chain_randomOracle`): a Merkle–Damgård chain of a random 64-byte map,
+  with tagged absorb and squeeze blocks, is a random oracle on transcript prefixes, for
+  state-restoration soundness;
+- the *role-separation lemma* (`roles_separated`): the observe, squeeze, grinding-base and
+  grinding-nonce blocks are separated by the tag in lane 3 (`fiat_shamir/src/lib.rs:36-39`), and
+  the leaves from everything else by their length. The Merkle nodes are not separated. A node is
+  the map on an untagged 64-byte string (`fiat_shamir/src/merkle.rs:46-51`), and a path sibling
+  is the prover's, so the node domain contains the chain's. The Merkle compilation is therefore
+  proved on the one shared function (an unqueried node value is uniform, a collision costs
+  `hashTerm`), and the lemma says only what the tags and lengths give.
 
 The three theorems are stated for leanVM's constructions, since upstream theorems are about
 others. ArkLib's transforms use a random oracle on the full prefix or a duplex sponge
 (#1267–#1283, open: single salt, no proof of work); the textbook BCS analysis uses independent
-oracles per role ([CY24] Construction 25.1.1); leanVM uses one BLAKE2s map. Their generic halves,
+oracles per role ([CY24] Construction 25.1.1); leanVM uses one BLAKE2s map, whose Merkle nodes
+share the chain's domain. Their generic halves,
 `stateRestoration_of_rbr` above all, are ArkLib candidates. None of them is a hypothesis of a
 theorem here: an unproved one leaves `verify_knowledgeSound` unstated, not assumed.
 
@@ -1347,7 +1370,9 @@ to `γ_0` by brute-force subset interpolation (interpolate on every set of `D + 
 the codewords within `γ_0`). Then it returns the member for which `M3Holds` holds, decided by
 evaluating its clauses on finitely many rows, or `none`. A Guruswami–Sudan decoder is a refinement
 with the same specification. The extractor reads only the adversary's log, never the verifier's
-queries.
+queries. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the
+sketches keep the readable form. `runRandom` samples `Vector UInt32 8`, for which leanerVM
+supplies `SampleableType UInt32` as it did for `K`.
 
 The bytecode multilinear and the Flock matrices are evaluated inside `verify` through one function
 `settleFixedClaims`, the seam for T5; its Flock walk is the Flock phase's.
@@ -1357,8 +1382,10 @@ Tests: a proof dumped from the pinned Rust prover, with its program and public i
 truncated path, a surplus sibling, a level-0 row of the wrong width, a duplicated position, a
 wrong grinding nonce at each level, a nonzero third limb in a root half, a nonzero upper limb in
 an announced size, a size above its cap, a trailing scalar, each rejected; `RoundPoly.decode` on
-the Rust's encoding; and, in reverse, each transcript the specification rejects run through the
-Rust and Python verifiers. The fixture waits on the Flock phase's definition.
+the Rust's encoding; in reverse, each transcript the specification rejects run through the Rust
+and Python verifiers; `runRandom`'s answer to a fresh query uniform on `Vector UInt32 8`, and a
+repeated query answered from the cache; and `niError (2^64) ≤ 2^{−60}`. The fixture waits on the
+Flock phase's definition.
 
 ### Layer 13: the base theorems (T4) and the fixtures
 
@@ -1372,7 +1399,7 @@ theorem traceOf_valid (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog inpu
     ∃ t, traceOf prog input w = some t ∧ AssignmentRepresents w t ∧ ValidExecution prog input t
 -- The extracted execution, the extraction game and its failure event
 def extractTrace (prog input proof) (log : QueryLog roSpec) : Option (Trace prog) :=
-  (extract prog input proof log).bind fun q => traceOf prog input (witnessOf prog proof.sizes q)
+  proof.sizes?.bind fun s => (extract prog input proof log).bind fun q => traceOf prog input (witnessOf prog s q)
 def extractionGame (prog input) (A : Adversary) : OracleComp roSpec (Bool × Option (Trace prog)) := do
   let (proof, log) ← A.withQueryLog
   return (← verifyWith query prog input proof, extractTrace prog input proof log)
@@ -1381,13 +1408,13 @@ def ExtractionFails (prog input) : Bool × Option (Trace prog) → Prop
 -- The random-oracle heuristic, a hypothesis of the headline and of nothing else
 /-- Answering the hash queries of `G` with BLAKE2s-256 raises the probability of `bad` by at most
 `δ` over a uniformly random function. -/
-def Blake2sActsAsRandomOracle (G : OracleComp roSpec α) (bad : α → Prop) (δ : ℝ≥0∞) : Prop :=
+def Blake2sActsAsRandomOracle (G : OracleComp roSpec α) (bad : α → Prop) (δ : ℝ≥0) : Prop :=
   Pr[bad | runBlake2s G] ≤ Pr[bad | runRandom G] + δ
 -- Knowledge soundness in the random-oracle model, proved
-theorem baseVerifier_extractsExecution_rom (hwf : WellFormedBytecode prog) (hQ : A.IsQueryBound Q) :
+theorem baseVerifier_extractsExecution_rom (hwf : WellFormedBytecode prog) (hQ : HashQueryBound A Q) :
     Pr[ExtractionFails prog input | runRandom (extractionGame prog input A)] ≤ niError Q
 -- The headline: the deployed verifier, with the heuristic as its one assumption
-theorem baseVerifier_extractsExecution (hwf : WellFormedBytecode prog) (hQ : A.IsQueryBound Q)
+theorem baseVerifier_extractsExecution (hwf : WellFormedBytecode prog) (hQ : HashQueryBound A Q)
     (hRO : Blake2sActsAsRandomOracle (extractionGame prog input A) (ExtractionFails prog input) δ) :
     Pr[fun (proof, log) => verify prog input proof = true ∧
           ¬ ∃ t, extractTrace prog input proof log = some t ∧ ValidExecution prog input t
@@ -1396,6 +1423,11 @@ theorem baseVerifier_extractsExecution (hwf : WellFormedBytecode prog) (hQ : A.I
 def proveWith [Monad m] (H : List UInt8 → m (Vector UInt32 8)) (fuel : ℕ) (F) (prog input) (w) (ρ) :
     m (Option Proof)                                                -- the grinding is a search
 def prove (fuel F prog input w ρ) : Option Proof := proveWith (m := Id) blake2sBytes fuel F prog input w ρ
+-- The honest prover as an adversary: it hashes through the oracle; out of fuel, an empty proof, which `verify` rejects
+def honestAdversary (fuel F prog input w ρ) : Adversary := do
+  match ← proveWith query fuel F prog input w ρ with
+  | some proof => pure proof
+  | none => pure ⟨[], []⟩
 theorem baseProver_complete (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w)
     (hs : Sizes.ofWitness w = some s) (hadm : s.Admissible prog) (hρ : validRate ρ)
     (H : List UInt8 → Vector UInt32 8) :
@@ -1417,10 +1449,11 @@ the probability, as the scope says.
 The proof has three steps: `verify_simulated` turns the event into the game's, `hRO` moves the
 game to the random function, and `baseVerifier_extractsExecution_rom` bounds it. The transfer adds
 no mathematics, by design. The hypothesis is exactly the gap between the deployed hash and the
-model, and every stronger form is false (acceptance test 36). The content is the random-oracle
-theorem, which composes `verify_knowledgeSound`, `Refinement.knowledge_transport` with
-`satisfiedBy_witnessOf`, and leanISA's `traceOf_valid`. Its extractor is computable end to end:
-`extract`, `witnessOf` and `traceOf` are definitions without `noncomputable` (acceptance test 24).
+model, and the two stronger forms one would reach for are false (acceptance test 36). The content
+is the random-oracle theorem, which composes `verify_knowledgeSound`,
+`Refinement.knowledge_transport` with `satisfiedBy_witnessOf`, and leanISA's `traceOf_valid`. Its
+extractor is computable end to end: `extract`, `witnessOf` and `traceOf` are definitions without
+`noncomputable` (acceptance test 24).
 
 What `hRO` rules out:
 - **A statement about every adversary is false.** An adversary that outputs a stored accepted
@@ -1430,12 +1463,14 @@ What `hRO` rules out:
   queries the hash at all: the logged answers are BLAKE2s values under one and uniform under the
   other.
 
-So the hypothesis is about one adversary, one statement and one event. An auditor reads it as:
-this adversary learns BLAKE2s values only by asking, and gains nothing from their being
-BLAKE2s's. An adversary that carries precomputed values, or uses BLAKE2s's code as the attacks of
-[KRS25] and [Fen26] do, may fail it, and the theorem then says nothing about that adversary.
-Nothing here bounds `δ`. The hypothesis is satisfiable by adversaries whose proofs are accepted:
-it holds at `δ = 0` for the honest prover run as an adversary, whose log holds the rows it
+So the hypothesis is about one adversary, one statement and one event. Its content is a comparison
+of two probabilities of one event. The reading it supports is that this adversary learns BLAKE2s
+values only by asking, and gains nothing from their being BLAKE2s's. An adversary that carries
+precomputed values, or uses BLAKE2s's code as the attacks of [KRS25] and [Fen26] do, may fail it,
+and the theorem then says nothing about that adversary. The theorem has content only for
+`δ < 1 − niError Q`. `δ` is the auditor's estimate of how far BLAKE2s is from a random function for this
+adversary, and the repository never supplies it. The hypothesis is satisfiable by adversaries
+whose proofs are accepted: it holds at `δ = 0` for `honestAdversary`, whose log holds the rows it
 committed (acceptance test 37).
 
 `extract`, `witnessOf` and `extractTrace` keep the extracted witness and execution, which
@@ -1604,14 +1639,15 @@ witness is executable it is a test under `tests/`.
     `extractTrace` on the empty log `none` by `#guard`, so `Blake2sActsAsRandomOracle` fails for
     it at every `δ < 1 − niError 0`.
 37. **The heuristic is satisfiable by an accepted adversary.** A hypothesis that only rejected
-    adversaries meet would make the headline vacuous where it matters. The honest prover, run as
-    an adversary, meets it at `δ = 0`: its log holds the rows it committed, so whenever `verify`
-    accepts, `extractTrace` returns a valid execution. Witness: on a toy instance, `extractTrace`
+    adversaries meet would make the headline vacuous where it matters. `honestAdversary` meets it
+    at `δ = 0`: its log holds the rows it committed, so whenever `verify` accepts, `extractTrace`
+    returns a valid execution, and out of fuel it returns the empty proof, which `verify` rejects
+    (the stream is not consumed). Witness: on a toy instance, `extractTrace`
     applied to the honest prover's log returns the trace, by `#guard`.
 38. **One verifier.** The random-oracle theorems run `verifyWith`, and the headline is about
     `verify`. A verifier written separately for the model would make the headline a statement
-    about the model. Witness: `verify_simulated`, proved by unfolding, and `verify` defined as
-    `verifyWith` at `blake2sBytes`.
+    about the model. Witness: `verify_simulated`, proved by pushing `simulateQ` through the
+    structurally recursive `verifyWith`, and `verify` defined as `verifyWith` at `blake2sBytes`.
 
 ## Interfaces supplied to later work
 
@@ -1672,22 +1708,24 @@ Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_t
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError
                       whirOpen_rbrSoundness  McaJohnson  mcaConstant  mcaJohnson_annexB
                       mcaError_foldLine_eq_affineLine  merkleRoot  merkleVerify  merkle_fits  blake2sBytes
-Compilation:          roSpec  runBlake2s  runRandom  FsState  chainWith  blake2sChain  grind  Proof
+Compilation:          roSpec  runBlake2s  runRandom  HashQueryBound  FsState  chainWith  blake2sChain  grind  Proof
+                      Proof.sizes?
                       RoundPoly.decode  decode  bcsCompile  leanVmIopp  verifyWith  verify  verify_simulated
                       settleFixedClaims  verify_iff_compiled  listBinding_compile
                       stateRestoration_of_rbr  bcsCompile_stateRestoration  chain_knowledgeSound
-                      Adversary  extract  niError  niError_le  verify_knowledgeSound
+                      chain_randomOracle  roles_separated  Adversary  extract  rounds  verifierQueries
+                      hashTerm  niError  niError_le  verify_knowledgeSound
 Base theorems:        traceOf  traceOf_valid (leanISA's)  extractTrace  extractionGame  ExtractionFails
                       Blake2sActsAsRandomOracle  baseVerifier_extractsExecution_rom
-                      baseVerifier_extractsExecution  proveWith  prove
+                      baseVerifier_extractsExecution  proveWith  prove  honestAdversary
                       baseProver_complete  baseProver_complete_of_execution
 Parameters:           initialFold  subsequentFold  initialReduction  subsequentReduction  residualMaxLog
                       queryGrindingBits  the Flock constants (Parameters/Flock.lean)
 ```
 
 The trust surface of the headline theorem, `baseVerifier_extractsExecution`, has three parts.
-- **Its definitions:** `verify`, `extractTrace`, `ValidExecution`, `niError`, and the run
-  functions `runBlake2s` and `runRandom`.
+- **Its definitions:** `verify`, `extractTrace`, `ValidExecution`, `niError` with its closed form
+  `niError_le`, `HashQueryBound`, and the run functions `runBlake2s` and `runRandom`.
 - **Its one assumption:** `Blake2sActsAsRandomOracle`, for the adversary, statement and event
   at hand. It is a hypothesis in the statement, never an axiom, and nothing in the repository
   discharges it.
@@ -1776,7 +1814,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |
 | 31. The front phases are `Phase.FrontDef` | `Phases` holds the four phases before the opening as `Phase.FrontDef`, a phase whose verifier never reads the stack; `FrontDef.toDef` is the phase as a component, the form its proofs are stated on; the list-binding compilation takes no hypothesis on them | *The oracle*; the spine; test 35 |
 | 34. The heuristic is a named hypothesis, per adversary | the headline is knowledge soundness of the deployed `verify`, with a computable extractor of the execution. Its one assumption is `Blake2sActsAsRandomOracle` for the adversary's extraction game, with slack `δ`. The random-oracle steps (state restoration, the Merkle compilation, the chain with proof of work) are theorems, not interfaces. One `verifyWith` serves both settings. No existential soundness corollary is stated | *For zkVM engineers*; Layers 12, 13; tests 24, 36–38 |
-| 35. Correlated agreement at Annex B's constant | `McaJohnson` takes Annex B's `a` (`johnsonComparisonEstimate`), inhabited by ArkLib's proved theorem; the admitted [BCHKS25] theorem is not consumed; `η` is the exact value of the Rust's double | Layer 11; the ledger |
+| 35. Correlated agreement at Annex B's constant | `McaJohnson` takes Annex B's `a` (`johnsonComparisonEstimate`), inhabited by ArkLib's proved theorem; the admitted [BCHKS25] theorem is not consumed; `η` is the exact value of the Rust's double, dumped from the pinned Rust | Layer 11; the ledger |
 
 Open:
 

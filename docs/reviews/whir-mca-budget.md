@@ -5,7 +5,8 @@ question the protocol status left open: does `ReedSolomon.mcaError_affineLine_jo
 proved mutual-correlated-agreement bound, meet the per-level budget of Annex B's `thm:rbr` at the
 deployed WHIR parameters, or must the admitted `rs_mcaError_le_in_johnson_range` be named as an
 obligation? The numbers are reproduced by `scripts/whir-mca-budget.py`, which uses only Python's
-standard library. The Lean evidence was checked with `lake env lean` against ArkLib alone, and its
+standard library, and the deployed `η` dumped from the pinned Rust by
+`scripts/dump-whir-eta-rust.sh`. The Lean evidence was checked with `lake env lean` against ArkLib alone, and its
 source is in the description of the pull request that added this record. It is not production
 code; Layer 11 builds `mcaJohnson_annexB` from it.
 
@@ -35,8 +36,11 @@ the upstream theorems it uses.
 The script reproduces the Rust's per-level `η` search (`whir_config.rs:445-707`) in IEEE doubles,
 including `johnson_eta_for_m`'s ulp stepping and the evaluation order of `powi(5)`. It re-derives
 the whole table: all 56 rows of `WHIR_QUERIES` (`verifier.py:910`) come out exactly, 224 levels
-and no mismatch. Each level's `η` is then the exact dyadic rational the double denotes, and every
-verdict below is decided in exact rationals; 80-digit decimals serve only for `√ρ` and logarithms.
+and no mismatch. The Rust's own `η`, dumped by `scripts/dump-whir-eta-rust.sh`, agree with the
+reproduction bit for bit at all 224 levels, with the same query counts (`--rust-eta FILE`);
+Layer 11 transcribes them from the dump. Each level's `η` is then the exact dyadic rational the
+double denotes, and every verdict below is decided in exact rationals; 80-digit decimals serve
+only for `√ρ` and logarithms.
 
 | Check over the 224 levels | Result |
 | --- | --- |
@@ -83,7 +87,7 @@ its hypotheses.
 
 ## The Rust's doubles
 
-`johnson_eta_for_m` (`whir_config.rs:624-637`) sets `η = fl(√ρ)/m` and steps it up by ulps until
+`johnson_eta_for_m` (`whir_config.rs:624-633`) sets `η = fl(√ρ)/m` and steps it up by ulps until
 the double `⌈fl(√ρ)/η⌉` equals `m`. The exact ratio `√ρ/η` then lies within `10^{−16}` of `m`, and
 whether the exact ceiling is `m` or `m + 1` is a rounding accident. At 108 of the 224 levels it is
 `m + 1`, so Annex B's exact `a` exceeds the Rust's estimate by `((m + 1.5)/(m + 0.5))^5`, up to
@@ -109,7 +113,7 @@ in [leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin).
   every linear code over a field, with no characteristic hypothesis.
 - **The rate.** `johnsonRhoMinus n D = D/n` with `D` the degree bound (dimension `D + 1`). At
   `D = 2^κ − 1` and `n = 2^{κ+R}` it is Annex B's reduced rate `(k − 1)/n` and the Rust's
-  `reduced_rate` (`whir_config.rs:426-430`). The theorem's radius `1 − √ρ − η` is the Rust's `γ`.
+  `reduced_rate` (`whir_config.rs:426-429`). The theorem's radius `1 − √ρ − η` is the Rust's `γ`.
   `D ≤ n − 2` holds at every level, since `R ≥ 1`.
 - **The field.** The theorem needs `[Field F] [Fintype F] [SampleableType F]`, and `|F|` enters
   only as `Fintype.card F`. `E` has all three (`instSampleableTypeE`, `card_E : Fintype.card E =
@@ -135,12 +139,6 @@ None uses `sorry`, `axiom`, `native_decide` or an option override.
 
 ## Not verified
 
-- The Rust was not run. Its search was reimplemented from the source (`optimize_johnson_level`,
-  `johnson_eta_for_m`, `paper_johnson_log_a`), with the platform's `powi`, `powf` and `log2`. A
-  different libm could in principle flip a boundary comparison; the exact match of all 56 rows
-  makes that unlikely.
-- No pinned artifact carries the deployed `η` (`WHIR_QUERIES` has the query counts only). They are
-  the reproduction's doubles, and Layer 11 transcribes them from it.
 - `thm:rbr`'s other rows (batching, out-of-domain, the queries with grinding, the final level)
   were not re-derived beyond what the search checks; they do not involve the MCA constant.
 - `mcaError` was not transported from a general index type to `Fin n`, the one step between the

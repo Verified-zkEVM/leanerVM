@@ -280,17 +280,16 @@ The public theorem ladder is:
    then compose it with T1-S to obtain an ISA execution, keeping the extracted witness for T6.
    `Accepts … → except with probability …` is not a statement: acceptance of fixed values has no
    randomness in it. The theorem must expose the component knowledge-soundness bounds, the
-   list-binding compilation of the commitment, the Fiat–Shamir and Merkle assumptions for the
+   list-binding compilation of the commitment, the Fiat–Shamir and Merkle theorems for the
    deployed construction with its proof of work, the family over the prover's announced sizes,
    transcript/serialization agreement, and executable-verifier refinement. The headline theorem
-   is about the deployed verifier, `BaseVerifier^H` with `H` the deployed hash. Its one
-   assumption is a named hypothesis in its statement: for the adversary at hand, answering its
-   queries with the deployed hash instead of a random function raises the probability that it
-   beats the extractor by at most `δ`. It is per adversary because the form for all adversaries
-   is false: an adversary replaying a stored proof makes no query, so a log-reading extractor
-   learns nothing from it. It is never an axiom. Its completeness dual composes T2 with the honest prover and records
-   the failure and resource conditions: a valid execution may need more memory than the verifier
-   accepts, and the prover's proof-of-work search has no proved bound.
+   is about the deployed verifier, with `H` the deployed hash, and its one assumption is a named
+   hypothesis in its statement, never an axiom: for the adversary at hand, the deployed hash
+   raises its chance of beating the extractor by at most `δ` over a random function (per
+   adversary, since the form for all adversaries is false; the protocol blueprint's Layer 13).
+   Its completeness dual composes T2 with the honest prover and records the failure and resource
+   conditions: a valid execution may need more memory than the verifier accepts, and the
+   prover's proof-of-work search has no proved bound.
 
 5. **T5 — recursive-verifier correctness (`recursiveVerifier_iff`).** Constraint satisfaction
    for the verifier-in-circuit is equivalent to the specified base-verifier decision for every

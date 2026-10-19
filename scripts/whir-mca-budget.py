@@ -15,11 +15,11 @@ decimals only for the irrational square roots and logarithms:
 at every level of every admissible `(mu, R)` pair.  No float enters a verdict:
 the exact-rational comparisons `E0 <= 2^k` and `E0 <= a` are decided exactly.
 
-Usage: python3 scripts/whir-mca-budget.py [--json FILE] [--full]
+Usage: python3 scripts/whir-mca-budget.py [--json FILE] [--full] [--rust-eta FILE]
 """
 from fractions import Fraction as Fr
 from decimal import Decimal, getcontext
-import math, sys, json, argparse
+import math, sys, json, argparse, struct
 
 getcontext().prec = 80
 
@@ -297,7 +297,9 @@ def main():
     ap.add_argument("--full", action="store_true", help="print every level")
     ap.add_argument("--weighted", action="store_true", help="search weighted certificates (slow)")
     ap.add_argument("--rechoose", action="store_true", help="rerun the eta search with ArkLib's E0")
+    ap.add_argument("--rust-eta", help="compare with the output of scripts/dump-whir-eta-rust.sh")
     args = ap.parse_args()
+    reproduced = {}
 
     rows = []
     mismatches = []
@@ -309,12 +311,19 @@ def main():
             if got != table:
                 mismatches.append((mu, R, got, table))
             for i, lv in enumerate(levels):
+                reproduced[(R, mu, i)] = (struct.unpack("<Q", struct.pack("<d", lv["eta"]))[0], lv["queries"])
                 ex = exact_level(lv)
                 rows.append(dict(mu=mu, R=R, level=i, rate=lv["rate"], cols=lv["cols"], ilv=lv["ilv"],
                                  queries=lv["queries"], ood=lv["ood"], eps_pg_float=lv["eps_pg"], **ex))
 
     print(f"levels: {len(rows)} over {len(range(MIN_MU, MAX_MU+1)) * len(range(MIN_R, MAX_R+1))} (mu, R) pairs")
     print(f"query-table mismatches vs verifier.py:910: {len(mismatches)}")
+    if args.rust_eta:
+        with open(args.rust_eta) as f:
+            rust = {(int(r), int(m), int(i)): (int(b), int(q))
+                    for r, m, i, b, q in (line.split() for line in f if line.strip())}
+        diff = [k for k in set(rust) | set(reproduced) if rust.get(k) != reproduced.get(k)]
+        print(f"levels whose eta bits or queries differ from the Rust's dump: {len(diff)} of {len(rust)}")
     for mm in mismatches:
         print("  MISMATCH", mm)
     off = sum(r['m_float'] != r['m_exact'] for r in rows)

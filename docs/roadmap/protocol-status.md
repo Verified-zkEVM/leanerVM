@@ -637,7 +637,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - `leanIsaRefinement` is the adaptor as the spine's `Refinement` from `M3Rel` to
     `SatisfiedBy`. Owed: the sizes `piopError_le` assumes, at admissible sizes (`μ_bus ≤ 30`
     follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone); the
-    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 13) and
+    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 12) and
     on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
     `EnsembleWitness` is.
 

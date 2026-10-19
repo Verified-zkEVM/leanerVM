@@ -224,16 +224,23 @@ former code in parentheses is for reading older pull requests.
   (`ReedSolomon.mcaError_affineLine_johnson_le` with
   `johnsonExceptionCount_le_comparisonEstimate`). With it, the MCA share of every fold challenge
   at every deployed level is at most `2^{−128.18}`, computed in exact arithmetic.
-- *The Rust's η search is not exact.* `johnson_eta_for_m` (`pcs/src/whir_config.rs:624-637`) steps
+- *The Rust's η search is not exact.* `johnson_eta_for_m` (`pcs/src/whir_config.rs:624-633`) steps
   `η` up by ulps until the floating-point `⌈√ρ/η⌉` equals the target `m`. At 108 of the 224
   deployed levels the exact ceiling is `m + 1`, so the Rust's estimate of `a` is low by up to
   1.81 bits: at `(μ, R) = (28, 4)`, level 5, it reports 130.43 bits where the exact value is
   128.61. The least margin, 128.19 bits at level 0 of `(27, 3)`, falls at a level where the two
   agree. So the assertion of `production_profile_is_128_bit_johnson_with_query_grinding`
-  (`whir_config.rs:1014-1042`), a least margin in `[128, 129)` bits, holds exactly; exact
+  (`pcs/src/whir_config.rs:1014-1042`), a least margin in `[128, 129)` bits, holds exactly; exact
   arithmetic clears 128 bits at every level, and the deployed query counts stand. A
   transcription must compute `θ = ⌈√ρ/η⌉` and never take it to be `m`
   ([whir-mca-budget.md](reviews/whir-mca-budget.md)).
+- *The hash's roles are separated only in part.* The chain's blocks carry a tag in lane 3, and
+  the source says "the tag lane is never adversary-controlled, so distinct constants are all it
+  takes to make two roles unable to alias" (`fiat_shamir/src/lib.rs:31-35`). A Merkle node,
+  though, is BLAKE2s-256 of an untagged 64-byte string (`fiat_shamir/src/merkle.rs:46-51`), and
+  a path sibling is the prover's, so the verifier can be made to evaluate the map on a string of
+  the chain's shape. No attack follows; the consequence is that the Merkle compilation is proved
+  on the one shared function rather than on independent oracles per role.
 
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former
