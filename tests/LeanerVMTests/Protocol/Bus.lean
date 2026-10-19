@@ -269,7 +269,8 @@ theorem roots_unchecked_no_stateFunction {I : M3Instance} (h : Conditions I) (s 
 
 -- The count side padded with `0` has product `0`: the honest roots would fail the check.
 #guard (∏ x : Fin (2 ^ busToy.μBus),
-  ((blocks busToy 2).stackAt (tables busToy 2 α β honest) busToy.μBus 0)[x]) = e0
+  ((blocks busToy 2).stackAt (fun b ↦ Vector.ofFn (((sorted busToy 2)[b]).leaf α β honest))
+    busToy.μBus 0)[x]) = e0
 
 /-! ## Completeness -/
 

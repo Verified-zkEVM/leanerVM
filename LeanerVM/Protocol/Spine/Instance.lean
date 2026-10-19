@@ -253,9 +253,7 @@ others are column groups the sumcheck never sees. -/
 def SumcheckTable (j : Fin I.ntab) : Prop :=
   I.constraints j ≠ [] ∨ I.flushes j ≠ [] ∨ I.counts j ≠ []
 
-instance instDecidableSumcheckTable (j : Fin I.ntab) : Decidable (I.SumcheckTable j) :=
-  decidable_of_iff ((I.constraints j).isEmpty = false ∨ (I.flushes j).isEmpty = false ∨
-    (I.counts j).isEmpty = false) (by simp [SumcheckTable])
+deriving instance Decidable for SumcheckTable
 
 /-- The sumcheck tables, as a type. -/
 abbrev SumcheckTables : Type := {j : Fin I.ntab // I.SumcheckTable j}
@@ -296,10 +294,7 @@ def boundaryColumns : List I.ColumnId :=
 def tableColumns : ℕ := ∑ j : I.SumcheckTables, I.width j.1
 
 /-- The number of weighted claims the Flock phase pools: one if there is a region. -/
-def flockClaims : ℕ :=
-  match I.flock with
-  | some _ => 1
-  | none => 0
+def flockClaims : ℕ := if I.flock.isSome then 1 else 0
 
 /-- The claims pooled after the bus phase: one per boundary column. -/
 abbrev busClaims : ℕ := I.boundaryColumns.length

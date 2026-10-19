@@ -71,10 +71,7 @@ def derefFlags : DerefMode → K × K
 
 /-- The store mode of a flag pair, if it is one of the three (acceptance test 18). -/
 def derefMode? (fpc ffp : K) : Option DerefMode :=
-  if fpc = 0 ∧ ffp = 0 then some .cell
-  else if fpc = 1 ∧ ffp = 0 then some .pc
-  else if fpc = 0 ∧ ffp = 1 then some .fp
-  else none
+  [DerefMode.cell, .pc, .fp].find? (derefFlags · = (fpc, ffp))
 
 /-! ## The bus entry and the sixteen slots -/
 
@@ -99,13 +96,7 @@ def encodeSlots (i : Instr) : Vector K 16 :=
 
 /-- The opcode of a code, if it is one of the six. -/
 def opcode? (a : K) : Option Opcode :=
-  if a = Opcode.xor.code then some .xor
-  else if a = Opcode.mulNative.code then some .mulNative
-  else if a = Opcode.setConstant.code then some .setConstant
-  else if a = Opcode.deref.code then some .deref
-  else if a = Opcode.jump.code then some .jump
-  else if a = Opcode.blake2s.code then some .blake2s
-  else none
+  [Opcode.xor, .mulNative, .setConstant, .deref, .jump, .blake2s].find? (·.code = a)
 
 /-- Read an entry back as an instruction: the exact inverse of `entry` (`decode_eq_some_iff`);
 `none` on an unknown opcode, on a flag pair that is no mode, or on a nonzero spare slot. -/
@@ -148,13 +139,11 @@ theorem derefMode?_eq_some_iff {fpc ffp : K} {m : DerefMode} :
   constructor
   · intro h
     unfold derefMode? at h
-    split_ifs at h with h1 h2 h3 <;> cases h
-    · exact Prod.ext h1.1 h1.2
-    · exact Prod.ext h2.1 h2.2
-    · exact Prod.ext h3.1 h3.2
+    have hm := List.find?_some h
+    exact (of_decide_eq_true hm).symm
   · intro h
-    cases m <;> simp only [derefFlags, Prod.mk.injEq] at h <;> obtain ⟨rfl, rfl⟩ := h <;>
-      simp [derefMode?]
+    obtain ⟨rfl, rfl⟩ := Prod.ext_iff.mp h
+    exact derefMode?_flags m
 
 /-- The code of an opcode decodes to that opcode. -/
 theorem opcode?_code (o : Opcode) : opcode? o.code = some o := by
@@ -165,7 +154,8 @@ theorem opcode?_eq_some_iff {a : K} {o : Opcode} : opcode? a = some o ↔ a = o.
   constructor
   · intro h
     unfold opcode? at h
-    split_ifs at h <;> cases h <;> assumption
+    have hm := List.find?_some h
+    exact (of_decide_eq_true hm).symm
   · rintro rfl
     exact opcode?_code o
 

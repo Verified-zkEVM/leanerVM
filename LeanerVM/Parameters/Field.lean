@@ -112,11 +112,7 @@ def IsCanonical128 (x : E) : Prop := x.limb 2 = 0
 /-- The canonical word of a two-limb cell, `c0 + c1·y`: the cell shape `BLAKE2S` consumes. -/
 def E.ofCell (v : Vector K 2) : E := E.ofLimbs v[0] v[1] 0
 
-instance : DecidablePred IsInK :=
-  fun x ↦ inferInstanceAs (Decidable (x.limb 1 = 0 ∧ x.limb 2 = 0))
-
-instance : DecidablePred IsCanonical128 :=
-  fun x ↦ inferInstanceAs (Decidable (x.limb 2 = 0))
+deriving instance Decidable for IsInK, IsCanonical128
 
 /-- Hexadecimal rendering `E(0x<c2><c1><c0>)`, the Python verifier's `E.__repr__`
 (`python-verifier/verifier.py:177`). -/

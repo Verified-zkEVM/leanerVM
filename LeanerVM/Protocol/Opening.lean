@@ -98,11 +98,8 @@ def batched (s : I.Stmt × FlockOut I) (ρ c : E) : WeightedClaim I := ⟨weight
 def BatchedHolds : Set ((WeightedClaim I × ∀ i, TheOracle I i) × Unit) :=
   {p | p.1.1.Holds (theStack p.1.2)}
 
-/-- The question that asks the stack for its inner product with `W`. -/
-def ask (W : Weight E I.μ) : [TheOracle I]ₒ.Domain := ⟨0, W⟩
-
-/-- The question a weighted claim asks the stack: its weight. -/
-def question (c : WeightedClaim I) : [TheOracle I]ₒ.Domain := ask I c.weight
+/-- The question a weighted claim asks the stack: its inner product with the claim's weight. -/
+def question (c : WeightedClaim I) : [TheOracle I]ₒ.Domain := ⟨0, c.weight⟩
 
 /-- An answer is accepted when it is the claim's value. -/
 def accepts (c : WeightedClaim I) (a : E) : Bool := decide (a = c.value)

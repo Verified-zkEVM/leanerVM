@@ -206,8 +206,7 @@ abbrev bytecodeBlockRows (w : EnsembleWitness (leanIsaEnsemble prog)) : List (Ar
 
 /-- The messages the witness sends on the channel `c`, in table and row order: every
 interaction on the channel of that name. -/
-def messagesOn (w : EnsembleWitness (leanIsaEnsemble prog)) (c : RawChannel K) :
-    List (Array K) :=
+def messagesOn (w : EnsembleWitness (leanIsaEnsemble prog)) (c : RawChannel K) : List (Array K) :=
   (w.interactions.filter (·.channel.name = c.name)).map (·.msg)
 
 /-- The messages one row of a table sends on the channel `c`. -/
@@ -228,8 +227,7 @@ def blake2sRowAt (w : EnsembleWitness (leanIsaEnsemble prog)) (row : Array K) : 
 
 /-- Pushed and pulled messages of a channel pair form the same multiset (specification §5.1):
 a permutation of message lists, counted in `ℕ`, never a field sum (acceptance test 14). -/
-def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawChannel K) :
-    Prop :=
+def BalancedPair (w : EnsembleWitness (leanIsaEnsemble prog)) (pull push : RawChannel K) : Prop :=
   (messagesOn w push).Perm (messagesOn w pull)
 
 /-! ## The verifier's checks -/

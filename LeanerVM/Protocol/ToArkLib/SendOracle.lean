@@ -36,8 +36,7 @@ namespace Component
 variable (S M : Type) [OracleInterface M]
 
 /-- The schedule: one prover message of type `M`. -/
-@[reducible]
-def sendSpec : ProtocolSpec 1 := ⟨!v[.P_to_V], !v[M]⟩
+abbrev sendSpec : ProtocolSpec 1 := ⟨!v[.P_to_V], !v[M]⟩
 
 /-- The prover: sends the witness, keeps the statement. -/
 def sendProver : OracleProver []ₒ S NoOracle M S (OneOracle M) Unit (sendSpec M) where

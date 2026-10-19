@@ -27,16 +27,21 @@ open CompPoly CMlPolynomialEval
 
 variable {R S : Type*} [CommRing R] [CommRing S]
 
+/-- The combined evaluator computes the extension of the combined cube values. -/
+theorem Weight.sum_map_mle_eq {n : ℕ} (ts : List (S × Weight S n)) (r : Vector S n) :
+    (ts.map fun t ↦ t.1 * t.2.mle r).sum =
+      evalMle (Vector.ofFn fun x ↦ (ts.map fun t ↦ t.1 * t.2.onCube[x]).sum) r := by
+  induction ts with
+  | nil => simp [evalMle_eq_sum]
+  | cons t ts ih =>
+    simp only [List.map_cons, List.sum_cons, ih, t.2.mle_eq, evalMle_eq_sum, Fin.getElem_fin,
+      Vector.getElem_ofFn, add_mul, Finset.sum_add_distrib, Finset.mul_sum, mul_assoc]
+
 /-- The weights of `ts` combined with their coefficients. -/
 def Weight.combine {n : ℕ} (ts : List (S × Weight S n)) : Weight S n where
   onCube := Vector.ofFn fun x ↦ (ts.map fun t ↦ t.1 * t.2.onCube[x]).sum
   mle := fun r ↦ (ts.map fun t ↦ t.1 * t.2.mle r).sum
-  mle_eq := fun r ↦ by
-    induction ts with
-    | nil => simp [evalMle_eq_sum]
-    | cons t ts ih =>
-      simp only [List.map_cons, List.sum_cons, ih, t.2.mle_eq, evalMle_eq_sum, Fin.getElem_fin,
-        Vector.getElem_ofFn, add_mul, Finset.sum_add_distrib, Finset.mul_sum, mul_assoc]
+  mle_eq := Weight.sum_map_mle_eq ts
 
 /-- The answer of a table to combined weights is the combination of its answers. -/
 theorem Weight.pair_combine {n : ℕ} (φ : R →+* S) (ts : List (S × Weight S n))

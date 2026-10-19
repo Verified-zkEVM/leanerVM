@@ -216,16 +216,20 @@ theorem size_le {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : B.size b �
     le_trans (by have := B.offset_add_pow_le_total b; omega) hμ
   exact (Nat.pow_le_pow_iff_right (by norm_num)).mp h1
 
+/-- A block's offset over its height indexes the high `μ - size_b` coordinates. -/
+theorem offset_div_lt {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
+    B.offset b / 2 ^ B.size b < 2 ^ (μ - B.size b) := by
+  have h1 := B.offset_add_pow_le_total b
+  have h2 : B.offset b < 2 ^ B.size b * 2 ^ (μ - B.size b) := by
+    rw [← pow_add, Nat.add_sub_cancel' (B.size_le hμ b)]
+    have h3 := Nat.two_pow_pos (B.size b)
+    omega
+  exact Nat.div_lt_of_lt_mul h2
+
 /-- The selector of block `b` in a stack of `μ` variables: the index `offset_b >> size_b` of
 the high `μ - size_b` coordinates. -/
 def selector {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) : Fin (2 ^ (μ - B.size b)) :=
-  ⟨B.offset b / 2 ^ B.size b, by
-    have h1 := B.offset_add_pow_le_total b
-    have h2 : B.offset b < 2 ^ B.size b * 2 ^ (μ - B.size b) := by
-      rw [← pow_add, Nat.add_sub_cancel' (B.size_le hμ b)]
-      have h3 := Nat.two_pow_pos (B.size b)
-      omega
-    exact Nat.div_lt_of_lt_mul h2⟩
+  ⟨B.offset b / 2 ^ B.size b, B.offset_div_lt hμ b⟩
 
 @[simp] theorem selector_val {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n) :
     (B.selector hμ b).val = B.offset b / 2 ^ B.size b := rfl
