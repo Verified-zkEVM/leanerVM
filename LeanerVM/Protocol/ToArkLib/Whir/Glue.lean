@@ -207,6 +207,40 @@ theorem pair_gluedWeight {κ R t : ℕ} (W' : Weight E κ) (z : Vector E κ)
     rw [Weight.pair_batch]
     rfl
 
+
+/-- The residual weight: the weight with its lane coordinates bound at the fold point `r`;
+its extension at `z` is the weight's at `r ++ z`. -/
+def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Weight E κ where
+  onCube := foldTable W.onCube r
+  mle := fun z ↦ W.mle (r ++ z)
+  mle_eq := fun z ↦ by rw [W.mle_eq, evalMle_foldTable]
+
+/-- The sumcheck's running claim after the `ℓ` lane rounds is the residual weight's claim on the
+folded table. -/
+theorem claim_fold {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (f : CMlPolynomialEval E (ℓ + κ))
+    (r : Vector E ℓ) :
+    WhirSum.claim W.onCube f ℓ r = (foldWeight W r).pair (RingHom.id E) (foldTable f r) := by
+  unfold WhirSum.claim plainSum
+  rw [dite_eq_left (Nat.le_add_right ℓ κ)]
+  let e : Fin (2 ^ κ) ≃ Fin (2 ^ (ℓ + κ - ℓ)) := finCongr (by rw [Nat.add_sub_cancel_left])
+  rw [Weight.pair]
+  refine (Fintype.sum_equiv e _ _ fun y ↦ ?_).symm
+  have hv : fixLow (Nat.le_add_right ℓ κ) r (boolVec (e y) : Vector E _) =
+      r ++ (boolVec y : Vector E κ) := by
+    apply Vector.ext
+    intro i hi
+    simp only [fixLow, Vector.getElem_cast, Vector.getElem_append, boolVec, Vector.getElem_ofFn, e,
+      finCongr_apply, Fin.val_cast]
+  rw [hv]
+  have h1 := evalMle_boolVec (foldTable W.onCube r) y
+  have h2 := evalMle_boolVec (foldTable f r) y
+  have h3 : (foldTable W.onCube r)[y] * (foldTable f r)[y] =
+      evalMle W.onCube (r ++ (boolVec y : Vector E κ)) *
+        evalMle f (r ++ (boolVec y : Vector E κ)) := by
+    rw [← h1, ← h2, evalMle_foldTable, evalMle_foldTable]
+  simp only [WhirSum.summand, RingHom.id_apply]
+  exact h3
+
 end Whir
 
 end

@@ -8,11 +8,12 @@
 module
 
 public import LeanerVM.Protocol.ToArkLib.SendOracle
+public import LeanerVM.Protocol.ToArkLib.Schedule
 
 /-!
 # The send-oracle-beside component
 
-`Component.sendOracleBeside OStmt M honest out` has the one-message schedule `sendSpec M`: the
+`Component.sendOracleBeside OStmt M honest out` has the one-message schedule `sayO M`: the
 prover sends `honest s o w`, computed from the statement, the oracles' contents and the witness,
 and the verifier maps the statement by `out` and exposes the input oracles *and* the message as
 oracles: the family `besideOracles OStmt M` on `ι ⊕ Unit`, the inputs on the left and the message
@@ -38,6 +39,17 @@ namespace Component
 variable {ι : Type} (OStmt : ι → Type) [∀ i, OracleInterface (OStmt i)]
   (M : Type) [OracleInterface M]
 
+/-- One prover message of type `M`, to be queried through `M`'s own oracle interface, written
+like `say` with its direction a function (so that appended schedules find their instances). -/
+abbrev sayO : ProtocolSpec 1 := ⟨fun _ ↦ .P_to_V, !v[M]⟩
+
+/-- The message of `sayO M` is queried as `M` is. -/
+instance instOracleInterfaceSayO : ∀ i, OracleInterface ((sayO M).Message i)
+  | ⟨0, _⟩ => inferInstanceAs (OracleInterface M)
+
+instance instSampleableTypeSayO : ∀ i, SampleableType ((sayO M).Challenge i)
+  | ⟨0, h⟩ => nomatch h
+
 /-- The input oracles with the message beside them. -/
 abbrev besideOracles : ι ⊕ Unit → Type := Sum.elim OStmt fun _ ↦ M
 
@@ -52,7 +64,7 @@ def besideData (o : ∀ i, OStmt i) (m : M) : ∀ i, besideOracles OStmt M i
 
 /-- The output-oracle description: the inputs stay, and the one message is the new oracle. -/
 def besideEmbedding :
-    OracleOutputEmbedding OStmt (sendSpec M).Message (besideOracles OStmt M) where
+    OracleOutputEmbedding OStmt (sayO M).Message (besideOracles OStmt M) where
   embed := ⟨fun i ↦ i.elim .inl fun _ ↦ .inr ⟨0, rfl⟩, by
     intro a b h
     rcases a with a | a <;> rcases b with b | b <;> simp_all⟩
@@ -64,7 +76,7 @@ variable {S S' W : Type} (honest : (S × ∀ i, OStmt i) × W → M) (out : S �
 /-- The prover: sends the message it computes, maps the statement, exposes the oracles and the
 message, keeps the witness. -/
 def sendBesideProver :
-    OracleProver []ₒ S OStmt W S' (besideOracles OStmt M) W (sendSpec M) where
+    OracleProver []ₒ S OStmt W S' (besideOracles OStmt M) W (sayO M) where
   PrvState := fun _ ↦ ((S × ∀ i, OStmt i) × W) × M
   input := fun p ↦ (p, honest p)
   sendMessage | ⟨0, _⟩ => fun st ↦ pure (st.2, st)
@@ -73,17 +85,17 @@ def sendBesideProver :
 
 /-- The verifier: maps the statement, exposes the inputs and the message as oracles. -/
 def sendBesideVerifier :
-    OracleVerifier []ₒ S OStmt S' (besideOracles OStmt M) (sendSpec M) where
+    OracleVerifier []ₒ S OStmt S' (besideOracles OStmt M) (sayO M) where
   verify := fun s _ ↦ pure (out s)
   outputOracle := .inl (besideEmbedding OStmt M)
 
 /-- The send-oracle-beside component. -/
-def sendOracleBeside : Def S OStmt W S' (besideOracles OStmt M) W (sendSpec M) where
+def sendOracleBeside : Def S OStmt W S' (besideOracles OStmt M) W (sayO M) where
   red := ⟨sendBesideProver OStmt M honest out, sendBesideVerifier OStmt M out⟩
 
 /-- The output oracles are the inputs and the message. -/
-theorem sendBeside_materializeOutput (challenges : (sendSpec M).Challenges) (o : ∀ i, OStmt i)
-    (messages : (sendSpec M).Messages) :
+theorem sendBeside_materializeOutput (challenges : (sayO M).Challenges) (o : ∀ i, OStmt i)
+    (messages : (sayO M).Messages) :
     (sendBesideVerifier OStmt M out).materializeOutput challenges o messages =
       besideData OStmt M o (messages ⟨0, rfl⟩) := by
   unfold OracleVerifier.materializeOutput sendBesideVerifier
@@ -96,7 +108,7 @@ theorem sendBeside_materializeOutput (challenges : (sendSpec M).Challenges) (o :
 /-- As an ordinary verifier, the verifier returns the mapped statement, the oracles and the
 message. -/
 theorem sendBesideVerifier_toVerifier_run (s : S) (o : ∀ i, OStmt i)
-    (tr : (sendSpec M).FullTranscript) :
+    (tr : (sayO M).FullTranscript) :
     (sendBesideVerifier OStmt M out).toVerifier.run (s, o) tr =
       pure (out s, besideData OStmt M o (tr 0)) := by
   simp only [Verifier.run, OracleVerifier.toVerifier]
@@ -124,16 +136,16 @@ theorem sendOracleBeside_complete
   obtain ⟨pr, hpr, rfl⟩ := Reduction.mem_support_run_of_guarded _
     (sendBesideVerifierPure OStmt M out).toGuardedForm (s, o) witIn hx
   have hrun : (sendBesideProver OStmt M honest out).run (s, o) witIn =
-      pure (show (sendSpec M).FullTranscript from
+      pure (show (sayO M).FullTranscript from
         ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-          (default : (sendSpec M).Transcript 0),
+          (default : (sayO M).Transcript 0),
         (out s, besideData OStmt M o (honest ((s, o), witIn))), witIn) := rfl
   have hpr' : pr ∈ support ((sendBesideProver OStmt M honest out).run (s, o) witIn) := hpr
   rw [hrun, support_pure, Set.mem_singleton_iff] at hpr'
   subst hpr'
   have hc : (sendBesideVerifierPure OStmt M out).toGuardedForm.check (s, o)
       (ProtocolSpec.Transcript.concat (m := 0) (honest ((s, o), witIn))
-        (default : (sendSpec M).Transcript 0)) = true := rfl
+        (default : (sayO M).Transcript 0)) = true := rfl
   rw [ite_eq_left hc]
   exact ⟨_, rfl, h s o witIn hIn, rfl⟩
 

@@ -98,7 +98,7 @@ def toyComplete :
 def toyMessage (p : (Fin 4 × ∀ i, OneTab i) × Unit) : Tab := fun j ↦ p.1.2 0 j + 1
 
 /-- The component: the message beside the input table. -/
-def toyBeside : Def (Fin 4) OneTab Unit (Fin 4) (besideOracles OneTab Tab) Unit (sendSpec Tab) :=
+def toyBeside : Def (Fin 4) OneTab Unit (Fin 4) (besideOracles OneTab Tab) Unit (sayO Tab) :=
   sendOracleBeside OneTab Tab toyMessage _root_.id
 
 #guard (besideData OneTab Tab oracles (toyMessage ((1, oracles), ())) (.inl 0) : Tab) 1 = 7
