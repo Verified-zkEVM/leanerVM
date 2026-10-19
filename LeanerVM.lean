@@ -76,6 +76,8 @@ import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
+import LeanerVM.Protocol.ToClean.ComponentPolynomial
+import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Frobenius
