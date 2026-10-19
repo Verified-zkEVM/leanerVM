@@ -24,6 +24,7 @@ import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint
 import LeanerVM.Protocol.FixedColumns
 import LeanerVM.Protocol.Flock
+import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.PublicInput
@@ -44,6 +45,7 @@ import LeanerVM.Protocol.ToArkLib.Flock.Lincheck
 import LeanerVM.Protocol.ToArkLib.Flock.Reduction
 import LeanerVM.Protocol.ToArkLib.Flock.RingSwitch
 import LeanerVM.Protocol.ToArkLib.Flock.Rounds
+import LeanerVM.Protocol.ToArkLib.Flock.Security
 import LeanerVM.Protocol.ToArkLib.Flock.Tables
 import LeanerVM.Protocol.ToArkLib.Flock.Zerocheck
 import LeanerVM.Protocol.ToArkLib.FrontVerifier
