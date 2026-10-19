@@ -215,16 +215,5 @@ def openingSecurity :
       (Opening.check I) _ (relMid := Opening.BatchedHolds I) (Opening.answers_of_not_flock I)
       fun c o _ hc _ ↦ (Opening.answer_weight_iff I o c).mp ((Opening.accepts_iff I c _).mp hc))
 
-/-
-The protocol's five phases, once the Flock phase exists, `h` the bus phase's side conditions:
-
-def leanVmPhases (I : M3Instance) (h : Bus.Conditions I) : Phases I where
-  bus := busPhase I h
-  table := tableSumcheck I
-  pub := deployedPublicInputPhase I
-  flock := flockPhase I
-  opening := openingPhase I
--/
-
 end
 end LeanerVM.Protocol

@@ -29,6 +29,7 @@ import LeanerVM.Protocol.FlockFields
 import LeanerVM.Protocol.FlockSpec
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
+import LeanerVM.Protocol.Piop
 import LeanerVM.Protocol.PublicInput
 import LeanerVM.Protocol.Spine.Compose
 import LeanerVM.Protocol.Spine.Errors
