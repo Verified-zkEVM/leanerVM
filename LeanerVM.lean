@@ -71,6 +71,7 @@ import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.MapWitness
 import LeanerVM.Protocol.ToArkLib.Oracles
+import LeanerVM.Protocol.ToArkLib.PassCheck
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.QueryRecord
@@ -86,9 +87,12 @@ import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
+import LeanerVM.Protocol.ToArkLib.Whir.Final
 import LeanerVM.Protocol.ToArkLib.Whir.Glue
 import LeanerVM.Protocol.ToArkLib.Whir.Level
+import LeanerVM.Protocol.ToArkLib.Whir.Open
 import LeanerVM.Protocol.ToArkLib.Whir.Schedule
+import LeanerVM.Protocol.ToArkLib.Whir.Stack
 import LeanerVM.Protocol.ToArkLib.Whir.Word
 import LeanerVM.Protocol.ToArkLib.WhirSumcheck
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
