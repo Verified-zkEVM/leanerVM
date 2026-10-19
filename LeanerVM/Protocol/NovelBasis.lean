@@ -16,12 +16,12 @@ import Mathlib.LinearAlgebra.StdBasis
 import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Algebra.Polynomial.BigOperators
 import Mathlib.Algebra.Polynomial.Eval.Algebra
+import Mathlib.Data.Nat.BitIndices
 
 /-!
 # The novel basis, the encoder and the column weights
 
-Protocol roadmap Layer 11 (`docs/roadmap/protocol-blueprint.md`), first slice of the WHIR
-opening (issue #101). Category B: Annex B, "Novel polynomial basis and additive NTT"
+Category B: Annex B, "Novel polynomial basis and additive NTT"
 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`, `app:ntt`) at leanVM pin
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`, with `crates/pcs/src/ntt/additive_ntt_f64.rs`
 (`AdditiveNttF64::standard`) and `python-verifier/verifier.py:956-989` (`_subspace_roots`,
@@ -56,8 +56,8 @@ premise of CompPoly's additive NTT at this basis
 
 The encoder commutes with ring maps of the message ring (`encode_map`), so a `K`-valued message
 has a `K`-valued word (`encode_ofK`, `isInK_encode_ofK`): level 0 of the protocol is the `K`
-code, the later levels the `E` code. Not proved here: that `encode` is injective (the novel basis
-is triangular, `def:enc`), which the soundness of the opening will need.
+code, the later levels the `E` code. The encoder is linear (`encodeLinear`) and injective
+(`encode_injective`), since the novel basis is triangular (`natDegree_novelPoly`, `def:enc`).
 
 ## Wrong readings excluded
 
@@ -110,29 +110,19 @@ def domainPt (v : ℕ) : K := K.ofBits v
 def subspaceVanish (k : ℕ) (x : K) : K := ∏ m ∈ Finset.range (2 ^ k), (x + domainPt m)
 
 /-- The domain's origin is `0`. -/
-theorem domainPt_zero : domainPt 0 = 0 := by decide +kernel
+private theorem domainPt_zero : domainPt 0 = 0 := by decide +kernel
 
 /-- `x_v` is additive in the position: `x_{a ⊕ b} = x_a + x_b`. -/
-theorem domainPt_xor (a b : ℕ) : domainPt (a ^^^ b) = domainPt a + domainPt b := by
+private theorem domainPt_xor (a b : ℕ) : domainPt (a ^^^ b) = domainPt a + domainPt b := by
   unfold domainPt K.ofBits
   rw [BF64.add_def, BitVec.ofNat_xor]
   rfl
 
-/-- A position below `2 ^ k` shares no bit with `2 ^ k`. -/
-theorem and_two_pow_of_lt {k m : ℕ} (hm : m < 2 ^ k) : 2 ^ k &&& m = 0 := by
-  apply Nat.eq_of_testBit_eq
-  intro i
-  rw [Nat.testBit_and, Nat.testBit_two_pow]
-  simp only [Nat.zero_testBit, Bool.and_eq_false_iff, decide_eq_false_iff_not]
-  by_cases h : k = i
-  · subst h
-    right; exact Nat.testBit_eq_false_of_lt hm
-  · left; exact h
-
 /-- Adding the bit `2 ^ k` to a position below it adds `e_k`. -/
-theorem domainPt_two_pow_add {k m : ℕ} (hm : m < 2 ^ k) :
+private theorem domainPt_two_pow_add {k m : ℕ} (hm : m < 2 ^ k) :
     domainPt (2 ^ k + m) = domainPt (2 ^ k) + domainPt m := by
-  rw [← domainPt_xor, Nat.sum_of_and_eq_zero_is_xor (and_two_pow_of_lt hm)]
+  rw [← domainPt_xor, Nat.sum_of_and_eq_zero_is_xor (by
+    simp [Nat.two_pow_and, Nat.testBit_eq_false_of_lt hm])]
 
 /-- Positions below `2 ^ 64` are distinct points of `K`. -/
 theorem domainPt_injOn {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
@@ -144,7 +134,7 @@ theorem domainPt_injOn {a b : ℕ} (ha : a < 2 ^ 64) (hb : b < 2 ^ 64)
 
 /-- `lem:subspace` (i), before (ii): `V_{k+1}(x) = V_k(x) · V_k(x + e_k)`, by splitting
 `U_{k+1} = U_k ⊔ (e_k + U_k)`. -/
-theorem subspaceVanish_succ {k : ℕ} (x : K) :
+private theorem subspaceVanish_succ {k : ℕ} (x : K) :
     subspaceVanish (k + 1) x = subspaceVanish k x * subspaceVanish k (x + domainPt (2 ^ k)) := by
   unfold subspaceVanish
   rw [pow_succ, mul_two, Finset.prod_range_add]
@@ -174,7 +164,7 @@ theorem subspaceVanish_succ' {k : ℕ} (hk : k < 64) (x : K) :
       subspaceVanish k x * (subspaceVanish k x + subspaceVanish k (domainPt (2 ^ k))) := by
   rw [subspaceVanish_succ, subspaceVanish_add (by omega)]
 
-theorem length_subspaceLayer : ∀ k, (subspaceLayer k).length = 64
+private theorem length_subspaceLayer : ∀ k, (subspaceLayer k).length = 64
   | 0 => by simp [subspaceLayer]
   | k + 1 => by simp [subspaceLayer, length_subspaceLayer k]
 
@@ -182,7 +172,7 @@ theorem length_subspaceLayer : ∀ k, (subspaceLayer k).length = 64
 theorem basisElt_eq_domainPt : ∀ k < 64, basisElt k = domainPt (2 ^ k) := by decide +kernel
 
 /-- Layer `k` lists `V_k(e_c)`. -/
-theorem subspaceLayer_getD : ∀ {k : ℕ}, k ≤ 64 → ∀ {c : ℕ}, c < 64 →
+private theorem subspaceLayer_getD : ∀ {k : ℕ}, k ≤ 64 → ∀ {c : ℕ}, c < 64 →
     (subspaceLayer k).getD c 0 = subspaceVanish k (basisElt c)
   | 0, _, c, hc => by
     simp [subspaceLayer, subspaceVanish_zero, hc]
@@ -211,46 +201,31 @@ theorem vanish_eq : ∀ {k : ℕ}, k ≤ 64 → ∀ x : K, vanish x k = subspace
 
 /-- `V_k(e_k) ≠ 0`: `e_k ∉ U_k`, so the normalization divides by a unit. -/
 theorem subspaceRoot_ne_zero {k : ℕ} (hk : k < 64) : subspaceRoot k ≠ 0 := by
-  rw [subspaceRoot_eq hk, basisElt_eq_domainPt k hk]
-  unfold subspaceVanish
-  rw [Finset.prod_ne_zero_iff]
+  rw [subspaceRoot_eq hk, basisElt_eq_domainPt k hk, subspaceVanish, Finset.prod_ne_zero_iff]
   intro m hm h
-  have hm' := Finset.mem_range.mp hm
-  have h2 : domainPt (2 ^ k) = domainPt m := by
-    have := CharTwo.add_eq_zero.mp h
-    exact this
+  have hm := Finset.mem_range.mp hm
   have hlt : 2 ^ k < 2 ^ 64 := Nat.pow_lt_pow_right (by norm_num) hk
-  have := domainPt_injOn hlt (hm'.trans hlt) h2
+  have := domainPt_injOn hlt (hm.trans hlt) (CharTwo.add_eq_zero.mp h)
   omega
 
 /-- `Ŵ_k(e_k) = 1`. -/
 theorem normW_basisElt {k : ℕ} (hk : k < 64) : normW k (basisElt k) = 1 := by
-  unfold normW
-  rw [vanish_eq (by omega), ← subspaceRoot_eq hk]
-  exact div_self (subspaceRoot_ne_zero hk)
+  rw [normW, vanish_eq (by omega), ← subspaceRoot_eq hk, div_self (subspaceRoot_ne_zero hk)]
 
 /-- `Ŵ_k` vanishes on `U_k`. -/
 theorem normW_domainPt_of_lt {k m : ℕ} (hk : k ≤ 64) (hm : m < 2 ^ k) :
     normW k (domainPt m) = 0 := by
-  unfold normW
-  rw [vanish_eq hk]
-  unfold subspaceVanish
-  rw [Finset.prod_eq_zero (Finset.mem_range.mpr hm) (CharTwo.add_self_eq_zero (domainPt m)),
-    zero_div]
+  rw [normW, vanish_eq hk, subspaceVanish,
+    Finset.prod_eq_zero (Finset.mem_range.mpr hm) (CharTwo.add_self_eq_zero (domainPt m)), zero_div]
 
 /-- `Ŵ_k` is `F_2`-linear, so `Ŵ_k(x_v) = Σ_c v_c Ŵ_k(e_c)`. -/
 theorem normW_add {k : ℕ} (hk : k ≤ 64) (x y : K) :
     normW k (x + y) = normW k x + normW k y := by
-  unfold normW
-  rw [vanish_eq hk, vanish_eq hk, vanish_eq hk, subspaceVanish_add hk, add_div]
+  simp only [normW, vanish_eq hk, subspaceVanish_add hk, add_div]
 
 /-- `Ŵ_0 = X`, since `e_0 = 1`. -/
 theorem normW_zero (x : K) : normW 0 x = x := by
-  unfold normW
-  rw [vanish_eq (by omega), subspaceVanish_zero]
-  have : subspaceRoot 0 = 1 := by
-    rw [subspaceRoot_eq (by omega), subspaceVanish_zero]; decide +kernel
-  rw [this, div_one]
+  rw [normW, vanish, show subspaceRoot 0 = 1 by decide +kernel, div_one]
 
 /-! ## The basis `e_c` -/
 
@@ -279,16 +254,10 @@ theorem basisElt_linearIndependent [Module (ZMod 2) K] :
       map_smul' := fun c x ↦ by
         have hc : c = 0 ∨ c = 1 := by revert c; decide
         rcases hc with rfl | rfl <;> (funext j; simp [bitsOf]) }
-  apply LinearIndependent.of_comp f
-  have h : (f ∘ fun c : Fin 64 ↦ basisElt c) =
-      fun c : Fin 64 ↦ (Pi.single c 1 : Fin 64 → ZMod 2) := by
-    funext c; exact bitsOf_basisElt c
-  rw [h]
-  have h' := (Pi.basisFun (ZMod 2) (Fin 64)).linearIndependent
-  have e : (⇑(Pi.basisFun (ZMod 2) (Fin 64)) : Fin 64 → Fin 64 → ZMod 2) =
-      fun c : Fin 64 ↦ (Pi.single c 1 : Fin 64 → ZMod 2) := by
-    funext c; exact Pi.basisFun_apply (ZMod 2) (Fin 64) c
-  rw [← e]; exact h'
+  refine LinearIndependent.of_comp f ?_
+  convert (Pi.basisFun (ZMod 2) (Fin 64)).linearIndependent using 1
+  funext c
+  simp [f, bitsOf_basisElt]
 
 /-! ## The encoder and the column weights -/
 
@@ -321,8 +290,8 @@ theorem encode_eq_sum {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
       (∏ k : Fin κ, if u.val.testBit k then φ (normW k (domainPt v)) else 1) * m[u] := by
   simp [encode, columnWeight, Weight.pair, bitProductTable_getElem]
 
-/-- Encoding commutes with ring homomorphisms of the message ring: a `K`-valued message gives
-a `K`-valued word (`encode_K` of the blueprint, with `ψ` the inclusion of `K` in `E`). -/
+/-- Encoding commutes with ring homomorphisms of the message ring: with `ψ` the inclusion of `K`
+in `E`, a `K`-valued message gives a `K`-valued word. -/
 theorem encode_map {S T : Type*} [CommRing S] [CommRing T] (φ : K →+* S) (ψ : S →+* T)
     (κ R : ℕ) (m : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
     encode (ψ.comp φ) κ R (CMlPolynomialEval.map ψ m) v = ψ (encode φ κ R m v) := by
@@ -370,10 +339,6 @@ noncomputable def encodeLinear : CMlPolynomialEval S κ →ₗ[S] (Fin (2 ^ (κ 
     rw [h2]
     ring
 
-/-- The linear map is the encoder. -/
-theorem encodeLinear_apply (m : CMlPolynomialEval S κ) :
-    encodeLinear φ κ R m = encode φ κ R m := rfl
-
 end Linear
 
 /-! ## The encoder is injective -/
@@ -387,72 +352,38 @@ noncomputable def normWPoly (k : ℕ) : K[X] :=
   C (subspaceRoot k)⁻¹ * ∏ m ∈ Finset.range (2 ^ k), (X + C (domainPt m))
 
 /-- The polynomial `Ŵ_k` evaluates to `normW k`. -/
-theorem eval_normWPoly {k : ℕ} (hk : k < 64) (x : K) : (normWPoly k).eval x = normW k x := by
-  unfold normWPoly normW
-  simp only [Polynomial.eval_mul, Polynomial.eval_C, Polynomial.eval_prod, Polynomial.eval_add,
-    Polynomial.eval_X]
-  rw [vanish_eq (by omega)]
-  unfold subspaceVanish
-  rw [div_eq_inv_mul]
+private theorem eval_normWPoly {k : ℕ} (hk : k < 64) (x : K) :
+    (normWPoly k).eval x = normW k x := by
+  simp only [normWPoly, normW, eval_mul, eval_C, eval_prod, Polynomial.eval_add, eval_X,
+    vanish_eq (Nat.le_of_lt hk), subspaceVanish, div_eq_inv_mul]
 
 /-- `Ŵ_k` is not the zero polynomial. -/
-theorem normWPoly_ne_zero {k : ℕ} (hk : k < 64) : normWPoly k ≠ 0 := by
+private theorem normWPoly_ne_zero {k : ℕ} (hk : k < 64) : normWPoly k ≠ 0 := by
   unfold normWPoly
   refine mul_ne_zero (by simpa using subspaceRoot_ne_zero hk) ?_
   exact (Polynomial.monic_prod_of_monic _ _ fun m _ ↦ monic_X_add_C _).ne_zero
 
 /-- `deg Ŵ_k = 2 ^ k`. -/
-theorem natDegree_normWPoly {k : ℕ} (hk : k < 64) : (normWPoly k).natDegree = 2 ^ k := by
+private theorem natDegree_normWPoly {k : ℕ} (hk : k < 64) : (normWPoly k).natDegree = 2 ^ k := by
   unfold normWPoly
   rw [natDegree_C_mul (by simpa using subspaceRoot_ne_zero hk),
     natDegree_prod_of_monic _ _ fun m _ ↦ monic_X_add_C _]
   simp
-
-/-- The leading coefficient of `Ŵ_k` is the inverse of the root. -/
-theorem leadingCoeff_normWPoly (k : ℕ) :
-    (normWPoly k).leadingCoeff = (subspaceRoot k)⁻¹ := by
-  unfold normWPoly
-  rw [leadingCoeff_mul, leadingCoeff_C, (Polynomial.monic_prod_of_monic _ _
-    fun m _ ↦ monic_X_add_C _).leadingCoeff, mul_one]
 
 /-- The novel polynomial `X_j = ∏_{k < κ, bit k of j} Ŵ_k` (`def:enc`). -/
 noncomputable def novelPoly (κ j : ℕ) : K[X] :=
   ∏ k ∈ (Finset.range κ).filter (j.testBit ·), normWPoly k
 
 /-- The binary expansion of `j < 2 ^ κ`: the powers of its bits sum to `j`. -/
-theorem sum_testBit_two_pow : ∀ (κ j : ℕ), j < 2 ^ κ →
-    ∑ k ∈ (Finset.range κ).filter (j.testBit ·), 2 ^ k = j
-  | 0, j, hj => by simp at hj; simp [hj]
-  | κ + 1, j, hj => by
-    have ih := sum_testBit_two_pow κ (j % 2 ^ κ) (Nat.mod_lt _ (Nat.two_pow_pos _))
-    have hmod : (Finset.range κ).filter (j.testBit ·) =
-        (Finset.range κ).filter ((j % 2 ^ κ).testBit ·) := by
-      ext k
-      simp only [Finset.mem_filter, Finset.mem_range, Nat.testBit_mod_two_pow]
-      constructor <;> rintro ⟨hk, h⟩ <;> refine ⟨hk, ?_⟩ <;> simpa [hk] using h
-    rw [← hmod] at ih
-    have hd : j / 2 ^ κ < 2 := Nat.div_lt_of_lt_mul (by rw [pow_succ] at hj; omega)
-    have hbit : j.testBit κ = decide (j / 2 ^ κ % 2 = 1) := Nat.testBit_eq_decide_div_mod_eq
-    have hdm := Nat.mod_add_div j (2 ^ κ)
-    rw [Finset.range_add_one, Finset.filter_insert]
-    by_cases hb : j.testBit κ = true
-    · simp only [hb, ↓reduceIte]
-      rw [Finset.sum_insert (by simp), ih]
-      have h1 : j / 2 ^ κ % 2 = 1 := of_decide_eq_true (hbit ▸ hb)
-      generalize j / 2 ^ κ = d at *
-      have : d = 1 := by omega
-      subst this
-      rw [mul_one] at hdm
-      linarith
-    · have hb' : j.testBit κ = false := by simpa using hb
-      simp only [hb', Bool.false_eq_true, ↓reduceIte]
-      rw [ih]
-      have h1 : ¬ (j / 2 ^ κ % 2 = 1) := fun e ↦ hb (by rw [hbit]; exact decide_eq_true e)
-      generalize j / 2 ^ κ = d at *
-      have : d = 0 := by omega
-      subst this
-      rw [mul_zero, add_zero] at hdm
-      exact hdm
+private theorem sum_testBit_two_pow (κ j : ℕ) (hj : j < 2 ^ κ) :
+    ∑ k ∈ (Finset.range κ).filter (j.testBit ·), 2 ^ k = j := by
+  have h : (Finset.range κ).filter (j.testBit ·) = j.bitIndices.toFinset := by
+    ext k
+    simp only [Finset.mem_filter, Finset.mem_range, List.mem_toFinset, Nat.mem_bitIndices,
+      and_iff_right_iff_imp]
+    exact fun hk ↦
+      (Nat.pow_lt_pow_iff_right (by decide)).1 ((Nat.ge_two_pow_of_testBit hk).trans_lt hj)
+  rw [h, List.sum_toFinset _ Nat.bitIndices_nodup, Nat.sum_map_two_pow_bitIndices]
 
 /-- `deg X_j = j` for `j < 2 ^ κ`: the novel basis is triangular (`def:enc`). -/
 theorem natDegree_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) :
@@ -463,15 +394,9 @@ theorem natDegree_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (hj : j < 2 ^ κ) :
   refine Eq.trans (Finset.sum_congr rfl fun k hk ↦ natDegree_normWPoly (by
     have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)) (sum_testBit_two_pow κ j hj)
 
-/-- `X_j` has a nonzero leading coefficient. -/
-theorem leadingCoeff_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) :
-    (novelPoly κ j).leadingCoeff ≠ 0 := by
-  unfold novelPoly
-  rw [leadingCoeff_prod]
-  refine Finset.prod_ne_zero_iff.mpr fun k hk ↦ ?_
-  have : k < 64 := by have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega
-  rw [leadingCoeff_normWPoly k]
-  simpa using subspaceRoot_ne_zero this
+private theorem novelPoly_ne_zero {κ j : ℕ} (hκ : κ ≤ 64) : novelPoly κ j ≠ 0 :=
+  Finset.prod_ne_zero_iff.mpr fun k hk ↦ normWPoly_ne_zero (by
+    have := Finset.mem_range.mp (Finset.mem_filter.mp hk).1; omega)
 
 /-- `X_j(x) = ∏_k Ŵ_k(x) ^ (bit k of j)`: the novel polynomial is the encoder's table entry. -/
 theorem eval_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (x : K) :
@@ -484,10 +409,9 @@ theorem eval_novelPoly {κ j : ℕ} (hκ : κ ≤ 64) (x : K) :
   · exact eval_normWPoly (by omega) x
   · rfl
 
-
 /-- The difference of two encodings at the position `v` is the evaluation at `x_v` of the
 polynomial whose novel-basis coefficients are the difference of the messages. -/
-theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
+private theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
     (m m' : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
     encode φ κ R m v - encode φ κ R m' v =
       (∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ).eval
@@ -508,63 +432,39 @@ theorem encode_injective {S : Type*} [CommRing S] [IsDomain S] (φ : K →+* S) 
   classical
   intro m m' h
   set P : S[X] := ∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ with hPdef
-  have hpos : 0 < 2 ^ κ := Nat.two_pow_pos κ
-  have hdeg : P.natDegree < 2 ^ κ := by
-    have : P.natDegree ≤ 2 ^ κ - 1 := by
-      refine Polynomial.natDegree_sum_le_of_forall_le _ _ fun u _ ↦ ?_
-      refine (Polynomial.natDegree_C_mul_le _ _).trans ((Polynomial.natDegree_map_le).trans ?_)
-      rw [natDegree_novelPoly hκ u.2]
-      have := u.2
-      omega
-    omega
   have hP : P = 0 := by
-    refine Polynomial.eq_zero_of_natDegree_lt_card_of_eval_eq_zero P
-      (ι := Fin (2 ^ κ)) (f := fun i ↦ φ (domainPt i)) ?_ ?_ (by simpa using hdeg)
-    · intro i j hij
-      have hi := i.2
-      have hj := j.2
-      have h64 : 2 ^ κ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hκ
+    have h64 : 2 ^ κ ≤ 2 ^ 64 := Nat.pow_le_pow_right (by norm_num) hκ
+    refine eq_zero_of_natDegree_lt_card_of_eval_eq_zero P
+      (f := fun i : Fin (2 ^ κ) ↦ φ (domainPt i)) (fun i j hij ↦ ?_) (fun i ↦ ?_) ?_
+    · have := i.2
+      have := j.2
       exact Fin.ext (domainPt_injOn (by omega) (by omega) (hφ hij))
-    · intro i
-      have hle : 2 ^ κ ≤ 2 ^ (κ + R) :=
-        Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right κ R)
-      have := encode_sub_eq_eval φ hκ m m' ⟨i.val, lt_of_lt_of_le i.2 hle⟩
+    · have hle : 2 ^ κ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (Nat.le_add_right κ R)
+      have := encode_sub_eq_eval φ hκ m m' ⟨i.val, i.2.trans_le hle⟩
       rw [h, sub_self] at this
       exact this.symm
+    · refine (natDegree_sum_le_of_forall_le _ _ (n := 2 ^ κ - 1) fun u _ ↦ ?_).trans_lt
+        (by simp)
+      refine (natDegree_C_mul_le _ _).trans (natDegree_map_le.trans ?_)
+      rw [natDegree_novelPoly hκ u.2]
+      omega
   by_contra hne
   have hT : (Finset.univ.filter fun u : Fin (2 ^ κ) ↦ m[u] ≠ m'[u]).Nonempty := by
     by_contra hT
-    apply hne
-    apply Vector.ext
-    intro i hi
-    by_contra hi'
-    exact hT ⟨⟨i, hi⟩, by simpa using hi'⟩
-  set u₀ := (Finset.univ.filter fun u : Fin (2 ^ κ) ↦ m[u] ≠ m'[u]).max' hT with hu₀
-  have hu₀mem : m[u₀] ≠ m'[u₀] := (Finset.mem_filter.mp (Finset.max'_mem _ hT)).2
-  have hcoeff : P.coeff u₀.val =
-      (m[u₀] - m'[u₀]) * φ ((novelPoly κ u₀).leadingCoeff) := by
-    rw [hPdef, Polynomial.finsetSum_coeff, Finset.sum_eq_single u₀]
-    · have hd := natDegree_novelPoly hκ u₀.2
-      have hlc : (novelPoly κ u₀).coeff u₀.val = (novelPoly κ u₀).leadingCoeff := by
-        rw [Polynomial.leadingCoeff, hd]
-      rw [Polynomial.coeff_C_mul, Polynomial.coeff_map, hlc]
-    · intro u _ hu
-      rcases lt_or_gt_of_ne (fun e : u.val = u₀.val ↦ hu (Fin.ext e)) with hlt | hgt
-      · rw [Polynomial.coeff_C_mul, Polynomial.coeff_eq_zero_of_natDegree_lt, mul_zero]
-        refine lt_of_le_of_lt Polynomial.natDegree_map_le ?_
-        rw [natDegree_novelPoly hκ u.2]
-        exact hlt
-      · have : ¬ (m[u] ≠ m'[u]) := by
-          intro hmem
-          have : u ≤ u₀ := Finset.le_max' _ u (by simpa using hmem)
-          exact absurd hgt (not_lt.mpr this)
-        rw [Polynomial.coeff_C_mul, not_not.mp this, sub_self, zero_mul]
-    · intro hmem
-      exact absurd (Finset.mem_univ u₀) hmem
-  rw [hP, Polynomial.coeff_zero] at hcoeff
-  have hlc : φ ((novelPoly κ u₀).leadingCoeff) ≠ 0 := fun h0 ↦
-    leadingCoeff_novelPoly hκ (hφ (by rw [h0, map_zero]))
-  exact mul_ne_zero (sub_ne_zero.mpr hu₀mem) hlc hcoeff.symm
+    exact hne (Vector.ext fun i hi ↦ by_contra fun hi' ↦ hT ⟨⟨i, hi⟩, by simpa using hi'⟩)
+  set u₀ := (Finset.univ.filter fun u : Fin (2 ^ κ) ↦ m[u] ≠ m'[u]).max' hT
+  have hcoeff : P.coeff u₀ = (m[u₀] - m'[u₀]) * φ (novelPoly κ u₀).leadingCoeff := by
+    rw [hPdef, finsetSum_coeff, Finset.sum_eq_single u₀ (fun u _ hu ↦ ?_) (by simp)]
+    · rw [coeff_C_mul, coeff_map, leadingCoeff, natDegree_novelPoly hκ u₀.2]
+    rcases lt_or_gt_of_ne (Fin.val_ne_of_ne hu) with hlt | hgt
+    · rw [coeff_C_mul, coeff_eq_zero_of_natDegree_lt, mul_zero]
+      exact natDegree_map_le.trans_lt ((natDegree_novelPoly hκ u.2).trans_lt hlt)
+    · have : m[u] = m'[u] := by_contra fun hmem ↦
+        absurd (Finset.le_max' _ u (by simpa using hmem)) (not_le.mpr hgt)
+      rw [coeff_C_mul, this, sub_self, zero_mul]
+  rw [hP, coeff_zero] at hcoeff
+  exact mul_ne_zero (sub_ne_zero.mpr (Finset.mem_filter.mp (Finset.max'_mem _ hT)).2)
+    ((map_ne_zero_iff φ hφ).mpr (leadingCoeff_ne_zero.mpr (novelPoly_ne_zero hκ))) hcoeff.symm
 
 end Injectivity
 
