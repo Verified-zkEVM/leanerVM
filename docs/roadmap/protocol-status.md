@@ -519,6 +519,15 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     soundness and gate-count contracts (`ToArkLib/Flock/Builder.lean`) and the 32-bit adders
     (`ToArkLib/Flock/Words.lean`). Clean was measured and not used for the block: its expression
     trees are traversed unmemoised and its R1CS export allocates a fresh signal per product.
+  - The BLAKE2s compression circuit in it (`Protocol/Blake2sCircuit.lean`, Category B, from
+    `crates/flock/src/hash.rs` and `verifier.py:1180-1295`): `blake2sCircuit` (14720 product
+    gates from 1280, then the 256 output rows) and `bounded_blake2s`, from the gate-count
+    contracts. Both directions are theorems: `blake2s_sound`/`blake2s_sound_words` (a satisfying
+    Boolean block with `1` at position 512 carries at its output positions `compress` of the
+    words at its input positions) and `blake2s_complete` (the trace of any input satisfies the
+    R1CS, keeps its inputs and carries their compression). That its rows are the deployed ones
+    is test evidence, not a theorem: a digest of every row equals the Python walk's
+    (`scripts/dump-flock-circuit-digest.py`).
 
 - **The table sumcheck phase (Layer 7)** is at the slot's schedule `tableSpec I`. Where it differs
   from Layer 7's sketch, or what it leaves to the work after it:

@@ -95,8 +95,8 @@ def toyIn (x y z : UInt32) : Form 8 := wordAt 0 x ||| wordAt 32 y ||| wordAt 64 
 
 /-- The value of an output word on a bitset block. -/
 def wordValue (o : Word 8) (z : Form 8) : UInt32 :=
-  (List.finRange 32).foldl (fun acc i ↦ if o[i].evalB z then acc ||| (1 <<< i.val.toUInt32) else acc)
-    0
+  (List.finRange 32).foldl
+    (fun acc i ↦ if o[i].evalB z then acc ||| (1 <<< i.val.toUInt32) else acc) 0
 
 /-- The trace of three concrete words. -/
 def toyTrace : Form 8 := toyCircuit.trace (toyIn 0xDEADBEEF 0x01234567 0xFFFFFFFF)

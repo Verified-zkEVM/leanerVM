@@ -12,6 +12,7 @@ import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
+import LeanerVMTests.Protocol.Blake2sCircuit
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ClaimWeights
