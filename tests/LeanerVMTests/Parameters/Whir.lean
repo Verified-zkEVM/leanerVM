@@ -50,6 +50,11 @@ example : queryTable.length = 4 ∧ ∀ row ∈ queryTable, row.length = 14 := b
 1), level 1 of length `2^9` (five at exponent 4). -/
 example : ∀ levels, ladder 15 1 = some levels → blockLogs 15 levels = [10, 9] := by decide
 
+/-- The largest code of the window: level 0 of `(28, 4)`, 22 message variables at exponent 4,
+well inside the encoders' bound of 63 that `ladder_blocks` states. -/
+example : ∀ levels, ladder 28 4 = some levels → (blockLogs 28 levels).foldl max 0 = 26 := by
+  decide
+
 example : oodSamples 0 = 0 ∧ oodSamples 1 = 1 ∧ oodSamples 5 = 1 := by decide
 
 /-- The Rust's assertions on the constants (`whir_config.rs:80, 81, 92`): a reduction never

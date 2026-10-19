@@ -4,7 +4,8 @@
   Binary Merkle trees over an abstract hash: the root of `2^k` leaves, the authentication path of
   a leaf, and the verifier's recomputation of the root from a leaf and a path, with the two facts
   a compiler to Merkle-committed oracles needs: an honest path is accepted, and two accepted paths
-  to one root at one index with different leaves exhibit a collision. Candidate for ArkLib.
+  to one root at one index with different leaves yield a collision, computed from the two paths.
+  Candidate for ArkLib.
 -/
 
 module
@@ -24,9 +25,10 @@ row whose bytes are two child digests opens as a leaf one level short, since not
 the leaf hash from the node hash; without the second an index is read modulo the leaf count.
 
 Nothing here depends on the hash: `verify_path` is an identity of definitions, and
-`collision_of_rootOfPath_eq` turns two accepted openings that disagree on the leaf into a
-collision of `hashLeaf` or of `hashPair`, which is what a collision-resistance assumption on the
-hash turns into binding of the commitment.
+`findCollision` computes, from two accepted openings that disagree on the leaf, a collision of
+`hashLeaf` or of `hashPair` (`collision_of_verify`). A reduction to collision resistance needs the
+colliding inputs as such a function of the openings: for any concrete hash with an infinite leaf
+type, a collision merely existing is a theorem with no hypothesis.
 -/
 
 namespace LeanerVM.Protocol.MerkleTree
@@ -133,50 +135,67 @@ theorem verify_path [DecidableEq D] {k : ℕ} (leaves : Vector L (2 ^ k)) (i : F
   decide_eq_true
     ⟨length_path hashLeaf hashPair leaves i, i.isLt, rootOfPath_path hashLeaf hashPair leaves i⟩
 
-/-! ## Two accepted openings that disagree exhibit a collision -/
+/-! ## Two accepted openings that disagree yield a collision -/
 
-/-- Two distinct pairs with the same digest. -/
-def PairCollision : Prop := ∃ a b a' b', (a, b) ≠ (a', b') ∧ hashPair a b = hashPair a' b'
+/-- A candidate collision: two leaves, or the two child pairs of one parent. -/
+inductive Collision (L D : Type) where
+  | leaves (a b : L)
+  | pairs (a b a' b' : D)
+  deriving DecidableEq
 
-/-- Two distinct leaves with the same digest. -/
-def LeafCollision : Prop := ∃ a b, a ≠ b ∧ hashLeaf a = hashLeaf b
+/-- The candidate is a collision: distinct inputs with one digest. -/
+def Collision.Holds : Collision L D → Prop
+  | .leaves a b => a ≠ b ∧ hashLeaf a = hashLeaf b
+  | .pairs a b a' b' => (a, b) ≠ (a', b') ∧ hashPair a b = hashPair a' b'
 
-theorem pairCollision_of_climb_eq :
+/-- Climb two paths in step from the nodes `d` and `d'` at index `i`, and return the child pairs
+of the first level at which the two running nodes meet. -/
+def climbCollision [DecidableEq D] : D → D → ℕ → List D → List D → Option (Collision L D)
+  | d, d', i, s :: p, s' :: p' =>
+    let n := if i % 2 = 0 then hashPair d s else hashPair s d
+    let n' := if i % 2 = 0 then hashPair d' s' else hashPair s' d'
+    if n = n' then some (if i % 2 = 0 then .pairs d s d' s' else .pairs s d s' d')
+    else climbCollision n n' (i / 2) p p'
+  | _, _, _, _, _ => none
+
+/-- The collision two openings at index `i` exhibit: the leaves if their digests agree, else the
+first pair of child pairs at which the two climbs meet. -/
+def findCollision [DecidableEq D] (leaf leaf' : L) (i : ℕ) (p p' : List D) :
+    Option (Collision L D) :=
+  if hashLeaf leaf = hashLeaf leaf' then some (.leaves leaf leaf')
+  else climbCollision hashPair (hashLeaf leaf) (hashLeaf leaf') i p p'
+
+theorem climbCollision_holds [DecidableEq D] :
     ∀ (p p' : List D) (d d' : D) (i : ℕ), p.length = p'.length → d ≠ d' →
-      climb hashPair d i p = climb hashPair d' i p' → PairCollision hashPair
+      climb hashPair d i p = climb hashPair d' i p' →
+        ∃ c ∈ climbCollision (L := L) hashPair d d' i p p', c.Holds hashLeaf hashPair
   | [], [], _, _, _, _, hne, h => absurd h hne
   | [], _ :: _, _, _, _, hl, _, _ => by simp at hl
   | _ :: _, [], _, _, _, hl, _, _ => by simp at hl
   | s :: p, s' :: p', d, d', i, hl, hne, h => by
     simp only [climb] at h
-    by_cases hnode : (if i % 2 = 0 then hashPair d s else hashPair s d) =
+    simp only [climbCollision]
+    by_cases hn : (if i % 2 = 0 then hashPair d s else hashPair s d) =
         if i % 2 = 0 then hashPair d' s' else hashPair s' d'
-    · split at hnode
-      · exact ⟨d, s, d', s', fun e ↦ hne (Prod.mk.inj e).1, hnode⟩
-      · exact ⟨s, d, s', d', fun e ↦ hne (Prod.mk.inj e).2, hnode⟩
-    · exact pairCollision_of_climb_eq p p' _ _ (i / 2) (by simpa using hl) hnode h
+    · simp only [hn, ↓reduceIte]
+      refine ⟨_, rfl, ?_⟩
+      split at hn <;> simp_all [Collision.Holds]
+    · simp only [hn, ↓reduceIte]
+      exact climbCollision_holds p p' _ _ (i / 2) (by simpa using hl) hn h
 
-/-- Two paths of equal length from different leaves at the same index that reach the same root
-exhibit a collision of the leaf hash or of the pair hash. -/
-theorem collision_of_rootOfPath_eq {leaf leaf' : L} {i : ℕ} {p p' : List D}
-    (hl : p.length = p'.length) (hne : leaf ≠ leaf')
-    (h : rootOfPath hashLeaf hashPair leaf i p = rootOfPath hashLeaf hashPair leaf' i p') :
-    LeafCollision hashLeaf ∨ PairCollision hashPair := by
-  by_cases hd : hashLeaf leaf = hashLeaf leaf'
-  · exact Or.inl ⟨leaf, leaf', hne, hd⟩
-  · exact Or.inr (pairCollision_of_climb_eq hashPair p p' _ _ i hl hd h)
-
-/-- Two accepted openings of one root at one index and depth with different leaves exhibit a
-collision. -/
+/-- Binding: two accepted openings of one root at one index and depth with different leaves
+yield, computed from the two openings, a collision of the leaf hash or of the pair hash. -/
 theorem collision_of_verify [DecidableEq D] {k : ℕ} {root : D} {leaf leaf' : L} {i : ℕ}
     {p p' : List D} (hne : leaf ≠ leaf')
     (h : verify hashLeaf hashPair k root i leaf p = true)
     (h' : verify hashLeaf hashPair k root i leaf' p' = true) :
-    LeafCollision hashLeaf ∨ PairCollision hashPair := by
+    ∃ c ∈ findCollision hashLeaf hashPair leaf leaf' i p p', c.Holds hashLeaf hashPair := by
   simp only [verify, decide_eq_true_eq] at h h'
-  obtain ⟨hl, _, h⟩ := h
-  obtain ⟨hl', _, h'⟩ := h'
-  exact collision_of_rootOfPath_eq hashLeaf hashPair (hl.trans hl'.symm) hne (h.trans h'.symm)
+  unfold findCollision
+  split
+  · next hd => exact ⟨_, rfl, hne, hd⟩
+  · exact climbCollision_holds hashLeaf hashPair p p' _ _ i (h.1.trans h'.1.symm) ‹_›
+      (h.2.2.trans h'.2.2.symm)
 
 end
 end LeanerVM.Protocol.MerkleTree

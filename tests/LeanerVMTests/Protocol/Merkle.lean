@@ -9,8 +9,8 @@ the verifier accepting that path, and rejecting a tampered sibling, a wrong inde
 or above the leaf count, a tampered row, an over-wide row, a short path, a long path, a wrong
 depth and a wrong root (`fiat_shamir/src/merkle.rs`, the test `malformed_phases_are_rejected`);
 a node opened as a leaf, which the depth and width checks alone reject; the zero-prefix leaf
-image; and the sibling index as `i ^^^ 1`, the form the pinned source uses
-(`merkle.rs:117, 120, 218`).
+image; the sibling index as `i ^^^ 1`, the form the pinned source uses
+(`merkle.rs:117, 120, 218`); and the collision two accepted openings yield, on a toy tree.
 -/
 
 namespace LeanerVMTests.Protocol.Merkle
@@ -117,5 +117,35 @@ leaves it is the honest opening of leaf 1. -/
 #guard leafImage 2 [w 7, w 8] = [w 7, w 8]
 
 example : ∀ i < 16, MerkleTree.sibling i = i ^^^ 1 := by decide
+
+/-! ## The collision two accepted openings yield
+
+A toy tree over `ℕ` whose hashes collide: a leaf hashed mod 3, a node `(a + 2b) mod 5`. Each pair
+of openings below is accepted under one root at one index and depth, and `findCollision` returns
+the colliding inputs: the leaves when their digests agree, else the child pairs of the level at
+which the two climbs meet, read in the order the index gives. -/
+
+def toyLeaf (n : ℕ) : ℕ := n % 3
+
+def toyPair (a b : ℕ) : ℕ := (a + 2 * b) % 5
+
+/- Leaves `1` and `4` share a digest. -/
+#guard MerkleTree.verify toyLeaf toyPair 1 1 0 1 [0] &&
+  MerkleTree.verify toyLeaf toyPair 1 1 0 4 [0]
+#guard MerkleTree.findCollision toyLeaf toyPair 1 4 0 [0] [0] = some (.leaves 1 4)
+
+/- Leaves `0` and `1` meet at the root, the running node on the left at index 0, on the right at
+index 1. -/
+#guard MerkleTree.verify toyLeaf toyPair 1 1 0 0 [3] &&
+  MerkleTree.verify toyLeaf toyPair 1 1 0 1 [0]
+#guard MerkleTree.findCollision toyLeaf toyPair 0 1 0 [3] [0] = some (.pairs 0 3 1 0)
+#guard MerkleTree.verify toyLeaf toyPair 1 3 1 0 [3] &&
+  MerkleTree.verify toyLeaf toyPair 1 3 1 1 [1]
+#guard MerkleTree.findCollision toyLeaf toyPair 0 1 1 [3] [1] = some (.pairs 3 0 1 1)
+
+/- Leaves `0` and `2` differ after one level and meet at the second. -/
+#guard MerkleTree.verify toyLeaf toyPair 2 1 0 0 [3, 0] &&
+  MerkleTree.verify toyLeaf toyPair 2 1 0 2 [1, 1]
+#guard MerkleTree.findCollision toyLeaf toyPair 0 2 0 [3, 0] [1, 1] = some (.pairs 1 0 4 1)
 
 end LeanerVMTests.Protocol.Merkle

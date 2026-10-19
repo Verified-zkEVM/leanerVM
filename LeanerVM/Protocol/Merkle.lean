@@ -24,11 +24,14 @@ node on the left at an even index, and compare with the root, under the per-row 
 `PrunedMerklePaths::open` (`:147, 176-186`): the row has the announced width, the path has one
 sibling per level of the tree, and the index is below the leaf count. The pruned form in which
 a proof carries the paths of one level's queries (the octopus) is the proof object's, not this
-module's.
+module's, and so are its row checks: the announced row width equals the row's length and is at
+most the leaf width (`merkle.rs:141, 147`). The verifier reads a level-0 leaf with its lanes in
+reverse order (`verifier.py:1050`).
 
 `merkleVerify_merklePath` is the completeness of the check; `collision_of_merkleVerify` is the
-binding half, two accepted openings that disagree exhibit a collision of `hashWords` or
-`hashPair`, both instances of the generic facts of `LeanerVM.Protocol.ToArkLib.Merkle`.
+binding half: from two accepted openings that disagree, `merkleCollision` computes a collision of
+`hashWords` or `hashPair`. Both are instances of the generic facts of
+`LeanerVM.Protocol.ToArkLib.Merkle`.
 -/
 
 namespace LeanerVM.Protocol
@@ -51,9 +54,10 @@ def merkleRoot {k : ℕ} (leaves : Vector (List K) (2 ^ k)) : Digest :=
 def merklePath {k : ℕ} (leaves : Vector (List K) (2 ^ k)) (i : Fin (2 ^ k)) : List Digest :=
   MerkleTree.path hashWords hashPair leaves i
 
-/-- The verifier's check for a tree of `2 ^ depth` leaves of `leafWords` words: the row has the
-announced width, the path one sibling per level, the index is below the leaf count, and the
-path climbs to `root` (`PrunedMerklePaths::open`'s row checks, then `RawMerklePath::root`). -/
+/-- The verifier's check for a tree of `2 ^ depth` leaves of `leafWords` words: the leaf image
+has the leaf width, the path one sibling per level, the index is below the leaf count, and the
+path climbs to `root` (`PrunedMerklePaths::open`'s per-path checks, then `RawMerklePath::root`).
+-/
 def merkleVerify (depth leafWords : ℕ) (root : Digest) (index : ℕ) (leaf : List K)
     (path : List Digest) : Bool :=
   decide (leaf.length = leafWords) &&
@@ -68,13 +72,18 @@ theorem merkleVerify_merklePath {k leafWords : ℕ} (leaves : Vector (List K) (2
   rw [hw, decide_eq_true rfl, Bool.true_and]
   exact @MerkleTree.verify_path _ _ hashWords hashPair Digest.decEq k leaves i
 
-/-- Two accepted openings of one root at one index, depth and width with different leaves
-exhibit a collision of the leaf hash or of the node hash. -/
+/-- The collision two openings at index `i` exhibit (`MerkleTree.findCollision`). -/
+def merkleCollision (leaf leaf' : List K) (i : ℕ) (p p' : List Digest) :
+    Option (MerkleTree.Collision (List K) Digest) :=
+  @MerkleTree.findCollision _ _ hashWords hashPair Digest.decEq leaf leaf' i p p'
+
+/-- Binding: two accepted openings of one root at one index, depth and width with different
+leaves yield, computed from the openings, a collision of the leaf hash or of the node hash. -/
 theorem collision_of_merkleVerify {depth leafWords : ℕ} {root : Digest} {leaf leaf' : List K}
     {i : ℕ} {p p' : List Digest} (hne : leaf ≠ leaf')
     (h : merkleVerify depth leafWords root i leaf p = true)
     (h' : merkleVerify depth leafWords root i leaf' p' = true) :
-    MerkleTree.LeafCollision hashWords ∨ MerkleTree.PairCollision hashPair := by
+    ∃ c ∈ merkleCollision leaf leaf' i p p', c.Holds hashWords hashPair := by
   simp only [merkleVerify, Bool.and_eq_true] at h h'
   exact @MerkleTree.collision_of_verify _ _ hashWords hashPair Digest.decEq depth root leaf leaf'
     i p p' hne h.2 h'.2

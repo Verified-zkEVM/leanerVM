@@ -70,7 +70,9 @@ def blockWords (block : List UInt8) : Vector UInt32 16 :=
 /-- Absorb `data` into the chaining value `h` after `t` bytes: `blocks` more non-final blocks of
 64 bytes, each compressed at the byte count including it with no flag, then the rest as the
 final block, zero-padded, compressed at the total length with the last-block flag
-(RFC 7693 §3.3; `hash.rs:176-199`, `Hasher.update` and `finalize`). -/
+(RFC 7693 §3.3; `hash.rs:176-199`, `Hasher.update` and `finalize`). It hashes `data` only when
+`blocks` is `(data.length - 1) / 64`, the count `blake2sBytes` passes; with fewer, the final
+block is truncated to 64 bytes. -/
 def absorb (h : Vector UInt32 8) (t : ℕ) : (blocks : ℕ) → List UInt8 → Digest
   | 0, data => compress h (blockWords data) (t + data.length).toUInt64 lastBlock 0
   | blocks + 1, data =>

@@ -99,7 +99,8 @@ def oodSamples (level : ℕ) : ℕ := if level = 0 then 0 else 1
 
 /-- One level of an opening: the number of sumcheck rounds it folds (`ℓ_i`), the rate exponent
 of the code its commitment is in (`R_i`), and the number of positions queried (`t_i`), in the
-notation of Annex B. -/
+notation of Annex B. The Johnson slack `η_i` the query count was optimised for is not a field:
+no verifier reads it, and the opening's soundness takes the slack as a parameter. -/
 structure Level where
   fold : ℕ
   logInvRate : ℕ
@@ -202,14 +203,15 @@ theorem residualLog_le {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     residualLog μ logInvRate ≤ residualMaxLog :=
   of_window (by decide +kernel) h
 
-/-- Every level's code fits in `K`: its block length is at most `2^64` (Annex B, §B.2 requires
-`κ_i + R_i ≤ 64`), and its query count is at most its block length (`whir_config.rs:673`). -/
+/-- Every level's code fits the encoders: its log block length is at most 63, the bound of the
+Rust's NTT (`additive_ntt_f64.rs:66`) and below Annex B's `κ_i + R_i ≤ 64`, and its query count
+is at most its block length (`whir_config.rs:673`). -/
 theorem ladder_blocks {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     ∀ levels, ladder μ logInvRate = some levels →
-      ∀ p ∈ List.zip (blockLogs μ levels) levels, p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1 := by
+      ∀ p ∈ List.zip (blockLogs μ levels) levels, p.1 ≤ 63 ∧ p.2.queries ≤ 2 ^ p.1 := by
   intro levels hl p hp
   have key := of_window (P := fun μ r ↦ ∀ levels, ladder μ r = some levels →
-    (List.zip (blockLogs μ levels) levels).all (fun p ↦ p.1 ≤ 64 ∧ p.2.queries ≤ 2 ^ p.1))
+    (List.zip (blockLogs μ levels) levels).all (fun p ↦ p.1 ≤ 63 ∧ p.2.queries ≤ 2 ^ p.1))
     (by decide +kernel) h
   exact of_decide_eq_true (List.all_eq_true.mp (key levels hl) p hp)
 
