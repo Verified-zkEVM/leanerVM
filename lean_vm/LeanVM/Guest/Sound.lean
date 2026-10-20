@@ -13,12 +13,13 @@ public import LeanVM.Guest.End
 public import LeanVM.Guest.B1.VerifySub.Known
 public import LeanVM.Guest.CoreNames
 public import LeanVM.Guest.JumpTable
+public import LeanVM.Guest.CertName
 
 /-!
 # B2 soundness
 
 The contracts are checker K's over `glob`: function `j`'s entry, `Check.Pre glob L j` and
-`Check.Post coreProgram glob L j`.
+`Check.Post coreProgram glob L certByName j`.
 
 * `b2_step`: a function's contract for runs shorter than `n + 1`, given every contract for runs
   shorter than `n` (`checkWins_run` on its checked windows, `Checked.all_ok`). Each window after
@@ -166,9 +167,9 @@ shorter than `n`. -/
 theorem b2_step (hvs : B1.VerifySub.VsKnown) :
     ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n,
       (∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j)
-        (Check.Post coreProgram glob L j)) →
+        (Check.Post coreProgram glob L certByName j)) →
       ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
-        (Check.Post coreProgram glob L i) := by
+        (Check.Post coreProgram glob L certByName i) := by
   intro κ L h16 h32 n hlt j fp k hk hpre hsafe
   obtain ⟨hgood, hjt, henv, hbnd, hmem, hsem⟩ := hpre
   have hj : 2 ≤ j ∧ j < nFns := by simpa [glob, good] using hgood
@@ -176,13 +177,15 @@ theorem b2_step (hvs : B1.VerifySub.VsKnown) :
   have h1 : (j == 1) = false := by simp; omega
   rw [h1] at hc
   have hfp := checkWin_fpOne (hc 0 (Nat.zero_le _))
-  obtain ⟨hrel, hpost, hret⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
+  obtain ⟨hrel, hpost, hret, -⟩ := checkWins_run (Prog := coreProgram) hc (fnOf_mem hj.2)
     (coreOf_find (by omega) hj.2) (certOf_pows_ok j) h32 (fun h ↦ by rw [← hfp] at h; cases h)
+    (certByName_coreOf (by omega) hj.2)
     (fun i ↦ (hlt i).mono (by omega)) hjt henv hbnd hmem hsem
     (fun i hi h0 hl ↦ by
       by_cases h16 : j = 16
       · subst h16
-        exact known_vs hvs h16 h32 hsem hi h0 hl
+        exact known_vs hvs h16 h32 hsem hi h0
+          (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl)
       · exact known_plain (by omega) hj.2 (by omega) h16 hi h0)
     hsafe
   obtain ⟨k', hk', r, hr, hs⟩ := hret rfl
@@ -194,24 +197,50 @@ theorem main_facts : (certOf 1).facts.env = [] ∧ (certOf 1).pre = [] ∧ (cert
 
 theorem fnOf_1 : (fnOf 1).entry = mainEntry := rfl
 
+/-- **B2 at `main`, located**: a halting run from `main`'s entry at `fp = 1`, the jump table
+written and every contract holding for runs shorter than it, gives `main`'s body under its frame's
+valuation, its calls located. -/
+theorem b2_mainL :
+    ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
+      (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
+        (Check.Post coreProgram glob L certByName j)) →
+      Safe guest L k ⟨gpow mainEntry, 1⟩ →
+        Stmt.HoldsList (RL coreProgram L certByName) L.read (valG L 1 (certOf 1)) (coreOf 1).body
+          False (fun rs ↦ rs = []) := by
+  intro κ L _ h32 hjtab k hlt hsafe
+  have hc := winOk_of (j := 1) le_rfl (by decide)
+  obtain ⟨henv, hpre, hmem, hsem, hnret, hparams, hname⟩ := main_facts
+  obtain ⟨-, -, -, -, -, hbody⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc
+    (fnOf_mem (by decide)) (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl)
+    (certByName_coreOf le_rfl (by decide)) hlt
+    (jtHolds_of hjtab) (by rw [Facts.entryEnv, henv]; exact EnvHolds.nil)
+    (by rw [hpre]; intro _ h; simp at h) (by rw [hmem]; intro _ h; simp at h)
+    (by rw [hsem]; intro _ h; simp at h)
+    (fun i hi h0 hl ↦ known_main hi h0 (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl))
+    (by rw [fnOf_1]; exact hsafe)
+  rw [hnret] at hbody
+  exact hbody
+
 /-- **B2 at `main`**: a halting run from `main`'s entry at `fp = 1`, the jump table written and
 every contract holding for runs shorter than it, gives `main`'s relation. -/
 theorem b2_main :
     ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → JumpTables L → ∀ k,
       (∀ j, FunSpecLt guest L k (glob.sig j).entry (Check.Pre glob L j)
-        (Check.Post coreProgram glob L j)) →
+        (Check.Post coreProgram glob L certByName j)) →
       Safe guest L k ⟨gpow mainEntry, 1⟩ → coreProgram.Rel L.read "main" [] [] := by
   intro κ L _ h32 hjtab k hlt hsafe
   have hc := winOk_of (j := 1) le_rfl (by decide)
   obtain ⟨henv, hpre, hmem, hsem, hnret, hparams, hname⟩ := main_facts
-  obtain ⟨hrel, -, -⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc (fnOf_mem (by decide))
-    (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl) hlt
+  obtain ⟨hrel, -⟩ := checkWins_run (Prog := coreProgram) (fp := 1) hc (fnOf_mem (by decide))
+    (coreOf_find le_rfl (by decide)) (certOf_pows_ok 1) h32 (fun _ ↦ rfl)
+    (certByName_coreOf le_rfl (by decide)) hlt
     (jtHolds_of hjtab) (by rw [Facts.entryEnv, henv]; exact EnvHolds.nil)
     (by rw [hpre]; intro _ h; simp at h) (by rw [hmem]; intro _ h; simp at h)
-    (by rw [hsem]; intro _ h; simp at h) (fun i hi h0 hl ↦ known_main hi h0 hl)
+    (by rw [hsem]; intro _ h; simp at h)
+    (fun i hi h0 hl ↦ known_main hi h0 (holdsList_mono (relL_le_rel _) _ id (fun _ h ↦ h) hl))
     (by rw [fnOf_1]; exact hsafe)
   rw [hname, hparams, hnret] at hrel
-  exact hrel
+  exact relL_le_rel _ _ _ _ hrel
 
 end
 end LeanVM.Guest.End

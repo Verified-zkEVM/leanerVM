@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.Check
+public import LeanVM.Guest.CoreLoc
 
 /-!
 # Soundness of the checker
@@ -35,6 +36,9 @@ noncomputable def wd (o : ℕ) : E := (L.read (fp * gpow o)).getD 0
 
 /-- The valuation of a check: every value is the word in its cell. -/
 noncomputable def val (loc : Trie ℕ) : Core.Val := fun v ↦ wd L fp (cellOf loc v)
+
+/-- The valuation of a function's check: every value is the word in its cell. -/
+noncomputable def valG (C : Cert) : Core.Val := fun v ↦ wd L fp (C.locs.getD v.idx 0)
 
 /-- The `n` words of the frame from cell `o`. -/
 noncomputable def frameWords (o n : ℕ) : List E := (List.range n).map fun i ↦ wd L fp (o + i)
@@ -408,6 +412,18 @@ section Contracts
 
 variable {κ : ℕ} (P : Core.Program) (G : Glob) (L : MemImage κ)
 
+/-- The valuation of function `f` at frame `fp`: its certificate's cells (`cert f`). -/
+noncomputable def frameVal (cert : String → Cert) (f : String) (fp : K) : Core.Val :=
+  valG L fp (cert f)
+
+/-- A frame in a memory of `2^n` words: `fp = g^a`, `a < 2^n`. -/
+def InMem (n : ℕ) (fp : K) : Prop := ∃ a < 2 ^ n, fp = gpow a
+
+/-- **The guest's located call relation**: a callee runs at a frame of the memory, its values
+its certificate's cells there (`Core.Program.RelL`). -/
+noncomputable abbrev RL (cert : String → Cert) : Core.CallRel :=
+  P.RelL L.read (frameVal L cert) (InMem κ)
+
 /-- The jump table holds: slot `s` of the frame of `main` (`fp = 1`) holds `g^t`. -/
 def JTHolds : Prop := ∀ s t, G.jt.get s = some t → L.read (gpow s) = some (ofK (gpow t))
 
@@ -428,10 +444,10 @@ def Pre (j : ℕ) (fp : K) : Prop :=
   G.good j = true ∧ JTHolds G L ∧ EnvHolds L fp (envOf (G.sig j).env) ∧
     BndHolds L fp (G.sig j).pre ∧ MemPre L fp (G.sig j).mem ∧ SemHolds G L fp (G.sig j).sem
 
-/-- **A function's postcondition** at frame `fp`: its core relation holds of the argument and
-return words of the frame, and its bounded frame cells are bounded. -/
-def Post (j : ℕ) (fp : K) : Prop :=
-  P.Rel L.read (G.sig j).name (frameWords L fp 2 (G.sig j).nargs)
+/-- **A function's postcondition** at frame `fp`: its located core relation holds of the argument
+and return words of the frame, and its bounded frame cells are bounded. -/
+def Post (cert : String → Cert) (j : ℕ) (fp : K) : Prop :=
+  RL P L cert (G.sig j).name (frameWords L fp 2 (G.sig j).nargs)
       (frameWords L fp (2 + (G.sig j).nargs) (G.sig j).nret) ∧ BndHolds L fp (G.sig j).post
 
 end Contracts
@@ -1261,6 +1277,7 @@ end Calls
 section Walk
 
 variable {κ : ℕ} {L : MemImage κ} {fp : K} {f : CompiledFn} {X : Fx} {Prog : Core.Program}
+  {cert : String → Cert}
   {Kb : ℕ}
 
 /-- The words a function returns and what its return does: the frame's return words, back to
@@ -1272,23 +1289,23 @@ def RetWords (L : MemImage κ) (fp : K) (X : Fx) (Kb : ℕ) (rs : List E) : Prop
 
 /-- What a walk of runs with at most `K` steps assumes: its context, the jump table, and every
 function's contract for runs shorter than `K`. -/
-structure WalkEnv (Prog : Core.Program) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx)
+structure WalkEnv (Prog : Core.Program) (cert : String → Cert) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx)
     (Kb : ℕ) : Prop where
   hyp : WalkHyp L fp f X
   jt : JTHolds X.G L
   mem : MemPre L fp X.mem
   known : MemKnown L fp X.known
   sems : SemHolds X.G L fp X.sems
-  callees : ∀ j, FunSpecLt guest L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L j)
+  callees : ∀ j, FunSpecLt guest L Kb (X.G.sig j).entry (Pre X.G L j) (Post Prog X.G L cert j)
 
 /-- **What the walk of a block from a position gives**: the block's core semantics under the
 check's valuation, with any continuation the run's arrival at the join gives; the pending atoms;
 and that the run arrives at the join. -/
-def WalkGood (Prog : Core.Program) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx) (Kb : ℕ)
+def WalkGood (Prog : Core.Program) (cert : String → Cert) (L : MemImage κ) (fp : K) (f : CompiledFn) (X : Fx) (Kb : ℕ)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom) : Prop :=
   ∀ k (N : Prop), PosOk L fp f X Kb st k → chkL X ss st P ≠ .fail →
     (∀ J, chkL X ss st P = .join J → ∀ k', k' ≤ k → SegRun L fp f X Kb J k' → N) →
-    Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+    Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
       (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
       (∀ J, chkL X ss st P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k')
 
@@ -1301,12 +1318,12 @@ theorem handOk_sound {st : CS} (hB : BookHolds L fp st.book) (hb : BndHolds L fp
     List.all_eq_true, List.contains_iff_mem] at h
   exact ⟨fun p hp ↦ hB p.1 p.2 (by simpa using h.1 p hp), fun b hbb ↦ hb b (by simpa using h.2 b hbb)⟩
 
-theorem pendOk_sound (W : WalkEnv Prog L fp f X Kb) {st : CS} {k : ℕ} (hp : PosOk L fp f X Kb st k)
+theorem pendOk_sound (W : WalkEnv Prog cert L fp f X Kb) {st : CS} {k : ℕ} (hp : PosOk L fp f X Kb st k)
     {P : List Core.Atom} (h : pendOk X st P = true) : ∀ a ∈ P, a.Holds L.read (val L fp X.loc) :=
   fun a ha ↦ atomOk_sound W.hyp.ctx.pows hp.book hp.psi (List.all_eq_true.mp h a ha)
 
-theorem walk_nil (W : WalkEnv Prog L fp f X Kb) (st : CS) (P : List Core.Atom) :
-    WalkGood Prog L fp f X Kb [] st P := by
+theorem walk_nil (W : WalkEnv Prog cert L fp f X Kb) (st : CS) (P : List Core.Atom) :
+    WalkGood Prog cert L fp f X Kb [] st P := by
   intro k N hp hne hj
   rw [chkL_nil] at hne hj ⊢
   obtain ⟨J, se, he, hpd, hhand, hr⟩ := blockEnd_join hne
@@ -1316,9 +1333,9 @@ theorem walk_nil (W : WalkEnv Prog L fp f X Kb) (st : CS) (P : List Core.Atom) :
   cases hJ'
   exact ⟨hsr, handOk_sound hse.book hse.bnd hhand⟩
 
-theorem walk_atom (W : WalkEnv Prog L fp f X Kb) (a : Core.Atom) (ss : List Core.Stmt) (st : CS)
-    (P : List Core.Atom) (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.atom a :: ss) st P := by
+theorem walk_atom (W : WalkEnv Prog cert L fp f X Kb) (a : Core.Atom) (ss : List Core.Stmt) (st : CS)
+    (P : List Core.Atom) (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.atom a :: ss) st P := by
   intro k N hp hne hj
   rw [chkL_atom] at hne hj ⊢
   obtain ⟨k', hk', hp', htest, -, hpsi, -⟩ :=
@@ -1343,17 +1360,17 @@ theorem walk_atom (W : WalkEnv Prog L fp f X Kb) (a : Core.Atom) (ss : List Core
     obtain ⟨k'', hk'', h⟩ := hr J hJ
     exact ⟨k'', le_trans hk'' hk', h⟩
 
-theorem walk_ite (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (z n ss : List Core.Stmt) (st : CS)
-    (P : List Core.Atom) (ihz : ∀ st P, WalkGood Prog L fp f X Kb z st P)
-    (ihn : ∀ st P, WalkGood Prog L fp f X Kb n st P)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.ite c z n :: ss) st P := by
+theorem walk_ite (W : WalkEnv Prog cert L fp f X Kb) (c : Core.V) (z n ss : List Core.Stmt) (st : CS)
+    (P : List Core.Atom) (ihz : ∀ st P, WalkGood Prog cert L fp f X Kb z st P)
+    (ihn : ∀ st P, WalkGood Prog cert L fp f X Kb n st P)
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.ite c z n :: ss) st P := by
   intro k N hp hne hj
   obtain ⟨st', x, t, sn, J, sj, hb, hk, hsucc, hsn, hz, hn, hsj, heq⟩ := chkL_ite hne
   rw [heq] at hne hj ⊢
   obtain ⟨k1, hk1, cv, hc, hcK, hx, hseg, -, hbnd, hB', hcase⟩ := branchAt_ok hp hb
   have rest : ∀ k2, k2 ≤ k → SegRun L fp f X Kb J k2 →
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
         (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
         (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
     intro k2 hk2 hr
@@ -1361,10 +1378,10 @@ theorem walk_ite (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (z n ss : List Core
       (fun J' hJ' k3 hk3 hr3 ↦ hj J' hJ' k3 (by omega) hr3)
     exact ⟨h1, h2, fun J' hJ' ↦ (h3 J' hJ').imp fun k' h ↦ ⟨by omega, h.2⟩⟩
   have hσ : val L fp X.loc c = cv := wd_of hc
-  have hblk : ∀ (b : List Core.Stmt) (sb : CS), (∀ st P, WalkGood Prog L fp f X Kb b st P) →
+  have hblk : ∀ (b : List Core.Stmt) (sb : CS), (∀ st P, WalkGood Prog cert L fp f X Kb b st P) →
       PosOk L fp f X Kb sb k1 → chkL X b sb [] = .join J →
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) b
-          (Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) b
+          (Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N
             (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
         (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
         (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
@@ -1385,20 +1402,20 @@ theorem walk_ite (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (z n ss : List Core
     exact ⟨⟨hσ ▸ hcK, fun h0 ↦ absurd (hσ.symm.trans h0) hc0, fun _ ↦ hl⟩, hP, hreach⟩
 
 /-- A block walked from `sb` to the join `J`, the rest walked from the join's segment `sj`. -/
-theorem walk_block (W : WalkEnv Prog L fp f X Kb) {b ss : List Core.Stmt} {sb sj : CS}
+theorem walk_block (W : WalkEnv Prog cert L fp f X Kb) {b ss : List Core.Stmt} {sb sj : CS}
     {P : List Core.Atom} {J k k1 : ℕ} {N : Prop} {B : Book} {bnd : List (ℕ × ℕ)}
-    (hk1 : k1 ≤ k) (ihb : ∀ st P, WalkGood Prog L fp f X Kb b st P)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) (hpb : PosOk L fp f X Kb sb k1)
+    (hk1 : k1 ≤ k) (ihb : ∀ st P, WalkGood Prog cert L fp f X Kb b st P)
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) (hpb : PosOk L fp f X Kb sb k1)
     (hjb : chkL X b sb [] = .join J) (hsj : segAt X J B bnd = some sj)
     (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd) (hne : chkL X ss sj P ≠ .fail)
     (hj : ∀ J', chkL X ss sj P = .join J' → ∀ k', k' ≤ k → SegRun L fp f X Kb J' k' → N) :
-    Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) b
-        (Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N
+    Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) b
+        (Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N
           (RetWords L fp X Kb)) (RetWords L fp X Kb) ∧
       (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
       (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
   have rest : ∀ k2, k2 ≤ k1 → SegRun L fp f X Kb J k2 →
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
         (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
         (∀ J', chkL X ss sj P = .join J' → ∃ k' ≤ k, Arrive L fp f X Kb J' k') := by
     intro k2 hk2 hr
@@ -1414,11 +1431,11 @@ theorem walk_block (W : WalkEnv Prog L fp f X Kb) {b ss : List Core.Stmt} {sb sj
   obtain ⟨-, hP, hreach⟩ := rest k2 hk2 hr2.1
   exact ⟨hl, hP, hreach⟩
 
-theorem walk_match (W : WalkEnv Prog L fp f X Kb) (v : Core.V) (arms : List (List Core.Stmt))
+theorem walk_match (W : WalkEnv Prog cert L fp f X Kb) (v : Core.V) (arms : List (List Core.Stmt))
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
-    (iha : ∀ e (he : e < arms.length) st P, WalkGood Prog L fp f X Kb arms[e] st P)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.match_ v arms :: ss) st P := by
+    (iha : ∀ e (he : e < arms.length) st P, WalkGood Prog cert L fp f X Kb arms[e] st P)
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.match_ v arms :: ss) st P := by
   intro k N hp hne hj
   obtain ⟨se, t, ft, t0, ts, a0, as, base, s0, J, sj, hse, hk, hs, harms0, hself, hlen, hbd, htb,
     harms, hs0, hJ, hchk, hsj, heq⟩ := chkL_match hne
@@ -1457,14 +1474,14 @@ theorem walk_match (W : WalkEnv Prog L fp f X Kb) (v : Core.V) (arms : List (Lis
 
 /-- What a call into frame `fp[q] = pv` gives the caller: the callee ran from its entry and came
 back to the return point, its contract holding of its frame. -/
-theorem call_ok (W : WalkEnv Prog L fp f X Kb) {B : Book} {bnd : List (ℕ × ℕ)}
+theorem call_ok (W : WalkEnv Prog cert L fp f X Kb) {B : Book} {bnd : List (ℕ × ℕ)}
     (hB : BookHolds L fp B) (hbnd : BndHolds L fp bnd) {j q r k1 : ℕ} {f' : String}
     {ca : List ℕ} {nr : ℕ} (hj : calleeAt X (X.G.sig j).entry = some j)
     (hco : callOk X B bnd (X.G.sig j) f' q ca nr = true) {pv : E}
     (hq : L.read (fp * gpow q) = some pv) (hpK : IsInK pv)
     (hret : retRegs L (pv.limb 0) = some ⟨gpow r, fp⟩) (hk1 : k1 < Kb)
     (hsafe : Safe guest L k1 ⟨gpow (X.G.sig j).entry, pv.limb 0⟩) :
-    ∃ k2 < k1, Post Prog X.G L j (pv.limb 0) ∧ Safe guest L k2 ⟨gpow r, fp⟩ ∧
+    ∃ k2 < k1, Post Prog X.G L cert j (pv.limb 0) ∧ Safe guest L k2 ⟨gpow r, fp⟩ ∧
       f' = (X.G.sig j).name ∧ ca.length = (X.G.sig j).nargs ∧ nr = (X.G.sig j).nret ∧
       ca.map (wd L fp) = frameWords L (pv.limb 0) 2 (X.G.sig j).nargs ∧
       (∀ p ∈ (X.G.sig j).post, 2 ≤ p.1 ∧ p.1 < 2 + (X.G.sig j).nargs + (X.G.sig j).nret) ∧
@@ -1485,10 +1502,10 @@ theorem call_ok (W : WalkEnv Prog L fp f X Kb) {B : Book} {bnd : List (ℕ × �
     simp only [Bool.and_eq_true, Nat.ble_eq, Nat.blt_eq] at this
     exact this
 
-theorem walk_call (W : WalkEnv Prog L fp f X Kb) (f' : String) (args rets : List Core.V)
+theorem walk_call (W : WalkEnv Prog cert L fp f X Kb) (f' : String) (args rets : List Core.V)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.call f' args rets :: ss) st P := by
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.call f' args rets :: ss) st P := by
   intro k N hp hne hjn
   obtain ⟨se, e, q, r, j, st', hse, hk, hj, hco, hle, hsucc, hac, heq⟩ := chkL_call hne
   rw [heq] at hne hjn ⊢
@@ -1518,7 +1535,7 @@ theorem walk_call (W : WalkEnv Prog L fp f X Kb) (f' : String) (args rets : List
   have hca := cellsOf_length X.loc args
   have hcr := cellsOf_length X.loc rets
   have hna' : args.length = (X.G.sig j).nargs := hca ▸ hna
-  have hcall : Prog.Rel L.read f' (args.map (val L fp X.loc)) (rets.map (val L fp X.loc)) := by
+  have hcall : RL Prog L cert f' (args.map (val L fp X.loc)) (rets.map (val L fp X.loc)) := by
     rw [hname, map_val, map_val, hargs, storesOk_words hp3.book hloads hq, hcr, hnr, hna']
     exact hPost.1
   have hb4 : BndHolds L fp
@@ -1539,10 +1556,10 @@ theorem walk_call (W : WalkEnv Prog L fp f X Kb) (f' : String) (args rets : List
     (fun J hJ k4 hk4 h ↦ hjn J hJ k4 (by omega) h)
   exact ⟨⟨hcall, hl⟩, hP, fun J hJ ↦ (hreach J hJ).imp fun k' h ↦ ⟨by omega, h.2⟩⟩
 
-theorem walk_dispatch (W : WalkEnv Prog L fp f X Kb) (v : Core.V) (fs : List String)
+theorem walk_dispatch (W : WalkEnv Prog cert L fp f X Kb) (v : Core.V) (fs : List String)
     (args rets : List Core.V) (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.dispatch v fs args rets :: ss) st P := by
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.dispatch v fs args rets :: ss) st P := by
   intro k N hp hne hjn
   obtain ⟨se, t, q, r, base, st', hse, hk, htb, hbd, hle, hsucc, htc, hac, heq⟩ :=
     chkL_dispatch hne
@@ -1583,7 +1600,7 @@ theorem walk_dispatch (W : WalkEnv Prog L fp f X Kb) (v : Core.V) (fs : List Str
   have hca := cellsOf_length X.loc args
   have hcr := cellsOf_length X.loc rets
   have hna' : args.length = (X.G.sig j).nargs := hca ▸ hna
-  have hcall : Prog.Rel L.read fs[e] (args.map (val L fp X.loc)) (rets.map (val L fp X.loc)) := by
+  have hcall : RL Prog L cert fs[e] (args.map (val L fp X.loc)) (rets.map (val L fp X.loc)) := by
     rw [hname, map_val, map_val, hargs, storesOk_words hp3.book hloads hq, hcr, hnr, hna']
     exact hPost.1
   obtain ⟨hl, hP, hreach⟩ := ih st' P k3 N hp3 hne
@@ -1593,10 +1610,10 @@ theorem walk_dispatch (W : WalkEnv Prog L fp f X Kb) (v : Core.V) (fs : List Str
 
 theorem frameWords_zero (L : MemImage κ) (fp : K) (o : ℕ) : frameWords L fp o 0 = [] := rfl
 
-theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (args : List Core.V)
+theorem walk_callIf (W : WalkEnv Prog cert L fp f X Kb) (c : Core.V) (f' : String) (args : List Core.V)
     (ss : List Core.Stmt) (st : CS) (P : List Core.Atom)
-    (ih : ∀ st P, WalkGood Prog L fp f X Kb ss st P) :
-    WalkGood Prog L fp f X Kb (.callIf c f' args :: ss) st P := by
+    (ih : ∀ st P, WalkGood Prog cert L fp f X Kb ss st P) :
+    WalkGood Prog cert L fp f X Kb (.callIf c f' args :: ss) st P := by
   intro k N hp hne hjn
   obtain ⟨st', x, hb, hform⟩ := chkL_callIf hne
   obtain ⟨k1, hk1, cv, hc, hcK, hx, hseg, hpsi, hbnd, hB', hcase⟩ := branchAt_ok hp hb
@@ -1606,7 +1623,7 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
     ⟨e, S, j, hk, hj, rfl, htail, heq⟩
   · rw [heq] at hne hjn ⊢
     have cont : ∀ k2, k2 < k → SegRun L fp f X Kb (r - X.entry) k2 →
-        Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
+        Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc) ss N (RetWords L fp X Kb) ∧
           (∀ a ∈ P, a.Holds L.read (val L fp X.loc)) ∧
           (∀ J, chkL X ss sr P = .join J → ∃ k' ≤ k, Arrive L fp f X Kb J k') := by
       intro k2 hk2 hr2
@@ -1633,7 +1650,7 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
         rw [← W.hyp.entry, Nat.add_sub_cancel' hle]
         exact hsafe2
       obtain ⟨hl, hP, hreach⟩ := cont k2 (by omega) hr2
-      have hcall : Prog.Rel L.read f' (args.map (val L fp X.loc)) [] := by
+      have hcall : RL Prog L cert f' (args.map (val L fp X.loc)) [] := by
         have h1 := hPost.1
         rw [← hnr, frameWords_zero, ← hargs, ← map_val, ← hname] at h1
         exact h1
@@ -1645,7 +1662,7 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
       hr0⟩, hr1⟩, hpend⟩, hmain⟩, hend⟩ := htail
     have hP : ∀ a ∈ P, a.Holds L.read (val L fp X.loc) := fun a ha ↦
       atomOk_sound W.hyp.ctx.pows hB' (hpsi ▸ hp.psi) (List.all_eq_true.mp hpend a ha)
-    have hrw : RetWords L fp X Kb [] → Core.Stmt.HoldsList (Prog.Rel L.read) L.read
+    have hrw : RetWords L fp X Kb [] → Core.Stmt.HoldsList (RL Prog L cert) L.read
         (val L fp X.loc) [.ret []] N (RetWords L fp X Kb) := id
     have hwords : ∀ (h : ∃ k' < Kb, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r),
         RetWords L fp X Kb [] := fun h ↦
@@ -1697,7 +1714,7 @@ theorem walk_callIf (W : WalkEnv Prog L fp f X Kb) (c : Core.V) (f' : String) (a
       rw [← hentry] at hsafe
       obtain ⟨k2, hk2, rr, hrr, hPost, hsafe2⟩ :=
         (W.callees j).tail (by omega) hPre hret hsafe
-      have hcall : Prog.Rel L.read f' (args.map (val L fp X.loc)) [] := by
+      have hcall : RL Prog L cert f' (args.map (val L fp X.loc)) [] := by
         have h1 := hPost.1
         rw [hnr, frameWords_zero, ← hname] at h1
         convert h1 using 1
@@ -1719,8 +1736,8 @@ theorem runAt_words {loc : Trie ℕ} {base : ℕ} {vs : List Core.V} (h : runAt 
   simp only [List.getElem_map, frameWords, List.getElem_range, val]
   rw [runAt_sound h i (by simpa using h1)]
 
-theorem walk_ret (W : WalkEnv Prog L fp f X Kb) (vs : List Core.V) (ss : List Core.Stmt) (st : CS)
-    (P : List Core.Atom) : WalkGood Prog L fp f X Kb (.ret vs :: ss) st P := by
+theorem walk_ret (W : WalkEnv Prog cert L fp f X Kb) (vs : List Core.V) (ss : List Core.Stmt) (st : CS)
+    (P : List Core.Atom) : WalkGood Prog cert L fp f X Kb (.ret vs :: ss) st P := by
   intro k N hp hne hjn
   obtain ⟨hr, heq⟩ := chkL_ret hne
   rw [heq]
@@ -1742,8 +1759,8 @@ theorem walk_ret (W : WalkEnv Prog L fp f X Kb) (vs : List Core.V) (ss : List Co
 
 mutual
 /-- **The walk is sound.** -/
-theorem walk_sound (W : WalkEnv Prog L fp f X Kb) :
-    ∀ (ss : List Core.Stmt) (st : CS) (P : List Core.Atom), WalkGood Prog L fp f X Kb ss st P
+theorem walk_sound (W : WalkEnv Prog cert L fp f X Kb) :
+    ∀ (ss : List Core.Stmt) (st : CS) (P : List Core.Atom), WalkGood Prog cert L fp f X Kb ss st P
   | [], st, P => walk_nil W st P
   | .atom a :: ss, st, P => walk_atom W a ss st P (walk_sound W ss)
   | .ite c z n :: ss, st, P =>
@@ -1754,9 +1771,9 @@ theorem walk_sound (W : WalkEnv Prog L fp f X Kb) :
   | .dispatch v fs args rets :: ss, st, P => walk_dispatch W v fs args rets ss st P (walk_sound W ss)
   | .ret vs :: ss, st, P => walk_ret W vs ss st P
 
-theorem arms_sound (W : WalkEnv Prog L fp f X Kb) :
+theorem arms_sound (W : WalkEnv Prog cert L fp f X Kb) :
     ∀ (arms : List (List Core.Stmt)) (e : ℕ) (he : e < arms.length) (st : CS)
-      (P : List Core.Atom), WalkGood Prog L fp f X Kb arms[e] st P
+      (P : List Core.Atom), WalkGood Prog cert L fp f X Kb arms[e] st P
   | [], _, he, _, _ => absurd he (Nat.not_lt_zero _)
   | a :: _, 0, _, st, P => walk_sound W a st P
   | _ :: as, e + 1, he, st, P => arms_sound W as e (by simpa using he) st P
@@ -1801,6 +1818,7 @@ end Reach
 section Fn
 
 variable {κ : ℕ} {L : MemImage κ} {G : Glob} {f : CompiledFn} {cf : Core.Fn} {C : Cert}
+  {cert : String → Cert}
   {Prog : Core.Program}
 
 theorem blt_false {i n : ℕ} (h : n ≤ i) : Nat.blt i n = false := by
@@ -1907,9 +1925,6 @@ theorem cont_locs {n : ℕ} (h : Cont C n) {j : ℕ} (hj : j ≤ n) {m : ℕ}
   simp only [hc] at hm ⊢
   exact flatten_getD C.cells j hl m hm
 
-/-- The valuation of a function's check: every value is the word in its cell. -/
-noncomputable def valG (L : MemImage κ) (fp : K) (C : Cert) : Core.Val :=
-  fun v ↦ wd L fp (C.locs.getD v.idx 0)
 
 theorem locAt_val {n : ℕ} (hcont : Cont C n) {i : ℕ} (hi : i ≤ n)
     (hins : C.insOk (nth C.ins i []) = true) (hn : C.cuts.length = n) {v : Core.V} {c : ℕ}
@@ -2032,14 +2047,14 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
     (hcont : Cont C C.cuts.length) (hiN : i ≤ C.cuts.length)
     (hf : f ∈ Data.functions) (hpows : C.facts.pows.Ok) (hκ : κ ≤ 32) {fp : K}
     (hfp : C.facts.fpOne = true → fp = 1) {Kb : ℕ}
-    (hC : ∀ j, FunSpecLt guest L Kb (G.sig j).entry (Pre G L j) (Post Prog G L j))
+    (hC : ∀ j, FunSpecLt guest L Kb (G.sig j).entry (Pre G L j) (Post Prog G L cert j))
     (hjt : JTHolds G L) (hmem : MemPre L fp C.mem) (hknown : MemKnown L fp (C.cutAt i).known)
     (hsems : SemHolds G L fp (C.cutAt i).sems) {k : ℕ} (hk : k ≤ Kb) (hs : WinStart L fp f C i k) :
     (i = 0 → ∀ m (hm : m < cf.params.length), C.locs.getD cf.params[m].idx 0 = 2 + m) ∧
-    (i < C.cuts.length → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
+    (i < C.cuts.length → Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C)
         (C.stmtsAt cf i) True (RetOf L fp G f cf C main Kb) ∧
         (C.cutAt i).start ≤ (C.cutAt (i + 1)).start ∧ ∃ k' ≤ k, WinStart L fp f C (i + 1) k') ∧
-    (C.cuts.length ≤ i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
+    (C.cuts.length ≤ i → Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C)
         (C.stmtsAt cf i) False (RetOf L fp G f cf C main Kb)) := by
   have hins := (checkWin_parts hc).2
   unfold checkWin at hc
@@ -2059,11 +2074,11 @@ theorem checkWin_run {main : Bool} {i : ℕ} (hc : checkWin G f cf C main i = tr
   have hctx : Exec.Ctx C.facts κ fp := ⟨hpows, hfp, hκ⟩
   have H : WalkHyp L fp f X := ⟨hctx, guest_fetches hf, rfl, fun s hs ↦
     execWin_good hctx (guest_fetches hf) _ _ _ s (by rw [hR]; exact hs), rfl, hlink⟩
-  have W : WalkEnv Prog L fp f X Kb := ⟨H, hjt, hmem, hknown, hsems, hC⟩
+  have W : WalkEnv Prog cert L fp f X Kb := ⟨H, hjt, hmem, hknown, hsems, hC⟩
   have hret : RetWords L fp X Kb = RetOf L fp G f cf C main Kb := rfl
-  have hconv : ∀ {N : Prop}, Core.Stmt.HoldsList (Prog.Rel L.read) L.read (val L fp X.loc)
+  have hconv : ∀ {N : Prop}, Core.Stmt.HoldsList (RL Prog L cert) L.read (val L fp X.loc)
       (C.stmtsAt cf i) N (RetWords L fp X Kb) →
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C) (C.stmtsAt cf i) N
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C) (C.stmtsAt cf i) N
         (RetOf L fp G f cf C main Kb) := fun h ↦
     hret ▸ (holdsList_congr _ hcongr).mp h
   refine ⟨fun hi m hm ↦ ?_, ?_⟩
@@ -2150,21 +2165,27 @@ theorem cont_of {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f cf C m
     exact this.2
 
 /-- **A checked function's run**, from its entry with `k` steps left, every window checked and
-each window's memory bounds and semantic pairs given by the statements before it: its core
-relation holds of its frame, and a run of a function other than `main` returns in fewer steps. -/
+each window's memory bounds and semantic pairs given by the statements before it: its located
+core relation holds of its frame, and a run of a function other than `main` returns in fewer
+steps. Its frame is in the memory and its body holds under the frame's valuation, `cert cf.name`
+being its certificate. -/
 theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f cf C main i = true)
     (hf : f ∈ Data.functions) (hfind : Prog.find? cf.name = some cf) (hpows : C.facts.pows.Ok)
     (hκ : κ ≤ 32) {fp : K} (hfp : C.facts.fpOne = true → fp = 1) {k : ℕ}
-    (hC : ∀ i, FunSpecLt guest L k (G.sig i).entry (Pre G L i) (Post Prog G L i))
+    (hcert : cert cf.name = C)
+    (hC : ∀ i, FunSpecLt guest L k (G.sig i).entry (Pre G L i) (Post Prog G L cert i))
     (hjt : JTHolds G L) (henv : EnvHolds L fp C.facts.entryEnv) (hpre : BndHolds L fp C.pre)
     (hmem : MemPre L fp C.mem) (hsem : SemHolds G L fp C.sem)
-    (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (Prog.Rel L.read) L.read
+    (hknown : ∀ i ≤ C.cuts.length, 0 < i → Core.Stmt.HoldsList (RL Prog L cert) L.read
       (valG L fp C) (cf.body.take (C.cutAt i).start) True (fun _ ↦ True) →
         MemKnown L fp (C.cutAt i).known ∧ SemHolds G L fp (C.cutAt i).sems)
     (hsafe : Safe guest L k ⟨gpow f.entry, fp⟩) :
-    Prog.Rel L.read cf.name (frameWords L fp 2 cf.params.length)
+    RL Prog L cert cf.name (frameWords L fp 2 cf.params.length)
         (frameWords L fp (2 + cf.params.length) C.nret) ∧ BndHolds L fp C.post ∧
-      (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r) := by
+      (main = false → ∃ k' < k, ∃ r, retRegs L fp = some r ∧ Safe guest L k' r) ∧
+      InMem κ fp ∧ cf.params.map (valG L fp C) = frameWords L fp 2 cf.params.length ∧
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C) cf.body False
+        (fun rs ↦ rs = frameWords L fp (2 + cf.params.length) C.nret) := by
   have hcont := cont_of hc
   have run := fun i (hi : i ≤ C.cuts.length) {k'} hk' hs (hkn : _ ∧ _) ↦
     checkWin_run (Prog := Prog) (hc i hi) hcont hi hf hpows hκ hfp hC hjt hmem hkn.1 hkn.2 (k := k')
@@ -2174,7 +2195,7 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
   have hs0 : WinStart L fp f C 0 k :=
     ⟨by simpa [Cert.cutAt] using hsafe, henv, by simp [Cert.cutAt], hpre⟩
   have reach : ∀ i ≤ C.cuts.length, ∃ k' ≤ k, WinStart L fp f C i k' ∧
-      Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C)
+      Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C)
         (cf.body.take (C.cutAt i).start) True (RetOf L fp G f cf C main k) := by
     intro i
     induction i with
@@ -2202,19 +2223,36 @@ theorem checkWins_run {main : Bool} (hc : ∀ i ≤ C.cuts.length, checkWin G f 
     · exact hknown _ le_rfl hi0 (Core.holdsList_mono (fun _ _ _ h ↦ h) _ id (fun _ _ ↦ trivial) hl)
   have hr := run _ le_rfl hk' hs hkn
   have hlast := hr.2.2 le_rfl
-  have hall : Core.Stmt.HoldsList (Prog.Rel L.read) L.read (valG L fp C) cf.body False
+  have hall : Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C) cf.body False
       (RetOf L fp G f cf C main k) := by
     rw [← stmtsAt_last (C := C) (i := C.cuts.length) le_rfl, Core.holdsList_append]
     exact Core.holdsList_mono (fun _ _ _ h ↦ h) _ (fun _ ↦ hlast) (fun _ h ↦ h) hl
   have hparams := (run 0 (Nat.zero_le _) le_rfl hs0 hkn0).1 rfl
   obtain ⟨rs, hw, hback, hpost⟩ := (holdsList_reach cf.body hall).resolve_left id
-  refine ⟨(Core.rel_iff Prog _ _ _).mpr ⟨cf, hfind, valG L fp C, ?_, ?_⟩, hpost,
-    fun hm ↦ hback hm⟩
-  · apply List.ext_getElem (by simp [frameWords])
+  have hpar : cf.params.map (valG L fp C) = frameWords L fp 2 cf.params.length := by
+    apply List.ext_getElem (by simp [frameWords])
     intro m h1 h2
     simp only [List.getElem_map, frameWords, List.getElem_range, valG]
     rw [hparams m (by simpa using h1)]
-  · exact Core.holdsList_mono (fun _ _ _ h ↦ h) cf.body id (fun rs h ↦ h.1) hall
+  have hbody : Core.Stmt.HoldsList (RL Prog L cert) L.read (valG L fp C) cf.body False
+      (fun rs ↦ rs = frameWords L fp (2 + cf.params.length) C.nret) :=
+    Core.holdsList_mono (fun _ _ _ h ↦ h) cf.body id (fun rs h ↦ h.1) hall
+  have hA : InMem κ fp := by
+    cases main with
+    | true =>
+      have h1 : fp = 1 := hfp (checkWin_fpOne (hc 0 (Nat.zero_le _))).symm
+      exact ⟨0, Nat.two_pow_pos _, by rw [h1]; simp [gpow]⟩
+    | false =>
+      obtain ⟨-, -, r, hr, -⟩ := hback rfl
+      unfold retRegs at hr
+      obtain ⟨d, hd, -⟩ := Option.bind_eq_some_iff.mp hr
+      obtain ⟨i, hi, -⟩ := (Core.read_some_iff (by omega) L _ d).mp hd
+      exact ⟨i, i.isLt, by simpa [gpow] using hi⟩
+  have hval : frameVal L cert cf.name fp = valG L fp C := by rw [frameVal, hcert]
+  refine ⟨(Core.relL_iff Prog _ _ _).mpr ⟨cf, fp, hfind, hA, ?_, ?_⟩, hpost,
+    fun hm ↦ hback hm, hA, hpar, hbody⟩
+  · rw [hval]; exact hpar
+  · rw [hval]; exact hbody
 
 end Fn
 

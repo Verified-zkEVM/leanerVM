@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.End
 public import LeanVM.Guest.Glob
 public import LeanVM.Guest.CheckSound
+public import LeanVM.Guest.CertName
 public import LeanVM.Guest.B1.Main.Sound
 public import LeanVM.Guest.B1.Main.Discharge
 public import LeanVM.Guest.B1.VerifySub.Known
@@ -42,11 +43,11 @@ noncomputable def contracts : Contracts where
   ι := ℕ
   entry j := (glob.sig j).entry
   pre j _ L := Check.Pre glob L j
-  post j _ L := Check.Post coreProgram glob L j
+  post j _ L := Check.Post coreProgram glob L certByName j
 
 /-- Every contract of `glob`, for runs shorter than `n` (`contracts.Lt`, unfolded). -/
 abbrev GlobLt {κ : ℕ} (L : MemImage κ) (n : ℕ) : Prop :=
-  ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j) (Check.Post coreProgram glob L j)
+  ∀ j, FunSpecLt guest L n (glob.sig j).entry (Check.Pre glob L j) (Check.Post coreProgram glob L certByName j)
 
 /-- **B2, as checker K states it** (`SoundPieces.step` and `.main` over `contracts`). -/
 structure B2Sound : Prop where
@@ -54,7 +55,7 @@ structure B2Sound : Prop where
   than `n` (`checkFn_run` at `main = false`, for each checked function). -/
   step : ∀ {κ : ℕ} (L : MemImage κ), minLogMem ≤ κ → κ ≤ maxLogMem → ∀ n, GlobLt L n →
     ∀ i, FunSpecLt guest L (n + 1) (glob.sig i).entry (Check.Pre glob L i)
-      (Check.Post coreProgram glob L i)
+      (Check.Post coreProgram glob L certByName i)
   /-- From `main`'s entry at `fp = 1`, the jump table written and the contracts holding for runs
   shorter than `k`, a halting run gives `main`'s relation (`checkFn_run` at `main = true`, the
   jump table's adapter `JumpTables L → JTHolds glob L`, and `main`'s `nret = 0`). -/
