@@ -1,9 +1,13 @@
 import LeanVM.Guest.Batch.Children
+import LeanVM.Guest.Batch.Rom
 
 /-!
 # Tests: the batching's soundness
 
-* `rounds_sound`, `batch_sound` and `children_sound` rest on Lean's three standard axioms.
+* `rounds_sound`, `batch_sound`, `children_sound`, `runProof_batchProg` and `batch_rom` rest on
+  Lean's three standard axioms.
+* The random-oracle theorem's seedings have an inhabitant at `2^16` children: the label's hash,
+  then the count, no common step (so `failBound` is `4N / 2^256`).
 * **The condition doing the work.** `rounds_sound` needs the final claim to be `f` at the
   challenges: with no round, a false first claim (`1`, the cube sum of `0` being `0`) leaves no
   bad round, and it is the final check that fails.
@@ -26,6 +30,18 @@ open LeanVM.Parameters LeanVM.Protocol LeanVM.Guest.B1 LeanVM.Guest.Batch
 /-- info: 'LeanVM.Guest.Batch.children_sound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.children_sound
+
+/-- info: 'LeanVM.Guest.Batch.runProof_batchProg' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.runProof_batchProg
+
+/-- info: 'LeanVM.Guest.Batch.batch_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.Batch.batch_rom
+
+/-- The seedings at `2^16` children: no common step. -/
+example : (batchSeeds (2 ^ 16) (by norm_num)).steps = [] :=
+  (batchSeeds_seed _ _ ⟨0, by norm_num⟩).2.2
 
 /-- Without rounds, a false first claim leaves no bad round: the final check is what fails. -/
 example (cv : Digest) :
