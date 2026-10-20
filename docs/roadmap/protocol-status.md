@@ -654,6 +654,18 @@ then owes two edits: its `novelBasis` is `basisElt` (the novel basis is `novelPo
 row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test against
 `computableAdditiveNTT`, with the polynomial half restated at `K` (the module docstring says why).
 
+*On merge* of #108, the opening of WHIR and its completeness are on `main`: `whirOpen` and
+`whirOpen_perfectCompleteness` for any chain of levels (`Protocol/ToArkLib/Whir/Open.lean`,
+`Ladder`), the fold identities and the stack's relayout (`Protocol/WhirFold.lean`), and the generic
+components it is built from, which are upstream candidates (`queryRecord`, `sendOracleBeside`,
+`mapWitness`, `passCheck`, `seqSpec`). The blueprint then owes: `whirOpen`'s input is the one
+batched claim (`Weight E μ × E`), not `Fin J → WeightedClaim μ`; the schedule is the deployed one
+(three first-round polynomials at a level boundary, the grinding nonce as a message with no check);
+`encode_columnWeight` is #103's. Owed by the code: `foldWeight` and `relayoutWeight` build their
+`onCube` eagerly, and take the one-line change to `cube := .mk …` when #110 lands; until then
+reading a weight's `mle` builds its table first, so the terminal check costs `2 ^ μ` at a deployed
+size (μ = 28).
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
