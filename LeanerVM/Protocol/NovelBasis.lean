@@ -468,7 +468,7 @@ theorem encode_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (h
 
 /-- The difference of two encodings at `v` is the evaluation at `x_v` of the polynomial whose
 novel-basis coefficients are the difference of the messages. -/
-private theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
+theorem encode_sub_eq_eval {S : Type*} [CommRing S] (φ : K →+* S) {κ R : ℕ} (hκ : κ ≤ 64)
     (m m' : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
     encode φ κ R m v - encode φ κ R m' v =
       (∑ u : Fin (2 ^ κ), C (m[u] - m'[u]) * (novelPoly κ u).map φ).eval
