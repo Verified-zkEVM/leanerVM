@@ -110,6 +110,14 @@ This directory contains stable project and operating knowledge.
     (2026-10-05), which found no theorem wrong, vacuous or tautological, and whose findings the
     branch meets (the phase rebuilt as batching by powers followed by a query check, the bound
     attained, a refutation that drops the weighted claims, the blueprint ask, the surface).
+  - [whir-mca-budget.md](reviews/whir-mca-budget.md): the record of the check (2026-10-19) that
+    ArkLib's proved Johnson bound for mutual correlated agreement meets Annex B's budget at every
+    deployed WHIR level, with Annex B's constant, and of the Rust's inexact `η` search.
+  - [protocol-headline-theorems.md](reviews/protocol-headline-theorems.md): the review of the
+    headline theorems with the random-oracle heuristic as a named hypothesis (2026-10-19), which
+    found no statement vacuous or tautological, and whose findings the branch meets (the Merkle
+    nodes share the chain's domain, the error's closed form, the `η` dumped from the Rust, the
+    hash-only query bound, the honest prover as an adversary).
 
 Design notes for substantive new components should be added only when there is a concrete
 proposal to review. Reference files, generated sites, and report machinery should not be

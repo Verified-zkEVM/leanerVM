@@ -51,6 +51,14 @@
   circuit as the pinned Python verifier's `blake2s_row_values` walks them, for the row-for-row
   comparison in `tests/LeanerVMTests/Protocol/Blake2sCircuit.lean`; requires only Python and a
   checkout at the pinned commit.
+- `whir-mca-budget.py`: reproduces the pinned Rust's per-level WHIR `η` search in doubles, checks
+  it against the Python verifier's query table, and decides in exact arithmetic that ArkLib's
+  proved Johnson bound meets Annex B's budget at every level, for
+  [the record](../docs/reviews/whir-mca-budget.md); standard library only. `--rust-eta FILE`
+  compares the reproduction with the Rust's own `η`.
+- `dump-whir-eta-rust.sh <leanVM checkout>`: prints, for every admissible witness size and rate,
+  each WHIR level's `η` (the bits of its double) and query count as the pinned Rust derives them,
+  the source `Parameters/Whir.lean` transcribes; requires `cargo`.
 - `dump-leanisa-layout-rust.sh <leanVM checkout>`: prints the stacked size and every column's
   offset in the stack the pinned verifier reconstructs for two announced size vectors, for the
   comparison in `tests/LeanerVMTests/Protocol/LeanIsa.lean`; requires `cargo`.
