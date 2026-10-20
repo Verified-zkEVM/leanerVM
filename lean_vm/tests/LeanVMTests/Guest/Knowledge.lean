@@ -32,10 +32,10 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier
 
 /-! ## The decoder reads `main`'s frame -/
 
-example {κ : ℕ} (L : MemImage κ) : (decode L).1 = B1.Main.decSeed (valG L 1 (certOf 1)) := rfl
+example {κ : ℕ} (L : MemImage κ) : (decode L).seed = B1.Main.decSeed (valG L 1 (certOf 1)) := rfl
 
 example {κ : ℕ} (L : MemImage κ) :
-    (decode L).2.1 = B1.Main.decStmt (valG L 1 (certOf 1)) L.read := rfl
+    (decode L).statement = B1.Main.decStmt (valG L 1 (certOf 1)) L.read := rfl
 
 /-! ## The named form implies the existential one -/
 

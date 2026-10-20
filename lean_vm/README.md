@@ -13,7 +13,7 @@ The statements are in [`LeanVM/Spec/`](LeanVM/Spec/README.md), which imports not
 | [`Isa.lean`](LeanVM/Spec/Isa.lean) | leanISA: memory, the six instructions, programs, one step, `ValidExecution`, `Trace.count` |
 | [`Verifier.lean`](LeanVM/Spec/Verifier.lean) | the verifier, `python-verifier/verifier.py` transcribed section by section, for any hash function |
 | [`Statement.lean`](LeanVM/Spec/Statement.lean) | `KnowledgeSoundness` and `Completeness` |
-| [`Guest.lean`](LeanVM/Spec/Guest.lean) | what a proof of the aggregation guest establishes, its witness named: `GuestKnowledge`, `AggregateKnowledge` |
+| [`Guest.lean`](LeanVM/Spec/Guest.lean) | what a proof of the aggregation guest establishes, its witness named: `GuestKnowledge`, `AggregateSound` |
 | [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`) |
 
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` ([`LeanVM/Protocol/LeanVM.lean`](LeanVM/Protocol/LeanVM.lean)).

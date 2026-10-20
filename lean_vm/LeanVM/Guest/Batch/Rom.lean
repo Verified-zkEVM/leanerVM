@@ -473,9 +473,9 @@ def batchQueryBound (bytecode : List K) (M : ℕ) : ℕ :=
 
 /-- The proof's stream begins with the cells of `n` children of the bytecode's shapes, one of
 whose claims is false. -/
-def FalseChildren (bytecode : List K) (z : ℕ × Proof) : Prop :=
-  ∃ cs : List ChildClaims, cs.length = z.1 ∧ (∀ c ∈ cs, ChildShaped bytecode c) ∧
-    cs.flatMap childCells <+: z.2.stream ∧
+def FalseChildren (bytecode : List K) (n : ℕ) (π : Proof) : Prop :=
+  ∃ cs : List ChildClaims, cs.length = n ∧ (∀ c ∈ cs, ChildShaped bytecode c) ∧
+    cs.flatMap childCells <+: π.stream ∧
     ¬ ∀ c ∈ cs, c.fresh.Holds bytecode ∧ c.carried.Holds bytecode
 
 /-- The verifier of a child count below `M` makes at most `batchQueryBound` queries. -/
@@ -544,9 +544,8 @@ theorem doomed_of_falseChildren {bytecode : List K}
     {z : Fin M × Proof} {c : HashSpec.QueryCache}
     (hv : Rom.verify (fun x ↦ c x) ((batchSeeds M hM).seed z.1)
       (nodeAt (batchAny bytecode) ((batchSeeds M hM).root z.1)) z.2 = some true)
-    (hf : FalseChildren bytecode (z.1, z.2)) : Doomed (batchCert hb) (batchSeeds M hM) z c := by
+    (hf : FalseChildren bytecode z.1 z.2) : Doomed (batchCert hb) (batchSeeds M hM) z c := by
   obtain ⟨cs, hlen, hs, hpre, hn⟩ := hf
-  simp only at hlen hpre
   have hx := z.1.2
   have hz : (z.1 : ℕ) < 2 ^ 64 := by omega
   have hlt : cs.length < 2 ^ 64 := by rw [hlen]; exact hz
@@ -579,13 +578,13 @@ theorem batch_rom {bytecode : List K} (hb : bytecode.length = 2 ^ Nat.log2 bytec
     {M : ℕ} (hM : M ≤ 2 ^ 64 - 1) (A : OracleComp HashSpec (Fin M × Proof)) (QA : ℕ)
     (hA : IsTotalQueryBound A QA) :
     Pr{let z ← romExperiment A (verifierFam (batchSeeds M hM) (batchAny bytecode))}[
-      z.1.2 = true ∧ FalseChildren bytecode (z.1.1.1, z.1.1.2)] ≤
+      z.1.2 = true ∧ FalseChildren bytecode z.1.1.1 z.1.1.2] ≤
       ((QA + batchQueryBound bytecode M : ℕ) : ℝ≥0∞) *
         (batchε + failBound (batchSeeds M hM) (QA + batchQueryBound bytecode M)) :=
   romSound_of_imp (batchAny bytecode) (batchCert hb) (batchSeeds M hM)
     (fun x ↦ rootOk_countRoot bytecode (by have := x.2; omega)) batchε (batchCert_bound hb) A QA
     hA (batchQueryBound bytecode M) (isTotalQueryBound_batchFam hM)
-    (fun z _ ↦ FalseChildren bytecode (z.1, z.2))
+    (fun z _ ↦ FalseChildren bytecode z.1 z.2)
     fun _ _ hv hf ↦ doomed_of_falseChildren hb hM hv hf
 
 /-- The verifier of a child count and a proof is the batching program from the batching's

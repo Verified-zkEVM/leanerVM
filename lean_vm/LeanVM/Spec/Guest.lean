@@ -14,28 +14,26 @@ public import LeanVM.Spec.Node
 
 `NodeSpec` (`Node.lean`) is the existential `∃ w, NodeRel …`. A hash-based witness (a signature, a
 child's proof, a blob matrix) exists for nearly every claim, so "some witness holds the statement"
-says little. What a valid execution of the guest establishes is more: its memory holds the witness.
-A **decoder** reads a seed, a statement and a witness off a memory (`Decoder`), and the guest's
-soundness is stated for it:
+says little. What a valid execution of the guest establishes is more: its memory holds the
+witness. A **decoder** reads a seed, a statement and a witness off a memory (`Decoder`,
+`Decoded`), and the guest's soundness is stated for it:
 
-* `GuestKnowledge guest decode`: every valid execution of `guest` on a public input decodes, from its
-  memory, to a statement of that input's digest under the decoded seed, and to a witness holding it;
-* `AggregateKnowledge guest extract decode`: in the random-oracle experiment, the verifier accepts a
-  proof of `guest` while the execution `extract` reads off the oracle's answers and the proof does
-  not decode so, with probability at most `soundnessError Q`;
-* `AggregateSound guest extract decode`, the consumer's statement: the outer verifier's checks
-  (the proof on the digest of `s` under the deployed seed, `s`'s deferred claim, its DA digests)
-  pass while the extracted execution does not decode to the deployed seed, `s` and a witness
-  holding it, nor give with `s` a BLAKE2s collision among `collisionCandidates`, with probability
+* `GuestKnowledge guest decode`: every valid execution of `guest` on a public input decodes to a
+  statement of that input's digest under the decoded seed, and a witness holding it;
+* `AggregateSound guest extract decode`, what a consumer learns: in the random-oracle experiment,
+  the verifier accepts a proof of `guest` on the digest of a statement `s` under the deployed seed,
+  `s` passing the outer verifier's other checks (`OuterChecks`), while the execution `extract`
+  reads off the proof does not explain `s` (`Explains`: decode to the deployed seed, `s` and a
+  witness holding it, or give a BLAKE2s collision among `collisionCandidates`), with probability
   at most `soundnessError Q`.
 
-Both propositions hold of any decoder that happens to output valid witnesses; their content is in the
-decoder the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory:
-the statement from `main`'s frame, each signature, matrix and child proof from the frame of the
-function that checked it: the first frame of the memory at which that function's code holds on the
-call's words. The decoder verifies nothing itself. The seed is the guest's hint: the
-statement's digest binds it, and a consumer comparing the digest with its own statement's under the
-deployed seed learns both, unless it holds a BLAKE2s collision.
+Both hold of any decoder that happens to output valid witnesses; their content is in the decoder
+the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory: the
+statement from `main`'s frame, each signature, matrix and child proof from the frame of the
+function that checked it, the first frame of the memory at which that function's code holds on
+the call's words. The decoder chooses nothing and verifies nothing. The seed is the guest's hint:
+the statement's digest binds it, so a consumer comparing the digest with its own statement's under
+the deployed seed learns both, unless it holds a BLAKE2s collision.
 -/
 
 namespace LeanVM.Node
@@ -90,53 +88,66 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
     (sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
     (daPreimage s.claims.da, daPreimage s'.claims.da)]
 
-/-! ## Decoders and knowledge -/
+/-- The guest's deployed seed: its Fiat-Shamir IV. -/
+abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
+
+/-- **What the outer verifier checks of a statement besides its proof** (`verifyAggregate`): every
+DA claim's vector digest is its root's, and the deferred claim holds of the guest's bytecode. -/
+def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
+  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧ s.defer.Holds (bytecodeWords guest)
+
+/-- **A collision**: a pair of different inputs with the same BLAKE2s digest, among `pairs`. -/
+def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
+  ∃ p ∈ pairs, p.1 ≠ p.2 ∧ blake2sBytes p.1 = blake2sBytes p.2
+
+/-! ## Decoders -/
+
+/-- What a decoder reads off a memory: a seed, a statement and a witness. -/
+structure Decoded where
+  /-- The seed. -/
+  seed : Digest
+  /-- The statement. -/
+  statement : NodeStatement
+  /-- The witness. -/
+  witness : NodeWitness
 
 /-- A decoder: from a memory, a seed, a statement and a witness. -/
-abbrev Decoder : Type := ∀ {κ : ℕ}, MemImage κ → Digest × NodeStatement × NodeWitness
+abbrev Decoder : Type := ∀ {κ : ℕ}, MemImage κ → Decoded
 
-/-- **What the execution `t` of `guest` on `input` decodes to**: a statement of the input's digest
-under the decoded seed, and a witness holding it for the guest's bytecode. -/
-def DecodesOn (guest : Program) (decode : Decoder) (input : PublicInput) (t : Trace guest) : Prop :=
-  statementDigest (decode t.image).1 (decode t.image).2.1 = publicDigest input ∧
-    NodeRel (bytecodeWords guest) (decode t.image).1 (decode t.image).2.1 (decode t.image).2.2
+/-! ## What a proof of the guest establishes -/
+
+/-- **What a valid execution of `guest` on `input` decodes to** (`d`): a statement of the input's
+digest under the decoded seed, and a witness holding it for the guest's bytecode. -/
+def DecodesOn (guest : Program) (input : PublicInput) (d : Decoded) : Prop :=
+  statementDigest d.seed d.statement = publicDigest input ∧
+    NodeRel (bytecodeWords guest) d.seed d.statement d.witness
 
 /-- **Knowledge soundness of the guest, its witness named**: every valid execution decodes. -/
 def GuestKnowledge (guest : Program) (decode : Decoder) : Prop :=
-  ∀ input (t : Trace guest), ValidExecution guest input t → DecodesOn guest decode input t
+  ∀ input (t : Trace guest), ValidExecution guest input t → DecodesOn guest input (decode t.image)
 
-/-- **In the random-oracle model**: the adversary chooses a statement and a proof; the verifier
-accepts, the program is the guest, and the execution `extract` reads off the oracle's answers and
-the proof does not decode, with probability at most `soundnessError Q`. -/
-def AggregateKnowledge (guest : Program) (extract : Extractor) (decode : Decoder) : Prop :=
-  ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[z.1.2 = true ∧ z.1.1.1.1 = guest ∧
-      ¬ ∃ t, extract z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 = some t ∧
-        statementDigest (decode t.image).1 (decode t.image).2.1 = publicDigest z.1.1.1.2 ∧
-        NodeRel (bytecodeWords guest) (decode t.image).1 (decode t.image).2.1
-          (decode t.image).2.2] ≤ soundnessError Q
+/-- **The decoding `d` explains the statement `s`**: it is the deployed seed, `s` and a witness
+holding `s`; or the decoded seed and statement, with the deployed seed and `s`, give a BLAKE2s
+collision among the candidates. -/
+def Explains (guest : Program) (s : NodeStatement) (d : Decoded) : Prop :=
+  (d.seed = deployedSeed guest ∧ d.statement = s ∧
+      NodeRel (bytecodeWords guest) (deployedSeed guest) s d.witness) ∨
+    HasCollision (collisionCandidates d.seed d.statement (deployedSeed guest) s)
 
-/-- **What the outer verifier's acceptance establishes, its witness named.** The adversary outputs
-a proof of `guest`. The event: the verifier accepts it on its public input, which is the digest,
-under the deployed seed `fiatShamirIv`, of a statement `s` whose deferred claim holds and whose DA
-claims' vector digests are their roots' (what `verifyAggregate` checks beside the proof); and yet
-the execution `extract` reads off the oracle's answers and the proof neither decodes to the
-deployed seed, `s` and a witness holding it, nor gives, with `s`, a BLAKE2s collision among the
-candidates. Its probability is at most `soundnessError Q`. -/
+/-- **The outer verifier's acceptance, explained.** The adversary outputs a proof. The event: the
+verifier accepts it as a proof of `guest` on the digest, under the deployed seed, of a statement
+`s` that passes the outer verifier's other checks, and yet the execution `extract` reads off the
+oracle's answers and the proof does not explain `s`. Its probability is at most
+`soundnessError Q`. -/
 def AggregateSound (guest : Program) (extract : Extractor) (decode : Decoder) : Prop :=
   ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[z.1.2 = true ∧ z.1.1.1.1 = guest ∧
-      ∃ s : NodeStatement,
-        publicDigest z.1.1.1.2 = statementDigest (fiatShamirIv (bytecodeWords guest)) s ∧
-        s.defer.Holds (bytecodeWords guest) ∧
-        (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧
-        ¬ ∃ t, extract z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 = some t ∧
-          (((decode t.image).1 = fiatShamirIv (bytecodeWords guest) ∧ (decode t.image).2.1 = s ∧
-              NodeRel (bytecodeWords guest) (fiatShamirIv (bytecodeWords guest)) s
-                (decode t.image).2.2) ∨
-            ∃ p ∈ collisionCandidates (decode t.image).1 (decode t.image).2.1
-                (fiatShamirIv (bytecodeWords guest)) s,
-              p.1 ≠ p.2 ∧ blake2sBytes p.1 = blake2sBytes p.2)] ≤ soundnessError Q
+    Pr{let z ← experiment A}[
+      let prog := z.1.1.1.1
+      let input := z.1.1.1.2
+      ∃ s : NodeStatement, z.1.2 = true ∧ prog = guest ∧
+        publicDigest input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
+        ¬ ∃ t, extract prog input z.2 z.1.1.2 = some t ∧ Explains guest s (decode t.image)] ≤
+      soundnessError Q
 
 end
 end LeanVM.Node

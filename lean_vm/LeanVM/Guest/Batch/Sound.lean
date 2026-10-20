@@ -154,15 +154,18 @@ theorem lambdaBad_fixed {gaps lambdas : List E} (hl : lambdas.length = gaps.leng
   have := congrArg (· + lambdas.getD k 0 * gaps.getD k 0) hdot
   simpa [add_assoc, CharTwo.add_self_eq_zero] using this.symm
 
-/-- **A challenge of the batching is bad**: the bytecode's lambdas, a round of its sumcheck, the
-matrices' lambdas, or a round of theirs. -/
+/-- **A side of the batching is bad**: its lambdas, or a round of its sumcheck of `f` from
+`claim` at the chain state `cv`. -/
+def SideBad (gaps lambdas : List E) (f : List E → E) (rounds : List (E × E)) (claim : E)
+    (cv : Digest) : Prop :=
+  LambdaBad gaps lambdas ∨ ∃ j < rounds.length, BadRound rounds.length f rounds claim cv j
+
+/-- **A challenge of the batching is bad**: on the bytecode's side or on the matrices'. -/
 def BatchBad (bytecode : List K) (cs : List ChildClaims) (h : BatchHints) : Prop :=
-  LambdaBad (gapsB bytecode cs) ((lambdasB cs).flatMap fun l ↦ [l.1, l.2]) ∨
-  (∃ j < h.bytecodeRounds.length, BadRound h.bytecodeRounds.length
-    (bytecodePoly bytecode cs (lambdasB cs)) h.bytecodeRounds (claimB cs) (cvB cs) j) ∨
-  LambdaBad (gapsM cs) ((lambdasM cs h).flatMap fun l ↦ [l.1, l.2.1, l.2.2]) ∨
-  ∃ j < h.matrixRounds.length, BadRound h.matrixRounds.length
-    (matrixPoly cs (lambdasM cs h)) h.matrixRounds (claimM cs h) (cvM cs h) j
+  SideBad (gapsB bytecode cs) ((lambdasB cs).flatMap fun l ↦ [l.1, l.2])
+      (bytecodePoly bytecode cs (lambdasB cs)) h.bytecodeRounds (claimB cs) (cvB cs) ∨
+    SideBad (gapsM cs) ((lambdasM cs h).flatMap fun l ↦ [l.1, l.2.1, l.2.2])
+      (matrixPoly cs (lambdasM cs h)) h.matrixRounds (claimM cs h) (cvM cs h)
 
 /-! ## Soundness -/
 
@@ -258,8 +261,8 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchHints}
     (fun c ↦ multilinearEval (bytecode.map ofK) c.carried.bytecodePoint)
   rcases gaps_cases hsubB with hzB | hbadB | hneB
   rotate_left
-  · exact Or.inr (Or.inl hbadB)
-  · refine Or.inr (Or.inr (Or.inl (rounds_sound rfl ?_ ?_)))
+  · exact Or.inr (Or.inl (Or.inl hbadB))
+  · refine Or.inr (Or.inl (Or.inr (rounds_sound rfl ?_ ?_)))
     · rw [roundChallenges, hfinB, bytecodePoly, hvalB]
     · rw [bytecode_cubeSum hpow.symm hpB]; exact hneB
   -- the matrices
@@ -271,8 +274,8 @@ theorem batch_sound {bytecode : List K} {cs : List ChildClaims} {h : BatchHints}
     (fun c ↦ (matrixValues c.carried.matrixPoint).2)
   rcases gaps_cases hsubM with hzM | hbadM | hneM
   rotate_left
-  · exact Or.inr (Or.inr (Or.inr (Or.inl hbadM)))
-  · refine Or.inr (Or.inr (Or.inr (Or.inr (rounds_sound rfl ?_ ?_))))
+  · exact Or.inr (Or.inr (Or.inl hbadM))
+  · refine Or.inr (Or.inr (Or.inr (rounds_sound rfl ?_ ?_)))
     · rw [roundChallenges, hfinM, matrixPoly, hvalM]
     · rw [hlogM, matrix_cubeSum hsM]; exact hneM
   -- every gap is zero

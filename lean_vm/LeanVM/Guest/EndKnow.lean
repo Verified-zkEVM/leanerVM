@@ -3,7 +3,7 @@
 
   The aggregation guest's soundness, its witness named: the decoder that reads a statement and
   its witness off a valid execution's memory, and the theorems `GuestKnowledge` and
-  `AggregateKnowledge` of `LeanVM/Spec/Guest.lean` for the deployed bytecode.
+  `AggregateSound` of `LeanVM/Spec/Guest.lean` for the deployed bytecode.
 -/
 
 module
@@ -40,6 +40,8 @@ whose extracted execution (`LeanVM.extract`) does not decode so with probability
 `decode_binds`: a consumer whose own statement `s₀` (its deferred claim true) has, under the
 deployed seed `iv`, the public input's digest learns that the decoded seed and statement are `iv`
 and `s₀`, or holds an explicit BLAKE2s collision (`collisionCandidates`).
+
+`aggregate_sound_outer : AggregateSound guest LeanVM.extract decode`, the two composed.
 -/
 
 namespace LeanVM.Guest.End
@@ -55,9 +57,9 @@ open scoped ENNReal
 frames of its callees hold. -/
 noncomputable def decode : Decoder := fun {_} L ↦
   let σ := valG L 1 (certOf 1)
-  (B1.Main.decSeed σ, B1.Main.decStmt σ L.read,
+  ⟨B1.Main.decSeed σ, B1.Main.decStmt σ L.read,
     B1.Main.decWit σ L.read (Located.xmssWit L) (Located.sphincsWit L) (Located.wDaL L)
-      (fun args ↦ Located.wVsL L args []) (Located.wAL L))
+      (fun args ↦ Located.wVsL L args []) (Located.wAL L)⟩
 
 /-- A located call is its callee's body at a valuation (`B1.Main.Unfolds`). -/
 theorem unfolds_RL {κ : ℕ} (L : MemImage κ) : B1.Main.Unfolds L.read (RL coreProgram L certByName) :=
@@ -80,9 +82,16 @@ theorem guest_knowledge : GuestKnowledge guest decode := by
       exact ⟨pi, iv, fresh, h1, h2, h3, h4, h5⟩)
   exact B1.Main.main_sound_w bytecode_length hm (unfolds_RL t.image) H h0 h1 hb
 
-/-- **The aggregate's soundness against the random oracle, its witness named**. -/
-theorem aggregate_knowledge : AggregateKnowledge guest LeanVM.extract decode := by
-  intro A Q hA
+/-- **The aggregate's soundness against the random oracle, its witness named**: the verifier
+accepts a proof of the guest whose extracted execution does not decode (`DecodesOn`) with
+probability at most `soundnessError Q`. -/
+theorem aggregate_knowledge (A : Adversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q) :
+    Pr{let z ← experiment A}[
+      let prog := z.1.1.1.1
+      let input := z.1.1.1.2
+      z.1.2 = true ∧ prog = guest ∧
+        ¬ ∃ t, LeanVM.extract prog input z.2 z.1.1.2 = some t ∧
+          DecodesOn guest input (decode t.image)] ≤ soundnessError Q := by
   refine le_trans (prEvent_mono _ _ _ ?_) (LeanVM.knowledgeSoundness hA)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, c⟩ ⟨hb, hprog, hno⟩
   dsimp only at hb hprog hno
@@ -98,9 +107,8 @@ candidates. -/
 theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecution guest input t)
     {iv : Digest} {s₀ : NodeStatement} (hs₀ : s₀.defer.Holds bytecode)
     (hpub : publicDigest input = statementDigest iv s₀) :
-    ((decode t.image).1 = iv ∧ (decode t.image).2.1 = s₀) ∨
-      ∃ p ∈ collisionCandidates (decode t.image).1 (decode t.image).2.1 iv s₀,
-        p.1 ≠ p.2 ∧ blake2sBytes p.1 = blake2sBytes p.2 := by
+    ((decode t.image).seed = iv ∧ (decode t.image).statement = s₀) ∨
+      HasCollision (collisionCandidates (decode t.image).seed (decode t.image).statement iv s₀) := by
   obtain ⟨hd, hrel⟩ := guest_knowledge input t hv
   exact decoded_binds_of_nodeRel hs₀ hrel hpub hd
 
@@ -111,7 +119,7 @@ holding it, or that execution's decoding and `s` give an explicit BLAKE2s collis
 theorem aggregate_sound_outer : AggregateSound guest LeanVM.extract decode := by
   intro A Q hA
   refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge A Q hA)
-  rintro z ⟨hb, hprog, s, hpub, hs, -, hno⟩
+  rintro z ⟨s, hb, hprog, hpub, ⟨-, hs⟩, hno⟩
   refine ⟨hb, hprog, ?_⟩
   rintro ⟨t, hx, hd, hrel⟩
   refine hno ⟨t, hx, ?_⟩
