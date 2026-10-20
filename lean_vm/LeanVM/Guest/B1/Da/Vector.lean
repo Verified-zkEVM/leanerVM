@@ -136,11 +136,30 @@ theorem vxBlocks_congr {f g : ℕ → E} (h : ∀ k < 256, f k = g k) {j : ℕ} 
 theorem getD_map_range (f : ℕ → E) {n k : ℕ} (hk : k < n) : ((List.range n).map f).getD k 0 = f k := by
   rw [List.getD_eq_getElem _ _ (by simpa using hk)]; simp
 
+/-- **The weights `da_vector_cell` hints**, from its valuation: the values `4` to `259`. -/
+def vxWs (σ : Val) : List E := (List.range 256).map fun k => σ (.n (k + 4))
+
+/-- **`da_vector_cell__L{final}`'s outcome, its weights named** `ws`: `256` of them, the four
+counter words at `counters·xb³`, the chain from `(h0, h1)` over the weights' 96 blocks ending in
+`(o0, o1)`, and `wp` the weights' frame address. -/
+def VecOut (final : Bool) (rd : Reader) (args rets : List E) (ws : List E) : Prop :=
+  ∃ xb h0 h1 ctr o0 o1 wp, args = [xb, h0, h1, ctr] ∧ rets = [o0, o1, wp] ∧ ws.length = 256 ∧
+    ∃ cv : List E, cv.length = 4 ∧ CellsAt rd (ctr * (xb * xb * xb)) cv ∧
+      ChainCells (h0, h1) (vxBlocks (ws.getD · 0)) (vxMd final (cv.getD · 0)) 96 (o0, o1) ∧
+      FrameRun rd wp ws
+
+theorem meaning_of_vecOut {final : Bool} {rd : Reader} {args rets ws : List E}
+    (h : VecOut final rd args rets ws) : Meaning_da_vector_cell final rd args rets := by
+  obtain ⟨xb, h0, h1, ctr, o0, o1, wp, ha, hr, hl, cv, hcl, hcv, hch, hfr⟩ := h
+  exact ⟨xb, h0, h1, ctr, o0, o1, wp, ha, hr, ws, cv, hl, hcl, hcv, hch, hfr⟩
+
 set_option maxRecDepth 10000 in
-theorem da_vector_cell_fwd {final : Bool} {rd : Reader} {args rets : List E}
-    (h : coreProgram.Rel rd (vxName final) args rets) : Meaning_da_vector_cell final rd args rets := by
-  rw [rel_of_find (find_vx final)] at h
-  obtain ⟨σ, hp, hb⟩ := h
+/-- **`da_vector_cell__L{final}`, its witness named**: on a valuation of its body, the outcome
+holds of the weights the valuation hints (`vxWs`). -/
+theorem da_vector_cell_out {final : Bool} {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    (hp : ([.n 0, .n 1, .n 2, .n 3] : List V).map σ = args)
+    (hb : Stmt.HoldsList C rd σ (vxBody final) False (fun rs => rs = rets)) :
+    VecOut final rd args rets (vxWs σ) := by
   simp only [vxBody, vxAtoms, holdsList_atoms, holdsList_ret, List.forall_mem_append, forall_mem_flatMap_range,
     List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true, true_and, List.map_cons,
     List.map_nil] at hb hp
@@ -204,14 +223,21 @@ theorem da_vector_cell_fwd {final : Bool} {rd : Reader} {args rets : List E}
   have hs0 : vxSt final 0 = 3460 := rfl
   simp only [hs0] at hch
   rw [c60, c61] at hch
+  have hws : vxWs σ = (List.range 256).map wsf := rfl
+  rw [hws]
   refine ⟨σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n (vxSt final 96)), σ (.n (vxSt final 96 + 1)),
-    σ (.n (vxF final)), hp.symm, ?_, (List.range 256).map wsf, cvl, by simp, rfl, hcv, hch, hfk,
-    fun k hk v hv => ?_⟩
+    σ (.n (vxF final)), hp.symm, ?_, by simp, cvl, rfl, hcv, hch, hfk, fun k hk v hv => ?_⟩
   · rw [← hr, o1, o2, o3]
   · simp only [List.length_map, List.length_range] at hk
     rw [hfr k (by simpa using hk) v hv, getD_map_range wsf hk]
     simp only [List.getElem_map, List.getElem_range]
     rfl
+
+theorem da_vector_cell_fwd {final : Bool} {rd : Reader} {args rets : List E}
+    (h : coreProgram.Rel rd (vxName final) args rets) : Meaning_da_vector_cell final rd args rets := by
+  rw [rel_of_find (find_vx final)] at h
+  obtain ⟨σ, hp, hb⟩ := h
+  exact meaning_of_vecOut (da_vector_cell_out hp hb)
 
 /-! ## Completeness -/
 
@@ -543,5 +569,6 @@ end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
-export Digest (vxCell vxBlocks vxMd FrameRun Meaning_da_vector_cell da_vector_cell_iff)
+export Digest (vxCell vxBlocks vxMd FrameRun Meaning_da_vector_cell da_vector_cell_iff vxWs VecOut
+  da_vector_cell_out)
 end LeanVM.Guest.B1

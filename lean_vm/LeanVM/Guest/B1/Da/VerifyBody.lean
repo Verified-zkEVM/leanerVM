@@ -148,11 +148,38 @@ theorem nPad_le {r : ℕ} (hr : r ≤ LeanDa.maxRows) : LeanDa.nPad r ≤ 1024 :
   calc 2 ^ LeanDa.logPad r ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) (logPad_le hr)
     _ = 1024 := by norm_num
 
-theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
-    {r0 r1 v0 v1 : E} (h : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1]) :
-    DaFacts rd r0 r1 v0 v1 := by
-  rw [rel_of_find find_dv] at h
-  obtain ⟨σ, hp, hb⟩ := h
+/-- **`DaFacts` but the columns'**, at the row count `r` and the pointers. -/
+def DaRest (rd : Reader) (r : ℕ) (pb pd hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1 : E) : Prop :=
+  1 ≤ r ∧ r ≤ LeanDa.maxRows ∧
+    (∀ i < r, L88Step rd pb pd (gen ^ i)) ∧
+    LoadHolds rd hs 0 (digestScalars paramIv).1 ∧ LoadHolds rd hs 1 (digestScalars paramIv).2 ∧
+    IsInK ctr ∧ (∀ k < 385, ∀ w, rd (ctr.limb 0 * Parameters.gpow k) = some w → w = word (k * 2048) 0 0) ∧
+    (∀ i < r, L89Step rd acc rb (gen ^ i)) ∧
+    (∀ i < r, L92Step rd rb (gen ^ i)) ∧
+    Meaning_da_levels 7 rd [ct] [rc0, rc1] ∧
+    (∀ i < r, L93Step rd pb rt (gen ^ i)) ∧
+    (∀ d < LeanDa.nPad r - r, L94Step rd rt (gen ^ r) (gen ^ d)) ∧
+    Meaning_da_levels (LeanDa.logPad r) rd [rt] [rr0, rr1] ∧
+    CompressCells ![rr0, rr1, rc0, rc1] (digestScalars paramIv).1 (digestScalars paramIv).2 r0 r1
+      (metadataCell 64 true) ∧
+    LoadHolds rd hs 256 v0 ∧ LoadHolds rd hs 257 v1
+
+/-- The arguments of `da_verify`'s column loops, the first one `x`: `__loop90` at `x = 420`,
+`__loop91` at `x = 421`. -/
+def dvColArgs (σ : Val) (x : V) : List E :=
+  [σ x, σ (.n 1), σ (.n 3), σ (.n 4), σ (.n 2), σ (.n 13), σ (.n 419), σ (.n 415), σ (.n 17), σ (.n 405)]
+
+/-- **`da_verify`'s body, on a valuation**, under any call relation below the program's: the row
+count `r`, the facts other than the columns' at the valuation's pointers, and the two column
+loops' calls. -/
+theorem da_verify_rest {C : CallRel} {rd : Reader} (hC : CallRel.Le C (coreProgram.Rel rd)) (hm : MemOk rd)
+    {gsq : E} (hT : SquaresAt rd gsq) {σ : Val} {r0 r1 v0 v1 : E} (hp : ([.n 0] : List V).map σ = [gsq])
+    (hb : Stmt.HoldsList C rd σ dvBody False (fun rs => rs = [r0, r1, v0, v1])) :
+    ∃ r, σ (.n 420) = 1 ∧ σ (.n 421) = gen ^ 64 ∧ σ (.n 1) = gen ^ r ∧ σ (.n 3) = gen ^ LeanDa.nPad r ∧
+      σ (.n 4) = gen ^ (LeanDa.nPad r - r) ∧ σ (.n 2) = gen ^ LeanDa.logPad r ∧
+      DaRest rd r (σ (.n 13)) (σ (.n 12)) (σ (.n 17)) (σ (.n 405)) (σ (.n 414)) (σ (.n 415)) (σ (.n 419))
+        (σ (.n 429)) (σ (.n 425)) (σ (.n 426)) (σ (.n 436)) (σ (.n 437)) r0 r1 v0 v1 ∧
+      C "__loop90" (dvColArgs σ (.n 420)) [] ∧ C "__loop91" (dvColArgs σ (.n 421)) [] := by
   rw [dvBody, holdsList_append, holdsList_append, holdsList_atoms'] at hb
   simp only [dvA, dvB, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil, true_and,
     word_one, word_g64] at hb hp
@@ -162,7 +189,8 @@ theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt 
     hdl, c438, c439, c440, hfin, c443, c444, l445, l446, hret⟩ := hb
   simp only [List.cons.injEq, and_true] at hp hret
   subst hp
-  obtain ⟨_, _, _, np, gap, he, hr, r, hr1, hr2, hnb, hglp, hnp, hgap⟩ := (da_row_shape_iff hm hT _ _ _).mp hshape
+  obtain ⟨_, _, _, np, gap, he, hr, r, hr1, hr2, hnb, hglp, hnp, hgap⟩ :=
+    (da_row_shape_iff hm hT _ _ _).mp (hC _ _ _ hshape)
   simp only [List.cons.injEq, and_true] at he hr
   obtain ⟨e1, e2, -⟩ := he
   obtain ⟨e3, e4⟩ := hr
@@ -178,49 +206,58 @@ theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt 
     intro k hk
     exact hK _ (List.mem_map.mpr ⟨k, List.mem_range.mpr hk, rfl⟩)
   obtain ⟨rfl, rfl, rfl, rfl⟩ := hret
-  rw [hnb, hglp, hnp, hgap] at h90 h91
-  rw [c420] at h90
-  rw [c421, ← word_g64] at h91
-  have h88' := callIf_loop hr1 hr33 (by rwa [a15, c14, hnb] at h88)
-  have h89' := callIf_loop hr1 hr33 (by rwa [a417, c416, hnb] at h89)
-  have h92' := callIf_loop hr1 hr33 (by rwa [a423, c422, hnb] at h92)
-  have h93' := callIf_loop hr1 hr33 (by rwa [a431, c430, hnb] at h93)
+  have h88' := hC _ _ _ (callIf_loop hr1 hr33 (by rwa [a15, c14, hnb] at h88))
+  have h89' := hC _ _ _ (callIf_loop hr1 hr33 (by rwa [a417, c416, hnb] at h89))
+  have h92' := hC _ _ _ (callIf_loop hr1 hr33 (by rwa [a423, c422, hnb] at h92))
+  have h93' := hC _ _ _ (callIf_loop hr1 hr33 (by rwa [a431, c430, hnb] at h93))
   rw [c16, ← pow_zero gen] at h88'
   rw [c418, ← pow_zero gen] at h89'
   rw [c424, ← pow_zero gen] at h92'
   rw [c432, ← pow_zero gen] at h93'
-  obtain ⟨k, hk, hk2, hlvk⟩ := dl_dispatch.mp hdl
+  obtain ⟨k, hk, hk2, hlvk⟩ := dl_dispatch.mp (let ⟨j, hj, hx, hc⟩ := hdl; ⟨j, hj, hx, hC _ _ _ hc⟩)
   rw [hglp] at hk2
   have hkl : k = LeanDa.logPad r := gen_pow_inj' (by omega) (by omega) hk2.symm
   subst hkl
   rw [c438, c439, c440, iv0_word, iv1_word, md64_word] at hfin
-  refine ⟨r, σ (.n 13), σ (.n 12), σ (.n 17), σ (.n 405), σ (.n 414), σ (.n 415), σ (.n 419), σ (.n 429),
-    σ (.n 425), σ (.n 426), σ (.n 436), σ (.n 437), hr1, hr2,
+  refine ⟨r, c420, c421, hnb, hnp, hgap, hglp, ⟨hr1, hr2,
     loop_all (B := fun j => L88Step rd (σ (.n 13)) (σ (.n 12)) (gen ^ j)) hr33 rfl
       ((l88_iff rd _ _ _ 0).mp h88'),
     by rw [← iv0_word, ← c18]; exact l18, by rw [← iv1_word, ← c19]; exact l19, hk405,
     fun k hk w hw => ?_,
     loop_all (B := fun j => L89Step rd (σ (.n 414)) (σ (.n 415)) (gen ^ j)) hr33 rfl
       ((l89_iff rd _ _ _ 0).mp h89'),
-    fun b hb => ?_,
     loop_all (B := fun j => L92Step rd (σ (.n 415)) (gen ^ j)) hr33 rfl ((l92_iff rd _ _ 0).mp h92'),
-    (da_levels_iff 7 (by norm_num) _ _).mp hlv7,
+    (da_levels_iff 7 (by norm_num) _ _).mp (hC _ _ _ hlv7),
     loop_all (B := fun j => L93Step rd (σ (.n 13)) (σ (.n 429)) (gen ^ j)) hr33 rfl
       ((l93_iff rd _ _ _ 0).mp h93'),
-    fun d hd => ?_, hlvk, by rw [c443, c444]; exact hfin, l445, l446⟩
+    fun d hd => ?_, hlvk, by rw [c443, c444]; exact hfin, l445, l446⟩, h90, h91⟩
   · have := hfr k (by simpa using hk) w hw
     simp only [List.getElem_map, List.getElem_range] at this
     rw [this, hK' k hk]
-  · by_cases h64 : b < 64
-    · rw [decide_eq_true h64]
-      exact colLoop_prefix rfl h90 b h64
-    · rw [decide_eq_false h64]
-      exact colLoop_rest rfl h91 b (by omega) hb
   · have hpos : 0 < LeanDa.nPad r - r := by omega
-    have h94' := callIf_loop hpos (by omega) (by rwa [a434, c433, hgap] at h94)
+    have h94' := hC _ _ _ (callIf_loop hpos (by omega) (by rwa [a434, c433, hgap] at h94))
     rw [c435, hnb, ← pow_zero gen] at h94'
     exact loop_all (B := fun j => L94Step rd (σ (.n 429)) (gen ^ r) (gen ^ j)) (by omega) rfl
       ((l94_iff rd _ _ _ 0).mp h94') d hd
+
+theorem da_verify_facts {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq)
+    {r0 r1 v0 v1 : E} (h : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1]) :
+    DaFacts rd r0 r1 v0 v1 := by
+  rw [rel_of_find find_dv] at h
+  obtain ⟨σ, hp, hb⟩ := h
+  obtain ⟨r, c420, c421, hnb, hnp, hgap, hglp, ⟨hr1, hr2, h88, hiv0, hiv1, hk405, hctr, h89, h92, hlv7, h93,
+    h94, hlvr, hfin, hv0, hv1⟩, h90, h91⟩ := da_verify_rest (fun _ _ _ h => h) hm hT hp hb
+  unfold dvColArgs at h90 h91
+  rw [c420, hnb, hglp, hnp, hgap] at h90
+  rw [c421, hnb, hglp, hnp, hgap, ← word_g64] at h91
+  refine ⟨r, σ (.n 13), σ (.n 12), σ (.n 17), σ (.n 405), σ (.n 414), σ (.n 415), σ (.n 419), σ (.n 429),
+    σ (.n 425), σ (.n 426), σ (.n 436), σ (.n 437), hr1, hr2, h88, hiv0, hiv1, hk405, hctr, h89,
+    fun b hb => ?_, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩
+  by_cases h64 : b < 64
+  · rw [decide_eq_true h64]
+    exact colLoop_prefix rfl h90 b h64
+  · rw [decide_eq_false h64]
+    exact colLoop_rest rfl h91 b (by omega) hb
 
 /-! ## The converse -/
 
@@ -342,5 +379,5 @@ end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
-export Digest (da_verify_of_facts)
+export Digest (da_verify_of_facts DaRest dvColArgs da_verify_rest)
 end LeanVM.Guest.B1

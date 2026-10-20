@@ -27,20 +27,36 @@ open LeanVM.Protocol.Verifier LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Node
 
 @[expose] public section
 
-/-- **`da_verify`, soundly**: the facts of its relation give a witness that opens the returned
-root and vector digest. -/
-theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) :
-    ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd ∧
-      w.Opens root vd := by
-  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, -, hctr, h89,
-    hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
+/-- **The witness of the guest's cells**: `r` rows, row `i` the cells `sy b i` of the `128`
+columns in order, and the vector the `128` chunks `ws b`. -/
+def daWitOf (r : ℕ) (sy : ℕ → ℕ → List K) (ws : ℕ → List E) : Da.Witness :=
+  ⟨(List.range r).map fun i => (List.range 128).flatMap fun b => sy b i, (List.range 128).flatMap ws⟩
+
+theorem daWitOf_congr {r : ℕ} {sy sy' : ℕ → ℕ → List K} {ws ws' : ℕ → List E}
+    (hsy : ∀ b < 128, ∀ i < r, sy b i = sy' b i) (hws : ∀ b < 128, ws b = ws' b) :
+    daWitOf r sy ws = daWitOf r sy' ws' := by
+  unfold daWitOf
+  congr 1
+  · refine List.map_congr_left fun i hi => List.flatMap_congr fun b hb => ?_
+    exact hsy b (List.mem_range.mp hb) i (List.mem_range.mp hi)
+  · exact List.flatMap_congr fun b hb => hws b (List.mem_range.mp hb)
+
+/-- **`da_verify`, soundly, its witness given**: the facts other than the columns', each column's
+facts `F b` and each of its cells' `G b i` give the witness of the cells' symbols and the columns'
+weights (`daWitOf`), which opens the returned root and vector digest. -/
+theorem opens_of {rd : Reader} {r0 r1 v0 v1 : E} {r : ℕ} {pb pd hs ctr acc rb ct rt rc0 rc1 rr0 rr1 : E}
+    (h : DaRest rd r pb pd hs ctr acc rb ct rt rc0 rc1 rr0 rr1 r0 r1 v0 v1) (F : ℕ → ColW)
+    (G : ℕ → ℕ → CellW) (hF : ∀ b < 128, ColOk rd r pb ct rb hs b (F b))
+    (hG : ∀ b < 128, ∀ i < r,
+      CellOk rd (decide (b < 64)) (F b).lv rb (gen ^ b) (F b).node pb (gen ^ i) (G b i)) :
+    (r0, r1) = digestScalars (commitOf r fun b i => (G b i).syms) ∧
+      (v0, v1) = digestScalars (blake2sBytes (((List.range 128).flatMap fun b => (F b).ws).flatMap eBytes)) ∧
+      (daWitOf r (fun b i => (G b i).syms) (fun b => (F b).ws)).Opens (commitOf r fun b i => (G b i).syms)
+        (blake2sBytes (((List.range 128).flatMap fun b => (F b).ws).flatMap eBytes)) := by
+  obtain ⟨hr1, hr2, -, hiv0, hiv1, -, -, h89, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
   have hr33 : r < 2 ^ 33 := by unfold LeanDa.maxRows at hr2; omega
   obtain ⟨hrN, hNr⟩ := (logPad_iff (lp := LeanDa.logPad r) hr1).mp rfl
   have hNdef : LeanDa.nPad r = 2 ^ LeanDa.logPad r := rfl
-  obtain ⟨F, hF⟩ := choose_lt (fun b hb => col_facts hr1 hr2 hctr hb (hcol b hb))
-  obtain ⟨G, hG⟩ := choose_lt₂ (n := 128) (m := r) (P := fun b i c =>
-      CellOk rd (decide (b < 64)) (F b).lv rb (gen ^ b) (F b).node pb (gen ^ i) c)
-    (fun b hb i hi => cell_facts ((hF b hb).2.2.2.2.2.1 i hi))
   obtain ⟨Rw, hRw⟩ := choose_lt (α := E × List E) (n := r) (P := fun i x =>
       LoadHolds rd (pb * gen ^ i) 0 x.1 ∧ x.2.length = 128 ∧ CellsAt rd x.1 x.2 ∧
         (∀ c ∈ x.2, IsCanonical128 c) ∧
@@ -105,13 +121,13 @@ theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v
       simp only [rowLeafOf, hir, ↓reduceIte, padRow_cells]
       unfold L94Step at this
       rwa [pad_ptr, show r + (i - r) = i by omega] at this
-  refine ⟨commitOf r sy, blake2sBytes (vector.flatMap eBytes), ⟨rows, vector⟩, ?_,
-    vector_chain hF hiv0 hiv1 hv0 hv1, ?_⟩
+  refine ⟨?_, vector_chain hF hiv0 hiv1 hv0 hv1, ?_⟩
   · obtain ⟨e1, e2⟩ := Prod.mk.inj hRR
     obtain ⟨e3, e4⟩ := Prod.mk.inj hRC
     rw [e1, e2, e3, e4] at hfin
     exact compress_pair.mp hfin
   have hlen : rows.length = r := by simp [rows]
+  change (⟨rows, vector⟩ : Da.Witness).Opens _ _
   refine ⟨by simp only [hlen]; exact hr1, by simp only [hlen]; exact hr2, fun row hrow => ?_, ?_, ?_,
     vectorDigest_eq vector, fun row hrow => ?_⟩
   · obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hrow
@@ -152,6 +168,21 @@ theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v
         exact Finset.sum_congr rfl fun k hk => by rw [hws b hb' k (Finset.mem_range.mp hk)],
       Finset.sum_congr rfl (fun b hb => hA b (Finset.mem_range.mp hb)), Finset.sum_range_sub, h128, h0, sub_zero]
 
+/-- **`da_verify`, soundly**: the facts of its relation give a witness that opens the returned
+root and vector digest. -/
+theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v1) :
+    ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd ∧
+      w.Opens root vd := by
+  obtain ⟨r, pb, pd, hs, ctr, acc, rb, ct, rt, rc0, rc1, rr0, rr1, hr1, hr2, h88, hiv0, hiv1, hk, hctr, h89,
+    hcol, h92, hlv7, h93, h94, hlvr, hfin, hv0, hv1⟩ := h
+  obtain ⟨F, hF⟩ := choose_lt (fun b hb => col_facts hr1 hr2 hctr hb (hcol b hb))
+  obtain ⟨G, hG⟩ := choose_lt₂ (n := 128) (m := r) (P := fun b i c =>
+      CellOk rd (decide (b < 64)) (F b).lv rb (gen ^ b) (F b).node pb (gen ^ i) c)
+    (fun b hb i hi => cell_facts ((hF b hb).2.2.2.2.2.1 i hi))
+  obtain ⟨e1, e2, ho⟩ := opens_of ⟨hr1, hr2, h88, hiv0, hiv1, hk, hctr, h89, h92, hlv7, h93, h94, hlvr, hfin,
+    hv0, hv1⟩ F G hF hG
+  exact ⟨_, _, _, e1, e2, ho⟩
+
 /-- **`da_verify`, soundly**: on a valid execution's memory and the squares table, the returned
 cells are a root and a vector digest that some LeanDA witness opens. -/
 theorem da_verify_sound {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq) {r0 r1 v0 v1 : E}
@@ -184,6 +215,6 @@ end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
-export Digest (DaFacts da_verify_facts daFacts_opens da_verify_sound da_row_shape_glp_lt
+export Digest (DaFacts da_verify_facts daFacts_opens da_verify_sound daWitOf daWitOf_congr opens_of da_row_shape_glp_lt
   da_list_digest_ng_lt)
 end LeanVM.Guest.B1

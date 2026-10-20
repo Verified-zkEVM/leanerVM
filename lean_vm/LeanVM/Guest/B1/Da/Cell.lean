@@ -147,10 +147,28 @@ theorem vcBlk_iff {rd : Reader} {σ : Val} {b : ℕ} :
 theorem vc_pack {a b : E} (ha : IsInK a) (hb : IsInK b) : a + wY * b = E.ofLimbs (a.limb 0) (b.limb 0) 0 := by
   rw [wY_eq]; exact pack64x2_eq ha hb
 
-theorem da_verify_cell_fwd {rd : Reader} {args rets : List E}
-    (h : coreProgram.Rel rd "da_verify_cell" args rets) : Meaning_da_verify_cell rd args rets := by
-  rw [rel_of_find find_da_verify_cell] at h
-  obtain ⟨σ, hp, hb⟩ := h
+/-- **The symbols `da_verify_cell` hints**, from its valuation: the values `1` to `256`, as `K`. -/
+def vcSyms (σ : Val) : List K := (List.range 256).map fun k => (σ (.n (k + 1))).limb 0
+
+/-- **`da_verify_cell`'s outcome, its symbols named** `syms`: `256` of them, the `256` words at
+`lvals`, the digest of the symbols' bytes and the inner product `∑ lvals[k]·sym[k]`. -/
+def CellOut (rd : Reader) (args rets : List E) (syms : List K) : Prop :=
+  ∃ lv d0 d1 s, args = [lv] ∧ rets = [d0, d1, s] ∧ syms.length = 256 ∧ ∃ ws : List E,
+    ws.length = 256 ∧ CellsAt rd lv ws ∧
+    (d0, d1) = digestScalars (blake2sBytes (syms.flatMap kBytes)) ∧
+    s = ∑ k ∈ Finset.range 256, ws.getD k 0 * ofK (syms.getD k 0)
+
+theorem meaning_of_cellOut {rd : Reader} {args rets : List E} {syms : List K}
+    (h : CellOut rd args rets syms) : Meaning_da_verify_cell rd args rets := by
+  obtain ⟨lv, d0, d1, s, ha, hr, hl, ws, hw, hc, hd, hs⟩ := h
+  exact ⟨lv, d0, d1, s, ha, hr, syms, ws, hl, hw, hc, hd, hs⟩
+
+/-- **`da_verify_cell`, its witness named**: on a valuation of its body, the outcome holds of the
+symbols the valuation hints (`vcSyms`). -/
+theorem da_verify_cell_out {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    (hp : ([.n 0] : List V).map σ = args)
+    (hb : Stmt.HoldsList C rd σ vcBody False (fun rs => rs = rets)) :
+    CellOut rd args rets (vcSyms σ) := by
   simp only [vcBody, holdsList_atoms, holdsList_ret, List.forall_mem_append, forall_mem_flatMap_range,
     List.forall_mem_cons, Atom.Holds, forall_mem_nil_iff, and_true, true_and, List.map_cons,
     List.map_nil] at hb hp
@@ -213,8 +231,10 @@ theorem da_verify_cell_fwd {rd : Reader} {args rets : List E}
       simp only [vcBlocks]
       rw [hcell _ (by omega), hcell _ (by omega), hcell _ (by omega), hcell _ (by omega)])
     (fun b hb => by rw [(vcBlk_iff.mp (hblk b hb)).1, word_metadata]; rfl), vc_chain] at hch
-  refine ⟨lv, σ (.n 1506), σ (.n 1507), σ (.n 1508), hp.symm, hr.symm, (List.range 256).map sy,
-    (List.range 256).map (cellAt rd lv), by simp, by simp, fun k hk => ?_, ?_, ?_⟩
+  have hsy : vcSyms σ = (List.range 256).map sy := rfl
+  rw [hsy]
+  refine ⟨lv, σ (.n 1506), σ (.n 1507), σ (.n 1508), hp.symm, hr.symm, by simp,
+    (List.range 256).map (cellAt rd lv), by simp, fun k hk => ?_, ?_, ?_⟩
   · simp only [List.length_map, List.length_range] at hk
     simp only [List.getElem_map, List.getElem_range]
     exact load_cellAt (hL k hk).choose_spec
@@ -225,6 +245,12 @@ theorem da_verify_cell_fwd {rd : Reader} {args rets : List E}
     rw [List.getD_eq_getElem _ _ (by simpa using hk'), List.getD_eq_getElem _ _ (by simpa using hk')]
     simp only [List.getElem_map, List.getElem_range]
     rw [hx k hk']
+
+theorem da_verify_cell_fwd {rd : Reader} {args rets : List E}
+    (h : coreProgram.Rel rd "da_verify_cell" args rets) : Meaning_da_verify_cell rd args rets := by
+  rw [rel_of_find find_da_verify_cell] at h
+  obtain ⟨σ, hp, hb⟩ := h
+  exact meaning_of_cellOut (da_verify_cell_out hp hb)
 
 /-! ## Completeness -/
 
@@ -411,5 +437,5 @@ end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
-export Digest (Meaning_da_verify_cell da_verify_cell_iff)
+export Digest (Meaning_da_verify_cell da_verify_cell_iff vcSyms CellOut da_verify_cell_out)
 end LeanVM.Guest.B1
