@@ -55,7 +55,9 @@ namespace Whir
 /-- The parameters of a level's code in the soundness proof: the agreement threshold `a`
 (`a = (1 - γ) · 2 ^ (κ + R)` for the radius `γ`), the list bound `L` and the
 mutual-correlated-agreement bound `N` (the interfaces of `LeanerVM.Protocol.Whir.Lanes`),
-with `2 ^ κ ≤ a` and `κ + R ≤ 64`. -/
+with `2 ^ κ ≤ a ≤ 2 ^ (κ + R)` and `κ + R ≤ 64`. A threshold above the number of positions would
+leave no codeword within it, so the list relation would be empty and every fold, out-of-domain and
+batching error would be zero. -/
 structure Par (sh : Shape) (κ : ℕ) where
   /-- The agreement threshold. -/
   a : ℕ

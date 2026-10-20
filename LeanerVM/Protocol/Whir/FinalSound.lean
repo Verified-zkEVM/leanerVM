@@ -25,8 +25,8 @@ if `ff` satisfies the residual claim its encoding agrees with the folded word on
 positions, every position would have to be one of them). The batching challenge draws the
 `t + 1` claims into one: a vector of `t + 1` discrepancies, not all zero, vanishes at at most `t`
 challenges (`card_false_batch_le`, no list to union over). What remains is a sumcheck on tables the
-verifier holds, with the family of `ProductSum`: `SumcheckRound.roundsSecurity` at `2 / |E|` a round,
-and the terminal check is the sumcheck's last claim.
+verifier holds, with the family of `ProductSum`: `SumcheckRound.roundsSecurity` at `2 / |E|` a
+round, and the terminal check is the sumcheck's last claim.
 -/
 
 namespace LeanerVM.Protocol
@@ -133,7 +133,8 @@ challenges make the plaintext table satisfy the batched claim: it violates one o
 claims, so its batched discrepancy is a nonzero polynomial of degree at most `t`. -/
 theorem card_final_batch_le (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 1) i)
     (hnot : ¬ FinalQLang P s o) :
-    Nat.card {x : E // FinalBLang { s with lam := x } (cqAt { s with lam := x }.toBd o)} ≤ sh.t := by
+    Nat.card {x : E //
+      FinalBLang { s with lam := x } (cqAt { s with lam := x }.toBd o)} ≤ sh.t := by
   classical
   have := Fintype.ofFinite E
   unfold FinalQLang at hnot
