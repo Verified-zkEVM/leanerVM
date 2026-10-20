@@ -670,6 +670,18 @@ change to `cube := .mk …` when #110 lands; until then reading a weight's `mle`
 first, so the terminal check costs `2 ^ μ` at a deployed size (μ = 28), and a deployed-size guard
 for it waits for #110.
 
+*On merge* of #109, the soundness of the opening is on `main`: `whirOpen_rbrSoundness`, round-by-round
+soundness for the list relation, at the errors of Annex B's `thm:rbr` per challenge
+(`Protocol/Whir/OpenSound.lean`), with the lists of a word, the fold-list lemma and the counting it
+rests on (`Whir/Lanes.lean`, `Stage.lean`, `Counting.lean`) and the security half of each generic
+component. It takes, per level, `Par`: a list bound and mutual correlated agreement in counting form
+(`ListBound`, `McaBound`), inhabited at exact agreement and, for the list bound, at unique decoding
+(`Whir/Exact.lean`). The blueprint then owes: its `McaJohnson` is Annex B's constant over ArkLib's
+probability (`mcaJohnson_annexB`), so the adapter from that and from a Johnson list bound to the
+counting form is the remaining piece of Layer 11, and it produces both `Par` interfaces; the
+out-of-domain point is `κ` challenges at `C(L', 2) / |E|` each, not one message; the theorem is not
+knowledge soundness.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
