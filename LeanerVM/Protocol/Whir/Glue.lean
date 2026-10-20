@@ -123,7 +123,8 @@ theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ :
   intro k hk
   by_cases hj : j < n
   · have h : ∀ (T : CMlPolynomialEval E n), ProductSum.roundPoly T B j c =
-        #v[ProductSum.coef0 T B hj c, ProductSum.coef1 T B hj c, ProductSum.coef2 T B hj c] := fun T ↦ by
+        #v[ProductSum.coef0 T B hj c, ProductSum.coef1 T B hj c,
+          ProductSum.coef2 T B hj c] := fun T ↦ by
       unfold ProductSum.roundPoly
       rw [dite_eq_left hj]
     rw [h, batchMessage, Vector.getElem_ofFn]
@@ -216,11 +217,10 @@ theorem pair_gluedWeight {κ R t : ℕ} (W' : Weight E κ) (z : Vector E κ)
   · exact pair_eqWeight_id z f
   · exact pair_queryWeight pos lam f
 
-
 /-- The residual weight: the weight with its lane coordinates bound at the fold point `r`;
 its extension at `z` is the weight's at `r ++ z`. The verifier reads `mle` only (the terminal
 check); `onCube` is for the prover's sums and the proofs. With the `Weight` of `main` the record
-builds its table when it is constructed; once the table is a thunk (#110) this constructor writes
+builds its table when it is constructed; once the table is lazy this constructor writes
 `cube := .mk fun _ => foldTable ...` and nothing on the verifier's path forces it. -/
 def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Weight E κ where
   onCube := foldTable W.onCube r

@@ -41,8 +41,8 @@ def lam : E := y + 1
 /-! ## The honest polynomial -/
 
 -- stage 0: the polynomial's values at 0 and 1 sum to the claim `Σ A·B`
-#guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)] (ProductSum.roundPoly tA tB 0 #v[]) =
-  ProductSum.claim tA tB 0 #v[]
+#guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)]
+    (ProductSum.roundPoly tA tB 0 #v[]) = ProductSum.claim tA tB 0 #v[]
 -- stage 1, after one challenge
 #guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)]
     (ProductSum.roundPoly tA tB 1 #v[e1]) = ProductSum.claim tA tB 1 #v[e1]
@@ -51,7 +51,8 @@ def lam : E := y + 1
   ProductSum.claim tA tB 2 #v[e1, e2]
 -- the claim at stage 0 is the inner product, and with everything fixed it is the summand
 #guard ProductSum.claim tA tB 0 #v[] = ∑ i : Fin 8, tA[i] * tB[i]
-#guard ProductSum.claim tA tB 3 #v[e1, e2, e3] = evalMle tA #v[e1, e2, e3] * evalMle tB #v[e1, e2, e3]
+#guard ProductSum.claim tA tB 3 #v[e1, e2, e3] =
+  evalMle tA #v[e1, e2, e3] * evalMle tB #v[e1, e2, e3]
 
 /-! ## A wrong polynomial -/
 

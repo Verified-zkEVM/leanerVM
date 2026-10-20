@@ -10,7 +10,7 @@ module
 
 public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.Whir.Glue
-public import LeanerVM.Protocol.ToArkLib.Whir.Schedule
+public import LeanerVM.Protocol.ToArkLib.StepSchedule
 public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryRecord
 public import LeanerVM.Protocol.ToArkLib.SendOracleBeside
@@ -75,6 +75,7 @@ parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.Whir.Open`).
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+  StepSchedule
 open scoped NNReal
 
 @[expose] public section
@@ -588,7 +589,8 @@ variable {rel₃ : Set ((S₃ × ∀ i, O₃ i) × W₃)}
 honest running claim on a table and its honest word to the opening's final relation, given the
 completeness of the rest. Its body uses the per-step completeness definitions, which are private,
 so it is not exposed. -/
-@[no_expose] def levelComplete {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2)
+@[no_expose] def levelComplete
+    {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2)
       (OneW sh' κ') (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)}
     (CR : Component.Complete R (startRel sh' κ') rel₃) :
     Component.Complete (levelDef sh sh' κ' R) (startRel sh (Kap sh' κ')) rel₃ :=

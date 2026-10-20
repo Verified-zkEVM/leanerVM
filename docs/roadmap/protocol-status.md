@@ -658,18 +658,17 @@ row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test agai
 `whirOpen_perfectCompleteness` for any chain of levels (`Protocol/Whir/Open.lean`, `Ladder`), with
 the fold identities and the stack's relayout (`Protocol/WhirFold.lean`, `Protocol/Whir/`), and the
 generic components it is built from, which are upstream candidates (`queryRecord`,
-`sendOracleBeside`, `mapWitness`, `passCheck`, `seqSpec`, the sumcheck of a product of two tables).
-The blueprint then owes: `whirOpen`'s input is the one batched claim (`Weight E μ × E`), not
-`Fin J → WeightedClaim μ`, and its stack and witness are `E`-valued, so the wiring owes the
-`K`-to-`E` lift of the witness; the rounds are the plain sumcheck on the product of the weight and
-the table, lowest variable first, not normalized rounds; the schedule is the deployed one (three
-first-round polynomials at a level boundary, the grinding nonce as a message with no check, three
-coefficients per round polynomial where the stream carries two); the module is
-`LeanerVM/Protocol/Whir/` with the generic parts in `ToArkLib/`, not `ToArkLib/Whir.lean`;
-`encode_columnWeight` is #103's. Owed by the code: `foldWeight` and `relayoutWeight` build their
-`onCube` eagerly, and take the one-line change to `cube := .mk …` when #110 lands; until then
-reading a weight's `mle` builds its table first, so the terminal check costs `2 ^ μ` at a deployed
-size (μ = 28), and a deployed-size guard for it waits for #110.
+`sendOracleBeside`, `mapWitness`, `passCheck`, the schedule of a list of steps, the sumcheck of a
+product of two tables). The blueprint's Layer 11 is updated with it: the input is the one batched
+claim (`Weight E μ × E`), not `Fin J → WeightedClaim μ`; the rounds are the plain sumcheck on the
+product of the weight and the table, lowest variable first, with three coefficients per round
+polynomial where the stream carries two; the modules are `LeanerVM/Protocol/Whir/` with the generic
+parts in `ToArkLib/`; the stack and the witness are `E`-valued, with what the wiring owes. The pull
+request that wires `whirOpen` into the opening phase owes the `K`-to-`E` lift of the witness. Owed
+by the code: `foldWeight` and `relayoutWeight` build their `onCube` eagerly, and take the one-line
+change to `cube := .mk …` when #110 lands; until then reading a weight's `mle` builds its table
+first, so the terminal check costs `2 ^ μ` at a deployed size (μ = 28), and a deployed-size guard
+for it waits for #110.
 
 ## Upstream watch
 

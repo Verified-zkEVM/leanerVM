@@ -37,7 +37,8 @@ evaluating one entry costs more than the test can afford.
 
 namespace LeanerVMTests.Protocol.WhirOpenToy
 
-open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Whir CompPoly CMlPolynomialEval
+open LeanerVM.Parameters LeanerVM.Protocol LeanerVM.Protocol.Whir LeanerVM.Protocol.StepSchedule
+  CompPoly CMlPolynomialEval
   OracleComp OracleSpec ProtocolSpec
 
 /-! ## Transcripts of a list of steps -/
@@ -93,7 +94,6 @@ def stepTr : (a : Step) → stepVal a → a.spec.FullTranscript
 def seqTr : (l : List Step) → ValList l → (seqSpec l).FullTranscript
   | [], _ => fun i ↦ Fin.elim0 i
   | a :: l, v => appendTr (stepTr a v.1) (seqTr l v.2)
-
 
 /-! ## The toy -/
 
@@ -240,6 +240,9 @@ def bump (q : SumcheckRound.Message E 2) : SumcheckRound.Message E 2 := q.set 1 
 /-- A polynomial times a scalar: the polynomial of a weight scaled by it. -/
 def scale (c : E) (q : SumcheckRound.Message E 2) : SumcheckRound.Message E 2 := q.map (· * c)
 
+/-- An out-of-domain point other than the drawn one: a prover that ignores the sample. -/
+def zAlt : Vector E κ0 := #v[ee 0x31 0x3, ee 0x44 0x9]
+
 /-- The out-of-domain and query weights glued in the other order: the query weight at `λ` and
 the out-of-domain weight at `λ²`. -/
 def W1alt : Weight E κ0 := Weight.batch ![V0, queryWeight κ0 sh0.R pos0 lam0, eqWeight z0] lam0
@@ -247,6 +250,34 @@ def W1alt : Weight E κ0 := Weight.batch ![V0, queryWeight κ0 sh0.R pos0 lam0, 
 /-! ## The honest run -/
 
 #guard accepts honest = true
+
+/-! ## The order of the messages is the schedule's
+
+A transcript is typed by the schedule, so a nonce sent after the positions, or a dropped
+out-of-domain sample, is not a transcript that can be written: it is a different schedule. What can
+be checked is the schedule itself, in the deployed verifier's order. -/
+
+/-- A step's kind and its number of rounds: a message `0`, a queried message `1`, a challenge `2`, a
+run of challenges `3`, a run of sumcheck rounds `4`, a step with no round `5`. -/
+def tag : Step → ℕ × ℕ
+  | .msg _ => (0, 1)
+  | .oracle _ _ => (1, 1)
+  | .chal _ _ => (2, 1)
+  | .chals _ _ k => (3, k)
+  | .rds _ _ _ m => (4, m)
+  | .skip => (5, 0)
+
+-- the first level: the first fold challenge, the other fold round, the residual polynomial, the
+-- commitment, the out-of-domain point (`κ0 = 2` challenges), its answer and polynomial, the nonce,
+-- the positions, the batching challenge, the reading (no round), the query batch's polynomial, the
+-- glue (no round); then the last level: the fold challenge, no further fold round, the residual
+-- polynomial, the plaintext table, the nonce, the positions, the batching challenge, the reading
+-- (no round), the query batch's polynomial, the glue (no round), the tail's first challenge and
+-- its remaining rounds. The nonce precedes the positions at both levels.
+#guard ladder.steps.map tag =
+  [(2, 1), (4, 1), (0, 1), (1, 1), (3, 2), (0, 1), (0, 1), (0, 1), (2, 1), (2, 1), (5, 0), (0, 1),
+    (5, 0),
+   (2, 1), (4, 0), (0, 1), (0, 1), (0, 1), (2, 1), (2, 1), (5, 0), (0, 1), (5, 0), (2, 1), (4, 0)]
 
 /-! ## Mutations of the prover's messages: each is rejected -/
 
@@ -268,6 +299,12 @@ def W1alt : Weight E κ0 := Weight.batch ![V0, queryWeight κ0 sh0.R pos0 lam0, 
 #guard accepts { honest with p3b := bump honest.p3b } = false
 -- the query batch's polynomial at the other power scheme: `λ^(1+q)` for `λ^q`
 #guard accepts { honest with p3a := scale lam0 honest.p3a } = false
+-- a prover that ignores the out-of-domain sample: it answers and proves at its own point
+#guard accepts
+  { honest with
+    cood := evalMle g0 zAlt
+    p2 := firstPoly (eqWeight zAlt) g0
+    p1b := firstPoly (foldWeight (gluedWeight V0 zAlt pos0 lam0) r1) ff } = false
 -- the next level's prover works from the out-of-domain and query claims glued at other powers
 #guard accepts { honest with p1b := firstPoly (foldWeight W1alt r1) ff } = false
 -- the commitment of another table: the last level's queries read rows that are not the fold's
@@ -289,7 +326,6 @@ def W1alt : Weight E κ0 := Weight.batch ![V0, queryWeight κ0 sh0.R pos0 lam0, 
 -- the word of another stack
 #guard accepts honest stmt0 (fun _ ↦ wordOf sh0.ℓ κ0 sh0.R sh0.t
   (relayout (stackQ.set 0 (stackQ[0] + 1)))) = false
-
 
 /-! ## The relayout -/
 

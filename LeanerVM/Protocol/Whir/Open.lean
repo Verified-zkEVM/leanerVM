@@ -47,6 +47,7 @@ that agree on `2 ^ κ` positions are equal, `encode_eq_of_agree`).
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+  StepSchedule
 
 @[expose] public section
 
@@ -107,7 +108,7 @@ def stackRel : Set (((Weight E (κ + sh.ℓ) × E) × ∀ i, OneW sh κ i) × Ta
     p.1.1.2 = p.1.1.1.pair (RingHom.id E) p.2}
 
 /-- The relation after the relayout: the same, on the relayout of the stack. -/
-def laneRel : Set (((Weight E (sh.ℓ + κ) × E) × ∀ i, OneW sh κ i) × Tab (sh.ℓ + κ)) :=
+private def laneRel : Set (((Weight E (sh.ℓ + κ) × E) × ∀ i, OneW sh κ i) × Tab (sh.ℓ + κ)) :=
   {p | p.1.2 0 = wordOf sh.ℓ κ sh.R sh.t p.2 ∧ p.1.1.2 = p.1.1.1.pair (RingHom.id E) p.2}
 
 /-- The relayout of the stack, in the weight and in the prover's table, no round. -/
@@ -126,7 +127,7 @@ def sendFirst :=
     (fun s m ↦ chk m s.2) (fun s m ↦ ((s.1, (#v[], s.2)), m))
 
 /-- Completeness of the relayout: the claim is the same, summed in another order. -/
-def stackRelayoutComplete : Component.Complete (stackRelayout sh κ) (stackRel sh κ)
+private def stackRelayoutComplete : Component.Complete (stackRelayout sh κ) (stackRel sh κ)
     (laneRel sh κ) :=
   Component.mapWitnessComplete _ _ _ fun s _ w h ↦ ⟨h.1, by
     show s.2 = (relayoutWeight s.1).pair (RingHom.id E) (relayout w)
@@ -134,7 +135,8 @@ def stackRelayoutComplete : Component.Complete (stackRelayout sh κ) (stackRel s
     exact h.2⟩
 
 /-- Completeness of the first message: the opening claim's polynomial sums to its value. -/
-def sendFirstComplete : Component.Complete (sendFirst sh κ) (laneRel sh κ) (startRel sh κ) :=
+private def sendFirstComplete :
+    Component.Complete (sendFirst sh κ) (laneRel sh κ) (startRel sh κ) :=
   Component.sendCheckedComplete _ _ _ _ _ fun s o w h ↦ by
     refine ⟨?_, ⟨h.1, ?_⟩, rfl⟩
     · show chk _ s.2 = true
@@ -151,8 +153,9 @@ def whirOpen (L : Ladder sh κ) : Component.Def (Weight E (κ + sh.ℓ) × E) (O
     (seqSpec (.skip :: .msg (SumcheckRound.Message E 2) :: L.steps)) :=
   (stackRelayout sh κ).append <| (sendFirst sh κ).append L.comp
 
-/-- The opening's completeness half. -/
-def whirOpenComplete (L : Ladder sh κ) :
+/-- The opening's completeness half. Its body uses the private completeness definitions of the
+first two steps, so it is not exposed. -/
+@[no_expose] def whirOpenComplete (L : Ladder sh κ) :
     Component.Complete (whirOpen sh κ L) (stackRel sh κ) Set.univ :=
   (stackRelayoutComplete sh κ).append <| (sendFirstComplete sh κ).append L.compComplete
 

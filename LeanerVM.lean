@@ -83,12 +83,12 @@ import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.SendChecked
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.SendOracleBeside
+import LeanerVM.Protocol.ToArkLib.StepSchedule
 import LeanerVM.Protocol.ToArkLib.Sumcheck
 import LeanerVM.Protocol.ToArkLib.SumcheckRound
 import LeanerVM.Protocol.ToArkLib.TranscriptMap
 import LeanerVM.Protocol.ToArkLib.WeightBatch
 import LeanerVM.Protocol.ToArkLib.WeightCombination
-import LeanerVM.Protocol.ToArkLib.Whir.Schedule
 import LeanerVM.Protocol.ToClean.ComponentPolynomial
 import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking

@@ -46,6 +46,7 @@ statement holds it.
 namespace LeanerVM.Protocol
 
 open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec ProtocolSpec
+  StepSchedule
 open scoped NNReal
 
 @[expose] public section
@@ -202,7 +203,8 @@ private def glueFinalComplete : Component.Complete (glueFinal sh nf) (relOld sh 
         (s.pos q) := funext hcq
     refine ⟨⟨trivial, ?_⟩, ?_⟩
     · show powerBatch ![s.c, powerBatch s.cq s.lam] s.lam =
-        ProductSum.claim (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam).onCube
+        ProductSum.claim
+          (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam).onCube
           s.ff 0 #v[]
       rw [claim_zero, Weight.pair_batch, hff, hc, hcqf]
       congr 1
@@ -300,7 +302,8 @@ def finalDef : Component.Def (SumcheckRound.MidStmt (Weight E (sh.ℓ + (nf + 1)
 /-- Perfect completeness of the final level: from an honest running claim on a table and its
 honest word, the verifier accepts. Its body uses the private per-step completeness definitions,
 so it is not exposed. -/
-@[no_expose] def finalComplete : Component.Complete (finalDef sh nf) (startRel sh (nf + 1)) Set.univ :=
+@[no_expose] def finalComplete :
+    Component.Complete (finalDef sh nf) (startRel sh (nf + 1)) Set.univ :=
   (foldFirstComplete sh (nf + 1)).append <| (foldRestComplete sh (nf + 1)).append <|
   (sendResidualComplete sh (nf + 1) (Nat.succ_pos nf)).append <| (sendTableComplete sh nf).append <|
   (finalNonceComplete sh nf).append <| (finalPositionsComplete sh nf).append <|
