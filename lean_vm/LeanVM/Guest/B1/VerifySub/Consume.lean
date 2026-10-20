@@ -451,5 +451,137 @@ theorem reads_verifyFlock (c : FixedClaims) (logN : ℕ) :
   unfold verifyFlock flockLen
   exact Reads.bind' (reads_verifyFlockZerocheck logN) (fun zc _ => reads_verifyFlockLincheck c zc) rfl
 
+/-! ## The stacked opening -/
+
+theorem reads_foldRounds : ∀ (n : ℕ) (w : WhirState) (lf : List E),
+    Reads (fun r : WhirState × List E => r.1.folds.length = w.folds.length + n) (n * (3 - 1))
+      (foldRounds n w lf)
+  | 0, w, lf => reads_pure (by simp)
+  | n + 1, w, lf => by
+    unfold foldRounds
+    refine Reads.bind' (n := 0) reads_sampleE (fun ch _ => ?_) (zero_add _)
+    dsimp only
+    refine Reads.bind' (n := 3 - 1) (m := n * (3 - 1)) (reads_sumcheckRoundPoly (by norm_num) _ _)
+      (fun q _ => ?_) (by ring)
+    exact (reads_foldRounds n _ _).mono fun r hr => by rw [hr]; simp; omega
+
+/-- The words `tailRounds n` reads: a quadratic per round but the last. -/
+def tailLen : ℕ → ℕ
+  | 0 => 0
+  | n + 1 => if n = 0 then 0 else (3 - 1) + tailLen n
+
+theorem reads_tailRounds : ∀ (n : ℕ) (t : E) (q : List E),
+    Reads (fun _ => True) (tailLen n) (tailRounds n t q)
+  | 0, t, q => reads_pure trivial
+  | n + 1, t, q => by
+    unfold tailRounds tailLen
+    refine Reads.bind' (n := 0) reads_sampleE (fun ch _ => ?_) (zero_add _)
+    dsimp only
+    split
+    · exact reads_pure trivial
+    · exact Reads.bind' (reads_sumcheckRoundPoly (by norm_num) _ _) (fun q _ =>
+        Reads.bind' (reads_tailRounds n _ q) (fun _ _ => reads_pure trivial) rfl) rfl
+
+theorem foldl_fst_folds {γ β : Type} (f : WhirState × γ → β → WhirState × γ)
+    (hf : ∀ acc x, (f acc x).1.folds = acc.1.folds) :
+    ∀ (l : List β) (acc : WhirState × γ), (l.foldl f acc).1.folds = acc.1.folds
+  | [], _ => rfl
+  | x :: l, acc => by rw [List.foldl_cons, foldl_fst_folds f hf l, hf]
+
+theorem glue_folds (lam : E) (w : WhirState) (pending : List (E × List E × (List E → E))) :
+    (glue lam w pending).folds = w.folds := by
+  unfold glue
+  apply foldl_fst_folds
+  intro acc x
+  obtain ⟨v, i, wa⟩ := x
+  rfl
+
+theorem reads_sampleQueriesAux (depth : ℕ) : ∀ (fuel remaining : ℕ),
+    Reads (fun _ => True) 0 (sampleQueriesAux depth fuel remaining)
+  | 0, _ => reads_pure trivial
+  | fuel + 1, remaining => by
+    unfold sampleQueriesAux
+    split
+    · exact reads_pure trivial
+    · exact Reads.bind' reads_sampleE (fun _ _ => Reads.bind' (reads_sampleQueriesAux depth fuel _)
+        (fun _ _ => reads_pure trivial) rfl) rfl
+
+/-- The words the levels `levels` of the stacked opening read on `logN` variables, `f` folds
+done: per level its fold rounds, its message (the final one) or next commitment (root, `ood`
+value, intro), its nonce and its queries' intro; after the last, the tail rounds. -/
+def whirLevelsLen (logN : ℕ) : List Whir.Level → ℕ → ℕ
+  | [], _ => 0
+  | [level], f => level.fold * (3 - 1) + (2 ^ (logN - (f + level.fold)) +
+      (1 + ((3 - 1) + tailLen (logN - (f + level.fold)))))
+  | level :: next :: rest, f => level.fold * (3 - 1) + ((2 + 1 + (3 - 1)) +
+      (1 + ((3 - 1) + whirLevelsLen logN (next :: rest) (f + level.fold))))
+
+theorem reads_whirLevelsOpen (logN lane : ℕ) : ∀ (levels : List Whir.Level) (index : ℕ) (w : WhirState),
+    Reads (fun _ => True) (whirLevelsLen logN levels w.folds.length)
+      (whirLevelsOpen logN lane index levels w)
+  | [], _, _ => reads_fail _
+  | [level], index, w => by
+    unfold whirLevelsOpen whirLevelsLen
+    refine Reads.bind' (reads_foldRounds level.fold w []) (fun r hr => ?_) rfl
+    obtain ⟨w1, lf⟩ := r
+    dsimp only at hr ⊢
+    rw [hr]
+    generalize logN - (w.folds.length + level.fold) = ml
+    refine Reads.bind' (n := 2 ^ ml) (m := 1 + ((3 - 1) + tailLen ml)) (reads_readN _)
+      (fun res _ => ?_) rfl
+    refine Reads.bind' (n := 0) (reads_pure (Q := fun _ => True) trivial) (fun r _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 1) (m := (3 - 1) + tailLen ml) (reads_grindP _) (fun _ _ => ?_) rfl
+    refine Reads.bind' (n := 0) (reads_sampleQueriesAux _ _ _) (fun qs _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 0) reads_sampleE (fun lam _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 0) (reads_queryP _ _) (fun words _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 3 - 1) (m := tailLen ml) (reads_sumcheckRoundPoly (count := 3)
+      (by norm_num) _ _) (fun intro _ => ?_) rfl
+    exact Reads.bind' (n := tailLen ml) (m := 0) (reads_tailRounds _ _ _)
+      (fun _ _ => reads_pure trivial) (Nat.add_zero _)
+  | level :: next :: rest, index, w => by
+    unfold whirLevelsOpen
+    rw [whirLevelsLen]
+    refine Reads.bind' (reads_foldRounds level.fold w []) (fun r hr => ?_) rfl
+    obtain ⟨w1, lf⟩ := r
+    dsimp only [levelShape] at hr ⊢
+    have key : ∀ w' : WhirState, w'.folds = w1.folds → Reads (fun _ => True)
+        (whirLevelsLen logN (next :: rest) (w.folds.length + level.fold))
+        (whirLevelsOpen logN lane (index + 1) (next :: rest) w') := fun w' hw => by
+      have := reads_whirLevelsOpen logN lane (next :: rest) (index + 1) w'
+      rwa [hw, hr] at this
+    generalize whirLevelsLen logN (next :: rest) (w.folds.length + level.fold) = L at key ⊢
+    refine Reads.bind' (n := 2) (m := 1 + (3 - 1) + (1 + ((3 - 1) + L))) (reads_commitP _ _)
+      (fun _ _ => ?_) (by omega)
+    refine Reads.bind' (n := 0) (reads_sampleN _) (fun op _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 1) (m := (3 - 1) + (1 + ((3 - 1) + L))) reads_readE
+      (fun ov _ => ?_) (by omega)
+    refine Reads.bind' (n := 3 - 1) (m := 1 + ((3 - 1) + L)) (reads_sumcheckRoundPoly (count := 3)
+      (by norm_num) _ _) (fun i0 _ => ?_) rfl
+    refine Reads.bind' (n := 0) (reads_pure (Q := fun _ => True) trivial) (fun r _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 1) (m := (3 - 1) + L) (reads_grindP _) (fun _ _ => ?_) rfl
+    refine Reads.bind' (n := 0) (reads_sampleQueriesAux _ _ _) (fun qs _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 0) reads_sampleE (fun lam _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 0) (reads_queryP _ _) (fun words _ => ?_) (zero_add _)
+    refine Reads.bind' (n := 3 - 1) (m := L) (reads_sumcheckRoundPoly (count := 3)
+      (by norm_num) _ _) (fun intro _ => ?_) rfl
+    exact key _ (glue_folds _ _ _)
+
+/-- The words the stacked opening `whirOpen μ r` reads: the first quadratic, then the levels of
+its ladder. -/
+def whirLen (μ r : ℕ) : ℕ :=
+  match deriveConfig μ r with
+  | some config => (3 - 1) + whirLevelsLen μ config 0
+  | none => 0
+
+theorem reads_whirOpen (μ r : ℕ) (target : E) :
+    Reads (fun _ => True) (whirLen μ r) (whirOpen μ r target) := by
+  unfold whirOpen whirLen
+  cases deriveConfig μ r with
+  | none => exact reads_fail _
+  | some config =>
+    simp only [Verifier.liftOption, Prog.bind_eq, Prog.ret_bind]
+    exact Reads.bind' (reads_sumcheckRoundPoly (count := 3) (by norm_num) _ _) (fun q _ =>
+      reads_whirLevelsOpen μ _ config 0 ⟨target, q, [], []⟩) rfl
+
 end
 end LeanVM.Guest.B1.VerifySub
