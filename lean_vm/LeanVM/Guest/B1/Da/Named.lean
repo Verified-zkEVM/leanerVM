@@ -168,6 +168,47 @@ def rowWit (store : Bool) (σ : Val) (wc : List E → List E → List K)
     if σ (.n (rowTest store)) = 0 then [] else
       wr [σ (.n (rowNext store)), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] []
 
+/-- **One frame of the row loop**: its parameters, its row's cell with the symbols `wc` of the
+cell call's words, its test and next row, and the loop's call on. -/
+theorem row_step_w (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    {wc : List E → List E → List K}
+    (hc : ∀ a r, C "da_verify_cell" a r → CellOut rd a r (wc a r))
+    (hp : ([.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] : List V).map σ = args)
+    (hb : Stmt.HoldsList C rd σ (rowBody store) False (fun rs => rs = rets)) :
+    args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] ∧ rets = [] ∧
+      RowCellW store rd (σ (.n 2)) (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) (σ (.n 6)) (σ (.n 0))
+        (wc [σ (.n 2)] [σ (.n 7), σ (.n 8), σ (.n 9)]) ∧
+      σ (.n (rowTest store)) = σ (.n 0) * gen + σ (.n 1) ∧ σ (.n (rowNext store)) = σ (.n 0) * gen ∧
+      (σ (.n (rowTest store)) ≠ 0 → C (rowName store)
+        [σ (.n (rowNext store)), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6)] []) := by
+  cases store
+  · simp only [rowBody, Bool.false_eq_true, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+      List.map_cons, List.map_nil, word_gen] at hb hp
+    obtain ⟨hcall, m10, l11, m12, l13, a14, l14, m15, m16, l7, l8, c17, m18, a19, c20, m21, -, hnext,
+      hret⟩ := hb
+    rw [m10] at l11
+    rw [m12] at l13 l14
+    rw [a14] at l14
+    rw [m16, m15] at l7 l8
+    refine ⟨hp.symm, hret.symm, ⟨_, _, _, _, _, hc _ _ hcall, l11, l13, l14, cellsAt_two.mpr ⟨l7, l8⟩,
+      fun h => absurd h (by simp)⟩, ?_, ?_, hnext⟩
+    · show σ (.n 19) = _; rw [a19, m18, c17]
+    · show σ (.n 21) = _; rw [m21, c20]
+  · simp only [rowBody, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
+      List.map_cons, List.map_nil, word_gen] at hb hp
+    obtain ⟨hcall, m10, l11, m12, l13, a14, l14, m15, m16, l7, l8, m17, l18, m19, m20, l7', l8',
+      c21, m22, a23, c24, m25, -, hnext, hret⟩ := hb
+    rw [m10] at l11
+    rw [m12] at l13 l14
+    rw [a14] at l14
+    rw [m16, m15] at l7 l8
+    rw [m17] at l18
+    rw [m20, m19] at l7' l8'
+    refine ⟨hp.symm, hret.symm, ⟨_, _, _, _, _, hc _ _ hcall, l11, l13, l14, cellsAt_two.mpr ⟨l7, l8⟩,
+      fun _ => ⟨_, l18, cellsAt_two.mpr ⟨l7', l8'⟩⟩⟩, ?_, ?_, hnext⟩
+    · show σ (.n 23) = _; rw [a23, m22, c21]
+    · show σ (.n 25) = _; rw [m25, c24]
+
 /-- **The row loop, its witness named**. -/
 theorem row_loop_out (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
     {wc : List E → List E → List K} {wr : List E → List E → List (List K)}
@@ -176,44 +217,14 @@ theorem row_loop_out (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args
     (hp : ([.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6] : List V).map σ = args)
     (hb : Stmt.HoldsList C rd σ (rowBody store) False (fun rs => rs = rets)) :
     RowsOut store rd args rets (rowWit store σ wc wr) := by
-  cases store
-  · simp only [rowBody, Bool.false_eq_true, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
-      List.map_cons, List.map_nil, word_gen] at hb hp
-    obtain ⟨hcall, m10, l11, m12, l13, a14, l14, m15, m16, l7, l8, c17, m18, a19, c20, m21, -, hnext,
-      hret⟩ := hb
-    subst hp hret
-    refine ⟨_, _, _, _, _, _, _, rfl, rfl, ?_⟩
-    show LoopW _ _ _ (_ :: if σ (.n 19) = 0 then [] else _)
-    refine loopW_step (by rw [a19, m18, c17]) ?_ fun h => ?_
-    · rw [m10] at l11
-      rw [m12] at l13 l14
-      rw [a14] at l14
-      rw [m16, m15] at l7 l8
-      exact ⟨_, _, _, _, _, hc _ _ hcall, l11, l13, l14, cellsAt_two.mpr ⟨l7, l8⟩, fun h => absurd h (by simp)⟩
-    · obtain ⟨x, W, lv, rb, xb, node, pb, ha, -, hl⟩ := hr _ _ (hnext h)
-      simp only [List.cons.injEq, and_true] at ha
-      obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := ha
-      exact loopW_start (by rw [m21, c20]) hl
-  · simp only [rowBody, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds,
-      List.map_cons, List.map_nil, word_gen] at hb hp
-    obtain ⟨hcall, m10, l11, m12, l13, a14, l14, m15, m16, l7, l8, m17, l18, m19, m20, l7', l8',
-      c21, m22, a23, c24, m25, -, hnext, hret⟩ := hb
-    subst hp hret
-    refine ⟨_, _, _, _, _, _, _, rfl, rfl, ?_⟩
-    show LoopW _ _ _ (_ :: if σ (.n 23) = 0 then [] else _)
-    refine loopW_step (by rw [a23, m22, c21]) ?_ fun h => ?_
-    · rw [m10] at l11
-      rw [m12] at l13 l14
-      rw [a14] at l14
-      rw [m16, m15] at l7 l8
-      rw [m17] at l18
-      rw [m20, m19] at l7' l8'
-      exact ⟨_, _, _, _, _, hc _ _ hcall, l11, l13, l14, cellsAt_two.mpr ⟨l7, l8⟩,
-        fun _ => ⟨_, l18, cellsAt_two.mpr ⟨l7', l8'⟩⟩⟩
-    · obtain ⟨x, W, lv, rb, xb, node, pb, ha, -, hl⟩ := hr _ _ (hnext h)
-      simp only [List.cons.injEq, and_true] at ha
-      obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := ha
-      exact loopW_start (by rw [m25, c24]) hl
+  obtain ⟨rfl, rfl, hcell, ht, hn, hnext⟩ := row_step_w store hc hp hb
+  refine ⟨_, _, _, _, _, _, _, rfl, rfl, ?_⟩
+  show LoopW _ _ _ (_ :: if σ (.n (rowTest store)) = 0 then [] else _)
+  refine loopW_step ht hcell fun h => ?_
+  obtain ⟨x, W, lv, rb, xb, node, pb, ha, -, hl⟩ := hr _ _ (hnext h)
+  simp only [List.cons.injEq, and_true] at ha
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := ha
+  exact loopW_start hn hl
 
 /-! ## A column -/
 
@@ -350,6 +361,23 @@ def colLoopWit (σ : Val) (wc : List E → List E → DaColumn) (wl : List E →
     if σ (.n 13) = 0 then [] else
       wl [σ (.n 15), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9)] []
 
+/-- **One frame of the column loop**: its parameters, its column's call, its test and next column,
+and the loop's call on. -/
+theorem colLoop_step_w (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    (hp : ([.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] : List V).map σ = args)
+    (hb : Stmt.HoldsList C rd σ (colLoopBody store) False (fun rs => rs = rets)) :
+    args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7), σ (.n 8),
+      σ (.n 9)] ∧ rets = [] ∧
+      C (colName store) [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7),
+        σ (.n 8), σ (.n 9)] [] ∧
+      σ (.n 13) = σ (.n 0) * gen + colLoopEnd store ∧ σ (.n 15) = σ (.n 0) * gen ∧
+      (σ (.n 13) ≠ 0 → C (colLoopName store) [σ (.n 15), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5),
+        σ (.n 6), σ (.n 7), σ (.n 8), σ (.n 9)] []) := by
+  simp only [colLoopBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+    word_gen] at hb hp
+  obtain ⟨hcall, c10, m11, c12, a13, c14, m15, -, hnext, hret⟩ := hb
+  exact ⟨hp.symm, hret.symm, hcall, by rw [a13, m11, c10, c12], by rw [m15, c14], hnext⟩
+
 /-- **The column loop, its witness named**. -/
 theorem colLoop_out (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
     {wc : List E → List E → DaColumn} {wl : List E → List E → List DaColumn}
@@ -358,20 +386,17 @@ theorem colLoop_out (store : Bool) {C : CallRel} {rd : Reader} {σ : Val} {args 
     (hp : ([.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7, .n 8, .n 9] : List V).map σ = args)
     (hb : Stmt.HoldsList C rd σ (colLoopBody store) False (fun rs => rs = rets)) :
     ColsOut store rd args rets (colLoopWit σ wc wl) := by
-  simp only [colLoopBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
-    word_gen] at hb hp
-  obtain ⟨hcall, c10, m11, c12, a13, c14, m15, -, hnext, hret⟩ := hb
-  subst hp hret
-  refine ⟨_, _, rfl, rfl, loopW_step (by rw [a13, m11, c10, c12]) (hc _ _ hcall) fun h => ?_⟩
+  obtain ⟨rfl, rfl, hcall, ht, hn, hnext⟩ := colLoop_step_w store hp hb
+  refine ⟨_, _, rfl, rfl, loopW_step ht (hc _ _ hcall) fun h => ?_⟩
   obtain ⟨x, ps, ha, -, hl'⟩ := hl _ _ (hnext h)
   simp only [List.cons.injEq] at ha
   obtain ⟨rfl, rfl⟩ := ha
-  exact loopW_start (by rw [m15, c14]) hl'
+  exact loopW_start hn hl'
 
 end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
 export Digest (LoopW loopW_step loopW_pow loopW_one VdOut vdWit vd_out RowCellW RowsOut rowWit
-  row_loop_out DaColumn ColOutW colWit col_out col_facts_w ColsOut colLoopWit colLoop_out)
+  row_step_w row_loop_out DaColumn ColOutW colWit col_out col_facts_w ColsOut colLoopWit colLoop_step_w colLoop_out)
 end LeanVM.Guest.B1
