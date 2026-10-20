@@ -14,7 +14,7 @@ public import LeanVM.Spec.Blake2s
 # leanISA
 
 The leanVM instruction set, from §2 of the leanVM specification at
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9`.
 
 Words are elements of `E = K[y]/(y³ + y + 1)`, `K = GF(2^64)`. Addresses are powers of the
 generator `g` of `K*`: memory word `i` and bytecode slot `i` both sit at `g^i`. The machine has two
@@ -52,13 +52,13 @@ def Opcode.code : Opcode → K
 
 /-! ## Size bounds (specification §2, §6.2) -/
 
-/-- The least memory log-size, `2^16` cells (`cpu/mod.rs:51`, `MIN_LOG_MEM`). -/
+/-- The least memory log-size, `2^16` cells (`cpu/mod.rs:50`, `MIN_LOG_MEM`). -/
 def minLogMem : ℕ := 16
 
-/-- The greatest memory log-size, `2^32` cells (`cpu/mod.rs:52`, `MAX_LOG_MEM`). -/
+/-- The greatest memory log-size, `2^32` cells (`cpu/mod.rs:51`, `MAX_LOG_MEM`). -/
 def maxLogMem : ℕ := 32
 
-/-- The greatest bytecode log-size (`crates/verifier/src/layout.rs:393`; `MAX_LOG_BYTECODE`,
+/-- The greatest bytecode log-size (`crates/verifier/src/layout.rs:418`; `MAX_LOG_BYTECODE`,
 `cpu/mod.rs:64` at `a386121f`, is removed at `127510d1`). -/
 def maxLogBytecode : ℕ := 32
 
@@ -330,7 +330,7 @@ def derefFlags : DerefMode → K × K
   | .fp => (0, 1)
 
 /-- The bus entry of an instruction, `(opcode, op₁, …, op₇)`: slots 3 to 10 of specification §8.1,
-the eight public columns of `layout.rs:228-289`. -/
+the eight public columns of `cpu/layout.rs:221-282`. -/
 def entry : Instr → Vector K 8
   | .xor oA oB oC => #v[Opcode.xor.code, oA, oB, oC, 0, 0, 0, 0]
   | .mulNative oA oB oC => #v[Opcode.mulNative.code, oA, oB, oC, 0, 0, 0, 0]

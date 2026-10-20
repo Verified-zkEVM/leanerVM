@@ -16,13 +16,11 @@ public import LeanVM.Spec.Fast.Schemes
 /-!
 # The aggregation node
 
-**Status: stated, not proved.** No theorem of the repository is about these definitions yet.
-
-Transcribed from leanVM `55f8b0389c6cceab02dee82a003e40f7d80d0699`,
+Transcribed from leanVM `3f7dc2196e43ca60034c5803eb307c050b4f91d9`,
 `crates/rec_aggregation/src/aggregation.rs` (the statement, its digest, the outer verifier) and
 `crates/rec_aggregation/guests/lean_ethereum.py` (the guest). The signature schemes, leanXMSS and
-leanSPHINCS, are those whose security `formal/lean_xmss` and `formal/lean_sphincs` prove, imported
-from their `Scheme` modules, and LeanDA is `formal/lean_da`'s (`LeanVM.Spec.Da`).
+leanSPHINCS, are those whose security `lean_xmss` and `lean_sphincs` prove, imported
+from their `Scheme` modules, and LeanDA is `lean_da`'s (`LeanVM.Spec.Da`).
 
 A node's statement is a list of signature claims, a list of DA claims, and a claim on the
 polynomials that the protocol fixes (the guest's bytecode, flock's matrices), which the node

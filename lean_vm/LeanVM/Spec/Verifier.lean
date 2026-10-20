@@ -2,7 +2,7 @@
   LeanVM.Spec.Verifier
 
   The leanVM verifier: `python-verifier/verifier.py` at leanVM
-  `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`, transcribed into Lean, with the constants it reads
+  `3f7dc2196e43ca60034c5803eb307c050b4f91d9`, transcribed into Lean, with the constants it reads
   (the WHIR parameters and the Flock constants) and the Fiat-Shamir transcript it runs on.
 -/
 
@@ -17,7 +17,7 @@ public import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 # The leanVM verifier
 
 Transcribed from `python-verifier/verifier.py` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`; every citation `verifier.py:N` below is a line of
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9`; every citation `verifier.py:N` below is a line of
 that file. The sections follow the Python's:
 
 | Section | `verifier.py` |
@@ -61,7 +61,7 @@ outside the specification, in `LeanVM.Protocol.Verifier`.
 ## The WHIR parameters
 
 The constants are transcribed from `crates/pcs/src/whir_config.rs:38-86` of the
-pinned leanVM (`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`), the ladder geometry from its
+pinned leanVM (`3f7dc2196e43ca60034c5803eb307c050b4f91d9`), the ladder geometry from its
 `derive_ladder` and `derive_ladder_shape` (`:252-301`), the stacking window from
 `crates/leanvm_core/src/pcs.rs:49-51`, and the query counts from the second verifier,
 `python-verifier/verifier.py:922-957` (`WHIR_QUERIES`, `derive_config`), which the portable Rust
@@ -120,10 +120,6 @@ def residualMaxLog : ℕ := 5
 /-- Grinding bits before each level's query positions are sampled (`QUERY_GRINDING_BITS`,
 `whir_config.rs:60`). -/
 def queryGrindingBits : ℕ := 17
-
-/-- The round-by-round security target the query counts were derived for, in bits
-(`SECURITY_BITS`, `whir_config.rs:38`). -/
-def securityBits : ℕ := 128
 
 /-- The smallest stack the PCS commits: `MIN_MU` (`pcs.rs:49`;
 `MIN_STACKED_LOG`, `verifier.py:929`). A
@@ -233,7 +229,7 @@ namespace LeanVM.Parameters
 /-!
 ## The Flock constants
 
-Transcribed from leanVM at pin `3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`. The
+Transcribed from leanVM at pin `3f7dc2196e43ca60034c5803eb307c050b4f91d9`. The
 specification fixes the sizes and the shape of the fixed coordinates (Annex C, §C.1 to §C.2) but
 not their values; the values below are the Rust's, cross-checked against the Python verifier.
 
@@ -316,7 +312,7 @@ end LeanVM.Parameters
 ## The verifier language
 
 leanVM's verifier (`python-verifier/verifier.py` at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45`, class `Transcript`, lines 354-425) touches the proof
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9`, class `Transcript`, lines 354-425) touches the proof
 through five operations, and computes everything else from their results:
 
 * `next_scalar`: read the next field element of the proof stream and absorb it into the
@@ -344,7 +340,7 @@ and the point of the language is that they are one program:
 ## Reading a program on a proof
 
 Transcribed from the Python verifier at leanVM
-`3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45` (`python-verifier/verifier.py:330-425`, `Proof`,
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9` (`python-verifier/verifier.py:330-425`, `Proof`,
 `compress`, `Transcript`), whose Fiat-Shamir chain is the Rust's (the prover's
 `crates/fiat_shamir/src/lib.rs:18-174`, the verifier's `crates/verifier/src/transcript.rs:32-216`):
 
@@ -1663,7 +1659,7 @@ structure GluedClaim where
 
 /-- The running state of `verify_whir`. -/
 structure WhirState where
-  /-- `running_target`. The Python of `127510d1` sets it only in the final level's tail rounds,
+  /-- `running_target`. The Python sets it only in the final level's tail rounds,
   which overwrite the value threaded here, every final message log being at least `2`. -/
   target : E
   /-- `running_quad`. -/
@@ -1698,7 +1694,8 @@ def tailRounds : ℕ → E → List E → Prog (List E × E)
       return (challenge :: rest, target)
 
 /-- Glue a level's pending claims into the running sumcheck with powers of `λ`, the running claim
-keeping `λ⁰` (`verifier.py:1078-1082`, which no longer adds the values to `running_target`). -/
+keeping `λ⁰` (`verifier.py:1078-1082`). Their values go into `target` too, where Python has no
+`running_target` to add them to; `target` never reaches the verdict (`WhirState.target`). -/
 def glue (lam : E) (s : WhirState) (pending : List (E × List E × (List E → E))) : WhirState :=
   (pending.foldl (fun (acc : WhirState × E) (value, intro, weightAt) ↦
     let scalar := acc.2 * lam

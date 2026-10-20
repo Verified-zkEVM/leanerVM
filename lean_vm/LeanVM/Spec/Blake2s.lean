@@ -15,7 +15,7 @@ public import LeanVM.Spec.Field
 RFC 7693: the constants (§2.6 to §2.7), the compression function `compress` with the last-node flag
 of the BLAKE2 paper, and the unkeyed BLAKE2s-256 of a byte string `blake2sBytes` (§3.3), as the
 pinned leanVM computes them (`crates/primitives/src/hash/mod.rs`,
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`). Then the byte and field encodings the verifier
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9`). Then the byte and field encodings the verifier
 hashes: a `K` word as eight little-endian bytes, the Merkle leaf and node hashes, and a digest as
 two field elements.
 -/
@@ -168,14 +168,14 @@ def blockWords (block : List UInt8) : Vector UInt32 16 :=
 /-- Absorb `data` into the chaining value `h` after `t` bytes: `blocks` more non-final blocks of
 64 bytes, each compressed at the byte count including it with no flag, then the rest as the
 final block, zero-padded, compressed at the total length with the last-block flag
-(RFC 7693 §3.3; `hash/mod.rs:157-180`, `Hasher.update` and `finalize`). -/
+(RFC 7693 §3.3; `hash/mod.rs:157-171, 184-191`, `Hasher.update` and `finalize`). -/
 def absorb (h : Vector UInt32 8) (t : ℕ) : (blocks : ℕ) → List UInt8 → Digest
   | 0, data => compress h (blockWords data) (t + data.length).toUInt64 lastBlock 0
   | blocks + 1, data =>
     absorb (compress h (blockWords (data.take 64)) (t + 64).toUInt64 0 0) (t + 64) blocks
       (data.drop 64)
 
-/-- BLAKE2s-256 of a byte string (`hash/mod.rs:190-204`, `hash`): `⌈len/64⌉ - 1` non-final blocks,
+/-- BLAKE2s-256 of a byte string (`hash/mod.rs:214-228`, `hash`): `⌈len/64⌉ - 1` non-final blocks,
 then the final one; the empty string is one zero block at counter `0`. -/
 def blake2sBytes (data : List UInt8) : Digest :=
   absorb paramIv 0 ((data.length - 1) / 64) data
@@ -205,7 +205,7 @@ def hashWords (words : List K) : Digest := blake2sBytes (words.flatMap kBytes)
 def hashPair (left right : Digest) : Digest :=
   blake2sBytes (digestBytes left ++ digestBytes right)
 
-/-! ## The digest encoding (`fiat_shamir/src/merkle.rs:13-19`, `verifier/src/hash.rs:99-117`) -/
+/-! ## The digest encoding (`fiat_shamir/src/merkle.rs:13-19`, `verifier/src/hash.rs:104-122`) -/
 
 /-- A digest as the two field elements a transcript carries it in: bytes `0..16` and `16..32`,
 each as a canonical 128-bit cell (`hash_to_scalars`). -/

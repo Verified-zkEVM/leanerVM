@@ -14,7 +14,7 @@ public import LeanVM.Spec.Fast.FieldWords
 # The fields
 
 Specification §2 (`doc/leanvm/body/02-vm-specification.tex:6-12`, leanVM
-`127510d14c98ade4e8a97646c44fa7f1ff5e752d`), on CompPoly's computable carriers:
+`3f7dc2196e43ca60034c5803eb307c050b4f91d9`), on CompPoly's computable carriers:
 
 ```text
 K = GF(2)[x]/(x^64 + x^4 + x^3 + x + 1)      CompPoly's BF64
