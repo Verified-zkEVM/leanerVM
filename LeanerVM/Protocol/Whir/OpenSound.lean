@@ -2,7 +2,7 @@
   LeanerVM.Protocol.Whir.OpenSound
 
   `whirOpen` is round-by-round sound for the list relation: the parameters of a chain of levels,
-  the errors its schedule assigns, and the security of the opening. Candidate for ArkLib.
+  the errors its schedule assigns, and the security of the opening.
 -/
 
 module
@@ -41,10 +41,16 @@ charges to one message, so the per-round error is smaller than the pinned entry.
 **What it assumes.** The two interfaces of `LeanerVM.Protocol.Whir.Lanes`, per level, in
 the parameters (`Par`, `Ladder.Pars`): the list bound (the Johnson bound) and mutual correlated
 agreement up to the Johnson bound. They are theorems of coding theory that this repository consumes
-(`McaJohnson`, Annex B's `thm:mca-johnson`); proved here is everything else, from the encoder's
+(`McaBound`, Annex B's `thm:mca-johnson`); proved here is everything else, from the encoder's
 distance: the fold-list lemma, the counting, the composition. Two letters differ from the Annex:
 `a` is the agreement threshold `(1 - γ) 2 ^ (κ + R)` of a level, and the numerator of
 `thm:mca-johnson`'s error, which the Annex calls `a`, is `N`.
+
+**What it does not use.** The checks on the three first-round polynomials of a level boundary and
+on the opening claim's polynomial (`sendResidual`, `sendOodPoly`, `sendQueryPoly`, `sendFirst`) are
+not used by the proof: it rests on the glued check at the next level's first fold round, which they
+imply and which is weaker. The deployed verifier has no per-claim test, since it derives each
+polynomial's linear coefficient from its claim, so the schedule's analysis does not rely on them.
 
 **What it is not.** Knowledge soundness: the language is the list relation, nothing is extracted
 (extraction from list binding is a further step), and the witness is read back by an arbitrary
@@ -81,7 +87,7 @@ noncomputable def err : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → L
 
 /-- **The chain is sound for the list relation**, from the language at the start of its first level
 to acceptance. -/
-noncomputable def compSecurity : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
+def compSecurity : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → (ps : L.Pars) →
     Component.Security L.comp (foldRelMid (L.headPar ps) 0) Set.univ (L.err ps)
   | _, _, .last _ _, P => finalSecurity P
   | _, _, @cons _ _ _ L, P => levelSecurity P.1 (L.headPar P.2) (L.compSecurity P.2)
@@ -119,6 +125,41 @@ def sendFirstSecurity : Component.Security (sendFirst sh κ) (relLane P) (foldRe
     · exact Or.inl ⟨g, hg, hc⟩
     · exact Or.inr hn
 
+/-- The lanes of the honest word of a table are the encodings of its slices. -/
+private theorem lanes_wordOf {ℓ κ R t : ℕ} (f : CMlPolynomialEval E (ℓ + κ))
+    (y : Fin (2 ^ (κ + R))) (u : Fin (2 ^ ℓ)) :
+    (wordOf ℓ κ R t f).lanes y u.val = encode (algebraMap K E) κ R (sliceLow f u) y := by
+  simp [Word.lanes, wordOf, Vector.getD]
+
+/-- **The honest instance is in the list relation.** If the threshold is at most the number of
+positions, the relation of the completeness theorem (`stackRel`: the oracle is the honest word of
+the stack, the value is the stack's weighted claim) is inside the relation of the soundness theorem
+(`relOpen`): the slices of the stack are an interleaved codeword that agrees with its word
+everywhere. So the list relation that `whirOpen_rbrSoundness` is about is inhabited by the inputs
+that `whirOpen_perfectCompleteness` accepts. -/
+theorem stackRel_subset_relOpen (P : Par sh κ) : stackRel sh κ ⊆ relOpen P := by
+  rintro ⟨⟨⟨W, C⟩, o⟩, q⟩ ⟨ho, hC⟩
+  have ho' : o 0 = wordOf sh.ℓ κ sh.R sh.t (relayout q) := ho
+  have hC' : C = W.pair (RingHom.id E) q := hC
+  show OpenLang P W C o
+  refine Or.inl ⟨fun u ↦ sliceLow (relayout q) u, ?_, ?_⟩
+  · have hall : (Finset.univ.filter fun y : Fin (2 ^ (κ + sh.R)) ↦ ∀ u : Fin (2 ^ sh.ℓ),
+        encode (algebraMap K E) κ sh.R (sliceLow (relayout q) u) y = lanesOf o y u.val) =
+        Finset.univ :=
+      Finset.eq_univ_of_forall fun y ↦ Finset.mem_filter.mpr ⟨Finset.mem_univ _, fun u ↦ by
+        rw [lanesOf, ho', lanes_wordOf]⟩
+    show P.a ≤ (Finset.univ.filter _).card
+    rw [hall, Finset.card_univ, Fintype.card_fin]
+    exact P.hle
+  · have hq : ofLanes (fun u ↦ sliceLow (relayout q) u) = relayout q := by
+      have key : ∀ j : Fin (2 ^ (sh.ℓ + κ)),
+          (ofLanes fun u ↦ sliceLow (relayout q) u)[j] = (relayout q)[j] := fun j ↦ by
+        obtain ⟨⟨u, x⟩, rfl⟩ := (cubeSplit sh.ℓ κ).surjective j
+        rw [cubeSplit_apply, ofLanes_getElem, sliceLow_getElem]
+      exact Vector.ext fun i hi ↦ key ⟨i, hi⟩
+    rw [claim_zero, hq, pair_relayoutWeight]
+    exact hC'.symm
+
 /-- The errors of the opening: the chain's, after the relayout and the opening claim's
 polynomial. -/
 noncomputable def openErr (L : Ladder sh κ) (ps : L.Pars) :
@@ -133,7 +174,7 @@ with its parameters, the opening's verifier, from a statement outside the list r
 committed word, reaches acceptance with probability at most the sum of the errors of its challenges
 (`openErr`): the fold challenges, the coordinates of the out-of-domain points, the query positions,
 the batching challenges, and the tail. -/
-noncomputable def whirOpen_rbrSoundness {sh : Shape} {κ : ℕ} (L : Ladder sh κ) (ps : L.Pars) :
+def whirOpen_rbrSoundness {sh : Shape} {κ : ℕ} (L : Ladder sh κ) (ps : L.Pars) :
     Component.Security (whirOpen sh κ L) (relOpen (L.headPar ps)) Set.univ (openErr L ps) := by
   unfold whirOpen
   exact (stackRelayoutSecurity (L.headPar ps)).append <|

@@ -160,7 +160,6 @@ def sendOracleBesideComplete
   guarded := (sendBesideVerifierPure OStmt M out).toGuardedForm
   complete := sendOracleBeside_complete OStmt M honest out h
 
-
 /-! ## Security -/
 
 section Security

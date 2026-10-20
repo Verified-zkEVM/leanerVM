@@ -137,7 +137,6 @@ abbrev dropGuarded :=
 #guard (dropGuarded.out (1, beside) (fun i ↦ Fin.elim0 i)).1 = 71
 #guard (dropGuarded.out (1, beside) (fun i ↦ Fin.elim0 i)).2 0 1 = 8
 
-
 /-! ## Security -/
 
 /-- Security, applied: a statement whose recorded answer is nonzero has a nonzero entry at the

@@ -46,7 +46,6 @@ positive. -/
 def pcComplete : Complete pcToy {p | p.1.1 ≠ 0} {p | 0 < p.1.1} :=
   passCheckComplete PcOracle _ _ fun s _ _ h ↦ ⟨decide_eq_true h, Nat.succ_pos s⟩
 
-
 /-- Security, applied: a statement that passes the check is nonzero. -/
 def pcSecurity :
     Security pcToy {p | p.1.1 ≠ 0} {p | 0 < p.1.1} (fun i ↦ Fin.elim0 i.1) :=

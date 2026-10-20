@@ -65,12 +65,15 @@ structure Par (sh : Shape) (κ : ℕ) where
   N : ℕ
   /-- A codeword within the threshold determines its message. -/
   hdist : 2 ^ κ ≤ a
+  /-- The threshold is at most the number of positions: otherwise no codeword is within it, the
+  list relation is empty, and the fold, out-of-domain and batching errors are all zero. -/
+  hle : a ≤ 2 ^ (κ + sh.R)
   /-- The domain is `2 ^ (κ + R)` points of `K`. -/
   hb : κ + sh.R ≤ 64
   /-- The list bound. -/
   hlist : ListBound κ sh.R a sh.ℓ L
   /-- Mutual correlated agreement. -/
-  hmca : McaJohnson κ sh.R a N
+  hmca : McaBound κ sh.R a N
 
 variable {sh : Shape} {κ : ℕ}
 
@@ -285,7 +288,7 @@ noncomputable def foldRoundsErr : (i j : ℕ) → (roundsSpec E 2 i).ChallengeId
       (drawError E (foldErr P j))) (foldRoundsErr i (j + 1))
 
 /-- The security half of the `i` rounds from the stage `j` to the last lane. -/
-noncomputable def foldRoundsSecurity : (i j : ℕ) → (h : j + i = sh.ℓ) →
+def foldRoundsSecurity : (i j : ℕ) → (h : j + i = sh.ℓ) →
     Component.Security (SumcheckRound.rounds (levelFamily sh κ).poly (levelFamily sh κ).weight
       sh.ℓ i j h) (foldRel P j) (foldRel P sh.ℓ) (foldRoundsErr P i j)
   | 0, j, h => by

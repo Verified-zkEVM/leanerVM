@@ -3,7 +3,6 @@
 
   Round-by-round soundness of the last level of WHIR's opening for the list relation: the fold
   rounds, the plaintext table, the positions, the final batching challenge and the tail sumcheck.
-  Candidate for ArkLib.
 -/
 
 module
@@ -170,7 +169,6 @@ theorem card_final_batch_le (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 1) i
   rw [hL, powerBatch_glue_one, powerBatch_glue_one] at he
   exact he
 
-
 /-! ## The security of the last level -/
 
 /-- The tail's family is sound: its invariant is trivially true. -/
@@ -188,7 +186,7 @@ def finalNonceSecurity : Component.Security (finalNonce sh nf)
   Component.sendCheckedSecurity _ E _ _ _ fun _ _ _ _ _ h ↦ h
 
 /-- **The positions of the last level**, at `(1 - γ) ^ t`. -/
-noncomputable def finalPositionsSecurity : Component.Security
+def finalPositionsSecurity : Component.Security
     (finalPositions sh nf) (relResF P) (relFQ P)
     (drawError (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R)))
       ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (nf + 1 + sh.R))) : ℝ≥0))) :=
@@ -200,7 +198,7 @@ noncomputable def finalPositionsSecurity : Component.Security
         · exact hx) (card_final_positions_le P s o hnot)
 
 /-- **The final batching challenge**, at `t / |E|`. -/
-noncomputable def finalBatchingSecurity : Component.Security
+def finalBatchingSecurity : Component.Security
     (finalBatch sh nf) (relFQ P) (relFB (sh := sh) (nf := nf))
     (drawError E ((sh.t : ℕ) / (Nat.card E : ℝ≥0))) :=
   Component.sampleChallengeSecurity _ _ _ _ sh.t fun s o _ ↦
@@ -238,14 +236,14 @@ def finalGlueSecurity : Component.Security (glueFinal sh nf) (relFP (sh := sh) (
     fun _ _ _ hout ↦ ⟨hout.1.2, hout.2⟩
 
 /-- The first challenge of the tail, at `2 / |E|`. -/
-noncomputable def tailFirstSecurity : Component.Security (tailFirst sh nf)
+def tailFirstSecurity : Component.Security (tailFirst sh nf)
     (SumcheckRound.relMid (tailFamily sh nf) 0) (SumcheckRound.rel (tailFamily sh nf) 1)
     (drawError E ((2 : ℕ) / (Nat.card E : ℝ≥0))) :=
   SumcheckRound.drawChallengeSecurity 0 (tailFamily sh nf) (tailHonest sh nf).toConsistent
     (tailSound sh nf) (by omega)
 
 /-- The remaining rounds of the tail, each at `2 / |E|`. -/
-noncomputable def tailRestSecurity : Component.Security (tailRest sh nf)
+def tailRestSecurity : Component.Security (tailRest sh nf)
     (SumcheckRound.rel (tailFamily sh nf) 1) (SumcheckRound.rel (tailFamily sh nf) (nf + 1))
     (roundsError E 2 ((2 : ℕ) / (Nat.card E : ℝ≥0)) nf) :=
   SumcheckRound.roundsSecurity (tailFamily sh nf) (nf + 1) (tailHonest sh nf).toConsistent
@@ -275,7 +273,7 @@ noncomputable def finalErr : (seqSpec (finalSteps sh nf)).ChallengeIdx → ℝ�
 
 /-- **The last level is sound for the list relation**, at the errors `finalErr`: from the language
 at its start to acceptance. -/
-noncomputable def finalSecurity :
+def finalSecurity :
     Component.Security (finalDef sh nf) (foldRelMid P 0) Set.univ (finalErr P) := by
   unfold finalDef
   exact (foldDrawSecurity P (j := 0) (by simp [Shape.ℓ])).append <|

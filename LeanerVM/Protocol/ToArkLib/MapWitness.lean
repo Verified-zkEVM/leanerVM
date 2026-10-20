@@ -63,7 +63,6 @@ def mapWitnessComplete
     rw [hrun, support_pure, Set.mem_singleton_iff] at hx
     exact ⟨_, hx, h s o witIn hIn, rfl⟩
 
-
 /-! ## Security -/
 
 section Security

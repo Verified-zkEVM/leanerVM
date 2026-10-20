@@ -3,7 +3,7 @@
 
   The soundness of a level's boundary for the list relation: the residual claim, the commitment of
   the next word, the out-of-domain point, the positions, the batching challenge and the glue; the
-  language at each seam and the count of escapes at each challenge. Candidate for ArkLib.
+  language at each seam and the count of escapes at each challenge.
 -/
 
 module
@@ -149,7 +149,6 @@ theorem card_ood_step_le (nw : WordOf sh' κ') {j : ℕ} (z : Vector E j) (hsep 
     ofLanes h', Finset.mem_image.mpr ⟨h', Finset.mem_filter.mpr ⟨Finset.mem_univ _, hh'⟩, rfl⟩,
     fun e ↦ hne (ofLanes_injective e), hz⟩
 
-
 /-! ## The query positions -/
 
 /-- The folded symbol of the level's word at the `q`-th position: the row at the position, folded
@@ -220,7 +219,6 @@ theorem card_positions_bad_le (s : Bd sh (Kap sh' κ'))
     rintro x - ⟨h, hh, hr, he, -⟩
     exact hex ⟨h, hh, he, hr⟩
 
-
 /-! ## The batching challenge -/
 
 /-- The batching of the claims is the batching of their discrepancies' coefficients, in the order
@@ -245,7 +243,6 @@ def BLang (s : Bd sh (Kap sh' κ')) (cqf : Fin sh.t → E) (nw : WordOf sh' κ')
   ∃ h : Msgs sh'.ℓ κ', InNew P' nw h ∧
     (gluedWeight s.resid s.z s.pos s.lam).pair (RingHom.id E) (ofLanes h) =
       powerBatch ![s.c, s.cood, powerBatch cqf s.lam] s.lam
-
 
 /-- **The batching challenge.** If the language before it does not hold, at most `(t + 1) L`
 challenges make some codeword near the next word satisfy the batched claim: each of at most `L`
@@ -292,7 +289,6 @@ theorem card_batch_bad_le (s : Bd sh (Kap sh' κ'))
   rw [← powerBatch_sub, sub_eq_zero]
   exact he
 
-
 /-! ## The relations of the boundary -/
 
 /-- The residual claim's language, with the next word beside the level's. -/
@@ -337,17 +333,7 @@ def relP : Set ((Bd sh (Kap sh' κ') × ∀ i, Component.keptOracles
     (#v[] : Vector E 0) (powerBatch ![p.1.c, p.1.cood, powerBatch p.1.cq p.1.lam] p.1.lam)
     (batchMessage ![p.1.p1, p.1.p2, p.1.p3] p.1.lam) p.2
 
-
 /-! ## The security of the boundary's steps -/
-
-/-- A smaller predicate has fewer elements. -/
-theorem natCard_subtype_mono {α : Type*} [Finite α] {p q : α → Prop} (h : ∀ x, p x → q x) :
-    Nat.card {x // p x} ≤ Nat.card {x // q x} :=
-  Nat.card_le_card_of_injective (Subtype.map id h) (by
-    intro a b hab
-    apply Subtype.ext
-    have h2 := congrArg Subtype.val hab
-    exact h2)
 
 /-- The commitment of the next word: the message carries nothing into the language. -/
 def commitSecurity : Component.Security (commitNext sh sh' κ') (relRes P) (relResB P)
@@ -356,7 +342,7 @@ def commitSecurity : Component.Security (commitNext sh sh' κ') (relRes P) (relR
     fun _ _ _ _ h ↦ h
 
 /-- The out-of-domain point, one coordinate at a time, each at `C(L, 2) / |E|`. -/
-noncomputable def pointSecurity : Component.Security (drawPoint sh sh' κ') (relResB P)
+def pointSecurity : Component.Security (drawPoint sh sh' κ') (relResB P)
     (relOodJ P P' (Kap sh' κ'))
     (drawsError E ((Nat.choose P'.L 2 : ℕ) / (Nat.card E : ℝ≥0)) (Kap sh' κ')) :=
   Component.drawPushesSecurity (S := Bd sh (Kap sh' κ')) (W := Tab (sh.ℓ + Kap sh' κ'))
@@ -396,7 +382,7 @@ def nonceSecurity : Component.Security (sendNonce (Component.besideOracles
 /-- **The positions**, at `a ^ t / (2 ^ (κ + R)) ^ t`, that is `(1 - γ) ^ t`: if the language before
 does not hold, at most `a ^ t` of the choices of the positions let some codeword near the next word
 satisfy all the claims. -/
-noncomputable def positionsSecurity : Component.Security (drawPositions (Component.besideOracles
+def positionsSecurity : Component.Security (drawPositions (Component.besideOracles
     (OneW sh (Kap sh' κ')) (WordOf sh' κ')) sh (Kap sh' κ')) (relOod P P') (relQ P P')
     (drawError (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R)))
       ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R))) : ℝ≥0))) :=
@@ -408,7 +394,7 @@ noncomputable def positionsSecurity : Component.Security (drawPositions (Compone
         · exact hx) (card_positions_bad_le P P' s o hnot)
 
 /-- **The batching challenge**, at `(t + 1) L / |E|`. -/
-noncomputable def batchingSecurity : Component.Security (drawBatch (Component.besideOracles
+def batchingSecurity : Component.Security (drawBatch (Component.besideOracles
     (OneW sh (Kap sh' κ')) (WordOf sh' κ')) sh (Kap sh' κ')) (relQ P P') (relB P')
     (drawError E (((sh.t + 1) * P'.L : ℕ) / (Nat.card E : ℝ≥0))) :=
   Component.sampleChallengeSecurity _ _ _ _ ((sh.t + 1) * P'.L) fun s o _ ↦

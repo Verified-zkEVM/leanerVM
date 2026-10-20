@@ -2,7 +2,7 @@
   LeanerVM.Protocol.Whir.Stage
 
   The folds of a lane word and of messages at several challenges, one coordinate at a time, and the
-  correspondence of the folded lists. Candidate for ArkLib.
+  correspondence of the folded lists.
 -/
 
 module
@@ -32,12 +32,14 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval
 
 namespace Whir
 
+/-- The low coordinate of a point with one more challenge pushed is the earlier point. -/
 private theorem lowVec_push {j : ℕ} (cs : Vector E j) (c : E) :
     lowVec (m := 1) (cs.push c) = cs := by
   apply Vector.ext
   intro i hi
   simp [lowVec]
 
+/-- The high coordinate of a point with one more challenge pushed is that challenge. -/
 private theorem highVec_push {j : ℕ} (cs : Vector E j) (c : E) :
     highVec (k := j) (m := 1) (cs.push c) = #v[c] := by
   apply Vector.ext
@@ -111,12 +113,15 @@ def Msgs.get {ℓ κ : ℕ} (g : Msgs ℓ κ) (n : ℕ) (x : Fin (2 ^ κ)) : E :
 def foldM {j κ ℓ : ℕ} (m : ℕ) (cs : Vector E j) (g : Msgs ℓ κ) : Msgs m κ := fun u ↦
   Vector.ofFn fun x ↦ ∑ ι : Fin (2 ^ j), (lagrangeBasis cs)[ι] * g.get (ι.val + 2 ^ j * u.val) x
 
+/-- The entries of the messages folded at `cs`, as a sum over the lanes the fold combines. -/
 private theorem foldM_getElem {j κ ℓ : ℕ} (m : ℕ) (cs : Vector E j) (g : Msgs ℓ κ) (u : Fin (2 ^ m))
     (x : Fin (2 ^ κ)) :
     (foldM m cs g u)[x] =
       ∑ ι : Fin (2 ^ j), (lagrangeBasis cs)[ι] * g.get (ι.val + 2 ^ j * u.val) x := by
   simp [foldM]
 
+/-- One more fold challenge folds the next lane coordinate: the entries of the fold at `cs.push c`
+are the combination of the entries of the fold at `cs` on the lane pair. -/
 private theorem foldM_getElem_push {j κ ℓ : ℕ} (m : ℕ) (cs : Vector E j) (c : E) (g : Msgs ℓ κ)
     (u : Fin (2 ^ m)) (x : Fin (2 ^ κ)) :
     (foldM m (cs.push c) g u)[x] =
@@ -167,7 +172,6 @@ theorem foldOK_push (κ R a ℓ : ℕ) {j : ℕ} (cs : Vector E j) (c : E) (F : 
   refine ⟨g, hg, fun u ↦ ?_⟩
   rw [← hf, foldM_push]
   simp only [fold1M, hgf]
-
 
 /-- The lane `0` of a word folded at all its lanes is the folded row. -/
 theorem foldW_lane0 {ℓ b t : ℕ} (r : Vector E ℓ) (w : Word ℓ b t) (y : Fin (2 ^ b)) :

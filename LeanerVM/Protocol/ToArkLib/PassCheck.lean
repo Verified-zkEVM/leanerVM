@@ -99,7 +99,6 @@ def passCheckComplete
   guarded := passCheckGuarded OStmt check f
   complete := passCheck_complete OStmt check f h
 
-
 /-! ## Security -/
 
 section Security

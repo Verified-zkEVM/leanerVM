@@ -135,7 +135,6 @@ theorem card_positions_le {N t a : ℕ} (S : Finset (Fin N)) (hS : S.card ≤ a)
   simp only [Nat.card_eq_fintype_card, Fintype.card_fun, Fintype.card_coe, Fintype.card_fin]
   exact Nat.pow_le_pow_left hS t
 
-
 /-- The error of the query positions is `(a / N) ^ t`, that is `(1 - γ) ^ t` for the threshold
 `a = (1 - γ) N`. -/
 theorem positions_err_eq (a N t : ℕ) :

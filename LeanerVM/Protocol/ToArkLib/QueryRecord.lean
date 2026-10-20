@@ -174,7 +174,6 @@ def queryRecordComplete
   guarded := queryRecordGuarded OStmt keep query check out
   complete := queryRecord_complete OStmt keep query check out h
 
-
 /-! ## Security -/
 
 section Security

@@ -3,7 +3,7 @@
 
   The vocabulary of lists for the soundness of WHIR's opening: lane words and messages, the
   agreement of a codeword with a word, mutual correlated agreement and the list bound as
-  interfaces in counting form, and the lemma that folding preserves lists. Candidate for ArkLib.
+  interfaces in counting form, and the lemma that folding preserves lists.
 -/
 
 module
@@ -31,8 +31,8 @@ Two interfaces, in counting form (a bound on the number of elements, never a pro
 the constants as parameters; each is a theorem of coding theory that this repository consumes:
 
 * `ListBound κ R a m L`: at most `L` interleaved codewords of `2 ^ m` lanes are within `a` of any
-  word (the Johnson bound, `thm:johnson-interleaved`, with `L = 1 / (2 δ √ρ)`);
-* `McaJohnson κ R a N`: for every two-lane word at most `N` of the folds `c ∈ E` are bad
+  word (the Johnson bound, `thm:johnson-interleaved`, with `L = 1 / (2 η √ρ)` at the radius `1 - √ρ - η`);
+* `McaBound κ R a N`: for every two-lane word at most `N` of the folds `c ∈ E` are bad
   (`thm:mca-johnson`: on a set of at least `a` positions the fold agrees with the code while the two
   lanes do not agree with it); its error is `N / |E|`, so `N` is the Annex's `a` (here `a` is the
   agreement threshold). `McaBad` is the event.
@@ -56,7 +56,6 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval
 @[expose] public section
 
 namespace Whir
-
 
 /-! ## Lane words and messages -/
 
@@ -139,7 +138,7 @@ def McaBad (κ R a : ℕ) (F : LW (κ + R)) (c : E) : Prop :=
 
 /-- Mutual correlated agreement up to the Johnson bound, in counting form (`thm:mca-johnson`):
 for every two-lane word at most `N` folds are bad; the error is `N / |E|`. -/
-def McaJohnson (κ R a N : ℕ) : Prop :=
+def McaBound (κ R a N : ℕ) : Prop :=
   ∀ F : LW (κ + R), Nat.card {c : E // McaBad κ R a F c} ≤ N
 
 /-- The list-size bound (the Johnson bound): at most `L` interleaved codewords of `2 ^ m` lanes
@@ -214,7 +213,7 @@ theorem lift_fold {κ R a m : ℕ} (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) (
 
 /-- At most `2 ^ m N` folds break the correspondence between the lists of a lane word and of its
 fold (`lem:fold-list`, one lane coordinate): the union of the `2 ^ m` events of the lane pairs. -/
-theorem card_fold_bad_le {κ R a N m : ℕ} (hmca : McaJohnson κ R a N) (hdist : 2 ^ κ ≤ a)
+theorem card_fold_bad_le {κ R a N m : ℕ} (hmca : McaBound κ R a N) (hdist : 2 ^ κ ≤ a)
     (hb : κ + R ≤ 64) (F : LW (κ + R)) :
     Nat.card {c : E // ¬ ∀ V : Msgs m κ, Cl κ R a m (fold1W c F) V →
         ∃ V₀ : Msgs (m + 1) κ, Cl κ R a (m + 1) F V₀ ∧ fold1M c V₀ = V} ≤ 2 ^ m * N := by

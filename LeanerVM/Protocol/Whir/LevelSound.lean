@@ -2,7 +2,7 @@
   LeanerVM.Protocol.Whir.LevelSound
 
   Round-by-round soundness of one level of WHIR's opening for the list relation, composed from the
-  fold rounds and the boundary, followed by the rest of the opening. Candidate for ArkLib.
+  fold rounds and the boundary, followed by the rest of the opening.
 -/
 
 module
@@ -60,7 +60,8 @@ noncomputable def levelErr (errR : (seqSpec k).ChallengeIdx → ℝ≥0) :
 
 /-- **A level followed by the rest of the opening is sound for the list relation**, given the
 rest's security, at the errors `levelErr`. -/
-noncomputable def levelSecurity
+@[macro_inline]
+def levelSecurity
     {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2) (OneW sh' κ')
       (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)}
     {rel₃ : Set ((S₃ × ∀ i, O₃ i) × W₃)} {errR : (seqSpec k).ChallengeIdx → ℝ≥0}
