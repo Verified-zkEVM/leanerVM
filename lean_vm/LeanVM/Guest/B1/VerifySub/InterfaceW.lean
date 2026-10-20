@@ -45,15 +45,19 @@ def OpenOutW (μ r : ℕ) (root : Digest) (fs0 fs1 target cur : E) (rets : List 
     ∃ pt, rets = [w.target, pt, w.inner, w.residual] ∧
       ReadsAt rd pt (w.point ++ List.replicate (pointCap - w.point.length) 0) ∧ w.point.length = μ
 
-/-- **`open_stacked` is sound with the openings `wO`**: at every candidate `(μ, r)`, the relation
-of `openName μ r` on the arguments `args` and the returns `rets` gives `OpenOutW` at the openings
-`wO (openName μ r) args rets`. -/
-def SoundOpenW (wO : String → List E → List E → List Opening) : Prop :=
+/-- **`open_stacked` is sound with the openings `wO`**, over the call relation `C`: at every
+candidate `(μ, r)`, a call of `openName μ r` on the arguments `args` and the returns `rets`
+gives `OpenOutW` at the openings `wO (openName μ r) args rets`. -/
+def SoundOpenWC (C : CallRel) (wO : String → List E → List E → List Opening) : Prop :=
   ∀ μ r, 22 ≤ μ → μ ≤ 28 → 1 ≤ r → r ≤ 4 →
     ∀ (root : Digest) fs0 fs1 target root0 root1 cur rets, (root0, root1) = digestScalars root →
-      coreProgram.Rel rd (openName μ r) [fs0, fs1, target, root0, root1, cur] rets →
+      C (openName μ r) [fs0, fs1, target, root0, root1, cur] rets →
         OpenOutW rd μ r root fs0 fs1 target cur rets
           (wO (openName μ r) [fs0, fs1, target, root0, root1, cur] rets)
+
+/-- `SoundOpenWC` over the program's call relation. -/
+abbrev SoundOpenW (wO : String → List E → List E → List Opening) : Prop :=
+  SoundOpenWC rd (coreProgram.Rel rd) wO
 
 variable {rd}
 

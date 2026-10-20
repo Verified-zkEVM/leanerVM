@@ -168,22 +168,92 @@ theorem vs_fresh_eq (h : VsHolds rd σ) {P alphas chi rcs s : List E} (hP : 18 �
     map_range_eq_of_loads (by simp; omega) hc' c3, map_range_eq_of_loads hrl hrr c4,
     map_range_eq_of_loads hsl hsr c5]
 
+/-! ## Below the program's call relation -/
+
+/-- The valuation `σ` satisfies every statement of `verify_sub` before its `ret`, its calls in `C`. -/
+def VsHoldsC (C : CallRel) (rd : Reader) (σ : Val) : Prop :=
+  Stmt.HoldsList C rd σ vsPre True fun rs => rs = []
+
+theorem VsHoldsC.rel {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel rd)) (h : VsHoldsC C rd σ) :
+    VsHolds rd σ :=
+  holdsList_mono hC vsPre id (fun _ h => h) h
+
+/-- A run of statements of the body holds, its calls in `C`. -/
+theorem VsHoldsC.slice {C : CallRel} (h : VsHoldsC C rd σ) (n : ℕ) (blk : List Stmt)
+    (heq : stmtsEqb blk ((vsPre.drop n).take blk.length) = true) :
+    Stmt.HoldsList C rd σ blk True fun rs => rs = [] := by
+  have hsplit : vsPre = vsPre.take n ++ (((vsPre.drop n).take blk.length) ++
+      (vsPre.drop n).drop blk.length) := by simp
+  have hnr := vsPre_noRet
+  unfold VsHoldsC at h
+  rw [hsplit] at h hnr
+  rw [noRetList_append, noRetList_append, Bool.and_eq_true, Bool.and_eq_true] at hnr
+  rw [holdsList_append, holdsList_noRet _ hnr.1, holdsList_append,
+    holdsList_noRet _ hnr.2.1] at h
+  rw [stmtsEqb_sound heq]
+  exact h.2.1
+
+/-- **The stack's size and the candidate** (`vs_stackSel`), the dispatched call in `C`. -/
+theorem vs_stackSelC {C : CallRel} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    (hC : CallRel.Le C (coreProgram.Rel Lm.read)) (h : VsHoldsC C Lm.read σ)
+    (ht : ExpTables Lm.read (σ (.n 4)) (σ (.n 5))) {r : ℕ} (hr1 : 1 ≤ r) (hr2 : r ≤ 4)
+    (h138 : σ (.n 138) = gen ^ (r - 1)) :
+    ∃ N < 2 ^ 34, σ (.n 1629) = gen ^ N ∧ 22 ≤ max 15 (log2Ceil N) ∧ max 15 (log2Ceil N) ≤ 28 ∧
+      C (openName (max 15 (log2Ceil N)) r)
+        [σ (.n 1171), σ (.n 1172), σ (.n 1627), σ (.n 419), σ (.n 434), σ (.n 726)]
+        [σ (.n 1648), σ (.n 1649), σ (.n 1650), σ (.n 1651)] := by
+  have hR := h.rel hC
+  have hc := hR.call 1914 "log2_ceil_in_the_exponent__L15_L34" [.n 1629, .n 4, .n 5] [.n 1632]
+    (by decide +kernel)
+  obtain ⟨N, hN, hg, hl, -, -, hr⟩ := (log2_ceil_in_the_exponent_L15_L34_iff hκ hκ6 Lm ht _).mp hc
+  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hr
+  have hs := h.slice 1915 [.atom (.const (.n 1633) (word 8198552432976855044 0 0)),
+    .atom (.mul (.n 1634) (.n 1632) (.n 1633)), .atom (.const (.n 1635) (word 64 0 0)),
+    .atom (.rangeCheck (.n 1634) (.n 1636) (.n 1637) (.n 1638) (.n 1635)),
+    .atom (.mul (.n 1639) (.n 138) (.n 138)), .atom (.mul (.n 1640) (.n 1639) (.n 138)),
+    .atom (.mul (.n 1641) (.n 1640) (.n 1640)), .atom (.mul (.n 1642) (.n 1641) (.n 138)),
+    .atom (.mul (.n 1643) (.n 1634) (.n 1642)), .atom (.const (.n 1644) (word 134217728 0 0)),
+    .atom (.rangeCheck (.n 1643) (.n 1645) (.n 1646) (.n 1647) (.n 1644)),
+    .dispatch (.n 1643) openNames [.n 1171, .n 1172, .n 1627, .n 419, .n 434, .n 726]
+      [.n 1648, .n 1649, .n 1650, .n 1651]] (by decide +kernel)
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, List.map_cons, List.map_nil] at hs
+  obtain ⟨e1633, e1634, e1635, ⟨r1, r2, r3⟩, e1639, e1640, e1641, e1642, e1643, -, -,
+    ⟨j, hj, hx, hcall⟩⟩ := hs
+  obtain ⟨e, he, hxe⟩ := rc_gen hκ hκ6 Lm (K := 7) (by decide) (by decide)
+    (by rw [e1635]; exact word_two_pow (a := 6) (by decide)) r1 r2 r3
+  have hμ : gen ^ max 15 (log2Ceil N) = gen ^ (e + 22) := by
+    rw [← hr, pow_add, ← hxe, e1634, e1633, mul_assoc, minShiftInv, mul_one]
+  have hμe := gen_pow_inj (by omega) (by omega) hμ
+  have hsel : σ (.n 1643) = gen ^ (e + 7 * (r - 1)) := by
+    rw [e1643, e1642, e1641, e1640, e1639, hxe, h138, pow_add]
+    ring
+  rw [hsel, ← gen_pow_eq_ofK] at hx
+  have hjv : j = e + 7 * (r - 1) := gen_pow_inj (by simp [openNames] at hj; omega) (by omega) hx.symm
+  have hname : openNames[j] = openName (max 15 (log2Ceil N)) r := by
+    rw [openName, show max 15 (log2Ceil N) - 22 + 7 * (r - 1) = j by omega,
+      List.getD_eq_getElem _ _ hj]
+  rw [hname] at hcall
+  exact ⟨N, hN, hg, by omega, by omega, hcall⟩
+
 /-! ## The theorem -/
 
 /-- **`verify_sub` is sound, its witnesses named** (TRIAGE #44): on a memory of `2^κ` words,
-`6 ≤ κ ≤ 32`, over the exponent tables, for a bytecode of `2^22` words, given the callees'
-soundness, `open_stacked`'s with the witness function `wO`, every valuation of `verify_sub`'s
-body gives `VsOutcome`. -/
-theorem verify_sub_sound_w {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {bytecode : List K}
+`6 ≤ κ ≤ 32`, over the exponent tables, for a bytecode of `2^22` words, for a call relation `C`
+below the program's, given the callees' soundness (over the program's call relation), and
+`open_stacked`'s with the witness function `wO` over `C`, every valuation of `verify_sub`'s body
+with its calls in `C` gives `VsOutcome`. -/
+theorem verify_sub_sound_wC {C : CallRel} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ)
+    (hC : CallRel.Le C (coreProgram.Rel Lm.read)) {bytecode : List K}
     (hb : bytecode.length = 2 ^ 22)
     {TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop}
     {PCtx : Reader → List ℕ → E → E → Prop}
     (hgkr : SoundGkr Lm.read) (htab : SoundTables bytecode TCtx Lm.read) (hfl : SoundFlock Lm.read)
     (hpl : SoundPlace PCtx Lm.read) (hkap : HypKappa PCtx Lm.read)
-    {wO : String → List E → List E → List Opening} (hop : SoundOpenW Lm.read wO)
-    (hterm : SoundTerm TCtx PCtx Lm.read) (hv : VsHolds Lm.read σ)
+    {wO : String → List E → List E → List Opening} (hop : SoundOpenWC Lm.read C wO)
+    (hterm : SoundTerm TCtx PCtx Lm.read) (hvC : VsHoldsC C Lm.read σ)
     (ht : ExpTables Lm.read (σ (.n 4)) (σ (.n 5))) :
     VsOutcome bytecode Lm.read σ wO := by
+  have hv := hvC.rel hC
   -- the seed, the sizes, the root
   obtain ⟨seed, pi, hseed, hpi, h12⟩ := vs_seed (hv.to 2136) (by decide)
   obtain ⟨hrd, hst, hrows⟩ := vs_reads hv h12
@@ -317,7 +387,7 @@ theorem verify_sub_sound_w {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : 
   obtain ⟨off, kap, hretsP, hpctx⟩ := hpl _ _ _ m _ _ ht hm2 hhl hhs hbase cP
   simp only [List.cons.injEq] at hretsP
   obtain ⟨r1629, r1630, r1631, -⟩ := hretsP
-  obtain ⟨N2, hN2, h1629, hμ1, hμ2, hopen⟩ := vs_stackSel hκ hκ6 Lm hv ht hr1 hr2 h138
+  obtain ⟨N2, hN2, h1629, hμ1, hμ2, hopen⟩ := vs_stackSelC hκ hκ6 Lm hC hvC ht hr1 hr2 h138
   have hST := stackTotal_lt m (rowsN.map log2Ceil) hm2 hhs
   rw [r1629] at h1629
   have eST := gen_pow_inj (by omega) (by omega) h1629
@@ -470,6 +540,20 @@ theorem verify_sub_sound_w {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : 
     · convert hF using 2
     · convert hrunW using 2
     · convert hacc using 2
+
+/-- **`verify_sub` is sound, its witnesses named** (TRIAGE #44): `verify_sub_sound_wC` over the
+program's call relation. -/
+theorem verify_sub_sound_w {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (Lm : MemImage κ) {bytecode : List K}
+    (hb : bytecode.length = 2 ^ 22)
+    {TCtx : Reader → Layout → BusResult → List ColumnClaim → List E → Prop}
+    {PCtx : Reader → List ℕ → E → E → Prop}
+    (hgkr : SoundGkr Lm.read) (htab : SoundTables bytecode TCtx Lm.read) (hfl : SoundFlock Lm.read)
+    (hpl : SoundPlace PCtx Lm.read) (hkap : HypKappa PCtx Lm.read)
+    {wO : String → List E → List E → List Opening} (hop : SoundOpenW Lm.read wO)
+    (hterm : SoundTerm TCtx PCtx Lm.read) (hv : VsHolds Lm.read σ)
+    (ht : ExpTables Lm.read (σ (.n 4)) (σ (.n 5))) :
+    VsOutcome bytecode Lm.read σ wO :=
+  verify_sub_sound_wC hκ hκ6 Lm (fun _ _ _ h => h) hb hgkr htab hfl hpl hkap hop hterm hv ht
 
 /-- The meaning, from `verify_sub_sound_w`: `verify_sub`'s relation, under the same callees and
 `open_stacked`'s soundness (`SoundOpen`), gives `MeaningVerifySub`. -/
