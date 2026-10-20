@@ -38,9 +38,10 @@ the witness `w` holding every claim; `NodeSpec` is its existential.
 The outer verifier (`verifyAggregate`) checks a proof of the guest on the statement's digest and
 evaluates the deferred claim itself.
 
-What a valid execution of the guest establishes is `NodeSpec`, on BLAKE2s, as the guest computes
-it. The witness is the knowledge content: on its own, "some signature verifies" says little, since
-some signature verifies for almost every key and message. That the root's `NodeSpec` makes every
+What a valid execution of the guest establishes is `NodeRel` of the witness its memory holds, on
+BLAKE2s, as the guest computes it (`Guest.lean`: `GuestKnowledge`, with a decoder). The witness is
+the knowledge content: `NodeSpec` alone, "some signature verifies", says little, since some
+signature verifies for almost every key and message. That the root's `NodeSpec` makes every
 claim held at the leaves is a separate argument, conditional on a heuristic: a child's proof is
 sound only if BLAKE2s, computed inside the guest, behaves as the random oracle of
 `LeanVM.KnowledgeSoundness`.
