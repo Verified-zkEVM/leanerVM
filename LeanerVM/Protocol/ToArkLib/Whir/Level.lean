@@ -20,8 +20,7 @@ public import LeanerVM.Protocol.ToArkLib.SampleChallenge
 /-!
 # A level of WHIR's opening
 
-Protocol roadmap Layer 11 (`docs/roadmap/protocol-blueprint.md`), slice 2c of the WHIR opening
-(issue #101). Annex B, Protocol 1 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`,
+Category B: Annex B, Protocol 1 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`,
 `fig:protocol`), steps 1 to 3, in the transcript order of the deployed verifier
 (`python-verifier/verifier.py`, `verify_whir`).
 
@@ -55,11 +54,11 @@ parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.ToArkLib.Whir.
 * **The first-round polynomials.** The Annex's step 1 sends one polynomial for the batched claim.
   The deployed verifier receives the residual's, the out-of-domain claim's and the query batch's
   separately, checks each against its own claim value and sums them with the scalars, and the
-  proof format `decode` (Layer 12) reads is that one, so the schedule is the deployed one.
+  proof format the compiled verifier decodes is that one, so the schedule is the deployed one.
 * **The nonce** is a message with no check here: the deployed verifier checks it against the
-  hash chain (`grind_check`), which is Layer 12's. The honest prover sends zero.
+  hash chain (`grind_check`), which the compiled verifier does. The honest prover sends zero.
 * **The positions** are one challenge of type `Fin t → Fin (2 ^ (κ + R))`; the deployed verifier
-  derives them from squeezes of the transcript, which Layer 12 reproduces.
+  derives them from squeezes of the transcript, which the compiled verifier reproduces.
 * **The level-0 word** is `E`-valued here; its `K`-valuedness is an invariant of the input
   relation that the verifier never checks (`isInK_encode_ofK`).
 -/
@@ -119,7 +118,7 @@ def levelFamily (sh : Shape) (κ : ℕ) :
   inv := fun ctx _ _ ↦ ctx.1.2 0 = wordOf sh.ℓ κ sh.R sh.t ctx.2
 
 /-- The level's family is honest up to its last variable. -/
-theorem levelFamily_honest (sh : Shape) (κ : ℕ) {m : ℕ} (hm : m ≤ sh.ℓ + κ) :
+private theorem levelFamily_honest (sh : Shape) (κ : ℕ) {m : ℕ} (hm : m ≤ sh.ℓ + κ) :
     (levelFamily sh κ).Honest m where
   check := fun _ _ c hj ↦ WhirSum.roundPoly_check _ _ (lt_of_lt_of_le hj hm) c
   next := fun _ _ c x hj ↦ WhirSum.roundPoly_eval _ _ (lt_of_lt_of_le hj hm) c x

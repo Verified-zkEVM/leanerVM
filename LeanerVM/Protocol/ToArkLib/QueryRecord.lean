@@ -93,7 +93,7 @@ def queryRecord : Def StmtIn OStmt W StmtOut (keptOracles OStmt keep) W !p[] whe
     queryRecordVerifier OStmt keep query check out⟩
 
 /-- The output oracles are the kept input oracles. -/
-theorem queryRecord_materializeOutput (challenges : (!p[] : ProtocolSpec 0).Challenges)
+private theorem queryRecord_materializeOutput (challenges : (!p[] : ProtocolSpec 0).Challenges)
     (o : ∀ i, OStmt i) (messages : (!p[] : ProtocolSpec 0).Messages) :
     (queryRecordVerifier OStmt keep query check out).materializeOutput challenges o messages =
       fun i ↦ o (keep i) := by

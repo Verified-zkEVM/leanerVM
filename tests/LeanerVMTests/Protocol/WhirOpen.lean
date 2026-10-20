@@ -51,8 +51,9 @@ def ValList : List Step → Type
 /-- Two transcripts appended, by case analysis on the index. ArkLib's `FullTranscript.append` is
 a recursion on the length of the second transcript, which nested to the right (as `seqSpec` does)
 costs more than evaluation can afford; the values are the same. -/
-def appendTr {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n} (T₁ : p₁.FullTranscript)
-    (T₂ : p₂.FullTranscript) : (p₁ ++ₚ p₂).FullTranscript := fun i ↦
+def appendTr {m n : ℕ} {p₁ : ProtocolSpec m} {p₂ : ProtocolSpec n}
+    (T₁ : p₁.FullTranscript) (T₂ : p₂.FullTranscript) :
+    (p₁ ++ₚ p₂).FullTranscript := fun i ↦
   Fin.addCases (motive := fun i ↦ (p₁ ++ₚ p₂).«Type» i)
     (fun j ↦ cast (by simp) (T₁ j))
     (fun j ↦ cast (by simp) (T₂ j)) i

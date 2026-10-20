@@ -66,10 +66,6 @@ theorem foldRow_wordOf {ℓ κ : ℕ} (R t : ℕ) (f : CMlPolynomialEval E (ℓ 
   rw [encode_foldTable]
   simp [foldRow, wordOf]
 
-/-- The answer of a word to a question: the rows at the positions. -/
-theorem answer_word {ℓ b t : ℕ} (w : Word ℓ b t) (q : Fin t → Fin (2 ^ b)) :
-    (OracleInterface.answer w q : Fin t → Vector E (2 ^ ℓ)) = fun k ↦ w.row (q k) := rfl
-
 end Whir
 
 end

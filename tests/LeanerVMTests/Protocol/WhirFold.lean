@@ -5,10 +5,7 @@
   compile and are wrong.
 -/
 
-module
-
-public import LeanerVM.Protocol.WhirFold
-meta import LeanerVM.Protocol.WhirFold
+import LeanerVM.Protocol.WhirFold
 
 /-!
 # Folding the lanes: tests

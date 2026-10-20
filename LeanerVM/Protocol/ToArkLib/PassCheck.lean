@@ -66,7 +66,8 @@ def passCheckGuarded : (passCheckVerifier OStmt check f).toVerifier.GuardedForm 
   out := fun p _ ↦ (f p.1, p.2)
   verify_eq := fun ⟨s, o⟩ tr ↦ passCheckVerifier_verify OStmt check f s o tr
 
-variable {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)} {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
+variable {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)}
+  {relOut : Set ((StmtOut × ∀ i, OStmt i) × W)}
 
 /-- Perfect completeness, whenever on the input relation the check passes and `f` carries the
 relation into the output relation. -/

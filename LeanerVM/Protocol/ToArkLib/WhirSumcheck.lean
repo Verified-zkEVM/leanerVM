@@ -56,7 +56,7 @@ def atFree (T : CMlPolynomialEval F n) {j : ℕ} (hj : j < n) (c : Vector F j)
 
 /-- The extension of a table is affine in the free coordinate: its value at `z` is the
 interpolation of its values at `0` and `1`. -/
-theorem atFree_eq {j : ℕ} (T : CMlPolynomialEval F n) (hj : j < n) (c : Vector F j)
+private theorem atFree_eq {j : ℕ} (T : CMlPolynomialEval F n) (hj : j < n) (c : Vector F j)
     (x' : Fin (2 ^ (n - (j + 1)))) (z : F) :
     atFree T hj c x' z = atFree T hj c x' 0 + z * (atFree T hj c x' 1 - atFree T hj c x' 0) := by
   have key : ∀ y : F, atFree T hj c x' y =
@@ -87,7 +87,7 @@ def roundPoly (j : ℕ) (c : Vector F j) : SumcheckRound.Message F 2 :=
   if h : j < n then #v[coef0 A B h c, coef1 A B h c, coef2 A B h c] else #v[0, 0, 0]
 
 /-- A message of degree two evaluates as its three coefficients. -/
-theorem evaluate_two (q : SumcheckRound.Message F 2) (x : F) :
+private theorem evaluate_two (q : SumcheckRound.Message F 2) (x : F) :
     SumcheckRound.evaluate 2 q x = q[0] + q[1] * x + q[2] * x ^ 2 := by
   simp [SumcheckRound.evaluate, Fin.sum_univ_succ]
   ring

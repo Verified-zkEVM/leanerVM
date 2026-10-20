@@ -24,8 +24,8 @@ an interleaved-code opening commits the next level's word and then reads the pre
 sampled positions (`Component.queryRecord`, which hands on the new word only).
 
 Completeness (`sendOracleBesideComplete`): on the input relation the output relation holds of
-the output statement, the oracles beside the honest message, and the witness. Knowledge soundness
-is slice 3's.
+the output statement, the oracles beside the honest message, and the witness. Soundness is the
+consumer's: it depends on what the sent message may be.
 -/
 
 namespace LeanerVM.Protocol
@@ -95,7 +95,7 @@ def sendOracleBeside : Def S OStmt W S' (besideOracles OStmt M) W (sayO M) where
   red := ⟨sendBesideProver OStmt M honest out, sendBesideVerifier OStmt M out⟩
 
 /-- The output oracles are the inputs and the message. -/
-theorem sendBeside_materializeOutput (challenges : (sayO M).Challenges) (o : ∀ i, OStmt i)
+private theorem sendBeside_materializeOutput (challenges : (sayO M).Challenges) (o : ∀ i, OStmt i)
     (messages : (sayO M).Messages) :
     (sendBesideVerifier OStmt M out).materializeOutput challenges o messages =
       besideData OStmt M o (messages ⟨0, rfl⟩) := by

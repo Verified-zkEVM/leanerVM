@@ -14,10 +14,9 @@ public import LeanerVM.Protocol.ToArkLib.Whir.Stack
 /-!
 # The opening of WHIR
 
-Protocol roadmap Layer 11 (`docs/roadmap/protocol-blueprint.md`), slice 2c of the WHIR opening
-(issue #101). `whirOpen L` is the whole opening, from one weighted claim `<W, q> = C` on the
-committed stack `q`, with the stack's honest word as the one oracle, to the verifier's acceptance
-(Annex B, Protocol 1, in the transcript order of `python-verifier/verifier.py`, `verify_whir`).
+Category B: Annex B, Protocol 1, in the transcript order of `python-verifier/verifier.py`
+(`verify_whir`). `whirOpen L` is the whole opening, from one weighted claim `<W, q> = C` on the
+committed stack `q`, with the stack's honest word as the one oracle, to the verifier's acceptance.
 
 * A `Ladder sh κ` is a chain of levels, generic over the parameters: `last sh nf` is the final
   level, folding `sh.ℓ` times and leaving a plaintext table of `nf + 1` variables
@@ -35,8 +34,8 @@ committed stack `q`, with the stack's honest word as the one oracle, to the veri
   statement's value is the weighted claim of the stack; `whirOpen_perfectCompleteness` says the
   honest run is accepted with probability one.
 
-The signature differs from the blueprint's `Fin J → WeightedClaim`: the opening phase hands WHIR
-the one batched claim, as the deployed prover does (`Component.batch` runs before it).
+`whirOpen` takes the one batched claim, not a list of claims: the opening phase hands WHIR a
+single claim, as the deployed prover does (`Component.batch` runs before it).
 -/
 
 namespace LeanerVM.Protocol
@@ -104,8 +103,9 @@ def laneRel : Set (((Weight E (sh.ℓ + κ) × E) × ∀ i, OneW sh κ i) × Tab
 
 /-- The relayout of the stack, in the weight and in the prover's table, no round. -/
 def stackRelayout :=
-  Component.mapWitness (StmtIn := Weight E (κ + sh.ℓ) × E) (StmtOut := Weight E (sh.ℓ + κ) × E)
-    (W := Tab (κ + sh.ℓ)) (W' := Tab (sh.ℓ + κ)) (OneW sh κ)
+  Component.mapWitness (StmtIn := Weight E (κ + sh.ℓ) × E)
+    (StmtOut := Weight E (sh.ℓ + κ) × E) (W := Tab (κ + sh.ℓ)) (W' := Tab (sh.ℓ + κ))
+    (OneW sh κ)
     (fun s ↦ (relayoutWeight s.1, s.2)) (fun p ↦ relayout p.2)
 
 /-- The first message: the first-round polynomial of the opening claim, checked against its

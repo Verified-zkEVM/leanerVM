@@ -14,8 +14,8 @@ public import LeanerVM.Protocol.ToArkLib.PassCheck
 /-!
 # The final level of WHIR's opening
 
-Protocol roadmap Layer 11 (`docs/roadmap/protocol-blueprint.md`), slice 2c of the WHIR opening
-(issue #101). The last level starts like the others (`LeanerVM.Protocol.ToArkLib.Whir.Level`): a
+Category B: Annex B, Protocol 1, final round, and `verify_whir` (`python-verifier/verifier.py`).
+The last level starts like the others (`LeanerVM.Protocol.ToArkLib.Whir.Level`): a
 running claim `<W, f> = c` on its table `f` of `ℓ + κ` variables, the first round polynomial of
 its sumcheck received, and the honest word of `f` as the one oracle. Its rounds
 (`finalSteps`):

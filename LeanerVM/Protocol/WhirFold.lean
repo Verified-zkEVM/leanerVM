@@ -13,8 +13,7 @@ public import LeanerVM.Protocol.NovelBasis
 /-!
 # Folding the lanes
 
-Protocol roadmap Layer 11 (`docs/roadmap/protocol-blueprint.md`), slice 2a of the WHIR opening
-(issue #101). Annex B, Protocol 1 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`,
+Category B: Annex B, Protocol 1 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`,
 `fig:protocol`) and `fact:fold-decode`, at leanVM pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`;
 the conventions are those of `python-verifier/verifier.py` (`eq_kernel`, `multilinear_eval`,
 `_induced_weight`: little-endian, a sum over a table binds coordinate `0` first) and of

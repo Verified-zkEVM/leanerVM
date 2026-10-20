@@ -49,7 +49,7 @@ def batchMessage {J : ℕ} (ms : Fin J → SumcheckRound.Message E 2) (ρ : E) :
   Vector.ofFn fun k ↦ powerBatch (fun i ↦ (ms i)[k]) ρ
 
 /-- The extension of a batched weight table at the free point is the batch of the extensions. -/
-theorem atFree_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E) {j : ℕ}
+private theorem atFree_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E) {j : ℕ}
     (hj : j < n) (c : Vector E j) (x' : Fin (2 ^ (n - (j + 1)))) (z : E) :
     WhirSum.atFree (batchWeight Ts ρ) hj c x' z =
       powerBatch (fun i ↦ WhirSum.atFree (Ts i) hj c x' z) ρ := by
@@ -57,7 +57,7 @@ theorem atFree_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
   rw [evalMle_batchWeight]
 
 /-- A sum of batched terms against a fixed factor is the batch of the sums. -/
-theorem sum_powerBatch_mul {J : ℕ} {α : Type} (s : Finset α) (a : α → Fin J → E)
+private theorem sum_powerBatch_mul {J : ℕ} {α : Type} (s : Finset α) (a : α → Fin J → E)
     (g : α → E) (ρ : E) :
     ∑ x ∈ s, powerBatch (a x) ρ * g x =
       powerBatch (fun i ↦ ∑ x ∈ s, a x i * g x) ρ := by
@@ -72,12 +72,12 @@ theorem powerBatch_sub {J : ℕ} (a b : Fin J → E) (ρ : E) :
   simp only [powerBatch, ← Finset.sum_sub_distrib, sub_mul]
 
 /-- Batching commutes with sums. -/
-theorem powerBatch_add {J : ℕ} (a b : Fin J → E) (ρ : E) :
+private theorem powerBatch_add {J : ℕ} (a b : Fin J → E) (ρ : E) :
     powerBatch a ρ + powerBatch b ρ = powerBatch (fun i ↦ a i + b i) ρ := by
   simp only [powerBatch, ← Finset.sum_add_distrib, add_mul]
 
 /-- The constant coefficient is linear in the weight. -/
-theorem coef0_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
+private theorem coef0_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
     WhirSum.coef0 (batchWeight Ts ρ) B hj c =
       powerBatch (fun i ↦ WhirSum.coef0 (Ts i) B hj c) ρ := by
@@ -87,7 +87,7 @@ theorem coef0_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (fun x' ↦ WhirSum.atFree B hj c x' 0) ρ
 
 /-- The quadratic coefficient is linear in the weight. -/
-theorem coef2_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
+private theorem coef2_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
     WhirSum.coef2 (batchWeight Ts ρ) B hj c =
       powerBatch (fun i ↦ WhirSum.coef2 (Ts i) B hj c) ρ := by
@@ -98,7 +98,7 @@ theorem coef2_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (fun x' ↦ WhirSum.atFree B hj c x' 1 - WhirSum.atFree B hj c x' 0) ρ
 
 /-- The linear coefficient is linear in the weight. -/
-theorem coef1_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
+private theorem coef1_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
     WhirSum.coef1 (batchWeight Ts ρ) B hj c =
       powerBatch (fun i ↦ WhirSum.coef1 (Ts i) B hj c) ρ := by
@@ -142,7 +142,7 @@ theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ :
     interval_cases k <;> simp [powerBatch]
 
 /-- The claim is linear in the weight. -/
-theorem claim_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
+private theorem claim_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) (j : ℕ) (c : Vector E j) :
     WhirSum.claim (batchWeight Ts ρ) B j c =
       powerBatch (fun i ↦ WhirSum.claim (Ts i) B j c) ρ := by

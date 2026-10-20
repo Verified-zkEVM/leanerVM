@@ -47,7 +47,8 @@ def mapWitness : Def StmtIn OStmt W StmtOut OStmt W' !p[] where
 
 /-- Completeness, for any two relations `f` and `g` carry one into the other. -/
 def mapWitnessComplete
-    {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)} {relOut : Set ((StmtOut × ∀ i, OStmt i) × W')}
+    {relIn : Set ((StmtIn × ∀ i, OStmt i) × W)}
+    {relOut : Set ((StmtOut × ∀ i, OStmt i) × W')}
     (h : ∀ s o w, ((s, o), w) ∈ relIn → ((f s, o), g ((s, o), w)) ∈ relOut) :
     Complete (mapWitness OStmt f g) relIn relOut where
   guarded := (passThroughPure OStmt f).toGuardedForm
