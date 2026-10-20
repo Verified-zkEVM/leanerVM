@@ -9,7 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.XmssLayer
-public import LeanVM.Guest.B1.Sig.XmssWots
+public import LeanVM.Guest.B1.Sig.WotsW
 
 namespace LeanVM.Guest.B1.Sig
 
