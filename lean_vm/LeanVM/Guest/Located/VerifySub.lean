@@ -2,8 +2,7 @@
   LeanVM.Guest.Located.VerifySub
 
   The child proof `verify_sub` checks, decoded from the memory: the frames of `open_stacked`,
-  `opening_queries` and its loop, found by a scan, give the openings; `verify_sub`'s own frame the
-  stream.
+  `opening_queries` and its loop give the openings; `verify_sub`'s own frame the stream.
 -/
 
 module
@@ -25,18 +24,17 @@ public import LeanVM.Guest.End
 `verify_sub_sound_wC` states `verify_sub`'s child proof as `vsProofOf bytecode rd σ wO`: the
 words of its `stream` buffer and the openings `open_stacked`'s witness function `wO` gives. Here
 every witness function is a decoder of the memory `L` (`frameDec`, `loopDec` of
-`Located/Da.lean`), each a scan along the static call graph:
+`Located/Da.lean`), each reading the call's frame (`frameOf`), along the static call graph:
 
-* the loop helper of `opening_queries` (`wlL`), iteration by iteration: iteration `j` is the
-  first frame whose opening `oqOpeningOf` passes the query's outcome at `x·g^j` (`oqIterB`);
-* `opening_queries` (`wqL`), at each level of a configuration: the first frame whose openings
-  `oqQueriesOs (wlL …)` have the meaning at the call's words (`QueriesTest`);
-* `open_stacked__L{j}` (`wOL`): the first frame whose openings `osOsOf cfg σ (wqL …)` have
-  `OpenOutW` at the call's words (`OpenTest`);
-* `verify_sub` (`wVsL`): the first frame whose child proof `vsProofOf` the deferring verifier
-  accepts for the call's words (`VsTest`).
+* the loop helper of `opening_queries` (`wlL`), iteration by iteration: iteration `j`'s opening
+  `oqOpeningOf` at the frame of the call `x·g^j :: ps`;
+* `opening_queries` (`wqL`), at each level of a configuration: the openings
+  `oqQueriesOs (wlL …)` of the call's frame;
+* `open_stacked__L{j}` (`wOL`): the openings `osOsOf cfg σ (wqL …)` of the call's frame;
+* `verify_sub` (`wVsL`): the child proof `vsProofOf` of the call's frame.
 
-The tests are decided classically: each scan is definite, no witness is chosen. `vsWit_out`: a
+Nothing is verified to decode: the outcomes (`oqIterB`, `QueriesTest`, `OpenTest`, `VsTest`) are
+what the correctness lemmas prove of the decoded witnesses. `vsWit_out`: a
 located call of `verify_sub` holds `Callees.verify_sub`'s claim at the decoded proof
 `wVsL L args []`, for the guest's bytecode.
 -/
@@ -203,12 +201,11 @@ def oqIterB (base I pd cd : ℕ) (rd : Reader) (y : E) (ps : List E) (o : Openin
     QueryOkO base I (pd + cd) cd rd (ps.getD 1 0) (ps.getD 2 0) (ps.getD 3 0) (ps.getD 4 0)
       (ps.getD 5 0) (ps.getD 6 0) j q o
 
-/-- **The loop's openings, decoded**: iteration `j`'s opening, `oqOpeningOf` of the first frame of
-the loop whose opening passes the iteration's outcome at `x·g^j`. -/
+/-- **The loop's openings, decoded**: iteration `j`'s opening, `oqOpeningOf` of iteration
+`x·g^j`'s frame. -/
 noncomputable def wlL {κ : ℕ} (L : MemImage κ) (base I blocks pd cd : ℕ) (loop : String) :
     List E → List E → List Opening :=
-  loopDec L loop (fun ps => ps.getD 0 0) (oqIterB base I pd cd L.read)
-    (oqOpeningOf base I blocks pd cd L.read)
+  loopDec L loop (fun ps => ps.getD 0 0) (oqOpeningOf base I blocks pd cd L.read)
 
 theorem wlL_spec {κ : ℕ} {L : MemImage κ} {name loop : String} {base I blocks pd cd : ℕ}
     (spec : OqSpec name loop base I blocks pd cd) :
@@ -238,7 +235,7 @@ theorem wlL_spec {κ : ℕ} {L : MemImage κ} {name loop : String} {base I block
   obtain ⟨-, rfl⟩ := hp
   obtain ⟨hlen, hW, hfirst, hall⟩ := hl
   unfold wlL
-  generalize loopDec L loop (fun ps => ps.getD 0 0) (oqIterB base I pd cd L.read)
+  generalize loopDec L loop (fun ps => ps.getD 0 0)
     (oqOpeningOf base I blocks pd cd L.read) _ [] = os at hlen hW hfirst hall ⊢
   intro k hk
   have hWg : ∀ t, x * gen ^ t = gen ^ (k + t) := fun t => by rw [hk, pow_add]
@@ -264,12 +261,11 @@ def QueriesTest (rd : Reader) (base I depth cd : ℕ) (args rets : List E) (os :
     n < ordG → QueryBits rd qbp n depth pos →
     ∃ qsc, MeaningOpeningQueriesW base I depth cd n pos rd qsc args rets os
 
-/-- **A specialization of `opening_queries`' openings, decoded**: those of its first frame whose
-openings, its loop's decoded, have the meaning at the call's words. -/
+/-- **A specialization of `opening_queries`' openings, decoded**: those of the call's frame, its
+loop's decoded. -/
 noncomputable def wqDec {κ : ℕ} (L : MemImage κ) (name loop : String) (base I blocks pd cd : ℕ)
     (args rets : List E) : List Opening :=
-  frameDec L name (fun σ => oqQueriesOs (wlL L base I blocks pd cd loop) σ)
-    (QueriesTest L.read base I (pd + cd) cd args rets)
+  frameDec L name (fun σ => oqQueriesOs (wlL L base I blocks pd cd loop) σ) args rets
 
 theorem wqDec_spec {κ : ℕ} {L : MemImage κ} {name loop : String} {base I blocks pd cd : ℕ}
     (spec : OqSpec name loop base I blocks pd cd) :
@@ -277,15 +273,15 @@ theorem wqDec_spec {κ : ℕ} {L : MemImage κ} {name loop : String} {base I blo
       (wqDec L name loop base I blocks pd cd) := by
   intro n pos cap flags qw qbp rew rets hn hpre hcall
   obtain ⟨f, hf, hfp, hfb⟩ := spec.fn
-  obtain ⟨a, ha, hp, hb⟩ := rl_frame hf hcall
-  rw [hfp] at hp
-  rw [hfb] at hb
-  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
-  obtain ⟨e0, e1, e2, e3, e4, e5, -⟩ := hp
   have key : QueriesTest L.read base I (pd + cd) cd [cap, flags, qw, qbp, rew, gen ^ n] rets
       (wqDec L name loop base I blocks pd cd [cap, flags, qw, qbp, rew, gen ^ n] rets) := by
     unfold wqDec
-    refine frameDec_spec ha fun n' pos' cap' flags' qw' qbp' rew' hargs hn' hpre' => ?_
+    refine frameDec_spec hf hcall fun a hp hb => ?_
+    rw [hfp] at hp
+    rw [hfb] at hb
+    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+    obtain ⟨e0, e1, e2, e3, e4, e5, -⟩ := hp
+    intro n' pos' cap' flags' qw' qbp' rew' hargs hn' hpre'
     simp only [List.cons.injEq, and_true] at hargs
     obtain ⟨rfl, rfl, rfl, rfl, rfl, hg⟩ := hargs
     obtain rfl := gen_pow_inj hn' hn hg.symm
@@ -326,12 +322,10 @@ def OpenTest (rd : Reader) (name : String) (args rets : List E) (os : List Openi
     ∀ (root : Digest) fs0 fs1 target root0 root1 cur, (root0, root1) = digestScalars root →
       args = [fs0, fs1, target, root0, root1, cur] → OpenOutW rd μ r root fs0 fs1 target cur rets os
 
-/-- **`open_stacked`'s openings, decoded**: those of the first frame of the specialization
-`name` whose openings, its levels' `opening_queries` decoded, have `OpenOutW` at the call's
-words. -/
+/-- **`open_stacked`'s openings, decoded**: those of the call's frame of the specialization `name`,
+its levels' `opening_queries` decoded. -/
 noncomputable def wOL {κ : ℕ} (L : MemImage κ) (name : String) (args rets : List E) : List Opening :=
-  frameDec L name (fun σ => osOsOf (osCfgOf name) σ (wqL L (osCfgOf name)))
-    (OpenTest L.read name args rets)
+  frameDec L name (fun σ => osOsOf (osCfgOf name) σ (wqL L (osCfgOf name))) args rets
 
 /-- **A located call of `open_stacked` holds its outcome at the decoded openings.** -/
 theorem wOL_spec {κ : ℕ} (L : MemImage κ) :
@@ -345,14 +339,13 @@ theorem wOL_spec {κ : ℕ} (L : MemImage κ) :
   rw [show 22 + (μ - 22 + 7 * (r - 1)) % 7 = μ by omega,
     show (μ - 22 + 7 * (r - 1)) / 7 + 1 = r by omega] at hok
   rw [← hname] at hfind
-  obtain ⟨a, ha, hp, hb⟩ := rl_frame hfind hcall
-  rw [hpar] at hp
-  simp only [List.map_cons, List.map_nil] at hp
   have key : OpenTest L.read (openName μ r) [fs0, fs1, target, root0, root1, cur] rets
       (wOL L (openName μ r) [fs0, fs1, target, root0, root1, cur] rets) := by
     unfold wOL
-    refine frameDec_spec ha fun μ' r' g1 g2 g3 g4 hn' root' fs0' fs1' target' root0' root1' cur'
-      hroot' hargs => ?_
+    refine frameDec_spec hfind hcall fun a hp hb => ?_
+    rw [hpar] at hp
+    simp only [List.map_cons, List.map_nil] at hp
+    intro μ' r' g1 g2 g3 g4 hn' root' fs0' fs1' target' root0' root1' cur' hroot' hargs
     obtain ⟨rfl, rfl⟩ := openName_inj h1 h2 h3 h4 g1 g2 g3 g4 hn'
     simp only [List.cons.injEq, and_true] at hargs
     obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩ := hargs
@@ -371,14 +364,10 @@ def VsTest (bytecode : List K) (rd : Reader) (args : List E) (π : Proof) : Prop
     (args.getD 2 0, args.getD 3 0) = digestScalars iv ∧ FreshShaped fresh ∧
     ReadsAt rd (args.getD 6 0) (Node.fixedCells fresh) ∧ verifyDeferred bytecode iv pi fresh π = true
 
-/-- The empty proof, the decoder's default. -/
-local instance : Inhabited Proof := ⟨⟨[], []⟩⟩
-
-/-- **`verify_sub`'s child proof, decoded**: `vsProofOf` of its first frame whose proof, the
-openings decoded, the deferring verifier accepts for the call's words, for the guest's bytecode. -/
-noncomputable def wVsL {κ : ℕ} (L : MemImage κ) (args _rets : List E) : Proof :=
-  frameDec L "verify_sub" (fun σ => vsProofOf End.bytecode L.read σ (wOL L))
-    (VsTest End.bytecode L.read args)
+/-- **`verify_sub`'s child proof, decoded**: `vsProofOf` of the call's frame, the openings decoded,
+for the guest's bytecode. -/
+noncomputable def wVsL {κ : ℕ} (L : MemImage κ) (args rets : List E) : Proof :=
+  frameDec L "verify_sub" (fun σ => vsProofOf End.bytecode L.read σ (wOL L)) args rets
 
 set_option maxRecDepth 100000 in
 /-- **A located call of `verify_sub` holds its claim at the decoded proof**: on a memory of
@@ -391,22 +380,22 @@ theorem vsWit_out {κ : ℕ} {L : MemImage κ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ �
     ∃ (pi iv : Digest) (fresh : FixedClaims), (pi0, pi1) = digestScalars pi ∧
       (s0, s1) = digestScalars iv ∧ FreshShaped fresh ∧ ReadsAt L.read out (Node.fixedCells fresh) ∧
       verifyDeferred End.bytecode iv pi fresh (wVsL L [pi0, pi1, s0, s1, glp, gsq, out] []) = true := by
-  obtain ⟨a, ha, hp, hb⟩ := rl_frame find_verify_sub h
-  rw [core15_params] at hp
-  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
-  obtain ⟨e0, e1, e2, e3, e4, e5, e6, -⟩ := hp
-  rw [core15_body, holdsList_append, holdsList_noRet _ vsPre_noRet] at hb
-  have hvC : VsHoldsC (RL coreProgram L certByName) L.read (valAt L "verify_sub" a) := hb.1
-  have ht' : ExpTables L.read (valAt L "verify_sub" a (.n 4)) (valAt L "verify_sub" a (.n 5)) := by
-    rw [e4, e5]; exact ht
-  obtain ⟨hpi, hseed, hsh, hout, hacc⟩ := verify_sub_sound_wC hκ hκ6 L (relL_le_rel coreProgram)
-    End.bytecode_length (verify_bus_gkr_sound hκ L) (verify_tables_sound hκ L End.bytecode_length)
-    (verify_flock_sound _) (soundPlace hκ L) (hypKappa _) (wOL_spec L)
-    (check_opening_terminal_sound _) hvC ht'
   have key : VsTest End.bytecode L.read [pi0, pi1, s0, s1, glp, gsq, out]
       (wVsL L [pi0, pi1, s0, s1, glp, gsq, out] []) := by
     unfold wVsL
-    refine frameDec_spec ha ⟨_, _, _, ?_, ?_, hsh, ?_, hacc⟩
+    refine frameDec_spec find_verify_sub h fun a hp hb => ?_
+    rw [core15_params] at hp
+    simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+    obtain ⟨e0, e1, e2, e3, e4, e5, e6, -⟩ := hp
+    rw [core15_body, holdsList_append, holdsList_noRet _ vsPre_noRet] at hb
+    have hvC : VsHoldsC (RL coreProgram L certByName) L.read (valAt L "verify_sub" a) := hb.1
+    have ht' : ExpTables L.read (valAt L "verify_sub" a (.n 4)) (valAt L "verify_sub" a (.n 5)) := by
+      rw [e4, e5]; exact ht
+    obtain ⟨hpi, hseed, hsh, hout, hacc⟩ := verify_sub_sound_wC hκ hκ6 L (relL_le_rel coreProgram)
+      End.bytecode_length (verify_bus_gkr_sound hκ L) (verify_tables_sound hκ L End.bytecode_length)
+      (verify_flock_sound _) (soundPlace hκ L) (hypKappa _) (wOL_spec L)
+      (check_opening_terminal_sound _) hvC ht'
+    refine ⟨_, _, _, ?_, ?_, hsh, ?_, hacc⟩
     · simpa [e0, e1] using hpi
     · simpa [e2, e3] using hseed
     · simpa [e6] using hout

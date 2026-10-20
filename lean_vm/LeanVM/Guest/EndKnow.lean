@@ -24,7 +24,8 @@ The decoder `decode` reads, off a memory `L`:
   frame (`fp = 1`, the words of `main`'s certificate's cells: `B1.Main.decSeed`, `decStmt`,
   `decWit`);
 * each leanXMSS and leanSPHINCS signature, blob matrix and child proof from the frame of the
-  function that checked it, found by a scan of the memory (`Located.xmssWit`, `sphincsWit`, `wDaL`,
+  function that checked it, the frame at which that function's code holds on the call's words
+  (`Located.frameOf`; `Located.xmssWit`, `sphincsWit`, `wDaL`,
   `wVsL`), and the batching's hints from `aggregate_claims`' frame (`Located.wAL`).
 
 `guest_knowledge`: every valid execution of the guest on a public input decodes to a statement of

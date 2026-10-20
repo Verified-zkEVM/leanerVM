@@ -27,7 +27,8 @@ soundness is stated for it:
 Both propositions hold of any decoder that happens to output valid witnesses; their content is in the
 decoder the theorems name (`LeanVM.Guest.End.decode`), which reads every component off the memory:
 the statement from `main`'s frame, each signature, matrix and child proof from the frame of the
-function that checked it, found by a scan of the memory. The seed is the guest's hint: the
+function that checked it: the first frame of the memory at which that function's code holds on the
+call's words. The decoder verifies nothing itself. The seed is the guest's hint: the
 statement's digest binds it, and a consumer comparing the digest with its own statement's under the
 deployed seed learns both, unless it holds a BLAKE2s collision.
 -/
