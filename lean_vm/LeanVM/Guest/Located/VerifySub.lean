@@ -258,7 +258,7 @@ theorem wlL_spec {κ : ℕ} {L : MemImage κ} {name loop : String} {base I block
 /-! ## `opening_queries` -/
 
 /-- `opening_queries`' outcome at the call's words `args`, `rets`, the openings `os`: for every
-count `n` and positions `pos` the words admit, the meaning. -/
+count `n` and positions `pos` the words allow, the meaning. -/
 def QueriesTest (rd : Reader) (base I depth cd : ℕ) (args rets : List E) (os : List Opening) : Prop :=
   ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E), args = [cap, flags, qw, qbp, rew, gen ^ n] →
     n < ordG → QueryBits rd qbp n depth pos →
