@@ -636,19 +636,52 @@ structure OqShape (base I blocks pd cd : ℕ) : Prop where
   cd1 : 1 ≤ cd
   cd8 : cd ≤ 8
 
-/-- The loop helper's step, from its relation: one query, then the call at `x·g`. -/
-theorem oqLoop_sound {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd cd) {loop : String}
-    {fn : Fn} (hfind : coreProgram.find? loop = some fn)
-    (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
-    (hb : fn.body = oqLoopBody base I blocks pd cd loop) {rd : Reader} {N rew qsc qw qbp flags cap : E}
-    {d : ℕ} {x : E}
-    (h : coreProgram.relN rd (d + 1) loop (x :: [N, rew, qsc, qw, qbp, flags, cap]) []) :
-    OqSem base I pd cd rd rew qsc qw qbp flags cap x ∧ IsInK (x * gen + N) ∧
-      (x * gen + N ≠ 0 → coreProgram.relN rd d loop (x * gen :: [N, rew, qsc, qw, qbp, flags, cap]) []) := by
-  rw [relN_succ_iff hfind, hp, hb, oqLoopBody] at h
-  obtain ⟨σ, hpar, h⟩ := h
-  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, -⟩ := hpar
+/-- **One query, its witnesses named**: `OqSem` at the row `r`, the bit run `dbp`, the frame run
+`ptr` of the hinted children `cs` and the running nodes `nd`. -/
+def OqSemX (base I pd cd : ℕ) (rd : Reader) (rew qsc qw qbp flags cap x : E) (r : ℕ → E)
+    (dbp ptr : E) (cs : ℕ → E) (nd : ℕ → E × E) : Prop :=
+  (∀ j < oqR base I, IsInK (r j)) ∧ (∀ jw < I, LoadHolds rd rew jw (memAt rd rew jw)) ∧
+    (∃ s w, LoadHolds rd (qsc * x) 0 s ∧ LoadHolds rd (qw * x) 0 w ∧
+      LoadHolds rd (qsc * x) 1 (s + w * ∑ jw ∈ Finset.range I, oqRowWord base r jw * memAt rd rew jw)) ∧
+    LoadHolds rd (qbp * x) 0 dbp ∧ nd 0 = digestScalars (hashWords (leafWords base I r)) ∧
+      IsInK ptr ∧ (∀ k < 4 * pd, ∀ w, rd (ptr.limb 0 * Parameters.gpow k) = some w → w = cs k) ∧
+      (∀ l < pd, ∃ d, LoadHolds rd dbp l d ∧
+        LoadHolds rd (ptr * gen ^ (4 * l) * (1 + d * eOfNat 5)) 0 (nd l).1 ∧
+        LoadHolds rd (ptr * gen ^ (4 * l) * (1 + d * eOfNat 5)) 1 (nd l).2 ∧
+        CompressCells ![cs (4 * l), cs (4 * l + 1), cs (4 * l + 2), cs (4 * l + 3)] Value.ivCells.1
+          Value.ivCells.2 (nd (l + 1)).1 (nd (l + 1)).2 (metadataCell 64 true)) ∧
+      CapLeaf rd flags cap dbp pd cd (nd pd)
+
+theorem OqSemX.oqSem {base I pd cd : ℕ} {rew qsc qw qbp flags cap x : E} {r : ℕ → E} {dbp ptr : E}
+    {cs : ℕ → E} {nd : ℕ → E × E} (h : OqSemX base I pd cd rd rew qsc qw qbp flags cap x r dbp ptr cs nd) :
+    OqSem base I pd cd rd rew qsc qw qbp flags cap x := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := h
+  exact ⟨r, h1, h2, h3, dbp, h4, ptr, cs, nd, h5, h6, h7, h8, h9⟩
+
+theorem OqSem.exists_x {base I pd cd : ℕ} {rew qsc qw qbp flags cap x : E}
+    (h : OqSem base I pd cd rd rew qsc qw qbp flags cap x) :
+    ∃ r dbp ptr cs nd, OqSemX base I pd cd rd rew qsc qw qbp flags cap x r dbp ptr cs nd := by
+  obtain ⟨r, h1, h2, h3, dbp, h4, ptr, cs, nd, h5, h6, h7, h8, h9⟩ := h
+  exact ⟨r, dbp, ptr, cs, nd, h1, h2, h3, h4, h5, h6, h7, h8, h9⟩
+
+/-- The running nodes of the loop's frame `σ`: the leaf digest, then each level's. -/
+def oqNd (base I blocks : ℕ) (σ : Val) (l : ℕ) : E × E :=
+  (σ (.n (oqNode (oqP base I blocks) (oqK1 base I + 3 * blocks) l)),
+    σ (.n (oqNode (oqP base I blocks) (oqK1 base I + 3 * blocks) l + 1)))
+
+/-- **The loop helper's frame**: at its parameters `x, N, rew, qsc, qw, qbp, flags, cap`
+(`σ 0 .. σ 7`), the query at `x` with the witnesses of the frame (`OqSemX`): the row `rowv σ`,
+the bit run, the frame run and the hinted children at `oqP`, the running nodes `oqNd`; then the
+call at `x·g` unless `x·g + N = 0`. -/
+theorem oqFrame_sound {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd cd) {loop : String}
+    {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (oqLoopBody base I blocks pd cd loop) False kret) :
+    OqSemX base I pd cd rd (σ (.n 2)) (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) (σ (.n 6)) (σ (.n 7)) (σ (.n 0))
+        (rowv σ) (σ (.n (oqK2 base I blocks + 8))) (σ (.n (oqP base I blocks + 4 * pd)))
+        (fun k => σ (.n (oqP base I blocks + k))) (oqNd base I blocks σ) ∧
+      IsInK (σ (.n 0) * gen + σ (.n 1)) ∧
+      (σ (.n 0) * gen + σ (.n 1) ≠ 0 → C loop [σ (.n 0) * gen, σ (.n 1), σ (.n 2), σ (.n 3),
+        σ (.n 4), σ (.n 5), σ (.n 6), σ (.n 7)] []) ∧ kret [] := by
+  rw [oqLoopBody] at h
   simp only [holdsList_append] at h
   obtain ⟨hrows, h⟩ := holdsList_true_of (oqRows_noRet _ _) h
   have hrf := oqRows_sound hs.hbase hs.i4 hs.imod hrows
@@ -658,15 +691,28 @@ theorem oqLoop_sound {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd 
   obtain ⟨s1, s3, s7, s9, -⟩ := oqSum_sound hsum
   obtain ⟨hpath, h⟩ := holdsList_true_of (oqPathT_noRet _ _ _ _) h
   obtain ⟨⟨hptr, hfr⟩, hlev, -⟩ := oqPath_sound hs.pd1 hs.pd20 hpath
-  obtain ⟨hcap, hK, hcall, -⟩ := oqCap_sound hs.cd1 hs.cd8 h
-  refine ⟨⟨rowv σ, hrf.1, hrf.2.2.1, ⟨_, _, s1, s3, by rw [← hrf.2.2.2]; exact s7⟩, _, s9, _,
-    fun k => σ (.n (oqP base I blocks + k)),
-    fun l => (σ (.n (oqNode (oqP base I blocks) (oqK1 base I + 3 * blocks) l)),
-      σ (.n (oqNode (oqP base I blocks) (oqK1 base I + 3 * blocks) l + 1))),
-    by simpa [oqNode] using hl, hptr, hfr, fun l hl => ?_, ?_⟩, hK, hcall⟩
+  obtain ⟨hcap, hK, hcall, hk⟩ := oqCap_sound hs.cd1 hs.cd8 h
+  refine ⟨⟨hrf.1, hrf.2.2.1, ⟨_, _, s1, s3, by rw [← hrf.2.2.2]; exact s7⟩, s9,
+    by simpa [oqNode, oqNd] using hl, hptr, hfr, fun l hl => ?_, ?_⟩, hK, hcall, hk⟩
   · obtain ⟨dv, ld, n0, n1, hc⟩ := hlev l hl
-    exact ⟨dv, by simpa [oqP] using ld, n0, n1, by simpa [add_assoc] using hc⟩
-  · simpa [oqNode, show pd ≠ 0 by have := hs.pd1; omega, oqP] using hcap
+    exact ⟨dv, by simpa [oqP] using ld, n0, n1, by simpa [add_assoc, oqNd] using hc⟩
+  · simpa [oqNode, oqNd, show pd ≠ 0 by have := hs.pd1; omega, oqP] using hcap
+
+/-- The loop helper's step, from its relation: one query, then the call at `x·g`. -/
+theorem oqLoop_sound {base I blocks pd cd : ℕ} (hs : OqShape base I blocks pd cd) {loop : String}
+    {fn : Fn} (hfind : coreProgram.find? loop = some fn)
+    (hp : fn.params = [.n 0, .n 1, .n 2, .n 3, .n 4, .n 5, .n 6, .n 7])
+    (hb : fn.body = oqLoopBody base I blocks pd cd loop) {rd : Reader} {N rew qsc qw qbp flags cap : E}
+    {d : ℕ} {x : E}
+    (h : coreProgram.relN rd (d + 1) loop (x :: [N, rew, qsc, qw, qbp, flags, cap]) []) :
+    OqSem base I pd cd rd rew qsc qw qbp flags cap x ∧ IsInK (x * gen + N) ∧
+      (x * gen + N ≠ 0 → coreProgram.relN rd d loop (x * gen :: [N, rew, qsc, qw, qbp, flags, cap]) []) := by
+  rw [relN_succ_iff hfind, hp, hb] at h
+  obtain ⟨σ, hpar, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hpar
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, -⟩ := hpar
+  obtain ⟨hx, hK, hcall, -⟩ := oqFrame_sound hs h
+  exact ⟨hx.oqSem, hK, hcall⟩
 
 /-! ## A query in the specification's terms -/
 
@@ -751,6 +797,36 @@ def QueryOk (base I depth cd : ℕ) (rd : Reader) (rew qsc qw qbp flags cap : E)
     ∃ sibs : List Digest, sibs.length = depth - cd ∧ ∃ ptr, PathFrame rd ptr (hashWords leaf) q sibs ∧
       CapCell rd cap (2 ^ cd + q / 2 ^ (depth - cd)) (climb (m := Id) blake2sBytes (hashWords leaf) q sibs) ∧
       LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1
+
+/-- The path's siblings below the cap at the position `q`: at each level the hinted child the
+position's bit does not select. -/
+def pathSibs (cs : ℕ → E) (q pd : ℕ) : List Digest :=
+  (List.range pd).map fun l =>
+    if q.testBit l then pairDigest (cs (4 * l)) (cs (4 * l + 1)) else pairDigest (cs (4 * l + 2)) (cs (4 * l + 3))
+
+/-- **`QueryOk` with its leaf and its siblings below the cap named.** -/
+def QueryOkW (base I depth cd : ℕ) (rd : Reader) (rew qsc qw qbp flags cap : E) (i q : ℕ)
+    (leaf : List K) (sibs : List Digest) : Prop :=
+  ∃ dbp, LoadHolds rd qbp i dbp ∧ (∀ l < depth, LoadHolds rd dbp l (bitE (q.testBit l))) ∧
+    leaf.length = oqR base I ∧ (∀ jw < I, LoadHolds rd rew jw (memAt rd rew jw)) ∧
+    (∃ s w, LoadHolds rd qsc i s ∧ LoadHolds rd qw i w ∧ LoadHolds rd qsc (i + 1)
+      (s + w * ∑ jw ∈ Finset.range I, leafRowWord base leaf jw * memAt rd rew jw)) ∧
+    sibs.length = depth - cd ∧ (∃ ptr, PathFrame rd ptr (hashWords leaf) q sibs) ∧
+      CapCell rd cap (2 ^ cd + q / 2 ^ (depth - cd)) (climb (m := Id) blake2sBytes (hashWords leaf) q sibs) ∧
+      LoadHolds rd flags (2 ^ (cd - 1) + q / 2 ^ (depth - cd + 1)) 1
+
+theorem QueryOkW.queryOk {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
+    {leaf : List K} {sibs : List Digest}
+    (h : QueryOkW base I depth cd rd rew qsc qw qbp flags cap i q leaf sibs) :
+    QueryOk base I depth cd rd rew qsc qw qbp flags cap i q := by
+  obtain ⟨dbp, h1, h2, h3, h4, h5, h6, ⟨ptr, h7⟩, h8, h9⟩ := h
+  exact ⟨dbp, h1, h2, leaf, h3, h4, h5, sibs, h6, ptr, h7, h8, h9⟩
+
+theorem QueryOk.exists_w {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
+    (h : QueryOk base I depth cd rd rew qsc qw qbp flags cap i q) :
+    ∃ leaf sibs, QueryOkW base I depth cd rd rew qsc qw qbp flags cap i q leaf sibs := by
+  obtain ⟨dbp, h1, h2, leaf, h3, h4, h5, sibs, h6, ptr, h7, h8, h9⟩ := h
+  exact ⟨leaf, sibs, dbp, h1, h2, h3, h4, h5, h6, ⟨ptr, h7⟩, h8, h9⟩
 
 theorem one_add_bitE_five (b : Bool) : 1 + bitE b * eOfNat 5 = gen ^ (2 * b.toNat) := by
   cases b
@@ -870,14 +946,16 @@ theorem path_level {ptr : E} {cs : ℕ → E} {nd : ℕ → E × E} {D : Digest}
         rw [show cs (4 * l) = (digestScalars L).1 from congrArg Prod.fst hL,
           show cs (4 * l + 1) = (digestScalars L).2 from congrArg Prod.snd hL, pairDigest_digestScalars]]
 
-/-- **A query, in the specification's terms**: the loop body at `g^i`, with the position's
-bits at `qbp[i]`, is `QueryOk`. -/
-theorem oqSem_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks pd cd) (hq : q < 2 ^ (pd + cd))
+/-- **A query, its witnesses named, in the specification's terms**: the loop body at `g^i`, with
+the position's bits at `qbp[i]`, is `QueryOkW` at the leaf of its row and the siblings the hinted
+children give at the position (`pathSibs`). -/
+theorem oqSemX_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks pd cd) (hq : q < 2 ^ (pd + cd))
     {rew qsc qw qbp flags cap : E}
-    (hbits : ∀ dbp, LoadHolds rd qbp i dbp → BitsAt rd dbp q (pd + cd))
-    (h : OqSem base I pd cd rd rew qsc qw qbp flags cap (gen ^ i)) :
-    QueryOk base I (pd + cd) cd rd rew qsc qw qbp flags cap i q := by
-  obtain ⟨r, hrK, hw, ⟨s, w, ls, lw, ls1⟩, dbp, ldbp, ptr, cs, nd, hnd0, hptr, hfr, hlev, hcap⟩ := h
+    (hbits : ∀ dbp, LoadHolds rd qbp i dbp → BitsAt rd dbp q (pd + cd)) {r : ℕ → E} {dbp ptr : E}
+    {cs : ℕ → E} {nd : ℕ → E × E}
+    (h : OqSemX base I pd cd rd rew qsc qw qbp flags cap (gen ^ i) r dbp ptr cs nd) :
+    QueryOkW base I (pd + cd) cd rd rew qsc qw qbp flags cap i q (leafWords base I r) (pathSibs cs q pd) := by
+  obtain ⟨hrK, hw, ⟨s, w, ls, lw, ls1⟩, ldbp, hnd0, hptr, hfr, hlev, hcap⟩ := h
   rw [loadHolds_gen_pow] at ls lw ldbp
   rw [loadHolds_mul_gen_pow] at ls1
   have hB := hbits dbp ldbp
@@ -885,12 +963,11 @@ theorem oqSem_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks 
     fun l hl d hd => hB.2 l hl d hd.2
   set leaf := leafWords base I r
   set D := hashWords leaf
-  set sibs : List Digest := (List.range pd).map fun l =>
-    if q.testBit l then pairDigest (cs (4 * l)) (cs (4 * l + 1)) else pairDigest (cs (4 * l + 2)) (cs (4 * l + 3))
-  have hsl : sibs.length = pd := by simp [sibs]
+  set sibs : List Digest := pathSibs cs q pd
+  have hsl : sibs.length = pd := by simp [sibs, pathSibs]
   have hsib : ∀ l < pd, sibs.getD l default = if q.testBit l then pairDigest (cs (4 * l)) (cs (4 * l + 1))
       else pairDigest (cs (4 * l + 2)) (cs (4 * l + 3)) := fun l hl => by
-    simp [sibs, List.getD_eq_getElem?_getD, hl]
+    simp [sibs, pathSibs, List.getD_eq_getElem?_getD, hl]
   have hlvl : ∀ l < pd, nd l = digestScalars (climbAt D q sibs l) →
       lvlCells (climbAt D q sibs l) (sibs.getD l default) (q.testBit l) =
         [cs (4 * l), cs (4 * l + 1), cs (4 * l + 2), cs (4 * l + 3)] ∧
@@ -925,8 +1002,8 @@ theorem oqSem_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks 
   rw [hidx, mul_assoc, ← pow_add, ← pow_succ', loadHolds_gen_pow] at hci1
   have htop : nd pd = digestScalars (climb (m := Id) blake2sBytes D q sibs) := by
     rw [hnd pd le_rfl, ← climbAt_length, hsl]
-  refine ⟨dbp, ldbp, fun l hl => ?_, leaf, length_leafWords _ _ _, hw,
-    ⟨s, w, ls, lw, ?_⟩, sibs, by rw [hsl]; omega, ptr, ⟨hptr, fun k hk w hw => ?_, fun l hl => ?_⟩,
+  refine ⟨dbp, ldbp, fun l hl => ?_, length_leafWords _ _ _, hw,
+    ⟨s, w, ls, lw, ?_⟩, by rw [hsl]; omega, ⟨ptr, hptr, fun k hk w hw => ?_, fun l hl => ?_⟩,
     ⟨?_, ?_⟩, ?_⟩
   · -- the bits: the path's levels and the cap's
     rcases Nat.lt_or_ge l pd with hlp | hlp
@@ -951,6 +1028,16 @@ theorem oqSem_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks 
   · rw [htop] at hci1
     rw [show pd + cd - cd = pd by omega, two_mul]; exact hci1
   · rwa [show pd + cd - cd + 1 = pd + 1 by omega]
+
+/-- **A query, in the specification's terms**: the loop body at `g^i`, with the position's
+bits at `qbp[i]`, is `QueryOk`. -/
+theorem oqSem_query {base I blocks pd cd i q : ℕ} (hs : OqShape base I blocks pd cd) (hq : q < 2 ^ (pd + cd))
+    {rew qsc qw qbp flags cap : E}
+    (hbits : ∀ dbp, LoadHolds rd qbp i dbp → BitsAt rd dbp q (pd + cd))
+    (h : OqSem base I pd cd rd rew qsc qw qbp flags cap (gen ^ i)) :
+    QueryOk base I (pd + cd) cd rd rew qsc qw qbp flags cap i q := by
+  obtain ⟨r, dbp, ptr, cs, nd, hx⟩ := h.exists_x
+  exact (oqSemX_query hs hq hbits hx).queryOk
 
 /-! ## `opening_queries` -/
 

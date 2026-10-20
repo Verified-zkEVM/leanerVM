@@ -536,18 +536,18 @@ theorem verify_merkle_cap_iff {name loop : String} {f lf : Fn} (D : ℕ) (hD : 2
 
 /-! ## The root at the end of a flagged path -/
 
-/-- The digest at cap node `i`, when its cells are one. -/
-noncomputable def capNode (rd : Reader) (cap : E) (i : ℕ) : Digest :=
-  Classical.epsilon fun d => CapCell rd cap i d
+/-- The digest at cap node `i`: the digest its two cells encode (`CapCell`). -/
+def capNode (rd : Reader) (cap : E) (i : ℕ) : Digest :=
+  cellWords (memAt rd cap (2 * i)) ++ cellWords (memAt rd cap (2 * i + 1))
 
-theorem capNode_eq {cap : E} {i : ℕ} {d : Digest} (h : CapCell rd cap i d) : capNode rd cap i = d :=
-  (Classical.epsilon_spec (p := fun d => CapCell rd cap i d) ⟨d, h⟩).unique h
+theorem capNode_eq {cap : E} {i : ℕ} {d : Digest} (h : CapCell rd cap i d) : capNode rd cap i = d := by
+  rw [capNode, memAt_of_load h.1, memAt_of_load h.2, cellWords_digestScalars]
 
 /-- The other child of node `c`'s parent. -/
 def capSib (c : ℕ) : ℕ := if c % 2 = 0 then c + 1 else c - 1
 
 /-- The siblings of node `c` up `h` levels of the cap: the other child at each level. -/
-noncomputable def capSibs (rd : Reader) (cap : E) : ℕ → ℕ → List Digest
+def capSibs (rd : Reader) (cap : E) : ℕ → ℕ → List Digest
   | 0, _ => []
   | h + 1, c => capNode rd cap (capSib c) :: capSibs rd cap h (c / 2)
 
