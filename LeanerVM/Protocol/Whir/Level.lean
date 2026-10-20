@@ -1,15 +1,15 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Level
+  LeanerVM.Protocol.Whir.Level
 
   One level of WHIR's opening that is followed by another: the fold rounds, the commitment of the
   next word, the out-of-domain claim, the queries of this level's word, and the glue into the next
-  level's running claim; definition and perfect completeness. Candidate for ArkLib.
+  level's running claim; definition and perfect completeness.
 -/
 
 module
 
 public import LeanerVM.Protocol.Field
-public import LeanerVM.Protocol.ToArkLib.Whir.Glue
+public import LeanerVM.Protocol.Whir.Glue
 public import LeanerVM.Protocol.ToArkLib.Whir.Schedule
 public import LeanerVM.Protocol.ToArkLib.MapWitness
 public import LeanerVM.Protocol.ToArkLib.QueryRecord
@@ -47,7 +47,7 @@ The statement the verifier keeps between its steps is `Bd`; `Bd.F1` to `Bd.F5` a
 honest prover establishes in it, one step at a time (`relOld`, `relBoth`, `relNew` add the
 oracles'). Each step is a generic component with its completeness proof; the level is their
 composition (`levelDef`, `levelComplete`), followed by the rest of the opening, which is a
-parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.ToArkLib.Whir.Open`).
+parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.Whir.Open`).
 
 ## Deviations from the Annex, and why
 
@@ -112,16 +112,16 @@ def chk (q : SumcheckRound.Message E 2) (v : E) : Bool :=
 the level's table, with the side invariant that the oracle is the honest word of the table. -/
 def levelFamily (sh : Shape) (κ : ℕ) :
     SumcheckRound.Family E (Weight E (sh.ℓ + κ)) (OneW sh κ) (Tab (sh.ℓ + κ)) 2 where
-  claim := fun ctx j c ↦ WhirSum.claim ctx.1.1.onCube ctx.2 j c
-  poly := fun ctx j c ↦ WhirSum.roundPoly ctx.1.1.onCube ctx.2 j c
+  claim := fun ctx j c ↦ ProductSum.claim ctx.1.1.onCube ctx.2 j c
+  poly := fun ctx j c ↦ ProductSum.roundPoly ctx.1.1.onCube ctx.2 j c
   weight := fun _ _ ↦ unitDom
   inv := fun ctx _ _ ↦ ctx.1.2 0 = wordOf sh.ℓ κ sh.R sh.t ctx.2
 
 /-- The level's family is honest up to its last variable. -/
 private theorem levelFamily_honest (sh : Shape) (κ : ℕ) {m : ℕ} (hm : m ≤ sh.ℓ + κ) :
     (levelFamily sh κ).Honest m where
-  check := fun _ _ c hj ↦ WhirSum.roundPoly_check _ _ (lt_of_lt_of_le hj hm) c
-  next := fun _ _ c x hj ↦ WhirSum.roundPoly_eval _ _ (lt_of_lt_of_le hj hm) c x
+  check := fun _ _ c hj ↦ ProductSum.roundPoly_check _ _ (lt_of_lt_of_le hj hm) c
+  next := fun _ _ c x hj ↦ ProductSum.roundPoly_eval _ _ (lt_of_lt_of_le hj hm) c x
   inv_push := fun _ _ _ _ _ h ↦ h
 
 /-- The relation at the start of a level: the claim `(W, c)` with the polynomial of its first
@@ -192,7 +192,7 @@ def Bd.resid (s : Bd sh κ) : Weight E κ := foldWeight s.W s.r
 
 /-- The honest first-round polynomial of a weight against the folded table. -/
 def firstPoly (A : Weight E κ) (g : Tab κ) : SumcheckRound.Message E 2 :=
-  WhirSum.roundPoly A.onCube g 0 #v[]
+  ProductSum.roundPoly A.onCube g 0 #v[]
 
 /-- The residual claim, and its first-round polynomial. -/
 def Bd.F1 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
@@ -274,7 +274,7 @@ end Relations
 theorem chk_firstPoly {κ : ℕ} (hκ : 0 < κ) (A : Weight E κ) (g : Tab κ) :
     chk (firstPoly A g) (A.pair (RingHom.id E) g) = true := by
   unfold chk firstPoly
-  rw [decide_eq_true_eq, WhirSum.roundPoly_check _ _ hκ, claim_zero]
+  rw [decide_eq_true_eq, ProductSum.roundPoly_check _ _ hκ, claim_zero]
 
 /-- The next level's table has at least one variable: a level folds at least once. -/
 theorem kap_pos (sh' : Shape) (κ' : ℕ) : 0 < Kap sh' κ' :=
@@ -526,11 +526,11 @@ def glueComplete : Component.Complete (glue sh sh' κ') (relNew sh sh' κ' Bd.F5
         (s.pos q) := funext hcq
     refine ⟨⟨h2, ?_⟩, ?_⟩
     · show powerBatch ![s.c, s.cood, powerBatch s.cq s.lam] s.lam =
-        WhirSum.claim (gluedWeight s.resid s.z s.pos s.lam).onCube (foldTable w s.r) 0 #v[]
+        ProductSum.claim (gluedWeight s.resid s.z s.pos s.lam).onCube (foldTable w s.r) 0 #v[]
       rw [claim_zero, pair_gluedWeight, hc, hcood, hcqf]
       rfl
     · show batchMessage ![s.p1, s.p2, s.p3] s.lam =
-        WhirSum.roundPoly (gluedWeight s.resid s.z s.pos s.lam).onCube (foldTable w s.r) 0 #v[]
+        ProductSum.roundPoly (gluedWeight s.resid s.z s.pos s.lam).onCube (foldTable w s.r) 0 #v[]
       rw [show (gluedWeight s.resid s.z s.pos s.lam).onCube = batchWeight (fun j ↦
         (![s.resid, eqWeight s.z, queryWeight (Kap sh' κ') sh.R s.pos s.lam] j).onCube) s.lam
         from rfl, roundPoly_batch]

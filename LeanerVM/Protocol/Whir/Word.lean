@@ -1,8 +1,8 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Word
+  LeanerVM.Protocol.Whir.Word
 
   The interleaved word WHIR commits to, as an oracle read at sampled positions, and the word of
-  a table. Candidate for ArkLib.
+  a table.
 -/
 
 module

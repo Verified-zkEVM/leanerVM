@@ -1,9 +1,8 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Stack
+  LeanerVM.Protocol.Whir.Stack
 
   The weight of the committed stack with its lanes first: the relayout of a weight, its
-  extension at the rotated point, and the invariance of the weighted claim. Candidate for
-  ArkLib.
+  extension at the rotated point, and the invariance of the weighted claim.
 -/
 
 module

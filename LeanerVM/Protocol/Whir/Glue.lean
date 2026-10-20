@@ -1,16 +1,15 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Glue
+  LeanerVM.Protocol.Whir.Glue
 
   The claims WHIR glues into the running sumcheck at a level boundary, their weights, and the
-  fact that the round polynomial of the glued claim is the glued round polynomials. Candidate for
-  ArkLib.
+  fact that the round polynomial of the glued claim is the glued round polynomials.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.WhirSumcheck
+public import LeanerVM.Protocol.ToArkLib.ProductSumcheck
 public import LeanerVM.Protocol.ToArkLib.WeightBatch
-public import LeanerVM.Protocol.ToArkLib.Whir.Word
+public import LeanerVM.Protocol.Whir.Word
 
 /-!
 # Gluing claims into the running sumcheck
@@ -51,9 +50,9 @@ def batchMessage {J : ℕ} (ms : Fin J → SumcheckRound.Message E 2) (ρ : E) :
 /-- The extension of a batched weight table at the free point is the batch of the extensions. -/
 private theorem atFree_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E) {j : ℕ}
     (hj : j < n) (c : Vector E j) (x' : Fin (2 ^ (n - (j + 1)))) (z : E) :
-    WhirSum.atFree (batchWeight Ts ρ) hj c x' z =
-      powerBatch (fun i ↦ WhirSum.atFree (Ts i) hj c x' z) ρ := by
-  unfold WhirSum.atFree
+    ProductSum.atFree (batchWeight Ts ρ) hj c x' z =
+      powerBatch (fun i ↦ ProductSum.atFree (Ts i) hj c x' z) ρ := by
+  unfold ProductSum.atFree
   rw [evalMle_batchWeight]
 
 /-- A sum of batched terms against a fixed factor is the batch of the sums. -/
@@ -79,37 +78,37 @@ private theorem powerBatch_add {J : ℕ} (a b : Fin J → E) (ρ : E) :
 /-- The constant coefficient is linear in the weight. -/
 private theorem coef0_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
-    WhirSum.coef0 (batchWeight Ts ρ) B hj c =
-      powerBatch (fun i ↦ WhirSum.coef0 (Ts i) B hj c) ρ := by
-  unfold WhirSum.coef0
+    ProductSum.coef0 (batchWeight Ts ρ) B hj c =
+      powerBatch (fun i ↦ ProductSum.coef0 (Ts i) B hj c) ρ := by
+  unfold ProductSum.coef0
   simp only [atFree_batch]
-  exact sum_powerBatch_mul _ (fun x' i ↦ WhirSum.atFree (Ts i) hj c x' 0)
-    (fun x' ↦ WhirSum.atFree B hj c x' 0) ρ
+  exact sum_powerBatch_mul _ (fun x' i ↦ ProductSum.atFree (Ts i) hj c x' 0)
+    (fun x' ↦ ProductSum.atFree B hj c x' 0) ρ
 
 /-- The quadratic coefficient is linear in the weight. -/
 private theorem coef2_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
-    WhirSum.coef2 (batchWeight Ts ρ) B hj c =
-      powerBatch (fun i ↦ WhirSum.coef2 (Ts i) B hj c) ρ := by
-  unfold WhirSum.coef2
+    ProductSum.coef2 (batchWeight Ts ρ) B hj c =
+      powerBatch (fun i ↦ ProductSum.coef2 (Ts i) B hj c) ρ := by
+  unfold ProductSum.coef2
   simp only [atFree_batch, powerBatch_sub]
   exact sum_powerBatch_mul _
-    (fun x' i ↦ WhirSum.atFree (Ts i) hj c x' 1 - WhirSum.atFree (Ts i) hj c x' 0)
-    (fun x' ↦ WhirSum.atFree B hj c x' 1 - WhirSum.atFree B hj c x' 0) ρ
+    (fun x' i ↦ ProductSum.atFree (Ts i) hj c x' 1 - ProductSum.atFree (Ts i) hj c x' 0)
+    (fun x' ↦ ProductSum.atFree B hj c x' 1 - ProductSum.atFree B hj c x' 0) ρ
 
 /-- The linear coefficient is linear in the weight. -/
 private theorem coef1_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) {j : ℕ} (hj : j < n) (c : Vector E j) :
-    WhirSum.coef1 (batchWeight Ts ρ) B hj c =
-      powerBatch (fun i ↦ WhirSum.coef1 (Ts i) B hj c) ρ := by
-  unfold WhirSum.coef1
+    ProductSum.coef1 (batchWeight Ts ρ) B hj c =
+      powerBatch (fun i ↦ ProductSum.coef1 (Ts i) B hj c) ρ := by
+  unfold ProductSum.coef1
   simp only [atFree_batch, powerBatch_sub]
   rw [Finset.sum_add_distrib,
-    sum_powerBatch_mul _ (fun x' i ↦ WhirSum.atFree (Ts i) hj c x' 0)
-      (fun x' ↦ WhirSum.atFree B hj c x' 1 - WhirSum.atFree B hj c x' 0) ρ,
+    sum_powerBatch_mul _ (fun x' i ↦ ProductSum.atFree (Ts i) hj c x' 0)
+      (fun x' ↦ ProductSum.atFree B hj c x' 1 - ProductSum.atFree B hj c x' 0) ρ,
     sum_powerBatch_mul _
-      (fun x' i ↦ WhirSum.atFree (Ts i) hj c x' 1 - WhirSum.atFree (Ts i) hj c x' 0)
-      (fun x' ↦ WhirSum.atFree B hj c x' 0) ρ, powerBatch_add]
+      (fun x' i ↦ ProductSum.atFree (Ts i) hj c x' 1 - ProductSum.atFree (Ts i) hj c x' 0)
+      (fun x' ↦ ProductSum.atFree B hj c x' 0) ρ, powerBatch_add]
   congr 1
   funext i
   rw [Finset.sum_add_distrib]
@@ -118,14 +117,14 @@ private theorem coef1_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (
 the batch of their round polynomials. -/
 theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) (j : ℕ) (c : Vector E j) :
-    WhirSum.roundPoly (batchWeight Ts ρ) B j c =
-      batchMessage (fun i ↦ WhirSum.roundPoly (Ts i) B j c) ρ := by
+    ProductSum.roundPoly (batchWeight Ts ρ) B j c =
+      batchMessage (fun i ↦ ProductSum.roundPoly (Ts i) B j c) ρ := by
   apply Vector.ext
   intro k hk
   by_cases hj : j < n
-  · have h : ∀ (T : CMlPolynomialEval E n), WhirSum.roundPoly T B j c =
-        #v[WhirSum.coef0 T B hj c, WhirSum.coef1 T B hj c, WhirSum.coef2 T B hj c] := fun T ↦ by
-      unfold WhirSum.roundPoly
+  · have h : ∀ (T : CMlPolynomialEval E n), ProductSum.roundPoly T B j c =
+        #v[ProductSum.coef0 T B hj c, ProductSum.coef1 T B hj c, ProductSum.coef2 T B hj c] := fun T ↦ by
+      unfold ProductSum.roundPoly
       rw [dite_eq_left hj]
     rw [h, batchMessage, Vector.getElem_ofFn]
     simp only [h]
@@ -133,9 +132,9 @@ theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ :
     · exact coef0_batch Ts ρ B hj c
     · exact coef1_batch Ts ρ B hj c
     · exact coef2_batch Ts ρ B hj c
-  · have h : ∀ (T : CMlPolynomialEval E n), WhirSum.roundPoly T B j c = #v[0, 0, 0] :=
+  · have h : ∀ (T : CMlPolynomialEval E n), ProductSum.roundPoly T B j c = #v[0, 0, 0] :=
         fun T ↦ by
-      unfold WhirSum.roundPoly
+      unfold ProductSum.roundPoly
       rw [dite_eq_right hj]
     rw [h, batchMessage, Vector.getElem_ofFn]
     simp only [h]
@@ -144,16 +143,16 @@ theorem roundPoly_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ :
 /-- The claim is linear in the weight. -/
 private theorem claim_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (ρ : E)
     (B : CMlPolynomialEval E n) (j : ℕ) (c : Vector E j) :
-    WhirSum.claim (batchWeight Ts ρ) B j c =
-      powerBatch (fun i ↦ WhirSum.claim (Ts i) B j c) ρ := by
-  unfold WhirSum.claim plainSum
+    ProductSum.claim (batchWeight Ts ρ) B j c =
+      powerBatch (fun i ↦ ProductSum.claim (Ts i) B j c) ρ := by
+  unfold ProductSum.claim plainSum
   by_cases hj : j ≤ n
   · simp only [hj, ↓reduceDIte]
     have h : ∀ x : Fin (2 ^ (n - j)),
-        WhirSum.summand (batchWeight Ts ρ) B (fixLow hj c (boolVec x)) =
+        ProductSum.summand (batchWeight Ts ρ) B (fixLow hj c (boolVec x)) =
           powerBatch (fun i ↦ evalMle (Ts i) (fixLow hj c (boolVec x))) ρ *
             evalMle B (fixLow hj c (boolVec x)) := fun x ↦ by
-      unfold WhirSum.summand
+      unfold ProductSum.summand
       rw [evalMle_batchWeight]
     simp only [h]
     rw [sum_powerBatch_mul]
@@ -162,9 +161,9 @@ private theorem claim_batch {n J : ℕ} (Ts : Fin J → CMlPolynomialEval E n) (
 
 /-- The sumcheck's claim at stage `0` is the weighted claim. -/
 theorem claim_zero {n : ℕ} (W : Weight E n) (f : CMlPolynomialEval E n) :
-    WhirSum.claim W.onCube f 0 #v[] = W.pair (RingHom.id E) f := by
-  rw [WhirSum.claim, plainSum_zero]
-  simp only [WhirSum.summand, evalMle_boolVec, Weight.pair, Fin.getElem_fin, RingHom.id_apply]
+    ProductSum.claim W.onCube f 0 #v[] = W.pair (RingHom.id E) f := by
+  rw [ProductSum.claim, plainSum_zero]
+  simp only [ProductSum.summand, evalMle_boolVec, Weight.pair, Fin.getElem_fin, RingHom.id_apply]
 
 /-! ## The glued weights -/
 
@@ -229,8 +228,8 @@ def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Wei
 folded table. -/
 theorem claim_fold {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (f : CMlPolynomialEval E (ℓ + κ))
     (r : Vector E ℓ) :
-    WhirSum.claim W.onCube f ℓ r = (foldWeight W r).pair (RingHom.id E) (foldTable f r) := by
-  unfold WhirSum.claim plainSum
+    ProductSum.claim W.onCube f ℓ r = (foldWeight W r).pair (RingHom.id E) (foldTable f r) := by
+  unfold ProductSum.claim plainSum
   rw [dite_eq_left (Nat.le_add_right ℓ κ)]
   let e : Fin (2 ^ κ) ≃ Fin (2 ^ (ℓ + κ - ℓ)) := finCongr (by rw [Nat.add_sub_cancel_left])
   rw [Weight.pair]
@@ -248,7 +247,7 @@ theorem claim_fold {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (f : CMlPolynomialEv
       evalMle W.onCube (r ++ (boolVec y : Vector E κ)) *
         evalMle f (r ++ (boolVec y : Vector E κ)) := by
     rw [← h1, ← h2, evalMle_foldTable, evalMle_foldTable]
-  simp only [WhirSum.summand, RingHom.id_apply]
+  simp only [ProductSum.summand, RingHom.id_apply]
   exact h3
 
 end Whir

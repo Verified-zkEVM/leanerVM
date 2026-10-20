@@ -1,4 +1,4 @@
-import LeanerVM.Protocol.ToArkLib.Whir.Open
+import LeanerVM.Protocol.Whir.Open
 
 /-!
 # The opening of WHIR: an honest run on a toy

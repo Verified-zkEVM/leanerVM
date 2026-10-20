@@ -1,21 +1,21 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Final
+  LeanerVM.Protocol.Whir.Final
 
   The last level of WHIR's opening: the fold rounds, the plaintext table, the queries of the last
   word, and the sumcheck over the plaintext table with the verifier's terminal check; definition
-  and perfect completeness. Candidate for ArkLib.
+  and perfect completeness.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Whir.Level
+public import LeanerVM.Protocol.Whir.Level
 public import LeanerVM.Protocol.ToArkLib.PassCheck
 
 /-!
 # The final level of WHIR's opening
 
 Category B: Annex B, Protocol 1, final round, and `verify_whir` (`python-verifier/verifier.py`).
-The last level starts like the others (`LeanerVM.Protocol.ToArkLib.Whir.Level`): a
+The last level starts like the others (`LeanerVM.Protocol.Whir.Level`): a
 running claim `<W, f> = c` on its table `f` of `ℓ + κ` variables, the first round polynomial of
 its sumcheck received, and the honest word of `f` as the one oracle. Its rounds
 (`finalSteps`):
@@ -62,11 +62,11 @@ variable (sh : Shape) (nf : ℕ)
 /-- The family of claims of the tail: the plain sumcheck of the weight and the plaintext table
 the statement holds. -/
 def tailFamily : SumcheckRound.Family E (TX (nf + 1)) (OneW sh (nf + 1)) Unit 2 :=
-  WhirSum.family fun ctx ↦ (ctx.1.1.1.onCube, ctx.1.1.2)
+  ProductSum.family fun ctx ↦ (ctx.1.1.1.onCube, ctx.1.1.2)
 
 /-- The tail's family is honest up to its last variable. -/
 theorem tailHonest : (tailFamily sh nf).Honest (nf + 1) :=
-  WhirSum.family_honest _ le_rfl
+  ProductSum.family_honest _ le_rfl
 
 /-- The folded table, sent in the clear. -/
 def sendTable :=
@@ -154,7 +154,7 @@ def glueFinalComplete : Component.Complete (glueFinal sh nf) (relOld sh (nf + 1)
         (s.pos q) := funext hcq
     refine ⟨⟨trivial, ?_⟩, ?_⟩
     · show powerBatch ![s.c, powerBatch s.cq s.lam] s.lam =
-        WhirSum.claim (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam).onCube
+        ProductSum.claim (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam).onCube
           s.ff 0 #v[]
       rw [claim_zero, Weight.pair_batch, hff, hc, hcqf]
       congr 1
@@ -163,7 +163,7 @@ def glueFinalComplete : Component.Complete (glueFinal sh nf) (relOld sh (nf + 1)
       · rfl
       · exact (pair_queryWeight _ _ _).symm
     · show batchMessage ![s.p1, s.p3] s.lam =
-        WhirSum.roundPoly (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam]
+        ProductSum.roundPoly (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam]
           s.lam).onCube s.ff 0 #v[]
       rw [show (Weight.batch ![s.resid, queryWeight (nf + 1) sh.R s.pos s.lam] s.lam).onCube =
         batchWeight (fun j ↦
@@ -192,8 +192,8 @@ def terminalComplete : Component.Complete (terminal sh nf)
   Component.passCheckComplete _ _ _ fun s o w h ↦ by
     refine ⟨?_, trivial⟩
     have hcl : s.2.2 = evalMle s.1.1.onCube s.2.1 * evalMle s.1.2 s.2.1 := by
-      rw [h.2, ← WhirSum.summand]
-      exact plainSum_self (WhirSum.summand s.1.1.onCube s.1.2) s.2.1
+      rw [h.2, ← ProductSum.summand]
+      exact plainSum_self (ProductSum.summand s.1.1.onCube s.1.2) s.2.1
     show decide (s.1.1.mle s.2.1 * evalMle s.1.2 s.2.1 = s.2.2) = true
     rw [decide_eq_true_eq, hcl, s.1.1.mle_eq]
 

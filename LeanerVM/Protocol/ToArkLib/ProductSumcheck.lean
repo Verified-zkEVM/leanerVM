@@ -1,9 +1,8 @@
 /-
-  LeanerVM.Protocol.ToArkLib.WhirSumcheck
+  LeanerVM.Protocol.ToArkLib.ProductSumcheck
 
-  The family of claims of WHIR's sumcheck: a plain sumcheck on the product of the extensions of
-  two tables, binding the lowest variable first, with its honest round polynomials. Candidate for
-  ArkLib.
+  The family of claims of the plain sumcheck on the product of the extensions of two tables,
+  binding the lowest variable first, with its honest round polynomials. Candidate for ArkLib.
 -/
 
 module
@@ -12,23 +11,27 @@ public import LeanerVM.Protocol.ToArkLib.SumcheckRound
 public import LeanerVM.Protocol.ToCompPoly.PlainSum
 
 /-!
-# The sumcheck of a weighted claim
+# The sumcheck of a product of two tables
 
-WHIR's opening reduces a weighted claim `<W, f> = c` on a table `f` of `n` variables, `W` the
-weight, to a claim on the table with its lane coordinates bound. The reduction is a plain
-sumcheck on `Σ_x W̃(x) f̃(x)`, the product of the two tables' multilinear extensions, binding the
-lowest variable first (`verifier.py`: the first fold challenge binds coordinate `0`). After `j`
-rounds, with the challenges `c`, the running claim is `Σ_x W̃(c, x) f̃(c, x)` over the remaining
-coordinates (`claim`); the honest round polynomial (`roundPoly`) is that sum with the next
-coordinate left free, a polynomial of degree `2`, since each extension is affine in it. Its three
-coefficients are written out (`roundPoly`), sums over the remaining coordinates of the products
-of the two extensions' values at `0` and `1`.
+A weighted claim `<W, f> = c` on a table `f` of `n` variables, `W` the weight, is the sum
+`Σ_x W̃(x) f̃(x)` of the product of the two tables' multilinear extensions. The plain sumcheck on
+it binds the lowest variable first. After `j` rounds, with the challenges `c`, the running claim is
+`Σ_x W̃(c, x) f̃(c, x)` over the remaining coordinates (`claim`); the honest round polynomial
+(`roundPoly`) is that sum with the next coordinate left free, a polynomial of degree `2`, since each
+extension is affine in it. Its three coefficients are written out, sums over the remaining
+coordinates of the products of the two extensions' values at `0` and `1`.
 
-`family tab` is the `SumcheckRound.Family` of this sumcheck for a way of reading the two tables
-off the round's context (the public data, the oracles, the witness): the weight is in the public
-data, and `f` is the witness. It is honest (`family_honest`): the honest polynomial passes the
-verifier's check on the unit-weight domain `0, 1` and evaluates at the challenge to the next
-claim. The rounds are `SumcheckRound.rounds` on it.
+`ToArkLib/Sumcheck.lean` has the plain sumcheck of a `Virtual` polynomial, which binds the highest
+variable first. This family exists beside it for two reasons: a protocol that folds the low
+coordinates of a table (an interleaved code's lanes) binds the lowest first, and a product of two
+multilinear tables has degree at most `1` in each factor in every variable, so the round polynomial
+has degree `2` with no individual-degree side condition to carry.
+
+`family tab` is the `SumcheckRound.Family` of this sumcheck for a way of reading the two tables off
+the round's context (the public data, the oracles, the witness): the weight is in the public data,
+and `f` is the witness. It is honest (`family_honest`): the honest polynomial passes the verifier's
+check on the unit-weight domain `0, 1` and evaluates at the challenge to the next claim. The rounds
+are `SumcheckRound.rounds` on it.
 -/
 
 namespace LeanerVM.Protocol
@@ -37,7 +40,7 @@ open CompPoly CMlPolynomialEval
 
 @[expose] public section
 
-namespace WhirSum
+namespace ProductSum
 
 variable {F : Type} [Field F] {n : ℕ} (A B : CMlPolynomialEval F n)
 
@@ -142,7 +145,7 @@ theorem family_honest
   next := fun _ _ c x hj ↦ roundPoly_eval _ _ (lt_of_lt_of_le hj hm) c x
   inv_push := fun _ _ _ _ _ h ↦ h
 
-end WhirSum
+end ProductSum
 
 end
 

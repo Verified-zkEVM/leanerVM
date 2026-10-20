@@ -1,15 +1,14 @@
 /-
-  LeanerVM.Protocol.ToArkLib.Whir.Open
+  LeanerVM.Protocol.Whir.Open
 
   The opening of WHIR as an oracle reduction: a chain of levels, generic over its parameters, from
   the opening claim on the committed stack to acceptance; definition and perfect completeness.
-  Candidate for ArkLib.
 -/
 
 module
 
-public import LeanerVM.Protocol.ToArkLib.Whir.Final
-public import LeanerVM.Protocol.ToArkLib.Whir.Stack
+public import LeanerVM.Protocol.Whir.Final
+public import LeanerVM.Protocol.Whir.Stack
 
 /-!
 # The opening of WHIR
@@ -20,8 +19,8 @@ committed stack `q`, with the stack's honest word as the one oracle, to the veri
 
 * A `Ladder sh κ` is a chain of levels, generic over the parameters: `last sh nf` is the final
   level, folding `sh.ℓ` times and leaving a plaintext table of `nf + 1` variables
-  (`LeanerVM.Protocol.ToArkLib.Whir.Final`); `cons sh L` puts a level of shape `sh`
-  (`LeanerVM.Protocol.ToArkLib.Whir.Level`) before the chain `L` of the next level. The index `κ`
+  (`LeanerVM.Protocol.Whir.Final`); `cons sh L` puts a level of shape `sh`
+  (`LeanerVM.Protocol.Whir.Level`) before the chain `L` of the next level. The index `κ`
   is the number of variables left after the level's folds, so a level's table has `sh.ℓ + κ`, and
   the consistency of the chain's variable counts is by construction, not a hypothesis.
 * `Ladder.comp L` is the chain's component, at the schedule of its steps (`Ladder.steps`), and
@@ -131,7 +130,7 @@ def sendFirstComplete : Component.Complete (sendFirst sh κ) (laneRel sh κ) (st
     · show chk _ s.2 = true
       rw [h.2]
       exact chk_firstPoly (Nat.add_pos_left (Nat.succ_pos _) _) _ _
-    · show s.2 = WhirSum.claim s.1.onCube w 0 #v[]
+    · show s.2 = ProductSum.claim s.1.onCube w 0 #v[]
       rw [claim_zero]
       exact h.2
 

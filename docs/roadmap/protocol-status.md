@@ -655,7 +655,7 @@ row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test agai
 `computableAdditiveNTT`, with the polynomial half restated at `K` (the module docstring says why).
 
 *On merge* of #108, the opening of WHIR and its completeness are on `main`: `whirOpen` and
-`whirOpen_perfectCompleteness` for any chain of levels (`Protocol/ToArkLib/Whir/Open.lean`,
+`whirOpen_perfectCompleteness` for any chain of levels (`Protocol/Whir/Open.lean`,
 `Ladder`), the fold identities and the stack's relayout (`Protocol/WhirFold.lean`), and the generic
 components it is built from, which are upstream candidates (`queryRecord`, `sendOracleBeside`,
 `mapWitness`, `passCheck`, `seqSpec`). The blueprint then owes: `whirOpen`'s input is the one

@@ -1,4 +1,4 @@
-import LeanerVM.Protocol.ToArkLib.Whir.Glue
+import LeanerVM.Protocol.Whir.Glue
 
 /-!
 # WHIR sumcheck and glue tests
@@ -41,40 +41,40 @@ def lam : E := y + 1
 /-! ## The honest polynomial -/
 
 -- stage 0: the polynomial's values at 0 and 1 sum to the claim `Σ A·B`
-#guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)] (WhirSum.roundPoly tA tB 0 #v[]) =
-  WhirSum.claim tA tB 0 #v[]
+#guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)] (ProductSum.roundPoly tA tB 0 #v[]) =
+  ProductSum.claim tA tB 0 #v[]
 -- stage 1, after one challenge
 #guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)]
-    (WhirSum.roundPoly tA tB 1 #v[e1]) = WhirSum.claim tA tB 1 #v[e1]
+    (ProductSum.roundPoly tA tB 1 #v[e1]) = ProductSum.claim tA tB 1 #v[e1]
 -- its value at the next challenge is the next claim
-#guard SumcheckRound.evaluate 2 (WhirSum.roundPoly tA tB 1 #v[e1]) e2 =
-  WhirSum.claim tA tB 2 #v[e1, e2]
+#guard SumcheckRound.evaluate 2 (ProductSum.roundPoly tA tB 1 #v[e1]) e2 =
+  ProductSum.claim tA tB 2 #v[e1, e2]
 -- the claim at stage 0 is the inner product, and with everything fixed it is the summand
-#guard WhirSum.claim tA tB 0 #v[] = ∑ i : Fin 8, tA[i] * tB[i]
-#guard WhirSum.claim tA tB 3 #v[e1, e2, e3] = evalMle tA #v[e1, e2, e3] * evalMle tB #v[e1, e2, e3]
+#guard ProductSum.claim tA tB 0 #v[] = ∑ i : Fin 8, tA[i] * tB[i]
+#guard ProductSum.claim tA tB 3 #v[e1, e2, e3] = evalMle tA #v[e1, e2, e3] * evalMle tB #v[e1, e2, e3]
 
 /-! ## A wrong polynomial -/
 
 /-- The honest polynomial with its linear coefficient changed. -/
 def wrongPoly : SumcheckRound.Message E 2 :=
-  #v[(WhirSum.roundPoly tA tB 1 #v[e1])[0], (WhirSum.roundPoly tA tB 1 #v[e1])[1] + 1,
-    (WhirSum.roundPoly tA tB 1 #v[e1])[2]]
+  #v[(ProductSum.roundPoly tA tB 1 #v[e1])[0], (ProductSum.roundPoly tA tB 1 #v[e1])[1] + 1,
+    (ProductSum.roundPoly tA tB 1 #v[e1])[2]]
 
 #guard SumcheckRound.weightedSum 2 [((0 : E), (1 : E)), (1, 1)] wrongPoly ≠
-  WhirSum.claim tA tB 1 #v[e1]
+  ProductSum.claim tA tB 1 #v[e1]
 
 /-! ## Linearity in the weight -/
 
 /-- The batch of two weight tables. -/
 def batchAC : CMlPolynomialEval E 3 := batchWeight ![tA, tC] lam
 
-#guard WhirSum.roundPoly batchAC tB 1 #v[e1] =
-  batchMessage ![WhirSum.roundPoly tA tB 1 #v[e1], WhirSum.roundPoly tC tB 1 #v[e1]] lam
-#guard WhirSum.claim batchAC tB 1 #v[e1] =
-  powerBatch ![WhirSum.claim tA tB 1 #v[e1], WhirSum.claim tC tB 1 #v[e1]] lam
+#guard ProductSum.roundPoly batchAC tB 1 #v[e1] =
+  batchMessage ![ProductSum.roundPoly tA tB 1 #v[e1], ProductSum.roundPoly tC tB 1 #v[e1]] lam
+#guard ProductSum.claim batchAC tB 1 #v[e1] =
+  powerBatch ![ProductSum.claim tA tB 1 #v[e1], ProductSum.claim tC tB 1 #v[e1]] lam
 -- a message batched with the wrong scalar is another message
-#guard WhirSum.roundPoly batchAC tB 1 #v[e1] ≠
-  batchMessage ![WhirSum.roundPoly tA tB 1 #v[e1], WhirSum.roundPoly tC tB 1 #v[e1]] (lam + 1)
+#guard ProductSum.roundPoly batchAC tB 1 #v[e1] ≠
+  batchMessage ![ProductSum.roundPoly tA tB 1 #v[e1], ProductSum.roundPoly tC tB 1 #v[e1]] (lam + 1)
 
 /-! ## The word -/
 
