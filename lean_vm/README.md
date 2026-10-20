@@ -1,6 +1,6 @@
 # lean_vm
 
-A Lean 4 proof that leanVM's verifier is knowledge sound and complete in the random-oracle model, for the verifier, the instruction set and the arithmetization of the containing commit.
+A Lean 4 proof that leanVM's verifier is knowledge sound and complete in the random-oracle model, for the verifier, the instruction set and the arithmetization of the leanVM commit in [`../leanvm-rev`](../leanvm-rev).
 
 ## What is proved
 
@@ -13,7 +13,7 @@ The statements are in [`LeanVM/Spec/`](LeanVM/Spec/README.md), which imports not
 | [`Isa.lean`](LeanVM/Spec/Isa.lean) | leanISA: memory, the six instructions, programs, one step, `ValidExecution`, `Trace.count` |
 | [`Verifier.lean`](LeanVM/Spec/Verifier.lean) | the verifier, `python-verifier/verifier.py` transcribed section by section, for any hash function |
 | [`Statement.lean`](LeanVM/Spec/Statement.lean) | `KnowledgeSoundness` and `Completeness` |
-| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`formal/lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`): stated, not proved |
+| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`): stated, not proved |
 
 The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` ([`LeanVM/Protocol/LeanVM.lean`](LeanVM/Protocol/LeanVM.lean)). [`LeanVM.lean`](LeanVM.lean) fails the build if their axioms grow beyond `propext`, `Classical.choice` and `Quot.sound`.
 
@@ -43,6 +43,15 @@ lake test
 lake exe node-vectors
 ```
 
+`lake build` at the repository root runs all of it, with the Rust checks below, for the four projects (`../check-all.sh`).
+
+The Rust checks run against leanVM at [`../leanvm-rev`](../leanvm-rev), which `../leanvm-tree.sh` checks out into `../.leanvm`, its `formal/lean_vm` a link to this directory. leanVM's tests that write the Lean data (the guest's bytecode and source, the compiler's test programs, the node vectors) fail when this copy differs from what they write; CI runs them:
+
+```sh
+../leanvm-tree.sh
+(cd ../.leanvm && cargo test --release -p rec_aggregation --lib -- guest_bytecode_lean guest_source_lean node_spec_vectors)
+```
+
 The Rust-vs-Lean differential, as CI runs it:
 
 ```sh
@@ -55,11 +64,11 @@ The guest's mirror and hint generator against Rust aggregations, as CI runs it: 
 
 ```sh
 lake build guest-diff
-LEANVM_GUEST_DIFF=/tmp/guest-diff cargo test --release -p rec_aggregation guest_diff -- --ignored
+(cd ../.leanvm && LEANVM_GUEST_DIFF=/tmp/guest-diff cargo test --release -p rec_aggregation guest_diff -- --ignored)
 .lake/build/bin/guest-diff /tmp/guest-diff/*.txt
 ```
 
-After a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors`. After a change to the guest, its compiler or the compiler's test programs, regenerate the guest data with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_`. After that, or a change to the expansion (`Guest/Expand.lean`) or the core IR (`Guest/Core.lean`), regenerate the guest's core IR (`LeanVM/Guest/Data/Core*`, the expansion of the source as data, its values renumbered) with `lake exe guest-core`; `lake exe guest-core --check`, which CI runs, fails when it is stale, and `lake exe guest-core --values f` prints the expansion's name of each value of the function `f`.
+After a bump of `../leanvm-rev` to a protocol change, regenerate the fixtures with `scripts/export-verifier-fixtures-rust.sh tests/fixtures/verifier`, and the node vectors with `LEANVM_WRITE_NODE_VECTORS=1 cargo test --release -p rec_aggregation node_spec_vectors` in `../.leanvm`. After one to a change to the guest, its compiler or the compiler's test programs, regenerate the guest data with `LEANVM_WRITE_GUEST=1 cargo test --release -p rec_aggregation guest_` in `../.leanvm`. Both write here, through the link. After that, or a change to the expansion (`Guest/Expand.lean`) or the core IR (`Guest/Core.lean`), regenerate the guest's core IR (`LeanVM/Guest/Data/Core*`, the expansion of the source as data, its values renumbered) with `lake exe guest-core`; `lake exe guest-core --check`, which CI runs, fails when it is stale, and `lake exe guest-core --values f` prints the expansion's name of each value of the function `f`.
 
 ## Credits
 

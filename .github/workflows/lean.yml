@@ -175,8 +175,9 @@ jobs:
           name: lean-da-axioms
           path: ${{ runner.temp }}/axioms.txt
 
-  # `lean_vm` models the verifier, the guest and the prover's proofs, and imports the two
-  # signature schemes and LeanDA, so a change to any of them re-checks it. A skipped job counts as
+  # `lean_vm` models the verifier, the guest and the prover's proofs of the leanVM commit in
+  # `leanvm-rev`, and imports the two signature schemes and LeanDA, so a change to any of them
+  # re-checks it. A skipped job counts as
   # passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
@@ -190,8 +191,7 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD -- lean_vm crates/verifier python-verifier \
-              crates/rec_aggregation crates/signatures crates/lean_compiler crates/leanvm_core crates/lean_da \
+          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh \
               lean_xmss/LeanXmss/Scheme.lean \
               lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
@@ -271,8 +271,16 @@ jobs:
             !lean_vm/.lake/packages/mathlib/.lake
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: dtolnay/rust-toolchain@stable
-      # The Lean verifier and this commit's Rust verifier must agree on the committed proofs and
-      # on mutations of them, so a protocol change in Rust fails here until the Lean one follows.
+      # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
+      - name: Check out leanVM at the pin
+        run: ../leanvm-tree.sh
+      # leanVM's tests that write the Lean data (the guest's bytecode and source, the compiler's
+      # test programs, the node vectors) fail when this copy differs from what they write.
+      - name: Check the Lean data from leanVM is current
+        working-directory: .leanvm
+        run: cargo test --release -p rec_aggregation --lib -- guest_bytecode_lean guest_source_lean node_spec_vectors
+      # The Lean verifier and the pinned Rust verifier must agree on the committed proofs and on
+      # mutations of them, so a bump to a protocol change fails here until the Lean one follows.
       - name: Rust-vs-Lean differential
         run: |
           lake build leanvm-verify
@@ -284,5 +292,5 @@ jobs:
       - name: Guest mirror and hint generator against Rust aggregations
         run: |
           lake build guest-diff
-          LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored
+          (cd ../.leanvm && LEANVM_GUEST_DIFF="$RUNNER_TEMP/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored)
           .lake/build/bin/guest-diff "$RUNNER_TEMP"/guest-diff/*.txt

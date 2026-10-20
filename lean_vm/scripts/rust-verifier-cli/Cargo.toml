@@ -1,5 +1,5 @@
 # The deployed Rust verifier (leanVM `crates/verifier`) on the Python verifier's four files.
-# The verifier is that of the containing leanVM commit.
+# The verifier is that of the leanVM commit in `../leanvm-rev`, checked out by `../leanvm-tree.sh`.
 [package]
 name = "leanvm-rust-verify"
 version = "0.0.0"
@@ -10,7 +10,7 @@ publish = false
 [workspace]
 
 [dependencies]
-verifier = { path = "../../../../crates/verifier" }
+verifier = { path = "../../../.leanvm/crates/verifier" }
 
 [profile.release]
 codegen-units = 1

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Builds and checks the four Lake projects as .github/workflows/lean.yml does, one after another,
-# each in its own directory with its own manifest. `lake build` at the root runs it.
+# each in its own directory with its own manifest, then lean_vm against leanVM at `leanvm-rev`
+# (`leanvm`, which needs cargo). `lake build` at the root runs it.
 #
-#   ./check-all.sh [lean_xmss] [lean_sphincs] [lean_da] [lean_vm]   (default: all four)
+#   ./check-all.sh [lean_xmss] [lean_sphincs] [lean_da] [lean_vm] [leanvm]   (default: all five)
 #
 # The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
 # `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
-# lean_vm/scripts/ci-build.py, the modules it builds at once (default 2). Not run here:
-# lean_vm's Rust-vs-Lean differential and guest-diff, which build leanVM's crates around lean_vm.
+# lean_vm/scripts/ci-build.py, the modules it builds at once (default 2).
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 log=$(mktemp -d)
@@ -98,11 +98,32 @@ lean_vm() {
   (cd lean_vm && capped .lake/build/bin/guest-cert --check)
 }
 
+# Against leanVM at `leanvm-rev`, checked out by leanvm-tree.sh with its `formal/lean_vm` a link to
+# lean_vm: the Lean data its tests write is current, the Lean and Rust verifiers agree on the
+# fixtures and their mutations, and the guest's mirror and hint generator agree with Rust
+# aggregations.
+leanvm() {
+  command -v cargo > /dev/null || fail "leanvm: needs cargo; name the other projects to skip it"
+  local tree
+  tree=$(./leanvm-tree.sh)
+  step "leanvm: the Lean data from leanVM is current"
+  (cd "$tree" && cargo test --release -p rec_aggregation --lib -- \
+    guest_bytecode_lean guest_source_lean node_spec_vectors)
+  step "leanvm: Rust-vs-Lean differential"
+  (cd lean_vm && lake build leanvm-verify)
+  cargo build --release --manifest-path lean_vm/scripts/rust-verifier-cli/Cargo.toml
+  (cd lean_vm && python3 -I scripts/fuzz-verifier.py tests/fixtures/verifier --jobs 4)
+  step "leanvm: guest mirror and hint generator against Rust aggregations"
+  (cd lean_vm && lake build guest-diff)
+  (cd "$tree" && LEANVM_GUEST_DIFF="$log/guest-diff" cargo test --release -p rec_aggregation guest_diff -- --ignored)
+  (cd lean_vm && capped .lake/build/bin/guest-diff "$log"/guest-diff/*.txt)
+}
+
 projects=("$@")
-[ ${#projects[@]} -gt 0 ] || projects=(lean_xmss lean_sphincs lean_da lean_vm)
+[ ${#projects[@]} -gt 0 ] || projects=(lean_xmss lean_sphincs lean_da lean_vm leanvm)
 for p in "${projects[@]}"; do
   case $p in
-    lean_xmss | lean_sphincs | lean_da | lean_vm) "$p" ;;
+    lean_xmss | lean_sphincs | lean_da | lean_vm | leanvm) "$p" ;;
     *) fail "unknown project $p" ;;
   esac
 done

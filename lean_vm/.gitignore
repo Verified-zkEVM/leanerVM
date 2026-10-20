@@ -1,6 +1,7 @@
 /.lake/
 /.vscode/
 /.idea/
+/scripts/rust-verifier-cli/target/
 *.olean
 *.ilean
 

@@ -42,7 +42,8 @@ Usage (from the repository root; the two verifiers built first, see below):
   ( ulimit -v 40000000; lake build leanvm-verify )
   cargo build --release --manifest-path scripts/rust-verifier-cli/Cargo.toml
 
-The Rust and Python verifiers are those of the containing leanVM commit.
+The Rust and Python verifiers are those of the leanVM commit in `../leanvm-rev`, in the tree
+`../leanvm-tree.sh` checks out.
 
 `--mutations` is the number of cases per fixture, structured ones first, then random ones up to
 it. Every child process runs under an address-space limit (`--memory-gb`, default 40). The
@@ -72,7 +73,7 @@ PIN = "3a37fb6e1c7423e36b67d1cac4eda70c3ad4dd45"
 VERIFIER_SHA256 = "16ac4c0dd33894ddb14e8dad92eb7f9d75ef7d543764903aec983b45e862beef"
 FILES = ("bytecode.bin", "public_input.bin", "stream.bin", "merkle_openings.bin")
 ROOT = Path(__file__).resolve().parent.parent
-TREE = ROOT.parent.parent
+TREE = ROOT.parent / ".leanvm"
 LEAN_EXE = ROOT / ".lake" / "build" / "bin" / "leanvm-verify"
 RUST_EXE = ROOT / "scripts" / "rust-verifier-cli" / "target" / "release" / "leanvm-rust-verify"
 

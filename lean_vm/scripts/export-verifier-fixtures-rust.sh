@@ -24,11 +24,11 @@
 # that declares its public input (with its `# witness` annotations), and the chain at 16, 1000 and
 # 5000 loop steps, each at the four rates: the differential fuzzing corpus (not committed).
 #
-# The prover and the verifiers are those of the containing leanVM commit. Requires `cargo` and
-# `python3`.
+# The prover and the verifiers are those of the leanVM commit in `../leanvm-rev`, in the tree
+# `../leanvm-tree.sh` checks out. Requires `cargo` and `python3`.
 set -euo pipefail
 
-checkout="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+checkout="$("$(dirname "${BASH_SOURCE[0]}")/../../leanvm-tree.sh")"
 out="${1:?usage: $0 <output dir> [--corpus]}"
 
 work="$(mktemp -d)"
