@@ -10,7 +10,7 @@ Read in this order:
 4. [`Verifier.lean`](Verifier.lean): the verifier, transcribed from leanVM's Python verifier, with the WHIR and Flock constants it reads and the Fiat-Shamir transcript it runs on; and the deferring verifier an aggregate runs on its children, which takes the values of the fixed polynomials from claims instead of computing them. The prover announces each table's row count, the table's height being the least power of two holding them; the bus discounts the rows past the count (padding rows) through a public term (`paddingWeight`, `Table.padding`).
 5. [`Statement.lean`](Statement.lean): the random-oracle experiment and the two statements, `KnowledgeSoundness` and `Completeness`.
 
-The aggregation guest (stated, not yet proved):
+The aggregation guest, proved for its deployed bytecode: `guest_sound` and `guest_complete` ([`../Guest/EndFinal.lean`](../Guest/EndFinal.lean), [`../Guest/EndFinalComplete.lean`](../Guest/EndFinalComplete.lean)) prove `GuestSound` and `GuestCompleteWithin` ([`../Guest/End.lean`](../Guest/End.lean)), the latter within the deployed limits and budget, and [`../../LeanVM.lean`](../../LeanVM.lean) pins their axioms:
 
 6. The two signature schemes, leanXMSS and leanSPHINCS, imported from the projects that prove their security: [`lean_xmss/LeanXmss/Scheme.lean`](../../../lean_xmss/LeanXmss/Scheme.lean) and [`lean_sphincs/Sphincs/Scheme.lean`](../../../lean_sphincs/Sphincs/Scheme.lean).
 7. [`Da.lean`](Da.lean): the claim on a DA root, in terms of LeanDA as [`lean_da/LeanDa/Scheme.lean`](../../../lean_da/LeanDa/Scheme.lean) defines it (the deployed commitment, the membership vector and its digest), on this project's BLAKE2s.

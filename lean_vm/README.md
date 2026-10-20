@@ -13,13 +13,17 @@ The statements are in [`LeanVM/Spec/`](LeanVM/Spec/README.md), which imports not
 | [`Isa.lean`](LeanVM/Spec/Isa.lean) | leanISA: memory, the six instructions, programs, one step, `ValidExecution`, `Trace.count` |
 | [`Verifier.lean`](LeanVM/Spec/Verifier.lean) | the verifier, `python-verifier/verifier.py` transcribed section by section, for any hash function |
 | [`Statement.lean`](LeanVM/Spec/Statement.lean) | `KnowledgeSoundness` and `Completeness` |
-| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`): stated, not proved |
+| [`Da.lean`](LeanVM/Spec/Da.lean), [`Node.lean`](LeanVM/Spec/Node.lean) | the DA claim, on LeanDA as [`lean_da`](../lean_da) defines it, and what a node of the aggregation guest establishes (`NodeSpec`) |
 
-The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` ([`LeanVM/Protocol/LeanVM.lean`](LeanVM/Protocol/LeanVM.lean)). [`LeanVM.lean`](LeanVM.lean) fails the build if their axioms grow beyond `propext`, `Classical.choice` and `Quot.sound`.
+The proofs are `LeanVM.knowledgeSoundness_holds` and `LeanVM.completeness_holds` ([`LeanVM/Protocol/LeanVM.lean`](LeanVM/Protocol/LeanVM.lean)).
+
+For the deployed aggregation guest's bytecode, `LeanVM.Guest.End.guest_sound` ([`LeanVM/Guest/EndFinal.lean`](LeanVM/Guest/EndFinal.lean)) proves `GuestSound`: a valid execution of the guest on a statement's digest gives a statement of that digest, of the guest's shape, that `NodeSpec` holds. `LeanVM.Guest.End.guest_complete` ([`LeanVM/Guest/EndFinalComplete.lean`](LeanVM/Guest/EndFinalComplete.lean)) proves `GuestCompleteWithin B2C.b2cBudget'`: a witness of `NodeRel` within the deployed limits (`Limits`, where `NodeRel` admits witnesses the guest cannot run; [`LeanVM/Guest/TRIAGE.md`](LeanVM/Guest/TRIAGE.md)), its children's openings agreeing in the guest's Merkle caps (`CapsAgree`) and the node within the budget, gives a valid execution of the guest on the statement's digest within the verifier's committed size. Both statements are in [`LeanVM/Guest/End.lean`](LeanVM/Guest/End.lean); `aggregate_sound` and `aggregate_complete` are them in the random-oracle experiment.
+
+[`LeanVM.lean`](LeanVM.lean) fails the build if the axioms of any of these six theorems grow beyond `propext`, `Classical.choice` and `Quot.sound`.
 
 BLAKE2s is modelled as a random oracle. A proof is the Python verifier's format (full Merkle paths); the Rust verifier's expansion of the pruned wire paths is not formalized. That the Lean verifier is the Rust and Python ones is test evidence: it accepts the Rust prover's proofs, and gives the Rust verifier's verdict on mutated ones.
 
-`Completeness` covers every valid execution within the verifier's size cap: its committed size (`Trace.committedSize`, the cells the prover commits to, set by the memory, the bytecode and how many instructions of each opcode it executes) at most `2^28`. Open: `NodeSpec` is not proved.
+`Completeness` covers every valid execution within the verifier's size cap: its committed size (`Trace.committedSize`, the cells the prover commits to, set by the memory, the bytecode and how many instructions of each opcode it executes) at most `2^28`.
 
 ## Layout
 
