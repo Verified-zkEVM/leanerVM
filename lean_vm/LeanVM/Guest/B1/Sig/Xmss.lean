@@ -6,7 +6,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Sig.XmssLayer
+public import LeanVM.Guest.B1.Sig.XmssLayerW
 public import LeanVM.Guest.B1.Sig.XmssData
 public import LeanVM.Spec.Node
 
@@ -89,27 +89,52 @@ theorem keyAt_bottom_val (i : LeanXmss.LeafIndex) : (LeanXmss.keyAt i LeanXmss.b
 theorem keyAt_top_val (i : LeanXmss.LeafIndex) : (LeanXmss.keyAt i LeanXmss.topLayer).val = i.val / 2 ^ 16 := by
   simp [LeanXmss.keyAt, LeanXmss.topLayer, LeanXmss.layerHeight]
 
-/-- **`verify_lean_xmss` is sound.** -/
-theorem verify_lean_xmss_sound {rd : Reader} {C : CallRel} {σ : Val} {rets : List E}
+/-! ## The signature, the key and the message, from the valuation -/
+
+/-- The leaf index `verify_lean_xmss` hints: the value of its bit cells `n(3 + j)`. -/
+def xmssLeafOf (σ : Val) : LeanXmss.LeafIndex := ⟨xLeafNat σ, xLeafNat_lt σ⟩
+
+/-- The layer signatures `verify_lean_xmss` hints: each layer's randomizer, chain values and
+siblings. -/
+def xmssPartOf (σ : Val) (lay : LeanXmss.Layer) : LeanXmss.LayerSignature :=
+  if lay = LeanXmss.bottomLayer then xPart 0 (139 + 16) (.n 128) (.n (139 + 14)) (.n 139) (xLeafNat σ) σ
+  else xPart 1 ((xLayer 0 139 (.n 0)).2.1 + 10) (.n ((xLayer 0 139 (.n 0)).2.1 + 1))
+    (.n ((xLayer 0 139 (.n 0)).2.1 + 8)) (.n ((xLayer 0 139 (.n 0)).2.1 + 2)) (xLeafNat σ / 2 ^ 16) σ
+
+/-- **The signature `verify_lean_xmss` checks**, of the values it hints. -/
+def xmssSigOf (σ : Val) : LeanXmss.Signature := ⟨xmssLeafOf σ, xmssPartOf σ⟩
+
+/-- The key `verify_lean_xmss` checks against: the top layer's computed root (asserted equal to the
+claim's first cell) and the parameter it loads. -/
+def xmssPkOf (σ : Val) : LeanXmss.PublicKey :=
+  ⟨xv (σ (xLayer 1 (xLayer 0 139 (.n 0)).2.1 (xLayer 0 139 (.n 0)).2.2).2.2), xpp (σ (.n 1))⟩
+
+/-- The message `verify_lean_xmss` checks: the two cells it loads, the first low. -/
+def xmssMsgOf (σ : Val) : LeanXmss.Message :=
+  BitVec.ofNat 256 (cellNat (σ (.n (139 + 3))) + 2 ^ 128 * cellNat (σ (.n (139 + 4))))
+
+/-- **`verify_lean_xmss` is sound**, for the key, message and signature of its valuation. -/
+theorem verify_lean_xmss_sound_w {rd : Reader} {C : CallRel} {σ : Val} {rets : List E}
     (h : Stmt.HoldsList C rd σ xBody False (fun rs => rs = rets)) :
-    rets = [] ∧ ∃ (pk : LeanXmss.PublicKey) (m : LeanXmss.Message),
-      ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧ ∃ sig, Node.xmssVerify pk m sig = true := by
+    rets = [] ∧ ClaimAt rd (σ (.n 0)) (claimCells (xmssPkOf σ).root (xmssPkOf σ).parameter (xmssMsgOf σ)) ∧
+      Node.xmssVerify (xmssPkOf σ) (xmssMsgOf σ) (xmssSigOf σ) = true := by
   simp only [xBody, holdsList_append] at h
-  obtain ⟨hl1, ⟨L, hpre⟩, h⟩ := xPrologue_sound h
-  obtain ⟨hl3, hl4, hpp, hm0, hm1, ⟨part0, hr0⟩, h⟩ :=
-    xLayer0_sound (inst := ⟨Node.blake2sBits⟩) xq_blake2s hpre
-      (keyAt_bottom_val (leafOf L hpre.lt)) h
-  obtain ⟨-, hrc, ⟨part1, hr1⟩, h⟩ :=
-    xLayer1_sound (inst := ⟨Node.blake2sBits⟩) xq_blake2s hpre (keyAt_top_val (leafOf L hpre.lt)) h
+  obtain ⟨hl1, hpre, h⟩ := xPrologue_sound_w h
+  obtain ⟨hl3, hl4, hpp, hm0, hm1, hr0, h⟩ :=
+    xLayer0_sound_w (inst := ⟨Node.blake2sBits⟩) xq_blake2s hpre
+      (keyAt_bottom_val (xmssLeafOf σ)) h
+  obtain ⟨-, hrc, hr1, h⟩ :=
+    xLayer1_sound_w (inst := ⟨Node.blake2sBits⟩) xq_blake2s hpre (keyAt_top_val (xmssLeafOf σ)) h
   obtain ⟨hl0, heq, hret⟩ := h
   have heq : _ = _ := e_add_eq_zero_iff.mp heq
   set r0 := σ (xLayer 0 139 (.n 0)).2.2
   set r1 := σ (xLayer 1 (xLayer 0 139 (.n 0)).2.1 (xLayer 0 139 (.n 0)).2.2).2.2
   set c0 := σ (.n (139 + 3))
   set c1 := σ (.n (139 + 4))
-  refine ⟨hret.symm, ⟨xv r1, xpp (σ (.n 1))⟩, BitVec.ofNat 256 (cellNat c0 + 2 ^ 128 * cellNat c1), ?_,
-    ⟨leafOf L hpre.lt, fun lay => if lay = LeanXmss.bottomLayer then part0 else part1⟩, ?_⟩
-  · rw [claimCells_of hrc hpp hm0 hm1]
+  refine ⟨hret.symm, ?_, ?_⟩
+  · show ClaimAt rd (σ (.n 0)) (claimCells (xv r1) (xpp (σ (.n 1)))
+      (BitVec.ofNat 256 (cellNat c0 + 2 ^ 128 * cellNat c1)))
+    rw [claimCells_of hrc hpp hm0 hm1]
     intro k
     fin_cases k
     · show LoadHolds rd _ 0 r1; rw [heq]; exact hl0
@@ -117,10 +142,25 @@ theorem verify_lean_xmss_sound {rd : Reader} {C : CallRel} {σ : Val} {rets : Li
     · exact hl3
     · exact hl4
   · refine (xmssVerify_iff _ _ _).mpr ⟨xv r0, ?_, ?_⟩
-    · rw [bytesLE_message (lo_ofNat c0 c1) (hi_ofNat c0 c1)]
-      simpa using hr0
-    · rw [bytesLE_xv]
-      simpa [show LeanXmss.topLayer ≠ LeanXmss.bottomLayer by decide] using hr1
+    · show @LeanXmss.Concrete.layerRoot Id _ ⟨Node.blake2sBits⟩ (xpp (σ (.n 1))) LeanXmss.bottomLayer
+        (LeanXmss.keyAt (xmssLeafOf σ) LeanXmss.bottomLayer)
+        (LeanXmss.bytesLE 32 (BitVec.ofNat 256 (cellNat c0 + 2 ^ 128 * cellNat c1)))
+        (xmssPartOf σ LeanXmss.bottomLayer) = some (xv r0)
+      rw [bytesLE_message (lo_ofNat c0 c1) (hi_ofNat c0 c1)]
+      simpa [xmssPartOf] using hr0
+    · show @LeanXmss.Concrete.layerRoot Id _ ⟨Node.blake2sBits⟩ (xpp (σ (.n 1))) LeanXmss.topLayer
+        (LeanXmss.keyAt (xmssLeafOf σ) LeanXmss.topLayer) (LeanXmss.bytesLE 16 (xv r0))
+        (xmssPartOf σ LeanXmss.topLayer) = some (xv r1)
+      rw [bytesLE_xv]
+      simpa [xmssPartOf, show LeanXmss.topLayer ≠ LeanXmss.bottomLayer by decide] using hr1
+
+/-- **`verify_lean_xmss` is sound.** -/
+theorem verify_lean_xmss_sound {rd : Reader} {C : CallRel} {σ : Val} {rets : List E}
+    (h : Stmt.HoldsList C rd σ xBody False (fun rs => rs = rets)) :
+    rets = [] ∧ ∃ (pk : LeanXmss.PublicKey) (m : LeanXmss.Message),
+      ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧ ∃ sig, Node.xmssVerify pk m sig = true :=
+  let ⟨hr, hc, hv⟩ := verify_lean_xmss_sound_w h
+  ⟨hr, _, _, hc, _, hv⟩
 
 end Sig
 
