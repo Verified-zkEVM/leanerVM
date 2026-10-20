@@ -74,6 +74,7 @@ import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassCheck
 import LeanerVM.Protocol.ToArkLib.PassThrough
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
+import LeanerVM.Protocol.ToArkLib.PushSecurity
 import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.QueryRecord
 import LeanerVM.Protocol.ToArkLib.Refinement
@@ -106,11 +107,14 @@ import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.UniformSample
+import LeanerVM.Protocol.Whir.Counting
 import LeanerVM.Protocol.Whir.Final
 import LeanerVM.Protocol.Whir.Glue
+import LeanerVM.Protocol.Whir.Lanes
 import LeanerVM.Protocol.Whir.Level
 import LeanerVM.Protocol.Whir.Open
 import LeanerVM.Protocol.Whir.Stack
+import LeanerVM.Protocol.Whir.Stage
 import LeanerVM.Protocol.Whir.Word
 import LeanerVM.Protocol.WhirFold
 import LeanerVM.Semantics.Basic
