@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Spec.Node
+public import LeanVM.Spec.Guest
 
 /-!
 # The statement's digest binds
@@ -36,37 +36,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Protocol LeanVM.Protocol.Blake2sH
 
 @[expose] public section
 
-/-! ## The bytes each digest hashes -/
-
-/-- The deferred claim's cells, an odd count paired with a zero cell. -/
-def paddedCells (c : DeferredClaim) : List E :=
-  c.cells ++ if c.cells.length % 2 = 1 then [0] else []
-
-/-- The bytes of a statement under `seed`, before the zero fill. -/
-def statementBytes (seed : Digest) (s : NodeStatement) : List UInt8 :=
-  digestBytes seed ++ digestBytes (signersDigest s.claims.xmss s.claims.sphincs) ++
-    digestBytes (daListDigest s.claims.da) ++ (paddedCells s.defer).flatMap eBytes
-
-/-- The bytes `statementDigest seed s` hashes: zero-filled to whole 64-byte blocks. -/
-def statementPreimage (seed : Digest) (s : NodeStatement) : List UInt8 :=
-  statementBytes seed s ++
-    List.replicate ((64 - (statementBytes seed s).length % 64) % 64) 0
-
-/-- The bytes `signersDigest xmss sphincs` hashes. -/
-def signersPreimage (xmss : List XmssClaim) (sphincs : List SphincsClaim) : List UInt8 :=
-  digestBytes (xmssListDigest xmss) ++ digestBytes (sphincsListDigest sphincs)
-
-/-- The bytes `xmssListDigest claims` hashes. -/
-def xmssPreimage (claims : List XmssClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
-
-/-- The bytes `sphincsListDigest claims` hashes. -/
-def sphincsPreimage (claims : List SphincsClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ claimBytes c.1.root c.1.parameter c.2
-
-/-- The bytes `daListDigest claims` hashes. -/
-def daPreimage (claims : List DaClaim) : List UInt8 :=
-  claims.flatMap fun c ↦ digestBytes c.1 ++ digestBytes c.2
+/-! ## The bytes each digest hashes (`Spec/Guest.lean`) -/
 
 theorem statementDigest_eq (seed : Digest) (s : NodeStatement) :
     statementDigest seed s = blake2sBytes (statementPreimage seed s) := rfl
@@ -82,18 +52,6 @@ theorem sphincsListDigest_eq (claims : List SphincsClaim) :
 
 theorem daListDigest_eq (claims : List DaClaim) :
     daListDigest claims = blake2sBytes (daPreimage claims) := rfl
-
-/-- **The candidate collisions** of two statements' digests: the pairs of inputs of the five
-hashes the digests compute, the outer one, the signer set's, the two claim lists' and the DA
-list's. -/
-def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
-    (s' : NodeStatement) : List (List UInt8 × List UInt8) :=
-  [(statementPreimage seed s, statementPreimage seed' s'),
-    (signersPreimage s.claims.xmss s.claims.sphincs,
-      signersPreimage s'.claims.xmss s'.claims.sphincs),
-    (xmssPreimage s.claims.xmss, xmssPreimage s'.claims.xmss),
-    (sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
-    (daPreimage s.claims.da, daPreimage s'.claims.da)]
 
 /-! ## Fixed-width encodings are injective -/
 

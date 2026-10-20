@@ -104,5 +104,20 @@ theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecutio
   obtain ⟨hd, hrel⟩ := guest_knowledge input t hv
   exact decoded_binds_of_nodeRel hs₀ hrel hpub hd
 
+/-- **What the outer verifier's acceptance establishes** (`AggregateSound`): except with
+probability `soundnessError Q`, an accepted aggregate's statement `s`, under the deployed seed and
+its deferred claim true, is the one the execution the proof commits to decodes, with a witness
+holding it, or that execution's decoding and `s` give an explicit BLAKE2s collision. -/
+theorem aggregate_sound_outer : AggregateSound guest LeanVM.extract decode := by
+  intro A Q hA
+  refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge A Q hA)
+  rintro z ⟨hb, hprog, s, hpub, hs, -, hno⟩
+  refine ⟨hb, hprog, ?_⟩
+  rintro ⟨t, hx, hd, hrel⟩
+  refine hno ⟨t, hx, ?_⟩
+  rcases decoded_binds_of_nodeRel hs hrel hpub hd with ⟨h1, h2⟩ | hc
+  · exact Or.inl ⟨h1, h2, h1 ▸ h2 ▸ hrel⟩
+  · exact Or.inr hc
+
 end
 end LeanVM.Guest.End
