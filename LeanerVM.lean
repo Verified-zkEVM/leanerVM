@@ -107,8 +107,10 @@ import LeanerVM.Protocol.ToCompPoly.Restriction
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.UniformSample
+import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Counting
 import LeanerVM.Protocol.Whir.Final
+import LeanerVM.Protocol.Whir.FoldSound
 import LeanerVM.Protocol.Whir.Glue
 import LeanerVM.Protocol.Whir.Lanes
 import LeanerVM.Protocol.Whir.Level
