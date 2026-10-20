@@ -180,11 +180,30 @@ theorem guestU_congr {z z' : E} {zchi lrr zp er ec rr zchi' lrr' zp' er' ec' rr'
       have := Finset.mem_range.mp hj; rw [h2 j this, h6 (27 - j) (by omega)]
   rw [guestU, guestU, e1, e2, e3, e4]
 
-/-- **`aggregate_claims`, soundly** (G:3319-3486; TRIAGE #77). -/
-theorem aggregate_claims_sound (args rets : List E)
-    (h : coreProgram.Rel rd "aggregate_claims" args rets) : Meaning_aggregate_claims rd args rets := by
-  rw [rel_iff_sem find_aggregate_claims] at h
-  obtain ⟨σ, hp, h⟩ := h
+/-- The batching's hints of `aggregate_claims`'s valuation `σ`: the two sumchecks' rounds in the
+`bc_sumcheck_msgs` and `mat_sumcheck_msgs` buffers, `g(1)` then `g(∞)` per round, and the hinted
+values `bc_star_hint`, `mat_stars_hint`. -/
+def aggHints (rd : Reader) (σ : Val) : BatchHints :=
+  ⟨(List.range 22).map fun r => (cellAt rd (σ (.n 5)) (2 * r), cellAt rd (σ (.n 5)) (2 * r + 1)),
+    (List.range 28).map fun r => (cellAt rd (σ (.n 6)) (2 * r), cellAt rd (σ (.n 6)) (2 * r + 1)),
+    σ (.n 7), σ (.n 8), σ (.n 9)⟩
+
+theorem rounds_of_msgs {msgs : E} {rounds : List (E × E)} {n : ℕ} (hl : rounds.length = n)
+    (h : ∀ r (hr : r < rounds.length),
+      LoadHolds rd msgs (2 * r) rounds[r].1 ∧ LoadHolds rd msgs (2 * r + 1) rounds[r].2) :
+    (List.range n).map (fun r => (cellAt rd msgs (2 * r), cellAt rd msgs (2 * r + 1))) = rounds := by
+  apply List.ext_getElem (by simp [hl])
+  intro r h1 h2
+  simp only [List.getElem_map, List.getElem_range]
+  obtain ⟨a, b⟩ := h r h2
+  rw [cellAt_of_load a, cellAt_of_load b]
+
+/-- **`aggregate_claims`, soundly, on a valuation** (G:3319-3486; TRIAGE #77): its body on `σ`
+batches with the hints of `σ` (`aggHints`). -/
+theorem aggregate_claims_sound_w {σ : Val} {args rets : List E}
+    (hp : (Fn.params Data.core29).map σ = args)
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (Fn.body Data.core29) False
+      (fun rs => rs = rets)) : MeaningAggW rd args rets (aggHints rd σ) := by
   rw [show Fn.params Data.core29 = [.n 0, .n 1, .n 2, .n 3, .n 4] from rfl] at hp
   rw [core29_body, agBody] at h
   simp only [holdsList_append, holds_fsCompressT (.n 12) (.n 13) (.n 0) 14 (by decide : 1 < 256)] at h
@@ -568,11 +587,19 @@ theorem aggregate_claims_sound (args rets : List E)
     · rw [show k = 51 by omega, d4]; exact l8
     · rw [show k = 52 by omega, d5]; exact l9
   -- the batching
-  refine ⟨⟨rounds, roundsM, σ (.n 7), σ (.n 8), σ (.n 9)⟩, ⟨rs, σ (.n 7), rM, σ (.n 8), σ (.n 9)⟩,
-    ?_, hrsl, hrMl, hD⟩
-  rw [batch_spec]
+  have eH : aggHints rd σ = ⟨rounds, roundsM, σ (.n 7), σ (.n 8), σ (.n 9)⟩ := by
+    rw [aggHints, rounds_of_msgs hrl hmsg, rounds_of_msgs hrlM hmsgM]
+  refine ⟨⟨rs, σ (.n 7), rM, σ (.n 8), σ (.n 9)⟩, ?_, hrsl, hrMl, hD⟩
+  rw [eH, batch_spec]
   simp only [← ecv1, ← ecvA, ← elB, hsq2a, hrun, ← elM, hsq3a, hrunM, hbcF, hmF, and_self,
     ↓reduceIte]
+
+/-- **`aggregate_claims`, soundly** (G:3319-3486; TRIAGE #77). -/
+theorem aggregate_claims_sound (args rets : List E)
+    (h : coreProgram.Rel rd "aggregate_claims" args rets) : Meaning_aggregate_claims rd args rets := by
+  rw [rel_iff_sem find_aggregate_claims] at h
+  obtain ⟨σ, hp, h⟩ := h
+  exact (aggregate_claims_sound_w hp h).meaning
 
 end
 end LeanVM.Guest.B1.Main

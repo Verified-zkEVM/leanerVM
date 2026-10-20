@@ -46,5 +46,21 @@ def Meaning_aggregate_claims (rd : Reader) (args rets : List E) : Prop :=
       ∃ (h : BatchHints) (d : DeferredClaim), batch cs h = some d ∧
         d.bytecodePoint.length = 22 ∧ d.matrixPoint.length = 28 ∧ ReadsAt rd dp d.cells
 
+/-- **`aggregate_claims` with its hints named**: `Meaning_aggregate_claims` with the batching's
+hints `hints` given, not chosen. -/
+def MeaningAggW (rd : Reader) (args rets : List E) (hints : BatchHints) : Prop :=
+  ∃ n_g pis fresh carried dp, args = [n_g, pis, fresh, carried, dp] ∧ rets = [] ∧
+    ∀ cs : List ChildClaims, cs ≠ [] → cs.length ≤ 16 → n_g = gen ^ cs.length →
+      ChildClaimsAt rd pis fresh carried cs →
+      ∃ d : DeferredClaim, batch cs hints = some d ∧
+        d.bytecodePoint.length = 22 ∧ d.matrixPoint.length = 28 ∧ ReadsAt rd dp d.cells
+
+theorem MeaningAggW.meaning {rd : Reader} {args rets : List E} {hints : BatchHints}
+    (h : MeaningAggW rd args rets hints) : Meaning_aggregate_claims rd args rets :=
+  let ⟨n_g, pis, fresh, carried, dp, ha, hr, hb⟩ := h
+  ⟨n_g, pis, fresh, carried, dp, ha, hr, fun cs h1 h2 h3 h4 =>
+    let ⟨d, hd⟩ := hb cs h1 h2 h3 h4
+    ⟨hints, d, hd⟩⟩
+
 end
 end LeanVM.Guest.B1.Main
