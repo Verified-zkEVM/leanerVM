@@ -1,9 +1,9 @@
-import LeanVM.Protocol.Verifier.Deferred
+import LeanVM.Protocol.Verifier.DeferredShape
 
 /-!
 # Tests: the deferring verifier, its claims true
 
-* `verify_of_verifyDeferred` rests on Lean's three standard axioms.
+* `verify_of_verifyDeferred` and `verifyDeferred_shaped` rest on Lean's three standard axioms.
 * **The condition doing the work.** A false claim on the bytecode does not refine the computed
   value: with the empty bytecode, whose multilinear extension is `0`, a claim of `1` at the empty
   point is accepted where the computed value is `0`, so `Evaluations.Le` fails and the deferring
@@ -18,6 +18,10 @@ open LeanVM.Parameters LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 /-- info: 'LeanVM.Protocol.Verifier.verify_of_verifyDeferred' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Protocol.Verifier.verify_of_verifyDeferred
+
+/-- info: 'LeanVM.Protocol.Verifier.verifyDeferred_shaped' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Protocol.Verifier.verifyDeferred_shaped
 
 theorem le_ret {a b : E} (h : Prog.Le (Prog.ret a) (Prog.ret b)) : a = b := by
   cases h; rfl
