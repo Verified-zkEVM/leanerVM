@@ -59,6 +59,11 @@ parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.Whir.Open`).
   hash chain (`grind_check`), which the compiled verifier does. The honest prover sends zero.
 * **The positions** are one challenge of type `Fin t → Fin (2 ^ (κ + R))`; the deployed verifier
   derives them from squeezes of the transcript, which the compiled verifier reproduces.
+* **The checks on the three first-round polynomials** (`sendResidual`, `sendOodPoly`,
+  `sendQueryPoly`) transcribe the deployed derivation: the deployed verifier has no per-claim
+  test, because it derives each polynomial's linear coefficient from its claim, so each satisfies
+  its own claim by construction. A proof about this schedule should rest on the glued identity at
+  the next level's first round, not on these three checks.
 * **The round polynomials** are three coefficients here, with the check that its values at `0` and
   `1` sum to the claim. The deployed stream carries two scalars per round polynomial and derives
   the linear coefficient from the running claim, so the two are equivalent and the decoder of the
