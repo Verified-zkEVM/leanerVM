@@ -110,10 +110,12 @@ import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Counting
 import LeanerVM.Protocol.Whir.Final
+import LeanerVM.Protocol.Whir.FinalSound
 import LeanerVM.Protocol.Whir.FoldSound
 import LeanerVM.Protocol.Whir.Glue
 import LeanerVM.Protocol.Whir.Lanes
 import LeanerVM.Protocol.Whir.Level
+import LeanerVM.Protocol.Whir.LevelSound
 import LeanerVM.Protocol.Whir.Open
 import LeanerVM.Protocol.Whir.Stack
 import LeanerVM.Protocol.Whir.Stage
