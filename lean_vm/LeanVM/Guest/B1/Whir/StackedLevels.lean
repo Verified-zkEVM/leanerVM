@@ -63,13 +63,24 @@ theorem osLevels_noRet (cfg : OsCfg) : ∀ (lvl : ℕ) (lvs : List OsLvl) (st : 
   | lvl, lv :: rest, st => by
     rw [osLevels_cons, noRetList_append, osLevels_noRet cfg (lvl + 1) rest, osLevel_noRet]; rfl
 
+/-- **The levels' openings**: each level's, by the witness function `wq i` of level `i`'s
+`opening_queries`. -/
+def osLevelsOs (cfg : OsCfg) : ℕ → List OsLvl → OsSt → Val → (ℕ → List E → List E → List Opening) →
+    List Opening
+  | _, [], _, _, _ => []
+  | lvl, lv :: rest, s, σ, wq =>
+    osLevelOs cfg lvl lv s σ (wq lvl) ++ osLevelsOs cfg (lvl + 1) rest (osLevel cfg lvl lv s).2 σ wq
+
 /-- **The levels** (G:1096-1213 at every level): from level `lvl` with `j` levels after it, the
 guest's levels read words `ys` and openings `os`; from the state the guest leaves, any run of the
 tail is a run of `whirLevelsOpen` from level `lvl`. -/
-theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
+theorem osLevels_sound_w {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
     (hlen : Lall.length = cfg.levels.length)
     (hspec : ∀ i < Lall.length, LvSpec cfg logN i (Lall.getD i default) (Lall.drop (i + 1)))
     (hcall : ∀ i < Lall.length, LvCallees rd cfg i)
+    {wq : ℕ → List E → List E → List Opening}
+    (hqW : ∀ i < Lall.length, SoundQueriesW rd (cfg.lv i).queriesFn (if i = 0 then 1 else 0)
+      (2 ^ (cfg.lv i).folds) (cfg.lv i).depth (cfg.lv i).capDepth (wq i))
     (hfin : ∀ a r, coreProgram.Rel rd cfg.finalMsg a r → MeaningOpeningFinalMessage cfg.yrLen rd a r)
     {cur : E} {kret : List E → Prop} :
     ∀ (j lvl : ℕ) (st : OsSt) (cv : Digest) (xs : List E) (w : WhirState)
@@ -78,6 +89,7 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
       Stmt.HoldsList (coreProgram.Rel rd) rd σ (osLevels cfg lvl (cfg.levels.drop lvl) st).1 True kret →
       ∃ (ys : List E) (os : List Opening) (cvL : Digest) (wL : WhirState)
         (rootsL : List (Digest × ℕ × ℕ)) (residual : List E),
+        os = osLevelsOs cfg lvl (cfg.levels.drop lvl) st σ wq ∧
         OsEndInv rd σ cfg logN cur Lall.length (osLevels cfg lvl (cfg.levels.drop lvl) st).2 cvL
           (xs ++ ys) wL ∧
         residual.length = cfg.yrLen ∧ ReadsAt rd (σ (.n osFmsg)) residual ∧
@@ -99,9 +111,10 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
     have hs := hspec lvl hl
     rw [hLrest] at hs
     obtain ⟨ys1, cv1, w1, chs, hrun1, hw1l, ysM, cv2, residual, pending, roots2, hrunM, ysQ, os, cv',
-      w', hrunQ, hlast, -⟩ := osLevel_sound hs (hcall lvl hl) hfin hinv h
+      w', hosE, hrunQ, hlast, -⟩ := osLevel_sound_w hs (hcall lvl hl) (hqW lvl hl) hfin hinv h
     obtain ⟨hresl, hres, hend⟩ := hlast rfl
-    refine ⟨ys1 ++ ysM ++ ysQ, os, cv', w', roots2, residual, by simpa [hlen, show lvl + 1 = Lall.length by omega]
+    refine ⟨ys1 ++ ysM ++ ysQ, os, cv', w', roots2, residual, by simp [osLevelsOs, hosE],
+      by simpa [hlen, show lvl + 1 = Lall.length by omega]
       using hend, hresl, hres, fun r o we st' htail => ?_⟩
     rw [List.drop_eq_getElem_cons hl, show Lall[lvl] = Lall.getD lvl default by
       simp [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hl], hLrest, os_whirLevelsOpen_cons]
@@ -124,11 +137,11 @@ theorem osLevels_sound {cfg : OsCfg} {logN lane : ℕ} {Lall : List Whir.Level}
     have hne : Lall.drop (lvl + 1) ≠ [] := by
       intro he; have := congrArg List.length he; simp at this; omega
     obtain ⟨ys1, cv1, w1, chs, hrun1, hw1l, ysM, cv2, residual, pending, roots2, hrunM, ysQ, os, cv',
-      w', hrunQ, -, hmid⟩ := osLevel_sound hs (hcall lvl hl) hfin hinv h1
-    obtain ⟨ys, os', cvL, wL, rootsL, res, hend, hresl, hres, hrun⟩ :=
+      w', hosE, hrunQ, -, hmid⟩ := osLevel_sound_w hs (hcall lvl hl) (hqW lvl hl) hfin hinv h1
+    obtain ⟨ys, os', cvL, wL, rootsL, res, hosE', hend, hresl, hres, hrun⟩ :=
       ih (lvl + 1) _ cv' _ w' roots2 (by omega) (hmid hne) h2
-    refine ⟨ys1 ++ ysM ++ ysQ ++ ys, os ++ os', cvL, wL, rootsL, res, by simpa using hend, hresl, hres,
-      fun r o we st' htail => ?_⟩
+    refine ⟨ys1 ++ ysM ++ ysQ ++ ys, os ++ os', cvL, wL, rootsL, res, by rw [osLevelsOs, hosE, hosE'],
+      by simpa using hend, hresl, hres, fun r o we st' htail => ?_⟩
     obtain ⟨L2, rest2, hrest2⟩ : ∃ L2 rest2, Lall.drop (lvl + 1) = L2 :: rest2 := by
       cases h' : Lall.drop (lvl + 1) with
       | nil => exact absurd h' hne

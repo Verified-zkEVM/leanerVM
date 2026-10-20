@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Whir.StackedLoops
+public import LeanVM.Guest.B1.Whir.QueriesW
 
 /-!
 # A level's queries (TRIAGE #36, through #28-30, #34, #35)
@@ -78,19 +79,19 @@ theorem os_dot_rowExt {f : ℕ} {leaf : List K} (hl : leaf.length = 3 * 2 ^ f) {
 
 /-! ## A query as an opening -/
 
-/-- **A query's opening** (V:543-552): the leaf `QueryOk` gives and its path, the siblings below
-the cap then the cap's own (`capSibs`), climb to the cap's root, which the refutation argument
-(`cap_climb`) reaches from the cap leaf. -/
-private theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
+/-- **A query's opening** (V:543-552): an opening `o` with which query `i` at `q` is
+`QueryOkO` (the leaf, the path's siblings, then the cap's siblings, `capSibs`) climbs to the
+cap's root, which the refutation argument (`cap_climb`) reaches from the cap leaf. -/
+theorem queryOkO_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
     {root : Digest} (hcd : 1 ≤ cd) (hcdd : cd ≤ depth) (hq : q < 2 ^ depth)
     (hroot : CapHashed rd cap 1) (hint : ∀ c, 2 ≤ c → c < 2 ^ cd → CapFlagged rd flags cap c)
-    (hcell : CapCell rd cap 1 root)
-    (h : QueryOk base I depth cd rd rew qsc qw qbp flags cap i q) :
-    ∃ o : Opening, o.leaf.length = oqR base I ∧ o.path.length = depth ∧
+    (hcell : CapCell rd cap 1 root) {o : Opening}
+    (h : QueryOkO base I depth cd rd rew qsc qw qbp flags cap i q o) :
+    o.leaf.length = oqR base I ∧ o.path.length = depth ∧
       climb (m := Id) blake2sBytes (hashWords o.leaf) q o.path = root ∧
       ∃ s w, LoadHolds rd qsc i s ∧ LoadHolds rd qw i w ∧ LoadHolds rd qsc (i + 1)
         (s + w * ∑ jw ∈ Finset.range I, leafRowWord base o.leaf jw * memAt rd rew jw) := by
-  obtain ⟨-, -, -, leaf, hlen, -, hsum, sibs, hsl, -, -, hcc, hfl⟩ := h
+  obtain ⟨sibs, hpath, -, -, -, hlen, -, hsum, hsl, -, hcc, hfl⟩ := h
   set x := q / 2 ^ (depth - cd)
   have hx : x < 2 ^ cd := by
     rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, show cd + (depth - cd) = depth by omega]
@@ -103,11 +104,25 @@ private theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags ca
     omega
   have htop := cap_climb hroot hint cd (2 ^ cd + x) hcd le_rfl hc1 hc2 (by rw [hhalf]; exact hfl)
   rw [capNode_eq hcc, capNode_eq hcell, Nat.add_sub_cancel_left] at htop
-  refine ⟨⟨leaf, sibs ++ capSibs rd cap cd (2 ^ cd + x)⟩, hlen, ?_, ?_, hsum⟩
-  · simp only [List.length_append, length_capSibs, hsl]; omega
-  · simp only
-    rw [climb_append_list, hsl]
+  refine ⟨hlen, ?_, ?_, hsum⟩
+  · rw [hpath]; simp only [List.length_append, length_capSibs, hsl]; omega
+  · rw [hpath, climb_append_list, hsl]
     exact htop
+
+/-- **A query's opening** (V:543-552): the leaf `QueryOk` gives and its path, the siblings below
+the cap then the cap's own (`capSibs`), climb to the cap's root, which the refutation argument
+(`cap_climb`) reaches from the cap leaf. -/
+private theorem queryOk_opening {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q : ℕ}
+    {root : Digest} (hcd : 1 ≤ cd) (hcdd : cd ≤ depth) (hq : q < 2 ^ depth)
+    (hroot : CapHashed rd cap 1) (hint : ∀ c, 2 ≤ c → c < 2 ^ cd → CapFlagged rd flags cap c)
+    (hcell : CapCell rd cap 1 root)
+    (h : QueryOk base I depth cd rd rew qsc qw qbp flags cap i q) :
+    ∃ o : Opening, o.leaf.length = oqR base I ∧ o.path.length = depth ∧
+      climb (m := Id) blake2sBytes (hashWords o.leaf) q o.path = root ∧
+      ∃ s w, LoadHolds rd qsc i s ∧ LoadHolds rd qw i w ∧ LoadHolds rd qsc (i + 1)
+        (s + w * ∑ jw ∈ Finset.range I, leafRowWord base o.leaf jw * memAt rd rew jw) := by
+  obtain ⟨o, ho⟩ := h.exists_o
+  exact ⟨o, queryOkO_opening hcd hcdd hq hroot hint hcell ho⟩
 
 private theorem rowsOf_getD (lvl : ℕ) (f : ℕ → Opening) (n i : ℕ) (hi : i < n) :
     (osRowsOf lvl (((List.range n).map f).map (·.leaf))).getD i [] =
@@ -123,17 +138,36 @@ theorem osMat_eq {base off k : ℕ} {m : List Stmt × ℕ × ℕ} (hm : osMat ba
     (h : Stmt.HoldsList C rd σ m.1 True kret) : σ (.n m.2.1) = σ (.n base) * gen ^ off := by
   subst hm; exact osMat_sound hoff h
 
+/-- The call of `opening_queries` in a level's queries (G:1187-1190): its argument values and
+its return value. -/
+def osQCall (cfg : OsCfg) (lv : OsLvl) (lvl : ℕ) (s : OsSt) : List V × ℕ :=
+  let k := s.k
+  let p := osMat osFch lv.foldsOff (k + 2)
+  let cp := osMat osCaps (4 * lv.capOff) p.2.2
+  let fp := osMat osFlags lv.capOff cp.2.2
+  let r := fp.2.2
+  let cp2 := osMat osCaps (4 * lv.capOff) (r + 2)
+  let fp2 := osMat osFlags lv.capOff cp2.2.2
+  let qp := osMat osQw (lvl * cfg.maxQ) fp2.2.2
+  let bp := osMat osQbp lv.posOff qp.2.2
+  let g := bp.2.2
+  ([.n cp2.2.1, .n fp2.2.1, .n qp.2.1, .n bp.2.1, .n (k + 1), .n g], g + 1)
+
+/-- **A level's openings**: what the witness function `w` of its `opening_queries` gives of the
+call's argument and return words. -/
+def osQueriesOs (cfg : OsCfg) (lv : OsLvl) (lvl : ℕ) (s : OsSt) (σ : Val)
+    (w : List E → List E → List Opening) : List Opening :=
+  w ((osQCall cfg lv lvl s).1.map σ) [σ (.n (osQCall cfg lv lvl s).2)]
+
 /-- **A level's queries** (G:1176-1193), in the specification's terms: the cap's root `root` at
-the level's root slot, one opening per position climbing to it (what `queryP` reads), the query
-sum `enforcedSum` (V:1622) of their rows, and the intro message's `c0, c2` read. -/
-theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev = if lvl = 0 then 1 else 0)
+the level's root slot, the openings `osQueriesOs` that `opening_queries`' witness function `w`
+gives, one per position climbing to the root (what `queryP` reads), the query sum `enforcedSum`
+(V:1622) of their rows, and the intro message's `c0, c2` read. -/
+theorem osQueries_sound_w {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev = if lvl = 0 then 1 else 0)
     (hrw : ∀ a r, coreProgram.Rel rd lv.rowWeights a r → MeaningOpeningRowWeights lv.folds rev rd a r)
     (hcapM : ∀ a r, coreProgram.Rel rd lv.verifyCap a r → MeaningVerifyMerkleCap lv.capDepth rd a r)
-    (hqM : ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E) (rets : List E), n < ordG →
-      QueryBits rd qbp n lv.depth pos →
-      coreProgram.Rel rd lv.queriesFn [cap, flags, qw, qbp, rew, gen ^ n] rets →
-      ∃ qsc, MeaningOpeningQueries rev (2 ^ lv.folds) lv.depth lv.capDepth n pos rd qsc
-        [cap, flags, qw, qbp, rew, gen ^ n] rets)
+    {w : List E → List E → List Opening}
+    (hqW : SoundQueriesW rd lv.queriesFn rev (2 ^ lv.folds) lv.depth lv.capDepth w)
     (hcd : 1 ≤ lv.capDepth) (hcdd : lv.capDepth ≤ lv.depth)
     (hb1 : lv.foldsOff < 2 ^ 128) (hb2 : 4 * lv.capOff < 2 ^ 128) (hb4 : lvl * cfg.maxQ < 2 ^ 128)
     (hb5 : lv.posOff < 2 ^ 128) (hnq : lv.queries < 2 ^ 63)
@@ -144,7 +178,7 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
     {cur : E} {s : OsSt} {cv : Digest} {xs : List E} (hat : OsCur rd σ cur s cv xs)
     {kret : List E → Prop}
     (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osQueries cfg lv lvl s).1 True kret) :
-    ∃ (root : Digest) (os : List Opening) (c0 c2 : E),
+    ∃ (root : Digest) (os : List Opening) (c0 c2 : E), os = osQueriesOs cfg lv lvl s σ w ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1 ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2 ∧
       os.length = lv.queries ∧
@@ -158,8 +192,9 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
       σ (.n (osQueries cfg lv lvl s).2.2.2.1) = c0 ∧
       σ (.n (osQueries cfg lv lvl s).2.2.2.2.1) = σ (.n (osQueries cfg lv lvl s).2.2.1) + c2 ∧
       σ (.n (osQueries cfg lv lvl s).2.2.2.2.2) = c2 := by
+  unfold osQueriesOs osQCall
   unfold osQueries at h ⊢
-  simp only at h ⊢
+  simp only [List.map_cons, List.map_nil] at h ⊢
   generalize hp : osMat osFch lv.foldsOff (s.k + 2) = p at h ⊢
   generalize hcp : osMat osCaps (4 * lv.capOff) p.2.2 = cp at h ⊢
   generalize hfp : osMat osFlags lv.capOff cp.2.2 = fp at h ⊢
@@ -204,15 +239,26 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
   obtain ⟨-, hroot, hint, root, hcell, hret⟩ := hcapM _ _ hcapC
   simp only [List.cons.injEq] at hret
   obtain ⟨r0, r1, -⟩ := hret
-  -- the queries
+  -- the queries, at the openings the witness function gives
   obtain ⟨eg, hqcall⟩ := hQS
-  rw [eg, os_gw_eq (by omega), ecp2, ← ecp, efp2, ← efp, eqp, ebp] at hqcall
-  obtain ⟨qsc, -, l0, hok, sN, lN, hsN⟩ := hqM _ pos _ _ _ _ _ _ (by simp only [ordG]; omega) hbits hqcall
+  have hgw : σ (.n bp.2.2) = gen ^ lv.queries := by rw [eg, os_gw_eq (by omega)]
+  rw [hgw]
+  rw [hgw] at hqcall
+  rw [← ebp] at hbits
+  obtain ⟨qsc, -, l0, hosl, hok, sN, lN, hsN⟩ := hqW _ pos _ _ _ _ _ _ (by simp only [ordG]; omega) hbits hqcall
+  generalize w [σ (.n cp2.2.1), σ (.n fp2.2.1), σ (.n qp.2.1), σ (.n bp.2.1), σ (.n (s.k + 1)),
+    gen ^ lv.queries] [σ (.n (bp.2.2 + 1))] = os at hosl hok ⊢
+  rw [ecp2, ← ecp, efp2, ← efp, eqp] at hok
   simp only [List.cons.injEq, and_true] at hsN
-  have : Nonempty Opening := ⟨⟨[], []⟩⟩
+  set oOf : ℕ → Opening := fun i => os.getD i ⟨[], []⟩
+  have hosR : os = (List.range lv.queries).map oOf := List.ext_getElem (by simp [hosl]) fun j h1 h2 => by
+    simp [oOf, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem h1]
   have hop := fun i (hi : i < lv.queries) =>
-    queryOk_opening (rd := rd) hcd hcdd (hbits i hi).1 hroot hint hcell (hok i hi)
-  choose! oOf hlen hplen hclimb hsum using hop
+    queryOkO_opening (rd := rd) hcd hcdd (hbits i hi).1 hroot hint hcell (hok i hi)
+  have hlen := fun i hi => (hop i hi).1
+  have hplen := fun i hi => (hop i hi).2.1
+  have hclimb := fun i hi => (hop i hi).2.2.1
+  have hsum := fun i hi => (hop i hi).2.2.2
   set D : ℕ → E := fun i => ∑ jw ∈ Finset.range (2 ^ lv.folds), leafRowWord rev (oOf i).leaf jw *
     memAt rd (σ (.n (s.k + 1))) jw
   have hchain : ∀ i ≤ lv.queries, LoadHolds rd qsc i (∑ i' ∈ Finset.range i, lam ^ i' * D i') := by
@@ -220,7 +266,7 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
     induction i with
     | zero => simpa using l0
     | succ i ih =>
-      obtain ⟨s', w, ls, lw, ls1⟩ := hsum i (by omega)
+      obtain ⟨s', w', ls, lw, ls1⟩ := hsum i (by omega)
       rw [loadHolds_mul_gen_pow] at lw
       have hw := loadHolds_unique lw (hqw i (by omega))
       have hs := loadHolds_unique ls (ih (by omega))
@@ -233,14 +279,15 @@ theorem osQueries_sound {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev =
   have hat2 := osFsNext_sound hat1 hI0
   have hat3 := osFsNext_sound hat2 hI2
   rw [List.append_assoc, List.singleton_append] at hat3
-  refine ⟨root, (List.range lv.queries).map oOf, _, _, ?_, ?_, by simp, fun j hj => ?_, ?_,
+  refine ⟨root, os, _, _, rfl, ?_, ?_, hosl, fun j hj => ?_, ?_,
     ⟨hat3.fs, hat3.reads, hat3.cursor⟩, rfl, rfl, h, rfl⟩
   · rw [← r0]; exact lr0
   · rw [← r1]; exact lr1
-  · simp only [List.length_map, List.length_range] at hj
-    simp only [List.getElem_map, List.getElem_range]
-    exact ⟨hlen j hj, hplen j hj, hclimb j hj⟩
-  · rw [hsN, hsum', os_enforcedSum_eq _ _ _ (by simp [os_length_powersFrom, length_rowsOf, powers]),
+  · have hj' : j < lv.queries := by rw [← hosl]; exact hj
+    have e : os[j] = oOf j := by simp [oOf, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]
+    rw [e]
+    exact ⟨hlen j hj', hplen j hj', hclimb j hj'⟩
+  · rw [hosR, hsN, hsum', os_enforcedSum_eq _ _ _ (by simp [os_length_powersFrom, length_rowsOf, powers]),
       length_rowsOf, List.length_map, List.length_map, List.length_range]
     refine Finset.sum_congr rfl fun i hi => ?_
     have hi' := Finset.mem_range.mp hi

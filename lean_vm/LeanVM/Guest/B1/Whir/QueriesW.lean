@@ -246,5 +246,72 @@ theorem opening_queries_frame_w {base I pd cd : ℕ} {loop : String} {wl : List 
     · have := hall i (Nat.zero_le i) (by omega) (pos i) (hpre i hi).1 (hpre i hi).2
       simpa only [oqQueriesOs, hz, ne_eq, not_false_eq_true, ↓reduceIte, Nat.sub_zero] using this
 
+/-! ## `opening_queries` as a callee -/
+
+/-- **`opening_queries` named `name` is sound with the openings `w`**: for `n` queries below the
+order of `g` whose positions' bits are at `qbp`, its relation on the arguments `args` and the
+returns `rets` gives the meaning at the openings `w args rets`. -/
+def SoundQueriesW (rd : Reader) (name : String) (base I depth cd : ℕ)
+    (w : List E → List E → List Opening) : Prop :=
+  ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E) (rets : List E), n < ordG →
+    QueryBits rd qbp n depth pos → coreProgram.Rel rd name [cap, flags, qw, qbp, rew, gen ^ n] rets →
+    ∃ qsc, MeaningOpeningQueriesW base I depth cd n pos rd qsc [cap, flags, qw, qbp, rew, gen ^ n] rets
+      (w [cap, flags, qw, qbp, rew, gen ^ n] rets)
+
+/-- The position of a query is the one its bits at `qbp[i]` spell. -/
+theorem queryOk_pos_unique {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q q' : ℕ}
+    (h : QueryOk base I depth cd rd rew qsc qw qbp flags cap i q) (hq : q < 2 ^ depth)
+    (hq' : q' < 2 ^ depth) (hb : ∀ dbp, LoadHolds rd qbp i dbp → BitsAt rd dbp q' depth) : q = q' := by
+  obtain ⟨dbp, ld, hl, -⟩ := h
+  have hB := hb dbp ld
+  apply Nat.eq_of_testBit_eq
+  intro l
+  by_cases hlt : l < depth
+  · have e := hB.2 l hlt _ (hl l hlt).2
+    have := congrArg (fun x : E => decide (x = 1)) e
+    simpa only [decide_bitE_eq_one] using this
+  · rw [Nat.testBit_lt_two_pow (lt_of_lt_of_le hq (Nat.pow_le_pow_right (by decide) (by omega))),
+      Nat.testBit_lt_two_pow (lt_of_lt_of_le hq' (Nat.pow_le_pow_right (by decide) (by omega)))]
+
+/-- The meaning at `pos` is the meaning at every positions whose bits are at `qbp`. -/
+theorem MeaningOpeningQueriesW.of_pos {base I depth cd n : ℕ} {pos pos' : ℕ → ℕ} {qsc : E}
+    {cap flags qw qbp rew : E} {rets : List E} {os : List Opening}
+    (h : MeaningOpeningQueriesW base I depth cd n pos rd qsc [cap, flags, qw, qbp, rew, gen ^ n] rets os)
+    (hp : QueryBits rd qbp n depth pos) (hp' : QueryBits rd qbp n depth pos') :
+    MeaningOpeningQueriesW base I depth cd n pos' rd qsc [cap, flags, qw, qbp, rew, gen ^ n] rets os := by
+  obtain ⟨h1, h2, h3, h4, h5⟩ := h
+  refine ⟨h1, h2, h3, fun i hi => ?_, h5⟩
+  have e := queryOk_pos_unique (h4 i hi).queryOk (hp i hi).1 (hp' i hi).1 (hp' i hi).2
+  rw [← e]
+  exact h4 i hi
+
+/-- `opening_queries`' soundness gives a witness function. -/
+theorem exists_soundQueriesW {name : String} {base I depth cd : ℕ}
+    (h : ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E) (rets : List E), n < ordG →
+      QueryBits rd qbp n depth pos → coreProgram.Rel rd name [cap, flags, qw, qbp, rew, gen ^ n] rets →
+      ∃ qsc, MeaningOpeningQueries base I depth cd n pos rd qsc [cap, flags, qw, qbp, rew, gen ^ n] rets) :
+    ∃ w, SoundQueriesW rd name base I depth cd w := by
+  classical
+  have hex : ∀ args rets : List E, ∃ os : List Opening, ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E),
+      args = [cap, flags, qw, qbp, rew, gen ^ n] → n < ordG → QueryBits rd qbp n depth pos →
+      coreProgram.Rel rd name args rets →
+      ∃ qsc, MeaningOpeningQueriesW base I depth cd n pos rd qsc args rets os := by
+    intro args rets
+    by_cases hx : ∃ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E),
+        args = [cap, flags, qw, qbp, rew, gen ^ n] ∧ n < ordG ∧ QueryBits rd qbp n depth pos ∧
+          coreProgram.Rel rd name args rets
+    · obtain ⟨n, pos, cap, flags, qw, qbp, rew, rfl, hn, hp, hr⟩ := hx
+      obtain ⟨qsc, hm⟩ := h n pos cap flags qw qbp rew rets hn hp hr
+      obtain ⟨os, hw⟩ := hm.exists_w
+      refine ⟨os, fun n' pos' cap' flags' qw' qbp' rew' ha hn' hp' _ => ?_⟩
+      simp only [List.cons.injEq, and_true] at ha
+      obtain ⟨rfl, rfl, rfl, rfl, rfl, hg⟩ := ha
+      obtain rfl := gen_pow_inj hn' hn hg.symm
+      exact ⟨qsc, hw.of_pos hp hp'⟩
+    · exact ⟨[], fun n pos cap flags qw qbp rew ha hn hp hr =>
+        absurd ⟨n, pos, cap, flags, qw, qbp, rew, ha, hn, hp, hr⟩ hx⟩
+  choose w hw using hex
+  exact ⟨w, fun n pos cap flags qw qbp rew rets hn hp hr => hw _ _ n pos cap flags qw qbp rew rfl hn hp hr⟩
+
 end
 end LeanVM.Guest.B1
