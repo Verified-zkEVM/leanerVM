@@ -149,7 +149,7 @@ theorem LvSpec.logCols {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : L
 
 /-! ## The positions' bits -/
 
-variable {rd : Reader} {σ : Val}
+variable {C : CallRel} {rd : Reader} {σ : Val}
 
 /-- **The query positions and their bit runs** from `decode_query_bits` at every squeeze: query
 `i`'s position is `osPosOf` (V:1598) at `qpos[posOff + i]`, and its bits at `qbp[posOff + i]`. -/
@@ -196,9 +196,10 @@ theorem os_getD_map_range {α : Type} {d : α} (f : ℕ → α) {n j : ℕ} (hj 
 weights and the queries; `osLevelQueries` (V:1737-1749) runs over the words and openings the guest
 reads, gluing whatever claims are pending before the level's query claim. -/
 theorem osLevelQ_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : List Whir.Level}
+    (hC : CallRel.Le C (coreProgram.Rel rd))
     (hspec : LvSpec cfg logN lvl L rest) (hcall : LvCallees rd cfg lvl)
     {wq : List E → List E → List Opening}
-    (hqW : SoundQueriesW rd (cfg.lv lvl).queriesFn (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)
+    (hqW : SoundQueriesWC C rd (cfg.lv lvl).queriesFn (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)
       (cfg.lv lvl).depth (cfg.lv lvl).capDepth wq)
     {cur : E} {s sg ssq : OsSt} {cvm : Digest} {xsm : List E} (hat : OsCur rd σ cur s cvm xsm)
     {lf : List E} (hlfl : lf.length = (cfg.lv lvl).folds)
@@ -212,12 +213,12 @@ theorem osLevelQ_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest :
     (hsg : (osGrind (cfg.lv lvl).grindBits s).2 = sg)
     (hssq : (osSqueezes cfg.maxSq (cfg.lv lvl).squeezes osQpos osQbp (cfg.lv lvl).sqLoop sg).2 = ssq)
     {kret : List E → Prop}
-    (hG : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osGrind (cfg.lv lvl).grindBits s).1 True kret)
-    (hS : Stmt.HoldsList (coreProgram.Rel rd) rd σ
+    (hG : Stmt.HoldsList C rd σ (osGrind (cfg.lv lvl).grindBits s).1 True kret)
+    (hS : Stmt.HoldsList C rd σ
       (osSqueezes cfg.maxSq (cfg.lv lvl).squeezes osQpos osQbp (cfg.lv lvl).sqLoop sg).1 True kret)
-    (hL : Stmt.HoldsList (coreProgram.Rel rd) rd σ
+    (hL : Stmt.HoldsList C rd σ
       (osLamPows (ssq.k - 1) osQw (lvl * cfg.maxQ) ssq.k (cfg.lv lvl).queries) True kret)
-    (hQ : Stmt.HoldsList (coreProgram.Rel rd) rd σ
+    (hQ : Stmt.HoldsList C rd σ
       (osQueries cfg (cfg.lv lvl) lvl { ssq with k := ssq.k + (cfg.lv lvl).queries }).1 True kret) :
     ∃ (lam : E) (qs : List ℕ) (ysQ : List E) (os : List Opening) (cvq : Digest) (c0 c2 : E),
       os = osQueriesOs cfg (cfg.lv lvl) lvl { ssq with k := ssq.k + (cfg.lv lvl).queries } σ wq ∧
@@ -245,12 +246,12 @@ theorem osLevelQ_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest :
     hb2, hb4, hb5, hnq, hb6, hlast, hyr, hnext⟩ := hspec
   obtain ⟨sqfn, hsqf, hsqp, hsqb⟩ := hcall.sq
   -- the nonce
-  obtain ⟨n, hatg, hpow, hcog⟩ := osGrind_sound (by rw [hgr]; decide) (by rw [hgr]; decide) hat hG
+  obtain ⟨n, hatg, hpow, hcog⟩ := osGrind_sound (by rw [hgr]; decide) (by rw [hgr]; decide) hat (holdsList_rel hC hG)
   rw [hsg] at hatg hcog
   rw [hgr] at hpow
   -- the positions and `lam`
   obtain ⟨hatq, hlam, hdec, hcoq⟩ := osSqueezes_sound hsqf hsqp hsqb hcall.decode hdig
-    (by omega) (by omega) hatg hS
+    (by omega) (by omega) hatg (holdsList_rel hC hS)
   rw [hssq] at hatq hlam hcoq
   set cvg := absorbCv cvm n 4
   set lam := challengeOf (sqCv (sqAll (cfg.lv lvl).squeezes cvg).2)
@@ -259,7 +260,7 @@ theorem osLevelQ_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest :
   rw [hlam] at hqw
   -- the queries
   obtain ⟨root, os, c0, c2, hosQ, lr0, lr1, hosl, hos, hsum, hatQ, hcoQ, e0, e1, e2⟩ :=
-    osQueries_sound_w rfl hcall.rw hcall.cap hqW hcd1 hcd2 hb1 hb2 hb4 hb5 (by omega)
+    osQueries_sound_w rfl hC hcall.rw hcall.cap hqW hcd1 hcd2 hb1 hb2 hb4 hb5 (by omega)
       hlfl hlf (fun i hi => by simpa using hqw i hi) hbits
       (s := { ssq with k := ssq.k + (cfg.lv lvl).queries })
       (cv := sqCv (sqAll (cfg.lv lvl).squeezes cvg).2) ⟨hatq.fs, hatq.reads, hatq.cursor⟩ hQ
@@ -395,14 +396,15 @@ def osLevelOs (cfg : OsCfg) (lvl : ℕ) (lv : OsLvl) (s : OsSt) (σ : Val)
 openings the guest reads; the invariant holds at the next level, or, after the last level, what
 the tail needs and the final message. -/
 theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : List Whir.Level}
+    (hC : CallRel.Le C (coreProgram.Rel rd))
     (hspec : LvSpec cfg logN lvl L rest) (hcall : LvCallees rd cfg lvl)
     {wq : List E → List E → List Opening}
-    (hqW : SoundQueriesW rd (cfg.lv lvl).queriesFn (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)
+    (hqW : SoundQueriesWC C rd (cfg.lv lvl).queriesFn (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)
       (cfg.lv lvl).depth (cfg.lv lvl).capDepth wq)
     (hfin : ∀ a r, coreProgram.Rel rd cfg.finalMsg a r → MeaningOpeningFinalMessage cfg.yrLen rd a r)
     {cur : E} {st : OsSt} {cv : Digest} {xs : List E} {w : WhirState} {roots : List (Digest × ℕ × ℕ)}
     (hinv : OsLvInv rd σ cfg logN cur lvl st cv xs w roots) {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osLevel cfg lvl (cfg.lv lvl) st).1 True kret) :
+    (h : Stmt.HoldsList C rd σ (osLevel cfg lvl (cfg.lv lvl) st).1 True kret) :
     ∃ (ys1 : List E) (cv1 : Digest) (w1 : WhirState) (chs : List E),
       RunsTo (foldRounds L.fold w []) cv ys1 (w1, chs) cv1 ∧ w1.folds.length = osLevelF cfg lvl ∧
     ∃ (ysM : List E) (cv2 : Digest) (residual : List E)
@@ -428,7 +430,7 @@ theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : 
   simp only [holdsList_append] at h
   obtain ⟨hF, h⟩ := holdsList_true_of (osFolds_noRet _ _ _ _) h
   obtain ⟨ys1, cv1, chs, w1, hat1, hrun1, hchl, hq1, ht1, hfo1, hgl1, hlf1, hco1⟩ :=
-    osFolds_sound (fch := osFch) _ _ _ _ _ w [] hat (by omega) hquad htgt hF
+    osFolds_sound (fch := osFch) _ _ _ _ _ w [] hat (by omega) hquad htgt (holdsList_rel hC hF)
   rw [ite_neg' (by rw [hf]; omega)] at hco1
   have hw1l : w1.folds.length = osLevelF cfg lvl := by
     rw [hfo1, List.length_append, hnf, hchl, osLevelF]
@@ -440,7 +442,7 @@ theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : 
     have he : (lvl = cfg.yrLevel) = True := eq_true hl
     simp only [he, ↓reduceIte] at h ⊢
     obtain ⟨hM, h⟩ := holdsList_true_of (osFinal_noRet _ _ _) h
-    obtain ⟨ms, hmsl, hatM, hfm, hcoM⟩ := osFinal_sound hfin hat1 (by omega) hM
+    obtain ⟨ms, hmsl, hatM, hfm, hcoM⟩ := osFinal_sound hfin hat1 (by omega) (holdsList_rel hC hM)
     obtain ⟨hG, h⟩ := holdsList_true_of (osGrind_noRet _ _) h
     obtain ⟨hS, h⟩ := holdsList_true_of (osSqueezes_noRet _ _ _ _ _ _) h
     obtain ⟨hL, h⟩ := holdsList_true_of (osLamPows_noRet _ _ _ _ _) h
@@ -448,7 +450,7 @@ theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : 
     obtain ⟨-, h⟩ := holdsList_true_of (by rfl) h
     obtain ⟨hB, h⟩ := holdsList_true_of (by rfl) h
     obtain ⟨lam, qs, ysQ, os, cvq, c0, c2, hosQ, hlam, hatQ, hcoQ, e0, e2, e1, hqsl, hqpos, hqw, hrunQ⟩ :=
-      osLevelQ_sound_w hspec' hcall hqW hatM (lf := chs) (by rw [hchl]) hlf1 hrt lrt0 lrt1 rfl rfl hG hS hL hQ
+      osLevelQ_sound_w hC hspec' hcall hqW hatM (lf := chs) (by rw [hchl]) hlf1 hrt lrt0 lrt1 rfl rfl hG hS hL hQ
     have hosE : os = osLevelOs cfg lvl (cfg.lv lvl) st σ wq := by
       rw [hosQ, osLevelOs, osLevelQState, hfr]
       simp only [he, ↓reduceIte]
@@ -507,7 +509,7 @@ theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : 
     obtain rfl : lc = logN - osLevelF cfg lvl := hLC.symm.trans hlc
     obtain ⟨hM, h⟩ := holdsList_true_of (osCommit_noRet _ _ _ _ _ _) h
     obtain ⟨x0, x1, y, c0o, c2o, hk0, hk1, lx0, lx1, hatM, hrs, ly, lc0, lc2, hcoM⟩ :=
-      osCommit_sound (by omega) (by omega) hb6 hat1 hM
+      osCommit_sound (by omega) (by omega) hb6 hat1 (holdsList_rel hC hM)
     obtain ⟨hG, h⟩ := holdsList_true_of (osGrind_noRet _ _) h
     obtain ⟨hS, h⟩ := holdsList_true_of (osSqueezes_noRet _ _ _ _ _ _) h
     obtain ⟨hL, h⟩ := holdsList_true_of (osLamPows_noRet _ _ _ _ _) h
@@ -519,7 +521,7 @@ theorem osLevel_sound_w {cfg : OsCfg} {logN lvl : ℕ} {L : Whir.Level} {rest : 
         oqR (if lvl = 0 then 1 else 0) (2 ^ (cfg.lv lvl).folds)) := by
       rw [List.getElem?_append_left (by omega)]; exact hrt
     obtain ⟨lam, qs, ysQ, os, cvq, c0, c2, hosQ, hlam, hatQ, hcoQ, e0, e2, e1, hqsl, hqpos, hqw, hrunQ⟩ :=
-      osLevelQ_sound_w hspec' hcall hqW hatM (lf := chs) (by rw [hchl]) hlf1 hrt' lrt0 lrt1 rfl rfl hG hS hL hQ
+      osLevelQ_sound_w hC hspec' hcall hqW hatM (lf := chs) (by rw [hchl]) hlf1 hrt' lrt0 lrt1 rfl rfl hG hS hL hQ
     have hosE : os = osLevelOs cfg lvl (cfg.lv lvl) st σ wq := by
       rw [hosQ, osLevelOs, osLevelQState, hfr]
       simp only [he, ↓reduceIte, hood, hLC]

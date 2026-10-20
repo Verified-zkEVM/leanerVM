@@ -251,12 +251,23 @@ theorem opening_queries_frame_w {base I pd cd : ℕ} {loop : String} {wl : List 
 /-- **`opening_queries` named `name` is sound with the openings `w`**: for `n` queries below the
 order of `g` whose positions' bits are at `qbp`, its relation on the arguments `args` and the
 returns `rets` gives the meaning at the openings `w args rets`. -/
-def SoundQueriesW (rd : Reader) (name : String) (base I depth cd : ℕ)
+def SoundQueriesWC (C : CallRel) (rd : Reader) (name : String) (base I depth cd : ℕ)
     (w : List E → List E → List Opening) : Prop :=
   ∀ (n : ℕ) (pos : ℕ → ℕ) (cap flags qw qbp rew : E) (rets : List E), n < ordG →
-    QueryBits rd qbp n depth pos → coreProgram.Rel rd name [cap, flags, qw, qbp, rew, gen ^ n] rets →
+    QueryBits rd qbp n depth pos → C name [cap, flags, qw, qbp, rew, gen ^ n] rets →
     ∃ qsc, MeaningOpeningQueriesW base I depth cd n pos rd qsc [cap, flags, qw, qbp, rew, gen ^ n] rets
       (w [cap, flags, qw, qbp, rew, gen ^ n] rets)
+
+/-- `SoundQueriesWC` over the program's call relation. -/
+abbrev SoundQueriesW (rd : Reader) (name : String) (base I depth cd : ℕ)
+    (w : List E → List E → List Opening) : Prop :=
+  SoundQueriesWC (coreProgram.Rel rd) rd name base I depth cd w
+
+/-- **Below the program's call relation**: what is sound over the program is sound below it. -/
+theorem SoundQueriesW.le {C : CallRel} {rd : Reader} (hC : CallRel.Le C (coreProgram.Rel rd))
+    {name : String} {base I depth cd : ℕ} {w : List E → List E → List Opening}
+    (h : SoundQueriesW rd name base I depth cd w) : SoundQueriesWC C rd name base I depth cd w :=
+  fun n pos cap flags qw qbp rew rets hn hp hc => h n pos cap flags qw qbp rew rets hn hp (hC _ _ _ hc)
 
 /-- The position of a query is the one its bits at `qbp[i]` spell. -/
 theorem queryOk_pos_unique {base I depth cd : ℕ} {rew qsc qw qbp flags cap : E} {i q q' : ℕ}

@@ -370,10 +370,15 @@ of the levels' `opening_queries`, of the frame `σ`. -/
 def osOsOf (cfg : OsCfg) (σ : Val) (wq : ℕ → List E → List E → List Opening) : List Opening :=
   osLevelsOs cfg 0 cfg.levels (osHead cfg).2 σ wq
 
-/-- The levels' `opening_queries` are sound with the openings `wq`. -/
-def OsQueriesW (rd : Reader) (cfg : OsCfg) (wq : ℕ → List E → List E → List Opening) : Prop :=
-  ∀ i < cfg.levels.length, SoundQueriesW rd (cfg.lv i).queriesFn (if i = 0 then 1 else 0)
+/-- The levels' `opening_queries` are sound with the openings `wq`, over the call relation `C`. -/
+def OsQueriesWC (C : CallRel) (rd : Reader) (cfg : OsCfg) (wq : ℕ → List E → List E → List Opening) :
+    Prop :=
+  ∀ i < cfg.levels.length, SoundQueriesWC C rd (cfg.lv i).queriesFn (if i = 0 then 1 else 0)
     (2 ^ (cfg.lv i).folds) (cfg.lv i).depth (cfg.lv i).capDepth (wq i)
+
+/-- `OsQueriesWC` over the program's call relation. -/
+abbrev OsQueriesW (rd : Reader) (cfg : OsCfg) (wq : ℕ → List E → List E → List Opening) : Prop :=
+  OsQueriesWC (coreProgram.Rel rd) rd cfg wq
 
 /-- The levels' callees give witness functions for their `opening_queries`. -/
 theorem exists_osQueriesW {cfg : OsCfg} (hcal : OsCallees rd cfg) : ∃ wq, OsQueriesW rd cfg wq := by
@@ -392,14 +397,15 @@ TRIAGE #36): a valuation of the body `osBody cfg` at the parameters
 `fs0, fs1, target, root0, root1, cur`, at a configuration whose facts match the ladder of
 `(μ, r)`, whose callees have their meanings and whose levels' `opening_queries` are sound with the
 openings `wq`, gives `OpenOutW` at the openings `osOsOf cfg σ wq`. -/
-theorem open_stacked_frame_w {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level}
+theorem open_stacked_frame_wC {C : CallRel} (hC : CallRel.Le C (coreProgram.Rel rd)) {cfg : OsCfg}
+    {μ r : ℕ} {Lall : List Whir.Level}
     (hok : OsCfgOk cfg μ r Lall) (hcal : OsCallees rd cfg) {wq : ℕ → List E → List E → List Opening}
-    (hqW : OsQueriesW rd cfg wq) {root : Digest} {fs0 fs1 target root0 root1 cur : E}
+    (hqW : OsQueriesWC C rd cfg wq) {root : Digest} {fs0 fs1 target root0 root1 cur : E}
     {rets : List E} (hroot : (root0, root1) = digestScalars root)
     (hpar : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] =
       [fs0, fs1, target, root0, root1, cur])
     {body : List Stmt} (hb : body = osBody cfg)
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ body False fun rs => rs = rets) :
+    (h : Stmt.HoldsList C rd σ body False fun rs => rs = rets) :
     OpenOutW rd μ r root fs0 fs1 target cur rets (osOsOf cfg σ wq) := by
   subst hb
   simp only [List.cons.injEq] at hpar
@@ -409,12 +415,12 @@ theorem open_stacked_frame_w {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level}
   simp only [holdsList_append] at h
   -- the head
   obtain ⟨hH, h⟩ := holdsList_true_of (osHead_noRet _) h
-  obtain ⟨cv, x0, x1, hcv, hinv0⟩ := osHead_sound (logN := μ) hok.off0 hroot ⟨e0, e1, e2, e3, e4, e5⟩ hH
+  obtain ⟨cv, x0, x1, hcv, hinv0⟩ := osHead_sound (logN := μ) hok.off0 hroot ⟨e0, e1, e2, e3, e4, e5⟩ (holdsList_rel hC hH)
   -- the levels
   obtain ⟨hL, h⟩ := holdsList_true_of (osLevels_noRet _ _ _ _) h
   have hcl : ∀ i < Lall.length, LvCallees rd cfg i := fun i hi => hcal.lv i (by rw [← hok.len]; exact hi)
   obtain ⟨ys, os, cvL, wL, rootsL, residual, hosE, hend, hresl, hres, hcont⟩ :=
-    osLevels_sound_w (lane := (cfg.lv 0).folds) hok.len hok.spec hcl
+    osLevels_sound_w (lane := (cfg.lv 0).folds) hC hok.len hok.spec hcl
       (fun i hi => hqW i (by rw [← hok.len]; exact hi)) hcal.fin (cfg.levels.length - 1) 0 _ _
       _ _ _ (by rw [hok.len]; omega) hinv0 (by simpa using hL)
   rw [hok.len] at hend hcont
@@ -424,12 +430,12 @@ theorem open_stacked_frame_w {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level}
   generalize (osLevels cfg 0 cfg.levels (osHead cfg).2).2 = sL at *
   -- the tail
   obtain ⟨hT, h⟩ := holdsList_true_of (osTail_noRet _ _) h
-  obtain ⟨ysT, tf, cvT, htfl, hreads, hrunT, htch⟩ := osTail_sound hok.yr2 hok.yr5 hend.cur hend.co hT
+  obtain ⟨ysT, tf, cvT, htfl, hreads, hrunT, htch⟩ := osTail_sound hok.yr2 hok.yr5 hend.cur hend.co (holdsList_rel hC hT)
   generalize osTail cfg.yrLog sL = tl at *
   -- after the tail
   have hnf : wL.folds.length = cfg.nFolds := by rw [hend.nfolds, hok.nFolds]
-  obtain ⟨pt, hrets, hpt⟩ := osFinish_sound hok hcal hnf hend.folds hend.glued hresl hres htfl htch (fun _ _ _ _ h => h)
-    (fun a r _ h => hcal.ff a r h) h
+  obtain ⟨pt, hrets, hpt⟩ := osFinish_sound hok hcal hnf hend.folds hend.glued hresl hres htfl htch
+    (fun _ _ _ _ h => hC _ _ _ h) (fun a r _ h => hcal.ff a r (hC _ _ _ h)) h
   have hptl : ((wL.folds ++ tf).drop (cfg.lv 0).folds ++ (wL.folds ++ tf).take (cfg.lv 0).folds).length =
       cfg.nFolds + cfg.yrLog := by
     simp [hnf, htfl]; have := hok.laneLe; omega
@@ -457,6 +463,18 @@ theorem open_stacked_frame_w {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level}
   simp only [List.append_assoc, List.cons_append, List.nil_append]
   refine Runs.bind (os_runs_roundPoly3 cv target x0 x1 _ _ _) ?_
   exact hrun
+
+/-- `open_stacked_frame_wC` over the program's call relation. -/
+theorem open_stacked_frame_w {cfg : OsCfg} {μ r : ℕ} {Lall : List Whir.Level}
+    (hok : OsCfgOk cfg μ r Lall) (hcal : OsCallees rd cfg) {wq : ℕ → List E → List E → List Opening}
+    (hqW : OsQueriesW rd cfg wq) {root : Digest} {fs0 fs1 target root0 root1 cur : E}
+    {rets : List E} (hroot : (root0, root1) = digestScalars root)
+    (hpar : [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] =
+      [fs0, fs1, target, root0, root1, cur])
+    {body : List Stmt} (hb : body = osBody cfg)
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ body False fun rs => rs = rets) :
+    OpenOutW rd μ r root fs0 fs1 target cur rets (osOsOf cfg σ wq) :=
+  open_stacked_frame_wC (fun _ _ _ h => h) hok hcal hqW hroot hpar hb h
 
 /-- **`open_stacked` at a configuration is sound** (G:1047-1317; TRIAGE #36): the relation of a
 function whose body is `osBody cfg`, at a configuration whose facts match the ladder of

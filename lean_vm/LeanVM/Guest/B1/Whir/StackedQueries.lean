@@ -138,6 +138,12 @@ theorem osMat_eq {base off k : ℕ} {m : List Stmt × ℕ × ℕ} (hm : osMat ba
     (h : Stmt.HoldsList C rd σ m.1 True kret) : σ (.n m.2.1) = σ (.n base) * gen ^ off := by
   subst hm; exact osMat_sound hoff h
 
+/-- A block under a call relation below the program's holds under the program's. -/
+theorem holdsList_rel (hC : CallRel.Le C (coreProgram.Rel rd)) {ss : List Stmt} {next : Prop}
+    {kret : List E → Prop} (h : Stmt.HoldsList C rd σ ss next kret) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd σ ss next kret :=
+  holdsList_mono hC ss id (fun _ h => h) h
+
 /-- The call of `opening_queries` in a level's queries (G:1187-1190): its argument values and
 its return value. -/
 def osQCall (cfg : OsCfg) (lv : OsLvl) (lvl : ℕ) (s : OsSt) : List V × ℕ :=
@@ -164,10 +170,11 @@ the level's root slot, the openings `osQueriesOs` that `opening_queries`' witnes
 gives, one per position climbing to the root (what `queryP` reads), the query sum `enforcedSum`
 (V:1622) of their rows, and the intro message's `c0, c2` read. -/
 theorem osQueries_sound_w {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev = if lvl = 0 then 1 else 0)
+    (hC : CallRel.Le C (coreProgram.Rel rd))
     (hrw : ∀ a r, coreProgram.Rel rd lv.rowWeights a r → MeaningOpeningRowWeights lv.folds rev rd a r)
     (hcapM : ∀ a r, coreProgram.Rel rd lv.verifyCap a r → MeaningVerifyMerkleCap lv.capDepth rd a r)
     {w : List E → List E → List Opening}
-    (hqW : SoundQueriesW rd lv.queriesFn rev (2 ^ lv.folds) lv.depth lv.capDepth w)
+    (hqW : SoundQueriesWC C rd lv.queriesFn rev (2 ^ lv.folds) lv.depth lv.capDepth w)
     (hcd : 1 ≤ lv.capDepth) (hcdd : lv.capDepth ≤ lv.depth)
     (hb1 : lv.foldsOff < 2 ^ 128) (hb2 : 4 * lv.capOff < 2 ^ 128) (hb4 : lvl * cfg.maxQ < 2 ^ 128)
     (hb5 : lv.posOff < 2 ^ 128) (hnq : lv.queries < 2 ^ 63)
@@ -177,7 +184,7 @@ theorem osQueries_sound_w {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev
     {pos : ℕ → ℕ} (hbits : QueryBits rd (σ (.n osQbp) * gen ^ lv.posOff) lv.queries lv.depth pos)
     {cur : E} {s : OsSt} {cv : Digest} {xs : List E} (hat : OsCur rd σ cur s cv xs)
     {kret : List E → Prop}
-    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (osQueries cfg lv lvl s).1 True kret) :
+    (h : Stmt.HoldsList C rd σ (osQueries cfg lv lvl s).1 True kret) :
     ∃ (root : Digest) (os : List Opening) (c0 c2 : E), os = osQueriesOs cfg lv lvl s σ w ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl) (digestScalars root).1 ∧
       LoadHolds rd (σ (.n osRoots)) (2 * lvl + 1) (digestScalars root).2 ∧
@@ -226,7 +233,7 @@ theorem osQueries_sound_w {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
     and_true] at hW hCap hQS h
   -- the row weights are the level's fold challenges'
-  obtain ⟨-, rs, hrsl, hrsr, hrew⟩ := hrw _ _ hW
+  obtain ⟨-, rs, hrsl, hrsr, hrew⟩ := hrw _ _ (hC _ _ _ hW)
   have hrs : rs = lf := List.ext_getElem (by rw [hrsl, hlfl]) fun j h1 h2 => by
     have := hrsr j h1
     rw [ep, loadHolds_mul_gen_pow] at this
@@ -236,7 +243,7 @@ theorem osQueries_sound_w {cfg : OsCfg} {lv : OsLvl} {lvl rev : ℕ} (hrev : rev
   rw [hrs] at hrew
   -- the cap's root
   obtain ⟨hcapC, lr0, lr1⟩ := hCap
-  obtain ⟨-, hroot, hint, root, hcell, hret⟩ := hcapM _ _ hcapC
+  obtain ⟨-, hroot, hint, root, hcell, hret⟩ := hcapM _ _ (hC _ _ _ hcapC)
   simp only [List.cons.injEq] at hret
   obtain ⟨r0, r1, -⟩ := hret
   -- the queries, at the openings the witness function gives
