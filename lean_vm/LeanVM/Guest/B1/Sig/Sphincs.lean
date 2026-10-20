@@ -1,14 +1,16 @@
 /-
   LeanVM.Guest.B1.Sig.Sphincs
 
-  `verify_sig_lean_sphincs` (G:2525-2656) is sound: when it holds of a claim, some signature
-  verifies the claim's message under its key.
+  `verify_sig_lean_sphincs` (G:2525-2656) is sound: when it holds of a claim, the signature its
+  frame hints (`sphincsSigOf`, the forest keys' chain values from their witness) verifies the
+  claim's message under its key.
 -/
 
 module
 
 public import LeanVM.Guest.B1.Sig.SphincsBody
 public import LeanVM.Guest.B1.Sig.Xmss
+public import LeanVM.Guest.B1.Sig.WotsW
 
 namespace LeanVM.Guest.B1
 
@@ -107,25 +109,50 @@ theorem sp_node_addr {σ : Val} {N l : Nat} (hN : N < 2 ^ 26) (hl : l < Sphincs.
         simp only [tw, hiMul]; ring, word_add_eOfNat hq32, sp_addrNat hq32 (by omega) (by omega) (by omega)]
     exact congrArg (fun n => cellBytes (eOfNat n)) (by ring)
 
-/-- **`verify_sig_lean_sphincs` is sound.** -/
-theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : List E}
-    (h : Stmt.HoldsList C rd σ sBody False (fun rs => rs = rets)) :
+/-- **The leanSPHINCS signature `verify_sig_lean_sphincs` hints**, from its frame `σ` and its
+forest keys' witness `wfk`: the randomizer; the forest's openings (`coordsOpenings`); the counter,
+the one-time chains' starts (`codeX`) and the tree's path (`mSibs`), at the index the frame's
+node cell `n142` holds. -/
+def sphincsSigOf (wfk : List E → List E → Nat → E) (σ : Val) : Sphincs.Signature :=
+  let cs := sCoords 8 0 (.n 209) 210
+  let f := cs.2.1 + 45
+  let ctr := f + 2 + hashValuesSize 16
+  let e := ctr + 126
+  let w : Wots := ⟨.n 1, .n 2, false, fun _ => .n 0, .n 142⟩
+  let cw := cCodeword w (fun s => .n (e + 7 + s)) 21 sTarget (.n (e + 5)) (e + 17)
+  let c := cw.2.1
+  ⟨sv (σ (.n 12)), fun c => coordsOpenings wfk σ 8 0 (.n 209) 210 c.val,
+    fun _ => ⟨BitVec.ofNat Sphincs.counterBits (cellNat (σ (.n ctr))),
+      fun i => sv (codeX w (fun s => .n (e + 7 + s)) 21 (e + 17) σ i.val),
+      fun l => sv (mSibs (fun l => l + 1 == 26) (fun l => (cellNat (σ (.n 142))).testBit l) σ 26 0
+        (c + 2 + hashValuesSize 64) l.val)⟩⟩
+
+/-- **`verify_sig_lean_sphincs` is sound, for the signature it hints**: when the forest keys are
+sound with the witness `wfk`, `sphincsSigOf wfk σ` verifies the claim at the pointer. -/
+theorem verify_sig_lean_sphincs_sound_w {wfk : List E → List E → Nat → E} (hfk : FkSoundW C rd wfk) {σ : Val}
+    {rets : List E} (h : Stmt.HoldsList C rd σ sBody False (fun rs => rs = rets)) :
     rets = [] ∧ ∃ (pk : Sphincs.PublicKey) (m : Sphincs.Message),
-      ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧ ∃ sig, Node.sphincsVerify pk m sig = true := by
+      ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧
+        Node.sphincsVerify pk m (sphincsSigOf wfk σ) = true := by
   suffices H : ∀ inst : HasQuery Sphincs.HashSpec Id, SQ inst → rets = [] ∧ ∃ (pk : Sphincs.PublicKey)
       (m : Sphincs.Message), ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧
-        ∃ sig, @Sphincs.Concrete.verify Id _ inst pk m sig = true by
-    obtain ⟨h1, pk, m, hc, sig, hv⟩ := H ⟨Node.blake2sBits⟩ sq_blake2s
-    exact ⟨h1, pk, m, hc, sig, by rw [Node.sphincsVerify.eq_def, idRun]; exact hv⟩
+        @Sphincs.Concrete.verify Id _ inst pk m (sphincsSigOf wfk σ) = true by
+    obtain ⟨h1, pk, m, hc, hv⟩ := H ⟨Node.blake2sBits⟩ sq_blake2s
+    exact ⟨h1, pk, m, hc, by rw [Node.sphincsVerify.eq_def, idRun]; exact hv⟩
   intro inst hq
+  simp only [sphincsSigOf]
   simp only [sBody, holdsList_append] at h
   obtain ⟨hl1, hl5, hl6, hpp, hm0, hm1, hdgst, ⟨N, U, hpre⟩, h⟩ := sPrologue_sound h
   set index : Sphincs.Index := ⟨N, hpre.ltN⟩
   have hidx : σ (.n 142) = eOfNat index.val := by
     have := hpre.nodes 0 (by omega)
     simpa using this
-  obtain ⟨⟨marks, openings, hcs, hbound⟩, h⟩ :=
-    sCoords_sound (inst := inst) hq hfk hpre.md64 index hidx 8 0 (.n 209) 210 (by omega) h
+  have hNe : cellNat (σ (.n 142)) = N := by
+    rw [hidx]; exact cellNat_eOfNat (show N < 2 ^ 64 by have := hpre.ltN; omega)
+  rw [hNe]
+  obtain ⟨⟨marks, hcs, hbound⟩, h⟩ :=
+    sCoords_sound_w (inst := inst) hq hfk hpre.md64 index hidx 8 0 (.n 209) 210 (by omega) h
+  generalize coordsOpenings wfk σ 8 0 (.n 209) 210 = openings at *
   generalize sCoords 8 0 (.n 209) 210 = cs at *
   obtain ⟨h17, hb18, h⟩ := sLanes_sound (t := fun k => ((marks (k / 2)).word ⟨k % 2, Nat.mod_lt _ (by omega)⟩).val)
     (fun k _ => ((marks (k / 2)).word _).isLt) (fun k hk => by
@@ -143,14 +170,16 @@ theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : Li
   obtain ⟨hf, hf1, h⟩ := h
   obtain ⟨hfkey, h⟩ := hashValues_sound (Or.inl rfl) (by norm_num) h
   obtain ⟨Cn, hCn, hctr, he1, he5, h⟩ := sCounter_sound h
+  rw [(congrArg cellNat hctr).trans (cellNat_eOfNat (by omega))]
   rw [powers_iff] at h
   obtain ⟨hpow, h⟩ := h
   obtain ⟨⟨dig, hdig, htips, htarget, hd0⟩, h⟩ :=
-    cCodeword_sound (w := ⟨.n 1, .n 2, false, fun _ => .n 0, .n 142⟩) hpre.md48 hpow (G := 21) (by norm_num) h
+    cCodeword_sound_w (w := ⟨.n 1, .n 2, false, fun _ => .n 0, .n 142⟩) hpre.md48 hpow (G := 21) (by norm_num) h
   obtain ⟨hc, hc1, h⟩ := h
   obtain ⟨hleaf, h⟩ := hashValues_sound (Or.inl rfl) (by norm_num) h
-  obtain ⟨⟨sibs, hroot⟩, h⟩ := merkle_sound (β := fun l => N.testBit l) 26 0 _ _
+  obtain ⟨hroot, h⟩ := merkle_sound_w (β := fun l => N.testBit l) 26 0 _ _
     (fun l' _ hl' => hpre.bits l' (by omega)) h
+  generalize mSibs (fun l => l + 1 == 26) (fun l => N.testBit l) σ 26 0 _ = sibs at *
   simp only [Stmt.HoldsList, Stmt.Holds, List.map_nil] at h
   obtain ⟨hload, heq, hret⟩ := h
   generalize cCodeword ⟨.n 1, .n 2, false, fun _ => .n 0, .n 142⟩ _ 21 sTarget _ _ = cw at *
@@ -238,7 +267,8 @@ theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : Li
   rw [← hfkey] at hFK
   generalize (hashValues (V.n 1) (V.n (cs.2.1 + 45 + 1)) _ 16 (cs.2.1 + 45 + 2)).2 = fkc at *
   -- the one-time leaf
-  obtain ⟨vals, hvals⟩ := exists_fun_of_lt htips
+  generalize codeX ⟨.n 1, .n 2, false, fun _ => .n 0, .n 142⟩ _ 21 _ σ = vals at *
+  have hvals := htips
   have hsum : ∑ i ∈ Finset.range Sphincs.numChains, dig i = Sphincs.targetSum := by
     rw [sTarget_eq] at htarget
     have := digit_sum_le hdig (3 * 21 + 1)
@@ -300,8 +330,7 @@ theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : Li
   -- the claim and the signature
   have hrc : IsCanonical128 (σ (.n mk.2.2)) := by
     rw [← heq', hroot]; exact mFold_canonical _ _ _ _ _ _ _ (Or.inl (by norm_num))
-  refine ⟨hret.symm, ⟨sv (σ (.n mk.2.2)), spp (σ (.n 1))⟩, m, ?_, ⟨sv (σ (.n 12)), fun c => openings c.val,
-    fun _ => ⟨BitVec.ofNat Sphincs.counterBits Cn, fun i => sv (vals i.val), fun l => sv (sibs l.val)⟩⟩, ?_⟩
+  refine ⟨hret.symm, ⟨sv (σ (.n mk.2.2)), spp (σ (.n 1))⟩, m, ?_, ?_⟩
   · show ClaimAt rd (σ (.n 0)) (claimCells (xv (σ (.n mk.2.2))) (xpp (σ (.n 1)))
       (BitVec.ofNat 256 (cellNat (σ (.n 5)) + 2 ^ 128 * cellNat (σ (.n 6)))))
     rw [claimCells_of hrc hpp hm0 hm1]
@@ -328,6 +357,15 @@ theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : Li
           exact sv_zero.symm
       rw [hsp]
       exact htree
+
+/-- **`verify_sig_lean_sphincs` is sound.** -/
+theorem verify_sig_lean_sphincs_sound (hfk : FkSound C rd) {σ : Val} {rets : List E}
+    (h : Stmt.HoldsList C rd σ sBody False (fun rs => rs = rets)) :
+    rets = [] ∧ ∃ (pk : Sphincs.PublicKey) (m : Sphincs.Message),
+      ClaimAt rd (σ (.n 0)) (claimCells pk.root pk.parameter m) ∧ ∃ sig, Node.sphincsVerify pk m sig = true := by
+  obtain ⟨wfk, hw⟩ := exists_fkSoundW hfk
+  obtain ⟨h1, pk, m, hc, hv⟩ := verify_sig_lean_sphincs_sound_w hw h
+  exact ⟨h1, pk, m, hc, _, hv⟩
 
 end Sig
 

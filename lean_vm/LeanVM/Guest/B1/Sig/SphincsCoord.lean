@@ -26,6 +26,35 @@ def FkSound (C : CallRel) (rd : Reader) : Prop :=
 
 theorem fkSound_rel : FkSound (coreProgram.Rel rd) rd := fun _ ht _ _ h => sp_forest_key_sound ht h
 
+/-- **The forest keys are sound under `C`, with the witness `wfk`**: a call of forest key `t` with
+the argument words `args` and the return words `rets` returns the child leaf of the chain values
+`wfk args rets`. -/
+def FkSoundW (C : CallRel) (_rd : Reader) (wfk : List E → List E → Nat → E) : Prop :=
+  ∀ t < 256, ∀ args rets, C (fkNames.getD t "") args rets → FkOut t args rets (wfk args rets)
+
+theorem fkSound_of_w {wfk : List E → List E → Nat → E} (h : FkSoundW C rd wfk) : FkSound C rd :=
+  fun t ht args rets hc => (meaning_sp_forest_key_iff t args rets).mpr ⟨_, h t ht args rets hc⟩
+
+/-- A forest key's return words name its codeword: one witness serves every key. -/
+theorem exists_fkSoundW (hfk : FkSound C rd) : ∃ wfk, FkSoundW C rd wfk := by
+  have key : ∀ args rets : List E, ∃ vals : Nat → E,
+      ∀ t < 256, C (fkNames.getD t "") args rets → FkOut t args rets vals := by
+    intro args rets
+    by_cases hc : ∃ t < 256, C (fkNames.getD t "") args rets
+    · obtain ⟨t0, ht0, hc0⟩ := hc
+      obtain ⟨ka, pp, ha, vals, hr⟩ := hfk t0 ht0 _ _ hc0
+      refine ⟨vals, fun t ht hct => ?_⟩
+      obtain ⟨ka', pp', -, vals', hr'⟩ := hfk t ht _ _ hct
+      have htt : t = t0 := by
+        rw [hr] at hr'
+        simp only [List.cons.injEq, word_eq_eOfNat] at hr'
+        exact (eOfNat_inj (by omega) (by omega) hr'.2.1).symm
+      subst htt
+      exact ⟨ka, pp, ha, hr⟩
+    · exact ⟨fun _ => 0, fun t ht hct => absurd ⟨t, ht, hct⟩ hc⟩
+  choose wfk hw using key
+  exact ⟨wfk, fun t ht args rets h => hw args rets t ht h⟩
+
 set_option maxRecDepth 10000 in
 theorem fkNames_length : fkNames.length = 256 := rfl
 
@@ -36,6 +65,53 @@ theorem holdsList_cons_dispatch (x : V) (fs : List String) (args rets : List V) 
         Stmt.HoldsList C rd σ ss next kret := Iff.rfl
 
 /-! ## A sub-tree -/
+
+/-- The chain values of a sub-tree's forest key from base `b`: the callee's witness `wfk` at the
+call's argument and return words. -/
+def subVals (wfk : List E → List E → Nat → E) (σ : Val) (b : Nat) : Nat → E :=
+  wfk [σ (.n (b + 11)), σ (.n 1)] [σ (.n (b + 12)), σ (.n (b + 13))]
+
+/-- The path of a sub-tree from base `b`: the siblings its fold's arm hints, then the other top
+node. -/
+def subSibs (σ : Val) (b : Nat) : Nat → E := fun l =>
+  if l = 2 then σ (spOut subFoldT (b + 14) (2 - 2 * (selIdx (σ (.n b)) 0 8 / 4)))
+  else armSibs σ subFoldT (spArmsBase subFoldT 0 (b + 14) (selIdx (σ (.n b)) 0 8)) l
+
+/-- **A sub-tree is sound**, with explicit witnesses: the forest key of codeword `t` from the
+chain values `subVals`, folded up two levels at the key `a` along `subSibs`, lands in the output
+the key's top bit names, the other output is `subSibs`' top node; the codeword's cell is `t`; the
+bound gains the key's field. -/
+theorem sSub_sound_w {wfk : List E → List E → Nat → E} (hfk : FkSoundW C rd wfk) {σ : Val}
+    (hmd : σ (.n 3) = mdw 64 true) {c j : Nat} {subAt bound : V} {b : Nat} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (sSub c j subAt bound b).1 next kret) :
+    (∃ t < 256, ∃ a < 8, selIdx (σ (.n b)) 0 8 = a ∧ σ (.n (b + 1)) = word (a * 2 ^ 40) 0 0 ∧
+      σ (sSub c j subAt bound b).2.2.1 = word t 0 0 ∧
+      σ ((sSub c j subAt bound b).2.2.2.1 (2 * (a / 4))) =
+        mFold (σ (.n 1)) (foldAddr σ subAt subFoldT a) (fun l => a.testBit l) (subSibs σ b) 2 0
+          (fkLeaf t (σ (.n 1)) (σ subAt + word (a * 2 ^ 40) 0 0) (subVals wfk σ b)) ∧
+      σ ((sSub c j subAt bound b).2.2.2.1 (2 - 2 * (a / 4))) = subSibs σ b 2 ∧
+      σ (sSub c j subAt bound b).2.2.2.2 = σ bound + lit (a * 2 ^ (58 + 3 * (2 * c + j)))) ∧ next := by
+  simp only [sSub, hintW, rangeS, cst, addS, List.cons_append, List.nil_append, holdsList_cons_atom,
+    Atom.Holds, true_and] at h
+  obtain ⟨-, -, -, -, hadd, h⟩ := h
+  obtain ⟨⟨t, ht, -, hC⟩, h⟩ := (holdsList_cons_dispatch _ _ _ _ _ _ _ _).mp h
+  rw [fkNames_length] at ht
+  obtain ⟨ka, pp, hargs, hrets⟩ := hfk t ht _ _ (by rw [List.getD_eq_getElem _ _ (by rw [fkNames_length]; exact ht)]; exact hC)
+  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
+  have hr1 : σ (.n (b + 12)) = fkLeaf t pp ka (subVals wfk σ b) := (List.cons.inj hrets).1
+  have hr2 : σ (.n (b + 13)) = word t 0 0 := (List.cons.inj (List.cons.inj hrets).2).1
+  obtain ⟨a, ha, hsel, -, hs, h1, h2, h⟩ := spMatch_sound_w hmd (by decide) (by norm_num) h
+  simp only [holdsList_cons_atom, holdsList_nil, Atom.Holds] at h
+  obtain ⟨hb, hn⟩ := h
+  refine ⟨⟨t, ht, a, ha, hsel, h1, hr2, ?_, ?_, ?_⟩, hn⟩
+  · have e : a / 2 ^ (subFoldT.height - 1) = a / 4 := rfl
+    rw [e] at hs
+    refine hs.trans ?_
+    rw [hr1, ← hargs.1, ← hargs.2, hadd, h1]
+    exact mFold_congr _ _ _ 2 0 (fun l _ hl => by simp only [subSibs, hsel, show l ≠ 2 by omega, ↓reduceIte]) _
+  · show σ (spOut subFoldT (b + 14) (2 - 2 * (a / 4))) = subSibs σ b 2
+    simp only [subSibs, hsel, ↓reduceIte]
+  · exact hb.trans (by rw [h2])
 
 /-- **A sub-tree is sound**: the forest key of codeword `t` at the key's address, folded up two
 levels at key `a`, lands in the output the key's top bit names; the codeword's cell is `t`; the
@@ -49,23 +125,9 @@ theorem sSub_sound (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 tru
         mFold (σ (.n 1)) (foldAddr σ subAt subFoldT a) (fun l => a.testBit l) sibs 2 0
           (fkLeaf t (σ (.n 1)) (σ subAt + word (a * 2 ^ 40) 0 0) vals) ∧
       σ (sSub c j subAt bound b).2.2.2.2 = σ bound + lit (a * 2 ^ (58 + 3 * (2 * c + j)))) ∧ next := by
-  simp only [sSub, hintW, rangeS, cst, addS, List.cons_append, List.nil_append, holdsList_cons_atom,
-    Atom.Holds, true_and] at h
-  obtain ⟨-, -, -, -, hadd, h⟩ := h
-  obtain ⟨⟨t, ht, -, hC⟩, h⟩ := (holdsList_cons_dispatch _ _ _ _ _ _ _ _).mp h
-  rw [fkNames_length] at ht
-  obtain ⟨ka, pp, hargs, vals, hrets⟩ := hfk t ht _ _ (by rw [List.getD_eq_getElem _ _ (by rw [fkNames_length]; exact ht)]; exact hC)
-  simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs hrets
-  obtain ⟨a, ha, -, ⟨sibs, hs⟩, h1, h2, h⟩ := spMatch_sound hmd (by decide) h
-  simp only [holdsList_cons_atom, holdsList_nil, Atom.Holds] at h
-  obtain ⟨hb, hn⟩ := h
-  refine ⟨⟨t, ht, a, ha, vals, sibs, h1, hrets.2, ?_, ?_⟩, hn⟩
-  · have e : a / 2 ^ (subFoldT.height - 1) = a / 4 := rfl
-    rw [e] at hs
-    refine hs.trans ?_
-    rw [hrets.1, ← hargs.1, ← hargs.2, hadd, h1]
-    rfl
-  · exact hb.trans (by rw [h2])
+  obtain ⟨wfk, hw⟩ := exists_fkSoundW hfk
+  obtain ⟨⟨t, ht, a, ha, -, h1, h2, h3, -, h4⟩, hn⟩ := sSub_sound_w hw hmd h
+  exact ⟨⟨t, ht, a, ha, _, _, h1, h2, h3, h4⟩, hn⟩
 
 /-! ## Addresses -/
 
@@ -329,15 +391,34 @@ open Sphincs Sphincs.Concrete
 
 variable {inst : HasQuery Sphincs.HashSpec Id}
 
-/-- **A coordinate is sound** (after its tree's address): the scheme's two top nodes of the mark
-and the opening it reads land in its outputs, the codeword cells are the mark's, and the bound
-gains the mark's fields. -/
-theorem sCoordT_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 true)
-    (index : Index) (c : Coord) {bound treeAt : V} {b0 : Nat}
+/-- A sub-tree's opening from base `b`: the chain values its forest key's witness gives, and its
+path. -/
+def subOpening (wfk : List E → List E → Nat → E) (σ : Val) (b : Nat) : SubOpening :=
+  ⟨fun i => sv (subVals wfk σ b i.val), fun l => sv (subSibs σ b l.val)⟩
+
+/-- The top path of a coordinate whose sub-trees end at `f`, its super-index cell at `n(b0)`: the
+siblings its fold's arm hints, then the other top node. -/
+def topSibs (σ : Val) (f b0 : Nat) : Nat → E := fun l =>
+  if l = 3 then σ (spOut topFoldT (f + 12) (2 - 2 * (selIdx (σ (.n b0)) 0 16 / 8)))
+  else armSibs σ topFoldT (spArmsBase topFoldT 0 (f + 12) (selIdx (σ (.n b0)) 0 16)) l
+
+/-- **The opening of coordinate `c`** (after its tree's address, from base `b0`): its two
+sub-trees' openings and its top path, from the frame `σ` and the forest keys' witness `wfk`. -/
+def coordOpeningT (wfk : List E → List E → Nat → E) (σ : Val) (c : Nat) (bound : V) (b0 : Nat) : CoordOpening :=
+  let S0 := sSub c 0 (.n (b0 + 6)) bound (b0 + 7)
+  let S1 := sSub c 1 (.n (S0.2.1 + 1)) S0.2.2.2.2 (S0.2.1 + 2)
+  ⟨![subOpening wfk σ (b0 + 7), subOpening wfk σ (S0.2.1 + 2)], fun l => sv (topSibs σ S1.2.1 b0 l.val)⟩
+
+/-- **A coordinate is sound** (after its tree's address), with the opening `coordOpeningT` its
+frame hints and its forest keys' witnesses give: the scheme's two top nodes of a mark and that
+opening land in its outputs, the codeword cells are the mark's, and the bound gains the mark's
+fields. -/
+theorem sCoordT_sound_w (hq : SQ inst) {wfk : List E → List E → Nat → E} (hfk : FkSoundW C rd wfk) {σ : Val}
+    (hmd : σ (.n 3) = mdw 64 true) (index : Index) (c : Coord) {bound treeAt : V} {b0 : Nat}
     (htree : σ treeAt = eOfNat (fpos index.val c.val 0 0 0)) {next : Prop} {kret : List E → Prop}
     (h : Stmt.HoldsList C rd σ (sCoordT c.val bound treeAt b0).1 next kret) :
-    (∃ (mark : CoordMark) (opening : CoordOpening),
-      @coordRecover Id _ inst (spp (σ (.n 1))) index c mark opening =
+    (∃ mark : CoordMark,
+      @coordRecover Id _ inst (spp (σ (.n 1))) index c mark (coordOpeningT wfk σ c.val bound b0) =
         (sv (σ (sCoordT c.val bound treeAt b0).2.2.2.1.1), sv (σ (sCoordT c.val bound treeAt b0).2.2.2.1.2)) ∧
       σ (sCoordT c.val bound treeAt b0).2.2.1.1 = word (mark.word 0).val 0 0 ∧
       σ (sCoordT c.val bound treeAt b0).2.2.1.2 = word (mark.word 1).val 0 0 ∧
@@ -348,13 +429,18 @@ theorem sCoordT_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (
   simp only [List.append_assoc, List.cons_append, List.nil_append, holdsList_append, hintW, rangeS, cst,
     addS, ivs, b2s, holdsList_cons_atom, Atom.Holds, true_and] at h
   obtain ⟨-, -, hleaf, h⟩ := h
-  obtain ⟨⟨t0, ht0, a0, ha0, vals0, sibs0, hk0, hw0, ho0, hb0⟩, h⟩ := sSub_sound hfk hmd h
+  obtain ⟨⟨t0, ht0, a0, ha0, -, hk0, hw0, ho0, hy0, hb0⟩, h⟩ := sSub_sound_w hfk hmd h
   obtain ⟨hb1, hsub1, h⟩ := h
-  obtain ⟨⟨t1, ht1, a1, ha1, vals1, sibs1, hk1, hw1, ho1, hb1'⟩, h⟩ := sSub_sound hfk hmd h
+  obtain ⟨⟨t1, ht1, a1, ha1, -, hk1, hw1, ho1, hy1, hb1'⟩, h⟩ := sSub_sound_w hfk hmd h
   obtain ⟨hf0, hf1, hiv0, hiv1, hmd4, hc1, h7, h8, hmd9, hc2, h⟩ := h
-  obtain ⟨s, hs, -, ⟨tsibs, hts⟩, hr1, hr2, h⟩ := spMatch_sound hmd (by decide) h
+  obtain ⟨s, hs, hsels, -, hts, hr1, hr2, h⟩ := spMatch_sound_w hmd (by decide) (by norm_num) h
   simp only [holdsList_cons_atom, holdsList_nil, Atom.Holds] at h
   obtain ⟨hbound, hn⟩ := h
+  have hop : coordOpeningT wfk σ c.val bound b0 = ⟨![subOpening wfk σ (b0 + 7),
+      subOpening wfk σ ((sSub c.val 0 (.n (b0 + 6)) bound (b0 + 7)).2.1 + 2)],
+      fun l => sv (topSibs σ (sSub c.val 1 (.n ((sSub c.val 0 (.n (b0 + 6)) bound (b0 + 7)).2.1 + 1))
+        (sSub c.val 0 (.n (b0 + 6)) bound (b0 + 7)).2.2.2.2 ((sSub c.val 0 (.n (b0 + 6)) bound (b0 + 7)).2.1 + 2)).2.1
+        b0 l.val)⟩ := rfl
   generalize sSub c.val 0 (.n (b0 + 6)) bound (b0 + 7) = S0 at *
   generalize sSub c.val 1 (.n (S0.2.1 + 1)) S0.2.2.2.2 (S0.2.1 + 2) = S1 at *
   -- the scheme's indices
@@ -407,13 +493,9 @@ theorem sCoordT_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (
     rw [blockBytes_four, hcell, ← List.flatMap_append, hf1, hLeaf, hf0]
     rfl
   -- the mark and the opening
-  let sib0 : Nat → E := fun l => if l = 2 then σ (S0.2.2.2.1 (2 - 2 * (a0 / 4))) else sibs0 l
-  let sib1 : Nat → E := fun l => if l = 2 then σ (S1.2.2.2.1 (2 - 2 * (a1 / 4))) else sibs1 l
-  let tsib : Nat → E := fun l => if l = 3 then σ (spOut topFoldT (S1.2.1 + 12) (2 - 2 * (s / 8))) else tsibs l
   let mark : CoordMark := ⟨sF, ![a0F, a1F], ![t0F, t1F]⟩
   let opening : CoordOpening :=
-    ⟨![⟨fun i => sv (vals0 i.val), fun l => sv (sib0 l.val)⟩, ⟨fun i => sv (vals1 i.val), fun l => sv (sib1 l.val)⟩],
-      fun l => sv (tsib l.val)⟩
+    ⟨![subOpening wfk σ (b0 + 7), subOpening wfk σ (S0.2.1 + 2)], fun l => sv (topSibs σ S1.2.1 b0 l.val)⟩
   have ha0' : a0 / 4 = 0 ∨ a0 / 4 = 1 := by omega
   have ha1' : a1 / 4 = 0 ∨ a1 / 4 = 1 := by omega
   have hs' : s / 8 = 0 ∨ s / 8 = 1 := by omega
@@ -426,25 +508,67 @@ theorem sCoordT_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (
         else (sv (σ (S1.2.2.2.1 0)), sv (σ (S1.2.2.2.1 2))) := by
     funext j
     fin_cases j
-    · refine sp_subTops hq index c sF 0 a0F t0F vals0 sib0 ?_ ?_
-      · refine (?_ : _ = _).trans (ho0.trans (mFold_congr _ _ _ 2 0
-          (fun l _ hl => by simp only [sib0, show l ≠ 2 by omega, ↓reduceIte]) _))
+    · refine sp_subTops hq index c sF 0 a0F t0F (subVals wfk σ (b0 + 7)) (subSibs σ (b0 + 7)) ?_ ?_
+      · refine (?_ : _ = _).trans ho0
         rcases ha0' with h | h <;> simp [h, a0F]
-      · rcases ha0' with h | h <;> simp [sib0, h, a0F]
-    · refine sp_subTops hq index c sF 1 a1F t1F vals1 sib1 ?_ ?_
-      · refine (?_ : _ = _).trans (ho1.trans (mFold_congr _ _ _ 2 0
-          (fun l _ hl => by simp only [sib1, show l ≠ 2 by omega, ↓reduceIte]) _))
+      · refine (?_ : _ = _).trans hy0
+        rcases ha0' with h | h <;> simp [h, a0F]
+    · refine sp_subTops hq index c sF 1 a1F t1F (subVals wfk σ (S0.2.1 + 2)) (subSibs σ (S0.2.1 + 2)) ?_ ?_
+      · refine (?_ : _ = _).trans ho1
         rcases ha1' with h | h <;> simp [h, a1F]
-      · rcases ha1' with h | h <;> simp [sib1, h, a1F]
-  refine ⟨⟨mark, opening, ?_, hw0, hw1, ?_⟩, hn⟩
-  · rw [sCoordRecover_id, hsub, sSuperHash_cells hq (superChild_addr index c sF), ← hsup']
-    refine sp_topTops hq index c sF tsib ?_ ?_
+      · refine (?_ : _ = _).trans hy1
+        rcases ha1' with h | h <;> simp [h, a1F]
+  refine ⟨⟨mark, ?_, hw0, hw1, ?_⟩, hn⟩
+  · rw [hop]
+    show @coordRecover Id _ inst (spp (σ (.n 1))) index c mark opening = _
+    rw [sCoordRecover_id, hsub, sSuperHash_cells hq (superChild_addr index c sF), ← hsup']
+    refine sp_topTops hq index c sF (topSibs σ S1.2.1 b0) ?_ ?_
     · refine (?_ : _ = _).trans (hts.trans (mFold_congr _ _ _ 3 0
-        (fun l _ hl => by simp only [tsib, show l ≠ 3 by omega, ↓reduceIte]) _))
+        (fun l _ hl => by simp only [topSibs, hsels, show l ≠ 3 by omega, ↓reduceIte]) _))
       rcases hs' with h | h <;> simp [h, sF]
-    · rcases hs' with h | h <;> simp [tsib, h, sF]
+    · rcases hs' with h | h <;> simp [topSibs, hsels, h, sF]
   · rw [hbound, hb1', hb0, hr2]
     rfl
+
+/-- **A coordinate is sound** (after its tree's address): the scheme's two top nodes of the mark
+and the opening it reads land in its outputs, the codeword cells are the mark's, and the bound
+gains the mark's fields. -/
+theorem sCoordT_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 true)
+    (index : Index) (c : Coord) {bound treeAt : V} {b0 : Nat}
+    (htree : σ treeAt = eOfNat (fpos index.val c.val 0 0 0)) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (sCoordT c.val bound treeAt b0).1 next kret) :
+    (∃ (mark : CoordMark) (opening : CoordOpening),
+      @coordRecover Id _ inst (spp (σ (.n 1))) index c mark opening =
+        (sv (σ (sCoordT c.val bound treeAt b0).2.2.2.1.1), sv (σ (sCoordT c.val bound treeAt b0).2.2.2.1.2)) ∧
+      σ (sCoordT c.val bound treeAt b0).2.2.1.1 = word (mark.word 0).val 0 0 ∧
+      σ (sCoordT c.val bound treeAt b0).2.2.1.2 = word (mark.word 1).val 0 0 ∧
+      σ (sCoordT c.val bound treeAt b0).2.2.2.2 = σ bound + lit ((mark.child 0).val * 2 ^ (58 + 3 * (2 * c.val))) +
+        lit ((mark.child 1).val * 2 ^ (58 + 3 * (2 * c.val + 1))) + lit (mark.super.val * 2 ^ (26 + 4 * c.val))) ∧
+      next := by
+  obtain ⟨wfk, hw⟩ := exists_fkSoundW hfk
+  obtain ⟨⟨mark, h1, h2, h3, h4⟩, hn⟩ := sCoordT_sound_w hq hw hmd index c htree h
+  exact ⟨⟨mark, _, h1, h2, h3, h4⟩, hn⟩
+
+/-- **The opening of coordinate `c` from base `b`.** -/
+def coordOpening (wfk : List E → List E → Nat → E) (σ : Val) (c : Nat) (bound : V) (b : Nat) : CoordOpening :=
+  coordOpeningT wfk σ c bound (if c = 0 then b else b + 2)
+
+/-- **A coordinate is sound**, with the opening `coordOpening`. -/
+theorem sCoord_sound_w (hq : SQ inst) {wfk : List E → List E → Nat → E} (hfk : FkSoundW C rd wfk) {σ : Val}
+    (hmd : σ (.n 3) = mdw 64 true) (index : Index) (c : Coord) (hidx : σ (.n 142) = eOfNat index.val) {bound : V}
+    {b : Nat} {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ (sCoord c.val bound b).1 next kret) :
+    (∃ mark : CoordMark,
+      @coordRecover Id _ inst (spp (σ (.n 1))) index c mark (coordOpening wfk σ c.val bound b) =
+        (sv (σ (sCoord c.val bound b).2.2.2.1.1), sv (σ (sCoord c.val bound b).2.2.2.1.2)) ∧
+      σ (sCoord c.val bound b).2.2.1.1 = word (mark.word 0).val 0 0 ∧
+      σ (sCoord c.val bound b).2.2.1.2 = word (mark.word 1).val 0 0 ∧
+      σ (sCoord c.val bound b).2.2.2.2 = σ bound + lit ((mark.child 0).val * 2 ^ (58 + 3 * (2 * c.val))) +
+        lit ((mark.child 1).val * 2 ^ (58 + 3 * (2 * c.val + 1))) + lit (mark.super.val * 2 ^ (26 + 4 * c.val))) ∧
+      next := by
+  rw [sCoord_eq] at h ⊢
+  rw [holdsList_append] at h
+  obtain ⟨htree, h⟩ := sPre_sound index.isLt c.isLt hidx h
+  exact sCoordT_sound_w hq hfk hmd index c htree h
 
 /-- **A coordinate is sound.** -/
 theorem sCoord_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 true)
@@ -458,45 +582,49 @@ theorem sCoord_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.
       σ (sCoord c.val bound b).2.2.2.2 = σ bound + lit ((mark.child 0).val * 2 ^ (58 + 3 * (2 * c.val))) +
         lit ((mark.child 1).val * 2 ^ (58 + 3 * (2 * c.val + 1))) + lit (mark.super.val * 2 ^ (26 + 4 * c.val))) ∧
       next := by
-  rw [sCoord_eq] at h ⊢
-  rw [holdsList_append] at h
-  obtain ⟨htree, h⟩ := sPre_sound index.isLt c.isLt hidx h
-  exact sCoordT_sound hq hfk hmd index c htree h
+  obtain ⟨wfk, hw⟩ := exists_fkSoundW hfk
+  obtain ⟨⟨mark, h1, h2, h3, h4⟩, hn⟩ := sCoord_sound_w hq hw hmd index c hidx h
+  exact ⟨⟨mark, _, h1, h2, h3, h4⟩, hn⟩
 
 /-- What coordinate `c` of a mark weighs in the digest's second cell. -/
 def coordWeight (c : Nat) (mark : CoordMark) : E :=
   lit ((mark.child 0).val * 2 ^ (58 + 3 * (2 * c))) + lit ((mark.child 1).val * 2 ^ (58 + 3 * (2 * c + 1))) +
     lit (mark.super.val * 2 ^ (26 + 4 * c))
 
-/-- **The coordinates are sound.** -/
-theorem sCoords_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 true)
-    (index : Index) (hidx : σ (.n 142) = eOfNat index.val) :
+/-- **The openings of coordinates `c ..< c + m` from base `b`**, coordinate `c'`'s at `c'`. -/
+def coordsOpenings (wfk : List E → List E → Nat → E) (σ : Val) : Nat → Nat → V → Nat → Nat → CoordOpening
+  | 0, _, _, _ => fun _ => ⟨fun _ => ⟨fun _ => 0, fun _ => 0⟩, fun _ => 0⟩
+  | m + 1, c, bound, b => fun k => if k = c then coordOpening wfk σ c bound b
+      else coordsOpenings wfk σ m (c + 1) (sCoord c bound b).2.2.2.2 (sCoord c bound b).2.1 k
+
+/-- **The coordinates are sound**, with the openings `coordsOpenings`. -/
+theorem sCoords_sound_w (hq : SQ inst) {wfk : List E → List E → Nat → E} (hfk : FkSoundW C rd wfk) {σ : Val}
+    (hmd : σ (.n 3) = mdw 64 true) (index : Index) (hidx : σ (.n 142) = eOfNat index.val) :
     ∀ (m c : Nat) (bound : V) (b : Nat) {next : Prop} {kret : List E → Prop} (_ : c + m ≤ 8),
       Stmt.HoldsList C rd σ (sCoords m c bound b).1 next kret →
-      (∃ (marks : Nat → CoordMark) (openings : Nat → CoordOpening),
+      (∃ marks : Nat → CoordMark,
         (∀ r (hr : r < m),
           @coordRecover Id _ inst (spp (σ (.n 1))) index ⟨c + r, by simp only [forestCoords]; omega⟩
-              (marks (c + r)) (openings (c + r)) =
+              (marks (c + r)) (coordsOpenings wfk σ m c bound b (c + r)) =
             (sv (σ ((sCoords m c bound b).2.2.2.1.getD r (.n 0, .n 0)).1),
               sv (σ ((sCoords m c bound b).2.2.2.1.getD r (.n 0, .n 0)).2)) ∧
           σ ((sCoords m c bound b).2.2.1.getD r (.n 0, .n 0)).1 = word ((marks (c + r)).word 0).val 0 0 ∧
           σ ((sCoords m c bound b).2.2.1.getD r (.n 0, .n 0)).2 = word ((marks (c + r)).word 1).val 0 0) ∧
         σ (sCoords m c bound b).2.2.2.2 = σ bound + ∑ r ∈ Finset.range m, coordWeight (c + r) (marks (c + r))) ∧
       next
-  | 0, _, bound, _, _, _, _, h => ⟨⟨fun _ => ⟨0, fun _ => 0, fun _ => 0⟩, fun _ => ⟨fun _ => ⟨fun _ => 0, fun _ => 0⟩,
-      fun _ => 0⟩, fun _ h => absurd h (by omega), by simp [sCoords]⟩, h⟩
+  | 0, _, bound, _, _, _, _, h => ⟨⟨fun _ => ⟨0, fun _ => 0, fun _ => 0⟩, fun _ h => absurd h (by omega),
+      by simp [sCoords]⟩, h⟩
   | m + 1, c, bound, b, next, kret, hcm, h => by
       simp only [sCoords, holdsList_append] at h ⊢
-      obtain ⟨⟨mark, opening, hrec, hw0, hw1, hb⟩, h⟩ :=
-        sCoord_sound hq hfk hmd index ⟨c, by simp only [forestCoords]; omega⟩ hidx h
-      obtain ⟨⟨marks, openings, hr, hbs⟩, hn⟩ := sCoords_sound hq hfk hmd index hidx m (c + 1) _ _ (by omega) h
-      refine ⟨⟨fun k => if k = c then mark else marks k, fun k => if k = c then opening else openings k,
-        fun r hr' => ?_, ?_⟩, hn⟩
+      obtain ⟨⟨mark, hrec, hw0, hw1, hb⟩, h⟩ :=
+        sCoord_sound_w hq hfk hmd index ⟨c, by simp only [forestCoords]; omega⟩ hidx h
+      obtain ⟨⟨marks, hr, hbs⟩, hn⟩ := sCoords_sound_w hq hfk hmd index hidx m (c + 1) _ _ (by omega) h
+      refine ⟨⟨fun k => if k = c then mark else marks k, fun r hr' => ?_, ?_⟩, hn⟩
       · rcases r with _ | r
-        · simp only [Nat.add_zero, ↓reduceIte, List.getD_cons_zero]
+        · simp only [Nat.add_zero, ↓reduceIte, List.getD_cons_zero, coordsOpenings]
           exact ⟨hrec, hw0, hw1⟩
         · have := hr r (by omega)
-          simp only [List.getD_cons_succ, show c + (r + 1) ≠ c by omega, ↓reduceIte]
+          simp only [List.getD_cons_succ, show c + (r + 1) ≠ c by omega, ↓reduceIte, coordsOpenings]
           have hF : (⟨c + (r + 1), by simp only [forestCoords]; omega⟩ : Coord) =
               ⟨c + 1 + r, by simp only [forestCoords]; omega⟩ := Fin.ext (by simp only; omega)
           rw [hF, show c + (r + 1) = c + 1 + r by omega]
@@ -510,6 +638,24 @@ theorem sCoords_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (
         simp only [Nat.add_zero, ↓reduceIte]
         rw [coordWeight]
         abel
+
+/-- **The coordinates are sound.** -/
+theorem sCoords_sound (hq : SQ inst) (hfk : FkSound C rd) {σ : Val} (hmd : σ (.n 3) = mdw 64 true)
+    (index : Index) (hidx : σ (.n 142) = eOfNat index.val) (m c : Nat) (bound : V) (b : Nat) {next : Prop}
+    {kret : List E → Prop} (hcm : c + m ≤ 8) (h : Stmt.HoldsList C rd σ (sCoords m c bound b).1 next kret) :
+      (∃ (marks : Nat → CoordMark) (openings : Nat → CoordOpening),
+        (∀ r (hr : r < m),
+          @coordRecover Id _ inst (spp (σ (.n 1))) index ⟨c + r, by simp only [forestCoords]; omega⟩
+              (marks (c + r)) (openings (c + r)) =
+            (sv (σ ((sCoords m c bound b).2.2.2.1.getD r (.n 0, .n 0)).1),
+              sv (σ ((sCoords m c bound b).2.2.2.1.getD r (.n 0, .n 0)).2)) ∧
+          σ ((sCoords m c bound b).2.2.1.getD r (.n 0, .n 0)).1 = word ((marks (c + r)).word 0).val 0 0 ∧
+          σ ((sCoords m c bound b).2.2.1.getD r (.n 0, .n 0)).2 = word ((marks (c + r)).word 1).val 0 0) ∧
+        σ (sCoords m c bound b).2.2.2.2 = σ bound + ∑ r ∈ Finset.range m, coordWeight (c + r) (marks (c + r))) ∧
+      next := by
+  obtain ⟨wfk, hw⟩ := exists_fkSoundW hfk
+  obtain ⟨⟨marks, h1, h2⟩, hn⟩ := sCoords_sound_w hq hw hmd index hidx m c bound b hcm h
+  exact ⟨⟨marks, _, h1, h2⟩, hn⟩
 
 end Scheme
 

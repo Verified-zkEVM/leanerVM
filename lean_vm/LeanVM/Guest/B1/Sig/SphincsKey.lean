@@ -71,24 +71,38 @@ theorem fkChain_sound {σ : Val} {i d b : Nat} {next : Prop} {kret : List E → 
       rw [fkAfter, ite_neg' (by omega), show b + 1 + 8 * (m + 1 - 1) + 6 = b + 1 + 8 * m + 6 by omega,
         ho1, fChain, word_eq_eOfNat]
 
-/-- **The chains of a forest key are sound.** -/
-theorem fkChains_sound (t : Nat) {σ : Val} :
+/-- The hinted values of chains `i ..< i + m` of forest key `t` from base `b`: chain `i`'s at `n(b)`. -/
+def fkValsFrom (t : Nat) (σ : Val) : Nat → Nat → Nat → Nat → E
+  | 0, _, _ => fun _ => 0
+  | m + 1, i, b => fun k => if k = i then σ (.n b) else fkValsFrom t σ m (i + 1) (b + fkChainSize (spCode t i)) k
+
+/-- **The chains of a forest key are sound**, from their hinted values. -/
+theorem fkChains_sound_w (t : Nat) {σ : Val} :
     ∀ (m i b : Nat) {next : Prop} {kret : List E → Prop},
       Stmt.HoldsList C rd σ (fkChains t m i b).1 next kret →
-      (∃ vals : Nat → E, ∀ r < m, σ (.n ((fkChains t m i b).2.2.getD r 0)) =
-        fChain (σ (.n 1)) (σ (.n 0)) (i + r) (4 - spCode t (i + r)) (vals (i + r)) (spCode t (i + r))) ∧ next
-  | 0, _, _, _, _, h => ⟨⟨fun _ => 0, fun _ h => absurd h (by omega)⟩, h⟩
+      (∀ r < m, σ (.n ((fkChains t m i b).2.2.getD r 0)) =
+        fChain (σ (.n 1)) (σ (.n 0)) (i + r) (4 - spCode t (i + r)) (fkValsFrom t σ m i b (i + r))
+          (spCode t (i + r))) ∧ next
+  | 0, _, _, _, _, h => ⟨fun _ h => absurd h (by omega), h⟩
   | m + 1, i, b, next, kret, h => by
       simp only [fkChains, holdsList_append] at h ⊢
       obtain ⟨htip, h⟩ := fkChain_sound h
-      obtain ⟨⟨vals, hv⟩, hn⟩ := fkChains_sound t m (i + 1) _ h
-      refine ⟨⟨fun k => if k = i then σ (.n b) else vals k, fun r hr => ?_⟩, hn⟩
+      obtain ⟨hv, hn⟩ := fkChains_sound_w t m (i + 1) _ h
+      refine ⟨fun r hr => ?_, hn⟩
       rcases r with _ | r
-      · simpa using htip
+      · simpa [fkValsFrom] using htip
       · have := hv r (by omega)
         simp only [List.getD_cons_succ]
         rw [this, show i + 1 + r = i + (r + 1) by omega]
-        simp
+        simp [fkValsFrom]
+
+/-- **The chains of a forest key are sound.** -/
+theorem fkChains_sound (t : Nat) {σ : Val} (m i b : Nat) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (fkChains t m i b).1 next kret) :
+    (∃ vals : Nat → E, ∀ r < m, σ (.n ((fkChains t m i b).2.2.getD r 0)) =
+      fChain (σ (.n 1)) (σ (.n 0)) (i + r) (4 - spCode t (i + r)) (vals (i + r)) (spCode t (i + r))) ∧ next :=
+  let ⟨h1, h2⟩ := fkChains_sound_w t m i b h
+  ⟨⟨_, h1⟩, h2⟩
 
 /-! ## The key -/
 
@@ -98,16 +112,19 @@ def fkLeaf (t : Nat) (pp ka : E) (vals : Nat → E) : E :=
   (hcell (pp :: (ka + eOfNat (tw 16)) :: (List.range 6).map fun k =>
     fChain pp ka k (4 - spCode t k) (vals k) (spCode t k))).1
 
-/-- **`sp_forest_key__L{t}` is sound**: it returns the child leaf of its six chains and `t`. -/
-theorem fkBody_sound (t : Nat) {σ : Val} {rets : List E}
+/-- The chain values of forest key `t`, as its frame `σ` hints them. -/
+def fkVals (t : Nat) (σ : Val) : Nat → E := fkValsFrom t σ 6 0 2
+
+/-- **`sp_forest_key__L{t}` is sound**: it returns the child leaf of its six chains from the values
+it hinted, and `t`. -/
+theorem fkBody_sound_w (t : Nat) {σ : Val} {rets : List E}
     (h : Stmt.HoldsList C rd σ (fkBody t) False (fun rs => rs = rets)) :
-    ∃ vals : Nat → E, rets = [fkLeaf t (σ (.n 1)) (σ (.n 0)) vals, word t 0 0] := by
+    rets = [fkLeaf t (σ (.n 1)) (σ (.n 0)) (fkVals t σ), word t 0 0] := by
   simp only [fkBody, holdsList_append] at h
-  obtain ⟨⟨vals, hv⟩, h⟩ := fkChains_sound t 6 0 2 h
+  obtain ⟨hv, h⟩ := fkChains_sound_w t 6 0 2 h
   simp only [cst, ivs, b2s, addS, holdsList_cons_atom, Atom.Holds, Stmt.HoldsList, Stmt.Holds, List.map_cons,
     List.map_nil] at h
   obtain ⟨h0, h1, h2, h3, h4, hc1, h7, hc2, h10, h11, hr⟩ := h
-  refine ⟨vals, ?_⟩
   rw [← hr, h10, h11]
   rw [h1, h0, h2, h3, h4] at hc1
   rw [h7] at hc2
@@ -124,12 +141,18 @@ theorem fkBody_sound (t : Nat) {σ : Val} {rets : List E}
     (by rw [hr4]; simp) (by rw [hr4]) (by rw [hr4]; omega)).mp ⟨hc1, hc2'⟩
   congr 1
   have ho1 : σ (.n ((fkChains t 6 0 2).2.1 + 8)) = _ := congrArg Prod.fst ho
-  rw [ho1, fkLeaf, blockBytes_four, blockBytes_four, hcell, ← List.flatMap_append,
+  rw [ho1, fkLeaf, fkVals, blockBytes_four, blockBytes_four, hcell, ← List.flatMap_append,
     word_eq_eOfNat]
   congr 2
   simp only [List.range_succ, List.range_zero, List.nil_append, List.map_cons, List.map_nil, List.cons_append]
   rw [← hv 0 (by omega), ← hv 1 (by omega), ← hv 2 (by omega), ← hv 3 (by omega), ← hv 4 (by omega),
     ← hv 5 (by omega)]
+
+/-- **`sp_forest_key__L{t}` is sound**: it returns the child leaf of its six chains and `t`. -/
+theorem fkBody_sound (t : Nat) {σ : Val} {rets : List E}
+    (h : Stmt.HoldsList C rd σ (fkBody t) False (fun rs => rs = rets)) :
+    ∃ vals : Nat → E, rets = [fkLeaf t (σ (.n 1)) (σ (.n 0)) vals, word t 0 0] :=
+  ⟨_, fkBody_sound_w t h⟩
 
 /-! ## As a function of the program -/
 
@@ -147,6 +170,34 @@ theorem find_fk {t : Nat} (ht : t < 256) : coreProgram.find? (fkNames.getD t "")
 from some values, and `t`. -/
 def Meaning_sp_forest_key (t : Nat) (_rd : Reader) (args rets : List E) : Prop :=
   ∃ ka pp, args = [ka, pp] ∧ ∃ vals : Nat → E, rets = [fkLeaf t pp ka vals, word t 0 0]
+
+/-- **What a call of `sp_forest_key__L{t}` returns from the chain values `vals`**: the arguments are
+an address `ka` and a parameter `pp`, the returns the child leaf of the chains from `vals` and `t`. -/
+def FkOut (t : Nat) (args rets : List E) (vals : Nat → E) : Prop :=
+  ∃ ka pp, args = [ka, pp] ∧ rets = [fkLeaf t pp ka vals, word t 0 0]
+
+theorem fkOut_iff (t : Nat) (args rets : List E) (vals : Nat → E) :
+    FkOut t args rets vals ↔ args.length = 2 ∧ rets = [fkLeaf t (args.getD 1 0) (args.getD 0 0) vals, word t 0 0] := by
+  constructor
+  · rintro ⟨ka, pp, rfl, hr⟩
+    exact ⟨rfl, by simpa only [List.getD_cons_succ, List.getD_cons_zero] using hr⟩
+  · rintro ⟨hl, hr⟩
+    obtain ⟨ka, pp, rfl⟩ := List.length_eq_two.mp hl
+    simp only [List.getD_cons_succ, List.getD_cons_zero] at hr
+    exact ⟨ka, pp, rfl, hr⟩
+
+instance (t : Nat) (args rets : List E) (vals : Nat → E) : Decidable (FkOut t args rets vals) :=
+  decidable_of_iff _ (fkOut_iff t args rets vals).symm
+
+theorem meaning_sp_forest_key_iff (t : Nat) (args rets : List E) :
+    Meaning_sp_forest_key t rd args rets ↔ ∃ vals, FkOut t args rets vals :=
+  ⟨fun ⟨ka, pp, ha, vals, hr⟩ => ⟨vals, ka, pp, ha, hr⟩, fun ⟨vals, ka, pp, ha, hr⟩ => ⟨ka, pp, ha, vals, hr⟩⟩
+
+/-- **`sp_forest_key__L{t}` is sound**, its frame `σ` naming the chain values. -/
+theorem fkBody_out_w (t : Nat) {σ : Val} {rets : List E}
+    (h : Stmt.HoldsList C rd σ (fkBody t) False (fun rs => rs = rets)) :
+    FkOut t [σ (.n 0), σ (.n 1)] rets (fkVals t σ) :=
+  ⟨σ (.n 0), σ (.n 1), rfl, fkBody_sound_w t h⟩
 
 theorem sp_forest_key_sound {t : Nat} (ht : t < 256) {args rets : List E}
     (h : coreProgram.Rel rd (fkNames.getD t "") args rets) : Meaning_sp_forest_key t rd args rets := by

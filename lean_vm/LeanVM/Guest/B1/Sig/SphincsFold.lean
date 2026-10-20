@@ -114,5 +114,104 @@ theorem spMatch_sound {σ : Val} {pp md adr node ret1 ret2 x : V} {F : Fold} {ou
   obtain ⟨hs, h1, h2, hn⟩ := spArm_sound hmd hF ha
   exact ⟨j, hj, hx, hs, h1, h2, hn⟩
 
+/-! ## The hinted siblings, as functions of the frame -/
+
+/-- The siblings levels `l ..< l + m` of a fold hint from base `b`: level `l`'s at `n(b)`. -/
+def lvSibs (σ : Val) : Nat → Nat → Nat → Nat → E
+  | 0, _, _ => fun _ => 0
+  | m + 1, l, b => fun l' => if l' = l then σ (.n b) else lvSibs σ m (l + 1) (b + 7) l'
+
+/-- **Levels of a fold are sound**, along the siblings they hint. -/
+theorem spLevels_sound_w {σ : Val} {pp md adr : V} (F : Fold) (index : Nat) (hmd : σ md = mdw 64 true) :
+    ∀ (m l : Nat) (cur : V) (b : Nat) {next : Prop} {kret : List E → Prop},
+      Stmt.HoldsList C rd σ (spLevels pp md adr F index m l cur b).1 next kret →
+      σ (spLevels pp md adr F index m l cur b).2 =
+        mFold (σ pp) (foldAddr σ adr F index) (fun l => index.testBit l) (lvSibs σ m l b) m l (σ cur) ∧ next
+  | 0, _, _, _, _, _, h => ⟨rfl, h⟩
+  | m + 1, l, cur, b, next, kret, h => by
+      simp only [spLevels, holdsList_append] at h ⊢
+      obtain ⟨hl, h⟩ := spLevel_sound hmd h
+      obtain ⟨hs, hn⟩ := spLevels_sound_w F index hmd m (l + 1) _ _ h
+      refine ⟨?_, hn⟩
+      rw [hs, hl, mFold]
+      refine (mFold_congr _ _ _ m (l + 1) (sibs := lvSibs σ m (l + 1) (b + 7)) (sibs' := lvSibs σ (m + 1) l b)
+        (fun l' h1 _ => by simp [lvSibs, show l' ≠ l by omega]) _).trans ?_
+      simp [foldAddr, lvSibs]
+
+/-- The siblings an arm of a fold hints from base `b`: its levels', then its top level's. -/
+def armSibs (σ : Val) (F : Fold) (b : Nat) : Nat → E := fun l =>
+  if l = F.height - 2 then σ (.n (b + 7 * (F.height - 2))) else lvSibs σ (F.height - 2) 0 b l
+
+/-- **An arm of a fold is sound**, along the siblings it hints. -/
+theorem spArm_sound_w {σ : Val} {pp md adr node ret1 ret2 : V} {F : Fold} {out : Nat → V} {r1 r2 : E}
+    {index b : Nat} (hmd : σ md = mdw 64 true) (hF : 2 ≤ F.height) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (spArm pp md adr node F out ret1 ret2 r1 r2 index b) next kret) :
+    σ (out (2 * (index / 2 ^ (F.height - 1)))) =
+      mFold (σ pp) (foldAddr σ adr F index) (fun l => index.testBit l) (armSibs σ F b) (F.height - 1) 0 (σ node) ∧
+      σ ret1 = r1 ∧ σ ret2 = r2 ∧ next := by
+  simp only [spArm, holdsList_append] at h
+  obtain ⟨hs, h⟩ := spLevels_sound_w F index hmd _ 0 node b h
+  obtain ⟨hl, h⟩ := spLevel_sound hmd h
+  simp only [hintW, holdsList_cons_atom, holdsList_nil, Atom.Holds, true_and] at h
+  obtain ⟨h1, h2, hn⟩ := h
+  refine ⟨?_, h1, h2, hn⟩
+  have e : ∀ sb : Nat → E, mFold (σ pp) (foldAddr σ adr F index) (fun l => index.testBit l) sb (F.height - 1) 0 (σ node) =
+      mFold (σ pp) (foldAddr σ adr F index) (fun l => index.testBit l) sb (F.height - 2 + 1) 0 (σ node) := fun sb => by
+    rw [show F.height - 1 = F.height - 2 + 1 by omega]
+  rw [e, show armSibs σ F b = fun l => if l = F.height - 2 then σ (.n (b + 7 * (F.height - 2)))
+      else lvSibs σ (F.height - 2) 0 b l from rfl, mFold_last, ← hs, hl]
+  rfl
+
+/-- The base of arm `a + j` among the arms from `a`, at base `b`. -/
+def spArmsBase (F : Fold) : Nat → Nat → Nat → Nat
+  | _, b, 0 => b
+  | a, b, j + 1 => spArmsBase F (a + 1) (b + spArmSize F a) j
+
+theorem spArms_get_w (pp md adr node : V) (F : Fold) (out : Nat → V) (ret1 ret2 : V) (r1 r2 : Nat → E) :
+    ∀ (m a b j : Nat), j < m →
+      (spArms pp md adr node F out ret1 ret2 r1 r2 m a b).1[j]? =
+        some (spArm pp md adr node F out ret1 ret2 (r1 (a + j)) (r2 (a + j)) (a + j) (spArmsBase F a b j))
+  | 0, _, _, _, h => absurd h (by omega)
+  | m + 1, a, b, 0, _ => by simp [spArms, spArmsBase]
+  | m + 1, a, b, j + 1, h => by
+      simp only [spArms, List.getElem?_cons_succ, spArmsBase]
+      rw [spArms_get_w pp md adr node F out ret1 ret2 r1 r2 m (a + 1) _ j (by omega),
+        show a + 1 + j = a + (j + 1) by omega]
+
+/-- The first `j ∈ [i, i + n)` with `e = g^j`, else `i + n`: the arm a `match` on `e` takes. -/
+def selIdx (e : E) : Nat → Nat → Nat
+  | i, 0 => i
+  | i, n + 1 => if e = ofK (gpow i) then i else selIdx e (i + 1) n
+
+theorem selIdx_of {e : E} {k : Nat} (he : e = ofK (gpow k)) (hk : k < 2 ^ 64 - 1) :
+    ∀ n i, i ≤ k → k < i + n → selIdx e i n = k
+  | 0, _, _, h2 => absurd h2 (by omega)
+  | n + 1, i, h1, h2 => by
+      rw [selIdx]
+      by_cases hj : e = ofK (gpow i)
+      · simp only [hj, ↓reduceIte]
+        exact gpow_injOn (show i ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega)
+          (show k ∈ Set.Iio (2 ^ 64 - 1) by simp only [Set.mem_Iio]; omega) (ofK_injective (hj.symm.trans he))
+      · simp only [hj, ↓reduceIte]
+        have hik : i ≠ k := fun e' => hj (e' ▸ he)
+        exact selIdx_of he hk n (i + 1) (by omega) (by omega)
+
+/-- **A fold's dispatch is sound**, at the arm `selIdx` names, along the siblings that arm hints. -/
+theorem spMatch_sound_w {σ : Val} {pp md adr node ret1 ret2 x : V} {F : Fold} {out : Nat → V} {r1 r2 : Nat → E}
+    {m b : Nat} (hmd : σ md = mdw 64 true) (hF : 2 ≤ F.height) (hm : m < 2 ^ 64 - 1) {ss : List Stmt}
+    {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (.match_ x (spArms pp md adr node F out ret1 ret2 r1 r2 m 0 b).1 :: ss) next kret) :
+    ∃ a < m, selIdx (σ x) 0 m = a ∧ σ x = ofK (gpow a) ∧ σ (out (2 * (a / 2 ^ (F.height - 1)))) =
+      mFold (σ pp) (foldAddr σ adr F a) (fun l => a.testBit l) (armSibs σ F (spArmsBase F 0 b a)) (F.height - 1) 0
+        (σ node) ∧
+      σ ret1 = r1 a ∧ σ ret2 = r2 a ∧ Stmt.HoldsList C rd σ ss next kret := by
+  obtain ⟨j, hj, hx, ha⟩ := (holds_match_iff x _ _ _).mp h
+  rw [spArms_length] at hj
+  have hget := spArms_get_w pp md adr node F out ret1 ret2 r1 r2 m 0 b j hj
+  rw [List.getElem?_eq_getElem (by rw [spArms_length]; exact hj), Option.some.injEq, Nat.zero_add] at hget
+  rw [hget] at ha
+  obtain ⟨hs, h1, h2, hn⟩ := spArm_sound_w hmd hF ha
+  exact ⟨j, hj, selIdx_of hx (by omega) m 0 (by omega) (by omega), hx, hs, h1, h2, hn⟩
+
 end
 end LeanVM.Guest.B1.Sig
