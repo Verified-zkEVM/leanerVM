@@ -48,8 +48,9 @@ theorem map_range_eq {α : Type} [Inhabited α] {n : ℕ} {g : ℕ → α} {l : 
 
 /-! ## Bounded discrete logs -/
 
-/-- The first `n < 2^18` with `g^n = x`, `0` when there is none. -/
-def gLog (x : E) : ℕ := ((List.range (2 ^ 18)).find? fun n => decide (gen ^ n = x)).getD 0
+/-- The first `n < 2^18` with `g^n = x`, `0` when there is none. Irreducible: unfolding it would
+run the search over `2^18` candidates. -/
+@[irreducible] def gLog (x : E) : ℕ := ((List.range (2 ^ 18)).find? fun n => decide (gen ^ n = x)).getD 0
 
 theorem gLog_gen_pow {n : ℕ} (h : n < 2 ^ 18) : gLog (gen ^ n) = n := by
   unfold gLog
