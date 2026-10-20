@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Builds and checks the four Lake projects as .github/workflows/lean.yml does, one after another,
+# each in its own directory with its own manifest. `lake build` at the root runs it.
+#
+#   ./check-all.sh [lean_xmss] [lean_sphincs] [lean_da] [lean_vm]   (default: all four)
+#
+# The compiled checks and `lean` run under a virtual-memory cap of LEAN_VMEM_KB (default 40 GB);
+# `lake` itself cannot, as it reserves about 1 GB of address space per job. WIDTH is passed to
+# lean_vm/scripts/ci-build.py, the modules it builds at once (default 2). Not run here:
+# lean_vm's Rust-vs-Lean differential and guest-diff, which build leanVM's crates around lean_vm.
+set -euo pipefail
+cd "$(dirname "${BASH_SOURCE[0]}")"
+log=$(mktemp -d)
+trap 'rm -rf "$log"' EXIT
+
+step() { printf '\n==> %s\n' "$*"; }
+fail() { echo "error: $*" >&2; exit 1; }
+capped() { (ulimit -v "${LEAN_VMEM_KB:-40000000}"; exec "$@"); }
+
+# No `sorry`, `admit`, `native_decide`, `unsafe`, `implemented_by` or `#exit` outside comments.
+no_escapes() {
+  step "$1: forbid proof escapes"
+  if grep -rnE '\b(sorry|sorryAx|admit|native_decide|unsafe|implemented_by)\b|#exit' \
+      --include='*.lean' --exclude-dir=.lake "$1" | grep -vE ':[0-9]+: *(--|/-)'; then
+    fail "$1: proof escape"
+  fi
+}
+
+# `lake build` in $1, then no deprecation warning from the modules matching $2. Lake replays a
+# cached module's warnings, so the log lists every one.
+build() {
+  step "$1: lake build"
+  (cd "$1" && lake build 2>&1) | tee "$log/build.txt"
+  if grep -E "^warning: $2.*has been deprecated" "$log/build.txt"; then
+    fail "$1: deprecated API"
+  fi
+}
+
+# Each theorem after the module $2 depends on Lean's three axioms only, asked from outside.
+axioms() {
+  local dir=$1 module=$2 t; shift 2
+  step "$dir: axiom footprint"
+  { echo "import $module"; for t in "$@"; do echo "#print axioms $t"; done; } > "$log/axioms.lean"
+  (cd "$dir" && capped lake env lean "$log/axioms.lean") | tee "$log/axioms.txt"
+  for t in "$@"; do
+    grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$log/axioms.txt" \
+      || fail "$dir: $t depends on more axioms"
+  done
+}
+
+lean_xmss() {
+  no_escapes lean_xmss
+  (cd lean_xmss && lake exe cache get)
+  build lean_xmss '(LeanXmss|XmssSecurity)'
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security
+}
+
+lean_sphincs() {
+  no_escapes lean_sphincs
+  (cd lean_sphincs && lake exe cache get)
+  # The kernel-checked tables (`decide +kernel`) one at a time: the largest takes most of the memory.
+  local m
+  for m in Sphincs.H0FTab Sphincs.H0PTab Sphincs.H0NTab Sphincs.LifetimeCertificates; do
+    step "lean_sphincs: lake build $m"
+    (cd lean_sphincs && lake build "$m")
+  done
+  build lean_sphincs 'Sphincs(Fors|Base)?/'
+  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity
+}
+
+lean_da() {
+  no_escapes lean_da
+  (cd lean_da && lake exe cache get)
+  build lean_da '(LeanDa|PqDas)'
+  axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding \
+    LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells
+}
+
+lean_vm() {
+  no_escapes lean_vm
+  step "lean_vm: keep the specification apart from the proofs"
+  if grep -rnE '^(public )?import LeanVM\.' lean_vm/LeanVM/Spec | grep -vE 'import LeanVM\.Spec\.'; then
+    fail "lean_vm: LeanVM/Spec imports the proofs"
+  fi
+  (cd lean_vm && lake exe cache get)
+  # Fails on any warning and on an axiom footprint beyond Lean's three (`LeanVM.lean`).
+  step "lean_vm: build, a few modules at a time"
+  (cd lean_vm && python3 -I scripts/ci-build.py)
+  step "lean_vm: lake test"
+  (cd lean_vm && lake test)
+  step "lean_vm: build the compiled checks"
+  (cd lean_vm && lake build node-vectors guest-core guest-cert)
+  step "lean_vm: the Rust vectors' costly checks, compiled"
+  (cd lean_vm && capped .lake/build/bin/node-vectors)
+  step "lean_vm: the guest's core IR data is current"
+  (cd lean_vm && capped .lake/build/bin/guest-core --check)
+  step "lean_vm: the guest's certificates and check modules are current"
+  (cd lean_vm && capped .lake/build/bin/guest-cert --check)
+}
+
+projects=("$@")
+[ ${#projects[@]} -gt 0 ] || projects=(lean_xmss lean_sphincs lean_da lean_vm)
+for p in "${projects[@]}"; do
+  case $p in
+    lean_xmss | lean_sphincs | lean_da | lean_vm) "$p" ;;
+    *) fail "unknown project $p" ;;
+  esac
+done
+step "all checks passed: ${projects[*]}"
