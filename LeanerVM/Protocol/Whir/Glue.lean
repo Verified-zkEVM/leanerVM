@@ -218,7 +218,10 @@ theorem pair_gluedWeight {κ R t : ℕ} (W' : Weight E κ) (z : Vector E κ)
 
 
 /-- The residual weight: the weight with its lane coordinates bound at the fold point `r`;
-its extension at `z` is the weight's at `r ++ z`. -/
+its extension at `z` is the weight's at `r ++ z`. The verifier reads `mle` only (the terminal
+check); `onCube` is for the prover's sums and the proofs. With the `Weight` of `main` the record
+builds its table when it is constructed; once the table is a thunk (#110) this constructor writes
+`cube := .mk fun _ => foldTable ...` and nothing on the verifier's path forces it. -/
 def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Weight E κ where
   onCube := foldTable W.onCube r
   mle := fun z ↦ W.mle (r ++ z)

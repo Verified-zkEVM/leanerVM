@@ -16,7 +16,9 @@ public import LeanerVM.Protocol.ToArkLib.Oracles
 A level of WHIR commits to the interleaved word of its table: at each position `y` of the code's
 domain a *row* of `2 ^ ℓ` symbols, one per lane. `Word ℓ b t` is such a word on `2 ^ b`
 positions, read `t` positions at a time: a question is `t` positions and the answer their `t`
-rows (the verifier of a level samples its query positions and reads the rows at them together).
+rows (the verifier of a level samples its query positions and reads the rows at them together;
+the query count is in the oracle's type on purpose, so that the positions are one challenge and
+the answer one message).
 `wordOf f` is the honest word of the table `f`, the encodings of its lanes (`encode` of
 `sliceLow f u`, `LeanerVM.Protocol.WhirFold`), and `foldRow r` folds a row by the fold point `r`:
 `foldRow_wordOf` is `fact:fold-decode` in the shape the verifier uses it, the folded row at `y` is

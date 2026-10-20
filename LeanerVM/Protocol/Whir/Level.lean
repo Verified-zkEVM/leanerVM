@@ -59,6 +59,10 @@ parameter, so that the levels chain (`Ladder`, `LeanerVM.Protocol.Whir.Open`).
   hash chain (`grind_check`), which the compiled verifier does. The honest prover sends zero.
 * **The positions** are one challenge of type `Fin t → Fin (2 ^ (κ + R))`; the deployed verifier
   derives them from squeezes of the transcript, which the compiled verifier reproduces.
+* **The round polynomials** are three coefficients here, with the check that its values at `0` and
+  `1` sum to the claim. The deployed stream carries two scalars per round polynomial and derives
+  the linear coefficient from the running claim, so the two are equivalent and the decoder of the
+  compiled verifier owes the derivation.
 * **The level-0 word** is `E`-valued here; its `K`-valuedness is an invariant of the input
   relation that the verifier never checks (`isInK_encode_ofK`).
 -/
@@ -72,8 +76,10 @@ open scoped NNReal
 
 namespace Whir
 
-/-- The shape of one level: its fold count less one (a level folds at least once), the rate
-exponent of its word and its query count. -/
+/-- The shape of one level: its fold count less one, the rate exponent of its word and its query
+count. The fold count is kept as `lm1 + 1` so that a level folds at least once by construction:
+the first round polynomial of a level is checked against its claim only if there is a variable
+left to sum over, and `derive_config` never produces a level that does not fold. -/
 structure Shape where
   /-- The number of fold rounds, less one. -/
   lm1 : ℕ
@@ -84,6 +90,14 @@ structure Shape where
 
 /-- The number of fold rounds. -/
 abbrev Shape.ℓ (s : Shape) : ℕ := s.lm1 + 1
+
+/-- The shape of a level from its fold count, rate exponent and query count, the three numbers a
+parameter set gives: the glue from a level of the parameters (`fold ≥ 1`) to a `Shape`. -/
+def Shape.ofFold (fold R t : ℕ) : Shape := ⟨fold - 1, R, t⟩
+
+/-- A level of the parameters with at least one fold has that many folds as a `Shape`. -/
+theorem Shape.ofFold_ℓ {fold : ℕ} (h : 0 < fold) (R t : ℕ) : (Shape.ofFold fold R t).ℓ = fold := by
+  simp only [Shape.ofFold, Shape.ℓ]; omega
 
 /-- The tables of `n` variables. -/
 abbrev Tab (n : ℕ) : Type := CMlPolynomialEval E n
@@ -148,8 +162,6 @@ structure Bd (sh : Shape) (κ : ℕ) where
   cood : E
   /-- The out-of-domain claim's first-round polynomial. -/
   p2 : SumcheckRound.Message E 2
-  /-- The plaintext table of the final level. -/
-  ff : Tab κ
   /-- The grinding nonce. -/
   nonce : E
   /-- The sampled positions. -/
@@ -171,7 +183,6 @@ def Bd.start {sh : Shape} {κ : ℕ} (W : Weight E (sh.ℓ + κ)) (r : Vector E 
   z := Vector.replicate κ 0
   cood := 0
   p2 := 0
-  ff := Vector.replicate (2 ^ κ) 0
   nonce := 0
   pos := fun _ ↦ ⟨0, Nat.two_pow_pos _⟩
   lam := 0
@@ -199,11 +210,11 @@ def Bd.F1 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
   s.c = s.resid.pair (RingHom.id E) (s.fold f) ∧ s.p1 = firstPoly s.resid (s.fold f)
 
 /-- And the out-of-domain answer. -/
-def Bd.F2 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
+private def Bd.F2 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
   s.F1 f ∧ s.cood = evalMle (s.fold f) s.z
 
 /-- And the out-of-domain claim's first-round polynomial. -/
-def Bd.F3 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
+private def Bd.F3 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
   s.F2 f ∧ s.p2 = firstPoly (eqWeight s.z) (s.fold f)
 
 /-- The folded symbols at the sampled positions are the folded table's encodings there. -/
@@ -215,19 +226,10 @@ def Bd.P3 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop :=
   s.p3 = firstPoly (queryWeight κ sh.R s.pos s.lam) (s.fold f)
 
 /-- And the folded symbols. -/
-def Bd.F4 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.F3 f ∧ s.Cq f
+private def Bd.F4 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.F3 f ∧ s.Cq f
 
 /-- And the query batch's first-round polynomial. -/
-def Bd.F5 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.F4 f ∧ s.P3 f
-
-/-- The final level: the residual claim, and the plaintext table. -/
-def Bd.G2 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.F1 f ∧ s.ff = s.fold f
-
-/-- And the folded symbols. -/
-def Bd.G3 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.G2 f ∧ s.Cq f
-
-/-- And the query batch's first-round polynomial. -/
-def Bd.G4 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.G3 f ∧ s.P3 f
+private def Bd.F5 (s : Bd sh κ) (f : Tab (sh.ℓ + κ)) : Prop := s.F4 f ∧ s.P3 f
 
 end Facts
 
@@ -239,8 +241,8 @@ def keepNew : Fin 1 ↪ Fin 1 ⊕ Unit :=
 
 /-- Before the commitment: the level's word is the one oracle, the honest word of the table, and
 the facts `P` hold. -/
-def relOld (sh : Shape) (κ : ℕ) (P : Bd sh κ → Tab (sh.ℓ + κ) → Prop) :
-    Set ((Bd sh κ × ∀ i, OneW sh κ i) × Tab (sh.ℓ + κ)) :=
+def relOld {S : Type} (sh : Shape) (κ : ℕ) (P : S → Tab (sh.ℓ + κ) → Prop) :
+    Set ((S × ∀ i, OneW sh κ i) × Tab (sh.ℓ + κ)) :=
   {p | p.1.2 0 = wordOf sh.ℓ κ sh.R sh.t p.2 ∧ P p.1.1 p.2}
 
 section Relations
@@ -250,7 +252,7 @@ variable (sh sh' : Shape) (κ' : ℕ)
 /-- Between the commitment and the reading of the old word: the old word and the next level's
 word, the honest words of the table and of its fold, and the facts `P` of the statement's
 record. -/
-def relBoth {S : Type} (bd : S → Bd sh (Kap sh' κ'))
+private def relBoth {S : Type} (bd : S → Bd sh (Kap sh' κ'))
     (P : Bd sh (Kap sh' κ') → Tab (sh.ℓ + Kap sh' κ') → Prop) :
     Set ((S × ∀ i, Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ') i) ×
       Tab (sh.ℓ + Kap sh' κ')) :=
@@ -260,7 +262,7 @@ def relBoth {S : Type} (bd : S → Bd sh (Kap sh' κ'))
 
 /-- After the old word is dropped: the next level's word is the one oracle, and the facts `P`
 hold. -/
-def relNew (P : Bd sh (Kap sh' κ') → Tab (sh.ℓ + Kap sh' κ') → Prop) :
+private def relNew (P : Bd sh (Kap sh' κ') → Tab (sh.ℓ + Kap sh' κ') → Prop) :
     Set ((Bd sh (Kap sh' κ') × ∀ i, Component.keptOracles
         (Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ')) keepNew i) ×
       Tab (sh.ℓ + Kap sh' κ')) :=
@@ -277,7 +279,7 @@ theorem chk_firstPoly {κ : ℕ} (hκ : 0 < κ) (A : Weight E κ) (g : Tab κ) :
   rw [decide_eq_true_eq, ProductSum.roundPoly_check _ _ hκ, claim_zero]
 
 /-- The next level's table has at least one variable: a level folds at least once. -/
-theorem kap_pos (sh' : Shape) (κ' : ℕ) : 0 < Kap sh' κ' :=
+private theorem kap_pos (sh' : Shape) (κ' : ℕ) : 0 < Kap sh' κ' :=
   Nat.add_pos_left (Nat.succ_pos _) _
 
 section Folds
@@ -305,22 +307,22 @@ def sendResidual :=
     (fun s m ↦ chk m s.2.2) (fun s m ↦ Bd.start s.1 s.2.1 s.2.2 m)
 
 /-- The fold rounds are honest up to the last lane. -/
-theorem levelHonest : (levelFamily sh κ).Honest sh.ℓ :=
+private theorem levelHonest : (levelFamily sh κ).Honest sh.ℓ :=
   levelFamily_honest sh κ (by omega)
 
 /-- Completeness of the first fold challenge. -/
-def foldFirstComplete : Component.Complete (foldFirst sh κ)
+@[no_expose] def foldFirstComplete : Component.Complete (foldFirst sh κ)
     (SumcheckRound.relMid (levelFamily sh κ) 0) (SumcheckRound.rel (levelFamily sh κ) 1) :=
   SumcheckRound.drawChallengeComplete 0 _ (levelHonest sh κ) (by simp [Shape.ℓ])
 
 /-- Completeness of the remaining fold rounds. -/
-def foldRestComplete : Component.Complete (foldRest sh κ)
+@[no_expose] def foldRestComplete : Component.Complete (foldRest sh κ)
     (SumcheckRound.rel (levelFamily sh κ) 1) (SumcheckRound.rel (levelFamily sh κ) sh.ℓ) :=
   SumcheckRound.roundsComplete (levelFamily sh κ) sh.ℓ (levelHonest sh κ) sh.lm1 1
     (by simp only [Shape.ℓ]; omega)
 
 /-- Completeness of the first message after the folds: the fold's claim is the residual claim. -/
-def sendResidualComplete (hκ : 0 < κ) : Component.Complete (sendResidual sh κ)
+@[no_expose] def sendResidualComplete (hκ : 0 < κ) : Component.Complete (sendResidual sh κ)
     (SumcheckRound.rel (levelFamily sh κ) sh.ℓ) (relOld sh κ Bd.F1) :=
   Component.sendCheckedComplete _ _ _ _ _ fun s o w h ↦ by
     obtain ⟨hinv, hclaim⟩ := h
@@ -363,19 +365,19 @@ def sendQueryPoly :=
 variable {rel rel' : Set ((Bd sh κ × ∀ i, O i) × Tab (sh.ℓ + κ))}
 
 /-- Completeness of the nonce, whenever any nonce keeps the relation. -/
-def sendNonceComplete
+private def sendNonceComplete
     (h : ∀ s o w m, ((s, o), w) ∈ rel → (({ s with nonce := m }, o), w) ∈ rel') :
     Component.Complete (sendNonce O sh κ) rel rel' :=
   Component.sendCheckedComplete _ _ _ _ _ fun s o w hin ↦ ⟨rfl, h s o w 0 hin⟩
 
 /-- Completeness of the positions, whenever any positions keep the relation. -/
-def drawPositionsComplete
+private def drawPositionsComplete
     (h : ∀ s o w x, ((s, o), w) ∈ rel → (({ s with pos := x }, o), w) ∈ rel') :
     Component.Complete (drawPositions O sh κ) rel rel' :=
   Component.sampleChallengeComplete _ _ _ _ fun s o w hin ↦ ⟨rfl, fun x ↦ h s o w x hin⟩
 
 /-- Completeness of the batching challenge, whenever any challenge keeps the relation. -/
-def drawBatchComplete
+private def drawBatchComplete
     (h : ∀ s o w x, ((s, o), w) ∈ rel → (({ s with lam := x }, o), w) ∈ rel') :
     Component.Complete (drawBatch O sh κ) rel rel' :=
   Component.sampleChallengeComplete _ _ _ _ fun s o w hin ↦ ⟨rfl, fun x ↦ h s o w x hin⟩
@@ -383,7 +385,7 @@ def drawBatchComplete
 /-- Completeness of the query batch's polynomial: when the relation holds the folded symbols are
 the folded table's encodings, so the polynomial sums to their batch; and the honest polynomial
 recorded lands in the output relation. -/
-def sendQueryPolyComplete (hκ : 0 < κ)
+private def sendQueryPolyComplete (hκ : 0 < κ)
     (h : ∀ s o w, ((s, o), w) ∈ rel → s.Cq w ∧
       (({ s with p3 := firstPoly (queryWeight κ sh.R s.pos s.lam) (s.fold w) }, o), w) ∈ rel') :
     Component.Complete (sendQueryPoly O sh κ) rel rel' :=
@@ -461,12 +463,12 @@ def glue :=
     (fun p ↦ foldTable p.2 p.1.1.r)
 
 /-- Completeness of the commitment: the new word is the honest word of the folded table. -/
-def commitNextComplete : Component.Complete (commitNext sh sh' κ')
+private def commitNextComplete : Component.Complete (commitNext sh sh' κ')
     (relOld sh (Kap sh' κ') Bd.F1) (relBoth sh sh' κ' _root_.id Bd.F1) :=
   Component.sendOracleBesideComplete _ _ _ _ fun _ _ _ h ↦ ⟨h.1, rfl, h.2⟩
 
 /-- Completeness of the point's draws: the relation does not read the point. -/
-def drawPointComplete : Component.Complete (drawPoint sh sh' κ')
+private def drawPointComplete : Component.Complete (drawPoint sh sh' κ')
     (relBoth sh sh' κ' _root_.id Bd.F1)
     (relBoth sh sh' κ' (Prod.fst : Bd sh (Kap sh' κ') × Vector E (Kap sh' κ') → _) Bd.F1) :=
   Component.drawPushesComplete (S := Bd sh (Kap sh' κ')) (W := Tab (sh.ℓ + Kap sh' κ'))
@@ -477,13 +479,13 @@ def drawPointComplete : Component.Complete (drawPoint sh sh' κ')
     (Kap sh' κ') le_rfl
 
 /-- Completeness of the out-of-domain answer: the folded table's extension at the point. -/
-def sendOodComplete : Component.Complete (sendOod sh sh' κ')
+private def sendOodComplete : Component.Complete (sendOod sh sh' κ')
     (relBoth sh sh' κ' (Prod.fst : Bd sh (Kap sh' κ') × Vector E (Kap sh' κ') → _) Bd.F1)
     (relBoth sh sh' κ' _root_.id Bd.F2) :=
   Component.sendCheckedComplete _ _ _ _ _ fun _ _ _ h ↦ ⟨rfl, h.1, h.2.1, h.2.2, rfl⟩
 
 /-- Completeness of the out-of-domain claim's polynomial: it sums to the answer. -/
-def sendOodPolyComplete : Component.Complete (sendOodPoly sh sh' κ')
+private def sendOodPolyComplete : Component.Complete (sendOodPoly sh sh' κ')
     (relBoth sh sh' κ' _root_.id Bd.F2) (relBoth sh sh' κ' _root_.id Bd.F3) :=
   Component.sendCheckedComplete _ _ _ _ _ fun s o w h ↦ by
     refine ⟨?_, h.1, h.2.1, h.2.2, rfl⟩
@@ -495,7 +497,7 @@ def sendOodPolyComplete : Component.Complete (sendOodPoly sh sh' κ')
 
 /-- Completeness of the reading: the old word's rows at the positions, folded, are the folded
 table's encodings there. -/
-def readOldComplete : Component.Complete (readOld sh sh' κ')
+private def readOldComplete : Component.Complete (readOld sh sh' κ')
     (relBoth sh sh' κ' _root_.id Bd.F3) (relNew sh sh' κ' Bd.F4) :=
   Component.queryRecordComplete _ _ _ _ _ fun s o w h ↦ by
     obtain ⟨h1, h2, h3⟩ := h
@@ -518,7 +520,7 @@ def readOldComplete : Component.Complete (readOld sh sh' κ')
 /-- Completeness of the glue: the glued claim, polynomial and weight are those of the glued
 claims, on the folded table (`pair_gluedWeight`, `roundPoly_batch`), and the next level's word is
 the honest word of that table. -/
-def glueComplete : Component.Complete (glue sh sh' κ') (relNew sh sh' κ' Bd.F5)
+private def glueComplete : Component.Complete (glue sh sh' κ') (relNew sh sh' κ' Bd.F5)
     (startRel sh' κ') :=
   Component.mapWitnessComplete _ _ _ fun s o w h ↦ by
     obtain ⟨h2, ⟨⟨⟨⟨⟨hc, hp1⟩, hcood⟩, hp2⟩, hcq⟩, hp3⟩⟩ := h
@@ -579,8 +581,9 @@ variable {rel₃ : Set ((S₃ × ∀ i, O₃ i) × W₃)}
 
 /-- Perfect completeness of a level followed by the opening from the next level on: from an
 honest running claim on a table and its honest word to the opening's final relation, given the
-completeness of the rest. -/
-def levelComplete {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2)
+completeness of the rest. Its body uses the per-step completeness definitions, which are private,
+so it is not exposed. -/
+@[no_expose] def levelComplete {R : Component.Def (SumcheckRound.MidStmt (Weight E (sh'.ℓ + κ')) E 0 2)
       (OneW sh' κ') (Tab (sh'.ℓ + κ')) S₃ O₃ W₃ (seqSpec k)}
     (CR : Component.Complete R (startRel sh' κ') rel₃) :
     Component.Complete (levelDef sh sh' κ' R) (startRel sh (Kap sh' κ')) rel₃ :=

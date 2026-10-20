@@ -35,6 +35,13 @@ committed stack `q`, with the stack's honest word as the one oracle, to the veri
 
 `whirOpen` takes the one batched claim, not a list of claims: the opening phase hands WHIR a
 single claim, as the deployed prover does (`Component.batch` runs before it).
+
+The committed stack, its relation and the witness are `E`-valued here, while the opening phase
+hands over a `K`-valued column and queries it through `pair (algebraMap K E)`. `E`-valued is a
+superset, so completeness holds for the `K`-valued stack; what is owed to the pull request that
+wires this opening into the opening phase is the lift of the `K`-valued witness to `E` and, for
+soundness, that every codeword in the list of a `K`-valued word is `K`-valued (two codewords
+that agree on `2 ^ κ` positions are equal, `encode_eq_of_agree`).
 -/
 
 namespace LeanerVM.Protocol
@@ -47,7 +54,10 @@ namespace Whir
 
 /-- A chain of levels, from a level of shape `sh` that leaves `κ` variables after its folds. -/
 inductive Ladder : Shape → ℕ → Type
-  /-- The final level, leaving a plaintext table of `nf + 1` variables. -/
+  /-- The final level, leaving a plaintext table of `nf + 1` variables. The table has at least one
+  variable: `derive_config` never leaves fewer than two, and the first-round polynomial of the
+  tail is checked against its claim only if there is a variable left to sum over
+  (`roundPoly` is zero past the last variable, `chk_firstPoly` needs `0 < κ`). -/
   | last (sh : Shape) (nf : ℕ) : Ladder sh (nf + 1)
   /-- A level of shape `sh` before the chain from the next level on. -/
   | cons (sh : Shape) {sh' : Shape} {κ' : ℕ} : Ladder sh' κ' → Ladder sh (Kap sh' κ')

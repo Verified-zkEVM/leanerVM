@@ -67,7 +67,7 @@ def Step.spec : (a : Step) → ProtocolSpec a.n
   | .rds C _ d m => roundsSpec C d m
   | .skip => !p[]
 
-instance instOracleInterfaceStep : (a : Step) → ∀ i, OracleInterface (a.spec.Message i)
+instance instOracleInterfaceSeqStep : (a : Step) → ∀ i, OracleInterface (a.spec.Message i)
   | .msg M => instOracleInterfaceSay M
   | .oracle M inst => @Component.instOracleInterfaceSayO M inst
   | .chal C _ => instOracleInterfaceDraw C
@@ -75,7 +75,7 @@ instance instOracleInterfaceStep : (a : Step) → ∀ i, OracleInterface (a.spec
   | .rds C _ d m => instOracleInterfaceRounds C d m
   | .skip => (inferInstance : ∀ i, OracleInterface ((!p[] : ProtocolSpec 0).Message i))
 
-instance instSampleableTypeStep : (a : Step) → ∀ i, SampleableType (a.spec.Challenge i)
+instance instSampleableTypeSeqStep : (a : Step) → ∀ i, SampleableType (a.spec.Challenge i)
   | .msg M => instSampleableTypeSay M
   | .oracle M _ => Component.instSampleableTypeSayO M
   | .chal C inst => @instSampleableTypeDraw C inst
@@ -95,12 +95,12 @@ def seqSpec : (l : List Step) → ProtocolSpec (seqRounds l)
 
 instance instOracleInterfaceSeq : (l : List Step) → ∀ i, OracleInterface ((seqSpec l).Message i)
   | [] => (inferInstance : ∀ i, OracleInterface ((!p[] : ProtocolSpec 0).Message i))
-  | a :: l => msgAppend (instOracleInterfaceStep a) (instOracleInterfaceSeq l)
+  | a :: l => msgAppend (instOracleInterfaceSeqStep a) (instOracleInterfaceSeq l)
 
 instance instSampleableTypeSeq :
     (l : List Step) → ∀ i, SampleableType ((seqSpec l).Challenge i)
   | [] => (inferInstance : ∀ i, SampleableType ((!p[] : ProtocolSpec 0).Challenge i))
-  | a :: l => chalAppend (instSampleableTypeStep a) (instSampleableTypeSeq l)
+  | a :: l => chalAppend (instSampleableTypeSeqStep a) (instSampleableTypeSeq l)
 
 end Whir
 

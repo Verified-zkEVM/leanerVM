@@ -34,7 +34,8 @@ open CompPoly CMlPolynomialEval
 variable {S : Type*} [CommRing S]
 
 /-- The weight on the relayout of a stack: the values with the low `κ` and high `ℓ` coordinates
-exchanged, the extension at a point the stack's weight at the point rotated. -/
+exchanged, the extension at a point the stack's weight at the point rotated. As for `foldWeight`,
+the verifier reads `mle` only, and the table is built when the record is (until #110). -/
 def relayoutWeight {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) : Weight S (ℓ + κ) where
   onCube := relayout W.onCube
   mle := fun p ↦ W.mle (highVec p ++ lowVec p)
