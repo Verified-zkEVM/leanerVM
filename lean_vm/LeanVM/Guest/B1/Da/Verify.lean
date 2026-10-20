@@ -7,7 +7,7 @@
 
 module
 
-public import LeanVM.Guest.B1.Da.Witness
+public import LeanVM.Guest.B1.Da.Named
 public import LeanVM.Guest.B1.Da.ListDigest
 
 /-!
@@ -18,6 +18,13 @@ witness, the rows' symbols and the vector's weights, and its four properties: th
 is the chain of the `128` columns' hashes (`vector_chain`), the rows' inner products telescope to
 the row sums' ends, `0` (`dot_eq`), and the commitment is the hash of the row tree's root and the
 column tree's (`commitCodewords_eq`).
+
+**The witness, named** (`da_verify_sound_w`). On a valuation `σ` of `da_verify`'s body, under any
+call relation below the program's whose column loops `__loop90`, `__loop91` give their columns'
+witnesses `w90 args rets`, `w91 args rets` (`ColsOut`, `Da.Named`), the witness `dvWit σ w90 w91`
+(the columns' cells as rows, their weights as the vector) holds the claim of the returned words
+(`DaOut`: they decode to a root and a vector digest that it opens). `da_verify_sound` follows, its
+witness functions chosen.
 -/
 
 namespace LeanVM.Guest.B1.Digest
@@ -183,13 +190,183 @@ theorem daFacts_opens {rd : Reader} {r0 r1 v0 v1 : E} (h : DaFacts rd r0 r1 v0 v
     hv0, hv1⟩ F G hF hG
   exact ⟨_, _, _, e1, e2, ho⟩
 
+/-! ## The witness, named -/
+
+/-- `Witness.Opens` is decidable (noncomputably: LeanDA's inner product is). -/
+noncomputable instance (root vd : Digest) (w : Da.Witness) : Decidable (w.Opens root vd) := by
+  unfold Da.Witness.Opens; infer_instance
+
+/-- **`da_verify`'s outcome, its witness named** `w`: the returned words `r0, r1` and `v0, v1`
+decode to a root and a vector digest (`digestOfScalars`) that `w` opens. The memory and the
+argument (`rd`, `gsq`) are not needed. -/
+def DaOut (_rd : Reader) (_gsq : E) (r0 r1 v0 v1 : E) (w : Da.Witness) : Prop :=
+  ∃ root ∈ digestOfScalars (r0, r1), ∃ vd ∈ digestOfScalars (v0, v1), w.Opens root vd
+
+noncomputable instance (rd : Reader) (gsq r0 r1 v0 v1 : E) (w : Da.Witness) :
+    Decidable (DaOut rd gsq r0 r1 v0 v1 w) := by
+  unfold DaOut; infer_instance
+
+/-- `DaOut` is the old conclusion with the witness given. -/
+theorem daOut_iff {rd : Reader} {gsq r0 r1 v0 v1 : E} {w : Da.Witness} :
+    DaOut rd gsq r0 r1 v0 v1 w ↔
+      ∃ root vd : Digest, (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd ∧ w.Opens root vd := by
+  constructor
+  · rintro ⟨root, h1, vd, h2, h⟩
+    exact ⟨root, vd, (digestScalars_digestOfScalars h1).symm, (digestScalars_digestOfScalars h2).symm, h⟩
+  · rintro ⟨root, vd, h1, h2, h⟩
+    refine ⟨root, ?_, vd, ?_, h⟩
+    · rw [h1]; exact digestOfScalars_digestScalars root
+    · rw [h2]; exact digestOfScalars_digestScalars vd
+
+/-- `da_verify`'s column `b`: item `b` of `__loop90`'s columns, or item `b - 64` of `__loop91`'s. -/
+def dvCol (σ : Val) (w90 w91 : List E → List E → List DaColumn) (b : ℕ) : DaColumn :=
+  if b < 64 then (w90 (dvColArgs σ (.n 420)) []).getD b default
+  else (w91 (dvColArgs σ (.n 421)) []).getD (b - 64) default
+
+/-- **`da_verify`'s witness**: the rows of its `128` columns' cells, as many as column `0` has,
+and the vector of their weights. -/
+def dvWit (σ : Val) (w90 w91 : List E → List E → List DaColumn) : Da.Witness :=
+  daWitOf (dvCol σ w90 w91 0).cells.length (fun b i => (dvCol σ w90 w91 b).cells.getD i [])
+    (fun b => (dvCol σ w90 w91 b).weights)
+
+/-- **`da_verify`, soundly, its witness named**: on a valuation of its body under a call relation
+below the program's, whose column loops give their columns' witnesses `w90`, `w91`, the returned
+words are a root and a vector digest that `dvWit σ w90 w91` opens. -/
+theorem da_verify_sound_w {C : CallRel} {rd : Reader} (hC : CallRel.Le C (coreProgram.Rel rd))
+    (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq) {w90 w91 : List E → List E → List DaColumn}
+    (h90 : ∀ args rets, C "__loop90" args rets → ColsOut true rd args rets (w90 args rets))
+    (h91 : ∀ args rets, C "__loop91" args rets → ColsOut false rd args rets (w91 args rets))
+    {σ : Val} {r0 r1 v0 v1 : E} (hp : ([.n 0] : List V).map σ = [gsq])
+    (hb : Stmt.HoldsList C rd σ dvBody False (fun rs => rs = [r0, r1, v0, v1])) :
+    DaOut rd gsq r0 r1 v0 v1 (dvWit σ w90 w91) := by
+  obtain ⟨r, c420, c421, hnb, hnp, hgap, hglp, hrest, hc90, hc91⟩ := da_verify_rest hC hm hT hp hb
+  obtain ⟨hr1, hr2, -, -, -, -, hctr, -⟩ := id hrest
+  -- the prefix columns
+  obtain ⟨x, ps, ha, -, hl⟩ := h90 _ _ hc90
+  unfold dvColArgs at ha
+  rw [c420, hnb, hnp, hgap, hglp] at ha
+  simp only [List.cons.injEq] at ha
+  obtain ⟨rfl, rfl⟩ := ha
+  rw [colLoopEnd_eq, ite_pos' rfl] at hl
+  obtain ⟨hl90, hB90⟩ := loopW_one (n := 64) (by norm_num) (by norm_num) hl
+  -- the other columns
+  obtain ⟨x, ps', ha, -, hl⟩ := h91 _ _ hc91
+  unfold dvColArgs at ha
+  rw [c421, hnb, hnp, hgap, hglp] at ha
+  simp only [List.cons.injEq] at ha
+  obtain ⟨rfl, rfl⟩ := ha
+  rw [colLoopEnd_eq, ite_neg' (by decide)] at hl
+  obtain ⟨hl91, hB91⟩ := loopW_pow (a := 64) (n := 64) (by norm_num) (by norm_num) hl
+  -- each column, and its cells
+  have hcol : ∀ b < 128, ColOutW (decide (b < 64)) rd [gen ^ b, gen ^ r, gen ^ LeanDa.nPad r,
+      gen ^ (LeanDa.nPad r - r), gen ^ LeanDa.logPad r, σ (.n 13), σ (.n 419), σ (.n 415), σ (.n 17),
+      σ (.n 405)] [] (dvCol σ w90 w91 b) := by
+    intro b hb
+    unfold dvCol
+    by_cases h64 : b < 64
+    · rw [ite_pos' h64, decide_eq_true h64, List.getD_eq_getElem _ _ (by omega)]
+      exact hB90 b (by omega)
+    · rw [ite_neg' h64, decide_eq_false h64, List.getD_eq_getElem _ _ (by omega)]
+      have := hB91 (b - 64) (by omega)
+      rwa [show 64 + (b - 64) = b by omega] at this
+  obtain ⟨F, hF⟩ := choose_lt (fun b hb => col_facts_w hr1 hr2 hctr hb (hcol b hb))
+  obtain ⟨G, hG⟩ := choose_lt₂ (n := 128) (m := r) (P := fun b i g =>
+      CellOk rd (decide (b < 64)) (F b).lv (σ (.n 415)) (gen ^ b) (F b).node (σ (.n 13)) (gen ^ i) g ∧
+        g.syms = (dvCol σ w90 w91 b).cells.getD i [])
+    (fun b hb i hi => (hF b hb).2.2.2 i hi)
+  obtain ⟨e1, e2, ho⟩ := opens_of hrest F G (fun b hb => (hF b hb).1) (fun b hb i hi => (hG b hb i hi).1)
+  have hw : daWitOf r (fun b i => (G b i).syms) (fun b => (F b).ws) = dvWit σ w90 w91 := by
+    unfold dvWit
+    rw [(hF 0 (by norm_num)).2.2.1]
+    exact daWitOf_congr (fun b hb i hi => (hG b hb i hi).2) (fun b hb => (hF b hb).2.1)
+  rw [← hw]
+  exact daOut_iff.mpr ⟨_, _, e1, e2, ho⟩
+
+/-! ## The old statement, its witness functions chosen -/
+
+/-- A witness function for a relation each of whose pairs has a witness. -/
+theorem exists_witFn {α : Type} [Inhabited α] {P : List E → List E → Prop} {Q : List E → List E → α → Prop}
+    (h : ∀ a r, P a r → ∃ w, Q a r w) : ∃ wf : List E → List E → α, ∀ a r, P a r → Q a r (wf a r) := by
+  classical
+  exact ⟨fun a r => if hp : P a r then (h a r hp).choose else default, fun a r hp => by
+    simp only [hp, ↓reduceDIte]; exact (h a r hp).choose_spec⟩
+
+/-- **A self-calling function's pairs have witnesses** when one frame's do, given its own calls'
+witness function, under every call relation below the program's. -/
+theorem rel_witness {rd : Reader} {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn) {α : Type}
+    [Inhabited α] {Q : List E → List E → α → Prop}
+    (step : ∀ C : CallRel, CallRel.Le C (coreProgram.Rel rd) → ∀ wl : List E → List E → α,
+      (∀ a r, C f a r → Q a r (wl a r)) → ∀ (σ : Val) (args rets : List E), fn.params.map σ = args →
+        Stmt.HoldsList C rd σ fn.body False (fun rs => rs = rets) → ∃ w, Q args rets w) :
+    ∀ args rets, coreProgram.Rel rd f args rets → ∃ w, Q args rets w := by
+  rintro args rets ⟨n, h⟩
+  induction n generalizing args rets with
+  | zero => exact h.elim
+  | succ n ih =>
+    obtain ⟨fn', hf', σ, hp, hb⟩ := h
+    rw [hf] at hf'
+    cases hf'
+    obtain ⟨wl, hwl⟩ := exists_witFn (P := coreProgram.relN rd n f) ih
+    exact step _ (relN_le_rel coreProgram n) wl hwl σ args rets hp hb
+
+theorem vecOut_exists (final : Bool) {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd (vxName final) args rets → ∃ ws, VecOut final rd args rets ws :=
+  fun args rets h => by
+    rw [rel_of_find (find_vx final)] at h
+    obtain ⟨σ, hp, hb⟩ := h
+    exact ⟨_, da_vector_cell_out hp hb⟩
+
+theorem vdOut_exists {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd "da_vector_dispatch" args rets → ∃ ws, VdOut rd args rets ws :=
+  fun args rets h => by
+    rw [rel_of_find find_vd] at h
+    obtain ⟨σ, hp, hb⟩ := h
+    obtain ⟨w1, h1⟩ := exists_witFn (vecOut_exists true (rd := rd))
+    obtain ⟨w0, h0⟩ := exists_witFn (vecOut_exists false (rd := rd))
+    exact ⟨_, vd_out (wv := fun f => if f then w1 else w0)
+      (fun final a r hr => by cases final <;> [exact h0 a r hr; exact h1 a r hr]) hp hb⟩
+
+theorem cellOut_exists {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd "da_verify_cell" args rets → ∃ syms, CellOut rd args rets syms :=
+  fun args rets h => by
+    rw [rel_of_find find_da_verify_cell] at h
+    obtain ⟨σ, hp, hb⟩ := h
+    exact ⟨_, da_verify_cell_out hp hb⟩
+
+theorem rowsOut_exists (store : Bool) {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd (rowName store) args rets → ∃ L, RowsOut store rd args rets L := by
+  obtain ⟨wc, hc⟩ := exists_witFn (cellOut_exists (rd := rd))
+  exact rel_witness (find_row store) fun C hC wl hwl σ args rets hp hb =>
+    ⟨_, row_loop_out store (fun a r h => hc a r (hC _ _ _ h)) hwl hp hb⟩
+
+theorem colOutW_exists (store : Bool) {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd (colName store) args rets → ∃ cw, ColOutW store rd args rets cw :=
+  fun args rets h => by
+    rw [rel_of_find (find_col store)] at h
+    obtain ⟨σ, hp, hb⟩ := h
+    obtain ⟨wd, hd⟩ := exists_witFn (vdOut_exists (rd := rd))
+    obtain ⟨wr, hr⟩ := exists_witFn (rowsOut_exists store (rd := rd))
+    exact ⟨_, col_out store (fun _ _ _ h => h) hd hr hp hb⟩
+
+theorem colsOut_exists (store : Bool) {rd : Reader} :
+    ∀ args rets, coreProgram.Rel rd (colLoopName store) args rets → ∃ L, ColsOut store rd args rets L := by
+  obtain ⟨wc, hc⟩ := exists_witFn (colOutW_exists store (rd := rd))
+  exact rel_witness (find_colLoop store) fun C hC wl hwl σ args rets hp hb =>
+    ⟨_, colLoop_out store (fun a r h => hc a r (hC _ _ _ h)) hwl hp hb⟩
+
 /-- **`da_verify`, soundly**: on a valid execution's memory and the squares table, the returned
-cells are a root and a vector digest that some LeanDA witness opens. -/
+cells are a root and a vector digest that some LeanDA witness opens (`da_verify_sound_w`, its
+column loops' witness functions chosen). -/
 theorem da_verify_sound {rd : Reader} (hm : MemOk rd) {gsq : E} (hT : SquaresAt rd gsq) {r0 r1 v0 v1 : E}
     (h : coreProgram.Rel rd "da_verify" [gsq] [r0, r1, v0, v1]) :
     ∃ (root vd : Digest) (w : Da.Witness), (r0, r1) = digestScalars root ∧ (v0, v1) = digestScalars vd ∧
-      w.Opens root vd :=
-  daFacts_opens (da_verify_facts hm hT h)
+      w.Opens root vd := by
+  rw [rel_of_find find_dv] at h
+  obtain ⟨σ, hp, hb⟩ := h
+  obtain ⟨w90, h90⟩ := exists_witFn (colsOut_exists true (rd := rd))
+  obtain ⟨w91, h91⟩ := exists_witFn (colsOut_exists false (rd := rd))
+  obtain ⟨root, vd, e1, e2, ho⟩ := daOut_iff.mp (da_verify_sound_w (fun _ _ _ h => h) hm hT h90 h91 hp hb)
+  exact ⟨root, vd, _, e1, e2, ho⟩
 
 /-! ## The dispatch bounds group K's checker assumes -/
 
@@ -215,6 +392,7 @@ end
 end LeanVM.Guest.B1.Digest
 
 namespace LeanVM.Guest.B1
-export Digest (DaFacts da_verify_facts daFacts_opens da_verify_sound daWitOf daWitOf_congr opens_of da_row_shape_glp_lt
+export Digest (DaFacts da_verify_facts daFacts_opens da_verify_sound daWitOf daWitOf_congr opens_of
+  DaOut daOut_iff dvCol dvWit da_verify_sound_w da_row_shape_glp_lt
   da_list_digest_ng_lt)
 end LeanVM.Guest.B1
