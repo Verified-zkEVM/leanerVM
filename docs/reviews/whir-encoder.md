@@ -12,7 +12,7 @@ it was written down; the probe files are named at the end.
 
 | Finding | Disposition | Commit |
 | --- | --- | --- |
-| 1. the column weight's extension is not evaluable at a deployed size | met: roots in one pass (`rootsFrom`, `subspaceRoots`), the table's factors computed once, the extension `columnWeightMle`; at `κ = 22` it takes 0.7 s in the interpreter. `Weight.onCube` as data is left to the maintainer | `0d05112` |
+| 1. the column weight's extension is not evaluable at a deployed size | met: roots in one pass (`rootsFrom`, `subspaceRoots`), the table's factors computed once, the extension `columnWeightMle`; at `κ = 22` it takes 0.7 s in the interpreter. `Weight.onCube` as data is taken up by #110, which makes every weight's table lazy | `0d05112` |
 | 2. no vector at a deployed size | met: the roots to stage 30 and the extension at `(22, 1)`, `(9, 1)`, `(16, 4)`, `(6, 19)`, `(2, 16)` against the pinned verifier | `0d05112` |
 | 3. the encoder's distance is not stated | met: `encode_eq_of_agree` (needs `κ + R ≤ 64`), `encode_injective` its corollary at the first `2 ^ κ` positions, `encode_eq_eval`; a test shows the distance attained | `0d05112` |
 | 4. the generic half duplicates CompPoly | met by the docstring option: the module names each CompPoly counterpart and why it is restated; the port to `ToCompPoly/` with bridge lemmas is put to the maintainer | `0d05112` |
@@ -65,14 +65,15 @@ none of which changes a statement:
 A fourth option is upstream of this PR: `Weight.onCube : CMlPolynomialEval S n` as data makes
 every weight cost `2^n` to construct (`eqWeight` on `main` has the same shape at `n = μ ≤ 28`);
 a lazy or functional `onCube` in `ToArkLib/InnerProduct.lean` is a change for the maintainer to
-weigh, not this PR.
+weigh, not this PR. It is now #110: the table is a thunk built on the first sum over the cube, and
+once it lands `columnWeight` writes `cube := .mk fun _ ↦ …`.
 
 ### 2. No vector at a deployed size (defect in the tests)
 
 `tests/LeanerVMTests/Protocol/NovelBasis.lean:32-82`. The Python vectors are at `κ ∈ {3, 4, 6, 8}`,
 `κ + R = 64` in `weightAt`, positions up to `2^64 - 1`; the deployed levels have `κ_0 = μ - 6 ∈
 [9, 22]` and `κ_i ∈ [2, 18]` after, with `κ_i + R_i ≤ 26` (#67's `ladder_blocks`, maximum 26 at
-level 5 of `(28, 4)`). So no test exercises a level the protocol runs, and finding 1 could not be
+level 0 of `(28, 4)`). So no test exercises a level the protocol runs, and finding 1 could not be
 seen. Executed by this review against the pinned verifier (`python3 -I`, importing
 `verifier.py`): `subspaceRoot k` for `k ≤ 30` against `_subspace_roots(30)`, 31 of 31 equal
 (linear cost, 10.7 s for the file); the column weight's extension at random points of `E^κ` at
@@ -103,8 +104,8 @@ theorem encode_eq_of_agree {S} [CommRing S] [IsDomain S] (φ : K →+* S) {κ R 
 
 with `encode_injective` its corollary at `T = {v | v < 2^κ}`. The hypothesis `κ + R ≤ 64` is where
 the two halves of the layer meet: it is what makes every `domainPt v`, `v < 2^(κ+R)`, distinct
-(`domainPt_injOn`), and #67's `ladder_blocks` supplies it at every deployed level (its second
-review asks for the bound to be `63`, the Rust's, which implies it). Also missing is the plain
+(`domainPt_injOn`), and #67's `ladder_blocks` supplies it at every deployed level (since its
+second review it states `63`, the Rust's bound, which implies it). Also missing is the plain
 identity of `def:enc`, `encode φ κ R m v = (Σ_u C m[u] * (novelPoly κ u).map φ).eval (φ (domainPt
 v))`; only its difference form `encode_sub_eq_eval` is stated, and the identity is its `m' = 0`
 case once `encode φ κ R 0 v = 0` is noted.
