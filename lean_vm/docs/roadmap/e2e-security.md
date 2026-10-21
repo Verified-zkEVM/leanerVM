@@ -322,3 +322,29 @@ the statement, each with its reason.
   decoded at every chooser; at the deployed model that is `wOL_spec`'s proof at the named frames
   (`wOLB_spec_deployed`). T4 uses T2 at the chooser `ip.frames r` of the node's root; T6's
   `nodeStep_honest` takes the chooser the idealized proof names for the honest node's root.
+- **T5-1 (T5 through the schemes' multi-user games).** T5 (`LeanVM/E2E/NoForgery.lean`,
+  `aggregate_no_forgery`) reduces to `LeanXmss.MultiUser.HasMultiUserSecurity` and, for any `ε`,
+  `Sphincs.Security.Multi.HasMultiUserBound n_s ε`, one adversary per scheme (`Reduction/Xmss.lean`,
+  `Reduction/Sphincs.lean`) instead of §4's hybrid over keys: the multi-user games already count
+  every hash call (E2E-1) and absorb the self-simulation of the other keys. Each reduction runs
+  the whole game in the schemes' world (`toW`: a digest as 256 bits, `digestBits_bijective`),
+  delegating its scheme's key generations and signatures to the multi-user game; its run, the
+  signing log forgotten, is the game's (`map_xPrefix`; for leanSPHINCS in distribution: the
+  multi-user game draws all seeds and generates its keys first, and computations commute in the
+  lazy random oracle, `romRun_bind_comm`, `romRun_sKeygenAll`). Three points of the realisation:
+  (1) **the bridge** (`Bridge.lean`, `game_accepted`): V_I's run against `budgetedQuery` accepting
+  is its `Option` run by the final log accepting, via a two-monad closure of V_I
+  (`Rel.lean`, `rel_idealVerify`); (2) **V_I's trace**: a reduction does not see its scheme's
+  signer and key-generation queries, so the forged claim's signature must be valid under what it
+  sees; V_I runs recorded (`Reduction/Record.lean`, `gameRec`, its marginal the game), and T4 at
+  the trace (`KnowledgeSub.lean`, `aggregate_knowledge_sub`: T2 at the oracle models of both the
+  trace and the final log) gives every root signature claim a signature valid under V_I's own
+  queries, which the multi-user game's final verification then answers from its cache; (3) **the
+  transport** (`evalDistEq_run_toW`): the logged oracle's run, its final log read as a cache, is
+  the schemes' lazy random oracle's in distribution, so the bad events are bounded on the ordered
+  log and the reductions' wins on the cache. The reductions' budgets are the game's `Q` plus one
+  final verification (`hasHashQueryBound_xAdv`, `…_sAdv`; leanXMSS's verification makes at most
+  `xmssVerifyBound` queries, `Reduction/VerifyBound.lean`). The closed form `noForgeryError` is
+  `aggBadError Q + (q/2^127 + n_x²/2^127 + q²/2^252)|_{q = Q + c_x} + ε(max 1 (Q + c_s))`, `Q` the
+  game's queries (`isQueryBoundP_gameComp`); the DA term is in `aggBadError`. It lives in
+  `NoForgery.lean`, not in `Statement.lean`, whose definitions T5 uses unchanged.
