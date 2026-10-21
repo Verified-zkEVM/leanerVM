@@ -1,0 +1,184 @@
+# End-to-end security of leanVM aggregation — framework (final, converged)
+
+(History: `e2e-security-history/v1.md` … `v7.md`, each recording what its review round found. Paper:
+Chiesa–Guan–Samocha–Yogev, "Security bounds for proof-carrying data from straightline extractors",
+ePrint 2023/1646;
+repo `lean_vm`; guest
+`.leanvm/crates/rec_aggregation/guests/lean_ethereum.py` at `leanvm-rev`.)
+Review rounds: 1 (4 reviews, 4 fatal), 2 (3, fatal), 3 (3, fatal), 4 (3, no fatal), 5 (2: one
+"converged", one red team with text-level serious items only), 6 (1: one serious accounting item,
+no fatal), 7 (1: converged, minor items only, applied here).
+
+## 0. The claim
+Random-oracle model, one byte-level oracle H : Bytes → Digest shared by all parties. A static set of
+n_x leanXMSS and n_s leanSPHINCS honest keys, signed by the deterministic Lean signers through
+signing oracles that enforce no leaf reuse (leanXMSS `Valid`, `LeanXmss.Security`) and
+`signatureLimit` per key (leanSPHINCS, endpoint `Sphincs.Lifetimes.requestedSecurity`); every returned
+signature re-verified with visible queries. For every adversary with coins whose VISIBLE hash queries (its own, re-verifications, and V_I's —
+V_I running under a query budget Bud fixed before the game, e.g. 2^80) number ≤ Q_v, making S_x, S_s
+signing requests, with E the explicit extractor (reads only the final visible log vis_final and Π):
+  Pr[ V_I^H accepts a root statement s and either
+      (forgery) s's leanXMSS (resp. leanSPHINCS) claim list contains (pk_j, m) for an honest key j of
+        that scheme, and no request for m to signer j was answered; or
+      (DA) for a root DA claim (r, v), E(vis_final, Π) outputs no codeword rows R (1 ≤ |R| ≤ 1024, rows
+        of length 2^15, as in `Witness.Opens`) such that every hash of
+        `commitCodewordsWith (look vis_final) pc pr R` is answered by vis_final and equals r, and
+        `vectorDigestOf r = vectorDigest (membershipVector r)` is answered by vis_final and equals v ]
+  ≤ κ_V°(Q_v) + κ_batch(Q_v) + (Q_v+1)²/2^193 + ε_signer + (n_x+n_s)·(Q_v + Q_sig′ + c)/2^127 + ε_DA,
+with closed forms:
+  κ_V°(q) = (q+13213)(2^-128 + 5(q+13213)/2^256);  κ_batch(q) ≤ (q+QV_b)(3/|E| + failBound), |E| = 2^192;
+  ε_DA ≈ Q_v·14/2^192 (`checker_sound`; the root precedes the challenge chain by `lt_of_rootOf`, the
+    root being observed as two 16-byte halves);
+  κ_batch's failBound = (4 + |seed steps|)·N/2^256 and QV_b = the batching program's query bound
+    (`batchQueryBound`, Guest/Batch/Rom.lean);
+  ε_signer ≤ Q_v·(3+2)/2^128 + (S·2^8.1)³/2^258.6 (k ≤ 2 except 3-collisions among the ≈ S·2^8.1
+            128-bit halves actually revealed in signatures)
+            + Q_v·Q_sig/2^255 (Hit, HiddenPredict, HiddenCollide) + n·2^45/2^256 (Format)
+            + n·Q/2^256 (GuessS) + n/2^128 (constant-prefixed transcript starts) + n²/2^128 (key
+            coincidences in the simulation);
+  c = the maximal cost of the scheme game's final verify;
+  Q_sig = the honest signers' total cost in the joint game (keygens + signings, worst case:
+    2^23.7 / 2^34 per keygen, 2^33 / 2^34.3 per signature for leanXMSS / leanSPHINCS);
+  Q_sig′ = the cost charged in reduction j = key j's keygen + its S_j signings. Reduction j answers
+    every oracle input attributable to another honest key i ≠ j itself, by lazy sampling with private
+    coins (free in `countedOracle`, `unifFwdImpl`): the P_i‖…-prefixed inputs, the seed derivations
+    "leanXMSS"/"leanSPHINCS"‖S_0^i, and the parameter derivation 0‖param‖S_i (both schemes prefix every
+    other input with P‖A); it forwards P_j-prefixed inputs and everything else. A perfect simulation of
+    a random function, failing only if the owned set meets key j's hidden inputs: P_i = P_j, P_i = 0^16
+    (the parameter inputs' prefix), P_i equal to the first 16 bytes of a seed input of key j, or seeds
+    of distinct keys coincide (≈ 3(n−1)/2^128 per reduction, ≈ n²/2^128 in total, added to ε_signer). Repeated leanSPHINCS requests are answered from the reduction's cache
+    (`Seeded.sign` is deterministic) or counted as the single-key log counts them (`log.length`).
+No factor in the number of nodes or depth beyond Q_v; note Q_v includes V_I's queries, i.e. under §5
+the adversary's own proving work, which grows with the tree.
+Deployed security level (bits) ≈ min( 127 − log₂(n_x+n_s) − log₂(Q_v + max_j Q_sig′_j + c),
+                                     ≈126 − log₂ Q_v,  193 − 2·log₂(Q_v+1),
+                                     −log₂ ε_signer ),
+ε_signer being dominated by the others at deployed parameters (its largest terms ≈ 5Q_v/2^128 and
+(S·2^8.1)³/2^258.6). Examples: one slot, Q_v = 2^64, 2^20 keys: ≈ 2^-43. Lifetime, 2^20 validators ×
+2^24 slots (S ≈ 2^44; S_j ≤ 2^24, which for leanSPHINCS needs the `full` or `pruned20` parameter
+sets): forgery term ≈ 2^20·(Q_v + 2^58.3)/2^127, i.e. ≈ 2^-48.7 for Q_v ≤ 2^58 and ≈ 2^-43 at
+Q_v = 2^64; every other lifetime term ≤ 2^-67; termination caps at 193 − 2·log₂Q_v.
+(leanXMSS costs re-derived in review: keygen ≈ 2^23.7, signature ≈ 2^33.01; leanSPHINCS constants
+2^34 / 2^34.3 to be re-derived when written up.)
+
+Heuristic (single, outside Lean): §5.
+
+## 1. Decisions
+D1 byte-level H (not ideal compression). D2 deployed guest bytecode and proof format unchanged.
+D3 V° = `verifyExecution` with the bytecode value `.computed` and the Flock terminal `require`
+   (Verifier.lean:1990) deleted; deferred acceptance with a true bytecode claim ⇒ V°; deployed ⇒ V°.
+   `OuterChecks°` = DA vector digests ∧ bytecode part of `DeferredClaim.Holds`.
+D4 standard-chain rule over the executed BLAKE2S instructions of the decoded image (canonical cells;
+   padding/inactive rows excluded); TableOK^H: every standard chain of x ends at H(x); precheck:
+   reject active non-final rows with distinct inputs and equal outputs (bounds chain enumeration;
+   honest pass).
+D5 constants as parameters: batching start s0, DA padding (pc, pr) via `commitCodewordsWith`;
+   `NodeRel`'s seed `fiatShamirIvWith H`; `paddingInstance` concrete (bus-pinned, inactive).
+   Constants-audit lemma: baked digests enter only as data (IV/MD_FINAL as chaining value and
+   metadata, s0 as a Fiat–Shamir start, pads as leaves, `paddingInstance` on inactive rows), never
+   compared with a chain output.
+   Precheck "distinct" = distinct row INPUTS with equal outputs (identical multi-block hashes repeat).
+D6 every bad event is one event over the visible log, charged per visible query.
+D7 claims are the root statement's, in the claim list of their scheme (both schemes' keys are
+   16+16 bytes: consumers must check a claim's scheme); followed down `Holder.child` (finite by T3) to `.direct`; DA
+   pairs are copied down unchanged (`cover_da_root`), so the root's pinned vector covers them.
+   "Backed" never mentions a row count (deployed padding = H(zero) collides with a zero row).
+
+## 2. V_I (algorithm; non-succinct; not flattening; budget B)
+Idealized proof Π = (s, π, M), M: roots ↦ level-0 words. V_I^H(s, Π), fuel-bounded, rejecting once
+Bud queries are used (Bud fixed before the game; Bud only makes QV uniform, it adds no term — every
+V_I query is a visible query charged in κ_V°'s failBound):
+1. PI₀ := statementDigest^H(seed^H, s); require V°^H(guest, PI₀, π) and OuterChecks°^H(s).
+2. N := closure of {(guest, PI₀, π)} under: q ∈ Cand(M(r(π))) with M3Holds°(x, q), child (s_c, f_c, π_c)
+   of decode(image q) ⇒ (guest, statementDigest^H(seed^H, s_c), π_c) ∈ N.
+3. For every ν ∈ N: M(r(π)) defined, well shaped, MerkleRoot^H(M(r(π))) = r(π); for every
+   q ∈ Cand(M(r(π))) with M3Holds°(x, q): precheck and TableOK^H(activeRows q).
+Completeness for exact codewords: thr = ⌈johnsonAgreement·n⌉ > √(Dn) ≥ √2·D ⇒ unique candidate.
+Noisy words admitted (proximity soundness stays inside the theorem).
+
+## 3. Honest-signer game, visible log, events
+Visible log = first visible occurrences in time order (adversary's queries, re-verifications, V_I's);
+signers' queries hidden, counted in Q_sig. Extraction and consistency read the final visible log
+vis_final (forged-signature chain rows become visible only through V_I's TableOK queries, so T4 is
+evaluated on vis_final; V_I's fresh queries are charged like any visible query — no separate bridge
+beyond the budget term).
+Engine: the VCVio potential engine extended with (1) coins forwarded (lookup none, record id, not
+counted), (2) hidden fresh queries (visible state unchanged), (3) state-changing visible hits on hidden
+entries (not lazy steps), (4) a stopped potential Φ′ = Φ(vis)·1[¬Bad] with "appending a non-record,
+non-failing entry leaves pot unchanged", and a separate bound on Pr[Bad] via per-scheme deferred-sampling
+game hops (sampling the output bits the signer never read: upper half of truncated hashes; all but
+bits 128–153 of leanSPHINCS grinding attempts, conditioned on ¬Landed).
+Bad = LateReveal ∨ Hit ∨ Format ∨ HiddenPredict ∨ HiddenCollide ∨ GuessS (generically: a hidden
+entry, when it becomes visible, is a `BadEntry` for the visible log before it — including the
+seeding-predecessor clause, Log.lean:156-160):
+- LateReveal: a visible input references (chunk 0/32, `RootOf`) the output of a hidden entry made
+  visible later; ≈ Q·(3+k)/2^128 with k the number of hidden entries sharing 128 known bits; chain-start
+  derivations (fully revealed when both digits are 0) are covered by GuessS (their input contains S).
+- Hit: a visible FS/PoW/DA-challenge query answered from a hidden signer entry (inputs separated by
+  their first bytes: H-output state / s0 / DA label vs P‖A).
+- Format: a revealed scheme entry parses as a leanVM record (64/80/96-byte overlaps) ≈ n·2^45/2^256.
+- HiddenPredict: a hidden fresh answer equals a chunk of an earlier visible input, later revealed:
+  Q_hidden·2Q/2^256. HiddenCollide: hidden/visible output collisions. GuessS: ≈ Q/2^256 per key.
+
+## 4. Theorem chain (Lean)
+T1 universal KS for V° and the bytecode-only batching (cache form, from `final_ineq`), in the engine
+   of §3.
+T2 guest in cache form over a `HashModel` typeclass: consistent table ⇒ `NodeRelWith look_vis`
+   (signatures/DA "answered and true" via Option runs), children accepted by
+   `verifyDeferredWith look_vis`.
+T3 termination: rank = log index of the statement-bytes entry; child edge via `RootOf`+¬Fail,
+   `lt_of_chunk`, ¬Pred96; term (Q_v+1)²/2^193.
+T4 aggregate knowledge on vis_final: V_I accepts ⇒ every root claim reaches a direct witness valid
+   ("answered and true") under vis_final, and every root DA claim has E's codeword rows, except
+   κ_V° + κ_batch + T3 term + ε_signer + ε_DA.
+T5 no forgery: per honest key a black-box reduction to `LeanXmss.Security.leanXmss_security` /
+   `Sphincs.Lifetimes.requestedSecurity` (lemmas: Option-run = lazy-oracle run of the monad-generic
+   `Concrete.verify`; Digest ≃ BitVec 256 transport via `blake2sBits`'s bijection, also in T2/T4's
+   lookups; key generations commute; repeated XMSS leaf refused without forwarding; leanSPHINCS
+   `Params` from `requestedSecurity`, deterministic `Seeded.sign`, `keygenFromSeed`); hybrid over keys
+   (union bound; reduction j self-simulates the other keys' oracle inputs, §0);
+   DA leg with its own ROM proof (`checker_sound`, NTT lemma `membershipVector = dual`,
+   DA `BadEntry` clause).
+T6-det completeness (non-vacuity): for every H and every honest witness tree within limits, an explicit
+   honest I(H) prover's output is accepted by V_I^H, under the good events "every PoW search finds a nonce
+   within fuel" and "the matrix-batching weights are not both zero", and the hypothesis that V_I's
+   queries on the honest tree are ≤ Bud. Prover: BLAKE2S outputs filled by a
+   stateful rule (fresh never-issued intermediates recorded with their prefix; finals H(prefix‖tail);
+   other rows fresh unrecorded); Flock round messages sumcheck-consistent (the prover
+   picks vA, vB, vC), true slices (ring switching binds
+   them); child `matrixValue` hinted to close the in-circuit terminal; matrix batching closed by
+   `a_star`/`b_star`; root matrix claim dropped. Needs gen° (the Flock-region generator writing all 18
+   limbs into their slots, `slots_gen°` unconditional) and the guest's completeness under H.
+T7′ sanity: deployed checks accept, M covers every reached root, every reached candidate satisfying
+   M3Holds° also satisfies the full `aux`, no two active non-final rows with distinct inputs have equal
+   compression outputs, V_I's cost ≤ Bud ⇒ V_I^{BLAKE2s} accepts.
+
+## 5. Heuristic, stated
+Concrete refutable conjecture (signatures only): for every adversary against the deployed
+`verifyAggregate` with honest signers, making ≤ Q_v BLAKE2s compression evaluations itself and in the
+verifier (in-circuit included) and S_x, S_s signing requests (signers' cost Q_sig′ as in §0),
+Pr[the root statement contains a claim (pk_j, m) for an honest key j of its scheme with no answered
+request for m] ≤ the §0 bound (without the DA term). DA is not in the conjecture: under fixed BLAKE2s
+an existential "unbacked root" is near-never true and a knowledge form is not refutable; a DA
+statement for the deployed system, if wanted, is a falsifiable consistency game (after acceptance the
+adversary answers cell-sampling queries against r and wins if its openings are inconsistent with every
+codeword matrix, or two reconstructions differ — leanDA's position/code binding).
+Scope: (a) BLAKE2s ≈ RO natively, (b) Fiat–Shamir for in-circuit-verified proofs, (c) Flock's R1CS +
+batched matrix claims ≈ oracle-consistent rows, (d) in-circuit chains ≈ visible queries.
+KRS-type attacks: no challenge is squeezed before `commitStack` (Verifier.lean:2114, stack committed
+once in full: self-prediction needs a hash fixed point); `fs_seed` is pinned (statement digest, outer
+verifier, copied to children); the program is pinned by the batched bytecode claim; in-circuit
+batching is ordinary FS over prover inputs. Caveats: CGH04, BBHMR19, the paper's "formally distinct"
+(§1.1.2, §2.3); static corruption only (the union-bound form extends to adaptive corruption except the
+hidden-S events).
+Unconditional today, without the heuristic: the root-level statement `aggregate_sound_outer` (validity
+under concrete BLAKE2s with a classical extractor; NOT a no-forgery statement).
+
+## 6. Work packages (estimates from rounds 2–4)
+W0 build split, HashModel, `…With` spec (1.5–2.5k) · W1 Flock-blind KS for V° (3–5k) · W2 B2/B1 over
+HashModel for soundness AND completeness (2–3k + ~330 files threading) · W3 Option run layer (2–4k) ·
+W4 B1 consumers (2–4k) · W5 universal corollaries, T3 (2.5–4k) · W6 bytecode-only batching, constant
+start (1k) · C5 chain lemma (0.6–1k) · V_I + budget (1–2k) · E engine extension + signer events
+(4–8k) · E reductions, transport, hybrid with self-simulated other keys (2.5–5k) · E5 DA ROM proof incl. NTT (3–7k) · T6-det (6–13k,
+shares W2) · T7′ (1–2k) · constants audit (0.3k) · assembly (1.5–2.5k).
+Total ≈ 35–65k lines. Critical path: W0 → W2 → W3 → C5/W5 → T4 → T5; T6-det in parallel after W2.

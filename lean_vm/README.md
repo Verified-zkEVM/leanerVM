@@ -30,6 +30,10 @@ BLAKE2s is modelled as a random oracle. A proof is the Python verifier's format 
 
 `Completeness` covers every valid execution within the verifier's size cap: its committed size (`Trace.committedSize`, the cells the prover commits to, set by the memory, the bytecode and how many instructions of each opcode it executes) at most `2^28`.
 
+## Roadmap
+
+The end-to-end security theorem in progress, its specification and its review history: [`docs/roadmap/`](docs/roadmap/README.md).
+
 ## Layout
 
 | Path | Contents |
