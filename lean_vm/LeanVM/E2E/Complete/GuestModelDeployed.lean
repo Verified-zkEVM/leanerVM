@@ -10,6 +10,7 @@ module
 public import LeanVM.E2E.Complete.GuestModel
 public import LeanVM.Guest.EndKnowB
 public import LeanVM.E2E.Runs
+public import LeanVM.Guest.B1.Comp.VsInv.Caps
 
 /-!
 # The deployed model
@@ -21,9 +22,9 @@ public import LeanVM.E2E.Runs
   `meaning_verify_lean_xmssWith_some`, `meaning_verify_sig_lean_sphincsWith_some`: over BLAKE2s
   answering everything the callees' preconditions are the deployed ones;
 * `calleesAtC_deployed`: `CalleesAt` gives `CalleesAtC` at the deployed model;
-* `b1CompHyps_deployed : B1CompHyps CompModel.deployed`: the callees from `calleesAt_proved`
-  (`calleesHyps_b2c`), the good runs `VsGoodOf`, the runs from `vs_inversion`, `deferredCaps` and
-  `ea_freshShaped`;
+* `calleesOpenC_deployed`, `b1CompHyps_deployed : B1CompHyps CompModel.deployed`: `open_stacked`
+  at `CapAgreesC CompModel.deployed` from the deployed `CompleteOpenAtB` at `CapAgrees`
+  (`capAgreesC_deployed`);
 * `guest_complete_of_model : End.GuestCompleteWithin B2C.b2cBudget'`: the deployed `guest_complete`
   re-derived from `guestCompleteModelExec_at` at `CompModel.deployed` (`nodeRelWith_deployed`,
   `capsAgreeWith_blake2s`, `validExecutionB_deployed`, `committedSizeB_deployed`).
@@ -85,26 +86,26 @@ end Placed
 section Pre
 
 theorem clPreAtC_someBlake (cs : List E) (rd : Reader) (a r : List E) :
-    ClPreAtC Value.someBlake cs rd a r ↔ ClPreAt cs rd a r := by
+    Digest.ClPreAtC Value.someBlake cs rd a r ↔ ClPreAt cs rd a r := by
   match a, r with
-  | [_, _, _], [_, _] => simp [ClPreAtC, ClPreAt]
+  | [_, _, _], [_, _] => simp [Digest.ClPreAtC, ClPreAt]
   | [], _ | [_], _ | [_, _], _ | _ :: _ :: _ :: _ :: _, _ => exact Iff.rfl
   | [_, _, _], [] | [_, _, _], [_] | [_, _, _], _ :: _ :: _ :: _ => exact Iff.rfl
 
 theorem cclPreAtC_someBlake (off : ℕ → ℕ) (cs : List E) (rd : Reader) (a r : List E) :
-    CclPreAtC Value.someBlake off cs rd a r ↔ CclPreAt off cs rd a r := by
+    Digest.CclPreAtC Value.someBlake off cs rd a r ↔ CclPreAt off cs rd a r := by
   match a, r with
-  | [_, _, _, _, _, _, _], [_, _] => simp [CclPreAtC, CclPreAt]
+  | [_, _, _, _, _, _, _], [_, _] => simp [Digest.CclPreAtC, CclPreAt]
   | [], _ | [_], _ | [_, _], _ | [_, _, _], _ | [_, _, _, _], _ | [_, _, _, _, _], _
   | [_, _, _, _, _, _], _ | _ :: _ :: _ :: _ :: _ :: _ :: _ :: _ :: _, _ => exact Iff.rfl
   | [_, _, _, _, _, _, _], [] | [_, _, _, _, _, _, _], [_]
   | [_, _, _, _, _, _, _], _ :: _ :: _ :: _ => exact Iff.rfl
 
 theorem sdPreAtC_someBlake (sig : Digest) (cells : List E) (rd : Reader) (a r : List E) :
-    SdPreAtC Value.someBlake sig cells rd a r ↔ SdPreAt sig cells rd a r := by
+    Digest.SdPreAtC Value.someBlake sig cells rd a r ↔ SdPreAt sig cells rd a r := by
   match a, r with
   | [_, _, _, _, _, _], [_, _] =>
-    simp only [SdPreAtC, SdPreAt, Digest.stmtDigestOfWith, Value.someBlake, Option.some.injEq,
+    simp only [Digest.SdPreAtC, SdPreAt, Digest.stmtDigestOfWith, Value.someBlake, Option.some.injEq,
       exists_eq_left']
     rfl
   | [], _ | [_], _ | [_, _], _ | [_, _, _], _ | [_, _, _, _], _ | [_, _, _, _, _], _
@@ -113,10 +114,10 @@ theorem sdPreAtC_someBlake (sig : Digest) (cells : List E) (rd : Reader) (a r : 
   | [_, _, _, _, _, _], _ :: _ :: _ :: _ => exact Iff.rfl
 
 theorem daListPreAtC_someBlake (claims : List DaClaim) (rd : Reader) (a r : List E) :
-    DaListPreAtC Value.someBlake claims rd a r ↔ DaListPreAt claims rd a r := by
+    Digest.DaListPreAtC Value.someBlake claims rd a r ↔ DaListPreAt claims rd a r := by
   match a, r with
   | [_, _], [_, _] =>
-    simp only [DaListPreAtC, DaListPreAt, daListDigestWith, Value.someBlake, Option.some.injEq,
+    simp only [Digest.DaListPreAtC, DaListPreAt, daListDigestWith, Value.someBlake, Option.some.injEq,
       exists_eq_left']
     rfl
   | [], _ | [_], _ | _ :: _ :: _ :: _, _ => exact Iff.rfl
@@ -138,10 +139,16 @@ end Pre
 
 /-! ## The callees at the deployed model -/
 
+/-- At the run record of the deployed run, the caller's words are `vsExtL`'s. -/
+theorem vsExtLR_ofD (lpA sqA outA : ℕ) (D : VerifySub.VsData) :
+    vsExtLR lpA sqA outA D (VerifySub.VsRunC.ofD D) = VerifySub.vsExtL lpA sqA outA D := by
+  simp only [vsExtLR, VerifySub.vsExtL, VerifySub.VsRunC.fresh_ofD]
+
 /-- **`CalleesAt` is `CalleesAtC` at the deployed model.** -/
 theorem calleesAtC_deployed {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ}
     {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds} (H : CalleesAt fs cert κ VsGood Bd) :
-    CalleesAtC Value.someBlake blakeDeployed fs cert κ VsGood Bd where
+    CalleesAtC Value.someBlake blakeDeployed fs cert κ
+      (fun D R => VsGood D ∧ R = VerifySub.VsRunC.ofD D) Bd where
   verify_lean_xmss args rets Lin hpre := completeAtBS_blakeDeployed.mpr
     (H.verify_lean_xmss args rets Lin fun rd h1 h2 =>
       (meaning_verify_lean_xmssWith_some rd args rets).mp (hpre rd h1 h2))
@@ -163,25 +170,22 @@ theorem calleesAtC_deployed {fs : String → ℕ} {cert : String → V → ℕ} 
       (cclPreAtC_someBlake off cs rd args rets).mp (hpre rd h1 h2))
   da_verify wt root vd ho args rets Lin hpre := completeAtWS_blakeDeployed.mpr
     (H.da_verify wt root vd ((Digest.opensWith_deployed_iff root vd wt).mp ho) args rets Lin hpre)
-  verify_sub D hD lpA sqA outA _ w c hc := completeAtWS_blakeDeployed.mpr
-    (H.verify_sub D hD lpA sqA outA w c fun θ => (vsStatOkS_blakeDeployed _ _).mp (hc θ))
+  verify_sub D R hD lpA sqA outA _ w c hc := by
+    obtain ⟨hD, rfl⟩ := hD
+    rw [vsExtLR_ofD]
+    exact completeAtWS_blakeDeployed.mpr
+      (H.verify_sub D hD lpA sqA outA w c fun θ => (vsStatOkS_blakeDeployed _ _).mp (hc θ))
 
-/-- **At the deployed model every fact group B1 proves over a model is its deployed lemma.** -/
-noncomputable def b1CompHyps_deployed : B1CompHyps CompModel.deployed where
-  VsGood := VsGoodOf End.bytecode
-  callees := calleesAtC_deployed (calleesAt_proved B2C.fs B2C.cert B2C.calleesHyps_b2c End.bytecode_length)
-  vs_inv Ht hag seed pi fresh proof hlo hst hver hcap := by
-    obtain rfl : Ht = blake2sBytes := funext fun x => (hag x _ rfl).symm
-    have hv : verifyDeferred End.bytecode seed pi fresh proof = true := by
-      have := Value.verifyDeferredWith_some End.bytecode seed pi fresh proof
-      rw [show CompModel.deployed.H = Value.someBlake from rfl, this] at hver
-      exact Option.some.inj hver
-    obtain ⟨D, hok, htok, hseed, hpi, hfr, hpf⟩ := VerifySub.vs_inversion End.bytecode_length hv
-      (fun layout r h => (hlo layout r h).1) hst
-    refine ⟨hfr ▸ ea_freshShaped hok, D, ⟨hok, htok, deferredCaps D hok ?_⟩, hpi, hseed, hfr⟩
-    rw [hfr, hpi, hseed, hpf]
-    intro b hb
-    exact hcap b (by rwa [queriesOfWith_blake2s])
+/-- **The callees not yet placed over a model, at the deployed model**: the deployed
+`calleesAt_proved`'s. -/
+theorem calleesOpenC_deployed :
+    CalleesOpenC CompModel.deployed (VerifySub.CapAgreesC CompModel.deployed) where
+  open_stacked μ r h1 h2 h3 h4 root cv xs os w cv' roots' target c Lin hrun hcap hm :=
+    B2C.calleesHyps_b2c.op.toC μ r h1 h2 h3 h4 root cv xs os w cv' roots' target c Lin hrun
+      ((VerifySub.capAgreesC_deployed _ _ _ _ _ _ _).mp hcap) hm
+
+/-- **At the deployed model what group B1 still owes is its deployed lemma.** -/
+theorem b1CompHyps_deployed : B1CompHyps CompModel.deployed := ⟨calleesOpenC_deployed⟩
 
 /-- **The deployed completeness, re-derived from the model theorem** (`End.guest_complete`'s
 statement): at the deployed model the node relation answered by BLAKE2s is `NodeRel`, the caps

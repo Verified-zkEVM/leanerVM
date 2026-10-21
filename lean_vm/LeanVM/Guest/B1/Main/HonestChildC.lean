@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM
 open LeanVM.Guest.Hints (direct)
 open LeanVM.Guest.End (Limits coverage)
 open LeanVM.Guest.B1 (LowDef)
-open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
+open LeanVM.Guest.B1.Digest (SquaresAt CellsAt SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 
 @[expose] public section
 
@@ -152,12 +152,12 @@ theorem honC_childCov (hlim : Limits s w) {c : ℕ} (hc : c < w.children.length)
 
 
 
-theorem honC_child {S : BlakeSem} (hF : FsRowsC S Ha) {κ : ℕ} {VsGood : VerifySub.VsData → Prop}
+theorem honC_child {S : BlakeSem} (hF : FsRowsC S Ha) {κ : ℕ} {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop}
     {bytecode : List K} (hb : bytecode.length = 2 ^ 22) (hlim : Limits s w)
     (hshp : ∀ c ∈ w.children, c.statement.defer.Shaped bytecode)
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
-    (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧ D.pi = statementDigestH Ht seed c.statement ∧
-      D.seed = seed ∧ D.fresh = c.fresh)
+    (hvs : ∀ c ∈ w.children, ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC), VsGood D R ∧ D.pi = statementDigestH Ht seed c.statement ∧
+      D.seed = seed ∧ R.fresh D = c.fresh)
     (hans : ∀ c ∈ w.children, StmtAns Ha Ht seed c.statement)
     {c : ℕ} (hc : c < w.children.length) :
     ChildWordsOkC S Ha κ VsGood (mainIn fs fp (honestWordsC Ht seed s w))
@@ -175,7 +175,7 @@ theorem honC_child {S : BlakeSem} (hF : FsRowsC S Ha) {κ : ℕ} {VsGood : Verif
       (honestWordsC Ht seed s w).seed c ((honestWordsC Ht seed s w).child c) := by
   rw [honC_child_eq (Ht := Ht) hc]
   have hmem := List.getElem_mem hc
-  obtain ⟨D, hg, hpi, hseed, hfresh⟩ := hvs _ hmem
+  obtain ⟨D, R, hg, hpi, hseed, hfresh⟩ := hvs _ hmem
   have ha := hans _ hmem
   have hnc := hlim.children
   have hfl : (fixedCells w.children[c].fresh).length = 106 := fixedCells_length (hfr _ hmem)
@@ -197,7 +197,7 @@ theorem honC_child {S : BlakeSem} (hF : FsRowsC S Ha) {κ : ℕ} {VsGood : Verif
       pd := ⟨_, ha.dl, ha.st⟩
       pi0 := ?_
       pi1 := ?_
-      vs := ⟨D, mainExpBase fs fp (honestWordsC Ht seed s w), mainExpBase fs fp (honestWordsC Ht seed s w) + 34,
+      vs := ⟨D, R, mainExpBase fs fp (honestWordsC Ht seed s w), mainExpBase fs fp (honestWordsC Ht seed s w) + 34,
         mainBase fs fp (honestWordsC Ht seed s w) 6 + 106 * c, hg, hpi, hseed, rfl, rfl,
         ofK_gpow_mul_gen _ _, ?_⟩ }
   · have := honC_written fs Ht (fp := fp) (seed := seed) (s := s) (w := w) (c + 1) (by omega)

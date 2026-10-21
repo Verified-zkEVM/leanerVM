@@ -27,7 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM
 open LeanVM.Guest.Hints (direct)
 open LeanVM.Guest.End (Limits coverage)
 open LeanVM.Guest.B1 (LowDef DaClaimsAt Meaning_verify_lean_xmssWith Meaning_verify_sig_lean_sphincsWith)
-open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
+open LeanVM.Guest.B1.Digest (SquaresAt CellsAt SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 
 @[expose] public section
 

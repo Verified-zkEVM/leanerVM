@@ -1,4 +1,8 @@
 import LeanVM.E2E.Complete.GuestModelDeployed
+import LeanVM.E2E.Complete.GuestModelAll
+import LeanVM.E2E.Complete.DecodeSplit
+import LeanVM.E2E.Complete.DecodeMain
+import LeanVM.Guest.EndCompleteCT
 
 /-!
 # Tests: `main`'s completeness over a completeness model (L2, Main and End)
@@ -93,6 +97,14 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest LeanVM.E2E.Complete
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Complete.guestCompleteModelExec_of
 
+/-- info: 'LeanVM.Guest.B1.Main.calleesAtC_of_open' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.B1.Main.calleesAtC_of_open
+
+/-- info: 'LeanVM.E2E.Complete.calleesOpenC_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.calleesOpenC_deployed
+
 /-- info: 'LeanVM.E2E.Complete.calleesAtC_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Complete.calleesAtC_deployed
@@ -114,3 +126,22 @@ example : End.GuestCompleteWithin B2C.b2cBudget' := guest_complete_of_model
 example (h : ∀ CM, B1CompHyps CM) : GuestCompleteModelExec := guestCompleteModelExec_of h
 
 end LeanVMTests.Guest.CompMain
+
+/-! The execution half of L2 over every completeness model, unconditional, and the decode layer's
+pieces so far. -/
+
+/-- info: 'LeanVM.E2E.Complete.guestCompleteModelExec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.guestCompleteModelExec
+
+/-- info: 'LeanVM.E2E.Complete.decodeHonest_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.decodeHonest_of
+
+/-- info: 'LeanVM.E2E.Complete.mainFrame_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.mainFrame_eq
+
+/-- info: 'LeanVM.Guest.End.mainCompleteC_ofT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.End.mainCompleteC_ofT

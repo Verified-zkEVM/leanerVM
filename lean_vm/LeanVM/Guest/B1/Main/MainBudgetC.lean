@@ -34,15 +34,15 @@ open LeanVM.Guest.B1 (LowDef DisjL Within)
 (`mainComplete_of`). -/
 theorem mainCompleteC_of {S : BlakeSem} {Ha : List UInt8 → Option Digest} {Ht : List UInt8 → Digest}
     (hag : ∀ x d, Ha x = some d → d = Ht x) (fs : String → ℕ) (cert : String → V → ℕ)
-    (cnt : Tree → Opcode → ℕ) (b : Budget) {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
+    (cnt : Tree → Opcode → ℕ) (b : Budget) {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop} {Bd : CalleeBounds}
     (H : CalleesAtC Ha S fs cert 16 VsGood Bd) (hF : FsRowsC S Ha) (hBs : BsRowsC S Ha)
     (ω : Opcode → String → ℕ) (Wt : ∀ op, MainWeightHypsS S fs (ω op)) (jt : Opcode → ℕ)
     (hfs : 2 ≤ fs "main")
     (hacc : ∀ seed s w pi, statementDigestWith Ha seed s = some pi →
       NodeRelWith Ha aggSeedD daPadCell daPadRow bytecode seed s w → Limits s w →
       E2E.Complete.CapsAgreeWith Ht seed w →
-      ∀ c ∈ w.children, FreshShaped c.fresh ∧ ∃ D : VerifySub.VsData, VsGood D ∧
-        D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ D.fresh = c.fresh)
+      ∀ c ∈ w.children, FreshShaped c.fresh ∧ ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC), VsGood D R ∧
+        D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ R.fresh D = c.fresh)
     (hwords : ∀ seed s w, NodeRelWith Ha aggSeedD daPadCell daPadRow bytecode seed s w →
       Limits s w → mainBound fs Bd (honestWordsC Ht seed s w) ≤ b.words.eval (work s w))
     (hcnt : ∀ (rd : Reader) (t : Tree), t.ValidB S coreProgram rd [] [] → ∀ op,

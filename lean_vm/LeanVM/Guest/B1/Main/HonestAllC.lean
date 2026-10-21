@@ -72,13 +72,13 @@ theorem honestC_lens {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
 
 /-- **`main`'s honest words over a hash are what its callees need** (`honest_wordsOk`). -/
 theorem honestC_wordsOk {S : BlakeSem} (hag : ∀ x d, Ha x = some d → d = Ht x) (hF : FsRowsC S Ha)
-    {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {bytecode : List K}
+    {κ : ℕ} {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop} {bytecode : List K}
     (hb : bytecode.length = 2 ^ 22)
     (hN : NodeRelWith Ha aggSeedD daPadCell daPadRow bytecode seed s w) {pi : Digest}
     (hpi : statementDigestWith Ha seed s = some pi) (hlim : Limits s w)
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
-    (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧
-      D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ D.fresh = c.fresh) :
+    (hvs : ∀ c ∈ w.children, ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC), VsGood D R ∧
+      D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ R.fresh D = c.fresh) :
     MainWordsOkC S fs Ha κ VsGood fp (honestWordsC Ht seed s w) := by
   obtain ⟨hsh, hch, hX, hS, hD, hfin⟩ := hN
   obtain ⟨ha, -⟩ := stmtAns_of hag hpi
@@ -174,15 +174,15 @@ under `S` over `Ha` within `Bd`, at every `fp` one size, within `mainBound`, and
 every memory holding them, defined below `2^κ`, with `pi` at words `0` and `1`: `main` holds under
 `S` by a tree placed at `fp`, within `mainWeightS` at the honest words over `Ht`. -/
 theorem mainC_completeW {S : BlakeSem} {cert : String → V → ℕ} {κ : ℕ}
-    {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds} (H : CalleesAtC Ha S fs cert κ VsGood Bd)
+    {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop} {Bd : CalleeBounds} (H : CalleesAtC Ha S fs cert κ VsGood Bd)
     (hF : FsRowsC S Ha) (hBs : BsRowsC S Ha) (hag : ∀ x d, Ha x = some d → d = Ht x)
     {Θ : Type} {ωs : Θ → String → ℕ} (Wt : ∀ θ, MainWeightHypsS S fs (ωs θ)) (hκ : 16 ≤ κ)
     {bytecode : List K} (hb : bytecode.length = 2 ^ 22)
     (hN : NodeRelWith Ha aggSeedD daPadCell daPadRow bytecode seed s w) {pi : Digest}
     (hpi : statementDigestWith Ha seed s = some pi) (hlim : Limits s w)
     (hfr : ∀ c ∈ w.children, FreshShaped c.fresh)
-    (hvs : ∀ c ∈ w.children, ∃ D : VerifySub.VsData, VsGood D ∧
-      D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ D.fresh = c.fresh) (fp : ℕ) :
+    (hvs : ∀ c ∈ w.children, ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC), VsGood D R ∧
+      D.pi = statementDigestH Ht seed c.statement ∧ D.seed = seed ∧ R.fresh D = c.fresh) (fp : ℕ) :
     ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
       fs "main" + m ≤ mainBound fs Bd (honestWordsC Ht seed s w) ∧
       ∀ rd, LowDef κ rd → MemL rd L →

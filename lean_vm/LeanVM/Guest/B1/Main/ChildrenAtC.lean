@@ -28,7 +28,7 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value Lea
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef CompleteAtB CompleteRelB Returns Kid CallsMatch OutsOk
   relAtIn_dmono bufL kidsBound Meaning_statement_digest Meaning_da_list_digest DaClaimsAt)
-open LeanVM.Guest.B1.Digest (CellsAt)
+open LeanVM.Guest.B1.Digest (CellsAt SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 
 @[expose] public section
 
@@ -117,7 +117,7 @@ variable (S) in
 /-- **What child `c`'s iteration needs** of the caller's layout `Lin` (the running counts at
 `wb`, the public inputs at `cpib`) and of its callees' preconditions on every memory holding
 `Lin`, the seed `seedD`. -/
-structure ChildWordsOkC (Ha : List UInt8 → Option Digest) (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (Lin : Layout) (wb cpib : ℕ)
+structure ChildWordsOkC (Ha : List UInt8 → Option Digest) (κ : ℕ) (VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop) (Lin : Layout) (wb cpib : ℕ)
     (lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp cfresh : E) (seedD : Digest)
     (c : ℕ) (r : ChildWords) : Prop where
   base : CellL Lin (wb + c) r.base
@@ -140,9 +140,9 @@ structure ChildWordsOkC (Ha : List UInt8 → Option Digest) (κ : ℕ) (VsGood :
     Digest.stmtDigestOfWith Ha seedD r.sigD dd r.dcells = some r.pd
   pi0 : CellL Lin (cpib + 2 * c) (digestScalars r.pd).1
   pi1 : CellL Lin (cpib + (2 * c + 1)) (digestScalars r.pd).2
-  vs : ∃ (D : VerifySub.VsData) (lpA sqA outA : ℕ), VsGood D ∧ D.pi = r.pd ∧ D.seed = seedD ∧
+  vs : ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC) (lpA sqA outA : ℕ), VsGood D R ∧ D.pi = r.pd ∧ D.seed = seedD ∧
     glp = ofK (gpow lpA) ∧ gsq = ofK (gpow sqA) ∧ cfresh * gen ^ (106 * c) = ofK (gpow outA) ∧
-    SubL (VerifySub.vsExtL lpA sqA outA D) Lin
+    SubL (vsExtLR lpA sqA outA D R) Lin
 
 variable (S) in
 /-- **A child's iteration's weight** at `ω`: its callees'. -/
@@ -154,7 +154,7 @@ set_option maxHeartbeats 1000000 in
 /-- **`__loop5`, placed**: its `m ≤ 16` children, child `c` computing `rs c` as `ChildWordsOkS`
 says, each iteration's signer pair and DA roots in its own `HeapBuf`s, by a tree within
 `childWS`'s weights at every `w θ`. -/
-theorem loop5C_completeAtW {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds}
+theorem loop5C_completeAtW {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop} {Bd : CalleeBounds}
     (H : CalleesAtC Ha S fs cert κ VsGood Bd) {Θ : Type} {w : Θ → String → ℕ}
     (Wt : ∀ θ, MainWeightHypsS S fs (w θ))
     (hκ : 16 ≤ κ) {m wb cpib : ℕ} {lxT cover lxS gsq spT spS carried daR daC daS seed0 seed1 glp
@@ -173,7 +173,7 @@ theorem loop5C_completeAtW {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGoo
   · simpa using h
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
-  obtain ⟨D, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
+  obtain ⟨D, R, lpA, sqA, outA, hgood, hpi, hseed, hglp, hgsq, hout, hvsub⟩ := o.vs
   obtain ⟨dd, hdl, hpd⟩ := o.pd
   obtain ⟨offx, csx, hlx, hccx⟩ := o.ccx
   obtain ⟨offs, css, hls, hccs⟩ := o.ccs
@@ -224,7 +224,7 @@ theorem loop5C_completeAtW {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGoo
         (digestScalars (dd)).2, carried * gen ^ (53 * j)], Lb ++ Lin,
         Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]⟩,
       ⟨"verify_sub", true, [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
-        cfresh * gen ^ (106 * j)], VerifySub.vsExtL lpA sqA outA D, Returns []⟩]
+        cfresh * gen ^ (106 * j)], vsExtLR lpA sqA outA D R, Returns []⟩]
   have c1 : CompleteAtBS S fs cert κ "child_claim_list_digest" (Lb ++ Lin)
       [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] (Returns [r.dx.1, r.dx.2]) (Bd.ccl r.nx) := by
     have := H.child_claim_list_digest offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
@@ -261,10 +261,10 @@ theorem loop5C_completeAtW {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGoo
     H.statement_digest r.sigD r.dcells _ _ _ fun rd hl h => ⟨seedD, dd, o.dlen,
       o.seed, hsigp rd h 0 (by simp), hsigp rd h 1 (by simp), rfl, o.defer rd (mLb rd h), r.pd, hpd,
       rfl⟩
-  have c6 : CompleteAtWS S fs cert w κ "verify_sub" (VerifySub.vsExtL lpA sqA outA D)
+  have c6 : CompleteAtWS S fs cert w κ "verify_sub" (vsExtLR lpA sqA outA D R)
       [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
         cfresh * gen ^ (106 * j)] (Returns []) Bd.vs fun θ => Bd.vsW (w θ) (Wt θ).vsc := by
-    have := H.verify_sub D hgood lpA sqA outA w (fun θ => (Wt θ).vsc) fun θ => (Wt θ).vsOk
+    have := H.verify_sub D R hgood lpA sqA outA w (fun θ => (Wt θ).vsc) fun θ => (Wt θ).vsOk
     obtain ⟨hs0, hs1⟩ := Prod.ext_iff.mp o.seed
     simp only at hs0 hs1
     rw [hpi, hseed] at this

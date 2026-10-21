@@ -12,12 +12,15 @@ public import LeanVM.Guest.B1.Main.WeightLoopS
 public import LeanVM.Guest.B1.Main.CalleesWM
 public import LeanVM.Guest.B1.Sig.Model.Sphincs
 public import LeanVM.Guest.B1.Sig.Model.Xmss
+public import LeanVM.Guest.B1.Comp.Digest.SmallAtC
+public import LeanVM.Guest.B1.Comp.Digest.ChildListAtC
+public import LeanVM.Guest.B1.Comp.VerifySub.Data
 
 /-!
 # The callees of `main` over an answered hash
 
 `CalleesAt.lean`'s preconditions with each digest the callee returns answered by `H`
-(`ClPreAtC`, `CclPreAtC`, `SdPreAtC`, `DaListPreAtC`; `CoverPreAt` and `DaVerifyPreAt` hash
+(B1's `Digest.ClPreAtC`, `Digest.CclPreAtC`, `Digest.SdPreAtC`, `Digest.DaListPreAtC`; `CoverPreAt` and `DaVerifyPreAt` hash
 nothing), the signatures verifying with `H`'s answers (`Meaning_verify_lean_xmssWith`,
 `Meaning_verify_sig_lean_sphincsWith`), the blob matrix opening with `H` and the guest's padding
 digests (`Da.Witness.OpensWith H daPadCell daPadRow`), and `CalleesAtC S H`: `CalleesAt` under
@@ -32,43 +35,16 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1 (CompleteRelBS CompleteAtBS Returns LowDef Meaning_verify_lean_xmssWith
   Meaning_verify_sig_lean_sphincsWith)
-open LeanVM.Guest.B1.Digest (SquaresAt CellsAt)
+open LeanVM.Guest.B1.Digest (SquaresAt CellsAt SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 
 @[expose] public section
 
 variable (H : List UInt8 → Option Digest)
 
-/-- `claim_list_digest`'s precondition over `H` (`ClPreAt`): the claims' digest answered. -/
-def ClPreAtC (cs : List E) (rd : Reader) : List E → List E → Prop
-  | [ptr, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧
-      cs.length = 4 * n ∧ CellsAt rd ptr cs ∧ (∀ c ∈ cs, IsCanonical128 c) ∧
-        ∃ d, H (cs.flatMap cellBytes) = some d ∧ (d0, d1) = digestScalars d
-  | _, _ => False
-
-/-- `child_claim_list_digest`'s precondition over `H` (`CclPreAt`). -/
-def CclPreAtC (off : ℕ → ℕ) (cs : List E) (rd : Reader) : List E → List E → Prop
-  | [entries, cover, base, origin, limit, ng, gsq], [d0, d1] => SquaresAt rd gsq ∧
-      (∃ L ≤ 2 ^ 16, limit = gen ^ L) ∧ ∃ n < 2 ^ 16, ng = gen ^ n ∧
-        cs.length = 4 * n ∧ Digest.ChildReads rd entries cover base origin limit off cs n ∧
-        (∀ c ∈ cs, IsCanonical128 c) ∧
-          ∃ d, H (cs.flatMap cellBytes) = some d ∧ (d0, d1) = digestScalars d
-  | _, _ => False
-
-/-- `statement_digest`'s precondition over `H` (`SdPreAt`): the statement's digest answered. -/
-def SdPreAtC (sig : Digest) (cells : List E) (rd : Reader) : List E → List E → Prop
-  | [seed0, seed1, sigp, da0, da1, dp], [d0, d1] => ∃ (seed da : Digest),
-      cells.length = Digest.deferStmtCells ∧ (seed0, seed1) = digestScalars seed ∧
-      LoadHolds rd sigp 0 (digestScalars sig).1 ∧ LoadHolds rd sigp 1 (digestScalars sig).2 ∧
-      (da0, da1) = digestScalars da ∧ CellsAt rd dp cells ∧
-      ∃ pd, Digest.stmtDigestOfWith H seed sig da cells = some pd ∧ (d0, d1) = digestScalars pd
-  | _, _ => False
-
-/-- `da_list_digest`'s precondition over `H` (`DaListPreAt`): the list's digest answered. -/
-def DaListPreAtC (claims : List DaClaim) (rd : Reader) : List E → List E → Prop
-  | [roots, ng], [d0, d1] => claims.length ≤ 16 ∧ ng = gen ^ claims.length ∧
-      LeanVM.Guest.B1.DaClaimsAt rd roots claims ∧
-        ∃ d, daListDigestWith H claims = some d ∧ (d0, d1) = digestScalars d
-  | _, _ => False
+/-- The caller's words `verify_sub` reads at a run record `R` of the run `D` (`vsExtL`; B1's
+`vsExtLC`): the exponent tables and `defer_out`'s cells at the run record's fixed claims. -/
+def vsExtLR (lpA sqA outA : ℕ) (D : VerifySub.VsData) (R : VerifySub.VsRunC) : Layout :=
+  VerifySub.expL lpA sqA ++ [(outA, Node.fixedCells (R.fresh D))]
 
 /-- A completeness under `S` within the weights at every frame weight, at the weights `w θ`
 (`CompleteAtW.reindex`). -/
@@ -86,7 +62,7 @@ theorem CompleteAtWS.reindex {S : BlakeSem} {fs : String → ℕ} {cert : String
 /-- **The callees of `main` other groups prove, complete under `S` over the answered hash `H`**,
 uniformly and placed at `κ`, by trees within `Bd` (`CalleesAt` over `S` and `H`). -/
 structure CalleesAtC (S : BlakeSem) (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ)
-    (VsGood : VerifySub.VsData → Prop) (Bd : CalleeBounds) : Prop where
+    (VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop) (Bd : CalleeBounds) : Prop where
   verify_lean_xmss :
     CompleteRelBS S fs cert κ "verify_lean_xmss" (Meaning_verify_lean_xmssWith H) Bd.xmss
   verify_sig_lean_sphincs : CompleteRelBS S fs cert κ "verify_sig_lean_sphincs"
@@ -105,10 +81,10 @@ structure CalleesAtC (S : BlakeSem) (fs : String → ℕ) (cert : String → V �
     (∀ rd, LowDef κ rd → MemL rd Lin → DaVerifyPreAt root vd rd args rets) →
     CompleteAtWS S fs cert (fun θ : String → ℕ => θ) κ "da_verify" Lin args (Returns rets)
       (Bd.daVerify wt.rows.length) fun θ => Bd.daVerifyW θ wt.rows.length
-  verify_sub : ∀ D, VsGood D → ∀ lpA sqA outA : ℕ, ∀ {Θ : Type} (w : Θ → String → ℕ)
+  verify_sub : ∀ D R, VsGood D R → ∀ lpA sqA outA : ℕ, ∀ {Θ : Type} (w : Θ → String → ℕ)
     (c : Θ → VerifySub.VsStat), (∀ θ, VerifySub.VsStatOkS S (w θ) (c θ)) →
     CompleteAtWS S fs cert w κ "verify_sub"
-    (VerifySub.vsExtL lpA sqA outA D) [(digestScalars D.pi).1, (digestScalars D.pi).2,
+    (vsExtLR lpA sqA outA D R) [(digestScalars D.pi).1, (digestScalars D.pi).2,
       (digestScalars D.seed).1, (digestScalars D.seed).2, ofK (gpow lpA), ofK (gpow sqA),
       ofK (gpow outA)] (Returns []) Bd.vs fun θ => Bd.vsW (w θ) (c θ)
 

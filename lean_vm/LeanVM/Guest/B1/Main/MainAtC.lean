@@ -65,7 +65,7 @@ theorem aggregateC_claims_completeAt {Ha : List UInt8 → Option Digest} (hF : F
 
 /-! ## `main`'s own words -/
 
-variable {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGood : VerifySub.VsData → Prop} {Bd : CalleeBounds} {fp : ℕ}
+variable {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop} {Bd : CalleeBounds} {fp : ℕ}
   {W : MainWords}
 
 /-- **`MainOkS` from `main`'s words**, under the trivial call relation: the bounds, the signer

@@ -27,6 +27,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM.Node
 open LeanVM.Guest.B1 (LowDef bufL Meaning_verify_lean_xmssWith Meaning_verify_sig_lean_sphincsWith)
+open LeanVM.Guest.B1.Digest (SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 
 @[expose] public section
 
@@ -37,7 +38,7 @@ variable (fs : String → ℕ)
 variable (S) in
 /-- **What `main`'s callees need of its words at `fp`**, on every memory holding `mainIn` and
 defined below `2^κ`, the children's runs of the deferring verifier in `VsGood`. -/
-structure MainWordsOkC (Ha : List UInt8 → Option Digest) (κ : ℕ) (VsGood : VerifySub.VsData → Prop) (fp : ℕ) (W : MainWords) :
+structure MainWordsOkC (Ha : List UInt8 → Option Digest) (κ : ℕ) (VsGood : VerifySub.VsData → VerifySub.VsRunC → Prop) (fp : ℕ) (W : MainWords) :
     Prop where
   total : W.total ≤ 65535
   nc : W.nc ≤ 16

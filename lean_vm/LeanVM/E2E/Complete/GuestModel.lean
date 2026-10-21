@@ -8,6 +8,8 @@
 module
 
 public import LeanVM.Guest.B1.Main.MainBudgetC
+public import LeanVM.Guest.B1.Main.CalleesModel
+public import LeanVM.Guest.B1.Comp.VsInv.Field
 public import LeanVM.Guest.B1.Main.RowsCModel
 public import LeanVM.Guest.EndFinalComplete
 public import LeanVM.Guest.Count.MainS
@@ -23,25 +25,23 @@ public import LeanVM.Guest.B2C.KFacts
 `GuestCompleteModel` (`Interfaces.lean`, package L2 of `docs/roadmap/t6-completeness.md`) less its
 decoding conjunct is `GuestCompleteModelExec`: for every completeness model `CM`, a node relation
 answered by `CM.H` within the deployed limits, the caps and the budget has a valid execution under
-`CM.sem` within the committed size. It rests on what group B1 proves over the model, collected in
-`B1CompHyps CM` (each field the shape of its deployed lemma over the model):
+`CM.sem` within the committed size.
 
-* `callees`: `main`'s callees complete under `CM.sem` over `CM.H`, placed, within the deployed
-  callee bounds (`CalleesAtC`, the shape of `calleesAt_proved`);
-* `VsGood`, `vs_inv`: a child's proof accepted with every hash answered by `CM.H` (within the
-  limits' stack log and stream, its openings agreeing in the caps under `Ht`) has a run in
-  `VsGood` of its fixed claims, of the guest's fresh shape (the shape of `vs_inversion` with
-  `deferredCaps` and `ea_freshShaped`).
+Group B1's lemmas over every model give `main`'s callees (`calleesAtC_of_open`, at the good runs
+`VsGoodC CM (CapAgreesC CM)`), the children's runs (`VerifySub.vs_invC_capAgreesC`: a child's
+proof accepted with every hash answered by `CM.H`, within the limits, its caps agreeing, has a
+good run of its fixed claims, digest, seed and proof, of the guest's fresh shape), the inline
+Fiat-Shamir rows and the batching sumchecks (`fsRowsC_model`, `bsRowsC_model`). What remains of
+B1 is `B1CompHyps CM`: `open_stacked` placed over the model at `CapAgreesC CM`
+(`CalleesOpenC`).
 
-The inline Fiat-Shamir rows and the batching sumchecks over the model are B1's merged hash sites
-(`fsRowsC_model`, `bsRowsC_model`). `guestCompleteModelExec_of`: `∀ CM, B1CompHyps CM` gives
-`GuestCompleteModelExec`, by `mainCompleteC_of` at the deployed frame sizes, certificates, budget
-`b2cBudget'` and k4's weights under the model (`Count.kcWtS`), `honest_of_mainC` and
-`validB_of_honestC`.
+`guestCompleteModelExec_of`: `∀ CM, B1CompHyps CM` gives `GuestCompleteModelExec`, by
+`mainCompleteC_of` at the deployed frame sizes, certificates, budget `b2cBudget'` and k4's weights
+under the model (`Count.kcWtS`), `honest_of_mainC` and `validB_of_honestC`.
 
-**At the deployed model** every field is its deployed lemma (`b1CompHyps_deployed`: the callees
-from `calleesAt_proved`, the runs from `vs_inversion`), and `guest_complete_of_model` re-derives
-the deployed `End.guest_complete` (`GuestCompleteWithin b2cBudget'`) from the model theorem.
+**At the deployed model** `B1CompHyps` is the deployed `open_stacked_completeAtB_of`
+(`b1CompHyps_deployed`, by `capAgreesC_deployed`), and `guest_complete_of_model` re-derives the
+deployed `End.guest_complete` (`GuestCompleteWithin b2cBudget'`) from the model theorem.
 -/
 
 namespace LeanVM.E2E.Complete
@@ -52,30 +52,14 @@ open LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- **What `main`'s completeness over a completeness model takes of group B1**: `main`'s callees
-complete under the model's semantics over its answered hash (`CalleesAtC`), and every child's
-accepted proof run by a run in `VsGood`. -/
-structure B1CompHyps (CM : CompModel) : Type where
-  /-- The good runs of `verify_sub`. -/
-  VsGood : B1.VerifySub.VsData → Prop
-  /-- `main`'s callees under `CM.sem` over `CM.H`, at the deployed frame sizes, certificates and
-  callee bounds (`calleesAt_proved` over the model). -/
-  callees : CalleesAtC CM.H CM.sem B2C.fs B2C.cert 16 VsGood (calleeBd B2C.fs B2C.calleesHyps_b2c)
-  /-- **A child's accepted proof has a good run** (`vs_inversion` over the model): within the
-  limits' stack log and stream, its openings agreeing in the caps under a total `Ht` agreeing
-  with `CM.H`, accepted with every hash answered by `CM.H`, its fixed claims are of the guest's
-  shape and a good run has them, its digest and the seed. -/
-  vs_inv : ∀ (Ht : Compile.Bytes → Digest), (∀ x d, CM.H x = some d → d = Ht x) →
-    ∀ (seed pi : Digest) (fresh : FixedClaims) (proof : Proof),
-    (∀ layout r, announced End.bytecode proof.stream = some (layout, r) →
-      22 ≤ layout.stackLog ∧ layout.stackLog ≤ 28) →
-    proof.stream.length ≤ Hints.streamCap →
-    verifyDeferredWith CM.H End.bytecode seed pi fresh proof = some true →
-    (∀ b ∈ queriesOfWith Ht (deferredProgram fresh End.bytecode pi)
-        ⟨Ht (digestBytes seed ++ digestBytes pi), proof.stream, proof.openings, []⟩,
-      BatchAgreesWith Ht b.1 b.2) →
-    FreshShaped fresh ∧ ∃ D : B1.VerifySub.VsData, VsGood D ∧ D.pi = pi ∧ D.seed = seed ∧
-      D.fresh = fresh
+/-- **What `main`'s completeness over a completeness model still takes of group B1**: `verify_sub`'s
+`open_stacked` placed over the model at the caps' agreement over the model
+(`CalleesOpenC CM (CapAgreesC CM)`); the rest of `main`'s callees are B1's over every model
+(`calleesAtC_of_open`), the children's runs B1's inversion over every model
+(`VerifySub.vs_invC_capAgreesC`). -/
+structure B1CompHyps (CM : CompModel) : Prop where
+  /-- `open_stacked`, placed over the model at `CapAgreesC CM`. -/
+  callees_open : CalleesOpenC CM (B1.VerifySub.CapAgreesC CM)
 
 /-- **L2 without the decoding**: `GuestCompleteModel`'s first two conclusions. -/
 def GuestCompleteModelExec : Prop :=
@@ -127,14 +111,16 @@ facts over it. -/
 theorem mainCompleteC_b2c (CM : CompModel) (hB : B1CompHyps CM) (Ht : Compile.Bytes → Digest)
     (hag : ∀ x d, CM.H x = some d → d = Ht x) :
     End.MainCompleteC CM.sem CM.H Ht B2C.fs B2C.cert B2C.cnt B2C.b2cBudget' := by
-  refine mainCompleteC_of hag B2C.fs B2C.cert B2C.cnt B2C.b2cBudget' hB.callees (fsRowsC_model CM)
+  refine mainCompleteC_of hag B2C.fs B2C.cert B2C.cnt B2C.b2cBudget' (calleesAtC_of_open hB.callees_open) (fsRowsC_model CM)
     (bsRowsC_model CM) (fun op => B2C.ωArm B1.Sig.xmssArmC op) (fun op => Count.kcWtS CM.sem op) B2C.jtSets
     (B2C.two_le_fs _) ?_ ?_ ?_ ?_
   · intro seed s w pi hpi hN hlim hcaps c hc
     obtain ⟨-, pic, hpic, hver⟩ := hN.2.1 c hc
     obtain ⟨-, rfl⟩ := stmtAns_of hag hpic
-    exact hB.vs_inv Ht hag seed _ c.fresh c.proof (fun layout r h => hlim.stackLog c hc layout r h)
-      (hlim.stream c hc) hver (hcaps c hc)
+    obtain ⟨h1, D, R, h2, h3, h4, h5, -⟩ := B1.VerifySub.vs_invC_capAgreesC CM Ht hag seed _
+      c.fresh c.proof (fun layout r h => hlim.stackLog c hc layout r h) (hlim.stream c hc) hver
+      (hcaps c hc)
+    exact ⟨h1, D, R, h2, h3, h4, h5⟩
   · intro seed s w _ hlim
     rw [mainBound_honestC]
     exact ea_words B2C.fs B2C.calleesHyps_b2c (fun q => loop86_bound_le q) (seed := seed) hlim
