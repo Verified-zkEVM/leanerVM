@@ -5,7 +5,7 @@ Lean 4 proofs about [leanVM](https://github.com/leanEthereum/leanVM): its verifi
 | Path | What it proves |
 | --- | --- |
 | [`lean_vm/`](lean_vm/README.md) | knowledge soundness and completeness of leanVM's verifier in the random-oracle model, and, for the aggregation guest's deployed bytecode, that a valid execution's memory holds a statement of its public input's digest and the witness holding it (signatures, blob matrices, child proofs: `guest_knowledge`), and that a valid execution exists for every statement within the limits; the statements are in [`lean_vm/LeanVM/Spec/`](lean_vm/LeanVM/Spec/README.md) |
-| [`lean_xmss/`](lean_xmss/PROOF.md) | leanXMSS's classical random-oracle security (`XmssSecurity.leanXmss_has_127_bits_of_classical_security`) |
+| [`lean_xmss/`](lean_xmss/PROOF.md) | leanXMSS's classical random-oracle security (`XmssSecurity.leanXmss_has_127_bits_of_classical_security`), its attributed form (`XmssSecurity.leanXmss_has_attributed_security`) and its multi-user security, `q / 2^127 + n^2 / 2^127 + q^2 / 2^252` for `n` keys and `q` hash calls in all (`XmssSecurity.leanXmss_has_multi_user_security`) |
 | [`lean_sphincs/`](lean_sphincs/README.md) | leanSPHINCS's (`Sphincs.Lifetimes.requestedSecurity`) |
 | [`lean_da/`](lean_da/README.md) | LeanDA's completeness and binding |
 

@@ -1,5 +1,7 @@
-import LeanXmss.Scheme
-import VCVio.OracleComp.QueryTracking.WriterCost
+module
+
+public import LeanXmss.Scheme
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 # leanXMSS security statement
@@ -12,6 +14,8 @@ and may not reuse one: the scheme is stateful.
 open OracleComp OracleSpec ENNReal
 
 namespace LeanXmss
+
+@[expose] public section
 
 /-- A signing request: a leaf index and a 32-byte message. -/
 structure SignRequest where
@@ -98,5 +102,7 @@ end Security
 
 /-- The security claim. -/
 abbrev LeanXmssSecurityStatement : Prop := Security.HasClassicalSecurityBits 127
+
+end
 
 end LeanXmss
