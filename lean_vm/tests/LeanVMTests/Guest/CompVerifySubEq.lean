@@ -5,7 +5,7 @@ import LeanVM.Guest.B1.Comp.VerifySub.PlacedEq
 
 The transcript callees' placed shapes loading the words they read, `verify_sub` placed over a
 completeness model by a tree whose node decodes the child proof's stream on every reader satisfying
-the tree's memory equations, and the child proof decoded there, rest on Lean's three standard
+the tree's load equations, and the child proof decoded there, rest on Lean's three standard
 axioms only.
 -/
 
@@ -104,3 +104,7 @@ axioms only.
 /-- info: 'LeanVM.Guest.B1.VerifySub.verify_sub_completeAtWCE' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.B1.VerifySub.verify_sub_completeAtWCE
+
+/-- info: 'LeanVM.Guest.B1.VerifySub.loadEqns_of_mem_kids' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.B1.VerifySub.loadEqns_of_mem_kids

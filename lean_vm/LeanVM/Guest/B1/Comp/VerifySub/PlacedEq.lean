@@ -12,20 +12,23 @@ public import LeanVM.Guest.B1.Comp.VerifySub.PlacedEqKids
 /-!
 # `verify_sub`'s child proof, decoded on the tree's equations
 
-The image V_I decodes holds the frame cells and the tree's memory equations (`Tree.eqns`), not
-every word of `verify_sub`'s buffers. Here what `verify_sub`'s tree decodes is stated on ANY reader
-satisfying its equations:
+The image V_I decodes holds the frame cells and the honest tree's memory equations, not every
+word of `verify_sub`'s buffers; the honest tree is re-temped, which keeps exactly the load
+equations (`Tree.loadEqns`, `loadEqns_retemp`). Here what `verify_sub`'s tree decodes is stated on
+ANY reader satisfying its LOAD equations:
 
 * `VsFrame`: what the node's valuation `σ` alone gives (the public input and seed of its argument
   cells, the announced layout and rate, the dispatched opening's call words);
 * `VsRootTreeE`: the tree is the node of `verify_sub` at `σ` with `VsFrame σ`; on every reader
-  `rd'` satisfying the tree's equations the child proof's stream `streamAt rd' (σ 14)
+  `rd'` satisfying the tree's load equations the child proof's stream `streamAt rd' (σ 14)
   (vsStreamLen bytecode σ)` is `D.stream` (its first ten words loaded by `verify_sub` itself
   (`vs_own_loads`), the rest by GKR, the tables, Flock and the opening, `LoadsWords`); and one of its
-  callees' trees, placed at some `b`, valid on every such `rd'` on the opening's call words,
-  satisfies `OsQ … D.os b` (the Whir side's reader-free decoding of the openings);
+  callees' trees, placed at some `b`, satisfies `OsQ … D.os b` (the Whir side's reader-free
+  decoding of the openings), valid on the opening's call words on every reader satisfying the
+  tree's full memory equations (validity reads the range checks' temporaries too, which re-temping
+  re-chooses: the re-temped tree's validity is the honest trace's);
 * `verify_sub_completeAtWCE`: `verify_sub` placed over the model by such a tree;
-* `vsProofOf_eq_proofE`: on every reader satisfying the tree's equations, an opening decoder
+* `vsProofOf_eq_proofE`: on every reader satisfying the tree's load equations, an opening decoder
   reading `D.os` on the opening's call gives `vsProofOf bytecode rd' σ wO = D.proof`.
 -/
 
@@ -56,16 +59,16 @@ theorem VsDecodes.toFrame {bytecode : List K} {D : VsData} {R : VsRunC} {fs : St
     {rd : Reader} {σ : Val} (h : VsDecodes bytecode D R fs fp rd σ) : VsFrame bytecode D R fs fp σ :=
   ⟨h.pi, h.seed, h.layout, h.rate, h.openArgs, h.openRets⟩
 
-/-- **`verify_sub`'s tree decodes the run on its equations**: the node of `verify_sub` at `σ`
-(`VsFrame`), the child proof's stream `D.stream` on every reader satisfying the tree's equations,
-and the opening's tree, placed at `b`, valid there on the opening's call words, satisfying
-`OsQ … D.os b`. -/
+/-- **`verify_sub`'s tree decodes the run on its load equations**: the node of `verify_sub` at `σ`
+(`VsFrame`), the child proof's stream `D.stream` on every reader satisfying the tree's load
+equations, and the opening's tree, placed at `b`, satisfying `OsQ … D.os b`, valid on the
+opening's call words on every reader satisfying the tree's memory equations. -/
 def VsRootTreeE (S : BlakeSem) (OsQ : ℕ → ℕ → List Opening → ℕ → Tree → Prop)
     (bytecode : List K) (D : VsData) (R : VsRunC) (fs : String → ℕ) (cert : String → V → ℕ)
     (fp : ℕ) (t : Tree) : Prop :=
   ∃ (σ : Val) (bufs : List ℕ) (ks : List Tree), t = Memory.Tree.node "verify_sub" σ bufs ks ∧
     VsFrame bytecode D R fs fp σ ∧
-    (∀ rd' : Reader, (∀ q ∈ t.eqns coreProgram, rd' q.1 = some q.2) →
+    (∀ rd' : Reader, (∀ q ∈ t.loadEqns coreProgram, rd' q.1 = some q.2) →
       streamAt rd' (σ (.n 14)) (vsStreamLen bytecode σ) = D.stream) ∧
     ∃ ko ∈ ks, ∃ b : ℕ, OsQ (layoutOf bytecode D.logMem D.rows).stackLog D.rate D.os b ko ∧
       ko.Placed coreProgram fs cert b ∧
@@ -79,7 +82,7 @@ theorem vsProofOf_eq_proofE {S : BlakeSem} {OsQ : ℕ → ℕ → List Opening �
     {bytecode : List K} {D : VsData} {R : VsRunC} {fs : String → ℕ} {cert : String → V → ℕ}
     {fp : ℕ} {σ : Val} {bufs : List ℕ} {ks : List Tree}
     (h : VsRootTreeE S OsQ bytecode D R fs cert fp (Memory.Tree.node "verify_sub" σ bufs ks))
-    (rd' : Reader) (he : ∀ q ∈ (Memory.Tree.node "verify_sub" σ bufs ks).eqns coreProgram,
+    (rd' : Reader) (he : ∀ q ∈ (Memory.Tree.node "verify_sub" σ bufs ks).loadEqns coreProgram,
       rd' q.1 = some q.2)
     (wO : String → List E → List E → List Opening)
     (hO : wO (openName (vsLayout bytecode σ).stackLog (vsRate σ)) (vsOpenArgs σ) (vsOpenRets σ) = D.os) :
@@ -126,7 +129,7 @@ theorem vs_own_words {S : BlakeSem} {C : CallRel} {rd : Reader} {σ : Val} {sel 
     (hev : ∀ e ∈ vsEvs σ sel, e.OkB S C rd σ) (hs : ReadsAt rd (σ (.n 14)) D.stream)
     (hl : 10 ≤ D.stream.length) :
     ∀ k < 10, ((σ (.n 14)).limb 0 * Parameters.gpow k, D.stream.getD k 0) ∈
-      evEqns σ (vsEvs σ sel) := by
+      evLoadEqns σ (vsEvs σ sel) := by
   intro k hk
   have hm := mem_vsEvs_of (vs_own_loads k hk) (ownI_lt k hk) σ sel
   have hh := (hev _ hm).1
@@ -134,7 +137,7 @@ theorem vs_own_words {S : BlakeSem} {C : CallRel} {rd : Reader} {σ : Val} {sel 
   have hv : σ (.n (ownD k)) = D.stream.getD k 0 :=
     loadHolds_unique hh (readsAt_getD hs (by omega))
   rw [← hv]
-  exact mem_evEqns hm (List.mem_singleton_self _)
+  exact List.mem_flatMap.mpr ⟨_, hm, List.mem_singleton_self _⟩
 
 /-! ## A callee's tree at a call -/
 
@@ -226,19 +229,27 @@ theorem vsRootTreeE_of {S : BlakeSem} {C : CallRel} {OsQ : ℕ → ℕ → List 
   have hkid : ∀ {k : Tree}, k ∈ ks → ∀ q ∈ k.eqns coreProgram,
       q ∈ (Memory.Tree.node "verify_sub" σ bufs ks).eqns coreProgram := fun hk q hq => by
     rw [hE]; exact List.mem_append_right _ (eqns_of_mem_kids hk q hq)
+  have hLE : (Memory.Tree.node "verify_sub" σ bufs ks).loadEqns coreProgram =
+      evLoadEqns σ (vsEvs σ sel) ++ Tree.loadEqnsKids coreProgram ks := by
+    have : (Memory.Tree.node "verify_sub" σ bufs ks).events coreProgram = vsEvs σ sel := by
+      simp only [Tree.events, Tree.name, Tree.val, find_verify_sub, hw]
+    rw [Tree.loadEqns, this]
+  have hlkid : ∀ {k : Tree}, k ∈ ks → ∀ q ∈ k.loadEqns coreProgram,
+      q ∈ (Memory.Tree.node "verify_sub" σ bufs ks).loadEqns coreProgram := fun hk q hq => by
+    rw [hLE]; exact List.mem_append_right _ (loadEqns_of_mem_kids hk q hq)
   have hlen : 10 ≤ D.stream.length := by
     simp [VsData.stream, ann_length hok.rows_length]; omega
   refine ⟨σ, bufs, ks, rfl, hdec.toFrame, fun rd' he => ?_, ko, hko, b, hq, hp, fun rd' he =>
     Tree.ValidB.transfer ko hv fun q hq => he q (hkid hko q hq)⟩
   have h10 : ∀ k < 10, rd' (Parameters.gpow (vsB fs fp D 2 + k)) = some (D.stream.getD k 0) := by
     intro k hk
-    have := he _ (by rw [hE]; exact List.mem_append_left _ (vs_own_words hev hs hlen k hk))
+    have := he _ (by rw [hLE]; exact List.mem_append_left _ (vs_own_words hev hs hlen k hk))
     rwa [h14, Main.addr_ofK] at this
   have hw' := stream_wordsAt hok.rows_length h10
-    (wordsAt_of_loads hG fun q hq => he q (hkid hkG q hq))
-    (wordsAt_of_loads hT fun q hq => he q (hkid hkT q hq))
-    (wordsAt_of_loads hF fun q hq => he q (hkid hkF q hq))
-    (wordsAt_of_loads hW fun q hq => he q (hkid hko q hq))
+    (wordsAt_of_loads hG fun q hq => he q (hlkid hkG q hq))
+    (wordsAt_of_loads hT fun q hq => he q (hlkid hkT q hq))
+    (wordsAt_of_loads hF fun q hq => he q (hlkid hkF q hq))
+    (wordsAt_of_loads hW fun q hq => he q (hlkid hko q hq))
   have hsl : vsStreamLen bytecode σ = D.stream.length := by
     rw [vsStreamLen, hdec.layout, hdec.rate, stream_lengthC hok]
   rw [h14, hsl]

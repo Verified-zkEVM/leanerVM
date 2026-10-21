@@ -8,14 +8,16 @@
 module
 
 public import LeanVM.Guest.B1.Comp.VerifySub.PlacedRoot
+public import LeanVM.Guest.Memory.LoadEqns
 
 /-!
 # `verify_sub`'s callees, their trees loading what they read
 
-The image V_I decodes holds the frame cells and the trees' memory equations (`Tree.eqns`: the
-loads, range checks and frame runs), not every buffer word. A word of the child proof's stream is
-in the image when some instance loads it. `LoadsWords t c xs`: the tree `t` loads the words `xs`
-at `g^c, g^(c+1), …` (each `(g^(c+k), xs[k])` among its equations).
+The image V_I decodes holds the frame cells and the honest (re-temped) tree's memory equations,
+not every buffer word; re-choosing the range checks' temporaries keeps exactly the LOAD equations
+(`Tree.loadEqns`, `loadEqns_retemp`). A word of the child proof's stream is in the image when some
+instance loads it. `LoadsWords t c xs`: the tree `t` loads the words `xs` at `g^c, g^(c+1), …`
+(each `(g^(c+k), xs[k])` among its load equations).
 
 * the hashing callees' placed shapes over the model with their trees loading the transcript words
   they read at the cursor `g^c` (`CompleteGkrAtWCL`, `CompleteTablesAtWCL`, `CompleteFlockAtWCL`,
@@ -24,7 +26,7 @@ at `g^c, g^(c+1), …` (each `(g^(c+k), xs[k])` among its equations).
 * the calls before the dispatch complete with the transcript callees' loads (`vsKids1_completeWCL`,
   `VsKidsQ`), and the opening (`vsOpenKid_completeWCL`);
 * `WordsAt rd s xs`: `rd` holds `xs` at `g^s, …`; from a tree's loads on any reader satisfying
-  its equations (`wordsAt_of_loads`), and `streamAt` of it (`streamAt_of_wordsAt`).
+  its load equations (`wordsAt_of_loads`), and `streamAt` of it (`streamAt_of_wordsAt`).
 -/
 
 namespace LeanVM.Guest.B1.VerifySub
@@ -40,14 +42,14 @@ open LeanVM.Guest.B1.Main (MemL RegionL)
 
 /-- **The tree loads the words `xs` at `g^c, g^(c+1), …`**: each is one of its memory equations. -/
 def LoadsWords (t : Tree) (c : ℕ) (xs : List E) : Prop :=
-  ∀ k (h : k < xs.length), (Parameters.gpow (c + k), xs[k]) ∈ t.eqns coreProgram
+  ∀ k (h : k < xs.length), (Parameters.gpow (c + k), xs[k]) ∈ t.loadEqns coreProgram
 
 /-- **The reader holds `xs` at `g^s, g^(s+1), …`.** -/
 def WordsAt (rd : Reader) (s : ℕ) (xs : List E) : Prop :=
   ∀ k (h : k < xs.length), rd (Parameters.gpow (s + k)) = some xs[k]
 
 theorem wordsAt_of_loads {t : Tree} {c : ℕ} {xs : List E} (h : LoadsWords t c xs) {rd : Reader}
-    (he : ∀ q ∈ t.eqns coreProgram, rd q.1 = some q.2) : WordsAt rd c xs :=
+    (he : ∀ q ∈ t.loadEqns coreProgram, rd q.1 = some q.2) : WordsAt rd c xs :=
   fun k hk => he _ (h k hk)
 
 theorem WordsAt.of_eq {rd : Reader} {s s' : ℕ} {xs : List E} (h : WordsAt rd s xs) (hs : s = s') :
@@ -87,6 +89,16 @@ theorem eqns_of_mem_kids {P : Core.Program} {k : Tree} :
     rcases List.mem_cons.mp h with rfl | h
     · exact List.mem_append_left _ hq
     · exact List.mem_append_right _ (eqns_of_mem_kids h q hq)
+
+/-- The load equations of a callee's tree are its caller's callees'. -/
+theorem loadEqns_of_mem_kids {P : Core.Program} {k : Tree} :
+    ∀ {ks : List Tree}, k ∈ ks → ∀ q ∈ k.loadEqns P, q ∈ Tree.loadEqnsKids P ks
+  | [], h, _, _ => absurd h List.not_mem_nil
+  | _ :: ks, h, q, hq => by
+    rw [Tree.loadEqnsKids]
+    rcases List.mem_cons.mp h with rfl | h
+    · exact List.mem_append_left _ hq
+    · exact List.mem_append_right _ (loadEqns_of_mem_kids h q hq)
 
 /-! ## Predicates: weaker, and bounds -/
 
