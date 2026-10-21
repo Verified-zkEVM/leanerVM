@@ -14,6 +14,8 @@ import LeanVM.E2E.Da
 import LeanVM.E2E.Batch
 import LeanVM.Guest.EndKnowB
 import LeanVM.E2E.Guest
+import LeanVM.E2E.Complete.Tree
+import LeanVM.E2E.Budget
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
 
@@ -188,3 +190,19 @@ import LeanVM.E2E.Knowledge
 /-- info: 'LeanVM.E2E.prEvent_game_aggregate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.prEvent_game_aggregate
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete'
+
+/-- info: 'LeanVM.E2E.Complete.honestOut_isSome' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.honestOut_isSome
+
+/-- info: 'LeanVM.E2E.run_idealVerify_budgetedQuery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.run_idealVerify_budgetedQuery

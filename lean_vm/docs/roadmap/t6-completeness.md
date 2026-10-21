@@ -264,7 +264,79 @@ common prefixes literally equal). No new mathematics; ≈ 0.6–1k lines.
 | `LeanVM/E2E/Complete/Stream.lean` | 267 | L7: `readSizes_honest`, `announced_announce`, `proveFrom_readN_bind`, `prove_stream_head`, `nodeHead_prove` |
 | `LeanVM/E2E/Complete/Node.lean` | 268 | L8's `blindCandidates_stackWord`, `sizesOf_verifierLayout`, `nodeStep_honest` (L13, the guest's table check and decoding as hypotheses), `closure_accepts` (L14), `outerChecksWith_true`, `idealVerify_accepts` (L15) |
 | `LeanVM/Protocol/EndToEnd/Blind/Complete.lean` | 470 | L5: `replay`, `follows_replay`, `hFlockBlind`, `follows_hFlockBlind`, the bus/table/public phases from `M3HonestBlind`, `follows_verifyExecutionBlind`, `runI_blindProgram`, `exists_prove_verifyBlindWith` (V° accepts the honest proof for every `H`, no `WalkFaithful`) |
+| `LeanVM/E2E/Complete/Interfaces.lean` | 181 | the interfaces L2 and L9 target: `queriesOfWith`, `NodeIsWith`, `BatchAgreesWith`, `CapsAgreeWith` (`capsAgreeWith_blake2s`: at BLAKE2s it is `End.CapsAgree`), `Frames`, `DecodeHonest fr t w`, `GuestCompleteModel` |
+| `LeanVM/Arithmetization/CompletenessB/Count.lean` | 65 | `runCountB`, `Trace.countB`, `Trace.committedSizeB` (namespace `LeanVM.Semantics`), `committedSizeB_deployed` |
+| `LeanVM/Arithmetization/CompletenessB/Rows.lean` | 145 | L3: `Canonical S`, `executeWithB_ne`, `blake2sBindings_of_execB`, `rowOf_sendsB`, `readAddrs_validB` |
+| `LeanVM/Arithmetization/CompletenessB/Satisfied.lean` | 481 | L3: the skeleton witness under a canonical semantics, `skelWitness_satisfiedByB` |
+| `LeanVM/Arithmetization/CompletenessB/Theorem.lean` | 299 | L3: `runRowsB`, `countB_eq_runRowsB`, `ImageOf`, `constraintCompletenessB_rows` |
+| `LeanVM/Protocol/LeanIsa/CompleteB.lean` | 448 | L4: `SlotsOK`, `genFree`, `slotsOK_genFree`, `stackOfG`, `m3HonestBlind_stackOfG` (relation without Flock + honest padding), `witnessOf_stackOfG` |
+| `LeanVM/E2E/Complete/Stack.lean` | 109 | L3 + L4: `exists_admissible_witnessB`, `exists_stack_of_validB` (admissible sizes, `M3HoldsBlind`, `PaddingHonest`, `candidateRun = some t`) |
+| `LeanVM/E2E/Complete/FsRun.lean` | 341 | §5.1: `fsRun` (the run along the Fiat–Shamir challenges), `run_proveFrom_fs`, `runProof_of_fsRun`, `fsRun_bind`, `proveFrom_bind_of_fsRun`, `fsRun_of_acceptsFrom`, `FsSame` and its congruences |
+| `LeanVM/E2E/Complete/Deferred.lean` | 361 | L6's deferring half: the bus and lincheck phases split at their `require`s (`verifyBusBalance_eq`, `verifyFlockLincheck_eq`, `…Blind_eq`), `AllRet`, `exists_deferred_honest` (the honest fresh claims `c`: bytecode value true, the same honest proof, the run returns), `verifyDeferredWith_honest` |
+| `LeanVM/E2E/Complete/Prover.lean` | 227 | L10: `HonestTree`, `Entry`, `HonestOut`, `honestDefer` (the honest hints, `Hints.lean`), `NodeExec`, `freshFor` (accepted, bytecode true, caps agreeing), `honestStep`, `honestOut`, `idealOf` (words and the honest frames of each root), `honestIdeal`, `RootsInj` (E2E-4 on the prover's entries) |
+| `LeanVM/E2E/Complete/Assemble.lean` | 399 | **T6-det**: `honestDefer_spec`, `honestStep_spec`, `nodeStep_out`, `GoodOut`, `honestOut_good`, `honestOut_root`, `idealVerify_complete` |
+| `LeanVM/E2E/Complete/NonVacuity.lean` | 203 | L12 `nodeRel_honest`; node-level non-vacuity `honestStep_isSome` from `GuestCompleteModel` (L2), `NodeSupport` (L17 kept a hypothesis), `PowGood`; `honestOut_child`, `freshFor_spec` |
+| `LeanVM/E2E/Complete/Hints.lean` | 323 | L11: `lead`, `roundPoly_lead`, `honestRounds`, `run_honestRounds` (the honest rounds close at the polynomial at the challenges), the transcript (`bStart`, `bEnd`, `mStart`, `mEnd`), `honestWeights` (G2's weights), `honestHints`, `batchWith_honestHints` (the batching accepts them, the bytecode part true, when the weights are not both zero) |
+| `LeanVM/E2E/Complete/Caps.lean` | 325 | `heapLabel`, `climb_take_label`, `getD_path_label`, `nodeIsWith_openingAt`, `batchAgreesWith_openingAt` (one tree's openings below its leaf count agree), `QRange`, `queriesOfWith_proveFrom` (the query steps on an honest proof are honest openings) |
+| `LeanVM/E2E/Complete/CapsRange.lean` | 494 | `NoCQ` and the phases before WHIR, `allRet_foldRounds`, `allRet_sampleQueriesAux`, `glue_folds`, `qRange_whirLevels`, `qRange_verifyExecution`, `qRange_deferredProgram` (the deferring verifier queries every tree below its leaf count), `queriesOfWith_deferred_honest` |
+| `LeanVM/E2E/Natural.lean` | 255 | `rel_idealVerify` (V_I under a relation of two monads' computations closed under `pure`, `bind`), `IsMorphism`, `idealVerify_natural` |
+| `LeanVM/E2E/Budget.lean` | 263 | L16: `Counted`, `queryCount`, `charge` (a monad morphism), `simHash` (a monad morphism), `simHash_budgetedQuery`, `run_idealVerify_budgetedQuery`, `run_idealVerify_budgetedQuery_of_le`, `hashImplOf` |
+| `LeanVM/E2E/Complete/Tree.lean` | 369 | `HonestTree.AllNodes`, `Valid`, `WithinLimits` (L17's `NodeSupport` a field), `PowFound` (G1), `WeightsNonzero` (G2), `RootsInjAt` (G3); `honestDefer_some`, **`honestOut_isSome`**, **`idealVerify_complete'`**, `idealVerify_complete_budget` |
 
-**Open**: L2 (the guest over a completeness model — the bulk), L3, L4, L6's deferring half
-(§5.1), L9's `DecodeHonest` (E2E-5 is in the statement: `IdealProof.frames`, `End.decodeAt`),
-L10–L12, L16, L17; and the decision E2E-4 (§2).
+**T6-det as proved** (`Assemble.lean`):
+
+```lean
+theorem idealVerify_complete (H : Bytes → Digest) (T : HonestTree) {ρ pfuel fuel : ℕ}
+    (hρ : validRate ρ) {o : HonestOut} (hI : honestOut H ρ pfuel T = some o)
+    (hroots : RootsInj o.entries) (hfuel : T.size ≤ fuel)
+    (hda : ∀ c ∈ T.claims.da,
+      Da.toBytes c.2 = Id.run (Da.vectorDigestOfWith (fun x ↦ (pure (H x) : Id Digest)) c.1)) :
+    o.stmt.claims = T.claims ∧
+      idealVerify (m := Id) (fun x ↦ (pure (H x) : Id Digest)) guest (idealOf o) fuel o.stmt = true
+```
+
+It differs from §1.2 in shape only: the honest prover returns `some` exactly when every node
+finds an execution (classical choice inside `honestStep`, so the theorem needs neither L2 nor
+L9's `DecodeHonest` as hypotheses — they appear where they belong, in non-vacuity), and E2E-4 is
+stated on the prover's entries.
+
+**Non-vacuity and the combined form** (`Tree.lean`):
+
+```lean
+theorem honestOut_isSome (hL2 : GuestCompleteModel) (hρ : validRate ρ) :
+    ∀ T : HonestTree, T.AllNodes (HonestTree.ValidAt H) → T.WithinLimits H ρ pfuel →
+      T.PowFound H ρ pfuel → T.WeightsNonzero H ρ pfuel → ∃ o, honestOut H ρ pfuel T = some o
+
+theorem idealVerify_complete' (hL2 : GuestCompleteModel) (T : HonestTree) {fuel : ℕ}
+    (hρ : validRate ρ) (hv : T.Valid H) (hlim : T.WithinLimits H ρ pfuel)
+    (hpow : T.PowFound H ρ pfuel) (hw : T.WeightsNonzero H ρ pfuel)
+    (hroots : T.RootsInjAt H ρ pfuel) (hfuel : T.size ≤ fuel) :
+    ∃ s ip, honestIdeal H ρ pfuel T = some (s, ip) ∧ s.claims = T.claims ∧
+      idealVerify (m := Id) (fun x ↦ (pure (H x) : Id Digest)) guest ip fuel s = true
+```
+
+L2 (`GuestCompleteModel`, whose third conclusion is L9's `DecodeHonest`) is the one named
+hypothesis besides the tree's validity (`Valid`: holders verify, the root's DA claims carry their
+vector digests), the limits (`WithinLimits`: `Limits`, the budget, and L17's `NodeSupport`, kept a
+field there) and the good events G1–G3 by name. The honest hints are now explicit
+(`honestHints`): the bytecode sumcheck's honest rounds, zero matrix rounds with the final values
+solved for, so G2 is a function of `H` alone; `freshFor` also asks its claims' query steps to
+agree in the caps (`queriesOfWith_deferred_honest`), which the children's `CapsAgreeWith` needs.
+The game's form (`idealVerify_complete_budget`) adds L16 (`run_idealVerify_budgetedQuery_of_le`).
+
+L16 (`Budget.lean`), for any lawful `b` and any `impl` answering every hash query `x` with
+`pure (H x)`:
+
+```lean
+simulateQ impl (((idealVerify (budgetedQuery budget) prog ip fuel s).run).run st) =
+  pure (if queryCount H prog ip fuel s = 0 ∨ st.spent + queryCount H prog ip fuel s ≤ budget
+    then (some (Id.run (idealVerify (fun x ↦ (pure (H x) : Id Digest)) prog ip fuel s)),
+      { st with spent := st.spent + queryCount H prog ip fuel s })
+    else (none, { st with spent := max st.spent budget }))
+```
+
+**Open**: L2 (the guest over a completeness model — the bulk, other agents) and L9's
+`DecodeHonest` (both as Props in `Interfaces.lean`); L17 as a theorem (now a field of
+`WithinLimits`); T6-prob (the good events' probabilities under the random oracle; note that the
+node's execution, sizes and stack are still a classical choice in `honestStep`, which a
+probability bound on G1 must replace by a choice that does not look at the grinds' answers).
