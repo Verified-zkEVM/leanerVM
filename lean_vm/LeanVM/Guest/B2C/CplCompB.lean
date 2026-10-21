@@ -15,10 +15,11 @@ public import LeanVM.Guest.B2C.CplWalkZB
 
 `CplComp.lean`'s `PartArr`, `PartReach`, `CplGoal` with `S : BlakeSem` a parameter (`PartArrB`,
 `PartReachB`, `CplGoalB`) and the composition along a path (`partB_step`, `partB_last`,
-`reachB_zero`, `winsB_goal`), giving `cplB_run`: from the completeness check, `CplRunB S j`.
+`reachB_zero`, `winsB_goal`), giving `cplKB_run`: from the completeness check, `CplRunKB S j`
+(`CplRunB S j` with the callees entered on the run, `KidsOn`), and `cplB_run`, `CplRunB S j`.
 
-* `partArrB_deployed`, `partReachB_deployed`, `cplGoalB_deployed`: at `blakeDeployed`, they are
-  `CplComp.lean`'s.
+* `partArrB_deployed`: at `blakeDeployed`, `PartArrB` is `PartArr` with the callees on the run;
+  `partReachB_deployed`, `cplGoalB_deployed`: `PartReachB`, `CplGoalB` give `PartReach`, `CplGoal`.
 -/
 
 namespace LeanVM.Guest.B2C
@@ -34,31 +35,34 @@ variable (S) in
 /-- **The run is at part `k`'s start**: at its segment's start, or past the items the part
 starts after, within its counts, the separately counted arms passed counting `x`, and the first
 `n` callees'. -/
-def PartArrB {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ)
+def PartArrB {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (ck : List (Opcode → ℕ)) (es : List Ev)
+    (kfps : List ℕ) (i k n : ℕ)
     (x : Opcode → ℕ) : Prop :=
   if partM j i k = 0 then
-    ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n x
-  else ArrMidB S L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x
+    ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck es kfps (entryRegs j fp) (partJ j i k) (partC j i k) n x
+  else ArrMidB S L fp (Xp j i k) ck es kfps (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x
 
 variable (S) in
 /-- **The run reaches part `k` of window `i`** on a path: the path from there returns, and the
 run is at the part's start within its counts and the callees' before it. -/
 def PartReachB {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
-    (ck : List (Opcode → ℕ)) (i k : ℕ) : Prop :=
+    (ck : List (Opcode → ℕ)) (kfps : List ℕ) (i k : ℕ) : Prop :=
   ∃ ebef erest xc, walk σ ((coreOf j).body.drop (partPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
     xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (partPos j i k)) =
       costW (nth Data.cplArms j []) σ (coreOf j).body ∧
-    PartArrB S L j fp ck i k (calls ebef).length xc
+    PartArrB S L j fp ck es kfps i k (calls ebef).length xc
 
 variable (S) in
 /-- What `CplRunB` concludes of one path. -/
-def CplGoalB {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
-    Prop :=
+def CplGoalB {κ : ℕ} (L : MemImage κ) (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ))
+    (es : List Ev) (kfps : List ℕ) : Prop :=
   ∃ (r : Regs K) (c : Opcode → ℕ), (if j = 1 then r = Regs.final guest else retRegs L (gpow fp) = some r) ∧
     RunCB S guest L ⟨gpow (fnOf j).entry, gpow fp⟩ r c ∧
     (∀ op, c op ≤ pathCount j σ op + (ck.map (· op)).sum) ∧
-    ∀ k (hk : k < vs.length),
-      L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])
+    (∀ k (hk : k < vs.length),
+      L.read (gpow (fp + (2 + (coreOf j).params.length + k))) = some (σ vs[k])) ∧
+    KidsOn S L es kfps (calls es).length ⟨gpow (fnOf j).entry, gpow fp⟩ r ∧
+    vs.length = (certOf j).nret
 
 /-! ## The body returns only at its end -/
 
@@ -67,43 +71,44 @@ section Comp
 variable {κ : ℕ} {L : MemImage κ} {j fp : ℕ} {σ : Val} {es : List Ev} {vs : List V}
   {kfps : List ℕ} {hdr : E × E} {ck : List (Opcode → ℕ)}
 
-theorem partArrB_zero {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k = 0) : PartArrB S L j fp ck i k n x ↔
-    ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) (partJ j i k) (partC j i k) n x := by
+theorem partArrB_zero {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k = 0) : PartArrB S L j fp ck es kfps i k n x ↔
+    ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck es kfps (entryRegs j fp) (partJ j i k) (partC j i k) n x := by
   unfold PartArrB
   simp only [h, ↓reduceIte]
 
-theorem partArrB_mid {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k ≠ 0) : PartArrB S L j fp ck i k n x ↔
-    ArrMidB S L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
+theorem partArrB_mid {i k n : ℕ} {x : Opcode → ℕ} (h : partM j i k ≠ 0) : PartArrB S L j fp ck es kfps i k n x ↔
+    ArrMidB S L fp (Xp j i k) ck es kfps (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
   unfold PartArrB
   simp only [h, ↓reduceIte]
 
 theorem arrB_mono {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
-    {c c' : Cnt} (h : ArrB S L fp X wJ wenv ck W0 J c n x) (hc : c.le c' = true) :
-    ArrB S L fp X wJ wenv ck W0 J c' n x := by
-  obtain ⟨⟨cr, hr, hle⟩, he⟩ := h
-  exact ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩, he⟩
+    {c c' : Cnt} (h : ArrB S L fp X wJ wenv ck es kfps W0 J c n x) (hc : c.le c' = true) :
+    ArrB S L fp X wJ wenv ck es kfps W0 J c' n x := by
+  obtain ⟨⟨cr, hr, hle, hko⟩, he⟩ := h
+  exact ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega, hko⟩, he⟩
 
 theorem arrMidB_mono {X : CX} {W0 : Regs K} {J m n : ℕ} {x : Opcode → ℕ} {c c' : Cnt}
-    (h : ArrMidB S L fp X ck W0 J m c n x) (hc : c.le c' = true) : ArrMidB S L fp X ck W0 J m c' n x := by
-  obtain ⟨s, hs, hst, hm, he, cr, hf, hr, hle⟩ := h
-  exact ⟨s, hs, hst, hm, he, cr, hf, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩
+    (h : ArrMidB S L fp X ck es kfps W0 J m c n x) (hc : c.le c' = true) : ArrMidB S L fp X ck es kfps W0 J m c' n x := by
+  obtain ⟨s, hs, hst, hm, he, cr, hf, hr, hle, hko⟩ := h
+  exact ⟨s, hs, hst, hm, he, cr, hf, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega, hko⟩
 
 /-- At a segment's start, no item passed. -/
 theorem arrMidB_zero {X : CX} {wJ : ℕ} {wenv : Trie Sym} {W0 : Regs K} {J n : ℕ} {x : Opcode → ℕ}
     {c : Cnt} {s : Exec.Seg}
-    (h : ArrB S L fp X wJ wenv ck W0 J c n x) (hs : getF X.idx J = some s) (hst : s.start = J) :
-    ArrMidB S L fp X ck W0 J 0 c n x := by
-  obtain ⟨⟨cr, hr, hle⟩, he⟩ := h
-  exact ⟨s, hs, hst, Nat.zero_le _, he.1 s hs hst, cr, trivial, hr, fun op ↦ by simpa [itemOps] using hle op⟩
+    (h : ArrB S L fp X wJ wenv ck es kfps W0 J c n x) (hs : getF X.idx J = some s) (hst : s.start = J) :
+    ArrMidB S L fp X ck es kfps W0 J 0 c n x := by
+  obtain ⟨⟨cr, hr, hle, hko⟩, he⟩ := h
+  exact ⟨s, hs, hst, Nat.zero_le _, he.1 s hs hst, cr, trivial, hr, fun op ↦ by simpa [itemOps] using hle op,
+    hko⟩
 
 /-- **Into the next window**: the environment window `i` hands on holds the next window's. -/
 theorem arrB_win (F : FnHB S L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < (certOf j).cuts.length)
     {c c' : Cnt} {n : ℕ} {x : Opcode → ℕ}
-    (h : ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) ((certOf j).cutAt (i + 1)).J c n x)
+    (h : ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck es kfps (entryRegs j fp) ((certOf j).cutAt (i + 1)).J c n x)
     (hc : c.le c' = true) :
-    ArrB S L fp (Xp j (i + 1) 0) (wJW j (i + 1)) (wenvW j (i + 1)) ck (entryRegs j fp)
+    ArrB S L fp (Xp j (i + 1) 0) (wJW j (i + 1)) (wenvW j (i + 1)) ck es kfps (entryRegs j fp)
       (partJ j (i + 1) 0) c' n x := by
-  obtain ⟨⟨cr, hr, hle⟩, he1, he2⟩ := h
+  obtain ⟨⟨cr, hr, hle, hko⟩, he1, he2⟩ := h
   have hb : Nat.blt i (certOf j).cuts.length = true := Nat.blt_eq.mpr hi
   have hc1 := checkWin_cpl (F.chk i hi.le)
   have hc2 := checkWin_cpl (F.chk (i + 1) hi)
@@ -118,7 +123,7 @@ theorem arrB_win (F : FnHB S L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < 
     | some s =>
       obtain ⟨hst, hsub⟩ := (hc1.2.2.2.2 hi).2 s hg
       exact (he1 s hg hst).sub hsub
-  refine ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega⟩,
+  refine ⟨⟨cr, hr, fun op ↦ by have := hle op; have := Cnt.le_spec hc op; omega, hko⟩,
     fun s hs _ ↦ ?_, fun _ hn ↦ ?_⟩
   · have hs' : getF (index (segsW j (i + 1))) ((certOf j).cutAt (i + 1)).J = some s := hs
     obtain rfl := Option.some.inj (hs'.symm.trans hs0)
@@ -128,7 +133,7 @@ theorem arrB_win (F : FnHB S L j fp σ es vs kfps hdr ck) {i k : ℕ} (hi : i < 
     cases hs0
 
 /-- The run at the function's entry, in window `0`'s first part. -/
-theorem reachB_zero (F : FnHB S L j fp σ es vs kfps hdr ck) : PartReachB S L j fp σ es vs ck 0 0 := by
+theorem reachB_zero (F : FnHB S L j fp σ es vs kfps hdr ck) : PartReachB S L j fp σ es vs ck kfps 0 0 := by
   have hc0 := F.ok 0 (Nat.zero_le _) 0 (one_le_nParts j 0)
   obtain ⟨s0, hs0, -, hsub0⟩ := (checkWin_cpl (F.chk 0 (Nat.zero_le _))).2.2.2.1
   have hw0 := winOkC_of hc0
@@ -149,7 +154,7 @@ theorem reachB_zero (F : FnHB S L j fp σ es vs kfps hdr ck) : PartReachB S L j 
     exact F.walk
   · rw [zero_add, partPos, partS_zero hc0]
     rfl
-  refine ⟨⟨0, RunCB.refl _, fun _ ↦ Nat.zero_le _⟩, fun s hs _ ↦ ?_, fun _ hn ↦ ?_⟩
+  refine ⟨⟨0, RunCB.refl _, fun _ ↦ Nat.zero_le _, KidsOn.zero _ _⟩, fun s hs _ ↦ ?_, fun _ hn ↦ ?_⟩
   · have hs' : getF (index (segsW j 0)) ((certOf j).cutAt 0).J = some s := hs
     obtain rfl := Option.some.inj (hs'.symm.trans hs0)
     exact hE.sub hsub0
@@ -161,16 +166,16 @@ theorem reachB_zero (F : FnHB S L j fp σ es vs kfps hdr ck) : PartReachB S L j 
 theorem posZB_start {i k : ℕ}
     (H : WHB S L j fp (Xp j i k) (segsW j i) (wJW j i) (wenvW j i) σ es vs kfps hdr ck) {s : Exec.Seg}
     (hs : getF (index (segsW j i)) (partJ j i k) = some s) (hst : s.start = partJ j i k) {n : ℕ}
-    {x : Opcode → ℕ} (hA : PartArrB S L j fp ck i k n x)
+    {x : Opcode → ℕ} (hA : PartArrB S L j fp ck es kfps i k n x)
     (hatoms : ∀ a, Stmt.atom a ∈ partStmts j i k → Ev.atom a ∈ es) :
     PosZB S H (st0 j i k s) (entryRegs j fp) n x := by
-  have hM : ArrMidB S L fp (Xp j i k) ck (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
+  have hM : ArrMidB S L fp (Xp j i k) ck es kfps (entryRegs j fp) (partJ j i k) (partM j i k) (partC j i k) n x := by
     unfold PartArrB at hA
     split_ifs at hA with h0
     · rw [h0]
       exact arrMidB_zero hA hs hst
     · exact hA
-  obtain ⟨s', hs', -, hm, he, cr, hf, hr, hle⟩ := hM
+  obtain ⟨s', hs', -, hm, he, cr, hf, hr, hle, hko⟩ := hM
   have hs1 : getF (Xp j i k).idx (partJ j i k) = some s := hs
   obtain rfl := Option.some.inj (hs'.symm.trans hs1)
   have hmem : s' ∈ segsW j i := by
@@ -180,7 +185,7 @@ theorem posZB_start {i k : ℕ}
     (fun _ _ h ↦ absurd (show _ ∈ ([] : List LAtom) from h) (by simp)) hatoms,
     fun _ h ↦ (by cases h), fun _ h ↦ (by cases h), fun _ h ↦ (by cases h)⟩,
     ⟨s'.items.take (partM j i k), cr, List.take_append_drop _ _, hf,
-      (by simp only [st0]; rw [hst]; exact hr), hle⟩,
+      (by simp only [st0]; rw [hst]; exact hr), hle, (by simp only [st0]; rw [hst]; exact hko)⟩,
     fun t ht ↦ ?_, fun _ h ↦ absurd h (by simp [st0]), (by simp only [st0]; rw [hst]; exact hs)⟩
   unfold st0 at ht
   cases h0 : Nat.beq (partM j i k) 0
@@ -195,15 +200,15 @@ theorem posZB_start {i k : ℕ}
 /-- **A part before the last**: its walk takes the run to where it ends. -/
 theorem partB_mid (F : FnHB S L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i k : ℕ}
-    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck i k)
+    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck kfps i k)
     (hnr : Stmt.noRetList (partStmts j i k) = true) :
     ∃ ebef erest xc, walk σ ((coreOf j).body.drop (nextPos j i k)) = .ret erest vs ∧ es = ebef ++ erest ∧
       xc + costW (nth Data.cplArms j []) σ ((coreOf j).body.drop (nextPos j i k)) =
         costW (nth Data.cplArms j []) σ (coreOf j).body ∧
       ((∃ J c u, cplRes j i k = .join J c u ∧
-        ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck (entryRegs j fp) J c (calls ebef).length xc) ∨
+        ArrB S L fp (Xp j i k) (wJW j i) (wenvW j i) ck es kfps (entryRegs j fp) J c (calls ebef).length xc) ∨
        (∃ J m c u, cplRes j i k = .mid J m c u ∧
-        ArrMidB S L fp (Xp j i k) ck (entryRegs j fp) J m c (calls ebef).length xc)) := by
+        ArrMidB S L fp (Xp j i k) ck es kfps (entryRegs j fp) J m c (calls ebef).length xc)) := by
   obtain ⟨ebef, erest, xc, hwr, hes, hxc, hA⟩ := hr
   have hc := F.ok i hi
   have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (F.chk i hi)).2.2.2.2 h).1) hc
@@ -241,8 +246,8 @@ theorem partB_mid (F : FnHB S L j fp σ es vs kfps hdr ck)
 /-- **The last part**: its walk takes the run to the return. -/
 theorem partB_last (F : FnHB S L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i k : ℕ}
-    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck i k)
-    (hn : ¬ k + 1 < nParts j i) (hci : ¬ i < (certOf j).cuts.length) : CplGoalB S L j fp σ vs ck := by
+    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck kfps i k)
+    (hn : ¬ k + 1 < nParts j i) (hci : ¬ i < (certOf j).cuts.length) : CplGoalB S L j fp σ vs ck es kfps := by
   obtain ⟨ebef, erest, xc, hwr, hes, hxc, hA⟩ := hr
   have hc := F.ok i hi
   have hsplit := part_split hk (fun h ↦ ((checkWin_cpl (F.chk i hi)).2.2.2.2 h).1) hc
@@ -280,9 +285,9 @@ theorem partB_last (F : FnHB S L j fp σ es vs kfps hdr ck)
     · rfl
     · rw [hcr] at hend
       simp [partEnd] at hend
-  obtain ⟨es', vs', he', ⟨r, cr, hr0, hrun, hcr⟩, hcells⟩ := h2 hdone
+  obtain ⟨es', vs', he', ⟨r, cr, hr0, hrun, hcr, hko⟩, hcells, hlen⟩ := h2 hdone
   cases he'
-  refine ⟨r, cr, hr0, hrun, fun op ↦ ?_, fun k' hk' ↦ ?_⟩
+  refine ⟨r, cr, hr0, hrun, fun op ↦ ?_, fun k' hk' ↦ ?_, by rw [← hes] at hko; exact hko, hlen⟩
   · have h1 := hcr op
     have h2 := ksum_le_sum ck (calls (ebef ++ erest)).length op
     have h3 : (xc + costW (Xp j i k).acs σ (partStmts j i k)) op =
@@ -301,9 +306,9 @@ theorem partB_last (F : FnHB S L j fp σ es vs kfps hdr ck)
 /-- **One part**: on to the next part, the next window, or the return. -/
 theorem partB_step (F : FnHB S L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i k : ℕ}
-    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck i k) :
-    (k + 1 < nParts j i ∧ PartReachB S L j fp σ es vs ck i (k + 1)) ∨ CplGoalB S L j fp σ vs ck ∨
-      (i < (certOf j).cuts.length ∧ PartReachB S L j fp σ es vs ck (i + 1) 0) := by
+    (hi : i ≤ (certOf j).cuts.length) (hk : k < nParts j i) (hr : PartReachB S L j fp σ es vs ck kfps i k) :
+    (k + 1 < nParts j i ∧ PartReachB S L j fp σ es vs ck kfps i (k + 1)) ∨ CplGoalB S L j fp σ vs ck es kfps ∨
+      (i < (certOf j).cuts.length ∧ PartReachB S L j fp σ es vs ck kfps (i + 1) 0) := by
   have hc := F.ok i hi
   have hend := cplWin_end (hc k hk)
   by_cases hn : k + 1 < nParts j i
@@ -352,8 +357,8 @@ theorem partB_step (F : FnHB S L j fp σ es vs kfps hdr ck)
 theorem partsB_goal (F : FnHB S L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) {i : ℕ}
     (hi : i ≤ (certOf j).cuts.length) : ∀ m k, nParts j i - k = m → k < nParts j i →
-      PartReachB S L j fp σ es vs ck i k →
-      CplGoalB S L j fp σ vs ck ∨ (i < (certOf j).cuts.length ∧ PartReachB S L j fp σ es vs ck (i + 1) 0) := by
+      PartReachB S L j fp σ es vs ck kfps i k →
+      CplGoalB S L j fp σ vs ck es kfps ∨ (i < (certOf j).cuts.length ∧ PartReachB S L j fp σ es vs ck kfps (i + 1) 0) := by
   intro m
   induction m with
   | zero => intro k hm hk; omega
@@ -367,7 +372,7 @@ theorem partsB_goal (F : FnHB S L j fp σ es vs kfps hdr ck)
 theorem winsB_goal (F : FnHB S L j fp σ es vs kfps hdr ck)
     (hlb : lastOkC (coreOf j).body = true) :
     ∀ m i, (certOf j).cuts.length - i = m → i ≤ (certOf j).cuts.length →
-      PartReachB S L j fp σ es vs ck i 0 → CplGoalB S L j fp σ vs ck := by
+      PartReachB S L j fp σ es vs ck kfps i 0 → CplGoalB S L j fp σ vs ck es kfps := by
   intro m
   induction m with
   | zero =>
@@ -383,16 +388,26 @@ theorem winsB_goal (F : FnHB S L j fp σ es vs kfps hdr ck)
 
 end Comp
 
-/-- **B2's completeness for one compiled function**: a function the completeness check and the
-soundness windows' checks accept runs, on every path, from its entry to its return within
-`pathMax` and its callees' counts. -/
-theorem cplB_run {j : ℕ} (h1 : 1 ≤ j) (hj : j < nFns) (hok : CplOk j)
+/-- **B2's completeness for one compiled function, its callees entered on its run**: a function
+the completeness check and the soundness windows' checks accept runs, on every path, from its entry
+to its return within `pathMax` and its callees' counts, each callee entered on the run
+(`CplRunKB`). -/
+theorem cplKB_run {j : ℕ} (h1 : 1 ≤ j) (hj : j < nFns) (hok : CplOk j)
     (hchk : ∀ i ≤ (certOf j).cuts.length,
       checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true)
-    (hpows : (certOf j).facts.pows.Ok) : CplRunB S j := by
+    (hpows : (certOf j).facts.pows.Ok) : CplRunKB S j := by
   intro κ L hκ hjt htab fp hfp σ es vs hw hev kfps hdr hF ck hK
   have F : FnHB S L j fp σ es vs kfps hdr ck := ⟨h1, hj, hok, hchk, hpows, hκ, hjt, htab, hfp, hF, hK, hev, hw⟩
   exact winsB_goal F (lastBody hok hchk) _ 0 rfl (Nat.zero_le _) (reachB_zero F)
+
+/-- **B2's completeness for one compiled function**: a function the completeness check and the
+soundness windows' checks accept runs, on every path, from its entry to its return within
+`pathMax` and its callees' counts (`cplKB_run` without the callees' entries). -/
+theorem cplB_run {j : ℕ} (h1 : 1 ≤ j) (hj : j < nFns) (hok : CplOk j)
+    (hchk : ∀ i ≤ (certOf j).cuts.length,
+      checkWin glob (fnOf j) (coreOf j) (certOf j) (j == 1) i = true)
+    (hpows : (certOf j).facts.pows.Ok) : CplRunB S j :=
+  CplRunKB.cplRunB (cplKB_run h1 hj hok hchk hpows)
 
 
 /-! ## At the deployed semantics -/
@@ -401,21 +416,31 @@ section Deployed
 
 variable {κ : ℕ} {L : MemImage κ}
 
-/-- At the deployed semantics, `PartArrB` is `CplComp.lean`'s `PartArr`. -/
-theorem partArrB_deployed (j fp : ℕ) (ck : List (Opcode → ℕ)) (i k n : ℕ) (x : Opcode → ℕ) :
-    PartArrB blakeDeployed L j fp ck i k n x = PartArr L j fp ck i k n x := by
-  simp only [PartArrB, PartArr, arrB_deployed, arrMidB_deployed]
+/-- At the deployed semantics, `PartArrB` is `CplComp.lean`'s `PartArr` with the callees'
+entries on the run (`KidsOn`). -/
+theorem partArrB_deployed (j fp : ℕ) (ck : List (Opcode → ℕ)) (es : List Ev) (kfps : List ℕ)
+    (i k n : ℕ) (x : Opcode → ℕ) :
+    PartArrB blakeDeployed L j fp ck es kfps i k n x ↔ PartArr L j fp ck i k n x ∧
+      KidsOn blakeDeployed L es kfps n (entryRegs j fp)
+        ⟨gpow ((Xp j i k).entry + partJ j i k), gpow fp⟩ := by
+  unfold PartArrB PartArr
+  split_ifs
+  · exact arrB_deployed ..
+  · exact arrMidB_deployed ..
 
-/-- At the deployed semantics, `PartReachB` is `CplComp.lean`'s `PartReach`. -/
+/-- At the deployed semantics, `PartReachB` gives `CplComp.lean`'s `PartReach`. -/
 theorem partReachB_deployed (j fp : ℕ) (σ : Val) (es : List Ev) (vs : List V)
-    (ck : List (Opcode → ℕ)) (i k : ℕ) :
-    PartReachB blakeDeployed L j fp σ es vs ck i k = PartReach L j fp σ es vs ck i k := by
-  simp only [PartReachB, PartReach, partArrB_deployed]
+    (ck : List (Opcode → ℕ)) (kfps : List ℕ) (i k : ℕ)
+    (h : PartReachB blakeDeployed L j fp σ es vs ck kfps i k) : PartReach L j fp σ es vs ck i k :=
+  let ⟨ebef, erest, xc, h1, h2, h3, h4⟩ := h
+  ⟨ebef, erest, xc, h1, h2, h3, ((partArrB_deployed ..).mp h4).1⟩
 
-/-- At the deployed semantics, `CplGoalB` is `CplComp.lean`'s `CplGoal`. -/
-theorem cplGoalB_deployed (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ)) :
-    CplGoalB blakeDeployed L j fp σ vs ck = CplGoal L j fp σ vs ck := by
-  simp only [CplGoalB, CplGoal, runCB_deployed]
+/-- At the deployed semantics, `CplGoalB` gives `CplComp.lean`'s `CplGoal`. -/
+theorem cplGoalB_deployed (j fp : ℕ) (σ : Val) (vs : List V) (ck : List (Opcode → ℕ))
+    (es : List Ev) (kfps : List ℕ) (h : CplGoalB blakeDeployed L j fp σ vs ck es kfps) :
+    CplGoal L j fp σ vs ck :=
+  let ⟨r, c, h1, h2, h3, h4, _, _⟩ := h
+  ⟨r, c, h1, (runCB_deployed _ _ _).mp h2, h3, h4⟩
 
 end Deployed
 

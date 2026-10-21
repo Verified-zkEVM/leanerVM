@@ -39,6 +39,7 @@ theorem tblB_segJ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : �
     {n : ℕ} {xc : Opcode → ℕ} {c : Cnt} (u : ℕ) {cr : Opcode → ℕ}
     (hr : RunCB S guest L W0 ⟨gpow (X.entry + J), gpow fp⟩ cr)
     (hc : ∀ op, cr op ≤ c.get op + xc op + ksum ck n op)
+    (hko : KidsOn S L es kfps n W0 ⟨gpow (X.entry + J), gpow fp⟩)
     (hnm : ∀ n, se.nm.testBit n = true → V.n n ∈ namedOf (coreOf j).params es vs) :
     PosZB S H { sj with cnt := c, uq := u } W0 n xc := by
   obtain ⟨s, hs, hst, rfl⟩ := segAtC_eq h
@@ -47,7 +48,7 @@ theorem tblB_segJ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) {J : �
     unfold segAtC
     rw [hs]
     simp [hst]
-  exact (segAtCB_pos H h' hok.book hok.fr hok.tg hok.nx he hr hc hnm).1
+  exact (segAtCB_pos H h' hok.book hok.fr hok.tg hok.nx he hr hc hko hnm).1
 
 theorem walkB_matchNilZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : V) (ss : List Stmt)
     (st : CW) : WGoodB S H (.match_ v [] :: ss) st := by
@@ -129,7 +130,7 @@ theorem walkB_matchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (v :
       rw [gpow_zero']
       exact H.ctx.fpOne hself
     · cases hself
-  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow (X.entry + (t0 :: ts)[k]), gpow fp⟩ (by
+  obtain ⟨cr, hcr, hcle, henv, hko⟩ := hreach ⟨gpow (X.entry + (t0 :: ts)[k]), gpow fp⟩ (by
     rw [hk]
     exact ⟨_, _, ⟨_, harmw, isInK_ofK _, by rw [limb_ofK0]⟩, hft, rfl⟩)
   have htk : (t0 :: ts)[k] ∈ st.seg.exit.succ := by rw [hsu]; exact List.getElem_mem hkt
@@ -155,7 +156,7 @@ theorem walkB_matchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (v :
     tbl_arm hs0 (by rw [hse'b]; exact h0) hck0 ha hl k hka
   let xa : Opcode → ℕ := fun op ↦ xc op + (se.cnt.get op - (armSt key se).cnt.get op)
   obtain ⟨hps, -⟩ := segAtCB_pos H (xc := xa) (n := (calls ebef).length) hsk hok0'.book hok0'.fr hok0'.tg hok0'.nx henvk hcr
-    (fun op ↦ by have := hcle op; have := hcnt' op; simp only [xa]; omega) hnm0'
+    (fun op ↦ by have := hcle op; have := hcnt' op; simp only [xa]; omega) hko hnm0'
   have hatoms : ∀ a, Stmt.atom a ∈ (a0 :: as)[k] → Ev.atom a ∈ es := fun a ha' ↦ by
     rw [hes2]
     exact List.mem_append_left _ (List.mem_append_right _ (atom_on_pathC hwk ha'))
@@ -172,7 +173,7 @@ theorem walkB_matchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (v :
     (fun h ↦ by cases h) (Or.inl (tbl_noRetArms hnr k hka)) hpk hokk
   obtain ⟨es', hfe, hArr⟩ := hj1 J ckk ukk hcwk
   obtain rfl := Out.fall.inj hfe
-  obtain ⟨⟨crj, hcrj, hcj⟩, henvJ⟩ := hArr
+  obtain ⟨⟨crj, hcrj, hcj, hkoj⟩, henvJ⟩ := hArr
   -- the join
   have hc1 : cost1 X.acs σ (.match_ v (a0 :: as)) = costArms X.acs σ v (armRaw X.acs v.idx) 0 (a0 :: as) :=
     rfl
@@ -196,7 +197,7 @@ theorem walkB_matchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (v :
         simp only [armCnt, armSt] at h1 ⊢
         have h4 : ({ se with cnt := Cnt.zero } : CW).cnt.get op = 0 := by cases op <;> rfl
         rw [h4, Nat.sub_zero] at h1
-        omega) hnm0
+        omega) hkoj hnm0
   exact walkB_step H ih hnr (show walk1 σ (.match_ v (a0 :: as)) = .fall e1 from hwa) hw hes hs
     hshape hp'' hcw hok
 
@@ -272,7 +273,7 @@ theorem walkB_dispatchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (
   have hp1 := posZB_fr H hp0 hq hfcs
   obtain ⟨hseg, hbk, hfr', htg, hnx, -, hreach⟩ := endAtCB_reach H hp1 hse
   simp only at hseg hbk hfr' htg hnx hreach
-  obtain ⟨cr, hcr, hcle, henv⟩ := hreach ⟨gpow pc, gpow kfp⟩ (by
+  obtain ⟨cr, hcr, hcle, henv, hko⟩ := hreach ⟨gpow pc, gpow kfp⟩ (by
     rw [hk]
     exact ⟨_, gpow pc, hq, isInK_ofK _, ⟨_, htgt, isInK_ofK _, by rw [limb_ofK0]⟩, by simp⟩)
   rw [hent] at hrun
@@ -280,12 +281,18 @@ theorem walkB_dispatchZ (H : WHB S L j fp X segs wJ wenv σ es vs kfps hdr ck) (
   have hrun2 : RunCB S guest L W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ (cr + ck.getD n 0) := by
     rw [← hgr]
     exact hcr.trans hrun
+  have hko2 : KidsOn S L es kfps (n + 1) W0 ⟨gpow (X.entry + (r - X.entry)), gpow fp⟩ := by
+    rw [← hgr]
+    refine (hko.reach hrun.reach).succ fun c' kfp' hc' hk' _ ↦ ?_
+    obtain rfl := Option.some.inj (hc'.symm.trans hci)
+    obtain rfl := Option.some.inj (hk'.symm.trans hkfp)
+    exact ⟨by rw [hent]; exact hcr.reach, _, hret, ReachB.refl _⟩
   have henvR : EnvAt L fp X wJ wenv (r - X.entry) :=
     envAtB_of_exit H hp.seg (H.exits _ hp.seg _ (Or.inl rfl)) (by rw [hsu]; simp) henv
   obtain ⟨hps, -⟩ :=
     segAtCB_pos H (xc := xc) hs' (by rw [hbk]; exact hp.ok.book) (by rw [hfr']; exact hp1.ok.fr)
       (by rw [htg]; exact htg1) (by rw [hnx]; exact hp.ok.nx) henvR (n := n + 1) hrun2
-      (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega)
+      (fun op ↦ by rw [Pi.add_apply, ksum_succ]; have := hcle op; omega) hko2
       (by rw [endAtC_nm hse]; exact hp.nm)
   have hc1 : (calls (ebef ++ [.call fs[k] args rets])).length = n + 1 := calls_append_one rfl
   refine walkB_step H ih rfl
