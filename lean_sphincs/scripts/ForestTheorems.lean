@@ -4,6 +4,7 @@ import Sphincs.MultiPay
 import Sphincs.MultiClass
 import Sphincs.MultiTrace
 import Sphincs.MultiTransport
+import Sphincs.MultiPad
 import Sphincs.Axioms
 import Lean
 
