@@ -289,3 +289,17 @@ the statement, each with its reason.
   log's oracle models as a hypothesis and the cache form of V_I's acceptance
   (`idealVerify (look ℓ) … = some true`); the step from the game's own run of V_I (against
   `budgetedQuery`) to that form is not yet proved.
+- **T6-1 (the guest's completeness over a model; T6-det's size).** The guest's completeness under
+  the honest table semantics cannot be transferred from the deployed one: a BLAKE2s execution's
+  chains end at `blake2sBytes`, not at the oracle, and no fixed compression function chains to an
+  arbitrary `H` on every string (pigeonhole on prefixes). So it is re-proved over a *completeness
+  model* (`CompModel`, `LeanVM/E2E/Complete/Model.lean`), the dual of W2's `HashModel`: it builds
+  the rows of every answered string. This puts T6-det at about 32–50k lines rather than §6's
+  6–13k (plan and decomposition: `t6-completeness.md`). Two findings on V_I there, each fixed by
+  a decision below: E2E-4 (a good event, distinct honest commitment roots) and E2E-5 (the
+  idealized proof names the decoder's frames).
+- **E2E-4 (distinct honest roots).** `nodeStep` finds a node's word by its stack root, first match;
+  for an `H` making two honest stack roots of different shapes equal, V_I takes the wrong word and
+  rejects, so T6-det as designed is false. T6-det adds the good event `RootsInj ip` (the idealized
+  proof's roots name one word each), of probability one minus the honest tree's collision
+  probability under the random oracle. V_I is unchanged.
