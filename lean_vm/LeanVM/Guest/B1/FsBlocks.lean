@@ -62,13 +62,13 @@ def pack64x2T (a c : V) (b : ℕ) : List Stmt :=
   [.atom (.assertInK a c), .atom (.const (.n b) (word 0 1 0)), .atom (.mul (.n (b + 1)) (.n b) c),
     .atom (.add (.n (b + 2)) a (.n (b + 1)))]
 
-/-- **`pack64x2`** (TRIAGE #1): the block holds exactly when both limbs are in `K`, and then its
-value `.n (b + 2)` is the canonical cell `E.ofLimbs a c 0`. -/
-theorem holds_pack64x2T (a c : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (pack64x2T a c b) next kret ↔
+/-- **`pack64x2`** (TRIAGE #1), under any semantics: the block holds exactly when both limbs
+are in `K`, and then its value `.n (b + 2)` is the canonical cell `E.ofLimbs a c 0`. -/
+theorem holdsB_pack64x2T {S : BlakeSem} (a c : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsListB S C rd σ (pack64x2T a c b) next kret ↔
       (IsInK (σ a) ∧ IsInK (σ c) ∧ σ (.n b) = y ∧ σ (.n (b + 1)) = y * σ c ∧
         σ (.n (b + 2)) = E.ofLimbs ((σ a).limb 0) ((σ c).limb 0) 0) ∧ next := by
-  simp only [pack64x2T, Stmt.HoldsList, Stmt.Holds, Atom.Holds, word_y]
+  simp only [pack64x2T, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, word_y]
   constructor
   · rintro ⟨⟨ha, hc⟩, h0, h1, h2, hn⟩
     refine ⟨⟨ha, hc, h0, by rw [h1, h0], ?_⟩, hn⟩
@@ -77,6 +77,15 @@ theorem holds_pack64x2T (a c : V) (b : ℕ) (next : Prop) (kret : List E → Pro
     refine ⟨⟨ha, hc⟩, h0, by rw [h1, h0], ?_, hn⟩
     rw [h2, h1, pack64x2_eq ha hc]
 
+/-- **`pack64x2`** (TRIAGE #1): the block holds exactly when both limbs are in `K`, and then its
+value `.n (b + 2)` is the canonical cell `E.ofLimbs a c 0`. -/
+theorem holds_pack64x2T (a c : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ (pack64x2T a c b) next kret ↔
+      (IsInK (σ a) ∧ IsInK (σ c) ∧ σ (.n b) = y ∧ σ (.n (b + 1)) = y * σ c ∧
+        σ (.n (b + 2)) = E.ofLimbs ((σ a).limb 0) ((σ c).limb 0) 0) ∧ next := by
+  rw [← holdsListB_deployed]
+  exact holdsB_pack64x2T a c b next kret
+
 /-- `canonical_limbs(w)` (and `assert_canonical`'s body) at its first value `b`: hint the low
 limb, derive `(w + lo)·Y⁻¹`, assert both in `K`. -/
 def canonicalLimbsT (w : V) (b : ℕ) : List Stmt :=
@@ -84,13 +93,13 @@ def canonicalLimbsT (w : V) (b : ℕ) : List Stmt :=
     .atom (.const (.n (b + 2)) (word 1 0 1)), .atom (.mul (.n (b + 3)) (.n (b + 1)) (.n (b + 2))),
     .atom (.assertInK (.n b) (.n (b + 3)))]
 
-/-- **`canonical_limbs`** (TRIAGE #2, #3): the block holds exactly when `w` is canonical and the
-hinted limb is its low limb; the derived `.n (b + 3)` is then its high limb. -/
-theorem holds_canonicalLimbsT (w : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
-    Stmt.HoldsList C rd σ (canonicalLimbsT w b) next kret ↔
+/-- **`canonical_limbs`** (TRIAGE #2, #3), under any semantics: the block holds exactly when `w`
+is canonical and the hinted limb is its low limb; the derived `.n (b + 3)` is then its high limb. -/
+theorem holdsB_canonicalLimbsT {S : BlakeSem} (w : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsListB S C rd σ (canonicalLimbsT w b) next kret ↔
       (IsCanonical128 (σ w) ∧ σ (.n b) = ofK ((σ w).limb 0) ∧ σ (.n (b + 1)) = σ w + σ (.n b) ∧
         σ (.n (b + 2)) = word 1 0 1 ∧ σ (.n (b + 3)) = ofK ((σ w).limb 1)) ∧ next := by
-  simp only [canonicalLimbsT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and]
+  simp only [canonicalLimbsT, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, true_and]
   constructor
   · rintro ⟨h1, h2, h3, ⟨hlo, hhi⟩, hn⟩
     rw [h3, h2, h1, word_y_inv] at hhi
@@ -102,6 +111,15 @@ theorem holds_canonicalLimbsT (w : V) (b : ℕ) (next : Prop) (kret : List E →
     · rw [h3, h2, h1, hl, word_y_inv, split_hi hc]
     · rw [hl]; exact ofK_isInK _
     · rw [h3]; exact ofK_isInK _
+
+/-- **`canonical_limbs`** (TRIAGE #2, #3): the block holds exactly when `w` is canonical and the
+hinted limb is its low limb; the derived `.n (b + 3)` is then its high limb. -/
+theorem holds_canonicalLimbsT (w : V) (b : ℕ) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ (canonicalLimbsT w b) next kret ↔
+      (IsCanonical128 (σ w) ∧ σ (.n b) = ofK ((σ w).limb 0) ∧ σ (.n (b + 1)) = σ w + σ (.n b) ∧
+        σ (.n (b + 2)) = word 1 0 1 ∧ σ (.n (b + 3)) = ofK ((σ w).limb 1)) ∧ next := by
+  rw [← holdsListB_deployed]
+  exact holdsB_canonicalLimbsT w b next kret
 
 /-! ## `fs_compress`, `obs`, `absorb_nonce`, `fs_next` -/
 
@@ -145,6 +163,62 @@ def fsVals (x : E) (cv : Digest) (tag : ℕ) : ℕ → E
   | 13 => (digestScalars (absorbCv cv x tag)).2
   | _ => 0
 
+/-- The values of `fsCompressT` from its first, its output the digest `d`: `fsVals` with the
+output given rather than computed. -/
+def fsValsD (x : E) (d : Digest) (tag : ℕ) : ℕ → E
+  | 0 => ofK (x.limb 0)
+  | 1 => ofK (x.limb 1)
+  | 2 => ofK (x.limb 2)
+  | 3 => eOfNat tag
+  | 4 => y * y
+  | 5 => y * y * ofK (x.limb 2)
+  | 6 => x + y * y * ofK (x.limb 2)
+  | 7 => y * eOfNat tag
+  | 8 => ofK (x.limb 2) + y * eOfNat tag
+  | 9 => Value.ivCells.1
+  | 10 => Value.ivCells.2
+  | 11 => metadataCell 64 true
+  | 12 => (digestScalars d).1
+  | 13 => (digestScalars d).2
+  | _ => 0
+
+/-- **`fs_compress` under a hash model** (TRIAGE #5; `obs` #6 at tag 1, `absorb_nonce` #10 at
+tag 4): the block gives the state as a digest `cv`'s cells, the answered hash `d` of its bytes and
+`blockOf x tag` (`absorbBlock`, V:522), and every value from `b + 2` on: the hinted top limb of
+`x`, and the output `d`'s cells. -/
+theorem holdsB_fsCompressT {M : HashModel} (s0 s1 x : V) (b : ℕ) {tag : ℕ} (htag : tag < 256)
+    {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsListB M.sem C rd σ (fsCompressT s0 s1 x b tag) next kret) :
+    (∃ cv d, (σ s0, σ s1) = digestScalars cv ∧ M.H (digestBytes cv ++ blockOf (σ x) tag) = some d ∧
+        ∀ k, 2 ≤ k → k < 14 → σ (.n (b + k)) = fsValsD (σ x) d tag k) ∧ next := by
+  simp only [fsCompressT, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, true_and, word_eOfNat,
+    word_yy, word_y_mul, word_iv0, word_iv1, word_md64] at h
+  obtain ⟨h3, ⟨hl, -⟩, h4, h5, h6, h7, h8, h9, h10, h11, hc, hn⟩ := h
+  refine ⟨?_, hn⟩
+  rw [h5, h4] at h6
+  rw [h7] at h8
+  rw [h6, h8, h9, h10, h11] at hc
+  obtain ⟨cv, hcv⟩ := exists_digest ((M.canonical hc).1 0) ((M.canonical hc).1 1)
+  have hc' : M.sem.check (fsBlock (digestScalars cv) (σ x) (σ (.n (b + 2))) (eOfNat tag))
+      Value.ivCells.1 Value.ivCells.2 (σ (.n (b + 12))) (σ (.n (b + 13)))
+      (metadataCell 64 true) := by
+    rw [← hcv]; exact hc
+  obtain ⟨hl2, d, hd, hout⟩ := fs_compress_model cv (σ x) htag hl hc'
+  refine ⟨cv, d, hcv, hd, fun k hk1 hk2 => ?_⟩
+  interval_cases k
+  · exact hl2
+  · exact h3
+  · exact h4
+  · rw [h5, h4, hl2]; rfl
+  · rw [h6, hl2]; rfl
+  · exact h7
+  · rw [h8, hl2]; rfl
+  · exact h9
+  · exact h10
+  · exact h11
+  · exact congrArg Prod.fst hout
+  · exact congrArg Prod.snd hout
+
 /-- **`fs_compress`** (TRIAGE #5; `obs` #6 at tag 1, `absorb_nonce` #10 at tag 4): the block
 holds exactly when the state is the digest `cv`'s cells and every value from `b + 2` on is the
 honest one: the hinted top limb of `x`, and the output the state after absorbing
@@ -154,35 +228,17 @@ theorem holds_fsCompressT (s0 s1 x : V) (b : ℕ) {tag : ℕ} (htag : tag < 256)
     Stmt.HoldsList C rd σ (fsCompressT s0 s1 x b tag) next kret ↔
       (∃ cv, (σ s0, σ s1) = digestScalars cv ∧
         ∀ k, 2 ≤ k → k < 14 → σ (.n (b + k)) = fsVals (σ x) cv tag k) ∧ next := by
-  simp only [fsCompressT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, word_eOfNat, word_yy,
-    word_y_mul, word_iv0, word_iv1, word_md64]
   constructor
-  · rintro ⟨h3, ⟨hl, -⟩, h4, h5, h6, h7, h8, h9, h10, h11, hc, hn⟩
-    refine ⟨?_, hn⟩
-    rw [h5, h4] at h6
-    rw [h7] at h8
-    rw [h6, h8, h9, h10, h11] at hc
-    obtain ⟨cv, hcv⟩ := exists_digest (hc.1 0) (hc.1 1)
-    have hc' : CompressCells (fsBlock (digestScalars cv) (σ x) (σ (.n (b + 2))) (eOfNat tag))
-        Value.ivCells.1 Value.ivCells.2 (σ (.n (b + 12))) (σ (.n (b + 13)))
-        (metadataCell 64 true) := by
-      rw [← hcv]; exact hc
-    obtain ⟨hl2, hout⟩ := (fs_compress_iff cv (σ x) htag _ _ _).mp ⟨hl, hc'⟩
-    refine ⟨cv, hcv, fun k hk1 hk2 => ?_⟩
-    interval_cases k
-    · exact hl2
-    · exact h3
-    · exact h4
-    · rw [h5, h4, hl2]; rfl
-    · rw [h6, hl2]; rfl
-    · exact h7
-    · rw [h8, hl2]; rfl
-    · exact h9
-    · exact h10
-    · exact h11
-    · exact congrArg Prod.fst hout
-    · exact congrArg Prod.snd hout
-  · rintro ⟨⟨cv, hcv, e⟩, hn⟩
+  · intro h
+    rw [← holdsListB_deployed] at h
+    obtain ⟨⟨cv, d, hcv, hd, e⟩, hn⟩ := holdsB_fsCompressT (M := HashModel.deployed) s0 s1 x b htag h
+    rw [HashModel.deployed_H.mp hd] at e
+    refine ⟨⟨cv, hcv, fun k hk1 hk2 => ?_⟩, hn⟩
+    rw [e k hk1 hk2]
+    interval_cases k <;> rfl
+  · simp only [fsCompressT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, word_eOfNat, word_yy,
+      word_y_mul, word_iv0, word_iv1, word_md64]
+    rintro ⟨⟨cv, hcv, e⟩, hn⟩
     have e2 : σ (.n (b + 2)) = ofK ((σ x).limb 2) := e 2 le_rfl (by omega)
     have e3 : σ (.n (b + 3)) = eOfNat tag := e 3 (by omega) (by omega)
     have e4 : σ (.n (b + 4)) = y * y := e 4 (by omega) (by omega)
@@ -227,6 +283,19 @@ theorem holds_fsNextT (s0 s1 cur : V) (j b : ℕ) (next : Prop) (kret : List E �
 
 theorem absorbCv_one (cv : Digest) (x : E) : absorbCv cv x 1 = obsCv cv x := rfl
 
+/-- **`fs_next` under a hash model** (TRIAGE #7): the word at the cursor's offset `j` is
+`.n b`, and the chain absorbs it, the new state the answered `obsCvM M cv (.n b)` (`.read`,
+V:558-562). -/
+theorem holdsB_fsNextT {M : HashModel} (s0 s1 cur : V) (j b : ℕ) {next : Prop}
+    {kret : List E → Prop} (h : Stmt.HoldsListB M.sem C rd σ (fsNextT s0 s1 cur j b) next kret) :
+    (LoadHolds rd (σ cur) j (σ (.n b)) ∧ ∃ cv d, (σ s0, σ s1) = digestScalars cv ∧
+      obsCvM M cv (σ (.n b)) = some d ∧
+        ∀ k, 2 ≤ k → k < 14 → σ (.n (b + 1 + k)) = fsValsD (σ (.n b)) d 1 k) ∧ next := by
+  obtain ⟨hl, h⟩ : LoadHolds rd (σ cur) j (σ (.n b)) ∧
+      Stmt.HoldsListB M.sem C rd σ (fsCompressT s0 s1 (.n b) (b + 1) 1) next kret := h
+  obtain ⟨⟨cv, d, hcv, hd, e⟩, hn⟩ := holdsB_fsCompressT s0 s1 (.n b) (b + 1) (by decide) h
+  exact ⟨⟨hl, cv, d, hcv, hd, e⟩, hn⟩
+
 /-! ## `squeeze_state`, `challenge_from_state`, `squeeze` -/
 
 /-- `squeeze_state` (at tag 2; `grind_check`'s base at tag 3) at its first value `b`: the block
@@ -251,6 +320,43 @@ def sqStateVals (cv : Digest) (tag : ℕ) : ℕ → E
   | 6 => (digestScalars (absorbCv cv 0 tag)).2
   | _ => 0
 
+/-- The values of `squeezeStateT`, its output the digest `d`. -/
+def sqStateValsD (d : Digest) (tag : ℕ) : ℕ → E
+  | 0 => 0
+  | 1 => y * eOfNat tag
+  | 2 => Value.ivCells.1
+  | 3 => Value.ivCells.2
+  | 4 => metadataCell 64 true
+  | 5 => (digestScalars d).1
+  | 6 => (digestScalars d).2
+  | _ => 0
+
+/-- **`squeeze_state` under a hash model** (TRIAGE #8): the state is `cv`'s cells and the output
+the answered hash `d` of its bytes and `blockOf 0 tag`. -/
+theorem holdsB_squeezeStateT {M : HashModel} (s0 s1 : V) (b : ℕ) {tag : ℕ} (htag : tag < 256)
+    {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsListB M.sem C rd σ (squeezeStateT s0 s1 b tag) next kret) :
+    (∃ cv d, (σ s0, σ s1) = digestScalars cv ∧ M.H (digestBytes cv ++ blockOf 0 tag) = some d ∧
+        ∀ k, k < 7 → σ (.n (b + k)) = sqStateValsD d tag k) ∧ next := by
+  simp only [squeezeStateT, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, word_y_mul, eOfNat_zero,
+    mul_zero, word_iv0, word_iv1, word_md64] at h
+  obtain ⟨h0, h1, h2, h3, h4, hc, hn⟩ := h
+  refine ⟨?_, hn⟩
+  rw [h0, h1, h2, h3, h4] at hc
+  obtain ⟨cv, hcv⟩ := exists_digest ((M.canonical hc).1 0) ((M.canonical hc).1 1)
+  rw [show σ s0 = (digestScalars cv).1 from congrArg Prod.fst hcv,
+    show σ s1 = (digestScalars cv).2 from congrArg Prod.snd hcv] at hc
+  obtain ⟨d, hd, hout⟩ := squeeze_state_model cv htag hc
+  refine ⟨cv, d, hcv, hd, fun k hk => ?_⟩
+  interval_cases k
+  · exact h0
+  · exact h1
+  · exact h2
+  · exact h3
+  · exact h4
+  · exact congrArg Prod.fst hout
+  · exact congrArg Prod.snd hout
+
 /-- **`squeeze_state`** (TRIAGE #8): the block holds exactly when the state is `cv`'s cells and
 the output is the state after absorbing `blockOf 0 tag`. -/
 theorem holds_squeezeStateT (s0 s1 : V) (b : ℕ) {tag : ℕ} (htag : tag < 256) (next : Prop)
@@ -258,26 +364,17 @@ theorem holds_squeezeStateT (s0 s1 : V) (b : ℕ) {tag : ℕ} (htag : tag < 256)
     Stmt.HoldsList C rd σ (squeezeStateT s0 s1 b tag) next kret ↔
       (∃ cv, (σ s0, σ s1) = digestScalars cv ∧
         ∀ k, k < 7 → σ (.n (b + k)) = sqStateVals cv tag k) ∧ next := by
-  simp only [squeezeStateT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, word_y_mul, eOfNat_zero,
-    mul_zero, word_iv0, word_iv1, word_md64]
   constructor
-  · rintro ⟨h0, h1, h2, h3, h4, hc, hn⟩
-    refine ⟨?_, hn⟩
-    rw [h0, h1, h2, h3, h4] at hc
-    obtain ⟨cv, hcv⟩ := exists_digest (hc.1 0) (hc.1 1)
-    rw [show σ s0 = (digestScalars cv).1 from congrArg Prod.fst hcv,
-      show σ s1 = (digestScalars cv).2 from congrArg Prod.snd hcv] at hc
-    have hout := (squeeze_state_iff cv htag _ _).mp hc
-    refine ⟨cv, hcv, fun k hk => ?_⟩
-    interval_cases k
-    · exact h0
-    · exact h1
-    · exact h2
-    · exact h3
-    · exact h4
-    · exact congrArg Prod.fst hout
-    · exact congrArg Prod.snd hout
-  · rintro ⟨⟨cv, hcv, e⟩, hn⟩
+  · intro h
+    rw [← holdsListB_deployed] at h
+    obtain ⟨⟨cv, d, hcv, hd, e⟩, hn⟩ := holdsB_squeezeStateT (M := HashModel.deployed) s0 s1 b htag h
+    rw [HashModel.deployed_H.mp hd] at e
+    refine ⟨⟨cv, hcv, fun k hk => ?_⟩, hn⟩
+    rw [e k hk]
+    interval_cases k <;> rfl
+  · simp only [squeezeStateT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, word_y_mul, eOfNat_zero,
+      mul_zero, word_iv0, word_iv1, word_md64]
+    rintro ⟨⟨cv, hcv, e⟩, hn⟩
     have e0 : σ (.n b) = 0 := e 0 (by omega)
     have e1 : σ (.n (b + 1)) = y * eOfNat tag := e 1 (by omega)
     have e2 : σ (.n (b + 2)) = Value.ivCells.1 := e 2 (by omega)
@@ -317,6 +414,47 @@ def sqVals (cv : Digest) : ℕ → E
 
 theorem absorbCv_sq (cv : Digest) : absorbCv cv 0 2 = sqCv cv := rfl
 
+/-- The values of `squeezeT`, the new state the digest `d`. -/
+def sqValsD (d : Digest) : ℕ → E
+  | 7 => ofK ((digestScalars d).2.limb 0)
+  | 8 => (digestScalars d).2 + ofK ((digestScalars d).2.limb 0)
+  | 9 => word 1 0 1
+  | 10 => ((digestScalars d).2 + ofK ((digestScalars d).2.limb 0)) * word 1 0 1
+  | 11 => y * y
+  | 12 => y * y * ofK ((digestScalars d).2.limb 0)
+  | 13 => challengeOf d
+  | k => sqStateValsD d 2 k
+
+/-- **`squeeze` under a hash model** (TRIAGE #9, #4; `squeeze_step` #11): the state is `cv`'s
+cells, the new state the answered `sqCvM M cv` (`.sample`, V:563-565) and the challenge
+`challengeOf` of it (V:477). -/
+theorem holdsB_squeezeT {M : HashModel} (s0 s1 : V) (b : ℕ) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsListB M.sem C rd σ (squeezeT s0 s1 b) next kret) :
+    (∃ cv d, (σ s0, σ s1) = digestScalars cv ∧ sqCvM M cv = some d ∧
+        ∀ k, k < 14 → σ (.n (b + k)) = sqValsD d k) ∧ next := by
+  rw [squeezeT, holdsListB_append] at h
+  obtain ⟨⟨cv, d, hcv, hd, e⟩, h⟩ := holdsB_squeezeStateT s0 s1 b (by decide) h
+  simp only [challengeT, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, true_and, word_yy,
+    Nat.add_assoc, Nat.reduceAdd] at h
+  obtain ⟨h1, h2, h3, ⟨hd2, hd3⟩, h4, h5, h6, hn⟩ := h
+  have e5 : σ (.n (b + 5)) = (digestScalars d).1 := e 5 (by omega)
+  have e6 : σ (.n (b + 6)) = (digestScalars d).2 := e 6 (by omega)
+  rw [h3, h2, h1, e6, word_y_inv] at hd3
+  have hd7 : σ (.n (b + 7)) = ofK ((digestScalars d).2.limb 0) :=
+    (challenge_from_state_iff d _).mp ⟨hd2, hd3⟩
+  refine ⟨⟨cv, d, hcv, hd, fun k hk => ?_⟩, hn⟩
+  rcases (show k < 7 ∨ 7 ≤ k by omega) with hk7 | hk7
+  · rw [e k hk7]
+    interval_cases k <;> rfl
+  · interval_cases k
+    · exact hd7
+    · rw [h1, e6, hd7]; rfl
+    · exact h2
+    · rw [h3, h2, h1, e6, hd7]; rfl
+    · exact h4
+    · rw [h5, h4, hd7]; rfl
+    · rw [h6, h5, h4, hd7, e5, challenge_from_state_eq]; rfl
+
 /-- **`squeeze`** (TRIAGE #9, #4; `squeeze_step` #11): the block holds exactly when the state
 is `cv`'s cells and its values are the honest ones: the new state `Node.squeeze`'s
 (`.sample`, V:563-565), the challenge `challengeOf` of it (V:477). -/
@@ -324,29 +462,18 @@ theorem holds_squeezeT (s0 s1 : V) (b : ℕ) (next : Prop) (kret : List E → Pr
     Stmt.HoldsList C rd σ (squeezeT s0 s1 b) next kret ↔
       (∃ cv, (σ s0, σ s1) = digestScalars cv ∧ ∀ k, k < 14 → σ (.n (b + k)) = sqVals cv k) ∧
         next := by
-  rw [squeezeT, holdsList_append, holds_squeezeStateT _ _ _ (by decide)]
-  simp only [challengeT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, word_yy,
-    Nat.add_assoc, Nat.reduceAdd]
   constructor
-  · rintro ⟨⟨cv, hcv, e⟩, h1, h2, h3, ⟨hd2, hd3⟩, h4, h5, h6, hn⟩
-    have e5 : σ (.n (b + 5)) = (digestScalars (sqCv cv)).1 := e 5 (by omega)
-    have e6 : σ (.n (b + 6)) = (digestScalars (sqCv cv)).2 := e 6 (by omega)
-    rw [h3, h2, h1, e6, word_y_inv] at hd3
-    have hd : σ (.n (b + 7)) = ofK ((digestScalars (sqCv cv)).2.limb 0) :=
-      (challenge_from_state_iff (sqCv cv) _).mp ⟨hd2, hd3⟩
+  · intro h
+    rw [← holdsListB_deployed] at h
+    obtain ⟨⟨cv, d, hcv, hd, e⟩, hn⟩ := holdsB_squeezeT (M := HashModel.deployed) s0 s1 b h
+    obtain rfl : d = sqCv cv := Option.some.inj hd.symm
     refine ⟨⟨cv, hcv, fun k hk => ?_⟩, hn⟩
-    rcases (show k < 7 ∨ 7 ≤ k by omega) with hk7 | hk7
-    · rw [e k hk7]
-      interval_cases k <;> rfl
-    · interval_cases k
-      · exact hd
-      · rw [h1, e6, hd]; rfl
-      · exact h2
-      · rw [h3, h2, h1, e6, hd]; rfl
-      · exact h4
-      · rw [h5, h4, hd]; rfl
-      · rw [h6, h5, h4, hd, e5, challenge_from_state_eq]; rfl
-  · rintro ⟨⟨cv, hcv, e⟩, hn⟩
+    rw [e k hk]
+    interval_cases k <;> rfl
+  · rw [squeezeT, holdsList_append, holds_squeezeStateT _ _ _ (by decide)]
+    simp only [challengeT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, true_and, word_yy,
+      Nat.add_assoc, Nat.reduceAdd]
+    rintro ⟨⟨cv, hcv, e⟩, hn⟩
     have e7 : σ (.n (b + 7)) = ofK ((digestScalars (sqCv cv)).2.limb 0) := e 7 (by omega)
     have e8 : σ (.n (b + 8)) =
         (digestScalars (sqCv cv)).2 + ofK ((digestScalars (sqCv cv)).2.limb 0) := e 8 (by omega)

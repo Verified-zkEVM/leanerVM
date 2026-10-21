@@ -8,7 +8,7 @@
 
 module
 
-public import LeanVM.Guest.Value.Hash
+public import LeanVM.Guest.Value.ModelChain
 public import LeanVM.Guest.Value.Bits
 public import LeanVM.Spec.Node
 
@@ -34,6 +34,13 @@ A scalar's block is its three limbs, then the tag (`blockOf`, `lib.rs:36-43`): `
 hints the top limb `l2` and lands the scalar in two canonical cells, `x + y²·l2` (whose top limb
 `BLAKE2S` reads as zero, which pins `l2`: `Tower.top_pin_iff`) and `l2 + y·tail`. The tags are
 the guest's `DS_*` (G:51-54), integers below 256 (`kBytes_ofBits_tag`).
+
+**Under a hash model** (`HashModel`, `docs/roadmap/w2-guest-model.md`): each gadget's soundness
+holds of any model, its digest an answered one (`fs_compress_model`, `squeeze_state_model`,
+`squeeze_spec_model`, `grind_check_model`): the model's canonical cells pin the hinted limb as
+`BLAKE2S` does, and one block under the IV is answered (`HashModel.one_block`). The deployed
+lemmas' soundness halves are these at `HashModel.deployed`; their completeness halves are the
+deployed compression's.
 -/
 
 namespace LeanVM.Guest.Value
@@ -83,6 +90,23 @@ theorem fsBlock_canonical (cv : Digest) (x : E) (tag : ℕ) :
 
 /-! ## Absorbing a scalar (`fs_compress`, `obs`, `absorb_nonce`) -/
 
+/-- **`fs_compress` under a hash model** (G:488-497; TRIAGE #5): from the state of the digest
+`cv`, the hinted top limb `l2` in `K` and the block's row checked by the model, `l2` is `x`'s top
+limb (the model's cells are canonical) and the output is the answered hash of the state's bytes
+and `blockOf x tag`. -/
+theorem fs_compress_model {M : HashModel} (cv : Digest) (x : E) {tag : ℕ} (htag : tag < 256)
+    {l2 out0 out1 : E} (hl2 : IsInK l2)
+    (hc : M.sem.check (fsBlock (digestScalars cv) x l2 (eOfNat tag)) ivCells.1 ivCells.2 out0 out1
+      (metadataCell 64 true)) :
+    l2 = ofK (x.limb 2) ∧
+      ∃ d, M.H (digestBytes cv ++ blockOf x tag) = some d ∧ (out0, out1) = digestScalars d := by
+  have hl : l2 = ofK (x.limb 2) := (top_pin_iff x l2).mp ⟨hl2, (M.canonical hc).1 2⟩
+  subst hl
+  refine ⟨rfl, ?_⟩
+  rw [fsBlock_eq] at hc
+  rw [← blockBytes_fs cv x htag]
+  exact HashModel.one_block hc
+
 /-- **`fs_compress(state, x, tail, out)`** (G:488-497; TRIAGE #5): from the state of the digest
 `cv`, the hinted top limb `l2` in `K` (`assert_in_k`) and the compression of the block (whose
 `BLAKE2S` requires canonical cells) hold exactly when `l2` is `x`'s top limb and the output is the
@@ -94,11 +118,8 @@ theorem fs_compress_iff (cv : Digest) (x : E) {tag : ℕ} (htag : tag < 256) (l2
         (out0, out1) = digestScalars (blake2sBytes (digestBytes cv ++ blockOf x tag)) := by
   constructor
   · rintro ⟨hl2, hc⟩
-    have hl : l2 = ofK (x.limb 2) := (top_pin_iff x l2).mp ⟨hl2, hc.1 2⟩
-    subst hl
-    refine ⟨rfl, ?_⟩
-    rw [← blockBytes_fs cv x htag, ← fsBlock_eq]
-    exact blake2s_default hc
+    obtain ⟨hl, d, hd, hout⟩ := fs_compress_model (M := HashModel.deployed) cv x htag hl2 hc
+    exact ⟨hl, by rw [hout, HashModel.deployed_H.mp hd]⟩
   · rintro ⟨rfl, hout⟩
     refine ⟨ofK_isInK _, (blake2s_default_iff (fsBlock_canonical cv x tag)).mpr ?_⟩
     rw [fsBlock_eq, blockBytes_fs cv x htag]
@@ -131,6 +152,27 @@ theorem absorb_nonce_iff (cv : Digest) (x l2 out0 out1 : E) :
 
 /-! ## Squeezing (`squeeze_state`, `challenge_from_state`, `squeeze`) -/
 
+/-- The block `squeeze_state` hashes, `[state, 0, y·tag]`, is the zero scalar's block. -/
+theorem squeezeBlock_eq (cv : Digest) (tag : ℕ) :
+    (![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat tag] : Fin 4 → E) =
+      ![(digestScalars cv).1, (digestScalars cv).2, E.ofLimbs ((0 : E).limb 0) ((0 : E).limb 1) 0,
+        E.ofLimbs ((0 : E).limb 2) (K.ofBits tag) 0] := by
+  have h0 : ((0 : E).limb 0) = 0 ∧ (0 : E).limb 1 = 0 ∧ (0 : E).limb 2 = 0 :=
+    ⟨limb_zero 0, limb_zero 1, limb_zero 2⟩
+  rw [h0.1, h0.2.1, h0.2.2, ← zero_eq_ofLimbs, ← ofK_add_y_mul_ofK, ofK_zero, zero_add]
+  rfl
+
+/-- **`squeeze_state` under a hash model** (G:522-525; TRIAGE #8): the output is the answered
+hash of the state's bytes and `blockOf 0 tag`. -/
+theorem squeeze_state_model {M : HashModel} (cv : Digest) {tag : ℕ} (htag : tag < 256)
+    {out0 out1 : E}
+    (hc : M.sem.check ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat tag] ivCells.1
+      ivCells.2 out0 out1 (metadataCell 64 true)) :
+    ∃ d, M.H (digestBytes cv ++ blockOf 0 tag) = some d ∧ (out0, out1) = digestScalars d := by
+  rw [squeezeBlock_eq] at hc
+  rw [← blockBytes_fs cv 0 htag]
+  exact HashModel.one_block hc
+
 /-- **`squeeze_state(state)`** (G:522-525; TRIAGE #8), and `grind_check`'s base at
 `DS_POW_BASE = 3` (G:713-714): `blake2s(state, [0, Y_TOWER·tag], out)` is the state after
 absorbing `blockOf 0 tag`. -/
@@ -138,14 +180,11 @@ theorem squeeze_state_iff (cv : Digest) {tag : ℕ} (htag : tag < 256) (out0 out
     CompressCells ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat tag] ivCells.1
       ivCells.2 out0 out1 (metadataCell 64 true) ↔
       (out0, out1) = digestScalars (blake2sBytes (digestBytes cv ++ blockOf 0 tag)) := by
-  have hb : (![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat tag] : Fin 4 → E) =
-      ![(digestScalars cv).1, (digestScalars cv).2, E.ofLimbs ((0 : E).limb 0) ((0 : E).limb 1) 0,
-        E.ofLimbs ((0 : E).limb 2) (K.ofBits tag) 0] := by
-    have h0 : ((0 : E).limb 0) = 0 ∧ (0 : E).limb 1 = 0 ∧ (0 : E).limb 2 = 0 :=
-      ⟨limb_zero 0, limb_zero 1, limb_zero 2⟩
-    rw [h0.1, h0.2.1, h0.2.2, ← zero_eq_ofLimbs, ← ofK_add_y_mul_ofK, ofK_zero, zero_add]
-    rfl
-  rw [hb, blake2s_default_iff, blockBytes_fs cv 0 htag]
+  refine ⟨fun hc ↦ ?_, fun h ↦ ?_⟩
+  · obtain ⟨d, hd, hout⟩ := squeeze_state_model (M := HashModel.deployed) cv htag hc
+    rw [hout, HashModel.deployed_H.mp hd]
+  rw [squeezeBlock_eq, blake2s_default_iff, blockBytes_fs cv 0 htag]
+  · exact h
   intro i
   fin_cases i
   · exact (isCanonical128_digestScalars cv).1
@@ -176,6 +215,21 @@ theorem challenge_from_state_eq (d : Digest) :
     zero_add]
   rfl
 
+/-- **`squeeze` under a hash model** (G:529-534; TRIAGE #9, #11): the new state is the answered
+hash of the state's bytes and `blockOf 0 2`, the challenge `challengeOf` of it. -/
+theorem squeeze_spec_model {M : HashModel} (cv : Digest) {nb0 nb1 d2 : E}
+    (hc : M.sem.check ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat 2] ivCells.1
+      ivCells.2 nb0 nb1 (metadataCell 64 true))
+    (hd2 : IsInK d2) (hd3 : IsInK ((nb1 + d2) * y⁻¹)) :
+    ∃ d, M.H (digestBytes cv ++ blockOf 0 2) = some d ∧ (nb0, nb1) = digestScalars d ∧
+      nb0 + y * y * d2 = challengeOf d := by
+  obtain ⟨d, hd, h⟩ := squeeze_state_model cv (by decide) hc
+  have h0 : nb0 = (digestScalars d).1 := congrArg Prod.fst h
+  have h1 : nb1 = (digestScalars d).2 := congrArg Prod.snd h
+  subst h0 h1
+  refine ⟨d, hd, rfl, ?_⟩
+  rw [(challenge_from_state_iff _ d2).mp ⟨hd2, hd3⟩, challenge_from_state_eq]
+
 /-- **`squeeze(state)`** (G:529-534; `squeeze_step`, G:546-555; TRIAGE #9, #11): the new state
 and the challenge are `Node.squeeze`'s, the `.sample` step of `Compile.run` (V:563-565). -/
 theorem squeeze_spec (cv : Digest) {nb0 nb1 d2 : E}
@@ -183,14 +237,9 @@ theorem squeeze_spec (cv : Digest) {nb0 nb1 d2 : E}
       ivCells.2 nb0 nb1 (metadataCell 64 true))
     (hd2 : IsInK d2) (hd3 : IsInK ((nb1 + d2) * y⁻¹)) :
     (nb0, nb1) = digestScalars (Node.squeeze cv).2 ∧ nb0 + y * y * d2 = (Node.squeeze cv).1 := by
-  have h := (squeeze_state_iff cv (by decide) nb0 nb1).mp hc
-  have h0 : nb0 = (digestScalars (blake2sBytes (digestBytes cv ++ blockOf 0 2))).1 :=
-    congrArg Prod.fst h
-  have h1 : nb1 = (digestScalars (blake2sBytes (digestBytes cv ++ blockOf 0 2))).2 :=
-    congrArg Prod.snd h
-  subst h0 h1
-  rw [squeeze_apply, (challenge_from_state_iff _ d2).mp ⟨hd2, hd3⟩, challenge_from_state_eq]
-  exact ⟨rfl, rfl⟩
+  obtain ⟨d, hd, h, hc'⟩ := squeeze_spec_model (M := HashModel.deployed) cv hc hd2 hd3
+  rw [HashModel.deployed_H.mp hd] at h hc'
+  exact ⟨h, hc'⟩
 
 /-! ## Grinding (`grind_check`, G:701-737) -/
 
@@ -202,33 +251,16 @@ theorem kToNat_digestScalars_limb0 (d : Digest) :
   change d[1].toNat <<< 32 ||| d[0].toNat = _
   rw [Nat.shiftLeft_eq, Nat.mul_comm, two_pow_mul_or d[0].toNat_lt, Nat.add_comm]
 
-/-- **`grind_check(state, nonce, g^bits)` is sound** (G:701-734; TRIAGE #18): from the state of
-`cv`, if the guest's constraints hold (at `g^bits = 1` the nonce is zero, G:710-711; the base
-squeeze at `DS_POW_BASE`, G:713-714; the nonce absorbed at `DS_POW_NONCE`, G:715-716; the
-output's low lane split off, G:717-720, decomposed into 64 Boolean bits, G:723-730, of which the
-low `bits` are zero, G:732-733), then `powOk bits nonce` (V:482) holds of the digest `.grind`
-checks (V:566-572). -/
-theorem grind_check_sound (cv : Digest) {nonce : E} {bits : ℕ} (hbits : bits ≤ 64)
-    {base0 base1 l2 out0 out1 lane : E} {lb : ℕ → E}
-    (hzero : gen ^ bits = 1 → nonce = 0)
-    (hbase : CompressCells ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat 3]
-      ivCells.1 ivCells.2 base0 base1 (metadataCell 64 true))
-    (hl2 : IsInK l2)
-    (hout : CompressCells (fsBlock (base0, base1) nonce l2 (eOfNat 4)) ivCells.1 ivCells.2 out0
-      out1 (metadataCell 64 true))
+/-- **The proof of work, from the lane's bits** (G:717-733): the output's first cell `out0`, its
+low lane split off (`lane`, G:717-720), decomposed into 64 Boolean bits (G:723-730), the low
+`bits` of them zero (G:732-733), and the nonce zero at `g^bits = 1` (G:710-711): `powOk bits
+nonce` holds of the digest whose first cell is `out0` (V:482). -/
+theorem powOk_of_lane {nonce : E} {bits : ℕ} (hbits : bits ≤ 64) {out0 lane : E} {lb : ℕ → E}
+    {D : Digest} (hzero : gen ^ bits = 1 → nonce = 0) (hout0 : out0 = (digestScalars D).1)
     (hlane : IsInK lane ∧ IsInK ((out0 + lane) * y⁻¹))
     (hb : ∀ i < 64, lb i * lb i = lb i)
     (hsum : ∑ i ∈ Finset.range 64, lb i * coordBasis i = lane)
-    (hz : ∀ i < bits, lb i = 0) :
-    powOk bits nonce
-      (blake2sBytes (digestBytes (blake2sBytes (digestBytes cv ++ blockOf 0 3)) ++
-        blockOf nonce 4)) = true := by
-  set B := blake2sBytes (digestBytes cv ++ blockOf 0 3)
-  set D := blake2sBytes (digestBytes B ++ blockOf nonce 4)
-  have hB := (squeeze_state_iff cv (by decide) base0 base1).mp hbase
-  rw [hB] at hout
-  have hD := ((fs_compress_iff B nonce (by decide) l2 out0 out1).mp ⟨hl2, hout⟩).2
-  have hout0 : out0 = (digestScalars D).1 := congrArg Prod.fst hD
+    (hz : ∀ i < bits, lb i = 0) : powOk bits nonce D = true := by
   have hlane' : lane = ofK (out0.limb 0) := ((split_iff out0 lane).mp ⟨hlane.1, hlane.2⟩).2
   obtain ⟨_, hbits'⟩ := bits_of_reconstruct_zero (by decide) hb hsum
   have hN : eToNat lane = kToNat (out0.limb 0) := by
@@ -257,6 +289,55 @@ theorem grind_check_sound (cv : Digest) {nonce : E} {bits : ℕ} (hbits : bits �
           exact absurd h1 (by simp [bitE])
       simp [hi, this]
     · simp [hi]
+
+/-- **`grind_check(state, nonce, g^bits)` under a hash model** (G:701-734; TRIAGE #18): the
+guest's constraints give the answered base `B` (the state absorbing `blockOf 0 3`), the answered
+digest `D` (`B` absorbing the nonce at `DS_POW_NONCE`), and `powOk bits nonce D` (V:482), the
+digest `.grind` checks (V:566-572). -/
+theorem grind_check_model {M : HashModel} (cv : Digest) {nonce : E} {bits : ℕ} (hbits : bits ≤ 64)
+    {base0 base1 l2 out0 out1 lane : E} {lb : ℕ → E}
+    (hzero : gen ^ bits = 1 → nonce = 0)
+    (hbase : M.sem.check ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat 3]
+      ivCells.1 ivCells.2 base0 base1 (metadataCell 64 true))
+    (hl2 : IsInK l2)
+    (hout : M.sem.check (fsBlock (base0, base1) nonce l2 (eOfNat 4)) ivCells.1 ivCells.2 out0
+      out1 (metadataCell 64 true))
+    (hlane : IsInK lane ∧ IsInK ((out0 + lane) * y⁻¹))
+    (hb : ∀ i < 64, lb i * lb i = lb i)
+    (hsum : ∑ i ∈ Finset.range 64, lb i * coordBasis i = lane)
+    (hz : ∀ i < bits, lb i = 0) :
+    ∃ B D, M.H (digestBytes cv ++ blockOf 0 3) = some B ∧
+      M.H (digestBytes B ++ blockOf nonce 4) = some D ∧ powOk bits nonce D = true := by
+  obtain ⟨B, hB, hBc⟩ := squeeze_state_model cv (by decide) hbase
+  rw [hBc] at hout
+  obtain ⟨-, D, hD, hDc⟩ := fs_compress_model B nonce (by decide) hl2 hout
+  exact ⟨B, D, hB, hD, powOk_of_lane hbits hzero (congrArg Prod.fst hDc) hlane hb hsum hz⟩
+
+/-- **`grind_check(state, nonce, g^bits)` is sound** (G:701-734; TRIAGE #18): from the state of
+`cv`, if the guest's constraints hold (at `g^bits = 1` the nonce is zero, G:710-711; the base
+squeeze at `DS_POW_BASE`, G:713-714; the nonce absorbed at `DS_POW_NONCE`, G:715-716; the
+output's low lane split off, G:717-720, decomposed into 64 Boolean bits, G:723-730, of which the
+low `bits` are zero, G:732-733), then `powOk bits nonce` (V:482) holds of the digest `.grind`
+checks (V:566-572). -/
+theorem grind_check_sound (cv : Digest) {nonce : E} {bits : ℕ} (hbits : bits ≤ 64)
+    {base0 base1 l2 out0 out1 lane : E} {lb : ℕ → E}
+    (hzero : gen ^ bits = 1 → nonce = 0)
+    (hbase : CompressCells ![(digestScalars cv).1, (digestScalars cv).2, 0, y * eOfNat 3]
+      ivCells.1 ivCells.2 base0 base1 (metadataCell 64 true))
+    (hl2 : IsInK l2)
+    (hout : CompressCells (fsBlock (base0, base1) nonce l2 (eOfNat 4)) ivCells.1 ivCells.2 out0
+      out1 (metadataCell 64 true))
+    (hlane : IsInK lane ∧ IsInK ((out0 + lane) * y⁻¹))
+    (hb : ∀ i < 64, lb i * lb i = lb i)
+    (hsum : ∑ i ∈ Finset.range 64, lb i * coordBasis i = lane)
+    (hz : ∀ i < bits, lb i = 0) :
+    powOk bits nonce
+      (blake2sBytes (digestBytes (blake2sBytes (digestBytes cv ++ blockOf 0 3)) ++
+        blockOf nonce 4)) = true := by
+  obtain ⟨B, D, hB, hD, hp⟩ := grind_check_model (M := HashModel.deployed) cv hbits hzero hbase hl2
+    hout hlane hb hsum hz
+  rw [HashModel.deployed_H.mp hB] at hD
+  rwa [HashModel.deployed_H.mp hD] at hp
 
 /-- **`grind_check` is complete**: when `powOk bits nonce D` holds, the honest values meet the
 guest's checks: the nonce is zero at `g^bits = 1`, and the low `bits` bits of the digest's first

@@ -245,3 +245,11 @@ the statement, each with its reason.
   the region (rather than the instance dropped from them: the bus's types are indexed by the
   instance, so the deployed facts do not carry over by unfolding). Flock and ring switching are
   phases that keep the doom on the earlier claims at no error (`Spec.keep`).
+- **W2-1 (the guest's semantics: parallel `…B` modules).** The B2 soundness chain has generic
+  copies over `S : BlakeSem` (`Guest/CoreB`, `LogicB`, `ExecB`, `CoreLocB`, `CheckSoundB`,
+  `SoundB`), each recovering the deployed one at `blakeDeployed` (`relB_deployed`, …), instead of
+  `Core`/`Logic`/`Exec`/`CheckSound` made generic in place. Why: those modules are imported by the
+  generated kernel-checked families (1,770 modules of 2–5 GB); an in-place edit rebuilds them all,
+  the copies rebuild B1 only. A function free of `BLAKE2S` has its deployed relation under every
+  semantics (`relB_iff_rel_of_freeOn`), so its B1 lemmas carry over unchanged. The plan for the
+  rest of B1 is `w2-guest-model.md`.

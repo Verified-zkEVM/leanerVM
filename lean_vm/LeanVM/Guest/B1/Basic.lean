@@ -11,6 +11,8 @@ module
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.CoreLemmas
 public import LeanVM.Guest.Value.All
+public import LeanVM.Guest.Value.RunSome
+public import LeanVM.Guest.CoreB
 
 /-!
 # B1: shared vocabulary
@@ -26,6 +28,10 @@ public import LeanVM.Guest.Value.All
   (`Compile.run` on the deployed hash, on any stream continuing `xs`, any openings and roots).
   `RunsTo.bind`, `runsTo_readE`, `runsTo_sampleE`, `runsTo_readN`, `runsTo_sampleN` compose runs;
   `RunsTo.unique` makes them functions of the state and the words read.
+* `RunsToM M p cv xs a cv'`: the same over a hash model's answered hash (`Compile.run` at
+  `Option`, `runM`), every hash the run makes answered; the same interface (`runsToM_readE`,
+  `runsToM_sampleE`, `RunsToM.bind`, …) over answered steps (`obsCvM`, `sqCvM`, `obsAllM`,
+  `sqAllM`), and `runsToM_deployed`: at `HashModel.deployed` it is `RunsTo`.
 * `setv σ b n f`: `σ` with the values `.n (b + k)`, `k < n`, set to `f k`: how an honest
   valuation is built, block after block (`set_n_in`, `set_n_lt`, `set_n_ge` evaluate it).
 * `loop_iff`: a `mul_range` loop helper, from `g^k` to its end `N`, holds exactly when `N = g^m`
@@ -268,6 +274,200 @@ theorem runsTo_sampleN (n : ℕ) (cv : Digest) :
       ((ih (sqCv cv)).bind (f := fun xs => (pure (challengeOf (sqCv cv) :: xs) : Prog (List E)))
         (runsTo_ret _ _))
     simpa [Prog.sampleN, sqAll] using h
+
+/-! ## Runs over a hash model
+
+Over a hash model (`Value.HashModel`) the chain runs over the model's answered hash: `runM M`
+is `Compile.run` at `Option` over `M.H`, `none` where the model does not answer, and
+`RunsToM M p cv xs a cv'` says the run reaches `a` and `cv'` with every hash it makes answered.
+Its interface is `RunsTo`'s, each step given the answered hash of its block (`obsCvM`, `sqCvM`,
+and `obsAllM`, `sqAllM` for runs of them); no step names a chaining value the model does not
+answer. At `HashModel.deployed` it is `RunsTo` (`runsToM_deployed`), so a B1 lemma concluding
+`RunsToM M` for every model gives the deployed lemma's `RunsTo`. -/
+
+section Model
+
+/-- `Compile.run` over a hash model's answered hash. -/
+abbrev runM (M : HashModel) {α : Type} (p : Prog α) (s : St) : Option (Option (α × St)) :=
+  Compile.run (m := Option) M.H p s
+
+variable {M : HashModel}
+
+theorem runM_bind {α β : Type} (p : Prog α) (f : α → Prog β) (s : St) :
+    runM M (p.bind f) s =
+      (runM M p s).bind (fun o ↦ o.elim (some none) fun r ↦ runM M (f r.1) r.2) := by
+  induction p generalizing s with
+  | ret a => rfl
+  | fail => rfl
+  | read k ih =>
+    simp only [runM, Prog.bind, Compile.run]
+    split
+    · rfl
+    · simp only [Option.bind_eq_bind, Option.bind_assoc]
+      congr 1
+      funext cv
+      exact ih _ _
+  | sample k ih =>
+    simp only [runM, Prog.bind, Compile.run, Option.bind_eq_bind, Option.bind_assoc]
+    congr 1
+    funext cv
+    exact ih _ _
+  | grind b k ih =>
+    simp only [runM, Prog.bind, Compile.run]
+    split
+    · rfl
+    · simp only [Option.bind_eq_bind, Option.bind_assoc]
+      congr 1; funext base; congr 1; funext d; congr 1; funext cv
+      split
+      · exact ih _
+      · rfl
+  | commit h w k ih =>
+    simp only [runM, Prog.bind, Compile.run]
+    split
+    · simp only [Option.bind_eq_bind, Option.bind_assoc]
+      congr 1; funext cv0; congr 1; funext cv1
+      split
+      · exact ih _
+      · rfl
+    · rfl
+  | query i ps k ih =>
+    simp only [runM, Prog.bind, Compile.run]
+    split
+    · rfl
+    · simp only [Option.bind_eq_bind, Option.bind_assoc]
+      congr 1; funext o
+      split
+      · exact ih _ _
+      · rfl
+
+/-- The chain after absorbing a stream word, answered by the model (`obsCv`). -/
+def obsCvM (M : HashModel) (cv : Digest) (x : E) : Option Digest :=
+  M.H (digestBytes cv ++ blockOf x 1)
+
+/-- The chain after a squeeze, answered by the model (`sqCv`). -/
+def sqCvM (M : HashModel) (cv : Digest) : Option Digest := M.H (digestBytes cv ++ blockOf 0 2)
+
+/-- The chain after absorbing the words `xs` in order, every step answered (`obsAll`). -/
+def obsAllM (M : HashModel) : Digest → List E → Option Digest
+  | cv, [] => some cv
+  | cv, x :: xs => (obsCvM M cv x).bind fun cv' ↦ obsAllM M cv' xs
+
+/-- `n` squeezes from `cv`, every step answered: the challenges and the final state (`sqAll`). -/
+def sqAllM (M : HashModel) : ℕ → Digest → Option (List E × Digest)
+  | 0, cv => some ([], cv)
+  | n + 1, cv => (sqCvM M cv).bind fun cv' ↦
+      (sqAllM M n cv').map fun r ↦ (challengeOf cv' :: r.1, r.2)
+
+/-- The program `p` runs from the chain state `cv`, reading exactly `xs`, to `a` and `cv'`, every
+hash answered by the model, on any stream continuing `xs`, any openings and any roots. -/
+def RunsToM (M : HashModel) {α : Type} (p : Prog α) (cv : Digest) (xs : List E) (a : α)
+    (cv' : Digest) : Prop :=
+  ∀ (rest : List E) (os : List Opening) (roots : List (Digest × ℕ × ℕ)),
+    runM M p ⟨cv, xs ++ rest, os, roots⟩ = some (some (a, ⟨cv', rest, os, roots⟩))
+
+theorem RunsToM.of_eq {α : Type} {p : Prog α} {cv : Digest} {xs xs' : List E} {a a' : α}
+    {c c' : Digest} (h : RunsToM M p cv xs a c) (hx : xs = xs') (ha : a = a') (hc : c = c') :
+    RunsToM M p cv xs' a' c' := by
+  subst hx ha hc; exact h
+
+theorem RunsToM.unique {α : Type} {p : Prog α} {cv : Digest} {xs : List E} {a b : α}
+    {c1 c2 : Digest} (h1 : RunsToM M p cv xs a c1) (h2 : RunsToM M p cv xs b c2) :
+    a = b ∧ c1 = c2 := by
+  have := (h1 [] [] []).symm.trans (h2 [] [] [])
+  simp only [Option.some.injEq, Prod.mk.injEq, St.mk.injEq] at this
+  exact ⟨this.1, this.2.1⟩
+
+/-- A run determines its value and final state. -/
+theorem RunsToM.iff {α : Type} {p : Prog α} {cv : Digest} {xs : List E} {a b : α}
+    {c1 c2 : Digest} (h1 : RunsToM M p cv xs a c1) : RunsToM M p cv xs b c2 ↔ b = a ∧ c2 = c1 := by
+  constructor
+  · intro h2
+    obtain ⟨h, h'⟩ := h1.unique h2
+    exact ⟨h.symm, h'.symm⟩
+  · rintro ⟨rfl, rfl⟩
+    exact h1
+
+theorem runsToM_ret {α : Type} (a : α) (cv : Digest) : RunsToM M (pure a : Prog α) cv [] a cv :=
+  fun _ _ _ ↦ rfl
+
+theorem RunsToM.bind {α β : Type} {p : Prog α} {f : α → Prog β} {cv cv1 cv2 : Digest}
+    {xs ys : List E} {a : α} {b : β} (h1 : RunsToM M p cv xs a cv1)
+    (h2 : RunsToM M (f a) cv1 ys b cv2) : RunsToM M (p >>= f) cv (xs ++ ys) b cv2 := by
+  intro rest os roots
+  rw [prog_bind_eq, runM_bind, List.append_assoc, h1]
+  exact h2 rest os roots
+
+theorem runsToM_readE {cv cv' : Digest} {x : E} (h : obsCvM M cv x = some cv') :
+    RunsToM M Prog.readE cv [x] x cv' := fun _ _ _ ↦ by
+  simp only [runM, Prog.readE, Compile.run, absorbBlock, List.cons_append, Option.bind_eq_bind]
+  rw [show M.H (digestBytes cv ++ blockOf x 1) = some cv' from h]
+  rfl
+
+theorem runsToM_sampleE {cv cv' : Digest} (h : sqCvM M cv = some cv') :
+    RunsToM M Prog.sampleE cv [] (challengeOf cv') cv' := fun _ _ _ ↦ by
+  simp only [runM, Prog.sampleE, Compile.run, absorbBlock, List.nil_append, Option.bind_eq_bind]
+  rw [show M.H (digestBytes cv ++ blockOf 0 2) = some cv' from h]
+  rfl
+
+theorem runsToM_readN {cv cv' : Digest} {xs : List E} (h : obsAllM M cv xs = some cv') :
+    RunsToM M (Prog.readN xs.length) cv xs xs cv' := by
+  induction xs generalizing cv with
+  | nil =>
+    obtain rfl : cv = cv' := Option.some.inj h
+    exact runsToM_ret _ _
+  | cons x xs ih =>
+    obtain ⟨c, hc, hrest⟩ := Option.bind_eq_some_iff.mp h
+    have h := (runsToM_readE hc).bind (f := fun x => do let xs ← Prog.readN xs.length; return x :: xs)
+      ((ih hrest).bind (f := fun xs => (pure (x :: xs) : Prog (List E))) (runsToM_ret (x :: xs) _))
+    simpa [Prog.readN] using h
+
+theorem runsToM_sampleN {cv cv' : Digest} {cs : List E} :
+    ∀ {n : ℕ}, sqAllM M n cv = some (cs, cv') → RunsToM M (Prog.sampleN n) cv [] cs cv'
+  | 0, h => by
+    simp only [sqAllM, Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl⟩ := h
+    exact runsToM_ret _ _
+  | n + 1, h => by
+    obtain ⟨c, hc, hrest⟩ := Option.bind_eq_some_iff.mp h
+    obtain ⟨r, hr, hrr⟩ := Option.map_eq_some_iff.mp hrest
+    simp only [Prod.mk.injEq] at hrr
+    obtain ⟨rfl, rfl⟩ := hrr
+    have h := (runsToM_sampleE hc).bind (f := fun x => do let xs ← Prog.sampleN n; return x :: xs)
+      ((runsToM_sampleN (cs := r.1) (cv := c) (cv' := r.2) hr).bind
+        (f := fun xs => (pure (challengeOf c :: xs) : Prog (List E))) (runsToM_ret _ _))
+    simpa [Prog.sampleN] using h
+
+/-! ### The deployed model -/
+
+theorem runM_deployed {α : Type} (p : Prog α) (s : St) :
+    runM HashModel.deployed p s = some (runId p s) :=
+  run_some blake2sBytes p s
+
+/-- **At the deployed model, `RunsToM` is `RunsTo`.** -/
+theorem runsToM_deployed {α : Type} {p : Prog α} {cv : Digest} {xs : List E} {a : α}
+    {cv' : Digest} : RunsToM HashModel.deployed p cv xs a cv' ↔ RunsTo p cv xs a cv' := by
+  simp only [RunsToM, RunsTo, runM_deployed, Option.some.injEq]
+
+theorem obsCvM_deployed (cv : Digest) (x : E) : obsCvM HashModel.deployed cv x = some (obsCv cv x) :=
+  rfl
+
+theorem sqCvM_deployed (cv : Digest) : sqCvM HashModel.deployed cv = some (sqCv cv) := rfl
+
+theorem obsAllM_deployed (cv : Digest) (xs : List E) :
+    obsAllM HashModel.deployed cv xs = some (obsAll cv xs) := by
+  induction xs generalizing cv with
+  | nil => rfl
+  | cons x xs ih =>
+    simp only [obsAllM, obsCvM_deployed, Option.bind_some, ih]
+    rfl
+
+theorem sqAllM_deployed : ∀ (n : ℕ) (cv : Digest), sqAllM HashModel.deployed n cv = some (sqAll n cv)
+  | 0, _ => rfl
+  | n + 1, cv => by
+    simp only [sqAllM, sqCvM_deployed, Option.bind_some, sqAllM_deployed n, Option.map_some]
+    rfl
+
+end Model
 
 /-! ## Building valuations -/
 
