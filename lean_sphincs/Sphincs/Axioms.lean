@@ -127,10 +127,13 @@ import Sphincs.LoopWalk
 import Sphincs.MultiClass
 import Sphincs.MultiCount
 import Sphincs.MultiEager
+import Sphincs.MultiFree
+import Sphincs.MultiKey
 import Sphincs.MultiOnly
 import Sphincs.MultiPad
 import Sphincs.MultiPay
 import Sphincs.MultiReduction
+import Sphincs.MultiSum
 import Sphincs.MultiTrace
 import Sphincs.MultiTransport
 import Sphincs.Pruning
@@ -9415,6 +9418,138 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.MultiEager.valF_query_bind
 
+/-- info: 'Sphincs.Security.Multi.AtLeast.bind_left' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.AtLeast.bind_left
+
+/-- info: 'Sphincs.Security.Multi.AtLeast.pure_iff' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.AtLeast.pure_iff
+
+/-- info: 'Sphincs.Security.Multi.AtLeast.query_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.AtLeast.query_bind
+
+/-- info: 'Sphincs.Security.Multi.AtLeast.query_bind_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.AtLeast.query_bind_of
+
+/-- info: 'Sphincs.Security.Multi.atLeast_costGame' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.atLeast_costGame
+
+/-- info: 'Sphincs.Security.Multi.atLeast_internalize_memo' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.atLeast_internalize_memo
+
+/-- info: 'Sphincs.Security.Multi.atLeast_map' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.atLeast_map
+
+/-- info: 'Sphincs.Security.Multi.atLeast_of_dom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.atLeast_of_dom
+
+/-- info: 'Sphincs.Security.Multi.atLeast_padAdv' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.atLeast_padAdv
+
+/-- info: 'Sphincs.Security.Multi.charged_add_free_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.charged_add_free_le
+
+/-- info: 'Sphincs.Security.Multi.counted_counted' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.counted_counted
+
+/-- info: 'Sphincs.Security.Multi.counted_padW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.counted_padW
+
+/-- info: 'Sphincs.Security.Multi.counted_query_map_count' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.counted_query_map_count
+
+/-- info: 'Sphincs.Security.Multi.dom_costInteraction' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.dom_costInteraction
+
+/-- info: 'Sphincs.Security.Multi.dom_internal' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.dom_internal
+
+/-- info: 'Sphincs.Security.Multi.dom_memo' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.dom_memo
+
+/-- info: 'Sphincs.Security.Multi.freeCount_append' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.freeCount_append
+
+/-- info: 'Sphincs.Security.Multi.freeCount_cap' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.freeCount_cap
+
+/-- info: 'Sphincs.Security.Multi.freeCount_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.freeCount_recorded
+
+/-- info: 'Sphincs.Security.Multi.keyCharged_add_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.keyCharged_add_le
+
+/-- info: 'Sphincs.Security.Multi.mean_keyCharged_add_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mean_keyCharged_add_le
+
+/-- info: 'Sphincs.Security.Multi.mem_counted_query_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mem_counted_query_bind
+
+/-- info: 'Sphincs.Security.Multi.cntW_hom' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.cntW_hom
+
+/-- info: 'Sphincs.Security.Multi.countHashQueries_eq_cntW' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.countHashQueries_eq_cntW
+
+/-- info: 'Sphincs.Security.Multi.countShort_eq_cntW' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.countShort_eq_cntW
+
+/-- info: 'Sphincs.Security.Multi.experimentDet_eq_runW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.experimentDet_eq_runW
+
+/-- info: 'Sphincs.Security.Multi.experimentDet_internalize_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.experimentDet_internalize_eq
+
+/-- info: 'Sphincs.Security.Multi.gameCoreDet_eq_P' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.gameCoreDet_eq_P
+
+/-- info: 'Sphincs.Security.Multi.mean_short_padAdv' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mean_short_padAdv
+
+/-- info: 'Sphincs.Security.Multi.runW_hom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.runW_hom
+
+/-- info: 'Sphincs.Security.Multi.support_short_padAdv' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.support_short_padAdv
+
+/-- info: 'Sphincs.Security.Multi.wJ_padInput' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.wJ_padInput
+
+/-- info: 'Sphincs.Security.Multi.winWithin_le_padAdv' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.winWithin_le_padAdv
+
 /-- info: 'Sphincs.Security.KeyOnly.OnlyK.bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.KeyOnly.OnlyK.bind
@@ -9635,6 +9770,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Multi.keygen_counts
 
+/-- info: 'Sphincs.Security.Multi.mean_mono_reach' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mean_mono_reach
+
 /-- info: 'Sphincs.Security.Multi.mem_support_run_cntW_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Multi.mem_support_run_cntW_bind
@@ -9662,6 +9801,22 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Multi.postPad_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Multi.postPad_eq
+
+/-- info: 'Sphincs.Security.Multi.reach_congr' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_congr
+
+/-- info: 'Sphincs.Security.Multi.reach_iff' does not depend on any axioms -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_iff
+
+/-- info: 'Sphincs.Security.Multi.reach_iff'' does not depend on any axioms -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_iff'
+
+/-- info: 'Sphincs.Security.Multi.reach_map_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_map_iff
 
 /-- info: 'Sphincs.Security.Multi.run'_cacheQuery_avoids' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -9858,6 +10013,98 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Multi.win_key_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Multi.win_key_le
+
+/-- info: 'Sphincs.Security.Multi.callsW_wS_le_hashTrace' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.callsW_wS_le_hashTrace
+
+/-- info: 'Sphincs.Security.Multi.card_ofKey_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.card_ofKey_le
+
+/-- info: 'Sphincs.Security.Multi.counted_eq_run' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.counted_eq_run
+
+/-- info: 'Sphincs.Security.Multi.gameAtP_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.gameAtP_eq
+
+/-- info: 'Sphincs.Security.Multi.hashTrace_length_le_compressions' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.hashTrace_length_le_compressions
+
+/-- info: 'Sphincs.Security.Multi.key_le_short' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.key_le_short
+
+/-- info: 'Sphincs.Security.Multi.mean_finset_sum'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mean_finset_sum'
+
+/-- info: 'Sphincs.Security.Multi.mean_keyBound_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.mean_keyBound_le
+
+/-- info: 'Sphincs.Security.Multi.ofKey_unique' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.ofKey_unique
+
+/-- info: 'Sphincs.Security.Multi.prefix_total_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.prefix_total_le
+
+/-- info: 'Sphincs.Security.Multi.reach_bind_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_bind_iff
+
+/-- info: 'Sphincs.Security.Multi.reach_nonempty' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_nonempty
+
+/-- info: 'Sphincs.Security.Multi.reach_run_cntW_bind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.reach_run_cntW_bind
+
+/-- info: 'Sphincs.Security.Multi.run_cntW_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.run_cntW_cache
+
+/-- info: 'Sphincs.Security.Multi.run_cntW_hom_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.run_cntW_hom_le
+
+/-- info: 'Sphincs.Security.Multi.run_cntW_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.run_cntW_le
+
+/-- info: 'Sphincs.Security.Multi.run_cntW_one' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.run_cntW_one
+
+/-- info: 'Sphincs.Security.Multi.short_le_total' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.short_le_total
+
+/-- info: 'Sphincs.Security.Multi.sum_key_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.sum_key_le
+
+/-- info: 'Sphincs.Security.Multi.sum_prefix_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.sum_prefix_le
+
+/-- info: 'Sphincs.Security.Multi.sum_wPi_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.sum_wPi_le
+
+/-- info: 'Sphincs.Security.Multi.verify_short_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.verify_short_le
+
+/-- info: 'Sphincs.Security.Multi.verify_wK_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.Multi.verify_wK_le
 
 /-- info: 'Sphincs.Security.ForsPotential.guess_le_endValue' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -16,6 +16,32 @@ open MultiEager Completeness Internalize Short Eager SeedCoupling KeyOnly
 set_option backward.isDefEq.respectTransparency false
 attribute [local instance] Classical.propDecidable
 
+/-! ### Reachable outcomes -/
+
+/-- The outcome is reachable: a wrapper of the support that whnf does not unfold, for statements
+about the outcomes of whole games. -/
+@[irreducible] def Reach {α : Type} (mx : ProbComp α) (r : α) : Prop := r ∈ support mx
+
+theorem reach_iff {α : Type} {mx : ProbComp α} {r : α} : Reach mx r ↔ r ∈ support mx := by
+  unfold Reach; rfl
+
+/-- `reach_iff` with the support taken over `OracleComp unifSpec`, as the support lemmas of
+`OracleComp` give it. -/
+theorem reach_iff' {α : Type} {mx : OracleComp unifSpec α} {r : α} :
+    Reach mx r ↔ r ∈ support (m := OracleComp unifSpec) mx := by
+  unfold Reach; rfl
+
+theorem reach_congr {α : Type} {mx my : ProbComp α} (h : mx =ᵈ my) (r : α) : Reach mx r ↔ Reach my r := by
+  rw [reach_iff, reach_iff, OracleComp.support_eq_of_evalDistEq h]
+
+theorem reach_map_iff {α β : Type} (mx : ProbComp α) (f : α → β) (y : β) :
+    Reach (f <$> mx) y ↔ ∃ x, Reach mx x ∧ f x = y := by
+  simp only [reach_iff, support_map, Set.mem_image]
+
+theorem mean_mono_reach {α : Type} (mx : ProbComp α) {F G : α → ℝ≥0∞} (h : ∀ a, Reach mx a → F a ≤ G a) :
+    mean mx F ≤ mean mx G :=
+  mean_mono_support mx fun a ha => h a (reach_iff.2 ha)
+
 /-! ### The weights -/
 
 /-- The short calls. -/
@@ -465,9 +491,9 @@ set_option maxRecDepth 100000 in
 set_option linter.constructorNameAsVariable false in
 /-- **The game of `Y` counts its short calls**: those on the key, the adversary's count of the
 others, and at most two of key generation. -/
-theorem gameCnt_counts (Y : Security.Adversary) r (hr : r ∈ support (runW wJ (gameCnt Y))) :
+theorem gameCnt_counts (Y : Security.Adversary) r (hr : Reach (runW wJ (gameCnt Y)) r) :
     r.1.2 + r.2.2 r.1.1.2 ≤ r.2.1 ∧ r.2.1 ≤ r.2.2 r.1.1.2 + r.1.2 + 2 := by
-  rw [runW, StateT.run'_eq, support_map] at hr
+  rw [reach_iff, runW, StateT.run'_eq, support_map] at hr
   obtain ⟨r0, hr0, rfl⟩ := hr
   rw [gameCnt_eq, prePad] at hr0
   simp only [bind_assoc] at hr0

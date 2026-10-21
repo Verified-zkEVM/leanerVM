@@ -5,6 +5,7 @@ import Sphincs.MultiClass
 import Sphincs.MultiTrace
 import Sphincs.MultiTransport
 import Sphincs.MultiPad
+import Sphincs.MultiFree
 import Sphincs.Axioms
 import Lean
 
