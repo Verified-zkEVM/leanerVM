@@ -1,7 +1,9 @@
-import LeanDa.Scheme
-import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
-import Mathlib.LinearAlgebra.Matrix.ToLin
-import Mathlib.LinearAlgebra.Dimension.Constructions
+module
+
+public import LeanDa.Scheme
+public import Mathlib.LinearAlgebra.BilinearForm.Orthogonal
+public import Mathlib.LinearAlgebra.Matrix.ToLin
+public import Mathlib.LinearAlgebra.Dimension.Constructions
 
 /-!
 # The additive Reed-Solomon code at rate one half is self-dual
@@ -21,6 +23,8 @@ The code is also the image of the systematic encoder (`range_encodeRow`).
 open Polynomial Module
 
 namespace LeanDa
+
+@[expose] public section
 
 /-! ## Bits of `K` -/
 
@@ -271,5 +275,7 @@ theorem range_encodeRow : Set.range encodeRow = rsCode := by
   constructor
   · rintro ⟨p, rfl⟩; exact encodeRow_mem p
   · intro hw; exact ⟨_, encodeRow_firstHalf hw⟩
+
+end
 
 end LeanDa

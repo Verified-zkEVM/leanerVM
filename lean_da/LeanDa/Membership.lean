@@ -1,5 +1,7 @@
-import LeanDa.ReedSolomon
-import Mathlib.Algebra.MvPolynomial.SchwartzZippel
+module
+
+public import LeanDa.ReedSolomon
+public import Mathlib.Algebra.MvPolynomial.SchwartzZippel
 
 /-!
 # The membership test
@@ -17,6 +19,8 @@ and Schwartz-Zippel bounds its zeros (`card_acceptSet_le`): at most `14 |E|^13` 
 open Polynomial Module
 
 namespace LeanDa
+
+@[expose] public section
 
 /-! ## Bits of a coefficient index -/
 
@@ -187,5 +191,7 @@ theorem card_acceptSet_le {w : Row} (hw : w ∉ rsCode) :
         _ = _ := by ring
     exact le_of_mul_le_mul_right h3 hE
   exact_mod_cast h1
+
+end
 
 end LeanDa

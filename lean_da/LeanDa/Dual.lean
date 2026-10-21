@@ -1,4 +1,6 @@
-import LeanDa.Membership
+module
+
+public import LeanDa.Membership
 
 /-!
 # The deployed dual codeword is the dual codeword
@@ -26,6 +28,8 @@ challenges (`membershipVector_eq_dual`).
 open Polynomial
 
 namespace LeanDa
+
+@[expose] public section
 
 /-! ## The normalized subspace polynomials -/
 
@@ -426,5 +430,7 @@ theorem membershipVector_eq_dual_challenges (root : Digest) :
       (membershipChallenges H root)[(i : ℕ)]'(by rw [length_membershipChallenges]; exact i.isLt)) :=
   membershipVector_eq_dual H root _ (List.ext_getElem (by simp [length_membershipChallenges])
     fun i _ _ ↦ by rw [List.getElem_ofFn])
+
+end
 
 end LeanDa
