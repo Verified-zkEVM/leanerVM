@@ -73,7 +73,8 @@ lean_da() {
   (cd lean_da && lake exe cache get)
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding \
-    LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells
+    LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
+    LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual
 }
 
 lean_vm() {

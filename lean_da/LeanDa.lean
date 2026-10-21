@@ -1,4 +1,5 @@
 import LeanDa.Commitment
+import LeanDa.Dual
 import LeanDa.Security
 import PqDas
 
@@ -93,3 +94,11 @@ standard axioms. -/
 /-- info: 'LeanDa.commitCodewords_eq_commitCells' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanDa.commitCodewords_eq_commitCells
+
+/-- info: 'LeanDa.dualCodeword_eq_dual' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.dualCodeword_eq_dual
+
+/-- info: 'LeanDa.membershipVector_eq_dual' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.membershipVector_eq_dual
