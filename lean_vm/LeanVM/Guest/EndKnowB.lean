@@ -19,13 +19,16 @@ public import LeanVM.E2E.Runs
 
 `EndKnow.lean` over a hash model `M` (`Value.HashModel`).
 
-**The decoder.** `decodeB S` is `decode` with the frames of the located calls under the semantics
-`S` (`Located.frameOfB S`): the seed, the statement and the children's statements are read off
-`main`'s frame exactly as `decode` reads them, and each witness (signature, blob matrix, child
-proof, hints) off the first frame at which its callee's code holds *under `S`*. It computes no
-hash; at the deployed semantics it is `decode` (`decodeB_deployed`). It depends on `S` because a
-located call under `S` ran at a frame where its code holds under `S`, which under another
-semantics need not be the first frame `decode`'s test (the deployed semantics) finds.
+**The decoder.** `decodeAt S fr` is `decode` with the frames of the located calls under the
+semantics `S` at the frames `fr` names (`Located.frameOfB S fr`, decision E2E-5): the seed, the
+statement and the children's statements are read off `main`'s frame exactly as `decode` reads
+them, and each witness (signature, blob matrix, child proof, hints) off the frame `fr` names for
+its call when its callee's code holds there *under `S`*, else off the first frame at which it
+does. `decodeB S` names no frame (`decodeAt S (fun _ _ ↦ none)`). It computes no hash; at the
+deployed semantics it is `decode` (`decodeB_deployed`). It depends on `S` because a located call
+under `S` ran at a frame where its code holds under `S`, which under another semantics need not
+be the first frame `decode`'s test (the deployed semantics) finds; it takes `fr` because the first
+such frame need not be the one an honest prover's call ran at, which V_I must follow (E2E-5).
 
 **What a valid execution decodes to over the model** (`DecodesOnWith M s0 pc pr`): the decoded
 statement's digest under the decoded seed is answered and is the public input's
@@ -33,15 +36,17 @@ statement's digest under the decoded seed is answered and is the public input's
 every hash answered (`NodeRelWith M.H s0 pc pr`), the batching from `s0` and the DA padding
 digests `pc`, `pr`.
 
-**`guest_knowledge_model` (T2)**: for every hash model whose open callees are sound over it
-(`Located.GuestHypsM M`, the groups still converting), every valid execution of the guest under
-`M.sem` decodes, with `decodeB M.sem`, over the model, from the baked start `s0 = aggSeedD` (the
+**`guest_knowledge_model_at` (T2)**: for every hash model whose open callees are sound over it
+(`Located.GuestHypsM M`, the groups still converting) and every frame chooser `fr`, every valid
+execution of the guest under `M.sem` decodes, with `decodeAt M.sem fr`, over the model, from the baked start `s0 = aggSeedD` (the
 cells `AGG_SEED`) and the baked padding digests `pc = daPadCell`, `pr = daPadRow` (D5). The proof
 is `guest_knowledge`'s: B2 under `M.sem` gives `main`'s body at its frame, its calls located
 (`End.mainBodyLB_of`, its windows' facts `VsKnownB M.sem` from GKR and the tables over the model
 and `ExpKnownB M.sem` by transfer); B1 over the model gives `main`'s meaning over the decoded
 witness (`B1.Main.main_sound_wM`) from the callees located over the model
-(`Located.calleesWM_located`, `Located.vsWit_outM`).
+(`Located.calleesWM_located`, `Located.vsWit_outM`), which only use that every decoded frame
+holds its callee's code (`Located.frameDecB_spec`), whatever `fr` names.
+`guest_knowledge_model` is its corollary for `decodeB`.
 
 **The deployed re-derivation** (`guest_knowledge_of_model`): at `HashModel.deployed`, where every
 open callee is its deployed lemma (`Located.guestHypsM_deployed`), the conclusion is the deployed
@@ -59,16 +64,21 @@ open LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- **The guest's decoder under the semantics `S`** (`decode`, its frames under `S`). -/
-noncomputable def decodeB (S : BlakeSem) : Decoder := fun {_} L ↦
+/-- **The guest's decoder under the semantics `S`, at the frames `fr` names** (`decode`, its
+frames under `S`, a call's named frame used when its callee's code holds there; E2E-5). -/
+noncomputable def decodeAt (S : BlakeSem) (fr : String → List E → Option ℕ) : Decoder := fun {_} L ↦
   let σ := valG L 1 (certOf 1)
   ⟨B1.Main.decSeed σ, B1.Main.decStmt σ L.read,
-    B1.Main.decWit σ L.read (Located.xmssWitB S L) (Located.sphincsWitB S L) (Located.wDaLB S L)
-      (fun args ↦ Located.wVsLB S L args []) (Located.wALB S L)⟩
+    B1.Main.decWit σ L.read (Located.xmssWitB S fr L) (Located.sphincsWitB S fr L)
+      (Located.wDaLB S fr L) (fun args ↦ Located.wVsLB S fr L args []) (Located.wALB S fr L)⟩
+
+/-- **The guest's decoder under the semantics `S`** (`decode`, its frames under `S`): no frame
+named. -/
+noncomputable def decodeB (S : BlakeSem) : Decoder := decodeAt S (fun _ _ ↦ none)
 
 /-- **At the deployed semantics the decoder is `decode`.** -/
 theorem decodeB_deployed {κ : ℕ} (L : MemImage κ) : decodeB blakeDeployed L = decode L := by
-  simp only [decodeB, decode, Located.xmssWitB_deployed, Located.sphincsWitB_deployed,
+  simp only [decodeB, decodeAt, decode, Located.xmssWitB_deployed, Located.sphincsWitB_deployed,
     Located.wDaLB_deployed, Located.wVsLB_deployed, Located.wALB_deployed]
 
 /-- **What a valid execution of `guest` on `input` decodes to over a hash model** (`DecodesOn`
@@ -88,16 +98,18 @@ theorem unfolds_RLB {S : BlakeSem} {κ : ℕ} (L : MemImage κ) :
     exact ⟨fn, _, hf, hp, hb⟩
 
 set_option maxRecDepth 100000 in
-/-- **The guest's knowledge soundness over a hash model** (T2; `guest_knowledge` over `M`): for
-every hash model whose open callees are sound over it, every valid execution of the guest under
-the model's semantics on a public input decodes, from its memory under `M.sem`, to a statement
-whose answered digest under the decoded seed is the input's and a witness holding it with every
-hash answered by the model: the batching from the guest's baked start `aggSeedD`, the DA padding
+/-- **The guest's knowledge soundness over a hash model, at any named frames** (T2;
+`guest_knowledge` over `M`): for every hash model whose open callees are sound over it and every
+frame chooser `fr`, every valid execution of the guest under the model's semantics on a public
+input decodes, from its memory under `M.sem` at the frames `fr` names, to a statement whose
+answered digest under the decoded seed is the input's and a witness holding it with every hash
+answered by the model: the batching from the guest's baked start `aggSeedD`, the DA padding
 digests the guest bakes. -/
-theorem guest_knowledge_model (M : HashModel) (H : Located.GuestHypsM M) :
+theorem guest_knowledge_model_at (M : HashModel) (H : Located.GuestHypsM M)
+    (fr : String → List E → Option ℕ) :
     ∀ input (t : Trace guest), ValidExecutionB M.sem guest input t →
       DecodesOnWith M B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow guest input
-        (decodeB M.sem t.image) := by
+        (decodeAt M.sem fr t.image) := by
   intro input t hv
   have hvs : VsKnownB M.sem := B1.VerifySub.vsKnownB_model H.gkr H.tables
   obtain ⟨hb, h0, h1⟩ := mainBodyLB_of hvs (B1.expKnownB M.sem) hv
@@ -105,10 +117,19 @@ theorem guest_knowledge_model (M : HashModel) (H : Located.GuestHypsM M) :
   have h32 : t.κ ≤ 32 := hv.1.2.1
   have hm : B1.Main.MemOk t.image.read := ⟨t.κ, h16, h32, t.image, rfl⟩
   have Hc := Located.calleesWM_located hm (H.batch_sumcheck _ hm)
-    (wV := fun args ↦ Located.wVsLB M.sem t.image args [])
+    (fr := fr) (wV := fun args ↦ Located.wVsLB M.sem fr t.image args [])
     (fun _ _ _ _ _ _ _ ht h ↦ Located.vsWit_outM h32 (by omega) (H.gkr _ hm) (H.tables _ hm)
-      (H.flock _ hm) (H.open_stacked t.image h16 h32) ht h)
+      (H.flock _ hm) (H.open_stacked fr t.image h16 h32) ht h)
   exact B1.Main.main_sound_wM bytecode_length hm (unfolds_RLB t.image) Hc h0 h1 hb
+
+/-- **The guest's knowledge soundness over a hash model** (T2 with no frame named,
+`guest_knowledge_model_at`): every valid execution of the guest under the model's semantics
+decodes with `decodeB M.sem` over the model. -/
+theorem guest_knowledge_model (M : HashModel) (H : Located.GuestHypsM M) :
+    ∀ input (t : Trace guest), ValidExecutionB M.sem guest input t →
+      DecodesOnWith M B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow guest input
+        (decodeB M.sem t.image) :=
+  guest_knowledge_model_at M H (fun _ _ ↦ none)
 
 /-! ## The deployed statement, recovered -/
 

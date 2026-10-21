@@ -193,8 +193,8 @@ variable {H : Bytes → Option Digest} {prog : Program} {seed : Digest} {ip : Id
 stack root, the word the idealized proof gives it, well shaped, whose tree `H` answers with that
 root; the candidates satisfying the relation without Flock are finitely many, and each runs
 under the Flock-blind semantics, passes the table check, and has each child its memory decodes
-(under its table's semantics) among the node's children, under its statement's answered
-digest. -/
+(under its table's semantics, at the frames the idealized proof names for the root) among the
+node's children, under its statement's answered digest. -/
 theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
     (h : nodeStep H prog seed ip (pi, π) = some (some kids)) :
     ∃ (layout : Verifier.Layout) (ρ : ℕ) (s : LeanIsa.Sizes) (r : E × E) (ht w : ℕ) (W : Word)
@@ -205,7 +205,7 @@ theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
       digestScalars root = r ∧
       ∀ q ∈ blindCandidates prog s ρ pi W, ∃ t, candidateRun prog s q = some t ∧
         tableOKWith H (t.blakeRows blakeFree) = some true ∧
-        ∀ c ∈ (Guest.End.decodeB (Guest.Value.tableSem (t.blakeRows blakeFree))
+        ∀ c ∈ (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
             t.image).witness.children,
           ∃ pc, Node.statementDigestWith H seed c.statement = some pc ∧ (pc, c.proof) ∈ kids := by
   unfold nodeStep at h

@@ -21,7 +21,7 @@ public import LeanVM.Guest.B1.Main.DischargeM
 model (`B1.Main.CalleesWM`) at the witnesses decoded under `M.sem`:
 
 * the signatures by `xmssWitB`, `sphincsWitB`, the blob matrix by `wDaLB` (`Located/SigB.lean`,
-  `Located/DaB.lean`);
+  `Located/DaB.lean`), at any named frames `fr` (decision E2E-5);
 * the batching's hints by `wALB`, those of the `aggregate_claims` call's frame, closing the
   batching from the baked start `aggSeedD` over the model (`Main.aggregate_claims_sound_wM`);
 * the child proofs by any `wV` for which `verify_sub`'s located calls verify over the model
@@ -39,20 +39,21 @@ open LeanVM.Guest.Value LeanVM.Guest.B1 LeanVM.Guest.B1.Main
 @[expose] public section
 
 /-- **The batching's hints of an `aggregate_claims` call, under `S`** (`wAL`). -/
-noncomputable def wALB (S : BlakeSem) {κ : ℕ} (L : MemImage κ) (args rets : List E) : BatchHints :=
-  frameDecB S L "aggregate_claims" (aggHints L.read) args rets
+noncomputable def wALB (S : BlakeSem) (fr : String → List E → Option ℕ) {κ : ℕ} (L : MemImage κ)
+    (args rets : List E) : BatchHints :=
+  frameDecB S fr L "aggregate_claims" (aggHints L.read) args rets
 
-theorem wALB_deployed {κ : ℕ} (L : MemImage κ) : wALB blakeDeployed L = wAL L := by
+theorem wALB_deployed {κ : ℕ} (L : MemImage κ) : wALB blakeDeployed (fun _ _ ↦ none) L = wAL L := by
   funext args rets
   simp only [wALB, wAL, frameDecB_deployed]
 
-variable {M : HashModel}
+variable {M : HashModel} {fr : String → List E → Option ℕ}
 
 /-- **A located call of `aggregate_claims` under the model's semantics** (`wAL_out`): the batching
 from the baked start closes over the model with the decoded hints. -/
 theorem wAL_outM {κ : ℕ} {L : MemImage κ} (hbs : BatchSumcheckM M L.read) {args rets : List E}
     (h : RLB M.sem coreProgram L certByName "aggregate_claims" args rets) :
-    MeaningAggWM M aggSeedD L.read args rets (wALB M.sem L args rets) :=
+    MeaningAggWM M aggSeedD L.read args rets (wALB M.sem fr L args rets) :=
   frameDecB_spec find_aggregate_claims h fun _ hp hb ↦
     aggregate_claims_sound_wM hbs hp (holdsListB_mono (relLB_le_rel _) _ id (fun _ h ↦ h) hb)
 
@@ -68,7 +69,7 @@ theorem calleesWM_located {κ : ℕ} {L : MemImage κ} (hm : MemOk L.read)
           verifyDeferredWith M.H End.bytecode iv pi fresh (wV [pi0, pi1, s0, s1, glp, gsq, out]) =
             some true) :
     CalleesWM M aggSeedD End.bytecode L.read (RLB M.sem coreProgram L certByName)
-      (xmssWitB M.sem L) (sphincsWitB M.sem L) (wDaLB M.sem L) wV (wALB M.sem L) where
+      (xmssWitB M.sem fr L) (sphincsWitB M.sem fr L) (wDaLB M.sem fr L) wV (wALB M.sem fr L) where
   exponent_tables := exponent_tables_soundM (relLB_le_rel _)
   verify_lean_xmss _ h := xmssWit_outM h
   verify_sig_lean_sphincs _ h := sphincsWit_outM h

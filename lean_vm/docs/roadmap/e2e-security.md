@@ -85,12 +85,13 @@ D7 claims are the root statement's, in the claim list of their scheme (both sche
    "Backed" never mentions a row count (deployed padding = H(zero) collides with a zero row).
 
 ## 2. V_I (algorithm; non-succinct; not flattening; budget B)
-Idealized proof Π = (s, π, M), M: roots ↦ level-0 words. V_I^H(s, Π), fuel-bounded, rejecting once
+Idealized proof Π = (s, π, M, F), M: roots ↦ level-0 words, F: roots ↦ the frames the decoder
+reads (E2E-5, §7). V_I^H(s, Π), fuel-bounded, rejecting once
 Bud queries are used (Bud fixed before the game; Bud only makes QV uniform, it adds no term — every
 V_I query is a visible query charged in κ_V°'s failBound):
 1. PI₀ := statementDigest^H(seed^H, s); require V°^H(guest, PI₀, π) and OuterChecks°^H(s).
 2. N := closure of {(guest, PI₀, π)} under: q ∈ Cand(M(r(π))) with M3Holds°(x, q), child (s_c, f_c, π_c)
-   of decode(image q) ⇒ (guest, statementDigest^H(seed^H, s_c), π_c) ∈ N.
+   of decode_{F(r(π))}(image q) ⇒ (guest, statementDigest^H(seed^H, s_c), π_c) ∈ N.
 3. For every ν ∈ N: M(r(π)) defined, well shaped, MerkleRoot^H(M(r(π))) = r(π); for every
    q ∈ Cand(M(r(π))) with M3Holds°(x, q): precheck and TableOK^H(activeRows q).
 Completeness for exact codewords: thr = ⌈johnsonAgreement·n⌉ > √(Dn) ≥ √2·D ⇒ unique candidate.
@@ -274,6 +275,7 @@ the statement, each with its reason.
   (`Guest/EndKnowB.lean`): the same hash-free decoder with frames chosen under the candidate's
   own table semantics, which is the oracle model's (`HashModel.oracle`), and `decode` again at
   the deployed semantics (`decodeB_deployed`). T2 is `guest_knowledge_model` with this decoder.
+  (Refined by E2E-5: V_I decodes at the frames the idealized proof names, `End.decodeAt`.)
 - **W5-1 (T3's measure and event).** The rank of a node is the log index of the entry answering
   its statement digest. A child's digest is observed by the parent's batching as two halves; the
   entry observing the second completes it as a root (`RootOf`, `lt_of_rootOf`), and the chain's
@@ -303,3 +305,20 @@ the statement, each with its reason.
   rejects, so T6-det as designed is false. T6-det adds the good event `RootsInj ip` (the idealized
   proof's roots name one word each), of probability one minus the honest tree's collision
   probability under the random oracle. V_I is unchanged.
+- **E2E-5 (V_I decodes at the frames Π names).** An idealized proof also names frames
+  (`IdealProof.frames : E × E → String → List E → Option ℕ`, by the node's stack root, the callee
+  and its argument words); V_I's `nodeStep` decodes a candidate with
+  `End.decodeAt (tableSem rows) (ip.frames r)` (`Guest/EndKnowB.lean`): a located call at the
+  named frame when the callee's code holds there under the table semantics, else at the first
+  such frame (`Located.frameOfB S fr`, `Located/BasicB.lean`). Why: the first frame is not
+  provably the honest call's frame (no frame below it may satisfy the callee's whole body on the
+  same words, a property of the whole honest memory), so the honest prover could not show V_I
+  follows its children's proofs (`t6-completeness.md` §2.2). T2 holds unchanged in substance:
+  every decoded witness comes from a frame where the callee's code holds (`frameDecB_spec`), so
+  `guest_knowledge_model_at` holds for `decodeAt M.sem fr` at every `fr` (the `Located/*B`
+  decoders take the chooser as a parameter), and `guest_knowledge_model` is its corollary for
+  `decodeB S = decodeAt S (fun _ _ ↦ none)`, which is `decode` at the deployed semantics
+  (`decodeB_deployed`). The open callee `open_stacked` of `GuestHypsM` is stated at the openings
+  decoded at every chooser; at the deployed model that is `wOL_spec`'s proof at the named frames
+  (`wOLB_spec_deployed`). T4 uses T2 at the chooser `ip.frames r` of the node's root; T6's
+  `nodeStep_honest` takes the chooser the idealized proof names for the honest node's root.

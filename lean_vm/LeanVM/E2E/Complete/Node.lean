@@ -24,8 +24,9 @@ stack `q` (`Blind.honestStrategyBlind`), whose word the idealized proof gives (`
 * the candidates are `q` if it satisfies the relation on the node's input, and none otherwise
   (`blindCandidates_stackWord`, from `eq_of_mem_candidates_deployed` and `thr_le_n`);
 * so **`nodeStep_honest`**: when `q`'s execution, if it is a candidate, re-runs and passes the
-  table check and decodes the children `cs`, the step returns their nodes (none if `q` is no
-  candidate). The table check and the decoded children are the guest's completeness
+  table check and decodes the children `cs` at the frames `fr` the idealized proof names for the
+  node's root (decision E2E-5), the step returns their nodes (none if `q` is no candidate). The
+  table check and the decoded children are the guest's completeness
   (`docs/roadmap/t6-completeness.md` L2, L9), stated here as hypotheses.
 -/
 
@@ -106,21 +107,24 @@ theorem forIn_kids (H : Bytes → Digest) (seed : Digest) :
       (by simp only [kidNodes, List.map_cons, List.append_assoc, List.singleton_append]; rfl)
 
 /-- **V_I's step on an honest node.** The node's proof is V°'s honest proof of the stack `q` at
-admissible sizes and a valid rate, and the idealized proof gives its root the stack's word. If
-`q` is a candidate (it satisfies the relation without Flock on the node's input), its execution
-re-runs, passes the table check with `H`, and decodes the children `cs`. Then the step returns
-the children's nodes when `q` is a candidate, and none otherwise. -/
+admissible sizes and a valid rate, and the idealized proof gives its root the stack's word and
+names the frames `fr` for it. If `q` is a candidate (it satisfies the relation without Flock on the
+node's input), its execution re-runs, passes the table check with `H`, and decodes the children
+`cs` at the frames `fr`. Then the step returns the children's nodes when `q` is a candidate, and
+none otherwise. -/
 theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) (ip : IdealProof)
     {s : Sizes} {ρ : ℕ} {q : Column (leanIsaμ prog s)} {input : PublicInput}
     (hs : s.Admissible prog) (hρ : validRate ρ) {sd : Digest} {fuel : ℕ} {π : Proof}
     (hπ : prove H (blindProgram (bytecodeWords prog) (publicDigest input))
       (Blind.honestStrategyBlind prog s ρ q) sd fuel = some π)
     (hword : ∀ r, stackRoot π = some r → ip.word r = some (stackWord (leanIsaμ prog s) q))
+    {fr : String → List E → Option ℕ} (hfr : ∀ r, stackRoot π = some r → ip.frames r = fr)
     (pi : Digest) (cs : List Node.Child)
     (hcand : M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q →
       ∃ t, candidateRun prog s q = some t ∧
         tableOKWith (m := Id) (fun x ↦ (pure (H x) : Id Digest)) (t.blakeRows blakeFree) = true ∧
-        (Guest.End.decodeB (Guest.Value.tableSem (t.blakeRows blakeFree)) t.image).witness.children = cs) :
+        (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) fr
+          t.image).witness.children = cs) :
     nodeStep (m := Id) (fun x ↦ (pure (H x) : Id Digest)) prog seed ip (pi, π) =
       some (open Classical in
         if M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q then kidNodes H seed cs else []) := by
@@ -128,6 +132,7 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
   have hadm := whirAdmissible prog hs hρ
   obtain ⟨hfold, -⟩ := Whir.Params.deployed_spec_hyps hadm hc
   have hW := hword _ hroot
+  obtain rfl := hfr _ hroot
   have hshaped : WellShaped (2 ^ level.fold) (stackWord (leanIsaμ prog s) q) := by
     rw [hfold]; exact wellShaped_stackWord _ q
   unfold nodeStep

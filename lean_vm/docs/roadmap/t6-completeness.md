@@ -174,7 +174,7 @@ children's statements.
 | L6 | `exists_prove_verifyBlindWith H` (**done**), and `verifyDeferredWith_honest`: the same proof is accepted by the deferring verifier with the honest fresh claims (open; design §5.1) | [0.6–1k] |
 | L7 | **done** (`E2E/Complete/Stream.lean`, `nodeHead_prove`) the honest stream starts `announce s ρ ++ [root₀, root₁]`, root `treeRootM H ht (stackWord μ q)`; `announced`, `stackRoot`, `stackShape` on it | new (unfold `proveFrom` over `readSizes`, `commitStack`) [0.3–0.5k] |
 | L8 | **done** (`E2E/Complete/Candidates.lean`, `Node.lean`'s `blindCandidates_stackWord`) `blindCandidates … (stackWord μ q₀) ⊆ {q₀}` | `enc_injective` on a subset of `≥ 2^κ` points, `eq_of_blockOf_eq` [0.3k] |
-| L9 | E2E-5's `decodeAt`, T2 over any frame chooser, `DecodeHonest` | Located*B parametrized [0.5k]; honest frames [1–2k] |
+| L9 | E2E-5's `decodeAt`, T2 over any frame chooser (**done**: `Located/*B.lean` take the chooser, `End.decodeAt`, `guest_knowledge_model_at`, `GuestHypsM.open_stacked` at every chooser with `wOLB_spec_deployed`), `DecodeHonest` (open) | Located*B parametrized [0.5k]; honest frames [1–2k] |
 | L10 | `honestIdeal` and `honestIdeal_ne_none_iff` | new [0.8–1.5k] |
 | L11 | the batching with hinted values: `batchWith H s0 cs h = some (some defer)`, bytecode part true | sumcheck completeness of `batchRounds` [0.5–1k] |
 | L12 | the node relation of the honest node, `NodeRelWith (some ∘ H)` (from L6, L11, `T.Valid`) | [0.3k] |
@@ -262,8 +262,9 @@ common prefixes literally equal). No new mathematics; ≈ 0.6–1k lines.
 | `LeanVM/E2E/Complete/Model.lean` | 180 | L1: `CompModel`, `CompModel.deployed` (BLAKE2s, `absorbBlocks`), `CompModel.chain` (the honest table), `tableOKWith_of_validB`, `haltingRunB_of_validChain` |
 | `LeanVM/E2E/Complete/Candidates.lean` | 78 | L8: `enc_eq_of_agreeOn`, `eq_of_mem_candidates_stackWord`, `eq_of_mem_candidates_deployed` |
 | `LeanVM/E2E/Complete/Stream.lean` | 267 | L7: `readSizes_honest`, `announced_announce`, `proveFrom_readN_bind`, `prove_stream_head`, `nodeHead_prove` |
-| `LeanVM/E2E/Complete/Node.lean` | 263 | L8's `blindCandidates_stackWord`, `sizesOf_verifierLayout`, `nodeStep_honest` (L13, the guest's table check and decoding as hypotheses), `closure_accepts` (L14), `outerChecksWith_true`, `idealVerify_accepts` (L15) |
+| `LeanVM/E2E/Complete/Node.lean` | 268 | L8's `blindCandidates_stackWord`, `sizesOf_verifierLayout`, `nodeStep_honest` (L13, the guest's table check and decoding as hypotheses), `closure_accepts` (L14), `outerChecksWith_true`, `idealVerify_accepts` (L15) |
 | `LeanVM/Protocol/EndToEnd/Blind/Complete.lean` | 470 | L5: `replay`, `follows_replay`, `hFlockBlind`, `follows_hFlockBlind`, the bus/table/public phases from `M3HonestBlind`, `follows_verifyExecutionBlind`, `runI_blindProgram`, `exists_prove_verifyBlindWith` (V° accepts the honest proof for every `H`, no `WalkFaithful`) |
 
 **Open**: L2 (the guest over a completeness model — the bulk), L3, L4, L6's deferring half
-(§5.1), L9 (needs E2E-5), L10–L12, L16, L17; and the decisions E2E-4, E2E-5 (§2).
+(§5.1), L9's `DecodeHonest` (E2E-5 is in the statement: `IdealProof.frames`, `End.decodeAt`),
+L10–L12, L16, L17; and the decision E2E-4 (§2).

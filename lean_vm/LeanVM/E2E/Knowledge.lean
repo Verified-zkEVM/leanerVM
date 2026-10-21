@@ -43,7 +43,8 @@ node, the log index of its statement digest's entry (T3). At a node `(pi, π)` w
 2. V_I ran that candidate under the Flock-blind semantics (`execution_of_extractedBlind`, the
    execution is valid) and checked its table (`tableOK_of_tableOKWith`); so the execution is
    valid under the oracle model of its table (C5, `validExecutionB_oracle`).
-3. T2 (`guest_knowledge_model`) at that model: the decoded statement's digest is `pi`, and the
+3. T2 (`guest_knowledge_model_at`) at that model and the frames the idealized proof names for the
+   node's stack root (V_I's decoder, E2E-5): the decoded statement's digest is `pi`, and the
    decoded witness holds it (`NodeRelWith (look ℓ)`). Without collisions the decoded seed and
    statement are V_I's (`statement_eq_of_digest`).
 4. A claim held directly is a signature valid under the log, or a DA opening; a claim held by a
@@ -152,10 +153,10 @@ theorem childClaimsWith_mem {H : Bytes → Option Digest} {seed : Digest} :
     · obtain ⟨cc', hcc', he⟩ := childClaimsWith_mem hccs c' hc' pc hpc
       exact ⟨cc', List.mem_cons_of_mem _ hcc', he⟩
 
-/-- The guest's decoded children are fewer than `2^18`: their count is a logarithm below the
-table's size. -/
-theorem length_decodeB_children_lt (S : BlakeSem) {κ : ℕ} (L : MemImage κ) :
-    (Guest.End.decodeB S L).witness.children.length < 2 ^ 64 - 1 := by
+/-- The guest's decoded children, at any named frames, are fewer than `2^18`: their count is a
+logarithm below the table's size. -/
+theorem length_decodeAt_children_lt (S : BlakeSem) (fr : String → List E → Option ℕ) {κ : ℕ}
+    (L : MemImage κ) : (Guest.End.decodeAt S fr L).witness.children.length < 2 ^ 64 - 1 := by
   have hg : ∀ x : E, Guest.B1.Main.gLog x < 2 ^ 18 := by
     intro x
     unfold Guest.B1.Main.gLog
@@ -163,9 +164,14 @@ theorem length_decodeB_children_lt (S : BlakeSem) {κ : ℕ} (L : MemImage κ) :
     | none => simp
     | some n =>
       simpa using List.mem_range.mp (List.mem_of_find?_eq_some hf)
-  simp only [Guest.End.decodeB, Guest.B1.Main.decWit, Guest.B1.Main.decKids, List.length_map,
+  simp only [Guest.End.decodeAt, Guest.B1.Main.decWit, Guest.B1.Main.decKids, List.length_map,
     List.length_range]
   exact (hg _).trans (by norm_num)
+
+/-- The guest's decoded children with no frame named are fewer than `2^18`. -/
+theorem length_decodeB_children_lt (S : BlakeSem) {κ : ℕ} (L : MemImage κ) :
+    (Guest.End.decodeB S L).witness.children.length < 2 ^ 64 - 1 :=
+  length_decodeAt_children_lt S _ L
 
 /-- **The outer checks, answered**: every DA claim's vector digest, answered, is its root's,
 and the deferred claim's bytecode part holds. -/
@@ -281,7 +287,8 @@ theorem heldDirect_of_node
   have hok := tableOK_of_tableOKWith htab
   have hvm := Guest.Value.validExecutionB_oracle hok hvalid'
   -- T2 at that model.
-  obtain ⟨hdig, hrel⟩ := Guest.End.guest_knowledge_model _ (hG _ hok) (inputOf ℓ[n].2) t hvm
+  obtain ⟨hdig, hrel⟩ :=
+    Guest.End.guest_knowledge_model_at _ (hG _ hok) (ip.frames r) (inputOf ℓ[n].2) t hvm
   change statementDigestWith (look ℓ) _ _ = some _ at hdig
   change NodeRelWith (look ℓ) _ _ _ _ _ _ _ at hrel
   rw [publicDigest_inputOf] at hdig
@@ -292,10 +299,13 @@ theorem heldDirect_of_node
   rw [← hseq, ← hsteq] at hrel
   change NodeRelWith (look ℓ) Guest.B1.Main.aggSeedD Guest.B1.Main.daPadCell Guest.B1.Main.daPadRow
     (bytecodeWords Guest.guest) seed st
-    (Guest.End.decodeB (Guest.Value.tableSem (t.blakeRows blakeFree)) t.image).witness at hrel
-  have hlen := length_decodeB_children_lt (Guest.Value.tableSem (t.blakeRows blakeFree)) t.image
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+      t.image).witness at hrel
+  have hlen := length_decodeAt_children_lt (Guest.Value.tableSem (t.blakeRows blakeFree))
+    (ip.frames r) t.image
   generalize
-    (Guest.End.decodeB (Guest.Value.tableSem (t.blakeRows blakeFree)) t.image).witness = wit
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+      t.image).witness = wit
     at hrel hch hlen
   obtain ⟨-, hchild, hX, hS, hDa, hbat⟩ := id hrel
   -- The offset of the node's last matrix coordinate is the guest's.

@@ -140,6 +140,10 @@ import LeanVM.E2E.Knowledge
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.children_bytecodeHolds
 
+/-- info: 'LeanVM.Guest.End.guest_knowledge_model_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.End.guest_knowledge_model_at
+
 /-- info: 'LeanVM.Guest.End.guest_knowledge_model' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.End.guest_knowledge_model

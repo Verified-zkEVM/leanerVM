@@ -28,14 +28,16 @@ deployed lemma `guest_knowledge` uses, owned by a group whose conversion is not 
 
 The statements are `Main.BatchSumcheckM` (`MeaningBatchSumcheckM`, the B1 root's
 `MeaningBatchSumcheckWith` verbatim) and `VerifySub.InterfaceM`'s `SoundGkrM`, `SoundTablesM`,
-`SoundFlockM`, `SoundOpenWCM`; the last at the decoded openings `wOLB M.sem L`
-(`Located/VerifySubB.lean`), whose proof is `wOL_spec`'s over the model's semantics from the model
+`SoundFlockM`, `SoundOpenWCM`; the last at the decoded openings `wOLB M.sem fr L`
+(`Located/VerifySubB.lean`), at every frame chooser `fr` (decision E2E-5: the decoder V_I runs
+reads the frames the idealized proof names), whose proof is `wOL_spec`'s over the model's semantics from the model
 forms of the Whir lemmas it composes (`oqFrame_sound`, `oqOpeningOf_ok`,
 `opening_queries_frame_w`, `open_stacked_frame_wC`). Every memory field is over the memories
 `Main.MemOk` admits (`2^κ` words, `16 ≤ κ ≤ 32`).
 
-`guestHypsM_deployed`: at `HashModel.deployed` every field is its deployed lemma, so the
-hypothesis weakens nothing.
+`guestHypsM_deployed`: at `HashModel.deployed` every field is its deployed lemma (`open_stacked`
+at every `fr` by `wOLB_spec_deployed`, `wOL_spec`'s proof at the named frames), so the hypothesis
+weakens nothing.
 -/
 
 namespace LeanVM.Guest.Located
@@ -58,9 +60,10 @@ structure GuestHypsM (M : HashModel) : Prop where
   tables : ∀ rd, Main.MemOk rd → SoundTablesM M End.bytecode TCtx rd
   /-- `verify_flock` over the model. -/
   flock : ∀ rd, Main.MemOk rd → SoundFlockM M rd
-  /-- `open_stacked`'s located calls over the model, at the decoded openings (`wOL_spec`). -/
-  open_stacked : ∀ {κ : ℕ} (L : MemImage κ), 16 ≤ κ → κ ≤ 32 →
-    SoundOpenWCM M L.read (RLB M.sem coreProgram L certByName) (wOLB M.sem L)
+  /-- `open_stacked`'s located calls over the model, at the openings decoded at any named frames
+  (`wOL_spec`). -/
+  open_stacked : ∀ (fr : String → List E → Option ℕ) {κ : ℕ} (L : MemImage κ), 16 ≤ κ → κ ≤ 32 →
+    SoundOpenWCM M L.read (RLB M.sem coreProgram L certByName) (wOLB M.sem fr L)
 
 /-- **At the deployed model every open callee is its deployed lemma.** -/
 theorem guestHypsM_deployed : GuestHypsM HashModel.deployed where
@@ -72,11 +75,11 @@ theorem guestHypsM_deployed : GuestHypsM HashModel.deployed where
     obtain ⟨κ, -, h32, L, rfl⟩ := hm
     exact soundTablesM_deployed.mpr (verify_tables_sound h32 L End.bytecode_length)
   flock rd _ := soundFlockM_deployed.mpr (verify_flock_sound rd)
-  open_stacked L _ _ := by
+  open_stacked fr := fun L _ _ ↦ by
     show SoundOpenWCM HashModel.deployed L.read (RLB blakeDeployed coreProgram L certByName)
-      (wOLB blakeDeployed L)
-    rw [rlB_deployed, wOLB_deployed]
-    exact soundOpenWCM_deployed.mpr (wOL_spec L)
+      (wOLB blakeDeployed fr L)
+    rw [rlB_deployed]
+    exact soundOpenWCM_deployed.mpr (wOLB_spec_deployed L)
 
 end
 end LeanVM.Guest.Located

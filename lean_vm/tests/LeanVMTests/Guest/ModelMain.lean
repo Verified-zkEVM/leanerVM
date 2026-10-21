@@ -131,6 +131,14 @@ open LeanVM.Node
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.Located.frameOfB_deployed
 
+/-- info: 'LeanVM.Guest.Located.bodyAt_frameOfB' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Located.bodyAt_frameOfB
+
+/-- info: 'LeanVM.Guest.Located.frameOfB_of_bodyAt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Located.frameOfB_of_bodyAt
+
 /-- info: 'LeanVM.Guest.Located.loopDecB_spec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.Located.loopDecB_spec
@@ -171,6 +179,10 @@ open LeanVM.Node
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.Located.wVsLB_deployed
 
+/-- info: 'LeanVM.Guest.Located.wOLB_spec_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Located.wOLB_spec_deployed
+
 /-- info: 'LeanVM.Guest.Located.vsWit_outM' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.Located.vsWit_outM
@@ -190,6 +202,10 @@ open LeanVM.Node
 /-- info: 'LeanVM.Guest.End.decodeB_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.End.decodeB_deployed
+
+/-- info: 'LeanVM.Guest.End.guest_knowledge_model_at' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.End.guest_knowledge_model_at
 
 /-- info: 'LeanVM.Guest.End.guest_knowledge_model' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -221,6 +237,17 @@ example (M : HashModel) (H : Located.GuestHypsM M) (input : PublicInput) (t : Tr
         (End.decodeB M.sem t.image).seed (End.decodeB M.sem t.image).statement
         (End.decodeB M.sem t.image).witness :=
   End.guest_knowledge_model M H input t hv
+
+/-- **T2's statement at any named frames** (decision E2E-5), the decoder V_I runs. -/
+example (M : HashModel) (H : Located.GuestHypsM M) (fr : String → List E → Option ℕ)
+    (input : PublicInput) (t : Trace LeanVM.Guest.guest)
+    (hv : ValidExecutionB M.sem LeanVM.Guest.guest input t) :
+    statementDigestWith M.H (End.decodeAt M.sem fr t.image).seed
+        (End.decodeAt M.sem fr t.image).statement = some (LeanVM.publicDigest input) ∧
+      NodeRelWith M.H B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow (LeanVM.bytecodeWords LeanVM.Guest.guest)
+        (End.decodeAt M.sem fr t.image).seed (End.decodeAt M.sem fr t.image).statement
+        (End.decodeAt M.sem fr t.image).witness :=
+  End.guest_knowledge_model_at M H fr input t hv
 
 /-- The baked start is the label's hash at BLAKE2s. -/
 example : B1.Main.aggSeedD = LeanVM.Protocol.Blake2sHash.blake2sBytes batchLabel :=
