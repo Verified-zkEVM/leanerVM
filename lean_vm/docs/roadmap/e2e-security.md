@@ -184,7 +184,8 @@ shares W2) · T7′ (1–2k) · constants audit (0.3k) · assembly (1.5–2.5k).
 Total ≈ 35–65k lines. Critical path: W0 → W2 → W3 → C5/W5 → T4 → T5; T6-det in parallel after W2.
 
 ## 7. Decisions taken during implementation
-Each changes how a work package is realised, not what is proved.
+The W-decisions change how a work package is realised, not what is proved; the E2E-decisions change
+the statement, each with its reason.
 - **W0-1 (generic definitions in new modules).** The hash- and semantics-generic definitions live in
   new modules that import the deployed ones — `Spec/IsaWith.lean` (`BlakeSem`, `blakeDeployed`,
   `blakeFree`, `executeWithB`, `runB`, `ValidExecutionB`), `Spec/NodeWith.lean` (the `…With`
@@ -213,3 +214,27 @@ Each changes how a work package is realised, not what is proved.
   block extends a prefix, and a prefix's final block gives `H x = some d` with the output the
   digest's cells. One answered hash (rather than a total hash and a "known" predicate) makes the
   guest's conclusions the `…With` statements at `M.H` directly (`NodeRelWith`).
+- **E2E-1 (all queries charged; the visible-only accounting deferred).** The first theorem charges
+  every oracle query: the adversary's, the honest signers' (keygens and signatures) and V_I's, in
+  one logged random oracle (`LeanVM/E2E/Statement.lean`, `hashQuery`). So T1–T4 and E5 run in the
+  existing potential engine (`LeanVM/Protocol/ToVCVio/Rom/`) with the signers as part of the
+  query-bounded computation, the extractor reads the oracle's whole final log, and the game needs
+  no hidden queries, no re-verification and none of §3's bad events (LateReveal, Hit, Format,
+  HiddenPredict, HiddenCollide, GuessS); the per-key reductions of T5 are as designed (key j's
+  inputs forwarded, the other keys' self-simulated), with their n²/2^128 simulation term. The
+  bound becomes §0's with `Q = Q_v + Q_sig` in κ_V°, κ_batch, the termination term and ε_DA.
+  Why: the engine extension of §3 (stopped potential, deferred-sampling game hops per scheme) is
+  the largest and riskiest package (4–8k lines) and buys only the difference between Q_v and
+  Q_v + Q_sig. Per slot that difference is negligible (Q_sig ≈ 2^20 · 2^33 = 2^53 against
+  Q_v = 2^64); over a lifetime (Q_sig ≈ 2^77) the termination term (Q+1)²/2^193 weakens from
+  about 2^-65 to about 2^-39, above the forgery term's 2^-43. The visible-only accounting,
+  with §0's sharper bound, stays a later strengthening on top of the same chain (package W-vis:
+  §3's engine extension, re-verification, an extractor of the visible log).
+- **E2E-2 (the statement's module, and what it fixes).** `LeanVM/E2E/Statement.lean` defines V_I
+  (`idealVerify`, a monad-generic algorithm on `fuel` nodes), the game (`gameComp`, an oracle
+  computation over coins and the hash, run against `Rom.loggedRO` by `game`) and the events
+  (`Forged`, `DaBacked`, `Breaks`). Codewords are stated as `LeanDa.encodeRow`'s range (lean_da's
+  `rsCode`), a signing request as a leaf index and a message, and the DA padding digests are the
+  deployed constants (`deployedPads`, D5). The closed-form error and `aggregate_no_forgery` itself
+  are added to this module when the chain is proved, the error at the constants the proofs give
+  (E5's DA term, for one: `Q · (14/2^192 + 4Q/2^256)`).
