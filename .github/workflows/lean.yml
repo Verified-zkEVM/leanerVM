@@ -104,11 +104,12 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_sphincs
         run: |
-          printf 'import Sphincs\n#print axioms Sphincs.Lifetimes.requestedSecurity\n' \
-            > "$RUNNER_TEMP/axioms.lean"
+          theorems="Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityBudgeted Sphincs.Lifetimes.requestedMultiUser"
+          { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'Sphincs.Lifetimes.requestedSecurity' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-            "$RUNNER_TEMP/axioms.txt"
+          for t in $theorems; do
+            grep -qF "'$t' depends on axioms: [propext, Classical.choice, Quot.sound]" "$RUNNER_TEMP/axioms.txt"
+          done
       - name: Save the Lake build
         if: github.ref == 'refs/heads/main' && steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
