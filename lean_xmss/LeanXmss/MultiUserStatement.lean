@@ -82,6 +82,84 @@ end Security
 /-- The attributed security claim. -/
 abbrev LeanXmssAttributedSecurityStatement : Prop := Security.HasAttributedSecurity
 
+namespace MultiUser
+
+/-- A signing request to one of `n` keys. -/
+structure SignRequest (n : Nat) where
+  key : Fin n
+  request : LeanXmss.SignRequest
+deriving DecidableEq
+
+/-- The signing oracle of `n` keys. -/
+abbrev SigningSpec (n : Nat) := SignRequest n →ₒ Option Signature
+
+/-- A claimed forgery for one of `n` keys. -/
+structure Forgery (n : Nat) where
+  key : Fin n
+  forgery : LeanXmss.Forgery
+
+/-- An adversary against `n` keys: it receives their public keys, may hash and request signatures
+from any key, and names the key its forgery is for. -/
+structure Adversary (n : Nat) where
+  main : (Fin n → PublicKey) → OracleComp (OracleWorld + SigningSpec n) (Forgery n)
+
+/-- The requests to key `key` and their answers, in order. -/
+def keyLog {n : Nat} (log : QueryLog (SigningSpec n)) (key : Fin n) : QueryLog LeanXmss.SigningSpec :=
+  log.filterMap fun entry => if entry.1.key = key then some ⟨entry.1.request, entry.2⟩ else none
+
+/-- Answer each request with its key's signer, recording it. -/
+def signingOracle {n : Nat} (secretKeys : Fin n → Seeded.SecretKey) :
+    QueryImpl (SigningSpec n) (WriterT (QueryLog (SigningSpec n)) (OracleComp OracleWorld)) :=
+  QueryImpl.withLogging fun request =>
+    liftM (Seeded.sign (secretKeys request.key) request.request.leafIndex request.request.message :
+      OracleComp HashSpec _)
+
+/-- One key from its own uniform seed, in the shared oracle. -/
+noncomputable def keygen : OracleComp OracleWorld (PublicKey × Seeded.SecretKey) := do
+  let seed ← liftM sampleMasterSeed
+  liftM (Seeded.keygenFromSeed seed)
+
+/-- Generate the `n` keys in order, run the adversary with every key's signing oracle, and verify
+its forgery under the key it names. It wins when the forgery verifies, that key never reused a leaf
+index and never answered a request with the forgery's message and signature. -/
+noncomputable def gameCore {n : Nat} (adversary : Adversary n) : OracleComp OracleWorld Bool := do
+  let keys ← Concrete.sequenceFin fun _ : Fin n => keygen
+  let ((forgery, log) : Forgery n × QueryLog (SigningSpec n)) ←
+    (simulateQ (QueryImpl.ofLift OracleWorld (WriterT (QueryLog (SigningSpec n)) (OracleComp OracleWorld)) +
+      signingOracle (fun key => (keys key).2)) (adversary.main fun key => (keys key).1)).run
+  let verified ← liftM (Concrete.verify (keys forgery.key).1 forgery.forgery.message
+    forgery.forgery.signature : OracleComp HashSpec Bool)
+  let own := keyLog log forgery.key
+  return decide (SigningTranscript.Valid own ∧ ¬SigningTranscript.Contains own forgery.forgery) &&
+    verified
+
+/-- Run the game from an empty random-oracle cache, recording success and the total number of hash
+calls. -/
+noncomputable def experiment {n : Nat} (adversary : Adversary n) : ProbComp (Bool × Nat) :=
+  (simulateQ Security.countedOracle (gameCore adversary)).run.run' ∅
+
+/-- The probability of a successful forgery against one of the keys. -/
+noncomputable def forgeAdvantage {n : Nat} (adversary : Adversary n) : ℝ≥0∞ :=
+  Pr{let result ← experiment adversary}[result.1 = true]
+
+/-- Every execution uses at most `q` hash calls: every key generation and signature, the adversary's
+calls and the final verification. -/
+def HasHashQueryBound {n : Nat} (adversary : Adversary n) (q : Nat) : Prop :=
+  ∀ result ∈ support (experiment adversary), result.2 ≤ q
+
+/-- For `n` keys and a budget `q < 2^126` of hash calls in all, a forgery against some key succeeds
+with probability at most `q / 2^127`, plus `n^2 / 2^127` for two keys sharing a parameter and a
+term of second order `q^2 / 2^252`: no factor `n` on `q`. -/
+def HasMultiUserSecurity : Prop :=
+  ∀ (n q : Nat), q < 2 ^ 126 → ∀ adversary : Adversary n, HasHashQueryBound adversary q →
+    forgeAdvantage adversary ≤ q / ((2 ^ 127 : Nat) : ℝ≥0∞) + (n ^ 2 : Nat) / ((2 ^ 127 : Nat) : ℝ≥0∞) +
+      (q ^ 2 : Nat) / ((2 ^ 252 : Nat) : ℝ≥0∞)
+
+end MultiUser
+
+/-- The multi-user security claim. -/
+abbrev LeanXmssMultiUserSecurityStatement : Prop := MultiUser.HasMultiUserSecurity
+
 end
 
 end LeanXmss
