@@ -6,6 +6,7 @@ import LeanVM.Guest.EndCompleteCT
 import LeanVM.E2E.Complete.DecodeImage
 import LeanVM.E2E.Complete.DecodeVsAgree
 import LeanVM.E2E.Complete.DecodeCount
+import LeanVM.E2E.Complete.DecodeVsArgs
 
 /-!
 # Tests: `main`'s completeness over a completeness model (L2, Main and End)
@@ -164,3 +165,15 @@ pieces so far. -/
 /-- info: 'LeanVM.Guest.B2C.NodeAgree.eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.B2C.NodeAgree.eq
+
+/-- info: 'LeanVM.E2E.Complete.loop5Q_insts' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.loop5Q_insts
+
+/-- info: 'LeanVM.E2E.Complete.honest_read_inst' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.honest_read_inst
+
+/-- info: 'LeanVM.E2E.Complete.vsArgsAt_honest' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.vsArgsAt_honest
