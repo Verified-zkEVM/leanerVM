@@ -12,6 +12,7 @@ public import LeanVM.Spec.NodeWith
 public import LeanVM.Spec.Ideal.Blind
 public import LeanVM.Spec.Ideal.Table
 public import LeanVM.Protocol.EndToEnd.Sound.Theorem
+public import LeanVM.Protocol.EndToEnd.Blind.Relation
 public import LeanVM.Protocol.Compile.Rom.Prover
 public import LeanVM.Protocol.Compile.Rom.Log
 public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
@@ -71,12 +72,7 @@ noncomputable def haltingRunB (S : BlakeSem) (prog : Program) {κ : ℕ} (image 
     some ⟨κ, image, Nat.find h⟩
   else none
 
-/-! ## The relation V° extracts -/
-
-/-- **`M3Holds` without Flock's R1CS**: the constraints, the bus, the counts and the public lines;
-not the Flock region's predicate (`M3Instance.aux`). -/
-def M3HoldsBlind (I : M3Instance) (input : I.Stmt) (q : Column I.μ) : Prop :=
-  I.ConstraintsVanish q ∧ I.Balanced q ∧ I.CountsNonzero q ∧ I.PublicLinesHold input q
+/-! ## The relation V° extracts (`M3HoldsBlind`, `Protocol/EndToEnd/Blind/Relation.lean`) -/
 
 /-- The public input whose digest is `d` (`publicDigest`'s inverse): lane `i` of words `2i` and
 `2i + 1`. -/

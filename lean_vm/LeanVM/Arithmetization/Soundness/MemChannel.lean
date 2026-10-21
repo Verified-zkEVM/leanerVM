@@ -99,7 +99,7 @@ theorem chanOf_rowRec_memPush (x : RowRec) :
 
 /-- **The memory pair of a satisfying witness, as triples**: the bumped reads and the seeds are a
 permutation of the reads and the finalizes. -/
-theorem mem_triples_perm (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem mem_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     {mfin : Fin (2 ^ (imageOf w.data).1) → K} {bfin : Fin (2 ^ prog.logSize) → K}
     (hall : allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
       memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin) :
@@ -135,7 +135,7 @@ theorem mem_triples_perm (h : SatisfiedBy prog input w) {f : Air.Flat.Table K ×
   · exact List.map_congr_left fun i _ ↦ (tripleOfMemMsg_memMsgOfTriple _).symm
 
 /-- Every memory message a satisfying witness pulls has a seed's address and limbs. -/
-theorem mem_pulls_seeded (h : SatisfiedBy prog input w) :
+theorem mem_pulls_seeded (h : SatisfiedByB prog input w) :
     ∀ msg ∈ messagesOn w MemPull.toRaw, ∃ x : K × K × Vector K 3, msg = memMsgOfTriple x ∧
       ∃ i : Fin (2 ^ (imageOf w.data).1), x.1 = gpow i ∧ x.2.2 = limbsOf (imageOf w.data).2 i := by
   obtain ⟨f, hf⟩ := exists_opRecs w
@@ -180,7 +180,7 @@ theorem mem_pulls_seeded (h : SatisfiedBy prog input w) :
 /-- **Soundness of the memory channel** (specification Lemma 6.3, Theorem 6.4, Corollary 6.5):
 with nonzero counts and fewer than `2^64 - 1` reads, balance of the memory pair makes every pulled
 memory tuple a correct read of the image the data names. The read bound is derived from `Caps`. -/
-theorem mem_channel_sound (h : SatisfiedBy prog input w) :
+theorem mem_channel_sound (h : SatisfiedByB prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = MemPull.name →
       ∀ m : MemMsg K, i.msg = (toElements m).toArray → MemPull.Guarantees m w.data := by
   intro i hi hname m hm

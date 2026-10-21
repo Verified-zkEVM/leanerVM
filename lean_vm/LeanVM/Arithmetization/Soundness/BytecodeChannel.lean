@@ -121,7 +121,7 @@ theorem chanOf_rowRec_bcPush (x : RowRec) :
 
 /-- **The bytecode pair of a satisfying witness, as triples**: the bumped reads and the seeds are a
 permutation of the reads and the finalizes. -/
-theorem bc_triples_perm (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem bc_triples_perm (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     {mfin : Fin (2 ^ (imageOf w.data).1) → K} {bfin : Fin (2 ^ prog.logSize) → K}
     (hall : allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
       memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin) :
@@ -151,7 +151,7 @@ theorem bc_triples_perm (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × 
 
 /-- Every bytecode message a satisfying witness pulls has a counter `g^k` of the program and
 the program's entry there. -/
-theorem bc_pulls_seeded (h : SatisfiedBy prog input w) :
+theorem bc_pulls_seeded (h : SatisfiedByB prog input w) :
     ∀ msg ∈ messagesOn w BytecodePull.toRaw, ∃ x : K × K × Vector K 8, msg = bcMsgOfTriple x ∧
       ∃ k : Fin (2 ^ prog.logSize), x.1 = gpow k ∧ x.2.2 = entry (prog.code k) := by
   obtain ⟨f, hf⟩ := exists_opRecs w
@@ -203,7 +203,7 @@ theorem bc_pulls_seeded (h : SatisfiedBy prog input w) :
 bytecode pair), in the strong form: every pulled entry is the public program's at the pulled
 counter (from `BytecodeRowsAreTheProgram prog`). It implies the pull's guarantee, that the entry
 decodes, and is what `constraintSoundness` joins to `execute` by `execute_of_step`. -/
-theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
+theorem bytecode_channel_sound (h : SatisfiedByB prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray →
         ∃ k : Fin (2 ^ prog.logSize), m.pc = gpow k ∧
@@ -216,7 +216,7 @@ theorem bytecode_channel_sound (h : SatisfiedBy prog input w) :
 
 /-- The bytecode pull's guarantee, that the entry decodes, for every bytecode pull of a satisfying
 witness. -/
-theorem bytecode_guarantee (h : SatisfiedBy prog input w) :
+theorem bytecode_guarantee (h : SatisfiedByB prog input w) :
     ∀ i ∈ w.interactions, i.channel.name = BytecodePull.name →
       ∀ m : BytecodeMsg K, i.msg = (toElements m).toArray → BytecodePull.Guarantees m w.data := by
   intro i hi hname m hm
@@ -225,7 +225,7 @@ theorem bytecode_guarantee (h : SatisfiedBy prog input w) :
 
 /-- The bytecode read of every row of the six tables is the program's: its counter is `g^k` for a
 slot `k` and its coordinates are the entry there. -/
-theorem opRecs_bc_sound (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem opRecs_bc_sound (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
     ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧ (f p).e = entry (prog.code k) := by
   obtain ⟨mfin, bfin, hall⟩ := allSends_eq h hf

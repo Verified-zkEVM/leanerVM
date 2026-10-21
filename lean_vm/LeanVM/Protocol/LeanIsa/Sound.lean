@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Protocol.LeanIsa.Relation
+public import LeanVM.Arithmetization.Soundness.Bus
 
 /-!
 # The adaptor, soundness
@@ -32,6 +33,9 @@ from admissibility, or from how the witness is read:
   there (`slotLimbs_flockColumn`). The Flock clause says every block satisfies the R1CS with the
   constant pinned, and `FlockSpec.compress_of_holds` turns that into the compression at the slots.
   No hypothesis beyond `M3Holds` is needed: the compression is proved, not assumed.
+
+Without the Flock clause the witness satisfies every conjunct but the BLAKE2s validity
+(`satisfiedByB_witnessOf`, `SatisfiedByB`); `satisfiedBy_witnessOf` adds it.
 
 Admissibility is a hypothesis because `Caps` does not follow from `M3Holds`: the compiled
 verifier checks the announced sizes before the protocol starts.
@@ -208,13 +212,16 @@ private theorem seedRows_iff {prog : Program} (w : EnsembleWitness (leanIsaEnsem
 
 /-! ## The adaptor -/
 
-/-- **The adaptor, soundness.** If the announced sizes are admissible and the stack `q`
-satisfies the leanISA instance's relation on the input, then the witness read off `q` satisfies
-leanISA's constraint system on it. -/
-theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
-    (h : M3Holds (leanIsaInstance F prog s) input q) :
-    SatisfiedBy prog input (witnessOf F prog s q) := by
-  obtain ⟨hcv, hbal, hcnt, hpl, haux⟩ := h
+/-- **The adaptor, soundness, without the Flock clause.** If the announced sizes are admissible
+and the stack `q` satisfies the leanISA instance's constraints, bus, counts and public lines on
+the input, then the witness read off `q` satisfies leanISA's constraint system on it but for the
+BLAKE2s validity (`SatisfiedByB`). -/
+theorem satisfiedByB_witnessOf {input : PublicInput} (hs : s.Admissible prog)
+    (hcv : (leanIsaInstance F prog s).ConstraintsVanish q)
+    (hbal : (leanIsaInstance F prog s).Balanced q)
+    (hcnt : (leanIsaInstance F prog s).CountsNonzero q)
+    (hpl : (leanIsaInstance F prog s).PublicLinesHold input q) :
+    SatisfiedByB prog input (witnessOf F prog s q) := by
   have hmax : s.logMem ≤ maxLogMem := hs.2.1
   have hA := agrees_witnessOf F prog s q
   have hpairs := (balanced_iff_pairs hA).mp hbal
@@ -222,8 +229,7 @@ theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
   obtain ⟨c00, c01, c10, c11, c20, c21⟩ := publicLines_cells F prog s q hpl
   have hκ : s.logMem < 64 := lt_of_le_of_lt hmax (by decide)
   refine ⟨?_, constraints_witnessOf F prog s q hcv, hpairs 0, hpairs 1, hpairs 2,
-    (countsNonzero_iff hA).mpr hcnt, caps_witnessOf F prog s q hs, ?_, ?_, ⟨_, rfl⟩,
-    blake2sRowsValid_witnessOf F prog s q haux, ?_, ?_⟩
+    (countsNonzero_iff hA).mpr hcnt, caps_witnessOf F prog s q hs, ?_, ?_, ⟨_, rfl⟩, ?_, ?_⟩
   · show publicInputOf F prog s q = PublicIO.ofInput input
     rw [publicInputOf, PublicIO.ofInput, c00, c01, c10, c11]
   · intro i hi
@@ -247,6 +253,15 @@ theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
     show some (E.ofLimbs (cell1 F prog s q 0) (cell1 F prog s q 1) (cell1 F prog s q 2)) = _
     rw [c01, c11, c21]
     rfl
+
+/-- **The adaptor, soundness.** If the announced sizes are admissible and the stack `q`
+satisfies the leanISA instance's relation on the input, then the witness read off `q` satisfies
+leanISA's constraint system on it. -/
+theorem satisfiedBy_witnessOf {input : PublicInput} (hs : s.Admissible prog)
+    (h : M3Holds (leanIsaInstance F prog s) input q) :
+    SatisfiedBy prog input (witnessOf F prog s q) :=
+  (satisfiedByB_witnessOf F prog s q hs h.1 h.2.1 h.2.2.1 h.2.2.2.1).toSatisfiedBy
+    (blake2sRowsValid_witnessOf F prog s q h.2.2.2.2)
 
 end
 

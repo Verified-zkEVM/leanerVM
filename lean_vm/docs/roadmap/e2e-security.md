@@ -238,3 +238,10 @@ the statement, each with its reason.
   deployed constants (`deployedPads`, D5). The closed-form error and `aggregate_no_forgery` itself
   are added to this module when the chain is proved, the error at the constants the proofs give
   (E5's DA term, for one: `Q · (14/2^192 + 4Q/2^256)`).
+- **W1-1 (the blind instance).** V°'s certificate reuses the deployed bus, table and public-input
+  phase specifications at `leanIsaWith F prog s none` (`Front/InstanceWith.lean`), the leanISA
+  instance with no Flock region, whose `aux` holds of every stack; at the deployed region it is
+  `leanIsaInstance` by `rfl`. The leanISA facts behind those specifications were generalized over
+  the region (rather than the instance dropped from them: the bus's types are indexed by the
+  instance, so the deployed facts do not carry over by unfolding). Flock and ring switching are
+  phases that keep the doom on the earlier claims at no error (`Spec.keep`).

@@ -38,6 +38,11 @@ prover's and nothing constrains them; the balance does.
 **The counts** (`opRecs_counts_nonzero`). The nonzero count product (`CountsNonzero`) makes every
 read count and every bytecode count of the six tables nonzero.
 
+**Without the compression** (`SatisfiedByB`). Nothing here, in the channels or in the state walk
+uses the BLAKE2s validity: their lemmas take the constraint statement without it, which
+`SatisfiedBy.toB` gives, and the rows' records carry their Flock-blind step as well
+(`OpRecs`, from `OpRow`).
+
 ## Wrong readings excluded
 
 * The verifier is a table of the witness's interactions (`allTables`): its pull of the final
@@ -157,6 +162,11 @@ def OpRecs (w : EnsembleWitness (leanIsaEnsemble prog)) (f : Air.Flat.Table K ×
         p.1.component.operations.ConstraintsHold (p.1.environment p.2) →
         p.1.component.operations.FullGuarantees (p.1.environment p.2) →
         ∃ ins, (f p).e = entry ins ∧ execute (imageOf w.data).2 (f p).src ins = some (f p).next ∧
+          (ins.opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩)) ∧
+      (p.1.component.operations.ConstraintsHold (p.1.environment p.2) →
+        p.1.component.operations.FullGuarantees (p.1.environment p.2) →
+        ∃ ins, (f p).e = entry ins ∧
+          executeWithB blakeFree (imageOf w.data).2.read (f p).src ins = some (f p).next ∧
           (ins.opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩))
 
 /-- Every witness has records for its rows. -/
@@ -174,10 +184,60 @@ theorem exists_opRecs (w : EnsembleWitness (leanIsaEnsemble prog)) : ∃ f, OpRe
   obtain ⟨h, hch⟩ := hrow p hp
   have hdata := environment_data (List.mem_of_mem_take (mem_opPairs hp).1) p.2
   simp only [h, ↓reduceDIte]
-  obtain ⟨hs, hl, hstep⟩ := h.choose_spec
-  refine ⟨hs, hl, hch, fun ha hc hg ↦ ?_⟩
-  rw [← hdata]
-  exact hstep ha hc hg
+  obtain ⟨hs, hl, hstep, hfree⟩ := h.choose_spec
+  refine ⟨hs, hl, hch, fun ha hc hg ↦ ?_, fun hc hg ↦ ?_⟩
+  · rw [← hdata]
+    exact hstep ha hc hg
+  · rw [← hdata]
+    exact hfree hc hg
+
+/-! ## The statement without the compression -/
+
+/-- **The constraint statement without the BLAKE2s validity**: every conjunct of `SatisfiedBy`
+but `blake2s_valid`, what a proof establishes when nothing binds the `BLAKE2S` rows to the
+compression (the Flock-blind verifier, `docs/roadmap/e2e-security.md` D3). The bus, the channels
+and the state walk need no more. -/
+structure SatisfiedByB (prog : Program) (input : PublicInput)
+    (w : EnsembleWitness (leanIsaEnsemble prog)) : Prop where
+  /-- The public input is the run's. -/
+  public_input_eq : w.publicInput = PublicIO.ofInput input
+  /-- Every component's constraints hold on every row. -/
+  constraints : w.Constraints
+  /-- The state pair balances. -/
+  state_balanced : BalancedPair w StatePull.toRaw StatePush.toRaw
+  /-- The memory pair balances. -/
+  mem_balanced : BalancedPair w MemPull.toRaw MemPush.toRaw
+  /-- The bytecode pair balances. -/
+  bytecode_balanced : BalancedPair w BytecodePull.toRaw BytecodePush.toRaw
+  /-- Every read count is nonzero. -/
+  counts_nonzero : CountsNonzero w
+  /-- The announced sizes are within the caps. -/
+  caps : Caps w
+  /-- The memory block's index column is the row index. -/
+  index_columns : IndexColumnsAreRowIndices w
+  /-- The memory block's rows are the image. -/
+  seed_rows : SeedRowsAreTheImage w
+  /-- The bytecode block's rows are the program's. -/
+  bytecode_rows : BytecodeRowsAreTheProgram prog w
+  /-- The first word of the image is `input₀ + input₁·y`. -/
+  word0_eq : (imageOf w.data).2.read (gpow 0) = some input.word0
+  /-- The second word of the image is `input₂ + input₃·y`. -/
+  word1_eq : (imageOf w.data).2.read (gpow 1) = some input.word1
+
+/-- The constraint statement without its BLAKE2s validity. -/
+theorem SatisfiedBy.toB {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : SatisfiedBy prog input w) : SatisfiedByB prog input w :=
+  ⟨h.public_input_eq, h.constraints, h.state_balanced, h.mem_balanced, h.bytecode_balanced,
+    h.counts_nonzero, h.caps, h.index_columns, h.seed_rows, h.bytecode_rows, h.word0_eq,
+    h.word1_eq⟩
+
+/-- With the BLAKE2s validity, the constraint statement. -/
+theorem SatisfiedByB.toSatisfiedBy {input : PublicInput}
+    {w : EnsembleWitness (leanIsaEnsemble prog)} (h : SatisfiedByB prog input w)
+    (hv : Blake2sRowsValid w) : SatisfiedBy prog input w :=
+  ⟨h.public_input_eq, h.constraints, h.state_balanced, h.mem_balanced, h.bytecode_balanced,
+    h.counts_nonzero, h.caps, h.index_columns, h.seed_rows, h.bytecode_rows, hv, h.word0_eq,
+    h.word1_eq⟩
 
 /-! ## The sends of the verifier and the blocks -/
 
@@ -218,7 +278,7 @@ def tableSends (t : Air.Flat.Table K) : List (String × Array K) :=
 /-- The memory block of a satisfying witness sends the seed and the finalize of every word of the
 image the data names, with some finalize counts. -/
 theorem memBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) :
+    (h : SatisfiedByB prog input w) :
     ∃ mfin : Fin (2 ^ (imageOf w.data).1) → K,
       tableSends (tableAt w 6) = memSeedSends (imageOf w.data).2 mfin := by
   obtain ⟨idx, mfin, hmem⟩ := h.seed_rows
@@ -239,7 +299,7 @@ theorem memBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEns
 /-- The bytecode block of a satisfying witness sends the seed and the finalize of every entry of
 the program, with some finalize counts. -/
 theorem bcBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) :
+    (h : SatisfiedByB prog input w) :
     ∃ bfin : Fin (2 ^ prog.logSize) → K, tableSends (tableAt w 7) = bcSeedSends prog bfin := by
   obtain ⟨bfin, hbc⟩ := h.bytecode_rows
   refine ⟨bfin, ?_⟩
@@ -255,7 +315,7 @@ theorem bcBlock_sends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnse
 of the six tables, the memory block's seed and finalize of the image the data names, and the
 bytecode block's seed and finalize of the program. -/
 theorem allSends_eq {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
     ∃ (mfin : Fin (2 ^ (imageOf w.data).1) → K) (bfin : Fin (2 ^ prog.logSize) → K),
       allSends w = verifierSends prog ++ (opPairs w).flatMap (fun p ↦ (f p).sends) ++
         memSeedSends (imageOf w.data).2 mfin ++ bcSeedSends prog bfin := by
@@ -367,7 +427,7 @@ theorem chanOf_bcSeed_eq_nil (fin : Fin (2 ^ prog.logSize) → K) {n : String}
 /-- **The nonzero count product, per row**: every memory read count and the bytecode count of a
 row of the six tables is nonzero (`CountsNonzero`). -/
 theorem opRecs_counts_nonzero {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
     {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
     (∀ x ∈ (f p).reads, x.2.1 ≠ 0) ∧ (f p).rbc ≠ 0 := by
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
@@ -394,7 +454,7 @@ theorem opRecs_counts_nonzero {input : PublicInput} {w : EnsembleWitness (leanIs
 
 /-- The caps bound the rows of the six tables: at most `6 · 2^32` (`Caps.heights`). -/
 theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) : (opPairs w).length ≤ 6 * 2 ^ 32 := by
+    (h : SatisfiedByB prog input w) : (opPairs w).length ≤ 6 * 2 ^ 32 := by
   unfold opPairs
   rw [List.length_flatMap]
   have hb : ∀ x ∈ (w.tables.take 6).map fun t ↦ (t.table.map fun row ↦ (t, row)).length,
@@ -412,7 +472,7 @@ theorem opPairs_length_le {input : PublicInput} {w : EnsembleWitness (leanIsaEns
 /-- The rows of the six tables read at most `9 · 6 · 2^32` cells, fewer than `2^64 - 1`: the read
 bound of specification Lemma 6.3, derived from the caps. -/
 theorem opReads_length_lt {input : PublicInput} {w : EnsembleWitness (leanIsaEnsemble prog)}
-    (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) :
     ((opPairs w).flatMap fun p ↦ (f p).reads).length < 2 ^ 64 - 1 := by
   rw [List.length_flatMap]
   have hb : ∀ x ∈ (opPairs w).map fun p ↦ (f p).reads.length, x ≤ 9 := by

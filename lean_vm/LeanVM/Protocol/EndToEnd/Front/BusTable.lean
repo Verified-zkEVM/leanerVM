@@ -23,6 +23,8 @@ identities (`TableFid`) for every read of the right shape.
 `tablePost_pubPre`: at the verifier's layout and the leanISA instance with the deployed Flock
 slots, the table seam on the wire is the doom the public-input bridge starts from (`PubPre`): no
 candidate satisfies the program's column claims, the public lines and the Flock predicate.
+
+`tablePost_pubPre` holds at every Flock region (`leanIsaWith F prog s fl`, `Front.InstanceWith`).
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -76,12 +78,13 @@ variable (F : FlockSpec) (prog : Program) (s : Sizes)
 with the deployed Flock slots, if the table seam holds of no candidate at the protocol's output,
 then no candidate of `C` satisfies the program's column claims, the public lines and the Flock
 predicate, `C` being read off the same commitment. -/
-theorem tablePost_pubPre (hF : F.slot = Blake2sFlock.slots)
+theorem tablePost_pubPre {fl : Option (FlockRegion (shape prog s))}
+    (hF : F.slot = Blake2sFlock.slots)
     (C : List Ev → Set (Column (verifierLayout prog s).stackLog))
     (hC : ∀ h q, q ∈ C h → ∀ W, firstWord h = some W → (fun _ ↦ toI prog s q) ∈ cands' W)
     (claims : List Verifier.ColumnClaim) (h : List Ev)
-    (hpost : TablePost (leanIsaInstance F prog s) cands' input' pyCol claims h) :
-    PubPre F prog s (verifierLayout prog s) C (toI prog s) claims input' h := by
+    (hpost : TablePost (leanIsaWith F prog s fl) cands' input' pyCol claims h) :
+    PubPreWith F prog s fl (verifierLayout prog s) C (toI prog s) claims input' h := by
   obtain ⟨W, tout, hW, hR, hin, hcl⟩ := hpost
   rintro q hq ⟨hcols, hpl, haux⟩
   refine hR _ (hC h q hq W hW) ⟨fun c hc ↦ ?_, by rw [hin]; exact hpl, haux⟩

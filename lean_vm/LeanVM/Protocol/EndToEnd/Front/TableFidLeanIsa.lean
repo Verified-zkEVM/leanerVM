@@ -19,7 +19,7 @@ The bus/table bridge (`busTableSpec`, `LeanVM.Protocol.EndToEnd.Front.BusTable`)
 verifier program's bus phase and table sumcheck (`python-verifier/verifier.py:534-628` at leanVM
 `127510d14c98ade4e8a97646c44fa7f1ff5e752d`) on the oracle protocol's relations, given three facts
 about the instance and the layout. This module proves them at the leanISA instance
-`leanIsaInstance F prog s` and the verifier's layout `verifierLayout prog s`, for every Flock
+`leanIsaWith F prog s fl` and the verifier's layout `verifierLayout prog s`, for every Flock
 specification `F`, program `prog` and size vector `s`:
 
 * `tableFid_leanIsa`: the table phase's identities (`TableFid`, with the global column numbering
@@ -43,6 +43,10 @@ always draws four (`sample_n(BUS_BITS)`), but `BusWit.Shaped` does not record it
 therefore assembled from `busThenSpec4`, the bus phase with the length of the challenges recorded
 (`abSpec4`, from `abProg_bind_guard`: guarding the wire's challenges by their length changes
 nothing), which asks for the continuation only at reads with four challenges.
+
+**At every Flock region.** The identities, the depth conditions and `busTableSpec_leanIsa` are
+stated at `leanIsaWith F prog s fl` (`Front.InstanceWith`, the region implicit), which the bus and
+the table sumcheck do not read: at `fl = none` they are the Flock-blind verifier's.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -79,21 +83,22 @@ theorem cpsOf_eq (ξ : E) : cpsOf ξ = [1, ξ] := by
 theorem fpsOf_eq (ξ : E) : fpsOf ξ = [ξ ^ 2, ξ ^ 3, ξ ^ 4] := by
   simp [fpsOf, nCons_eq, powers, powersFrom_eq, List.range_succ]
 
-variable (F : FlockSpec) (prog : Program) (s : Sizes) (input : PublicInput)
+variable (F : FlockSpec) (prog : Program) (s : Sizes) {fl : Option (FlockRegion (shape prog s))}
+  (input : PublicInput)
 
 /-! ## The rounds and the target -/
 
 /-- **The rounds**: the largest announced log-height is `τ_max`. -/
 theorem rounds_leanIsa :
-    (verifierLayout prog s).tableLogHeights.foldl max 0 = (leanIsaInstance F prog s).τmax :=
+    (verifierLayout prog s).tableLogHeights.foldl max 0 = (leanIsaWith F prog s fl).τmax :=
   (τmax_leanIsa F prog s).symm
 
 /-- **The target**: the form powers against the Python's totals are the protocol's batched claim. -/
-theorem target_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaInstance F prog s).μBus)
+theorem target_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith F prog s fl).μBus)
     (ha : w.alphas.length = 4) (hm : w.memory.length = 3) (ξ : E) :
     dot (fpsOf ξ) (w.result (verifierLayout prog s)).totals =
-      powerBatch (claimed (leanIsaInstance F prog s)
-        (busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w)) ξ := by
+      powerBatch (claimed (leanIsaWith F prog s fl)
+        (busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input w)) ξ := by
   rw [powerBatch, claimed, Fin.sum_univ_add]
   simp only [Fin.append_left, zero_mul, Finset.sum_const_zero, zero_add, Fin.append_right,
     Fin.val_natAdd]
@@ -217,25 +222,26 @@ theorem eq_factor (a b : E) : (1 - a) * (1 - b) + a * b = 1 + b + a := by
 /-- **The weights**: the protocol's weight of opcode table `t` at the reversed challenges is the
 Python's. -/
 theorem prodWeight_eq (w : BusWit) (ch : List E)
-    (hch : ch.length = (leanIsaInstance F prog s).τmax) (t : Fin 6) :
-    prodWeight (tableWeights (leanIsaInstance F prog s)
-        (busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w).2.point
-        (stEquiv F prog s t)) (vecOf _ ch).reverse =
+    (hch : ch.length = (leanIsaWith F prog s fl).τmax) (t : Fin 6) :
+    prodWeight (tableWeights (leanIsaWith F prog s fl)
+        (busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input w).2.point
+        (stEquiv F prog s fl t)) (vecOf _ ch).reverse =
       (Verifier.tableWeights (tableLogs s) w.point ch.reverse).getD t 0 := by
   rw [Complete.getD_tableWeights _ _ _ _ (by simp [tableLogs]), List.length_reverse, hch,
     prodWeight, ← Fin.prod_univ_eq_prod_range]
   refine Finset.prod_congr rfl fun a _ ↦ ?_
-  have hz : ((vecOf (leanIsaInstance F prog s).τmax ch).reverse)[a.val] = ch.reverse.getD a 0 := by
+  have hz : ((vecOf (leanIsaWith F prog s fl).τmax ch).reverse)[a.val] = ch.reverse.getD a 0 := by
     rw [Vector.getElem_reverse, List.getD_eq_getElem _ _ (by simp [hch]), List.getElem_reverse]
     simp only [vecOf, Vector.getElem_ofFn]
     rw [List.getD_eq_getElem _ _ (by omega)]
     congr 1
     omega
   have hζ :
-      ((busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w).2.point)[a.val] =
+      ((busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input
+        w).2.point)[a.val] =
       w.point.getD a 0 := by
     simp [busStmt, Bus.busOut, Bus.point, Gkr.lowPoint, BusWit.layer, layerStmtOf, vecOf]
-  have hτ : (tableLogs s).getD t 0 = (leanIsaInstance F prog s).τ (stEquiv F prog s t).1 := by
+  have hτ : (tableLogs s).getD t 0 = (leanIsaWith F prog s fl).τ (stEquiv F prog s fl t).1 := by
     simp [tableLogs, List.getD_eq_getElem?_getD]
     fin_cases t <;> rfl
   rw [Fin.getElem_fin, hz, hτ]
@@ -269,18 +275,18 @@ theorem constraints_length_lt_seven :
 
 /-- A prefix sum over the instance's tables, kept on the sumcheck tables, as a sum over the
 opcode tables before. -/
-theorem prefix_onSumcheck (f : Fin (leanIsaInstance F prog s).ntab → ℕ) (t : Fin 6) :
-    ∑ j : Fin (stEquiv F prog s t).1.val,
-        onSumcheck (leanIsaInstance F prog s) f (Fin.castLE (stEquiv F prog s t).1.isLt.le j) =
-      ∑ u ∈ range t, if h : u < 6 then f (opI F prog s ⟨u, h⟩) else 0 := by
-  let G : ℕ → ℕ := fun k ↦ if h : k < 9 then onSumcheck (leanIsaInstance F prog s) f ⟨k, h⟩ else 0
-  have hL : ∑ j : Fin (stEquiv F prog s t).1.val,
-      onSumcheck (leanIsaInstance F prog s) f (Fin.castLE (stEquiv F prog s t).1.isLt.le j) =
+theorem prefix_onSumcheck (f : Fin (leanIsaWith F prog s fl).ntab → ℕ) (t : Fin 6) :
+    ∑ j : Fin (stEquiv F prog s fl t).1.val,
+        onSumcheck (leanIsaWith F prog s fl) f (Fin.castLE (stEquiv F prog s fl t).1.isLt.le j) =
+      ∑ u ∈ range t, if h : u < 6 then f (opI F prog s fl ⟨u, h⟩) else 0 := by
+  let G : ℕ → ℕ := fun k ↦ if h : k < 9 then onSumcheck (leanIsaWith F prog s fl) f ⟨k, h⟩ else 0
+  have hL : ∑ j : Fin (stEquiv F prog s fl t).1.val,
+      onSumcheck (leanIsaWith F prog s fl) f (Fin.castLE (stEquiv F prog s fl t).1.isLt.le j) =
         ∑ k ∈ range (3 + t), G k := by
-    rw [show 3 + t.val = (stEquiv F prog s t).1.val by simp [opIdx]; omega,
+    rw [show 3 + t.val = (stEquiv F prog s fl t).1.val by simp [opIdx]; omega,
       ← Fin.sum_univ_eq_sum_range]
     refine Finset.sum_congr rfl fun j _ ↦ ?_
-    have hj : j.val < 9 := lt_trans j.isLt (stEquiv F prog s t).1.isLt
+    have hj : j.val < 9 := lt_trans j.isLt (stEquiv F prog s fl t).1.isLt
     simp only [G, hj, dite_true]
     rfl
   rw [hL, Finset.sum_range_add]
@@ -292,10 +298,10 @@ theorem prefix_onSumcheck (f : Fin (leanIsaInstance F prog s).ntab → ℕ) (t :
   rw [h0, zero_add]
   refine Finset.sum_congr rfl fun u hu ↦ ?_
   have hu' : u < 6 := lt_of_lt_of_le (Finset.mem_range.mp hu) (by omega)
-  have he : (⟨3 + u, by show 3 + u < 9; omega⟩ : Fin (leanIsaInstance F prog s).ntab) =
-      opI F prog s ⟨u, hu'⟩ :=
+  have he : (⟨3 + u, by show 3 + u < 9; omega⟩ : Fin (leanIsaWith F prog s fl).ntab) =
+      opI F prog s fl ⟨u, hu'⟩ :=
     Fin.ext (by simp [opI, opIdx]; omega)
-  have hst : (leanIsaInstance F prog s).SumcheckTable (opI F prog s ⟨u, hu'⟩) :=
+  have hst : (leanIsaWith F prog s fl).SumcheckTable (opI F prog s fl ⟨u, hu'⟩) :=
     sumcheckTable_opIdx F prog s ⟨u, hu'⟩
   simp only [G, show 3 + u < 9 by omega, dite_true, hu', onSumcheck]
   rw [he]
@@ -305,15 +311,15 @@ theorem prefix_onSumcheck (f : Fin (leanIsaInstance F prog s).ntab → ℕ) (t :
 the columns is entry `i` of table `t`'s read. -/
 theorem tableValues_eq (evs : List (List E)) (hlen : evs.length = 6)
     (hw : ∀ t : Fin 6, (evs.getD t []).length = width (opIdx t)) (t : Fin 6)
-    (i : Fin ((leanIsaInstance F prog s).width (stEquiv F prog s t).1)) :
-    tableValues (leanIsaInstance F prog s) (vecOf _ evs.flatten) (stEquiv F prog s t) i =
+    (i : Fin ((leanIsaWith F prog s fl).width (stEquiv F prog s fl t).1)) :
+    tableValues (leanIsaWith F prog s fl) (vecOf _ evs.flatten) (stEquiv F prog s fl t) i =
       (evs.getD t []).getD i 0 := by
   unfold tableValues
   simp only [vecOf, Fin.getElem_fin, Vector.getElem_ofFn]
-  rw [show (((columnPos (leanIsaInstance F prog s)) ⟨stEquiv F prog s t, i⟩ : Fin _) : ℕ) = _
+  rw [show (((columnPos (leanIsaWith F prog s fl)) ⟨stEquiv F prog s fl t, i⟩ : Fin _) : ℕ) = _
     from position_val _ _ _, prefix_onSumcheck]
   have hsum : ∑ u ∈ range t, (if h : u < 6 then
-      (leanIsaInstance F prog s).width (opI F prog s ⟨u, h⟩) else 0) =
+      (leanIsaWith F prog s fl).width (opI F prog s fl ⟨u, h⟩) else 0) =
       ∑ u ∈ range t, (evs.getD u []).length := Finset.sum_congr rfl fun u hu ↦ by
     have hu' : u < 6 := lt_of_lt_of_le (Finset.mem_range.mp hu) (by omega)
     simp only [hu', ↓reduceDIte]
@@ -334,20 +340,20 @@ theorem sum_fin_length {α : Type} (l : List α) (c : ℕ) (ξ : E) (g : α → 
 
 /-- The constraints of opcode table `t`, batched by `ξ` at their positions, are the Python's. -/
 theorem consPart_eq (ξ : E) (t : Fin 6)
-    (e : Fin ((leanIsaInstance F prog s).width (stEquiv F prog s t).1) → E) (ev : List E)
+    (e : Fin ((leanIsaWith F prog s fl).width (stEquiv F prog s fl t).1) → E) (ev : List E)
     (hev : ∀ i, ev.getD i 0 = rowE e i) :
-    ∑ i : Fin ((leanIsaInstance F prog s).constraints (stEquiv F prog s t).1).length,
-        ξ ^ (constraintPos (leanIsaInstance F prog s) ⟨stEquiv F prog s t, i⟩ : ℕ) *
-          evalRow ((leanIsaInstance F prog s).constraints (stEquiv F prog s t).1)[i] e =
+    ∑ i : Fin ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl t).1).length,
+        ξ ^ (constraintPos (leanIsaWith F prog s fl) ⟨stEquiv F prog s fl t, i⟩ : ℕ) *
+          evalRow ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl t).1)[i] e =
       pyCons ξ t ev := by
   let c₀ := ∑ u ∈ range t, if h : u < 6 then
-    ((leanIsaInstance F prog s).constraints (opI F prog s ⟨u, h⟩)).length else 0
-  have hpos : ∀ i, (constraintPos (leanIsaInstance F prog s) ⟨stEquiv F prog s t, i⟩ : ℕ) =
+    ((leanIsaWith F prog s fl).constraints (opI F prog s fl ⟨u, h⟩)).length else 0
+  have hpos : ∀ i, (constraintPos (leanIsaWith F prog s fl) ⟨stEquiv F prog s fl t, i⟩ : ℕ) =
       c₀ + i := fun i ↦ by
-    rw [show ((constraintPos (leanIsaInstance F prog s) ⟨stEquiv F prog s t, i⟩ : Fin _) : ℕ) = _
+    rw [show ((constraintPos (leanIsaWith F prog s fl) ⟨stEquiv F prog s fl t, i⟩ : Fin _) : ℕ) = _
       from position_val _ _ _, prefix_onSumcheck]
   rw [Finset.sum_congr rfl fun i _ ↦ by rw [hpos i],
-    sum_fin_length ((leanIsaInstance F prog s).constraints (stEquiv F prog s t).1) c₀ ξ
+    sum_fin_length ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl t).1) c₀ ξ
       (fun P ↦ evalRow P e)]
   have hlen := constraints_opIdx_length t
   by_cases ht : t = 4
@@ -362,24 +368,24 @@ theorem consPart_eq (ξ : E) (t : Fin 6)
         (eq_false fun h ↦ by have := congrArg Fin.val h; simp at this; omega)]
         at this
       exact this
-    have hmap : ((leanIsaInstance F prog s).constraints (stEquiv F prog s 4).1).map
+    have hmap : ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl 4).1).map
         (evalRow · e) = jumpConstraints ev := (jumpConstraints_evalE e ev hev).symm
-    rw [hc, hmap, show ((leanIsaInstance F prog s).constraints (stEquiv F prog s 4).1).length = 2
+    rw [hc, hmap, show ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl 4).1).length = 2
       from hlen, pyCons, ite_eq_left_of_eq_true _ _ (eq_true rfl), jumpConstraints_getD]
     simp [Finset.sum_range_succ, Whir.Complete.dot_cons]
-  · rw [show ((leanIsaInstance F prog s).constraints (stEquiv F prog s t).1).length = 0 from
+  · rw [show ((leanIsaWith F prog s fl).constraints (stEquiv F prog s fl t).1).length = 0 from
       hlen.trans (ite_eq_right_of_eq_false _ _ (eq_false ht)), pyCons,
       ite_eq_right_of_eq_false _ _ (eq_false ht), Finset.sum_range_zero]
 
 /-- **What a table owes is the Python's**: at values `e` of opcode table `t`'s columns, read as
 `ev`, the protocol's constraints and forms batched by `ξ` are the Python's. -/
-theorem rowValue_eq (w : BusWit) (hp : w.point.length = (leanIsaInstance F prog s).μBus)
+theorem rowValue_eq (w : BusWit) (hp : w.point.length = (leanIsaWith F prog s fl).μBus)
     (ha : w.alphas.length = 4) (ξ : E) (t : Fin 6)
-    (e : Fin ((leanIsaInstance F prog s).width (stEquiv F prog s t).1) → E) (ev : List E)
+    (e : Fin ((leanIsaWith F prog s fl).width (stEquiv F prog s fl t).1) → E) (ev : List E)
     (hev : ∀ i, ev.getD i 0 = rowE e i) :
-    rowValue (leanIsaInstance F prog s)
-        (busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w, ξ)
-        (stEquiv F prog s t) e =
+    rowValue (leanIsaWith F prog s fl)
+        (busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input w, ξ)
+        (stEquiv F prog s fl t) e =
       pyCons ξ t ev + pyForms ξ ((w.result (verifierLayout prog s)).forms.getD t []) ev := by
   have hcol : rowE e = fun i ↦ ev.getD i 0 := funext fun i ↦ (hev i).symm
   unfold rowValue pyForms
@@ -387,9 +393,9 @@ theorem rowValue_eq (w : BusWit) (hp : w.point.length = (leanIsaInstance F prog 
   · exact consPart_eq F prog s ξ t e ev hev
   · rw [sumcheckB_leanIsa F prog s, ← Fin.sum_univ_eq_sum_range]
     refine Finset.sum_congr rfl fun k _ ↦ ?_
-    rw [show (busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w).2 =
-      Bus.busOut (leanIsa_conditions F prog s) (w.layer (leanIsaInstance F prog s) input)
-        (w.vals (leanIsaInstance F prog s)) from rfl,
+    rw [show (busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input w).2 =
+      Bus.busOut (leanIsaWith_conditions F prog s fl) (w.layer (leanIsaWith F prog s fl) input)
+        (w.vals (leanIsaWith F prog s fl)) from rfl,
       formAt_busOut_forms F prog s input w hp ha k t e]
     exact congrArg (fun col ↦ ξ ^ (2 + (k : ℕ)) *
       (((w.result (verifierLayout prog s)).forms.getD t []).getD k {}).evaluate col) hcol
@@ -412,25 +418,25 @@ theorem readShape_facts (w : BusWit) (pt : List E) (evs : List (List E))
 
 /-- **The final check's value is the protocol's formula**: at the reversed challenges and the
 values read, the Python's final value is the table sumcheck's formula. -/
-theorem formula_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaInstance F prog s).μBus)
+theorem formula_leanIsa (w : BusWit) (hp : w.point.length = (leanIsaWith F prog s fl).μBus)
     (ha : w.alphas.length = 4) (ξ : E) (ch : List E) (evs : List (List E))
-    (hch : ch.length = (leanIsaInstance F prog s).τmax)
+    (hch : ch.length = (leanIsaWith F prog s fl).τmax)
     (hs : ReadShape (rowsOf (verifierLayout prog s) (w.result (verifierLayout prog s)) ch.reverse)
       evs) :
     (pyTableTerms (cpsOf ξ) (fpsOf ξ) ch.reverse
         (rowsOf (verifierLayout prog s) (w.result (verifierLayout prog s)) ch.reverse) evs 0 0
         []).1 =
-      formula (leanIsaInstance F prog s)
-        (busStmt (leanIsaInstance F prog s) (leanIsa_conditions F prog s) input w, ξ)
-        (vecOf (leanIsaInstance F prog s).τmax ch).reverse
-        (vecOf (leanIsaInstance F prog s).tableColumns evs.flatten) := by
+      formula (leanIsaWith F prog s fl)
+        (busStmt (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) input w, ξ)
+        (vecOf (leanIsaWith F prog s fl).τmax ch).reverse
+        (vecOf (leanIsaWith F prog s fl).tableColumns evs.flatten) := by
   obtain ⟨hlen, hw⟩ := readShape_facts prog s w _ evs hs
   rw [pyTableTerms_eq prog s w ξ ch.reverse evs hs]
   unfold TableSumcheck.formula
-  rw [← (stEquiv F prog s).sum_comp]
+  rw [← (stEquiv F prog s fl).sum_comp]
   refine Finset.sum_congr rfl fun t _ ↦ ?_
-  have hev : ∀ i, (evs.getD t []).getD i 0 = rowE (tableValues (leanIsaInstance F prog s)
-      (vecOf _ evs.flatten) (stEquiv F prog s t)) i := fun i ↦ by
+  have hev : ∀ i, (evs.getD t []).getD i 0 = rowE (tableValues (leanIsaWith F prog s fl)
+      (vecOf _ evs.flatten) (stEquiv F prog s fl t)) i := fun i ↦ by
     unfold rowE
     split_ifs with hi
     · exact (tableValues_eq F prog s evs hlen hw t ⟨i, hi⟩).symm
@@ -475,30 +481,31 @@ theorem ofFn_vecOf (p : List E) {μ m : ℕ} (hm : m ≤ μ) (hp : p.length = μ
   rw [List.getD_eq_getElem _ _ (by simp at h1; omega)]
 
 /-- **The protocol's bus claims are the program's.** -/
-theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaInstance F prog s).μBus)
+theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaWith F prog s fl).μBus)
     (hm : w.memory.length = 3)
-    (c : ColumnClaim (leanIsaInstance F prog s))
-    (hc : c ∈ (Bus.busOut (leanIsa_conditions F prog s) (w.layer (leanIsaInstance F prog s) input)
-      (w.vals (leanIsaInstance F prog s))).columns.toList) :
+    (c : ColumnClaim (leanIsaWith F prog s fl))
+    (hc : c ∈ (Bus.busOut (leanIsaWith_conditions F prog s fl)
+      (w.layer (leanIsaWith F prog s fl) input)
+      (w.vals (leanIsaWith F prog s fl))).columns.toList) :
     (⟨pyCol c.col, c.point.toList, c.value⟩ : Verifier.ColumnClaim) ∈
       (w.result (verifierLayout prog s)).claims := by
   simp only [Bus.busOut, Vector.toList_ofFn, List.mem_ofFn] at hc
   obtain ⟨⟨i, hi⟩, rfl⟩ := hc
-  have h5 : (leanIsaInstance F prog s).busClaims = 5 := by
-    show (leanIsaInstance F prog s).boundaryColumns.length = 5
+  have h5 : (leanIsaWith F prog s fl).busClaims = 5 := by
+    show (leanIsaWith F prog s fl).boundaryColumns.length = 5
     rw [boundaryColumns_leanIsa]
     rfl
   have hi5 : i < 5 := h5 ▸ hi
   have hbc := List.getElem_of_eq (boundaryColumns_leanIsa F prog s) hi
-  have hval : (w.vals (leanIsaInstance F prog s))[i] = (w.memory ++ [w.mf, w.bf]).getD i 0 := by
+  have hval : (w.vals (leanIsaWith F prog s fl))[i] = (w.memory ++ [w.mf, w.bf]).getD i 0 := by
     simp [BusWit.vals, vecOf]
-  have hκ : (leanIsaInstance F prog s).κ (leanIsaInstance F prog s).boundaryColumns[i] ≤
-      (leanIsaInstance F prog s).μBus :=
-    (leanIsa_conditions F prog s).κ_le_of_boundaryColumn (List.getElem_mem hi)
+  have hκ : (leanIsaWith F prog s fl).κ (leanIsaWith F prog s fl).boundaryColumns[i] ≤
+      (leanIsaWith F prog s fl).μBus :=
+    (leanIsaWith_conditions F prog s fl).κ_le_of_boundaryColumn (List.getElem_mem hi)
   rw [result_claims prog s w hm]
   simp only [Bus.columnPoint, Gkr.lowPoint, Vector.toList_ofFn, Fin.getElem_fin, hval]
-  rw [show (BusWit.layer (leanIsaInstance F prog s) input w).2.1 =
-    vecOf (leanIsaInstance F prog s).μBus w.point from rfl, ofFn_vecOf w.point hκ hp]
+  rw [show (BusWit.layer (leanIsaWith F prog s fl) input w).2.1 =
+    vecOf (leanIsaWith F prog s fl).μBus w.point from rfl, ofFn_vecOf w.point hκ hp]
   simp only [hbc]
   obtain ⟨a, b, c, habc⟩ : ∃ a b c, w.memory = [a, b, c] := by
     match h : w.memory, hm with
@@ -516,12 +523,12 @@ theorem busOut_columns_mem (w : BusWit) (hp : w.point.length = (leanIsaInstance 
 /-- **The protocol's final claims are among the program's**: the claim on column `i` of opcode table
 `t` at the final point is the program's claim on the same column. -/
 theorem finalClaims_mem (ξ : E) (w : BusWit) (ch : List E) (evs : List (List E))
-    (hch : ch.length = (leanIsaInstance F prog s).τmax)
+    (hch : ch.length = (leanIsaWith F prog s fl).τmax)
     (hs : ReadShape (rowsOf (verifierLayout prog s) (w.result (verifierLayout prog s)) ch.reverse)
       evs)
-    (c : ColumnClaim (leanIsaInstance F prog s))
-    (hc : c ∈ (finalClaims (leanIsaInstance F prog s) (vecOf _ ch).reverse
-      (vecOf (leanIsaInstance F prog s).tableColumns evs.flatten)).toList) :
+    (c : ColumnClaim (leanIsaWith F prog s fl))
+    (hc : c ∈ (finalClaims (leanIsaWith F prog s fl) (vecOf _ ch).reverse
+      (vecOf (leanIsaWith F prog s fl).tableColumns evs.flatten)).toList) :
     (⟨pyCol c.col, c.point.toList, c.value⟩ : Verifier.ColumnClaim) ∈
       (pyTableTerms (cpsOf ξ) (fpsOf ξ) ch.reverse
         (rowsOf (verifierLayout prog s) (w.result (verifierLayout prog s)) ch.reverse) evs 0 0
@@ -529,11 +536,11 @@ theorem finalClaims_mem (ξ : E) (w : BusWit) (ch : List E) (evs : List (List E)
   obtain ⟨hlen, hw⟩ := readShape_facts prog s w _ evs hs
   simp only [finalClaims, Vector.toList_ofFn, List.mem_ofFn] at hc
   obtain ⟨k, rfl⟩ := hc
-  obtain ⟨⟨j, i⟩, hk⟩ : ∃ p, (columnPos (leanIsaInstance F prog s)).symm k = p := ⟨_, rfl⟩
-  obtain ⟨t, rfl⟩ := (stEquiv F prog s).surjective j
-  have hk' : k = columnPos (leanIsaInstance F prog s) ⟨stEquiv F prog s t, i⟩ := by
+  obtain ⟨⟨j, i⟩, hk⟩ : ∃ p, (columnPos (leanIsaWith F prog s fl)).symm k = p := ⟨_, rfl⟩
+  obtain ⟨t, rfl⟩ := (stEquiv F prog s fl).surjective j
+  have hk' : k = columnPos (leanIsaWith F prog s fl) ⟨stEquiv F prog s fl t, i⟩ := by
     rw [← hk, Equiv.apply_symm_apply]
-  have hv : (vecOf (leanIsaInstance F prog s).tableColumns evs.flatten)[k] =
+  have hv : (vecOf (leanIsaWith F prog s fl).tableColumns evs.flatten)[k] =
       (evs.getD t []).getD i 0 := by
     subst hk'
     exact tableValues_eq F prog s evs hlen hw t i
@@ -548,8 +555,8 @@ theorem finalClaims_mem (ξ : E) (w : BusWit) (ch : List E) (evs : List (List E)
       simp
     · simp only [pyRow, Complete.opcode_tables]
       have hcol := pyCol_opIdx t i
-      have hpt : (M3Instance.lowPoint (leanIsaInstance F prog s) (vecOf _ ch).reverse
-          (stEquiv F prog s t)).toList = ch.reverse.take (s.τ t) := by
+      have hpt : (M3Instance.lowPoint (leanIsaWith F prog s fl) (vecOf _ ch).reverse
+          (stEquiv F prog s fl t)).toList = ch.reverse.take (s.τ t) := by
         simp only [M3Instance.lowPoint, Vector.toList_cast, Vector.take_eq_extract,
           Vector.toList_extract, Vector.toList_reverse, toList_vecOf _ hch,
           List.drop_zero, Nat.sub_zero]
@@ -564,9 +571,9 @@ theorem finalClaims_mem (ξ : E) (w : BusWit) (ch : List E) (evs : List (List E)
 /-- **The table phase's identities hold at leanISA**, at the verifier's layout and the global
 column numbering `pyCol`, for every read of the bus phase of the right shape whose fingerprint
 challenges are four. -/
-theorem tableFid_leanIsa (hI : Bus.Conditions (leanIsaInstance F prog s)) (w : BusWit)
-    (hw : w.Shaped (leanIsaInstance F prog s)) (ha : w.alphas.length = 4) :
-    TableFid (leanIsaInstance F prog s) hI input (verifierLayout prog s) pyCol w where
+theorem tableFid_leanIsa (hI : Bus.Conditions (leanIsaWith F prog s fl)) (w : BusWit)
+    (hw : w.Shaped (leanIsaWith F prog s fl)) (ha : w.alphas.length = 4) :
+    TableFid (leanIsaWith F prog s fl) hI input (verifierLayout prog s) pyCol w where
   rounds := rounds_leanIsa F prog s
   target ξ := target_leanIsa F prog s input w hw.1 ha hw.2.2 ξ
   formula ξ ch evs hch hs := formula_leanIsa F prog s input w hw.1 ha ξ ch evs hch hs
@@ -598,22 +605,22 @@ theorem pushLeaves_eq_leafCount (I : M3Instance) : I.pushLeaves = Bus.leafCount 
   rfl
 
 /-- **The push side's leaves at leanISA** are the Python's push layout's total. -/
-theorem pushLeaves_eq_pushTotal : (leanIsaInstance F prog s).pushLeaves =
+theorem pushLeaves_eq_pushTotal : (leanIsaWith F prog s fl).pushLeaves =
     Complete.blockTotal (Complete.sideSizes (Complete.fwLogs prog s) (Complete.pushBlocks s)) := by
   rw [pushLeaves_eq_leafCount, Bus.leafCount, Complete.blockTotal_eq,
-    show (fun src : Bus.Source (leanIsaInstance F prog s) ↦ 2 ^ src.κ) = (2 ^ ·) ∘ Bus.Source.κ
+    show (fun src : Bus.Source (leanIsaWith F prog s fl) ↦ 2 ^ src.κ) = (2 ^ ·) ∘ Bus.Source.κ
       from rfl, ← List.map_map, sources_zero, sideSources_map_κ F prog s .push _ (pushBlocks_eq s)]
   rfl
 
 /-- **The bus phase's depth** at the verifier's layout is the instance's `μ_bus`. -/
 theorem busDepth_leanIsa :
     (busLayout [0, (verifierLayout prog s).logMemory, (verifierLayout prog s).logBytecode]
-      (verifierLayout prog s).push).depth = (leanIsaInstance F prog s).μBus := by
+      (verifierLayout prog s).push).depth = (leanIsaWith F prog s fl).μBus := by
   rw [Complete.busLayout_depth_verifier, Complete.busDepth, log2Ceil_eq_clog, M3Instance.μBus,
     pushLeaves_eq_pushTotal]
 
 /-- **The leaf stacks have a variable**: `μ_bus ≠ 0` at leanISA. -/
-theorem μBus_ne_zero : (leanIsaInstance F prog s).μBus ≠ 0 := by
+theorem μBus_ne_zero : (leanIsaWith F prog s fl).μBus ≠ 0 := by
   rw [M3Instance.μBus, pushLeaves_eq_pushTotal, Complete.blockTotal_eq]
   refine (Nat.clog_pos (by norm_num) ?_).ne'
   simp only [Complete.sideSizes, Complete.fwLogs, List.map_append, List.sum_append, List.map_cons,
@@ -728,29 +735,30 @@ section LeanIsaSpec
 
 open LeanVM.Protocol.Compile
 
-variable {εmax : ℝ≥0∞} (cands : Word → Set (∀ i, TheOracle (leanIsaInstance F prog s) i))
+variable {εmax : ℝ≥0∞} (cands : Word → Set (∀ i, TheOracle (leanIsaWith F prog s fl) i))
 
 /-- **The bus phase, then the table sumcheck, at leanISA**: `busTableSpec` at the leanISA
 instance and the verifier's layout, with every fidelity hypothesis discharged (`TableFid` by
 `tableFid_leanIsa`, `μ_bus ≠ 0` by `μBus_ne_zero`, the push layout's depth by `busDepth_leanIsa`).
 Only the error hypotheses remain. -/
 noncomputable def busTableSpec_leanIsa {L₀ : ℕ} (hfin : ∀ W, (cands W).Finite)
-    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hab : abError (leanIsaInstance F prog s) L₀ < 1)
+    (hcard : ∀ W, (cands W).ncard ≤ L₀) (hab : abError (leanIsaWith F prog s fl) L₀ < 1)
     (he4 : roundError L₀ 4 ≤ εmax) (hT : interpLead L₀ 2 (lambdaError L₀) ≤ εmax)
     (hlam : lambdaError L₀ + 0 ≤ εmax) {T : ℝ≥0∞} (he3 : roundError L₀ 3 + T ≤ εmax)
     (hTf : T ≤ εmax)
-    (hxi : xiError (leanIsaInstance F prog s) L₀ + sumcheckLead
+    (hxi : xiError (leanIsaWith F prog s fl) L₀ + sumcheckLead
       (List.replicate ((verifierLayout prog s).tableLogHeights.foldl max 0) none) T ≤ εmax) :
     Spec ((verifyBusBalance .computed (verifierLayout prog s)).bind (tablePhase (verifierLayout prog s)))
-      (HDoom cands (Seam.commit (leanIsaInstance F prog s)) input)
-      (TablePost (leanIsaInstance F prog s) cands input pyCol) εmax
-      (abError (leanIsaInstance F prog s) L₀ + 0) T :=
-  busThenSpec4 (leanIsaInstance F prog s) (leanIsa_conditions F prog s) cands input
+      (HDoom cands (Seam.commit (leanIsaWith F prog s fl)) input)
+      (TablePost (leanIsaWith F prog s fl) cands input pyCol) εmax
+      (abError (leanIsaWith F prog s fl) L₀ + 0) T :=
+  busThenSpec4 (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) cands input
     (verifierLayout prog s) hxi
-    (fun w h4 ↦ if hw : w.Shaped (leanIsaInstance F prog s) then
-      tablePhaseSpec (leanIsaInstance F prog s) (leanIsa_conditions F prog s) cands input
+    (fun w h4 ↦ if hw : w.Shaped (leanIsaWith F prog s fl) then
+      tablePhaseSpec (leanIsaWith F prog s fl) (leanIsaWith_conditions F prog s fl) cands input
         (verifierLayout prog s) pyCol w
-        (tableFid_leanIsa F prog s input (leanIsa_conditions F prog s) w hw h4) le_rfl hfin hcard
+        (tableFid_leanIsa F prog s input (leanIsaWith_conditions F prog s fl) w hw h4) le_rfl hfin
+        hcard
         he3 hTf
     else specOfFalse fun _ hp ↦ hw ⟨hp.1, hp.2.1, hp.2.2.1⟩)
     hfin hcard (μBus_ne_zero F prog s) (busDepth_leanIsa F prog s) hab he4 hT hlam

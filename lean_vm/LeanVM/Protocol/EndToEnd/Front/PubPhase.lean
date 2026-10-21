@@ -14,6 +14,7 @@ public import LeanVM.Protocol.EndToEnd.Front.PubEscape
 public import LeanVM.Protocol.Compile.SpecRules.Leaves
 public import LeanVM.Protocol.PublicInput
 public import LeanVM.Protocol.LeanIsa
+public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 
 /-!
 # The public-input phase as a specification
@@ -51,6 +52,12 @@ the specification's lead is `L₀/|E|` plus the follower's.
 **What the layout must give** (bridge A, `pubLayoutHyp`): a claim of the program on memory
 column `j < 3` at the public point `(r, 0, …, 0)` holds of a candidate only if the instance's claim
 on `MEM_j` at `linePoint r` holds of its reading `toI`.
+
+**At every Flock region.** The fidelity and the specification are stated at
+`leanIsaWith F prog s fl` (`Front.InstanceWith`): `PubPreWith`, `PubPostWith`, `pubLayoutHypWith`,
+`pubPhaseSpecWith`; `PubPre`, `PubPost`, `pubLayoutHyp`, `trueClaim`, `stackOracle` and
+`pubPhaseSpec` are them at the deployed instance. Without a region (`fl = none`) the Flock
+predicate holds of every stack (`aux_none`), the Flock-blind verifier's case.
 -/
 
 namespace LeanVM.Protocol.EndToEnd.Front
@@ -111,18 +118,19 @@ theorem digestScalars_eq_words (d : Digest) :
 section Fidelity
 
 variable (F : FlockSpec) (prog : Program) (s : LeanIsa.Sizes)
+  {fl : Option (FlockRegion (LeanIsa.shape prog s))}
 
 /-- The leanISA instance sends no line. -/
 theorem unsentLines (input : PublicInput) :
-    ((leanIsaInstance F prog s).publicLines input).toList.filter (·.sent) = [] := rfl
+    ((leanIsaWith F prog s fl).publicLines input).toList.filter (·.sent) = [] := rfl
 
 /-- **The phase's line values are the program's limbs.** When the statement is the digest's, the
 value the ArkLib phase computes for line `j` (`MEM_LO, MEM_HI, MEM_TOP`) is the program's limb
 `j`. -/
 theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
     (hinput : digestScalars publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
-    PublicInput.lineValue (leanIsaInstance F prog s) r
-      ((leanIsaInstance F prog s).publicLines input)[j] = pubLimb publicInput r j := by
+    PublicInput.lineValue (leanIsaWith F prog s fl) r
+      ((leanIsaWith F prog s fl).publicLines input)[j] = pubLimb publicInput r j := by
   rw [pubLimb_eq, hinput]
   fin_cases j <;>
     simp [PublicInput.lineValue, LeanIsa.publicLines, PublicInput.word0, PublicInput.word1]
@@ -131,11 +139,11 @@ theorem lineValue_eq_pubLimb {publicInput : Digest} {input : PublicInput}
 instance: `MEM_j` at `linePoint r`, at the program's limb. -/
 theorem lineClaim_eq {publicInput : Digest} {input : PublicInput}
     (hinput : digestScalars publicInput = (input.word0, input.word1)) (r : E) (j : Fin 3) :
-    PublicInput.lineClaim (leanIsaInstance F prog s) r
-      ((leanIsaInstance F prog s).publicLines input)[j] =
+    PublicInput.lineClaim (leanIsaWith F prog s fl) r
+      ((leanIsaWith F prog s fl).publicLines input)[j] =
       ⟨LeanIsa.memCol j.castSucc, PublicInput.linePoint s.logMem_pos r,
         pubLimb publicInput r j⟩ := by
-  rw [PublicInput.lineClaim, lineValue_eq_pubLimb F prog s hinput]
+  rw [PublicInput.lineClaim, lineValue_eq_pubLimb F prog s (fl := fl) hinput]
   fin_cases j <;> rfl
 
 end Fidelity
@@ -144,91 +152,92 @@ end Fidelity
 
 section Spec
 
-variable (F : FlockSpec) (prog : Program) (s : LeanIsa.Sizes) (layout : Verifier.Layout)
+variable (F : FlockSpec) (prog : Program) (s : LeanIsa.Sizes)
+  (fl : Option (FlockRegion (LeanIsa.shape prog s))) (layout : Verifier.Layout)
   (C : List Ev → Set (Column layout.stackLog))
-  (toI : Column layout.stackLog → Column (leanIsaInstance F prog s).μ)
+  (toI : Column layout.stackLog → Column (leanIsaWith F prog s fl).μ)
   (claims : List Verifier.ColumnClaim) (input : PublicInput)
 
 /-- **The public-input phase's precondition**: no candidate satisfies the earlier claims, the public
 lines and the Flock predicate. -/
-def PubPre (h : List Ev) : Prop :=
+def PubPreWith (h : List Ev) : Prop :=
   ∀ q ∈ C h, ¬ (ColumnClaimsHold layout claims q ∧
-    (leanIsaInstance F prog s).PublicLinesHold input (toI q) ∧
-      (leanIsaInstance F prog s).aux (toI q))
+    (leanIsaWith F prog s fl).PublicLinesHold input (toI q) ∧
+      (leanIsaWith F prog s fl).aux (toI q))
 
 /-- **The public-input phase's postcondition** (the reading of `Seam.pub`): no candidate satisfies
 the earlier claims with the public claims appended and the Flock predicate. -/
-def PubPost (publicClaims : List Verifier.ColumnClaim) (h : List Ev) : Prop :=
+def PubPostWith (publicClaims : List Verifier.ColumnClaim) (h : List Ev) : Prop :=
   ∀ q ∈ C h, ¬ (ColumnClaimsHold layout (claims ++ publicClaims) q ∧
-    (leanIsaInstance F prog s).aux (toI q))
+    (leanIsaWith F prog s fl).aux (toI q))
 
 /-- **What the public-input phase needs of the layout** (bridge A): the program's claim on memory
 column `j < 3` at the public point holds of a candidate only if the instance's claim on `MEM_j` at
 `(r, 0, …, 0)` holds of its reading. -/
-def pubLayoutHyp : Prop :=
+def pubLayoutHypWith : Prop :=
   ∀ (j : Fin 3) (r v : E) (q : Column layout.stackLog),
     StackClaim.Holds layout.stackLog
         ((⟨j.val, pubPoint layout r, v⟩ : Verifier.ColumnClaim).onStack layout) q →
       Protocol.ColumnClaim.Holds (toI q)
         (⟨LeanIsa.memCol j.castSucc, PublicInput.linePoint s.logMem_pos r, v⟩ :
-          Protocol.ColumnClaim (leanIsaInstance F prog s))
+          Protocol.ColumnClaim (leanIsaWith F prog s fl))
 
 /-- A good challenge of the program: some candidate satisfies the earlier claims, the public
 claims and the Flock predicate. -/
-def PubGood (publicInput : Digest) (h₀ : List Ev) (r : E) : Prop :=
+def PubGoodWith (publicInput : Digest) (h₀ : List Ev) (r : E) : Prop :=
   ∃ q ∈ C h₀, ColumnClaimsHold layout (claims ++ pubClaims layout publicInput r) q ∧
-    (leanIsaInstance F prog s).aux (toI q)
+    (leanIsaWith F prog s fl).aux (toI q)
 
 /-! ## The ArkLib statement of a candidate -/
 
 /-- A claim true of a stack: `MEM_LO` at the origin, at its value there. -/
-def trueClaim (q : Column (leanIsaInstance F prog s).μ) :
-    Protocol.ColumnClaim (leanIsaInstance F prog s) :=
+def trueClaimWith (q : Column (leanIsaWith F prog s fl).μ) :
+    Protocol.ColumnClaim (leanIsaWith F prog s fl) :=
   ⟨LeanIsa.memCol 0, Vector.replicate _ 0,
-    eval₂Mle ((leanIsaInstance F prog s).column q (LeanIsa.memCol 0)).values (algebraMap K E)
+    eval₂Mle ((leanIsaWith F prog s fl).column q (LeanIsa.memCol 0)).values (algebraMap K E)
       (Vector.replicate _ 0)⟩
 
 /-- The statement the phase starts from for a candidate: the public input, and received claims
 all true of it. The phase's relations read the received claims only as a conjunct, which the
 program's own claims replace. -/
-def trueStmt (q : Column (leanIsaInstance F prog s).μ) :
-    (leanIsaInstance F prog s).Stmt × TableOut (leanIsaInstance F prog s) :=
-  (input, ⟨Vector.replicate _ (trueClaim F prog s q)⟩)
+def trueStmtWith (q : Column (leanIsaWith F prog s fl).μ) :
+    (leanIsaWith F prog s fl).Stmt × TableOut (leanIsaWith F prog s fl) :=
+  (input, ⟨Vector.replicate _ (trueClaimWith F prog s fl q)⟩)
 
 /-- The stack as the phase's oracle. -/
-def stackOracle (q : Column (leanIsaInstance F prog s).μ) :
-    ∀ i, TheOracle (leanIsaInstance F prog s) i := fun _ ↦ q
+def stackOracleWith (q : Column (leanIsaWith F prog s fl).μ) :
+    ∀ i, TheOracle (leanIsaWith F prog s fl) i := fun _ ↦ q
 
 /-- A candidate satisfying the earlier claims but not the public lines and the Flock predicate is,
 with its true statement, outside the table seam. -/
-theorem trueStmt_not_table (q : Column (leanIsaInstance F prog s).μ)
-    (h : ¬ ((leanIsaInstance F prog s).PublicLinesHold input q ∧
-      (leanIsaInstance F prog s).aux q)) :
-    ((trueStmt F prog s input q, stackOracle F prog s q), ()) ∉
-      Seam.table (leanIsaInstance F prog s) := by
+theorem trueStmt_not_table (q : Column (leanIsaWith F prog s fl).μ)
+    (h : ¬ ((leanIsaWith F prog s fl).PublicLinesHold input q ∧
+      (leanIsaWith F prog s fl).aux q)) :
+    ((trueStmtWith F prog s fl input q, stackOracleWith F prog s fl q), ()) ∉
+      Seam.table (leanIsaWith F prog s fl) := by
   rintro ⟨-, hl, ha⟩
   exact h ⟨hl, ha⟩
 
 /-- **A good challenge is in the phase's state after the challenge.** If the candidate satisfies
 the public claims at `r` and the Flock predicate, the phase's pool at `r` is in the public
 seam. -/
-theorem good_imp_state (hlayout : pubLayoutHyp F prog s layout toI)
+theorem good_imp_state (hlayout : pubLayoutHypWith F prog s fl layout toI)
     {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
     {q : Column layout.stackLog} {r : E}
     (hcl : ColumnClaimsHold layout (pubClaims layout publicInput r) q)
-    (haux : (leanIsaInstance F prog s).aux (toI q)) :
-    ((PublicInput.pooled (leanIsaInstance F prog s) (trueStmt F prog s input (toI q)) r,
-      stackOracle F prog s (toI q)), ()) ∈ Seam.pub (leanIsaInstance F prog s) := by
+    (haux : (leanIsaWith F prog s fl).aux (toI q)) :
+    ((PublicInput.pooled (leanIsaWith F prog s fl) (trueStmtWith F prog s fl input (toI q)) r,
+      stackOracleWith F prog s fl (toI q)), ()) ∈ Seam.pub (leanIsaWith F prog s fl) := by
   refine ⟨?_, haux⟩
   intro c hc
-  simp only [PublicInput.pooled, trueStmt, Vector.toList_append, Vector.toList_map,
+  simp only [PublicInput.pooled, trueStmtWith, Vector.toList_append, Vector.toList_map,
     Vector.toList_replicate, List.mem_append, List.mem_replicate, List.mem_map] at hc
   rcases hc with ⟨-, rfl⟩ | ⟨l, hl, rfl⟩
   · rfl
-  · obtain ⟨j, rfl⟩ : ∃ j : Fin 3, ((leanIsaInstance F prog s).publicLines input)[j] = l := by
+  · obtain ⟨j, rfl⟩ : ∃ j : Fin 3, ((leanIsaWith F prog s fl).publicLines input)[j] = l := by
       obtain ⟨j, hj, hjl⟩ := List.mem_iff_getElem.mp hl
       exact ⟨⟨j, by simpa using hj⟩, by simpa using hjl⟩
-    rw [lineClaim_eq F prog s hinput r j]
+    rw [lineClaim_eq F prog s (fl := fl) hinput r j]
     refine hlayout j r _ q (hcl _ ?_)
     fin_cases j <;> simp [pubClaims, memory0, memory1, memory2]
 
@@ -237,30 +246,30 @@ theorem good_imp_state (hlayout : pubLayoutHyp F prog s layout toI)
 /-- **The challenge's escape.** Under `PubPre`, the average over the challenge of "the challenge is
 good" is at most `L₀ / |E|`, `L₀` bounding the number of candidates: per candidate, the phase's
 round-by-round knowledge soundness at the slot's error `1/|E|`, and the union bound. -/
-theorem pub_escape (hlayout : pubLayoutHyp F prog s layout toI)
+theorem pub_escape (hlayout : pubLayoutHypWith F prog s fl layout toI)
     {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
     {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀) {h₀ : List Ev}
-    (hpre : PubPre F prog s layout C toI claims input h₀) :
-    avgE (fun r ↦ indE (PubGood F prog s layout C toI claims publicInput h₀ r)) ≤
+    (hpre : PubPreWith F prog s fl layout C toI claims input h₀) :
+    avgE (fun r ↦ indE (PubGoodWith F prog s fl layout C toI claims publicInput h₀ r)) ≤
       L₀ * ((overE 1 : ℝ≥0) : ℝ≥0∞) := by
   have := finite_column layout.stackLog
   have hfin : (C h₀).Finite := Set.toFinite _
   let P : Column layout.stackLog → E → Prop := fun q r ↦ ColumnClaimsHold layout claims q ∧
-    ((PublicInput.pooled (leanIsaInstance F prog s) (trueStmt F prog s input (toI q)) r,
-      stackOracle F prog s (toI q)), ()) ∈ Seam.pub (leanIsaInstance F prog s)
+    ((PublicInput.pooled (leanIsaWith F prog s fl) (trueStmtWith F prog s fl input (toI q)) r,
+      stackOracleWith F prog s fl (toI q)), ()) ∈ Seam.pub (leanIsaWith F prog s fl)
   refine (avgE_mono fun r ↦ indE_mono ?_).trans
     (avgE_indE_exists_le hfin (hcard h₀) (P := P) fun q hq ↦ ?_)
   · rintro ⟨q, hq, hcl, haux⟩
     refine ⟨q, hq, fun c hc ↦ hcl c (List.mem_append_left _ hc), ?_⟩
-    exact good_imp_state F prog s layout toI input hlayout hinput
+    exact good_imp_state F prog s fl layout toI input hlayout hinput
       (fun c hc ↦ hcl c (List.mem_append_right _ hc)) haux
   · by_cases hcl : ColumnClaimsHold layout claims q
-    · have hnot := trueStmt_not_table F prog s input (toI q)
+    · have hnot := trueStmt_not_table F prog s fl input (toI q)
         fun h ↦ hpre q hq ⟨hcl, h⟩
       refine (avgE_mono fun r ↦ indE_mono fun hP ↦ hP.2).trans ?_
       rw [avgE_indE_eq_prEvent]
-      have hb := ((PublicInput.security (leanIsaInstance F prog s)).local_bound
-        (trueStmt F prog s input (toI q)) (stackOracle F prog s (toI q))).1
+      have hb := ((PublicInput.security (leanIsaWith F prog s fl)).local_bound
+        (trueStmtWith F prog s fl input (toI q)) (stackOracleWith F prog s fl (toI q))).1
       rw [_root_.RoundByRound.GameFamily.isBounded_iff] at hb
       exact le_trans (prEvent_mono _ _ _ fun r hr ↦ ⟨(), hnot, hr⟩) (hb () ())
     · refine (avgE_mono fun r ↦ indE_mono (q := False) fun hP ↦ absurd hP.1 hcl).trans ?_
@@ -290,26 +299,73 @@ open Classical in
 `pubError`) plus the follower's `T`, given the layout's reading of the memory claims
 (`pubLayoutHyp`), the instance's statement read off the digest, and candidates stable along the
 phase. -/
-noncomputable def pubPhaseSpec (hlayout : pubLayoutHyp F prog s layout toI)
+noncomputable def pubPhaseSpecWith (hlayout : pubLayoutHypWith F prog s fl layout toI)
     {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
     (hstable : CandsStable layout C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
     {εmax T : ℝ≥0∞} :
-    Spec (Verifier.publicInputPhase layout publicInput) (PubPre F prog s layout C toI claims input)
-      (PubPost F prog s layout C toI claims) εmax (L₀ * ((overE 1 : ℝ≥0) : ℝ≥0∞) + T) T :=
+    Spec (Verifier.publicInputPhase layout publicInput)
+      (PubPreWith F prog s fl layout C toI claims input)
+      (PubPostWith F prog s fl layout C toI claims) εmax (L₀ * ((overE 1 : ℝ≥0) : ℝ≥0∞) + T) T :=
   Spec.congr (publicInputPhase_eq layout publicInput).symm
     ((Spec.sampleE (L₀ * ((overE 1 : ℝ≥0) : ℝ≥0∞))
-      (Post := fun r h ↦ PubPost F prog s layout C toI claims (pubClaims layout publicInput r) h)
+      (Post := fun r h ↦
+        PubPostWith F prog s fl layout C toI claims (pubClaims layout publicInput r) h)
       fun h₀ hpre ↦ by
-        refine le_trans ?_ (pub_escape F prog s layout C toI claims input hlayout hinput hcard hpre)
+        refine le_trans ?_
+          (pub_escape F prog s fl layout C toI claims input hlayout hinput hcard hpre)
         unfold avgE
         gcongr
         refine card_filter_le_sum_indE fun r hr ↦ ?_
         by_contra hg
         refine hr fun q hq hq' ↦ hg ⟨q, ?_, hq'⟩
         rwa [hstable h₀ [Ev.sample r] rfl] at hq).bind' fun r ↦
-      Spec.ret (Post := PubPost F prog s layout C toI claims) (pubClaims layout publicInput r))
+      Spec.ret (Post := PubPostWith F prog s fl layout C toI claims)
+        (pubClaims layout publicInput r))
 
 end Spec
+
+/-! ## At the deployed instance -/
+
+section Deployed
+
+variable (F : FlockSpec) (prog : Program) (s : LeanIsa.Sizes) (layout : Verifier.Layout)
+  (C : List Ev → Set (Column layout.stackLog))
+  (toI : Column layout.stackLog → Column (leanIsaInstance F prog s).μ)
+  (claims : List Verifier.ColumnClaim) (input : PublicInput)
+
+/-- `PubPreWith` at the deployed instance. -/
+abbrev PubPre : List Ev → Prop :=
+  PubPreWith F prog s (some (LeanIsa.flockRegion prog s F)) layout C toI claims input
+
+/-- `PubPostWith` at the deployed instance. -/
+abbrev PubPost : List Verifier.ColumnClaim → List Ev → Prop :=
+  PubPostWith F prog s (some (LeanIsa.flockRegion prog s F)) layout C toI claims
+
+/-- `pubLayoutHypWith` at the deployed instance. -/
+abbrev pubLayoutHyp : Prop :=
+  pubLayoutHypWith F prog s (some (LeanIsa.flockRegion prog s F)) layout toI
+
+/-- `trueClaimWith` at the deployed instance. -/
+abbrev trueClaim :
+    Column (leanIsaInstance F prog s).μ → Protocol.ColumnClaim (leanIsaInstance F prog s) :=
+  trueClaimWith F prog s (some (LeanIsa.flockRegion prog s F))
+
+/-- `stackOracleWith` at the deployed instance. -/
+abbrev stackOracle :
+    Column (leanIsaInstance F prog s).μ → ∀ i, TheOracle (leanIsaInstance F prog s) i :=
+  stackOracleWith F prog s (some (LeanIsa.flockRegion prog s F))
+
+open Classical in
+/-- **The public-input phase's specification** at the deployed instance (`pubPhaseSpecWith`). -/
+noncomputable def pubPhaseSpec (hlayout : pubLayoutHyp F prog s layout toI)
+    {publicInput : Digest} (hinput : digestScalars publicInput = (input.word0, input.word1))
+    (hstable : CandsStable layout C) {L₀ : ℕ} (hcard : ∀ h, (C h).ncard ≤ L₀)
+    {εmax T : ℝ≥0∞} :
+    Spec (Verifier.publicInputPhase layout publicInput) (PubPre F prog s layout C toI claims input)
+      (PubPost F prog s layout C toI claims) εmax (L₀ * ((overE 1 : ℝ≥0) : ℝ≥0∞) + T) T :=
+  pubPhaseSpecWith F prog s _ layout C toI claims input hlayout hinput hstable hcard
+
+end Deployed
 
 end
 end LeanVM.Protocol.EndToEnd.Front

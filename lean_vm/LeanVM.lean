@@ -4,6 +4,13 @@ import LeanVM.Guest.EndFinalComplete
 import LeanVM.Guest.EndKnow
 import LeanVM.Guest.Batch.Children
 import LeanVM.Guest.Batch.Rom
+import LeanVM.Protocol.EndToEnd.Blind.Statements
+import LeanVM.Protocol.EndToEnd.Blind.Execution
+import LeanVM.Protocol.EndToEnd.Blind.Deferred
+import LeanVM.Guest.Value.OracleModel
+import LeanVM.E2E.Runs
+import LeanVM.E2E.Engine
+import LeanVM.E2E.Da
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`LeanVM/Spec/Statement.lean`), and the deployed aggregation guest's: `AggregateSound` (what the outer verifier's acceptance establishes) and `GuestKnowledge` (`LeanVM/Spec/Guest.lean`), its witness read off the execution's memory by `LeanVM.Guest.End.decode`, with `decode_binds`; the recursion step `LeanVM.Guest.Batch.children_sound` and the batching in the random-oracle model `LeanVM.Guest.Batch.batch_rom`; `GuestSound` and `GuestCompleteWithin` (`LeanVM/Guest/End.lean`). The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
@@ -54,3 +61,65 @@ import LeanVM.Guest.Batch.Rom
 /-- info: 'LeanVM.Guest.Batch.batch_rom' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rom
+
+/-! The end-to-end security theorem's chain so far (`docs/roadmap/e2e-security.md`): T1 (the Flock-blind verifier's knowledge soundness, cache and probability forms; the deferred-verifier bridge), C5 (the oracle hash model), T5's run bridges, the game engine and E5 (the DA leg). -/
+
+/-- info: 'LeanVM.Protocol.EndToEnd.Blind.blind_knowledge_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.EndToEnd.Blind.blind_knowledge_cache
+
+/-- info: 'LeanVM.Protocol.EndToEnd.Blind.blindKnowledgeSoundness' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.EndToEnd.Blind.blindKnowledgeSoundness
+
+/-- info: 'LeanVM.Protocol.EndToEnd.Blind.blindKnowledgeSoundness_execution' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.EndToEnd.Blind.blindKnowledgeSoundness_execution
+
+/-- info: 'LeanVM.Protocol.EndToEnd.Blind.execution_of_extractedBlind' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.EndToEnd.Blind.execution_of_extractedBlind
+
+/-- info: 'LeanVM.Protocol.Verifier.verifyBlindWith_of_verifyDeferredWith' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.Verifier.verifyBlindWith_of_verifyDeferredWith
+
+/-- info: 'LeanVM.Protocol.Verifier.verifyBlindWith_of_verifyWith' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Protocol.Verifier.verifyBlindWith_of_verifyWith
+
+/-- info: 'LeanVM.Guest.Value.stdChain_snoc' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Value.stdChain_snoc
+
+/-- info: 'LeanVM.Guest.Value.validExecutionB_oracle' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Value.validExecutionB_oracle
+
+/-- info: 'LeanVM.Guest.Value.tableOK_blake2s' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.Value.tableOK_blake2s
+
+/-- info: 'LeanVM.E2E.run_simulateQ_randomOracle_of_answered' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.run_simulateQ_randomOracle_of_answered
+
+/-- info: 'LeanVM.E2E.xmssVerifyWith_eq_simulateQ' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.xmssVerifyWith_eq_simulateQ
+
+/-- info: 'LeanVM.E2E.sphincsVerifyWith_eq_simulateQ' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsVerifyWith_eq_simulateQ
+
+/-- info: 'LeanVM.E2E.prEvent_game_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.prEvent_game_le
+
+/-- info: 'LeanVM.E2E.daBacked_of_not_daBad' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.daBacked_of_not_daBad
+
+/-- info: 'LeanVM.E2E.prEvent_game_daBad_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.prEvent_game_daBad_le

@@ -41,6 +41,10 @@ states; its balance is the hypothesis of `exists_run_of_perm` (`Soundness.Walk`)
 which yields a run from `Regs.initial` to `Regs.final prog`, each of whose steps is a row
 (`exists_walk`, which `Soundness.Theorem` uses for `AssignmentRepresents`).
 
+**Under any semantics** (`RowsStep`, `opRecs_pc_ne_finalPcB`, `exists_walkB`): the same, for
+rows that are steps of a semantics `S` of `BLAKE2S`: the deployed one under the BLAKE2s validity
+(`rowsStep_deployed`), the Flock-blind one `blakeFree` without it (`rowsStep_free`).
+
 ## Why the rows, not `w.interactions`
 
 `no_row_at_sentinel` is not stated over `w.interactions`, which includes the verifier's own
@@ -91,7 +95,7 @@ theorem eval_mem_interactions {t : Air.Flat.Table K} (ht : t ∈ w.tables) {row 
 
 /-- The pulls of a row of the six tables have their guarantees: the memory reads are the image's
 words (`mem_channel_sound`) and the bytecode entry decodes (`bytecode_guarantee`). -/
-theorem opRecs_guarantees (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem opRecs_guarantees (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) {p : Air.Flat.Table K × Array K} (hp : p ∈ opPairs w) :
     p.1.component.operations.FullGuarantees (p.1.environment p.2) := by
   obtain ⟨ht, hrow⟩ := mem_opPairs hp
@@ -129,13 +133,45 @@ theorem opRecs_step (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arra
   have ha := assumptions_of_blake2sRowsValid h.blake2s_valid p.1
     (w.mem_allTables_of_mem_tables ht') p.2 hrow
   have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables ht') p.2 hrow
-  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2 ha hc (opRecs_guarantees h hf hp)
-  obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h hf hp
+  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.1 ha hc (opRecs_guarantees h.toB hf hp)
+  obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h.toB hf hp
   have hins : prog.code k = ins := entry_injective (hek.symm.trans he)
   refine ⟨?_, k, hpc, fun hj ↦ hnj (hins ▸ hj)⟩
   have hfetch : prog.fetch (f p).src.pc = some ins := by
     rw [show (f p).src.pc = (f p).pc from rfl, hpc, Program.fetch_gpow, hins]
   rw [step_of_fetch_eq_some hfetch]
+  exact hexec
+
+/-- **Every row of the six tables is a step under the semantics `S`**, from its pulled state to
+its pushed state; its counter is a slot of the program, and the successor is the fall-through
+unless the program holds a `JUMP` there. -/
+def RowsStep (S : BlakeSem) (w : EnsembleWitness (leanIsaEnsemble prog))
+    (f : Air.Flat.Table K × Array K → RowRec) : Prop :=
+  ∀ p ∈ opPairs w, stepB S prog (imageOf w.data).2 (f p).src = some (f p).next ∧
+    ∃ k : Fin (2 ^ prog.logSize), (f p).pc = gpow k ∧
+      ((prog.code k).opcode ≠ .jump → (f p).next = ⟨g * (f p).pc, (f p).fp⟩)
+
+/-- The rows are steps of the deployed semantics. -/
+theorem rowsStep_deployed (h : SatisfiedBy prog input w)
+    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep blakeDeployed w f :=
+  fun _ hp ↦ by
+    rw [stepB_deployed]
+    exact opRecs_step h hf hp
+
+/-- **Without the BLAKE2s validity, the rows are steps of the Flock-blind semantics**
+(`blakeFree`): a `BLAKE2S` row reads canonical cells, whatever its output holds. -/
+theorem rowsStep_free (h : SatisfiedByB prog input w)
+    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) : RowsStep blakeFree w f := by
+  intro p hp
+  obtain ⟨ht, hrow⟩ := mem_opPairs hp
+  have hc := h.constraints p.1 (w.mem_allTables_of_mem_tables (List.mem_of_mem_take ht)) p.2 hrow
+  obtain ⟨ins, he, hexec, hnj⟩ := (hf p hp).2.2.2.2 hc (opRecs_guarantees h hf hp)
+  obtain ⟨k, hpc, hek⟩ := opRecs_bc_sound h hf hp
+  have hins : prog.code k = ins := entry_injective (hek.symm.trans he)
+  refine ⟨?_, k, hpc, fun hj ↦ hnj (hins ▸ hj)⟩
+  have hfetch : prog.fetch (f p).src.pc = some ins := by
+    rw [show (f p).src.pc = (f p).pc from rfl, hpc, Program.fetch_gpow, hins]
+  simp only [stepB, hfetch, Option.bind_eq_bind, Option.bind_some]
   exact hexec
 
 /-! ## The state pair -/
@@ -151,7 +187,7 @@ theorem arrRegs_regsArr (r : Regs K) : arrRegs (regsArr r) = r := rfl
 
 /-- **The states a satisfying witness pushes**: the verifier's `(1, 1)` and the rows'
 successors. -/
-theorem statePush_eq (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem statePush_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) :
     messagesOn w StatePush.toRaw =
       regsArr Regs.initial :: (opPairs w).map fun p ↦ regsArr (f p).next := by
@@ -166,7 +202,7 @@ theorem statePush_eq (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arr
 
 /-- **The states a satisfying witness pulls**: the verifier's final registers and the rows'
 states. -/
-theorem statePull_eq (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Array K → RowRec}
+theorem statePull_eq (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec}
     (hf : OpRecs w f) :
     messagesOn w StatePull.toRaw =
       regsArr (Regs.final prog) :: (opPairs w).map fun p ↦ regsArr (f p).src := by
@@ -185,15 +221,17 @@ theorem statePull_eq (h : SatisfiedBy prog input w) {f : Air.Flat.Table K × Arr
 theorem two_pow_logSize_lt (prog : Program) : 2 ^ prog.logSize < 2 ^ 64 - 1 :=
   lt_of_le_of_lt (Nat.pow_le_pow_right (by norm_num) prog.logSize_le) (by decide)
 
-/-- **No row of the six tables sits at the sentinel counter**: its instruction is not a `JUMP`, so
-it would push `(g^N_prog, fp)`, which no pull balances. -/
-theorem opRecs_pc_ne_finalPc (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w)
-    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) {p : Air.Flat.Table K × Array K}
+/-- **No row of the six tables sits at the sentinel counter**, under any semantics its rows are
+steps of: its instruction is not a `JUMP`, so it would push `(g^N_prog, fp)`, which no pull
+balances. -/
+theorem opRecs_pc_ne_finalPcB {S : BlakeSem} (hsafe : SentinelSafe prog)
+    (h : SatisfiedByB prog input w) {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f)
+    (hS : RowsStep S w f) {p : Air.Flat.Table K × Array K}
     (hp : p ∈ opPairs w) : (f p).pc ≠ prog.finalPc := by
   intro hfin
   have hN := two_pow_logSize_lt prog
   have hpos := Nat.two_pow_pos prog.logSize
-  obtain ⟨-, k, hk, hnj⟩ := opRecs_step h hf hp
+  obtain ⟨-, k, hk, hnj⟩ := hS p hp
   have hkN : (k : ℕ) = 2 ^ prog.logSize - 1 := by
     have : gpow k = gpow (2 ^ prog.logSize - 1) := hk.symm.trans hfin
     exact gpow_injOn (by simp only [Set.mem_Iio]; have := k.isLt; omega)
@@ -216,7 +254,7 @@ theorem opRecs_pc_ne_finalPc (hsafe : SentinelSafe prog) (h : SatisfiedBy prog i
     have := gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega) h1
     omega
   · obtain ⟨q, hq, hqe⟩ := List.mem_map.mp heq
-    obtain ⟨-, k', hk', -⟩ := opRecs_step h hf hq
+    obtain ⟨-, k', hk', -⟩ := hS q hq
     have h1 : gpow (2 ^ prog.logSize) = gpow k' := by
       rw [← hk']
       exact (by simpa [regsArr, RowRec.src] using hqe.symm : _ ∧ _).1
@@ -224,6 +262,13 @@ theorem opRecs_pc_ne_finalPc (hsafe : SentinelSafe prog) (h : SatisfiedBy prog i
       (by simp only [Set.mem_Iio]; have := k'.isLt; omega) h1
     have := k'.isLt
     omega
+
+/-- **No row of the six tables sits at the sentinel counter** (`opRecs_pc_ne_finalPcB` at the
+deployed semantics). -/
+theorem opRecs_pc_ne_finalPc (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w)
+    {f : Air.Flat.Table K × Array K → RowRec} (hf : OpRecs w f) {p : Air.Flat.Table K × Array K}
+    (hp : p ∈ opPairs w) : (f p).pc ≠ prog.finalPc :=
+  opRecs_pc_ne_finalPcB hsafe h.toB hf (rowsStep_deployed h hf) hp
 
 /-- **No row sits at the sentinel counter**: no state pull of a row of the
 witness's tables carries the counter `g^(N_prog - 1)`. Its bytecode entry is not a `JUMP`, so the
@@ -248,25 +293,27 @@ theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog inp
     have hblock : i.msg ∈ chanOf StatePull.name (tableSends t) :=
       (chanOf_flatMap' _ _ _).symm ▸ List.mem_flatMap.mpr ⟨row, hrow, hsend⟩
     rcases List.mem_cons.mp ht with rfl | ht
-    · obtain ⟨mfin, hmem⟩ := memBlock_sends_eq h
+    · obtain ⟨mfin, hmem⟩ := memBlock_sends_eq h.toB
       rw [hmem, chanOf_memSeed_eq_nil _ _ (by simp [StatePull, MemPull])
         (by simp [StatePull, MemPush])] at hblock
       exact List.not_mem_nil hblock
     · rw [List.mem_singleton] at ht
       subst ht
-      obtain ⟨bfin, hbc⟩ := bcBlock_sends_eq h
+      obtain ⟨bfin, hbc⟩ := bcBlock_sends_eq h.toB
       rw [hbc, chanOf_bcSeed_eq_nil _ (by simp [StatePull, BytecodePull])
         (by simp [StatePull, BytecodePush])] at hblock
       exact List.not_mem_nil hblock
 
 /-! ## The run -/
 
-/-- **The walk of a satisfying witness**: records for its rows and a run from the initial to the
-final registers over the image the data names, each of whose steps is a row. -/
-theorem exists_walk (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
-    ∃ f, OpRecs w f ∧ ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
-      ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
-        run prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
+/-- **The walk of a witness**, under any semantics `S` its rows are steps of: records for its
+rows and a run under `S` from the initial to the final registers over the image the data names,
+each of whose steps is a row. -/
+theorem exists_walkB (S : BlakeSem) (hsafe : SentinelSafe prog) (h : SatisfiedByB prog input w)
+    (hS : ∀ f, OpRecs w f → RowsStep S w f) :
+    ∃ f, OpRecs w f ∧ ∃ n, runB S prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
+      ∀ k < n, ∃ p ∈ opPairs w, runB S prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
+        runB S prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
   obtain ⟨f, hf⟩ := exists_opRecs w
   refine ⟨f, hf, ?_⟩
   have hb := h.state_balanced
@@ -274,8 +321,18 @@ theorem exists_walk (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
   rw [statePush_eq h hf, statePull_eq h hf] at hb
   have hperm := hb.map arrRegs
   simp only [List.map_cons, List.map_map, Function.comp_def, arrRegs_regsArr] at hperm
-  exact exists_run_of_perm (fun p ↦ (f p).src) (fun p ↦ (f p).next) (opPairs w)
-    (fun p hp ↦ ⟨opRecs_pc_ne_finalPc hsafe h hf hp, (opRecs_step h hf hp).1⟩) Regs.initial hperm
+  exact exists_runB_of_perm S (fun p ↦ (f p).src) (fun p ↦ (f p).next) (opPairs w)
+    (fun p hp ↦ ⟨opRecs_pc_ne_finalPcB hsafe h hf (hS f hf) hp, (hS f hf p hp).1⟩) Regs.initial
+    hperm
+
+/-- **The walk of a satisfying witness**: records for its rows and a run from the initial to the
+final registers over the image the data names, each of whose steps is a row. -/
+theorem exists_walk (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
+    ∃ f, OpRecs w f ∧ ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog) ∧
+      ∀ k < n, ∃ p ∈ opPairs w, run prog (imageOf w.data).2 k Regs.initial = some (f p).src ∧
+        run prog (imageOf w.data).2 (k + 1) Regs.initial = some (f p).next := by
+  simpa only [runB_deployed] using
+    exists_walkB blakeDeployed hsafe h.toB fun _ hf ↦ rowsStep_deployed h hf
 
 /-- **Specification Proposition 6.1**: a balanced state channel over rows that are steps contains a
 run from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/

@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Arithmetization.Completeness.Rows
+public import LeanVM.Spec.IsaWith
 
 @[expose] public section
 
@@ -40,6 +41,13 @@ which for `JUMP` reads the indicator, the row's second local witness (`jump_outp
 **The guarantees** (`ChannelOk`). Of the six channels only the memory pull and the bytecode pull
 carry a guarantee; every interaction a table emits is on one of the six (`*_channelOk`), so the
 guarantees of a row are those of its memory and bytecode pulls.
+
+**Without the compression** (`OpRow`'s last clause). Under its constraints and the guarantees
+alone a row is a step of the Flock-blind semantics `blakeFree` (`LeanVM.Spec.IsaWith`), whose
+`BLAKE2S` asks only canonical cells: a `BLAKE2S` row is bound to the image by the table's circuit
+without its assumption (`blake2sTableFree`), and its cells, two limbs each, are canonical
+(`blake2s_free_exec`); every other table assumes nothing, and a deployed step is a Flock-blind one
+(`executeWithB_free_of_executeWith`).
 
 ## Wrong readings excluded
 
@@ -88,12 +96,45 @@ def RowRec.src (x : RowRec) : Regs K := ⟨x.pc, x.fp⟩
 /-- A component's row in the environment `env` has the shape of an opcode-table row, with at
 most nine memory reads, and under the table's assumptions, constraints and pull guarantees it is
 a step: an instruction encoded by its bytecode coordinates executes from its pulled state to its
-pushed state over the image the data names, to the fall-through unless it is a `JUMP`. -/
+pushed state over the image the data names, to the fall-through unless it is a `JUMP`. Without
+the assumptions (the compression, for `BLAKE2S`) it is a step under the Flock-blind semantics
+`blakeFree` (`LeanVM.Spec.IsaWith`), whose `BLAKE2S` asks only canonical cells. -/
 def OpRow (c : Component K) (env : Environment K) : Prop :=
   ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 9 ∧
     (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
       ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
+        (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩)) ∧
+    (c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
+      ∃ ins, x.e = entry ins ∧
+        executeWithB blakeFree (imageOf env.data).2.read x.src ins = some x.next ∧
         (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))
+
+/-- **A deployed step is a Flock-blind step**: the compression's cells are canonical. -/
+theorem executeWithB_free_of_executeWith {read : K → Option E} {r next : Regs K} {ins : Instr}
+    (h : executeWith read r ins = some next) : executeWithB blakeFree read r ins = some next := by
+  cases ins with
+  | blake2s om ocv oout omd =>
+    simp only [executeWith, executeWithB, Option.bind_eq_bind, Option.bind_eq_some_iff] at h ⊢
+    obtain ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
+      md, hmd, u, hu, hnext⟩ := h
+    refine ⟨m0, hm0, m1, hm1, m2, hm2, m3, hm3, cv0, hcv0, cv1, hcv1, out0, hout0, out1, hout1,
+      md, hmd, (), ?_, hnext⟩
+    have hc := canonicalCells_of_compressCells (guard_eq_some hu)
+    unfold guard
+    simp only [blakeFree, hc, ↓reduceIte]
+    rfl
+  | _ => exact h
+
+/-- A row of a table whose assumptions hold is a Flock-blind step where it is a step. -/
+theorem opRow_of_assumptions {c : Component K} {env : Environment K} (hA : c.Assumptions env)
+    (h : ∃ x : RowRec, rowSends c env = x.sends ∧ x.reads.length ≤ 9 ∧
+      (c.Assumptions env → c.operations.ConstraintsHold env → c.operations.FullGuarantees env →
+        ∃ ins, x.e = entry ins ∧ execute (imageOf env.data).2 x.src ins = some x.next ∧
+          (ins.opcode ≠ .jump → x.next = ⟨g * x.pc, x.fp⟩))) :
+    OpRow c env := by
+  obtain ⟨x, hs, hl, hd⟩ := h
+  exact ⟨x, hs, hl, hd, fun hc hg ↦ (hd hA hc hg).imp fun _ h ↦
+    ⟨h.1, executeWithB_free_of_executeWith h.2.1, h.2.2⟩⟩
 
 /-! ## The six tables -/
 
@@ -101,7 +142,8 @@ def OpRow (c : Component K) (env : Environment K) : Prop :=
 theorem xor_opRow (env : Environment K) : OpRow ⟨xorTable⟩ env := by
   set r := (⟨xorTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset XorRow 0) = r := eval_varFromOffset_valueFromOffset ..
-  refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.xor r.oA r.oB r.oC),
+  refine opRow_of_assumptions trivial
+    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.xor r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
      (r.fp * r.oC, r.rC, #v[r.vA[0] + r.vB[0], r.vA[1] + r.vB[1], r.vA[2] + r.vB[2]])]⟩,
     ?_, by simp, ?_⟩
@@ -119,7 +161,7 @@ theorem xor_opRow (env : Environment K) : OpRow ⟨xorTable⟩ env := by
 theorem set_opRow (env : Environment K) : OpRow ⟨setTable⟩ env := by
   set r := (⟨setTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset SetRow 0) = r := eval_varFromOffset_valueFromOffset ..
-  refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
+  refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
     #v[Opcode.setConstant.code, r.o, r.k[0], r.k[1], r.k[2], 0, 0, 0],
     [(r.fp * r.o, r.r, r.k)]⟩, ?_, by simp, ?_⟩
   · rw [rowSends_mk, set_sends_gen _ _ _ _ hx]
@@ -137,7 +179,8 @@ theorem set_opRow (env : Environment K) : OpRow ⟨setTable⟩ env := by
 theorem mul_opRow (env : Environment K) : OpRow ⟨mulTable⟩ env := by
   set r := (⟨mulTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset MulRow 0) = r := eval_varFromOffset_valueFromOffset ..
-  refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.mulNative r.oA r.oB r.oC),
+  refine opRow_of_assumptions trivial
+    ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc, entry (.mulNative r.oA r.oB r.oC),
     [(r.fp * r.oA, r.rA, r.vA), (r.fp * r.oB, r.rB, r.vB),
      (r.fp * r.oC, r.rC, #v[r.vA[0] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1],
           r.vA[0] * r.vB[1] + r.vA[1] * r.vB[0] + r.vA[1] * r.vB[2] + r.vA[2] * r.vB[1] +
@@ -159,7 +202,7 @@ name. -/
 theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
   set r := (⟨derefTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset DerefRow 0) = r := eval_varFromOffset_valueFromOffset ..
-  refine ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
+  refine opRow_of_assumptions trivial ⟨⟨r.pc, r.fp, ⟨g * r.pc, r.fp⟩, r.rbc,
     #v[Opcode.deref.code, r.o1, r.o2, r.o3, r.fpc, r.ffp, 0, 0],
     [(r.fp * r.o1, r.r1, #v[r.p, 0, 0]),
      (r.p * r.o2, r.r2, #v[(1 + r.fpc + r.ffp) * r.v3[0] + r.fpc * (g ^ 2 * r.pc) + r.ffp * r.fp,
@@ -187,6 +230,52 @@ theorem deref_opRow (env : Environment K) : OpRow ⟨derefTable⟩ env := by
     · rw [← show ((⟨derefTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
       exact hexec
 
+/-- **The `BLAKE2S` table without its assumption**: the same row circuit, sound for the bindings
+and the fall-through alone, whatever the output cells hold (the Flock-blind reading of a row). -/
+def blake2sTableFree : GeneralFormalCircuit K Blake2sRow Regs :=
+  { blake2sTable with
+    Assumptions := fun _ _ ↦ True
+    Spec := fun r next data ↦ Blake2sBindings (imageOf data).2 r ∧ next = Regs.next ⟨r.pc, r.fp⟩
+    soundness := by
+      circuit_proof_start [blake2sTable, StatePull, StatePush, MemPull, MemPush, BytecodePull,
+        BytecodePush, memRead, bytecodeRead]
+      obtain ⟨-, hm0, hm1, hm2, hm3, hcv0, hcv1, hout0, hout1, hmd⟩ := h_holds
+      obtain ⟨_, _, _, _, _, _, _, _, _, hvm0, hvm1, hvm2, hvm3, hvout0, hvout1, hvcv0, hvcv1,
+        hvmd, _, _, _, _, _, _, _, _, _, _⟩ := h_input
+      subst hvm0 hvm1 hvm2 hvm3 hvout0 hvout1 hvcv0 hvcv1 hvmd
+      refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, rfl⟩
+      · simpa only [E.ofCell, Vector.getElem_map] using hm0
+      · simpa only [E.ofCell, Vector.getElem_map] using hm1
+      · simpa only [E.ofCell, Vector.getElem_map] using hm2
+      · simpa only [E.ofCell, Vector.getElem_map] using hm3
+      · simpa only [E.ofCell, Vector.getElem_map] using hcv0
+      · simpa only [E.ofCell, Vector.getElem_map] using hcv1
+      · simpa only [E.ofCell, Vector.getElem_map] using hout0
+      · simpa only [E.ofCell, Vector.getElem_map] using hout1
+      · simpa only [E.ofCell, Vector.getElem_map] using hmd }
+
+/-- A cell read as two limbs is canonical. -/
+theorem isCanonical128_ofCell (v : Vector K 2) : IsCanonical128 (E.ofCell v) := by
+  simp [IsCanonical128, E.ofCell, limb_ofLimbs]
+
+/-- A bound `BLAKE2S` row executes under the Flock-blind semantics: its cells are canonical. -/
+theorem blake2s_free_exec {κ : ℕ} {mem : MemImage κ} {r : Blake2sRow K}
+    (h : Blake2sBindings mem r) :
+    executeWithB blakeFree mem.read ⟨r.pc, r.fp⟩
+      (.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd) =
+        some (Regs.next ⟨r.pc, r.fp⟩) := by
+  have hc : CanonicalCells ![E.ofCell r.m0, E.ofCell r.m1, E.ofCell r.m2, E.ofCell r.m3]
+      (E.ofCell r.cv0) (E.ofCell r.cv1) (E.ofCell r.out0) (E.ofCell r.out1) (E.ofCell r.md) :=
+    ⟨fun i ↦ by fin_cases i <;> exact isCanonical128_ofCell _, isCanonical128_ofCell _,
+      isCanonical128_ofCell _, isCanonical128_ofCell _, isCanonical128_ofCell _,
+      isCanonical128_ofCell _⟩
+  simp only [executeWithB, blakeFree, Matrix.cons_val, Fin.isValue, h.m0_eq, h.m1_eq, h.m2_eq,
+    h.m3_eq, h.cv0_eq, h.cv1_eq, h.out0_eq, h.out1_eq, h.md_eq, Option.bind_eq_bind,
+    Option.bind_some]
+  unfold guard
+  simp only [hc, ↓reduceIte]
+  rfl
+
 /-- A `BLAKE2S` row has the shape and, under the compression and the guarantees, steps. -/
 theorem blake2s_opRow (env : Environment K) : OpRow ⟨blake2sTable⟩ env := by
   set r := (⟨blake2sTable⟩ : Component K).rowInput env with hr
@@ -199,7 +288,7 @@ theorem blake2s_opRow (env : Environment K) : OpRow ⟨blake2sTable⟩ env := by
      (r.fp * (g * r.ocv), r.rcv1, #v[r.cv1[0], r.cv1[1], 0]),
      (r.fp * r.oout, r.rout0, #v[r.out0[0], r.out0[1], 0]),
      (r.fp * (g * r.oout), r.rout1, #v[r.out1[0], r.out1[1], 0]),
-     (r.fp * r.omd, r.rmd, #v[r.md[0], r.md[1], 0])]⟩, ?_, by simp, ?_⟩
+     (r.fp * r.omd, r.rmd, #v[r.md[0], r.md[1], 0])]⟩, ?_, by simp, ?_, ?_⟩
   · rw [rowSends_mk, blake2s_sends_gen _ _ _ _ hx]
     simp [RowRec.sends, sendsOf, memMsgOf, bcMsgOf, entry]
   · intro ha hc hg
@@ -210,6 +299,10 @@ theorem blake2s_opRow (env : Environment K) : OpRow ⟨blake2sTable⟩ env := by
     refine ⟨.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd, rfl, ?_, fun _ ↦ rfl⟩
     rw [← show ((⟨blake2sTable⟩ : Component K).rowOutput env) = ⟨g * r.pc, r.fp⟩ from hnext]
     exact hs'.exec_eq
+  · intro hc hg
+    obtain ⟨⟨hb, -⟩, -⟩ := Component.weakSoundness (component := ⟨blake2sTableFree⟩) trivial hc hg
+    exact ⟨.blake2s ![r.om0, r.om1, r.om2, r.om3] r.ocv r.oout r.omd, rfl, blake2s_free_exec hb,
+      fun _ ↦ rfl⟩
 
 /-- The output of the `JUMP` row circuit at a row variable that evaluates to `r`: the successor
 selected by the indicator `b`, the local witness at slot `n + 1`. -/
@@ -227,7 +320,8 @@ and the guarantees steps. -/
 theorem jump_opRow (env : Environment K) : OpRow ⟨jumpTable⟩ env := by
   set r := (⟨jumpTable⟩ : Component K).rowInput env with hr
   have hx : eval env (varFromOffset JumpRow 0) = r := eval_varFromOffset_valueFromOffset ..
-  refine ⟨⟨r.pc, r.fp, (⟨jumpTable⟩ : Component K).rowOutput env, r.rbc,
+  refine opRow_of_assumptions trivial
+    ⟨⟨r.pc, r.fp, (⟨jumpTable⟩ : Component K).rowOutput env, r.rbc,
     entry (.jump r.oc r.od r.of),
     [(r.fp * r.oc, r.rc, #v[r.vcond, 0, 0]), (r.fp * r.od, r.rd, #v[r.vpc, 0, 0]),
      (r.fp * r.of, r.rf, #v[r.vfp, 0, 0])]⟩, ?_, by simp, ?_⟩

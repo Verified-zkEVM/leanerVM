@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Semantics.Lemmas
+public import LeanVM.Spec.IsaWith
 
 @[expose] public section
 
@@ -31,6 +32,10 @@ if `s` is final the run is empty; otherwise `s` must be pulled by an edge `e`, w
 the same balance with start `dst e` and one edge fewer. The edges never used are the closed walks
 of specification §8.3, about which nothing is claimed.
 
+**Under any semantics of `BLAKE2S`** (`exists_runB_of_perm`): the same, for the steps and runs
+of a semantics `S` (`LeanVM.Spec.IsaWith`: `stepB S`, `runB S`); `exists_run_of_perm` is it at the
+deployed one, the Flock-blind verifier's walk at `blakeFree`.
+
 ## Wrong readings excluded
 
 * The run stops at the first arrival at the final registers: a walk that passes through
@@ -43,15 +48,23 @@ namespace LeanVM.Arithmetization
 
 open LeanVM.Parameters LeanVM.Semantics
 
-/-- **Specification Proposition 6.1, the walk decomposition.** Edges that are steps away from the
-sentinel, balanced against a start `s` and the final registers, contain a run from `s` to the final
-registers; each step of the run is an edge. -/
-theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
+/-- Away from the sentinel, a run under the semantics `S` takes a step. -/
+theorem runB_succ_of_ne (S : BlakeSem) {prog : Program} {κ : ℕ} {L : MemImage κ} {r : Regs K}
+    (h : r.pc ≠ prog.finalPc) (n : ℕ) :
+    runB S prog L (n + 1) r = stepB S prog L r >>= runB S prog L n := by
+  rw [runB, ite_eq_right h]
+
+/-- **Specification Proposition 6.1, the walk decomposition**, under any semantics `S` of
+`BLAKE2S`: edges that are steps away from the sentinel, balanced against a start `s` and the
+final registers, contain a run from `s` to the final registers; each step of the run is an
+edge. -/
+theorem exists_runB_of_perm (S : BlakeSem) {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
     (src dst : α → Regs K) (E : List α)
-    (hE : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧ step prog L (src e) = some (dst e))
+    (hE : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧ stepB S prog L (src e) = some (dst e))
     (s : Regs K) (hbal : (s :: E.map dst).Perm (Regs.final prog :: E.map src)) :
-    ∃ n, run prog L n s = some (Regs.final prog) ∧
-      ∀ k < n, ∃ e ∈ E, run prog L k s = some (src e) ∧ run prog L (k + 1) s = some (dst e) := by
+    ∃ n, runB S prog L n s = some (Regs.final prog) ∧
+      ∀ k < n, ∃ e ∈ E, runB S prog L k s = some (src e) ∧
+        runB S prog L (k + 1) s = some (dst e) := by
   induction hlen : E.length using Nat.strong_induction_on generalizing E s with
   | _ len ih =>
     by_cases hs : s = Regs.final prog
@@ -73,7 +86,8 @@ theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImag
         rw [List.map_append, List.map_cons, hse, List.map_append]
         exact (List.Perm.cons _ List.perm_middle).trans (List.Perm.swap _ _ _)
       exact (h1.symm.trans (hbal.trans h2)).cons_inv
-    have hE' : ∀ e' ∈ l₁ ++ l₂, (src e').pc ≠ prog.finalPc ∧ step prog L (src e') = some (dst e') :=
+    have hE' : ∀ e' ∈ l₁ ++ l₂,
+        (src e').pc ≠ prog.finalPc ∧ stepB S prog L (src e') = some (dst e') :=
       fun e' he' ↦ hE e' (by
         rcases List.mem_append.mp he' with h | h
         · exact List.mem_append_left _ h
@@ -82,8 +96,8 @@ theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImag
       (dst e) hbal' rfl
     obtain ⟨hpc, hstep⟩ := hE e he
     rw [hse] at hpc hstep
-    have hrun : ∀ k, run prog L (k + 1) s = run prog L k (dst e) := fun k ↦ by
-      rw [run_succ_of_ne hpc, hstep]; rfl
+    have hrun : ∀ k, runB S prog L (k + 1) s = runB S prog L k (dst e) := fun k ↦ by
+      rw [runB_succ_of_ne S hpc, hstep]; rfl
     refine ⟨n + 1, by rw [hrun]; exact hn, fun k hk ↦ ?_⟩
     rcases k with _ | k
     · exact ⟨e, he, by rw [hse]; rfl, by rw [hrun]; rfl⟩
@@ -92,5 +106,18 @@ theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImag
       rcases List.mem_append.mp he' with h | h
       · exact List.mem_append_left _ h
       · exact List.mem_append_right _ (List.mem_cons_of_mem _ h)
+
+/-- **Specification Proposition 6.1, the walk decomposition**: `exists_runB_of_perm` at the
+deployed semantics. -/
+theorem exists_run_of_perm {α : Type*} {prog : Program} {κ : ℕ} {L : MemImage κ}
+    (src dst : α → Regs K) (E : List α)
+    (hE : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧ step prog L (src e) = some (dst e))
+    (s : Regs K) (hbal : (s :: E.map dst).Perm (Regs.final prog :: E.map src)) :
+    ∃ n, run prog L n s = some (Regs.final prog) ∧
+      ∀ k < n, ∃ e ∈ E, run prog L k s = some (src e) ∧ run prog L (k + 1) s = some (dst e) := by
+  have hE' : ∀ e ∈ E, (src e).pc ≠ prog.finalPc ∧
+      stepB blakeDeployed prog L (src e) = some (dst e) := fun e he ↦ by
+    rw [stepB_deployed]; exact hE e he
+  simpa only [runB_deployed] using exists_runB_of_perm blakeDeployed src dst E hE' s hbal
 
 end LeanVM.Arithmetization
