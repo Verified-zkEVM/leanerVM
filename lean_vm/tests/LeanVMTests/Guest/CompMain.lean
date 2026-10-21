@@ -3,6 +3,9 @@ import LeanVM.E2E.Complete.GuestModelAll
 import LeanVM.E2E.Complete.DecodeSplit
 import LeanVM.E2E.Complete.DecodeMain
 import LeanVM.Guest.EndCompleteCT
+import LeanVM.E2E.Complete.DecodeImage
+import LeanVM.E2E.Complete.DecodeVsAgree
+import LeanVM.E2E.Complete.DecodeCount
 
 /-!
 # Tests: `main`'s completeness over a completeness model (L2, Main and End)
@@ -145,3 +148,19 @@ pieces so far. -/
 /-- info: 'LeanVM.Guest.End.mainCompleteC_ofT' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.End.mainCompleteC_ofT
+
+/-- info: 'LeanVM.E2E.Complete.honest_read_loadEqns' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.honest_read_loadEqns
+
+/-- info: 'LeanVM.E2E.Complete.vsProofOf_of_agree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.vsProofOf_of_agree
+
+/-- info: 'LeanVM.E2E.Complete.vsOpen_of_agree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Complete.vsOpen_of_agree
+
+/-- info: 'LeanVM.Guest.B2C.NodeAgree.eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.Guest.B2C.NodeAgree.eq
