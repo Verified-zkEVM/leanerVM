@@ -1,5 +1,6 @@
 import LeanVM.E2E.NoForgery
 import LeanVM.E2E.Reduction.VerifyBound
+import LeanVM.E2E.Deployed
 import XmssSecurity
 
 /-!
@@ -11,6 +12,10 @@ import XmssSecurity
   (`verify_isTotalQueryBound`), leanSPHINCS's multi-user bound and the honest signers' costs left
   as hypotheses.
 * Digests and the schemes' 256-bit outputs are in bijection.
+* **The costs**: leanXMSS's and leanSPHINCS's key generation, signer and verification are
+  query-bounded, at lean_xmss's exact key-generation count and lean_sphincs's `keygenCost + 1`;
+  the closed form is one fraction; the instantiated theorem is `aggregate_no_forgery_closed` at
+  the parameter set's constants.
 -/
 
 namespace LeanVMTests.E2E.NoForgery
@@ -114,6 +119,50 @@ open scoped ENNReal
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_no_forgery
 
+/-- info: 'LeanVM.E2E.keygenFromSeed_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.keygenFromSeed_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.sign_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sign_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.sphincsVerify_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsVerify_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.sphincsKeygenFromSeed_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsKeygenFromSeed_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.sphincsSign_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsSign_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.sphincsSignBound_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsSignBound_eq
+
+/-- info: 'LeanVM.E2E.xmssKeygenBound_eq_keygenQueries' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.xmssKeygenBound_eq_keygenQueries
+
+/-- info: 'LeanVM.E2E.sphincsKeygenBound_eq_keygenCost' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sphincsKeygenBound_eq_keygenCost
+
+/-- info: 'LeanVM.E2E.noForgeryError_eq_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.noForgeryError_eq_closed
+
+/-- info: 'LeanVM.E2E.closedError_eq_num' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.closedError_eq_num
+
+/-- info: 'LeanVM.E2E.closedError_one_slot' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.closedError_one_slot
+
 /-- **The end theorem at leanXMSS's proved multi-user security** and its verification bound. -/
 example [Sphincs.Params] {nx ns : ℕ} {εs : ℕ → ℝ≥0∞}
     (hsph : Sphincs.Security.Multi.HasMultiUserBound ns εs) {cxk csk cxs css cs : ℕ}
@@ -135,6 +184,32 @@ example [Sphincs.Params] {nx ns : ℕ} {εs : ℕ → ℝ≥0∞}
         xmssVerifyBound cs εs :=
   aggregate_no_forgery XmssSecurity.leanXmss_has_multi_user_security hsph hxk hsk hxs hss
     verify_isTotalQueryBound hvs fuel budget A hH hX hS hq
+
+/-- The proved costs' values. -/
+example : xmssKeygenBound = 13434881 ∧ xmssSignBound = 2 ^ 33 + 40304605 ∧ xmssVerifyBound = 384 ∧
+    sphincsVerifyBound = 686 :=
+  ⟨xmssKeygenBound_eq, xmssSignBound_eq, rfl, rfl⟩
+
+section Full
+
+attribute [local instance] Sphincs.Lifetimes.full
+
+/-- **The instantiated theorem is the closed one** at subtree height 26's constants. -/
+example {nx ns : ℕ} (fuel budget : ℕ) (A : GameAdversary nx ns) {qH sX sS : ℕ}
+    (hH : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvHash qH)
+    (hX : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvXmss sX)
+    (hS : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvSphincs sS)
+    (hq : gameQueries nx ns qH sX sS budget + 384 < 2 ^ 126) :
+    Pr{let z ← game LeanVM.Guest.guest fuel budget A}[Breaks z.1 z.2] ≤
+      closedError (gameQueries nx ns qH sX sS budget) nx ns :=
+  aggregate_no_forgery_closed XmssSecurity.leanXmss_has_multi_user_security
+    (Sphincs.Lifetimes.full_multiUserKey ns) (multiBound_le ns _ _ _ _) fuel budget A hH hX hS hq
+
+/-- leanSPHINCS's costs at subtree height 26. -/
+example : sphincsKeygenBound = 15166603265 ∧ sphincsSignBound = 23756655991 :=
+  ⟨sphincsKeygenBound_full, sphincsSignBound_full⟩
+
+end Full
 
 /-- A digest's 256 bits read back. -/
 example (d : LeanVM.Protocol.Digest) : bitsD (hBits d) = d := bitsD_hBits d

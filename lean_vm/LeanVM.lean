@@ -22,6 +22,7 @@ import LeanVM.E2E.Sanity
 import LeanVM.E2E.Bridge
 import LeanVM.E2E.NoForgery
 import LeanVM.E2E.Reduction.VerifyBound
+import LeanVM.E2E.Deployed
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`LeanVM/Spec/Statement.lean`), and the deployed aggregation guest's: `AggregateSound` (what the outer verifier's acceptance establishes) and `GuestKnowledge` (`LeanVM/Spec/Guest.lean`), its witness read off the execution's memory by `LeanVM.Guest.End.decode`, with `decode_binds`; the recursion step `LeanVM.Guest.Batch.children_sound` and the batching in the random-oracle model `LeanVM.Guest.Batch.batch_rom`; `GuestSound` and `GuestCompleteWithin` (`LeanVM/Guest/End.lean`). The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
@@ -246,3 +247,53 @@ import LeanVM.E2E.Reduction.VerifyBound
 /-- info: 'LeanVM.E2E.Sanity.idealVerify_blake2s' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Sanity.idealVerify_blake2s
+
+/-! The end theorem of `docs/roadmap/e2e-security.md`, fully instantiated (`LeanVM/E2E/Deployed.lean`): T5 at leanXMSS's and leanSPHINCS's proved multi-user bounds and the proved costs of the honest signers and the final verifications, at each proved leanSPHINCS parameter set, with a closed-form error (`closedError`), and its value for one slot. -/
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_closed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_closed
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_full' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_full
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned20' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned20
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned14' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned14
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned13' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned13
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned12' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned12
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned10' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned10
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned8' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned8
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_full_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_full_sharp
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_deployed_pruned20_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_deployed_pruned20_sharp
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_one_slot_full' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_one_slot_full
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_one_slot_pruned20' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_one_slot_pruned20

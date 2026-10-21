@@ -359,3 +359,62 @@ the statement, each with its reason.
   verifier accepts with BLAKE2s, hence the head `nodeStep` reads. The table check's enumeration
   is finite without a hypothesis: a chain's non-final rows carry distinct counters, and their
   metadata cells are among the at most `2^32` memory words.
+
+## 8. Status: what is proved
+**The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at
+Lean's three axioms). The game is generic in the leanSPHINCS parameter set (`[Sphincs.Params]`):
+key generation and signing depend on the subtree height `b`, verification does not, and the
+deployed guest only verifies. So there is one theorem per proved set,
+`aggregate_no_forgery_deployed_full` (`b = 26`), `…_pruned20`, `…_pruned14`, `…_pruned13`,
+`…_pruned12` (the Rust test signers' kept height), `…_pruned10`, `…_pruned8`. For `n_x` leanXMSS and
+`n_s` leanSPHINCS honest keys, V_I's budget `budget`, and every adversary `A` making at most `qH` hash
+queries, `sX` leanXMSS and `sS` leanSPHINCS signing requests (its only hypotheses, with the
+arithmetic side condition `Q + 384 < 2^126`):
+
+    Pr[ game guest fuel budget A : Breaks ] ≤ closedError Q n_x n_s,
+    Q = 13,434,881 n_x + csk_b n_s + qH + 8,630,239,197 sX + css_b sS + budget,
+    closedError Q n_x n_s =
+        Q (2^-128 + 5Q/2^256) + Q (2/2^192 + 4(Q+1)/2^256)          -- T1 (V°, the log's failures), W6 (batching)
+      + Q (14/2^192 + 4Q/2^256) + Q(Q+1)/2^193                      -- E5 (DA), T3 (termination)
+      + (Q+384)/2^127 + n_x²/2^127 + (Q+384)²/2^252                 -- leanXMSS multi-user, at Q + c_x
+      + n_s (Q+686)/2^127                                           -- leanSPHINCS multi-user, at Q + c_s
+
+`Breaks`: V_I accepts a root statement with a claim of an honest key no request to its signer
+answered, or a DA claim the oracle's final log does not back (E2E-1: every query is charged, so `Q`
+includes the honest signers' work). `closedError_eq_num` writes the bound as one fraction
+`closedNum Q n_x n_s / 2^256`.
+
+**The constants** (proved worst-case `IsTotalQueryBound`s, `Reduction/XmssBound.lean`,
+`Reduction/SphincsBound.lean`, `Reduction/VerifyBound.lean`):
+
+| | leanXMSS | leanSPHINCS at `b` | `b = 26` | `b = 20` |
+| --- | --- | --- | --- | --- |
+| key generation | `13,434,881` (lean_xmss's exact `keygenQueries`) | `1 + 226·2^b + 2(26−b)` (lean_sphincs's `keygenCost + 1`) | `15,166,603,265` | `236,978,189` |
+| signature | `2^33 + 40,304,605` | `2^33 + 118,387 + Σ_{l<26} (l<b ? 226·2^l − 1 : 1)` | `23,756,655,991` | `8,827,030,915` |
+| verification | `384` | `686` | | |
+
+(the other sets: `csk = 3,702,809 / 1,851,419 / 925,725 / 231,457 / 57,893` and
+`css = 8,593,755,535 / 8,591,904,145 / 8,590,978,451 / 8,590,284,183 / 8,590,110,619` at
+`b = 14 / 13 / 12 / 10 / 8`). A signature is dominated by its two `2^32`-attempt searches (the
+randomizer grinding and the WOTS counter, both worst case), and at `b = 26` by the path's
+`226 · 2^26`.
+
+**The leanSPHINCS term.** `closedError` uses `n_s q / 2^127`, which every proved bound is at most
+(`Multi.multiBound` is a minimum with it; `multiBound_le`). `aggregate_no_forgery_deployed_full_sharp`
+and `…_pruned20_sharp` keep the per-key bound `Multi.multiBound` itself (lean_sphincs `PROOF.md`,
+"Several keys", by an evaluation Lean does not check: about `q (1.75 + 0.002 n_s)/2^128` at
+`b = 26`, `q (1.87 + 0.0036 n_s)/2^128` at `b = 20`, so about 1000 and 560 times smaller for large
+`n_s`), with the other terms as above.
+
+**One slot** (`aggregate_no_forgery_one_slot_full`, `…_pruned20`): `n_x = n_s = 2^20`,
+`qH + budget ≤ 2^64`, `sX, sS ≤ 2^20` give `Pr[Breaks] ≤ 2^-42` (the closed form is about
+`2^-43.0` there, its leanSPHINCS term `n_s Q/2^127`; §0's estimate `≈ 2^-43`).
+
+**The chain.** `aggregate_no_forgery_closed` (`LeanVM/E2E/NoForgeryClosed.lean`) is
+`aggregate_no_forgery` (T5-1) with the costs proved, for any parameter set and any leanSPHINCS bound
+`≤ n_s q/2^127`; `aggregate_no_forgery` assembles T1, W6, T3, E5 and T4 (`aggBadError`) with the two
+reductions. T6-det is `Complete.idealVerify_complete'`, over the guest's completeness over a model
+(`GuestCompleteModel`, L2) as its one hypothesis, L2 being proved by layers (`t6-completeness.md`).
+T7′ is `Sanity.idealVerify_blake2s`. Not proved: the visible-only accounting (W-vis,
+§0's sharper bound with `Q_v` in place of `Q`), and the heuristic of §5 relating V_I to the deployed
+`verifyAggregate`.
