@@ -33,13 +33,43 @@ A *unit* is `2^-128`. The bound is two units per hash call the adversary or the 
      Stopped at each key's signing, and with `H ≤ C + V (1-p)/p` (`mass_le`; `C` counts the cached calls), this gives `E[Φ] 2^128 ≤ E[(V/p)(C + V(1-p)/p)] ≤ (2-p) Q^2 + Q/p` for `Q` digest calls (`E[V] ≤ p Q`, `E[V^2] ≤ p^2 Q^2 + p Q`). For `Q < 2^127` this is at most `Q 2^128`: one unit per digest call, the unit a digest call never spends on a guess. The constant `2 - p` is attained (islands of consecutive calls each ending at a landing), so the separated accounting has no room for a looser argument.
    - Total: `Pr[win] ≤ (2 (q - K) + lowerOrderSlack + 2) 2^-128 ≤ q 2^-127` for `q < 2^127` (trivial above), the `2` paying the guesses of `S_0` and `S` (each at most `q 2^-256 ≤ 2^-128`), with `K = 2 + 2^16 (29 + 174 + 1) + 2^16 - 1 = 13,434,881` the hash calls of key generation (the seed hash, the parameter and the top tree, `keygenQueries` in `XmssSecurity/Proof/Bridge/Real`) and `lowerOrderSlack = 2^20` (`XmssSecurity/Proof/RandomizedStatement`) the room for the final verification's calls and the lanes' lower-order terms (`final_arithmetic` in `XmssSecurity/Proof/Bridge/Security`).
 
+## Attributed and multi-user security
+
+`LeanXmss/MultiUserStatement.lean` states two more targets, proved from the same route.
+
+**Attributed** (`Security.HasAttributedSecurity`, `LeanXmssAttributedSecurityStatement`). A hash call after key generation is *attributable* to the key when its input starts with the key's parameter `P`, as every input of the scheme's own hashes after key generation does. With `E` the expected number of attributable calls after key generation (`expectedAttributedQueries`), for `q < 2^127` and an adversary with budget `q`:
+
+`forgeAdvantage ≤ (2 E + 2^10) / 2^128 + 4 q (E + 2^10) / 2^256 + 2 q / 2^256`.
+
+The two lanes are re-run in expectation over the attributable count, and the count is carried through the bridge's hops: equalities in distribution keep it, erasures only drop calls, and a seed guess moves each tail `Pr[t < count]` by at most the guess (`Proof/FirstLaneExpectedBound`, `Proof/CappedExpected*`, `Proof/Seeded/CountTransport`, `Proof/Bridge/Attributed*`). The slack `2^10` covers the final verification's `384` calls, the `290` forgery probes and the seed guesses.
+
+*The second-order term.* The form `Pr[hit] ≤ u E[stopped count]` with `u = 2^-128`, lane 1 without a second-order term, is false. An adversary that guesses one uniform hidden value at `F` distinct points hits with probability exactly `F u`. Counted up to its first hit, its count has mean `F - u F (F - 1) / 2`, so `u` times that mean falls short of `F u` by `u^2 F (F - 1) / 2`. The count stops at a hit, so it misses the guesses that would have come after it. What holds is `H ≤ u A + u F H` for the hit probability `H`, `A` the count's mean and `F = q + forgeryProbeCount` the fuel, hence `H ≤ u A + 4 (u F)(u A)` when `u F ≤ 3/4` (`le_add_four_mul_of_le_add_mul`). That is the term `4 q (E + 2^10) / 2^256`.
+
+**Multi-user** (`MultiUser.HasMultiUserSecurity`, `LeanXmssMultiUserSecurityStatement`). `n` keys from independent seeds in one random oracle, each with its own signing oracle. The adversary names a key and wins when its forgery verifies under that key, the key never reused a leaf index, and the key never answered a request with that message and signature. The budget `q` counts every hash call: all key generations and signatures, the adversary's calls and the final verification. For every `n` and `q < 2^126`:
+
+`forgeAdvantage ≤ q / 2^127 + n^2 / 2^127 + q^2 / 2^252`,
+
+with no factor `n` on `q`. The proof (`Proof/MultiUser/*`):
+
+1. **A win names a key** (`gameCore_le_sum`): the forgery probability is at most the sum over `j` of the multi-user game verified under key `j`.
+2. **One reduction per key** (`reduction`). Against key `j`, it receives key `j`'s public key, generates the other keys itself through the oracle, signs their requests with their secret keys, passes key `j`'s requests to its own signing oracle, and outputs the forgery. Its signing log is the multi-user log filtered to key `j` (`run_reduction`).
+3. **Key generations commute.** Two computations sharing the lazy random oracle and private sampling may run in either order: the joint law of their results and the final cache is the same (`romRun_bind_comm`). So moving key `j`'s generation first leaves the multi-user game's law unchanged (`romRun_sequenceFin_front`), and the reduction's single-key game is the multi-user game verified under key `j` (`forgeAdvantage_reduction`). Its budget is `q` plus one verification, `q + 384` (`hasHashQueryBound_reduction_of`).
+4. **The attributable counts sum to `(1 + C) q`.** Kept as traces of hash inputs (`traceHashes`), the reduction against key `j` counts, over every trace of the run but key `j`'s own generation, the inputs starting with key `j`'s parameter (`expectedAttributedQueries_reduction`). An input starts with the parameters of at most `1 + C` keys, `C` the ordered pairs of distinct keys sharing a parameter (`card_attributed_le`). So over one run the keys' counts sum to at most `(1 + C)` times the run's length, at most `(1 + C) q`. Each key generation's own calls, at least `2^16` starting with its parameter (one leaf hash per top leaf, `own_count_le`), are subtracted. They pay for the slack `2^10` and the reduction's extra verification (`sum_expectedAttributedQueries_le`):
+
+   `Σ_j E_j + 2^16 n ≤ q (1 + n^2 pairBound) + 384 n`.
+
+5. **Coincidences.** Key generation from a cache of at most `L` inputs outputs a fixed parameter with probability at most `2^-128 + (2L + 1) / 2^256`. Either `S_0` names a cached seed-hash input, or `S` a cached parameter input, or the parameter is a fresh truncation (`probEvent_keygen_parameter_le`). Any two keys can be generated first, by commuting, from the empty cache, where the first caches at most its `K` calls. So two keys share a parameter with probability at most `pairBound ≤ 2^-127` (`probEvent_sequence_pair_le`), and `E[C] ≤ n^2 2^-127`.
+6. **Arithmetic** (`multiUser_arithmetic`). The `n` attributed bounds at budget `q + 384` sum to `(Σ_j (2 E_j + 2^10)) / 2^128 + 4 (q + 384) Σ_j (E_j + 2^10) / 2^256 + 2 n (q + 384) / 2^256`. With step 4, `q ≥ n K` and `q < 2^126`, this is at most `q / 2^127 + n^2 / 2^127 + 12 q^2 / 2^256`.
+
+*The pair term.* The pair term is `n^2 / 2^127`, not the `n^2 / 2^129` of `n(n-1)/2` pairs at `2^-128` each. The first-order term contributes `2 q E[C] / 2^128 ≤ n^2 / 2^128`. That bound counts ordered pairs: an input starting with a parameter shared by `m` keys counts at most `1 + m(m-1)` times. It also rounds `pairBound` up to `2^-127` and uses `q < 2^126`. The second-order term `4 q Σ_j E_j / 2^256`, with `Σ_j E_j ≤ q (1 + E[C])`, contributes as much again.
+
 ## Codewords
 
 A digest is a codeword when its top 12 bits are zero and its first 58 base-4 digits sum to 106: `#codewords = [z^106](1 + z + z^2 + z^3)^58 ≈ 2^107.995`, `p = #codewords / 2^128 ≈ 2^-20.0045`. A codeword determines its digest (all 128 bits are digits). Two distinct codewords are incomparable.
 
 ## Modules
 
-The proof is complete: `XmssSecurity.leanXmss_has_127_bits_of_classical_security : LeanXmssSecurityStatement` (`XmssSecurity.lean`), whose build fails unless its axioms are exactly `propext`, `Classical.choice` and `Quot.sound`.
+The proofs are complete: `XmssSecurity.leanXmss_has_127_bits_of_classical_security : LeanXmssSecurityStatement`, `XmssSecurity.leanXmss_has_attributed_security : LeanXmssAttributedSecurityStatement` and `XmssSecurity.leanXmss_has_multi_user_security : LeanXmssMultiUserSecurityStatement` (`XmssSecurity.lean`). The build fails unless the axioms of each are exactly `propext`, `Classical.choice` and `Quot.sound`.
 
 | modules (`XmssSecurity/`) | content |
 | --- | --- |
@@ -52,3 +82,8 @@ The proof is complete: `XmssSecurity.leanXmss_has_127_bits_of_classical_security
 | `Proof/CappedUnified*`, `Capped{Leaf,Merkle,Suffix}EventProbability`, `TopStructural` | lane 2, structural term: hits on outputs key generation fixed, bottom and top |
 | `Proof/*Keygen*`, `*QueryBound`, `*QueryPresence`, `HonestKeygenRun`, `Top*` | what key generation queries and caches |
 | `Proof/PrecomputedBoundedSign*`, `Capped*Trace`, `CappedConcreteExecution` | the signer and the game's traces |
+| `Proof/FirstLaneExpectedBound`, `BoundedFirstLaneCountedCoupling`, `CappedExpected*`, `ExpectedTail`, `VerifyQueryBound` | the attributed model bound: lane 1 in expectation with its second-order term, lane 2 up to the expected attributable count |
+| `Proof/Seeded/CountTransport`, `Proof/Bridge/Attributed*` | the attributed count through the bridge, and the attributed single-key theorem |
+| `Proof/MultiUser/{Commute,Trace,Reduction}` | lazy-oracle commutation, hash traces, the reduction per key and its game |
+| `Proof/MultiUser/{Count,Keygen,Coincidence,Budget,Expected}` | the reductions' counts and budgets, key generation's trace, coincident parameters, the sum of the counts |
+| `Proof/MultiUser/Security` | the multi-user theorem and its arithmetic |
