@@ -253,3 +253,17 @@ the statement, each with its reason.
   the copies rebuild B1 only. A function free of `BLAKE2S` has its deployed relation under every
   semantics (`relB_iff_rel_of_freeOn`), so its B1 lemmas carry over unchanged. The plan for the
   rest of B1 is `w2-guest-model.md`.
+- **W6-1 (the constant start, the bytecode part).** The batching's start `s0` is data (D5), no
+  oracle answer, and the random-oracle theorem's decoder starts a chain only at a seeding's last
+  answer (`Seeds.first_len`): a constant start is never decoded, and an answer equal to `s0` (a
+  collision with a constant the adversary knows) is not in `Fail`. So the batching leg reads the
+  log as the one where the label's hash is `s0` (`startLog s0 ℓ`, `LeanVM/E2E/Batch.lean`: the
+  entry `(batchLabel, s0)` first, the log's own label entries dropped), which agrees with the log
+  on every chain input and whose failure adds exactly the collisions with `s0`; the deployed
+  seedings `batchSeeds` then apply unchanged. The program certified (`bytecodeAny`,
+  `LeanVM/E2E/Batch/Prog.lean`) is the batching cut after the bytecode's sumcheck, its final
+  check against the bytecode's own value: the bytecode side is sound alone (separate lambdas,
+  separate sumcheck), and the cut program reads no final value, so every hash it makes is one
+  `batchWith` makes. The potential `batchPot` covers every batching instance (child counts below
+  `2^64 - 1`) at once; `κ_batch` is `Q · (2/|E| + 4(Q+1)/2^256)` (the batching's queries are the
+  game's, E2E-1; no `QV_b`).
