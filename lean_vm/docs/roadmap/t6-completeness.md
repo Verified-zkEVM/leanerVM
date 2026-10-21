@@ -182,7 +182,7 @@ children's statements.
 | L14 | **done** (`closure_accepts`, over any good set with a size) `closure_honest`: the closure over honest nodes accepts within `T.size` | [0.3k] |
 | L15 | **done modulo L6** (`idealVerify_accepts`, `outerChecksWith_true`) the root: V° (L6) and `outerChecksWith` | [0.3k] |
 | L16 | the budgeted run (`budgetedQuery`) equals the `Id` run when the count is within `budget` | naturality of `idealVerify` in the hash [0.4–0.6k] |
-| L17 | the node's hashed strings `D` (the queries of `NodeRelWith`'s checks at `H`, logged) have `< 2^64` prefixes under `Limits` | counting [0.3–0.8k], or kept as a hypothesis of `WithinLimits` |
+| L17 | the node's hashed strings `D` (the queries of `NodeRelWith`'s checks at `H`, logged) have `< 2^64` prefixes under `Limits` | reduced to a count on `nodeLog` (`NodeLog.lean`, `TreeLog.lean`; decision T6-2 of `e2e-security.md`); the count a hypothesis |
 
 Total ≈ 32–50k lines, of which L2 is two thirds. The design's 6–13k assumed the guest's
 completeness would transfer from the deployed one; it does not (§4.1).

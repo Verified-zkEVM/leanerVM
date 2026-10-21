@@ -300,6 +300,22 @@ the statement, each with its reason.
   6–13k (plan and decomposition: `t6-completeness.md`). Two findings on V_I there, each fixed by
   a decision below: E2E-4 (a good event, distinct honest commitment roots) and E2E-5 (the
   idealized proof names the decoder's frames).
+- **T6-2 (L17 as a count on the node's log).** T6-det's limits carried L17 as `NodeSupport`, an
+  existential: some list `D` of fewer than `2^64` block prefixes on which the node's checks,
+  answered there alone, still hold. It is now reduced to a plain count on a defined log:
+  `nodeLog H s w` (`LeanVM/E2E/Complete/NodeLog.lean`) runs the node's `…With` checks (statement
+  digest, children's digests and deferring verifiers, the held signatures, the DA openings, the
+  batching) in a logging monad, and `nodeSupport_of_count` gives `NodeSupport` from
+  `(prefixesOf (nodeLog H s w)).length < 2^64`; `HonestTree.WithinLimits'` and
+  `idealVerify_complete''` (`TreeLog.lean`) state T6-det with that count in place of the field.
+  The count itself stays a hypothesis. It holds at the deployed limits by a margin (an estimate
+  below `2^40`: at most 16 children with streams of at most 8192 scalars, lists below `2^16`, at
+  most one held matrix of at most 1024 rows, fixed-size signatures and batching), but `Limits`
+  bounds only each child's proof stream: the number of hash calls inside a child's deferring
+  verifier (samples, openings used, leaf widths, path heights) is bounded only by the verifier
+  program's structure, which needs a cost bound for each of `Spec/Verifier.lean`'s programs
+  under the validated layout. That is estimated at 6–9 days and left as a follow-up; T6-det does
+  not depend on how the count is proved.
 - **E2E-4 (distinct honest roots).** `nodeStep` finds a node's word by its stack root, first match;
   for an `H` making two honest stack roots of different shapes equal, V_I takes the wrong word and
   rejects, so T6-det as designed is false. T6-det adds the good event `RootsInj ip` (the idealized
