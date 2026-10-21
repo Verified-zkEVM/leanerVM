@@ -207,12 +207,24 @@ theorem loop100S_completeAtBST {κ Bc : ℕ}
 
 
 /-- **What `__loop100`'s tree loads, at its call words**: every iteration's slot mark and root, for
-some slots and roots. -/
+some slots below the slot count `M ≤ 2^16` (`nslots = g^M`) and roots, `m ≤ 2^16` of them. -/
 def Loop100Q : List E → ℕ → Reader → Memory.Tree → Prop
-  | [_, N, _, roots, dcov, _, base, nsub], _, _, t =>
-      ∃ (m : ℕ) (sl : ℕ → ℕ) (rt : ℕ → List E), N = gen ^ m ∧
+  | [_, N, _, roots, dcov, nslots, base, nsub], _, _, t =>
+      ∃ (m : ℕ) (sl : ℕ → ℕ) (rt : ℕ → List E), m ≤ 2 ^ 16 ∧ N = gen ^ m ∧
+        (∃ M ≤ 2 ^ 16, nslots = gen ^ M ∧ ∀ c < m, sl c < M) ∧
         LoadsAll (L100A roots dcov base nsub sl rt m 0) t
   | _, _, _, _ => True
+
+/-- `CompleteAtBST` at a weaker predicate, on the memories it is asked on. -/
+theorem CompleteAtBST.qmono_rd {κ : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B : ℕ} {Q Q' : ℕ → Reader → Memory.Tree → Prop}
+    (h : CompleteAtBST S fs cert κ f Lin args Out B Q)
+    (hQ : ∀ fp rd t, LowDef κ rd → MemL rd Lin → Q fp rd t → Q' fp rd t) :
+    CompleteAtBST S fs cert κ f Lin args Out B Q' := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hW, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hW, hd, hn, fun rd hl hm =>
+    let ⟨t, hq, rest⟩ := hr rd hl hm
+    ⟨t, hQ fp rd t hl (memL_append.mp hm).2 hq, rest⟩⟩
 
 /-- `CompleteAtBST` within weights bounding every valid tree (`CompleteAtB.toWS` with a
 predicate). -/

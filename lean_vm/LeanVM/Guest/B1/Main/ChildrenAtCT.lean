@@ -198,9 +198,22 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
       (fun b' rd' t => Loop100Q [1, gen ^ nda, ofK (gpow (b + 2)), daR, daC, daS, r.base,
         gen ^ r.nx * gen ^ r.ns] b' rd' t) := by
     intro ht
-    refine LeanVM.Guest.B1.CompleteAtBST.qmono (loop100S_completeAtBST HCov (by have := o.nda; omega)
+    refine CompleteAtBST.qmono_rd (loop100S_completeAtBST HCov (by have := o.nda; omega)
       (by omega) (Lb ++ Lin) (fun k => (r.da.map daCellsOf).getD k []) (fun c hc => ?_) dsl
-      (fun c hc rd hl h => ?_) (fun c hc k hk => ?_)) fun _ _ t h => ⟨nda, _, _, rfl, h⟩
+      (fun c hc rd hl h => ?_) (fun c hc k hk => ?_)) fun _ rd t hl hL h =>
+      ⟨nda, _, _, by have := o.nda; omega, rfl, ?_, h⟩
+    rotate_left 3
+    · -- the slots, below the slot count
+      have hM : ∀ c < nda, ∃ M, M ≤ 2 ^ 16 ∧ dsl c < M ∧ daS = gen ^ M := fun c hc => by
+        have := hcov c hc rd hl (mLb rd hL)
+        simp only [CoverPreAt, daCellsOf] at this
+        obtain ⟨M, h1, h2, h3, -⟩ := this
+        exact ⟨M, h1, h2, h3⟩
+      obtain ⟨M, hM1, -, hM3⟩ := hM 0 (by omega)
+      refine ⟨M, hM1, hM3, fun c hc => ?_⟩
+      obtain ⟨M', hM1', hM2', hM3'⟩ := hM c hc
+      rw [hM3] at hM3'
+      rwa [gen_pow_inj' (by omega) (by omega) hM3']
     · rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map]; rfl
     · rw [List.getD_eq_getElem _ _ (by simpa using hc), List.getElem_map]
       exact hcov c hc rd hl (mLb rd h)
