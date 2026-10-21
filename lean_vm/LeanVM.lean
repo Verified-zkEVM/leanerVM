@@ -13,6 +13,7 @@ import LeanVM.E2E.Engine
 import LeanVM.E2E.Da
 import LeanVM.E2E.Batch
 import LeanVM.Guest.EndKnowB
+import LeanVM.E2E.Guest
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
 
@@ -171,3 +172,19 @@ import LeanVM.E2E.Knowledge
 /-- info: 'LeanVM.E2E.prEvent_game_aggregate_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.prEvent_game_aggregate_le
+
+/-- info: 'LeanVM.E2E.guestHypsM_model' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.guestHypsM_model
+
+/-- info: 'LeanVM.E2E.guest_knowledge_model_all' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.guest_knowledge_model_all
+
+/-- info: 'LeanVM.E2E.aggregate_knowledge' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_knowledge
+
+/-- info: 'LeanVM.E2E.prEvent_game_aggregate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.prEvent_game_aggregate
