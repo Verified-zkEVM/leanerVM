@@ -267,3 +267,10 @@ the statement, each with its reason.
   `batchWith` makes. The potential `batchPot` covers every batching instance (child counts below
   `2^64 - 1`) at once; `κ_batch` is `Q · (2/|E| + 4(Q+1)/2^256)` (the batching's queries are the
   game's, E2E-1; no `QV_b`).
+- **E2E-3 (V_I's decoder).** The deployed decoder `End.decode` locates each callee's witness at
+  the first memory frame whose code holds under the *deployed* semantics; under another `BLAKE2S`
+  semantics the frame a located call ran at can differ, so T2 cannot hold with `decode` (found by
+  W2's Main/End assembly). V_I decodes a candidate with `End.decodeB (tableSem rows)`
+  (`Guest/EndKnowB.lean`): the same hash-free decoder with frames chosen under the candidate's
+  own table semantics, which is the oracle model's (`HashModel.oracle`), and `decode` again at
+  the deployed semantics (`decodeB_deployed`). T2 is `guest_knowledge_model` with this decoder.

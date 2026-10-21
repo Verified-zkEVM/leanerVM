@@ -7,7 +7,8 @@
 
 module
 
-public import LeanVM.Guest.EndKnow
+public import LeanVM.Guest.EndKnowB
+public import LeanVM.Guest.Value.OracleModel
 public import LeanVM.Spec.NodeWith
 public import LeanVM.Spec.Ideal.Blind
 public import LeanVM.Spec.Ideal.Table
@@ -30,8 +31,10 @@ children decoded from every candidate the committed words allow: for every node,
 its stack root has that root, and every candidate satisfying the leanISA relation without Flock
 (`M3HoldsBlind`) is an execution under the Flock-blind semantics (`haltingRunB blakeFree`) whose
 `BLAKE2S` rows pass the precheck and the table check (`tableOKWith`); its decoded children are
-nodes. The closure runs in `fuel` steps. V_I decodes with the deployed guest's decoder
-(`LeanVM.Guest.End.decode`), so the end theorem is about the deployed guest (`prog := guest`).
+nodes. The closure runs in `fuel` steps. V_I decodes a candidate's memory with the deployed
+guest's decoder at the semantics of the candidate's own table (`End.decodeB (tableSem rows)`, which
+is `End.decode` at the deployed semantics: decision E2E-3), so the end theorem is about the
+deployed guest (`prog := guest`).
 
 **The game** (`game`, §3, with decision E2E-1 of the design's §7): one random oracle
 `H : Bytes → Digest`, lazily sampled over the ordered log of its fresh queries (`Rom.loggedRO`),
@@ -199,8 +202,9 @@ noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
     let mut kids : List Node := []
     for q in h.toFinset.toList do
       let some t := candidateRun prog s q | return none
-      if !(← tableOKWith H (t.blakeRows blakeFree)) then return none
-      for c in (LeanVM.Guest.End.decode t.image).witness.children do
+      let rows := t.blakeRows blakeFree
+      if !(← tableOKWith H rows) then return none
+      for c in (LeanVM.Guest.End.decodeB (Guest.Value.tableSem rows) t.image).witness.children do
         let pc ← statementDigestWith H seed c.statement
         kids := kids ++ [(pc, c.proof)]
     return some kids
