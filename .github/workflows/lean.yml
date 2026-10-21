@@ -44,11 +44,13 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_xmss
         run: |
-          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n' \
+          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n#print axioms XmssSecurity.leanXmss_has_attributed_security\n' \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          grep -qF "'XmssSecurity.leanXmss_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound]" \
-            "$RUNNER_TEMP/axioms.txt"
+          for t in leanXmss_has_127_bits_of_classical_security leanXmss_has_attributed_security; do
+            grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
+              "$RUNNER_TEMP/axioms.txt"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: lean-xmss-axioms

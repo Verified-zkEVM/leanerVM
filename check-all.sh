@@ -52,7 +52,8 @@ lean_xmss() {
   no_escapes lean_xmss
   (cd lean_xmss && lake exe cache get)
   build lean_xmss '(LeanXmss|XmssSecurity)'
-  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security \
+    XmssSecurity.leanXmss_has_attributed_security
 }
 
 lean_sphincs() {
