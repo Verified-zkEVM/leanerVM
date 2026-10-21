@@ -125,6 +125,7 @@ import Sphincs.Lifetimes
 import Sphincs.LifetimesMulti
 import Sphincs.LoopWalk
 import Sphincs.MultiEager
+import Sphincs.MultiPay
 import Sphincs.MultiReduction
 import Sphincs.Pruning
 import Sphincs.RandomizedCorrectness
@@ -5056,6 +5057,10 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.ForsPotential.sample_boundF
 
+/-- info: 'Sphincs.Security.ForsPotential.sample_boundF_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.ForsPotential.sample_boundF_of
+
 /-- info: 'Sphincs.Security.ForsPotential.arm_paysF' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.ForsPotential.arm_paysF
@@ -9251,6 +9256,22 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.MultiEager.valF_query_bind' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.MultiEager.valF_query_bind
+
+/-- info: 'Sphincs.Security.ForsPotential.sample_boundF_pay' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.ForsPotential.sample_boundF_pay
+
+/-- info: 'Sphincs.Security.HiddenDebt.interp_potential_refund' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.interp_potential_refund
+
+/-- info: 'Sphincs.Security.PotentialA.Ctx.endValue_add_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.Ctx.endValue_add_le
+
+/-- info: 'Sphincs.Security.PotentialA.smallRoute_potential_pay' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.smallRoute_potential_pay
 
 /-- info: 'Sphincs.Security.Multi.callsF_hashB' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

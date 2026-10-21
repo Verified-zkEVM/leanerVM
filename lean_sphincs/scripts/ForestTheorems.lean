@@ -1,5 +1,6 @@
 import Sphincs.Lifetimes
 import Sphincs.LifetimesMulti
+import Sphincs.MultiPay
 import Sphincs.Axioms
 import Lean
 
