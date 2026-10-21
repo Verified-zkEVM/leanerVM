@@ -236,7 +236,27 @@ theorem small_seedFree_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (
   rw [ENNReal.tsum_mul_right]
   exact mul_le_of_le_one_left' (OracleComp.tsum_prEvent_le_one _)
 
-/-- **Small budgets, deterministic signer.** -/
+/-- **Small budgets, deterministic signer**, for the wins within `q` hash calls (no query bound is
+assumed). -/
+theorem det_smallF_budgeted (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
+    (hq : q < 2 ^ 256)
+    (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
+    (κ : ℚ) (hκ0 : 0 ≤ κ) (hκ1 : κ ≤ 1) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
+      (signatureLimit : ℝ) * (123 * ((2 : ℝ) ^ subtreeHeight * 2 ^ 15)⁻¹) ≤ (κ : ℝ))
+    (b N : ℕ) (hbb : subtreeHeight = b) (hNN : signatureLimit = N)
+    (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
+    (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
+    (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
+    Det.budgetedAdvantageDet adversary q ≤
+      smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
+        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := by
+  refine le_trans (Det.budgetedAdvantageDet_le_seedFree adversary q) (add_le_add ?_ le_rfl)
+  refine le_trans (small_seedFree_boundF hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q hq ρ hN
+    κ hκ0 hκ1 hκ b N hbb hNN t o on hpt qtop hrt hqtop ho hon hcthr) ?_
+  rw [add_right_comm]
+  exact add_le_add (add_le_add le_rfl (mul_le_mul_right expectedFail_le _)) le_rfl
+
+/-- `det_smallF_budgeted` for an adversary within the budget. -/
 theorem det_smallF (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
     (hbound : Det.HasHashQueryBoundDet adversary q) (hq : q < 2 ^ 256)
     (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
@@ -249,11 +269,8 @@ theorem det_smallF (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
     Det.forgeAdvantageDet adversary ≤
       smallMainFF ρ q o.B (κ * ((2 ^ b * on.En : ℚ) / 2)) + smallFailF q * (2 : ℝ≥0∞)⁻¹ ^ 201 +
         2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) + 3 * ((q : ℝ≥0∞) / 2 ^ 256) := by
-  refine le_trans (Det.forgeAdvantageDet_le_seedFree adversary q hbound) (add_le_add ?_ le_rfl)
-  refine le_trans (small_seedFree_boundF hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q hq ρ hN
-    κ hκ0 hκ1 hκ b N hbb hNN t o on hpt qtop hrt hqtop ho hon hcthr) ?_
-  rw [add_right_comm]
-  exact add_le_add (add_le_add le_rfl (mul_le_mul_right expectedFail_le _)) le_rfl
+  rw [Det.forgeAdvantageDet_eq_budgeted adversary q hbound]
+  exact det_smallF_budgeted hb adversary q hq ρ hN κ hκ0 hκ1 hκ b N hbb hNN t o on hpt qtop hrt hqtop ho hon hcthr
 
 end Close
 

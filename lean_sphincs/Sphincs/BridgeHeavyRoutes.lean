@@ -305,17 +305,17 @@ set_option maxRecDepth 100000 in
 /-- **Large budgets, deterministic signer, weighted baseline, one heavy message.** For a coin `wbar`
 that pays the rate at `(q - keygenCost) / 2` cached digests and `Lmax` landed pairs, with a
 negligible cap term: if the large-budget inequality `hH0` with the weighted baseline and the excess
-forecast with one spare slot holds at the adversary's budget after key generation, the deterministic
-signer's advantage is at most `q / 2^127`. -/
-theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
-    (hbound : Det.HasHashQueryBoundDet adversary q) (hq : q < 2 ^ 127) (hK : keygenCost ≤ q)
+forecast with one spare slot holds at the budget after key generation, the probability of a win
+within `q` hash calls against the deterministic signer is at most `q / 2^127`. -/
+theorem det_largeH_budgeted (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
+    (hq : q < 2 ^ 127) (hK : keygenCost ≤ q)
     (wbar : ℝ≥0∞) (Lmax : ℕ) (hfair : FairS wbar ((q - keygenCost) / 2) Lmax)
     (hlam : lam Lmax 0 (q - keygenCost) ≤ (2 : ℝ≥0∞)⁻¹ ^ 201)
     (hH0 : (1 - budget 0 (q - keygenCost)) + ((q - keygenCost : ℕ) : ℝ≥0∞) *
         startExcessH wbar (baselineW (q - keygenCost)) (q - keygenCost) +
         ((q - keygenCost + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 ≤
       ((q - keygenCost + keygenCost : ℕ) : ℝ≥0∞) / 2 ^ 127) :
-    Det.forgeAdvantageDet adversary ≤ q / 2 ^ 127 := by
+    Det.budgetedAdvantageDet adversary q ≤ q / 2 ^ 127 := by
   set q' := q - keygenCost with hq'
   have hsum : q' + keygenCost = q := by omega
   have hq'le : 2 * q' ≤ 2 ^ 128 := by omega
@@ -326,7 +326,7 @@ theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
   have hmain := large_seedFree_boundH hb (Memo.memoAdv adversary) (Memo.memoAdv_noRepeat adversary) q
     (by omega) (fun _ _ _ _ _ hprep => targetingAll hb _ _ _ _ _ hprep)
     (fun _ _ _ _ _ hprep => prepared_clean _ _ _ _ _ hprep) wbar Lmax hfair htotal
-  refine le_trans (Det.forgeAdvantageDet_le_seedFree adversary q hbound) ?_
+  refine le_trans (Det.budgetedAdvantageDet_le_seedFree adversary q) ?_
   have hE := expectedFail_le
   -- the negligible terms fit in the slack
   have hslack : ((q' : ℝ≥0∞) + signatureLimit) * expectedFail + 3 * ((q : ℝ≥0∞) / 2 ^ 256) +
@@ -374,6 +374,19 @@ theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
           ((q' + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 := add_le_add le_rfl hslack
     _ ≤ ((q' + keygenCost : ℕ) : ℝ≥0∞) / 2 ^ 127 := hH0
     _ = (q : ℝ≥0∞) / 2 ^ 127 := by rw [hsum]
+
+/-- `det_largeH_budgeted` for an adversary within the budget. -/
+theorem det_largeH (hb : 0 < subtreeHeight) (adversary : Adversary) (q : ℕ)
+    (hbound : Det.HasHashQueryBoundDet adversary q) (hq : q < 2 ^ 127) (hK : keygenCost ≤ q)
+    (wbar : ℝ≥0∞) (Lmax : ℕ) (hfair : FairS wbar ((q - keygenCost) / 2) Lmax)
+    (hlam : lam Lmax 0 (q - keygenCost) ≤ (2 : ℝ≥0∞)⁻¹ ^ 201)
+    (hH0 : (1 - budget 0 (q - keygenCost)) + ((q - keygenCost : ℕ) : ℝ≥0∞) *
+        startExcessH wbar (baselineW (q - keygenCost)) (q - keygenCost) +
+        ((q - keygenCost + keygenCost + signatureLimit : ℕ) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 200 ≤
+      ((q - keygenCost + keygenCost : ℕ) : ℝ≥0∞) / 2 ^ 127) :
+    Det.forgeAdvantageDet adversary ≤ q / 2 ^ 127 := by
+  rw [Det.forgeAdvantageDet_eq_budgeted adversary q hbound]
+  exact det_largeH_budgeted hb adversary q hq hK wbar Lmax hfair hlam hH0
 
 end ChainH
 

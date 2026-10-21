@@ -1,4 +1,6 @@
-import Sphincs.Statement
+module
+
+public import Sphincs.Statement
 
 /-!
 The SUF-CMA target for the signer of the Rust implementation, `Seeded.sign`: the key is generated
@@ -12,6 +14,8 @@ forgery advantage, the hash-query budget and the security-bits target.
 open OracleComp OracleSpec ENNReal
 
 namespace Sphincs.Security.Det
+
+@[expose] public section
 
 variable [Params]
 
@@ -42,5 +46,7 @@ def HasHashQueryBoundDet (adversary : Adversary) (q : Nat) : Prop :=
 def HasClassicalSecurityBitsDet (bits : Nat) : Prop :=
   ∀ q, 1 ≤ q → ∀ adversary, HasHashQueryBoundDet adversary q →
     forgeAdvantageDet adversary ≤ q / ((2 ^ bits : Nat) : ℝ≥0∞)
+
+end
 
 end Sphincs.Security.Det
