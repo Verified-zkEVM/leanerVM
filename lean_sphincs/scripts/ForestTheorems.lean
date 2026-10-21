@@ -3,6 +3,7 @@ import Sphincs.LifetimesMulti
 import Sphincs.MultiPay
 import Sphincs.MultiClass
 import Sphincs.MultiTrace
+import Sphincs.MultiTransport
 import Sphincs.Axioms
 import Lean
 
