@@ -66,7 +66,7 @@ lean_sphincs() {
   done
   build lean_sphincs 'Sphincs(Fors|Base)?/'
   axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityBudgeted \
-    Sphincs.Lifetimes.requestedMultiUser
+    Sphincs.Lifetimes.requestedMultiUser Sphincs.Lifetimes.requestedMultiUserKey
 }
 
 lean_da() {
