@@ -13,6 +13,8 @@ import LeanVM.E2E.Engine
 import LeanVM.E2E.Da
 import LeanVM.E2E.Batch
 import LeanVM.Guest.EndKnowB
+import LeanVM.E2E.Termination
+import LeanVM.E2E.Knowledge
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`LeanVM/Spec/Statement.lean`), and the deployed aggregation guest's: `AggregateSound` (what the outer verifier's acceptance establishes) and `GuestKnowledge` (`LeanVM/Spec/Guest.lean`), its witness read off the execution's memory by `LeanVM.Guest.End.decode`, with `decode_binds`; the recursion step `LeanVM.Guest.Batch.children_sound` and the batching in the random-oracle model `LeanVM.Guest.Batch.batch_rom`; `GuestSound` and `GuestCompleteWithin` (`LeanVM/Guest/End.lean`). The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
@@ -145,3 +147,23 @@ import LeanVM.Guest.EndKnowB
 /-- info: 'LeanVM.Guest.End.guest_knowledge_of_model' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.End.guest_knowledge_of_model
+
+/-- info: 'LeanVM.E2E.rank_lt_of_child' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.rank_lt_of_child
+
+/-- info: 'LeanVM.E2E.prEvent_game_pred_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.prEvent_game_pred_le
+
+/-- info: 'LeanVM.E2E.aggregate_knowledge_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_knowledge_cache
+
+/-- info: 'LeanVM.E2E.aggregate_knowledge_cache'' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_knowledge_cache'
+
+/-- info: 'LeanVM.E2E.prEvent_game_aggregate_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.prEvent_game_aggregate_le

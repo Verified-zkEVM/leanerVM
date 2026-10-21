@@ -274,3 +274,18 @@ the statement, each with its reason.
   (`Guest/EndKnowB.lean`): the same hash-free decoder with frames chosen under the candidate's
   own table semantics, which is the oracle model's (`HashModel.oracle`), and `decode` again at
   the deployed semantics (`decodeB_deployed`). T2 is `guest_knowledge_model` with this decoder.
+- **W5-1 (T3's measure and event).** The rank of a node is the log index of the entry answering
+  its statement digest. A child's digest is observed by the parent's batching as two halves; the
+  entry observing the second completes it as a root (`RootOf`, `lt_of_rootOf`), and the chain's
+  later entries follow (`lt_of_chunk`, `ChainLE`), to the matrices' sumcheck, whose last
+  challenge is the parent's last deferred matrix coordinate. The parent's statement bytes carry
+  it at the fixed offset `predOffset bytecode` (byte 1296 for the guest, by
+  `DeferredClaim.Shaped`); the event `Pred o ℓ` (an input carrying, at offset `o`, the 24 bytes
+  of the challenge of the same or a later entry's answer) is T3's bad event, of probability at
+  most `Q (Q + 1) / 2^193` (`LeanVM/E2E/Termination.lean`, `prEvent_game_pred_le`), with the
+  potential `ind Pred + Σ_{|ℓ| ≤ k < Q} (k + 1)/|E|`. V_I's closure needs no change: an
+  accepted closure finished, and its `done` skip only shares checked nodes (`closure_checked`).
+  T4 (`LeanVM/E2E/Knowledge.lean`, `aggregate_knowledge_cache`) takes W2's callee facts at the
+  log's oracle models as a hypothesis and the cache form of V_I's acceptance
+  (`idealVerify (look ℓ) … = some true`); the step from the game's own run of V_I (against
+  `budgetedQuery`) to that form is not yet proved.
