@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Opening
+public import LeanVM.Guest.Value.NodeSome
 
 /-!
 # `batch_sumcheck` (TRIAGE #27)
@@ -19,6 +20,11 @@ sumcheck: per round two stream words `g(1)`, `g(∞)` at `msgs[2r]`, `msgs[2r + 
 `(7 + 51 * r) = 7 + 51·r` (two `fs_next`, a `squeeze`, a store and the fold), the state of round
 `r ≥ 1` being the previous squeeze's output and its claim the previous fold; `bsBody n` is equal
 by `rfl` to each specialization (`__L22`, `__L28`).
+
+Under a hash model: `batch_sumcheck_model` concludes `Node.batchRoundsWith` over the model's hash
+(`Spec/NodeWith.lean`) answered (`MeaningBatchSumcheckWith`), round by round from the answered
+digests of each block (`BsOkB`, `batchRoundsWith_cons_run`); the deployed iff's forward direction
+is it at `HashModel.deployed` (`meaningBatchSumcheckWith_deployed`, by `batchRoundsWith_some`).
 
 `bsRun` mirrors `Node.batchRounds` on the chain (`batchRounds_run`), and `bsSt` gives its state
 and claim after each prefix of the rounds.
@@ -254,108 +260,187 @@ theorem bs_sq (st : E × Digest) (g : E × E) (k : ℕ) (hk : k < 14) :
   rw [ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega), ite_neg' (by omega),
     ite_pos' (by omega), show 30 + k - 30 = k by omega]
 
+/-! ## Under a hash model -/
+
+/-- What round `r` gives under a hash model: `BsOk` with the two absorptions' and the squeeze's
+hashes answered, each output the answered digest's cells. -/
+def BsOkB (M : HashModel) (rd : Reader) (σ : Val) (r : ℕ) : Prop :=
+  (LoadHolds rd (σ (.n 2)) (2 * r) (σ (.n ((7 + 51 * r)))) ∧
+    ∃ cv d, (σ (.n (bsS r)), σ (.n (bsS r + 1))) = digestScalars cv ∧
+      obsCvM M cv (σ (.n (7 + 51 * r))) = some d ∧
+      ∀ k, 2 ≤ k → k < 14 → σ (.n ((7 + 51 * r) + 1 + k)) = fsValsD (σ (.n ((7 + 51 * r)))) d 1 k) ∧
+  (LoadHolds rd (σ (.n 2)) (2 * r + 1) (σ (.n ((7 + 51 * r) + 15))) ∧
+    ∃ cv d, (σ (.n ((7 + 51 * r) + 13)), σ (.n ((7 + 51 * r) + 14))) = digestScalars cv ∧
+      obsCvM M cv (σ (.n ((7 + 51 * r) + 15))) = some d ∧
+      ∀ k, 2 ≤ k → k < 14 →
+        σ (.n ((7 + 51 * r) + 15 + 1 + k)) = fsValsD (σ (.n ((7 + 51 * r) + 15))) d 1 k) ∧
+  (∃ cv d, (σ (.n ((7 + 51 * r) + 28)), σ (.n ((7 + 51 * r) + 29))) = digestScalars cv ∧
+    sqCvM M cv = some d ∧ ∀ k < 14, σ (.n ((7 + 51 * r) + 30 + k)) = sqValsD d k) ∧
+  LoadHolds rd (σ (.n 4)) r (σ (.n ((7 + 51 * r) + 43))) ∧
+  σ (.n ((7 + 51 * r) + 44)) = σ (.n (bsC r)) + σ (.n ((7 + 51 * r))) ∧
+  σ (.n ((7 + 51 * r) + 45)) = σ (.n ((7 + 51 * r) + 44)) + σ (.n ((7 + 51 * r))) ∧
+  σ (.n ((7 + 51 * r) + 46)) = σ (.n ((7 + 51 * r) + 45)) + σ (.n ((7 + 51 * r) + 15)) ∧
+  σ (.n ((7 + 51 * r) + 47)) = σ (.n ((7 + 51 * r) + 15)) * σ (.n ((7 + 51 * r) + 43)) ∧
+  σ (.n ((7 + 51 * r) + 48)) = σ (.n ((7 + 51 * r) + 47)) + σ (.n ((7 + 51 * r) + 46)) ∧
+  σ (.n ((7 + 51 * r) + 49)) = σ (.n ((7 + 51 * r) + 48)) * σ (.n ((7 + 51 * r) + 43)) ∧
+  σ (.n ((7 + 51 * r) + 50)) = σ (.n ((7 + 51 * r) + 49)) + σ (.n ((7 + 51 * r) + 44))
+
+theorem holdsB_bsBlock {M : HashModel} (r : ℕ) (kret : List E → Prop)
+    (h : Stmt.HoldsListB M.sem C rd σ (bsBlock r) True kret) : BsOkB M rd σ r := by
+  rw [bsBlock, holdsListB_append, holdsListB_append, holdsListB_append] at h
+  obtain ⟨hA, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨hB, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨hC, h⟩ := holdsB_squeezeT _ _ _ h
+  simp only [Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, and_true] at h
+  exact ⟨hA, hB, hC, h⟩
+
+/-- **`batch_sumcheck(n)` under a hash model** (the meaning of `MeaningBatchSumcheck`, every hash
+answered): the rounds are `Node.batchRoundsWith` over the model's hash (`Spec/NodeWith.lean`),
+answered. -/
+def MeaningBatchSumcheckWith (M : HashModel) (n : ℕ) (rd : Reader) : List E → List E → Prop
+  | [s0, s1, msgs, running, point], rets =>
+      ∃ cv rounds rs final cv', (s0, s1) = digestScalars cv ∧ rounds.length = n ∧
+        (∀ r (hr : r < rounds.length),
+          LoadHolds rd msgs (2 * r) rounds[r].1 ∧ LoadHolds rd msgs (2 * r + 1) rounds[r].2) ∧
+        (Node.batchRoundsWith (m := Option) M.H running rounds).run cv = some ((rs, final), cv') ∧
+        ReadsAt rd point rs ∧
+        rets = [(digestScalars cv').1, (digestScalars cv').2, final]
+  | _, _ => False
+
+/-- At the deployed model it is `MeaningBatchSumcheck`. -/
+theorem meaningBatchSumcheckWith_deployed (n : ℕ) (rd : Reader) (args rets : List E) :
+    MeaningBatchSumcheckWith HashModel.deployed n rd args rets ↔
+      MeaningBatchSumcheck n rd args rets := by
+  unfold MeaningBatchSumcheckWith MeaningBatchSumcheck
+  split
+  · have hH : HashModel.deployed.H = someBlake := rfl
+    simp only [hH, batchRoundsWith_some, Option.some.injEq]
+  · exact Iff.rfl
+
+/-- One round of `Node.batchRoundsWith` over a hash model, from the answered hashes of its two
+absorptions and its squeeze. -/
+theorem batchRoundsWith_cons_run {M : HashModel} {c d1 d2 d3 : Digest} {claim g1 gInf : E}
+    {rest : List (E × E)}
+    (h1 : obsCvM M c g1 = some d1) (h2 : obsCvM M d1 gInf = some d2) (h3 : sqCvM M d2 = some d3) :
+    (Node.batchRoundsWith (m := Option) M.H claim ((g1, gInf) :: rest)).run c =
+      ((Node.batchRoundsWith (m := Option) M.H
+        ((gInf * challengeOf d3 + (claim + g1 + g1 + gInf)) * challengeOf d3 + (claim + g1))
+          rest).run d3).map fun p ↦ ((challengeOf d3 :: p.1.1, p.1.2), p.2) := by
+  unfold obsCvM at h1 h2
+  unfold sqCvM at h3
+  simp only [Node.batchRoundsWith, Node.observeWith, Node.squeezeWith, StateT.run_bind,
+    StateT.run_get, StateT.run_set, StateT.run_monadLift, monadLift_self, StateT.run_pure,
+    Option.pure_def, Option.bind_eq_bind, Option.bind_some, h1, h2, h3]
+  cases StateT.run (Node.batchRoundsWith M.H _ rest) d3 <;> rfl
+
+/-- **`batch_sumcheck` is sound under a hash model**, at every `n ≥ 1`, for a compiled function
+whose body is `bsBody n`: the rounds' words are `Node.batchRoundsWith` over the model's hash,
+every hash answered. -/
+theorem batch_sumcheck_model {M : HashModel} {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
+    (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4])
+    (hbody : f.body = bsBody n) (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd name args rets) : MeaningBatchSumcheckWith M n rd args rets := by
+  rw [relB_iff_sem hfind, hbody, hparams, bsBody] at h
+  simp only [holdsListB_append, holdsListB_flatten_range n bsBlock (fun _ => rfl),
+    Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons, List.map_nil] at h
+  obtain ⟨σ, hp, h5, h6, hblk, t1, t2, t3, hret⟩ := h
+  subst hp
+  have hblk : ∀ r < n, BsOkB M rd σ r := fun r hr ↦ holdsB_bsBlock r _ (hblk r hr)
+  set rounds := (List.range n).map fun r => (σ (.n ((7 + 51 * r))), σ (.n ((7 + 51 * r) + 15)))
+  set rs := (List.range n).map fun r => σ (.n ((7 + 51 * r) + 43))
+  have hlen : rounds.length = n := by simp [rounds]
+  have hrlen : rs.length = n := by simp [rs]
+  have hdrop : ∀ i < n, rounds.drop i =
+      (σ (.n ((7 + 51 * i))), σ (.n ((7 + 51 * i) + 15))) :: rounds.drop (i + 1) := fun i hi ↦ by
+    rw [List.drop_eq_getElem_cons (by omega)]
+    simp [rounds]
+  have hdrop' : ∀ i < n, rs.drop i = σ (.n ((7 + 51 * i) + 43)) :: rs.drop (i + 1) := fun i hi ↦ by
+    rw [List.drop_eq_getElem_cons (by omega)]
+    simp [rs]
+  have key : ∀ j i, i + j = n → ∀ c, (σ (.n (bsS i)), σ (.n (bsS i + 1))) = digestScalars c →
+      ∃ c', (σ (.n (bsS n)), σ (.n (bsS n + 1))) = digestScalars c' ∧
+        (Node.batchRoundsWith (m := Option) M.H (σ (.n (bsC i))) (rounds.drop i)).run c =
+          some ((rs.drop i, σ (.n (bsC n))), c') := by
+    intro j
+    induction j with
+    | zero =>
+      intro i hi c hc
+      obtain rfl : i = n := by omega
+      refine ⟨c, hc, ?_⟩
+      rw [List.drop_of_length_le (by omega), List.drop_of_length_le (by omega)]
+      rfl
+    | succ j ih =>
+      intro i hi c hc
+      obtain ⟨⟨-, cvA, dA, hA, hdA, eA⟩, ⟨-, cvB, dB, hB, hdB, eB⟩, ⟨cvC, dC, hC, hdC, eC⟩, -, a44,
+        a45, a46, a47, a48, a49, a50⟩ := hblk i (by omega)
+      obtain rfl : cvA = c := digestScalars_injective (hA.symm.trans hc)
+      have f13 : σ (.n ((7 + 51 * i) + 13)) = (digestScalars dA).1 := by
+        rw [show (7 + 51 * i) + 13 = (7 + 51 * i) + 1 + 12 by omega]; exact eA 12 (by omega) (by omega)
+      have f14 : σ (.n ((7 + 51 * i) + 14)) = (digestScalars dA).2 := by
+        rw [show (7 + 51 * i) + 14 = (7 + 51 * i) + 1 + 13 by omega]; exact eA 13 (by omega) (by omega)
+      obtain rfl : cvB = dA := digestScalars_injective (by rw [← hB, f13, f14])
+      have f28 : σ (.n ((7 + 51 * i) + 28)) = (digestScalars dB).1 := by
+        rw [show (7 + 51 * i) + 28 = (7 + 51 * i) + 15 + 1 + 12 by omega]
+        exact eB 12 (by omega) (by omega)
+      have f29 : σ (.n ((7 + 51 * i) + 29)) = (digestScalars dB).2 := by
+        rw [show (7 + 51 * i) + 29 = (7 + 51 * i) + 15 + 1 + 13 by omega]
+        exact eB 13 (by omega) (by omega)
+      have s35 : σ (.n ((7 + 51 * i) + 35)) = (digestScalars dC).1 := by
+        rw [show (7 + 51 * i) + 35 = (7 + 51 * i) + 30 + 5 by omega]; exact eC 5 (by omega)
+      have s36 : σ (.n ((7 + 51 * i) + 36)) = (digestScalars dC).2 := by
+        rw [show (7 + 51 * i) + 36 = (7 + 51 * i) + 30 + 6 by omega]; exact eC 6 (by omega)
+      have s43 : σ (.n ((7 + 51 * i) + 43)) = challengeOf dC := by
+        rw [show (7 + 51 * i) + 43 = (7 + 51 * i) + 30 + 13 by omega]; exact eC 13 (by omega)
+      have hS : (σ (.n (bsS (i + 1))), σ (.n (bsS (i + 1) + 1))) = digestScalars dC := by
+        rw [show bsS (i + 1) = (7 + 51 * i) + 35 by simp only [bsS]; omega,
+          show (7 + 51 * i) + 35 + 1 = (7 + 51 * i) + 36 by omega, s35, s36]
+      obtain ⟨c', hc', hrun⟩ := ih (i + 1) (by omega) dC hS
+      obtain rfl : cvC = dB := digestScalars_injective (by rw [← hC, f28, f29])
+      have hcl : σ (.n (bsC (i + 1))) = (σ (.n ((7 + 51 * i) + 15)) * challengeOf dC +
+          (σ (.n (bsC i)) + σ (.n (7 + 51 * i)) + σ (.n (7 + 51 * i)) +
+            σ (.n ((7 + 51 * i) + 15)))) * challengeOf dC + (σ (.n (bsC i)) + σ (.n (7 + 51 * i))) := by
+        rw [show bsC (i + 1) = (7 + 51 * i) + 50 by simp only [bsC]; omega, a50, a49, a48, a47,
+          a46, a45, a44, s43]
+      refine ⟨c', hc', ?_⟩
+      rw [hdrop i (by omega), hdrop' i (by omega), batchRoundsWith_cons_run hdA hdB hdC, ← hcl,
+        hrun, s43]
+      rfl
+  obtain ⟨cv, -, hcv, -⟩ := (hblk 0 hn).1.2
+  obtain ⟨cv', hcv', hrun⟩ := key n 0 (by omega) cv hcv
+  simp only [List.drop_zero] at hrun
+  have hcv0 : (σ (.n 0), σ (.n 1)) = digestScalars cv := by rw [← h5, ← h6]; exact hcv
+  refine ⟨cv, rounds, rs, _, cv', hcv0, hlen, fun r hr => ?_, hrun, ?_, ?_⟩
+  · have hr' : r < n := hlen ▸ hr
+    have hgr : rounds[r] = (σ (.n (7 + 51 * r)), σ (.n ((7 + 51 * r) + 15))) := by
+      simp [rounds]
+    rw [hgr]
+    exact ⟨(hblk r hr').1.1, (hblk r hr').2.1.1⟩
+  · intro k hk
+    simp only [rs, List.length_map, List.length_range] at hk
+    simp only [rs, List.getElem_map, List.getElem_range]
+    exact (hblk k hk).2.2.2.1
+  · obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
+    simp only [bsS] at hcv'
+    rw [← hret, t1, t2, t3]
+    rw [show 51 * (m + 1) - 9 = 42 + 51 * m by omega, show 51 * (m + 1) - 8 = 42 + 51 * m + 1 by omega,
+      show 51 * (m + 1) + 6 = 57 + 51 * m by omega,
+      show σ (.n (42 + 51 * m)) = (digestScalars cv').1 from congrArg Prod.fst hcv',
+      show σ (.n (42 + 51 * m + 1)) = (digestScalars cv').2 from congrArg Prod.snd hcv']
+    rfl
+
 /-- **`batch_sumcheck` at every `n ≥ 1`**, for a compiled function whose body is `bsBody n`. -/
 theorem batch_sumcheck_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2, .n 3, .n 4])
     (hbody : f.body = bsBody n) (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ MeaningBatchSumcheck n rd args rets := by
+  constructor
+  · intro h
+    rw [← relB_deployed] at h
+    exact (meaningBatchSumcheckWith_deployed n rd args rets).mp
+      (batch_sumcheck_model (M := HashModel.deployed) n hn hfind hparams hbody rd args rets h)
   rw [rel_iff_sem hfind, hbody, hparams, bsBody]
   simp only [holdsList_append, holdsList_range_flatten n bsBlock (fun _ => rfl), holds_bsBlock,
     Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil]
-  constructor
-  · rintro ⟨σ, hp, h5, h6, hblk, t1, t2, t3, hret⟩
-    subst hp
-    set rounds := (List.range n).map fun r => (σ (.n ((7 + 51 * r))), σ (.n ((7 + 51 * r) + 15)))
-    have hlen : rounds.length = n := by simp [rounds]
-    have hg : ∀ r < n, rounds.getD r (0, 0) = (σ (.n ((7 + 51 * r))), σ (.n ((7 + 51 * r) + 15))) :=
-      fun r hr => by simp [rounds, List.getD_eq_getElem?_getD, hr]
-    obtain ⟨cv, hcv, -⟩ := (hblk 0 hn).1.2
-    have step : ∀ r < n,
-        ((σ (.n (bsS r)), σ (.n (bsS r + 1))) = digestScalars (bsSt rounds (σ (.n 3)) cv r).2 ∧
-          σ (.n (bsC r)) = (bsSt rounds (σ (.n 3)) cv r).1) →
-        ((σ (.n (bsS (r + 1))), σ (.n (bsS (r + 1) + 1))) =
-            digestScalars (bsSt rounds (σ (.n 3)) cv (r + 1)).2 ∧
-          σ (.n (bsC (r + 1))) = (bsSt rounds (σ (.n 3)) cv (r + 1)).1) ∧
-        σ (.n ((7 + 51 * r) + 43)) = challengeOf (bsSt rounds (σ (.n 3)) cv (r + 1)).2 := by
-      intro r hr ⟨hP1, hP2⟩
-      obtain ⟨⟨-, cvA, hA, eA⟩, ⟨-, cvB, hB, eB⟩, ⟨cvC, hC, eC⟩, -, a44, a45, a46, a47, a48, a49,
-        a50⟩ := hblk r hr
-      set x1 := σ (.n (7 + 51 * r))
-      set x2 := σ (.n ((7 + 51 * r) + 15))
-      set st := bsSt rounds (σ (.n 3)) cv r
-      have gA : cvA = st.2 := digestScalars_injective (hA.symm.trans hP1)
-      rw [gA] at eA
-      have f13 : σ (.n ((7 + 51 * r) + 13)) = fsVals x1 st.2 1 12 := by
-        rw [show (7 + 51 * r) + 13 = (7 + 51 * r) + 1 + 12 by omega]; exact eA 12 (by omega) (by omega)
-      have f14 : σ (.n ((7 + 51 * r) + 14)) = fsVals x1 st.2 1 13 := by
-        rw [show (7 + 51 * r) + 14 = (7 + 51 * r) + 1 + 13 by omega]; exact eA 13 (by omega) (by omega)
-      have gB : cvB = obsCv st.2 x1 := digestScalars_injective (by
-        rw [← hB, f13, f14]
-        show ((digestScalars (absorbCv st.2 x1 1)).1, (digestScalars (absorbCv st.2 x1 1)).2) = _
-        rw [Prod.mk.eta]; rfl)
-      rw [gB] at eB
-      have f28 : σ (.n ((7 + 51 * r) + 28)) = fsVals x2 (obsCv st.2 x1) 1 12 := by
-        rw [show (7 + 51 * r) + 28 = (7 + 51 * r) + 15 + 1 + 12 by omega]
-        exact eB 12 (by omega) (by omega)
-      have f29 : σ (.n ((7 + 51 * r) + 29)) = fsVals x2 (obsCv st.2 x1) 1 13 := by
-        rw [show (7 + 51 * r) + 29 = (7 + 51 * r) + 15 + 1 + 13 by omega]
-        exact eB 13 (by omega) (by omega)
-      have gC : cvC = obsCv (obsCv st.2 x1) x2 := digestScalars_injective (by
-        rw [← hC, f28, f29]
-        show ((digestScalars (absorbCv (obsCv st.2 x1) x2 1)).1,
-          (digestScalars (absorbCv (obsCv st.2 x1) x2 1)).2) = _
-        rw [Prod.mk.eta]; rfl)
-      rw [gC] at eC
-      have s35 : σ (.n ((7 + 51 * r) + 35)) =
-          (digestScalars (absorbCv (obsCv (obsCv st.2 x1) x2) 0 2)).1 := by
-        rw [show (7 + 51 * r) + 35 = (7 + 51 * r) + 30 + 5 by omega]; exact eC 5 (by omega)
-      have s36 : σ (.n ((7 + 51 * r) + 36)) =
-          (digestScalars (absorbCv (obsCv (obsCv st.2 x1) x2) 0 2)).2 := by
-        rw [show (7 + 51 * r) + 36 = (7 + 51 * r) + 30 + 6 by omega]; exact eC 6 (by omega)
-      have s43 : σ (.n ((7 + 51 * r) + 43)) = challengeOf (sqCv (obsCv (obsCv st.2 x1) x2)) := by
-        rw [show (7 + 51 * r) + 43 = (7 + 51 * r) + 30 + 13 by omega]; exact eC 13 (by omega)
-      have hst1 : bsSt rounds (σ (.n 3)) cv (r + 1) = bsStep st (x1, x2) := by
-        rw [bsSt, hg r hr]
-      refine ⟨⟨?_, ?_⟩, ?_⟩
-      · rw [show bsS (r + 1) = (7 + 51 * r) + 35 by simp only [bsS]; omega,
-          show (7 + 51 * r) + 35 + 1 = (7 + 51 * r) + 36 by omega, s35, s36, hst1]
-        show ((digestScalars (absorbCv (obsCv (obsCv st.2 x1) x2) 0 2)).1,
-          (digestScalars (absorbCv (obsCv (obsCv st.2 x1) x2) 0 2)).2) = _
-        rw [Prod.mk.eta]; rfl
-      · rw [show bsC (r + 1) = (7 + 51 * r) + 50 by simp only [bsC]; omega, a50, a49, a48, a47,
-          a46, a45, a44, s43, hP2, hst1]
-        rfl
-      · rw [s43, hst1]; rfl
-    have hst : ∀ r ≤ n,
-        (σ (.n (bsS r)), σ (.n (bsS r + 1))) = digestScalars (bsSt rounds (σ (.n 3)) cv r).2 ∧
-          σ (.n (bsC r)) = (bsSt rounds (σ (.n 3)) cv r).1 := by
-      intro r hr
-      induction r with
-      | zero => exact ⟨hcv, rfl⟩
-      | succ r ih => exact (step r (by omega) (ih (by omega))).1
-    have hcv' : (σ (.n 0), σ (.n 1)) = digestScalars cv := by rw [← h5, ← h6]; exact hcv
-    refine ⟨cv, rounds, _, _, _, hcv', hlen, fun r hr => ?_,
-      (batchRounds_run rounds (σ (.n 3)) cv).trans (bsRun_eq rounds (σ (.n 3)) cv), ?_, ?_⟩
-    · have hr' : r < n := hlen ▸ hr
-      have hgr : rounds[r] = (σ (.n (7 + 51 * r)), σ (.n ((7 + 51 * r) + 15))) := by
-        simp [rounds]
-      rw [hgr]
-      exact ⟨(hblk r hr').1.1, (hblk r hr').2.1.1⟩
-    · intro k hk
-      simp only [List.length_map, List.length_range, hlen] at hk
-      simp only [List.getElem_map, List.getElem_range]
-      rw [← (step k hk (hst k (by omega))).2]
-      exact (hblk k hk).2.2.2.1
-    · obtain ⟨m, rfl⟩ : ∃ m, n = m + 1 := ⟨n - 1, by omega⟩
-      obtain ⟨hs, hc⟩ := hst (m + 1) le_rfl
-      rw [← hret, t1, t2, t3, hlen]
-      simp only [bsS, bsC] at hs hc
-      rw [show 51 * (m + 1) - 9 = 42 + 51 * m by omega, show 51 * (m + 1) - 8 = 42 + 51 * m + 1 by omega,
-        show 51 * (m + 1) + 6 = 57 + 51 * m by omega, hc,
-        show σ (.n (42 + 51 * m)) = (digestScalars (bsSt rounds (σ (.n 3)) cv (m + 1)).2).1 from
-          congrArg Prod.fst hs,
-        show σ (.n (42 + 51 * m + 1)) = (digestScalars (bsSt rounds (σ (.n 3)) cv (m + 1)).2).2 from
-          congrArg Prod.snd hs]
   · intro hm
     obtain ⟨s0, s1, msgs, running, point, rfl⟩ : ∃ s0 s1 msgs running point,
         args = [s0, s1, msgs, running, point] := by
@@ -494,6 +579,22 @@ theorem batch_sumcheck_L28_iff (rd : Reader) (args rets : List E) :
   batch_sumcheck_iff 28 (by decide) (Program.find?_of_indexOf? (j := 571) (by decide +kernel)
     rfl) rfl core571_body
     rd args rets
+
+set_option maxRecDepth 100000 in
+/-- `batch_sumcheck__L22` under a hash model. -/
+theorem batch_sumcheck_L22_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "batch_sumcheck__L22" args rets) :
+    MeaningBatchSumcheckWith M 22 rd args rets :=
+  batch_sumcheck_model 22 (by decide) (Program.find?_of_indexOf? (j := 568) (by decide +kernel)
+    rfl) rfl core568_body rd args rets h
+
+set_option maxRecDepth 100000 in
+/-- `batch_sumcheck__L28` under a hash model. -/
+theorem batch_sumcheck_L28_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "batch_sumcheck__L28" args rets) :
+    MeaningBatchSumcheckWith M 28 rd args rets :=
+  batch_sumcheck_model 28 (by decide) (Program.find?_of_indexOf? (j := 571) (by decide +kernel)
+    rfl) rfl core571_body rd args rets h
 
 end
 end LeanVM.Guest.B1

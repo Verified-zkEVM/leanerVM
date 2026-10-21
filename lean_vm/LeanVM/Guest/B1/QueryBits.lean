@@ -1111,5 +1111,76 @@ theorem decode_query_bits_L26_iff (rd : Reader) (args rets : List E) :
   decode_query_bits_iff 26 (by decide) (by decide)
     (Program.find?_of_indexOf? (j := 1035) (by decide +kernel) rfl) rfl core1035_body rd args rets
 
+
+/-! ## Under any semantics
+
+Each function here is free of `BLAKE2S` with its callees (`Core.relB_iff_rel_of_freeOn`, the
+kernel checking the call closure), so its relation under any semantics is its deployed one. -/
+
+/-- `decode_query_bits__L14` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L14_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L14" args rets ↔ MeaningDecodeQueryBits 14 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L14"]) (by decide +kernel) (by simp), decode_query_bits_L14_iff rd args rets]
+
+/-- `decode_query_bits__L15` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L15_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L15" args rets ↔ MeaningDecodeQueryBits 15 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L15"]) (by decide +kernel) (by simp), decode_query_bits_L15_iff rd args rets]
+
+/-- `decode_query_bits__L16` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L16_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L16" args rets ↔ MeaningDecodeQueryBits 16 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L16"]) (by decide +kernel) (by simp), decode_query_bits_L16_iff rd args rets]
+
+/-- `decode_query_bits__L17` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L17_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L17" args rets ↔ MeaningDecodeQueryBits 17 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L17"]) (by decide +kernel) (by simp), decode_query_bits_L17_iff rd args rets]
+
+/-- `decode_query_bits__L18` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L18_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L18" args rets ↔ MeaningDecodeQueryBits 18 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L18"]) (by decide +kernel) (by simp), decode_query_bits_L18_iff rd args rets]
+
+/-- `decode_query_bits__L19` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L19_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L19" args rets ↔ MeaningDecodeQueryBits 19 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L19"]) (by decide +kernel) (by simp), decode_query_bits_L19_iff rd args rets]
+
+/-- `decode_query_bits__L20` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L20_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L20" args rets ↔ MeaningDecodeQueryBits 20 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L20"]) (by decide +kernel) (by simp), decode_query_bits_L20_iff rd args rets]
+
+/-- `decode_query_bits__L21` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L21_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L21" args rets ↔ MeaningDecodeQueryBits 21 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L21"]) (by decide +kernel) (by simp), decode_query_bits_L21_iff rd args rets]
+
+/-- `decode_query_bits__L22` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L22_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L22" args rets ↔ MeaningDecodeQueryBits 22 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L22"]) (by decide +kernel) (by simp), decode_query_bits_L22_iff rd args rets]
+
+/-- `decode_query_bits__L23` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L23_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L23" args rets ↔ MeaningDecodeQueryBits 23 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L23"]) (by decide +kernel) (by simp), decode_query_bits_L23_iff rd args rets]
+
+/-- `decode_query_bits__L24` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L24_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L24" args rets ↔ MeaningDecodeQueryBits 24 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L24"]) (by decide +kernel) (by simp), decode_query_bits_L24_iff rd args rets]
+
+/-- `decode_query_bits__L25` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L25_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L25" args rets ↔ MeaningDecodeQueryBits 25 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L25"]) (by decide +kernel) (by simp), decode_query_bits_L25_iff rd args rets]
+
+/-- `decode_query_bits__L26` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem decode_query_bits_L26_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "decode_query_bits__L26" args rets ↔ MeaningDecodeQueryBits 26 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["decode_query_bits__L26"]) (by decide +kernel) (by simp), decode_query_bits_L26_iff rd args rets]
+
 end
 end LeanVM.Guest.B1

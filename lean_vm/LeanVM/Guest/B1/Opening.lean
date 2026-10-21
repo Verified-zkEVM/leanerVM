@@ -17,7 +17,9 @@ each (`fs_next`), and stores them at `out`: `readN n` (V:432). Its expansion is 
 `fs_next` and a store, `ofmBlock i` at value `4 + 15·i` (the state of block `i` is
 `.n (4 + 15·i)`, `.n (5 + 15·i)`, its word `.n (6 + 15·i)`), then `ofmTail n`: `ofmBody n`,
 equal by `rfl` to each compiled specialization (`__L4`, `__L8`, `__L16`, `__L32`).
-`opening_final_message_iff` is proved once, for every `0 < n < 64`.
+`opening_final_message_iff` is proved once, for every `0 < n < 64`; under a hash model,
+`opening_final_message_model` (the words absorbed in order, every hash answered, `RunsToM`), from
+which the deployed iff's forward direction follows.
 -/
 
 namespace LeanVM.Guest.B1
@@ -41,6 +43,28 @@ theorem holdsList_range_flatten (n : ℕ) (blk : ℕ → List Stmt)
     exact h i)]
   simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp,
     forall_apply_eq_imp_iff₂]
+
+/-- `holdsList_range_flatten` under any semantics. -/
+theorem holdsListB_flatten_range {S : BlakeSem} (n : ℕ) (blk : ℕ → List Stmt)
+    (h : ∀ i, Stmt.noRetList (blk i) = true) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsListB S C rd σ ((List.range n).map blk).flatten next kret ↔
+      (∀ i < n, Stmt.HoldsListB S C rd σ (blk i) True kret) ∧ next := by
+  rw [holdsListB_flatten _ (fun b hb => by
+    obtain ⟨i, -, rfl⟩ := List.mem_map.mp hb
+    exact h i)]
+  simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp,
+    forall_apply_eq_imp_iff₂]
+
+/-- Absorbing `xs ++ ys` over a hash model is absorbing `xs`, then `ys`. -/
+theorem obsAllM_append_eq {M : HashModel} (cv : Digest) (xs ys : List E) :
+    obsAllM M cv (xs ++ ys) = (obsAllM M cv xs).bind fun c ↦ obsAllM M c ys := by
+  induction xs generalizing cv with
+  | nil => rfl
+  | cons x xs ih =>
+    simp only [List.cons_append, obsAllM, Option.bind_assoc]
+    congr 1
+    funext c
+    exact ih c
 
 /-! ## The template -/
 
@@ -74,6 +98,22 @@ theorem holds_ofmBlock (i : ℕ) (kret : List E → Prop) :
   rw [ofmBlock, holdsList_append, holds_fsNextT]
   simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true, OfmOk]
   tauto
+
+/-- What block `i` gives under a hash model: `OfmOk` with the absorption's hash answered. -/
+def OfmOkB (M : HashModel) (rd : Reader) (σ : Val) (i : ℕ) : Prop :=
+  LoadHolds rd (σ (.n 2)) i (σ (.n (6 + 15 * i))) ∧
+    (∃ cv d, (σ (.n (4 + 15 * i)), σ (.n (5 + 15 * i))) = digestScalars cv ∧
+      obsCvM M cv (σ (.n (6 + 15 * i))) = some d ∧
+      ∀ k, 2 ≤ k → k < 14 → σ (.n (6 + 15 * i + 1 + k)) = fsValsD (σ (.n (6 + 15 * i))) d 1 k) ∧
+    LoadHolds rd (σ (.n 3)) i (σ (.n (6 + 15 * i)))
+
+theorem holdsB_ofmBlock {M : HashModel} (i : ℕ) (kret : List E → Prop)
+    (h : Stmt.HoldsListB M.sem C rd σ (ofmBlock i) True kret) : OfmOkB M rd σ i := by
+  rw [ofmBlock] at h
+  rw [holdsListB_append] at h
+  obtain ⟨⟨hl, hcv⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  simp only [Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, and_true] at h
+  exact ⟨hl, hcv, h⟩
 
 /-! ## The meaning -/
 
@@ -158,53 +198,88 @@ theorem obsAll_eq_cvAt (cv : Digest) (xs : List E) : obsAll cv xs = cvAt cv xs x
 
 theorem word_pow_two {n : ℕ} (h : n < 64) : word (2 ^ n) 0 0 = gen ^ n := word_two_pow h
 
+/-- **`opening_final_message(n)` under a hash model** (the meaning of
+`MeaningOpeningFinalMessage`, every hash answered). -/
+def MeaningOpeningFinalMessageWith (M : HashModel) (n : ℕ) (rd : Reader) : List E → List E → Prop
+  | [s0, s1, cur, out], rets =>
+      ∃ cv xs cv', (s0, s1) = digestScalars cv ∧ xs.length = n ∧ ReadsAt rd cur xs ∧
+        ReadsAt rd out xs ∧ RunsToM M (Prog.readN n) cv xs xs cv' ∧
+        rets = [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ n]
+  | _, _ => False
+
+/-- At the deployed model it is `MeaningOpeningFinalMessage`. -/
+theorem meaningOpeningFinalMessageWith_deployed (n : ℕ) (rd : Reader) (args rets : List E) :
+    MeaningOpeningFinalMessageWith HashModel.deployed n rd args rets ↔
+      MeaningOpeningFinalMessage n rd args rets := by
+  unfold MeaningOpeningFinalMessageWith MeaningOpeningFinalMessage
+  split <;> try simp only [runsToM_deployed]
+
+/-- **`opening_final_message` is sound under a hash model**, at every `0 < n < 64`, for a
+compiled function whose body is `ofmBody n`: the words read are absorbed in order, every hash
+answered. -/
+theorem opening_final_message_model {M : HashModel} {name : String} {f : Fn} (n : ℕ) (hn : 0 < n)
+    (hn64 : n < 64) (hfind : coreProgram.find? name = some f)
+    (hparams : f.params = [.n 0, .n 1, .n 2, .n 3]) (hbody : f.body = ofmBody n) (rd : Reader)
+    (args rets : List E) (h : coreProgram.RelB M.sem rd name args rets) :
+    MeaningOpeningFinalMessageWith M n rd args rets := by
+  rw [relB_iff_sem hfind, hbody, hparams, ofmBody] at h
+  simp only [holdsListB_append, holdsListB_flatten_range n ofmBlock (fun _ => rfl), ofmTail,
+    Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons, List.map_nil] at h
+  obtain ⟨σ, hp, h4, h5, ⟨hblk, t1, t2, t3, t4, t5, hret⟩⟩ := h
+  subst hp
+  have hblk : ∀ i < n, OfmOkB M rd σ i := fun i hi ↦ holdsB_ofmBlock i _ (hblk i hi)
+  set xs := (List.range n).map fun i => σ (.n (6 + 15 * i))
+  have hlen : xs.length = n := by simp [xs]
+  have hxs : ∀ i < n, xs.take (i + 1) = xs.take i ++ [σ (.n (6 + 15 * i))] := fun i hi => by
+    rw [List.take_add_one, List.getElem?_eq_getElem (by omega)]
+    simp [xs]
+  obtain ⟨cv, -, hcv, -⟩ := (hblk 0 hn).2.1
+  simp only [Nat.mul_zero, Nat.add_zero] at hcv
+  have hst : ∀ i ≤ n, ∃ d, (σ (.n (4 + 15 * i)), σ (.n (5 + 15 * i))) = digestScalars d ∧
+      obsAllM M cv (xs.take i) = some d := by
+    intro i hi
+    induction i with
+    | zero => exact ⟨cv, hcv, rfl⟩
+    | succ i ih =>
+      obtain ⟨d, hd, hrun⟩ := ih (by omega)
+      obtain ⟨-, ⟨cvi, di, hcvi, hdi, e⟩, -⟩ := hblk i (by omega)
+      obtain rfl : cvi = d := digestScalars_injective (hcvi.symm.trans hd)
+      have e12 : σ (.n (4 + 15 * (i + 1))) = (digestScalars di).1 := by
+        rw [show 4 + 15 * (i + 1) = 6 + 15 * i + 1 + 12 by ring]; exact e 12 (by omega) (by omega)
+      have e13 : σ (.n (5 + 15 * (i + 1))) = (digestScalars di).2 := by
+        rw [show 5 + 15 * (i + 1) = 6 + 15 * i + 1 + 13 by ring]; exact e 13 (by omega) (by omega)
+      refine ⟨di, by rw [e12, e13], ?_⟩
+      rw [hxs i (by omega), obsAllM_append_eq, hrun]
+      simp [obsAllM, hdi]
+  obtain ⟨d, hd, hrun⟩ := hst n le_rfl
+  rw [← hlen, List.take_length] at hrun
+  rw [h4, h5] at hcv
+  have hr : RunsToM M (Prog.readN n) cv xs xs d := by
+    have := runsToM_readN hrun; rwa [hlen] at this
+  refine ⟨cv, xs, d, hcv, hlen, fun k hk => ?_, fun k hk => ?_, hr, ?_⟩
+  · have hk' : k < n := hlen ▸ hk
+    have := (hblk k hk').1
+    simpa [xs] using this
+  · have hk' : k < n := hlen ▸ hk
+    have := (hblk k hk').2.2
+    simpa [xs] using this
+  · rw [← hret, t1, t2, t5, t4, t3, word_pow_two hn64, ← hd]
+
 /-- **`opening_final_message` at every `0 < n < 64`**, for a compiled function whose body is
 `ofmBody n`. -/
 theorem opening_final_message_iff {name : String} {f : Fn} (n : ℕ) (hn : 0 < n) (hn64 : n < 64)
     (hfind : coreProgram.find? name = some f) (hparams : f.params = [.n 0, .n 1, .n 2, .n 3])
     (hbody : f.body = ofmBody n) (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd name args rets ↔ MeaningOpeningFinalMessage n rd args rets := by
+  constructor
+  · intro h
+    rw [← relB_deployed] at h
+    exact (meaningOpeningFinalMessageWith_deployed n rd args rets).mp
+      (opening_final_message_model (M := HashModel.deployed) n hn hn64 hfind hparams hbody rd
+        args rets h)
   rw [rel_iff_sem hfind, hbody, hparams, ofmBody]
   simp only [holdsList_append, holdsList_range_flatten n ofmBlock (fun _ => rfl), holds_ofmBlock, ofmTail, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons,
     List.map_nil]
-  constructor
-  · rintro ⟨σ, hp, h4, h5, hblk, t1, t2, t3, t4, t5, hret⟩
-    subst hp
-    set xs := (List.range n).map fun i => σ (.n (6 + 15 * i))
-    have hxs : ∀ i < n, xs.getD i 0 = σ (.n (6 + 15 * i)) := fun i hi => by
-      simp [xs, List.getD_eq_getElem?_getD, hi]
-    obtain ⟨cv, hcv, -⟩ := (hblk 0 hn).2.1
-    simp only [Nat.mul_zero, Nat.add_zero] at hcv
-    have hst : ∀ i ≤ n, (σ (.n (4 + 15 * i)), σ (.n (5 + 15 * i))) =
-        digestScalars (cvAt cv xs i) := by
-      intro i hi
-      induction i with
-      | zero => exact hcv
-      | succ i ih =>
-        obtain ⟨-, ⟨cvi, hcvi, e⟩, -⟩ := hblk i (by omega)
-        have hc : cvi = cvAt cv xs i := digestScalars_injective (hcvi.symm.trans (ih (by omega)))
-        subst hc
-        have e12 : σ (.n (4 + 15 * (i + 1))) = fsVals (σ (.n (6 + 15 * i))) (cvAt cv xs i) 1 12 := by
-          rw [show 4 + 15 * (i + 1) = 6 + 15 * i + 1 + 12 by ring]; exact e 12 (by omega) (by omega)
-        have e13 : σ (.n (5 + 15 * (i + 1))) = fsVals (σ (.n (6 + 15 * i))) (cvAt cv xs i) 1 13 := by
-          rw [show 5 + 15 * (i + 1) = 6 + 15 * i + 1 + 13 by ring]; exact e 13 (by omega) (by omega)
-        rw [e12, e13, cvAt, hxs i (by omega)]
-        show ((digestScalars (absorbCv (cvAt cv xs i) (σ (.n (6 + 15 * i))) 1)).1,
-          (digestScalars (absorbCv (cvAt cv xs i) (σ (.n (6 + 15 * i))) 1)).2) = _
-        rw [Prod.mk.eta]
-    rw [h4, h5] at hcv
-    have hlen : xs.length = n := by simp [xs]
-    have hr : RunsTo (Prog.readN n) cv xs xs (obsAll cv xs) := by
-      have := runsTo_readN cv xs; rwa [hlen] at this
-    refine ⟨cv, xs, _, hcv, hlen, fun k hk => ?_, fun k hk => ?_, hr, ?_⟩
-    · have hk' : k < n := hlen ▸ hk
-      have := (hblk k hk').1
-      simpa [xs] using this
-    · have hk' : k < n := hlen ▸ hk
-      have := (hblk k hk').2.2
-      simpa [xs] using this
-    · rw [← hret, t1, t2, t5, t4, t3, word_pow_two hn64, obsAll_eq_cvAt, hlen,
-        ← hst n le_rfl]
   · intro hm
     obtain ⟨s0, s1, cur, out, rfl⟩ : ∃ s0 s1 cur out, args = [s0, s1, cur, out] := by
       match args, hm with
@@ -298,6 +373,38 @@ theorem opening_final_message_L32_iff (rd : Reader) (args rets : List E) :
       MeaningOpeningFinalMessage 32 rd args rets :=
   opening_final_message_iff 32 (by decide) (by decide)
     (Program.find?_of_indexOf? (j := 602) (by decide +kernel) rfl) rfl rfl rd args rets
+
+set_option maxRecDepth 100000 in
+/-- `opening_final_message__L4` under a hash model. -/
+theorem opening_final_message_L4_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "opening_final_message__L4" args rets) :
+    MeaningOpeningFinalMessageWith M 4 rd args rets :=
+  opening_final_message_model 4 (by decide) (by decide)
+    (Program.find?_of_indexOf? (j := 616) (by decide +kernel) rfl) rfl rfl rd args rets h
+
+set_option maxRecDepth 100000 in
+/-- `opening_final_message__L8` under a hash model. -/
+theorem opening_final_message_L8_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "opening_final_message__L8" args rets) :
+    MeaningOpeningFinalMessageWith M 8 rd args rets :=
+  opening_final_message_model 8 (by decide) (by decide)
+    (Program.find?_of_indexOf? (j := 631) (by decide +kernel) rfl) rfl rfl rd args rets h
+
+set_option maxRecDepth 100000 in
+/-- `opening_final_message__L16` under a hash model. -/
+theorem opening_final_message_L16_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "opening_final_message__L16" args rets) :
+    MeaningOpeningFinalMessageWith M 16 rd args rets :=
+  opening_final_message_model 16 (by decide) (by decide)
+    (Program.find?_of_indexOf? (j := 588) (by decide +kernel) rfl) rfl rfl rd args rets h
+
+set_option maxRecDepth 100000 in
+/-- `opening_final_message__L32` under a hash model. -/
+theorem opening_final_message_L32_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "opening_final_message__L32" args rets) :
+    MeaningOpeningFinalMessageWith M 32 rd args rets :=
+  opening_final_message_model 32 (by decide) (by decide)
+    (Program.find?_of_indexOf? (j := 602) (by decide +kernel) rfl) rfl rfl rd args rets h
 
 end
 end LeanVM.Guest.B1

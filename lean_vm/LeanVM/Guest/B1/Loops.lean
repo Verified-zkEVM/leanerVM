@@ -463,5 +463,21 @@ theorem rs_eq_run_iff (rd : Reader) (args rets : List E) :
       all_goals (try b1_look)
       exacts [hK, hcall]
 
+
+/-! ## Under any semantics
+
+Each function here is free of `BLAKE2S` with its callees (`Core.relB_iff_rel_of_freeOn`, the
+kernel checking the call closure), so its relation under any semantics is its deployed one. -/
+
+/-- `eq_prefix_chain` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem eq_prefix_chain_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "eq_prefix_chain" args rets ↔ MeaningEqPrefixChain rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["eq_prefix_chain", "__loop7"]) (by decide +kernel) (by simp), eq_prefix_chain_iff rd args rets]
+
+/-- `rs_eq_run` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem rs_eq_run_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "rs_eq_run" args rets ↔ MeaningRsEqRun rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["rs_eq_run", "__loop8"]) (by decide +kernel) (by simp), rs_eq_run_iff rd args rets]
+
 end
 end LeanVM.Guest.B1

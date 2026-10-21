@@ -361,5 +361,16 @@ theorem g_power_of_word_L6_complete (rd : Reader) (p : E) (args rets : List E)
     coreProgram.Rel rd "g_power_of_word__L6" args rets :=
   (g_power_of_word_L6_iff rd args rets).mpr (meaningGPowerOfWord_of_at h)
 
+
+/-! ## Under any semantics
+
+Each function here is free of `BLAKE2S` with its callees (`Core.relB_iff_rel_of_freeOn`, the
+kernel checking the call closure), so its relation under any semantics is its deployed one. -/
+
+/-- `g_power_of_word__L6` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem g_power_of_word_L6_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "g_power_of_word__L6" args rets ↔ MeaningGPowerOfWord 6 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["g_power_of_word__L6"]) (by decide +kernel) (by simp), g_power_of_word_L6_iff rd args rets]
+
 end
 end LeanVM.Guest.B1

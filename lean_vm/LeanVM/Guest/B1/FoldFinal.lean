@@ -494,5 +494,31 @@ theorem fold_final_msg_L5_iff (rd : Reader) (args rets : List E) :
   fold_final_msg_iff 4 146 (Program.find?_of_indexOf? (j := 604) (by decide +kernel) rfl) rfl
     core604_body (by decide) (by decide) rd args rets
 
+
+/-! ## Under any semantics
+
+Each function here is free of `BLAKE2S` with its callees (`Core.relB_iff_rel_of_freeOn`, the
+kernel checking the call closure), so its relation under any semantics is its deployed one. -/
+
+/-- `fold_final_msg__L2` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem fold_final_msg_L2_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "fold_final_msg__L2" args rets ↔ MeaningFoldFinalMsg 2 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["fold_final_msg__L2"]) (by decide +kernel) (by simp), fold_final_msg_L2_iff rd args rets]
+
+/-- `fold_final_msg__L3` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem fold_final_msg_L3_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "fold_final_msg__L3" args rets ↔ MeaningFoldFinalMsg 3 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["fold_final_msg__L3"]) (by decide +kernel) (by simp), fold_final_msg_L3_iff rd args rets]
+
+/-- `fold_final_msg__L4` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem fold_final_msg_L4_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "fold_final_msg__L4" args rets ↔ MeaningFoldFinalMsg 4 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["fold_final_msg__L4"]) (by decide +kernel) (by simp), fold_final_msg_L4_iff rd args rets]
+
+/-- `fold_final_msg__L5` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem fold_final_msg_L5_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "fold_final_msg__L5" args rets ↔ MeaningFoldFinalMsg 5 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["fold_final_msg__L5"]) (by decide +kernel) (by simp), fold_final_msg_L5_iff rd args rets]
+
 end
 end LeanVM.Guest.B1

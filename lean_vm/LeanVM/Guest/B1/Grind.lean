@@ -18,6 +18,11 @@ frame cells (`gcBit`, reconstructed over `COORD_BASIS`), names the run by `addr`
 `__loop6` reads the run's first `bits` cells as zero. At `bits = 0` the nonce is zero. That is
 `powOk bits nonce D` (V:482) for the digest `.grind` checks (V:566-572); the run read past its
 64 cells is memory the meaning names.
+
+Under a hash model, `grind_check_rel_model`: the base and the digest the model answers
+(`MeaningGrindCheckWith`), the head and the bits' tail carried over without `BLAKE2S`
+(`holdsListB_iff_of_free`); the deployed soundness is it at
+`HashModel.deployed`.
 -/
 
 namespace LeanVM.Guest.B1
@@ -175,31 +180,87 @@ theorem powOk_of_bits {m : ℕ} {nonce : E} {D : Digest} (hm : 0 < m)
         (by omega)))
   · simp [hi]
 
-theorem grind_check_sound_aux (rd : Reader) (args rets : List E)
-    (h : coreProgram.Rel rd "grind_check" args rets) : MeaningGrindCheck rd args rets := by
-  rw [rel_iff_sem find_grind_check, core3_body,
-    show Fn.params Data.core3 = [.n 0, .n 1, .n 2, .n 3] from rfl, gcBody] at h
-  simp only [holdsList_append, Stmt.HoldsList] at h
+/-! ## Under a hash model -/
+
+/-- `grind_check`'s head: the zero-difficulty check and the state copied. -/
+def gcPre : List Stmt :=
+  [.atom (.const (.n 4) (word 1 0 0)), .atom (.add (.n 5) (.n 3) (.n 4)),
+    .ite (.n 5) [.atom (.const (.n 6) (word 0 0 0)), .atom (.assertEq (.n 2) (.n 6))] [],
+    .atom (.copy (.n 7) (.n 0)), .atom (.copy (.n 8) (.n 1))]
+
+/-- `grind_check`'s tail after the two hashes: the lane's bits and the loop. -/
+def gcPost : List Stmt :=
+  canonicalLimbsT (.n 28) 30 ++ [.atom (.hint (.bits (.n 30) 0 64 (.stack gcRun)))] ++
+  ((List.range 64).map gcBit).flatten ++
+  [.atom (.assertEq (.n 286) (.n 30)), .atom (.frameAddr (.n 287) gcRun),
+    .atom (.const (.n 288) (word 1 0 0)), .atom (.add (.n 289) (.n 288) (.n 3)),
+    .atom (.const (.n 290) (word 1 0 0)), .callIf (.n 289) "__loop6" [.n 290, .n 3, .n 287],
+    .ret []]
+
+theorem gcBody_split : gcBody = gcPre ++ squeezeStateT (.n 7) (.n 8) 9 3 ++
+    fsCompressT (.n 14) (.n 15) (.n 2) 16 4 ++ gcPost := by
+  simp only [gcBody, gcPre, gcPost, List.append_assoc, List.cons_append, List.nil_append]
+
+theorem gcPost_free : Stmt.freeInList ["__loop6"] gcPost = true := by
+  rw [gcPost, freeInList_append, freeInList_append, freeInList_append,
+    freeInList_flatten_range _ 64 gcBit (fun i => by cases i <;> rfl)]
+  rfl
+
+/-- `__loop6` is free of `BLAKE2S` and calls only itself. -/
+theorem freeOn_loop6 : coreProgram.FreeOn ["__loop6"] = true := by decide +kernel
+
+/-- **`grind_check` under a hash model** (the meaning of `MeaningGrindCheck`, its two hashes
+answered: the base `B` and the digest `D` the proof of work reads). -/
+def MeaningGrindCheckWith (M : HashModel) (rd : Reader) : List E → List E → Prop
+  | [s0, s1, nonce, ng], rets =>
+      rets = [] ∧ ∃ m < ordG, ng = gen ^ m ∧ ∃ cv B D, (s0, s1) = digestScalars cv ∧
+        M.H (digestBytes cv ++ blockOf 0 3) = some B ∧
+        M.H (digestBytes B ++ blockOf nonce 4) = some D ∧ powOk m nonce D = true ∧
+        ∃ p, FrameBits rd p (kToNat ((digestScalars D).1.limb 0)) ∧ ∀ j < m, LoadHolds rd p j 0
+  | _, _ => False
+
+/-- At the deployed model it is `MeaningGrindCheck`. -/
+theorem meaningGrindCheckWith_deployed (rd : Reader) (args rets : List E) :
+    MeaningGrindCheckWith HashModel.deployed rd args rets ↔ MeaningGrindCheck rd args rets := by
+  unfold MeaningGrindCheckWith MeaningGrindCheck
+  split
+  · simp only [HashModel.deployed_H, exists_and_left, exists_eq_left, gcDigest]
+  · exact Iff.rfl
+
+/-- **`grind_check` is sound under a hash model** (G:701-737; TRIAGE #18): its relation under the
+model's semantics gives the proof of work of the answered digest. -/
+theorem grind_check_rel_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "grind_check" args rets) : MeaningGrindCheckWith M rd args rets := by
+  rw [relB_iff_sem find_grind_check, core3_body,
+    show Fn.params Data.core3 = [.n 0, .n 1, .n 2, .n 3] from rfl, gcBody_split] at h
+  obtain ⟨σ, hp, h⟩ := h
+  subst hp
+  simp only [holdsListB_append] at h
+  rw [holdsListB_iff_of_free (F := []) (ss := gcPre) rfl] at h
+  simp only [gcPre, Stmt.HoldsList] at h
   simp only [holds_ite_noRet (.n 5) [.atom (.const (.n 6) (word 0 0 0)),
     .atom (.assertEq (.n 2) (.n 6))] [] rfl rfl] at h
-  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, holds_squeezeStateT _ _ _ (show 3 < 256 by decide),
-    holds_fsCompressT _ _ _ _ (show 4 < 256 by decide), holds_canonicalLimbsT,
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, word_one, word_zero] at h
+  obtain ⟨h4, h5, ⟨-, hz, -⟩, h7, h8, h⟩ := h
+  obtain ⟨⟨cv, B, hcv, hB, eS⟩, h⟩ := holdsB_squeezeStateT _ _ _ (show 3 < 256 by decide) h
+  obtain ⟨⟨cvb, D, hcvb, hD, eF⟩, h⟩ := holdsB_fsCompressT _ _ _ _ (show 4 < 256 by decide) h
+  rw [holdsListB_iff_of_free gcPost_free] at h
+  simp only [gcPost, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds, holds_canonicalLimbsT,
     holdsList_range_flatten 64 gcBit (fun i => by cases i <;> rfl), holds_gcBit, List.map_cons,
-    List.map_nil, word_one, word_zero, true_and] at h
-  obtain ⟨σ, hp, h4, h5, ⟨-, hz, -⟩, h7, h8, ⟨cv, hcv, eS⟩, ⟨cvb, hcvb, eF⟩,
-    ⟨hcan, h30, -, -, -⟩, hbits, a286, ⟨hK0, hframe⟩, h288, h289, h290, hK, hcall, hret⟩ := h
-  subst hp
+    List.map_nil, word_one, true_and] at h
+  obtain ⟨⟨hcan, h30, -, -, -⟩, hbits, a286, ⟨hK0, hframe⟩, h288, h289, h290, hK, hcall, hret⟩ := h
   rw [h289, h288] at hK hcall
   rw [h290] at hcall
-  obtain ⟨m, hm, hN, hB⟩ := (guarded_loop_iff (loop6_step rd (σ (.n 3)) (σ (.n 287)))).mp
-    ⟨hK, hcall⟩
+  have hcall' : 1 + σ (.n 3) ≠ 0 → coreProgram.Rel rd "__loop6" [1, σ (.n 3), σ (.n 287)] [] :=
+    fun hne ↦ (relB_iff_rel_of_freeOn freeOn_loop6 (List.mem_singleton_self _) _ _).mp (hcall hne)
+  obtain ⟨m, hm, hN, hB'⟩ := (guarded_loop_iff (loop6_step rd (σ (.n 3)) (σ (.n 287)))).mp
+    ⟨hK, hcall'⟩
   rw [h7, h8] at hcv
-  have f14 : σ (.n 14) = (digestScalars (absorbCv cv 0 3)).1 := eS 5 (by omega)
-  have f15 : σ (.n 15) = (digestScalars (absorbCv cv 0 3)).2 := eS 6 (by omega)
-  have gb : cvb = absorbCv cv 0 3 := digestScalars_injective (by rw [← hcvb, f14, f15])
-  subst gb
-  have f28 : σ (.n 28) = (digestScalars (gcDigest cv (σ (.n 2)))).1 := eF 12 (by omega) (by omega)
-  set L := kToNat ((digestScalars (gcDigest cv (σ (.n 2)))).1.limb 0)
+  have f14 : σ (.n 14) = (digestScalars B).1 := eS 5 (by omega)
+  have f15 : σ (.n 15) = (digestScalars B).2 := eS 6 (by omega)
+  obtain rfl : cvb = B := digestScalars_injective (by rw [← hcvb, f14, f15])
+  have f28 : σ (.n 28) = (digestScalars D).1 := eF 12 (by omega) (by omega)
+  set L := kToNat ((digestScalars D).1.limb 0)
   have hsum := gc_acc 63 (by omega) hbits
   rw [show gcAcc 63 = 286 from rfl, e_add_eq_zero_iff.mp a286] at hsum
   obtain ⟨-, hb⟩ := bits_of_reconstruct_zero (n := 64) (by omega)
@@ -210,24 +271,30 @@ theorem grind_check_sound_aux (rd : Reader) (args rets : List E)
           (hbits (i + 1) hi).1.symm) hsum.symm
   rw [h30, eToNat_ofK, f28] at hb
   have hloads : ∀ j < m, LoadHolds rd (σ (.n 287)) j 0 := fun j hj => by
-    have := hB j hj
+    have := hB' j hj
     rwa [loadHolds_mul_gen_pow, Nat.add_zero] at this
   have hfr : ∀ k < 64, ∀ w, rd ((σ (.n 287)).limb 0 * Parameters.gpow k) = some w →
       w = bitE (L.testBit k) := fun k hk w hw => by
     rw [hframe k (by rw [length_gcRun]; exact hk) w hw, gcRun_getElem]
     exact hb k hk
-  refine ⟨hret.symm, m, hm, hN, cv, hcv, ?_, σ (.n 287), ⟨hK0, hfr⟩, hloads⟩
-  · rcases Nat.eq_zero_or_pos m with h0 | h0
-    · subst h0
-      have h5z : σ (.n 5) = 0 := by rw [h5, h4, hN, pow_zero]; exact e_add_self 1
-      obtain ⟨h6, a2, -⟩ := hz h5z
-      rw [h6, add_zero] at a2
-      unfold powOk
-      simp [a2, limb_zero]
-    · refine powOk_of_bits h0 fun i hi h64 => ?_
-      have := hfr i h64 0 (hloads i hi).2
-      rw [eq_comm, bitE_eq_zero_iff] at this
-      exact this
+  refine ⟨hret.symm, m, hm, hN, cv, cvb, D, hcv, hB, hD, ?_, σ (.n 287), ⟨hK0, hfr⟩, hloads⟩
+  rcases Nat.eq_zero_or_pos m with h0 | h0
+  · subst h0
+    have h5z : σ (.n 5) = 0 := by rw [h5, h4, hN, pow_zero]; exact e_add_self 1
+    obtain ⟨h6, a2, -⟩ := hz h5z
+    rw [h6, add_zero] at a2
+    unfold powOk
+    simp [a2, limb_zero]
+  · refine powOk_of_bits h0 fun i hi h64 => ?_
+    have := hfr i h64 0 (hloads i hi).2
+    rw [eq_comm, bitE_eq_zero_iff] at this
+    exact this
+
+theorem grind_check_sound_aux (rd : Reader) (args rets : List E)
+    (h : coreProgram.Rel rd "grind_check" args rets) : MeaningGrindCheck rd args rets := by
+  rw [← relB_deployed] at h
+  exact (meaningGrindCheckWith_deployed rd args rets).mp
+    (grind_check_rel_model (M := HashModel.deployed) rd args rets h)
 
 /-! ## Completeness -/
 

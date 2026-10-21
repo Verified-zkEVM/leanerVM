@@ -15,6 +15,15 @@ public import LeanVM.Guest.B1.FsBlocks
 | function | meaning |
 |---|---|
 | `sumcheck_round4` (TRIAGE #25) | `sumcheckRoundPoly 4 claim none`, then a sample (V:1313) |
+| `sumcheck_round5` (TRIAGE #26) | `sumcheckRoundPoly 5 claim (some e)`, then a sample (V:1313) |
+| `opening_fold` (TRIAGE #31) | a sample, then `sumcheckRoundPoly 3` (`foldStep`, V:1678) |
+| `assert_canonical` (TRIAGE #2) | the word is canonical |
+
+Under a hash model (`docs/roadmap/w2-guest-model.md` §2): each function's relation under `M.sem`
+gives its `…With M` meaning, the run over the model's answered hash (`sumcheck_round4_model`,
+`sumcheck_round5_model`, `opening_fold_model`), and the `…_modelD` forms name the answered digests
+of each block; the deployed iff's forward direction is the generic one at `HashModel.deployed`.
+`assert_canonical` has no `BLAKE2S` and transfers (`assert_canonical_iffB`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -162,6 +171,53 @@ theorem sumcheck_round4_model {M : HashModel} (rd : Reader) (args rets : List E)
     simp only [polyEval, List.foldr, zero_mul, zero_add, List.cons.injEq, and_true, true_and]
     ring
 
+/-- **`sumcheck_round4` under a hash model, its hashes named**: the three absorptions' and the
+squeeze's answered digests, and the returns in their terms (the run `runsToM_roundPoly4`). -/
+theorem sumcheck_round4_modelD {M : HashModel} (rd : Reader) {s0 s1 cur claim : E}
+    {rets : List E} (h : coreProgram.RelB M.sem rd "sumcheck_round4" [s0, s1, cur, claim] rets) :
+    ∃ cv d1 d2 d3 d4 c0 c2 c3, (s0, s1) = digestScalars cv ∧ ReadsAt rd cur [c0, c2, c3] ∧
+      obsCvM M cv c0 = some d1 ∧ obsCvM M d1 c2 = some d2 ∧ obsCvM M d2 c3 = some d3 ∧
+      sqCvM M d3 = some d4 ∧
+      rets = [(digestScalars d4).1, (digestScalars d4).2, cur * gen ^ 3,
+        polyEval [c0, claim + (c2 + c3), c2, c3] (challengeOf d4), challengeOf d4] := by
+  rw [relB_iff_sem find_sumcheck_round4, core6_body, core6_params] at h
+  obtain ⟨σ, hp, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+  obtain ⟨rfl, rfl, rfl, rfl, -⟩ := hp
+  simp only [holdsListB_append, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons,
+    List.map_nil] at h
+  obtain ⟨h4, h5, h⟩ := h
+  obtain ⟨⟨hl0, cv, d1, hcv, hd1, e0⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl1, cv1, d2, hcv1, hd2, e1⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl2, cv2, d3, hcv2, hd3, e2⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨h51, h52, h⟩ := h
+  obtain ⟨⟨cv3, d4, hcv3, hd4, e3⟩, h⟩ := holdsB_squeezeT _ _ _ h
+  obtain ⟨h67, h68, h69, h70, h71, h72, h73, h74, h75, h76, h77, h78, hret⟩ := h
+  have f19 : σ (.n 19) = (digestScalars d1).1 := e0 12 (by omega) (by omega)
+  have f20 : σ (.n 20) = (digestScalars d1).2 := e0 13 (by omega) (by omega)
+  have f34 : σ (.n 34) = (digestScalars d2).1 := e1 12 (by omega) (by omega)
+  have f35 : σ (.n 35) = (digestScalars d2).2 := e1 13 (by omega) (by omega)
+  have f49 : σ (.n 49) = (digestScalars d3).1 := e2 12 (by omega) (by omega)
+  have f50 : σ (.n 50) = (digestScalars d3).2 := e2 13 (by omega) (by omega)
+  have f58 : σ (.n 58) = (digestScalars d4).1 := e3 5 (by omega)
+  have f59 : σ (.n 59) = (digestScalars d4).2 := e3 6 (by omega)
+  have f66 : σ (.n 66) = challengeOf d4 := e3 13 (by omega)
+  obtain rfl : cv1 = d1 := digestScalars_injective (by rw [← hcv1, f19, f20])
+  obtain rfl : cv2 = d2 := digestScalars_injective (by rw [← hcv2, f34, f35])
+  obtain rfl : cv3 = d3 := digestScalars_injective (by rw [← hcv3, f49, f50])
+  rw [h4, h5] at hcv
+  refine ⟨cv, cv1, cv2, cv3, d4, σ (.n 6), σ (.n 21), σ (.n 36), hcv, ?_, hd1, hd2, hd3, hd4, ?_⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    · exact hl0
+    · exact hl1
+    · exact hl2
+  · rw [← hret, h67, h68, h71, h70, h69, word_eight, h77, h76, h75, h74, h73, h72, h52, h51,
+      h78, f66, f58, f59]
+    simp only [polyEval, List.foldr, zero_mul, zero_add, List.cons.injEq, and_true, true_and]
+    ring
+
 theorem sumcheck_round4_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "sumcheck_round4" args rets ↔ MeaningSumcheckRound4 rd args rets := by
   constructor
@@ -268,46 +324,153 @@ theorem core7_body : Fn.body Data.core7 =
 
 theorem word_sixteen : word 16 0 0 = gen ^ 4 := word_two_pow (a := 4) (by decide)
 
+/-- **`sumcheck_round5` under a hash model** (the meaning of `MeaningSumcheckRound5`, every hash
+answered): the round's run reaches its state with every hash answered by `M`. -/
+def MeaningSumcheckRound5With (M : HashModel) (rd : Reader) : List E → List E → Prop
+  | [s0, s1, cur, claim, e], rets =>
+      ∃ cv c1 c2 c3 c4 claim' r cv', (s0, s1) = digestScalars cv ∧
+        ReadsAt rd cur [c1, c2, c3, c4] ∧
+        RunsToM M (roundPoly 5 claim (some e)) cv [c1, c2, c3, c4] (claim', r) cv' ∧
+        rets = [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ 4, claim', r]
+  | _, _ => False
+
+/-- At the deployed model it is `MeaningSumcheckRound5`. -/
+theorem meaningSumcheckRound5With_deployed (rd : Reader) (args rets : List E) :
+    MeaningSumcheckRound5With HashModel.deployed rd args rets ↔ MeaningSumcheckRound5 rd args rets := by
+  unfold MeaningSumcheckRound5With MeaningSumcheckRound5
+  split <;> try simp only [runsToM_deployed]
+
+/-- The run of an equality-mode round over a hash model, from the answered hashes of its four
+absorptions and its squeeze. -/
+theorem runsToM_roundPoly5 {M : HashModel} {cv d1 d2 d3 d4 d5 : Digest} (claim e c1 c2 c3 c4 : E)
+    (h1 : obsCvM M cv c1 = some d1) (h2 : obsCvM M d1 c2 = some d2) (h3 : obsCvM M d2 c3 = some d3)
+    (h4 : obsCvM M d3 c4 = some d4) (h5 : sqCvM M d4 = some d5) :
+    RunsToM M (roundPoly 5 claim (some e)) cv [c1, c2, c3, c4]
+      (polyEval [claim + e * (c1 + c2 + c3 + c4), c1, c2, c3, c4] (challengeOf d5),
+        challengeOf d5) d5 := by
+  have hN : obsAllM M cv [c1, c2, c3, c4] = some d4 := by simp [obsAllM, h1, h2, h3, h4]
+  have h := ((runsToM_readN hN).bind (f := fun tail =>
+      (pure ((claim + e * sumE tail) :: tail) : Prog (List E))) (runsToM_ret _ _)).bind
+    (f := fun message => do
+        let challenge ← Prog.sampleE
+        return (polyEval message challenge, challenge))
+    ((runsToM_sampleE h5).bind (f := fun challenge => (pure (polyEval
+      ((claim + e * sumE [c1, c2, c3, c4]) :: [c1, c2, c3, c4]) challenge, challenge) :
+        Prog (E × E))) (runsToM_ret _ _))
+  refine h.of_eq rfl ?_ rfl
+  simp only [sumE, List.foldl, zero_add]
+
+/-- **`sumcheck_round5` is sound under a hash model** (G:860-872; TRIAGE #26): its relation under
+the model's semantics gives the round's run, every hash answered. -/
+theorem sumcheck_round5_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "sumcheck_round5" args rets) :
+    MeaningSumcheckRound5With M rd args rets := by
+  rw [relB_iff_sem find_sumcheck_round5, core7_body, core7_params] at h
+  obtain ⟨σ, hp, h⟩ := h
+  subst hp
+  simp only [holdsListB_append, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons,
+    List.map_nil] at h
+  obtain ⟨h5, h6, h⟩ := h
+  obtain ⟨⟨hl0, cv, d1, hcv, hd1, e0⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl1, cv1, d2, hcv1, hd2, e1⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl2, cv2, d3, hcv2, hd3, e2⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl3, cv3, d4, hcv3, hd4, e3⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨cv4, d5, hcv4, hd5, e4⟩, h⟩ := holdsB_squeezeT _ _ _ h
+  obtain ⟨h81, h82, h83, h84, h85, h86, h87, h88, h89, h90, h91, h92, h93, h94, h95, h96, h97,
+    h98, h99, hret⟩ := h
+  have f20 : σ (.n 20) = (digestScalars d1).1 := e0 12 (by omega) (by omega)
+  have f21 : σ (.n 21) = (digestScalars d1).2 := e0 13 (by omega) (by omega)
+  have f35 : σ (.n 35) = (digestScalars d2).1 := e1 12 (by omega) (by omega)
+  have f36 : σ (.n 36) = (digestScalars d2).2 := e1 13 (by omega) (by omega)
+  have f50 : σ (.n 50) = (digestScalars d3).1 := e2 12 (by omega) (by omega)
+  have f51 : σ (.n 51) = (digestScalars d3).2 := e2 13 (by omega) (by omega)
+  have f65 : σ (.n 65) = (digestScalars d4).1 := e3 12 (by omega) (by omega)
+  have f66 : σ (.n 66) = (digestScalars d4).2 := e3 13 (by omega) (by omega)
+  have f72 : σ (.n 72) = (digestScalars d5).1 := e4 5 (by omega)
+  have f73 : σ (.n 73) = (digestScalars d5).2 := e4 6 (by omega)
+  have f80 : σ (.n 80) = challengeOf d5 := e4 13 (by omega)
+  obtain rfl : cv1 = d1 := digestScalars_injective (by rw [← hcv1, f20, f21])
+  obtain rfl : cv2 = d2 := digestScalars_injective (by rw [← hcv2, f35, f36])
+  obtain rfl : cv3 = d3 := digestScalars_injective (by rw [← hcv3, f50, f51])
+  obtain rfl : cv4 = d4 := digestScalars_injective (by rw [← hcv4, f65, f66])
+  rw [h5, h6] at hcv
+  refine ⟨cv, σ (.n 7), σ (.n 22), σ (.n 37), σ (.n 52), _, _, _, hcv, ?_,
+    runsToM_roundPoly5 (σ (.n 3)) (σ (.n 4)) _ _ _ _ hd1 hd2 hd3 hd4 hd5, ?_⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    · exact hl0
+    · exact hl1
+    · exact hl2
+    · exact hl3
+  · rw [← hret, h86, h87, h90, h89, h88, word_sixteen, h98, h97, h96, h95, h94, h93, h92, h91,
+      h85, h84, h83, h82, h81, h99, f80, f72, f73]
+    simp only [polyEval, List.foldr, zero_mul, zero_add, List.cons.injEq, and_true, true_and]
+    ring
+
+/-- **`sumcheck_round5` under a hash model, its hashes named**: the four absorptions' and the
+squeeze's answered digests, and the returns in their terms (the run `runsToM_roundPoly5`). -/
+theorem sumcheck_round5_modelD {M : HashModel} (rd : Reader) {s0 s1 cur claim e : E}
+    {rets : List E} (h : coreProgram.RelB M.sem rd "sumcheck_round5" [s0, s1, cur, claim, e] rets) :
+    ∃ cv d1 d2 d3 d4 d5 c1 c2 c3 c4, (s0, s1) = digestScalars cv ∧ ReadsAt rd cur [c1, c2, c3, c4] ∧
+      obsCvM M cv c1 = some d1 ∧ obsCvM M d1 c2 = some d2 ∧ obsCvM M d2 c3 = some d3 ∧
+      obsCvM M d3 c4 = some d4 ∧ sqCvM M d4 = some d5 ∧
+      rets = [(digestScalars d5).1, (digestScalars d5).2, cur * gen ^ 4,
+        polyEval [claim + e * (c1 + c2 + c3 + c4), c1, c2, c3, c4] (challengeOf d5), challengeOf d5] := by
+  rw [relB_iff_sem find_sumcheck_round5, core7_body, core7_params] at h
+  obtain ⟨σ, hp, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, -⟩ := hp
+  simp only [holdsListB_append, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons,
+    List.map_nil] at h
+  obtain ⟨h5, h6, h⟩ := h
+  obtain ⟨⟨hl0, cv, d1, hcv, hd1, e0⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl1, cv1, d2, hcv1, hd2, e1⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl2, cv2, d3, hcv2, hd3, e2⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl3, cv3, d4, hcv3, hd4, e3⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨cv4, d5, hcv4, hd5, e4⟩, h⟩ := holdsB_squeezeT _ _ _ h
+  obtain ⟨h81, h82, h83, h84, h85, h86, h87, h88, h89, h90, h91, h92, h93, h94, h95, h96, h97,
+    h98, h99, hret⟩ := h
+  have f20 : σ (.n 20) = (digestScalars d1).1 := e0 12 (by omega) (by omega)
+  have f21 : σ (.n 21) = (digestScalars d1).2 := e0 13 (by omega) (by omega)
+  have f35 : σ (.n 35) = (digestScalars d2).1 := e1 12 (by omega) (by omega)
+  have f36 : σ (.n 36) = (digestScalars d2).2 := e1 13 (by omega) (by omega)
+  have f50 : σ (.n 50) = (digestScalars d3).1 := e2 12 (by omega) (by omega)
+  have f51 : σ (.n 51) = (digestScalars d3).2 := e2 13 (by omega) (by omega)
+  have f65 : σ (.n 65) = (digestScalars d4).1 := e3 12 (by omega) (by omega)
+  have f66 : σ (.n 66) = (digestScalars d4).2 := e3 13 (by omega) (by omega)
+  have f72 : σ (.n 72) = (digestScalars d5).1 := e4 5 (by omega)
+  have f73 : σ (.n 73) = (digestScalars d5).2 := e4 6 (by omega)
+  have f80 : σ (.n 80) = challengeOf d5 := e4 13 (by omega)
+  obtain rfl : cv1 = d1 := digestScalars_injective (by rw [← hcv1, f20, f21])
+  obtain rfl : cv2 = d2 := digestScalars_injective (by rw [← hcv2, f35, f36])
+  obtain rfl : cv3 = d3 := digestScalars_injective (by rw [← hcv3, f50, f51])
+  obtain rfl : cv4 = d4 := digestScalars_injective (by rw [← hcv4, f65, f66])
+  rw [h5, h6] at hcv
+  refine ⟨cv, cv1, cv2, cv3, cv4, d5, σ (.n 7), σ (.n 22), σ (.n 37), σ (.n 52), hcv, ?_,
+    hd1, hd2, hd3, hd4, hd5, ?_⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    · exact hl0
+    · exact hl1
+    · exact hl2
+    · exact hl3
+  · rw [← hret, h86, h87, h90, h89, h88, word_sixteen, h98, h97, h96, h95, h94, h93, h92, h91,
+      h85, h84, h83, h82, h81, h99, f80, f72, f73]
+    simp only [polyEval, List.foldr, zero_mul, zero_add, List.cons.injEq, and_true, true_and]
+    ring
+
 theorem sumcheck_round5_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "sumcheck_round5" args rets ↔ MeaningSumcheckRound5 rd args rets := by
+  constructor
+  · intro h
+    rw [← relB_deployed] at h
+    exact (meaningSumcheckRound5With_deployed rd args rets).mp
+      (sumcheck_round5_model (M := HashModel.deployed) rd args rets h)
   rw [rel_iff_sem find_sumcheck_round5, core7_body, core7_params]
   simp only [holdsList_append, holds_fsNextT, holds_squeezeT, Stmt.HoldsList, Stmt.Holds,
     Atom.Holds, List.map_cons, List.map_nil]
-  constructor
-  · rintro ⟨σ, hp, h5, h6, ⟨hl0, cv, hcv, e0⟩, ⟨hl1, cv1, hcv1, e1⟩, ⟨hl2, cv2, hcv2, e2⟩,
-      ⟨hl3, cv3, hcv3, e3⟩, ⟨cv4, hcv4, e4⟩, h81, h82, h83, h84, h85, h86, h87, h88, h89, h90,
-      h91, h92, h93, h94, h95, h96, h97, h98, h99, hret⟩
-    subst hp
-    have f20 : σ (.n 20) = (digestScalars (absorbCv cv (σ (.n 7)) 1)).1 := e0 12 (by omega) (by omega)
-    have f21 : σ (.n 21) = (digestScalars (absorbCv cv (σ (.n 7)) 1)).2 := e0 13 (by omega) (by omega)
-    have f35 : σ (.n 35) = (digestScalars (absorbCv cv1 (σ (.n 22)) 1)).1 := e1 12 (by omega) (by omega)
-    have f36 : σ (.n 36) = (digestScalars (absorbCv cv1 (σ (.n 22)) 1)).2 := e1 13 (by omega) (by omega)
-    have f50 : σ (.n 50) = (digestScalars (absorbCv cv2 (σ (.n 37)) 1)).1 := e2 12 (by omega) (by omega)
-    have f51 : σ (.n 51) = (digestScalars (absorbCv cv2 (σ (.n 37)) 1)).2 := e2 13 (by omega) (by omega)
-    have f65 : σ (.n 65) = (digestScalars (absorbCv cv3 (σ (.n 52)) 1)).1 := e3 12 (by omega) (by omega)
-    have f66 : σ (.n 66) = (digestScalars (absorbCv cv3 (σ (.n 52)) 1)).2 := e3 13 (by omega) (by omega)
-    have f72 : σ (.n 72) = (digestScalars (absorbCv cv4 0 2)).1 := e4 5 (by omega)
-    have f73 : σ (.n 73) = (digestScalars (absorbCv cv4 0 2)).2 := e4 6 (by omega)
-    have f80 : σ (.n 80) = challengeOf (sqCv cv4) := e4 13 (by omega)
-    have g1 : cv1 = obsCv cv (σ (.n 7)) := digestScalars_injective (by rw [← hcv1, f20, f21]; rfl)
-    have g2 : cv2 = obsCv cv1 (σ (.n 22)) := digestScalars_injective (by rw [← hcv2, f35, f36]; rfl)
-    have g3 : cv3 = obsCv cv2 (σ (.n 37)) := digestScalars_injective (by rw [← hcv3, f50, f51]; rfl)
-    have g4 : cv4 = obsCv cv3 (σ (.n 52)) := digestScalars_injective (by rw [← hcv4, f65, f66]; rfl)
-    rw [h5, h6] at hcv
-    refine ⟨cv, σ (.n 7), σ (.n 22), σ (.n 37), σ (.n 52), _, _, _, hcv, ?_,
-      runsTo_roundPoly5 cv (σ (.n 3)) (σ (.n 4)) _ _ _ _, ?_⟩
-    · intro k hk
-      simp only [List.length_cons, List.length_nil] at hk
-      interval_cases k
-      · exact hl0
-      · exact hl1
-      · exact hl2
-      · exact hl3
-    · rw [← hret, h86, h87, h90, h89, h88, word_sixteen, h98, h97, h96, h95, h94, h93, h92, h91,
-        h85, h84, h83, h82, h81, h99, f80, f72, f73, g4, g3, g2, g1]
-      simp only [obsAll, List.foldl, polyEval, List.foldr, zero_mul, zero_add, List.cons.injEq,
-        and_true, absorbCv_sq, true_and]
-      ring
   · intro hm
     obtain ⟨s0, s1, cur, claim, e, rfl⟩ : ∃ s0 s1 cur claim e,
         args = [s0, s1, cur, claim, e] := by
@@ -426,35 +589,131 @@ theorem core8_body : Fn.body Data.core8 =
 
 theorem word_four : word 4 0 0 = gen ^ 2 := word_two_pow (a := 2) (by decide)
 
+/-- One fold round over a hash model, from the answered hashes of its squeeze and its two
+absorptions. -/
+theorem runsToM_foldStep {M : HashModel} {cv e1 e2 e3 : Digest} (c0 c1 c2 d0 d2 : E)
+    (h1 : sqCvM M cv = some e1) (h2 : obsCvM M e1 d0 = some e2) (h3 : obsCvM M e2 d2 = some e3) :
+    RunsToM M (foldStep [c0, c1, c2]) cv [d0, d2]
+      (challengeOf e1, polyEval [c0, c1, c2] (challengeOf e1),
+        [d0, polyEval [c0, c1, c2] (challengeOf e1) + d2, d2]) e3 := by
+  have hN : obsAllM M e2 [d2] = some e3 := by simp [obsAllM, h3]
+  have h := (runsToM_sampleE h1).bind (f := fun challenge => do
+      let target := polyEval [c0, c1, c2] challenge
+      let next ← sumcheckRoundPoly 3 target none
+      return (challenge, target, next))
+    (((runsToM_readE h2).bind (f := fun constant => do
+        let tail ← Prog.readN 1
+        return constant :: (polyEval [c0, c1, c2] (challengeOf e1) + sumE tail) :: tail)
+      ((runsToM_readN hN).bind
+        (f := fun tail => (pure (d0 :: (polyEval [c0, c1, c2] (challengeOf e1) + sumE tail)
+          :: tail) : Prog (List E))) (runsToM_ret _ _))).bind
+      (f := fun next => (pure (challengeOf e1, polyEval [c0, c1, c2] (challengeOf e1),
+        next) : Prog (E × E × List E))) (runsToM_ret _ _))
+  refine h.of_eq rfl ?_ rfl
+  simp only [sumE, List.foldl, zero_add]
+
+/-- **`opening_fold` under a hash model** (the meaning of `MeaningOpeningFold`, every hash
+answered). -/
+def MeaningOpeningFoldWith (M : HashModel) (rd : Reader) : List E → List E → Prop
+  | [s0, s1, cur, c0, c1, c2], rets =>
+      ∃ cv d0 d2 r t q cv', (s0, s1) = digestScalars cv ∧ ReadsAt rd cur [d0, d2] ∧
+        RunsToM M (foldStep [c0, c1, c2]) cv [d0, d2] (r, t, q) cv' ∧
+        rets = [(digestScalars cv').1, (digestScalars cv').2, cur * gen ^ 2, t, d0, d2, r]
+  | _, _ => False
+
+/-- At the deployed model it is `MeaningOpeningFold`. -/
+theorem meaningOpeningFoldWith_deployed (rd : Reader) (args rets : List E) :
+    MeaningOpeningFoldWith HashModel.deployed rd args rets ↔ MeaningOpeningFold rd args rets := by
+  unfold MeaningOpeningFoldWith MeaningOpeningFold
+  split <;> try simp only [runsToM_deployed]
+
+/-- **`opening_fold` is sound under a hash model** (G:917-924; TRIAGE #31): its relation under
+the model's semantics gives the fold round's run, every hash answered. -/
+theorem opening_fold_model {M : HashModel} (rd : Reader) (args rets : List E)
+    (h : coreProgram.RelB M.sem rd "opening_fold" args rets) :
+    MeaningOpeningFoldWith M rd args rets := by
+  rw [relB_iff_sem find_opening_fold, core8_body, core8_params] at h
+  obtain ⟨σ, hp, h⟩ := h
+  subst hp
+  simp only [holdsListB_append, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons,
+    List.map_nil] at h
+  obtain ⟨h6, h7, h⟩ := h
+  obtain ⟨⟨cv, e1, hcv, he1, e0⟩, h⟩ := holdsB_squeezeT _ _ _ h
+  obtain ⟨h22, h23, h24, h25, h⟩ := h
+  obtain ⟨⟨hl0, cv1, e2, hcv1, he2, g1⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl1, cv2, e3, hcv2, he3, g2⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨h56, h57, h58, h59, h60, h61, h62, h63, h64, hret⟩ := h
+  have f13 : σ (.n 13) = (digestScalars e1).1 := e0 5 (by omega)
+  have f14 : σ (.n 14) = (digestScalars e1).2 := e0 6 (by omega)
+  have f21 : σ (.n 21) = challengeOf e1 := e0 13 (by omega)
+  have f39 : σ (.n 39) = (digestScalars e2).1 := g1 12 (by omega) (by omega)
+  have f40 : σ (.n 40) = (digestScalars e2).2 := g1 13 (by omega) (by omega)
+  have f54 : σ (.n 54) = (digestScalars e3).1 := g2 12 (by omega) (by omega)
+  have f55 : σ (.n 55) = (digestScalars e3).2 := g2 13 (by omega) (by omega)
+  obtain rfl : cv1 = e1 := digestScalars_injective (by rw [← hcv1, f13, f14])
+  obtain rfl : cv2 = e2 := digestScalars_injective (by rw [← hcv2, f39, f40])
+  rw [h6, h7] at hcv
+  refine ⟨cv, σ (.n 26), σ (.n 41), _, _, _, _, hcv, ?_,
+    runsToM_foldStep (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) _ _ he1 he2 he3, ?_⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    · exact hl0
+    · exact hl1
+  · rw [← hret, h56, h57, h60, h59, h58, word_four, h61, h25, h24, h23, h22, h62, h63, h64,
+      f21, f54, f55]
+    simp only [polyEval, List.foldr, zero_mul, zero_add]
+
+/-- **`opening_fold` under a hash model, its hashes named**: the squeeze's and the two
+absorptions' answered digests, and the returns in their terms (the run `runsToM_foldStep`). -/
+theorem opening_fold_modelD {M : HashModel} (rd : Reader) {s0 s1 cur c0 c1 c2 : E} {rets : List E}
+    (h : coreProgram.RelB M.sem rd "opening_fold" [s0, s1, cur, c0, c1, c2] rets) :
+    ∃ cv e1 e2 e3 d0 d2, (s0, s1) = digestScalars cv ∧ ReadsAt rd cur [d0, d2] ∧
+      sqCvM M cv = some e1 ∧ obsCvM M e1 d0 = some e2 ∧ obsCvM M e2 d2 = some e3 ∧
+      rets = [(digestScalars e3).1, (digestScalars e3).2, cur * gen ^ 2,
+        polyEval [c0, c1, c2] (challengeOf e1), d0, d2, challengeOf e1] := by
+  rw [relB_iff_sem find_opening_fold, core8_body, core8_params] at h
+  obtain ⟨σ, hp, h⟩ := h
+  simp only [List.map_cons, List.map_nil, List.cons.injEq] at hp
+  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, -⟩ := hp
+  simp only [holdsListB_append, Stmt.HoldsListB, Stmt.HoldsB, Atom.HoldsB, List.map_cons,
+    List.map_nil] at h
+  obtain ⟨h6, h7, h⟩ := h
+  obtain ⟨⟨cv, e1, hcv, he1, e0⟩, h⟩ := holdsB_squeezeT _ _ _ h
+  obtain ⟨h22, h23, h24, h25, h⟩ := h
+  obtain ⟨⟨hl0, cv1, e2, hcv1, he2, g1⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨⟨hl1, cv2, e3, hcv2, he3, g2⟩, h⟩ := holdsB_fsNextT _ _ _ _ _ h
+  obtain ⟨h56, h57, h58, h59, h60, h61, h62, h63, h64, hret⟩ := h
+  have f13 : σ (.n 13) = (digestScalars e1).1 := e0 5 (by omega)
+  have f14 : σ (.n 14) = (digestScalars e1).2 := e0 6 (by omega)
+  have f21 : σ (.n 21) = challengeOf e1 := e0 13 (by omega)
+  have f39 : σ (.n 39) = (digestScalars e2).1 := g1 12 (by omega) (by omega)
+  have f40 : σ (.n 40) = (digestScalars e2).2 := g1 13 (by omega) (by omega)
+  have f54 : σ (.n 54) = (digestScalars e3).1 := g2 12 (by omega) (by omega)
+  have f55 : σ (.n 55) = (digestScalars e3).2 := g2 13 (by omega) (by omega)
+  obtain rfl : cv1 = e1 := digestScalars_injective (by rw [← hcv1, f13, f14])
+  obtain rfl : cv2 = e2 := digestScalars_injective (by rw [← hcv2, f39, f40])
+  rw [h6, h7] at hcv
+  refine ⟨cv, cv1, cv2, e3, σ (.n 26), σ (.n 41), hcv, ?_, he1, he2, he3, ?_⟩
+  · intro k hk
+    simp only [List.length_cons, List.length_nil] at hk
+    interval_cases k
+    · exact hl0
+    · exact hl1
+  · rw [← hret, h56, h57, h60, h59, h58, word_four, h61, h25, h24, h23, h22, h62, h63, h64,
+      f21, f54, f55]
+    simp only [polyEval, List.foldr, zero_mul, zero_add]
+
 theorem opening_fold_iff (rd : Reader) (args rets : List E) :
     coreProgram.Rel rd "opening_fold" args rets ↔ MeaningOpeningFold rd args rets := by
+  constructor
+  · intro h
+    rw [← relB_deployed] at h
+    exact (meaningOpeningFoldWith_deployed rd args rets).mp
+      (opening_fold_model (M := HashModel.deployed) rd args rets h)
   rw [rel_iff_sem find_opening_fold, core8_body, core8_params]
   simp only [holdsList_append, holds_fsNextT, holds_squeezeT, Stmt.HoldsList, Stmt.Holds,
     Atom.Holds, List.map_cons, List.map_nil]
-  constructor
-  · rintro ⟨σ, hp, h6, h7, ⟨cv, hcv, e0⟩, h22, h23, h24, h25, ⟨hl0, cv1, hcv1, e1⟩,
-      ⟨hl1, cv2, hcv2, e2⟩, h56, h57, h58, h59, h60, h61, h62, h63, h64, hret⟩
-    subst hp
-    have f13 : σ (.n 13) = (digestScalars (absorbCv cv 0 2)).1 := e0 5 (by omega)
-    have f14 : σ (.n 14) = (digestScalars (absorbCv cv 0 2)).2 := e0 6 (by omega)
-    have f21 : σ (.n 21) = challengeOf (sqCv cv) := e0 13 (by omega)
-    have f39 : σ (.n 39) = (digestScalars (absorbCv cv1 (σ (.n 26)) 1)).1 := e1 12 (by omega) (by omega)
-    have f40 : σ (.n 40) = (digestScalars (absorbCv cv1 (σ (.n 26)) 1)).2 := e1 13 (by omega) (by omega)
-    have f54 : σ (.n 54) = (digestScalars (absorbCv cv2 (σ (.n 41)) 1)).1 := e2 12 (by omega) (by omega)
-    have f55 : σ (.n 55) = (digestScalars (absorbCv cv2 (σ (.n 41)) 1)).2 := e2 13 (by omega) (by omega)
-    have g1 : cv1 = sqCv cv := digestScalars_injective (by rw [← hcv1, f13, f14]; rfl)
-    have g2 : cv2 = obsCv cv1 (σ (.n 26)) := digestScalars_injective (by rw [← hcv2, f39, f40]; rfl)
-    rw [h6, h7] at hcv
-    refine ⟨cv, σ (.n 26), σ (.n 41), _, _, _, _, hcv, ?_,
-      runsTo_foldStep cv (σ (.n 3)) (σ (.n 4)) (σ (.n 5)) _ _, ?_⟩
-    · intro k hk
-      simp only [List.length_cons, List.length_nil] at hk
-      interval_cases k
-      · exact hl0
-      · exact hl1
-    · rw [← hret, h56, h57, h60, h59, h58, word_four, h61, h25, h24, h23, h22, h62, h63, h64,
-        f21, f54, f55, g2, g1, absorbCv_one]
-      simp only [obsAll, List.foldl, polyEval, List.foldr, zero_mul, zero_add]
   · intro hm
     obtain ⟨s0, s1, cur, c0, c1, c2, rfl⟩ : ∃ s0 s1 cur c0 c1 c2,
         args = [s0, s1, cur, c0, c1, c2] := by
@@ -523,6 +782,13 @@ theorem assert_canonical_iff (rd : Reader) (args rets : List E) :
     refine ⟨setl (Val.ofArgs [w]) 1 [ofK (w.limb 0), w + ofK (w.limb 0), word 1 0 1,
       ofK (w.limb 1), 0], ?_, ⟨hc, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
     all_goals b1_look
+
+
+/-- `assert_canonical` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem assert_canonical_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "assert_canonical" args rets ↔ MeaningAssertCanonical args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["assert_canonical"]) (by decide +kernel) (by simp),
+    assert_canonical_iff rd args rets]
 
 end
 end LeanVM.Guest.B1

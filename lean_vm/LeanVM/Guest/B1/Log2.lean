@@ -760,5 +760,45 @@ theorem log2_ceil_in_the_exponent_L15_L34_complete {κ : ℕ} (hκ : κ ≤ 32) 
     coreProgram.Rel Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets :=
   (log2_ceil_in_the_exponent_L15_L34_iff hκ hκ6 Lm ht rets).mpr (meaningLog2CeilExp_of_at h)
 
+
+/-! ## Under any semantics
+
+`verify_log2_ceil` and `log2_ceil_in_the_exponent` are free of `BLAKE2S` with their callees
+(`Core.relB_iff_rel_of_freeOn`), so their relations under any semantics are the deployed ones. -/
+
+/-- `verify_log2_ceil__L0_L34` under any semantics. -/
+theorem verify_log2_ceil_L0_L34_iffB {S : BlakeSem} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    coreProgram.RelB S Lm.read "verify_log2_ceil__L0_L34" [bits, lp, sq] rets ↔
+      MeaningVerifyLog2Ceil 0 Lm.read [bits, lp, sq] rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["verify_log2_ceil__L0_L34"]) (by decide +kernel) (by simp),
+    verify_log2_ceil_L0_L34_iff hκ hκ6 Lm ht rets]
+
+/-- `log2_ceil_in_the_exponent__L0_L34` under any semantics. -/
+theorem log2_ceil_in_the_exponent_L0_L34_iffB {S : BlakeSem} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    coreProgram.RelB S Lm.read "log2_ceil_in_the_exponent__L0_L34" [gN, lp, sq] rets ↔
+      MeaningLog2CeilExp 0 Lm.read [gN, lp, sq] rets := by
+  rw [relB_iff_rel_of_freeOn
+      (F := ["log2_ceil_in_the_exponent__L0_L34", "verify_log2_ceil__L0_L34"]) (by decide +kernel)
+      (by simp), log2_ceil_in_the_exponent_L0_L34_iff hκ hκ6 Lm ht rets]
+
+/-- `verify_log2_ceil__L15_L34` under any semantics. -/
+theorem verify_log2_ceil_L15_L34_iffB {S : BlakeSem} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {bits lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    coreProgram.RelB S Lm.read "verify_log2_ceil__L15_L34" [bits, lp, sq] rets ↔
+      MeaningVerifyLog2Ceil 15 Lm.read [bits, lp, sq] rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["verify_log2_ceil__L15_L34"]) (by decide +kernel) (by simp),
+    verify_log2_ceil_L15_L34_iff hκ hκ6 Lm ht rets]
+
+/-- `log2_ceil_in_the_exponent__L15_L34` under any semantics. -/
+theorem log2_ceil_in_the_exponent_L15_L34_iffB {S : BlakeSem} {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ)
+    (Lm : MemImage κ) {gN lp sq : E} (ht : ExpTables Lm.read lp sq) (rets : List E) :
+    coreProgram.RelB S Lm.read "log2_ceil_in_the_exponent__L15_L34" [gN, lp, sq] rets ↔
+      MeaningLog2CeilExp 15 Lm.read [gN, lp, sq] rets := by
+  rw [relB_iff_rel_of_freeOn
+      (F := ["log2_ceil_in_the_exponent__L15_L34", "verify_log2_ceil__L15_L34"]) (by decide +kernel)
+      (by simp), log2_ceil_in_the_exponent_L15_L34_iff hκ hκ6 Lm ht rets]
+
 end
 end LeanVM.Guest.B1

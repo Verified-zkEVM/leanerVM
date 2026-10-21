@@ -195,5 +195,21 @@ theorem opening_row_weights_L6_L1_iff (rd : Reader) (args rets : List E) :
   opening_row_weights_iff 6 1 (by decide) (Program.find?_of_indexOf? (j := 578) (by decide +kernel)
     rfl) rfl core578_body rd args rets
 
+
+/-! ## Under any semantics
+
+Each function here is free of `BLAKE2S` with its callees (`Core.relB_iff_rel_of_freeOn`, the
+kernel checking the call closure), so its relation under any semantics is its deployed one. -/
+
+/-- `opening_row_weights__L4_L0` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem opening_row_weights_L4_L0_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "opening_row_weights__L4_L0" args rets ↔ MeaningOpeningRowWeights 4 0 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["opening_row_weights__L4_L0"]) (by decide +kernel) (by simp), opening_row_weights_L4_L0_iff rd args rets]
+
+/-- `opening_row_weights__L6_L1` under any semantics: it has no `BLAKE2S`, so its deployed meaning. -/
+theorem opening_row_weights_L6_L1_iffB {S : BlakeSem} (rd : Reader) (args rets : List E) :
+    coreProgram.RelB S rd "opening_row_weights__L6_L1" args rets ↔ MeaningOpeningRowWeights 6 1 rd args rets := by
+  rw [relB_iff_rel_of_freeOn (F := ["opening_row_weights__L6_L1"]) (by decide +kernel) (by simp), opening_row_weights_L6_L1_iff rd args rets]
+
 end
 end LeanVM.Guest.B1

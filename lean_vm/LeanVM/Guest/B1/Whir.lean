@@ -1,7 +1,8 @@
 /-
   LeanVM.Guest.B1.Whir
 
-  B1 for the Merkle paths, the caps and the stacked WHIR opening (TRIAGE #28-30, #35, #36).
+  B1 for the Merkle paths, the caps and the stacked WHIR opening (TRIAGE #28-30, #35, #36), and
+  their soundness under a hash model (`Whir.StackedM`).
 -/
 
 module
@@ -15,3 +16,4 @@ public import LeanVM.Guest.B1.Whir.OsCallees
 public import LeanVM.Guest.B1.Whir.OpenLen
 public import LeanVM.Guest.B1.Whir.QueriesAtSpec0
 public import LeanVM.Guest.B1.Whir.QueriesAtSpec1
+public import LeanVM.Guest.B1.Whir.StackedM
