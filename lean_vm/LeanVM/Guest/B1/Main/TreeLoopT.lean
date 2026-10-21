@@ -80,6 +80,30 @@ theorem kidsSat_get {S : BlakeSem} {P : Core.Program} {rd : Reader} {σ : Val} :
             hs.2 i (by simpa using hi) ht
           exact ⟨k', b', q', by simpa using h1, by simpa using h2, by simpa using h3, h4⟩
 
+/-- `CompleteAtB.toWS_tot` with a predicate. -/
+theorem CompleteAtBST.toWST_tot {κ : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B : ℕ} {α : Θ → ℕ} {Q : ℕ → Reader → Tree → Prop}
+    (h : LeanVM.Guest.B1.CompleteAtBST S fs cert κ f Lin args Out B Q)
+    (hw : ∀ θ, WeightTotS S fs (w θ) f (α θ)) :
+    CompleteAtWST S fs cert w κ f Lin args Out B (fun θ => α θ * B / 1000) Q := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hW, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hW, hd, hn, fun rd hl hm =>
+    let ⟨t, hq, hnm, hv, hb, hp, ht, hl', hd'⟩ := hr rd hl hm
+    ⟨t, hq, hnm, hv, hb, hp, ht, hl', hd', fun θ => le_trans ((Nat.le_div_iff_mul_le (by norm_num)).mpr
+      (by have := hw θ rd t args _ hnm hv hb; rw [ht] at this; linarith))
+      (Nat.div_le_div_right (Nat.mul_le_mul_left _ hn))⟩⟩
+
+/-- A `CompleteAtBST` predicate weakened. -/
+theorem _root_.LeanVM.Guest.B1.CompleteAtBST.qmono' {κ : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B : ℕ} {Q Q' : ℕ → Reader → Tree → Prop}
+    (h : LeanVM.Guest.B1.CompleteAtBST S fs cert κ f Lin args Out B Q)
+    (hQ : ∀ fp rd t, Q fp rd t → Q' fp rd t) :
+    LeanVM.Guest.B1.CompleteAtBST S fs cert κ f Lin args Out B Q' := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hW, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hW, hd, hn, fun rd hl hm =>
+    let ⟨t, hq, hr'⟩ := hr rd hl hm
+    ⟨t, hQ fp rd t hq, hr'⟩⟩
+
 section Compose
 
 variable {rd : Reader} {σ : Val}

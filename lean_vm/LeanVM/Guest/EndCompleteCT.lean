@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Main.MainBudgetC
 /-!
 # Completeness under a semantics, the tree kept
 
-* `MainCompleteCT S Ha Ht fs cert cnt b VsQ vr`: `MainCompleteC`, `main`'s tree also satisfying
+* `MainCompleteCT S Ha Ht fs cert cnt b VsQ vr CQ`: `MainCompleteC`, `main`'s tree also satisfying
   `MainQ VsQ (vr seed s w)` at `main`'s honest valuation;
 * `mainCompleteC_ofT`: `mainCompleteC_of` with `verify_sub` complete by trees satisfying `VsQ`
   (`HV`) and the children's runs `vr`;
@@ -36,6 +36,7 @@ variable (S : BlakeSem) (Ha : List UInt8 → Option Digest) (Ht : List UInt8 →
   (fs : String → ℕ) (cert : String → V → ℕ) (cnt : Tree → Opcode → ℕ) (b : Budget)
   (VsQ : B1.VerifySub.VsData → B1.VerifySub.VsRunC → ℕ → Reader → Tree → Prop)
   (vr : Digest → NodeStatement → NodeWitness → ℕ → B1.VerifySub.VsData × B1.VerifySub.VsRunC)
+  (CQ : List E → List E → ℕ → Reader → Tree → Prop)
 
 /-- **`main`'s completeness, its tree kept** (`MainCompleteC`): `main`'s tree also satisfies `MainQ`
 at the children's runs `vr seed s w` and `main`'s honest valuation on the memory. -/
@@ -50,13 +51,13 @@ def MainCompleteCT : Prop :=
           t.Placed coreProgram fs cert 0 ∧ t.total fs = N ∧
           t.LoadsIn coreProgram fs cert (fun i => i < 2) 0 ∧
           (∀ op, cnt t op ≤ (b.instrs op).eval (work s w)) ∧
-          MainQ VsQ (vr seed s w) fs w.children.length 0
+          MainQ VsQ (vr seed s w) CQ (B1.Main.mainIQ fs 0 (honestWordsC Ht seed s w)) fs w.children.length 0
             (mainVal rd (mainRunAt fs 0 (honestWordsC Ht seed s w))) rd t
 
-variable {S Ha Ht fs cert cnt b VsQ vr}
+variable {S Ha Ht fs cert cnt b VsQ vr CQ}
 
 /-- `MainCompleteCT` forgets its trees' predicate. -/
-theorem MainCompleteCT.toC (h : MainCompleteCT S Ha Ht fs cert cnt b VsQ vr) :
+theorem MainCompleteCT.toC (h : MainCompleteCT S Ha Ht fs cert cnt b VsQ vr CQ) :
     MainCompleteC S Ha Ht fs cert cnt b := by
   intro seed s w pi hpi hrel hlim hcap hbs
   obtain ⟨N, L, h1, h2, h3, h4, h5⟩ := h seed s w pi hpi hrel hlim hcap hbs
@@ -67,14 +68,14 @@ theorem MainCompleteCT.toC (h : MainCompleteCT S Ha Ht fs cert cnt b VsQ vr) :
 /-- **The `honest` piece, the tree kept** (`honest_of_mainC`): the honest tree is `T0`'s retemped
 one, `T0` satisfying `MainQ` on the memory `rd0` of `main`'s layouts. -/
 theorem honest_of_mainCT {H : Inst → ℕ → E × E} {C : Inst → List (ℕ × E)}
-    (hm : MainCompleteCT S Ha Ht fs cert cnt b VsQ vr) (hk : KFactsAll fs H C cert)
+    (hm : MainCompleteCT S Ha Ht fs cert cnt b VsQ vr CQ) (hk : KFactsAll fs H C cert)
     (hc : CntRetemp fs cnt) :
     ∀ seed s w pi, statementDigestWith Ha seed s = some pi →
       NodeRelWith Ha B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow bytecode seed s w →
       Limits s w → E2E.Complete.CapsAgreeWith Ht seed w → b.size (work s w) ≤ 2 ^ 28 →
       ∃ (rd0 : Reader) (T0 : Tree) (ν : ℕ → String → Val → V → E), T0.name = "main" ∧
         T0.ValidB S coreProgram rd0 [] [] ∧
-        MainQ VsQ (vr seed s w) fs w.children.length 0
+        MainQ VsQ (vr seed s w) CQ (B1.Main.mainIQ fs 0 (honestWordsC Ht seed s w)) fs w.children.length 0
           (mainVal rd0 (mainRunAt fs 0 (honestWordsC Ht seed s w))) rd0 T0 ∧
         HonestAtB S coreProgram fs H C (hdrOf pi) (T0.retemp coreProgram fs ν 0) cert
           (honest coreProgram fs H C (hdrOf pi) (T0.retemp coreProgram fs ν 0)).read [] [] ∧
@@ -142,6 +143,10 @@ theorem mainCompleteC_ofT (hag : ∀ x d, Ha x = some d → d = Ht x) (fs : Stri
           (digestScalars D.seed).2, ofK (Parameters.gpow lpA), ofK (Parameters.gpow sqA),
           ofK (Parameters.gpow outA)] (B1.Returns []) Bd.vs (fun θ => Bd.vsW (ω θ) (c θ)) (VsQ D R))
     (vr : Digest → NodeStatement → NodeWitness → ℕ → B1.VerifySub.VsData × B1.VerifySub.VsRunC)
+    (QC : (ℕ → ℕ) → List E → List E → List E → ℕ → Reader → Tree → Prop)
+    (HC : ∀ off cs args rets Lin', (∀ rd, LowDef 16 rd → MemL rd Lin' → B1.Digest.CclPreAtC Ha off cs rd args rets) →
+      LeanVM.Guest.B1.CompleteAtBST S fs cert 16 "child_claim_list_digest" Lin' args (B1.Returns rets)
+        (Bd.ccl (cs.length / 4)) (QC off cs args rets))
     (hacc : ∀ seed s w pi, statementDigestWith Ha seed s = some pi →
       NodeRelWith Ha B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow bytecode seed s w →
       Limits s w → E2E.Complete.CapsAgreeWith Ht seed w →
@@ -157,11 +162,11 @@ theorem mainCompleteC_ofT (hag : ∀ x d, Ha x = some d → d = Ht x) (fs : Stri
     (hinstrs : ∀ seed s w, NodeRelWith Ha B1.Main.aggSeedD B1.Main.daPadCell B1.Main.daPadRow bytecode seed s w →
       Limits s w → ∀ op,
       B1.Main.mainWeightS S (ω op) Bd (Wt op) (honestWordsC Ht seed s w) + jt op ≤ (b.instrs op).eval (work s w)) :
-    MainCompleteCT S Ha Ht fs cert cnt b VsQ vr := by
+    MainCompleteCT S Ha Ht fs cert cnt b VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) := by
   intro seed s w pi hpi hN hlim hcaps hbs
   have hc := hacc seed s w pi hpi hN hlim hcaps
   obtain ⟨m, L, hW, hD, hmB, hrel⟩ := B1.Main.mainC_completeWT fs Ht H hF hBs hag Wt le_rfl
-    bytecode_length hN hpi hlim hc.1 VsQ HV (vr seed s w) hc.2 0
+    bytecode_length hN hpi hlim hc.1 VsQ HV (vr seed s w) hc.2 QC HC 0
   rw [Nat.zero_add] at hW
   have hbw := hwords seed s w hN hlim
   have hb32 : b.words.eval (work s w) ≤ 2 ^ 32 := le_trans (words_le_of_size hbs) (by norm_num)

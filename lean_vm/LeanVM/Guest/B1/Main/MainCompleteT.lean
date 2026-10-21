@@ -27,6 +27,7 @@ open LeanVM.Protocol LeanVM.Protocol.Blake2sHash LeanVM.Protocol.Verifier LeanVM
 open LeanVM.Guest.Hints (direct)
 open LeanVM.Guest.End (Limits coverage)
 open LeanVM.Guest.B1 (LowDef RelAtInWST CompleteAtWST)
+open LeanVM.Guest.B1.Digest (CclPreAtC)
 
 @[expose] public section
 
@@ -107,14 +108,19 @@ theorem mainC_completeWT {S : BlakeSem} {cert : String → V → ℕ} {κ : ℕ}
     (vr : ℕ → VerifySub.VsData × VerifySub.VsRunC)
     (hvr : ∀ c (hc : c < w.children.length), VsGood (vr c).1 (vr c).2 ∧
       (vr c).1.pi = statementDigestH Ht seed w.children[c].statement ∧ (vr c).1.seed = seed ∧
-      (vr c).2.fresh (vr c).1 = w.children[c].fresh) (fp : ℕ) :
+      (vr c).2.fresh (vr c).1 = w.children[c].fresh)
+    (QC : (ℕ → ℕ) → List E → List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (HC : ∀ off cs args rets Lin', (∀ rd, LowDef κ rd → MemL rd Lin' → CclPreAtC Ha off cs rd args rets) →
+      LeanVM.Guest.B1.CompleteAtBST S fs cert κ "child_claim_list_digest" Lin' args (Returns rets)
+        (Bd.ccl (cs.length / 4)) (QC off cs args rets)) (fp : ℕ) :
     ∃ (m : ℕ) (L : Layout), Within L (fp + fs "main") m ∧ LeanVM.Guest.B1.DisjL L ∧
       fs "main" + m ≤ mainBound fs Bd (honestWordsC Ht seed s w) ∧
       ∀ rd, LowDef κ rd → MemL rd L →
         rd 1 = some (digestScalars pi).1 → rd g = some (digestScalars pi).2 →
         RelAtInWST S fs cert ωs rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] (fun θ => mainWeightS S (ωs θ) Bd (Wt θ) (honestWordsC Ht seed s w))
-          (MainQ VsQ vr fs w.children.length fp
+          (MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (mainIQ fs fp (honestWordsC Ht seed s w)) fs w.children.length fp
             (mainVal rd (mainRunAt fs fp (honestWordsC Ht seed s w))) rd) := by
   obtain ⟨-, rfl⟩ := stmtAns_of hag hpi
   have hvs : ∀ c ∈ w.children, ∃ (D : VerifySub.VsData) (R : VerifySub.VsRunC), VsGood D R ∧
@@ -125,7 +131,7 @@ theorem mainC_completeWT {S : BlakeSem} {cert : String → V → ℕ} {κ : ℕ}
   obtain ⟨m, _, hW, hD, hB, h⟩ := mainS_relAtInWT Wt H hF hBs hκ
     (honestC_wordsOk fs Ht (fp := fp) hag hF hb hN hpi hlim hfr hvs) VsQ
     (fun D R hD lpA sqA outA c hc => HV D R hD lpA sqA outA c hc) vr
-    (honC_vr fs Ht (fp := fp) hlim hfr vr hvr)
+    (honC_vr fs Ht (fp := fp) hlim hfr vr hvr) QC HC
   exact ⟨m, _, hW, hD, by unfold mainBound; omega, h⟩
 
 end

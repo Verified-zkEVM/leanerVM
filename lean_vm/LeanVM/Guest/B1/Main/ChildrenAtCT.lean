@@ -35,15 +35,23 @@ open LeanVM.Guest.B1.Digest (CellsAt SdPreAtC DaListPreAtC ClPreAtC CclPreAtC)
 callee's tree satisfying `VsQ` at child `j`'s run `vr j` where it is placed, its tail the tree from
 iteration `j + 1` at `fp + f5` (`f5` the loop's frame size). -/
 def Loop5Q (VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Reader → Memory.Tree → Prop)
-    (vr : ℕ → VerifySub.VsData × VerifySub.VsRunC) (fs : String → ℕ) :
+    (vr : ℕ → VerifySub.VsData × VerifySub.VsRunC)
+    (CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop) (IQ : ℕ → Reader → Val → Prop)
+    (fs : String → ℕ) :
     ℕ → ℕ → ℕ → Reader → Memory.Tree → Prop
   | 0, _, _, _, _ => True
   | n + 1, j, fp, rd, t => ∃ (σ : Val) (bufs : List ℕ) (ks : List Memory.Tree) (k : Memory.Tree),
-      t = Memory.Tree.node "__loop5" σ bufs (ks ++ [k]) ∧
+      t = Memory.Tree.node "__loop5" σ bufs (ks ++ [k]) ∧ IQ j rd σ ∧
+      (∃ (kc : Memory.Tree) (b : ℕ), ks[0]? = some kc ∧
+        (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[0]? = some b ∧
+        CQ ([.n 3, .n 4, .n 19, .n 31, .n 5, .n 20, .n 6].map σ) ([.n 32, .n 33].map σ) b rd kc) ∧
+      (∃ (kc : Memory.Tree) (b : ℕ), ks[1]? = some kc ∧
+        (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[1]? = some b ∧
+        CQ ([.n 7, .n 4, .n 34, .n 5, .n 8, .n 21, .n 6].map σ) ([.n 35, .n 36].map σ) b rd kc) ∧
       (∃ (kv : Memory.Tree) (b : ℕ), ks[5]? = some kv ∧
         (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[5]? = some b ∧
         VsQ (vr j).1 (vr j).2 b rd kv) ∧
-      Loop5Q VsQ vr fs n (j + 1) (fp + fs "__loop5") rd k
+      Loop5Q VsQ vr CQ IQ fs n (j + 1) (fp + fs "__loop5") rd k
 
 variable {S : BlakeSem}
 
@@ -71,17 +79,27 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
     (vr : ℕ → VerifySub.VsData × VerifySub.VsRunC)
     (hvr : ∀ c < m, ∃ lpA sqA outA : ℕ, VsGood (vr c).1 (vr c).2 ∧ (vr c).1.pi = (rs c).pd ∧
       (vr c).1.seed = seedD ∧ glp = ofK (gpow lpA) ∧ gsq = ofK (gpow sqA) ∧
-      cfresh * gen ^ (106 * c) = ofK (gpow outA) ∧ SubL (vsExtLR lpA sqA outA (vr c).1 (vr c).2) Lin) :
+      cfresh * gen ^ (106 * c) = ofK (gpow outA) ∧ SubL (vsExtLR lpA sqA outA (vr c).1 (vr c).2) Lin)
+    (QC : (ℕ → ℕ) → List E → List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (HC : ∀ off cs args rets Lin', (∀ rd, LowDef κ rd → MemL rd Lin' → CclPreAtC Ha off cs rd args rets) →
+      LeanVM.Guest.B1.CompleteAtBST S fs cert κ "child_claim_list_digest" Lin' args (Returns rets)
+        (Bd.ccl (cs.length / 4)) (QC off cs args rets)) :
     CompleteAtWST S fs cert w κ "__loop5" Lin [1, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS,
       carried, daR, daC, daS, seed0, seed1, ofK (gpow cpib), glp, cfresh] (Returns [])
       (loopSum (fs "__loop5") (fun c => childBd fs Bd (rs c)) 0 m)
       (fun θ => loopSum (w θ "__loop5") (fun c => childWS S (w θ) Bd (Wt θ) (rs c)) 0 m)
-      (Loop5Q VsQ vr fs m 0) := by
+      (Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+        (fun j rd σ => ∃ (b : ℕ) (dd : Digest), σ = loop5ValC rd (gen ^ m) (ofK (gpow wb)) lxT cover lxS gsq
+          spT spS carried daR daC daS seed0 seed1 (ofK (gpow cpib)) glp cfresh j (rs j) (ofK (gpow b))
+          (ofK (gpow (b + 2))) dd) fs m 0) := by
   have h := completeAtS_loopWT (S := S) (fs := fs) (cert := cert) (w := w) (f := "__loop5") κ Lin
     (fun j => [gen ^ j, gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC,
       daS, seed0, seed1, ofK (gpow cpib), glp, cfresh]) m (fun c => childBd fs Bd (rs c))
     (fun c θ => childWS S (w θ) Bd (Wt θ) (rs c))
-    (fun j fp rd t => Loop5Q VsQ vr fs (m - j) j fp rd t) (fun j hj fp mt => ?_) 0 hm0
+    (fun j fp rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+      (fun j rd σ => ∃ (b : ℕ) (dd : Digest), σ = loop5ValC rd (gen ^ m) (ofK (gpow wb)) lxT cover lxS gsq
+        spT spS carried daR daC daS seed0 seed1 (ofK (gpow cpib)) glp cfresh j (rs j) (ofK (gpow b))
+        (ofK (gpow (b + 2))) dd) fs (m - j) j fp rd t) (fun j hj fp mt => ?_) 0 hm0
   · simpa using h
   obtain ⟨p1, p2, p3, p4, p5⟩ := loop5_parts
   have o := hok j hj
@@ -139,15 +157,20 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
         Returns [(digestScalars r.pd).1, (digestScalars r.pd).2]⟩,
       ⟨"verify_sub", true, [(digestScalars r.pd).1, (digestScalars r.pd).2, seed0, seed1, glp, gsq,
         cfresh * gen ^ (106 * j)], vsExtLR lpA sqA outA D R, Returns []⟩]
-  have c1 : CompleteAtBS S fs cert κ "child_claim_list_digest" (Lb ++ Lin)
-      [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] (Returns [r.dx.1, r.dx.2]) (Bd.ccl r.nx) := by
-    have := H.child_claim_list_digest offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
-    rwa [hlx, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
-  have c2 : CompleteAtBS S fs cert κ "child_claim_list_digest" (Lb ++ Lin)
+  have c1 : LeanVM.Guest.B1.CompleteAtBST S fs cert κ "child_claim_list_digest" (Lb ++ Lin)
+      [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq] (Returns [r.dx.1, r.dx.2]) (Bd.ccl r.nx)
+      (fun b rd t => ∃ off cs, QC off cs [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq]
+        [r.dx.1, r.dx.2] b rd t) := by
+    have := HC offx csx _ _ _ fun rd hl h => hccx rd hl (mLb rd h)
+    rw [hlx, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
+    exact LeanVM.Guest.B1.CompleteAtBST.qmono' this fun _ _ _ h => ⟨offx, csx, h⟩
+  have c2 : LeanVM.Guest.B1.CompleteAtBST S fs cert κ "child_claim_list_digest" (Lb ++ Lin)
       [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq] (Returns [r.ds.1, r.ds.2])
-      (Bd.ccl r.ns) := by
-    have := H.child_claim_list_digest offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
-    rwa [hls, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
+      (Bd.ccl r.ns) (fun b rd t => ∃ off cs, QC off cs [spT, cover, r.base * gen ^ r.nx, lxS, spS,
+        gen ^ r.ns, gsq] [r.ds.1, r.ds.2] b rd t) := by
+    have := HC offs css _ _ _ fun rd hl h => hccs rd hl (mLb rd h)
+    rw [hls, Nat.mul_div_cancel_left _ (by norm_num : 0 < 4)] at this
+    exact LeanVM.Guest.B1.CompleteAtBST.qmono' this fun _ _ _ h => ⟨offs, css, h⟩
   have c3 : nda ≠ 0 → CompleteAtBS S fs cert κ "__loop100" (Lb ++ Lin) [1, gen ^ nda, ofK (gpow (b + 2)),
       daR, daC, daS, r.base, gen ^ r.nx * gen ^ r.ns] (Returns [])
       (nda * (fs "__loop100" + Bd.cover) + fs "__loop100") := by
@@ -189,11 +212,14 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
       [fun θ => (Wt θ).αccl * Bd.ccl r.nx / 1000, fun θ => (Wt θ).αccl * Bd.ccl r.ns / 1000,
         fun θ => nda * (Wt θ).Kl100, fun θ => (Wt θ).Bdl, fun θ => (Wt θ).Bsd,
         fun θ => Bd.vsW (w θ) (Wt θ).vsc]
-      [fun _ _ _ => True, fun _ _ _ => True, fun _ _ _ => True, fun _ _ _ => True, fun _ _ _ => True,
-        VsQ D R] := by
-    refine ⟨fun _ => LeanVM.Guest.B1.CompleteAtWS.toWST (CompleteAtB.toWS_tot c1 fun θ => (Wt θ).ccl),
+      [fun b rd t => ∃ off cs, QC off cs [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq]
+          [r.dx.1, r.dx.2] b rd t,
+        fun b rd t => ∃ off cs, QC off cs [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq]
+          [r.ds.1, r.ds.2] b rd t,
+        fun _ _ _ => True, fun _ _ _ => True, fun _ _ _ => True, VsQ D R] := by
+    refine ⟨fun _ => CompleteAtBST.toWST_tot c1 fun θ => (Wt θ).ccl,
       fun h => by simp at h,
-      fun _ => LeanVM.Guest.B1.CompleteAtWS.toWST (CompleteAtB.toWS_tot c2 fun θ => (Wt θ).ccl),
+      fun _ => CompleteAtBST.toWST_tot c2 fun θ => (Wt θ).ccl,
       fun h => by simp at h,
       fun ht => LeanVM.Guest.B1.CompleteAtWS.toWST (CompleteAtB.toWS (c3 (by simpa using ht))
         fun θ rd t rets hn hv hb =>
@@ -217,8 +243,14 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
                     exact hvsub.trans (SubL.of_mem fun q hq => List.mem_append_right _ hq))
     [gen ^ (j + 1), gen ^ m, ofK (gpow wb), lxT, cover, lxS, gsq, spT, spS, carried, daR, daC, daS,
       seed0, seed1, ofK (gpow cpib), glp, cfresh] (decide (j + 1 ≠ m))
-    (fun rd t => Loop5Q VsQ vr fs (m - (j + 1)) (j + 1) (fp + fs "__loop5") rd t)
-    (fun rd t => Loop5Q VsQ vr fs (m - j) j fp rd t)
+    (fun rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+      (fun j rd σ => ∃ (b : ℕ) (dd : Digest), σ = loop5ValC rd (gen ^ m) (ofK (gpow wb)) lxT cover lxS gsq
+        spT spS carried daR daC daS seed0 seed1 (ofK (gpow cpib)) glp cfresh j (rs j) (ofK (gpow b))
+        (ofK (gpow (b + 2))) dd) fs (m - (j + 1)) (j + 1) (fp + fs "__loop5") rd t)
+    (fun rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+      (fun j rd σ => ∃ (b : ℕ) (dd : Digest), σ = loop5ValC rd (gen ^ m) (ofK (gpow wb)) lxT cover lxS gsq
+        spT spS carried daR daC daS seed0 seed1 (ofK (gpow cpib)) glp cfresh j (rs j) (ofK (gpow b))
+        (ofK (gpow (b + 2))) dd) fs (m - j) j fp rd t)
     (fun rd hl hL outs ho => ?_)) fun n ⟨L, hW, hD, hNb, hS⟩ =>
       ⟨n, L, hW, hD, by
         simp only [List.sum_cons, List.sum_nil] at hNb
@@ -268,15 +300,38 @@ theorem loop5C_completeAtWT {Ha : List UInt8 → Option Digest} {κ : ℕ} {VsGo
     · intro kts k hkv hks ht hkt
       obtain ⟨n', hn'⟩ : ∃ n', m - j = n' + 1 := ⟨m - j - 1, by omega⟩
       rw [hn', Loop5Q]
-      refine ⟨_, _, kts, k, rfl, ?_, ?_⟩
-      · obtain ⟨kv, bv, q, hk5, hb5, hq5, hqv⟩ := kidsSat_get hkv (by simp [loop5Fronts])
-          (by rw [length_bases, List.length_map]) hks 5 (by simp [loop5Fronts]) rfl
+      have hlq : (List.map (fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t)
+          [fun b rd t => ∃ off cs, QC off cs [lxT, cover, r.base, 1, lxS, gen ^ r.nx, gsq]
+            [r.dx.1, r.dx.2] b rd t,
+          fun b rd t => ∃ off cs, QC off cs [spT, cover, r.base * gen ^ r.nx, lxS, spS, gen ^ r.ns, gsq]
+            [r.ds.1, r.ds.2] b rd t,
+          fun _ _ _ => True, fun _ _ _ => True, fun _ _ _ => True, VsQ D R]).length =
+          (loop5Fronts.map (mkCall (loop5ValC rd (gen ^ m) (ofK (gpow wb)) lxT cover lxS gsq spT spS
+            carried daR daC daS seed0 seed1 (ofK (gpow cpib)) glp cfresh j r (ofK (gpow b))
+            (ofK (gpow (b + 2))) dd))).length := by simp [loop5Fronts]
+      have hbl : (bases (fp + fs "__loop5" + mt + [2, 4 * nda].sum) (kts.map (Memory.Tree.total fs))).length =
+          kts.length := by rw [length_bases, List.length_map]
+      refine ⟨_, _, kts, k, rfl, ⟨b, dd, rfl⟩, ?_, ?_, ?_, ?_⟩
+      · obtain ⟨kc, bc, q, hk0, hb0, hq0, hqc⟩ := kidsSat_get hkv hlq hbl hks 0 (by simp [loop5Fronts]) rfl
+        simp only [List.map_cons, List.map_nil, List.getElem?_cons_zero, Option.some.injEq] at hq0
+        subst hq0
+        refine ⟨kc, bc, hk0, by rw [hkt]; exact hb0, ?_⟩
+        simp only [loop5ValC] at hqc ⊢
+        b1_look
+        exact hqc
+      · obtain ⟨kc, bc, q, hk1, hb1, hq1, hqc⟩ := kidsSat_get hkv hlq hbl hks 1 (by simp [loop5Fronts]) rfl
+        simp only [List.map_cons, List.map_nil, List.getElem?_cons_succ, List.getElem?_cons_zero,
+          Option.some.injEq] at hq1
+        subst hq1
+        refine ⟨kc, bc, hk1, by rw [hkt]; exact hb1, ?_⟩
+        simp only [loop5ValC] at hqc ⊢
+        b1_look
+        exact hqc
+      · obtain ⟨kv, bv, q, hk5, hb5, hq5, hqv⟩ := kidsSat_get hkv hlq hbl hks 5 (by simp [loop5Fronts]) rfl
         simp only [List.map_cons, List.map_nil, List.getElem?_cons_succ, List.getElem?_cons_zero,
           Option.some.injEq] at hq5
         subst hq5
-        refine ⟨kv, bv, hk5, ?_, hqv⟩
-        rw [hkt]
-        exact hb5
+        exact ⟨kv, bv, hk5, by rw [hkt]; exact hb5, hqv⟩
       · by_cases hlast : j + 1 = m
         · obtain rfl : n' = 0 := by omega
           rw [Loop5Q]; trivial
