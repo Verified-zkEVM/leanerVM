@@ -124,6 +124,7 @@ import Sphincs.LifetimeLanding
 import Sphincs.Lifetimes
 import Sphincs.LifetimesMulti
 import Sphincs.LoopWalk
+import Sphincs.MultiClass
 import Sphincs.MultiEager
 import Sphincs.MultiPay
 import Sphincs.MultiReduction
@@ -9204,6 +9205,66 @@ import Sphincs.World
 /-- info: 'Sphincs.LoopWalk.walk_zero' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.LoopWalk.walk_zero
+
+/-- info: 'Sphincs.Security.ForsPotential.sample_boundF_class' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.ForsPotential.sample_boundF_class
+
+/-- info: 'Sphincs.Security.HiddenDebt.chargedCost_append' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.chargedCost_append
+
+/-- info: 'Sphincs.Security.HiddenDebt.chargedCost_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.chargedCost_le
+
+/-- info: 'Sphincs.Security.HiddenDebt.chargedCost_recorded' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.chargedCost_recorded
+
+/-- info: 'Sphincs.Security.HiddenDebt.chargedEntry_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.chargedEntry_le
+
+/-- info: 'Sphincs.Security.HiddenDebt.interp_potential_refund_class' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.HiddenDebt.interp_potential_refund_class
+
+/-- info: 'Sphincs.Security.PotentialA.Ctx.ofKey_of_isA' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.Ctx.ofKey_of_isA
+
+/-- info: 'Sphincs.Security.PotentialA.Ctx.ofKey_of_isB' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.Ctx.ofKey_of_isB
+
+/-- info: 'Sphincs.Security.PotentialA.Ctx.stepFree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.Ctx.stepFree
+
+/-- info: 'Sphincs.Security.PotentialA.msgOfKey_digestInput' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.msgOfKey_digestInput
+
+/-- info: 'Sphincs.Security.PotentialA.sampleModel_parse_free' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.sampleModel_parse_free
+
+/-- info: 'Sphincs.Security.PotentialA.smallRoute_potential_payClass' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.smallRoute_potential_payClass
+
+/-- info: 'Sphincs.Security.PotentialA.targetingA_kind_free' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.PotentialA.targetingA_kind_free
+
+/-- info: 'Sphincs.Security.ofKey_append' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.ofKey_append
+
+/-- info: 'Sphincs.Security.ofKey_tweakable' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Security.ofKey_tweakable
 
 /-- info: 'Sphincs.Security.MultiEager.cacheQuery_of_eq' depends on axioms: [propext, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

@@ -321,6 +321,6 @@ theorem sample_boundF_pay (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr 
       exact smallRoute_potential_pay parameterOutput fixed highs remaining prepared known ρ hk tgA rfl 0
         (numeric_monoF hN (by rw [hq0]) (by norm_num)) (costGameX param data (internalize adversary))
   exact sample_boundF_of hb adversary hnr q hq parameterOutput fixed highs remaining prepared hprepared known hk ρ κ
-    hκ hκ1 b N hbb hNN t o on hpt qtop hrt hqtop ho hon hcthr _ hA3
+    hκ hκ1 b N hbb hNN IsMsgInput (fun m r => msgInput_digestInput _ _ m r) t o on hpt qtop hrt hqtop ho hon hcthr _ hA3
 
 end Sphincs.Security.ForsPotential
