@@ -26,7 +26,7 @@ open LeanVM.Guest.B1 (DisjL disj_nil disj_append bufL_disj Within LowDef Complet
   within_append bufL bufL_region bufL_within RelAtInWST CompleteAtWST KidsFromInWST KidsWST KidsSat
   kidsFromInWST_of_kidsW)
 
-open LeanVM.Guest.B1.Digest (CclPreAtC)
+open LeanVM.Guest.B1.Digest (CclPreAtC SdPreAtC)
 
 @[expose] public section
 
@@ -251,19 +251,23 @@ theorem KidsWST.append {Θ : Type} {w : Θ → String → ℕ} {κ : ℕ} :
 tree satisfying `Loop5Q` from iteration `0` where it is placed. -/
 def MainQ (VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Reader → Memory.Tree → Prop)
     (vr : ℕ → VerifySub.VsData × VerifySub.VsRunC)
-    (CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop) (IQ : ℕ → Reader → Val → Prop)
+    (CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (SQ : List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (LQ : List E → ℕ → Reader → Memory.Tree → Prop) (IQ : ℕ → Reader → Val → Prop)
     (fs : String → ℕ) (nc fp : ℕ) (σ : Val)
     (rd : Reader) (t : Memory.Tree) : Prop :=
   ∃ (bufs : List ℕ) (ks : List Memory.Tree), t = Memory.Tree.node "main" σ bufs ks ∧
     (nc ≠ 0 → ∃ (i : ℕ) (k : Memory.Tree) (b : ℕ), ks[i]? = some k ∧
       (bases (fp + fs "main" + bufs.sum) (ks.map (Memory.Tree.total fs)))[i]? = some b ∧
-      Loop5Q VsQ vr CQ IQ fs nc 0 b rd k)
+      Loop5Q VsQ vr CQ SQ LQ IQ fs nc 0 b rd k)
 
 set_option maxRecDepth 100000 in
 /-- `main`'s node gives `MainQ` from its callees' predicates, the loop's `Loop5Q`. -/
 theorem mainQ_of_sat {VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Reader → Memory.Tree → Prop}
     {vr : ℕ → VerifySub.VsData × VerifySub.VsRunC}
-    {CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop} {IQ : ℕ → Reader → Val → Prop}
+    {CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop}
+    {SQ : List E → List E → ℕ → Reader → Memory.Tree → Prop}
+    {LQ : List E → ℕ → Reader → Memory.Tree → Prop} {IQ : ℕ → Reader → Val → Prop}
     (hnc16 : W.nc ≤ 16) (hnc : W.nc ≠ 0) (Qrest Qrest' : List (ℕ → Reader → Memory.Tree → Prop))
     (hQr : Qrest.length + Qrest'.length = 2)
     (rd : Reader) (ks' : List Memory.Tree)
@@ -273,10 +277,10 @@ theorem mainQ_of_sat {VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Re
     (hks : KidsSat (⟨"exponent_tables", [], [.n 65, .n 66], true⟩ :: (mainFronts (decide (W.rd = 1))
         (decide (W.nc = 0))).map (mkCall (mainVal rd (mainRunAt fs fp W))))
       ((fun _ _ => True) :: (((mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else [])).map
-        (fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr CQ IQ fs W.nc 0 b rd t]) ++
+        (fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr CQ SQ LQ IQ fs W.nc 0 b rd t]) ++
           Qrest ++ Qrest').map fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t)
       (bases (fp + fs "main" + W.sizes.sum) (ks'.map (Tree.total fs))) ks') :
-    MainQ VsQ vr CQ IQ fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd
+    MainQ VsQ vr CQ SQ LQ IQ fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd
       (Memory.Tree.node "main" (mainVal rd (mainRunAt fs fp W)) W.sizes ks') := by
   set σ := mainVal rd (mainRunAt fs fp W) with hσ
   have e : (⟨"exponent_tables", [], [.n 65, .n 66], true⟩ :: (mainFronts (decide (W.rd = 1))
@@ -287,13 +291,13 @@ theorem mainQ_of_sat {VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Re
         [mainFrontSd]).map (mkCall σ) := by
     simp [mainFronts]
   have eq : ((fun _ _ => True) :: (((mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else [])).map
-        (fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr CQ IQ fs W.nc 0 b rd t]) ++
+        (fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr CQ SQ LQ IQ fs W.nc 0 b rd t]) ++
           Qrest ++ Qrest').map fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t :
             List (ℕ → Memory.Tree → Prop)) =
       ((fun _ _ => True) :: ((mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else [])).map
         (fun (_ : Kid) (_ : ℕ) (_ : Reader) (_ : Memory.Tree) => True)).map
           fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t) ++
-        (fun b t => Loop5Q VsQ vr CQ IQ fs W.nc 0 b rd t) ::
+        (fun b t => Loop5Q VsQ vr CQ SQ LQ IQ fs W.nc 0 b rd t) ::
           (Qrest ++ Qrest').map fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t := by
     simp
   rw [e] at hkv hks
@@ -312,7 +316,7 @@ theorem mainQ_of_sat {VsQ : VerifySub.VsData → VerifySub.VsRunC → ℕ → Re
   have hql : (((fun _ _ => True) :: ((mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else [])).map
         (fun (_ : Kid) (_ : ℕ) (_ : Reader) (_ : Memory.Tree) => True)).map
           fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t : List (ℕ → Memory.Tree → Prop)) ++
-        (fun b t => Loop5Q VsQ vr CQ IQ fs W.nc 0 b rd t) ::
+        (fun b t => Loop5Q VsQ vr CQ SQ LQ IQ fs W.nc 0 b rd t) ::
           (Qrest ++ Qrest').map fun (Q : ℕ → Reader → Memory.Tree → Prop) b t => Q b rd t).length =
       ((⟨"exponent_tables", [], [.n 65, .n 66], true⟩ :: (mainFronts8 ++
         (if decide (W.rd = 1) then mainFrontsDa else [])).map (mkCall σ) : List Call) ++
@@ -364,7 +368,13 @@ theorem mainS_relAtInWT {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Ma
     (QC : (ℕ → ℕ) → List E → List E → List E → ℕ → Reader → Memory.Tree → Prop)
     (HC : ∀ off cs args rets Lin', (∀ rd, LowDef κ rd → MemL rd Lin' → CclPreAtC Ha off cs rd args rets) →
       LeanVM.Guest.B1.CompleteAtBST S fs cert κ "child_claim_list_digest" Lin' args (Returns rets)
-        (Bd.ccl (cs.length / 4)) (QC off cs args rets)) :
+        (Bd.ccl (cs.length / 4)) (QC off cs args rets))
+    (QS : Digest → List E → List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (HS : ∀ sig cells args rets Lin', (∀ rd, LowDef κ rd → MemL rd Lin' → SdPreAtC Ha sig cells rd args rets) →
+      LeanVM.Guest.B1.CompleteAtBST S fs cert κ "statement_digest" Lin' args (Returns rets) Bd.sd
+        (QS sig cells args rets))
+    (HCov : ∀ i, LeanVM.Guest.B1.CompleteRelBST S fs cert κ "cover_da_root" (CoverPreAt i) Bd.cover
+      (LeanVM.Guest.B1.Digest.CoverLoadsQ i)) :
     ∃ (m : ℕ) (L : Layout), Within (mainIn fs fp W ++ L) (fp + fs "main") m ∧
       DisjL (mainIn fs fp W ++ L) ∧
       m ≤ W.sizes.sum + (fs "exponent_tables" + 68 + mainKidsBound fs Bd W) ∧
@@ -372,7 +382,8 @@ theorem mainS_relAtInWT {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Ma
         rd 1 = some (digestScalars W.stDig).1 → rd g = some (digestScalars W.stDig).2 →
         RelAtInWST S fs cert w rd (fun i => i < 2) (fun _ => False) fp (fs "main" + m)
           "main" [] [] (fun θ => mainWeightS S (w θ) Bd (Wt θ) W)
-          (MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd) := by
+          (MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (fun args rets b rd t => ∃ sig cells, QS sig cells args rets b rd t) Loop100Q (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd) := by
   set bsDa : List ℕ := if W.rd = 1 then [Bd.daVerify W.drows, Bd.cover] else [] with hbsDa
   set bwsDa : List (Θ → ℕ) := if W.rd = 1 then [fun θ => Bd.daVerifyW (w θ) W.drows,
     fun θ => (Wt θ).Bcov] else [] with hbwsDa
@@ -392,17 +403,19 @@ theorem mainS_relAtInWT {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Ma
           fun θ => (Wt θ).cov
     · simp only [hbsDa, hbwsDa, hr, ↓reduceIte]; trivial
   have h5 : KidsWST S fs cert w κ [mainKid5 fs fp W] [b5] [bw5]
-      [fun b rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) (mainIQ fs fp W) fs W.nc 0 b rd t] := by
+      [fun b rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (fun args rets b rd t => ∃ sig cells, QS sig cells args rets b rd t) Loop100Q (mainIQ fs fp W) fs W.nc 0 b rd t] := by
     refine ⟨fun htk => ?_, fun htk => ?_, trivial⟩
     · simp only [mainKid5, decide_eq_true_eq] at htk
       exact loop5C_completeAtWT H Wt hκ hW.nc (by omega) (mainIn fs fp W) W.child hW.children VsQ
-        (fun D R hD lpA sqA outA c hc => HV D R hD lpA sqA outA c hc) vr hvr QC HC
+        (fun D R hD lpA sqA outA c hc => HV D R hD lpA sqA outA c hc) vr hvr QC HC QS HS HCov
     · simp only [mainKid5, decide_eq_false_iff_not, not_not] at htk
       simp only [mainKid5, hb5, htk, loopSum, le_refl]
   have hpre : KidsWST S fs cert w κ (mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else []) ++
       [mainKid5 fs fp W]) (mainBs8 fs Bd W ++ bsDa ++ [b5]) (mainBws8S S Bd Wt W ++ bwsDa ++ [bw5])
       (((mainKids8 fs fp W ++ (if W.rd = 1 then mainKidsDa fs fp W else [])).map
-        fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) (mainIQ fs fp W) fs W.nc 0 b rd t]) := by
+        fun _ _ _ _ => True) ++ [fun b rd t => Loop5Q VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (fun args rets b rd t => ∃ sig cells, QS sig cells args rets b rd t) Loop100Q (mainIQ fs fp W) fs W.nc 0 b rd t]) := by
     rw [List.map_append]
     exact KidsWST.append (KidsWST.append (KidsWS.toWST (mainS_kw8 Wt H hκ hW)) (KidsWS.toWST hDa)) h5
   have hsd' : KidsWS S fs cert w κ [mainKidSd fs fp W] [Bd.sd] [fun θ => (Wt θ).Bsd] := by
@@ -439,7 +452,8 @@ theorem mainS_relAtInWT {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Ma
   · refine (fun hc => ?_) (mainS_relAtIn_coreWT (cert := cert) Wt hκ hW _ _ _ _ (KidsWST.append (KidsWST.append hpre
       (show KidsWST S fs cert w κ [] [] [] [] from trivial)) hsd) (fun k hk => ?_)
       (mainS_hcm hW [] fun rd o ho => by simp only [hnc, decide_true, ↓reduceIte]; exact callsMatch_nil o ho)
-      (fun rd t => MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd t)
+      (fun rd t => MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (fun args rets b rd t => ∃ sig cells, QS sig cells args rets b rd t) Loop100Q (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd t)
       (fun rd ks' _ _ => ⟨W.sizes, ks', rfl, fun h => absurd hnc h⟩))
     · obtain ⟨m, L, h1, h2, h3, h4⟩ := hc
       refine ⟨m, L, h1, h2, ?_, fun rd hl hL hp0 hp1 => RelAtInWST.wmono (h4 rd hl hL hp0 hp1) fun θ => ?_⟩
@@ -470,7 +484,8 @@ theorem mainS_relAtInWT {Θ : Type} {w : Θ → String → ℕ} (Wt : ∀ θ, Ma
       (fun k hk => ?_)
       (mainS_hcm hW [mainKidAgg fs fp W cs d] fun rd o ho => by
         simp only [hnc, decide_false, Bool.false_eq_true, ↓reduceIte]; exact main_cmAgg rd cs d o ho)
-      (fun rd t => MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t) (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd t)
+      (fun rd t => MainQ VsQ vr (fun args rets b rd t => ∃ off cs, QC off cs args rets b rd t)
+            (fun args rets b rd t => ∃ sig cells, QS sig cells args rets b rd t) Loop100Q (mainIQ fs fp W) fs W.nc fp (mainVal rd (mainRunAt fs fp W)) rd t)
       (fun rd ks' hkv hks => mainQ_of_sat (VsQ := VsQ) (vr := vr) hW.nc hnc _ _ rfl rd ks' hkv hks))
     · obtain ⟨m, L, h1, h2, h3, h4⟩ := hc
       refine ⟨m, L, h1, h2, ?_, fun rd hl hL hp0 hp1 => RelAtInWST.wmono (h4 rd hl hL hp0 hp1) fun θ => ?_⟩

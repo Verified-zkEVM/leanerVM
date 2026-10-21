@@ -317,9 +317,12 @@ theorem DischargeHypsB.path {I : Inst} (hI : I ∈ honestInsts P fs H hdr T) {f 
     exact ⟨fn, es, vs, hf, hw, by rw [ht]; exact events_node hf hw⟩
   · rw [ht] at hph; cases hph
 
-/-- **The honest memory of a placed tree**: its temporaries re-chosen, it is `HonestAtB`. -/
-theorem honestAtB_retemp : ∃ ν, HonestAtB S P fs H C hdr (T.retemp P fs ν 0) cert
-    (honest P fs H C hdr (T.retemp P fs ν 0)).read args rets := by
+/-- **The honest memory of a placed tree, its words**: its temporaries re-chosen, it is
+`HonestAtB`, and every word it holds is `0`, the image's `M`, or in an instance's frame. -/
+theorem honestAtB_retemp_F : ∃ ν, HonestAtB S P fs H C hdr (T.retemp P fs ν 0) cert
+    (honest P fs H C hdr (T.retemp P fs ν 0)).read args rets ∧
+    ∀ (a : K) (x : E), (honest P fs H C hdr (T.retemp P fs ν 0)).read a = some x →
+      x = 0 ∨ M.read a = some x ∨ ∃ I ∈ honestInsts P fs H hdr T, ∃ i, I.Frame fs i ∧ a = gpow i := by
   obtain ⟨hF1, hF2⟩ := resolveF_spec (W := FixedW P fs cert H C hdr T)
     (Θ := TempsOn P fs H hdr T) (c := tempCell cert) (a := fun τ => τ.2.2)
     (fun _ _ _ hw hw' => h.fixed_consistent hw hw') (fun _ _ hτ hτ' he => h.temp_cell_inj hτ hτ' he)
@@ -456,10 +459,48 @@ theorem honestAtB_retemp : ∃ ν, HonestAtB S P fs H C hdr (T.retemp P fs ν 0)
       have e2 := hread _ (hmem' he (List.mem_cons_of_mem _ List.mem_cons_self))
       simp only [hx, hy, hrv ht1, hrv ht2] at e1 e2
       exact ⟨e1, e2⟩
-  exact ⟨⟨retempB_valid hF T 0 h.valid hRA, by rw [htot]; exact h.size, h.cells' ν, haddr',
+  refine ⟨⟨⟨retempB_valid hF T 0 h.valid hRA, by rw [htot]; exact h.size, h.cells' ν, haddr',
     fun a ha b hb => hcons a (List.mem_append_right _ ha) b (List.mem_append_right _ hb),
     fun a ha b hb => hcons a (List.mem_append_left _ ha) b (List.mem_append_right _ hb)⟩,
-    bufsOkB_retemp hF T 0 h.valid h.bufsOk, placedB_retemp hF T 0 h.valid h.placed⟩
+    bufsOkB_retemp hF T 0 h.valid h.bufsOk, placedB_retemp hF T 0 h.valid h.placed⟩, ?_⟩
+  -- the image's words: a write's, `F`'s at its address, or none
+  intro a x hx
+  rw [MemImage.read_eq_some_iff hκ'] at hx
+  obtain ⟨i, rfl, hi⟩ := hx
+  have hFx : x = 0 ∨ F (gpow i) = x := by
+    unfold honest image at hi
+    split at hi
+    · rename_i q hq
+      have hmem := List.mem_of_find?_eq_some hq
+      have hq1 : q.1 = gpow i := by simpa using List.find?_some hq
+      exact Or.inr (by rw [← hq1, hall q hmem]; exact hi)
+    · exact Or.inl hi.symm
+  rcases hFx with h0 | hFx
+  · exact Or.inl h0
+  by_cases ht : ∃ τ, TempsOn P fs H hdr T τ ∧ tempCell cert τ = gpow i
+  · obtain ⟨τ, hτ, hc⟩ := ht
+    obtain ⟨g, σ, bufs, kids, -, -, hcell, -, hfr⟩ := h.temp_cell hτ
+    exact Or.inr (Or.inr ⟨τ.1, hτ.1, _, hfr, by rw [← hc, hcell]⟩)
+  have hn : nextR (TempsOn P fs H hdr T) (tempCell cert) (fun τ => τ.2.2) (gpow i) = none := by
+    simp only [nextR, ht, ↓reduceDIte]
+  rw [hFdef, resolveF_none hn] at hFx
+  unfold baseR at hFx
+  split at hFx
+  · rename_i hex
+    have hw := Classical.choose_spec hex
+    rw [hFx] at hw
+    rcases hw with ⟨I, hI, q, hq, hx', -, -⟩ | ⟨I, hI, hn', a', he, -, hq⟩
+    · have := h.cells.cell_lt hI hq
+      exact Or.inr (Or.inr ⟨I, hI, I.fp + q.1, ⟨by omega, by omega⟩, hx'⟩)
+    · have hqT := eqns_of_insts T 0 hdr I hI hn' a' he _ hq
+      exact Or.inr (Or.inl (h.valid.eqns_read h.lt_64 T _ hqT (h.addr _ hqT)))
+  · exact Or.inl hFx.symm
+
+/-- **The honest memory of a placed tree**: its temporaries re-chosen, it is `HonestAtB`. -/
+theorem honestAtB_retemp : ∃ ν, HonestAtB S P fs H C hdr (T.retemp P fs ν 0) cert
+    (honest P fs H C hdr (T.retemp P fs ν 0)).read args rets :=
+  let ⟨ν, h1, _⟩ := honestAtB_retemp_F h
+  ⟨ν, h1⟩
 
 end Proof
 

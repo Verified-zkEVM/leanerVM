@@ -93,13 +93,17 @@ theorem kidPos_plain {lp : String → Bool} {fp : ℕ} {f : String} (hl : lp f =
 
 variable {VsQ : B1.VerifySub.VsData → B1.VerifySub.VsRunC → ℕ → Reader → Memory.Tree → Prop}
   {vr : ℕ → B1.VerifySub.VsData × B1.VerifySub.VsRunC}
-  {CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop} {IQ : ℕ → Reader → Val → Prop}
+  {CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop}
+  {SQ : List E → List E → ℕ → Reader → Memory.Tree → Prop}
+  {LQ : List E → ℕ → Reader → Memory.Tree → Prop} {IQ : ℕ → Reader → Val → Prop}
 
 /-- **An iteration's facts but its tail** (`Loop5Q` at `n + 1`): the iteration's valuation at
 child `j`, its child-claim digests' trees, its `verify_sub` callee's tree. -/
 def Loop5H (VsQ : B1.VerifySub.VsData → B1.VerifySub.VsRunC → ℕ → Reader → Memory.Tree → Prop)
     (vr : ℕ → B1.VerifySub.VsData × B1.VerifySub.VsRunC)
-    (CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop) (IQ : ℕ → Reader → Val → Prop)
+    (CQ : List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (SQ : List E → List E → ℕ → Reader → Memory.Tree → Prop)
+    (LQ : List E → ℕ → Reader → Memory.Tree → Prop) (IQ : ℕ → Reader → Val → Prop)
     (fs : String → ℕ) (j fp : ℕ) (rd : Reader) (σ : Val) (bufs : List ℕ) (ks : List Memory.Tree)
     (k : Memory.Tree) : Prop :=
   IQ j rd σ ∧
@@ -109,6 +113,12 @@ def Loop5H (VsQ : B1.VerifySub.VsData → B1.VerifySub.VsRunC → ℕ → Reader
     (∃ (kc : Memory.Tree) (b : ℕ), ks[1]? = some kc ∧
       (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[1]? = some b ∧
       CQ ([.n 7, .n 4, .n 34, .n 5, .n 8, .n 21, .n 6].map σ) ([.n 35, .n 36].map σ) b rd kc) ∧
+    (σ (.n 61) ≠ 0 → ∃ (kl : Memory.Tree) (b : ℕ), ks[2]? = some kl ∧
+      (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[2]? = some b ∧
+      LQ ([.n 62, .n 52, .n 59, .n 10, .n 11, .n 12, .n 19, .n 30].map σ) b rd kl) ∧
+    (∃ (kd : Memory.Tree) (b : ℕ), ks[4]? = some kd ∧
+      (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[4]? = some b ∧
+      SQ ([.n 13, .n 14, .n 42, .n 63, .n 64, .n 51].map σ) ([.n 65, .n 66].map σ) b rd kd) ∧
     (∃ (kv : Memory.Tree) (b : ℕ), ks[5]? = some kv ∧
       (bases (fp + fs "__loop5" + k.total fs + bufs.sum) (ks.map (Memory.Tree.total fs)))[5]? = some b ∧
       VsQ (vr j).1 (vr j).2 b rd kv)
@@ -122,21 +132,21 @@ theorem loop5Q_insts {T : Memory.Tree} {fp0 : ℕ} {hdr : E × E} {rd : Reader} 
       I.t = (Memory.Tree.node "__loop5" σ bufs (ks ++ [k])).retemp coreProgram fs ν I.fp →
       J.t = k.retemp coreProgram fs ν (I.fp + fs "__loop5") → J.fp = I.fp + fs "__loop5" →
       I.t.kids[ks.length]? = some J.t → I.kidFps[ks.length]? = some J.fp → Inv J) :
-    ∀ (n j fp : ℕ) (t : Memory.Tree), Loop5Q VsQ vr CQ IQ fs n j fp rd t →
+    ∀ (n j fp : ℕ) (t : Memory.Tree), Loop5Q VsQ vr CQ SQ LQ IQ fs n j fp rd t →
       ∀ I ∈ T.insts fs coreProgram.loop H fp0 hdr, I.t = t.retemp coreProgram fs ν fp → I.fp = fp →
       Inv I → ∀ c < n, ∃ I' ∈ T.insts fs coreProgram.loop H fp0 hdr, Inv I' ∧
         ∃ (σ : Val) (bufs : List ℕ) (ks : List Memory.Tree) (k : Memory.Tree),
           I'.t = (Memory.Tree.node "__loop5" σ bufs (ks ++ [k])).retemp coreProgram fs ν I'.fp ∧
-          Loop5H VsQ vr CQ IQ fs (j + c) I'.fp rd σ bufs ks k
+          Loop5H VsQ vr CQ SQ LQ IQ fs (j + c) I'.fp rd σ bufs ks k
   | 0, _, _, _, _, _, _, _, _, _, c, hc => absurd hc (Nat.not_lt_zero c)
   | n + 1, j, fp, t, hQ, I, hI, hIt, hIfp, hInvI, c, hc => by
-      obtain ⟨σ, bufs, ks, k, rfl, hIQ, h0, h1, hv, hrest⟩ := hQ
+      obtain ⟨σ, bufs, ks, k, rfl, hIQ, h0, h1, h2, h4, hv, hrest⟩ := hQ
       have hIt' : I.t = (Memory.Tree.node "__loop5" σ bufs (ks ++ [k])).retemp coreProgram fs ν I.fp := by
         rw [hIt, hIfp]
       rcases c with _ | c
       · refine ⟨I, hI, hInvI, σ, bufs, ks, k, hIt', ?_⟩
         rw [hIfp]
-        exact ⟨hIQ, h0, h1, hv⟩
+        exact ⟨hIQ, h0, h1, h2, h4, hv⟩
       · -- the tail call
         have hpos : (kidPos fs coreProgram.loop I.fp "__loop5" bufs
             ((ks ++ [k]).map (Memory.Tree.total fs)))[ks.length]? = some (fp + fs "__loop5") := by
@@ -158,11 +168,11 @@ theorem loop5Q_insts {T : Memory.Tree} {fp0 : ℕ} {hdr : E × E} {rd : Reader} 
 theorem loop5H_vs_inst {T : Memory.Tree} {fp0 : ℕ} {hdr : E × E} {rd : Reader} {I : Inst}
     (hI : I ∈ T.insts fs coreProgram.loop H fp0 hdr) {σ : Val} {bufs : List ℕ} {ks : List Memory.Tree}
     {k : Memory.Tree} (hIt : I.t = (Memory.Tree.node "__loop5" σ bufs (ks ++ [k])).retemp coreProgram fs ν I.fp)
-    {j : ℕ} (hH : Loop5H VsQ vr CQ IQ fs j I.fp rd σ bufs ks k) :
+    {j : ℕ} (hH : Loop5H VsQ vr CQ SQ LQ IQ fs j I.fp rd σ bufs ks k) :
     ∃ (kv : Memory.Tree) (W : Inst), W ∈ T.insts fs coreProgram.loop H fp0 hdr ∧
       W.t = kv.retemp coreProgram fs ν W.fp ∧ I.t.kids[5]? = some W.t ∧ I.kidFps[5]? = some W.fp ∧
       VsQ (vr j).1 (vr j).2 W.fp rd kv := by
-  obtain ⟨-, -, -, kv, b, hkv, hb, hq⟩ := hH
+  obtain ⟨-, -, -, -, -, kv, b, hkv, hb, hq⟩ := hH
   have h5 : 5 < ks.length := (List.getElem?_eq_some_iff.mp hkv).1
   have hpos : (kidPos fs coreProgram.loop I.fp "__loop5" bufs
       ((ks ++ [k]).map (Memory.Tree.total fs)))[5]? = some b := by
@@ -178,10 +188,10 @@ places it. -/
 theorem mainQ_loop5_inst {T : Memory.Tree} {hdr : E × E} {rd : Reader} {nc : ℕ} {σ : Val} {R : Inst}
     (hR : R ∈ T.insts fs coreProgram.loop H 0 hdr) {T0 : Memory.Tree}
     (hRt : R.t = T0.retemp coreProgram fs ν 0) (hRfp : R.fp = 0)
-    (hQ : MainQ VsQ vr CQ IQ fs nc 0 σ rd T0) (hnc : nc ≠ 0) :
+    (hQ : MainQ VsQ vr CQ SQ LQ IQ fs nc 0 σ rd T0) (hnc : nc ≠ 0) :
     ∃ (b : ℕ) (k : Memory.Tree) (J : Inst) (i : ℕ), J ∈ T.insts fs coreProgram.loop H 0 hdr ∧
       J.t = k.retemp coreProgram fs ν b ∧ J.fp = b ∧ R.t.kids[i]? = some J.t ∧
-      R.kidFps[i]? = some J.fp ∧ Loop5Q VsQ vr CQ IQ fs nc 0 b rd k := by
+      R.kidFps[i]? = some J.fp ∧ Loop5Q VsQ vr CQ SQ LQ IQ fs nc 0 b rd k := by
   obtain ⟨bufs, ks, rfl, hk⟩ := hQ
   obtain ⟨i, k, b, hki, hb, hL⟩ := hk hnc
   have hpos : (kidPos fs coreProgram.loop R.fp "main" bufs (ks.map (Memory.Tree.total fs)))[i]? = some b := by
