@@ -18,6 +18,7 @@ import LeanVM.E2E.Complete.Tree
 import LeanVM.E2E.Budget
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
+import LeanVM.E2E.Sanity
 import LeanVM.E2E.Bridge
 import LeanVM.E2E.NoForgery
 import LeanVM.E2E.Reduction.VerifyBound
@@ -72,7 +73,7 @@ import LeanVM.E2E.Reduction.VerifyBound
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rom
 
-/-! The end-to-end security theorem's chain so far (`docs/roadmap/e2e-security.md`): T1 (the Flock-blind verifier's knowledge soundness, cache and probability forms; the deferred-verifier bridge), C5 (the oracle hash model), T5's run bridges, the game engine and E5 (the DA leg). -/
+/-! The end-to-end security theorem's chain so far (`docs/roadmap/e2e-security.md`): T1 (the Flock-blind verifier's knowledge soundness, cache and probability forms; the deferred-verifier bridge), C5 (the oracle hash model), T5's run bridges, the game engine, E5 (the DA leg) and T7′ (V_I with BLAKE2s accepts what the deployed aggregation accepts, `idealVerify_blake2s`). -/
 
 /-- info: 'LeanVM.Protocol.EndToEnd.Blind.blind_knowledge_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -241,3 +242,7 @@ import LeanVM.E2E.Reduction.VerifyBound
 /-- info: 'LeanVM.E2E.verify_isTotalQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.verify_isTotalQueryBound
+
+/-- info: 'LeanVM.E2E.Sanity.idealVerify_blake2s' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Sanity.idealVerify_blake2s

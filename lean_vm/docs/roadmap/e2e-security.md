@@ -348,3 +348,14 @@ the statement, each with its reason.
   `aggBadError Q + (q/2^127 + n_x²/2^127 + q²/2^252)|_{q = Q + c_x} + ε(max 1 (Q + c_s))`, `Q` the
   game's queries (`isQueryBoundP_gameComp`); the DA term is in `aggBadError`. It lives in
   `NoForgery.lean`, not in `Statement.lean`, whose definitions T5 uses unchanged.
+- **T7-1 (T7′'s hypotheses).** `idealVerify_blake2s` (`LeanVM/E2E/Sanity.lean`) is T7′ for the
+  deployed guest, V_I run in `Id` at `blake2sBytes`, from the outer verifier's acceptance
+  (`Node.verifyAggregate guest s ip.proof`). It keeps four hypotheses on the nodes V_I reaches
+  (`Reached`), none given by the deployed checks: the idealized proof's words cover their roots
+  (`WordsCover`), their candidates satisfy Flock's R1CS (`CandidatesAux`), their tables pass the
+  precheck (`TablesPrecheck`), and a size of nodes bounds the closure within the fuel
+  (`FuelBounds`, §4's "cost ≤ Bud" in fuel form). None is on the frames: T2 holds at every frame
+  chooser, so every child V_I decodes, whatever `ip.frames` names, has a proof the deferring
+  verifier accepts with BLAKE2s, hence the head `nodeStep` reads. The table check's enumeration
+  is finite without a hypothesis: a chain's non-final rows carry distinct counters, and their
+  metadata cells are among the at most `2^32` memory words.
