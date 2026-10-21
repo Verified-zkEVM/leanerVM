@@ -39,8 +39,9 @@ open Completeness SeedModel Graph Assembly Reduce Internalize
 
 set_option maxRecDepth 100000 in
 set_option maxHeartbeats 1000000 in
-/-- **One sample of the small-budget route of the forest.** -/
-theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
+/-- **One sample of the small-budget route of the forest, from any bound `L` of the linear
+potential's final value and payments.** -/
+theorem sample_boundF_of (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
     (hq : q < 2 ^ 256)
     (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
     (remaining : RemainingOutputs) (prepared : (Index → Option (Counter × Encoding)) × QueryCache HashSpec)
@@ -48,17 +49,30 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     (known : Knowledge Coordinate)
     (hk : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
       (knownOf (truncateHash parameterOutput) fixed)))
-    (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
+    (ρ : ℝ)
     (κ : ℝ) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
       (signatureLimit : ℝ) * (123 * ((2 : ℝ) ^ subtreeHeight * 2 ^ 15)⁻¹) ≤ κ) (hκ1 : κ ≤ 1)
     (b N : ℕ) (hbb : subtreeHeight = b) (hNN : signatureLimit = N)
+    (dig : HashInput → Prop)
+    (hdig : ∀ m r, dig (Security.digestInput (truncateHash parameterOutput)
+      (sampleData parameterOutput fixed highs remaining).root m r))
     (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
     (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
-    (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
+    (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128)
+    (L : ℝ≥0∞)
+    (hlin : ∑' out, Pr{let x ← (interp { targetingA parameterOutput fixed highs remaining prepared.1 with digest := dig } prepared.2
+        (sampleModel parameterOutput highs) (costGameX (truncateHash parameterOutput)
+          (sampleData parameterOutput fixed highs remaining) (internalize adversary)) q
+        (DebtState.start prepared.2 known))}[x = out] *
+      (endValue (payoffA parameterOutput fixed highs remaining prepared known ρ) out.2 +
+        ENNReal.ofReal (ρ / 2 ^ 128) *
+          (digestCount { targetingA parameterOutput fixed highs remaining prepared.1 with digest := dig } out.1.2.2.1 : ℝ≥0∞) +
+        ENNReal.ofReal ((ρ - 1 - ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128) / 2 ^ 128) *
+          (fleafCount (IsFchainIn (truncateHash parameterOutput)) out.1.2.2.1 : ℝ≥0∞)) ≤ L) :
     Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
         (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
           (sampleData parameterOutput fixed highs remaining)))) known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
-      ENNReal.ofReal (ρ * (q - keygenCost : ℕ) / 2 ^ 128) +
+      L +
         (((q - keygenCost : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + failMass (failSet prepared.1)) +
           signatureLimit * failMass (failSet prepared.1)) +
         ν * (((Nat.choose (q - keygenCost) 2 : ℕ) : ℝ≥0∞) * rateS) +
@@ -70,7 +84,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
   set param := truncateHash parameterOutput with hparam
   set data := sampleData parameterOutput fixed highs remaining with hdata
   set model := sampleModel parameterOutput highs with hmodel
-  set tgA := targetingA parameterOutput fixed highs remaining prepared.1 with htgA
+  set tgA := { targetingA parameterOutput fixed highs remaining prepared.1 with digest := dig } with htgA
   set start : State := DebtState.start prepared.2 known with hstart
   set run := interp tgA prepared.2 model (costGameX param data (internalize adversary)) q start with hrun
   set b0 : ℝ≥0∞ := ENNReal.ofReal (ρ / 2 ^ 128) with hb0
@@ -98,7 +112,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
         exfalso
         obtain ⟨hx, -⟩ := (parse_some_iff _ _ _ qq).1 h
         exact msg_not_graph param qq.1.position _ _ (msgInput_digestInput param data.root p.1 p.2) hx
-  have hdigest : ∀ p, tgA.digest (pblk param data p) := fun p => msgInput_digestInput param data.root p.1 p.2
+  have hdigest : ∀ p, tgA.digest (pblk param data p) := fun p => hdig p.1 p.2
   have hclean : ∀ p, prepared.2 (pblk param data p) = none := fun p =>
     prepared_clean parameterOutput fixed highs remaining prepared hprepared _
       (msgInput_digestInput param data.root p.1 p.2)
@@ -124,23 +138,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     exact interp_tick_bind_abort tgA prepared.2 model _ _ q start hK
   -- the linear potential with both payments
   have hA3 : ∑' out, Pr{let x ← run}[x = out] * (endValue pay out.2 + b0 * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) +
-      c0 * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞)) ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
-    by_cases hK : keygenCost ≤ q
-    · rw [hrunK hK, OracleComp.tsum_prEvent_map_mul]
-      refine le_trans (le_of_eq ?_) (smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk
-        tgA rfl q' hN (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []))
-      refine tsum_congr fun out => ?_
-      simp only [digestCount_cons_inrF, fleafCount_cons_inr]
-      rfl
-    · have hrunEq : run = interp tgA prepared.2 model (costGameX param data (internalize adversary)) 0 start := by
-        rw [hrunA hK]
-        unfold costGameX
-        rw [interp_tick_bind_abort tgA prepared.2 model keygenCost _ 0 start (by omega)]
-      rw [hrunEq]
-      have hq0 : (q' : ℕ) = 0 := by omega
-      rw [hc0, hq0]
-      exact smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk tgA rfl 0
-        (numeric_monoF hN (by rw [hq0]) (by norm_num)) (costGameX param data (internalize adversary))
+      c0 * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞)) ≤ L := hlin
   -- the cover potential
   have hcover : ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out ≤
       (((q' : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + φ) + signatureLimit * φ) +
@@ -275,7 +273,7 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
   set Efin := ∑' out, Pr{let x ← run}[x = out] * finalValue param data tgA prepared.2 [] out with hEfin
   set Ed := ∑' out, Pr{let x ← run}[x = out] * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) with hEd
   set Ef := ∑' out, Pr{let x ← run}[x = out] * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞) with hEf
-  have hA3' : Ev + b0 * Ed + c0 * Ef ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
+  have hA3' : Ev + b0 * Ed + c0 * Ef ≤ L := by
     refine le_trans (le_of_eq ?_) hA3
     rw [hEv, hEd, hEf, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_mul_left, ← ENNReal.tsum_add, ← ENNReal.tsum_add]
     refine tsum_congr fun out => ?_
@@ -303,7 +301,81 @@ theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : ad
     _ = (Ev + b0 * Ed + (ν * ((signatureLimit : ℝ≥0∞) * revRate) + payB) * Ef) + cov + coin +
           (κE * nearM + nearF) + 2 * lm := by ring
     _ ≤ (Ev + b0 * Ed + c0 * Ef) + cov + coin + (κE * nearM + nearF) + 2 * lm := by gcongr
-    _ ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) + cov + coin + (κE * nearM + nearF) + 2 * lm := by gcongr
+    _ ≤ L + cov + coin + (κE * nearM + nearF) + 2 * lm := by gcongr
+
+set_option maxRecDepth 100000 in
+set_option maxHeartbeats 1000000 in
+/-- **One sample of the small-budget route of the forest.** -/
+theorem sample_boundF (hb : 0 < subtreeHeight) (adversary : Adversary) (hnr : adversary.NoRepeat) (q : ℕ)
+    (hq : q < 2 ^ 256)
+    (parameterOutput : HashOutput) (fixed : HiddenGraph.Table) (highs : CoordinateHighs)
+    (remaining : RemainingOutputs) (prepared : (Index → Option (Counter × Encoding)) × QueryCache HashSpec)
+    (hprepared : prepared ∈ support (preparation parameterOutput fixed highs remaining))
+    (known : Knowledge Coordinate)
+    (hk : known ∈ support (exposeR (aboveList (truncateHash parameterOutput) prepared.1)
+      (knownOf (truncateHash parameterOutput) fixed)))
+    (ρ : ℝ) (hN : Numeric ρ (((q - keygenCost : ℕ) : ℝ) / 2 ^ 128))
+    (κ : ℝ) (hκ : 2 - ρ + ((q - keygenCost : ℕ) : ℝ) / 2 ^ 128 +
+      (signatureLimit : ℝ) * (123 * ((2 : ℝ) ^ subtreeHeight * 2 ^ 15)⁻¹) ≤ κ) (hκ1 : κ ≤ 1)
+    (b N : ℕ) (hbb : subtreeHeight = b) (hNN : signatureLimit = N)
+    (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true) (qtop : ℕ)
+    (hrt : H0.checkRate b N qtop t = true) (hqtop : q - keygenCost ≤ qtop)
+    (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true) (hcthr : (o.cthr : ℝ) ≤ ρ / 2 ^ 128) :
+    Pr{let x ← (HiddenOutside.stoppedExperiment (sampleModel parameterOutput highs)
+        (erase (trace (richProgram (internalize adversary) q (truncateHash parameterOutput)
+          (sampleData parameterOutput fixed highs remaining)))) known prepared.2)}[(HiddenReveal.StopOr RichWin) x] ≤
+      ENNReal.ofReal (ρ * (q - keygenCost : ℕ) / 2 ^ 128) +
+        (((q - keygenCost : ℕ) : ℝ≥0∞) * (ENNReal.ofReal (o.B : ℝ) + failMass (failSet prepared.1)) +
+          signatureLimit * failMass (failSet prepared.1)) +
+        ν * (((Nat.choose (q - keygenCost) 2 : ℕ) : ℝ≥0∞) * rateS) +
+        (ENNReal.ofReal κ * ((((q - keygenCost : ℕ) : ℝ≥0∞) * ν) *
+            ((q - keygenCost : ℕ) * ENNReal.ofReal (((2 ^ b * on.En : ℚ) / 2 : ℚ) : ℝ))) +
+          (((q - keygenCost : ℕ) : ℝ≥0∞) * ν) *
+            ((q - keygenCost : ℕ) * failMass (failSet prepared.1) + signatureLimit * failMass (failSet prepared.1))) +
+        2 * lam (H0.LmaxOf (q - keygenCost)) 0 (q - keygenCost) := by
+  set param := truncateHash parameterOutput with hparam
+  set data := sampleData parameterOutput fixed highs remaining with hdata
+  set model := sampleModel parameterOutput highs with hmodel
+  set tgA := targetingA parameterOutput fixed highs remaining prepared.1 with htgA
+  set start : State := DebtState.start prepared.2 known with hstart
+  set run := interp tgA prepared.2 model (costGameX param data (internalize adversary)) q start with hrun
+  set b0 : ℝ≥0∞ := ENNReal.ofReal (ρ / 2 ^ 128) with hb0
+  set pay := payoffA parameterOutput fixed highs remaining prepared known ρ with hpay'
+  set q' := q - keygenCost with hq'
+  set c0 : ℝ≥0∞ := ENNReal.ofReal ((ρ - 1 - ((q' : ℕ) : ℝ) / 2 ^ 128) / 2 ^ 128) with hc0
+  set IsF := IsFchainIn param with hIsF
+  -- the run after the keygen tick, or an aborted run
+  have hrunK : ∀ hK : keygenCost ≤ q, run = (fun out => ((out.1.1, out.1.2.1, Sum.inr keygenCost :: out.1.2.2.1,
+      out.1.2.2.2), out.2)) <$> interp tgA prepared.2 model
+        (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []) q' start := fun hK => by
+    rw [hrun]
+    unfold costGameX
+    rw [interp_tick_bind tgA prepared.2 model _ _ q start hK, costRestX_eq]
+  have hrunA : ¬keygenCost ≤ q → run = pure ((none, [], [], []), start) := fun hK => by
+    rw [hrun]
+    unfold costGameX
+    exact interp_tick_bind_abort tgA prepared.2 model _ _ q start hK
+  -- the linear potential with both payments
+  have hA3 : ∑' out, Pr{let x ← run}[x = out] * (endValue pay out.2 + b0 * (digestCount tgA out.1.2.2.1 : ℝ≥0∞) +
+      c0 * (fleafCount IsF out.1.2.2.1 : ℝ≥0∞)) ≤ ENNReal.ofReal (ρ * (q' : ℕ) / 2 ^ 128) := by
+    by_cases hK : keygenCost ≤ q
+    · rw [hrunK hK, OracleComp.tsum_prEvent_map_mul]
+      refine le_trans (le_of_eq ?_) (smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk
+        tgA rfl q' hN (advProg param data ((internalize adversary).main ⟨data.root, param⟩) []))
+      refine tsum_congr fun out => ?_
+      simp only [digestCount_cons_inrF, fleafCount_cons_inr]
+      rfl
+    · have hrunEq : run = interp tgA prepared.2 model (costGameX param data (internalize adversary)) 0 start := by
+        rw [hrunA hK]
+        unfold costGameX
+        rw [interp_tick_bind_abort tgA prepared.2 model keygenCost _ 0 start (by omega)]
+      rw [hrunEq]
+      have hq0 : (q' : ℕ) = 0 := by omega
+      rw [hc0, hq0]
+      exact smallRoute_potentialF parameterOutput fixed highs remaining prepared known ρ hk tgA rfl 0
+        (numeric_monoF hN (by rw [hq0]) (by norm_num)) (costGameX param data (internalize adversary))
+  exact sample_boundF_of hb adversary hnr q hq parameterOutput fixed highs remaining prepared hprepared known hk ρ κ hκ hκ1 b N hbb hNN IsMsgInput
+    (fun m r => msgInput_digestInput _ _ m r) t o on hpt qtop hrt hqtop ho hon hcthr _ hA3
 
 end SampleF
 

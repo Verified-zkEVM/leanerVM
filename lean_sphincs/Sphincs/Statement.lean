@@ -1,5 +1,7 @@
-import Sphincs.Randomized
-import VCVio.OracleComp.QueryTracking.WriterCost
+module
+
+public import Sphincs.Randomized
+public import VCVio.OracleComp.QueryTracking.WriterCost
 
 /-!
 The SUF-CMA experiment, adapted from leanVM b7a107256 to pruning: forgeries, signing transcripts and
@@ -12,6 +14,8 @@ generation from the key's seed, is in `StatementDet`.
 open OracleComp OracleSpec ENNReal
 
 namespace Sphincs
+
+@[expose] public section
 
 structure Forgery where
   message : Message
@@ -65,5 +69,7 @@ noncomputable def experiment (adversary : Adversary) : ProbComp (Bool × Nat) :=
   (simulateQ countedOracle (gameCore adversary)).run.run' ∅
 
 end Security
+
+end
 
 end Sphincs

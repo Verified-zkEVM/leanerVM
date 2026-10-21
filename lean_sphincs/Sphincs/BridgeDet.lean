@@ -416,6 +416,35 @@ theorem budgetedWinMaster_le_seedFree (adversary : Adversary) (q : Nat) :
         exact marked_hit_le (detRun (internalize adversary) q material answers table rnd)
           (fun result => result.2) q (fun result hresult => costRun_cap_cost_le _ _ _ q result hresult)
 
+/-- The probability of a win within the budget: the forgery wins and the experiment made at most
+`q` hash calls. -/
+noncomputable def budgetedAdvantageDet (adversary : Adversary) (q : Nat) : ℝ≥0∞ :=
+  Pr{let result ← experimentDet adversary}[result.1 = true ∧ result.2 ≤ q]
+
+/-- An adversary within the budget wins exactly its budgeted wins. -/
+theorem forgeAdvantageDet_eq_budgeted (adversary : Adversary) (q : Nat)
+    (hbound : HasHashQueryBoundDet adversary q) :
+    forgeAdvantageDet adversary = budgetedAdvantageDet adversary q :=
+  prEvent_congr_of_support _ _ _ (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩)
+
+/-- **Seed elimination for the deterministic signer, budgeted.** The probability of a win within
+`q` hash calls against `Seeded.sign` is at most the seed-free capped win of the internalized
+memoizing adversary in the fresh-randomizer graph-view game, plus `3 q / 2^256` for naming the
+hidden seeds. No query bound is assumed. -/
+theorem budgetedAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat) :
+    budgetedAdvantageDet adversary q ≤
+      Pr{let x ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q}[Win x] +
+        3 * (q / (2 : ℝ≥0∞) ^ 256) := by
+  unfold budgetedAdvantageDet
+  calc
+    _ ≤ Pr{let result ← experimentDet (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] := budgetedWin_le_internalize adversary q
+    _ ≤ Pr{let result ← experimentMasterDet (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] + q / (2 : ℝ≥0∞) ^ 256 :=
+      budgetedWin_le_master adversary q
+    _ ≤ Pr{let x ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q}[Win x] +
+          2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
+      add_le_add (budgetedWinMaster_le_seedFree adversary q) le_rfl
+    _ = _ := by ring
+
 /-- **Seed elimination for the deterministic signer.** The SUF-CMA advantage against
 `Seeded.sign` is at most the seed-free capped win of the internalized memoizing adversary in the
 fresh-randomizer graph-view game, plus `3 q / 2^256` for naming the hidden seeds. -/
@@ -424,16 +453,7 @@ theorem forgeAdvantageDet_le_seedFree (adversary : Adversary) (q : Nat)
     forgeAdvantageDet adversary ≤
       Pr{let x ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q}[Win x] +
         3 * (q / (2 : ℝ≥0∞) ^ 256) := by
-  unfold forgeAdvantageDet
-  calc
-    _ = Pr{let result ← experimentDet adversary}[result.1 = true ∧ result.2 ≤ q] :=
-      prEvent_congr_of_support _ _ _ (fun result hresult => ⟨fun h => ⟨h, hbound result hresult⟩, And.left⟩)
-    _ ≤ Pr{let result ← experimentDet (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] := budgetedWin_le_internalize adversary q
-    _ ≤ Pr{let result ← experimentMasterDet (internalize adversary)}[result.1 = true ∧ result.2 ≤ q] + q / (2 : ℝ≥0∞) ^ 256 :=
-      budgetedWin_le_master adversary q
-    _ ≤ Pr{let x ← seedFreeExperiment (internalize (Memo.memoAdv adversary)) q}[Win x] +
-          2 * (q / (2 : ℝ≥0∞) ^ 256) + q / (2 : ℝ≥0∞) ^ 256 :=
-      add_le_add (budgetedWinMaster_le_seedFree adversary q) le_rfl
-    _ = _ := by ring
+  rw [forgeAdvantageDet_eq_budgeted adversary q hbound]
+  exact budgetedAdvantageDet_le_seedFree adversary q
 
 end Sphincs.Security.Det

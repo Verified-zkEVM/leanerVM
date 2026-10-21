@@ -372,13 +372,15 @@ variable [Params]
 set_option maxRecDepth 100000 in
 /-- **127 bits for the deterministic signer of the forest**, from the small-route check at `qh` (with
 a table whose rate is checked at `qh`) and a checked chain of light covers, then heavy covers, of the
-large budgets from `qh + 1` up to `2^127 − 1 − keygenCost`. -/
-theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b) (hN : signatureLimit = N)
+large budgets from `qh + 1` up to `2^127 − 1 − keygenCost`, for the wins within `q` hash calls (no
+query bound is assumed). -/
+theorem det_bitsFH_budgeted (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b) (hN : signatureLimit = N)
     (qh : ℕ) (ρ : ℚ) (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true)
     (hrt : H0.checkRate b N qh t = true) (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true)
     (hsmall : checkSmallF b N qh ρ o.cthr o.B ((2 ^ b * on.En : ℚ) / 2) = true)
     (covers heavy : List H0.CoverW) (hcov : checkCoversH b N (qh + 1) covers heavy = true) :
-    Det.HasClassicalSecurityBitsDet 127 := by
+    ∀ q, 1 ≤ q → ∀ adversary : Adversary,
+      Det.budgetedAdvantageDet adversary q ≤ q / ((2 ^ 127 : ℕ) : ℝ≥0∞) := by
   obtain ⟨hnum, hqh, hN70, hcthr, hB, hc, hpayR, hcheck⟩ := checkSmallF_sound hsmall
   have hN70' : signatureLimit ≤ 2 ^ 70 := hN ▸ hN70
   set c : ℚ := (2 ^ b * on.En : ℚ) / 2 with hcdef
@@ -408,7 +410,7 @@ theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b
     refine le_of_eq_of_le ?_ hcheck
     ring
   have hkg : keygenCost = 226 * 2 ^ b + 2 * (26 - b) := by rw [← hb]; rfl
-  intro q hq1 adversary hbound
+  intro q hq1 adversary
   by_cases hbig : 2 ^ 127 ≤ q
   · refine le_trans (prEvent_le_one _) ?_
     rw [ENNReal.le_div_iff_mul_le (Or.inl (by positivity)) (Or.inl (ENNReal.natCast_ne_top _)), one_mul]
@@ -427,7 +429,7 @@ theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b
         field_simp
       rw [hκR, he]
       linarith
-    refine le_trans (det_smallF hb0 adversary q hbound (by omega) (ρ : ℝ) hnum' κ hκ0 hκ1 hκq b N hb hN t o on
+    refine le_trans (det_smallF_budgeted hb0 adversary q (by omega) (ρ : ℝ) hnum' κ hκ0 hκ1 hκq b N hb hN t o on
       hpt qh hrt hs ho hon hcthr) ?_
     exact small_closeFF q qh hq1 hs hqh hN70' (ρ : ℝ) (by linarith [hnum.low]) o.B (κ * c) hB hc2 hcheck'
   · have hK : keygenCost ≤ q := by omega
@@ -437,18 +439,31 @@ theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b
       (by omega) (by rw [← hkg]; omega) with ⟨cover, -, qs, hcv, hqs, hqt⟩ | ⟨cover, -, qs, hcv, hqs, hqt⟩
     · have hcovb := H0.h0W_bound_of_cover b N qs cover hcv hb hN (q - keygenCost) hqs hqt
       have hfairq := H0.fair_of_cover b N qs cover hcv hb (q - keygenCost) hqt
-      have h := det_largeW hb0 hN70' adversary q hbound hq127 hK hfairq (by
+      have h := det_largeW_budgeted hb0 hN70' adversary q hq127 hK hfairq (by
         rw [e1] at hcovb
         exact hcovb)
       refine le_trans h (le_of_eq ?_)
       rw [Nat.cast_pow, Nat.cast_ofNat]
     · have hcovb := H0.h0H_bound_of_cover b N qs cover hcv hb hN (q - keygenCost) hqs hqt
       have hfairq := H0.fair_of_coverH b N qs cover hcv hb (q - keygenCost) hqt
-      have h := det_largeH hb0 adversary q hbound hq127 hK (H0.wbarH (q - keygenCost))
+      have h := det_largeH_budgeted hb0 adversary q hq127 hK (H0.wbarH (q - keygenCost))
         (H0.LmaxOf (q - keygenCost)) (H0.fair_ofH (q - keygenCost) hfairq) (lam_start_leF (q - keygenCost)) (by
         rw [e1] at hcovb
         exact hcovb)
       refine le_trans h (le_of_eq ?_)
       rw [Nat.cast_pow, Nat.cast_ofNat]
+
+/-- **127 bits for the deterministic signer of the forest**, from the small-route check at `qh` (with
+a table whose rate is checked at `qh`) and a checked chain of light covers, then heavy covers, of the
+large budgets from `qh + 1` up to `2^127 − 1 − keygenCost`. -/
+theorem det_bitsFH (hb0 : 0 < subtreeHeight) (b N : ℕ) (hb : subtreeHeight = b) (hN : signatureLimit = N)
+    (qh : ℕ) (ρ : ℚ) (t : H0.PoisT) (o : H0.OptF) (on : H0.OptN) (hpt : H0.checkPT t = true)
+    (hrt : H0.checkRate b N qh t = true) (ho : H0.checkOptF b t o = true) (hon : H0.checkOptN t on = true)
+    (hsmall : checkSmallF b N qh ρ o.cthr o.B ((2 ^ b * on.En : ℚ) / 2) = true)
+    (covers heavy : List H0.CoverW) (hcov : checkCoversH b N (qh + 1) covers heavy = true) :
+    Det.HasClassicalSecurityBitsDet 127 := by
+  intro q hq1 adversary hbound
+  rw [Det.forgeAdvantageDet_eq_budgeted adversary q hbound]
+  exact det_bitsFH_budgeted hb0 b N hb hN qh ρ t o on hpt hrt ho hon hsmall covers heavy hcov q hq1 adversary
 
 end Sphincs.Security.ForsPotential

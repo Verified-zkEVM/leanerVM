@@ -1,4 +1,6 @@
-import Sphincs.Scheme
+module
+
+public import Sphincs.Scheme
 
 /-!
 The signer variant with a truly uniform randomizer base per signing call (attempt `i` uses
@@ -10,6 +12,8 @@ This is distinct from Rust's seed-derived randomizers; no equivalence is assumed
 open OracleComp OracleSpec
 
 namespace Sphincs.Randomized
+
+@[expose] public section
 
 open Concrete
 
@@ -45,5 +49,7 @@ noncomputable def sign (sk : Seeded.SecretKey) (message : Message) :
     OracleComp OracleWorld (Option Signature) := do
   let some randomness ← signDigestLoop sk message digestAttemptLimit | return none
   liftM (finishSign sk message randomness)
+
+end
 
 end Sphincs.Randomized
