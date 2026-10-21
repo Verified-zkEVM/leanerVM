@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.Grind
+public import LeanVM.Guest.ExpTables
 
 /-!
 # `exponent_tables` (TRIAGE #13)
@@ -40,10 +41,6 @@ def etBody : List Stmt :=
   [.atom (.copy (.n 70) (.n 0)), .atom (.copy (.n 71) (.n 35)), .ret [.n 70, .n 71]]
 
 theorem core2_body : Fn.body Data.core2 = etBody := stmtsEqb_sound (by decide +kernel)
-
-/-- The two exponent tables at `p`, `q`: `p[g^j] = E(2^j)`, `q[g^j] = g^(2^j)`, `j < 34`. -/
-def ExpTables (rd : Reader) (p q : E) : Prop :=
-  ∀ j < sizeBits, LoadHolds rd p j (eOfNat (2 ^ j)) ∧ LoadHolds rd q j (gen ^ 2 ^ j)
 
 /-- **`exponent_tables()`** (G:572-587; TRIAGE #13): the function returns two pointers holding
 the exponent tables. -/

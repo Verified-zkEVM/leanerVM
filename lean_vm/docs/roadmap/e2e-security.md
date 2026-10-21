@@ -22,7 +22,7 @@ signing requests, with E the explicit extractor (reads only the final visible lo
         that scheme, and no request for m to signer j was answered; or
       (DA) for a root DA claim (r, v), E(vis_final, Π) outputs no codeword rows R (1 ≤ |R| ≤ 1024, rows
         of length 2^15, as in `Witness.Opens`) such that every hash of
-        `commitCodewordsWith (look vis_final) pc pr R` is answered by vis_final and equals r, and
+        `commitCodewordsWith (daHash (look vis_final)) pc pr R` is answered by vis_final and equals r, and
         `vectorDigestOf r = vectorDigest (membershipVector r)` is answered by vis_final and equals v ]
   ≤ κ_V°(Q_v) + κ_batch(Q_v) + (Q_v+1)²/2^193 + ε_signer + (n_x+n_s)·(Q_v + Q_sig′ + c)/2^127 + ε_DA,
 with closed forms:
@@ -182,3 +182,34 @@ start (1k) · C5 chain lemma (0.6–1k) · V_I + budget (1–2k) · E engine ext
 (4–8k) · E reductions, transport, hybrid with self-simulated other keys (2.5–5k) · E5 DA ROM proof incl. NTT (3–7k) · T6-det (6–13k,
 shares W2) · T7′ (1–2k) · constants audit (0.3k) · assembly (1.5–2.5k).
 Total ≈ 35–65k lines. Critical path: W0 → W2 → W3 → C5/W5 → T4 → T5; T6-det in parallel after W2.
+
+## 7. Decisions taken during implementation
+Each changes how a work package is realised, not what is proved.
+- **W0-1 (generic definitions in new modules).** The hash- and semantics-generic definitions live in
+  new modules that import the deployed ones — `Spec/IsaWith.lean` (`BlakeSem`, `blakeDeployed`,
+  `blakeFree`, `executeWithB`, `runB`, `ValidExecutionB`), `Spec/NodeWith.lean` (the `…With`
+  digests, signature verification, batching from a start state, `NodeRelWith`), `Spec/DaWith.lean`,
+  `Spec/Ideal/*` — with bridge lemmas to the deployed definitions (`validExecutionB_deployed`,
+  `statementDigestWith_id`, `batchWith_id`, `commitCodewordsWith_id`, … mostly `rfl`), instead of
+  redefining the deployed ones as abbreviations of generic ones. Why: the deployed `Spec/Isa.lean`
+  and `Spec/Node.lean` are imported by ~2,500 modules; adding beside them rebuilds nothing and keeps
+  every existing theorem and test unchanged, which is the plan's intent.
+- **W0-2 (DA transcription).** LeanDA's algorithms are pure in the hash; their monadic forms
+  (needed for "every hash answered by the log") are transcribed in `Spec/DaWith.lean` with the
+  padding digests as parameters (D5), proved equal to LeanDA's at `Id` and the deployed padding.
+  `lean_da`'s algorithms are unchanged (`LeanDa/Dual.lean` adds the NTT lemma E5 needs).
+- **W0-3 (where the statement lives).** `V_I` needs the Johnson-list candidates (Protocol), the
+  leanISA constraints (Arithmetization) and the guest's decoder (Guest), which `Spec` may not
+  import. The parts expressible in `Spec` are there (`Spec/Ideal/Blind.lean`: V°;
+  `Spec/Ideal/Table.lean`: rows, standard chains, `TableOK`; later the game and the forgery event);
+  the composed statement of `aggregate_no_forgery` is a definitions-only module above them.
+- **W0-4 (build split).** `Guest/ExpTables.lean` holds `B1.ExpTables`, so the shared check context
+  `Glob` (and through it the 375 kernel-checked `Guest/Checked` files and the generated data) no
+  longer imports the guest's proofs (`B1`, `Value/Hash`, `Value/Cells`, `Value/FiatShamir`).
+- **W0-5 (the hash model).** `Guest/Value/HashModel.lean`: a `HashModel` has the `BLAKE2S`
+  relation `sem`, an *answered* hash `H : List UInt8 → Option Digest` (deployed: `some ∘
+  blake2sBytes`; oracle: the log's lookup), a prefix relation and four laws: checked cells are
+  canonical (the guest reads range facts off `BLAKE2S`), the empty prefix is the IV, a non-final
+  block extends a prefix, and a prefix's final block gives `H x = some d` with the output the
+  digest's cells. One answered hash (rather than a total hash and a "known" predicate) makes the
+  guest's conclusions the `…With` statements at `M.H` directly (`NodeRelWith`).

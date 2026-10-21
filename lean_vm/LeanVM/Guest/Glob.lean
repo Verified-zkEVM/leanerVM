@@ -11,7 +11,7 @@ public import LeanVM.Guest.Check
 public import LeanVM.Guest.CoreData
 public import LeanVM.Guest.Data.Cert
 public import LeanVM.Guest.Data.Pows
-public import LeanVM.Guest.B1.Tables
+public import LeanVM.Guest.ExpTables
 
 /-!
 # The guest's checks
