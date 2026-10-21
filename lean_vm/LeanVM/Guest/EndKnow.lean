@@ -86,15 +86,11 @@ theorem guest_knowledge : GuestKnowledge guest decode := by
 accepts a proof of the guest whose extracted execution does not decode (`DecodesOn`) with
 probability at most `soundnessError Q`. -/
 theorem aggregate_knowledge (A : Adversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q) :
-    Pr{let z ← experiment A}[
-      let prog := z.1.1.1.1
-      let input := z.1.1.1.2
-      z.1.2 = true ∧ prog = guest ∧
-        ¬ ∃ t, LeanVM.extract prog input z.2 z.1.1.2 = some t ∧
-          DecodesOn guest input (decode t.image)] ≤ soundnessError Q := by
+    Pr{let z ← experiment A}[z.accepted ∧ z.program = guest ∧
+      ¬ ∃ t, LeanVM.extract z.program z.input z.cache z.proof = some t ∧
+        DecodesOn guest z.input (decode t.image)] ≤ soundnessError Q := by
   refine le_trans (prEvent_mono _ _ _ ?_) (LeanVM.knowledgeSoundness hA)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, c⟩ ⟨hb, hprog, hno⟩
-  dsimp only at hb hprog hno
   subst hprog
   refine ⟨hb, guest_sentinelSafe, ?_⟩
   rintro ⟨t, hx, hv⟩

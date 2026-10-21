@@ -107,11 +107,31 @@ abbrev Statement : Type := Program × PublicInput
 and a proof. -/
 abbrev Adversary : Type := OracleComp HashSpec (Statement × Proof)
 
+/-- An outcome of the experiment: the statement and the proof, the verdict, and the oracle's
+answers. -/
+abbrev Outcome : Type := ((Statement × Proof) × Bool) × HashSpec.QueryCache
+
+/-- The outcome's program. -/
+abbrev Outcome.program (z : Outcome) : Program := z.1.1.1.1
+
+/-- The outcome's public input. -/
+abbrev Outcome.input (z : Outcome) : PublicInput := z.1.1.1.2
+
+/-- The outcome's proof. -/
+abbrev Outcome.proof (z : Outcome) : Proof := z.1.1.2
+
+/-- The verifier accepted. -/
+abbrev Outcome.accepted (z : Outcome) : Prop := z.1.2 = true
+
+/-- The verifier rejected. -/
+abbrev Outcome.rejected (z : Outcome) : Prop := z.1.2 = false
+
+/-- The oracle's answers. -/
+abbrev Outcome.cache (z : Outcome) : HashSpec.QueryCache := z.2
+
 /-- **The random-oracle experiment**: the adversary, then the verifier on its statement and
-proof, both querying one lazily sampled random oracle, from the empty cache. Its outcome is the
-statement and the proof, the verdict, and the oracle's answers. -/
-noncomputable def experiment (A : Adversary) :
-    ProbComp (((Statement × Proof) × Bool) × HashSpec.QueryCache) :=
+proof, both querying one lazily sampled random oracle, from the empty cache. -/
+noncomputable def experiment (A : Adversary) : ProbComp Outcome :=
   (simulateQ HashSpec.randomOracle
     (A >>= fun z ↦ (z, ·) <$> verifier queryH z.1.1 z.1.2 z.2)).run ∅
 
@@ -124,12 +144,9 @@ abbrev Extractor : Type :=
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, the
 program's last instruction is not a `JUMP`, and the extracted execution is not a valid execution
 of the program on the public input. -/
-def Breaks (extract : Extractor) (z : ((Statement × Proof) × Bool) × HashSpec.QueryCache) :
-    Prop :=
-  let prog := z.1.1.1.1
-  let input := z.1.1.1.2
-  z.1.2 = true ∧ SentinelSafe prog ∧
-    ¬ ∃ t, extract prog input z.2 z.1.1.2 = some t ∧ ValidExecution prog input t
+def Breaks (extract : Extractor) (z : Outcome) : Prop :=
+  z.accepted ∧ SentinelSafe z.program ∧
+    ¬ ∃ t, extract z.program z.input z.cache z.proof = some t ∧ ValidExecution z.program z.input t
 
 /-- **The soundness error** of an adversary of `Q` queries: one `2^-128` per query of the
 adversary and the verifier (at most `13213`), plus collisions. -/
@@ -174,7 +191,7 @@ def Completeness : Prop :=
     ValidExecution prog input t →
     t.committedSize ≤ 2 ^ 28 → 1 ≤ ρ ∧ ρ ≤ 4 → fuel ≤ 2 ^ 64 →
     Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> prover prog input t ρ fuel)}[
-      z.1.2 = false] ≤ completenessError fuel
+      z.rejected] ≤ completenessError fuel
 
 end
 end LeanVM

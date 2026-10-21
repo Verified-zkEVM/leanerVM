@@ -88,14 +88,6 @@ def collisionCandidates (seed : Digest) (s : NodeStatement) (seed' : Digest)
     (sphincsPreimage s.claims.sphincs, sphincsPreimage s'.claims.sphincs),
     (daPreimage s.claims.da, daPreimage s'.claims.da)]
 
-/-- The guest's deployed seed: its Fiat-Shamir IV. -/
-abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
-
-/-- **What the outer verifier checks of a statement besides its proof** (`verifyAggregate`): every
-DA claim's vector digest is its root's, and the deferred claim holds of the guest's bytecode. -/
-def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
-  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧ s.defer.Holds (bytecodeWords guest)
-
 /-- **A collision**: a pair of different inputs with the same BLAKE2s digest, among `pairs`. -/
 def HasCollision (pairs : List (List UInt8 × List UInt8)) : Prop :=
   ∃ p ∈ pairs, p.1 ≠ p.2 ∧ blake2sBytes p.1 = blake2sBytes p.2
@@ -141,13 +133,10 @@ oracle's answers and the proof does not explain `s`. Its probability is at most
 `soundnessError Q`. -/
 def AggregateSound (guest : Program) (extract : Extractor) (decode : Decoder) : Prop :=
   ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[
-      let prog := z.1.1.1.1
-      let input := z.1.1.1.2
-      ∃ s : NodeStatement, z.1.2 = true ∧ prog = guest ∧
-        publicDigest input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
-        ¬ ∃ t, extract prog input z.2 z.1.1.2 = some t ∧ Explains guest s (decode t.image)] ≤
-      soundnessError Q
+    Pr{let z ← experiment A}[∃ s : NodeStatement, z.accepted ∧ z.program = guest ∧
+      publicDigest z.input = statementDigest (deployedSeed guest) s ∧ OuterChecks guest s ∧
+      ¬ ∃ t, extract z.program z.input z.cache z.proof = some t ∧
+        Explains guest s (decode t.image)] ≤ soundnessError Q
 
 end
 end LeanVM.Node

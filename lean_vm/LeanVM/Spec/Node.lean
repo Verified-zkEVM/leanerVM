@@ -374,16 +374,22 @@ def NodeSpec (bytecode : List K) (seed : Digest) (s : NodeStatement) : Prop :=
 
 /-! ## The outer verifier -/
 
+/-- The guest's deployed seed: its Fiat-Shamir IV. -/
+abbrev deployedSeed (guest : Program) : Digest := fiatShamirIv (bytecodeWords guest)
+
+/-- **What the outer verifier checks of a statement besides its proof**: every DA claim's vector
+digest is its root's, and the deferred claim holds of the guest's bytecode. -/
+def OuterChecks (guest : Program) (s : NodeStatement) : Prop :=
+  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧ s.defer.Holds (bytecodeWords guest)
+
 /-- **The outer verifier** of an aggregate of the guest `guest` (`EthereumProof::verify`): every
 DA claim's vector digest is its root's, the deferred claim holds, and the proof verifies on the
 statement's digest under the guest's IV. It omits the deployed verifier's checks on the lists'
 form (`check_signer_set`, `check_da_roots`: each list sorted without repeats, fewer than `2^16`
 signature claims and at most `16` DA roots), so it accepts more. -/
 def verifyAggregate (guest : Program) (s : NodeStatement) (π : Proof) : Prop :=
-  (∀ c ∈ s.claims.da, Da.toBytes c.2 = Da.vectorDigestOf c.1) ∧
-    s.defer.Holds (bytecodeWords guest) ∧
-    Verifier.verify (bytecodeWords guest)
-      (statementDigest (fiatShamirIv (bytecodeWords guest)) s) π = true
+  OuterChecks guest s ∧
+    Verifier.verify (bytecodeWords guest) (statementDigest (deployedSeed guest) s) π = true
 
 end
 end LeanVM.Node
