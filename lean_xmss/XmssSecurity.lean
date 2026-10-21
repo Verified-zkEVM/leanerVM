@@ -1,5 +1,6 @@
 import LeanXmss.Statement
 import XmssSecurity.Proof.Bridge.Security
+import XmssSecurity.Proof.CappedExpectedLanes
 
 namespace XmssSecurity
 
