@@ -33,6 +33,7 @@ fails when the siblings run out or are left over, and reads the first node of th
 
 `prunedRoot_eq_some_iff` is the reading: for every node hash, the walk reaches a root exactly
 when `toBatchOpening` reads the opening as VCVio's and VCVio's putative root is that root.
+`fold_map` carries the walk along a map of node algebras, of which the reading is an instance.
 `openSiblings` is the honest prover and `prunedRoot_openSiblings` its completeness. A prover
 builds the tree once, as its `Levels` (`buildLevels`), and reads the root and the siblings of
 every opening off it (`Levels.root`, `Levels.siblings`); `root_buildLevels` and
@@ -197,6 +198,87 @@ theorem run_fold_succ (k h t : ℕ) (e : h + (k + 1) = t) (nodes : List (ℕ × 
 
 end RunId
 
+/-! ## Maps of node algebras -/
+
+section Map
+
+variable [LawfulMonad m] {T' : ℕ → Type}
+
+/-- A level's result with every node carried along `f`. -/
+abbrev mapLevel {U U' : Type} (f : U → U') :
+    Option (List (ℕ × U) × List D) → Option (List (ℕ × U') × List D) :=
+  Option.map fun r ↦ (r.1.map fun x ↦ (x.1, f x.2), r.2)
+
+private theorem consParent_map {U U' : Type} (f : U → U') (i : ℕ) (p : m U)
+    (r : m (Option (List (ℕ × U) × List D))) :
+    consParent i (f <$> p) (mapLevel f <$> r) = mapLevel f <$> consParent i p r := by
+  simp only [consParent, map_eq_pure_bind, bind_assoc, pure_bind, mapLevel, Option.map_map]
+  rfl
+
+/-- One level of the walk commutes with a map `φ` of node algebras: a map that carries each
+operation of `A` to that of `B`. -/
+theorem levelStep_map (A : NodeAlgebra m D T) (B : NodeAlgebra m D T')
+    (φ : ∀ {h : ℕ}, T h → T' h)
+    (hboth : ∀ {h : ℕ} (a b : T h), B.both (φ a) (φ b) = φ <$> A.both a b)
+    (hright : ∀ {h : ℕ} (a : T h) (s : D), B.withRight (φ a) s = φ <$> A.withRight a s)
+    (hleft : ∀ {h : ℕ} (s : D) (b : T h), B.withLeft s (φ b) = φ <$> A.withLeft s b) {h : ℕ} :
+    ∀ (nodes : List (ℕ × T h)) (sibs : List D),
+      levelStep B (nodes.map fun x ↦ (x.1, φ x.2)) sibs = mapLevel φ <$> levelStep A nodes sibs
+  | [], sibs => by simp [levelStep, mapLevel]
+  | (i, a) :: (j, b) :: rest, sibs => by
+    have hsup : ∀ s, withSupplied B i (φ a) s = φ <$> withSupplied A i a s := fun s ↦ by
+      unfold withSupplied; split
+      · exact hright a s
+      · exact hleft s a
+    simp only [List.map_cons]
+    by_cases hp : i % 2 = 0 ∧ j = i + 1
+    · simp only [levelStep, hp, and_self, ↓reduceIte]
+      rw [hboth, levelStep_map A B φ hboth hright hleft rest sibs, consParent_map]
+    · simp only [levelStep, hp, ↓reduceIte]
+      cases sibs with
+      | nil => simp [withNext, mapLevel]
+      | cons s sibs =>
+        have ih := levelStep_map A B φ hboth hright hleft ((j, b) :: rest) sibs
+        simp only [List.map_cons] at ih
+        simp only [withNext]
+        rw [hsup, ih, consParent_map]
+  | [(i, a)], sibs => by
+    cases sibs with
+    | nil => simp [levelStep, withNext, mapLevel]
+    | cons s sibs =>
+      have hsup : withSupplied B i (φ a) s = φ <$> withSupplied A i a s := by
+        unfold withSupplied; split
+        · exact hright a s
+        · exact hleft s a
+      simp only [List.map_cons, List.map_nil, levelStep, withNext]
+      rw [hsup]
+      simpa [mapLevel] using
+        consParent_map (D := D) φ (i / 2) (withSupplied A i a s) (pure (some ([], sibs)))
+
+/-- The walk commutes with a map `φ` of node algebras: walking the images of the opened nodes
+under `B` gives the image of `A`'s walk. -/
+theorem fold_map (A : NodeAlgebra m D T) (B : NodeAlgebra m D T')
+    (φ : ∀ {h : ℕ}, T h → T' h)
+    (hboth : ∀ {h : ℕ} (a b : T h), B.both (φ a) (φ b) = φ <$> A.both a b)
+    (hright : ∀ {h : ℕ} (a : T h) (s : D), B.withRight (φ a) s = φ <$> A.withRight a s)
+    (hleft : ∀ {h : ℕ} (s : D) (b : T h), B.withLeft s (φ b) = φ <$> A.withLeft s b) :
+    ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × T h)) (sibs : List D),
+      fold B k h t e (nodes.map fun x ↦ (x.1, φ x.2)) sibs =
+        Option.map φ <$> fold A k h t e nodes sibs
+  | 0, h, t, e, nodes, sibs => by
+    subst e
+    simp only [fold, map_pure]
+    rcases nodes with _ | ⟨⟨_, a⟩, _⟩ <;> rcases sibs with _ | _ <;> rfl
+  | k + 1, h, t, e, nodes, sibs => by
+    simp only [fold]
+    rw [levelStep_map A B φ hboth hright hleft, bind_map_left, map_bind]
+    congr 1; funext r
+    rcases r with _ | ⟨ps, rest⟩
+    · simp
+    · exact fold_map A B φ hboth hright hleft k (h + 1) t _ ps rest
+
+end Map
+
 /-! ## The reading as a VCVio batch opening -/
 
 /-- The selector of a subtree that holds no opened leaf. -/
@@ -253,60 +335,14 @@ variable (hash : D → D → D)
 private abbrev rootNode {h : ℕ} (x : ℕ × BatchOpening D (Skeleton.perfect h)) : ℕ × D :=
   (x.1, putativeRoot hash x.2)
 
-private theorem putativeRoot_withSupplied {h : ℕ} (i : ℕ)
-    (a : BatchOpening D (Skeleton.perfect h)) (s : D) :
-    putativeRoot hash (Id.run (withSupplied openingAlgebra i a s)) =
-      Id.run (withSupplied (NodeAlgebra.ofHash (m := Id) hash) (h := h) i
-        (putativeRoot hash a) s) := by
-  unfold withSupplied
-  split <;> rfl
-
-private theorem levelStep_putativeRoot {h : ℕ} :
-    ∀ (nodes : List (ℕ × BatchOpening D (Skeleton.perfect h))) (sibs : List D),
-      Id.run (levelStep (NodeAlgebra.ofHash (m := Id) hash) (h := h)
-          (nodes.map (rootNode hash)) sibs) =
-        (Id.run (levelStep openingAlgebra nodes sibs)).map
-          fun r ↦ (r.1.map (rootNode hash), r.2)
-  | [], _ => rfl
-  | (i, a) :: (j, b) :: rest, sibs => by
-    rw [List.map_cons, List.map_cons]
-    by_cases hp : i % 2 = 0 ∧ j = i + 1
-    · rw [run_levelStep_pair _ _ _ _ _ _ _ hp, run_levelStep_pair _ _ _ _ _ _ _ hp,
-        levelStep_putativeRoot rest sibs]
-      cases Id.run (levelStep openingAlgebra rest sibs) <;> rfl
-    · cases sibs with
-      | nil =>
-        rw [run_levelStep_unpaired_nil _ _ _ _ _ _ hp, run_levelStep_unpaired_nil _ _ _ _ _ _ hp]
-        rfl
-      | cons s sibs =>
-        have ih := levelStep_putativeRoot ((j, b) :: rest) sibs
-        rw [List.map_cons] at ih
-        rw [run_levelStep_unpaired _ _ _ _ _ _ _ _ hp, run_levelStep_unpaired _ _ _ _ _ _ _ _ hp,
-          ih, ← putativeRoot_withSupplied]
-        cases Id.run (levelStep openingAlgebra ((j, b) :: rest) sibs) <;> rfl
-  | [(i, a)], sibs => by
-    cases sibs with
-    | nil => rfl
-    | cons s sibs =>
-      rw [List.map_cons, List.map_nil, run_levelStep_single, run_levelStep_single,
-        ← putativeRoot_withSupplied]
-      rfl
-
-private theorem fold_putativeRoot :
-    ∀ (k h t : ℕ) (e : h + k = t) (nodes : List (ℕ × BatchOpening D (Skeleton.perfect h)))
-      (sibs : List D),
-      Id.run (fold (NodeAlgebra.ofHash (m := Id) hash) k h t e
-          (nodes.map (rootNode hash)) sibs) =
-        (Id.run (fold openingAlgebra k h t e nodes sibs)).map (putativeRoot hash)
-  | 0, h, t, e, nodes, sibs => by
-    subst e
-    rw [run_fold_zero, run_fold_zero]
-    rcases nodes with _ | ⟨⟨_, a⟩, _⟩ <;> rcases sibs with _ | _ <;> rfl
-  | k + 1, h, t, e, nodes, sibs => by
-    rw [run_fold_succ, run_fold_succ, levelStep_putativeRoot]
-    rcases Id.run (levelStep openingAlgebra nodes sibs) with _ | ⟨ps, rest⟩
-    · rfl
-    · exact fold_putativeRoot k (h + 1) t _ ps rest
+/-- The putative root is a map of node algebras from the batch openings to the node hash. -/
+private theorem fold_putativeRoot (k h t : ℕ) (e : h + k = t)
+    (nodes : List (ℕ × BatchOpening D (Skeleton.perfect h))) (sibs : List D) :
+    Id.run (fold (NodeAlgebra.ofHash (m := Id) hash) k h t e
+        (nodes.map (rootNode hash)) sibs) =
+      (Id.run (fold openingAlgebra k h t e nodes sibs)).map (putativeRoot hash) :=
+  fold_map openingAlgebra (NodeAlgebra.ofHash hash) (putativeRoot hash) (fun _ _ ↦ rfl)
+    (fun _ _ ↦ rfl) (fun _ _ ↦ rfl) k h t e nodes sibs
 
 /-- The reading: for every node hash, `toBatchOpening` reads a pruned opening as a VCVio batch
 opening whose putative root is `r` exactly when the positions strictly increase, lie in the tree

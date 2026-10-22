@@ -213,7 +213,7 @@ theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
 /-! ## The byte round trip -/
 
 /-- A word read back from its four little-endian bytes. -/
-private theorem leWord_wordBytes (w : UInt32) :
+theorem leWord_wordBytes (w : UInt32) :
     leWord w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
   apply UInt32.toBitVec_inj.mp
   ext i hi

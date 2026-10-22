@@ -132,8 +132,14 @@ Merkle trees over a byte hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkl
 its openings (`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness
 (`merkleVerifyWith_merkleOpen`), the node query model (`nodeModel`), and the reading as VCVio's
 batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the single-path
-check of #67 and its binding as a computed collision. Nothing else is built: the other
-generic components, the WHIR opening, the compiled verifier and the base theorems.
+check of #67 and its binding as a computed collision. On the branch
+`feat/protocol-merkle-binding`, their binding by replaying the hash log
+(`Protocol/MerkleBinding.lean`, generic in `ToVCVio/MerkleLog.lean`): the rows read off a log
+(`extractRows`, in one pass `extractAllRows`), `binding_of_log`, which equates an accepted
+opening's rows with them unless the log is inconsistent or shows a collision or a fresh hit, and
+`extractRows_determined`.
+Nothing else is built: the other generic components, the WHIR opening, the compiled verifier and
+the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -658,13 +664,37 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
     to read at the top. The Rust also returns each query's full path, which is dropped.
   - The single-path check, its completeness and its binding as a computed collision are deleted.
-  - Owed: binding, as log replay on `MerkleTree.fold` (`extractRows`, `binding_of_log`), on the
-    branch `feat/protocol-merkle-binding`. `merkle_fits` is the reading as VCVio's and is not on
-    that path; that `toBatchOpening` selects exactly the queried positions, with their leaf
-    digests as values, is tested and not proved. The blueprint's decision 32 and the hashed-leaf
-    hole (`ToVCVio/MerkleLeaves.lean`) are revised in the docs pull request. In Layer 12: that
-    `merkleVerifyWith` run with the hash as a random-oracle query answered by BLAKE2s is
-    `merkleVerify`.
+  - Binding is log replay, on the branch `feat/protocol-merkle-binding`, deterministic and over
+    any encoding of leaves and nodes into one query domain (`ToVCVio/MerkleLog.lean`).
+    `extractTree` reads a tree top-down off a log, a node's children those of the first logged
+    query answered by it that parses as a node (`nodePreimage`), and `leafPreimage` a leaf's
+    payload; `extractLeaves` does it for every position in one pass, by hash maps
+    (`extractLeaves_eq`). `MerkleTree.binding_of_log`: if the walk over a pruned opening at
+    strictly increasing positions in the tree, every hash answered from the log
+    `logA ++ logV`, reaches `root`, the log is `Consistent`, has no collision (`HasCollision`) and
+    no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
+    node query of `logA`), then every opened payload is the one read off `logA` at its position.
+    `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
+    off the whole log under a root are those read off `logA`. Each condition has a toy mutation in which the check accepts a payload other than the
+    extracted one and only that condition fails (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
+    leanVM's instance (`Protocol/MerkleBinding.lean`): `extractRows` takes the row width as well
+    as the leaf width, since a row may begin with zero words, and is `none` where the leaf query
+    found is not a row's leaf image; `binding_of_log` is stated for `merkleVerifyWith` run in
+    `Option` with every hash answered by a partial oracle whose answers are logged, and equates
+    the rows it returns with the leaf images of the rows read off `logA` at the queries;
+    `extractRows_determined` is the instance of `extractLeaf_determined`.
+  - Where binding differs from the docs pull request's sketch: the module is
+    `ToVCVio/MerkleLog.lean`; the known digests are the roots and the children of `logA`'s node
+    queries only (an answer of `logA` hit by a fresh query is a collision, and the extraction never
+    descends into a sibling), and only fresh queries of `logV` are constrained; consistency is a
+    hypothesis, since an input answered in `logV` other than in `logA` defeats the extraction.
+    `fold_map` (the walk commutes with a map of node algebras) is added to `ToVCVio/Merkle.lean`.
+  - Owed: `merkle_fits` is the reading as VCVio's and is not on the binding path; that
+    `toBatchOpening` selects exactly the queried positions, with their leaf digests as values, is
+    tested and not proved. The blueprint's decision 32 and the hashed-leaf hole are revised in the
+    docs pull request. In Layer 12: that `merkleVerifyWith` run with the hash as a random-oracle
+    query answered by BLAKE2s is `merkleVerify`; the probability of a collision or a fresh hit on
+    the logged game, where a root counts as known only once fixed (absorbed into the transcript).
 - **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s

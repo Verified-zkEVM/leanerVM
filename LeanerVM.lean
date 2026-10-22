@@ -46,6 +46,7 @@ import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
 import LeanerVM.Protocol.NovelBasis
 import LeanerVM.Protocol.Merkle
+import LeanerVM.Protocol.MerkleBinding
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop
@@ -138,6 +139,7 @@ import LeanerVM.Protocol.ToCompPoly.TableFold
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.HashChain
 import LeanerVM.Protocol.ToVCVio.Merkle
+import LeanerVM.Protocol.ToVCVio.MerkleLog
 import LeanerVM.Protocol.ToVCVio.QueryLog
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Transcript
