@@ -1,4 +1,4 @@
-import LeanVM.E2E.Unforgeable
+import LeanVM.E2E.KS.Unforgeable
 import LeanVM.E2E.Sanity
 import LeanVM.E2E.SanityDeployed
 import LeanVM.E2E.SanityDeployedBudget
@@ -7,145 +7,159 @@ import LeanVM.E2E.Complete.Rom.PadRec
 /-!
 # The end-to-end security of leanVM aggregation: the result
 
-leanVM aggregates leanXMSS and leanSPHINCS signatures (and DA claims) into one proof. This file
-states what is proved about it, as the three standard properties of an aggregate signature scheme;
-every other theorem under `LeanVM/E2E/` is a step of their proofs. The design is
-`docs/roadmap/e2e-security.md` (§0 the claim, §7 the decisions; the form, E2E-14).
+leanVM aggregates leanXMSS and leanSPHINCS signatures into one succinct proof, checked by the
+deployed verifier `verifyAggregate`. This file states what is proved about it; every other theorem
+under `LeanVM/E2E/` is a step of their proofs. The design is `docs/roadmap/e2e-security.md` (§7
+the decisions; the form, E2E-15).
 
 | Property | Theorem | Statement |
 |---|---|---|
-| **Unforgeable** | `unforgeable` | `Pr[break] ≤ (n_s + n_x/2^23 + 4) · q / 2^127` |
-| **Correct** | `correct` | honest aggregates of any depth are accepted, except `completeError` |
-| **Faithful** | `faithful` | the deployed honest aggregate passes `verifyAggregate` and `V_I` |
+| **Unforgeable** | `unforgeable` | `KnowledgeSound ε` ⇒ `Pr ≤ ε + (n_s + n_x/2^23 + 4) q / 2^127` |
+| **Correct** | `correct` | the honest aggregate of a valid tree is accepted by `verifyAggregate` |
 
-`n_x`, `n_s` are the numbers of honest leanXMSS and leanSPHINCS keys, `q` every hash evaluation of
-the game. `unforgeable` is `q / 2^106` at `2^20 + 2^20` keys (`unforgeable_deployed`) and
-`q / 2^124` with leanXMSS keys only (`unforgeable_xmss`), with no cap on `q`.
+`n_x`, `n_s` are the numbers of honest leanXMSS and leanSPHINCS keys, `q` the hash evaluations of
+the game. At `2^20 + 2^20` keys, `ε + q / 2^106` (`unforgeable_deployed`). No cap on `q`.
 
-## The model
+## The model (`LeanVM/E2E/KS/Game.lean`)
 
-* **The oracle.** One byte-level random oracle `H : Bytes → Digest`, lazily sampled
-  (`Rom.loggedRO`), shared by every party: the adversary, the honest signers and the verifier.
-* **The verifier.** `V_I` (`idealVerify`, `LeanVM/E2E/Statement.lean`) is the idealized,
-  non-succinct verifier of an aggregation tree: from a root statement and an idealized proof (a
-  partial word and frames per node, decision E2E-10) it runs the deployed outer verifier's checks
-  with the oracle, decodes every node's children from its stack, and visits at most `N` nodes with
-  at most `viCost N = 179,733,089 · N` oracle queries (`budgetedQuery`).
-* **The game.** `game guest N (viCost N) A` (`LeanVM/E2E/Statement.lean`): honest keys, `n_x`
-  leanXMSS and `n_s` leanSPHINCS, generated from uniform seeds in the oracle; the adversary `A`
-  receives their public keys, queries the oracle and the honest signers (a leanXMSS key refuses a
-  reused leaf, a leanSPHINCS key its `signatureLimit`), and outputs a root statement and an
-  idealized proof; `V_I` checks them.
-* **The event.** `Breaks`: `V_I` accepts and the root statement holds a claim `(pk_j, m)` of an
-  honest key on a message no request to that key was answered for, or a DA claim whose codeword
-  rows the oracle's log does not back.
-* **The resource.** `HashEvals A N q`: the game makes at most `q` hash evaluations, counting the
-  key generations, the adversary's queries, the signatures it requests at their proved worst-case
-  costs and V_I's budget (`totalQueries_eq`); `q` bounds the game's hash queries
-  (`hashEvals_isQueryBound`).
+* **The oracle.** One random oracle `H : Bytes → Digest` (BLAKE2s idealized), lazily sampled and
+  shared by every party: the adversary, the honest signers and the verifier.
+* **The verifier.** The deployed `verifyAggregate`, run with `H` (`verifyAggregateWith`; at BLAKE2s
+  it is `verifyAggregate`, `verifyAggregateWith_blake2s`).
+* **The game** (`dGame`): `n_x` leanXMSS and `n_s` leanSPHINCS honest keys from uniform seeds; the
+  adversary `A` receives their public keys, queries `H` and the honest signers (a leanXMSS key
+  refuses a reused leaf, a leanSPHINCS key its `signatureLimit`), and outputs a root statement
+  `s` and a proof `π`; the verifier checks them. `A`'s hash queries and answers are recorded, in
+  order: its transcript.
+* **The event** (`DForged`): the verifier accepts and `s` holds a claim `(pk_j, m)` of an honest
+  key on a message no request to that key was answered for.
+* **The resource** (`DHashEvals A q`): the game makes at most `q` hash evaluations before
+  verification: the key generations, `A`'s hash queries, and the signatures it requests at their
+  proved worst-case costs.
 
-## Refinements
+## The assumption: knowledge soundness
 
-* **Sharp** (`unforgeable_sharp`, `unforgeable_sharp_deployed`): with leanSPHINCS's per-key
-  multi-user bound, `q / 2^116 + 2^34 q²/2^256` at `2^20 + 2^20` keys for the deployed sets `full`
-  and `pruned20`; its quadratic term does not fold into the linear one.
-* **Sanity** (`sanity`, T7″): `V_I` with BLAKE2s accepts what the deployed aggregation accepts,
-  when the reached nodes' partial words encode known stacks; the bridge KA-pw uses below.
-* Proved and pinned, not restated here: the two-term bound `q · 2^-λ₁ + 30 q²/2^256`
-  (`aggregate_no_forgery_final`, 1 bit sharper), completeness for any generator within the
-  prover's limits (`aggregate_complete_final`, which `correct` instantiates).
+`KnowledgeSound guest A ε` (a hypothesis of `unforgeable`, not proved): except with probability
+`ε`, whenever the verifier accepts `A`'s output, every signature claim `(pk, m)` of `s` has a
+signature valid under the answers of `A`'s own hash queries. It is straight-line extraction (an
+extractor reading `A`'s transcript, no rewinding), so `ε` does not grow with the recursion's depth;
+it is the deployed proof system's knowledge soundness (WHIR, Fiat–Shamir, the recursion verifying
+children in-circuit), expected about `q · 2^-128` (§5). Everything else is proved: leanXMSS's and
+leanSPHINCS's multi-user security, the signers' costs and the composition.
 
-## What is assumed
+## Supporting results: the idealized model
 
-Nothing beyond the hypotheses of each theorem: leanXMSS's and leanSPHINCS's security, the signers'
-and verifications' costs, the certificates of leanSPHINCS's parameter sets and V_I's per-node cost
-are theorems (`lean_xmss`, `lean_sphincs`, `Reduction/*Bound.lean`, `BudgetCount.lean`), all at
-Lean's three axioms.
+Why the assumption is plausible: in the random-oracle model, the recursion's soundness is proved
+for an idealized, non-succinct verifier `V_I` (`idealVerify`, `LeanVM/E2E/Statement.lean`), given
+the data behind every node's commitment (an idealized proof):
 
-What relates these theorems to the deployed system is not proved. It is the heuristic of
-`e2e-security.md` §5:
+* `ideal_unforgeable`: `V_I` accepts a forged claim or an unbacked DA claim with probability at
+  most `(n_s + n_x/2^23 + 4) · q / 2^127`, `q` the game's hash evaluations, `V_I`'s budget
+  included (`HashEvals`); the knowledge it needs is proved there, at every depth (T1–T5).
+* `ideal_correct`: the honest prover's idealized proof of a tree of any depth is rejected by `V_I`
+  with probability at most `completeError`.
+* `ideal_faithful` (S1): the deployed honest aggregation is accepted by `V_I` with BLAKE2s too.
+* `sanity` (T7″): `V_I` with BLAKE2s accepts what `verifyAggregate` accepts when the reached
+  nodes' committed data decode to known executions (what KA-pw, `e2e-security.md` §5, provides).
 
-* **The random-oracle heuristic**: BLAKE2s behaves as a random oracle natively; Fiat–Shamir holds
-  for in-circuit-verified proofs; Flock's R1CS with the batched matrix claims behaves as
-  oracle-consistent rows; in-circuit hash chains behave as visible queries. Caveats: CGH04,
-  BBHMR19; static corruption only.
-* **KA-pw (straight-line extraction of partial words)**: for every deployed adversary `A` there is
-  an extractor `E_A` that reads, at every node `V_I` reaches, the partial word of `A`'s BLAKE2s
-  trace under the node's stack root (the rows whose paths the trace answers, a hole at every
-  maximal subtree whose digest the trace does not invert) and holes the present columns that
-  disagree with a stack `q_ν` satisfying the leanISA relation on the node's input and agreeing with
-  it on at least the Johnson threshold of present columns. Assumed: except with probability about
-  `q_A · 2^-128`, whenever `verifyAggregate` accepts `A`'s output such a `q_ν` exists at every node
-  `E_A` reaches. This is the deployed proof system's knowledge soundness with the BCS extractor at
-  its own Johnson radius; T1 proves its random-oracle analogue (without Flock).
-* With KA-pw, `sanity` turns `A` with `E_A` into an adversary of the game whose output `V_I`
-  accepts with BLAKE2s, given also collision resistance of BLAKE2s compression (`StacksPrecheck`)
-  and no cycle of nodes (`FuelBounds`); the random-oracle heuristic then carries `unforgeable` to
-  the deployed `verifyAggregate`.
-
-Proved without any heuristic, at the root only: `Guest.End.aggregate_sound_outer` (validity under
-concrete BLAKE2s with a classical extractor; not a no-forgery statement).
+Proved and pinned, not restated here: the sharp leanSPHINCS bound of the idealized model
+(`aggregate_unforgeable_sharp_deployed`, `q / 2^116 + 2^34 q²/2^256`), its leanXMSS-only form
+(`q / 2^124`), and the generator-level completeness (`aggregate_complete_final`).
 -/
 
 namespace LeanVM.E2E.Main
 
 open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Rom OracleSpec OracleComp
-open LeanVM.E2E
+open LeanVM.E2E LeanVM.E2E.KS
 open scoped ENNReal
 
 /-! ## Unforgeable -/
 
 /-- **Unforgeable.** For every proved leanSPHINCS parameter set (`SphincsSet`), every numbers
-`n_x`, `n_s` of honest keys, every tree size `N` and every adversary `A` whose game makes at most
-`q` hash evaluations (`HashEvals`, the only hypothesis): `V_I`, on at most `N` nodes with the budget
-`viCost N`, accepts a root statement with a forged claim of an honest key or an unbacked DA claim
-with probability at most
+`n_x`, `n_s` of honest keys and every adversary `A` whose game makes at most `q` hash evaluations
+before verification (`DHashEvals`): if the deployed aggregation is knowledge sound against `A` with
+error `ε` (`KnowledgeSound`, the assumption), the deployed verifier `verifyAggregate`, run with the
+random oracle, accepts a root statement with a forged claim of an honest key with probability at
+most
+
+    ε + (n_s + n_x/2^23 + 4) · q / 2^127,
+
+for every `q`: about `log₂ n_s` bits below `127`, the leanXMSS keys almost free. -/
+theorem unforgeable [P : Sphincs.Params] [S : SphincsSet P] {nx ns q : ℕ} {ε : ℝ≥0∞}
+    (A : DAdversary nx ns) (hq : DHashEvals A q) (hks : KnowledgeSound Guest.guest A ε) :
+    Pr{let z ← dGame Guest.guest A}[z.1.accepted = true ∧ DForged z.1] ≤
+      ε + ((ns : ℝ≥0∞) + nx / 2 ^ 23 + 4) * q / 2 ^ 127 :=
+  aggregate_unforgeable_ks Guest.guest A hq hks
+
+/-- **Unforgeable at `2^20 + 2^20` keys: `ε + q / 2^106`**, every parameter set. -/
+theorem unforgeable_deployed [P : Sphincs.Params] [S : SphincsSet P] {q : ℕ} {ε : ℝ≥0∞}
+    (A : DAdversary (2 ^ 20) (2 ^ 20)) (hq : DHashEvals A q)
+    (hks : KnowledgeSound Guest.guest A ε) :
+    Pr{let z ← dGame Guest.guest A}[z.1.accepted = true ∧ DForged z.1] ≤ ε + q / 2 ^ 106 :=
+  aggregate_unforgeable_ks_deployed Guest.guest A hq hks
+
+/-- **The game's verifier is the deployed one**: `verifyAggregateWith` at BLAKE2s is
+`verifyAggregate`. -/
+theorem verifier_eq (s : Node.NodeStatement) (π : Proof) :
+    Id.run (verifyAggregateWith (m := Id) Blake2sHash.blake2sBytes Guest.guest s π) = true ↔
+      Node.verifyAggregate Guest.guest s π :=
+  verifyAggregateWith_blake2s Guest.guest s π
+
+/-! ## Correct -/
+
+/-- **Correct.** For every honest witness tree `T` (aggregation nodes over aggregation nodes over
+signatures, any depth) valid at BLAKE2s (`T.Valid blake2sBytes`), within the deployed limits and
+budget at every node (`WithinLimitsDep`), whose proof-of-work searches succeed within `pfuel`
+nonces (`PowFoundDep`), at a valid rate `ρ`: the deployed honest prover outputs a root statement
+`s` and a proof `π` (and the idealized proof `ip` of the supporting results); `s` makes exactly
+the tree's claims, and the deployed verifier accepts: `verifyAggregate guest s π`. -/
+theorem correct {ρ pfuel : ℕ} (T : Complete.HonestTree) (hρ : LeanIsa.validRate ρ)
+    (hv : T.Valid Blake2sHash.blake2sBytes) (hlim : T.WithinLimitsDep ρ pfuel)
+    (hpow : T.PowFoundDep ρ pfuel) :
+    ∃ s π ip, SanityDeployed.deployedProve ρ pfuel T = some (s, π, ip) ∧ s.claims = T.claims ∧
+      Node.verifyAggregate Guest.guest s π := by
+  obtain ⟨s, π, ip, h, hc, hv', -⟩ :=
+    SanityDeployed.sanity_deployed_of_tree ρ pfuel T hρ hv hlim hpow le_rfl
+  exact ⟨s, π, ip, h, hc, hv'⟩
+
+/-! ## Supporting results: the idealized model -/
+
+/-- **Unforgeable, idealized model.** For every proved leanSPHINCS parameter set (`SphincsSet`),
+every numbers `n_x`, `n_s` of honest keys, every tree size `N` and every adversary `A` whose game
+makes at most `q` hash evaluations (`HashEvals`, the only hypothesis): `V_I`, on at most `N` nodes
+with the budget `viCost N`, accepts a root statement with a forged claim of an honest key or an
+unbacked DA claim with probability at most
 
     (n_s + n_x/2^23 + 4) · q / 2^127,
 
 for every `q`: about `log₂ n_s` bits below `127`, the leanXMSS keys almost free. -/
-theorem unforgeable [P : Sphincs.Params] [S : SphincsSet P] {nx ns N q : ℕ}
+theorem ideal_unforgeable [P : Sphincs.Params] [S : SphincsSet P] {nx ns N q : ℕ}
     (A : GameAdversary nx ns) (hq : HashEvals A N q) :
     Pr{let z ← game Guest.guest N (viCost N) A}[Breaks z.1 z.2] ≤
       ((ns : ℝ≥0∞) + nx / 2 ^ 23 + 4) * q / 2 ^ 127 :=
   aggregate_unforgeable A hq
 
-/-- **Unforgeable at `2^20 + 2^20` keys: `q / 2^106`**, every parameter set. -/
-theorem unforgeable_deployed [P : Sphincs.Params] [S : SphincsSet P] {N q : ℕ}
-    (A : GameAdversary (2 ^ 20) (2 ^ 20)) (hq : HashEvals A N q) :
-    Pr{let z ← game Guest.guest N (viCost N) A}[Breaks z.1 z.2] ≤ q / 2 ^ 106 :=
-  aggregate_unforgeable_deployed A hq
-
-/-- **Unforgeable with leanXMSS keys only (`n_x ≤ 2^21`): `q / 2^124`**, every parameter set. -/
-theorem unforgeable_xmss [P : Sphincs.Params] [S : SphincsSet P] {nx N q : ℕ}
-    (hx : nx ≤ 2 ^ 21) (A : GameAdversary nx 0) (hq : HashEvals A N q) :
-    Pr{let z ← game Guest.guest N (viCost N) A}[Breaks z.1 z.2] ≤ q / 2 ^ 124 :=
-  aggregate_unforgeable_xmss hx A hq
-
-/-! ## Correct -/
-
-/-- **Correct.** For every generator `gen` of valid honest trees of any depth (aggregation nodes
-over aggregation nodes over signatures), within the deployed limits and budget on their claims and
-holders at every node (`ValidGenR`: `LimitsT`, which names no hash and no prover; at most `N` nodes;
-the honest prover's queries at most `QP`) making at most `QG` queries, a valid rate `ρ` and a
-proof-of-work fuel `pfuel ≤ 2^64`: the honest prover's idealized proof, checked by `V_I` exactly as
-the game runs it (fuel `N`, budget `viCost N`, the same lazily sampled oracle), is rejected with
-probability at most
-`completeError (QG + QP) pfuel = Q((1 − 2^-17)^pfuel + Q/2^256) + Q(2^-192 + 4(Q + 1)/2^256)`,
-`Q = QG + QP`. The honest prover pads each node's memory, as leanVM's prover does, so that every
-child's stack has the 22 variables its parent's guest admits (`Complete.guestCompleteModel_big`).
-Not vacuous: `2^-124` at the honest leanXMSS leaf and at a root over it
-(`Complete.idealVerify_complete_rom_xmssLeaf`, `Complete.idealVerify_complete_rom_xmssRoot`). -/
-theorem correct {nx ns : ℕ} {ρ pfuel N QG QP : ℕ} (hρ : LeanIsa.validRate ρ)
+/-- **Correct, idealized model.** For every generator `gen` of valid honest trees of any depth
+(aggregation nodes over aggregation nodes over signatures), within the deployed limits and budget on
+their claims and holders at every node (`ValidGenR`: `LimitsT`, which names no hash and no prover;
+at most `N` nodes; the honest prover's queries at most `QP`) making at most `QG` queries, a valid
+rate `ρ` and a proof-of-work fuel `pfuel ≤ 2^64`: the honest prover's idealized proof, checked by
+`V_I` exactly as the game runs it (fuel `N`, budget `viCost N`, the same lazily sampled oracle), is
+rejected with probability at most `completeError (QG + QP) pfuel = Q((1 − 2^-17)^pfuel + Q/2^256) +
+Q(2^-192 + 4(Q + 1)/2^256)`, `Q = QG + QP`. The honest prover pads each node's memory, as leanVM's
+prover does, so that every child's stack has the 22 variables its parent's guest admits
+(`Complete.guestCompleteModel_big`). Not vacuous: `2^-124` at the honest leanXMSS leaf and at a root
+over it (`Complete.idealVerify_complete_rom_xmssLeaf`,
+`Complete.idealVerify_complete_rom_xmssRoot`). -/
+theorem ideal_correct {nx ns : ℕ} {ρ pfuel N QG QP : ℕ} (hρ : LeanIsa.validRate ρ)
     (hpf : pfuel ≤ 2 ^ 64) (gen : OracleComp HashSpec (Option Complete.HonestTree))
     (hQG : IsTotalQueryBound gen QG) (hgen : Complete.ValidGenR ρ pfuel N QP gen) :
     Pr{let z ← Complete.completeRunGame (nx := nx) (ns := ns) ρ pfuel gen N (viCost N)}[
       z.1 = some false] ≤ Complete.completeError (QG + QP) pfuel :=
   aggregate_complete_final hρ hpf gen hQG (Complete.validGen_of_R hρ hgen)
 
-/-! ## Faithful -/
-
-/-- **Faithful (S1): the deployed honest aggregation is accepted by both verifiers.** For every
+/-- **Faithful, idealized model (S1): the deployed honest aggregation is accepted by both
+verifiers.** For every
 honest witness tree `T` valid at BLAKE2s (`T.Valid blake2sBytes`), within the deployed limits and
 budget at every node (`WithinLimitsDep`), whose proof-of-work searches succeed within `pfuel` nonces
 (`PowFoundDep`), at a valid rate `ρ`, and every `N` at least the tree's size: the deployed honest
@@ -155,7 +169,7 @@ are within the game's budget `viCost N`; and `V_I` run exactly as the game runs 
 (`budgetedQuery (viCost N)`, fuel `N`, from the initial state, every hash query answered by
 BLAKE2s) accepts, unless two non-final BLAKE2s compression rows with distinct inputs have equal
 outputs (`CompressionCollision`). -/
-theorem faithful {nx ns : ℕ} {b : Type → Type} [Monad b] [LawfulMonad b]
+theorem ideal_faithful {nx ns : ℕ} {b : Type → Type} [Monad b] [LawfulMonad b]
     (impl : QueryImpl GameSpec b)
     (himpl : ∀ x, simulateQ impl (liftM (HashSpec.query x) : OracleComp GameSpec Digest) =
       pure (Blake2sHash.blake2sBytes x))
@@ -171,35 +185,6 @@ theorem faithful {nx ns : ℕ} {b : Type → Type} [Monad b] [LawfulMonad b]
           spent := queryCount Blake2sHash.blake2sBytes Guest.guest ip N s }) ∨
         SanityDeployed.CompressionCollision) :=
   SanityDeployed.sanity_deployed_budget_of_tree impl himpl ρ pfuel T hρ hv hlim hpow hN
-
-/-! ## Refinements -/
-
-/-- **Unforgeable with leanSPHINCS's sharp per-key bound** (`SphincsSetSharp`, every proved set):
-at most
-
-    q · noForgeryRateSharp n_x n_s + (30 + D n_s) q²/2^256,
-
-`noForgeryRateSharp n_x n_s ≈ (4.81 + β n_s)/2^128` with `β ≈ 0.0020` at `full` and `0.0036` at
-`pruned20`, and `D = SphincsSetSharp.quadD` (`2^13.41` at `full`), set by the certificates'
-budget. -/
-theorem unforgeable_sharp [P : Sphincs.Params] [S : SphincsSetSharp P] {nx ns N q : ℕ}
-    (A : GameAdversary nx ns) (hq : HashEvals A N q) :
-    Pr{let z ← game Guest.guest N (viCost N) A}[Breaks z.1 z.2] ≤
-      (q : ℝ≥0∞) * noForgeryRateSharp nx ns +
-        (((30 + S.quadD * ns) * q ^ 2 : ℕ) : ℝ≥0∞) / 2 ^ 256 :=
-  aggregate_unforgeable_sharp A hq
-
-/-- **Unforgeable at the deployed parameter sets**, sharp: `full` (subtree height 26) or
-`pruned20`, `2^20` leanXMSS and `2^20` leanSPHINCS keys: `q / 2^116 + 2^34 q²/2^256`
-(`λ₁ = 116.97` at `full`, `116.12` at `pruned20`). The hypothesis `hP` is `sharp_full_deployed`
-or `sharp_pruned20_deployed`. -/
-theorem unforgeable_sharp_deployed [P : Sphincs.Params] [S : SphincsSetSharp P]
-    (hP : noForgeryRateSharp (2 ^ 20) (2 ^ 20) ≤ (2 : ℝ≥0∞)⁻¹ ^ 116 ∧
-      30 + S.quadD * 2 ^ 20 ≤ 2 ^ 34)
-    {N q : ℕ} (A : GameAdversary (2 ^ 20) (2 ^ 20)) (hq : HashEvals A N q) :
-    Pr{let z ← game Guest.guest N (viCost N) A}[Breaks z.1 z.2] ≤
-      q / 2 ^ 116 + ((2 ^ 34 * q ^ 2 : ℕ) : ℝ≥0∞) / 2 ^ 256 :=
-  aggregate_unforgeable_sharp_deployed hP A hq
 
 /-- **Sanity (T7″): `V_I` with BLAKE2s accepts what the deployed aggregation accepts.** If the
 deployed outer verifier accepts the root statement `s` with the idealized proof's root proof

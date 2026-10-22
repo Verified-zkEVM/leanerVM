@@ -646,38 +646,83 @@ the statement, each with its reason.
   Why: a reader needs the property (unforgeability), the resource (`q`) and one rate; everything
   else is how the proof counts.
 
+- **E2E-15 (the headline about the deployed verifier, under knowledge soundness).** Decided by the
+  user ("I would like a much simpler statement"), after E2E-14: the V_I statement needs the idealized
+  proof (partial words, frames, a budget) to be read, which a reader of the headline should not
+  need. The headline is now the standard composition theorem of SNARK-based aggregation, about the
+  deployed `verifyAggregate` run with the random oracle (`verifyAggregateWith`, equal to
+  `verifyAggregate` at BLAKE2s):
+  1. *The game* (`LeanVM/E2E/KS/Game.lean`): the honest keys, the adversary with the hash and the
+     signers, outputting a root statement and a deployed proof, its hash queries recorded (its
+     transcript); then `verifyAggregate` with the oracle.
+  2. *The assumption* (`KnowledgeSound guest A ε`, a hypothesis): except with probability `ε`,
+     whenever the verifier accepts, every signature claim of the root statement has a signature
+     valid under the answers of the adversary's own hash queries. Straight-line extraction, so `ε`
+     does not grow with the recursion's depth (the user asked); expected about `q · 2^-128`, the
+     deployed system's knowledge soundness (§5). DA claims are not part of the deployed headline:
+     their backing is knowledge of the same kind, proved in the idealized model.
+  3. *The theorem* (`aggregate_unforgeable_ks`, `Main.unforgeable`): `Pr[verifyAggregate accepts a
+     forged claim] ≤ ε + (n_s + n_x/2^23 + 4) · q / 2^127`, `q` the game's hash evaluations before
+     verification (`DHashEvals`: key generations, the adversary's queries, the signatures at their
+     worst-case costs; the verifier's work is not counted). Proof: a forged claim the adversary knows
+     a signature for is a leanXMSS or leanSPHINCS forgery (`prEvent_dForged_le`), bounded by the
+     schemes' multi-user security through new reductions on the game before verification
+     (`prEvent_knownForgedX_le`, `prEvent_knownForgedS_le`; the verifier stage is a marginal,
+     `prEvent_dGame_pre`), folded as in E2E-14 (`signatureBounds_le`).
+  4. *Correct* (`Main.correct`): the deployed honest prover's aggregate of a valid tree is accepted
+     by `verifyAggregate` (from S1).
+  5. *The idealized model becomes supporting evidence*: E2E-14's theorems, renamed
+     `ideal_unforgeable`, `ideal_correct`, `ideal_faithful`, with `sanity`, prove in the random-
+     oracle model the recursion's knowledge that the assumption takes as given.
+  Why: the reader needs the deployed verifier, one assumption with a standard name, and one bound;
+  the depth of the recursion, partial words and the budget are the evidence for the assumption.
+
 ## 8. Status: what is proved
-**The result is `LeanVM/E2E/Main.lean`** (decisions E2E-12, E2E-14; pinned in `LeanVM.lean` at
-Lean's three axioms): the three properties of an aggregate signature scheme, in the random-oracle
-model with honest signers (§0, §3), for the idealized verifier V_I on at most `N` nodes with the
-budget `viCost N = 179,733,089 · N`.
+**The result is `LeanVM/E2E/Main.lean`** (decisions E2E-12, E2E-14, E2E-15; pinned in
+`LeanVM.lean` at Lean's three axioms), about the deployed verifier `verifyAggregate`, in the
+random-oracle model with honest signers:
 
 * **Unforgeable** (`unforgeable`): for every proved leanSPHINCS parameter set, every numbers `n_x`,
-  `n_s` of honest keys and every adversary whose game makes at most `q` hash evaluations
-  (`HashEvals`, the only hypothesis), V_I accepts a forged claim of an honest key or an unbacked DA
-  claim with probability at most
+  `n_s` of honest keys and every adversary whose game makes at most `q` hash evaluations before
+  verification (`DHashEvals`), if the deployed aggregation is knowledge sound against it with error
+  `ε` (`KnowledgeSound`, the assumption), `verifyAggregate` run with the random oracle accepts a
+  root statement with a forged claim of an honest key with probability at most
+
+      ε + (n_s + n_x/2^23 + 4) · q / 2^127,
+
+  `ε + q / 2^106` at `2^20 + 2^20` keys (`unforgeable_deployed`). No cap on `q`. The game's
+  verifier at BLAKE2s is `verifyAggregate` (`verifier_eq`).
+* **Correct** (`correct`): the deployed honest prover's aggregate of every valid tree of any depth
+  within the deployed limits, whose proofs of work are found, makes the tree's claims and is
+  accepted by `verifyAggregate`.
+
+**Supporting results: the idealized model** (E2E-14's theorems, renamed by E2E-15), for the
+idealized verifier V_I on at most `N` nodes with the budget `viCost N = 179,733,089 · N`:
+
+* **`ideal_unforgeable`**: for every adversary whose game makes at most `q` hash evaluations
+  (`HashEvals`, V_I's budget included), V_I accepts a forged claim of an honest key or an unbacked
+  DA claim with probability at most
 
       (n_s + n_x/2^23 + 4) · q / 2^127,
 
-  for every `q`, no cap. `q` counts every hash evaluation of the game:
-  `q ≥ 13,434,881 n_x + csk_b n_s + qH + 8,630,239,197 sX + css_b sS + viCost N` for an adversary
-  making `qH` hash queries and `sX`, `sS` signing requests (`totalQueries_eq`), and bounds the
-  game's hash queries (`hashEvals_isQueryBound`). `q / 2^106` at `2^20 + 2^20` keys
-  (`unforgeable_deployed`), `q / 2^124` with at most `2^21` leanXMSS keys only (`unforgeable_xmss`).
-* **Correct** (`correct`): the honest prover's proof of a generated valid tree of any depth within
+  for every `q`, no cap. `q ≥ 13,434,881 n_x + csk_b n_s + qH + 8,630,239,197 sX + css_b sS +
+  viCost N` (`totalQueries_eq`), and `q` bounds the game's hash queries
+  (`hashEvals_isQueryBound`). `q / 2^106` at `2^20 + 2^20` keys, `q / 2^124` with at most `2^21`
+  leanXMSS keys only (`aggregate_unforgeable_deployed`, `aggregate_unforgeable_xmss`).
+* **`ideal_correct`**: the honest prover's proof of a generated valid tree of any depth within
   the deployed limits (`ValidGenR`) is rejected by the game's V_I (same oracle, fuel `N`, budget
   `viCost N`) with probability at most `completeError (QG + QP) pfuel`; `2^-124` at the honest
   leanXMSS leaf and at a root over it (E2E-11, T6-prob).
-* **Faithful** (`faithful`, S1, `SanityDeployed*.lean`): the deployed honest prover's output on every
+* **`ideal_faithful`** (S1, `SanityDeployed*.lean`): the deployed honest prover's output on every
   valid tree within the deployed limits whose proof-of-work searches succeed has the tree's claims,
   is accepted by `verifyAggregate`, and by V_I with BLAKE2s run as the game runs it, within
   `viCost N`, unless a BLAKE2s compression collision exists; not vacuous at an honest leanXMSS leaf
   (`sanity_deployed_xmssLeaf`).
 
-Refinements, in `Main.lean` too:
+Refinements of the idealized model:
 
-* **`unforgeable_sharp`, `unforgeable_sharp_deployed`**: with leanSPHINCS's per-key multi-user
-  bound, `q · 2^-λ₁ + (30 + D n_s) q²/2^256`, `2^-λ₁ ≈ (4.81 + β n_s)/2^128`; at the deployed sets
+* **`aggregate_unforgeable_sharp`, `aggregate_unforgeable_sharp_deployed`** (pinned): with
+  leanSPHINCS's per-key multi-user bound, `q · 2^-λ₁ + (30 + D n_s) q²/2^256`, `2^-λ₁ ≈ (4.81 + β n_s)/2^128`; at the deployed sets
   `full` and `pruned20` with `2^20 + 2^20` keys, `q / 2^116 + 2^34 q²/2^256` (`λ₁ = 116.97`,
   `116.12`). `D` (`2^13.41` at `full`) is set by the certificates' budget (`headline.md` §7); the
   quadratic term does not fold into the linear one.
@@ -685,21 +730,22 @@ Refinements, in `Main.lean` too:
   reached nodes' partial words encode known stacks (`KnownStacks`), their tables have no compression
   collision (`StacksPrecheck`) and the fuel covers them (`FuelBounds`) (E2E-10).
 
-Values at `full`, `2^20 + 2^20` keys (a rate of `(2^20 + 4.125)/2^127 ≈ 2^-107` per hash
+Values at `full`, `2^20 + 2^20` keys, both models (the deployed bound adds `ε`; a rate of `(2^20 + 4.125)/2^127 ≈ 2^-107` per hash
 evaluation): one slot (`qH + viCost N ≤ 2^64`, `2^20` requests per scheme) `≈ 2^-43` (`≈ 2^-53`
 sharp); a lifetime (`2^44` requests per scheme, `q ≈ 2^78.9`, dominated by the honest signers'
 worst-case work) `≈ 2^-28` (`≈ 2^-38` sharp).
 
-**Assumed**: nothing inside the theorems beyond their hypotheses; leanXMSS's and leanSPHINCS's
-security and every cost are theorems. Relating V_I to the deployed system is §5's heuristic (the
-random-oracle heuristic and KA-pw), stated as prose in `Main.lean`'s docstring. Without any
+**Assumed**: the deployed headline's one hypothesis, `KnowledgeSound` (with BLAKE2s a random
+oracle); leanXMSS's and leanSPHINCS's security and every cost are theorems. Relating V_I to the
+deployed system is §5's heuristic (the random-oracle heuristic and KA-pw); the idealized model is
+the evidence for `KnowledgeSound`. Without any
 heuristic, at the root only: `Guest.End.aggregate_sound_outer`.
 
 **Proved and pinned, not restated in `Main.lean`**: the two-term bound
 `q · 2^-λ₁ + 30 q²/2^256`, `2^-λ₁ = (3 + 2 n_s + 1/16 + n_x/2^22)/2^128`
 (`aggregate_no_forgery_final`, about one bit sharper than `unforgeable`, which it implies:
 `unforgeable_le`); completeness for every generator within the prover's limits
-(`aggregate_complete_final`, `ValidGen`, which `correct` instantiates through `validGen_of_R`). On
+(`aggregate_complete_final`, `ValidGen`, which `ideal_correct` instantiates through `validGen_of_R`). On
 the deployed prover's output V_I makes at most `13,508 + N · 134,742,095` queries
 (`SanityDeployed/Count.lean`, `queryCount_deployed_le`; one query per BLAKE2S row under the
 precheck, at most `2^19` rows per node), below `viCost N`.
@@ -721,7 +767,7 @@ precheck, at most `2^19` rows per node), below `viCost N`.
 **Where the proofs are.** T1 `Protocol/EndToEnd/Blind/*`; T2 `Guest/*B`, `E2E/Guest.lean`; T3
 `Termination2.lean` (T3-2); T4 `Knowledge.lean`, `KnowledgeSub.lean`, `Knowledge/*`; E5 `Da.lean`;
 W6 `Batch.lean`; T5 `NoForgery2.lean` with the reductions `Reduction/*`; the headline's arithmetic
-`Headline.lean`, `HeadlineSharp.lean`, `Unforgeable.lean`; T6 `Complete/*` (T6-prob `Complete/Rom/*`, the budget
+`Headline.lean`, `HeadlineSharp.lean`, `Unforgeable.lean`; the deployed headline `KS/*`; T6 `Complete/*` (T6-prob `Complete/Rom/*`, the budget
 `Complete/Rom/EndBudget.lean`, `BudgetCount.lean`); T7″ `Sanity.lean`; S1 `SanityDeployed*.lean`.
 
 **Internal** (E2E-12; pinned in `tests/LeanVMTests/E2E/Pins.lean`, not end theorems): the

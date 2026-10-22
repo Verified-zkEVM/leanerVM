@@ -265,27 +265,24 @@ T6-prob's good outcome accepts. Hence
 
 ## 9. The final cleanup (decision E2E-12)
 
-A reader opens `LeanVM/E2E/Main.lean` and finds the result: the model (oracle, V_I, game, event,
-`q`) and §5's assumptions in its docstring, and the three properties of an aggregate signature
-scheme, each restating the end theorem it is proved by (decision E2E-14, which replaced E2E-12's six
-theorems: `no_forgery`, `no_forgery_sharp`, `no_forgery_sharp_deployed`, `complete`, `sanity`,
-`sanity_deployed`).
+A reader opens `LeanVM/E2E/Main.lean` and finds the result (decision E2E-15, which replaced
+E2E-14's three V_I properties, themselves replacing E2E-12's six theorems): the deployed game,
+the assumption and the supporting idealized model in its docstring, and these theorems.
 
 | `Main` | proved by | what |
 | --- | --- | --- |
-| `unforgeable` | `aggregate_unforgeable` | `(n_s + n_x/2^23 + 4) · q / 2^127`, `q` the game's hash evaluations (`HashEvals`) |
-| `unforgeable_deployed`, `_xmss` | `aggregate_unforgeable_deployed`, `_xmss` | `q / 2^106` at `2^20 + 2^20` keys; `q / 2^124` with leanXMSS keys only |
-| `correct` | `aggregate_complete_final`, `validGen_of_R` | the game's V_I rejects the honest proof of a tree of any depth w.p. `≤ completeError` |
-| `faithful` | `SanityDeployed.sanity_deployed_budget_of_tree` | S1: the deployed honest aggregation passes `verifyAggregate` and V_I (BLAKE2s) run as the game runs it within `viCost N`, unless a compression collision |
-| `unforgeable_sharp`, `_sharp_deployed` | `aggregate_unforgeable_sharp`, `_sharp_deployed` | leanSPHINCS's per-key bound; `q / 2^116 + 2^34 q²/2^256` at `full`, `pruned20` |
+| `unforgeable` | `KS.aggregate_unforgeable_ks` | `KnowledgeSound ε` ⇒ `verifyAggregate` accepts a forgery w.p. `≤ ε + (n_s + n_x/2^23 + 4) q / 2^127` |
+| `unforgeable_deployed` | `KS.aggregate_unforgeable_ks_deployed` | `ε + q / 2^106` at `2^20 + 2^20` keys |
+| `verifier_eq` | `KS.verifyAggregateWith_blake2s` | the game's verifier at BLAKE2s is `verifyAggregate` |
+| `correct` | `SanityDeployed.sanity_deployed_of_tree` | the deployed honest aggregate is accepted by `verifyAggregate` |
+| `ideal_unforgeable` | `aggregate_unforgeable` | V_I: `(n_s + n_x/2^23 + 4) · q / 2^127`, forged or unbacked DA claims |
+| `ideal_correct` | `aggregate_complete_final`, `validGen_of_R` | V_I rejects the honest proof of a tree of any depth w.p. `≤ completeError` |
+| `ideal_faithful` | `SanityDeployed.sanity_deployed_budget_of_tree` | S1: the deployed honest aggregation passes V_I (BLAKE2s) within `viCost N`, unless a compression collision |
 | `sanity` | `Sanity.idealVerify_blake2s_known` | T7″ |
-
-S1 is budgeted: V_I's queries on the deployed prover's output are at most
-`13,508 + N · 134,742,095 ≤ viCost N` (`queryCount_deployed_le`).
 
 **(a) `LeanVM.lean`'s pins (done).** It pinned 106 theorems, 94 of them steps of the end-to-end chain,
 superseded end theorems or other forms of S1. It now pins the verifier's and the guest's end theorems (12, unchanged)
-and `Main.lean`'s theorems (eight since E2E-14) with the two deployed rate facts (`sharp_full_deployed`,
+and `Main.lean`'s theorems (eight since E2E-15; the two deployed rate facts moved to `Pins.lean`) (`sharp_full_deployed`,
 `sharp_pruned20_deployed`). The other 94 (S1's three included) moved, unchanged and with their
 section notes, to
 `tests/LeanVMTests/E2E/Pins.lean`, which imports what `LeanVM.lean` imported, so `lake test` still
