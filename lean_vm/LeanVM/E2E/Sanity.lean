@@ -316,6 +316,42 @@ theorem tableOKWith_run {prog : Program} {input : PublicInput} {t : Trace prog}
   calc 2 ^ t.κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) h32
     _ < 2 ^ 57 := by norm_num
 
+/-- **The tables V_I checks have finitely many chain inputs** (decision E2E-13): a candidate's
+run is on a memory of at most `2^32` words (`imageOf` caps its log size at `maxLogMem`), whose
+words hold its rows' metadata cells (`md_mem_range_of_mem_runRows`), so a standard chain among
+its rows is short (`chainInputs_finite_of_card`). No hypothesis on the candidate: `tableOKWith`'s
+finiteness test passes at every table `nodeStep` checks (`tableOKWith_candidateRun`), though not
+at every list of rows. -/
+theorem chainInputs_finite_of_candidateRun {prog : Program} {s : Sizes}
+    {q : Column (leanIsaμ prog s)} {t : Trace prog} (h : candidateRun prog s q = some t) :
+    (chainInputs (t.blakeRows blakeFree)).Finite := by
+  have hκ : t.κ ≤ 32 := by
+    unfold candidateRun haltingRunB at h
+    split at h
+    · cases h
+      exact min_le_right _ _
+    · cases h
+  refine chainInputs_finite_of_card (N := 2 ^ t.κ) ?_
+    (card_md_le t.image fun b hb ↦ md_mem_range_of_mem_runRows hb)
+  calc 2 ^ t.κ ≤ 2 ^ 32 := Nat.pow_le_pow_right (by norm_num) hκ
+    _ < 2 ^ 57 := by norm_num
+
+open Classical in
+/-- **V_I's table check at a candidate's run, without its finiteness test** (decision E2E-13):
+the precheck, then for every string with a standard chain among the rows, its hash, at which
+every such chain must end. -/
+theorem tableOKWith_candidateRun {m : Type → Type} [Monad m] (H : Bytes → m Digest)
+    {prog : Program} {s : Sizes} {q : Column (leanIsaμ prog s)} {t : Trace prog}
+    (h : candidateRun prog s q = some t) :
+    tableOKWith H (t.blakeRows blakeFree) =
+      if Precheck (t.blakeRows blakeFree) then
+        (chainInputs_finite_of_candidateRun h).toFinset.toList.allM fun x ↦ do
+          let d ← H x
+          pure (decide (ChainsEndAt (t.blakeRows blakeFree) x d))
+      else pure false := by
+  unfold tableOKWith
+  simp only [chainInputs_finite_of_candidateRun h, ↓reduceDIte]
+
 /-! ## The children a candidate decodes -/
 
 /-- **The last row of a prefix** gives `H`'s answer for the whole string, when the table passes
@@ -425,7 +461,6 @@ theorem nodeStep_eq_some {prog : Program} {seed : Digest} {ip : IdealProof} {pi 
         t.image).witness.children, Good c.proof) :
     ∃ kids, nodeStep (m := Id) (fun x ↦ (pure (blake2sBytes x) : Id Digest)) prog seed ip
       (pi, π) = some kids ∧ ∀ κ ∈ kids, Good κ.2 := by
-  have hfin : (blindCandidatesS prog hd.sizes hd.rate hd.height pi P).Finite := Set.toFinite _
   have hemp : ¬ (blindCandidatesS prog hd.sizes hd.rate hd.height pi P = ∅ ∧
       ¬ P.Full hd.height) := by
     rintro ⟨he, hF⟩
@@ -438,7 +473,7 @@ theorem nodeStep_eq_some {prog : Program} {seed : Digest} {ip : IdealProof} {pi 
     ↓reduceIte]
   show ∃ kids : List Node, Id.run _ = some kids ∧ ∀ κ ∈ kids, Good κ.2
   simp only [Id.run_bind]
-  simp only [hr, ne_eq, not_true_eq_false, ↓reduceIte, hemp, hfin, ↓reduceDIte]
+  simp only [hr, ne_eq, not_true_eq_false, ↓reduceIte, hemp]
   refine forIn_bind_yield_id _ _ (fun k ↦ ∀ κ ∈ k, Good κ.2) ?_ (by simp) _ ?_
   · intro q hqL k hk
     have hq' : q ∈ blindCandidatesS prog hd.sizes hd.rate hd.height pi P := by

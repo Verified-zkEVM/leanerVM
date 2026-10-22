@@ -283,43 +283,43 @@ theorem count_nodeStep_dep (H : Bytes → Digest) {prog : Program} (seed : Diges
         {q' | q' = q ∧ M3HoldsBlind (leanIsaInstance Sound.F₀ prog s) (inputOf pi) q} :=
     (blindCandidatesS_full prog s ρ (stackHeight (leanIsaμ prog s) level) pi
       (stackWord (leanIsaμ prog s) q)).trans (blindCandidates_stackWord hs hρ pi q)
-  split
-  · rename_i hfin
-    rw [Counted.count_bind]
-    by_cases hm : M3HoldsBlind (leanIsaInstance Sound.F₀ prog s) (inputOf pi) q
-    · have hlist : hfin.toFinset.toList = [q] := by
-        have : hfin.toFinset = {q} := by
-          ext x
-          simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.mem_singleton]
-          exact ⟨fun h ↦ h.1, fun h ↦ ⟨h, hm⟩⟩
-        rw [this, Finset.toList_singleton]
-      obtain ⟨t, hrun, htab, hkids⟩ := hcand hm
-      rw [hlist, List.forIn_cons, Counted.count_bind]
-      simp only [hrun, List.forIn_nil, Counted.count_bind, Counted.val_bind]
-      split
-      · simp
-        omega
-      · simp only [Counted.count_bind, Counted.count_pure, Counted.val_bind, Counted.val_pure,
-          Nat.add_zero]
-        have hf := count_forIn_le (fun (c : Node.Child) (acc : List E2E.Node) ↦
-          (do
-            let pc ← Node.statementDigestWith (countQuery H) seed c.statement
-            pure (ForInStep.yield (acc ++ [(pc, c.proof)])) : Counted _)) (fun _ ↦ 5)
-          (fun a b ↦ by simp [count_statementDigestWith])
-          (Guest.End.decodeAt (Guest.Value.tableSem (Trace.blakeRows blakeFree t))
-            (ip.frames (pi, π)) t.image).witness.children []
-        simp only [List.map_const', List.sum_replicate, smul_eq_mul] at hf
-        omega
-    · have hlist : hfin.toFinset.toList = [] := by
-        have : hfin.toFinset = ∅ := by
-          ext x
-          simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.notMem_empty,
-            iff_false, not_and]
-          exact fun _ ↦ hm
-        rw [this, Finset.toList_empty]
-      rw [hlist]
-      simp
-  · simp
+  have hfin := Set.toFinite (blindCandidatesS prog s ρ
+    (levelShape (leanIsaμ prog s) level (2 ^ level.fold)).1 pi
+    (PWord.full (stackWord (leanIsaμ prog s) q)))
+  rw [Counted.count_bind]
+  by_cases hm : M3HoldsBlind (leanIsaInstance Sound.F₀ prog s) (inputOf pi) q
+  · have hlist : hfin.toFinset.toList = [q] := by
+      have : hfin.toFinset = {q} := by
+        ext x
+        simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.mem_singleton]
+        exact ⟨fun h ↦ h.1, fun h ↦ ⟨h, hm⟩⟩
+      rw [this, Finset.toList_singleton]
+    obtain ⟨t, hrun, htab, hkids⟩ := hcand hm
+    rw [hlist, List.forIn_cons, Counted.count_bind]
+    simp only [hrun, List.forIn_nil, Counted.count_bind, Counted.val_bind]
+    split
+    · simp
+      omega
+    · simp only [Counted.count_bind, Counted.count_pure, Counted.val_bind, Counted.val_pure,
+        Nat.add_zero]
+      have hf := count_forIn_le (fun (c : Node.Child) (acc : List E2E.Node) ↦
+        (do
+          let pc ← Node.statementDigestWith (countQuery H) seed c.statement
+          pure (ForInStep.yield (acc ++ [(pc, c.proof)])) : Counted _)) (fun _ ↦ 5)
+        (fun a b ↦ by simp [count_statementDigestWith])
+        (Guest.End.decodeAt (Guest.Value.tableSem (Trace.blakeRows blakeFree t))
+          (ip.frames (pi, π)) t.image).witness.children []
+      simp only [List.map_const', List.sum_replicate, smul_eq_mul] at hf
+      omega
+  · have hlist : hfin.toFinset.toList = [] := by
+      have : hfin.toFinset = ∅ := by
+        ext x
+        simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.notMem_empty,
+          iff_false, not_and]
+        exact fun _ ↦ hm
+      rw [this, Finset.toList_empty]
+    rw [hlist]
+    simp
 
 /-- **V_I's step on a deployed node rejects when the table check fails**: the hypotheses of
 `nodeStep_dep`, the table check false. -/
@@ -358,13 +358,11 @@ theorem nodeStep_dep_false (H : Bytes → Digest) {prog : Program} (seed : Diges
       simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.mem_singleton]
       exact ⟨fun h ↦ h.1, fun h ↦ ⟨h, hm⟩⟩
     rw [this, Finset.toList_singleton]
-  split
-  · rw [hlist]
-    simp only [List.forIn_cons, hrun, htab]
-    show Id.run _ = _
-    simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false]
-    rfl
-  · exact absurd hfin ‹_›
+  rw [hlist]
+  simp only [List.forIn_cons, hrun, htab]
+  show Id.run _ = _
+  simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false]
+  rfl
 
 /-- **V_I steps a deployed entry only to its children's nodes**: whatever the rows, a step that
 accepts returns the entry's children (`nodeStep_dep`, or `nodeStep_dep_false` when the table

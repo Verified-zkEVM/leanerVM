@@ -398,9 +398,12 @@ the statement, each with its reason.
   precheck (`TablesPrecheck`), and a size of nodes bounds the closure within the fuel
   (`FuelBounds`, §4's "cost ≤ Bud" in fuel form). None is on the frames: T2 holds at every frame
   chooser, so every child V_I decodes, whatever `ip.frames` names, has a proof the deferring
-  verifier accepts with BLAKE2s, hence the head `nodeStep` reads. The table check's enumeration
-  is finite without a hypothesis: a chain's non-final rows carry distinct counters, and their
-  metadata cells are among the at most `2^32` memory words.
+  verifier accepts with BLAKE2s, hence the head `nodeStep` reads. At every table V_I checks, the
+  table check's enumeration is finite without a hypothesis (`chainInputs_finite_of_candidateRun`):
+  the table is a candidate's run's rows, a chain's non-final rows carry distinct counters, and
+  their metadata cells are among the at most `2^32` memory words (`imageOf` caps the memory at
+  `2^maxLogMem`). That is a fact of the context, not of `tableOKWith`: on an arbitrary list of rows
+  its finiteness test can fail (E2E-13).
 - **E2E-6 (W-vis: no visible log; T3 restricted to non-hidden entries).** Two changes to §3,
   both for W-vis. The plan is `w-vis.md`.
 
@@ -601,6 +604,27 @@ the statement, each with its reason.
   deleted or moved: the headline depends on parts of each family, and the per-set files stay as
   regression checks. Why: the user asked for one end statement; a reader finds the result, its
   model and its assumptions in one file, and the rest is the proof (`headline.md` §9).
+
+- **E2E-13 (a semantics-preserving simplification of `nodeStep`).** `nodeStep` walked the
+  candidates only `if h : (blindCandidatesS …).Finite`, rejecting otherwise. A stack is a
+  `Column`, of a finite type (`Front/PubEscape.lean`), so the test always passes; `nodeStep` now
+  walks `(Set.toFinite (blindCandidatesS …)).toFinset.toList`, with no `else`. The meaning is pinned:
+  `nodeStep_eq_old` (`tests/LeanVMTests/E2E/StatementOld.lean`) proves it equal, at every hash,
+  monad and node, to the old definition copied verbatim (`nodeStepOld`), so every theorem about
+  V_I keeps its statement and its meaning; the proofs that split on the `dif` lost the dead branch.
+  `headline.md` §9 (c) planned the same for `tableOKWith`'s `if h : (chainInputs rows).Finite`,
+  as a test that always succeeds. It does not, at every list of rows: `StdChain`'s counter is
+  `(64 * (i + 1)).toUInt64`, which wraps modulo `2^64`, and every 64-bit counter fits a metadata
+  cell (limb 0 is any `BitVec 64`). Rows `R_0, …, R_{N-1}` (`N = 2^58`), `R_j` with message block
+  `B`, counter `64 (j + 1) mod 2^64` and no flag, `R_0.cv = paramIv`, `R_j.cv = R_{j-1}.out`, the
+  outputs distinct with `R_{N-1}.out = paramIv`, and a final row `F` (`cv = paramIv`, metadata
+  `(1, lastBlock, 0)`, block `[b]`) pass the precheck, and every `B^{kN} ++ [b]`, `k ≥ 1`, has the
+  standard chain `R_0 … R_{N-1}` repeated `k` times then `F`: infinitely many strings, so the old
+  check rejects, and no walk of a finite list without the test equals it. The test is dead only in
+  context: every table `nodeStep` checks is a candidate's run's rows, on a memory of at most `2^32`
+  words, with finitely many chain inputs (`chainInputs_finite_of_candidateRun`), where the check is
+  its walk without the test (`tableOKWith_candidateRun`). `tableOKWith` is unchanged. Why: a
+  shorter trusted statement, with no branch a reader must show unreachable, at no change of meaning.
 
 ## 8. Status: what is proved
 **The result is `LeanVM/E2E/Main.lean`** (decision E2E-12; pinned in `LeanVM.lean` at Lean's three

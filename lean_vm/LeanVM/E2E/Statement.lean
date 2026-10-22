@@ -160,7 +160,9 @@ def ChainsEndAt (rows : List BlakeRow) (x : List UInt8) (d : Digest) : Prop :=
 
 open Classical in
 /-- **The table check with the hash `H`** (`TableOK`): the precheck, then for every byte string
-with a standard chain among the rows, its hash, which every such chain must end at. -/
+with a standard chain among the rows, its hash, which every such chain must end at. Rows whose
+chain inputs are infinitely many are rejected: some long lists have them (the chain counters wrap
+modulo `2^64`), though no table `nodeStep` checks does (decision E2E-13). -/
 noncomputable def tableOKWith {m : Type → Type} [Monad m] (H : Bytes → m Digest)
     (rows : List BlakeRow) : m Bool :=
   if Precheck rows then
@@ -217,7 +219,8 @@ open Classical in
 node, well shaped, with that Merkle root; if the word has a hole, a candidate satisfying the
 relation without Flock (decision E2E-10); every candidate of it satisfying that relation runs
 under the Flock-blind semantics and passes the table check; the nodes of the children each
-decodes, at the frames `ip` names for the node. `none` rejects. -/
+decodes, at the frames `ip` names for the node. `none` rejects. The candidates are finitely
+many, a stack being a `Column`, of a finite type (decision E2E-13). -/
 noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
   let (pi, π) := ν
   let some (layout, ρ) := Verifier.announced (bytecodeWords prog) π.stream | pure none
@@ -229,18 +232,16 @@ noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
   let root ← pTreeRootM H ht P
   if digestScalars root ≠ r then return none
   if blindCandidatesS prog s ρ ht pi P = ∅ ∧ ¬ P.Full ht then return none
-  if h : (blindCandidatesS prog s ρ ht pi P).Finite then
-    let mut kids : List Node := []
-    for q in h.toFinset.toList do
-      let some t := candidateRun prog s q | return none
-      let rows := t.blakeRows blakeFree
-      if !(← tableOKWith H rows) then return none
-      for c in (LeanVM.Guest.End.decodeAt (Guest.Value.tableSem rows) (ip.frames ν)
-          t.image).witness.children do
-        let pc ← statementDigestWith H seed c.statement
-        kids := kids ++ [(pc, c.proof)]
-    return some kids
-  else return none
+  let mut kids : List Node := []
+  for q in (Set.toFinite (blindCandidatesS prog s ρ ht pi P)).toFinset.toList do
+    let some t := candidateRun prog s q | return none
+    let rows := t.blakeRows blakeFree
+    if !(← tableOKWith H rows) then return none
+    for c in (LeanVM.Guest.End.decodeAt (Guest.Value.tableSem rows) (ip.frames ν)
+        t.image).witness.children do
+      let pc ← statementDigestWith H seed c.statement
+      kids := kids ++ [(pc, c.proof)]
+  return some kids
 
 open Classical in
 /-- The closure of the nodes `todo` under `nodeStep`, in at most `fuel` steps (a revisit is a

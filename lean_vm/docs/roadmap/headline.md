@@ -301,17 +301,19 @@ left as they are while the recursion package edits that directory). They are not
 flight. Deleting is not wanted either: the per-set files are cheap regression checks of the costs
 and the multi-user endpoints.
 
-**(c) Dead pieces in `Statement.lean` (planned, not done).** Two tests that always succeed:
+**(c) Dead pieces in `Statement.lean` (done for `nodeStep`; `tableOKWith`'s test is live,
+decision E2E-13).** Two finiteness tests were planned out:
 * `nodeStep`'s `if h : (blindCandidatesS …).Finite then … else return none`: the candidates are a
-  set of columns over a finite field of fixed length, a `Fintype`, so every such set is finite
-  (`Set.toFinite`) and the `else` is unreachable;
-* `tableOKWith`'s `if h : (chainInputs rows).Finite`: a finite list of rows has finitely many
-  standard chains, so the test always succeeds.
-Replacing each by `(Set.toFinite _).toFinset` preserves the semantics, but every proof that splits
-on these `dif`s changes (`closure_checked`, `nodeStep_eq_some`, the `Knowledge/*`, `Complete/Node`,
-`Sanity` and `BudgetCount` step lemmas), and `Complete/*` is being edited by the recursion package.
-So it waits for that package; it is recorded as a decision when done (a change to `Statement.lean`
-changes what is stated, even when it preserves the semantics).
+  set of columns, a finite type, so every such set is finite (`Set.toFinite`) and the `else` is
+  unreachable. Removed: `nodeStep` walks `(Set.toFinite _).toFinset.toList`, proved equal at every
+  input to the old definition (`nodeStep_eq_old`, `tests/LeanVMTests/E2E/StatementOld.lean`);
+  every end theorem kept its name and statement.
+* `tableOKWith`'s `if h : (chainInputs rows).Finite`: planned as always succeeding, it does not at
+  every list of rows (the chain counters wrap modulo `2^64`, so `2^58 + 1` rows can chain
+  cyclically, giving infinitely many strings; E2E-13 gives the rows), so no test-free walk equals
+  it and `tableOKWith` is unchanged. It is dead in context, not as a definition: every table
+  `nodeStep` checks is a candidate's run's rows, on a memory of at most `2^32` words, with
+  finitely many chain inputs (`chainInputs_finite_of_candidateRun`, `tableOKWith_candidateRun`).
 
 **(d) The docs (done).** `e2e-security.md` §8 is a short "what is proved" over `Main.lean`, with
 the constants, a map of the proofs and the internal families; decision E2E-12 in §7; the roadmap

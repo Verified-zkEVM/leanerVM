@@ -237,63 +237,61 @@ theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
                   by_cases hF : P.Full ht
                   · exact Or.inl hF
                   · refine Or.inr (Set.nonempty_iff_ne_empty.mpr fun he ↦ hne ⟨he, hF⟩)
-                split at h
-                · rename_i hfin
-                  rw [Option.bind_eq_some_iff] at h
-                  obtain ⟨⟨r', kf⟩, hfor, h⟩ := h
-                  obtain ⟨hr', hall⟩ : _ ∧ _ := by
-                    refine forIn_candidates (bad := none) _ _ ?_ ?_ [] kf r' hfor
-                    · intro q st st' hq
+                rw [Option.bind_eq_some_iff] at h
+                obtain ⟨⟨r', kf⟩, hfor, h⟩ := h
+                obtain ⟨hr', hall⟩ : _ ∧ _ := by
+                  refine forIn_candidates (bad := none) _ _ ?_ ?_ [] kf r' hfor
+                  · intro q st st' hq
+                    split at hq
+                    · rw [Option.bind_eq_some_iff] at hq
+                      obtain ⟨b, -, hq⟩ := hq
                       split at hq
-                      · rw [Option.bind_eq_some_iff] at hq
-                        obtain ⟨b, -, hq⟩ := hq
-                        split at hq
-                        · simp only [pure, Option.some.injEq, ForInStep.done.injEq] at hq
-                          rw [← hq]
-                        · rw [Option.bind_eq_some_iff] at hq
-                          obtain ⟨_, -, hq⟩ := hq
-                          simp [pure] at hq
                       · simp only [pure, Option.some.injEq, ForInStep.done.injEq] at hq
                         rw [← hq]
-                    · intro q st st' hq
-                      split at hq
                       · rw [Option.bind_eq_some_iff] at hq
-                        obtain ⟨b, -, hq⟩ := hq
-                        split at hq
-                        · simp [pure] at hq
-                        · rw [Option.bind_eq_some_iff] at hq
-                          obtain ⟨k'', hk'', hq⟩ := hq
-                          simp only [pure, Option.some.injEq, ForInStep.yield.injEq] at hq
-                          rw [← hq]
-                          exact ⟨rfl, (forIn_children _ _ _ hk'').1⟩
+                        obtain ⟨_, -, hq⟩ := hq
+                        simp [pure] at hq
+                    · simp only [pure, Option.some.injEq, ForInStep.done.injEq] at hq
+                      rw [← hq]
+                  · intro q st st' hq
+                    split at hq
+                    · rw [Option.bind_eq_some_iff] at hq
+                      obtain ⟨b, -, hq⟩ := hq
+                      split at hq
                       · simp [pure] at hq
-                  rcases hr' with rfl | rfl
-                  · simp only [pure, Option.some.injEq] at h
-                    subst h
-                    obtain ⟨-, hall⟩ := hall rfl
-                    refine ⟨layout, ρ, s, r, ht, w, P, root, hann, hs, hr, hsh, hW,
-                      not_not.mp hws, hroot, not_not.mp hrr, hne', fun q hq ↦ ?_⟩
-                    have hq' : q ∈ hfin.toFinset.toList := by
-                      rw [Finset.mem_toList, Set.Finite.mem_toFinset]
-                      exact hq
-                    obtain ⟨k, k', hstep, hk'⟩ := hall q hq'
-                    dsimp only at hstep
-                    split at hstep
-                    · rename_i t ht
-                      rw [Option.bind_eq_some_iff] at hstep
-                      obtain ⟨b, hb, hstep⟩ := hstep
-                      cases b
-                      · simp [pure] at hstep
-                      · simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte,
-                          Option.bind_eq_some_iff, pure, Option.some.injEq] at hstep
-                        obtain ⟨k'', hk'', hst⟩ := hstep
-                        cases hst
-                        obtain ⟨-, hch⟩ := forIn_children _ _ _ hk''
-                        refine ⟨t, ht, hb, fun c hc ↦ ?_⟩
-                        obtain ⟨pc, hpc, hmem⟩ := hch c hc
-                        exact ⟨pc, hpc, hk'.subset hmem⟩
+                      · rw [Option.bind_eq_some_iff] at hq
+                        obtain ⟨k'', hk'', hq⟩ := hq
+                        simp only [pure, Option.some.injEq, ForInStep.yield.injEq] at hq
+                        rw [← hq]
+                        exact ⟨rfl, (forIn_children _ _ _ hk'').1⟩
+                    · simp [pure] at hq
+                rcases hr' with rfl | rfl
+                · simp only [pure, Option.some.injEq] at h
+                  subst h
+                  obtain ⟨-, hall⟩ := hall rfl
+                  refine ⟨layout, ρ, s, r, ht, w, P, root, hann, hs, hr, hsh, hW,
+                    not_not.mp hws, hroot, not_not.mp hrr, hne', fun q hq ↦ ?_⟩
+                  have hq' :
+                      q ∈ (Set.toFinite (blindCandidatesS prog s ρ ht pi P)).toFinset.toList := by
+                    rw [Finset.mem_toList, Set.Finite.mem_toFinset]
+                    exact hq
+                  obtain ⟨k, k', hstep, hk'⟩ := hall q hq'
+                  dsimp only at hstep
+                  split at hstep
+                  · rename_i t ht
+                    rw [Option.bind_eq_some_iff] at hstep
+                    obtain ⟨b, hb, hstep⟩ := hstep
+                    cases b
                     · simp [pure] at hstep
-                  · simp [pure] at h
+                    · simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte,
+                        Option.bind_eq_some_iff, pure, Option.some.injEq] at hstep
+                      obtain ⟨k'', hk'', hst⟩ := hstep
+                      cases hst
+                      obtain ⟨-, hch⟩ := forIn_children _ _ _ hk''
+                      refine ⟨t, ht, hb, fun c hc ↦ ?_⟩
+                      obtain ⟨pc, hpc, hmem⟩ := hch c hc
+                      exact ⟨pc, hpc, hk'.subset hmem⟩
+                  · simp [pure] at hstep
                 · simp [pure] at h
           · simp [pure] at h
         · simp [pure] at h

@@ -155,16 +155,13 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
       rw [this, Finset.toList_singleton]
     obtain ⟨t, hrun, htab, hkids⟩ := hcand hm
     simp only [hm, ↓reduceIte]
-    split
-    · rename_i h
-      rw [hlist]
-      simp only [List.forIn_cons, List.forIn_nil, hrun, htab, hkids]
-      rw [forIn_kids]
-      show Id.run _ = _
-      simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false,
-        List.nil_append]
-      rfl
-    · exact absurd hfin ‹_›
+    rw [hlist]
+    simp only [List.forIn_cons, List.forIn_nil, hrun, htab, hkids]
+    rw [forIn_kids]
+    show Id.run _ = _
+    simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false,
+      List.nil_append]
+    rfl
   · have hfin : (blindCandidatesS prog s ρ (stackHeight (leanIsaμ prog s) level) pi
         (PWord.full (stackWord (leanIsaμ prog s) q))).Finite := by
       rw [hset]; exact Set.finite_empty.subset fun x hx ↦ hm hx.2
@@ -176,12 +173,10 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
         exact fun _ ↦ hm
       rw [this, Finset.toList_empty]
     simp only [hm, ↓reduceIte]
-    split
-    · rw [hlist]
-      show Id.run _ = _
-      simp only [Id.run_bind, id_run_eq (treeRoot H _ _), List.forIn_nil]
-      rfl
-    · exact absurd hfin ‹_›
+    rw [hlist]
+    show Id.run _ = _
+    simp only [Id.run_bind, id_run_eq (treeRoot H _ _), List.forIn_nil]
+    rfl
 
 /-! ## The closure -/
 

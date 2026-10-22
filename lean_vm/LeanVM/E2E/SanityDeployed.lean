@@ -141,16 +141,13 @@ theorem nodeStep_dep (H : Bytes → Digest) {prog : Program} (seed : Digest) (ip
       simp only [Set.Finite.mem_toFinset, hset, Set.mem_ofPred_eq, Finset.mem_singleton]
       exact ⟨fun h ↦ h.1, fun h ↦ ⟨h, hm⟩⟩
     rw [this, Finset.toList_singleton]
-  split
-  · rename_i h
-    rw [hlist]
-    simp only [List.forIn_cons, List.forIn_nil, hrun, htab, hkids]
-    rw [forIn_kids]
-    show Id.run _ = _
-    simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false,
-      List.nil_append]
-    rfl
-  · exact absurd hfin ‹_›
+  rw [hlist]
+  simp only [List.forIn_cons, List.forIn_nil, hrun, htab, hkids]
+  rw [forIn_kids]
+  show Id.run _ = _
+  simp only [Id.run_bind, id_run_eq (treeRoot H _ _), ↓reduceIte, not_true_eq_false,
+    List.nil_append]
+  rfl
 
 /-! ## The entries -/
 
