@@ -114,6 +114,10 @@ This directory contains stable project and operating knowledge.
     the column weights (2026-10-19), whose findings the branch meets (the column weight evaluable
     at deployed sizes, vectors there, the encoder's distance) or puts to the maintainer (the port
     of the polynomial half to CompPoly's names).
+  - [merkle-whir-params.md](reviews/merkle-whir-params.md): the two reviews of the Merkle trees,
+    the byte hasher and the WHIR parameters (2026-10-01, 2026-10-19), whose findings the branch
+    meets (the verifier takes the depth and the leaf width; binding returns the collision computed
+    from the two openings; the encoders' block bound).
   - [whir-mca-budget.md](reviews/whir-mca-budget.md): the record of the check (2026-10-19) that
     ArkLib's proved Johnson bound for mutual correlated agreement meets Annex B's budget at every
     deployed WHIR level, with Annex B's constant, and of the Rust's inexact `η` search.

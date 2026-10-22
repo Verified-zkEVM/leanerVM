@@ -17,7 +17,9 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Flock
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
+import LeanerVM.Parameters.Whir
 import LeanerVM.Protocol.Blake2sCircuit
+import LeanerVM.Protocol.Blake2sHash
 import LeanerVM.Protocol.Bus
 import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ClaimWeights
@@ -34,6 +36,7 @@ import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
 import LeanerVM.Protocol.NovelBasis
+import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
 import LeanerVM.Protocol.Piop
@@ -70,6 +73,7 @@ import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.MapWitness
+import LeanerVM.Protocol.ToArkLib.Merkle
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassCheck
 import LeanerVM.Protocol.ToArkLib.PassThrough
@@ -94,6 +98,7 @@ import LeanerVM.Protocol.ToClean.ComponentPolynomial
 import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
+import LeanerVM.Protocol.ToCompPoly.Fingerprint
 import LeanerVM.Protocol.ToCompPoly.Frobenius
 import LeanerVM.Protocol.ToCompPoly.HighSum
 import LeanerVM.Protocol.ToCompPoly.IndividualDegree
@@ -133,4 +138,3 @@ import LeanerVM.Semantics.Memory
 import LeanerVM.Semantics.RunTrace
 import LeanerVM.Semantics.Step
 import LeanerVM.Semantics.TraceInput
-import LeanerVM.Protocol.ToCompPoly.Fingerprint
