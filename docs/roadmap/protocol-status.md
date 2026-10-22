@@ -731,8 +731,9 @@ the hash of the stacked bytecode table, and `fsSeed`, `fs_seed`'s 78-byte preima
 state, for every hash function. The tests are known answers dumped from the pinned Rust
 (`scripts/dump-fs-chain-rust.sh`): the program hash, the seed, observes, squeezes, the grinding
 base and an 8-bit grind (nonce 262). The chain computes the Rust's values; it differs only in that
-the prover's nonce search takes fuel, where the Rust loops, and that `powOk` is defined at every
-`bits` where the Rust assumes `bits < 64`.
+the prover's nonce search takes fuel, where the Rust loops, and that at `bits ≥ 64`, outside the
+Rust's debug assertion and far above the deployed `17`, `powOk` asks for a zero first word where a
+release build of the Rust masks the shift.
 
 ## Upstream watch
 

@@ -48,10 +48,12 @@ Digest` in a monad `m`: the deployed chain answers it by `blake2sBytes` in `Id` 
 random-oracle model by a query. `programHash` and `fsSeed` are constants of the statement and call
 `blake2sBytes` directly.
 
-**Differences from the Rust.** None in the values. The prover's nonce search takes fuel and
-returns `none` when it runs out, where the Rust loops; it runs on one thread, and the Rust's
-parallel search returns the same, smallest, nonce. `pow_bits_ok` assumes `bits < 64` (a debug
-assertion); `powOk` is defined at every `bits`.
+**Differences from the Rust.** None in the values at the grinding bits used (`17` at every WHIR
+level, `0` elsewhere). The prover's nonce search takes fuel and returns `none` when it runs out,
+where the Rust loops; it runs on one thread, and the Rust's parallel search returns the same,
+smallest, nonce. `powOk` equals `pow_bits_ok` for `bits < 64`, the range of the Rust's debug
+assertion; at `bits ≥ 64` a release build of the Rust masks the shift to `bits mod 64`, while
+`powOk` asks for the whole first word to be zero.
 -/
 
 namespace LeanerVM.Protocol
@@ -144,7 +146,7 @@ def sample (s : FsState) : m (E × FsState) := do
 /-- The grinding base, the state unchanged (`pow_base`). -/
 def powBase (s : FsState) : m Digest := H (stepBytes s.cv 0 powBaseTag)
 
-/-- The nonce clears `bits` against the base (`pow_bits_ok`). -/
+/-- The nonce clears `bits` against the base (`pow_bits_ok`, which it equals for `bits < 64`). -/
 def powOk (base : Digest) (nonce : E) (bits : ℕ) : m Bool := do
   return lowBitsZero (← H (stepBytes base nonce powNonceTag)) bits
 
