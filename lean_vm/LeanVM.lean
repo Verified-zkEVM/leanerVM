@@ -31,6 +31,7 @@ import LeanVM.E2E.Vis.Deployed
 import LeanVM.E2E.Complete.Rom.End
 import LeanVM.E2E.Headline
 import LeanVM.E2E.HeadlineSharp
+import LeanVM.E2E.SanityDeployed.Witness
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`LeanVM/Spec/Statement.lean`), and the deployed aggregation guest's: `AggregateSound` (what the outer verifier's acceptance establishes) and `GuestKnowledge` (`LeanVM/Spec/Guest.lean`), its witness read off the execution's memory by `LeanVM.Guest.End.decode`, with `decode_binds`; the recursion step `LeanVM.Guest.Batch.children_sound` and the batching in the random-oracle model `LeanVM.Guest.Batch.batch_rom`; `GuestSound` and `GuestCompleteWithin` (`LeanVM/Guest/End.lean`). The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
@@ -469,3 +470,17 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_budget
+
+/-! The deployed system's honest aggregation at BLAKE2s (`LeanVM/E2E/SanityDeployed.lean`): the deployed verifier accepts it, and V_I accepts its idealized proof, unless an explicit BLAKE2s compression collision exists; the deployed-faithful prover outputs on every valid tree within the limits whose proof-of-work searches succeed, and on an honest leanXMSS leaf. -/
+
+/-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.sanity_deployed
+
+/-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed_of_tree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.sanity_deployed_of_tree
+
+/-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed_xmssLeaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.sanity_deployed_xmssLeaf
