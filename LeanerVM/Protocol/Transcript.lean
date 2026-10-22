@@ -234,5 +234,112 @@ theorem checkPow_of_grind {fuel bits : ℕ} {s s' : FsState} {nonce : E}
 
 end FsState
 
+/-! ## The chain's steps -/
+
+/-- A step of the chain, by the block it absorbs: an observed element (tag `1`), a squeeze (tag
+`2`, element `0`), or a grinding nonce (tag `4`). The grinding base (tag `3`) and the grinding
+check hash from a state without moving the chain, and are not steps. -/
+inductive Block where
+  /-- Absorb an element. -/
+  | observe (x : E)
+  /-- Squeeze a challenge. -/
+  | squeeze
+  /-- Absorb a grinding nonce. -/
+  | nonce (n : E)
+  deriving DecidableEq
+
+namespace Block
+
+/-- The element in lanes `0..2`. -/
+def elem : Block → E
+  | observe x => x
+  | squeeze => 0
+  | nonce n => n
+
+/-- The tag in lane 3. -/
+def tag : Block → K
+  | observe _ => FsState.observeTag
+  | squeeze => FsState.squeezeTag
+  | nonce _ => FsState.powNonceTag
+
+/-- The 64 bytes the step absorbing `b` from the chaining value `cv` hashes. -/
+def input (cv : Digest) (b : Block) : List UInt8 := FsState.stepBytes cv b.elem b.tag
+
+/-- The step a 64-byte input hashes, if it is one: the chaining value in the first 32 bytes, then
+the three limbs and a tag `1`, `2` with the element `0`, or `4`. -/
+def parse? (q : List UInt8) : Option (Digest × Block) :=
+  if q.length = 64 then
+    let x := E.ofLimbs (kOfBytes (q.drop 32)) (kOfBytes (q.drop 40)) (kOfBytes (q.drop 48))
+    let t := kOfBytes (q.drop 56)
+    if t = FsState.observeTag then some (digestOfBytes q, observe x)
+    else if t = FsState.squeezeTag ∧ x = 0 then some (digestOfBytes q, squeeze)
+    else if t = FsState.powNonceTag then some (digestOfBytes q, nonce x)
+    else none
+  else none
+
+private theorem squeezeTag_ne_observeTag : FsState.squeezeTag ≠ FsState.observeTag := by
+  decide +kernel
+
+private theorem powNonceTag_ne_observeTag : FsState.powNonceTag ≠ FsState.observeTag := by
+  decide +kernel
+
+private theorem powNonceTag_ne_squeezeTag : FsState.powNonceTag ≠ FsState.squeezeTag := by
+  decide +kernel
+
+/-- A step's input is 64 bytes. -/
+theorem length_input (cv : Digest) (b : Block) : (input cv b).length = 64 := by
+  simp [input, FsState.stepBytes, FsState.block, length_digestBytes, length_kBytes]
+
+/-- The input of a step parses back to the step. -/
+theorem parse?_input (cv : Digest) (b : Block) : parse? (input cv b) = some (cv, b) := by
+  have h0 : (input cv b).drop 32 = kBytes (b.elem.limb 0) ++ (kBytes (b.elem.limb 1) ++
+      (kBytes (b.elem.limb 2) ++ kBytes b.tag)) := by
+    simp only [input, FsState.stepBytes, FsState.block, List.append_assoc]
+    exact List.drop_left' (length_digestBytes cv)
+  have h8 : (input cv b).drop 40 = kBytes (b.elem.limb 1) ++ (kBytes (b.elem.limb 2) ++
+      kBytes b.tag) := by
+    rw [show 40 = 32 + 8 from rfl, ← List.drop_drop, h0, List.drop_left' (length_kBytes _)]
+  have h16 : (input cv b).drop 48 = kBytes (b.elem.limb 2) ++ kBytes b.tag := by
+    rw [show 48 = 40 + 8 from rfl, ← List.drop_drop, h8, List.drop_left' (length_kBytes _)]
+  have h24 : (input cv b).drop 56 = kBytes b.tag := by
+    rw [show 56 = 48 + 8 from rfl, ← List.drop_drop, h16, List.drop_left' (length_kBytes _)]
+  have hx : E.ofLimbs (kOfBytes ((input cv b).drop 32)) (kOfBytes ((input cv b).drop 40))
+      (kOfBytes ((input cv b).drop 48)) = b.elem := by
+    rw [h0, h8, h16, kOfBytes_append, kOfBytes_append, kOfBytes_append, ofLimbs_limb]
+  have ht : kOfBytes ((input cv b).drop 56) = b.tag := by
+    rw [h24, ← List.append_nil (kBytes b.tag), kOfBytes_append]
+  have hcv : digestOfBytes (input cv b) = cv := by
+    rw [input, FsState.stepBytes, digestOfBytes_append]
+  simp only [parse?, length_input, ↓reduceIte, hx, ht, hcv]
+  cases b with
+  | observe x => simp [tag, elem]
+  | squeeze => simp [tag, elem, squeezeTag_ne_observeTag]
+  | nonce n => simp [tag, elem, powNonceTag_ne_observeTag, powNonceTag_ne_squeezeTag]
+
+end Block
+
+namespace FsState
+
+variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+
+/-- One step of the chain: the new chaining value is the hash of the old one and the block. -/
+def step (s : FsState) (b : Block) : m FsState := FsState.mk <$> H (Block.input s.cv b)
+
+/-- An observe is the step on `observe x`. -/
+theorem observe_eq_step (s : FsState) (x : E) : observe H s x = step H s (.observe x) := rfl
+
+/-- A nonce absorption is the step on `nonce n`. -/
+theorem absorbNonce_eq_step (s : FsState) (n : E) : absorbNonce H s n = step H s (.nonce n) :=
+  rfl
+
+/-- A squeeze is the step on `squeeze`, with the challenge read off the new state. -/
+theorem sample_eq_step [LawfulMonad m] (s : FsState) :
+    sample H s = (fun s' ↦ (challengeOf s'.cv, s')) <$> step H s .squeeze := by
+  simp only [sample, step, Block.input, Block.elem, Block.tag, Functor.map_map]
+  rw [map_eq_bind_pure_comp]
+  rfl
+
+end FsState
+
 end
 end LeanerVM.Protocol

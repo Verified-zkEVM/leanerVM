@@ -771,6 +771,30 @@ edits:
   absorbed by `observe`, `sample` and `absorbNonce`; the grinding predicate (`grinds`) is
   `powOk`; the challenge of a digest (`chalOfDigest`) is `FsState.challengeOf`.
 
+*On merge* of the chain-history pull request, the hash oracle and the chain read off a log are on
+`main` (`Protocol/RandomOracle.lean`). The oracle is `hashSpec` (`List UInt8 →ₒ Digest`), queried
+by `hashQuery`, run by `runBlake2s` (every query answered by `blake2sBytes`) or `runRandom`
+(VCVio's lazy random oracle from the empty cache, with the final cache); a uniform digest is
+VCVio's vector sampler over Mathlib's enumeration of `UInt32`, and `card_digest` counts `2^256`.
+`prEvent_challengeOf`: the challenge of a uniform digest is uniform on `E`;
+`prEvent_lowBitsZero`: a grinding check of `bits ≤ 64` bits passes on a uniform digest with
+probability `2^-bits`. The chain's steps are `Block`s, an observe, a squeeze or a nonce
+(`Transcript.lean`: `Block.input`, `FsState.step` and its agreement with `observe`, `sample` and
+`absorbNonce`, the parser `Block.parse?` with `parse?_input`, over the byte decoders
+`digestOfBytes` and `kOfBytes` of `Blake2sHash.lean`). `chainHistory` reads a chain back from a
+state to the seed through the generic `HashChain.history` (`ToVCVio/HashChain.lean`), over the
+generic log predicates `Consistent`, `HasCollision`, `Fresh`, `Known` and `HasHit`
+(`ToVCVio/QueryLog.lean`), which have the shapes of the Merkle log replay's and are for it to
+reuse: `chainHistory_of_noCollision_noHit` (a logged chain is its history when the log has no
+collision and no answer is the seed), `chainHistory_take_of_noCollision_noHit` (in a consistent
+log with no hit on the seed or a half of an earlier input, the history is in the log before the
+chain's next query) and `chainHistory_determined`. A Merkle node, a 64-byte input of the same
+oracle, may parse as a step and is one more entry of the log. The tests: the random oracle's
+answer to a fresh query is uniform, a repeated query is answered from the cache, the log of an
+honest chain (with a node beside it) gives back its blocks and states, and a collision, an answer
+equal to the seed and a state produced after the query using it each break the history. It still
+owes `decodePrefix`, and the lemma that the verifier's chain walk logs its chain.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

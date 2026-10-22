@@ -55,6 +55,7 @@ import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.Proof
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
+import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack
