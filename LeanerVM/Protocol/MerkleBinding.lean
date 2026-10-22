@@ -15,8 +15,10 @@ public import LeanerVM.Protocol.ToVCVio.MerkleLog
 /-!
 # Binding of leanVM's Merkle openings by log replay
 
-Category B. leanVM's leaves and nodes are hashed on one byte-string oracle with no tag
-(`fiat_shamir/src/merkle.rs:38-67` at `a386121f84292f6fa663aaa3e570c15bc0240ea2`): a node is the
+The parsers are Category B, transcribed; `binding_of_log` is a statement about the verifier,
+written from the specification. leanVM's leaves and nodes are hashed on one byte-string oracle
+with no tag (`fiat_shamir/src/merkle.rs:38-67` at `a386121f84292f6fa663aaa3e570c15bc0240ea2`): a
+node is the
 hash of its children's 64 bytes (`nodeBytes`), a leaf the hash of its row's leaf image as bytes
 (`leafBytes ∘ leafImage`). A query parses as a node when it has 64 bytes (`nodeOfBytes?`), and as
 the leaf of a row of `rowWords` words in leaves of `leafWords` when it is that row's leaf image
@@ -69,10 +71,13 @@ def wordsOfBytes : List UInt8 → List K
 
 /-- The row of `rowWords` words whose leaf image in leaves of `leafWords` words has the bytes
 `q`: the words of `q` after the zero prefix, or `none` if `q` is not such a leaf. A row wider
-than the leaf is its own image, as in `leafImage`; the check rejects that width. -/
+than the leaf is its own image, as in `leafImage`; the check rejects that width. The length is
+checked first, so a query of another length is skipped without decoding. -/
 def leafRow? (rowWords leafWords : ℕ) (q : List UInt8) : Option (List K) :=
-  let row := (wordsOfBytes q).drop (leafWords - rowWords)
-  if row.length = rowWords ∧ leafBytes (leafImage leafWords row) = q then some row else none
+  if q.length ≠ 8 * (leafWords - rowWords + rowWords) then none
+  else
+    let row := (wordsOfBytes q).drop (leafWords - rowWords)
+    if row.length = rowWords ∧ leafBytes (leafImage leafWords row) = q then some row else none
 
 /-- Splitting a `K` word into its two words and joining them again is the identity. -/
 private theorem ofWords_lowWord_highWord (a : K) : ofWords (lowWord a) (highWord a) = a := by
@@ -91,13 +96,27 @@ theorem wordsOfBytes_leafBytes : ∀ words : List K, wordsOfBytes (leafBytes wor
     simp only [kBytes, wordBytes, List.cons_append, List.nil_append, wordsOfBytes, kOfBytes,
       leWord_wordBytes, ofWords_lowWord_highWord, wordsOfBytes_leafBytes words]
 
+/-- A leaf of `n` words has `8n` bytes. -/
+theorem length_leafBytes : ∀ words : List K, (leafBytes words).length = 8 * words.length
+  | [] => rfl
+  | a :: words => by
+    have h : leafBytes (a :: words) = kBytes a ++ leafBytes words := by
+      simp [leafBytes, List.flatMap_cons]
+    rw [h, List.length_append, length_leafBytes words, List.length_cons]
+    simp only [kBytes, wordBytes, List.length_append, List.length_cons, List.length_nil]
+    omega
+
 /-- A row of `rowWords` words is read back from its leaf's bytes. -/
 theorem leafRow?_leafBytes {rowWords leafWords : ℕ} {row : List K}
     (hrow : row.length = rowWords) :
     leafRow? rowWords leafWords (leafBytes (leafImage leafWords row)) = some row := by
   have hdrop : (leafImage leafWords row).drop (leafWords - rowWords) = row := by
     rw [leafImage, hrow, List.drop_left' (List.length_replicate ..)]
-  simp only [leafRow?, wordsOfBytes_leafBytes, hdrop, hrow, and_self, ↓reduceIte]
+  have hlen : (leafBytes (leafImage leafWords row)).length =
+      8 * (leafWords - rowWords + rowWords) := by
+    rw [length_leafBytes, leafImage, List.length_append, List.length_replicate, hrow]
+  simp only [leafRow?, hlen, ne_eq, not_true_eq_false, ↓reduceIte, wordsOfBytes_leafBytes, hdrop,
+    hrow, and_self]
 
 /-! ## The rows read off a log -/
 

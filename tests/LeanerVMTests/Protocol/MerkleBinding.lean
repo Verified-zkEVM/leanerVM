@@ -8,7 +8,8 @@ queries, so that every leaf also parses as a node. `leafPreimage` returns the fi
 queries answered by one digest, and nothing for a digest that only a non-leaf query answers. An
 honest opening meets every hypothesis of `MerkleTree.binding_of_log` and opens the extracted
 leaf. Then one mutation per hypothesis on the log, and one for the sorted positions: in each the
-check accepts a payload other than the one extracted, and exactly the targeted hypothesis fails;
+check accepts a payload other than the one extracted, or with none extracted, and exactly the
+targeted hypothesis fails;
 with the fresh hit, the leaf is read off the whole log but not off the adversary's part.
 
 Then leanVM's trees under BLAKE2s: the leaf parse, the rows read off the honest prover's log of

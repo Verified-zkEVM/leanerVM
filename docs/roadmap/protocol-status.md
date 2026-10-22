@@ -675,8 +675,12 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     no `FreshHit` (a query of `logV` that `logA` never asks, answered by a root or a child of a
     node query of `logA`), then every opened payload is the one read off `logA` at its position.
     `MerkleTree.extractLeaf_determined`: with a consistent log and no fresh hit, the leaves read
-    off the whole log under a root are those read off `logA`. Each condition has a toy mutation in which the check accepts a payload other than the
-    extracted one and only that condition fails (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
+    off the whole log under a root are those read off `logA`. A fresh hit grows with `logV`, the
+    roots and `logA`'s known digests, and is a hit at the first occurrence of its input
+    (`FreshHit.mono_logV`, `FreshHit.mono_roots`, `Known.mono`, `Fresh.anti`, `FreshHit.first`).
+    Each condition has a toy mutation in which the check accepts a payload other than the
+    extracted one, or with none extracted, and only that condition fails
+    (`tests/LeanerVMTests/Protocol/MerkleBinding.lean`).
     leanVM's instance (`Protocol/MerkleBinding.lean`): `extractRows` takes the row width as well
     as the leaf width, since a row may begin with zero words, and is `none` where the leaf query
     found is not a row's leaf image; `binding_of_log` is stated for `merkleVerifyWith` run in
@@ -694,7 +698,10 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     tested and not proved. The blueprint's decision 32 and the hashed-leaf hole are revised in the
     docs pull request. In Layer 12: that `merkleVerifyWith` run with the hash as a random-oracle
     query answered by BLAKE2s is `merkleVerify`; the probability of a collision or a fresh hit on
-    the logged game, where a root counts as known only once fixed (absorbed into the transcript).
+    the logged game. A root is never a 32-byte block of a query: the chain absorbs it as two
+    scalars, each in an observe block (`transcript.rs:52`, `lib.rs:85`), so the in-play digests of
+    a prefix must include the digest decoded from two consecutive observe blocks of its chain for
+    a fresh hit on a root to be a hit.
 - **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s

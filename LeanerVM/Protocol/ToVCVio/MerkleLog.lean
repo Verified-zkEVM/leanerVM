@@ -123,6 +123,53 @@ instance (node? : Q → Option (D × D)) (roots : List D) (logA logV : QueryLog 
     Decidable (FreshHit node? roots logA logV) := by
   unfold FreshHit; infer_instance
 
+/-! ### Moving the split -/
+
+variable {node? : Q → Option (D × D)} {roots roots' : List D}
+  {log log' logA logV logV' : QueryLog Q D}
+
+omit [DecidableEq Q] [DecidableEq D] in
+/-- A query fresh with respect to a log is fresh with respect to any part of it. -/
+theorem Fresh.anti {q : Q} (h : log ⊆ log') : Fresh log' q → Fresh log q :=
+  fun hf e he ↦ hf e (h he)
+
+omit [DecidableEq Q] [DecidableEq D] in
+/-- A digest known from some roots and a log is known from more roots and a larger log. -/
+theorem Known.mono {d : D} (hroots : roots ⊆ roots') (hlog : log ⊆ log') :
+    Known node? roots log d → Known node? roots' log' d
+  | .inl h => .inl (hroots h)
+  | .inr ⟨e, he, hc⟩ => .inr ⟨e, hlog he, hc⟩
+
+omit [DecidableEq Q] [DecidableEq D] in
+/-- A fresh hit stays one in a larger `logV`. -/
+theorem FreshHit.mono_logV (h : logV ⊆ logV') :
+    FreshHit node? roots logA logV → FreshHit node? roots logA logV' :=
+  fun ⟨e, he, hf, hk⟩ ↦ ⟨e, h he, hf, hk⟩
+
+omit [DecidableEq Q] [DecidableEq D] in
+/-- A fresh hit stays one with more roots. -/
+theorem FreshHit.mono_roots (h : roots ⊆ roots') :
+    FreshHit node? roots logA logV → FreshHit node? roots' logA logV :=
+  fun ⟨e, he, hf, hk⟩ ↦ ⟨e, he, hf, hk.mono h (List.Subset.refl _)⟩
+
+omit [DecidableEq D] in
+/-- In a consistent log, a fresh hit is a hit at the first occurrence of its input: that query
+of `logV` is fresh, no earlier query of `logV` asks it, and its answer is the same known
+digest. -/
+theorem FreshHit.first (hcons : Consistent (logA ++ logV))
+    (h : FreshHit node? roots logA logV) :
+    ∃ (k : ℕ) (hk : k < logV.length), Fresh logA logV[k].1 ∧
+      (∀ (j : ℕ) (hj : j < k), logV[j].1 ≠ logV[k].1) ∧ Known node? roots logA logV[k].2 := by
+  obtain ⟨e, he, hf, hkn⟩ := h
+  have hk := List.findIdx_lt_length_of_exists (p := fun x ↦ decide (x.1 = e.1)) ⟨e, he, by simp⟩
+  have hfirst : logV[logV.findIdx fun x ↦ decide (x.1 = e.1)].1 = e.1 := by
+    simpa using List.findIdx_getElem (w := hk)
+  refine ⟨_, hk, by rw [hfirst]; exact hf, fun j hj ↦ ?_, ?_⟩
+  · rw [hfirst]
+    simpa using List.not_of_lt_findIdx hj
+  · rwa [hcons _ (List.mem_append_right _ (List.getElem_mem hk)) e (List.mem_append_right _ he)
+      hfirst]
+
 end Log
 
 /-! ## Extraction -/
