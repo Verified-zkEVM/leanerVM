@@ -81,7 +81,7 @@ theorem kids_atBCT {μ r : ℕ} {Lall : List Whir.Level} (hok : OsCfgOk cfg μ r
     ∃ (N : ℕ) (L : Main.Layout) (ps : List ℕ), Within L bk N ∧ DisjL L ∧ N ≤ osCallsMax fs bd cfg ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL b0 (osSizes cfg) (d.ownQW Ht cfg (qbpC cfg fs cert fun l => ps.getD l 0))) →
         MemL rd L → MemL rd Lin →
-        KidsFromInWST CM.sem fs cert wE rd (Val.ofArgs (osBodyValsW Ht cfg (d.runOfW Ht cfg cur b0)))
+        KidsFromInWST CM.sem fs cert wEW rd (Val.ofArgs (osBodyValsW Ht cfg (d.runOfW Ht cfg cur b0)))
           (fun i => RegionL Lin i ∨
             RegionL (bufL b0 (osSizes cfg) (d.ownQW Ht cfg (qbpC cfg fs cert fun l => ps.getD l 0))) i)
           (fun _ => False) ((osLvsKOf cfg (Val.ofArgs (osBodyValsW Ht cfg (d.runOfW Ht cfg cur b0))) 0 (osHead cfg).2

@@ -83,9 +83,9 @@ axioms only.
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.Guest.B1.oqOpeningOf_iterC
 
-/-- info: 'LeanVM.Guest.B1.relAtInBT_of_walk_loop' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.Guest.B1.relAtInBT_of_walk_loopW' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms LeanVM.Guest.B1.relAtInBT_of_walk_loop
+#print axioms LeanVM.Guest.B1.relAtInBT_of_walk_loopW
 
 /-- info: 'LeanVM.Guest.B1.capSibs_agree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

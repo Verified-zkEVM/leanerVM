@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Comp.TreeRoot
 /-!
 # A loop helper's step with predicates
 
-`relAtInBT_of_walk_loop`: `Memory.relAtInB_of_walk_loop` where the tail call's relation holds by a
+`relAtInBT_of_walk_loopW`: `Memory.relAtInB_of_walk_loop` where the tail call's relation holds by a
 tree satisfying `Qt` (`RelAtInBT`), and the node, with any callees valid for the other calls and the
 tail's tree, satisfies `Q`.
 -/
@@ -30,7 +30,7 @@ theorem RelAtInBT.toB {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets 
   let ⟨t, _, h1, h2, h3, h4, h5, h6, h7⟩ := h
   ⟨t, h1, h2, h3, h4, h5, h6, h7⟩
 
-/-- The tail callee of `relAtInBT_of_walk_loop`: its tree satisfying `Qt` when entered. -/
+/-- The tail callee of `relAtInBT_of_walk_loopW`: its tree satisfying `Qt` when entered. -/
 theorem kidBT_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {Qt : Tree → Prop}
     (hc : c.taken = false → coreProgram.Takes c.f c.args.length = true)
     (h : if c.taken then RelAtInBT S fs cert rd Rk Dk b m c.f (c.args.map σ) (c.rets.map σ) Qt
@@ -49,7 +49,7 @@ theorem kidBT_ofIn {c : Call} {b m : ℕ} {Rk Dk : ℕ → Prop} {Qt : Tree → 
     exact ⟨k, hkv, hkb, hkp, hkt, hkl, fun h' => absurd h' ht, fun h' => absurd h' ht⟩
 
 /-- **`relAtInB_of_walk_loop` with predicates.** -/
-theorem relAtInBT_of_walk_loop {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f : String}
+theorem relAtInBT_of_walk_loopW {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f : String}
     {args rets : List E} {fn : Fn} {es : List Ev} {vs : List V} {cs : List Call} {c : Call}
     {Qt Q : Tree → Prop}
     (hf : coreProgram.find? f = some fn) (hl : coreProgram.loop f = true) (hp : fn.params.map σ = args)
@@ -139,7 +139,7 @@ theorem relAtInBT_of_walk_loop {R D Dk Rt Dt : ℕ → Prop} {fp m N : ℕ} {f :
 /-! ## Without weights -/
 
 /-- No weights: the trees' predicates of `TreeRoot.lean`'s weighted forms at `Θ := Empty`. -/
-abbrev wE : Empty → String → ℕ := fun e => e.elim
+abbrev wEW : Empty → String → ℕ := fun e => e.elim
 
 /-- No weight bounds. -/
 abbrev bwE : Empty → ℕ := fun e => e.elim
@@ -150,15 +150,15 @@ theorem RelAtInBT.dmono {R D D' : ℕ → Prop} {fp n : ℕ} {f : String} {args 
   let ⟨t, hq, h1, h2, h3, h4, h5, h6, h7⟩ := h
   ⟨t, hq, h1, h2, h3, h4, h5, h6, fun i hi => h7 i (hD i hi)⟩
 
-theorem RelAtInWST.toBT {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E} {Bw : Empty → ℕ}
-    {Q : Tree → Prop} (h : RelAtInWST S fs cert wE rd R D fp n f args rets Bw Q) :
+theorem RelAtInWST.toBT_empty {R D : ℕ → Prop} {fp n : ℕ} {f : String} {args rets : List E} {Bw : Empty → ℕ}
+    {Q : Tree → Prop} (h : RelAtInWST S fs cert wEW rd R D fp n f args rets Bw Q) :
     RelAtInBT S fs cert rd R D fp n f args rets Q :=
   let ⟨t, hq, h1, h2, h3, h4, h5, h6, h7, _⟩ := h
   ⟨t, hq, h1, h2, h3, h4, h5, h6, h7⟩
 
-theorem CompleteAtBST.toWSTE {κ : ℕ} {f : String} {Lin : Main.Layout} {args : List E}
+theorem CompleteAtBST.toWSTEW {κ : ℕ} {f : String} {Lin : Main.Layout} {args : List E}
     {Out : List E → Main.Layout → Prop} {B : ℕ} {Q : ℕ → Reader → Tree → Prop}
-    (h : CompleteAtBST S fs cert κ f Lin args Out B Q) : CompleteAtWST S fs cert wE κ f Lin args Out B bwE Q :=
+    (h : CompleteAtBST S fs cert κ f Lin args Out B Q) : CompleteAtWST S fs cert wEW κ f Lin args Out B bwE Q :=
   fun fp =>
   let ⟨n, Lown, rets, Lout, ho, hW, hd, hn, hr⟩ := h fp
   ⟨n, Lown, rets, Lout, ho, hW, hd, hn, fun rd hl hm =>

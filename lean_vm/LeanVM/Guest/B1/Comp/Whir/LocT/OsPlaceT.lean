@@ -63,7 +63,7 @@ theorem os_completeAt_placeBCT {f : String} {fn : Fn} (hf : coreProgram.find? f 
         ((pre.filterMap Main.Stmt.allocSz).map Prod.fst).map σ =
           (bases (fp + fs f) sizes).map (fun b => ofK (gpow b))) ∧
       (∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
-        KidsFromInWST CM.sem fs cert wE rd σ (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
+        KidsFromInWST CM.sem fs cert wEW rd σ (fun i => RegionL Lin i ∨ RegionL (bufL (fp + fs f) sizes own) i)
           (fun _ => False) cs (cs.map fun _ => bwE) (qs rd) (fp + fs f + sizes.sum) N Dk) ∧
       ∀ rd, LowDef κ rd → MemL rd (bufL (fp + fs f) sizes own) → MemL rd L → MemL rd Lin →
         ∀ ks : List Tree, Tree.KidsValidB CM.sem coreProgram rd σ cs ks →
@@ -115,12 +115,12 @@ theorem os_completeAt_placeBCT {f : String} {fn : Fn} (hf : coreProgram.find? f 
   have hown' : ∀ i, RegionL B i →
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (Main.slEvs σ))) (pre.flatMap (Main.slEvs σ)) i :=
     fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ hown i hi)
-  have hk := kidsFromInWST_rmono (S := CM.sem) (fs := fs) (cert := cert) (w := wE)
+  have hk := kidsFromInWST_rmono (S := CM.sem) (fs := fs) (cert := cert) (w := wEW)
     (R' := fun i => RegionL Lin i ∨
       ownData cert fp (fp + fs f) f (allocs σ (pre.flatMap (Main.slEvs σ))) (pre.flatMap (Main.slEvs σ)) i)
     (fun i hi => hi.imp_right (hown' i)) _ _ _ _ _ _ _ (hK rd hlow hB1 hL1 hLin)
   rw [← hcs, ← i4, show fp + fs f + sizes.sum = fp + fs f + (allocs σ (pre.flatMap (Main.slEvs σ))).sum by rw [hal]] at hk
-  have hrel := relAtInWST_of_walk (S := CM.sem) (fs := fs) (cert := cert) (w := wE) (R := RegionL Lin)
+  have hrel := relAtInWST_of_walk (S := CM.sem) (fs := fs) (cert := cert) (w := wEW) (R := RegionL Lin)
     (D := RegionL Lo) (Dk := Dk) (N := N) (fp := fp) (Q := Q fp rd) hf (Or.inl hl) hp hw hr hes
     (by rw [hal, i1]; exact hbuf) (by rw [i3, haddrs]; simp) hk (fun A hA => ?_) (fun i hi => ?_)
     (fun ks hkv hks => by
@@ -128,7 +128,7 @@ theorem os_completeAt_placeBCT {f : String} {fn : Fn} (hf : coreProgram.find? f 
       rw [hal] at hks ⊢
       exact hQ rd hlow hB1 hL1 hLin ks hkv hks)
   · rw [hal] at hrel
-    exact hrel.toBT
+    exact hrel.toBT_empty
   · obtain ⟨e, he, hea⟩ := List.mem_filterMap.mp hA
     match e, hea with
     | .atom (.load d p off), hea =>

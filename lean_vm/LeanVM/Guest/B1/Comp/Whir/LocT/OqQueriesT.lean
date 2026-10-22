@@ -127,7 +127,7 @@ theorem opening_queries_completeAtCT (fs : String → ℕ) (cert : String → V 
     simp [qscV, List.getD_eq_getElem?_getD, List.getElem?_range (show j < n + 1 by omega)]
   have hqlen : qscV.length = n + 1 := by simp [qscV]
   have hkid : ∀ κ ∈ [kid], κ.taken = true →
-      CompleteAtWST CM.sem fs cert wE k κ.f κ.Lin κ.args κ.Out ((n + 1) * fs loop) bwE (qk κ) := by
+      CompleteAtWST CM.sem fs cert wEW k κ.f κ.Lin κ.args κ.Out ((n + 1) * fs loop) bwE (qk κ) := by
     intro κ hκ ht
     simp only [List.mem_singleton] at hκ
     subst hκ
@@ -138,7 +138,7 @@ theorem opening_queries_completeAtCT (fs : String → ℕ) (cert : String → V 
       · exact h0
     have := oqLoop_completeAtCT (Ht := Ht) (CM := CM) fs cert k hs hlfind hlp' hlb hpl hlp hNA hdec hfit (by omega) (Lin := Lq)
       (rew := rew) (qsc := qsc) (qw := qw) (qbp := qbp) (flags := flags) (cap := cap) hleaf hq hsl hans ?_ 0 hn0
-    · have h' := this.toWSTE
+    · have h' := this.toWSTEW
       simp only [Nat.sub_zero, pow_zero] at h'
       exact h'
     intro rd hlow hmem j hj
@@ -179,7 +179,7 @@ theorem opening_queries_completeAtCT (fs : String → ℕ) (cert : String → V 
       · rw [oq_limb_mul_gen_pow (m6 j hj).1.1, Nat.add_zero]; exact oq_in_mono inL (r6 j hj).1
       · rw [oq_limb_mul_gen_pow (m6 j hj).1.1, Nat.add_zero]; exact oq_in_mono inL (r6 j hj).2
   obtain ⟨N, L, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromInWST_of_kidsBW (S := CM.sem) (fs := fs) (cert := cert)
-    (w := wE) k (fun _ => (n + 1) * fs loop) (fun _ => bwE) qk [kid] hkid (b + (n + 1))
+    (w := wEW) k (fun _ => (n + 1) * fs loop) (fun _ => bwE) qk [kid] hkid (b + (n + 1))
   have hNb' : N ≤ (n + 1) * fs loop := by
     refine le_trans hNb ?_
     simp only [kidsBound, List.map_cons, List.map_nil, List.sum_cons, List.sum_nil, Nat.add_zero]
@@ -306,7 +306,7 @@ theorem opening_queries_completeAtCT (fs : String → ℕ) (cert : String → V 
       refine List.map_congr_left fun j hj => ?_
       rw [one_mul]
       exact hkq rd' V hsat' hkl.1 (by rw [pow_zero]; exact hVk) j (Nat.zero_le _) (List.mem_range.mp hj)
-  have h := relAtInWST_of_walk (S := CM.sem) (fs := fs) (cert := cert) (w := wE) (σ := σ) (rd := rd)
+  have h := relAtInWST_of_walk (S := CM.sem) (fs := fs) (cert := cert) (w := wEW) (σ := σ) (rd := rd)
     (R := RegionL Lin) (D := RegionL []) (Dk := fun i => False ∨ outRegion [kid] [o] i) (fp := fp) (N := N)
     (bws := Main.kidsWs (fun _ => bwE) [kid])
     hfind (Or.inl hnl) (by rw [hp]) hw rfl hev
@@ -315,7 +315,7 @@ theorem opening_queries_completeAtCT (fs : String → ℕ) (cert : String → V 
       rw [hadr, show (oqPre loop).filterMap Main.Stmt.addrS = [] from rfl] at hq'
       simp at hq')
     ?_ ?_ (fun i hi => by obtain ⟨q, hq', _⟩ := hi; simp at hq') hQ'
-  · have h' := h.toBT
+  · have h' := h.toBT_empty
     rwa [hal', List.sum_singleton] at h'
   · rw [hcalls, hal', List.sum_singleton]
     refine hK rd σ [c] _ (fun _ => False) ?_ hlow hL ?_ ?_

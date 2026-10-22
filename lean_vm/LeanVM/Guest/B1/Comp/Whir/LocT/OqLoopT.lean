@@ -171,7 +171,7 @@ theorem oqLoop_iterCT {CM : CompModel} {Ht : Bytes → Digest} (fs : String → 
       refine hkQ rd' V (fun q' hq' => hsat q' (mem_loadEqns_kid (List.mem_singleton_self k) hq')) hkids.1 ?_ j
         (by omega) hj2
       rwa [gen_pow_mul_gen] at hVk
-  have h := relAtInBT_of_walk_loop (S := CM.sem) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have h := relAtInBT_of_walk_loopW (S := CM.sem) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := R) (D := fun _ => False) (Dk := fun _ => False) (Rt := R) (Dt := fun _ => False) (fp := fp) (m := m)
     (N := 0) (Qt := OqLoopQ base I blocks pd cd loop n [N, rew, qsc, qw, qbp, flags, cap] cap leafF posF sibsF (j0 + 1))
     hfind hlp (hp ▸ hargs) hw' rfl hev hcalls ?_

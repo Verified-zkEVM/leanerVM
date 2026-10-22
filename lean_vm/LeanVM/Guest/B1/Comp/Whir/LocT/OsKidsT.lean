@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Comp.Whir.LocT.LoopT
 # The callees with predicates
 
 `os_kids_blockBCT`, `os_levels_kidsBCT`: `os_kids_blockBC`, `os_levels_kidsBC` giving
-`KidsFromInWST` (no weights, `wE`): a level `l`'s calls after its query-position loop (`OsLvK.B`)
+`KidsFromInWST` (no weights, `wEW`): a level `l`'s calls after its query-position loop (`OsLvK.B`)
 by trees satisfying `QB l f args`, the others by any trees (`osLvsQs`). `kidsSat_zip`: the callee
 tree of an entered call, with its predicate, from `KidsSat`.
 -/
@@ -80,13 +80,13 @@ theorem os_kids_blockBCT (κ : ℕ) (Lk : Layout) (σ : Val) (cs : List Call) (b
     ∃ (N : ℕ) (L : Layout), Within L b N ∧ DisjL L ∧ N ≤ osCallsBound fs σ bd cs ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd →
       MemL rd L → MemL rd Lk → (∀ i, RegionL Lk i → R i ∨ Dacc i) →
-      KidsFromInWST CM.sem fs cert wE rd σ R Dacc cs (cs.map fun _ => bwE)
+      KidsFromInWST CM.sem fs cert wEW rd σ R Dacc cs (cs.map fun _ => bwE)
         (cs.map fun c b t => QB c.f (c.args.map σ) b rd t) b N (fun _ => False) := by
   obtain ⟨N, L, outs, ho, hW, hD, hN, -, hK⟩ := kidsFromInWST_of_kidsBW (S := CM.sem) (fs := fs) (cert := cert)
-    (w := wE) κ (fun k => bd k.f k.args) (fun _ => bwE) (fun k => QB k.f k.args) (osKidsOf σ Lk cs)
+    (w := wEW) κ (fun k => bd k.f k.args) (fun _ => bwE) (fun k => QB k.f k.args) (osKidsOf σ Lk cs)
     (fun k hk ht => by
       obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hk
-      exact (hc c hc' ht).toWSTE) b
+      exact (hc c hc' ht).toWSTEW) b
   refine ⟨N, L, hW, hD, ?_, fun rd R Dacc hlow hL hLk hR => ?_⟩
   · refine le_trans hN (le_of_eq ?_)
     simp [kidsBound, osCallsBound, osKidsOf, List.map_map, Function.comp_def]
@@ -109,7 +109,7 @@ theorem os_kidsFromIn_onePBCT {κ : ℕ} {f : String} {Lin : ℕ → Layout} {ar
     ∃ (n : ℕ) (Lown : Layout), Within (Lout b ++ Lown) b n ∧ DisjL (Lout b ++ Lown) ∧ n ≤ B ∧
       ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd (Lout b ++ Lown) → MemL rd (Lin b) →
         (∀ i, RegionL (Lin b) i → R i ∨ Dacc i) →
-        KidsFromInWST CM.sem fs cert wE rd σ R Dacc [c] [bwE] [fun _ _ => True] b n (RegionL (Lout b)) := by
+        KidsFromInWST CM.sem fs cert wEW rd σ R Dacc [c] [bwE] [fun _ _ => True] b n (RegionL (Lout b)) := by
   obtain ⟨n, Lown, hW, hD, hn, hrel⟩ := h b
   refine ⟨n, Lown, hW, hD, hn, fun rd R Dacc hlow hL hLin hR =>
     ⟨n, 0, RegionL (Lin b), RegionL (Lout b), by omega, hR, ?_, ⟨rfl, fun i hi => Or.inr ⟨ht, hi⟩⟩⟩⟩
@@ -187,7 +187,7 @@ theorem os_levels_kidsBCT (κ : ℕ) (σ : Val) (Lk : Layout) (W S : ℕ → ℕ
         ∀ (rd : Reader) (R Dacc : ℕ → Prop), LowDef κ rd → MemL rd L → MemL rd Lk →
           (∀ i (h : i < ps.length), MemL rd (W (l0 + i) ps[i])) → (∀ i, RegionL Lk i → R i) →
           (∀ l, l0 ≤ l → l < l0 + ks.length → ∀ p i, RegionL (W l p) i → R i) →
-          KidsFromInWST CM.sem fs cert wE rd σ R Dacc (ks.flatMap OsLvK.calls)
+          KidsFromInWST CM.sem fs cert wEW rd σ R Dacc (ks.flatMap OsLvK.calls)
             ((ks.flatMap OsLvK.calls).map fun _ => bwE) (osLvsQs (fun l f a b t => QB l f a b rd t) σ l0 ks) b N
             (fun _ => False)
   | [], _, _, b => ⟨0, [], [], rfl, fun _ h => by simp at h, disj_nil, Nat.zero_le _, fun _ _ _ _ _ _ _ _ _ =>
