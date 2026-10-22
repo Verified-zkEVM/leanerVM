@@ -5,6 +5,9 @@ import Sphincs.Lifetimes
 /-!
 # No forgery with the visible accounting, T3 from two challenges, fully instantiated (W-vis)
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 `Vis/Deployed.lean` with `aggregate_no_forgery_vis2` (`Vis/EndFinal2.lean`) for
 `aggregate_no_forgery_vis`: the bound is `sec0ErrorGame2`, whose T3 term is
 `Q_v³ / (6 · 2^384)` for `Q_v (Q_v + 1) / 2^193`. One theorem per proved leanSPHINCS set:

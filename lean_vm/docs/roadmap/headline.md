@@ -145,16 +145,13 @@ costs, plus arithmetic, all in `Headline.lean`:
 | `viNodeCost_eq`, `queryCount_honest_le_viCost` | the budget is the proved honest cost (§8) |
 | `aggregate_complete_final` | completeness of the same V_I at the budget `viCost N` (§8) |
 
-## 6. The cleanup pass (not done yet)
+## 6. The cleanup pass
 
-The older end theorems stay until one cleanup pass. Then: `aggregate_no_forgery`,
-`aggregate_no_forgery2`, `…_closed`, `noForgeryError`, `closedError`, `aggBadError` become internal
-lemmas; the per-set `aggregate_no_forgery_deployed_*`, `…2_deployed_*`, `…_sharp`, `…_one_slot_*`
-are replaced by the instances; the visible family (`gameRec`, `BreaksVis`, `sec0Error*`, `eps0`,
-`delta`, `visError*`, `aggregate_no_forgery_vis*`) becomes internal (decided by the user); `aggregate_knowledge_cache`
-stays internal (its DA half is the event's DA clause). Optional: a knowledge companion
-`Pr[accepted ∧ ¬ ClaimsKnown] ≤ aggBadError2 q` (`λ ≈ 128`, no multi-user loss, about 40 lines);
-`BreaksVis` (DA backed by V_I's own trace) at these numbers (about 300–600 lines).
+Done by decision E2E-12 (§9): `LeanVM/E2E/Main.lean` states the result; the older end theorems are
+internal, unpinned from `LeanVM.lean` and pinned in `tests/LeanVMTests/E2E/Pins.lean`. Not done
+(optional): a knowledge companion `Pr[accepted ∧ ¬ ClaimsKnown] ≤ aggBadError2 q` (`λ ≈ 128`, no
+multi-user loss, about 40 lines); `BreaksVis` (DA backed by V_I's own trace) at these numbers (about
+300–600 lines).
 
 ## 7. The sharp headline
 
@@ -265,3 +262,57 @@ T6-prob's good outcome accepts. Hence
 (`aggregate_complete_final`, `Complete.idealVerify_complete_rom_budget` for every budget at least
 `N · viNodeBound`), the bound of `idealVerify_complete_rom`; at the honest leanXMSS leaf, `2^-124`
 (test file `tests/LeanVMTests/E2E/ViBudget.lean`).
+
+## 9. The final cleanup (decision E2E-12)
+
+A reader opens `LeanVM/E2E/Main.lean` and finds the result: the model (oracle, V_I, game, event,
+`q`) and §5's assumptions in its docstring, and six theorems, each restating the end theorem it is
+proved by.
+
+| `Main` | proved by | what |
+| --- | --- | --- |
+| `no_forgery` | `aggregate_no_forgery_final` | `q · 2^-λ₁ + 30 q²/2^256`, `λ₁ = 106` at `2^20 + 2^20` keys |
+| `no_forgery_sharp` | `aggregate_no_forgery_final_sharp` | leanSPHINCS's per-key bound, `(30 + D n_s) q²/2^256` |
+| `no_forgery_sharp_deployed` | `aggregate_no_forgery_final_sharp_deployed` | `q · 2^-116 + 2^34 q²/2^256` at `full`, `pruned20` |
+| `complete` | `aggregate_complete_final` | the game's V_I rejects the honest proof w.p. `≤ completeError` |
+| `sanity` | `Sanity.idealVerify_blake2s_known` | T7″ |
+| `sanity_deployed` | `SanityDeployed.sanity_deployed_of_tree` | S1: the deployed honest aggregation passes `verifyAggregate` and V_I (BLAKE2s), unless a compression collision |
+
+Recursion completeness joins it when it lands, and so does a budgeted S1: today S1 runs V_I
+unbudgeted (in `Id`), so V_I's query count on the deployed prover's output is a follow-up.
+
+**(a) `LeanVM.lean`'s pins (done).** It pinned 106 theorems, 94 of them steps of the end-to-end chain,
+superseded end theorems or other forms of S1. It now pins the verifier's and the guest's end theorems (12, unchanged)
+and `Main.lean`'s six with the two deployed rate facts (`sharp_full_deployed`,
+`sharp_pruned20_deployed`). The other 94 (S1's three included) moved, unchanged and with their
+section notes, to
+`tests/LeanVMTests/E2E/Pins.lean`, which imports what `LeanVM.lean` imported, so `lake test` still
+fails if any of their axiom footprints grows. `LeanVM.lean` imports only what its pins need.
+
+**(b) What is internal (done: unpinned and marked; nothing moved).** The closed-form family
+(`aggregate_no_forgery`, `…_closed`, `…_deployed_*`, `…2*`, `closedError*`, `noForgeryError*`;
+`NoForgery.lean`, `NoForgeryClosed.lean`, `NoForgery2.lean`, `Deployed.lean`, `Deployed2.lean`); the
+visible family (`aggregate_no_forgery_vis*`, `gameRec`, `BreaksVis`, `sec0Error*`, `eps0*`,
+`delta*`, `visError*`; `Vis/*`); the T6 variants (`idealVerify_complete`, `'`, `''`, `_det`,
+`_final`, `_N`, `_rom`, `_rom_budget`). Their modules' docstrings say so (the `Complete/*` ones are
+left as they are while the recursion package edits that directory). They are not moved under an
+`Internal` namespace: the headline's proof uses `NoForgery2.lean`'s decomposition and
+`Complete/Rom/*`, tests and docs cite the names, and a rename would collide with the two packages in
+flight. Deleting is not wanted either: the per-set files are cheap regression checks of the costs
+and the multi-user endpoints.
+
+**(c) Dead pieces in `Statement.lean` (planned, not done).** Two tests that always succeed:
+* `nodeStep`'s `if h : (blindCandidatesS …).Finite then … else return none`: the candidates are a
+  set of columns over a finite field of fixed length, a `Fintype`, so every such set is finite
+  (`Set.toFinite`) and the `else` is unreachable;
+* `tableOKWith`'s `if h : (chainInputs rows).Finite`: a finite list of rows has finitely many
+  standard chains, so the test always succeeds.
+Replacing each by `(Set.toFinite _).toFinset` preserves the semantics, but every proof that splits
+on these `dif`s changes (`closure_checked`, `nodeStep_eq_some`, the `Knowledge/*`, `Complete/Node`,
+`Sanity` and `BudgetCount` step lemmas), and `Complete/*` is being edited by the recursion package.
+So it waits for that package; it is recorded as a decision when done (a change to `Statement.lean`
+changes what is stated, even when it preserves the semantics).
+
+**(d) The docs (done).** `e2e-security.md` §8 is a short "what is proved" over `Main.lean`, with
+the constants, a map of the proofs and the internal families; decision E2E-12 in §7; the roadmap
+README lists `headline.md` and points at `Main.lean`.

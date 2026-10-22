@@ -15,6 +15,9 @@ public import LeanVM.E2E.Reduction.SphincsBound
 /-!
 # No forgery (T5) in closed form
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 `aggregate_no_forgery` leaves the honest signers' and the final verifications' query costs as
 hypotheses. They are proved (`Reduction/XmssBound.lean`, `Reduction/SphincsBound.lean`,
 `Reduction/VerifyBound.lean`):

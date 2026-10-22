@@ -12,6 +12,9 @@ public import LeanVM.E2E.Vis.Closed
 /-!
 # §0's bound with T3 from two challenges (W-vis)
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 Pure arithmetic. `sec0Error2` is `sec0Error` (`Vis/Closed.lean`) with the chain's error
 `visError2` (`Vis/Bound2.lean`): T3's term is `Q_v³ / (6 · 2^384)` (`predError2`) instead of
 `Q_v (Q_v + 1) / 2^193`, every other term unchanged (`sec0Error2_add`).

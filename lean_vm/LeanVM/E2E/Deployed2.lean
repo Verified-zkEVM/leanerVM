@@ -4,6 +4,9 @@ import LeanVM.E2E.Deployed
 /-!
 # No forgery (T5), fully instantiated, T3 from two challenges
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 `LeanVM/E2E/Deployed.lean` with `aggregate_no_forgery2` and `aggregate_no_forgery_closed2`
 (`LeanVM/E2E/NoForgery2.lean`): the bound is `closedError2 Q n_x n_s`, `closedError` with T3's
 term `Q³ / (6 · 2^384)` for `Q (Q + 1) / 2^193`:

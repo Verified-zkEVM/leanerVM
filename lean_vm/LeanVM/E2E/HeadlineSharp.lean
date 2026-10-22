@@ -4,6 +4,9 @@ import Sphincs.LifetimesMultiKey
 /-!
 # The headline with leanSPHINCS's sharp multi-user bound
 
+The end theorems of this file are restated, with the rest of the result, in
+`LeanVM/E2E/Main.lean`.
+
 `aggregate_no_forgery_final_sharp`: the headline (`Headline.lean`) with leanSPHINCS's per-key
 multi-user bound `Multi.multiBound` (`Sphincs.Lifetimes.requestedMultiUserKey`) in place of
 `n q/2^127`:

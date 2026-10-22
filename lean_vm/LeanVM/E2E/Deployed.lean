@@ -5,6 +5,9 @@ import Sphincs.LifetimesMultiKey
 /-!
 # No forgery (T5), fully instantiated
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 `aggregate_no_forgery` at leanXMSS's proved multi-user security
 (`XmssSecurity.leanXmss_has_multi_user_security`), leanSPHINCS's proved multi-user bound
 (`Sphincs.Lifetimes.requestedMultiUserKey`, at each proved parameter set) and the proved costs of

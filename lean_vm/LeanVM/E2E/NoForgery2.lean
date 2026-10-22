@@ -15,6 +15,9 @@ public import LeanVM.E2E.Vis.Pred2
 /-!
 # No forgery (T5) with T3 from two challenges
 
+**Internal** (decision E2E-12): a step of the proof of `LeanVM/E2E/Main.lean`'s theorems (or of
+the closed-form family they supersede), not an end theorem.
+
 `AggBad2` is `AggBad` (`LeanVM/E2E/Knowledge.lean`) with T3's event `Pred (predOffset)` replaced
 by `Pred2 (predOffset - 24) predOffset`, the prediction of the guest's last two matrix challenges
 by one input (`LeanVM/E2E/Termination2.lean`). A two-challenge prediction is a prediction, so

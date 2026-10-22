@@ -14,6 +14,9 @@ public import LeanVM.E2E.Guest
 /-!
 # No forgery (T5), assembled
 
+**Internal** (decision E2E-12): a step of the proof of `LeanVM/E2E/Main.lean`'s theorems (or of
+the closed-form family they supersede), not an end theorem.
+
 `prEvent_breaks_le`: for a game of the deployed guest whose honest keys, signatures and
 adversary are query-bounded (`isQueryBoundP_gameComp`'s hypotheses, `Q` the game's total hash
 queries), the probability of `Breaks` (V_I accepts, and the root statement has a forged claim or a

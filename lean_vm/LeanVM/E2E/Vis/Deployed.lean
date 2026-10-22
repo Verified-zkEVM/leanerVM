@@ -5,6 +5,9 @@ import Sphincs.Lifetimes
 /-!
 # No forgery with the visible accounting, fully instantiated (W-vis)
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 `aggregate_no_forgery_vis` at leanXMSS's proved single-key security
 (`XmssSecurity.leanXmss_has_127_bits_of_classical_security`), leanSPHINCS's proved single-key
 security at each proved parameter set (`Sphincs.Lifetimes.full_bits`, …), and the proved costs of

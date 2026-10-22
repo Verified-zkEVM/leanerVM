@@ -7,6 +7,9 @@ import Sphincs.LifetimesMulti
 /-!
 # The headline: no forgery, `Pr[break] ≤ q · 2^-λ₁ + 30 q² / 2^256`
 
+The end theorems of this file are restated, with the rest of the result, in
+`LeanVM/E2E/Main.lean`.
+
 `aggregate_no_forgery_final`: for every leanSPHINCS parameter set (`SphincsSet`), every numbers
 `n_x`, `n_s` of honest keys, every tree size `N` and every adversary (`AdvBounds`), V_I, run on at
 most `N` nodes with the budget `viCost N`, accepts a root statement with a forged claim of an honest

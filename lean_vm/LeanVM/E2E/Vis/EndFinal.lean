@@ -15,6 +15,9 @@ public import LeanVM.E2E.Guest
 /-!
 # No forgery with the visible accounting (W-vis, the end theorem)
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 * `aggregate_no_forgery_vis`: for the game of the deployed guest, a break at V_I's trace
   (`BreaksVis`) has probability at most `sec0ErrorGame`. The hypotheses are 127 bits of single-key
   security for leanXMSS and leanSPHINCS, the honest costs, and the adversary's query bounds:

@@ -13,6 +13,9 @@ public import LeanVM.E2E.NoForgeryClosed
 /-!
 # §0's bound, the proofs' bound, and their difference (W-vis, P6b)
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 Pure arithmetic: nothing here depends on the proofs. The plan is `docs/roadmap/w-vis.md` §6.
 
 **The proofs' bound.** `sec0Error Q_v Q n_x n_s q_x q_s Q_k` is the chain's error `visError`

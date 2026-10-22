@@ -13,6 +13,9 @@ public import LeanVM.E2E.Vis.Closed2
 /-!
 # No forgery with the visible accounting, T3 from two challenges
 
+**Internal** (decision E2E-12): superseded as an end theorem by `LeanVM/E2E/Main.lean`, which
+states the whole result. Kept as proved; its axiom pins are in `tests/LeanVMTests/E2E/Pins.lean`.
+
 The assembly of `Vis/PerKey/Sum.lean`, `Vis/NoForgery.lean`, `Vis/End.lean` and
 `Vis/EndFinal.lean`, with the bad events `AggBadV2` (`Vis/Bound2.lean`) for `AggBadV`: T4 at the
 trace takes `RankOK2` (`rankOK2_of_not_aggBadV2`), the per-key hybrid is unchanged, and the
