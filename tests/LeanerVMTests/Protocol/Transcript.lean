@@ -58,7 +58,7 @@ def x : E := e3 0x0123456789abcdef 0xfedcba9876543210 0x1111222233334444
 /-! ## The chain -/
 
 /-- The state after seeding. -/
-def s0 : FsState := Deployed.seed program input
+def s0 : FsState := FsState.seed program input
 
 #guard s0.cv = digest64 0xe291a3f3173fff2a 0x5eef874401646aba 0x8821b3201f3eeeb9 0x14bd8e5e2372eb46
 
@@ -120,7 +120,7 @@ def program' : Program :=
   { program with code := Function.update program.code 3 (.jump (gpow 8) (gpow 9) (gpow 11)) }
 
 -- The seed binds the program and the public input.
-#guard (Deployed.seed program' input).cv ≠ s0.cv
-#guard (Deployed.seed program ⟨![K.ofBits 7, K.ofBits 11, K.ofBits 13, K.ofBits 18]⟩).cv ≠ s0.cv
+#guard (FsState.seed program' input).cv ≠ s0.cv
+#guard (FsState.seed program ⟨![K.ofBits 7, K.ofBits 11, K.ofBits 13, K.ofBits 18]⟩).cv ≠ s0.cv
 
 end LeanerVMTests.Protocol.Transcript

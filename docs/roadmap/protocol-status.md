@@ -723,10 +723,11 @@ interface; the theorem is not knowledge soundness.
 
 *On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
 the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,
-`FsState.seed`, `observe`, `sample`, `powBase`, `powOk`, `grind`, `checkPow`), every operation
-generic in the 64-byte hash `H : List UInt8 → m Digest` with the deployed instances in
-`Deployed`, and the statement's constants computed by `blake2sBytes` outside it (`programHash`,
-the hash of the stacked bytecode table, and `fsSeed`, `fs_seed`'s 78-byte preimage);
+`observe`, `sample`, `powBase`, `powOk`, `grind`, `checkPow`), every operation generic in the
+64-byte hash `H : List UInt8 → m Digest` with the deployed instances in `Deployed`, and the
+statement's constants computed by `blake2sBytes` directly, never through `H` (`programHash`, the
+hash of the stacked bytecode table; `fsSeed`, `fs_seed`'s 78-byte preimage hashed; and the
+starting state `FsState.seed`, the hash of `fsSeed` and the public input's lanes);
 `FsState.checkPow_of_grind`: the verifier's check accepts the prover's nonce and lands in its
 state, for every hash function. The tests are known answers dumped from the pinned Rust
 (`scripts/dump-fs-chain-rust.sh`): the program hash, the seed, observes, squeezes, the grinding

@@ -39,14 +39,15 @@ encoding used.
 **The seed.** `programHash prog` is BLAKE2s-256 of the stacked bytecode table `bytecodeColumn
 prog`, its `K` words little-endian (`cpu/mod.rs:237-245`; `layout.rs:317-326`, `leaf.rs:585-604`).
 `fsSeed prog` is BLAKE2s-256 of the 78 bytes `"leanvm" ‖ 32 ‖ R1CS_DIGEST ‖ programHash prog`,
-the length a little-endian 64-bit word (`fs_seed`, `:82-93`). The chain starts with the step from
-`fsSeed prog` on the four lanes of the public input (`FiatShamirState::new`, `lib.rs:69-73`;
-`cpu/mod.rs:556, 712`).
+the length a little-endian 64-bit word (`fs_seed`, `:82-93`). The chain starts at the BLAKE2s-256
+of `fsSeed prog` followed by the four lanes of the public input (`FiatShamirState::new`,
+`lib.rs:69-73`; `cpu/mod.rs:556, 712`).
 
 **The hash.** Every chain operation takes the 64-byte map as an argument `H : List UInt8 → m
 Digest` in a monad `m`: the deployed chain answers it by `blake2sBytes` in `Id` (`Deployed`), a
-random-oracle model by a query. `programHash` and `fsSeed` are constants of the statement and call
-`blake2sBytes` directly.
+random-oracle model by a query. The seed is not a chain operation: `programHash`, `fsSeed` and the
+starting state `FsState.seed` are constants of the statement, computed by `blake2sBytes` directly
+and never through `H`.
 
 **Differences from the Rust.** None in the values at the grinding bits used (`17` at every WHIR
 level, `0` elsewhere). The prover's nonce search takes fuel and returns `none` when it runs out,
@@ -123,16 +124,17 @@ def lowBitsZero (d : Digest) (bits : ℕ) : Bool :=
 /-- The nonce `n` as an element, `n + 0·y + 0·y²` (`F192::new(n, 0, 0)`). -/
 def nonceOf (n : ℕ) : E := E.ofLimbs (K.ofBits n) 0 0
 
+/-- The state seeded from the digest `iv` and four lanes: BLAKE2s-256 of `iv` followed by the
+lanes (`FiatShamirState::new`), computed directly, not through the chain's hash. -/
+def new (iv : Digest) (lanes : Vector K 4) : FsState :=
+  ⟨blake2sBytes (digestBytes iv ++ lanes.toList.flatMap kBytes)⟩
+
+/-- The state a proof of the program and the public input starts from, a constant of the
+statement. -/
+def seed (prog : Program) (input : PublicInput) : FsState :=
+  new (fsSeed prog) (Vector.ofFn input.lanes)
+
 variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
-
-/-- The state seeded from the digest `iv` and four lanes: the step from `iv` on the lanes
-(`FiatShamirState::new`). -/
-def new (iv : Digest) (lanes : Vector K 4) : m FsState :=
-  FsState.mk <$> H (digestBytes iv ++ lanes.toList.flatMap kBytes)
-
-/-- The state a proof of the program and the public input starts from. -/
-def seed (prog : Program) (input : PublicInput) : m FsState :=
-  new H (fsSeed prog) (Vector.ofFn input.lanes)
 
 /-- Absorb an element (`observe`). -/
 def observe (s : FsState) (x : E) : m FsState :=
@@ -181,10 +183,6 @@ end FsState
 /-! ## The deployed chain -/
 
 namespace Deployed
-
-/-- The deployed seed. -/
-def seed (prog : Program) (input : PublicInput) : FsState :=
-  Id.run (FsState.seed blake2sBytes prog input)
 
 /-- The deployed observe. -/
 def observe (s : FsState) (x : E) : FsState := Id.run (s.observe blake2sBytes x)
