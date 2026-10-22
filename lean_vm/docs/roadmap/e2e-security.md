@@ -436,6 +436,20 @@ the statement, each with its reason.
     `5 Q_sig (2 Q_v + Q_sig)/2^256` (§3 ignored hidden–hidden collisions; `Fail` counts them),
     and each reduction forwards the other keys' two derivations. `w-vis.md` §6 lists every
     difference.
+- **E2E-7 (W-vis: DA charged at E5's full rate on hidden queries; fix B).** E2E-6 charged a
+  hidden fresh query only the failure rates. For T1's and W6's decoders this holds: a hidden
+  input is a record only under `FormatI`. For E5's DA decoder it does not hold, and the bound
+  `daPotStop_step_hid` (DA potential unchanged at a hidden query, up to `4(|ℓ|+1)/2^256`) is false.
+  - Counterexample shape: a DA anchor completed by a hidden query after a hidden entry answering
+    a hidden prefix. A hidden entry's answer is the first 32 bytes of a later hidden input (an
+    authentication-path parent, or a chain step). That later hidden query is the one that
+    completes the anchor, so the DA potential jumps at a hidden query. `FormatI` does not cover
+    this, since the prefix is hidden, not a record.
+  - Fix B: DA is charged at E5's full per-query rate on every fresh query, hidden or not
+    (`daPotStop_step`, `Vis/DaDecoder.lean`). T1 and W6 keep the class split.
+  - Cost: the DA term is `Q·14/2^192`, with `Q = Q_v + Q_sig` all of the game's hash queries,
+    instead of §0's `Q_v·14/2^192`. The extra `Q_sig·14/2^192` is below `2^-120` for
+    `Q_sig ≤ 2^68` (`w-vis.md` §6).
 
 ## 8. Status: what is proved
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at

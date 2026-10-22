@@ -134,7 +134,7 @@ end
 
 /-! ## One key first -/
 
-section Front
+@[expose] public section
 
 /-- **One computation of a sequence first**: in the schemes' lazy random oracle, running the
 `j`-th computation first and the sequence with its result in place is running the sequence. -/
@@ -162,6 +162,6 @@ theorem romRun_sequenceFin_front {α γ : Type} :
             romRun_sequenceFin_front n (fun i ↦ f i.succ) j
               (fun a t ↦ k a (Fin.cases r.1 t)) r.2
 
-end Front
+end
 
 end LeanVM.E2E

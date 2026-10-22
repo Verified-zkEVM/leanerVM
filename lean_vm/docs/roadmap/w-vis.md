@@ -204,6 +204,9 @@ writes it.)
 
 ### P3b — decoder invariant, E5 (`Vis/DaDecoder.lean`, ≈300–600)
 
+Superseded by fix B (E2E-7): `daPotStop_step_hid` below is false. The DA step is charged at E5's
+full rate on every fresh query (`daPotStop_step`).
+
 ```lean
 theorem daPotStop_step_hid (pc : LeanDa.Digest) {ℓ : Log} {k0 : ℕ} (hkg) (hk0 : k0 ≤ ℓ.length)
     {t : Bytes} (ht : Hid keys t) (hfresh : t ∉ ℓ.map Prod.fst) :
@@ -292,7 +295,8 @@ per key) are forwarded and charged.
 `Sphincs.Security.Adversary`):
 1. receive `pk_j`;
 2. generate the other keys with private seeds and the routed oracle;
-3. abort with a dummy forgery if some `P_i = P_j`;
+3. (as built: no abort; the other keys' trees are private whatever their parameters, and the
+   event `KeyCollAt` is excluded from the bound instead);
 4. run `gameRest` (`Reduction/GameW.lean`) with V_I recorded and the routed oracle, answering
    other keys' signing requests itself. Key `j`'s requests go to the challenger, refused as the
    game refuses: a reused leaf, or past `signatureLimit`;
@@ -329,6 +333,16 @@ theorem prEvent_forged_le_perKey … :
 def AdvXmssAt (j : Fin nx) : (AdvSpec nx ns).Domain → Prop   -- signing requests to xmss key j
 def AdvSphincsAt (j : Fin ns) : (AdvSpec nx ns).Domain → Prop
 ```
+
+**As built (P7b, leanXMSS).** `PerKey/XmssChain.lean`:
+```lean
+theorem PerKeyX.prEvent_xWinAt_le (guest : Program) (fuel budget : ℕ) (A : GameAdversary nx ns) (j : Fin nx) :
+    Pr{let p ← gameRec guest fuel budget A}[XWinAt j p.1.1 p.1.2 ∧ ¬ KeyCollAt p.1.1.keys (Fin.castAdd ns j)] ≤
+      LeanXmss.Security.forgeAdvantage (xRedJ guest fuel budget A j)
+```
+`KeyCollAt keys idx` (`PerKey/Defs.lean`) is key `idx`'s parameter repeated or zero; P7d bounds it
+by `2(nx+ns)/2^128 + (nx·cxk + ns·csk)²/2^256`. P7c turns `accepted ∧ ForgedXAt j ∧ ¬AggBadV` into
+`XWinAt j` on `gameRec` (P5's knowledge at the trace).
 
 **What is reused.**
 * `World`: `toW`, `owImpl`, `logCache`, `evalDistEq_run_toW`.
@@ -408,7 +422,7 @@ names are unique across `lean_vm/LeanVM` before sending.
 | --- | --- | --- |
 | `κ_V°(Q_v) = (Q_v+13213)(2^-128 + 5(Q_v+13213)/2^256)` | linear part `Q_v·εLean`. Quadratic part inside `Q·failBound leanVmSeeds Q`. | The `+13213` was the batching program's queries (`QV_b`), now in the game's own count (W6-1). The quadratic part is over all queries `Q` (next row). |
 | `κ_batch(Q_v)` | `Q_v·2/2^192`; `Q·4(Q+1)/2^256` | quadratic part over `Q` |
-| `ε_DA ≈ Q_v·14/2^192` | `Q_v·14/2^192`; `Q·4Q/2^256` | quadratic part over `Q` |
+| `ε_DA ≈ Q_v·14/2^192` | `Q·14/2^192`; `Q·4Q/2^256` | **extra** `Q_sig·14/2^192` (E2E-7, fix B): DA is charged at E5's full rate on hidden queries too. Counterexample to the hidden-step bound: a DA anchor completed by a hidden query after a hidden entry answering a hidden prefix. Below `2^-120` for `Q_sig ≤ 2^68`. The quadratic part is over `Q`. |
 | `(Q_v+1)²/2^193` | `Q_v(Q_v+1)/2^193` | none (smaller) |
 | ε_signer: `Q_v·Q_sig/2^255` (HiddenCollide, HiddenPredict, Hit) | contained in `Q·(5Q + 8Q + 4)/2^256`, `Q = Q_v + Q_sig` | **extra** `≈ 13·Q_sig(2Q_v + Q_sig)/2^256`. `Fail` counts collisions and predictions among hidden entries, which §3 ignored; removing them would mean re-proving T1's `final_ineq`. Lifetime: `≈ 2^-97`. |
 | ε_signer: `Q_v·5/2^128` (LateReveal), `n·Q/2^256` (GuessS) | none | not needed by route B |
