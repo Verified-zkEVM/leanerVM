@@ -10,7 +10,8 @@ words, row `q` holding `4q, …, 4q + 3`, opened at the queries `[5, 1, 5, 3, 1]
 the root and the siblings are `hashlib`'s, with the Rust's `tree_of` and `prune` transcribed
 (`merkle.rs:101-136, 270-281`). The prover's opening equals the Rust's, the check accepts it with
 the rows in query order and nine hash calls, and every malformed phase of the Rust's test is
-rejected, except the tree of seven leaves, which a depth cannot express.
+rejected, except the tree of seven leaves, which a depth cannot express. The same rows over
+sixteen leaves are opened at `[0, 1, 2, 3, 7, 8, 15, 15, 4, 9]`, with pairs at every level.
 
 Each check of `merkleVerifyWith` has a mutation that only it rejects. The check is the
 conjunction of five conditions (`run_merkleVerifyWith`), and `conds` evaluates each; for every
@@ -96,12 +97,16 @@ def octopus : List Digest := [h0, h2, h4, n67]
 
 def good : PrunedMerklePaths := ⟨[row 1, row 3, row 5], octopus⟩
 
+/-- The prover's commitment to the eight rows. -/
+def commit8 : MerkleCommitment 3 := merkleCommit 4 rows8
+
 #guard merkleRoot rows8 = root8
+#guard commit8.root = root8
 
 /- The prover's opening is the Rust's, for both query lists. -/
-#guard (merkleOpen 4 rows8 [5, 1, 5, 3, 1]).leafData = good.leafData
-#guard (merkleOpen 4 rows8 [5, 1, 5, 3, 1]).siblingHashes = octopus
-#guard (merkleOpen 4 rows8 [5, 1, 3]).siblingHashes = octopus
+#guard (merkleOpen commit8 [5, 1, 5, 3, 1]).leafData = good.leafData
+#guard (merkleOpen commit8 [5, 1, 5, 3, 1]).siblingHashes = octopus
+#guard (merkleOpen commit8 [5, 1, 3]).siblingHashes = octopus
 
 /- Accepted, with the rows in query order, duplicates repeated. -/
 #guard merkleVerify root8 3 4 4 [5, 1, 5, 3, 1] good = some [row 5, row 1, row 5, row 3, row 1]
@@ -115,6 +120,50 @@ def countingHash (b : List UInt8) : StateM ℕ Digest := do
 /- Nine calls: three stored rows and the six nodes rebuilt (three, two, one per level). -/
 #guard (Id.run ((merkleVerifyWith countingHash root8 3 4 4 [5, 1, 5, 3, 1] good).run 0)).2 = 9
 
+/-! ## Sixteen leaves, pairs at every level
+
+The same rows over sixteen leaves, opened at `[0, 1, 2, 3, 7, 8, 15, 15, 4, 9]`: unsorted, with
+a duplicate, and with paired nodes at every level. The root and the five siblings are `hashlib`'s,
+from the Rust's `tree_of` and `prune` transcribed. -/
+
+def rows16 : Vector (List K) (2 ^ 4) := Vector.ofFn fun q ↦ row q
+
+def root16 : Digest :=
+  #v[0x2a0bcfc4, 0x9bba018e, 0xc78bd5fa, 0xa6fb1e86, 0x212c6d33, 0x50e2f351, 0x377c4ba3, 0x43efd537]
+
+/-- Leaves 5, 6 and 14, and the parents of leaves 10 and 11 and of leaves 12 and 13. -/
+def g5 : Digest :=
+  #v[0xb95f5899, 0x1687203e, 0x0a25ae87, 0xeb3571b6, 0xb01d05e0, 0x9b5920e1, 0x571e611d, 0x18be896c]
+
+def g6 : Digest :=
+  #v[0xf8de964c, 0x8d4f8c9c, 0x73014154, 0x074b82e0, 0xf1aad3df, 0x755b15ba, 0x847c554c, 0xf47bb47a]
+
+def g14 : Digest :=
+  #v[0xb494480a, 0xf6769b5b, 0xe458aa93, 0x4d751a23, 0xff3d01cc, 0x5100d875, 0xcf303851, 0x9bb119e1]
+
+def g1011 : Digest :=
+  #v[0x7a4676b7, 0xc3e3180f, 0x24762491, 0xa03d6fa6, 0x491f5bdf, 0xc07b50fc, 0x3fbf567f, 0x33d29eca]
+
+def g1213 : Digest :=
+  #v[0x2082992c, 0xf79a9da3, 0x6d036739, 0xfbcc5612, 0xb16481e1, 0x32079311, 0x69a1fef2, 0x68d282b9]
+
+/-- The Rust's octopus at `[0, 1, 2, 3, 7, 8, 15, 15, 4, 9]`: the siblings of leaves 4, 7 and 15,
+then of the level-1 nodes 4 and 7; the other nodes pair at every level. -/
+def octopus16 : List Digest := [g5, g6, g14, g1011, g1213]
+
+def queries16 : List ℕ := [0, 1, 2, 3, 7, 8, 15, 15, 4, 9]
+
+def commit16 : MerkleCommitment 4 := merkleCommit 4 rows16
+
+#guard commit16.root = root16
+#guard sortedUnique queries16 = [0, 1, 2, 3, 4, 7, 8, 9, 15]
+#guard (merkleOpen commit16 queries16).siblingHashes = octopus16
+#guard merkleVerify root16 4 4 4 queries16 (merkleOpen commit16 queries16) =
+  some (queries16.map row)
+#guard (MerkleTree.toBatchOpening 4 (sortedUnique queries16)
+    (((sortedUnique queries16).map row).map (leafDigest blake2sBytes 4)) octopus16).map
+    (MerkleTree.putativeRoot hashPair) = some root16
+
 /-! ## Malformed phases
 
 `conds` lists the five conditions of the check: one row per distinct query, the announced width
@@ -126,7 +175,7 @@ def conds (root : Digest) (depth rowWords leafWords : ℕ) (queries : List ℕ)
   let sorted := sortedUnique queries
   [decide (paths.leafData.length = sorted.length), decide (rowWords ≤ leafWords),
     paths.leafData.all (·.length == rowWords), sorted.all (· < 2 ^ depth),
-    Id.run (MerkleTree.octopusRoot (m := Id) (fun l r ↦ blake2sBytes (nodeBytes l r)) depth
+    Id.run (MerkleTree.prunedRoot (m := Id) (fun l r ↦ blake2sBytes (nodeBytes l r)) depth
       (sorted.zip (paths.leafData.map (leafDigest blake2sBytes leafWords)))
       paths.siblingHashes) == some root]
 
@@ -279,9 +328,10 @@ the honest opening of leaf 1. -/
 
 /- Two-word rows committed in four-word leaves: each row is stored as is and opened against the
 tree of its leaf images, and the check returns the images. -/
-#guard merkleVerify (merkleRoot (leaves.map (leafImage 4))) 2 2 4 [2, 0]
-    (merkleOpen 4 leaves [2, 0]) = some [[0, 0, w 5, w 6], [0, 0, w 1, w 2]]
-#guard (merkleOpen 4 leaves [2, 0]).leafData = [[w 1, w 2], [w 5, w 6]]
+#guard (merkleCommit 4 leaves).root = merkleRoot (leaves.map (leafImage 4))
+#guard merkleVerify (merkleCommit 4 leaves).root 2 2 4 [2, 0]
+    (merkleOpen (merkleCommit 4 leaves) [2, 0]) = some [[0, 0, w 5, w 6], [0, 0, w 1, w 2]]
+#guard (merkleOpen (merkleCommit 4 leaves) [2, 0]).leafData = [[w 1, w 2], [w 5, w 6]]
 
 example : ∀ i < 16, MerkleTree.sibling i = i ^^^ 1 := by decide
 

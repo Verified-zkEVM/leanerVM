@@ -16,7 +16,8 @@ public import Mathlib.Data.List.Dedup
 /-!
 # leanVM's Merkle trees
 
-Category B. The pinned leanVM (`a386121f84292f6fa663aaa3e570c15bc0240ea2`) commits `2^k` rows in
+Category B; the compiled verifier checks every Merkle opening of a proof with `merkleVerify`.
+The pinned leanVM (`a386121f84292f6fa663aaa3e570c15bc0240ea2`) commits `2^k` rows in
 a binary tree over BLAKE2s-256 (`crates/pcs/src/merkle.rs:119-142`, `merkle_tree`): a leaf is the
 hash of a row's leaf image as little-endian bytes (`hash_words`), a node the hash of its
 children's 64 bytes, left first (`hash_pair`), with no tag and no position
@@ -31,8 +32,9 @@ monad it calls `H` once per stored row and once per node it rebuilds, in the Rus
 that it can be run with `H` a random-oracle query. Two checks of the Rust are subsumed: the leaf
 count is `2^depth` by construction, and an opening of no query fails since the walk has no node to
 read at the top. The Rust also returns each query's full path, which is determined by the walk
-and dropped here. `merkleOpenWith` is the prover (`PrunedMerklePaths::prune`, `:101-136`), and
-`merkleVerifyWith_merkleOpenWith` its completeness.
+and dropped here. A prover commits to its rows once (`merkleCommitWith`, which builds the tree's
+levels) and reads every opening off the commitment (`merkleOpen`, `PrunedMerklePaths::prune`,
+`:101-136`); `merkleVerifyWith_merkleOpen` is completeness.
 
 `merkle_fits` reads the check as VCVio's trees for every hash `H`: it accepts exactly when the
 stored rows have the announced shape and the octopus, read by `MerkleTree.toBatchOpening` as a
@@ -119,7 +121,7 @@ def merkleVerifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
   | none => return none
   | some leaves =>
     if ∃ p ∈ sorted, 2 ^ depth ≤ p then return none
-    match ← MerkleTree.octopusRoot (fun l r ↦ H (nodeBytes l r)) depth (sorted.zip leaves)
+    match ← MerkleTree.prunedRoot (fun l r ↦ H (nodeBytes l r)) depth (sorted.zip leaves)
         paths.siblingHashes with
     | none => return none
     | some r =>
@@ -132,21 +134,47 @@ def merkleVerify (root : Digest) (depth rowWords leafWords : ℕ) (queries : Lis
     (paths : PrunedMerklePaths) : Option (List (List K)) :=
   Id.run (merkleVerifyWith blake2sBytes root depth rowWords leafWords queries paths)
 
-/-- The prover's pruned opening of the tree over `rows`, each hashed as its leaf image, at
-`queries` (`merkle.rs:101-136`, `PrunedMerklePaths::prune`): the rows at the sorted distinct
-positions, and the siblings of every opened node not paired with the next. The Rust pairs a
+/-- A prover's commitment to `2^k` rows: the rows, and the levels of the tree over their leaf
+digests. -/
+structure MerkleCommitment (k : ℕ) where
+  /-- The committed rows. -/
+  rows : Vector (List K) (2 ^ k)
+  /-- The tree's levels, from the leaf digests up to the root. -/
+  levels : MerkleTree.Levels Digest k
+
+/-- The commitment to `rows`, each hashed as its leaf image under the byte hash `H`, with the
+tree built once (`pcs/src/merkle.rs:161-192`, `merkle_tree_padded_rows`). -/
+def merkleCommitWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
+    (rows : Vector (List K) (2 ^ k)) : MerkleCommitment k where
+  rows := rows
+  levels := MerkleTree.buildLevels (fun l r ↦ H (nodeBytes l r)) k
+    (rows.map (leafDigest H leafWords))
+
+/-- The commitment under BLAKE2s-256. -/
+def merkleCommit (leafWords : ℕ) {k : ℕ} (rows : Vector (List K) (2 ^ k)) :
+    MerkleCommitment k :=
+  merkleCommitWith blake2sBytes leafWords rows
+
+/-- The committed root. -/
+def MerkleCommitment.root {k : ℕ} (c : MerkleCommitment k) : Digest := c.levels.root
+
+/-- The prover's pruned opening of a commitment at `queries` (`merkle.rs:101-136`,
+`PrunedMerklePaths::prune`): the rows at the sorted distinct positions, and the siblings of
+every opened node not paired with the next, read off the committed levels. The Rust pairs a
 node with the next when the next is its sibling, which on ascending positions is
 `MerkleTree.levelStep`'s test. -/
-def merkleOpenWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
-    (rows : Vector (List K) (2 ^ k)) (queries : List ℕ) : PrunedMerklePaths where
-  leafData := (sortedUnique queries).map fun q ↦ rows[q]?.getD []
-  siblingHashes := MerkleTree.openSiblings (fun l r ↦ H (nodeBytes l r)) k
-    (rows.map (leafDigest H leafWords)) (sortedUnique queries)
+def merkleOpen {k : ℕ} (c : MerkleCommitment k) (queries : List ℕ) : PrunedMerklePaths where
+  leafData := (sortedUnique queries).map fun q ↦ c.rows[q]?.getD []
+  siblingHashes := c.levels.siblings (sortedUnique queries)
 
-/-- The prover's opening under BLAKE2s-256. -/
-def merkleOpen (leafWords : ℕ) {k : ℕ} (rows : Vector (List K) (2 ^ k)) (queries : List ℕ) :
-    PrunedMerklePaths :=
-  merkleOpenWith blake2sBytes leafWords rows queries
+/-- The committed root is the root of the tree over the rows' leaf images. -/
+theorem root_merkleCommitWith (H : List UInt8 → Digest) (leafWords : ℕ) {k : ℕ}
+    (rows : Vector (List K) (2 ^ k)) :
+    (merkleCommitWith H leafWords rows).root =
+      merkleRootWith H (rows.map (leafImage leafWords)) := by
+  simp only [MerkleCommitment.root, merkleCommitWith, MerkleTree.root_buildLevels, merkleRootWith,
+    MerkleTree.root, Vector.map_map]
+  rfl
 
 /-! ## The query model -/
 
@@ -182,6 +210,18 @@ section RunId
 
 variable (H : List UInt8 → Digest)
 
+/-- The conditions under which the check accepts: one row stored per distinct query, the
+announced width at most the leaf width, every row of the announced width, every query in the
+tree, and the walk over the siblings reaching `root`. -/
+abbrev PrunedMerklePaths.Accepts (paths : PrunedMerklePaths) (root : Digest)
+    (depth rowWords leafWords : ℕ) (queries : List ℕ) : Prop :=
+  paths.leafData.length = (sortedUnique queries).length ∧ rowWords ≤ leafWords ∧
+    (∀ row ∈ paths.leafData, row.length = rowWords) ∧
+    (∀ p ∈ sortedUnique queries, p < 2 ^ depth) ∧
+    Id.run (MerkleTree.prunedRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
+      ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
+      paths.siblingHashes) = some root
+
 private theorem run_hashRowsWith (rowWords leafWords : ℕ) :
     ∀ rows : List (List K), Id.run (hashRowsWith (m := Id) H rowWords leafWords rows) =
       if ∀ row ∈ rows, row.length = rowWords then some (rows.map (leafDigest H leafWords))
@@ -210,22 +250,12 @@ shape, the queries lie in the tree, and the walk over the octopus reaches `root`
 theorem run_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ) (queries : List ℕ)
     (paths : PrunedMerklePaths) :
     Id.run (merkleVerifyWith (m := Id) H root depth rowWords leafWords queries paths) =
-      if paths.leafData.length = (sortedUnique queries).length ∧ rowWords ≤ leafWords ∧
-          (∀ row ∈ paths.leafData, row.length = rowWords) ∧
-          (∀ p ∈ sortedUnique queries, p < 2 ^ depth) ∧
-          Id.run (MerkleTree.octopusRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
-            ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
-            paths.siblingHashes) = some root then
+      if paths.Accepts H root depth rowWords leafWords queries then
         some (rowsInQueryOrder leafWords queries paths.leafData)
       else none := by
   simp only [merkleVerifyWith]
   by_cases h1 : (sortedUnique queries).length ≠ paths.leafData.length ∨ leafWords < rowWords
-  · have hc : ¬ (paths.leafData.length = (sortedUnique queries).length ∧ rowWords ≤ leafWords ∧
-        (∀ row ∈ paths.leafData, row.length = rowWords) ∧
-        (∀ p ∈ sortedUnique queries, p < 2 ^ depth) ∧
-        Id.run (MerkleTree.octopusRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
-          ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
-          paths.siblingHashes) = some root) := fun h ↦ by omega
+  · have hc : ¬ paths.Accepts H root depth rowWords leafWords queries := fun h ↦ by omega
     simp only [h1, hc, ↓reduceIte]
     rfl
   · simp only [h1, ↓reduceIte, Id.run_bind]
@@ -245,7 +275,8 @@ theorem run_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ) (q
           by_contra h
           exact hr ⟨p, hp, by omega⟩
         rw [ite_eq_right hr, Id.run_bind]
-        rcases ho : Id.run (MerkleTree.octopusRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
+        unfold PrunedMerklePaths.Accepts
+        rcases ho : Id.run (MerkleTree.prunedRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
           ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
           paths.siblingHashes) with _ | r
         · rw [ite_eq_right (fun h ↦ by cases h.2.2.2.2)]
@@ -278,15 +309,10 @@ theorem merkle_fits (root : Digest) (depth rowWords leafWords : ℕ) (queries : 
           (paths.leafData.map (leafDigest H leafWords)) paths.siblingHashes = some o ∧
         InductiveMerkleTree.getPutativeBatchRootWithHash
           (fun l r ↦ H (digestBytes l ++ digestBytes r)) o.values o.proof = root := by
-  have key := MerkleTree.octopusRoot_eq_some_iff (fun l r ↦ H (nodeBytes l r)) depth
+  have key := MerkleTree.prunedRoot_eq_some_iff (fun l r ↦ H (nodeBytes l r)) depth
     (sortedUnique queries) (paths.leafData.map (leafDigest H leafWords)) paths.siblingHashes root
   rw [run_merkleVerifyWith]
-  by_cases hc : paths.leafData.length = (sortedUnique queries).length ∧ rowWords ≤ leafWords ∧
-      (∀ row ∈ paths.leafData, row.length = rowWords) ∧
-      (∀ p ∈ sortedUnique queries, p < 2 ^ depth) ∧
-      Id.run (MerkleTree.octopusRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
-        ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
-        paths.siblingHashes) = some root
+  by_cases hc : paths.Accepts H root depth rowWords leafWords queries
   · rw [ite_eq_left hc, Option.some.injEq]
     constructor
     · rintro rfl
@@ -313,37 +339,33 @@ private theorem nodesAt_map {k : ℕ} (rows : Vector (List K) (2 ^ k)) (f : List
       (fun q hq ↦ h q (List.mem_cons_of_mem _ hq))]
     simp [hp]
 
-/-- Completeness: the prover's opening of the tree over `rows`, each `rowWords ≤ leafWords`
-wide, at nonempty queries in the tree is accepted under the tree's root, with the queried rows'
-leaf images in query order. -/
-theorem merkleVerifyWith_merkleOpenWith {k rowWords leafWords : ℕ}
+/-- Completeness: the commitment to `rows`, each `rowWords ≤ leafWords` wide, opened at
+nonempty queries in the tree, is accepted under its root, with the queried rows' leaf images in
+query order. -/
+theorem merkleVerifyWith_merkleOpen {k rowWords leafWords : ℕ}
     (rows : Vector (List K) (2 ^ k)) (queries : List ℕ) (hrw : rowWords ≤ leafWords)
     (hw : ∀ row ∈ rows.toList, row.length = rowWords) (hne : queries ≠ [])
     (hlt : ∀ q ∈ queries, q < 2 ^ k) :
-    Id.run (merkleVerifyWith (m := Id) H (merkleRootWith H (rows.map (leafImage leafWords))) k
-        rowWords leafWords queries (merkleOpenWith H leafWords rows queries)) =
+    Id.run (merkleVerifyWith (m := Id) H (merkleCommitWith H leafWords rows).root k rowWords
+        leafWords queries (merkleOpen (merkleCommitWith H leafWords rows) queries)) =
       some (queries.map fun q ↦ leafImage leafWords (rows[q]?.getD [])) := by
   have hslt : ∀ p ∈ sortedUnique queries, p < 2 ^ k := fun p hp ↦ hlt p (mem_sortedUnique.mp hp)
   have hsne : sortedUnique queries ≠ [] := fun h ↦ hne (sortedUnique_eq_nil.mp h)
-  have hroot : merkleRootWith H (rows.map (leafImage leafWords)) =
-      MerkleTree.rootOfLevel (fun l r ↦ H (nodeBytes l r)) k
-        (rows.map (leafDigest H leafWords)) := by
-    simp only [merkleRootWith, MerkleTree.root, Vector.map_map]
-    rfl
-  have hoct := MerkleTree.octopusRoot_openSiblings (fun l r ↦ H (nodeBytes l r))
+  have hoct := MerkleTree.prunedRoot_openSiblings (fun l r ↦ H (nodeBytes l r))
     (rows.map (leafDigest H leafWords)) (sortedUnique queries) hsne hslt
-  rw [nodesAt_map rows _ _ hslt] at hoct
+  rw [nodesAt_map rows _ _ hslt, ← MerkleTree.siblings_buildLevels,
+    ← MerkleTree.root_buildLevels] at hoct
   rw [run_merkleVerifyWith, ite_eq_left]
   · congr 1
-    unfold rowsInQueryOrder merkleOpenWith
+    unfold rowsInQueryOrder merkleOpen merkleCommitWith
     refine List.map_congr_left fun q hq ↦ ?_
     have hmem : q ∈ sortedUnique queries := mem_sortedUnique.mpr hq
     rw [List.getD_eq_getElem?_getD, List.getElem?_map,
       List.getElem?_eq_getElem (List.idxOf_lt_length_of_mem hmem), List.getElem_idxOf]
     rfl
-  · refine ⟨by simp [merkleOpenWith], hrw, ?_, hslt, by rw [hroot]; exact hoct⟩
+  · refine ⟨by simp [merkleOpen], hrw, ?_, hslt, hoct⟩
     intro row hrow
-    simp only [merkleOpenWith, List.mem_map] at hrow
+    simp only [merkleOpen, merkleCommitWith, List.mem_map] at hrow
     obtain ⟨q, hq, rfl⟩ := hrow
     have := hslt q hq
     rw [Vector.getElem?_eq_getElem this, Option.getD_some]

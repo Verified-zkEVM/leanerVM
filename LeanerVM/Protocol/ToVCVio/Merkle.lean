@@ -23,17 +23,20 @@ the left child first; `root` hashes the leaves first. Node `i` of a level has ch
 `2i + 1` of the level below, so leaf `p`'s ancestor at height `h` is `p / 2^h`, and the top bit
 of `p` chooses the root's child, as in VCVio's `SkeletonLeafIndex.ofNat`.
 
-A pruned opening (an octopus) of the leaves at strictly increasing positions carries their values
-and one list of siblings: walking up from the leaves, level by level and left to right, a node whose
+A pruned opening of the leaves at strictly increasing positions carries their values and one
+list of siblings: walking up from the leaves, level by level and left to right, a node whose
 sibling is also on an opened path is paired with it, and any other node takes the next supplied
 sibling. `levelStep` is one level of that walk and `fold` the walk, both over a `NodeAlgebra`
-that says how a parent is formed from its children: by a hash in any monad (`octopusRoot`), or
+that says how a parent is formed from its children: by a hash in any monad (`prunedRoot`), or
 as a VCVio `BatchOpening` of the perfect subtree below the parent (`toBatchOpening`). The walk
 fails when the siblings run out or are left over, and reads the first node of the top level.
 
-`octopusRoot_eq_some_iff` is the reading: for every node hash, the walk reaches a root exactly
+`prunedRoot_eq_some_iff` is the reading: for every node hash, the walk reaches a root exactly
 when `toBatchOpening` reads the opening as VCVio's and VCVio's putative root is that root.
-`openSiblings` is the honest prover and `octopusRoot_openSiblings` its completeness.
+`openSiblings` is the honest prover and `prunedRoot_openSiblings` its completeness. A prover
+builds the tree once, as its `Levels` (`buildLevels`), and reads the root and the siblings of
+every opening off it (`Levels.root`, `Levels.siblings`); `root_buildLevels` and
+`siblings_buildLevels` equate these with `rootOfLevel` and `openSiblings`.
 `nodeQueryModelOfEncoding` is the VCVio query model of a node hash on `encode left ++ encode
 right`, which carries no address.
 -/
@@ -138,7 +141,7 @@ def fold (A : NodeAlgebra m D T) :
 
 /-- The root a pruned opening of a tree of depth `depth` claims, from the opened leaves with
 their positions and the supplied siblings, with every parent a call of `hash`. -/
-def octopusRoot (hash : D → D → m D) (depth : ℕ) (leaves : List (ℕ × D)) (sibs : List D) :
+def prunedRoot (hash : D → D → m D) (depth : ℕ) (leaves : List (ℕ × D)) (sibs : List D) :
     m (Option D) :=
   fold (NodeAlgebra.ofHash hash) depth 0 depth (Nat.zero_add depth) leaves sibs
 
@@ -316,16 +319,16 @@ private theorem fold_putativeRoot :
 /-- The reading: for every node hash, `toBatchOpening` reads a pruned opening as a VCVio batch
 opening whose putative root is `r` exactly when the positions strictly increase, lie in the tree
 and match the leaves one for one, and the walk reaches `r`. -/
-theorem octopusRoot_eq_some_iff (depth : ℕ) (positions : List ℕ) (leaves sibs : List D) (r : D) :
+theorem prunedRoot_eq_some_iff (depth : ℕ) (positions : List ℕ) (leaves sibs : List D) (r : D) :
     (∃ o, toBatchOpening depth positions leaves sibs = some o ∧ putativeRoot hash o = r) ↔
       (positions.Pairwise (· < ·) ∧ (∀ p ∈ positions, p < 2 ^ depth) ∧
         positions.length = leaves.length) ∧
-      Id.run (octopusRoot (m := Id) hash depth (positions.zip leaves) sibs) = some r := by
+      Id.run (prunedRoot (m := Id) hash depth (positions.zip leaves) sibs) = some r := by
   have hmap : positions.zip leaves =
       (positions.zip (leaves.map leafOpening)).map (rootNode hash) := by
     rw [List.zip_map_right, List.map_map]
     exact (List.map_id'' (fun _ ↦ rfl) _).symm
-  unfold toBatchOpening octopusRoot
+  unfold toBatchOpening prunedRoot
   rw [hmap, fold_putativeRoot, Option.map_eq_some_iff]
   split
   · next hv => exact ⟨fun h ↦ ⟨hv, h⟩, fun h ↦ h.2⟩
@@ -486,12 +489,12 @@ private theorem parentPositions_lt {k : ℕ} :
 
 /-- Completeness: the honest opening of a tree at nonempty positions in the tree reaches the
 tree's root, with every sibling used. -/
-theorem octopusRoot_openSiblings {k : ℕ} (level : Vector D (2 ^ k)) (positions : List ℕ)
+theorem prunedRoot_openSiblings {k : ℕ} (level : Vector D (2 ^ k)) (positions : List ℕ)
     (hne : positions ≠ []) (hlt : ∀ p ∈ positions, p < 2 ^ k) :
-    Id.run (octopusRoot (m := Id) hashPair k (nodesAt level positions)
+    Id.run (prunedRoot (m := Id) hashPair k (nodesAt level positions)
         (openSiblings hashPair k level positions)) =
       some (rootOfLevel hashPair k level) := by
-  unfold octopusRoot
+  unfold prunedRoot
   suffices ∀ (k h t : ℕ) (e : h + k = t) (level : Vector D (2 ^ k)) (positions : List ℕ),
       positions ≠ [] → (∀ p ∈ positions, p < 2 ^ k) →
       Id.run (fold (NodeAlgebra.ofHash (m := Id) hashPair) k h t e (nodesAt level positions)
@@ -513,6 +516,49 @@ theorem octopusRoot_openSiblings {k : ℕ} (level : Vector D (2 ^ k)) (positions
     exact ih (h + 1) t _ _ _ (parentPositions_ne_nil hne) (parentPositions_lt positions hlt)
 
 end Prover
+
+/-! ## The tree built once -/
+
+section Levels
+
+variable (hashPair : D → D → D)
+
+/-- The levels of a tree, bottom-up: a level of `2^(k+1)` nodes above which stand the levels of
+its parents, up to the root. -/
+inductive Levels (D : Type) : ℕ → Type
+  | top (root : D) : Levels D 0
+  | cons {k : ℕ} (level : Vector D (2 ^ (k + 1))) (above : Levels D k) : Levels D (k + 1)
+
+/-- The levels of the tree over a level of `2^k` nodes, each level's parents hashed once. -/
+def buildLevels : (k : ℕ) → Vector D (2 ^ k) → Levels D k
+  | 0, level => .top level[0]
+  | k + 1, level => .cons level (buildLevels k (parents hashPair level))
+
+/-- The root of a tree's levels. -/
+def Levels.root : {k : ℕ} → Levels D k → D
+  | _, .top r => r
+  | _, .cons _ above => above.root
+
+/-- The siblings of the pruned opening at `positions`, read off a tree's levels, bottom-up and
+left to right. -/
+def Levels.siblings : {k : ℕ} → Levels D k → List ℕ → List D
+  | _, .top _, _ => []
+  | _, .cons level above, positions =>
+    levelSiblings level positions ++ above.siblings (parentPositions positions)
+
+theorem root_buildLevels : ∀ (k : ℕ) (level : Vector D (2 ^ k)),
+    (buildLevels hashPair k level).root = rootOfLevel hashPair k level
+  | 0, _ => rfl
+  | k + 1, level => root_buildLevels k (parents hashPair level)
+
+theorem siblings_buildLevels : ∀ (k : ℕ) (level : Vector D (2 ^ k)) (positions : List ℕ),
+    (buildLevels hashPair k level).siblings positions = openSiblings hashPair k level positions
+  | 0, _, _ => rfl
+  | k + 1, level, positions => by
+    simp only [buildLevels, Levels.siblings, openSiblings,
+      siblings_buildLevels k (parents hashPair level)]
+
+end Levels
 
 /-! ## The query model of an untagged node hash -/
 

@@ -128,10 +128,11 @@ hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parame
 (`Parameters/Whir.lean`) are on `main` (#67). On the branch `feat/protocol-merkle-octopus`, the
 Merkle trees over a byte hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root
 (`merkleRootWith`, `merkleRoot`), a phase's pruned opening as the verifier checks it
-(`merkleVerifyWith`, `merkleVerify`) and the prover builds it (`merkleOpenWith`, `merkleOpen`),
-completeness (`merkleVerifyWith_merkleOpenWith`), the node query model (`nodeModel`), and the
-reading as VCVio's batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the
-single-path check of #67 and its binding as a computed collision. Nothing else is built: the other
+(`merkleVerifyWith`, `merkleVerify`), the prover's commitment, with the tree built once, and
+its openings (`merkleCommitWith`, `merkleCommit`, `merkleOpen`), completeness
+(`merkleVerifyWith_merkleOpen`), the node query model (`nodeModel`), and the reading as VCVio's
+batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the single-path
+check of #67 and its binding as a computed collision. Nothing else is built: the other
 generic components, the WHIR opening, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
@@ -656,13 +657,14 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - The Rust's checks that the leaf count is a power of two and that some query is made are
     subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
     to read at the top. The Rust also returns each query's full path, which is dropped.
-  - The single-path check, its completeness and its binding as a computed collision are deleted;
-    binding is VCVio's extraction.
-  - Owed: extraction with hashed leaves (`ToVCVio/MerkleLeaves.lean`), a pull request of its own;
-    that `toBatchOpening`'s reading selects exactly the queried positions, in VCVio's leaf order,
-    with their leaf digests as values (tested, not proved), which the Merkle compilation needs to
-    map VCVio's extracted leaves back to rows; and, in Layer 12, that `merkleVerifyWith` run with
-    the hash as a random-oracle query answered by BLAKE2s is `merkleVerify`.
+  - The single-path check, its completeness and its binding as a computed collision are deleted.
+  - Owed: binding, as log replay on `MerkleTree.fold` (`extractRows`, `binding_of_log`), on the
+    branch `feat/protocol-merkle-binding`. `merkle_fits` is the reading as VCVio's and is not on
+    that path; that `toBatchOpening` selects exactly the queried positions, with their leaf
+    digests as values, is tested and not proved. The blueprint's decision 32 and the hashed-leaf
+    hole (`ToVCVio/MerkleLeaves.lean`) are revised in the docs pull request. In Layer 12: that
+    `merkleVerifyWith` run with the hash as a random-oracle query answered by BLAKE2s is
+    `merkleVerify`.
 - **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
@@ -680,8 +682,9 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening with the WHIR parameters (Layer 11), and the charged invariant and Merkle binding by
-log replay (Layer 12). The Merkle trees are on the branch `feat/protocol-merkle-octopus`.
+WHIR opening with the WHIR parameters (Layer 11), and the charged invariant (Layer 12). The Merkle
+trees are on the branch `feat/protocol-merkle-octopus`, and their binding by log replay on
+`feat/protocol-merkle-binding`.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
