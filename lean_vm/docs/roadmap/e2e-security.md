@@ -475,6 +475,49 @@ answered, or a DA claim the oracle's final log does not back (E2E-1: every query
 includes the honest signers' work). `closedError_eq_num` writes the bound as one fraction
 `closedNum Q n_x n_s / 2^256`.
 
+**§0's goal is proved: `ε(Q_v)` with the visible accounting, up to explicit deviations** (W-vis,
+`w-vis.md`; decisions E2E-6 and E2E-7; `LeanVM/E2E/Vis/EndFinal.lean`, `LeanVM/E2E/Vis/Deployed.lean`,
+pinned in `LeanVM.lean` at Lean's three axioms). `aggregate_no_forgery_vis` assumes 127 bits of
+single-key security for leanXMSS and leanSPHINCS, the honest costs, and the adversary's query bounds:
+`qH` hash queries, `sX`/`sS` signing requests per scheme, `sXk`/`sSk` per key. Under these it bounds
+a break at V_I's own trace (`BreaksVis`: an accepted root statement with a forged claim of an honest
+key, or a DA claim the trace does not back):
+
+    Pr[ gameRec guest fuel budget A : BreaksVis ] ≤ sec0ErrorGame … ≤ eps0Game … + deltaGame …,
+
+`Q_v = qH + budget` the visible queries. `eps0` is §0's bound term by term: `κ_V°(Q_v)`,
+`κ_batch(Q_v)`, `(Q_v+1)²/2^193`, `ε_signer`, `(n_x+n_s)(Q_v + Q_sig′ + c)/2^127` and `ε_DA`.
+`delta` collects the deviations, each with its reason in `w-vis.md` §6:
+- the hidden queries' failure terms;
+- E5's `4Q_v²/2^256`;
+- DA on hidden queries, `Q_sig·14/2^192` (E2E-7);
+- the format event;
+- the forwarded derivations, `n·2n/2^127`;
+- the extra key coincidences, `n²/2^128 + n·Q_k²/2^256`.
+
+The bound is a theorem; nothing in it is estimated. The extractor reads only V_I's trace, so the
+event is stronger than `Breaks`: `aggregate_no_forgery_vis_game` states today's `Breaks` in `game`
+at the same bound.
+
+The deployed instances use lean_xmss's `leanXmss_has_127_bits_of_classical_security` and
+lean_sphincs's `Lifetimes.full_bits`, …, at every proved parameter set
+(`aggregate_no_forgery_vis_deployed_full`, `…_pruned20`, …, `…_pruned8`, with `…_game` and
+`…_eps0` forms). Their only hypotheses are the query bounds. The values at `n_x = n_s = 2^20`:
+
+| point | proved bound | today's `closedError` |
+| --- | --- | --- |
+| one slot: `Q_v ≤ 2^64`, `2^20` requests per scheme and per key (`…_one_slot_full`, `…_pruned20`) | `≤ 2^-42 + 2^-51` (`≈ 2^-42`) | `≈ 2^-43.0` |
+| lifetime: `Q_v ≤ 2^64`, `2^44` per scheme, `2^24` per key (`…_lifetime_full`, `…_pruned20`) | `≤ 2^-41` (`≈ 2^-41.97`) | `≈ 2^-28.07` |
+| lifetime against §0 (`…_lifetime_full_eps0`) | `≤ ε(Q_v) + 2^-84 + 2^-86 + 2^-91` | |
+| leanXMSS keys only, lifetime, `Q_v ≤ 2^64` (`…_lifetime_xmss`) | `≤ 2^-42` (`≈ 2^-43`) | `≈ 2^-39` |
+| leanXMSS keys only, lifetime, `Q_v ≤ 2^56` (`…_lifetime_xmss_56`) | `≤ 2^-49` | `≈ 2^-39` |
+
+The two families hold for the same event (`Breaks`), and the smaller bound applies. At one slot,
+today's is about twice smaller: the per-key hybrid pays `n_x·Q_v/2^127` for leanXMSS, where
+leanXMSS's multi-user theorem pays `Q/2^127` once. Over a lifetime the visible bound wins by
+about `2^14`. The deviations matter little: `deltaFwd` alone is `2^-84` at the lifetime point, the rest is
+below `2^-85`.
+
 **The constants** (proved worst-case `IsTotalQueryBound`s, `Reduction/XmssBound.lean`,
 `Reduction/SphincsBound.lean`, `Reduction/VerifyBound.lean`):
 
@@ -517,6 +560,5 @@ E2E-5) by the layers of `t6-completeness.md`. L17, the count of the node's hashe
 `hyps_wTree`, `idealVerify_complete_wTree`; `Count/FinalWitness.lean`, `hyps_final_wTree`,
 `idealVerify_complete_final_wTree`): a leaf holding one leanXMSS claim directly, at a constant `H`,
 meets all of them, its budget evaluated by the kernel.
-T7′ is `Sanity.idealVerify_blake2s`. Not proved: the visible-only accounting (W-vis,
-§0's sharper bound with `Q_v` in place of `Q`), and the heuristic of §5 relating V_I to the deployed
+T7′ is `Sanity.idealVerify_blake2s`. Not proved: the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.
