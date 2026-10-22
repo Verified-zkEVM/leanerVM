@@ -121,10 +121,15 @@ def NodeExecOn (D : List Bytes) (H : Bytes → Digest) (pi : Digest) (w : NodeWi
 
 open Classical in
 /-- **The oblivious execution**: an execution on the log's strings at the hash the log answers,
-if any; a function of the log alone. -/
+if any, one whose stack has at least `22` variables (the guest's floor on a child's stack,
+`End.Limits.stackLog`; leanVM's prover pads the memory to reach it) when there is one; a function
+of the log alone. -/
 noncomputable def execOf (L : Log) (pi : Digest) (w : NodeWitness) :
     Option (NodeExecOn (L.map Prod.fst) (fillLog L) pi w) :=
-  if h : Nonempty (NodeExecOn (L.map Prod.fst) (fillLog L) pi w) then some (Classical.choice h)
+  if h : ∃ e : NodeExecOn (L.map Prod.fst) (fillLog L) pi w, 22 ≤ LeanIsa.leanIsaμ guest e.1.sz then
+    some (Classical.choose h)
+  else if h : Nonempty (NodeExecOn (L.map Prod.fst) (fillLog L) pi w) then
+    some (Classical.choice h)
   else none
 
 /-- **The choice is an execution of every hash agreeing with the log.** -/
@@ -181,7 +186,8 @@ theorem execOf_isSome (H : Bytes → Digest) {s : NodeStatement} {w : NodeWitnes
     rw [strings_logOf]
     exact ⟨⟨e.1.transport fun _ hx ↦ (fillLog_eq hag (by rw [strings_logOf]; exact e.2 ▸ hx)).symm,
       e.2⟩⟩
-  simp [execOf, hne]
+  unfold execOf
+  split_ifs <;> simp
 
 end
 end LeanVM.E2E.Complete

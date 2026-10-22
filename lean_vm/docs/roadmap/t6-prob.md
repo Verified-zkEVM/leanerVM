@@ -446,9 +446,12 @@ T6-3), §8 later; `t6-completeness.md` "Open" (a pointer here). Nothing else.
    `Count/*.lean` does not give (it counts block prefixes); DA openings are the largest. Fallback:
    keep `T.proverQueries ≤ QP` a field of `ValidGen` and prove `proverQueries_le` for the leaf only.
 5. **Limits stay on the prover's outputs** (`WithinLimitsN`, as `WithinLimitsBudget` today): a
-   child's stack log must land in `[22, 28]` for whichever sizes `execOf` picks. Parity with T6-det,
-   satisfiable (the leaf has no children); a later improvement constrains `execOf` to sizes within
-   the limits.
+   child's stack log must land in `[22, 28]` for whichever sizes `execOf` picks. Done (§8,
+   recursion): `execOf` prefers sizes of at least 22 stacked variables; every node has such an
+   execution, its memory zero-padded to `2^19` words when its committed size is below `2^21`, as
+   leanVM's prover pads it (`guestCompleteModel_big`: the run, the bodies and D3's decoding
+   transport to any extension of the honest memory, `PadHonest.lean`); and the stream cap holds of
+   every accepted proof. So the limits are a condition on the tree alone (`LimitsT`), at any depth.
 6. **The inhabitant's validity at every hash** goes through lean_xmss's correctness and the
    `Digest ≃ BitVec 256` bridges of `E2E/Reduction`; the leaf's budget must be the kernel-evaluated
    one of `Witness.lean` (`End.work` reads only shapes). Fallback: a leanSPHINCS leaf
@@ -492,5 +495,21 @@ theorem idealVerify_complete_rom {ρ pfuel N QG QP fuel : ℕ} (hρ : validRate 
 good event is a hypothesis: G1 and G2 are bounded (`powPot`, `weightsPot`), G3 is removed by
 E2E-8. `CompleteOK` asks V_I's acceptance at every hash agreeing with the oracle's final log; with
 V_I run lazily after the prover the same bound holds (`idealVerify_complete_rom_run`).
+
+**Recursion** (the limits on the tree, any depth; a two-level inhabitant):
+
+| file | content |
+|---|---|
+| `Rom/StreamCap.lean` | `deferredStream_le` (an accepted proof's stream has at most 1696 words), `honestOutN_stream_le` |
+| `Rom/Pad.lean` | `padImage`, `runB_of_ext`, `exists_padded`, `exists_stack_total`, **`nodeExec_nodeLog_big`** (a leaf has an execution of at least 22 stacked variables) |
+| `Rom/Chooser.lean` (edited) | `execOf` takes an execution of at least 22 stacked variables when there is one |
+| `Rom/LimitsT.lean` | `LimitsT`, `KidsLeaves`, `withinLimitsN_of_T`, `ValidGenT`, **`idealVerify_complete_rom_T`** |
+| `Rom/RootBudget{A,B,C,D,E,F,}.lean` | the deployed budget at a node with one child (`budget_rootWork`), evaluated piece by piece |
+| `Rom/RootGen.lean` | `xmssRootGen` (a root over the leanXMSS leaf), `validGenT_xmssRootGen`, **`idealVerify_complete_rom_xmssRoot`** (`2^-124`) |
+| `PadHonest.lean`, `HonestBodiesPad.lean`, `DecodePad.lean` | `MemExt` (an extension of the honest memory, its zero padding) and the transports; the honest bodies and D3 on it (`d3HypO_ext`) |
+| `GuestModelBig.lean` | **`guestCompleteModel_big`**: L2 with an execution of committed size above `2^21` |
+| `Rom/PadRec.lean` | every node has a padded execution (`nodeExec_nodeLog_bigG`), every child's stack log in `[22, 28]` (`honestOutN_stackLog`), `ValidGenR`, **`idealVerify_complete_rom_rec`** (any depth) |
+
+Completeness through recursion is `Main.complete_recursive` (`LeanVM/E2E/Main.lean`).
 
 Decisions: E2E-8 decided by the user, T6-3 recorded (`e2e-security.md` §7).

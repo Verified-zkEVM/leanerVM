@@ -3,6 +3,7 @@ import LeanVM.E2E.HeadlineSharp
 import LeanVM.E2E.Sanity
 import LeanVM.E2E.SanityDeployed
 import LeanVM.E2E.SanityDeployedBudget
+import LeanVM.E2E.Complete.Rom.PadRec
 
 /-!
 # The end-to-end security of leanVM aggregation: the result
@@ -43,6 +44,11 @@ This file states the whole end-to-end result in six theorems; every other theore
 3. **Completeness** (`complete`): the honest prover's proof of any generated valid tree is rejected
    by the game's `V_I` (same oracle, same budget, same fuel) with probability at most
    `completeError (QG + QP) pfuel`; `2^-124` at the honest leanXMSS leaf.
+   **Through recursion** (`complete_recursive`): the same for trees of aggregation nodes of any
+   depth, the limits a condition on the tree alone (`ValidGenR`, `LimitsT`): the honest prover
+   pads each node's memory as leanVM's prover does, so every child's stack has the 22 variables
+   its parent admits (`Complete.guestCompleteModel_big`); `2^-124` at a root over the honest
+   leanXMSS leaf (`Complete.idealVerify_complete_rom_xmssRoot`).
 4. **Sanity** (`sanity`, T7″): `V_I` with BLAKE2s for the oracle accepts what the deployed
    aggregation accepts, when the reached nodes' partial words encode known stacks.
 5. **Sanity, deployed** (`sanity_deployed`, S1): the deployed honest prover's output on every
@@ -52,8 +58,6 @@ This file states the whole end-to-end result in six theorems; every other theore
    BLAKE2s compression collision exists. Not vacuous:
    an honest leanXMSS leaf (`SanityDeployed.sanity_deployed_xmssLeaf`).
 
-Not yet here: completeness through recursion (the honest prover of a tree of aggregation nodes),
-in progress; it will be added to this file.
 
 ## What is assumed
 
@@ -154,6 +158,24 @@ theorem complete {nx ns : ℕ} {ρ pfuel N QG QP : ℕ} (hρ : LeanIsa.validRate
     Pr{let z ← Complete.completeRunGame (nx := nx) (ns := ns) ρ pfuel gen N (viCost N)}[
       z.1 = some false] ≤ Complete.completeError (QG + QP) pfuel :=
   aggregate_complete_final hρ hpf gen hQG hgen
+
+/-- **Completeness through recursion.** For every generator `gen` of valid honest trees of any
+depth (aggregation nodes over aggregation nodes over signatures), within the deployed limits and
+budget on their claims and holders at every node (`ValidGenR`: `LimitsT`, which names no hash and
+no prover; at most `N` nodes; the honest prover's queries at most `QP`) making at most `QG`
+queries, a valid rate `ρ` and a proof-of-work fuel `pfuel ≤ 2^64`: the honest prover's idealized
+proof, checked by `V_I` exactly as the game runs it, is rejected with probability at most
+`completeError (QG + QP) pfuel`. The honest prover pads each node's memory, as leanVM's prover
+does, so that every child's stack has the 22 variables its parent's guest admits
+(`Complete.guestCompleteModel_big`), and every accepted child's stream is within the guest's cap
+(`Complete.deferredStream_le`). Not vacuous: `2^-124` at a root over the honest leanXMSS leaf
+(`Complete.idealVerify_complete_rom_xmssRoot`). -/
+theorem complete_recursive {nx ns : ℕ} {ρ pfuel N QG QP : ℕ} (hρ : LeanIsa.validRate ρ)
+    (hpf : pfuel ≤ 2 ^ 64) (gen : OracleComp HashSpec (Option Complete.HonestTree))
+    (hQG : IsTotalQueryBound gen QG) (hgen : Complete.ValidGenR ρ pfuel N QP gen) :
+    Pr{let z ← Complete.completeRunGame (nx := nx) (ns := ns) ρ pfuel gen N (viCost N)}[
+      z.1 = some false] ≤ Complete.completeError (QG + QP) pfuel :=
+  complete hρ hpf gen hQG (Complete.validGen_of_R hρ hgen)
 
 /-- **Sanity (T7″): `V_I` with BLAKE2s accepts what the deployed aggregation accepts.** If the
 deployed outer verifier accepts the root statement `s` with the idealized proof's root proof

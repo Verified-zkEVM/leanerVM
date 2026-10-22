@@ -1,4 +1,6 @@
 import LeanVM.E2E.SanityDeployedBudget
+import LeanVM.E2E.Complete.Rom.RootGen
+import LeanVM.E2E.Complete.Rom.PadRec
 import LeanVM.Protocol.EndToEnd.Blind.Statements
 import LeanVM.Protocol.EndToEnd.Blind.Execution
 import LeanVM.Protocol.EndToEnd.Blind.Deferred
@@ -397,7 +399,7 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_no_forgery_vis_lifetime_xmss
 
-/-! T6-prob (`docs/roadmap/t6-prob.md`): V_I accepts the honest prover's idealized proof of a generated valid tree, over the random oracle, except with probability `completeError`; no good event is a hypothesis (G1, G2 bounded by `powPot` and `weightsPot`; G3 removed by decision E2E-8). Not vacuous: the honest leanXMSS leaf generator, error at most `2^-124`. -/
+/-! T6-prob (`docs/roadmap/t6-prob.md`): V_I accepts the honest prover's idealized proof of a generated valid tree, over the random oracle, except with probability `completeError`; no good event is a hypothesis (G1, G2 bounded by `powPot` and `weightsPot`; G3 removed by decision E2E-8). Not vacuous: the honest leanXMSS leaf generator, and a root over it (recursion: the batching, the child's decoding, the stack-log floor), error at most `2^-124`; at any depth, the honest prover padding each node's memory as leanVM's does (`guestCompleteModel_big`, `idealVerify_complete_rom_rec`). -/
 
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_N' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
@@ -414,6 +416,22 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_xmssLeaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_xmssLeaf
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_xmssRoot' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_xmssRoot
+
+/-- info: 'LeanVM.E2E.Complete.guestCompleteModel_big' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.guestCompleteModel_big
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_rec' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_rec
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_rec_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_rec_budget
 
 /-! V_I's queries on the honest proof (`LeanVM/E2E/Complete/Rom/ViCost.lean`): at most `viRootBound + fuel · viStepBound`, `13,508 + fuel · 179,719,581`, for every hash; and T6-prob with the game's budget (`LeanVM/E2E/Complete/Rom/EndBudget.lean`): V_I run as the game runs it, with the budgeted hash and a budget of at least `N · viNodeBound`, after the honest prover against the same lazily sampled oracle, rejects with probability at most `completeError`. -/
 
