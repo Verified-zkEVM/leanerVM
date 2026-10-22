@@ -13,9 +13,9 @@ public import LeanVM.Spec.DaWith
 /-!
 # The node, for any hash
 
-`Node.lean` states what a node establishes with BLAKE2s. The end-to-end security theorem
-(`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`)) states it relative to a random oracle answered by a log: every
-hash a check makes must be answered, and the check must hold for the answers. So every hashing
+`Node.lean` states what a node establishes with BLAKE2s. The guest's proofs also need it relative
+to a hash answered by a log: every hash a check makes must be answered, and the check must hold
+for the answers. So every hashing
 function of `Node.lean` is given here with the hash `H : Bytes → m Digest` in any monad (`…With`):
 at `m = Id` and `H = blake2sBytes` it is the deployed one (`statementDigestWith_id`,
 `batchWith_id`, `xmssVerifyWith_id`, …), and at `m = Option` with `H` a log's lookup it is the

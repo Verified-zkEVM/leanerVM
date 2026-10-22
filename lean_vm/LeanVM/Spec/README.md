@@ -21,7 +21,6 @@ The same statements with the hash and the `BLAKE2S` relation as parameters, each
 
 10. [`IsaWith.lean`](IsaWith.lean): leanISA with the relation `BLAKE2S` checks a parameter (`BlakeSem`): the deployed one (`blakeDeployed`, the compression) and the Flock-blind one (`blakeFree`, canonical cells).
 11. [`NodeWith.lean`](NodeWith.lean) and [`DaWith.lean`](DaWith.lean): the node's digests, signature verification, batching (from a start state) and DA claim with the hash in any monad, and `NodeRelWith`, `Witness.OpensWith` over an answered (`Option`-valued) hash.
-12. [`Ideal/Blind.lean`](Ideal/Blind.lean): the Flock-blind verifier V°, the deployed verifier without the Flock lincheck's terminal check; [`Ideal/Table.lean`](Ideal/Table.lean): an execution's `BLAKE2S` rows, standard BLAKE2s chains, and the table check `TableOK`.
 
 [`Fast/`](Fast/) needs no review: it holds `@[csimp]` theorems, each proved, that make the compiled field arithmetic, BLAKE2s, LeanDA's membership vector and the signature schemes' verifiers fast. They change no definition.
 

@@ -44,7 +44,7 @@ The theorems compose, on paper, into the security of an aggregate: if the verifi
 | Path | Contents |
 | --- | --- |
 | `LeanVM/Spec/` | the statements |
-| `LeanVM/Parameters/`, `LeanVM/Semantics/` | constants and encodings; lemmas about the ISA and an executable interpreter |
+| `LeanVM/Parameters/`, `LeanVM/Semantics/` | constants and encodings; lemmas about the ISA |
 | `LeanVM/Arithmetization/` | the tables, the bus and the constraints, sound and complete for valid executions |
 | `LeanVM/Protocol/` | the proof system and its proofs; `To{ArkLib,Clean,CompPoly,VCVio}/` hold lemmas meant for those libraries |
 | `LeanVM/Guest/` | the aggregation guest: its compiled bytecode (`Data/Bytecode*`, generated) as a `Program` and the program logic for its runs (`Code`, `Bytecode`, `Logic`); its mirror, the source AST (`Source`, the generated `Data/Source`), the core IR and its relational semantics (`Core`, `CoreLemmas`), the renumbering of a function's values (`Renumber`) and the guest's core IR as data (`CoreData`, the generated `Data/Core*`), the zkDSL expansion (`Expand`, `ExpandLemmas`) and an interpreter (`Interp`); the honest hint generator (`Hints`); the value lemmas (`Value/`); the honest memory of an evaluation for completeness (`Memory`, `Memory/`) |

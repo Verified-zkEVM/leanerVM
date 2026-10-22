@@ -24,10 +24,9 @@ does not answer):
 
 * `deployed`: the compression function, every string answered by `blake2sBytes`; a prefix's
   chaining value is `absorbBlocks` of its blocks (`Value/Hash.lean`);
-* the oracle model of the end-to-end security theorem (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D4, the
-  guest package of §6): the Flock-blind semantics restricted to an execution's rows, `H` a log's
-  lookup; there a prefix's chaining value is free and only the table's standard chains are bound
-  to the hash.
+* (an oracle model, the Flock-blind semantics restricted to an execution's rows with `H` a log's
+  lookup, served a removed end-to-end theorem: `docs/roadmap/e2e-security.md` in git at
+  `6ffa1d1f`).
 
 The model fixes what a proof may use: a guest proof over `HashModel` never reads an intermediate
 chaining value, which the oracle model leaves free, and every hash it concludes is one the model

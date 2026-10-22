@@ -13,8 +13,7 @@ public import LeanVM.Spec.Da
 # The DA claim, for any hash
 
 LeanDA (`formal/lean_da`) defines its algorithms with a pure hash `H : List UInt8 → Digest`. The
-end-to-end security theorem (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`)) needs them answered by a log: every
-hash made, then the value. So the algorithms the DA claim uses are transcribed here in any monad
+guest's proofs also need them answered by a log: every hash made, then the value. So the algorithms the DA claim uses are transcribed here in any monad
 (`…With`), and the deployed padding digests are parameters (`pc`, `pr`; deployed: the hashes of
 the zero cell and the zero row, which the guest bakes as constants, design D5). At `m = Id` they
 are LeanDA's own (`commitCodewordsWith_id`, `membershipVectorWith_id`, `vectorDigestWith_id`).
