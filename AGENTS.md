@@ -102,7 +102,8 @@ Parameters ──→ Semantics ──→ Arithmetization ──→ Protocol
   Preserve license notices and human attribution for substantially derived material.
 - Add a third-party dependency only for a named first-party consumer and a narrow import. Update
   the toolchain, upstream baseline, and manifest together where applicable.
-- Upstream candidates live under `LeanerVM/Protocol/To{ArkLib,Clean,CompPoly,VCVio}/`. The pull
+- Upstream candidates live under `LeanerVM/Protocol/To{ArkLib,Clean,CompPoly,VCVio}/`, or
+  `LeanerVM/Parameters/To<Library>/` when a lower layer must import them. The pull
   request that moves a library pin past an upstream merge deletes every local `To*` file or
   declaration the new pin contains, switches its consumers to the upstream names, and updates the
   protocol blueprint's upstream ledger and the status page's watch list in the same change.

@@ -34,7 +34,9 @@ integer multiplications: masked to every fourth bit, the words' bits are base-16
 `0` or `1`, so a product's digits count at most eight pairs and never carry; the parity of a
 digit is the carry-less coefficient (the idea of BearSSL's `bmul`, `src/hash/ghash_ctmul64.c`).
 `clmul64` is three such products of halves (Karatsuba) and `reduceWords` folds the high word by
-`X^64 = X^4 + X^3 + X + 1` twice. `mulFast` short-cuts the products by `0` and `1`.
+`X^64 = X^4 + X^3 + X + 1` twice. `mulFast` short-cuts the products by `0` and `1`. The field
+structure `fieldFast` also takes integer powers on words (`zpowFast`); its rational casts and
+scalar products stay those of `BF64.instField`.
 
 ## Main statements
 
@@ -42,6 +44,13 @@ digit is the carry-less coefficient (the idea of BearSSL's `bmul`, `src/hash/gha
   polynomial product and the remainder modulo `BF64.basePoly`.
 * `mulFast_eq`, `invFast_eq`, `powFast_eq` — the word operations agree with `BF64`'s.
 * the `@[csimp]` theorems `instMul_eq_instMulFast` through `instField_eq_fieldFast`.
+
+## Upstream
+
+CompPoly would carry `clmul32` through `invWord` with their proofs, and attach the substitution
+to its own definitions: a `@[csimp]` theorem `BF64.mul = …` in the module that defines `BF64.mul`
+fires for the instances compiled after it, which makes the instance-level theorems here
+unnecessary. Storing a `BF64` as a `UInt64` would remove the conversions as well.
 
 ## Implementation notes
 
@@ -54,7 +63,6 @@ namespace LeanerVM.Parameters.FastBF64
 open Polynomial BinaryField BF64
 
 @[expose] public section
-
 
 /-- A sum of base-16 digits below 16 is below `16 ^ n`. -/
 private theorem sum_digits_lt (d : ℕ → ℕ) (hd : ∀ i, d i < 16) (n : ℕ) :
@@ -798,19 +806,22 @@ theorem powFast_eq (a : BF64) (n : ℕ) : powFast a n = a ^ n := by
 @[csimp] theorem instCommRing_eq_commRingFast : @BF64.instCommRing = @commRingFast :=
   CommRing.ext rfl (funext₂ fun a b ↦ (mulFast_eq a b).symm)
 
-/-- A field structure with the ring, the inverse and the division of `BF64.instField` replaced
-by equal ones. -/
+/-- A field structure with the ring, the inverse, the division and the integer powers of
+`BF64.instField` replaced by equal ones. The rational casts and scalar products stay those of
+`BF64.instField`, over the specification's multiplication. -/
 @[instance_reducible] def fieldWith (cr : CommRing BF64) (hcr : cr = BF64.instCommRing)
     (i : BF64 → BF64) (hi : i = invItohTsujii) (d : BF64 → BF64 → BF64)
-    (hd : d = fun a b ↦ a * invItohTsujii b) : Field BF64 :=
+    (hd : d = fun a b ↦ a * invItohTsujii b) (z : ℤ → BF64 → BF64)
+    (hz : z = fun n a ↦ a ^ n) : Field BF64 :=
   { BF64.instField with
     toCommRing := cr
     inv := i
     div := d
+    zpow := z
     div_eq_mul_inv := by subst hcr hi hd; exact BF64.instField.div_eq_mul_inv
-    zpow_zero' := by subst hcr hi hd; exact BF64.instField.zpow_zero'
-    zpow_succ' := by subst hcr hi hd; exact BF64.instField.zpow_succ'
-    zpow_neg' := by subst hcr hi hd; exact BF64.instField.zpow_neg'
+    zpow_zero' := by subst hcr hi hz; exact BF64.instField.zpow_zero'
+    zpow_succ' := by subst hcr hi hz; exact BF64.instField.zpow_succ'
+    zpow_neg' := by subst hcr hi hz; exact BF64.instField.zpow_neg'
     exists_pair_ne := BF64.instField.exists_pair_ne
     mul_inv_cancel := by subst hcr hi hd; exact BF64.instField.mul_inv_cancel
     inv_zero := by subst hcr hi hd; exact BF64.instField.inv_zero
@@ -822,18 +833,35 @@ by equal ones. -/
 /-- `fieldWith` is `BF64.instField`. -/
 theorem fieldWith_eq (cr : CommRing BF64) (hcr : cr = BF64.instCommRing)
     (i : BF64 → BF64) (hi : i = invItohTsujii) (d : BF64 → BF64 → BF64)
-    (hd : d = fun a b ↦ a * invItohTsujii b) : fieldWith cr hcr i hi d hd = BF64.instField := by
-  subst hcr hi hd; rfl
+    (hd : d = fun a b ↦ a * invItohTsujii b) (z : ℤ → BF64 → BF64)
+    (hz : z = fun n a ↦ a ^ n) : fieldWith cr hcr i hi d hd z hz = BF64.instField := by
+  subst hcr hi hd hz; rfl
+
+/-- Integer powers on words: `powFast`, and `invFast` of it for a negative exponent. -/
+def zpowFast : ℤ → BF64 → BF64
+  | Int.ofNat n, a => powFast a n
+  | Int.negSucc n, a => invFast (powFast a (n + 1))
+
+/-- `zpowFast` is `BF64`'s integer power. -/
+theorem zpowFast_eq (n : ℤ) (a : BF64) : zpowFast n a = a ^ n := by
+  cases n with
+  | ofNat n =>
+    show powFast a n = a ^ (n : ℤ)
+    rw [zpow_natCast, powFast_eq]
+  | negSucc n =>
+    show invFast (powFast a (n + 1)) = a ^ Int.negSucc n
+    rw [zpow_negSucc, powFast_eq, invFast_eq]
+    rfl
 
 /-- The field with every operation on words. -/
 @[instance_reducible] def fieldFast : Field BF64 :=
   fieldWith commRingFast instCommRing_eq_commRingFast.symm invFast (funext invFast_eq)
     (fun a b ↦ mulFast a (invFast b)) (funext₂ fun a b ↦ by rw [mulFast_eq, invFast_eq])
+    zpowFast (funext₂ zpowFast_eq)
 
 /-- Compiled code passes `fieldFast` for `BF64`'s field. -/
 @[csimp] theorem instField_eq_fieldFast : @BF64.instField = @fieldFast :=
-  (fieldWith_eq _ _ _ _ _ _).symm
-
+  (fieldWith_eq _ _ _ _ _ _ _ _).symm
 
 end
 end LeanerVM.Parameters.FastBF64

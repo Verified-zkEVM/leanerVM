@@ -52,12 +52,20 @@ checksums of both runs agree at 1%.
 | `K mul on words` | n/a | 75 | n/a |
 | `E add` | 363 | 489 | unchanged code; a rerun of "before" gave 491 |
 | `E mul` | 424,513 | 3,163 | 134x |
-| `E inv` | 163,419,743 | 1,110,615 | 147x |
+| `E inv` (not the production path) | 163,419,743 | 1,110,615 | 147x |
 | `E inv (Field dictionary)` | same path as `E inv` | 18,208 | about 9,000x |
 | `BLAKE2s 64 B` | 72,239 | 2,820 | 26x |
 | `BLAKE2s 512 B` | 587,110 | 31,366 | 19x |
 | `Merkle root 2^12 rows x 8 K` | 635,838,800 | 33,190,625 | 19x |
 | `evalMle 2^16 E-table` | 59,858,789,990 | 568,452,830 | 105x |
+
+The `E inv` row is a monomorphic `x⁻¹ : E`, which names the ring-level `Ext.instInv` and
+keeps the exponentiation `x ^ (q^3 - 2)`. No library code takes that path: every `E` inverse in
+the library is generic in its field (`Protocol/ToCompPoly/Interpolation.lean`,
+`Arithmetization/Tables/Jump.lean`) and so reaches Cramer's rule, the `Field dictionary` row. The
+fast field structures also carry fast integer powers (`zpowFast`); their rational casts and
+scalar products (`nnratCast`, `ratCast`, `nnqsmul`, `qsmul`) stay those of the original instances,
+over the specification's multiplication: correct, and slow.
 
 "After" ran at 100%. The machine was shared with other builds, and single numbers moved by up to
 a third between runs; read the table as orders of magnitude. `K mul on words` includes the loop's

@@ -19,6 +19,11 @@ dependency files automatically. The leanVM pin names the exact behavior being fo
 tested even though its branch is monitored for drift. See
 [leanvm-target.md](leanvm-target.md) before updating it.
 
+A `lakefile.toml` change that adds or edits a first-party target (a `[[lean_lib]]` or
+`[[lean_exe]]` over this repository's sources, such as `LeanerVMBench` and `leanervm-bench`) is not
+a dependency change and needs none of the review below; see
+[development.md](development.md#benchmarks).
+
 Add a dependency only with a named first-party use and a narrow import. A dependency PR must:
 
 1. update the toolchain/Lake requirement, `upstreams.json`, and manifest together;

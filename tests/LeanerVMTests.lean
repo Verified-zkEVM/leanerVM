@@ -11,6 +11,7 @@ import LeanerVMTests.Arithmetization.Tables
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s
 import LeanerVMTests.Parameters.CleanField
+import LeanerVMTests.Parameters.FastArithmetic
 import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
@@ -20,11 +21,11 @@ import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.Blake2sCircuit
 import LeanerVMTests.Protocol.Blake2sHash
+import LeanerVMTests.Protocol.Blake2sHashFast
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial
-import LeanerVMTests.Protocol.FastArithmetic
 import LeanerVMTests.Protocol.Field
 import LeanerVMTests.Protocol.Fingerprint
 import LeanerVMTests.Protocol.FixedColumns
@@ -63,6 +64,7 @@ import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound
 import LeanerVMTests.Semantics.Blake2s
+import LeanerVMTests.Semantics.Blake2sFast
 import LeanerVMTests.Semantics.Executable
 import LeanerVMTests.Semantics.Execution
 import LeanerVMTests.Semantics.FillerRows

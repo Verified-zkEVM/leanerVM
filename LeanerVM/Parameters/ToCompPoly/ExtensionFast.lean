@@ -30,11 +30,17 @@ As for `BF64` in `LeanerVM.Parameters.ToCompPoly.BF64Fast`, the `@[csimp]` theor
 instance constants a compiled call site names: `Ext.instMul`, `Ext.instPowNat`, `Ext.instInv`,
 `Ext.instDiv`, `Ext.instCommRing` and `Ext.instField`. Their multiplication is `mulFast`
 (`mulDeg3` when `P.d = 3`, the existing product otherwise) and their powers are binary
-exponentiation over it. The field's inverse is `fieldInv` (`invDeg3` in degree three). The
+exponentiation over it. The field's inverse is `fieldInv` (`invDeg3` in degree three) and its
+integer powers are `zpowFast`; its rational casts and scalar products stay those of
+`Ext.instField`. The
 ring-level `Ext.instInv`, which a monomorphic `x⁻¹` names, has only a ring to work with and keeps
 `x ^ (q^d - 2)`, over `mulFast`. A compiled call site cannot see the coefficient field or the
 modulus, so every substitution is generic: the coefficient operations stay those of the
 dictionary the call site passes.
+
+Upstream, CompPoly would carry `mulDeg3`, `invDeg3` and their proofs, and attach them to `Ext.mul`
+and `Ext.instField` where those are defined, after which the instance-level theorems here are
+unnecessary.
 -/
 
 namespace LeanerVM.Parameters.FastExt
@@ -82,7 +88,6 @@ theorem mulDeg3_eq [Ring F] {P : ExtensionParams F} (h : P.d = 3) (x y : Ext P) 
     Function.iterate_succ_apply', Function.iterate_zero, id, coeff_shiftReduce, coeff_one,
     coeffNat, Nat.reduceAdd]
   fin_cases m <;> simp [mulDeg3, coeff, ofVector, ExtensionParams.lowerCoeff] <;> noncomm_ring
-
 
 /-- Multiplication: Karatsuba in degree three, the reduction table otherwise. -/
 def mulFast [Ring F] {P : ExtensionParams F} (x y : Ext P) : Ext P :=
@@ -320,18 +325,21 @@ section Field
 variable [Field F] {P : ExtensionParams F} [Finite F] [Fact (Nat.card F = P.q)]
   [Fact (Irreducible P.poly)]
 
-/-- `instField` with its ring, inverse and division replaced by equal ones. -/
+/-- `instField` with its ring, inverse, division and integer powers replaced by equal ones. The
+rational casts and scalar products stay those of `instField`, over CompPoly's product. -/
 @[instance_reducible] def fieldWith (cr : CommRing (Ext P)) (hcr : cr = instCommRing)
     (i : Ext P → Ext P) (hi : i = inv) (d : Ext P → Ext P → Ext P)
-    (hd : d = fun x y ↦ x * inv y) : Field (Ext P) :=
+    (hd : d = fun x y ↦ x * inv y) (z : ℤ → Ext P → Ext P) (hz : z = fun n x ↦ x ^ n) :
+    Field (Ext P) :=
   { instField with
     toCommRing := cr
     inv := i
     div := d
+    zpow := z
     div_eq_mul_inv := by subst hcr hi hd; exact instField.div_eq_mul_inv
-    zpow_zero' := by subst hcr hi hd; exact instField.zpow_zero'
-    zpow_succ' := by subst hcr hi hd; exact instField.zpow_succ'
-    zpow_neg' := by subst hcr hi hd; exact instField.zpow_neg'
+    zpow_zero' := by subst hcr hi hz; exact instField.zpow_zero'
+    zpow_succ' := by subst hcr hi hz; exact instField.zpow_succ'
+    zpow_neg' := by subst hcr hi hz; exact instField.zpow_neg'
     exists_pair_ne := instField.exists_pair_ne
     mul_inv_cancel := by subst hcr hi hd; exact instField.mul_inv_cancel
     inv_zero := by subst hcr hi hd; exact instField.inv_zero
@@ -343,21 +351,39 @@ variable [Field F] {P : ExtensionParams F} [Finite F] [Fact (Nat.card F = P.q)]
 /-- `fieldWith` is `Ext.instField`. -/
 theorem fieldWith_eq (cr : CommRing (Ext P)) (hcr : cr = instCommRing)
     (i : Ext P → Ext P) (hi : i = inv) (d : Ext P → Ext P → Ext P)
-    (hd : d = fun x y ↦ x * inv y) : fieldWith cr hcr i hi d hd = instField := by
-  subst hcr hi hd; rfl
+    (hd : d = fun x y ↦ x * inv y) (z : ℤ → Ext P → Ext P) (hz : z = fun n x ↦ x ^ n) :
+    fieldWith cr hcr i hi d hd z hz = instField := by
+  subst hcr hi hd hz; rfl
+
+/-- Integer powers: `powFast`, and `fieldInv` of it for a negative exponent. -/
+def zpowFast : ℤ → Ext P → Ext P
+  | Int.ofNat n, x => powFast x n
+  | Int.negSucc n, x => fieldInv (powFast x (n + 1))
+
+/-- `zpowFast` is the field's integer power. -/
+theorem zpowFast_eq (n : ℤ) (x : Ext P) : zpowFast n x = x ^ n := by
+  cases n with
+  | ofNat n =>
+    show powFast x n = x ^ (n : ℤ)
+    rw [zpow_natCast, powFast_eq]
+  | negSucc n =>
+    show fieldInv (powFast x (n + 1)) = x ^ Int.negSucc n
+    rw [zpow_negSucc, powFast_eq, fieldInv_eq]
+    rfl
 
 end Field
 
-/-- The field with `mulFast`, `powFast` and `fieldInv`. -/
+/-- The field with `mulFast`, `powFast`, `fieldInv` and `zpowFast`. -/
 @[instance_reducible] def fieldFast [Field F] {P : ExtensionParams F} [Finite F]
     [Fact (Nat.card F = P.q)] [Fact (Irreducible P.poly)] : Field (Ext P) :=
   fieldWith commRingFast (instCommRing_eq_commRingFast ▸ rfl) fieldInv (funext fieldInv_eq)
     (fun x y ↦ mulFast x (fieldInv y)) (funext₂ fun x y ↦ by rw [mulFast_eq, fieldInv_eq])
+    zpowFast (funext₂ zpowFast_eq)
 
 /-- Compiled code passes `fieldFast` for an extension's field. -/
 @[csimp] theorem instField_eq_fieldFast : @Ext.instField.{u} = @fieldFast.{u} := by
   funext F _ P _ _ _
-  exact (fieldWith_eq _ _ _ _ _ _).symm
+  exact (fieldWith_eq _ _ _ _ _ _ _ _).symm
 
 end
 end LeanerVM.Parameters.FastExt

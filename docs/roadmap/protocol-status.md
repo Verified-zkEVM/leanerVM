@@ -712,6 +712,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
+| CompPoly (issue to open: word arithmetic for `BF64`, degree-three `Ext`) | none: compiled speed of `K` and `E` everywhere | `Parameters/ToCompPoly/BF64Fast.lean`, `Parameters/ToCompPoly/ExtensionFast.lean`. Upstream would attach the `@[csimp]` theorems to `BF64.mul` and `Ext.mul` (or store a `BF64` as a `UInt64`), so the instance-level substitutions here become unnecessary: the candidate is the algorithms and their proofs | CompPoly merges them; then delete both modules and their imports in `Parameters/Field.lean` |
 
 One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
 any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level

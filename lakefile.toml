@@ -1,6 +1,6 @@
 name = "leanerVM"
 version = "0.1.0"
-defaultTargets = ["LeanerVM"]
+defaultTargets = ["LeanerVM", "LeanerVMBench"]
 # The test driver is the test library, not an executable: an executable linking
 # historical `Fintype BF64` instance enumerated `2^64` elements at startup (finding P3 in
 # docs/roadmap/leanisa-status.md); the current field enumeration is proof-only. Tests are
@@ -54,6 +54,13 @@ name = "LeanerVM"
 # Tests deliberately load full module bodies for kernel evaluation and axiom inspection.
 name = "LeanerVMTests"
 srcDir = "tests"
+allowNonModules = true
+
+[[lean_lib]]
+# The benchmark source as a library, a default target: every build elaborates it without
+# linking, so it cannot fall behind the APIs it times. Timing needs the executable below.
+name = "LeanerVMBench"
+srcDir = "bench"
 allowNonModules = true
 
 [[lean_exe]]

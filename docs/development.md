@@ -58,10 +58,12 @@ the module-system caveats). There is no test executable (finding P3 in
 
 ## Benchmarks
 
-`lakefile.toml` declares one executable, `leanervm-bench` (`bench/LeanerVMBench.lean`). It is a
-build target of this package, not a dependency, so adding or changing it needs none of the
-review in [dependencies.md](dependencies.md). It is not a default target and the validator does
-not build it: linking an executable compiles every transitive module, Mathlib's included, to C.
+`lakefile.toml` declares the benchmark source `bench/LeanerVMBench.lean` twice: as the library
+`LeanerVMBench`, a default target, so that `lake build` and the validator elaborate it without
+linking, and as the executable `leanervm-bench`, which is not a default target, because linking an
+executable compiles every transitive module, Mathlib's included, to C. Both are build targets of
+this package, not dependencies, so adding or changing them needs none of the review in
+[dependencies.md](dependencies.md).
 
 ```sh
 lake build leanervm-bench
