@@ -395,50 +395,30 @@ private theorem evalList_one : ∀ cs : List E, evalList cs 1 = cs.sum
   | [] => rfl
   | c :: cs => by simp [evalList, evalList_one cs]
 
-private theorem two_eq_zero' : (2 : E) = 0 := CharTwo.two_eq_zero
-
 /-- A polynomial of positive degree has at least two coefficients. -/
 private theorem toList_eq_cons_cons {d : ℕ} (hd : 0 < d) (c : Vector E (d + 1)) :
-    ∃ c0 c1 rest, c.toList = c0 :: c1 :: rest ∧ rest.length + 1 = d := by
+    ∃ c0 c1 rest, c.toList = c0 :: c1 :: rest := by
   have hlen := c.length_toList
-  rcases hc : c.toList with _ | ⟨c0, _ | ⟨c1, rest⟩⟩ <;> rw [hc] at hlen <;> simp at hlen
+  rcases hc : c.toList with _ | ⟨c0, _ | ⟨c1, rest⟩⟩ <;> simp [hc] at hlen
   · omega
-  · exact ⟨c0, c1, rest, rfl, by omega⟩
+  · exact ⟨c0, c1, rest, rfl⟩
+
+private theorem length_complete (claim : E) (eq? : Option E) (w : List E) :
+    (complete claim eq? w).length = w.length + 1 := by
+  rcases eq? with _ | _ <;> rcases w with _ | _ <;> simp [complete]
 
 private theorem ofList?_toList {n : ℕ} (c : Vector E n) : ofList? n c.toList = some c := by
-  rw [ofList?, dite_eq_left_of_eq_true (eq_true c.length_toList)]
   rcases c with ⟨a, rfl⟩
-  simp
+  simp [ofList?]
 
-private theorem toList_of_ofList? {n : ℕ} {l : List E} {c : Vector E n}
-    (h : ofList? n l = some c) : c.toList = l := by
+/-- A decoding succeeds at a positive degree on `d` wire coefficients, to their completion. -/
+private theorem of_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E}
+    {c : Vector E (d + 1)} (h : decode d claim eq? w = some c) :
+    (0 < d ∧ w.length = d) ∧ c.toList = complete claim eq? w := by
+  obtain ⟨hw, h⟩ := Option.ite_none_right_eq_some.mp h
   unfold ofList? at h
-  split at h
-  · cases h; simp
-  · cases h
-
-/-- The wire of a polynomial that passes its round's check decodes to the polynomial: the honest
-round survives the wire. -/
-theorem decode_encode {d : ℕ} (hd : 0 < d) {claim : E} {eq? : Option E}
-    {c : Vector E (d + 1)} (h : Check claim eq? c) :
-    decode d claim eq? (encode eq? c) = some c := by
-  obtain ⟨c0, c1, rest, hc, hlen⟩ := toList_eq_cons_cons hd c
-  have hz := two_eq_zero'
-  cases eq? with
-  | none =>
-    simp only [Check, eval, hc, evalList_zero, evalList_one, List.sum_cons] at h
-    have hw : encode none c = c0 :: rest := by simp [encode, dropped, hc]
-    have h1 : claim + rest.sum = c1 := by linear_combination -1 * h + (c0 + rest.sum) * hz
-    rw [hw, decode, ite_eq_left_of_eq_true _ _ (eq_true ⟨hd, by simp; omega⟩), complete, h1, ← hc,
-      ofList?_toList]
-  | some r =>
-    simp only [Check, eval, hc, evalList_zero, evalList_one, List.sum_cons] at h
-    have hw : encode (some r) c = c1 :: rest := by simp [encode, dropped, hc]
-    have h0 : claim + r * (c1 :: rest).sum = c0 := by
-      simp only [List.sum_cons]
-      linear_combination -1 * h + (r * c0 + r * c1 + r * rest.sum) * hz
-    rw [hw, decode, ite_eq_left_of_eq_true _ _ (eq_true ⟨hd, by simp; omega⟩), complete, h0, ← hc,
-      ofList?_toList]
+  split at h <;> cases h
+  exact ⟨hw, rfl⟩
 
 /-- The wire of a polynomial of positive degree `d` has `d` coefficients. -/
 theorem length_encode {d : ℕ} (hd : 0 < d) {eq? : Option E} (c : Vector E (d + 1)) :
@@ -446,69 +426,61 @@ theorem length_encode {d : ℕ} (hd : 0 < d) {eq? : Option E} (c : Vector E (d +
   simp only [encode, List.length_eraseIdx, Vector.length_toList, dropped]
   split <;> split <;> omega
 
+/-- The wire of a polynomial that passes its round's check decodes to the polynomial: the honest
+round survives the wire. -/
+theorem decode_encode {d : ℕ} (hd : 0 < d) {claim : E} {eq? : Option E}
+    {c : Vector E (d + 1)} (h : Check claim eq? c) :
+    decode d claim eq? (encode eq? c) = some c := by
+  suffices complete claim eq? (encode eq? c) = c.toList by
+    rw [decode, ite_eq_left_of_eq_true _ _ (eq_true ⟨hd, length_encode hd c⟩), this, ofList?_toList]
+  obtain ⟨c0, c1, rest, hc⟩ := toList_eq_cons_cons hd c
+  have hz : (2 : E) = 0 := CharTwo.two_eq_zero
+  rcases eq? with _ | r <;>
+    simp only [Check, eval, hc, evalList_zero, evalList_one, List.sum_cons] at h <;>
+    simp [encode, dropped, hc, complete]
+  · linear_combination -1 * h + (c0 + rest.sum) * hz
+  · linear_combination -1 * h + (r * c0 + r * c1 + r * rest.sum) * hz
+
 /-- Every `d` wire coefficients decode, for a positive degree `d`. -/
 theorem isSome_decode {d : ℕ} (hd : 0 < d) (claim : E) (eq? : Option E) {w : List E}
     (hw : w.length = d) : (decode d claim eq? w).isSome := by
-  subst hw
-  cases eq? with
-  | none =>
-    cases w with
-    | nil => simp at hd
-    | cons c0 rest => simp [decode, complete, ofList?]
-  | some r => simp [decode, complete, ofList?, hd]
+  simp [decode, ofList?, hd, hw, length_complete]
 
 /-- A decoded polynomial carries the wire: the decoding is injective. -/
 theorem encode_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E} {c : Vector E (d + 1)}
     (h : decode d claim eq? w = some c) : encode eq? c = w := by
-  unfold decode at h
-  split at h
-  · rename_i hw
-    rw [encode, toList_of_ofList? h]
-    cases eq? with
-    | none =>
-      cases w with
-      | nil => simp at hw; omega
-      | cons c0 rest => simp [complete, dropped]
-    | some r => simp [complete, dropped]
-  · cases h
+  obtain ⟨⟨hd, hw⟩, hc⟩ := of_decode h
+  rw [encode, hc]
+  rcases eq? with _ | _ <;> rcases w with _ | _ <;> simp [complete, dropped] at hw ⊢
+  omega
 
 /-- A decoded polynomial passes its round's check: no check remains for the verifier. -/
 theorem check_of_decode {d : ℕ} {claim : E} {eq? : Option E} {w : List E}
     {c : Vector E (d + 1)} (h : decode d claim eq? w = some c) : Check claim eq? c := by
-  unfold decode at h
-  split at h
-  · rename_i hw
-    have hc := toList_of_ofList? h
-    have hz := two_eq_zero'
-    cases eq? with
-    | none =>
-      cases w with
-      | nil => simp at hw; omega
-      | cons c0 rest =>
-        simp only [Check, eval, hc, complete, evalList_zero, evalList_one, List.sum_cons]
-        linear_combination (c0 + rest.sum) * hz
-    | some r =>
-      simp only [Check, eval, hc, complete, evalList_zero, evalList_one, List.sum_cons]
-      linear_combination (r * w.sum + r * claim + r ^ 2 * w.sum) * hz
-  · cases h
+  obtain ⟨⟨hd, hw⟩, hc⟩ := of_decode h
+  have hz : (2 : E) = 0 := CharTwo.two_eq_zero
+  rcases eq? with _ | r
+  · rcases w with _ | ⟨c0, rest⟩
+    · simp at hw; omega
+    · simp only [Check, eval, hc, complete, evalList_zero, evalList_one, List.sum_cons]
+      linear_combination (c0 + rest.sum) * hz
+  · simp only [Check, eval, hc, complete, evalList_zero, evalList_one, List.sum_cons]
+    linear_combination (r * w.sum + r * claim + r ^ 2 * w.sum) * hz
 
 end RoundPoly
 
 /-! ## The announcement round trip -/
 
 private theorem sizeOf?_sizeScalar {n : ℕ} (h : n ≤ 32) : sizeOf? (sizeScalar n) = some n := by
-  simp only [sizeOf?, sizeScalar, limb_ofLimbs, K.ofBits]
-  simp
+  simp [sizeOf?, sizeScalar, K.ofBits]
 
 /-- The announcement of sizes that pass the setup checks decodes to them. -/
 theorem decodeAnnouncement_announcement {prog : Program} {s : Sizes} {ρ : ℕ}
     (h : setupOk prog s ρ = true) : decodeAnnouncement (announcement s ρ) = some (s, ρ) := by
   obtain ⟨⟨-, hm, hτ, -, -⟩, -, hr⟩ := of_decide_eq_true h
   obtain ⟨logMem, hpos, τ⟩ := s
-  have hτ' : ∀ j, τ j ≤ 32 := hτ
-  have hm' : logMem ≤ 32 := hm
-  simp [announcement, decodeAnnouncement, List.ofFn_succ, sizeOf?_sizeScalar hm',
-    sizeOf?_sizeScalar (hτ' _), sizeOf?_sizeScalar (show ρ ≤ 32 by omega), hpos]
+  simp [announcement, decodeAnnouncement, List.ofFn_succ, sizeOf?_sizeScalar hm,
+    sizeOf?_sizeScalar (hτ _), sizeOf?_sizeScalar (show ρ ≤ 32 by omega), hpos]
   funext j
   fin_cases j <;> rfl
 
@@ -531,12 +503,25 @@ section RoundTrip
 
 variable {M : Type}
 
+private theorem reads_bind {α β : Type} {rd : ReadM Id M α} {rf : α → ReadM Id M β}
+    {st st' st'' : ReaderState M} {a : α} {b : β} (h₁ : (rd.run st).run = Except.ok (a, st'))
+    (h₂ : ((rf a).run st').run = Except.ok (b, st'')) :
+    ((rd >>= rf).run st).run = Except.ok (b, st'') := by
+  rw [StateT.run_bind, ExceptT.run_bind, h₁]
+  exact h₂
+
+private theorem reads_bind_inv {α β : Type} {rd : ReadM Id M α} {rf : α → ReadM Id M β}
+    {st st'' : ReaderState M} {b : β} (h : ((rd >>= rf).run st).run = Except.ok (b, st'')) :
+    ∃ a st', (rd.run st).run = Except.ok (a, st') ∧ ((rf a).run st').run = Except.ok (b, st'') := by
+  rw [StateT.run_bind, ExceptT.run_bind] at h
+  rcases h₁ : (rd.run st).run with e | ⟨a, st'⟩ <;> rw [h₁] at h
+  · cases h
+  · exact ⟨a, st', rfl, h⟩
+
 /-- Pure values read back. -/
 theorem ReadsBack.pure {α β : Type} {R : α → β → Prop} {a : α} {b : β} (h : R a b) :
     ReadsBack (M := M) (Pure.pure a) (Pure.pure b) R := by
-  intro w w' a' hw
-  have hw' : some (a, w) = some (a', w') := hw
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hw')
+  rintro w _ _ ⟨⟩
   exact ⟨[], [], b, by simp, by simp, h, fun _ _ ↦ rfl⟩
 
 /-- Reading back composes along `bind`. -/
@@ -546,27 +531,21 @@ theorem ReadsBack.bind {α β γ δ : Type} {wr : WriteM Id M α} {rd : ReadM Id
     ReadsBack (wr >>= wf) (rd >>= rf) S := by
   intro w w'' c hw
   rw [StateT.run_bind, OptionT.run_bind] at hw
-  cases h₀ : (wr.run w).run with
-  | none => rw [h₀] at hw; cases hw
-  | some p =>
-    obtain ⟨a, w'⟩ := p
-    rw [h₀] at hw
-    replace hw : ((wf a).run w').run = some (c, w'') := hw
-    obtain ⟨xs, ms, b, hxs, hms, hR, hrd⟩ := h₁ w w' a h₀
-    obtain ⟨xs', ms', d, hxs', hms', hS, hrf⟩ := h₂ a b hR w' w'' c hw
-    refine ⟨xs ++ xs', ms ++ ms', d, by rw [hxs', hxs, List.append_assoc],
-      by rw [hms', hms, List.append_assoc], hS, fun tail mtail ↦ ?_⟩
-    rw [List.append_assoc, List.append_assoc, StateT.run_bind, ExceptT.run_bind, hrd]
-    exact hrf tail mtail
+  rcases h₀ : (wr.run w).run with _ | ⟨a, w'⟩ <;> rw [h₀] at hw
+  · cases hw
+  obtain ⟨xs, ms, b, hxs, hms, hR, hrd⟩ := h₁ w w' a h₀
+  obtain ⟨xs', ms', d, hxs', hms', hS, hrf⟩ := h₂ a b hR w' w'' c hw
+  refine ⟨xs ++ xs', ms ++ ms', d, by simp [hxs', hxs], by simp [hms', hms], hS,
+    fun tail mtail ↦ ?_⟩
+  rw [List.append_assoc, List.append_assoc]
+  exact reads_bind (hrd _ _) (hrf tail mtail)
 
-/-! ### Running the operations -/
-
-private theorem reads_bind {α β : Type} {rd : ReadM Id M α} {rf : α → ReadM Id M β}
-    {st st' st'' : ReaderState M} {a : α} {b : β} (h₁ : (rd.run st).run = Except.ok (a, st'))
-    (h₂ : ((rf a).run st').run = Except.ok (b, st'')) :
-    ((rd >>= rf).run st).run = Except.ok (b, st'') := by
-  rw [StateT.run_bind, ExceptT.run_bind, h₁]
-  exact h₂
+/-- A reader that reads back `wr` and then returns a value computed from its own reads back `wr`. -/
+private theorem ReadsBack.map {α β γ : Type} {wr : WriteM Id M α} {rd : ReadM Id M β}
+    {R : α → β → Prop} {rf : β → ReadM Id M γ} {S : α → γ → Prop} (h : ReadsBack wr rd R)
+    (hf : ∀ a b, R a b → ∃ c, rf b = Pure.pure c ∧ S a c) : ReadsBack wr (rd >>= rf) S := by
+  rw [← bind_pure wr]
+  exact h.bind fun a b hab ↦ (hf a b hab).elim fun _ ⟨hc, hS⟩ ↦ hc ▸ ReadsBack.pure hS
 
 variable (H : List UInt8 → Id Digest)
 
@@ -575,10 +554,7 @@ variable (H : List UInt8 → Id Digest)
 /-- A scalar reads back. -/
 theorem readsBack_scalar (x : E) :
     ReadsBack (M := M) (Writer.addScalar H x) (Reader.nextScalar H) (fun _ b ↦ b = x) := by
-  intro w w' a hw
-  replace hw : some ((), (⟨Id.run (w.fs.observe H x), w.stream.push x, w.merkle⟩ :
-    WriterState M)) = some (a, w') := hw
-  obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj hw)
+  rintro w _ _ ⟨⟩
   exact ⟨[x], [], x, by simp, by simp, rfl, fun _ _ ↦ rfl⟩
 
 /-- Scalars read back. -/
@@ -588,19 +564,15 @@ theorem readsBack_scalars (xs : List E) :
   induction xs with
   | nil => exact ReadsBack.pure rfl
   | cons x xs ih =>
-    refine ReadsBack.bind (readsBack_scalar H x) fun _ y hy ↦ ?_
-    subst hy
-    rw [← bind_pure (Writer.addScalars H xs)]
-    exact ReadsBack.bind ih fun _ ys hys ↦ ReadsBack.pure (by rw [hys])
+    refine (readsBack_scalar H x).bind fun _ y hy ↦ ih.map fun _ ys hys ↦ ?_
+    exact ⟨y :: ys, rfl, by rw [hy, hys]⟩
 
 /-- A root reads back. -/
 theorem readsBack_root (d : Digest) :
     ReadsBack (M := M) (Writer.addRoot H d) (Reader.nextRoot H) (fun _ b ↦ b = d) := by
-  refine ReadsBack.bind (readsBack_scalar H _) fun _ a ha ↦ ?_
-  refine ReadsBack.bind (readsBack_scalar H _) fun _ b hb ↦ ?_
+  refine (readsBack_scalar H _).bind fun _ a ha ↦ (readsBack_scalar H _).map fun _ b hb ↦ ?_
   subst ha hb
-  simp only [Prod.mk.eta, digestOfScalars_digestScalars]
-  exact ReadsBack.pure rfl
+  exact ⟨d, by simp only [Prod.mk.eta, digestOfScalars_digestScalars], rfl⟩
 
 /-- A round polynomial that passes its round's check reads back. -/
 theorem readsBack_roundPoly {d : ℕ} (hd : 0 < d) {claim : E} {eq? : Option E}
@@ -609,98 +581,57 @@ theorem readsBack_roundPoly {d : ℕ} (hd : 0 < d) {claim : E} {eq? : Option E}
       (fun _ b ↦ b = c) := by
   have hs := readsBack_scalars (M := M) H (RoundPoly.encode eq? c)
   rw [RoundPoly.length_encode hd] at hs
-  rw [Reader.nextRoundPoly_eq H hd, Writer.addRoundPoly,
-    ← bind_pure (Writer.addScalars H (RoundPoly.encode eq? c))]
-  refine ReadsBack.bind hs fun _ w hw ↦ ?_
-  subst hw
-  simp only [RoundPoly.decode_encode hd hc]
-  exact ReadsBack.pure rfl
+  rw [Reader.nextRoundPoly_eq H hd]
+  refine hs.map fun _ w hw ↦ ⟨c, ?_, rfl⟩
+  simp only [hw, RoundPoly.decode_encode hd hc]
 
 /-- A challenge reads back. -/
 theorem readsBack_sample :
     ReadsBack (M := M) (Writer.sample H) (Reader.sample H) (· = ·) := by
-  intro w w' a hw
-  replace hw : some ((Id.run (w.fs.sample H)).1,
-    (⟨(Id.run (w.fs.sample H)).2, w.stream, w.merkle⟩ : WriterState M)) = some (a, w') := hw
-  obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj hw)
+  rintro w _ _ ⟨⟩
   exact ⟨[], [], _, by simp, by simp, rfl, fun _ _ ↦ rfl⟩
 
 /-- A grinding nonce reads back and passes the check. -/
 theorem readsBack_grind (fuel bits : ℕ) :
     ReadsBack (M := M) (Writer.grind H fuel bits) (Reader.checkPow H bits) (fun _ _ ↦ True) := by
   intro w w' a hw
-  rcases hg : Id.run (w.fs.grind H fuel bits) with _ | ⟨nonce, fs'⟩
-  · simp [Writer.grind, StateT.run_bind, OptionT.run_bind] at hw
-    rw [show w.fs.grind H fuel bits = pure none from hg] at hw
-    simp at hw
-  · simp [Writer.grind, StateT.run_bind, OptionT.run_bind] at hw
-    rw [show w.fs.grind H fuel bits = pure (some (nonce, fs')) from hg] at hw
-    replace hw : some ((), (⟨fs', w.stream.push nonce, w.merkle⟩ : WriterState M)) =
-      some (a, w') := hw
-    obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj hw)
-    refine ⟨[nonce], [], (), by simp, by simp, trivial, fun tail mtail ↦ ?_⟩
-    have hc := FsState.checkPow_of_grind H hg
-    refine reads_bind (st' := ⟨w.fs, tail, mtail⟩) rfl ?_
-    simp [StateT.run_bind]
-    rw [show w.fs.checkPow H bits nonce = pure (true, fs') from hc]
-    rfl
+  rcases hg : Id.run (w.fs.grind H fuel bits) with _ | ⟨nonce, fs'⟩ <;>
+    simp [Writer.grind, StateT.run_bind, show w.fs.grind H fuel bits = Pure.pure _ from hg] at hw
+  cases hw
+  refine ⟨[nonce], [], (), by simp, by simp, trivial, fun _ _ ↦ ?_⟩
+  simp [Reader.checkPow, Reader.takeRaw, StateT.run_bind,
+    show w.fs.checkPow H bits nonce = Pure.pure (true, fs') from FsState.checkPow_of_grind H hg]
+  rfl
 
 /-- An opening phase reads back when it authenticates. -/
 theorem readsBack_opening {α : Type} (o : M) {auth : M → Id (Option α)} {a : α}
     (ha : auth o = some a) :
     ReadsBack (Writer.hintOpening (m := Id) o) (Reader.nextOpening auth) (fun _ b ↦ b = a) := by
-  intro w w' u hw
-  replace hw : some ((), (⟨w.fs, w.stream, w.merkle.push o⟩ : WriterState M)) = some (u, w') := hw
-  obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj hw)
-  refine ⟨[], [o], a, by simp, by simp, rfl, fun tail mtail ↦ ?_⟩
-  simp [Reader.nextOpening, StateT.run_bind]
-  rw [show auth o = pure (some a) from ha]
-  rfl
+  rintro w _ _ ⟨⟩
+  exact ⟨[], [o], a, by simp, by simp, rfl, fun _ _ ↦ by simp [Reader.nextOpening, ha]; rfl⟩
 
 /-- The announced sizes read back when they pass the setup checks. -/
 theorem readsBack_announce {prog : Program} {s : Sizes} {ρ : ℕ} (h : setupOk prog s ρ = true) :
     ReadsBack (M := M) (Writer.announce H s ρ) (Reader.readSizes H prog)
       (fun _ b ↦ b = (s, ρ)) := by
-  have hlen : (announcement s ρ).length = 8 := by simp [announcement]
   have hs := readsBack_scalars (M := M) H (announcement s ρ)
-  rw [hlen] at hs
-  unfold Writer.announce Reader.readSizes
-  rw [← bind_pure (Writer.addScalars H (announcement s ρ))]
-  refine ReadsBack.bind hs fun _ xs hxs ↦ ?_
-  subst hxs
-  simp only [decodeAnnouncement_announcement h, h, ↓reduceIte]
-  exact ReadsBack.pure rfl
+  rw [show (announcement s ρ).length = 8 by simp [announcement]] at hs
+  refine hs.map fun _ xs hxs ↦ ⟨(s, ρ), ?_, rfl⟩
+  simp only [hxs, decodeAnnouncement_announcement h, h, ↓reduceIte]
 
 /-! ### What the reader of the sizes accepts -/
-
-private theorem reads_bind_inv {α β : Type} {rd : ReadM Id M α} {rf : α → ReadM Id M β}
-    {st st'' : ReaderState M} {b : β} (h : ((rd >>= rf).run st).run = Except.ok (b, st'')) :
-    ∃ a st', (rd.run st).run = Except.ok (a, st') ∧ ((rf a).run st').run = Except.ok (b, st'') := by
-  rw [StateT.run_bind, ExceptT.run_bind] at h
-  rcases h₁ : (rd.run st).run with e | ⟨a, st'⟩
-  · rw [h₁] at h; cases h
-  · rw [h₁] at h; exact ⟨a, st', rfl, h⟩
 
 private theorem nextScalars_take {n : ℕ} {fs : FsState} {xs ys : List E} {ms : List M}
     {st' : ReaderState M}
     (h : ((Reader.nextScalars H n).run ⟨fs, xs, ms⟩).run = Except.ok (ys, st')) :
     ys = xs.take n := by
   induction n generalizing fs xs ys with
-  | zero =>
-    replace h : Except.ok ([], ⟨fs, xs, ms⟩) = Except.ok (ys, st') := h
-    cases h; rfl
+  | zero => cases h; rfl
   | succ n ih =>
     obtain ⟨y, st₁, h₁, h₂⟩ := reads_bind_inv h
-    obtain ⟨ys', st₂, h₃, h₄⟩ := reads_bind_inv h₂
-    replace h₄ : Except.ok (y :: ys', st₂) = Except.ok (ys, st') := h₄
-    cases h₄
-    cases xs with
-    | nil => cases h₁
-    | cons x xs =>
-      replace h₁ : Except.ok (x, (⟨Id.run (fs.observe H x), xs, ms⟩ : ReaderState M)) =
-        Except.ok (y, st₁) := h₁
-      cases h₁
-      rw [ih h₃, List.take_succ_cons]
+    obtain ⟨ys', st₂, h₃, ⟨⟩⟩ := reads_bind_inv h₂
+    rcases xs with _ | ⟨x, xs⟩ <;> cases h₁
+    rw [ih h₃, List.take_succ_cons]
 
 /-- Sizes the reader accepts are the sizes the proof announces, and pass the setup checks. -/
 theorem announced?_of_readSizes {prog : Program} {fs : FsState} {p : Proof M} {s : Sizes}
@@ -713,21 +644,12 @@ theorem announced?_of_readSizes {prog : Program} {fs : FsState} {p : Proof M} {s
   rw [Proof.announced?]
   revert h₂
   rcases decodeAnnouncement (p.stream.take 8) with _ | ⟨s', ρ'⟩
-  · intro h₂; cases h₂
-  · intro h₂
-    by_cases hs : setupOk prog s' ρ' = true
-    · have h₃ : (Except.ok ((s', ρ'), st₁) : Except ReadError _) = Except.ok ((s, ρ), st') := by
-        simp [hs] at h₂
-        exact h₂
-      cases h₃
-      exact ⟨rfl, hs⟩
-    · simp [hs] at h₂
+  · rintro ⟨⟩
+  · cases hs : setupOk prog s' ρ' <;> simp only [hs, Bool.false_eq_true, ↓reduceIte] <;>
+      rintro ⟨⟩
+    exact ⟨rfl, hs⟩
 
 /-! ### The transcript round trip -/
-
-private theorem finish_run (fs : FsState) :
-    ((Reader.finish (m := Id) (M := M)).run ⟨fs, [], []⟩).run = Except.ok ((), ⟨fs, [], []⟩) :=
-  rfl
 
 /-- The reader run on the proof the writer writes, from the writer's starting chain state,
 returns a value related to the writer's and ends in the writer's final chain state, with the
@@ -738,14 +660,10 @@ theorem runRead_runWrite {α β : Type} {wr : WriteM Id M α} {rd : ReadM Id M �
     ∃ b, R a b ∧ Id.run (runRead rd fs w.proof) = Except.ok (b, w.fs) := by
   obtain ⟨xs, ms, b, hxs, hms, hR, hrd⟩ := h _ _ _ hw
   refine ⟨b, hR, ?_⟩
-  simp only [List.nil_append] at hxs hms
   have hrun := hrd [] []
   simp only [List.append_nil] at hrun
-  have hall : ((do let b ← rd; Reader.finish; return (b, (← get).fs) :
-      ReadM Id M (β × FsState)).run ⟨fs, xs, ms⟩).run =
-      Except.ok ((b, w.fs), ⟨w.fs, [], []⟩) :=
-    reads_bind hrun (reads_bind (finish_run w.fs) rfl)
-  rw [runRead, WriterState.proof, hxs, hms, StateT.run'_eq, ExceptT.run_map, hall]
+  simp [runRead, WriterState.proof, hxs, hms, StateT.run'_eq, StateT.run_bind, ExceptT.run_bind,
+    hrun]
   rfl
 
 end RoundTrip
