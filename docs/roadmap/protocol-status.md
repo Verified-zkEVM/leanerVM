@@ -754,9 +754,24 @@ component. It takes, per level, `Par`: a threshold, a list bound and a bound on 
 counting form (`ListBound`, `McaBound`), inhabited at exact agreement and, for the list bound, at
 unique decoding (`Whir/Exact.lean`); `stackRel_subset_relOpen` shows the honest inputs are in the
 relation. The blueprint's Layer 11 is updated with it (the theorem's statement and the interfaces).
-It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) to `ListBound` and
-`McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
-interface; the theorem is not knowledge soundness.
+The theorem is not knowledge soundness.
+
+*On merge* of the Johnson-regime pull request (branch `feat/protocol-mca-johnson`), the opening is
+round-by-round sound at leanVM's parameters with no hypothesis: `deployed_rbrSoundness`
+(`Protocol/Whir/Deployed.lean`) is `whirOpen_rbrSoundness` at the chain of every admissible
+`(μ, R)`, each level's `Par` built by `johnsonPar` (`Protocol/Whir/Johnson.lean`) from the level's
+slack. The threshold is the exact `⌈(√ρ + η)·n⌉₊`, computed in naturals (`threshold`,
+`threshold_eq_ceil`); the list bound is ArkLib's pairwise Johnson bound,
+`L = ⌊n(a − D)/(a² − nD)⌋` (`listBound_johnson`); the bad folds are `⌊mcaConstant n D η⌋₊`, from
+`mcaJohnson_annexB` through `mcaBound_of_mcaJohnson`, the encoder's code being ArkLib's
+Reed–Solomon code (`encode_mem_code`, `exists_encode_of_mem_code`). The generic half is
+`ToArkLib/McaJohnson.lean`: `McaJohnson`, its inhabitant at [BCHKS25]'s constant,
+`mcaError_foldLine_eq_affineLine`, and the count of bad seeds an error bound gives. The slacks are
+the Rust's doubles, dumped (`Parameters/Whir.lean`, `slacks`). The tests
+(`tests/LeanerVMTests/Protocol/WhirJohnson.lean`) check `mcaConstant` against Annex B's formula,
+that all 224 levels fit, and that `2^{ℓ−1}·mcaConstant ≤ 2^{64}` at each; `L_0` is 23 to 122 (the
+Annex's `1/(2η₀√ρ₀)` is 110 to 648). Still owed: the wiring into the opening phase (the `K`-to-`E`
+lift of the witness), and knowledge soundness through list binding (Layer 12).
 
 *On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
 the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,

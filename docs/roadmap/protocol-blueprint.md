@@ -296,6 +296,7 @@ pin, so the spine stays on it (decision 24).
 | `MvPolynomial.MLE`, `eqPolynomial`, `eqTilde`, `MLE_eq_zero_iff` (`Data/MvPolynomial/Multilinear.lean`) | Multilinear extensions and the equality kernel; the bridge to CompPoly's tables is `CMlPolynomialEval.eval_eq_MvPolynomial_MLE` (`ToCompPoly/Multilinear/Basic.lean`), imported only after a file importing it with CompPoly's `Multilinear/Basic` elaborates (both declare `eval_zero`). |
 | `schwartz_zippel_counting`, `prob_eval_zero_le_div`, `prob_eval_zero_univ_le_div` (`Data/MvPolynomial/SchwartzZippelCounting.lean`) | Every per-challenge bound; the probability forms are stated on VCVio's uniform sampler. |
 | `ReedSolomon.mcaError_affineLine_johnson_le` (`Data/CodingTheory/ReedSolomon/MutualCorrelatedAgreement/Johnson/Probability.lean`); `johnsonComparisonEstimate`, `johnsonExceptionCount_le_comparisonEstimate` (`Data/CodingTheory/HiddenDerivative/Parameters/Johnson/FiniteBounds.lean`) | Proved: the mutual correlated agreement of the affine line `u₀ + x·u₁` at radius `1 − √ρ − η`, any finite field, with a constant that `johnsonExceptionCount_le_comparisonEstimate` bounds by `johnsonComparisonEstimate n D η`, which is Annex B's `a` (`thm:mca-johnson`). Together they inhabit `McaJohnson` (Layer 11). The admitted `rs_mcaError_le_in_johnson_range` (`ProximityGap/CapacityBounds.lean`) is not consumed. |
+| `Code.agreementSet_finite_and_ncard_le_pairwiseJohnson`, `Code.pairwiseJohnsonListBound` (`Data/CodingTheory/JohnsonBound/Pairwise.lean`); `ReedSolomon.code`, `mem_code_iff_eval` (`Data/CodingTheory/ReedSolomon.lean`) | Proved: at most `⌊n(A − D)/(A² − nD)⌋` words of any code over any alphabet agree with a word on `A` positions when two codewords agree on at most `D`; the Reed–Solomon code as the evaluations of the polynomials of degree below `k`. They give `ListBound`, and the encoder's code as ArkLib's (Layer 11). |
 | `RingSwitchingProfile`, `tensorProductProfile` (`ProofSystem/Binius/RingSwitching/`) | The profile structure only, for #3; ArkLib's ring-switching protocol is another protocol. |
 | `ToyProblem.Codegen` (`ProofSystem/ToyProblem/Codegen.lean`) | The pattern for code-generation probes of `verify` and the honest prover. |
 
@@ -333,7 +334,7 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | The inner-product oracle | absent and unplanned | Written here (Layer 0, `ToArkLib/`); offered upstream. |
 | WHIR over binary Reed–Solomon codes | absent (#383 binary Basefold and #992 FRI, both legacy and open, are patterns) | Written here (Layer 11). |
 | Merkle trees | in VCVio, proved: completeness, and extraction for a sequence of commitments with pruned openings (`MultiExtractability/`; VCVio issue 571). Every extraction theorem takes leaves that are digests and an adversary that draws no coins; `Hashing/Defs.lean` hashes leaves in a tagged domain and proves binding only | Read, not consumed (decisions 32, 39): `merkle_fits` reads the Rust's trees as VCVio's, a cross-check. Binding with hashed leaves on the one shared function is proved here by replaying the log (`ToVCVio/MerkleLog.lean`, Layer 12), and deleted when VCVio proves it. |
-| Correlated agreement up to Johnson | `ReedSolomon.mcaError_affineLine_johnson_le` proved, any characteristic, with its constant bounded by [BCHKS25]'s printed one (`johnsonExceptionCount_le_comparisonEstimate`); `rs_mcaError_le_in_johnson_range` admitted; the capacity-range theorems exclude characteristic two | `McaJohnson` at Annex B's constant, inhabited from the proved theorem (Layer 11, decision 35); it meets Annex B's per-level budget at every deployed level ([whir-mca-budget.md](../reviews/whir-mca-budget.md)). The admitted theorem is not consumed. |
+| Correlated agreement up to Johnson | `ReedSolomon.mcaError_affineLine_johnson_le` proved, any characteristic, with its constant bounded by [BCHKS25]'s printed one (`johnsonExceptionCount_le_comparisonEstimate`); `rs_mcaError_le_in_johnson_range` admitted; the capacity-range theorems exclude characteristic two | `McaJohnson` at Annex B's constant, inhabited from the proved theorem (Layer 11, decision 35); it meets Annex B's per-level budget at every deployed level ([whir-mca-budget.md](../reviews/whir-mca-budget.md)). The admitted theorem is not consumed. The interface, its inhabitant at [BCHKS25]'s constant, the fold line's error and the count of bad seeds are written here (`ToArkLib/McaJohnson.lean`) and proposed to ArkLib. |
 | Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; the legacy state-restoration game cannot be stated for this protocol (Layer 12); #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Merged after the pin: #1263, #1264 (state-restoration knowledge soundness from local round-by-round certificates, in the typed framework). Open: #1267–#1283 (cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir) | Proved here (Layer 12) by the direct route (decision 36): `core` and `misbehaves_rom` on the one hash oracle, the charged invariant (`ToVCVio/ChargedInvariant.lean`) the one generic lemma. #1263 and #1264 are a pattern only. |
 | Fresh-query bounds for the random oracle | absent at the pin; VCVio #817 gives the laws of the scalar expectation `∫⁻ r, r ∂𝒟[f <$> mx]`; VCVio #823, #824, #826 and #828 bound fresh queries with a fixed error per key | #817 is copied verbatim as `ToVCVio/ScalarExpectation.lean` and deleted at the bump that contains it. #823–#828 are not copied: their per-key errors cannot depend on the cache, which the flip charge does. The charged invariant is written here (`ToVCVio/ChargedInvariant.lean`), a VCVio candidate. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
@@ -637,7 +638,7 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Flock phase: definition and completeness | [Layer 9](#layer-9-the-flock-phase) | `FlockSpec`, **`flockPhase`**, **`flockComplete`**, **`flockError_le`**, the constants in `Parameters/Flock.lean` | the spine |
 | Flock phase: knowledge soundness | [Layer 9](#layer-9-the-flock-phase) | **`flockSecurity`**, an inhabitant of `FlockSpec` (#3's) | the Flock phase's definition; #3 |
 | opening phase | [Layer 10](#layer-10-the-opening-phase-and-the-oracle-protocol) | **`openingPhase`**, **`openingComplete`**, **`openingSecurity`**, **`leanVmPhases`** | the spine; batching by powers; tables and stacking |
-| WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`**, **`deployed_rbrSoundness`** | field instances; tables and stacking; sumcheck: definitions |
+| WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`**, **`mcaBound_of_mcaJohnson`**, **`listBound_johnson`**, `johnsonPar`, **`deployed_rbrSoundness`** | field instances; tables and stacking; sumcheck: definitions |
 | Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `MerkleTree.fold`, `MerkleTree.prunedRoot`, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`** (a cross-check, kept as a test), **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
 | the charged invariant | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `chargedRandomOracle`, **`potential_le_expected_charge`**, **`prEvent_le_of_potential`**, **`prEvent_not_good_le_expected_charge`**, **`expected_charge_le_mul`**, **`expected_fresh_in_le`**; the logged form `chargedLoggingOracle`, **`potential_log_le_expected_charge`** | VCVio only |
 | Merkle binding by log replay | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `nodePreimage`, `leafPreimage`, `extractTree`, `extractLeaf`, `extractLeaves`, `extractRows`, `extractAllRows`, `Consistent`, `HasCollision`, `Fresh`, `Known`, `FreshHit`, **`binding_of_log`** (generic `MerkleTree.binding_of_log` and leanVM's), **`extractRows_determined`** (generic `MerkleTree.extractLeaf_determined`) | Merkle trees (the generic walk `MerkleTree.fold`) |
@@ -1183,8 +1184,9 @@ octopus and their reading as VCVio's in `LeanerVM/Protocol/ToVCVio/Merkle.lean`)
 -- Parameters (transcribed, whir_config.rs)
 def initialFold := 6 ; subsequentFold := 4 ; initialReduction := 3 ; subsequentReduction := 1
 def residualMaxLog := 5 ; queryGrindingBits := 17
-structure Level where (fold rateExp queries oodSamples grindingBits : ℕ) (η : ℚ)
-def ladder (μ ρ : ℕ) : List Level                     -- the deployed η per (μ, ρ), the exact value of the Rust's double (dumped)
+structure Level where (fold logInvRate queries : ℕ)   -- no η: no verifier reads it
+def ladder (μ R : ℕ) : Option (List Level)            -- none outside the window
+def slacks (μ R : ℕ) : Option (List ℚ)                -- the deployed η per level, the exact value of the Rust's double (dumped)
 theorem ladder_queries_eq : (ladder 15 1).map (·.queries) = [223, 55]   -- py:910
 -- Codes (def:enc)
 def novelBasis : Fin 64 → K := fun c ↦ g ^ c.val
@@ -1198,15 +1200,28 @@ theorem whirOpen_perfectCompleteness …
 theorem whirOpen_rbrSoundness (L : Ladder) (ps : L.Pars) : Security (whirOpen L) (relOpen …) univ (openErr L ps)
   -- thm:rbr for the list relation, per challenge; `Par` per level: a threshold, `ListBound`, `McaBound` (counting form);
   -- the query positions at `((a − 1)/2^{κ+R})^t`: outside the language, fewer than `a` agreements (`card_agree_folded_lt`)
+-- Mutual correlated agreement up to Johnson (ToArkLib/McaJohnson.lean, generic)
 /-- Mutual correlated agreement up to the Johnson bound, with its constant `a` a parameter. -/
-structure McaJohnson (F) [Field F] [Fintype F] [SampleableType F] (a : ℕ → ℕ → ℝ → ℝ) where
+structure McaJohnson (F) [Field F] [Fintype F] [SampleableType F] (a : ℕ → ℕ → ℝ → ℝ) : Prop where
   le : ∀ n (domain : Fin n ↪ F) D η, 1 ≤ D → D ≤ n - 2 → 0 < η → √(D / n) + η ≤ 1 →
     mcaError (AffineLineGenerator F) (code domain (D + 1)) (1 - √(D / n) - η) ≤ ENNReal.ofReal (a n D η / |F|)
--- Annex B's constant (thm:mca-johnson), and the proved inhabitant
+theorem mcaJohnson_comparisonEstimate (F) : McaJohnson F johnsonComparisonEstimate   -- the proved bound and its comparison
+theorem mcaError_foldLine_eq_affineLine (MC) (δ) :   -- Annex B folds (1 − z)·u₀ + z·u₁; any field, any module code
+    mcaError (FoldLineGenerator F) MC δ = mcaError (AffineLineGenerator F) MC δ
+theorem natCard_isMCA_le_of_mcaError_le : mcaError G MC δ ≤ ofReal (B / |S|) → Nat.card {x // IsMCA G MC x U δ} ≤ ⌊B⌋₊
+-- leanVM's codes (Whir/Johnson.lean): Annex B's constant (thm:mca-johnson), and the adaptor
+theorem encode_mem_code ; theorem exists_encode_of_mem_code   -- the encoder's words are `code (domainEmb κ R hb) (2^κ)`
 def mcaConstant (n D : ℕ) (η : ℝ) : ℝ := ReedSolomon.HiddenDerivative.johnsonComparisonEstimate n D η
-def mcaJohnson_annexB (F) : McaJohnson F mcaConstant   -- mcaError_affineLine_johnson_le, johnsonExceptionCount_le_comparisonEstimate
-theorem mcaError_foldLine_eq_affineLine (C) (δ) :   -- Annex B folds (1 − z)·u₀ + z·u₁; any field, any linear code
-    mcaError (FoldLineGenerator F) C δ = mcaError (AffineLineGenerator F) C δ
+theorem mcaJohnson_annexB (F) : McaJohnson F mcaConstant
+theorem mcaBound_of_mcaJohnson (hc : McaJohnson E c) … ((√ρ + η) n ≤ a) (a ≤ n) : McaBound κ R a ⌊c n D η⌋₊
+theorem listBound_johnson (m) … (2^κ ≤ a) (n D < a²) : ListBound κ R a m (Code.pairwiseJohnsonListBound n D a)
+def threshold (κ R) (η : ℚ) : ℕ                       -- ⌈(√ρ + η) n⌉₊ in naturals; = the ceiling under `Fits`
+def Fits (κ R) (η : ℚ) : Prop                         -- decidable: what the interfaces need of a level
+def johnsonPar (sh κ η) (h : Fits κ sh.R η) : Par sh κ  -- a = threshold, L = pairwiseJohnsonListBound n D a, N = ⌊mcaConstant n D η⌋₊
+-- The opening at leanVM's parameters (Whir/Deployed.lean)
+def deployed (μ R : ℕ) : Option Chain                 -- the ladder's levels with their `johnsonPar`
+theorem deployed_isSome : Admissible μ R → (deployed μ R).isSome   -- every deployed level fits
+def deployed_rbrSoundness (μ R) (h : Admissible μ R) : Security (whirOpen …) (relOpen …) univ (openErr …)   -- no hypothesis
 -- Merkle trees: the Rust's, executable, read as VCVio's (decision 32)
 def blake2sBytes : List UInt8 → Vector UInt32 8       -- RFC 7693 over `compress`, last-block flag only
 def merkleRootWith (H : List UInt8 → Digest) : Vector (List K) (2 ^ k) → Digest   -- the leaves are leaf images
@@ -1251,8 +1266,8 @@ Annex B's `a` of `thm:mca-johnson`. With `ρ = D/n`, the reduced rate (`whir_con
 `a = (2(θ + ½)^5 + 3(θ + ½)γρ)/(3ρ^{3/2})·n + (θ + ½)/√ρ`. ArkLib proves the bound
 (`ReedSolomon.mcaError_affineLine_johnson_le`) with its own exception count, and proves that count
 at most `a` (`johnsonExceptionCount_le_comparisonEstimate`). Their composition is `mcaJohnson_annexB`, over
-every finite field, so once the adaptor below is written `whirOpen_rbrSoundness` at leanVM's
-parameters takes no hypothesis; `card_E` turns its bound into numbers. The admitted
+every finite field, so `whirOpen_rbrSoundness` at leanVM's parameters takes no hypothesis
+(`deployed_rbrSoundness`); `card_E` turns its bound into numbers. The admitted
 `rs_mcaError_le_in_johnson_range` is not consumed.
 
 The soundness theorem takes, per level, a record `Par`: an agreement threshold `a` (the radius `γ`
@@ -1272,6 +1287,22 @@ agreements, `(a/n)^t` would exceed the Annex's whenever `(1 − γ)·n` is not a
 case: 48 of the 224 deployed levels would be above `2^{−111}` (worst `2^{−110.34}`, stack size 16,
 rate `2⁻¹`, level 2: `t = 30`, `a = 40`, `n = 2^9`); with `a − 1` every level is below `2^{−111}`
 (worst `2^{−111.00024}`, stack size 23, rate `2⁻²`, level 0).
+
+In the Johnson regime the interfaces are inhabited from ArkLib (`Whir/Johnson.lean`). The
+encoder's words are exactly ArkLib's Reed–Solomon code of dimension `2^κ` on the points `x_v`
+(`encode_mem_code`, `exists_encode_of_mem_code`), so `McaBad` is ArkLib's `IsMCA` event for the
+fold line at radius `1 − √ρ − η`, and `mcaBound_of_mcaJohnson` gives `McaBound` at
+`N = ⌊a n D η⌋₊` for every threshold `a ≥ (√ρ + η)·n`, through the counting form of an error
+bound (`natCard_isMCA_le_of_mcaError_le`). The list bound is not the Annex's `1/(2η√ρ)` but
+ArkLib's pairwise Johnson bound over the alphabet of rows, `L = ⌊n(a − D)/(a² − nD)⌋`
+(`listBound_johnson`): two interleaved codewords agree on fewer than `2^κ` positions. It is the
+smaller at every deployed level. The threshold is the exact ceiling `⌈(√ρ + η)·n⌉₊`, the least
+agreement within the Annex's radius `γ`, computed in naturals from the rational `η`
+(`threshold`); the Rust has no integer threshold. `Fits` is the decidable list of facts a level
+needs (among them that `threshold` is that ceiling, `threshold_eq_ceil`), `johnsonPar` builds the
+level's `Par` from it, and `deployed` builds the chain of every admissible ladder with its
+slacks; `deployed_isSome` decides that all 224 levels fit. The slacks are a table beside the
+ladder (`slacks`), not a field of `Level`, since no verifier reads them.
 
 ArkLib's line is `u₀ + x·u₁`, while Annex B folds `(1 − z)·u₀ + z·u₁`.
 `mcaError_foldLine_eq_affineLine` equates the two over any field: the substitution
@@ -1324,7 +1355,10 @@ Tests:
   a pin bump that changes ArkLib's definition is caught;
 - at every level of the ladder, the hypotheses of `mcaJohnson_annexB` (`1 ≤ D ≤ n − 2`,
   `√ρ + η ≤ 1`) and the bound `2^{ℓ−1}·a ≤ 2^{64}`. Each level's ceilings are proved from
-  rational bounds on `√ρ`, as the record does by hand at two levels.
+  rational bounds on `√ρ`, as the record does by hand at two levels;
+- the threshold and list bound at the record's two levels, the range of `L_0` over the window,
+  the deployed chain's levels against the ladder, and the threshold one off in either direction
+  rejected.
 
 ### Layer 12: compilation, the transcript, the proof, and the executable verifier
 
@@ -2026,7 +2060,7 @@ Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_t
                       FlockSpec  flockPhase  flockError_le  openingPhase  leanVmPhases
                       (each phase with its Complete and Security)
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError
-                      whirOpen_rbrSoundness  McaJohnson  mcaConstant  mcaJohnson_annexB  deployed_rbrSoundness
+                      whirOpen_rbrSoundness  McaJohnson  mcaConstant  mcaJohnson_annexB  johnsonPar  deployed_rbrSoundness
                       mcaError_foldLine_eq_affineLine  merkleRootWith  merkleVerifyWith  merkleRoot  merkleVerify
                       MerkleTree.fold  MerkleTree.prunedRoot  nodeModel  toBatchOpening  merkle_fits  blake2sBytes
 Generic, Layer 12:    chargedRandomOracle  potential_le_expected_charge  prEvent_le_of_potential
