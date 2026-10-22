@@ -38,6 +38,14 @@ open LeanVM.Node LeanVM.E2E
 #guard_msgs (whitespace := lax) in
 #print axioms mem_blindCandidates_of_extractedBlind
 
+/-- info: 'LeanVM.E2E.exists_blindCandidatesS' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms exists_blindCandidatesS
+
+/-- info: 'LeanVM.E2E.extract_eq_of_pTreeRootM' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms extract_eq_of_pTreeRootM
+
 /-- info: 'LeanVM.E2E.nodeStep_some' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms nodeStep_some

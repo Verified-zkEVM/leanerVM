@@ -19,8 +19,9 @@ V_I (`idealVerify`, `LeanVM/E2E/Statement.lean`) runs in any monad; with the has
   nodes containing the root and the children of each of its nodes (`ν ∈ done` skips a node
   already checked; a node's children are queued). Neither the fuel nor cycles matter here: an
   accepted closure finished.
-* **A node** (`nodeStep_some`): its announced sizes, its stack root, the word under it, well
-  shaped, whose tree the log answers with that root; every candidate satisfying the relation
+* **A node** (`nodeStep_some`): its announced sizes, its stack root, the partial word under
+  it, well shaped, whose partial tree the log answers with that root; the word is full or has a
+  candidate satisfying the relation without Flock (E2E-10); every candidate satisfying the relation
   without Flock runs under the Flock-blind semantics, passes the table check, and each child its
   memory decodes is a node, under the digest of its statement.
 * **The table check** (`tableOK_of_tableOKWith`): an accepted table check is `TableOK`.
@@ -190,20 +191,21 @@ section Node
 variable {H : Bytes → Option Digest} {prog : Program} {seed : Digest} {ip : IdealProof}
 
 /-- **What V_I checked at a node**, every hash answered by `H`: the announced sizes and rate, the
-stack root, the word the idealized proof gives it, well shaped, whose tree `H` answers with that
-root; the candidates satisfying the relation without Flock are finitely many, and each runs
+stack root, the partial word the idealized proof gives it, well shaped, whose partial tree `H`
+answers with that root, full or with a candidate satisfying the relation without Flock; the
+candidates satisfying the relation without Flock are finitely many, and each runs
 under the Flock-blind semantics, passes the table check, and has each child its memory decodes
 (under its table's semantics, at the frames the idealized proof names for the node) among the
 node's children, under its statement's answered digest. -/
 theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
     (h : nodeStep H prog seed ip (pi, π) = some (some kids)) :
-    ∃ (layout : Verifier.Layout) (ρ : ℕ) (s : LeanIsa.Sizes) (r : E × E) (ht w : ℕ) (W : Word)
+    ∃ (layout : Verifier.Layout) (ρ : ℕ) (s : LeanIsa.Sizes) (r : E × E) (ht w : ℕ) (P : PWord)
       (root : Digest),
       Verifier.announced (bytecodeWords prog) π.stream = some (layout, ρ) ∧
       sizesOf prog layout = some s ∧ stackRoot π = some r ∧ stackShape layout ρ = some (ht, w) ∧
-      ip.word (pi, π) = some W ∧ WellShaped w W ∧ treeRootM H ht W = some root ∧
-      digestScalars root = r ∧
-      ∀ q ∈ blindCandidates prog s ρ pi W, ∃ t, candidateRun prog s q = some t ∧
+      ip.word (pi, π) = some P ∧ WellShaped w P.word ∧ pTreeRootM H ht P = some root ∧
+      digestScalars root = r ∧ (P.Full ht ∨ ∃ q, q ∈ blindCandidatesS prog s ρ ht pi P) ∧
+      ∀ q ∈ blindCandidatesS prog s ρ ht pi P, ∃ t, candidateRun prog s q = some t ∧
         tableOKWith H (t.blakeRows blakeFree) = some true ∧
         ∀ c ∈ (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (pi, π))
             t.image).witness.children,
@@ -219,7 +221,7 @@ theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
         split at h
         · rename_i ht w hsh
           split at h
-          · rename_i W hW
+          · rename_i P hW
             split at h
             · simp [pure] at h
             · rename_i hws
@@ -228,6 +230,13 @@ theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
               split at h
               · simp [pure] at h
               · rename_i hrr
+                split at h
+                · simp [pure] at h
+                rename_i hne
+                have hne' : P.Full ht ∨ ∃ q, q ∈ blindCandidatesS prog s ρ ht pi P := by
+                  by_cases hF : P.Full ht
+                  · exact Or.inl hF
+                  · refine Or.inr (Set.nonempty_iff_ne_empty.mpr fun he ↦ hne ⟨he, hF⟩)
                 split at h
                 · rename_i hfin
                   rw [Option.bind_eq_some_iff] at h
@@ -262,8 +271,8 @@ theorem nodeStep_some {pi : Digest} {π : Proof} {kids : List Node}
                   · simp only [pure, Option.some.injEq] at h
                     subst h
                     obtain ⟨-, hall⟩ := hall rfl
-                    refine ⟨layout, ρ, s, r, ht, w, W, root, hann, hs, hr, hsh, hW,
-                      not_not.mp hws, hroot, not_not.mp hrr, fun q hq ↦ ?_⟩
+                    refine ⟨layout, ρ, s, r, ht, w, P, root, hann, hs, hr, hsh, hW,
+                      not_not.mp hws, hroot, not_not.mp hrr, hne', fun q hq ↦ ?_⟩
                     have hq' : q ∈ hfin.toFinset.toList := by
                       rw [Finset.mem_toList, Set.Finite.mem_toFinset]
                       exact hq

@@ -251,10 +251,10 @@ theorem heldDirectTrace_of_node {ℓK : Log}
   · exact absurd hpot hT1
   -- What V_I checked at the node.
   obtain ⟨kids, hstep, hkids⟩ := hD _ hmem
-  obtain ⟨layout, ρ, s, r, ht, w, W, root, hann, hs, hr, hsh, hW, hws, hroot, hrr, hcand⟩ :=
+  obtain ⟨layout, ρ, s, r, ht, w, P, root, hann, hs, hr, hsh, hW, hws, hroot, hrr, hcase, hcand⟩ :=
     nodeStep_some hstep
   obtain ⟨hadm, q, hq⟩ :=
-    mem_blindCandidates_of_extractedBlind hF hv hann hs hr hsh hws (treeRootM_mono hsub hroot) hrr hx
+    exists_blindCandidatesS hF hv hann hs hr hsh hws hcase (pTreeRootM_mono hsub hroot) hrr hx
   obtain ⟨t, htr, htab, hch⟩ := hcand q hq
   -- The candidate's execution, valid under the oracle model of its table (C5).
   obtain ⟨t', hrep, hvalid⟩ := execution_of_extractedBlind F₀ Guest.guest_sentinelSafe hadm hq.2

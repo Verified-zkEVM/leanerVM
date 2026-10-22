@@ -82,7 +82,7 @@ import LeanVM.E2E.HeadlineSharp
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rom
 
-/-! The end-to-end security theorem's chain so far (`docs/roadmap/e2e-security.md`): T1 (the Flock-blind verifier's knowledge soundness, cache and probability forms; the deferred-verifier bridge), C5 (the oracle hash model), T5's run bridges, the game engine, E5 (the DA leg) and T7′ (V_I with BLAKE2s accepts what the deployed aggregation accepts, `idealVerify_blake2s`). -/
+/-! The end-to-end security theorem's chain so far (`docs/roadmap/e2e-security.md`): T1 (the Flock-blind verifier's knowledge soundness, cache and probability forms; the deferred-verifier bridge), C5 (the oracle hash model), T5's run bridges, the game engine, E5 (the DA leg) and T7′ (V_I with BLAKE2s accepts what the deployed aggregation accepts, `idealVerify_blake2s` with full words, `idealVerify_blake2s_known` with partial words whose present columns encode a known stack, decision E2E-10). -/
 
 /-- info: 'LeanVM.Protocol.EndToEnd.Blind.blind_knowledge_cache' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -295,6 +295,10 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.Sanity.idealVerify_blake2s' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Sanity.idealVerify_blake2s
+
+/-- info: 'LeanVM.E2E.Sanity.idealVerify_blake2s_known' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Sanity.idealVerify_blake2s_known
 
 /-! **The headline** (`LeanVM/E2E/Headline.lean`, `docs/roadmap/headline.md`): for every leanSPHINCS parameter set (`SphincsSet`), every numbers of keys and every adversary, V_I on at most `N` nodes with the budget `viCost N` accepts a forged claim or an unbacked DA claim with probability at most `q · 2^-λ₁ + 30 q²/2^256`, `q` every hash evaluation of the game; `λ₁ = 106` at `2^20 + 2^20` keys, `126` with leanXMSS keys only. -/
 

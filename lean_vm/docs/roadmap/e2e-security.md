@@ -85,15 +85,18 @@ D7 claims are the root statement's, in the claim list of their scheme (both sche
    "Backed" never mentions a row count (deployed padding = H(zero) collides with a zero row).
 
 ## 2. V_I (algorithm; non-succinct; not flattening; budget B)
-Idealized proof Π = (s, π, M, F), M: roots ↦ level-0 words, F: roots ↦ the frames the decoder
-reads (E2E-5, §7). V_I^H(s, Π), fuel-bounded, rejecting once
+Idealized proof Π = (s, π, M, F), M: nodes ↦ level-0 partial words (Merkle subtrees possibly given
+only as digests, E2E-10), F: nodes ↦ the frames the decoder reads (E2E-5, E2E-8, §7).
+V_I^H(s, Π), fuel-bounded, rejecting once
 Bud queries are used (Bud fixed before the game; Bud only makes QV uniform, it adds no term — every
 V_I query is a visible query charged in κ_V°'s failBound):
 1. PI₀ := statementDigest^H(seed^H, s); require V°^H(guest, PI₀, π) and OuterChecks°^H(s).
 2. N := closure of {(guest, PI₀, π)} under: q ∈ Cand(M(r(π))) with M3Holds°(x, q), child (s_c, f_c, π_c)
    of decode_{F(r(π))}(image q) ⇒ (guest, statementDigest^H(seed^H, s_c), π_c) ∈ N.
-3. For every ν ∈ N: M(r(π)) defined, well shaped, MerkleRoot^H(M(r(π))) = r(π); for every
-   q ∈ Cand(M(r(π))) with M3Holds°(x, q): precheck and TableOK^H(activeRows q).
+3. For every ν ∈ N: M(ν) defined, well shaped, MerkleRoot^H(M(ν)) = r(π) (a hole's digest standing
+   for its subtree); Cand(M(ν)) the stacks agreeing with M(ν) on ≥ thr present columns (a hole
+   column a disagreement); if M(ν) has a hole, some q ∈ Cand(M(ν)) with M3Holds°(x, q) (E2E-10); for
+   every q ∈ Cand(M(ν)) with M3Holds°(x, q): precheck and TableOK^H(activeRows q).
 Completeness for exact codewords: thr = ⌈johnsonAgreement·n⌉ > √(Dn) ≥ √2·D ⇒ unique candidate.
 Noisy words admitted (proximity soundness stays inside the theorem).
 
@@ -152,7 +155,10 @@ T6-det completeness (non-vacuity): for every H and every honest witness tree wit
    limbs into their slots, `slots_gen°` unconditional) and the guest's completeness under H.
 T7′ sanity: deployed checks accept, M covers every reached root, every reached candidate satisfying
    M3Holds° also satisfies the full `aux`, no two active non-final rows with distinct inputs have equal
-   compression outputs, V_I's cost ≤ Bud ⇒ V_I^{BLAKE2s} accepts.
+   compression outputs, V_I's cost ≤ Bud ⇒ V_I^{BLAKE2s} accepts. With partial words (T7″, E2E-10):
+   deployed checks accept, every reached partial word has ≥ thr present columns encoding one stack
+   satisfying the full relation (`KnownStacks`), that stack's rows pass the precheck, V_I's cost ≤ Bud
+   ⇒ V_I^{BLAKE2s} accepts.
 
 ## 5. Heuristic, stated
 Concrete refutable conjecture (signatures only): for every adversary against the deployed
@@ -172,6 +178,21 @@ verifier, copied to children); the program is pinned by the batched bytecode cla
 batching is ordinary FS over prover inputs. Caveats: CGH04, BBHMR19, the paper's "formally distinct"
 (§1.1.2, §2.3); static corruption only (the union-bound form extends to adaptive corruption except the
 hidden-S events).
+The route from the random-oracle theorem to this conjecture (E2E-10, `partial-words.md` §4.2): a
+deployed adversary A with an extractor E_A is an idealized adversary A′ = (A, E_A), T7″ makes
+V_I^{BLAKE2s} accept A′'s output, and the random-oracle heuristic applies to A′. It needs, besides
+collision resistance of BLAKE2s compression (`StacksPrecheck`) and no cycle of nodes (`FuelBounds`):
+**KA-pw** (straight-line extraction of partial words). E_A reads, at every node V_I reaches, the
+partial word of A's BLAKE2s trace under the node's stack root (the rows whose paths the trace
+answers, a hole at every maximal subtree whose digest the trace does not invert), and holes the
+present columns disagreeing with a stack q_ν satisfying M3Holds on the node's input that agrees with
+it on ≥ thr present columns. Assumption: except with probability ≈ q_A · 2^-128 (the level-0 query
+phase at the Johnson radius, ≈ 2^-112 per attempt, then its proof of work), when `verifyAggregate`
+accepts A's output, such a q_ν exists at every node E_A reaches. This is the deployed proof system's
+knowledge soundness with the BCS extractor at its own Johnson radius; T1 proves its random-oracle
+analogue (without Flock), and every prover leaving subtrees uncomputed meets it up to the protocol's
+soundness. (The full-word form it replaces, "A knows every reached full word", is false for such
+provers.)
 Unconditional today, without the heuristic: the root-level statement `aggregate_sound_outer` (validity
 under concrete BLAKE2s with a classical extractor; NOT a no-forgery statement).
 
@@ -515,6 +536,34 @@ the statement, each with its reason.
   below the square (T3-2). The price is the lifetime: `q` counts the honest signers' worst-case
   work, so over `2^44` signatures the headline gives `≈ 2^-28`, where the visible family gives
   `≈ 2^-42`; no single `q` gets both (`headline.md` §3).
+- **E2E-10 (V_I accepts partial words; proposed by the partial-word design, decided by the
+  user).** An idealized proof gives each node a *partial word* (`IdealProof.words : List (Node ×
+  PWord)`, `LeanVM/E2E/PartialWord.lean`): the rows and holes `hole k j`, node `j` of level `k`
+  given only as a digest; its root is computed top-down, a hole standing for its subtree
+  (`pTreeRootM`; on a full word the deployed root, `pTreeRootM_full`). V_I follows the *strict*
+  candidates (`blindCandidatesS`): the stacks agreeing with the word on level 0's Johnson
+  threshold of present columns, a hole column counting as a disagreement; and it rejects a node
+  whose word has a hole and no candidate satisfying the relation without Flock. A full word with
+  none is still accepted, so V_I accepts a superset of the proofs it accepted before (on full
+  words it is unchanged, `blindCandidatesS_full`). Nothing else changes.
+  Why: the deployed verifier opens a few columns, so a prover leaving a subtree uncomputed (an
+  arbitrary digest at an inner node) is accepted with high probability; no full word exists for its
+  proof, so T7′'s `WordsCover`, and the knowledge assumption of §5's route, were false for it.
+  Soundness (T4, `exists_blindCandidatesS`): at a full word T1's extracted stack is a candidate (a
+  present row has an opening through the partial tree's answered queries,
+  `extract_eq_of_pTreeRootM`); at a word with a hole V_I's own candidate is checked; T4 needs only
+  one checked candidate, the statement being fixed by its digest. Without the rejection, a hole over
+  `n − thr` columns hides a fake-table stack V° accepts (`Pr[Breaks] ≈ 1`). Holes as agreements
+  (erasures) are sound without the rule, but their lists reach every stack from a fraction `√ρ` of
+  holes on, which the deployed verifier accepts at about `2^-23` per attempt at rate `1/16`; the
+  strict list is a sublist of a Johnson list, at most `listMax`. No error term, `λ₁` or the
+  quadratic term changes; every end theorem keeps its name and statement. Completeness: the honest
+  prover gives full words. The bridge: T7′ (`idealVerify_blake2s`, full words) is kept, and T7″
+  (`idealVerify_blake2s_known`) has the knowledge hypothesis `KnownStacks` (every reached partial
+  word has at least `thr` present columns, each the encoding of one stack satisfying the full
+  relation) in place of `WordsCover` and `CandidatesAux` (its strict list is that stack,
+  `eq_of_mem_sCandidates_deployed`), `StacksPrecheck` (that stack's rows; collision resistance) and
+  `FuelBounds`; §5's knowledge assumption is KA-pw. Plan: `partial-words.md`.
 
 ## 8. Status: what is proved
 **The headline** (`LeanVM/E2E/Headline.lean`, decision E2E-9, `headline.md`; pinned in
@@ -674,5 +723,6 @@ probability `completeError (QG + QP) pfuel = Q((1 − 2^-17)^pfuel + Q/2^256) + 
 4(Q + 1)/2^256)`, `Q = QG + QP`; `QP ≤ size · nodeQueries pfuel` (about `2^42` per node at
 `pfuel = 2^25`). Not vacuous: the honest leanXMSS leaf generator, error at most `2^-124`
 (`idealVerify_complete_rom_xmssLeaf`).
-T7′ is `Sanity.idealVerify_blake2s`. Not proved: the heuristic of §5 relating V_I to the deployed
+T7′ is `Sanity.idealVerify_blake2s` (full words), and with partial words (decision E2E-10)
+`Sanity.idealVerify_blake2s_known` (T7″: the reached partial words encode known stacks). Not proved: the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.

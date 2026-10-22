@@ -458,6 +458,20 @@ theorem closed_rootOfLevelM : ∀ (k : ℕ) (level : List Digest), G (rootOfLeve
     hbind _ _ (closed_mapM G hpure hbind _ (fun _ ↦ hH _) _) fun _ ↦ closed_rootOfLevelM k _
 
 omit [LawfulMonad m] in
+/-- A closed predicate holds of a node of a partial tree computed with the hash. -/
+theorem closed_pNodeM (P : PWord) : ∀ (k j : ℕ), G (pNodeM H P k j)
+  | 0, j => by
+    unfold pNodeM
+    split
+    · exact hpure _
+    · exact hH _
+  | k + 1, j => by
+    unfold pNodeM
+    split
+    · exact hpure _
+    · exact hbind _ _ (closed_pNodeM P k _) fun _ ↦ hbind _ _ (closed_pNodeM P k _) fun _ ↦ hH _
+
+omit [LawfulMonad m] in
 /-- A closed predicate holds of V_I's table check. -/
 theorem closed_tableOKWith (rows : List BlakeRow) : G (tableOKWith H rows) := by
   unfold tableOKWith
@@ -467,6 +481,7 @@ theorem closed_tableOKWith (rows : List BlakeRow) : G (tableOKWith H rows) := by
     | (refine hbind _ _ (hH _) fun _ ↦ ?_)
     | split
 
+omit [LawfulMonad m] in
 /-- A closed predicate holds of one node of V_I. -/
 theorem closed_nodeStep (prog : Program) (seed : Digest) (ip : IdealProof) (ν : Node) :
     G (nodeStep H prog seed ip ν) := by
@@ -476,12 +491,14 @@ theorem closed_nodeStep (prog : Program) (seed : Digest) (ip : IdealProof) (ν :
     | exact hH _
     | exact closed_mapM G hpure hbind _ (fun _ ↦ hH _) _
     | exact closed_rootOfLevelM G hpure hbind H hH _ _
+    | exact closed_pNodeM G hpure hbind H hH _ _ _
     | exact closed_tableOKWith G hpure hbind H hH _
     | (refine hbind _ _ ?_ fun _ ↦ ?_)
     | (refine closed_forIn G hpure hbind _ (fun _ _ ↦ ?_) _ _)
     | split
     | dsimp only
 
+omit [LawfulMonad m] in
 /-- A closed predicate holds of V_I's closure. -/
 theorem closed_closure (prog : Program) (seed : Digest) (ip : IdealProof) :
     ∀ (fuel : ℕ) (todo done : List Node), G (closure H prog seed ip fuel todo done)

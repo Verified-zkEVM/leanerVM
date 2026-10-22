@@ -56,24 +56,25 @@ theorem repOf_spec {es : List EntryN} {e : EntryN} (he : e ∈ es) :
 its representative's. -/
 noncomputable def idealOfN (o : HonestOutN) : IdealProof where
   proof := o.proof
-  words := o.entries.map fun e ↦ (e.1, ((repOf o.entries e.1).map (·.2.1)).getD e.2.1)
+  words := o.entries.map fun e ↦
+    (e.1, PWord.full (((repOf o.entries e.1).map (·.2.1)).getD e.2.1))
   frames ν := ((repOf o.entries ν).map (·.2.2.1)).getD fun _ _ ↦ none
 
 /-- **The idealized proof gives a node its representative's word and frames.** -/
 theorem idealOfN_rep {o : HonestOutN} {e : EntryN} (he : e ∈ o.entries) :
     ∃ r, repOf o.entries e.1 = some r ∧ r ∈ o.entries ∧ r.1 = e.1 ∧
       (∀ e' ∈ o.entries, e'.1 = e.1 → r.size ≤ e'.size) ∧
-      (idealOfN o).word e.1 = some r.2.1 ∧ (idealOfN o).frames e.1 = r.2.2.1 := by
+      (idealOfN o).word e.1 = some (PWord.full r.2.1) ∧ (idealOfN o).frames e.1 = r.2.2.1 := by
   classical
   obtain ⟨r, hr, hrm, hr1, hmin⟩ := repOf_spec he
   refine ⟨r, hr, hrm, hr1, hmin, ?_, by simp only [idealOfN, hr, Option.map_some, Option.getD_some]⟩
   have hfind : ∃ e', (o.entries.map fun e ↦
-      (e.1, ((repOf o.entries e.1).map (·.2.1)).getD e.2.1)).find? (fun p ↦ decide (p.1 = e.1)) =
+      (e.1, PWord.full (((repOf o.entries e.1).map (·.2.1)).getD e.2.1))).find? (fun p ↦ decide (p.1 = e.1)) =
         some e' := by
     rcases hf : (o.entries.map fun e ↦
-        (e.1, ((repOf o.entries e.1).map (·.2.1)).getD e.2.1)).find?
+        (e.1, PWord.full (((repOf o.entries e.1).map (·.2.1)).getD e.2.1))).find?
           (fun p ↦ decide (p.1 = e.1)) with _ | e'
-    · have := List.find?_eq_none.mp hf (e.1, ((repOf o.entries e.1).map (·.2.1)).getD e.2.1)
+    · have := List.find?_eq_none.mp hf (e.1, PWord.full (((repOf o.entries e.1).map (·.2.1)).getD e.2.1))
         (List.mem_map.mpr ⟨e, he, rfl⟩)
       simp at this
     · exact ⟨e', hf⟩
@@ -94,7 +95,7 @@ variable (H : Bytes → Digest) (ρ pfuel : ℕ)
 /-- **An entry steps to its children** under every idealized proof giving its node its word and
 frames. -/
 def EntryStep (r : EntryN) : Prop :=
-  ∀ ip : IdealProof, ip.word r.1 = some r.2.1 → ip.frames r.1 = r.2.2.1 →
+  ∀ ip : IdealProof, ip.word r.1 = some (PWord.full r.2.1) → ip.frames r.1 = r.2.2.1 →
     nodeStep (m := Id) (fun x ↦ (pure (H x) : Id Digest)) guest (seedOf H) ip r.1 =
       some r.2.2.2.1
 

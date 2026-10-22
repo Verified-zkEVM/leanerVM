@@ -218,7 +218,7 @@ frames of the first entry of the node's stack root (E2E-8: by node). -/
 def idealOf (o : HonestOut) : IdealProof where
   proof := o.proof
   words := o.subs.map fun p ↦
-    (p.1, ((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD fun _ ↦ [])
+    (p.1, PWord.full (((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD fun _ ↦ []))
   frames ν := ((o.entries.find? (·.1 = rootKey ν)).map (·.2.2)).getD fun _ _ ↦ none
 
 /-- **The honest idealized prover**: the root statement and its idealized proof. -/

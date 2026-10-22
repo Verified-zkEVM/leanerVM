@@ -37,9 +37,10 @@ padding digests.
 node, the log index of its statement digest's entry (T3). At a node `(pi, π)` with statement
 `s` whose digest is `pi`, accepted by V° and with its deferred claim's bytecode part true:
 
-1. T1 (`blind_knowledge_cache'`): the extractor reading the log finds a stack satisfying the
-   relation without Flock, which is one of the candidates V_I enumerated
-   (`mem_blindCandidates_of_extractedBlind`).
+1. A candidate V_I enumerated satisfies the relation without Flock (`exists_blindCandidatesS`):
+   with a full word, T1 (`blind_knowledge_cache'`): the extractor reading the log finds such a
+   stack, which is one of V_I's candidates (`mem_blindCandidates_of_extractedBlind`); with a
+   word with a hole, V_I required one (decision E2E-10).
 2. V_I ran that candidate under the Flock-blind semantics (`execution_of_extractedBlind`, the
    execution is valid) and checked its table (`tableOK_of_tableOKWith`); so the execution is
    valid under the oracle model of its table (C5, `validExecutionB_oracle`).
@@ -271,10 +272,10 @@ theorem heldDirect_of_node
   · exact absurd hpot hT1
   -- What V_I checked at the node.
   obtain ⟨kids, hstep, hkids⟩ := hD _ hmem
-  obtain ⟨layout, ρ, s, r, ht, w, W, root, hann, hs, hr, hsh, hW, hws, hroot, hrr, hcand⟩ :=
+  obtain ⟨layout, ρ, s, r, ht, w, P, root, hann, hs, hr, hsh, hW, hws, hroot, hrr, hcase, hcand⟩ :=
     nodeStep_some hstep
   obtain ⟨hadm, q, hq⟩ :=
-    mem_blindCandidates_of_extractedBlind hF hv hann hs hr hsh hws hroot hrr hx
+    exists_blindCandidatesS hF hv hann hs hr hsh hws hcase hroot hrr hx
   obtain ⟨t, htr, htab, hch⟩ := hcand q hq
   -- The candidate's execution, valid under the oracle model of its table (C5).
   obtain ⟨t', hrep, hvalid⟩ := execution_of_extractedBlind F₀ Guest.guest_sentinelSafe hadm hq.2

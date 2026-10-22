@@ -74,5 +74,47 @@ theorem eq_of_mem_candidates_deployed {μ R : ℕ} (h : Whir.Admissible μ R) {l
   obtain ⟨-, hμ, hκ, hR, -⟩ := Params.deployed_spec_hyps h hc
   exact eq_of_mem_candidates_stackWord _ hκ hR hμ hq
 
+/-! ## Partial words (decision E2E-10) -/
+
+/-- **The strict candidates of an exact partial word are its stack**: if every present column of
+`P` is the encoding of `q₀`, a stack agreeing with `P` on the Johnson threshold of present
+columns is `q₀`. -/
+theorem eq_of_mem_sCandidates_exact {μ R ht : ℕ} (P₀ : LevelCode) (hκ : P₀.κ = μ - laneBits)
+    (hR : P₀.R = R) (hμ : laneBits ≤ μ) {P : PWord} {q₀ q : Column μ}
+    (hex : ∀ v : Fin (2 ^ (μ - laneBits + R)), P.Present ht v →
+      ∀ u, laneOf P.word u v = enc (μ - laneBits) R (blockOf q₀ u) v)
+    (hq : q ∈ SCandidates μ R P₀.thr ht P) : q = q₀ := by
+  have hthr := P₀.two_pow_le_thr
+  rcases P₀ with ⟨κ, R', η, h64, hκ1, hR1, hη, hagr⟩
+  simp only at hκ hR hthr
+  subst hκ hR
+  obtain ⟨S, hS, hag⟩ := hq
+  refine eq_of_blockOf_eq hμ fun u ↦ enc_eq_of_agreeOn h64 S (le_trans hthr hS) fun v hv ↦ ?_
+  obtain ⟨hp, hl⟩ := hag v hv
+  rw [← hl u, hex v hp u]
+
+/-- **V_I's strict candidates of an exact partial word**, at the deployed codes of an admissible
+shape, are its stack. -/
+theorem eq_of_mem_sCandidates_deployed {μ R ht : ℕ} (h : Whir.Admissible μ R)
+    {level : Whir.Level} {rest : List Whir.Level}
+    (hc : Verifier.deriveConfig μ R = some (level :: rest)) {P : PWord} {q₀ q : Column μ}
+    (hex : ∀ v : Fin (2 ^ (μ - laneBits + R)), P.Present ht v →
+      ∀ u, laneOf P.word u v = enc (μ - laneBits) R (blockOf q₀ u) v)
+    (hq : q ∈ SCandidates μ R (Sound.thrOf μ R) ht P) : q = q₀ := by
+  obtain ⟨-, hμ, hκ, hR, -⟩ := Params.deployed_spec_hyps h hc
+  exact eq_of_mem_sCandidates_exact _ hκ hR hμ hex hq
+
+open Classical in
+/-- **An exact partial word with enough present columns has its stack as a strict
+candidate.** -/
+theorem mem_sCandidates_of_exact {μ R A ht : ℕ} {P : PWord} {q : Column μ}
+    (hex : ∀ v : Fin (2 ^ (μ - laneBits + R)), P.Present ht v →
+      ∀ u, laneOf P.word u v = enc (μ - laneBits) R (blockOf q u) v)
+    (hA : A ≤ (Finset.univ.filter fun v : Fin (2 ^ (μ - laneBits + R)) ↦ P.Present ht v).card) :
+    q ∈ SCandidates μ R A ht P :=
+  ⟨_, hA, fun v hv ↦ by
+    have hp : P.Present ht v := (Finset.mem_filter.mp hv).2
+    exact ⟨hp, hex v hp⟩⟩
+
 end
 end LeanVM.E2E.Complete

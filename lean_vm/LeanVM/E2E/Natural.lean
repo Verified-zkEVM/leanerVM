@@ -85,6 +85,24 @@ theorem rel_rootOfLevelM [LawfulMonad m] [LawfulMonad n] :
   | k + 1, _ =>
     hbind _ _ _ _ (rel_mapM R hpure hbind _ _ (fun _ ↦ hH _) _) fun _ ↦ rel_rootOfLevelM k _
 
+/-- A closed relation relates two nodes of a partial tree computed with related hashes. -/
+theorem rel_pNodeM (P : PWord) : ∀ (k j : ℕ), R (pNodeM H P k j) (pNodeM H' P k j)
+  | 0, j => by
+    unfold pNodeM
+    split
+    · exact hpure _
+    · exact hH _
+  | k + 1, j => by
+    unfold pNodeM
+    split
+    · exact hpure _
+    · exact hbind _ _ _ _ (rel_pNodeM P k _) fun _ ↦
+        hbind _ _ _ _ (rel_pNodeM P k _) fun _ ↦ hH _
+
+/-- A closed relation relates two roots of a partial tree computed with related hashes. -/
+theorem rel_pTreeRootM (ht : ℕ) (P : PWord) : R (pTreeRootM H ht P) (pTreeRootM H' ht P) :=
+  rel_pNodeM R hpure hbind H H' hH P ht 0
+
 /-- A closed relation relates two table checks with related hashes. -/
 theorem rel_tableOKWith (rows : List BlakeRow) : R (tableOKWith H rows) (tableOKWith H' rows) := by
   unfold tableOKWith
@@ -104,6 +122,7 @@ theorem rel_nodeStep [LawfulMonad m] [LawfulMonad n] (prog : Program) (seed : Di
     | exact hH _
     | exact rel_mapM R hpure hbind _ _ (fun _ ↦ hH _) _
     | exact rel_rootOfLevelM R hpure hbind H H' hH _ _
+    | exact rel_pTreeRootM R hpure hbind H H' hH _ _
     | exact rel_tableOKWith R hpure hbind H H' hH _
     | (refine hbind _ _ _ _ ?_ fun _ ↦ ?_)
     | (refine rel_forIn R hpure hbind _ _ (fun _ _ ↦ ?_) _ _)

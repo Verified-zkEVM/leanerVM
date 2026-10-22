@@ -117,7 +117,7 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
     (hs : s.Admissible prog) (hρ : validRate ρ) {sd : Digest} {fuel : ℕ} {π : Proof}
     (hπ : prove H (blindProgram (bytecodeWords prog) (publicDigest input))
       (Blind.honestStrategyBlind prog s ρ q) sd fuel = some π)
-    (pi : Digest) (hword : ip.word (pi, π) = some (stackWord (leanIsaμ prog s) q))
+    (pi : Digest) (hword : ip.word (pi, π) = some (PWord.full (stackWord (leanIsaμ prog s) q)))
     {fr : String → List E → Option ℕ} (hfr : ip.frames (pi, π) = fr) (cs : List Node.Child)
     (hcand : M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q →
       ∃ t, candidateRun prog s q = some t ∧
@@ -136,17 +136,16 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
     rw [hfold]; exact wellShaped_stackWord _ q
   unfold nodeStep
   have hw2 : (levelShape (leanIsaμ prog s) level (2 ^ level.fold)).2 = 2 ^ level.fold := rfl
-  simp only [hann, sizesOf_verifierLayout hs, hroot, hshape, hW, ↓reduceIte, treeRootM_id, hw2,
-    hshaped, not_true_eq_false]
+  simp only [hann, sizesOf_verifierLayout hs, hroot, hshape, hW, ↓reduceIte, PWord.word_full,
+    pTreeRootM_full, PWord.full_full, hw2, hshaped, not_true_eq_false, and_false]
   have hht : (levelShape (leanIsaμ prog s) level (2 ^ level.fold)).1 =
       stackHeight (leanIsaμ prog s) level := rfl
-  have hr : treeRoot (fun x ↦ (pure (H x) : Id Digest)) (stackHeight (leanIsaμ prog s) level)
-      (stackWord (leanIsaμ prog s) q) = treeRoot H (stackHeight (leanIsaμ prog s) level)
-      (stackWord (leanIsaμ prog s) q) := rfl
-  simp only [hht, hr, ne_eq]
-  have hset := blindCandidates_stackWord hs hρ pi q
+  simp only [hht, ne_eq]
+  have hset := (blindCandidatesS_full prog s ρ (stackHeight (leanIsaμ prog s) level) pi
+    (stackWord (leanIsaμ prog s) q)).trans (blindCandidates_stackWord hs hρ pi q)
   by_cases hm : M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q
-  · have hfin : (blindCandidates prog s ρ pi (stackWord (leanIsaμ prog s) q)).Finite := by
+  · have hfin : (blindCandidatesS prog s ρ (stackHeight (leanIsaμ prog s) level) pi
+        (PWord.full (stackWord (leanIsaμ prog s) q))).Finite := by
       rw [hset]; exact (Set.finite_singleton q).subset fun x hx ↦ hx.1
     have hlist : hfin.toFinset.toList = [q] := by
       have : hfin.toFinset = {q} := by
@@ -166,7 +165,8 @@ theorem nodeStep_honest (H : Bytes → Digest) {prog : Program} (seed : Digest) 
         List.nil_append]
       rfl
     · exact absurd hfin ‹_›
-  · have hfin : (blindCandidates prog s ρ pi (stackWord (leanIsaμ prog s) q)).Finite := by
+  · have hfin : (blindCandidatesS prog s ρ (stackHeight (leanIsaμ prog s) level) pi
+        (PWord.full (stackWord (leanIsaμ prog s) q))).Finite := by
       rw [hset]; exact Set.finite_empty.subset fun x hx ↦ hm hx.2
     have hlist : hfin.toFinset.toList = [] := by
       have : hfin.toFinset = ∅ := by

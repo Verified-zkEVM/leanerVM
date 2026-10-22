@@ -31,10 +31,12 @@ have that root. This module shows the two are the same candidates.
   `stackRoot` names, and records the word extracted under the root they encode.
 * **Merkle trees** (`openOne_of_rootOfLevelM`): every leaf of a tree whose root the log answers
   has an opening the log accepts, so the word extracted under that root is the word, at every
-  position of the tree (`extract_eq_of_treeRootM`).
+  position of the tree (`extract_eq_of_treeRootM`); for a partial tree (decision E2E-10), at
+  every present row (`climb_of_pNodeM`, `extract_eq_of_pTreeRootM`).
 * `candidates_congr`: the candidates of a word read only its columns.
-* **The node** (`mem_blindCandidates_of_extractedBlind`): at a node V_I accepts, T1's extracted
-  stack is one of the candidates V_I enumerates.
+* **The node** (`mem_blindCandidates_of_extractedBlind`): at a node V_I accepts with a full
+  word, T1's extracted stack is one of the candidates V_I enumerates; with a hole, V_I required
+  one (`exists_blindCandidatesS`).
 -/
 
 namespace LeanVM.E2E
@@ -276,6 +278,66 @@ theorem extract_eq_of_treeRootM (hH : AnswersInj H) {ht w : ℕ} {W : Word} {roo
   have := extract_eq_of_openOne hH ho
   rwa [Nat.mod_eq_of_lt hp] at this
 
+/-! ### Partial trees (decision E2E-10) -/
+
+/-- A climb one level longer. -/
+theorem climb_append (H : Bytes → Option Digest) :
+    ∀ (ps : List Digest) (n : Digest) (q : ℕ) (s : Digest),
+      climb (m := Option) H n q (ps ++ [s]) =
+        (climb (m := Option) H n q ps).bind fun c ↦ H (nodeInput c s (q / 2 ^ ps.length))
+  | [], n, q, s => by
+    rw [List.nil_append, climb_cons]
+    simp [climb]
+  | p :: ps, n, q, s => by
+    rw [List.cons_append, climb_cons, climb_cons, Option.bind_assoc]
+    congr 1
+    funext x
+    rw [climb_append H ps x (q / 2) s, Nat.div_div_eq_div_mul, List.length_cons, pow_succ']
+
+/-- **A present row climbs to its node**: through the answers of a partial tree's node, a row
+under it with no hole on the way has a path of one sibling per level. -/
+theorem climb_of_pNodeM {P : PWord} :
+    ∀ (k j : ℕ) (d : Digest), pNodeM H P k j = some d → ∀ p, p / 2 ^ k = j →
+      (∀ k' ≤ k, P.hole k' (p / 2 ^ k') = none) →
+      ∃ (ld : Digest) (path : List Digest), H ((P.word p).flatMap kBytes) = some ld ∧
+        path.length = k ∧ climb (m := Option) H ld p path = some d
+  | 0, j, d, h, p, hp, hh => by
+    simp only [pow_zero, Nat.div_one] at hp
+    subst hp
+    have h0 := hh 0 le_rfl
+    simp only [pow_zero, Nat.div_one] at h0
+    simp only [pNodeM, h0] at h
+    exact ⟨d, [], h, rfl, rfl⟩
+  | k + 1, j, d, h, p, hp, hh => by
+    have hk := hh (k + 1) le_rfl
+    rw [hp] at hk
+    simp only [pNodeM, hk, bind, Option.bind_eq_some_iff] at h
+    obtain ⟨l, hl, r, hr, hd⟩ := h
+    have hc : p / 2 ^ k / 2 = j := by rw [Nat.div_div_eq_div_mul, ← pow_succ, hp]
+    have hh' : ∀ k' ≤ k, P.hole k' (p / 2 ^ k') = none := fun k' hk' ↦ hh k' (by omega)
+    rcases Nat.mod_two_eq_zero_or_one (p / 2 ^ k) with he | ho
+    · obtain ⟨ld, path, hld, hlen, hcl⟩ := climb_of_pNodeM k (2 * j) l hl p (by omega) hh'
+      refine ⟨ld, path ++ [r], hld, by simp [hlen], ?_⟩
+      rw [climb_append, hcl, hlen]
+      simp only [Option.bind_some, nodeInput, he, ↓reduceIte]
+      exact hd
+    · obtain ⟨ld, path, hld, hlen, hcl⟩ := climb_of_pNodeM k (2 * j + 1) r hr p (by omega) hh'
+      refine ⟨ld, path ++ [l], hld, by simp [hlen], ?_⟩
+      rw [climb_append, hcl, hlen]
+      simp only [Option.bind_some, nodeInput, ho, one_ne_zero, ↓reduceIte]
+      exact hd
+
+/-- **The word a log extracts under a partial tree's root is the partial word at every present
+row**, when the log's answers have no collision. -/
+theorem extract_eq_of_pTreeRootM (hH : AnswersInj H) {ht w : ℕ} {P : PWord} {root : Digest}
+    (hws : WellShaped w P.word) (h : pTreeRootM H ht P = some root) {p : ℕ} (hp : p < 2 ^ ht)
+    (hpr : P.Present ht p) : Rom.extract H root ht w p = P.word p := by
+  obtain ⟨ld, path, hld, hlen, hcl⟩ := climb_of_pNodeM ht 0 root h p (Nat.div_eq_of_lt hp) hpr
+  have ho : openOne (m := Option) H root ht w p ⟨P.word p, path⟩ = some true :=
+    (openOne_eq_some_true_iff _ _ _ _ _ _).mpr ⟨hws p, hlen, ld, hld, hcl⟩
+  have := extract_eq_of_openOne hH ho
+  rwa [Nat.mod_eq_of_lt hp] at this
+
 end Merkle
 
 /-! ## The stack's commitment -/
@@ -351,23 +413,35 @@ theorem candidates_congr {μ R A : ℕ} {W W' : Word}
 theorem cacheOf_eq_look (ℓ : Log) : (fun x ↦ cacheOf ℓ x) = look ℓ :=
   funext fun x ↦ cacheOf_apply ℓ x
 
-/-- **At a node V_I accepts, T1's extracted stack is among V_I's candidates.** On a log without
-failure, for a proof V° accepts with every hash answered by the log, at the sizes `s`, rate `ρ`
-and stack root `r` V_I reads off the proof, and a word `W` of the stack's shape whose tree the
-log answers with the root `r` encodes: the sizes are admissible, and if the extractor reading
-the log succeeds (`ExtractedBlind`, T1's conclusion), some candidate of `W` satisfies the
-leanISA relation without Flock (`blindCandidates`). -/
+/-- The sizes `sizesOf` reads off a layout are admissible. -/
+theorem admissible_of_sizesOf' {prog : Program} {layout : Verifier.Layout} {s : Sizes}
+    (h : sizesOf prog layout = some s) : s.Admissible prog := by
+  unfold sizesOf at h
+  split at h
+  · rename_i hex
+    obtain rfl := Option.some.inj h
+    exact hex.choose_spec.2
+  · simp at h
+
+/-- **At a node V_I accepts with a full partial word, T1's extracted stack is among V_I's
+candidates.** On a log without failure, for a proof V° accepts with every hash answered by the
+log, at the sizes `s`, rate `ρ` and stack root `r` V_I reads off the proof, and a partial word
+`P` of the stack's shape with no hole in its tree, whose tree the log answers with the root `r`
+encodes: the sizes are admissible, and if the extractor reading the log succeeds
+(`ExtractedBlind`, T1's conclusion), some candidate of `P` satisfies the leanISA relation without
+Flock (`blindCandidatesS`). -/
 theorem mem_blindCandidates_of_extractedBlind {ℓ : Log} (hf : ¬ Fail leanVmSeeds ℓ)
     {prog : Program} {pi : Digest} {π : Proof}
     (hv : verifyBlindWith (look ℓ) (bytecodeWords prog) pi π = some true)
-    {layout : Verifier.Layout} {ρ : ℕ} {s : Sizes} {r : E × E} {ht w : ℕ} {W : Word}
+    {layout : Verifier.Layout} {ρ : ℕ} {s : Sizes} {r : E × E} {ht w : ℕ} {P : PWord}
     {root : Digest}
     (hann : Verifier.announced (bytecodeWords prog) π.stream = some (layout, ρ))
     (hs : sizesOf prog layout = some s) (hr : stackRoot π = some r)
-    (hsh : stackShape layout ρ = some (ht, w)) (hws : WellShaped w W)
-    (hroot : treeRootM (look ℓ) ht W = some root) (hrr : digestScalars root = r)
+    (hsh : stackShape layout ρ = some (ht, w)) (hws : WellShaped w P.word)
+    (hfull : P.Full ht)
+    (hroot : pTreeRootM (look ℓ) ht P = some root) (hrr : digestScalars root = r)
     (hx : ExtractedBlind prog (inputOf pi) (cacheOf ℓ) π) :
-    s.Admissible prog ∧ ∃ q, q ∈ blindCandidates prog s ρ pi W := by
+    s.Admissible prog ∧ ∃ q, q ∈ blindCandidatesS prog s ρ ht pi P := by
   -- The sizes V_I chose.
   have hsz : verifierLayout prog s = layout ∧ s.Admissible prog := by
     unfold sizesOf at hs
@@ -460,11 +534,31 @@ theorem mem_blindCandidates_of_extractedBlind {ℓ : Log} (hf : ¬ Fail leanVmSe
       rw [hc] at hc'
       simp only [Option.some.injEq, List.cons.injEq] at hc'
       obtain ⟨rfl, rfl⟩ := hc'
-      refine candidates_congr (fun v hv ↦ ?_) hq.choose_spec.1
-      refine extract_eq_of_treeRootM (answersInj_look hf) hws hroot ?_
-      simpa [levelShape, ← hsz.1, stackLog_verifierLayout] using hv
+      refine mem_sCandidates_of_candidates (fun v hv ↦ hfull v ?_)
+        (fun v hv ↦ extract_eq_of_pTreeRootM (answersInj_look hf) hws hroot ?_ (hfull v ?_))
+        hq.choose_spec.1
+      all_goals simpa [levelShape, ← hsz.1, stackLog_verifierLayout] using hv
     · simp at hex
   · simp at hsh
+
+/-- **At a node V_I accepts, a candidate it follows satisfies the relation**: with a full word,
+T1's extracted stack (`mem_blindCandidates_of_extractedBlind`); with a hole, the candidate V_I
+required (decision E2E-10). -/
+theorem exists_blindCandidatesS {ℓ : Log} (hf : ¬ Fail leanVmSeeds ℓ)
+    {prog : Program} {pi : Digest} {π : Proof}
+    (hv : verifyBlindWith (look ℓ) (bytecodeWords prog) pi π = some true)
+    {layout : Verifier.Layout} {ρ : ℕ} {s : Sizes} {r : E × E} {ht w : ℕ} {P : PWord}
+    {root : Digest}
+    (hann : Verifier.announced (bytecodeWords prog) π.stream = some (layout, ρ))
+    (hs : sizesOf prog layout = some s) (hr : stackRoot π = some r)
+    (hsh : stackShape layout ρ = some (ht, w)) (hws : WellShaped w P.word)
+    (hcase : P.Full ht ∨ ∃ q, q ∈ blindCandidatesS prog s ρ ht pi P)
+    (hroot : pTreeRootM (look ℓ) ht P = some root) (hrr : digestScalars root = r)
+    (hx : ExtractedBlind prog (inputOf pi) (cacheOf ℓ) π) :
+    s.Admissible prog ∧ ∃ q, q ∈ blindCandidatesS prog s ρ ht pi P := by
+  rcases hcase with hF | hq
+  · exact mem_blindCandidates_of_extractedBlind hf hv hann hs hr hsh hws hF hroot hrr hx
+  · exact ⟨admissible_of_sizesOf' hs, hq⟩
 
 end
 end LeanVM.E2E

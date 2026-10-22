@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.EndKnowB
+public import LeanVM.E2E.PartialWord
 public import LeanVM.Guest.Value.OracleModel
 public import LeanVM.Spec.NodeWith
 public import LeanVM.Spec.Ideal.Blind
@@ -24,13 +25,16 @@ public import LeanVM.Protocol.ToVCVio.Rom.LoggedOracle
 The design is `docs/roadmap/e2e-security.md`; this module states its §0 to §3 in Lean.
 
 **The idealized verifier** `idealVerify` (V_I, §2) is an algorithm with a hash `H` in any monad,
-not succinct: an idealized proof (`IdealProof`) is the root's proof with the level-0 word of
-every node's stack commitment and the frames its decoder reads, both by node (decisions E2E-5,
-E2E-8). It checks the root statement's proof with the Flock-blind verifier V°
-(`Verifier.verifyBlindWith`) and the outer checks, then closes the set of nodes under the
-children decoded from every candidate the committed words allow: for every node, the word the
-idealized proof gives the node has the node's stack root, and every candidate satisfying the
-leanISA relation without Flock (`M3HoldsBlind`) is an execution under the Flock-blind semantics
+not succinct: an idealized proof (`IdealProof`) is the root's proof with the level-0 partial
+word of every node's stack commitment (`PWord`, some Merkle subtrees given only as digests) and
+the frames its decoder reads, both by node (decisions E2E-5, E2E-8, E2E-10). It checks the root
+statement's proof with the Flock-blind verifier V° (`Verifier.verifyBlindWith`) and the outer
+checks, then closes the set of nodes under the children decoded from every candidate the
+committed words allow: for every node, the partial word the idealized proof gives the node has
+the node's stack root (`pTreeRootM`), its candidates are the stacks agreeing with it on enough
+present columns (`blindCandidatesS`, a column under a hole counting as a disagreement), a word
+with a hole has one satisfying the leanISA relation without Flock (`M3HoldsBlind`), and every
+candidate satisfying that relation is an execution under the Flock-blind semantics
 (`haltingRunB blakeFree`) whose `BLAKE2S` rows pass the precheck and the table check
 (`tableOKWith`); its decoded children are nodes. The closure runs in `fuel` steps. V_I decodes a
 candidate's memory with the deployed guest's decoder at the semantics of the candidate's own
@@ -112,6 +116,21 @@ def blindCandidates (prog : Program) (s : Sizes) (ρ : ℕ) (pi : Digest) (W : W
   {q | q ∈ Candidates (leanIsaμ prog s) ρ (thrOf (leanIsaμ prog s) ρ) W ∧
     M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q}
 
+/-- **The candidates V_I follows** (decision E2E-10): the stacks agreeing with the partial word
+`P` on level 0's Johnson threshold of present columns (a column under a hole counting as a
+disagreement) satisfying the relation without Flock, for the guest at sizes `s` on the input of
+the digest `pi`; `ht` is the height of the commitment's tree. On a full word,
+`blindCandidates` (`blindCandidatesS_full`). -/
+def blindCandidatesS (prog : Program) (s : Sizes) (ρ ht : ℕ) (pi : Digest) (P : PWord) :
+    Set (Column (leanIsaμ prog s)) :=
+  {q | q ∈ SCandidates (leanIsaμ prog s) ρ (thrOf (leanIsaμ prog s) ρ) ht P ∧
+    M3HoldsBlind (leanIsaInstance F₀ prog s) (inputOf pi) q}
+
+/-- On a full word the candidates V_I follows are the word's. -/
+theorem blindCandidatesS_full (prog : Program) (s : Sizes) (ρ ht : ℕ) (pi : Digest) (W : Word) :
+    blindCandidatesS prog s ρ ht pi (PWord.full W) = blindCandidates prog s ρ pi W := by
+  simp only [blindCandidatesS, blindCandidates, sCandidates_full]
+
 /-- The execution a candidate's memory image runs, under the Flock-blind semantics. -/
 noncomputable def candidateRun (prog : Program) (s : Sizes) (q : Column (leanIsaμ prog s)) :
     Option (Trace prog) :=
@@ -169,21 +188,23 @@ theorem _root_.LeanVM.Node.DeferredClaim.bytecodeHolds_of_holds {bytecode : List
 /-- A node of V_I: a statement digest and a proof. -/
 abbrev Node : Type := Digest × Proof
 
-/-- **An idealized proof**: the root's proof, the level-0 word of every node's stack commitment,
-and the frames the decoder reads, both by node `ν = (pi, π)` (decisions E2E-5, E2E-8). -/
+/-- **An idealized proof**: the root's proof, the level-0 partial word of every node's stack
+commitment, and the frames the decoder reads, both by node `ν = (pi, π)` (decisions E2E-5,
+E2E-8, E2E-10). -/
 structure IdealProof where
   /-- The root statement's proof. -/
   proof : Proof
-  /-- The level-0 words of the nodes' stacks, by node (E2E-8). -/
-  words : List (Node × Word)
+  /-- The level-0 partial words of the nodes' stacks, by node (E2E-8, E2E-10). -/
+  words : List (Node × PWord)
   /-- The frames V_I's decoder reads a candidate's located calls at, by node (E2E-8), the callee
   and its argument words (`End.decodeAt`: used when the callee's code holds there). -/
   frames : Node → String → List E → Option ℕ
 
 open Classical in
-/-- The word an idealized proof gives a node (the first listed for it; `Proof` has no decidable
-equality, so the lookup decides node equality classically, as the closure's `ν ∈ done`). -/
-noncomputable def IdealProof.word (ip : IdealProof) (ν : Node) : Option Word :=
+/-- The partial word an idealized proof gives a node (the first listed for it; `Proof` has no
+decidable equality, so the lookup decides node equality classically, as the closure's
+`ν ∈ done`). -/
+noncomputable def IdealProof.word (ip : IdealProof) (ν : Node) : Option PWord :=
   (ip.words.find? (·.1 = ν)).map (·.2)
 
 section Verify
@@ -192,9 +213,10 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (prog : Program)
   (ip : IdealProof)
 
 open Classical in
-/-- **One node of V_I**: its announced sizes and stack root; the word `ip` gives the node, well
-shaped, with that Merkle root; every candidate of it satisfying the relation without Flock
-runs under the Flock-blind semantics and passes the table check; the nodes of the children each
+/-- **One node of V_I**: its announced sizes and stack root; the partial word `ip` gives the
+node, well shaped, with that Merkle root; if the word has a hole, a candidate satisfying the
+relation without Flock (decision E2E-10); every candidate of it satisfying that relation runs
+under the Flock-blind semantics and passes the table check; the nodes of the children each
 decodes, at the frames `ip` names for the node. `none` rejects. -/
 noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
   let (pi, π) := ν
@@ -202,11 +224,12 @@ noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
   let some s := sizesOf prog layout | pure none
   let some r := stackRoot π | pure none
   let some (ht, w) := stackShape layout ρ | pure none
-  let some W := ip.word ν | pure none
-  if ¬ WellShaped w W then return none
-  let root ← treeRootM H ht W
+  let some P := ip.word ν | pure none
+  if ¬ WellShaped w P.word then return none
+  let root ← pTreeRootM H ht P
   if digestScalars root ≠ r then return none
-  if h : (blindCandidates prog s ρ pi W).Finite then
+  if blindCandidatesS prog s ρ ht pi P = ∅ ∧ ¬ P.Full ht then return none
+  if h : (blindCandidatesS prog s ρ ht pi P).Finite then
     let mut kids : List Node := []
     for q in h.toFinset.toList do
       let some t := candidateRun prog s q | return none
@@ -221,9 +244,9 @@ noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
 
 open Classical in
 /-- The closure of the nodes `todo` under `nodeStep`, in at most `fuel` steps (a revisit is a
-step); `done` the nodes already checked. A node whose word has no candidate satisfying the
+step); `done` the nodes already checked. A node whose full word has no candidate satisfying the
 relation has no children: V° on the root, and the children's in-circuit verification, make
-such a word improbable (T1). -/
+such a word improbable (T1); a word with a hole and no such candidate is rejected (`nodeStep`). -/
 noncomputable def closure : ℕ → List Node → List Node → m Bool
   | _, [], _ => pure true
   | 0, _ :: _, _ => pure false

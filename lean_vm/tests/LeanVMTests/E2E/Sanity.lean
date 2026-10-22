@@ -3,8 +3,9 @@ import LeanVM.E2E.Sanity
 /-!
 # Tests: sanity (T7′)
 
-* The sanity theorem `idealVerify_blake2s` and its pieces rest on Lean's three axioms; its
-  statement is locked.
+* The sanity theorems `idealVerify_blake2s` (full words) and `idealVerify_blake2s_known`
+  (partial words encoding a known stack, decision E2E-10) and their pieces rest on Lean's three
+  axioms; their statements are locked.
 * **The table check at BLAKE2s, concretely.** The one-row table of the empty string's chain (a
   row of the compression function) passes the precheck, has finitely many chain inputs, and V_I's
   table check with BLAKE2s accepts it; the empty table too. Two non-final rows with distinct
@@ -68,6 +69,25 @@ example {s : LeanVM.Node.NodeStatement} {ip : IdealProof} {fuel : ℕ}
     idealVerify (m := Id) (fun x ↦ (pure (blake2sBytes x) : Id Digest)) LeanVM.Guest.guest ip
       fuel s = true :=
   idealVerify_blake2s hagg hcov haux hpre hfuel
+
+/-- info: 'LeanVM.E2E.Sanity.idealVerify_blake2s_known' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms idealVerify_blake2s_known
+
+/-- info: 'LeanVM.E2E.Sanity.step_of_reached_known' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms step_of_reached_known
+
+/-- T7″: the deployed aggregation's acceptance, the reached partial words encoding known stacks,
+the precheck of those stacks' tables and enough fuel make V_I with BLAKE2s accept. -/
+example {s : LeanVM.Node.NodeStatement} {ip : IdealProof} {fuel : ℕ}
+    (hagg : LeanVM.Node.verifyAggregate LeanVM.Guest.guest s ip.proof)
+    (hkn : KnownStacks LeanVM.Guest.guest ip (rootNode LeanVM.Guest.guest s ip))
+    (hpre : StacksPrecheck LeanVM.Guest.guest ip (rootNode LeanVM.Guest.guest s ip))
+    (hfuel : FuelBounds LeanVM.Guest.guest ip (rootNode LeanVM.Guest.guest s ip) fuel) :
+    idealVerify (m := Id) (fun x ↦ (pure (blake2sBytes x) : Id Digest)) LeanVM.Guest.guest ip
+      fuel s = true :=
+  idealVerify_blake2s_known hagg hkn hpre hfuel
 
 /-! ## The table check at BLAKE2s, concretely -/
 

@@ -166,7 +166,7 @@ theorem nodeStep_out {claims : Claims} {xs : List (Holder LeanXmss.Signature)}
     {ss : List (Holder Sphincs.Signature)} {ds : List (Holder Da.Witness)} {kos : List HonestOut}
     {o : HonestOut} (hρ : validRate ρ) (h : honestStep H ρ pfuel claims xs ss ds kos = some o)
     (ip : IdealProof) (hip : ∀ e ∈ o.entries.head?,
-      ip.word (nodeOfOut H o) = some e.2.1 ∧ ip.frames (nodeOfOut H o) = e.2.2) :
+      ip.word (nodeOfOut H o) = some (PWord.full e.2.1) ∧ ip.frames (nodeOfOut H o) = e.2.2) :
     nodeStep (m := Id) (fun x ↦ (pure (H x) : Id Digest)) guest (seedOf H) ip (nodeOfOut H o) =
       some (kos.map (nodeOfOut H)) := by
   obtain ⟨hd, e, π, -, hπ, rfl⟩ := honestStep_spec H ρ pfuel h
@@ -239,7 +239,7 @@ the tree's, its first node is its own, and its nodes' list is closed. -/
 theorem honestOut_good (hρ : validRate ρ) (ip : IdealProof) (T : HonestTree) :
     ∀ o : HonestOut, honestOut H ρ pfuel T = some o →
       (∀ e ∈ o.entries, ∀ p ∈ o.subs, rootKey p.1 = e.1 →
-        ip.word p.1 = some e.2.1 ∧ ip.frames p.1 = e.2.2) → GoodOut H ip T o := by
+        ip.word p.1 = some (PWord.full e.2.1) ∧ ip.frames p.1 = e.2.2) → GoodOut H ip T o := by
   induction T using HonestTree.induct' with
   | h claims xs ss ds kids ih =>
   intro o h hip
@@ -253,7 +253,7 @@ theorem honestOut_good (hρ : validRate ρ) (ip : IdealProof) (T : HonestTree) :
     subst he'
     exact hip _ List.mem_cons_self _ List.mem_cons_self rfl
   have hipk : ∀ ko ∈ kos, ∀ e ∈ ko.entries, ∀ p ∈ ko.subs, rootKey p.1 = e.1 →
-      ip.word p.1 = some e.2.1 ∧ ip.frames p.1 = e.2.2 :=
+      ip.word p.1 = some (PWord.full e.2.1) ∧ ip.frames p.1 = e.2.2 :=
     fun ko hko e he p hp ↦ hip e (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨ko, hko, he⟩)) p
       (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨ko, hko, hp⟩))
   have hG : List.Forall₂ (fun k ko ↦ GoodOut H ip k.1 ko) kids.attach kos :=
@@ -310,7 +310,7 @@ theorem find?_entry {es : List Entry} (hr : RootsInj es) {e : Entry} (he : e ∈
 `RootsInj`. -/
 theorem idealOf_entries {o : HonestOut} (hr : RootsInj o.entries) :
     ∀ e ∈ o.entries, ∀ p ∈ o.subs, rootKey p.1 = e.1 →
-      (idealOf o).word p.1 = some e.2.1 ∧ (idealOf o).frames p.1 = e.2.2 := by
+      (idealOf o).word p.1 = some (PWord.full e.2.1) ∧ (idealOf o).frames p.1 = e.2.2 := by
   intro e he p hp hpe
   have hf := find?_entry hr he
   refine ⟨?_, ?_⟩
@@ -318,7 +318,8 @@ theorem idealOf_entries {o : HonestOut} (hr : RootsInj o.entries) :
     cases hfind : List.find? _ (List.map _ o.subs) with
     | none =>
       have := List.find?_eq_none.mp hfind _ (List.mem_map_of_mem (f := fun p : E2E.Node × List E2E.Node × ℕ ↦
-        (p.1, ((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD fun _ ↦ [])) hp)
+        (p.1, PWord.full (((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD
+          fun _ ↦ []))) hp)
       simp at this
     | some x =>
       have hx1 := List.find?_some hfind

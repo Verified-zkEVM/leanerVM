@@ -129,6 +129,12 @@ theorem treeRootM_mono {ht : ℕ} {W : Word} {root : Digest} (hv : treeRootM H h
   rel_treeRootM (fun x x' ↦ OptLE x x') optLE_pure optLE_bind H H' (optLE_of_lookSub h) ht W
     root hv
 
+/-- A partial tree's root's `Option` run is monotone in the lookup. -/
+theorem pTreeRootM_mono {ht : ℕ} {P : PWord} {root : Digest}
+    (hv : pTreeRootM H ht P = some root) : pTreeRootM H' ht P = some root :=
+  rel_pTreeRootM (fun x x' ↦ OptLE x x') optLE_pure optLE_bind H H' (optLE_of_lookSub h) ht P
+    root hv
+
 /-- V°'s `Option` run is monotone in the lookup. -/
 theorem verifyBlindWith_mono {bytecode : List K} {pi : Digest} {π : Proof} {b : Bool}
     (hv : verifyBlindWith H bytecode pi π = some b) : verifyBlindWith H' bytecode pi π = some b :=
