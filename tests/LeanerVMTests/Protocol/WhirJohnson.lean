@@ -103,6 +103,32 @@ def multiplicity (n D : ℕ) (η : ℚ) : ℕ :=
   let r := sqrtGuess (D * q ^ 2 / (p ^ 2 * n))
   max (if D * q ^ 2 ≤ r * r * (p ^ 2 * n) then r else r + 1) 3
 
+/-- **An upper bound on Annex B's constant from rational bounds**: with `ρ = D / n`, if
+`0 < l ≤ √ρ` (as `l² ≤ ρ`), `θ ≥ 3` with `⌈√ρ / η⌉ ≤ θ` (as `ρ ≤ (θ η)²`), `0 < η` and
+`√ρ + η ≤ 1`, then `mcaConstant n D η` is at most the formula with `θ` for its multiplicity, `l`
+for `√ρ` and `1 - l - η` for `γ`. -/
+private theorem mcaConstant_le {n D θ : ℕ} {η l : ℝ} (hl : 0 < l) (hlρ : l ^ 2 ≤ (D : ℝ) / n)
+    (hθ : 3 ≤ θ) (hθρ : (D : ℝ) / n ≤ (θ * η) ^ 2) (hη : 0 < η) (hone : √((D : ℝ) / n) + η ≤ 1) :
+    mcaConstant n D η ≤
+      (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ((D : ℝ) / n)) / (3 * l ^ 3) * n +
+        (θ + 1 / 2) / l := by
+  have hρ : (0 : ℝ) ≤ (D : ℝ) / n := by positivity
+  have hls : l ≤ √((D : ℝ) / n) := (Real.le_sqrt hl.le hρ).mpr hlρ
+  have hs : 0 < √((D : ℝ) / n) := hl.trans_le hls
+  have hM : (johnsonComparisonMultiplicity n D η : ℝ) ≤ θ := by
+    have hsη : √((D : ℝ) / n) / η ≤ θ := by
+      rw [div_le_iff₀ hη]
+      exact Real.sqrt_le_iff.mpr ⟨by positivity, hθρ⟩
+    exact_mod_cast max_le (Nat.ceil_le.mpr hsη) hθ
+  have hγ : 0 ≤ johnsonGamma n D η := by
+    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
+  have hγle : johnsonGamma n D η ≤ 1 - l - η := by
+    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
+  unfold mcaConstant johnsonComparisonEstimate johnsonComparisonShift
+  simp only [johnsonRhoMinus] at *
+  gcongr
+  exact add_nonneg (by positivity) (mul_nonneg (mul_nonneg (by positivity) (hγ.trans hγle)) hρ)
+
 /-- `mcaConstant_le`'s bound at the computed `l` and `θ`. -/
 def constantBound (n D : ℕ) (η : ℚ) : ℚ :=
   let ρ : ℚ := (D : ℚ) / n

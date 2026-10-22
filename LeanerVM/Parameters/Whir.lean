@@ -187,8 +187,9 @@ def ofDoubleBits (b : ℕ) : ℚ :=
 
 /-- The Johnson slack `η_i` of every level, as the bits of the Rust's double: row `R - 1` for the
 rate exponent `R`, entry `μ - 15` for the stack size `μ`, one per level. Dumped from the pinned
-leanVM by `scripts/dump-whir-eta-rust.sh` (`WhirSecurityConfig::derive_config_with_log_inv_rate`,
-`whir_config.rs:445-707`), verbatim. -/
+leanVM by `scripts/dump-whir-eta-rust.sh`, verbatim: the slack `optimize_johnson_level` chooses
+(`whir_config.rs:639-707`) and `WhirSecurityConfig::derive_config_with_log_inv_rate` stores in
+each level (`whir_config.rs:919-975`). -/
 def slackTable : List (List (List ℕ)) := [
   [[4565890337769909851, 4560555982262904673],
    [4564294581683613527, 4572486138701581144, 4555989971039431741],
