@@ -20,10 +20,13 @@ words) and the memory a reader `rd`: `wlV`, `wqDecV`, `wqV` (`wlLB`, `wqDecB`, `
 `V := fun f a r => valAt L f (frameOfB S fr L f a r)` and `rd := L.read` they are V_I's
 (`wqLB_eq_wqV`, `wOLB_eq`).
 
-`KidsLink V t`: every entered call of every node of `t` has, under `V`, the valuation of the callee
-tree it is placed with. `OsQ μ r os fp t`: on every reader satisfying `t`'s load equations and every
-`V` linked to `t`, the openings decoded at `t`'s node are `os` — what `open_stacked`'s placed
-completeness over a model gives (`CompleteOpenAtBCL`).
+`KidsLink V t`: every entered call to a decoded callee (`osDecNames`) of every node of `t` has, under
+`V`, a valuation agreeing with the callee tree it is placed with on that tree's named cells
+(`B2C.NodeAgree`). `OsDec μ r os t`: on every reader satisfying `t`'s load equations, every `V` linked
+to `t` and every valuation agreeing with `t`'s node on its named cells, the openings decoded are
+`os` — what `open_stacked`'s placed completeness over a model gives (`CompleteOpenAtBCL`, `OsQ`).
+`CellsOk`, `nodeAgree_read`: such a valuation is the node's at the named values whose cells lie in
+its frame.
 -/
 
 namespace LeanVM.Guest.B1
