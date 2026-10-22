@@ -74,7 +74,7 @@ theorem forged_of_breaksVis
   rcases hb.2 with hf | ⟨c, hc, hn⟩
   · exact hf
   · have hk := gameRec_knows hG hp hb.1 (not_aggBadT_of_not_aggBadV hbad)
-      (rankOK_of_not_aggBadV hbad)
+      (RankOK.toRankOK2 (rankOK_of_not_aggBadV hbad))
     exact absurd (hk.2.2 c hc) hn
 
 /-- **The break, from the bad events and the per-key hybrid.** In the game with V_I's trace, if

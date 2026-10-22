@@ -2,7 +2,7 @@
   LeanVM.E2E.Vis.Knowledge
 
   W-vis, P5: T4 at V_I's trace. On a log without T1's, W6's and E5's bad events and with T3's
-  conclusion (`RankOK`), V_I's acceptance with the answers of its own trace gives every root
+  conclusion (`RankOK2`), V_I's acceptance with the answers of its own trace gives every root
   signature claim a signature valid under the trace, and every root DA claim codeword rows the
   trace backs.
 -/
@@ -21,10 +21,12 @@ second component of `gameRec`'s outcome), a log whose answers are the final log'
 (`LookSub (look tr) (look ℓ)`).
 
 * **The bad events** (`AggBadT`): T1's, W6's and E5's on the final log `ℓ`, as in `AggBad`. T3 is
-  not an event here: the theorems take its conclusion, `RankOK ℓ` (`Vis/Rank.lean`), which P4
-  derives from `PredS` and `FormatT` (`rankOK_of_vis`) and P6 assembles with `AggBadV`.
+  not an event here: the theorems take its conclusion at the guest's shape, `RankOK2 ℓ`
+  (`Vis/Rank.lean`), which `RankOK` gives (`RankOK.toRankOK2`; P4 derives it from `PredS` and
+  `FormatT`, `rankOK_of_vis`, and P6 assembles with `AggBadV`) and the two-challenge form of T3
+  gives directly (`rankOK2_of_vis2`, `Vis/Pred2.lean`).
 * **The induction** (`heldDirectTrace_of_node`): `heldDirectSub_of_node`'s, with the children's
-  ranks from `RankOK`, and every claim, the DA ones too, held under the trace: T2 at the oracle
+  ranks from `RankOK2`, and every claim, the DA ones too, held under the trace: T2 at the oracle
   model of the trace gives the trace's `NodeRelWith`, whose DA openings are answered by the trace.
 * **The DA leg at the trace** (`daBacked_trace`): an opening and an outer check answered by the
   trace are answered by `ℓ` (monotonicity, `openingsWith_mono`, `vectorDigestOfWith_mono`), so
@@ -32,7 +34,7 @@ second component of `gameRec`'s outcome), a log whose answers are the final log'
   the argument of `daBacked_of_not_daBad` with its rows exposed); the commitment and the vector
   digest are the trace's.
 * **T4 at the trace** (`aggregate_knowledge_trace`), and **in the game** (`gameRec_knows`): on
-  a reachable outcome of `gameRec` where V_I accepted, with no `AggBadT` and `RankOK` on the final
+  a reachable outcome of `gameRec` where V_I accepted, with no `AggBadT` and `RankOK2` on the final
   log, the root's claims are known under V_I's trace (`ClaimsKnownTrace`).
 -/
 
@@ -205,7 +207,7 @@ end Da
 
 /-- **The bad events of T4 at the trace, on the final log `ℓ`**: T1's (V°'s certificate's
 potential at least one, or a failure), W6's (the batching from the baked start), E5's (DA at the
-deployed cell padding). T3's is replaced by its conclusion, `RankOK`. -/
+deployed cell padding). T3's is replaced by its conclusion, `RankOK2`. -/
 def AggBadT (ℓ : Log) : Prop :=
   1 ≤ pot anyCertBlind.D leanVmSeeds anyProgramBlind ℓ ∨ Fail leanVmSeeds ℓ ∨
     BatchBad Guest.B1.Main.aggSeedD (bytecodeWords Guest.guest) ℓ ∨ DaBad deployedPads.1 ℓ
@@ -216,7 +218,7 @@ variable {ℓ : Log} {seed : Digest} {ip : IdealProof} {D : List Node}
 
 /-- **Every node V_I checked at the trace holds its statement's claims directly under the
 trace** (T4's induction at V_I's trace). On a log `ℓ` without T1's and W6's bad events and with
-T3's conclusion (`RankOK ℓ`), for a log `ℓK` whose answers are `ℓ`'s and a set `D` of nodes each
+T3's conclusion (`RankOK2 ℓ`), for a log `ℓK` whose answers are `ℓ`'s and a set `D` of nodes each
 checked by V_I with `ℓK`'s answers, its children in `D`: a node of `D` whose digest is the
 answer of `ℓ`'s `n`-th entry, accepted by V°, with a statement of that digest whose deferred
 claim's bytecode part holds, has its claims held directly under `ℓK`: its signature claims by
@@ -227,7 +229,7 @@ theorem heldDirectTrace_of_node {ℓK : Log}
     (hGK : ∀ (rows : List BlakeRow) (h : TableOK (look ℓK) rows),
       Guest.Located.GuestHypsM (Guest.Value.HashModel.oracle rows ℓK h))
     (hT1 : ¬ 1 ≤ pot anyCertBlind.D leanVmSeeds anyProgramBlind ℓ) (hF : ¬ Fail leanVmSeeds ℓ)
-    (hB : ¬ BatchBad Guest.B1.Main.aggSeedD (bytecodeWords Guest.guest) ℓ) (hrank : RankOK ℓ)
+    (hB : ¬ BatchBad Guest.B1.Main.aggSeedD (bytecodeWords Guest.guest) ℓ) (hrank : RankOK2 ℓ)
     (hsub : LookSub (look ℓK) (look ℓ))
     (hseed : fiatShamirIvWith (look ℓ) (bytecodeWords Guest.guest) = some seed)
     (hD : ∀ ν ∈ D, ∃ kids, nodeStep (look ℓK) Guest.guest seed ip ν = some (some kids) ∧
@@ -328,7 +330,7 @@ theorem heldDirectTrace_of_node {ℓK : Log}
       obtain ⟨cs, hcs, hbw⟩ := hbat
       obtain ⟨cc, hcc, hccpi⟩ := childClaimsWith_mem hcs c hc pc hpc
       obtain ⟨sd, dd, -, -, hpi⟩ := statementDigestWith_eq_some hsd
-      exact hrank ho hseed hpi hm hbw hcc hi hn (hci.trans hccpi.symm) rfl
+      exact hrank ho hbh.1.2 hseed hpi hm hbw hcc hi hn (hci.trans hccpi.symm) rfl
     have hmemD := hkids _ hmemk
     rw [← hci] at hmemD hpc hvb
     exact ih i hlt hi c.proof c.statement hmemD hpc hvb hbc.2
@@ -366,7 +368,7 @@ def ClaimsKnownTrace (tr : Log) (s : NodeStatement) : Prop :=
     ∀ c ∈ s.claims.da, DaBacked tr deployedPads.1 deployedPads.2 c
 
 /-- **T4, aggregate knowledge, at V_I's trace.** On an oracle log `ℓ` without T1's, W6's and E5's
-bad events and with T3's conclusion (`RankOK ℓ`), for a log `ℓK` whose answers are `ℓ`'s: if V_I
+bad events and with T3's conclusion (`RankOK2 ℓ`), for a log `ℓK` whose answers are `ℓ`'s: if V_I
 accepts the root statement `s` with the idealized proof `ip` and every hash answered by `ℓK`, and
 the guest's open callees are sound over the oracle models of both logs, then every leanXMSS and
 leanSPHINCS claim of `s` has a signature valid under `ℓK`'s answers, and every DA claim of `s` is
@@ -378,7 +380,7 @@ theorem aggregate_knowledge_trace {ℓ ℓK : Log}
       Guest.Located.GuestHypsM (Guest.Value.HashModel.oracle rows ℓK h))
     (hT1 : ¬ 1 ≤ pot anyCertBlind.D leanVmSeeds anyProgramBlind ℓ) (hF : ¬ Fail leanVmSeeds ℓ)
     (hB : ¬ BatchBad Guest.B1.Main.aggSeedD (bytecodeWords Guest.guest) ℓ)
-    (hDA : ¬ DaBad deployedPads.1 ℓ) (hrank : RankOK ℓ) (hsub : LookSub (look ℓK) (look ℓ))
+    (hDA : ¬ DaBad deployedPads.1 ℓ) (hrank : RankOK2 ℓ) (hsub : LookSub (look ℓK) (look ℓ))
     {ip : IdealProof} {fuel : ℕ} {s : NodeStatement}
     (hv : idealVerify (look ℓK) Guest.guest ip fuel s = some true) :
     (∀ c ∈ s.claims.xmss, ∃ σ, xmssVerifyWith (look ℓK) c.1 c.2 σ = some true) ∧
@@ -413,7 +415,7 @@ theorem aggregate_knowledge_trace_of_not_aggBadT {ℓ ℓK : Log}
       Guest.Located.GuestHypsM (Guest.Value.HashModel.oracle rows ℓ h))
     (hGK : ∀ (rows : List BlakeRow) (h : TableOK (look ℓK) rows),
       Guest.Located.GuestHypsM (Guest.Value.HashModel.oracle rows ℓK h))
-    (hbad : ¬ AggBadT ℓ) (hrank : RankOK ℓ) (hsub : LookSub (look ℓK) (look ℓ))
+    (hbad : ¬ AggBadT ℓ) (hrank : RankOK2 ℓ) (hsub : LookSub (look ℓK) (look ℓ))
     {ip : IdealProof} {fuel : ℕ} {s : NodeStatement}
     (hv : idealVerify (look ℓK) Guest.guest ip fuel s = some true) : ClaimsKnownTrace ℓK s :=
   aggregate_knowledge_trace hG hGK (fun h ↦ hbad (Or.inl h)) (fun h ↦ hbad (Or.inr (Or.inl h)))
@@ -427,7 +429,7 @@ section Game
 variable {nx ns : ℕ} [Sphincs.Params]
 
 /-- **On `gameRec`, a good log gives the trace the claims.** On a reachable outcome of the game
-with V_I's trace where V_I accepted, with no `AggBadT` and with `RankOK` on the final log, every
+with V_I's trace where V_I accepted, with no `AggBadT` and with `RankOK2` on the final log, every
 claim of the root statement is known under V_I's trace, if the guest's open callees are sound over
 every oracle model of every log. -/
 theorem gameRec_knows
@@ -435,7 +437,7 @@ theorem gameRec_knows
       Guest.Located.GuestHypsM (Guest.Value.HashModel.oracle rows ℓ h))
     {fuel budget : ℕ} {A : GameAdversary nx ns} {p : (GameOutcome nx ns × Log) × Log}
     (hp : p ∈ support (gameRec Guest.guest fuel budget A)) (ha : p.1.1.accepted = true)
-    (hbad : ¬ AggBadT p.2) (hrank : RankOK p.2) : ClaimsKnownTrace p.1.2 p.1.1.statement := by
+    (hbad : ¬ AggBadT p.2) (hrank : RankOK2 p.2) : ClaimsKnownTrace p.1.2 p.1.1.statement := by
   obtain ⟨hsub, hacc⟩ := gameRec_trace hp
   exact aggregate_knowledge_trace_of_not_aggBadT (hG p.2) (hG p.1.2) hbad hrank hsub.lookSub
     (hacc ha)

@@ -18,7 +18,8 @@ answered before its parent's. Its hypothesis `¬ Pred` fails on the visible acco
 (decision E2E-6), where T3 holds only off the hidden entries (`PredS`). `RankOK ℓ` is its
 conclusion for the guest (the Fiat-Shamir seed of the guest's bytecode, the batching from the
 guest's baked start `aggSeedD`, the offset of the guest's last matrix coordinate), so that T4 can
-be stated without fixing which form of T3 provides it.
+be stated without fixing which form of T3 provides it. `RankOK2 ℓ` asks it only at the guest's
+shape (`2 · blake2sR1csLogSize` matrix coordinates), all T4 needs; `RankOK` gives it.
 -/
 
 namespace LeanVM.E2E
@@ -40,6 +41,25 @@ def RankOK (ℓ : Log) : Prop :=
     look ℓ (stmtInput seed sd dd d) = some pi → d.matrixPoint ≠ [] →
     batchWith (look ℓ) Guest.B1.Main.aggSeedD cs h = some (some d) → c ∈ cs →
     ∀ (hi : i < ℓ.length) (hp : p < ℓ.length), ℓ[i].2 = c.publicInput → ℓ[p].2 = pi → i < p
+
+/-- **T3's conclusion for the guest at the guest's shape**: `RankOK`, for parents whose matrix
+point has the guest's `2 · blake2sR1csLogSize` coordinates (`DeferredClaim.Shaped`). T4 at the
+trace needs no more (`Vis/Knowledge.lean`), and the two-challenge form of T3 gives it
+(`Vis/Pred2.lean`). -/
+def RankOK2 (ℓ : Log) : Prop :=
+  ∀ {seed sd dd pi : Digest} {d : DeferredClaim} {cs : List ChildClaims} {h : BatchHints}
+    {c : ChildClaims} {i p : ℕ},
+    96 + 24 * (d.bytecodePoint.length + d.matrixPoint.length) =
+      predOffset (bytecodeWords Guest.guest) →
+    d.matrixPoint.length = 2 * blake2sR1csLogSize →
+    fiatShamirIvWith (look ℓ) (bytecodeWords Guest.guest) = some seed →
+    look ℓ (stmtInput seed sd dd d) = some pi → d.matrixPoint ≠ [] →
+    batchWith (look ℓ) Guest.B1.Main.aggSeedD cs h = some (some d) → c ∈ cs →
+    ∀ (hi : i < ℓ.length) (hp : p < ℓ.length), ℓ[i].2 = c.publicInput → ℓ[p].2 = pi → i < p
+
+/-- `RankOK` gives its form at the guest's shape. -/
+theorem RankOK.toRankOK2 {ℓ : Log} (h : RankOK ℓ) : RankOK2 ℓ :=
+  fun ho _ hs hpi hm hbw hc hi hp hci hpp ↦ h ho hs hpi hm hbw hc hi hp hci hpp
 
 end
 end LeanVM.E2E

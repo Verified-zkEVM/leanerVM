@@ -478,6 +478,29 @@ the statement, each with its reason.
   exhausted (`powPot`, as `romComplete`) and an inner node's matrix weights vanishing (a doom
   potential, `2^-192` per challenge); V_I's acceptance is asked at every hash agreeing with the
   final log, so V_I's queries are not counted. Plan and statements: `t6-prob.md`.
+- **T3-2 (T3 from two challenges; the termination term becomes cubic).** W5-1's event `Pred`
+  predicts one challenge, a birthday bound `Q(Q+1)/2^193`. The parent's statement bytes carry its
+  whole deferred matrix point, the matrices' sumcheck's challenges; its last two, at the offsets
+  `predOffset − 24` and `predOffset` (bytes 1272 and 1296 for the guest), are the challenges of
+  the last two rounds, whose entries come in order after every child's digest. So the parent's
+  statement entry comes after the child's unless one input predicts both: `Pred2 o₁ o₂`, entries
+  `j ≤ i₁ < i₂` with input `j` carrying at `o₁` the challenge of `i₁`'s answer and at `o₂` that of
+  `i₂`'s (`LeanVM/E2E/Termination2.lean`, `rank_lt_of_child2`; restricted to non-hidden entries,
+  `PredS2`, `Vis/Pred2.lean`). This needs two matrix coordinates; the guest's shape has
+  `2 · blake2sR1csLogSize = 28`, so T3's conclusion is stated at that shape (`RankOK2`,
+  `Vis/Rank.lean`; `Vis/Knowledge.lean`'s theorems take it, a weaker hypothesis than `RankOK`).
+  The potential `ind Pred2 + H·m/2^192 + B(c, m)/2^384` (`H` the inputs whose `o₁`-slice already
+  matches, `m` the fresh answers to come, `B c (m+1) = (c+1)m + B (c+1) m`) gives
+  `Pr[Pred2] ≤ (Q³ − Q)/(6·2^384) ≤ Q³/(6·2^384)` (`prEvent_game_pred2_le_cube`), below
+  `Q²/2^256` for `Q ≤ 2^128`. Threaded as new names beside the old: `aggBadError2`,
+  `closedError2`, `aggregate_no_forgery2`, `aggregate_no_forgery2_deployed_*`
+  (`NoForgery2.lean`, `Deployed2.lean`) and `visError2`, `sec0ErrorGame2`,
+  `aggregate_no_forgery_vis2`, `aggregate_no_forgery_vis2_*` (`Vis/Bound2.lean`,
+  `Vis/Closed2.lean`, `Vis/EndFinal2.lean`, `Vis/Deployed2.lean`); each error is the old one with
+  `Q³/(6·2^384)` for `Q(Q+1)/2^193`. At the deployed points the values change only beyond the
+  seventh decimal of their exponents (T3 was `≈ 2^-65` there); what changes is that no term is a
+  birthday bound below 256 bits. The `…_eps0` forms (against §0's literal `(Q_v+1)²/2^193`) are
+  not restated.
 
 ## 8. Status: what is proved
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at

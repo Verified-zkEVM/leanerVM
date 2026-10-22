@@ -41,7 +41,8 @@ theorem xWinAt_of_gameRec
     (hp : p ∈ support (gameRec Guest.guest fuel budget A)) (ha : p.1.1.accepted = true)
     (hbad : ¬ AggBadV p.1.1.keys p.2) {j : Fin nx} (hf : ForgedXAt j p.1.1) :
     XWinAt j p.1.1 p.1.2 := by
-  have hk := gameRec_knows hG hp ha (not_aggBadT_of_not_aggBadV hbad) (rankOK_of_not_aggBadV hbad)
+  have hk := gameRec_knows hG hp ha (not_aggBadT_of_not_aggBadV hbad)
+    (RankOK.toRankOK2 (rankOK_of_not_aggBadV hbad))
   obtain ⟨msg, hmem, hfr⟩ := hf
   obtain ⟨σ, hσ⟩ := hk.1 _ hmem
   exact ⟨ha, msg, σ, hmem, hfr, hσ⟩
@@ -54,7 +55,8 @@ theorem sWinAt_of_gameRec
     (hp : p ∈ support (gameRec Guest.guest fuel budget A)) (ha : p.1.1.accepted = true)
     (hbad : ¬ AggBadV p.1.1.keys p.2) {j : Fin ns} (hf : ForgedSAt j p.1.1) :
     SWinAt j p.1.1 p.1.2 := by
-  have hk := gameRec_knows hG hp ha (not_aggBadT_of_not_aggBadV hbad) (rankOK_of_not_aggBadV hbad)
+  have hk := gameRec_knows hG hp ha (not_aggBadT_of_not_aggBadV hbad)
+    (RankOK.toRankOK2 (rankOK_of_not_aggBadV hbad))
   obtain ⟨msg, hmem, hfr⟩ := hf
   obtain ⟨σ, hσ⟩ := hk.2.1 _ hmem
   exact ⟨ha, msg, σ, hmem, hfr, hσ⟩
