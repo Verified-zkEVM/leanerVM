@@ -216,4 +216,3 @@ about one minute (9 GB). `ρ` is a literal, `c` follows by `norm_num`. The arith
 `(qh + kc) X F ≤ 2^256`, so `1/F ≤ 2^-6` of slack), `pairChance = (2^128 + 2)/2^256`,
 `rateS ≤ 2/2^128`, and the per-key rest; the per-key constants are paid by the key generations
 (`n · keygenCost ≤ q`).
-
