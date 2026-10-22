@@ -401,10 +401,19 @@ def batchingSecurity : Component.Security (drawBatch (Component.besideOracles
     Component.card_badChallenge_le_of_indep _ _ _ _ _ _ s o fun hnot ↦
       card_batch_bad_le P P' s o hnot
 
+/-- What the reading of the old word records: the folded rows at the positions. -/
+private theorem readOut_answer (s : Bd sh (Kap sh' κ'))
+    (o : ∀ i, Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ') i) :
+    readOut sh sh' κ' s (Component.answerOf _ o (readQuery sh sh' κ' s)) =
+      { s with cq := cqAt s (oldOf o) } :=
+  congrArg (fun c ↦ { s with cq := c }) (funext fun q ↦ foldRows_getElem _ _ q)
+
 /-- The reading of the old word: the recorded folded symbols are the folded rows of the old word. -/
 def readSecurity : Component.Security (readOld sh sh' κ') (relB P') (relBR P')
     (fun i ↦ Fin.elim0 i.1) :=
-  Component.queryRecordSecurity _ keepNew (readQuery sh sh' κ') _ _ fun _ _ _ _ h ↦ h
+  Component.queryRecordSecurity _ keepNew (readQuery sh sh' κ') _ _ fun s o _ _ h ↦ by
+    simp only [relBR, Component.indep, Set.mem_ofPred_eq, readOut_answer] at h
+    exact h
 
 /-- The query batch's polynomial: the message carries nothing into the language. -/
 def queryPolySecurity : Component.Security (sendQueryPoly (Component.keptOracles

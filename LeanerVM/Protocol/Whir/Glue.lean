@@ -219,13 +219,18 @@ theorem pair_gluedWeight {κ R t : ℕ} (W' : Weight E κ) (z : Vector E κ)
 
 /-- The residual weight: the weight with its lane coordinates bound at the fold point `r`;
 its extension at `z` is the weight's at `r ++ z`. The verifier reads `mle` only (the terminal
-check); `onCube` is for the prover's sums and the proofs. With the `Weight` of `main` the record
-builds its table when it is constructed; once the table is lazy this constructor writes
-`cube := .mk fun _ => foldTable ...` and nothing on the verifier's path forces it. -/
+check); `onCube` is for the prover's sums and the proofs, and the table is built only when they
+read it. -/
 def foldWeight {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) : Weight E κ where
-  onCube := foldTable W.onCube r
+  cube := .mk fun _ ↦ foldTable W.onCube r
   mle := fun z ↦ W.mle (r ++ z)
-  mle_eq := fun z ↦ by rw [W.mle_eq, evalMle_foldTable]
+  mle_eq := fun z ↦ by
+    show _ = evalMle (foldTable W.onCube r) z
+    rw [W.mle_eq, evalMle_foldTable]
+
+/-- The residual weight's values, as built. -/
+theorem foldWeight_onCube {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (r : Vector E ℓ) :
+    (foldWeight W r).onCube = foldTable W.onCube r := rfl
 
 /-- The sumcheck's running claim after the `ℓ` lane rounds is the residual weight's claim on the
 folded table. -/
@@ -235,7 +240,7 @@ theorem claim_fold {ℓ κ : ℕ} (W : Weight E (ℓ + κ)) (f : CMlPolynomialEv
   unfold ProductSum.claim plainSum
   rw [dite_eq_left (Nat.le_add_right ℓ κ)]
   let e : Fin (2 ^ κ) ≃ Fin (2 ^ (ℓ + κ - ℓ)) := finCongr (by rw [Nat.add_sub_cancel_left])
-  rw [Weight.pair]
+  rw [Weight.pair, foldWeight_onCube]
   refine (Fintype.sum_equiv e _ _ fun y ↦ ?_).symm
   have hv : fixLow (Nat.le_add_right ℓ κ) r (boolVec (e y) : Vector E _) =
       r ++ (boolVec y : Vector E κ) := by

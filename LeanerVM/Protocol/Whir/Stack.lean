@@ -35,15 +35,19 @@ variable {S : Type*} [CommRing S]
 
 /-- The weight on the relayout of a stack: the values with the low `κ` and high `ℓ` coordinates
 exchanged, the extension at a point the stack's weight at the point rotated. As for `foldWeight`,
-the verifier reads `mle` only, and the table is built when the record is (until the table is
-lazy). -/
+the verifier reads `mle` only, and the table is built only when `onCube` is read. -/
 def relayoutWeight {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) : Weight S (ℓ + κ) where
-  onCube := relayout W.onCube
+  cube := .mk fun _ ↦ relayout W.onCube
   mle := fun p ↦ W.mle (highVec p ++ lowVec p)
   mle_eq := fun p ↦ by
     have h := evalMle_relayout W.onCube (lowVec p) (highVec p)
     rw [lowVec_append_highVec] at h
+    show _ = evalMle (relayout W.onCube) p
     rw [h, W.mle_eq]
+
+/-- The relayout's values, as built. -/
+theorem relayoutWeight_onCube {κ ℓ : ℕ} (W : Weight S (κ + ℓ)) :
+    (relayoutWeight W).onCube = relayout W.onCube := rfl
 
 /-- The weighted claim of the relayout against the relayout of a table is the weighted claim of
 the stack: both sums run over the same pairs of entries, in another order. -/
@@ -53,7 +57,7 @@ theorem pair_relayoutWeight {R : Type*} [CommRing R] (φ : R →+* S) {κ ℓ : 
   unfold Weight.pair
   rw [sum_cube_split, sum_cube_split, Finset.sum_comm]
   refine Finset.sum_congr rfl fun x _ ↦ Finset.sum_congr rfl fun u _ ↦ ?_
-  simp only [relayoutWeight, relayout_getElem]
+  simp only [relayoutWeight_onCube, relayout_getElem]
 
 end
 
