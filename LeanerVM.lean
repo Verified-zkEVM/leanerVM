@@ -35,6 +35,7 @@ import LeanerVM.Protocol.LeanIsa.Complete
 import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
+import LeanerVM.Protocol.NovelBasis
 import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.Opening
 import LeanerVM.Protocol.Padding
