@@ -55,3 +55,10 @@ name = "LeanerVM"
 name = "LeanerVMTests"
 srcDir = "tests"
 allowNonModules = true
+
+[[lean_exe]]
+# Steady-state timings of compiled arithmetic, hashing and evaluation; see bench/README.md.
+# Not a default target: linking it compiles every transitive module to C.
+name = "leanervm-bench"
+srcDir = "bench"
+root = "LeanerVMBench"

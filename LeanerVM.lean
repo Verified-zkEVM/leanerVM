@@ -21,9 +21,12 @@ import LeanerVM.Parameters.Field
 import LeanerVM.Parameters.Flock
 import LeanerVM.Parameters.Generator
 import LeanerVM.Parameters.Isa
+import LeanerVM.Parameters.ToCompPoly.BF64Fast
+import LeanerVM.Parameters.ToCompPoly.ExtensionFast
 import LeanerVM.Parameters.Whir
 import LeanerVM.Protocol.Blake2sCircuit
 import LeanerVM.Protocol.Blake2sHash
+import LeanerVM.Protocol.Blake2sHashFast
 import LeanerVM.Protocol.Bus
 import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ClaimWeights
@@ -134,6 +137,7 @@ import LeanerVM.Protocol.Whir.Word
 import LeanerVM.Protocol.WhirFold
 import LeanerVM.Semantics.Basic
 import LeanerVM.Semantics.Blake2s
+import LeanerVM.Semantics.Blake2sFast
 import LeanerVM.Semantics.Executable
 import LeanerVM.Semantics.Execution
 import LeanerVM.Semantics.FillerRows

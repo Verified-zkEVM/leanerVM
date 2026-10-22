@@ -54,7 +54,9 @@ VCVio, or ArkLib. Until its upstream pull request merges, a generic candidate is
 one module each. A staged module imports nothing leanVM-specific and is written for that
 library's other consumers: general definitions and helper lemmas, with no special case the
 protocol chose and no protocol vocabulary. The special cases are derived in the leanVM modules,
-which is where the specification is cited.
+which is where the specification is cited. A candidate that a lower layer must compile against
+is staged under that layer instead, under the same rules: the compiled field arithmetic every
+layer runs lives in `LeanerVM/Parameters/ToCompPoly/`.
 
 The proof system has a wall: every module of the protocol layer is written over an abstract
 instance of the arithmetization and imports nothing from `LeanerVM/Arithmetization/`, so that a
@@ -572,7 +574,17 @@ Add a native or generated-code boundary when all of these are present:
 6. a CI lane isolated from the proof-only library.
 
 Optimize Lean's native C output before or alongside foreign backends so it remains a meaningful
-baseline. Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
+baseline. A pure-Lean fast path for an existing definition is registered with a `@[csimp]`
+theorem, a kernel-checked equation the compiler uses to substitute one constant for another in
+code compiled after it; it changes no definition a theorem mentions and is not a native boundary.
+The substituted constant must be one that compiled call sites name: for an operation reached
+through a type-class instance that is the instance constant, since the instance's own compiled
+body is fixed in the module that defined it. `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
+`LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
+`LeanerVM.Protocol.Blake2sHashFast` are the current fast paths, timed by the `leanervm-bench`
+executable ([bench/README.md](../bench/README.md)).
+
+Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A
 domain-specific compiler additionally requires source/target semantics, validation fixtures, and
 a clear preservation-proof plan.

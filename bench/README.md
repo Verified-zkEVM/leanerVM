@@ -11,8 +11,66 @@ The `Build timing` workflow records each measurement as JSON Lines, preserves th
 logs, and publishes a compact table in the GitHub job summary. Treat the numbers as CI-runner
 observations, not stable machine-independent performance claims.
 
-Runtime benchmark groups belong here once leanerVM has executable semantics. Each such group
-must name the workload, parameter revision, expected result, and whether it measures Lean code
+## `leanervm-bench`: compiled arithmetic and hashing
+
+`bench/LeanerVMBench.lean` is the `leanervm-bench` executable. It measures steady-state
+nanoseconds per operation of Lean code compiled to C by Lean's own compiler; there is no native
+boundary. Build and run it with
+
+```sh
+lake build leanervm-bench          # compiles every transitive module to C, then links
+.lake/build/bin/leanervm-bench 100 # iteration counts at 100% (the default)
+```
+
+Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
+evaluated at compile time, and each line ends with a checksum: two builds that print the same
+checksums at the same seed and percentage computed the same values. Setup (building tables and
+leaves) is outside the timed interval.
+
+| Workload | Operation |
+| --- | --- |
+| `K mul`, `K inv` | `a * b`, `(a + b)⁻¹` on `K` |
+| `K mul on words` | `FastBF64.mulWord` on `UInt64`, without the conversions |
+| `E add`, `E mul`, `E inv` | `a + b`, `a * b`, `(a + b)⁻¹` on `E`, through the instances a monomorphic call site names |
+| `E inv (Field dictionary)` | `x⁻¹` through a `Field E` dictionary, as generic code such as interpolation reaches it |
+| `BLAKE2s 64 B`, `512 B` | `Blake2sHash.blake2sBytes` |
+| `Merkle root 2^12 rows x 8 K` | `merkleRoot` of 4096 leaves of eight `K` words |
+| `evalMle 2^16 E-table` | `CMlPolynomialEval.evalMle` of a 2^16-entry `E` table at an `E` point |
+
+The fast paths are the `@[csimp]` theorems of `LeanerVM.Parameters.ToCompPoly.BF64Fast`,
+`LeanerVM.Parameters.ToCompPoly.ExtensionFast`, `LeanerVM.Semantics.Blake2sFast` and
+`LeanerVM.Protocol.Blake2sHashFast` (see `docs/architecture.md`, "Performance backend
+contract"). Recorded on 2026-10-22 on a QEMU virtual CPU without `pclmulqdq`, 32 cores, one
+thread; "before" is `a37b2b0`, the same bench source (less the two workloads added later)
+compiled against the library without the fast paths, run at 1% of the iteration counts; the
+checksums of both runs agree at 1%.
+
+| Workload | Before (ns/op) | After (ns/op) | Speedup |
+| --- | ---: | ---: | ---: |
+| `K mul` | 25,235 | 177 | 142x |
+| `K inv` | 1,874,466 | 1,376 | 1,360x |
+| `K mul on words` | n/a | 75 | n/a |
+| `E add` | 363 | 489 | unchanged code; a rerun of "before" gave 491 |
+| `E mul` | 424,513 | 3,163 | 134x |
+| `E inv` | 163,419,743 | 1,110,615 | 147x |
+| `E inv (Field dictionary)` | same path as `E inv` | 18,208 | about 9,000x |
+| `BLAKE2s 64 B` | 72,239 | 2,820 | 26x |
+| `BLAKE2s 512 B` | 587,110 | 31,366 | 19x |
+| `Merkle root 2^12 rows x 8 K` | 635,838,800 | 33,190,625 | 19x |
+| `evalMle 2^16 E-table` | 59,858,789,990 | 568,452,830 | 105x |
+
+"After" ran at 100%. The machine was shared with other builds, and single numbers moved by up to
+a third between runs; read the table as orders of magnitude. `K mul on words` includes the loop's
+boxing of the accumulator.
+
+Each `K` element is a `BitVec 64`, a natural number at run time, so an element with its top bit
+set is a heap-allocated big integer; converting to and from a machine word costs more than the
+product on words itself (`K mul on words`). `E` is three such limbs. A faster carrier needs
+CompPoly to store a `BF64` as a `UInt64`, which changes a definition and is out of this suite's
+scope.
+
+Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
+group must name the workload, parameter revision, expected result, and whether it measures Lean code
 or a native boundary. Smoke tests must not be presented as performance benchmarks.
 
 Runtime reports should compare applicable implementations on the same workload: the pure Lean
