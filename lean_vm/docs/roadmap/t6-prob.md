@@ -510,6 +510,6 @@ V_I run lazily after the prover the same bound holds (`idealVerify_complete_rom_
 | `GuestModelBig.lean` | **`guestCompleteModel_big`**: L2 with an execution of committed size above `2^21` |
 | `Rom/PadRec.lean` | every node has a padded execution (`nodeExec_nodeLog_bigG`), every child's stack log in `[22, 28]` (`honestOutN_stackLog`), `ValidGenR`, **`idealVerify_complete_rom_rec`** (any depth) |
 
-Completeness through recursion is `Main.ideal_correct` (`LeanVM/E2E/Main.lean`, decisions E2E-14, E2E-15).
+Completeness through recursion is `Main.correct` (`LeanVM/E2E/Main.lean`, decision E2E-14).
 
 Decisions: E2E-8 decided by the user, T6-3 recorded (`e2e-security.md` §7).

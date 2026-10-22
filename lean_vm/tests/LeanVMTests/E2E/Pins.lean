@@ -1,6 +1,5 @@
 import LeanVM.E2E.SanityDeployedBudget
 import LeanVM.E2E.Unforgeable
-import LeanVM.E2E.KS.Unforgeable
 import LeanVM.E2E.Complete.Rom.RootGen
 import LeanVM.E2E.Complete.Rom.PadRec
 import LeanVM.Protocol.EndToEnd.Blind.Statements
@@ -322,72 +321,6 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.aggregate_unforgeable_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_unforgeable_sharp_deployed
-
-/-! **The deployed theorem's chain** (`LeanVM/E2E/KS/`, decision E2E-15): the deployed verifier with any hash (`verifyAggregateWith_blake2s`), querying only through it (`rel_verifyAggregateWith`, `closed_verifyAggregateWith`); the verifier stage is a marginal (`prEvent_dGame_pre`); the adversary's transcript is answered by the final log (`pGame_trace`); under knowledge soundness a forgery is a known leanXMSS or leanSPHINCS forgery (`prEvent_dForged_le`), each bounded by the scheme's multi-user security (`prEvent_knownForgedX_le`, `prEvent_knownForgedS_le`, `…_rate`, `…_set`, `…_proved`), folded into one term (`signatureBounds_le`, `aggregate_unforgeable_ks`). -/
-
-/-- info: 'LeanVM.E2E.KS.verifyAggregateWith_blake2s' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.verifyAggregateWith_blake2s
-
-/-- info: 'LeanVM.E2E.KS.rel_verifyAggregateWith' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.rel_verifyAggregateWith
-
-/-- info: 'LeanVM.E2E.KS.closed_verifyAggregateWith' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.closed_verifyAggregateWith
-
-/-- info: 'LeanVM.E2E.KS.prEvent_dGame_pre' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_dGame_pre
-
-/-- info: 'LeanVM.E2E.KS.pGame_trace' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.pGame_trace
-
-/-- info: 'LeanVM.E2E.KS.prEvent_pGame_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_pGame_eq
-
-/-- info: 'LeanVM.E2E.KS.prEvent_dForged_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_dForged_le
-
-/-- info: 'LeanVM.E2E.KS.prEvent_knownForgedX_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_knownForgedX_le
-
-/-- info: 'LeanVM.E2E.KS.prEvent_knownForgedX_le_proved' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_knownForgedX_le_proved
-
-/-- info: 'LeanVM.E2E.KS.prEvent_knownForgedS_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_knownForgedS_le
-
-/-- info: 'LeanVM.E2E.KS.prEvent_knownForgedS_le_rate' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_knownForgedS_le_rate
-
-/-- info: 'LeanVM.E2E.KS.prEvent_knownForgedS_le_set' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.prEvent_knownForgedS_le_set
-
-/-- info: 'LeanVM.E2E.KS.signatureBounds_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.signatureBounds_le
-
-/-- info: 'LeanVM.E2E.KS.aggregate_unforgeable_ks_of' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.aggregate_unforgeable_ks_of
-
-/-- info: 'LeanVM.E2E.KS.aggregate_unforgeable_ks' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.aggregate_unforgeable_ks
-
-/-- info: 'LeanVM.E2E.KS.aggregate_unforgeable_ks_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.KS.aggregate_unforgeable_ks_deployed
 
 /-- info: 'LeanVM.E2E.sharp_full_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
