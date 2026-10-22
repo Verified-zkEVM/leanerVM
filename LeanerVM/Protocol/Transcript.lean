@@ -210,13 +210,11 @@ variable (H : List UInt8 → Id Digest)
 private theorem powOk_of_findNonce {base : Digest} {bits : ℕ} :
     ∀ {fuel n k : ℕ}, Id.run (findNonce H base bits fuel n) = some k →
       Id.run (powOk H base (nonceOf k) bits) = true
-  | 0, _, _, h => by simp [findNonce] at h
+  | 0, _, _, h => nomatch h
   | fuel + 1, n, k, h => by
     simp only [findNonce, Id.run_bind] at h
     split at h
-    · simp only [Id.run_pure, Option.some.injEq] at h
-      subst h
-      assumption
+    · cases h; assumption
     · exact powOk_of_findNonce h
 
 /-- The verifier's check accepts the prover's nonce and lands in the prover's state, for every
@@ -224,22 +222,15 @@ hash function. -/
 theorem checkPow_of_grind {fuel bits : ℕ} {s s' : FsState} {nonce : E}
     (h : Id.run (grind H fuel s bits) = some (nonce, s')) :
     Id.run (checkPow H s bits nonce) = (true, s') := by
-  unfold grind at h
-  unfold checkPow
-  by_cases hb : bits = 0
-  · simp only [hb, ↓reduceIte] at h ⊢
-    have h' : nonceOf 0 = nonce ∧ Id.run (absorbNonce H s (nonceOf 0)) = s' := by simpa using h
-    obtain ⟨rfl, rfl⟩ := h'
-    have h0 : K.ofBits 0 = 0 := by decide +kernel
-    simp [nonceOf, ofLimbs_eq_zero_iff, h0]
-  · simp only [hb, ↓reduceIte] at h ⊢
-    cases hk : Id.run (findNonce H (Id.run (powBase H s)) bits fuel 0) with
-    | none => simp [hk] at h
-    | some k =>
-      have h' : nonceOf k = nonce ∧ Id.run (absorbNonce H s (nonceOf k)) = s' := by
-        simpa [hk] using h
-      obtain ⟨rfl, rfl⟩ := h'
-      simpa using powOk_of_findNonce H hk
+  simp only [grind, checkPow] at h ⊢
+  split_ifs at h ⊢
+  · obtain ⟨rfl, rfl⟩ : nonceOf 0 = nonce ∧ Id.run (absorbNonce H s (nonceOf 0)) = s' := by
+      simpa using h
+    simp [nonceOf, ofLimbs_eq_zero_iff, show K.ofBits 0 = 0 by decide +kernel]
+  · rcases hk : Id.run (findNonce H (Id.run (powBase H s)) bits fuel 0) with _ | k <;>
+      simp [hk] at h
+    obtain ⟨rfl, rfl⟩ := h
+    simpa using powOk_of_findNonce H hk
 
 end FsState
 
