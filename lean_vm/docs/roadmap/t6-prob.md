@@ -69,7 +69,8 @@ keeps itself:
   and transported to every hash agreeing with `L` (`NodeExec.transport`, **prototyped and built**:
   `LeanVM/E2E/Complete/Rom/Chooser.lean`, `chainSem_congr`: the honest table reads `H` only on
   `D`);
-* the fresh claims from the answers of the log of V°'s run on the node's proof (`freshOfLog`):
+* the fresh claims read off V°'s run along the Fiat–Shamir challenges (`freshRun`, the run of
+  `claimsProg`, V°'s prefix through the lincheck's reads, returning `freshOf` of what it read):
   the deferring verifier makes V°'s moves as long as its two `require`s pass (`Deferred.lean`,
   `FsSame`), so its queries on the honest proof are V°'s.
 
@@ -185,12 +186,14 @@ children first, then the node:
    limits);
 5. `proveM queryH (blindProgram …) (honestStrategyBlind guest e.sz ρ e.q) seed pfuel`
    (`Compile/Rom/Prover.lean`); `none` gives `.error (.grind P S seed)`;
-6. V°'s run on `π` with queries recording its log `L'`; `freshOfLog L' pi π`;
+6. the fresh claims `freshRunM` (the run of `claimsProg` along the challenges);
 7. the output `HonestOutN`: statement, fresh claims, proof, and per node of the subtree its node,
    word, frames and subtree size.
 
-Its run at a total hash is `honestOutN H ρ pfuel T := simulateQ (pure ∘ H) (honestProverComp …)`.
-At every `H` this is the classical-shape prover with the choosers `execOf`/`freshOfLog` in place of
+As built: `honestOutN H ρ pfuel T` (`Rom/ProverN.lean`) is the deterministic prover with `execOf` and
+`freshRun`; `honestProverM H` (`Rom/Comp.lean`) the same with the hash a parameter in any monad,
+`honestProverComp := (honestProverM queryH …).run`, and its run at a total hash is `honestOutN H`
+(`Rom/CompBridge.lean`). At every `H` this is the classical-shape prover with the choosers in place of
 `Classical.choice`: T6-det's proofs go through with `NodeExec.transport` and the choosers' specs,
 and E2E-8's representative argument removes `RootsInj`.
 
@@ -230,9 +233,10 @@ noncomputable def execOf (L : Log) (pi : Digest) (w : NodeWitness) :
 theorem execOf_isSome (hL2 : GuestCompleteModel) … (hL : L = graph of H on nodeLog H s w)
     (hrel : NodeRelWith (some ∘ H) …) (hlim : End.Limits s w) (hcaps …) (hbud …) :
     (execOf L (digestOf H s) w).isSome                                            -- nodeExec_nonempty + nodeSupport_of_count + nodeLog_count_lt
-noncomputable def freshOfLog (L : Log) (pi : Digest) (π : Proof) : FixedClaims
-theorem freshOfLog_spec (hL : L ⊇ V°'s queries on π at H) (hπ : π honest) :
-    freshFor's three properties at every H agreeing with L                        -- exists_deferred_honest, FsSame
+def claimsProg (bc : List K) (pd : Digest) : Prog FixedClaims                   -- Rom/Fresh.lean
+noncomputable def freshRun (H) (S) (fuel) (bc) (pd seed : Digest) : Option FixedClaims :=
+  (fsRun H S fuel (claimsProg bc pd) seed []).map (·.1)
+theorem exists_deferred_honest_run …  -- on V°'s honest proof, freshRun = some c with freshFor's properties
 ```
 
 ### 4.3 The deterministic core (`Rom/ProverN.lean`, `Rom/AssembleN.lean`, `Rom/NonVacuityN.lean`)
@@ -298,7 +302,7 @@ theorem proverQueries_le (hshape : T.AllNodes ShapeOK) :
   -- signatures (≤ 384 / 686 each), ≤ 1 direct DA opening, the digests
 ```
 
-### 4.5 The bounds and the end theorem (`Rom/PowFail.lean`, `Guest/Batch/Weights*.lean`, `Rom/End.lean`)
+### 4.5 The bounds and the end theorem (`Rom/Bounds.lean`, `E2E/Batch/Weights.lean`, `Rom/EndOf.lean`, `Rom/End.lean`)
 
 ```lean
 -- G1 (romComplete's potential): a reachable outcome whose prover failed at a grind
@@ -335,7 +339,7 @@ def CompleteOK (fuel : ℕ) (z : Option (HonestTree × Except ProverFail HonestO
       idealVerify (m := Id) (fun x ↦ (pure (Ht x) : Id Digest)) guest (idealOfN o) fuel o.stmt = true
 
 noncomputable def completeError (Q pfuel : ℕ) : ℝ≥0∞ :=
-  Q * (missProb 17 ^ pfuel + Q / 2 ^ 256) + Q * ((2 : ℝ≥0∞)⁻¹ ^ 192 + failBound batchSeedsAll Q)
+  Q * (missProb 17 ^ pfuel + Q / 2 ^ 256) + Q * ((2 : ℝ≥0∞)⁻¹ ^ 192 + failBound batchSeedsAll (Q + 1))
 
 /-- **T6-prob.** -/
 theorem idealVerify_complete_rom {ρ pfuel N QG QP fuel : ℕ} (hρ : validRate ρ)
@@ -365,19 +369,23 @@ theorem completeError_le (hQ : Q ≤ 2 ^ 64) : completeError Q (2 ^ 25) ≤ (2 :
   -- missProb 17 ^ (2^17 · 256) ≤ 2^-256 (`missProb_pow_le`); then 2^-192 + 2^-128 + 2^-128 + 4 · 2^-128
 noncomputable def xmssLeafGen : OracleComp HashSpec (Option HonestTree)
   -- honest leanXMSS key generation, one signature on the zero message, the leaf holding it directly
-theorem validGen_xmssLeafGen : ValidGen 1 (2 ^ 25) 1 (nodeQueries (2 ^ 25)) xmssLeafGen
+theorem validGen_xmssLeafGen (ρ pfuel : ℕ) : ValidGen ρ pfuel 1 (xmssLeafQueries pfuel) xmssLeafGen
+theorem xmssLeaf_queries_le : xmssKeygenBound + xmssSignBound + xmssLeafQueries (2 ^ 25) ≤ 2 ^ 64
 theorem idealVerify_complete_rom_xmssLeaf :
     Pr{let z ← completeExp 1 (2 ^ 25) xmssLeafGen}[¬ CompleteOK 1 z] ≤ (2 : ℝ≥0∞)⁻¹ ^ 124
 ```
 
-At `pfuel = 2^25` a node costs the prover at most `nodeQueries ≈ 2^41` queries (dominated by the
-crude `leanVmCost · (2^27 + pfuel)` of `isTotalQueryBound_proveM`), so `Q ≤ 2^64` covers trees of
-`2^22` nodes beside a generator of `2^63` queries; for `Q ≤ 2^56` the error is below `2^-135`.
+A node costs the prover at most `nodeQueries pfuel = 45,507,690 + 26,420 · (2^27 + pfuel + 1)`
+queries (`nodeQueries_eq`, `Rom/CompCount.lean`), about `2^42` at `pfuel = 2^25`: V°'s proof
+(`proveM`) and the fresh claims' run (`freshRunM`) each cost the crude `leanVmCost · (2^27 +
+pfuel + 1)` of `isTotalQueryBound_proveM`. So `Q ≤ 2^64` covers trees of about `2^21` nodes beside
+a generator of `2^63` queries; for `Q ≤ 2^56` the error is below `2^-135`. The leaf instance's
+generator makes `2^33 + 53,739,486` queries (`xmssLeafGen_queries_eq`).
 
-Pins: `LeanVM.lean` prints the axioms of `idealVerify_complete_rom` and
-`idealVerify_complete_rom_xmssLeaf`; `tests/LeanVMTests/E2E/CompleteRom.lean` pins
-`idealVerify_complete_N`, `honestOutN_ne_stuck`, `weightsPot_step`, `one_le_weightsPot`,
-`completeError_le`, `validGen_xmssLeafGen` at Lean's three axioms.
+Pins: `LeanVM.lean` prints the axioms of `idealVerify_complete_N`, `idealVerify_complete_rom`,
+`idealVerify_complete_rom_run` and `idealVerify_complete_rom_xmssLeaf`; the tests
+`tests/LeanVMTests/E2E/CompleteRom{N,M,Bridge,Tags,Count,Bounds,Gen}.lean` and
+`tests/LeanVMTests/Guest/CompleteRomWeights.lean` pin the pieces at Lean's three axioms.
 
 ## 5. How each event is bounded (b)
 
@@ -447,5 +455,39 @@ T6-3), §8 later; `t6-completeness.md` "Open" (a pointer here). Nothing else.
 
 ## 8. Status
 
-Plan; prototype `LeanVM/E2E/Complete/Rom/Chooser.lean` (`BlakeSem.ext_check`, `chainSem_congr`,
-`NodeExec.transport`) builds. Decisions: E2E-8 decided by the user, T6-3 recorded (`e2e-security.md` §7).
+Built (no escapes; pins at Lean's three axioms):
+
+| file | content |
+|---|---|
+| `Rom/Chooser.lean` | `chainSem_congr`, `NodeExec.transport`, `logOf`, `fillLog`, `NodeExecOn`, `execOf`, `nodeExec_nodeLog`, `execOf_isSome` |
+| `Rom/Fresh.lean` | `claimsProg`, `freshRun`, `exists_deferred_honest_run` |
+| `Rom/ProverN.lean` | `ProverFail`, `EntryN`, `HonestOutN`, `honestDeferN`, `proveNode`, `honestStepN`, `honestOutN`, `WithinLimitsN` |
+| `Rom/NonVacuityN.lean` | `honestOutN_claims`, `honestOutN_child`, `honestDeferN_ne_stuck`, **`honestOutN_ne_stuck`** |
+| `Rom/AssembleN.lean` | `repOf`, `idealOfN`, `EntryStep`, `honestOutN_good`, **`idealVerify_complete_N`** (T6-det, no G3) |
+| `Rom/Comp.lean` | `honestProverM`, `honestProverComp` |
+| `Rom/EndOf.lean` | `genProve`, `completeExp`, `CompleteOK`, `RomPieces`, `ValidGenOf`, **`idealVerify_complete_rom_of`**, `completeRunVI`, `prEvent_reject_le_not_completeOK` |
+| P3a `Rom/MonadicM.lean`, `Rom/CountM.lean` | monadic pieces with `Id` bridges, hash-call counts |
+| P4 `Rom/Bounds.lean` | `completeError`, `completeError_le`, `one_le_powPot_of_proveFromM`, `prEvent_le_completeError` |
+| P5 `Guest/Batch/Weights*.lean`, `E2E/Batch/Weights.lean` | `WeightsVanish`, `weightsPot`, `weightsPot_step`, `one_le_weightsPot` |
+| P7 `Rom/Gen.lean` | `xmssLeafGen`, `xmssLeafGen_spec`, `xmssLeaf_limits` |
+
+| A `Rom/CompBridge.lean` | `simulateQ_honestProverM`, `honestProverM_id`, `honestProverComp_at`, `honestProverComp_lookImpl`, `honestProverComp_look` |
+| B `Rom/CompTags.lean` | `honestProverM_grind`, `honestProverM_weights`, `honestOutN_weights_shaped` |
+| C `Rom/CompCount.lean`, `Rom/Valid.lean` | `HonestTree.proverQueries`, `isTotalQueryBound_honestProverComp`, `ShapeOK`, `nodeQueries_eq`, `proverQueries_le`, `ValidGen`, `validGen_xmssLeafGen` |
+| `Rom/End.lean` | `romPieces`, **`idealVerify_complete_rom`**, **`idealVerify_complete_rom_run`**, `xmssLeaf_queries_le`, **`idealVerify_complete_rom_xmssLeaf`** |
+
+**T6-prob as proved** (`Rom/End.lean`, pinned in `LeanVM.lean`):
+
+```lean
+theorem idealVerify_complete_rom {ρ pfuel N QG QP fuel : ℕ} (hρ : validRate ρ)
+    (hpf : pfuel ≤ 2 ^ 64) (gen : OracleComp HashSpec (Option HonestTree))
+    (hQG : IsTotalQueryBound gen QG) (hgen : ValidGen ρ pfuel N QP gen) (hfuel : N ≤ fuel) :
+    Pr{let z ← completeExp ρ pfuel gen}[¬ CompleteOK fuel z] ≤ completeError (QG + QP) pfuel
+```
+
+`completeError Q pfuel = Q · ((1 − 2^-17)^pfuel + Q/2^256) + Q · (2^-192 + 4(Q + 1)/2^256)`. No
+good event is a hypothesis: G1 and G2 are bounded (`powPot`, `weightsPot`), G3 is removed by
+E2E-8. `CompleteOK` asks V_I's acceptance at every hash agreeing with the oracle's final log; with
+V_I run lazily after the prover the same bound holds (`idealVerify_complete_rom_run`).
+
+Decisions: E2E-8 decided by the user, T6-3 recorded (`e2e-security.md` §7).

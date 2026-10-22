@@ -349,8 +349,9 @@ the children's count (`decode_count`), statements (`decode_stmts`, `kidStmt_hone
 `l17-count.md`): T6-det under the deployed limits and budget alone is
 `idealVerify_complete_final` (`Count/Final.lean`).
 
-**Open**: T6-prob (the good events' probabilities under the random oracle; note that the
-node's execution, sizes and stack are still a classical choice in `honestStep`, which a
-probability bound on G1 must replace by a choice that does not look at the grinds' answers).
-Plan: `t6-prob.md` (the prover as an oracle computation choosing from its own logs; G3 removed by
-decision E2E-8).
+**T6-prob, proved since** (`t6-prob.md`): the good events G1–G3 are no longer hypotheses. The
+prover is restated with choices made from its own logs (`execOf`, `freshRun`: the classical choice
+in `honestStep` could depend on the grinds' answers) and as an oracle computation
+(`honestProverComp`); G1 and G2 are bounded over the lazy random oracle (`powPot`, `weightsPot`),
+G3 is removed by decision E2E-8 (V_I reads words and frames by node). The end form is
+`Complete.idealVerify_complete_rom` (`LeanVM/E2E/Complete/Rom/End.lean`).

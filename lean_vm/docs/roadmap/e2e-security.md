@@ -471,9 +471,9 @@ the statement, each with its reason.
   and within the limits at every hash agreeing with the oracle's log of its run (`ValidGen`): a
   fixed tree's validity is an event of the hash, since its signatures and openings are made with
   the oracle. (b) The honest prover is an oracle computation (`honestProverComp`) whose choices of
-  execution, sizes, stack, frames and fresh claims are made from the answers of logs it keeps
-  (`execOf`, `freshOfLog`), not by `Classical.choice` over types depending on the whole hash,
-  which may depend on the answers at its own grinds and its parent's challenges. (c) The oracle is
+  execution, sizes, stack and frames are made from the answers of the node's log (`execOf`), its
+  fresh claims read off V°'s run (`freshRun`), not by `Classical.choice` over types depending on
+  the whole hash, which may depend on the answers at its own grinds and its parent's challenges. (c) The oracle is
   the lazy `Rom.loggedRO`. (d) The good events become events of the run: a proof-of-work search
   exhausted (`powPot`, as `romComplete`) and an inner node's matrix weights vanishing (a doom
   potential, `2^-192` per challenge); V_I's acceptance is asked at every hash agreeing with the
@@ -588,5 +588,15 @@ E2E-5) by the layers of `t6-completeness.md`. L17, the count of the node's hashe
 `hyps_wTree`, `idealVerify_complete_wTree`; `Count/FinalWitness.lean`, `hyps_final_wTree`,
 `idealVerify_complete_final_wTree`): a leaf holding one leanXMSS claim directly, at a constant `H`,
 meets all of them, its budget evaluated by the kernel.
+**T6-prob** (`t6-prob.md`, decisions E2E-8 and T6-3): completeness with no good event as a
+hypothesis. `Complete.idealVerify_complete_rom` (`LeanVM/E2E/Complete/Rom/End.lean`, pinned in
+`LeanVM.lean`): for every generator of valid honest trees within the limits (`ValidGen`) making at
+most `QG` queries, the honest prover's (at most `QP`), a valid rate and a proof-of-work fuel
+`pfuel ≤ 2^64`, the honest prover of the random-oracle model outputs a statement with the tree's
+claims whose idealized proof V_I accepts at every hash agreeing with the oracle's log, except with
+probability `completeError (QG + QP) pfuel = Q((1 − 2^-17)^pfuel + Q/2^256) + Q(2^-192 +
+4(Q + 1)/2^256)`, `Q = QG + QP`; `QP ≤ size · nodeQueries pfuel` (about `2^42` per node at
+`pfuel = 2^25`). Not vacuous: the honest leanXMSS leaf generator, error at most `2^-124`
+(`idealVerify_complete_rom_xmssLeaf`).
 T7′ is `Sanity.idealVerify_blake2s`. Not proved: the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.
