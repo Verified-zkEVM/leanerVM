@@ -285,7 +285,7 @@ spine stays on it (decision 24).
 | Declaration | Contract used here |
 | --- | --- |
 | `SampleableType`, `uniformSample`, `$ᵗ` (VCVio `OracleComp/Constructions/SampleableType`) | Challenge sampling; Layer 0 supplies the `E` instance, built from the `K` one. |
-| `MerkleTree` `build`, `verify`, `extractability_rom_bound` (VCVio `CryptoFoundations/MerkleTree/`) | Merkle trees with proved completeness and single-opening random-oracle extractability; the candidate for Layer 11 (decision 32). |
+| `NodeQueryModel`, `Skeleton.perfect`, `BatchOpening`, `getPutativeBatchRootWithHash`, `anyCheckpointDisagreement_rom_bound_of_prefixQueryBound` (VCVio `CryptoFoundations/MerkleTree/`) | Binary Merkle trees whose node hash is a query to one random function, path-pruned openings of several leaves, and extraction in the random-oracle model for a sequence of commitments opened at the end, every query on that one function; the leaves are digests. Layer 11's trees are these (decision 32). |
 | `BF64`, `BF64.Ext3`, `card_bf64`, `card_ext3`, `Ext.coeff`, `Ext.ofFn` (CompPoly) | As in the leanISA roadmap; `Fintype.card E = 2^192` is the only cardinality fact the errors use. |
 | `CMlPolynomialEval R n`, `evalMle`, `evalMleLayer`, `eval₂Mle`, `eqTilde`, `lagrangeBasis`, `evalManyMleByLayers` (CompPoly `Multilinear/`) | Hypercube tables and their multilinear evaluation, computable; `eval₂Mle` is the `K → E` lift. |
 | `CMvPolynomial`, `CPolynomial` (CompPoly) | Constraint and flush polynomials of the instance; round polynomials. The conversion to Mathlib's `MvPolynomial` is noncomputable, so Layer 2 translates Clean expressions directly and proves the translation equal to Clean's polynomial. |
@@ -312,9 +312,9 @@ and when the local copy goes. Nothing is worked around by a hypothesis.
 | Stacking | absent; ArkLib issue #900 | Built here (`ToCompPoly/`); CompPoly's candidates. |
 | The inner-product oracle | absent and unplanned | Written here (Layer 0, `ToArkLib/`); offered upstream. |
 | WHIR over binary Reed–Solomon codes | absent (#383 binary Basefold and #992 FRI, both legacy and open, are patterns) | Written here (Layer 11). |
-| Merkle trees | in VCVio, proved (VCVio issue 571 tracks it) | Consumed if the fit lemma holds (decision 32); the BLAKE2s instantiation is ours. |
+| Merkle trees | in VCVio, proved: completeness, and extraction for a sequence of commitments with pruned openings (`MultiExtractability/`; VCVio issue 571). Every extraction theorem takes leaves that are digests and an adversary that draws no coins; `Hashing/Defs.lean` hashes leaves in a tagged domain and proves binding only | Consumed (decision 32): `merkle_fits` reads the Rust's trees as VCVio's. Extraction with hashed leaves is written here (`ToVCVio/MerkleLeaves.lean`, Layer 11) and deleted when VCVio proves it; the reduction from an adversary with coins is the Merkle compilation's (Layer 12). |
 | Correlated agreement up to Johnson | `ReedSolomon.mcaError_affineLine_johnson_le` proved, any characteristic, with its constant bounded by [BCHKS25]'s printed one (`johnsonExceptionCount_le_comparisonEstimate`); `rs_mcaError_le_in_johnson_range` admitted; the capacity-range theorems exclude characteristic two | `McaJohnson` at Annex B's constant, inhabited from the proved theorem (Layer 11, decision 35); it meets Annex B's per-level budget at every deployed level ([whir-mca-budget.md](../reviews/whir-mca-budget.md)). The admitted theorem is not consumed. |
-| Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Open, not at the pin: #1267–#1283 (state restoration with cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir knowledge soundness from round-by-round certificates) | Proved here (Layer 12) for leanVM's constructions: round-by-round to state-restoration knowledge soundness, the Merkle compilation, the chain with proof of work, the chain lemma, and the role-separation lemma (tags and lengths only: a Merkle node is an untagged 64-byte input, so the Merkle compilation is proved on the one shared function). The generic halves are ArkLib candidates; the open stack is where to start, since its constructions are not leanVM's. |
+| Fiat–Shamir, BCS | `fiatShamir_completeness` admitted and for a constant oracle; `BCSTransform` commented out; `Commitment.extractability` has body `False`; #848 and #469 are single-salt and duplex-sponge Fiat–Shamir with no proof of work; #627 is a design issue. Open, not at the pin: #1267–#1283 (state restoration with cached query budgets, the Merkle terminal batch in the random-oracle model, single-salt Fiat–Shamir knowledge soundness from round-by-round certificates) | Proved here (Layer 12) for leanVM's constructions: round-by-round to state-restoration knowledge soundness, the Merkle compilation (on VCVio's Merkle extraction), the chain with proof of work, the chain lemma, and the role-separation lemma (tags and lengths only: a Merkle node is an untagged 64-byte input, so the Merkle compilation is proved on the one shared function). The generic halves are ArkLib candidates; the open stack is where to start, since its constructions are not leanVM's. |
 | Ring switching for `GF(2) → K` | the profile structure; every security leaf admitted; the protocol is Diamond–Posen's, not leanVM's | #3's; the profile structure only is consumed. |
 | Clean expressions as polynomials | on Clean's main since #466 (2026-10-05), but in no revision built for Lean 4.34 (Clean #474, the port, does not contain it) | `ToClean/ExpressionPolynomial.lean` is a verbatim copy of Clean's module; deleted when the pin contains #466 and its file is still `b449bf59`'s, its importer then importing `Clean.Circuit.ExpressionPolynomial` and the aggregate dropping it. The computable translation and the component tables (`ToClean/ComponentPolynomial.lean`) are written over Clean's names and stay. |
 | Balance counted in ℕ, direction-tagged | absent; Clean #464, #20 | leanISA's `BalancedPair` stands in. |
@@ -616,10 +616,11 @@ no other; the hole is built when the names in bold of its row are declared and m
 | Flock phase: knowledge soundness | [Layer 9](#layer-9-the-flock-phase) | **`flockSecurity`**, an inhabitant of `FlockSpec` (#3's) | the Flock phase's definition; #3 |
 | opening phase | [Layer 10](#layer-10-the-opening-phase-and-the-oracle-protocol) | **`openingPhase`**, **`openingComplete`**, **`openingSecurity`**, **`leanVmPhases`** | the spine; batching by powers; tables and stacking |
 | WHIR opening | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `Level`, `encode`, **`encode_columnWeight`**, **`whirOpen`**, **`whirOpen_rbrSoundness`**, `McaJohnson`, `mcaConstant`, **`mcaJohnson_annexB`**, **`mcaError_foldLine_eq_affineLine`** | field instances; tables and stacking; sumcheck: definitions |
-| Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | **`merkleRoot`**, **`merkleVerify`**, **`merkle_fits`**, **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
+| Merkle trees, the byte hasher and the WHIR parameters | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `merkleRootWith`, `merkleVerifyWith`, **`merkleRoot`**, **`merkleVerify`**, `nodeModel`, **`toBatchOpening`**, **`merkle_fits`**, **`blake2sBytes`**, **`ladder`** | leanISA Layer 1 (`compress`); VCVio's Merkle trees |
+| Merkle extraction with hashed leaves | [Layer 11](#layer-11-whir-over-binary-reedsolomon-codes-and-merkle-trees) | `leafPreimage`, **`hashedLeaves_rom_bound`** | VCVio's Merkle trees |
 | list-binding compilation | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`listBinding_compile`**, the plain corollary for the stateless oracle | the phases' knowledge soundness; WHIR opening |
 | transcript, proof object and compiled verifier | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | `roSpec`, `runBlake2s`, `runRandom`, `FsState`, `chainWith`, `blake2sChain`, `Proof`, `RoundPoly.decode`, `bcsCompile`, `leanVmIopp`, `Proof.sizes?`, **`verifyWith`**, **`verify`**, **`verify_simulated`**, **`verify_iff_compiled`**, `settleFixedClaims` | the phases' definitions; the Flock phase's definition; WHIR opening; Merkle trees |
-| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`stateRestoration_of_rbr`**, **`bcsCompile_stateRestoration`**, **`chain_knowledgeSound`**, **`chain_randomOracle`**, **`roles_separated`**, `HashQueryBound`, `Adversary`, `extract`, `rounds`, `verifierQueries`, `hashTerm`, `niError`, **`niError_le`**, **`verify_knowledgeSound`** | the compiled verifier; list-binding compilation |
+| the random-oracle theorems | [Layer 12](#layer-12-compilation-the-transcript-the-proof-and-the-executable-verifier) | **`stateRestoration_of_rbr`**, **`bcsCompile_stateRestoration`**, **`chain_knowledgeSound`**, **`chain_randomOracle`**, **`roles_separated`**, `HashQueryBound`, `Adversary`, `extract`, `rounds`, `verifierQueries`, `hashTerm`, `niError`, **`niError_le`**, **`verify_knowledgeSound`** | the compiled verifier; list-binding compilation; Merkle extraction with hashed leaves |
 | the base theorems (T4) | [Layer 13](#layer-13-the-base-theorems-t4-and-the-fixtures) | **`Blake2sActsAsRandomOracle`**, `extractTrace`, `honestAdversary`, **`baseVerifier_extractsExecution_rom`**, **`baseVerifier_extractsExecution`**, `proveWith`, `prove`, **`baseProver_complete`**, `baseProver_complete_of_execution` | the random-oracle theorems; the adaptor; leanISA Layer 10 and its `traceOf` |
 
 What can start is what the column *Needs* allows; the status file says what is built.
@@ -1148,9 +1149,11 @@ accepted by `#guard`; `piopExtractedStack` returns the committed stack.
 
 `LeanerVM/Protocol/Whir/` (the opening over `E` and `K`, and its soundness; shared with #3's
 concrete PCS) with the generic parts in `LeanerVM/Protocol/ToArkLib/` (the components, the schedule
-of a list of steps, the sumcheck of a product of two tables), `LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`,
-`LeanerVM/Protocol/Pcs.lean`. Annex B is cited by label (`def:enc`, `lem:colweight`,
-`def:listbinding`, `thm:rbr`), since its numbers moved.
+of a list of steps, the sumcheck of a product of two tables), `LeanerVM/Parameters/Whir.lean`,
+`LeanerVM/Protocol/Blake2sHash.lean`, `LeanerVM/Protocol/Merkle.lean` (the generic tree, its
+octopus and their reading as VCVio's in `LeanerVM/Protocol/ToVCVio/Merkle.lean`, the leaf step in
+`ToVCVio/MerkleLeaves.lean`), `LeanerVM/Protocol/Pcs.lean`. Annex B is cited by label (`def:enc`,
+`lem:colweight`, `def:listbinding`, `thm:rbr`), since its numbers moved.
 
 ```lean
 -- Parameters (transcribed, whir_config.rs)
@@ -1179,10 +1182,25 @@ def mcaConstant (n D : ℕ) (η : ℝ) : ℝ := ReedSolomon.HiddenDerivative.joh
 def mcaJohnson_annexB (F) : McaJohnson F mcaConstant   -- mcaError_affineLine_johnson_le, johnsonExceptionCount_le_comparisonEstimate
 theorem mcaError_foldLine_eq_affineLine (C) (δ) :   -- Annex B folds (1 − z)·u₀ + z·u₁; any field, any linear code
     mcaError (FoldLineGenerator F) C δ = mcaError (AffineLineGenerator F) C δ
--- Merkle trees: VCVio's build and verify instantiated with BLAKE2s
+-- Merkle trees: the Rust's, executable, read as VCVio's (decision 32)
 def blake2sBytes : List UInt8 → Vector UInt32 8       -- RFC 7693 over `compress`, last-block flag only
-def merkleRoot ; def merkleVerify                      -- a phase's pruned opening, not one path
-theorem merkle_fits                                    -- leanVM's fixed-height, fixed-width trees in VCVio's query model
+def merkleRootWith (H : List UInt8 → Digest) : Vector (List K) (2 ^ k) → Digest   -- the leaves are leaf images
+def merkleVerifyWith [Monad m] (H : List UInt8 → m Digest) (root) (depth rowWords leafWords) (queries : List ℕ)
+    (paths : PrunedMerklePaths) : m (Option (List (List K)))   -- a phase's pruned opening, rows in query order
+def merkleRoot := merkleRootWith blake2sBytes ; def merkleVerify := merkleVerifyWith (m := Id) blake2sBytes
+def nodeModel : NodeQueryModel (List UInt8) Unit Digest      -- a node queries left ‖ right; no address
+def toBatchOpening (depth) (positions : List ℕ) (leaves siblings : List Digest) :
+    Option (BatchOpening Digest (Skeleton.perfect depth))    -- the octopus as VCVio's path-pruned opening
+theorem merkle_fits (H : List UInt8 → Digest) :             -- every hash, so that Layer 12 applies it to the random one
+    merkleVerifyWith (m := Id) H root depth rowWords leafWords queries paths = some rows ↔
+      (one stored row per distinct query, each `rowWords` wide, `rows` their leaf images in query order) ∧
+      ∃ o, toBatchOpening depth (distinct queries, sorted) (H of each leaf image) paths.siblings = some o ∧
+        getPutativeBatchRootWithHash (fun l r ↦ H (bytes l ++ bytes r)) o.values o.proof = root
+-- Extraction with hashed leaves (ToVCVio/MerkleLeaves.lean), generic over an injective leaf encoding
+def leafPreimage (decode : Query → Option Payload) (log : QueryLog Query Y) (d : Y) : Option Payload
+    -- the payload of the first logged leaf query answered by `d`
+theorem hashedLeaves_rom_bound …   -- VCVio's game with each opened leaf a payload hashed on the same oracle:
+    -- an accepted payload other than `leafPreimage` of its checkpoint's log, within VCVio's bound plus `hashTerm`'s form
 ```
 
 `whirOpen` is Protocol B.6 with its level-0 batching challenge the opening phase's `λ`, not a
@@ -1240,14 +1258,40 @@ floating-point `⌈√ρ/η⌉` equals the target `m`, but at 108 of the 224 dep
 ceiling is `m + 1`. So `θ` is computed, never set to `m`
 ([leanvm-target.md](../leanvm-target.md#known-discrepancies-at-the-pin)).
 
-The Merkle trees are VCVio's (`CryptoFoundations/MerkleTree/`), with BLAKE2s nodes and leaves, if
-`merkle_fits` holds (decision 32). A leaf is BLAKE2s-256 of 512 or 384 bytes, several chained
-compressions, and a node is BLAKE2s-256 of 64 bytes, one compression. The random oracle of Layer
-12 is BLAKE2s-256 on byte strings, so it covers both.
+The Merkle trees `verify` runs are the Rust's, transcribed and executable; their random-oracle
+theorems are VCVio's, through `merkle_fits` (decision 32). A leaf is BLAKE2s-256 of a row's leaf image,
+512 or 384 bytes, several chained compressions, and a node is BLAKE2s-256 of its children's 64
+bytes, one compression, with no tag and no position (`fiat_shamir/src/merkle.rs:38-67`). The
+random oracle of Layer 12 is BLAKE2s-256 on byte strings, so it covers both. In VCVio's terms the
+node hash is `nodeModel`, a `NodeQueryModel` on that one oracle with `Address := Unit`: VCVio
+allows a node hash that carries no position, and queries outside the model, such as the
+Fiat–Shamir chain's 64-byte steps. The tree is `Skeleton.perfect depth`, whose leaf order
+(`SkeletonLeafIndex.ofNat`, the top bit choosing the root's child) is the Rust's; VCVio's paths
+run from the root, the Rust's from the leaf. A phase's opening is the Rust's octopus: the rows at
+the sorted distinct positions and one list of siblings, bottom-up (`PrunedMerklePaths::open`,
+`merkle.rs:163-235`). `toBatchOpening` reads it as VCVio's path-pruned `BatchOpening`, whose shape
+is canonical for its leaves, so a missing or surplus sibling has no reading, as the Rust rejects
+it. `merkle_fits` holds for every hash function, so that Layer 12 applies it to the random one;
+at `blake2sBytes` it is the deployed check. The generic tree, its octopus and `toBatchOpening` are
+VCVio candidates.
+
+VCVio's extraction takes leaves that are digests, so its extractor returns each commitment's leaf
+digests, not its rows. `hashedLeaves_rom_bound` adds the rows: the extractor reads each digest's
+row off the log as the first logged leaf query answered by it (`leafPreimage`), and an accepted
+row that differs costs a collision or a later query that hits a committed digest, a term of
+`hashTerm`'s form. It is stated in VCVio's game, generic over an injective leaf encoding and on
+the one oracle, since leanVM's leaves are untagged.
 
 Tests:
 - `encode` against CompPoly's additive NTT at `κ = 3`, over `K` and `E`;
-- `merkleVerify` on a four-leaf tree, with a wrong sibling rejected;
+- `merkleVerify` on the Rust's octopus vectors (`fiat_shamir/src/merkle.rs:283-351`: eight
+  leaves, queries `[5, 1, 5, 3, 1]`), accepted, and each malformed phase there rejected: a
+  surplus, missing or flipped sibling, a flipped or wide row, a wrong announced width or query
+  count, an out-of-range query;
+- `toBatchOpening` on the same vectors: VCVio's root equals the Rust's, and no malformed phase has
+  a reading;
+- `leafPreimage` on a log in which two leaf queries are answered by one digest (the first is
+  returned), and on a digest no leaf query is answered by (`none`);
 - `blake2sBytes` on the RFC 7693 vector;
 - the honest `whirOpen` at toy parameters (`μ = 4`, rate `1/2`), accepted;
 - the parameter tables against `py:910`;
@@ -1300,7 +1344,7 @@ theorem listBinding_compile (front : Phases …) (mca) :
     and thm:rbr's on WHIR's, with the extractor: list-decode the level-0 word, select the member satisfying M3Holds
 -- The random-oracle theorems, proved here for leanVM's constructions
 theorem stateRestoration_of_rbr …       -- worst-case rbr knowledge soundness ⇒ state-restoration knowledge soundness at (Q + rounds)·max_i ε_i
-theorem bcsCompile_stateRestoration …   -- the Merkle compilation keeps it up to 3(Q² + 1)/2^256; its extractor reads the leaves off the query log
+theorem bcsCompile_stateRestoration …   -- the Merkle compilation keeps it up to 3(Q² + 1)/2^256; its extractor is VCVio's, rows by `leafPreimage`
 theorem chain_knowledgeSound …          -- leanVM's chain, with proof-of-work rounds of `grind i` bits: knowledge soundness + c·Q²/2^256
 theorem chain_randomOracle …           -- the chain lemma: the chain of a random 64-byte map is a random oracle on transcript prefixes
 theorem roles_separated …              -- what the tags and the lengths separate, and no more
@@ -1371,8 +1415,8 @@ of work for a multi-round protocol. Two lemmas lead to it:
   the leaves from everything else by their length. The Merkle nodes are not separated. A node is
   the map on an untagged 64-byte string (`fiat_shamir/src/merkle.rs:46-51`), and a path sibling
   is the prover's, so the node domain contains the chain's. The Merkle compilation is therefore
-  proved on the one shared function (an unqueried node value is uniform, a collision costs
-  `hashTerm`), and the lemma says only what the tags and lengths give.
+  proved on the one shared function, as VCVio's extraction is stated (an unqueried node value is
+  uniform, a collision costs `hashTerm`), and the lemma says only what the tags and lengths give.
 
 The three theorems are stated for leanVM's constructions, since upstream theorems are about
 others. ArkLib's transforms use a random oracle on the full prefix or a duplex sponge
@@ -1382,16 +1426,23 @@ share the chain's domain. Their generic halves,
 `stateRestoration_of_rbr` above all, are ArkLib candidates. None of them is a hypothesis of a
 theorem here: an unproved one leaves `verify_knowledgeSound` unstated, not assumed.
 
+The Merkle compilation consumes VCVio's extraction for a sequence of commitments
+(`anyCheckpointDisagreement_rom_bound_of_prefixQueryBound`) with `hashedLeaves_rom_bound`.
+VCVio's game runs a fixed number of commitment phases, each ending in a declared root, then every
+opening, for an adversary that draws no coins and queries only the hash. leanVM's adversary is one
+computation that also draws coins and absorbs each root as two scalars; the reduction from it to
+that game is the compilation's.
+
 `extract` is the straight-line extractor of the random-oracle theorems. It is computable
 (decision 11) and runs on toy instances. It follows the level-0 root in `proof` back through the
-log to the committed rows, and fails if a row is missing. It list-decodes the interleaved word up
-to `γ_0` by brute-force subset interpolation (interpolate on every set of `D + 1` positions, keep
-the codewords within `γ_0`). Then it returns the member for which `M3Holds` holds, decided by
-evaluating its clauses on finitely many rows, or `none`. A Guruswami–Sudan decoder is a refinement
-with the same specification. The extractor reads only the adversary's log, never the verifier's
-queries. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at the pin in favour of `𝒟[mx]`; the
-sketches keep the readable form. `runRandom` samples `Vector UInt32 8`, for which leanerVM
-supplies `SampleableType UInt32` as it did for `K`.
+log to the committed rows (VCVio's extractor, then `leafPreimage`), and fails if a row is missing.
+It list-decodes the interleaved word up to `γ_0` by brute-force subset interpolation (interpolate
+on every set of `D + 1` positions, keep the codewords within `γ_0`). Then it returns the member
+for which `M3Holds` holds, decided by evaluating its clauses on finitely many rows, or `none`. A
+Guruswami–Sudan decoder is a refinement with the same specification. The extractor reads only the
+adversary's log, never the verifier's queries. `Pr[p | mx]` is VCVio's `probEvent`, deprecated at
+the pin in favour of `𝒟[mx]`; the sketches keep the readable form. `runRandom` samples
+`Vector UInt32 8`, for which leanerVM supplies `SampleableType UInt32` as it did for `K`.
 
 The bytecode multilinear and the Flock matrices are evaluated inside `verify` through one function
 `settleFixedClaims`, the seam for T5; its Flock walk is the Flock phase's.
@@ -1726,7 +1777,8 @@ Phases:               busPhase  leaf_decomposition  tableSummand  tableSummand_t
                       (each phase with its Complete and Security)
 WHIR and Merkle:      Level  ladder  novelBasis  encode  columnWeight  encode_columnWeight  whirOpen  whirError
                       whirOpen_rbrSoundness  McaJohnson  mcaConstant  mcaJohnson_annexB
-                      mcaError_foldLine_eq_affineLine  merkleRoot  merkleVerify  merkle_fits  blake2sBytes
+                      mcaError_foldLine_eq_affineLine  merkleRootWith  merkleVerifyWith  merkleRoot  merkleVerify
+                      nodeModel  toBatchOpening  merkle_fits  blake2sBytes  leafPreimage  hashedLeaves_rom_bound
 Compilation:          roSpec  runBlake2s  runRandom  HashQueryBound  FsState  chainWith  blake2sChain  grind  Proof
                       Proof.sizes?
                       RoundPoly.decode  decode  bcsCompile  leanVmIopp  verifyWith  verify  verify_simulated
@@ -1832,6 +1884,7 @@ recorded here in one row. Each is reversible by a pull request to this document.
 | 29. One theorem for the family | the non-interactive theorem is stated for the family over announced sizes, its error the maximum over admissible sizes | *Statements and parameters*; Layer 12 |
 | 30. The bus phase's side conditions | `1 ≤ I.d` and "a table with a constraint is on the bus" are hypotheses of the bus phase, not fields of `M3Instance` | Layer 6 |
 | 31. The front phases are `Phase.FrontDef` | `Phases` holds the four phases before the opening as `Phase.FrontDef`, a phase whose verifier never reads the stack; `FrontDef.toDef` is the phase as a component, the form its proofs are stated on; the list-binding compilation takes no hypothesis on them | *The oracle*; the spine; test 35 |
+| 32. The Merkle trees are VCVio's | the trees `verify` runs are the Rust's, transcribed and generic in the hash; `merkle_fits` reads them as VCVio's for every hash, with a node hash that carries no address and the Rust's octopus as a path-pruned `BatchOpening`; extraction is VCVio's, for a sequence of commitments with pruned openings, and the step from leaf digests to rows is written here as a VCVio candidate | Layers 11, 12; the ledger |
 | 34. The heuristic is a named hypothesis, per adversary | the headline is knowledge soundness of the deployed `verify`, with a computable extractor of the execution. Its one assumption is `Blake2sActsAsRandomOracle` for the adversary's extraction game, with slack `δ`. The random-oracle steps (state restoration, the Merkle compilation, the chain with proof of work) are theorems, not interfaces. One `verifyWith` serves both settings. No existential soundness corollary is stated | *For zkVM engineers*; Layers 12, 13; tests 24, 36–38 |
 | 35. Correlated agreement at Annex B's constant | `McaJohnson` takes Annex B's `a` (`johnsonComparisonEstimate`), inhabited by ArkLib's proved theorem; the admitted [BCHKS25] theorem is not consumed; `η` is the exact value of the Rust's double, dumped from the pinned Rust | Layer 11; the ledger |
 
@@ -1840,8 +1893,6 @@ Open:
 - **5. An end-to-end run of the honest prover.** Computable by construction; whether it is also a
   compile-time `#guard` on a tiny instance depends on the cost of the WHIR encoder, measured when
   Layer 11 lands.
-- **32. The Merkle trees.** Build Layer 11 on VCVio's Merkle-tree library if leanVM's
-  fixed-height trees fit its query model (the fit lemma), otherwise write them here.
 - **33. The plain sumcheck upstream.** Write the four leanVM sumcheck shapes locally (default), or
   also consume ArkLib's typed one-polynomial sumcheck for the plain case through an adaptor.
 

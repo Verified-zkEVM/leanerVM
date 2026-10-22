@@ -182,6 +182,9 @@ conversion of `CMvPolynomial` to Mathlib's `MvPolynomial` is noncomputable; insi
 **Clean.** No degree, height or padding notion; `EnsembleWitness` has no generator
 (`Circuit.witgen` is per row); `Ensemble.Statement`'s balance over `K` is vacuous (leanerVM #16).
 
-**VCVio.** Merkle trees with proved completeness and single-opening random-oracle
-extractability (`CryptoFoundations/MerkleTree/`); `SampleableType.prEvent_uniformSample_le_div_iff`
-is the counting bound behind `ToVCVio/UniformSample.lean`'s subsingleton form.
+**VCVio.** Merkle trees with proved completeness and random-oracle extraction, for one opening
+and for a sequence of commitments with path-pruned openings (`CryptoFoundations/MerkleTree/`,
+`MultiExtractability/`), for leaves that are digests and an adversary that draws no coins; trees
+with hashed leaves (`Hashing/`) come with binding only.
+`SampleableType.prEvent_uniformSample_le_div_iff` is the counting bound behind
+`ToVCVio/UniformSample.lean`'s subsingleton form.

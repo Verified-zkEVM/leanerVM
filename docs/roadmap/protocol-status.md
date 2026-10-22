@@ -643,11 +643,17 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 12) and
     on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
     `EnsembleWitness` is.
+- **The Merkle trees (Layer 11)** fix BLAKE2s as the hash, and `merkleVerify` checks one path
+  (`Protocol/Merkle.lean`, over the generic tree of `ToArkLib/Merkle.lean`), with binding as a
+  computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
+  `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
+  `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
 
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
+WHIR opening, the Merkle trees with the WHIR parameters, and Merkle extraction with hashed leaves
+(Layer 11).
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -700,7 +706,7 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #1256, #1257 (and #615) | the Flock phase | the packing coordinates, observations and batching of Diamond–Posen ring switching, and the Flock paper's quirky layout | never as they are: leanVM's ring switching is the Frobenius-map variant (Annex A), whose soundness needs none of them; `ToArkLib/Flock/` is the candidate instead |
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
-| VCVio #571 | the Merkle trees | leanVM's trees on VCVio's library | the fit lemma holds (decision 32) |
+| VCVio #571 | Merkle extraction with hashed leaves; the random-oracle theorems | `ToVCVio/MerkleLeaves.lean`; the reduction from an adversary with coins | VCVio proves extraction with hashed leaves, or for an adversary with coins |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
