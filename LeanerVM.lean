@@ -136,6 +136,7 @@ import LeanerVM.Protocol.ToCompPoly.TableFold
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.UniformSample
+import LeanerVM.Protocol.Transcript
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting

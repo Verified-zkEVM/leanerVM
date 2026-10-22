@@ -721,6 +721,19 @@ It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) t
 `McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
 interface; the theorem is not knowledge soundness.
 
+*On merge* of the Fiat–Shamir chain's pull request, the first piece of Layer 12 is on `main`:
+the chain, transcribed from `fiat_shamir/src/lib.rs` (`Protocol/Transcript.lean`: `FsState`,
+`FsState.seed`, `observe`, `sample`, `powBase`, `powOk`, `grind`, `checkPow`), every operation
+generic in the 64-byte hash `H : List UInt8 → m Digest` with the deployed instances in
+`Deployed`, and the statement's constants computed by `blake2sBytes` outside it (`programHash`,
+the hash of the stacked bytecode table, and `fsSeed`, `fs_seed`'s 78-byte preimage);
+`FsState.checkPow_of_grind`: the verifier's check accepts the prover's nonce and lands in its
+state, for every hash function. The tests are known answers dumped from the pinned Rust
+(`scripts/dump-fs-chain-rust.sh`): the program hash, the seed, observes, squeezes, the grinding
+base and an 8-bit grind (nonce 262). The chain computes the Rust's values; it differs only in that
+the prover's nonce search takes fuel, where the Rust loops, and that `powOk` is defined at every
+`bits` where the Rust assumes `bits < 64`.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.
