@@ -43,6 +43,7 @@ def Weight.batch {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) : Weight S n wh
   mle := fun r ↦ powerBatch (fun j ↦ (W j).mle r) ρ
   mle_eq := Weight.powerBatch_mle_eq W ρ
 
+/-- The batched weights' values, as built. -/
 theorem Weight.onCube_batch {k n : ℕ} (W : Fin k → Weight S n) (ρ : S) :
     (Weight.batch W ρ).onCube = batchWeight (fun j ↦ (W j).onCube) ρ :=
   rfl

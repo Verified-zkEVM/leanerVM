@@ -12,8 +12,11 @@ and every prover message zero, so the transcript is honest without any prover wo
 through every check up to the terminal one, which evaluates the composite weight at the tail point.
 
 * **The run finishes and accepts.** Nothing on the verifier's path builds a `2 ^ κ` table: the
-  weights' tables are lazy, and each row is folded once, with its `2 ^ ℓ` fold weights built once.
-* **A nonzero claim is rejected.**
+  weights' tables are lazy, and the `2 ^ ℓ` fold weights of a row are built once.
+* **Each nonzero value is rejected, by the check that reads it**: the claim by the first round's
+  check; the statement's word by level 0's query-batch check, after folding its 64-lane rows; a
+  committed word by level 1's; the plaintext table by the terminal check alone, through the
+  composite weight's extension.
 -/
 
 namespace LeanerVMTests.Protocol.WhirDeployed
@@ -30,28 +33,29 @@ def ch (i : ℕ) : E :=
 def posOf (b i : ℕ) : Fin (2 ^ b) :=
   ⟨0x9e3779b97f4a7c15 * (i + 3) % 2 ^ b, Nat.mod_lt _ (Nat.two_pow_pos _)⟩
 
-/-- The zero word. -/
-def zeroWord (ℓ b t : ℕ) : Word ℓ b t := ⟨fun _ ↦ Vector.replicate (2 ^ ℓ) 0⟩
+/-- The word with every symbol `v`. -/
+def constWord (v : E) (ℓ b t : ℕ) : Word ℓ b t := ⟨fun _ ↦ Vector.replicate (2 ^ ℓ) v⟩
 
-/-- The transcript of a level with zero messages. -/
-def zeroLevel (sh sh' : Shape) (κ' : ℕ) {k : List Step} (rest : ValList k) :
+/-- The transcript of a level with zero messages but the committed word, constant at `wv`. -/
+def zeroLevel (wv : E) (sh sh' : Shape) (κ' : ℕ) {k : List Step} (rest : ValList k) :
     ValList (levelSteps sh sh' κ' k) :=
   ⟨ch 1, (fun i ↦ ((0 : SumcheckRound.Message E 2), ch (2 + i.val))),
-    (0 : SumcheckRound.Message E 2), zeroWord sh'.ℓ (κ' + sh'.R) sh'.t,
+    (0 : SumcheckRound.Message E 2), constWord wv sh'.ℓ (κ' + sh'.R) sh'.t,
     (fun i ↦ ch (20 + i.val)), (0 : E), (0 : SumcheckRound.Message E 2), (0 : E),
     (fun q ↦ posOf _ q.val), ch 50, (), (0 : SumcheckRound.Message E 2), (), rest⟩
 
-/-- The transcript of the final level with zero messages. -/
-def zeroFinal (sh : Shape) (nf : ℕ) : ValList (finalSteps sh nf) :=
+/-- The transcript of the final level with zero messages but the plaintext table, constant at
+`fv`. -/
+def zeroFinal (fv : E) (sh : Shape) (nf : ℕ) : ValList (finalSteps sh nf) :=
   ⟨ch 1, (fun i ↦ ((0 : SumcheckRound.Message E 2), ch (2 + i.val))),
-    (0 : SumcheckRound.Message E 2), (Vector.replicate (2 ^ (nf + 1)) 0 : Tab (nf + 1)), (0 : E),
+    (0 : SumcheckRound.Message E 2), (Vector.replicate (2 ^ (nf + 1)) fv : Tab (nf + 1)), (0 : E),
     (fun q ↦ posOf _ q.val), ch 51, (), (0 : SumcheckRound.Message E 2), (), ch 60,
     (fun i ↦ ((0 : SumcheckRound.Message E 2), ch (61 + i.val))), ()⟩
 
-/-- The zero transcript of a chain. -/
-def zeroLadder : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → ValList L.steps
-  | _, _, .last sh nf => zeroFinal sh nf
-  | _, _, .cons sh L => zeroLevel sh _ _ (zeroLadder L)
+/-- The transcript of a chain. -/
+def zeroLadder (wv fv : E) : {sh : Shape} → {κ : ℕ} → (L : Ladder sh κ) → ValList L.steps
+  | _, _, .last sh nf => zeroFinal fv sh nf
+  | _, _, .cons sh L => zeroLevel wv sh _ _ (zeroLadder wv fv L)
 
 /-- The chain of the parameters' levels on `μ` variables, with one query per level. -/
 def ofLevels : ℕ → List Whir.Level → Option (Σ (sh : Shape) (κ : ℕ), Ladder sh κ)
@@ -64,19 +68,23 @@ def ofLevels : ℕ → List Whir.Level → Option (Σ (sh : Shape) (κ : ℕ), L
     (ofLevels (rem - l.fold) rest).map fun L ↦
       ⟨Shape.ofFold l.fold l.logInvRate 1, Kap L.1 L.2.1, .cons _ L.2.2⟩
 
-/-- The verifier of the opening on the zero stack with an equality-kernel weight and the claim
-`c`, on the zero transcript of the chain of `(μ, R)`. -/
-def run (μ R : ℕ) (c : E) : Option Bool :=
+/-- The verifier of the opening of the chain of `(μ, R)`, with an equality-kernel weight and the
+claim `c`, on the statement's word constant at `ov`, the committed words at `wv` and the plaintext
+table at `fv`, every other message zero. -/
+def run (μ R : ℕ) (c ov wv fv : E) : Option Bool :=
   (Whir.ladder μ R).bind fun ls ↦ (ofLevels μ ls).map fun ⟨sh, κ, L⟩ ↦
     (whirOpenComplete sh κ L).guarded.check
       ((eqWeight (Vector.ofFn fun i ↦ ch (100 + i.val)), c),
-        fun _ ↦ zeroWord sh.ℓ (κ + sh.R) sh.t)
-      (seqTr _ ⟨(), (0 : SumcheckRound.Message E 2), zeroLadder L⟩)
+        fun _ ↦ constWord ov sh.ℓ (κ + sh.R) sh.t)
+      (seqTr _ ⟨(), (0 : SumcheckRound.Message E 2), zeroLadder wv fv L⟩)
 
-/-- The first level of the chain of `(28, 1)` folds six lanes, and its code has `κ = 22`. -/
+-- The first level of the chain of `(28, 1)` folds six lanes, and its code has `κ = 22`.
 #guard ((Whir.ladder 28 1).bind (ofLevels 28)).map (fun L ↦ (L.1.ℓ, L.2.1)) == some (6, 22)
 
-#guard run 28 1 0 == some true
-#guard run 28 1 1 == some false
+#guard run 28 1 0 0 0 0 == some true
+#guard run 28 1 1 0 0 0 == some false
+#guard run 28 1 0 1 0 0 == some false
+#guard run 28 1 0 0 1 0 == some false
+#guard run 28 1 0 0 0 1 == some false
 
 end LeanerVMTests.Protocol.WhirDeployed

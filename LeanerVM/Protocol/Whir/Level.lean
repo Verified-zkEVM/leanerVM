@@ -446,7 +446,8 @@ def readQuery (s : Bd sh (Kap sh' κ')) :
 def readOut (s : Bd sh (Kap sh' κ'))
     (a : [Component.besideOracles (OneW sh (Kap sh' κ')) (WordOf sh' κ')]ₒ.Range
       (readQuery sh sh' κ' s)) : Bd sh (Kap sh' κ') :=
-  { s with cq := foldRows s.r (a : Fin sh.t → Vector E (2 ^ sh.ℓ)) }
+  let v := foldRows s.r (a : Fin sh.t → Vector E (2 ^ sh.ℓ))
+  { s with cq := fun q ↦ v[q] }
 
 /-- The reading of the level's word at the positions, which then drops it. -/
 def readOld :=
@@ -518,9 +519,10 @@ private def readOldComplete : Component.Complete (readOld sh sh' κ')
       rw [h0, h1']
     refine ⟨rfl, h2, ?_⟩
     refine ⟨h3, fun q ↦ ?_⟩
-    show foldRows s.r (Component.answerOf _ o (readQuery sh sh' κ' s) :
-      Fin sh.t → Vector E (2 ^ sh.ℓ)) q = _
-    rw [foldRows_apply, hans]
+    show (foldRows s.r (Component.answerOf _ o (readQuery sh sh' κ' s) :
+      Fin sh.t → Vector E (2 ^ sh.ℓ)))[q] = _
+    refine (foldRows_getElem s.r _ q).trans ?_
+    rw [hans]
     exact foldRow_wordOf sh.R sh.t w s.r (s.pos q)
 
 /-- Completeness of the glue: the glued claim, polynomial and weight are those of the glued

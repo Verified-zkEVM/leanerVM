@@ -43,6 +43,7 @@ def Weight.combine {n : ℕ} (ts : List (S × Weight S n)) : Weight S n where
   mle := fun r ↦ (ts.map fun t ↦ t.1 * t.2.mle r).sum
   mle_eq := Weight.sum_map_mle_eq ts
 
+/-- The combined weights' values, as built. -/
 theorem Weight.onCube_combine {n : ℕ} (ts : List (S × Weight S n)) :
     (Weight.combine ts).onCube = Vector.ofFn fun x ↦ (ts.map fun t ↦ t.1 * t.2.onCube[x]).sum :=
   rfl
@@ -55,8 +56,8 @@ theorem Weight.pair_combine {n : ℕ} (φ : R →+* S) (ts : List (S × Weight S
   | nil => simp [Weight.pair, Weight.onCube_combine]
   | cons w ts ih =>
     simp only [List.map_cons, List.sum_cons, ← ih]
-    simp only [Weight.pair, Weight.onCube_combine, Fin.getElem_fin, Vector.getElem_ofFn, List.map_cons,
-      List.sum_cons, add_mul, Finset.sum_add_distrib, Finset.mul_sum, mul_assoc]
+    simp only [Weight.pair, Weight.onCube_combine, Fin.getElem_fin, Vector.getElem_ofFn,
+      List.map_cons, List.sum_cons, add_mul, Finset.sum_add_distrib, Finset.mul_sum, mul_assoc]
 
 end
 end LeanerVM.Protocol

@@ -62,14 +62,15 @@ def foldRow {ℓ : ℕ} (r : Vector E ℓ) (row : Vector E (2 ^ ℓ)) : E :=
   let b := lagrangeBasis r
   ∑ u : Fin (2 ^ ℓ), b[u] * row[u]
 
-/-- The rows folded by the fold point, each folded once and stored, so that reading a folded row
-again does not fold it again. -/
-def foldRows {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) : Fin t → E :=
-  let v := Vector.ofFn fun q ↦ foldRow r (a q)
-  fun q ↦ v[q]
+/-- The rows folded by the fold point, as a vector. A reader that stores them binds this vector
+and reads it through `fun q ↦ v[q]`: a definition returning that closure itself is eta-expanded by
+the compiler, which then folds every row again at each read. -/
+def foldRows {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) : Vector E t :=
+  Vector.ofFn fun q ↦ foldRow r (a q)
 
-theorem foldRows_apply {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) (q : Fin t) :
-    foldRows r a q = foldRow r (a q) := by
+/-- The `q`-th folded row. -/
+theorem foldRows_getElem {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) (q : Fin t) :
+    (foldRows r a)[q] = foldRow r (a q) := by
   simp [foldRows]
 
 /-- `fact:fold-decode`: the folded row at a position is the folded table's encoding there. -/

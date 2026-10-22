@@ -667,11 +667,10 @@ claim (`Weight E μ × E`), not `Fin J → WeightedClaim μ`; the rounds are the
 product of the weight and the table, lowest variable first, with three coefficients per round
 polynomial where the stream carries two; the modules are `LeanerVM/Protocol/Whir/` with the generic
 parts in `ToArkLib/`; the stack and the witness are `E`-valued, with what the wiring owes. The pull
-request that wires `whirOpen` into the opening phase owes the `K`-to-`E` lift of the witness. Owed
-by the code: `foldWeight` and `relayoutWeight` build their `onCube` eagerly, and take the one-line
-change to `cube := .mk …` when #110 lands; until then reading a weight's `mle` builds its table
-first, so the terminal check costs `2 ^ μ` at a deployed size (μ = 28), and a deployed-size guard
-for it waits for #110.
+request that wires `whirOpen` into the opening phase owes the `K`-to-`E` lift of the witness. A
+weight's table is lazy (`Weight.cube`), and the verifier folds each queried row once, so the
+verifier runs at a deployed size: the test runs the chain of `(28, 1)` at one query per level
+(`tests/LeanerVMTests/Protocol/WhirDeployed.lean`).
 
 *On merge* of #109, the soundness of the opening is on `main`: `whirOpen_rbrSoundness`,
 round-by-round soundness for the list relation, at the errors of Annex B's `thm:rbr` per challenge

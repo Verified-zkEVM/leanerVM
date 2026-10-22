@@ -129,7 +129,8 @@ def readFinalQuery (s : FBd sh (nf + 1)) : [OneW sh (nf + 1)]ₒ.Domain := ⟨0,
 /-- The record of the answer: each row folded by the fold point. -/
 def readFinalOut (s : FBd sh (nf + 1))
     (a : [OneW sh (nf + 1)]ₒ.Range (readFinalQuery sh nf s)) : FBd sh (nf + 1) :=
-  { s with cq := foldRows s.r (a : Fin sh.t → Vector E (2 ^ sh.ℓ)) }
+  let v := foldRows s.r (a : Fin sh.t → Vector E (2 ^ sh.ℓ))
+  { s with cq := fun q ↦ v[q] }
 
 /-- The reading of the last word at the positions. -/
 def readFinal :=
@@ -188,9 +189,10 @@ private def readFinalComplete : Component.Complete (readFinal sh nf)
           fun k ↦ (o 0 : Word sh.ℓ (nf + 1 + sh.R) sh.t).row (s.pos k) := rfl
       rw [h0, h1']
     refine ⟨rfl, h1, h2, fun q ↦ ?_⟩
-    show foldRows s.r (Component.answerOf _ o (readFinalQuery sh nf s) :
-      Fin sh.t → Vector E (2 ^ sh.ℓ)) q = _
-    rw [foldRows_apply, hans]
+    show (foldRows s.r (Component.answerOf _ o (readFinalQuery sh nf s) :
+      Fin sh.t → Vector E (2 ^ sh.ℓ)))[q] = _
+    refine (foldRows_getElem s.r _ q).trans ?_
+    rw [hans]
     exact foldRow_wordOf sh.R sh.t w s.r (s.pos q)
 
 /-- Completeness of the glue: the glued claim, polynomial and weight are those of the residual and

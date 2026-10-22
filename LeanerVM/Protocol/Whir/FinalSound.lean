@@ -210,7 +210,7 @@ def finalBatchingSecurity : Component.Security
 private theorem readFinalOut_answer (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 1) i) :
     readFinalOut sh nf s (Component.answerOf (OneW sh (nf + 1)) o (readFinalQuery sh nf s)) =
       { s with cq := cqAt s.toBd o } :=
-  congrArg (fun c ↦ { s with cq := c }) (funext fun q ↦ foldRows_apply _ _ q)
+  congrArg (fun c ↦ { s with cq := c }) (funext fun q ↦ foldRows_getElem _ _ q)
 
 /-- The reading of the last word. -/
 def finalReadSecurity : Component.Security (readFinal sh nf) (relFB (sh := sh) (nf := nf))
