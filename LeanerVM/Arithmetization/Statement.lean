@@ -138,8 +138,9 @@ represents, and `constraintCompleteness` a witness representing the trace.
 The two lookup theorems, `mem_channel_sound` and `bytecode_channel_sound`, are proved from
 `SatisfiedBy` alone in `LeanerVM.Arithmetization.Bus`, on the closed forms of what each row
 sends (`LeanerVM.Arithmetization.Rows`): balance as a permutation counted in `ℕ` and the count
-product are all they need. The two statements about the state channel are block comments at
-the end of this file until they are proved.
+product are all they need. That every row is a step and that no row pulls the sentinel counter
+are `LeanerVM.Arithmetization.Steps`'s; the run they make is a block comment at the end of
+this file until it is proved.
 
 ## Wrong readings excluded
 
@@ -440,22 +441,13 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
   funext ⟨i, hi⟩
   exact himage i hi
 
-/-! ## The state channel, to prove
+/-! ## The run, to prove
 
-The two statements about the state channel, recorded as the convention for unproved targets
-requires, never as an unproved declaration. They consume the two lookup theorems
-(`LeanerVM.Arithmetization.Bus`), the state balance, and the argument that every row of the
-six tables is a step of the machine. `no_row_at_sentinel` quantifies over the rows of the
-witness's tables: over `w.interactions`, as it was first stated, it is false, since the
-verifier's own row pulls `(g^(N_prog - 1), 1)`.
+Recorded as the convention for unproved targets requires, never as an unproved declaration. It
+consumes the state balance, `rowSteps_of_satisfiedBy` and `no_row_at_sentinel`
+(`LeanerVM.Arithmetization.Steps`).
 
 ```lean
-/-- No row of a table pulls the sentinel counter: its bytecode entry is not a `JUMP`, so the
-row would push `(g^N_prog, fp)`, a counter no bytecode read can balance. -/
-theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
-    ∀ t ∈ w.tables, ∀ row ∈ t.table, ∀ pc fp : K,
-      #[pc, fp] ∈ rowMessagesOn t row StatePull.toRaw → pc ≠ prog.finalPc
-
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
 from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
 theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :

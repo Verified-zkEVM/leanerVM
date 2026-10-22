@@ -1117,8 +1117,9 @@ components. Independent of the balance side of Clean (#16, #20).
 ### Layer 9: bus soundness
 
 `LeanerVM/Arithmetization/Rows.lean`, what one row of each component sends, in closed form on
-arbitrary raw rows; `LeanerVM/Arithmetization/Bus.lean`, the two lookups; the state statements
-at the end of `Statement.lean`. Everything is proved from `SatisfiedBy` alone, whose balance is
+arbitrary raw rows; `LeanerVM/Arithmetization/Bus.lean`, the two lookups;
+`LeanerVM/Arithmetization/Steps.lean`, every row a step (`rowSteps_of_satisfiedBy`, through
+Clean's `Air.Flat.Component.weakSoundness` per row) and the sentinel; the run. Everything is proved from `SatisfiedBy` alone, whose balance is
 `BalancedPair`, a `List.Perm` counted in `ℕ`: no Clean change is consumed. Prove:
 
 ```lean

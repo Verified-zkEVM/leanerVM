@@ -5,6 +5,7 @@ import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
 import LeanerVM.Arithmetization.Rows
 import LeanerVM.Arithmetization.Statement
+import LeanerVM.Arithmetization.Steps
 import LeanerVM.Arithmetization.Tables.Basic
 import LeanerVM.Arithmetization.Tables.Blake2s
 import LeanerVM.Arithmetization.Tables.Deref

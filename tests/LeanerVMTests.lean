@@ -4,6 +4,7 @@ import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Rows
 import LeanerVMTests.Arithmetization.Statement
+import LeanerVMTests.Arithmetization.Steps
 import LeanerVMTests.Arithmetization.Tables
 import LeanerVMTests.Imports
 import LeanerVMTests.Parameters.Blake2s

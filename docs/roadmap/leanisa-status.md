@@ -148,7 +148,7 @@ module (P3).
 | 6 — six tables | landed (PR #19) | plain files (C8); each table's `Spec` is `*Spec`, the relation `*Refines mem r next` (the row's bindings to an image, and `execute` of the instruction the row names) adapted to the prover data (decision 11, F8; program-free on this branch, decision 14); each table returns the state it pushes (`GeneralFormalCircuit K Row Regs`); push channels listed as `channelsWithRequirements`; `Blake2sRelation` is the one named assumption; rows from executions by `*RowOf`; row tests are kernel checks against `E.ofLimbs` words (decision 4, settled) |
 | 7 — boundary blocks | landed (PR #21) | plain file (C8); each block is its two flushes with no constraint, its `Spec` its pull guarantee (`MemSpec`; `BytecodeDecodes`, program-free) and the verifier's `True` (decision 12, F9; decision 14); the verifier is a function of the public program and pulls its sentinel as a constant (`leanIsaVerifier prog`, `verifier_pull_eval`); the seed rows of every word and slot are built and accepted (`mem_word_complete`, `bytecode_entry_complete`); the program's hold on the bytecode block's rows is Layer 8's conjunct, read per row by `BytecodeBindings prog` (decision 14) |
 | 8 — statement | built, proved and reviewed on this branch | plain file (C8); `SatisfiedBy` is a structure of named conjuncts; balance is `BalancedPair`, a `List.Perm` of the messages on a channel pair, channels identified by name; `CountsNonzero` covers the six tables' read counts, as leanVM's count channel does; `Caps` is the M3 part of `read_public`, power-of-two heights and the BLAKE2S floor (decision 8); the three named hypotheses are stated over the two blocks' raw rows (`memRowAt`, `List.ofFn`); `Blake2sRowsValid` is the BLAKE2s validity Flock proves, the one conjunct outside the bus (review finding A1); `AssignmentRepresents` says each step occurs as some row's `RowSteps`; one hand-built witness for the executor's program with fill blocks, at `2^16` cells, never enumerated (E8), and seven rejections |
-| 9 — bus soundness | in progress (2026-10-22); waits on no Clean change | `Arithmetization/Rows.lean`: what every row of the eight components and the verifier sends, in closed form on arbitrary raw rows (`SendsOpcode`, `*_sendsOpcode`, `memBlock_rowMessagesOn`, `bytecodeBlock_rowMessagesOn`, `verifier_rowMessagesOn`); `Arithmetization/Bus.lean`: Lemma 6.3 (`eq_zero_of_perm_map_mul_g`), Theorem 6.4 generic (`lookup_sound`), `mem_channel_sound` and `bytecode_channel_sound` from `SatisfiedBy` alone; `no_row_at_sentinel` (restated over the tables' rows, under `SentinelSafe`) and `exists_run_of_balanced` are block comments at the end of `Statement.lean` (decisions 7 and 9) |
+| 9 — bus soundness | in progress (2026-10-22); waits on no Clean change | `Arithmetization/Rows.lean`: what every row of the eight components and the verifier sends, in closed form on arbitrary raw rows (`SendsOpcode`, `*_sendsOpcode`, `memBlock_rowMessagesOn`, `bytecodeBlock_rowMessagesOn`, `verifier_rowMessagesOn`); `Arithmetization/Bus.lean`: Lemma 6.3 (`eq_zero_of_perm_map_mul_g`), Theorem 6.4 generic (`lookup_sound`), `mem_channel_sound` and `bytecode_channel_sound` from `SatisfiedBy` alone; `Arithmetization/Steps.lean`: every row a step (`rowSteps_of_satisfiedBy`) and `no_row_at_sentinel` (over the tables' rows, under `SentinelSafe`); `exists_run_of_balanced` is a block comment at the end of `Statement.lean` (decisions 7 and 9) |
 | 10 — T1 | untouched; consumes Layer 9 | both theorems take `WellFormedBytecode prog` (decision 9, F6) |
 
 ### The frontier
@@ -352,10 +352,15 @@ module (P3).
     by `lookup_sound` only through the count hypothesis; and a witness whose memory block seeds
     cell `29`'s word at the address `g^2`, which satisfies every conjunct `mem_channel_sound`
     consumes but `IndexColumnsAreRowIndices` and pulls a read the image does not hold.
-  Still to come: `no_row_at_sentinel` and `exists_run_of_balanced` (Proposition 6.1), block
-  comments at the end of `Statement.lean`, then Layer 10's per-row soundness. The first was
-  false as the roadmap stated it, over `w.interactions`: the verifier's own row pulls
-  `(g^(N_prog - 1), 1)`; it now quantifies over the tables' rows and takes `SentinelSafe prog`.
+  - `feat/leanisa-rows-are-steps`: `LeanerVM/Arithmetization/Steps.lean`, every pull's
+    guarantee from the lookups (`fullGuarantees_of_satisfiedBy`), every row's `Spec` by Clean's
+    `weakSoundness` (`spec_of_satisfiedBy`), the state each row returns (`*_rowOutput`), every
+    row a step of the program from its pull to its push (`rowSteps_of_satisfiedBy`), and
+    `no_row_at_sentinel` under `SentinelSafe prog`. The last was false as the roadmap stated
+    it, over `w.interactions`: the verifier's own row pulls `(g^(N_prog - 1), 1)`; it
+    quantifies over the tables' rows.
+  Still to come: `exists_run_of_balanced` (Proposition 6.1), a block comment at the end of
+  `Statement.lean`, now under `SentinelSafe prog`.
 - **A refactor waits on Clean PR #446** (issue #23, decision 15): the three named hypotheses of
   `SatisfiedBy` become fixed columns and proof-committed data inside the two boundary blocks,
   and nothing else moves. The roadmap's Layer 8 section "After Clean #446" is the plan.
