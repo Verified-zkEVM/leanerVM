@@ -1146,8 +1146,9 @@ accepted by `#guard`; `piopExtractedStack` returns the committed stack.
 
 ### Layer 11: WHIR over binary Reed–Solomon codes, and Merkle trees
 
-`LeanerVM/Protocol/ToArkLib/Whir.lean` (module; ArkLib candidate; shared with #3's concrete
-PCS), `LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`,
+`LeanerVM/Protocol/Whir/` (the opening over `E` and `K`, and its soundness; shared with #3's
+concrete PCS) with the generic parts in `LeanerVM/Protocol/ToArkLib/` (the components, the schedule
+of a list of steps, the sumcheck of a product of two tables), `LeanerVM/Parameters/Whir.lean`, `LeanerVM/Parameters/Blake2sHash.lean`,
 `LeanerVM/Protocol/Pcs.lean`. Annex B is cited by label (`def:enc`, `lem:colweight`,
 `def:listbinding`, `thm:rbr`), since its numbers moved.
 
@@ -1165,7 +1166,7 @@ theorem encode_K (f) : (∀ x, f x ∈ K) → ∀ y, encode κ R f y ∈ K   -- 
 def columnWeight (κ R) (x) : Weight κ                             -- mle r = ∏ i, ((1 + r i) + r i · Ŵ_i x)
 theorem encode_columnWeight (x) (f) : encode κ R f x = (columnWeight κ R x).pair f   -- lem:colweight
 -- The opening as an IOPP (Protocol B.6), generic over the code and the field
-def whirOpen (params) : OracleReduction … (StmtIn := Fin J → WeightedClaim μ) (OStmtIn := codeword oracles) …
+def whirOpen (L : Ladder) : OracleReduction … (StmtIn := Weight μ × E) (OStmtIn := codeword oracles) …   -- one batched claim
 theorem whirOpen_perfectCompleteness …
 theorem whirOpen_rbrSoundness (mca : McaJohnson a) : … (whirError params)   -- thm:rbr, per challenge, a function of η
 /-- Mutual correlated agreement up to the Johnson bound, with its constant `a` a parameter. -/
@@ -1184,7 +1185,9 @@ theorem merkle_fits                                    -- leanVM's fixed-height,
 ```
 
 `whirOpen` is Protocol B.6 with its level-0 batching challenge the opening phase's `λ`, not a
-second batching: `ℓ_i` normalized sumcheck rounds, commit, one out-of-domain sample from level 1
+second batching, so its input is the one batched claim and not a list: `ℓ_i` plain sumcheck rounds on
+the product of the weight and the table, binding the lowest variable first (a round polynomial is
+three coefficients here, where the stream carries two), commit, one out-of-domain sample from level 1
 on (`ood_samples[0] = 0`), the grinding nonce (17 bits, read before the positions), `t_i` queries,
 and the final plaintext level. Four transcript facts are transcribed (`whir.rs`): the level-0 lane
 relayout `f(u, x) = q(x, u)` and the rotated terminal point (`:2297-2306`); the out-of-domain
@@ -1194,6 +1197,12 @@ soundness is round-by-round soundness for the list relation, not knowledge sound
 commitment is list binding (`def:listbinding`), and the invariant is "every codeword within
 `γ_i` of the current fold violates the current claim"; Layer 12 turns list binding into
 extraction.
+
+The committed stack, its relation and the prover's table are `E`-valued in `whirOpen`, while the
+opening phase hands over a `K`-valued column and queries it through `pair (algebraMap K E)`; `E`
+is a superset, so completeness covers the `K`-valued stack. The pull request that wires `whirOpen`
+into the opening phase owes the `K`-to-`E` lift of the witness and, for soundness, that every
+codeword in the list of a `K`-valued word is `K`-valued (`encode_eq_of_agree`).
 
 `McaJohnson` is at Annex B's constant (decision 35). ArkLib's `johnsonComparisonEstimate n D η` is
 Annex B's `a` of `thm:mca-johnson`. With `ρ = D/n`, the reduced rate (`whir_config.rs:426-429`),
