@@ -424,16 +424,32 @@ names are unique across `lean_vm/LeanVM` before sending.
 | `κ_batch(Q_v)` | `Q_v·2/2^192`; `Q·4(Q+1)/2^256` | quadratic part over `Q` |
 | `ε_DA ≈ Q_v·14/2^192` | `Q·14/2^192`; `Q·4Q/2^256` | **extra** `Q_sig·14/2^192` (E2E-7, fix B): DA is charged at E5's full rate on hidden queries too. Counterexample to the hidden-step bound: a DA anchor completed by a hidden query after a hidden entry answering a hidden prefix. Below `2^-120` for `Q_sig ≤ 2^68`. The quadratic part is over `Q`. |
 | `(Q_v+1)²/2^193` | `Q_v(Q_v+1)/2^193` | none (smaller) |
+| (E5's failures on visible queries) | `4Q_v²/2^256` inside `Q·4Q/2^256` | **extra** `4Q_v²/2^256` (`deltaDaVis`): §0's `ε_DA ≈` drops E5's quadratic failure term; `κ_V°` and `κ_batch` cover only T1's `5Q_v²` and W6's `4Q_v²`. |
 | ε_signer: `Q_v·Q_sig/2^255` (HiddenCollide, HiddenPredict, Hit) | contained in `Q·(5Q + 8Q + 4)/2^256`, `Q = Q_v + Q_sig` | **extra** `≈ 13·Q_sig(2Q_v + Q_sig)/2^256`. `Fail` counts collisions and predictions among hidden entries, which §3 ignored; removing them would mean re-proving T1's `final_ineq`. Lifetime: `≈ 2^-97`. |
 | ε_signer: `Q_v·5/2^128` (LateReveal), `n·Q/2^256` (GuessS) | none | not needed by route B |
 | ε_signer: `(S·2^8.1)³/2^258.6` (3-collisions of revealed halves) | none | not needed (that was LateReveal's `k`) |
 | ε_signer: `n·2^45/2^256` (Format) | `Q·((nx+ns)·2^64+1)/2^256` | charged per query (§0's had no `Q`), and over all `2^64` address shapes rather than the `2^45` the schemes use. Lifetime: `≈ 2^-94`. |
 | ε_signer: `n/2^128` (constant-prefixed transcript starts) | none | static facts (`not_hid_ivPrefix_append`, `not_inPfx_aggSeedD`, the labels) |
-| ε_signer: `n²/2^128` (key coincidences) | `(nx+ns)²/2^129 + Q²/2^256` | parameters are 128-bit truncations (`2^-128` per pair, halved by symmetry); `Q²/2^256` covers a repeated derivation (`S_i = S_k`) |
-| `(n_x+n_s)(Q_v + Q_sig′ + c)/2^127` | `nx(Q_v + qx)/2^127 + ns(Q_v + qs)/2^127`, `qx = 2(nx+ns) + cxk + sXk·cxs + cx` | **extra** `2(n_x+n_s)` per reduction: the other keys' derivations are forwarded, not self-simulated. They are the only inputs of the other keys outside the static private class. Lifetime: `≈ 2^-85`. |
+| ε_signer: `n²/2^128` (key coincidences) | `n·(2n/2^128 + Q_k²/2^256)`, `Q_k = n_x·c_xk + n_s·c_sk` (P7d, per key `KeyCollAt`) | **extra** `n²/2^128 + n·Q_k²/2^256` (`deltaKeyColl`): each reduction pays its own key's coincidences (another key's parameter, or a zero one), `2n/2^128`; `Q_k²/2^256` covers a repeated derivation (`S_i = S_k`). Lifetime: `≈ 2^-86`. |
+| `(n_x+n_s)(Q_v + Q_sig′ + c)/2^127` | `nx(Q_v + qx)/2^127 + ns(Q_v + qs)/2^127`, `qx = 2(nx+ns) + cxk + sXk·cxs + cx` | **extra** `2(n_x+n_s)` per reduction: the other keys' derivations are forwarded, not self-simulated. They are the only inputs of the other keys outside the static private class (`deltaFwd = n·2n/2^127`). Lifetime: exactly `2^-84` (`deltaFwd_lifetime`). |
 
-Every difference is below `2^-84` at the lifetime parameters, where the bound is `≈ 2^-43`. The
-tests evaluate `sec0Error` there with the kernel (`closedNum0`).
+`Vis/Closed.lean` (P6b) proves `sec0Error ≤ eps0 + delta` (`sec0ErrorGame_le`), `eps0` §0's bound
+term by term and `delta` the deviations above, and evaluates them with the kernel
+(`closedNum0`, `eps0Num`, `deltaNum`). The proved values, at `n_x = n_s = 2^20`, leanXMSS's costs
+and leanSPHINCS's at `b = 26` or `b = 20`:
+
+| point | `sec0Error` | `delta` | today's `closedError` |
+| --- | --- | --- | --- |
+| lifetime (`Q_v ≤ 2^64`, `s_X, s_S ≤ 2^44`, `s_Xk, s_Sk ≤ 2^24`) | `≤ 2^-41` (`≈ 2^-41.97`; `≤ 2^-42 + 2^-47`) | `≤ 2^-84 + 2^-86 + 2^-91` (`deltaFwd` alone is `2^-84`) | `≈ 2^-28.07` |
+| one slot (`s_X, s_S, s_Xk, s_Sk ≤ 2^20`) | `≤ 2^-42 + 2^-51` (`≈ 2^-42`) | | `≈ 2^-43.0` |
+| leanXMSS only (`n_s = 0`), lifetime, `Q_v ≤ 2^64` | `≤ 2^-42` (`≈ 2^-43`) | | `≈ 2^-39` |
+| leanXMSS only, lifetime, `Q_v ≤ 2^56` | `≤ 2^-49` (`≈ 2^-49.4`) | | `≈ 2^-39` |
+
+At one slot the visible bound is about twice today's: the hybrid pays `n_x·Q_v/2^127` for
+leanXMSS, where leanXMSS's multi-user theorem pays `Q/2^127` once. The deployed end theorems
+therefore keep today's `aggregate_no_forgery_deployed_*` and add the visible ones beside them,
+for the same event; the better of the two applies. Over a lifetime the visible bound wins,
+`2^-42` against `2^-28`.
 
 ## 7. Risks
 
