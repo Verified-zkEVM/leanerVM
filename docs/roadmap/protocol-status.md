@@ -652,7 +652,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
 WHIR opening and the Merkle trees with the WHIR parameters (Layer 11), and the charged invariant
-and Merkle binding by log replay (Layer 12).
+and, after the octopus the Merkle trees owe, Merkle binding by log replay (Layer 12).
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
@@ -707,7 +707,8 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | ArkLib #848, #469, #627 | the compiled verifier | Fiat–Shamir and BCS statements | a chain-based transform with proof of work, which none of them is |
 | ArkLib issues #900, #901 | tables and stacking; the fingerprint | the requests for stacking and fingerprints upstream | when the pull requests open |
 | VCVio #571 | Merkle binding by log replay | `ToVCVio/MerkleReplay.lean` | VCVio proves extraction with hashed leaves on one shared oracle |
-| VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds for the random oracle, copied into `ToVCVio/` as needed | at the bump that contains them |
+| VCVio #817 | the charged invariant | the laws of the scalar expectation, copied verbatim as `ToVCVio/ScalarExpectation.lean` | at the bump that contains it, delete the copy |
+| VCVio #823, #824, #826, #828 | the charged invariant | fresh-query bounds with a fixed error per key | reference only: the flip charge depends on the cache |
 | Clean #466 (merged 2026-10-05), #474 | Clean expressions as polynomials | `ToClean/ExpressionPolynomial.lean`, a verbatim copy of Clean's module | a pin holds both #466 and #474's Lean 4.34 fix; then delete the copy and import `Clean.Circuit.ExpressionPolynomial` |
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
