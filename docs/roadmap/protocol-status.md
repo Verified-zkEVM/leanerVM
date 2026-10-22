@@ -123,9 +123,12 @@ adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
 from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
-the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). Nothing
-else is built: the other generic components, WHIR, the Merkle trees, the compiled verifier and
-the base theorems.
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). *On
+merge* of #67: the Merkle trees over BLAKE2s with completeness and binding as a computed collision
+(`Protocol/Merkle.lean`, generic in `ToArkLib/Merkle.lean`), the byte hasher and the digest
+encoding (`Protocol/Blake2sHash.lean`), and the WHIR parameters (`Parameters/Whir.lean`). Nothing
+else is built: the other generic components, the WHIR opening, the compiled verifier and the base
+theorems.
 
 ## What the built work owes the blueprint
 
@@ -637,7 +640,7 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
   - `leanIsaRefinement` is the adaptor as the spine's `Refinement` from `M3Rel` to
     `SatisfiedBy`. Owed: the sizes `piopError_le` assumes, at admissible sizes (`μ_bus ≤ 30`
     follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone); the
-    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 13) and
+    knowledge transport along it, which waits on the round-by-round-to-plain step (Layer 12) and
     on `Refinement.knowledge_transport` being stated for a witness type in `Type 1`, as
     `EnsembleWitness` is.
 
@@ -645,6 +648,42 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
 WHIR opening, and the Merkle trees with the WHIR parameters (Layer 11).
+
+*On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
+encoder as a linear injection with its distance, and the column weights with their `κ`-step
+extension (`Protocol/NovelBasis.lean`: `encode`, `encode_eq_eval`, `encode_eq_of_agree`,
+`encode_injective`, `encodeLinear`, `columnWeight`, `columnWeightMle`, `vanish_eq`). The blueprint
+then owes two edits: its `novelBasis` is `basisElt` (the novel basis is `novelPoly`), and the reuse
+row for CompPoly's `AdditiveNTT` is instantiated at `K`'s basis by the test against
+`computableAdditiveNTT`, with the polynomial half restated at `K` (the module docstring says why).
+
+*On merge* of #108, the opening of WHIR and its completeness are on `main`: `whirOpen` and
+`whirOpen_perfectCompleteness` for any chain of levels (`Protocol/Whir/Open.lean`, `Ladder`), with
+the fold identities and the stack's relayout (`Protocol/WhirFold.lean`, `Protocol/Whir/`), and the
+generic components it is built from, which are upstream candidates (`queryRecord`,
+`sendOracleBeside`, `mapWitness`, `passCheck`, the schedule of a list of steps, the sumcheck of a
+product of two tables). The blueprint's Layer 11 is updated with it: the input is the one batched
+claim (`Weight E μ × E`), not `Fin J → WeightedClaim μ`; the rounds are the plain sumcheck on the
+product of the weight and the table, lowest variable first, with three coefficients per round
+polynomial where the stream carries two; the modules are `LeanerVM/Protocol/Whir/` with the generic
+parts in `ToArkLib/`; the stack and the witness are `E`-valued, with what the wiring owes. The pull
+request that wires `whirOpen` into the opening phase owes the `K`-to-`E` lift of the witness. Owed
+by the code: `foldWeight` and `relayoutWeight` build their `onCube` eagerly, and take the one-line
+change to `cube := .mk …` when #110 lands; until then reading a weight's `mle` builds its table
+first, so the terminal check costs `2 ^ μ` at a deployed size (μ = 28), and a deployed-size guard
+for it waits for #110.
+
+*On merge* of #109, the soundness of the opening is on `main`: `whirOpen_rbrSoundness`,
+round-by-round soundness for the list relation, at the errors of Annex B's `thm:rbr` per challenge
+(`Protocol/Whir/OpenSound.lean`), with the lists of a word, the fold-list lemma and the counting it
+rests on (`Whir/Lanes.lean`, `Stage.lean`, `Counting.lean`) and the security half of each generic
+component. It takes, per level, `Par`: a threshold, a list bound and a bound on the bad folds, in
+counting form (`ListBound`, `McaBound`), inhabited at exact agreement and, for the list bound, at
+unique decoding (`Whir/Exact.lean`); `stackRel_subset_relOpen` shows the honest inputs are in the
+relation. The blueprint's Layer 11 is updated with it (the theorem's statement and the interfaces).
+It still owes: the adaptor from `mcaJohnson_annexB` (and a Johnson list bound) to `ListBound` and
+`McaBound` is the remaining piece of Layer 11, and its planned name no longer collides with an
+interface; the theorem is not knowledge soundness.
 
 ## Upstream watch
 
@@ -667,9 +706,11 @@ External work that may feed or replace a hole. The state of each is on GitHub.
 | Clean #464, #20 | the adaptor | leanISA's `BalancedPair` | merged and the pin bumped |
 | Clean #446, #23 | the adaptor | the three fixed-column conjuncts | merged and the pin bumped |
 
-Two checks are owed at the current pins and have not been made: whether
-`ReedSolomon.mcaError_affineLine_johnson_le`'s constant meets Annex B's per-level budget at the
-pinned parameters, and whether Clean `42fe4b26` contains any of Clean #446.
+One check is owed at the current pins and has not been made: whether Clean `42fe4b26` contains
+any of Clean #446. Whether `ReedSolomon.mcaError_affineLine_johnson_le` meets Annex B's per-level
+budget was checked on 2026-10-19: it does, with Annex B's own constant, at every deployed level
+(least margin 128.19 bits), so the admitted `rs_mcaError_le_in_johnson_range` is not needed
+([whir-mca-budget.md](../reviews/whir-mca-budget.md)).
 
 The survey log kept here until 2026-09-29 is archived in
 [protocol-survey-record.md](../reviews/protocol-survey-record.md); the library limits it recorded
