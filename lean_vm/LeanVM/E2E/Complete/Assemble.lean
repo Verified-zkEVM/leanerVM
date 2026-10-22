@@ -21,7 +21,8 @@ the root statement with the idealized proof `idealOf o`, and the statement's cla
 tree's.
 
 The proof: every node of the tree steps, under V_I, to its children's nodes (`nodeStep_out`,
-from `nodeStep_honest`: the node's word and frames are its entry's by `RootsInj`, its stack is
+from `nodeStep_honest`: the node's word and frames are its entry's by `RootsInj` (the idealized
+proof gives each node those of the first entry of its stack root, `idealOf`), its stack is
 the only candidate, its execution passes the table check (`tableOKWith_of_validB`) and decodes
 its children (`DecodeHonest`)); the closure over the nodes accepts within the tree's size
 (`closure_accepts`); the root's proof is V°'s honest proof (`runProof_prove`, `runI_blindProgram`)
@@ -160,19 +161,19 @@ theorem honestStep_spec {claims : Claims} {xs : List (Holder LeanXmss.Signature)
   · exact absurd h (by simp)
 
 /-- **V_I steps an honest node to its children's nodes**, when the idealized proof gives the
-node's root its entry's word and frames. -/
+node its entry's word and frames. -/
 theorem nodeStep_out {claims : Claims} {xs : List (Holder LeanXmss.Signature)}
     {ss : List (Holder Sphincs.Signature)} {ds : List (Holder Da.Witness)} {kos : List HonestOut}
     {o : HonestOut} (hρ : validRate ρ) (h : honestStep H ρ pfuel claims xs ss ds kos = some o)
-    (ip : IdealProof) (hip : ∀ e ∈ o.entries.head?, ip.word e.1 = some e.2.1 ∧ ip.frames e.1 = e.2.2) :
+    (ip : IdealProof) (hip : ∀ e ∈ o.entries.head?,
+      ip.word (nodeOfOut H o) = some e.2.1 ∧ ip.frames (nodeOfOut H o) = e.2.2) :
     nodeStep (m := Id) (fun x ↦ (pure (H x) : Id Digest)) guest (seedOf H) ip (nodeOfOut H o) =
       some (kos.map (nodeOfOut H)) := by
   obtain ⟨hd, e, π, -, hπ, rfl⟩ := honestStep_spec H ρ pfuel h
   have hip' := hip _ rfl
   simp only at hip'
-  have hstep := nodeStep_honest H (seedOf H) ip e.adm hρ hπ
-    (fun r hr ↦ by rw [hr] at hip'; exact hip'.1) (fr := e.fr)
-    (fun r hr ↦ by rw [hr] at hip'; exact hip'.2) (digestOf H ⟨claims, hd.2⟩)
+  have hstep := nodeStep_honest H (seedOf H) ip e.adm hρ hπ (digestOf H ⟨claims, hd.2⟩) hip'.1
+    (fr := e.fr) hip'.2
     (Guest.End.decodeAt (Guest.Value.tableSem (e.t.blakeRows blakeFree)) e.fr e.t.image).witness.children
     fun _ ↦ ⟨e.t, e.run, tableOKWith_of_validB e.valid, rfl⟩
   have hm : M3HoldsBlind (leanIsaInstance Sound.F₀ guest e.sz) (inputOf (digestOf H ⟨claims, hd.2⟩)) e.q := by
@@ -224,8 +225,8 @@ theorem forall₂_imp_mem {α β : Type} {R S : α → β → Prop} :
     .cons (hS _ _ List.mem_cons_self hab)
       (forall₂_imp_mem h fun a b hb ↦ hS a b (List.mem_cons_of_mem _ hb))
 
-/-- What an honest output satisfies, under an idealized proof giving its entries their words and
-frames. -/
+/-- What an honest output satisfies, under an idealized proof giving its nodes their entries' words
+and frames. -/
 def GoodOut (ip : IdealProof) (T : HonestTree) (o : HonestOut) : Prop :=
   o.stmt.claims = T.claims ∧ o.size = T.size ∧
     (∃ ks, o.subs.head? = some (nodeOfOut H o, ks, o.size)) ∧
@@ -233,11 +234,12 @@ def GoodOut (ip : IdealProof) (T : HonestTree) (o : HonestOut) : Prop :=
       some p.2.1) ∧ SubsOK o.subs
 
 /-- **Every node of an honest output steps to its children's nodes**, under an idealized proof
-giving every entry its word and frames; the output's statement has the tree's claims, its size is
+giving every node of the output the word and frames of every entry of its stack root; the output's statement has the tree's claims, its size is
 the tree's, its first node is its own, and its nodes' list is closed. -/
 theorem honestOut_good (hρ : validRate ρ) (ip : IdealProof) (T : HonestTree) :
     ∀ o : HonestOut, honestOut H ρ pfuel T = some o →
-      (∀ e ∈ o.entries, ip.word e.1 = some e.2.1 ∧ ip.frames e.1 = e.2.2) → GoodOut H ip T o := by
+      (∀ e ∈ o.entries, ∀ p ∈ o.subs, rootKey p.1 = e.1 →
+        ip.word p.1 = some e.2.1 ∧ ip.frames p.1 = e.2.2) → GoodOut H ip T o := by
   induction T using HonestTree.induct' with
   | h claims xs ss ds kids ih =>
   intro o h hip
@@ -245,10 +247,15 @@ theorem honestOut_good (hρ : validRate ρ) (ip : IdealProof) (T : HonestTree) :
   simp only [Option.bind_eq_bind, Option.bind_eq_some_iff] at h
   obtain ⟨kos, hkos, h⟩ := h
   have hF := forall₂_of_mapM hkos
-  have hstep := nodeStep_out H ρ pfuel hρ h ip fun e he ↦ hip e (List.mem_of_mem_head? he)
   obtain ⟨hd, e, π, -, -, rfl⟩ := honestStep_spec H ρ pfuel h
-  have hipk : ∀ ko ∈ kos, ∀ e ∈ ko.entries, ip.word e.1 = some e.2.1 ∧ ip.frames e.1 = e.2.2 :=
-    fun ko hko e he ↦ hip e (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨ko, hko, he⟩))
+  have hstep := nodeStep_out H ρ pfuel hρ h ip fun e' he' ↦ by
+    simp only [List.head?_cons, Option.mem_def, Option.some.injEq] at he'
+    subst he'
+    exact hip _ List.mem_cons_self _ List.mem_cons_self rfl
+  have hipk : ∀ ko ∈ kos, ∀ e ∈ ko.entries, ∀ p ∈ ko.subs, rootKey p.1 = e.1 →
+      ip.word p.1 = some e.2.1 ∧ ip.frames p.1 = e.2.2 :=
+    fun ko hko e he p hp ↦ hip e (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨ko, hko, he⟩)) p
+      (List.mem_cons_of_mem _ (List.mem_flatMap.mpr ⟨ko, hko, hp⟩))
   have hG : List.Forall₂ (fun k ko ↦ GoodOut H ip k.1 ko) kids.attach kos :=
     forall₂_imp_mem hF fun k ko hko hk ↦ ih k.1 k.2 ko hk (hipk ko hko)
   have hmem : ∀ ko ∈ kos, ∃ k : {x // x ∈ kids}, GoodOut H ip k.1 ko := by
@@ -299,16 +306,27 @@ theorem find?_entry {es : List Entry} (hr : RootsInj es) {e : Entry} (he : e ∈
     simp only [decide_eq_true_eq] at hp
     rw [hr e' hm e he hp]
 
-/-- **The idealized proof gives every entry its word and frames**, under `RootsInj`. -/
+/-- **The idealized proof gives every node the word and frames of its root's entries**, under
+`RootsInj`. -/
 theorem idealOf_entries {o : HonestOut} (hr : RootsInj o.entries) :
-    ∀ e ∈ o.entries, (idealOf o).word e.1 = some e.2.1 ∧ (idealOf o).frames e.1 = e.2.2 := by
-  intro e he
+    ∀ e ∈ o.entries, ∀ p ∈ o.subs, rootKey p.1 = e.1 →
+      (idealOf o).word p.1 = some e.2.1 ∧ (idealOf o).frames p.1 = e.2.2 := by
+  intro e he p hp hpe
   have hf := find?_entry hr he
   refine ⟨?_, ?_⟩
-  · simp only [IdealProof.word, idealOf, List.find?_map, Function.comp_def]
-    rw [hf]
-    rfl
-  · simp only [idealOf, hf]
+  · simp only [IdealProof.word, idealOf]
+    cases hfind : List.find? _ (List.map _ o.subs) with
+    | none =>
+      have := List.find?_eq_none.mp hfind _ (List.mem_map_of_mem (f := fun p : E2E.Node × List E2E.Node × ℕ ↦
+        (p.1, ((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD fun _ ↦ [])) hp)
+      simp at this
+    | some x =>
+      have hx1 := List.find?_some hfind
+      obtain ⟨p', -, rfl⟩ := List.mem_map.mp (List.mem_of_find?_eq_some hfind)
+      simp only [decide_eq_true_eq] at hx1
+      simp only [Option.map_some, hx1, hpe, hf]
+      rfl
+  · simp only [idealOf, hpe, hf]
     rfl
 
 /-- The root's facts: V°'s honest proof and the deferred claim's bytecode part. -/

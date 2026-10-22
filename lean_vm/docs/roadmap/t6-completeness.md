@@ -352,3 +352,5 @@ the children's count (`decode_count`), statements (`decode_stmts`, `kidStmt_hone
 **Open**: T6-prob (the good events' probabilities under the random oracle; note that the
 node's execution, sizes and stack are still a classical choice in `honestStep`, which a
 probability bound on G1 must replace by a choice that does not look at the grinds' answers).
+Plan: `t6-prob.md` (the prover as an oracle computation choosing from its own logs; G3 removed by
+decision E2E-8).

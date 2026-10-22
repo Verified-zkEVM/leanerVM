@@ -25,18 +25,19 @@ The design is `docs/roadmap/e2e-security.md`; this module states its §0 to §3 
 
 **The idealized verifier** `idealVerify` (V_I, §2) is an algorithm with a hash `H` in any monad,
 not succinct: an idealized proof (`IdealProof`) is the root's proof with the level-0 word of
-every commitment root and the frames its decoder reads (decision E2E-5). It checks the root statement's proof with the Flock-blind verifier V°
+every node's stack commitment and the frames its decoder reads, both by node (decisions E2E-5,
+E2E-8). It checks the root statement's proof with the Flock-blind verifier V°
 (`Verifier.verifyBlindWith`) and the outer checks, then closes the set of nodes under the
-children decoded from every candidate the committed words allow: for every node, the word under
-its stack root has that root, and every candidate satisfying the leanISA relation without Flock
-(`M3HoldsBlind`) is an execution under the Flock-blind semantics (`haltingRunB blakeFree`) whose
-`BLAKE2S` rows pass the precheck and the table check (`tableOKWith`); its decoded children are
-nodes. The closure runs in `fuel` steps. V_I decodes a candidate's memory with the deployed
-guest's decoder at the semantics of the candidate's own table (decision E2E-3) and at the frames
-the idealized proof names for the node's stack root (`End.decodeAt (tableSem rows) (ip.frames r)`,
-decision E2E-5: a call's named frame when its callee's code holds there, else the first such
-frame), which with no frame named is `End.decode` at the deployed semantics, so the end theorem
-is about the deployed guest (`prog := guest`).
+children decoded from every candidate the committed words allow: for every node, the word the
+idealized proof gives the node has the node's stack root, and every candidate satisfying the
+leanISA relation without Flock (`M3HoldsBlind`) is an execution under the Flock-blind semantics
+(`haltingRunB blakeFree`) whose `BLAKE2S` rows pass the precheck and the table check
+(`tableOKWith`); its decoded children are nodes. The closure runs in `fuel` steps. V_I decodes a
+candidate's memory with the deployed guest's decoder at the semantics of the candidate's own
+table (decision E2E-3) and at the frames the idealized proof names for the node
+(`End.decodeAt (tableSem rows) (ip.frames ν)`, decision E2E-5: a call's named frame when its
+callee's code holds there, else the first such frame), which with no frame named is `End.decode`
+at the deployed semantics, so the end theorem is about the deployed guest (`prog := guest`).
 
 **The game** (`game`, §3, with decision E2E-1 of the design's §7): one random oracle
 `H : Bytes → Digest`, lazily sampled over the ordered log of its fresh queries (`Rom.loggedRO`),
@@ -165,23 +166,25 @@ theorem _root_.LeanVM.Node.DeferredClaim.bytecodeHolds_of_holds {bytecode : List
     {c : DeferredClaim} (h : c.Holds bytecode) : c.BytecodeHolds bytecode :=
   ⟨h.1, h.2.1, h.2.2.1⟩
 
-/-- **An idealized proof**: the root's proof, the level-0 word of every commitment root, by its
-two scalars, and the frames the decoder reads (decision E2E-5). -/
+/-- A node of V_I: a statement digest and a proof. -/
+abbrev Node : Type := Digest × Proof
+
+/-- **An idealized proof**: the root's proof, the level-0 word of every node's stack commitment,
+and the frames the decoder reads, both by node `ν = (pi, π)` (decisions E2E-5, E2E-8). -/
 structure IdealProof where
   /-- The root statement's proof. -/
   proof : Proof
-  /-- The level-0 words, by root. -/
-  words : List ((E × E) × Word)
-  /-- The frames V_I's decoder reads a candidate's located calls at, by the node's stack root, the
-  callee and its argument words (`End.decodeAt`: used when the callee's code holds there). -/
-  frames : E × E → String → List E → Option ℕ
+  /-- The level-0 words of the nodes' stacks, by node (E2E-8). -/
+  words : List (Node × Word)
+  /-- The frames V_I's decoder reads a candidate's located calls at, by node (E2E-8), the callee
+  and its argument words (`End.decodeAt`: used when the callee's code holds there). -/
+  frames : Node → String → List E → Option ℕ
 
-/-- The word an idealized proof gives a root. -/
-def IdealProof.word (ip : IdealProof) (r : E × E) : Option Word :=
-  (ip.words.find? (·.1 = r)).map (·.2)
-
-/-- A node of V_I: a statement digest and a proof. -/
-abbrev Node : Type := Digest × Proof
+open Classical in
+/-- The word an idealized proof gives a node (the first listed for it; `Proof` has no decidable
+equality, so the lookup decides node equality classically, as the closure's `ν ∈ done`). -/
+noncomputable def IdealProof.word (ip : IdealProof) (ν : Node) : Option Word :=
+  (ip.words.find? (·.1 = ν)).map (·.2)
 
 section Verify
 
@@ -189,17 +192,17 @@ variable {m : Type → Type} [Monad m] (H : Bytes → m Digest) (prog : Program)
   (ip : IdealProof)
 
 open Classical in
-/-- **One node of V_I**: its announced sizes and stack root; the word `ip` gives that root, well
+/-- **One node of V_I**: its announced sizes and stack root; the word `ip` gives the node, well
 shaped, with that Merkle root; every candidate of it satisfying the relation without Flock
 runs under the Flock-blind semantics and passes the table check; the nodes of the children each
-decodes, at the frames `ip` names for the root. `none` rejects. -/
+decodes, at the frames `ip` names for the node. `none` rejects. -/
 noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
   let (pi, π) := ν
   let some (layout, ρ) := Verifier.announced (bytecodeWords prog) π.stream | pure none
   let some s := sizesOf prog layout | pure none
   let some r := stackRoot π | pure none
   let some (ht, w) := stackShape layout ρ | pure none
-  let some W := ip.word r | pure none
+  let some W := ip.word ν | pure none
   if ¬ WellShaped w W then return none
   let root ← treeRootM H ht W
   if digestScalars root ≠ r then return none
@@ -209,7 +212,7 @@ noncomputable def nodeStep (ν : Node) : m (Option (List Node)) := do
       let some t := candidateRun prog s q | return none
       let rows := t.blakeRows blakeFree
       if !(← tableOKWith H rows) then return none
-      for c in (LeanVM.Guest.End.decodeAt (Guest.Value.tableSem rows) (ip.frames r)
+      for c in (LeanVM.Guest.End.decodeAt (Guest.Value.tableSem rows) (ip.frames ν)
           t.image).witness.children do
         let pc ← statementDigestWith H seed c.statement
         kids := kids ++ [(pc, c.proof)]

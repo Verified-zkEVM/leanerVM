@@ -8,3 +8,4 @@
 | [`t6-completeness.md`](t6-completeness.md) | Package T6-det: the plan and its layers L0–L17, with the status of each. |
 | [`l17-count.md`](l17-count.md) | L17: the count of the node's hashed strings, now a theorem (`nodeLog_count_lt`). |
 | [`w-vis.md`](w-vis.md) | Package W-vis: the bound in the visible queries `Q_v` (§0), by route B (decision E2E-6), with its packages. |
+| [`t6-prob.md`](t6-prob.md) | T6-prob: T6-det's good events bounded over the random oracle (decisions E2E-8, T6-3), with its packages. |

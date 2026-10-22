@@ -36,7 +36,8 @@ bottom up, by a node step (`honestStep`) on the children's outputs:
 6. the entries `(root, word, frames)` of the node and its descendants.
 
 `honestIdeal` is the root's statement and its idealized proof (`idealOf`): the root's proof, and
-the words and frames of the entries, each looked up as the first entry of its root.
+for every node of the output the word and frames of the first entry of its stack root (the
+idealized proof is keyed by node, decision E2E-8).
 `RootsInj` is T6-det's third good event (decision E2E-4): entries with one root are one entry.
 `honestOut ≠ none` holds under the other two good events, L2 and the limits (`honestOut_isSome`,
 `Tree.lean`); T6-det itself only needs the output (`Assemble.lean`).
@@ -209,12 +210,16 @@ decreasing_by
   simp_wf
   omega
 
-/-- **The idealized proof of an output**: its proof, and the words and frames of its entries, each
-root's first entry. -/
+/-- The stack root of a node's proof, `(0, 0)` if it has none: the key of its entry. -/
+def rootKey (ν : E2E.Node) : E × E := (stackRoot ν.2).getD (0, 0)
+
+/-- **The idealized proof of an output**: its proof, and for every node of the output the word and
+frames of the first entry of the node's stack root (E2E-8: by node). -/
 def idealOf (o : HonestOut) : IdealProof where
   proof := o.proof
-  words := o.entries.map fun e ↦ (e.1, e.2.1)
-  frames r := ((o.entries.find? (·.1 = r)).map (·.2.2)).getD fun _ _ ↦ none
+  words := o.subs.map fun p ↦
+    (p.1, ((o.entries.find? (·.1 = rootKey p.1)).map (·.2.1)).getD fun _ ↦ [])
+  frames ν := ((o.entries.find? (·.1 = rootKey ν)).map (·.2.2)).getD fun _ _ ↦ none
 
 /-- **The honest idealized prover**: the root statement and its idealized proof. -/
 noncomputable def honestIdeal (T : HonestTree) : Option (NodeStatement × IdealProof) :=

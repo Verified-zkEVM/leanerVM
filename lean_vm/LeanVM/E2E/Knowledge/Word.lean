@@ -18,8 +18,8 @@ public import LeanVM.Protocol.EndToEnd.Sound.Runs
 T1 (`blind_knowledge_cache'`) gives, for a proof V° accepts with every hash answered by a log
 without failure, a stack satisfying the leanISA relation without Flock among the candidates of
 the word the extractor reads off the log under the stack's root (`ExtractedBlind`). V_I
-(`nodeStep`) enumerates the candidates of the word the idealized proof gives that root. This
-module shows the two are the same candidates.
+(`nodeStep`) enumerates the candidates of the word the idealized proof gives the node, checked to
+have that root. This module shows the two are the same candidates.
 
 * **Runs, split** (`xrun_bind`): the extracted run of a sequence is the run of its first program,
   then of the continuation.

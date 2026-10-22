@@ -44,7 +44,7 @@ node, the log index of its statement digest's entry (T3). At a node `(pi, π)` w
    execution is valid) and checked its table (`tableOK_of_tableOKWith`); so the execution is
    valid under the oracle model of its table (C5, `validExecutionB_oracle`).
 3. T2 (`guest_knowledge_model_at`) at that model and the frames the idealized proof names for the
-   node's stack root (V_I's decoder, E2E-5): the decoded statement's digest is `pi`, and the
+   node (V_I's decoder, E2E-5, E2E-8): the decoded statement's digest is `pi`, and the
    decoded witness holds it (`NodeRelWith (look ℓ)`). Without collisions the decoded seed and
    statement are V_I's (`statement_eq_of_digest`).
 4. A claim held directly is a signature valid under the log, or a DA opening; a claim held by a
@@ -288,7 +288,7 @@ theorem heldDirect_of_node
   have hvm := Guest.Value.validExecutionB_oracle hok hvalid'
   -- T2 at that model.
   obtain ⟨hdig, hrel⟩ :=
-    Guest.End.guest_knowledge_model_at _ (hG _ hok) (ip.frames r) (inputOf ℓ[n].2) t hvm
+    Guest.End.guest_knowledge_model_at _ (hG _ hok) (ip.frames (ℓ[n].2, π)) (inputOf ℓ[n].2) t hvm
   change statementDigestWith (look ℓ) _ _ = some _ at hdig
   change NodeRelWith (look ℓ) _ _ _ _ _ _ _ at hrel
   rw [publicDigest_inputOf] at hdig
@@ -299,12 +299,12 @@ theorem heldDirect_of_node
   rw [← hseq, ← hsteq] at hrel
   change NodeRelWith (look ℓ) Guest.B1.Main.aggSeedD Guest.B1.Main.daPadCell Guest.B1.Main.daPadRow
     (bytecodeWords Guest.guest) seed st
-    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (ℓ[n].2, π))
       t.image).witness at hrel
   have hlen := length_decodeAt_children_lt (Guest.Value.tableSem (t.blakeRows blakeFree))
-    (ip.frames r) t.image
+    (ip.frames (ℓ[n].2, π)) t.image
   generalize
-    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (ℓ[n].2, π))
       t.image).witness = wit
     at hrel hch hlen
   obtain ⟨-, hchild, hX, hS, hDa, hbat⟩ := id hrel

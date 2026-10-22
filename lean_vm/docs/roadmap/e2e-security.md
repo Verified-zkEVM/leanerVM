@@ -450,6 +450,34 @@ the statement, each with its reason.
   - Cost: the DA term is `Q·14/2^192`, with `Q = Q_v + Q_sig` all of the game's hash queries,
     instead of §0's `Q_v·14/2^192`. The extra `Q_sig·14/2^192` is below `2^-120` for
     `Q_sig ≤ 2^68` (`w-vis.md` §6).
+- **E2E-8 (V_I reads a node's word and frames by the node; proposed by T6-prob, decided by the
+  user).** An idealized proof gives words and frames by node `ν = (pi, π)`
+  (`IdealProof.words : List (Node × Word)`, `IdealProof.frames : Node → Frames`); `nodeStep ν`
+  reads `ip.word ν` and `ip.frames ν`, everything else unchanged. Why (`t6-prob.md` §1.5): with
+  root-keyed lookups, G3 (`RootsInj`) cannot be bounded in probability. Two honest nodes whose
+  stacks are one word at one stack height under different sizes share a root, hence the frames V_I
+  reads, while their executions differ; two honest nodes with one stack and different witnesses
+  carry different frames. Both are deterministic for a choice of executions the prover's
+  specification allows, and excluding them needs an analysis of the whole honest memory image (as
+  for E2E-5). Keyed by node, honest subtrees with one node share their proof (sizes, rate, root);
+  the honest prover gives each node the word and frames of its smallest subtree, V_I steps every
+  honest node to that representative's children, and the closure accepts by the size measure: no
+  good event on roots remains (E2E-4's event stays a hypothesis of T6-det only). Soundness: a
+  root-keyed idealized proof is a node-keyed one with the same behaviour, so V_I accepts more and
+  the soundness theorems are strengthened; each word is still checked against its own node's root.
+  (Alternative, not proposed: frames keyed by root and sizes, words by root, keeping a
+  root-collision event.)
+- **T6-3 (T6-prob's formulation).** (a) The trees are a query-bounded generator's outputs, valid
+  and within the limits at every hash agreeing with the oracle's log of its run (`ValidGen`): a
+  fixed tree's validity is an event of the hash, since its signatures and openings are made with
+  the oracle. (b) The honest prover is an oracle computation (`honestProverComp`) whose choices of
+  execution, sizes, stack, frames and fresh claims are made from the answers of logs it keeps
+  (`execOf`, `freshOfLog`), not by `Classical.choice` over types depending on the whole hash,
+  which may depend on the answers at its own grinds and its parent's challenges. (c) The oracle is
+  the lazy `Rom.loggedRO`. (d) The good events become events of the run: a proof-of-work search
+  exhausted (`powPot`, as `romComplete`) and an inner node's matrix weights vanishing (a doom
+  potential, `2^-192` per challenge); V_I's acceptance is asked at every hash agreeing with the
+  final log, so V_I's queries are not counted. Plan and statements: `t6-prob.md`.
 
 ## 8. Status: what is proved
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at

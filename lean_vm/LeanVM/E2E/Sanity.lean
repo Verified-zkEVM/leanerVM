@@ -29,8 +29,9 @@ with `blake2sBytes` (`blakeId`), and the deployed checks are the outer verifier'
 children a reached node's step returns), four hypotheses, each a fact the deployed checks do not
 give:
 
-* `WordsCover`: the idealized proof gives each reached stack root a well-shaped word whose BLAKE2s
-  Merkle root it is (the deployed proof opens the commitment at a few columns only);
+* `WordsCover`: the idealized proof gives each reached node a well-shaped word whose BLAKE2s
+  Merkle root is the node's stack root (the deployed proof opens the commitment at a few columns
+  only);
 * `CandidatesAux`: every candidate V_I follows (a stack within level 0's Johnson radius of the
   word satisfying `M3HoldsBlind`) satisfies Flock's R1CS (`aux`), so the full `M3Holds` (V_I
   follows every candidate in the list, not only the one an extractor would find);
@@ -405,11 +406,11 @@ theorem forIn_bind_yield_id {α γ : Type} (L : List α)
   subst h1
   exact hG k h2
 
-/-- **V_I's step on a node with a head**, with BLAKE2s: when the idealized proof gives the root a
-well-shaped word with that root, and every candidate runs, passes the table check and decodes
+/-- **V_I's step on a node with a head**, with BLAKE2s: when the idealized proof gives the node a
+well-shaped word with its stack root, and every candidate runs, passes the table check and decodes
 children whose proofs satisfy `Good`, the step returns children whose proofs satisfy `Good`. -/
 theorem nodeStep_eq_some {prog : Program} {seed : Digest} {ip : IdealProof} {pi : Digest}
-    {π : Proof} (hd : Head prog π) {W : Word} (hW : ip.word hd.root = some W)
+    {π : Proof} (hd : Head prog π) {W : Word} (hW : ip.word (pi, π) = some W)
     (hws : WellShaped hd.width W)
     (hr : digestScalars (treeRoot blake2sBytes hd.height W) = hd.root)
     (Good : Proof → Prop)
@@ -417,7 +418,7 @@ theorem nodeStep_eq_some {prog : Program} {seed : Digest} {ip : IdealProof} {pi 
       candidateRun prog hd.sizes q = some t ∧
       tableOKWith (m := Id) (fun x ↦ (pure (blake2sBytes x) : Id Digest))
         (t.blakeRows blakeFree) = true ∧
-      ∀ c ∈ (Guest.End.decodeAt (tableSem (t.blakeRows blakeFree)) (ip.frames hd.root)
+      ∀ c ∈ (Guest.End.decodeAt (tableSem (t.blakeRows blakeFree)) (ip.frames (pi, π))
         t.image).witness.children, Good c.proof) :
     ∃ kids, nodeStep (m := Id) (fun x ↦ (pure (blake2sBytes x) : Id Digest)) prog seed ip
       (pi, π) = some kids ∧ ∀ κ ∈ kids, Good κ.2 := by
@@ -469,24 +470,24 @@ inductive Reached (prog : Program) (ip : IdealProof) (root : Node) : Node → Pr
       nodeStep (m := Id) blakeId prog (Node.deployedSeed prog) ip ν = some kids → κ ∈ kids →
       Reached prog ip root κ
 
-/-- **The words cover the reached roots**: the idealized proof gives every reached node's stack
-root a word of the commitment's width whose BLAKE2s Merkle tree, at the commitment's height, has
-that root. -/
+/-- **The words cover the reached nodes**: the idealized proof gives every reached node a word of
+its stack commitment's width whose BLAKE2s Merkle tree, at the commitment's height, has the node's
+stack root. -/
 def WordsCover (prog : Program) (ip : IdealProof) (root : Node) : Prop :=
-  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∃ W, ip.word hd.root = some W ∧
+  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∃ W, ip.word ν = some W ∧
     WellShaped hd.width W ∧ digestScalars (treeRoot blake2sBytes hd.height W) = hd.root
 
 /-- **The reached candidates satisfy Flock's R1CS**: every candidate V_I follows at a reached
 node (`blindCandidates`, the relation without Flock) satisfies the leanISA instance's `aux`, so
 the full relation `M3Holds`. -/
 def CandidatesAux (prog : Program) (ip : IdealProof) (root : Node) : Prop :=
-  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∀ W, ip.word hd.root = some W →
+  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∀ W, ip.word ν = some W →
     ∀ q ∈ blindCandidates prog hd.sizes hd.rate ν.1 W, (leanIsaInstance F₀ prog hd.sizes).aux q
 
 /-- **The reached tables pass the precheck**: no two active non-final `BLAKE2S` rows of a reached
 candidate's run with distinct inputs have equal outputs (a BLAKE2s compression collision). -/
 def TablesPrecheck (prog : Program) (ip : IdealProof) (root : Node) : Prop :=
-  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∀ W, ip.word hd.root = some W →
+  ∀ ν, Reached prog ip root ν → ∀ hd : Head prog ν.2, ∀ W, ip.word ν = some W →
     ∀ q ∈ blindCandidates prog hd.sizes hd.rate ν.1 W, ∀ t, candidateRun prog hd.sizes q = some t →
       Precheck (t.blakeRows blakeFree)
 
@@ -498,7 +499,7 @@ def FuelBounds (prog : Program) (ip : IdealProof) (root : Node) (fuel : ℕ) : P
       (kids.map sz).sum + 1 ≤ sz ν
 
 /-- **A reached node with a head steps**, with children with heads: the word the idealized proof
-gives its root (`WordsCover`); every candidate satisfies the full relation (`CandidatesAux`), so
+gives it (`WordsCover`); every candidate satisfies the full relation (`CandidatesAux`), so
 runs a deployed execution (`candidateRun_of_m3Holds`) whose rows pass the table check
 (`TablesPrecheck`, `tableOKWith_run`) and whose decoded children have heads (`head_of_child`). -/
 theorem step_of_reached {ip : IdealProof} {root : Node}
@@ -557,7 +558,7 @@ theorem idealVerify_of_steps {prog : Program} {s : Node.NodeStatement} {ip : Ide
 
 /-- **T7′ (sanity): V_I with BLAKE2s accepts what the deployed aggregation accepts.** The outer
 verifier accepts the root statement `s` and the idealized proof's root proof
-(`Node.verifyAggregate`); the idealized proof's words cover the commitment roots of the nodes
+(`Node.verifyAggregate`); the idealized proof's words cover the stack commitments of the nodes
 V_I reaches (`WordsCover`); every candidate V_I follows there satisfies Flock's R1CS
 (`CandidatesAux`) and its table passes the precheck (`TablesPrecheck`); the fuel suffices
 (`FuelBounds`). Then V_I, run in `Id` with BLAKE2s, accepts, whatever frames the idealized proof

@@ -104,18 +104,18 @@ theorem heldDirectSub_of_node {ℓK : Log}
   have hvmK := Guest.Value.validExecutionB_oracle hokK hvalid'
   -- T2 at both models.
   obtain ⟨hdig, hrel⟩ :=
-    Guest.End.guest_knowledge_model_at _ (hG _ hok) (ip.frames r) (inputOf ℓ[n].2) t hvm
+    Guest.End.guest_knowledge_model_at _ (hG _ hok) (ip.frames (ℓ[n].2, π)) (inputOf ℓ[n].2) t hvm
   obtain ⟨-, hrelK⟩ :=
-    Guest.End.guest_knowledge_model_at _ (hGK _ hokK) (ip.frames r) (inputOf ℓ[n].2) t hvmK
+    Guest.End.guest_knowledge_model_at _ (hGK _ hokK) (ip.frames (ℓ[n].2, π)) (inputOf ℓ[n].2) t hvmK
   change statementDigestWith (look ℓ) _ _ = some _ at hdig
   change NodeRelWith (look ℓ) _ _ _ _ _ _ _ at hrel
   change NodeRelWith (look ℓK) _ _ _ _
     (Guest.End.decodeAt (Guest.Value.HashModel.oracle (t.blakeRows blakeFree) ℓ hok).sem
-      (ip.frames r) t.image).seed
+      (ip.frames (ℓ[n].2, π)) t.image).seed
     (Guest.End.decodeAt (Guest.Value.HashModel.oracle (t.blakeRows blakeFree) ℓ hok).sem
-      (ip.frames r) t.image).statement
+      (ip.frames (ℓ[n].2, π)) t.image).statement
     (Guest.End.decodeAt (Guest.Value.HashModel.oracle (t.blakeRows blakeFree) ℓ hok).sem
-      (ip.frames r) t.image).witness at hrelK
+      (ip.frames (ℓ[n].2, π)) t.image).witness at hrelK
   rw [publicDigest_inputOf] at hdig
   -- The decoded statement is the node's.
   have hsh0 := hrel.1
@@ -124,16 +124,16 @@ theorem heldDirectSub_of_node {ℓK : Log}
   rw [← hseq, ← hsteq] at hrel hrelK
   change NodeRelWith (look ℓ) Guest.B1.Main.aggSeedD Guest.B1.Main.daPadCell Guest.B1.Main.daPadRow
     (bytecodeWords Guest.guest) seed st
-    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (ℓ[n].2, π))
       t.image).witness at hrel
   change NodeRelWith (look ℓK) Guest.B1.Main.aggSeedD Guest.B1.Main.daPadCell
     Guest.B1.Main.daPadRow (bytecodeWords Guest.guest) seed st
-    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (ℓ[n].2, π))
       t.image).witness at hrelK
   have hlen := length_decodeAt_children_lt (Guest.Value.tableSem (t.blakeRows blakeFree))
-    (ip.frames r) t.image
+    (ip.frames (ℓ[n].2, π)) t.image
   generalize
-    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames r)
+    (Guest.End.decodeAt (Guest.Value.tableSem (t.blakeRows blakeFree)) (ip.frames (ℓ[n].2, π))
       t.image).witness = wit
     at hrel hrelK hch hlen
   obtain ⟨-, hchild, -, -, hDa, hbat⟩ := id hrel
