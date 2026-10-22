@@ -379,6 +379,63 @@ the statement, each with its reason.
   verifier accepts with BLAKE2s, hence the head `nodeStep` reads. The table check's enumeration
   is finite without a hypothesis: a chain's non-final rows carry distinct counters, and their
   metadata cells are among the at most `2^32` memory words.
+- **E2E-6 (W-vis: no visible log; T3 restricted to non-hidden entries).** Two changes to §3,
+  both for W-vis. The plan is `w-vis.md`.
+
+  *§3 is false at T3.* T4 on the visible log needs T3's event `Pred` to be rare on `vis_final`.
+  It is not.
+  - `Pred o ℓ` (`Termination.lean`) predicts `eBytes (challengeOf u)`. `challengeOf` reads digest
+    words `0..5`, the bytes `0..23` (`Verifier.lean:473`).
+  - Both schemes keep `truncateHash`, the low 128 bits of the little-endian `digestBits`, which
+    are the bytes `0..15`. So every truncated value a signature or public key reveals gives limbs
+    0 and 1 of the challenge of a hidden entry's answer; only limb 2 (64 bits) is unknown.
+  - Attack:
+    1. Request a leanXMSS signature σ2 whose authentication path contains a node `N` of the
+       path of a later signature σ1. `N`'s entry (`P‖A‖left‖right`, from key generation) is
+       hidden, its bytes `0..15` known.
+    2. Make a visible query on a statement input carrying, at the guest's offset `o = 1296`,
+       `N`'s two known limbs and a guess of the third.
+    3. Make `N`'s entry visible: request σ1 (re-verification makes its path visible) or
+       recompute the path.
+  - In `vis_final` the guessing input precedes `N`'s entry, so `Pred o vis_final` holds with
+    probability `2^-64` per guess, about one for `Q_v = 2^64`.
+  - Re-verification at signing does not prevent it: σ2 is returned before σ1 is requested, and
+    `N`'s entry becomes visible only with σ1.
+  - §3's `Bad` (a revealed entry being a `BadEntry`) does not cover T3. §3's stopped potential
+    needs "appending a non-record entry leaves the potential unchanged", which `predPot` does not
+    satisfy: its event is about every entry's answer.
+
+  The fix: `PredS keys o ℓ`, `Pred` with the predictor and the predicted entry both outside the
+  hidden class `Hid keys` (`Vis/Shape.lean`: an honest key's `P‖A`-prefixed input, or a
+  key-generation derivation). Its potential pays `(cnt+1)/2^192` at a non-hidden fresh query and
+  nothing at a hidden one, so T3's term is `Q_v (Q_v + 1)/2^193`. T3 is re-proved for `PredS`
+  (`rank_lt_of_child_vis`): the parent's statement input and the last batching challenge are
+  chain inputs whose first 32 bytes are earlier answers, outside `InPfx keys` unless the format
+  event `FormatT` holds.
+
+  *Route B replaces §3's visible log and its events.*
+  - The bad events stay on the oracle's full log, in sampling order, as in E2E-1.
+  - Queries are charged by the class of their input. Non-hidden fresh queries, at most
+    `qH + budget = Q_v` of them, pay the existing rates. Hidden fresh queries, which include every
+    signer and key-generation query, pay only the failure rates (`~Q/2^256`).
+  - Every decoder (T1's, W6's, E5's) recognises a record by its first 32 bytes, an earlier
+    record's answer. A hidden input is therefore a record only if a record answered a hidden
+    prefix: the format event `FormatI`, of rate `(n·2^64 + 1)/2^256` per query. §3's stopped
+    potential `Φ·1[¬FormatI]` carries this.
+  - Not needed any more: re-verification, reveals, LateReveal, Hit, HiddenPredict,
+    HiddenCollide, GuessS, and the per-scheme deferred-sampling hops.
+  - The extractor reads only V_I's own trace (`gameRec`), a sub-log of `vis_final`: T4 runs T2 at
+    the trace's oracle model, DA openings included, and the full log serves only the bad events.
+    This is stronger than §0's statement and meets the O-SNARK concern of §3.
+  - Why: route A (§3 with this fix) needs the visible log, reveals and per-scheme
+    deferred-sampling hops, about 10–17k lines, for a weaker extraction statement. Route B is
+    about 6–10k lines including T5's per-key hybrid.
+  - The forgery term is §0's per-key form, through a hybrid over keys with the other keys
+    self-simulated (`w-vis.md`, P7).
+  - What does not follow §0's constants: the failures of hidden queries add
+    `5 Q_sig (2 Q_v + Q_sig)/2^256` (§3 ignored hidden–hidden collisions; `Fail` counts them),
+    and each reduction forwards the other keys' two derivations. `w-vis.md` §6 lists every
+    difference.
 
 ## 8. Status: what is proved
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at
