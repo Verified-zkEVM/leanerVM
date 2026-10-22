@@ -9,10 +9,12 @@ import LeanerVMTests.Parameters.CleanField
 import LeanerVMTests.Parameters.Field
 import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
+import LeanerVMTests.Parameters.Whir
 import LeanerVMTests.Protocol.AmbientStacking
 import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.Blake2sCircuit
+import LeanerVMTests.Protocol.Blake2sHash
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
 import LeanerVMTests.Protocol.ClaimWeights
@@ -30,6 +32,7 @@ import LeanerVMTests.Protocol.GrandProductSecurity
 import LeanerVMTests.Protocol.LeanIsa
 import LeanerVMTests.Protocol.LeanIsaComplete
 import LeanerVMTests.Protocol.LeanIsaSound
+import LeanerVMTests.Protocol.Merkle
 import LeanerVMTests.Protocol.Multilinear
 import LeanerVMTests.Protocol.NovelBasis
 import LeanerVMTests.Protocol.NovelBasisNtt
