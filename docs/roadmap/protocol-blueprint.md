@@ -1219,7 +1219,7 @@ def toBatchOpening (depth) (positions : List ℕ) (leaves siblings : List Digest
     Option (BatchOpening Digest (Skeleton.perfect depth))    -- the octopus as VCVio's path-pruned opening
 theorem merkle_fits (H : List UInt8 → Digest) :             -- every hash; a reading, kept as a test
     merkleVerifyWith (m := Id) H root depth rowWords leafWords queries paths = some rows ↔
-      (one stored row per distinct query, each `rowWords` wide, `rows` their leaf images in query order) ∧
+      (one stored row per distinct query, each `rowWords ≤ leafWords` wide, `rows` their leaf images in query order) ∧
       ∃ o, toBatchOpening depth (distinct queries, sorted) (H of each leaf image) paths.siblings = some o ∧
         getPutativeBatchRootWithHash (fun l r ↦ H (bytes l ++ bytes r)) o.values o.proof = root
 ```

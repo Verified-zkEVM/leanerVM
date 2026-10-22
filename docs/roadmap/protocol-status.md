@@ -123,12 +123,16 @@ adaptor: the leanISA instance with the deployed stack layout (`Protocol/LeanIsa.
 (`LeanIsa/Sound.lean`: `satisfiedBy_witnessOf`, which discharges `SatisfiedBy`'s BLAKE2s validity
 from the Flock region by `blake2sRowsValid_witnessOf`) and its completeness
 (`LeanIsa/Complete.lean`: `m3Holds_stackOf`, `witnessOf_stackOf`), on the bus read as one bus and
-the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). *On
-merge* of #67: the Merkle trees over BLAKE2s with completeness and binding as a computed collision
-(`Protocol/Merkle.lean`, generic in `ToArkLib/Merkle.lean`), the byte hasher and the digest
-encoding (`Protocol/Blake2sHash.lean`), and the WHIR parameters (`Parameters/Whir.lean`). Nothing
-else is built: the other generic components, the WHIR opening, the compiled verifier and the base
-theorems.
+the relations' clauses as equivalences (`LeanIsa/Bus.lean`, `LeanIsa/Relation.lean`). The byte
+hasher and the digest encoding (`Protocol/Blake2sHash.lean`) and the WHIR parameters
+(`Parameters/Whir.lean`) are on `main` (#67). On the branch `feat/protocol-merkle-octopus`, the
+Merkle trees over a byte hash (`Protocol/Merkle.lean`, generic in `ToVCVio/Merkle.lean`): the root
+(`merkleRootWith`, `merkleRoot`), a phase's pruned opening as the verifier checks it
+(`merkleVerifyWith`, `merkleVerify`) and the prover builds it (`merkleOpenWith`, `merkleOpen`),
+completeness (`merkleVerifyWith_merkleOpenWith`), the node query model (`nodeModel`), and the
+reading as VCVio's batch opening for every hash (`toBatchOpening`, `merkle_fits`); they replace the
+single-path check of #67 and its binding as a computed collision. Nothing else is built: the other
+generic components, the WHIR opening, the compiled verifier and the base theorems.
 
 ## What the built work owes the blueprint
 
@@ -642,11 +646,23 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
     follows through the stack bound `leanIsaμ ≤ 28`, not from `logMem ≤ 32` alone). The base
     theorems apply `satisfiedBy_witnessOf` inside their event, so no knowledge transport along it
     is owed.
-- **The Merkle trees (Layer 11)** fix BLAKE2s as the hash, and `merkleVerify` checks one path
-  (`Protocol/Merkle.lean`, over the generic tree of `ToArkLib/Merkle.lean`), with binding as a
-  computed collision. Owed by decision 32: the hash as a parameter (`merkleRootWith`,
-  `merkleVerifyWith`), `merkleVerify` as a phase's pruned opening, the generic tree moved to
-  `ToVCVio/Merkle.lean` beside `toBatchOpening`, `nodeModel`, and `merkle_fits`.
+- **The Merkle trees (Layer 11)** are the Rust's over a byte hash, read as VCVio's (decision 32),
+  on the branch `feat/protocol-merkle-octopus`. `merkleVerifyWith` is a phase's pruned opening in
+  any monad, calling the hash once per stored row and once per rebuilt node, in the Rust's order
+  (nine calls for the octopus of the Rust's test). Where it differs from the sketch:
+  - `merkle_fits` reads the result through `Id.run`, and its row conjunct includes
+    `rowWords ≤ leafWords`, without which it is false (a four-word row in three-word leaves has
+    itself as its leaf image); the blueprint's sketch now says so.
+  - The Rust's checks that the leaf count is a power of two and that some query is made are
+    subsumed: the tree has `2^depth` leaves, and the walk over an opening of no query has no node
+    to read at the top. The Rust also returns each query's full path, which is dropped.
+  - The single-path check, its completeness and its binding as a computed collision are deleted;
+    binding is VCVio's extraction.
+  - Owed: extraction with hashed leaves (`ToVCVio/MerkleLeaves.lean`), a pull request of its own;
+    that `toBatchOpening`'s reading selects exactly the queried positions, in VCVio's leaf order,
+    with their leaf digests as values (tested, not proved), which the Merkle compilation needs to
+    map VCVio's extracted leaves back to rows; and, in Layer 12, that `merkleVerifyWith` run with
+    the hash as a random-oracle query answered by BLAKE2s is `merkleVerify`.
 - **The honest prover, compiled** (*on merge* of the stateful-provers branch). No target theorem
   advances and no statement changes: `leanVmFastProver` (`Protocol/HonestProver.lean`) is an
   honest-prover refinement, a prover whose run is `leanVmProver (leanVmPhases I h)`'s
@@ -664,8 +680,8 @@ pinned sources is [archived](../reviews/protocol-spine-revision.md).
 ## What can start now
 
 The spine's slots are on `main`, so the phases are written against them. These can start: the
-WHIR opening and the Merkle trees with the WHIR parameters (Layer 11), and the charged invariant
-and, after the octopus the Merkle trees owe, Merkle binding by log replay (Layer 12).
+WHIR opening with the WHIR parameters (Layer 11), and the charged invariant and Merkle binding by
+log replay (Layer 12). The Merkle trees are on the branch `feat/protocol-merkle-octopus`.
 
 *On merge* of #103, the first slice of the WHIR opening is on `main`: the novel basis, the
 encoder as a linear injection with its distance, and the column weights with their `κ`-step
