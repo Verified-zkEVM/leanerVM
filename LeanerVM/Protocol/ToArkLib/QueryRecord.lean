@@ -26,8 +26,10 @@ interleaved-code opening reads the rows of the previous level's word at the samp
 records the folded symbols as claims, and the previous word is then of no further use.
 
 Completeness (`queryRecordComplete`): on the input relation the check passes and `out` of the
-answer carries the relation into the output relation, read on the oracles handed on. Knowledge
-soundness is the consumer's (it depends on what the answer is allowed to be).
+answer carries the relation into the output relation, read on the oracles handed on. Security
+(`queryRecordSecurity`, at the empty error, with the extractor that keeps the witness): a statement
+that passes the check into the output relation is in the input relation; what the answer may be
+is the consumer's to show.
 -/
 
 namespace LeanerVM.Protocol
@@ -171,6 +173,41 @@ def queryRecordComplete
     Complete (queryRecord OStmt keep query check out) relIn relOut where
   guarded := queryRecordGuarded OStmt keep query check out
   complete := queryRecord_complete OStmt keep query check out h
+
+/-! ## Security -/
+
+section Security
+
+variable (h : ∀ s o w, check s (answerOf OStmt o (query s)) = true →
+    ((out s (answerOf OStmt o (query s)), fun i ↦ o (keep i)), w) ∈ relOut →
+      ((s, o), w) ∈ relIn)
+  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+
+/-- The knowledge state function of the query-record component: the input relation, at the only
+round. -/
+def queryRecordStateFunction :
+    (queryRecordVerifier OStmt keep query check out).toVerifier.KnowledgeStateFunction init impl
+      relIn relOut (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
+  toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun m ↦ Fin.elim0 m
+  toFun_full := fun stmt tr w hpos ↦
+    have hg := Verifier.GuardedForm.of_probEvent_pos
+      (queryRecordGuarded OStmt keep query check out) init impl stmt tr _ hpos
+    h stmt.1 stmt.2 w hg.1 hg.2
+
+/-- The security half of the query-record component, at the empty error, with the extractor that
+keeps the witness: a statement that passes the check into the output relation is in the input
+relation. -/
+def queryRecordSecurity :
+    Security (queryRecord OStmt keep query check out) relIn relOut (fun i ↦ Fin.elim0 i.1) where
+  guarded := queryRecordGuarded OStmt keep query check out
+  witMid := fun _ ↦ W
+  extractor := keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]
+  kSF := queryRecordStateFunction OStmt keep query check out h
+  rbr := fun _ _ _ i ↦ Fin.elim0 i.1
+
+end Security
 
 end Component
 

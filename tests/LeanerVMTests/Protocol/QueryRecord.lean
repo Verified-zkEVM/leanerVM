@@ -137,4 +137,23 @@ abbrev dropGuarded :=
 #guard (dropGuarded.out (1, beside) (fun i ↦ Fin.elim0 i)).1 = 71
 #guard (dropGuarded.out (1, beside) (fun i ↦ Fin.elim0 i)).2 0 1 = 8
 
+/-! ## Security -/
+
+/-- Security, applied: a statement whose recorded answer is nonzero has a nonzero entry at the
+position. -/
+def toySecurity :
+    Security toyRecord {p | p.1.2 0 p.1.1 ≠ 0} {p | p.1.1 / 10 ≠ 0} (fun i ↦ Fin.elim0 i.1) :=
+  queryRecordSecurity OneTab keepOne toyQuery toyCheck toyOut fun s o _ _ hout ↦ by
+    have hs := s.isLt
+    have h : (10 * num (answerOf OneTab o (toyQuery s)) + s.val) / 10 ≠ 0 := hout
+    rw [num_answerOf] at h
+    show o 0 s ≠ 0
+    omega
+
+/-- The send-oracle-beside component's security, applied: with the trivial relations. -/
+def toyBesideSecurity :
+    Security toyBeside (Set.univ : Set ((Fin 4 × ∀ i, OneTab i) × Unit))
+      (Set.univ : Set ((Fin 4 × ∀ i, besideOracles OneTab Tab i) × Unit)) (sayOError Tab) :=
+  sendOracleBesideSecurity OneTab Tab toyMessage _root_.id fun _ _ _ _ _ ↦ trivial
+
 end LeanerVMTests.Protocol

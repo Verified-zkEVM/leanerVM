@@ -80,6 +80,15 @@ theorem natCard_subtype_eq_card_filter {α : Type} [Fintype α] (p : α → Prop
     Nat.card {a // p a} = (Finset.univ.filter p).card := by
   rw [Nat.card_eq_fintype_card, Fintype.card_subtype]
 
+/-- A smaller predicate has fewer elements. -/
+theorem natCard_subtype_mono {α : Type*} [Finite α] {p q : α → Prop} (h : ∀ x, p x → q x) :
+    Nat.card {x // p x} ≤ Nat.card {x // q x} :=
+  Nat.card_le_card_of_injective (Subtype.map id h) (by
+    intro a b hab
+    apply Subtype.ext
+    have h2 := congrArg Subtype.val hab
+    exact h2)
+
 namespace Component
 
 /-! ## The four pieces -/

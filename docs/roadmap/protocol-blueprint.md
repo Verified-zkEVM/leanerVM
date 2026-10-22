@@ -1168,7 +1168,8 @@ theorem encode_columnWeight (x) (f) : encode κ R f x = (columnWeight κ R x).pa
 -- The opening as an IOPP (Protocol B.6), generic over the code and the field
 def whirOpen (L : Ladder) : OracleReduction … (StmtIn := Weight μ × E) (OStmtIn := codeword oracles) …   -- one batched claim
 theorem whirOpen_perfectCompleteness …
-theorem whirOpen_rbrSoundness (mca : McaJohnson a) : … (whirError params)   -- thm:rbr, per challenge, a function of η
+theorem whirOpen_rbrSoundness (L : Ladder) (ps : L.Pars) : Security (whirOpen L) (relOpen …) univ (openErr L ps)
+  -- thm:rbr for the list relation, per challenge; `Par` per level: a threshold, `ListBound`, `McaBound` (counting form)
 /-- Mutual correlated agreement up to the Johnson bound, with its constant `a` a parameter. -/
 structure McaJohnson (F) [Field F] [Fintype F] [SampleableType F] (a : ℕ → ℕ → ℝ → ℝ) where
   le : ∀ n (domain : Fin n ↪ F) D η, 1 ≤ D → D ≤ n - 2 → 0 < η → √(D / n) + η ≤ 1 →
@@ -1210,9 +1211,18 @@ Annex B's `a` of `thm:mca-johnson`. With `ρ = D/n`, the reduced rate (`whir_con
 `a = (2(θ + ½)^5 + 3(θ + ½)γρ)/(3ρ^{3/2})·n + (θ + ½)/√ρ`. ArkLib proves the bound
 (`ReedSolomon.mcaError_affineLine_johnson_le`) with its own exception count, and proves that count
 at most `a` (`johnsonExceptionCount_le_comparisonEstimate`). Their composition is `mcaJohnson_annexB`, over
-every finite field, so `whirOpen_rbrSoundness` at leanVM's parameters takes no hypothesis;
-`card_E` turns its bound into numbers. The admitted `rs_mcaError_le_in_johnson_range` is not
-consumed.
+every finite field, so once the adaptor below is written `whirOpen_rbrSoundness` at leanVM's
+parameters takes no hypothesis; `card_E` turns its bound into numbers. The admitted
+`rs_mcaError_le_in_johnson_range` is not consumed.
+
+The soundness theorem takes, per level, a record `Par`: an agreement threshold `a` (the radius
+`γ` as `a = (1 − γ)·2^{κ+R}`, at most the number of positions), a list bound `L` and a bound `N`
+on the bad folds, with `ListBound` and `McaBound` the two interfaces in counting form on
+interleaved words; they are inhabited at exact agreement and, for the list bound, at unique
+decoding. `McaBound`'s `N` is the `a` of `McaJohnson` (Annex B's constant), and `McaJohnson`
+itself stays the probabilistic statement. The adaptor from `mcaJohnson_annexB` and a Johnson list
+bound to `ListBound` and `McaBound` is the remaining piece of Layer 11. The out-of-domain point is
+`κ` challenges at `C(L', 2)/|E|` each, whose sum is the pinned entry.
 
 ArkLib's line is `u₀ + x·u₁`, while Annex B folds `(1 − z)·u₀ + z·u₁`.
 `mcaError_foldLine_eq_affineLine` equates the two over any field: the substitution

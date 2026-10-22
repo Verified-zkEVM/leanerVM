@@ -21,7 +21,8 @@ check of a sumcheck, which compares the running claim with the product of the we
 table at the challenge point.
 
 Completeness (`passCheckComplete`): on the input relation the check passes and `f` carries the
-relation into the output relation. Knowledge soundness is the consumer's.
+relation into the output relation. Security (`passCheckSecurity`, at the empty error): a statement
+that passes the check into the output relation is in the input relation.
 -/
 
 namespace LeanerVM.Protocol
@@ -97,6 +98,39 @@ def passCheckComplete
     Complete (passCheck (W := W) OStmt check f) relIn relOut where
   guarded := passCheckGuarded OStmt check f
   complete := passCheck_complete OStmt check f h
+
+/-! ## Security -/
+
+section Security
+
+variable (h : ∀ s o w, check s = true → ((f s, o), w) ∈ relOut → ((s, o), w) ∈ relIn)
+  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+
+/-- The knowledge state function of the pass-check component: the input relation, at the only
+round. -/
+def passCheckStateFunction :
+    (passCheckVerifier OStmt check f).toVerifier.KnowledgeStateFunction init impl relIn relOut
+      (keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]) where
+  toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun m ↦ Fin.elim0 m
+  toFun_full := fun stmt tr w hpos ↦
+    have hg := Verifier.GuardedForm.of_probEvent_pos (passCheckGuarded OStmt check f)
+      init impl stmt tr _ hpos
+    h stmt.1 stmt.2 w hg.1 hg.2
+
+/-- The security half of the pass-check component, at the empty error, with the extractor that
+keeps the witness: a statement that passes the check into the output relation is in the input
+relation. -/
+def passCheckSecurity :
+    Security (passCheck (W := W) OStmt check f) relIn relOut (fun i ↦ Fin.elim0 i.1) where
+  guarded := passCheckGuarded OStmt check f
+  witMid := fun _ ↦ W
+  extractor := keepExtractor (StmtIn × ∀ i, OStmt i) W !p[]
+  kSF := passCheckStateFunction OStmt check f h
+  rbr := fun _ _ _ i ↦ Fin.elim0 i.1
+
+end Security
 
 end Component
 

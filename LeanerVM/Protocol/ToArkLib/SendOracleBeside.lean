@@ -24,13 +24,15 @@ an interleaved-code opening commits the next level's word and then reads the pre
 sampled positions (`Component.queryRecord`, which hands on the new word only).
 
 Completeness (`sendOracleBesideComplete`): on the input relation the output relation holds of
-the output statement, the oracles beside the honest message, and the witness. Soundness is the
-consumer's: it depends on what the sent message may be.
+the output statement, the oracles beside the honest message, and the witness. Security
+(`sendOracleBesideSecurity`): no challenge, no error, whenever the output relation on the oracles
+beside any message implies the input relation.
 -/
 
 namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec ProtocolSpec
+open scoped NNReal
 
 @[expose] public section
 
@@ -157,6 +159,49 @@ def sendOracleBesideComplete
     Complete (sendOracleBeside OStmt M honest out) relIn relOut where
   guarded := (sendBesideVerifierPure OStmt M out).toGuardedForm
   complete := sendOracleBeside_complete OStmt M honest out h
+
+/-! ## Security -/
+
+section Security
+
+/-- A message queried through its own interface has no challenge. -/
+instance instIsEmptySayOChallengeIdx : IsEmpty (sayO M).ChallengeIdx :=
+  ⟨fun i ↦ by
+    have h := i.2
+    change Direction.P_to_V = Direction.V_to_P at h
+    cases h⟩
+
+/-- The error of a message: none. -/
+def sayOError : (sayO M).ChallengeIdx → ℝ≥0 := fun i ↦ (IsEmpty.false i).elim
+
+variable (h : ∀ s o w m, ((out s, besideData OStmt M o m), w) ∈ relOut → ((s, o), w) ∈ relIn)
+  {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+
+/-- The knowledge state function of the send-oracle-beside component: the input relation, before
+and after the message. -/
+def sendOracleBesideStateFunction :
+    (sendBesideVerifier OStmt M out).toVerifier.KnowledgeStateFunction init impl relIn relOut
+      (keepExtractor (S × ∀ i, OStmt i) W (sayO M)) where
+  toFun := fun _ stmt _ w ↦ (stmt, w) ∈ relIn
+  toFun_empty := fun _ _ ↦ Iff.rfl
+  toFun_next := fun _ _ _ _ _ _ hw ↦ hw
+  toFun_full := fun stmt tr w hpos ↦
+    have hv := Verifier.GuardedForm.of_probEvent_pos
+      (sendBesideVerifierPure OStmt M out).toGuardedForm init impl stmt tr _ hpos
+    h stmt.1 stmt.2 w (tr ⟨0, Nat.zero_lt_one⟩) hv.2
+
+/-- The security half of the send-oracle-beside component: no challenge, no error, whenever
+whatever message is sent, the output relation on the oracles beside it implies the input
+relation. -/
+def sendOracleBesideSecurity :
+    Security (sendOracleBeside OStmt M honest out) relIn relOut (sayOError M) where
+  guarded := (sendBesideVerifierPure OStmt M out).toGuardedForm
+  witMid := fun _ ↦ W
+  extractor := keepExtractor (S × ∀ i, OStmt i) W (sayO M)
+  kSF := sendOracleBesideStateFunction OStmt M out h
+  rbr := fun _ _ _ i ↦ (IsEmpty.false i).elim
+
+end Security
 
 end Component
 
