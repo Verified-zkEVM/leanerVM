@@ -65,8 +65,7 @@ theorem mcaJohnson_comparisonEstimate (F : Type) [Field F] [Fintype F] [Sampleab
   le n domain D η hD hDn hη ha := by
     have ha' : johnsonAgreement n D η ≤ 1 := ha
     have h := mcaError_affineLine_johnson_le domain hD hDn hη ha'
-    rw [show 1 - √((D : ℝ) / n) - η = 1 - johnsonAgreement n D η by
-      simp only [johnsonAgreement, johnsonRhoMinus]; ring]
+    rw [sub_sub]
     refine h.trans (min_le_right _ _ |>.trans (ENNReal.ofReal_le_ofReal ?_))
     exact div_le_div_of_nonneg_right
       (johnsonExceptionCount_le_comparisonEstimate hD hDn hη ha' (Nat.le_ceil _))
@@ -101,28 +100,11 @@ private theorem isMCA_foldLine_iff_shear {ι F A : Type} [Fintype ι] [Field F] 
     simp only [Fin.sum_univ_two, FoldLineGenerator, AffineLineGenerator, shear, Equiv.coe_fn_mk,
       Matrix.cons_val_zero, Matrix.cons_val_one, Pi.sub_apply, sub_smul, one_smul, smul_sub]
     abel
-  have hrows : ∀ T : Finset ι,
-      (∃ j, projectedWord (U j) T ∉ projectedCodeSubmod MC T) ↔
-        ∃ j, projectedWord (shear U j) T ∉ projectedCodeSubmod MC T := by
-    intro T
-    rw [← not_forall_not, ← not_forall_not]
-    simp only [not_not]
-    refine not_congr ?_
-    rw [Fin.forall_fin_two, Fin.forall_fin_two]
-    simp only [shear, Equiv.coe_fn_mk, Matrix.cons_val_zero, Matrix.cons_val_one]
-    have hsub : projectedWord (U 1 - U 0) T = projectedWord (U 1) T - projectedWord (U 0) T :=
-      rfl
-    rw [hsub]
-    constructor
-    · rintro ⟨h0, h1⟩
-      exact ⟨h0, Submodule.sub_mem _ h1 h0⟩
-    · rintro ⟨h0, h1⟩
-      have := Submodule.add_mem _ h1 h0
-      rw [sub_add_cancel] at this
-      exact ⟨h0, this⟩
   unfold IsMCA
   simp only [hcomb]
-  exact exists_congr fun T ↦ and_congr_right fun _ ↦ and_congr_right fun _ ↦ hrows T
+  refine exists_congr fun T ↦ and_congr_right fun _ ↦ and_congr_right fun _ ↦ ?_
+  simp only [← not_forall, Fin.forall_fin_two, not_iff_not]
+  exact and_congr_right fun h0 ↦ (Submodule.sub_mem_iff_left _ h0).symm
 
 /-- **The fold line's error is the affine line's**, for every module code over a field, at every
 radius: the shear `(u₀, u₁) ↦ (u₀, u₁ - u₀)` is a bijection of pairs that carries the one event
@@ -148,14 +130,12 @@ theorem natCard_isMCA_le_of_mcaError_le {ι F ℓ S A : Type} [Fintype ι] [Fiel
   have hpr : Pr{let x ←$ᵗ S}[IsMCA G MC x U δ] ≤ mcaError G MC δ :=
     le_iSup (fun U ↦ Pr{let x ←$ᵗ S}[IsMCA G MC x U δ]) U
   rw [SampleableType.prEvent_uniformSample_eq_ofReal] at hpr
-  have hS : (0 : ℝ) < Fintype.card S := by exact_mod_cast Fintype.card_pos
+  have hS : (0 : ℝ) < Fintype.card S := Nat.cast_pos.mpr Fintype.card_pos
   rcases (ENNReal.ofReal_le_ofReal_iff').mp (hpr.trans h) with hle | hle
   · exact Nat.le_floor ((div_le_div_iff_of_pos_right hS).mp hle)
   · have h0 : ((Finset.univ.filter fun x : S ↦ IsMCA G MC x U δ).card : ℝ) ≤ 0 := by
       simpa using (div_le_iff₀ hS).mp hle
-    have h0' : (Finset.univ.filter fun x : S ↦ IsMCA G MC x U δ).card = 0 := by
-      exact_mod_cast le_antisymm h0 (Nat.cast_nonneg _)
-    simp [h0']
+    exact (Nat.cast_nonpos.mp h0).trans_le (Nat.zero_le _)
 
 end
 

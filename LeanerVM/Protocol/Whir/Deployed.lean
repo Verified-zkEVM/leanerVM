@@ -72,22 +72,24 @@ noncomputable def deployed (μ logInvRate : ℕ) : Option Chain :=
   (ladder μ logInvRate).bind fun ls ↦ (slacks μ logInvRate).bind fun es ↦
     chainOf μ (ls.zip es)
 
-/-- Decide a fact on the window of admissible sizes and rates. -/
-private theorem of_window {P : ℕ → ℕ → Prop}
-    (key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r → P μ r)
-    {μ logInvRate : ℕ} (h : Admissible μ logInvRate) : P μ logInvRate :=
-  key μ (Nat.lt_succ_of_le h.2.1) logInvRate (Nat.lt_succ_of_le h.2.2.2) h
+/-- Every admissible ladder's chain exists and has `μ` variables: one decision on the window. -/
+private theorem deployed_any {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
+    (deployed μ logInvRate).any (fun c ↦ c.κ + c.sh.ℓ == μ) := by
+  have key : ∀ μ < maxLogStack + 1, ∀ r < maxLogInvRate + 1, Admissible μ r →
+      (deployed μ r).any (fun c ↦ c.κ + c.sh.ℓ == μ) := by decide +kernel
+  exact key μ (Nat.lt_succ_of_le h.2.1) logInvRate (Nat.lt_succ_of_le h.2.2.2) h
 
 /-- **Every level of every admissible ladder fits** the Johnson regime at its slack. -/
 theorem deployed_isSome {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
     (deployed μ logInvRate).isSome :=
-  of_window (P := fun μ r ↦ (deployed μ r).isSome) (by decide +kernel) h
+  Option.isSome_of_any (deployed_any h)
 
 /-- The opening's stack has `μ` variables: the first level's folds and the variables it leaves. -/
 theorem deployed_vars {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
-    (deployed μ logInvRate).all (fun c ↦ c.κ + c.sh.ℓ == μ) :=
-  of_window (P := fun μ r ↦ (deployed μ r).all (fun c ↦ c.κ + c.sh.ℓ == μ))
-    (by decide +kernel) h
+    (deployed μ logInvRate).all (fun c ↦ c.κ + c.sh.ℓ == μ) := by
+  obtain ⟨c, hc, hp⟩ := (Option.any_eq_true _ _).mp (deployed_any h)
+  rw [hc]
+  exact hp
 
 /-- The chain at leanVM's parameters, for an admissible stack size and rate. -/
 noncomputable def deployedChain (μ logInvRate : ℕ) (h : Admissible μ logInvRate) : Chain :=

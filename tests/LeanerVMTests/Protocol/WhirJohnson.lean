@@ -167,10 +167,8 @@ private theorem budget_of_cert {ℓ n D : ℕ} {η : ℚ} (hl : 0 < sqrtLower n 
       Rat.cast_natCast] at h
   have hle := mcaConstant_le (θ := multiplicity n D η) (l := (sqrtLower n D : ℝ))
     (by exact_mod_cast hl) hlρ' hθ hθρ' hη hone
-  have hb' : (2 : ℝ) ^ (ℓ - 1) * (constantBound n D η : ℝ) ≤ 2 ^ 64 := by
-    have h := (Rat.cast_le (K := ℝ)).mpr hb
-    rwa [Rat.cast_mul, Rat.cast_pow, Rat.cast_pow, Rat.cast_ofNat] at h
-  refine le_trans (mul_le_mul_of_nonneg_left hle (by positivity)) (le_trans (le_of_eq ?_) hb')
+  have hb' : (2 : ℝ) ^ (ℓ - 1) * (constantBound n D η : ℝ) ≤ 2 ^ 64 := by exact_mod_cast hb
+  refine (mul_le_mul_of_nonneg_left hle (by positivity)).trans (Eq.trans_le ?_ hb')
   simp only [constantBound]
   push_cast
   ring

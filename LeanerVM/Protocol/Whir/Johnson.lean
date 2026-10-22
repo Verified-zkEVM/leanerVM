@@ -121,8 +121,8 @@ private theorem exists_msgPoly_eq {κ : ℕ} (hκ : κ ≤ 64) {p : E[X]}
     have := encode_injective (algebraMap K E) hκ (algebraMap K E).injective he
     funext u
     simpa using congrArg (·[u]) this
-  have hrank : Module.finrank E (Fin (2 ^ κ) → E) = Module.finrank E (degreeLT E (2 ^ κ)) := by
-    rw [(degreeLTEquiv E (2 ^ κ)).finrank_eq]
+  have hrank : Module.finrank E (Fin (2 ^ κ) → E) = Module.finrank E (degreeLT E (2 ^ κ)) :=
+    (degreeLTEquiv E (2 ^ κ)).finrank_eq.symm
   have : FiniteDimensional E (degreeLT E (2 ^ κ)) :=
     LinearEquiv.finiteDimensional (degreeLTEquiv E (2 ^ κ)).symm
   obtain ⟨m, hm⟩ := (LinearMap.injective_iff_surjective_of_finrank_eq_finrank hrank).mp hinj
@@ -138,8 +138,7 @@ theorem exists_encode_of_mem_code {κ R : ℕ} (hb : κ + R ≤ 64) {c : Fin (2 
   obtain ⟨m, hm⟩ := exists_msgPoly_eq (by omega) (Polynomial.mem_degreeLT.mpr hp)
   refine ⟨Vector.ofFn m, fun v ↦ ?_⟩
   rw [encode_eq_msgPoly (by omega)]
-  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta]
-  rw [hm]
+  simp only [Fin.getElem_fin, Vector.getElem_ofFn, Fin.eta, hm]
   exact hpc v
 
 /-! ## Mutual correlated agreement -/
@@ -196,17 +195,13 @@ private theorem mcaJohnson_hyps {κ R a : ℕ} {η : ℝ} (hκ : 1 ≤ κ) (hR :
     (han : a ≤ 2 ^ (κ + R)) :
     1 ≤ 2 ^ κ - 1 ∧ 2 ^ κ - 1 ≤ 2 ^ (κ + R) - 2 ∧
       √(((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ)) + η ≤ 1 := by
-  have h2 : 2 ≤ 2 ^ κ := by
-    calc 2 = 2 ^ 1 := rfl
-      _ ≤ 2 ^ κ := Nat.pow_le_pow_right (by norm_num) hκ
+  have h2 : 2 ≤ 2 ^ κ := Nat.le_self_pow (by omega) 2
   have h2R : 2 * 2 ^ κ ≤ 2 ^ (κ + R) := by
-    calc 2 * 2 ^ κ = 2 ^ (κ + 1) := by ring
-      _ ≤ 2 ^ (κ + R) := Nat.pow_le_pow_right (by norm_num) (by omega)
-  have hn : (0 : ℝ) < (2 ^ (κ + R) : ℕ) := by exact_mod_cast Nat.two_pow_pos _
+    rw [← Nat.pow_succ']
+    exact Nat.pow_le_pow_right (by norm_num) (by omega)
   refine ⟨by omega, by omega, ?_⟩
-  have : (√(((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ)) + η) * (2 ^ (κ + R) : ℕ) ≤
-      1 * (2 ^ (κ + R) : ℕ) := ha.trans (by rw [one_mul]; exact_mod_cast han)
-  exact le_of_mul_le_mul_right this hn
+  exact (mul_le_iff_le_one_left (Nat.cast_pos.mpr (Nat.two_pow_pos _))).mp
+    (ha.trans (by exact_mod_cast han))
 
 /-- **The adaptor to `McaBound`.** Mutual correlated agreement up to the Johnson bound, with any
 constant `c`, bounds the bad folds of the code on `2 ^ (κ + R)` positions of dimension `2 ^ κ`
@@ -224,9 +219,7 @@ theorem mcaBound_of_mcaJohnson {c : ℕ → ℕ → ℝ → ℝ} (hc : McaJohnso
   refine le_trans ?_ (natCard_isMCA_le_of_mcaError_le _ _ hmca ![fun y ↦ F y 0, fun y ↦ F y 1])
   refine Nat.card_le_card_of_injective (fun x ↦ ⟨x.1, isMCA_of_mcaBad hb ?_ x.2⟩)
     fun x y h ↦ Subtype.ext (by simpa using congrArg Subtype.val h)
-  rw [show (1 : ℝ) - (1 - √(((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ)) - η) =
-    √(((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ)) + η by ring, mul_comm]
-  exact ha
+  rwa [sub_sub, sub_sub_cancel, mul_comm]
 
 /-! ## The list bound -/
 
@@ -260,21 +253,21 @@ theorem listBound_johnson {κ R a : ℕ} (m : ℕ) (hb : κ + R ≤ 64) (ha : 2 
   rw [Fintype.card_fin, ← Nat.card_coe_set_eq] at hcard
   have hmem : ∀ V : {V : Msgs m κ // Cl κ R a m F V},
       cw V.1 ∈ {c | c ∈ Set.range cw ∧ a ≤ Code.agree c rcv} := fun V ↦
-    ⟨⟨V.1, rfl⟩, V.2.trans (le_of_eq (congrArg Finset.card (Finset.filter_congr fun y _ ↦
-      ⟨fun h ↦ funext h, fun h u ↦ congrFun h u⟩)))⟩
-  refine le_trans (Nat.card_le_card_of_injective (fun V ↦ ⟨cw V.1, hmem V⟩)
-    fun V V' h ↦ Subtype.ext (hinj (congrArg Subtype.val h))) hcard
+    ⟨⟨V.1, rfl⟩, V.2.trans_eq (congrArg Finset.card (Finset.filter_congr fun _ _ ↦
+      funext_iff.symm))⟩
+  exact (Nat.card_le_card_of_injective (fun V ↦ ⟨cw V.1, hmem V⟩)
+    fun V V' h ↦ Subtype.ext (hinj (congrArg Subtype.val h))).trans hcard
 
 /-! ## The threshold of a slack -/
 
-/-- A guess at `⌊√x⌋` for `x < 2 ^ 256`, by fixing its bits from the top; every use of it is
-checked. -/
-def sqrtGuess (x : ℕ) : ℕ := go 128 0
+/-- A guess at `⌊√x⌋`, by Newton's iteration from `2 ^ (⌊log₂ x⌋ / 2 + 1) > √x`; every use of it
+is checked. -/
+def sqrtGuess (x : ℕ) : ℕ := go 16 (2 ^ (x.log2 / 2 + 1))
 where
-  /-- Fix the bits of the root below `2 ^ i`, given those above. -/
+  /-- At most `i` Newton steps from `r`, stopping at the first that does not decrease it. -/
   go : ℕ → ℕ → ℕ
     | 0, r => r
-    | i + 1, r => if (r + 2 ^ i) * (r + 2 ^ i) ≤ x then go i (r + 2 ^ i) else go i r
+    | i + 1, r => if (r + x / r) / 2 < r then go i ((r + x / r) / 2) else r
 
 /-- The agreement threshold `⌈(√ρ + η) n⌉₊` of the code on `n = 2 ^ (κ + R)` positions with
 degree bound `D = 2 ^ κ - 1`, `ρ = D / n`, at the slack `η = p / q`, computed in naturals as
@@ -338,7 +331,7 @@ private theorem agreement_le {n D p q a : ℕ} (hn : 0 < n) (hq : 0 < q) (h1 : p
   have hn' : (0 : ℝ) < n := by exact_mod_cast hn
   have hq' : (0 : ℝ) < q := by exact_mod_cast hq
   have hsub : ((a * q - p * n : ℕ) : ℝ) = a * q - p * n := by
-    rw [Nat.cast_sub h1]; push_cast; ring
+    rw [Nat.cast_sub h1, Nat.cast_mul, Nat.cast_mul]
   have h2' : (D : ℝ) * n * q ^ 2 ≤ ((a * q - p * n : ℕ) : ℝ) ^ 2 := by exact_mod_cast h2
   have hs : √((D : ℝ) / n) ≤ (a * q - p * n) / (n * q) := by
     refine Real.sqrt_le_iff.mpr ⟨?_, ?_⟩
@@ -364,7 +357,7 @@ private theorem lt_agreement {n D p q a : ℕ} (hn : 0 < n) (hq : 0 < q)
   · have h2 := h.resolve_left hlt
     have hle : p * n ≤ a * q := by omega
     have hsub : ((a * q - p * n : ℕ) : ℝ) = a * q - p * n := by
-      rw [Nat.cast_sub hle]; push_cast; ring
+      rw [Nat.cast_sub hle, Nat.cast_mul, Nat.cast_mul]
     have h2' : ((a * q - p * n : ℕ) : ℝ) ^ 2 < (D : ℝ) * n * q ^ 2 := by exact_mod_cast h2
     have hs : (a * q - p * n) / (n * q) < √((D : ℝ) / n) := by
       rw [Real.lt_sqrt (by rw [← hsub]; positivity), div_pow, div_lt_div_iff₀ (by positivity) hn',
@@ -378,10 +371,7 @@ private theorem lt_agreement {n D p q a : ℕ} (hn : 0 < n) (hq : 0 < q)
 /-- A slack with a positive numerator is its numerator over its denominator, in naturals. -/
 private theorem cast_slack {η : ℚ} (hp : 0 < η.num.toNat) :
     (η : ℝ) = (η.num.toNat : ℝ) / η.den := by
-  have hnum : (0 : ℤ) ≤ η.num := by omega
-  rw [Rat.cast_def, ← Int.toNat_of_nonneg hnum]
-  push_cast
-  rfl
+  rw [Rat.cast_def, ← Int.cast_natCast η.num.toNat, Int.toNat_of_nonneg (by omega)]
 
 /-- A fitting slack is positive. -/
 theorem Fits.slack_pos {κ R : ℕ} {η : ℚ} (h : Fits κ R η) : (0 : ℝ) < η := by
@@ -409,7 +399,7 @@ radius `1 - √ρ - η` of a word agrees with it. -/
 theorem threshold_eq_ceil {κ R : ℕ} {η : ℚ} (h : Fits κ R η) :
     threshold κ R η =
       ⌈(√(((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ)) + η) * (2 ^ (κ + R) : ℕ)⌉₊ := by
-  have h0 : threshold κ R η ≠ 0 := by have := h.dist; have := Nat.two_pow_pos κ; omega
+  have h0 : threshold κ R η ≠ 0 := ((Nat.two_pow_pos κ).trans_le h.dist).ne'
   refine (Nat.ceil_eq_iff h0).mpr ⟨?_, le_threshold h⟩ |>.symm
   rw [cast_slack h.p_pos]
   exact lt_agreement (Nat.two_pow_pos _) h.q_pos h.lt_agree
