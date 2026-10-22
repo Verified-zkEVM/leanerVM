@@ -276,10 +276,10 @@ proved by.
 | `no_forgery_sharp_deployed` | `aggregate_no_forgery_final_sharp_deployed` | `q · 2^-116 + 2^34 q²/2^256` at `full`, `pruned20` |
 | `complete` | `aggregate_complete_final` | the game's V_I rejects the honest proof w.p. `≤ completeError` |
 | `sanity` | `Sanity.idealVerify_blake2s_known` | T7″ |
-| `sanity_deployed` | `SanityDeployed.sanity_deployed_of_tree` | S1: the deployed honest aggregation passes `verifyAggregate` and V_I (BLAKE2s), unless a compression collision |
+| `sanity_deployed` | `SanityDeployed.sanity_deployed_budget_of_tree` | S1: the deployed honest aggregation passes `verifyAggregate` and V_I (BLAKE2s) run as the game runs it within `viCost N`, unless a compression collision |
 
-Recursion completeness joins it when it lands, and so does a budgeted S1: today S1 runs V_I
-unbudgeted (in `Id`), so V_I's query count on the deployed prover's output is a follow-up.
+Recursion completeness joins it when it lands. S1 is budgeted: V_I's queries on the deployed
+prover's output are at most `13,508 + N · 134,742,095 ≤ viCost N` (`queryCount_deployed_le`).
 
 **(a) `LeanVM.lean`'s pins (done).** It pinned 106 theorems, 94 of them steps of the end-to-end chain,
 superseded end theorems or other forms of S1. It now pins the verifier's and the guest's end theorems (12, unchanged)

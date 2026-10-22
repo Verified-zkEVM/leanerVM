@@ -1,3 +1,4 @@
+import LeanVM.E2E.SanityDeployedBudget
 import LeanVM.Protocol.EndToEnd.Blind.Statements
 import LeanVM.Protocol.EndToEnd.Blind.Execution
 import LeanVM.Protocol.EndToEnd.Blind.Deferred
@@ -437,3 +438,15 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed_xmssLeaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.SanityDeployed.sanity_deployed_xmssLeaf
+
+/-- info: 'LeanVM.E2E.SanityDeployed.queryCount_deployed_le_viCost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.queryCount_deployed_le_viCost
+
+/-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.sanity_deployed_budget
+
+/-- info: 'LeanVM.E2E.SanityDeployed.sanity_deployed_budget_of_tree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.SanityDeployed.sanity_deployed_budget_of_tree

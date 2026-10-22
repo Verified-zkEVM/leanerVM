@@ -33,7 +33,8 @@ deployed system runs, at BLAKE2s (`deployedOut ρ pfuel`), bottom up by a node s
    exists): an execution of the guest valid under the deployed semantics on the statement's digest,
    frames at which V_I's decoder reads its children back (`DecodeHonest`, from
    `guestCompleteModel` at `CompModel.deployed`), and an admissible witness representing it
-   (`exists_admissible_witness`); the stack is the witness's (`stackOf`);
+   (`exists_admissible_witness`), its committed size within the cap; the stack is the witness's
+   (`stackOf`);
 4. the full verifier's honest proof of the stack (`leanVmProver`, `prove`, `none` when a
    proof-of-work search exhausts `pfuel`);
 5. fresh claims for the parent (`freshDep`): true claims with which the deferring verifier accepts
@@ -130,8 +131,9 @@ theorem deferDep_some {cs : List Child}
 /-! ## The node's execution -/
 
 /-- **A node's execution, deployed**: an execution of the guest valid under the deployed
-semantics on the statement digest's input, frames at which V_I's decoder reads back the
-witness's children, and an admissible witness of leanISA's constraint system representing it. -/
+semantics on the statement digest's input, of committed size within the deployed cap, frames at
+which V_I's decoder reads back the witness's children, and an admissible witness of leanISA's
+constraint system representing it. -/
 structure NodeExecDep (pi : Digest) (w : NodeWitness) where
   /-- The execution. -/
   t : Trace guest
@@ -153,6 +155,8 @@ structure NodeExecDep (pi : Digest) (w : NodeWitness) where
   adm : sz.Admissible guest
   /-- It represents the execution. -/
   rep : AssignmentRepresents wit t
+  /-- The execution's committed size is within the deployed cap. -/
+  small : t.committedSize ≤ 2 ^ maxMu
 
 /-- The stack of a node's execution: its witness's (`stackOf`), the BLAKE2s Flock region
 generated. -/
@@ -203,7 +207,7 @@ theorem nodeExecDep_nonempty {s : NodeStatement} {w : NodeWitness}
     exact hsz
   obtain ⟨wit, sz, hw, hrep, hs, hadm⟩ :=
     Protocol.EndToEnd.Complete.exists_admissible_witness hv hsize
-  exact ⟨⟨t, fr, sz, wit, hv, hdec, hw, hs, hadm, hrep⟩⟩
+  exact ⟨⟨t, fr, sz, wit, hv, hdec, hw, hs, hadm, hrep, hsize⟩⟩
 
 /-! ## The prover -/
 

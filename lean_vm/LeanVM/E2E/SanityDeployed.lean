@@ -32,6 +32,10 @@ encoding of its stack, and the frames of its execution). Then (`sanity_deployed`
 `sanity_deployed_of_tree` adds the prover's output (`deployedProve_isSome`): validity, the
 deployed limits and budget, and the proofs of work found are its only hypotheses.
 
+V_I here runs without a budget; `SanityDeployedBudget.lean` (`sanity_deployed_budget`) runs it as
+the game does, with `budgetedQuery (viCost N)` on `N ≥ T.size` nodes, its count on this proof
+bounded in `SanityDeployed/Count.lean`.
+
 **V_I's side** goes through V_I's node step on the prover's entries (`nodeStep_dep`, the full
 verifier's analogue of `Complete.nodeStep_honest`): the node's word is its stack's encoding, its
 only candidate the stack (`blindCandidates_stackWord`), whose run is the execution, whose table

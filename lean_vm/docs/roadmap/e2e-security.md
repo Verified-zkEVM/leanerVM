@@ -642,9 +642,10 @@ security and every cost are theorems. Relating V_I to the deployed system is §5
 random-oracle heuristic and KA-pw), stated as prose in `Main.lean`'s docstring. Without any
 heuristic, at the root only: `Guest.End.aggregate_sound_outer`.
 
-**Not yet**: completeness through recursion (in progress), and a bound on V_I's queries on the
-deployed prover's output (S1 runs V_I unbudgeted, in `Id`; the budgeted form, as `complete` has
-for the idealized prover, is a follow-up). Both join `Main.lean`.
+**Not yet**: completeness through recursion (in progress); it joins `Main.lean`. S1 is stated
+with V_I run as the game runs it, within `viCost N`: on the deployed prover's output V_I makes
+at most `13,508 + N · 134,742,095` queries (`SanityDeployed/Count.lean`, `queryCount_deployed_le`;
+one query per BLAKE2S row under the precheck, at most `2^19` rows per node), below `viCost N`.
 
 **The constants** (proved worst-case `IsTotalQueryBound`s, `Reduction/XmssBound.lean`,
 `Reduction/SphincsBound.lean`, `Reduction/VerifyBound.lean`, `BudgetCount.lean`):

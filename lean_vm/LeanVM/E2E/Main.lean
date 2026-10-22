@@ -2,6 +2,7 @@ import LeanVM.E2E.Headline
 import LeanVM.E2E.HeadlineSharp
 import LeanVM.E2E.Sanity
 import LeanVM.E2E.SanityDeployed
+import LeanVM.E2E.SanityDeployedBudget
 
 /-!
 # The end-to-end security of leanVM aggregation: the result
@@ -46,13 +47,13 @@ This file states the whole end-to-end result in six theorems; every other theore
    aggregation accepts, when the reached nodes' partial words encode known stacks.
 5. **Sanity, deployed** (`sanity_deployed`, S1): the deployed honest prover's output on every
    valid tree within the deployed limits whose proof-of-work searches succeed has the tree's
-   claims, is accepted by the deployed `verifyAggregate`, and is accepted by `V_I` with BLAKE2s at
-   every fuel at least the tree's size, unless a BLAKE2s compression collision exists. Not vacuous:
+   claims, is accepted by the deployed `verifyAggregate`, and is accepted by `V_I` with BLAKE2s run
+   as the game runs it, within its budget `viCost N` (`N` at least the tree's size), unless a
+   BLAKE2s compression collision exists. Not vacuous:
    an honest leanXMSS leaf (`SanityDeployed.sanity_deployed_xmssLeaf`).
 
 Not yet here: completeness through recursion (the honest prover of a tree of aggregation nodes),
-in progress, and a bound on `V_I`'s queries on the deployed prover's output (S1 runs `V_I`
-unbudgeted, in `Id`; the budgeted form is a follow-up). They will be added to this file.
+in progress; it will be added to this file.
 
 ## What is assumed
 
@@ -171,18 +172,28 @@ theorem sanity {s : Node.NodeStatement} {ip : IdealProof} {fuel : ℕ}
 /-- **Sanity of the deployed system (S1).** For every honest witness tree `T` valid at BLAKE2s
 (`T.Valid blake2sBytes`), within the deployed limits and budget at every node
 (`WithinLimitsDep`), whose proof-of-work searches succeed within `pfuel` nonces (`PowFoundDep`),
-at a valid rate `ρ`: the deployed honest prover outputs a root statement `s`, its proof `π` and an
-idealized proof `ip`; `s` makes exactly the tree's claims; the deployed outer verifier accepts
-(`verifyAggregate`); and `V_I` with BLAKE2s accepts at every fuel at least the tree's size, unless
-two non-final BLAKE2s compression rows with distinct inputs have equal outputs
-(`CompressionCollision`). `V_I`'s query budget on this output is not bounded here (a follow-up). -/
-theorem sanity_deployed {ρ pfuel : ℕ} (T : Complete.HonestTree) (hρ : LeanIsa.validRate ρ)
+at a valid rate `ρ`, and every `N` at least the tree's size: the deployed honest prover outputs a
+root statement `s`, its proof `π` and an idealized proof `ip`; `s` makes exactly the tree's claims;
+the deployed outer verifier accepts (`verifyAggregate`); `V_I`'s queries on it are within the
+game's budget `viCost N`; and `V_I` run exactly as the game runs it (`budgetedQuery (viCost N)`,
+fuel `N`, from the initial state, every hash query answered by BLAKE2s) accepts, unless two
+non-final BLAKE2s compression rows with distinct inputs have equal outputs
+(`CompressionCollision`). -/
+theorem sanity_deployed {nx ns : ℕ} {b : Type → Type} [Monad b] [LawfulMonad b]
+    (impl : QueryImpl GameSpec b)
+    (himpl : ∀ x, simulateQ impl (liftM (HashSpec.query x) : OracleComp GameSpec Digest) =
+      pure (Blake2sHash.blake2sBytes x))
+    {ρ pfuel : ℕ} (T : Complete.HonestTree) (hρ : LeanIsa.validRate ρ)
     (hv : T.Valid Blake2sHash.blake2sBytes) (hlim : T.WithinLimitsDep ρ pfuel)
-    (hpow : T.PowFoundDep ρ pfuel) {fuel : ℕ} (hfuel : T.size ≤ fuel) :
+    (hpow : T.PowFoundDep ρ pfuel) {N : ℕ} (hN : T.size ≤ N) :
     ∃ s π ip, SanityDeployed.deployedProve ρ pfuel T = some (s, π, ip) ∧ s.claims = T.claims ∧
       Node.verifyAggregate Guest.guest s π ∧
-      (idealVerify (m := Id) Sanity.blakeId Guest.guest ip fuel s = true ∨
+      queryCount Blake2sHash.blake2sBytes Guest.guest ip N s ≤ viCost N ∧
+      (simulateQ impl (((idealVerify (budgetedQuery (viCost N)) Guest.guest ip N s).run).run
+          (SignState.init nx ns)) =
+        pure (some true, { SignState.init nx ns with
+          spent := queryCount Blake2sHash.blake2sBytes Guest.guest ip N s }) ∨
         SanityDeployed.CompressionCollision) :=
-  SanityDeployed.sanity_deployed_of_tree ρ pfuel T hρ hv hlim hpow hfuel
+  SanityDeployed.sanity_deployed_budget_of_tree impl himpl ρ pfuel T hρ hv hlim hpow hN
 
 end LeanVM.E2E.Main
