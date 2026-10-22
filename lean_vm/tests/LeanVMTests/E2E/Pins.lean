@@ -1,4 +1,5 @@
 import LeanVM.E2E.SanityDeployedBudget
+import LeanVM.E2E.Unforgeable
 import LeanVM.E2E.Complete.Rom.RootGen
 import LeanVM.E2E.Complete.Rom.PadRec
 import LeanVM.Protocol.EndToEnd.Blind.Statements
@@ -290,6 +291,36 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.aggregate_no_forgery_final_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_no_forgery_final_sharp_deployed
+
+/-! **The headline in one term** (`LeanVM/E2E/Unforgeable.lean`, decision E2E-14): `HashEvals A N q` bounds the game's hash queries by `q` (`hashEvals_isQueryBound`), and the two-term bound is at most `(n_s + n_x/2^23 + 4) · q / 2^127` for every `q` (`unforgeable_le`). -/
+
+/-- info: 'LeanVM.E2E.hashEvals_isQueryBound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.hashEvals_isQueryBound
+
+/-- info: 'LeanVM.E2E.unforgeable_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.unforgeable_le
+
+/-- info: 'LeanVM.E2E.aggregate_unforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_unforgeable
+
+/-- info: 'LeanVM.E2E.aggregate_unforgeable_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_unforgeable_deployed
+
+/-- info: 'LeanVM.E2E.aggregate_unforgeable_xmss' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_unforgeable_xmss
+
+/-- info: 'LeanVM.E2E.aggregate_unforgeable_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_unforgeable_sharp
+
+/-- info: 'LeanVM.E2E.aggregate_unforgeable_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_unforgeable_sharp_deployed
 
 /-- info: 'LeanVM.E2E.sharp_full_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

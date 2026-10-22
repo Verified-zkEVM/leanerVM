@@ -56,19 +56,35 @@ import LeanVM.E2E.Main
 #guard_msgs in
 #print axioms LeanVM.Guest.Batch.batch_rom
 
-/-! **The end-to-end security of the aggregation** (`LeanVM/E2E/Main.lean`, `docs/roadmap/e2e-security.md` §8): in the random-oracle model with honest signers, the idealized verifier V_I on at most `N` nodes with the budget `viCost N` accepts a forged claim of an honest key or an unbacked DA claim with probability at most `q · 2^-λ₁ + 30 q²/2^256` (`no_forgery`; `q` every hash evaluation of the game, `λ₁ = 106` at `2^20 + 2^20` keys), and at most `q · 2^-116 + 2^34 q²/2^256` with leanSPHINCS's sharp bound at the deployed sets `full` and `pruned20` (`no_forgery_sharp`, `no_forgery_sharp_deployed`); the honest prover's proof is rejected by the same V_I with probability at most `completeError` (`complete`), for trees of aggregation nodes of any depth too (`complete_recursive`); V_I with BLAKE2s accepts what the deployed aggregation accepts, the reached stacks known (`sanity`, T7″); the deployed honest aggregation is accepted by `verifyAggregate` and by V_I with BLAKE2s, unless a compression collision exists (`sanity_deployed`, S1). The chain's intermediate theorems are pinned in `tests/LeanVMTests/E2E/Pins.lean` (decision E2E-12). -/
+/-! **The end-to-end security of the aggregation** (`LeanVM/E2E/Main.lean`, `docs/roadmap/e2e-security.md` §8, decision E2E-14), the three properties of an aggregate signature scheme, in the random-oracle model with honest signers. **Unforgeable** (`unforgeable`): for every adversary whose game makes at most `q` hash evaluations (`HashEvals`), the idealized verifier V_I accepts a forged claim of an honest key or an unbacked DA claim with probability at most `(n_s + n_x/2^23 + 4) · q / 2^127`, `q / 2^106` at `2^20 + 2^20` keys (`unforgeable_deployed`), `q / 2^124` with leanXMSS keys only (`unforgeable_xmss`). **Correct** (`correct`): the honest prover's proof of a generated valid tree of any depth is rejected by the same V_I with probability at most `completeError`. **Faithful** (`faithful`, S1): the deployed honest aggregation is accepted by `verifyAggregate` and by V_I with BLAKE2s, unless a compression collision exists. Refinements: leanSPHINCS's sharp bound, `q / 2^116 + 2^34 q²/2^256` at the deployed sets `full` and `pruned20` (`unforgeable_sharp`, `unforgeable_sharp_deployed`); V_I with BLAKE2s accepts what the deployed aggregation accepts, the reached stacks known (`sanity`, T7″). The chain's intermediate theorems are pinned in `tests/LeanVMTests/E2E/Pins.lean` (decision E2E-12). -/
 
-/-- info: 'LeanVM.E2E.Main.no_forgery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.E2E.Main.unforgeable' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.no_forgery
+#print axioms LeanVM.E2E.Main.unforgeable
 
-/-- info: 'LeanVM.E2E.Main.no_forgery_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.E2E.Main.unforgeable_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.no_forgery_sharp
+#print axioms LeanVM.E2E.Main.unforgeable_deployed
 
-/-- info: 'LeanVM.E2E.Main.no_forgery_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+/-- info: 'LeanVM.E2E.Main.unforgeable_xmss' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.no_forgery_sharp_deployed
+#print axioms LeanVM.E2E.Main.unforgeable_xmss
+
+/-- info: 'LeanVM.E2E.Main.correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Main.correct
+
+/-- info: 'LeanVM.E2E.Main.faithful' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Main.faithful
+
+/-- info: 'LeanVM.E2E.Main.unforgeable_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Main.unforgeable_sharp
+
+/-- info: 'LeanVM.E2E.Main.unforgeable_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.Main.unforgeable_sharp_deployed
 
 /-- info: 'LeanVM.E2E.sharp_full_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
@@ -78,18 +94,6 @@ import LeanVM.E2E.Main
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.sharp_pruned20_deployed
 
-/-- info: 'LeanVM.E2E.Main.complete' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.complete
-
-/-- info: 'LeanVM.E2E.Main.complete_recursive' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.complete_recursive
-
 /-- info: 'LeanVM.E2E.Main.sanity' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Main.sanity
-
-/-- info: 'LeanVM.E2E.Main.sanity_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
-#guard_msgs (whitespace := lax) in
-#print axioms LeanVM.E2E.Main.sanity_deployed
