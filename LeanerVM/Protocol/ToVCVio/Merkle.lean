@@ -57,9 +57,7 @@ variable (hashPair : D → D → D)
 
 /-- The parents of a level of `2^(k+1)` nodes: adjacent pairs hashed, the left child first. -/
 def parents {k : ℕ} (level : Vector D (2 ^ (k + 1))) : Vector D (2 ^ k) :=
-  Vector.ofFn fun j ↦
-    hashPair (level[2 * j.val]'(by have := j.isLt; rw [Nat.pow_succ]; omega))
-      (level[2 * j.val + 1]'(by have := j.isLt; rw [Nat.pow_succ]; omega))
+  Vector.ofFn fun j ↦ hashPair (level[2 * j.val]'(by omega)) (level[2 * j.val + 1]'(by omega))
 
 /-- The root of a level of `2^k` digests. -/
 def rootOfLevel : (k : ℕ) → Vector D (2 ^ k) → D
@@ -162,23 +160,20 @@ theorem run_levelStep_nil (sibs : List D) :
 theorem run_levelStep_pair (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (sibs : List D)
     (hp : i % 2 = 0 ∧ j = i + 1) :
     Id.run (levelStep A ((i, a) :: (j, b) :: rest) sibs) =
-      consNode (i / 2) (Id.run (A.both a b)) (Id.run (levelStep A rest sibs)) := by
-  simp only [levelStep, hp]
-  rfl
+      consNode (i / 2) (Id.run (A.both a b)) (Id.run (levelStep A rest sibs)) :=
+  congrArg Id.run (ite_eq_left hp)
 
 theorem run_levelStep_unpaired (i j : ℕ) (a b : T h) (rest : List (ℕ × T h)) (s : D)
     (sibs : List D) (hp : ¬(i % 2 = 0 ∧ j = i + 1)) :
     Id.run (levelStep A ((i, a) :: (j, b) :: rest) (s :: sibs)) =
       consNode (i / 2) (Id.run (withSupplied A i a s))
-        (Id.run (levelStep A ((j, b) :: rest) sibs)) := by
-  simp only [levelStep, hp, ↓reduceIte]
-  rfl
+        (Id.run (levelStep A ((j, b) :: rest) sibs)) :=
+  congrArg Id.run (ite_eq_right hp)
 
 theorem run_levelStep_unpaired_nil (i j : ℕ) (a b : T h) (rest : List (ℕ × T h))
     (hp : ¬(i % 2 = 0 ∧ j = i + 1)) :
-    Id.run (levelStep A ((i, a) :: (j, b) :: rest) []) = none := by
-  simp only [levelStep, hp, ↓reduceIte]
-  rfl
+    Id.run (levelStep A ((i, a) :: (j, b) :: rest) []) = none :=
+  congrArg Id.run (ite_eq_right hp)
 
 theorem run_levelStep_single (i : ℕ) (a : T h) (s : D) (sibs : List D) :
     Id.run (levelStep A [(i, a)] (s :: sibs)) =
@@ -198,9 +193,7 @@ theorem run_fold_succ (k h t : ℕ) (e : h + (k + 1) = t) (nodes : List (ℕ × 
     Id.run (fold A (k + 1) h t e nodes sibs) =
       match Id.run (levelStep A nodes sibs) with
       | none => none
-      | some (ps, rest) => Id.run (fold A k (h + 1) t (by omega) ps rest) := by
-  simp only [fold, Id.run_bind]
-  split <;> rfl
+      | some (ps, rest) => Id.run (fold A k (h + 1) t (by omega) ps rest) := rfl
 
 end RunId
 
@@ -214,8 +207,7 @@ def unselected : (s : Skeleton) → LeafData Bool s
 theorem anySelected_unselected : ∀ s : Skeleton, (unselected s).anySelected = false
   | .leaf => rfl
   | .internal l r => by
-    simp only [unselected, LeafData.anySelected, anySelected_unselected l,
-      anySelected_unselected r, Bool.or_self]
+    simp only [unselected, LeafData.anySelected, anySelected_unselected, Bool.or_self]
 
 /-- The (empty) values of a subtree that holds no opened leaf. -/
 def unselectedValues : (s : Skeleton) → SelectedValues D (unselected s)
@@ -332,12 +324,7 @@ theorem prunedRoot_eq_some_iff (depth : ℕ) (positions : List ℕ) (leaves sibs
   rw [hmap, fold_putativeRoot, Option.map_eq_some_iff]
   split
   · next hv => exact ⟨fun h ↦ ⟨hv, h⟩, fun h ↦ h.2⟩
-  · next hv =>
-    constructor
-    · rintro ⟨o, ho, _⟩
-      cases ho
-    · rintro ⟨h, _⟩
-      exact absurd h hv
+  · next hv => exact ⟨fun ⟨_, ho, _⟩ ↦ (nomatch ho), fun h ↦ absurd h.1 hv⟩
 
 end Reading
 
@@ -391,35 +378,26 @@ theorem nodesAt_cons {n : ℕ} (level : Vector D n) {p : ℕ} (hp : p < n)
     (ps : List ℕ) : nodesAt level (p :: ps) = (p, level[p]) :: nodesAt level ps := by
   simp [nodesAt, hp]
 
+private theorem half_lt {k i : ℕ} (hi : i < 2 ^ (k + 1)) : i / 2 < 2 ^ k := by omega
+
 private theorem sibling_lt {k i : ℕ} (hi : i < 2 ^ (k + 1)) : sibling i < 2 ^ (k + 1) := by
-  unfold sibling; rw [Nat.pow_succ] at *; split <;> omega
-
-private theorem parents_getElem_even {k : ℕ} (level : Vector D (2 ^ (k + 1))) {i : ℕ}
-    (he : i % 2 = 0) (hlt : i + 1 < 2 ^ (k + 1)) :
-    (parents hashPair level)[i / 2]'(by rw [Nat.pow_succ] at hlt; omega) =
-      hashPair (level[i]'(by omega)) level[i + 1] := by
-  simp only [parents, Vector.getElem_ofFn, show 2 * (i / 2) = i by omega]
-
-private theorem parents_getElem_odd {k : ℕ} (level : Vector D (2 ^ (k + 1))) {i : ℕ}
-    (ho : i % 2 = 1) (hlt : i < 2 ^ (k + 1)) :
-    (parents hashPair level)[i / 2]'(by rw [Nat.pow_succ] at hlt; omega) =
-      hashPair (level[i - 1]'(by omega)) level[i] := by
-  simp only [parents, Vector.getElem_ofFn, show 2 * (i / 2) = i - 1 by omega,
-    show i - 1 + 1 = i by omega]
+  unfold sibling
+  split <;> omega
 
 /-- The parent of node `i` is the hash of `i` and its sibling, in index order. -/
 private theorem parents_getElem {k : ℕ} (level : Vector D (2 ^ (k + 1))) {i : ℕ}
     (hi : i < 2 ^ (k + 1)) :
-    (parents hashPair level)[i / 2]'(by rw [Nat.pow_succ] at hi; omega) =
+    (parents hashPair level)[i / 2]'(half_lt hi) =
       Id.run (withSupplied (NodeAlgebra.ofHash (m := Id) hashPair) (h := 0) i level[i]
         (level[sibling i]'(sibling_lt hi))) := by
-  by_cases he : i % 2 = 0
-  · have hlt : i + 1 < 2 ^ (k + 1) := by
-      have := sibling_lt hi; simp only [sibling, he, ↓reduceIte] at this; exact this
-    simp only [withSupplied, sibling, he, ↓reduceIte]
-    exact parents_getElem_even hashPair level he hlt
-  · simp only [withSupplied, sibling, he, ↓reduceIte]
-    exact parents_getElem_odd hashPair level (by omega) hi
+  have hm := Nat.div_add_mod i 2
+  simp only [parents, Vector.getElem_ofFn]
+  unfold withSupplied sibling
+  split_ifs with he
+  · rw [he] at hm
+    exact congrArg₂ hashPair (getElem_congr_idx hm) (getElem_congr_idx (congrArg (· + 1) hm))
+  · rw [Nat.mod_two_ne_zero.mp he] at hm
+    exact congrArg₂ hashPair (getElem_congr_idx (Nat.eq_sub_of_add_eq hm)) (getElem_congr_idx hm)
 
 /-- One level of the honest opening: the walk pairs the opened nodes as the prover did, uses up
 exactly the prover's siblings of the level, and reaches the opened nodes of the parent level. -/
@@ -430,62 +408,70 @@ private theorem levelStep_nodesAt {k h : ℕ} (level : Vector D (2 ^ (k + 1))) :
         some (nodesAt (parents hashPair level) (parentPositions positions), rest)
   | [], _, _ => rfl
   | i :: j :: ps, rest, hlt => by
-    have hi := hlt i (by simp)
-    have hj := hlt j (by simp)
-    have hpar : i / 2 < 2 ^ k := by rw [Nat.pow_succ] at hi; omega
+    obtain ⟨hi, hjps⟩ := List.forall_mem_cons.mp hlt
+    obtain ⟨hj, hps⟩ := List.forall_mem_cons.mp hjps
     rw [nodesAt_cons level hi, nodesAt_cons level hj]
     by_cases hp : i % 2 = 0 ∧ j = i + 1
-    · have hps : ∀ p ∈ ps, p < 2 ^ (k + 1) := fun p hp ↦ hlt p (by simp [hp])
-      rw [run_levelStep_pair _ _ _ _ _ _ _ hp]
+    · rw [run_levelStep_pair _ _ _ _ _ _ _ hp]
       obtain ⟨he, rfl⟩ := hp
       simp only [levelSiblings, parentPositions, he, and_self, ↓reduceIte]
-      rw [levelStep_nodesAt level ps rest hps, nodesAt_cons _ hpar,
-        parents_getElem_even hashPair level he hj]
+      rw [levelStep_nodesAt level ps rest hps, nodesAt_cons _ (half_lt hi),
+        parents_getElem hashPair level hi]
+      simp only [withSupplied, sibling, he, ↓reduceIte]
       rfl
-    · have hs := sibling_lt (k := k) hi
-      simp only [levelSiblings, parentPositions, hp, ↓reduceIte]
-      rw [show level[sibling i]? = some level[sibling i] by simp [hs], Option.toList_some,
-        List.singleton_append, List.cons_append, run_levelStep_unpaired _ _ _ _ _ _ _ _ hp,
-        ← nodesAt_cons level hj,
-        levelStep_nodesAt level (j :: ps) rest (fun p hp ↦ hlt p (List.mem_cons_of_mem _ hp)),
-        nodesAt_cons _ hpar, parents_getElem hashPair level hi]
+    · simp only [levelSiblings, parentPositions, hp, ↓reduceIte]
+      rw [Vector.getElem?_eq_getElem (sibling_lt hi), Option.toList_some, List.singleton_append,
+        List.cons_append, run_levelStep_unpaired _ _ _ _ _ _ _ _ hp, ← nodesAt_cons level hj,
+        levelStep_nodesAt level (j :: ps) rest hjps, nodesAt_cons _ (half_lt hi),
+        parents_getElem hashPair level hi]
       rfl
   | [i], rest, hlt => by
-    have hi := hlt i (by simp)
-    have hs := sibling_lt (k := k) hi
-    have hpar : i / 2 < 2 ^ k := by rw [Nat.pow_succ] at hi; omega
+    have hi := hlt i List.mem_cons_self
     simp only [levelSiblings, parentPositions]
-    rw [nodesAt_cons level hi, show level[sibling i]? = some level[sibling i] by simp [hs],
-      Option.toList_some, List.singleton_append, show nodesAt level [] = [] from rfl,
-      run_levelStep_single, nodesAt_cons _ hpar, parents_getElem hashPair level hi]
+    rw [nodesAt_cons level hi, Vector.getElem?_eq_getElem (sibling_lt hi), Option.toList_some,
+      List.singleton_append, show nodesAt level [] = [] from rfl, run_levelStep_single,
+      nodesAt_cons _ (half_lt hi), parents_getElem hashPair level hi]
     rfl
 
 private theorem parentPositions_ne_nil : ∀ {ps : List ℕ}, ps ≠ [] → parentPositions ps ≠ []
-  | [], h => absurd rfl h
-  | _ :: _ :: _, _ => by simp only [parentPositions]; split <;> simp
-  | [_], _ => by simp [parentPositions]
+  | [], h => h
+  | _ :: _ :: _, _ => by
+    simp only [parentPositions]
+    split <;> exact List.cons_ne_nil _ _
+  | [_], _ => List.cons_ne_nil _ _
 
-private theorem parentPositions_lt {k : ℕ} :
-    ∀ (ps : List ℕ), (∀ p ∈ ps, p < 2 ^ (k + 1)) → ∀ q ∈ parentPositions ps, q < 2 ^ k
-  | [], _ => by simp [parentPositions]
-  | i :: j :: ps, h => by
-    have hi := h i (by simp)
-    have hi' : i / 2 < 2 ^ k := by rw [Nat.pow_succ] at hi; omega
+/-- The parent positions are the positions halved, some dropped. -/
+private theorem parentPositions_sublist :
+    ∀ ps : List ℕ, (parentPositions ps).Sublist (ps.map (· / 2))
+  | [] => .slnil
+  | [_] => .refl _
+  | i :: j :: ps => by
     simp only [parentPositions]
     split
-    · intro q hq
-      rcases List.mem_cons.mp hq with rfl | hq
-      · exact hi'
-      · exact parentPositions_lt ps (fun p hp ↦ h p (by simp [hp])) q hq
-    · intro q hq
-      rcases List.mem_cons.mp hq with rfl | hq
-      · exact hi'
-      · exact parentPositions_lt (j :: ps) (fun p hp ↦ h p (List.mem_cons_of_mem _ hp)) q hq
-  | [i], h => by
-    have hi := h i (by simp)
-    simp only [parentPositions, List.mem_singleton]
-    rintro q rfl
-    rw [Nat.pow_succ] at hi; omega
+    · exact ((parentPositions_sublist ps).cons _).cons_cons _
+    · exact (parentPositions_sublist (j :: ps)).cons_cons _
+
+private theorem parentPositions_lt {k : ℕ} {ps : List ℕ} (h : ∀ p ∈ ps, p < 2 ^ (k + 1))
+    {q : ℕ} (hq : q ∈ parentPositions ps) : q < 2 ^ k := by
+  obtain ⟨p, hp, rfl⟩ := List.mem_map.mp ((parentPositions_sublist ps).subset hq)
+  have := h p hp
+  omega
+
+private theorem fold_openSiblings :
+    ∀ (k h t : ℕ) (e : h + k = t) (level : Vector D (2 ^ k)) (positions : List ℕ),
+      positions ≠ [] → (∀ p ∈ positions, p < 2 ^ k) →
+      Id.run (fold (NodeAlgebra.ofHash (m := Id) hashPair) k h t e (nodesAt level positions)
+          (openSiblings hashPair k level positions)) =
+        some (rootOfLevel hashPair k level)
+  | 0, _, _, rfl, _, [], hne, _ => absurd rfl hne
+  | 0, _, _, rfl, level, p :: _, _, hlt => by
+    obtain rfl := Nat.lt_one_iff.mp (hlt p List.mem_cons_self)
+    rw [nodesAt_cons level Nat.zero_lt_one]
+    rfl
+  | k + 1, h, t, e, level, positions, hne, hlt => by
+    rw [run_fold_succ, openSiblings, levelStep_nodesAt hashPair level positions _ hlt]
+    exact fold_openSiblings k (h + 1) t _ _ _ (parentPositions_ne_nil hne)
+      fun _ ↦ parentPositions_lt hlt
 
 /-- Completeness: the honest opening of a tree at nonempty positions in the tree reaches the
 tree's root, with every sibling used. -/
@@ -493,27 +479,8 @@ theorem prunedRoot_openSiblings {k : ℕ} (level : Vector D (2 ^ k)) (positions 
     (hne : positions ≠ []) (hlt : ∀ p ∈ positions, p < 2 ^ k) :
     Id.run (prunedRoot (m := Id) hashPair k (nodesAt level positions)
         (openSiblings hashPair k level positions)) =
-      some (rootOfLevel hashPair k level) := by
-  unfold prunedRoot
-  suffices ∀ (k h t : ℕ) (e : h + k = t) (level : Vector D (2 ^ k)) (positions : List ℕ),
-      positions ≠ [] → (∀ p ∈ positions, p < 2 ^ k) →
-      Id.run (fold (NodeAlgebra.ofHash (m := Id) hashPair) k h t e (nodesAt level positions)
-          (openSiblings hashPair k level positions)) =
-        some (rootOfLevel hashPair k level) from this k 0 k _ level positions hne hlt
-  intro k
-  induction k with
-  | zero =>
-    intro h t e level positions hne hlt
-    subst e
-    obtain ⟨p, ps, rfl⟩ := List.exists_cons_of_ne_nil hne
-    have hp : p = 0 := by have := hlt p (by simp); simpa using this
-    subst hp
-    rw [nodesAt_cons level (by simp), run_fold_zero]
-    rfl
-  | succ k ih =>
-    intro h t e level positions hne hlt
-    rw [run_fold_succ, openSiblings, levelStep_nodesAt hashPair level positions _ hlt]
-    exact ih (h + 1) t _ _ _ (parentPositions_ne_nil hne) (parentPositions_lt positions hlt)
+      some (rootOfLevel hashPair k level) :=
+  fold_openSiblings hashPair k 0 k _ level positions hne hlt
 
 end Prover
 
@@ -554,9 +521,8 @@ theorem root_buildLevels : ∀ (k : ℕ) (level : Vector D (2 ^ k)),
 theorem siblings_buildLevels : ∀ (k : ℕ) (level : Vector D (2 ^ k)) (positions : List ℕ),
     (buildLevels hashPair k level).siblings positions = openSiblings hashPair k level positions
   | 0, _, _ => rfl
-  | k + 1, level, positions => by
-    simp only [buildLevels, Levels.siblings, openSiblings,
-      siblings_buildLevels k (parents hashPair level)]
+  | k + 1, level, positions =>
+    congrArg (levelSiblings level positions ++ ·) (siblings_buildLevels k _ _)
 
 end Levels
 
@@ -571,12 +537,8 @@ def nodeQueryModelOfEncoding {B : Type} (encode : D → List B) (decode : List B
   mkQuery _ lr := encode lr.1 ++ encode lr.2
   address_mkQuery _ _ := rfl
   input_mkQuery _ lr := by
-    obtain ⟨l, r⟩ := lr
-    have h1 : (encode l ++ encode r).take n = encode l := by
-      rw [← length_encode l, List.take_left]
-    have h2 : (encode l ++ encode r).drop n = encode r := by
-      rw [← length_encode l, List.drop_left]
-    simp only [h1, h2, decode_encode]
+    simp only [List.take_left' (length_encode _), List.drop_left' (length_encode _),
+      decode_encode]
 
 end
 end LeanerVM.Protocol.MerkleTree

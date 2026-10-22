@@ -199,43 +199,28 @@ theorem digestScalars_digestOfScalars {s : E × E} {d : Digest}
 private theorem leWord_wordBytes (w : UInt32) :
     leWord w.toUInt8 (w >>> 8).toUInt8 (w >>> 16).toUInt8 (w >>> 24).toUInt8 = w := by
   apply UInt32.toBitVec_inj.mp
-  simp only [leWord, UInt32.toBitVec_or, UInt32.toBitVec_shiftLeft, UInt8.toBitVec_toUInt32,
-    UInt32.toBitVec_toUInt8, UInt32.toBitVec_shiftRight]
   ext i hi
-  simp [BitVec.getElem_or, BitVec.getElem_setWidth, BitVec.getLsbD_ushiftRight]
-  rw [← BitVec.getLsbD_eq_getElem]
-  by_cases h1 : i < 8
-  · simp only [h1, decide_true, Bool.true_and, Bool.not_true, Bool.false_and, Bool.or_false,
-      show i < 16 by omega, show i < 24 by omega]
-  by_cases h2 : i < 16
-  · simp only [h1, h2, decide_true, decide_false, Bool.true_and, Bool.not_true, Bool.not_false,
-      Bool.false_and, Bool.or_false, Bool.false_or, show i < 24 by omega,
-      show i - 8 < 8 by omega, show 8 + (i - 8) = i by omega]
-  by_cases h3 : i < 24
-  · simp only [h1, h2, h3, decide_true, decide_false, Bool.true_and, Bool.not_false,
-      Bool.not_true, Bool.false_and, Bool.or_false, Bool.false_or, show ¬ i - 8 < 8 by omega,
-      show i - 16 < 8 by omega, show 16 + (i - 16) = i by omega]
-  · simp only [h1, h2, h3, decide_true, decide_false, Bool.true_and, Bool.not_false,
-      Bool.false_and, Bool.false_or, show ¬ i - 8 < 8 by omega, show ¬ i - 16 < 8 by omega,
-      show i - 24 < 8 by omega, show 24 + (i - 24) = i by omega]
+  simp only [leWord, UInt32.toBitVec_or, UInt32.toBitVec_shiftLeft, UInt8.toBitVec_toUInt32,
+    UInt32.toBitVec_toUInt8, UInt32.toBitVec_shiftRight, UInt32.toBitVec_ofNat,
+    BitVec.ofNat_eq_ofNat, BitVec.reduceMod, BitVec.ushiftRight_eq', BitVec.toNat_ofNat,
+    Nat.reducePow, Nat.reduceMod, BitVec.shiftLeft_eq', BitVec.getElem_or,
+    BitVec.getElem_setWidth, BitVec.getLsbD_setWidth, BitVec.getElem_shiftLeft,
+    BitVec.getLsbD_ushiftRight]
+  grind
 
 /-- Byte `4j + r` of the bytes of a word list is byte `r` of word `j`. -/
-private theorem getD_flatMap_wordBytes :
-    ∀ (l : List UInt32) (j r : ℕ) (hj : j < l.length), r < 4 →
+private theorem getD_flatMap_wordBytes {r : ℕ} (hr : r < 4) :
+    ∀ (l : List UInt32) (j : ℕ) (_ : j < l.length),
       (l.flatMap wordBytes).getD (4 * j + r) 0 = (wordBytes l[j]).getD r 0
-  | [], _, _, h, _ => absurd h (by simp)
-  | w :: l, 0, r, _, hr => by
-    have hlen : (wordBytes w).length = 4 := rfl
-    simp only [Nat.mul_zero, Nat.zero_add]
-    rw [List.flatMap_cons, List.getD_eq_getElem?_getD,
-      List.getElem?_append_left (by rw [hlen]; omega), ← List.getD_eq_getElem?_getD]
+  | w :: _, 0, _ => by
+    rw [List.flatMap_cons, Nat.mul_zero, Nat.zero_add, List.getD_eq_getElem?_getD,
+      List.getElem?_append_left (l₁ := wordBytes w) hr, ← List.getD_eq_getElem?_getD]
     rfl
-  | w :: l, j + 1, r, h, hr => by
-    have hlen : (wordBytes w).length = 4 := rfl
+  | w :: l, j + 1, h => by
     rw [List.flatMap_cons, List.getD_eq_getElem?_getD,
-      List.getElem?_append_right (by rw [hlen]; omega), hlen,
-      show 4 * (j + 1) + r - 4 = 4 * j + r by omega, ← List.getD_eq_getElem?_getD,
-      getD_flatMap_wordBytes l j r (by simpa using h) hr]
+      List.getElem?_append_right (l₁ := wordBytes w) (by change 4 ≤ _; omega),
+      show 4 * (j + 1) + r - (wordBytes w).length = 4 * j + r by change _ - 4 = _; omega,
+      ← List.getD_eq_getElem?_getD, getD_flatMap_wordBytes hr l j (Nat.lt_of_succ_lt_succ h)]
     rfl
 
 /-- A digest has 32 bytes. -/
@@ -245,13 +230,12 @@ theorem length_digestBytes (d : Digest) : (digestBytes d).length = 32 := by
 /-- Reading the bytes of a digest gives the digest back. -/
 theorem digestOfBytes_digestBytes (d : Digest) : digestOfBytes (digestBytes d) = d := by
   ext j hj
-  simp only [digestOfBytes, digestBytes, Vector.getElem_ofFn]
   have hl : j < d.toList.length := by simpa using hj
-  have h0 := getD_flatMap_wordBytes _ j 0 hl (by omega)
+  have h0 := getD_flatMap_wordBytes (r := 0) (by omega) _ j hl
   rw [Nat.add_zero] at h0
-  rw [h0, getD_flatMap_wordBytes _ j 1 hl (by omega), getD_flatMap_wordBytes _ j 2 hl (by omega),
-    getD_flatMap_wordBytes _ j 3 hl (by omega)]
-  simp only [wordBytes, List.getD_cons_zero, List.getD_cons_succ, Vector.getElem_toList]
+  simp only [digestOfBytes, digestBytes, Vector.getElem_ofFn]
+  rw [h0, getD_flatMap_wordBytes (by omega) _ j hl, getD_flatMap_wordBytes (by omega) _ j hl,
+    getD_flatMap_wordBytes (by omega) _ j hl]
   exact leWord_wordBytes d[j]
 
 end Blake2sHash

@@ -11,7 +11,7 @@ module
 public import LeanerVM.Protocol.Blake2sHash
 public import LeanerVM.Protocol.Blake2sHashFast
 public import LeanerVM.Protocol.ToVCVio.Merkle
-public import Mathlib.Data.List.Dedup
+public import Mathlib.Data.List.Destutter
 
 /-!
 # leanVM's Merkle trees
@@ -83,8 +83,9 @@ structure PrunedMerklePaths where
   /-- The siblings of the octopus, bottom-up and left to right. -/
   siblingHashes : List Digest
 
-/-- Query positions ascending, with duplicates removed (`merkle.rs:71-76`, `sorted_unique`). -/
-def sortedUnique (queries : List ℕ) : List ℕ := queries.mergeSort.dedup
+/-- Query positions ascending, with duplicates removed (`merkle.rs:71-76`, `sorted_unique`):
+sorted, then adjacent repeats dropped. -/
+def sortedUnique (queries : List ℕ) : List ℕ := queries.mergeSort.destutter (· ≠ ·)
 
 /-- The leaf digests of stored rows under `H`, or `none` at the first row that is not
 `rowWords` wide (`merkle.rs:139-150`, `leaf_hashes`). -/
@@ -103,7 +104,8 @@ of the stored row at each query's slot among the sorted distinct positions (`mer
 -/
 def rowsInQueryOrder (leafWords : ℕ) (queries : List ℕ) (leafData : List (List K)) :
     List (List K) :=
-  queries.map fun q ↦ leafImage leafWords (leafData.getD ((sortedUnique queries).idxOf q) [])
+  let sorted := sortedUnique queries
+  queries.map fun q ↦ leafImage leafWords (leafData.getD (sorted.idxOf q) [])
 
 /-- The verifier's check of a phase's pruned opening of the tree of `2^depth` leaves of
 `leafWords` words under `root`, at `queries`, with stored rows `rowWords` wide, under the byte
@@ -189,19 +191,26 @@ theorem nodeModel_mkQuery (left right : Digest) :
 
 /-! ## The sorted distinct positions -/
 
+private theorem pairwise_mergeSort_le (queries : List ℕ) : queries.mergeSort.Pairwise (· ≤ ·) :=
+  (List.pairwise_mergeSort (le := fun a b ↦ decide (a ≤ b))
+    (fun _ _ _ h₁ h₂ ↦ decide_eq_true (Nat.le_trans (of_decide_eq_true h₁) (of_decide_eq_true h₂)))
+    (fun a b ↦ Bool.or_eq_true_iff.mpr ((Nat.le_total a b).imp decide_eq_true decide_eq_true))
+    queries).imp of_decide_eq_true
+
+private theorem sortedUnique_eq_dedup (queries : List ℕ) :
+    sortedUnique queries = queries.mergeSort.dedup :=
+  (pairwise_mergeSort_le queries).destutter_eq_dedup
+
 theorem mem_sortedUnique {queries : List ℕ} {q : ℕ} : q ∈ sortedUnique queries ↔ q ∈ queries := by
-  simp [sortedUnique, List.mem_dedup]
+  rw [sortedUnique_eq_dedup, List.mem_dedup, List.mem_mergeSort]
 
 theorem pairwise_sortedUnique (queries : List ℕ) : (sortedUnique queries).Pairwise (· < ·) := by
-  have hle : (sortedUnique queries).Pairwise (· ≤ ·) :=
-    ((List.pairwise_mergeSort (le := fun a b ↦ decide (a ≤ b))
-      (fun _ _ _ h₁ h₂ ↦ by simp only [decide_eq_true_eq] at *; omega)
-      (fun a b ↦ by simp only [Bool.or_eq_true, decide_eq_true_eq]; omega) queries).sublist
-      (List.dedup_sublist _)).imp fun h ↦ by simpa using h
-  exact (hle.and (List.nodup_dedup _)).imp fun h ↦ lt_of_le_of_ne h.1 h.2
+  rw [sortedUnique_eq_dedup]
+  exact (((pairwise_mergeSort_le queries).sublist (List.dedup_sublist _)).and
+    (List.nodup_dedup _)).imp fun h ↦ Nat.lt_of_le_of_ne h.1 h.2
 
 theorem sortedUnique_eq_nil {queries : List ℕ} : sortedUnique queries = [] ↔ queries = [] := by
-  rw [sortedUnique, List.dedup_eq_nil, ← List.length_eq_zero_iff, List.length_mergeSort,
+  rw [sortedUnique, List.destutter_eq_nil, ← List.length_eq_zero_iff, List.length_mergeSort,
     List.length_eq_zero_iff]
 
 /-! ## The check in `Id` -/
@@ -226,24 +235,14 @@ private theorem run_hashRowsWith (rowWords leafWords : ℕ) :
     ∀ rows : List (List K), Id.run (hashRowsWith (m := Id) H rowWords leafWords rows) =
       if ∀ row ∈ rows, row.length = rowWords then some (rows.map (leafDigest H leafWords))
       else none
-  | [] => by simp [hashRowsWith]
+  | [] => rfl
   | row :: rest => by
-    rw [hashRowsWith]
+    simp only [hashRowsWith, List.forall_mem_cons]
     by_cases hw : row.length = rowWords
-    · simp only [hw, ↓reduceIte, Id.run_bind, Id.run_pure]
-      rw [run_hashRowsWith rowWords leafWords rest]
-      by_cases hr : ∀ row ∈ rest, row.length = rowWords
-      · have hc : ∀ r ∈ row :: rest, r.length = rowWords := by
-          intro r hr'
-          rcases List.mem_cons.mp hr' with rfl | hr'
-          exacts [hw, hr r hr']
-        rw [ite_eq_left hr, ite_eq_left hc]
-        rfl
-      · have hc : ¬ ∀ r ∈ row :: rest, r.length = rowWords :=
-          fun h ↦ hr fun r hr ↦ h r (List.mem_cons_of_mem _ hr)
-        rw [ite_eq_right hr, ite_eq_right hc]
-        rfl
-    · simp [hw]
+    · simp only [hw, true_and, ↓reduceIte, Id.run_bind, run_hashRowsWith rowWords leafWords rest]
+      split <;> rfl
+    · simp only [hw, false_and, ↓reduceIte]
+      rfl
 
 /-- The check in `Id`: the rows in query order exactly when the stored rows have the announced
 shape, the queries lie in the tree, and the walk over the octopus reaches `root`. -/
@@ -255,42 +254,33 @@ theorem run_merkleVerifyWith (root : Digest) (depth rowWords leafWords : ℕ) (q
       else none := by
   simp only [merkleVerifyWith]
   by_cases h1 : (sortedUnique queries).length ≠ paths.leafData.length ∨ leafWords < rowWords
-  · have hc : ¬ paths.Accepts H root depth rowWords leafWords queries := fun h ↦ by omega
-    simp only [h1, hc, ↓reduceIte]
+  · rw [ite_eq_left h1, ite_eq_right fun h ↦ by omega]
     rfl
-  · simp only [h1, ↓reduceIte, Id.run_bind]
-    rw [run_hashRowsWith]
-    have h1' : paths.leafData.length = (sortedUnique queries).length ∧ rowWords ≤ leafWords := by
-      omega
-    by_cases hw : ∀ row ∈ paths.leafData, row.length = rowWords
-    · rw [ite_eq_left hw]
-      dsimp only
-      by_cases hr : ∃ p ∈ sortedUnique queries, 2 ^ depth ≤ p
-      · have hr' : ¬ ∀ p ∈ sortedUnique queries, p < 2 ^ depth := fun h ↦ by
-          obtain ⟨p, hp, hle⟩ := hr
-          exact absurd (h p hp) (by omega)
-        rw [ite_eq_left hr, ite_eq_right (fun h ↦ hr' h.2.2.2.1)]
-        rfl
-      · have hr' : ∀ p ∈ sortedUnique queries, p < 2 ^ depth := fun p hp ↦ by
-          by_contra h
-          exact hr ⟨p, hp, by omega⟩
-        rw [ite_eq_right hr, Id.run_bind]
-        unfold PrunedMerklePaths.Accepts
-        rcases ho : Id.run (MerkleTree.prunedRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
-          ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
-          paths.siblingHashes) with _ | r
-        · rw [ite_eq_right (fun h ↦ by cases h.2.2.2.2)]
-          rfl
-        · by_cases hroot : r = root
-          · subst hroot
-            rw [ite_eq_left ⟨h1'.1, h1'.2, hw, hr', rfl⟩]
-            dsimp only
-            exact ite_eq_left (@decide_eq_true _ (Digest.decEq r r) rfl)
-          · rw [ite_eq_right (fun h ↦ hroot (Option.some.inj h.2.2.2.2))]
-            dsimp only
-            exact ite_eq_right (fun h ↦ hroot (@of_decide_eq_true _ (Digest.decEq r root) h))
-    · rw [ite_eq_right hw, ite_eq_right (fun h ↦ hw h.2.2.1)]
-      rfl
+  rw [ite_eq_right h1, Id.run_bind, run_hashRowsWith]
+  by_cases hw : ∀ row ∈ paths.leafData, row.length = rowWords
+  swap
+  · rw [ite_eq_right hw, ite_eq_right fun h ↦ hw h.2.2.1]
+    rfl
+  rw [ite_eq_left hw]
+  dsimp only
+  by_cases hr : ∃ p ∈ sortedUnique queries, 2 ^ depth ≤ p
+  · have ⟨p, hp, hle⟩ := hr
+    rw [ite_eq_left hr, ite_eq_right fun h ↦ Nat.not_lt.mpr hle (h.2.2.2.1 p hp)]
+    rfl
+  rw [ite_eq_right hr, Id.run_bind]
+  replace hr : ∀ p ∈ sortedUnique queries, p < 2 ^ depth :=
+    fun p hp ↦ Nat.lt_of_not_le fun hle ↦ hr ⟨p, hp, hle⟩
+  unfold PrunedMerklePaths.Accepts
+  rcases Id.run (MerkleTree.prunedRoot (m := Id) (fun l r ↦ H (nodeBytes l r)) depth
+    ((sortedUnique queries).zip (paths.leafData.map (leafDigest H leafWords)))
+    paths.siblingHashes) with _ | r
+  · exact (ite_eq_right fun h ↦ nomatch h.2.2.2.2).symm
+  by_cases hroot : r = root
+  · subst hroot
+    rw [ite_eq_left ⟨by omega, by omega, hw, hr, rfl⟩]
+    exact ite_eq_left (@decide_eq_true _ (Digest.decEq r r) rfl)
+  · rw [ite_eq_right fun h ↦ hroot (Option.some.inj h.2.2.2.2)]
+    exact ite_eq_right fun h ↦ hroot (@of_decide_eq_true _ (Digest.decEq r root) h)
 
 /-- The check read as VCVio's trees, for every byte hash `H`: an opening is accepted with `rows`
 exactly when one row is stored per distinct query, each `rowWords ≤ leafWords` wide, `rows` are
@@ -309,34 +299,20 @@ theorem merkle_fits (root : Digest) (depth rowWords leafWords : ℕ) (queries : 
           (paths.leafData.map (leafDigest H leafWords)) paths.siblingHashes = some o ∧
         InductiveMerkleTree.getPutativeBatchRootWithHash
           (fun l r ↦ H (digestBytes l ++ digestBytes r)) o.values o.proof = root := by
-  have key := MerkleTree.prunedRoot_eq_some_iff (fun l r ↦ H (nodeBytes l r)) depth
-    (sortedUnique queries) (paths.leafData.map (leafDigest H leafWords)) paths.siblingHashes root
-  rw [run_merkleVerifyWith]
-  by_cases hc : paths.Accepts H root depth rowWords leafWords queries
-  · rw [ite_eq_left hc, Option.some.injEq]
-    constructor
-    · rintro rfl
-      refine ⟨⟨hc.1, hc.2.1, hc.2.2.1, rfl⟩, key.mpr ⟨⟨pairwise_sortedUnique _, hc.2.2.2.1, ?_⟩,
-        hc.2.2.2.2⟩⟩
-      rw [List.length_map, hc.1]
-    · rintro ⟨⟨_, _, _, rfl⟩, _⟩
-      rfl
-  · rw [ite_eq_right hc]
-    constructor
-    · intro h
-      cases h
-    · rintro ⟨⟨h1, h2, h3, _⟩, ho⟩
-      obtain ⟨⟨_, h4, _⟩, h5⟩ := key.mp ho
-      exact absurd ⟨h1, h2, h3, h4, h5⟩ hc
+  rw [run_merkleVerifyWith, Option.ite_none_right_eq_some, Option.some_inj]
+  refine .trans ?_ (Iff.rfl.and (MerkleTree.prunedRoot_eq_some_iff
+    (fun l r ↦ H (nodeBytes l r)) depth _ _ _ root).symm)
+  exact ⟨fun ⟨hc, h⟩ ↦ ⟨⟨hc.1, hc.2.1, hc.2.2.1, h.symm⟩,
+      ⟨pairwise_sortedUnique _, hc.2.2.2.1, by rw [List.length_map, hc.1]⟩, hc.2.2.2.2⟩,
+    fun ⟨⟨h1, h2, h3, h⟩, ⟨_, h4, _⟩, h5⟩ ↦ ⟨⟨h1, h2, h3, h4, h5⟩, h.symm⟩⟩
 
 private theorem nodesAt_map {k : ℕ} (rows : Vector (List K) (2 ^ k)) (f : List K → Digest) :
     ∀ ps : List ℕ, (∀ p ∈ ps, p < 2 ^ k) →
       MerkleTree.nodesAt (rows.map f) ps = ps.zip ((ps.map fun q ↦ rows[q]?.getD []).map f)
   | [], _ => rfl
   | p :: ps, h => by
-    have hp := h p (by simp)
-    rw [MerkleTree.nodesAt_cons _ (by simpa using hp), nodesAt_map rows f ps
-      (fun q hq ↦ h q (List.mem_cons_of_mem _ hq))]
+    obtain ⟨hp, hps⟩ := List.forall_mem_cons.mp h
+    rw [MerkleTree.nodesAt_cons _ hp, nodesAt_map rows f ps hps]
     simp [hp]
 
 /-- Completeness: the commitment to `rows`, each `rowWords ≤ leafWords` wide, opened at
@@ -350,26 +326,20 @@ theorem merkleVerifyWith_merkleOpen {k rowWords leafWords : ℕ}
         leafWords queries (merkleOpen (merkleCommitWith H leafWords rows) queries)) =
       some (queries.map fun q ↦ leafImage leafWords (rows[q]?.getD [])) := by
   have hslt : ∀ p ∈ sortedUnique queries, p < 2 ^ k := fun p hp ↦ hlt p (mem_sortedUnique.mp hp)
-  have hsne : sortedUnique queries ≠ [] := fun h ↦ hne (sortedUnique_eq_nil.mp h)
   have hoct := MerkleTree.prunedRoot_openSiblings (fun l r ↦ H (nodeBytes l r))
-    (rows.map (leafDigest H leafWords)) (sortedUnique queries) hsne hslt
+    (rows.map (leafDigest H leafWords)) (sortedUnique queries) (mt sortedUnique_eq_nil.mp hne) hslt
   rw [nodesAt_map rows _ _ hslt, ← MerkleTree.siblings_buildLevels,
     ← MerkleTree.root_buildLevels] at hoct
   rw [run_merkleVerifyWith, ite_eq_left]
-  · congr 1
-    unfold rowsInQueryOrder merkleOpen merkleCommitWith
-    refine List.map_congr_left fun q hq ↦ ?_
+  · refine congrArg some (List.map_congr_left fun q hq ↦ ?_)
     have hmem : q ∈ sortedUnique queries := mem_sortedUnique.mpr hq
-    rw [List.getD_eq_getElem?_getD, List.getElem?_map,
+    rw [List.getD_eq_getElem?_getD, merkleOpen, List.getElem?_map,
       List.getElem?_eq_getElem (List.idxOf_lt_length_of_mem hmem), List.getElem_idxOf]
     rfl
-  · refine ⟨by simp [merkleOpen], hrw, ?_, hslt, hoct⟩
-    intro row hrow
-    simp only [merkleOpen, merkleCommitWith, List.mem_map] at hrow
-    obtain ⟨q, hq, rfl⟩ := hrow
-    have := hslt q hq
-    rw [Vector.getElem?_eq_getElem this, Option.getD_some]
-    exact hw _ (by simp)
+  · refine ⟨by simp [merkleOpen], hrw, fun row hrow ↦ ?_, hslt, hoct⟩
+    obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hrow
+    rw [Vector.getElem?_eq_getElem (hslt q hq), Option.getD_some]
+    exact hw _ (by simp [merkleCommitWith])
 
 end RunId
 
