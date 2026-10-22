@@ -335,8 +335,19 @@ simulateQ impl (((idealVerify (budgetedQuery budget) prog ip fuel s).run).run st
     else (none, { st with spent := max st.spent budget }))
 ```
 
-**Open**: L2 (the guest over a completeness model — the bulk, other agents) and L9's
-`DecodeHonest` (both as Props in `Interfaces.lean`); L17 as a theorem (now a field of
-`WithinLimits`); T6-prob (the good events' probabilities under the random oracle; note that the
+**Proved since**: L2 and L9's `DecodeHonest`, as `guestCompleteModel : GuestCompleteModel`
+(`E2E/Complete/DecodeFinal.lean`): the executions (`guestCompleteModelExec`, `GuestModelAll.lean`)
+from group B1's completeness over every model, `open_stacked` included (`Comp/Whir/Loc*`), and the
+decoding by main's tree form (`Main/*T.lean`, `EndCompleteCT*.lean`): every tree carries the loads of
+the words its decoder reads (`LoadsWords`, the callees' `…BST`/`…WCL` forms), the honest image reads
+every instance's load equations and, off frames, 0 or the layout's words (`honestAtB_retemp_F`), so
+the children's count (`decode_count`), statements (`decode_stmts`, `kidStmt_honest`) and proofs
+(`d3HypO`, at the frame chooser `frOf` of the honest instances, told apart by their arguments:
+`vsArgsAt_inj`, the cursor and `os_inj`) read back the honest ones. T6-det without L2 is
+`idealVerify_complete_det`. L17 is reduced to a count on the node's log (`NodeLog.lean`,
+`TreeLog.lean`, decision T6-2 of `e2e-security.md`).
+
+**Open**: the count of L17 as a theorem (the deferring verifier's hash calls bounded by its
+program's structure); T6-prob (the good events' probabilities under the random oracle; note that the
 node's execution, sizes and stack are still a classical choice in `honestStep`, which a
 probability bound on G1 must replace by a choice that does not look at the grinds' answers).

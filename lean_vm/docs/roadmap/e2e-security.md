@@ -429,8 +429,15 @@ and `…_pruned20_sharp` keep the per-key bound `Multi.multiBound` itself (lean_
 **The chain.** `aggregate_no_forgery_closed` (`LeanVM/E2E/NoForgeryClosed.lean`) is
 `aggregate_no_forgery` (T5-1) with the costs proved, for any parameter set and any leanSPHINCS bound
 `≤ n_s q/2^127`; `aggregate_no_forgery` assembles T1, W6, T3, E5 and T4 (`aggBadError`) with the two
-reductions. T6-det is `Complete.idealVerify_complete'`, over the guest's completeness over a model
-(`GuestCompleteModel`, L2) as its one hypothesis, L2 being proved by layers (`t6-completeness.md`).
+reductions. T6-det is `Complete.idealVerify_complete_det` (`LeanVM/E2E/Complete/DecodeFinal.lean`):
+V_I accepts the honest prover's idealized proof of any valid honest tree within the limits, on the
+good events G1–G3 (`PowFound`, `WeightsNonzero`, `RootsInjAt`). The guest's completeness over every
+completeness model (`guestCompleteModel : GuestCompleteModel`, L2) is proved, so it is no longer a
+hypothesis: the executions (`guestCompleteModelExec`) and the decoding (`DecodeHonest`: the children's
+count, statements and proofs read back off the honest memory at the frames the honest prover names,
+E2E-5) by the layers of `t6-completeness.md`. The limits are `WithinLimits'`, in which L17 is the count
+`(prefixesOf (nodeLog H s w)).length < 2^64` on the node's own log (T6-2); that count is the one
+hypothesis on the node not derived from the deployed `Limits`.
 T7′ is `Sanity.idealVerify_blake2s`. Not proved: the visible-only accounting (W-vis,
 §0's sharper bound with `Q_v` in place of `Q`), and the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.

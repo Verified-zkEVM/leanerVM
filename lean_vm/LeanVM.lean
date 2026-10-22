@@ -15,6 +15,8 @@ import LeanVM.E2E.Batch
 import LeanVM.Guest.EndKnowB
 import LeanVM.E2E.Guest
 import LeanVM.E2E.Complete.Tree
+import LeanVM.E2E.Complete.TreeLog
+import LeanVM.E2E.Complete.DecodeFinal
 import LeanVM.E2E.Budget
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
@@ -207,6 +209,20 @@ import LeanVM.E2E.Deployed
 /-- info: 'LeanVM.E2E.Complete.honestOut_isSome' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.Complete.honestOut_isSome
+
+/-! T6-det without a hypothesis on the guest (`docs/roadmap/t6-completeness.md`): the guest is complete over every completeness model (`guestCompleteModel`, L2), so V_I accepts the honest prover's idealized proof of any valid honest tree within the limits (L17 as a count on the node's log, decision T6-2 of `docs/roadmap/e2e-security.md`) on the good events G1–G3. -/
+
+/-- info: 'LeanVM.E2E.Complete.guestCompleteModel' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.guestCompleteModel
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete''' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete''
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_det
 
 /-- info: 'LeanVM.E2E.run_idealVerify_budgetedQuery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
