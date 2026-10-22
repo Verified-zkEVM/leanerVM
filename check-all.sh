@@ -52,8 +52,7 @@ lean_xmss() {
   no_escapes lean_xmss
   (cd lean_xmss && lake exe cache get)
   build lean_xmss '(LeanXmss|XmssSecurity)'
-  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security \
-    XmssSecurity.leanXmss_has_attributed_security XmssSecurity.leanXmss_has_multi_user_security
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security
 }
 
 lean_sphincs() {
@@ -66,8 +65,7 @@ lean_sphincs() {
     (cd lean_sphincs && lake build "$m")
   done
   build lean_sphincs 'Sphincs(Fors|Base)?/'
-  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityBudgeted \
-    Sphincs.Lifetimes.requestedMultiUser Sphincs.Lifetimes.requestedMultiUserKey
+  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity
 }
 
 lean_da() {

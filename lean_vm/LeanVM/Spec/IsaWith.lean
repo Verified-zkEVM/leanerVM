@@ -21,7 +21,7 @@ open LeanVM.Parameters
 The relation `BLAKE2S` checks of its nine cells is a parameter of the machine here (`BlakeSem`):
 the deployed one, `blakeDeployed`, is `CompressCells`; the Flock-blind one, `blakeFree`, only
 asks the cells to be canonical (what the bus enforces of a `BLAKE2S` row when the proof does not
-bind the row to the compression function, `docs/roadmap/e2e-security.md` D3–D4). Every definition
+bind the row to the compression function, `docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3–D4). Every definition
 below is the one above with the check replaced, and is the one above at `blakeDeployed`
 (`executeWithB_deployed`, `runB_deployed`, `validExecutionB_deployed`). -/
 

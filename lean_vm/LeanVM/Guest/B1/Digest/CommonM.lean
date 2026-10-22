@@ -17,7 +17,7 @@ public import LeanVM.Guest.Value.ModelChain
 
 `Common.lean` states a run of `BLAKE2S` instructions as `ChainCells`, the fold `chainRun` of the
 compression function. Over a `HashModel` no chaining value is named (pattern C of
-`docs/roadmap/w2-guest-model.md`):
+`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)):
 
 * `ChainSteps S st blocks md n out`: the rows a run of `n` chained `BLAKE2S` instructions checked
   under the semantics `S`, from the cells `st` to the cells `out`, the intermediate states free;

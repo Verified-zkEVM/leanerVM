@@ -17,7 +17,7 @@ public import LeanVM.Guest.Memory.StaticWordsB
 certificate facts (`coreProgram_wchecked`, `wcertOf_of_idx`): `handOkB_of`, `coreB_total_le_of_stat`,
 `coreB_total_le_of_loop`, `coreB_totalLe` (`TotalLeB S coreProgram fs f`).
 
-Made by `mkB.py` from the generated `GuestWords.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestWords.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

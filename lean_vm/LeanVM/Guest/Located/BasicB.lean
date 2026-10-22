@@ -19,7 +19,7 @@ code holds on the call's words under the deployed semantics (`BodyAt`). Under a 
 which the callee's code holds under `S` (`BodyAtB S`, `frameOfB S`): the test is the guest's own
 semantics, now `S`'s, and the decoder still verifies nothing.
 
-**Named frames** (decision E2E-5). A decoder may be handed a frame chooser
+**Named frames** (decision E2E-5 of the removed `e2e-security.md`). A decoder may be handed a frame chooser
 `fr : String → List E → Option ℕ` (by the callee and its argument words): `frameOfB S fr` is the
 named frame `fr f args` when the callee's code holds there under `S`, else the first such frame
 (`firstFrameB S`). Either way the frame holds the callee's code (`bodyAt_frameOfB`), which is all
@@ -52,7 +52,7 @@ noncomputable def firstFrameB {κ : ℕ} (L : MemImage κ) (f : String) (args re
   | none => 0
 
 open Classical in
-/-- **The frame of a call under `S`, at the frames `fr` names** (decision E2E-5): the frame
+/-- **The frame of a call under `S`, at the frames `fr` names** (decision E2E-5 of the removed `e2e-security.md`): the frame
 `fr f args` names for the callee `f` on the words `args`, when the callee's code holds there under
 `S`, else the first such frame (`firstFrameB`). -/
 noncomputable def frameOfB (fr : String → List E → Option ℕ) {κ : ℕ} (L : MemImage κ) (f : String)

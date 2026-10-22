@@ -17,7 +17,7 @@ public import LeanVM.Guest.B1.Digest.ScaledLogM
 
 The deployed proofs (`ClaimTail`, `ClaimWindow`, `ClaimSpec`, `ClaimList`) name every chaining
 value: a window's state is `digestScalars (prefixDigest cs (32q))`. Over a `HashModel` (pattern C
-of `docs/roadmap/w2-guest-model.md`):
+of `docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)):
 
 * a tail and a window state the rows they checked from the state handed to them
   (`Meaning_claims_tailB`, `Meaning_claims_windowB`, over `ChainSteps S`), for any semantics `S`;

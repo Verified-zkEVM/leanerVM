@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.VerifySub.SoundWM
 # The child proof, located, under any semantics
 
 `Located/VerifySub.lean`'s decoders with the frames under `S` at the named frames `fr`
-(`frameDecB S fr`, `loopDecB S fr`, decision E2E-5): `wlLB`, `wqDecB`, `wqLB`, `wOLB` (the stacked
+(`frameDecB S fr`, `loopDecB S fr`, decision E2E-5 of the removed `e2e-security.md`): `wlLB`, `wqDecB`, `wqLB`, `wOLB` (the stacked
 openings) and `wVsLB` (the child proof), each the deployed one at `blakeDeployed` with no frame
 named (`wOLB_deployed`, `wVsLB_deployed`). At the deployed semantics the stacked openings hold
 `open_stacked`'s outcome at every `fr` (`wOLB_spec_deployed`: `wOL_spec`'s proof at the decoded

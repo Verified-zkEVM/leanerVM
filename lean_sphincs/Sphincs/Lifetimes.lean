@@ -69,7 +69,8 @@ theorem pruned8_bits : @Det.HasClassicalSecurityBitsDet pruned8 127 :=
   @det_bitsFH pruned8 (by decide) 8 8830 rfl rfl 2027867772287336761555281578532274176 H0.rho_b8 H0.tab_b8 H0.small_b8 H0.near_b8 H0.tab_b8_ok
     H0.rate_b8_ok H0.small_b8_ok H0.near_b8_ok H0.check_b8_ok [H0.cover_b8_0, H0.cover_b8_1] [H0.coverh_b8_0] H0.covers_b8_ok
 
-/-- **The forest lifetimes**: 127 bits at every subtree height. -/
+/-- **The forest lifetimes**: 127 bits at each proved subtree height (`b` = 26, 20, 14, 13, 12, 10,
+8). -/
 theorem requestedSecurity :
     @Det.HasClassicalSecurityBitsDet full 127 ∧
     @Det.HasClassicalSecurityBitsDet pruned20 127 ∧

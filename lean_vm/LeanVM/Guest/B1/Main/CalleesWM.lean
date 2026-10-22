@@ -17,7 +17,7 @@ public import LeanVM.Guest.Value.NodeSome
 
 `CalleesW.lean` over a hash model `M` (`Value.HashModel`): the calls are those of a call relation
 `C` whose calls unfold under `M.sem` (`UnfoldsB`), and every hash a callee concludes is answered
-by `M.H` (pattern E of `docs/roadmap/w2-guest-model.md`):
+by `M.H` (pattern E of `docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)):
 
 * the signatures verify with the model's hash (`XmssOutM`, `SphincsOutM`:
   `xmssVerifyWith M.H … = some true`);

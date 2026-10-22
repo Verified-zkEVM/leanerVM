@@ -17,7 +17,7 @@ chaining value and the output as two cells each, and the metadata cell. `Trace.b
 the rows the run of `t` performs under the semantics `S`, in order; these are the active rows of
 the committed `BLAKE2S` table (the proof system's padding rows are not instructions).
 
-A **standard chain** of a byte string `x` (`StdChain`, `docs/roadmap/e2e-security.md` D4) is the
+A **standard chain** of a byte string `x` (`StdChain`, `docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D4) is the
 sequence of rows BLAKE2s-256 performs on `x` (RFC 7693, `blake2sBytes`): `k = (|x| − 1)/64 + 1`
 rows (one zero block for the empty string), the first from the parameterised IV, each next one from
 its predecessor's output; a non-final row compresses block `i` of `x` at the counter `64(i + 1)`

@@ -19,7 +19,7 @@ well-formedness facts (`GuestWf`).
 
 * `relInTB_deployed`: at `blakeDeployed`, `RelInTB` is `RelInT`.
 
-Made by `mkB.py` from the generated `GuestRelIn.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestRelIn.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

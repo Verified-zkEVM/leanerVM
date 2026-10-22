@@ -23,8 +23,10 @@ the hash is this project's BLAKE2s-256 (`blake2s`), its digest read as LeanDA's 
 An aggregate's DA claim is a pair of a root and a vector digest; it is held by a matrix committed
 to the root whose rows are orthogonal to a vector of that digest (`Witness.Opens`,
 `lean_ethereum.py:2888-3082` at `3f7dc219`). The guest takes the vector digest from the
-statement; the outer verifier derives it from the root (`vectorDigestOf`), so that the rows are
-codewords given that BLAKE2s, here and in the statement's digests, has no collision. The prover's
+statement; the outer verifier derives it from the root (`vectorDigestOf`). Orthogonality to the
+one vector the root determines makes the rows codewords only with high probability (a
+random-oracle argument, about `14/2^192` per root), and that this vector is the code's dual
+codeword, and the link to `formal/lean_da`'s code binding, are not proved here. The prover's
 copy of the membership vector (`lean_da/src/{encode,membership}.rs`) is not transcribed; that it
 agrees with `verifier/src/da.rs` is an implementation fact, which honest aggregates rely on.
 -/

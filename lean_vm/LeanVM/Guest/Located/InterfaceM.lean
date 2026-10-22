@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Main.AggSoundM
 
 `End.guest_knowledge_model` (`Guest/EndKnowB.lean`) proves the guest's knowledge soundness over
 any hash model from the facts below, each the model form (pattern A–E of
-`docs/roadmap/w2-guest-model.md`: the relation under `M.sem`, runs answered by the model) of a
+`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`): the relation under `M.sem`, runs answered by the model) of a
 deployed lemma `guest_knowledge` uses, owned by a group whose conversion is not merged yet:
 
 | field | deployed lemma | owner |
@@ -29,7 +29,7 @@ deployed lemma `guest_knowledge` uses, owned by a group whose conversion is not 
 The statements are `Main.BatchSumcheckM` (`MeaningBatchSumcheckM`, the B1 root's
 `MeaningBatchSumcheckWith` verbatim) and `VerifySub.InterfaceM`'s `SoundGkrM`, `SoundTablesM`,
 `SoundFlockM`, `SoundOpenWCM`; the last at the decoded openings `wOLB M.sem fr L`
-(`Located/VerifySubB.lean`), at every frame chooser `fr` (decision E2E-5: the decoder V_I runs
+(`Located/VerifySubB.lean`), at every frame chooser `fr` (decision E2E-5 of the removed `e2e-security.md`: the decoder V_I runs
 reads the frames the idealized proof names), whose proof is `wOL_spec`'s over the model's semantics from the model
 forms of the Whir lemmas it composes (`oqFrame_sound`, `oqOpeningOf_ok`,
 `opening_queries_frame_w`, `open_stacked_frame_wC`). Every memory field is over the memories

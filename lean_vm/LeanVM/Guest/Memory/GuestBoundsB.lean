@@ -20,7 +20,7 @@ helpers' bounds (`TotalLeOnB`) as there. A theorem `f_…_totalLe` is `fB_…_to
 (`verifyB_lean_xmss_totalLe`, …); at `blakeDeployed` it is the deployed one by
 `totalLeB_deployed`.
 
-Made by `mkB.py` from the generated `GuestBounds.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestBounds.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

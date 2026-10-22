@@ -19,7 +19,7 @@ public import LeanVM.Guest.B1.FsBlocks
 | `opening_fold` (TRIAGE #31) | a sample, then `sumcheckRoundPoly 3` (`foldStep`, V:1678) |
 | `assert_canonical` (TRIAGE #2) | the word is canonical |
 
-Under a hash model (`docs/roadmap/w2-guest-model.md` §2): each function's relation under `M.sem`
+Under a hash model (`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`) §2): each function's relation under `M.sem`
 gives its `…With M` meaning, the run over the model's answered hash (`sumcheck_round4_model`,
 `sumcheck_round5_model`, `opening_fold_model`), and the `…_modelD` forms name the answered digests
 of each block; the deployed iff's forward direction is the generic one at `HashModel.deployed`.

@@ -24,7 +24,7 @@ parameter (`Ev.HoldsB`), and with it every definition and lemma of `Eval.lean` t
   `kidsValidB_deployed`, `ev_okB_deployed`, `out_satB_deployed` the same for the others).
 
 This is the Memory layer of the guest's completeness over a completeness model
-(`docs/roadmap/t6-completeness.md` §4.2), made as `CoreB.lean` is made from `Core.lean`.
+(`docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`) §4.2), made as `CoreB.lean` is made from `Core.lean`.
 -/
 
 namespace LeanVM.Guest.Memory

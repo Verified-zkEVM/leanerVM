@@ -17,7 +17,7 @@ public import LeanVM.Guest.Memory.StaticSoundB
 `GuestSize.lean`'s `TotalLe` bounds as `TotalLeB S` (`assertB_canonical_totalLe`,
 `loop84B_totalLe`, `loop85B_totalLe`), from the same kernel-checked facts.
 
-Made by `mkB.py` from the generated `GuestSize.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestSize.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

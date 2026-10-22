@@ -12,7 +12,7 @@ public import LeanVM.Spec.Verifier
 /-!
 # The Flock-blind verifier
 
-The end-to-end security theorem (`docs/roadmap/e2e-security.md` D3) idealizes in-circuit hashing:
+The end-to-end security theorem (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3) idealizes in-circuit hashing:
 a `BLAKE2S` row is bound to the oracle by a check of the whole table outside the circuit, not to
 the compression function by Flock. Its verifier V° is the deployed `verifyExecution` with one
 check deleted: the lincheck's terminal identity (`verifyFlockLincheck`, the `require` comparing

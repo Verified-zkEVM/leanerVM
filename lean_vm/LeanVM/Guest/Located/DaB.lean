@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Da.NamedM
 # The DA check's witnesses under any semantics
 
 `Located/Da.lean`'s decoders with the frame of a call under `S` at the named frames `fr`
-(`frameOfB S fr`, decision E2E-5): `frameDecB S fr`, `loopDecB S fr` and the DA decoders
+(`frameOfB S fr`, decision E2E-5 of the removed `e2e-security.md`): `frameDecB S fr`, `loopDecB S fr` and the DA decoders
 `wCellLB S fr` … `wDaLB S fr`, each the deployed one at `blakeDeployed` with no frame named
 (`wDaLB_deployed`). The outcomes below hold at every `fr`: a decoded frame holds its callee's code
 (`frameDecB_spec`). Over a hash model `M` a located call under `M.sem`

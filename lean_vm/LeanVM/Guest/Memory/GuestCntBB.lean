@@ -17,7 +17,7 @@ The certificates and their check (`kwb_checked`) are `GuestCntB.lean`'s; the wei
 are over the trees valid under `S : BlakeSem` here (`kwbB_weightLe`, by `weightLeB_of_stat`; at
 `blakeDeployed` the deployed `kwb_weightLe` by `weightLeB_deployed`).
 
-Made by `mkB.py` from the generated `GuestCntB.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestCntB.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

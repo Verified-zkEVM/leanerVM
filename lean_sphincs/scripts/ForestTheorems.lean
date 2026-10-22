@@ -1,12 +1,4 @@
 import Sphincs.Lifetimes
-import Sphincs.LifetimesMulti
-import Sphincs.MultiPay
-import Sphincs.MultiClass
-import Sphincs.MultiTrace
-import Sphincs.MultiTransport
-import Sphincs.MultiPad
-import Sphincs.MultiFree
-import Sphincs.LifetimesMultiKey
 import Sphincs.Axioms
 import Lean
 

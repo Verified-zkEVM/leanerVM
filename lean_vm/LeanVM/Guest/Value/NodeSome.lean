@@ -19,7 +19,7 @@ recovers the deployed one at `Id`. Over `Option` with the hash `fun x ↦ some (
 `childClaimsWith_some`, `verifyDeferredWith_some`, and `batchWith_some` (the chain in `StateT`:
 its `for` loops by `forIn_some`, its rounds by induction). These are the bridges from the guest's conclusions over a hash model
 (`NodeRelWith M.H`) to the deployed ones at `HashModel.deployed`; the signature schemes' and the
-DA openings' are separate (`docs/roadmap/w2-guest-model.md`, package W2-S).
+DA openings' are separate (`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`), package W2-S).
 -/
 
 namespace LeanVM.Guest.Value

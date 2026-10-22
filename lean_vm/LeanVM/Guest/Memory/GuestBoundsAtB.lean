@@ -17,7 +17,7 @@ public import LeanVM.Guest.Memory.SizeTransferB
 `GuestBoundsAt.lean`'s bounds as `TotalLeB S`/`TotalLeOnB S`, each from `GuestBoundsB`'s by
 `totalLeB_transfer`/`totalLeOnB_transfer` and the same `coreProgram_callsIn_noMain`.
 
-Made by `mkB.py` from the generated `GuestBoundsAt.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestBoundsAt.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

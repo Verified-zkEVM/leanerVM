@@ -12,7 +12,7 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 /-!
 # The relation without Flock
 
-The Flock-blind verifier V° (`LeanVM.Spec.Ideal.Blind`, `docs/roadmap/e2e-security.md` D3) never
+The Flock-blind verifier V° (`LeanVM.Spec.Ideal.Blind`, `docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3) never
 compares the lincheck's matrices with its sumcheck, so Flock's R1CS on the region `q_flock`
 (`M3Instance.aux`) is not established: what V° extracts is `M3HoldsBlind`, the constraints, the
 bus, the counts and the public lines.

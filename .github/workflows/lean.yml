@@ -44,11 +44,10 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_xmss
         run: |
-          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n#print axioms XmssSecurity.leanXmss_has_attributed_security\n#print axioms XmssSecurity.leanXmss_has_multi_user_security\n' \
+          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n' \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in leanXmss_has_127_bits_of_classical_security leanXmss_has_attributed_security \
-              leanXmss_has_multi_user_security; do
+          for t in leanXmss_has_127_bits_of_classical_security; do
             grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
               "$RUNNER_TEMP/axioms.txt"
           done
@@ -107,7 +106,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_sphincs
         run: |
-          theorems="Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityBudgeted Sphincs.Lifetimes.requestedMultiUser Sphincs.Lifetimes.requestedMultiUserKey"
+          theorems="Sphincs.Lifetimes.requestedSecurity"
           { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do

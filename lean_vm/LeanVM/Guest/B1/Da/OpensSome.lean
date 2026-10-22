@@ -17,7 +17,7 @@ the deployed ones at `Id` (`commitCodewordsWith_id`, `vectorDigestWith_id`). Ove
 hash answering every input, `fun x ↦ some (f x)`, each is `some` of its `Id` run
 (`commitCodewordsWith_some`, `vectorDigestWith_some`); at BLAKE2s and the deployed padding digests
 `Witness.OpensWith` is `Witness.Opens` (`opensWith_some_iff`), the DA bridge of package W2-S
-(`docs/roadmap/w2-guest-model.md`).
+(`docs/roadmap/w2-guest-model.md` (removed; in git at `6ffa1d1f`)).
 -/
 
 namespace LeanVM.Da

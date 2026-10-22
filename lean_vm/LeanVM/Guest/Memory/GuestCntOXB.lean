@@ -17,7 +17,7 @@ The certificates and their check (`kwox_checked`) are `GuestCntOX.lean`'s; the w
 are over the trees valid under `S : BlakeSem` here (`kwoxB_weightLe`, by `weightLeB_of_stat`; at
 `blakeDeployed` the deployed `kwox_weightLe` by `weightLeB_deployed`).
 
-Made by `mkB.py` from the generated `GuestCntOX.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md`
+Made by `mkB.py` from the generated `GuestCntOX.lean` (W2-1's pattern, `docs/roadmap/t6-completeness.md` (removed; in git at `6ffa1d1f`)
 §4.2): remake it, do not edit it, when that file is regenerated.
 -/
 

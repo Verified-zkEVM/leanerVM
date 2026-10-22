@@ -57,7 +57,7 @@ values sent against the boundary columns (`valueOf_leanIsa`), and the bytecode e
 **At every Flock region.** Everything is stated at `leanIsaWith F prog s fl`, the leanISA instance
 with a Flock region `fl` (`Front.InstanceWith`), which nothing here reads: the deployed instance is
 `fl = some (flockRegion prog s F)`, the Flock-blind verifier's `fl = none`
-(`docs/roadmap/e2e-security.md` D3). The lemmas take the region implicitly, the definitions over the
+(`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3). The lemmas take the region implicitly, the definitions over the
 instance's blocks explicitly; `arkB` and `bnd_push` are `arkBWith` and `bnd_pushWith` at the
 deployed instance.
 -/

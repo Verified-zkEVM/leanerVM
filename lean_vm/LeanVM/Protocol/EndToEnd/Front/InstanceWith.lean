@@ -15,7 +15,7 @@ public import LeanVM.Protocol.LeanIsa
 
 `leanIsaWith F prog s fl` is `leanIsaInstance F prog s` with the Flock region `fl`: the deployed
 instance at `fl = some (flockRegion prog s F)` (`leanIsaWith_some`, by `rfl`), and the instance the
-Flock-blind verifier (`docs/roadmap/e2e-security.md` D3) proves knowledge for at `fl = none`, whose
+Flock-blind verifier (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D3) proves knowledge for at `fl = none`, whose
 relation has no Flock predicate (`M3Instance.aux` holds of every stack, `aux_none`).
 
 The region is read only by the Flock predicate and the Flock phase: the bus, the table sumcheck and

@@ -16,7 +16,7 @@ public import LeanVM.Protocol.Compile.Rom.Log
 /-!
 # The oracle hash model
 
-The idealized system (`docs/roadmap/e2e-security.md` D4, T2) runs the guest under the Flock-blind
+The idealized system (`docs/roadmap/e2e-security.md` (removed; in git at `6ffa1d1f`) D4, T2) runs the guest under the Flock-blind
 semantics, whose `BLAKE2S` rows are free canonical cells, and binds them to a random oracle through
 the table check (`Spec/Ideal/Table.lean`, `TableOK`): every standard BLAKE2s chain among the rows
 of a byte string `x` ends at the oracle's answer for `x`. This module makes that a `HashModel`:
