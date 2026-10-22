@@ -308,14 +308,18 @@ the statement, each with its reason.
   batching) in a logging monad, and `nodeSupport_of_count` gives `NodeSupport` from
   `(prefixesOf (nodeLog H s w)).length < 2^64`; `HonestTree.WithinLimits'` and
   `idealVerify_complete''` (`TreeLog.lean`) state T6-det with that count in place of the field.
-  The count itself stays a hypothesis. It holds at the deployed limits by a margin (an estimate
-  below `2^40`: at most 16 children with streams of at most 8192 scalars, lists below `2^16`, at
-  most one held matrix of at most 1024 rows, fixed-size signatures and batching), but `Limits`
-  bounds only each child's proof stream: the number of hash calls inside a child's deferring
-  verifier (samples, openings used, leaf widths, path heights) is bounded only by the verifier
-  program's structure, which needs a cost bound for each of `Spec/Verifier.lean`'s programs
-  under the validated layout. That is estimated at 6–9 days and left as a follow-up; T6-det does
-  not depend on how the count is proved.
+  **The count is now a theorem** (`l17-count.md`): `nodeLog_count_lt`
+  (`LeanVM/E2E/Complete/Count/Node.lean`) proves it from `End.Limits s w` and the node relation
+  `NodeRelWith (some ∘ H)`. A string of at most 64 bytes has no block prefix, and every
+  Fiat–Shamir step, proof of work, Merkle node and batching step hashes exactly 64 bytes, so the
+  count is that of the long strings only: the statements' lists and cells, the leaves a child's
+  deferring verifier opens (at most 368, of at most 192 words: `LeafBound`, a cost predicate on the
+  verifier language, `Count/Prog.lean`, `Count/Whir.lean`), the signatures' fixed-size queries
+  (`Count/Xmss.lean`, `Count/Sphincs.lean`) and the DA openings (`Count/Da.lean`). The sum is below
+  `2^38`. `Limits.stream` and `Limits.stackLog` are not needed; the DA openings' shapes and the
+  deferred claims' cells come from the node relation, which holds at every node of a valid honest
+  tree (`nodeRel_honest`). So `idealVerify_complete_final` (`Count/Final.lean`) is T6-det under
+  `HonestTree.WithinLimitsBudget`: the deployed limits and budget, with no count.
 - **E2E-4 (distinct honest roots).** `nodeStep` finds a node's word by its stack root, first match;
   for an `H` making two honest stack roots of different shapes equal, V_I takes the wrong word and
   rejects, so T6-det as designed is false. T6-det adds the good event `RootsInj ip` (the idealized
@@ -435,11 +439,13 @@ good events G1–G3 (`PowFound`, `WeightsNonzero`, `RootsInjAt`). The guest's co
 completeness model (`guestCompleteModel : GuestCompleteModel`, L2) is proved, so it is no longer a
 hypothesis: the executions (`guestCompleteModelExec`) and the decoding (`DecodeHonest`: the children's
 count, statements and proofs read back off the honest memory at the frames the honest prover names,
-E2E-5) by the layers of `t6-completeness.md`. The limits are `WithinLimits'`, in which L17 is the count
-`(prefixesOf (nodeLog H s w)).length < 2^64` on the node's own log (T6-2); that count is the one
-hypothesis on the node not derived from the deployed `Limits`. The hypotheses are satisfiable together
-(`Complete/Witness.lean`, `hyps_wTree`, `idealVerify_complete_wTree`): a leaf holding one leanXMSS claim
-directly, at a constant `H`, meets all of them, its budget and log count evaluated by the kernel.
+E2E-5) by the layers of `t6-completeness.md`. L17, the count of the node's hashed strings, is a theorem
+(`nodeLog_count_lt`, T6-2), so the final form `Complete.idealVerify_complete_final`
+(`LeanVM/E2E/Complete/Count/Final.lean`) asks only the deployed limits and budget at every node
+(`WithinLimitsBudget`). The hypotheses are satisfiable together (`Complete/Witness.lean`,
+`hyps_wTree`, `idealVerify_complete_wTree`; `Count/FinalWitness.lean`, `hyps_final_wTree`,
+`idealVerify_complete_final_wTree`): a leaf holding one leanXMSS claim directly, at a constant `H`,
+meets all of them, its budget evaluated by the kernel.
 T7′ is `Sanity.idealVerify_blake2s`. Not proved: the visible-only accounting (W-vis,
 §0's sharper bound with `Q_v` in place of `Q`), and the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.

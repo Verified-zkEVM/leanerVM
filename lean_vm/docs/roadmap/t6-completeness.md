@@ -182,7 +182,7 @@ children's statements.
 | L14 | **done** (`closure_accepts`, over any good set with a size) `closure_honest`: the closure over honest nodes accepts within `T.size` | [0.3k] |
 | L15 | **done modulo L6** (`idealVerify_accepts`, `outerChecksWith_true`) the root: V° (L6) and `outerChecksWith` | [0.3k] |
 | L16 | the budgeted run (`budgetedQuery`) equals the `Id` run when the count is within `budget` | naturality of `idealVerify` in the hash [0.4–0.6k] |
-| L17 | the node's hashed strings `D` (the queries of `NodeRelWith`'s checks at `H`, logged) have `< 2^64` prefixes under `Limits` | reduced to a count on `nodeLog` (`NodeLog.lean`, `TreeLog.lean`; decision T6-2 of `e2e-security.md`); the count a hypothesis |
+| L17 | the node's hashed strings `D` (the queries of `NodeRelWith`'s checks at `H`, logged) have `< 2^64` prefixes under `Limits` | reduced to a count on `nodeLog` (`NodeLog.lean`, `TreeLog.lean`; decision T6-2 of `e2e-security.md`); the count proved from `Limits` and `NodeRelWith` (`nodeLog_count_lt`, `Count/*.lean`, `l17-count.md`) |
 
 Total ≈ 32–50k lines, of which L2 is two thirds. The design's 6–13k assumed the guest's
 completeness would transfer from the deployed one; it does not (§4.1).
@@ -345,9 +345,10 @@ the children's count (`decode_count`), statements (`decode_stmts`, `kidStmt_hone
 (`d3HypO`, at the frame chooser `frOf` of the honest instances, told apart by their arguments:
 `vsArgsAt_inj`, the cursor and `os_inj`) read back the honest ones. T6-det without L2 is
 `idealVerify_complete_det`. L17 is reduced to a count on the node's log (`NodeLog.lean`,
-`TreeLog.lean`, decision T6-2 of `e2e-security.md`).
+`TreeLog.lean`, decision T6-2 of `e2e-security.md`), and the count is proved (`nodeLog_count_lt`,
+`l17-count.md`): T6-det under the deployed limits and budget alone is
+`idealVerify_complete_final` (`Count/Final.lean`).
 
-**Open**: the count of L17 as a theorem (the deferring verifier's hash calls bounded by its
-program's structure); T6-prob (the good events' probabilities under the random oracle; note that the
+**Open**: T6-prob (the good events' probabilities under the random oracle; note that the
 node's execution, sizes and stack are still a classical choice in `honestStep`, which a
 probability bound on G1 must replace by a choice that does not look at the grinds' answers).

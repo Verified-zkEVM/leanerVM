@@ -18,6 +18,7 @@ import LeanVM.E2E.Complete.Tree
 import LeanVM.E2E.Complete.TreeLog
 import LeanVM.E2E.Complete.DecodeFinal
 import LeanVM.E2E.Complete.Witness
+import LeanVM.E2E.Complete.Count.FinalWitness
 import LeanVM.E2E.Budget
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
@@ -236,6 +237,20 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_wTree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.E2E.Complete.idealVerify_complete_wTree
+
+/-! L17 is a theorem (`docs/roadmap/l17-count.md`, decision T6-2 of `docs/roadmap/e2e-security.md`): under the deployed limits and the node relation, the node's log of hashed strings has fewer than `2^64` block prefixes (`nodeLog_count_lt`), so T6-det holds under the deployed limits and budget alone (`idealVerify_complete_final`), and the leaf meets its hypotheses (`idealVerify_complete_final_wTree`). -/
+
+/-- info: 'LeanVM.E2E.Complete.nodeLog_count_lt' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.nodeLog_count_lt
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_final' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_final
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_final_wTree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_final_wTree
 
 /-- info: 'LeanVM.E2E.run_idealVerify_budgetedQuery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
