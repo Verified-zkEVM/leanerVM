@@ -437,7 +437,9 @@ hypothesis: the executions (`guestCompleteModelExec`) and the decoding (`DecodeH
 count, statements and proofs read back off the honest memory at the frames the honest prover names,
 E2E-5) by the layers of `t6-completeness.md`. The limits are `WithinLimits'`, in which L17 is the count
 `(prefixesOf (nodeLog H s w)).length < 2^64` on the node's own log (T6-2); that count is the one
-hypothesis on the node not derived from the deployed `Limits`.
+hypothesis on the node not derived from the deployed `Limits`. The hypotheses are satisfiable together
+(`Complete/Witness.lean`, `hyps_wTree`, `idealVerify_complete_wTree`): a leaf holding one leanXMSS claim
+directly, at a constant `H`, meets all of them, its budget and log count evaluated by the kernel.
 T7′ is `Sanity.idealVerify_blake2s`. Not proved: the visible-only accounting (W-vis,
 §0's sharper bound with `Q_v` in place of `Q`), and the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.

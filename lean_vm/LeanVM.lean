@@ -17,6 +17,7 @@ import LeanVM.E2E.Guest
 import LeanVM.E2E.Complete.Tree
 import LeanVM.E2E.Complete.TreeLog
 import LeanVM.E2E.Complete.DecodeFinal
+import LeanVM.E2E.Complete.Witness
 import LeanVM.E2E.Budget
 import LeanVM.E2E.Termination
 import LeanVM.E2E.Knowledge
@@ -223,6 +224,18 @@ import LeanVM.E2E.Deployed
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.E2E.Complete.idealVerify_complete_det
+
+/-! T6-det is not vacuous (`LeanVM/E2E/Complete/Witness.lean`): a leaf holding one leanXMSS claim
+directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypotheses together
+(`hyps_wTree`), so V_I accepts its honest idealized proof (`idealVerify_complete_wTree`). -/
+
+/-- info: 'LeanVM.E2E.Complete.hyps_wTree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.hyps_wTree
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_wTree' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_wTree
 
 /-- info: 'LeanVM.E2E.run_idealVerify_budgetedQuery' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
