@@ -536,8 +536,25 @@ leanXMSS keys only (`n_x ≤ 2^21`, `aggregate_no_forgery_final_xmss`), `127 −
 T3's `q³/(6·2^384) ≤ q²/2^256` (`1`). No cap and no side condition. One slot at `full`
 (`qH + viCost N ≤ 2^64`, `2^20` requests per scheme): `≤ 2^-42` (about `2^-43.0`). Over a lifetime
 (`2^44` requests per scheme) `q ≈ 2^78.9`, dominated by the honest signers' worst-case work, and
-the headline gives `≈ 2^-28`; the visible family below gives `≈ 2^-42` there. The theorems below
-are kept until one cleanup pass (`headline.md` §6).
+the headline gives `≈ 2^-28` (`≈ 2^-38` sharp); the visible family below gives `≈ 2^-42` there, and
+becomes internal in the cleanup pass (decided by the user). The theorems below are kept until that
+pass (`headline.md` §6).
+
+**The sharp headline** (`LeanVM/E2E/HeadlineSharp.lean`, `headline.md` §7; pinned in
+`LeanVM.lean`, tests in `tests/LeanVMTests/E2E/HeadlineSharp.lean`).
+`aggregate_no_forgery_final_sharp` replaces leanSPHINCS's `n_s q/2^127` by its per-key multi-user
+bound (`Multi.multiBound`, class `SphincsSetSharp`, one instance per proved set, the certificates'
+constants evaluated by the kernel):
+
+    Pr[ game guest N (viCost N) A : Breaks ] ≤ q · 2^-λ₁ + (30 + D n_s) q²/2^256,
+    2^-λ₁ ≈ (4.81 + β n_s)/2^128,   β ≈ 0.0020 (full), 0.0036 (pruned20).
+
+`λ₁ = 116` at `2^20 + 2^20` keys for `full` (exactly `116.97`) and `pruned20` (`116.12`), with
+`30 + D 2^20 ≤ 2^34` (`aggregate_no_forgery_final_sharp_deployed`: `q · 2^-116 + 2^34 q²/2^256`);
+`114`–`115` at the other sets. `D` (`2^13.41` at `full`) is set by the certificates' budget
+`qh ≈ 2^117.6`, beyond which only `n q/2^127` is proved. One slot at `full`: `≈ 2^-53`; lifetime
+`≈ 2^-38`. No `n_s`-free leanSPHINCS bound exists (a query attacks every key's few-time layer), so
+this is the ceiling for the headline's `q`.
 
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at
 Lean's three axioms). The game is generic in the leanSPHINCS parameter set (`[Sphincs.Params]`):

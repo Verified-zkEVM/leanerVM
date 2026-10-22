@@ -30,6 +30,7 @@ import LeanVM.E2E.Deployed
 import LeanVM.E2E.Vis.Deployed
 import LeanVM.E2E.Complete.Rom.End
 import LeanVM.E2E.Headline
+import LeanVM.E2E.HeadlineSharp
 
 /-! The theorems: the verifier's, `LeanVM.KnowledgeSoundness` and `LeanVM.Completeness` (`LeanVM/Spec/Statement.lean`), and the deployed aggregation guest's: `AggregateSound` (what the outer verifier's acceptance establishes) and `GuestKnowledge` (`LeanVM/Spec/Guest.lean`), its witness read off the execution's memory by `LeanVM.Guest.End.decode`, with `decode_binds`; the recursion step `LeanVM.Guest.Batch.children_sound` and the batching in the random-oracle model `LeanVM.Guest.Batch.batch_rom`; `GuestSound` and `GuestCompleteWithin` (`LeanVM/Guest/End.lean`). The build fails if their axiom footprint ever grows beyond Lean's three standard axioms. -/
 
@@ -308,6 +309,24 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.aggregate_no_forgery_final_xmss' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_no_forgery_final_xmss
+
+/-! **The sharp headline** (`LeanVM/E2E/HeadlineSharp.lean`): the headline with leanSPHINCS's per-key multi-user bound (`SphincsSetSharp`, every proved set, the certificates' constants evaluated by the kernel): `q · 2^-λ₁ + (30 + D n_s) q²/2^256`, `λ₁ = 116` at `2^20 + 2^20` keys for `full` and `pruned20`, with `30 + D 2^20 ≤ 2^34`. -/
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_final_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_final_sharp
+
+/-- info: 'LeanVM.E2E.aggregate_no_forgery_final_sharp_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_no_forgery_final_sharp_deployed
+
+/-- info: 'LeanVM.E2E.sharp_full_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sharp_full_deployed
+
+/-- info: 'LeanVM.E2E.sharp_pruned20_deployed' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.sharp_pruned20_deployed
 
 /-! The end theorem of `docs/roadmap/e2e-security.md`, fully instantiated (`LeanVM/E2E/Deployed.lean`): T5 at leanXMSS's and leanSPHINCS's proved multi-user bounds and the proved costs of the honest signers and the final verifications, at each proved leanSPHINCS parameter set, with a closed-form error (`closedError`), and its value for one slot. -/
 
