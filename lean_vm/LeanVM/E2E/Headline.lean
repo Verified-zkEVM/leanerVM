@@ -1,5 +1,6 @@
 import LeanVM.E2E.NoForgery2
 import LeanVM.E2E.Guest
+import LeanVM.E2E.Complete.Rom.EndBudget
 import XmssSecurity
 import Sphincs.LifetimesMulti
 
@@ -28,6 +29,14 @@ requests at their proved worst-case costs, and V_I's budget `viCost N` (`totalQu
   (`16`), and T3's `q³/(6 · 2^384) ≤ q²/2^256` (`1`, `predError2_le_sq`).
 * **No side condition.** leanXMSS's multi-user theorem asks `q + 384 < 2^126`; past it,
   `30 q²/2^256 ≥ 1` (`one_le_quad_of_large`) and the bound is trivial.
+* **V_I's budget covers honest proofs.** `viCost N = N · viNodeCost`,
+  `viNodeCost = 179,733,089 ≈ 2^27.42`, the proved bound on V_I's queries (`viNodeCost_eq`):
+  per node the stack's tree (`2^27 − 1`), the table check (`45,501,774`) and the children's
+  digests (`80`), and at the root V°, the IV, the digest and the outer checks (`13,508`). V_I on
+  `N` nodes makes at most `viCost N` queries on the honest proof of a tree of at most `N` nodes
+  (`queryCount_honest_le_viCost`), so the game's V_I, budget and all, accepts honest proofs except
+  with T6-prob's `completeError` (`aggregate_complete_final`): soundness and completeness are
+  about one verifier.
 
 The proof is T5 with the cubic T3 (`NoForgery2.lean`: `prEvent_game_aggBad2_le`,
 `forged_of_breaks2`, `prEvent_forgedX_le_bound2`, `prEvent_forgedS_le_bound2`) at leanXMSS's proved
@@ -150,13 +159,32 @@ structure AdvBounds {nx ns : ℕ} (A : GameAdversary nx ns) (qH sX sS : ℕ) : P
   xmss : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvXmss sX
   sphincs : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvSphincs sS
 
-/-- **V_I's per-node budget.** A definition: no-forgery holds for every budget, so this value only
-enters `q`. That the honest V_I stays within it on every node is a completeness obligation, not
-proved here. -/
-def viNodeCost : ℕ := 2 ^ 40
+/-- **V_I's per-node budget**, `179,733,089 ≈ 2^27.42`: the proved bound on V_I's queries per
+honest node, `2^27 − 1` for the stack's Merkle tree, `45,501,774` for the table check and `80` for
+the children's digests, plus the root's `13,508` (`viNodeCost_eq`, `Complete.viNodeBound`).
+No-forgery holds for every budget, so this value only enters `q`; that the honest V_I stays within
+`viCost N` is `queryCount_honest_le_viCost`. -/
+def viNodeCost : ℕ := 179733089
 
 /-- **V_I's budget on trees of at most `N` nodes.** -/
 def viCost (N : ℕ) : ℕ := N * viNodeCost
+
+/-- **The per-node budget is the proved bound** (`Complete.viNodeBound`: `Complete.viStepBound`
+per node, `Complete.viRootBound` at the root). -/
+theorem viNodeCost_eq : viNodeCost = Complete.viNodeBound := Complete.viNodeBound_eq.symm
+
+/-- **`viCost N` covers the honest proof.** For every hash `H`, a valid rate and an honest tree
+of at most `N` nodes, of the shape (`HonestTree.ShapeOK`) and within the limits at every node, if
+the H-oblivious prover outputs `o`, V_I with `H` on `N` nodes makes at most `viCost N` queries on
+the honest idealized proof `idealOfN o`. -/
+theorem queryCount_honest_le_viCost (H : Bytes → Digest) {ρ pfuel : ℕ}
+    (hρ : LeanIsa.validRate ρ) {T : Complete.HonestTree} {o : Complete.HonestOutN} {N : ℕ}
+    (hI : Complete.honestOutN H ρ pfuel T = .ok o)
+    (hsh : T.AllNodes Complete.HonestTree.ShapeOK) (hlim : T.WithinLimitsN H ρ pfuel)
+    (hN : T.size ≤ N) :
+    queryCount H Guest.guest (Complete.idealOfN o) N o.stmt ≤ viCost N := by
+  rw [viCost, viNodeCost_eq]
+  exact Complete.queryCount_honest_le_mul H ρ pfuel hρ hI hsh hlim hN
 
 /-- **`q`: every hash evaluation of the game** on trees of at most `N` nodes: the honest key
 generations, the adversary's queries, the signatures it requests, and V_I's budget. -/
@@ -422,5 +450,20 @@ theorem aggregate_no_forgery_final_xmss [P : Sphincs.Params] [S : SphincsSet P] 
   refine (aggregate_no_forgery_final N A hA).trans ?_
   gcongr
   exact noForgeryRate_xmss_only hx
+
+/-! ## Completeness at the headline's budget -/
+
+/-- **Completeness of the game's V_I (T6-prob at the headline's budget).** For every generator
+`gen` of valid honest trees within the limits (`ValidGen`: at most `N` nodes, the prover's queries
+at most `QP`) with at most `QG` queries, a valid rate and a proof-of-work fuel of at most `2^64`
+nonces: V_I run after the honest prover exactly as the game runs it, with the budgeted hash on `N`
+nodes and the budget `viCost N`, against the same lazily sampled oracle, rejects the honest proof
+(or the prover fails) with probability at most `completeError (QG + QP) pfuel`. -/
+theorem aggregate_complete_final {nx ns : ℕ} {ρ pfuel N QG QP : ℕ} (hρ : LeanIsa.validRate ρ)
+    (hpf : pfuel ≤ 2 ^ 64) (gen : OracleComp HashSpec (Option Complete.HonestTree))
+    (hQG : IsTotalQueryBound gen QG) (hgen : Complete.ValidGen ρ pfuel N QP gen) :
+    Pr{let z ← Complete.completeRunGame (nx := nx) (ns := ns) ρ pfuel gen N (viCost N)}[
+      z.1 = some false] ≤ Complete.completeError (QG + QP) pfuel :=
+  Complete.idealVerify_complete_rom_budget hρ hpf gen hQG hgen (by rw [viCost, viNodeCost_eq])
 
 end LeanVM.E2E

@@ -359,8 +359,11 @@ gives `1 ≤ weightsPot` (`weights_of_look`, `one_le_weightsPot`).
 
 Corollaries (same file): V_I run lazily after the prover rejects with at most the same
 probability (`idealVerify_complete_rom_run`); the tree-size form, `QP := N · nodeQueries pfuel`
-under `ShapeOK` (`idealVerify_complete_rom_size`); the game's budgeted form, when V_I's query count
-on the honest proof is within the budget (`run_idealVerify_budgetedQuery_of_le`, optional).
+under `ShapeOK` (`idealVerify_complete_rom_size`); the game's budgeted form, proved: V_I's query
+count on the honest proof is at most `13,508 + fuel · 179,719,581` (`Rom/ViCost.lean`,
+`queryCount_honest_le`), and V_I run as the game runs it, with `budgetedQuery budget`, rejects with
+the same probability for every budget at least `N · viNodeBound` (`Rom/EndBudget.lean`,
+`idealVerify_complete_rom_budget`; decision E2E-11 of `e2e-security.md`).
 
 ### 4.6 Numbers and the inhabitant (`Rom/End.lean`, `Rom/Gen.lean`)
 

@@ -29,7 +29,7 @@ structure AdvBounds (A : GameAdversary nx ns) (qH sX sS : ℕ) : Prop where
   xmss : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvXmss sX
   sphincs : ∀ pkx pks, IsQueryBoundP (A pkx pks) AdvSphincs sS
 
-def viNodeCost : ℕ := 2 ^ 40
+def viNodeCost : ℕ := 179733089   -- ≈ 2^27.42, the proved honest cost (§8): viNodeCost_eq
 def viCost (N : ℕ) : ℕ := N * viNodeCost
 
 /-- `q`: every hash evaluation of the game on trees of at most `N` nodes. -/
@@ -56,7 +56,9 @@ theorem aggregate_no_forgery_final_xmss :       -- n_x ≤ 2^21, n_s = 0: q · 2
 
 One game (`game`, `fuel := N`, `budget := viCost N`), one event (`Breaks`: V_I accepts a root
 statement with a forged claim of an honest key, or a DA claim the oracle's log does not back), one
-theorem, seven instances.
+theorem, seven instances. The budget covers honest proofs: the same V_I, budget and all, accepts
+the honest proof of a generated tree of at most `N` nodes except with T6-prob's error
+(`aggregate_complete_final`, §8).
 
 ## 2. The numbers
 
@@ -119,9 +121,9 @@ linear, `2^-252` quadratic), and one `q` multiplies the larger rate by the large
   shape. Charging each key its attributed calls could only remove `n_s` from the honest signers'
   work (their inputs carry the key's prefix), which a single `q` cannot separate. With A's `q`,
   `λ₁ ≈ 128 − log₂(4.75 + β n_s)` is the ceiling (`125.7` only at `n_s ≈ 1`).
-* **`viCost`.** `viNodeCost = 2^40` is a definition. No-forgery holds for every budget, so its value
-  only enters `q`; that the honest V_I stays within `viCost N` (a per-node cost bound) is a
-  completeness obligation, not proved yet. With `N = 2^20` nodes it adds `2^60` to `q`.
+* **`viCost`.** `viNodeCost = 179,733,089 ≈ 2^27.42` is the proved bound on the honest V_I's
+  queries per node (§8; it replaced the placeholder `2^40`). No-forgery holds for every budget, so
+  its value only enters `q`. With `N = 2^20` nodes it adds `≈ 2^47.42` to `q`.
 
 ## 5. Proof
 
@@ -140,6 +142,8 @@ costs, plus arithmetic, all in `Headline.lean`:
 | `aggregate_no_forgery_final` | at `fuel := N`, `budget := viCost N` |
 | `noForgeryRate_le`, `noForgeryRate_deployed`, `noForgeryRate_xmss_only` | `λ₁` |
 | `totalQueries_eq` | `q` at the proved costs |
+| `viNodeCost_eq`, `queryCount_honest_le_viCost` | the budget is the proved honest cost (§8) |
+| `aggregate_complete_final` | completeness of the same V_I at the budget `viCost N` (§8) |
 
 ## 6. The cleanup pass (not done yet)
 
@@ -216,3 +220,48 @@ about one minute (9 GB). `ρ` is a literal, `c` follows by `norm_num`. The arith
 `(qh + kc) X F ≤ 2^256`, so `1/F ≤ 2^-6` of slack), `pairChance = (2^128 + 2)/2^256`,
 `rateS ≤ 2/2^128`, and the per-key rest; the per-key constants are paid by the key generations
 (`n · keygenCost ≤ q`).
+
+## 8. V_I's budget
+
+The game runs V_I with `budgetedQuery (viCost N)`, rejecting past the budget, so the headline's V_I
+is complete only if honest proofs fit. They do, at `viNodeCost = 179,733,089`
+(`viNodeCost_eq : viNodeCost = Complete.viNodeBound`).
+
+**The count** (`LeanVM/E2E/BudgetCount.lean`, `Complete/NodeCount.lean`,
+`Complete/Rom/ViCost.lean`). For every hash `H`, a valid rate and an honest tree of the shape
+(`HonestTree.ShapeOK`) at every node whose root has at most `16` DA claims, V_I with `H` on the
+H-oblivious prover's idealized proof makes at most `viRootBound + fuel · viStepBound` queries
+(`Complete.queryCount_honest_le`):
+
+| piece | queries | why |
+| --- | --- | --- |
+| a node's stack tree, `pTreeRootM` | `≤ 2^27 − 1` | a full word, height `≤ costHeight = 26` (`stackShape_height_le`, the ladders' `ladder_cost`) |
+| its table check, `tableOKWith` | `≤ 45,501,774` | one query per string with a standard chain among the single candidate's rows; they are strings of the node's log (`chainInputs_subset`), at most the node's checks' count (`length_nodeLogWith_le`), `checksBound` under the shape |
+| its children's digests | `≤ 80` | five each, at most sixteen children |
+| **per node, `viStepBound`** | **`179,719,581 ≈ 2^27.42`** | |
+| the IV, the root's digest | `2 + 5` | |
+| V° | `≤ 13,213` | `leanVmQueryBound` (`isTotalQueryBound_blind`) |
+| the outer checks | `≤ 16 · 18` | a DA root's vector digest is `18` queries, at most `16` root DA claims (`Limits.daRoots`) |
+| **at the root, `viRootBound`** | **`13,508`** | |
+
+The closure makes at most `fuel` node steps (`count_closure_le`), every node it reaches an entry
+of the honest output (V_I reads each node's word and frames from its representative, E2E-8). A tree
+has at least one node, so on `N ≥ size` nodes the count is at most `N · (viStepBound +
+viRootBound) = viCost N` (`queryCount_honest_le_viCost`). The table check is the second term:
+its count is the node's checks' strings, dominated by `2^16` signature claims at
+`sphincsVerifyBound = 686` each; the Merkle tree is the first, `2^27` at the largest stack.
+
+**Completeness at the budget** (`Complete/Rom/EndBudget.lean`). `completeRunGame ρ pfuel gen N
+budget` runs the generator and the honest prover against the lazily sampled oracle
+(`completeExp`), then V_I as the game runs it: `budgetedQuery budget` on `N` nodes from the
+signers' initial state, its queries answered by the game's oracle (`gameImpl`) continuing the same
+log. Every outcome of V_I's budgeted run is, at every hash agreeing with its final log, V_I's
+counted run charged against the budget (`exactRel_idealVerify`; `run_idealVerify_budgetedQuery`'s
+form for the lazy oracle), so within the budget it is V_I's `Id` run at the final log's hash, which
+T6-prob's good outcome accepts. Hence
+
+    Pr[ completeRunGame ρ pfuel gen N (viCost N) : rejected ] ≤ completeError (QG + QP) pfuel
+
+(`aggregate_complete_final`, `Complete.idealVerify_complete_rom_budget` for every budget at least
+`N · viNodeBound`), the bound of `idealVerify_complete_rom`; at the honest leanXMSS leaf, `2^-124`
+(test file `tests/LeanVMTests/E2E/ViBudget.lean`).

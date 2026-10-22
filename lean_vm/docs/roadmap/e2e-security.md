@@ -89,7 +89,8 @@ Idealized proof Π = (s, π, M, F), M: nodes ↦ level-0 partial words (Merkle s
 only as digests, E2E-10), F: nodes ↦ the frames the decoder reads (E2E-5, E2E-8, §7).
 V_I^H(s, Π), fuel-bounded, rejecting once
 Bud queries are used (Bud fixed before the game; Bud only makes QV uniform, it adds no term — every
-V_I query is a visible query charged in κ_V°'s failBound):
+V_I query is a visible query charged in κ_V°'s failBound; the headline's Bud is N times the proved
+honest cost per node, E2E-11):
 1. PI₀ := statementDigest^H(seed^H, s); require V°^H(guest, PI₀, π) and OuterChecks°^H(s).
 2. N := closure of {(guest, PI₀, π)} under: q ∈ Cand(M(r(π))) with M3Holds°(x, q), child (s_c, f_c, π_c)
    of decode_{F(r(π))}(image q) ⇒ (guest, statementDigest^H(seed^H, s_c), π_c) ∈ N.
@@ -498,7 +499,8 @@ the statement, each with its reason.
   the lazy `Rom.loggedRO`. (d) The good events become events of the run: a proof-of-work search
   exhausted (`powPot`, as `romComplete`) and an inner node's matrix weights vanishing (a doom
   potential, `2^-192` per challenge); V_I's acceptance is asked at every hash agreeing with the
-  final log, so V_I's queries are not counted. Plan and statements: `t6-prob.md`.
+  final log, so V_I's queries are not counted (E2E-11 counts them, for the game's budgeted V_I).
+  Plan and statements: `t6-prob.md`.
 - **T3-2 (T3 from two challenges; the termination term becomes cubic).** W5-1's event `Pred`
   predicts one challenge, a birthday bound `Q(Q+1)/2^193`. The parent's statement bytes carry its
   whole deferred matrix point, the matrices' sumcheck's challenges; its last two, at the offsets
@@ -529,9 +531,8 @@ the statement, each with its reason.
   (`LeanVM/E2E/Headline.lean`, `aggregate_no_forgery_final`; design and alternatives:
   `headline.md`). Why: one natural count and two rates, instead of a closed form in fourteen
   arguments. The parameter sets are instances of a class (`SphincsSet`); the adversary's resources a
-  structure (`AdvBounds`); V_I runs on at most `N` nodes with the budget `viCost N = N · 2^40`, a
-  definition (no-forgery holds for every budget; the per-node cost bound is a completeness
-  obligation). The constants are paid by the key generations `q` counts, leanXMSS's side condition
+  structure (`AdvBounds`); V_I runs on at most `N` nodes with the budget `viCost N`, the proved
+  honest cost per node times `N` (no-forgery holds for every budget; the cost bound is E2E-11). The constants are paid by the key generations `q` counts, leanXMSS's side condition
   `q + 384 < 2^126` costs nothing (past it the quadratic term is at least one), and T3's cube is
   below the square (T3-2). The price is the lifetime: `q` counts the honest signers' worst-case
   work, so over `2^44` signatures the headline gives `≈ 2^-28`, where the visible family gives
@@ -564,6 +565,25 @@ the statement, each with its reason.
   relation) in place of `WordsCover` and `CandidatesAux` (its strict list is that stack,
   `eq_of_mem_sCandidates_deployed`), `StacksPrecheck` (that stack's rows; collision resistance) and
   `FuelBounds`; §5's knowledge assumption is KA-pw. Plan: `partial-words.md`.
+
+- **E2E-11 (V_I's budget is the proved honest cost).** The game runs V_I with
+  `budgetedQuery budget`, rejecting past the budget, and the headline sets `budget := viCost N =
+  N · viNodeCost`. `viNodeCost` was the placeholder `2^40` and no theorem showed honest proofs fit:
+  every completeness theorem was about V_I without a budget. It is now `179,733,089 ≈ 2^27.42`, the
+  proved bound (`viNodeCost_eq`): per honest node at most `viStepBound = 2^27 − 1 + 45,501,774 + 80`
+  queries (the stack's Merkle tree of height at most `costHeight = 26`; the table check, one query
+  per string with a standard chain among the single candidate's rows, which are strings of the
+  node's log, at most `checksBound` under the shape; sixteen children's digests), and at the root
+  `viRootBound = 13,508` (the IV, the root's digest, V°'s `13,213`, sixteen DA roots' vector digests
+  at `18`), the root's paid by a tree's one node (`queryCount_honest_le_viCost`). Completeness is
+  then stated for V_I exactly as the game runs it (`aggregate_complete_final`): the generator and
+  the honest prover against the lazy oracle, then V_I with `budgetedQuery (viCost N)` on `N` nodes
+  against the game's oracle continuing the same log, rejecting with at most T6-prob's
+  `completeError`. The count of the table check is the reviewer's estimate made exact: `|D|` is the
+  node's log, whose length is the node's checks' query count (`length_nodeLogWith_le`), bounded by
+  `checksBound` through the honest children's and hints' shapes. Why: soundness and completeness
+  are now about one verifier, and `q` carries `≈ 2^27.42` per node instead of `2^40`. Nothing in
+  the soundness chain changes (it holds at every budget).
 
 ## 8. Status: what is proved
 **The headline** (`LeanVM/E2E/Headline.lean`, decision E2E-9, `headline.md`; pinned in
@@ -723,6 +743,17 @@ probability `completeError (QG + QP) pfuel = Q((1 − 2^-17)^pfuel + Q/2^256) + 
 4(Q + 1)/2^256)`, `Q = QG + QP`; `QP ≤ size · nodeQueries pfuel` (about `2^42` per node at
 `pfuel = 2^25`). Not vacuous: the honest leanXMSS leaf generator, error at most `2^-124`
 (`idealVerify_complete_rom_xmssLeaf`).
+**V_I's budget and T6-prob in the game's form** (E2E-11, `headline.md` §8; pinned in `LeanVM.lean`,
+tests in `tests/LeanVMTests/E2E/ViBudget.lean`). `Complete.queryCount_honest_le`
+(`LeanVM/E2E/Complete/Rom/ViCost.lean`): for every hash, at a valid rate, on an honest tree of the
+shape whose root has at most `16` DA claims, V_I on the honest idealized proof makes at most
+`13,508 + fuel · 179,719,581` queries; so `viCost N` covers trees of at most `N` nodes
+(`queryCount_honest_le_viCost`, `viNodeCost = 179,733,089 ≈ 2^27.42`). `aggregate_complete_final`
+(`Headline.lean`, from `Complete.idealVerify_complete_rom_budget`,
+`LeanVM/E2E/Complete/Rom/EndBudget.lean`): the generator, the honest prover, then V_I as the game
+runs it (`budgetedQuery (viCost N)`, fuel `N`, the game's oracle continuing the same lazily sampled
+log) reject the honest proof with probability at most `completeError (QG + QP) pfuel`; `2^-124` at
+the honest leanXMSS leaf.
 T7′ is `Sanity.idealVerify_blake2s` (full words), and with partial words (decision E2E-10)
 `Sanity.idealVerify_blake2s_known` (T7″: the reached partial words encode known stacks). Not proved: the heuristic of §5 relating V_I to the deployed
 `verifyAggregate`.

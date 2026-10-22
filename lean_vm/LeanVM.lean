@@ -314,6 +314,16 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 #guard_msgs (whitespace := lax) in
 #print axioms LeanVM.E2E.aggregate_no_forgery_final_xmss
 
+/-! **The headline's budget covers honest proofs** (`LeanVM/E2E/Headline.lean`): `viNodeCost = 179,733,089 ≈ 2^27.42` is the proved bound on V_I's queries per honest node and at the root (`viNodeCost_eq`), so V_I on `N` nodes makes at most `viCost N` queries on the honest proof of a tree of at most `N` nodes (`queryCount_honest_le_viCost`), and the game's V_I, budget `viCost N` and all, accepts the honest proof of a generated valid tree except with T6-prob's `completeError` (`aggregate_complete_final`). -/
+
+/-- info: 'LeanVM.E2E.queryCount_honest_le_viCost' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.queryCount_honest_le_viCost
+
+/-- info: 'LeanVM.E2E.aggregate_complete_final' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanVM.E2E.aggregate_complete_final
+
 /-! **The sharp headline** (`LeanVM/E2E/HeadlineSharp.lean`): the headline with leanSPHINCS's per-key multi-user bound (`SphincsSetSharp`, every proved set, the certificates' constants evaluated by the kernel): `q · 2^-λ₁ + (30 + D n_s) q²/2^256`, `λ₁ = 116` at `2^20 + 2^20` keys for `full` and `pruned20`, with `30 + D 2^20 ≤ 2^34`. -/
 
 /-- info: 'LeanVM.E2E.aggregate_no_forgery_final_sharp' depends on axioms: [propext, Classical.choice, Quot.sound] -/
@@ -449,3 +459,13 @@ directly, at a constant `H`, meets all of `idealVerify_complete_det`'s hypothese
 /-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_xmssLeaf' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_xmssLeaf
+
+/-! V_I's queries on the honest proof (`LeanVM/E2E/Complete/Rom/ViCost.lean`): at most `viRootBound + fuel · viStepBound`, `13,508 + fuel · 179,719,581`, for every hash; and T6-prob with the game's budget (`LeanVM/E2E/Complete/Rom/EndBudget.lean`): V_I run as the game runs it, with the budgeted hash and a budget of at least `N · viNodeBound`, after the honest prover against the same lazily sampled oracle, rejects with probability at most `completeError`. -/
+
+/-- info: 'LeanVM.E2E.Complete.queryCount_honest_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.queryCount_honest_le
+
+/-- info: 'LeanVM.E2E.Complete.idealVerify_complete_rom_budget' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.E2E.Complete.idealVerify_complete_rom_budget

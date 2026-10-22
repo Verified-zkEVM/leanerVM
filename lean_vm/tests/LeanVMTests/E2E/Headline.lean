@@ -6,7 +6,8 @@ import LeanVM.E2E.Headline
 * `aggregate_no_forgery_final` and its corollaries rest on Lean's three axioms.
 * Every proved leanSPHINCS parameter set has its `SphincsSet` instance, and the headline applies
   at each (instance resolution from the parameter set alone).
-* `q` at the proved costs, at `full`, and V_I's budget `viCost N = N · 2^40`.
+* `q` at the proved costs, at `full`, and V_I's budget `viCost N = N · 179,733,089`, the proved
+  bound on V_I's queries per honest node (`viNodeCost_eq`).
 * The rates: `λ₁ = 106` at `2^20 + 2^20` keys, `126` with leanXMSS keys only, and the exact
   numerator.
 * **One slot** at `full` (`qH + viCost N ≤ 2^64`, `2^20` requests per scheme): at most `2^-42`.
@@ -64,9 +65,13 @@ end Pruned12
 example (nx ns qH sX sS N : ℕ) :
     @totalQueries Sphincs.Lifetimes.full nx ns qH sX sS N =
       nx * 13434881 + ns * 15166603265 + qH + sX * 8630239197 + sS * 23756655991 +
-        N * 2 ^ 40 := by
+        N * 179733089 := by
   rw [@totalQueries_eq Sphincs.Lifetimes.full sphincsSetFull]
   rfl
+
+/-- V_I's per-node budget is the proved bound, between `2^27` and `2^28`. -/
+example : viNodeCost = Complete.viNodeBound ∧ 2 ^ 27 < viNodeCost ∧ viNodeCost < 2 ^ 28 :=
+  ⟨viNodeCost_eq, by norm_num [viNodeCost], by norm_num [viNodeCost]⟩
 
 /-! ## The rates -/
 
