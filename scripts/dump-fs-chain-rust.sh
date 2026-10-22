@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Print known-answer vectors of the pinned leanVM's Fiat-Shamir chain and proof transport, for
-# tests/LeanerVMTests/Protocol/Transcript.lean: the
-# statement seed of a four-instruction program and a public input (`lean_vm::cpu::fs_seed`,
-# crates/lean_vm/src/cpu/mod.rs:82-106), the chain state after seeding, observes, samples and an
-# 8-bit grind with its nonce and checks (crates/fiat_shamir/src/lib.rs:18-174), and a prover
+# tests/LeanerVMTests/Protocol/Transcript.lean and tests/LeanerVMTests/Protocol/Proof.lean: the
+# program hash and statement seed (`lean_vm::cpu::fs_seed`, crates/lean_vm/src/cpu/mod.rs:82-106)
+# of a four-instruction program and of an eight-instruction program with all six opcodes, the
+# chain state after seeding the first with a public input, observes, samples and an 8-bit grind
+# with its nonce and checks (crates/fiat_shamir/src/lib.rs:18-174), and a prover
 # transcript with a scalar, a root, a plain and an `eq` round polynomial and a grind, read back by
 # the verifier (crates/fiat_shamir/src/transcript.rs), at a386121f84292f6fa663aaa3e570c15bc0240ea2.
 # A word is printed as 16 hexadecimal digits; an element of E as its three limbs `c0 c1 c2`.
@@ -78,6 +79,28 @@ fn main() {
     let seed = fs_seed(&program);
     scalar("seed0", seed[0]);
     scalar("seed1", seed[1]);
+
+    // A second program with all six opcodes and the three DEREF modes.
+    let prog6 = vec![
+        Op::Xor { a: 1, b: 2, c: 3 },
+        Op::Mul { a: 4, b: 5, c: 6 },
+        Op::Set { o: 7, k: F192::new(0x4444, 0x5555, 0x6666) },
+        Op::Deref { o1: 8, o2: 9, o3: 10, mode: DerefMode::Cell },
+        Op::Jump { oc: 11, od: 12, of: 13 },
+        Op::Blake2s { ins: [14, 15, 16, 17], cv: 18, out: 19, md: 20 },
+        Op::Deref { o1: 21, o2: 22, o3: 23, mode: DerefMode::Fp },
+        Op::Mul { a: 24, b: 25, c: 26 },
+    ];
+    let table6 = bytecode_table(&prog6);
+    let bytes6: Vec<u8> = table6.iter().flat_map(|w| w.0.to_le_bytes()).collect();
+    println!("table6_len {}", table6.len());
+    println!(
+        "bytecode_hash6 {}",
+        primitives::hash::hash(&bytes6).iter().map(|b| format!("{b:02x}")).collect::<String>()
+    );
+    let seed6 = fs_seed(&Program::assemble(prog6, HashMap::new(), 0));
+    scalar("seed6_0", seed6[0]);
+    scalar("seed6_1", seed6[1]);
     let iv = halves_words(&seed);
     let pi = [F192::new(7, 11, 0), F192::new(13, 17, 0)];
     let piw = halves_words(&pi);

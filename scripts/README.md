@@ -65,7 +65,8 @@
 - `dump-fs-chain-rust.sh <leanVM checkout>`: prints the pinned Fiat–Shamir chain's known
   answers (a program's hash and seed, the state after seeding, observes, squeezes and an 8-bit
   grind) and a prover transcript with a root, two round polynomials and a grind, read back by the
-  pinned verifier, for `tests/LeanerVMTests/Protocol/Transcript.lean`; requires `cargo`.
+  pinned verifier, for `tests/LeanerVMTests/Protocol/Transcript.lean` and
+  `tests/LeanerVMTests/Protocol/Proof.lean`; requires `cargo`.
 
 Keep scripts small and deterministic. Add specialized tooling only with the feature or
 artifact it validates.

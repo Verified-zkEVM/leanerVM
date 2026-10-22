@@ -736,6 +736,41 @@ the prover's nonce search takes fuel, where the Rust loops, and that at `bits â‰
 Rust's debug assertion and far above the deployed `17`, `powOk` asks for a zero first word where a
 release build of the Rust masks the shift.
 
+*On merge* of the proof object's pull request, stacked on the chain's: the proof and its
+transcript, transcribed from `fiat_shamir/src/transcript.rs` and `cpu/mod.rs:108-178`
+(`Protocol/Proof.lean`). `Proof M` is a stream of `E` and the opening phases, generic in the
+opening type `M`, which the Merkle trees will fix. The reader (`ReaderState`, `ReadM` over the
+hash's monad, failing with a `ReadError`) has `nextScalar(s)`, `nextRoot`, `nextRoundPoly`,
+`sample`, `checkPow`, `nextOpening` (with an authenticator), `finish` and `readSizes` (the
+announced sizes and `read_public`'s setup checks, `setupOk`); the writer (`WriteM`) mirrors it.
+`Proof.announced?` and `Proof.sizes?` read the sizes off the stream, and
+`announced?_of_readSizes` says the reader accepts only those. `RoundPoly.decode` derives the
+dropped coefficient from the claim as `transcript.rs:289-309` does (`c_1` in a plain round, `c_0`
+with the equality weight factored out); `decode_encode`, `encode_decode` and `check_of_decode`
+make it an injection onto the polynomials that pass the round's check, and
+`Reader.nextRoundPoly_eq` says that reading a round is reading `d` scalars and decoding them, so
+its chain effect does not depend on the claim. The round trip is
+`ReadsBack`, proved for each pair of mirrored operations at every hash function in `Id` and
+composed along `bind`; `runRead_runWrite`: the reader run on what the writer wrote returns the
+related value and the writer's chain state, with nothing left over. The tests read the Rust's
+transcript (a root, a cubic plain and a quartic factored round, a grind) back to the Rust's
+values and challenges, and each reader check rejects its mutation. The transcript differs from
+the Rust's in no accepted proof: a memory log-size of `0` fails `Proof.announced?` where the Rust
+fails its window; a round takes its degree where the Rust takes its number of coefficients, and at
+degree `0`, where the Rust asserts, the reader rejects and the writer writes a wire the reader
+rejects; a round's coefficients are observed as they are read, as in the Python verifier; and the
+sizes' limbs are checked after all eight are read. The blueprint's Layer 12 sketch owes these
+edits:
+- `Proof` is generic in its opening type.
+- `RoundPoly.decode` takes the factored weight `eq?` and returns `Vector E (d + 1)`, the type of
+  `SumcheckRound.Message`, not `Fin (d + 1) â†’ E`.
+- The sizes come with the rate (`Proof.announced?`), and `Proof.sizes?` is their first component.
+- The prover's grind takes fuel and returns the nonce (`grind fuel s bits`); the verifier's check
+  takes it (`checkPow s bits nonce`).
+- The chain's names: the 64-byte step is `FsState.stepBytes` (the sketch's `Block` and `step`),
+  absorbed by `observe`, `sample` and `absorbNonce`; the grinding predicate (`grinds`) is
+  `powOk`; the challenge of a digest (`chalOfDigest`) is `FsState.challengeOf`.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

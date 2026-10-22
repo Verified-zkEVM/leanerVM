@@ -5,7 +5,8 @@ import LeanerVM.Protocol.Transcript
 
 Known answers of the pinned Rust chain, printed by `scripts/dump-fs-chain-rust.sh` at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`: the program hash and the seed of a four-instruction
-program, the state after seeding with a public input, an observe, two squeezes, the grinding
+program and of an eight-instruction one with all six opcodes, the state after seeding the first
+with a public input, an observe, two squeezes, the grinding
 base, an 8-bit grind with its nonce, and the grinding check at 8 and 0 bits. A word is a
 little-endian 64-bit lane, as the Rust prints it.
 
@@ -54,6 +55,27 @@ def x : E := e3 0x0123456789abcdef 0xfedcba9876543210 0x1111222233334444
 #guard (seedPreimage program).length = 78
 #guard digestScalars (fsSeed program) =
   (e3 0xe7eb7bdcc35ce043 0xa0beba1e8c375954 0, e3 0x9a6fb9db512a13d5 0x379113ef7769af85 0)
+
+/-- The dump's second program: all six opcodes and the three `DEREF` modes. -/
+def program6 : Program where
+  logSize := 3
+  logSize_le := by decide
+  code := ![
+    .xor (gpow 1) (gpow 2) (gpow 3),
+    .mulNative (gpow 4) (gpow 5) (gpow 6),
+    .setConstant (gpow 7) (e3 0x4444 0x5555 0x6666),
+    .deref (gpow 8) (gpow 9) (gpow 10) .cell,
+    .jump (gpow 11) (gpow 12) (gpow 13),
+    .blake2s ![gpow 14, gpow 15, gpow 16, gpow 17] (gpow 18) (gpow 19) (gpow 20),
+    .deref (gpow 21) (gpow 22) (gpow 23) .fp,
+    .mulNative (gpow 24) (gpow 25) (gpow 26)]
+
+-- Its hash, over the 128 words of the stacked table, and its seed.
+#guard (bytecodeColumn program6).values.toList.length = 128
+#guard programHash program6 =
+  digest64 0xcd02df33de7bb8f0 0x8fa90d2df6f6a4a0 0x1c3d2661d73ef48c 0x90a7e71700c19723
+#guard digestScalars (fsSeed program6) =
+  (e3 0x0e0d163fd31c42bb 0x1ca054e25cd520a5 0, e3 0x1a9a486c8a4bc42c 0x407545e2a2cd91fb 0)
 
 /-! ## The chain -/
 
