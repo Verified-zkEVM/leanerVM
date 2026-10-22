@@ -56,9 +56,21 @@ instance (ℓ b t : ℕ) : OracleInterface (Word ℓ b t) where
 def wordOf (ℓ κ R t : ℕ) (f : CMlPolynomialEval E (ℓ + κ)) : Word ℓ (κ + R) t :=
   ⟨fun y ↦ Vector.ofFn fun u ↦ encode (algebraMap K E) κ R (sliceLow f u) y⟩
 
-/-- A row folded by the fold point: `Σ_u eq(r, u) · row[u]`. -/
+/-- A row folded by the fold point: `Σ_u eq(r, u) · row[u]`, with the `2 ^ ℓ` values `eq(r, u)`
+built once. -/
 def foldRow {ℓ : ℕ} (r : Vector E ℓ) (row : Vector E (2 ^ ℓ)) : E :=
-  ∑ u : Fin (2 ^ ℓ), (lagrangeBasis r)[u] * row[u]
+  let b := lagrangeBasis r
+  ∑ u : Fin (2 ^ ℓ), b[u] * row[u]
+
+/-- The rows folded by the fold point, each folded once and stored, so that reading a folded row
+again does not fold it again. -/
+def foldRows {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) : Fin t → E :=
+  let v := Vector.ofFn fun q ↦ foldRow r (a q)
+  fun q ↦ v[q]
+
+theorem foldRows_apply {ℓ t : ℕ} (r : Vector E ℓ) (a : Fin t → Vector E (2 ^ ℓ)) (q : Fin t) :
+    foldRows r a q = foldRow r (a q) := by
+  simp [foldRows]
 
 /-- `fact:fold-decode`: the folded row at a position is the folded table's encoding there. -/
 theorem foldRow_wordOf {ℓ κ : ℕ} (R t : ℕ) (f : CMlPolynomialEval E (ℓ + κ))

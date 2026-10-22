@@ -209,7 +209,8 @@ def finalBatchingSecurity : Component.Security
 /-- What the reading of the last word records: the folded rows at the positions. -/
 private theorem readFinalOut_answer (s : FBd sh (nf + 1)) (o : ∀ i, OneW sh (nf + 1) i) :
     readFinalOut sh nf s (Component.answerOf (OneW sh (nf + 1)) o (readFinalQuery sh nf s)) =
-      { s with cq := cqAt s.toBd o } := rfl
+      { s with cq := cqAt s.toBd o } :=
+  congrArg (fun c ↦ { s with cq := c }) (funext fun q ↦ foldRows_apply _ _ q)
 
 /-- The reading of the last word. -/
 def finalReadSecurity : Component.Security (readFinal sh nf) (relFB (sh := sh) (nf := nf))

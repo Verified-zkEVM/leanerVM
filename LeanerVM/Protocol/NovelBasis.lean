@@ -307,11 +307,20 @@ from its `κ` factors, with its extension `columnWeightMle`. -/
 def columnWeight {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ) (v : Fin (2 ^ (κ + R))) :
     Weight S κ :=
   let w := Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v))
-  { onCube := bitProductTable fun k b ↦ if b then w[k] else 1
+  { cube := .mk fun _ ↦ bitProductTable fun k b ↦ if b then w[k] else 1
     mle := columnWeightMle φ κ R v
     mle_eq := fun r ↦ by
+      show _ = evalMle (bitProductTable fun k b ↦ if b then w[k] else 1) r
       rw [evalMle_bitProductTable]
       exact Finset.prod_congr rfl fun k _ ↦ by simp [w] }
+
+/-- The column weight's values, as built. -/
+theorem columnWeight_onCube {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
+    (v : Fin (2 ^ (κ + R))) :
+    (columnWeight φ κ R v).onCube =
+      bitProductTable fun k b ↦ if b then (Vector.ofFn fun k : Fin κ ↦ φ (normW k (domainPt v)))[k]
+        else 1 :=
+  rfl
 
 /-- The encoder `Enc_{κ,R}`: the message `m`, read as novel-basis coefficients, evaluated on
 the domain. -/
@@ -332,7 +341,7 @@ theorem encode_eq_sum {S : Type*} [CommRing S] (φ : K →+* S) (κ R : ℕ)
     (m : CMlPolynomialEval S κ) (v : Fin (2 ^ (κ + R))) :
     encode φ κ R m v = ∑ u : Fin (2 ^ κ),
       (∏ k : Fin κ, if u.val.testBit k then φ (normW k (domainPt v)) else 1) * m[u] := by
-  simp [encode, columnWeight, Weight.pair, bitProductTable_getElem]
+  simp [encode, columnWeight_onCube, Weight.pair, bitProductTable_getElem]
 
 /-- Encoding commutes with ring homomorphisms of the message ring: with `ψ` the inclusion of `K`
 in `E`, a `K`-valued message gives a `K`-valued word. -/
