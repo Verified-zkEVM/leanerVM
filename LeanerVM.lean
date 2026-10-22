@@ -139,6 +139,7 @@ import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToCompPoly.TableFold
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.ChargedInvariant
+import LeanerVM.Protocol.ToVCVio.EventExpectation
 import LeanerVM.Protocol.ToVCVio.HashChain
 import LeanerVM.Protocol.ToVCVio.Merkle
 import LeanerVM.Protocol.ToVCVio.MerkleLog
