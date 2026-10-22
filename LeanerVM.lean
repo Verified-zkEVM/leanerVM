@@ -1,5 +1,6 @@
 import LeanerVM.Arithmetization.Basic
 import LeanerVM.Arithmetization.Boundary
+import LeanerVM.Arithmetization.Bus
 import LeanerVM.Arithmetization.Bytecode
 import LeanerVM.Arithmetization.Channels
 import LeanerVM.Arithmetization.Rows

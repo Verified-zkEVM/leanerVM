@@ -1,4 +1,5 @@
 import LeanerVMTests.Arithmetization.Boundary
+import LeanerVMTests.Arithmetization.Bus
 import LeanerVMTests.Arithmetization.Bytecode
 import LeanerVMTests.Arithmetization.Channels
 import LeanerVMTests.Arithmetization.Rows
