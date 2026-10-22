@@ -502,7 +502,43 @@ the statement, each with its reason.
   birthday bound below 256 bits. The `…_eps0` forms (against §0's literal `(Q_v+1)²/2^193`) are
   not restated.
 
+- **E2E-9 (the headline: one theorem in `q · 2^-λ₁ + 30 q²/2^256`).** The end theorem is stated
+  as `Pr[Breaks] ≤ q · 2^-λ₁ + 30 q²/2^256` for every adversary, `q` every hash evaluation of the
+  game (E2E-1's count) and `λ₁` depending only on the numbers of keys
+  (`LeanVM/E2E/Headline.lean`, `aggregate_no_forgery_final`; design and alternatives:
+  `headline.md`). Why: one natural count and two rates, instead of a closed form in fourteen
+  arguments. The parameter sets are instances of a class (`SphincsSet`); the adversary's resources a
+  structure (`AdvBounds`); V_I runs on at most `N` nodes with the budget `viCost N = N · 2^40`, a
+  definition (no-forgery holds for every budget; the per-node cost bound is a completeness
+  obligation). The constants are paid by the key generations `q` counts, leanXMSS's side condition
+  `q + 384 < 2^126` costs nothing (past it the quadratic term is at least one), and T3's cube is
+  below the square (T3-2). The price is the lifetime: `q` counts the honest signers' worst-case
+  work, so over `2^44` signatures the headline gives `≈ 2^-28`, where the visible family gives
+  `≈ 2^-42`; no single `q` gets both (`headline.md` §3).
+
 ## 8. Status: what is proved
+**The headline** (`LeanVM/E2E/Headline.lean`, decision E2E-9, `headline.md`; pinned in
+`LeanVM.lean` at Lean's three axioms, tests in `tests/LeanVMTests/E2E/Headline.lean`).
+`aggregate_no_forgery_final`: for every leanSPHINCS parameter set (`SphincsSet`, one instance per
+proved set), every numbers `n_x`, `n_s` of honest keys, every tree size `N` and every adversary
+making at most `qH` hash queries, `sX` leanXMSS and `sS` leanSPHINCS signing requests
+(`AdvBounds`), its only hypothesis:
+
+    Pr[ game guest N (viCost N) A : Breaks ] ≤ q · 2^-λ₁ + 30 q²/2^256,
+    q = 13,434,881 n_x + csk_b n_s + qH + 8,630,239,197 sX + css_b sS + viCost N,
+    2^-λ₁ = (3 + 2 n_s + 1/16 + n_x/2^22)/2^128,   λ₁ ≈ 127 − log₂(n_s + 1.53).
+
+`q` is every hash evaluation of the game. `λ₁` is the same at every parameter set: `106` at
+`2^20 + 2^20` keys (exactly `106.999998`, `aggregate_no_forgery_final_deployed`), `126` with
+leanXMSS keys only (`n_x ≤ 2^21`, `aggregate_no_forgery_final_xmss`), `127 − k` whenever
+`n_s + 2 ≤ 2^k` (`noForgeryRate_le`); leanXMSS keys cost nothing (its multi-user bound is free of
+`n_x`). The quadratic term `30 q²/2^256` is the failures' `13`, leanXMSS's `q²/2^252` (`16`) and
+T3's `q³/(6·2^384) ≤ q²/2^256` (`1`). No cap and no side condition. One slot at `full`
+(`qH + viCost N ≤ 2^64`, `2^20` requests per scheme): `≤ 2^-42` (about `2^-43.0`). Over a lifetime
+(`2^44` requests per scheme) `q ≈ 2^78.9`, dominated by the honest signers' worst-case work, and
+the headline gives `≈ 2^-28`; the visible family below gives `≈ 2^-42` there. The theorems below
+are kept until one cleanup pass (`headline.md` §6).
+
 **The end theorem, fully instantiated** (`LeanVM/E2E/Deployed.lean`, pinned in `LeanVM.lean` at
 Lean's three axioms). The game is generic in the leanSPHINCS parameter set (`[Sphincs.Params]`):
 key generation and signing depend on the subtree height `b`, verification does not, and the
