@@ -100,21 +100,13 @@ theorem answersIn_cacheQuery {spec : OracleSpec.{0, 0} ι}
     · subst ht
       simp [hc, eq_comm]
     · simp [ht]
-  have hnot : (⟨t, u⟩ : (t : spec.Domain) × spec.Range t) ∉ c.toSet ∩ {p | S p.1 p.2} :=
-    fun h ↦ by simp [hc] at h
   unfold answersIn
-  rw [hset]
-  split_ifs with hS
-  · rw [Set.insert_inter_of_mem (show _ ∈ {p : (t : spec.Domain) × spec.Range t | S p.1 p.2}
-      from hS), Set.encard_insert_of_notMem hnot]
-    simp
-  · rw [Set.insert_inter_of_notMem (show _ ∉ {p : (t : spec.Domain) × spec.Range t | S p.1 p.2}
-      from hS)]
-    simp
+  split_ifs with hS <;> simp [hset, Set.insert_inter_of_mem, Set.insert_inter_of_notMem, hS,
+    Set.encard_insert_of_notMem, hc]
 
-/-- `n - 1` queries after one, when there is one. -/
-private theorem cast_pred_add_one {n : ℕ} (hn : 0 < n) : ((n - 1 : ℕ) : ℝ≥0∞) + 1 = n := by
-  rw [← Nat.cast_add_one, Nat.sub_add_cancel (Nat.succ_le_of_lt hn)]
+/-- One query, then `n - 1` more. -/
+private theorem cast_eq_one_add_pred {n : ℕ} (hn : 0 < n) : (n : ℝ≥0∞) = 1 + (n - 1 : ℕ) := by
+  rw [add_comm, ← Nat.cast_add_one, Nat.sub_add_cancel hn]
 
 namespace QueryHistory
 
@@ -181,15 +173,11 @@ theorem chargedOracle_run_of_none (charge : σ → spec.Domain → ℝ≥0∞) {
 
 /-- On the cache alone, the oracle is `randomOracle`. -/
 theorem randomOracle_cache :
-    (cache : QueryHistory spec spec.QueryCache).randomOracle = spec.randomOracle := by
-  funext t
-  refine StateT.ext fun c ↦ ?_
-  cases h : c t with
-  | some u =>
-    rw [randomOracle_run_of_some cache (u := u) h, QueryImpl.withCaching_run_some _ h]
-  | none =>
-    rw [randomOracle_run_of_none cache h, QueryImpl.withCaching_run_none _ h]
-    rfl
+    (cache : QueryHistory spec spec.QueryCache).randomOracle = spec.randomOracle :=
+  funext fun t ↦ StateT.ext fun c ↦ by
+    cases h : c t with
+    | some u => rw [randomOracle_run_of_some cache h, QueryImpl.withCaching_run_some _ h]
+    | none => rw [randomOracle_run_of_none cache h, QueryImpl.withCaching_run_none _ h]; rfl
 
 omit [DecidableEq ι] [∀ t, SampleableType (spec.Range t)] in
 /-- Running a query and then a continuation under a stateful implementation. -/
@@ -198,6 +186,14 @@ private theorem run_query_bind {τ : Type} (impl : QueryImpl spec (StateT τ Pro
     (simulateQ impl (liftM (spec.query t) >>= k)).run s =
       (impl t).run s >>= fun p ↦ (simulateQ impl (k p.1)).run p.2 := by
   rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind]
+
+omit [∀ t, SampleableType (spec.Range t)] in
+/-- A fresh query and at most `n - 1` more add at most `n` entries to the cache. -/
+private theorem enncard_view_record_add_le {s : σ} {t : spec.Domain} (h : H.view s t = none)
+    (u : spec.Range t) {n : ℕ} (hn : 0 < n) :
+    (H.view (H.record s t u)).enncard + (n - 1 : ℕ) ≤ (H.view s).enncard + n := by
+  rw [H.view_record _ _ _ h, cast_eq_one_add_pred hn, ← add_assoc]
+  exact add_le_add (QueryCache.enncard_cacheQuery_le _ t u) le_rfl
 
 /-- The oracle on `H`'s state keeps the cache of `randomOracle`. -/
 theorem randomOracle_run_view (oa : OracleComp spec α) (s : σ) :
@@ -217,15 +213,12 @@ theorem chargedOracle_run_map (charge : σ → spec.Domain → ℝ≥0∞) (oa :
     (s : σ) (total : ℝ≥0∞) :
     Prod.map id Prod.fst <$> (simulateQ (H.chargedOracle charge) oa).run (s, total) =
       (simulateQ H.randomOracle oa).run s :=
-  OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ Prod.fst (fun t p ↦ by
-    obtain ⟨s, a⟩ := p
+  OracleComp.map_run_simulateQ_eq_of_query_map_eq _ _ Prod.fst (fun t ⟨s, a⟩ ↦ by
     cases h : H.view s t with
-    | some u =>
-      rw [H.chargedOracle_run_of_some charge h, H.randomOracle_run_of_some h]
-      simp
+    | some u => simp [H.chargedOracle_run_of_some charge h, H.randomOracle_run_of_some h]
     | none =>
-      rw [H.chargedOracle_run_of_none charge h, H.randomOracle_run_of_none h]
-      simp [Functor.map_map]) oa (s, total)
+      simp [H.chargedOracle_run_of_none charge h, H.randomOracle_run_of_none h,
+        Functor.map_map]) oa (s, total)
 
 /-- A run from total `total` is a run from total `0` with `total` added. -/
 theorem chargedOracle_run_total (charge : σ → spec.Domain → ℝ≥0∞) (oa : OracleComp spec α)
@@ -233,30 +226,13 @@ theorem chargedOracle_run_total (charge : σ → spec.Domain → ℝ≥0∞) (oa
     (simulateQ (H.chargedOracle charge) oa).run (s, total) =
       (fun z ↦ (z.1, z.2.1, total + z.2.2)) <$>
         (simulateQ (H.chargedOracle charge) oa).run (s, 0) := by
-  induction oa using OracleComp.inductionOn generalizing s total with
-  | pure a => simp
-  | query_bind t k ih =>
-    rw [run_query_bind, run_query_bind]
-    cases h : H.view s t with
-    | some u =>
-      rw [H.chargedOracle_run_of_some charge h, H.chargedOracle_run_of_some charge h,
-        pure_bind, pure_bind]
-      exact ih u s total
-    | none =>
-      rw [H.chargedOracle_run_of_none charge h, H.chargedOracle_run_of_none charge h,
-        bind_map_left, bind_map_left, map_bind]
-      refine bind_congr fun u ↦ ?_
-      rw [ih u _ (total + charge s t), ih u _ (0 + charge s t), Functor.map_map]
-      simp [add_assoc]
-
-/-- The expected total of a run from total `total` is `total` plus that of a run from `0`. -/
-private theorem lintegral_total_eq_add (charge : σ → spec.Domain → ℝ≥0∞)
-    (oa : OracleComp spec α) (s : σ) (total : ℝ≥0∞) :
-    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (H.chargedOracle charge) oa).run (s, total)] =
-      total + ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
-        (simulateQ (H.chargedOracle charge) oa).run (s, 0)] := by
-  rw [H.chargedOracle_run_total charge oa s total, Functor.map_map]
-  exact lintegral_id_evalDist_map_const_add _ (OracleComp.prEvent_true_eq_one _) total _
+  have := OracleComp.map_run_simulateQ_eq_of_query_map_eq (H.chargedOracle charge)
+    (H.chargedOracle charge) (fun p ↦ (p.1, total + p.2))
+    (fun t ⟨s, a⟩ ↦ by
+      cases h : H.view s t with
+      | some u => simp [H.chargedOracle_run_of_some charge h]
+      | none => simp [H.chargedOracle_run_of_none charge h, Functor.map_map, add_assoc]) oa (s, 0)
+  rwa [add_zero, eq_comm] at this
 
 /-- **Expected potential.** If at every fresh query the expected potential of the state after
 the uniform answer is at most the potential before plus the query's charge, the expected final
@@ -282,16 +258,11 @@ theorem potential_le_expected_charge (Φ : σ → ℝ≥0∞) (charge : σ → s
     | none =>
       rw [H.randomOracle_run_of_none h, H.chargedOracle_run_of_none charge h, bind_map_left,
         bind_map_left, lintegral_id_evalDist_map_bind, lintegral_id_evalDist_map_bind]
-      dsimp only
-      simp only [zero_add, H.lintegral_total_eq_add charge _ _ (charge s t)]
-      rw [lintegral_id_evalDist_map_const_add _ (OracleComp.prEvent_true_eq_one _),
-        ← add_assoc]
-      calc _ ≤ ∫⁻ r, r ∂𝒟[(fun u ↦ Φ (H.record s t u) + ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
-              (simulateQ (H.chargedOracle charge) (k u)).run (H.record s t u, 0)]) <$>
-              ($ᵗ spec.Range t)] :=
-            lintegral_id_evalDist_map_mono _ fun u ↦ ih u _
-        _ = _ := lintegral_id_evalDist_map_add _ _ _
-        _ ≤ _ := add_le_add_left (hstep s t h) _
+      simp only [zero_add, H.chargedOracle_run_total charge _ _ (charge s t), Functor.map_map,
+        lintegral_id_evalDist_map_const_add _ (OracleComp.prEvent_true_eq_one _)]
+      refine (lintegral_id_evalDist_map_mono _ fun u ↦ ih u (H.record s t u)).trans ?_
+      rw [lintegral_id_evalDist_map_add, ← add_assoc]
+      exact add_le_add_left (hstep s t h) _
 
 /-- An event on the output and the final state on which the potential is at least `1` has
 probability at most the initial potential plus the expected total charge. -/
@@ -305,11 +276,10 @@ theorem prEvent_le_of_potential (E : α × σ → Prop) (Φ : σ → ℝ≥0∞)
         (simulateQ (H.chargedOracle charge) oa).run (s, 0)] := by
   classical
   rw [prEvent_eq_lintegral_id_evalDist_map_ite]
-  refine le_trans (lintegral_id_evalDist_map_mono _ fun z ↦ ?_)
+  refine (lintegral_id_evalDist_map_mono _ fun z ↦ ?_).trans
     (H.potential_le_expected_charge Φ charge hstep oa s)
   split_ifs with h
-  · exact hE z h
-  · exact bot_le
+  exacts [hE z h, bot_le]
 
 /-- **The charged invariant.** Let `Good` hold of the initial state, and let a fresh query `t`
 at a good state `s` break it with probability at most `charge s t` over the uniform answer.
@@ -322,14 +292,13 @@ theorem prEvent_not_good_le_expected_charge (Good : σ → Prop)
     Pr{let z ← (simulateQ H.randomOracle oa).run s}[¬ Good z.2] ≤
       ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (H.chargedOracle charge) oa).run (s, 0)] := by
   classical
-  have h := H.prEvent_le_of_potential (fun z ↦ ¬ Good z.2) (fun s ↦ if ¬ Good s then 1 else 0)
-    (fun z hz ↦ by simp [hz]) charge (fun s t ht ↦ ?_) oa s
-  · simpa only [hs, not_true_eq_false, ↓reduceIte, zero_add] using h
-  · by_cases hg : Good s
-    · simp only [hg, not_true_eq_false, ↓reduceIte, zero_add]
-      exact (prEvent_eq_lintegral_id_evalDist_map_ite _ _).symm.trans_le (hstep s t ht hg)
-    · simp only [hg, not_false_eq_true, ↓reduceIte]
-      exact (lintegral_id_evalDist_map_le_of_le _ fun u ↦ by split_ifs <;> simp).trans le_self_add
+  refine (H.prEvent_le_of_potential (fun z ↦ ¬ Good z.2) (fun s ↦ if ¬ Good s then 1 else 0)
+    (fun z hz ↦ by simp [hz]) charge (fun s t ht ↦ ?_) oa s).trans_eq
+    (by simp only [hs, not_true_eq_false, ↓reduceIte, zero_add])
+  split_ifs with hg
+  · exact (prEvent_eq_lintegral_id_evalDist_map_ite _ _).symm.trans_le
+      ((hstep s t ht hg).trans_eq (zero_add _).symm)
+  · exact (lintegral_id_evalDist_map_le_of_le _ fun u ↦ by split_ifs <;> simp).trans le_self_add
 
 /-- A computation making at most `n` queries adds at most `n` entries to the cache. -/
 theorem enncard_le_of_mem_support {oa : OracleComp spec α} {n : ℕ} (hn : IsTotalQueryBound oa n)
@@ -337,8 +306,7 @@ theorem enncard_le_of_mem_support {oa : OracleComp spec α} {n : ℕ} (hn : IsTo
     (H.view z.2).enncard ≤ (H.view s).enncard + n := by
   induction oa using OracleComp.inductionOn generalizing n s with
   | pure a =>
-    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
+    obtain rfl : z = (a, s) := by simpa using hz
     exact le_self_add
   | query_bind t k ih =>
     obtain ⟨hpos, hk⟩ := isTotalQueryBound_query_bind_iff.mp hn
@@ -348,14 +316,11 @@ theorem enncard_le_of_mem_support {oa : OracleComp spec α} {n : ℕ} (hn : IsTo
     | some u =>
       rw [H.randomOracle_run_of_some h, support_pure, Set.mem_singleton_iff] at hp
       subst hp
-      exact (ih u (hk u) s hz).trans (by gcongr; omega)
+      exact (ih u (hk u) s hz).trans (add_le_add le_rfl (Nat.cast_le.mpr (n.sub_le 1)))
     | none =>
       rw [H.randomOracle_run_of_none h, support_map] at hp
       obtain ⟨u, -, rfl⟩ := hp
-      refine (ih u (hk u) _ hz).trans ?_
-      rw [H.view_record _ _ _ h, ← cast_pred_add_one hpos, add_comm _ (1 : ℝ≥0∞), ← add_assoc]
-      gcongr
-      exact QueryCache.enncard_cacheQuery_le _ t u
+      exact (ih u (hk u) _ hz).trans (H.enncard_view_record_add_le h u hpos)
 
 /-- If every state reached within the budget is charged at most `κ` at a fresh query, a run of
 at most `n` queries adds at most `n * κ` to the total. A state is reached within the budget if
@@ -369,38 +334,27 @@ theorem charge_le_of_mem_support {charge : σ → spec.Domain → ℝ≥0∞} {�
     z.2.2 ≤ total + n * κ := by
   induction oa using OracleComp.inductionOn generalizing n s total with
   | pure a =>
-    simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
-    subst hz
-    exact le_self_add (a := total)
+    obtain rfl : z = (a, s, total) := by simpa using hz
+    exact le_self_add
   | query_bind t k ih =>
     obtain ⟨hpos, hk⟩ := isTotalQueryBound_query_bind_iff.mp hn
-    have hsplit : (n : ℝ≥0∞) * κ = κ + ((n - 1 : ℕ) : ℝ≥0∞) * κ := by
-      rw [← cast_pred_add_one hpos, add_mul, one_mul, add_comm]
     rw [run_query_bind, mem_support_bind_iff] at hz
     obtain ⟨p, hp, hz⟩ := hz
     cases h : H.view s t with
     | some u =>
       rw [H.chargedOracle_run_of_some charge h, support_pure, Set.mem_singleton_iff] at hp
       subst hp
-      refine (ih u (hk u) s (fun s' t' ht' hs' ↦ hκ s' t' ht' (hs'.trans ?_)) total hz).trans ?_
-      · gcongr
-        omega
-      · rw [hsplit]
-        gcongr
-        exact le_add_self
+      have hle : ((n - 1 : ℕ) : ℝ≥0∞) ≤ n := Nat.cast_le.mpr (n.sub_le 1)
+      exact (ih u (hk u) s (fun s' t' ht' hs' ↦ hκ s' t' ht' (hs'.trans (add_le_add le_rfl hle)))
+        total hz).trans (add_le_add le_rfl (mul_le_mul' hle le_rfl))
     | none =>
       rw [H.chargedOracle_run_of_none charge h, support_map] at hp
       obtain ⟨u, -, rfl⟩ := hp
-      refine (ih u (hk u) _ (fun s' t' ht' hs' ↦ hκ s' t' ht' (hs'.trans ?_)) _ hz).trans ?_
-      · rw [H.view_record _ _ _ h, ← cast_pred_add_one hpos, add_comm _ (1 : ℝ≥0∞),
-          ← add_assoc]
-        gcongr
-        exact QueryCache.enncard_cacheQuery_le _ t u
-      · rw [hsplit, ← add_assoc]
-        gcongr
-        refine hκ s t h ?_
-        gcongr
-        exact_mod_cast hpos
+      refine (ih u (hk u) _ (fun s' t' ht' hs' ↦
+        hκ s' t' ht' (hs'.trans (H.enncard_view_record_add_le h u hpos))) _ hz).trans ?_
+      have hc := hκ s t h (add_le_add le_rfl (Nat.one_le_cast.mpr hpos))
+      rw [cast_eq_one_add_pred hpos, add_mul, one_mul, ← add_assoc]
+      exact add_le_add (add_le_add le_rfl hc) le_rfl
 
 /-- The expected total charge of a run of at most `n` queries, every state reached within the
 budget charged at most `κ`, is at most `n * κ`. -/
@@ -423,13 +377,12 @@ theorem prEvent_not_good_le_mul (Good : σ → Prop) {κ : ℝ≥0∞} {oa : Ora
       Pr{let u ← $ᵗ spec.Range t}[¬ Good (H.record s' t u)] ≤ κ) :
     Pr{let z ← (simulateQ H.randomOracle oa).run s}[¬ Good z.2] ≤ n * κ := by
   classical
-  let charge : σ → spec.Domain → ℝ≥0∞ := fun s' _ ↦
-    if (H.view s').enncard + 1 ≤ (H.view s).enncard + n then κ else 1
-  refine (H.prEvent_not_good_le_expected_charge Good charge (fun s' t ht hg ↦ ?_) oa hs).trans
-    (H.expected_charge_le_mul hn s fun s' t _ hs' ↦ by simp [charge, hs'])
-  by_cases hs' : (H.view s').enncard + 1 ≤ (H.view s).enncard + n
-  · simpa [charge, hs'] using hstep s' t ht hg hs'
-  · simp [charge, hs']
+  refine (H.prEvent_not_good_le_expected_charge Good
+    (fun s' _ ↦ if (H.view s').enncard + 1 ≤ (H.view s).enncard + n then κ else 1)
+    (fun s' t ht hg ↦ ?_) oa hs).trans
+    (H.expected_charge_le_mul hn s fun s' t _ hs' ↦ by simp [hs'])
+  split_ifs with hs'
+  exacts [hstep s' t ht hg hs', by simp]
 
 /-- **Expected count.** If a fresh answer satisfies `S` with probability at most `p`, a
 computation making at most `n` queries caches in expectation at most `n * p` fresh answers
@@ -464,9 +417,8 @@ abbrev chargedRandomOracle (charge : spec.QueryCache → spec.Domain → ℝ≥0
 theorem chargedRandomOracle_run_map (charge : spec.QueryCache → spec.Domain → ℝ≥0∞)
     (oa : OracleComp spec α) (c : spec.QueryCache) (total : ℝ≥0∞) :
     Prod.map id Prod.fst <$> (simulateQ (chargedRandomOracle charge) oa).run (c, total) =
-      (simulateQ spec.randomOracle oa).run c := by
-  rw [← QueryHistory.randomOracle_cache]
-  exact QueryHistory.cache.chargedOracle_run_map charge oa c total
+      (simulateQ spec.randomOracle oa).run c :=
+  QueryHistory.randomOracle_cache (spec := spec) ▸ QueryHistory.cache.chargedOracle_run_map ..
 
 /-- **Expected potential**, for the cache of `randomOracle`. -/
 theorem potential_le_expected_charge (Φ : spec.QueryCache → ℝ≥0∞)
@@ -476,9 +428,9 @@ theorem potential_le_expected_charge (Φ : spec.QueryCache → ℝ≥0∞)
     (oa : OracleComp spec α) (c : spec.QueryCache) :
     ∫⁻ r, r ∂𝒟[(fun z ↦ Φ z.2) <$> (simulateQ spec.randomOracle oa).run c] ≤
       Φ c + ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
-        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] := by
-  rw [← QueryHistory.randomOracle_cache]
-  exact QueryHistory.cache.potential_le_expected_charge Φ charge hstep oa c
+        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] :=
+  QueryHistory.randomOracle_cache (spec := spec) ▸
+    QueryHistory.cache.potential_le_expected_charge Φ charge hstep oa c
 
 /-- An event on the output and the final cache on which the potential is at least `1`, for
 `randomOracle`. -/
@@ -489,9 +441,9 @@ theorem prEvent_le_of_potential (E : α × spec.QueryCache → Prop) (Φ : spec.
     (oa : OracleComp spec α) (c : spec.QueryCache) :
     Pr{let z ← (simulateQ spec.randomOracle oa).run c}[E z] ≤
       Φ c + ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
-        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] := by
-  rw [← QueryHistory.randomOracle_cache]
-  exact QueryHistory.cache.prEvent_le_of_potential E Φ hE charge hstep oa c
+        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] :=
+  QueryHistory.randomOracle_cache (spec := spec) ▸
+    QueryHistory.cache.prEvent_le_of_potential E Φ hE charge hstep oa c
 
 /-- **The charged invariant**, for the cache of `randomOracle`. -/
 theorem prEvent_not_good_le_expected_charge (Good : spec.QueryCache → Prop)
@@ -501,18 +453,18 @@ theorem prEvent_not_good_le_expected_charge (Good : spec.QueryCache → Prop)
     (oa : OracleComp spec α) {c : spec.QueryCache} (hc : Good c) :
     Pr{let z ← (simulateQ spec.randomOracle oa).run c}[¬ Good z.2] ≤
       ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
-        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] := by
-  rw [← QueryHistory.randomOracle_cache]
-  exact QueryHistory.cache.prEvent_not_good_le_expected_charge Good charge hstep oa hc
+        (simulateQ (chargedRandomOracle charge) oa).run (c, 0)] :=
+  QueryHistory.randomOracle_cache (spec := spec) ▸
+    QueryHistory.cache.prEvent_not_good_le_expected_charge Good charge hstep oa hc
 
 /-- A computation making at most `n` queries to `randomOracle` adds at most `n` entries to
 its cache. -/
 theorem enncard_le_of_mem_support {oa : OracleComp spec α} {n : ℕ} (hn : IsTotalQueryBound oa n)
     (c : spec.QueryCache) {z : α × spec.QueryCache}
     (hz : z ∈ support ((simulateQ spec.randomOracle oa).run c)) :
-    z.2.enncard ≤ c.enncard + n := by
-  rw [← QueryHistory.randomOracle_cache] at hz
-  exact QueryHistory.cache.enncard_le_of_mem_support hn c hz
+    z.2.enncard ≤ c.enncard + n :=
+  QueryHistory.cache.enncard_le_of_mem_support hn c
+    (QueryHistory.randomOracle_cache (spec := spec) ▸ hz)
 
 /-- **The charged invariant, uniform charge**, for the cache of `randomOracle`. -/
 theorem prEvent_not_good_le_mul (Good : spec.QueryCache → Prop) {κ : ℝ≥0∞}
@@ -520,9 +472,9 @@ theorem prEvent_not_good_le_mul (Good : spec.QueryCache → Prop) {κ : ℝ≥0�
     (hc : Good c)
     (hstep : ∀ c' t, c' t = none → Good c' → c'.enncard + 1 ≤ c.enncard + n →
       Pr{let u ← $ᵗ spec.Range t}[¬ Good (c'.cacheQuery t u)] ≤ κ) :
-    Pr{let z ← (simulateQ spec.randomOracle oa).run c}[¬ Good z.2] ≤ n * κ := by
-  rw [← QueryHistory.randomOracle_cache]
-  exact QueryHistory.cache.prEvent_not_good_le_mul Good hn hc hstep
+    Pr{let z ← (simulateQ spec.randomOracle oa).run c}[¬ Good z.2] ≤ n * κ :=
+  QueryHistory.randomOracle_cache (spec := spec) ▸
+    QueryHistory.cache.prEvent_not_good_le_mul Good hn hc hstep
 
 /-- **Expected count, for a set of answers.** A computation making at most `n` queries to a
 random oracle answering in `Y` caches in expectation at most `n * |S| / |Y|` fresh answers in
@@ -532,12 +484,10 @@ theorem expected_fresh_in_le {Y : Type} [SampleableType Y] [Fintype Y] (S : Fins
     ∫⁻ r, r ∂𝒟[(fun z ↦ answersIn (fun _ (u : Y) ↦ u ∈ S) z.2) <$>
       (simulateQ (ι →ₒ Y).randomOracle oa).run ∅] ≤ n * (S.card / Fintype.card Y) := by
   classical
-  have hS (t : ι) :
-      Pr{let u ← $ᵗ (ι →ₒ Y).Range t}[u ∈ S] ≤ (S.card / Fintype.card Y : ℝ≥0∞) := by
-    rw [SampleableType.prEvent_uniformSample (α := Y)]
-    simp
   rw [← QueryHistory.randomOracle_cache]
-  simpa using QueryHistory.cache.expected_fresh_le (fun _ (u : Y) ↦ u ∈ S) hS hn ∅
+  simpa only [QueryHistory.cache_view, answersIn_empty, zero_add] using
+    QueryHistory.cache.expected_fresh_le (fun _ (u : Y) ↦ u ∈ S)
+      (fun _ ↦ (SampleableType.prEvent_uniformSample_le_div_iff (α := Y) _).2 (by simp)) hn ∅
 
 end
 

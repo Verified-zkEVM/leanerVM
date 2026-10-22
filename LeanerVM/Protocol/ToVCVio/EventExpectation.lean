@@ -35,7 +35,7 @@ theorem prEvent_eq_lintegral_id_evalDist_map_ite (mx : m α) (p : α → Prop) [
   let : MeasurableSpace α := ⊤
   rw [prEvent_eq_evalDist_of_discrete, lintegral_id_evalDist_map,
     ← lintegral_indicator_one MeasurableSet.of_discrete]
-  exact lintegral_congr fun x ↦ by by_cases hx : p x <;> simp [hx]
+  exact lintegral_congr fun x ↦ by simp [Set.indicator_apply]
 
 /-- Over a computation that does not fail, a constant comes out of an expectation. -/
 theorem lintegral_id_evalDist_map_const_add (mx : m α) (hmx : Pr{let _ ← mx}[True] = 1)
