@@ -70,6 +70,7 @@ import LeanerVMTests.Protocol.WhirCached
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold
 import LeanerVMTests.Protocol.WhirGlue
+import LeanerVMTests.Protocol.WhirJohnson
 import LeanerVMTests.Protocol.WhirLists
 import LeanerVMTests.Protocol.WhirOpen
 import LeanerVMTests.Protocol.WhirSound

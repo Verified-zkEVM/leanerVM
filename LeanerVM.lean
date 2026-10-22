@@ -92,6 +92,7 @@ import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
 import LeanerVM.Protocol.ToArkLib.MapWitness
+import LeanerVM.Protocol.ToArkLib.McaJohnson
 import LeanerVM.Protocol.ToArkLib.Oracles
 import LeanerVM.Protocol.ToArkLib.PassCheck
 import LeanerVM.Protocol.ToArkLib.PassThrough
@@ -146,11 +147,13 @@ import LeanerVM.Protocol.Transcript
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
+import LeanerVM.Protocol.Whir.Deployed
 import LeanerVM.Protocol.Whir.Exact
 import LeanerVM.Protocol.Whir.Final
 import LeanerVM.Protocol.Whir.FinalSound
 import LeanerVM.Protocol.Whir.FoldSound
 import LeanerVM.Protocol.Whir.Glue
+import LeanerVM.Protocol.Whir.Johnson
 import LeanerVM.Protocol.Whir.Lanes
 import LeanerVM.Protocol.Whir.Level
 import LeanerVM.Protocol.Whir.LevelSound
