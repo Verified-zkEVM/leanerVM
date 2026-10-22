@@ -898,6 +898,33 @@ positions against the Rust's two-limb read by hand-computed values. It still owe
 the verifier's `walkPositions` reads `challengePositions` of its squeezes' challenges, the step of
 the potential for a group's later queries, and `misbehaves_rom` itself.
 
+*On merge* of the list-binding branch (`feat/protocol-list-binding`), the list-binding compilation
+is on `main` (`Protocol/ListBinding.lean`, `Protocol/Whir/Decode.lean`, and the generic
+`ToArkLib/Relist.lean`, `ToArkLib/SendEncoded.lean`, `ToArkLib/MapOracles.lean`,
+`ToCompPoly/LinearSolve.lean`). `listBinding_compile` is the security of
+`commitWord ⟫ fronts ⟫ batch ⟫ openInput ⟫ whirOpen L` from `M3Rel I` to acceptance at
+`listBindingError`: `L₀` times the oracle protocol's errors on its challenges, `L₀` level 0's list
+bound, and `openErr L ps` on WHIR's; for every bundle of phases with its security, every chain with
+its parameters and every `ListDecoder` at level 0's threshold `(L.headPar ps).a`. The extractor
+list-decodes the committed `K` word and picks the first stack satisfying `M3Holds`
+(`commitPick`). `ListDecoder` is specified by WHIR's list relation (`mem_iff`); its inhabitants
+are `ListDecoder.bruteForce` (Gaussian elimination over `K` on every set of `2 ^ κ` positions),
+`ListDecoder.exactFirst` (the exact path, `exactFast_eq`, then a fallback) and, at exact
+agreement, `ListDecoder.exact`; `isInK_of_cl` makes the members of a `K` word's list `K`-valued.
+`Component.Front.relist` is the generic step. `listBinding_perfectCompleteness` is the other half,
+from the phases' completeness: each carries over to the phase over the word
+(`Component.Front.overComplete`) at its seam read on the honest word, and WHIR's opening receives
+the honest word of the stack in `E` (`kwordOf_lift`). The shapes differ from the blueprint's sketch in
+four places: `relist` takes the front component over the new oracles with a proof that its check
+and verdict are the old ones (`Front.over` builds it, answering the oracle queries the front
+verifier never makes), and the list is a `List` with a length bound; the committed word is a
+`K` word (`KWord`), so that every member of its list is a stack, and a zero-round step
+`openInput` reads it in `E` for WHIR (a virtual output oracle, `Component.mapOracles`), whose
+security is the seam to `relOpen` (`relist_of_relOpen`); `listBinding_compile` takes the height
+equation `κ + sh.ℓ = I.μ`; `exactFast_eq` holds at every threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`,
+with no unique-decoding condition. It still owes the inverse additive transform for a fast exact
+path at deployed sizes, and the instantiation at the deployed chain with a Johnson list bound.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

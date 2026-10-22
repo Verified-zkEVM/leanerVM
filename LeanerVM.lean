@@ -44,6 +44,7 @@ import LeanerVM.Protocol.LeanIsa.Complete
 import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
+import LeanerVM.Protocol.ListBinding
 import LeanerVM.Protocol.NovelBasis
 import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.MerkleBinding
@@ -91,6 +92,7 @@ import LeanerVM.Protocol.ToArkLib.GuardedVerdict
 import LeanerVM.Protocol.ToArkLib.InnerProduct
 import LeanerVM.Protocol.ToArkLib.KeepOracles
 import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
+import LeanerVM.Protocol.ToArkLib.MapOracles
 import LeanerVM.Protocol.ToArkLib.MapWitness
 import LeanerVM.Protocol.ToArkLib.McaJohnson
 import LeanerVM.Protocol.ToArkLib.Oracles
@@ -103,9 +105,11 @@ import LeanerVM.Protocol.ToArkLib.QueryCheck
 import LeanerVM.Protocol.ToArkLib.QueryRecord
 import LeanerVM.Protocol.ToArkLib.Refinement
 import LeanerVM.Protocol.ToArkLib.Refutation
+import LeanerVM.Protocol.ToArkLib.Relist
 import LeanerVM.Protocol.ToArkLib.SampleChallenge
 import LeanerVM.Protocol.ToArkLib.Schedule
 import LeanerVM.Protocol.ToArkLib.SendChecked
+import LeanerVM.Protocol.ToArkLib.SendEncoded
 import LeanerVM.Protocol.ToArkLib.SendOracle
 import LeanerVM.Protocol.ToArkLib.SendOracleBeside
 import LeanerVM.Protocol.ToArkLib.StepSchedule
@@ -127,6 +131,7 @@ import LeanerVM.Protocol.ToCompPoly.Frobenius
 import LeanerVM.Protocol.ToCompPoly.HighSum
 import LeanerVM.Protocol.ToCompPoly.IndividualDegree
 import LeanerVM.Protocol.ToCompPoly.Interpolation
+import LeanerVM.Protocol.ToCompPoly.LinearSolve
 import LeanerVM.Protocol.ToCompPoly.Multilinear
 import LeanerVM.Protocol.ToCompPoly.MvEval
 import LeanerVM.Protocol.ToCompPoly.PartialSum
@@ -150,6 +155,7 @@ import LeanerVM.Protocol.Transcript
 import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
+import LeanerVM.Protocol.Whir.Decode
 import LeanerVM.Protocol.Whir.Deployed
 import LeanerVM.Protocol.Whir.Exact
 import LeanerVM.Protocol.Whir.Final
