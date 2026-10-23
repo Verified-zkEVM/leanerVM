@@ -182,5 +182,33 @@ theorem ctRunH_good {S : List Atom} {chs : List E} (hcl : chs.length = 6)
       | .ret _, h1 => simp [ctStepH] at h1
     · cases hr
 
+theorem ctPre_noNe : ctPre.all noNeB = true := by decide +kernel
+
+variable {args : List E}
+
+/-- **`c_table` and `ring_switch_target`'s call, honestly.** -/
+theorem vsCtabT_complete (hl : args.length = 7) {chs : List E} (hcl : chs.length = 6)
+    (hc : ReadsAt rd (vsσ rd w args (.n 876)) chs)
+    (hW : ReadsAt rd (vsσ rd w args (.n 877)) (ringCoefficients chs)) {C : CallRel}
+    (hC : C "ring_switch_target" [vsσ rd w args (.n 860), vsσ rd w args (.n 876)]
+      [vsσ rd w args (.n 1303)])
+    {next : Prop} {kret : List E → Prop} (hn : next) :
+    Stmt.HoldsList C rd (vsσ rd w args) vsCtabT next kret := by
+  have hW' : ∀ k < 64, LoadHolds rd (vsσ rd w args (.n 877)) k (evVal chs (specEV k)) := by
+    intro k hk
+    rw [← ringCoefficients_getElem hcl hk]
+    exact hW k _
+  have hG : ∀ s ∈ ctPre, GoodS rd vsSL w (vsσ rd w args) s := fun s hs ↦ by
+    have hm : s ∈ vsCtabT := by rw [vsCtabT_eq]; exact List.mem_append_left _ hs
+    have h := vs_goodS (rd := rd) (w := w) hl (vs_mem_slice (n := 982) (blk := vsCtabT)
+      (by decide +kernel) hm)
+    rwa [fixNe_of_noNe (List.all_eq_true.mp ctPre_noNe s hs)] at h
+  obtain ⟨st, hst⟩ := Option.isSome_iff_exists.1 ctH_check
+  rw [vsCtabT_eq, holdsList_append]
+  refine ctRunH_good hcl hc hW' hst ⟨fun _ h ↦ absurd h (by simp), fun _ h ↦ absurd h (by simp)⟩
+    hG ?_
+  simp only [Stmt.HoldsList, Stmt.Holds, vsCall, List.map_cons, List.map_nil]
+  exact ⟨hC, hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
