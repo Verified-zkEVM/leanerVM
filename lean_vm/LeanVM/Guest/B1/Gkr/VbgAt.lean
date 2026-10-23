@@ -123,7 +123,8 @@ noncomputable def vbgσ (rd : Reader) (depth : ℕ) (cap0 : List E) (ec ez eL eR
 /-- The values the calls of `__loop7` and `__loop8` start and end at, and `__loop7`'s buffers. -/
 def VbgVals (σ : Val) (depth eL eR eD : ℕ) : Prop :=
   σ (.n 304) = 1 ∧ σ (.n 306) = gen ^ (depth / 2) ∧ σ (.n 317) = 1 ∧ σ (.n 6) = gen ^ depth ∧
-    σ (.n 57) = ofK (gpow eD) ∧ σ (.n 15) = ofK (gpow eL) ∧ σ (.n 16) = ofK (gpow eR)
+    σ (.n 57) = ofK (gpow eD) ∧ σ (.n 15) = ofK (gpow eL) ∧ σ (.n 16) = ofK (gpow eR) ∧
+    σ (.n 303) = 1 + gen ^ (depth / 2)
 
 set_option maxHeartbeats 1000000 in
 /-- **`verify_bus_gkr`'s honest valuation on a memory holding its words**: every statement holds,
@@ -228,7 +229,8 @@ theorem vbg_run {depth κ : ℕ} (hd1 : 1 ≤ depth) (hd : depth ≤ 32) (hκ : 
     simp only [and_self, le_refl, ↓reduceIte, vbgSlotW] at this
     rwa [gkSlotWords_getD9 inv.1 inv.2.2.2] at this
   have r314 := good_read (g (.load (.n 314) (.n 312) 9) (by decide +kernel)) (by decide +kernel) hrow
-  refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, c304, r306.1, c317, e6, e57, e15, e16⟩
+  refine ⟨fun s hs ↦ ?_, fun d p off hm ↦ ?_, ?_, ?_, hrt, c304, r306.1, c317, e6, e57, e15, e16,
+    by rw [a303, c300, r302.1]⟩
   · -- the statements
     have hv := vsh_of_holdsList vbgPre vbg_iteOk hh s hs
     have hk := List.all_eq_true.mp vbg_kinds s hs
