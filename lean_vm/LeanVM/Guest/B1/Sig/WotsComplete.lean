@@ -214,5 +214,75 @@ theorem walkT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) {i : Nat} {slot : N
         · exact Or.inr (Or.inl (hconst j hj x h))
         · exact Or.inr (Or.inr ⟨s, h1, h⟩)
 
+/-- The digit of chain `r` in arm `k`. -/
+abbrev dig (k r : Nat) : Nat := k / 4 ^ r % 4
+
+theorem dig_le (k r : Nat) : dig k r ≤ 3 := Nat.le_of_lt_succ (Nat.mod_lt _ (by norm_num))
+
+/-- **The walks of an arm are in single-assignment form**, each walk's region apart from the
+others'. -/
+theorem walksT_ssa {W : WotsT} {B : Nat} (hW : StepShape W B) (slots : Nat → Nat → Nat)
+    (first k stride : Nat) :
+    ∀ (m r b : Nat),
+      (∀ t < m, WalkLay W B (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b)) →
+      (∀ t < m, ∀ t' < m, t ≠ t' → ∀ x,
+        WalkR (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b) x →
+        ¬ WalkR (slots (r + t')) stride (dig k (r + t')) (walkBase stride k r t' b) x) →
+      SSA (walksT W slots first k stride m r b).1 ∧
+        (∀ x ∈ outsList (walksT W slots first k stride m r b).1, ∃ t < m,
+          WalkR (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b) x) ∧
+        (∀ x ∈ Stmt.valsList (walksT W slots first k stride m r b).1, NBv B x ∨ ∃ t < m,
+          WalkR (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b) x)
+  | 0, _, _, _, _ => ⟨trivial, by simp [walksT, outsList], by simp [walksT]⟩
+  | m + 1, r, b, hl, hd => by
+      have hl0 := hl 0 (by omega)
+      simp only [Nat.add_zero, walkBase] at hl0
+      obtain ⟨a1, a2, a3⟩ := walkT_ssa (i := first + r) hW (dig_le k r) hl0
+      have hbase : ∀ t, walkBase stride k (r + 1) t (b + walkSize stride (dig k r)) =
+          walkBase stride k r (t + 1) b := fun t => rfl
+      obtain ⟨r1, r2, r3⟩ := walksT_ssa hW slots first k stride m (r + 1) (b + walkSize stride (dig k r))
+        (fun t ht => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega]
+          exact hl (t + 1) (by omega))
+        (fun t ht t' ht' hne x hx => by
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega] at hx
+          rw [hbase, show r + 1 + t' = r + (t' + 1) by omega]
+          exact hd (t + 1) (by omega) (t' + 1) (by omega) (by omega) x hx)
+      have hB : ∀ t < m + 1, ∀ x, WalkR (slots (r + t)) stride (dig k (r + t)) (walkBase stride k r t b) x →
+          ¬ NBv B x := by
+        intro t ht x hx ⟨j, hj, e⟩
+        have hlt := hl t ht
+        rcases hx with ⟨u, hu, rfl⟩ | ⟨s, hs, u, hu, rfl⟩ <;> simp only [V.mk.injEq, true_and] at e
+        · have := hlt.base; omega
+        · have := hlt.slotB s hs; omega
+      refine ⟨SSA.append' a1 r1 (P := fun x => NBv B x ∨ WalkR (slots r) stride (dig k r) b x)
+          (Q := fun x => ∃ t < m, WalkR (slots (r + 1 + t)) stride (dig k (r + 1 + t))
+            (walkBase stride k (r + 1) t (b + walkSize stride (dig k r))) x) a3 r2 ?_, ?_, ?_⟩
+      · rintro x ⟨t, ht, hx⟩ (hb | hw)
+        · rw [hbase, show r + 1 + t = r + (t + 1) by omega] at hx
+          exact hB (t + 1) (by omega) x hx hb
+        · rw [hbase, show r + 1 + t = r + (t + 1) by omega] at hx
+          refine hd (t + 1) (by omega) 0 (by omega) (by omega) x hx ?_
+          simpa [walkBase] using hw
+      · intro x hx
+        simp only [walksT] at hx
+        rw [outsList_append] at hx
+        rcases List.mem_append.mp hx with hx | hx
+        · exact ⟨0, by omega, by simpa [walkBase] using a2 x hx⟩
+        · obtain ⟨t, ht, h⟩ := r2 x hx
+          rw [hbase, show r + 1 + t = r + (t + 1) by omega] at h
+          exact ⟨t + 1, by omega, h⟩
+      · intro x hx
+        simp only [walksT] at hx
+        rw [valsList_append] at hx
+        rcases List.mem_append.mp hx with hx | hx
+        · rcases a3 x hx with h | h
+          · exact Or.inl h
+          · exact Or.inr ⟨0, by omega, by simpa [walkBase] using h⟩
+        · rcases r3 x hx with h | ⟨t, ht, h⟩
+          · exact Or.inl h
+          · rw [hbase, show r + 1 + t = r + (t + 1) by omega] at h
+            exact Or.inr ⟨t + 1, by omega, h⟩
+
 end
 end LeanVM.Guest.B1.Sig
