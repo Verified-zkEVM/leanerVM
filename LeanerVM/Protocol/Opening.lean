@@ -12,6 +12,7 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.QueryCheck
 public import LeanerVM.Protocol.ToArkLib.WeightBatch
+public import LeanerVM.Protocol.ToCompPoly.EqBatch
 import LeanerVM.Protocol.ClaimWeights
 
 /-!
@@ -45,6 +46,11 @@ it, the batched claim holds (`BatchedHolds`). The stack's answers to the pooled 
 fixed before the challenge; outside the Flock seam they differ from the claimed values, and the
 batched claim holds only at a root of their difference, a nonzero polynomial of degree less
 than `J` in `ρ` (`batchSecurity`).
+
+Compiled code computes the batched weight's values by `weightCube` (`weight_eq_weightFast`,
+`@[csimp]`, registered before `batched`): a column claim's point read through the layout has the
+block's selector bits as coordinates, so its equality kernel vanishes off the block, and
+`eqBatch` combines the column claims' kernels on their blocks (`weightCube_eq`).
 
 Written from the specification; the Rust and Python verifiers were read afterwards for the
 order of the powers.
@@ -89,6 +95,79 @@ def values (s : I.Stmt × FlockOut I) (j : Fin I.poolSize) : E := (pool I s.2 j)
 /-- The pool's weights combined by the powers of `ρ`. -/
 def weight (s : I.Stmt × FlockOut I) (ρ : E) : Weight E I.μ :=
   Weight.batch (fun j ↦ (pool I s.2 j).weight) ρ
+
+/-- The batched weight's values: the weighted claims' values combined by the powers of `ρ`, the
+column claims' equality kernels combined coordinate by coordinate (`eqBatch`), each on the block
+its point's selector bits pick. -/
+def weightCube (s : I.Stmt × FlockOut I) (ρ : E) : CMlPolynomialEval E I.μ :=
+  let dense := batchWeight (fun j : Fin I.flockClaims ↦ s.2.weighted[j].weight.onCube) ρ
+  let cols := eqBatch I.μ ((List.finRange I.pubClaims).map fun j ↦
+    (ρ ^ (I.flockClaims + j.val), I.layout.extend s.2.columns[j].col s.2.columns[j].point))
+  Vector.ofFn fun x ↦ dense[x] + cols[x]
+
+/-- A sum over the pool: the weighted claims, then the column claims. -/
+private theorem sum_pool (s : FlockOut I) (G : WeightedClaim I → ℕ → E) :
+    ∑ j : Fin I.poolSize, G (pool I s j) j.val =
+      ∑ j : Fin I.flockClaims, G s.weighted[j] j.val +
+        ∑ j : Fin I.pubClaims, G (columnWeighted I s.columns[j]) (I.flockClaims + j.val) := by
+  have hlen := length_poolList I s
+  let g : ℕ → E := fun j ↦ if h : j < (poolList I s).length then G (poolList I s)[j] j else 0
+  have hg : ∀ j : Fin I.poolSize, G (pool I s j) j.val = g j.val := fun j ↦ by
+    simp only [g, pool, hlen, j.isLt, dite_true]
+  have hps : I.poolSize = I.pubClaims + I.flockClaims := rfl
+  have hw : ∀ j : Fin I.flockClaims, G s.weighted[j] j.val = g j.val := fun j ↦ by
+    have hj : j.val < (poolList I s).length := by rw [hlen, hps]; omega
+    simp only [g, hj, dite_true]
+    congr 1
+    simp [poolList, List.getElem_append_left]
+  have hc : ∀ j : Fin I.pubClaims, G (columnWeighted I s.columns[j]) (I.flockClaims + j.val) =
+      g (I.flockClaims + j.val) := fun j ↦ by
+    have hj : I.flockClaims + j.val < (poolList I s).length := by rw [hlen, hps]; omega
+    simp only [g, hj, dite_true]
+    congr 1
+    simp [poolList, List.getElem_append_right]
+  simp only [hg, hw, hc]
+  rw [Fin.sum_univ_eq_sum_range g, Fin.sum_univ_eq_sum_range g,
+    Fin.sum_univ_eq_sum_range (fun j ↦ g (I.flockClaims + j)), M3Instance.poolSize,
+    Nat.add_comm I.pubClaims, Finset.sum_range_add]
+
+/-- The values so computed are the batched weight's. -/
+theorem weightCube_eq (s : I.Stmt × FlockOut I) (ρ : E) :
+    weightCube I s ρ = batchWeight (fun j ↦ (pool I s.2 j).weight.onCube) ρ := by
+  refine Vector.ext fun x hx ↦ ?_
+  have hcols : ∀ L : List (Fin I.pubClaims),
+      ((L.map fun j ↦ (ρ ^ (I.flockClaims + j.val),
+        I.layout.extend s.2.columns[j.val].col s.2.columns[j.val].point)).map
+        fun t ↦ t.1 * (CMlPolynomialEval.lagrangeBasis t.2)[x]).sum =
+      (L.map fun j ↦ (columnWeighted I s.2.columns[j]).weight.onCube[x] *
+        ρ ^ (I.flockClaims + j.val)).sum := by
+    intro L
+    induction L with
+    | nil => rfl
+    | cons j L ih =>
+      rw [List.map_cons, List.map_cons, List.sum_cons, ih, List.map_cons, List.sum_cons,
+        mul_comm (ρ ^ (I.flockClaims + j.val))]
+      rfl
+  simp only [weightCube, batchWeight, powerBatch, Fin.getElem_fin, Vector.getElem_ofFn]
+  rw [sum_pool I s.2 fun c j ↦ c.weight.onCube[x] * ρ ^ j, eqBatch_getElem _ _ x hx]
+  exact congrArg₂ (· + ·) rfl ((hcols _).trans (Fin.sum_univ_def _).symm)
+
+/-- The batched weight with its values computed by `weightCube`. -/
+def weightFast (s : I.Stmt × FlockOut I) (ρ : E) : Weight E I.μ where
+  cube := .mk fun _ ↦ weightCube I s ρ
+  mle := (weight I s ρ).mle
+  mle_eq r := by
+    rw [(weight I s ρ).mle_eq r]
+    exact congrArg (CMlPolynomialEval.evalMle · r) (weightCube_eq I s ρ).symm
+
+/-- Compiled code computes the batched weight's values by `weightCube`: the column claims'
+equality kernels on their blocks, not `I.poolSize` tables of `2 ^ I.μ` entries. -/
+@[csimp] theorem weight_eq_weightFast : @weight = @weightFast := by
+  funext I s ρ
+  unfold weightFast
+  conv_lhs => unfold weight Weight.batch
+  congr 1
+  exact congrArg Thunk.mk (funext fun _ ↦ (weightCube_eq I s ρ).symm)
 
 /-- The batched claim at `ρ`: the combined weight, claimed to answer `c`, the combined value
 batching by powers computes. -/
