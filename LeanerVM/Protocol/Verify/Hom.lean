@@ -184,39 +184,17 @@ private theorem samples_hom (k : ℕ) : ψ (samples ops k) = samples (ops.map ψ
   | zero => simp [samples]
   | succ k ih => simp [samples, ih, ChainOps.map]
 
-private theorem readRound_hom (d : ℕ) : ψ (readRound ops d) = readRound (ops.map ψ) d := by
-  simp [readRound, nextScalars_hom, ChainOps.map]
-
 private theorem readRounds_hom (d k : ℕ) : ψ (readRounds ops d k) = readRounds (ops.map ψ) d k := by
   induction k with
   | zero => simp [readRounds]
-  | succ k ih => simp [readRounds, ih, readRound_hom]
-
-private theorem walkSetup_hom : ψ (walkSetup ops) = walkSetup (ops.map ψ) := by
-  simp [walkSetup, nextScalars_hom, ChainOps.map]
-
-private theorem walkLayer_hom (ρ j : ℕ) : ψ (walkLayer ops ρ j) = walkLayer (ops.map ψ) ρ j := by
-  simp [walkLayer, readRounds_hom, nextScalars_hom, samples_hom, ChainOps.map]
+  | succ k ih => simp [readRounds, readRound, ih, nextScalars_hom, ChainOps.map]
 
 private theorem walkLayers_hom (ρs : List ℕ) (j : ℕ) :
     ψ (walkLayers ops ρs j) = walkLayers (ops.map ψ) ρs j := by
   induction ρs generalizing j with
   | nil => simp [walkLayers]
-  | cons ρ rest ih => simp [walkLayers, ih, walkLayer_hom]
-
-private theorem walkBus_hom (μBus nValues : ℕ) :
-    ψ (walkBus ops μBus nValues) = walkBus (ops.map ψ) μBus nValues := by
-  simp [walkBus, samples_hom, walkLayers_hom, nextScalars_hom, ChainOps.map]
-
-private theorem walkTables_hom (τmax nCols : ℕ) :
-    ψ (walkTables ops τmax nCols) = walkTables (ops.map ψ) τmax nCols := by
-  simp [walkTables, readRounds_hom, nextScalars_hom, ChainOps.map]
-
-private theorem walkPub_hom (nSent : ℕ) : ψ (walkPub ops nSent) = walkPub (ops.map ψ) nSent := by
-  simp [walkPub, nextScalars_hom, ChainOps.map]
-
-private theorem walkFlock_hom (k : ℕ) : ψ (walkFlock ops k) = walkFlock (ops.map ψ) k := by
-  simp [walkFlock, samples_hom, readRounds_hom, nextScalars_hom, ChainOps.map]
+  | cons ρ rest ih =>
+    simp [walkLayers, walkLayer, ih, readRounds_hom, nextScalars_hom, samples_hom, ChainOps.map]
 
 private theorem walkFolds_hom (k : ℕ) : ψ (walkFolds ops k) = walkFolds (ops.map ψ) k := by
   induction k with
@@ -237,21 +215,14 @@ private theorem walkPositions_hom (depth fuel need : ℕ) :
     | zero => simp [walkPositions]
     | succ need => simp [walkPositions, ih, ChainOps.map]
 
-private theorem walkLevel_hom (sh : LevelShape) :
-    ψ (walkLevel ops sh) = walkLevel (ops.map ψ) sh := by
-  cases h : sh.final <;>
-    simp [walkLevel, h, walkFolds_hom, nextScalars_hom, samples_hom, walkPositions_hom,
-      walkTail_hom, ChainOps.map]
-
 private theorem walkLevels_hom (shs : List LevelShape) :
     ψ (walkLevels ops shs) = walkLevels (ops.map ψ) shs := by
   induction shs with
   | nil => simp [walkLevels]
-  | cons sh shs ih => simp [walkLevels, ih, walkLevel_hom]
-
-private theorem walkWhir_hom (shs : List LevelShape) :
-    ψ (walkWhir ops shs) = walkWhir (ops.map ψ) shs := by
-  simp [walkWhir, nextScalars_hom, walkLevels_hom]
+  | cons sh shs ih =>
+    cases h : sh.final <;>
+      simp [walkLevels, walkLevel, h, ih, walkFolds_hom, nextScalars_hom, samples_hom,
+        walkPositions_hom, walkTail_hom, ChainOps.map]
 
 private theorem walkOpenings_hom (nLanes : ℕ) (first : Bool) (root : Digest) (shs : List LevelShape)
     (ls : List WhirLevel) :
@@ -264,18 +235,14 @@ private theorem walkOpenings_hom (nLanes : ℕ) (first : Bool) (root : Digest) (
     | nil => simp [walkOpenings]
     | cons l ls => simp [walkOpenings, ih, ChainOps.map]
 
-private theorem walkChain_hom (prog : Program) (s : Sizes) (input : PublicInput)
-    (shs : List LevelShape) :
-    ψ (walkChain ops prog s input shs) = walkChain (ops.map ψ) prog s input shs := by
-  simp [walkChain, walkSetup_hom, walkBus_hom, walkTables_hom, walkPub_hom, walkFlock_hom,
-    walkWhir_hom, ChainOps.map]
-
 /-- The verifier's reads, mapped along a morphism of their monads, are the reads on the mapped
 primitives. -/
 theorem walkProof_hom (prog : Program) (s : Sizes) (input : PublicInput)
     (shs : List LevelShape) :
     ψ (walkProof ops prog s input shs) = walkProof (ops.map ψ) prog s input shs := by
-  simp [walkProof, walkChain_hom, walkOpenings_hom]
+  simp [walkProof, walkChain, walkSetup, walkBus, walkTables, walkPub, walkFlock, walkWhir,
+    nextScalars_hom, samples_hom, readRounds_hom, walkLayers_hom, walkLevels_hom,
+    walkOpenings_hom, ChainOps.map]
 
 end Walks
 

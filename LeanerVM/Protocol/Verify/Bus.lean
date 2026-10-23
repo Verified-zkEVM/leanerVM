@@ -261,6 +261,57 @@ def totalWith {I : M3Instance} (h : Bus.Conditions I) (share : E) (k : Fin 3) (�
       boundaryValueWith share α β vals (Bus.src I k b) (Bus.lowAt h k b ζ)) +
     (1 + ∑ b, Bus.weight h k b ζ))
 
+/-! ## Compiled fast paths
+
+`Bus.blocks` re-sorts a side's blocks at every read of a block's size, and `Bus.forms` and
+`totalWith` read every block's weight once per table and per sum. Compiled code runs `busOutFast`
+and `totalWithFast` instead (`@[csimp]`), with each side's blocks sorted once and each weight
+computed once. -/
+
+/-- `Bus.blocks`, the blocks sorted once. -/
+def blocksFast (I : M3Instance) (k : Fin 3) : Blocks :=
+  let srt := (Bus.sorted I k).toArray
+  ⟨srt.size, fun b ↦ srt[b].κ, Bus.sorted_antitone I k⟩
+
+/-- Compiled code builds a side's blocks by `blocksFast`. -/
+@[csimp] theorem blocks_eq_blocksFast : @Bus.blocks = @blocksFast := rfl
+
+/-- Side `k`'s blocks in their stacked order, each with its selector weight at `ζ`. -/
+def sideTerms {I : M3Instance} (h : Bus.Conditions I) (k : Fin 3) (ζ : Vector E I.μBus) :
+    List (Bus.Source I × E) :=
+  let srt := (Bus.sorted I k).toArray
+  let B := Bus.blocks I k
+  (List.finRange B.n).map fun b ↦ (srt[b.1]'b.isLt, B.selectorWeight (h.fits k) b ζ)
+
+/-- `Bus.busOut`, each side's blocks and weights computed once for its forms. -/
+def busOutFast {I : M3Instance} (h : Bus.Conditions I) (ℓ : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus)
+    (vals : Vector E I.busClaims) : BusOut I :=
+  let ts := Vector.ofFn fun k : Fin 3 ↦ sideTerms h k ℓ.2.1
+  { Bus.busOut h ℓ vals with
+    forms := fun k j ↦ ts[k].flatMap fun p ↦ p.1.form h.one_le_d p.2 ℓ.1.2.1 ℓ.1.2.2 j.1 }
+
+/-- Compiled code builds the bus phase's output by `busOutFast`. -/
+@[csimp] theorem busOut_eq_busOutFast : @Bus.busOut = @busOutFast := by
+  funext I h ℓ vals
+  simp only [busOutFast, sideTerms, Fin.getElem_fin, Vector.getElem_ofFn, List.flatMap_map]
+  rfl
+
+/-- `totalWith`, the side's blocks sorted once and each weight computed once. -/
+def totalWithFast {I : M3Instance} (h : Bus.Conditions I) (share : E) (k : Fin 3) (α : Fin 4 → E)
+    (β : E) (ζ : Vector E I.μBus) (v : E) (vals : Vector E I.busClaims) : E :=
+  let srt := (Bus.sorted I k).toArray
+  let B := Bus.blocks I k
+  let ws : Vector E B.n := Vector.ofFn fun b ↦ B.selectorWeight (h.fits k) b ζ
+  v - ((∑ b : Fin B.n, ws[b] *
+      boundaryValueWith share α β vals (srt[b.1]'b.isLt) (B.lowPoint (h.fits k) b ζ)) +
+    (1 + ∑ b : Fin B.n, ws[b]))
+
+/-- Compiled code computes the totals by `totalWithFast`. -/
+@[csimp] theorem totalWith_eq_totalWithFast : @totalWith = @totalWithFast := by
+  funext I h share k α β ζ v vals
+  simp only [totalWith, totalWithFast, Fin.getElem_fin, Vector.getElem_ofFn]
+  rfl
+
 /-- The bus phase's output (`Bus.busOut`), its totals with the program's share `share` supplied
 for the bytecode blocks' entry columns. -/
 def busOutWith {I : M3Instance} (h : Bus.Conditions I) (share : E)

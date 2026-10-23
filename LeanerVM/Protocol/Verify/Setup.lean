@@ -127,29 +127,23 @@ inductive ChainEvent where
   determines the walk's openings. -/
   | opening (root : Digest) (depth rowWords leafWords : ℕ) (positions : List ℕ)
 
+/-- A step `x`, its result logged by `ev` after it runs. -/
+def ChainOps.logStep {n : Type → Type} [Monad n] {α : Type} (ev : α → ChainEvent) (x : n α) :
+    StateT (Array ChainEvent) n α := do
+  let a ← x
+  modify (·.push (ev a))
+  return a
+
 /-- The primitives `ops`, each step appended to a log after it runs. -/
 def ChainOps.logged {n : Type → Type} [Monad n] (ops : ChainOps n) :
     ChainOps (StateT (Array ChainEvent) n) where
-  nextScalar := do
-    let x ← ops.nextScalar
-    modify (·.push (.scalar x))
-    return x
-  sample := do
-    let x ← ops.sample
-    modify (·.push (.sample x))
-    return x
-  nextRoot := do
-    let d ← ops.nextRoot
-    modify (·.push (.root d))
-    return d
-  checkPow bits := do
-    let x ← ops.checkPow bits
-    modify (·.push (.nonce bits x))
-    return x
-  nextOpening root depth rowWords leafWords ps := do
-    let rows ← ops.nextOpening root depth rowWords leafWords ps
-    modify (·.push (.opening root depth rowWords leafWords ps))
-    return rows
+  nextScalar := logStep .scalar ops.nextScalar
+  sample := logStep .sample ops.sample
+  nextRoot := logStep .root ops.nextRoot
+  checkPow bits := logStep (.nonce bits) (ops.checkPow bits)
+  nextOpening root depth rowWords leafWords ps :=
+    logStep (fun _ ↦ .opening root depth rowWords leafWords ps)
+      (ops.nextOpening root depth rowWords leafWords ps)
 
 /-- The chain walk's monad on a proof: the transcript reader over the deployed proof, whose
 openings are pruned Merkle paths. -/

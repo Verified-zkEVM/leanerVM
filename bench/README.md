@@ -363,10 +363,11 @@ check fails. The timed runs exclude the fixture's parsing.
 
 Recorded on 2026-10-23 at the fixture of leanVM `a386121f` (770 scalars, four openings of 223,
 56, 32 and 22 rows, a stack of `2^20` cells), on the machine of the table above: every check
-passes, and `verify` takes 2.7 to 3.1 s a run over five runs. A flipped scalar of a phase is
-rejected by the next level's grinding check, since the chain moves; only the last level's query
-message and tail rounds reach WHIR's terminal check through the stream. The phases' own checks
-are exercised on the honest wire by the phase test modules and `whirChecks`.
+passes, and `verify` takes 1.7 to 1.9 s a run over five runs (2.6 to 3.1 s before the compiled
+fast paths of the bus output, the totals, the row folds and the lincheck terminal). A flipped
+scalar of a phase is rejected by the next level's grinding check, since the chain moves; only the
+last level's query message and tail rounds reach WHIR's terminal check through the stream. The
+phases' own checks are exercised on the honest wire by the phase test modules and `whirChecks`.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

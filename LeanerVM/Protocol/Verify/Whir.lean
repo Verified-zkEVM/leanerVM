@@ -258,6 +258,16 @@ def laneRow (first : Bool) (ℓ : ℕ) (image : List K) : Option (Vector E (2 ^ 
 def positionsOf (t b : ℕ) (ps : List ℕ) : Fin t → Fin (2 ^ b) :=
   fun q ↦ ⟨ps.getD q 0 % 2 ^ b, Nat.mod_lt _ (Nat.two_pow_pos b)⟩
 
+/-- A row folded as its multilinear extension at the fold point, without the basis
+`Whir.foldRow` builds. -/
+def foldRowMle {ℓ : ℕ} (r : Vector E ℓ) (row : Vector E (2 ^ ℓ)) : E := evalMle row r
+
+/-- Compiled code folds a row by `foldRowMle`. -/
+@[csimp] theorem foldRow_eq_foldRowMle : @Whir.foldRow = @foldRowMle := by
+  funext ℓ r row
+  rw [foldRowMle, evalMle_eq_sum, Whir.foldRow]
+  exact Finset.sum_congr rfl fun u _ ↦ mul_comm _ _
+
 /-- WHIR's algebra from a level on: the running claim, its round polynomial and the weight on the
 level's `n` variables, the levels' shapes, wires and rows. -/
 def whirLevels : Bool → (n : ℕ) → Weight E n → E → Vector E 3 → List LevelShape →
