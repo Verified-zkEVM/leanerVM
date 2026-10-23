@@ -379,5 +379,70 @@ theorem stepT_holdsL {s b : ℕ} (hs1 : 1 ≤ s) (hs : s < 12) {c0 c1 c2 c3 c4 c
     List.map_cons, List.map_nil, List.nil_append, List.map_append]
   rfl
 
+/-! ## The first step -/
+
+/-- **Step `0`** (G:2853-2884): the first claim, its `ι` term, and `keccak_layer` with the
+committed outputs' value waiting in the sponge. -/
+theorem stepT_holds0 {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (h17 : σ (.n 17) = gen ^ (τ - 4))
+    (h43 : σ (.n 43) = gen ^ ((τ - 3) / 2)) (h47 : σ (.n 47) = gen ^ ((τ - 3) % 2))
+    (h48 : σ (.n 48) = gen ^ ((τ - 3) / 2 + (τ - 3) % 2)) {c : KeccakClaim} {L0 : E}
+    (hcr : ClaimRec rd ((1 : ℕ) = 1) (σ (.n 201)) c (τ - 3))
+    (hL0 : ∀ v, LoadHolds rd (σ (.n 274)) 30 v → v = L0)
+    (hw0 : ∀ z < 64, c.weights.getD z 0 = L0 * gen ^ z)
+    (hpk : FsPackOk σ (.n 191) (191 + 1) dsObserve)
+    {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList (coreProgram.Rel rd) rd σ (stepT 0 488 [179, 180, 181, 182, 183] 0 vkGw)
+      next kret) :
+    ∃ (xs : List E) (c' : KeccakClaim) (cap' : List E), ReadsAt rd (σ (.n 5) * gen) xs ∧
+      RunsTo (verifyKeccakLayer τ 0 c)
+        ⟨[σ (.n 179), σ (.n 180), σ (.n 181), σ (.n 182), σ (.n 183)], [(σ (.n 191), dsObserve)]⟩
+        xs c' ⟨cap', []⟩ ∧
+      ClaimRec rd ((0 : ℕ) = 1) (σ (.n 201) * gen ^ (22 * 1)) c' (τ - 3) ∧
+      ((List.range 6).map fun j ↦ σ (.n (stepEnd 0 488 - 6 + j))) =
+        cap' ++ [σ (.n 5) * gen * gen ^ xs.length] ∧ next := by
+  have hcr0 := hcr
+  obtain ⟨hmuL, hptL, hval, hkap, hmus, ⟨pp, hpp, hpt⟩, -⟩ := hcr
+  simp only [stepT, holdsList_append, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨lcp, -, ecp, h⟩ := h
+  have ecp' : σ (.n 488) = pp := loadHolds_unique lcp (by simpa using hpp)
+  have hr : LoadHolds rd (σ (.n (488 + 2))) (0 + 0) (c.point.getD (τ - 4) 0) := by
+    rw [ecp, ecp', h17, loadHolds_mul_gen_pow, List.getD_eq_getElem _ _ (by omega)]
+    exact hpt _ (by omega)
+  obtain ⟨hseg, h⟩ := eqtreeT_last (rs := [c.point.getD (τ - 4) 0]) (n := 1) le_rfl rfl
+    (fun t ht ↦ by obtain rfl : t = 0 := (by omega); simpa using hr) h
+  obtain ⟨hfl, h⟩ := flipsT_holds0 hL0 h
+  obtain ⟨hio, h⟩ := iotaSegT_holds (F := fun i ↦ c.weights.getD (2 ^ i - 1) 0)
+    (g0 := (eqKernel [c.point.getD (τ - 4) 0]).getD 0 0)
+    (g1 := (eqKernel [c.point.getD (τ - 4) 0]).getD 1 0) (by norm_num) (fun i hi ↦ by
+      have hi7 := List.mem_range.1 (List.mem_filter.1 hi).1
+      have hz : 2 ^ i - 1 < 64 := by
+        have : 2 ^ i ≤ 2 ^ 6 := Nat.pow_le_pow_right (by norm_num) (by omega)
+        omega
+      rw [hfl i hi, hw0 _ hz])
+    (fun v hv ↦ loadHolds_unique hv (by simpa using hseg 0 (by norm_num)))
+    (fun v hv ↦ loadHolds_unique hv (by simpa using hseg 1 (by norm_num))) h
+  rw [← keccakIota_eq (by norm_num) (by omega) hptL] at hio
+  simp only [stepTailT, ↓reduceIte, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨e0, e1, e2, e3, e4, e5, hd, hn⟩ := h
+  have hcur : σ (.n (iotaSegEnd 0 (488 + 6 + flipSz 0 * (iotaUsed 0).length) + 1)) =
+      σ (.n 5) * gen := by rw [e1, e0, word_gen]
+  have hyg : σ (.n (iotaSegEnd 0 (488 + 6 + flipSz 0 * (iotaUsed 0).length) + 3)) =
+      gen ^ (τ - 3) := by
+    rw [e3, h17, e2, word_gen, ← pow_succ]; congr 1; omega
+  have hout : σ (.n (iotaSegEnd 0 (488 + 6 + flipSz 0 * (iotaUsed 0).length) + 5)) =
+      σ (.n 201) * gen ^ (22 * 1) := by
+    rw [e5, e4, vkGw_eq 1 le_rfl (by omega)]
+  have hm := dispatch_layer (first := 1) (by omega) (o := (τ - 3) % 2) (by omega) h47 hd
+  simp only [List.map_cons, List.map_nil, List.map_append, hyg, h43, h48, hcur, hout, hio] at hm
+  simp only [MeaningKeccakLayer] at hm
+  obtain ⟨xs, c', cap', hxs, hrun, hcr', hrets⟩ := hm (τ - 3) 0 c (σ (.n 191)) rfl (by omega)
+    (by omega) rfl rfl rfl hcr0 (fun _ hc ↦ fsPackT_cells hpk hc) rfl
+  rw [show τ - 3 + 3 = τ by omega] at hrun
+  refine ⟨xs, c', cap', hxs, by simpa [plainStart] using hrun, hcr', ?_, hn⟩
+  rw [← hrets]
+  simp only [stepEnd, stepTailSz, ↓reduceIte, List.range_succ, List.range_zero,
+    List.map_cons, List.map_nil, List.nil_append, List.map_append]
+  rfl
+
 end
 end LeanVM.Guest.B1.VerifySub
