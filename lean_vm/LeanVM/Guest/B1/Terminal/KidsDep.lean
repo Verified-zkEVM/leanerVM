@@ -285,5 +285,125 @@ theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     · exact ⟨i, hi, Or.inl (hown' i h)⟩
     · exact ⟨i, hi, Or.inr (Or.inr (Or.inr h))⟩
 
+/-! ## The callees by position -/
+
+/-- No callee (a default). -/
+def noKid : KidD := fun _ => ⟨"", false, [], [], fun _ _ => True⟩
+
+/-- No frame (a default). -/
+def noCall : Call := ⟨"", [], [], false⟩
+
+/-- Callee `j` on the results before it. -/
+def kidAt (ks : List KidD) (prev outs : List (List E × Layout)) (j : ℕ) : Kid :=
+  ks.getD j noKid (prev ++ outs.take j)
+
+theorem kidAt_succ (k : KidD) (ks : List KidD) (prev : List (List E × Layout)) (o : List E × Layout)
+    (os : List (List E × Layout)) (j : ℕ) :
+    kidAt (k :: ks) prev (o :: os) (j + 1) = kidAt ks (prev ++ [o]) os j := by
+  simp [kidAt, List.take_succ_cons]
+
+theorem kidAt_zero (k : KidD) (ks : List KidD) (prev outs : List (List E × Layout)) :
+    kidAt (k :: ks) prev outs 0 = k prev := by
+  simp [kidAt]
+
+/-- **Callees reading the earlier callees' results, by position**: callee `j`'s words lie in `R`,
+`Dacc` or an earlier entered callee's result. -/
+theorem regionsOk_kidsAt {R : ℕ → Prop} : ∀ (ks : List KidD) (prev outs : List (List E × Layout))
+    (Dacc : ℕ → Prop),
+    (∀ j, j < ks.length → j < outs.length → (kidAt ks prev outs j).taken = true → ∀ i,
+      RegionL (kidAt ks prev outs j).Lin i → R i ∨ Dacc i ∨
+        ∃ m < j, (kidAt ks prev outs m).taken = true ∧ RegionL (outs.getD m ([], [])).2 i) →
+    RegionsOk R Dacc (kidsAt ks prev outs) outs
+  | [], _, _, _, _ => trivial
+  | _ :: _, _, [], _, _ => trivial
+  | k :: ks, prev, o :: os, Dacc, h => by
+    refine ⟨fun ht i hi => ?_, regionsOk_kidsAt ks (prev ++ [o]) os _ fun j hj ho ht i hi => ?_⟩
+    · have := h 0 (by simp) (by simp) (by rwa [kidAt_zero]) i (by rwa [kidAt_zero])
+      rcases this with h1 | h1 | ⟨m, hm, -⟩
+      · exact Or.inl h1
+      · exact Or.inr h1
+      · omega
+    · have := h (j + 1) (by simp; omega) (by simp; omega) (by rwa [kidAt_succ])
+        i (by rwa [kidAt_succ])
+      rcases this with h1 | h1 | ⟨m, hm, hmt, hmi⟩
+      · exact Or.inl h1
+      · exact Or.inr (Or.inl (Or.inl h1))
+      · rcases m with _ | m
+        · rw [kidAt_zero] at hmt
+          exact Or.inr (Or.inl (Or.inr ⟨hmt, by simpa using hmi⟩))
+        · rw [kidAt_succ] at hmt
+          exact Or.inr (Or.inr ⟨m, by omega, hmt, by simpa using hmi⟩)
+
+/-- The callees' words, by position. -/
+theorem memL_lins_kidsAt {rd : Reader} : ∀ (ks : List KidD) (prev outs : List (List E × Layout)),
+    (∀ j, j < ks.length → j < outs.length → MemL rd (kidAt ks prev outs j).Lin) →
+    MemL rd (Kid.lins (kidsAt ks prev outs))
+  | [], _, _, _ => fun q hq => by simp [kidsAt, Kid.lins] at hq
+  | _ :: _, _, [], _ => fun q hq => by simp [kidsAt, Kid.lins] at hq
+  | k :: ks, prev, o :: os, h => by
+    intro q hq
+    simp only [kidsAt, Kid.lins, List.flatMap_cons, List.mem_append] at hq
+    rcases hq with hq | hq
+    · have := h 0 (by simp) (by simp)
+      rw [kidAt_zero] at this
+      exact this q hq
+    · exact memL_lins_kidsAt ks (prev ++ [o]) os (fun j hj ho => by
+        have := h (j + 1) (by simp; omega) (by simp; omega)
+        rwa [kidAt_succ] at this) q hq
+
+/-- An entered callee's result, by position. -/
+theorem outsOk_at : ∀ {ks : List KidD} {prev outs : List (List E × Layout)},
+    OutsOk (kidsAt ks prev outs) outs → ∀ m, m < ks.length → m < outs.length →
+      (kidAt ks prev outs m).taken = true →
+      (kidAt ks prev outs m).Out (outs.getD m ([], [])).1 (outs.getD m ([], [])).2
+  | [], _, _, _, m, hm, _, _ => absurd hm (by simp)
+  | _ :: _, _, [], _, m, _, hm, _ => absurd hm (by simp)
+  | k :: ks, prev, o :: os, ⟨h0, hs⟩, m, hm, ho, ht => by
+    rcases m with _ | m
+    · rw [kidAt_zero] at ht ⊢
+      exact h0 ht
+    · rw [kidAt_succ] at ht ⊢
+      simpa using outsOk_at hs m (by simp at hm; omega) (by simp at ho; omega) ht
+
+/-- An entered callee's result is in `outsL`, by position. -/
+theorem memL_outsL_at {rd : Reader} : ∀ {ks : List KidD} {prev outs : List (List E × Layout)},
+    MemL rd (outsL (kidsAt ks prev outs) outs) → ∀ m, m < ks.length → m < outs.length →
+      (kidAt ks prev outs m).taken = true → MemL rd (outs.getD m ([], [])).2
+  | [], _, _, _, m, hm, _, _ => absurd hm (by simp)
+  | _ :: _, _, [], _, m, _, hm, _ => absurd hm (by simp)
+  | k :: ks, prev, o :: os, h, m, hm, ho, ht => by
+    simp only [kidsAt, outsL] at h
+    obtain ⟨h1, h2⟩ := Main.memL_append.mp h
+    rcases m with _ | m
+    · rw [kidAt_zero] at ht
+      rw [ite_pos' ht] at h1
+      simpa using h1
+    · rw [kidAt_succ] at ht
+      simpa using memL_outsL_at h2 m (by simp at hm; omega) (by simp at ho; omega) ht
+
+/-- **The frames match the callees, by position.** -/
+theorem callsMatch_kidsAt {σ : Val} : ∀ (cs : List Call) (ks : List KidD)
+    (prev outs : List (List E × Layout)), cs.length = ks.length → ks.length = outs.length →
+    (∀ j, j < cs.length → (cs.getD j noCall).f = (kidAt ks prev outs j).f ∧
+      (cs.getD j noCall).taken = (kidAt ks prev outs j).taken ∧
+      ((kidAt ks prev outs j).taken = true →
+        (cs.getD j noCall).args.map σ = (kidAt ks prev outs j).args ∧
+          (cs.getD j noCall).rets.map σ = (outs.getD j ([], [])).1)) →
+    CallsMatch σ cs (kidsAt ks prev outs) outs
+  | [], [], _, [], _, _, _ => trivial
+  | c :: cs, k :: ks, prev, o :: os, h1, h2, h => by
+    have h0 := h 0 (by simp)
+    simp only [List.getD_cons_zero, kidAt_zero] at h0
+    refine ⟨h0.1, h0.2.1, fun ht => ?_, callsMatch_kidsAt cs ks (prev ++ [o]) os (by simpa using h1)
+      (by simpa using h2) fun j hj => ?_⟩
+    · simpa using h0.2.2 ht
+    · have := h (j + 1) (by simp; omega)
+      simp only [List.getD_cons_succ, kidAt_succ] at this
+      simpa using this
+  | [], _ :: _, _, _, h1, _, _ => absurd h1 (by simp)
+  | _ :: _, [], _, _, h1, _, _ => absurd h1 (by simp)
+  | [], [], _, _ :: _, _, h2, _ => absurd h2 (by simp)
+  | _ :: _, _ :: _, _, [], _, h2, _ => absurd h2 (by simp)
+
 end
 end LeanVM.Guest.B1
