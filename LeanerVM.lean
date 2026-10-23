@@ -30,6 +30,7 @@ import LeanerVM.Protocol.Blake2sHashFast
 import LeanerVM.Protocol.Bus
 import LeanerVM.Protocol.BusSecurity
 import LeanerVM.Protocol.ChainGroups
+import LeanerVM.Protocol.ChainLog
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.DecodeChain
 import LeanerVM.Protocol.DecodeWalk

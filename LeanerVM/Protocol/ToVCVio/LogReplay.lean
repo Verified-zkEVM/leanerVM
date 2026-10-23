@@ -69,6 +69,24 @@ theorem run_simulateQ_replayImpl {α : Type} (ans : Q → Option D) (oa : Oracle
     rw [ih u hy hrest]
     simp
 
+/-- A replay only appends to its log. -/
+theorem prefix_of_run_simulateQ_replayImpl {α : Type} (ans : Q → Option D)
+    (oa : OracleComp (Q →ₒ D) α) {pre : (Q →ₒ D).QueryLog} {x : α} {log : (Q →ₒ D).QueryLog}
+    (h : (simulateQ (replayImpl ans) oa).run pre = some (x, log)) : pre <+: log := by
+  induction oa using OracleComp.inductionOn generalizing pre x log with
+  | pure y =>
+    simp only [simulateQ_pure, StateT.run_pure] at h
+    cases h
+    exact List.prefix_refl _
+  | query_bind t mx ih =>
+    simp only [simulateQ_bind, simulateQ_spec_query, StateT.run_bind] at h
+    rcases hu : ans t with _ | u
+    · simp [replayImpl, hu] at h
+    · have hstep : (replayImpl ans t).run pre = pure (u, pre ++ [⟨t, u⟩]) := by
+        simp [replayImpl, hu]
+      rw [hstep, pure_bind] at h
+      exact (List.prefix_append pre _).trans (ih u h)
+
 /-- The support of a simulation is in the support of the computation it simulates. -/
 theorem support_simulateQ_subset {ι : Type} {spec : OracleSpec ι} {α : Type}
     {n : Type → Type} [Monad n] [LawfulMonad n] [MonadAttach n] [ExactMonadAttach n]
