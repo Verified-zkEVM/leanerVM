@@ -21,7 +21,7 @@ import LeanVM.Protocol.EndToEnd.Front.CommitDoom
 * **The bus flushes.** Every opcode table's pushed and pulled tuples, evaluated on a row, are the
   Python's in the Python's order, and its count columns the Python's `cnt` columns. This is the
   regression for `DEREF`, whose Clean table read the local cell before the store target until it
-  was put in the deployed order (`tables.rs:642-647`): the tie order of equal-height bus blocks
+  was put in the deployed order (`tables.rs:675-680`): the tie order of equal-height bus blocks
   follows the flush order, so the leaf decomposition depends on it.
 -/
 
@@ -157,7 +157,7 @@ def pythonFlushes (j : Fin 6) (push : Bool) : List (List E) :=
       List.replicate (16 - coords.length) 0
 
 -- Every table, `DEREF` included, flushes the Python's tuples in the Python's order: the
--- regression for the `DEREF` order (pointer, target, local; `tables.rs:642-647`), which the
+-- regression for the `DEREF` order (pointer, target, local; `tables.rs:675-680`), which the
 -- instance had as pointer, local, target, moving two equal-height bus blocks.
 #guard (List.finRange 6).all fun j ↦
   decide (instanceFlushes j .push = pythonFlushes j true) &&

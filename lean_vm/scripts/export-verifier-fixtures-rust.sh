@@ -3,7 +3,7 @@
 # format the Python verifier and the `verifier` crate read (`python-verifier/verifier.py`,
 # `Proof.load` and `main`; `crates/verifier/src/transcript.rs`, `Proof::load`; and
 # `crates/leanvm_core/tests/verifiers/python_verifier.rs`, `encode` and `test_python_verifier`,
-# at leanVM 3375f7a137c50b803f3416f6466b5d4e0719708a):
+# at leanVM 4af2cdddd7cd41b9df2cc7e123e314a91b0b4462):
 #
 #   bytecode.bin          the bytecode table, little-endian 64-bit words;
 #   public_input.bin      the public input's two halves, 16 bytes each (c0, c1 little-endian);

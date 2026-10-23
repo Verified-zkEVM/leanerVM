@@ -2,7 +2,7 @@
   LeanVM.Protocol.Keccak.Words
 
   A `K` word as the sum of its bits times the powers `x^z`: the reading of the first claim's
-  weights `x^z` (`verifier.py:1370`) and of the committed words' bit slices.
+  weights `x^z` (`verifier.py:1381`) and of the committed words' bit slices.
 -/
 
 module
@@ -57,7 +57,7 @@ theorem word_eq_sum (bv : BitVec 64) :
   rw [toBitVec_sum_getLsbD bv 64 le_rfl i hi]
   simp [hi]
 
-/-- A 64-bit lane in `E`: its bits times `E(1 << z)` (`verifier.py:1370`). -/
+/-- A 64-bit lane in `E`: its bits times `E(1 << z)` (`verifier.py:1381`). -/
 theorem ofK_ofLane (w : UInt64) :
     ofK (K.ofLane w) = ∑ z ∈ range 64, bitE (w.toBitVec.getLsbD z) * eOfNat (2 ^ z) := by
   rw [K.ofLane, word_eq_sum, show ofK = algebraMap K E from rfl, map_sum]

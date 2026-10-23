@@ -16,8 +16,8 @@ public import LeanVM.Protocol.EndToEnd.Front.RingFidelity
 /-!
 # Completeness of the Keccak phase
 
-Step 6 of `verify_execution` (`keccakPhase`, `python-verifier/verifier.py:1492-1499` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`): the claims on the 25 output lanes of `KECCAK` leave
+Step 6 of `verify_execution` (`keccakPhase`, `python-verifier/verifier.py:1505-1509` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): the claims on the 25 output lanes of `KECCAK` leave
 the batch, the program checks that they are the 25 lanes in order at one point, and they become
 the claim of the Keccak reduction (`verifyKeccak`), whose column claims on `q_keccak` join the
 batch and whose point and slices go to ring switching.

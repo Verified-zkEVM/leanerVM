@@ -46,7 +46,7 @@ example : readAddrs zeroImage 1 (.xor (gpow 0) (gpow 1) (gpow 2)) =
     [1 * gpow 0, 1 * gpow 1, 1 * gpow 2] := by simp only [readAddrs]
 
 /-- A `DEREF` reads its target at `p · o₂`, with `p` the word at `fp · o₁`, not at `fp · o₂`; the
-pointer, the target, then the local cell, the deployed order (`tables.rs:642-647`). -/
+pointer, the target, then the local cell, the deployed order (`tables.rs:675-680`). -/
 example {κ : ℕ} (mem : MemImage κ) (fp o1 o2 o3 : K) (m : DerefMode) :
     readAddrs mem fp (.deref o1 o2 o3 m) = [fp * o1, (mem.limbsAt (fp * o1))[0] * o2, fp * o3] :=
   rfl

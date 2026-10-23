@@ -37,8 +37,8 @@ theorem verifyWith_keccak (bytecode : List K) (publicInput : Digest) (π : Proof
 /-!
 ## Loading a proof from its four files
 
-From `verifier.py`, lines 102-105 (`E.from_bytes`), 210-231 (`Digest`),
-337-346 (`Proof.load`), 427-446 (`Transcript._merkle_data`, `Transcript.merkle`) and 1511-1529
+From `verifier.py`, lines 102-105 (`E.from_bytes`), 212-233 (`Digest`),
+336-345 (`Proof.load`), 426-445 (`Transcript._merkle_data`, `Transcript.merkle`) and 1522-1540
 (`main`). The pinned Rust prover writes the same files
 (`crates/leanvm_core/tests/verifiers/python_verifier.rs`, `python_verify`).
 
@@ -105,7 +105,7 @@ def decodeAll {α : Type} (size : ℕ) (decode : Bytes → α) (b : Bytes) : Opt
   | some (xs, []) => some xs
   | _ => none
 
-/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1522-1523`). -/
+/-- `bytecode.bin`: the bytecode's words (`main`, `verifier.py:1533-1534`). -/
 def decodeWords (b : Bytes) : Option (List K) := decodeAll 8 kOfBytes b
 
 /-- `public_input.bin`: the 32-byte public input (`Digest.__post_init__`). -/
@@ -147,7 +147,7 @@ def laterOpeningShapes : ℕ → List Whir.Level → List (ℕ × ℕ)
 
 /-- The openings of a WHIR run on a `logN`-variable stack, level by level: level `0` opens the
 stack at `commitStack`'s shape, level `ℓ + 1` the commitment read at level `ℓ`
-(`verify_whir`, `verifier.py:1108-1186`). -/
+(`verify_whir`, `verifier.py:1124-1202`). -/
 def whirOpeningShapes (logN : ℕ) : List Whir.Level → List (ℕ × ℕ)
   | [] => []
   | level :: rest =>

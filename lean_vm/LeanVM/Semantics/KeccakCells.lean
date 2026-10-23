@@ -122,7 +122,7 @@ theorem canonicalKeccak_of_keccakCells {input output : Fin 13 → E} {inOdd outO
 /-! ## Segments of the permutation -/
 
 /-- Segment `m` of Keccak-f[1600]: its rounds `12m` to `12m + 11` (the Keccak reduction's
-`KECCAK_DEPTH = 12`, `verifier.py:688`). -/
+`KECCAK_DEPTH = 12`, `verifier.py:694`). -/
 def keccakSegment (m : ℕ) (a : KState) : KState :=
   ((keccakRC.drop (12 * m)).take 12).foldl Keccak.round a
 

@@ -14,7 +14,7 @@ halves, then `n` scalars `fe(10 + k)`.
   five challenges, in the compiled reading, give the challenges and the sponge state the
   Python's `Transcript` gives on the same stream after `next_scalars(8)`,
   `from_halves(next_scalars(2))` and `samples(5)` (`python-verifier/verifier.py` at leanVM
-  `3375f7a137c50b803f3416f6466b5d4e0719708a`, driver `compiled_driver.py` of the port). This binds
+  `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, driver `compiled_driver.py` of the port). This binds
   the IV preimage, the seed permutation of the IV and the public input, the duplex absorbs with
   their domain tags, the squeezes, the order of the reads, and the stack root's shape.
 * A root half with a nonzero top limb is rejected, as `Digest.from_halves` rejects it.

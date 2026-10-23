@@ -17,9 +17,9 @@ public import LeanVM.Protocol.RingFields
 # The algebra of ring switching
 
 The program (`ringMapShifts`, `phiMap`, `ringWeight`, `ringCoefficients`, `ringSwitch`,
-`python-verifier/verifier.py:1397-1433` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`;
+`python-verifier/verifier.py:1408-1444` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`;
 `crates/pcs/src/ring_switch.rs`) and its claim on the stack (`ringSwitchClaim`,
-`verifier.py:1504-1506`):
+`verifier.py:1514-1516`):
 
 * `phiMap_eq_frobMap`: the program's `Φ`, a fold over the coefficients with shifts
   `32, 16, 8, 4, 2, 1`, is the staged map `frobMap (stagesOf ch)` (`ToArkLib/FrobeniusMap.lean`);

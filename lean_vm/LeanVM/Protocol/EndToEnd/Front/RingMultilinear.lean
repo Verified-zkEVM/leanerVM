@@ -12,8 +12,8 @@ public import LeanVM.Protocol.EndToEnd.Front.RingSwitch
 /-!
 # The ring claim's weight is multilinear
 
-The program's ring claim (`ringSwitchClaim`, `python-verifier/verifier.py:1504-1506` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`) has the weight
+The program's ring claim (`ringSwitchClaim`, `python-verifier/verifier.py:1514-1516` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) has the weight
 `W(u) = eqAbove(u) · Σ_k c_k Π_n (1 + r_n^(2^k) + u_n)`, `eqAbove` the equality kernel of the
 coordinates above the placement's window. On points of `μ` coordinates every summand is a product
 of one affine function per coordinate (`eq_eval` reads the window's coordinates, `eqAbove` the

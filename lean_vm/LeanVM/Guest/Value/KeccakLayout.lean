@@ -19,8 +19,8 @@ A canonical cell holds sixteen message bytes, its limb `0` then its limb `1`, ea
 little-endian bytes (`cellBytes`; the Rust's `pack_16_bytes`, the Spec's `kBytes`). A Keccak
 state sits in thirteen cells in one of two layouts (`cellLanes`, `Spec/Isa.lean`): lane `l` is
 limb `laneLimbIdx odd l` of cell `laneCellIdx odd l` (`lane_stateOfCells`). The compiler's
-`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:243-288` at leanVM
-`3375f7a13`) reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity:
+`emit_keccak_message` (`crates/lean_compiler/src/lower/builtins.rs:208-249` at leanVM
+`4af2cdddd`) reads block `k` of a message from its cell `17k/2` in the layout of `k`'s parity:
 a block of `136` bytes is `8.5` cells, so an odd block starts in its first cell's limb `1`, which
 the odd layout places at lane `0`. XORing the block's nine cells into the previous output, which
 `KECCAK` wrote in that same layout, XORs its seventeen lanes into the rate (`stateOfCells_xor`),
@@ -42,7 +42,7 @@ open LeanVM.Guest.Value.KeccakEval
 /-! ## Bytes of cells -/
 
 /-- The sixteen bytes a cell holds: its limb `0`, then its limb `1`, little-endian
-(`pack_16_bytes`, `crates/rec_aggregation/src/aggregation.rs:178-181`). -/
+(`pack_16_bytes`, `crates/rec_aggregation/src/aggregation.rs:181-184`). -/
 def cellBytes (c : E) : List UInt8 := kBytes (c.limb 0) ++ kBytes (c.limb 1)
 
 /-- The bytes of a run of cells, in order. -/

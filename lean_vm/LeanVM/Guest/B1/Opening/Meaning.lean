@@ -12,10 +12,10 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # The stacked WHIR opening's helpers: meanings (TRIAGE G #35-38)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `3375f7a13`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `4af2cdddd`, G below) its meaning
 on its argument and return words, the sponge as the guest carries it (`Fs`), and `…_Spec`, the
 statement that its core IR relation is that meaning (proved as `…_holds`). The Spec steps they
-are (`foldRounds`, `tailRounds`, V:1691, 1702; `sampleN`; `readN` and `grindP`) are the `…_run`
+are (`foldRounds`, `tailRounds`, V:1750, 1702; `sampleN`; `readN` and `grindP`) are the `…_run`
 theorems of `B1/Opening/`.
 
 | function | G | meaning |
@@ -150,7 +150,7 @@ def climbD (leaf : Digest) (q : ℕ) (sibs : List Digest) : Digest :=
   Id.run (Compile.climb (m := Id) keccak256 leaf q sibs)
 
 /-- The row's `E` word `j`: the `K` word `j` at level 0 (`base = 1`), else the three limbs from
-`3j` (`extRow`, V:1627). -/
+`3j` (`extRow`, V:1686). -/
 def rowWord (base : ℕ) (row : List K) (j : ℕ) : E :=
   if base = 1 then ofK (row.getD j 0)
   else E.ofLimbs (row.getD (3 * j) 0) (row.getD (3 * j + 1) 0) (row.getD (3 * j + 2) 0)
@@ -227,7 +227,7 @@ base, I, leaf_cells, depth, cd)`** (G:1246-1269; TRIAGE #40): `n_iters_g = g^N`,
 `k < Q` (`oqCount`) reads its bit pointer and the bits of its position `q_k < 2^depth`, and opens
 (`QueryOpens`) to the value `d_k`; the chain `h ← (h + d_k)·λ⁻¹` is in a heap run, and the
 function returns its end times `lam_n`: `lam_n · Σ_k d_k λ^(k - Q)` (`Σ_k λ^k d_k` at
-`lam_n = λ^Q`, `enforcedSum`, V:1635). -/
+`lam_n = λ^Q`, `enforcedSum`, V:1694). -/
 def MeaningOpeningQueries (odd base I depth cd : ℕ) (rd : Reader) : List E → List E → Prop
   | [cap, flags, lam, lamN, qptrs, wp, nG], rets =>
       ∃ N < ordG, nG = gen ^ N ∧ lam ≠ 0 ∧
