@@ -239,5 +239,69 @@ theorem rest_inv {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E}
   rw [squeeze_absorb_two] at h2
   exact ⟨osL, rest, ic0, ic2, xs2, root, height, width, eos, rfl, hlam, hR, hol, hok, h2⟩
 
+/-! ## The last level's shape -/
+
+/-- A level's queries and glue after its proof of work, refusing a zero `λ`. -/
+def levelRestNZ (ml index : ℕ) (level : Whir.Level) (lf : List E) (s : WhirState)
+    (pending : List (E × List E × (List E → E))) : Prog WhirState := do
+  let queries ← sampleQueries (ml + level.logInvRate) level.queries
+  let lam ← Prog.sampleE
+  Prog.require (lam ≠ 0)
+  let queryWeights := powers lam queries.length
+  let words ← Prog.queryP index queries
+  let rows : List (List E) :=
+    if index = 0 then words.map fun row ↦ row.reverse.map ofK else words.map extRow
+  let enforced := enforcedSum rows lf queryWeights
+  let intro ← sumcheckRoundPoly 3 enforced none
+  return glue lam s (pending ++
+    [(enforced, intro, fun x ↦ inducedWeight ml queries queryWeights x)])
+
+/-- The last level's tail, refusing a zero challenge. -/
+def levelTailNZ (lane ml : ℕ) (residual : List E) (s : WhirState) : Prog WhirEnd := do
+  let (tailFolds, target) ← tailRoundsNZ ml s.target s.quad
+  let point := s.folds ++ tailFolds
+  let inner := s.glued.foldl
+    (fun weight claim ↦
+      weight + claim.scalar * claim.weightAt (s.folds.drop claim.foldStart ++ tailFolds)) 0
+  return ⟨point.drop lane ++ point.take lane, inner, multilinearEval residual tailFolds, target⟩
+
+/-- **The last level**: its folds, its final message, its proof of work, its queries, its tail. -/
+theorem whirLevelsOpenNZ_last (logN lane index : ℕ) (level : Whir.Level) (s : WhirState) :
+    whirLevelsOpenNZ logN lane index [level] s = (do
+      let (s, levelFolds) ← foldRoundsNZ level.fold s []
+      let messageLog := logN - s.folds.length
+      let residual ← Prog.readN (2 ^ messageLog)
+      Prog.grindP Whir.queryGrindingBits
+      let s ← levelRestNZ messageLog index level levelFolds s []
+      levelTailNZ lane messageLog residual s) := by
+  rw [whirLevelsOpenNZ]
+  simp only [levelRestNZ, levelTailNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind]
+
+/-- `rest_inv` on `levelRestNZ`. -/
+theorem rest_inv' {β : Type} {ml index : ℕ} {level : Whir.Level} {lf : List E} {ws1 : WhirState}
+    {pending : List (E × List E × (List E → E))} {F2 : Fs} {xs : List E} {os : List Opening}
+    {R : List (Digest × ℕ × ℕ)} {r : β × FSt} (hd : 1 ≤ 192 / (ml + level.logInvRate))
+    {K : WhirState → Prog β}
+    (h : runF ((levelRestNZ ml index level lf ws1 pending).bind K) ⟨F2, xs, os, R⟩ = some r) :
+    let nsq := ceilDiv level.queries (192 / (ml + level.logInvRate))
+    let qs := queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+      (F2.squeezeN nsq).1 level.queries
+    let lam := (F2.squeezeN nsq).2.squeeze.1
+    ∃ (osL osR : List Opening) (ic0 ic2 : E) (xsR : List E) (root : Digest) (height width : ℕ),
+      os = osL ++ osR ∧ xs = ic0 :: ic2 :: xsR ∧ lam ≠ 0 ∧
+      R[index]? = some (root, height, width) ∧ osL.length = qs.length ∧
+      (∀ k (hk : k < qs.length) (ho : k < osL.length),
+        Id.run (Compile.openOne (m := Id) keccak256 root height width qs[k] osL[k]) = true) ∧
+      runF (K (glue lam ws1 (pending ++ [(enforcedSum (if index = 0 then
+          (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
+          lf (powers lam qs.length),
+          [ic0, enforcedSum (if index = 0 then
+            (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK else (osL.map (·.leaf)).map extRow)
+            lf (powers lam qs.length) + ic2, ic2],
+          fun x ↦ inducedWeight ml qs (powers lam qs.length) x)])))
+        ⟨foldStep (F2.squeezeN nsq).2 ic0 ic2, xsR, osR, R⟩ = some r := by
+  simp only [levelRestNZ, Prog.bind_eq, Prog.pure_eq, Prog.bind_assoc, Prog.ret_bind] at h
+  exact rest_inv hd h
+
 end
 end LeanVM.Guest.B1.Whir

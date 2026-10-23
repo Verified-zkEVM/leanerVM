@@ -174,5 +174,147 @@ theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : L
   · rw [eWsEnd, eFend, eEnf, eLam, eWs1, ePend, eQs, eMl]
     exact h7
 
+/-- **The last level, backwards**: its words and openings, then its tail rounds and the end. -/
+theorem level_fin_inv {logN lane index : ℕ} {level : Whir.Level} {ws : WhirState} {F : Fs}
+    {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)} {res : WhirEnd × FSt}
+    (hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate))
+    (h : runF (whirLevelsOpenNZ logN lane index [level] ws) ⟨F, xs, os, R⟩ = some res) :
+    ∃ (L : SpLv) (xsR : List E) (osR : List Opening),
+      L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = true ∧ L.ws = ws ∧ L.F = F ∧
+      L.Ok R (Vector.replicate 4 0) ∧ xs = L.words ++ xsR ∧ os = L.os ++ osR ∧
+      2 * (L.ml - 1) ≤ xsR.length ∧
+      (∀ c ∈ (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1, c ≠ 0) ∧
+      res = (⟨(L.wsEnd.folds ++ (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1).drop lane ++
+          (L.wsEnd.folds ++ (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1).take lane,
+        L.wsEnd.glued.foldl (fun weight claim ↦ weight + claim.scalar *
+          claim.weightAt (L.wsEnd.folds.drop claim.foldStart ++
+            (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1)) 0,
+        multilinearEval L.ms (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.1,
+        (tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).2.2⟩,
+        ⟨(tailTr L.ml L.Fend L.wsEnd.quad L.wsEnd.target xsR).1,
+          xsR.drop (2 * (L.ml - 1)), osR, R⟩) := by
+  rw [whirLevelsOpenNZ_last] at h
+  simp only [Prog.bind_eq] at h
+  obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
+  simp only at h1
+  have hfl : (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length =
+      ws.folds.length + level.fold := by
+    rw [List.length_append, foldsTr_chs_length]
+  obtain ⟨hml, h2⟩ := runF_readN_bind _ h1
+  obtain ⟨nonce, xs3, hx3, hpow, h3⟩ := runF_grindP_bind h2
+  have hd' : 1 ≤ 192 / (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
+      level.logInvRate) := by
+    rw [hfl]; exact hd
+  obtain ⟨osL, osR, ic0, ic2, xsR, root, height, width, eos, hx7, hlam, hroot, hol, hok, h7⟩ :=
+    rest_inv' hd' h3
+  subst hx7
+  simp only [List.nil_append] at h7
+  set ml := logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length with hmldef
+  set ms := (List.drop (2 * level.fold) xs).take (2 ^ ml) with hms
+  set L : SpLv := ⟨logN, index, level, true, ws, F, xs.take (2 * level.fold), 0, 0, 0, 0, 0,
+    ms, nonce, osL, ic0, ic2⟩ with hL
+  have eTr : L.tr = foldsTr level.fold F ws.quad ws.target xs := foldsTr_take _ _ _ _ _
+  have eChs : L.chs = (foldsTr level.fold F ws.quad ws.target xs).2.1 := by rw [SpLv.chs, eTr]
+  have eF1 : L.F1 = (foldsTr level.fold F ws.quad ws.target xs).1 := by rw [SpLv.F1, eTr]
+  have eWs1 : L.ws1 = { ws with
+      target := (foldsTr level.fold F ws.quad ws.target xs).2.2.2
+      quad := (foldsTr level.fold F ws.quad ws.target xs).2.2.1
+      folds := ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1 } := by
+    rw [SpLv.ws1, eTr, eChs]
+  have eMl : L.ml = ml := by rw [SpLv.ml, eWs1]
+  have eF2 : L.F2 = ((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+      dsObserve).absorb nonce dsPowNonce).squeeze.2) := by
+    rw [SpLv.F2, ← eF1]
+    rfl
+  have eD : L.D = ml + level.logInvRate := by rw [SpLv.D, eMl]
+  have eNsq : L.nsq = ceilDiv level.queries (192 / (ml + level.logInvRate)) := by
+    rw [SpLv.nsq, eD]
+  have eQs : L.qs = queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+      ((((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+        (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1) level.queries := by
+    rw [SpLv.qs, eD, eF2, eNsq]
+  have eLam : L.lam = (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+        (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1 := by
+    rw [SpLv.lam, eF2, eNsq]
+  have ePend : L.pending = [] := rfl
+  have eEnf : L.enforced = enforcedSum L.rows (foldsTr level.fold F ws.quad ws.target xs).2.1
+      (powers L.lam L.qs.length) := by
+    rw [SpLv.enforced, eChs]
+  have eWsEnd : L.wsEnd = glue L.lam L.ws1 (L.pending ++ [(L.enforced,
+      [ic0, L.enforced + ic2, ic2], fun x ↦ inducedWeight L.ml L.qs (powers L.lam L.qs.length) x)]) :=
+    rfl
+  have eFend : L.Fend = foldStep (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+        (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2 ic0 ic2 := by
+    rw [SpLv.Fend, eF2, eNsq]
+  have eW : L.wsEnd = glue (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+        dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+        (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+      { ws with
+        target := (foldsTr level.fold F ws.quad ws.target xs).2.2.2
+        quad := (foldsTr level.fold F ws.quad ws.target xs).2.2.1
+        folds := ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1 }
+      [(enforcedSum (if index = 0 then (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK
+            else (osL.map (·.leaf)).map extRow) (foldsTr level.fold F ws.quad ws.target xs).2.1
+          (powers (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+            dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+            (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+            (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              ((((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+                dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+                (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1)
+              level.queries).length),
+        [ic0, enforcedSum (if index = 0 then (osL.map (·.leaf)).map fun row ↦ row.reverse.map ofK
+            else (osL.map (·.leaf)).map extRow) (foldsTr level.fold F ws.quad ws.target xs).2.1
+          (powers (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+            dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+            (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+            (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              ((((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+                dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+                (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1)
+              level.queries).length) + ic2, ic2],
+        fun x ↦ inducedWeight ml (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              ((((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+                dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+                (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1)
+              level.queries)
+          (powers (((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+            dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+            (ceilDiv level.queries (192 / (ml + level.logInvRate)))).2.squeeze.1
+            (queriesOf (192 / (ml + level.logInvRate)) (ml + level.logInvRate)
+              ((((((foldsTr level.fold F ws.quad ws.target xs).1.absorbAll ms
+                dsObserve).absorb nonce dsPowNonce).squeeze.2).squeezeN
+                (ceilDiv level.queries (192 / (ml + level.logInvRate)))).1)
+              level.queries).length) x)] := by
+    rw [eWsEnd, eEnf, eLam, eWs1, ePend, eQs, eMl]
+    rfl
+  simp only [levelTailNZ, Prog.bind_eq, Prog.pure_eq] at h7
+  obtain ⟨htl, htnz, h8⟩ := tailNZ_inv _ _ _ _ _ _ _ _ h7
+  simp only at h8
+  have hres := runF_ret_some h8
+  refine ⟨L, xsR, osR, rfl, rfl, rfl, rfl, rfl, rfl, ⟨?_, ?_, fun h ↦ Bool.noConfusion h,
+    fun h ↦ Bool.noConfusion h, fun _ ↦ ?_, fun _ ↦ ?_, ?_, ?_⟩, ?_, eos, ?_, ?_, ?_⟩
+  · show (xs.take (2 * level.fold)).length = 2 * level.fold
+    simp only [List.length_take]; omega
+  · intro c hc; rw [eChs] at hc; exact hnz c hc
+  · rw [eMl]
+    show ((List.drop (2 * level.fold) xs).take (2 ^ ml)).length = 2 ^ ml
+    simp only [List.length_take]; omega
+  · rw [eF1]; exact hpow
+  · rw [eLam]; exact hlam
+  · refine ⟨root, height, width, hroot, by rw [eQs]; exact hol, ?_⟩
+    rw [eQs]
+    exact hok
+  · show xs = (xs.take (2 * level.fold) ++ (if true = true then ms ++ [nonce] else
+      [0, 0, 0, 0, 0, nonce]) ++ [ic0, ic2]) ++ xsR
+    simp only [↓reduceIte, List.append_assoc, List.cons_append, List.nil_append, hms]
+    rw [← hx3, List.take_append_drop, List.take_append_drop]
+  · rw [eMl]; exact htl
+  · rw [eW, eFend, eMl]; exact htnz
+  · rw [eW, eFend, eMl]; exact hres
+
 end
 end LeanVM.Guest.B1.Whir
