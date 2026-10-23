@@ -41,14 +41,28 @@ def oqRun (s : Oq) (ch : ℕ) : List V :=
   ((List.range (4 * s.pd)).map fun j ↦ .n (ch + j)) ++
     ((List.range (80 - 4 * s.pd)).map fun j ↦ .n (ch + 4 * s.pd + 1 + j))
 
-/-- **An atom of a query, by kind**: a load as `OqQLoad`, the path's `frameAddr`, or neither nor a
-`HeapBuf`. -/
-def OqAtomOk (s : Oq) (bp wp : V) (ch : ℕ) : Atom → Prop
-  | .load _ p off => OqQLoad s bp wp ch p off
-  | .frameAddr p run => p = .n (ch + 4 * s.pd) ∧ run = oqRun s ch
+/-- **An atom by kind**: a load whose pointer and offset satisfy `L`, a `frameAddr` whose pointer
+and run satisfy `F`, or neither a load, a `frameAddr` nor a `HeapBuf`. -/
+def AtomKind (L : V → ℕ → Prop) (F : V → List V → Prop) : Atom → Prop
+  | .load _ p off => L p off
+  | .frameAddr p run => F p run
   | .hint (.alloc ..) => False
   | .hint (.allocDyn ..) => False
   | _ => True
+
+theorem AtomKind.mono {L L' : V → ℕ → Prop} {F F' : V → List V → Prop}
+    (hL : ∀ p off, L p off → L' p off) (hF : ∀ p run, F p run → F' p run) {a : Atom}
+    (h : AtomKind L F a) : AtomKind L' F' a := by
+  cases a with
+  | load _ p off => exact hL p off h
+  | frameAddr p run => exact hF p run h
+  | hint hh => cases hh <;> exact h
+  | _ => exact h
+
+/-- **An atom of a query, by kind**: a load as `OqQLoad`, the path's `frameAddr`, or neither nor a
+`HeapBuf`. -/
+abbrev OqAtomOk (s : Oq) (bp wp : V) (ch : ℕ) : Atom → Prop :=
+  AtomKind (OqQLoad s bp wp ch) (fun p run ↦ p = .n (ch + 4 * s.pd) ∧ run = oqRun s ch)
 
 /-- Every statement is an atom of the kind `P`. -/
 def AtomsOk (P : Atom → Prop) (ss : List Stmt) : Prop := ∀ x ∈ ss, ∃ a, x = .atom a ∧ P a
