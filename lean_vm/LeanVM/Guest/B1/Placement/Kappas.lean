@@ -30,9 +30,10 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
-/-- The committed columns: all but `KECCAK`'s value lanes, global columns `86 .. 135`. -/
+/-- The committed columns: all but `KECCAK`'s value lanes and the columns with a `q_keccak` slot,
+global columns `73 .. 136`. -/
 theorem committedCols_163 :
-    committedCols 163 = List.range 86 ++ (List.range 27).map (· + 136) := by
+    committedCols 163 = List.range 73 ++ (List.range 26).map (· + 137) := by
   decide +kernel
 
 theorem committedCols_163_length : (committedCols 163).length = nCommittedCols := by

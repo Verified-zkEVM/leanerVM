@@ -144,6 +144,15 @@ def SharedSelOut (rd : Reader) : List E → List E → Prop
 def shared_selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "shared_selector_tables" args rets → SharedSelOut rd args rets
 
+/-- The converse, for completeness: `n < 64` coordinates, complements and shares at `zeta_hi`,
+`zeta1_hi`, `gsq_hi`, with their nibble tables at `eq_tab`, `g_tab`, give the relation. -/
+def shared_selector_tables_complete_Spec : Prop :=
+  ∀ (rd : Reader) (eqt gt z z1 gsq : E) (n : ℕ) (zs zs1 gs : List E), n < 64 →
+    zs.length = n → zs1.length = n → gs.length = n →
+    TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
+    RunTables rd eqt gt n zs zs1 gs →
+    coreProgram.Rel rd "shared_selector_tables" [eqt, gt, z, z1, gsq, gen ^ n] []
+
 /-! ## The bus blocks' selectors -/
 
 /-- The eq weight of bits against coordinates with their complements: `Π (b ? z : z1)`. -/
@@ -168,6 +177,16 @@ def BlockSelTabOut (n : ℕ) (rd : Reader) : List E → List E → Prop
 def block_selector_tab_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
     coreProgram.Rel rd (lName "block_selector_tab" n) args rets → BlockSelTabOut n rd args rets
+
+/-- The converse, for completeness: `n` bits pinned at `sel_bits` and the nibble tables of a run
+of `n` coordinates, complements and shares at `eq_tab`, `g_tab` give the relation, returning the
+bits' eq weight and `g`-power product. -/
+def block_selector_tab_complete_Spec : Prop :=
+  ∀ n < 34, ∀ (rd : Reader) (sb eqt gt : E) (bs : List Bool) (zs zs1 gs : List E),
+    bs.length = n → zs.length = n → zs1.length = n → gs.length = n →
+    TbReadsAt rd sb (bs.map bitE) → RunTables rd eqt gt n zs zs1 gs →
+    coreProgram.Rel rd (lName "block_selector_tab" n) [sb, eqt, gt]
+      [bitsEq bs zs zs1, bitsPow bs gs]
 
 /-- `block_selector__L{n}(sel_bits, zeta1_hi, idxc_hi)`: `n` bits pinned at `sel_bits`, the
 complements `zs1` at `zeta1_hi` and the weights `cs` at `idxc_hi`; the function returns
@@ -242,6 +261,15 @@ def ColSelOut (κ : ℕ) (rd : Reader) : List E → List E → Prop
 def column_selector_Spec : Prop :=
   ∀ κ < 29, ∀ rd args rets,
     coreProgram.Rel rd (lName "column_selector" κ) args rets → ColSelOut κ rd args rets
+
+/-- The converse, for completeness: an offset `g^o`, `o < 2^28` a multiple of `2^κ`, and the opening
+point's tables at `sel_eq`, `sel_g` give the relation, returning the eq weight of `o`'s bits above
+`κ`. -/
+def column_selector_complete_Spec : Prop :=
+  ∀ κ < 29, ∀ (rd : Reader) (o : ℕ) (se sg : E) (p p1 : List E), o < 2 ^ 28 → 2 ^ κ ∣ o →
+    p.length = 28 → p1.length = 28 → EqTabsAt rd se p p1 → GTabsAt rd sg →
+    coreProgram.Rel rd (lName "column_selector" κ) [gen ^ o, se, sg]
+      [bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ) (p1.drop κ)]
 
 end
 end LeanVM.Guest.B1.Tables

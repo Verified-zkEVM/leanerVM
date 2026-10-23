@@ -59,14 +59,16 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
   simp only [termHeadT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
   obtain ⟨-, e20, hcz, -, e22, hcr, e23, e24, -, -, -, l27, e28, l28, e29, e30, e31, -, hloop, e32,
     l33, hstc, hb⟩ := hb
-  change Stmt.HoldsList _ rd σ ((List.range 113).map selBlockT).flatten _ _ at hb
-  rw [holdsList_range_flatten 113 selBlockT (fun _ ↦ rfl)] at hb
+  change Stmt.HoldsList _ rd σ ((List.range Tables.nCommittedCols).map selBlockT).flatten _ _ at hb
+  rw [holdsList_range_flatten Tables.nCommittedCols selBlockT (fun _ ↦ rfl)] at hb
   obtain ⟨hsels, hb⟩ := hb
   rw [holdsList_noRet _ (claimsT_noRet _ _ _)] at hb
   obtain ⟨hcl, hb⟩ := hb
-  simp only [termTailT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
-  obtain ⟨e1836, e1837, -, -, -, e1840, e1841, e1842, hco, e1843, e1844, e1845, e1846, hrw, e1848,
-    l1849, e1850, e1851, e1852, e1853, e1854, afin, hret⟩ := hb
+  rw [claimsT_end] at hb
+  simp only [termTailT, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+    Nat.reduceAdd, Nat.reduceSub] at hb
+  obtain ⟨e1990, e1991, -, -, -, e1994, e1995, e1996, hco, e1997, e1998, e1999, e2000, hrw, e2002,
+    l2003, e2004, e2005, e2006, e2007, e2008, afin, hret⟩ := hb
   refine ⟨hret.symm, ?_⟩
   intro layout bus claims out lam ringPoint coeffs x hpre
   simp only [TermPre] at hpre
@@ -79,24 +81,24 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
   set kappas := columnKappas layout.logMemory layout.logBytecode layout.tableLogHeights with hkdef
   set KC := Tables.committedKappas kappas with hKCdef
   set τ := layout.tableLogHeights.getD opKeccak 0 with hτ
-  have hKClen : KC.length = 113 := Tables.committedKappas_length _ hkap
+  have hKClen : KC.length = Tables.nCommittedCols := Tables.committedKappas_length _ hkap
   have hLdef : layout.stackLog = max minStackedLog (stackOffsets KC).2 := by
     rw [hSL, placementsOf_snd]
-  have hK : ∀ c < 113, KC.getD c 0 ≤ layout.stackLog := fun c hc ↦ by
+  have hK : ∀ c < Tables.nCommittedCols, KC.getD c 0 ≤ layout.stackLog := fun c hc ↦ by
     have := size_le_stackOffsets KC (i := c) (by omega); rw [hLdef]; omega
   have hO : ∀ c, (stackOffsets KC).1.getD c 0 < 2 ^ layout.stackLog := fun c ↦
     lt_of_lt_of_le (stackOffsets_lt KC c) (Nat.pow_le_pow_right (by decide) (by rw [hLdef]; omega))
-  have hkv' : ∀ c < 113, LoadHolds rd (σ (.n 11)) c (gen ^ KC.getD c 0) := fun c hc ↦ by
+  have hkv' : ∀ c < Tables.nCommittedCols, LoadHolds rd (σ (.n 11)) c (gen ^ KC.getD c 0) := fun c hc ↦ by
     have := hKr c (by simp; omega)
     rw [List.getElem_map] at this
     rw [List.getD_eq_getElem _ _ (by omega)]; exact this
-  have hoff' : ∀ c < 113, LoadHolds rd (σ (.n 10)) c (gen ^ (stackOffsets KC).1.getD c 0) :=
+  have hoff' : ∀ c < Tables.nCommittedCols, LoadHolds rd (σ (.n 10)) c (gen ^ (stackOffsets KC).1.getD c 0) :=
     fun c hc ↦ by
       have hl : c < (stackOffsets KC).1.length := by rw [stackOffsets_length]; omega
       have := hOr c (by simpa using hl)
       rw [List.getElem_map] at this
       rw [List.getD_eq_getElem _ _ hl]; exact this
-  have hselc := fun c (hc : c < 113) ↦ sel_value hcs hst (hsels c hc) hstc (hoff' c hc) (hkv' c hc)
+  have hselc := fun c (hc : c < Tables.nCommittedCols) ↦ sel_value hcs hst (hsels c hc) hstc (hoff' c hc) (hkv' c hc)
     (hK c hc) hSL28 (hO c) hxl hpt hpt1
   -- sizes
   have hk6 : kappas.take 6 = [layout.logMemory, layout.logMemory, layout.logMemory,
@@ -170,13 +172,13 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
     have hj' := List.mem_range.mp hj
     have hj2 : j < 162 := by unfold termKind at hk; split_ifs at hk <;> omega
     exact loadHolds_unique hv ((hpts j _ (hptj j hj')).1 hj2)
-  obtain ⟨hsum, hoks, -⟩ := claimsT_sound (C := coreProgram.Rel rd) (cp := cp) (List.range 165) 375 16
+  obtain ⟨hsum, hoks, -⟩ := claimsT_sound (C := coreProgram.Rel rd) (cp := cp) (List.range 165) claimsStart 16
     hCp hcl
-  rw [show (claimsT (List.range 165) 375 16).2.2 = 1835 by rw [claimsT_end]] at hsum
+  rw [show (claimsT (List.range 165) claimsStart 16).2.2 = 1989 by rw [claimsT_end]] at hsum
   have hmem0 : (layout.placement memory0).vars = layout.logMemory := by
     have := placement_committed hkap hP (cc := 0) (by decide)
     rw [committedCols_getD (by decide)] at this
-    rw [show memory0 = 0 from rfl, show (if 0 < 86 then 0 else 0 + 50) = 0 from rfl] at *
+    rw [show memory0 = 0 from rfl, show colOfCommitted 0 = 0 from rfl] at *
     rw [this, hmem 0 (by decide)]
   have T : TermCtx rd σ layout kappas claims bus.point chis x lam (σ (.n 2)) cp :=
     { hkap := hkap, hP := hP, hx := hxl, hL := hSL28, hK := hK, hq := (hselc 5 (by decide)).2,
@@ -192,24 +194,24 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
       hkv := fun c hc ↦ valOf_eq (hkv' c hc) }
   -- the tail: the outputs' claim and the ring switch's
   have hq5 := placement_committed hkap hP (cc := 5) (by decide)
-  rw [committedCols_getD (by decide), show (if 5 < 86 then 5 else 5 + 50) = 5 from rfl] at hq5
+  rw [committedCols_getD (by decide), show colOfCommitted 5 = 5 from rfl] at hq5
   have hw64 : word 64 0 0 = gen ^ 6 := word_two_pow (a := 6) (by decide)
-  have h1842 : σ (.n 1842) = gen ^ out.point.length := by
-    rw [e1842, e1841, hw64, hgtau, ← pow_add, hopl, Tables.qkeccakSlotBits_eq]
-  rw [e1840, word_one, h1842] at hco
+  have h1996 : σ (.n 1996) = gen ^ out.point.length := by
+    rw [e1996, e1995, hw64, hgtau, ← pow_add, hopl, Tables.qkeccakSlotBits_eq]
+  rw [e1994, word_one, h1996] at hco
   have hoL : out.point.length = τ + 6 := by rw [hopl, Tables.qkeccakSlotBits_eq]
   have hoc' := chain_value ((eq_prefix_chain_holds rd _ _).mp hco) rfl (by omega) hoz hxl40 hpt1
-  rw [e1848, hgtau, loadHolds_mul_gen_pow] at l1849
-  have h1849 : σ (.n 1849) = eqEval out.point (x.take (τ + 6)) := by
-    rw [eq_valOf l1849, show τ + 6 = out.point.length from hoL.symm, hoc' _ le_rfl (by omega),
+  rw [e2002, hgtau, loadHolds_mul_gen_pow] at l2003
+  have h2003 : σ (.n 2003) = eqEval out.point (x.take (τ + 6)) := by
+    rw [eq_valOf l2003, show τ + 6 = out.point.length from hoL.symm, hoc' _ le_rfl (by omega),
       List.take_of_length_le le_rfl]
   obtain ⟨n, hn, hng, rs, ps, cs, hrsl, hpsl, hcsl, hrsR, hpsR, hcsR, hret'⟩ :=
     ring_switch_weight_holds rs_eq_run_holds rd _ _ hrw
   have hn6 : n = τ + 6 := by
-    rw [e1846, e1845, hw64, hgtau, ← pow_add] at hng
+    rw [e2000, e1999, hw64, hgtau, ← pow_add] at hng
     exact gen_pow_inj_le (by omega) (by omega) hng.symm
   subst hn6
-  rw [e1844, e1843, show (549755813888 : ℕ) = 2 ^ 39 from rfl, word_two_pow (by decide)] at hrsR
+  rw [e1998, e1997, show (549755813888 : ℕ) = 2 ^ 39 from rfl, word_two_pow (by decide)] at hrsR
   have hrs : rs = ringPoint :=
     readsAt_unique hrsR hrp (by rw [hrsl, hrpl, Tables.qkeccakSlotBits_eq])
   have hps : ps = ((padPoint x).map (1 + ·)).take (τ + 6) :=
@@ -218,9 +220,9 @@ theorem check_opening_terminal_holds (hcs : Tables.column_selector_Spec)
   simp only [List.cons.injEq, and_true] at hret'
   rw [hrs, hps, hcs, map_one_take (by omega)] at hret'
   -- the terminal check
-  have hfin : σ (.n 1854) = σ (.n 18) := e_add_eq_zero_iff.mp afin
-  rw [stackWeight_eq layout out ringPoint coeffs lam x hcols, ← hfin, e1854, e1853, hsum, e1852,
-    e1851, e1850, hret', h1849, hlamO, list_sum_range,
+  have hfin : σ (.n 2008) = σ (.n 18) := e_add_eq_zero_iff.mp afin
+  rw [stackWeight_eq layout out ringPoint coeffs lam x hcols, ← hfin, e2008, e2007, hsum, e2006,
+    e2005, e2004, hret', h2003, hlamO, list_sum_range,
     sum_congr rfl fun j hj ↦ claimTerm_eq T (mem_range.mp hj),
     ringClaim_eq (show layout.placement qkeccak = _ from hq5) hxl,
     wOf_committed (by rw [hoc]; exact hq5) (by rw [hoL, hK5]) hxl (hK 5 (by decide)),

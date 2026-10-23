@@ -62,7 +62,7 @@ theorem log2_bytecode {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) :
     Nat.log2 bytecode.length - busBits = 19 := by
   rw [hbl, Nat.log2_two_pow]; rfl
 
-theorem placementsOf_snd (kappas : List ℕ) :
+theorem sz_placementsOf_snd (kappas : List ℕ) :
     (placementsOf kappas).2 = max 15 (log2Ceil (Tables.stackTotal kappas)) := by
   unfold placementsOf
   simp only []
@@ -83,7 +83,7 @@ theorem stackLog_eq {bytecode : List K} (hbl : bytecode.length = 2 ^ 23) (logMem
       max 15 (log2Ceil (Tables.stackTotal (columnKappas logMem 19 (Tables.tableHeightsOf rowsN)))) := by
   unfold Tables.layoutOf
   simp only []
-  rw [placementsOf_snd, log2_bytecode hbl]
+  rw [sz_placementsOf_snd, log2_bytecode hbl]
 
 /-! ## The push side's cube -/
 

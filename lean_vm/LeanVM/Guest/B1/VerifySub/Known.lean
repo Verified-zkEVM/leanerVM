@@ -30,20 +30,20 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 variable {C : CallRel} {σ : Val} {next : Prop} {kret : List E → Prop}
 
 /-- `LIG_MIN_SHIFT_INV = g^-22`. -/
-theorem word_ginv22_mul : word 8198552432976855044 0 0 * gen ^ 22 = 1 := by
+theorem kn_word_ginv22_mul : word 8198552432976855044 0 0 * gen ^ 22 = 1 := by
   rw [show gen ^ 22 = ofK (K.ofBits (2 ^ 22)) by
       rw [← word_two_pow (a := 22) (by decide)]; exact word_eOfNat _,
     show word 8198552432976855044 0 0 = ofK (K.ofBits 8198552432976855044) from word_eOfNat _,
     ← ofK_mul, show K.ofBits 8198552432976855044 * K.ofBits (2 ^ 22) = 1 by decide +kernel, ofK_one]
 
-theorem hs_getD_le {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (i : ℕ) : hs.getD i 0 ≤ 28 := by
+theorem kn_hs_getD_le {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (i : ℕ) : hs.getD i 0 ≤ 28 := by
   rw [List.getD_eq_getElem?_getD]
   rcases hx : hs[i]? with _ | x
   · simp
   · have := hh x (List.mem_of_getElem? hx)
     simp only [Option.getD_some]; omega
 
-theorem columnKappas_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32) :
+theorem kn_columnKappas_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 29) (hm : logMem ≤ 32) :
     ∀ x ∈ columnKappas logMem Tables.guestLogBytecode hs, x ≤ 34 := by
   intro x hx
   unfold columnKappas at hx
@@ -57,13 +57,13 @@ theorem columnKappas_le {logMem : ℕ} {hs : List ℕ} (hh : ∀ x ∈ hs, x < 2
     · omega
     · omega
     · show 19 ≤ 34; omega
-    · have := hs_getD_le hh opKeccak; omega
+    · have := kn_hs_getD_le hh opKeccak; omega
   · rw [List.mem_flatMap] at hx
     obtain ⟨t, -, ht⟩ := hx
     rw [(List.mem_replicate.1 ht).2]
-    have := hs_getD_le hh t.opcode; omega
+    have := kn_hs_getD_le hh t.opcode; omega
 
-theorem stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : ∀ x ∈ kappas, x ≤ 34) :
+theorem kn_stackTotal_lt {kappas : List ℕ} (hl : kappas.length = 163) (hk : ∀ x ∈ kappas, x ≤ 34) :
     Tables.stackTotal kappas < 2 ^ 60 := by
   have hle := List.sum_le_length_nsmul ((Tables.committedKappas kappas).map (2 ^ ·)) (2 ^ 34) (by
     intro y hy
@@ -91,7 +91,7 @@ theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImag
     {logMem : ℕ} {hs : List ℕ} (hm : logMem ≤ 32) (hl : hs.length = 6) (hh : ∀ x ∈ hs, x < 29)
     (hkb : ReadsAt L.read (σ (.n 141)) (1 :: gen ^ logMem :: hs.map (gen ^ ·)))
     (h : Stmt.HoldsList C L.read σ (vsTailT.take 14) next kret) :
-    ∀ c < 113, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
+    ∀ c < Tables.nCommittedCols, ∃ e < 29, LoadHolds L.read (σ (.n 1889)) c (ofK (gpow e)) := by
   simp only [vsTailT, List.cons_append, List.take_succ_cons, Stmt.HoldsList, Stmt.Holds, vsCall,
     vsConst, vsMul, vsRange, List.map_cons, List.map_nil, Atom.Holds] at h
   obtain ⟨c1, c2, e1891, m1892, e1893, r1892, -⟩ := h
@@ -111,13 +111,13 @@ theorem vsKnown_tail {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImag
   simp only [List.cons.injEq, and_true] at hr2
   have hST : Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs) = N := by
     refine gen_pow_inj ?_ (by omega) (h1887.symm.trans hgN)
-    have := stackTotal_lt hP.1 (columnKappas_le hh hm)
+    have := kn_stackTotal_lt hP.1 (kn_columnKappas_le hh hm)
     omega
   obtain ⟨e, he, h1892⟩ := rc_pow hκ hκ6 L (a := 6) (by norm_num)
     (by rw [e1893, show (64 : ℕ) = 2 ^ 6 from rfl, word_pow2 (by norm_num)]) r1892
   have hm28 : max 15 (log2Ceil N) = e + 22 := by
     have := congrArg (· * gen ^ 22) (m1892.symm.trans h1892)
-    simp only [hr2, e1891, mul_assoc, word_ginv22_mul, mul_one, ← pow_add] at this
+    simp only [hr2, e1891, mul_assoc, kn_word_ginv22_mul, mul_one, ← pow_add] at this
     exact gen_pow_inj (by omega) (by omega) this
   have h28 : log2Ceil (Tables.stackTotal (columnKappas logMem Tables.guestLogBytecode hs)) ≤ 28 := by
     rw [hST]; omega

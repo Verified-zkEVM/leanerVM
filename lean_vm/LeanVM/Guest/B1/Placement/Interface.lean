@@ -20,7 +20,7 @@ column once by write-once offsets), and returns `g^(Σ 2^κ)` over the committed
 buffers: `g^offset` and `g^κ` per committed column.
 
 The committed columns are `placementsOf`'s (V:1261-1282): every global column but the `KECCAK`
-value lanes, `113` of the `163` (`committedCols`), in global order. `columnKappas log_mem 19 τ`
+value lanes, `99` of the `163` (`committedCols`), in global order. `columnKappas log_mem 19 τ`
 (V:1250) are the sizes of all `163`; the bytecode's log size is the guest's own, `19`
 (`BYTECODE_LOG`).
 
@@ -53,7 +53,7 @@ def stackTotal (kappas : List ℕ) : ℕ := ((committedKappas kappas).map (2 ^ �
 abbrev guestLogBytecode : ℕ := 19
 
 /-- `N_COMMITTED_COLS`. -/
-abbrev nCommittedCols : ℕ := 113
+abbrev nCommittedCols : ℕ := 99
 
 /-- `COL_KAPPA_SRC[c]`: the `kappa_base` entry of committed column `c` (`0` the constant, `1` the
 memory, `2 + t` table `t`). -/
