@@ -15,7 +15,7 @@ a round's wire coefficient flipped (the layer check fails), a changed root, a la
 shape than the depth fixes (a round more, a combination challenge fewer), a missing layer, and
 a missing boundary value. The radices: one binary layer first at an odd depth. The totals with
 the program's share settled as one multilinear (`settleFixedClaims`, `busOutWith`) are the oracle
-verifier's, which evaluates the entry columns one by one, and another share changes them.
+verifier's (`leanVmBus_eq_busStep`), and another share changes them.
 -/
 
 namespace LeanerVMTests.Protocol.VerifyBus
@@ -101,16 +101,15 @@ def lastStatement :
       Vector E (leanVm fx.prog sizes.1).busClaims) :=
   busReplay (leanVm fx.prog sizes.1) fx.input wire
 
--- The totals with the share `settleFixedClaims` evaluates are the oracle verifier's, which
--- evaluates the entry columns one by one; with another share they are not.
+-- The totals with the share `settleFixedClaims` evaluates are the oracle verifier's
+-- (`leanVmBus_eq_busStep`); with another share they are not.
 #guard match lastStatement with
   | some (ℓ, vals) =>
     let h := leanIsa_conditions Blake2sFlock.blake2sFlockSpec fx.prog sizes.1
     match settleFixedClaims fx.prog ℓ.2.1 ℓ.1.2.1 with
     | some fixed =>
-      let t := List.ofFn (Bus.busOut h ℓ vals).totals
-      List.ofFn (busOutWith h fixed.bytecode ℓ vals).totals == t &&
-        List.ofFn (busOutWith h (fixed.bytecode + 1) ℓ vals).totals != t
+      List.ofFn (busOutWith h (fixed.bytecode + 1) ℓ vals).totals !=
+        List.ofFn (Bus.busOut h ℓ vals).totals
     | none => false
   | none => false
 

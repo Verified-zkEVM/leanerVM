@@ -1092,10 +1092,9 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module checks the honest proof and the
   mutations rejected before the walk passes its setup's reads. Owed: `verifierQueries`,
   `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
-  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, the instance's known-coordinate
-  evaluators equal to the extensions (they are, by the field `ext_eq`), and `busOutWith` at the
-  settled share equal to `Bus.busOut` (by `bytecodeShare_eq`, at the bytecode blocks' points;
-  checked on the fixture).
+  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows` and the instance's known-coordinate
+  evaluators equal to the extensions (they are, by the field `ext_eq`). The bus phase's algebra
+  with the program's share settled is the oracle verifier's step (`leanVmBus_eq_busStep`).
 
 - **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
   `Protocol/Verify/Hom.lean`): every walk is written once over `ChainOps n`, the five primitives

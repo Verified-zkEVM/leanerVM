@@ -45,7 +45,10 @@ coordinates, slots `3` to `10`, are the program's columns; their part of the tot
 the bytecode multilinear `B̃(ζ_{<κ_bc}, α) = Σ_k eq(α, 3 + k)·P̃_k(ζ_{<κ_bc})`
 (`bytecodeShare_eq`). The verifier settles it by evaluating the multilinear
 (`settleFixedClaims`) and hands it to the totals (`busOutWith`), which evaluate every other
-coordinate as `Bus.busOut` does; a recursive verifier defers that one claim instead.
+coordinate as `Bus.busOut` does; a recursive verifier defers that one claim instead. At leanVM's
+instance the result is the oracle verifier's step (`leanVmBus_eq_busStep`): the blocks with a
+bytecode separator are exactly the two bytecode blocks, of the program's height, whose slots `3`
+to `10` are the entry coordinates.
 
 **Differences from the Rust.** None in what is accepted. The Rust checks each layer as it reads
 it; here every layer is read first and checked after, which rejects the same proofs. The Rust's
@@ -243,7 +246,10 @@ def isBytecodeBlock {S : Shape} {κ : ℕ} (cs : Vector (Coord S κ) 16) : Bool 
   | _ => false
 
 /-- A block's part evaluated from the values sent (`Bus.Source.boundaryValue`), the program's
-share `share` standing for a bytecode block's entry columns, which are not evaluated. -/
+share `share` standing for a bytecode block's entry columns, which are not evaluated. It is
+`Bus.Source.boundaryValue` only where the blocks with a bytecode separator carry the program's
+entry columns at slots `3` to `10`, as at leanVM's instance, where alone it is used
+(`leanVmBus_eq_busStep`). -/
 def boundaryValueWith {I : M3Instance} (share : E) (α : Fin 4 → E) (β : E)
     (vals : Vector E I.busClaims) : (src : Bus.Source I) → Vector E src.κ → E
   | .boundary b, z =>
@@ -313,7 +319,8 @@ def totalWithFast {I : M3Instance} (h : Bus.Conditions I) (share : E) (k : Fin 3
   rfl
 
 /-- The bus phase's output (`Bus.busOut`), its totals with the program's share `share` supplied
-for the bytecode blocks' entry columns. -/
+for the bytecode blocks' entry columns: `Bus.busOut` at leanVM's instance with the share settled
+(`leanVmBus_eq_busStep`). -/
 def busOutWith {I : M3Instance} (h : Bus.Conditions I) (share : E)
     (ℓ : Gkr.LayerStmt (Bus.Data I) E 3 I.μBus) (vals : Vector E I.busClaims) : BusOut I :=
   { Bus.busOut h ℓ vals with
@@ -327,6 +334,129 @@ def leanVmBus (prog : Program) (s : Sizes) (input : PublicInput) (w : BusWire) :
   let fixed ← settleFixedClaims prog ℓ.2.1 ℓ.1.2.1
   return (input,
     busOutWith (I := leanVm prog s) (leanIsa_conditions _ prog s) fixed.bytecode ℓ vals)
+
+/-! ## The program's share is the oracle verifier's -/
+
+open Arithmetization in
+/-- `isBytecodeBlock` reads coordinate 0 only. -/
+private theorem isBytecodeBlock_coords {S : Shape} {κ : ℕ} (c : K) (rest : List (Coord S κ)) :
+    isBytecodeBlock (coords (.const c :: rest)) =
+      (c == channelSep BytecodePush.toRaw || c == channelSep BytecodePull.toRaw) := by
+  simp [isBytecodeBlock, coords]
+
+open Arithmetization in
+/-- The state and memory separators are not the bytecode channels'. -/
+private theorem seps_ne :
+    (channelSep StatePush.toRaw == channelSep BytecodePush.toRaw ||
+      channelSep StatePush.toRaw == channelSep BytecodePull.toRaw) = false ∧
+    (channelSep StatePull.toRaw == channelSep BytecodePush.toRaw ||
+      channelSep StatePull.toRaw == channelSep BytecodePull.toRaw) = false ∧
+    (channelSep MemPush.toRaw == channelSep BytecodePush.toRaw ||
+      channelSep MemPush.toRaw == channelSep BytecodePull.toRaw) = false ∧
+    (channelSep MemPull.toRaw == channelSep BytecodePush.toRaw ||
+      channelSep MemPull.toRaw == channelSep BytecodePull.toRaw) = false := by
+  decide +kernel
+
+/-- Of leanISA's six boundary blocks, `isBytecodeBlock` holds of the two bytecode blocks only:
+their height is the program's index and their slots `3` to `10` are the entry columns. -/
+private theorem bytecode_blocks (prog : Program) (s : Sizes) (b : BoundaryBlock (shape prog s))
+    (hb : b ∈ boundary prog s) (h : isBytecodeBlock b.coords = true) :
+    b.κ = prog.logSize ∧
+      ∀ k : Fin 8, HEq b.coords[3 + k.val] (entryCoord (S := shape prog s) prog k) := by
+  simp only [boundary, List.mem_cons, List.not_mem_nil, or_false] at hb
+  rcases hb with rfl | rfl | rfl | rfl | rfl | rfl
+  · rw [isBytecodeBlock_coords, seps_ne.1] at h; exact absurd h Bool.false_ne_true
+  · rw [isBytecodeBlock_coords, seps_ne.2.2.1] at h; exact absurd h Bool.false_ne_true
+  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+  · rw [isBytecodeBlock_coords, seps_ne.2.1] at h; exact absurd h Bool.false_ne_true
+  · rw [isBytecodeBlock_coords, seps_ne.2.2.2] at h; exact absurd h Bool.false_ne_true
+  · exact ⟨rfl, fun k ↦ by fin_cases k <;> simp [coords]⟩
+
+/-- A boundary source of a side is a boundary block of the instance. -/
+private theorem mem_boundary_of_mem {I : M3Instance} {k : Fin 3} {b : BoundaryBlock I.toShape}
+    (h : Bus.Source.boundary b ∈ Bus.sources I k) : b ∈ I.boundary := by
+  fin_cases k <;> simp_all [Bus.sources, Bus.sideSources, Bus.countSources]
+
+/-- Sixteen weighted coordinates are those outside slots `3` to `10` and those eight. -/
+private theorem sum_sixteen (f : Fin 16 → E) :
+    ∑ i, f i = (∑ i : Fin 16, if 3 ≤ i.val ∧ i.val < 11 then 0 else f i) +
+      ∑ k : Fin 8, f ⟨3 + k.val, by omega⟩ := by
+  simp [Fin.sum_univ_succ]
+  ring
+
+/-- At leanVM's instance, a block's part with the program's share at the block's point is
+`Bus.Source.boundaryValue`'s. -/
+private theorem boundaryValueWith_eq {prog : Program} {s : Sizes} (α : Fin 4 → E) (β : E)
+    (vals : Vector E (leanVm prog s).busClaims) (src : Bus.Source (leanVm prog s))
+    (hsrc : ∀ b, src = .boundary b → b ∈ boundary prog s) (z : Vector E src.κ)
+    (z' : Vector E prog.logSize)
+    (hz : ∀ i (h₁ : i < src.κ) (h₂ : i < prog.logSize), z[i] = z'[i]) :
+    boundaryValueWith (bytecodeShare prog z' α) α β vals src z = src.boundaryValue α β vals z := by
+  cases src with
+  | flush _ _ | count _ _ => rfl
+  | boundary b =>
+    by_cases hbc : isBytecodeBlock b.coords
+    · obtain ⟨hκ, hc⟩ := bytecode_blocks prog s b (hsrc b rfl) hbc
+      rcases b with ⟨κ, side, cs⟩
+      dsimp only at hκ hc hz hbc z
+      subst hκ
+      obtain rfl : z = z' := Vector.ext fun i hi ↦ hz i hi hi
+      simp only [boundaryValueWith, hbc, ↓reduceIte, Bus.Source.boundaryValue]
+      rw [sum_sixteen (fun i ↦ (fingerprintWeights α)[i.val] * Bus.coordValue vals cs[i] z),
+        bytecodeShare_eq prog z α]
+      refine congrArg (fun t ↦ β - (_ + t)) (Finset.sum_congr rfl fun k _ ↦ ?_)
+      simp only [Fin.getElem_fin, eq_of_heq (hc k)]
+      rfl
+    · simp [boundaryValueWith, hbc, Bus.Source.boundaryValue]
+
+/-- A block's point is the low coordinates of the stack's. -/
+private theorem lowPoint_getElem (B : Blocks) {μ : ℕ} (hμ : B.total ≤ 2 ^ μ) (b : Fin B.n)
+    (z : Vector E μ) (i : ℕ) (hi : i < B.size b) :
+    (B.lowPoint hμ b z)[i] = z[i]'(lt_of_lt_of_le hi (B.size_le hμ b)) := by
+  simp [Blocks.lowPoint, lowVec]
+
+/-- At leanVM's instance, side `k`'s total with the program's share at the bus point's low
+coordinates is `Bus.total`. -/
+private theorem totalWith_eq {prog : Program} {s : Sizes} (k : Fin 3) (α : Fin 4 → E) (β : E)
+    (ζ : Vector E (leanVm prog s).μBus) (v : E) (vals : Vector E (leanVm prog s).busClaims)
+    (z' : Vector E prog.logSize)
+    (hz : ∀ i (h₁ : i < (leanVm prog s).μBus) (h₂ : i < prog.logSize), ζ[i] = z'[i]) :
+    totalWith (leanIsa_conditions _ prog s) (bytecodeShare prog z' α) k α β ζ v vals =
+      Bus.total (leanIsa_conditions _ prog s) k α β ζ v vals := by
+  have hb (b : Fin (Bus.blocks (leanVm prog s) k).n) :
+      boundaryValueWith (bytecodeShare prog z' α) α β vals (Bus.src _ k b)
+          (Bus.lowAt (leanIsa_conditions _ prog s) k b ζ) =
+        (Bus.src _ k b).boundaryValue α β vals (Bus.lowAt (leanIsa_conditions _ prog s) k b ζ) := by
+    refine boundaryValueWith_eq α β vals _ (fun bb hbb ↦ mem_boundary_of_mem (k := k) ?_) _ z'
+      fun i h₁ h₂ ↦ ?_
+    · rw [← hbb]
+      exact List.mem_mergeSort.mp (List.getElem_mem _)
+    · exact (lowPoint_getElem _ _ b ζ i h₁).trans (hz i _ h₂)
+  simp only [totalWith, Bus.total, hb]
+
+/-- **The bus phase's algebra at leanVM's instance is the oracle verifier's step**: with the
+program's share settled (`settleFixedClaims`), the totals of `busOutWith` are `Bus.busOut`'s. -/
+theorem leanVmBus_eq_busStep (prog : Program) (s : Sizes) (input : PublicInput) (w : BusWire) :
+    leanVmBus prog s input w = busStep (leanVm prog s) (leanIsa_conditions _ prog s) input w := by
+  have hle : prog.logSize ≤ (leanVm prog s).μBus :=
+    (leanIsa_conditions _ prog s).κ_le (k := 0)
+      (src := .boundary ((boundary prog s)[2]'(show 2 < 6 by omega)))
+      (List.mem_append_left _
+        (List.mem_map_of_mem (List.mem_filter.mpr ⟨List.getElem_mem _, rfl⟩)))
+  unfold leanVmBus busStep
+  rcases busReplay (leanVm prog s) input w with _ | ⟨ℓ, vals⟩
+  · rfl
+  · let z' : Vector E prog.logSize := ⟨(ℓ.2.1.toList.take prog.logSize).toArray, by simp [hle]⟩
+    have hset : settleFixedClaims prog ℓ.2.1 ℓ.1.2.1 = some ⟨bytecodeShare prog z' ℓ.1.2.1⟩ := by
+      simp [settleFixedClaims, RoundPoly.ofList?, hle, z']
+    change (settleFixedClaims prog ℓ.2.1 ℓ.1.2.1).bind
+        (fun fixed ↦ some (input, busOutWith _ fixed.bytecode ℓ vals)) = some (input, _)
+    rw [hset]
+    have ht : (fun k ↦ totalWith (leanIsa_conditions _ prog s) (bytecodeShare prog z' ℓ.1.2.1) k
+        ℓ.1.2.1 ℓ.1.2.2 ℓ.2.1 (ℓ.2.2 k) vals) =
+          (Bus.busOut (leanIsa_conditions _ prog s) ℓ vals).totals :=
+      funext fun k ↦ totalWith_eq k _ _ _ _ _ z' fun i h₁ h₂ ↦ by simp [z']
+    simp only [Option.bind, busOutWith, ht]
 
 end Verify
 
