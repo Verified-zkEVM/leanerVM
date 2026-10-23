@@ -55,7 +55,7 @@ theorem testBit_eqAt (x : ℕ) (a0 a1 a2 a3 : E) :
   simp only [eqAt_cons, eqAt_nil, Nat.testBit_eq_decide_div_mod_eq, Nat.div_div_eq_div_mul,
     decide_eq_true_eq, mul_one]
   norm_num
-  ring
+  ring_nf
 
 theorem vsEqwT_holds {x v : ℕ} {a0 a1 a2 a3 : E}
     (ha : ReadsAt rd (σ (.n 559)) [a0, a1, a2, a3])
