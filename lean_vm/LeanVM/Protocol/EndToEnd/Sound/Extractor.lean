@@ -530,10 +530,10 @@ theorem cell_memCol (s : Sizes) (q : Column (leanIsaμ prog s)) (j : Fin 4)
     (x : Fin (2 ^ s.logMem)) :
     cell prog s q (memCol j) x =
       q.values.getD (((verifierLayout prog s).placement j).index + x) 0 := by
-  have hp := placement_committed prog s (memCol j) (not_isLane_memCol j)
+  have hp := placement_committed prog s (memCol j) (not_isVirtual_memCol j)
   rw [pyCol_memCol] at hp
   rw [hp]
-  have h := column_committed prog s q (memCol j) (not_isLane_memCol j) x
+  have h := column_committed prog s q (memCol j) (not_isVirtual_memCol j) x
   exact h.trans (getD_eq _ (Nat.add_comm _ _) _)
 
 /-- **The specification's memory image is the witness's**: their halting runs agree. -/

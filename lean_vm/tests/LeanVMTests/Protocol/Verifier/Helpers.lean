@@ -15,7 +15,7 @@ Covered: `powers`, `eq_kernel`, `multilinear_eval` (on `E` and on lifted `K` tab
 `_phi`, `_ring_weight`, and `ring_switch`'s Frobenius coefficients, weight and target;
 `stack_offsets`, `Placement.stack_point` and `eq_above`; the tables' columns, widths, global
 bases, log-height floors, constraint counts, count columns and padding rows, `_jump_constraints`,
-`_keccak_cell_lanes`, `_layout_limb`, the `KECCAK` input-lane slots and output columns;
+`_keccak_cell_lanes`, `_layout_limb`, the `q_keccak` slots (`KECCAK_SLOT_OF`) and output columns;
 `build_layout` on a sample bytecode and sizes (log-heights, stack log-size, every placement, every
 bus block's shape and flushed tuple at a sample row), `bus_layout` of the three sides;
 `derive_config` on all 56 admissible pairs; `keccak_along`, `keccak_linear_transpose`,
@@ -110,7 +110,9 @@ def transposeProbe : ℕ × List E × E :=
 def sampleClaim : KeccakClaim := ⟨fe 609, fes 640 16, fes 610 6, fes 1000 1600⟩
 
 /-- `_keccak_slot_weights(9, sampleClaim, first, count)`: the number of rows, whether each is 64
-wide, and all of them batched by powers of `fe 620`. -/
+wide, and all of them batched by powers of `fe 620`. At the pin these weights are computed inside
+`_keccak_open` (`verifier.py:1362-1366`), by the same lines up to the names `STATE_LANES` and
+`PACK_BITS`; the expected values were printed by the function of the previous pin `3375f7a13`. -/
 def slotProbe (first count : ℕ) : ℕ × Bool × E :=
   let w := keccakSlotWeights 9 sampleClaim first count
   (w.length, w.all (·.length == 64), dot (powers (fe 620) 4096) w.flatten)
@@ -435,11 +437,13 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 #guard ((layoutLimb none (some 9) 7 (some 9)).evaluate fun i ↦ fe (150 + i)) =
     (e 0x45d7f98b68426d39 0x178d43be39d55a3c 0xe9428df10b68473f)
 
-/- `build_layout`'s `limbs` and `outputs`, and `verify_execution`'s `output_columns` -/
+/- `build_layout`'s `slots` (`KECCAK_SLOT_OF`) and `outputs`, and the output lanes' columns -/
 #guard ((List.range 168).filterMap fun c ↦ (keccakSlot c).map (c, ·)) =
-    [(86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5), (92, 6), (93, 7), (94, 8), (95, 9),
-     (96, 10), (97, 11), (98, 12), (99, 13), (100, 14), (101, 15), (102, 16), (103, 17), (104, 18),
-     (105, 19), (106, 20), (107, 21), (108, 22), (109, 23), (110, 24)]
+    [(73, 50), (74, 51), (75, 52), (76, 53), (77, 54), (78, 55), (79, 56), (80, 57), (81, 58),
+     (82, 59), (83, 60), (84, 61), (85, 62), (86, 0), (87, 1), (88, 2), (89, 3), (90, 4), (91, 5),
+     (92, 6), (93, 7), (94, 8), (95, 9), (96, 10), (97, 11), (98, 12), (99, 13), (100, 14),
+     (101, 15), (102, 16), (103, 17), (104, 18), (105, 19), (106, 20), (107, 21), (108, 22),
+     (109, 23), (110, 24), (136, 63)]
 
 #guard (keccakOutputColumns) =
     [111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129,
@@ -458,27 +462,27 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
 
 #guard (sampleLayout.placements.map (·.map fun p ↦ (p.vars, p.index, p.low))) =
     [some (16, 0, 0), some (16, 65536, 0), some (16, 131072, 0), some (16, 196608, 0),
-     some (1, 315568, 0), some (15, 262144, 0), some (2, 315392, 0), some (2, 315396, 0),
-     some (2, 315400, 0), some (2, 315404, 0), some (2, 315408, 0), some (2, 315412, 0),
-     some (2, 315416, 0), some (2, 315420, 0), some (2, 315424, 0), some (2, 315428, 0),
-     some (2, 315432, 0), some (2, 315436, 0), some (2, 315440, 0), some (2, 315444, 0),
-     some (2, 315448, 0), some (1, 315570, 0), some (1, 315572, 0), some (1, 315574, 0),
-     some (1, 315576, 0), some (1, 315578, 0), some (1, 315580, 0), some (1, 315582, 0),
-     some (1, 315584, 0), some (1, 315586, 0), some (1, 315588, 0), some (1, 315590, 0),
-     some (1, 315592, 0), some (1, 315594, 0), some (1, 315596, 0), some (1, 315598, 0),
-     some (1, 315600, 0), some (1, 315602, 0), some (1, 315604, 0), some (1, 315606, 0),
-     some (1, 315608, 0), some (1, 315610, 0), some (1, 315612, 0), some (1, 315614, 0),
-     some (2, 315452, 0), some (2, 315456, 0), some (2, 315460, 0), some (2, 315464, 0),
-     some (2, 315468, 0), some (2, 315472, 0), some (2, 315476, 0), some (2, 315480, 0),
-     some (2, 315484, 0), some (2, 315488, 0), some (2, 315492, 0), some (2, 315496, 0),
-     some (2, 315500, 0), some (2, 315504, 0), some (2, 315508, 0), some (2, 315512, 0),
-     some (2, 315516, 0), some (2, 315520, 0), some (2, 315524, 0), some (2, 315528, 0),
-     some (2, 315532, 0), some (2, 315536, 0), some (2, 315540, 0), some (2, 315544, 0),
-     some (2, 315548, 0), some (2, 315552, 0), some (2, 315556, 0), some (2, 315560, 0),
-     some (2, 315564, 0), some (9, 294912, 0), some (9, 295424, 0), some (9, 295936, 0),
-     some (9, 296448, 0), some (9, 296960, 0), some (9, 297472, 0), some (9, 297984, 0),
-     some (9, 298496, 0), some (9, 299008, 0), some (9, 299520, 0), some (9, 300032, 0),
-     some (9, 300544, 0), some (9, 301056, 0), some (9, 262144, 0), some (9, 262656, 0),
+     some (1, 308400, 0), some (15, 262144, 0), some (2, 308224, 0), some (2, 308228, 0),
+     some (2, 308232, 0), some (2, 308236, 0), some (2, 308240, 0), some (2, 308244, 0),
+     some (2, 308248, 0), some (2, 308252, 0), some (2, 308256, 0), some (2, 308260, 0),
+     some (2, 308264, 0), some (2, 308268, 0), some (2, 308272, 0), some (2, 308276, 0),
+     some (2, 308280, 0), some (1, 308402, 0), some (1, 308404, 0), some (1, 308406, 0),
+     some (1, 308408, 0), some (1, 308410, 0), some (1, 308412, 0), some (1, 308414, 0),
+     some (1, 308416, 0), some (1, 308418, 0), some (1, 308420, 0), some (1, 308422, 0),
+     some (1, 308424, 0), some (1, 308426, 0), some (1, 308428, 0), some (1, 308430, 0),
+     some (1, 308432, 0), some (1, 308434, 0), some (1, 308436, 0), some (1, 308438, 0),
+     some (1, 308440, 0), some (1, 308442, 0), some (1, 308444, 0), some (1, 308446, 0),
+     some (2, 308284, 0), some (2, 308288, 0), some (2, 308292, 0), some (2, 308296, 0),
+     some (2, 308300, 0), some (2, 308304, 0), some (2, 308308, 0), some (2, 308312, 0),
+     some (2, 308316, 0), some (2, 308320, 0), some (2, 308324, 0), some (2, 308328, 0),
+     some (2, 308332, 0), some (2, 308336, 0), some (2, 308340, 0), some (2, 308344, 0),
+     some (2, 308348, 0), some (2, 308352, 0), some (2, 308356, 0), some (2, 308360, 0),
+     some (2, 308364, 0), some (2, 308368, 0), some (2, 308372, 0), some (2, 308376, 0),
+     some (2, 308380, 0), some (2, 308384, 0), some (2, 308388, 0), some (2, 308392, 0),
+     some (2, 308396, 0), some (9, 287744, 0), some (9, 288256, 0), some (9, 288768, 0),
+     some (9, 289280, 0), some (9, 289792, 0), some (9, 290304, 0), some (9, 290816, 0),
+     some (9, 291328, 0), some (9, 291840, 0), some (9, 292352, 0), some (9, 292864, 0),
+     some (9, 293376, 0), some (9, 293888, 0), some (9, 262144, 0), some (9, 262656, 0),
      some (9, 263168, 0), some (9, 263680, 0), some (9, 264192, 0), some (9, 264704, 0),
      some (9, 265216, 0), some (9, 265728, 0), some (9, 266240, 0), some (9, 266752, 0),
      some (9, 267264, 0), some (9, 267776, 0), some (9, 268288, 0), some (9, 268800, 0),
@@ -486,13 +490,13 @@ On each input the driver ran `build_layout` and recorded whether it raised. -/
      some (9, 271360, 0), some (9, 271872, 0), some (9, 272384, 0), some (9, 272896, 0),
      some (9, 273408, 0), some (9, 273920, 0), some (9, 274432, 0), none, none, none, none, none,
      none, none, none, none, none, none, none, none, none, none, none, none, none, none, none, none,
-     none, none, none, none, some (9, 301568, 0), some (9, 302080, 0), some (9, 302592, 0),
-     some (9, 303104, 0), some (9, 303616, 0), some (9, 304128, 0), some (9, 304640, 0),
-     some (9, 305152, 0), some (9, 305664, 0), some (9, 306176, 0), some (9, 306688, 0),
-     some (9, 307200, 0), some (9, 307712, 0), some (9, 308224, 0), some (9, 308736, 0),
-     some (9, 309248, 0), some (9, 309760, 0), some (9, 310272, 0), some (9, 310784, 0),
-     some (9, 311296, 0), some (9, 311808, 0), some (9, 312320, 0), some (9, 312832, 0),
-     some (9, 313344, 0), some (9, 313856, 0), some (9, 314368, 0), some (9, 314880, 0)]
+     none, none, none, none, some (9, 294400, 0), some (9, 294912, 0), some (9, 295424, 0),
+     some (9, 295936, 0), some (9, 296448, 0), some (9, 296960, 0), some (9, 297472, 0),
+     some (9, 297984, 0), some (9, 298496, 0), some (9, 299008, 0), some (9, 299520, 0),
+     some (9, 300032, 0), some (9, 300544, 0), some (9, 301056, 0), some (9, 301568, 0),
+     some (9, 302080, 0), some (9, 302592, 0), some (9, 303104, 0), some (9, 303616, 0),
+     some (9, 304128, 0), some (9, 304640, 0), some (9, 305152, 0), some (9, 305664, 0),
+     some (9, 306176, 0), some (9, 306688, 0), some (9, 307200, 0), some (9, 307712, 0)]
 
 #guard (blockProbe sampleLayout.push) =
     [(2, 0, 3, (e 0x295f303850cc44ae 0x2a75f12fa9759b1f 0x8d1125d19e1d7bb9)),
@@ -881,20 +885,21 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
      99, 97, 107, 45, 102, 32, 105, 110, 32, 116, 119, 111, 32, 99, 101, 108, 108, 32, 108, 97, 121,
      111, 117, 116, 115, 44, 32, 100, 101, 112, 116, 104, 32, 49, 50, 44, 32, 112, 97, 99, 107, 115,
      32, 111, 102, 32, 49, 54, 32, 105, 110, 32, 100, 101, 103, 114, 101, 101, 32, 50, 51, 44, 32,
-     108, 97, 110, 101, 32, 115, 108, 111, 116, 115, 44, 32, 111, 117, 116, 112, 117, 116, 32, 99,
-     108, 97, 105, 109, 101, 100, 32, 98, 121, 32, 116, 104, 101, 32, 98, 117, 115]
+     108, 97, 110, 101, 32, 115, 108, 111, 116, 115, 32, 116, 104, 101, 110, 32, 116, 97, 98, 108,
+     101, 32, 99, 111, 108, 117, 109, 110, 115, 44, 32, 111, 117, 116, 112, 117, 116, 32, 99, 108,
+     97, 105, 109, 101, 100, 32, 98, 121, 32, 116, 104, 101, 32, 98, 117, 115]
 
 #guard ((keccak256 (sampleBytecode.flatMap kBytes)).toList) =
     [0x5ee1b7ed85bd7f40, 0xe30f235e90f241ba, 0x2c5175ed6d0af92b, 0x99aaaff5bf8937b8]
 
 #guard (ivPreimage (keccak256 relationLabel) (keccak256 (sampleBytecode.flatMap kBytes))) =
-    [108, 101, 97, 110, 118, 109, 32, 0, 0, 0, 0, 0, 0, 0, 4, 220, 253, 0, 231, 213, 56, 185, 231,
-     68, 23, 66, 142, 26, 129, 137, 43, 173, 43, 233, 154, 190, 186, 64, 205, 253, 138, 126, 74, 17,
-     251, 89, 64, 127, 189, 133, 237, 183, 225, 94, 186, 65, 242, 144, 94, 35, 15, 227, 43, 249, 10,
+    [108, 101, 97, 110, 118, 109, 32, 0, 0, 0, 0, 0, 0, 0, 22, 201, 202, 83, 87, 135, 229, 215, 206,
+     134, 67, 160, 36, 200, 245, 94, 18, 216, 84, 26, 0, 235, 240, 206, 157, 152, 159, 170, 178, 18,
+     64, 225, 64, 127, 189, 133, 237, 183, 225, 94, 186, 65, 242, 144, 94, 35, 15, 227, 43, 249, 10,
      109, 237, 117, 81, 44, 184, 55, 137, 191, 245, 175, 170, 153]
 
 #guard ((fiatShamirIv sampleBytecode).toList) =
-    [0x6d85318faeab8831, 0xba53a9087673baef, 0xdc0555e7b115e846, 0xc20b9395ddd020f7]
+    [0x3dddb718ca25fbcf, 0x2853bcebc23c61f0, 0x2ccc521e040d67df, 0x8e367254f7ecd131]
 
 #guard (samplePublicInput.toList) =
     [0xdfcab5a08b76614c, 0x87725d48331e09f4, 0x2f1a05f0dbc6b19c, 0xd7c2ad98836e5944]
@@ -903,12 +908,12 @@ def pythonConfigs : List (ℕ × ℕ × List ℕ × List ℕ × List ℕ) :=
     [(e 0xdfcab5a08b76614c 0x87725d48331e09f4 0x0), (e 0x2f1a05f0dbc6b19c 0xd7c2ad98836e5944 0x0)]
 
 #guard ((seed sampleBytecode samplePublicInput).toList) =
-    [0x20403d10a8e75105, 0x8b2304d1df6ffac0, 0x3cf5059ae0409265, 0x57598157f35b62fb,
-     0xc8d6346453855f3, 0x7d6b15f929fbd947, 0x64ac5cc510b5929d, 0xff54250d02eb072a,
-     0x61b63f5351fe33a6, 0x45ffe513420a5650, 0x6104ae952c002e10, 0x9007c01806012128,
-     0xd74a0baa16b82de1, 0x8dbc76bbaaa841a5, 0xbcb8c32cbc2fda87, 0x6a1f541a360cc28f,
-     0xdd04a4636fda8407, 0x728512cceebccd82, 0xa1396e880f0c4eea, 0x6ab04939306f23e7,
-     0xc18945a599c80349, 0x753c14d3e4ae9f3f, 0xe551eb80389a6e7a, 0xb02575f7e4e4dce3,
-     0x60edb224c7af548c]
+    [0x786c86154463cc9e, 0xbf2a85eb21f4efd5, 0x2e1813ddc1869ebb, 0x7a7eed3d488cce52,
+     0x49e48bb3667a1262, 0x85c3d69adcfcb238, 0x3189b5abaee279d3, 0x66d667323a8c09c5,
+     0x769886b4b9303e5f, 0x38702bf7cd23bd94, 0x165202cbc07e9f4f, 0x46225ce9ff6ef7d8,
+     0xfe986583bdc77a9f, 0xaf20531763af0019, 0x414695b225bd740a, 0x5c241ad14319b461,
+     0x589dd68ca3c01e24, 0xce4a9cfc95752fb3, 0x24d79885a686dc, 0xc9452db581a60445,
+     0x33ee82d47346ae52, 0x66f778031918bda8, 0xf97bfcaafb6bf63d, 0x8232146254da8070,
+     0x3bd7ab4b17191e6]
 
 end LeanVMTests.Protocol.Verifier.Helpers

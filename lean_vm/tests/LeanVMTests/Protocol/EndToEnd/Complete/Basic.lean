@@ -101,7 +101,7 @@ def prog4 : Program := ⟨2, by decide, fun _ ↦ .xor 0 0 0⟩
 `2^16, 2^3, 2^16, 2^4, 2^16, 2^16`. -/
 def s₁ : Sizes := ⟨16, by decide, ![65536, 5, 40000, 9, 65536, 50000]⟩
 
-/-- The sizes are admissible for the program (their stacked size is `25 ≤ 28`). -/
+/-- The sizes are admissible for the program (their stacked size is `24 ≤ 28`). -/
 theorem admissible_s₁ : s₁.Admissible prog4 := by
   refine ⟨by decide, by decide, by decide, max_le ?_ (by decide)⟩
   refine Nat.clog_le_of_le_pow ?_
