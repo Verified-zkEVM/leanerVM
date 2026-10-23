@@ -179,38 +179,38 @@ theorem node_total_le (fs : String → ℕ) (T : Call → ℕ) (Ts : List (Tree 
 
 What a callee's completeness exposes of the tree it builds, for the budget: the node of `f` at a
 valuation `σ` satisfying `Q` (the words its loops' ends and `HeapBuf` sizes are read from), its
-walk's calls `cs σ`, its `HeapBuf`s `bs σ` (or `bufs` its path's), and its callees satisfying
-their predicates `Ts`. -/
+walk's calls `cs σ`, its `HeapBuf`s `bs σ`, and its callees satisfying their predicates `Ts`
+(`KidsT`: an entered call's callee satisfies its predicate). -/
 
 /-- **A node's honest shape.** -/
 def NodeHonest (P : Core.Program) (f : String) (Q : Val → Prop) (cs : Val → List Call)
-    (Ts : List (Tree → Prop)) (t : Tree) : Prop :=
-  ∃ σ bufs ks, t = .node f σ bufs ks ∧ Q σ ∧
+    (bs : Val → List ℕ) (Ts : List (Tree → Prop)) (t : Tree) : Prop :=
+  ∃ σ ks, t = .node f σ (bs σ) ks ∧ Q σ ∧
     (∀ fn es vs, P.find? f = some fn → walk σ fn.body = .ret es vs → calls es = cs σ) ∧
     (cs σ).length ≤ Ts.length ∧ KidsT (cs σ) Ts ks
 
 /-- **A node of honest shape weighs at most** its frame and its callees' bounds. -/
 theorem NodeHonest.weight_le {f : String} {Q : Val → Prop} {cs : Val → List Call}
-    {Ts : List (Tree → Prop)} {t : Tree} {args rets : List E} (ω : String → ℕ)
-    (W : Val → Call → ℕ) (h : NodeHonest P f Q cs Ts t) (hv : t.Valid P rd args rets)
-    (hb : t.BufsOk P)
+    {bs : Val → List ℕ} {Ts : List (Tree → Prop)} {t : Tree} {args rets : List E}
+    (ω : String → ℕ) (W : Val → Call → ℕ) (h : NodeHonest P f Q cs bs Ts t)
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P)
     (hB : ∀ σ, Q σ → ∀ c T, (c, T) ∈ (cs σ).zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E),
       t.name = c.f → t.Valid P rd (c.args.map σ) rets → t.BufsOk P → T t → t.weight ω ≤ W σ c) :
     ∃ σ, Q σ ∧ t.weight ω ≤ ω f + callsW (W σ) (cs σ) := by
-  obtain ⟨σ, bufs, ks, rfl, hQ, hc, hl, hT⟩ := h
+  obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
   exact ⟨σ, hQ, node_weight_le ω (W σ) Ts hv hb hc hl hT (hB σ hQ)⟩
 
 /-- **A node of honest shape allocates at most** its frame, its `HeapBuf`s and its callees'
 bounds. -/
 theorem NodeHonest.total_le {f : String} {Q : Val → Prop} {cs : Val → List Call}
-    {Ts : List (Tree → Prop)} {t : Tree} {args rets : List E} (fs : String → ℕ)
-    (T : Val → Call → ℕ) (h : NodeHonest P f Q cs Ts t) (hv : t.Valid P rd args rets)
-    (hb : t.BufsOk P)
+    {bs : Val → List ℕ} {Ts : List (Tree → Prop)} {t : Tree} {args rets : List E}
+    (fs : String → ℕ) (T : Val → Call → ℕ) (h : NodeHonest P f Q cs bs Ts t)
+    (hv : t.Valid P rd args rets) (hb : t.BufsOk P)
     (hB : ∀ σ, Q σ → ∀ c R, (c, R) ∈ (cs σ).zip Ts → c.taken = true → ∀ (t : Tree) (rets : List E),
       t.name = c.f → t.Valid P rd (c.args.map σ) rets → t.BufsOk P → R t → t.total fs ≤ T σ c) :
-    ∃ σ bufs, Q σ ∧ bufs = allocs σ (t.events P) ∧ t.total fs ≤ fs f + callsT fs (T σ) (cs σ) + bufs.sum := by
-  obtain ⟨σ, bufs, ks, rfl, hQ, hc, hl, hT⟩ := h
-  exact ⟨σ, bufs, hQ, hb.1, node_total_le fs (T σ) Ts hv hb hc hl hT (hB σ hQ)⟩
+    ∃ σ, Q σ ∧ t.total fs ≤ fs f + callsT fs (T σ) (cs σ) + (bs σ).sum := by
+  obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
+  exact ⟨σ, hQ, node_total_le fs (T σ) Ts hv hb hc hl hT (hB σ hQ)⟩
 
 end
 end LeanVM.Guest.Budget
