@@ -522,5 +522,99 @@ theorem kXorByte_sound {cs : List KC} {pos v b : Nat} (h : AtomsHold rd σ (kXor
     simp only
     rw [List.set_eq_of_length_le (by omega)]
 
+/-! ## The message -/
+
+/-- The message cells `kMsg` absorbs: the cells zero-extended to the last block's read, the two
+padding bytes XORed in. -/
+def kMsgCells (cells : List KC) (len b : Nat) : List KC :=
+  let B := kBlocksOf len
+  let cs0 := cells ++ List.replicate (17 * (B - 1) / 2 + 9 - cells.length) KC.zero
+  (kXorByte (kXorByte cs0 len 1 b).2.1 (136 * B - 1) 0x80 (kXorByte cs0 len 1 b).2.2).2.1
+
+theorem cells13_map (l : List V) (c : Fin 13) (hc : c.val < l.length) :
+    cells13 (l.map σ) c = σ (l.getD c default) := by
+  simp [cells13, List.getD_eq_getElem?_getD, hc]
+
+theorem val_getD (cs : List KC) (j : Nat) : (cs.getD j .zero).val σ = (cs.map (KC.val σ)).getD j 0 := by
+  by_cases hj : j < cs.length
+  · simp [hj]
+  · rw [List.getD_eq_default _ _ (by omega), List.getD_eq_default _ _ (by simp; omega)]
+    rfl
+
+theorem blockOf_getD (cs : List KC) (k c : Nat) (hc : c < 9) :
+    ((blockOf cs k).getD c .zero).val σ = (cs.map (KC.val σ)).getD (17 * k / 2 + c) 0 := by
+  rw [val_getD, blockOf, List.map_take, List.map_drop, List.getD_eq_getElem?_getD,
+    List.getD_eq_getElem?_getD, List.getElem?_take_of_lt hc, List.getElem?_drop]
+
+/-- **The lowered Keccak message computes Keccak-256**: when the statements of `kMsg` hold, the
+padding run holding `[0x01, 0, 0, 0, 0]`, the first two cells of the output run are the digest of
+the message cells' first `len` bytes, the bytes past `len` being zero. -/
+theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat} {tailRun : Bool}
+    {out : Option Nat} {b : Nat}
+    (htr : tailRun = true → TailCells (blockOf (kMsgCells cells len b) 0))
+    (h : AtomsHold rd σ (kMsg pad cells len tailRun out b).1)
+    (hlen : len ≤ 16 * cells.length)
+    (hz : ∀ j, len ≤ j → (cellsBytes (cells.map (KC.val σ))).getD j 0 = 0) :
+    (σ (.n (kMsg pad cells len tailRun out b).2.2),
+        σ (.n ((kMsg pad cells len tailRun out b).2.2 + 1))) =
+      digestScalars (keccak256 ((cellsBytes (cells.map (KC.val σ))).take len)) := by
+  simp only [kMsg] at h ⊢
+  simp only [kMsgCells] at htr
+  set B := kBlocksOf len with hB
+  set cs0 := cells ++ List.replicate (17 * (B - 1) / 2 + 9 - cells.length) KC.zero with hcs0
+  set x1 := kXorByte cs0 len 1 b with hx1
+  set x2 := kXorByte x1.2.1 (136 * B - 1) 0x80 x1.2.2 with hx2
+  set cs := x2.2.1 with hcs
+  have e1 := kXorByte_sound (h.left.left : AtomsHold rd σ x1.1)
+  have e2 := kXorByte_sound (h.left.right : AtomsHold rd σ x2.1)
+  have hP : cs.map (KC.val σ) = padCells (cells.map (KC.val σ)) len := by
+    rw [hcs, e2, e1, hcs0, List.map_append, List.map_replicate]
+    simp only [padCells, padRead, hB, kBlocksOf, rate, KC.val, List.length_map, Nat.add_sub_cancel]
+  set tr := kTrace pad cs B tailRun out B 0 none x2.2.2 with htr'
+  have hbl := kBlocks_sound (rd := rd) hp B 0 none x2.2.2 (fun _ => htr) h.right
+  have hB1 : 0 < B := by simp [hB, kBlocksOf]
+  have hlenB : len / rate + 1 = B := by simp [hB, kBlocksOf, rate]
+  let I : Nat → Fin 13 → E := fun j => cells13 ((tr.getD j ([], 0)).1.map σ)
+  let O : Nat → Fin 13 → E := fun j => match j with
+    | 0 => cellsOfState zeroState false
+    | j + 1 => cells13 ((runV (tr.getD j ([], 0)).2 13).map σ)
+  have hprev : ∀ k < B, ∀ c : Fin 13, prevVal σ (stAt tr none k) c = O k c := by
+    intro k _ c
+    cases k with
+    | zero => simp [prevVal, stAt, O, cellsOfState_zero]
+    | succ k =>
+        simp only [prevVal, stAt, O]
+        rw [cells13_map _ _ (by rw [runV_length]; exact c.isLt)]
+  have hin : ∀ k < B, ∀ c : Fin 13, I k c = O k c +
+      if c.val < 9 then (padCells (cells.map (KC.val σ)) len).getD (17 * k / 2 + c) 0 else 0 := by
+    intro k hk c
+    have hb := hbl k hk
+    rw [Nat.zero_add] at hb
+    show cells13 ((tr.getD k ([], 0)).1.map σ) c = _
+    rw [cells13_map _ _ (by rw [hb.1]; exact c.isLt), hb.2.1 c c.isLt, hprev k hk c]
+    split
+    · rename_i hc; rw [blockOf_getD _ _ _ hc, hP]
+    · rfl
+  have hfinal := keccak_final_digest (pre := []) (n := 0) (I := I) (O := O) (by simp)
+    (by simpa using hlen) hz (by simp [O, absorbChunks])
+    (fun k hk c hc => by rw [hlenB] at hk; rw [hin k hk c]; simp [hc])
+    (fun k hk c hc => by
+      rw [hlenB] at hk
+      rw [hin k hk c]
+      simp [show ¬ c.val < 9 by omega])
+    (fun k hk => by
+      rw [hlenB] at hk ⊢
+      have hb := hbl k hk
+      rw [Nat.zero_add] at hb
+      exact hb.2.2)
+  rw [List.nil_append, hlenB] at hfinal
+  rw [← hfinal]
+  obtain ⟨B', hB'⟩ : ∃ B', B = B' + 1 := ⟨B - 1, by omega⟩
+  have hout := kBlocks_out (pad := pad) (cs := cs) (B := B) (tailRun := tailRun) (out := out)
+    B 0 none x2.2.2 (by omega) hB1
+  rw [hout]
+  simp only [O, hB', Nat.add_sub_cancel, htr']
+  simp [cells13, runV, List.getD_eq_getElem?_getD]
+
 end
 end LeanVM.Guest.B1.Sig
