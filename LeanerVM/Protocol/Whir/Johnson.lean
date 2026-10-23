@@ -38,9 +38,11 @@ This module inhabits both at the Johnson radius `γ = 1 - √ρ - η`, from ArkL
   ArkLib's pairwise Johnson bound over the alphabet of rows gives `ListBound` at
   `L = ⌊n (a - D) / (a² - n D)⌋` (`listBound_johnson`), not the Annex's `1 / (2 η √ρ)`.
 * **A level.** `threshold κ R η` computes `⌈(√ρ + η) n⌉₊` in naturals, for a rational slack;
-  `Fits κ R η` is the decidable list of facts the interfaces need of it, among them that the
-  computed value is that ceiling (`threshold_eq_ceil`); `johnsonPar` is the level's `Par` from
-  them, with the list bound `L`, and `N = ⌊mcaConstant n D η⌋₊`.
+  `mcaCount κ R η` is a computable upper bound on Annex B's constant, the ceiling of its formula at
+  a rational lower bound on `√ρ` and the exact multiplicity (`mcaConstant_le_mcaCount`);
+  `Fits κ R η` is the decidable list of facts the interfaces need of both, among them that the
+  computed threshold is that ceiling (`threshold_eq_ceil`); `johnsonPar` is the level's `Par` from
+  them, with the list bound `L` and `N = mcaCount κ R η`, every field a computed number.
 -/
 
 namespace LeanerVM.Protocol
@@ -280,6 +282,33 @@ def threshold (κ R : ℕ) (η : ℚ) : ℕ :=
   let s := if r * r < x then r + 1 else r
   (η.num.toNat * n + s + η.den - 1) / η.den
 
+/-- A lower bound on `√(D / n)`: `⌊√(D n 2 ^ 80)⌋ / (n 2 ^ 40)`, from the root's guess; `Fits`
+checks it. -/
+def sqrtLower (n D : ℕ) : ℚ := (sqrtGuess (D * n * 2 ^ 80) : ℚ) / (n * 2 ^ 40)
+
+/-- The multiplicity `max ⌈√(D / n) / η⌉ 3` of Annex B's constant, as the least `k` with
+`D q² ≤ k² p² n` for `η = p / q`, from the root's guess; `Fits` checks that it is at least the
+ceiling. -/
+def multiplicity (n D : ℕ) (η : ℚ) : ℕ :=
+  let p := η.num.toNat
+  let q := η.den
+  let r := sqrtGuess (D * q ^ 2 / (p ^ 2 * n))
+  max (if D * q ^ 2 ≤ r * r * (p ^ 2 * n) then r else r + 1) 3
+
+/-- Annex B's formula for its constant (`mcaConstant`), in rationals: the multiplicity
+`multiplicity n D η`, the lower bound `sqrtLower n D` for `√ρ` and `1 - sqrtLower n D - η` for
+`γ`. It is at least `mcaConstant n D η` when `Fits` holds. -/
+def constantBound (n D : ℕ) (η : ℚ) : ℚ :=
+  let ρ : ℚ := (D : ℚ) / n
+  let l := sqrtLower n D
+  let θ : ℚ := multiplicity n D η
+  (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ρ) / (3 * l ^ 3) * n + (θ + 1 / 2) / l
+
+/-- **The count of bad folds of a level**, computed: the ceiling of `constantBound` at the code on
+`n = 2 ^ (κ + R)` positions with degree bound `D = 2 ^ κ - 1`; at least Annex B's constant
+`mcaConstant n D η` when the level fits (`mcaConstant_le_mcaCount`). -/
+def mcaCount (κ R : ℕ) (η : ℚ) : ℕ := ⌈constantBound (2 ^ (κ + R)) (2 ^ κ - 1) η⌉₊
+
 /-- What the interfaces need of a level's code on `n = 2 ^ (κ + R)` positions with degree bound
 `D = 2 ^ κ - 1`, a slack `p / q` and a threshold `a`, every fact in naturals: `κ, R ≥ 1`,
 `κ + R ≤ 64`, `p, q > 0`; `(√ρ + p / q) n ≤ a < (√ρ + p / q) n + 1` (`le_agree`, `lt_agree`:
@@ -321,8 +350,26 @@ instance (κ R p q a : ℕ) : Decidable (FitsAt κ R p q a) :=
      fun h ↦ ⟨h.1, h.2, h.3, h.4, h.5, h.6, h.7, h.8, h.9, h.10, h.11⟩⟩
 
 /-- A level's code and slack fit the interfaces: `FitsAt` at the slack's numerator and denominator
-and the computed threshold. Decidable, and decided at every deployed level. -/
-abbrev Fits (κ R : ℕ) (η : ℚ) : Prop := FitsAt κ R η.num.toNat η.den (threshold κ R η)
+and the computed threshold, and the rational bounds behind `mcaCount`: `0 < l ≤ √ρ` for
+`l = sqrtLower n D`, and `⌈√ρ / η⌉ ≤ multiplicity n D η`. Decidable, and decided at every
+deployed level. -/
+structure Fits (κ R : ℕ) (η : ℚ) : Prop
+    extends FitsAt κ R η.num.toNat η.den (threshold κ R η) where
+  /-- The lower bound on `√ρ` is positive. -/
+  sqrt_pos : 0 < sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1)
+  /-- It is at most `√ρ`. -/
+  sqrt_le : sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1) ^ 2 ≤ ((2 ^ κ - 1 : ℕ) : ℚ) / (2 ^ (κ + R) : ℕ)
+  /-- The multiplicity is at least `⌈√ρ / η⌉`. -/
+  mult_le : ((2 ^ κ - 1 : ℕ) : ℚ) / (2 ^ (κ + R) : ℕ) ≤
+    ((multiplicity (2 ^ (κ + R)) (2 ^ κ - 1) η : ℚ) * η) ^ 2
+
+instance (κ R : ℕ) (η : ℚ) : Decidable (Fits κ R η) :=
+  decidable_of_iff (FitsAt κ R η.num.toNat η.den (threshold κ R η) ∧
+      0 < sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1) ∧
+      sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1) ^ 2 ≤ ((2 ^ κ - 1 : ℕ) : ℚ) / (2 ^ (κ + R) : ℕ) ∧
+      ((2 ^ κ - 1 : ℕ) : ℚ) / (2 ^ (κ + R) : ℕ) ≤
+        ((multiplicity (2 ^ (κ + R)) (2 ^ κ - 1) η : ℚ) * η) ^ 2)
+    ⟨fun ⟨h, h1, h2, h3⟩ ↦ ⟨h, h1, h2, h3⟩, fun h ↦ ⟨h.toFitsAt, h.sqrt_pos, h.sqrt_le, h.mult_le⟩⟩
 
 /-- From the checks in naturals: `(√(D / n) + p / q) n ≤ a`. -/
 private theorem agreement_le {n D p q a : ℕ} (hn : 0 < n) (hq : 0 < q) (h1 : p * n ≤ a * q)
@@ -404,22 +451,79 @@ theorem threshold_eq_ceil {κ R : ℕ} {η : ℚ} (h : Fits κ R η) :
   rw [cast_slack h.p_pos]
   exact lt_agreement (Nat.two_pow_pos _) h.q_pos h.lt_agree
 
+/-! ## A computed count of bad folds -/
+
+/-- **An upper bound on Annex B's constant from rational bounds**: with `ρ = D / n`, if
+`0 < l ≤ √ρ` (as `l² ≤ ρ`), `θ ≥ 3` with `⌈√ρ / η⌉ ≤ θ` (as `ρ ≤ (θ η)²`), `0 < η` and
+`√ρ + η ≤ 1`, then `mcaConstant n D η` is at most the formula with `θ` for its multiplicity, `l`
+for `√ρ` and `1 - l - η` for `γ`. -/
+theorem mcaConstant_le {n D θ : ℕ} {η l : ℝ} (hl : 0 < l) (hlρ : l ^ 2 ≤ (D : ℝ) / n)
+    (hθ : 3 ≤ θ) (hθρ : (D : ℝ) / n ≤ (θ * η) ^ 2) (hη : 0 < η) (hone : √((D : ℝ) / n) + η ≤ 1) :
+    mcaConstant n D η ≤
+      (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ((D : ℝ) / n)) / (3 * l ^ 3) * n +
+        (θ + 1 / 2) / l := by
+  have hρ : (0 : ℝ) ≤ (D : ℝ) / n := by positivity
+  have hls : l ≤ √((D : ℝ) / n) := (Real.le_sqrt hl.le hρ).mpr hlρ
+  have hs : 0 < √((D : ℝ) / n) := hl.trans_le hls
+  have hM : (johnsonComparisonMultiplicity n D η : ℝ) ≤ θ := by
+    have hsη : √((D : ℝ) / n) / η ≤ θ := by
+      rw [div_le_iff₀ hη]
+      exact Real.sqrt_le_iff.mpr ⟨by positivity, hθρ⟩
+    exact_mod_cast max_le (Nat.ceil_le.mpr hsη) hθ
+  have hγ : 0 ≤ johnsonGamma n D η := by
+    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
+  have hγle : johnsonGamma n D η ≤ 1 - l - η := by
+    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
+  unfold mcaConstant johnsonComparisonEstimate johnsonComparisonShift
+  simp only [johnsonRhoMinus] at *
+  gcongr
+  exact add_nonneg (by positivity) (mul_nonneg (mul_nonneg (by positivity) (hγ.trans hγle)) hρ)
+
+/-- **The count is at least Annex B's constant** at a fitting level:
+`mcaConstant n D η ≤ mcaCount κ R η`, with `n = 2 ^ (κ + R)` and `D = 2 ^ κ - 1`. -/
+theorem mcaConstant_le_mcaCount {κ R : ℕ} {η : ℚ} (h : Fits κ R η) :
+    mcaConstant (2 ^ (κ + R)) (2 ^ κ - 1) η ≤ mcaCount κ R η := by
+  obtain ⟨-, -, hη, hone⟩ := h.mcaJohnson_hyps
+  have hlρ : ((sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1) : ℚ) : ℝ) ^ 2 ≤
+      ((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ) := by
+    have h' := (Rat.cast_le (K := ℝ)).mpr h.sqrt_le
+    rwa [Rat.cast_pow, Rat.cast_div, Rat.cast_natCast, Rat.cast_natCast] at h'
+  have hθρ : ((2 ^ κ - 1 : ℕ) : ℝ) / (2 ^ (κ + R) : ℕ) ≤
+      ((multiplicity (2 ^ (κ + R)) (2 ^ κ - 1) η : ℝ) * η) ^ 2 := by
+    have h' := (Rat.cast_le (K := ℝ)).mpr h.mult_le
+    rwa [Rat.cast_pow, Rat.cast_mul, Rat.cast_div, Rat.cast_natCast, Rat.cast_natCast,
+      Rat.cast_natCast] at h'
+  refine (mcaConstant_le (θ := multiplicity (2 ^ (κ + R)) (2 ^ κ - 1) η)
+    (l := (sqrtLower (2 ^ (κ + R)) (2 ^ κ - 1) : ℝ)) (by exact_mod_cast h.sqrt_pos) hlρ
+    (le_max_right _ _) hθρ hη hone).trans ?_
+  have hc : ((constantBound (2 ^ (κ + R)) (2 ^ κ - 1) η : ℚ) : ℝ) ≤ (mcaCount κ R η : ℝ) := by
+    exact_mod_cast Nat.le_ceil (constantBound (2 ^ (κ + R)) (2 ^ κ - 1) η)
+  refine le_of_eq_of_le ?_ hc
+  simp only [constantBound]
+  push_cast
+  ring
+
+/-- A bound on the bad folds stays a bound when it grows. -/
+theorem McaBound.mono {κ R a N N' : ℕ} (h : McaBound κ R a N) (hN : N ≤ N') :
+    McaBound κ R a N' :=
+  fun F ↦ (h F).trans hN
+
 /-! ## The parameters of a level -/
 
 /-- **The parameters of a level in the Johnson regime**, from its slack `η`: the threshold
 `a = ⌈(√ρ + η) n⌉₊`, the list bound `L = ⌊n (a - D) / (a² - n D)⌋` of the pairwise Johnson
-bound, and the bound `N = ⌊mcaConstant n D η⌋₊` on the bad folds (Annex B's constant), with
-`n = 2 ^ (κ + R)` and `D = 2 ^ κ - 1`. -/
-noncomputable def johnsonPar (sh : Shape) (κ : ℕ) (η : ℚ) (h : Fits κ sh.R η) : Par sh κ where
+bound, and the bound `N = mcaCount κ R η ≥ mcaConstant n D η` on the bad folds (Annex B's
+constant), with `n = 2 ^ (κ + R)` and `D = 2 ^ κ - 1`. Every number is computed. -/
+def johnsonPar (sh : Shape) (κ : ℕ) (η : ℚ) (h : Fits κ sh.R η) : Par sh κ where
   a := threshold κ sh.R η
   L := Code.pairwiseJohnsonListBound (2 ^ (κ + sh.R)) (2 ^ κ - 1) (threshold κ sh.R η)
-  N := ⌊mcaConstant (2 ^ (κ + sh.R)) (2 ^ κ - 1) η⌋₊
+  N := mcaCount κ sh.R η
   hdist := h.dist
   hle := h.le_n
   hb := h.hb
   hlist := listBound_johnson sh.ℓ h.hb h.dist h.johnson
-  hmca := mcaBound_of_mcaJohnson (mcaJohnson_annexB E) h.one_le_κ h.one_le_R h.hb
-    h.slack_pos (le_threshold h) h.le_n
+  hmca := (mcaBound_of_mcaJohnson (mcaJohnson_annexB E) h.one_le_κ h.one_le_R h.hb
+    h.slack_pos (le_threshold h) h.le_n).mono (Nat.floor_le_of_le (mcaConstant_le_mcaCount h))
 
 end Whir
 

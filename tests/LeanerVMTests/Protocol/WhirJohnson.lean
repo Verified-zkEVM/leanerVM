@@ -15,11 +15,13 @@ Category B: Annex B's `thm:mca-johnson` and `thm:rbr`
 * **Every deployed level.** For each of the 224 levels of the 56 admissible ladders: the level fits
   (`Fits`), so the hypotheses of `mcaJohnson_annexB` hold (`1 ≤ D ≤ n - 2`, `0 < η`,
   `√ρ + η ≤ 1`); and the MCA share of a fold challenge is at most `2 ^ -128`:
-  `2 ^ (ℓ - 1) · mcaConstant n D η ≤ 2 ^ 64`, each level's ceilings proved from rational bounds on
-  `√ρ` (`mcaConstant_le`).
-* **The numbers.** The threshold and list bound at two levels, the range of the list bound `L_0`
-  of level 0 over the window, the deployed chain's levels against the ladder, and the exact
-  multiplicity where the Rust's double rounding differs.
+  `2 ^ (ℓ - 1) · N ≤ 2 ^ 64` for the computed count `N = mcaCount κ R η`, hence
+  `2 ^ (ℓ - 1) · mcaConstant n D η ≤ 2 ^ 64` (`mcaConstant_le_mcaCount`, from rational bounds on
+  `√ρ`).
+* **The numbers.** The threshold, list bound and count at two levels, the count of the deployed
+  chain evaluated, the range of the list bound `L_0` of level 0 over the window, the deployed
+  chain's levels against the ladder, and the exact multiplicity where the Rust's double rounding
+  differs.
 * **Mutations.** The threshold one off in either direction, and a slack past `1 - √ρ`, do not fit.
 -/
 
@@ -92,96 +94,29 @@ theorem window_mcaJohnson_hyps : ∀ x ∈ window,
       √(((2 ^ x.2.1 - 1 : ℕ) : ℝ) / (2 ^ (x.2.1 + x.2.2.1) : ℕ)) + x.2.2.2 ≤ 1 :=
   fun x hx ↦ (window_fits x hx).mcaJohnson_hyps
 
-/-- A lower bound on `√(D / n)`: `⌊√(D n 2^80)⌋ / (n 2^40)`. -/
-def sqrtLower (n D : ℕ) : ℚ := (sqrtGuess (D * n * 2 ^ 80) : ℚ) / (n * 2 ^ 40)
+/-- **The MCA share of every deployed fold challenge is at most `2 ^ -128`** with the computed
+count: `2 ^ (ℓ - 1) · N ≤ 2 ^ 64` at every level, `N = mcaCount κ R η`, so the fold row's
+`2 ^ (ℓ - j - 1) N / |E|` is at most `2 ^ 64 / 2 ^ 192`. -/
+theorem window_count_budget : ∀ x ∈ window,
+    2 ^ (x.1 - 1) * mcaCount x.2.1 x.2.2.1 x.2.2.2 ≤ 2 ^ 64 := by
+  decide +kernel
 
-/-- The multiplicity `max ⌈√(D / n) / η⌉ 3`, as the least `k` with `D q² ≤ k² p² n` for
-`η = p / q`, from a guess at the root. -/
-def multiplicity (n D : ℕ) (η : ℚ) : ℕ :=
-  let p := η.num.toNat
-  let q := η.den
-  let r := sqrtGuess (D * q ^ 2 / (p ^ 2 * n))
-  max (if D * q ^ 2 ≤ r * r * (p ^ 2 * n) then r else r + 1) 3
+/-- The largest share, at level 0 of `(27, 3)`: `2 ^ 64 / 16221982967264194880 ≈ 2 ^ 0.185`, so
+the least margin is `128.185` bits, as with the exact constant. -/
+example : (window.map fun x ↦ 2 ^ (x.1 - 1) * mcaCount x.2.1 x.2.2.1 x.2.2.2).max? =
+    some 16221982967264194880 := by
+  decide +kernel
 
-/-- **An upper bound on Annex B's constant from rational bounds**: with `ρ = D / n`, if
-`0 < l ≤ √ρ` (as `l² ≤ ρ`), `θ ≥ 3` with `⌈√ρ / η⌉ ≤ θ` (as `ρ ≤ (θ η)²`), `0 < η` and
-`√ρ + η ≤ 1`, then `mcaConstant n D η` is at most the formula with `θ` for its multiplicity, `l`
-for `√ρ` and `1 - l - η` for `γ`. -/
-private theorem mcaConstant_le {n D θ : ℕ} {η l : ℝ} (hl : 0 < l) (hlρ : l ^ 2 ≤ (D : ℝ) / n)
-    (hθ : 3 ≤ θ) (hθρ : (D : ℝ) / n ≤ (θ * η) ^ 2) (hη : 0 < η) (hone : √((D : ℝ) / n) + η ≤ 1) :
-    mcaConstant n D η ≤
-      (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ((D : ℝ) / n)) / (3 * l ^ 3) * n +
-        (θ + 1 / 2) / l := by
-  have hρ : (0 : ℝ) ≤ (D : ℝ) / n := by positivity
-  have hls : l ≤ √((D : ℝ) / n) := (Real.le_sqrt hl.le hρ).mpr hlρ
-  have hs : 0 < √((D : ℝ) / n) := hl.trans_le hls
-  have hM : (johnsonComparisonMultiplicity n D η : ℝ) ≤ θ := by
-    have hsη : √((D : ℝ) / n) / η ≤ θ := by
-      rw [div_le_iff₀ hη]
-      exact Real.sqrt_le_iff.mpr ⟨by positivity, hθρ⟩
-    exact_mod_cast max_le (Nat.ceil_le.mpr hsη) hθ
-  have hγ : 0 ≤ johnsonGamma n D η := by
-    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
-  have hγle : johnsonGamma n D η ≤ 1 - l - η := by
-    unfold johnsonGamma johnsonAgreement johnsonRhoMinus; linarith
-  unfold mcaConstant johnsonComparisonEstimate johnsonComparisonShift
-  simp only [johnsonRhoMinus] at *
-  gcongr
-  exact add_nonneg (by positivity) (mul_nonneg (mul_nonneg (by positivity) (hγ.trans hγle)) hρ)
-
-/-- `mcaConstant_le`'s bound at the computed `l` and `θ`. -/
-def constantBound (n D : ℕ) (η : ℚ) : ℚ :=
-  let ρ : ℚ := (D : ℚ) / n
-  let l := sqrtLower n D
-  let θ : ℚ := multiplicity n D η
-  (2 * (θ + 1 / 2) ^ 5 + 3 * (θ + 1 / 2) * (1 - l - η) * ρ) / (3 * l ^ 3) * n + (θ + 1 / 2) / l
-
-/-- The certificate at a level: `0 < l`, `l² ≤ ρ`, `ρ ≤ (θ η)²`, and the budget at the bound. -/
-def budgetCert (x : ℕ × ℕ × ℕ × ℚ) : Prop :=
-  let n := 2 ^ (x.2.1 + x.2.2.1)
-  let D := 2 ^ x.2.1 - 1
-  0 < sqrtLower n D ∧ sqrtLower n D ^ 2 ≤ (D : ℚ) / n ∧
-    (D : ℚ) / n ≤ ((multiplicity n D x.2.2.2 : ℚ) * x.2.2.2) ^ 2 ∧
-    (2 : ℚ) ^ (x.1 - 1) * constantBound n D x.2.2.2 ≤ 2 ^ 64
-
-instance (x : ℕ × ℕ × ℕ × ℚ) : Decidable (budgetCert x) := by
-  unfold budgetCert; infer_instance
-
-/-- The certificate holds at every deployed level. -/
-theorem window_budgetCert : ∀ x ∈ window, budgetCert x := by decide +kernel
-
-/-- The budget at a level from its certificate. -/
-private theorem budget_of_cert {ℓ n D : ℕ} {η : ℚ} (hl : 0 < sqrtLower n D)
-    (hlρ : sqrtLower n D ^ 2 ≤ (D : ℚ) / n)
-    (hθρ : (D : ℚ) / n ≤ ((multiplicity n D η : ℚ) * η) ^ 2)
-    (hb : (2 : ℚ) ^ (ℓ - 1) * constantBound n D η ≤ 2 ^ 64) (hη : (0 : ℝ) < η)
-    (hone : √((D : ℝ) / n) + η ≤ 1) :
-    (2 : ℝ) ^ (ℓ - 1) * mcaConstant n D η ≤ 2 ^ 64 := by
-  have hθ : 3 ≤ multiplicity n D η := le_max_right _ _
-  have hlρ' : ((sqrtLower n D : ℚ) : ℝ) ^ 2 ≤ (D : ℝ) / n := by
-    have h := (Rat.cast_le (K := ℝ)).mpr hlρ
-    rwa [Rat.cast_pow, Rat.cast_div, Rat.cast_natCast, Rat.cast_natCast] at h
-  have hθρ' : (D : ℝ) / n ≤ ((multiplicity n D η : ℝ) * η) ^ 2 := by
-    have h := (Rat.cast_le (K := ℝ)).mpr hθρ
-    rwa [Rat.cast_pow, Rat.cast_mul, Rat.cast_div, Rat.cast_natCast, Rat.cast_natCast,
-      Rat.cast_natCast] at h
-  have hle := mcaConstant_le (θ := multiplicity n D η) (l := (sqrtLower n D : ℝ))
-    (by exact_mod_cast hl) hlρ' hθ hθρ' hη hone
-  have hb' : (2 : ℝ) ^ (ℓ - 1) * (constantBound n D η : ℝ) ≤ 2 ^ 64 := by exact_mod_cast hb
-  refine (mul_le_mul_of_nonneg_left hle (by positivity)).trans (Eq.trans_le ?_ hb')
-  simp only [constantBound]
-  push_cast
-  ring
-
-/-- **The MCA share of every deployed fold challenge is at most `2 ^ -128`**:
-`2 ^ (ℓ - 1) · mcaConstant n D η ≤ 2 ^ 64` at every level, so the fold row's
-`2 ^ (ℓ - j - 1) N / |E|` with `N = ⌊mcaConstant n D η⌋₊` is at most `2 ^ 64 / 2 ^ 192`. -/
+/-- **Annex B's constant meets the budget at every deployed level**:
+`2 ^ (ℓ - 1) · mcaConstant n D η ≤ 2 ^ 64`, through the count. -/
 theorem window_budget : ∀ x ∈ window,
     (2 : ℝ) ^ (x.1 - 1) * mcaConstant (2 ^ (x.2.1 + x.2.2.1)) (2 ^ x.2.1 - 1) x.2.2.2 ≤ 2 ^ 64 := by
   intro x hx
-  obtain ⟨hl, hlρ, hθρ, hb⟩ := window_budgetCert x hx
-  obtain ⟨-, -, hη, hone⟩ := (window_fits x hx).mcaJohnson_hyps
-  exact budget_of_cert hl hlρ hθρ hb hη hone
+  have hb : ((2 ^ (x.1 - 1) * mcaCount x.2.1 x.2.2.1 x.2.2.2 : ℕ) : ℝ) ≤ ((2 ^ 64 : ℕ) : ℝ) := by
+    exact_mod_cast window_count_budget x hx
+  rw [Nat.cast_mul, Nat.cast_pow, Nat.cast_pow, Nat.cast_ofNat] at hb
+  exact (mul_le_mul_of_nonneg_left (mcaConstant_le_mcaCount (window_fits x hx))
+    (by positivity)).trans hb
 
 /-! ## The numbers -/
 
@@ -193,6 +128,15 @@ example : Code.pairwiseJohnsonListBound (2 ^ 10) 511 726 = 57 := by decide
 /-- Level 5 of `(28, 4)`: `n = 2 ^ 21`, `D = 3`, threshold `3345`, list bound `1431`. -/
 example : threshold 2 19 (7354347395230781 / 2 ^ 64) = 3345 := by decide +kernel
 example : Code.pairwiseJohnsonListBound (2 ^ 21) 3 3345 = 1431 := by decide
+
+-- The counts at the two levels: Annex B's constant rounded up, `⌊a⌋₊ + 32` and `⌊a⌋₊ + 401`
+-- (`a ≈ 18977685300038887.145` and `1507871047256190872.019`).
+#guard mcaCount 9 1 (8247514870967899 / 2 ^ 62) == 18977685300038919
+#guard mcaCount 2 19 (7354347395230781 / 2 ^ 64) == 1507871047256191273
+
+-- The deployed chain is data: its first level's parameters evaluate.
+#guard (deployed 15 1).map (fun c ↦ let P := c.ladder.headPar c.pars; (P.a, P.L, P.N)) ==
+  some (726, 57, 18977685300038919)
 
 /-- There the exact multiplicity `⌈√ρ / η⌉` is `4`, where the Rust's doubles give `3`. -/
 example : multiplicity (2 ^ 21) 3 (7354347395230781 / 2 ^ 64) = 4 := by decide +kernel

@@ -1217,7 +1217,8 @@ theorem mcaBound_of_mcaJohnson (hc : McaJohnson E c) … ((√ρ + η) n ≤ a) 
 theorem listBound_johnson (m) … (2^κ ≤ a) (n D < a²) : ListBound κ R a m (Code.pairwiseJohnsonListBound n D a)
 def threshold (κ R) (η : ℚ) : ℕ                       -- ⌈(√ρ + η) n⌉₊ in naturals; = the ceiling under `Fits`
 def Fits (κ R) (η : ℚ) : Prop                         -- decidable: what the interfaces need of a level
-def johnsonPar (sh κ η) (h : Fits κ sh.R η) : Par sh κ  -- a = threshold, L = pairwiseJohnsonListBound n D a, N = ⌊mcaConstant n D η⌋₊
+def mcaCount (κ R) (η : ℚ) : ℕ                        -- ⌈Annex B's formula at a rational lower bound on √ρ⌉; ≥ mcaConstant under `Fits`
+def johnsonPar (sh κ η) (h : Fits κ sh.R η) : Par sh κ  -- a = threshold, L = pairwiseJohnsonListBound n D a, N = mcaCount κ R η; computable
 -- The opening at leanVM's parameters (Whir/Deployed.lean)
 def deployed (μ R : ℕ) : Option Chain                 -- the ladder's levels with their `johnsonPar`
 theorem deployed_isSome : Admissible μ R → (deployed μ R).isSome   -- every deployed level fits
@@ -1300,8 +1301,10 @@ smaller at every deployed level. The threshold is the exact ceiling `⌈(√ρ +
 agreement within the Annex's radius `γ`, computed in naturals from the rational `η`
 (`threshold`); the Rust has no integer threshold. `Fits` is the decidable list of facts a level
 needs (among them that `threshold` is that ceiling, `threshold_eq_ceil`), `johnsonPar` builds the
-level's `Par` from it, and `deployed` builds the chain of every admissible ladder with its
-slacks; `deployed_isSome` decides that all 224 levels fit. The slacks are a table beside the
+level's `Par` from it, with `N = mcaCount κ R η`, Annex B's formula rounded up at a rational lower
+bound on `√ρ` and the exact `θ` (`mcaConstant_le_mcaCount`), so that the parameters, and every
+extractor built over them, are computable; `deployed` builds the chain of every admissible
+ladder with its slacks; `deployed_isSome` decides that all 224 levels fit. The slacks are a table beside the
 ladder (`slacks`), not a field of `Level`, since no verifier reads them.
 
 ArkLib's line is `u₀ + x·u₁`, while Annex B folds `(1 − z)·u₀ + z·u₁`.

@@ -21,9 +21,10 @@ Category B: the ladders of `LeanerVM.Parameters.Whir` (the Rust's `derive_config
 `chainOf` builds, from the levels of a ladder and their slacks, the chain of levels `whirOpen`
 runs (`Ladder`: each level's fold count, rate exponent and query count) together with the
 parameters of every level (`Ladder.Pars`): `johnsonPar` at the level's slack, the threshold
-`⌈(√ρ + η) n⌉₊`, the pairwise Johnson list bound and Annex B's constant. A level whose numbers do
-not fit (`Fits`) leaves no chain; `deployed_isSome` decides that every level of every admissible
-ladder fits, so `deployedChain` is total on the window and `deployed_rbrSoundness` is
+`⌈(√ρ + η) n⌉₊`, the pairwise Johnson list bound and Annex B's constant rounded up
+(`mcaCount`), every number computed, so the chain is data. A level whose numbers do not fit
+(`Fits`) leaves no chain; `deployed_isSome` decides that every level of every admissible ladder
+fits, so `deployedChain` is total on the window and `deployed_rbrSoundness` is
 `whirOpen_rbrSoundness` at leanVM's parameters with no hypothesis. `deployed_vars` checks that
 the opening's stack has `μ` variables.
 -/
@@ -50,7 +51,7 @@ structure Chain where
 /-- The chain of the levels on `rem` variables, each with its slack, every level's parameters in the
 Johnson regime (`johnsonPar`); `none` if the variables run out before the last level or a level
 does not fit. -/
-noncomputable def chainOf : ℕ → List (Level × ℚ) → Option Chain
+def chainOf : ℕ → List (Level × ℚ) → Option Chain
   | _, [] => none
   | rem, [(l, η)] =>
     match rem - l.fold with
@@ -68,7 +69,7 @@ noncomputable def chainOf : ℕ → List (Level × ℚ) → Option Chain
       else none
 
 /-- The chain of the ladder of a stack size and rate, at the deployed slacks. -/
-noncomputable def deployed (μ logInvRate : ℕ) : Option Chain :=
+def deployed (μ logInvRate : ℕ) : Option Chain :=
   (ladder μ logInvRate).bind fun ls ↦ (slacks μ logInvRate).bind fun es ↦
     chainOf μ (ls.zip es)
 
@@ -92,13 +93,13 @@ theorem deployed_vars {μ logInvRate : ℕ} (h : Admissible μ logInvRate) :
   exact hp
 
 /-- The chain at leanVM's parameters, for an admissible stack size and rate. -/
-noncomputable def deployedChain (μ logInvRate : ℕ) (h : Admissible μ logInvRate) : Chain :=
+def deployedChain (μ logInvRate : ℕ) (h : Admissible μ logInvRate) : Chain :=
   (deployed μ logInvRate).get (deployed_isSome h)
 
 /-- **The opening of WHIR at leanVM's parameters is round-by-round sound for the list relation**,
 with no hypothesis: `whirOpen_rbrSoundness` at the deployed chain of an admissible stack size and
 rate, every level's list bound and bad-fold bound proved in the Johnson regime at its slack. -/
-noncomputable def deployed_rbrSoundness (μ logInvRate : ℕ) (h : Admissible μ logInvRate) :
+def deployed_rbrSoundness (μ logInvRate : ℕ) (h : Admissible μ logInvRate) :
     Component.Security
       (whirOpen (deployedChain μ logInvRate h).sh (deployedChain μ logInvRate h).κ
         (deployedChain μ logInvRate h).ladder)

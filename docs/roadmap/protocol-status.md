@@ -762,8 +762,9 @@ round-by-round sound at leanVM's parameters with no hypothesis: `deployed_rbrSou
 `(μ, R)`, each level's `Par` built by `johnsonPar` (`Protocol/Whir/Johnson.lean`) from the level's
 slack. The threshold is the exact `⌈(√ρ + η)·n⌉₊`, computed in naturals (`threshold`,
 `threshold_eq_ceil`); the list bound is ArkLib's pairwise Johnson bound,
-`L = ⌊n(a − D)/(a² − nD)⌋` (`listBound_johnson`); the bad folds are `⌊mcaConstant n D η⌋₊`, from
-`mcaJohnson_annexB` through `mcaBound_of_mcaJohnson`, the encoder's code being ArkLib's
+`L = ⌊n(a − D)/(a² − nD)⌋` (`listBound_johnson`); the bad folds are `mcaCount κ R η`, Annex B's
+constant rounded up from rational bounds so that every parameter is computed
+(`mcaConstant_le_mcaCount`), from `mcaJohnson_annexB` through `mcaBound_of_mcaJohnson`, the encoder's code being ArkLib's
 Reed–Solomon code (`encode_mem_code`, `exists_encode_of_mem_code`). The generic half is
 `ToArkLib/McaJohnson.lean`: `McaJohnson`, its inhabitant at [BCHKS25]'s constant,
 `mcaError_foldLine_eq_affineLine`, and the count of bad seeds an error bound gives. The slacks are
