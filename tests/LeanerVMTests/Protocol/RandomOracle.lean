@@ -6,7 +6,11 @@ import LeanerVM.Protocol.RandomOracle
 The two runs of the hash oracle: BLAKE2s answers a query by its digest and a chain step by the
 deployed step; the random oracle answers a fresh query by a uniform digest and a repeated query
 from its cache. The distributions on a uniform digest: a challenge is any given element with
-probability `2^-192`, a 17-bit grinding check passes with probability `2^-17`.
+probability `2^-192`, a 17-bit grinding check passes with probability `2^-17`. The challenges of
+two fresh digests are a given pair with probability `2^-384`; query positions read the challenge
+bits low first, nine positions of `20` bits to a challenge, a position across two limbs as the
+Rust reads it; ten positions from two fresh squeezes are a given tuple with probability
+`2^-200`, while from one squeeze the tenth is always `0`.
 
 Then the chain read off a log: the log of an honest chain (two observes, a squeeze, the grinding
 base, a nonce and a squeeze, every query answered by BLAKE2s) gives back its blocks and states,
@@ -70,6 +74,53 @@ example : Pr{let d ← $ᵗ Digest}[FsState.challengeOf d = 0] = (2 ^ 192 : ℝ�
 
 example : Pr{let d ← $ᵗ Digest}[FsState.lowBitsZero d 17 = true] = (2 ^ 17 : ℝ≥0∞)⁻¹ :=
   prEvent_lowBitsZero (by norm_num)
+
+/-! ## Tuples of challenges and query positions -/
+
+-- The challenges of two fresh digests are a given pair with probability `2^-384`.
+example :
+    Pr{let d ← $ᵗ (Fin 2 → Digest)}[(fun i ↦ FsState.challengeOf (d i)) = ![0, 1]] =
+      (2 ^ 384 : ℝ≥0∞)⁻¹ := by
+  refine (prEvent_challengeOf_tuple 2 (· = ![0, 1])).trans ?_
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fun, card_E,
+    Fintype.card_fin, ← pow_mul, Nat.cast_pow, Nat.cast_ofNat]
+
+-- Positions of `4` bits, low bits first: the nibbles of the low limb.
+example : challengePositions 4 4 [E.ofLimbs (K.ofBits 0x4321) 0 0] = ![1, 2, 3, 4] := by
+  decide
+
+-- Positions of `20` bits, nine to a challenge: position `3` is bits `60..79`, the top nibble of
+-- limb `0` and the low bits of limb `1`, as the Rust's two-limb read
+-- (`limbs[0] >> 60 | limbs[1] << 4`, masked to `20` bits) gives; position `9` is the next
+-- challenge's low bits.
+example :
+    challengePositions 20 10 [E.ofLimbs (K.ofBits 0xF000000000000000) (K.ofBits 0xF) 0,
+      E.ofLimbs (K.ofBits 0xABCDE) 0 0] 3 = 0xFF ∧
+    challengePositions 20 10 [E.ofLimbs (K.ofBits 0xF000000000000000) (K.ofBits 0xF) 0,
+      E.ofLimbs (K.ofBits 0xABCDE) 0 0] 9 = 0xABCDE := by
+  decide
+
+-- Ten positions of `20` bits from two fresh squeezes are a given tuple with probability
+-- `2^-200`.
+example :
+    Pr{let d ← $ᵗ (Fin 2 → Digest)}[
+      challengePositions 20 10 (List.ofFn fun i ↦ FsState.challengeOf (d i)) = fun _ ↦ 0] =
+      (2 ^ 200 : ℝ≥0∞)⁻¹ := by
+  refine (prEvent_positions_uniform (by norm_num) (· = fun _ ↦ 0)).trans ?_
+  rw [SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fun, Fintype.card_fin,
+    Fintype.card_fin]
+  norm_num
+
+-- One squeeze is not enough for ten positions of `20` bits: the tenth reads past the one
+-- challenge and is `0` on every digest, where a uniform position is `0` with probability
+-- `2^-20`.
+example :
+    Pr{let d ← $ᵗ (Fin 1 → Digest)}[
+      challengePositions 20 10 (List.ofFn fun i ↦ FsState.challengeOf (d i)) 9 = 0] = 1 :=
+  (SampleableType.prEvent_uniformSample_eq_one_iff _).mpr fun _ ↦ Fin.ext (by
+    simp only [challengePositions]
+    rw [List.getD_eq_default _ _ (by rw [List.length_ofFn]; decide)]
+    decide)
 
 /-! ## Bytes -/
 

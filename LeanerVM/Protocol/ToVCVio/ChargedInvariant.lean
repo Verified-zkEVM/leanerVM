@@ -43,7 +43,21 @@ later queries completes. Its consequences, in the namespace `QueryHistory`:
   total charge and the probability that it breaks `Good` are at most `n * κ`. A charge growing
   with the cache, such as `|c| / |Y|` for a collision, is bounded at `(|c₀| + n) / |Y|`;
 * `expected_fresh_le`: if a fresh answer lies in `S` with probability at most `p`, the expected
-  number of fresh answers in `S` is at most `n * p`.
+  number of fresh answers in `S` is at most `n * p`;
+* `charge_le_of_isQueryBound`, `expected_charge_le_of_isQueryBound`: a charge paid by a query
+  bound of VCVio's general form (`IsQueryBound`, a budget spent query by query), the budget
+  priced so that a fresh query is charged at most the price it spends, totals at most the price
+  of the initial budget;
+* `expected_charge_le_sum`: a charge that is a sum of components, component `j` at most `κ j` on
+  the queries satisfying `p j` and zero on the others, has expected total at most
+  `∑ j, n j * κ j` when the computation makes at most `n j` queries satisfying `p j`
+  (`IsQueryBoundP`); the budgets are combined by `isQueryBound_pi_of_isQueryBoundP`.
+
+Two runs in sequence: `prEvent_bind_le_add_iSup` bounds an event after a draw by an event of the
+draw plus the largest probability of the event after a draw outside it, and
+`prEvent_simulateQ_bind_le_add_iSup` states it for a run of `oa >>= ob` against a stateful
+implementation, so that a bound for the first run and one for the second from any state the first
+can leave outside its bad event compose.
 
 `potential_le_expected_charge`, `prEvent_le_of_potential`,
 `prEvent_not_good_le_expected_charge`, `prEvent_not_good_le_mul`, `enncard_le_of_mem_support`
@@ -63,6 +77,8 @@ namespace LeanerVM.Protocol
 
 open OracleComp OracleSpec MeasureTheory
 open scoped ENNReal
+
+universe v
 
 @[expose] public section
 
@@ -107,6 +123,23 @@ theorem answersIn_cacheQuery {spec : OracleSpec.{0, 0} ι}
 /-- One query, then `n - 1` more. -/
 private theorem cast_eq_one_add_pred {n : ℕ} (hn : 0 < n) : (n : ℝ≥0∞) = 1 + (n - 1 : ℕ) := by
   rw [add_comm, ← Nat.cast_add_one, Nat.sub_add_cancel hn]
+
+omit [DecidableEq ι] in
+/-- Bounds on finitely many kinds of query, at most `n j` queries satisfying `p j` for each
+`j ∈ S`, are one query bound of VCVio's general form on a budget per kind: a query is allowed when
+every kind it is of has budget left, and spends one of each. -/
+theorem isQueryBound_pi_of_isQueryBoundP {spec : OracleSpec.{0, 0} ι} {α J : Type}
+    (S : Finset J) (p : J → ι → Prop) [∀ j, DecidablePred (p j)] {oa : OracleComp spec α}
+    {n : J → ℕ} (h : ∀ j ∈ S, oa.IsQueryBoundP (p j) (n j)) :
+    oa.IsQueryBound n (fun t b ↦ ∀ j ∈ S, p j t → 0 < b j)
+      (fun t b j ↦ if p j t then b j - 1 else b j) := by
+  induction oa using OracleComp.inductionOn generalizing n with
+  | pure _ => trivial
+  | query_bind t k ih =>
+    have h' := fun j hj ↦ (isQueryBoundP_query_bind_iff (p j) t k (n j)).mp (h j hj)
+    exact (isQueryBound_query_bind_iff _ _ _ _ _).mpr
+      ⟨fun j hj hp ↦ (h' j hj).1.resolve_left (not_not.mpr hp),
+        fun u ↦ ih u fun j hj ↦ (h' j hj).2 u⟩
 
 namespace QueryHistory
 
@@ -401,6 +434,88 @@ theorem expected_fresh_le (S : (t : spec.Domain) → spec.Range t → Prop) {p :
     ← prEvent_eq_lintegral_id_evalDist_map_ite]
   exact add_le_add_right (hS t) _
 
+/-! ### Charges paid by a query budget -/
+
+/-- **Charges within a budget.** Let `oa` meet a query bound of VCVio's general form from the
+budget `b`: a query `t` is allowed at a budget `b'` when `canQuery t b'`, and leaves `cost t b'`.
+Let `w` price budgets, an allowed query never raising the price. If a fresh query at a state
+reached within `n` queries is charged at most the price it spends, a run of at most `n` queries
+adds at most `w b` to the total. -/
+theorem charge_le_of_isQueryBound {B : Type*} {canQuery : spec.Domain → B → Prop}
+    {cost : spec.Domain → B → B} (w : B → ℝ≥0∞) {charge : σ → spec.Domain → ℝ≥0∞}
+    {oa : OracleComp spec α} {b : B} (hb : oa.IsQueryBound b canQuery cost) {n : ℕ}
+    (hn : IsTotalQueryBound oa n) (s : σ) (hcost : ∀ t b', canQuery t b' → w (cost t b') ≤ w b')
+    (hw : ∀ s' t b', H.view s' t = none → (H.view s').enncard + 1 ≤ (H.view s).enncard + n →
+      canQuery t b' → charge s' t + w (cost t b') ≤ w b')
+    (total : ℝ≥0∞) {z : α × σ × ℝ≥0∞}
+    (hz : z ∈ support ((simulateQ (H.chargedOracle charge) oa).run (s, total))) :
+    z.2.2 ≤ total + w b := by
+  induction oa using OracleComp.inductionOn generalizing b n s total with
+  | pure a =>
+    obtain rfl : z = (a, s, total) := by simpa using hz
+    exact le_self_add
+  | query_bind t k ih =>
+    obtain ⟨hpos, hk⟩ := isTotalQueryBound_query_bind_iff.mp hn
+    obtain ⟨hcan, hkb⟩ := (isQueryBound_query_bind_iff t k b canQuery cost).mp hb
+    rw [run_query_bind, mem_support_bind_iff] at hz
+    obtain ⟨p, hp, hz⟩ := hz
+    cases h : H.view s t with
+    | some u =>
+      rw [H.chargedOracle_run_of_some charge h, support_pure, Set.mem_singleton_iff] at hp
+      subst hp
+      have hle : ((n - 1 : ℕ) : ℝ≥0∞) ≤ n := Nat.cast_le.mpr (n.sub_le 1)
+      exact (ih u (hkb u) (hk u) s (fun s' t' b' ht' hs' ↦
+        hw s' t' b' ht' (hs'.trans (add_le_add le_rfl hle))) total hz).trans
+        (add_le_add le_rfl (hcost t b hcan))
+    | none =>
+      rw [H.chargedOracle_run_of_none charge h, support_map] at hp
+      obtain ⟨u, -, rfl⟩ := hp
+      refine (ih u (hkb u) (hk u) _ (fun s' t' b' ht' hs' ↦
+        hw s' t' b' ht' (hs'.trans (H.enncard_view_record_add_le h u hpos))) _ hz).trans ?_
+      rw [add_assoc]
+      exact add_le_add le_rfl (hw s t b h (add_le_add le_rfl (Nat.one_le_cast.mpr hpos)) hcan)
+
+/-- The expected total charge of a run within a budget of VCVio's general form, priced by `w`
+as in `charge_le_of_isQueryBound`, is at most the price `w b` of the budget. -/
+theorem expected_charge_le_of_isQueryBound {B : Type*} {canQuery : spec.Domain → B → Prop}
+    {cost : spec.Domain → B → B} (w : B → ℝ≥0∞) {charge : σ → spec.Domain → ℝ≥0∞}
+    {oa : OracleComp spec α} {b : B} (hb : oa.IsQueryBound b canQuery cost) {n : ℕ}
+    (hn : IsTotalQueryBound oa n) (s : σ) (hcost : ∀ t b', canQuery t b' → w (cost t b') ≤ w b')
+    (hw : ∀ s' t b', H.view s' t = none → (H.view s').enncard + 1 ≤ (H.view s).enncard + n →
+      canQuery t b' → charge s' t + w (cost t b') ≤ w b') :
+    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (H.chargedOracle charge) oa).run (s, 0)] ≤ w b :=
+  lintegral_id_evalDist_map_le_of_le_of_mem_support _ fun _ hz ↦
+    (H.charge_le_of_isQueryBound w hb hn s hcost hw 0 hz).trans (zero_add _).le
+
+/-- **A sum of charges, each paid by its own budget.** Let the charge be a sum of components over
+`S`, component `j` at most `κ j` at a fresh query satisfying `p j` and zero at any other, at the
+states reached within `N` queries. A computation making at most `N` queries, at most `n j` of them
+satisfying `p j`, has expected total charge at most `∑ j ∈ S, n j * κ j`. A component charged at
+every query takes `p j` true and `n j = N`. -/
+theorem expected_charge_le_sum {J : Type} (S : Finset J) (p : J → spec.Domain → Prop)
+    [∀ j, DecidablePred (p j)] {charge : J → σ → spec.Domain → ℝ≥0∞} {κ : J → ℝ≥0∞}
+    {oa : OracleComp spec α} {N : ℕ} (hN : IsTotalQueryBound oa N) {n : J → ℕ}
+    (hn : ∀ j ∈ S, oa.IsQueryBoundP (p j) (n j)) (s : σ)
+    (hκ : ∀ j ∈ S, ∀ s' t, H.view s' t = none →
+      (H.view s').enncard + 1 ≤ (H.view s).enncard + N →
+      charge j s' t ≤ if p j t then κ j else 0) :
+    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$>
+      (simulateQ (H.chargedOracle fun s' t ↦ ∑ j ∈ S, charge j s' t) oa).run (s, 0)] ≤
+      ∑ j ∈ S, n j * κ j := by
+  refine H.expected_charge_le_of_isQueryBound (fun b ↦ ∑ j ∈ S, (b j : ℝ≥0∞) * κ j)
+    (isQueryBound_pi_of_isQueryBoundP S p hn) hN s (fun t b _ ↦ ?_)
+    (fun s' t b ht hs hcan ↦ ?_)
+  · exact Finset.sum_le_sum fun j _ ↦
+      mul_le_mul' (Nat.cast_le.mpr (by dsimp only; split_ifs <;> omega)) le_rfl
+  · rw [← Finset.sum_add_distrib]
+    refine Finset.sum_le_sum fun j hj ↦ ?_
+    have hc := hκ j hj s' t ht hs
+    dsimp only
+    split_ifs at hc ⊢ with hp
+    · rw [cast_eq_one_add_pred (hcan j hj hp) (n := b j), add_mul, one_mul]
+      exact add_le_add hc le_rfl
+    · rw [nonpos_iff_eq_zero.mp hc, zero_add]
+
 end QueryHistory
 
 /-! ## The cache of `randomOracle` -/
@@ -488,6 +603,42 @@ theorem expected_fresh_in_le {Y : Type} [SampleableType Y] [Fintype Y] (S : Fins
   simpa only [QueryHistory.cache_view, answersIn_empty, zero_add] using
     QueryHistory.cache.expected_fresh_le (fun _ (u : Y) ↦ u ∈ S)
       (fun _ ↦ (SampleableType.prEvent_uniformSample_le_div_iff (α := Y) _).2 (by simp)) hn ∅
+
+/-! ## Two computations in sequence -/
+
+/-- **An event after a draw.** The event `q` after `mx >>= f` has probability at most that of
+`p` under `mx` plus the largest probability of `q` under `f a`, over the outputs `a` of `mx`
+outside `p`. -/
+theorem prEvent_bind_le_add_iSup {m : Type → Type v} [Monad m] [LawfulMonad m] [MonadAttach m]
+    [WeaklyLawfulMonadAttach m] [EvalDistSemantics m] [LawfulEvalDistSemantics m] {β γ : Type}
+    (mx : m β) (f : β → m γ) (p : β → Prop) (q : γ → Prop) :
+    Pr{let y ← mx >>= f}[q y] ≤
+      Pr{let a ← mx}[p a] + ⨆ a ∈ support mx, ⨆ (_ : ¬ p a), Pr{let y ← f a}[q y] :=
+  prEvent_bind_le_prEvent_add_of_support mx f p q fun a ha hp ↦
+    le_iSup₂_of_le a ha (le_iSup_of_le hp le_rfl)
+
+omit [DecidableEq ι] in
+/-- **Two runs in sequence.** Run `oa` from the state `s` against a stateful implementation, then
+`ob` on its output from the state it leaves. If on every pair of reachable runs an event `E` of
+the final output and state implies an event `E₁` of the first run's output and state or an event
+`E₂` of both, then `E` has probability at most that of `E₁` plus the largest probability of `E₂`
+over the second run, from an end of the first run outside `E₁`. A bound for the first run and one
+for the second from any good state it can leave compose. -/
+theorem prEvent_simulateQ_bind_le_add_iSup {spec : OracleSpec.{0, 0} ι} {τ β γ : Type}
+    (impl : QueryImpl spec (StateT τ ProbComp)) (oa : OracleComp spec β)
+    (ob : β → OracleComp spec γ) (s : τ) (E : γ × τ → Prop) (E₁ : β × τ → Prop)
+    (E₂ : β × τ → γ × τ → Prop)
+    (hE : ∀ z₁ ∈ support ((simulateQ impl oa).run s),
+      ∀ z₂ ∈ support ((simulateQ impl (ob z₁.1)).run z₁.2), E z₂ → E₁ z₁ ∨ E₂ z₁ z₂) :
+    Pr{let z ← (simulateQ impl (oa >>= ob)).run s}[E z] ≤
+      Pr{let z₁ ← (simulateQ impl oa).run s}[E₁ z₁] +
+        ⨆ z₁ ∈ support ((simulateQ impl oa).run s), ⨆ (_ : ¬ E₁ z₁),
+          Pr{let z₂ ← (simulateQ impl (ob z₁.1)).run z₁.2}[E₂ z₁ z₂] := by
+  rw [simulateQ_bind, StateT.run_bind]
+  refine prEvent_bind_le_prEvent_add_of_support _ _ E₁ E fun z₁ hz₁ hn ↦ ?_
+  exact (prEvent_mono_of_support _ _ _ fun z₂ hz₂ hE₂ ↦
+    (hE z₁ hz₁ z₂ hz₂ hE₂).resolve_left hn).trans
+    (le_iSup₂_of_le z₁ hz₁ (le_iSup_of_le hn le_rfl))
 
 end
 

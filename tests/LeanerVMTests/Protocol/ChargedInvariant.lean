@@ -26,6 +26,16 @@ A repeated query is charged once. A charge growing with the cache, as a collisio
 infinitely many oracles, is bounded within the budget. On the log of fresh queries, the event
 "the first answer is `0`", which no predicate on the cache states, has probability at most
 `1/4` with no charge at all.
+
+Two charge components, each paid by its own budget: `1/4` at a query to oracle `0`, of which
+`twoQueries` makes one, and a quarter of the cache's size at every query, of which it makes two;
+the expected total is at most `1 · 1/4 + 2 · 1/4`. The budget of a kind does the work: the
+computation exceeds a budget of no query to oracle `0`, and a charge of `1/4` at every query totals
+`2 · 1/4` on every run, above the `1 · 1/4` a component charged only at oracle `0` is allowed.
+
+Two runs in sequence: a cached `0` after a query to oracle `0` and then one to oracle `1` has
+probability at most `1/4` for the first run plus `1/4` for the second from any cache without a
+`0` the first can leave.
 -/
 
 namespace LeanerVMTests.Protocol
@@ -209,6 +219,107 @@ example :
     · exact lintegral_id_evalDist_map_le_of_le _ fun u ↦ by simp [firstPotential]
   · exact add_le_of_le_of_nonpos le_rfl <| (QueryHistory.freshLog.expected_charge_le_mul
       twoQueries_bound (∅, []) (κ := 0) fun _ _ _ _ ↦ le_rfl).trans_eq (mul_zero _)
+
+/-! ### Two charge components, each paid by its own budget -/
+
+/-- The kinds of query: `true` a query to oracle `0`, `false` any query. -/
+def queryKind : Bool → Fin 2 → Prop
+  | true, t => t = 0
+  | false, _ => True
+
+instance (j : Bool) : DecidablePred (queryKind j) := fun t ↦ by
+  cases j <;> unfold queryKind <;> infer_instance
+
+/-- The two components: `1/4` at a query to oracle `0`, and a quarter of the cache's size, as a
+collision's charge, at every query. -/
+noncomputable def twoCharges : Bool → TestSpec.QueryCache → Fin 2 → ℝ≥0∞
+  | true, _, t => if t = 0 then 4⁻¹ else 0
+  | false, c, _ => c.enncard * 4⁻¹
+
+/-- The budgets: one query to oracle `0`, two queries in all. -/
+def kindBudget : Bool → ℕ
+  | true => 1
+  | false => 2
+
+theorem twoQueries_kindBound (j : Bool) : twoQueries.IsQueryBoundP (queryKind j) (kindBudget j) := by
+  cases j
+  · exact ⟨by decide, fun _ ↦ ⟨by decide, fun _ ↦ trivial⟩⟩
+  · exact ⟨by decide, fun _ ↦ ⟨by decide, fun _ ↦ trivial⟩⟩
+
+-- The expected total of the two components is at most `1 · 1/4 + 2 · 1/4`.
+example :
+    ∫⁻ r, r ∂𝒟[(fun z ↦ z.2.2) <$> (simulateQ (chargedRandomOracle fun c t ↦
+      ∑ j, twoCharges j c t) twoQueries).run (∅, 0)] ≤ 1 * 4⁻¹ + 2 * 4⁻¹ := by
+  have h := QueryHistory.cache.expected_charge_le_sum Finset.univ queryKind (charge := twoCharges)
+    (κ := fun _ ↦ 4⁻¹) twoQueries_bound (fun j _ ↦ twoQueries_kindBound j) ∅ fun j _ c t _ hc ↦ ?_
+  · simpa [Fintype.sum_bool, kindBudget] using h
+  cases j
+  · rw [QueryHistory.cache_view, QueryHistory.cache_view, QueryCache.enncard_empty, zero_add] at hc
+    have h1 : c.enncard ≤ 1 :=
+      (ENNReal.add_le_add_iff_right ENNReal.one_ne_top).mp (hc.trans_eq (by norm_num))
+    rw [ite_eq_left (show queryKind false t from trivial)]
+    exact (mul_le_mul' h1 le_rfl).trans_eq (one_mul _)
+  · by_cases ht : t = 0
+    · rw [ite_eq_left (show queryKind true t from ht)]
+      simp [twoCharges, ht]
+    · rw [ite_eq_right (show ¬ queryKind true t from ht)]
+      simp [twoCharges, ht]
+
+-- The computation exceeds a budget of no query to oracle `0`.
+example : ¬ twoQueries.IsQueryBoundP (queryKind true) 0 := fun h ↦
+  h.1.elim (fun h ↦ h rfl) (Nat.lt_irrefl 0)
+
+-- A charge of `1/4` at every query totals `2 · 1/4` on every run, above the `1 · 1/4` the
+-- budget of one query to oracle `0` allows a component charged only there.
+example {z : (Fin 4 × Fin 4) × TestSpec.QueryCache × ℝ≥0∞}
+    (hz : z ∈ support ((simulateQ (chargedRandomOracle fun _ _ ↦ 4⁻¹) twoQueries).run (∅, 0))) :
+    z.2.2 = 2 * 4⁻¹ := by
+  rw [twoQueries, simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+    QueryHistory.chargedOracle_run_of_none _ _ (by rfl), mem_support_bind_iff] at hz
+  obtain ⟨p, hp, hz⟩ := hz
+  rw [support_map] at hp
+  obtain ⟨u, -, rfl⟩ := hp
+  dsimp only at hz
+  rw [simulateQ_bind, simulateQ_spec_query, StateT.run_bind,
+    QueryHistory.chargedOracle_run_of_none _ _
+      (QueryCache.cacheQuery_of_ne (∅ : TestSpec.QueryCache) u (by decide)),
+    mem_support_bind_iff] at hz
+  obtain ⟨p, hp, hz⟩ := hz
+  rw [support_map] at hp
+  obtain ⟨v, -, rfl⟩ := hp
+  simp only [simulateQ_pure, StateT.run_pure, support_pure, Set.mem_singleton_iff] at hz
+  rw [hz, zero_add, two_mul]
+
+/-! ### Two runs in sequence -/
+
+/-- One query to oracle `1`. -/
+def oneQueryOne : OracleComp TestSpec (Fin 4) :=
+  (TestSpec.query 1 : OracleComp TestSpec (Fin 4))
+
+theorem oneQuery_bound : IsTotalQueryBound oneQuery 1 := ⟨by decide, fun _ ↦ trivial⟩
+
+theorem oneQueryOne_bound : IsTotalQueryBound oneQueryOne 1 := ⟨by decide, fun _ ↦ trivial⟩
+
+-- A query to oracle `0`, then one to oracle `1`: a cached `0` has probability at most `1/4` for
+-- the first run and `1/4` for the second, from any cache without a `0` the first leaves.
+example :
+    Pr{let z ← (simulateQ TestSpec.randomOracle (oneQuery >>= fun _ ↦ oneQueryOne)).run ∅}[
+      ¬ NoZero z.2] ≤ 4⁻¹ + 4⁻¹ := by
+  refine (prEvent_simulateQ_bind_le_add_iSup _ oneQuery (fun _ ↦ oneQueryOne) ∅ _
+    (fun z ↦ ¬ NoZero z.2) (fun _ z ↦ ¬ NoZero z.2) fun _ _ _ _ h ↦ .inr h).trans
+    (add_le_add ?_ (iSup₂_le fun z _ ↦ iSup_le fun hz ↦ ?_))
+  · simpa using prEvent_not_good_le_mul NoZero oneQuery_bound (c := ∅) (fun _ ↦ by simp)
+      fun c t _ hc _ ↦ noZero_step c t hc
+  · simpa using prEvent_not_good_le_mul NoZero oneQueryOne_bound (not_not.mp hz)
+      fun c t _ hc _ ↦ noZero_step c t hc
+
+-- The same composition for a draw: the second of two uniform draws is `0` with probability at
+-- most `1/4`, whatever the first.
+example :
+    Pr{let y ← ($ᵗ Fin 4 >>= fun _ ↦ $ᵗ Fin 4)}[y = 0] ≤ 0 + 4⁻¹ := by
+  refine (prEvent_bind_le_add_iSup ($ᵗ Fin 4) (fun _ ↦ $ᵗ Fin 4) (fun _ ↦ False) (· = 0)).trans
+    (add_le_add (by simp) (iSup₂_le fun _ _ ↦ iSup_le fun _ ↦ ?_))
+  simpa using (SampleableType.prEvent_uniformSample_eq_singleton (α := Fin 4) 0).le
 
 end
 

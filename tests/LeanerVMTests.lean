@@ -67,6 +67,7 @@ import LeanerVMTests.Protocol.Sumcheck
 import LeanerVMTests.Protocol.SumcheckFold
 import LeanerVMTests.Protocol.TableSumcheck
 import LeanerVMTests.Protocol.Transcript
+import LeanerVMTests.Protocol.UniformSample
 import LeanerVMTests.Protocol.WhirCached
 import LeanerVMTests.Protocol.WhirDeployed
 import LeanerVMTests.Protocol.WhirFold
