@@ -1018,6 +1018,16 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   program against the Rust's program hash, and checks the setup against the second verifier's
   reading (`μ = 20`, 33 lanes, queries `224, 56, 32, 22`, `μ_bus = 18`, five boundary columns,
   104 column values) and its rejections.
+- **The bus phase** (`Protocol/Verify/Bus.lean`): `walkBus` reads `α`, `β`, the two roots, the
+  combiners and the layers from the root down (`gkrRadices`: one binary layer first at an odd
+  depth) and the boundary values; `busStep` checks the count root, replays the layers
+  (`replayGkr`: each round decoded with the point's equality weights, the descendants checked
+  against the combined final claim as `Gkr.combineCheck` does, the next point `(u, c)`) and hands
+  on the oracle verifier's own `Bus.busOut`, generic over the instance (`leanVmBus` at leanISA's).
+  On the fixture the walk squeezes the second verifier's challenges, the nine layers replay to its
+  bus point and the three totals are its totals (`tests/LeanerVMTests/Protocol/VerifyBus.lean`,
+  with the zero count, a flipped descendant, a flipped round coefficient, a changed root and a
+  missing value rejected).
 
 ## Upstream watch
 
