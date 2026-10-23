@@ -150,14 +150,16 @@ theorem merkle_level {pad : Nat} (hp : PadOK σ pad) {pp bit cur adr : V} {b c :
 /-- **A Merkle path, sound**: from `cur`, `m` levels from `l` reach `mFold` of `cur`'s value, each
 level's sibling `mSib` and its address `mAdr`. -/
 theorem merkleT_sound {pad : Nat} (hp : PadOK σ pad) {pp : V} {bitOf : Nat → V}
-    {nodeOf : Nat → Option V} {addrOf : Nat → Nat} (hbit : ∀ l, IsBit (σ (bitOf l))) :
-    ∀ (m l : Nat) (cur : V) (b : Nat), AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m l cur b).1 →
+    {nodeOf : Nat → Option V} {addrOf : Nat → Nat} {bound : Nat}
+    (hbit : ∀ l < bound, IsBit (σ (bitOf l))) :
+    ∀ (m l : Nat) (cur : V) (b : Nat), l + m ≤ bound →
+      AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m l cur b).1 →
       σ (merkleT pad pp bitOf nodeOf addrOf m l cur b).2.2 =
         mFold (σ pp) (fun l' => σ (mAdr nodeOf l' (mBase nodeOf l (l' - l) b)))
           (fun l' => decide (σ (bitOf l') = 1)) (fun l' => mSib σ bitOf l' (mBase nodeOf l (l' - l) b))
           m l (σ cur)
-  | 0, l, cur, b, _ => rfl
-  | m + 1, l, cur, b, h => by
+  | 0, l, cur, b, _, _ => rfl
+  | m + 1, l, cur, b, hm, h => by
       have step : ∀ c : Nat, mNext nodeOf l b = c + 14 → V.n (c - 1) = mAdr nodeOf l b →
           AtomsHold rd σ ([hintW "siblings" [.n b, .n (b + 1)], addS (.n (b + 2)) cur (.n b),
             addS (.n (b + 3)) (.n b) (.n (b + 1)), mulS (.n (b + 2)) (bitOf l) (.n (b + 3))]) →
@@ -168,9 +170,9 @@ theorem merkleT_sound {pad : Nat} (hp : PadOK σ pad) {pp : V} {bitOf : Nat → 
               (fun l' => decide (σ (bitOf l') = 1)) (fun l' => mSib σ bitOf l' (mBase nodeOf l (l' - l) b))
               (m + 1) l (σ cur) := by
         intro c hc hadr h1 hk hr
-        rw [merkleT_sound hp hbit m (l + 1) (.n (c + 1)) (c + 14) hr]
+        rw [merkleT_sound hp hbit m (l + 1) (.n (c + 1)) (c + 14) (by omega) hr]
         simp only [mFold, Nat.sub_self, mBase]
-        rw [merkle_level hp (hbit l) h1 hk, hadr]
+        rw [merkle_level hp (hbit l (by omega)) h1 hk, hadr]
         apply mFold_congr
         intro l' hl'
         have hb : mBase nodeOf (l + 1) (l' - (l + 1)) (c + 14) = mBase nodeOf l (l' - l) b := by
