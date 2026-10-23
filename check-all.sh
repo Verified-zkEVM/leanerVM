@@ -54,7 +54,8 @@ lean_rpm() {
   build lean_rpm 'LeanRpm'
   axioms lean_rpm LeanRpm LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 \
     LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 \
-    LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm
+    LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm \
+    LeanRpm.Duplex.duplex_le
 }
 
 lean_xmss() {
@@ -86,7 +87,8 @@ lean_da() {
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
     LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual \
-    LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm
+    LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm \
+    LeanDa.leanDa_codeBinding_rpm_bound
 }
 
 lean_vm() {

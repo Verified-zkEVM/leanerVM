@@ -33,7 +33,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_rpm
         run: |
-          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm"
+          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm LeanRpm.Duplex.duplex_le"
           { echo 'import LeanRpm'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -189,7 +189,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm"
+          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm LeanDa.leanDa_codeBinding_rpm_bound"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
