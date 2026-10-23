@@ -459,5 +459,23 @@ theorem walksT_canon {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape
       · have := r2 t (by omega)
         rwa [show r + 1 + t = r + (t + 1) by omega] at this
 
+theorem NBv.mono' {b b' : Nat} {v : V} (h : NBv b v) (hle : b ≤ b') : NBv b' v := by
+  obtain ⟨j, hj, rfl⟩ := h; exact ⟨j, by omega, rfl⟩
+
+theorem StepShape.mono {W : WotsT} {B B' : Nat} (h : StepShape W B) (hle : B ≤ B') : StepShape W B' := by
+  intro i s v c o hc ho hco h1 h2
+  obtain ⟨a1, a2, a3⟩ := h i s v c o (by omega) (by omega) hco h1 h2
+  refine ⟨a1, a2, fun x hx => ?_⟩
+  rcases a3 x hx with h | h | h | h
+  · exact Or.inl h
+  · exact Or.inr (Or.inl (h.mono' hle))
+  · exact Or.inr (Or.inr (Or.inl h))
+  · exact Or.inr (Or.inr (Or.inr h))
+
+theorem StepCanon.mono {W : WotsT} {B B' : Nat} {good : Val → Prop} (h : StepCanon W B good)
+    (hle : B ≤ B') : StepCanon W B' good :=
+  ⟨fun σ σ' hσ hg => h.1 σ σ' (fun k hk => hσ k (by omega)) hg,
+    fun i s v c o σ hc ho hco h1 h2 hg hv => h.2 i s v c o σ (by omega) (by omega) hco h1 h2 hg hv⟩
+
 end
 end LeanVM.Guest.B1.Sig

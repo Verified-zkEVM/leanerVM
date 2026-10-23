@@ -141,5 +141,83 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
     rw [hp]
     exact ktip t ht
 
+/-- **A group's values are numbered below its end.** -/
+theorem groupT_numBelow {W : WotsT} {B : Nat} (hW : StepShape W B) {first n : Nat} {fold : Bool}
+    {prodIn encIn : V} {b : Nat} (hB : B ≤ b) (hpi : NBv b prodIn) (hei : NBv b encIn)
+    (hpw : ∀ j, NBv b (W.power j)) :
+    NumBelow (groupT W first n fold prodIn encIn b).2 (Stmt.valsList (groupT W first n fold prodIn encIn b).1) := by
+  have hW' := StepShape.mono hW hB
+  have hend : (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
+    simp only [groupT]; rw [armsT_snd]; rfl
+  have hge : b + 5 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
+    rw [← armB_zero W first n fold prodIn encIn b]
+    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+  have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
+  have h1 := armB_one W first n fold prodIn encIn b
+  have h1e : armB W first n fold prodIn encIn b 1 ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
+    armB_mono W first n fold prodIn encIn b (Nat.one_le_two_pow.trans (Nat.pow_le_pow_left (by norm_num) n))
+  rw [hend]
+  have harm : ∀ k < 4 ^ n, NumBelow (armB W first n fold prodIn encIn b (4 ^ n))
+      (Stmt.valsList (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
+        (armB W first n fold prodIn encIn b k)).1) := by
+    intro k hk
+    have hk1 : armB W first n fold prodIn encIn b (k + 1) ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
+      armB_mono W first n fold prodIn encIn b (by omega)
+    have hlt := armB_lt W first n fold prodIn encIn b k
+    have hbase : b + 5 ≤ armB W first n fold prodIn encIn b k := by
+      rw [← armB_zero W first n fold prodIn encIn b]
+      exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+    have hP1 : ∀ x, NBv b x → ∃ j < armB W first n fold prodIn encIn b (4 ^ n), x = .n j := by
+      rintro x ⟨j, hj, rfl⟩; exact ⟨j, by omega, rfl⟩
+    by_cases hk0 : k = 0
+    · subst hk0
+      obtain ⟨l1, l2, l3⟩ := arm0_lay W fold (n := n) (le_refl b)
+      rw [armB_zero]
+      have hws : (if fold then b + 5 + 1 else b + 5) + walkSum W.size 0 0 n ≤
+          groupStart fold b + chainStride W * n := by
+        rw [walkSum_zero_digits, chainStride_eq, groupStart_eq]
+        have : n * (1 + 3 * W.size) ≤ (1 + 3 * (W.size + 13)) * n := by
+          rw [mul_comm]; exact Nat.mul_le_mul_right _ (by omega)
+        split <;> omega
+      refine armT_vals hW' (by simpa using l1) (by simpa using l2) hP1 (fun x hx => ?_) ⟨?_, ?_, ?_,
+        hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _), ?_⟩
+      · obtain ⟨j, rfl, h1', h2'⟩ := l3 x (by simpa using hx)
+        exact ⟨j, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · rw [walksT_snd, walkBase_eq]
+        exact ⟨_, by omega, rfl⟩
+    · have ha := armB_pos W first n fold prodIn encIn b hk0
+      have hnext := armB_next_pos W first n fold prodIn encIn b k hk0
+      obtain ⟨l1, l2, l3⟩ := armPos_lay W fold (n := n) (k := k) (a := armB W first n fold prodIn encIn b k)
+        (le_refl b) ha
+      have hwb := walkBase_le W.size k
+        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+        (Nat.zero_le n)
+      simp only [walkBase] at hwb
+      refine armT_vals hW' (by simpa [hk0] using l1) (by simpa [hk0] using l2) hP1 (fun x hx => ?_)
+        ⟨?_, ?_, ?_, hP1 _ hpi, hP1 _ hei, hP1 _ (hpw _), ?_⟩
+      · obtain ⟨j, rfl, h⟩ := l3 x (by simpa [hk0] using hx)
+        rcases h with h | h
+        · exact ⟨j, by rw [groupStart_eq] at h1 h; omega, rfl⟩
+        · exact ⟨j, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · exact ⟨_, by omega, rfl⟩
+      · rw [walksT_snd]
+        exact ⟨_, by omega, rfl⟩
+  simp only [groupT, List.cons_append, valsList_cons, valsList_append]
+  intro x hx
+  simp only [hintW, rangeS, cst, Stmt.vals, Atom.vals, Hint.vals, Dest.vals, valsList_cons, valsList_nil,
+    List.append_nil, List.mem_append, List.mem_cons, List.not_mem_nil, or_false] at hx
+  rcases hx with rfl | (rfl | rfl | rfl | rfl | rfl | rfl) | rfl | hx
+  all_goals first | exact ⟨_, by omega, rfl⟩ | skip
+  refine numBelow_valsArms _ (fun a ha => ?_) x hx
+  obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem ha
+  rw [armsT_getElem]
+  rw [armsT_length] at hk
+  simp only [Nat.zero_add]
+  exact harm k hk
 end
 end LeanVM.Guest.B1.Sig
