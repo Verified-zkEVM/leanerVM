@@ -21,9 +21,9 @@ columns' `g^κ` (`cpKs`), `stackOffsets`'s order (`tbStackOrder`, the honest `co
 witness) and the columns' `g^offset`.
 
 The honest valuation `cpσ` is written out value by value (`cpF`): the sizes (`cpInitV`), rank `0`
-(`cpRank0V`) and ranks `1 .. 112` (`cpRankV`): the column of rank `r`, its size, the size gap to
+(`cpRank0V`) and ranks `1 .. 98` (`cpRankV`): the column of rank `r`, its size, the size gap to
 rank `r - 1` and, on a tie, the column gap, each with its range check's complement and the words
-the memory holds there, the running offset. The range checks read the memory at `g^a`, `a ≤ 112`:
+the memory holds there, the running offset. The range checks read the memory at `g^a`, `a ≤ 98`:
 the memory is defined below `2^7` (`LowDefB 7`).
 
 `cp_holds`: the relation holds with the returns `[g^stackTotal, off, kap]`; `cp_ctx`: the buffers
@@ -98,16 +98,16 @@ def cpInitV (i : ℕ) : E :=
   else if i = 12 then gen ^ (hs.getD 5 0 + 6)
   else gen ^ (cpKs lm hs).getD (i - 7) 0
 
-/-- Rank `0`, values `122 .. 136`. -/
+/-- Rank `0`, values `108 .. 122`. -/
 noncomputable def cpRank0V (j : ℕ) : E :=
   let c := cpColF lm hs 0
   let k := cpKF lm hs 0
   match j with
   | 0 => gen ^ c
-  | 1 => w112
-  | 2 => gen ^ (112 - c)
+  | 1 => w98
+  | 2 => gen ^ (98 - c)
   | 3 => rdv rd c
-  | 4 => rdv rd (112 - c)
+  | 4 => rdv rd (98 - c)
   | 5 => ofK (gpow e2) * gen ^ c
   | 6 => gen ^ k
   | 7 => word 1 0 0
@@ -119,7 +119,7 @@ noncomputable def cpRank0V (j : ℕ) : E :=
   | 13 => ofK (gpow esq) * gen ^ k
   | _ => gen ^ 2 ^ k
 
-/-- Rank `r ≥ 1`, value `111 + 26·r + j`. -/
+/-- Rank `r ≥ 1`, value `97 + 26·r + j`. -/
 noncomputable def cpRankV (r j : ℕ) : E :=
   let c := cpColF lm hs r
   let k := cpKF lm hs r
@@ -127,10 +127,10 @@ noncomputable def cpRankV (r j : ℕ) : E :=
   let kp := cpKF lm hs (r - 1)
   match j with
   | 0 => gen ^ c
-  | 1 => w112
-  | 2 => gen ^ (112 - c)
+  | 1 => w98
+  | 2 => gen ^ (98 - c)
   | 3 => rdv rd c
-  | 4 => rdv rd (112 - c)
+  | 4 => rdv rd (98 - c)
   | 5 => ofK (gpow e2) * gen ^ c
   | 6 => gen ^ k
   | 7 => w33
@@ -139,11 +139,11 @@ noncomputable def cpRankV (r j : ℕ) : E :=
   | 10 => rdv rd (kp - k)
   | 11 => rdv rd (33 - (kp - k))
   | 12 => gen ^ kp + gen ^ k
-  | 13 => w112
+  | 13 => w98
   | 14 => gen ^ (c - cp)
-  | 15 => gen ^ (112 - (c - cp))
+  | 15 => gen ^ (98 - (c - cp))
   | 16 => rdv rd (c - cp)
-  | 17 => rdv rd (112 - (c - cp))
+  | 17 => rdv rd (98 - (c - cp))
   | 18 => ofK (gpow e121) * gen ^ c
   | 19 => w33
   | 20 => gen ^ (33 - k)
@@ -158,36 +158,36 @@ noncomputable def cpF (i : ℕ) : E :=
   if i = 0 then ofK (gpow ekb)
   else if i = 1 then ofK (gpow esq)
   else if i = 2 then ofK (gpow e2)
-  else if i < 120 then cpInitV lm hs i
-  else if i = 120 then ofK (gpow e120)
-  else if i = 121 then ofK (gpow e121)
-  else if i < 137 then cpRank0V lm hs esq e2 e121 rd (i - 122)
-  else if i < 3049 then cpRankV lm hs esq e2 e121 rd ((i - 111) / 26) ((i - 111) % 26)
-  else if i = 3049 then gen ^ cpPre lm hs 113
-  else if i = 3050 then ofK (gpow e121)
+  else if i < 106 then cpInitV lm hs i
+  else if i = 106 then ofK (gpow e120)
+  else if i = 107 then ofK (gpow e121)
+  else if i < 123 then cpRank0V lm hs esq e2 e121 rd (i - 108)
+  else if i < 2671 then cpRankV lm hs esq e2 e121 rd ((i - 97) / 26) ((i - 97) % 26)
+  else if i = 2671 then gen ^ cpPre lm hs 99
+  else if i = 2672 then ofK (gpow e121)
   else ofK (gpow e2)
 
 /-- **The honest valuation.** -/
 noncomputable def cpσ : Val := fun v => cpF lm hs ekb esq e2 e120 e121 rd v.idx
 
-theorem cpσ_rank {r j : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 112) (hj : j < 26) :
-    cpσ lm hs ekb esq e2 e120 e121 rd (.n (111 + 26 * r + j)) =
+theorem cpσ_rank {r j : ℕ} (hr1 : 1 ≤ r) (hr : r ≤ 98) (hj : j < 26) :
+    cpσ lm hs ekb esq e2 e120 e121 rd (.n (97 + 26 * r + j)) =
       cpRankV lm hs esq e2 e121 rd r j := by
-  show cpF lm hs ekb esq e2 e120 e121 rd (111 + 26 * r + j) = _
-  have e1 : (111 + 26 * r + j - 111) / 26 = r := by omega
-  have e2' : (111 + 26 * r + j - 111) % 26 = j := by omega
+  show cpF lm hs ekb esq e2 e120 e121 rd (97 + 26 * r + j) = _
+  have e1 : (97 + 26 * r + j - 97) / 26 = r := by omega
+  have e2' : (97 + 26 * r + j - 97) % 26 = j := by omega
   unfold cpF
   rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
     tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_pos (by omega), e1, e2']
 
 theorem cpσ_rank0 {j : ℕ} (hj : j < 15) :
-    cpσ lm hs ekb esq e2 e120 e121 rd (.n (122 + j)) = cpRank0V lm hs esq e2 e121 rd j := by
-  show cpF lm hs ekb esq e2 e120 e121 rd (122 + j) = _
+    cpσ lm hs ekb esq e2 e120 e121 rd (.n (108 + j)) = cpRank0V lm hs esq e2 e121 rd j := by
+  show cpF lm hs ekb esq e2 e120 e121 rd (108 + j) = _
   unfold cpF
   rw [tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega), tb_ite_neg (by omega),
     tb_ite_neg (by omega), tb_ite_pos (by omega), Nat.add_sub_cancel_left]
 
-theorem cpσ_init {i : ℕ} (h3 : 3 ≤ i) (hi : i < 120) :
+theorem cpσ_init {i : ℕ} (h3 : 3 ≤ i) (hi : i < 106) :
     cpσ lm hs ekb esq e2 e120 e121 rd (.n i) = cpInitV lm hs i := by
   show cpF lm hs ekb esq e2 e120 e121 rd i = _
   unfold cpF
@@ -200,10 +200,10 @@ end
 section
 variable {lm : ℕ} {hs : List ℕ}
 
-theorem cpKs_length : (cpKs lm hs).length = 113 :=
+theorem cpKs_length : (cpKs lm hs).length = 99 :=
   committedKappas_length _ (columnKappas_length _ _ _)
 
-theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 113) :
+theorem cpKs_getD (hl : hs.length = 6) {c : ℕ} (hc : c < 99) :
     (cpKs lm hs).getD c 0 = (0 :: lm :: hs).getD (colKappaSrc c) 0 + colKappaAdj c := by
   rw [cpKs, committedKappas_columnKappas lm hs hl, List.getD_eq_getElem _ _ (by simpa using hc)]
   simp
@@ -223,7 +223,7 @@ theorem cp_base_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h
 theorem colKappaSrc_lt {c : ℕ} : colKappaSrc c < 8 := by unfold colKappaSrc; split_ifs <;> omega
 
 theorem cpKs_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 29)
-    (h5 : hs.getD 5 0 ≤ 27) {c : ℕ} (hc : c < 113) : (cpKs lm hs).getD c 0 < 34 := by
+    (h5 : hs.getD 5 0 ≤ 27) {c : ℕ} (hc : c < 99) : (cpKs lm hs).getD c 0 < 34 := by
   rw [cpKs_getD hl hc]
   have hb := cp_base_lt hl hlm hhs (colKappaSrc_lt (c := c))
   by_cases h45 : c = 4 ∨ c = 5
@@ -235,16 +235,16 @@ theorem cpKs_lt (hl : hs.length = 6) (hlm : lm ≤ 32) (hhs : ∀ h ∈ hs, h < 
   · have : colKappaAdj c = 0 := by unfold colKappaAdj; split_ifs <;> omega
     omega
 
-theorem cpOrd_perm : (cpOrd lm hs).Perm (List.range 113) := by
+theorem cpOrd_perm : (cpOrd lm hs).Perm (List.range 99) := by
   rw [cpOrd, tbStackOrder, cpKs_length]; exact List.mergeSort_perm _ _
 
-theorem cpOrd_length : (cpOrd lm hs).length = 113 := by
+theorem cpOrd_length : (cpOrd lm hs).length = 99 := by
   rw [(cpOrd_perm).length_eq, List.length_range]
 
 theorem cpOrd_nodup : (cpOrd lm hs).Nodup :=
   (cpOrd_perm).nodup_iff.mpr List.nodup_range
 
-theorem cpColF_lt {r : ℕ} (hr : r < 113) : cpColF lm hs r < 113 := by
+theorem cpColF_lt {r : ℕ} (hr : r < 99) : cpColF lm hs r < 99 := by
   have hm : (cpOrd lm hs).getD r 0 ∈ cpOrd lm hs := by
     rw [List.getD_eq_getElem _ _ (by rw [cpOrd_length]; exact hr)]; exact List.getElem_mem _
   exact List.mem_range.mp ((cpOrd_perm).subset hm)
@@ -257,7 +257,7 @@ theorem cpOrd_sorted :
   · intro a b; simp only [stackLe, Bool.or_eq_true, Bool.and_eq_true, decide_eq_true_eq]; omega
 
 /-- **Adjacent ranks**: sizes do not increase, ties ascend by column. -/
-theorem cpOrd_adj {r : ℕ} (hr : r + 1 < 113) :
+theorem cpOrd_adj {r : ℕ} (hr : r + 1 < 99) :
     cpKF lm hs (r + 1) ≤ cpKF lm hs r ∧
       (cpKF lm hs (r + 1) = cpKF lm hs r → cpColF lm hs r < cpColF lm hs (r + 1)) := by
   have hlen := cpOrd_length (lm := lm) (hs := hs)
@@ -272,19 +272,19 @@ theorem cpOrd_adj {r : ℕ} (hr : r + 1 < 113) :
 
 theorem cpPre_zero : cpPre lm hs 0 = 0 := by simp [cpPre, tbPrefixSize]
 
-theorem cpPre_succ {r : ℕ} (hr : r < 113) :
+theorem cpPre_succ {r : ℕ} (hr : r < 99) :
     cpPre lm hs (r + 1) = cpPre lm hs r + 2 ^ cpKF lm hs r := by
   rw [cpPre, tb_prefixSize_succ _ _ _ (by rw [cpOrd_length]; exact hr)]; rfl
 
-theorem cpOff {r : ℕ} (hr : r < 113) :
+theorem cpOff {r : ℕ} (hr : r < 99) :
     (stackOffsets (cpKs lm hs)).1.getD (cpColF lm hs r) 0 = cpPre lm hs r :=
   tb_stackOffsets_fst (cpKs lm hs) r (by rw [cpKs_length]; exact hr)
 
 theorem cpPre_total :
-    cpPre lm hs 113 = stackTotal (columnKappas lm guestLogBytecode hs) := by
+    cpPre lm hs 99 = stackTotal (columnKappas lm guestLogBytecode hs) := by
   have h := tb_prefixSize_full ((cpKs lm hs).getD · 0) (cpOrd lm hs)
   rw [cpOrd_length] at h
-  have he : (List.range 113).map ((cpKs lm hs).getD · 0) = cpKs lm hs := by
+  have he : (List.range 99).map ((cpKs lm hs).getD · 0) = cpKs lm hs := by
     apply List.ext_getElem (by simp [cpKs_length])
     intro i h1 h2
     simp only [List.getElem_map, List.getElem_range]
@@ -312,7 +312,7 @@ theorem rc_ok {rd : Reader} (hlow : LowDefB 7 rd) {a K : ℕ} (ha : a ≤ K) (hK
       LoadHolds rd (gen ^ (K - a)) 0 (rdv rd (K - a)) :=
   ⟨ldef_load hlow (by omega), by rw [← pow_add, Nat.add_sub_cancel' ha], ldef_load hlow (by omega)⟩
 
-theorem w112_eq : w112 = gen ^ 112 := by rw [w112, word_g112, gen_pow_eq_ofK]
+theorem w98_eq : w98 = gen ^ 98 := by rw [w98, word_g98, gen_pow_eq_ofK]
 
 theorem w33_eq : w33 = gen ^ 33 := by rw [w33, word_g33, gen_pow_eq_ofK]
 
@@ -321,9 +321,9 @@ variable {lm : ℕ} {hs : List ℕ} {ekb esq e2 e120 e121 : ℕ} {rd : Reader}
 
 theorem cp_reads (hl : hs.length = 6)
     (hm : MemLay rd (cpOwn lm hs e2 e120 e121 ++ cpLin lm hs ekb esq)) :
-    (∀ c < 113, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0)) ∧
-    (∀ r < 113, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r)) ∧
-    (∀ c < 113, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0)) ∧
+    (∀ c < 99, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0)) ∧
+    (∀ r < 99, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r)) ∧
+    (∀ c < 99, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0)) ∧
     (∀ s < 8, LoadHolds rd (ofK (gpow ekb)) s (gen ^ (0 :: lm :: hs).getD s 0)) ∧
     (∀ k < 34, LoadHolds rd (ofK (gpow esq)) k (gen ^ 2 ^ k)) := by
   obtain ⟨ho, hi⟩ := memLay_append.mp hm
@@ -360,24 +360,24 @@ variable {lm : ℕ} {hs : List ℕ} {ekb esq e2 e120 e121 : ℕ} {rd : Reader}
 
 /-- Rank `r + 1`'s statements hold. -/
 theorem cp_rank (hlow : LowDefB 7 rd)
-    (rK : ∀ c < 113, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0))
-    (rO : ∀ r < 113, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r))
-    (rF : ∀ c < 113, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0))
+    (rK : ∀ c < 99, LoadHolds rd (ofK (gpow e2)) c (gen ^ (cpKs lm hs).getD c 0))
+    (rO : ∀ r < 99, LoadHolds rd (ofK (gpow e120)) r (gen ^ cpColF lm hs r))
+    (rF : ∀ c < 99, LoadHolds rd (ofK (gpow e121)) c (gen ^ (stackOffsets (cpKs lm hs)).1.getD c 0))
     (rS : ∀ k < 34, LoadHolds rd (ofK (gpow esq)) k (gen ^ 2 ^ k))
-    (hK : ∀ r < 113, cpKF lm hs r < 34) {r : ℕ} (hr : r < 112)
-    (vR : ∀ j < 26, cpσ lm hs ekb esq e2 e120 e121 rd (.n (111 + 26 * (r + 1) + j)) =
+    (hK : ∀ r < 99, cpKF lm hs r < 34) {r : ℕ} (hr : r < 98)
+    (vR : ∀ j < 26, cpσ lm hs ekb esq e2 e120 e121 rd (.n (97 + 26 * (r + 1) + j)) =
       cpRankV lm hs esq e2 e121 rd (r + 1) j)
     (vPk : cpσ lm hs ekb esq e2 e120 e121 rd (.n (cpPk (r + 1))) = gen ^ cpKF lm hs r)
     (vPc : cpσ lm hs ekb esq e2 e120 e121 rd (.n (cpPc (r + 1))) = gen ^ cpColF lm hs r)
-    (vB1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n (111 + 26 * (r + 1) - 1)) =
+    (vB1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n (97 + 26 * (r + 1) - 1)) =
       gen ^ cpPre lm hs (r + 1))
     (v1 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 1) = ofK (gpow esq))
     (v2 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 2) = ofK (gpow e2))
-    (v120 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 120) = ofK (gpow e120))
-    (v121 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 121) = ofK (gpow e121)) :
+    (v120 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 106) = ofK (gpow e120))
+    (v121 : cpσ lm hs ekb esq e2 e120 e121 rd (.n 107) = ofK (gpow e121)) :
     CpRankOk rd (cpσ lm hs ekb esq e2 e120 e121 rd) (r + 1) := by
   set σ := cpσ lm hs ekb esq e2 e120 e121 rd
-  have vB : σ (.n (111 + 26 * (r + 1))) = gen ^ cpColF lm hs (r + 1) := vR 0 (by norm_num)
+  have vB : σ (.n (97 + 26 * (r + 1))) = gen ^ cpColF lm hs (r + 1) := vR 0 (by norm_num)
   have hc := cpColF_lt (lm := lm) (hs := hs) (r := r + 1) (by omega)
   have hcp := cpColF_lt (lm := lm) (hs := hs) (r := r) (by omega)
   have hk := hK (r + 1) (by omega)
@@ -392,11 +392,11 @@ theorem cp_rank (hlow : LowDefB 7 rd)
     vR 21 (by norm_num), vR 22 (by norm_num), vR 23 (by norm_num), vR 24 (by norm_num),
     vR 25 (by norm_num), vPk, vPc, vB1, v1, v2, v120, v121]
   simp only [cpRankV, Nat.add_sub_cancel]
-  obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpColF lm hs (r + 1)) (K := 112) (by omega) (by norm_num)
+  obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpColF lm hs (r + 1)) (K := 98) (by omega) (by norm_num)
   obtain ⟨d1, d2, d3⟩ := rc_ok hlow (a := cpKF lm hs r - cpKF lm hs (r + 1)) (K := 33)
     (by omega) (by norm_num)
   obtain ⟨f1, f2, f3⟩ := rc_ok hlow (a := cpKF lm hs (r + 1)) (K := 33) (by omega) (by norm_num)
-  refine ⟨rO _ (by omega), trivial, ⟨c1, by rw [w112_eq, c2], c3⟩, trivial, ?_, trivial, ?_,
+  refine ⟨rO _ (by omega), trivial, ⟨c1, by rw [w98_eq, c2], c3⟩, trivial, ?_, trivial, ?_,
     ⟨d1, by rw [w33_eq, d2], d3⟩, trivial, ⟨isInK_add (isInK_gen_pow _) (isInK_gen_pow _), fun h0 => ?_⟩,
     trivial, ?_, trivial, ⟨f1, by rw [w33_eq, f2], f3⟩, trivial, ?_, ?_⟩
   · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact rK _ hc
@@ -404,9 +404,9 @@ theorem cp_rank (hlow : LowDefB 7 rd)
   · have he : cpKF lm hs r = cpKF lm hs (r + 1) :=
       gen_pow_inj (by omega) (by omega) (e_add_eq_zero_iff.mp h0)
     have hlt := htie he.symm
-    obtain ⟨g1, g2, g3⟩ := rc_ok hlow (a := cpColF lm hs (r + 1) - cpColF lm hs r) (K := 112)
+    obtain ⟨g1, g2, g3⟩ := rc_ok hlow (a := cpColF lm hs (r + 1) - cpColF lm hs r) (K := 98)
       (by omega) (by norm_num)
-    exact ⟨trivial, by rw [← pow_add, Nat.sub_add_cancel hlt.le], g1, by rw [w112_eq, g2], g3⟩
+    exact ⟨trivial, by rw [← pow_add, Nat.sub_add_cancel hlt.le], g1, by rw [w98_eq, g2], g3⟩
   · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero, ← cpOff (r := r + 1) (by omega)]
     exact rF _ hc
   · rw [tb_loadHolds_mul_gen_pow, Nat.add_zero]; exact rS _ hk
@@ -425,19 +425,19 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
       (fun rs => rs = [gen ^ stackTotal (columnKappas lm guestLogBytecode hs), ofK (gpow e121),
         ofK (gpow e2)]) := by
   obtain ⟨rK, rO, rF, rB, rS⟩ := cp_reads hl hm
-  have hK : ∀ r < 113, cpKF lm hs r < 34 := fun r hr => cpKs_lt hl hlm hhs h5 (cpColF_lt hr)
+  have hK : ∀ r < 99, cpKF lm hs r < 34 := fun r hr => cpKs_lt hl hlm hhs h5 (cpColF_lt hr)
   set σ := cpσ lm hs ekb esq e2 e120 e121 rd with hσ
   have v0 : σ (.n 0) = ofK (gpow ekb) := rfl
   have v1 : σ (.n 1) = ofK (gpow esq) := rfl
   have v2 : σ (.n 2) = ofK (gpow e2) := rfl
-  have v120 : σ (.n 120) = ofK (gpow e120) := rfl
-  have v121 : σ (.n 121) = ofK (gpow e121) := rfl
-  have r0 : ∀ j < 15, σ (.n (122 + j)) = cpRank0V lm hs esq e2 e121 rd j := fun j hj =>
+  have v120 : σ (.n 106) = ofK (gpow e120) := rfl
+  have v121 : σ (.n 107) = ofK (gpow e121) := rfl
+  have r0 : ∀ j < 15, σ (.n (108 + j)) = cpRank0V lm hs esq e2 e121 rd j := fun j hj =>
     cpσ_rank0 lm hs ekb esq e2 e120 e121 rd hj
   have hc0 := cpColF_lt (lm := lm) (hs := hs) (r := 0) (by norm_num)
   have hk0 := hK 0 (by norm_num)
   -- the sizes
-  have hinit : ∀ c < 113, CpInitOk rd σ c := by
+  have hinit : ∀ c < 99, CpInitOk rd σ c := by
     intro c hc
     have hsrc := colKappaSrc_lt (c := c)
     have hkc := cpKs_getD (lm := lm) hl hc
@@ -497,64 +497,64 @@ theorem cp_body_holds {lm : ℕ} {hs : List ℕ} (hl : hs.length = 6) (hlm : lm 
           · rw [hiv, hkc, ha, Nat.add_zero]; exact rB _ hsrc
           · rw [hiv]; exact rK c hc
   -- rank 0
-  have s122 : σ (.n 122) = gen ^ cpColF lm hs 0 := r0 0 (by norm_num)
-  have s128 : σ (.n 128) = gen ^ cpKF lm hs 0 := r0 6 (by norm_num)
-  have s136 : σ (.n 136) = gen ^ 2 ^ cpKF lm hs 0 := r0 14 (by norm_num)
-  obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpColF lm hs 0) (K := 112) (by omega) (by norm_num)
+  have s122 : σ (.n 108) = gen ^ cpColF lm hs 0 := r0 0 (by norm_num)
+  have s128 : σ (.n 114) = gen ^ cpKF lm hs 0 := r0 6 (by norm_num)
+  have s136 : σ (.n 122) = gen ^ 2 ^ cpKF lm hs 0 := r0 14 (by norm_num)
+  obtain ⟨c1, c2, c3⟩ := rc_ok hlow (a := cpColF lm hs 0) (K := 98) (by omega) (by norm_num)
   obtain ⟨f1, f2, f3⟩ := rc_ok hlow (a := cpKF lm hs 0) (K := 33) (by omega) (by norm_num)
   -- the ranks
-  have hranks : ∀ r < 112, CpRankOk rd σ (r + 1) := by
+  have hranks : ∀ r < 98, CpRankOk rd σ (r + 1) := by
     intro r hr
-    have vR : ∀ j < 26, σ (.n (111 + 26 * (r + 1) + j)) = cpRankV lm hs esq e2 e121 rd (r + 1) j :=
+    have vR : ∀ j < 26, σ (.n (97 + 26 * (r + 1) + j)) = cpRankV lm hs esq e2 e121 rd (r + 1) j :=
       fun j hj => cpσ_rank lm hs ekb esq e2 e120 e121 rd (by omega) (by omega) hj
     rcases Nat.eq_zero_or_pos r with rfl | hr0
     · refine cp_rank hlow rK rO rF rS hK hr vR s128 s122 ?_ v1 v2 v120 v121
-      show σ (.n 136) = _
+      show σ (.n 122) = _
       rw [s136, cpPre_succ (by norm_num), cpPre_zero, Nat.zero_add]
     · obtain ⟨q, rfl⟩ : ∃ q, r = q + 1 := ⟨r - 1, by omega⟩
-      have vQ : ∀ j < 26, σ (.n (111 + 26 * (q + 1) + j)) = cpRankV lm hs esq e2 e121 rd (q + 1) j :=
+      have vQ : ∀ j < 26, σ (.n (97 + 26 * (q + 1) + j)) = cpRankV lm hs esq e2 e121 rd (q + 1) j :=
         fun j hj => cpσ_rank lm hs ekb esq e2 e120 e121 rd (by omega) (by omega) hj
       refine cp_rank hlow rK rO rF rS hK hr vR ?_ ?_ ?_ v1 v2 v120 v121
-      · rw [show cpPk (q + 1 + 1) = 111 + 26 * (q + 1) + 6 by simp [cpPk]; omega]
+      · rw [show cpPk (q + 1 + 1) = 97 + 26 * (q + 1) + 6 by simp [cpPk]; omega]
         exact vQ 6 (by norm_num)
-      · rw [show cpPc (q + 1 + 1) = 111 + 26 * (q + 1) + 0 by simp [cpPc]; omega]
+      · rw [show cpPc (q + 1 + 1) = 97 + 26 * (q + 1) + 0 by simp [cpPc]; omega]
         exact vQ 0 (by norm_num)
-      · rw [show 111 + 26 * (q + 1 + 1) - 1 = 111 + 26 * (q + 1) + 25 by omega]
+      · rw [show 97 + 26 * (q + 1 + 1) - 1 = 97 + 26 * (q + 1) + 25 by omega]
         exact vQ 25 (by norm_num)
-  have s3048 : σ (.n 3048) = gen ^ cpPre lm hs 113 :=
-    cpσ_rank lm hs ekb esq e2 e120 e121 rd (r := 112) (j := 25) (by norm_num) (by norm_num)
+  have s3048 : σ (.n 2670) = gen ^ cpPre lm hs 99 :=
+    cpσ_rank lm hs ekb esq e2 e120 e121 rd (r := 98) (j := 25) (by norm_num) (by norm_num)
       (by norm_num)
   rw [cp_body_iff]
   refine ⟨hinit, ?_, r0 1 (by norm_num), ⟨?_, ?_, ?_⟩, r0 5 (by norm_num), ?_,
     r0 7 (by norm_num), r0 8 (by norm_num), ?_, r0 9 (by norm_num), ⟨?_, ?_, ?_⟩,
     r0 13 (by norm_num), ?_, hranks, ?_, rfl, rfl, ?_⟩
   · rw [v120, s122]; exact rO 0 (by norm_num)
-  · rw [s122, show σ (.n 125) = rdv rd (cpColF lm hs 0) from r0 3 (by norm_num)]; exact c1
-  · rw [show σ (.n 123) = w112 from r0 1 (by norm_num), s122,
-      show σ (.n 124) = gen ^ (112 - cpColF lm hs 0) from r0 2 (by norm_num), w112_eq, c2]
-  · rw [show σ (.n 124) = gen ^ (112 - cpColF lm hs 0) from r0 2 (by norm_num),
-      show σ (.n 126) = rdv rd (112 - cpColF lm hs 0) from r0 4 (by norm_num)]
+  · rw [s122, show σ (.n 111) = rdv rd (cpColF lm hs 0) from r0 3 (by norm_num)]; exact c1
+  · rw [show σ (.n 109) = w98 from r0 1 (by norm_num), s122,
+      show σ (.n 110) = gen ^ (98 - cpColF lm hs 0) from r0 2 (by norm_num), w98_eq, c2]
+  · rw [show σ (.n 110) = gen ^ (98 - cpColF lm hs 0) from r0 2 (by norm_num),
+      show σ (.n 112) = rdv rd (98 - cpColF lm hs 0) from r0 4 (by norm_num)]
     exact c3
-  · rw [show σ (.n 127) = ofK (gpow e2) * gen ^ cpColF lm hs 0 from r0 5 (by norm_num), s128,
+  · rw [show σ (.n 113) = ofK (gpow e2) * gen ^ cpColF lm hs 0 from r0 5 (by norm_num), s128,
       tb_loadHolds_mul_gen_pow, Nat.add_zero]
     exact rK _ hc0
   · have h0 := rF _ hc0
     rw [cpOff (r := 0) (by norm_num), cpPre_zero, pow_zero] at h0
-    rw [show σ (.n 130) = ofK (gpow e121) * gen ^ cpColF lm hs 0 from r0 8 (by norm_num),
-      show σ (.n 129) = word 1 0 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
+    rw [show σ (.n 116) = ofK (gpow e121) * gen ^ cpColF lm hs 0 from r0 8 (by norm_num),
+      show σ (.n 115) = word 1 0 0 from r0 7 (by norm_num), tb_loadHolds_mul_gen_pow,
       Nat.add_zero, tb_word_one]
     exact h0
-  · rw [s128, show σ (.n 133) = rdv rd (cpKF lm hs 0) from r0 11 (by norm_num)]; exact f1
-  · rw [show σ (.n 131) = w33 from r0 9 (by norm_num), s128,
-      show σ (.n 132) = gen ^ (33 - cpKF lm hs 0) from r0 10 (by norm_num), w33_eq, f2]
-  · rw [show σ (.n 132) = gen ^ (33 - cpKF lm hs 0) from r0 10 (by norm_num),
-      show σ (.n 134) = rdv rd (33 - cpKF lm hs 0) from r0 12 (by norm_num)]
+  · rw [s128, show σ (.n 119) = rdv rd (cpKF lm hs 0) from r0 11 (by norm_num)]; exact f1
+  · rw [show σ (.n 117) = w33 from r0 9 (by norm_num), s128,
+      show σ (.n 118) = gen ^ (33 - cpKF lm hs 0) from r0 10 (by norm_num), w33_eq, f2]
+  · rw [show σ (.n 118) = gen ^ (33 - cpKF lm hs 0) from r0 10 (by norm_num),
+      show σ (.n 120) = rdv rd (33 - cpKF lm hs 0) from r0 12 (by norm_num)]
     exact f3
-  · rw [show σ (.n 135) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from r0 13 (by norm_num), s136,
+  · rw [show σ (.n 121) = ofK (gpow esq) * gen ^ cpKF lm hs 0 from r0 13 (by norm_num), s136,
       tb_loadHolds_mul_gen_pow, Nat.add_zero]
     exact rS _ hk0
   · rw [s3048]; rfl
-  · show [gen ^ cpPre lm hs 113, ofK (gpow e121), ofK (gpow e2)] = _
+  · show [gen ^ cpPre lm hs 99, ofK (gpow e121), ofK (gpow e2)] = _
     rw [cpPre_total]
 
 /-- **`certify_placement` is complete**: on a memory holding its base and squares table, its
