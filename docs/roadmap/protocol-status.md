@@ -1073,7 +1073,7 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   `verify := verifyWith (m := Id) blake2sBytes`. The wire transcript (`Wire`) holds, per phase,
   the scalars read (round wires raw, the dropped coefficient left to the algebra), the
   challenges, the nonces, the roots and the positions. **`verify` accepts the Rust proof**, in
-  about 80 s interpreted (`tests/LeanerVMTests/Protocol/Verify.lean`) and about 3 s compiled
+  about 80 s interpreted (`tests/LeanerVMTests/Protocol/Verify.lean`) and about 1.8 s compiled
   (`leanervm-verify`). The executable runs every mutation with the stage that rejects it
   (`outcome`): the setup rejects a nonzero upper limb in a size, a size above its cap and a rate
   outside its window; the openings' shapes a row of the wrong width at level 0 and after, more

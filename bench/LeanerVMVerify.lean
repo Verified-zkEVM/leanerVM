@@ -17,7 +17,8 @@ Runs, compiled, what `tests/LeanerVMTests/Protocol/Verify.lean` cannot afford to
 on the proof of `tests/LeanerVMTests/Protocol/RustProofData.lean` (`scripts/dump-proof-rust.sh`),
 on each of its `mutations` and `statementMutations`, with the stage `outcomeAt` names for the
 rejection, then `whirChecks`
-and the BLAKE2s walk's forms against the circuit's at every row (`VerifyFlock.walkMismatches`). It prints one line per check, then times `verify` on the honest
+and the BLAKE2s walk's forms against the circuit's at every row
+(`VerifyFlock.walkMismatches`). It prints one line per check, then times `verify` on the honest
 proof the number of times given by the first argument (default `1`), the fixture's parsing
 excluded. The exit code is `1` if any check fails.
 -/
