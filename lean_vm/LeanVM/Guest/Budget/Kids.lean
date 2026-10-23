@@ -212,5 +212,68 @@ theorem NodeHonest.total_le {f : String} {Q : Val → Prop} {cs : Val → List C
   obtain ⟨σ, ks, rfl, hQ, hc, hl, hT⟩ := h
   exact ⟨σ, hQ, node_total_le fs (T σ) Ts hv hb hc hl hT (hB σ hQ)⟩
 
+/-! ## Bounds by position
+
+The callees' bounds as a list aligned with the calls (`Ws[i]` for call `i`), the form a chain of
+loop iterations takes (the tail call's bound is the next iterations'). -/
+
+theorem kids_weight_leL (ω : String → ℕ) :
+    ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Ws : List ℕ) (ks : List Tree),
+      Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks → KidsT cs Ts ks →
+      cs.length ≤ Ts.length → cs.length ≤ Ws.length →
+      (∀ i (hi : i < cs.length) (hT : i < Ts.length) (hW : i < Ws.length), cs[i].taken = true →
+        ∀ (t : Tree) (rets : List E), t.name = cs[i].f → t.Valid P rd (cs[i].args.map σ) rets →
+          t.BufsOk P → Ts[i] t → t.weight ω ≤ Ws[i]) →
+      Tree.weightKids ω ks ≤ Ws.sum
+  | [], _, Ws, [], _, _, _, _, _, _ => by simp [Tree.weightKids]
+  | [], _, _, _ :: _, hk, _, _, _, _, _ => hk.elim
+  | _ :: _, _, _, [], hk, _, _, _, _, _ => hk.elim
+  | _ :: _, [], _, _ :: _, _, _, _, hl, _, _ => by simp at hl
+  | _ :: _, _ :: _, [], _ :: _, _, _, _, _, hw, _ => by simp at hw
+  | c :: cs, T :: Ts, w :: Ws, k :: ks, ⟨hn, hk, hks⟩, ⟨hb, hbs⟩, ⟨hT, hTs⟩, hl, hw, hB => by
+    have ih := kids_weight_leL ω cs Ts Ws ks hks hbs hTs (by simpa using hl) (by simpa using hw)
+      fun i hi hTi hWi => hB (i + 1) (by simpa using hi) (by simpa using hTi) (by simpa using hWi)
+    rw [Tree.weightKids, List.sum_cons]
+    refine Nat.add_le_add ?_ ih
+    by_cases ht : c.taken = true
+    · simp only [ht, ↓reduceIte] at hk
+      exact hB 0 (by simp) (by simp) (by simp) ht k _ hn hk hb (hT ht)
+    · simp only [Bool.not_eq_true] at ht
+      simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk
+      obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
+      rw [Tree.weight]
+      omega
+
+theorem kids_total_leL (fs : String → ℕ) :
+    ∀ (cs : List Call) (Ts : List (Tree → Prop)) (Ws : List ℕ) (ks : List Tree),
+      Tree.KidsValid P rd σ cs ks → Tree.BufsOkKids P ks → KidsT cs Ts ks →
+      cs.length ≤ Ts.length → cs.length ≤ Ws.length →
+      (∀ i (hi : i < cs.length) (hW : i < Ws.length), cs[i].taken = false → fs cs[i].f ≤ Ws[i]) →
+      (∀ i (hi : i < cs.length) (hT : i < Ts.length) (hW : i < Ws.length), cs[i].taken = true →
+        ∀ (t : Tree) (rets : List E), t.name = cs[i].f → t.Valid P rd (cs[i].args.map σ) rets →
+          t.BufsOk P → Ts[i] t → t.total fs ≤ Ws[i]) →
+      Tree.totalKids fs ks ≤ Ws.sum
+  | [], _, Ws, [], _, _, _, _, _, _, _ => by simp [Tree.totalKids]
+  | [], _, _, _ :: _, hk, _, _, _, _, _, _ => hk.elim
+  | _ :: _, _, _, [], hk, _, _, _, _, _, _ => hk.elim
+  | _ :: _, [], _, _ :: _, _, _, _, hl, _, _, _ => by simp at hl
+  | _ :: _, _ :: _, [], _ :: _, _, _, _, _, hw, _, _ => by simp at hw
+  | c :: cs, T :: Ts, w :: Ws, k :: ks, ⟨hn, hk, hks⟩, ⟨hb, hbs⟩, ⟨hT, hTs⟩, hl, hw, hU, hB => by
+    have ih := kids_total_leL fs cs Ts Ws ks hks hbs hTs (by simpa using hl) (by simpa using hw)
+      (fun i hi hWi => hU (i + 1) (by simpa using hi) (by simpa using hWi))
+      fun i hi hTi hWi => hB (i + 1) (by simpa using hi) (by simpa using hTi) (by simpa using hWi)
+    rw [Tree.totalKids, List.sum_cons]
+    refine Nat.add_le_add ?_ ih
+    by_cases ht : c.taken = true
+    · simp only [ht, ↓reduceIte] at hk
+      exact hB 0 (by simp) (by simp) (by simp) ht k _ hn hk hb (hT ht)
+    · simp only [Bool.not_eq_true] at ht
+      simp only [ht, Bool.false_eq_true, ↓reduceIte] at hk
+      obtain ⟨⟨f, σ', rfl⟩, -⟩ := hk
+      simp only [Tree.name] at hn
+      subst hn
+      rw [Tree.total]
+      exact hU 0 (by simp) (by simp) ht
+
 end
 end LeanVM.Guest.Budget
