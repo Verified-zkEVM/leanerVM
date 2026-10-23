@@ -22,6 +22,14 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 #guard_msgs in
 #print axioms LeanVM.soundnessError_le
 
+/-- info: 'LeanVM.soundnessError_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.soundnessError_le_bits
+
+/-- info: 'LeanVM.knowledgeSoundness_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.knowledgeSoundness_bits
+
 /-- info: 'LeanVM.completenessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.completenessError_le
@@ -37,6 +45,14 @@ The build fails if their axiom footprint ever grows beyond Lean's three standard
 /-- info: 'LeanVM.Rpm.soundnessRpm_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.Rpm.soundnessRpm_le
+
+/-- info: 'LeanVM.Rpm.soundnessRpm_le_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Rpm.soundnessRpm_le_bits
+
+/-- info: 'LeanVM.knowledgeSoundnessRpm_bits' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.knowledgeSoundnessRpm_bits
 
 /-- info: 'LeanVM.completenessRpm_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in

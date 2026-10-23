@@ -23,8 +23,9 @@ permutation `π` of the Keccak state, Keccak-f[1600] `π` itself, the adversary 
 probability that the verifier accepts while the program's last instruction is not a `JUMP` and
 the extractor `extractorRpm` (the extractor of `Statement.lean` on the Keccak-256 evaluations of
 the adversary's transcript) does not return a valid execution is at most
-`soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `2^-63` for `Q ≤ 2^64`
-(`soundnessRpm_le`). The proof:
+`soundnessError Q + (Q + 12008 · 2^32)² / 2^508`, which is at most `(Q + 2^14) · 2^-127` for
+`Q ≤ 2^120` (`soundnessRpm_le_bits`, `knowledgeSoundnessRpm_bits`) and at most `2^-63` for
+`Q ≤ 2^64` (`soundnessRpm_le`). The proof:
 
 1. the experiment is `lean_rpm`'s real world of a transfer game (`rpmExperiment_evalDistEq`,
    `RpmRelabel.lean`): the adversary, recording its transcript, then the verifier;
@@ -332,6 +333,41 @@ theorem soundnessRpm_le {Q : ℕ} (hQ : Q ≤ 2 ^ 64) :
     _ ≤ 2 ^ 200 * 2 ^ 245 := by norm_num
     _ = 2 ^ (508 - 63) := by rw [← pow_add]
 
+/-- **The knowledge-soundness bound in bits in the random-permutation model**: for `Q ≤ 2^120`
+queries to `π` and `π⁻¹`, at most `(Q + 2^14) · 2^-127`. The random-oracle error is bounded as in
+`soundnessError_le_bits`, and `(Q + verifierPermCalls)² / 2^508 ≤ 2^242 / 2^508` fits in the
+slack. -/
+theorem soundnessRpm_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
+    soundnessError Q + rpmError (Q + verifierPermCalls) ≤
+      (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+  have hc : ((2 ^ 252 : ℕ) : ℝ≥0∞) ≠ 0 := by positivity
+  have hc' : ((2 ^ 252 : ℕ) : ℝ≥0∞) ≠ ⊤ := ENNReal.natCast_ne_top _
+  have hQ' : (Q + 2 ^ 14 : ℝ≥0∞) = ((Q + 2 ^ 14 : ℕ) : ℝ≥0∞) := by norm_cast
+  rw [soundnessError_eq, rpmError_eq,
+    ← ENNReal.mul_div_mul_right _ _ hc hc', ← Nat.cast_mul, ← Nat.cast_mul,
+    ← pow_add, ENNReal.div_add_div_same, ← Nat.cast_add, show 256 + 252 = 508 from rfl,
+    EndToEnd.Sound.inv_pow_eq_div 127 508 (by norm_num), hQ', ← mul_div_assoc, ← Nat.cast_mul]
+  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
+  rw [show verifierPermCalls = 12008 * 2 ^ 32 from rfl, show 508 - 127 = 381 from rfl]
+  have h7 : 7 * (Q + 12008) ≤ 2 ^ 128 :=
+    calc 7 * (Q + 12008) ≤ 7 * (2 ^ 120 + 12008) := by gcongr
+      _ ≤ 2 ^ 128 := by norm_num
+  have hP : Q + 12008 * 2 ^ 32 ≤ 2 ^ 121 :=
+    calc Q + 12008 * 2 ^ 32 ≤ 2 ^ 120 + 12008 * 2 ^ 32 := by gcongr
+      _ ≤ 2 ^ 121 := by norm_num
+  calc ((Q + 12008) * (2 ^ 128 + 7 * (Q + 12008)) + 12008) * 2 ^ 252 + (Q + 12008 * 2 ^ 32) ^ 2
+      ≤ ((Q + 12008) * (2 ^ 128 + 2 ^ 128) + 12008) * 2 ^ 252 + (2 ^ 121) ^ 2 := by gcongr
+    _ ≤ ((Q + 12008) * (2 ^ 128 + 2 ^ 128) + 12008) * 2 ^ 252 + 2 ^ 252 :=
+        Nat.add_le_add_left (by norm_num) _
+    _ = ((Q + 12008) * (2 ^ 128 + 2 ^ 128) + 12008 + 1) * 2 ^ 252 := by ring
+    _ ≤ (Q + 2 ^ 14) * 2 ^ 129 * 2 ^ 252 := by
+        gcongr
+        calc (Q + 12008) * (2 ^ 128 + 2 ^ 128) + 12008 + 1
+            = Q * 2 ^ 129 + (12008 * 2 ^ 129 + 12009) := by ring
+          _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
+          _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
+    _ = (Q + 2 ^ 14) * 2 ^ 381 := by rw [mul_assoc, ← pow_add]
+
 theorem rpmError_completenessPermCalls_le :
     rpmError (completenessPermCalls (2 ^ 25)) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 := by
   rw [rpmError_eq, EndToEnd.Sound.inv_pow_eq_div 128 508 (by norm_num)]
@@ -361,6 +397,17 @@ namespace LeanVM
 `extractorRpm`. -/
 theorem knowledgeSoundnessRpm_holds : KnowledgeSoundnessRpm :=
   fun _ _ hA ↦ Rpm.knowledgeSoundnessRpm hA
+
+open OracleComp OracleSpec in
+open scoped ENNReal in
+/-- **Knowledge soundness in bits in the random-permutation model**: an adversary of at most
+`Q ≤ 2^120` queries to `π` and `π⁻¹` breaks soundness, for the extractor `extractorRpm`, with
+probability at most `(Q + 2^14) · 2^-127`. -/
+theorem knowledgeSoundnessRpm_bits : ∀ (A : RpmAdversary) (Q : ℕ), A.IsTotalQueryBound Q →
+    Q ≤ 2 ^ 120 →
+      Pr{let z ← rpmExperiment A}[BreaksRpm extractorRpm z] ≤
+        (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
+  fun _ _ hA hQ ↦ (Rpm.knowledgeSoundnessRpm hA).trans (Rpm.soundnessRpm_le_bits hQ)
 
 /-- **Completeness in the random-permutation model holds**, with the honest prover of
 `Statement.lean`. -/
