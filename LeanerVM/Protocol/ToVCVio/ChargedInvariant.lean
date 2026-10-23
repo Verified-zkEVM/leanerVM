@@ -67,7 +67,7 @@ and the total is the initial potential, the first run's expected charge and `ε`
 lists its cache's entries, each input once (`IsFreshLog.enncard_eq`: as many as the cache has).
 `QueryHistory.withQueryLog_freshLog_support`: a run of `oa.withQueryLog` from such a state ends in
 one whose log is the old log followed by the run's queries at their first occurrence
-(`QueryLog.dedupKeys`) the old cache did not hold, with the old cache kept and every logged query
+(`List.dedupKeys`) the old cache did not hold, with the old cache kept and every logged query
 cached with its logged answer.
 
 `potential_le_expected_charge`, `prEvent_le_of_potential`,
@@ -677,7 +677,7 @@ theorem withQueryLog_freshLog_support {α : Type} (oa : OracleComp spec α)
     {s : spec.QueryCache × spec.QueryLog} (hs : IsFreshLog s)
     {z : (α × spec.QueryLog) × spec.QueryCache × spec.QueryLog}
     (hz : z ∈ support ((simulateQ freshLog.randomOracle oa.withQueryLog).run s)) :
-    z.2.2 = s.2 ++ (QueryLog.dedupKeys z.1.2).filter (fun e ↦ (s.1 e.1).isNone) ∧
+    z.2.2 = s.2 ++ (List.dedupKeys z.1.2).filter (fun e ↦ (s.1 e.1).isNone) ∧
       IsFreshLog z.2 ∧ s.1 ≤ z.2.1 ∧ ∀ e ∈ z.1.2, z.2.1 e.1 = some e.2 := by
   induction oa using OracleComp.inductionOn generalizing s z with
   | pure a =>
@@ -701,8 +701,8 @@ theorem withQueryLog_freshLog_support {α : Type} (oa : OracleComp spec α)
       obtain ⟨rfl, rfl⟩ := Prod.mk.inj hus
       obtain ⟨h₁, h₂, h₃, h₄⟩ := ih u hs hz'
       refine ⟨?_, h₂, h₃, ?_⟩
-      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_some, List.filter_cons, Bool.false_eq_true, ↓reduceIte,
-          List.filter_filter, h₁]
+      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_some, List.filter_cons,
+          Bool.false_eq_true, ↓reduceIte, List.filter_filter, h₁]
         congr 1
         refine List.filter_congr fun x _ ↦ ?_
         by_cases hx : x.1 = t
@@ -720,8 +720,9 @@ theorem withQueryLog_freshLog_support {α : Type} (oa : OracleComp spec α)
       obtain ⟨h₁, h₂, h₃, h₄⟩ := ih v (hs.record h v) hz'
       have hle : s.1 ≤ (freshLog.record s t v).1 := QueryCache.le_cacheQuery _ h
       refine ⟨?_, h₂, hle.trans h₃, ?_⟩
-      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_none, List.filter_cons, ↓reduceIte, List.filter_filter, h₁,
-          freshLog_record, List.append_assoc, List.singleton_append]
+      · simp only [Prod.map_snd, QueryLog.dedupKeys_cons, h, Option.isNone_none, List.filter_cons,
+          ↓reduceIte, List.filter_filter, h₁, freshLog_record, List.append_assoc,
+          List.singleton_append]
         congr 2
         refine List.filter_congr fun x _ ↦ ?_
         by_cases hx : x.1 = t

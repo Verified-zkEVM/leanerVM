@@ -9,6 +9,7 @@
 module
 
 public import Mathlib.Data.Nat.Notation
+public import Mathlib.Data.List.Sigma
 import Mathlib.Data.List.Induction
 
 /-!
@@ -29,13 +30,14 @@ with no hit asks every query whose answer is in play after `n` entries within th
 a value cannot be used before the query that produces it. `answer_not_mem_inPlay_nil`: no answer
 is in play before the first query.
 
-`dedupKeys log` keeps each input of a log at its first occurrence only: the fresh queries of a run
-against a lazy random oracle, in order. It is defined for logs of a dependent function, as VCVio's
-`QueryLog spec` is. Appending an entry keeps it exactly when its input is new (`dedupKeys_concat`),
-the deduplicated prefix of a log is a prefix of the deduplicated log (`take_dedupKeys`), and on a
-consistent log it has the log's entries (`mem_dedupKeys_iff`), finds what the log finds
-(`findSome?_dedupKeys`), and keeps its collisions (`hasCollision_dedupKeys`). A hit, being at a
-first occurrence, survives deduplication when the values in play do (`hasHit_dedupKeys`).
+Mathlib's `List.dedupKeys log` keeps each input of a log at its first occurrence only: the fresh
+queries of a run against a lazy random oracle, in order. It applies to logs of a dependent
+function, as VCVio's `QueryLog spec` is. Appending an entry keeps it exactly when its input is
+new (`dedupKeys_concat`), the deduplicated prefix of a log is a prefix of the deduplicated log
+(`take_dedupKeys`), and on a consistent log it has the log's entries (`mem_dedupKeys_iff`), finds
+what the log finds (`findSome?_dedupKeys`), and keeps its collisions (`hasCollision_dedupKeys`). A
+hit, being at a first occurrence, survives deduplication when the values in play do
+(`hasHit_dedupKeys`).
 -/
 
 namespace LeanerVM.Protocol.QueryLog
@@ -120,7 +122,7 @@ omit [DecidableEq Q] in
 /-- A query is fresh exactly when it is not among the log's inputs. -/
 theorem fresh_iff_not_mem_keys {log : List ((_ : Q) × D)} {q : Q} :
     Fresh log q ↔ q ∉ log.map (·.1) := by
-  simp [Fresh]
+  simp only [Fresh, List.mem_map, not_exists, not_and]
 
 /-! ## Each input at its first occurrence -/
 
@@ -128,53 +130,48 @@ section Dedup
 
 variable {β : Q → Type}
 
-/-- The log with each input kept at its first occurrence only, in order. -/
-def dedupKeys (l : List ((q : Q) × β q)) : List ((q : Q) × β q) :=
-  l.foldl (fun acc e ↦ if acc.any (fun x ↦ decide (x.1 = e.1)) then acc else acc ++ [e]) []
-
-@[simp]
-theorem dedupKeys_nil : dedupKeys ([] : List ((q : Q) × β q)) = [] := rfl
-
-@[simp]
-theorem dedupKeys_singleton (e : (q : Q) × β q) : dedupKeys [e] = [e] := rfl
-
-private theorem dedupKeys_concat_any (l : List ((q : Q) × β q)) (e : (q : Q) × β q) :
-    dedupKeys (l ++ [e]) =
-      if (dedupKeys l).any (fun x ↦ decide (x.1 = e.1)) then dedupKeys l
-      else dedupKeys l ++ [e] := by
-  unfold dedupKeys
-  rw [List.foldl_append]
-  rfl
-
 /-- The deduplicated log has the log's inputs. -/
 theorem mem_keys_dedupKeys (l : List ((q : Q) × β q)) (q : Q) :
-    q ∈ (dedupKeys l).map (·.1) ↔ q ∈ l.map (·.1) := by
-  induction l using List.reverseRecOn with
-  | nil => simp
-  | append_singleton l e ih =>
-    rw [dedupKeys_concat_any]
-    split
-    · rename_i h
-      obtain ⟨x, hx, hxe⟩ := by simpa only [List.any_eq_true, decide_eq_true_eq] using h
-      simp only [List.map_append, List.map_cons, List.map_nil, List.mem_append,
-        List.mem_singleton]
-      refine ⟨fun hq ↦ .inl (ih.mp hq), ?_⟩
-      rintro (hq | rfl)
-      · exact ih.mpr hq
-      · exact hxe ▸ List.mem_map_of_mem hx
-    · simp [ih]
+    q ∈ (List.dedupKeys l).map (·.1) ↔ q ∈ l.map (·.1) := by
+  show q ∈ (List.dedupKeys l).keys ↔ q ∈ l.keys
+  rw [← List.dlookup_isSome, ← List.dlookup_isSome, List.dlookup_dedupKeys]
+
+@[simp]
+theorem dedupKeys_nil : List.dedupKeys ([] : List ((q : Q) × β q)) = [] := rfl
+
+@[simp]
+theorem dedupKeys_singleton (e : (q : Q) × β q) : List.dedupKeys [e] = [e] := rfl
 
 /-- **Appending an entry** keeps it exactly when its input is new. -/
 theorem dedupKeys_concat (l : List ((q : Q) × β q)) (e : (q : Q) × β q) :
-    dedupKeys (l ++ [e]) = if e.1 ∈ l.map (·.1) then dedupKeys l else dedupKeys l ++ [e] := by
-  rw [dedupKeys_concat_any]
-  have h : (dedupKeys l).any (fun x ↦ decide (x.1 = e.1)) = decide (e.1 ∈ l.map (·.1)) := by
-    rw [Bool.eq_iff_iff, List.any_eq_true, decide_eq_true_eq, ← mem_keys_dedupKeys]
-    simp only [decide_eq_true_eq, List.mem_map]
-  by_cases he : e.1 ∈ l.map (·.1) <;> simp [h, he]
+    List.dedupKeys (l ++ [e]) =
+      if e.1 ∈ l.map (·.1) then List.dedupKeys l else List.dedupKeys l ++ [e] := by
+  induction l with
+  | nil => rfl
+  | cons x l ih =>
+    have hkeys : ∀ q, q ∈ (List.dedupKeys l).keys ↔ q ∈ l.map (·.1) := mem_keys_dedupKeys l
+    rw [List.cons_append, List.dedupKeys_cons, ih, List.dedupKeys_cons, List.kinsert_def,
+      List.kinsert_def]
+    by_cases h₁ : e.1 ∈ l.map (·.1)
+    · simp [h₁]
+    · by_cases hx : e.1 = x.1
+      · have hn : x.1 ∉ (List.dedupKeys l).keys := fun h ↦ h₁ (hx ▸ (hkeys _).mp h)
+        have hmem : e.1 ∈ (x :: l).map (·.1) := by simp [hx]
+        rw [ite_eq_right_of_eq_false _ _ (eq_false h₁), ite_eq_left_of_eq_true _ _ (eq_true hmem),
+          List.kerase_append_right hn, List.kerase_cons_eq hx.symm, List.append_nil,
+          List.kerase_of_notMem_keys hn]
+      · have hne : x.1 ≠ e.1 := Ne.symm hx
+        have hmem : e.1 ∉ (x :: l).map (·.1) := by simp [hx, h₁]
+        simp only [h₁, hmem, ↓reduceIte]
+        by_cases hk : x.1 ∈ (List.dedupKeys l).keys
+        · rw [List.kerase_append_left hk]
+          rfl
+        · rw [List.kerase_append_right hk, List.kerase_of_notMem_keys hk,
+            List.kerase_cons_ne hne, List.kerase_nil]
+          rfl
 
 /-- The deduplicated log is a sublist of the log. -/
-theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (dedupKeys l).Sublist l := by
+theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (List.dedupKeys l).Sublist l := by
   induction l using List.reverseRecOn with
   | nil => simp
   | append_singleton l e ih =>
@@ -184,7 +181,7 @@ theorem dedupKeys_sublist (l : List ((q : Q) × β q)) : (dedupKeys l).Sublist l
     · exact ih.append (List.Sublist.refl [e])
 
 /-- Each input appears once in the deduplicated log. -/
-theorem nodup_keys_dedupKeys (l : List ((q : Q) × β q)) : ((dedupKeys l).map (·.1)).Nodup := by
+theorem nodup_keys_dedupKeys (l : List ((q : Q) × β q)) : ((List.dedupKeys l).map (·.1)).Nodup := by
   induction l using List.reverseRecOn with
   | nil => simp
   | append_singleton l e ih =>
@@ -200,27 +197,23 @@ theorem nodup_keys_dedupKeys (l : List ((q : Q) × β q)) : ((dedupKeys l).map (
 /-- **Deduplicating an appended log**: the deduplicated first part, then the second part's first
 occurrences of inputs the first part does not ask. -/
 theorem dedupKeys_append (l₁ l₂ : List ((q : Q) × β q)) :
-    dedupKeys (l₁ ++ l₂) =
-      dedupKeys l₁ ++ (dedupKeys l₂).filter fun e ↦ decide (e.1 ∉ l₁.map (·.1)) := by
+    List.dedupKeys (l₁ ++ l₂) =
+      List.dedupKeys l₁ ++ (List.dedupKeys l₂).filter fun e ↦ decide (e.1 ∉ l₁.map (·.1)) := by
   induction l₂ using List.reverseRecOn with
   | nil => simp
   | append_singleton l₂ e ih =>
     rw [← List.append_assoc, dedupKeys_concat, dedupKeys_concat, ih]
     by_cases h₁ : e.1 ∈ l₁.map (·.1) <;> by_cases h₂ : e.1 ∈ l₂.map (·.1) <;>
       simp [h₁, h₂, List.filter_append]
-    · exact List.mem_map.mp h₁
-    · have h : ∀ x ∈ l₁, ¬ x.1 = e.1 := fun x hx hx' ↦ h₁ (hx' ▸ List.mem_map_of_mem hx)
-      rw [List.filter_cons_of_pos (by simpa using h)]
-      rfl
 
 /-- Deduplicating a log with an entry in front. -/
 theorem dedupKeys_cons (e : (q : Q) × β q) (l : List ((q : Q) × β q)) :
-    dedupKeys (e :: l) = e :: (dedupKeys l).filter fun x ↦ decide (x.1 ≠ e.1) := by
+    List.dedupKeys (e :: l) = e :: (List.dedupKeys l).filter fun x ↦ decide (x.1 ≠ e.1) := by
   simpa using dedupKeys_append [e] l
 
 /-- The deduplicated part of a log up to a point is a prefix of the deduplicated log. -/
 theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
-    dedupKeys (l.take i) <+: dedupKeys l := by
+    List.dedupKeys (l.take i) <+: List.dedupKeys l := by
   have h := dedupKeys_append (l.take i) (l.drop i)
   rw [List.take_append_drop] at h
   rw [h]
@@ -228,7 +221,7 @@ theorem dedupKeys_take_prefix (l : List ((q : Q) × β q)) (i : ℕ) :
 
 /-- The deduplicated part of a log up to a point is the deduplicated log cut at its length. -/
 theorem take_dedupKeys (l : List ((q : Q) × β q)) (i : ℕ) :
-    (dedupKeys l).take (dedupKeys (l.take i)).length = dedupKeys (l.take i) :=
+    (List.dedupKeys l).take (List.dedupKeys (l.take i)).length = List.dedupKeys (l.take i) :=
   (List.prefix_iff_eq_take.mp (dedupKeys_take_prefix l i)).symm
 
 end Dedup
@@ -245,14 +238,14 @@ private theorem eq_of_consistent (hcons : Consistent log) {e x : (_ : Q) × D} (
 
 /-- In a consistent log, every entry is kept by deduplication. -/
 theorem mem_dedupKeys_of_mem (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
-    e ∈ dedupKeys log := by
+    e ∈ List.dedupKeys log := by
   obtain ⟨x, hx, hxe⟩ := List.mem_map.mp
     ((mem_keys_dedupKeys log e.1).mpr (List.mem_map_of_mem (f := (·.1)) he))
   rwa [eq_of_consistent hcons he ((dedupKeys_sublist log).subset hx) hxe] at hx
 
 /-- A consistent log and its deduplication have the same entries. -/
 theorem mem_dedupKeys_iff (hcons : Consistent log) {e : (_ : Q) × D} :
-    e ∈ dedupKeys log ↔ e ∈ log :=
+    e ∈ List.dedupKeys log ↔ e ∈ log :=
   ⟨fun h ↦ (dedupKeys_sublist log).subset h, mem_dedupKeys_of_mem hcons⟩
 
 omit [DecidableEq Q] in
@@ -263,7 +256,7 @@ theorem Consistent.of_prefix {log' : List ((_ : Q) × D)} (hcons : Consistent lo
 
 /-- A search along a consistent log finds what it finds along the deduplicated log. -/
 theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
-    (f : (_ : Q) × D → Option γ) : (dedupKeys log).findSome? f = log.findSome? f := by
+    (f : (_ : Q) × D → Option γ) : (List.dedupKeys log).findSome? f = log.findSome? f := by
   induction log using List.reverseRecOn with
   | nil => rfl
   | append_singleton l e ih =>
@@ -282,7 +275,7 @@ theorem findSome?_dedupKeys {γ : Type} (hcons : Consistent log)
 
 /-- A collision of a consistent log is one of its deduplication. -/
 theorem hasCollision_dedupKeys (hcons : Consistent log) (h : HasCollision log) :
-    HasCollision (dedupKeys log) :=
+    HasCollision (List.dedupKeys log) :=
   let ⟨e₁, h₁, e₂, h₂, h⟩ := h
   ⟨e₁, mem_dedupKeys_of_mem hcons h₁, e₂, mem_dedupKeys_of_mem hcons h₂, h⟩
 
@@ -290,19 +283,19 @@ theorem hasCollision_dedupKeys (hcons : Consistent log) (h : HasCollision log) :
 and its prefix deduplicates to the prefix of the deduplicated log; so the hit is one of the
 deduplicated log when the values in play after each prefix are in play after its deduplication. -/
 theorem hasHit_dedupKeys {inPlay : List ((_ : Q) × D) → List D}
-    (hplay : ∀ i, ∀ d ∈ inPlay (log.take i), d ∈ inPlay (dedupKeys (log.take i)))
-    (h : HasHit inPlay log) : HasHit inPlay (dedupKeys log) := by
+    (hplay : ∀ i, ∀ d ∈ inPlay (log.take i), d ∈ inPlay (List.dedupKeys (log.take i)))
+    (h : HasHit inPlay log) : HasHit inPlay (List.dedupKeys log) := by
   obtain ⟨⟨i, hi⟩, hfresh, hin⟩ := h
   simp only [Fin.getElem_fin] at hfresh hin
-  have hcat : dedupKeys (log.take (i + 1)) = dedupKeys (log.take i) ++ [log[i]] := by
+  have hcat : List.dedupKeys (log.take (i + 1)) = List.dedupKeys (log.take i) ++ [log[i]] := by
     rw [List.take_succ_eq_append_getElem hi, dedupKeys_concat]
     simp only [fresh_iff_not_mem_keys.mp hfresh, ↓reduceIte]
   have hpre := hcat ▸ dedupKeys_take_prefix log (i + 1)
-  have hj : (dedupKeys (log.take i)).length < (dedupKeys log).length := by
+  have hj : (List.dedupKeys (log.take i)).length < (List.dedupKeys log).length := by
     have := hpre.length_le
     simp only [List.length_append, List.length_singleton] at this
     omega
-  have hget : (dedupKeys log)[(dedupKeys (log.take i)).length] = log[i] := by
+  have hget : (List.dedupKeys log)[(List.dedupKeys (log.take i)).length] = log[i] := by
     rw [← hpre.getElem (by simp)]
     simp
   refine ⟨⟨_, hj⟩, ?_, ?_⟩

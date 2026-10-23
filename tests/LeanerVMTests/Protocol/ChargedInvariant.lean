@@ -356,7 +356,7 @@ def repeatQuery : OracleComp TestSpec (Fin 4 × Fin 4) := do
   return (a, b)
 
 -- Deduplication keeps each input's first occurrence.
-example : QueryLog.dedupKeys ([⟨0, 1⟩, ⟨1, 2⟩, ⟨0, 3⟩] : TestSpec.QueryLog) = [⟨0, 1⟩, ⟨1, 2⟩] := by
+example : List.dedupKeys ([⟨0, 1⟩, ⟨1, 2⟩, ⟨0, 3⟩] : TestSpec.QueryLog) = [⟨0, 1⟩, ⟨1, 2⟩] := by
   decide
 
 /-- From the empty state, the fresh log is the run's log deduplicated
@@ -366,7 +366,7 @@ theorem repeatQuery_freshLog {z : ((Fin 4 × Fin 4) × TestSpec.QueryLog) ×
     TestSpec.QueryCache × TestSpec.QueryLog}
     (hz : z ∈ support ((simulateQ QueryHistory.freshLog.randomOracle
       repeatQuery.withQueryLog).run (∅, []))) :
-    z.2.2 = QueryLog.dedupKeys z.1.2 ∧ z.1.2 = [⟨0, z.1.1.1⟩, ⟨0, z.1.1.1⟩] ∧ z.2.2 ≠ z.1.2 := by
+    z.2.2 = List.dedupKeys z.1.2 ∧ z.1.2 = [⟨0, z.1.1.1⟩, ⟨0, z.1.1.1⟩] ∧ z.2.2 ≠ z.1.2 := by
   have h₁ :=
     (QueryHistory.withQueryLog_freshLog_support repeatQuery QueryHistory.isFreshLog_empty hz).1
   simp only [QueryCache.empty_apply, Option.isNone_none, List.filter_true, List.nil_append]

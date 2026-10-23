@@ -575,8 +575,8 @@ theorem history_append_of_not_start {e : (_ : Q) × D}
 /-- **Deduplication.** In a consistent log, every history is that of the log with each input at
 its first occurrence only. -/
 theorem history_dedupKeys (hcons : Consistent log) (cv : D) :
-    history step? (dedupKeys log) seed cv = history step? log seed cv := by
-  have hpre : ∀ x p, p ∈ preimages step? (dedupKeys log) x ↔ p ∈ preimages step? log x :=
+    history step? (List.dedupKeys log) seed cv = history step? log seed cv := by
+  have hpre : ∀ x p, p ∈ preimages step? (List.dedupKeys log) x ↔ p ∈ preimages step? log x :=
     fun x p ↦ by simp only [preimages, List.mem_filterMap, mem_dedupKeys_iff hcons]
   refine history_congr fun f ↦ ?_
   induction f generalizing cv with

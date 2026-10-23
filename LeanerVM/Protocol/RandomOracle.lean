@@ -61,7 +61,7 @@ roots the log's chains absorb as two consecutive observes (`rebuiltRoots`, one p
 * `chainHistory_append`: a query answered by a digest not in play leaves every other state's
   history unchanged.
 * `chainHistory_dedupKeys`, `inPlay_dedupKeys`: in a consistent log, histories and the digests in
-  play are those of the log with each query at its first occurrence only (`QueryLog.dedupKeys`),
+  play are those of the log with each query at its first occurrence only (`List.dedupKeys`),
   the fresh log of a lazy random oracle.
 * `length_inPlay_le`: at most the roots, two halves and one absorbed root per entry are in play.
 -/
@@ -415,19 +415,19 @@ theorem chainHistory_append {log : hashSpec.QueryLog} {roots : List Digest}
 /-- **Deduplication.** In a consistent log, a history is that of the log with each input at its
 first occurrence only. -/
 theorem chainHistory_dedupKeys {log : hashSpec.QueryLog} (hcons : QueryLog.Consistent log)
-    (seed s : FsState) : chainHistory (QueryLog.dedupKeys log) seed s = chainHistory log seed s :=
+    (seed s : FsState) : chainHistory (List.dedupKeys log) seed s = chainHistory log seed s :=
   HashChain.history_dedupKeys hcons s.cv
 
 /-- In a consistent log, the observe step into a state is the one found after deduplication. -/
 theorem observedInto_dedupKeys {log : hashSpec.QueryLog} (hcons : QueryLog.Consistent log)
-    (cv : Digest) : observedInto (QueryLog.dedupKeys log) cv = observedInto log cv :=
+    (cv : Digest) : observedInto (List.dedupKeys log) cv = observedInto log cv :=
   QueryLog.findSome?_dedupKeys hcons _
 
 /-- In a consistent log, the digests in play are those of the log with each input at its first
 occurrence only. -/
 theorem inPlay_dedupKeys (roots : List Digest) {log : hashSpec.QueryLog}
     (hcons : QueryLog.Consistent log) (d : Digest) :
-    d ∈ inPlay roots (QueryLog.dedupKeys log) ↔ d ∈ inPlay roots log := by
+    d ∈ inPlay roots (List.dedupKeys log) ↔ d ∈ inPlay roots log := by
   simp only [inPlay, rebuiltRoots, observedInto_dedupKeys hcons, List.mem_append,
     List.mem_flatMap, List.mem_filterMap, QueryLog.mem_dedupKeys_iff hcons]
 

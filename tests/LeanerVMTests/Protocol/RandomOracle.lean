@@ -310,9 +310,9 @@ def doubledLog : Log := honestLog ++ honestLog
 -- Deduplication keeps the first occurrences, which on a consistent log changes neither a
 -- history nor the digests in play.
 #guard decide (QueryLog.Consistent doubledLog)
-#guard QueryLog.dedupKeys doubledLog = honestLog
-#guard chainHistory doubledLog seed final = chainHistory (QueryLog.dedupKeys doubledLog) seed final
-#guard (inPlay [seed.cv] doubledLog).all (· ∈ inPlay [seed.cv] (QueryLog.dedupKeys doubledLog))
+#guard List.dedupKeys doubledLog = honestLog
+#guard chainHistory doubledLog seed final = chainHistory (List.dedupKeys doubledLog) seed final
+#guard (inPlay [seed.cv] doubledLog).all (· ∈ inPlay [seed.cv] (List.dedupKeys doubledLog))
 
 -- A repeated query with a second answer: the log is not consistent, and deduplication keeps
 -- the first answer, so the second is lost.
@@ -320,11 +320,11 @@ def doubledLog : Log := honestLog ++ honestLog
 def reansweredLog : Log := honestLog ++ [⟨honestLog[0]!.1, d 9⟩]
 
 #guard !decide (QueryLog.Consistent reansweredLog)
-#guard QueryLog.dedupKeys reansweredLog = honestLog
+#guard List.dedupKeys reansweredLog = honestLog
 
 -- A hit is at a first occurrence: the late log asked twice keeps its hit after deduplication.
 #guard decide (QueryLog.HasHit (inPlay [seed.cv]) (lateLog ++ lateLog))
-#guard decide (QueryLog.HasHit (inPlay [seed.cv]) (QueryLog.dedupKeys (lateLog ++ lateLog)))
+#guard decide (QueryLog.HasHit (inPlay [seed.cv]) (List.dedupKeys (lateLog ++ lateLog)))
 
 -- At most two halves and one absorbed root per entry are in play.
 #guard (inPlay [seed.cv] honestLog).length ≤ 1 + 3 * honestLog.length
