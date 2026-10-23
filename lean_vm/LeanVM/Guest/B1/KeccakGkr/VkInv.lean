@@ -278,5 +278,128 @@ theorem vi_layer {L step : ℕ} {c c' : KeccakClaim} {s : Fs} {zs : List E} {os 
     rfl⟩
   rw [hz1, hz2, hz3, hz4]; simp
 
+/-! ## The layers -/
+
+/-- A layer's words: the product, the pack and position rounds' messages, `t`. -/
+abbrev LT : Type := List E × List (E × E) × List (E × E × E) × (E × E × E)
+
+/-- The words a layer reads. -/
+def ltXs (T : LT) : List E :=
+  T.1 ++ T.2.1.flatMap (fun m ↦ [m.1, m.2]) ++ T.2.2.1.flatMap (fun m ↦ [m.1, m.2.1, m.2.2]) ++
+    [T.2.2.2.1, T.2.2.2.2.1, T.2.2.2.2.2]
+
+/-- The claim and the sponge after the layers. -/
+def chainEnd : List ℕ → KeccakClaim → Fs → List LT → KeccakClaim × Fs
+  | _ :: steps, c, s, T :: Ts =>
+    chainEnd steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2)
+      (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2).2 Ts
+  | _, c, s, _ => (c, s)
+
+/-- What the layers' words satisfy: their lengths and each layer's two checks. -/
+def ChainOk (L : ℕ) : List ℕ → KeccakClaim → Fs → List LT → Prop
+  | a :: steps, c, s, T :: Ts =>
+    T.1.length = productBits ∧ T.2.1.length = c.point.length ∧
+      T.2.2.1.length = keccakLocalBits ∧
+      projectedOf c T.1 + keccakIota L a c * sumE c.mu = c.value ∧
+      LayerFinal c s T.1 T.2.1 T.2.2.1 T.2.2.2 ∧
+      ChainOk L steps (layerClaim c s T.1 T.2.1 T.2.2.1 T.2.2.2)
+        (layerBeta c s T.1 T.2.1 T.2.2.1 T.2.2.2).2 Ts
+  | [], _, _, [] => True
+  | _, _, _, _ => False
+
+/-- **The layers, read back.** -/
+theorem vi_layers {L : ℕ} : ∀ (steps : List ℕ) (c : KeccakClaim) (s : Fs) (zs : List E)
+    (os : List Opening) (R : List (Digest × ℕ × ℕ)) (c' : KeccakClaim) (st' : TSt),
+    runT (keccakLayers L steps c) ⟨s, zs, os, R⟩ = some (c', st') →
+      ∃ (Ts : List LT) (rest : List E), ChainOk L steps c s Ts ∧
+        zs = Ts.flatMap ltXs ++ rest ∧ c' = (chainEnd steps c s Ts).1 ∧
+        st' = ⟨(chainEnd steps c s Ts).2, rest, os, R⟩
+  | [], c, s, zs, os, R, c', st', h => by
+    obtain ⟨rfl, rfl⟩ := vi_pure (a := c) h
+    exact ⟨[], zs, trivial, rfl, rfl, rfl⟩
+  | a :: steps, c, s, zs, os, R, c', st', h => by
+    obtain ⟨c1, st1, h1, h2⟩ := vi_bind h
+    obtain ⟨product, packMsgs, localMsgs, t, rest1, hpl, hpm, hlm, hz, hproj, hfin, rfl, rfl⟩ :=
+      vi_layer h1
+    obtain ⟨Ts, rest, hok, hz', rfl, rfl⟩ := vi_layers steps _ _ _ _ _ _ _ h2
+    refine ⟨(product, packMsgs, localMsgs, t) :: Ts, rest, ⟨hpl, hpm, hlm, hproj, hfin, hok⟩, ?_,
+      rfl, rfl⟩
+    rw [hz, hz']
+    simp [ltXs]
+
+/-! ## `keccakSeg` -/
+
+set_option maxRecDepth 20000 in
+/-- **`keccakSeg`, read back**: the committed word, the layers' words, the openings' rounds, the
+word, the slices; the two opening checks; the results. -/
+theorem vi_seg {τ : ℕ} {inst outs : List E} {f xs op point slices cap' : List E} {word m0 : E}
+    (h : runT (keccakSeg τ inst outs) ⟨⟨f, []⟩, xs, [], []⟩ =
+      some ((([⟨qkeccak, op, word⟩], point, slices), m0), ⟨⟨cap', []⟩, [], [], []⟩)) :
+    ∃ (committed : E) (Ts : List LT) (mO mI mS : List (E × E)),
+      let s1 := (⟨f, []⟩ : Fs).squeezeN keccakSegmentBits
+      let s2 := s1.2.squeezeN keccakLaneBits
+      let c0 := vkFirst inst outs committed s1.1 s2.1
+      let L := chainEnd (List.range keccakDepth) c0 (s2.2.absorb committed dsObserve) Ts
+      let O := plainRun mO committed L.2
+      let I := plainRun mI L.1.value (O.2.2.absorb word dsObserve)
+      let S := plainRun mS I.2.1 I.2.2
+      ChainOk τ (List.range keccakDepth) c0 (s2.2.absorb committed dsObserve) Ts ∧
+      mO.length = 6 ∧ mI.length = 4 ∧ mS.length = 6 ∧ slices.length = 64 ∧
+      ((foldAll O.1 (keccakSlotWeights τ c0 1 1)).headD []).headD 0 * word = O.2.1 ∧
+      multilinearEval L.1.mu I.1 * dot ((foldAll S.1 (keccakSlotWeights τ L.1 0 2)).headD [])
+        slices = S.2.1 ∧
+      (S.2.2.absorbAll slices dsObserve).squeeze = (m0, ⟨cap', []⟩) ∧
+      xs = [committed] ++ Ts.flatMap ltXs ++ mO.flatMap (fun m ↦ [m.1, m.2]) ++ [word] ++
+        mI.flatMap (fun m ↦ [m.1, m.2]) ++ mS.flatMap (fun m ↦ [m.1, m.2]) ++ slices ∧
+      op = inst.take 4 ++ inst.drop 4 ++ O.1 ∧
+      point = I.1 ++ L.1.point.take (τ - 4) ++ S.1 := by
+  unfold keccakSeg at h
+  obtain ⟨r, st1, h1, h2⟩ := vi_bind h
+  obtain ⟨m, st2, h3, h4⟩ := vi_bind h2
+  obtain ⟨rfl, rfl⟩ := vi_sampleE' h3
+  obtain ⟨hr, hst⟩ := vi_pure h4
+  rw [verifyKeccak_eq] at h1
+  obtain ⟨seg, sA, a1, a2⟩ := vi_bind h1
+  obtain ⟨rfl, rfl⟩ := vi_sampleN' a1
+  obtain ⟨rl, sB, a3, a4⟩ := vi_bind a2
+  obtain ⟨rfl, rfl⟩ := vi_sampleN' a3
+  obtain ⟨committed, sC, a5, a6⟩ := vi_bind a4
+  obtain ⟨zs1, hz1, rfl⟩ := vi_readE a5
+  obtain ⟨claim, sD, a7, a8⟩ := vi_bind a6
+  obtain ⟨Ts, rest1, hok, hz2, rfl, rfl⟩ := vi_layers _ _ _ _ _ _ _ _ a7
+  obtain ⟨o, sE, a9, a10⟩ := vi_bind a8
+  rw [keccakOpen_eq] at a9
+  obtain ⟨x, sF, a11, a12⟩ := vi_bind a9
+  obtain ⟨mO, rest2, hmO, hz3, rfl, rfl⟩ := vi_plain _ _ _ _ _ _ _ _ a11
+  obtain ⟨rfl, rfl⟩ := vi_ret a12
+  obtain ⟨wd, sG, a13, a14⟩ := vi_bind a10
+  obtain ⟨zs2, hz4, rfl⟩ := vi_readE a13
+  obtain ⟨u, sH, a15, a16⟩ := vi_bind a14
+  obtain ⟨hchkO, rfl⟩ := vi_require a15
+  obtain ⟨y, sI, a17, a18⟩ := vi_bind a16
+  obtain ⟨mI, rest3, hmI, hz5, rfl, rfl⟩ := vi_plain _ _ _ _ _ _ _ _ a17
+  obtain ⟨o2, sJ, a19, a20⟩ := vi_bind a18
+  rw [keccakOpen_eq] at a19
+  obtain ⟨x2, sK, a21, a22⟩ := vi_bind a19
+  obtain ⟨mS, rest4, hmS, hz6, rfl, rfl⟩ := vi_plain _ _ _ _ _ _ _ _ a21
+  obtain ⟨rfl, rfl⟩ := vi_ret a22
+  obtain ⟨sl, sL, a23, a24⟩ := vi_bind a20
+  obtain ⟨rest5, hsl, hz7, rfl⟩ := vi_readN _ _ _ _ _ _ _ a23
+  obtain ⟨u2, sM, a25, a26⟩ := vi_bind a24
+  obtain ⟨hchkI, rfl⟩ := vi_require a25
+  obtain ⟨rfl, rfl⟩ := vi_pure a26
+  simp only [qkeccakSlotBits_eq'] at hmO hmS
+  simp only [Prod.mk.injEq, List.cons.injEq, ColumnClaim.mk.injEq, and_true, true_and] at hr
+  simp only [TSt.mk.injEq] at hst
+  simp only [and_assoc] at hr
+  simp only at hchkO hchkI hok
+  obtain ⟨hop, rfl, hpt, rfl, hm0⟩ := hr
+  obtain ⟨hcap, rfl, -, -⟩ := hst
+  refine ⟨committed, Ts, mO, mI, mS, hok, hmO, hmI, hmS, hsl, hchkO, hchkI, ?_, ?_, hop, hpt⟩
+  · rw [hm0, hcap]
+  · simp only at hz1 hz3 hz4 hz5 hz6 hz7
+    rw [hz1, hz2, hz3, hz4, hz5, hz6, hz7]
+    simp
+
 end
 end LeanVM.Guest.B1.VerifySub
