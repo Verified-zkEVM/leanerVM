@@ -6,7 +6,7 @@ public import LeanDa.Membership
 # The deployed dual codeword is the dual codeword
 
 Proposition prop:ntt of `doc/leanvm/body/d-novel-basis.tex` for the crate's membership vector:
-the additive NTT of `dualCodeword` (`verifier/src/da.rs:14-101`) computes `dual`
+the additive NTT of `dualCodeword` (`verifier/src/da.rs:24-85`) computes `dual`
 (`dualCodeword_eq_dual`), so the membership vector of a root is the dual codeword of its
 challenges (`membershipVector_eq_dual`).
 
@@ -409,30 +409,32 @@ theorem dualCodeword_eq_dual (z : Fin 14 → E) :
   rw [heval, dual]
   simp only [normW_eval]
 
-variable (H : List UInt8 → Digest)
+variable (H : List UInt8 → Digest) (P : Lanes → Lanes)
 
-/-- `squeezes n` draws `n` challenges. -/
-theorem length_squeezes : ∀ (n : ℕ) (state : Digest), (squeezes H n state).length = n
+/-- `Sponge.samples n` draws `n` challenges. -/
+theorem length_samples : ∀ (n : ℕ) (s : Sponge), (Sponge.samples P n s).length = n
   | 0, _ => rfl
-  | n + 1, state => by rw [squeezes, List.length_cons, length_squeezes]
+  | n + 1, s => by rw [Sponge.samples, List.length_cons, length_samples]
 
 /-- A root has `14` challenges. -/
-theorem length_membershipChallenges (root : Digest) : (membershipChallenges H root).length = 14 :=
-  length_squeezes H logK _
+theorem length_membershipChallenges (root : Digest) :
+    (membershipChallenges H P root).length = 14 :=
+  length_samples P logK _
 
 /-- **The membership vector of a root is the dual codeword of its challenges.** -/
 theorem membershipVector_eq_dual (root : Digest) (z : Fin 14 → E)
-    (hz : membershipChallenges H root = List.ofFn z) :
-    membershipVector H root = List.ofFn (dual z) := by
+    (hz : membershipChallenges H P root = List.ofFn z) :
+    membershipVector H P root = List.ofFn (dual z) := by
   rw [membershipVector, hz, dualCodeword_eq_dual]
 
 /-- The membership vector of a root is the dual codeword of its challenges, `z_i` entry `i` of
 `membershipChallenges`. -/
 theorem membershipVector_eq_dual_challenges (root : Digest) :
-    membershipVector H root = List.ofFn (dual fun i : Fin 14 ↦
-      (membershipChallenges H root)[(i : ℕ)]'(by rw [length_membershipChallenges]; exact i.isLt)) :=
-  membershipVector_eq_dual H root _ (List.ext_getElem (by simp [length_membershipChallenges])
-    fun i _ _ ↦ by rw [List.getElem_ofFn])
+    membershipVector H P root = List.ofFn (dual fun i : Fin 14 ↦
+      (membershipChallenges H P root)[(i : ℕ)]'(by
+        rw [length_membershipChallenges]; exact i.isLt)) :=
+  membershipVector_eq_dual H P root _
+    (List.ext_getElem (by simp [length_membershipChallenges]) fun i _ _ ↦ by rw [List.getElem_ofFn])
 
 end
 

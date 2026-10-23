@@ -6,7 +6,7 @@ public import Mathlib.LinearAlgebra.Lagrange
 /-!
 # LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM `b64b3d41f`, specified in
+The erasure code commitment of `crates/lean_da` at leanVM `keccak-gkr` `3375f7a13`, specified in
 `doc/leanvm/body/10-ethereum.tex` §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -20,7 +20,7 @@ The erasure code commitment of `crates/lean_da` at leanVM `b64b3d41f`, specified
   position `128 i + j`: the positions of the erasure code commitment are the cells sampling
   opens.
 * **The commitment** (`commit.rs:55-151`). The rows are padded to `2^⌈log₂ r⌉` with zero
-  codewords. A cell's digest is BLAKE2s of its symbols' little-endian bytes (`hash_cells`). The
+  codewords. A cell's digest is the hash of its symbols' little-endian bytes (`hash_cells`). The
   row tree is the Merkle tree over each row's digest of its first `64` cell digests (the payload),
   the column tree the one over all cell digests in column-major order, and the root is
   `H(rowRoot ‖ colRoot)`. A tree hashes neighbours in pairs, level by level (`tree_from_leaves`).
@@ -30,23 +30,28 @@ The erasure code commitment of `crates/lean_da` at leanVM `b64b3d41f`, specified
   The crate keeps the column tree for this (`DaWitness::column_tree`, `commit.rs:23-45`), whose
   level `⌈log₂ r⌉` holds the column roots (`column_roots`), but verifies no sample:
   `verifyCell` is the check this path determines.
-* **Membership** (`membership.rs:32-82`, `verifier/src/da.rs:15-89`). Challenges `z ∈ E^14` give
+* **Membership** (`membership.rs:32-86`, `verifier/src/da.rs:15-85`). Challenges `z ∈ E^14` give
   the dual codeword `L`, the tensor `⊗_j (1, z_j)` read as novel-basis coefficients and encoded,
   that is `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on the domain (Annex D, eq. dual-product), with
   `Ŵ_j` the normalized subspace polynomial of the span of `e_0 … e_(j-1)`. A matrix passes when
-  every row is orthogonal to `L` (`check_membership`, `membership.rs:90-99`; the guest's
-  `da_verify`). The challenges are a BLAKE2s chain from the label over the root
-  (`membership_challenges`); the security game models them as one random oracle on the root.
-* **The deployed algorithms** (`commit.rs:55-145`, `verifier/src/da.rs:14-101`). The crate's
-  computations, transcribed computably on lists, for `lean_vm` to state the aggregation
-  node's DA claim with: `commitCodewords`, the commitment level by level, which is `commitCells`
-  of the matrix (`commitCodewords_eq_commitCells`, `LeanDa.Commitment`); the challenges' BLAKE2s
-  chain (`membershipChallenges`); the dual codeword by the additive NTT (`membershipVector`),
-  which computes `dual` (`membershipVector_eq_dual`, `LeanDa.Dual`); and the vector's digest (`vectorDigest`).
+  every row is orthogonal to `L` (`check_membership`, `membership.rs:97-106`; the guest's
+  `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
+  seeded with the label's hash (`membership_challenges`); the security game models them as one
+  random oracle on the root.
+* **The deployed algorithms** (`commit.rs:55-145`, `verifier/src/da.rs:15-96`,
+  `verifier/src/transcript.rs:32-95`). The crate's computations, transcribed computably on lists,
+  for `lean_vm` to state the aggregation node's DA claim with: `commitCodewords`, the commitment
+  level by level, which is `commitCells` of the matrix (`commitCodewords_eq_commitCells`,
+  `LeanDa.Commitment`); the challenges' sponge (`Sponge`, `membershipChallenges`); the dual
+  codeword by the additive NTT (`membershipVector`), which computes `dual`
+  (`membershipVector_eq_dual`, `LeanDa.Dual`); and the vector's digest, the hash of its `128`
+  columns' hashes (`vectorDigest`).
 
 The row count `r` is a parameter. The crate takes `1 ≤ r ≤ 1024` (`row_count`, `lib.rs:41-46`);
-the statements hold for every `r ≥ 1`. So is the hash `H`: the crate's is BLAKE2s-256, which
-`lean_vm` supplies (`LeanVM.Da.blake2s`), and the statements hold for every `H`.
+the statements hold for every `r ≥ 1`. So are the hash `H` and the sponge's permutation `P`: the
+crate's are Keccak-256 (Ethereum's: rate `136` bytes, padding `0x01 ‖ 0^* ‖ 0x80`,
+`verifier/src/hash.rs:79-97`) and the Keccak-f[1600] it is built on, which `lean_vm` supplies,
+and the statements hold for every `H` and `P`.
 
 Part of `lean_da`, which instantiates Benedikt Wagner's framework for erasure code commitments
 (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
@@ -282,9 +287,9 @@ def commitCodewords (rows : List (List K)) : Digest :=
 def cellsOfRows (rows : List (List K)) : Fin (rows.length * 128) → Cell :=
   fun p s ↦ (rows.getD (p / 128) []).getD (256 * (p % 128) + s) 0
 
-/-! ## The deployed membership vector (`verifier/src/da.rs:14-101`)
+/-! ## The deployed membership vector (`verifier/src/da.rs:15-96`)
 
-The challenges, drawn from the root by the BLAKE2s chain the security game models as a random
+The challenges, drawn from the root by the duplex sponge the security game models as a random
 oracle, and the dual codeword as the crate computes it, by the additive NTT, which computes `dual`
 (`membershipVector_eq_dual`, `LeanDa.Dual`). -/
 
@@ -294,7 +299,7 @@ def label : List UInt8 := "leanDA/rs-membership/v1".toUTF8.toList
 /-- The symbol of eight little-endian bytes (`u64::from_le_bytes`). -/
 def ofBytes (bytes : List UInt8) : K := K.ofBits (bytes.foldr (fun b acc ↦ b.toNat + 256 * acc) 0)
 
-/-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Hash::words`). -/
+/-- Word `i` of a digest, its bytes `8 i … 8 i + 7` (`Digest::words`). -/
 def word (d : Digest) (i : ℕ) : K := ofBytes ((d.toList.drop (8 * i)).take 8)
 
 /-- The element `c0 + c1·y + c2·y²` (`E::new`). -/
@@ -303,24 +308,85 @@ def ofLimbs (c0 c1 c2 : K) : E := CompPoly.Extension.Ext.ofVector #v[c0, c1, c2]
 /-- Limb `i` of an element, the coefficient of `y^i`. -/
 def limb (x : E) (i : Fin 3) : K := CompPoly.Extension.Ext.coeff x i
 
-/-- A transcript step: the hash of the state's bytes and four words' (`transcript.rs:37-44`,
-`compress`). -/
-def compressWords (state : Digest) (words : List K) : Digest := H (state.toList ++ words.flatMap kBytes)
+/-! ### The sponge (`verifier/src/transcript.rs:32-95`)
 
-/-- `n` challenges squeezed from the state (`sample`, tag `DS_SQUEEZE = 2`). -/
-def squeezes : ℕ → Digest → List E
+A duplex sponge in overwrite mode over a permutation `P` of `25` lanes. The crate's is
+Keccak-f[1600] (`keccak_f`, `verifier/src/hash.rs:50-69`), which `lean_vm` supplies; the
+definitions hold for every `P`. A lane is a `u64`, read as the element of `K` with its bits, so
+a scalar's limbs are lanes as they are. The rate is lanes `0 … 15`, the capacity lanes
+`16 … 24`. -/
+
+/-- The sponge's lanes (`[u64; STATE_LANES]`). -/
+abbrev Lanes := Vector K 25
+
+variable (P : Lanes → Lanes)
+
+/-- Lanes of the rate. -/
+def rateLanes : ℕ := 16
+
+/-- Scalars that wait to be absorbed, four rate lanes each (`RATE_SCALARS`). -/
+def rateScalars : ℕ := 4
+
+/-- The tag of an observed scalar (`DS_OBSERVE = 1`). -/
+def dsObserve : K := K.ofBits 1
+
+/-- **The sponge** (`Sponge`): the lanes the last permutation left, and the scalars absorbed
+since with their tags, at most `rateScalars` (`pending[..n_pending]`). -/
+structure Sponge where
+  /-- The lanes the last permutation left (`state`). -/
+  state : Lanes
+  /-- The waiting scalars and their tags, in order. -/
+  pending : List (E × K)
+
+/-- A sponge seeded with one permutation of the zero state with the IV's words in lanes
+`0 … 3` and the public input's in lanes `4 … 7` (`Sponge::new`). -/
+def Sponge.new (iv publicInput : Digest) : Sponge :=
+  ⟨P (Vector.ofFn fun i : Fin 25 ↦
+      if (i : ℕ) < 4 then word iv i else if (i : ℕ) < 8 then word publicInput (i - 4) else 0), []⟩
+
+/-- A sponge with no public input of its own, seeded from the hash of `label`
+(`Sponge::from_label`). -/
+def Sponge.fromLabel (label : List UInt8) : Sponge := Sponge.new P (H label) (Vector.replicate 32 0)
+
+/-- The rate lanes the waiting scalars fill: scalar `i`'s three limbs and tag in lanes
+`4 i … 4 i + 3`. -/
+def rateWords (pending : List (E × K)) : List K :=
+  pending.flatMap fun x ↦ [limb x.1 0, limb x.1 1, limb x.1 2, x.2]
+
+/-- Permute, the waiting scalars written over the rate, the rest of the rate zero and the
+capacity kept (`duplex`). -/
+def Sponge.duplex (s : Sponge) : Sponge :=
+  ⟨P (Vector.ofFn fun i : Fin 25 ↦
+      if (i : ℕ) < rateLanes then (rateWords s.pending).getD i 0 else s.state[i]), []⟩
+
+/-- Absorb a scalar with a tag, permuting first when `rateScalars` wait (`absorb`). -/
+def Sponge.absorb (s : Sponge) (x : E) (tag : K) : Sponge :=
+  let s := if s.pending.length = rateScalars then Sponge.duplex P s else s
+  ⟨s.state, s.pending ++ [(x, tag)]⟩
+
+/-- Observe a scalar (`observe`). -/
+def Sponge.observe (s : Sponge) (x : E) : Sponge := Sponge.absorb P s x dsObserve
+
+/-- Draw a challenge: a permutation of its own, whose lanes `0 … 2` are its limbs (`sample`). -/
+def Sponge.sample (s : Sponge) : E × Sponge :=
+  let s := Sponge.duplex P s
+  (ofLimbs s.state[0] s.state[1] s.state[2], s)
+
+/-- `n` challenges, in order. -/
+def Sponge.samples : ℕ → Sponge → List E
   | 0, _ => []
-  | n + 1, state =>
-    let state := compressWords H state [0, 0, 0, K.ofBits 2]
-    ofLimbs (word state 0) (word state 1) (word state 2) :: squeezes n state
+  | n + 1, s => (Sponge.sample P s).1 :: Sponge.samples n (Sponge.sample P s).2
 
-/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`): from the label's hash,
-the root's two halves observed (tag `DS_OBSERVE = 1`), then `14` squeezes. -/
+/-! ### The challenges and the vector -/
+
+/-- **The challenges `z_0 … z_13` of a root** (`membership_challenges`, `verifier/src/da.rs:15-22`):
+a sponge from the label, the root's words observed as two scalars `(w_0, w_1, 0)` and
+`(w_2, w_3, 0)`, then `14` samples. -/
 def membershipChallenges (root : Digest) : List E :=
-  let state := H label
-  let state := compressWords H state [word root 0, word root 1, 0, K.ofBits 1]
-  let state := compressWords H state [word root 2, word root 3, 0, K.ofBits 1]
-  squeezes H logK state
+  let s := Sponge.fromLabel H P label
+  let s := Sponge.observe P s (ofLimbs (word root 0) (word root 1) 0)
+  let s := Sponge.observe P s (ofLimbs (word root 2) (word root 3) 0)
+  Sponge.samples P logK s
 
 /-- Row `i` of the subspace evaluations before scaling: `s_i` at the basis elements `x^j`,
 `j ≥ i`. -/
@@ -362,11 +428,20 @@ def dualCodeword (z : List E) : List E :=
   encode (z.foldl (fun t challenge ↦ t ++ t.map (· * challenge)) [1])
 
 /-- **The membership vector of a root** (`membership_vector`). -/
-def membershipVector (root : Digest) : List E := dualCodeword (membershipChallenges H root)
+def membershipVector (root : Digest) : List E := dualCodeword (membershipChallenges H P root)
 
-/-- The hash of a vector's limbs, three little-endian symbols an entry (`vector_digest`). -/
+/-- The bytes of entries: three little-endian limbs each. -/
+def limbBytes (entries : List E) : List UInt8 :=
+  (entries.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap kBytes
+
+/-- The digest of column `j` of a vector, its entries `256 j … 256 j + 255`. -/
+def columnDigest (vector : List E) (j : ℕ) : Digest :=
+  H (limbBytes ((vector.drop (j * cellSymbols)).take cellSymbols))
+
+/-- **The digest of a vector** (`vector_digest`, `verifier/src/da.rs:87-96`): the hash of its
+`128` columns' digests, in order. The crate takes vectors of `2^15` entries and panics on others. -/
 def vectorDigest (vector : List E) : Digest :=
-  H ((vector.flatMap fun e ↦ [limb e 0, limb e 1, limb e 2]).flatMap kBytes)
+  H ((List.range cellsPerRow).flatMap fun j ↦ (columnDigest H vector j).toList)
 
 end
 
