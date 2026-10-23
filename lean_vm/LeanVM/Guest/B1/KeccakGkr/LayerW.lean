@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.KeccakGkr.PackChain
 public import LeanVM.Guest.B1.KeccakGkr.Algebra
+public import LeanVM.Guest.B1.KeccakGkr.LocalRounds
 
 /-!
 # A layer, from its facts
@@ -82,18 +83,6 @@ structure LayerW (first odd : ℕ) (rd : Reader) (f0 f1 f2 f3 f4 cur hg yl claim
   hout5 : LoadHolds rd out 5 sl
   hslices : ReadsAt rd sl (eqKernel (locPt.take 6))
   hrets : rets = capB ++ [curL * gen ^ 36]
-
-theorem localRunF_length : ∀ (ms : List (E × E × E)) (v : E) (s : Fs),
-    (localRunF ms v s).1.1.length = ms.length
-  | [], _, _ => rfl
-  | (c0, c2, c3) :: ms, v, s => by
-    simp only [localRunF, List.length_cons, localRunF_length ms]
-
-theorem flatMap_triples_length (ms : List (E × E × E)) :
-    (ms.flatMap fun m ↦ [m.1, m.2.1, m.2.2]).length = 3 * ms.length := by
-  induction ms with
-  | nil => rfl
-  | cons m ms ih => simp [List.flatMap_cons, ih]; ring
 
 theorem lanesOut_length (loc : List E) (beta : E) : (lanesOut loc beta).length = 25 := by
   simp [lanesOut]
