@@ -301,5 +301,47 @@ theorem fkArms_complete {w t : Nat} {keyAt x : V} {b : Nat} (ht : t < 256) (hlo 
     exact fkArmN_complete (C := C) (rd := rd) (lo := b) hlo (hm t).1 hk ⟨by omega, by omega⟩
       ⟨by omega, by omega⟩ (by omega) (by omega) vals hv σ hX
 
+/-- **The forest keys' values lie below their end.** -/
+theorem fkArms_numBelow {w : Nat} {keyAt : V} {b : Nat} (hlo : 206 ≤ b) (hk : NBv b keyAt) :
+    NumBelow (fkArms w keyAt b).2.1 (Stmt.valsArms (fkArms w keyAt b).1) := by
+  have hm := fkAB_mono (w := w) hlo hk
+  obtain ⟨o1, o2⟩ := fkArms_outs w keyAt b
+  have hB0 : b ≤ (fkChains 0 keyAt 6 0 b).2.1 :=
+    KSeq.le (fkChains_kseq (t := 0) (lo := b) hlo hk 6 0 b (by omega) le_rfl).1
+  have h1 : fkAB w keyAt b 1 = (fkChains 0 keyAt 6 0 b).2.1 + 17 := by rw [fkAB_one, fkArm_snd]; rfl
+  have hend1 : fkAB w keyAt b 1 ≤ (fkArms w keyAt b).2.1 := by rw [fkArms_end]; exact (hm 1).2 256 (by omega)
+  refine numBelow_valsArms _ fun a ha => ?_
+  obtain ⟨t, ht, rfl⟩ := List.getElem_of_mem ha
+  rw [fkArms_length] at ht
+  rcases Nat.eq_zero_or_pos t with rfl | hpos
+  · have e : (fkArms w keyAt b).1[0]'(by rw [fkArms_length]; norm_num) =
+        (fkArm 0 w keyAt (.n 0) (.n 0) true b).1 := rfl
+    rw [e, fkArm_split]
+    simp only [↓reduceIte]
+    have hpre := fkArmPre_kseq (t := 0) (lo := b) hlo le_rfl hk
+    rw [valsList_append]
+    refine ((KSeq.numBelow le_rfl hpre).mono (by omega)).append ?_
+    simp only [copyS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil, List.cons_append,
+      List.nil_append]
+    exact .cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.nil _)))
+  · rw [fkArms_getN hpos ht, fkArm_split, o1, o2]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    have hbt := (hm t).1
+    have hpre := fkArmPre_kseq (t := t) (lo := fkAB w keyAt b t) (by omega) le_rfl (hk.mono' hbt)
+    have hBt : fkAB w keyAt b t ≤ (fkChains t keyAt 6 0 (fkAB w keyAt b t)).2.1 :=
+      KSeq.le (fkChains_kseq (t := t) (lo := fkAB w keyAt b t) (by omega) (hk.mono' hbt) 6 0 _ (by omega)
+        le_rfl).1
+    have hnext := fkAB_succ (w := w) (keyAt := keyAt) (b := b) hpos
+    rw [fkArm_snd] at hnext
+    simp only [Bool.false_eq_true, ↓reduceIte] at hnext
+    have hend : fkAB w keyAt b (t + 1) ≤ (fkArms w keyAt b).2.1 := by
+      rw [fkArms_end]; exact (hm (t + 1)).2 256 (by omega)
+    have hb1 := (hm 1).2 t hpos
+    rw [valsList_append]
+    refine ((KSeq.numBelow le_rfl hpre).mono (by omega)).append ?_
+    simp only [copyS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil, List.cons_append,
+      List.nil_append]
+    exact .cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.cons ⟨_, by omega, rfl⟩ (.nil _)))
+
 end
 end LeanVM.Guest.B1.Sig

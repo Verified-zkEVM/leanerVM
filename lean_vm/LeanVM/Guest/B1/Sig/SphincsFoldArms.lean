@@ -424,5 +424,63 @@ theorem foldArms_complete {b index : Nat} {x : V} (hidx : index < 2 ^ height) (h
       (fun σ' ⟨p1, p2, p3, p4, p5⟩ => ⟨p1, ?_, p3, p4, p5⟩)
     by_cases h0 : index / 2 ^ (height - 1) = 0 <;> simp only [h0, ↓reduceIte] at p2 ⊢ <;> exact p2
 
+/-- **The folds' values lie below their end.** -/
+theorem foldArms_numBelow {b : Nat} (hh : 1 ≤ height) (hlo : 206 ≤ b) (hadr : ∀ i, AdrOK (adr i))
+    (hat : NBv b atV) (hn0 : NBv b node0) (hmk : NBv b markV) :
+    NumBelow (foldArms atV adr height node0 markV markC wC b).2.1
+      (Stmt.valsArms (foldArms atV adr height node0 markV markC wC b).1) := by
+  have hm := foAB_mono (atV := atV) (adr := adr) (height := height) (node0 := node0) (markV := markV)
+    (markC := markC) (wC := wC) (b := b)
+  have ho := foldArms_outs (atV := atV) (adr := adr) (height := height) (node0 := node0) (markV := markV)
+    (markC := markC) (wC := wC) b
+  set L0 := flBase (adr 0) 0 (height - 1) b with hL0
+  have hbL : b ≤ L0 := le_trans (by omega) (flBase_ge (adr 0) 0 (height - 1) b)
+  have h1 : foAB atV adr height node0 markV markC wC b 1 = L0 + 3 := by
+    rw [foAB_one, foldArm_snd, foldLevels_snd]; rfl
+  have hp2 : 2 ≤ 2 ^ height := le_trans (by norm_num) (Nat.pow_le_pow_right (by norm_num) hh)
+  have hend1 : foAB atV adr height node0 markV markC wC b 1 ≤ (foldArms atV adr height node0 markV markC wC b).2.1 := by
+    rw [foldArms_end b]; exact (hm 1).2 _ (by omega)
+  have key : ∀ (i bI Bd : Nat), b ≤ bI → flBase (adr i) 0 (height - 1) bI ≤ Bd → ∀ (d o e : Nat),
+      d < Bd → o < Bd → e < Bd →
+      ∀ (mc w : E), NumBelow Bd
+        (Stmt.valsList ((foldLevels atV (adr i) i (height - 1) 0 node0 bI).1 ++
+          [copyS (.n d) (foldLevels atV (adr i) i (height - 1) 0 node0 bI).2.2, hintW "sp_forest_nodes" [.n o],
+            .atom (.const markV mc), .atom (.const (.n e) w)])) := by
+    intro i bI Bd hbI hBd d o e hd ho he mc w
+    have hgeI := flBase_ge (adr i) 0 (height - 1) bI
+    obtain ⟨k1, k2, k3⟩ := foldLevels_kseq (lo := bI) (a2 := node0) (index := i) (by omega) (hadr i)
+      (hat.mono' hbI) (height - 1) 0 node0 bI le_rfl (sx_a2 (hn0.mono' hbI))
+    have hnd := k3.nb (show bI ≤ flBase (adr i) 0 (height - 1) bI by omega)
+    rw [valsList_append]
+    refine ((KSeq.numBelow le_rfl k1).mono hBd).append ?_
+    simp only [copyS, hintW, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, Hint.vals, Dest.vals,
+      List.append_nil, List.cons_append, List.nil_append]
+    exact .cons ⟨d, hd, rfl⟩ (.cons (hnd.mono' hBd) (.cons ⟨o, ho, rfl⟩
+      (.cons (hmk.mono' (by omega)) (.cons ⟨e, he, rfl⟩ (.nil _)))))
+  refine numBelow_valsArms _ fun a ha => ?_
+  obtain ⟨t, ht, rfl⟩ := List.getElem_of_mem ha
+  rw [foldArms_length] at ht
+  rcases Nat.eq_zero_or_pos t with rfl | hpos
+  · have e : (foldArms atV adr height node0 markV markC wC b).1[0]'(by rw [foldArms_length]; omega) =
+        (foldArm atV (adr 0) height 0 node0 (.n 0, .n 0, .n 0) markV (markC 0) (wC 0) true b).1 := rfl
+    rw [e, foldArm_split, foldLevels_snd]
+    simp only [Nat.zero_div, ↓reduceIte]
+    exact (key 0 b (L0 + 3) le_rfl (by omega) L0 (L0 + 1) (L0 + 2) (by omega) (by omega) (by omega) _ _).mono
+      (by omega)
+  · rw [foldArms_getN hpos ht, ho, foldArm_split]
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    have hbt := (hm t).1
+    have hb1 := (hm 1).2 t hpos
+    have hnext := foAB_succ (atV := atV) (adr := adr) (height := height) (node0 := node0) (markV := markV)
+      (markC := markC) (wC := wC) (b := b) hpos
+    rw [foldArm_snd, foldLevels_snd] at hnext
+    simp only [Bool.false_eq_true, ↓reduceIte] at hnext
+    have hend : foAB atV adr height node0 markV markC wC b (t + 1) ≤
+        (foldArms atV adr height node0 markV markC wC b).2.1 := by
+      rw [foldArms_end b]; exact (hm (t + 1)).2 _ (by omega)
+    have hge := flBase_ge (adr t) 0 (height - 1) (foAB atV adr height node0 markV markC wC b t)
+    by_cases h0 : t / 2 ^ (height - 1) = 0 <;> simp only [h0, ↓reduceIte] <;>
+      exact (key t _ _ hbt le_rfl _ _ _ (by omega) (by omega) (by omega) _ _).mono (by omega)
+
 end
 end LeanVM.Guest.B1.Sig
