@@ -58,7 +58,7 @@ instance : Nonempty KidRec :=
 accepts its proof for the decoded child's statement under the decoded seed. -/
 theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (cw : CalleesWC bytecode C rd wX wS wD wV wA) (MF : MainFacts C rd σ)
+    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) (MF : MainFacts C rd σ)
     (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
     (hW : Writers rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ))
     (hC : Cover rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ) sl) {c : ℕ}
@@ -99,7 +99,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
     (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
     {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (cw : CalleesWC bytecode C rd wX wS wD wV wA) {D : Digest}
+    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) {D : Digest}
     (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
     (hb : Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = [])) :
     statementDigest (decSeed σ) (decStmt σ rd) = D ∧
@@ -187,7 +187,7 @@ theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVa
 theorem main_sound_w (bytecode : List K) : main_sound_Spec bytecode := by
   intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
   exact main_sound_C hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
-    ⟨cw.xmss, cw.sphincs, cw.da, cw.sub, cw.agg⟩ hp0 hp1 hb
+    ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, cw.da, cw.sub, cw.agg⟩ hp0 hp1 hb
 
 end
 end LeanVM.Guest.B1.Main

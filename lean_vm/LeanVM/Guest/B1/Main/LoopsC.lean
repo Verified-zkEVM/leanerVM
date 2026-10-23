@@ -183,14 +183,15 @@ theorem body_ofV {Vm : FrameMap} (hVm : UnfoldsV rd C Vm) {f : String} {fn : Fn}
 /-! ## The callees' contracts -/
 
 /-- **The callees' contracts with witness functions**, on the calls of `C`. -/
-structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (wX : E → LeanXmss.Signature)
-    (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.Witness)
+structure CalleesWC (bytecode : List K) (C : CallRel) (rd : Reader) (bb0 : E)
+    (wX : E → LeanXmss.Signature) (wS : E → Sphincs.Signature) (wD : List E → List E → LeanVM.Da.Witness)
     (wV : List E → Proof) (wA : List E → BatchHints) : Prop where
   /-- A leanXMSS check: the signature `wX p` verifies the claim at `p`. -/
   xmss : ∀ p, C "verify_lean_xmss" [p] [] → Sig.XmssOut rd p (wX p)
-  /-- A leanSPHINCS check with the byte table: the signature `wS p` verifies the claim at `p`. -/
-  sphincs : ∀ p bb, C "verify_sig_lean_sphincs" [p, bb] [] →
-    Sig.ByteBits rd bb → Sig.SphincsOut rd p (wS p)
+  /-- A leanSPHINCS check with the byte table `bb0` (`main`'s): the signature `wS p` verifies the
+  claim at `p`. -/
+  sphincs : ∀ p, C "verify_sig_lean_sphincs" [p, bb0] [] →
+    Sig.ByteBits rd bb0 → Sig.SphincsOut rd p (wS p)
   /-- The DA check with the exponent table: the matrix `wD args rets` opens the returned claim. -/
   da : ∀ gsq rets, C "da_verify" [gsq] rets → Da.SquaresAt rd gsq →
     ∃ root vd : Digest, (wD [gsq] rets).Opens root vd ∧ rets = digestCells root ++ digestCells vd
