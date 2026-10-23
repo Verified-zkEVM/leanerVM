@@ -16,7 +16,7 @@ example (prog : Program) (input : PublicInput) (proof : LeanVM.Proof) :
 
 example {A : Adversary} {Q : ℕ} (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[z.1.2 = true ∧ SentinelSafe z.1.1.1.1 ∧
-      ¬ ∃ t, extract z.1.1.1.1 z.1.1.1.2 z.2 z.1.1.2 = some t ∧
+      ¬ ∃ t, extractor z.1.1.1.1 z.1.1.1.2 z.2.2 z.1.1.2 = some t ∧
         ValidExecution z.1.1.1.1 z.1.1.1.2 t] ≤
       soundnessError Q :=
   knowledgeSoundness hA
@@ -26,7 +26,7 @@ that outputs it. -/
 example (prog : Program) (input : PublicInput)
     (P : OracleComp LeanVM.Protocol.Compile.Rom.HashSpec LeanVM.Proof) {Q : ℕ}
     (hP : P.IsTotalQueryBound Q) :
-    Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extract z] ≤
+    Pr{let z ← experiment ((fun proof ↦ ((prog, input), proof)) <$> P)}[Breaks extractor z] ≤
       soundnessError Q :=
   knowledgeSoundness ((OracleComp.isQueryBound_map_iff P _ Q _ _).mpr hP)
 

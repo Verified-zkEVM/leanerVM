@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Spec.Isa
 public import LeanVM.Spec.Verifier
+public import LeanVM.Spec.Extractor
 public import VCVio.OracleComp.QueryTracking.RandomOracle.Basic
 public import VCVio.OracleComp.QueryTracking.QueryBound.Basic
 public import VCVio.EvalDist.ProbabilityNotation
@@ -22,22 +23,32 @@ deployed verifier (`verify`). In the random-oracle model, the hash is a lazily s
 function from byte strings to digests (`HashSpec`, `queryH`), and an adversary is any
 computation with access to it that outputs a statement and a proof, choosing both after querying
 (`Adversary`). The experiment runs the adversary, then the verifier on its output, against one
-oracle, and records the verdict and the oracle's answers (`experiment`).
+oracle, and records the verdict, the oracle's answers at the end, and the oracle's answers to the
+adversary's queries, as they stood when the adversary output its proof (`experiment`).
 
-**Knowledge soundness** (`KnowledgeSoundness`): there is an extractor that reads the oracle's
-answers and the proof and returns an execution of the program, such that for every adversary of
-at most `Q` queries, the probability that the verifier accepts while the program's last
-instruction is not a `JUMP` (`SentinelSafe`) and the extracted execution is not a valid
-execution of the program on the public input is at most `soundnessError Q`. The extractor is not
-required to be efficient, so the proposition says no more than soundness: the verifier accepts
-a statement that has no valid execution with probability at most `soundnessError Q`.
+**Knowledge soundness** (`KnowledgeSoundness`): for every adversary of at most `Q` queries, the
+probability that the verifier accepts while the program's last instruction is not a `JUMP`
+(`SentinelSafe`) and the extractor does not return a valid execution of the program on the public
+input is at most `soundnessError Q`. The extractor (`extractor`, `LeanVM/Spec/Extractor.lean`) is
+fixed, and straight-line: it reads only the proof and the oracle's answers to the adversary's own
+queries (not the verifier's), and neither queries the oracle nor rewinds the adversary. It reads
+the announced sizes and the stack's Merkle root off the proof; reads the word the root commits to
+off the adversary's answers (each leaf the preimage, among them, of a path climbing to the root);
+and returns the halting run of the memory image of a stack in the word's Johnson list (a stack
+whose Reed–Solomon encoding agrees with the word on at least the Johnson threshold of columns),
+one that is a valid execution if there is one. So an accepted proof commits, except with
+probability `soundnessError Q`, to a stack whose memory columns hold a valid execution, among the
+at most `2^18` stacks the word the adversary hashed is close to (proved, for every admissible
+shape and word: `LeanVM.candidates_ncard_le`, from level 0's list bound `listMax ≤ 2^18`). The
+choice among them is classical: the extractor is a definition, not an algorithm with a running
+time.
 
 **Completeness** (`Completeness`): there is an honest prover which, given a valid execution whose
 committed size is at most `2^28`, the most the verifier admits (`Trace.committedSize`: the cells
 of the memory, of the bytecode's counts and of one table per opcode, a row per instruction of that
 opcode the execution executes, `Trace.count`), at an inverse rate `2^ρ` with `1 ≤ ρ ≤ 4`, trying at most `fuel ≤ 2^64`
 nonces per proof of work, makes the verifier reject with probability at most
-`completenessError fuel`. The honest prover is not required to be efficient either.
+`completenessError fuel`. The honest prover is not required to be efficient.
 
 **Scope and trust.**
 
@@ -107,9 +118,12 @@ abbrev Statement : Type := Program × PublicInput
 and a proof. -/
 abbrev Adversary : Type := OracleComp HashSpec (Statement × Proof)
 
-/-- An outcome of the experiment: the statement and the proof, the verdict, and the oracle's
-answers. -/
-abbrev Outcome : Type := ((Statement × Proof) × Bool) × HashSpec.QueryCache
+/-- An outcome of the experiment: the statement and the proof, the verdict, the oracle's answers
+at the end (to the adversary's queries and the verifier's; no statement reads them, the proofs
+relate them to the adversary's), and the oracle's answers when the adversary returned (to the
+adversary's queries). -/
+abbrev Outcome : Type :=
+  ((Statement × Proof) × Bool) × HashSpec.QueryCache × HashSpec.QueryCache
 
 /-- The outcome's program. -/
 abbrev Outcome.program (z : Outcome) : Program := z.1.1.1.1
@@ -126,37 +140,53 @@ abbrev Outcome.accepted (z : Outcome) : Prop := z.1.2 = true
 /-- The verifier rejected. -/
 abbrev Outcome.rejected (z : Outcome) : Prop := z.1.2 = false
 
-/-- The oracle's answers. -/
-abbrev Outcome.cache (z : Outcome) : HashSpec.QueryCache := z.2
+/-- The oracle's answers to the adversary's queries: the cache when the adversary returned,
+before the verifier ran. -/
+abbrev Outcome.adversaryCache (z : Outcome) : HashSpec.QueryCache := z.2.2
 
-/-- **The random-oracle experiment**: the adversary, then the verifier on its statement and
-proof, both querying one lazily sampled random oracle, from the empty cache. -/
-noncomputable def experiment (A : Adversary) : ProbComp Outcome :=
-  (simulateQ HashSpec.randomOracle
-    (A >>= fun z ↦ (z, ·) <$> verifier queryH z.1.1 z.1.2 z.2)).run ∅
+/-- **The random-oracle experiment**: the adversary from the empty cache, then the verifier on its
+statement and proof, continuing from the cache the adversary left: one lazily sampled random
+oracle. -/
+noncomputable def experiment (A : Adversary) : ProbComp Outcome := do
+  let (z, adversaryCache) ← (simulateQ HashSpec.randomOracle A).run ∅
+  let (verdict, cache) ←
+    (simulateQ HashSpec.randomOracle (verifier queryH z.1.1 z.1.2 z.2)).run adversaryCache
+  return ((z, verdict), cache, adversaryCache)
 
 /-! ## Knowledge soundness -/
 
-/-- An extractor: from the oracle's answers and the proof, an execution of the program. -/
+/-- An extractor: from the oracle's answers to the adversary's queries and the proof, an
+execution of the program. -/
 abbrev Extractor : Type :=
   (prog : Program) → PublicInput → HashSpec.QueryCache → Proof → Option (Trace prog)
 
+/-- **The extractor** (`LeanVM.Extraction.extract`, `LeanVM/Spec/Extractor.lean`): from the
+adversary's answers and the proof, the announced sizes and the word the stack's root commits to,
+and a valid execution of the program on the public input that is the halting run of the memory
+image of a stack in the word's Johnson list, if there is one. -/
+noncomputable def extractor : Extractor := fun prog input answers proof ↦
+  Extraction.extract prog input (bytecodeWords prog) (fun x ↦ answers x) proof
+
 /-- **The adversary breaks soundness**: the verifier accepts its statement and proof, the
-program's last instruction is not a `JUMP`, and the extracted execution is not a valid execution
-of the program on the public input. -/
+program's last instruction is not a `JUMP`, and the execution extracted from the adversary's
+answers and the proof is not a valid execution of the program on the public input. -/
 def Breaks (extract : Extractor) (z : Outcome) : Prop :=
   z.accepted ∧ SentinelSafe z.program ∧
-    ¬ ∃ t, extract z.program z.input z.cache z.proof = some t ∧ ValidExecution z.program z.input t
+    ¬ ∃ t, extract z.program z.input z.adversaryCache z.proof = some t ∧
+      ValidExecution z.program z.input t
 
 /-- **The soundness error** of an adversary of `Q` queries: one `2^-128` per query of the
-adversary and the verifier (at most `13213`), plus collisions. -/
+adversary and the verifier (at most `13213`), plus collisions, plus one `2^-256` per query of the
+verifier, for a fresh answer that is the stack's root the adversary announced without computing
+it (the extractor, reading the adversary's answers only, would then miss the root's preimage). -/
 noncomputable def soundnessError (Q : ℕ) : ℝ≥0∞ :=
-  ((Q + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + ((5 * (Q + 13213) : ℕ) : ℝ≥0∞) / 2 ^ 256)
+  ((Q + 13213 : ℕ) : ℝ≥0∞) * ((2 : ℝ≥0∞)⁻¹ ^ 128 + ((5 * (Q + 13213) : ℕ) : ℝ≥0∞) / 2 ^ 256) +
+    (13213 : ℝ≥0∞) / 2 ^ 256
 
-/-- **Knowledge soundness in the random-oracle model.** -/
+/-- **Knowledge soundness in the random-oracle model**, for the extractor `extractor`. -/
 def KnowledgeSoundness : Prop :=
-  ∃ extract : Extractor, ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
-    Pr{let z ← experiment A}[Breaks extract z] ≤ soundnessError Q
+  ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
+    Pr{let z ← experiment A}[Breaks extractor z] ≤ soundnessError Q
 
 /-! ## Completeness -/
 

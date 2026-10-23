@@ -1,3 +1,18 @@
-/.lake
+# Lake builds and dependencies, in every project
+.lake/
+*.olean
+*.ilean
+
+# leanVM's checkout (./leanvm-tree.sh)
 /.leanvm/
+
+# The Rust verifier CLI's build
+/lean_vm/scripts/rust-verifier-cli/target/
+
+# Python and editors
 __pycache__/
+.vscode/
+.idea/
+
+# Agents
+.claude/

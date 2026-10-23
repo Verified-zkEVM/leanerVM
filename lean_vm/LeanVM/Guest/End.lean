@@ -563,7 +563,7 @@ theorem aggregate_sound_of (h : SoundPieces B) {A : Adversary} {Q : ℕ}
     Pr{let z ← experiment A}[z.1.2 = true ∧ z.1.1.1.1 = guest ∧
       ¬ ∃ seed s, statementDigest seed s = publicDigest z.1.1.1.2 ∧ s.defer.Shaped bytecode ∧
         NodeSpec bytecode seed s] ≤ soundnessError Q := by
-  obtain ⟨extract, hks⟩ := knowledgeSoundness_holds
+  have hks := knowledgeSoundness_holds
   refine le_trans (prEvent_mono _ _ _ ?_) (hks A Q hA)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, c⟩ ⟨hb, hprog, hno⟩
   dsimp only at hb hprog hno

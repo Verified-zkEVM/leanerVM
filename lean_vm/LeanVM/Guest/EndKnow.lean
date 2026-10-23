@@ -34,14 +34,14 @@ body at its frame with every call located (`mainBodyL_of`); B1 gives `main`'s me
 decoded witness (`B1.Main.main_sound_w`), each callee's witness the one its located frame holds.
 
 `aggregate_knowledge`: in the random-oracle experiment, the verifier accepts a proof of the guest
-whose extracted execution (`LeanVM.extract`) does not decode so with probability at most
-`soundnessError Q`.
+whose execution extracted from the adversary's answers and the proof (`LeanVM.extractor`) does not
+decode so with probability at most `soundnessError Q`.
 
 `decode_binds`: a consumer whose own statement `s₀` (its deferred claim true) has, under the
 deployed seed `iv`, the public input's digest learns that the decoded seed and statement are `iv`
 and `s₀`, or holds an explicit BLAKE2s collision (`collisionCandidates`).
 
-`aggregate_sound_outer : AggregateSound guest LeanVM.extract decode`, the two composed.
+`aggregate_sound_outer : AggregateSound guest decode`, the two composed.
 -/
 
 namespace LeanVM.Guest.End
@@ -87,7 +87,7 @@ accepts a proof of the guest whose extracted execution does not decode (`Decodes
 probability at most `soundnessError Q`. -/
 theorem aggregate_knowledge (A : Adversary) (Q : ℕ) (hA : A.IsTotalQueryBound Q) :
     Pr{let z ← experiment A}[z.accepted ∧ z.program = guest ∧
-      ¬ ∃ t, LeanVM.extract z.program z.input z.cache z.proof = some t ∧
+      ¬ ∃ t, LeanVM.extractor z.program z.input z.adversaryCache z.proof = some t ∧
         DecodesOn guest z.input (decode t.image)] ≤ soundnessError Q := by
   refine le_trans (prEvent_mono _ _ _ ?_) (LeanVM.knowledgeSoundness hA)
   rintro ⟨⟨⟨⟨prog, input⟩, π⟩, b⟩, c⟩ ⟨hb, hprog, hno⟩
@@ -112,7 +112,7 @@ theorem decode_binds {input : PublicInput} {t : Trace guest} (hv : ValidExecutio
 probability `soundnessError Q`, an accepted aggregate's statement `s`, under the deployed seed and
 its deferred claim true, is the one the execution the proof commits to decodes, with a witness
 holding it, or that execution's decoding and `s` give an explicit BLAKE2s collision. -/
-theorem aggregate_sound_outer : AggregateSound guest LeanVM.extract decode := by
+theorem aggregate_sound_outer : AggregateSound guest decode := by
   intro A Q hA
   refine le_trans (prEvent_mono _ _ _ ?_) (aggregate_knowledge A Q hA)
   rintro z ⟨s, hb, hprog, hpub, ⟨-, hs⟩, hno⟩

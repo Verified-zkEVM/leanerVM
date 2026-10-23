@@ -1,6 +1,6 @@
 # leanSPHINCS security in Lean 4
 
-**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](../../crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](../../doc/lean_sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
+**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3f7dc2196e43ca60034c5803eb307c050b4f91d9/crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3f7dc2196e43ca60034c5803eb307c050b4f91d9/doc/lean_sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
 
 The game is [StatementDet.lean](Sphincs/StatementDet.lean). A uniform 32-byte seed `S0` generates the key (`Seeded.keygenFromSeed`: the scheme seed `S = H(leanSPHINCS ‖ S0)`, then everything from `S`), and the adversary gets the public key, the random oracle and a signing oracle running the deterministic signer `Seeded.sign`. It wins if the final `Concrete.verify` accepts its pair, the pair is not one the signing oracle returned, and the signing oracle answered at most `N` requests, repeats included. `HasClassicalSecurityBitsDet 127` says that for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls on every outcome, the probability of winning is at most `q / 2^127`. The count includes every call of the experiment: key generation, the signer and the final verification. Private sampling is free, and running time and memory are unbounded.
 
@@ -33,7 +33,7 @@ The two signers compute the same signature, but not with the same hash calls. Th
 ## Build
 
 ```sh
-cd formal/lean_sphincs
+cd lean_sphincs
 lake exe cache get
 lake build
 ```

@@ -11,6 +11,22 @@ import LeanVM.Guest.Batch.Rom
 #guard_msgs in
 #print axioms LeanVM.knowledgeSoundness_holds
 
+/-- info: 'LeanVM.candidates_ncard_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.candidates_ncard_le
+
+/-- info: 'LeanVM.soundnessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.soundnessError_le
+
+/-- info: 'LeanVM.completenessError_le' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.completenessError_le
+
+/-- info: 'LeanVM.Guest.guest_sentinelSafe' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms LeanVM.Guest.guest_sentinelSafe
+
 /-- info: 'LeanVM.completeness_holds' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms LeanVM.completeness_holds
