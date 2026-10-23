@@ -368,6 +368,26 @@ theorem tb_holdsList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
     obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hb
     exact h i (List.mem_range.mp hi)
 
+/-- Blocks without a return, one per index below `n`, hold exactly when each does, then `next`. -/
+theorem tb_holdsList_range_flatten (n : ℕ) (blk : ℕ → List Stmt)
+    (h : ∀ i, Stmt.noRetList (blk i) = true) (next : Prop) (kret : List E → Prop) :
+    Stmt.HoldsList C rd σ ((List.range n).map blk).flatten next kret ↔
+      (∀ i < n, Stmt.HoldsList C rd σ (blk i) True kret) ∧ next := by
+  rw [holdsList_flatten _ (fun b hb => by
+    obtain ⟨i, -, rfl⟩ := List.mem_map.mp hb
+    exact h i)]
+  simp only [List.mem_map, List.mem_range, forall_exists_index, and_imp,
+    forall_apply_eq_imp_iff₂]
+
+/-- A forward branch whose blocks have no `ret` holds, then its continuation. -/
+theorem tb_holds_ite_noRet (c : V) (z n : List Stmt)
+    (hz : Stmt.noRetList z = true) (hn : Stmt.noRetList n = true) (next : Prop) :
+    Stmt.Holds C rd σ (.ite c z n) next kret ↔
+      (IsInK (σ c) ∧ (σ c = 0 → Stmt.HoldsList C rd σ z True kret) ∧
+        (σ c ≠ 0 → Stmt.HoldsList C rd σ n True kret)) ∧ next := by
+  rw [holds_noRet (.ite c z n) (by simp [Stmt.noRet, hz, hn]) next kret]
+  rfl
+
 end Blocks
 
 /-! ## Building valuations -/
