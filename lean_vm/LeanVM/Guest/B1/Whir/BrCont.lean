@@ -108,9 +108,11 @@ def finI : ℕ → E
 
 /-! ## The buffers' words -/
 
-/-- The level owning word `k` of a buffer split at the offsets `off` (the last level whose offset
-is at most `k`, level `0` below every offset). -/
-def ownerOf (off : ℕ → ℕ) (n k : ℕ) : ℕ := ((List.range n).filter fun i ↦ 1 ≤ i ∧ off i ≤ k).length
+/-- The level owning word `k` of a buffer split at the offsets `off`: the last level `l < n`,
+`l ≥ 1`, whose offset is at most `k`, level `0` below every offset. -/
+def ownerOf (off : ℕ → ℕ) : ℕ → ℕ → ℕ
+  | 0, _ => 0
+  | n + 1, k => if 1 ≤ n ∧ off n ≤ k then n else ownerOf off n k
 
 /-- `fold_challenges`. -/
 def fchC : List E := (List.range c.nFolds).map fun j ↦ tr.Fall.getD j 0
