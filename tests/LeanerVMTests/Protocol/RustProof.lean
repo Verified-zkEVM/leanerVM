@@ -217,7 +217,7 @@ def seed : FsState := FsState.seed fx.prog fx.input
 
 /-- The setup's reads on a stream. -/
 def runSetup (stream : List E) : Except ReadError Digest :=
-  (((walkSetup (m := Id) blake2sBytes).run' ⟨seed, stream, []⟩).run : Id _)
+  (((walkSetup (readerOps (m := Id) blake2sBytes)).run' ⟨seed, stream, []⟩).run : Id _)
 
 -- The root is the two scalars after the sizes.
 #guard match runSetup fx.proof.stream with

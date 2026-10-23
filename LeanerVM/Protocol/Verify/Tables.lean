@@ -67,19 +67,19 @@ structure PubWire where
 
 section Walk
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
 /-- The table sumcheck's reads: `ξ`, `τmax` rounds of three wire coefficients, `nCols` values. -/
-def walkTables (τmax nCols : ℕ) : Walk m TableWire := do
-  let xi ← Reader.sample H
-  let rounds ← readRounds H 3 τmax
-  let finals ← Reader.nextScalars H nCols
+def walkTables (τmax nCols : ℕ) : n TableWire := do
+  let xi ← ops.sample
+  let rounds ← readRounds ops 3 τmax
+  let finals ← ops.nextScalars nCols
   return ⟨xi, rounds, finals⟩
 
 /-- The public-input phase's reads: `r`, then `nSent` values. -/
-def walkPub (nSent : ℕ) : Walk m PubWire := do
-  let r ← Reader.sample H
-  let values ← Reader.nextScalars H nSent
+def walkPub (nSent : ℕ) : n PubWire := do
+  let r ← ops.sample
+  let values ← ops.nextScalars nSent
   return ⟨r, values⟩
 
 end Walk

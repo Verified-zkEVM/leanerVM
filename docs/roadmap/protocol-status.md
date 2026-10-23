@@ -1091,11 +1091,24 @@ Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's ve
   derived count: `scripts/whir-mca-budget.py` finds it at all 168 such levels of the window, one
   sample giving 150.4 to 172.4 bits (`Parameters/Whir.lean`, `oodSamples`). The test module checks the honest proof and the
   mutations rejected before the walk passes its setup's reads. Owed: `verifierQueries`,
-  `proofDigests`, `rounds` and their bounds, `verifyWith_simulateQ`, `decodePrefix` and
-  `verify_iff_compiled`, which needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, the
-  instance's known-coordinate evaluators equal to the extensions (they are, by the field
-  `ext_eq`), and `busOutWith` at the settled share equal to `Bus.busOut` (by `bytecodeShare_eq`,
-  at the bytecode blocks' points; checked on the fixture).
+  `proofDigests`, `rounds` and their bounds, `decodePrefix` and `verify_iff_compiled`, which
+  needs `blake2sRows = (blake2sCircuit.toBlockR1CS E).rows`, the instance's known-coordinate
+  evaluators equal to the extensions (they are, by the field `ext_eq`), and `busOutWith` at the
+  settled share equal to `Bus.busOut` (by `bytecodeShare_eq`, at the bytecode blocks' points;
+  checked on the fixture).
+
+- **The walk's primitives and the transport** (`Protocol/Verify/Setup.lean`,
+  `Protocol/Verify/Hom.lean`): every walk is written once over `ChainOps n`, the five primitives
+  in any monad (read a scalar, squeeze a challenge, read a root, read and check a grinding nonce,
+  which returns the nonce, and open the next commitment); `readerOps H` is the proof reader's,
+  `ChainOps.logged` records any reader's steps, and `walkProof` is the verifier's reads in their
+  stages, the whole chain walk before any opening (on the fixture the logged walk reads the whole
+  stream, checks four nonces and opens the four commitments last). `verifyWith_hom`: for a monad
+  morphism `φ`, `φ (verifyWith H prog input proof) = verifyWith (fun t ↦ φ (H t)) prog input
+  proof`, proved through every walk along any morphism of its primitives (`walkProof_hom`), the
+  reader's operations along the lifted morphism (`ReadM.mapHom`), the chain's steps and the
+  Merkle check (`MerkleTree.octopusRoot_hom`, generic); `verifyWith_simulateQ` is its instance at
+  `simulateQ impl` for the hash oracle `List UInt8 →ₒ Digest` of the random-oracle game.
 
 ## Upstream watch
 

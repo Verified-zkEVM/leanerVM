@@ -78,20 +78,20 @@ structure FlockWire where
 
 section Walk
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
 /-- The Flock phase's reads for `2 ^ k` compressions: `k + 1` drawn coordinates, `8 + k`
 zerocheck rounds and `8` lincheck rounds (`flockParams`). -/
-def walkFlock (k : ℕ) : Walk m FlockWire := do
-  let point ← samples H (k + 1)
-  let skip ← Reader.nextScalars H (2 ^ Flock.kSkip)
-  let zskip ← Reader.sample H
-  let zc ← readRounds H 2 (Flock.kIn + k)
-  let ab ← Reader.nextScalars H 2
-  let alpha ← Reader.sample H
-  let lin ← readRounds H 2 Flock.kIn
-  let slices ← Reader.nextScalars H (2 ^ Flock.kSkip)
-  let ring ← samples H 6
+def walkFlock (k : ℕ) : n FlockWire := do
+  let point ← samples ops (k + 1)
+  let skip ← ops.nextScalars (2 ^ Flock.kSkip)
+  let zskip ← ops.sample
+  let zc ← readRounds ops 2 (Flock.kIn + k)
+  let ab ← ops.nextScalars 2
+  let alpha ← ops.sample
+  let lin ← readRounds ops 2 Flock.kIn
+  let slices ← ops.nextScalars (2 ^ Flock.kSkip)
+  let ring ← samples ops 6
   return ⟨point, skip, zskip, zc, ab, alpha, lin, slices, ring⟩
 
 end Walk

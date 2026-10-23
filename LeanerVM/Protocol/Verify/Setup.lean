@@ -32,12 +32,17 @@ deployed Flock specification), its stack (`stackMu`, `nLanes`) and the WHIR ladd
 (`ladderOf`). The chain walk then observes the eight scalars and reads the commitment root, a
 digest as two scalars whose top limbs are zero (`pcs::read_commitment`; `verifier.py:1381-1382`).
 
-**The walk's primitives**, over the reader of `LeanerVM.Protocol.Proof` (`ReadM`): `samples n`
-squeezes `n` challenges; `readRound d` reads the `d` wire coefficients of a round polynomial,
-observing them, then squeezes its challenge, the order of every sumcheck of the bus and the
-table phases (`verifier.py:452-459`); a round whose challenge comes first is WHIR's and is read
-by its own walk. The walk records the wire scalars raw: the dropped coefficient is the
-algebra's to derive (`RoundPoly.decode`), since the chain never reads it.
+**The walk's primitives** (`ChainOps`): read a scalar, squeeze a challenge, read a root, read
+and check a grinding nonce, and open the next commitment. Every walk is written once over them,
+in any monad: the proof reader (`readerOps`, over the reader `ReadM` of
+`LeanerVM.Protocol.Proof`, an opening checked by `merkleVerifyWith`) answers them from a proof,
+and `ChainOps.logged` records each step of any other reader, so that the same walk runs on the
+proof, on a history of the chain's steps, or with a log. Over them: `samples n` squeezes `n`
+challenges; `readRound d` reads the `d` wire coefficients of a round polynomial, observing them,
+then squeezes its challenge, the order of every sumcheck of the bus and the table phases
+(`verifier.py:452-459`); a round whose challenge comes first is WHIR's and is read by its own
+walk. The walk records the wire scalars raw: the dropped coefficient is the algebra's to derive
+(`RoundPoly.decode`), since the chain never reads it.
 
 **Differences from the Rust.** None in what is accepted. The Rust checks each size as it reads
 it; here the eight are checked before the walk starts, which rejects the same proofs earlier.
@@ -83,9 +88,80 @@ def ladderOf (prog : Program) (s : Sizes) (ρ : ℕ) : Option (List Whir.Level) 
 
 /-! ## The chain walk's primitives -/
 
-/-- The chain walk's monad: the transcript reader over the deployed proof, whose openings are
-pruned Merkle paths. -/
+/-- The chain walk's five primitives in a monad `n`, on which every walk is written. -/
+structure ChainOps (n : Type → Type) where
+  /-- Read the next scalar, observed. -/
+  nextScalar : n E
+  /-- Squeeze a challenge. -/
+  sample : n E
+  /-- Read a digest as two observed scalars. -/
+  nextRoot : n Digest
+  /-- Read a grinding nonce, check that it clears the given number of bits and absorb it: the
+  nonce. -/
+  checkPow : ℕ → n E
+  /-- The next commitment's opening against `root`, for a tree of `2 ^ depth` leaves of
+  `leafWords` words whose stored rows are `rowWords` wide, at the given positions: the leaf
+  images, in position order. -/
+  nextOpening : (root : Digest) → (depth rowWords leafWords : ℕ) → List ℕ → n (List (List K))
+
+/-- The next `k` scalars, in order. -/
+def ChainOps.nextScalars {n : Type → Type} [Monad n] (ops : ChainOps n) : ℕ → n (List E)
+  | 0 => pure []
+  | k + 1 => do
+    let x ← ops.nextScalar
+    let xs ← ops.nextScalars k
+    return x :: xs
+
+/-- One step of a walk, as `ChainOps.logged` records it. -/
+inductive ChainEvent where
+  /-- A scalar read. -/
+  | scalar (x : E)
+  /-- A challenge squeezed. -/
+  | sample (x : E)
+  /-- A root read. -/
+  | root (d : Digest)
+  /-- A grinding nonce read and checked at the given number of bits. -/
+  | nonce (bits : ℕ) (x : E)
+  /-- A commitment opened against its root at the given positions. -/
+  | opening (root : Digest) (positions : List ℕ)
+
+/-- The primitives `ops`, each step appended to a log after it runs. -/
+def ChainOps.logged {n : Type → Type} [Monad n] (ops : ChainOps n) :
+    ChainOps (StateT (Array ChainEvent) n) where
+  nextScalar := do
+    let x ← ops.nextScalar
+    modify (·.push (.scalar x))
+    return x
+  sample := do
+    let x ← ops.sample
+    modify (·.push (.sample x))
+    return x
+  nextRoot := do
+    let d ← ops.nextRoot
+    modify (·.push (.root d))
+    return d
+  checkPow bits := do
+    let x ← ops.checkPow bits
+    modify (·.push (.nonce bits x))
+    return x
+  nextOpening root depth rowWords leafWords ps := do
+    let rows ← ops.nextOpening root depth rowWords leafWords ps
+    modify (·.push (.opening root ps))
+    return rows
+
+/-- The chain walk's monad on a proof: the transcript reader over the deployed proof, whose
+openings are pruned Merkle paths. -/
 abbrev Walk (m : Type → Type) : Type → Type := ReadM m PrunedMerklePaths
+
+/-- The proof reader's primitives, every hash answered by `H`: the reader's operations on the
+proof (`Reader`), an opening checked by `merkleVerifyWith`. -/
+def readerOps {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) : ChainOps (Walk m) where
+  nextScalar := Reader.nextScalar H
+  sample := Reader.sample H
+  nextRoot := Reader.nextRoot H
+  checkPow := Reader.checkPow H
+  nextOpening root depth rowWords leafWords ps :=
+    Reader.nextOpening (merkleVerifyWith H root depth rowWords leafWords ps)
 
 /-- One sumcheck round as read: the wire coefficients, low degree first with the dropped one
 missing, and the challenge drawn after them. -/
@@ -96,36 +172,36 @@ structure Round where
   chal : E
   deriving Inhabited
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
-/-- `n` challenges, squeezed in order (`samples`). -/
-def samples : ℕ → Walk m (List E)
+/-- `k` challenges, squeezed in order (`samples`). -/
+def samples : ℕ → n (List E)
   | 0 => pure []
-  | n + 1 => do
-    let x ← Reader.sample H
-    let xs ← samples n
+  | k + 1 => do
+    let x ← ops.sample
+    let xs ← samples k
     return x :: xs
 
 /-- A round whose `d` wire coefficients are read, and observed, before its challenge is
 squeezed (`sumcheck`, `verifier.py:452-459`). -/
-def readRound (d : ℕ) : Walk m Round := do
-  let wire ← Reader.nextScalars H d
-  let chal ← Reader.sample H
+def readRound (d : ℕ) : n Round := do
+  let wire ← ops.nextScalars d
+  let chal ← ops.sample
   return ⟨wire, chal⟩
 
-/-- `n` rounds of `d` wire coefficients each. -/
-def readRounds (d : ℕ) : ℕ → Walk m (List Round)
+/-- `k` rounds of `d` wire coefficients each. -/
+def readRounds (d : ℕ) : ℕ → n (List Round)
   | 0 => pure []
-  | n + 1 => do
-    let r ← readRound H d
-    let rs ← readRounds d n
+  | k + 1 => do
+    let r ← readRound ops d
+    let rs ← readRounds d k
     return r :: rs
 
 /-- The setup's reads: the eight announced scalars, observed, then the commitment root
 (`read_public`, `read_commitment`). -/
-def walkSetup : Walk m Digest := do
-  let _ ← Reader.nextScalars H 8
-  Reader.nextRoot H
+def walkSetup : n Digest := do
+  let _ ← ops.nextScalars 8
+  ops.nextRoot
 
 /-! ## The rounds' decoding -/
 

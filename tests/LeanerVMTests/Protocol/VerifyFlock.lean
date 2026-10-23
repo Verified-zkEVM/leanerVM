@@ -94,11 +94,11 @@ def walkMismatches (rows : List ℕ := List.range (2 ^ (Flock.kSkip + Flock.kIn)
 def flockWire (f : Fixture) (s : Sizes) : Except ReadError FlockWire :=
   let I := leanVm f.prog s
   (((do
-      let _ ← walkSetup (m := Id) blake2sBytes
-      let _ ← walkBus blake2sBytes I.μBus I.busClaims
-      let _ ← walkTables blake2sBytes I.τmax I.tableColumns
-      let _ ← walkPub blake2sBytes (PublicInput.sentCount I (I.publicLines f.input))
-      walkFlock blake2sBytes (s.τ 5)).run'
+      let _ ← walkSetup (readerOps (m := Id) blake2sBytes)
+      let _ ← walkBus (readerOps blake2sBytes) I.μBus I.busClaims
+      let _ ← walkTables (readerOps blake2sBytes) I.τmax I.tableColumns
+      let _ ← walkPub (readerOps blake2sBytes) (PublicInput.sentCount I (I.publicLines f.input))
+      walkFlock (readerOps blake2sBytes) (s.τ 5)).run'
     ⟨FsState.seed f.prog f.input, f.proof.stream, []⟩).run : Id _)
 
 #guard match flockWire fx sizes.1 with

@@ -25,14 +25,19 @@ and `python-verifier/verifier.py:1365-1407` (`verify_execution`).
    stream, pass `read_public`'s checks; the WHIR ladder of the stack exists; the openings have the
    number and shapes the ladder fixes. Nothing is hashed before these pass, and nothing at all on
    a proof they reject.
-2. **The chain walk** (`walkChain`): from the statement's seed (`FsState.seed`, a constant of the
-   statement), every chain step and grinding check in stream order: the eight sizes observed, the
-   commitment root, the bus phase, the table sumcheck, the public input, the Flock phase, the
-   opening's batching challenge `λ` and WHIR. It records the wire transcript (`Wire`): the
-   scalars sent, raw, the challenges, the nonces, the roots and the positions.
+2. **The chain walk** (`walkChain`): from the statement's seed (`FsState.seed`, a constant of
+   the statement), every chain step and grinding check in stream order: the eight sizes
+   observed, the commitment root, the bus phase, the table sumcheck, the public input, the Flock
+   phase, the opening's batching challenge `λ` and WHIR. It records the wire transcript
+   (`Wire`): the scalars sent, raw, the challenges, the nonces, the roots and the positions.
 3. **The Merkle openings** (`walkOpenings`): every level's pruned opening against its root at its
    positions, by `merkleVerifyWith H`; the rows. Then the stream and the openings must be fully
    consumed (`Reader.finish`).
+
+The walk and the openings are `walkProof`, written over the walk's primitives (`ChainOps`) and run
+here on the proof reader's, `readerOps H`; the same walk runs on any other reader of the chain.
+`LeanerVM.Protocol.Verify.Hom` carries `verifyWith` along a monad morphism of the hash's monads
+(`verifyWith_hom`, `verifyWith_simulateQ`).
 4. **The algebra** (`algebra`), phase by phase, pure: the oracle verifiers' checks and outputs
    on the wire transcript (`leanVmBus`, `tableStep`, `pubStep`, `flockStep`), the opening's pool
    batched by the powers of `λ` (`Opening.poolList`: the ring-switched claim first, the column
@@ -94,21 +99,28 @@ structure Wire where
 
 section Walk
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
 /-- The chain walk on the instance of `prog` at the sizes `s`, with the opening's levels `shs`:
 every phase's reads in stream order. -/
 def walkChain (prog : Program) (s : Sizes) (input : PublicInput) (shs : List LevelShape) :
-    Walk m Wire := do
+    n Wire := do
   let I := leanVm prog s
-  let root ← walkSetup H
-  let bus ← walkBus H I.μBus I.busClaims
-  let table ← walkTables H I.τmax I.tableColumns
-  let pub ← walkPub H (PublicInput.sentCount I (I.publicLines input))
-  let flock ← walkFlock H (s.τ 5)
-  let lam ← Reader.sample H
-  let (whirFirst, whir) ← walkWhir H shs
+  let root ← walkSetup ops
+  let bus ← walkBus ops I.μBus I.busClaims
+  let table ← walkTables ops I.τmax I.tableColumns
+  let pub ← walkPub ops (PublicInput.sentCount I (I.publicLines input))
+  let flock ← walkFlock ops (s.τ 5)
+  let lam ← ops.sample
+  let (whirFirst, whir) ← walkWhir ops shs
   return ⟨root, bus, table, pub, flock, lam, whirFirst, whir⟩
+
+/-- The verifier's reads in their stages: the whole chain walk, then every level's opening. -/
+def walkProof (prog : Program) (s : Sizes) (input : PublicInput) (shs : List LevelShape) :
+    n (Wire × List (List (List K))) := do
+  let w ← walkChain ops prog s input shs
+  let rows ← walkOpenings ops (nLanes prog s) true w.root shs w.whir
+  return (w, rows)
 
 end Walk
 
@@ -159,10 +171,9 @@ def verifyWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (prog
       if !openingsOk (nLanes prog s) true shs proof.merkle then pure false
       else do
         let r ← ((do
-            let w ← walkChain H prog s input shs
-            let rows ← walkOpenings H (nLanes prog s) true w.root shs w.whir
+            let x ← walkProof (readerOps H) prog s input shs
             Reader.finish
-            return (w, rows) : Walk m (Wire × List (List (List K)))).run'
+            return x : Walk m (Wire × List (List (List K)))).run'
           ⟨FsState.seed prog input, proof.stream, proof.merkle⟩).run
         match r with
         | .error _ => pure false

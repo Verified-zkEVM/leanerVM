@@ -30,7 +30,7 @@ rows store only the `nLanes` committed lanes, the rest of the leaf image being z
 a quadratic, `c_1` dropped); per level, `ℓ_i` fold rounds, each a challenge and then the next
 round polynomial; on a level with a successor, the next root, the `κ_i` out-of-domain
 coordinates, the value there and its round polynomial; on the last, the `2 ^ κ_i` residual
-values; then the grinding nonce, checked for 17 bits and absorbed (`Reader.checkPow`); the query
+values; then the grinding nonce, checked for 17 bits and absorbed (`ChainOps.checkPow`); the query
 positions, `⌊192/(κ_i + R_i)⌋` to a squeeze, low bits first (`walkPositions`); the level's
 batching challenge; the query batch's round polynomial; on the last level, the tail rounds, each
 a challenge and, but for the last, the next round polynomial. `walkOpenings` reads every level's
@@ -152,24 +152,24 @@ structure WhirLevel where
 
 section Walk
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
-/-- `n` fold rounds: a challenge, then two wire coefficients. -/
-def walkFolds : ℕ → Walk m (List Fold)
+/-- `k` fold rounds: a challenge, then two wire coefficients. -/
+def walkFolds : ℕ → n (List Fold)
   | 0 => pure []
-  | n + 1 => do
-    let c ← Reader.sample H
-    let w ← Reader.nextScalars H 2
-    let rest ← walkFolds n
+  | k + 1 => do
+    let c ← ops.sample
+    let w ← ops.nextScalars 2
+    let rest ← walkFolds k
     return ⟨c, w⟩ :: rest
 
-/-- `n` tail rounds: a challenge, then two wire coefficients but after the last. -/
-def walkTail : ℕ → Walk m (List Fold)
+/-- `k` tail rounds: a challenge, then two wire coefficients but after the last. -/
+def walkTail : ℕ → n (List Fold)
   | 0 => pure []
-  | n + 1 => do
-    let c ← Reader.sample H
-    let w ← if n = 0 then pure [] else Reader.nextScalars H 2
-    let rest ← walkTail n
+  | k + 1 => do
+    let c ← ops.sample
+    let w ← if k = 0 then pure [] else ops.nextScalars 2
+    let rest ← walkTail k
     return ⟨c, w⟩ :: rest
 
 /-- The integer of a challenge's 192 bits, limb 0 lowest. -/
@@ -179,54 +179,52 @@ def chalBits (x : E) : ℕ :=
 
 /-- `need` positions of `depth` bits: each squeeze gives `⌊192/depth⌋` of them, low bits first
 (`sample_queries_ordered`). -/
-def walkPositions (depth : ℕ) : (fuel need : ℕ) → Walk m (List ℕ)
+def walkPositions (depth : ℕ) : (fuel need : ℕ) → n (List ℕ)
   | 0, _ => pure []
   | _, 0 => pure []
   | fuel + 1, need + 1 => do
-    let x ← Reader.sample H
+    let x ← ops.sample
     let k := min (192 / depth) (need + 1)
     let ps := (List.range k).map fun c ↦ chalBits x / 2 ^ (c * depth) % 2 ^ depth
     let rest ← walkPositions depth fuel (need + 1 - k)
     return ps ++ rest
 
 /-- A level's reads. -/
-def walkLevel (sh : LevelShape) : Walk m WhirLevel := do
-  let folds ← walkFolds H sh.fold
-  let residual ← if sh.final then Reader.nextScalars H (2 ^ sh.msgLog) else pure []
-  let root ← if sh.final then pure none else some <$> Reader.nextRoot H
-  let ood ← if sh.final then pure [] else samples H sh.msgLog
-  let oodValue ← if sh.final then pure 0 else Reader.nextScalar H
-  let oodWire ← if sh.final then pure [] else Reader.nextScalars H 2
-  let nonce := ((← get).stream.headD 0)
-  Reader.checkPow H Whir.queryGrindingBits
-  let positions ← walkPositions H (sh.msgLog + sh.rate) sh.queries sh.queries
-  let lam ← Reader.sample H
-  let queryWire ← Reader.nextScalars H 2
-  let tail ← if sh.final then walkTail H sh.msgLog else pure []
+def walkLevel (sh : LevelShape) : n WhirLevel := do
+  let folds ← walkFolds ops sh.fold
+  let residual ← if sh.final then ops.nextScalars (2 ^ sh.msgLog) else pure []
+  let root ← if sh.final then pure none else some <$> ops.nextRoot
+  let ood ← if sh.final then pure [] else samples ops sh.msgLog
+  let oodValue ← if sh.final then pure 0 else ops.nextScalar
+  let oodWire ← if sh.final then pure [] else ops.nextScalars 2
+  let nonce ← ops.checkPow Whir.queryGrindingBits
+  let positions ← walkPositions ops (sh.msgLog + sh.rate) sh.queries sh.queries
+  let lam ← ops.sample
+  let queryWire ← ops.nextScalars 2
+  let tail ← if sh.final then walkTail ops sh.msgLog else pure []
   return ⟨folds, root, ood, oodValue, oodWire, residual, nonce, positions, lam, queryWire, tail⟩
 
 /-- The levels' reads. -/
-def walkLevels : List LevelShape → Walk m (List WhirLevel)
+def walkLevels : List LevelShape → n (List WhirLevel)
   | [] => pure []
   | sh :: shs => do
-    let l ← walkLevel H sh
+    let l ← walkLevel ops sh
     let ls ← walkLevels shs
     return l :: ls
 
 /-- The opening's reads: the first round polynomial's wire, then the levels. -/
-def walkWhir (shs : List LevelShape) : Walk m (List E × List WhirLevel) := do
-  let first ← Reader.nextScalars H 2
-  let levels ← walkLevels H shs
+def walkWhir (shs : List LevelShape) : n (List E × List WhirLevel) := do
+  let first ← ops.nextScalars 2
+  let levels ← walkLevels ops shs
   return (first, levels)
 
-/-- Every level's pruned opening, checked against its root at its positions: the commitment
-root at level 0, the root the previous level sent after. The rows, level by level, in query
-order. -/
+/-- Every level's opening, checked against its root at its positions: the commitment root at
+level 0, the root the previous level sent after. The rows, level by level, in query order. -/
 def walkOpenings (nLanes : ℕ) : Bool → Digest → List LevelShape → List WhirLevel →
-    Walk m (List (List (List K)))
+    n (List (List (List K)))
   | first, root, sh :: shs, l :: ls => do
-    let rows ← Reader.nextOpening (merkleVerifyWith H root (sh.msgLog + sh.rate)
-      (rowWordsOf nLanes first sh) (leafWordsOf first sh) l.positions)
+    let rows ← ops.nextOpening root (sh.msgLog + sh.rate) (rowWordsOf nLanes first sh)
+      (leafWordsOf first sh) l.positions
     let rest ← walkOpenings nLanes false (l.root.getD root) shs ls
     return rows :: rest
   | _, _, _, _ => pure []

@@ -92,10 +92,9 @@ def outcome (p : Proof PrunedMerklePaths) : Outcome :=
       if !openingsOk (nLanes f.prog s) true shs p.merkle then .openings
       else
         match ((do
-            let w ← walkChain (m := Id) blake2sBytes f.prog s f.input shs
-            let rows ← walkOpenings blake2sBytes (nLanes f.prog s) true w.root shs w.whir
+            let x ← walkProof (readerOps blake2sBytes) f.prog s f.input shs
             Reader.finish
-            return (w, rows) : Walk Id (Wire × List (List (List K)))).run'
+            return x : Walk Id (Wire × List (List (List K)))).run'
           ⟨FsState.seed f.prog f.input, p.stream, p.merkle⟩).run with
         | .error e => .read e
         | .ok (w, rows) => algebraOutcome f.prog s f.input shs w rows
@@ -127,7 +126,7 @@ def wire : Option Wire :=
   | none => none
   | some (s, ρ) =>
     let shs := levelShapes (stackMu f.prog s) ((ladderOf f.prog s ρ).getD [])
-    match ((walkChain (m := Id) blake2sBytes f.prog s f.input shs).run'
+    match ((walkChain (readerOps (m := Id) blake2sBytes) f.prog s f.input shs).run'
       ⟨FsState.seed f.prog f.input, f.proof.stream, f.proof.merkle⟩).run with
     | .ok w => some w
     | .error _ => none
@@ -226,6 +225,45 @@ def mutations : List Mutation := cheap ++ [
 #guard offsets.length == 13 && offsets.all (fun i ↦ 10 ≤ i && i < fx.proof.stream.length) &&
   decide offsets.Nodup && offsets.getD 7 0 + 1 == fx.proof.stream.length
 
+/-! ## The same walk, logged -/
+
+/-- The honest proof's reads in their stages, on the proof reader with every step logged
+(`ChainOps.logged`). -/
+def loggedWalk : Array ChainEvent :=
+  let f := fx
+  match setup? f.prog f.proof with
+  | none => #[]
+  | some (s, ρ) =>
+    let shs := levelShapes (stackMu f.prog s) ((ladderOf f.prog s ρ).getD [])
+    match ((((walkProof (readerOps (m := Id) blake2sBytes).logged f.prog s f.input shs).run
+        #[]).run' ⟨FsState.seed f.prog f.input, f.proof.stream, f.proof.merkle⟩).run) with
+    | .ok (_, log) => log
+    | .error _ => #[]
+
+/-- The stream scalars a logged step read. -/
+def scalarsRead : ChainEvent → ℕ
+  | .scalar _ => 1
+  | .root _ => 2
+  | .nonce _ _ => 1
+  | _ => 0
+
+/-- A logged grinding check. -/
+def isNonce : ChainEvent → Bool
+  | .nonce _ _ => true
+  | _ => false
+
+/-- A logged opening. -/
+def isOpening : ChainEvent → Bool
+  | .opening _ _ => true
+  | _ => false
+
+-- The logged walk reads the whole stream, checks four grinding nonces, and opens the four
+-- commitments last, after every step of the chain.
+#guard (loggedWalk.toList.map scalarsRead).sum == fx.proof.stream.length &&
+  (loggedWalk.toList.filter isNonce).length == 4 &&
+  (loggedWalk.toList.drop (loggedWalk.size - 4)).all isOpening &&
+  !(loggedWalk.toList.take (loggedWalk.size - 4)).any isOpening
+
 /-! ## WHIR's algebra on the honest transcript -/
 
 /-- A change of WHIR's honest inputs: the stored rows, and the level at an index. -/
@@ -240,10 +278,7 @@ def whirChecks (muts : List WhirMutation) : List Bool :=
   | none => []
   | some (s, ρ) =>
     let shs := levelShapes (stackMu f.prog s) ((ladderOf f.prog s ρ).getD [])
-    match ((do
-        let w ← walkChain (m := Id) blake2sBytes f.prog s f.input shs
-        let rows ← walkOpenings blake2sBytes (nLanes f.prog s) true w.root shs w.whir
-        return (w, rows) : Walk Id (Wire × List (List (List K)))).run'
+    match ((walkProof (readerOps (m := Id) blake2sBytes) f.prog s f.input shs).run'
       ⟨FsState.seed f.prog f.input, f.proof.stream, f.proof.merkle⟩).run with
     | .error _ => []
     | .ok (w, rows) =>

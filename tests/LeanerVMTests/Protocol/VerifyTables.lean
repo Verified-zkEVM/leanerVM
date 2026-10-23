@@ -23,10 +23,10 @@ open LeanerVM.Protocol.LeanIsa LeanerVM.Protocol.Verify LeanerVMTests.Protocol.R
 def wires (f : Fixture) (s : Sizes) : Except ReadError (BusWire × TableWire × PubWire) :=
   let I := leanVm f.prog s
   (((do
-      let _ ← walkSetup (m := Id) blake2sBytes
-      let b ← walkBus blake2sBytes I.μBus I.busClaims
-      let t ← walkTables blake2sBytes I.τmax I.tableColumns
-      let p ← walkPub blake2sBytes (PublicInput.sentCount I (I.publicLines f.input))
+      let _ ← walkSetup (readerOps (m := Id) blake2sBytes)
+      let b ← walkBus (readerOps blake2sBytes) I.μBus I.busClaims
+      let t ← walkTables (readerOps blake2sBytes) I.τmax I.tableColumns
+      let p ← walkPub (readerOps blake2sBytes) (PublicInput.sentCount I (I.publicLines f.input))
       return (b, t, p)).run'
     ⟨FsState.seed f.prog f.input, f.proof.stream, []⟩).run : Id _)
 

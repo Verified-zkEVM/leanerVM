@@ -32,8 +32,8 @@ def e3 (a b c : ℕ) : E := E.ofLimbs (K.ofBits a) (K.ofBits b) (K.ofBits c)
 /-- The bus phase's wire, read from the seed on the fixture's stream. -/
 def busWire (f : Fixture) (s : Sizes) : Except ReadError BusWire :=
   (((do
-      let _ ← walkSetup (m := Id) blake2sBytes
-      walkBus blake2sBytes (leanVm f.prog s).μBus (leanVm f.prog s).busClaims).run'
+      let _ ← walkSetup (readerOps (m := Id) blake2sBytes)
+      walkBus (readerOps blake2sBytes) (leanVm f.prog s).μBus (leanVm f.prog s).busClaims).run'
     ⟨FsState.seed f.prog f.input, f.proof.stream, []⟩).run : Id _)
 
 /-- The fixture, its sizes and its bus wire, read once. -/

@@ -102,37 +102,37 @@ def gkrRadices (μ : ℕ) : List ℕ := (if μ % 2 = 1 then [1] else []) ++ List
 
 section Walk
 
-variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
+variable {n : Type → Type} [Monad n] (ops : ChainOps n)
 
 /-- The layer of radix `2 ^ ρ` at depth `j`: `j` rounds of `2 ^ ρ` wire coefficients, the
 `2 ^ ρ` descendants of each tree, `ρ` combination challenges and the next combiner. -/
-def walkLayer (ρ j : ℕ) : Walk m GkrLayer := do
-  let rounds ← readRounds H (2 ^ ρ) j
-  let c₀ ← Reader.nextScalars H (2 ^ ρ)
-  let c₁ ← Reader.nextScalars H (2 ^ ρ)
-  let c₂ ← Reader.nextScalars H (2 ^ ρ)
-  let combos ← samples H ρ
-  let combiner ← Reader.sample H
+def walkLayer (ρ j : ℕ) : n GkrLayer := do
+  let rounds ← readRounds ops (2 ^ ρ) j
+  let c₀ ← ops.nextScalars (2 ^ ρ)
+  let c₁ ← ops.nextScalars (2 ^ ρ)
+  let c₂ ← ops.nextScalars (2 ^ ρ)
+  let combos ← samples ops ρ
+  let combiner ← ops.sample
   return ⟨rounds, [c₀, c₁, c₂], combos, combiner⟩
 
 /-- The layers of the given radix exponents, from depth `j` down. -/
-def walkLayers : List ℕ → ℕ → Walk m (List GkrLayer)
+def walkLayers : List ℕ → ℕ → n (List GkrLayer)
   | [], _ => pure []
   | ρ :: rest, j => do
-    let l ← walkLayer H ρ j
+    let l ← walkLayer ops ρ j
     let ls ← walkLayers rest (j + ρ)
     return l :: ls
 
 /-- The bus phase's reads, at the leaf stacks' depth `μBus` and with `nValues` boundary
 columns. -/
-def walkBus (μBus nValues : ℕ) : Walk m BusWire := do
-  let alpha ← samples H 4
-  let beta ← Reader.sample H
-  let shared ← Reader.nextScalar H
-  let count ← Reader.nextScalar H
-  let combiner ← Reader.sample H
-  let layers ← walkLayers H (gkrRadices μBus) 0
-  let values ← Reader.nextScalars H nValues
+def walkBus (μBus nValues : ℕ) : n BusWire := do
+  let alpha ← samples ops 4
+  let beta ← ops.sample
+  let shared ← ops.nextScalar
+  let count ← ops.nextScalar
+  let combiner ← ops.sample
+  let layers ← walkLayers ops (gkrRadices μBus) 0
+  let values ← ops.nextScalars nValues
   return ⟨alpha, beta, shared, count, combiner, layers, values⟩
 
 end Walk
