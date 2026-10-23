@@ -14,13 +14,14 @@ public import LeanVM.Guest.B1.Whir.Facts
 /-!
 # The queries, placed
 
-**`os_q_completeAtD`**: level `l`'s `opening_queries` call, at its honest arguments (the cap and
+**`os_q_completeAtB`**: level `l`'s `opening_queries` call, at its honest arguments (the cap and
 flags at the level's offsets, `λ`, `λ^q`, the bit pointers at the level's offset, the row weights,
-`g^N`), is `CompleteAtD` on the callees' words `osLk`, the bit pointers `osW … l p` and the
-decoders' runs `osS … l p`, for every placement `p` of the level's squeeze loop, returning the
-level's enforced sum. From fork 2's `OqCompleteD` (its frame facts `OqFits` a hypothesis): the
-positions decoded, the bits in the runs, the row weights, the cap's cells and flags the honest cap
-holds at the openings' climbs (`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
+`g^N`), is `CompleteAtB`, by a tree of at most `oqBound` words, on the callees' words `osLk`, the
+bit pointers `osW … l p` and the decoders' runs `osS … l p`, for every placement `p` of the level's
+squeeze loop, returning the level's enforced sum; `os_q_completeAtD`, its `CompleteAtD`. From
+`OqCompleteDB` (its frame facts `OqFits` a hypothesis): the positions decoded, the bits in the
+runs, the row weights, the cap's cells and flags the honest cap holds at the openings' climbs
+(`SpLv.cap_writes`, the openings agreeing by `CapsAgree`).
 -/
 
 namespace LeanVM.Guest.B1
@@ -51,8 +52,9 @@ theorem osQShape_cd (c : OsCfg) (l : ℕ) : (osQShape c l).cd = (lvAt c l).capDe
 theorem pow_div_lt {q a b : ℕ} (h : q < 2 ^ (a + b)) : q / 2 ^ a < 2 ^ b :=
   Nat.div_lt_of_lt_mul (by rw [← pow_add]; exact h)
 
-/-- **Level `l`'s `opening_queries` call, placed**, for every placement `p` of its squeeze loop. -/
-theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
+/-- **Level `l`'s `opening_queries` call, placed**, for every placement `p` of its squeeze loop,
+by a tree of at most `oqBound` words: its frame, its chain buffer and its iterations' frames. -/
+theorem os_q_completeAtB (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
     {tr : OsTr} {μ r : ℕ} {target : E} {S : KState} {xs : List E}
     {os : List Opening} {root : Digest} (h : TrFit c tr)
     (hs : OsSizes c) (hrun : TrRun c μ r target S xs os root tr)
@@ -64,13 +66,15 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
     (hil : rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤
       c.maxIl)
     (hqo : (lvAt c l).queries + 1 < ordG) (b : ℕ) (Lin : Layout) (p : ℕ) :
-    CompleteAtD fs cert κ (osQueriesName l (lvAt c l))
+    CompleteAtB fs cert κ (osQueriesName l (lvAt c l))
       (osLk c tr b Lin ++ osW fs cert c b l p ++ osS fs cert c tr l p)
       [(osAtOf c b).P.caps * gen ^ (4 * (lvAt c l).capOff),
         (osAtOf c b).P.flags * gen ^ (lvAt c l).capOff, (tr.L l).lam,
         (tr.L l).lam ^ (lvAt c l).queries, (osAtOf c b).P.qbp * gen ^ (lvAt c l).posOff,
         osPtrAt c b (osIxWp l), gen ^ ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))]
-      (Returns [(tr.L l).enforced]) := by
+      (Returns [(tr.L l).enforced])
+      (oqBound fs (osQueriesName l (lvAt c l)) (oqLoopOf (osQueriesName l (lvAt c l)))
+        ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))) := by
   -- the level's facts
   have hil' : l < tr.Ls.length := by rw [h.len]; exact hl
   obtain ⟨R, d, hOk⟩ := h.ok l hl
@@ -107,7 +111,7 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
   have hloop : (osQueriesName l (lvAt c l), oqLoopOf (osQueriesName l (lvAt c l)), osQShape c l,
       (lvAt c l).queries % 2 * (if l = 0 then 1 else 0)) ∈ openingQueriesLoops :=
     shapes_loops hnm.2.2.2.2.2.1
-  have hOq := opening_queries_completeAtD fs cert _ hloop
+  have hOq := opening_queries_completeAtB fs cert _ hloop
   dsimp only at hOq
   have hQ := oqCount_q (lvAt c l).queries l
   have key := hOq hfits κ (osLk c tr b Lin ++ osW fs cert c b l p ++ osS fs cert c tr l p)
@@ -237,6 +241,28 @@ theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ
       simp only [osQShape_pd, osQShape_cd]
       rw [List.getD_eq_getElem _ _ hk1, List.getD_eq_getElem _ _ hk2]
       exact hw
+
+/-- **Level `l`'s `opening_queries` call, placed**, `CompleteAtD`. -/
+theorem os_q_completeAtD (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) {c : OsCfg}
+    {tr : OsTr} {μ r : ℕ} {target : E} {S : KState} {xs : List E}
+    {os : List Opening} {root : Digest} (h : TrFit c tr)
+    (hs : OsSizes c) (hrun : TrRun c μ r target S xs os root tr)
+    (hcaps : CapsAgree μ r target S xs os root) {l : ℕ} (hl : l < c.levels.length)
+    (hnm : NamesOk c l (lvAt c l))
+    (hfits : OqFits fs cert (osQueriesName l (lvAt c l)) (oqLoopOf (osQueriesName l (lvAt c l)))
+      (osQShape c l) ((lvAt c l).queries % 2 * (if l = 0 then 1 else 0)))
+    (hidx : (tr.L l).index = l) (hwd : (tr.L l).width = lvWidth l (lvAt c l))
+    (hil : rowLo (lvAt c l).interleave + (lvAt c l).interleave / rowLo (lvAt c l).interleave ≤
+      c.maxIl)
+    (hqo : (lvAt c l).queries + 1 < ordG) (b : ℕ) (Lin : Layout) (p : ℕ) :
+    CompleteAtD fs cert κ (osQueriesName l (lvAt c l))
+      (osLk c tr b Lin ++ osW fs cert c b l p ++ osS fs cert c tr l p)
+      [(osAtOf c b).P.caps * gen ^ (4 * (lvAt c l).capOff),
+        (osAtOf c b).P.flags * gen ^ (lvAt c l).capOff, (tr.L l).lam,
+        (tr.L l).lam ^ (lvAt c l).queries, (osAtOf c b).P.qbp * gen ^ (lvAt c l).posOff,
+        osPtrAt c b (osIxWp l), gen ^ ((lvAt c l).queries / (1 + if l = 0 then 1 else 0))]
+      (Returns [(tr.L l).enforced]) :=
+  (os_q_completeAtB fs cert κ h hs hrun hcaps hl hnm hfits hidx hwd hil hqo b Lin p).toCompleteAtD
 
 end
 end LeanVM.Guest.B1
