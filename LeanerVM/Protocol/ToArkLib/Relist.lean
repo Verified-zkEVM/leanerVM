@@ -53,9 +53,8 @@ namespace Component
 
 /-! ## Relations through a list -/
 
-/-- A relation over the oracles `O` read through a list: a statement and a value `o'` of the
-oracles `O'` are related when some value in `list o'` is related to the statement, with some
-witness. -/
+/-- A relation over the oracles `O` read through a list: a statement and `o'` are related when
+some value in `list o'` is related to the statement, with some witness. -/
 def relistRel {S W W' : Type} {ι ι' : Type} {O : ι → Type} {O' : ι' → Type}
     (list : (∀ i, O' i) → List (∀ i, O i)) (rel : Set ((S × ∀ i, O i) × W)) :
     Set ((S × ∀ i, O' i) × W') :=
@@ -213,10 +212,8 @@ def viaRel {S : Type} (good : (∀ i, O' i) → W' → Prop) (read : W' → ∀ 
     (rel : Set ((S × ∀ i, O i) × Unit)) : Set ((S × ∀ i, O' i) × W') :=
   {p | good p.1.2 p.2 ∧ ((p.1.1, read p.2), ()) ∈ rel}
 
-/-- **Completeness over other oracles.** A front component with the trivial witness, perfectly
-complete over `O`, run over `O'` with the prover that reads its oracles off the witness, is
-perfectly complete at the relations read through the witness: the honest runs are the old
-ones, and the two verifiers have one check and one verdict. -/
+/-- **Completeness over other oracles**: a perfectly complete front component, run over `O'` with
+the prover that reads its oracles off the witness, is complete at the relations read through it. -/
 theorem Front.over_complete {D : Def StmtIn O Unit StmtOut O Unit pSpec} (F : Front D)
     (o₀ : ∀ i, O i) (read : W' → ∀ i, O i) (good : (∀ i, O' i) → W' → Prop)
     {relIn : Set ((StmtIn × ∀ i, O i) × Unit)} {relOut : Set ((StmtOut × ∀ i, O i) × Unit)}
@@ -311,10 +308,8 @@ def Front.relistStateFunction :
     have hw' : ((F'.out s.1 tr, q), w) ∈ relOut := hw
     exact (congrArg (fun t ↦ ((t, q), w) ∈ relOut) (hout s.1 tr)).mp hw'
 
-/-- **Relisting**: a front component over `O`, round by round knowledge sound at `ε`, gives any
-front component over `O'` with the same check and verdict, round by round knowledge sound through
-lists of at most `L` values at `L · ε`, with the extractor that keeps the witness. Inlined before
-compilation, so the errors never reach compiled code. -/
+/-- **Relisting**: a front component's security at `ε` gives any front component over `O'` with the
+same check and verdict a security through lists of at most `L` values at `L · ε`. Inlined. -/
 @[macro_inline]
 def Front.relist {ε : pSpec.ChallengeIdx → ℝ≥0} (S : Security D relIn relOut ε) (L : ℕ)
     (hL : ∀ o, (list o).length ≤ L) :

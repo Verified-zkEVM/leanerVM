@@ -26,10 +26,13 @@ the list relation itself, so a decoder meets WHIR's list relation by its field `
 nothing else is to be trusted of it.
 
 * `candidateAt`: the messages whose encodings take the word's values at `2 ^ κ` distinct
-  positions, lane by lane, by one Gaussian elimination (`gaussSolve`) of the encoder's matrix over
-  `K` (`encodeMatrix`) with every lane as a right-hand side. Two codewords that agree on `2 ^ κ`
-  positions are equal (`encode_eq_of_agree`), so the matrix is injective and the messages are
-  found (`candidateAt_of_agree`).
+  positions, by one Gaussian elimination (`gaussSolve`) of the encoder's matrix over `K`
+  (`encodeMatrix`) whose right-hand side holds every lane at once (`LaneVec`, a vector over `E`
+  stored entry by entry). Two codewords that agree on `2 ^ κ` positions are equal
+  (`encode_eq_of_agree`), so the matrix is injective and the messages are found
+  (`candidateAt_of_agree`). It costs `O(2^(3κ))` operations in `K` and `2^κ` inversions for the
+  matrix, `O(2^(2κ+ℓ))` operations in `E` for the right-hand side, and the `κ · 2^(2κ)` values
+  `Ŵ_k(x)` of the rows.
 * `ListDecoder.bruteForce`: interpolate on every set of `2 ^ κ` positions and keep
   the candidates within the threshold. Correct for every threshold `a ≥ 2 ^ κ`: a codeword within
   the threshold agrees with the word on a set of `2 ^ κ` positions, where it is the candidate.
@@ -40,7 +43,9 @@ nothing else is to be trusted of it.
   `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`: a codeword within the threshold of a codeword agrees with it on
   `a ≥ 2 ^ κ` positions, so it is that codeword. `ListDecoder.exactFirst` tries it before another
   decoder, and at exact agreement it is a decoder on its own (`ListDecoder.exact`). It costs one
-  interpolation, not the deployed inverse transform.
+  `candidateAt` and a check of the whole word: `2^(κ+R+ℓ)` encodings of `O(κ · 2^κ)` operations
+  each (`encode_eq_sum`). The deployed prover's inverse transform would cost `O(2^κ κ)` per lane;
+  this path is not it.
 * `isInK_of_cl`: every codeword within the threshold of a `K`-valued word is `K`-valued: on
   `2 ^ κ` positions of agreement it is the interpolant of `K` values, which interpolation over
   `K` already finds.
@@ -189,46 +194,108 @@ theorem encodeRows_eq (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) :
   funext i u
   simp [encodeRows, encodeMatrix, Fin.getElem_fin]
 
-/-- The candidate of a family of `2 ^ κ` positions: the messages that, lane by lane, take the
-word's values there, by Gaussian elimination of the encoder's matrix over `K`; `none` only if the
-positions repeat. -/
+/-- The lanes' values at a position: one entry of `E` per lane, the right-hand side of one
+elimination for all lanes. Its operations are entry by entry, on a stored vector. -/
+structure LaneVec (m : ℕ) where
+  /-- The entries. -/
+  v : Vector E m
+
+namespace LaneVec
+
+variable {m : ℕ}
+
+instance : Zero (LaneVec m) := ⟨⟨Vector.replicate m 0⟩⟩
+instance : Add (LaneVec m) := ⟨fun a b ↦ ⟨Vector.zipWith (· + ·) a.v b.v⟩⟩
+instance : Neg (LaneVec m) := ⟨fun a ↦ ⟨a.v.map (- ·)⟩⟩
+instance : Sub (LaneVec m) := ⟨fun a b ↦ ⟨Vector.zipWith (· - ·) a.v b.v⟩⟩
+instance : SMul ℕ (LaneVec m) := ⟨fun k a ↦ ⟨a.v.map (k • ·)⟩⟩
+instance : SMul ℤ (LaneVec m) := ⟨fun k a ↦ ⟨a.v.map (k • ·)⟩⟩
+instance : SMul K (LaneVec m) := ⟨fun c a ↦ ⟨a.v.map (c • ·)⟩⟩
+
+theorem v_zero : (0 : LaneVec m).v = Vector.replicate m 0 := rfl
+theorem v_add (a b : LaneVec m) : (a + b).v = Vector.zipWith (· + ·) a.v b.v := rfl
+theorem v_neg (a : LaneVec m) : (-a).v = a.v.map (- ·) := rfl
+theorem v_sub (a b : LaneVec m) : (a - b).v = Vector.zipWith (· - ·) a.v b.v := rfl
+theorem v_nsmul (k : ℕ) (a : LaneVec m) : (k • a).v = a.v.map (k • ·) := rfl
+theorem v_zsmul (k : ℤ) (a : LaneVec m) : (k • a).v = a.v.map (k • ·) := rfl
+theorem v_smul (c : K) (a : LaneVec m) : (c • a).v = a.v.map (c • ·) := rfl
+
+/-- The entries as a function. -/
+def get (a : LaneVec m) : Fin m → E := fun i ↦ a.v[i]
+
+theorem get_injective : Function.Injective (get (m := m)) := fun a b h ↦ by
+  obtain ⟨a⟩ := a
+  obtain ⟨b⟩ := b
+  congr 1
+  exact Vector.ext fun i hi ↦ congrFun h ⟨i, hi⟩
+
+instance : AddCommGroup (LaneVec m) :=
+  get_injective.addCommGroup _ (by funext i; simp [get, v_zero])
+    (fun _ _ ↦ by funext i; simp [get, v_add]) (fun _ ↦ by funext i; simp [get, v_neg])
+    (fun _ _ ↦ by funext i; simp [get, v_sub]) (fun _ _ ↦ by funext i; simp [get, v_nsmul])
+    (fun _ _ ↦ by funext i; simp [get, v_zsmul])
+
+/-- The entries, additively. -/
+def getHom : LaneVec m →+ (Fin m → E) where
+  toFun := get
+  map_zero' := by funext i; simp [get, v_zero]
+  map_add' _ _ := by funext i; simp [get, v_add]
+
+instance : Module K (LaneVec m) :=
+  get_injective.module K getHom fun _ _ ↦ by funext i; simp [getHom, get, v_smul]
+
+/-- The entry of a lane of a sum of `K`-multiples. -/
+theorem get_sum_smul {N : ℕ} (u : Fin m) (c : Fin N → K) (x : Fin N → LaneVec m) :
+    (∑ j, c j • x j).get u = ∑ j, algebraMap K E (c j) * (x j).get u := by
+  have h := congrFun (map_sum getHom (fun j ↦ c j • x j) Finset.univ) u
+  rw [Finset.sum_apply] at h
+  refine h.trans (Finset.sum_congr rfl fun j _ ↦ ?_)
+  simp [getHom, get, v_smul, Algebra.smul_def]
+
+end LaneVec
+
+/-- The lanes of a word at the positions `T`, one lane vector per position. -/
+def laneRows (κ R ℓ : ℕ) (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) (F : LW (κ + R)) :
+    Fin (2 ^ κ) → LaneVec (2 ^ ℓ) :=
+  fun i ↦ ⟨Vector.ofFn fun u : Fin (2 ^ ℓ) ↦ F (T i) u⟩
+
+/-- The messages of the lanes, read off the solution of the elimination. -/
+def lanesOfSolution {κ ℓ : ℕ} (x : Vector (LaneVec (2 ^ ℓ)) (2 ^ κ)) : Msgs ℓ κ :=
+  fun u ↦ (Vector.ofFn fun j : Fin (2 ^ κ) ↦ x[j].get u : Vector E (2 ^ κ))
+
+/-- The candidate of a family of `2 ^ κ` positions: the messages whose encodings take the word's
+values there, by one Gaussian elimination of the encoder's matrix over `K` for all lanes. -/
 def candidateAt (κ R ℓ : ℕ) (T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))) (F : LW (κ + R)) :
     Option (Msgs ℓ κ) :=
   let rows := encodeRows κ R T
-  let sols := Vector.ofFn fun u : Fin (2 ^ ℓ) ↦
-    gaussSolve (2 ^ κ) (fun i j ↦ rows[i][j]) fun i ↦ F (T i) u
-  if hs : ∀ u : Fin (2 ^ ℓ), sols[u].isSome then some fun u ↦ sols[u].get (hs u) else none
+  (gaussSolve (2 ^ κ) (fun i j ↦ rows[i][j]) (laneRows κ R ℓ T F)).map lanesOfSolution
 
-/-- The candidate, lane by lane. -/
-theorem candidateAt_eq_some {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)}
-    {V : Msgs ℓ κ} : candidateAt κ R ℓ T F = some V ↔ ∀ u : Fin (2 ^ ℓ),
-      gaussSolve (2 ^ κ) (encodeMatrix (RingHom.id K) κ R T) (fun i ↦ F (T i) u) = some (V u) := by
+/-- The candidate is read off the elimination. -/
+theorem candidateAt_eq {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)} :
+    candidateAt κ R ℓ T F = (gaussSolve (2 ^ κ) (encodeMatrix (RingHom.id K) κ R T)
+      (laneRows κ R ℓ T F)).map lanesOfSolution := by
   rw [← encodeRows_eq]
-  simp only [candidateAt]
-  split
-  · rename_i hs
-    simp only [Option.some.injEq, Fin.getElem_fin, Vector.getElem_ofFn] at hs ⊢
-    constructor
-    · rintro rfl u
-      simp
-    · intro h
-      funext u
-      simp [h u]
-  · rename_i hs
-    simp only [reduceCtorEq, false_iff, not_forall]
-    simp only [Fin.getElem_fin, Vector.getElem_ofFn, not_forall] at hs
-    obtain ⟨u, hu⟩ := hs
-    refine ⟨u, fun hx ↦ ?_⟩
-    simp only [Fin.getElem_fin] at hx
-    rw [hx] at hu
-    exact hu rfl
+  rfl
+
+/-- A solution of the elimination encodes, lane by lane, to the word at the positions. -/
+private theorem encode_lanesOfSolution {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)}
+    {x : Vector (LaneVec (2 ^ ℓ)) (2 ^ κ)}
+    (hx : ∀ i, ∑ j, encodeMatrix (RingHom.id K) κ R T i j • x[j] = laneRows κ R ℓ T F i)
+    (i : Fin (2 ^ κ)) (u : Fin (2 ^ ℓ)) :
+    encode (algebraMap K E) κ R (lanesOfSolution x u) (T i) = F (T i) u := by
+  have h := congrArg (fun a ↦ LaneVec.get a u) (hx i)
+  simp only [LaneVec.get_sum_smul] at h
+  rw [encode_eq_sum_smul]
+  simp only [lanesOfSolution, Algebra.smul_def, Fin.getElem_fin, Vector.getElem_ofFn]
+  simpa [LaneVec.get, laneRows, Fin.getElem_fin] using h
 
 /-- A candidate's encoding takes the word's values at the positions. -/
 theorem candidateAt_sound {T : Fin (2 ^ κ) → Fin (2 ^ (κ + R))} {F : LW (κ + R)}
     {V : Msgs ℓ κ} (h : candidateAt κ R ℓ T F = some V) (i : Fin (2 ^ κ)) (u : Fin (2 ^ ℓ)) :
     encode (algebraMap K E) κ R (V u) (T i) = F (T i) u := by
-  rw [encode_eq_sum_smul]
-  simpa [Fin.getElem_fin] using gaussSolve_sound _ _ _ _ (candidateAt_eq_some.mp h u) i
+  rw [candidateAt_eq] at h
+  obtain ⟨x, hx, rfl⟩ := Option.map_eq_some_iff.mp h
+  exact encode_lanesOfSolution (gaussSolve_sound _ _ _ x hx) i u
 
 /-- The candidate at distinct positions where the codeword of `V` agrees with the word is
 `V`. -/
@@ -236,33 +303,32 @@ theorem candidateAt_of_agree (hb : κ + R ≤ 64) {T : Fin (2 ^ κ) → Fin (2 ^
     (hT : Function.Injective T) {F : LW (κ + R)} {V : Msgs ℓ κ}
     (hV : ∀ i (u : Fin (2 ^ ℓ)), encode (algebraMap K E) κ R (V u) (T i) = F (T i) u) :
     candidateAt κ R ℓ T F = some V := by
-  refine candidateAt_eq_some.mpr fun u ↦ ?_
   obtain ⟨x, hx, hsol⟩ := gaussSolve_of_injective (encodeMatrix (RingHom.id K) κ R T)
-    (fun i ↦ F (T i) u) (encodeMatrix_injective (RingHom.id K).injective hb hT)
-  rw [hx]
+    (laneRows κ R ℓ T F) (encodeMatrix_injective (RingHom.id K).injective hb hT)
+  rw [candidateAt_eq, hx, Option.map_some]
   congr 1
+  funext u
   refine encode_eq_of_agree (algebraMap K E) hb (algebraMap K E).injective
     (Finset.univ.map ⟨T, hT⟩) (by simp) fun y hy ↦ ?_
   obtain ⟨i, -, rfl⟩ := Finset.mem_map.mp hy
   change encode (algebraMap K E) κ R _ (T i) = encode (algebraMap K E) κ R (V u) (T i)
-  rw [hV i u, encode_eq_sum_smul]
-  simpa [Fin.getElem_fin] using hsol i
+  rw [hV i u, encode_lanesOfSolution hsol i u]
 
 /-- The candidate of a list of positions, when it has `2 ^ κ` of them. -/
 def candidate (κ R ℓ : ℕ) (F : LW (κ + R)) (l : List (Fin (2 ^ (κ + R)))) : Option (Msgs ℓ κ) :=
   if h : l.length = 2 ^ κ then candidateAt κ R ℓ (listPositions l h) F else none
 
-/-- The brute-force list: the candidates of every set of `2 ^ κ` positions, kept when within the
-threshold, without repetition. -/
+/-- The brute-force list: the candidates of every set of `2 ^ κ` positions, without repetition,
+kept when within the threshold. -/
 def bruteForceList (κ R a ℓ : ℕ) (F : LW (κ + R)) : List (Msgs ℓ κ) :=
-  (((List.finRange (2 ^ (κ + R))).sublistsLen (2 ^ κ)).filterMap (candidate κ R ℓ F)).filter
-    (fun V ↦ decide (Cl κ R a ℓ F V)) |>.dedup
+  (((List.finRange (2 ^ (κ + R))).sublistsLen (2 ^ κ)).filterMap (candidate κ R ℓ F)).dedup.filter
+    fun V ↦ decide (Cl κ R a ℓ F V)
 
 /-- **The brute-force decoder**, at every threshold of at least `2 ^ κ`. -/
 def ListDecoder.bruteForce (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) : ListDecoder κ R a ℓ where
   decode := bruteForceList κ R a ℓ
   mem_iff := fun F V ↦ by
-    simp only [bruteForceList, List.mem_dedup, List.mem_filter, List.mem_filterMap,
+    simp only [bruteForceList, List.mem_filter, List.mem_dedup, List.mem_filterMap,
       decide_eq_true_eq]
     refine ⟨fun h ↦ h.2, fun hV ↦ ⟨⟨agreeList κ R ℓ F V, ?_, ?_⟩, hV⟩⟩
     · obtain ⟨hsub, hlen, -, -⟩ := agreeList_spec hdist hV
@@ -272,7 +338,7 @@ def ListDecoder.bruteForce (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) : ListDec
       refine candidateAt_of_agree hb (listPositions_injective hlen hnd) fun i u ↦ ?_
       have hi := hmem _ (List.getElem_mem (h := by rw [hlen]; exact i.isLt))
       exact (Finset.mem_filter.mp hi).2 u
-  nodup := fun _ ↦ List.nodup_dedup _
+  nodup := fun _ ↦ (List.nodup_dedup _).filter _
 
 /-! ## The exact path -/
 
@@ -304,10 +370,8 @@ theorem exactFast_of_codeword (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs �
   rw [exactFast, candidateAt_of_agree hb hfirst fun i u ↦ hV _ u, Option.bind_some]
   simp only [hV, implies_true, ↓reduceIte]
 
-/-- **The list of a codeword is the codeword.** When the exact path returns `V`, every decoder at a
-threshold `a` with `2 ^ κ ≤ a ≤ 2 ^ (κ + R)` returns exactly `V`: `V` agrees with the word
-everywhere, and a codeword within the threshold agrees with `V` on `a ≥ 2 ^ κ` positions, so it is
-`V`. -/
+/-- **The list of a codeword is the codeword**: when the exact path returns `V`, every decoder at a
+threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)` returns exactly `V`. -/
 theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (hle : a ≤ 2 ^ (κ + R))
     (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs ℓ κ} (h : exactFast κ R ℓ F = some V) :
     ∀ V', V' ∈ D.decode F ↔ V' = V := by
@@ -366,9 +430,8 @@ def ListDecoder.exact (hb : κ + R ≤ 64) : ListDecoder κ R (2 ^ (κ + R)) ℓ
 
 /-! ## Codewords near a `K`-valued word -/
 
-/-- **The list of a `K`-valued word is `K`-valued.** Every interleaved codeword within a threshold
-of at least `2 ^ κ` of a word whose lanes take values in `K` has `K`-valued messages: on `2 ^ κ`
-positions of agreement it is the interpolant of `K` values, found over `K`. -/
+/-- **The list of a `K`-valued word is `K`-valued**: every interleaved codeword within a threshold
+of at least `2 ^ κ` of a word with lanes in `K` has messages in `K`. -/
 theorem isInK_of_cl (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) {F : LW (κ + R)}
     (hF : ∀ y (u : Fin (2 ^ ℓ)), IsInK (F y u)) {V : Msgs ℓ κ} (hV : Cl κ R a ℓ F V)
     (u : Fin (2 ^ ℓ)) (x : Fin (2 ^ κ)) : IsInK (V u)[x] := by
@@ -393,6 +456,14 @@ theorem isInK_of_cl (hdist : 2 ^ κ ≤ a) (hb : κ + R ≤ 64) {F : LW (κ + R)
     rfl
   rw [← hmK]
   exact (isInK_iff _).mpr ⟨mK[x], by simp [CMlPolynomialEval.map, Fin.getElem_fin]⟩
+
+/-- The lanes of a `K` word read in `E` are in `K`. -/
+theorem KWord.isInK_lanes {ℓ b t : ℕ} (w : KWord ℓ b t) (y : Fin (2 ^ b)) (u : Fin (2 ^ ℓ)) :
+    IsInK (w.lift.lanes y u) := by
+  have h : w.lift.lanes y u = ofK (w.row y)[u] := by
+    simp [Word.lanes, KWord.lift, Vector.getD, u.2]
+  rw [h]
+  exact (isInK_iff _).mpr ⟨_, rfl⟩
 
 end Whir
 

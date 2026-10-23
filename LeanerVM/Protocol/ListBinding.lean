@@ -15,13 +15,17 @@ public import LeanerVM.Protocol.Whir.Decode
 public import LeanerVM.Protocol.ToArkLib.Relist
 public import LeanerVM.Protocol.ToArkLib.SendEncoded
 public import LeanerVM.Protocol.ToArkLib.MapOracles
+public import LeanerVM.Protocol.ToArkLib.FirstRound
 
 /-!
 # List binding
 
-Category B: Annex B, `def:listbinding` and `thm:rbr`, with §8.5 of the specification
-(`doc/leanvm/body/08-end-to-end-protocol.tex:94-101`), at leanVM pin
-`a386121f84292f6fa663aaa3e570c15bc0240ea2`.
+Category A: the Lean statements are the authority. Two things are transcribed (Category B, leanVM
+pin `a386121f84292f6fa663aaa3e570c15bc0240ea2`): the order of the compiled transcript, the
+opening after every claim value (§8.5, `doc/leanvm/body/08-end-to-end-protocol.tex:94-101`), and
+the level-0 commitment of `K` symbols (Annex B, Protocol 1, Commit; `whir.rs:346`). The result
+contributes to T4 in the ideal oracle model, in both directions: knowledge soundness and
+completeness of the protocol that commits the word and opens it by WHIR, for `M3Rel`.
 
 The oracle protocol of the spine commits the stack itself and asks it one weighted question at
 the end. The compiled protocol commits the stack's level-0 word instead: a word of `K` symbols
@@ -45,9 +49,14 @@ of the word satisfies the claim". The compilation turns that into extraction.
   claim on that stack (`pair_relayoutWeight`).
 * `listBinding_compile`: the security of the whole, `commitWord ⟫ fronts ⟫ batch ⟫ openInput ⟫
   whirOpen`, from `M3Rel I` to acceptance, at `L₀` times the oracle protocol's errors on its
-  challenges and WHIR's own errors on WHIR's (`listBindingError`); its extractor is the
-  composition of the components', and the stack it extracts at the commit round is the decoded
-  member that satisfies `M3Holds`.
+  challenges and WHIR's own errors on WHIR's (`listBindingError`). The bundle's opening phase is
+  not used: WHIR replaces its query, and the batching is the opening's own. Its extractor is the
+  composition of the components'; the stack it returns is the decoded member that satisfies
+  `M3Holds` whenever there is one (`listBinding_extractedStack_eq`), and past the commitment its
+  state function holds exactly when there is one (`listBinding_kSF_one`): a failed extraction
+  leaves the state function false at round `1` for every witness.
+* WHIR's errors are not multiplied by `L₀`: after `openInput` the state function is WHIR's own,
+  whose relation already quantifies over the list.
 
 `listBinding_perfectCompleteness` is the other half: on every statement and stack with
 `M3Holds`, the honest prover, which commits the honest word of its stack (`kwordOf`), convinces the
@@ -69,66 +78,6 @@ open LeanerVM.Parameters CompPoly CMlPolynomialEval OracleComp OracleSpec Protoc
 open scoped NNReal
 
 @[expose] public section
-
-/-! ## The level-0 word -/
-
-namespace Whir
-
-/-- A word with `K` symbols on `2 ^ b` positions with `2 ^ ℓ` lanes, read `t` positions at a time:
-the level-0 word the commitment binds. -/
-structure KWord (ℓ b t : ℕ) where
-  /-- The row at a position. -/
-  row : Fin (2 ^ b) → Vector K (2 ^ ℓ)
-
-/-- The `K` word read in `E`. -/
-def KWord.lift {ℓ b t : ℕ} (w : KWord ℓ b t) : Word ℓ b t := ⟨fun y ↦ (w.row y).map ofK⟩
-
-/-- A question to a `K` word is `t` positions; the answer is their rows, read in `E`. -/
-instance (ℓ b t : ℕ) : OracleInterface (KWord ℓ b t) where
-  Query := Fin t → Fin (2 ^ b)
-  toOC :=
-    { spec := (Fin t → Fin (2 ^ b)) →ₒ (Fin t → Vector E (2 ^ ℓ))
-      impl := fun q ↦ do
-        let w ← read
-        return fun k ↦ (KWord.lift w).row (q k) }
-
-/-- The lanes of a `K` word read in `E` are in `K`. -/
-theorem KWord.isInK_lanes {ℓ b t : ℕ} (w : KWord ℓ b t) (y : Fin (2 ^ b)) (u : Fin (2 ^ ℓ)) :
-    IsInK (w.lift.lanes y u) := by
-  have h : w.lift.lanes y u = ofK (w.row y)[u] := by
-    simp [Word.lanes, KWord.lift, Vector.getD, u.2]
-  rw [h]
-  exact (isInK_iff _).mpr ⟨_, rfl⟩
-
-/-- The honest `K` word of a stack table: the encodings over `K` of its lanes, the top
-coordinates. -/
-def kwordOf (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) : KWord ℓ (κ + R) t :=
-  ⟨fun y ↦ Vector.ofFn fun u ↦ encode (RingHom.id K) κ R (sliceLow (relayout q) u) y⟩
-
-/-- Relaying out commutes with mapping the entries. -/
-private theorem relayout_map {R S : Type} [CommRing R] [CommRing S] (φ : R →+* S) {κ ℓ : ℕ}
-    (q : CMlPolynomialEval R (κ + ℓ)) :
-    relayout (CMlPolynomialEval.map φ q) = CMlPolynomialEval.map φ (relayout q) := by
-  apply Vector.ext
-  intro i hi
-  simp [relayout, CMlPolynomialEval.map]
-
-/-- The honest `K` word of a stack, read in `E`, is the honest word of the stack in `E`. -/
-theorem kwordOf_lift (ℓ κ R t : ℕ) (q : CMlPolynomialEval K (κ + ℓ)) :
-    (kwordOf ℓ κ R t q).lift =
-      wordOf ℓ κ R t (relayout (CMlPolynomialEval.map (algebraMap K E) q)) := by
-  unfold KWord.lift kwordOf wordOf
-  congr 1
-  funext y
-  apply Vector.ext
-  intro u hu
-  simp only [Vector.getElem_map, Vector.getElem_ofFn]
-  rw [← encode_ofK, relayout_map, sliceLow_map]
-
-/-- The level-0 oracle: the `K` word of a level of shape `sh`. -/
-abbrev KOracle (sh : Shape) (κ : ℕ) : Fin 1 → Type := OneOracle (KWord sh.ℓ (κ + sh.R) sh.t)
-
-end Whir
 
 /-! ## Stacks of codewords -/
 
@@ -176,8 +125,7 @@ def commitPick (s : I.Stmt) (w : KWord sh.ℓ (κ + sh.R) sh.t) : Option (Column
   ((stackList I D hμ fun _ ↦ w).find? fun q ↦ decide (M3Holds I s (q 0))).map (· 0)
 
 /-- **The commitment's security**, at error zero: from `M3Rel I` to "some stack of the word's list
-satisfies `M3Holds`", with the extractor that list-decodes the word and picks the first stack of
-the list satisfying `M3Holds`. -/
+satisfies `M3Holds`", the extractor picking the first such stack (`commitPick`). -/
 def commitWordSecurity :
     Component.Security (commitWord I hμ) (M3Rel I)
       (Component.relistRel (stackList I D hμ) (Seam.commit I)) (fun _ ↦ 0) :=
@@ -278,19 +226,8 @@ private theorem pair_cast {R S : Type} [CommRing R] [CommRing S] (φ : R →+* S
   subst h
   rfl
 
-/-- The relayout undone. -/
-private theorem relayout_relayout {S : Type} {ℓ κ : ℕ} (t : CMlPolynomialEval S (ℓ + κ)) :
-    relayout (κ := κ) (ℓ := ℓ) (relayout (κ := ℓ) (ℓ := κ) t) = t := by
-  have key : ∀ j : Fin (2 ^ (ℓ + κ)),
-      (relayout (κ := κ) (ℓ := ℓ) (relayout (κ := ℓ) (ℓ := κ) t))[j] = t[j] := fun j ↦ by
-    obtain ⟨⟨u, x⟩, rfl⟩ := (cubeSplit ℓ κ).surjective j
-    rw [cubeSplit_apply, relayout_getElem, relayout_getElem]
-  exact Vector.ext fun i hi ↦ key ⟨i, hi⟩
-
-/-- **The seam between the relisted batching and WHIR's opening.** A statement in WHIR's list
-relation at level 0's threshold, read off a batched claim and a `K` word, has a stack in the word's
-list on which the batched claim holds: the codeword is a member of the decoder's list, its messages
-are `K`-valued since the word is, and its claim is the batched claim on its stack. -/
+/-- **The seam between the relisted batching and WHIR's opening**: WHIR's list relation on a batched
+claim and a `K` word gives a stack of the word's list on which the claim holds. -/
 theorem relist_of_relOpen (P : Par sh κ) (D : ListDecoder κ sh.R P.a sh.ℓ) (c : WeightedClaim I)
     (o : ∀ i, KOracle sh κ i)
     (h : OpenLang P (hμ.symm ▸ c.weight) c.value fun _ ↦ (o 0).lift) :
@@ -421,9 +358,8 @@ section Compile
 
 variable {I : M3Instance} {sh : Whir.Shape} {κ : ℕ}
 
-/-- **The list-binding compilation** of a bundle of phases: the commitment of the level-0 word,
-the four front phases and the opening's batching over it, the opening's input and WHIR's opening of
-the chain `L`. -/
+/-- **The list-binding compilation**: the level-0 word committed, the four front phases and the
+opening's batching over it, the opening's input, and WHIR's opening of the chain `L`. -/
 def listBindingDef (P : Phases I) (hμ : κ + sh.ℓ = I.μ) (L : Ladder sh κ) :
     Component.Def I.Stmt NoOracle (Column I.μ) Unit (OneW L.finShape L.finN) Unit
       (listBindingSpec I sh κ L) :=
@@ -432,9 +368,8 @@ def listBindingDef (P : Phases I) (hμ : κ + sh.ℓ = I.μ) (L : Ladder sh κ) 
     (P.flock.over I (KOracle sh κ))).append (openingBatchOver I (KOracle sh κ))).append
     (openInput I hμ)).append (whirOpen sh κ L)
 
-/-- Its errors: none on the commitment; `L₀` times the spine's error on each challenge of the four
-front phases and the batching, `L₀` the list bound of level 0; none on the opening's input; WHIR's
-errors on WHIR's challenges. -/
+/-- Its errors: `L₀`, level 0's list bound, times the spine's error on each challenge of the front
+phases and the batching; WHIR's errors on WHIR's challenges; none elsewhere. -/
 noncomputable def listBindingError (I : M3Instance) {sh : Whir.Shape} {κ : ℕ} (L : Ladder sh κ)
     (ps : L.Pars) : (listBindingSpec I sh κ L).ChallengeIdx → ℝ≥0 :=
   errAppend (errAppend (errAppend (errAppend (errAppend (errAppend (errAppend
@@ -445,20 +380,17 @@ noncomputable def listBindingError (I : M3Instance) {sh : Whir.Shape} {κ : ℕ}
     (fun i ↦ Fin.elim0 i.1 : (!p[] : ProtocolSpec 0).ChallengeIdx → ℝ≥0)) (openErr L ps)
 
 /-- **The list-binding compilation is round-by-round knowledge sound** from `M3Rel I` to
-acceptance at `listBindingError`: `L₀` times the oracle protocol's errors on its challenges and
-WHIR's errors on WHIR's, for every bundle of phases with its security, every chain of WHIR levels
-with its parameters and every list decoder at level 0's threshold. The extractor list-decodes the
-committed word and picks the stack that satisfies `M3Holds`; the state function, before WHIR, is
-"some stack of the word's list satisfies the phase's state function". Inlined before compilation,
-so the errors never reach compiled code and the extractor computes. -/
+acceptance at `listBindingError`, for every bundle of phases, chain and decoder at level 0. -/
 @[macro_inline]
 def listBinding_compile (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ) (L : Ladder sh κ)
     (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ) :
     Component.Security (listBindingDef P hμ L) (M3Rel I) Set.univ (listBindingError I L ps) :=
-  have hL := length_stackList I D hμ (L.headPar ps).hlist
-  (((((((commitWordSecurity I D hμ).append (S.bus.relist I _ _ _ hL)).append
-    (S.table.relist I _ _ _ hL)).append (S.pub.relist I _ _ _ hL)).append
-    (S.flock.relist I _ _ _ hL)).append (openingBatchOverSecurity I _ _ _ hL)).append
+  (((((((commitWordSecurity I D hμ).append
+    (S.bus.relist I _ _ _ (length_stackList I D hμ (L.headPar ps).hlist))).append
+    (S.table.relist I _ _ _ (length_stackList I D hμ (L.headPar ps).hlist))).append
+    (S.pub.relist I _ _ _ (length_stackList I D hμ (L.headPar ps).hlist))).append
+    (S.flock.relist I _ _ _ (length_stackList I D hμ (L.headPar ps).hlist))).append
+    (openingBatchOverSecurity I _ _ _ (length_stackList I D hμ (L.headPar ps).hlist))).append
     (openInputSecurity I hμ (L.headPar ps) D)).append (whirOpen_rbrSoundness L ps)
 
 /-- The same as a statement about the compiled verifier: round-by-round knowledge soundness at
@@ -471,6 +403,101 @@ theorem listBinding_rbrKnowledgeSoundness (P : Phases I) (S : P.Security) (hμ :
       (listBinding_compile P S hμ L ps D).extractor
       ((listBinding_compile P S hμ L ps D).kSF init impl) (listBindingError I L ps) :=
   (listBinding_compile P S hμ L ps D).rbr init impl
+
+/-- At the first round the compiled schedule's type is the `K` word. -/
+theorem listBindingSpec_type_zero (L : Ladder sh κ) (h : 0 < _) :
+    (listBindingSpec I sh κ L).«Type» ⟨0, h⟩ = KWord sh.ℓ (κ + sh.R) sh.t := by
+  unfold listBindingSpec listBindingFrontSpec
+  rw [Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
+    Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
+    Component.append_Type_zero (by omega), Component.append_Type_zero (by omega),
+    Component.append_Type_zero (by omega)]
+  rfl
+
+/-- The committed word of a transcript of the compiled protocol past the commitment. -/
+def committedWord {L : Ladder sh κ} {k : Fin _} (tr : (listBindingSpec I sh κ L).Transcript k)
+    (hk : 0 < k.val) : KWord sh.ℓ (κ + sh.R) sh.t :=
+  cast (listBindingSpec_type_zero L (by omega)) (tr ⟨0, hk⟩)
+
+/-- The commitment's relation holds of a word exactly when the commitment's extractor succeeds on
+it. -/
+private theorem mem_relist_commit_iff {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ)
+    (hμ : κ + sh.ℓ = I.μ) (s : I.Stmt × ∀ i, NoOracle i) (x : KWord sh.ℓ (κ + sh.R) sh.t)
+    (w : Column I.μ) :
+    ((s.1, fun _ ↦ x), w) ∈ Component.relistRel (stackList I D hμ) (Seam.commit I) ↔
+      (commitPick I D hμ s.1 x).isSome := by
+  simp only [Component.relistRel, Seam.commit, Seam.of, Set.mem_ofPred_eq, commitPick,
+    Option.isSome_map, List.find?_isSome, decide_eq_true_eq, exists_const]
+
+/-- **Past the commitment, the state function holds exactly when extraction succeeds**: at round
+`1`, for every witness, it is "the commitment's extractor finds a stack with `M3Holds`". -/
+theorem listBinding_kSF_one (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ)
+    (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ) {σ : Type}
+    (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    (s : I.Stmt × ∀ i, NoOracle i) (h1 : 1 < _)
+    (tr : (listBindingSpec I sh κ L).Transcript ⟨1, h1⟩)
+    (w : (listBinding_compile P S hμ L ps D).witMid ⟨1, h1⟩) :
+    ((listBinding_compile P S hμ L ps D).kSF init impl).toFun ⟨1, h1⟩ s tr w ↔
+      (commitPick I D hμ s.1 (committedWord tr Nat.one_pos)).isSome := by
+  unfold listBinding_compile
+  iterate 7 refine (Component.Security.append_kSF_left _ _ _ _ ⟨1, by omega⟩ rfl _ _ _).trans ?_
+  simp only [commitWordSecurity, Component.sendEncodedSecurity,
+    Component.sendEncodedStateFunction, one_ne_zero, dite_false]
+  refine (mem_relist_commit_iff D hμ s _ _).trans ?_
+  refine (fun x y (h : x = y) ↦ h ▸ Iff.rfl :
+    ∀ x y, x = y → ((commitPick I D hμ s.1 x).isSome ↔ (commitPick I D hμ s.1 y).isSome)) _ _ ?_
+  apply eq_of_heq
+  simp only [Verifier.KnowledgeAppend.left, committedWord]
+  refine HEq.trans ?_ (cast_heq _ _).symm
+  iterate 7 refine (cast_heq _ _).trans ?_
+  rfl
+
+/-- The commitment's extractor decodes the committed word. -/
+private theorem commit_decodesFirst {a : ℕ} (D : ListDecoder κ sh.R a sh.ℓ)
+    (hμ : κ + sh.ℓ = I.μ) :
+    Extractor.RoundByRound.DecodesFirst (commitWordSecurity I D hμ).extractor Nat.one_pos
+      (fun s x ↦ commitPick I D hμ s.1 x) := by
+  intro s tr w q hq
+  have hq' : commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩) = some q := hq
+  show HEq ((commitPick I D hμ s.1 (tr ⟨0, Nat.zero_lt_one⟩)).getD w) q
+  rw [hq']
+  rfl
+
+/-- The stack the compilation's extractor returns on a full transcript. -/
+def listBindingExtractedStack (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ)
+    (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ)
+    (s : I.Stmt × ∀ i, NoOracle i) (tr : (listBindingSpec I sh κ L).FullTranscript) :
+    Column I.μ :=
+  Extractor.RoundByRound.extractIn (listBinding_compile P S hμ L ps D).extractor s tr ()
+
+/-- **The extracted stack is the decoded one**: whenever the commitment's extractor finds a stack
+with `M3Holds` in the committed word's list, the compilation's extractor returns it. -/
+theorem listBinding_extractedStack_eq (P : Phases I) (S : P.Security) (hμ : κ + sh.ℓ = I.μ)
+    (L : Ladder sh κ) (ps : L.Pars) (D : ListDecoder κ sh.R (L.headPar ps).a sh.ℓ)
+    (s : I.Stmt × ∀ i, NoOracle i) (tr : (listBindingSpec I sh κ L).FullTranscript)
+    (q : Column I.μ)
+    (hq : commitPick I D hμ s.1 (committedWord (k := Fin.last _) tr (by simp)) = some q) :
+    listBindingExtractedStack P S hμ L ps D s tr = q := by
+  refine Extractor.RoundByRound.extractIn_eq_of_decodesFirst
+    (f := ?f) (listBinding_compile P S hμ L ps D).extractor (by omega) ?h s tr () q ?hq
+  case h =>
+    unfold listBinding_compile
+    simp only [Component.Security.append, Component.Extraction.append]
+    exact Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _
+      (Extractor.RoundByRound.decodesFirst_append _ _ _ _ (commit_decodesFirst D hμ)))))))
+  case hq =>
+    refine Eq.trans ?_ hq
+    congr 1
+    apply eq_of_heq
+    simp only [committedWord]
+    refine HEq.trans ?_ (cast_heq _ _).symm
+    iterate 7 refine (cast_heq _ _).trans ?_
+    rfl
 
 end Compile
 
@@ -527,9 +554,8 @@ private theorem pair_cast_cast {R S : Type} [CommRing R] [CommRing S] (φ : R �
   subst h
   rfl
 
-/-- The opening's input's completeness: on the honest word of a stack on which the batched
-claim holds, WHIR's opening receives the honest word of the stack in `E` and its weighted
-claim. -/
+/-- The opening's input's completeness: on the honest word of a stack on which the batched claim
+holds, WHIR's opening receives that word in `E` and the weighted claim. -/
 def openInputComplete :
     Component.Complete (openInput I hμ) (honestRel I hμ (Opening.BatchedHolds I))
       (stackRel sh κ) :=
@@ -552,8 +578,7 @@ def listBindingComplete {P : Phases I} (C : P.Complete) (L : Ladder sh κ) :
     (openInputComplete I hμ)).append (whirOpenComplete sh κ L)
 
 /-- **Perfect completeness of the list-binding compilation**: on every statement and stack with
-`M3Holds`, the honest prover, which commits the honest word of its stack, convinces the compiled
-verifier with probability one. -/
+`M3Holds`, the honest prover, committing its stack's word, convinces the verifier surely. -/
 theorem listBinding_perfectCompleteness {P : Phases I} (C : P.Complete) (L : Ladder sh κ)
     {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (listBindingDef P hμ L).red.perfectCompleteness init impl (M3Rel I) Set.univ :=

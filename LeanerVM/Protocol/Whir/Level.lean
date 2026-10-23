@@ -120,6 +120,9 @@ abbrev WordOf (sh : Shape) (κ : ℕ) : Type := Word sh.ℓ (κ + sh.R) sh.t
 /-- A level's one oracle: its word. -/
 abbrev OneW (sh : Shape) (κ : ℕ) : Fin 1 → Type := OneOracle (WordOf sh κ)
 
+/-- The level-0 oracle the commitment binds: the `K` word of a level of shape `sh`, read in `E`. -/
+abbrev KOracle (sh : Shape) (κ : ℕ) : Fin 1 → Type := OneOracle (KWord sh.ℓ (κ + sh.R) sh.t)
+
 /-- The unit-weight domain `0, 1` of a plain sumcheck round. -/
 abbrev unitDom : SumcheckRound.WeightedDomain E := [(0, 1), (1, 1)]
 

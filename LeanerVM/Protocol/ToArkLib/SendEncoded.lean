@@ -24,6 +24,8 @@ asks of it only that a message in the output relation can be decoded: `pick s m`
 of the input relation for the statement `s` whenever `s` and the message `m` are in the output
 relation. The extractor runs `pick` on the message. Completeness (`sendEncodedComplete`) asks that
 the encoding of a witness of the input relation is in the output relation.
+
+Nothing here transcribes a source.
 -/
 
 namespace LeanerVM.Protocol
@@ -80,9 +82,8 @@ def sendEncodedComplete {relIn : Set ((S × ∀ i, NoOracle i) × W)}
 
 variable (pick : S → M → Option W)
 
-/-- The extractor decodes the message: the witness `pick` returns, or the witness it is handed
-when `pick` fails. The shared oracle is written `OracleSpec.emptySpec.{0, 0}` rather than `[]ₒ` to
-pin a universe `Extractor.RoundByRound` leaves free. -/
+/-- The extractor decodes the message: the witness `pick` returns, else the one it is handed.
+(`OracleSpec.emptySpec.{0, 0}`, not `[]ₒ`, pins a universe the extractor type leaves free.) -/
 def decodeExtractor : Extractor.RoundByRound (OracleSpec.emptySpec.{0, 0})
     (S × ∀ i, NoOracle i) W W (sendSpec M) (fun _ ↦ W) where
   eqIn := rfl

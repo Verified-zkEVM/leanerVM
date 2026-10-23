@@ -69,6 +69,7 @@ import LeanerVM.Protocol.ToArkLib.CachedRounds
 import LeanerVM.Protocol.ToArkLib.CachedSteps
 import LeanerVM.Protocol.ToArkLib.Component
 import LeanerVM.Protocol.ToArkLib.ExtractIn
+import LeanerVM.Protocol.ToArkLib.FirstRound
 import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 import LeanerVM.Protocol.ToArkLib.Flock.Builder
 import LeanerVM.Protocol.ToArkLib.Flock.Cached

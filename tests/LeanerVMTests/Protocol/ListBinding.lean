@@ -11,13 +11,16 @@ import LeanerVM.Protocol.Whir.Exact
   symbol changed it returns the codeword at threshold `3`, nothing at exact agreement, and at
   threshold `2`, below unique decoding, several codewords. On a word of two lanes and eight
   positions (`κ = 2`) the exact path returns the messages of a codeword and nothing on the word
-  with one symbol changed.
+  with one symbol changed; brute force at exact agreement returns the codeword; and the exact path
+  in front of brute force at threshold `6` (`ListDecoder.exactFirst`) returns the codeword on both,
+  on the second by the fallback.
 * **The compilation applies at the toy.** The toy's stack has height `2 ^ 3`, the WHIR chain of
   two levels at rate `2⁻¹` folds one lane from `κ = 2`, at exact agreement (list bound `1`), and
   `listBinding_compile`, with the decoder at exact agreement (`ListDecoder.exact`), is the
   security of the compiled protocol from `M3Rel toy` to acceptance, and
   `listBinding_perfectCompleteness` its completeness from the phases'. Its extractor is a
-  definition with no `noncomputable`.
+  definition with no `noncomputable`. These examples are statements that type-check at the toy;
+  they run nothing.
 * **The commitment's extractor decodes.** On the honest word of the toy's honest stack it returns
   that stack; on the word of a stack that fails `M3Holds` and on a word one symbol away from the
   honest one at exact agreement it returns nothing.
@@ -72,6 +75,14 @@ def word2' : LW (2 + 1) := fun y u ↦ if y.val = 5 ∧ u = 1 then word2 y u + 1
 
 #guard exactFast 2 1 1 word2 = some msg2
 #guard exactFast 2 1 1 word2' = none
+#guard bruteForceList 2 1 8 1 word2 = [msg2]
+
+/-- The exact path in front of brute force, at threshold `6` of `8`. -/
+def decoder6 : ListDecoder 2 1 6 1 :=
+  (ListDecoder.bruteForce (by decide) (by decide)).exactFirst (by decide) (by decide) (by decide)
+
+#guard decoder6.decode word2 = [msg2]
+#guard decoder6.decode word2' = [msg2]
 
 /-! ## The compilation at the toy -/
 
@@ -145,6 +156,24 @@ example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ Prob
 
 /-- The extractor of the compilation: a definition, so it computes. -/
 def toyExtractor := toyCompile.extractor
+
+/-- Past the commitment, the state function at the toy is the commitment's extraction. -/
+example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp))
+    (s : toy.Stmt × ∀ i, NoOracle i) (h1 : 1 < _)
+    (tr : (listBindingSpec toy lb0 (Kap lb1 (0 + 1)) lbLadder).Transcript ⟨1, h1⟩)
+    (w : toyCompile.witMid ⟨1, h1⟩) :
+    (toyCompile.kSF init impl).toFun ⟨1, h1⟩ s tr w ↔
+      (commitPick toy toyDecoder lb_height s.1 (committedWord tr Nat.one_pos)).isSome :=
+  listBinding_kSF_one _ _ _ _ _ _ init impl s h1 tr w
+
+/-- The stack the compilation extracts at the toy is the commitment's pick. -/
+example (s : toy.Stmt × ∀ i, NoOracle i)
+    (tr : (listBindingSpec toy lb0 (Kap lb1 (0 + 1)) lbLadder).FullTranscript) (q : Column toy.μ)
+    (hq : commitPick toy toyDecoder lb_height s.1 (committedWord (k := Fin.last _) tr (by simp)) =
+      some q) :
+    listBindingExtractedStack (leanVmPhases toy toy_conditions)
+      (leanVmSecurity toy toy_conditions (by decide)) lb_height lbLadder lbPars toyDecoder s tr = q :=
+  listBinding_extractedStack_eq _ _ _ _ _ _ s tr q hq
 
 example {σ : Type} (init : ProbComp σ) (impl : QueryImpl []ₒ (StateT σ ProbComp)) :
     (listBindingDef (leanVmPhases toy toy_conditions) lb_height lbLadder).red.perfectCompleteness

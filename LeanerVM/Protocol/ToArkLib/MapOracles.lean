@@ -26,6 +26,8 @@ Completeness (`mapOraclesComplete`): whenever `f`, `M.map` and `g` carry the inp
 the output relation. Security (`mapOraclesSecurity`, at the empty error): the witness is read back
 by a function the consumer gives, and the output relation at the mapped statement and oracles
 implies the input relation at the witness read back.
+
+Nothing here transcribes a source.
 -/
 
 namespace LeanerVM.Protocol

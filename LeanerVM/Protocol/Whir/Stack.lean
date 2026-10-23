@@ -22,7 +22,8 @@ point rotated, the high block first (`whir.rs`, `rotate_left(initial_k)`).
 
 * `relayoutWeight`: the weight on the relayout;
 * `pair_relayoutWeight`: the weighted claim of the relayout against the relayout is the stack's:
-  relaying both out reorders the sum.
+  relaying both out reorders the sum;
+* `relayout_relayout`: relaying out twice is the identity.
 -/
 
 namespace LeanerVM.Protocol
@@ -32,6 +33,16 @@ open CompPoly CMlPolynomialEval
 @[expose] public section
 
 variable {S : Type*} [CommRing S]
+
+omit [CommRing S] in
+/-- The relayout undone: exchanging the two blocks of coordinates twice. -/
+theorem relayout_relayout {ℓ κ : ℕ} (t : CMlPolynomialEval S (ℓ + κ)) :
+    relayout (κ := κ) (ℓ := ℓ) (relayout (κ := ℓ) (ℓ := κ) t) = t := by
+  have key : ∀ j : Fin (2 ^ (ℓ + κ)),
+      (relayout (κ := κ) (ℓ := ℓ) (relayout (κ := ℓ) (ℓ := κ) t))[j] = t[j] := fun j ↦ by
+    obtain ⟨⟨u, x⟩, rfl⟩ := (cubeSplit ℓ κ).surjective j
+    rw [cubeSplit_apply, relayout_getElem, relayout_getElem]
+  exact Vector.ext fun i hi ↦ key ⟨i, hi⟩
 
 /-- The weight on the relayout of a stack: the values with the low `κ` and high `ℓ` coordinates
 exchanged, the extension at a point the stack's weight at the point rotated. As for `foldWeight`,
