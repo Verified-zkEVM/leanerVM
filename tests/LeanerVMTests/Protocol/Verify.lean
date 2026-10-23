@@ -100,8 +100,11 @@ def outcomeAt (prog : Program) (input : PublicInput) (p : Proof PrunedMerklePath
         | .error e => .read e
         | .ok (w, rows) => algebraOutcome prog s input shs w rows
 
-/-- `verify`'s stages on the fixture's program and input, naming the first that rejects `p`. -/
-def outcome (p : Proof PrunedMerklePaths) : Outcome := outcomeAt fx.prog fx.input p
+/-- `verify`'s stages on a fixture's program and input, naming the first that rejects `p`. -/
+def outcomeOf (f : Fixture) (p : Proof PrunedMerklePaths) : Outcome := outcomeAt f.prog f.input p
+
+/-- `verify`'s stages on the Rust fixture's program and input. -/
+def outcome (p : Proof PrunedMerklePaths) : Outcome := outcomeOf fx p
 
 /-! ## The mutations -/
 
@@ -123,9 +126,8 @@ def topLimb (x : E) : E := x + E.ofLimbs 0 0 1
 /-- A digest with its first word changed. -/
 def flipDigest (d : Digest) : Digest := d.set 0 (d[0] ^^^ 1)
 
-/-- The honest proof's wire transcript. -/
-def wire : Option Wire :=
-  let f := fx
+/-- A fixture's honest wire transcript. -/
+def wireOf (f : Fixture) : Option Wire :=
   match setup? f.prog f.proof with
   | none => none
   | some (s, ρ) =>
@@ -135,27 +137,34 @@ def wire : Option Wire :=
     | .ok w => some w
     | .error _ => none
 
-/-- The offset of the first of `xs` that occurs once in the honest stream, `0` if none does. -/
-def firstOnce (xs : List E) : ℕ :=
-  let st := fx.proof.stream
+/-- The Rust fixture's honest wire transcript. -/
+def wire : Option Wire := wireOf fx
+
+/-- The offset of the first of `xs` that occurs once in a fixture's stream, `0` if none does. -/
+def firstOnceOf (f : Fixture) (xs : List E) : ℕ :=
+  let st := f.proof.stream
   ((xs.filter (st.count · == 1)).map st.idxOf).headD 0
 
-/-- The stream offsets the mutations change, off the honest wire: a grand-product round's
+/-- The stream offsets the mutations change, off a fixture's honest wire: a grand-product round's
 coefficient, a table column value, a public value, a Flock slice, level 1's out-of-domain value,
 the last level's residual value, its query message's coefficient and the last round's
-coefficient; the four grinding nonces; the top half of level 0's next root. Each is a scalar that
-occurs once in the stream. -/
-def offsets : List ℕ :=
-  match wire with
+coefficient; every level's grinding nonce; the top half of level 0's next root. Each is a scalar
+that occurs once in the stream. -/
+def offsetsOf (f : Fixture) : List ℕ :=
+  match wireOf f with
   | none => []
   | some w =>
-    let last := w.whir.getD 3 default
+    let firstOnce := firstOnceOf f
+    let last := w.whir.getLastD default
     let rootHi := ((w.whir.headD default).root.map fun d ↦ (digestScalars d).2).getD 0
     [firstOnce ((w.bus.layers.getD 4 default).rounds.flatMap (·.wire)),
       firstOnce w.table.finals, firstOnce w.pub.values, firstOnce w.flock.slices,
       firstOnce [(w.whir.getD 1 default).oodValue], firstOnce last.residual,
       firstOnce last.queryWire, firstOnce [(last.tail.headD default).wire.getD 1 0]] ++
     w.whir.map (fun l ↦ firstOnce [l.nonce]) ++ [firstOnce [rootHi]]
+
+/-- The Rust fixture's offsets. -/
+def offsets : List ℕ := offsetsOf fx
 
 /-- A mutation of the proof: what it changes, the change, and where `verify` must reject it. -/
 structure Mutation where
@@ -166,8 +175,9 @@ structure Mutation where
   /-- Where `verify` rejects it. -/
   expected : Outcome
 
-/-- The mutations rejected before the chain walk passes its setup's reads. -/
-def cheap : List Mutation := [
+/-- The mutations rejected before the chain walk passes its setup's reads, for a proof of `k`
+openings. -/
+def cheapOf (k : ℕ) : List Mutation := [
   ⟨"a nonzero upper limb in an announced size", scalar 3 (· + E.ofLimbs 0 1 0), .setup⟩,
   ⟨"a size above its cap", scalar 1 fun _ ↦ sizeScalar 33, .setup⟩,
   ⟨"a rate outside its window", scalar 7 fun _ ↦ sizeScalar 5, .setup⟩,
@@ -175,15 +185,21 @@ def cheap : List Mutation := [
     opening 0 fun o ↦ { o with leafData := o.leafData.modify 5 (· ++ [0]) }, .openings⟩,
   ⟨"a later level's row of the wrong width",
     opening 2 fun o ↦ { o with leafData := o.leafData.modify 0 (·.dropLast) }, .openings⟩,
-  ⟨"more rows than queries", opening 3 fun o ↦
+  ⟨"more rows than queries", opening (k - 1) fun o ↦
     { o with leafData := o.leafData ++ List.replicate 1 (o.leafData.headD []) }, .openings⟩,
   ⟨"a missing opening", fun p ↦ ⟨p.stream, p.merkle.dropLast⟩, .openings⟩,
   ⟨"a surplus opening", fun p ↦ ⟨p.stream, p.merkle ++ [p.merkle.headD ⟨[], []⟩]⟩, .openings⟩,
   ⟨"a nonzero third limb in a half of the commitment root", scalar 9 topLimb,
     .read .nonCanonicalEncoding⟩]
 
-/-- Every mutation, the cheap ones first. -/
-def mutations : List Mutation := cheap ++ [
+/-- The Rust fixture's cheap mutations. -/
+def cheap : List Mutation := cheapOf 4
+
+/-- Every mutation of a fixture's proof, the cheap ones first. -/
+def mutationsOf (f : Fixture) : List Mutation :=
+  let offsets := offsetsOf f
+  let k := f.proof.merkle.length
+  cheapOf k ++ [
   ⟨"a grand-product round coefficient", scalar (offsets.getD 0 0) bump, .read .powFailed⟩,
   ⟨"a table column value", scalar (offsets.getD 1 0) bump, .read .powFailed⟩,
   ⟨"a public value", scalar (offsets.getD 2 0) bump, .read .powFailed⟩,
@@ -191,12 +207,10 @@ def mutations : List Mutation := cheap ++ [
   ⟨"level 1's out-of-domain value", scalar (offsets.getD 4 0) bump, .read .powFailed⟩,
   ⟨"a residual value", scalar (offsets.getD 5 0) bump, .read .powFailed⟩,
   ⟨"the last query message's coefficient", scalar (offsets.getD 6 0) bump, .whir⟩,
-  ⟨"the last round's coefficient", scalar (offsets.getD 7 0) bump, .whir⟩,
-  ⟨"level 0's grinding nonce", scalar (offsets.getD 8 0) bump, .read .powFailed⟩,
-  ⟨"level 1's grinding nonce", scalar (offsets.getD 9 0) bump, .read .powFailed⟩,
-  ⟨"level 2's grinding nonce", scalar (offsets.getD 10 0) bump, .read .powFailed⟩,
-  ⟨"level 3's grinding nonce", scalar (offsets.getD 11 0) bump, .read .powFailed⟩,
-  ⟨"a nonzero third limb in a half of level 0's next root", scalar (offsets.getD 12 0) topLimb,
+  ⟨"the last round's coefficient", scalar (offsets.getD 7 0) bump, .whir⟩] ++
+  (List.range k).map (fun i ↦
+    ⟨s!"level {i}'s grinding nonce", scalar (offsets.getD (8 + i) 0) bump, .read .powFailed⟩) ++ [
+  ⟨"a nonzero third limb in a half of level 0's next root", scalar (offsets.getD (8 + k) 0) topLimb,
     .read .nonCanonicalEncoding⟩,
   ⟨"a wrong Merkle sibling",
     opening 1 fun o ↦ { o with siblingHashes := o.siblingHashes.modify 3 flipDigest },
@@ -220,6 +234,9 @@ def mutations : List Mutation := cheap ++ [
     | rs => rs }, .read .invalidMerkleOpening⟩,
   ⟨"a trailing scalar", fun p ↦ ⟨p.stream ++ [0], p.merkle⟩, .read .notFullyConsumed⟩,
   ⟨"a truncated stream", fun p ↦ ⟨p.stream.dropLast, p.merkle⟩, .read .exceededStream⟩]
+
+/-- Every mutation of the Rust fixture's proof. -/
+def mutations : List Mutation := mutationsOf fx
 
 /-- A change of the statement, the proof kept: what it changes, the program and input, and where
 `verify` must reject the fixture's proof of the original statement. -/
