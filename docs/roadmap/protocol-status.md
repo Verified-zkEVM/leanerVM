@@ -933,6 +933,32 @@ deployed sizes and the instantiation at the deployed chain with a Johnson list b
 the committed word is a `K` word, `verify_iff_compiled` must read the level-0 rows of a proof as
 `K` symbols (the deployed commitment's leaves), not as `E` ones.
 
+*On merge* of the deployed list-binding branch (`feat/protocol-list-binding-deployed`, stacked on
+the list-binding and Johnson-regime branches), the compilation holds at leanVM with no hypothesis:
+`listBinding_deployed` (`Protocol/ListBindingDeployed.lean`) is `listBinding_compile` at the
+leanISA instance of every program and admissible announcement, at every valid rate, with
+`leanVmPhases`, `leanVmSecurity` (`leanIsa_conditions`, `I.d ≤ 2`), WHIR's `deployedChain` and its
+parameters, and `deployedDecoder`; `listBinding_deployed_rbrKnowledgeSoundness` and
+`listBinding_deployed_perfectCompleteness` are its halves. Level 0 of the chain is computed
+(`deployedChain_head`, decided on the window: six folds, `μ − 6` variables left, `johnsonPar`'s
+threshold), so `deployedDecoder` is a definition with no `noncomputable`: `ListDecoder.nttFirst`
+over `ListDecoder.bruteForce`. The fast exact path is the additive transform
+(`Protocol/Whir/Transform.lean`: `fwd`, `inv`, `encodeFast`, proved against `encode` by
+`fwd_getElem`, `fwd_inv`, `inv_fwd`, `encodeFast_getElem`), and `exactNtt`
+(`Protocol/Whir/DecodeNtt.lean`) interpolates each lane on the first coset and checks it on every
+coset; `ListDecoder.decode_eq_of_codeword` makes its candidate the whole list. `kwordOfFast` is the
+honest word by the same transform (`kwordOfFast_eq`). Measured in compiled code (a local harness,
+not committed) on the honest word of a random stack, with this branch's field arithmetic (the
+specification's; the compiled fast paths are another branch): at `μ = 15` the decode takes 45 s at
+rate `2⁻¹` and 80 s at `2⁻²`, the honest word 7 s and 14 s; at `μ = 16`, 106 s and 192 s, the word
+17 s and 38 s; the list is the stack every time. `listBinding_deployed` is `noncomputable`, as
+`deployed_rbrSoundness` is: a level's parameters carry `⌊mcaConstant n D η⌋₊`, a real number's
+floor, and WHIR's security takes them as data, so the composed extractor is not compiled even
+though the decoder, the extractor's work beyond `M3Holds`, is. The brute force behind the exact
+path is exact but runs on toy words only, so a dishonest word at a deployed size has no executable
+extraction. Still owed: a computable `N` (or WHIR's security without it as data) for a compiled
+extractor, and an efficient list decoder for words off the code.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

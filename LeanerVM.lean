@@ -45,6 +45,7 @@ import LeanerVM.Protocol.LeanIsa.Read
 import LeanerVM.Protocol.LeanIsa.Relation
 import LeanerVM.Protocol.LeanIsa.Sound
 import LeanerVM.Protocol.ListBinding
+import LeanerVM.Protocol.ListBindingDeployed
 import LeanerVM.Protocol.NovelBasis
 import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.MerkleBinding
@@ -157,6 +158,7 @@ import LeanerVM.Protocol.Whir.BoundarySound
 import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
 import LeanerVM.Protocol.Whir.Decode
+import LeanerVM.Protocol.Whir.DecodeNtt
 import LeanerVM.Protocol.Whir.Deployed
 import LeanerVM.Protocol.Whir.Exact
 import LeanerVM.Protocol.Whir.Final

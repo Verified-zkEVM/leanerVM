@@ -38,14 +38,15 @@ nothing else is to be trusted of it.
   the threshold agrees with the word on a set of `2 ^ κ` positions, where it is the candidate.
   Its cost is the number of such sets, so it runs on toy words only.
 * `exactFast`: the path an honest word takes. It interpolates on the first `2 ^ κ` positions and
-  returns the candidate when its encoding is the whole word. When it succeeds, the list is that
-  one candidate (`exactFast_eq`), for every decoder and every threshold with
-  `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`: a codeword within the threshold of a codeword agrees with it on
-  `a ≥ 2 ^ κ` positions, so it is that codeword. `ListDecoder.exactFirst` tries it before another
+  returns the candidate when its encoding is the whole word. When the word is a codeword, every
+  decoder's list is that codeword's messages (`ListDecoder.decode_eq_of_codeword`), at every
+  threshold with `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`: a codeword within the threshold of a codeword agrees
+  with it on `a ≥ 2 ^ κ` positions, so it is that codeword; so the list is the candidate when the
+  path succeeds (`exactFast_eq`). `ListDecoder.exactFirst` tries it before another
   decoder, and at exact agreement it is a decoder on its own (`ListDecoder.exact`). It costs one
   `candidateAt` and a check of the whole word: `2^(κ+R+ℓ)` encodings of `O(κ · 2^κ)` operations
-  each (`encode_eq_sum`). The deployed prover's inverse transform would cost `O(2^κ κ)` per lane;
-  this path is not it.
+  each (`encode_eq_sum`). The path by the additive transform, at the deployed prover's cost, is
+  `exactNtt` of `LeanerVM.Protocol.Whir.DecodeNtt`.
 * `isInK_of_cl`: every codeword within the threshold of a `K`-valued word is `K`-valued: on
   `2 ^ κ` positions of agreement it is the interpolant of `K` values, which interpolation over
   `K` already finds.
@@ -370,12 +371,12 @@ theorem exactFast_of_codeword (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs �
   rw [exactFast, candidateAt_of_agree hb hfirst fun i u ↦ hV _ u, Option.bind_some]
   simp only [hV, implies_true, ↓reduceIte]
 
-/-- **The list of a codeword is the codeword**: when the exact path returns `V`, every decoder at a
-threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)` returns exactly `V`. -/
-theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (hle : a ≤ 2 ^ (κ + R))
-    (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs ℓ κ} (h : exactFast κ R ℓ F = some V) :
+/-- **The list of a codeword is the codeword**: when the codeword of `V` is the word, every decoder
+at a threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)` returns exactly `V`. -/
+theorem ListDecoder.decode_eq_of_codeword (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a)
+    (hle : a ≤ 2 ^ (κ + R)) (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs ℓ κ}
+    (hV : ∀ y (u : Fin (2 ^ ℓ)), encode (algebraMap K E) κ R (V u) y = F y u) :
     ∀ V', V' ∈ D.decode F ↔ V' = V := by
-  have hV := exactFast_spec h
   intro V'
   rw [D.mem_iff]
   constructor
@@ -388,6 +389,13 @@ theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (hle : 
     show a ≤ (Finset.univ.filter _).card
     rw [Finset.filter_true_of_mem fun y _ ↦ hV y, Finset.card_univ, Fintype.card_fin]
     exact hle
+
+/-- When the exact path returns `V`, every decoder at a threshold `2 ^ κ ≤ a ≤ 2 ^ (κ + R)`
+returns exactly `V`. -/
+theorem exactFast_eq (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a) (hle : a ≤ 2 ^ (κ + R))
+    (hb : κ + R ≤ 64) {F : LW (κ + R)} {V : Msgs ℓ κ} (h : exactFast κ R ℓ F = some V) :
+    ∀ V', V' ∈ D.decode F ↔ V' = V :=
+  D.decode_eq_of_codeword hdist hle hb (exactFast_spec h)
 
 /-- A decoder that takes the exact path first and falls back to `D`. -/
 def ListDecoder.exactFirst (D : ListDecoder κ R a ℓ) (hdist : 2 ^ κ ≤ a)
