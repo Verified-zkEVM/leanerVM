@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.B1.Tables.VtC.ADefs
+public import LeanVM.Guest.B1.Tables.VtC.AOracle
 public import LeanVM.Guest.B1.Tables.VtC.AGlue
 public import LeanVM.Guest.B1.Tables.VtC.SLoads
 public import LeanVM.Guest.B1.Tables.VtC.ZTail
@@ -23,7 +24,8 @@ public import LeanVM.Guest.B1.Tables.VtC.FInBuf
 accepting run (`VtHonest.Ok`), on a memory defined below `2^8` holding the caller's buffers
 (`linL`) and the own buffers at the allocator's positions (`ownL`), with the oracle's answers
 (`VtWOk`), the honest valuation satisfies every statement of `verify_tables`, its loads read inside
-the layout, and it returns the honest words.
+the layout, and it returns the honest words. `vt_rel_complete_vtW`: the same with the explicit
+oracle `vtW`.
 -/
 
 namespace LeanVM.Guest.B1.Tables
@@ -785,6 +787,18 @@ theorem vt_rel_complete {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
     exact forall_vtPre (P := fun s ↦ ∀ d p' off, s = .atom (.load d p' off) →
       InBuf (vtσ rd w (H.args B)) (H.bufs B) p' off) (conv LS') (conv LB') (conv LZ) (conv LF)
       (conv LT) _ hs d p' off rfl
+
+/-- **`vt_rel_complete` with the explicit oracle** `vtW`. -/
+theorem vt_rel_complete_vtW {H : VtHonest} (h : H.Ok) (hs : VtShape H) (B : VtBases)
+    {rd : Reader} (hlow : LowDefB 8 rd) (hm : MemLay rd (H.linL B ++ H.ownL B)) :
+    (∀ s ∈ vtPre, VSH (coreProgram.Rel rd) rd (vtσ rd (vtW H B) (H.args B)) s) ∧
+      LoadsInBuf (vtσ rd (vtW H B) (H.args B)) (H.bufs B) vtPre ∧
+      (vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map (fun x ↦ x.2.elim id fun s ↦
+        LeanVM.Guest.Memory.logG (vtσ rd (vtW H B) (H.args B) s)) = H.sizes ∧
+      ((vtPre.filterMap LeanVM.Guest.Memory.Stmt.allocSz).map Prod.fst).map
+        (vtσ rd (vtW H B) (H.args B)) = (H.ownB B).map (fun b ↦ ofK (gpow b)) ∧
+      vtRets.map (vtσ rd (vtW H B) (H.args B)) = H.retsH B :=
+  vt_rel_complete h hs B (vtW_ok H B) hlow hm
 
 end
 end LeanVM.Guest.B1.Tables
