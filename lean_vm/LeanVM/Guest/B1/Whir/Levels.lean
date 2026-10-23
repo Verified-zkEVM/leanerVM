@@ -66,12 +66,19 @@ def CalleesOk (rd : Reader) (c : OsCfg) : ℕ → List OsLv → Prop
   | _, [] => True
   | lvl, lv :: lvs => LvCallees rd c lvl lv ∧ CalleesOk rd c (lvl + 1) lvs
 
-/-- **The levels** run `whirLevelsHead`. -/
-theorem osLevels_sound {c : OsCfg} {logN : ℕ} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
+/-- The levels' `opening_queries` calls of `C`, sound with their queries `Wf lvl lv`. -/
+def QWOk (rd : Reader) (C : CallRel) (Wf : ℕ → OsLv → List E → List E → List QW) :
+    ℕ → List OsLv → Prop
+  | _, [] => True
+  | lvl, lv :: lvs => LvQW rd C lvl lv (Wf lvl lv) ∧ QWOk rd C Wf (lvl + 1) lvs
+
+/-- **The levels** run `whirLevelsHead`, on the openings their queries' witnesses name. -/
+theorem osLevels_sound {c : OsCfg} {logN : ℕ} {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
+    {Wf : ℕ → OsLv → List E → List E → List QW} : ∀ (lvs : List OsLv) (cfg : List Whir.Level)
     (lvl : ℕ) (st : OsSt) (ws : WhirState) (R : List (Digest × ℕ × ℕ)) (root : Digest),
-    LevelsOk c logN lvl lvs cfg → CalleesOk rd c lvl lvs →
+    LevelsOk c logN lvl lvs cfg → CalleesOk rd c lvl lvs → QWOk rd C Wf lvl lvs →
     LvIn rd σ lvl (lvs.headD default) st ws R root →
-    AllOk (coreProgram.Rel rd) rd σ (osLevels c lvl lvs st).1 →
+    AllOk C rd σ (osLevels c lvl lvs st).1 →
     ∃ (xs : List E) (os : List Opening) (R' : List (Digest × ℕ × ℕ)) (ms : List E)
       (ws' : WhirState) (rs : List OsRec),
       ReadsAt rd (st.cur σ) xs ∧
@@ -86,34 +93,38 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} : ∀ (lvs : List OsLv) (cfg : L
       ws'.target = σ (.n (osLevels c lvl lvs st).2.t) ∧
       (osLevels c lvl lvs st).2.fs.length = 5 ∧ PadOk σ (osLevels c lvl lvs st).2.pad ∧
       (osLevels c lvl lvs st).2.co ≤ 8 ∧
-      (osLevels c lvl lvs st).2.cur σ = st.cur σ * gen ^ xs.length
-  | [lv], [level], lvl, st, ws, R, root, hok, hcal, hin, hall => by
+      (osLevels c lvl lvs st).2.cur σ = st.cur σ * gen ^ xs.length ∧
+      os = (osQCalls c lvl lvs st).flatMap (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2) ∧
+      xs.length = lvsWords c lvl lvs
+  | [lv], [level], lvl, st, ws, R, root, hok, hcal, hqw, hin, hall => by
     obtain ⟨hcfg, hfold, h4, hml, hlen, hfin⟩ := hok
-    have hall' : AllOk (coreProgram.Rel rd) rd σ (osLevel c lvl lv st).1 := by
+    have hall' : AllOk C rd σ (osLevel c lvl lv st).1 := by
       have := (allOk_append.mp hall).1
       exact this
     obtain ⟨xs, os, ws', ms, r, hrd, hrun, hmsl, hfm, hgl, hrec, hfl, hfch, hq, ht, hfs, hpad,
-      hco, hcur⟩ := osLevel_final_sound hcal.1 hcfg hfold h4 hml hlen hfin hin hall'
+      hco, hcur, hos, hxl⟩ := osLevel_final_sound hle hqw.1 hcal.1 hcfg hfold h4 hml hlen hfin hin hall'
     exact ⟨xs, os, R, ms, ws', [r], hrd, hrun, hmsl, hfm, by simpa using hgl, rfl,
       fun i hi _ ↦ by
         obtain rfl : i = 0 := by simpa using hi
-        simpa using hrec, hfl, hfch, hq, ht, hfs, hpad, hco, hcur⟩
-  | lv :: lv' :: lvs, level :: next :: cfg, lvl, st, ws, R, root, hok, hcal, hin, hall => by
+        simpa using hrec, hfl, hfch, hq, ht, hfs, hpad, hco, hcur,
+      by rw [hos]; simp [osQCalls], by rw [hxl]; simp [lvsWords, hfin]⟩
+  | lv :: lv' :: lvs, level :: next :: cfg, lvl, st, ws, R, root, hok, hcal, hqw, hin, hall => by
     obtain ⟨hcfg, hfold, h4, hml, hm, hlvl, hnf, hoff', hshape, hrest⟩ := hok
     have e1 : osLevels c lvl (lv :: lv' :: lvs) st =
         ((osLevel c lvl lv st).1 ++ (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).1,
           (osLevels c (lvl + 1) (lv' :: lvs) (osLevel c lvl lv st).2).2) := rfl
     rw [e1] at hall ⊢
     rw [allOk_append] at hall
-    obtain ⟨xs1, os1, ws1, root', r, hrd1, hrun1, hin1, hgl1, hrec1, hcur1⟩ :=
-      osLevel_nonfinal_sound (rest := cfg) hcal.1 hcfg hfold h4 hml hm hlvl hnf hoff' hshape hin
-        hall.1
+    obtain ⟨xs1, os1, ws1, root', r, hrd1, hrun1, hin1, hgl1, hrec1, hcur1, hos1, hxl1⟩ :=
+      osLevel_nonfinal_sound (rest := cfg) hle hqw.1 hcal.1 hcfg hfold h4 hml hm hlvl hnf hoff'
+        hshape hin hall.1
     obtain ⟨xs2, os2, R', ms, ws', rs, hrd2, hrun2, hmsl, hfm, hgl2, hrl, hrec2, hfl, hfch, hq,
-      ht, hfs, hpad, hco, hcur2⟩ :=
-      osLevels_sound (lv' :: lvs) (next :: cfg) (lvl + 1) _ ws1 _ root' hrest hcal.2 hin1 hall.2
+      ht, hfs, hpad, hco, hcur2, hos2, hxl2⟩ :=
+      osLevels_sound hle (lv' :: lvs) (next :: cfg) (lvl + 1) _ ws1 _ root' hrest hcal.2 hqw.2 hin1
+        hall.2
     refine ⟨xs1 ++ xs2, os1 ++ os2, R', ms, ws', r :: rs, readsAt_append hrd1 (by
         rw [← hcur1]; exact hrd2), ?_, hmsl, hfm, ?_, by simp [hrl], ?_, hfl, hfch, hq, ht, hfs,
-      hpad, hco, ?_⟩
+      hpad, hco, ?_, ?_, ?_⟩
     · exact RunsWith.bind' hrun1 hrun2
     · rw [hgl2, hgl1]; simp
     · intro i hi hi'
@@ -123,11 +134,13 @@ theorem osLevels_sound {c : OsCfg} {logN : ℕ} : ∀ (lvs : List OsLv) (cfg : L
         rw [show lvl + 1 + i = lvl + (i + 1) by ring] at this
         simpa using this
     · rw [hcur2, hcur1, List.length_append, pow_add, mul_assoc]
-  | [], _, _, _, _, _, _, hok, _, _, _ => by simp [LevelsOk] at hok
-  | [_], [], _, _, _, _, _, hok, _, _, _ => by simp [LevelsOk] at hok
-  | [_], _ :: _ :: _, _, _, _, _, _, hok, _, _, _ => by simp [LevelsOk] at hok
-  | _ :: _ :: _, [], _, _, _, _, _, hok, _, _, _ => by simp [LevelsOk] at hok
-  | _ :: _ :: _, [_], _, _, _, _, _, hok, _, _, _ => by simp [LevelsOk] at hok
+    · rw [hos1, hos2]; simp [osQCalls]
+    · rw [List.length_append, hxl1, hxl2]; simp [lvsWords, hnf]
+  | [], _, _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
+  | [_], [], _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
+  | [_], _ :: _ :: _, _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
+  | _ :: _ :: _, [], _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
+  | _ :: _ :: _, [_], _, _, _, _, _, hok, _, _, _, _ => by simp [LevelsOk] at hok
 
 end
 end LeanVM.Guest.B1.Whir
