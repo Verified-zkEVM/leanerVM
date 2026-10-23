@@ -121,20 +121,6 @@ private theorem mem_interactions {w : EnsembleWitness (leanIsaEnsemble prog)}
     i.eval (t.environment row) ∈ w.interactions :=
   List.mem_flatMap.mpr ⟨t, ht, List.mem_flatMap.mpr ⟨row, hrow, List.mem_map_of_mem hi⟩⟩
 
-/-- A message a row sends is the message of one of the witness's interactions on a channel of
-that name. -/
-private theorem exists_interaction {w : EnsembleWitness (leanIsaEnsemble prog)}
-    {t : Air.Flat.Table K} (ht : t ∈ w.allTables) {row : Array K} (hrow : row ∈ t.table)
-    {c : RawChannel K} {a : Array K} (ha : a ∈ rowMessagesOn t row c) :
-    ∃ i ∈ w.interactions, i.channel.name = c.name ∧ i.msg = a := by
-  rw [rowMessagesOn, List.mem_map] at ha
-  obtain ⟨i, hi, rfl⟩ := ha
-  rw [List.mem_filter] at hi
-  obtain ⟨hi, hname⟩ := hi
-  rw [Operations.interactionValues, List.mem_map] at hi
-  obtain ⟨j, hj, rfl⟩ := hi
-  exact ⟨_, mem_interactions ht hrow hj, of_decide_eq_true hname, rfl⟩
-
 /-- The components of the ensemble pull only on the state channel and the two lookup channels. -/
 private theorem channelsWithGuarantees_cases {c : Component K}
     (hc : c ∈ (leanIsaEnsemble prog).allTables) :
@@ -205,8 +191,9 @@ private theorem bytecode_of_row {w : EnsembleWitness (leanIsaEnsemble prog)}
     (hrow : row ∈ t.table) {s : OpcodeSends} (hs : SendsOpcode t row s) :
     ∃ k : Fin (2 ^ prog.logSize), s.bc.pc = gpow k ∧
       #v[s.bc.opcode] ++ s.bc.op = entry (prog.code k) := by
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction (w.mem_allTables_of_mem_tables ht) hrow
-    (a := (toElements s.bc).toArray) (by rw [hs.bytecode_pull]; exact List.mem_singleton_self _)
+  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn
+    (mem_messagesOn_of_mem_rowMessagesOn (w.mem_allTables_of_mem_tables ht) hrow
+      (a := (toElements s.bc).toArray) (by rw [hs.bytecode_pull]; exact List.mem_singleton_self _))
   exact bytecode_channel_sound h i hi hname s.bc hmsg
 
 /-- A row that executes the instruction its bytecode read names, at its pulled counter, steps. -/
