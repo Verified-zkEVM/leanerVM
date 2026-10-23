@@ -162,5 +162,157 @@ theorem eqtreeFrame_sound {p : V} {po b n count : ℕ} (hn : 1 ≤ n)
           show ¬ 2 ^ m + i < 2 ^ m by omega, Nat.add_sub_cancel_left, min_eq_left (le_of_lt hic)]
         congr 2; omega
 
+/-! ## The honest values -/
+
+/-- The length of block `k ≥ 1`. -/
+def efLen (n count k : ℕ) : ℕ := 3 + 2 ^ k + efC n count k
+
+/-- The honest value at offset `o` of block `k ≥ 1`: `r_k`, `1`, `1 + r_k`, then for each cell `i`
+of level `k` in order `e_i·(1 + r_k)` and, below `efC`, `e_i·r_k`. -/
+def efLvlVal (rs : List E) (n count k o : ℕ) : E :=
+  let r := rs.getD k 0
+  let c := efC n count k
+  if o = 0 then r else if o = 1 then 1 else if o = 2 then 1 + r
+  else if o - 3 < 2 * c then
+    let e := (eqKernel (rs.take k)).getD ((o - 3) / 2) 0
+    if (o - 3) % 2 = 0 then e * (1 + r) else e * r
+  else (eqKernel (rs.take k)).getD (c + (o - 3 - 2 * c)) 0 * (1 + r)
+
+theorem efLvlVal_lo (rs : List E) (n count k i : ℕ) :
+    efLvlVal rs n count k (3 + i + min i (efC n count k)) =
+      (eqKernel (rs.take k)).getD i 0 * (1 + rs.getD k 0) := by
+  simp only [efLvlVal, show ¬ 3 + i + min i (efC n count k) = 0 by omega,
+    show ¬ 3 + i + min i (efC n count k) = 1 by omega,
+    show ¬ 3 + i + min i (efC n count k) = 2 by omega, ↓reduceIte]
+  rcases Nat.lt_or_ge i (efC n count k) with h | h
+  · rw [min_eq_left (le_of_lt h)]
+    simp only [show 3 + i + i - 3 < 2 * efC n count k by omega, ↓reduceIte,
+      show (3 + i + i - 3) / 2 = i by omega, show (3 + i + i - 3) % 2 = 0 by omega]
+  · rw [min_eq_right h]
+    simp only [show ¬ 3 + i + efC n count k - 3 < 2 * efC n count k by omega, ↓reduceIte]
+    congr 2; omega
+
+theorem efLvlVal_hi (rs : List E) (n count k i : ℕ) (hi : i < efC n count k) :
+    efLvlVal rs n count k (3 + i + min i (efC n count k) + 1) =
+      (eqKernel (rs.take k)).getD i 0 * rs.getD k 0 := by
+  rw [min_eq_left (le_of_lt hi)]
+  simp only [efLvlVal, show ¬ 3 + i + i + 1 = 0 by omega, show ¬ 3 + i + i + 1 = 1 by omega,
+    show ¬ 3 + i + i + 1 = 2 by omega, ↓reduceIte, show 3 + i + i + 1 - 3 < 2 * efC n count k by omega,
+    show (3 + i + i + 1 - 3) / 2 = i by omega, show (3 + i + i + 1 - 3) % 2 = 1 by omega]
+  rfl
+
+/-- The cells hold the equality kernel, from the honest values. -/
+theorem efCell_of_vals {b n count : ℕ} {rs : List E}
+    (hhead : ∀ k < 4, σ (.n (b + k)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0, rs.getD 0 0].getD k 0)
+    (hlvl : ∀ k, 1 ≤ k → k < n → ∀ o < efLen n count k,
+      σ (.n (eqtreeFrameL b k + o)) = efLvlVal rs n count k o) (hrs : rs.length = n) :
+    ∀ m, 1 ≤ m → m ≤ n → ∀ j < 2 ^ m, (j < 2 ^ (m - 1) ∨ j - 2 ^ (m - 1) < efC n count (m - 1) ∨ m = 1) →
+      σ (.n (efCell b n count m j)) = (eqKernel (rs.take m)).getD j 0 := by
+  intro m hm1 hmn j hj hc
+  rcases Nat.eq_or_lt_of_le hm1 with rfl | hm
+  · rcases rs with _ | ⟨r0, rest⟩
+    · simp at hrs; omega
+    have hk : eqKernel ((r0 :: rest).take 1) = [1 + r0, r0] := by simp [eqKernel]
+    rw [hk]
+    simp only [efCell, le_refl, ↓reduceIte]
+    interval_cases j
+    · simpa using hhead 2 (by omega)
+    · simpa using hhead 3 (by omega)
+  · obtain ⟨k, rfl⟩ : ∃ k, m = k + 1 := ⟨m - 1, by omega⟩
+    have hk1 : 1 ≤ k := by omega
+    have htake : rs.take (k + 1) = rs.take k ++ [rs.getD k 0] := by
+      rw [List.take_add_one, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]
+      simp
+    have hlen : (eqKernel (rs.take k)).length = 2 ^ k := by
+      rw [length_eqKernel_eq]; simp [hrs]; omega
+    rw [htake, eqKernel_snoc]
+    simp only [efCell, show ¬ k + 1 ≤ 1 by omega, ↓reduceIte, Nat.add_sub_cancel]
+    by_cases hlo : j < 2 ^ k
+    · simp only [hlo, ↓reduceIte]
+      rw [show eqtreeFrameL b k + 3 + j + min j (efC n count k) =
+        eqtreeFrameL b k + (3 + j + min j (efC n count k)) by ring,
+        hlvl k hk1 (by omega) _ (by unfold efLen; have := min_le_right j (efC n count k); omega),
+        efLvlVal_lo, List.getD_append _ _ _ _ (by rw [List.length_map, hlen]; exact hlo),
+        getD_map_mul_eq]
+    · simp only [hlo, ↓reduceIte]
+      obtain ⟨i, rfl⟩ : ∃ i, j = 2 ^ k + i := ⟨j - 2 ^ k, by omega⟩
+      have hi : i < efC n count k := by simp at hc; omega
+      rw [show 2 ^ k + i - 2 ^ k = i by omega,
+        show eqtreeFrameL b k + 4 + 2 * i = eqtreeFrameL b k + (3 + i + min i (efC n count k) + 1) by
+          rw [min_eq_left (le_of_lt hi)]; ring,
+        hlvl k hk1 (by omega) _ (by unfold efLen; omega), efLvlVal_hi _ _ _ _ _ hi,
+        List.getD_append_right _ _ _ _ (by rw [List.length_map, hlen]; omega), List.length_map, hlen,
+        Nat.add_sub_cancel_left, getD_map_mul_eq]
+
+/-- **The honest values satisfy `eqtree_frame`**: with the point's words at `p` and the template's
+values `r_0, 1, 1 + r_0, r_0` and each block's `efLvlVal`. -/
+theorem eqtreeFrameT_complete {p : V} {po b n count : ℕ} {rs : List E} (hrs : rs.length = n)
+    (hn : 1 ≤ n) (hpt : ∀ t < n, LoadHolds rd (σ p) (po + t) (rs.getD t 0))
+    (hhead : ∀ k < 4, σ (.n (b + k)) = [rs.getD 0 0, 1, 1 + rs.getD 0 0, rs.getD 0 0].getD k 0)
+    (hlvl : ∀ k, 1 ≤ k → k < n → ∀ o < efLen n count k,
+      σ (.n (eqtreeFrameL b k + o)) = efLvlVal rs n count k o) :
+    ∀ a, Stmt.atom a ∈ eqtreeFrameT p po b n count → a.Holds rd σ := by
+  intro a ha
+  have h0 : σ (.n b) = rs.getD 0 0 := hhead 0 (by omega)
+  have h1 : σ (.n (b + 1)) = 1 := hhead 1 (by omega)
+  have h2 : σ (.n (b + 2)) = 1 + rs.getD 0 0 := hhead 2 (by omega)
+  have h3 : σ (.n (b + 3)) = rs.getD 0 0 := hhead 3 (by omega)
+  simp only [eqtreeFrameT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatten, List.mem_map, List.mem_range] at ha
+  rcases ha with (h | h | h | h) | ⟨blk, ⟨k', hk', rfl⟩, hb⟩
+  all_goals try (obtain rfl := Stmt.atom.inj h)
+  · show LoadHolds rd (σ p) po (σ (.n b)); rw [h0]; simpa using hpt 0 (by omega)
+  · show σ (.n (b + 1)) = word 1 0 0; rw [h1, word_one]
+  · show σ (.n (b + 2)) = σ (.n (b + 1)) + σ (.n b); rw [h2, h1, h0]
+  · show σ (.n (b + 3)) = σ (.n b); rw [h3, h0]
+  · set k := k' + 1 with hk
+    have hkn : k < n := by omega
+    set L := eqtreeFrameL b k with hL
+    have v := hlvl k (by omega) hkn
+    have hlen3 : 3 ≤ efLen n count k :=
+      le_trans (Nat.le_add_right 3 (2 ^ k)) (Nat.le_add_right _ _)
+    have vr : σ (.n L) = rs.getD k 0 := by simpa [efLvlVal] using v 0 (by omega)
+    have v1 : σ (.n (L + 1)) = 1 := by simpa [efLvlVal] using v 1 (by omega)
+    have v2 : σ (.n (L + 2)) = 1 + rs.getD k 0 := by simpa [efLvlVal] using v 2 (by omega)
+    simp only [efBlockT, ← hL, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+      List.mem_flatten, List.mem_map, List.mem_range] at hb
+    rcases hb with (h | h | h) | ⟨w, ⟨i, hi, rfl⟩, hw⟩
+    all_goals try (obtain rfl := Stmt.atom.inj h)
+    · show LoadHolds rd (σ p) (po + k) (σ (.n L)); rw [vr]; exact hpt k hkn
+    · show σ (.n (L + 1)) = word 1 0 0; rw [v1, word_one]
+    · show σ (.n (L + 2)) = σ (.n (L + 1)) + σ (.n L); rw [v2, v1, vr]
+    · have hcell : σ (.n (efCell b n count k i)) = (eqKernel (rs.take k)).getD i 0 := by
+        refine efCell_of_vals hhead hlvl hrs k (by omega) (by omega) i hi ?_
+        rcases Nat.eq_or_lt_of_le (show 1 ≤ k by omega) with h | h
+        · exact Or.inr (Or.inr h.symm)
+        · right; left
+          have : efC n count (k - 1) = 2 ^ (k - 1) := by
+            unfold efC; simp only [show ¬ (k - 1 + 1 = n) by omega, ↓reduceIte]
+          rw [this]
+          have : 2 ^ k = 2 * 2 ^ (k - 1) := by
+            rw [← pow_succ', Nat.sub_add_cancel (by omega)]
+          omega
+      have vlo : σ (.n (L + 3 + i + min i (efC n count k))) =
+          (eqKernel (rs.take k)).getD i 0 * (1 + rs.getD k 0) := by
+        rw [show L + 3 + i + min i (efC n count k) = L + (3 + i + min i (efC n count k)) by ring,
+          v _ (by unfold efLen; have := min_le_right i (efC n count k); omega), efLvlVal_lo]
+      simp only [efWordT, ← hL] at hw
+      split at hw
+      · rename_i hic
+        have vhi : σ (.n (L + 3 + i + min i (efC n count k) + 1)) =
+            (eqKernel (rs.take k)).getD i 0 * rs.getD k 0 := by
+          rw [show L + 3 + i + min i (efC n count k) + 1 = L + (3 + i + min i (efC n count k) + 1) by ring,
+            v _ (by unfold efLen; rw [min_eq_left (le_of_lt hic)]; omega), efLvlVal_hi _ _ _ _ _ hic]
+        simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+        rcases hw with h | h <;> obtain rfl := Stmt.atom.inj h
+        · show σ (.n (L + 3 + i + min i (efC n count k))) = σ (.n (efCell b n count k i)) * σ (.n (L + 2))
+          rw [vlo, hcell, v2]
+        · show σ (.n (L + 3 + i + min i (efC n count k) + 1)) = σ (.n (efCell b n count k i)) * σ (.n L)
+          rw [vhi, hcell, vr]
+      · simp only [List.mem_cons, List.not_mem_nil, or_false] at hw
+        obtain rfl := Stmt.atom.inj hw
+        show σ (.n (L + 3 + i + min i (efC n count k))) = σ (.n (efCell b n count k i)) * σ (.n (L + 2))
+        rw [vlo, hcell, v2]
+
 end
 end LeanVM.Guest.B1
