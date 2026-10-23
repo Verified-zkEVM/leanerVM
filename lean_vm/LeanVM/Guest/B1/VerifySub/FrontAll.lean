@@ -53,6 +53,7 @@ structure VsFront (bytecode : List K) (C : CallRel) (rd : Reader) (σ : Val) : T
   h12 : σ (.n 12) = 0
   h13 : σ (.n 13) = 0
   hw : ∀ i < 8, WordAt rd σ i (vsX i)
+  hrw : ∀ i < 6, LoadHolds rd (σ (.n 28)) i (σ (.n (vsX (i + 1))))
   w8 : WordAt rd σ 8 537
   w9 : WordAt rd σ 9 547
   hc537 : IsCanonical128 (σ (.n 537))
@@ -181,7 +182,7 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   simp only [holdsList_append] at h
   obtain ⟨h10, h11, h12, h13, hk, h⟩ := vsHeadT_holds h
   obtain ⟨seed, pi, hseed, hpi, hcap0⟩ := vs_seed hk h10 h11 h12 h13
-  obtain ⟨hw, -, hk50, h⟩ := vsReadsT_holds h
+  obtain ⟨hw, hrw, hk50, h⟩ := vsReadsT_holds h
   obtain ⟨lir, logMem, hl1, hl4, e112, e124, hm16, hm32, e29, e130, ds, hdsL, hdims0, hkb0, h⟩ :=
     vsSizesT_holds hκ hκ6 L hC h
   obtain ⟨hbk0, h⟩ := vsKappaT_holds hdsL hkb0 h
@@ -254,7 +255,8 @@ theorem vs_front {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   rw [edep] at hrunG hptL hdlt
   refine ⟨⟨VsFront.mk
     (seed := seed) (pi := pi) (hseed := hseed) (hpi := hpi) (hcap0 := hcap0) (h10 := h10)
-    (h11 := h11) (h12 := h12) (h13 := h13) (hw := hw) (w8 := w8) (w9 := w9) (hc537 := hc537)
+    (h11 := h11) (h12 := h12) (h13 := h13) (hw := hw) (hrw := hrw) (w8 := w8) (w9 := w9)
+    (hc537 := hc537)
     (hc547 := hc547) (hab8 := vs_absorb8 hw hk50) (habR := vs_absorbRoot hw hk649)
     (halpha := halpha) (hbeta := hbeta) (halphaR := halphaR) (hfpw := hfpw) (lir := lir)
     (logMem := logMem) (hl1 := hl1) (hl4 := hl4) (e112 := e112) (e124 := e124) (hm16 := hm16)
