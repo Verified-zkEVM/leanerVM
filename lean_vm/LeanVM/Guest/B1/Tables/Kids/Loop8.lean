@@ -27,7 +27,7 @@ open LeanVM.Protocol.Verifier (gen)
 /-- `__loop8`'s statements before its `ret`. -/
 def l8Pre : List Stmt := l8Body.dropLast
 
-theorem l8Body_eq : l8Body = l8Pre ++ [.ret []] := by simp [l8Pre, l8Body]
+theorem l8Body_pre_eq : l8Body = l8Pre ++ [.ret []] := by simp [l8Pre, l8Body]
 
 theorem l8_flat : l8Pre.all Stmt.flat = true := by decide +kernel
 
@@ -52,7 +52,7 @@ theorem loop8_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ} {zeta row : E}
     obtain ⟨fn', hf', hp, hb⟩ := l8Found
     rw [hf] at hf'
     obtain rfl := Option.some.inj hf'
-    refine relIn_of_flat hf (by rw [hb, l8Body_eq]) l8_flat hsem fun σ hpar hh ↦ ?_
+    refine relIn_of_flat hf (by rw [hb, l8Body_pre_eq]) l8_flat hsem fun σ hpar hh ↦ ?_
     rw [hp] at hpar
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
     obtain ⟨p0, p1, p2, p3⟩ := hpar
