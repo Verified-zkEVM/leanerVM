@@ -1212,11 +1212,18 @@ theorem constraintCompleteness (hwf : WellFormedBytecode prog) (h : ValidExecuti
     ∃ w, SatisfiedBy prog input w ∧ AssignmentRepresents w t
 ```
 
-Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's
-`TableSoundness`, applied directly to the witness with `w.Assumptions` supplied by
+Soundness composes Layer 9 with the per-table soundness of Layer 6 through Clean's per-row
+`Air.Flat.Component.weakSoundness`, with each row's `Assumptions` supplied by
 `assumptions_of_blake2sRowsValid h.blake2s_valid` (never through
 `soundness_of_tableSoundness_and_specConsistency`, whose `AssumptionsConsistency` sources a
-table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`.
+table's `Assumptions` from the public input alone), and uses only `hwf.sentinelSafe`. Built:
+`LeanerVM/Arithmetization/Soundness.lean` states it under `SentinelSafe prog` and proves it
+through a computable trace, `traceOf prog w` (a hash map from each opcode row's pulled state to
+its pushed state, walked from `(1, 1)` to the final registers with the number of opcode rows as
+fuel; no discrete logarithm) and `traceOf_valid`, through the generic Euler-walk lemma of
+`LeanerVM/Semantics/Walk.lean` (`exists_walksIn`); `leanIsaTraceExtraction` inhabits the
+`TraceExtraction prog` interface declared beside `SatisfiedBy` for the proof system's headline.
+The wrapper under `WellFormedBytecode` is added when that structure lands.
 Completeness builds the rows of the run, then pads each table to a power of two — and the
 BLAKE2S table to at least eight rows — with closed walks from the fill blocks, and uses only
 `hwf.hasFillBlocks`. Both take the whole structure so that T1 reads "for well-formed bytecode".

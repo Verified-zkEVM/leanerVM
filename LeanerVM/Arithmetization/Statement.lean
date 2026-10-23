@@ -139,8 +139,8 @@ The two lookup theorems, `mem_channel_sound` and `bytecode_channel_sound`, are p
 `SatisfiedBy` alone in `LeanerVM.Arithmetization.Bus`, on the closed forms of what each row
 sends (`LeanerVM.Arithmetization.Rows`): balance as a permutation counted in `ℕ` and the count
 product are all they need. That every row is a step and that no row pulls the sentinel counter
-are `LeanerVM.Arithmetization.Steps`'s; the run they make is a block comment at the end of
-this file until it is proved.
+are `LeanerVM.Arithmetization.Steps`'s, and the run they make, constraint soundness and the
+computable trace of `TraceExtraction` are `LeanerVM.Arithmetization.Soundness`'s.
 
 ## Wrong readings excluded
 
@@ -363,6 +363,21 @@ structure AssignmentRepresents (w : EnsembleWitness (leanIsaEnsemble prog)) (t :
   /-- Each step of the register sequence occurs as some row's state pull and push. -/
   regs_embed : ∀ k (hk : k + 1 < t.regs.length), RowSteps w t.regs[k] t.regs[k + 1]
 
+/-! ## The trace interface -/
+
+/-- A computable execution of every satisfying witness: `traceOf` returns, on every witness of
+the constraint statement, a trace the witness represents and that is a valid execution of the
+program on the input. The interface the proof system's execution-level headline takes; it is
+inhabited, for a program whose sentinel slot is not a `JUMP`, by `leanIsaTraceExtraction`
+(`LeanerVM.Arithmetization.Soundness`). -/
+structure TraceExtraction (prog : Program) where
+  /-- The trace of a witness, if one is found. -/
+  traceOf : PublicInput → EnsembleWitness (leanIsaEnsemble prog) → Option (Trace prog)
+  /-- On a satisfying witness, a trace is found, the witness represents it, and it is a valid
+  execution. -/
+  valid : ∀ input w, SatisfiedBy prog input w →
+    ∃ t, traceOf input w = some t ∧ AssignmentRepresents w t ∧ ValidExecution prog input t
+
 /-! ## Load-bearing lemmas -/
 
 /-- A raw row written from a typed row reads back as it: reading at offset `0` inverts
@@ -440,19 +455,5 @@ theorem assignmentRepresents_image {w : EnsembleWitness (leanIsaEnsemble prog)} 
   congr 1
   funext ⟨i, hi⟩
   exact himage i hi
-
-/-! ## The run, to prove
-
-Recorded as the convention for unproved targets requires, never as an unproved declaration. It
-consumes the state balance, `rowSteps_of_satisfiedBy` and `no_row_at_sentinel`
-(`LeanerVM.Arithmetization.Steps`).
-
-```lean
-/-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
-from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
-    ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
-```
--/
 
 end LeanerVM.Arithmetization
