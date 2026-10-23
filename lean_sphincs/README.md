@@ -6,6 +6,10 @@ The game is [StatementDet.lean](Sphincs/StatementDet.lean). A uniform 32-byte se
 
 The game is a `module` file: lean_vm imports its scheme.
 
+## The random-permutation model
+
+`Sphincs.Lifetimes.requestedSecurityRpm` ([LifetimesRpm.lean](Sphincs/LifetimesRpm.lean), the game in [StatementRpm.lean](Sphincs/StatementRpm.lean)) is the same game with Keccak-f[1600] idealized: `H` is Keccak-256, the sponge (rate 136 bytes, capacity 512 bits, Keccak padding) over a uniformly random permutation `π` of the 200-byte state, its 32 bytes read as the little-endian `HashOutput` (`LeanRpm.SufCma.digestBitVec`), and the adversary queries Keccak-256, `π` and `π⁻¹` besides the signing oracle. At each lifetime below, for every `Q ≥ 1` and every adversary whose game makes at most `Q` permutation calls on every path, whatever the answers (a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one: `LeanRpm.SufCma.permCalls`), the forgery probability is at most `Q / 2^127 + Q² / 2^509` (`Rpm.HasRpmSecurityBits 127`). `requestedSecurityRpmCalls` refines it to `q / 2^127 + Q² / 2^509` when the game also makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹`. Both follow from the ROM theorems by `LeanRpm.SufCma.rpm_bound` (`rpmBits_of_det`): the game is the generic SUF-CMA game of `lean_rpm` (`experimentDet_eq`), the signer runs inside the adversary's phase of the transfer, and the ROM adversary is the RPM adversary with the indifferentiability simulator.
+
 ## Lifetimes
 
 A key keeps one subtree of height `b` of the height-26 tree (`doc/lean_sphincs` explains the pruning). Each row is one theorem of [Lifetimes.lean](Sphincs/Lifetimes.lean):

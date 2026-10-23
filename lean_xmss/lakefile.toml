@@ -2,6 +2,11 @@ name = "lean-xmss-security"
 version = "0.1.0"
 defaultTargets = ["LeanXmss", "XmssSecurity", "XmssSecurity.Tests.QueryBudget"]
 
+# The random-permutation model and the ROM-to-RPM transfer for Keccak-256.
+[[require]]
+name = "lean-rpm"
+path = "../lean_rpm"
+
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"

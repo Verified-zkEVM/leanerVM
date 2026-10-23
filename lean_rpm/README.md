@@ -22,6 +22,10 @@ Build with `lake build` (the root module `LeanRpm.lean` checks that the main the
 - `LeanRpm/Indiff2/`, `LeanRpm/Transfer2.lean`: the two-oracle model (hash `H` and direct
   permutation calls `F`, as in leanVM's Fiat–Shamir duplex).
 - `LeanRpm/Keccak.lean`: the Keccak-256 instances.
+- `LeanRpm/Lemmas.lean`: weight bounds through simulations, and the permutation calls of a
+  Keccak-256 hash (`keccakPad_length`: `⌊n / 136⌋ + 1` for `n` bytes).
+- `LeanRpm/Signature.lean`: the SUF-CMA game of a hash-based signature scheme in the ROM and in the
+  RPM, and the transfer of its bounds (used by `lean_xmss` and `lean_sphincs`).
 
 ## Results
 
@@ -68,6 +72,22 @@ simulator at the end of a sponge path, where the simulator answers with `H`; and
 adversary saw a direct call's full answer `y = F x` and then queried `π` at `y ⊕ B` for a final
 block `B`, the RPM would tie the answer to `H` while the ROM simulator would not know `y`. Hence
 the direct calls are made by the honest part after the adversary has finished.
+
+**Signature games** (`SufCma.rpm_le_rom`, `SufCma.rpm_bound`). For a scheme hashing with
+`H : List UInt8 → D` (`D ≃` the 32 Keccak-256 bytes; leanXMSS and leanSPHINCS read them as the
+little-endian `BitVec 256`, `digestBitVec`), the ROM game (`romGame`, `romExperiment`: seed, key
+generation, the adversary with `H` and a logging signing oracle, verification, every hash call
+counted) and the RPM game (`rpmGame`, `rpmExperiment`: the same with `H` Keccak-256 over `π`, the
+adversary also querying `π` and `π⁻¹`). The signer runs in the adversary's phase, so the transfer's
+adversary is the RPM adversary with the signing oracle (its key from the honest phase before), and
+the ROM adversary `romAdv A` is `A` with its permutation queries answered by the simulator (and
+its hash answers read through the bijection), against the game's own signing oracle. If the RPM
+game makes at most `Q` permutation calls on every path (`permCalls`: a hash of `n` bytes costs
+`⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one) and at most `q` calls of `H`, `π`, `π⁻¹` (`oracleCalls`),
+then `romAdv A`'s ROM experiment makes at most `q` hash calls on every outcome and
+`Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM bound `q / 2^b` gives
+`q / 2^b + Q² / 2^509`, and `Q / 2^b + Q² / 2^509` with the permutation budget alone
+(`rpm_bound_perm`).
 
 ## Not covered
 

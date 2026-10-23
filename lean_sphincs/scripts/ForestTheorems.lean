@@ -1,4 +1,5 @@
 import Sphincs.Lifetimes
+import Sphincs.LifetimesRpm
 import Sphincs.Axioms
 import Lean
 

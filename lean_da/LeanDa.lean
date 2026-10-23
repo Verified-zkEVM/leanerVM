@@ -1,6 +1,7 @@
 import LeanDa.Commitment
 import LeanDa.Dual
 import LeanDa.Security
+import LeanDa.RpmSecurity
 import PqDas
 
 /-!
@@ -13,6 +14,12 @@ any number `r ≥ 1` of rows and any hash `H` (the crate's is Keccak-256): compl
 binding by reduction to a collision of `H`, and code binding with the membership test's
 soundness `δ = 14 / 2^192` over `|E^14| = 2^2688` challenges. The argument `ps` and its extractor `ext` are parameters: knowledge soundness enters
 as the probability that the explicit reduction `ksReduction` breaks it.
+
+In the random-permutation model (`LeanDa.RpmSecurity`: `H` Keccak-256 over a random permutation
+`π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), position
+binding holds with the bound `Q² / 2^256 + Q² / 2^508` for `Q` permutation calls
+(`leanDa_positionBinding_rpm`), and code binding moves to the two-oracle random-oracle model
+within `Q² / 2^508` (`leanDa_codeBinding_rpm`).
 -/
 
 open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
@@ -103,3 +110,19 @@ standard axioms. -/
 /-- info: 'LeanDa.membershipVector_eq_dual' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanDa.membershipVector_eq_dual
+
+/-- info: 'LeanDa.leanDa_positionBinding_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.leanDa_positionBinding_rpm
+
+/-- info: 'LeanDa.leanDa_codeBinding_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.leanDa_codeBinding_rpm
+
+/-- info: 'LeanDa.membershipChallengesM_id' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.membershipChallengesM_id
+
+/-- info: 'LeanDa.verifyCellM_id' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.verifyCellM_id

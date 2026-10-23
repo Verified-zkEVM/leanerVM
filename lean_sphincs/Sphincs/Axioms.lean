@@ -122,6 +122,7 @@ import Sphincs.Layout
 import Sphincs.LifetimeCertificates
 import Sphincs.LifetimeLanding
 import Sphincs.Lifetimes
+import Sphincs.LifetimesRpm
 import Sphincs.LoopWalk
 import Sphincs.Pruning
 import Sphincs.RandomizedCorrectness
@@ -177,6 +178,7 @@ import Sphincs.SecurityTreeWitness
 import Sphincs.SecurityVerifier
 import Sphincs.SecurityWotsWitness
 import Sphincs.Statement
+import Sphincs.StatementRpm
 import Sphincs.Uniform
 import Sphincs.VerificationCost
 import Sphincs.World
@@ -8968,6 +8970,26 @@ import Sphincs.World
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Lifetimes.requestedSecurity
 
+/-- info: 'Sphincs.Lifetimes.experimentDet_eq' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Lifetimes.experimentDet_eq
+
+/-- info: 'Sphincs.Lifetimes.requestedSecurityRpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Lifetimes.requestedSecurityRpm
+
+/-- info: 'Sphincs.Lifetimes.requestedSecurityRpmCalls' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Lifetimes.requestedSecurityRpmCalls
+
+/-- info: 'Sphincs.Lifetimes.rpmBitsCalls_of_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Lifetimes.rpmBitsCalls_of_det
+
+/-- info: 'Sphincs.Lifetimes.rpmBits_of_det' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Lifetimes.rpmBits_of_det
+
 /-- info: 'Sphincs.LoopWalk.St.fresh.sizeOf_spec' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.LoopWalk.St.fresh.sizeOf_spec
@@ -11983,6 +12005,18 @@ import Sphincs.World
 /-- info: 'Sphincs.Security.Adversary.mk.sizeOf_spec' does not depend on any axioms -/
 #guard_msgs (whitespace := lax) in
 #print axioms Sphincs.Security.Adversary.mk.sizeOf_spec
+
+/-- info: 'Sphincs.Rpm.Adversary.mk.inj' does not depend on any axioms -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Rpm.Adversary.mk.inj
+
+/-- info: 'Sphincs.Rpm.Adversary.mk.injEq' depends on axioms: [propext] -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Rpm.Adversary.mk.injEq
+
+/-- info: 'Sphincs.Rpm.Adversary.mk.sizeOf_spec' does not depend on any axioms -/
+#guard_msgs (whitespace := lax) in
+#print axioms Sphincs.Rpm.Adversary.mk.sizeOf_spec
 
 /-- info: 'Sphincs.evalDist_hashOutput_extractAt_uniform' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

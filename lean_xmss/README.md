@@ -6,6 +6,12 @@ The budget `q` counts the hash calls of this model's signer (`Seeded.sign`), not
 
 The proof combines three earlier ones: the byte layout, seed model, honest graph and scan tooling of `lean_sphincs` (B), the layered descent and one-time witnesses of the 3-layer leanSPHINCS proof at `0cd0539ae` (C), and the stateful game and two-lane accounting of the single-layer XMSS proof `formal/xmss` at `35fae6781` (A).
 
+## The random-permutation model
+
+`XmssSecurity.leanXmss_rpm_security : LeanXmss.Rpm.LeanXmssRpmSecurityStatement` (`LeanXmss/StatementRpm.lean`, `XmssSecurity/Rpm.lean`) is the same SUF-CMA game with Keccak-f[1600] idealized: `H` is Keccak-256, the sponge (rate 136 bytes, capacity 512 bits, Keccak padding) over a uniformly random permutation `π` of the 200-byte state, its 32 bytes read as the little-endian `HashOutput` (`LeanRpm.SufCma.digestBitVec`), and the adversary queries Keccak-256, `π` and `π⁻¹` besides the signing oracle. For every `Q ≥ 1` and every adversary whose game makes at most `Q` permutation calls on every path, whatever the answers (key generation, signing, the adversary's queries and the final verification; a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` one: `LeanRpm.SufCma.permCalls`), the forgery probability is at most `Q / 2^127 + Q² / 2^509`. The refined `leanXmss_rpm_security_calls` bounds it by `q / 2^127 + Q² / 2^509` when the game also makes at most `q ≥ 1` calls of `H`, `π` and `π⁻¹` in all.
+
+The proof is `LeanRpm.SufCma.rpm_bound` applied to the ROM theorem: the leanXMSS game is the generic SUF-CMA game of `lean_rpm` (`experiment_eq_romExperiment`), the signer runs inside the adversary's phase of the transfer (`keccak256_transfer`, `Q² / 2^509`), and the ROM adversary is the RPM adversary with its permutation queries answered by the indifferentiability simulator, whose experiment makes at most `q` hash calls.
+
 ## Units
 
 A *unit* is `2^-128`. The bound is two units per hash call the adversary or the final verification makes, which is `q / 2^127` once the key-generation calls, charged to `q` but never bad, pay for the two seeds and the lower-order terms.

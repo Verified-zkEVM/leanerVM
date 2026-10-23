@@ -21,10 +21,28 @@ They rest on what this project proves about LeanDA's building blocks ([LeanDa/Se
 * `checker_complete`, `checker_sound`: the membership test accepts every codeword for every challenge, and a fixed matrix that is not a codeword for at most a `14 / 2^192` fraction of the challenges `z ∈ E^14`. This is Proposition prop:rs-membership of `doc/leanvm` Annex D: the additive Reed-Solomon code at rate one half is its own dual on the crate's domain (`orthogonal_rsCode`, by Lemma lem:domain-sum and Corollary cor:rs-dual), the dual codeword is the encoding of the tensor `⊗_j (1, z_j)` in the novel basis (`dual_eq_sum`), and the inner product with a row that is not a codeword is a nonzero multilinear polynomial of total degree at most 14 in `z`, so Schwartz-Zippel applies (`card_acceptSet_le`).
 * `merkleVC_perfectlyComplete`, `posBindingExp_le_hashCollisionExp`: honest cell openings verify, and two openings of one cell to different values give a collision of the hash, which `merkleCollider` computes. Both hold for every hash function, as do the theorems.
 
-## Assumptions
+## The random-permutation model
+
+[LeanDa/RpmSecurity.lean](LeanDa/RpmSecurity.lean) and [LeanDa/RpmScheme.lean](LeanDa/RpmScheme.lean) idealize Keccak-f[1600] as a uniformly random permutation `π` (`lean_rpm`): `H` is Keccak-256, the sponge over `π`, and the challenges are the deployed duplex over `π` (`membershipChallengesM`, which over pure functions is `membershipChallenges`: `membershipChallengesM_id`), its 25 lanes the state's 200 bytes, little endian (`laneBytes`, which is `kBytes`). The adversary queries Keccak-256, `π` and `π⁻¹`; the verifier hashes the opening's climb with Keccak-256 (`verifyCellM`, which over a pure function is `verifyCell`) and calls `π` directly in the challenges' duplex. Every duplexing writes lanes `0 … 15` and keeps lanes `16 … 24`, so it absorbs a block whose byte `135` is that of an earlier answer, a non-final block (`duplexP_membershipChallengesR`): the duplex discipline of the two-oracle transfer `keccak256_transfer2` (`q² / 2^508`). Budgets count permutation calls on every path of the game, verifications included (`permCalls2`: a hash of `n` bytes costs `⌊n / 136⌋ + 1`, a query of `π` or `π⁻¹` and a duplexing one).
+
+| Theorem | Statement |
+| --- | --- |
+| `leanDa_positionBinding_rpm` | for every argument `ps` (any verifier, any relation) and every adversary of at most `Q` permutation calls, `Pr[position binding] ≤ Q² / 2^256 + Q² / 2^508` |
+| `leanDa_codeBinding_rpm` | the code-binding probabilities in the RPM and in the two-oracle ROM (`H` a random oracle, the challenges the duplex over an independent random function `F`, against the simulated adversary `advS2 A`) differ by at most `Q² / 2^508` |
+
+Position binding is a concrete bound: after the transfer, a win gives two openings that verify for the hash function of the final random-oracle cache, so the climbs' inputs, all cached, contain a collision (`posBindingPost_win`, by `openingsCollision_spec`), which `Q` hash calls find with probability at most `Q² / 2^256` (`prob_hCollision_le`).
+
+Code binding stops at the two-oracle ROM. Wagner's bound does not apply to that game, for three reasons the transfer cannot remove:
+
+* **The hash is not fixed.** His theorems hold for every hash function `H`, a parameter of the scheme, of the relation the argument proves and of the reductions `ksReduction`, `wpbReduction` and `forkCollisionReduction`. In the RPM, and after the transfer, `H` is a random oracle shared with the adversary, so neither the relation nor the reductions are defined as stated; re-proving the bound with `H` an oracle (the collision terms becoming birthday bounds, as for position binding) is not done here.
+* **The challenges are not a programmable oracle.** The forking argument (`PqDas.CommittedSoundness`) rewinds the adversary at its challenge-oracle query on the committed root and answers it afresh. After the transfer the challenges are the duplex over `F`, which the adversary evaluates itself through `π` (the simulator answers non-final queries with `F`); turning them into a random oracle on roots needs a further indifferentiability argument for the duplex (programming `F` along each root's chain of states), which is not proved here.
+* **The argument has no oracle.** The argument of knowledge `ps` is modeled oracle-free, for a relation that depends on `H`; in the RPM the relation depends on `π`, and the argument (leanVM's) queries `π` itself.
+
+
 
 * **An argument of knowledge** for `Relation r`, the statement that the cells commit to the root and pass the membership test on the challenges: perfect completeness for `leanDa_perfectlyComplete`, and straightline knowledge soundness through `ε_ks`. Wagner's model of the argument makes no oracle queries, and its extractor `ext` runs inside the two collision reductions, so `ε₁` and `ε₂` bound an attack on `H` only for an efficient `ext`. Discharging this assumption with leanVM, the aggregation guest proving the relation, is not done here: leanVM's verifier queries a random oracle, its Fiat-Shamir transcript would need to be domain separated from the challenge oracle below, and its knowledge soundness (`lean_vm`) is stated with an extractor whose running time is not part of the statement.
 * **Collision resistance of the hash**, through the explicit reductions. The theorems hold for every hash function `H`, so they are reductions, not bounds; LeanDA's is Keccak-256 (Ethereum's), which `lean_vm` defines and checks against the Rust.
+* **The random-permutation model** (the RPM theorems): Keccak-f[1600] behaves as a uniformly random permutation.
 * **The random-oracle model for the challenges.** The crate derives `z` with a duplex sponge over Keccak-f[1600], seeded with the hash of the label `leanDA/rs-membership/v1`, that observes the root's four words as two scalars and samples `14` times (`membership_challenges`); the security game models this as one random oracle from roots to `E^14`.
 
 ## The model and the Rust code
@@ -51,4 +69,4 @@ lake build
 | Library | What it is |
 | --- | --- |
 | [PqDas](PqDas) | Wagner's framework and proofs: erasure codes, vector commitments, code checkers, arguments of knowledge, the scheme, and its completeness, position binding and code binding (the latter through a forking argument). Ported from [b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da/tree/4475179c19296acf3469d7d552a3186ad1feda74) at `4475179c` to the VCVio and Lean pinned here; [NOTICE](NOTICE) says what changed. Apache-2.0, see [LICENSE](LICENSE). |
-| [LeanDa](LeanDa) | LeanDA: the fields, the scheme and its deployed algorithms, the self-duality of the code, the membership test's soundness, the Merkle commitment and the deployed one's agreement with it, and the instantiation. |
+| [LeanDa](LeanDa) | LeanDA: the fields, the scheme and its deployed algorithms, the self-duality of the code, the membership test's soundness, the Merkle commitment and the deployed one's agreement with it, the instantiation, and the random-permutation model (`RpmScheme`, `RpmSecurity`). |

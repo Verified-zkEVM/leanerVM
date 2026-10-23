@@ -6,6 +6,11 @@ defaultTargets = ["LeanDa"]
 autoImplicit = false
 relaxedAutoImplicit = false
 
+# The random-permutation model and the ROM-to-RPM transfer for Keccak-256.
+[[require]]
+name = "lean-rpm"
+path = "../lean_rpm"
+
 [[require]]
 name = "CompPoly"
 git = "https://github.com/Verified-zkEVM/CompPoly"

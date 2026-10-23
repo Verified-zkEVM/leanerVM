@@ -33,7 +33,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_rpm
         run: |
-          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2"
+          theorems="LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm"
           { echo 'import LeanRpm'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -70,10 +70,11 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_xmss
         run: |
-          printf 'import XmssSecurity\n#print axioms XmssSecurity.leanXmss_has_127_bits_of_classical_security\n' \
+          theorems="leanXmss_has_127_bits_of_classical_security leanXmss_rpm_security leanXmss_rpm_security_calls"
+          { echo 'import XmssSecurity'; for t in $theorems; do echo "#print axioms XmssSecurity.$t"; done; } \
             > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
-          for t in leanXmss_has_127_bits_of_classical_security; do
+          for t in $theorems; do
             grep -qF "'XmssSecurity.$t' depends on axioms: [propext, Classical.choice, Quot.sound]" \
               "$RUNNER_TEMP/axioms.txt"
           done
@@ -100,7 +101,8 @@ jobs:
           path: |
             lean_sphincs/.lake
             !lean_sphincs/.lake/packages/mathlib/.lake
-          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-${{ hashFiles('lean_sphincs/**/*.lean') }}
+            lean_rpm/.lake/build
+          key: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-${{ hashFiles('lean_sphincs/**/*.lean', 'lean_rpm/**/*.lean') }}
           restore-keys: lake-lean-sphincs-${{ runner.os }}-${{ hashFiles('lean_sphincs/lean-toolchain', 'lean_sphincs/lake-manifest.json') }}-
       # Each kernel-checked table (`decide +kernel`) is built alone, before Lake
       # builds the rest in parallel. The largest needs more than the runner's
@@ -132,7 +134,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_sphincs
         run: |
-          theorems="Sphincs.Lifetimes.requestedSecurity"
+          theorems="Sphincs.Lifetimes.requestedSecurity Sphincs.Lifetimes.requestedSecurityRpm Sphincs.Lifetimes.requestedSecurityRpmCalls"
           { echo 'import Sphincs'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -145,6 +147,7 @@ jobs:
           path: |
             lean_sphincs/.lake
             !lean_sphincs/.lake/packages/mathlib/.lake
+            lean_rpm/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:
@@ -168,7 +171,8 @@ jobs:
           path: |
             lean_da/.lake
             !lean_da/.lake/packages/mathlib/.lake
-          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-${{ hashFiles('lean_da/**/*.lean') }}
+            lean_rpm/.lake/build
+          key: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-${{ hashFiles('lean_da/**/*.lean', 'lean_rpm/**/*.lean') }}
           restore-keys: lake-lean-da-${{ runner.os }}-${{ hashFiles('lean_da/lean-toolchain', 'lean_da/lake-manifest.json') }}-
       # Builds the default target, whose root module checks the front-page theorems' axioms with
       # `#guard_msgs`.
@@ -185,7 +189,7 @@ jobs:
       - name: Check the axiom footprint
         working-directory: lean_da
         run: |
-          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual"
+          theorems="LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm"
           { echo 'import LeanDa'; for t in $theorems; do echo "#print axioms $t"; done; } > "$RUNNER_TEMP/axioms.lean"
           lake env lean "$RUNNER_TEMP/axioms.lean" | tee "$RUNNER_TEMP/axioms.txt"
           for t in $theorems; do
@@ -198,6 +202,7 @@ jobs:
           path: |
             lean_da/.lake
             !lean_da/.lake/packages/mathlib/.lake
+            lean_rpm/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         with:

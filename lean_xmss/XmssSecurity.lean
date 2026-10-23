@@ -1,5 +1,6 @@
 import LeanXmss.Statement
 import XmssSecurity.Proof.Bridge.Security
+import XmssSecurity.Rpm
 
 namespace XmssSecurity
 
@@ -12,5 +13,13 @@ theorem leanXmss_has_127_bits_of_classical_security : LeanXmss.LeanXmssSecurityS
 /-- info: 'XmssSecurity.leanXmss_has_127_bits_of_classical_security' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms leanXmss_has_127_bits_of_classical_security
+
+/-- info: 'XmssSecurity.leanXmss_rpm_security' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms leanXmss_rpm_security
+
+/-- info: 'XmssSecurity.leanXmss_rpm_security_calls' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms leanXmss_rpm_security_calls
 
 end XmssSecurity

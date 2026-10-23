@@ -53,14 +53,16 @@ lean_rpm() {
   (cd lean_rpm && lake exe cache get)
   build lean_rpm 'LeanRpm'
   axioms lean_rpm LeanRpm LeanRpm.indifferentiability LeanRpm.transfer LeanRpm.transfer2 \
-    LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2
+    LeanRpm.keccak256_indifferentiable LeanRpm.keccak256_transfer LeanRpm.keccak256_transfer2 \
+    LeanRpm.SufCma.rpm_le_rom LeanRpm.SufCma.rpm_bound LeanRpm.SufCma.rpm_bound_perm
 }
 
 lean_xmss() {
   no_escapes lean_xmss
   (cd lean_xmss && lake exe cache get)
   build lean_xmss '(LeanXmss|XmssSecurity)'
-  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security
+  axioms lean_xmss XmssSecurity XmssSecurity.leanXmss_has_127_bits_of_classical_security \
+    XmssSecurity.leanXmss_rpm_security XmssSecurity.leanXmss_rpm_security_calls
 }
 
 lean_sphincs() {
@@ -73,7 +75,8 @@ lean_sphincs() {
     (cd lean_sphincs && lake build "$m")
   done
   build lean_sphincs 'Sphincs(Fors|Base)?/'
-  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity
+  axioms lean_sphincs Sphincs Sphincs.Lifetimes.requestedSecurity \
+    Sphincs.Lifetimes.requestedSecurityRpm Sphincs.Lifetimes.requestedSecurityRpmCalls
 }
 
 lean_da() {
@@ -82,7 +85,8 @@ lean_da() {
   build lean_da '(LeanDa|PqDas)'
   axioms lean_da LeanDa LeanDa.leanDa_perfectlyComplete LeanDa.leanDa_positionBinding \
     LeanDa.leanDa_codeBinding LeanDa.checker_sound LeanDa.commitCodewords_eq_commitCells \
-    LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual
+    LeanDa.dualCodeword_eq_dual LeanDa.membershipVector_eq_dual \
+    LeanDa.leanDa_positionBinding_rpm LeanDa.leanDa_codeBinding_rpm
 }
 
 lean_vm() {
