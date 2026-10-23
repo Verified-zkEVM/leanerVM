@@ -10,6 +10,7 @@ module
 public import LeanVM.Guest.B1.Main.MainAtDefs
 public import LeanVM.Guest.B1.Main.MainCoreThm
 public import LeanVM.Guest.B1.Da.AtBase
+public import LeanVM.Guest.B1.Main.KidsT
 
 /-!
 # `main`, placed
@@ -27,7 +28,7 @@ namespace LeanVM.Guest.B1.Main
 open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Memory
 open LeanVM.Protocol LeanVM.Protocol.Verifier LeanVM.Protocol.KeccakHash
 open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Fwd
-open LeanVM.Guest.B1 (CompleteAtD Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
+open LeanVM.Guest.B1 (CompleteAtD CompleteAtDT KidsDT kidsFromInT_of_kidsDT Returns Kid OutsOk CallsMatch RegionsOk outRegion DisjL Within LowDef
   disj_append kidsFromIn_of_kidsD regionsOk_of within_append bufL bufL_within bufL_disj bufL_region)
 open LeanVM.Guest.B1.Da (SlOk slEvs_holds limb0_gen_pow_mul exists_of_length_succ)
 
@@ -131,31 +132,55 @@ theorem taken_eq {σ : Val} {c : V} {a : ℕ} (ha : a < 2 ^ 64 - 1) (h : σ c = 
     decide (σ c ≠ 0) = decide (a ≠ 0) := by
   rw [h]; exact decide_eq_decide.mpr (one_add_ne_iff ha)
 
+/-- `main`'s frames, in call order. -/
+def mCalls (σ : Val) (m : MainIn) : List Call :=
+  (⟨"exponent_tables", [], [.n 65, .n 66], true⟩ : Call) ::
+    ([⟨"__loop0", [.n 72, .n 50, .n 69], [], decide (σ (.n 71) ≠ 0)⟩,
+      ⟨"da_list_digest", [.n 69, .n 40], [.n 73, .n 74], true⟩,
+      ⟨"claim_list_digest", [.n 77, .n 0], [.n 81, .n 82], true⟩,
+      ⟨"claim_list_digest", [.n 80, .n 3], [.n 83, .n 84], true⟩,
+      ⟨"__loop1", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
+      ⟨"__loop2", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
+      ⟨"__loop3", [.n 378, .n 2, .n 55, .n 117, .n 77], [], decide (σ (.n 377) ≠ 0)⟩,
+      ⟨"__loop4", [.n 381, .n 5, .n 56, .n 117, .n 55, .n 2, .n 80, .n 119], [],
+        decide (σ (.n 380) ≠ 0)⟩] ++
+    (if m.nd = 1 then [(⟨"da_verify", [.n 66], [.n 384, .n 385, .n 386, .n 387], true⟩ : Call),
+      ⟨"cover_da_root", [.n 69, .n 118, .n 50, .n 388], [.n 389, .n 390, .n 391, .n 392], true⟩]
+      else []) ++
+    [⟨"__loop5", [.n 414, .n 6, .n 409, .n 77, .n 117, .n 55, .n 80, .n 56, .n 406, .n 69, .n 118,
+      .n 50, .n 63, .n 64, .n 394, .n 65, .n 66, .n 400], [], decide (σ (.n 413) ≠ 0)⟩] ++
+    (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 394, .n 400, .n 406, .n 417], [],
+      true⟩ : Call)]) ++
+    [⟨"statement_digest", [.n 63, .n 64, .n 116, .n 73, .n 74, .n 417], [.n 444, .n 445], true⟩])
+
 set_option maxRecDepth 40000 in
 set_option maxHeartbeats 16000000 in
 /-- **`main` at `fp`**: its honest valuation on a memory holding its buffers `own`,
 `exponent_tables`' tables, its callees' layouts and its header holds by a tree placed at `fp`,
-loading outside its own data only its header (words `0`, `1`). -/
-theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+loading outside its own data only its header (words `0`, `1`); the tree is `main`'s node at a
+valuation with `main`'s honest values (`MVals`). -/
+theorem main_relAtInT (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
     (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
     (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
-    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
-      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
+    (Ts : List (Tree → Prop))
+    (hok : KidsDT fs cert 16 (mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp)) Ts)
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
-        RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] := by
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (d.toIn fs fp) ∧
+            KidsT (mCalls σ (d.toIn fs fp)) ((fun _ => True) :: Ts) ks) := by
   set m := d.toIn fs fp with hmd
   set b0 := fp + fs "main" with hb0
   set Lown := bufL b0 (mSizes d) own with hLown
   set Lmain := Lown ++ etL d fs fp with hLmain
   have he : etB fs (mK0 d fs fp) = b0 + (mSizes d).sum + fs "exponent_tables" := rfl
   obtain ⟨Nk, Lk, outs, hoo, hW, hD, -, hKids⟩ :=
-    kidsFromIn_of_kidsD (fs := fs) (cert := cert) 16 (mKids m Lmain) hok (etB fs (mK0 d fs fp) + 68)
+    kidsFromInT_of_kidsDT (fs := fs) (cert := cert) 16 (mKids m Lmain) Ts hok (etB fs (mK0 d fs fp) + 68)
   have hWo : Within Lown b0 (mSizes d).sum := bufL_within _ _ _ hfit
   have hWe : Within (etL d fs fp) (etB fs (mK0 d fs fp)) 68 := by
     intro q hq
@@ -164,11 +189,13 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
   have hDe : DisjL (etL d fs fp) := List.Pairwise.cons (fun q hq => by
       simp only [List.mem_singleton] at hq; subst hq; exact Or.inl (by simp [etTabs]))
     (List.pairwise_singleton _ _)
-  refine ⟨fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk), Lmain ++ Lk, ?_, ?_,
-    fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
-  · rw [within_append, within_append]
+  have hWb : Within (Lmain ++ Lk) b0 ((mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) := by
+    rw [within_append, within_append]
     exact ⟨⟨hWo.mono (by omega) (by omega), hWe.mono (by omega) (by omega)⟩,
       hW.mono (by omega) (by omega)⟩
+  refine ⟨fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk), Lmain ++ Lk,
+    hWb.mono (by omega) (by omega), fun q hq => (hWb q hq).1, ?_,
+    fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
   · have hW1 : Within (Lown ++ etL d fs fp) b0 ((mSizes d).sum + fs "exponent_tables" + 68) :=
       within_append.mpr ⟨hWo.mono le_rfl (by omega), hWe.mono (by omega) (by omega)⟩
     exact disj_append (disj_append (bufL_disj _ _ _ hfit) hDe hWo hWe (by omega)) hD hW1 hW
@@ -311,24 +338,8 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
       (if m.nd = 1 then mDa else []).flatMap (Main.slEvs σ) ++ (mMid.flatMap (Main.slEvs σ) ++
         (.inK (.n 419) :: (if m.nc = 0 then mLeaf else mAgg).flatMap (Main.slEvs σ) ++
           mPost.flatMap (Main.slEvs σ))))) =
-      (⟨"exponent_tables", [], [.n 65, .n 66], true⟩ : Call) ::
-        ([⟨"__loop0", [.n 72, .n 50, .n 69], [], decide (σ (.n 71) ≠ 0)⟩,
-          ⟨"da_list_digest", [.n 69, .n 40], [.n 73, .n 74], true⟩,
-          ⟨"claim_list_digest", [.n 77, .n 0], [.n 81, .n 82], true⟩,
-          ⟨"claim_list_digest", [.n 80, .n 3], [.n 83, .n 84], true⟩,
-          ⟨"__loop1", [.n 87, .n 1, .n 77, .n 0], [], decide (σ (.n 86) ≠ 0)⟩,
-          ⟨"__loop2", [.n 90, .n 4, .n 80, .n 3], [], decide (σ (.n 89) ≠ 0)⟩,
-          ⟨"__loop3", [.n 378, .n 2, .n 55, .n 117, .n 77], [], decide (σ (.n 377) ≠ 0)⟩,
-          ⟨"__loop4", [.n 381, .n 5, .n 56, .n 117, .n 55, .n 2, .n 80, .n 119], [],
-            decide (σ (.n 380) ≠ 0)⟩] ++
-        (if m.nd = 1 then [(⟨"da_verify", [.n 66], [.n 384, .n 385, .n 386, .n 387], true⟩ : Call),
-          ⟨"cover_da_root", [.n 69, .n 118, .n 50, .n 388], [.n 389, .n 390, .n 391, .n 392], true⟩]
-          else []) ++
-        [⟨"__loop5", [.n 414, .n 6, .n 409, .n 77, .n 117, .n 55, .n 80, .n 56, .n 406, .n 69, .n 118,
-          .n 50, .n 63, .n 64, .n 394, .n 65, .n 66, .n 400], [], decide (σ (.n 413) ≠ 0)⟩] ++
-        (if m.nc = 0 then [] else [(⟨"aggregate_claims", [.n 6, .n 394, .n 400, .n 406, .n 417], [],
-          true⟩ : Call)]) ++
-        [⟨"statement_digest", [.n 63, .n 64, .n 116, .n 73, .n 74, .n 417], [.n 444, .n 445], true⟩]) := by
+      mCalls σ m := by
+    unfold mCalls
     rw [calls_append, calls_append, calls_inK, calls_append, calls_append, calls_inK, pc1, pc2, pc3, pc4,
       pc5, mPre_calls, cDa, mMid_calls, cBr, mPost_calls]
     split <;> split <;> simp [Main.mkCall]
@@ -507,7 +518,7 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
     rcases List.mem_append.mp hq with hq | hq
     · exact hLo q hq
     · exact hLe q hq
-  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
+  have h := relAtInWT_of_walk (P := coreProgram) (fs := fs) (cert := cert) (σ := σ) (rd := rd)
     (R := fun i => i < 2) (D := fun _ => False) (fp := fp) (N := fs "exponent_tables" + 68 + Nk)
     (args := []) (rets := [])
     (Dk := fun i => ((fun _ => False) i ∨ ((⟨"exponent_tables", [], [.n 65, .n 66], true⟩ : Call).taken
@@ -530,17 +541,19 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
         · exact mBlocks_addrs.2.2.2.2.1
       rw [e1', e2', e3', e4', e5'] at hq
       simp at hq)
-    ?_ ?_ (fun i hi => hi.elim)
+    ((fun _ => True) :: Ts) ?_ ?_ (fun i hi => hi.elim)
   · rw [hal] at h
-    exact h
+    obtain ⟨t, ht, ks, rfl, hkT⟩ := h
+    rw [hcalls] at hkT
+    exact ⟨_, ht, σ, _, ks, rfl, hv, hkT⟩
   · rw [hcalls, hal]
     refine ⟨fs "exponent_tables" + 68, Nk, fun _ => False,
       fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 68, rfl, fun i hi => hi.elim, ?_, ?_⟩
-    · show RelAtIn coreProgram fs cert rd (fun _ => False)
+    · show RelAtInT coreProgram fs cert rd (fun _ => False)
         (fun i => etB fs (mK0 d fs fp) ≤ i ∧ i < etB fs (mK0 d fs fp) + 68) (mK0 d fs fp)
-        (fs "exponent_tables" + 68) "exponent_tables" [] [σ (.n 65), σ (.n 66)]
+        (fs "exponent_tables" + 68) "exponent_tables" [] [σ (.n 65), σ (.n 66)] fun _ => True
       rw [o65, o66]
-      exact et_at fs cert hExp
+      exact (et_at fs cert hExp).relAtInT
     · rw [hbase]
       refine hKids rd σ _ _ _ hCM hlow hLk hlins (regionsOk_of fun k hk _ i hi => ?_)
       rw [mKids_lin m Lmain k hk] at hi
@@ -592,6 +605,48 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
         rw [hv.v446, ← pow_zero gen, limb0_gen_pow_mul]
       · refine ⟨1, ?_, Or.inr (Or.inl (by norm_num))⟩
         rw [hv.v450, ← pow_one gen, limb0_gen_pow_mul]
+
+theorem kidsDT_nil {fs : String → ℕ} {cert : String → V → ℕ} {κ : ℕ} : ∀ (ks : List Kid),
+    (∀ k ∈ ks, k.taken = true → CompleteAtD fs cert κ k.f k.Lin k.args k.Out) → KidsDT fs cert κ ks []
+  | [], _ => trivial
+  | k :: ks, h => ⟨fun ht => (h k (by simp) ht).toT, kidsDT_nil ks fun k' hk' => h k' (by simp [hk'])⟩
+
+/-- **`main` at `fp`**, its node at a valuation with `main`'s honest values (`MVals`). -/
+theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
+    (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
+    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
+      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
+    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
+      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        MainMem rd (d.toIn fs fp)) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
+        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        RelAtInW coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun σ => MVals rd σ (d.toIn fs fp)) :=
+  let ⟨n, L, h1, h1', h2, h3, h4⟩ := main_relAtInT fs cert fp d own hfit hb hdaR [] (kidsDT_nil _ hok) hmm
+  ⟨n, L, h1, h1', h2, h3, fun rd hl hm h0 h1 =>
+    let ⟨t, ht, σ, bufs, ks, he, hv, _⟩ := h4 rd hl hm h0 h1
+    ⟨t, ht, σ, bufs, ks, he, hv⟩⟩
+
+/-- **`main` at `fp`** (`main_relAtInW` without the valuation). -/
+theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : ℕ) (d : MainData)
+    (own : List (List E)) (hfit : List.Forall₂ (fun c s => c.length ≤ s) own (mSizes d))
+    (hb : MainBounds (d.toIn fs fp)) (hdaR : d.daR.length = 4)
+    (hok : ∀ k ∈ mKids (d.toIn fs fp) (bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp),
+      k.taken = true → CompleteAtD fs cert 16 k.f k.Lin k.args k.Out)
+    (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
+      LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        MainMem rd (d.toIn fs fp)) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
+      (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
+        LoadHolds rd gen 0 (digestScalars d.sdg).2 →
+        RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] :=
+  let ⟨n, L, h1, _, h2, h3, h4⟩ := main_relAtInW fs cert fp d own hfit hb hdaR hok hmm
+  ⟨n, L, h1, h2, h3, fun rd hl hm h0 h1 => (h4 rd hl hm h0 h1).relAtIn⟩
 
 end
 end LeanVM.Guest.B1.Main
