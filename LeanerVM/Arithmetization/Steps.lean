@@ -67,50 +67,44 @@ variable {prog : Program} {input : PublicInput}
 
 /-! ## The state each row returns -/
 
+/-- Evaluates a row circuit's output at its typed row. -/
+local macro "row_output" circuit:ident sends:ident : tactic => `(tactic|
+  (rw [← eval_varFromOffset_valueFromOffset]
+   simp only [Component.rowOutput, circuit_norm, $circuit:ident, instructionStep, memRead,
+     bytecodeRead, $sends:ident]))
+
 /-- An `XOR` row returns the state it pushes. -/
 theorem xor_rowOutput (env : Environment K) :
     (⟨xorTable⟩ : Component K).rowOutput env = (xorSends (valueFromOffset XorRow 0 env)).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, xorTable, instructionStep, memRead, bytecodeRead,
-    xorSends]
+  row_output xorTable xorSends
 
 /-- A `MUL_NATIVE` row returns the state it pushes. -/
 theorem mul_rowOutput (env : Environment K) :
     (⟨mulTable⟩ : Component K).rowOutput env = (mulSends (valueFromOffset MulRow 0 env)).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, mulTable, instructionStep, memRead, bytecodeRead,
-    mulSends]
+  row_output mulTable mulSends
 
 /-- A `SET_CONSTANT` row returns the state it pushes. -/
 theorem set_rowOutput (env : Environment K) :
     (⟨setTable⟩ : Component K).rowOutput env = (setSends (valueFromOffset SetRow 0 env)).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, setTable, instructionStep, memRead, bytecodeRead,
-    setSends]
+  row_output setTable setSends
 
 /-- A `DEREF` row returns the state it pushes. -/
 theorem deref_rowOutput (env : Environment K) :
     (⟨derefTable⟩ : Component K).rowOutput env =
       (derefSends (valueFromOffset DerefRow 0 env)).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, derefTable, instructionStep, memRead, bytecodeRead,
-    derefSends]
+  row_output derefTable derefSends
 
 /-- A `JUMP` row returns the state it pushes, which reads its indicator. -/
 theorem jump_rowOutput (env : Environment K) :
     (⟨jumpTable⟩ : Component K).rowOutput env =
       (jumpSends (valueFromOffset JumpRow 0 env) (env.get (size JumpRow + 1))).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, jumpTable, instructionStep, memRead, bytecodeRead,
-    jumpSends]
+  row_output jumpTable jumpSends
 
 /-- A `BLAKE2S` row returns the state it pushes. -/
 theorem blake2s_rowOutput (env : Environment K) :
     (⟨blake2sTable⟩ : Component K).rowOutput env =
       (blake2sSends (valueFromOffset Blake2sRow 0 env)).push := by
-  rw [← eval_varFromOffset_valueFromOffset]
-  simp only [Component.rowOutput, circuit_norm, blake2sTable, instructionStep, memRead,
-    bytecodeRead, blake2sSends]
+  row_output blake2sTable blake2sSends
 
 /-! ## Proof helpers -/
 
@@ -127,14 +121,12 @@ private theorem channelsWithGuarantees_cases {c : Component K}
     ∀ ch ∈ c.circuit.channelsWithGuarantees,
       ch = StatePull.toRaw ∨ ch = MemPull.toRaw ∨ ch = BytecodePull.toRaw := by
   simp only [Air.Flat.Ensemble.allTables, Air.Flat.Ensemble.verifierTable, leanIsaEnsemble,
-    List.mem_cons,
-    List.not_mem_nil, or_false] at hc
+    List.mem_cons, List.not_mem_nil, or_false] at hc
   rcases hc with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-  · simp only [circuit_norm, leanIsaVerifier, xorTable, mulTable, setTable, derefTable, jumpTable,
-      blake2sTable, memTable, bytecodeTable, instructionStep, memRead, bytecodeRead,
-      List.mem_cons, List.not_mem_nil, or_false]
-    try (intro ch hch; rcases hch with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;>
-      simp)
+  simp only [circuit_norm, leanIsaVerifier, xorTable, mulTable, setTable, derefTable, jumpTable,
+    blake2sTable, memTable, bytecodeTable, instructionStep, memRead, bytecodeRead,
+    List.mem_cons, List.not_mem_nil, or_false, forall_eq_or_imp, forall_eq, true_or, or_true,
+    and_self]
 
 /-! ## Guarantees and specifications -/
 
@@ -181,9 +173,17 @@ theorem spec_of_satisfiedBy {w : EnsembleWitness (leanIsaEnsemble prog)}
 
 /-- Two arrays of two coordinates are equal exactly when their coordinates are. -/
 private theorem pair_eq {a b c d : K} (h : #[a, b] = #[c, d]) : a = c ∧ b = d := by
-  have h' := congrArg Array.toList h
-  simp only [List.cons.injEq, and_true] at h'
-  exact h'
+  simpa using h
+
+/-- Two states with the same message are equal. -/
+private theorem regs_eq_of_pair {r r' : Regs K} (h : #[r.pc, r.fp] = #[r'.pc, r'.fp]) :
+    r = r' := by
+  obtain ⟨hpc, hfp⟩ := pair_eq h
+  cases r
+  cases r'
+  cases hpc
+  cases hfp
+  rfl
 
 /-- A row's bytecode read is the program's entry at its counter. -/
 private theorem bytecode_of_row {w : EnsembleWitness (leanIsaEnsemble prog)}
@@ -208,23 +208,24 @@ private theorem step_of_row {w : EnsembleWitness (leanIsaEnsemble prog)}
   rw [step_of_fetch_eq_some (ins := ins) (by rw [← hpc, hk, Program.fetch_gpow, hcode])]
   exact hexec
 
-/-- The data a row's specification reads is the witness's. -/
-private theorem environment_data {w : EnsembleWitness (leanIsaEnsemble prog)}
-    {t : Air.Flat.Table K} (ht : t ∈ w.tables) (row : Array K) :
-    (t.environment row).data = w.data :=
-  w.same_data t ht
+/-- A row of an opcode table satisfies its circuit's `Spec`, at the state it returns. -/
+private theorem spec_row {w : EnsembleWitness (leanIsaEnsemble prog)}
+    (h : SatisfiedBy prog input w) {t : Air.Flat.Table K} (ht : t ∈ w.tables) {Input : TypeMap}
+    [ProvableType Input] {circuit : GeneralFormalCircuit K Input Regs}
+    (htc : t.component = ⟨circuit⟩) {row : Array K} (hrow : row ∈ t.table) :
+    circuit.Spec (valueFromOffset Input 0 (t.environment row))
+      ((⟨circuit⟩ : Component K).rowOutput (t.environment row)) w.data := by
+  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
+  rw [htc] at hspec
+  exact w.same_data t ht ▸ hspec
 
 private theorem xor_step {w : EnsembleWitness (leanIsaEnsemble prog)}
     (h : SatisfiedBy prog input w) {t : Air.Flat.Table K} (ht : t ∈ w.tables)
     (htc : t.component = ⟨xorTable⟩) {row : Array K} (hrow : row ∈ t.table) :
     step prog (imageOf w.data).2 (xorSends (valueFromOffset XorRow 0 (t.environment row))).pull =
       some (xorSends (valueFromOffset XorRow 0 (t.environment row))).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  have hexec := (show XorSpec (valueFromOffset XorRow 0 (t.environment row))
-    ((⟨xorTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec).exec_eq
-  rw [xor_rowOutput, environment_data ht] at hexec
+  have hexec := (show XorSpec _ _ _ from spec_row h ht htc hrow).exec_eq
+  rw [xor_rowOutput] at hexec
   exact step_of_row h ht hrow (xor_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; rfl)) rfl hexec
 
@@ -233,12 +234,8 @@ private theorem mul_step {w : EnsembleWitness (leanIsaEnsemble prog)}
     (htc : t.component = ⟨mulTable⟩) {row : Array K} (hrow : row ∈ t.table) :
     step prog (imageOf w.data).2 (mulSends (valueFromOffset MulRow 0 (t.environment row))).pull =
       some (mulSends (valueFromOffset MulRow 0 (t.environment row))).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  have hexec := (show MulSpec (valueFromOffset MulRow 0 (t.environment row))
-    ((⟨mulTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec).exec_eq
-  rw [mul_rowOutput, environment_data ht] at hexec
+  have hexec := (show MulSpec _ _ _ from spec_row h ht htc hrow).exec_eq
+  rw [mul_rowOutput] at hexec
   exact step_of_row h ht hrow (mul_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; rfl)) rfl hexec
 
@@ -247,12 +244,8 @@ private theorem set_step {w : EnsembleWitness (leanIsaEnsemble prog)}
     (htc : t.component = ⟨setTable⟩) {row : Array K} (hrow : row ∈ t.table) :
     step prog (imageOf w.data).2 (setSends (valueFromOffset SetRow 0 (t.environment row))).pull =
       some (setSends (valueFromOffset SetRow 0 (t.environment row))).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  have hexec := (show SetSpec (valueFromOffset SetRow 0 (t.environment row))
-    ((⟨setTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec).exec_eq
-  rw [set_rowOutput, environment_data ht] at hexec
+  have hexec := (show SetSpec _ _ _ from spec_row h ht htc hrow).exec_eq
+  rw [set_rowOutput] at hexec
   exact step_of_row h ht hrow (set_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; simp [entry, setSends])) rfl hexec
 
@@ -262,12 +255,8 @@ private theorem deref_step {w : EnsembleWitness (leanIsaEnsemble prog)}
     step prog (imageOf w.data).2
         (derefSends (valueFromOffset DerefRow 0 (t.environment row))).pull =
       some (derefSends (valueFromOffset DerefRow 0 (t.environment row))).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  obtain ⟨mode, hb, hexec⟩ := (show DerefSpec (valueFromOffset DerefRow 0 (t.environment row))
-    ((⟨derefTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec)
-  rw [deref_rowOutput, environment_data ht] at hexec
+  obtain ⟨mode, hb, hexec⟩ := (show DerefSpec _ _ _ from spec_row h ht htc hrow)
+  rw [deref_rowOutput] at hexec
   exact step_of_row h ht hrow (deref_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; simp [entry, derefSends, hb.flags_eq]))
     rfl hexec
@@ -280,12 +269,8 @@ private theorem jump_step {w : EnsembleWitness (leanIsaEnsemble prog)}
           (row[size JumpRow + 1]?.getD 0)).pull =
       some (jumpSends (valueFromOffset JumpRow 0 (t.environment row))
         (row[size JumpRow + 1]?.getD 0)).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  have hexec := (show JumpSpec (valueFromOffset JumpRow 0 (t.environment row))
-    ((⟨jumpTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec).exec_eq
-  rw [jump_rowOutput, environment_data ht] at hexec
+  have hexec := (show JumpSpec _ _ _ from spec_row h ht htc hrow).exec_eq
+  rw [jump_rowOutput] at hexec
   exact step_of_row h ht hrow (jump_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; rfl)) rfl hexec
 
@@ -295,12 +280,8 @@ private theorem blake2s_step {w : EnsembleWitness (leanIsaEnsemble prog)}
     step prog (imageOf w.data).2
         (blake2sSends (valueFromOffset Blake2sRow 0 (t.environment row))).pull =
       some (blake2sSends (valueFromOffset Blake2sRow 0 (t.environment row))).push := by
-  have hspec := spec_of_satisfiedBy h t (w.mem_allTables_of_mem_tables ht) row hrow
-  rw [htc] at hspec
-  have hexec := (show Blake2sSpec (valueFromOffset Blake2sRow 0 (t.environment row))
-    ((⟨blake2sTable⟩ : Component K).rowOutput (t.environment row)) (t.environment row).data
-    from hspec).exec_eq
-  rw [blake2s_rowOutput, environment_data ht] at hexec
+  have hexec := (show Blake2sSpec _ _ _ from spec_row h ht htc hrow).exec_eq
+  rw [blake2s_rowOutput] at hexec
   exact step_of_row h ht hrow (blake2s_sendsOpcode htc row)
     (Vector.toList_inj.mp (by rw [Vector.toList_append]; rfl)) rfl hexec
 
@@ -343,14 +324,8 @@ theorem rowSteps_of_satisfiedBy {w : EnsembleWitness (leanIsaEnsemble prog)}
   rcases row_cases h ht hrow with hnil | ⟨s, hs, hstep, -, -⟩
   · rw [hnil] at hpull
     exact absurd hpull.symm (List.cons_ne_nil _ _)
-  · rw [hs.state_pull, List.cons.injEq] at hpull
-    rw [hs.state_push, List.cons.injEq] at hpush
-    obtain ⟨hpc, hfp⟩ := pair_eq hpull.1
-    obtain ⟨hpc', hfp'⟩ := pair_eq hpush.1
-    obtain ⟨pc, fp⟩ := r
-    obtain ⟨pc', fp'⟩ := r'
-    dsimp only at hpc hfp hpc' hfp'
-    subst hpc hfp hpc' hfp'
+  · obtain rfl := regs_eq_of_pair (List.cons.inj (hs.state_pull.symm.trans hpull)).1
+    obtain rfl := regs_eq_of_pair (List.cons.inj (hs.state_push.symm.trans hpush)).1
     exact hstep
 
 /-! ## The sentinel -/
