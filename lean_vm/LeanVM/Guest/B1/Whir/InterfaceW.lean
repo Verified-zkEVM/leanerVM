@@ -60,21 +60,21 @@ theorem OpenOutW.openOut {rd : Reader} {μ r : ℕ} {root : Digest} {fs : List E
 
 /-! ## The witness -/
 
-/-- The stream words a candidate reads. -/
-def osWordsLen (c : OsCfg) : ℕ :=
-  2 + ((List.range c.levels.length).map fun lvl ↦
-      2 * (c.levels.getD lvl default).folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2).sum +
-    2 * (c.yrLog - 1)
+/-- The stream words the levels `lvl ..` read: each its rounds' `2·folds`, its next commitment's
+six or the final message and its nonce, and its intro's two. -/
+def lvsWords (c : OsCfg) : ℕ → List OsLv → ℕ
+  | _, [] => 0
+  | lvl, lv :: rest =>
+    2 * lv.folds + (if lvl = c.yrLevel then c.yrLen + 1 else 6) + 2 + lvsWords c (lvl + 1) rest
 
-/-- The `opening_queries` call of a level's template (`osLevel`, `osQueries`): its name, its
-arguments and its returns. -/
-def osQCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V × List V :=
-  let f := osFolds osFch lv.foldsOff lv.folds s
-  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit lvl lv f.2
-  let sq := osSqueezes c lvl lv m.2.1
-  let lam := sq.2.k - 1
-  let lamN := if lv.queries ≤ 1 then lam else sq.2.k + lv.queries - 1
-  let k := sq.2.k + lv.queries
+/-- The stream words a candidate reads: the first quadratic's two, the levels', the tail's. -/
+def osWordsLen (c : OsCfg) : ℕ := 2 + lvsWords c 0 c.levels + 2 * (c.yrLog - 1)
+
+/-- The `opening_queries` call of `osQueries _ lvl lv lam lamN s`: its name, arguments and
+returns. -/
+def osQueriesCall (lvl : ℕ) (lv : OsLv) (lam lamN : ℕ) (s : OsSt) :
+    String × List V × List V :=
+  let k := s.k
   let fp := osMat osFch lv.foldsOff (k + 2)
   let cp := osMat osCaps (4 * lv.capOff) fp.2.2
   let flp := osMat osFlags lv.capOff cp.2.2
@@ -85,6 +85,15 @@ def osQCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V ×
   let g := bp.2.2
   (osQueriesName lvl lv, [.n cp2.2.1, .n flp2.2.1, .n lam, .n lamN, .n bp.2.1, .n (k + 1), .n g],
     [.n (g + 1)])
+
+/-- The `opening_queries` call of a level's template (`osLevel`, `osQueries`). -/
+def osQCall (c : OsCfg) (lvl : ℕ) (lv : OsLv) (s : OsSt) : String × List V × List V :=
+  let f := osFolds osFch lv.foldsOff lv.folds s
+  let m := if lvl = c.yrLevel then osFinal c f.2 else osCommit lvl lv f.2
+  let sq := osSqueezes c lvl lv m.2.1
+  let lam := sq.2.k - 1
+  let lamN := if lv.queries ≤ 1 then lam else sq.2.k + lv.queries - 1
+  osQueriesCall lvl lv lam lamN { sq.2 with k := sq.2.k + lv.queries }
 
 /-- The levels' `opening_queries` calls, with each level's index and configuration. -/
 def osQCalls (c : OsCfg) : ℕ → List OsLv → OsSt → List (ℕ × OsLv × String × List V × List V)
@@ -110,13 +119,24 @@ def toOpening (rd : Reader) (cap : E) (cd depth : ℕ) (w : QW) : Opening :=
 def lvOq (lvl : ℕ) (lv : OsLv) : Oq :=
   ⟨if lvl = 0 then 1 else 0, lv.interleave, lv.depth - lv.capDepth, lv.capDepth⟩
 
-/-- **A level's openings**, from its `opening_queries` call's words in `σ` and the frames `V`. -/
+/-- **A level's openings** from its `opening_queries` call `call` (words values of `σ`) and the
+queries' witness `W` at the call's words: each with the cap's siblings from the memory. -/
+def lvOpenings (rd : Reader) (σ : Val) (lv : OsLv) (W : List E → List E → List QW)
+    (call : String × List Core.V × List Core.V) : List Opening :=
+  (W (call.2.1.map σ) (call.2.2.map σ)).map
+    (toOpening rd ((call.2.1.map σ).headD 0) lv.capDepth lv.depth)
+
+/-- The queries' witness of level `lvl`'s `opening_queries` call `name`: read off the callee's frame
+and its loop's frames. -/
+def lvW (rd : Reader) (Fr : FrameMap) (lvl : ℕ) (lv : OsLv) (name : String) :
+    List E → List E → List QW := fun args rets ↦
+  oqsOf (lvOq lvl lv) (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (oqLoopOf name)
+    (lv.queries / (1 + if lvl = 0 then 1 else 0)) rd (Fr name args rets) Fr
+
+/-- **A level's openings**, from its `opening_queries` call's words in `σ` and the frames `Fr`. -/
 def osLevelOs (rd : Reader) (σ : Val) (Fr : FrameMap) :
     ℕ × OsLv × String × List Core.V × List Core.V → List Opening
-  | (lvl, lv, name, args, rets) =>
-    (oqsOf (lvOq lvl lv) (lv.queries % 2 * (if lvl = 0 then 1 else 0)) (oqLoopOf name)
-        (lv.queries / (1 + if lvl = 0 then 1 else 0)) rd (Fr name (args.map σ) (rets.map σ)) Fr).map
-      (toOpening rd ((args.map σ).headD 0) lv.capDepth lv.depth)
+  | (lvl, lv, name, args, rets) => lvOpenings rd σ lv (lvW rd Fr lvl lv name) (name, args, rets)
 
 /-- **`open_stacked`'s witness** at the candidate `m`, from its valuation `σ` and the frames `V`:
 the stream words at the cursor and the levels' openings. -/
