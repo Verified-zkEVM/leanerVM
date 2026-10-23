@@ -101,5 +101,99 @@ theorem vsRootsT_complete (hl : args.length = 7)
     rw [e8, e9]
     exact ⟨hC0, hC1, trivial, hn⟩
 
+theorem vsAlphasT_noNe : vsAlphasT.all noNeB = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- **The bus challenges, honestly.** -/
+theorem vsAlphasT_complete (hl : args.length = 7)
+    (hz : ∀ i ∈ [10, 11, 12, 13], vsσ rd w args (.n i) = 0)
+    (hr : ∀ i ∈ [544, 546, 554, 556], IsCanonical128 (vsσ rd w args (.n i)))
+    (hcap0 : ∀ i < 5, IsCanonical128 (vsσ rd w args (.n (532 + i))))
+    (hA : ∀ k (hk : k < 4), LoadHolds rd (vsσ rd w args (.n 559)) k
+      (vsσ rd w args (.n ([579, 599, 619, 639][k]'(by simp; omega)))))
+    {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
+    Stmt.HoldsList C rd (vsσ rd w args) vsAlphasT next kret := by
+  have hmem : ∀ s ∈ vsAlphasT, s ∈ vsCPre :=
+    fun s hs ↦ vs_mem_slice (n := 671) (blk := vsAlphasT) (by decide +kernel) hs
+  have c0 : IsCanonical128 (0 : E) := canonical_zero
+  have hz' : ∀ i ∈ [10, 11, 12, 13], IsCanonical128 (vsσ rd w args (.n i)) :=
+    fun i hi ↦ by rw [hz i hi]; exact c0
+  -- a squeeze's inputs: zeros and a capacity
+  have hsq : ∀ capb, (∀ i < 5, IsCanonical128 (vsσ rd w args (.n (capb + i)))) →
+      AllCanonical (([V.n 10, V.n 10, V.n 10, V.n 10, V.n 10, V.n 11, V.n 12, V.n 13] ++
+        vsRun capb 5).map (vsσ rd w args)) := by
+    intro capb hc x hx
+    obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
+    simp only [vsRun, List.cons_append, List.nil_append, List.mem_cons, List.mem_map,
+      List.mem_range] at hv
+    rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | ⟨i, hi, rfl⟩
+    · exact hz' 10 (by simp)
+    · exact hz' 10 (by simp)
+    · exact hz' 10 (by simp)
+    · exact hz' 10 (by simp)
+    · exact hz' 10 (by simp)
+    · exact hz' 11 (by simp)
+    · exact hz' 12 (by simp)
+    · exact hz' 13 (by simp)
+    · exact hc i hi
+  have hc1 : AllCanonical ([V.n 544, V.n 546, V.n 554, V.n 556, V.n 10, V.n 11, V.n 12, V.n 13,
+      V.n 532, V.n 533, V.n 534, V.n 535, V.n 536].map (vsσ rd w args)) := by
+    intro x hx
+    obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    · exact hr 544 (by simp)
+    · exact hr 546 (by simp)
+    · exact hr 554 (by simp)
+    · exact hr 556 (by simp)
+    · exact hz' 10 (by simp)
+    · exact hz' 11 (by simp)
+    · exact hz' 12 (by simp)
+    · exact hz' 13 (by simp)
+    · exact hcap0 0 (by norm_num)
+    · exact hcap0 1 (by norm_num)
+    · exact hcap0 2 (by norm_num)
+    · exact hcap0 3 (by norm_num)
+    · exact hcap0 4 (by norm_num)
+  have st : ∀ (d k : ℕ) (v : E), vsσ rd w args (.n d) = v →
+      LoadHolds rd (vsσ rd w args (.n 559)) k v → (Atom.load (.n d) (.n 559) k).Holds rd (vsσ rd w args) :=
+    fun d k v e h ↦ by show LoadHolds rd _ _ _; rw [e]; exact h
+  have hm : ∀ s, s ∈ vsAlphasT → s ∈ vsCPre := hmem
+  -- the four permutations
+  obtain ⟨o1, -⟩ := kc_complete (C := C) (next := True) (kret := kret) hl (o := 560)
+    (fun s hs ↦ hm s (by rw [vsAlphasT]; simp only [List.mem_append]; tauto)) hc1 trivial
+  obtain ⟨o2, -⟩ := kc_complete (C := C) (next := True) (kret := kret) hl (o := 580)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 568 (fun i hi ↦ by have := o1 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) trivial
+  obtain ⟨o3, -⟩ := kc_complete (C := C) (next := True) (kret := kret) hl (o := 600)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 588 (fun i hi ↦ by have := o2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) trivial
+  obtain ⟨o4, -⟩ := kc_complete (C := C) (next := True) (kret := kret) hl (o := 620)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT, vsSqzT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 608 (fun i hi ↦ by have := o3 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) trivial
+  have hlist : vsAlphasT = (keccakA [V.n 544, V.n 546, V.n 554, V.n 556, V.n 10, V.n 11, V.n 12,
+      V.n 13, V.n 532, V.n 533, V.n 534, V.n 535, V.n 536] (vsRun 560 13) ::
+        challengeT (.n 560) (.n (560 + 1)) (560 + 13)) ++ ([vsLd 579 559 0] ++
+      (vsSqzT 568 580 ++ ([vsLd 599 559 1] ++ (vsSqzT 588 600 ++ ([vsLd 619 559 2] ++
+        (vsSqzT 608 620 ++ [vsLd 639 559 3])))))) := by
+    rw [vsAlphasT]; simp only [List.append_assoc]
+  rw [hlist]
+  simp only [holdsList_append]
+  refine (kc_complete hl (o := 560)
+    (fun s hs ↦ hm s (by rw [hlist]; exact List.mem_append_left _ hs)) hc1 ?_).2
+  refine ⟨(hA 0 (by norm_num)), ?_⟩
+  refine (kc_complete hl (o := 580)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 568 (fun i hi ↦ by have := o1 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) ?_).2
+  refine ⟨(hA 1 (by norm_num)), ?_⟩
+  refine (kc_complete hl (o := 600)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 588 (fun i hi ↦ by have := o2 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) ?_).2
+  refine ⟨(hA 2 (by norm_num)), ?_⟩
+  refine (kc_complete hl (o := 620)
+    (fun s hs ↦ hm s (by rw [vsAlphasT, vsSqzT, vsSqzT, vsSqzT]; simp only [List.mem_append]; tauto))
+    (hsq 608 (fun i hi ↦ by have := o3 (8 + i) (by omega); rwa [← Nat.add_assoc] at this)) ?_).2
+  exact ⟨(hA 3 (by norm_num)), hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
