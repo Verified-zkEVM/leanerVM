@@ -133,5 +133,67 @@ theorem load_of_good {d p : V} {o : ℕ} {v : E} (hS : Atom.load d p o ∉ S)
   show LoadHolds rd (σ p) o (σ d)
   rw [e]; exact h
 
+/-- **An evaluated `challenge_from_state`** has its honest values. -/
+theorem chal_vals {A : List Atom} {s0 s1 : V} {b : ℕ} (h : allIn A (challA s0 s1 b) = true)
+    (hg : ∀ a ∈ A, Good rd S w σ a) : ∀ i < 7, σ (.n (b + i)) = challengeVals (σ s0) (σ s1) i := by
+  have hall := List.all_eq_true.mp h
+  have g0 := good_of_any hg (hall (.hint (.limbs s1 [.n b])) (by simp [challA]))
+  have g1 : σ (.n (b + 1)) = σ s1 + σ (.n b) :=
+    good_of_any hg (hall (.add (.n (b + 1)) s1 (.n b)) (by simp [challA]))
+  have g2 : σ (.n (b + 2)) = word 1 0 1 :=
+    good_of_any hg (hall (.const (.n (b + 2)) (word 1 0 1)) (by simp [challA]))
+  have g3 := good_of_any hg (hall (.mul (.n (b + 3)) (.n (b + 1)) (.n (b + 2))) (by simp [challA]))
+  have g4 : σ (.n (b + 4)) = word 0 0 1 :=
+    good_of_any hg (hall (.const (.n (b + 4)) (word 0 0 1)) (by simp [challA]))
+  have g5 := good_of_any hg (hall (.mul (.n (b + 5)) (.n (b + 4)) (.n b)) (by simp [challA]))
+  have g6 : σ (.n (b + 6)) = σ s0 + σ (.n (b + 5)) :=
+    good_of_any hg (hall (.add (.n (b + 6)) s0 (.n (b + 5))) (by simp [challA]))
+  simp only [Good] at g0 g3 g5
+  rw [ite_pos' (by simp)] at g3 g5
+  have l0 : σ (.n b) = ofK ((σ s1).limb 0) := g0 0 (by simp)
+  intro i hi
+  rcases (show i = 0 ∨ i = 1 ∨ i = 2 ∨ i = 3 ∨ i = 4 ∨ i = 5 ∨ i = 6 by omega) with
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · exact l0
+  · show σ (.n (b + 1)) = σ s1 + ofK ((σ s1).limb 0)
+    rw [g1, l0]
+  · exact g2
+  · show σ (.n (b + 3)) = (σ s1 + ofK ((σ s1).limb 0)) * word 1 0 1
+    rw [g3, g1, g2, l0]
+  · exact g4
+  · show σ (.n (b + 5)) = word 0 0 1 * ofK ((σ s1).limb 0)
+    rw [g5, g4, l0]
+  · show σ (.n (b + 6)) = σ s0 + word 0 0 1 * ofK ((σ s1).limb 0)
+    rw [g6, g5, g4, l0]
+
+/-- An evaluated `challenge_from_state` on a canonical cell: its `assert_in_k` holds. -/
+theorem chal_inK {A : List Atom} {s0 s1 : V} {b : ℕ} (h : allIn A (challA s0 s1 b) = true)
+    (hg : ∀ a ∈ A, Good rd S w σ a) (hc : IsCanonical128 (σ s1)) :
+    (Atom.assertInK (.n b) (.n (b + 3))).Holds rd σ := by
+  obtain ⟨-, -, -, h0, h3, -⟩ := challengeOk_of_vals hc (chal_vals h hg)
+  exact ⟨h0, h3⟩
+
+/-- An evaluated `KECCAK`'s outputs are canonical. -/
+theorem keccak_out_canon {ins outs : List V} {i o : Bool}
+    (hg : Good rd S w σ (.keccak ins outs i o)) {c : ℕ} (hc : c < 13) :
+    IsCanonical128 (σ (outs.getD c default)) := by
+  obtain ⟨-, hl, hk⟩ := hg
+  have := hk ⟨c, hc⟩
+  simp only [cells13, List.getD_eq_getElem?_getD, List.getElem?_map,
+    List.getElem?_eq_getElem (show c < outs.length by omega), Option.map_some,
+    Option.getD_some] at this
+  rw [List.getD_eq_getElem _ _ (show c < outs.length by omega), this]
+  exact cellsOfState_canonical _ _ _
+
+/-- A load (not a store) found in an evaluated block reads the memory. -/
+theorem load_any_val {atoms : List Atom} {x p : V} {o : ℕ} (hnS : ∀ a ∈ atoms, a ∉ S)
+    (hg : ∀ a ∈ atoms, Good rd S w σ a) (h : atoms.any (isLoadAt x p o) = true) :
+    σ x = rdAt rd (σ p) o ∧ Atom.load x p o ∈ atoms := by
+  obtain ⟨a, ha, hp⟩ := List.any_eq_true.mp h
+  cases a <;> simp only [isLoadAt, Bool.false_eq_true, Bool.and_eq_true, decide_eq_true_eq,
+    beq_iff_eq] at hp
+  obtain ⟨⟨rfl, rfl⟩, rfl⟩ := hp
+  exact ⟨good_load_val (hnS _ ha) (hg _ ha), ha⟩
+
 end
 end LeanVM.Guest.B1.Main
