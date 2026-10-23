@@ -227,7 +227,8 @@ theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = s
     (hkm : ∀ fp outs, OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd, LowDef κ rd →
       MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
       MemL rd (outsL (kidsAt (kids fp) [] outs) outs) → MemL rd (Kid.lins (kidsAt (kids fp) [] outs)))
-    (hσ : ∀ fp (outs : List (List E × Layout)), OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd,
+    (hσ : ∀ fp (outs : List (List E × Layout)), outs.length = (kids fp).length →
+      OutsOk (kidsAt (kids fp) [] outs) outs → ∀ rd,
       LowDef κ rd → MemL rd (bufL (fp + fs f) sizes (own fp)) → MemL rd Lin →
       MemL rd (outsL (kidsAt (kids fp) [] outs) outs) →
       ∃ σ : Val, fn.params.map σ = args ∧ (∀ s ∈ pre, DispOk σ s) ∧
@@ -242,8 +243,8 @@ theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = s
             outRegion (kidsAt (kids fp) [] outs) outs i)) :
     CompleteAtD fs cert κ f Lin args (Returns rets) := by
   intro fp
-  obtain ⟨N, L, outs, -, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep (fs := fs) (cert := cert) κ (kids fp)
-    [] (hkc fp) (fp + fs f + sizes.sum)
+  obtain ⟨N, L, outs, hlen, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_dep (fs := fs) (cert := cert) κ
+    (kids fp) [] (hkc fp) (fp + fs f + sizes.sum)
   refine ⟨fs f + sizes.sum + N, bufL (fp + fs f) sizes (own fp) ++ L, rets, [], ⟨rfl, rfl⟩, ?_,
     by simpa using disj_append (bufL_disj _ _ _ (hown fp)) hD (bufL_within _ _ _ (hown fp)) hW le_rfl,
     fun rd hlow hL => ?_⟩
@@ -253,7 +254,7 @@ theorem completeAt_flatDepR {f : String} {fn : Fn} (hf : coreProgram.find? f = s
   obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL
   obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
   have hLo := memL_outsL hI hLk
-  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs ho rd hlow hB hLin hLo
+  obtain ⟨σ, hp, hdo, hh, hsz, hbuf, hcm, hld⟩ := hσ fp outs hlen ho rd hlow hB hLin hLo
   have hw := walk_flat σ vs pre hst hdo
   rw [← hb] at hw
   obtain ⟨i1, i2, i3, i4, i5⟩ := flat_parts σ pre hst
