@@ -15,11 +15,12 @@ import LeanerVMTests.Protocol.Verify
 Runs, compiled, what `tests/LeanerVMTests/Protocol/Verify.lean` cannot afford to interpret: `verify`
 on the proof of `tests/LeanerVMTests/Protocol/RustProofData.lean` (`scripts/dump-proof-rust.sh`),
 on each of its `mutations` and, for the fixture, its `statementMutations`, with the stage
-`outcomeOf` names for the rejection, then `whirChecks`. It prints one line per check, then times
-`verify` on the honest proof the number of times given by the first argument (default `1`), the
-fixture's parsing excluded. With a second argument, a file in the same dump format (a test vector
-of `tests/vectors/`, written by `leanervm-prove`), it checks that proof and its mutations
-(`mutationsOf`) instead. The exit code is `1` if any check fails.
+`outcomeOf` names for the rejection, then the front phases' algebra and WHIR's on the honest wire
+changed (`frontChecksOf`, `whirChecksOf`). It prints one line per check, then times `verify` on
+the honest proof the number of times given by the first argument (default `1`), the fixture's
+parsing excluded. With a second argument, a file in the same dump format (a test vector of
+`tests/vectors/`, written by `leanervm-prove`), it checks that proof, its mutations
+(`mutationsOf`) and the algebra's checks instead. The exit code is `1` if any check fails.
 -/
 
 open LeanerVM.Protocol LeanerVM.Protocol.Verify LeanerVMTests.Protocol.RustProof
@@ -65,10 +66,7 @@ def main (args : List String) : IO UInt32 := do
         "LeanerVM.Protocol.ReadError." ""
       IO.println s!"{if ok then "ok  " else "FAIL"} the statement, {m.name}: verify = {v}, \
         rejected at {stage}"
-    let w := whirChecks (whirMutations.map (·.1))
-    let wOk := w == whirMutations.map (·.2)
-    unless wOk do failed := failed + 1
-    IO.println s!"{if wOk then "ok  " else "FAIL"} WHIR's algebra on the honest transcript: {w}"
+  failed := failed + (← algebraChecks f)
   for i in [0:runs] do
     let t0 ← IO.monoNanosNow
     let ok ← forceVerdict f

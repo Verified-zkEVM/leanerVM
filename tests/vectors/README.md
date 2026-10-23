@@ -23,10 +23,15 @@ gunzip -k tests/vectors/fill.proof.gz
 .lake/build/bin/leanervm-verify 1 tests/vectors/fill.proof  # verify and the mutations, on the file
 ```
 
-`leanervm-prove` checks that `verify` accepts the proof it writes and rejects each mutation of
-`LeanerVMTests.Protocol.Verify.mutationsOf` at the stage it names; with a fourth argument `pure` it
+`leanervm-prove` checks that `verify` accepts the proof it writes, rejects each mutation of
+`LeanerVMTests.Protocol.Verify.mutationsOf` at the stage it names, and rejects the honest wire
+with one message changed in each front phase and in WHIR at that phase (`frontChecksOf`,
+`whirChecksOf`); `leanervm-verify` makes the same checks on the file; `leanervm-prove tamper` runs
+the prover with one front phase's message changed and checks that each proof is read to its end
+and rejected by that phase (recorded in `bench/README.md`); with a fourth argument `pure` it
 also runs `prove` itself, in `Id`, and checks it returns the same proof. The prover is
-deterministic: two runs write the same file.
+deterministic: two runs write the same plain file. The compressed file also depends on the
+`gzip` version; compare the decompressed files.
 
 ## Differences from the Rust prover's dumps
 
@@ -39,6 +44,9 @@ deterministic: two runs write the same file.
   the chain; the two provers agree on a proof only where their witnesses and honest messages
   agree.
 - The grinding nonce is the smallest that clears the bits, as the Rust's parallel search returns,
-  but searched within a fuel of candidates (default `2^24`).
+  but searched within a fuel of candidates (default `2^24`). A grind of 17 bits tries `2^17`
+  candidates on average; for a random function the search fails with probability
+  `(1 − 2^-17)^(2^24) ≈ e^-128` per level. At BLAKE2s a failing input cannot be excluded, and
+  `prove` then returns no proof. The Rust's search is unbounded over `u64`.
 - The openings are written after the stream in level order, from the commitments kept; the Rust
   hands each level's opening to the proof as it opens it. The proof's opening list is the same.

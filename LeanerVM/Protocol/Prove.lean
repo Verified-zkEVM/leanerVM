@@ -35,8 +35,8 @@ in a monad `m`:
 4. every committed word is opened at its level's positions (`merkleOpen`), in level order.
 
 `prove` is `proveWith (m := Id) blake2sBytes` at the deployed Flock specification
-(`Blake2sFlock.blake2sFlockSpec`), the one `verify` reads. `honestAdversary` is the prover in the random-oracle game: every hash a query, an
-empty proof when the grinding runs out of fuel.
+(`Blake2sFlock.blake2sFlockSpec`), the one `verify` reads. `honestAdversary` is the prover in
+the random-oracle game: every hash a query, an empty proof when the grinding runs out of fuel.
 
 **Differences from the Rust prover** (`crates/lean_vm/src/cpu/mod.rs:520-640`, `prove`, at leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`). The stream is the same function of the messages and
@@ -46,6 +46,16 @@ honest messages agree. The grinding nonce is the smallest that clears the bits, 
 parallel search returns, but within `fuel` candidates. The Rust interleaves the openings with the
 stream and hands them to the proof as each level is opened; they are a separate list in level
 order either way. Single-threaded.
+
+**Fuel.** A grind of 17 bits tries `2^17` candidates on average. In the random-oracle model a
+search of `fuel = 2^24` candidates fails with probability `(1 − 2^-17)^(2^24) ≈ e^-128` per level,
+three or four levels a proof. At BLAKE2s, a fixed function, an input on which no nonce below the
+fuel clears the bits cannot be excluded; `prove` then returns `none`, never a proof the verifier
+rejects. The Rust's search is unbounded over `u64` (`fiat_shamir/src/lib.rs:126-156`), so the
+two nonces agree whenever the Rust's is below the fuel.
+
+**Target.** Layer 13's honest prover: the executable artefact of T4's completeness direction,
+whose theorem `baseProver_complete` is owed. No target theorem advances here.
 -/
 
 namespace LeanerVM.Protocol
@@ -73,7 +83,7 @@ variable {m : Type → Type} [Monad m] (H : List UInt8 → m Digest)
 
 /-- The writer's primitives on the proof under construction, every hash answered by `H`: a scalar
 sent and observed, a challenge squeezed, WHIR's query bits ground with `fuel` candidate nonces,
-rows committed by `merkleCommitWithM` and the root sent, and positions squeezed and recorded. -/
+rows committed by `merkleCommitWithM` and the root sent, and a level's positions recorded. -/
 def proveOps (fuel : ℕ) : WireOps (ProveM m) where
   send x := StateT.lift (Writer.addScalar H x)
   sample := StateT.lift (Writer.sample H)
@@ -82,10 +92,7 @@ def proveOps (fuel : ℕ) : WireOps (ProveM m) where
     let c ← (merkleCommitWithM H leafWords rows : m (MerkleCommitment depth))
     modify fun b ↦ { b with commits := b.commits.push ⟨depth, c⟩ }
     StateT.lift (Writer.addRoot H c.root)
-  positions depth t := do
-    let ps ← positionsWith (StateT.lift (Writer.sample H)) depth t t
-    modify fun b ↦ { b with positions := b.positions.push ps }
-    return Verify.positionsOf t depth ps
+  record ps := modify fun b ↦ { b with positions := b.positions.push ps }
 
 /-- Every committed word opened at its level's positions, in level order. -/
 def hintOpenings : ProveM m Unit := do
@@ -123,7 +130,9 @@ open Prove
 /-- **leanVM's honest prover**, generic in how the hash `H` is answered: the sizes read off the
 witness and checked with the rate, then the announcement, the compiled protocol's honest prover
 run against the chain with `fuel` candidate nonces per grind, and the openings. `none` at
-inadmissible sizes or when a grind runs out of fuel. -/
+inadmissible sizes, when a grind runs out of fuel, or when the commitments and the positions
+recorded differ in number (`hintOpenings`), which cannot happen: each level commits one word and
+draws its positions once. -/
 def proveWith {m : Type → Type} [Monad m] (H : List UInt8 → m Digest) (fuel : ℕ) (F : FlockSpec)
     (prog : Program) (input : PublicInput) (w : EnsembleWitness (leanIsaEnsemble prog)) (ρ : ℕ) :
     m (Option (Proof PrunedMerklePaths)) :=

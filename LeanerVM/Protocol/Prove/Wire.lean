@@ -20,9 +20,9 @@ the oracle protocol and receives its challenges. The proof carries them as the d
 read them (`LeanerVM.Protocol.Verify`, transcribed from leanVM
 `a386121f84292f6fa663aaa3e570c15bc0240ea2`). `compiledCodec` maps the compiled schedule
 `listBindingSpec` to that stream, round by round, over the writer's five primitives (`WireOps`):
-send a scalar, squeeze a challenge, grind, commit rows under a Merkle root, and squeeze query
-positions. It is the writer's side of the verifier's walk: each phase's codec mirrors the walk of
-`LeanerVM.Protocol.Verify` step by step.
+send a scalar, squeeze a challenge, grind, commit rows under a Merkle root, and record a level's
+query positions. It is the writer's side of the verifier's walk: each phase's codec mirrors the
+walk of `LeanerVM.Protocol.Verify` step by step.
 
 * A round polynomial sends its coefficients but the dropped one (`RoundPoly.encode`): `c_0` in a
   round whose equality weight is factored out (the grand product's and the zerocheck's), `c_1` in
@@ -32,11 +32,13 @@ positions. It is the writer's side of the verifier's walk: each phase's codec mi
 * The committed words: the level-0 word's row at a position is its first `n` lanes in reverse,
   lane `u` at word `n - 1 - u` (`level0Rows`); a later level's row is its lanes in order, each
   lane's three limbs (`laterRows`). Each word is committed under its root, which is sent as two
-  scalars; the openings come after the stream, from the commitments kept (`LeanerVM.Protocol.Prove`).
+  scalars; the openings come after the stream, from the commitments kept
+  (`LeanerVM.Protocol.Prove`).
 * The oracle protocol's grinding nonce is a message its honest prover sends as zero and its
   verifier never reads; on the wire it is the nonce the grind finds, absorbed (`WireOps.grind`).
-* The query positions are one challenge `Fin t → Fin (2 ^ b)`; on the wire, the squeezes
-  `walkPositions` reads, `⌊192/b⌋` positions to a squeeze, low bits first (`positionsWith`).
+* The query positions are one challenge `Fin t → Fin (2 ^ b)`; on the wire, the squeezes the
+  verifier's `walkPositions` reads, by the verifier's own function (`Verify.positionsWith`),
+  `⌊192/b⌋` positions to a squeeze, low bits first, recorded for the level's opening.
 -/
 
 namespace LeanerVM.Protocol
@@ -58,24 +60,19 @@ structure WireOps (w : Type → Type) where
   /-- Commit to `2 ^ depth` rows, each hashed as its leaf image of `leafWords` words, and send the
   root as two scalars. -/
   commit : (depth leafWords : ℕ) → Vector (List K) (2 ^ depth) → w Unit
-  /-- Squeeze `t` query positions of `depth` bits. -/
-  positions : (depth t : ℕ) → w (Fin t → Fin (2 ^ depth))
+  /-- Record a level's query positions, for its opening. -/
+  record : List ℕ → w Unit
 
 variable {w : Type → Type} [Monad w]
 
-/-- `need` positions of `depth` bits from successive squeezes of `sample`, `⌊192/depth⌋` to a
-squeeze, low bits first: the positions `Verify.walkPositions` reads. -/
-def positionsWith (sample : w E) (depth : ℕ) : (fuel need : ℕ) → w (List ℕ)
-  | 0, _ => pure []
-  | _, 0 => pure []
-  | fuel + 1, need + 1 => do
-    let x ← sample
-    let k := min (192 / depth) (need + 1)
-    let ps := (List.range k).map fun c ↦ Verify.chalBits x / 2 ^ (c * depth) % 2 ^ depth
-    let rest ← positionsWith sample depth fuel (need + 1 - k)
-    return ps ++ rest
-
 variable (ops : WireOps w)
+
+/-- `t` query positions of `depth` bits, squeezed by the verifier's function
+(`Verify.positionsWith`) through the primitives' squeeze, and recorded. -/
+def positions (depth t : ℕ) : w (Fin t → Fin (2 ^ depth)) := do
+  let ps ← Verify.positionsWith ops.sample depth t t
+  ops.record ps
+  return Verify.positionsOf t depth ps
 
 /-- Send scalars in order. -/
 def sendAll : List E → w Unit
@@ -181,7 +178,7 @@ def levelCodec (sh sh' : Whir.Shape) (κ' : ℕ) {k : List Step} (rest : RoundCo
   (RoundCodec.msg ops.send).append <|
   (RoundCodec.msg (sendPlain ops)).append <|
   (RoundCodec.msg fun _ : E ↦ ops.grind).append <|
-  (RoundCodec.chal (ops.positions (Kap sh' κ' + sh.R) sh.t)).append <|
+  (RoundCodec.chal (positions ops (Kap sh' κ' + sh.R) sh.t)).append <|
   (RoundCodec.chal ops.sample).append <|
   RoundCodec.empty.append <|
   (RoundCodec.msg (sendPlain ops)).append <|
@@ -196,7 +193,7 @@ def finalCodec (sh : Whir.Shape) (nf : ℕ) : RoundCodec w (seqSpec (finalSteps 
   (RoundCodec.msg fun f : Tab (nf + 1) ↦
     sendAll ops (show Vector E (2 ^ (nf + 1)) from f).toList).append <|
   (RoundCodec.msg fun _ : E ↦ ops.grind).append <|
-  (RoundCodec.chal (ops.positions (nf + 1 + sh.R) sh.t)).append <|
+  (RoundCodec.chal (positions ops (nf + 1 + sh.R) sh.t)).append <|
   (RoundCodec.chal ops.sample).append <|
   RoundCodec.empty.append <|
   (RoundCodec.msg (sendPlain ops)).append <|

@@ -282,7 +282,10 @@ in the grind, whose nonce is the smallest that clears the bits as the Rust's par
 returns, but within a fuel of candidates; and in the openings, written after the stream in level
 order where the Rust hands each to the proof as it opens it (the list is the same). The dump of a
 proof differs from `scripts/dump-proof-rust.sh`'s only in its first line's tag. Agreement with the
-Rust prover on one witness is not checked.
+Rust prover on one witness is not checked. Not a discrepancy: the Rust comment that level 0
+grinds 0 bits in the production profile (`pcs/src/whir.rs:1364`) is stale at the pin, where
+`QUERY_GRINDING_BITS = 17` at every level (`whir_config.rs:60`, asserted at `whir.rs:2485`); the
+Rust fixture's acceptance at 17 bits confirms it.
 
 **Not a discrepancy.** The Python verifier checks the caps (`16 ≤ log_mem ≤ 32`, every height at
 most 32, `τ_BLAKE2S ≥ 3`, a power-of-two program: `py:856-864`, called at `py:1378`). The former

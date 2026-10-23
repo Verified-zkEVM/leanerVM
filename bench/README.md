@@ -383,7 +383,21 @@ mutations (`mutationsOf`); with `pure` it also runs `prove` in `Id`.
 lake build leanervm-prove
 .lake/build/bin/leanervm-prove tests/vectors/fill.proof 1   # the proof, its checks, the times
 .lake/build/bin/leanervm-prove probe 1                      # the commitment's steps, one by one
+.lake/build/bin/leanervm-prove tamper tests/vectors/fill.proof  # four provers, one message changed
 ```
+
+Beside the mutations of the proof, both `leanervm-prove` and `leanervm-verify` run the algebra on
+the honest wire with one message changed in each front phase (a grand-product round coefficient
+and a child value, a table round coefficient and column value, a public value, a zerocheck and a
+lincheck round coefficient, a Flock slice; `frontChecksOf`) and in WHIR (`whirChecksOf`), each
+rejected by its own phase. A mutation of the proof's stream cannot reach the front phases'
+algebra, since the next grinding check rejects it first; `tamper` reaches it through the stream:
+it runs the prover with one front phase's message changed as it is sent (`tamperOps`), so that
+the chain moves, every later nonce is ground and every word opened at the moved positions, and
+checks that the proof is read to its end and rejected by that phase's algebra. Recorded on
+2026-10-23: the four proofs (a grand-product round coefficient, a table column value, a public
+value, a Flock slice) are rejected at the bus phase, the table sumcheck, the public input and the
+Flock phase, about 440 s each.
 
 Recorded on 2026-10-23 on the machine of the tables above, one thread, 6.1 GB at the peak:
 

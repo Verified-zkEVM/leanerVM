@@ -13,7 +13,8 @@ import LeanerVMTests.Protocol.Verify
 /-!
 # The `leanervm-prove` executable
 
-`leanervm-prove [file] [rate] [fuel] [pure]` proves the hand-built leanISA witness of the
+`leanervm-prove [file] [rate] [fuel] [pure]` (or `leanervm-prove probe [rate]`, or
+`leanervm-prove tamper [file]`) proves the hand-built leanISA witness of the
 constraint statement tests (`LeanerVMTests.Arithmetization.Statement.fillW 1 g memCnt`, the
 executor's `mul_192bit_word` with its fill blocks, `fill_satisfiedBy`) for its program
 `fillProg` and public input `mulInput`, at the WHIR rate `rate` (default `1`) with `fuel`
@@ -25,8 +26,12 @@ in `IO`, with the time read at the first squeeze of each phase: the commitment, 
 the table sumcheck, the public input, the Flock phase, the opening's batching, WHIR and the
 openings. The proof is written to `file` (default `tests/vectors/fill.proof`) in the text format
 of `scripts/dump-proof-rust.sh`, read back by its loader (`RustProof.load`), and checked: `verify`
-accepts it, and rejects each mutation of `Verify.mutationsOf` at the stage it names. With the
-fourth argument `pure`, `prove` (the same prover in `Id`) runs too and must return the same proof.
+accepts it, rejects each mutation of `Verify.mutationsOf` at the stage it names, and rejects the
+honest wire changed in each front phase and in WHIR at that phase (`frontChecksOf`,
+`whirChecksOf`). With the fourth argument `pure`, `prove` (the same prover in `Id`) runs too and
+must return the same proof. `tamper` runs the prover four times more, each time with one front
+phase's message changed as it is sent (`tamperOps`), and checks that each proof is read to its
+end and rejected by that phase's algebra.
 The exit code is `1` if a check fails.
 -/
 
@@ -173,6 +178,57 @@ def proveTimed (fuel ρ : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do
     IO.println "inadmissible sizes or rate"
     return none
 
+/-- The primitives with the scalar sent at stream offset `off` changed: the prover runs on, the
+chain moves with the changed scalar, every later nonce is ground and every word opened at the
+positions the moved chain draws, so the proof reads to its end and the changed message meets its
+phase's check. -/
+def tamperOps (ops : WireOps (ProveM IO)) (off : ℕ) : WireOps (ProveM IO) :=
+  { ops with
+    send := fun x ↦ do
+      let st ← (StateT.lift get : ProveM IO (WriterState PrunedMerklePaths))
+      ops.send (if st.stream.size == off then x + 1 else x) }
+
+/-- The prover with the scalar at stream offset `off` changed; the proof, or `none`. -/
+def proveTampered (fuel ρ off : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do
+  let some s := Sizes.ofWitness theWitness | return none
+  if hs : s.Admissible fillProg ∧ validRate ρ then
+    let q := stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness
+    let H : List UInt8 → IO Digest := fun b ↦ pure (blake2sBytes b)
+    runProof fillProg mulInput
+      (writeProof H (tamperOps (proveOps H fuel) off) Blake2sFlock.blake2sFlockSpec fillProg s hs.1
+        ρ hs.2 mulInput q)
+  else return none
+
+/-- Each front phase's message changed in the prover, at the offsets the mutations of the honest
+proof `f` read (`offsetsOf`): a grand-product round coefficient, a table column value, a public
+value and a Flock slice, each proof read to its end and rejected by its phase's algebra. -/
+def tamperChecks (f : Fixture) (fuel ρ : ℕ) : IO ℕ := do
+  let offs := offsetsOf f
+  let cases : List (String × ℕ × Outcome) := [
+    ("a grand-product round coefficient", offs.getD 0 0, .bus),
+    ("a table column value", offs.getD 1 0, .table),
+    ("a public value", offs.getD 2 0, .pub),
+    ("a Flock slice", offs.getD 3 0, .flock)]
+  let mut failed := 0
+  for (name, off, e) in cases do
+    let t0 ← IO.monoNanosNow
+    let p? ← proveTampered fuel ρ off
+    let t1 ← IO.monoNanosNow
+    match p? with
+    | none =>
+      failed := failed + 1
+      IO.println s!"FAIL the prover with {name} changed returned no proof"
+    | some p =>
+      let v := verify f.prog f.input p
+      let o := outcomeOf f p
+      let ok := !v && o == e
+      unless ok do failed := failed + 1
+      let stage := ((reprStr o).replace "LeanerVMTests.Protocol.Verify.Outcome." "").replace
+        "LeanerVM.Protocol.ReadError." ""
+      IO.println s!"{if ok then "ok  " else "FAIL"} the prover with {name} changed: verify = {v}, rejected at {stage} ({(t1 - t0).toFloat / 1e9} s)"
+    (← IO.getStdout).flush
+  return failed
+
 /-- Time one step, its value forced. -/
 def timed {α : Type} (name : String) (f : Unit → α) : IO α := do
   let t0 ← IO.monoNanosNow
@@ -218,6 +274,12 @@ def main (args : List String) : IO UInt32 := do
   if args.head? == some "probe" then
     probeCommit (2 ^ 24) (((args[1]?).bind String.toNat?).getD 1)
     return 0
+  if args.head? == some "tamper" then
+    let file := args.getD 1 "tests/vectors/fill.proof"
+    let some f := load (← IO.FS.readFile file) | do IO.println "FAIL the loader rejects the file"; return 1
+    let failed ← tamperChecks f (2 ^ 24) f.rate
+    IO.println s!"{failed} failed"
+    return if failed = 0 then 0 else 1
   let file := args.getD 0 "tests/vectors/fill.proof"
   let ρ := ((args[1]?).bind String.toNat?).getD 1
   let fuel := ((args[2]?).bind String.toNat?).getD (2 ^ 24)
@@ -258,5 +320,6 @@ def main (args : List String) : IO UInt32 := do
     let stage := ((reprStr o).replace "LeanerVMTests.Protocol.Verify.Outcome." "").replace
       "LeanerVM.Protocol.ReadError." ""
     IO.println s!"{if good then "ok  " else "FAIL"} {m.name}: verify = {v}, rejected at {stage}"
+  failed := failed + (← algebraChecks f)
   IO.println s!"{failed} failed"
   return if failed = 0 then 0 else 1

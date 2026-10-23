@@ -11,8 +11,6 @@ which writes the test vectors and checks that `verify` accepts them. Here, inter
   `Prover.runWith` on the transcript writer: the stream is the honest message, the challenge is the
   chain's squeeze after it, which the reader reads back, and the output is the honest prover's on
   that challenge.
-* **The positions.** `Prove.positionsWith` squeezes the positions `Verify.walkPositions` reads, at
-  the deployed levels' depths and query counts.
 * **The committed rows.** The verifier reads the level-0 rows `Prove.level0Rows` stores and the
   later rows `Prove.laterRows` stores back to the word's lanes (`Verify.laneRow`).
 * **The setup.** The prover returns no proof at a rate outside its window, before any hash.
@@ -42,7 +40,8 @@ def toy : Component.Def E NoOracle Unit E NoOracle Unit (say E ++ₚ draw E) :=
 
 /-- The toy's wire: the message as a scalar, the challenge a squeeze. -/
 def toyCodec : RoundCodec (WriteM Id PrunedMerklePaths) (say E ++ₚ draw E) :=
-  (RoundCodec.msg (Writer.addScalar blake2sBytes)).append (RoundCodec.chal (Writer.sample blake2sBytes))
+  (RoundCodec.msg (Writer.addScalar blake2sBytes)).append
+    (RoundCodec.chal (Writer.sample blake2sBytes))
 
 /-- The chain the toy starts from. -/
 def s0 : FsState := FsState.seed fillProg mulInput
@@ -67,27 +66,6 @@ def readBack (stream : List E) : Except ReadError (E × E) :=
       | .ok (m, x) => m == stmt + 1 && out == (stmt + (stmt + 1)) * x
       | .error _ => false
   | none => false
-
-/-! ## The positions -/
-
-/-- A sampler on a counter. -/
-def sampleAt (n : ℕ) : E :=
-  E.ofLimbs (K.ofBits (n * 0x9e3779b97f4a7c15 + 0x0123456789abcdef))
-    (K.ofBits (n * 0xc2b2ae3d27d4eb4f + 7)) (K.ofBits (n * 0x165667b19e3779f9 + 11))
-
-/-- The sampler as the walk's primitives, every other read a placeholder. -/
-def counterOps : ChainOps (StateM ℕ) where
-  nextScalar := pure 0
-  sample := do let n ← get; set (n + 1); pure (sampleAt n)
-  nextRoot := pure default
-  checkPow _ := pure 0
-  nextOpening _ _ _ _ _ := pure []
-
--- The writer's positions are the walk's, with as many squeezes, at the deployed levels' depths
--- and query counts.
-#guard [(14, 224), (11, 56), (8, 32), (7, 22), (19, 1)].all fun (b, t) ↦
-  Id.run ((positionsWith counterOps.sample b t t).run 0) ==
-    Id.run ((walkPositions counterOps b t t).run 0)
 
 /-! ## The committed rows -/
 

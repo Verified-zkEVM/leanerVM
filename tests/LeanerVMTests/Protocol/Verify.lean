@@ -316,18 +316,23 @@ round polynomial's wire. -/
 abbrev WhirMutation : Type :=
   (List (List (List K)) → List (List (List K))) × ℕ × (WhirLevel → WhirLevel) × (List E → List E)
 
-/-- WHIR's check on the honest wire, with the rows and a level changed by each of `muts`, the
-phases before it run once. -/
-def whirChecks (muts : List WhirMutation) : List Bool :=
-  let f := fx
+/-- A fixture's honest walk: its sizes, its levels' shapes, its wire and its rows. -/
+def honestOf (f : Fixture) : Option (Sizes × List LevelShape × Wire × List (List (List K))) :=
   match setup? f.prog f.proof with
-  | none => []
+  | none => none
   | some (s, ρ) =>
     let shs := levelShapes (stackMu f.prog s) ((ladderOf f.prog s ρ).getD [])
     match ((walkProof (readerOps (m := Id) blake2sBytes) f.prog s f.input shs).run'
       ⟨FsState.seed f.prog f.input, f.proof.stream, f.proof.merkle⟩).run with
-    | .error _ => []
-    | .ok (w, rows) =>
+    | .error _ => none
+    | .ok (w, rows) => some (s, shs, w, rows)
+
+/-- WHIR's check on a fixture's honest wire, with the rows and a level changed by each of `muts`,
+the phases before it run once. -/
+def whirChecksOf (f : Fixture) (muts : List WhirMutation) : List Bool :=
+  match honestOf f with
+  | none => []
+  | some (s, shs, w, rows) =>
       let I := leanVm f.prog s
       let fo := do
         let b ← leanVmBus f.prog s f.input w.bus
@@ -342,26 +347,95 @@ def whirChecks (muts : List WhirMutation) : List Bool :=
         muts.map fun (fr, i, fl, ff) ↦
           whirCheck I.μ shs W target (ff w.whirFirst) (w.whir.modify i fl) (fr rows)
 
+/-- WHIR's check on the Rust fixture's honest wire. -/
+def whirChecks (muts : List WhirMutation) : List Bool := whirChecksOf fx muts
+
 /-- A fold round with its challenge changed. -/
 def bumpFold (f : Fold) : Fold := { f with chal := f.chal + 1 }
 
-/-- The honest transcript, then changes at the last level and at the levels before it, each with
-the verdict `whirCheck` must give: a stored word of level 2 and of level 0, the last level's
-residual value and batching challenge; level 1's out-of-domain value, coordinate and round
-polynomial, level 0's fold challenge, level 2's batching challenge and query message, and the
-first round polynomial's coefficient. -/
-def whirMutations : List (WhirMutation × Bool) := [
-  ((id, 3, id, id), true),
-  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), 3, id, id), false),
-  ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), 3, id, id), false),
-  ((id, 3, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }, id), false),
-  ((id, 3, fun l ↦ { l with lam := l.lam + 1 }, id), false),
+/-- The honest transcript of a proof of `k` levels, then changes at the last level and at the
+levels before it, each with the verdict `whirCheck` must give: a stored word of level 2 and of
+level 0, the last level's residual value and batching challenge; level 1's out-of-domain value,
+coordinate and round polynomial, level 0's fold challenge, level 2's batching challenge and query
+message, and the first round polynomial's coefficient. -/
+def whirMutationsOf (k : ℕ) : List (WhirMutation × Bool) := [
+  ((id, k - 1, id, id), true),
+  ((fun rs ↦ rs.modify 2 (·.modify 4 (·.modify 7 (· + 1))), k - 1, id, id), false),
+  ((fun rs ↦ rs.modify 0 (·.modify 3 (·.modify 40 (· + 1))), k - 1, id, id), false),
+  ((id, k - 1, fun l ↦ { l with residual := l.residual.modify 1 (· + 1) }, id), false),
+  ((id, k - 1, fun l ↦ { l with lam := l.lam + 1 }, id), false),
   ((id, 1, fun l ↦ { l with oodValue := l.oodValue + 1 }, id), false),
   ((id, 1, fun l ↦ { l with ood := l.ood.modify 0 (· + 1) }, id), false),
   ((id, 1, fun l ↦ { l with oodWire := l.oodWire.modify 0 (· + 1) }, id), false),
   ((id, 0, fun l ↦ { l with folds := l.folds.modify 2 bumpFold }, id), false),
   ((id, 2, fun l ↦ { l with lam := l.lam + 1 }, id), false),
   ((id, 2, fun l ↦ { l with queryWire := l.queryWire.modify 1 (· + 1) }, id), false),
-  ((id, 3, id, fun ws ↦ ws.modify 0 (· + 1)), false)]
+  ((id, k - 1, id, fun ws ↦ ws.modify 0 (· + 1)), false)]
+
+/-- The Rust fixture's WHIR mutations, at its four levels. -/
+def whirMutations : List (WhirMutation × Bool) := whirMutationsOf 4
+
+/-! ## The front phases' algebra on the honest transcript -/
+
+/-- A round with its first wire coefficient changed. -/
+def bumpRound (r : Round) : Round := { r with wire := r.wire.modify 0 (· + 1) }
+
+/-- A change of the honest wire, with the stage of the algebra that must reject it. -/
+structure WireMutation where
+  /-- What it changes. -/
+  name : String
+  /-- The change. -/
+  change : Wire → Wire
+  /-- Where the algebra rejects it. -/
+  expected : Outcome
+
+/-- The honest wire, then a change in each front phase's messages: a grand-product round
+coefficient and a child value, a table round coefficient and column value, a public value, a
+zerocheck and a lincheck round coefficient and a slice, each rejected by its own phase's check. -/
+def wireMutations : List WireMutation := [
+  ⟨"the honest wire", id, .accepted⟩,
+  ⟨"a grand-product round coefficient", fun w ↦ { w with bus := { w.bus with
+    layers := w.bus.layers.modify 3 fun l ↦ { l with rounds := l.rounds.modify 0 bumpRound } } },
+    .bus⟩,
+  ⟨"a grand-product child value", fun w ↦ { w with bus := { w.bus with
+    layers := w.bus.layers.modify 2 fun l ↦
+      { l with children := l.children.modify 1 (·.modify 0 (· + 1)) } } }, .bus⟩,
+  ⟨"a table round coefficient", fun w ↦ { w with table := { w.table with
+    rounds := w.table.rounds.modify 0 bumpRound } }, .table⟩,
+  ⟨"a table column value", fun w ↦ { w with table := { w.table with
+    finals := w.table.finals.modify 0 (· + 1) } }, .table⟩,
+  ⟨"a public value", fun w ↦ { w with pub := { w.pub with
+    values := w.pub.values.modify 0 (· + 1) } }, .pub⟩,
+  ⟨"a zerocheck round coefficient", fun w ↦ { w with flock := { w.flock with
+    zc := w.flock.zc.modify 2 bumpRound } }, .flock⟩,
+  ⟨"a lincheck round coefficient", fun w ↦ { w with flock := { w.flock with
+    lin := w.flock.lin.modify 1 bumpRound } }, .flock⟩,
+  ⟨"a Flock slice", fun w ↦ { w with flock := { w.flock with
+    slices := w.flock.slices.modify 0 (· + 1) } }, .flock⟩]
+
+/-- The algebra's outcome on a fixture's honest wire changed by each mutation, beside the outcome
+it must have. -/
+def frontChecksOf (f : Fixture) : List (String × Outcome × Outcome) :=
+  match honestOf f with
+  | none => []
+  | some (s, shs, w, rows) =>
+    wireMutations.map fun m ↦
+      (m.name, algebraOutcome f.prog s f.input shs (m.change w) rows, m.expected)
+
+/-- The front phases' algebra and WHIR's on a fixture's honest wire, each change rejected at its
+stage: the lines printed, and the number of failures. -/
+def algebraChecks (f : Fixture) : IO ℕ := do
+  let mut failed := 0
+  for (name, o, e) in frontChecksOf f do
+    let ok := o == e
+    unless ok do failed := failed + 1
+    let stage := (reprStr o).replace "LeanerVMTests.Protocol.Verify.Outcome." ""
+    IO.println s!"{if ok then "ok  " else "FAIL"} the algebra on {name}: {stage}"
+  let muts := whirMutationsOf f.proof.merkle.length
+  let w := whirChecksOf f (muts.map (·.1))
+  let wOk := w == muts.map (·.2)
+  unless wOk do failed := failed + 1
+  IO.println s!"{if wOk then "ok  " else "FAIL"} WHIR's algebra on the honest transcript: {w}"
+  return failed
 
 end LeanerVMTests.Protocol.Verify

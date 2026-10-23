@@ -160,7 +160,8 @@ private theorem read_walkPositions (depth : ℕ) : ∀ (fuel need : ℕ) (ds : L
     simp only [List.length_cons, posSqueezes] at h
     have ih := read_walkPositions depth fuel (need + 1 - min (192 / depth) (need + 1)) ds rest
       (by omega)
-    simp only [walkPositions, Slot.read_bind, squeezeBlocks, List.map_cons, List.cons_append]
+    simp only [walkPositions, positionsWith, Slot.read_bind, squeezeBlocks, List.map_cons,
+      List.cons_append]
     show ((Slot.next challengeOf).read ((Block.squeeze, d) :: _)).bind _ = _
     rw [Slot.read_next_cons]
     simp only [challengeOf, Option.map_some, Option.bind_some]

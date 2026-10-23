@@ -19,9 +19,10 @@ public import LeanerVM.Protocol.Whir.WordFast
 The compiled protocol is the list-binding compilation `listBindingDef`: the level-0 word
 committed, the front phases and the opening's batching over it, the opening's input, and WHIR's
 opening. A front phase over the word runs its honest prover on the stack the witness holds
-(`Phase.FrontDef.over`). `Component.Cached.over` does the same with a cached prover of the phase,
-and runs as the phase over the word does (`run_eq`), so the cached bus phase, table sumcheck and
-Flock phase of `LeanerVM.Protocol.HonestProver` carry over to the compiled protocol.
+(`Phase.FrontDef.over`), and a cached prover of the phase runs over the word likewise
+(`Component.Cached.over`, `LeanerVM.Protocol.ListBinding`), so the cached bus phase, table
+sumcheck and Flock phase of `LeanerVM.Protocol.HonestProver` carry over to the compiled
+protocol.
 
 `listBindingCached` is the cached prover of the whole compilation: the level-0 word's rows encoded
 once by the transform and the word reading them sent (`commitWordCached`, on `κ + R ≤ 64`
@@ -37,34 +38,6 @@ namespace LeanerVM.Protocol
 open OracleComp OracleSpec ProtocolSpec Whir
 
 @[expose] public section
-
-/-! ## A cached phase over other oracles -/
-
-section Over
-
-variable {I : M3Instance} {ι' : Type} (O' : ι' → Type) [∀ i, OracleInterface (O' i)]
-  {StmtIn StmtOut : Type} {n : ℕ} {pSpec : ProtocolSpec n}
-  [∀ i, OracleInterface (pSpec.Message i)] [∀ i, SampleableType (pSpec.Challenge i)]
-  {Pf : Phase.FrontDef I StmtIn StmtOut pSpec}
-
-/-- A cached prover of a front phase, run over other oracles on the stack the witness holds. -/
-def Component.Cached.over (Q : Component.Cached Pf.toDef (fun _ ↦ ()) (fun _ ↦ ())) :
-    Component.Cached (Pf.over I O') (fun _ ↦ ()) (fun _ ↦ ()) where
-  prover := adaptProver (fun x ↦ (x.1, x.2.1)) (fun y ↦ (y.1, (y.2, ())))
-    (Component.proverVia Q.toProver fun q ↦ ((fun _ ↦ q : ∀ i, TheOracle I i), ()))
-  run_eq s w := by
-    obtain ⟨st, o⟩ := s
-    rw [adaptProver_run]
-    have h₁ := Component.run_proverVia (O' := O') Q.toProver
-      (fun q ↦ (fun _ ↦ q : ∀ i, TheOracle I i)) st o w
-    have h₂ := Component.run_proverVia (O' := O') Pf.toDef.red.prover
-      (fun q ↦ (fun _ ↦ q : ∀ i, TheOracle I i)) st o w
-    rw [Q.toProver_run] at h₁
-    change _ <$> (Component.proverVia Q.toProver _).run (st, o) w =
-      _ <$> (Component.proverVia Pf.toDef.red.prover _).run (st, o) w
-    rw [h₁, h₂]
-
-end Over
 
 /-! ## The compiled protocol's cached prover -/
 
