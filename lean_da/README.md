@@ -2,7 +2,7 @@
 
 **Credit: the security framework and its proofs are Benedikt Wagner's**, from [b-wagn/fv-pq-da](https://github.com/b-wagn/fv-pq-da) at `4475179c`, explained in his post [Formally verified security for PQ-DAS (LeanDA)](https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746).
 
-**[LeanDa.lean](LeanDa.lean) proves that LeanDA, the erasure code commitment of [`crates/lean_da`](https://github.com/leanEthereum/leanVM/tree/3375f7a137c50b803f3416f6466b5d4e0719708a/crates/lean_da) specified in `doc/leanvm` §sec:leanda, is complete, position binding and code binding, for every number of rows, assuming a knowledge-sound argument for its relation.** The proofs of the generic construction are Benedikt Wagner's, ported here as the library `PqDas`; this project instantiates them with LeanDA and proves the building blocks they assume. The root module pins the axioms of every front-page theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
+**[LeanDa.lean](LeanDa.lean) proves that LeanDA, the erasure code commitment of [`crates/lean_da`](https://github.com/leanEthereum/leanVM/tree/4af2cdddd7cd41b9df2cc7e123e314a91b0b4462/crates/lean_da) specified in `doc/leanvm` §sec:leanda, is complete, position binding and code binding, for every number of rows, assuming a knowledge-sound argument for its relation.** The proofs of the generic construction are Benedikt Wagner's, ported here as the library `PqDas`; this project instantiates them with LeanDA and proves the building blocks they assume. The root module pins the axioms of every front-page theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
 
 ## Theorems
 
@@ -53,7 +53,7 @@ What stays as in Wagner's model:
 
 ## The model and the Rust code
 
-[LeanDa/Scheme.lean](LeanDa/Scheme.lean) is the scheme, citing the crate at leanVM's `keccak-gkr` branch, commit `3375f7a13`. It is checked by reading both sides; it is not a mechanized refinement of the Rust.
+[LeanDa/Scheme.lean](LeanDa/Scheme.lean) is the scheme, citing the crate at leanVM's `main` branch, commit `4af2cdddd`. It is checked by reading both sides; it is not a mechanized refinement of the Rust.
 
 * **The code.** A row's `2^14` payload symbols are the values of a polynomial of degree below `2^14` on the domain points `0 … 2^14 - 1` (the element of `K` whose bits are `b` is point `b`, the span of `e_c = x^c`), and its codeword is that polynomial's values on the `2^15` points. The crate computes these maps with the inverse and forward additive NTT; the model uses the maps themselves, so the NTT's correctness (Annex D, Proposition prop:ntt) is not mechanized here. The dual codeword is `∏_j (1 + z_j Ŵ_j(x))`, which `dual_eq_sum` shows is the encoding of the tensor that `dual_codeword` transforms; `dualCodeword_eq_dual` proves the transcribed `dual_codeword` computes it.
 * **The matrix.** The row count `r` is a parameter; the crate accepts `1 ≤ r ≤ 1024` and the theorems hold for every `r ≥ 1`. The erasure code's positions are the `128 r` cells of the `r` rows, the cells sampling opens. The commitment pads the rows to `2^⌈log₂ r⌉` with zero codewords and hashes the padded matrix, as `commit_codewords` does.

@@ -15,7 +15,7 @@ public import LeanVM.Guest.B1.Whir.Run
 
 `runF p st`: `Compile.run` (Keccak-256, Keccak-f) with the sponge replaced by the `Fs` the guest
 carries. It is a function of `st`, so an accepting run is unique (`runF_det`) and splits at a
-`bind` (`runF_bind`); a run of `RunsWith` is one (`runF_of_runsWith`). `queriesOf` splits the
+`bind` (`runF_bind`); a run of `RunsWith` is one (`runF_of_runsWith`). `queryStepsOf` splits the
 same way (`queriesOf_bind`). `Ref p' p`: `p'` refines `p` (every run of `p'` is one of `p`, with
 its query steps); `whirOpenNZ` refines `whirOpen` (`whirOpenNZ_ref`).
 -/
@@ -215,59 +215,59 @@ theorem runF_det {α : Type} {p : Prog α} {st : FSt} {r r' : α × FSt} (h : ru
 /-! ## Query steps -/
 
 theorem queriesOf_bind {α β : Type} (p : Prog α) (f : α → Prog β) (st : FSt) :
-    queriesOf (p.bind f) st = queriesOf p st ++
+    queryStepsOf (p.bind f) st = queryStepsOf p st ++
       (match runF p st with
-        | some r => queriesOf (f r.1) r.2
+        | some r => queryStepsOf (f r.1) r.2
         | none => []) := by
   induction p generalizing st with
-  | ret a => simp [Prog.bind, queriesOf, runF]
-  | fail => simp [Prog.bind, queriesOf, runF]
+  | ret a => simp [Prog.bind, queryStepsOf, runF]
+  | fail => simp [Prog.bind, queryStepsOf, runF]
   | read k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Prog.bind, queriesOf, runF]
+    | nil => simp [Prog.bind, queryStepsOf, runF]
     | cons x xs => exact ih _ _
   | sample k ih => exact ih _ _
   | grind b k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases stream with
-    | nil => simp [Prog.bind, queriesOf, runF]
+    | nil => simp [Prog.bind, queryStepsOf, runF]
     | cons n xs =>
-      simp only [Prog.bind, queriesOf, runF]
+      simp only [Prog.bind, queryStepsOf, runF]
       split
       · exact ih _
       · simp
   | commit h w k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     match stream with
-    | [] => simp [Prog.bind, queriesOf, runF]
-    | [_] => simp [Prog.bind, queriesOf, runF]
+    | [] => simp [Prog.bind, queryStepsOf, runF]
+    | [_] => simp [Prog.bind, queryStepsOf, runF]
     | x0 :: x1 :: xs =>
       cases hd : digestOfScalars (x0, x1) with
-      | none => simp [Prog.bind, queriesOf, runF, hd]
+      | none => simp [Prog.bind, queryStepsOf, runF, hd]
       | some root =>
-        simp only [Prog.bind, queriesOf, runF, hd]
+        simp only [Prog.bind, queryStepsOf, runF, hd]
         exact ih _
   | query i ps k ih =>
     obtain ⟨s, stream, os, roots⟩ := st
     cases hr : roots[i]? with
-    | none => simp [Prog.bind, queriesOf, runF, hr]
+    | none => simp [Prog.bind, queryStepsOf, runF, hr]
     | some v =>
       obtain ⟨root, height, width⟩ := v
       cases ho : Id.run (Compile.openAll (m := Id) keccak256 root height width ps os) with
       | none =>
         simp only [Id.run] at ho
-        simp [Prog.bind, queriesOf, runF, hr, ho, Id.run]
+        simp [Prog.bind, queryStepsOf, runF, hr, ho, Id.run]
       | some v' =>
         obtain ⟨rows, rest⟩ := v'
         simp only [Id.run] at ho
-        simp only [Prog.bind, queriesOf, runF, hr, ho, ih, Id.run, List.cons_append]
+        simp only [Prog.bind, queryStepsOf, runF, hr, ho, ih, Id.run, List.cons_append]
 
 /-! ## Refinement -/
 
 /-- `p'` refines `p`: every run of `p'` is a run of `p`, with the same query steps. -/
 def Ref {α : Type} (p' p : Prog α) : Prop :=
-  ∀ st r, runF p' st = some r → runF p st = some r ∧ queriesOf p' st = queriesOf p st
+  ∀ st r, runF p' st = some r → runF p st = some r ∧ queryStepsOf p' st = queryStepsOf p st
 
 theorem Ref.refl {α : Type} (p : Prog α) : Ref p p := fun _ _ h ↦ ⟨h, rfl⟩
 
