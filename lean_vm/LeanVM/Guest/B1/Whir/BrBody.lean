@@ -90,15 +90,17 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
       ptC tr (c.levels.headD default).folds = w.point ++ List.replicate (pointCap - μ) 0 ∧
       pt1C tr (c.levels.headD default).folds =
         w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1 ∧
-      ∀ (C : CallRel) (rd : Reader) (σ : Val) (A : OsAt),
+      (∀ (C : CallRel) (rd : Reader) (σ : Val) (A : OsAt),
         [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = capOf S → σ (.n 5) = target →
         σ (.n 6) = (digestScalars root).1 → σ (.n 7) = (digestScalars root).2 →
         ReadsAt rd (σ (.n 8)) xs → OsMem rd A c tr → OsCallsOk C rd A c tr →
         BlkF C rd σ 9 (osFinEnd c (osTlSt c).2.1 (osTlSt c).2.2) (osBodyF c tr σ c0 c2 A)
           (osBodyA c)
           (fun σ' ↦ (osFinishRet c (osTlSt c).2.1 (osTlSt c).2.2).map σ' =
-            [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 9 σ σ') := by
-  obtain ⟨c0, c2, xs', Ls, hxs, hlc, hch, -⟩ := nz_trace hF hrun hnz
+            [w.target, A.PT, A.PT1, w.inner, w.residual] ∧ AgreeBelow 9 σ σ')) ∧
+      ∀ L ∈ tr.Ls, (L.height, L.qs.zip L.os) ∈
+        queryStepsOf (whirOpen μ r target) (osStart μ r S xs os root) := by
+  obtain ⟨c0, c2, xs', Ls, hxs, hlc, hch, hqs⟩ := nz_trace hF hrun hnz
   set lane := (cfg.head?.map (·.fold)).getD 0 with hlane
   obtain ⟨hlane', -⟩ := levelsOk_lane hF.lok
   set tr : OsTr := ⟨Ls, xs'.drop (Ls.map SpLv.words).flatten.length⟩ with htr
@@ -112,7 +114,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
     rw [point_length, hFl, hfit.tcLen, hF.mu]
   have hpoint : w.point = tr.point (c.levels.headD default).folds := by
     rw [hw, ← hlane', SpLv.wend]; rfl
-  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_⟩
+  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_, hqs⟩
   intro C rd σ A hcap h5 h6 h7 hrd hm hc
   -- the head's words
   rw [hxs] at hrd
