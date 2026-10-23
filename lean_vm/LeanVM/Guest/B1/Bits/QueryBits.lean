@@ -1097,7 +1097,7 @@ theorem decode_query_bits_L26_iff (rd : Reader) (args rets : List E) :
   decode_query_bits_iff 26 (by decide) (by decide)
     (Program.find?_of_indexOf? (j := 891) (by decide +kernel) rfl) rfl core891_body rd args rets
 
-/-- **' core IR is its meaning**, at every deployed depth. -/
+/-- **`decode_query_bits`' core IR is its meaning**, at every deployed depth. -/
 theorem decode_query_bits_all_holds : decode_query_bits_all_Spec := by
   intro p hp
   simp only [decodeQueryBitsNames, List.range_succ, List.range_zero, List.map_cons, List.map_nil,
