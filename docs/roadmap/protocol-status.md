@@ -841,6 +841,20 @@ that the verifier's chain walk logs its chain, and the lemma that `HasCollision`
 charged invariant's log of fresh queries, given `Consistent`; it is stated once both branches are
 on `main`.
 
+*On merge* of the sharper query-error pull request, WHIR's query positions cost
+`((a − 1) / n)^t` instead of `(a / n)^t`, `a` the level's threshold and `n` its positions:
+`card_agree_folded_lt` (`Protocol/Whir/FoldSound.lean`) proves that a table satisfying the residual
+claim outside its language agrees with the folded word on fewer than `a` positions, which its
+argument already derived, and `card_positions_bad_le`, `card_final_positions_le`,
+`positionsSecurity`, `finalPositionsSecurity`, `levelErr` and `finalErr` (hence `openErr` and
+`listBindingError`) count `(a − 1)^t` choices. Annex B's `thm:rbr` states `(1 − γ_i)^{t_i}`; with
+`a = ⌈(1 − γ) n⌉`, `a − 1 < (1 − γ) n`, so the entry is below the Annex's at every level. With
+`a^t` the entry exceeded `2^-111` at 48 of the 224 deployed levels, the threshold rounding up past
+the `(1 − γ) n` the query counts were optimised for (worst `2^-110.34`: stack size `16`, rate
+`2⁻¹`, level `2`, `t = 30`, `a = 40`, `n = 2^9`), so the 17 bits of grinding gave `2^-127.34`;
+with `(a − 1)^t` every level is below `2^-111` (worst `2^-111.0002`, stack size `23`, rate `2⁻²`,
+level `0`), so `2^-128` after grinding.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

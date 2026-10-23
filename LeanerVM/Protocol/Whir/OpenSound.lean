@@ -28,7 +28,7 @@ form this repository's components assign them:
 | --- | --- | --- |
 | the `j`-th fold challenge of a level | `(2 L + 2 ^ (ℓ - j - 1) N) / |E|` | `foldErr` |
 | each coordinate of the out-of-domain point | `C(L', 2) / |E|` | `pointSecurity` |
-| the query positions | `a ^ t / (2 ^ (κ + R)) ^ t = (1 - γ) ^ t` | `positionsSecurity` |
+| the query positions | `(a - 1) ^ t / (2 ^ (κ + R)) ^ t < (1 - γ) ^ t` | `positionsSecurity` |
 | the batching challenge | `(t + 1) L' / |E|` | `batchingSecurity` |
 | the last level's batching challenge | `t / |E|` | `finalBatchingSecurity` |
 | each round of the tail | `2 / |E|` | `tailFirstSecurity`, `tailRestSecurity` |
@@ -36,14 +36,16 @@ form this repository's components assign them:
 `L` is the list bound of the level's own code, `L'` the next level's; `N` the bad folds of mutual
 correlated agreement. The out-of-domain point is `κ` challenges here, drawn one at a time, and
 each costs `C(L', 2) / |E|`; their sum is `thm:rbr`'s `C(L', 2) κ / |E|`, which the pinned theorem
-charges to one message, so the per-round error is smaller than the pinned entry.
+charges to one message, so the per-round error is smaller than the pinned entry. A word outside
+the list relation agrees with a codeword on at most `a - 1 < (1 - γ) 2 ^ (κ + R)` positions, so the
+query positions' error is below the pinned `(1 - γ) ^ t` too.
 
 **What it assumes.** The two interfaces of `LeanerVM.Protocol.Whir.Lanes`, per level, in
 the parameters (`Par`, `Ladder.Pars`): the list bound (the Johnson bound) and mutual correlated
 agreement up to the Johnson bound. They are theorems of coding theory that this repository consumes
 (`McaBound`, Annex B's `thm:mca-johnson`); proved here is everything else, from the encoder's
 distance: the fold-list lemma, the counting, the composition. Two letters differ from the Annex:
-`a` is the agreement threshold `(1 - γ) 2 ^ (κ + R)` of a level, and the numerator of
+`a` is the agreement threshold `⌈(1 - γ) 2 ^ (κ + R)⌉` of a level, and the numerator of
 `thm:mca-johnson`'s error, which the Annex calls `a`, is `N`.
 
 **What it does not use.** The checks on the three first-round polynomials of a level boundary and

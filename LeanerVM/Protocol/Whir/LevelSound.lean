@@ -20,7 +20,7 @@ the one the schedule assigns it:
 * the fold challenges: `(2 L + 2 ^ (ℓ - j - 1) N) / |E|` at the `j`-th (`foldErr`);
 * the out-of-domain point: `C(L', 2) / |E|` at each of its `κ` coordinates, `L'` the list bound of
   the next word (`pointSecurity`);
-* the query positions: `a ^ t / (2 ^ (κ + R)) ^ t`, that is `(1 - γ) ^ t` (`positionsSecurity`);
+* the query positions: `(a - 1) ^ t / (2 ^ (κ + R)) ^ t`, below `(1 - γ) ^ t` (`positionsSecurity`);
 * the batching challenge: `(t + 1) L' / |E|` (`batchingSecurity`).
 
 No other round has an error: the messages (the residual claim's polynomial, the commitment, the
@@ -53,7 +53,7 @@ noncomputable def levelErr (errR : (seqSpec k).ChallengeIdx → ℝ≥0) :
   errAppend (sayError E) <| errAppend (sayError (SumcheckRound.Message E 2)) <|
   errAppend (sayError E) <|
   errAppend (drawError (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R)))
-    ((P.a ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R))) : ℝ≥0))) <|
+    (((P.a - 1) ^ sh.t : ℕ) / (Nat.card (Fin sh.t → Fin (2 ^ (Kap sh' κ' + sh.R))) : ℝ≥0))) <|
   errAppend (drawError E (((sh.t + 1) * P'.L : ℕ) / (Nat.card E : ℝ≥0))) <|
   errAppend (fun i ↦ Fin.elim0 i.1) <| errAppend (sayError (SumcheckRound.Message E 2)) <|
   errAppend (fun i ↦ Fin.elim0 i.1) errR
