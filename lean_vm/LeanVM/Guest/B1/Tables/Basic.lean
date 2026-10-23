@@ -314,6 +314,62 @@ theorem tb_holds_dispatch {pre : List Stmt} (hnr : Stmt.noRetList pre = true)
 
 end Slices
 
+/-- A block of atoms holds exactly when each of its atoms does. -/
+theorem tb_holdsList_atoms {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
+    ∀ {l : List Stmt}, (∀ s ∈ l, ∃ a, s = .atom a) →
+      (Stmt.HoldsList C rd σ l True kret ↔ ∀ a, Stmt.atom a ∈ l → a.Holds rd σ)
+  | [], _ => by simp [Stmt.HoldsList]
+  | s :: l, h => by
+    obtain ⟨a, rfl⟩ := h s (by simp)
+    rw [Stmt.HoldsList, Stmt.Holds, tb_holdsList_atoms (fun s hs => h s (by simp [hs]))]
+    constructor
+    · rintro ⟨ha, hl⟩ b hb
+      rcases List.mem_cons.mp hb with e | hb
+      · cases e; exact ha
+      · exact hl b hb
+    · intro hall
+      exact ⟨hall a (by simp), fun b hb => hall b (by simp [hb])⟩
+
+section Blocks
+
+variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
+
+/-- Two `ret`-free blocks in sequence. -/
+theorem tb_holdsList_append_noRet {A B : List Stmt} (ha : Stmt.noRetList A = true) :
+    Stmt.HoldsList C rd σ (A ++ B) True kret ↔
+      Stmt.HoldsList C rd σ A True kret ∧ Stmt.HoldsList C rd σ B True kret := by
+  rw [holdsList_append, holdsList_noRet _ ha]
+
+/-- A block of atoms indexed by `e < n`. -/
+theorem tb_holdsList_mapAtoms (n : ℕ) (f : ℕ → Atom) :
+    Stmt.HoldsList C rd σ ((List.range n).map fun e ↦ Stmt.atom (f e)) True kret ↔
+      ∀ e < n, (f e).Holds rd σ := by
+  rw [tb_holdsList_atoms (fun s hs => by
+    obtain ⟨e, -, rfl⟩ := List.mem_map.mp hs; exact ⟨_, rfl⟩)]
+  constructor
+  · intro h e he
+    exact h _ (List.mem_map.mpr ⟨e, List.mem_range.mpr he, rfl⟩)
+  · intro h a ha
+    obtain ⟨e, he, he'⟩ := List.mem_map.mp ha
+    cases he'
+    exact h e (List.mem_range.mp he)
+
+/-- `ret`-free blocks indexed by `i < n`, in sequence. -/
+theorem tb_holdsList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
+    (hg : ∀ i, Stmt.noRetList (g i) = true) :
+    Stmt.HoldsList C rd σ ((List.range n).map g).flatten True kret ↔
+      ∀ i < n, Stmt.HoldsList C rd σ (g i) True kret := by
+  rw [holdsList_flatten _ (fun b hb => by obtain ⟨i, -, rfl⟩ := List.mem_map.mp hb; exact hg i)]
+  constructor
+  · intro h i hi
+    exact h.1 _ (List.mem_map.mpr ⟨i, List.mem_range.mpr hi, rfl⟩)
+  · intro h
+    refine ⟨fun b hb => ?_, trivial⟩
+    obtain ⟨i, hi, rfl⟩ := List.mem_map.mp hb
+    exact h i (List.mem_range.mp hi)
+
+end Blocks
+
 /-! ## Building valuations -/
 
 /-- `σ` with the values `.n (b + k)`, `k < n`, set to `f k`. -/
