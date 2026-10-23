@@ -168,6 +168,28 @@ theorem vtF_air (hl : args.length = 22) {τs : ℕ → ℕ}
     have hS := not_mem_vtSL (vtF_noStore.2.2 t ht).2 (.n (vtAirX t + 4)) 0
     exact (vt_readM (rd := rd) (w := w) hl hm hS hpeL).2
 
+/-- Table `t`'s weight pointers: `cprod·g^(n-τ)` and `peq·g^τ`. -/
+theorem vtF_airVals (hl : args.length = 22) {τs : ℕ → ℕ}
+    (hdim : ∀ t < 6, LoadHolds rd (vtσ rd w args (.n 10)) (t + 1) (gen ^ τs t)) {n : ℕ}
+    (hgn : vtσ rd w args (.n 5817) = gen ^ n) (hτn : ∀ t < 6, τs t ≤ n) {t : ℕ} (ht : t < 6) :
+    vtσ rd w args (.n (vtAirX t + 1)) = vtσ rd w args (.n 5915) * gen ^ (n - τs t) ∧
+      vtσ rd w args (.n (vtAirX t + 3)) = vtσ rd w args (.n 5936) * gen ^ τs t := by
+  have hτ := (vtF_dim (w := w) hl hdim ht).1
+  have g := vt_goodL (rd := rd) (w := w) hl _ _ (vtAirT_check t ht).2
+  obtain ⟨hx, hτx⟩ := vtAirX_gt t ht
+  set σ := vtσ rd w args with hσ
+  simp only [vtAirT, GoodL, fixNe, GoodS, Good] at g
+  obtain ⟨gd, gp, -, gq, -, -⟩ := g
+  simp only [V.n] at gd gp gq
+  split_ifs at gd with hc
+  · exact absurd hc.1 (by omega)
+  split_ifs at gp with hc
+  swap; · exact absurd ⟨by omega, by omega⟩ hc
+  split_ifs at gq with hc
+  swap; · exact absurd ⟨by omega, by omega⟩ hc
+  refine ⟨?_, by rw [gq, hτ]⟩
+  rw [gp, gd, hgn, hτ, ← pow_sub₀ _ gen_ne_zero (hτn t ht)]
+
 /-! ## An evaluation's statements -/
 
 /-- **Evaluation `k`'s read, limb check and stores hold.** -/
