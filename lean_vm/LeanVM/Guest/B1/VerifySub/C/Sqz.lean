@@ -89,5 +89,37 @@ theorem vsFpwT_complete (hl : args.length = 7) {a0 a1 a2 a3 : E}
   simp only [Stmt.HoldsList, Stmt.Holds, vsAlloc]
   exact ⟨trivial, vsFpw_loop hl ha hfp _ (fun x hx ↦ List.mem_range.1 hx) hsq⟩
 
+theorem kc_noNe (ins : List V) (o : ℕ) :
+    (keccakA ins (vsRun o 13) :: challengeT (.n o) (.n (o + 1)) (o + 13)).all noNeB = true := by
+  simp [keccakA, challengeT, noNeB]
+
+set_option maxRecDepth 100000 in
+/-- **A permutation and its challenge, honestly**: on canonical inputs, the `KECCAK` atom and
+`challenge_from_state` hold, and the permutation's thirteen output cells are canonical. -/
+theorem kc_complete (hl : args.length = 7) {ins : List V} {o : ℕ}
+    (hmem : ∀ s ∈ keccakA ins (vsRun o 13) :: challengeT (.n o) (.n (o + 1)) (o + 13), s ∈ vsCPre)
+    (hcan : AllCanonical (ins.map (vsσ rd w args)))
+    {C : CallRel} {next : Prop} {kret : List E → Prop} (hn : next) :
+    (∀ k < 13, IsCanonical128 (vsσ rd w args (.n (o + k)))) ∧
+      Stmt.HoldsList C rd (vsσ rd w args)
+        (keccakA ins (vsRun o 13) :: challengeT (.n o) (.n (o + 1)) (o + 13)) next kret := by
+  have hG : ∀ s ∈ keccakA ins (vsRun o 13) :: challengeT (.n o) (.n (o + 1)) (o + 13),
+      GoodS rd vsSL w (vsσ rd w args) s := fun s hs ↦ by
+    have h := vs_goodS (rd := rd) (w := w) hl (hmem s hs)
+    rwa [fixNe_of_noNe (List.all_eq_true.mp (kc_noNe ins o) s hs)] at h
+  have hk : Good rd vsSL w (vsσ rd w args) (.keccak ins (vsRun o 13) false false) :=
+    hG (keccakA ins (vsRun o 13)) List.mem_cons_self
+  have hK := keccakA_complete hk hcan
+  have hout : ∀ k < 13, IsCanonical128 (vsσ rd w args (.n (o + k))) := by
+    intro k hk13
+    have := hk.2.2 ⟨k, hk13⟩
+    simp [cells13, vsRun, List.getD_eq_getElem?_getD, hk13] at this
+    rw [this]
+    exact canon_cellsOfState _ _ _
+  have hch := challenge_complete (C := C) (next := next) (kret := kret)
+    (fun s hs ↦ hG s (List.mem_cons_of_mem _ hs)) (hout 1 (by norm_num))
+  simp only [keccakA, Stmt.HoldsList, Stmt.Holds]
+  exact ⟨hout, hK, hch.2 hn⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
