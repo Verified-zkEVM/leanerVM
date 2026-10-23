@@ -3,135 +3,166 @@
 
   The transcript of a protocol decoded round by round from a list of readings: at each round a
   slot reads the round's value off the front of the list, given the rounds before it. Decoders of
-  appended schedules and of lists of steps are built from decoders of their parts. Candidate for
-  ArkLib.
+  appended schedules are built from decoders of their parts. Candidate for ArkLib.
 -/
 
 module
 
 public import LeanerVM.Protocol.ToArkLib.KnowledgeAppend
-public import LeanerVM.Protocol.ToArkLib.StepSchedule
 
 /-!
 # Decoding transcripts from readings
 
 A run of a protocol may be recorded as a flat list of readings (the blocks a Fiat–Shamir chain
 absorbed and squeezed, say) rather than as a transcript. A `Slot α β` reads a value of type `β` off
-the front of a `List α` and returns the readings left; what it reads depends only on the readings
-it consumes (`Slot.read_append`). `Slot.pure`, `Slot.next`, `Slot.take`, `Slot.map` and
-`Slot.bind` build slots. A `SlotDecoder α pSpec` gives, at each round of `pSpec`, the slot that
-reads the round's value, from the transcript of the rounds before it: a message may be decoded
-with a claim the earlier rounds leave. Then
+the front of a `List α` and returns the readings left. It consumes a prefix of the readings and
+what it reads depends on that prefix alone (`Slot.read_iff`): readings after it pass through
+(`Slot.read_append`) and can be taken away again (`Slot.read_of_read_append`). `Slot.pure`,
+`Slot.next`, `Slot.take`, `Slot.map` and `Slot.bind` build slots. A `SlotDecoder α pSpec` gives, at
+each round of `pSpec`, the slot that reads the round's value, from the transcript of the rounds
+before it: a message may be decoded with a claim the earlier rounds leave. Then
 
 * `run D i hi l`: the first `i` rounds read off `l`, with the readings left; `runFull D l`: all of
-  them;
+  them. A run consumes a prefix as a slot does (`run_eq_some_iff`, `run_append`,
+  `run_of_run_append`);
 * `decodeAt D i l`: the transcript of the first `i` rounds, if they read exactly `l`;
 * `decode D l`: the full transcript, if it reads exactly `l`;
-* `decodePrefix D l`: the longest prefix that reads exactly `l`, with its number of rounds
-  (`decodePrefix_eq_some_iff`).
+* `decodePrefix D l`: the longest prefix that reads exactly `l`, with its number of rounds. It
+  includes every round after the input runs out whose slot reads nothing
+  (`decodePrefix_eq_some_iff`), and is `none` when no prefix reads exactly `l`
+  (`decodePrefix_eq_none_iff`).
 
 `decodePrefix_mono`: readings appended to `l` only extend the prefix decoded from it.
 `decode_eq_of_decodePrefix`: the full transcript decoded from `l ++ l'` begins with the prefix
-decoded from `l`.
+decoded from `l`. `decodePrefix_of_run_append`: if `l ++ l'` decodes and its first `i` rounds read
+exactly `l`, then `l` decodes to the full transcript's prefix of at least `i` rounds.
 
 Decoders compose. `empty` decodes a schedule of no round, `single s` one of one round by the slot
 `s` (`runFull_empty`, `runFull_single`). `append D₁ D₂` decodes `pSpec₁ ++ₚ pSpec₂`: the rounds
 of `pSpec₁` by `D₁`, then those of `pSpec₂` by `D₂ t₁`, where `t₁` is the transcript of `pSpec₁`
 read first. `runFull_append` and `decode_append` give its full decoding as the two in sequence;
 `run_append_left` and `run_append_right` its partial runs, read through the projections
-`Verifier.KnowledgeAppend.left`, `firstOf` and `right`. `draws` decodes a run of challenges,
-`rounds` a run of sumcheck rounds carrying a state (the running claim, say) from round to round. A
-`SeqDecoder α l` holds a decoder of each step of a list `l` of schedule steps, given the
-transcripts of the steps before it; `SeqDecoder.toDecoder` decodes `seqSpec l`
-(`SeqDecoder.runFull_cons`, `SeqDecoder.decode_cons`).
-
-For example, take readings `ρ` that are absorbed values or squeezed states, read by partial maps
-`absorbed? : ρ → Option M` and `squeezed? : ρ → Option S`. A message absorbed as one reading, a
-challenge derived from one squeezed state by `challengeOf : S → C`, and the commitment of a word
-whose root takes two readings, the word itself given by a supplier `w` (the root unchecked), are
-the steps `[.msg M, .chal C _, .oracle W _]`, decoded by the `SeqDecoder ρ` of them
-
-```
-(single (Slot.next absorbed?), fun _ ↦
-  (single (Slot.next fun r ↦ (squeezed? r).map challengeOf), fun _ ↦
-    (single (Slot.take 2 fun _ ↦ some w), fun _ ↦ ⟨⟩)))
-```
-
-where a later decoder may read any transcript before it in place of `_`.
+`Verifier.KnowledgeAppend.left`, `leftFull` and `right`. Decoders of the repository's schedules
+of steps are in `LeanerVM.Protocol.ToArkLib.DecodeSteps`.
 -/
 
 namespace LeanerVM.Protocol
 
-open ProtocolSpec StepSchedule
+open ProtocolSpec
 
 @[expose] public section
 
 /-! ## Slots -/
 
-/-- A value of type `β` read off the front of a list of readings, with the readings left. What it
-reads depends only on the readings it consumes: readings appended after them change neither the
-value nor what is left before them. -/
+/-- A value of type `β` read off the front of a list of readings, with the readings left. It
+consumes a prefix of the readings, and what it reads depends on that prefix alone. -/
 structure Slot (α β : Type) where
   /-- The value read off the front of the readings, and the readings left. -/
   read : List α → Option (β × List α)
-  /-- Readings appended to the input are left after the value. -/
-  read_append : ∀ {l : List α} {x : β} {r : List α}, read l = some (x, r) →
-    ∀ l', read (l ++ l') = some (x, r ++ l')
+  /-- The readings consumed are a prefix, which read alone gives the same value. -/
+  read_iff : ∀ {l : List α} {x : β} {r : List α},
+    read l = some (x, r) ↔ ∃ c, l = c ++ r ∧ read c = some (x, [])
 
 namespace Slot
 
 variable {α β γ : Type}
 
+/-- Readings appended to the input are left after the value. -/
+theorem read_append (s : Slot α β) {l : List α} {x : β} {r : List α}
+    (h : s.read l = some (x, r)) (l' : List α) : s.read (l ++ l') = some (x, r ++ l') := by
+  obtain ⟨c, rfl, hc⟩ := s.read_iff.mp h
+  exact s.read_iff.mpr ⟨c, List.append_assoc c r l', hc⟩
+
+/-- Readings appended to the input and left after the value may be taken away. -/
+theorem read_of_read_append (s : Slot α β) {l l' : List α} {x : β} {r : List α}
+    (h : s.read (l ++ l') = some (x, r ++ l')) : s.read l = some (x, r) := by
+  obtain ⟨c, hc, hr⟩ := s.read_iff.mp h
+  refine s.read_iff.mpr ⟨c, List.append_cancel_right (bs := l') ?_, hr⟩
+  rw [hc, List.append_assoc]
+
 /-- The value `x`, read off no reading. -/
 def pure (x : β) : Slot α β where
   read l := some (x, l)
-  read_append h l' := by
-    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
-    rfl
+  read_iff {l y r} := by
+    simp only [Option.some.injEq, Prod.mk.injEq]
+    exact ⟨fun ⟨hx, hr⟩ ↦ ⟨[], hr ▸ rfl, hx, rfl⟩, fun ⟨c, hl, hx, hc⟩ ↦ ⟨hx, by simp [hl, hc]⟩⟩
 
 /-- One reading, through a partial map. -/
 def next (f : α → Option β) : Slot α β where
   read
     | [] => none
     | a :: r => (f a).map (·, r)
-  read_append {l x r} h l' := by
-    cases l with
-    | nil => cases h
-    | cons a l =>
-      obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
-      obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-      simp [hy]
+  read_iff {l x r} := by
+    constructor
+    · intro h
+      cases l with
+      | nil => cases h
+      | cons a l =>
+        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
+        obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+        exact ⟨[a], rfl, by simp [hy]⟩
+    · rintro ⟨_ | ⟨a, _ | ⟨b, c⟩⟩, rfl, h⟩
+      · cases h
+      · simpa using h
+      · simp at h
 
 /-- `k` readings, through a partial map of the list of them. -/
 def take (k : ℕ) (f : List α → Option β) : Slot α β where
   read l := if k ≤ l.length then (f (l.take k)).map (·, l.drop k) else none
-  read_append {l x r} h l' := by
-    by_cases hk : k ≤ l.length
-    · rw [ite_eq_left hk] at h
-      obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
-      obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-      rw [ite_eq_left (by simp; omega), List.take_append_of_le_length hk,
-        List.drop_append_of_le_length hk, hy]
-      rfl
-    · rw [ite_eq_right hk] at h
-      cases h
+  read_iff {l x r} := by
+    constructor
+    · intro h
+      by_cases hk : k ≤ l.length
+      · rw [ite_eq_left hk] at h
+        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
+        obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+        refine ⟨l.take k, (List.take_append_drop k l).symm, ?_⟩
+        rw [ite_eq_left (by simp; omega), List.take_take, Nat.min_self, hy,
+          List.drop_eq_nil_of_le (by simp)]
+        rfl
+      · rw [ite_eq_right hk] at h
+        cases h
+    · rintro ⟨c, rfl, h⟩
+      by_cases hk : k ≤ c.length
+      · rw [ite_eq_left hk] at h
+        obtain ⟨y, hy, he⟩ := Option.map_eq_some_iff.mp h
+        obtain ⟨rfl, hd⟩ := Prod.mk.inj he
+        have hc : c.length = k := by
+          have := List.length_drop (i := k) (l := c)
+          rw [hd] at this
+          simp at this
+          omega
+        rw [ite_eq_left (by simp; omega), List.take_append_of_le_length hk,
+          List.drop_append_of_le_length hk, hd, hy]
+        rfl
+      · rw [ite_eq_right hk] at h
+        cases h
 
 /-- The value of `s`, mapped by `g`. -/
 def map (g : β → γ) (s : Slot α β) : Slot α γ where
   read l := (s.read l).map fun p ↦ (g p.1, p.2)
-  read_append {l x r} h l' := by
-    obtain ⟨⟨y, r'⟩, hy, he⟩ := Option.map_eq_some_iff.mp h
-    obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-    rw [s.read_append hy l']
-    rfl
+  read_iff {l x r} := by
+    simp only [Option.map_eq_some_iff, Prod.exists, Prod.mk.injEq]
+    constructor
+    · rintro ⟨y, r', hy, rfl, rfl⟩
+      obtain ⟨c, rfl, hc⟩ := s.read_iff.mp hy
+      exact ⟨c, rfl, y, [], hc, rfl, rfl⟩
+    · rintro ⟨c, rfl, y, r', hy, rfl, rfl⟩
+      exact ⟨y, r, s.read_append hy r, rfl, rfl⟩
 
 /-- The slot `s`, then the slot `f x` for the value `x` it read. -/
 def bind (s : Slot α β) (f : β → Slot α γ) : Slot α γ where
   read l := (s.read l).bind fun p ↦ (f p.1).read p.2
-  read_append {l x r} h l' := by
-    obtain ⟨⟨y, r'⟩, hy, hf⟩ := Option.bind_eq_some_iff.mp h
-    rw [s.read_append hy l']
-    exact (f y).read_append hf l'
+  read_iff {l x r} := by
+    simp only [Option.bind_eq_some_iff, Prod.exists]
+    constructor
+    · rintro ⟨y, r₁, hy, hf⟩
+      obtain ⟨c₁, rfl, hc₁⟩ := s.read_iff.mp hy
+      obtain ⟨c₂, rfl, hc₂⟩ := (f y).read_iff.mp hf
+      exact ⟨c₁ ++ c₂, by rw [List.append_assoc], y, c₂, by simpa using s.read_append hc₁ c₂,
+        hc₂⟩
+    · rintro ⟨c, rfl, y, r₁, hy, hf⟩
+      exact ⟨y, r₁ ++ r, s.read_append hy r, by simpa using (f y).read_append hf r⟩
 
 end Slot
 
@@ -161,31 +192,39 @@ def run : (i : ℕ) → (hi : i ≤ n) → List α → Option (pSpec.Transcript 
 def runFull (l : List α) : Option (pSpec.FullTranscript × List α) := D.run n le_rfl l
 
 /-- The value read, if no reading is left. -/
-def whole {β : Type} : Option (β × List α) → Option β
+private def whole {β : Type} : Option (β × List α) → Option β
   | some (x, []) => some x
   | _ => none
 
+private theorem whole_eq_some {β : Type} {o : Option (β × List α)} {x : β} :
+    whole o = some x ↔ o = some (x, []) := by
+  rcases o with _ | ⟨y, _ | ⟨a, r⟩⟩ <;> simp [whole]
+
 /-- The transcript of the first `i` rounds, if they read exactly `l`. -/
-def decodeAt (i : Fin (n + 1)) (l : List α) : Option (pSpec.Transcript i) :=
+@[no_expose] def decodeAt (i : Fin (n + 1)) (l : List α) : Option (pSpec.Transcript i) :=
   whole (D.run i.val (by omega) l)
 
 /-- The full transcript, if it reads exactly `l`. -/
-def decode (l : List α) : Option pSpec.FullTranscript := whole (D.runFull l)
+@[no_expose] def decode (l : List α) : Option pSpec.FullTranscript := whole (D.runFull l)
 
-/-- The longest prefix of at most `k` rounds that reads exactly `l`, with its number of rounds. -/
-def prefixUpTo (l : List α) : (k : ℕ) → k ≤ n → Option (Σ i : Fin (n + 1), pSpec.Transcript i)
-  | 0, _ => (D.decodeAt ⟨0, by omega⟩ l).map (⟨⟨0, by omega⟩, ·⟩)
-  | k + 1, hk => ((D.decodeAt ⟨k + 1, by omega⟩ l).map (⟨⟨k + 1, by omega⟩, ·⟩)).or
-      (prefixUpTo l k (by omega))
+/-- The run of the first `i` rounds, with the longest of them that reads exactly `l`: one pass,
+each round's run extending the last. -/
+private def scan (l : List α) : (i : ℕ) → (hi : i ≤ n) →
+    Option (pSpec.Transcript ⟨i, by omega⟩ × List α) ×
+      Option (Σ k : Fin (n + 1), pSpec.Transcript k)
+  | 0, _ => (some (fun a ↦ a.elim0, l),
+      (whole (some ((fun a ↦ a.elim0 : pSpec.Transcript ⟨0, by omega⟩), l))).map
+        (⟨⟨0, by omega⟩, ·⟩))
+  | i + 1, hi =>
+    let s := scan l i (by omega)
+    let r := s.1.bind fun p ↦
+      ((D.slot ⟨i, hi⟩ p.1).read p.2).map fun q ↦ (Transcript.concat (m := ⟨i, hi⟩) q.1 p.1, q.2)
+    (r, ((whole r).map (⟨⟨i + 1, by omega⟩, ·⟩)).or s.2)
 
-/-- The longest prefix of the transcript that reads exactly `l`, with its number of rounds. -/
-def decodePrefix (l : List α) : Option (Σ i : Fin (n + 1), pSpec.Transcript i) :=
-  D.prefixUpTo l n le_rfl
-
-/-- `whole o` is the value of `o` exactly when no reading is left. -/
-theorem whole_eq_some {β : Type} {o : Option (β × List α)} {x : β} :
-    whole o = some x ↔ o = some (x, []) := by
-  rcases o with _ | ⟨y, _ | ⟨a, r⟩⟩ <;> simp [whole]
+/-- The longest prefix of the transcript that reads exactly `l`, with its number of rounds: it
+includes every round after the input runs out whose slot reads nothing. -/
+@[no_expose] def decodePrefix (l : List α) : Option (Σ i : Fin (n + 1), pSpec.Transcript i) :=
+  (D.scan l n le_rfl).2
 
 /-- The first `i` rounds read exactly `l` when their run leaves no reading. -/
 theorem decodeAt_eq_some {i : Fin (n + 1)} {l : List α} {tr : pSpec.Transcript i} :
@@ -195,20 +234,42 @@ theorem decodeAt_eq_some {i : Fin (n + 1)} {l : List α} {tr : pSpec.Transcript 
 theorem decode_eq_some {l : List α} {t : pSpec.FullTranscript} :
     D.decode l = some t ↔ D.runFull l = some (t, []) := whole_eq_some
 
+/-- A run consumes a prefix of its input, which run alone gives the same transcript. -/
+theorem run_eq_some_iff {i : ℕ} {hi : i ≤ n} {l : List α} {tr : pSpec.Transcript ⟨i, by omega⟩}
+    {r : List α} :
+    D.run i hi l = some (tr, r) ↔ ∃ c, l = c ++ r ∧ D.run i hi c = some (tr, []) := by
+  induction i generalizing l r with
+  | zero =>
+    simp only [run, Option.some.injEq, Prod.mk.injEq]
+    exact ⟨fun ⟨htr, hr⟩ ↦ ⟨[], by simp [hr], htr, rfl⟩,
+      fun ⟨c, hl, htr, hc⟩ ↦ ⟨htr, by simp [hl, hc]⟩⟩
+  | succ i ih =>
+    simp only [run, Option.bind_eq_some_iff, Option.map_eq_some_iff, Prod.exists, Prod.mk.injEq]
+    constructor
+    · rintro ⟨t, s, hp, x, r', hq, rfl, rfl⟩
+      obtain ⟨c₁, rfl, hc₁⟩ := (ih (hi := by omega)).mp hp
+      obtain ⟨c₂, rfl, hc₂⟩ := (D.slot ⟨i, hi⟩ t).read_iff.mp hq
+      exact ⟨c₁ ++ c₂, by rw [List.append_assoc], t, c₂,
+        (ih (hi := by omega)).mpr ⟨c₁, rfl, hc₁⟩, x, [], hc₂, rfl, rfl⟩
+    · rintro ⟨c, rfl, t, s, hp, x, r', hq, rfl, rfl⟩
+      obtain ⟨c₁, rfl, hc₁⟩ := (ih (hi := by omega)).mp hp
+      exact ⟨t, s ++ r, (ih (hi := by omega)).mpr ⟨c₁, by rw [List.append_assoc], hc₁⟩, x, r,
+        by simpa using (D.slot ⟨i, hi⟩ t).read_append hq r, rfl, rfl⟩
+
 /-- Readings appended to the input of a run are left after it. -/
 theorem run_append {i : ℕ} {hi : i ≤ n} {l : List α} {tr : pSpec.Transcript ⟨i, by omega⟩}
     {r : List α} (h : D.run i hi l = some (tr, r)) (l' : List α) :
     D.run i hi (l ++ l') = some (tr, r ++ l') := by
-  induction i generalizing r with
-  | zero =>
-    obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj h)
-    rfl
-  | succ i ih =>
-    obtain ⟨⟨t, s⟩, hp, ⟨x, s'⟩, hq, he⟩ := by
-      simpa only [run, Option.bind_eq_some_iff, Option.map_eq_some_iff] using h
-    obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-    simp only [run, ih (hi := by omega) hp, Option.bind_some, (D.slot _ _).read_append hq,
-      Option.map_some]
+  obtain ⟨c, rfl, hc⟩ := D.run_eq_some_iff.mp h
+  exact D.run_eq_some_iff.mpr ⟨c, List.append_assoc c r l', hc⟩
+
+/-- Readings appended to the input of a run and left after it may be taken away. -/
+theorem run_of_run_append {i : ℕ} {hi : i ≤ n} {l l' : List α}
+    {tr : pSpec.Transcript ⟨i, by omega⟩} {r : List α}
+    (h : D.run i hi (l ++ l') = some (tr, r ++ l')) : D.run i hi l = some (tr, r) := by
+  obtain ⟨c, hc, hr⟩ := D.run_eq_some_iff.mp h
+  refine D.run_eq_some_iff.mpr ⟨c, List.append_cancel_right (bs := l') ?_, hr⟩
+  rw [hc, List.append_assoc]
 
 /-- A run of `j` rounds passes through the run of `i ≤ j` rounds, with the transcript's first `i`
 rounds. -/
@@ -234,14 +295,23 @@ theorem run_take {j : ℕ} {hj : j ≤ n} {l : List α} {tr : pSpec.Transcript �
       exact (Transcript.concat_castSucc (m := ⟨j, hj⟩) x t
         (Fin.castLE (show i ≤ j by omega) a)).symm
 
-private theorem prefixUpTo_eq_some_iff {l : List α} {k : ℕ} {hk : k ≤ n} {i : Fin (n + 1)}
+private theorem scan_fst (l : List α) (i : ℕ) (hi : i ≤ n) : (D.scan l i hi).1 = D.run i hi l := by
+  induction i with
+  | zero => rfl
+  | succ i ih =>
+    show ((D.scan l i (by omega)).1.bind _) = _
+    rw [ih (by omega)]
+    rfl
+
+private theorem scan_snd_eq_some_iff {l : List α} {k : ℕ} {hk : k ≤ n} {i : Fin (n + 1)}
     {tr : pSpec.Transcript i} :
-    D.prefixUpTo l k hk = some ⟨i, tr⟩ ↔
+    (D.scan l k hk).2 = some ⟨i, tr⟩ ↔
       i.val ≤ k ∧ D.decodeAt i l = some tr ∧
         ∀ j : Fin (n + 1), i < j → j.val ≤ k → D.decodeAt j l = none := by
   induction k with
   | zero =>
-    simp only [prefixUpTo, Option.map_eq_some_iff, Sigma.mk.inj_iff]
+    show (D.decodeAt ⟨0, Nat.zero_lt_succ n⟩ l).map _ = _ ↔ _
+    simp only [Option.map_eq_some_iff, Sigma.mk.inj_iff]
     constructor
     · rintro ⟨t, ht, rfl, he⟩
       obtain rfl := eq_of_heq he
@@ -250,7 +320,10 @@ private theorem prefixUpTo_eq_some_iff {l : List α} {k : ℕ} {hk : k ≤ n} {i
       obtain rfl : i = ⟨0, Nat.zero_lt_succ n⟩ := Fin.ext (Nat.le_zero.mp hi0)
       exact ⟨tr, ht, rfl, HEq.rfl⟩
   | succ k ih =>
-    simp only [prefixUpTo, Option.or_eq_some_iff, Option.map_eq_some_iff, Sigma.mk.inj_iff,
+    show ((whole ((D.scan l k (by omega)).1.bind _)).map _).or _ = _ ↔ _
+    rw [scan_fst]
+    change ((D.decodeAt ⟨k + 1, Nat.lt_succ_of_le hk⟩ l).map _).or _ = _ ↔ _
+    simp only [Option.or_eq_some_iff, Option.map_eq_some_iff, Sigma.mk.inj_iff,
       Option.map_eq_none_iff, ih]
     constructor
     · rintro (⟨t, ht, rfl, he⟩ | ⟨hn, hik, ht, hlater⟩)
@@ -268,13 +341,40 @@ private theorem prefixUpTo_eq_some_iff {l : List α} {k : ℕ} {hk : k ≤ n} {i
       · exact Or.inr ⟨hlater _ (Fin.lt_def.mpr (show i.val < k + 1 by omega)) le_rfl, by omega,
           ht, fun j hj hjk ↦ hlater j hj (by omega)⟩
 
-/-- `decodePrefix l` is the longest prefix that reads exactly `l`. -/
+private theorem scan_snd_eq_none_iff {l : List α} {k : ℕ} {hk : k ≤ n} :
+    (D.scan l k hk).2 = none ↔ ∀ i : Fin (n + 1), i.val ≤ k → D.decodeAt i l = none := by
+  induction k with
+  | zero =>
+    show (D.decodeAt ⟨0, Nat.zero_lt_succ n⟩ l).map _ = none ↔ _
+    rw [Option.map_eq_none_iff]
+    exact ⟨fun h i hi ↦ (Fin.ext (Nat.le_zero.mp hi) : i = ⟨0, _⟩) ▸ h, fun h ↦ h _ le_rfl⟩
+  | succ k ih =>
+    show ((whole ((D.scan l k (by omega)).1.bind _)).map _).or _ = none ↔ _
+    rw [scan_fst]
+    change ((D.decodeAt ⟨k + 1, Nat.lt_succ_of_le hk⟩ l).map _).or _ = none ↔ _
+    rw [Option.or_eq_none_iff, Option.map_eq_none_iff, ih]
+    constructor
+    · rintro ⟨hn, hlater⟩ i hi
+      by_cases hik : i.val ≤ k
+      · exact hlater i hik
+      · obtain rfl : i = ⟨k + 1, Nat.lt_succ_of_le hk⟩ := Fin.ext (show i.val = k + 1 by omega)
+        exact hn
+    · exact fun h ↦ ⟨h _ le_rfl, fun i hi ↦ h i (by omega)⟩
+
+/-- `decodePrefix l` is the longest prefix that reads exactly `l`: it includes every round after
+the input runs out whose slot reads nothing. -/
 theorem decodePrefix_eq_some_iff {l : List α} {i : Fin (n + 1)} {tr : pSpec.Transcript i} :
     D.decodePrefix l = some ⟨i, tr⟩ ↔
       D.decodeAt i l = some tr ∧ ∀ j : Fin (n + 1), i < j → D.decodeAt j l = none := by
-  rw [decodePrefix, prefixUpTo_eq_some_iff]
+  rw [decodePrefix, scan_snd_eq_some_iff]
   exact ⟨fun ⟨_, ht, hj⟩ ↦ ⟨ht, fun j h ↦ hj j h (by omega)⟩,
     fun ⟨ht, hj⟩ ↦ ⟨by omega, ht, fun j h _ ↦ hj j h⟩⟩
+
+/-- `decodePrefix l` is `none` exactly when no prefix reads exactly `l`. -/
+theorem decodePrefix_eq_none_iff {l : List α} :
+    D.decodePrefix l = none ↔ ∀ i : Fin (n + 1), D.decodeAt i l = none := by
+  rw [decodePrefix, scan_snd_eq_none_iff]
+  exact ⟨fun h i ↦ h i (by omega), fun h i _ ↦ h i⟩
 
 /-- Readings the full transcript reads exactly have it as their longest prefix. -/
 theorem decodePrefix_of_decode {l : List α} {t : pSpec.FullTranscript} (h : D.decode l = some t) :
@@ -296,7 +396,8 @@ theorem decodePrefix_mono {l l' : List α} {i j : Fin (n + 1)} {tr : pSpec.Trans
   · obtain ⟨s, hs⟩ := D.run_take hr j.val (by omega)
     have hs' := D.run_append hs l'
     rw [hr'] at hs'
-    obtain rfl : l' = [] := (List.append_eq_nil_iff.mp (Prod.mk.inj (Option.some.inj hs')).2.symm).2
+    obtain rfl : l' = [] :=
+      (List.append_eq_nil_iff.mp (Prod.mk.inj (Option.some.inj hs')).2.symm).2
     rw [List.append_nil, h] at h'
     exact absurd (congrArg Fin.val (Sigma.mk.inj_iff.mp (Option.some.inj h')).1) (by omega)
 
@@ -308,6 +409,25 @@ theorem decode_eq_of_decodePrefix {l l' : List α} {t : pSpec.FullTranscript} {i
   obtain ⟨r', hr'⟩ := D.run_take (D.decode_eq_some.mp ht) i.val i.is_le
   rw [ha] at hr'
   exact (Prod.mk.inj (Option.some.inj hr')).1.symm
+
+/-- **A cut where a round begins**: if `l ++ l'` decodes to `t` and its first `i` rounds read
+exactly `l`, then `l` decodes to the prefix of `t` of some `j ≥ i` rounds. -/
+theorem decodePrefix_of_run_append {l l' : List α} {t : pSpec.FullTranscript} {i : ℕ}
+    {hi : i ≤ n} {tr : pSpec.Transcript ⟨i, by omega⟩} (ht : D.decode (l ++ l') = some t)
+    (hr : D.run i hi (l ++ l') = some (tr, l')) :
+    ∃ j : Fin (n + 1), i ≤ j.val ∧
+      D.decodePrefix l = some ⟨j, FullTranscript.take j.val j.is_le t⟩ := by
+  have hl : D.decodeAt ⟨i, by omega⟩ l = some tr :=
+    D.decodeAt_eq_some.mpr (D.run_of_run_append (r := []) (by simpa using hr))
+  cases hp : D.decodePrefix l with
+  | none => exact absurd ((D.decodePrefix_eq_none_iff.mp hp) ⟨i, by omega⟩) (by rw [hl]; simp)
+  | some p =>
+    obtain ⟨j, tr'⟩ := p
+    have hj := (D.decodePrefix_eq_some_iff.mp hp).2
+    refine ⟨j, not_lt.mp fun hji ↦ ?_, ?_⟩
+    · have := hj ⟨i, by omega⟩ (Fin.lt_def.mpr hji)
+      simp [hl] at this
+    · rw [D.decode_eq_of_decodePrefix ht hp]
 
 end Run
 
@@ -332,19 +452,23 @@ theorem runFull_single {pSpec : ProtocolSpec 1} (s : Slot α (pSpec.«Type» 0))
   change Option.map _ (Option.map _ (s.read l)) = s.read l
   cases s.read l <;> rfl
 
+end SlotDecoder
+
 /-! ## Appended schedules -/
 
 section Append
 
-open Verifier.KnowledgeAppend
-
-variable {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
+variable {α : Type} {m n : ℕ} {pSpec₁ : ProtocolSpec m} {pSpec₂ : ProtocolSpec n}
 
 /-- The rounds of `pSpec₁` in a transcript of `pSpec₁ ++ₚ pSpec₂` that has passed them, as a full
-transcript of `pSpec₁`. -/
-def firstOf {k : Fin (m + n + 1)} (tr : (pSpec₁ ++ₚ pSpec₂).Transcript k) (h : m ≤ k.val) :
-    pSpec₁.FullTranscript :=
+transcript of `pSpec₁`: `left` at the seam, typed as a full transcript. -/
+def Verifier.KnowledgeAppend.leftFull {k : Fin (m + n + 1)}
+    (tr : (pSpec₁ ++ₚ pSpec₂).Transcript k) (h : m ≤ k.val) : pSpec₁.FullTranscript :=
   left tr (Fin.last m) h
+
+namespace SlotDecoder
+
+open Verifier.KnowledgeAppend
 
 /-- The decoder of `pSpec₁ ++ₚ pSpec₂`: the rounds of `pSpec₁` by `D₁`, then those of `pSpec₂` by
 `D₂ t₁`, where `t₁` is the transcript of `pSpec₁` read first. -/
@@ -354,7 +478,7 @@ def append (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → 
       (pSpec₁ ++ₚ pSpec₂).Transcript k.castSucc → Slot α ((pSpec₁ ++ₚ pSpec₂).«Type» k))
     (fun i tr ↦ (D₁.slot i (left tr i.castSucc (by simp))).map
       (cast (append_Type_castAdd (pSpec₂ := pSpec₂) i).symm))
-    (fun j tr ↦ ((D₂ (firstOf tr (by simp))).slot j (right tr j.castSucc (by simp))).map
+    (fun j tr ↦ ((D₂ (leftFull tr (by simp))).slot j (right tr j.castSucc (by simp))).map
       (cast (append_Type_natAdd (pSpec₁ := pSpec₁) j).symm))
 
 variable (D₁ : SlotDecoder α pSpec₁) (D₂ : pSpec₁.FullTranscript → SlotDecoder α pSpec₂)
@@ -370,7 +494,7 @@ private theorem append_slot_left (i : ℕ) (hi : i < m) (h : i < m + n)
 private theorem append_slot_right (j : ℕ) (hj : j < n) (h : m + j < m + n)
     (tr : (pSpec₁ ++ₚ pSpec₂).Transcript ⟨m + j, by omega⟩) :
     (D₁.append D₂).slot ⟨m + j, h⟩ tr =
-      ((D₂ (firstOf tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (right tr ⟨j, by omega⟩ le_rfl)).map
+      ((D₂ (leftFull tr (Nat.le_add_right m j))).slot ⟨j, hj⟩ (right tr ⟨j, by omega⟩ le_rfl)).map
         (cast (append_Type_natAdd (pSpec₁ := pSpec₁) ⟨j, hj⟩).symm) := by
   dsimp only [append]
   exact congrFun (Fin.addCases_right (motive := fun k ↦
@@ -409,13 +533,14 @@ theorem run_append_left (i : ℕ) (hi : i ≤ m) (l : List α) :
         rfl
 
 private theorem runFull_append_first (l : List α) :
-    ((D₁.append D₂).run m (by omega) l).map (fun p ↦ (firstOf p.1 le_rfl, p.2)) = D₁.runFull l :=
+    ((D₁.append D₂).run m (by omega) l).map (fun p ↦ (leftFull p.1 le_rfl, p.2)) =
+      D₁.runFull l :=
   run_append_left D₁ D₂ m le_rfl l
 
 private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i : ℕ) (hi : i ≤ m + n)
     (hij : i = m + j) :
     ((D₁.append D₂).run i hi l).map
-        (fun p ↦ (firstOf p.1 (by simp only; omega), right p.1 ⟨j, by omega⟩ (by simp only; omega),
+        (fun p ↦ (leftFull p.1 (by simp only; omega), right p.1 ⟨j, by omega⟩ (by simp only; omega),
           p.2)) =
       (D₁.runFull l).bind fun p ↦ ((D₂ p.1).run j hj p.2).map fun q ↦ (p.1, q.1, q.2) := by
   induction j generalizing i with
@@ -457,7 +582,7 @@ private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i :
       rw [hf, Option.bind_some, Option.bind_some, hr, Option.bind_some,
         append_slot_right D₁ D₂ j (by omega)]
       simp only [Slot.map, Option.map_map]
-      cases hq : ((D₂ (firstOf p.1 (Nat.le_add_right m j))).slot ⟨j, by omega⟩
+      cases hq : ((D₂ (leftFull p.1 (Nat.le_add_right m j))).slot ⟨j, by omega⟩
           (right p.1 ⟨j, by omega⟩ le_rfl)).read p.2 with
       | none => rfl
       | some q =>
@@ -470,10 +595,10 @@ private theorem run_append_right_aux (j : ℕ) (hj : j ≤ n) (l : List α) (i :
         rfl
 
 /-- A run past the first schedule is the first decoder's full run, then the second decoder's run
-on what it left, read through `firstOf` and `right`. -/
+on what it left, read through `leftFull` and `right`. -/
 theorem run_append_right (j : ℕ) (hj : j ≤ n) (l : List α) :
     ((D₁.append D₂).run (m + j) (by omega) l).map
-        (fun p ↦ (firstOf p.1 (Nat.le_add_right m j), right p.1 ⟨j, by omega⟩ le_rfl, p.2)) =
+        (fun p ↦ (leftFull p.1 (Nat.le_add_right m j), right p.1 ⟨j, by omega⟩ le_rfl, p.2)) =
       (D₁.runFull l).bind fun p ↦ ((D₂ p.1).run j hj p.2).map fun q ↦ (p.1, q.1, q.2) :=
   run_append_right_aux D₁ D₂ j hj l (m + j) (by omega) rfl
 
@@ -513,60 +638,9 @@ theorem decode_append (l : List α) :
     | none => rfl
     | some q => rcases q with ⟨t, _ | ⟨a, r⟩⟩ <;> rfl
 
-end Append
-
-/-! ## Runs of challenges and of sumcheck rounds -/
-
-/-- `k` challenges in `C`, each read by the slot `s`. -/
-def draws {C : Type} (s : Slot α C) : (k : ℕ) → SlotDecoder α (Protocol.draws C k)
-  | 0 => empty
-  | k + 1 => append (pSpec₁ := Protocol.draws C k) (pSpec₂ := draw C) (draws s k)
-      fun _ ↦ single s
-
-/-- `m` sumcheck rounds of degree `d` over `C`: the polynomial of each round by `poly σ` and its
-challenge by `chal σ`, where the state `σ` (the running claim, say) is carried from each round to
-the next by `next`. -/
-def rounds {C σ : Type} {d : ℕ} (poly : σ → Slot α (Vector C (d + 1))) (chal : σ → Slot α C)
-    (next : σ → (roundSpec C d).FullTranscript → σ) : σ → (m : ℕ) → SlotDecoder α (roundsSpec C d m)
-  | _, 0 => empty
-  | s, m + 1 => append (pSpec₁ := roundSpec C d) (pSpec₂ := roundsSpec C d m)
-      (append (pSpec₁ := say (Vector C (d + 1))) (pSpec₂ := draw C) (single (poly s))
-        fun _ ↦ single (chal s))
-      fun t ↦ rounds poly chal next (next s t) m
-
 end SlotDecoder
 
-/-! ## Lists of steps -/
-
-/-- Decoders of the steps of a list, each given the transcripts of the steps before it. -/
-def SeqDecoder (α : Type) : List Step → Type
-  | [] => PUnit
-  | a :: l => SlotDecoder α a.spec × (a.spec.FullTranscript → SeqDecoder α l)
-
-namespace SeqDecoder
-
-variable {α : Type}
-
-/-- The decoder of `seqSpec l`: the steps' decoders in sequence. -/
-def toDecoder : {l : List Step} → SeqDecoder α l → SlotDecoder α (seqSpec l)
-  | [], _ => SlotDecoder.empty
-  | a :: l, D => SlotDecoder.append (pSpec₁ := a.spec) (pSpec₂ := seqSpec l) D.1
-      fun t ↦ (D.2 t).toDecoder
-
-/-- The full run of a list of steps is the full run of its first step, then that of the rest. -/
-theorem runFull_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r : List α) :
-    D.toDecoder.runFull r = (D.1.runFull r).bind fun p ↦
-      ((D.2 p.1).toDecoder.runFull p.2).map fun q ↦ (p.1 ++ₜ q.1, q.2) :=
-  SlotDecoder.runFull_append _ _ r
-
-/-- Exact decoding of a list of steps is the full run of its first step, then exact decoding of
-the rest. -/
-theorem decode_cons {a : Step} {l : List Step} (D : SeqDecoder α (a :: l)) (r : List α) :
-    D.toDecoder.decode r =
-      (D.1.runFull r).bind fun p ↦ ((D.2 p.1).toDecoder.decode p.2).map (p.1 ++ₜ ·) :=
-  SlotDecoder.decode_append _ _ r
-
-end SeqDecoder
+end Append
 
 end
 

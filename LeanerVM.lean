@@ -71,6 +71,7 @@ import LeanerVM.Protocol.ToArkLib.CachedProver
 import LeanerVM.Protocol.ToArkLib.CachedRounds
 import LeanerVM.Protocol.ToArkLib.CachedSteps
 import LeanerVM.Protocol.ToArkLib.Component
+import LeanerVM.Protocol.ToArkLib.DecodeSteps
 import LeanerVM.Protocol.ToArkLib.DecodeTranscript
 import LeanerVM.Protocol.ToArkLib.ExtractIn
 import LeanerVM.Protocol.ToArkLib.FirstRound

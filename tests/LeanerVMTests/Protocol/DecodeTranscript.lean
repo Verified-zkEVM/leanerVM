@@ -1,4 +1,4 @@
-import LeanerVM.Protocol.ToArkLib.DecodeTranscript
+import LeanerVM.Protocol.ToArkLib.DecodeSteps
 
 /-!
 # Transcript decoding tests
@@ -6,12 +6,14 @@ import LeanerVM.Protocol.ToArkLib.DecodeTranscript
 A toy two-phase schedule decoded from a list of natural numbers: the first phase is a message read
 off one reading and a challenge read as the sum of the next two, the second a message read as its
 reading less the first message, rejected below it. Every prefix of an input decodes to a prefix of
-what the input decodes to (`decodePrefix_mono`), and the full decoding is the first phase's run
+what the input decodes to (`decodePrefix_mono`), every cut where a round begins decodes to at
+least that round (`decodePrefix_of_run_append`), and the full decoding is the first phase's run
 followed by the second phase's decoding (`decode_append`). Readings left over, a slot cut short and
 a reading the second phase rejects decode to nothing. A schedule ending in a message of no reading
 decodes to its longest prefix. Sumcheck rounds rebuild the dropped coefficient from the claim they
-carry (`rounds`), and a list of steps decodes through `SeqDecoder`. A reader of the last reading,
-which looks past what it consumes, breaks the law every slot satisfies (`Slot.read_append`).
+carry (`rounds`), and a list of steps decodes through `SeqDecoder`. Three reading functions break
+the law every slot satisfies (`Slot.read_iff`): one that needs readings it does not consume, one
+that leaves more readings than it was given, and one that reads the last reading.
 -/
 
 namespace LeanerVMTests.Protocol.DecodeTranscript
@@ -77,6 +79,18 @@ def prefixesExtend (l : List ℕ) : Bool :=
 #guard prefixesExtend input
 #guard prefixesExtend [0, 0, 0, 0]
 
+/-- Whether every cut of `l` where a round begins decodes to at least that round. -/
+def cutsDecode (l : List ℕ) : Bool :=
+  (List.range (l.length + 1)).all fun m ↦ (List.finRange 4).all fun i ↦
+    match toy.run i.val (Nat.le_of_lt_succ i.isLt) l with
+    | some (_, r) => r != l.drop m ||
+        match toy.decodePrefix (l.take m) with
+        | some p => i.val ≤ p.1.val
+        | none => false
+    | none => true
+
+#guard cutsDecode input
+
 -- The append law, on the input and on inputs the second phase rejects or that leave readings over.
 #guard [input, [3, 4, 5, 1], [3, 4, 5, 10, 0], [3, 4]].all fun l ↦
   (toy.decode l).map vals = (phaseDecoder.runFull l).bind fun p ↦
@@ -89,6 +103,7 @@ example : toy.decode (input ++ [0]) = none := by decide
 example : toy.decodePrefix (input ++ [0]) = none := by decide
 -- The challenge's slot cut short.
 example : toy.decodePrefix [3, 4] = none := by decide
+example : ∀ i, toy.decodeAt i [3, 4] = none := by decide
 -- A reading below the first message, which the second phase rejects.
 example : toy.decode [3, 4, 5, 1] = none := by decide
 example : (toy.decodePrefix [3, 4, 5, 1]).map prefixVals = none := by decide
@@ -159,14 +174,40 @@ def stepVals (t : (seqSpec steps).FullTranscript) : ℕ × ℕ × ℕ :=
 
 example : (stepsDecoder.toDecoder.decode [3, 20, 4]).map stepVals = some (3, 4, 7) := by decide
 
-/-! ## A reader that looks past what it consumes -/
+/-! ## Reading functions that are not slots -/
+
+/-- The law of slots, for a bare reading function: it consumes a prefix, which read alone gives the
+same value. -/
+def ReadsPrefix (f : List ℕ → Option (ℕ × List ℕ)) : Prop :=
+  ∀ l x r, f l = some (x, r) ↔ ∃ c, l = c ++ r ∧ f c = some (x, [])
+
+/-- The first reading, when there are at least three. -/
+def lookahead (l : List ℕ) : Option (ℕ × List ℕ) :=
+  if 3 ≤ l.length then some (l.headD 0, l.tail) else none
+
+-- It reads `1` off `[1, 2, 3]` consuming `[1]`, but not off `[1]` alone. A decoder through it
+-- would decode `[1, 2, 3]` while its first round's reading `[1]` decodes to nothing.
+example : ¬ ReadsPrefix lookahead := fun h ↦ by
+  obtain ⟨c, hc, hr⟩ := (h [1, 2, 3] 1 [2, 3]).mp rfl
+  obtain rfl : c = [1] := List.append_cancel_right (hc.symm.trans (rfl : [1, 2, 3] = [1] ++ [2, 3]))
+  exact absurd hr (by decide)
+
+/-- One reading, put back twice. -/
+def duplicating : List ℕ → Option (ℕ × List ℕ)
+  | [] => none
+  | a :: l => some (a, a :: a :: l)
+
+-- It leaves more readings than it was given: what is left is not a suffix of the input.
+example : ¬ ReadsPrefix duplicating := fun h ↦ by
+  obtain ⟨c, hc, -⟩ := (h [1] 1 [1, 1]).mp rfl
+  have := congrArg List.length hc
+  simp at this
 
 /-- The last reading, consuming all of them. -/
 def lastReading (l : List ℕ) : Option (ℕ × List ℕ) := l.getLast?.map (·, [])
 
--- It reads `3` off `[3]`, but readings appended after change the value: no slot reads this way.
-example : ¬ ∀ (l : List ℕ) (x : ℕ) (r : List ℕ), lastReading l = some (x, r) →
-    ∀ l', lastReading (l ++ l') = some (x, r ++ l') :=
-  fun h ↦ absurd (h [3] 3 [] rfl [4]) (by decide)
+-- It reads `3` off `[3]`, but a reading appended after changes the value.
+example : ¬ ReadsPrefix lastReading :=
+  fun h ↦ absurd ((h [3, 4] 3 [4]).mpr ⟨[3], rfl, rfl⟩) (by decide)
 
 end LeanerVMTests.Protocol.DecodeTranscript
