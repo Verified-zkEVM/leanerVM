@@ -55,33 +55,33 @@ theorem take_map_lengths {β : Type} (L : List Child) (f : Child → List β) (c
 
 variable {s : NodeStatement} {w : NodeWitness}
 
-theorem hMarkX_child {c j : ℕ} (hc : c < w.children.length)
+theorem kid_hMarkX_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.xmss.length) :
     hMarkX s w (base ((direct s.claims.xmss w.xmss).map (·.1))
       (w.children.map (·.statement.claims.xmss)) c + j) = hW s w c + j := by
-  have e := segOf_sum (w.children.map (·.statement.claims.xmss.length)) c j (by simpa using hc)
+  have e := kid_segOf_sum (w.children.map (·.statement.claims.xmss.length)) c j (by simpa using hc)
     (by simpa using hj)
   unfold hMarkX base
   rw [List.length_map, take_map_lengths]
   rw [ite_neg' (by unfold hRawX; omega)]
   simp only [hRawX, Nat.add_assoc, Nat.add_sub_cancel_left, e]
 
-theorem hMarkS_child {c j : ℕ} (hc : c < w.children.length)
+theorem kid_hMarkS_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.sphincs.length) :
     hMarkS s w (base ((direct s.claims.sphincs w.sphincs).map (·.1))
       (w.children.map (·.statement.claims.sphincs)) c + j) = hW s w c + hEx w c + j := by
-  have e := segOf_sum (w.children.map (·.statement.claims.sphincs.length)) c j (by simpa using hc)
+  have e := kid_segOf_sum (w.children.map (·.statement.claims.sphincs.length)) c j (by simpa using hc)
     (by simpa using hj)
   unfold hMarkS base
   rw [List.length_map, take_map_lengths]
   rw [ite_neg' (by unfold hRawS; omega)]
   simp only [hRawS, Nat.add_assoc, Nat.add_sub_cancel_left, e]
 
-theorem hMarkD_child {c j : ℕ} (hc : c < w.children.length)
+theorem kid_hMarkD_child {c j : ℕ} (hc : c < w.children.length)
     (hj : j < w.children[c].statement.claims.da.length) :
     hMarkD s w (base ((direct s.claims.da w.da).map (·.1))
       (w.children.map (·.statement.claims.da)) c + j) = hW s w c + hEx w c + hEs w c + j := by
-  have e := segOf_sum (w.children.map (·.statement.claims.da.length)) c j (by simpa using hc)
+  have e := kid_segOf_sum (w.children.map (·.statement.claims.da.length)) c j (by simpa using hc)
     (by simpa using hj)
   unfold hMarkD base
   rw [List.length_map, take_map_lengths]
@@ -90,19 +90,19 @@ theorem hMarkD_child {c j : ℕ} (hc : c < w.children.length)
 
 /-! ## The coverage table -/
 
-theorem length_hCover : (hCover s w).length = s.claims.xmss.length + (xPlan s w).dups.length +
+theorem kid_length_hCover : (hCover s w).length = s.claims.xmss.length + (xPlan s w).dups.length +
     (s.claims.sphincs.length + (sPlan s w).dups.length) +
     (s.claims.da.length + (dPlan s w).dups.length) := by
   simp only [hCover, List.length_append, List.length_map, List.length_range]
 
-theorem hCover_x {t : ℕ} (ht : t < s.claims.xmss.length + (xPlan s w).dups.length) :
+theorem kid_hCover_x {t : ℕ} (ht : t < s.claims.xmss.length + (xPlan s w).dups.length) :
     (hCover s w).getD t 0 = gen ^ hMarkX s w ((slotsOf (xPlan s w)).idxOf t) := by
   unfold hCover
   rw [List.getD_eq_getElem?_getD, List.append_assoc, List.getElem?_append_left (by simpa using ht),
     List.getElem?_map, List.getElem?_range (by simpa using ht)]
   rfl
 
-theorem hCover_s {t : ℕ} (ht : t < s.claims.sphincs.length + (sPlan s w).dups.length) :
+theorem kid_hCover_s {t : ℕ} (ht : t < s.claims.sphincs.length + (sPlan s w).dups.length) :
     (hCover s w).getD (s.claims.xmss.length + (xPlan s w).dups.length + t) 0 =
       gen ^ hMarkS s w ((slotsOf (sPlan s w)).idxOf t) := by
   unfold hCover
@@ -114,7 +114,7 @@ theorem hCover_s {t : ℕ} (ht : t < s.claims.sphincs.length + (sPlan s w).dups.
   rw [List.getElem?_range (by simpa using ht)]
   rfl
 
-theorem hCover_d {t : ℕ} (ht : t < s.claims.da.length + (dPlan s w).dups.length) :
+theorem kid_hCover_d {t : ℕ} (ht : t < s.claims.da.length + (dPlan s w).dups.length) :
     (hCover s w).getD (s.claims.xmss.length + (xPlan s w).dups.length +
       (s.claims.sphincs.length + (sPlan s w).dups.length) + t) 0 =
       gen ^ hMarkD s w ((slotsOf (dPlan s w)).idxOf t) := by
@@ -130,12 +130,12 @@ theorem loadHolds_getD {rd : Reader} {p : E} {xs : List E} (h : ReadsAt rd p xs)
     (hk : k < xs.length) : LoadHolds rd p k (xs.getD k 0) := by
   rw [List.getD_eq_getElem _ _ hk]; exact h k hk
 
-theorem length_flatMap_const {α : Type} {f : α → List E} {k : ℕ} :
+theorem kid_length_flatMap_const {α : Type} {f : α → List E} {k : ℕ} :
     ∀ (l : List α), (∀ a ∈ l, (f a).length = k) → (l.flatMap f).length = k * l.length
   | [], _ => by simp
   | a :: l, h => by
     rw [List.flatMap_cons, List.length_append, h a List.mem_cons_self,
-      length_flatMap_const l fun b hb => h b (List.mem_cons_of_mem _ hb), List.length_cons]
+      kid_length_flatMap_const l fun b hb => h b (List.mem_cons_of_mem _ hb), List.length_cons]
     ring
 
 theorem getD_range_map (f : ℕ → E) {n c : ℕ} (hc : c < n) : ((List.range n).map f).getD c 0 = f c := by
@@ -202,8 +202,8 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
       (Returns [(hKid s w c).cx.1, (hKid s w c).cx.2]) := by
   have hcov := cover_bound hl
   have hlen := (hl.lists _ (List.getElem_mem hc)).1
-  have hT := length_flatMap_const (f := fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
-    (s.claims.xmss ++ (xPlan s w).dups) fun a _ => length_claimCells _ _ _
+  have hT := kid_length_flatMap_const (f := fun c : XmssClaim => claimCells c.1.root c.1.parameter c.2)
+    (s.claims.xmss ++ (xPlan s w).dups) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.xmss.length) =>
     plan_slot s.claims.xmss ((direct s.claims.xmss w.xmss).map (·.1))
@@ -215,7 +215,7 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
     (base := (hKid s w c).base) (o := fun j => ((xPlan s w).children.getD c []).getD j 0)
     (cells := w.children[c].statement.claims.xmss.flatMap fun c => claimCells c.1.root c.1.parameter c.2)
     (by rw [hKid_ex hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
-    (by rw [hKid_ex hc]; exact length_flatMap_const _ fun a _ => length_claimCells _ _ _)
+    (by rw [hKid_ex hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
       exact claimCells_canonical _ _ _ x hx)
@@ -231,16 +231,16 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
       · rw [pow_zero, one_mul, loadHolds_mul_gen_pow, Nat.add_zero,
           show (hKid s w c).base * gen ^ j = gen ^ (hW s w c + j) from (pow_add _ _ _).symm]
         have := loadHolds_getD r4 (k := ((xPlan s w).children.getD c []).getD j 0)
-          (by rw [length_hCover]; omega)
-        rw [hCover_x hlt', show (slotsOf (xPlan s w)).idxOf (((xPlan s w).children.getD c []).getD j 0) =
-          _ from hidx, hMarkX_child hc hj] at this
+          (by rw [kid_length_hCover]; omega)
+        rw [kid_hCover_x hlt', show (slotsOf (xPlan s w)).idxOf (((xPlan s w).children.getD c []).getD j 0) =
+          _ from hidx, kid_hMarkX_child hc hj] at this
         exact this
       · have hlt2 : ((xPlan s w).children.getD c []).getD j 0 <
             (s.claims.xmss ++ (xPlan s w).dups).length := hlt
         have := loadHolds_getD r1 (k := 4 * ((xPlan s w).children.getD c []).getD j 0 + i)
           (by rw [hT]; omega)
         rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
-          (fun a _ => length_claimCells _ _ _) _ hlt2 i hi] at this
+          (fun a _ => kid_length_claimCells _ _ _) _ hlt2 i hi] at this
         have eT : (s.claims.xmss ++ (xPlan s w).dups)[((xPlan s w).children.getD c []).getD j 0]'hlt2 =
             w.children[c].statement.claims.xmss[j] := by
           have h := hget
@@ -249,7 +249,7 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
           simpa using h
         rw [eT] at this
         rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
-          (fun a _ => length_claimCells _ _ _) j hj i hi]
+          (fun a _ => kid_length_claimCells _ _ _) j hj i hi]
         exact this)
     (fun j hj => by
       rw [hKid_ex hc] at hj
@@ -258,7 +258,7 @@ theorem kid_hX (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 4) (by omega)
-        (show _ < (hCover s w).length by rw [length_hCover]; omega))
+        (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_ex hc] at hj
       have hlt' : ((xPlan s w).children.getD c []).getD j 0 <
@@ -281,8 +281,8 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
       (Returns [(hKid s w c).cs.1, (hKid s w c).cs.2]) := by
   have hcov := cover_bound hl
   have hlen := (hl.lists _ (List.getElem_mem hc)).2
-  have hT := length_flatMap_const (f := fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
-    (s.claims.sphincs ++ (sPlan s w).dups) fun a _ => length_claimCells _ _ _
+  have hT := kid_length_flatMap_const (f := fun c : SphincsClaim => claimCells c.1.root c.1.parameter c.2)
+    (s.claims.sphincs ++ (sPlan s w).dups) fun a _ => kid_length_claimCells _ _ _
   rw [List.length_append] at hT
   have slot := fun j (hj : j < w.children[c].statement.claims.sphincs.length) =>
     plan_slot s.claims.sphincs ((direct s.claims.sphincs w.sphincs).map (·.1))
@@ -297,7 +297,7 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
     (cells := w.children[c].statement.claims.sphincs.flatMap
       fun c => claimCells c.1.root c.1.parameter c.2)
     (by rw [hKid_es hc]; simp only [B1.Digest.claimGroup, B1.Digest.maxKeys]; omega)
-    (by rw [hKid_es hc]; exact length_flatMap_const _ fun a _ => length_claimCells _ _ _)
+    (by rw [hKid_es hc]; exact kid_length_flatMap_const _ fun a _ => kid_length_claimCells _ _ _)
     (fun x hx => by
       obtain ⟨a, -, hx⟩ := List.mem_flatMap.mp hx
       exact claimCells_canonical _ _ _ x hx)
@@ -314,16 +314,16 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
           show (hKid s w c).base * gen ^ (hKid s w c).ex * gen ^ j = gen ^ (hW s w c + hEx w c + j) by
             rw [pow_add, pow_add]; rfl]
         have := loadHolds_getD r4 (k := s.claims.xmss.length + (xPlan s w).dups.length +
-          ((sPlan s w).children.getD c []).getD j 0) (by rw [length_hCover]; omega)
-        rw [hCover_s hlt', show (slotsOf (sPlan s w)).idxOf (((sPlan s w).children.getD c []).getD j 0) =
-          _ from hidx, hMarkS_child hc hj] at this
+          ((sPlan s w).children.getD c []).getD j 0) (by rw [kid_length_hCover]; omega)
+        rw [kid_hCover_s hlt', show (slotsOf (sPlan s w)).idxOf (((sPlan s w).children.getD c []).getD j 0) =
+          _ from hidx, kid_hMarkS_child hc hj] at this
         exact this
       · have hlt2 : ((sPlan s w).children.getD c []).getD j 0 <
             (s.claims.sphincs ++ (sPlan s w).dups).length := hlt
         have := loadHolds_getD r2 (k := 4 * ((sPlan s w).children.getD c []).getD j 0 + i)
           (by rw [hT]; omega)
         rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
-          (fun a _ => length_claimCells _ _ _) _ hlt2 i hi] at this
+          (fun a _ => kid_length_claimCells _ _ _) _ hlt2 i hi] at this
         have eT : (s.claims.sphincs ++ (sPlan s w).dups)[((sPlan s w).children.getD c []).getD j 0]'hlt2 =
             w.children[c].statement.claims.sphincs[j] := by
           have h := hget
@@ -332,7 +332,7 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
           simpa using h
         rw [eT] at this
         rw [getD_flatMap_uniform (f := fun c => claimCells c.1.root c.1.parameter c.2) _
-          (fun a _ => length_claimCells _ _ _) j hj i hi]
+          (fun a _ => kid_length_claimCells _ _ _) j hj i hi]
         exact this)
     (fun j hj => by
       rw [hKid_es hc] at hj
@@ -341,7 +341,7 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
         have := (slot j hj).1; rw [List.length_append] at this; exact this
       rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 4) (by omega)
-        (show _ < (hCover s w).length by rw [length_hCover]; omega))
+        (show _ < (hCover s w).length by rw [kid_length_hCover]; omega))
     (fun j hj i hi => by
       rw [hKid_es hc] at hj
       have hlt' : ((sPlan s w).children.getD c []).getD j 0 <
@@ -357,7 +357,7 @@ theorem kid_hS (cert : String → V → ℕ) {bytecode : List K} (hl : Limits by
 /-- The children's statement digests' cells, two a child. -/
 theorem length_piCells : (w.children.flatMap fun c =>
     B1.Digest.digestCells (statementDigest seed c.statement)).length = 2 * w.children.length :=
-  length_flatMap_const _ fun _ _ => rfl
+  kid_length_flatMap_const _ fun _ _ => rfl
 
 /-- **Child `c` is as `__loop5` needs it**, at `main`'s honest words. -/
 theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
@@ -388,8 +388,8 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
   have hpi := hKid_pi seed (s := s) hc hdl
   have hed : (hKid s w c).ed = w.children[c].statement.claims.da.length := hKid_ed hc
   have hed16 := hl.daRoots.2 _ hmem
-  have hDT := length_flatMap_const (f := daCells) (s.claims.da ++ (dPlan s w).dups)
-    fun a _ => length_daCells a
+  have hDT := kid_length_flatMap_const (f := daCells) (s.claims.da ++ (dPlan s w).dups)
+    fun a _ => kid_length_daCells a
   rw [List.length_append] at hDT
   have slot := fun d (hd : d < w.children[c].statement.claims.da.length) =>
     plan_slot s.claims.da ((direct s.claims.da w.da).map (·.1))
@@ -444,16 +444,16 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
       rw [pow_add, loadHolds_mul_gen_pow]
       have := loadHolds_getD r4 (k := s.claims.xmss.length + (xPlan s w).dups.length +
         (s.claims.sphincs.length + (sPlan s w).dups.length) + (hKid s w c).slot d)
-        (by rw [length_hCover]; omega)
-      rw [hCover_d hlt', show (slotsOf (dPlan s w)).idxOf ((hKid s w c).slot d) = _ from hidx,
-        hMarkD_child hc hd', pow_add, pow_add, pow_add] at this
+        (by rw [kid_length_hCover]; omega)
+      rw [kid_hCover_d hlt', show (slotsOf (dPlan s w)).idxOf ((hKid s w c).slot d) = _ from hidx,
+        kid_hMarkD_child hc hd', pow_add, pow_add, pow_add] at this
       rw [← mul_assoc]
       exact this
     · have hd' := hd
       rw [hed] at hd'
       obtain ⟨hlt, -, hget⟩ := slot d hd'
       have hlt2 : (hKid s w c).slot d < (s.claims.da ++ (dPlan s w).dups).length := hlt
-      have := readsAt_flatMap_of (w := 4) _ (fun a _ => length_daCells a) r0 _ hlt2
+      have := readsAt_flatMap_of (w := 4) _ (fun a _ => kid_length_daCells a) r0 _ hlt2
       have eT : (s.claims.da ++ (dPlan s w).dups)[(hKid s w c).slot d]'hlt2 =
           w.children[c].statement.claims.da[d] := by
         have h := hget
@@ -474,7 +474,7 @@ theorem kidOk (cert : String → V → ℕ) {bytecode : List K}
     · have := hslot d hd
       rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 4) (by omega)
-        (show _ < (hCover s w).length by rw [length_hCover]; omega)
+        (show _ < (hCover s w).length by rw [kid_length_hCover]; omega)
     · have := hslot d hd
       rw [Nat.add_assoc]
       exact region_buf fs fp seed s w (i := 0) (by omega)
