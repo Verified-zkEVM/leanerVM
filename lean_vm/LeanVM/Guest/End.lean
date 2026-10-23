@@ -1,22 +1,20 @@
 /-
   LeanVM.Guest.End
 
-  The guest's bytecode as the verifier reads it, and the start of a valid execution's memory: the
-  public input's cells as `main` loads them.
+  The start of a valid execution's memory: the public input's cells as `main` loads them.
 -/
 
 module
 
 public import LeanVM.Spec.Guest
-public import LeanVM.Guest.Bytecode
+public import LeanVM.Guest.Start
 public import LeanVM.Guest.Core
 public import LeanVM.Protocol.EndToEnd.Complete.Public
 
 /-!
-# The guest's bytecode and public input
+# The public input
 
-`bytecode`: the `2^23` words of the guest's `2^19` instructions (`bytecode_length`), the
-bytecode `NodeRel` and the outer verifier read. `pub_loads`: a valid execution's memory holds the
+`bytecode` and the run's start are `Start.lean`'s. `pub_loads`: a valid execution's memory holds the
 two cells of the public input's digest at `g^0`, `g^1`, as `main` loads them through the pointer
 `1` (`LoadHolds rd 1 0`, `LoadHolds rd 1 1`).
 -/
@@ -27,12 +25,6 @@ open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Node
 open LeanVM.Protocol LeanVM.Protocol.KeccakHash
 
 @[expose] public section
-
-/-- The guest's bytecode, as the verifier and `NodeRel` read it. -/
-abbrev bytecode : List K := bytecodeWords guest
-
-theorem bytecode_length : bytecode.length = 2 ^ 23 := by
-  simp [bytecode, bytecodeWords, guest_logSize]
 
 theorem one_eq_ofK : (1 : E) = ofK 1 := rfl
 

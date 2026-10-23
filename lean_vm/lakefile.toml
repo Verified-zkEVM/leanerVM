@@ -104,3 +104,10 @@ srcDir = "cli"
 name = "guest-cert"
 root = "GuestCert"
 srcDir = "cli"
+
+# The guest's mirror and honest hint generator against real aggregations (cli/GuestDiff.lean): on
+# the cases the exporter's ignored test `guest_diff` writes; not a default target.
+[[lean_exe]]
+name = "guest-diff"
+root = "GuestDiff"
+srcDir = "cli"
