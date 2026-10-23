@@ -149,5 +149,73 @@ theorem residual_prod (vals : List E) (x : E) (c inv : ℕ → E) (n : ℕ)
       residual_factor (h n (by omega)), residualProd]
     ring
 
+/-! ## The honest values -/
+
+/-- The honest value at offset `o` of `residualT`: `d_0`, `d_0 + x`, then per coordinate `t + 1`
+the constant, `chain_t + c`, `chain_{t+1}`, `d_{t+1}`, `d_{t+1} + chain_{t+1}`, the product. -/
+def residualVal (vals : List E) (x : E) (d : ℕ → E) (o : ℕ) : E :=
+  if o = 0 then d 0 else if o = 1 then d 0 + x
+  else
+    let t := (o - 2) / 6
+    [vals.getD t 0, residualChain vals x t + vals.getD t 0, residualChain vals x (t + 1), d (t + 1),
+      d (t + 1) + residualChain vals x (t + 1), residualProd vals x d (t + 2)].getD ((o - 2) % 6) 0
+
+theorem residualVal_blk (vals : List E) (x : E) (d : ℕ → E) (t j : ℕ) (hj : j < 6) :
+    residualVal vals x d (2 + 6 * t + j) =
+      [vals.getD t 0, residualChain vals x t + vals.getD t 0, residualChain vals x (t + 1), d (t + 1),
+        d (t + 1) + residualChain vals x (t + 1), residualProd vals x d (t + 2)].getD j 0 := by
+  simp only [residualVal, show ¬ 2 + 6 * t + j = 0 by omega, show ¬ 2 + 6 * t + j = 1 by omega,
+    ↓reduceIte, show (2 + 6 * t + j - 2) / 6 = t by omega, show (2 + 6 * t + j - 2) % 6 = j by omega]
+
+/-- **The honest values satisfy `residual_query`**, the row's words `d t` in memory at `r`. -/
+theorem residualT_complete {x r : V} {vals : List E} {b : ℕ} {d : ℕ → E}
+    (hd : ∀ t ≤ vals.length, LoadHolds rd (σ r) t (d t))
+    (hv : ∀ o < 2 + 6 * vals.length, σ (.n (b + o)) = residualVal vals (σ x) d o) :
+    ∀ a, Stmt.atom a ∈ residualT x r vals b → a.Holds rd σ := by
+  intro a ha
+  have v0 : σ (.n b) = d 0 := by simpa [residualVal] using hv 0 (by omega)
+  have v1 : σ (.n (b + 1)) = d 0 + σ x := by simpa [residualVal] using hv 1 (by omega)
+  simp only [residualT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatten, List.mem_map, List.mem_range] at ha
+  rcases ha with (h | h) | ⟨blk, ⟨t, ht, rfl⟩, hb⟩
+  all_goals try (obtain rfl := Stmt.atom.inj h)
+  · show LoadHolds rd (σ r) 0 (σ (.n b)); rw [v0]; exact hd 0 (by omega)
+  · show σ (.n (b + 1)) = σ (.n b) + σ x; rw [v1, v0]
+  · set B := b + 2 + 6 * t with hB
+    have w : ∀ j < 6, σ (.n (B + j)) = [vals.getD t 0, residualChain vals (σ x) t + vals.getD t 0,
+        residualChain vals (σ x) (t + 1), d (t + 1), d (t + 1) + residualChain vals (σ x) (t + 1),
+        residualProd vals (σ x) d (t + 2)].getD j 0 := fun j hj => by
+      rw [show B + j = b + (2 + 6 * t + j) by omega, hv _ (by omega), residualVal_blk _ _ _ _ _ hj]
+    have w0 : σ (.n B) = vals.getD t 0 := w 0 (by omega)
+    have w1 := w 1 (by omega); have w2 := w 2 (by omega); have w3 := w 3 (by omega)
+    have w4 := w 4 (by omega); have w5 := w 5 (by omega)
+    simp only [List.getD_cons_succ, List.getD_cons_zero] at w1 w2 w3 w4 w5
+    have hprev : σ (if t = 0 then x else .n (B - 4)) = residualChain vals (σ x) t := by
+      split
+      · rename_i h; subst h; rfl
+      · rename_i h
+        obtain ⟨u, rfl⟩ : ∃ u, t = u + 1 := ⟨t - 1, by omega⟩
+        have := hv (2 + 6 * u + 2) (by omega)
+        rw [residualVal_blk _ _ _ _ _ (by omega)] at this
+        rw [show B - 4 = b + (2 + 6 * u + 2) by omega, this]; rfl
+    have hpp : σ (if t = 0 then .n (b + 1) else .n (B - 1)) = residualProd vals (σ x) d (t + 1) := by
+      split
+      · rename_i h; subst h; rw [v1]; simp [residualProd, residualChain]
+      · rename_i h
+        obtain ⟨u, rfl⟩ : ∃ u, t = u + 1 := ⟨t - 1, by omega⟩
+        have := hv (2 + 6 * u + 5) (by omega)
+        rw [residualVal_blk _ _ _ _ _ (by omega)] at this
+        rw [show B - 1 = b + (2 + 6 * u + 5) by omega, this]; rfl
+    simp only [residualBlkT, ← hB, List.mem_cons, List.not_mem_nil, or_false] at hb
+    rcases hb with h | h | h | h | h | h <;> obtain rfl := Stmt.atom.inj h
+    · show σ (.n B) = vals.getD t 0; exact w0
+    · show σ (.n (B + 1)) = σ (if t = 0 then x else .n (B - 4)) + σ (.n B); rw [w1, hprev, w0]
+    · show σ (.n (B + 2)) = σ (if t = 0 then x else .n (B - 4)) * σ (.n (B + 1))
+      rw [w2, w1, hprev]; rfl
+    · show LoadHolds rd (σ r) (t + 1) (σ (.n (B + 3))); rw [w3]; exact hd (t + 1) ht
+    · show σ (.n (B + 4)) = σ (.n (B + 3)) + σ (.n (B + 2)); rw [w4, w3, w2]
+    · show σ (.n (B + 5)) = σ (if t = 0 then .n (b + 1) else .n (B - 1)) * σ (.n (B + 4))
+      rw [w5, w4, hpp]; rfl
+
 end
 end LeanVM.Guest.B1
