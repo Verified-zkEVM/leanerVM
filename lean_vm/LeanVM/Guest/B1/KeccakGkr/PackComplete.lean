@@ -48,7 +48,10 @@ theorem pack_stores : storesOf 5 packPre =
 the block hold. -/
 theorem packBlock_complete {rd : Reader} {x N rec pp pt : E} (hs : PackStep rd rec pp pt x) :
     ∃ σ : Val, [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] = [x, N, rec, pp, pt] ∧
-      ∀ s ∈ packPre, Stmt.Holds (coreProgram.Rel rd) rd σ s True (fun rs ↦ rs = []) := by
+      (∀ s ∈ packPre, Stmt.Holds (coreProgram.Rel rd) rd σ s True (fun rs ↦ rs = [])) ∧
+      σ (.n 5) = rec * x ∧ σ (.n 7) = pp * x ^ 2 ∧ σ (.n 8) = pt * x ^ 2 ∧
+      LoadHolds rd (rec * x) 80 (σ (.n 14)) ∧ σ (.n 130) = x * gen + N ∧
+      σ (.n 132) = x * gen := by
   obtain ⟨cap, cur, claim, scale, r0, r1, g1, g2, g1', g2', ⟨⟨hcl, hcap⟩, lcur, lcl, lsc⟩, hcan,
     lr0, lr1, hxs, lc1, lc2, ⟨⟨hcl', hcap'⟩, lcur', lcl', lsc'⟩⟩ := hs
   obtain ⟨c0, c1, c2, c3, c4, rfl⟩ := five_of_length hcl
@@ -266,7 +269,8 @@ theorem packBlock_complete {rd : Reader} {x N rec pp pt : E} (hs : PackStep rd r
     rw [hp, hd]; exact h
   have inK : ∀ {a b : V}, IsInK (σ a) → IsInK (σ b) → (Atom.assertInK a b).Holds rd σ :=
     fun ha hb ↦ ⟨ha, hb⟩
-  refine ⟨σ, by rw [p0, p1, p2, p3, p4], ?_⟩
+  refine ⟨σ, by rw [p0, p1, p2, p3, p4], ?_, v5, v7, v8, by rw [e14]; exact L80,
+    by rw [e130, e129, e128, p0, p1, word_gen], by rw [e132, e131, p0, word_gen]⟩
   simp only [packPre, packLoopT, List.dropLast_cons_cons, List.dropLast_singleton,
     List.forall_mem_cons, List.not_mem_nil, IsEmpty.forall_iff, implies_true, and_true,
     Stmt.Holds]
@@ -305,7 +309,7 @@ theorem pack_guard {name : String} {fn : Fn} (hf : coreProgram.find? name = some
     IsInK (1 + gen ^ m) ∧
       (1 + gen ^ m ≠ 0 → coreProgram.Rel rd name [1, gen ^ m, rec, pp, pt] []) :=
   Digest.guard_complete hf hok fun j hj ↦ by
-    obtain ⟨σ, hp, hb⟩ := packBlock_complete (N := gen ^ m) (hs j hj)
+    obtain ⟨σ, hp, hb, -⟩ := packBlock_complete (N := gen ^ m) (hs j hj)
     refine ⟨σ, by rw [hpar]; exact hp, ?_⟩
     rw [hpre]; exact hb
 
