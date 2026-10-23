@@ -22,7 +22,7 @@ proved there, and its deployed algorithms (`LeanDa.commitCodewords`, `LeanDa.mem
 of the challenges' duplex sponge. Here the hash is this project's Keccak-256 (`keccak`, from
 `keccak256`), its digest read as LeanDA's 32 bytes (`toBytes`), and the permutation is this
 project's Keccak-f[1600] on LeanDA's lanes (`keccakLanes`, from `keccakF`): the crate's, at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a` (`crates/lean_da`, `crates/verifier/src/da.rs`).
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`crates/lean_da`, `crates/verifier/src/da.rs`).
 `Fast.Da` compiles the membership vector with this project's field arithmetic, and `Fast.Keccak`
 Keccak-f[1600] and Keccak-256 with their lanes written out.
 
@@ -31,7 +31,7 @@ to the root whose rows are orthogonal to a vector of that digest (`Witness.Opens
 `da_verify`, `crates/rec_aggregation/guests/lean_ethereum.py:3920-4060`). The guest takes the
 vector digest from the statement; the outer verifier derives it from the root (`vectorDigestOf`;
 `verifier::da::list_digest`, `crates/verifier/src/da.rs:99-104`, called by
-`EthereumProof::verify`, `crates/rec_aggregation/src/aggregation.rs:695-717`). The vector digest
+`EthereumProof::verify`, `crates/rec_aggregation/src/aggregation.rs:697-719`). The vector digest
 is two-level at this pin: the hash of the `128` column digests of `256` entries each
 (`LeanDa.vectorDigest`; the guest's `da_vector_cell`, `lean_ethereum.py:4048-4060`).
 Orthogonality to the one vector the root determines makes the rows codewords except with the

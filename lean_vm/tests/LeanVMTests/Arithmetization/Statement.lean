@@ -8,12 +8,12 @@ A classic test for kernel evaluation: the fixture decides `K` and `E` arithmetic
 Keccak-f[1600] permutation, and the bus permutations in the kernel.
 
 **The fixture** is one hand-built witness of `SatisfiedBy` for the program of the execution
-tests, the executor's `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:902-917` at leanVM
-`3375f7a1`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
+tests, the executor's `mul_192bit_word` (`crates/leanvm_core/src/cpu/mod.rs:888-903` at leanVM
+`4af2cddd`, `tests/LeanVMTests/Semantics/Execution.lean`), extended with closed walks: a `JUMP` to
 the sentinel after the three instructions, and three blocks run in frames disjoint from the
 program's own, each a loop ending in a `JUMP` back to its first instruction: one `XOR`, one
 `DEREF`, one `KECCAK`. The `KECCAK` row is the first permutation of the executor test
-`keccak_permutes_in_both_layouts` (`cpu/mod.rs:855-889` at leanVM `3375f7a1`): the input cells
+`keccak_permutes_in_both_layouts` (`cpu/mod.rs:842-875` at leanVM `4af2cddd`): the input cells
 `a, b, a, b` (the two `m` pairs aliasing one another), the padding's first byte `0x01` in the
 tail's first cell, `b8 = (0x8000000000000000, 0x5555, 0)` whose high limb holds no lane in the
 even layout (the row's free limb), a zero capacity, and the thirteen output cells in the odd
@@ -76,7 +76,7 @@ def mulY : E :=
 def mulXY : E :=
   E.ofLimbs (K.ofBits 0xf4bccd9a2e8e525b) (K.ofBits 0xf85ebb9433986f2f) (K.ofBits 0x918137982bf175ac)
 
--- The executor test `keccak_permutes_in_both_layouts` at leanVM 3375f7a1, its first permutation
+-- The executor test `keccak_permutes_in_both_layouts` at leanVM 4af2cddd, its first permutation
 -- (as in `tests/LeanVMTests/Arithmetization/Tables.lean` and `Semantics/Execution.lean`): the
 -- input cells, the words `a, b` (each read twice through the aliased `m` pairs), the padding's
 -- first byte in the tail, its last bit in `b8` (whose free high limb `0x5555` holds no lane), and

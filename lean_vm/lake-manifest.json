@@ -86,7 +86,7 @@
    "scope": "",
    "name": "«lean-rpm»",
    "manifestFile": "lake-manifest.json",
-   "inherited": true,
+   "inherited": false,
    "dir": "../lean_rpm",
    "configFile": "lakefile.toml"},
   {"url": "https://github.com/leanprover/cslib",

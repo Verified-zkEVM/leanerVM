@@ -16,13 +16,13 @@ The verifier's transcript (`Spec/Verifier.lean`, `Sponge`, `duplex`, `absorb`, `
 duplex over Keccak-f[1600] in overwrite mode: up to four waiting scalars, each its three limbs
 and its tag (`pendingLanes`), overwrite the rate lanes `0..16`, zeros after them, and lanes
 `16..25` are kept (`duplexInput`). The guest (`crates/rec_aggregation/guests/lean_ethereum.py` at
-leanVM `3375f7a13`, G below) holds the sponge as the thirteen-cell output of its last permutation,
+leanVM `4af2cdddd`, G below) holds the sponge as the thirteen-cell output of its last permutation,
 of which only the five cells `8..12` (lanes `16..24`, `fs0 .. fs4`) travel; a waiting scalar `x`
 with tag `t` is two rate cells, `x + y²·c2` and `c2 + y·t` (`fs_pack`, G:551-559), canonical
 exactly when `c2` is `x`'s top limb (`fsPack_cells`); a permutation is `keccak(a, b, out,
 tail=, cap=sp)` (`fs_perm`, G:563-579), lowered as one `KECCAK` in the even layouts whose eight
 rate cells are the waiting cells (zeros past them: the zero run `keccak_pad_run() + 1`) and
-whose cells `8..12` are `sp`'s last five (`builtins.rs:31-74`).
+whose cells `8..12` are `sp`'s last five (`builtins.rs:31-63`).
 
 * `keccak_duplex`: that `KECCAK` writes the cells of `keccakF (duplexInput ⟨S, pending⟩)`;
 * `duplex_id`, `squeeze_id`, `absorb_id_lt`, `absorb_id_full`: the Spec's operations at

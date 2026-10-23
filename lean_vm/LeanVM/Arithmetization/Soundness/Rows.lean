@@ -16,7 +16,7 @@ public import LeanVM.Spec.IsaWith
 /-!
 # The rows of a satisfying witness
 
-At leanVM pin `3375f7a137c50b803f3416f6466b5d4e0719708a` and Clean pin `42fe4b26`. Specification
+At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` and Clean pin `42fe4b26`. Specification
 §7 (the six AIRs, `doc/leanvm/body/07-*`) and §6 (their bus interactions): the per-row soundness
 of the six opcode tables, from the tables of `Arithmetization.Tables` and their Clean soundness
 theorems; the bus is `Soundness.Bus`'s.

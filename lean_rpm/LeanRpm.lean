@@ -5,10 +5,13 @@ import LeanRpm.Transfer
 import LeanRpm.Transfer2
 import LeanRpm.Keccak
 import LeanRpm.Signature
+import LeanRpm.Duplex.Vec
 
 /-! The random-permutation model and the indifferentiability of the sponge (Keccak-256) from a
-random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), and the
-transfer of SUF-CMA signature games. The build
+random oracle, with one oracle (`H`) or two (`H` and direct permutation calls `F`), the
+transfer of SUF-CMA signature games, and the duplex lemma: challenges derived by a duplex over
+the random function `F` are a random oracle of the absorbed roots, up to capacity collisions
+(`LeanRpm.Duplex.duplex_le`). The build
 fails if the axiom footprint of the main theorems ever grows beyond Lean's three standard
 axioms. -/
 
@@ -80,3 +83,28 @@ axioms. -/
 [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanRpm.SufCma.rpm_bound_perm
+
+/-- info: 'LeanRpm.Duplex.duplex_le' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanRpm.Duplex.duplex_le
+
+/-- info: 'LeanRpm.Duplex.run'_romImpl_evalDistEq_vec' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanRpm.Duplex.run'_romImpl_evalDistEq_vec
+
+/-- info: 'LeanRpm.run'_romImpl_evalDistEq_eager' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanRpm.run'_romImpl_evalDistEq_eager
+
+/-- info: 'LeanRpm.run'_romImpl_evalDistEq_swap' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanRpm.run'_romImpl_evalDistEq_swap
+
+/-- info: 'LeanRpm.run_rerun' depends on axioms:
+[propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanRpm.run_rerun

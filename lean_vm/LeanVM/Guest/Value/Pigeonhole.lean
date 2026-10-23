@@ -23,12 +23,12 @@ says there are as many writers as slots, so the writers fill every slot exactly 
 `child_claims`, `child_claim_list_digest`, `child_claim_list_last`, G:3864-3918, and
 `cover_da_root`, G:4078-4084), `sort_order` in `verify_tables` (G:1960-1986) and
 `col_sort_order` in `certify_placement` (G:2995-3013) (G for
-`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `3375f7a13`).
+`crates/rec_aggregation/guests/lean_ethereum.py` at leanVM `4af2cdddd`).
 
 The corollaries: a bijection's ranks list `List.range n` up to order
 (`perm_range_of_bijective`); a list of ranks that is a permutation and adjacent-sorted by the
 guest's checks (sizes non-increasing, ties ascending) is `stackOffsets`'s `mergeSort`
-(`eq_mergeSort_of_adjacent`, `stackOffsets`, V:830-835); and a cover holds every claim,
+(`eq_mergeSort_of_adjacent`, `stackOffsets`, V:843-848); and a cover holds every claim,
 `List.Forall₂` (`forall₂_of_cover`, the holders of `NodeRel`, N:354-356).
 -/
 
@@ -123,14 +123,14 @@ theorem pairwise_of_adjacent {α : Type*} {r : α → α → Prop}
     obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hb
     exact key k hk
 
-/-- `stackOffsets`'s order (V:877-884): larger size first, ties by ascending index. -/
+/-- `stackOffsets`'s order (V:890-897): larger size first, ties by ascending index. -/
 def stackLe (size : ℕ → ℕ) (i j : ℕ) : Bool :=
   decide (size j < size i) || (decide (size i = size j) && decide (i ≤ j))
 
 /-- **The certified order is the specification's**: a permutation of `List.range n` whose
 adjacent entries the guest checks (the size does not increase, G:1977 and G:3008; on equal sizes
 the index does not decrease, G:1978-1981 and G:3009-3012) is `stackOffsets`'s `mergeSort` of
-`List.range n` (V:830-835). -/
+`List.range n` (V:843-848). -/
 theorem eq_mergeSort_of_adjacent {n : ℕ} (size : ℕ → ℕ) {ord : List ℕ}
     (hperm : ord.Perm (List.range n))
     (hadj : ∀ i (h : i + 1 < ord.length), size (ord[i + 1]'h) ≤ size (ord[i]'(by omega)) ∧
