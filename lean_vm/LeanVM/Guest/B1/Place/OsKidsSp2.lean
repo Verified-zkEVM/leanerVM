@@ -79,7 +79,7 @@ theorem os_sq_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (�
       rwa [(osOwnL_getD_lv6 c tr (fun _ _ ↦ 0) hl).1] at this
   refine (fun ⟨Lown, hW, hD, hR⟩ ↦ ⟨_, Lown, hW, hD, hR⟩) (sqLoop_relAtIn fs cert κ hfind hp hb hlp
     hlv.digits hst.posOff hdec hlv.sq0 hlv.sqOrd hcl hcan (Lin := osLk c tr b Lin ++ osW fs cert c b l fp)
-    fp (fun rd hl' hm j hj ↦ ?_) (fun rd hl' hm j hj i hi ↦ ?_) (fun j hj t ht ↦ ?_))
+    fp (fun rd hl' hm j hj ↦ ?_) (fun rd hl' hm j hj i hi ↦ ?_) (fun j hj t ht ↦ ?_) (fun j hj ↦ ?_))
   · -- the squeeze run
     obtain ⟨hmk, -⟩ := Main.memL_append.mp hm
     have hB := lvMemB_cont hF h hs (osLk_fixed hmk) hl (hsqzR rd hmk)
@@ -127,6 +127,36 @@ theorem os_sq_completeAtP (fs : String → ℕ) (cert : String → V → ℕ) (�
         nlinarith)
     refine ⟨osBase c b (osIxSqz l) + (j * 5 + t), ?_, q, List.mem_append_left _ hq, h1, h2⟩
     rw [osPtrAt_eq, ← pow_mul, ofK_gpow_mul_gen, Main.addr_ofK, Nat.add_assoc]
+
+  · -- the decoders' positions and bit pointers lie in the callees' words and the level's bit
+    -- pointers
+    have hend := off_end (off := fun i ↦ (lvAt c i).posOff)
+      (span := fun i ↦ (lvAt c i).squeezes * (192 / (lvAt c i).depth)) hs.pos
+      (c.levels.length - 1 - l) l (by omega)
+    have hend' : (lvAt c l).posOff + (lvAt c l).squeezes * (192 / (lvAt c l).depth) ≤ c.posLen := hend
+    intro q hq t ht
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+    have hk : j * (192 / (lvAt c l).depth) + t < (lvAt c l).squeezes * (192 / (lvAt c l).depth) := by
+      have : (j + 1) * (192 / (lvAt c l).depth) ≤ (lvAt c l).squeezes * (192 / (lvAt c l).depth) :=
+        Nat.mul_le_mul_right _ (by omega)
+      rcases hq with rfl | rfl <;> (simp only at ht; rw [Nat.add_mul, one_mul] at this; omega)
+    rcases hq with rfl | rfl
+    · simp only [List.getD_cons_succ, List.getD_cons_zero]
+      obtain ⟨q, hq, h1, h2⟩ := osLk_region c tr b Lin (fun _ _ ↦ 0) (j := 7) (by omega) (by omega)
+        (k := (lvAt c l).posOff + j * (192 / (lvAt c l).depth) + t) (by
+          rw [(osOwnL_getD_head6 c tr (fun _ _ ↦ 0)).2.2.2.1]
+          simp only [qposC, List.length_map, List.length_range]
+          omega)
+      refine ⟨osBase c b 7 + ((lvAt c l).posOff + j * (192 / (lvAt c l).depth) + t), ?_, q,
+        List.mem_append_left _ hq, h1, h2⟩
+      rw [osPtrAt_eq, ofK_gpow_mul_gen, ← pow_mul, ofK_gpow_mul_gen, Main.addr_ofK]
+      congr 1; ring
+    · simp only [List.getD_cons_succ, List.getD_cons_zero]
+      refine ⟨osBase c b 8 + (lvAt c l).posOff + j * (192 / (lvAt c l).depth) + t, ?_,
+        _, List.mem_append_right _ (List.mem_singleton_self _), ?_, ?_⟩
+      · rw [osPtrAt_eq, ofK_gpow_mul_gen, ← pow_mul, ofK_gpow_mul_gen, Main.addr_ofK]
+      · dsimp only; omega
+      · simp only [List.length_map, List.length_range]; omega
 
 end
 end LeanVM.Guest.B1

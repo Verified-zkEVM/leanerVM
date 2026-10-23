@@ -72,6 +72,7 @@ structure LvCallsOk (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : 
   grind : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
     C ("grind_check__L" ++ natStr lv.grind) args rets
   fm : lvl = c.yrLevel → ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
+    args.getD 8 0 = P.fmsg →
     C ("opening_final_message__L" ++ natStr c.yrLen) args rets
   sq : 1 + gen ^ lv.squeezes ≠ 0 → C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, P.qpos, P.qbp] []
   rw : C ("opening_row_weights__L" ++ natStr lv.folds ++ "_L" ++ natStr (if lvl = 0 then 1 else 0))
