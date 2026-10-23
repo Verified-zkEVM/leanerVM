@@ -13,8 +13,8 @@ namespace LeanVM.Guest.B2C.Cplw
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 4, arms 65 to 80. -/
-theorem cg21_4_4 : cplWinS 21 4 65 81 6337 1575 0 100 = true := by
+/-- `verify_sig_lean_sphincs`, window 4, arms 33 to 40. -/
+theorem cg21_4_4 : cplWinS 21 4 33 41 3216 784 0 100 = true := by
   decide +kernel
 
 end

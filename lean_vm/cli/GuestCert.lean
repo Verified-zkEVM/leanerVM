@@ -838,14 +838,21 @@ structure CutG where
   sems : List (ℕ × ℕ)
   b : ℕ
 
-/-- The arms per group of a window split by arms (`Check.checkWinS`). -/
-def armGroup : ℕ := 16
+/-- The arms per group of a window split by arms (`Check.checkWinS`): `8` in
+`verify_sig_lean_sphincs`, whose groups' arms hash most, `16` elsewhere. -/
+def armGroup (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 8 else 16
+
+/-- The instructions a window that is one `match` runs over at least to be split by arms. -/
+def splitSize (name : String) : ℕ := if name == "verify_sig_lean_sphincs" then 500 else 1500
 
 /-- The instructions a window runs over at most, when a function is cut for its size; `coarse`,
 the larger windows for a function whose sharing check needs them. -/
 def maxWin (coarse : Bool) (name : String) : ℕ :=
   if coarse then (if name == "verify_sig_lean_sphincs" then 600 else 1000)
-  else if name == "verify_sig_lean_sphincs" then 150 else 600
+  else if name == "verify_sig_lean_sphincs" then 150
+  -- the windows of many hashes' facts, smaller to keep a module's kernel check small
+  else if name == "verify_merkle_cap__L8" then 200
+  else 600
 
 /-- Where a window can start at a mark: its offset `J` and the previous window's end `b` (`J + 1`
 at a segment's start the walk enters, `J` when the walk reaches `J` by the end of its segment),
@@ -938,7 +945,7 @@ def planCuts (coarse : Bool) (F : GFacts) (f : CompiledFn) (cf : Core.Fn) (locs 
     let nextJ := if k + 1 < cands.size then cands[k + 1]!.2.1 else f.len
     -- a `match` of many arms is a window of its own, which `Check.checkWinS` splits by arms
     let isBig (i : ℕ) : Bool := match cf.body[i]? with
-      | some (.match_ _ arms) => arms.length > 4 * armGroup
+      | some (.match_ _ arms) => arms.length > 4 * armGroup f.name
       | _ => false
     let bigCut := isBig idx || (idx > 0 && isBig (idx - 1))
     unless force.isSome || bigCut || (big && nextJ - a > mw && J ≥ a + mw / 4 && f.len - J > mw / 4) do continue
@@ -2271,14 +2278,15 @@ def checkedDir : System.FilePath := "LeanVM/Guest/Checked"
 
 
 /-- The groups of a window that is one `match` of at least `4 · armGroup` straight-line arms over
-more than `1500` instructions: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
+more than `splitSize` instructions: `(lo, hi, ranges)`, arms `lo ≤ k < hi` and arm `0`, the value
 ranges of the window's cells they name (offsets in the window), each value the group names in a
 range or below the window (`ins`). `[]` for any other window. -/
 def splitOf (cf : Core.Fn) (start stop size lo : ℕ) (ins : List ℕ) : List (ℕ × ℕ × List (ℕ × ℕ)) :=
   let isAtom : Core.Stmt → Bool := fun | .atom _ => true | _ => false
   match (cf.body.drop start).take (stop - start) with
   | [.match_ _ (a0 :: as)] =>
-    if as.length < 4 * armGroup || size ≤ 1500 || !(a0 :: as).all (·.all isAtom) then []
+    let armGroup := armGroup cf.name
+    if as.length < 4 * armGroup || size ≤ splitSize cf.name || !(a0 :: as).all (·.all isAtom) then []
     else
       let own (a : List Core.Stmt) : List ℕ := ((Check.stmtsVals a).map (·.idx)).filter (lo ≤ ·)
       let span (vs : List ℕ) : Option (ℕ × ℕ) := match vs with
@@ -2442,12 +2450,66 @@ def sharedDir : System.FilePath := "LeanVM/Guest/B2C/Shared"
 /-- The most cost (values named) of the sharing windows one module decides. -/
 def maxShared : ℕ := 1200
 
+/-- A function of more values than this has its static sharing check by windows (`B2C.ShareStatic`). -/
+def bigStatic : ℕ := 100000
+
+/-- The values' cells a module of `bigStaticFiles` adds at most. -/
+def bigStaticChunk : ℕ := 60000
+
+/-- The static sharing check of function `j` of many values: the chain of bit sets of its windows'
+cells (`Shared/N{j}`, `ns`), modules adding a few windows' cells each (`Shared/B{j}_{m}`), and the
+check from them (`Shared/B{j}`, `B2C.shareStatic_of_chain`). `counts`: the windows' numbers of
+values. -/
+def bigStaticFiles (fname : String) (j : ℕ) (ns : Array ℕ) (counts : List ℕ) :
+    List (System.FilePath × String) := Id.run do
+  let hex (x : ℕ) : String := "0x" ++ String.ofList (Nat.toDigits 16 x)
+  let nfile := (sharedDir / s!"N{j}.lean", checkedHeader s!"B2C.Shared.N{j}"
+      s!"The bit sets of `{fname}`'s values' cells, window by window." ++
+    "public import LeanVM.Guest.B2C.ShareStatic\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+    s!"/-- `{fname}`: the bit set of the cells of the values of its windows before each window. -/\n" ++
+    s!"def locBits{j} : List ℕ := [\n  " ++ ",\n  ".intercalate (ns.toList.map hex) ++ "]\n\n" ++
+    "end\nend LeanVM.Guest.B2C.Shared\n")
+  -- the windows, by modules adding at most `bigStaticChunk` values each
+  let mut groups : Array (Array ℕ) := #[#[]]
+  let mut size := 0
+  for (c, w) in counts.zipIdx do
+    if size + c > bigStaticChunk && size > 0 then
+      groups := groups.push #[]
+      size := 0
+    groups := groups.modify (groups.size - 1) (·.push w)
+    size := size + c
+  let gname (m : ℕ) : String := s!"B{j}_{m}"
+  let gfiles := groups.toList.zipIdx.map fun (ws, m) =>
+    (sharedDir / (gname m ++ ".lean"), checkedHeader ("B2C.Shared." ++ gname m)
+        s!"The bit sets of `{fname}`'s values' cells: windows {ws[0]!} to {ws.back!}." ++
+      s!"public import LeanVM.Guest.B2C.Shared.N{j}\n\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+      String.join (ws.toList.map fun w =>
+        s!"set_option maxRecDepth 100000 in\n/-- `{fname}`: window {w}'s cells. -/\n" ++
+        s!"theorem lb{j}_{w} : bitsFrom (nth locBits{j} {w} 0) (nth (certOf {j}).cells {w} []) = nth locBits{j} {w + 1} 0 := by\n" ++
+        "  decide +kernel\n\n") ++
+      "end\nend LeanVM.Guest.B2C.Shared\n")
+  let nw := counts.length
+  let sfile := (sharedDir / s!"B{j}.lean", checkedHeader s!"B2C.Shared.B{j}"
+      s!"The static sharing check of `{fname}`, by the bit sets of its windows' cells." ++
+    "public import Mathlib.Tactic.IntervalCases\n" ++
+    String.join ((List.range groups.size).map fun m => s!"public import LeanVM.Guest.B2C.Shared.{gname m}\n") ++
+    "\nnamespace LeanVM.Guest.B2C.Shared\n\n@[expose] public section\n\n" ++
+    s!"set_option maxRecDepth 100000 in\n/-- `{fname}`, once. -/\n" ++
+    s!"theorem st{j} : shareStatic {j} = true :=\n" ++
+    s!"  shareStatic_of_chain {j} locBits{j} (by decide +kernel) (fun k hk ↦ by\n" ++
+    s!"    have h : (certOf {j}).cells.length = {nw} := by decide +kernel\n" ++
+    "    rw [h] at hk\n    interval_cases k\n" ++
+    String.join ((List.range nw).map fun w => s!"    · exact lb{j}_{w}\n") ++
+    "    ) (by decide +kernel)\n\nend\nend LeanVM.Guest.B2C.Shared\n")
+  return [nfile] ++ gfiles ++ [sfile]
+
 /-- The modules deciding the sharing check: each function's static check (`(function, cost)`) and
 windows (`(function, window, cost)`), in modules of at most `maxShared` cost; a function of one
 window has its static check, window and `ShareOk` together, one of several its `ShareOk` in the
 index. -/
 def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)) (n : ℕ)
-    (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ)))) :
+    (splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))))
+    (bigs : Std.HashMap ℕ (Array ℕ × List ℕ)) :
     List (System.FilePath × String) := Id.run do
   let fns := Data.functions.toArray
   let cut (j : ℕ) : Bool := wins.any fun (j', w, _) => j' == j && w > 0
@@ -2455,7 +2517,8 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
   let mut items : Array (ℕ × Option ℕ × ℕ) := #[]
   for (j, sc) in statics do
     if cut j then
-      items := items.push (j, none, sc)
+      -- a function of many values has its static check in modules of its own (`bigStaticFiles`)
+      unless bigs.contains j do items := items.push (j, none, sc)
       for (j', w, l) in wins do
         if j' == j && !splits.contains (j, w) then items := items.push (j, some w, l)
     else
@@ -2521,7 +2584,9 @@ def sharedFiles (statics : Array (ℕ × ℕ)) (wins : Array (ℕ × ℕ × ℕ)
       String.join ((List.range nG).map fun k => s!"      · exact sg{j}_{w}_{k}\n") ++
       "\nend\nend LeanVM.Guest.B2C.Shared\n")
     gfiles ++ [wfile]
-  let files := files ++ splitFiles
+  let files := files ++ splitFiles ++
+    (bigs.toList.mergeSort (fun a b => a.1 ≤ b.1)).flatMap fun (j, (ns, counts)) =>
+      bigStaticFiles fns[j]!.name j ns counts
   let cutFns := (wins.toList.filterMap fun (j, w, _) => if w > 0 then some j else none).eraseDups
   let cutOk := String.join (cutFns.map fun j =>
     let ws := (wins.toList.filter (·.1 == j)).map (·.2.1)
@@ -2900,6 +2965,7 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
   let mut armRows : Array (Array (ℕ × List (List ℕ))) := #[#[]]
   let mut splits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
   let mut shareSplits : Std.HashMap (ℕ × ℕ) (List (ℕ × ℕ × List (ℕ × ℕ))) := {}
+  let mut bigStatics : Std.HashMap ℕ (Array ℕ × List ℕ) := {}
   for (cf, i) in P.zipIdx do
     -- the smaller windows, or the larger ones where the sharing check cannot cut the smaller, and
     -- for `main` and `verify_sub`, whose windows `Sound`'s obligations name
@@ -2922,8 +2988,12 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
         match sp.find? (·.1 == w) with
         | some (_, gs) => if starts[w]! == a && b == a + 1 then some (k, gs) else none
         | none => none
-      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp)
-    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp) ←
+      -- the bit sets of the values' cells, window by window
+      let chain := (List.range nw).foldl (fun (acc : Array ℕ) w =>
+        acc.push (((locs.drop los[w]!).take (his[w]! - los[w]!)).foldl (fun s c => s ||| (1 <<< c)) acc.back!)) #[0]
+      let counts := (List.range nw).map fun w => his[w]! - los[w]!
+      pure (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts)
+    let (c, sizes, fsz, locs, segs, starts, offs, pt, marks, stopAt, acs, sts, costs, sp, ssp, chain, counts) ←
       if i + 1 == 1 || i + 1 == vsIdx then attempt true
       else match attempt false with
         | .ok r => pure r
@@ -2942,6 +3012,9 @@ def files (P : Core.Program) : Except String (List (System.FilePath × String)) 
     let fixed := if cf.body.length > 4000 then maxShared else 300
     shareWins := shareWins ++ (costs.zipIdx.map fun (c, k) => (i + 1, k, c + fixed)).toArray
     shareStatics := shareStatics.push (i + 1, locs.length / 4)
+    if locs.length > bigStatic then
+      unless counts.foldl (· + ·) 0 == locs.length do throw s!"{cf.name}: windows' cells not the values'"
+      bigStatics := bigStatics.insert (i + 1) (chain, counts)
   -- a large certificate's cells go to modules of their own (`Cert{j}_{k}`), by windows
   let mut cellFiles : Array (String × String) := #[]
   let mut certTexts : Array (String × List String) := #[]
@@ -3023,7 +3096,7 @@ noncomputable def certs : List Check.Cert :=
     (dataDir / (n ++ ".lean"), t)) ++
     (checkedFiles wins (T.pows.toArray.qsort (·.1 < ·.1)) nPow splits).map (fun (n, t) =>
       (if n == "Checked" then ("LeanVM/Guest" : System.FilePath) / "Checked.lean"
-        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length shareSplits ++
+        else checkedDir / (n ++ ".lean"), t)) ++ sharedFiles shareStatics shareWins P.length shareSplits bigStatics ++
     (snapsFiles snapTexts.toList).map (fun (n, t) => (dataDir / (n ++ ".lean"), t)) ++ CplK.cplFiles cplFns.toList splits ++ [(dataDir / "CplArms.lean", CplK.armsFile armRows.toList)]
 
 /-- The generated files on disk. -/

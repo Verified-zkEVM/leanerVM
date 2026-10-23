@@ -162,12 +162,17 @@ def chain (pre what : String) (lo : Nat) (rs : List (Nat × Nat × String)) : Li
 
 /-! ### Freshness -/
 
-def freshFiles (P : Program) : Array (System.FilePath × String) := Id.run do
+/-- The functions checked by ranges, and those too large for one check (by their statements),
+for the checks that unfold the functions' bodies (freshness, the temporaries' cells). -/
+def freshPlan (P : Program) : List (Nat × Nat × Nat) × List Nat :=
   let costs := (P.map fun fn => freshCost fn.body fn.params).toArray
   let big := (List.range P.length).filter fun j => costs[j]! > freshBudget
   -- the small functions' ranges, between the big ones
   let bounds := (0 :: big.map (· + 1)).zip (big ++ [P.length])
-  let small := bounds.flatMap fun (lo, hi) => cut costs freshBudget lo hi
+  (bounds.flatMap fun (lo, hi) => cut costs freshBudget lo hi, big)
+
+def freshFiles (P : Program) : Array (System.FilePath × String) := Id.run do
+  let (small, big) := freshPlan P
   let mut files : Array (System.FilePath × String) := #[]
   files := files.push (memDir / "GuestFresh" / "Range.lean", header "LeanVM.Guest.Memory.GuestFresh.Range"
     "Ranges of the guest's core IR whose range-check temporaries the kernel checks fresh." ++
@@ -257,7 +262,8 @@ theorem fresh_of_freshOn (h : FreshOn 0 coreProgram.length) : coreProgram.Fresh 
     files := files.push (memDir / "GuestFresh" / s!"Fresh{j}.lean",
       header s!"LeanVM.Guest.Memory.GuestFresh.Fresh{j}" s!"`{fn.name}`'s temporaries are fresh, by ranges of its statements." ++
       imps ++ "\n" ++ nsOpen ++ String.join steps.toList ++
-      s!"\n/-- `{fn.name}`'s temporaries are fresh. -/\ntheorem core{j}_fresh : Data.core{j}.Fresh := by\n  have h0 := from{j}_0\n  rw [List.drop_zero, all{j}] at h0\n  exact fn_fresh_of_rangeFresh (fn := Data.core{j}) h0 nodup{j} params{j}\n" ++ nsClose)
+      s!"\n/-- `{fn.name}`'s temporaries are fresh. -/\ntheorem core{j}_fresh : Data.core{j}.Fresh := by\n  have h0 := from{j}_0\n  rw [List.drop_zero, all{j}] at h0\n  exact fn_fresh_of_rangeFresh (fn := Data.core{j}) h0 nodup{j} params{j}\n" ++
+      s!"\n/-- `{fn.name}`'s temporaries, by index. -/\ntheorem tmps{j} : (Stmt.tmpsList Data.core{j}.body).map V.idx = temps{j} := by\n  have h0 := (from{j}_0).1\n  rw [List.drop_zero, all{j}] at h0\n  exact h0\n" ++ nsClose)
   -- the whole program
   let pieces : List (Nat × Nat × String) := (small.map (fun ((a, n, _) : Nat × Nat × Nat) => (a, n, s!"freshRange_{a}.on")) ++
       big.map (fun j => (j, 1, s!"freshOn_one (j := {j}) rfl core{j}_fresh"))).mergeSort

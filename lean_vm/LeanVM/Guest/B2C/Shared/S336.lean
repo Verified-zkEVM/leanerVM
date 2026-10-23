@@ -14,43 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L6`, once. -/
-theorem st123 : shareStatic 123 = true := by decide +kernel
+/-- `block_selector__L7`, once. -/
+theorem st158 : shareStatic 158 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L6`, window 0. -/
-theorem w123_0 : shareWin 123 (snapsOf 123) 0 = true := by decide +kernel
+/-- `block_selector__L7`, window 0. -/
+theorem w158_0 : shareWin 158 (snapsOf 158) 0 = true := by decide +kernel
 
-theorem ok123 : ShareOk 123 := ⟨st123, fun i hi ↦ by
-  have h : (snapsOf 123).length = 0 := by decide +kernel
+theorem ok158 : ShareOk 158 := ⟨st158, fun i hi ↦ by
+  have h : (snapsOf 158).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w123_0⟩
+  exact w158_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L7`, once. -/
-theorem st124 : shareStatic 124 = true := by decide +kernel
+/-- `block_selector__L8`, once. -/
+theorem st159 : shareStatic 159 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `plus_one_run__L7`, window 0. -/
-theorem w124_0 : shareWin 124 (snapsOf 124) 0 = true := by decide +kernel
+/-- `block_selector__L8`, window 0. -/
+theorem w159_0 : shareWin 159 (snapsOf 159) 0 = true := by decide +kernel
 
-theorem ok124 : ShareOk 124 := ⟨st124, fun i hi ↦ by
-  have h : (snapsOf 124).length = 0 := by decide +kernel
+theorem ok159 : ShareOk 159 := ⟨st159, fun i hi ↦ by
+  have h : (snapsOf 159).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w124_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L8`, once. -/
-theorem st125 : shareStatic 125 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `plus_one_run__L8`, window 0. -/
-theorem w125_0 : shareWin 125 (snapsOf 125) 0 = true := by decide +kernel
-
-theorem ok125 : ShareOk 125 := ⟨st125, fun i hi ↦ by
-  have h : (snapsOf 125).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w125_0⟩
+  exact w159_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

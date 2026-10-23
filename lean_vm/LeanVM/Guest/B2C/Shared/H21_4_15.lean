@@ -13,8 +13,8 @@ namespace LeanVM.Guest.B2C.Shared
 
 @[expose] public section
 
-/-- `verify_sig_lean_sphincs`, window 4, arms 241 to 255. -/
-theorem sg21_4_15 : shareWinS 21 (snapsOf 21) 4 241 256 23600 1466 0 100 = true := by
+/-- `verify_sig_lean_sphincs`, window 4, arms 121 to 128. -/
+theorem sg21_4_15 : shareWinS 21 (snapsOf 21) 4 121 129 11821 792 0 100 = true := by
   decide +kernel
 
 end
