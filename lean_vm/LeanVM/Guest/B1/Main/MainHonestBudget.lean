@@ -11,6 +11,7 @@ module
 public import LeanVM.Guest.B1.Main.MainHonestFull
 public import LeanVM.Guest.B1.Main.MainGoalsHClT
 public import LeanVM.Guest.B1.Main.MainGoalsHAgT
+public import LeanVM.Guest.B1.Main.MainGoalsDvT
 
 /-!
 # `main` on an honest run, for the budget
@@ -60,6 +61,25 @@ theorem main_honest_budget (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel byteco
   main_honest_fullT hbl hr hl hxc hsc hrf hV (childListGoalsT_honest cert hl)
     (mainGoalClXT fs cert fp seed s w hl) (mainGoalClST fs cert fp seed s w hl) hdv
     (mainGoalAgT fs fp cert hbl hr hl)
+
+/-- **`main`'s completeness on the honest run, for the budget**, `da_verify`'s tree of honest
+shape too (`hDvNH`): every callee the static certificates cannot bound by a tree of honest
+shape, but each child's `verify_sub` (`Pvs c`, B1-d's). -/
+theorem main_honest_budget_dv (hbl : bytecode.length = 2 ^ 23) (hr : NodeRel bytecode seed s w)
+    (hl : Limits bytecode s w) (hxc : Sig.verify_lean_xmss_complete_Spec)
+    (hsc : Sig.verify_sig_lean_sphincs_complete_loads_Spec) (hrf : Lift.RunsFit fs cert)
+    {Pvs : ℕ → Tree → Prop} (hV : VerifySubGoalsT fs cert fp seed s w Pvs) :
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
+      (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
+      ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
+        LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →
+        LoadHolds rd gen 0 (digestScalars (statementDigest seed s)).2 →
+        RelAtInT coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] []
+          (fun t => ∃ σ bufs ks, t = .node "main" σ bufs ks ∧ MVals rd σ (hm fs fp seed s w) ∧
+            KidsT (mCalls σ (hm fs fp seed s w))
+              ((fun _ => True) :: mTs (hm fs fp seed s w) (mainPredsH s w (hDvNH s w) Pvs)) ks ∧
+            calls (mEvs σ) = mCalls σ (hm fs fp seed s w) ∧ bufs = mSizes (hData seed s w)) :=
+  main_honest_budget hbl hr hl hxc hsc hrf hV (mainGoalDvT fs cert fp hr hrf)
 
 end
 end LeanVM.Guest.B1.Main
