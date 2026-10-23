@@ -37,9 +37,6 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## Helpers -/
 
-/-- A typed row as the raw row a table holds. -/
-def asRow {Row : TypeMap} [ProvableType Row] (r : Row K) : Array K := (toElements r).toArray
-
 /-- A row's message is a message of the witness. -/
 theorem mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble fillProg)} {t : Air.Flat.Table K}
     (ht : t ∈ w.tables) {row : Array K} (hrow : row ∈ t.table) {c : RawChannel K} {a : Array K}
@@ -51,11 +48,11 @@ theorem mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble fillProg)} {t : Air
 /-- The product row's three memory reads are correct reads of the image. -/
 example : ∀ m ∈ (mulSends (mulRow g)).mem, MemPull.Guarantees m fillData := by
   intro m hm
-  have hrow := (mul_sendsOpcode (t := mulT g) rfl (asRow (mulRow g))).mem_pull
-  rw [show valueFromOffset MulRow 0 ((mulT g).environment (asRow (mulRow g))) = mulRow g from
+  have hrow := (mul_sendsOpcode (t := mulT g) rfl (rawRow (mulRow g))).mem_pull
+  rw [show valueFromOffset MulRow 0 ((mulT g).environment (rawRow (mulRow g))) = mulRow g from
     rowAt_toElements fillData (mulRow g)] at hrow
   have hmem : (toElements m).toArray ∈ messagesOn (fillW 1 g memCnt) MemPull.toRaw :=
-    mem_messagesOn (t := mulT g) (row := asRow (mulRow g))
+    mem_messagesOn (t := mulT g) (row := rawRow (mulRow g))
       (List.mem_cons_of_mem _ List.mem_cons_self) List.mem_cons_self
       (by rw [hrow]; exact List.mem_map_of_mem hm)
   obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
@@ -64,12 +61,12 @@ example : ∀ m ∈ (mulSends (mulRow g)).mem, MemPull.Guarantees m fillData := 
 /-- The `XOR` fill row's bytecode read is the program's entry at its counter. -/
 example : ∃ k : Fin (2 ^ fillProg.logSize), (xorSends xorRow).bc.pc = gpow k ∧
     #v[(xorSends xorRow).bc.opcode] ++ (xorSends xorRow).bc.op = entry (fillProg.code k) := by
-  have hrow := (xor_sendsOpcode (t := xorT) rfl (asRow xorRow)).bytecode_pull
-  rw [show valueFromOffset XorRow 0 (xorT.environment (asRow xorRow)) = xorRow from
+  have hrow := (xor_sendsOpcode (t := xorT) rfl (rawRow xorRow)).bytecode_pull
+  rw [show valueFromOffset XorRow 0 (xorT.environment (rawRow xorRow)) = xorRow from
     rowAt_toElements fillData xorRow] at hrow
   have hmem : (toElements (xorSends xorRow).bc).toArray ∈
       messagesOn (fillW 1 g memCnt) BytecodePull.toRaw :=
-    mem_messagesOn (t := xorT) (row := asRow xorRow) List.mem_cons_self List.mem_cons_self
+    mem_messagesOn (t := xorT) (row := rawRow xorRow) List.mem_cons_self List.mem_cons_self
       (by rw [hrow]; exact List.mem_singleton_self _)
   obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
   exact bytecode_channel_sound fill_satisfiedBy i hi hname _ hmsg
@@ -211,13 +208,10 @@ theorem badW_mem_balanced : BalancedPair badW MemPull.toRaw MemPush.toRaw :=
 /-- Its count product holds: its six opcode tables are the honest ones. -/
 theorem badW_countsNonzero : CountsNonzero badW := by
   have h := fill_countsNonzero
-  have h1 : badW.tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT] := rfl
-  have h2 : (fillW 1 g memCnt).tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT] :=
-    rfl
   unfold CountsNonzero at h ⊢
-  rw [h1]
-  rw [h2] at h
-  exact h
+  rw [show (fillW 1 g memCnt).tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT]
+    from rfl] at h
+  rwa [show badW.tables.take 6 = [xorT, mulT g, setT 1, derefT, jumpT, blakeT] from rfl]
 
 /-- Its caps hold. -/
 theorem badW_caps : Caps badW where
