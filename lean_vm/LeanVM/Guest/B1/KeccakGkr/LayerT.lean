@@ -39,6 +39,33 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 @[expose] public section
 
+/-! ## Helpers -/
+
+variable {C : CallRel} {rd : Reader} {σ : Val}
+
+theorem holdsList_map_atoms (n : ℕ) (A : ℕ → Atom) : ∀ (next : Prop) (kret : List E → Prop),
+    Stmt.HoldsList C rd σ ((List.range n).map fun i ↦ .atom (A i)) next kret ↔
+      (∀ i < n, (A i).Holds rd σ) ∧ next := by
+  induction n with
+  | zero => intro next kret; simp [Stmt.HoldsList]
+  | succ n ih =>
+    intro next kret
+    rw [List.range_succ, List.map_append, holdsList_append, ih]
+    simp only [List.map_cons, List.map_nil, Stmt.HoldsList, Stmt.Holds]
+    constructor
+    · rintro ⟨h, h', hn⟩
+      refine ⟨fun i hi ↦ ?_, hn⟩
+      rcases Nat.lt_or_ge i n with hin | hin
+      · exact h i hin
+      · obtain rfl : i = n := by omega
+        exact h'
+    · rintro ⟨h, hn⟩
+      exact ⟨fun i hi ↦ h i (by omega), h n (by omega), hn⟩
+
+theorem eq_of_add_eq_zero' {a b : E} (h : a + b = 0) : a = b := by
+  have := congrArg (· + b) h
+  simpa [add_assoc, e_add_self] using this
+
 /-! ## The product's tables -/
 
 /-- The product section's table, first = 1. -/
