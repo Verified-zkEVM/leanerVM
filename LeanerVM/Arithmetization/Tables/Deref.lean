@@ -53,13 +53,14 @@ program paragraph).
 reads the bytecode entry `(DRF, o₁, o₂, o₃, f_pc, f_fp, 0, 0)` at `pc`, reads the pointer cell
 `fp·o₁` as `(p, 0, 0)`, the target cell `p·o₂` and the local cell `fp·o₃`, in the Rust's flush
 order (`tables.rs:641-643`; §7.4's flush list has the local cell second, its prose the target),
-which places the reads' blocks on the bus; `Spec` is `DerefSpec`. Soundness reads the instruction the pulled tuple decodes to
-through Layer 4's `decode_deref_eq_some_iff`, the one use a table makes of the bytecode
-guarantee: the pulled tuple *is* an instruction, so its flag pair is a store mode's (a pair that
-is no mode's decodes to nothing, so such a row cannot satisfy the lookup guarantee), and the
-target read's coordinates are that mode's source (`storeCoords_eval`). Completeness discharges the four pulls
-from the semantic premise through `deref_refines_iff`: the tuple `main` emits decodes (Layer
-4's `decode_entry`), and the target coordinates it emits are the mode's source.
+which places the reads' blocks on the bus; `Spec` is `DerefSpec`. Soundness reads the instruction
+the pulled tuple decodes to through Layer 4's `decode_deref_eq_some_iff`, the one use a table
+makes of the bytecode guarantee: the pulled tuple *is* an instruction, so its flag pair is a
+store mode's (a pair that is no mode's decodes to nothing, so such a row cannot satisfy the
+lookup guarantee), and the target read's coordinates are that mode's source
+(`storeCoords_eval`). Completeness discharges the four pulls from the semantic premise through
+`deref_refines_iff`: the tuple `main` emits decodes (Layer 4's `decode_entry`), and the target
+coordinates it emits are the mode's source.
 
 **Rows from executions.** `derefRowOf mem pc fp o₁ o₂ o₃ mode r₁ r₂ r₃ rbc` is the row of an
 execution of `DEREF o₁ o₂ o₃ mode` over the image `mem`: the mode's flags, the pointer's low
@@ -165,8 +166,8 @@ theorem deref_refines_iff {κ : ℕ} (mem : MemImage κ) (r : DerefRow K) (next 
   constructor
   · rintro ⟨mode, ⟨hflags, h1, h3⟩, hexec⟩
     refine ⟨mode, ⟨hflags, h1, h3⟩, ?_⟩
-    simp only [execute, executeWith, h1, h3, Option.bind_eq_bind, Option.bind_some, guard_bind_eq_some_iff,
-      isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hexec
+    simp only [execute, executeWith, h1, h3, Option.bind_eq_bind, Option.bind_some,
+      guard_bind_eq_some_iff, isInK_ofLimbs, true_and, limb_ofLimbs, Matrix.cons_val_zero] at hexec
     cases hc : mem.read (r.p * r.o2) with
     | none => rw [hc] at hexec; exact absurd hexec (by simp)
     | some c =>

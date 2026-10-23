@@ -30,9 +30,9 @@ challenges (the variables are bound highest first); the output is `TableSumcheck
 
 **The public input.** The walk (`walkPub`) squeezes `r` and reads one value per sent public line
 (two for leanVM). The algebra (`pubStep`) is the deployed verifier of the phase
-(`PublicInput.deployedVerifier`): one value per sent line, the check on the words
-(`PublicInput.checkWords`, `cpu/mod.rs:752-755`), and the claims pooled from the values sent
-(`PublicInput.pooledFrom`).
+(`PublicInput.deployedVerifier`), through its guarded form: one value per sent line and the check
+on the words (`PublicInput.accepts` of `PublicInput.checkWords`, `cpu/mod.rs:752-755`), and the
+claims pooled from the values sent (`PublicInput.verdict` of `PublicInput.pooledFrom`).
 -/
 
 namespace LeanerVM.Protocol
@@ -93,20 +93,19 @@ check of the oracle verifier, and its output. -/
 def tableStep (s : I.Stmt × BusOut I) (w : TableWire) : Option (I.Stmt × TableOut I) := do
   let (claim, cs) ← replayRounds 3 (fun _ ↦ none) 0
     (powerBatch (TableSumcheck.claimed I s) w.xi) w.rounds
-  let c ← vec? I.τmax cs
-  let v ← vec? I.tableColumns w.finals
+  let c ← RoundPoly.ofList? I.τmax cs
+  let v ← RoundPoly.ofList? I.tableColumns w.finals
   let st : SumcheckRound.Stmt (TableSumcheck.Data I) E I.τmax := ((s, w.xi), (c, claim))
   if Sumcheck.finalCheck (TableSumcheck.tableSummand I) st v then
     some (TableSumcheck.tableOut I st v)
   else none
 
-/-- The public-input phase's algebra on its wire: the deployed verifier's check on the words, and
-the claims pooled from the values sent. -/
+/-- The public-input phase's algebra on its wire: the deployed verifier's guarded form
+(`PublicInput.deployedGuarded`), its check `accepts` of the words with one value per sent line
+and its `verdict`, the claims pooled from the values sent. -/
 def pubStep (s : I.Stmt × TableOut I) (w : PubWire) : Option (I.Stmt × PubOut I) :=
-  if h : w.values.length = PublicInput.sentCount I (I.publicLines s.1) then
-    if PublicInput.checkWords I s w.r w.values then
-      some (PublicInput.pooledFrom I s w.r w.values h)
-    else none
+  if PublicInput.accepts I (PublicInput.checkWords I) s w.r w.values then
+    some (PublicInput.verdict I (PublicInput.pooledFrom I) s w.r w.values)
   else none
 
 end Verify

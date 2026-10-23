@@ -50,7 +50,8 @@ def checks (muts : List ((TableWire → TableWire) × (PubWire → PubWire))) : 
     match leanVmBus f.prog s f.input b with
     | none => []
     | some bo => muts.map fun (ft, fp) ↦
-      ((tableStep (leanVm f.prog s) bo (ft t)).bind fun tb ↦ pubStep (leanVm f.prog s) tb (fp p)).isSome
+      ((tableStep (leanVm f.prog s) bo (ft t)).bind fun tb ↦
+        pubStep (leanVm f.prog s) tb (fp p)).isSome
   | .error _ => []
 
 #guard match wires fx sizes.1 with
