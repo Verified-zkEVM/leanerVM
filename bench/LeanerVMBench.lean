@@ -1,9 +1,10 @@
 /-
   LeanerVMBench
 
-  Steady-state timings of the field arithmetic, the BLAKE2s hasher, a Merkle root, a
-  multilinear evaluation and the sumcheck provers' round messages, as compiled into the
-  `leanervm-bench` executable.
+  Steady-state timings of the field arithmetic, the BLAKE2s hasher, a Merkle root and a
+  multilinear evaluation, the sumcheck provers' round messages, and one-shot timings of the honest
+  provers' tables (the Lagrange basis, the leanISA stack, the bus leaves, a grand-product layer),
+  as compiled into the `leanervm-bench` executable.
 -/
 
 import LeanerVM.Protocol.Field
@@ -11,6 +12,8 @@ import LeanerVM.Protocol.Merkle
 import LeanerVM.Protocol.Stack
 import LeanerVM.Protocol.TableSumcheck
 import LeanerVM.Protocol.ToArkLib.ProductSumcheck
+import LeanerVM.Protocol.LeanIsa
+import LeanerVMTests.Arithmetization.Statement
 
 /-!
 # The `leanervm-bench` executable
@@ -20,9 +23,10 @@ percentage (default `100`), on inputs derived from the seed in `LEANERVM_BENCH_S
 `12345`), so that nothing is evaluated at compile time. Each sumcheck workload computes the honest
 prover's message of every round once, at the log-sizes up to `LEANERVM_BENCH_MAXLOG` (default
 `20`); the specification's algorithm runs at small sizes beside it. The second argument selects
-the group: `arith`, `sumcheck` or `all` (the default). Every result feeds a printed checksum, and
-every timed value is passed through the opaque `force` inside the timed interval. See
-`bench/README.md`.
+the group: `arith`, `sumcheck`, `provers` or `all` (the default). Each prover workload runs once,
+at the sizes in its name; a third argument keeps only the prover workloads whose name contains it.
+Every result feeds a printed checksum, and every timed value is passed through the opaque `force`
+inside the timed interval. See `bench/README.md`.
 -/
 
 namespace LeanerVMBench
@@ -59,6 +63,19 @@ def timeLoop {α : Type} (name : String) (iters : Nat) (init : α) (step : Nat �
     acc ← force (step i acc)
   let t1 ← IO.monoNanosNow
   report name iters t0 t1 (show_ acc)
+
+/-- Time one run of a computation, in seconds. Its argument comes from an opaque call made
+after the clock starts, so that the computation cannot be hoisted out of the interval. -/
+def timeOnce {α : Type} (name : String) (f : Unit → α) (show_ : α → String) : IO Unit := do
+  let t0 ← IO.monoNanosNow
+  let u ← force ()
+  let r ← force (f u)
+  let t1 ← IO.monoNanosNow
+  IO.println s!"{name}\t{(t1 - t0).toFloat / 1e9} s\t1 run\t[{show_ r}]"
+  (← IO.getStdout).flush
+
+/-- The sum of a table's entries, as a checksum. -/
+def sumTable {R : Type} [Add R] [Zero R] {n : ℕ} (t : Vector R n) : R := t.foldl (· + ·) 0
 
 /-- The inverse through a field dictionary, the way generic code such as interpolation reaches
 it. -/
@@ -261,16 +278,123 @@ def runSumcheck (seed : UInt64) (ns specNs : List Nat) : IO Unit := do
         Sumcheck.roundPoly (TableSumcheck.tableSummand I) Sumcheck.unitWeights
           TableSumcheck.nodes ctx j (firstChals cs j)
 
+/-! ## The honest provers' tables -/
+
+section Provers
+
+open LeanerVM.Semantics LeanerVM.Arithmetization LeanerVM.Protocol.LeanIsa CMlPolynomialEval
+open LeanerVMTests.Arithmetization.Statement
+open Air.Flat (EnsembleWitness)
+
+/-- The hand-built leanISA witness of the constraint statement's tests. -/
+def fillWitness : EnsembleWitness (leanIsaEnsemble fillProg) := fillW 1 g memCnt
+
+/-- The witness's sizes with the memory log-size replaced by `logMem`: the stack and the bus
+leaves grow with it, the memory cells past the witness's reading `0`. -/
+def sizesAt (logMem : ℕ) : Sizes :=
+  match Sizes.ofWitness fillWitness with
+  | some s => { s with logMem := logMem + 1, logMem_pos := Nat.succ_pos _ }
+  | none => ⟨logMem + 1, Nat.succ_pos _, fun _ ↦ 0⟩
+
+/-- The leanISA instance at the BLAKE2s inhabitant of `FlockSpec`, built where it is bound: a
+workload's timed computation reads it and does not build it. -/
+@[noinline] def leanIsaAt (s : Sizes) : M3Instance :=
+  leanIsaInstance Blake2sFlock.blake2sFlockSpec fillProg s
+
+/-- Random tables of `2 ^ μ` leaves, one per tree. -/
+def randomLeaves (seed : UInt64) (nside μ : ℕ) : Fin nside → CMlPolynomialEval E μ :=
+  let t : Vector (CMlPolynomialEval E μ) nside :=
+    Vector.ofFn fun s ↦ Vector.ofFn fun i ↦ eOf (xs (seed + (s.val * 2 ^ μ + i.val).toUInt64))
+  fun s ↦ t[s]
+
+/-- The messages of the last layer step of the grand-product argument on three random trees of
+`2 ^ (m + 2)` leaves: its `m` sumcheck messages at random challenges, and the children. -/
+def gkrLastLayer (seed : UInt64) (m : ℕ) (u : Unit) : E :=
+  let tabs := randomLeaves seed 3 (m + 2)
+  let leaves : Unit → (∀ i, NoOracle i) → Fin 3 → CMlPolynomialEval E (m + 2) := fun _ _ ↦ tabs
+  let point : Vector E m := Vector.ofFn fun i ↦ eOf (xs (seed * 5 + i.val.toUInt64))
+  let lam := eOf (xs (seed * 7))
+  let ctx : Gkr.LayerCtx Unit E NoOracle 3 m :=
+    ((((u, (point, fun _ ↦ 0)), lam), fun i ↦ i.elim0), ())
+  let chal : Vector E m := Vector.ofFn fun i ↦ eOf (xs (seed * 11 + i.val.toUInt64))
+  let msgs := (List.finRange m).map fun j ↦
+    Gkr.roundPoly 3 (m + 2) leaves 2 m ctx j.val (Vector.ofFn fun i : Fin j.val ↦ chal[i.val])
+  let ch := Gkr.children 3 (m + 2) leaves 2 m () (fun i ↦ i.elim0) chal
+  (msgs.map sumTable).foldl (· + ·) 0 + sumTable (ch 0) + sumTable (ch 1) + sumTable (ch 2)
+
+/-- The prover workloads, each run once. -/
+def runProvers (keep : String → Bool) (seed : UInt64) : IO Unit := do
+  -- The Lagrange basis (the equality kernel's cube values) at an `E` point.
+  for n in [16, 20] do
+    let name := s!"lagrangeBasis 2^{n}"
+    if keep name then
+      let pt : Vector E n ← force <| Vector.ofFn fun i ↦ eOf (xs (seed + 77 + i.val.toUInt64))
+      timeOnce name (fun _ ↦ sumTable (lagrangeBasis pt)) toString
+  -- The leanISA stack of the hand-built witness.
+  for lm in [11, 12, 13, 14] do
+    let s := sizesAt lm
+    let name := s!"stackOf leanISA 2^{leanIsaμ fillProg s} cells"
+    if keep name then
+      timeOnce name
+        (fun _ ↦ sumTable (stackOf Blake2sFlock.blake2sFlockSpec fillProg s fillWitness).values)
+        (fun a ↦ a.toBitVec.toHex)
+  -- Of which the Flock region: `F.gen` of the witness's `BLAKE2S` rows, the Flock argument's.
+  if keep "stackOf's Flock region" then
+    let s := sizesAt 11
+    timeOnce s!"stackOf's Flock region, 2^{s.τ 5} compressions"
+      (fun _ ↦ sumTable (witnessColumn Blake2sFlock.blake2sFlockSpec fillProg s fillWitness
+        flockCol))
+      (fun a ↦ a.toBitVec.toHex)
+  -- The bus leaves of the three sides, on a random stack of the instance's height.
+  for lm in [0, 10, 14, 18] do
+    let s := sizesAt lm
+    let I := leanIsaAt s
+    let name := s!"bus leaves leanISA 2^{I.μBus}"
+    if keep name then
+      let q : Column I.μ ← force ⟨Vector.ofFn fun i ↦ kOf (xs (seed * 19 + i.val.toUInt64))⟩
+      let α : Fin 4 → E := fun i ↦ eOf (xs (seed * 13 + i.val.toUInt64))
+      let β := eOf (xs (seed * 17))
+      timeOnce name (fun _ ↦ sumTable (Bus.sideLeaves I 0 α β q) +
+        sumTable (Bus.sideLeaves I 1 α β q) + sumTable (Bus.sideLeaves I 2 α β q)) toString
+    -- A cube point and its index, generic and over `E` (what `Layout.readWith` compiles to):
+    -- most of a cell read.
+    let name := s!"cube point and index, generic, 2^{s.logMem} x 22 coordinates"
+    if keep name then
+      timeOnce name (fun _ ↦ (List.range (2 ^ s.logMem)).foldl (fun acc x ↦
+        acc + (boolIndex (boolVec (⟨x % 2 ^ 22, Nat.mod_lt _ (by norm_num)⟩ : Fin (2 ^ 22)) :
+          Vector E 22)).val) 0) toString
+    let name := s!"cube point and index over E, 2^{s.logMem} x 22 coordinates"
+    if keep name then
+      timeOnce name (fun _ ↦ (List.range (2 ^ s.logMem)).foldl (fun acc x ↦
+        acc + (boolIndexE (boolVecE (⟨x % 2 ^ 22, Nat.mod_lt _ (by norm_num)⟩ : Fin (2 ^ 22)) :
+          Vector E 22)).val) 0) toString
+    -- One memory column read off that stack through the layout.
+    let name := s!"column read leanISA 2^{s.logMem} cells"
+    if keep name then
+      let q : Column I.μ ← force ⟨Vector.ofFn fun i ↦ kOf (xs (seed * 23 + i.val.toUInt64))⟩
+      timeOnce name (fun _ ↦ sumTable (I.column q (memCol 0)).values) (fun a ↦ a.toBitVec.toHex)
+  -- One grand-product layer.
+  for m in [6, 10, 14, 18] do
+    let name := s!"GKR last layer 3 trees 2^{m + 2}"
+    if keep name then
+      timeOnce name (gkrLastLayer seed m) toString
+
+end Provers
+
 end LeanerVMBench
 
-/-- `leanervm-bench [percent] [group]`: run the workloads of `group` (`arith`, `sumcheck` or
-`all`, the default), arithmetic iteration counts scaled to `percent` per cent (default `100`). -/
+/-- `leanervm-bench [percent] [group] [filter]`: run the workloads of `group` (`arith`, `sumcheck`,
+`provers` or `all`, the default), arithmetic iteration counts scaled to `percent` per cent (default
+`100`), keeping only the prover workloads whose name contains `filter`. -/
 def main (args : List String) : IO Unit := do
   let seed : UInt64 := ((← IO.getEnv "LEANERVM_BENCH_SEED").getD "12345").toNat!.toUInt64
   let maxLog := ((← IO.getEnv "LEANERVM_BENCH_MAXLOG").getD "20").toNat!
   let percent := ((args.head?.bind String.toNat?).getD 100)
   let group := (args.drop 1).head?.getD "all"
+  let filter := (args.drop 2).head?.getD ""
+  let keep (name : String) : Bool := filter.isEmpty || (name.splitOn filter).length > 1
   IO.println s!"leanervm-bench: seed {seed}, {percent}% of the base iteration counts, {group}"
   if group == "all" || group == "arith" then LeanerVMBench.runArith seed percent
   if group == "all" || group == "sumcheck" then
     LeanerVMBench.runSumcheck seed ([4, 6, 8, 12, 16, 20].filter (· ≤ maxLog)) [4, 6, 8]
+  if group == "all" || group == "provers" then LeanerVMBench.runProvers keep seed

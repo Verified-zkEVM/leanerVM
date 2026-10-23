@@ -20,7 +20,8 @@ boundary. Build and run it with
 ```sh
 lake build leanervm-bench                   # compiles every transitive module to C, then links
 .lake/build/bin/leanervm-bench 100          # iteration counts at 100% (the default), every group
-.lake/build/bin/leanervm-bench 100 sumcheck # one group: `arith` or `sumcheck`
+.lake/build/bin/leanervm-bench 100 sumcheck # one group: `arith`, `sumcheck` or `provers`
+.lake/build/bin/leanervm-bench 1 provers GKR # the prover workloads whose name contains `GKR`
 ```
 
 Inputs come from a xorshift seeded by `LEANERVM_BENCH_SEED` (default `12345`), so nothing is
@@ -100,7 +101,7 @@ the same checksums at the same size.
 
 The fast paths are `Sumcheck.roundPoly_eq_roundPolyFolded`,
 `ProductSum.roundPoly_eq_roundPolyFolded`, `TableSumcheck.formula_eq_formulaFast`,
-`eval₂_eq_eval₂Sparse` and `SumcheckRound.evaluate_eq_evaluateHorner` (see
+`CMvPolynomial.eval₂_eq_eval₂Fast` and `SumcheckRound.evaluate_eq_evaluateHorner` (see
 `docs/architecture.md`). Recorded on 2026-10-22 on the same machine, shared with other builds; "before" is `6ebb3f2`, the same bench source
 compiled against the library without these fast paths, where the fast and the specification's
 lines run the same algorithm. Total milliseconds for all `n` rounds:
@@ -136,6 +137,51 @@ dominates the plain sumcheck at `2 ^ 20`. The rest is `E` arithmetic, about 3 µ
 above). The table sumcheck adds per point the formula: the weight of each table's coordinates,
 `τ_max` products, and its row polynomials; and per round the columns read off the stack through
 the layout (`Layout.readWith`, `μ` comparisons a cell).
+
+### The honest provers' tables
+
+The `provers` group times, once each, the tables the honest provers of the bus phase and of the
+grand-product argument build, and the stack of a leanISA witness. A third argument keeps only the
+workloads whose name contains it (`.lake/build/bin/leanervm-bench 1 provers "GKR"`).
+
+| Workload | Computation |
+| --- | --- |
+| `lagrangeBasis 2^16`, `2^20` | `lagrangeBasis` at a random `E` point; the checksum is the basis' sum, `1` |
+| `stackOf leanISA 2^μ cells` | `LeanIsa.stackOf` of the constraint statement tests' hand-built witness (`fillW 1 g memCnt`) at its sizes, the memory log-size raised, at the BLAKE2s `FlockSpec` |
+| `stackOf's Flock region, 2^3 compressions` | that stack's `QFLOCK` column alone: `F.gen` of the witness's eight `BLAKE2S` rows |
+| `bus leaves leanISA 2^μ_bus` | the three sides' `Bus.sideLeaves` of the leanISA instance at those sizes, on a random stack |
+| `column read leanISA 2^k cells` | one memory column read off that stack (`M3Instance.column`, through the layout) |
+| `cube point and index …` | the cube point of an index and back, on 22 coordinates, generic and over `E`: most of a cell read |
+| `GKR last layer 3 trees 2^μ` | the `μ - 2` sumcheck messages and the children of the grand-product argument's last radix-four step, on three random trees |
+
+The fast paths are the `@[csimp]` theorems listed in `docs/architecture.md`, "Performance backend
+contract". Recorded on 2026-10-23 on the same machine as above, shared with other builds; "before"
+is `6ebb3f2`, the same bench source compiled against the library without these fast paths. Each
+"before" and "after" pair printed the same checksum.
+
+| Workload | Before | After |
+| --- | ---: | ---: |
+| `lagrangeBasis 2^16` | 3.47 s | 0.32 s |
+| `lagrangeBasis 2^20` | 78.8 s | 4.85 s |
+| `stackOf leanISA 2^15 cells` | over 900 s (stopped) | 3.11 s |
+| `stackOf leanISA 2^18 cells` | not run | 3.20 s |
+| `stackOf's Flock region, 2^3 compressions` | same code | 3.02 s |
+| `bus leaves leanISA 2^8` | 810 s | 0.32 s |
+| `bus leaves leanISA 2^12`, `2^16`, `2^20` | not run | 0.35 s, 0.66 s, 5.94 s |
+| `column read leanISA 2^11 cells` | 0.171 s | 0.0015 s |
+| `column read leanISA 2^19 cells` | not run | 0.42 s |
+| `cube point and index, generic` / `over E`, `2^19` | not run | 2.83 s / 0.42 s |
+| `GKR last layer 3 trees 2^8` | 1.86 s | 0.037 s |
+| `GKR last layer 3 trees 2^12` | 532 s | 1.00 s |
+| `GKR last layer 3 trees 2^16`, `2^20` | not run | 18.5 s, 394 s |
+| `evalMle 2^16 E-table` (above) | 0.56 s | 0.30 s |
+
+The stack costs its Flock region, `F.gen` of the `BLAKE2S` rows (about 0.38 s a compression, the
+circuit's trace on bitsets of `2^14` bits); the rest is linear and small. A cell read is a cube
+point lifted through the layout and decoded, about 0.8 µs at 22 coordinates. A step of the
+grand-product argument from layer `m` costs `m` rounds of `O(2^(m+2))` work: the honest prover
+keeps no state between messages, so every round rebuilds its trees' level below, and in the bus
+phase the leaves. `E` products, about 3 µs each, dominate every row of this table.
 
 Further runtime benchmark groups belong here once leanerVM has executable semantics. Each such
 group must name the workload, parameter revision, expected result, and whether it measures Lean code

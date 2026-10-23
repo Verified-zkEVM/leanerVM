@@ -105,6 +105,7 @@ import LeanerVM.Protocol.ToClean.ComponentPolynomial
 import LeanerVM.Protocol.ToClean.ExpressionPolynomial
 import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
+import LeanerVM.Protocol.ToCompPoly.Doubling
 import LeanerVM.Protocol.ToCompPoly.FinLoop
 import LeanerVM.Protocol.ToCompPoly.Fingerprint
 import LeanerVM.Protocol.ToCompPoly.Frobenius
@@ -112,12 +113,12 @@ import LeanerVM.Protocol.ToCompPoly.HighSum
 import LeanerVM.Protocol.ToCompPoly.IndividualDegree
 import LeanerVM.Protocol.ToCompPoly.Interpolation
 import LeanerVM.Protocol.ToCompPoly.Multilinear
+import LeanerVM.Protocol.ToCompPoly.MvEval
 import LeanerVM.Protocol.ToCompPoly.PartialSum
 import LeanerVM.Protocol.ToCompPoly.PlainSum
 import LeanerVM.Protocol.ToCompPoly.PowerBatching
 import LeanerVM.Protocol.ToCompPoly.ProductTree
 import LeanerVM.Protocol.ToCompPoly.Restriction
-import LeanerVM.Protocol.ToCompPoly.SparseEval
 import LeanerVM.Protocol.ToCompPoly.Stacking
 import LeanerVM.Protocol.ToCompPoly.TableFold
 import LeanerVM.Protocol.ToCompPoly.WeightedCube

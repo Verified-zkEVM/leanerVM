@@ -11,6 +11,7 @@ public import LeanerVM.Protocol.Field
 public import LeanerVM.Protocol.ToArkLib.Flock.BlockR1CS
 public import LeanerVM.Protocol.ToArkLib.Oracles
 public import LeanerVM.Protocol.ToCompPoly.Multilinear
+public import LeanerVM.Protocol.ToCompPoly.MvEval
 public import CompPoly.Multivariate.Basic
 
 /-!
@@ -80,6 +81,77 @@ of the stack at the cube point the lift sends `x` to. -/
 def Layout.readWith {μ : ℕ} {ι : Type} {κ : ι → ℕ}
     (extend : (c : ι) → Vector E (κ c) → Vector E μ) (q : Column μ) (c : ι) : Column (κ c) :=
   ⟨Vector.ofFn fun x ↦ q.values.get (boolIndex (extend c (boolVec x)))⟩
+
+/-! ### Reading a column, compiled
+
+A generic `boolVec` or `boolIndex` over `E` builds `1 : E`, and `boolVec` `0 : E`, again for
+every coordinate. `boolVecE` and `boolIndexE` read the two words off constants computed once;
+`Layout.readWith_eq_readWithFast` is a `@[csimp]` theorem. -/
+
+/-- The word `1`, computed once. -/
+def oneE : E := 1
+
+/-- The word `0`, computed once. -/
+def zeroE : E := 0
+
+/-- `boolVec` over `E`, its coordinates the constants `oneE` and `zeroE`. -/
+def boolVecE {m : ℕ} (j : Fin (2 ^ m)) : Vector E m :=
+  Vector.ofFn fun b ↦ if j.val.testBit b then oneE else zeroE
+
+/-- `boolVecE` is `boolVec`. -/
+theorem boolVecE_eq {m : ℕ} (j : Fin (2 ^ m)) : boolVecE j = boolVec j := rfl
+
+/-- Whether a word is `1`, limb by limb. -/
+def isOneE (x : E) : Bool := decide (x.limb 0 = 1 ∧ x.limb 1 = 0 ∧ x.limb 2 = 0)
+
+/-- `isOneE` decides `x = 1`. -/
+theorem isOneE_iff (x : E) : isOneE x = true ↔ x = 1 := by
+  have h1 : ∀ i : Fin 3, (1 : E).limb i = if (i : ℕ) = 0 then 1 else 0 :=
+    CompPoly.Extension.Ext.coeff_one (P := BF64.ext3Params)
+  rw [isOneE, decide_eq_true_iff]
+  constructor
+  · rintro ⟨e0, e1, e2⟩
+    apply E.ext
+    intro i
+    rw [h1]
+    fin_cases i
+    · exact e0
+    · exact e1
+    · exact e2
+  · rintro rfl
+    exact ⟨by rw [h1]; rfl, by rw [h1]; rfl, by rw [h1]; rfl⟩
+
+/-- `boolIndex` over `E`, testing each coordinate limb by limb. -/
+def boolIndexE {m : ℕ} (p : Vector E m) : Fin (2 ^ m) :=
+  ⟨Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0, by
+    have h : Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 =
+        boolIndexNat p := by
+      unfold boolIndexNat
+      congr 1
+      funext i acc
+      simp only [isOneE_iff]
+    rw [h, boolIndexNat_eq]
+    exact (boolIndex p).isLt⟩
+
+/-- `boolIndexE` is `boolIndex`. -/
+theorem boolIndexE_eq {m : ℕ} (p : Vector E m) : boolIndexE p = boolIndex p := by
+  apply Fin.ext
+  rw [← boolIndexNat_eq]
+  show Fin.foldr m (fun i acc ↦ (if isOneE p[i] then 1 else 0) + 2 * acc) 0 = _
+  unfold boolIndexNat
+  congr 1
+  funext i acc
+  simp only [isOneE_iff]
+
+/-- `Layout.readWith` through `boolVecE` and `boolIndexE`. -/
+def Layout.readWithFast {μ : ℕ} {ι : Type} {κ : ι → ℕ}
+    (extend : (c : ι) → Vector E (κ c) → Vector E μ) (q : Column μ) (c : ι) : Column (κ c) :=
+  ⟨Vector.ofFn fun x ↦ q.values.get (boolIndexE (extend c (boolVecE x)))⟩
+
+/-- Compiled code reads a column with the words `0` and `1` computed once. -/
+@[csimp] theorem Layout.readWith_eq_readWithFast : @Layout.readWith = @Layout.readWithFast := by
+  funext μ ι κ extend q c
+  simp only [Layout.readWith, Layout.readWithFast, boolVecE_eq, boolIndexE_eq]
 
 /-- How a point of a column of height `2 ^ κ c` lifts to a point of the stack of height `2 ^ μ`
 (for an aligned block at selector bits `sel`, `extend c z = (z, sel)`; for a strided slot, the
@@ -219,6 +291,17 @@ def column (q : Column I.μ) (c : I.ColumnId) : Column (I.κ c) := I.layout.read
 /-- Row `x` of table `j`, read off the stack. -/
 def row (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
   fun i ↦ (I.column q ⟨j, i⟩).values.get x
+
+/-- Row `x` of table `j`, each cell read off the stack alone, where `row` reads the whole column
+of each cell. -/
+def rowFast (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) : Fin (I.width j) → K :=
+  fun i ↦ q.values.get (boolIndexE (I.layout.extend ⟨j, i⟩ (boolVecE x)))
+
+/-- Compiled code reads a row cell by cell. -/
+@[csimp] theorem row_eq_rowFast : @row = @rowFast := by
+  funext I q j x i
+  simp only [row, rowFast, column, Layout.read, Layout.readWith, Vector.get_ofFn, boolVecE_eq,
+    boolIndexE_eq]
 
 /-- The value of a boundary coordinate at row `x` of its block. -/
 def coordCell (q : Column I.μ) {κ : ℕ} : Coord I.toShape κ → Fin (2 ^ κ) → K

@@ -103,6 +103,29 @@ def virtualTable (q : Column I.μ) (j : Fin I.ntab) (P : CMvPolynomial (I.width 
     CMlPolynomialEval E (I.τ j) :=
   Vector.ofFn fun x ↦ ofK (P.eval (I.row q j x))
 
+/-- The columns of table `j`, read off the stack once each. -/
+def columnsOf (q : Column I.μ) (j : Fin I.ntab) :
+    Vector (CMlPolynomialEval K (I.τ j)) (I.width j) :=
+  Vector.ofFn fun i ↦ (I.column q ⟨j, i⟩).values
+
+/-- Row `x` of table `j`, out of its columns. -/
+theorem row_eq_columnsOf (q : Column I.μ) (j : Fin I.ntab) (x : Fin (2 ^ I.τ j)) :
+    I.row q j x = fun i ↦ (I.columnsOf q j)[i].get x := by
+  funext i
+  simp [row, columnsOf]
+
+/-- The virtual table with the table's columns read once, where `virtualTable` reads a row off the
+stack for every entry. -/
+def virtualTableFast (q : Column I.μ) (j : Fin I.ntab) (P : CMvPolynomial (I.width j) K) :
+    CMlPolynomialEval E (I.τ j) :=
+  let cols := I.columnsOf q j
+  Vector.ofFn fun x ↦ ofK (P.eval fun i ↦ cols[i].get x)
+
+/-- Compiled code reads a virtual table's columns once. -/
+@[csimp] theorem virtualTable_eq_virtualTableFast : @virtualTable = @virtualTableFast := by
+  funext I q j P
+  simp only [virtualTable, virtualTableFast, row_eq_columnsOf]
+
 /-- The value of a form on the stack at a point of its table: the weighted sum of the virtual
 tables' extensions there. -/
 def Form.eval {j : Fin I.ntab} (f : I.Form j) (q : Column I.μ) (z : Vector E (I.τ j)) : E :=

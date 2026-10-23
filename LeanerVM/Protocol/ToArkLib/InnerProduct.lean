@@ -9,6 +9,7 @@ module
 
 public import ArkLib.OracleReduction.OracleInterface
 public import CompPoly.Multilinear.Basic
+public import LeanerVM.Protocol.ToCompPoly.Doubling
 
 /-!
 # The inner-product oracle

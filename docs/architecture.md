@@ -583,16 +583,24 @@ body is fixed in the module that defined it; for a function a component's prover
 is that function, registered in its own module before the component that names it is compiled.
 `LeanerVM.Parameters.ToCompPoly.BF64Fast`, `LeanerVM.Parameters.ToCompPoly.ExtensionFast`,
 `LeanerVM.Semantics.Blake2sFast` and `LeanerVM.Protocol.Blake2sHashFast` are the field and hashing
-fast paths. The sumcheck provers' round messages run on tables bound once to the challenges
+fast paths. `LeanerVM.Protocol.ToCompPoly.Doubling` (the Lagrange basis by doubling, the
+multilinear extension with one product per entry), `LeanerVM.Protocol.ToCompPoly.MvEval` (sparse
+polynomial evaluation, through `CMvPolynomial.eval` and `CMvPolynomial.eval₂`) and
+`LeanerVM.Protocol.ToCompPoly.FinLoop` (sums and products as loops) serve every Protocol module.
+The sumcheck provers' round messages run on tables bound once to the challenges
 (`LeanerVM.Protocol.ToCompPoly.TableFold`, through `Sumcheck.roundPoly_eq_roundPolyFolded` and
 `ProductSum.roundPoly_eq_roundPolyFolded`), and the table sumcheck's formula on precomputed
-offsets and powers (`TableSumcheck.formula_eq_formulaFast`, with the row polynomials evaluated by
-`LeanerVM.Protocol.ToCompPoly.SparseEval`). A round message is a function of the context and the
-challenges, so a prover binds its tables afresh each round: `m · 2 ^ n` per round and
-`n · m · 2 ^ n` over the sumcheck, not `m · 2 ^ n`. The Flock rounds
-(`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a round message's
-value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route. All are timed by the
-`leanervm-bench` executable ([bench/README.md](../bench/README.md)).
+offsets and powers (`TableSumcheck.formula_eq_formulaFast`). Beside the definitions they replace
+are the fast paths of the bit-product table, the cube weights, the cube decoder, the stack, the
+aligned, strided and leanISA layouts, the witness's columns, an instance's column reads, rows and
+virtual tables, the bus leaves and the grand-product prover's messages
+(`Gkr.roundPoly_eq_roundPolyFast`, `Bus.sideLeaves_eq_sideLeavesFast`). A round message is a
+function of the context and the challenges, so a prover rebuilds what it reads each round: the
+sumcheck binds its tables afresh, `m · 2 ^ n` per round and `n · m · 2 ^ n` over the sumcheck;
+the grand-product argument rebuilds its trees' level below, and the bus phase its leaves. The
+Flock rounds (`Flock.normRound_eq_normRoundFolded`, `Flock.highRound_eq_highRoundFolded`) and a
+round message's value (`SumcheckRound.evaluate_eq_evaluateHorner`) take the same route. All are
+timed by the `leanervm-bench` executable ([bench/README.md](../bench/README.md)).
 
 Rust FFI follows when a Lean caller needs a measured fast path and the ABI can be
 specified. CUDA follows when profiling identifies a stable parallel kernel boundary. A

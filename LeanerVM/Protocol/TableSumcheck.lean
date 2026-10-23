@@ -12,7 +12,7 @@ public import LeanerVM.Protocol.Spine.Phase
 public import LeanerVM.Protocol.Spine.Errors
 public import LeanerVM.Protocol.ToArkLib.Batch
 public import LeanerVM.Protocol.ToArkLib.Sumcheck
-public import LeanerVM.Protocol.ToCompPoly.SparseEval
+public import LeanerVM.Protocol.ToCompPoly.MvEval
 import CompPoly.Multivariate.MvPolyEquiv.Eval
 import Mathlib.Algebra.BigOperators.Fin
 

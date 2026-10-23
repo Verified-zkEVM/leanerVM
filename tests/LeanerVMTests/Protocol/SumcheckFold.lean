@@ -212,7 +212,7 @@ def rowPoly : CPoly.CMvPolynomial 3 K :=
   CPoly.CMvPolynomial.X 0 * CPoly.CMvPolynomial.X 2 * CPoly.CMvPolynomial.X 2 +
     CPoly.CMvPolynomial.X 1 - CPoly.CMvPolynomial.C (K.ofBits 5)
 
--- `eval₂` compiles to `eval₂Sparse`; CompPoly's Horner evaluator is another algorithm.
+-- `eval₂` compiles to `eval₂Fast`; CompPoly's Horner evaluator is another algorithm.
 #guard [(a, b, c), (0, 1, b), (c, 0, 0)].all fun (p, q, r) ↦
   rowPoly.eval₂ (algebraMap K E) ![p, q, r] = rowPoly.eval₂Horner (algebraMap K E) ![p, q, r]
 
