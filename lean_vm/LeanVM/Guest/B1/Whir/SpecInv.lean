@@ -1,0 +1,178 @@
+/-
+  LeanVM.Guest.B1.Whir.SpecInv
+
+  An accepting run of `whirOpenNZ`, level by level, backwards: the head, a level that is not the
+  last, the last level with its tail.
+-/
+
+module
+
+public import LeanVM.Guest.B1.Whir.SpecLevel
+
+/-!
+# The run, level by level
+
+* `head_inv`: the run reads the first quadratic's two words `c0, c2` and runs the levels from the
+  sponge with them waiting, the state `⟨target, [c0, target + c2, c2], [], []⟩`.
+* `level_nf_inv`: a level that is not the last reads the words `L.words` and the openings `L.os`
+  of some `L : SpLv` with `L.Ok`, and the run goes on from `L.Fend`, `L.wsEnd`, its next
+  commitment read.
+* `level_fin_inv`: the last level the same, then its tail rounds (`tailTr`), the end `w`.
+-/
+
+namespace LeanVM.Guest.B1.Whir
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.B1
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+theorem foldsTr_take : ∀ (n : ℕ) (F : Fs) (q : List E) (t : E) (xs : List E),
+    foldsTr n F q t (xs.take (2 * n)) = foldsTr n F q t xs
+  | 0, _, _, _, _ => rfl
+  | n + 1, F, q, t, xs => by
+    match xs with
+    | [] => rfl
+    | [x] =>
+      simp only [foldsTr, show 2 * (n + 1) = 2 * n + 2 by ring, List.take_succ_cons,
+        List.take_nil, List.getD_cons_zero, List.getD_cons_succ, List.getD_nil, List.drop_succ_cons,
+        List.drop_nil]
+    | x0 :: x1 :: xs =>
+      simp only [foldsTr, show 2 * (n + 1) = 2 * n + 2 by ring, List.take_succ_cons,
+        List.getD_cons_zero, List.getD_cons_succ, List.drop_succ_cons, List.drop_zero]
+      rw [foldsTr_take n]
+
+theorem take_append_drop' (xs : List E) (n : ℕ) : xs = xs.take n ++ xs.drop n :=
+  (List.take_append_drop n xs).symm
+
+/-- **The head**: the first quadratic, then the levels. -/
+theorem head_inv {μ r : ℕ} {target : E} {F : Fs} {xs : List E} {os : List Opening}
+    {R : List (Digest × ℕ × ℕ)} {res : WhirEnd × FSt}
+    (h : runF (whirOpenNZ μ r target) ⟨F, xs, os, R⟩ = some res) :
+    ∃ (cfg : List Whir.Level) (c0 c2 : E) (xs' : List E), deriveConfig μ r = some cfg ∧
+      xs = c0 :: c2 :: xs' ∧
+      runF (whirLevelsOpenNZ μ ((cfg.head?.map (·.fold)).getD 0) 0 cfg ⟨target, [c0, target + c2, c2],
+        [], []⟩) ⟨(F.absorb c0 dsObserve).absorb c2 dsObserve, xs', os, R⟩ = some res := by
+  simp only [whirOpenNZ, Prog.bind_eq] at h
+  cases hc : deriveConfig μ r with
+  | none => simp [hc, Verifier.liftOption, Prog.bind, runF] at h
+  | some cfg =>
+    simp only [hc, Verifier.liftOption, Prog.ret_bind] at h
+    rw [sumcheck3_bind] at h
+    obtain ⟨c0, xs1, hx1, h1⟩ := runF_readE_bind h
+    obtain ⟨c2, xs2, hx2, h2⟩ := runF_readE_bind h1
+    subst hx1 hx2
+    exact ⟨cfg, c0, c2, xs2, rfl, rfl, h2⟩
+
+/-- **A level that is not the last, backwards.** -/
+theorem level_nf_inv {logN lane index : ℕ} {level next : Whir.Level} {rest : List Whir.Level}
+    {ws : WhirState} {F : Fs} {xs : List E} {os : List Opening} {R : List (Digest × ℕ × ℕ)}
+    {res : WhirEnd × FSt} (hF : F.pend.length = 2) (hR : index < R.length)
+    (hml : 1 ≤ logN - (ws.folds.length + level.fold))
+    (hd : 1 ≤ 192 / (logN - (ws.folds.length + level.fold) + level.logInvRate))
+    (h : runF (whirLevelsOpenNZ logN lane index (level :: next :: rest) ws) ⟨F, xs, os, R⟩ =
+      some res) :
+    ∃ (L : SpLv) (d : Digest) (xsR : List E) (osR : List Opening),
+      L.logN = logN ∧ L.index = index ∧ L.level = level ∧ L.fin = false ∧ L.ws = ws ∧ L.F = F ∧
+      L.Ok R d ∧ xs = L.words ++ xsR ∧ os = L.os ++ osR ∧
+      runF (whirLevelsOpenNZ logN lane (index + 1) (next :: rest) L.wsEnd)
+        ⟨L.Fend, xsR, osR, R ++ [(d, levelShape L.ml next (3 * 2 ^ next.fold))]⟩ = some res := by
+  rw [whirLevelsOpenNZ] at h
+  simp only [Prog.bind_eq, Prog.pure_eq] at h
+  obtain ⟨hl, hnz, h1⟩ := foldsNZ_inv _ _ _ _ _ _ _ _ h
+  simp only [Prog.ret_bind, List.nil_append] at h1
+  have hF1 : (foldsTr level.fold F ws.quad ws.target xs).1.pend.length = 2 :=
+    foldsTr_pend _ _ _ _ _ hF
+  have hfl : (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length =
+      ws.folds.length + level.fold := by
+    rw [List.length_append, foldsTr_chs_length]
+  obtain ⟨ra, rb, xs2, d, hx2, hdig, h2⟩ := runF_commitP_bind h1
+  rw [absorb_two hF1, runF_sampleN_bind, squeezeN_cF1 _ _ (by rw [hfl]; exact hml)] at h2
+  obtain ⟨y, xs3, hx3, h3⟩ := runF_readE_bind h2
+  rw [sumcheck3_bind] at h3
+  obtain ⟨c0, xs4, hx4, h4⟩ := runF_readE_bind h3
+  obtain ⟨c2, xs5, hx5, h5⟩ := runF_readE_bind h4
+  obtain ⟨nonce, xs6, hx6, hpow, h6⟩ := runF_grindP_bind h5
+  rw [absorb_four] at hpow h6
+  have hd' : 1 ≤ 192 / (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
+      level.logInvRate) := by
+    rw [hfl]; exact hd
+  obtain ⟨osL, osR, ic0, ic2, xsR, root, height, width, eos, hx7, hlam, hroot, hol, hok, h7⟩ :=
+    rest_inv hd' h6
+  subst hx3 hx4 hx5 hx6 hx7
+  set L : SpLv := ⟨logN, index, level, false, ws, F, xs.take (2 * level.fold), ra, rb, y, c0, c2,
+    [], nonce, osL, ic0, ic2⟩ with hL
+  have eTr : L.tr = foldsTr level.fold F ws.quad ws.target xs := foldsTr_take _ _ _ _ _
+  have eChs : L.chs = (foldsTr level.fold F ws.quad ws.target xs).2.1 := by rw [SpLv.chs, eTr]
+  have eF1 : L.F1 = (foldsTr level.fold F ws.quad ws.target xs).1 := by rw [SpLv.F1, eTr]
+  have eWs1 : L.ws1 = { ws with
+      target := (foldsTr level.fold F ws.quad ws.target xs).2.2.2
+      quad := (foldsTr level.fold F ws.quad ws.target xs).2.2.1
+      folds := ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1 } := by
+    rw [SpLv.ws1, eTr, eChs]
+  have eMl : L.ml = logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length := by
+    rw [SpLv.ml, eWs1]
+  have eF2 : L.F2 = ⟨capOf (cF2 (foldsTr level.fold F ws.quad ws.target xs).1 ra rb
+      (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length) y c0 c2
+      nonce).perm, []⟩ := by
+    rw [SpLv.F2, ← eF1, ← eMl]
+    rfl
+  have eD : L.D = logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
+      level.logInvRate := by rw [SpLv.D, eMl]
+  have eNsq : L.nsq = ceilDiv level.queries (192 / (logN - (ws.folds ++
+      (foldsTr level.fold F ws.quad ws.target xs).2.1).length + level.logInvRate)) := by
+    rw [SpLv.nsq, eD]
+  have eQs : L.qs = queriesOf (192 / (logN - (ws.folds ++
+      (foldsTr level.fold F ws.quad ws.target xs).2.1).length + level.logInvRate))
+      (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length +
+        level.logInvRate)
+      ((Fs.squeezeN (ceilDiv level.queries (192 / (logN - (ws.folds ++
+        (foldsTr level.fold F ws.quad ws.target xs).2.1).length + level.logInvRate)))
+        ⟨capOf (cF2 (foldsTr level.fold F ws.quad ws.target xs).1 ra rb
+          (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length) y c0 c2
+          nonce).perm, []⟩).1) level.queries := by
+    rw [SpLv.qs, eD, eF2, eNsq]
+  have eLam : L.lam = (Fs.squeezeN (ceilDiv level.queries (192 / (logN - (ws.folds ++
+        (foldsTr level.fold F ws.quad ws.target xs).2.1).length + level.logInvRate)))
+        ⟨capOf (cF2 (foldsTr level.fold F ws.quad ws.target xs).1 ra rb
+          (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length) y c0 c2
+          nonce).perm, []⟩).2.squeeze.1 := by
+    rw [SpLv.lam, eF2, eNsq]
+  have ePend : L.pending = [(y, [c0, y + c2, c2], fun x ↦ eqEval (oodZ
+      (foldsTr level.fold F ws.quad ws.target xs).1 ra rb
+      (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length)) x)] := by
+    rw [SpLv.pending, ← eF1, ← eMl]
+    rfl
+  have eEnf : L.enforced = enforcedSum L.rows (foldsTr level.fold F ws.quad ws.target xs).2.1
+      (powers L.lam L.qs.length) := by
+    rw [SpLv.enforced, eChs]
+  have eWsEnd : L.wsEnd = glue L.lam L.ws1 (L.pending ++ [(L.enforced,
+      [ic0, L.enforced + ic2, ic2], fun x ↦ inducedWeight L.ml L.qs (powers L.lam L.qs.length) x)]) :=
+    rfl
+  have eFend : L.Fend = foldStep (Fs.squeezeN (ceilDiv level.queries (192 / (logN - (ws.folds ++
+        (foldsTr level.fold F ws.quad ws.target xs).2.1).length + level.logInvRate)))
+        ⟨capOf (cF2 (foldsTr level.fold F ws.quad ws.target xs).1 ra rb
+          (logN - (ws.folds ++ (foldsTr level.fold F ws.quad ws.target xs).2.1).length) y c0 c2
+          nonce).perm, []⟩).2 ic0 ic2 := by
+    rw [SpLv.Fend, eF2, eNsq]
+  refine ⟨L, d, xsR, osR, rfl, rfl, rfl, rfl, rfl, rfl, ⟨?_, ?_, fun _ ↦ hdig, fun _ ↦ ?_,
+    fun h ↦ absurd h Bool.false_ne_true, fun h ↦ absurd h Bool.false_ne_true, ?_, ?_⟩, ?_, eos, ?_⟩
+  · show (xs.take (2 * level.fold)).length = 2 * level.fold
+    simp only [List.length_take]; omega
+  · intro c hc; rw [eChs] at hc; exact hnz c hc
+  · rw [eF1, eMl]; exact hpow
+  · rw [eLam]; exact hlam
+  · refine ⟨root, height, width, by rw [List.getElem?_append_left hR] at hroot; exact hroot,
+      by rw [eQs]; exact hol, ?_⟩
+    rw [eQs]
+    exact hok
+  · show xs = (xs.take (2 * level.fold) ++ (if false = true then [] ++ [nonce] else
+      [ra, rb, y, c0, c2, nonce]) ++ [ic0, ic2]) ++ xsR
+    simp only [Bool.false_eq_true, ↓reduceIte, List.append_assoc, List.cons_append,
+      List.nil_append]
+    rw [← hx2, List.take_append_drop]
+  · rw [eWsEnd, eFend, eEnf, eLam, eWs1, ePend, eQs, eMl]
+    exact h7
+
+end
+end LeanVM.Guest.B1.Whir
