@@ -258,6 +258,20 @@ theorem tb_noRetList_append (a b : List Stmt) :
   | nil => simp [Stmt.noRetList]
   | cons s a ih => simp [Stmt.noRetList, ih, Bool.and_assoc]
 
+theorem tb_noRetList_flatten_range (n : ℕ) (g : ℕ → List Stmt)
+    (hg : ∀ i, Stmt.noRetList (g i) = true) : Stmt.noRetList ((List.range n).map g).flatten = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    rw [List.range_succ, List.map_append, List.flatten_append, tb_noRetList_append, ih,
+      List.map_singleton, List.flatten_singleton, hg]; rfl
+
+theorem tb_noRetList_mapAtoms (n : ℕ) (f : ℕ → Atom) :
+    Stmt.noRetList ((List.range n).map fun e ↦ Stmt.atom (f e)) = true := by
+  induction n with
+  | zero => rfl
+  | succ n ih => rw [List.range_succ, List.map_append, tb_noRetList_append, ih]; rfl
+
 section Slices
 
 variable {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop}
