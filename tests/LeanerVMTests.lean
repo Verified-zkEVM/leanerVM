@@ -17,6 +17,7 @@ import LeanerVMTests.Parameters.Generator
 import LeanerVMTests.Parameters.Isa
 import LeanerVMTests.Parameters.Whir
 import LeanerVMTests.Protocol.AmbientStacking
+import LeanerVMTests.Protocol.AppendLazy
 import LeanerVMTests.Protocol.Batch
 import LeanerVMTests.Protocol.BitProductTable
 import LeanerVMTests.Protocol.Blake2sCircuit
