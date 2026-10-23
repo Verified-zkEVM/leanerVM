@@ -89,11 +89,11 @@ variable {bytecode : List K}
 /-- **`main` at `fp` on the honest run**: for `NodeRel` within `Limits`, a statement of the
 bytecode's shape (`log₂` of its length `23`) and fresh claims at points of `23` coordinates, from
 its callees' completeness on the run: a layout `L` within `[fp, fp + n)`, pairwise disjoint,
-containing `main`'s honest words, on every memory holding which and the statement's digest at
+above `main`'s frame, containing `main`'s honest words, on every memory holding which and the statement's digest at
 words `0`, `1` `main` holds by its node at `fp`, at a valuation with the honest values. -/
 theorem main_honest_relAtInW (hlog : Nat.log2 bytecode.length = 23) (hr : NodeRel bytecode seed s w)
     (hl : Limits bytecode s w) (hf : FreshShaped w) (hg : MainGoals fs cert fp seed s w) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ hLmain fs fp seed s w, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L →
         LoadHolds rd 1 0 (digestScalars (statementDigest seed s)).1 →

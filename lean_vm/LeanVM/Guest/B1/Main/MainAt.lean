@@ -146,7 +146,7 @@ theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
     (hmm : ∀ rd, B1.Main.MemL rd (bufL (fp + fs "main") (mSizes d) own) →
       LoadHolds rd 1 0 (digestScalars d.sdg).1 → LoadHolds rd gen 0 (digestScalars d.sdg).2 →
         MainMem rd (d.toIn fs fp)) :
-    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ DisjL L ∧
+    ∃ (n : ℕ) (L : B1.Main.Layout), Within L fp n ∧ (∀ q ∈ L, fp + fs "main" ≤ q.1) ∧ DisjL L ∧
       (∀ q ∈ bufL (fp + fs "main") (mSizes d) own ++ etL d fs fp, q ∈ L) ∧
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
@@ -167,11 +167,13 @@ theorem main_relAtInW (fs : String → ℕ) (cert : String → V → ℕ) (fp : 
   have hDe : DisjL (etL d fs fp) := List.Pairwise.cons (fun q hq => by
       simp only [List.mem_singleton] at hq; subst hq; exact Or.inl (by simp [etTabs]))
     (List.pairwise_singleton _ _)
-  refine ⟨fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk), Lmain ++ Lk, ?_, ?_,
-    fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
-  · rw [within_append, within_append]
+  have hWb : Within (Lmain ++ Lk) b0 ((mSizes d).sum + (fs "exponent_tables" + 68 + Nk)) := by
+    rw [within_append, within_append]
     exact ⟨⟨hWo.mono (by omega) (by omega), hWe.mono (by omega) (by omega)⟩,
       hW.mono (by omega) (by omega)⟩
+  refine ⟨fs "main" + (mSizes d).sum + (fs "exponent_tables" + 68 + Nk), Lmain ++ Lk,
+    hWb.mono (by omega) (by omega), fun q hq => (hWb q hq).1, ?_,
+    fun q hq => List.mem_append_left _ hq, fun rd hlow hL h0 h1 => ?_⟩
   · have hW1 : Within (Lown ++ etL d fs fp) b0 ((mSizes d).sum + fs "exponent_tables" + 68) :=
       within_append.mpr ⟨hWo.mono le_rfl (by omega), hWe.mono (by omega) (by omega)⟩
     exact disj_append (disj_append (bufL_disj _ _ _ hfit) hDe hWo hWe (by omega)) hD hW1 hW
@@ -610,7 +612,7 @@ theorem main_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (fp : �
       ∀ rd, LowDef 16 rd → B1.Main.MemL rd L → LoadHolds rd 1 0 (digestScalars d.sdg).1 →
         LoadHolds rd gen 0 (digestScalars d.sdg).2 →
         RelAtIn coreProgram fs cert rd (fun i => i < 2) (fun _ => False) fp n "main" [] [] :=
-  let ⟨n, L, h1, h2, h3, h4⟩ := main_relAtInW fs cert fp d own hfit hb hdaR hok hmm
+  let ⟨n, L, h1, _, h2, h3, h4⟩ := main_relAtInW fs cert fp d own hfit hb hdaR hok hmm
   ⟨n, L, h1, h2, h3, fun rd hl hm h0 h1 => (h4 rd hl hm h0 h1).relAtIn⟩
 
 end
