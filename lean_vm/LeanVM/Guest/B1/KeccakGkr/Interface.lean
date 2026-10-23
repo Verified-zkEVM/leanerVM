@@ -268,7 +268,8 @@ def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
           RunsTo (keccakSeg τ (chis.take τ) outs) ⟨[f0, f1, f2, f3, f4], []⟩ xs
             (([⟨qkeccak, op, word⟩], point, slices), m0) ⟨cap', []⟩ ∧
           ReadsAt rd zv op ∧ ReadsAt rd (zv * gen ^ qkeccakVarsCap) point ∧ ReadsAt rd sl slices ∧
-          rets = cap' ++ [cur * gen ^ xs.length, word, m0]
+          op.length = τ + qkeccakSlotBits ∧ point.length = τ + qkeccakSlotBits ∧
+          slices.length = 64 ∧ rets = cap' ++ [cur * gen ^ xs.length, word, m0]
   | _, _ => False
 
 /-- `verify_keccak`'s core IR computes its meaning. -/

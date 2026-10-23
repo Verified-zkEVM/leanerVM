@@ -133,7 +133,7 @@ theorem verify_keccak_holds : verify_keccak_Spec := by
     (by rw [show keccakLaneBits = 5 from rfl]; exact hsq5) (by rw [habs]; exact hrunL) hmOL hO
     (vk_out_check (chis.take τ) outs (σ (.n 191)) (σ (.n 89)) rl hlen4 hslotOL hchk)
     hmIL hI hmSL hS hslices hfin hm
-  refine ⟨_, _, _, slices, _, _, _, ?_, hrun, ?_, ?_, ?_, ?_⟩
+  refine ⟨_, _, _, slices, _, _, _, ?_, hrun, ?_, ?_, ?_, ?_, ?_, hslices, ?_⟩
   · -- the words read at the cursor
     simp only [List.append_assoc]
     rw [readsAt_append, readsAt_append, readsAt_append, readsAt_append, readsAt_append,
@@ -182,6 +182,11 @@ theorem verify_keccak_holds : verify_keccak_Spec := by
     simp only [List.length_map, List.length_range] at hz
     rw [List.getElem_map, List.getElem_range]
     exact hslL z hz
+  · -- the lengths
+    simp only [List.length_append, List.length_take, List.length_drop, hslotOL, qkeccakSlotBits_eq']
+    omega
+  · simp only [List.length_append, List.length_take, hlowL, hptL, hslotIL, qkeccakSlotBits_eq']
+    omega
   · -- the returns
     rw [← hret]
     simp only [List.length_cons, List.length_nil, List.length_append, flatMap_pairs_length, hmOL, hmIL, hmSL,
