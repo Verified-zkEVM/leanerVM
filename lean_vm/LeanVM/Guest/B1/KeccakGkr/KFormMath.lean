@@ -133,5 +133,47 @@ theorem later_dot (locPt a6 lanes : List E) (hl : locPt.length = 11) (ha : a6.le
   exact congrArg₂ (· + ·) rfl (congrArg₂ (· + ·) (sum25_mod fL (fun x ↦ colS L S ((x + 1) % 5)))
     (sum25_mod fL (fun x ↦ colN L S ((x + 4) % 5))))
 
+/-- **`keccak_form`'s identity, for any lane and slice weights** (`fL ⊗ fZ` against `Lᵀ`). -/
+theorem later_dot_gen (a6 lanes : List E) (ha : a6.length = 6) (fL fZ : ℕ → E) :
+    ∑ l ∈ range 25, ∑ z ∈ range 64,
+      fL l * fZ z * (laterWeights lanes (eqKernel a6)).getD (64 * l + z) 0 =
+      formVal fL (kLane lanes) (fun r ↦ ∑ z ∈ range 64, eqAt a6 ((z + r) % 64) * fZ z) := by
+  set L := kLane lanes with hL
+  set S : ℕ → E := fun r ↦ ∑ z ∈ range 64, eqAt a6 ((z + r) % 64) * fZ z with hS
+  have lane : ∀ l < 25, (∑ z ∈ range 64, fL l * fZ z *
+      (laterWeights lanes (eqKernel a6)).getD (64 * l + z) 0) =
+      fL l * (L l * S (kRho l) + colS L S ((l % 5 + 1) % 5) + colN L S ((l % 5 + 4) % 5)) := by
+    intro l hl25
+    have term : ∀ z ∈ range 64, fL l * fZ z *
+        (laterWeights lanes (eqKernel a6)).getD (64 * l + z) 0 =
+        fL l * (L l * (eqAt a6 ((z + kRho l) % 64) * fZ z) +
+          ∑ y ∈ range 5, L ((l % 5 + 1) % 5 + 5 * y) *
+            (eqAt a6 ((z + kRho ((l % 5 + 1) % 5 + 5 * y)) % 64) * fZ z) +
+          ∑ y ∈ range 5, L ((l % 5 + 4) % 5 + 5 * y) *
+            (eqAt a6 ((z + (kRho ((l % 5 + 4) % 5 + 5 * y) + 1) % 64) % 64) * fZ z)) := by
+      intro z hz
+      have hz' := Finset.mem_range.1 hz
+      have hd : (64 * l + z) / 64 = l := by omega
+      have hm : (64 * l + z) % 64 = z := by omega
+      rw [mul_comm (fL l) (fZ z), laterWeights, keccakLinearTranspose_getD _ (by omega), thetaT,
+        hd, hm, gOf_later lanes a6 ha hl25 hz', colL_later lanes a6 ha (by omega) hz',
+        colL_later lanes a6 ha (by omega) (by omega)]
+      have hshift : ∀ y, ((z + 1) % 64 + kRho ((l % 5 + 4) % 5 + 5 * y)) % 64 =
+          (z + (kRho ((l % 5 + 4) % 5 + 5 * y) + 1) % 64) % 64 := fun y ↦ by omega
+      simp only [hshift, mul_add, Finset.mul_sum]
+      exact congrArg₂ (· + ·) (congrArg₂ (· + ·) (by ring)
+        (Finset.sum_congr rfl fun y _ ↦ by ring)) (Finset.sum_congr rfl fun y _ ↦ by ring)
+    rw [Finset.sum_congr rfl term, ← Finset.mul_sum]
+    refine congrArg (fL l * ·) ?_
+    rw [Finset.sum_add_distrib, Finset.sum_add_distrib, ← Finset.mul_sum, Finset.sum_comm,
+      Finset.sum_comm (s := range 64) (t := range 5)]
+    simp only [← Finset.mul_sum]
+    rfl
+  rw [Finset.sum_congr rfl fun l hl ↦ lane l (Finset.mem_range.1 hl)]
+  unfold formVal
+  simp only [mul_add, Finset.sum_add_distrib, add_assoc]
+  exact congrArg₂ (· + ·) rfl (congrArg₂ (· + ·) (sum25_mod fL (fun x ↦ colS L S ((x + 1) % 5)))
+    (sum25_mod fL (fun x ↦ colN L S ((x + 4) % 5))))
+
 end
 end LeanVM.Guest.B1.VerifySub
