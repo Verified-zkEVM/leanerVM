@@ -476,7 +476,7 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
     hshape ?_ hcw hok
   rw [hc1]
   refine ⟨hps.seg, ⟨hps.ok.env, hps.ok.book, fun x hx ↦ ?_, hps.ok.tg, hps.ok.nx⟩, hps.run,
-    fun t' ht' ↦ ?_, hps.nm, hps.ix⟩
+    fun t' ht' ↦ ?_, fun n hn ↦ ?_, hps.ix⟩
   · rcases List.mem_cons.mp hx with rfl | hx
     · refine ⟨kfp, hq, fun p hp' ↦ ?_⟩
       rcases List.mem_append.mp hp' with hp' | hp'
@@ -497,6 +497,10 @@ theorem walk_dispatchZ (H : WH L j fp X segs wJ wenv σ es vs kfps hdr ck) (v : 
     · rw [hre] at ht'; cases ht'
     · rw [hre] at ht'
       exact hps.fresh t' ht'
+  · rcases nvVals_spec _ _ n hn with h | h
+    · exact hps.nm n h
+    · have hm : Ev.call fs[k] args rets ∈ es := by rw [hes2]; simp
+      exact uses_named hm (by simp [Ev.uses, h])
 
 end Walk
 

@@ -213,7 +213,7 @@ theorem afterC_ok {st sr : CW} {q r u : ℕ} {fcs : List (ℕ × FC)} {args rets
     (h : afterC X st q r u fcs args rets = .ok sr) :
     ∃ se s, endAtC X { st with fr := (q, fcs) :: st.fr } = .ok se ∧ segAtC X (r - X.entry) se = some s ∧
       sr = ⟨s.seg, s.its, s.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr, s.tg, s.nx,
-        s.cnt, u, bif rets.isEmpty then s.fresh else none, s.nm⟩ := by
+        s.cnt, u, bif rets.isEmpty then s.fresh else none, nvVals rets s.nm⟩ := by
   unfold afterC at h
   split at h
   · rename_i se hse

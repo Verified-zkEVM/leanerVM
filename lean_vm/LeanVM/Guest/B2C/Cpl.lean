@@ -646,7 +646,7 @@ def armCnt (key : Option (List Cnt)) (se : CW) (c : Cnt) : Cnt :=
   | none => c
 
 /-- A selector the path names: a parameter, a value of one of the body's atoms, or of one of the
-atoms walked in the enclosing blocks. -/
+atoms walked, or calls returned from, in the enclosing blocks. -/
 def selOk (st : CW) (v : V) : Bool := Nat.blt v.idx X.nargs || bitK X.nv v.idx || bitK st.nm v.idx
 
 /-- The call site of a call with these argument and return values (`siteOf`). -/
@@ -701,7 +701,7 @@ noncomputable def afterC (st : CW) (q r u : ℕ) (fcs : List (ℕ × FC)) (args 
   match endAtC X { st with fr := (q, fcs) :: st.fr } with
   | .ok se => match segAtC X (r - X.entry) se with
     | some sr => .ok ⟨sr.seg, sr.its, sr.book, (q, fcs ++ argFC X.loc (2 + args.length) rets) :: st.fr,
-        sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none, sr.nm⟩
+        sr.tg, sr.nx, sr.cnt, u, bif rets.isEmpty then sr.fresh else none, nvVals rets sr.nm⟩
     | none => .error 7
   | .error e => .error e
 
