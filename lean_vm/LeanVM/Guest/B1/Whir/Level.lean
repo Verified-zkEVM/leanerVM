@@ -76,7 +76,8 @@ def recClaims (r : OsRec) : List GluedClaim :=
 structure RecStored (rd : Reader) (σ : Val) (c : OsCfg) (lvl : ℕ) (lv : OsLv) (r : OsRec) :
     Prop where
   rq : LvRec rd σ c lvl lv r.lam r.qs
-  z : (lvl = c.yrLevel → r.z = none) ∧ ∀ z, r.z = some z → z.length = lv.logCols ∧
+  z : (lvl = c.yrLevel → r.z = none) ∧ (lvl ≠ c.yrLevel → r.z ≠ none) ∧
+    ∀ z, r.z = some z → z.length = lv.logCols ∧
     ∀ t (ht : t < z.length), LoadHolds rd (σ (.n osOodz)) ((lvl + 1) * ligColsCap + t) z[t]
   F : r.F = lv.foldsOff + lv.folds
   ml : r.ml = lv.logCols
@@ -236,7 +237,7 @@ theorem osLevel_nonfinal_sound {c : OsCfg} {lvl : ℕ} {lv lv' : OsLv} {logN : �
     · rw [← hco.root, show 2 * (lvl + 1) = 2 * lvl + 2 by ring]; exact hco.rootA
     · rw [← hco.root, show 2 * (lvl + 1) + 1 = 2 * lvl + 3 by ring]; exact hco.rootB
   · rw [hwg, hfl]; rfl
-  · exact ⟨hrec, ⟨fun h ↦ absurd h hnf, fun z' hz ↦ by
+  · exact ⟨hrec, ⟨fun h ↦ absurd h hnf, fun _ ↦ by simp, fun z' hz ↦ by
       cases hz; exact ⟨hco.zlen, hco.zat⟩⟩, rfl, rfl⟩
   · simp only [OsSt.cur, hcb3, hco3, List.length_append, List.length_cons, List.length_nil, hxl3]
     have := hco.cur
@@ -330,7 +331,7 @@ theorem osLevel_final_sound {c : OsCfg} {lvl : ℕ} {lv : OsLv} {logN : ℕ} {le
       (runsWith_ret _ _ _)))) rfl rfl rfl rfl ?_ rfl rfl
     simp only [hml']
   · rw [hwg, hfl]; rfl
-  · exact ⟨hrec, ⟨fun _ ↦ rfl, fun z' hz ↦ by cases hz⟩, rfl, rfl⟩
+  · exact ⟨hrec, ⟨fun _ ↦ rfl, fun h ↦ absurd hfin h, fun z' hz ↦ by cases hz⟩, rfl, rfl⟩
   · rw [hwf, hfl]
   · intro j hj
     simp only [hwf] at hj ⊢
