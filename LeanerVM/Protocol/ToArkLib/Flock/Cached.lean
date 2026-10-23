@@ -27,7 +27,9 @@ prover of it (`Component.Cached`), whose cache holds, in turn:
 * after `z_skip`, the three skip tables at it (`skipTableOf`), through the zerocheck's rounds
   (`zcCache`) and its terminal message;
 * after `α`, the lincheck's column weights, one backward walk (`mTableOf`), and the folded
-  witness (`zTableOf`), through its rounds (`linCache`) and the slices.
+  witness (`zTableOf`), through its rounds (`linCache`) and the slices;
+* the switched weight with its values combined on the terms' supports (`ringWeightFast`, by
+  `eqBatch`), its equality kernels vanishing off the region's block.
 
 The sums over the skip nodes and the batch read tables of `0`s and `1`s in the honest run, so they
 add the weights of the entries `1` and skip the entries `0` (`dotSparse`, `dotSparse_eq`). The skip
@@ -443,8 +445,25 @@ variable (s' : ℕ) {K : Type} [CommRing K] (φ : K →+* F) (g : K) {μ : ℕ}
   (lift : Vector F (P.m + P.κ) → Vector F μ) {StmtOut : Type}
   (finish : S → Weight F μ → F → StmtOut)
 
+/-- The switched claim's last coefficient, its weight built by `eqBatch` (`ringWeightFast`). -/
+def ringFinalCached : Component.Cached (ringFinal P s' φ g lift finish (O := O) (S := S) (W := W))
+    (fun _ ↦ ()) (fun _ ↦ ()) := by
+  unfold ringFinal
+  exact Component.Cached.sampleOut (upd := fun _ _ _ ↦ ())
+    (f' := fun st x ↦ finish st.1.1 (ringWeightFast P s' lift st.1.2.1 (st.2.push x))
+      (ringTarget P s' φ g st.1.2.2 (st.2.push x)))
+    (fun st x ↦ by rw [ringWeightFast_eq]) fun _ _ ↦ rfl
+
+/-- Ring switching, the switched weight built by `eqBatch`. -/
+def ringSwitchCached :
+    Component.Cached (ringSwitch P s' φ g lift finish (O := O) (S := S) (W := W))
+    (fun _ ↦ ()) (fun _ ↦ ()) :=
+  (Component.Cached.ofDef (Component.drawPushes O F s')).append
+    (ringFinalCached P s' φ g lift finish)
+
 /-- **The Flock argument's cached prover**: the witness tables and products walked once, the skip
-tables built once at `z_skip`, the lincheck's tables once at `α`. -/
+tables built once at `z_skip`, the lincheck's tables once at `α`, the switched weight's values
+built on the terms' supports. -/
 def flockCached :
     Component.Cached (flock P C z side s' φ g lift finish (W := W)) (fun _ ↦ ()) (fun _ ↦ ()) :=
   (Component.Cached.ofDef (Component.drawPushes O F P.nRand)).append
@@ -455,7 +474,7 @@ def flockCached :
     (SumcheckRound.cachedRounds (zcCache P C z side (P.m + P.κ)) _ P.κ P.m rfl) |>.append
     (zcEndCached P C z side) |>.append (alphaDrawCached P C z side) |>.append
     (SumcheckRound.cachedRounds (linCache P C z side P.m) _ P.m 0 (Nat.zero_add _)) |>.append
-    (linEndCached P C z side) |>.append (Component.Cached.ofDef (ringSwitch P s' φ g lift finish))
+    (linEndCached P C z side) |>.append (ringSwitchCached P s' φ g lift finish)
 
 end
 

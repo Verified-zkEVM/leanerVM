@@ -163,6 +163,7 @@ import LeanerVM.Protocol.ToCompPoly.AmbientStacking
 import LeanerVM.Protocol.ToCompPoly.BindStep
 import LeanerVM.Protocol.ToCompPoly.BitProductTable
 import LeanerVM.Protocol.ToCompPoly.Doubling
+import LeanerVM.Protocol.ToCompPoly.EqBatch
 import LeanerVM.Protocol.ToCompPoly.FinLoop
 import LeanerVM.Protocol.ToCompPoly.Fingerprint
 import LeanerVM.Protocol.ToCompPoly.Frobenius
