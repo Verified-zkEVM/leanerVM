@@ -361,7 +361,10 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
           (ofK (Parameters.gpow (sqDecAt fs lv name n fp j + cert (sqDecName lv) (.n 3))) *
             gen ^ (i * lv.depth)))
     (hreg : ∀ j < n, ∀ t < 10, ∃ i, (sqz * (gen ^ j) ^ 5).limb 0 * Parameters.gpow t =
-      Parameters.gpow i ∧ RegionL Lin i) :
+      Parameters.gpow i ∧ RegionL Lin i)
+    (hregd : ∀ j < n, RegPtrs [(1, 192 / lv.depth), (2, 192 / lv.depth)]
+      [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
+        qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] (RegionL Lin)) :
     ∃ Lown : Layout, Within (sqRuns fs cert lv name n fp (sqWJ cap0) 0 ++ Lown) fp
         (sqTot fs lv name n 0) ∧
       DisjL (sqRuns fs cert lv name n fp (sqWJ cap0) 0 ++ Lown) ∧
@@ -381,7 +384,7 @@ theorem sqLoop_relAtIn (fs : String → ℕ) (cert : String → V → ℕ) (k : 
           (sqDecAt fs lv name n fp j) (fs (sqDecName lv)) (sqDecName lv)
           [sqWJ cap0 j, qpos * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth),
             qbp * gen ^ lv.posOff * (gen ^ j) ^ (192 / lv.depth)] [] := fun j hj =>
-    hdec _ _ _ Lin _ fun rd hl hm i hi => hdmem rd hl hm j hj i hi
+    hdec _ _ _ Lin _ (hregd j hj) fun rd hl hm i hi => hdmem rd hl hm j hj i hi
   classical
   let Lj : ℕ → Layout := fun j => if h : j < n then Classical.choose (hdecj j h) else []
   have hLj : ∀ j (h : j < n), Lj j = Classical.choose (hdecj j h) := fun j h => by simp [Lj, h]

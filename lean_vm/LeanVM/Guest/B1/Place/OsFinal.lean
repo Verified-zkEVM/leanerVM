@@ -11,6 +11,7 @@ public import LeanVM.Guest.B1.Place.OsKidsSp1
 public import LeanVM.Guest.B1.Place.OsKidsSp2
 public import LeanVM.Guest.B1.Place.OsKidsSp5
 public import LeanVM.Guest.B1.Place.OsBodyFacts
+public import LeanVM.Guest.Lift.Decode
 
 /-!
 # `open_stacked`, placed
@@ -19,7 +20,8 @@ public import LeanVM.Guest.B1.Place.OsBodyFacts
 names', its buffers' sizes, its loop helpers' and `opening_queries`' frames).
 
 **`os_completeAtD_cfg`**: a function whose body is `osBody c`, at a configuration with those facts,
-its callees complete placed (`OsCalleesAtD`), is complete placed on every accepting run of
+its frame runs fitting their frames (`Lift.RunsFit`; its callees by G7's `osCalleesRegD_holds`,
+`osDecodeRegAtD_holds`), is complete placed on every accepting run of
 `whirOpen μ r target` from `⟨capOf S, []⟩` with no zero challenge and openings that agree in the
 caps, the words at the cursor among the caller's: it returns the run's claim, the pointers of its
 two point buffers, its glued weight and its residual's value, the buffers the run's point
@@ -67,14 +69,10 @@ def OsOut (μ : ℕ) (w : WhirEnd) : List E → Layout → Prop := fun rets Lout
       (b1, w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1)]
 
 theorem lf_ml {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) {tr : OsTr}
-    (h : TrFit c tr) : tr.Lf.ml = c.yrLog := by
-  have hn := hF.n2
-  rw [h.lf, (h.fit _ (by omega)).ml]
-  have := hF.last
-  rwa [getLastD_eq_getD _ (by intro h; rw [h] at hn; simp at hn)] at this
+    (h : TrFit c tr) : tr.Lf.ml = c.yrLog := lf_ml' hF h
 
 /-- **`open_stacked` at a configuration is complete, placed.** -/
-theorem os_completeAtD_cfg (hk : OsCalleesAtD fs cert κ) {c : OsCfg} {μ r : ℕ}
+theorem os_completeAtD_cfg (hrf : Lift.RunsFit fs cert) {c : OsCfg} {μ r : ℕ}
     {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) (hP : OsCfgPlaced fs cert c) {name : String}
     {fn : Fn} (hfind : coreProgram.find? name = some fn) (hp : fn.params = osParams 9)
     (hb : fn.body = osBody c) (hloop : coreProgram.loop name = false) {S : KState} {root : Digest}
@@ -104,10 +102,11 @@ theorem os_completeAtD_cfg (hk : OsCalleesAtD fs cert κ) {c : OsCfg} {μ r : �
     have h := hbody C rd (Val.ofArgs args) (osAtOf c (fp + fs name)) rfl rfl rfl rfl hx hm hc (osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)) (agree_fill _ _ _ _) (range_fill _ _ _ _)
     exact ⟨h.1, h.2.1⟩
   have hLkLin : ∀ rd, MemL rd (osLk c tr (fp + fs name) Lin) → MemL rd Lin := fun rd hm ↦ (Main.memL_append.mp hm).2
-  have hall : ∀ rd, LowDef κ rd → MemL rd (osLk c tr (fp + fs name) Lin) → AllOk (osCR rd (osSp c tr (osAtOf c (fp + fs name)))) rd (osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)) (osBodyA c) :=
+  have hall : ∀ rd, LowDef κ rd → MemL rd (osLk c tr (fp + fs name) Lin) →
+      AllOk (osCR rd (osSp c tr (osAtOf c (fp + fs name))) (OsXOk κ (osLk c tr (fp + fs name) Lin))) rd
+        (osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)) (osBodyA c) :=
     fun rd hl hm ↦ (hBlk _ rd (osMem_of_memLk hpt htl hm)
-      (osCallsOk_honest hF hfit hP.sizes hrunT hcaps hP.names (osMem_of_memLk hpt htl hm)
-        (osLk_caps hpt htl hm) (osLk_flags hpt htl hm) (fun i hi ↦ osLk_wp hpt htl hm hi))
+      (osCallsOk_honest hF hfit hP.sizes hrunT hcaps hP.names hpt htl hm)
       (hLin rd hl (hLkLin rd hm))).1
   have hparams : fn.params.map (osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)) = args := by
     rw [hp]
@@ -127,7 +126,7 @@ theorem os_completeAtD_cfg (hk : OsCalleesAtD fs cert κ) {c : OsCfg} {μ r : �
         completeAtD_lin_mono h fun q hq ↦ List.mem_append_left _ hq⟩
       · obtain ⟨fn', h1, h2, h3, h4⟩ := hP.sqFn l hl
         exact os_sq_completeAtP fs cert κ hF hfit hP.sizes hl h1 h2 h3 h4
-          (hk.decode _ (hP.dec l hl)) (fp + fs name) Lin
+          (osDecodeRegAtD_holds hrf κ _ (hP.dec l hl)) (fp + fs name) Lin
       · exact os_q_completeAtD fs cert κ hfit hP.sizes hrunT hcaps hl (hP.qnames l hl) (hP.fits l hl)
           (hrunT.index l (by rw [hlen]; exact hl)) (hrunT.width l (by rw [hlen]; exact hl))
           (hP.il l hl) (hP.qo l hl) (fp + fs name) Lin p
@@ -137,7 +136,7 @@ theorem os_completeAtD_cfg (hk : OsCalleesAtD fs cert κ) {c : OsCfg} {μ r : �
           (one_add_gen_pow_ne_zero (by have := hb.q2; omega)
             (by have := hP.qo l hl; unfold ordG at this; omega)) (fp + fs name) Lin
     obtain ⟨N, L, ps, hps, hW, hD, hK⟩ := os_kids_at (σ0 := Val.ofArgs args) (c0 := c0) (c2 := c2) (b0 := fp + fs name)
-      (Lin := Lin) hk hP.names hlen hfit hP.pos hP.tot hsp hall hex ((fp + fs name) + (osSizesL c).sum)
+      (Lin := Lin) (osCalleesRegD_holds κ) hP.names hlen hfit hP.pos hP.tot hsp hall hex ((fp + fs name) + (osSizesL c).sum)
     refine ⟨(osSigma c tr (Val.ofArgs args) c0 c2 (fp + fs name)), osOwnL c tr (osBp fs cert c fun l ↦ ps.getD l 0), [w.target, (osAtOf c (fp + fs name)).PT, (osAtOf c (fp + fs name)).PT1, w.inner, w.residual], N, L, fun _ ↦ False, _, rfl, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact osOwnL_fit c tr _ hpt htl
     · exact hOut _
@@ -148,8 +147,7 @@ theorem os_completeAtD_cfg (hk : OsCalleesAtD fs cert κ) {c : OsCfg} {μ r : �
       have hmLk : MemL rd (osLk c tr (fp + fs name) Lin) := osLk_memL hmB hmLin
       have hM := osMem_of_memLk hpt htl hmLk
       obtain ⟨hA1, hr⟩ := hBlk _ rd hM
-        (osCallsOk_honest hF hfit hP.sizes hrunT hcaps hP.names hM
-          (osLk_caps hpt htl hmLk) (osLk_flags hpt htl hmLk) (fun i hi ↦ osLk_wp hpt htl hmLk hi))
+        (osCallsOk_honest (κ := κ) hF hfit hP.sizes hrunT hcaps hP.names hpt htl hmLk)
         (hLin rd hl hmLin)
       obtain ⟨hs1, hs2⟩ := body_allocs_placed c tr (Val.ofArgs args) c0 c2 (fp + fs name) hlen hP.sz
       refine ⟨?_, hs1, hs2⟩

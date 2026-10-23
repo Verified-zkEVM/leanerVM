@@ -52,7 +52,7 @@ theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
     (hfin : lvl = c.yrLevel)
     (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
     (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
-      C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
+      args.getD 8 0 = σ (.n osFmsg) → C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
     (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)
@@ -103,7 +103,7 @@ theorem osLevelA_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} 
       (((st1.F σ1).absorbAll ms dsObserve).absorb nonce dsPowNonce).squeeze.1 = true := by
     rw [fo.F]; exact hpow
   have hB := osFinal_complete (C := C) (rd := rd) (c := c) hFm hGr (st := st1) σ1 fo.fs fo.co fo.below
-    fo.can (by unfold osFmsg; omega) hml hrd1 hout1 hpow1
+    fo.can (by unfold osFmsg; omega) eF hml hrd1 hout1 hpow1
   rw [fo.F] at hB
   refine BlkF.mono hB fun σ' ⟨fi, ha2⟩ ↦ ⟨⟨fi.F, ?_, ?_, ?_, fi.fs, fi.can, fi.co, fi.below, ?_, ?_⟩, ?_⟩
   · have := (OsSt.agree fo.below ha2).2.2.1

@@ -238,7 +238,7 @@ theorem osLevel_final_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (
     (hfin : lvl = c.yrLevel)
     (hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets)
     (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
-      C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
+      args.getD 8 0 = σ (.n osFmsg) → C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
     (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr lv.grind) args rets)
     (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below) (hk : 34 ≤ st.k)

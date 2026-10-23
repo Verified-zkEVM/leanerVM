@@ -9,6 +9,7 @@
 module
 
 public import LeanVM.Guest.Hints
+public import LeanVM.Protocol.Verifier.DeferredShape
 
 /-!
 # The limits of the guest's completeness
@@ -294,6 +295,25 @@ structure Limits (bytecode : List K) (s : NodeStatement) (w : NodeWitness) : Pro
   coverage : coverage s w < 2 ^ 16
   /-- 6. At least one declared claim (G:4174). -/
   nonempty : 0 < s.claims.xmss.length + s.claims.sphincs.length + s.claims.da.length
+
+
+/-! ## What `NodeRel` gives of the children's fresh claims -/
+
+/-- **Every child's fresh claim has the bytecode's shape**: the deferring verifier accepts each
+child's proof (`NodeRel`), and an accepted proof claims the bytecode at the verifier's own bus
+point, `bytecodeLow ++ alphas`, of the bytecode's log-length (`verifyDeferred_shaped`). Not a
+hypothesis: `NodeRel` implies it. -/
+theorem fresh_shaped_of_nodeRel {bytecode : List K} {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (h : NodeRel bytecode seed s w) :
+    ∀ c ∈ w.children, c.fresh.bytecodePoint.length = Nat.log2 bytecode.length :=
+  fun c hc => verifyDeferred_shaped (h.2.1 c hc).2
+
+/-- **At the deployed guest's `2^23` words, every child's fresh point has 23 coordinates**
+(B1-f's `FreshShaped w`). -/
+theorem fresh_shaped_23 {bytecode : List K} {seed : Digest} {s : NodeStatement}
+    {w : NodeWitness} (h : NodeRel bytecode seed s w) (hb : bytecode.length = 2 ^ 23) :
+    ∀ c ∈ w.children, c.fresh.bytecodePoint.length = 23 := fun c hc => by
+  rw [fresh_shaped_of_nodeRel h c hc, hb, Nat.log2_two_pow]
 
 end
 end LeanVM.Guest
