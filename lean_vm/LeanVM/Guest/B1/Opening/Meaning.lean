@@ -151,16 +151,38 @@ def rowDot (base I : ℕ) (row : List K) (w : ℕ → E) : E :=
     ((List.range (rowLo I)).map fun l ↦ rowWord base row (rowLo I * h + l) * w l).foldl (· + ·) 0
   ).foldl (· + ·) 0
 
-/-- **One query** (`opening_query`, G:1179-1243; TRIAGE #39) at the position `q`: the hinted row
-of `I` (`base = 1`) or `3I` words of `K`, hashed (`hashWords`, the leaf of `openOne`, V:501) and
-climbed `depth - cd` levels by hinted siblings (`climb`, V:492, the position's low bits), reaches
-a node written at the cap's cells of node `2^cd + q / 2^(depth - cd)`, whose parent is flagged; the
+/-- The node a path reaches after its first `l` levels. -/
+def climbNode (leaf : Digest) (q : ℕ) (sibs : List Digest) (l : ℕ) : Digest :=
+  climbD leaf q (sibs.take l)
+
+/-- Cell `k` of a path's frame run (`verify_merkle_path`'s `path`, G:1031): level `k / 4`'s
+children, two cells each, the node reached so far on the side of the position's bit at the level,
+the sibling on the other. -/
+def pathCell (leaf : Digest) (q : ℕ) (sibs : List Digest) (k : ℕ) : E :=
+  let d := if (k % 4) / 2 = (if q.testBit (k / 4) then 1 else 0) then climbNode leaf q sibs (k / 4)
+    else sibs.getD (k / 4) (Vector.replicate 4 0)
+  if k % 2 = 0 then (digestScalars d).1 else (digestScalars d).2
+
+/-- **One query** (`opening_query`, G:1179-1243, with `verify_merkle_path`, G:1028-1043; TRIAGE
+#33, #39) at the position `q`: the hinted row of `I` (`base = 1`) or `3I` words of `K`, hashed
+(`hashWords`, the leaf of `openOne`, V:501) and climbed `depth - cd` levels by hinted siblings
+(`climb`, V:492, the position's low bits: `climbD`); the path's children cells are a frame run at
+`pp` (`pathCell`), the node of each level written into it on its bit's side; the node reached is
+written at the cap's cells of node `2^cd + q / 2^(depth - cd)` and its parent flagged; the
 query's value is the row's dot product with the weights at `wp`. -/
 def QueryOpens (rd : Reader) (base I depth cd : ℕ) (cap flags wp : E) (q : ℕ) (row : List K)
     (d : E) : Prop :=
   row.length = (if base = 1 then I else 3 * I) ∧
-    ∃ (sibs : List Digest) (w : ℕ → E), sibs.length = depth - cd ∧
+    ∃ (sibs : List Digest) (w : ℕ → E) (pp : E), sibs.length = depth - cd ∧
       (∀ l < rowLo I + I / rowLo I, LoadHolds rd wp l (w l)) ∧
+      IsInK pp ∧
+      (∀ k < 4 * (depth - cd), ∀ x, rd (pp.limb 0 * Parameters.gpow k) = some x →
+        x = pathCell (hashWords row) q sibs k) ∧
+      (∀ l < depth - cd,
+        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l)
+          (digestScalars (climbNode (hashWords row) q sibs l)).1 ∧
+        LoadHolds rd (pp * gen ^ (if q.testBit l then 2 else 0)) (4 * l + 1)
+          (digestScalars (climbNode (hashWords row) q sibs l)).2) ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)))
         (digestScalars (climbD (hashWords row) q sibs)).1 ∧
       LoadHolds rd cap (2 * (2 ^ cd + q / 2 ^ (depth - cd)) + 1)
@@ -202,38 +224,79 @@ def MeaningOpeningQueries (odd base I depth cd : ℕ) (rd : Reader) : List E →
             rets = [oqChain odd base lam⁻¹ ds N * lamN]
   | _, _ => False
 
-/-- `opening_queries__L{odd}_L{base}_L{I}_L{leafCells}_L{depth}_L{cd}`'s core IR is its meaning,
-when the bit pointers point to bits. The deployed specializations: `base = 1`, `I = 64`,
-`leafCells = 32`, or `base = 0`, `odd = 0`, `I = 16`, `leafCells = 24`; `4 ≤ cd ≤ 8`. -/
-def opening_queries_Spec (odd base I leafCells depth cd : ℕ) : Prop :=
+/-- `opening_queries`' core IR (the function named `name`, of shape `(odd, base, I, leafCells,
+depth, cd)`) is its meaning, when the bit pointers point to bits. -/
+def opening_queries_Spec (name : String) (odd base I depth cd : ℕ) : Prop :=
   ∀ (rd : Reader) (cap flags lam lamN qptrs wp nG : E) (rets : List E),
     (∀ N, nG = gen ^ N → N < ordG → QueryBitsBool rd qptrs (oqCount odd base N) depth) →
-    (coreProgram.Rel rd ("opening_queries__L" ++ toString odd ++ "_L" ++ toString base ++ "_L" ++
-        toString I ++ "_L" ++ toString leafCells ++ "_L" ++ toString depth ++ "_L" ++
-        toString cd) [cap, flags, lam, lamN, qptrs, wp, nG] rets ↔
+    (coreProgram.Rel rd name [cap, flags, lam, lamN, qptrs, wp, nG] rets ↔
       MeaningOpeningQueries odd base I depth cd rd [cap, flags, lam, lamN, qptrs, wp, nG] rets)
 
-/-- The 56 deployed specializations (`(odd, base, I, leafCells, depth, cd)`). -/
-def openingQueriesShapes : List (ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) :=
-  [(0, 1, 64, 32, 17, 8), (0, 1, 64, 32, 18, 7), (0, 1, 64, 32, 18, 8), (0, 1, 64, 32, 19, 7),
-    (0, 1, 64, 32, 19, 8), (0, 1, 64, 32, 20, 6), (0, 1, 64, 32, 20, 7), (0, 1, 64, 32, 20, 8),
-    (0, 1, 64, 32, 21, 6), (0, 1, 64, 32, 21, 7), (0, 1, 64, 32, 21, 8), (0, 1, 64, 32, 22, 6),
-    (0, 1, 64, 32, 22, 7), (0, 1, 64, 32, 23, 6), (0, 1, 64, 32, 23, 7), (0, 1, 64, 32, 24, 6),
-    (0, 1, 64, 32, 24, 7), (0, 1, 64, 32, 25, 6), (0, 1, 64, 32, 26, 6), (1, 1, 64, 32, 19, 7),
-    (1, 1, 64, 32, 20, 7), (1, 1, 64, 32, 21, 7), (1, 1, 64, 32, 22, 7), (1, 1, 64, 32, 22, 8),
-    (1, 1, 64, 32, 23, 7), (1, 1, 64, 32, 23, 8), (1, 1, 64, 32, 24, 7), (1, 1, 64, 32, 25, 7),
-    (0, 0, 16, 24, 14, 5), (0, 0, 16, 24, 15, 5), (0, 0, 16, 24, 16, 4), (0, 0, 16, 24, 16, 5),
-    (0, 0, 16, 24, 16, 6), (0, 0, 16, 24, 17, 4), (0, 0, 16, 24, 17, 5), (0, 0, 16, 24, 17, 6),
-    (0, 0, 16, 24, 18, 4), (0, 0, 16, 24, 18, 5), (0, 0, 16, 24, 18, 6), (0, 0, 16, 24, 19, 4),
-    (0, 0, 16, 24, 19, 5), (0, 0, 16, 24, 19, 6), (0, 0, 16, 24, 20, 4), (0, 0, 16, 24, 20, 5),
-    (0, 0, 16, 24, 20, 6), (0, 0, 16, 24, 21, 4), (0, 0, 16, 24, 21, 5), (0, 0, 16, 24, 21, 6),
-    (0, 0, 16, 24, 22, 4), (0, 0, 16, 24, 22, 5), (0, 0, 16, 24, 22, 6), (0, 0, 16, 24, 23, 5),
-    (0, 0, 16, 24, 23, 6), (0, 0, 16, 24, 24, 5), (0, 0, 16, 24, 24, 6), (0, 0, 16, 24, 25, 5)]
+/-- The 56 deployed specializations, by name (a name built by `++ toString` does not reduce in a
+`module`'s kernel), with their shapes `(odd, base, I, leafCells, depth, cd)`: `base = 1`,
+`I = 64`, `leafCells = 32`, or `base = 0`, `odd = 0`, `I = 16`, `leafCells = 24`; `4 ≤ cd ≤ 8`. -/
+def openingQueriesShapes : List (String × ℕ × ℕ × ℕ × ℕ × ℕ × ℕ) :=
+  [("opening_queries__L0_L1_L64_L32_L17_L8", 0, 1, 64, 32, 17, 8),
+    ("opening_queries__L0_L1_L64_L32_L18_L7", 0, 1, 64, 32, 18, 7),
+    ("opening_queries__L0_L1_L64_L32_L18_L8", 0, 1, 64, 32, 18, 8),
+    ("opening_queries__L0_L1_L64_L32_L19_L7", 0, 1, 64, 32, 19, 7),
+    ("opening_queries__L0_L1_L64_L32_L19_L8", 0, 1, 64, 32, 19, 8),
+    ("opening_queries__L0_L1_L64_L32_L20_L6", 0, 1, 64, 32, 20, 6),
+    ("opening_queries__L0_L1_L64_L32_L20_L7", 0, 1, 64, 32, 20, 7),
+    ("opening_queries__L0_L1_L64_L32_L20_L8", 0, 1, 64, 32, 20, 8),
+    ("opening_queries__L0_L1_L64_L32_L21_L6", 0, 1, 64, 32, 21, 6),
+    ("opening_queries__L0_L1_L64_L32_L21_L7", 0, 1, 64, 32, 21, 7),
+    ("opening_queries__L0_L1_L64_L32_L21_L8", 0, 1, 64, 32, 21, 8),
+    ("opening_queries__L0_L1_L64_L32_L22_L6", 0, 1, 64, 32, 22, 6),
+    ("opening_queries__L0_L1_L64_L32_L22_L7", 0, 1, 64, 32, 22, 7),
+    ("opening_queries__L0_L1_L64_L32_L23_L6", 0, 1, 64, 32, 23, 6),
+    ("opening_queries__L0_L1_L64_L32_L23_L7", 0, 1, 64, 32, 23, 7),
+    ("opening_queries__L0_L1_L64_L32_L24_L6", 0, 1, 64, 32, 24, 6),
+    ("opening_queries__L0_L1_L64_L32_L24_L7", 0, 1, 64, 32, 24, 7),
+    ("opening_queries__L0_L1_L64_L32_L25_L6", 0, 1, 64, 32, 25, 6),
+    ("opening_queries__L0_L1_L64_L32_L26_L6", 0, 1, 64, 32, 26, 6),
+    ("opening_queries__L1_L1_L64_L32_L19_L7", 1, 1, 64, 32, 19, 7),
+    ("opening_queries__L1_L1_L64_L32_L20_L7", 1, 1, 64, 32, 20, 7),
+    ("opening_queries__L1_L1_L64_L32_L21_L7", 1, 1, 64, 32, 21, 7),
+    ("opening_queries__L1_L1_L64_L32_L22_L7", 1, 1, 64, 32, 22, 7),
+    ("opening_queries__L1_L1_L64_L32_L22_L8", 1, 1, 64, 32, 22, 8),
+    ("opening_queries__L1_L1_L64_L32_L23_L7", 1, 1, 64, 32, 23, 7),
+    ("opening_queries__L1_L1_L64_L32_L23_L8", 1, 1, 64, 32, 23, 8),
+    ("opening_queries__L1_L1_L64_L32_L24_L7", 1, 1, 64, 32, 24, 7),
+    ("opening_queries__L1_L1_L64_L32_L25_L7", 1, 1, 64, 32, 25, 7),
+    ("opening_queries__L0_L0_L16_L24_L14_L5", 0, 0, 16, 24, 14, 5),
+    ("opening_queries__L0_L0_L16_L24_L15_L5", 0, 0, 16, 24, 15, 5),
+    ("opening_queries__L0_L0_L16_L24_L16_L4", 0, 0, 16, 24, 16, 4),
+    ("opening_queries__L0_L0_L16_L24_L16_L5", 0, 0, 16, 24, 16, 5),
+    ("opening_queries__L0_L0_L16_L24_L16_L6", 0, 0, 16, 24, 16, 6),
+    ("opening_queries__L0_L0_L16_L24_L17_L4", 0, 0, 16, 24, 17, 4),
+    ("opening_queries__L0_L0_L16_L24_L17_L5", 0, 0, 16, 24, 17, 5),
+    ("opening_queries__L0_L0_L16_L24_L17_L6", 0, 0, 16, 24, 17, 6),
+    ("opening_queries__L0_L0_L16_L24_L18_L4", 0, 0, 16, 24, 18, 4),
+    ("opening_queries__L0_L0_L16_L24_L18_L5", 0, 0, 16, 24, 18, 5),
+    ("opening_queries__L0_L0_L16_L24_L18_L6", 0, 0, 16, 24, 18, 6),
+    ("opening_queries__L0_L0_L16_L24_L19_L4", 0, 0, 16, 24, 19, 4),
+    ("opening_queries__L0_L0_L16_L24_L19_L5", 0, 0, 16, 24, 19, 5),
+    ("opening_queries__L0_L0_L16_L24_L19_L6", 0, 0, 16, 24, 19, 6),
+    ("opening_queries__L0_L0_L16_L24_L20_L4", 0, 0, 16, 24, 20, 4),
+    ("opening_queries__L0_L0_L16_L24_L20_L5", 0, 0, 16, 24, 20, 5),
+    ("opening_queries__L0_L0_L16_L24_L20_L6", 0, 0, 16, 24, 20, 6),
+    ("opening_queries__L0_L0_L16_L24_L21_L4", 0, 0, 16, 24, 21, 4),
+    ("opening_queries__L0_L0_L16_L24_L21_L5", 0, 0, 16, 24, 21, 5),
+    ("opening_queries__L0_L0_L16_L24_L21_L6", 0, 0, 16, 24, 21, 6),
+    ("opening_queries__L0_L0_L16_L24_L22_L4", 0, 0, 16, 24, 22, 4),
+    ("opening_queries__L0_L0_L16_L24_L22_L5", 0, 0, 16, 24, 22, 5),
+    ("opening_queries__L0_L0_L16_L24_L22_L6", 0, 0, 16, 24, 22, 6),
+    ("opening_queries__L0_L0_L16_L24_L23_L5", 0, 0, 16, 24, 23, 5),
+    ("opening_queries__L0_L0_L16_L24_L23_L6", 0, 0, 16, 24, 23, 6),
+    ("opening_queries__L0_L0_L16_L24_L24_L5", 0, 0, 16, 24, 24, 5),
+    ("opening_queries__L0_L0_L16_L24_L24_L6", 0, 0, 16, 24, 24, 6),
+    ("opening_queries__L0_L0_L16_L24_L25_L5", 0, 0, 16, 24, 25, 5)]
 
 /-- Every deployed specialization of `opening_queries` is its meaning. -/
 def opening_queries_all_Spec : Prop :=
   ∀ sh ∈ openingQueriesShapes,
-    opening_queries_Spec sh.1 sh.2.1 sh.2.2.1 sh.2.2.2.1 sh.2.2.2.2.1 sh.2.2.2.2.2
+    opening_queries_Spec sh.1 sh.2.1 sh.2.2.1 sh.2.2.2.1 sh.2.2.2.2.2.1 sh.2.2.2.2.2.2
 
 end
 end LeanVM.Guest.B1
