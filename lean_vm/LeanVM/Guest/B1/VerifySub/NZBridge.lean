@@ -352,5 +352,72 @@ theorem nz_open_of_nz {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {
   exact ⟨q, sq, root, xsW, w, _, _, h1, runsWith_of_runF hW, ⟨w, _, _, runsWith_of_runF h3⟩,
     hacc⟩
 
+
+/-! ## The caps -/
+
+theorem deferredProgram_pre (c : FixedClaims) (bytecode : List K) (pi : Digest) :
+    deferredProgram c bytecode pi = (specPre (.claimed c) bytecode pi).bind fun q ↦
+      (Prog.sampleE.bind fun lam ↦
+        (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 lam)).bind fun w ↦
+          Prog.require (w.Accepts (batchBasis q.2.2 lam))).bind fun _ ↦ Prog.ret true := by
+  simp only [deferredProgram, Prog.bind_eq, Prog.pure_eq, verifyExecution_pre, Prog.bind_assoc,
+    verifyStackedOpening_split]
+
+/-- **The opening's caps from the run's**: at the opening's start `nz_open_of_nz` gives, the
+opening's query steps are among the deferring verifier's, so their agreement is B1-b's
+`CapsAgree`. -/
+theorem caps_open_of_caps {bytecode : List K} {seed pi : Digest} {c : FixedClaims} {π : Proof}
+    {q : Layout × ℕ × List StackClaim} {sq : Fs} {root : Digest} {xsW : List E}
+    (hpre : Whir.runF (specPre (.claimed c) bytecode pi) (deferStart seed pi π) =
+      some (q, ⟨sq, xsW, π.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩))
+    (hcaps : ∀ b ∈ Limits.queriesOf (deferredProgram c bytecode pi)
+      ⟨⟨keccakF (seedInput seed pi), []⟩, π.stream, π.openings, []⟩, Limits.BatchAgrees b.1 b.2) :
+    Whir.CapsAgree q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW π.openings
+      root := by
+  intro b hb
+  apply batchAgrees_of
+  apply hcaps
+  have e : Limits.queriesOf (deferredProgram c bytecode pi)
+      ⟨⟨keccakF (seedInput seed pi), []⟩, π.stream, π.openings, []⟩ =
+      Whir.queryStepsOf (deferredProgram c bytecode pi) (deferStart seed pi π) :=
+    queriesOf_eq_steps _ (deferStart seed pi π) ⟨keccakF (seedInput seed pi), []⟩ ⟨rfl, rfl⟩
+  rw [e, deferredProgram_pre, Whir.queriesOf_bind, hpre]
+  refine List.mem_append_right _ ?_
+  simp only
+  rw [Whir.queriesOf_bind]
+  refine List.mem_append_left _ ?_
+  show b ∈ Whir.queryStepsOf ((Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1)).bind
+    fun w ↦ Prog.require (w.Accepts (batchBasis q.2.2 sq.squeeze.1))) _
+  rw [Whir.queriesOf_bind]
+  exact List.mem_append_left _ hb
+
+/-! ## For a child -/
+
+/-- **`open_stacked`'s hypotheses for an honest child**: under G7's per-child hypotheses
+(acceptance with no zero challenge, openings agreeing in the caps), the deferring verifier runs
+`specPre` to the opening's start; there `whirOpen` runs, with no zero challenge and openings
+agreeing in the caps, to an end passing the terminal's check. -/
+theorem child_open {bytecode : List K} (seed : Digest) (c : Node.Child)
+    (hnz : Limits.verifyDeferredNZ bytecode seed (Node.statementDigest seed c.statement) c.fresh
+      c.proof = true)
+    (hcaps : ∀ b ∈ Limits.queriesOf
+      (deferredProgram c.fresh bytecode (Node.statementDigest seed c.statement))
+      (Hints.childStart seed c), Limits.BatchAgrees b.1 b.2) :
+    ∃ (q : Layout × ℕ × List StackClaim) (sq : Fs) (root : Digest) (xsW : List E)
+      (w : Whir.WhirEnd) (s' : Fs) (roots' : List (Digest × ℕ × ℕ)),
+      Whir.runF (specPre (.claimed c.fresh) bytecode (Node.statementDigest seed c.statement))
+        (deferStart seed (Node.statementDigest seed c.statement) c.proof) =
+        some (q, ⟨sq, xsW, c.proof.openings, [(root, Whir.stackShape q.1.stackLog q.2.1)]⟩) ∧
+      Whir.RunsWith (Whir.whirOpen q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1))
+        ⟨capOf sq.perm, []⟩ xsW c.proof.openings [(root, Whir.stackShape q.1.stackLog q.2.1)] w s'
+        roots' ∧
+      Whir.NoZeroChallenge q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW
+        c.proof.openings root ∧
+      Whir.CapsAgree q.1.stackLog q.2.1 (batchTarget q.2.2 sq.squeeze.1) sq.perm xsW
+        c.proof.openings root ∧
+      w.Accepts (batchBasis q.2.2 sq.squeeze.1) := by
+  obtain ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnz', hacc⟩ := nz_open_of_nz hnz
+  exact ⟨q, sq, root, xsW, w, s', roots', hpre, hrun, hnz', caps_open_of_caps hpre hcaps, hacc⟩
+
 end
 end LeanVM.Guest.B1.VerifySub
