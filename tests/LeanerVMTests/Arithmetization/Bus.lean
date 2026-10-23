@@ -16,8 +16,9 @@ multiplication by `g` and is not empty.
 
 **A zero-count read balances itself.** For any key, a read `(a, 0)` pulls and pushes the same
 tuple: with the count hypothesis removed, `lookup_sound` is false on the one read `(1, 0)` with no
-seed and no finalize and no good key. The witness-level form is the statement tests'
-`zero_count_witness`, which satisfies every conjunct of `SatisfiedBy` but the count product.
+seed and no finalize and no good key, the test that isolates the hypothesis. The statement
+tests' `zero_count_witness` shows the count product independent of the other conjuncts; its
+zero-count read is a correct read, so it does not falsify `mem_channel_sound`'s conclusion.
 
 **A wrong index column.** `badW` is the honest witness with one memory block row changed: the
 first untouched cell, `29`, which holds `0` and is never read, carries the address `g^2` of `x`,
@@ -36,47 +37,41 @@ open Air.Flat (Component EnsembleWitness)
 
 /-! ## Helpers -/
 
-/-- A message on a channel is the message of an interaction on a channel of that name. -/
-theorem exists_interaction_of_mem {w : EnsembleWitness (leanIsaEnsemble fillProg)}
-    {c : RawChannel K} {a : Array K} (ha : a ∈ messagesOn w c) :
-    ∃ i ∈ w.interactions, i.channel.name = c.name ∧ i.msg = a := by
-  rw [messagesOn, List.mem_map] at ha
-  obtain ⟨i, hi, rfl⟩ := ha
-  rw [List.mem_filter] at hi
-  exact ⟨i, hi.1, of_decide_eq_true hi.2, rfl⟩
+/-- A typed row as the raw row a table holds. -/
+def asRow {Row : TypeMap} [ProvableType Row] (r : Row K) : Array K := (toElements r).toArray
 
 /-- A row's message is a message of the witness. -/
 theorem mem_messagesOn {w : EnsembleWitness (leanIsaEnsemble fillProg)} {t : Air.Flat.Table K}
     (ht : t ∈ w.tables) {row : Array K} (hrow : row ∈ t.table) {c : RawChannel K} {a : Array K}
-    (ha : a ∈ rowMessagesOn t row c) : a ∈ messagesOn w c := by
-  rw [messagesOn_eq_flatMap, List.mem_flatMap]
-  exact ⟨t, w.mem_allTables_of_mem_tables ht, List.mem_flatMap.mpr ⟨row, hrow, ha⟩⟩
+    (ha : a ∈ rowMessagesOn t row c) : a ∈ messagesOn w c :=
+  mem_messagesOn_of_mem_rowMessagesOn (w.mem_allTables_of_mem_tables ht) hrow ha
 
 /-! ## The theorems applied to the honest witness -/
 
 /-- The product row's three memory reads are correct reads of the image. -/
 example : ∀ m ∈ (mulSends (mulRow g)).mem, MemPull.Guarantees m fillData := by
   intro m hm
-  have hrow := (mul_sendsOpcode (t := mulT g) rfl (rawRow (mulRow g))).mem_pull
-  rw [show valueFromOffset MulRow 0 ((mulT g).environment (rawRow (mulRow g))) = mulRow g from
+  have hrow := (mul_sendsOpcode (t := mulT g) rfl (asRow (mulRow g))).mem_pull
+  rw [show valueFromOffset MulRow 0 ((mulT g).environment (asRow (mulRow g))) = mulRow g from
     rowAt_toElements fillData (mulRow g)] at hrow
   have hmem : (toElements m).toArray ∈ messagesOn (fillW 1 g memCnt) MemPull.toRaw :=
-    mem_messagesOn (t := mulT g) (List.mem_cons_of_mem _ List.mem_cons_self) List.mem_cons_self
+    mem_messagesOn (t := mulT g) (row := asRow (mulRow g))
+      (List.mem_cons_of_mem _ List.mem_cons_self) List.mem_cons_self
       (by rw [hrow]; exact List.mem_map_of_mem hm)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem hmem
+  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
   exact mem_channel_sound fill_satisfiedBy i hi hname m hmsg
 
 /-- The `XOR` fill row's bytecode read is the program's entry at its counter. -/
 example : ∃ k : Fin (2 ^ fillProg.logSize), (xorSends xorRow).bc.pc = gpow k ∧
     #v[(xorSends xorRow).bc.opcode] ++ (xorSends xorRow).bc.op = entry (fillProg.code k) := by
-  have hrow := (xor_sendsOpcode (t := xorT) rfl (rawRow xorRow)).bytecode_pull
-  rw [show valueFromOffset XorRow 0 (xorT.environment (rawRow xorRow)) = xorRow from
+  have hrow := (xor_sendsOpcode (t := xorT) rfl (asRow xorRow)).bytecode_pull
+  rw [show valueFromOffset XorRow 0 (xorT.environment (asRow xorRow)) = xorRow from
     rowAt_toElements fillData xorRow] at hrow
   have hmem : (toElements (xorSends xorRow).bc).toArray ∈
       messagesOn (fillW 1 g memCnt) BytecodePull.toRaw :=
-    mem_messagesOn (t := xorT) List.mem_cons_self List.mem_cons_self
+    mem_messagesOn (t := xorT) (row := asRow xorRow) List.mem_cons_self List.mem_cons_self
       (by rw [hrow]; exact List.mem_singleton_self _)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem hmem
+  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
   exact bytecode_channel_sound fill_satisfiedBy i hi hname _ hmsg
 
 /-! ## Lemma 6.3 and the count hypothesis -/
@@ -299,7 +294,7 @@ theorem badW_not_sound : ¬ ∀ i ∈ badW.interactions, i.channel.name = MemPul
         List.mem_cons_of_mem _ <| List.mem_cons_of_mem _ <| List.mem_cons_of_mem _
           List.mem_cons_self)
       hrow (by rw [hmsgs]; exact List.mem_singleton_self _)
-  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem hmem
+  obtain ⟨i, hi, hname, hmsg⟩ := exists_interaction_of_mem_messagesOn hmem
   have hg : (imageOf fillData).2.read (gpow 2) = some (E.ofLimbs 0 0 0) := h i hi hname m hmsg
   have hread : (imageOf fillData).2.read (gpow 2) = some mulX := by
     rw [fill_imageOf]

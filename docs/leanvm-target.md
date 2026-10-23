@@ -260,7 +260,7 @@ artifact; passing Rust/Python tests is not classified as a proof.
 | Constraints imply ISA execution (CC-S) | Constraint/table implementation and design document | T1-S: refinement from every accepted assignment to an ISA trace |
 | ISA execution yields constraints (CC-C) | Rust trace construction and honest-prover path | T1-C: satisfying-assignment existence for every in-scope execution |
 | Witness-generator consistency (WC) | Executable fill/trace generation and mutation tests | T2: concrete generated assignment satisfies constraints and projects to its execution |
-| Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness | T1: multiset, range, count, table, bytecode, and memory composition theorem |
+| Bus, lookup, and memory consistency (BC) | M3 bus construction and prose lemmas for count soundness; Lean `mem_channel_sound` and `bytecode_channel_sound` from `SatisfiedBy` alone, with Lemma 6.3 and the read bound derived from `Caps` (`LeanerVM/Arithmetization/Bus.lean`) | T1: state-channel composition (the run of Proposition 6.1) and its correspondence boundary |
 | Hint handling | Write-once design, guest checks, and hint-tampering tests | T1/T3: every claim-relevant hinted value is constrained or checked |
 | BLAKE2s opcode | Rust implementations and Flock R1CS relation; Lean `compress` and `CompressCells` (`LeanerVM/Semantics/Blake2s.lean`) pinned by RFC 7693, `hashlib`, and executor vectors | T1 prerequisite: both constraint directions and implementation correspondence |
 | Proof system | Protocol document with component bounds; Rust prover/verifier | T4: formal component notions, Fiat–Shamir assumptions, composed error bound, and verifier refinement |

@@ -21,7 +21,8 @@ Corollary 6.5 `:70`, "Instance caps" `:80`). Category A for the argument, which 
 the specification's; Category B for what it is applied to, the memory and bytecode pairs as
 the components transcribe them (`LeanerVM.Arithmetization.Rows`). Artifact: the accept
 relation `SatisfiedBy`. Direction: soundness, from an accepted witness to facts about its
-pulls. Contribution: the lookup half of constraint soundness.
+pulls. Contribution: T1-S through BC (`docs/architecture.md`), the lookup half of constraint
+soundness.
 
 **Lemma 6.3** (`eq_zero_of_perm_map_mul_g`). A list of counts `C` that is a permutation of
 `C.map (g * ·)` and has fewer than `2^64 - 1` elements holds only `0`: multiplication by `g`
@@ -67,7 +68,7 @@ namespace LeanerVM.Arithmetization
 open LeanerVM.Parameters LeanerVM.Semantics
 open Air.Flat (Component EnsembleWitness)
 
-/-! ## Lemma 6.3 -/
+/-! ## Invariant count lists -/
 
 /-- Specification Lemma 6.3 (invariant count multisets): a list of counts that is a permutation
 of itself multiplied by `g`, with fewer than `2^64 - 1` elements, holds only `0`. -/
@@ -94,7 +95,7 @@ theorem eq_zero_of_perm_map_mul_g {C : List K} (h : (C.map (g * ·)).Perm C)
   rw [List.length_map, List.length_range] at hle
   omega
 
-/-! ## Theorem 6.4 -/
+/-! ## The generic lookup theorem -/
 
 /-- Specification Theorem 6.4 (lookup correctness), for any messages with a key, a count and a
 bump that keeps the key and multiplies the count by `g`: if the pushes (the bumped reads and
@@ -212,15 +213,6 @@ private theorem tableAt_data (w : EnsembleWitness (leanIsaEnsemble prog)) (j : F
     (tableAt w j).data = w.data :=
   w.same_data _ (List.getElem_mem _)
 
-/-- A message of a row is the message of one of the table's interactions. -/
-private theorem exists_interaction {t : Air.Flat.Table K} {row : Array K} (hrow : row ∈ t.table)
-    {c : RawChannel K} {a : Array K} (ha : a ∈ rowMessagesOn t row c) :
-    ∃ i ∈ t.interactions, i.channel.name = c.name ∧ i.msg = a := by
-  rw [rowMessagesOn, List.mem_map] at ha
-  obtain ⟨i, hi, rfl⟩ := ha
-  rw [List.mem_filter] at hi
-  exact ⟨i, List.mem_flatMap.mpr ⟨row, hrow, hi.1⟩, of_decide_eq_true hi.2, rfl⟩
-
 /-- At most `L · n` messages from a list of tables of at most `L` rows each sending at most `n`
 messages. -/
 private theorem length_rowsOn_le {ts : List (Air.Flat.Table K)} {c : RawChannel K} {L n : ℕ}
@@ -274,7 +266,7 @@ private theorem readCount_ne {w : EnsembleWitness (leanIsaEnsemble prog)} (h : C
   obtain ⟨a, ha, rfl⟩ := List.mem_map.mp hl
   obtain ⟨t, ht, ha⟩ := List.mem_flatMap.mp ha
   obtain ⟨row, hrow, ha⟩ := List.mem_flatMap.mp ha
-  obtain ⟨i, hi, hiname, rfl⟩ := exists_interaction hrow ha
+  obtain ⟨i, hi, hiname, rfl⟩ := exists_interaction_of_mem_rowMessagesOn hrow ha
   have hs := hsize t ht row _ ha
   have hne := h t ht i hi (by rw [hiname]; exact hname) hs
   rwa [readCount, List.getD_eq_getElem _ _ (by rwa [Array.length_toList]), Array.getElem_toList]

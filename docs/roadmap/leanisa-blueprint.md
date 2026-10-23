@@ -1154,7 +1154,7 @@ theorem no_row_at_sentinel (hsafe : SentinelSafe prog) (h : SatisfiedBy prog inp
       #[pc, fp] ∈ rowMessagesOn t row StatePull.toRaw → pc ≠ prog.finalPc
 /-- Specification Prop. 6.1: a balanced state channel over rows that are steps contains a run
 from `(1, 1)` to `(g^(N_prog - 1), 1)`; the remaining rows are closed walks. -/
-theorem exists_run_of_balanced (hwf : WellFormedBytecode prog) (h : SatisfiedBy prog input w) :
+theorem exists_run_of_balanced (hsafe : SentinelSafe prog) (h : SatisfiedBy prog input w) :
     ∃ n, run prog (imageOf w.data).2 n Regs.initial = some (Regs.final prog)
 ```
 
@@ -1175,13 +1175,15 @@ false, since the verifier's own row pulls `(g^(N_prog - 1), 1)`; it needs only
 arrival at the final registers: the decomposition gives a walk of steps from `(1, 1)` to
 `(g^(N_prog - 1), 1)`, `no_row_at_sentinel` says no state before the last carries the sentinel
 counter, and `run_succ_of_ne` chains the walk into `run` (issue #10; acceptance tests 20 and 21);
-it consumes only the `sentinelSafe` field of `WellFormedBytecode`. The remaining rows are the
+like `no_row_at_sentinel` it takes `SentinelSafe prog`, the `sentinelSafe` field of
+`WellFormedBytecode`. The remaining rows are the
 closed walks `AssignmentRepresents` names; nothing is claimed about them beyond being steps.
 
 Tests: the closed forms against Clean's own evaluation of every component on the Layer 8
 witness's rows; the two lookup theorems applied to that witness; Lemma 6.3's `[0, 0]`; a
 zero-count read balancing itself, which `lookup_sound` rejects only through the count
-hypothesis (and `zero_count_witness` at the witness level); and a witness whose memory block
+hypothesis (`zero_count_witness`, whose zero-count read is a correct one, shows the count
+product independent of the other conjuncts); and a witness whose memory block
 seeds cell `29`'s word `0` at the address `g^2`, which satisfies every conjunct
 `mem_channel_sound` consumes but `IndexColumnsAreRowIndices` and pulls a read the image does not
 hold.
