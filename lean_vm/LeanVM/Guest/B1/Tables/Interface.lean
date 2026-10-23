@@ -45,13 +45,11 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 /-! ## `padding_weight` -/
 
 /-- `lead` of `padding_weight` at `τ`: `1` at `τ = 0`, else bit `τ` of `n` plus bit `τ - 1`. -/
-def PadLead (τ n : ℕ) : E :=
-  if τ = 0 then 1 else eOfNat (n / 2 ^ τ % 2) + eOfNat (n / 2 ^ (τ - 1) % 2)
+def PadLead (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + bitE (n.testBit (τ - 1))
 
 /-- `rest` of `padding_weight` at `τ`: `1` at `τ = 0`, else bit `τ` of `n` plus the word of its
 bits below `τ - 1`. -/
-def PadRest (τ n : ℕ) : E :=
-  if τ = 0 then 1 else eOfNat (n / 2 ^ τ % 2) + eOfNat (n % 2 ^ (τ - 1))
+def PadRest (τ n : ℕ) : E := if τ = 0 then 1 else bitE (n.testBit τ) + eOfNat (n % 2 ^ (τ - 1))
 
 /-- `padding_weight__L{τ}(rows, zeta)`: `rows` is the word of `n ≤ 2^τ`, and the function returns
 `pad_n` at the first `τ` words at `zeta`, `lead` and `rest`. -/
