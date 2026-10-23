@@ -105,6 +105,182 @@ theorem level_out {l : ℕ} (hl : l < d.sibs.length) {o0 o1 : E}
     rw [edl, edr]
     simp [hb']
 
+
+/-! ## The path -/
+
+/-- What the memory holds of an honest query's path and cap leaf (`QueryOpens`). -/
+structure MemOk (d : QD) (rd : Reader) : Prop where
+  ppK : IsInK d.pp
+  frame : ∀ k < 4 * d.s.pd, ∀ x, rd (d.pp.limb 0 * Parameters.gpow k) = some x → x = d.pc k
+  nodes : ∀ l < d.s.pd,
+    LoadHolds rd (d.pp * gen ^ (if d.q.testBit l then 2 else 0)) (4 * l)
+      (digestScalars (climbNode d.leaf d.q d.sibs l)).1 ∧
+    LoadHolds rd (d.pp * gen ^ (if d.q.testBit l then 2 else 0)) (4 * l + 1)
+      (digestScalars (climbNode d.leaf d.q d.sibs l)).2
+  cap0 : LoadHolds rd d.capv (2 * (2 ^ d.s.cd + d.q / 2 ^ d.s.pd))
+    (digestScalars (climbD d.leaf d.q d.sibs)).1
+  cap1 : LoadHolds rd d.capv (2 * (2 ^ d.s.cd + d.q / 2 ^ d.s.pd) + 1)
+    (digestScalars (climbD d.leaf d.q d.sibs)).2
+  flag : LoadHolds rd d.flagsv (2 ^ (d.s.cd - 1) + d.q / 2 ^ (d.s.pd + 1)) 1
+
+theorem mem_oqPathT_level' {s : Oq} {bp : V} {pr kL ch l : ℕ} (hl : l < s.pd) {a : Atom}
+    (ha : Stmt.atom a ∈ oqLevelT s bp pr kL ch l) : Stmt.atom a ∈ oqPathT s bp pr kL ch :=
+  mem_oqPathT_level hl ha
+
+/-- The level's permutation holds at the honest values. -/
+theorem level_keccak (hpd : 4 * d.s.pd ≤ 80)
+    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
+    {l : ℕ} (hl : l < d.s.pd) :
+    (Atom.keccak [.n (d.ch + 4 * l), .n (d.ch + 4 * l + 1), .n (d.ch + 4 * l + 2),
+      .n (d.ch + 4 * l + 3), .n d.prV, .n (d.prV + 1), .n (d.prV + 2), .n (d.prV + 3),
+      .n (oqL0 d.ch + 17 * l + 3), .n (d.prV + 1), .n (d.prV + 2), .n (d.prV + 3), .n (d.prV + 4)]
+      ((List.range 13).map fun c ↦ .n (oqL0 d.ch + 17 * l + 4 + c)) false false).Holds rd σ := by
+  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
+  have sP : ∀ o < 83, σ (.n (d.ch + o)) = d.preV o := fun o ho => by
+    rw [hv _ (by omega) (by omega), val_pre d ho]
+  have sL : ∀ o < 17, σ (.n (oqL0 d.ch + 17 * l + o)) = d.levelV l o := fun o ho => by
+    rw [show oqL0 d.ch + 17 * l + o = d.ch + 83 + 17 * l + o by simp [oqL0],
+      hv _ (by omega) (by omega), val_level d hl ho]
+  have pc' : ∀ t < 4, σ (.n (d.ch + 4 * l + t)) = d.pc (4 * l + t) := fun t ht => by
+    rw [Nat.add_assoc, sP _ (by omega), preV]; simp [show 4 * l + t < 4 * d.s.pd by omega]
+  have z1 := hz 0 (by omega); have z2 := hz 1 (by omega); have z3 := hz 2 (by omega)
+  have z4 := hz 3 (by omega)
+  simp only [Nat.add_zero] at z1
+  rw [show d.prV + 1 + 1 = d.prV + 2 by omega] at z2
+  rw [show d.prV + 1 + 2 = d.prV + 3 by omega] at z3
+  rw [show d.prV + 1 + 3 = d.prV + 4 by omega] at z4
+  have h63 : σ (.n (oqL0 d.ch + 17 * l + 3)) = word (2 ^ 63) 0 0 := by rw [sL 3 (by omega)]; rfl
+  have eI : ([.n (d.ch + 4 * l), .n (d.ch + 4 * l + 1), .n (d.ch + 4 * l + 2),
+      .n (d.ch + 4 * l + 3), .n d.prV, .n (d.prV + 1), .n (d.prV + 2), .n (d.prV + 3),
+      .n (oqL0 d.ch + 17 * l + 3), .n (d.prV + 1), .n (d.prV + 2), .n (d.prV + 3),
+      .n (d.prV + 4)] : List V).map σ = d.levelIns l := by
+    have q0 := pc' 0 (by omega); have q1 := pc' 1 (by omega); have q2 := pc' 2 (by omega)
+    have q3 := pc' 3 (by omega)
+    simp only [Nat.add_zero] at q0
+    simp only [List.map_cons, List.map_nil, q0, q1, q2, q3, hpad, z1, z2, z3, z4, h63, levelIns]
+  refine ⟨by simp, by simp, ?_, fun c => ?_⟩
+  · rw [eI]
+    intro c
+    fin_cases c <;> simp [cells13, levelIns] <;> first | exact d.pc_canonical _ | exact canonical_word _ _
+  · rw [eI, cells13_outs, show oqL0 d.ch + 17 * l + 4 + c.val = oqL0 d.ch + 17 * l + (4 + c.val) by
+      omega, sL _ (by omega), levelV]
+    simp only [show 4 + c.val ≠ 0 by omega, show 4 + c.val ≠ 1 by omega, show 4 + c.val ≠ 2 by omega,
+      show 4 + c.val ≠ 3 by omega, ↓reduceIte, show 4 + c.val - 4 = c.val by omega,
+      fin13_ofNat c.isLt]
+    rfl
+
+/-- **The honest nodes are the climb's.** -/
+theorem nodes_eq (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.sibs.length = d.s.pd)
+    (hrow : d.row.length = d.s.R)
+    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0) :
+    ∀ l ≤ d.s.pd, (σ (.n (oqNode d.s d.kL d.ch l 0)), σ (.n (oqNode d.s d.kL d.ch l 1))) =
+      digestScalars (climbNode d.leaf d.q d.sibs l) := by
+  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
+  have hz' : ∀ i < 4, σ (.n (d.prV + 1 + i)) = 0 := fun i hi => by rw [hz i hi, word_zero]
+  intro l hl
+  induction l with
+  | zero =>
+    have hnc : d.s.ncells = d.s.R / 2 := rfl
+    have hleaf := oqLeaf_sound (rd := fun _ => none) hs (d.oqLeaf_complete hs hv hpad hz) hpad hz'
+      (row := d.row) (by rw [hrow, hnc]; rcases shape_nums hs with h | h <;> omega) (fun j hj => by
+        rw [show oqPk d.b d.s.R j = d.b + d.s.R + 3 * j + 2 by simp [oqPk],
+          hv _ (by have := k1_eq d; omega) (by have := k1_eq d; omega),
+          val_pack d (by omega) (by omega)]
+        exact d.pk_eq j)
+    simp only [oqNode, ↓reduceIte]
+    rw [hleaf]
+    rfl
+  | succ l ih =>
+    have hk := d.level_keccak (rd := fun _ => none) hpd hv hpad hz (l := l) (by omega)
+    have hp := oqPair_hash hpad hz' (by
+      rw [show oqL0 d.ch + 17 * l + 3 = d.ch + 83 + 17 * l + 3 by simp [oqL0],
+        hv _ (by omega) (by omega), val_level d (by omega) (by omega)]; rfl) hk
+    have pc' : ∀ t < 4, σ (.n (d.ch + 4 * l + t)) = d.pc (4 * l + t) := fun t ht => by
+      rw [Nat.add_assoc, hv _ (by omega) (by omega), val_pre d (by omega), preV]
+      simp [show 4 * l + t < 4 * d.s.pd by omega]
+    have q0 := pc' 0 (by omega); have q1 := pc' 1 (by omega); have q2 := pc' 2 (by omega)
+    have q3 := pc' 3 (by omega)
+    simp only [Nat.add_zero] at q0
+    rw [q0, q1, q2, q3] at hp
+    have := d.level_out (l := l) (by omega) hp
+    simp only [oqNode, Nat.add_one_ne_zero, ↓reduceIte, Nat.add_sub_cancel]
+    simpa [List.getD_eq_getElem?_getD] using this
+
+/-- **The path holds at the honest values.** -/
+theorem oqPath_complete (hs : d.s.RowShape) (hpd : 4 * d.s.pd ≤ 80) (hsl : d.sibs.length = d.s.pd)
+    (hrow : d.row.length = d.s.R) {bp : V}
+    (hv : ∀ i, d.b ≤ i → i < d.z + 11 → σ (.n i) = d.val i)
+    (hpad : σ (.n d.prV) = word 1 0 0) (hz : ∀ i < 4, σ (.n (d.prV + 1 + i)) = word 0 0 0)
+    (hbits : ∀ l < d.s.pd + d.s.cd, LoadHolds rd (σ bp) l (d.bit l)) (hm : d.MemOk rd)
+    (hrd : d.rd = rd) :
+    ∀ a, Stmt.atom a ∈ oqPathT d.s bp d.prV d.kL d.ch → a.Holds rd σ := by
+  obtain ⟨p1, p2, p3, p4, p5⟩ := d.places
+  have sP : ∀ o < 83, σ (.n (d.ch + o)) = d.preV o := fun o ho => by
+    rw [hv _ (by omega) (by omega), val_pre d ho]
+  have hnd := d.nodes_eq hs hpd hsl hrow hv hpad hz
+  have spp : σ (.n (d.ch + 4 * d.s.pd)) = d.pp := by
+    rw [sP _ (by omega), preV]; simp
+  have s5 : σ (.n (d.ch + 81)) = word 5 0 0 := by
+    rw [sP _ (by omega), preV]; simp [show ¬ 81 < 4 * d.s.pd by omega, show 81 ≠ 4 * d.s.pd by omega]
+  have s82 : σ (.n (d.ch + 82)) = d.pp * word 5 0 0 := by
+    rw [sP _ (by omega), preV]; simp [show ¬ 82 < 4 * d.s.pd by omega, show 82 ≠ 4 * d.s.pd by omega]
+  intro a ha
+  simp only [oqPathT, List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
+    List.mem_flatten, List.mem_map, List.mem_range, Stmt.atom.injEq] at ha
+  rcases ha with (rfl | rfl | rfl | rfl) | ⟨_, ⟨l, hl, rfl⟩, ha⟩
+  · trivial
+  · refine ⟨by rw [spp]; exact hm.ppK, fun k hk w hw => ?_⟩
+    simp only [List.length_append, List.length_map, List.length_range] at hk
+    rw [spp] at hw
+    by_cases hk' : k < 4 * d.s.pd
+    · rw [List.getElem_append_left (by simpa using hk')]
+      simp only [List.getElem_map, List.getElem_range]
+      rw [sP _ (by omega), preV]
+      simp only [hk', ↓reduceIte]
+      exact hm.frame k hk' w hw
+    · rw [List.getElem_append_right (by simpa using hk')]
+      simp only [List.getElem_map, List.getElem_range, List.length_map, List.length_range]
+      rw [show d.ch + 4 * d.s.pd + 1 + (k - 4 * d.s.pd) = d.ch + (k + 1) by omega, sP _ (by omega),
+        preV]
+      simp only [show ¬ k + 1 < 4 * d.s.pd by omega, show k + 1 ≠ 4 * d.s.pd by omega,
+        show k + 1 < 81 by omega, ↓reduceIte, Nat.add_sub_cancel]
+      rw [hrd, hw]; rfl
+  · exact s5
+  · show σ _ = σ _ * σ _
+    rw [s82, spp, s5]
+  · set L := oqL0 d.ch + 17 * l with hL
+    have sL : ∀ o < 17, σ (.n (L + o)) = d.levelV l o := fun o ho => by
+      rw [hL, show oqL0 d.ch + 17 * l + o = d.ch + 83 + 17 * l + o by simp [oqL0],
+        hv _ (by omega) (by omega), val_level d hl ho]
+    have s0 := sL 0 (by omega); have s1 := sL 1 (by omega); have s2 := sL 2 (by omega)
+    have s3 := sL 3 (by omega)
+    simp only [Nat.add_zero, levelV, ↓reduceIte, show (1 : ℕ) ≠ 0 by decide,
+      show (2 : ℕ) ≠ 0 by decide, show (2 : ℕ) ≠ 1 by decide, show (3 : ℕ) ≠ 0 by decide,
+      show (3 : ℕ) ≠ 1 by decide, show (3 : ℕ) ≠ 2 by decide] at s0 s1 s2 s3
+    have hsel : σ (.n (L + 2)) = d.pp * gen ^ (if d.q.testBit l then 2 else 0) := by
+      rw [s2, word_five, QD.bit, sel_eq]
+    have nd := hnd l (by omega)
+    simp only [oqLevelT, ← hL, List.mem_cons, List.not_mem_nil, or_false, Stmt.atom.injEq] at ha
+    rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    · show LoadHolds _ _ _ _
+      rw [s0]; exact hbits l (by omega)
+    · show σ _ = σ _ * σ _
+      rw [s1, s0, s82]
+    · show σ _ = σ _ + σ _
+      rw [s2, spp, s1]
+    · show LoadHolds _ _ _ _
+      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 0)) = (digestScalars (climbNode d.leaf d.q d.sibs l)).1
+        by rw [← nd]]
+      exact (hm.nodes l hl).1
+    · show LoadHolds _ _ _ _
+      rw [hsel, show σ (.n (oqNode d.s d.kL d.ch l 1)) = (digestScalars (climbNode d.leaf d.q d.sibs l)).2
+        by rw [← nd]]
+      exact (hm.nodes l hl).2
+    · exact s3
+    · exact d.level_keccak hpd hv hpad hz hl
+
 end QD
 
 end
