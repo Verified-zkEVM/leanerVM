@@ -137,6 +137,7 @@ import LeanerVM.Protocol.ToCompPoly.TableFold
 import LeanerVM.Protocol.ToCompPoly.WeightedCube
 import LeanerVM.Protocol.ToVCVio.UniformSample
 import LeanerVM.Protocol.Whir.BoundarySound
+import LeanerVM.Protocol.Whir.Cached
 import LeanerVM.Protocol.Whir.Counting
 import LeanerVM.Protocol.Whir.Exact
 import LeanerVM.Protocol.Whir.Final
@@ -150,6 +151,7 @@ import LeanerVM.Protocol.Whir.Open
 import LeanerVM.Protocol.Whir.OpenSound
 import LeanerVM.Protocol.Whir.Stack
 import LeanerVM.Protocol.Whir.Stage
+import LeanerVM.Protocol.Whir.Transform
 import LeanerVM.Protocol.Whir.Word
 import LeanerVM.Protocol.WhirFold
 import LeanerVM.Semantics.Basic
