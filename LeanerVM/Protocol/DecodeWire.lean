@@ -58,7 +58,8 @@ def roundsWire {d : ℕ} (drop : ℕ) : (m : ℕ) → (roundsSpec E d m).FullTra
   | 0, _ => []
   | m + 1, t =>
     roundWire drop (FullTranscript.fst (pSpec₁ := roundSpec E d) (pSpec₂ := roundsSpec E d m) t) ::
-      roundsWire drop m (FullTranscript.snd (pSpec₁ := roundSpec E d) (pSpec₂ := roundsSpec E d m) t)
+      roundsWire drop m
+        (FullTranscript.snd (pSpec₁ := roundSpec E d) (pSpec₂ := roundsSpec E d m) t)
 
 /-- A layer's combiner. -/
 def layerCombiner {ρ m : ℕ} (t : (stepSpec E 3 ρ m).FullTranscript) : E := drawOf t.fst.fst.fst
@@ -153,7 +154,8 @@ def positionsList {t b : ℕ} (pos : Fin t → Fin (2 ^ b)) : List ℕ := List.o
 /-- A level with a successor as the walk records it, its root the default digest, and the rest of
 the opening's transcript. -/
 def levelWire {sh sh' : Whir.Shape} {κ' : ℕ} {k : List Step}
-    (t : (seqSpec (levelSteps sh sh' κ' k)).FullTranscript) : WhirLevel × (seqSpec k).FullTranscript :=
+    (t : (seqSpec (levelSteps sh sh' κ' k)).FullTranscript) :
+    WhirLevel × (seqSpec k).FullTranscript :=
   let r₁ := seqTail t
   let r₂ := seqTail r₁
   let r₃ := seqTail r₂
@@ -397,7 +399,8 @@ theorem exists_read_toSlot_of_zero {n : ℕ} {pSpec : ProtocolSpec n} (D : SlotD
   exact ⟨_, rfl⟩
 
 /-- A decoder of one round, then anything after, reads as its slot, then what comes after. -/
-theorem Refines.single_bind {β γ γ' : Type} {pSpec : ProtocolSpec 1} {R₀ : β → pSpec.«Type» 0 → Prop}
+theorem Refines.single_bind {β γ γ' : Type} {pSpec : ProtocolSpec 1}
+    {R₀ : β → pSpec.«Type» 0 → Prop}
     {R : γ → γ' → Prop} {s : Slot Reading β} {s' : Slot Reading (pSpec.«Type» 0)}
     {K : β → Slot Reading γ} {K' : pSpec.FullTranscript → Slot Reading γ'} (h : Refines R₀ s s')
     (hK : ∀ x y, R₀ x y → Refines R (K x) (K' (oneTranscript y))) :
@@ -723,7 +726,8 @@ theorem readRounds_add {n : Type → Type} [Monad n] [LawfulMonad n] (ops : Chai
     rw [Nat.add_right_comm, readRounds, readRounds_add ops d b a, readRounds]
     simp
 
-theorem roundsNext_snd {d : ℕ} : ∀ (σ : Thunk E × ℕ) (m : ℕ) (t : (roundsSpec E d m).FullTranscript),
+theorem roundsNext_snd {d : ℕ} :
+    ∀ (σ : Thunk E × ℕ) (m : ℕ) (t : (roundsSpec E d m).FullTranscript),
     (roundsNext σ m t).2 = σ.2 + m
   | _, 0, _ => rfl
   | σ, m + 1, t => by
@@ -817,7 +821,8 @@ theorem refines_positionsSlot (b t : ℕ) :
 abbrev finalShape (sh : Whir.Shape) (nf : ℕ) : LevelShape := ⟨sh.ℓ, nf + 1, sh.R, sh.t, true⟩
 
 /-- The shape of a level with a successor as the verifier walks it. -/
-abbrev levelShape (sh sh' : Whir.Shape) (κ' : ℕ) : LevelShape := ⟨sh.ℓ, Kap sh' κ', sh.R, sh.t, false⟩
+abbrev levelShape (sh sh' : Whir.Shape) (κ' : ℕ) : LevelShape :=
+  ⟨sh.ℓ, Kap sh' κ', sh.R, sh.t, false⟩
 
 /-- A step's transcript before the rest's, as a transcript of the list of steps. -/
 abbrev seqCons {a : Step} {l : List Step} (t : a.spec.FullTranscript)
