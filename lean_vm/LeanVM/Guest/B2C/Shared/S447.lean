@@ -14,8 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop14`, window 1. -/
-theorem w263_1 : shareWin 263 (snapsOf 263) 1 = true := by decide +kernel
+/-- `column_selector__L1`, once. -/
+theorem st266 : shareStatic 266 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `column_selector__L1`, window 0. -/
+theorem w266_0 : shareWin 266 (snapsOf 266) 0 = true := by decide +kernel
+
+theorem ok266 : ShareOk 266 := ⟨st266, fun i hi ↦ by
+  have h : (snapsOf 266).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w266_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

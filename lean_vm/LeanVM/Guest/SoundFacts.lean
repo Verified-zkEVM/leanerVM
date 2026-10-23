@@ -80,7 +80,7 @@ theorem known_plain {j : ℕ} (h0j : 1 ≤ j) (hj : j < nFns) (h1 : j ≠ 1) (h1
 
 theorem vs_cuts : (certOf 19).cuts.length = 1 := by decide +kernel
 
-theorem vs_cut : ((certOf 19).cutAt 1).start = 2098 ∧ ((certOf 19).cutAt 1).known = [(1340, 113, 29)] ∧
+theorem vs_cut : ((certOf 19).cutAt 1).start = 2098 ∧ ((certOf 19).cutAt 1).known = [(1340, 99, 29)] ∧
     ((certOf 19).cutAt 1).sems = [] := by decide +kernel
 
 theorem vs_cells : (certOf 19).locs.getD 4 0 = 6 ∧ (certOf 19).locs.getD 5 0 = 7 ∧

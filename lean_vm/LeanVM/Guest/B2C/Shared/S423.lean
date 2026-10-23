@@ -14,8 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `keccak_layer__L1_L1`, window 5. -/
-theorem w256_5 : shareWin 256 (snapsOf 256) 5 = true := by decide +kernel
+/-- `keccak_layer__L0_L0`, once. -/
+theorem st257 : shareStatic 257 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

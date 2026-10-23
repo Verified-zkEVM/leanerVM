@@ -14,17 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L30`, once. -/
-theorem st181 : shareStatic 181 = true := by decide +kernel
+/-- `block_selector__L32`, once. -/
+theorem st183 : shareStatic 183 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector__L30`, window 0. -/
-theorem w181_0 : shareWin 181 (snapsOf 181) 0 = true := by decide +kernel
+/-- `block_selector__L32`, window 0. -/
+theorem w183_0 : shareWin 183 (snapsOf 183) 0 = true := by decide +kernel
 
-theorem ok181 : ShareOk 181 := ⟨st181, fun i hi ↦ by
-  have h : (snapsOf 181).length = 0 := by decide +kernel
+theorem ok183 : ShareOk 183 := ⟨st183, fun i hi ↦ by
+  have h : (snapsOf 183).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w181_0⟩
+  exact w183_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

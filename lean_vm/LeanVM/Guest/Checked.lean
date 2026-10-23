@@ -46,7 +46,6 @@ public import LeanVM.Guest.Checked.F18_0
 public import LeanVM.Guest.Checked.F18_1
 public import LeanVM.Guest.Checked.F18_2
 public import LeanVM.Guest.Checked.F18_3
-public import LeanVM.Guest.Checked.F18_4
 public import LeanVM.Guest.Checked.F19_0
 public import LeanVM.Guest.Checked.F19_1
 public import LeanVM.Guest.Checked.F20_0

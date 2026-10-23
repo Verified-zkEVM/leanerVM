@@ -14,43 +14,30 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, once. -/
-theorem st84 : shareStatic 84 = true := by decide +kernel
+/-- `padding_weight__L2`, once. -/
+theorem st90 : shareStatic 90 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L0`, window 0. -/
-theorem w84_0 : shareWin 84 (snapsOf 84) 0 = true := by decide +kernel
+/-- `padding_weight__L2`, window 0. -/
+theorem w90_0 : shareWin 90 (snapsOf 90) 0 = true := by decide +kernel
 
-theorem ok84 : ShareOk 84 := ⟨st84, fun i hi ↦ by
-  have h : (snapsOf 84).length = 0 := by decide +kernel
+theorem ok90 : ShareOk 90 := ⟨st90, fun i hi ↦ by
+  have h : (snapsOf 90).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w84_0⟩
+  exact w90_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, once. -/
-theorem st85 : shareStatic 85 = true := by decide +kernel
+/-- `padding_weight__L3`, once. -/
+theorem st91 : shareStatic 91 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L1`, window 0. -/
-theorem w85_0 : shareWin 85 (snapsOf 85) 0 = true := by decide +kernel
+/-- `padding_weight__L3`, window 0. -/
+theorem w91_0 : shareWin 91 (snapsOf 91) 0 = true := by decide +kernel
 
-theorem ok85 : ShareOk 85 := ⟨st85, fun i hi ↦ by
-  have h : (snapsOf 85).length = 0 := by decide +kernel
+theorem ok91 : ShareOk 91 := ⟨st91, fun i hi ↦ by
+  have h : (snapsOf 91).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w85_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, once. -/
-theorem st86 : shareStatic 86 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `sel_partial_nibble__L2`, window 0. -/
-theorem w86_0 : shareWin 86 (snapsOf 86) 0 = true := by decide +kernel
-
-theorem ok86 : ShareOk 86 := ⟨st86, fun i hi ↦ by
-  have h : (snapsOf 86).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w86_0⟩
+  exact w91_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
