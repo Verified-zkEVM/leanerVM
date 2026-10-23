@@ -19,8 +19,9 @@ the Keccak state (`KState`, 1600 bits), sampled uniformly and queried forward (`
 
 * **The permutation** is `LeanRpm.lazyPerm`, the lazily sampled uniform permutation of
   `lean_rpm` (`lean_rpm/LeanRpm/Model.lean`): its state is the list of edges `(x, π x)` fixed so
-  far (`PermLog`); a fresh forward query draws `π x` uniformly among the states not yet answered,
-  a fresh inverse query `π⁻¹ y` uniformly among the states not yet queried.
+  far (`PermLog`); a fresh forward query draws `π x` uniformly among the states that are not yet
+  the output of an edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet
+  the input of an edge.
 * **Keccak-256** (`keccak256With π`) is `keccak256` (`LeanVM/Spec/Keccak.lean`, `keccak_hash`,
   `verifier.py:191-207`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
   capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
@@ -41,7 +42,8 @@ the verifier's queries, not the permutation's other values; it neither queries `
 adversary). It is the extractor of `Statement.lean` (`LeanVM.Extraction.extract`) run on the
 Keccak-256 evaluations the transcript contains (`transcriptHashes`): a byte string `m` has digest
 `d` when the transcript holds the whole padded sponge path of `m`, a chain of forward queries from
-the zero state, each one absorbing the next block into the answer of the one before, as the
+the zero state, each one absorbing the next block into the answer of the one before and each the
+query that first fixed its edge (an edge first fixed by an inverse query extends no path), as the
 indifferentiability simulator of `lean_rpm` books it (`LeanRpm.pathsOf`, on the bytes of the
 states, `KState.toRpm`); `d` is the first four lanes of the path's last answer. The bound is the
 random-oracle bound at the adversary's query count, plus `q² / 2^508` for `q` the permutation
@@ -58,7 +60,11 @@ random-oracle error plus `q² / 2^508`, `q` the permutation calls of the prover 
 permutation, and that it behaves as a random one is the assumption of this model. Inside the
 executed program the `KECCAK` instruction computes the deployed Keccak-f[1600], not `π`, as in
 `Statement.lean`. The definitions rest on `lean_rpm` (the lazily sampled permutation, the sponge's
-padding and `pathsOf`), VCVio and the files of `LeanVM/Spec/`.
+padding and `pathsOf`), VCVio and the files of `LeanVM/Spec/`. The `lean_rpm` definitions they
+use are in `Model.lean` (`lazyPerm`, `uniformAvoiding`, the edge lookups), `Sponge.lean` (the byte
+state, `ofBytes`, `zero`, `keccakPadding`, `blockTo`, `rxor`), `Indiff/Defs.lean`
+(`SimState.init`, `chainOf`) and `Transfer.lean` (`replayStep`, `replay`, `simPaths`,
+`pathsOf`); the rest of `lean_rpm` is proof.
 
 The proofs are `LeanVM.knowledgeSoundnessRpm_holds` and `LeanVM.completenessRpm_holds`
 (`LeanVM/Protocol/LeanVMRpm.lean`).
@@ -128,7 +134,9 @@ noncomputable def rpmImpl : QueryImpl HashSpec (StateT PermLog ProbComp)
 /-! ## The experiment -/
 
 /-- An adversary in the random-permutation model: a computation with oracle access to `π` and
-`π⁻¹` that outputs a statement and a proof. -/
+`π⁻¹` that outputs a statement and a proof. It has no coins of its own: the extractor is fixed,
+so a randomized adversary's probability of breaking it is an average of deterministic
+adversaries' probabilities, and one of them does at least as well. -/
 abbrev RpmAdversary : Type := OracleComp PermSpec (Statement × Proof)
 
 /-- A transcript: queries to `π` and `π⁻¹` with their answers, oldest first. -/
@@ -185,7 +193,8 @@ def permQueryToRpm : LeanRpm.PermQuery KState → LeanRpm.PermQuery LeanRpm.KSta
   | .inv y => .inv (KState.toRpm y)
 
 /-- **The Keccak-256 evaluations a transcript contains**: the byte strings whose whole padded
-sponge path the transcript holds as a chain of forward queries from the zero state, each with the
+sponge path the transcript holds as a chain of forward queries from the zero state, each the query
+that first fixed its edge, each with the
 first four lanes of the path's last answer, as `lean_rpm` reads them (`LeanRpm.pathsOf`, the
 indifferentiability simulator's bookkeeping replayed on the transcript, on the bytes of the
 states). -/
