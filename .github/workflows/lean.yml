@@ -210,8 +210,8 @@ jobs:
           path: ${{ runner.temp }}/axioms.txt
 
   # `lean_vm` models the verifier and the prover's proofs of the leanVM commit in
-  # `leanvm-rev`, and imports the two signature schemes and LeanDA, so a change to any of them
-  # re-checks it. A skipped job counts as
+  # `leanvm-rev`, and imports the two signature schemes, LeanDA and the random-permutation model
+  # (`lean_rpm`), so a change to any of them re-checks it. A skipped job counts as
   # passed for branch protection.
   lean-vm-changes:
     runs-on: ubuntu-latest
@@ -225,7 +225,7 @@ jobs:
         run: |
           if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]] || ! git fetch --quiet --depth=1 origin "$BASE"; then
             echo changed=true >> "$GITHUB_OUTPUT"
-          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh \
+          elif git diff --name-only "$BASE" HEAD -- lean_vm leanvm-rev leanvm-tree.sh lean_rpm \
               lean_xmss/LeanXmss/Scheme.lean \
               lean_sphincs/Sphincs/Scheme.lean lean_da/LeanDa/Scheme.lean lean_da/LeanDa/Field.lean \
               .github/workflows/lean.yml | grep -q .; then
@@ -261,7 +261,8 @@ jobs:
           path: |
             lean_vm/.lake
             !lean_vm/.lake/packages/mathlib/.lake
-          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'lean_xmss/LeanXmss/Scheme.lean', 'lean_sphincs/Sphincs/Scheme.lean', 'lean_da/LeanDa/Scheme.lean', 'lean_da/LeanDa/Field.lean') }}
+            lean_rpm/.lake/build
+          key: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-${{ hashFiles('lean_vm/**/*.lean', 'lean_rpm/**/*.lean', 'lean_xmss/LeanXmss/Scheme.lean', 'lean_sphincs/Sphincs/Scheme.lean', 'lean_da/LeanDa/Scheme.lean', 'lean_da/LeanDa/Field.lean') }}
           restore-keys: lake-lean-vm-${{ runner.os }}-${{ hashFiles('lean_vm/lean-toolchain', 'lean_vm/lake-manifest.json') }}-
       - uses: leanprover/lean-action@v1
         with:
@@ -297,6 +298,7 @@ jobs:
           path: |
             lean_vm/.lake
             !lean_vm/.lake/packages/mathlib/.lake
+            lean_rpm/.lake/build
           key: ${{ steps.lake-cache.outputs.cache-primary-key }}
       - uses: dtolnay/rust-toolchain@stable
       # leanVM at `leanvm-rev`, in `.leanvm`, with its `formal/lean_vm` a link to this `lean_vm`.
