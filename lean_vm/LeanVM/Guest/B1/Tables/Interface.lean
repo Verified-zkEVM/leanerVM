@@ -62,10 +62,15 @@ def PadWeightOut (τ : ℕ) (rd : Reader) : List E → List E → Prop
         rest = PadRest τ n
   | _, _ => False
 
-/-- **`padding_weight`** (G:1904-1935; TRIAGE #51) computes `paddingWeight`. -/
+/-- **`padding_weight`** (G:1904-1935; TRIAGE #51) computes `paddingWeight`: soundness. -/
 def padding_weight_Spec : Prop :=
-  ∀ τ < 29, ∀ rd args rets,
-    coreProgram.Rel rd (lName "padding_weight" τ) args rets ↔ PadWeightOut τ rd args rets
+  ∀ n < 29, ∀ rd args rets,
+    coreProgram.Rel rd (lName "padding_weight" n) args rets → PadWeightOut n rd args rets
+
+/-- The converse, for completeness: every outcome is a relation's. -/
+def padding_weight_complete_Spec : Prop :=
+  ∀ n < 29, ∀ rd args rets,
+    PadWeightOut n rd args rets → coreProgram.Rel rd (lName "padding_weight" n) args rets
 
 /-! ## The layout -/
 

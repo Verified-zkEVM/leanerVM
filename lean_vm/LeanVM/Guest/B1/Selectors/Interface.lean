@@ -54,8 +54,15 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 
 /-! ## Names of specializations -/
 
-/-- The compiler's name of the specialization of `base` at the constant `j`. -/
-def lName (base : String) (j : ℕ) : String := base ++ "__L" ++ toString j
+/-- The decimal numerals `0, …, 40`, as literals (so the kernel reads a specialization's name
+without `Nat.repr`). -/
+def tbDecimals : List String :=
+  ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+    "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32",
+    "33", "34", "35", "36", "37", "38", "39", "40"]
+
+/-- The compiler's name of the specialization of `base` at the constant `j ≤ 40`. -/
+def lName (base : String) (j : ℕ) : String := base ++ "__L" ++ tbDecimals.getD j (toString j)
 
 /-! ## Mirrors -/
 
@@ -84,10 +91,15 @@ def IndexMleOut (n : ℕ) (rd : Reader) : List E → List E → Prop
   | [zeta], [v] => ∃ zs : List E, zs.length = n ∧ TbReadsAt rd zeta zs ∧ v = indexMle zs
   | _, _ => False
 
-/-- **`index_mle`** (G:1788-1797; TRIAGE #44) computes `indexMle`. -/
+/-- **`index_mle`** (G:1788-1797; TRIAGE #44) computes `indexMle`: soundness. -/
 def index_mle_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
-    coreProgram.Rel rd (lName "index_mle" n) args rets ↔ IndexMleOut n rd args rets
+    coreProgram.Rel rd (lName "index_mle" n) args rets → IndexMleOut n rd args rets
+
+/-- The converse, for completeness: every outcome is a relation's. -/
+def index_mle_complete_Spec : Prop :=
+  ∀ n < 34, ∀ rd args rets,
+    IndexMleOut n rd args rets → coreProgram.Rel rd (lName "index_mle" n) args rets
 
 /-! ## The nibble tables -/
 
@@ -101,10 +113,15 @@ def SelPartialOut (w : ℕ) (rd : Reader) : List E → List E → Prop
         TbReadsAt rd eqo (eqLevels zs zs1) ∧ TbReadsAt rd go (if w = 0 then [] else gTable gl)
   | _, _ => False
 
-/-- **`sel_partial_nibble`** (G:1801-1837; TRIAGE #45-47) writes its nibble's tables. -/
+/-- **`sel_partial_nibble`** (G:1801-1837; TRIAGE #45-47) writes its nibble's tables: soundness. -/
 def sel_partial_nibble_Spec : Prop :=
-  ∀ w < 4, ∀ rd args rets,
-    coreProgram.Rel rd (lName "sel_partial_nibble" w) args rets ↔ SelPartialOut w rd args rets
+  ∀ n < 4, ∀ rd args rets,
+    coreProgram.Rel rd (lName "sel_partial_nibble" n) args rets → SelPartialOut n rd args rets
+
+/-- The converse, for completeness: every outcome is a relation's. -/
+def sel_partial_nibble_complete_Spec : Prop :=
+  ∀ n < 4, ∀ rd args rets,
+    SelPartialOut n rd args rets → coreProgram.Rel rd (lName "sel_partial_nibble" n) args rets
 
 /-- The nibble tables of a run of `n` coordinates `zs` (complements `zs1`, shares `gs`): nibble
 `j`'s eq levels at `eq_tab·g^(32j)` and its `g`-power table at `g_tab·g^(16j)`
@@ -162,10 +179,15 @@ def BlockSelOut (n : ℕ) (rd : Reader) : List E → List E → Prop
         rb = ((List.zip bs cs).map fun p ↦ 1 + bitE p.1 * p.2).prod
   | _, _ => False
 
-/-- **`block_selector`** (G:1886-1901; TRIAGE #50) computes its selector. -/
+/-- **`block_selector`** (G:1886-1901; TRIAGE #50) computes its selector: soundness. -/
 def block_selector_Spec : Prop :=
   ∀ n < 34, ∀ rd args rets,
-    coreProgram.Rel rd (lName "block_selector" n) args rets ↔ BlockSelOut n rd args rets
+    coreProgram.Rel rd (lName "block_selector" n) args rets → BlockSelOut n rd args rets
+
+/-- The converse, for completeness: every outcome is a relation's. -/
+def block_selector_complete_Spec : Prop :=
+  ∀ n < 34, ∀ rd args rets,
+    BlockSelOut n rd args rets → coreProgram.Rel rd (lName "block_selector" n) args rets
 
 /-! ## The committed columns' selectors -/
 
