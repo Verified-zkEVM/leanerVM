@@ -1,6 +1,6 @@
 # leanSPHINCS security in Lean 4
 
-**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3f7dc2196e43ca60034c5803eb307c050b4f91d9/crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3f7dc2196e43ca60034c5803eb307c050b4f91d9/doc/lean_sphincs), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
+**`Sphincs.Lifetimes.requestedSecurity` proves that leanSPHINCS, the scheme of [`crates/signatures/src/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3375f7a137c50b803f3416f6466b5d4e0719708a/crates/signatures/src/lean_sphincs) specified in [`doc/lean_sphincs`](https://github.com/leanEthereum/leanVM/tree/3375f7a137c50b803f3416f6466b5d4e0719708a/doc/lean_sphincs), at leanVM's `keccak-gkr` branch (commit `3375f7a13`), has 127 bits of classical SUF-CMA security in the random-oracle model, at every subtree height below.** The hash `H` of `Th(P, A, M) = Truncate_16(H(P ‖ A ‖ M))` is the leanVM hash, Keccak-256, modeled as a random oracle on byte strings: the proof reads only the bytes of each input, never the hash function. [Axioms.lean](Sphincs/Axioms.lean) pins every public theorem to `propext`, `Classical.choice` and `Quot.sound` with `#guard_msgs`. There is no `sorry` and no `native_decide`.
 
 The game is [StatementDet.lean](Sphincs/StatementDet.lean). A uniform 32-byte seed `S0` generates the key (`Seeded.keygenFromSeed`: the scheme seed `S = H(leanSPHINCS ‖ S0)`, then everything from `S`), and the adversary gets the public key, the random oracle and a signing oracle running the deterministic signer `Seeded.sign`. It wins if the final `Concrete.verify` accepts its pair, the pair is not one the signing oracle returned, and the signing oracle answered at most `N` requests, repeats included. `HasClassicalSecurityBitsDet 127` says that for every `q ≥ 1` and every adversary whose experiment makes at most `q` hash calls on every outcome, the probability of winning is at most `q / 2^127`. The count includes every call of the experiment: key generation, the signer and the final verification. Private sampling is free, and running time and memory are unbounded.
 
@@ -10,25 +10,25 @@ The game is a `module` file: lean_vm imports its scheme.
 
 A key keeps one subtree of height `b` of the height-26 tree (`doc/lean_sphincs` explains the pruning). Each row is one theorem of [Lifetimes.lean](Sphincs/Lifetimes.lean):
 
-|    b |  signatures N | key generation, hash calls | key generation, compressions |
-| ---: | ------------: | -------------------------: | ---------------------------: |
-|   26 | 1,383,000,000 |             15,166,603,265 |               16,240,345,089 |
-|   20 |    26,030,000 |                236,978,189 |                  253,755,405 |
-|   14 |       480,900 |                  3,702,809 |                    3,964,953 |
-|   13 |       247,000 |                  1,851,419 |                    1,982,491 |
-|   12 |       126,900 |                    925,725 |                      991,261 |
-|   10 |        33,490 |                    231,457 |                      247,841 |
-|    8 |         8,830 |                     57,893 |                       61,989 |
+|  b |  signatures N | key generation, hash calls | key generation, permutations |
+| -: | ------------: | -------------------------: | ---------------------------: |
+| 26 | 1,383,000,000 |             15,166,603,265 |               15,636,365,313 |
+| 20 |    26,030,000 |                236,978,189 |                  244,318,221 |
+| 14 |       480,900 |                  3,702,809 |                    3,817,497 |
+| 13 |       247,000 |                  1,851,419 |                    1,908,763 |
+| 12 |       126,900 |                    925,725 |                      954,397 |
+| 10 |        33,490 |                    231,457 |                      238,625 |
+|  8 |         8,830 |                     57,893 |                       59,685 |
 
-The hash calls are `226 · 2^b + 2 (26 − b) + 1` (`Security.Prefix.hashCalls_keygenFromSeed`): the scheme seed, then per one-time key 32 derivations of chain starts, 192 chain steps and the leaf, then the `2^b − 1` nodes of the subtree, the `26 − b` surrogate siblings, the `26 − b` nodes above the subtree and the public parameter. In BLAKE2s compressions, a one-time leaf hashes 1,056 bytes and costs 17 and the scheme seed's 43 bytes cost 1, so the total is `242 · 2^b + 2 (26 − b) + 1`.
+The hash calls are `226 · 2^b + 2 (26 − b) + 1` (`Security.Prefix.hashCalls_keygenFromSeed`): the scheme seed, then per one-time key 32 derivations of chain starts, 192 chain steps and the leaf, then the `2^b − 1` nodes of the subtree, the `26 − b` surrogate siblings, the `26 − b` nodes above the subtree and the public parameter. In permutations of the leanVM hash, one per 136-byte block, the last holding the padding, a one-time leaf hashes 1,056 bytes and costs 8 and the scheme seed's 43 bytes cost 1, so the total is `233 · 2^b + 2 (26 − b) + 1`.
 
-Also proved: for every hash function and every subtree height, a signature the signer returns verifies (`Completeness.correct`), a signature serializes to 4,276 bytes (`signature_size`), and an accepted verification costs exactly 307 compressions and no signature costs more (`Cost.verification_compressions`, `Cost.verification_compressions_le`).
+Also proved: for every hash function and every subtree height, a signature the signer returns verifies (`Completeness.correct`), a signature serializes to 4,276 bytes (`signature_size`), and an accepted verification costs exactly 267 permutations of the leanVM hash, one per 136-byte block, the last holding the padding, and no signature more (`Cost.verification_permutations`, `Cost.verification_permutations_le`), which is `lean_sphincs::VERIFY_PERMUTATIONS`.
 
 ## The model and the Rust code
 
 [Scheme.lean](Sphincs/Scheme.lean) is the functional model. Its bytes are the crate's: the scheme seed `S = H(leanSPHINCS ‖ S0)` (`schemeSeedInput`, 43 bytes), the 16-byte address and every hash domain, the seed derivations (two chain starts per hash), the randomizer base `R0 = Th(P, A(7, 0, 0), S ‖ m)` and the attempts `R0 + i`, the 234-bit message digest and its field offsets, the codeword table (`codewordCodes`, the rule of `doc/lean_sphincs`), the kept subtree (the first 8 bytes of `P` mod `2^(26−b)`), the 2^32 bounds on randomizer and counter attempts, and the serialization. This was checked by reading both sides; it is not a mechanized refinement of the Rust.
 
-The two signers compute the same signature, but not with the same hash calls. The Lean signer recomputes the forest for its key and again for the opening, and hashes the digest once more after its loop, where the Rust signer reuses what it computed and keeps the BLAKE2s state after the digest's first block. The budget `q` of the theorem counts the calls of the Lean signer.
+The two signers compute the same signature, but not with the same hash calls. The Lean signer recomputes the forest for its key and again for the opening, and hashes the digest once more after its loop, where the Rust signer reuses what it computed. The budget `q` of the theorem counts the calls of the Lean signer.
 
 ## Build
 
@@ -54,7 +54,7 @@ The three come from [leanXMSS-leanSPHINCS-candidates](https://github.com/TomWamb
 
 `Sphincs` models the scheme of `crates/signatures/src/lean_sphincs`, specified in `doc/lean_sphincs`: the one-time keys of a height-26 tree sign few-time keys, each a two-level WOTS forest of 8 trees of height 4, each leaf of a tree the hash of two subtrees of height 3 over WOTS keys. The digest picks, per tree, a leaf, a WOTS key in each of its two subtrees and a codeword for each WOTS key (`lut`, entries in `{0..4}` summing to 5); the signature opens each chain of the two WOTS keys at position `4 - d_i`. The proof forks, module by module, the one of the FORS variant of leanSPHINCS; the `SphincsFors` and `SphincsBase` modules here are those it imports.
 
-No tree of the forest has a root hash. A subtree is hashed up to level 2 and a tree leaf is the hash of the four level-2 nodes `m_0[0] ‖ m_0[1] ‖ m_1[0] ‖ m_1[1]` of its two subtrees; a tree is hashed up to level 3 and the few-time key is the hash of the sixteen level-3 nodes `t_0[0] ‖ t_0[1] ‖ … ‖ t_7[0] ‖ t_7[1]`. The signature is unchanged (3 path elements per subtree, 4 per tree): the last path element is the other top node of its tree. The verifier folds 2 levels in a subtree and 3 in a tree and puts the node it reached and the last path element in index order (`orderTops`: the reached node first when bit 2 of the WOTS-key index, bit 3 of the leaf index, is 0).
+No tree of the forest has a root hash. A subtree is hashed up to level 2 and a tree leaf is the hash of the four level-2 nodes `m_0[0] ‖ m_0[1] ‖ m_1[0] ‖ m_1[1]` of its two subtrees; a tree is hashed up to level 3 and the few-time key is the sixteen level-3 nodes `t_0[0] ‖ t_0[1] ‖ … ‖ t_7[0] ‖ t_7[1]` themselves: no hash folds them, and the WOTS+C encoding absorbs them before its counter, `Th(P, A(4, 0, idx), t_0[0] ‖ … ‖ t_7[1] ‖ ctr)` (`Concrete.encode`, `ForestKey`). The WOTS+C key has 64 chains of 4 positions and target sum 123 (`targetSum`). The signature is unchanged (3 path elements per subtree, 4 per tree): the last path element is the other top node of its tree. The verifier folds 2 levels in a subtree and 3 in a tree and puts the node it reached and the last path element in index order (`orderTops`: the reached node first when bit 2 of the WOTS-key index, bit 3 of the leaf index, is 0).
 
 Final statement: `Sphincs.Lifetimes.requestedSecurity`, 127 classical bits (SUF-CMA in the ROM) for the deterministic Lean signer at subtree heights 26, 20, 14, 13, 12, 10, 8.
 
@@ -108,7 +108,7 @@ Key generation first hashes the key's seed `S0` into the scheme seed `S = H(lean
 | WOTS+C chain step onto position `to` | 1 | `to − 1` | chain | leaf | value |
 | WOTS+C leaf | 2 | 0 | 0 | leaf | 64 chain ends |
 | tree node | 3 | 0 | level | node | left ‖ right |
-| WOTS+C encoding | 4 | 0 | 0 | leaf | message ‖ counter (4 bytes) |
+| WOTS+C encoding | 4 | 0 | 0 | leaf | `t_0[0] ‖ t_0[1] ‖ … ‖ t_7[0] ‖ t_7[1]` (the forest key, 256 bytes) ‖ counter (4 bytes) |
 | parameter derivation, under `P = 0` | 5 | 0 | 0 | 0 | seed |
 | randomizer base `R0` | 7 | 0 | 0 | 0 | seed ‖ message |
 | message digest | 12 | 0 | 0 | 0 | message ‖ randomizer |
@@ -119,13 +119,13 @@ Key generation first hashes the key's seed `S0` into the scheme seed `S = H(lean
 | subtree node, level 1 and 2 | 17 | 0 | `c + 8s + 128j + 256·level + 1024·node` | `idx` | left ‖ right |
 | tree leaf | 18 | 0 | `c + 8s` | `idx` | `m_0[0] ‖ m_0[1] ‖ m_1[0] ‖ m_1[1]`, the level-2 nodes of the two subtrees (64 bytes) |
 | forest tree node, level 1 to 3 | 19 | 0 | `c + 8·level + 64·node` | `idx` | left ‖ right |
-| few-time public key | 20 | 0 | 0 | `idx` | `t_0[0] ‖ t_0[1] ‖ … ‖ t_7[0] ‖ t_7[1]`, the level-3 nodes of the 8 trees (256 bytes) |
 
-In 64-byte blocks: the scheme seed is 43 bytes, a chain step 48 and a node 64 (1 compression), a forest WOTS-key leaf 128 and a tree leaf 96 (2), the key 288 (5), a one-time leaf 1,056 (17), the digest 80 (2). The addresses of a subtree root (type 17, level 3) and of a tree root (type 19, level 4) exist in `HashDomain` and no algorithm uses them.
+
+The leanVM hash (Keccak-256) spends one Keccak-f permutation per 136-byte block, the last holding the padding: the scheme seed is 43 bytes, a chain step 48, a node 64, a forest WOTS-key leaf 128, a tree leaf 96 and the digest 80 (1 permutation each), the encoding 292 (3: the counter falls in the last block, so the signer absorbs the key once and pays one permutation per counter), a one-time leaf 1,056 (8). The addresses of a subtree root (type 17, level 3), of a tree root (type 19, level 4) and of the former key hash (type 20, `roots`) exist in `HashDomain` and no algorithm uses them.
 
 One hash of the seed gives two chain starts: the hash output is 32 bytes, the start of chain `2t` is bytes 0 to 15 and the start of chain `2t + 1` is bytes 16 to 31 (`deriveOutput`, `hashHalf`, `Seeded.otsSecrets`, `Seeded.forestSecrets` in `Scheme.lean`). A one-time key takes 32 derivations for its 64 chains and a forest WOTS key 3 for its 6 chains. The parameter, the surrogates and the randomizer base are one hash each and keep its first 16 bytes; so does every verification hash. `Seeded.otsStart`, `Seeded.forestStart` and `Seeded.chainValue` are the per-chain views (one derivation each), used in statements only: the signer's values are theirs (`Completeness.eval_otsSecrets`, `eval_forestSecrets`).
 
-The signer derives one randomizer base per message, `R0 = Th(P, A(7, 0, 0), S ‖ message)` (one hash query), and attempt `i` uses the randomizer `R0 + i` (addition modulo `2^128`, `Seeded.signDigestLoop`); it keeps the first attempt whose digest index lands in the kept subtree. The randomizer comes last in the digest payload: a grinding attempt changes only the last block of the digest hash. The digest input is 80 bytes: the first block is `P ‖ A ‖ message` and the second the randomizer alone. The root is not hashed (`P` binds the key); `messageDigestPayload` keeps its root argument for its callers and ignores it.
+The signer derives one randomizer base per message, `R0 = Th(P, A(7, 0, 0), S ‖ message)` (one hash query), and attempt `i` uses the randomizer `R0 + i` (addition modulo `2^128`, `Seeded.signDigestLoop`); it keeps the first attempt whose digest index lands in the kept subtree. The randomizer comes last in the digest payload. The digest input `P ‖ A ‖ message ‖ randomizer` is 80 bytes, one block, so a grinding attempt is one permutation. The root is not hashed (`P` binds the key); `messageDigestPayload` keeps its root argument for its callers and ignores it.
 
 #### Digest fields
 
@@ -142,7 +142,7 @@ Bits 234 to 255 are unused. No field lies across two 64-bit words. The proof rea
 
 Separation is unconditional. The scheme seed's input is 43 bytes and every other input at least 48, though the proof does not need it (`BridgeSchemeSeed` charges every call that names `S0`). An input determines its parameter, its address and its payload (`fieldBytes_injective` in `Bytes.lean`, `fieldInput_injective` in `SecurityDomains.lean`), two inputs of different types differ whatever their parameters (`fieldInput_ne_of_tag_ne_across` in `Fresh.lean`, `keygenInput_ne_hashInput`), and an address determines the call: `hashFields_injective` and `Position.input_separated` (`SecurityPosition.lean`) for verification, `deriveFields_injective` and `keygenInput_injective` for the seed derivations, `randomizerHashInput_injective` (`BridgeDet.lean`) for the randomizer base. The address has no layer and no tree field; the scheme has one of each (`Layer` and `TreeIndex` are `Fin 1`).
 
-`Layout.signature_size`: a signature serializes to 4,276 bytes. `Cost.verification_compressions`: an accepted signature costs exactly 307 BLAKE2s compressions (2 for the 80-byte digest input, 189 for the forest, 116 for WOTS+C and the path), and no signature costs more (`verification_compressions_le`). The forest is 23 per tree (`compressions_coordRecover`: in each of the two subtrees 5 chain steps, 2 for the WOTS-key leaf and 2 folds; 2 for the tree leaf; 3 folds), times 8, plus 5 for the key.
+`Layout.signature_size`: a signature serializes to 4,276 bytes. `Cost.verification_permutations`: an accepted signature costs exactly 267 Keccak-f permutations of the leanVM hash, `lean_sphincs::VERIFY_PERMUTATIONS` (1 for the 80-byte digest input, 160 for the forest, 106 for WOTS+C and the path: 3 for the encoding of the key, 69 chain steps, 8 for the leaf and 26 nodes), and no signature costs more (`verification_permutations_le`). The forest is 20 per tree (`permutations_coordRecover`: in each of the two subtrees 5 chain steps, 1 for the WOTS-key leaf and 2 folds; 1 for the tree leaf; 3 folds), times 8. The key is not hashed.
 
 Hash calls of the signer (`SecurityPrefixCost.lean`, `SecurityGraphCost.lean`, `SecurityPrefixErasedKeygen.lean`; exact counts on any oracle):
 
@@ -156,11 +156,13 @@ Hash calls of the signer (`SecurityPrefixCost.lean`, `SecurityGraphCost.lean`, `
 | subtree node at level `l ≤ 2` (`hashCalls_subNode`) | `29 · 2^l − 1` |
 | tree leaf (`hashCalls_superNode`) | `2 · 2 · 115 + 1 = 461` |
 | tree node at level `l ≤ 3` (`hashCalls_topNode`) | `462 · 2^l − 1` |
-| forest key of an instance (`hashCalls_forestKey`) | `8 · 2 · 3,695 + 1 = 59,121` |
+| forest key of an instance (`hashCalls_forestKey`) | `8 · 2 · 3,695 = 59,120` |
 | opening of one tree (`hashCalls_coordOpen_exact`) | `2 · 222 + 6,926 = 7,370` |
 | forest opening (`hashCalls_forsOpen_exact`) | 58,960 |
-| WOTS+C values of a signature (`hashCalls_published_values`) | `32 + 120 = 152` |
-| signature after the scan (`hashCalls_finishSign_exact`) | `118,082 + counter search + 152 + path` |
+| WOTS+C values of a signature (`hashCalls_published_values`) | `32 + 123 = 155` |
+| signature after the scan (`hashCalls_finishSign_exact`) | `118,081 + counter search + 155 + path` |
+
+A counter of the encoding search is one hash call; the expected search is 2,197 calls (`2^128` over the 154,880,076,975,771,860,577,080,744,218,814,592 codewords of digit sum 123).
 
 The Lean signer recomputes the forest instance for its key and again for the opening, and the tree nodes of the path; these are the counts of that signer, and the budget `q` of the theorem counts them. Only the count of key generation from the scheme seed enters the certificates (`kCreditF`); the call that derives the scheme seed is not credited.
 
@@ -174,7 +176,7 @@ The reduction is the one of the FORS variant ([its proof route](https://github.c
 
 After the deterministic signer is replaced by a seed-free one (`BridgeDet*`), a forgery is a first-order hit, a WOTS second-order event, or one of the forest events of the refined classification (`BridgeImplicationA`): a contact without guess record, two contacts at different chains of one index, a recorded contact at a chain opened at or below its step, a near cover with a recorded contact, or a cover. Budgets are split at `qh ≈ 2^(128 + lx)`.
 
-**No root hashes.** The graph of hashed values (`SecurityPosition.lean`) keeps its positions; only the children of two kinds of position change: a tree leaf (`superChild`) reads the four level-2 nodes of its two subtrees and the key (`roots`) the sixteen level-3 nodes of the trees. The root of a subtree and the root of a tree remain positions that nothing reads: the position set already over-approximates what is hashed, every position is prepared, and an address still determines one position, so a query has one target as before. The values a signature reveals are unchanged (`GraphView.publicData`: the subtree path at levels 0 to 2 and the tree path at levels 0 to 3, the last of each being the other top node, which was already a path element). In the forest witness (`SecurityForestWitness.lean`) an opening gives two top nodes per tree, the one its fold reaches and its last path element (`opSubTops`, `opTops`). If the sixteen level-3 nodes differ from the honest ones and the key is reached, the key hash has a second preimage (`RootsMatch`, a first-order event as for the 8 roots before). Otherwise each tree has the honest last path element and its fold of 3 levels reaches an honest node (`Completeness.orderTops_eq_iff`), which is classified as a fold to the root was (`top_fold_classification`: honest tree leaf and path, or a node match at levels 1 to 3); likewise for the four level-2 nodes of a tree leaf (`SuperMatch`, `sub_fold_classification`, node matches at levels 1 and 2). The statements above the witness (`Forest.Opening`, `recovered_classification`, the classification of a win) are unchanged.
+**No root hashes.** The graph of hashed values (`SecurityPosition.lean`) keeps its positions; only the children of two kinds of position change: a tree leaf (`superChild`) reads the four level-2 nodes of its two subtrees and the position `roots` the sixteen level-3 nodes of the trees. The root of a subtree, the root of a tree and `roots` remain positions that nothing reads (the key is not hashed; `GraphCorrectness.keyLabels` reads it off the sixteen level-3 positions): the position set already over-approximates what is hashed, every position is prepared, and an address still determines one position, so a query has one target as before. The values a signature reveals are unchanged (`GraphView.publicData`: the subtree path at levels 0 to 2 and the tree path at levels 0 to 3, the last of each being the other top node, which was already a path element). In the forest witness (`SecurityForestWitness.lean`) an opening gives two top nodes per tree, the one its fold reaches and its last path element (`opSubTops`, `opTops`). An opening that recovers the honest key has the sixteen honest level-3 nodes, since the key is those nodes (a different key is a different encoding input, which the WOTS+C classification handles). So each tree has the honest last path element and its fold of 3 levels reaches an honest node (`Completeness.orderTops_eq_iff`), which is classified as a fold to the root was (`top_fold_classification`: honest tree leaf and path, or a node match at levels 1 to 3); likewise for the four level-2 nodes of a tree leaf (`SuperMatch`, `sub_fold_classification`, node matches at levels 1 and 2). The statements above the witness (`Forest.Opening`, `recovered_classification`, the classification of a win) are unchanged.
 
 #### The scan signer `R = R0 + i`
 

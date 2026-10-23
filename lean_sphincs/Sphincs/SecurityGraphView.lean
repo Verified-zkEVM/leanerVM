@@ -22,14 +22,14 @@ set_option maxRecDepth 10000
 
 structure PublicData where
   root : Digest
-  forestKey : Index → Digest
+  forestKey : Index → ForestKey
   treePath : LeafIndex → Fin (layerHeight topLayer) → Digest
   subPath : Index → Coord → SuperIdx → SubIdx → ChildIdx → Fin subHeight → Digest
   topPath : Index → Coord → SuperIdx → Fin topHeight → Digest
 
 def publicData (labels : CanonicalGraphLabels) : PublicData where
   root := truncateHash (labels (treePosition topLayer rootTree totalHeight le_rfl ⟨0, by decide⟩))
-  forestKey := fun index => truncateHash (labels (.roots index))
+  forestKey := fun index => keyLabels labels index
   treePath := fun leaf level => truncateHash (labels
     (treePosition topLayer rootTree level.val (Nat.le_of_lt level.isLt)
       ⟨Nat.xor (leaf.val / 2 ^ level.val) 1,
@@ -50,7 +50,7 @@ structure DataCorrect (f : QueryImpl HashSpec Id) (parameter : PublicParameter)
   root : data.root = evalWithAnswerFn f
     (Seeded.treeRoot parameter topLayer rootTree seed : OracleComp HashSpec Digest)
   forestKey : ∀ index, data.forestKey index = evalWithAnswerFn f
-    (Seeded.forestKey parameter index seed : OracleComp HashSpec Digest)
+    (Seeded.forestKey parameter index seed : OracleComp HashSpec ForestKey)
   treePath : ∀ leaf, Landed parameter leaf → data.treePath leaf = evalWithAnswerFn f
     (Seeded.treePath parameter topLayer rootTree seed leaf :
       OracleComp HashSpec (Fin (layerHeight topLayer) → Digest))
@@ -206,7 +206,7 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
               OracleComp HashSpec MessageDigest))) seed chain) : OracleComp HashSpec Digest)) := by
     funext chain
     exact htable.1 _ hland chain (word chain)
-  simp only [Randomized.finishSign, assembled, evalWithAnswerFn_bind, eval_sequenceFin,
+  simp -iota only [Randomized.finishSign, assembled, evalWithAnswerFn_bind,
     sequenceLayers, Seeded.signLayer, Seeded.layerMessage, treeIndexAt_eq, leafIndexAt_eq,
     Seeded.otsSign, otsSignFrom_eq_firstEncoding, hdata.forestKey,
     hdata.treePath _ hland, hchains, eval_forestOpen_assembled f parameter seed data table hdata htable]
@@ -215,7 +215,7 @@ theorem eval_finishSign_assembled (f : QueryImpl HashSpec Id) (parameter : Publi
         OracleComp HashSpec MessageDigest)))
       (evalWithAnswerFn f (Seeded.forestKey parameter
         (digestIndex (evalWithAnswerFn f (messageDigest parameter data.root message randomness :
-          OracleComp HashSpec MessageDigest))) seed : OracleComp HashSpec Digest))
+          OracleComp HashSpec MessageDigest))) seed : OracleComp HashSpec ForestKey))
       encodingAttemptLimit 0 <;>
     simp only [Option.map_none, Option.map_some, evalWithAnswerFn_pure, evalWithAnswerFn_bind,
       derivedSecrets, Completeness.otsSecret]
