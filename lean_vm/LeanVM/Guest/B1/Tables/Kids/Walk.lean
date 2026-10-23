@@ -126,6 +126,9 @@ def seqB : Stmt → Bool
   | .atom _ | .call .. | .callIf .. | .dispatch .. => true
   | _ => false
 
+theorem noLoadIte_of_seqB {s : Stmt} (h : seqB s = true) : noLoadIte s = true := by
+  cases s <;> simp_all [seqB, noLoadIte]
+
 /-- **A statement of a sequence of such statements holds** when the sequence does. -/
 theorem holds_of_mem_seq {C : CallRel} {rd : Reader} {σ : Val} {kret : List E → Prop} :
     ∀ (ss : List Stmt) {next : Prop}, ss.all seqB = true → Stmt.HoldsList C rd σ ss next kret →

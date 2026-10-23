@@ -71,7 +71,9 @@ theorem gkr_rounds_relIn {n : ℕ} (hn : n = 1 ∨ n = 2) {rd : Reader} {R : ℕ
   have hs7' : s7 = .atom (.load (.n 7) (.n 0) 4310) := by
     have := tbStmtsEqb_sound hs7e; simpa using this
   subst hs7'
-  refine relIn_of_flatRel hf hb hfl h fun σ hpar hh ↦ ?_
+  have hnl : fn.body.dropLast.all noLoadIte = true := List.all_eq_true.mpr fun s hs ↦
+    noLoadIte_of_seqB (List.all_eq_true.mp hseq s hs)
+  refine relIn_of_flatRel (hnl := hnl) hf hb hfl h fun σ hpar hh ↦ ?_
   rw [hp] at hpar
   simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
   obtain ⟨p0, p1⟩ := hpar
