@@ -245,5 +245,29 @@ theorem fwd_completes {C : CallRel} {lo hi : Nat} {ss : List Stmt} (h : SSA ss)
       obtain ⟨k, h1, h2, rfl⟩ := hout v hm
       exact hv k h1 h2 rfl) rfl (fwd_holds ss σ h hk)
 
+theorem fwd_append : ∀ (xs ys : List Stmt) (σ : Val), fwd (xs ++ ys) σ = fwd ys (fwd xs σ)
+  | [], _, _ => rfl
+  | .atom a :: xs, ys, σ => fwd_append xs ys (fwdA σ a)
+  | .ite .. :: xs, ys, σ | .match_ .. :: xs, ys, σ | .call .. :: xs, ys, σ | .callIf .. :: xs, ys, σ
+  | .dispatch .. :: xs, ys, σ | .ret _ :: xs, ys, σ => fwd_append xs ys σ
+
+theorem keccak_ins_sub {ss : List Stmt} {ins outs : List V} {i o : Bool}
+    (h : Stmt.atom (.keccak ins outs i o) ∈ ss) : ∀ v ∈ ins, v ∈ Stmt.valsList ss := by
+  intro v hv
+  exact mem_valsList_of_mem h (by simp [Stmt.vals, Atom.vals, hv])
+
+/-- `KECCAK` inputs in sequence: a later block's definitions miss an earlier block's values. -/
+theorem KCanon.append {xs ys : List Stmt} {σ : Val} (h1 : KCanon (fwd xs σ) xs)
+    (h2 : KCanon (fwd ys (fwd xs σ)) ys) (hd : ∀ v ∈ outsList ys, v ∉ Stmt.valsList xs) :
+    KCanon (fwd (xs ++ ys) σ) (xs ++ ys) := by
+  rw [fwd_append]
+  intro ins outs i o hm c
+  rcases List.mem_append.mp hm with hm | hm
+  · have e : ins.map (fwd ys (fwd xs σ)) = ins.map (fwd xs σ) :=
+      List.map_congr_left fun v hv => fwd_of_not_mem ys _ fun h => hd v h (keccak_ins_sub hm v hv)
+    rw [e]
+    exact h1 ins outs i o hm c
+  · exact h2 ins outs i o hm c
+
 end
 end LeanVM.Guest.B1.Sig
