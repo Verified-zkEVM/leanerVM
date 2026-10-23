@@ -444,5 +444,88 @@ theorem sCoord_complete {c : Nat} {enc : Option V} {bound : V} {b : Nat} (hb : 2
     rw [← hfst]
     exact post σ9 (fun k hk => he9.apply (Or.inl hk)) (by rw [hsnd, h9, h8b1, f5, hBound]; ring)
 
+/-- **A coordinate's shape and values**: its end past its base, its encoding's and bound's cells below
+its end, its values below its end. -/
+theorem sCoord_shape (c : Nat) {enc : Option V} {bound : V} {b : Nat} (hb : 206 ≤ b)
+    (henc : ∀ en, enc = some en → NBv b en) (hbd : NBv b bound) :
+    b + 20 ≤ (sCoord c enc bound b).2.1 ∧
+      (∃ k, (sCoord c enc bound b).2.2.1 = .n k ∧ k < (sCoord c enc bound b).2.1) ∧
+      (∃ k, (sCoord c enc bound b).2.2.2.1 = .n k ∧ k < (sCoord c enc bound b).2.1) ∧
+      NumBelow (sCoord c enc bound b).2.1 (Stmt.valsList (sCoord c enc bound b).1) := by
+  obtain ⟨s0a, ⟨k0, ek0, hk0⟩, s0b, L0, eL0, hL0a, hL0b⟩ :=
+    sSubtree_shape c 0 (.n (b + 6)) enc bound (b := b + 10) (by omega)
+  rw [← coordS0_eq] at s0a ek0 hk0 s0b eL0 hL0b
+  obtain ⟨s1a, ⟨k1, ek1, hk1⟩, s1b, L1, eL1, hL1a, hL1b⟩ :=
+    sSubtree_shape c 1 (.n (b + 6)) (some (coordS0 c enc bound b).2.2.1) (coordS0 c enc bound b).2.2.2.1
+      (b := (coordS0 c enc bound b).2.1) (by omega)
+  rw [← coordS1_eq] at s1a ek1 hk1 s1b eL1 hL1b
+  set f := (coordS1 c enc bound b).2.1 with hf
+  have hfo := foAB_mono (atV := .n (b + 6)) (adr := coordAdr) (height := 4) (node0 := .n (f + 5))
+    (markV := .n (b + 1)) (markC := coordMark c) (wC := fun s => cbMul s (26 + 4 * c)) (b := f + 18)
+  have hfdE : f + 18 ≤ (coordFd c b f).2.1 := by rw [coordFd_eq, foldArms_end]; exact (hfo 16).1
+  have hfo3 := foldArms_outs (atV := .n (b + 6)) (adr := coordAdr) (height := 4) (node0 := .n (f + 5))
+    (markV := .n (b + 1)) (markC := coordMark c) (wC := fun s => cbMul s (26 + 4 * c)) (f + 18)
+  have hLf := flBase_ge (coordAdr 0) 0 (4 - 1) (f + 18)
+  have hLfE : flBase (coordAdr 0) 0 (4 - 1) (f + 18) + 3 ≤ (coordFd c b f).2.1 := by
+    have h1 : foAB (.n (b + 6)) coordAdr 4 (.n (f + 5)) (.n (b + 1)) (coordMark c)
+        (fun s => cbMul s (26 + 4 * c)) (f + 18) 1 = flBase (coordAdr 0) 0 (4 - 1) (f + 18) + 3 := by
+      rw [foAB_one, foldArm_snd, foldLevels_snd]; rfl
+    rw [← h1, coordFd_eq, foldArms_end]; exact (hfo 1).2 16 (by omega)
+  have hend : (coordFd c b f).2.1 ≤ (sCoord c enc bound b).2.1 := by
+    rw [sCoord_fst, ← hf]; split <;> omega
+  have he : (sCoord c enc bound b).2.2.1 = (coordS1 c enc bound b).2.2.1 := by rw [sCoord_eq]
+  refine ⟨by omega, ⟨k1, by rw [he, ek1], by omega⟩, ?_, ?_⟩
+  · rw [sCoord_eq]
+    by_cases hl : c + 1 = 8
+    · simp only [hl, ↓reduceIte]; exact ⟨18, rfl, by rw [← hf]; omega⟩
+    · simp only [hl, ↓reduceIte]; exact ⟨_, rfl, by rw [← hf]; omega⟩
+  rw [sCoord_split]
+  simp only [valsList_append]
+  have hfdo3 : (coordFd c b f).2.2.2.2 = .n (flBase (coordAdr 0) 0 (4 - 1) (f + 18) + 2) := by
+    rw [coordFd_eq, hfo3]
+  refine NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_
+    (NumBelow.append ?_ (NumBelow.append ?_ (NumBelow.append ?_ ?_)))))))
+  · rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.cons ⟨b + 1, by omega, rfl⟩ (.nil _))
+  · exact (rangeS_nb _ _ _ ⟨b, by omega, rfl⟩).mono (by omega)
+  · intro v hv
+    simp only [addS, copyS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
+      List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals exact ⟨_, by omega, rfl⟩
+  · rw [coordS0_eq]
+    exact (sSubtree_numBelow c 0 (by omega) ⟨b + 6, by omega, rfl⟩ (fun en he => (henc en he).mono' (by omega))
+      (hbd.mono' (by omega))).mono (by rw [← coordS0_eq]; omega)
+  · rw [coordS1_eq]
+    exact (sSubtree_numBelow c 1 (by omega) ⟨b + 6, by omega, rfl⟩
+      (fun en he => by cases he; rw [ek0]; exact ⟨k0, by omega, rfl⟩)
+      (by rw [s0b]; exact ⟨_, by omega, rfl⟩)).mono (by rw [← coordS1_eq, ← hf]; omega)
+  · intro v hv
+    rw [eL1] at hv
+    simp only [copyS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
+      List.cons_append, List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    all_goals exact ⟨_, by omega, rfl⟩
+  · intro v hv
+    rw [eL0] at hv
+    simp only [kecS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil, List.mem_append,
+      List.mem_cons, List.not_mem_nil, or_false] at hv
+    rcases hv with (rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl) | hv
+    all_goals first | exact ⟨_, by first | omega | (simp only [sPad]; omega), rfl⟩ |
+      exact runV_mem_nb (by omega) hv
+  · simp only [valsList_cons, valsList_nil, Stmt.vals, List.append_nil]
+    refine .cons ⟨b, by omega, rfl⟩ ((?_ : NumBelow (coordFd c b f).2.1 _).mono hend)
+    rw [coordFd_eq]
+    exact foldArms_numBelow (by norm_num) (by omega) (fun i _ => coordAdr_ok i) ⟨b + 6, by omega, rfl⟩
+      ⟨f + 5, by omega, rfl⟩ ⟨b + 1, by omega, rfl⟩
+  · simp only [addS, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil]
+    refine .cons ?_ (.cons (by rw [s1b]; exact ⟨_, by omega, rfl⟩) (.cons (by rw [hfdo3]; exact ⟨_, by omega, rfl⟩)
+      (.nil _)))
+    by_cases hl : c + 1 = 8
+    · simp only [hl, ↓reduceIte]; exact ⟨18, by omega, rfl⟩
+    · simp only [hl, ↓reduceIte]
+      rw [sCoord_fst] at hend ⊢
+      simp only [hl, ↓reduceIte] at hend ⊢
+      exact ⟨_, by rw [← hf]; omega, rfl⟩
+
 end
 end LeanVM.Guest.B1.Sig
