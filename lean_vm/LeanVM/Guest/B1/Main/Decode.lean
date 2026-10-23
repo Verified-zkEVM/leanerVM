@@ -27,21 +27,23 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
 /-! ## Counts -/
 
 theorem lg_eq_gLog (σ : Val) (v : ℕ) : lg σ v = gLog (σ (.n v)) := by unfold lg; rfl
 
-theorem lxSlots_eq (MF : MainFacts rd σ) : lxSlots σ = LXS σ := by
+theorem lxSlots_eq (MF : MainFacts C rd σ) : lxSlots σ = LXS σ := by
   have hT := MF.total.2
   unfold lxSlots; rw [MF.lxs, gLog_gen_pow (by omega)]
 
-theorem lsSlots_eq (MF : MainFacts rd σ) : lsSlots σ = LSS σ := by
+theorem lsSlots_eq (MF : MainFacts C rd σ) : lsSlots σ = LSS σ := by
   have hT := MF.total.2
   unfold lsSlots; rw [MF.lss, gLog_gen_pow (by omega)]
 
-theorem daSlots_eq (MF : MainFacts rd σ) : daSlots σ = DAS σ := by
+theorem daSlots_eq (MF : MainFacts C rd σ) : daSlots σ = DAS σ := by
   have hT := MF.total.2
   unfold daSlots; rw [MF.daslots.1, gLog_gen_pow (by omega)]
 
@@ -51,7 +53,7 @@ theorem nRawX_eq (σ : Val) : nRawX σ = lg σ 2 := by unfold nRawX; rw [lg_eq_g
 theorem nRawS_eq (σ : Val) : nRawS σ = lg σ 5 := by unfold nRawS; rw [lg_eq_gLog]
 theorem nDirect_eq (σ : Val) : nDirect σ = lg σ 7 := by unfold nDirect; rw [lg_eq_gLog]
 
-theorem countOf_eq (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c : ℕ}
+theorem countOf_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c : ℕ}
     (hc : c ≤ lg σ 6) : countOf rd σ c = (segsOf σ K).a c := by
   have hb := a_le MF hK c hc
   have hk6 := MF.kids.2
@@ -80,7 +82,7 @@ theorem find_first' {A : ℕ → ℕ} {n c e : ℕ} (hc : c < n) (hlow : ∀ j <
     exact hlow j hj
   rw [key]; rfl
 
-theorem kidOf_eq (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c e : ℕ}
+theorem kidOf_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c e : ℕ}
     (hc : c < lg σ 6) (h1 : (segsOf σ K).a c ≤ e) (h2 : e < (segsOf σ K).a (c + 1)) :
     kidOf rd σ e = c := by
   unfold kidOf
@@ -113,6 +115,8 @@ open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.P
 open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
+
+variable {C : CallRel}
 
 variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
@@ -212,15 +216,17 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 variable {rd : Reader} {σ : Val} {K : ℕ → KidRec} {sl : ℕ → ℕ}
 
 /-! ## A child's writes -/
 
-theorem kid_base (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c : ℕ}
+theorem kid_base (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c : ℕ}
     (hc : c < lg σ 6) : (K c).base = gen ^ (segsOf σ K).a c :=
   loadHolds_unique (hK c hc).base (written_eq MF hK c (by omega))
 
-theorem kid_wx (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c j : ℕ}
+theorem kid_wx (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).ex) :
     (K c).ox j < LXS σ ∧ LoadHolds rd (σ (.n 117)) ((K c).ox j) (gen ^ ((segsOf σ K).a c + j)) := by
   have hT := MF.total.2
@@ -229,7 +235,7 @@ theorem kid_wx (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)
   rw [one_mul, loadHolds_gen_pow_iff, kid_base MF hK hc, ← pow_add, Nat.add_zero] at hl
   exact hl
 
-theorem kid_ws (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c j : ℕ}
+theorem kid_ws (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c j : ℕ}
     (hc : c < lg σ 6) (hj : j < (K c).es) :
     (K c).os j < LSS σ ∧ LoadHolds rd (σ (.n 117)) (LXS σ + (K c).os j)
       (gen ^ ((segsOf σ K).a c + (K c).ex + j)) := by
@@ -240,7 +246,7 @@ theorem kid_ws (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)
     Nat.add_zero] at hl
   exact hl
 
-theorem kid_wd (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) {c d : ℕ}
+theorem kid_wd (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) {c d : ℕ}
     (hc : c < lg σ 6) (hd : d < (K c).ed) :
     (K c).di d < DAS σ ∧ LoadHolds rd (σ (.n 117)) (LXS σ + LSS σ + (K c).di d)
       (gen ^ ((segsOf σ K).a c + (K c).ex + (K c).es + d)) := by
@@ -255,7 +261,7 @@ theorem kid_wd (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)
 /-! ## A child's statement -/
 
 /-- **Child `c`'s statement, read off the coverage table**, is its records'. -/
-theorem kidStmt_eq (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c))
+theorem kidStmt_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c))
     (hW : Writers rd (σ (.n 117)) (segsOf σ K) (LXS σ) (LSS σ) (DAS σ))
     (hC : Cover rd (σ (.n 117)) (segsOf σ K) (LXS σ) (LSS σ) (DAS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :

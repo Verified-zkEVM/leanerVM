@@ -25,6 +25,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 /-- The segments of `main`'s marks. -/
 noncomputable def segsOf (σ : Val) (K : ℕ → KidRec) : Segs :=
   ⟨lg σ 2, lg σ 5, lg σ 7, lg σ 6, fun c => (K c).ex, fun c => (K c).es, fun c => (K c).ed⟩
@@ -44,7 +46,7 @@ noncomputable abbrev LXS (σ : Val) : ℕ := lg σ 0 + lg σ 1
 noncomputable abbrev LSS (σ : Val) : ℕ := lg σ 3 + lg σ 4
 noncomputable abbrev DAS (σ : Val) : ℕ := lg σ 40 + lg σ 41
 
-theorem a_le (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) :
+theorem a_le (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
     ∀ c ≤ lg σ 6, (segsOf σ K).a c ≤ 131071 + c * 131086 := by
   intro c
   induction c with
@@ -63,7 +65,7 @@ theorem a_le (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) 
     nlinarith
 
 /-- **The running counts**: `written[c] = g^(a c)`. -/
-theorem written_eq (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) :
+theorem written_eq (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
     ∀ c ≤ lg σ 6, LoadHolds rd (σ (.n 409)) c (gen ^ (segsOf σ K).a c) := by
   intro c
   induction c with
@@ -78,11 +80,11 @@ theorem written_eq (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (
     convert this using 2
     ring
 
-theorem lg_lt (MF : MainFacts rd σ) : LXS σ + LSS σ + DAS σ ≤ 65535 := MF.total.2
+theorem lg_lt (MF : MainFacts C rd σ) : LXS σ + LSS σ + DAS σ ≤ 65535 := MF.total.2
 
 set_option maxRecDepth 20000 in
 /-- **The writers of the coverage table.** -/
-theorem writers (hm : MemOk rd) (MF : MainFacts rd σ) (hK : ∀ c < lg σ 6, KidOk rd σ c (K c)) :
+theorem writers (hm : MemOk rd) (MF : MainFacts C rd σ) (hK : ∀ c < lg σ 6, KidOk C rd σ c (K c)) :
     Writers rd (σ (.n 117)) (segsOf σ K) (LXS σ) (LSS σ) (DAS σ) := by
   have eX : LXS σ = lg σ 0 + lg σ 1 := rfl
   have eS : LSS σ = lg σ 3 + lg σ 4 := rfl

@@ -22,10 +22,19 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- **`da_vector_cell`'s core IR gives its meaning.** -/
-theorem da_vector_cell_holds : da_vector_cell_sound_Spec := by
-  intro rd args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_vector_cell _ _).mp hrel
+/-- The weights `da_vector_cell` hints, read off its valuation. -/
+def vecWsOf (σ : Val) : List E := (List.range 256).map fun k => σ (.n (k + 1))
+
+/-- **`da_vector_cell`'s body, at a valuation**: under any call relation (it calls nothing), it
+returns its frame run's pointer, and the meaning holds with the weights `vecWsOf σ`. -/
+theorem da_vector_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    (hpar : Data.core28.params.map σ = args)
+    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core28) False (fun rs => rs = rets)) :
+    ∃ dg, args = [dg] ∧ rets = [σ (.n 4462)] ∧ (vecWsOf σ).length = LeanDa.cellSymbols ∧
+      IsInK (σ (.n 4462)) ∧
+      (∀ k < LeanDa.cellSymbols, ∀ w, rd ((σ (.n 4462)).limb 0 * Parameters.gpow k) = some w →
+        w = (vecWsOf σ).getD k 0) ∧
+      ReadsAt rd dg (digestCells (keccak256 ((vecWsOf σ).flatMap Node.eBytes))) := by
   have hok := vec_tmpl_ok
   have hch := vec_tail_ok
   unfold vecTmplOk at hok
@@ -56,7 +65,7 @@ theorem da_vector_cell_holds : da_vector_cell_sound_Spec := by
     subst hpar
     have hr : [σ (.n 4462)] = rets := hrets
     subst hr
-    simp only [List.map_cons, List.map_nil, MeaningDaVectorCell]
+    refine ⟨σ (.n 0), rfl, rfl, ?_⟩
     have htmpl : ∀ a ∈ tmplV, a.Holds rd σ := fun a ha => by
       rw [← atomsEqb_sound htm] at ha
       exact hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
@@ -77,18 +86,19 @@ theorem da_vector_cell_holds : da_vector_cell_sound_Spec := by
       rfl
     have hbytes : cellsBytes ((List.range 128).flatMap fun p =>
         Digest.pairCells (σ (.n (2 * p + 1))) (σ (.n (2 * p + 2)))) =
-        ((List.range 256).map fun k => σ (.n (k + 1))).flatMap Node.eBytes := by
-      rw [show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_assoc]
+        (vecWsOf σ).flatMap Node.eBytes := by
+      rw [vecWsOf, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_assoc]
       refine List.flatMap_congr fun p _ => ?_
       rw [← cellsBytes, pair_bytes]
     rw [hv, List.nil_append, hbytes] at hd
     obtain ⟨hp, hframe⟩ := frame_sound hfr hC
-    refine ⟨(List.range 256).map fun k => σ (.n (k + 1)), by simp [LeanDa.cellSymbols], ?_, ?_, ?_⟩
+    refine ⟨by simp [vecWsOf, LeanDa.cellSymbols], ?_, ?_, ?_⟩
     · rw [copy_sound hcp hC]; exact hp
     · intro k hk w hw
       rw [copy_sound hcp hC] at hw
       rw [hframe k (by simpa [wRun, LeanDa.cellSymbols] using hk) w hw]
-      simp [wRun, List.getD_eq_getElem?_getD, show k < 256 by simpa [LeanDa.cellSymbols] using hk]
+      simp [wRun, vecWsOf, List.getD_eq_getElem?_getD,
+        show k < 256 by simpa [LeanDa.cellSymbols] using hk]
     · intro k hk
       simp only [digestCells, List.length_cons, List.length_nil] at hk
       rcases (show k = 0 ∨ k = 1 by omega) with rfl | rfl
@@ -105,6 +115,13 @@ theorem da_vector_cell_holds : da_vector_cell_sound_Spec := by
         simp only [digestCells, List.getElem_cons_succ, List.getElem_cons_zero]
         rw [← hd]; exact this
   · exact absurd hok (by simp)
+
+/-- **`da_vector_cell`'s core IR gives its meaning.** -/
+theorem da_vector_cell_holds : da_vector_cell_sound_Spec := by
+  intro rd args rets hrel
+  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_vector_cell _ _).mp hrel
+  obtain ⟨dg, rfl, rfl, hl, hp, hfr, hrd⟩ := da_vector_cell_val hpar hb
+  exact ⟨vecWsOf σ, hl, hp, hfr, hrd⟩
 
 end
 end LeanVM.Guest.B1.Da

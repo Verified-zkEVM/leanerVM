@@ -31,6 +31,8 @@ open LeanVM.Guest.B1.Digest LeanVM.Node
 
 @[expose] public section
 
+variable {C : CallRel}
+
 theorem deferOfCells_of {d : DeferredClaim} (hl : d.bytecodePoint.length = bytecodeVars) :
     deferOfCells d.cells = d := by
   have hb : bytecodeVars = 23 := rfl
@@ -56,8 +58,8 @@ instance : Nonempty KidRec :=
 accepts its proof for the decoded child's statement under the decoded seed. -/
 theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
     {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
-    (cw : CalleesW bytecode rd wX wS wD wV wA) (MF : MainFacts rd σ)
-    (hK : ∀ c < lg σ 6, KidOk rd σ c (Kr c))
+    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) (MF : MainFacts C rd σ)
+    (hK : ∀ c < lg σ 6, KidOk C rd σ c (Kr c))
     (hW : Writers rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ))
     (hC : Cover rd (σ (.n 117)) (segsOf σ Kr) (LXS σ) (LSS σ) (DAS σ) sl) {c : ℕ}
     (hc : c < lg σ 6) :
@@ -91,12 +93,20 @@ theorem kid_sub {bytecode : List K} {wX : E → LeanXmss.Signature} {wS : E → 
   rw [hargs]
   exact hvd
 
-/-- **`main`, soundly, its witness decoded** (G:4086-4282, TRIAGE #96). -/
-theorem main_sound_w (bytecode : List K) : main_sound_Spec bytecode := by
-  intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
-  have MF := main_facts hm exponent_tables_holds (σ := σ) hb
-  obtain ⟨Kr, hK⟩ : ∃ Kr : ℕ → KidRec, ∀ c < lg σ 6, KidOk rd σ c (Kr c) := by
-    have hex : ∀ c, c < lg σ 6 → ∃ k : KidRec, KidOk rd σ c k := kid_rec hm MF
+/-- **`main`, soundly, its witness decoded, under a call relation `C`** that unfolds and lies
+below `coreProgram.Rel` (G:4086-4282, TRIAGE #96), given the callees' contracts on `C`'s calls. -/
+theorem main_sound_C {bytecode : List K} (hbl : bytecode.length = 2 ^ bytecodeVars)
+    (hm : MemOk rd) (hCu : Unfolds rd C) (hle : CallRel.Le C (coreProgram.Rel rd))
+    {wX : E → LeanXmss.Signature} {wS : E → Sphincs.Signature}
+    {wD : List E → List E → LeanVM.Da.Witness} {wV : List E → Proof} {wA : List E → BatchHints}
+    (cw : CalleesWC bytecode C rd (σ (.n 119)) wX wS wD wV wA) {D : Digest}
+    (hp0 : LoadHolds rd 1 0 (digestScalars D).1) (hp1 : LoadHolds rd 1 1 (digestScalars D).2)
+    (hb : Stmt.HoldsList C rd σ Data.core0.body False (fun rs => rs = [])) :
+    statementDigest (decSeed σ) (decStmt σ rd) = D ∧
+      NodeRel bytecode (decSeed σ) (decStmt σ rd) (decWit σ rd wX wS wD wV wA) := by
+  have MF := main_facts hCu hle hm exponent_tables_holds (σ := σ) hb
+  obtain ⟨Kr, hK⟩ : ∃ Kr : ℕ → KidRec, ∀ c < lg σ 6, KidOk C rd σ c (Kr c) := by
+    have hex : ∀ c, c < lg σ 6 → ∃ k : KidRec, KidOk C rd σ c k := kid_rec hm MF
     choose! Kr hK using hex
     exact ⟨Kr, hK⟩
   have hW := writers hm MF hK
@@ -172,6 +182,12 @@ theorem main_sound_w (bytecode : List K) : main_sound_Spec bytecode := by
       · show ReadsAt rd _ (deferOfCells (readCells rd (σ (.n 406) * gen ^ (24 * c)) 24)).cells
         rw [readCells_of_readsAt k.defreads k.deflen, deferOfCells_cells k.deflen]
         exact k.defreads
+
+/-- **`main`, soundly, its witness decoded** (`coreProgram.Rel`'s instance of `main_sound_C`). -/
+theorem main_sound_w (bytecode : List K) : main_sound_Spec bytecode := by
+  intro hbl rd hm wX wS wD wV wA cw D σ hp0 hp1 hb
+  exact main_sound_C hbl hm (unfolds_rel rd) (fun _ _ _ h => h)
+    ⟨cw.xmss, fun p h hb => cw.sphincs p _ h hb, cw.da, cw.sub, cw.agg⟩ hp0 hp1 hb
 
 end
 end LeanVM.Guest.B1.Main

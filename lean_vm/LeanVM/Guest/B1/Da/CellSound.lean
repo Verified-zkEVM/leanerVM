@@ -16,10 +16,19 @@ open LeanVM.Guest.B1.Digest LeanVM.Guest.B1.Main
 
 @[expose] public section
 
-/-- **`da_verify_cell`'s core IR gives its meaning.** -/
-theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
-  intro rd args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify_cell _ _).mp hrel
+/-- The symbols `da_verify_cell` hints, read off its valuation. -/
+def cellSymsOf (σ : Val) : List K := (List.range 256).map fun j => (σ (.n (j + 1))).limb 0
+
+/-- **`da_verify_cell`'s body, at a valuation**: under any call relation (it calls nothing), the
+meaning holds with the symbols `cellSymsOf σ` and the weights read at its argument. -/
+theorem da_verify_cell_val {C : CallRel} {rd : Reader} {σ : Val} {args rets : List E}
+    (hpar : Data.core27.params.map σ = args)
+    (hb : Stmt.HoldsList C rd σ (Fn.body Data.core27) False (fun rs => rs = rets)) :
+    ∃ lv, args = [lv] ∧ (cellSymsOf σ).length = LeanDa.cellSymbols ∧
+      ReadsAt rd lv (memRun rd lv 256) ∧ (memRun rd lv 256).length = LeanDa.cellSymbols ∧
+      rets = digestCells (keccak256 ((cellSymsOf σ).flatMap kBytes)) ++
+        [((List.range LeanDa.cellSymbols).map fun e ↦
+          (memRun rd lv 256).getD e 0 * ofK ((cellSymsOf σ).getD e 0)).sum] := by
   have hok := cell_ok
   unfold cellOk at hok
   simp only [Bool.and_eq_true, decide_eq_true_eq] at hok
@@ -32,7 +41,6 @@ theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
     obtain ⟨hat, hrets⟩ := hb
     rw [hparams] at hpar
     subst hpar
-    simp only [List.map_cons, List.map_nil, MeaningDaVerifyCell]
     have htmpl : ∀ a ∈ tmplA, a.Holds rd σ := fun a ha => by
       rw [← atomsEqb_sound htm] at ha
       exact hat a (List.mem_of_mem_drop (List.mem_of_mem_take ha))
@@ -52,8 +60,7 @@ theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
       · rw [show j = 2 * (j / 2) + 1 by omega]; exact l1
     have hsum := acc_sum htmpl 127 (by norm_num)
     rw [show accV 127 = 1407 from rfl] at hsum
-    refine ⟨(List.range 256).map fun j => (σ (.n (j + 1))).limb 0,
-      memRun rd (σ (.n 0)) 256, by simp [LeanDa.cellSymbols], fun j hj => ?_,
+    refine ⟨σ (.n 0), rfl, by simp [LeanDa.cellSymbols, cellSymsOf], fun j hj => ?_,
       by simp [LeanDa.cellSymbols], ?_⟩
     · simp only [length_memRun] at hj
       simp only [memRun, List.getElem_map, List.getElem_range]
@@ -67,8 +74,8 @@ theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
         rfl
       rw [hv] at hd
       have hb : cellsBytes ((List.range 128).map fun e => σ (.n (packV e))) =
-          ((List.range 256).map fun j => (σ (.n (j + 1))).limb 0).flatMap kBytes := by
-        rw [show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_map]
+          (cellSymsOf σ).flatMap kBytes := by
+        rw [cellSymsOf, show (256 : ℕ) = 2 * 128 from rfl, flatMap_pairs, cellsBytes, List.flatMap_map]
         refine List.flatMap_congr fun e he => ?_
         have hp := (blk_sound (List.mem_range.mp he) htmpl).2.2.1
         rw [cellBytes, hp, ofLimbs_limb0, ofLimbs_limb1]
@@ -79,11 +86,20 @@ theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
       simp only [LeanDa.cellSymbols]
       refine congrArg List.sum (List.map_congr_left fun j hj => ?_)
       have hj' := List.mem_range.mp hj
-      rw [List.getD_eq_getElem _ _ (by simpa using hj'),
-        List.getD_eq_getElem _ _ (by simpa using hj')]
-      simp only [memRun, List.getElem_map, List.getElem_range]
+      have h1 : j < (memRun rd (σ (.n 0)) 256).length := by rw [length_memRun]; exact hj'
+      have h2 : j < (cellSymsOf σ).length := by
+        rw [cellSymsOf, List.length_map, List.length_range]; exact hj'
+      rw [List.getD_eq_getElem _ _ h1, List.getD_eq_getElem _ _ h2]
+      simp only [memRun, cellSymsOf, List.getElem_map, List.getElem_range]
       rw [← eq_ofK_limb (hsym j hj')]
   · exact absurd hok (by simp)
+
+/-- **`da_verify_cell`'s core IR gives its meaning.** -/
+theorem da_verify_cell_holds : da_verify_cell_sound_Spec := by
+  intro rd args rets hrel
+  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_da_verify_cell _ _).mp hrel
+  obtain ⟨lv, rfl, hsl, hrd, hwl, hrets⟩ := da_verify_cell_val hpar hb
+  exact ⟨cellSymsOf σ, memRun rd lv 256, hsl, hrd, hwl, hrets⟩
 
 end
 end LeanVM.Guest.B1.Da

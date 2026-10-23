@@ -286,12 +286,61 @@ theorem absorb_head (m : ℕ) : aggS0.absorbAll (Batch.headCells m) dsObserve =
   rw [headCells_eq, absorbAll_short aggS0 _ dsObserve (by simp [aggS0])]
   rfl
 
+/-- The sumcheck's rounds `aggregate_claims` hints, read off the memory at `bc_sumcheck_msgs`. -/
+noncomputable def aggRounds (rd : Reader) (σ : Val) : List (E × E) :=
+  (List.range 23).map fun k => (memAt rd (σ (.n 5)) (2 * k), memAt rd (σ (.n 5)) (2 * k + 1))
+
+/-- **`aggregate_claims`' hints**, read off its valuation and the memory: the rounds at
+`bc_sumcheck_msgs`, the bytecode's value `bc_star_hint`. -/
+noncomputable def aggHints (rd : Reader) (σ : Val) : BatchHints := ⟨aggRounds rd σ, σ (.n 6)⟩
+
+theorem pairs_getD : ∀ (l : List (E × E)) (i : ℕ),
+    (l.flatMap fun g => [g.1, g.2]).getD (2 * i) 0 = (l.getD i 0).1 ∧
+      (l.flatMap fun g => [g.1, g.2]).getD (2 * i + 1) 0 = (l.getD i 0).2
+  | [], _ => by simp
+  | p :: l, 0 => by simp
+  | p :: l, i + 1 => by
+    have ih := pairs_getD l i
+    simp only [List.flatMap_cons, List.cons_append, List.nil_append] at ih ⊢
+    rw [show 2 * (i + 1) = 2 * i + 1 + 1 by ring, List.getD_cons_succ, List.getD_cons_succ,
+      List.getD_cons_succ, List.getD_cons_succ, List.getD_cons_succ]
+    exact ih
+
+/-- Rounds read from memory are the memory's. -/
+theorem rounds_of_reads {rd : Reader} {p : E} {rounds : List (E × E)} {n : ℕ}
+    (hl : rounds.length = n) (h : ReadsAt rd p (rounds.flatMap fun g => [g.1, g.2])) :
+    rounds = (List.range n).map fun k => (memAt rd p (2 * k), memAt rd p (2 * k + 1)) := by
+  have hlen : (rounds.flatMap fun g => [g.1, g.2]).length = 2 * n := by
+    simp [List.length_flatMap, hl, mul_comm]
+  refine List.ext_getElem (by simp [hl]) fun k h1 h2 => ?_
+  have hk : k < n := by omega
+  obtain ⟨e0, e1⟩ := pairs_getD rounds k
+  have l0 := h (2 * k) (by omega)
+  have l1 := h (2 * k + 1) (by omega)
+  rw [← List.getD_eq_getElem _ 0, e0] at l0
+  rw [← List.getD_eq_getElem _ 0, e1] at l1
+  simp only [List.getElem_map, List.getElem_range]
+  rw [memAt_of_load l0, memAt_of_load l1, List.getD_eq_getElem _ _ h1]
+
+/-- **`aggregate_claims`, its hints named**: on a valuation of its body (its calls under a
+relation below `coreProgram.Rel`), the meaning holds with the hints `aggHints rd σ`. -/
+def MeaningAggregateClaimsW (rd : Reader) (h : BatchHints) : List E → List E → Prop
+  | [ncg, cpi, cfresh, ccarried, dst], rets => ∀ m, 1 ≤ m → m ≤ 16 → ncg = gen ^ m →
+      rets = [] ∧ ∃ out : DeferredClaim,
+        out.bytecodePoint.length = bytecodeVars ∧ ReadsAt rd dst out.cells ∧
+        ∀ cs : List ChildClaims, cs.length = m →
+          (∀ c (hc : c < cs.length), ChildWordsAt rd cpi cfresh ccarried c cs[c]) →
+          batch cs h = some out
+  | _, _ => False
+
 set_option maxHeartbeats 1000000 in
-/-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
-holds.** -/
-theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
-  intro rd args rets hrel
-  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
+/-- **`aggregate_claims` at a valuation** writes the batching, with the hints `aggHints rd σ`, of
+the children whose words the memory holds. -/
+theorem aggregate_claims_val {C : CallRel} {rd : Reader} (hle : CallRel.Le C (coreProgram.Rel rd))
+    {σ : Val} {args rets : List E} (hpar : Data.core31.params.map σ = args)
+    (hbC : Stmt.HoldsList C rd σ (Fn.body Data.core31) False (fun rs => rs = rets)) :
+    MeaningAggregateClaimsW rd (aggHints rd σ) args rets := by
+  have hb := holdsList_mono hle _ id (fun _ h => h) hbC
   have hok := agg_ok
   simp only [aggOk, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hflat, hparams⟩, hseed⟩, hp0⟩, hc23⟩, hp23⟩, hc33⟩,
@@ -306,7 +355,7 @@ theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
     exact hret.symm
   subst hr
   have hat := atoms_of_flat hall
-  simp only [List.map_cons, List.map_nil, MeaningAggregateClaims]
+  simp only [List.map_cons, List.map_nil, MeaningAggregateClaimsW]
   intro m hm1 hm16 hN
   refine ⟨trivial, ?_⟩
   simp only [List.all_eq_true, List.mem_range, Bool.and_eq_true] at hseed hrate hcopy hl105 hout
@@ -339,14 +388,15 @@ theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
   -- the sumcheck
   have hbsm := (batch_sumcheck_holds rd _ _).mp (call_of_flat hall hbs)
   simp only [List.map_cons, List.map_nil] at hbsm
-  obtain ⟨-, rounds, hrl, -, hpt, hrets⟩ := hbsm
+  obtain ⟨-, rounds, hrl, hrd, hpt, hrets⟩ := hbsm
+  have hrnd : rounds = aggRounds rd σ := rounds_of_reads hrl hrd
   have h115 : σ (.n 115) = (bsRun rounds (σ (.n 103)) ⟨[σ (.n 105), σ (.n 106), σ (.n 107),
       σ (.n 108), σ (.n 109)], []⟩).1.2 := by
     have := congrArg List.getLast? hrets
     simpa using this
   have hptl : (bsRun rounds (σ (.n 103)) ⟨[σ (.n 105), σ (.n 106), σ (.n 107), σ (.n 108),
       σ (.n 109)], []⟩).1.1.length = 23 := by rw [bsRun_len, hrl]
-  refine ⟨⟨rounds, σ (.n 6)⟩, ⟨(bsRun rounds (σ (.n 103)) ⟨[σ (.n 105), σ (.n 106), σ (.n 107),
+  refine ⟨⟨(bsRun rounds (σ (.n 103)) ⟨[σ (.n 105), σ (.n 106), σ (.n 107),
     σ (.n 108), σ (.n 109)], []⟩).1.1, σ (.n 6)⟩, hptl, ?_, ?_⟩
   · -- the claim written
     intro k hk
@@ -457,8 +507,22 @@ theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
     rw [hlam, ← memAt_of_load (load_sound hl124 hat), isMul_sound hm123 hat, hN, W]
     rfl
   -- the check
-  rw [batch_fs, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm125 hat]
+  rw [show aggHints rd σ = ⟨rounds, σ (.n 6)⟩ by rw [hrnd]; rfl, batch_fs, hrun, hw, ← h115, assertEq_sound hae hat, isMul_sound hm125 hat]
   exact ite_pos' rfl
+
+/-- **`aggregate_claims`' core IR writes the batching of the children whose words the memory
+holds.** -/
+theorem aggregate_claims_holds : aggregate_claims_sound_Spec := by
+  intro rd args rets hrel
+  obtain ⟨σ, hpar, hb⟩ := (rel_iff_sem find_aggregate_claims _ _).mp hrel
+  have h := aggregate_claims_val (fun _ _ _ h => h) hpar hb
+  match args, h with
+  | [ncg, cpi, cfresh, ccarried, dst], h =>
+    intro m hm1 hm16 hN
+    obtain ⟨hr, out, hl, hrd, hb⟩ := h m hm1 hm16 hN
+    exact ⟨hr, aggHints rd σ, out, hl, hrd, hb⟩
+  | [], h | [_], h | [_, _], h | [_, _, _], h | [_, _, _, _], h => exact h.elim
+  | _ :: _ :: _ :: _ :: _ :: _ :: _, h => exact h.elim
 
 end
 end LeanVM.Guest.B1.Main
