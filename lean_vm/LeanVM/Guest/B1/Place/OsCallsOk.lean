@@ -8,6 +8,7 @@ module
 
 public import LeanVM.Guest.B1.Place.OsMean
 public import LeanVM.Guest.B1.Whir.BrCaps
+public import LeanVM.Guest.B1.Place.OsLkMem
 
 /-!
 # The body's calls at `osCR`
@@ -75,27 +76,135 @@ theorem osKindOf_fold : osKindOf "opening_fold" = some .fold := by
 theorem osKindOf_can : osKindOf "assert_canonical" = some .can := by
   simp [osKindOf, osKindTable, List.lookup]
 
-/-- **The body's calls hold at `osCR`** on memory holding the honest buffers. -/
-theorem osCallsOk_honest {c : OsCfg} {tr : OsTr} {μ r : ℕ} {cfg : List Whir.Level}
+theorem lf_ml' {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : CandFacts c μ r cfg) {tr : OsTr}
+    (h : TrFit c tr) : tr.Lf.ml = c.yrLog := by
+  have hn := hF.n2
+  rw [h.lf, (h.fit _ (by omega)).ml]
+  have := hF.last
+  rwa [getLastD_eq_getD _ (by intro h; rw [h] at hn; simp at hn)] at this
+
+section Placed
+
+variable {κ : ℕ} {c : OsCfg} {tr : OsTr} {b0 : ℕ} {Lin : Layout}
+
+/-- A slice of own buffer `j` (but the bit pointers), fixed on every memory holding the callees'
+words. -/
+theorem lk_slice (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap)
+    (htl : tr.Lf.ml ≤ yrLogCap) {j off n : ℕ} (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8)
+    (hb : off + n ≤ ((osOwnL c tr fun _ _ ↦ 0).getD j []).length) :
+    ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop off).take n).length = n ∧
+      ∀ rd, LowDef κ rd → MemL rd (osLk c tr b0 Lin) →
+        ReadsAt rd (osPtrAt c b0 j * gen ^ off) ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop off).take n) :=
+  ⟨by simp only [List.length_take, List.length_drop]; omega,
+    fun _ _ hm ↦ os_readsAt_shift (osLk_readsAt hpt htl hm hj hne) hb⟩
+
+theorem lk_slice0 (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap)
+    (htl : tr.Lf.ml ≤ yrLogCap) {j n : ℕ} (hj : j < 17 + 3 * c.levels.length) (hne : j ≠ 8)
+    (hb : n ≤ ((osOwnL c tr fun _ _ ↦ 0).getD j []).length) :
+    ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop 0).take n).length = n ∧
+      ∀ rd, LowDef κ rd → MemL rd (osLk c tr b0 Lin) →
+        ReadsAt rd (osPtrAt c b0 j) ((((osOwnL c tr fun _ _ ↦ 0).getD j []).drop 0).take n) := by
+  obtain ⟨h1, h2⟩ := lk_slice (κ := κ) (b0 := b0) (Lin := Lin) hpt htl hj hne (off := 0) (n := n)
+    (by omega)
+  refine ⟨h1, fun rd hl hm ↦ ?_⟩
+  have := h2 rd hl hm
+  rwa [pow_zero, mul_one] at this
+
+/-- **The body's calls hold at `osCR`** on every memory holding the callees' words, the read words
+of the row weights, the cap, the folded message and the final message's `out` fixed there. -/
+theorem osCallsOk_honest {μ r : ℕ} {cfg : List Whir.Level}
     (hF : CandFacts c μ r cfg) (h : TrFit c tr) (hs : OsSizes c) {target : E} {S : KState}
     {xs : List E} {os : List Opening} {root : Digest} (hrun : TrRun c μ r target S xs os root tr)
-    (hcaps : CapsAgree μ r target S xs os root) (hN : OsNames c) {rd : Reader} {A : OsAt}
-    (hm : OsMem rd A c tr) (hC : ReadsAt rd A.P.caps (capsC c tr))
-    (hFl : ReadsAt rd A.P.flags (flagsC c tr))
-    (hW : ∀ i < c.levels.length, ReadsAt rd (A.wp i) (wpC c tr i)) :
-    OsCallsOk (osCR rd (osSp c tr A)) rd A c tr := by
-  refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm', fun i hi ↦ ?_, fun i hi _ ↦ ?_, ?_⟩
-  · refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm', fun _ _ hm' ↦ osCR_named osKindOf_can hm',
-      fun hne _ _ hm' ↦ osCR_named (hN.ood i hi hne) hm', fun _ _ hm' ↦ osCR_named (hN.grind i hi) hm',
-      fun _ _ _ hm' _ ↦ osCR_named hN.fm hm', fun _ ↦ ?_, ?_, ?_, ?_⟩
+    (hcaps : CapsAgree μ r target S xs os root) (hN : OsNames c)
+    (hpt : (tr.point (c.levels.headD default).folds).length ≤ pointCap) (htl : tr.Lf.ml ≤ yrLogCap)
+    {rd : Reader} (hmk : MemL rd (osLk c tr b0 Lin)) :
+    OsCallsOk (osCR rd (osSp c tr (osAtOf c b0)) (OsXOk κ (osLk c tr b0 Lin))) rd (osAtOf c b0)
+      c tr := by
+  have hm := osMem_of_memLk hpt htl hmk
+  have hC := osLk_caps hpt htl hmk
+  have hFl := osLk_flags hpt htl hmk
+  have hW := fun i (hi : i < c.levels.length) ↦ osLk_wp hpt htl hmk hi
+  have hn := hF.n2
+  obtain ⟨g0, g1, g2, -, g4, -⟩ := osOwnL_getD_head c tr fun _ _ ↦ 0
+  have hT := (osOwnL_getD_fin c tr fun _ _ ↦ 0).1
+  have hlen : ∀ (l : List E) (n : ℕ), l = (List.range n).map (fun _ ↦ (0 : E)) → l.length = n :=
+    fun l n h ↦ by rw [h]; simp
+  -- the final message's `out`
+  have hfm : ∀ a : List E, a.getD 8 0 = (osAtOf c b0).P.fmsg →
+      OsXOk κ (osLk c tr b0 Lin) (.fm c.yrLen) a := fun a h8 ↦ by
+    intro q hq
+    simp only [List.mem_singleton] at hq
+    subst hq
+    obtain ⟨l1, l2⟩ := lk_slice0 (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 2) (n := c.yrLen)
+      (by omega) (by omega) (by rw [g2]; simp [fmsgC])
+    exact ⟨_, l1, fun rd' hl hm' ↦ by rw [h8]; exact l2 rd' hl hm'⟩
+  refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm' trivial, fun i hi ↦ ?_, fun i hi _ ↦ ?_, ?_⟩
+  · refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm' trivial,
+      fun _ _ hm' ↦ osCR_named osKindOf_can hm' trivial,
+      fun hne _ _ hm' ↦ osCR_named (hN.ood i hi hne) hm' trivial,
+      fun _ _ hm' ↦ osCR_named (hN.grind i hi) hm' trivial,
+      fun _ a _ hm' h8 ↦ osCR_named hN.fm hm' (hfm a h8), fun _ ↦ ?_, ?_, ?_, ?_⟩
     · exact osCR_special (hN.sq i hi) ⟨i, hi, Or.inl ⟨rfl, rfl, rfl⟩⟩
-    · exact osCR_named (hN.rw i hi) (rw_meaning_at hF h hm.fixed hi (hW i hi) (hN.il i hi))
-    · exact osCR_named (hN.cap i hi) (cap_meaning_at h hs hrun hcaps hC hFl hi (hN.cdd i hi))
-    · have hq : osSp c tr A (osQueriesName i (lvAt c i)) (osQArgs c tr A i) [(tr.L i).enforced] :=
-        ⟨i, hi, Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)⟩
+    · -- the row weights
+      refine osCR_named (hN.rw i hi) (rw_meaning_at hF h hm.fixed hi (hW i hi) (hN.il i hi)) ?_
+      have hcl : (tr.L i).chs.length = (lvAt c i).folds := by
+        rw [SpLv.chs_length, (h.fit i hi).fold]
+      have hpre : (lvAt c i).foldsOff + (lvAt c i).folds ≤ c.nFolds := by
+        have hp := (h.pre i hi).length_le
+        rw [SpLv.wsEnd_folds, List.length_append, h.off i hi, hcl, fall_length hF h] at hp
+        exact hp
+      intro q hq
+      simp only [rowWeightsSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
+      rcases hq with rfl | rfl
+      · obtain ⟨l1, l2⟩ := lk_slice (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 4)
+          (off := (lvAt c i).foldsOff) (n := (lvAt c i).folds) (by omega) (by omega)
+          (by rw [g4]; simpa [fchC] using hpre)
+        exact ⟨_, l1, l2⟩
+      · obtain ⟨l1, l2⟩ := lk_slice0 (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := osIxWp i)
+          (n := 2 ^ rwLo (lvAt c i).folds + 2 ^ ((lvAt c i).folds - rwLo (lvAt c i).folds))
+          (by unfold osIxWp; omega) (by unfold osIxWp; omega)
+          (by rw [(osOwnL_getD_lv c tr _ hi).2]; simpa [wpC] using hN.il i hi)
+        exact ⟨_, l1, l2⟩
+    · -- the cap
+      refine osCR_named (hN.cap i hi) (cap_meaning_at h hs hrun hcaps hC hFl hi (hN.cdd i hi)) ?_
+      have hendC := off_end (off := fun i ↦ 4 * (lvAt c i).capOff)
+        (span := fun i ↦ 2 ^ ((lvAt c i).capDepth + 2)) hs.caps (c.levels.length - 1 - i) i
+        (by omega)
+      have hendF := off_end (off := fun i ↦ (lvAt c i).capOff)
+        (span := fun i ↦ 2 ^ (lvAt c i).capDepth) hs.flags (c.levels.length - 1 - i) i (by omega)
+      have hC' : 4 * (lvAt c i).capOff + 2 ^ ((lvAt c i).capDepth + 2) ≤ 4 * c.capLen := hendC
+      have hF' : (lvAt c i).capOff + 2 ^ (lvAt c i).capDepth ≤ c.capLen := hendF
+      intro q hq
+      simp only [merkleCapSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
+      rcases hq with rfl | rfl
+      · obtain ⟨l1, l2⟩ := lk_slice (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 0)
+          (off := 4 * (lvAt c i).capOff) (n := 2 ^ ((lvAt c i).capDepth + 2)) (by omega) (by omega)
+          (by rw [g0]; simpa [capsC] using hC')
+        exact ⟨_, l1, l2⟩
+      · obtain ⟨l1, l2⟩ := lk_slice (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 1)
+          (off := (lvAt c i).capOff) (n := 2 ^ (lvAt c i).capDepth) (by omega) (by omega)
+          (by rw [g1]; simpa [flagsC] using hF')
+        exact ⟨_, l1, l2⟩
+    · have hq : osSp c tr (osAtOf c b0) (osQueriesName i (lvAt c i)) (osQArgs c tr (osAtOf c b0) i)
+          [(tr.L i).enforced] := ⟨i, hi, Or.inr (Or.inl ⟨rfl, rfl, rfl⟩)⟩
       exact osCR_special (hN.q i hi) hq
   · exact osCR_special (hN.res i hi) ⟨i, hi, Or.inr (Or.inr ⟨rfl, rfl, rfl⟩)⟩
-  · exact osCR_named hN.ffm (ffm_meaning_at hF h hs hm.fixed hm.T)
+  · -- the folded message
+    refine osCR_named hN.ffm (ffm_meaning_at hF h hs hm.fixed hm.T) ?_
+    have hml := lf_ml' hF h
+    intro q hq
+    simp only [foldFinalSpec, List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl
+    · obtain ⟨l1, l2⟩ := lk_slice0 (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := 2)
+        (n := 2 ^ c.yrLog) (by omega) (by omega) (by rw [g2, hF.ylen]; simp [fmsgC])
+      exact ⟨_, l1, l2⟩
+    · obtain ⟨l1, l2⟩ := lk_slice0 (κ := κ) (b0 := b0) (Lin := Lin) hpt htl (j := osIxT c)
+        (n := c.yrLog) (by unfold osIxT; omega) (by unfold osIxT; omega)
+        (by rw [hT, tailC, List.length_append, tailChs_length, List.length_replicate, hml]
+            have := hs.yr; omega)
+      exact ⟨_, l1, l2⟩
+
+end Placed
 
 end
 end LeanVM.Guest.B1

@@ -70,12 +70,13 @@ def OsKidsOk (fs : String → ℕ) (cert : String → V → ℕ) (κ : ℕ) (c :
       (osBodyCalls (osSigma c tr σ0 c0 c2 b0) c) bk N (fun _ ↦ False)
 
 /-- **The callees, placed.** -/
-theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {tr : OsTr}
+theorem os_kids_at (hk : OsCalleesRegD fs cert κ) {c : OsCfg} (hN : OsNames c) {tr : OsTr}
     (hlen : tr.Ls.length = c.levels.length) (hfit : TrFit c tr)
     (hpos : ∀ x ∈ osSizesL c, 0 < x) (htot : (osSizesL c).sum < 2 ^ 64 - 1)
     {σ0 : Val} {c0 c2 : E} {b0 : ℕ} {Lin : Layout} (hsp : OsSpecials fs cert κ c tr b0 Lin)
     (hall : ∀ rd, LowDef κ rd → MemL rd (osLk c tr b0 Lin) →
-      AllOk (osCR rd (osSp c tr (osAtOf c b0))) rd (osSigma c tr σ0 c0 c2 b0) (osBodyA c))
+      AllOk (osCR rd (osSp c tr (osAtOf c b0)) (OsXOk κ (osLk c tr b0 Lin))) rd
+        (osSigma c tr σ0 c0 c2 b0) (osBodyA c))
     (hex : ∃ rd0, LowDef κ rd0 ∧ MemL rd0 (osLk c tr b0 Lin)) (bk : ℕ) :
     ∃ (N : ℕ) (L : Layout) (ps : List ℕ), ps.length = c.levels.length ∧ Within L bk N ∧ DisjL L ∧
       OsKidsOk fs cert κ c tr σ0 c0 c2 b0 Lin L ps bk N := by
@@ -119,7 +120,7 @@ theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {
       have hf := mem_cnames hc'
       rw [lvA_cnames] at hf
       obtain ⟨K, hK⟩ := lvA_named hN hi hf
-      exact os_kid_named hk hall (hinK c' (Or.inl hc')) ht hK
+      exact os_kid_named hk hall hex (hinK c' (Or.inl hc')) ht hK
     · -- the squeeze loop is entered
       simp only [Main.mkCall, sqCallS, decide_eq_true_eq, hkA]
       rw [hσ, osVal_guard hlen hi (t := 2) (by omega)]
@@ -144,7 +145,7 @@ theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {
       cases hK : osKindOf (Main.mkCall σ x).f with
       | some K =>
         rw [List.append_assoc]
-        exact hsp.mono _ _ _ _ (os_kid_named hk hall hin ht hK)
+        exact hsp.mono _ _ _ _ (os_kid_named hk hall hex hin ht hK)
       | none =>
         rw [hfx] at hK
         obtain ⟨hq1, hq5, hq7⟩ := lvB_qcall hN hi hx hK
@@ -182,9 +183,9 @@ theorem os_kids_at (hk : OsCalleesAtD fs cert κ) {c : OsCfg} (hN : OsNames c) {
     rw [hcs2] at hc'
     rcases List.mem_append.mp hc' with hc' | hc'
     · obtain ⟨K, hK⟩ := tail_named (mem_cnames hc')
-      exact os_kid_named hk hall hin ht hK
+      exact os_kid_named hk hall hex hin ht hK
     · cases hK : osKindOf c'.f with
-      | some K => exact os_kid_named hk hall hin ht hK
+      | some K => exact os_kid_named hk hall hex hin ht hK
       | none =>
         obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hc'
         have hfx : (Main.mkCall σ x).f = x.2.1 := by obtain ⟨cv, f, a, r⟩ := x; cases cv <;> rfl
