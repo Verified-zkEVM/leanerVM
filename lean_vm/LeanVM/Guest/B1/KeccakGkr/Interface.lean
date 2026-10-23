@@ -265,8 +265,8 @@ def MeaningVerifyKeccak (rd : Reader) : List E → List E → Prop
       ∀ (τ : ℕ) (chis outs : List E), 9 ≤ τ → τ ≤ 28 → tg = gen ^ τ → τ ≤ chis.length →
         ReadsAt rd chi chis → outs.length = 25 → ReadsAt rd ol outs →
         ∃ (xs op point slices cap' : List E) (word m0 : E), ReadsAt rd cur xs ∧
-          Tables.SpRuns (keccakSeg τ (chis.take τ) outs) [f0, f1, f2, f3, f4] xs
-            (([⟨qkeccak, op, word⟩], point, slices), m0) cap' ∧
+          RunsTo (keccakSeg τ (chis.take τ) outs) ⟨[f0, f1, f2, f3, f4], []⟩ xs
+            (([⟨qkeccak, op, word⟩], point, slices), m0) ⟨cap', []⟩ ∧
           ReadsAt rd zv op ∧ ReadsAt rd (zv * gen ^ qkeccakVarsCap) point ∧ ReadsAt rd sl slices ∧
           rets = cap' ++ [cur * gen ^ xs.length, word, m0]
   | _, _ => False
