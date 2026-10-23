@@ -42,6 +42,8 @@ as many steps as the log has entries.
   is in play after `m` entries is already in those `m` entries.
 * `history_determined`: without a collision, a history found in part of a log is the history in the
   whole log.
+* `step_of_history`: every step of a history is a logged entry, answered by the step's state,
+  whose query parses as the step from the state before.
 * `history_append_of_not_start`: a new entry whose answer no logged step starts from leaves the
   history of every other state unchanged.
 * `history_dedupKeys`: in a consistent log, a history is that of the log with each input at its
@@ -530,6 +532,46 @@ private theorem length_le_length_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}
 private theorem history_of_walk {f : ℕ} {cv : D} {hs : List (B × D)}
     (h : walk step? log seed f cv = some hs) : history step? log seed cv = some hs :=
   walk_of_length_le h (length_le_length_of_walk h)
+
+/-- Every step a successful walk passes is a logged entry answered by the step's state, whose
+query parses as the step from the state before. -/
+private theorem step_of_walk : ∀ {f : ℕ} {cv : D} {hs : List (B × D)},
+    walk step? log seed f cv = some hs → ∀ (j : ℕ) (hj : j < hs.length),
+      ∃ e ∈ log, e.2 = hs[j].2 ∧ step? e.1 = some (last seed (hs.take j), hs[j].1)
+  | 0, cv, hs, h, j, hj => by
+    unfold walk at h
+    split at h
+    · cases h; simp at hj
+    · cases h
+  | f + 1, cv, hs, h, j, hj => by
+    unfold walk at h
+    split at h
+    · cases h; simp at hj
+    · split at h
+      · rename_i cv' b hu
+        obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+        by_cases hjs : j < hs'.length
+        · obtain ⟨e, he, h₁, h₂⟩ := step_of_walk hw j hjs
+          refine ⟨e, he, ?_, ?_⟩
+          · rw [h₁, List.getElem_append_left hjs]
+          · rw [h₂, List.take_append_of_le_length (Nat.le_of_lt hjs), List.getElem_append_left hjs]
+        · obtain rfl : j = hs'.length := by simp at hj; omega
+          obtain ⟨e, he, hp⟩ := List.mem_filterMap.mp (unique?_eq_some_iff.mp hu).1
+          split at hp
+          · rename_i hecv
+            refine ⟨e, he, by simpa using hecv, ?_⟩
+            simp only [List.take_left', List.getElem_append_right (Nat.le_refl _),
+              Nat.sub_self, List.getElem_cons_zero, last_of_walk hw]
+            exact hp
+          · cases hp
+      · cases h
+
+/-- **The steps of a history are logged**: step `j` of a history is a logged entry answered by
+its state, whose query parses as the step from the state before it. -/
+theorem step_of_history {cv : D} {hs : List (B × D)} (h : history step? log seed cv = some hs)
+    (j : ℕ) (hj : j < hs.length) :
+    ∃ e ∈ log, e.2 = hs[j].2 ∧ step? e.1 = some (last seed (hs.take j), hs[j].1) :=
+  step_of_walk h j hj
 
 /-- Lists with the same elements have the same unique element. -/
 private theorem unique?_congr {α : Type} [DecidableEq α] {l₁ l₂ : List α}

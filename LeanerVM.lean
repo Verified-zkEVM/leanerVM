@@ -29,6 +29,7 @@ import LeanerVM.Protocol.Blake2sHash
 import LeanerVM.Protocol.Blake2sHashFast
 import LeanerVM.Protocol.Bus
 import LeanerVM.Protocol.BusSecurity
+import LeanerVM.Protocol.ChainGroups
 import LeanerVM.Protocol.ClaimWeights
 import LeanerVM.Protocol.Field
 import LeanerVM.Protocol.Fingerprint

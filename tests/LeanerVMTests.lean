@@ -25,6 +25,7 @@ import LeanerVMTests.Protocol.Blake2sHash
 import LeanerVMTests.Protocol.Blake2sHashFast
 import LeanerVMTests.Protocol.Bus
 import LeanerVMTests.Protocol.BusSecurity
+import LeanerVMTests.Protocol.ChainGroups
 import LeanerVMTests.Protocol.ChargedInvariant
 import LeanerVMTests.Protocol.ClaimWeights
 import LeanerVMTests.Protocol.ComponentPolynomial

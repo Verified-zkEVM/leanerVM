@@ -1,0 +1,278 @@
+import LeanerVM.Protocol.ChainGroups
+
+/-!
+# The groups of a chain's challenges: tests
+
+A toy reader of two rounds, a nonce message and then a challenge of one squeeze that a proof of
+work precedes: a history reads its nonce step and its squeeze, at one announcement. The reader's
+facts hold of it, so `SlotReader` has an inhabitant.
+
+On logs of hash queries answered by hand-picked digests (the answers of a random oracle, so no
+hashing is needed), from the seed:
+
+* the grinding base opens nothing; the grinding check of a nonce touches and opens that nonce's
+  group, which the log then shows open, and leaves the group of another nonce unopened; the
+  absorption of the nonce and the squeeze from its answer close it;
+* asked in the other order, the absorption first, the group opens at the absorption;
+* the challenge's squeeze is the next query of the group once the nonce is absorbed, and closes
+  it on a bad challenge: the group flips, at probability `1`, and did not before the squeeze;
+* with the challenge unmarked, the nonce's group fixes nothing, and the plain group at the
+  nonce's answer fixes it, opened and closed by its one squeeze;
+* a log whose base is answered by the seed has a hit, and a check answered by its own base is a
+  query answered by one of its halves, which `CleanStep` excludes;
+* the roots a history absorbs are its consecutive pairs of observes.
+-/
+
+namespace LeanerVMTests.Protocol.ChainGroups
+
+open LeanerVM.Parameters LeanerVM.Semantics LeanerVM.Protocol LeanerVM.Protocol.Blake2sHash
+open OracleComp OracleSpec ProtocolSpec
+open LeanerVM.Protocol.MerkleTree (logAnswer)
+
+/-! ## A toy reader -/
+
+/-- A nonce message, then a challenge digest. -/
+def toySpec : ProtocolSpec 2 := ⟨![.P_to_V, .V_to_P], ![E, Digest]⟩
+
+/-- A reading with its state kept only for a squeeze, the one reading whose state a slot reads. -/
+def readingView : Block × Digest → Block × Option Digest
+  | (.squeeze, d) => (.squeeze, some d)
+  | (b, _) => (b, none)
+
+/-- The toy's prefixes, read off the viewed readings: nothing, the nonce, the nonce and the
+challenge. -/
+def toyDecodeView : List (Block × Option Digest) → Option (Σ k : Fin 3, toySpec.Transcript k)
+  | [] => some ⟨0, fun i ↦ i.elim0⟩
+  | [(.nonce n, _)] => some ⟨1, fun i ↦ match i with | ⟨0, _⟩ => (n : E)⟩
+  | [(.nonce n, _), (.squeeze, some d)] =>
+    some ⟨2, fun i ↦ match i with | ⟨0, _⟩ => (n : E) | ⟨1, _⟩ => (d : Digest)⟩
+  | _ => none
+
+/-- The toy's decoder. -/
+def toyDecode (hs : List (Block × Digest)) : Option (Σ k : Fin 3, toySpec.Transcript k) :=
+  toyDecodeView (hs.map readingView)
+
+/-- The toy's one challenge index. -/
+def chal : toySpec.ChallengeIdx := ⟨⟨1, by decide⟩, rfl⟩
+
+theorem eq_chal : ∀ i : toySpec.ChallengeIdx, i = chal
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
+  | ⟨⟨1, _⟩, _⟩ => rfl
+
+/-- The challenge is a digest. -/
+instance toySampleable (i : toySpec.ChallengeIdx) : SampleableType (toySpec.Challenge i) :=
+  match i with
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
+  | ⟨⟨1, _⟩, _⟩ => inferInstanceAs (SampleableType Digest)
+
+/-- The challenge is its one squeeze's digest. -/
+def toySlot : (i : toySpec.ChallengeIdx) → @SqueezeSlot (toySpec.Challenge i) (toySampleable i)
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
+  | ⟨⟨1, _⟩, _⟩ =>
+    @SqueezeSlot.mk Digest (inferInstanceAs (SampleableType Digest)) 1 (fun ds ↦ ds 0)
+      fun p ↦ SampleableType.prEvent_uniformSample_equiv (Equiv.funUnique (Fin 1) Digest) p
+
+/-- The bad challenges: those with a low zero bit. -/
+def toyBad (i : toySpec.ChallengeIdx) : Set (toySpec.Challenge i) :=
+  match i with
+  | ⟨⟨0, _⟩, h⟩ => absurd h (by simp [toySpec])
+  | ⟨⟨1, _⟩, _⟩ => {c : Digest | FsState.lowBitsZero c 1 = true}
+
+theorem toyDecode_digest_indep (hs : List (Block × Digest)) (b : Block) (d d' : Digest)
+    (rest : List (Block × Digest)) (hb : b ≠ .squeeze) :
+    toyDecode (hs ++ (b, d) :: rest) = toyDecode (hs ++ (b, d') :: rest) := by
+  have : readingView (b, d) = readingView (b, d') := by
+    cases b with
+    | squeeze => exact absurd rfl hb
+    | _ => rfl
+  simp [toyDecode, List.map_append, List.map_cons, this]
+
+/-- The toy reads `hs` to the challenge exactly when `hs` is one nonce step. -/
+theorem toyDecode_one {hs : List (Block × Digest)} {tr : toySpec.Transcript 1}
+    (h : toyDecode hs = some ⟨1, tr⟩) : ∃ n d, hs = [(.nonce n, d)] := by
+  rcases hs with _ | ⟨⟨b, d⟩, _ | ⟨⟨b', d'⟩, rest⟩⟩
+  · simp [toyDecode, toyDecodeView] at h
+  · cases b <;> simp [toyDecode, toyDecodeView, readingView] at h
+    exact ⟨_, d, rfl⟩
+  · cases b <;> cases b' <;> (try cases rest) <;>
+      simp [toyDecode, toyDecodeView, readingView] at h
+
+/-- The toy reader. -/
+def toyReader (seed : Digest) : SlotReader where
+  seed := seed
+  powBits := 1
+  Ann := Unit
+  announcementOf _ := some ()
+  n _ := 2
+  spec _ := toySpec
+  sampleable _ i := toySampleable i
+  Words _ := Unit
+  wordsAt _ _ _ := ()
+  decodePrefix _ _ hs := toyDecode hs
+  slot _ i := toySlot i
+  mark _ _ := true
+  Bad _ i _ := toyBad i
+  wordsAt_congr _ _ _ _ _ := rfl
+  decodePrefix_announcement _ _ _ _ _ := rfl
+  squeezeSlot_read := by
+    intro _ _ hs i tr h ds rest k tr' h'
+    obtain rfl := eq_chal i
+    obtain ⟨n, d, rfl⟩ := toyDecode_one h
+    have hds : List.ofFn ds = [ds ⟨0, by decide⟩] := List.ofFn_succ ..
+    rcases rest with _ | ⟨r, rest⟩
+    · simp only [toyDecode, toyDecodeView, squeezeBlocks, hds, List.map_cons, List.map_nil,
+        List.cons_append, List.nil_append, List.append_nil, readingView, Option.some.injEq] at h h'
+      obtain ⟨rfl, htr'⟩ := Sigma.mk.inj h'
+      obtain ⟨-, htr⟩ := Sigma.mk.inj h
+      subst htr'
+      subst htr
+      refine ⟨le_rfl, funext fun i ↦ ?_⟩
+      rcases i with ⟨_ | _ | _, hi⟩
+      · rfl
+      · rfl
+      · omega
+    · rcases r with ⟨b, e⟩
+      cases b <;> simp [toyDecode, toyDecodeView, squeezeBlocks, hds, readingView] at h'
+  decodePrefix_digest_indep _ _ hs b d d' rest hb := toyDecode_digest_indep hs b d d' rest hb
+  mark_afterNonce := by
+    intro _ _ hs i tr h _
+    obtain rfl := eq_chal i
+    obtain ⟨n, d, rfl⟩ := toyDecode_one h
+    exact ⟨[], n, d, rfl⟩
+  slot_pos _ i := by
+    obtain rfl := eq_chal i
+    decide
+
+/-- The toy reader with its challenge unmarked: no proof of work precedes it. -/
+def plainReader (seed : Digest) : SlotReader :=
+  { toyReader seed with
+    mark := fun _ _ ↦ false
+    mark_afterNonce := fun _ _ _ _ _ _ h ↦ absurd h Bool.false_ne_true }
+
+/-! ## A proof of work's group -/
+
+/-- A digest with first word `k`. -/
+def d (k : UInt32) : Digest := #v[k, 0, 0, 0, 0, 0, 0, 0]
+
+/-- The chain's seed. -/
+def s₀ : Digest := d 100
+
+/-- The toy reader from the seed. -/
+abbrev R : SlotReader := toyReader s₀
+
+/-- Two nonces. -/
+def n₁ : E := FsState.nonceOf 7
+
+/-- Two nonces. -/
+def n₂ : E := FsState.nonceOf 8
+
+/-- The groups of the two nonces from the seed. -/
+def G₁ : Group := ⟨s₀, some n₁⟩
+
+/-- The groups of the two nonces from the seed. -/
+def G₂ : Group := ⟨s₀, some n₂⟩
+
+/-- The base, answered by `d 1`. -/
+def log₀ : hashSpec.QueryLog := [⟨baseInput s₀, d 1⟩]
+
+/-- Then the check of `n₁` against the base, answered by `d 2`, with a low zero bit. -/
+def log₁ : hashSpec.QueryLog := log₀ ++ [⟨checkInput (d 1) n₁, d 2⟩]
+
+/-- Then the absorption of `n₁`, answered by `d 3`. -/
+def log₂ : hashSpec.QueryLog := log₁ ++ [⟨absorbInput s₀ n₁, d 3⟩]
+
+/-- Then the squeeze from `d 3`, answered by `d 4`. -/
+def log₃ : hashSpec.QueryLog := log₂ ++ [⟨squeezeInput (d 3), d 4⟩]
+
+-- Each nonce's group fixes the challenge, one squeeze; the base opens nothing.
+#guard (R.groupSlot log₀ G₁).isSome && (R.groupSlot log₀ G₂).isSome
+#guard R.size log₀ G₁ = 1
+#guard R.touched [] (baseInput s₀) = []
+#guard !R.isOpen log₀ G₁ && R.openGroups log₀ = ∅
+
+-- The check of `n₁` touches and opens `G₁`, not `G₂`; the log then shows `G₁` open.
+#guard G₁ ∈ R.touched log₀ (checkInput (d 1) n₁)
+#guard G₁ ∈ R.openedBy log₀ (checkInput (d 1) n₁)
+#guard G₂ ∉ R.touched log₀ (checkInput (d 1) n₁)
+#guard R.isOpen log₁ G₁ && !R.isOpen log₁ G₂
+#guard R.openGroups log₁ = {G₁}
+#guard G₁.check? log₁ = some (d 2)
+
+-- The absorption keeps it open, and the squeeze from its answer is the group's next query,
+-- which it touches without opening it.
+#guard R.isOpen log₂ G₁
+#guard R.awaits log₂ G₁ (d 3)
+#guard G₁ ∈ R.touched log₂ (squeezeInput (d 3))
+#guard G₁ ∉ R.openedBy log₂ (squeezeInput (d 3))
+
+-- The squeeze closes it: its challenge is `d 4`, bad, and its proof of work passes, so it flips.
+#guard !R.isOpen log₃ G₁ && R.isClosed log₃ G₁
+#guard G₁.run log₃ 1 = [d 4]
+#guard FsState.lowBitsZero (d 2) 1 && FsState.lowBitsZero (d 4) 1
+#guard R.openGroups log₃ = ∅
+
+-- Asked in the other order, the absorption first, the group opens at the absorption.
+#guard G₁ ∈ R.touched log₀ (absorbInput s₀ n₁)
+#guard R.isOpen (log₀ ++ [⟨absorbInput s₀ n₁, d 3⟩]) G₁
+
+-- The check's own base, read as a state, starts no history: its absorption reading fixes
+-- nothing.
+#guard R.groupSlot log₀ ⟨d 1, some n₁⟩ = none
+
+/-! ## A plain group -/
+
+/-- The toy reader with its challenge unmarked, from the seed. -/
+abbrev P : SlotReader := plainReader s₀
+
+-- Unmarked, the nonce's group fixes nothing; the plain group at the nonce's answer fixes the
+-- challenge once the absorption is logged, and its one squeeze opens and closes it.
+#guard (P.groupSlot log₂ G₁).isNone
+#guard (P.groupSlot log₁ ⟨d 3, none⟩).isNone
+#guard (P.groupSlot log₂ ⟨d 3, none⟩).isSome
+#guard ⟨d 3, none⟩ ∈ P.openedBy log₂ (squeezeInput (d 3))
+#guard P.isClosed log₃ ⟨d 3, none⟩
+
+/-! ## Mutations -/
+
+-- A base answered by the seed is a hit on the digests in play.
+#guard decide (QueryLog.HasHit (inPlay [s₀]) [⟨baseInput s₀, s₀⟩])
+-- A squeeze answered by its own state answers a half of it, which `CleanStep` excludes.
+#guard d 3 ∈ halves (squeezeInput (d 3))
+-- A check without a low zero bit: the group closes, but its proof of work fails.
+#guard !FsState.lowBitsZero (d 5) 1
+
+/-! ## The roots a history absorbs -/
+
+/-- A root. -/
+def root : Digest := d 77
+
+#guard historyRoots [(.observe (digestScalars root).1, d 1), (.observe (digestScalars root).2, d 2),
+  (.squeeze, d 3)] = [root]
+#guard historyRoots [(.observe (digestScalars root).1, d 1), (.squeeze, d 3),
+  (.observe (digestScalars root).2, d 2)] = []
+
+/-- The group's challenge in the full log: the toy's one challenge, after the nonce. -/
+theorem groupSlot₃ :
+    R.groupSlot log₃ G₁ = some ⟨(), chal, fun i ↦ match i with | ⟨0, _⟩ => n₁⟩ := by
+  rfl
+
+/-- **The group flips** on the full log: its squeeze is logged, its proof of work passes, and its
+challenge is bad. -/
+theorem flips₃ : R.Flips log₃ G₁ := by
+  unfold SlotReader.Flips
+  rw [groupSlot₃]
+  refine ⟨rfl, fun n hn ↦ ?_, rfl⟩
+  obtain rfl : n = n₁ := (Option.some.inj hn).symm
+  exact ⟨d 1, d 2, rfl, rfl, rfl⟩
+
+-- So the log has a flip, at probability `1`.
+example : R.FlipAt log₃ := ⟨G₁, flips₃⟩
+example : R.π log₃ G₁ = 1 := R.π_eq_one_of_flips flips₃
+
+-- Before the squeeze the group is not closed, so it does not flip.
+example : ¬ R.Flips log₂ G₁ := fun h ↦ by
+  have := (R.complete_of_flips h).2.1
+  revert this
+  decide
+
+end LeanerVMTests.Protocol.ChainGroups
