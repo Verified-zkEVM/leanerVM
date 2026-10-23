@@ -78,6 +78,16 @@ theorem CompleteAtDTB.and_valid_on {k : ℕ} {f : String} {Lin : Layout} {args :
     let ⟨t, ⟨hn', hv, hb, hrest⟩, hT⟩ := hr rd hl hm
     ⟨t, ⟨hn', hv, hb, hrest⟩, hT, hQ rd hl (Main.memL_append.mp hm).2 t rets hn' hv hb⟩⟩
 
+/-- **The tree within the bound**: a `CompleteAtDTB` tree's words are its size, at most `B`. -/
+theorem CompleteAtDTB.with_total {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {T : Tree → Prop} {B : ℕ}
+    (h : CompleteAtDTB fs cert k f Lin args Out T B) :
+    CompleteAtDTB fs cert k f Lin args Out (fun t => T t ∧ t.total fs ≤ B) B := fun fp =>
+  let ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, fun rd hl hm =>
+    let ⟨t, ⟨hn', hv, hb, hp, ht, hrest⟩, hT⟩ := hr rd hl hm
+    ⟨t, ⟨hn', hv, hb, hp, ht, hrest⟩, hT, ht ▸ hn⟩⟩
+
 /-! ## Composition -/
 
 /-- The entered callees are complete within their bounds `Bs`, by trees satisfying `Ts`. -/
