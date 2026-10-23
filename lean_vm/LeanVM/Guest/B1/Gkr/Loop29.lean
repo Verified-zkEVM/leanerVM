@@ -213,6 +213,48 @@ theorem l29_step {N head ptrow : E} (d : ℕ) (x : E)
   · rw [hrun]
     exact s310
 
+/-- No rounds: a record's facts. -/
+theorem gkrRoundsOut_zero {rd : Reader} {rec pt : E} {cap : List E} {cur claim : E}
+    (hc : TbCapAt rd rec 0 gkCap cap) (hcan : TbxAllCanonical cap)
+    (hcur : LoadHolds rd rec (5 * gkCap) cur) (hcl : LoadHolds rd rec (6 * gkCap) claim) :
+    TbxGkrRoundsOut 0 rd rec pt :=
+  ⟨cap, cur, claim, [], [], hc, hcan, hcur, hcl, rfl, by simp, tbReadsAt_nil _ _, rfl,
+    tbReadsAt_nil _ _, tbReadsAt_nil _ _, by simpa [tbxGkrRun] using hc,
+    by simpa using hcur, by simpa [tbxGkrRun] using hcl⟩
+
+/-- **`__loop29` behind its guard**: from the record at `head`, `half = g^h` iterations are the
+`4h` rounds to the record at `head·g^(4h)`. -/
+theorem l29_loop {rd : Reader} {half head ptrow : E} {h : ℕ} (hh : half = gen ^ h)
+    (hhb : h < 2 ^ 62)
+    (hcall : 1 + half ≠ 0 → coreProgram.Rel rd "__loop29" [1, half, head, ptrow] [])
+    (h0 : TbxGkrRoundsOut 0 rd head ptrow) : TbxGkrRoundsOut (4 * h) rd head ptrow := by
+  rcases Nat.eq_zero_or_pos h with rfl | hpos
+  · simpa using h0
+  have hne : 1 + half ≠ 0 := by
+    rw [hh]
+    intro h0'
+    have := gen_pow_inj (by omega) (by decide) ((e_add_eq_zero_iff.mp h0').symm.trans
+      (pow_zero gen).symm)
+    omega
+  have hrun := hcall hne
+  rw [← pow_zero gen] at hrun
+  obtain ⟨m, -, hN, hall⟩ := tb_loop_sound (B := fun x ↦ TbxGkrRoundsOut 4 rd (head * x ^ 4)
+    (ptrow * x ^ 4)) (fun d x hx => l29_step d x hx) 0 hrun
+  have hmh : h ≤ m := by
+    by_contra hc
+    have := gen_pow_inj (by omega) (by omega) (hh.symm.trans hN)
+    omega
+  have key : ∀ i ≤ h, TbxGkrRoundsOut (4 * i) rd head ptrow := by
+    intro i hi
+    induction i with
+    | zero => simpa using h0
+    | succ i ih =>
+      have hb := hall i (by omega) (by omega)
+      rw [← pow_mul, mul_comm i 4] at hb
+      rw [show 4 * (i + 1) = 4 * i + 4 by ring]
+      exact gkrRoundsOut_append (ih (by omega)) hb
+  exact key h le_rfl
+
 end Sem
 
 end
