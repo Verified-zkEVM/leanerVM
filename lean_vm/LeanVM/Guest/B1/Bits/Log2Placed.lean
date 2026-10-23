@@ -325,5 +325,137 @@ theorem vlc_completeAtB (fl : ℕ) (hfl : fl < 34) {name : String} {fn : Fn}
           Or.inr (hlp L' (by omega))⟩
   · rw [loadAddrs_straight τ vlCp rfl] at hA; simp [vlCp, Stmt.loadS] at hA
 
+/-! ## `log2_ceil_in_the_exponent`, placed -/
+
+/-- `log2_ceil_in_the_exponent`'s statements before its `ret`. -/
+def lcPre (callee : String) : List Stmt :=
+  [.atom (.const (.n 3) (word (2 ^ 34) 0 0)), .atom (.hint (.allocDyn (.n 4) (.n 3))),
+    .atom (.hint (.bitsExp (.n 0) 34 (.heap (.n 4) 0 34))),
+    .call callee [.n 4, .n 1, .n 2] [.n 5, .n 6], .atom (.assertEq (.n 6) (.n 0)),
+    .atom (.copy (.n 7) (.n 5))]
+
+theorem lcBody_split (callee : String) : lcBody callee = lcPre callee ++ [.ret [.n 7]] := rfl
+
+theorem regionL_app {L L' : Main.Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
+    RegionL L i ∨ RegionL L' i := by
+  obtain ⟨q, hq, h1, h2⟩ := h
+  rcases List.mem_append.mp hq with hq | hq
+  · exact Or.inl ⟨q, hq, h1, h2⟩
+  · exact Or.inr ⟨q, hq, h1, h2⟩
+
+/-- **`log2_ceil_in_the_exponent` at the floor `fl`, placed** (`callee` its `verify_log2_ceil`): on
+`g^N` and the exponent tables it returns `g^L`, `L = max fl (log2Ceil N)`, the bits of `N` in its
+one buffer, within its frame, `34` words and the callee's tree. -/
+theorem lce_completeAtB (fl : ℕ) (hfl : fl < 34) {name callee : String} {fn cfn : Fn}
+    (hf : coreProgram.find? name = some fn) (hp : fn.params = [.n 0, .n 1, .n 2])
+    (hb : fn.body = lcBody callee) (hl : coreProgram.loop name = false)
+    (hcf : coreProgram.find? callee = some cfn) (hcp : cfn.params = [.n 0, .n 1, .n 2])
+    (hcb : cfn.body = vlBody fl) (hcl : coreProgram.loop callee = false) (κ : ℕ) (hκ6 : 6 ≤ κ)
+    (N lpE sqE : ℕ) (hN : N < 2 ^ 34) (hL : max fl (log2Ceil N) < 34) :
+    CompleteAtB fs cert κ name (log2Lin lpE sqE)
+      [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]
+      (Returns [gen ^ max fl (log2Ceil N)]) (fs name + 34 + (fs callee + 35)) := by
+  intro fp
+  set L := max fl (log2Ceil N) with hLdef
+  set b := fp + fs name with hbdef
+  let kid : Kid := ⟨callee, true,
+    [ofK (Parameters.gpow b), ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)],
+    [(b, bitWords N)] ++ log2Lin lpE sqE, Returns [gen ^ L, gen ^ N]⟩
+  have hown34 : List.Forall₂ (fun c s => c.length ≤ s) [bitWords N] [34] :=
+    List.Forall₂.cons (by simp [bitWords]) List.Forall₂.nil
+  obtain ⟨Nk, Lk, outs, ho, hW, hD, hNb, -, hK⟩ := kidsFromIn_of_kidsB (fs := fs) (cert := cert) κ
+    (fun _ => fs callee + 35) [kid] (fun k hk _ => by
+      rw [List.mem_singleton] at hk
+      subst hk
+      exact vlc_completeAtB fl hfl hcf hcp hcb hcl κ hκ6 b lpE sqE N hN hL) (b + 34)
+  have hNb' : Nk ≤ fs callee + 35 := by simpa [kidsBound, kid] using hNb
+  have hwb : Within (bufL b [34] [bitWords N]) b 34 := by
+    simpa using bufL_within b [34] [bitWords N] hown34
+  refine ⟨fs name + 34 + Nk, bufL b [34] [bitWords N] ++ Lk, [gen ^ L], [], ⟨rfl, rfl⟩, ?_, ?_,
+    by omega, fun rd hlow hL' => ?_⟩
+  · simp only [List.nil_append, within_append]
+    exact ⟨hwb.mono (by omega) (by omega), hW.mono (by omega) (by omega)⟩
+  · simpa using disj_append (bufL_disj b [34] [bitWords N] hown34) hD hwb hW le_rfl
+  simp only [List.nil_append] at hL'
+  obtain ⟨hLm, hLin⟩ := Main.memL_append.mp hL'
+  obtain ⟨hB, hLk⟩ := Main.memL_append.mp hLm
+  -- the valuation
+  set σ : Val := setl (Val.ofArgs [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]) 3
+    [word (2 ^ 34) 0 0, ofK (Parameters.gpow b), gen ^ L, gen ^ N, gen ^ L] with hσ
+  have s0 : σ (.n 0) = gen ^ N := by simp only [hσ]; b1_look
+  have s1 : σ (.n 1) = ofK (Parameters.gpow lpE) := by simp only [hσ]; b1_look
+  have s2 : σ (.n 2) = ofK (Parameters.gpow sqE) := by simp only [hσ]; b1_look
+  have s3 : σ (.n 3) = word (2 ^ 34) 0 0 := by simp only [hσ]; b1_look
+  have s4 : σ (.n 4) = ofK (Parameters.gpow b) := by simp only [hσ]; b1_look
+  have s5 : σ (.n 5) = gen ^ L := by simp only [hσ]; b1_look
+  have s6 : σ (.n 6) = gen ^ N := by simp only [hσ]; b1_look
+  have s7 : σ (.n 7) = gen ^ L := by simp only [hσ]; b1_look
+  set es := (lcPre callee).flatMap (Main.slEvs σ) with hes
+  have hw : walk σ fn.body = .ret es [.n 7] := by
+    rw [hb, lcBody_split, Main.walk_straight σ _ _ rfl]
+  obtain ⟨i1, i2, i3, i4⟩ := Main.straight_parts σ (lcPre callee) rfl
+  have ha1 : (lcPre callee).filterMap Main.Stmt.allocSz = [(.n 4, .inr (.n 3))] := rfl
+  have ha3 : (lcPre callee).filterMap Main.Stmt.addrS = [] := rfl
+  have ha4 : (lcPre callee).filterMap Main.Stmt.callS =
+      [(none, callee, [.n 4, .n 1, .n 2], [.n 5, .n 6])] := rfl
+  rw [ha1] at i1 i2
+  rw [ha3] at i3
+  rw [ha4] at i4
+  have hal : allocs σ es = [34] := by
+    rw [i2]
+    simp only [List.map_cons, List.map_nil, Sum.elim_inr, s3, word_two_pow (show 34 < 64 by norm_num)]
+    rw [logG_gen_pow (by norm_num)]
+  have hcalls : calls es = [⟨callee, [.n 4, .n 1, .n 2], [.n 5, .n 6], true⟩] := by
+    rw [i4]; rfl
+  obtain ⟨o, rfl⟩ : ∃ o, outs = [o] := by
+    match outs, ho.length with
+    | [o], _ => exact ⟨o, rfl⟩
+  obtain ⟨hok, -⟩ := ho
+  obtain ⟨ho1, -⟩ := hok rfl
+  have hown' : ∀ i, RegionL (bufL b [34] [bitWords N]) i →
+      ownData cert fp (fp + fs name) name (allocs σ es) es i :=
+    fun i hi => Or.inl (by rw [hal]; exact bufL_region _ _ _ hown34 i hi)
+  have hk := hK rd σ (calls es) (fun i => RegionL (log2Lin lpE sqE) i ∨
+      ownData cert fp (fp + fs name) name (allocs σ es) es i) (fun _ => False)
+    (by
+      rw [hcalls]
+      refine ⟨rfl, rfl, fun _ => ⟨?_, ?_⟩, trivial⟩
+      · simp [s4, s1, s2, kid]
+      · simp only [List.map_cons, List.map_nil, s5, s6]; exact ho1.symm)
+    hlow hLk
+    (memL_lins fun k hk => by
+      rw [List.mem_singleton] at hk
+      subst hk
+      exact Main.memL_append.mpr ⟨hB, hLin⟩)
+    (regionsOk_of fun k hk _ i hi => by
+      rw [List.mem_singleton] at hk
+      subst hk
+      rcases regionL_app hi with hi | hi
+      · exact Or.inl (Or.inr (hown' i hi))
+      · exact Or.inl (Or.inl hi))
+  have hb' : b + 34 = fp + fs name + (allocs σ es).sum := by rw [hal]; simp [hbdef]
+  rw [hb'] at hk
+  have h := relAtIn_of_walk (P := coreProgram) (fs := fs) (cert := cert) (R := RegionL (log2Lin lpE sqE))
+    (D := RegionL []) (Dk := fun i => False ∨ outRegion [kid] [o] i) (N := Nk) (fp := fp)
+    (args := [gen ^ N, ofK (Parameters.gpow lpE), ofK (Parameters.gpow sqE)]) (rets := [gen ^ L])
+    coreProgram_wf hf (Or.inl hl) (by rw [hp]; simp [s0, s1, s2]) hw (by simp [s7])
+    (fun e he => by
+      simp only [hes, lcPre, List.flatMap_cons, List.flatMap_nil, Main.slEvs, List.cons_append,
+        List.nil_append, List.mem_cons, List.not_mem_nil, or_false] at he
+      rcases he with rfl | rfl | rfl | rfl | rfl | rfl
+      · show σ (.n 3) = _; exact s3
+      · trivial
+      · trivial
+      · trivial
+      · show σ (.n 6) + σ (.n 0) = 0; rw [s6, s0]; exact e_add_self _
+      · show σ (.n 7) = σ (.n 5); rw [s7, s5])
+    (by rw [hal, i1]; simp [bases, s4, hbdef]) (by rw [i3]; simp) hk
+    (fun A hA => by
+      rw [hes, loadAddrs_straight σ _ rfl] at hA
+      simp [lcPre, Stmt.loadS] at hA)
+    (fun i hi => by obtain ⟨q, hq, _⟩ := hi; simp at hq)
+  rw [hal] at h
+  simpa using h
+
 end
 end LeanVM.Guest.B1
