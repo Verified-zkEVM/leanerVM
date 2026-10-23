@@ -14,30 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L8`, once. -/
-theorem st96 : shareStatic 96 = true := by decide +kernel
+/-- `padding_weight__L27`, once. -/
+theorem st115 : shareStatic 115 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `padding_weight__L8`, window 0. -/
-theorem w96_0 : shareWin 96 (snapsOf 96) 0 = true := by decide +kernel
+/-- `padding_weight__L27`, window 0. -/
+theorem w115_0 : shareWin 115 (snapsOf 115) 0 = true := by decide +kernel
 
-theorem ok96 : ShareOk 96 := ⟨st96, fun i hi ↦ by
-  have h : (snapsOf 96).length = 0 := by decide +kernel
+theorem ok115 : ShareOk 115 := ⟨st115, fun i hi ↦ by
+  have h : (snapsOf 115).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w96_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `padding_weight__L9`, once. -/
-theorem st97 : shareStatic 97 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `padding_weight__L9`, window 0. -/
-theorem w97_0 : shareWin 97 (snapsOf 97) 0 = true := by decide +kernel
-
-theorem ok97 : ShareOk 97 := ⟨st97, fun i hi ↦ by
-  have h : (snapsOf 97).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w97_0⟩
+  exact w115_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

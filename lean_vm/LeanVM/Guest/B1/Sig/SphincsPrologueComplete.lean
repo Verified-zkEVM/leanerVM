@@ -100,7 +100,8 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
     Completes C rd 2 206 sPrologue σ (fun σ' => σ' sPP = Pc ∧ σ' (.n 3) = rho ∧ σ' (.n 5) = m0 ∧
       σ' (.n 6) = m1 ∧
       (∀ l < 26, σ' (.n (30 + l)) = if (cellNat (σ' (.n 18))).testBit l then 1 else 0) ∧
-      σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106)) := by
+      σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106) ∧
+      ∀ j < 3, σ' (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ' (.n 18))) j))) := by
   rw [sPrologue_split]
   -- `P`
   refine Completes.load ⟨0, by norm_num, rfl⟩ (w := Pc) (by rw [h0]; exact hldP) (by norm_num)
@@ -247,16 +248,20 @@ theorem sPrologue_complete (hm : MemOK rd 256) {bb p Pc m0 m1 rho : E} (hbb : By
   refine ((seq_completes pTail_ok σ11).keep (Q := fun σ' => σ' sPP = Pc ∧ σ' (.n 3) = rho ∧
       σ' (.n 5) = m0 ∧ σ' (.n 6) = m1 ∧
       (∀ l < 26, σ' (.n (30 + l)) = if (cellNat (σ' (.n 18))).testBit l then 1 else 0) ∧
-      σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106))
+      σ' (.n 158) = eOfNat (cellNat (σ' (.n 18)) / 2 ^ 106) ∧
+      ∀ j < 3, σ' (.n (132 + j)) = ofK (gpow (unusedBytes (cellNat (σ' (.n 18))) j)))
     ⟨by rw [show sPP = V.n 2 from rfl, klow 2 (by norm_num)]; exact v2,
       by rw [klow 3 (by norm_num)]; exact v3, by rw [klow 5 (by norm_num)]; exact v5,
       by rw [klow 6 (by norm_num)]; exact v6, fun l hl => by rw [kbits l hl, k18],
-      by rw [hp11, k18]⟩ (fun σ' he ⟨q1, q2, q3, q4, q5, q6⟩ => ?_)).mono le_rfl le_rfl (fun _ h => h.2)
+      by rw [hp11, k18], fun j hj => by
+        rw [he11.apply (Or.inl (by omega)), hσu, updRun_at σ9 132 3 g hj, k18]⟩
+    (fun σ' he ⟨q1, q2, q3, q4, q5, q6, q7⟩ => ?_)).mono le_rfl le_rfl (fun _ h => h.2)
   have a : ∀ k < 159, σ' (.n k) = σ11 (.n k) := fun k hk => he.apply (Or.inl hk)
   refine ⟨by rw [show sPP = V.n 2 from rfl, a 2 (by norm_num)]; exact q1, by rw [a 3 (by norm_num)]; exact q2,
     by rw [a 5 (by norm_num)]; exact q3, by rw [a 6 (by norm_num)]; exact q4,
     fun l hl => by rw [a (30 + l) (by omega), a 18 (by norm_num)]; exact q5 l hl,
-    by rw [a 158 (by norm_num), a 18 (by norm_num)]; exact q6⟩
+    by rw [a 158 (by norm_num), a 18 (by norm_num)]; exact q6,
+    fun j hj => by rw [a (132 + j) (by omega), a 18 (by norm_num)]; exact q7 j hj⟩
 
 end
 end LeanVM.Guest.B1.Sig

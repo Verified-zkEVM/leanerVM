@@ -14,43 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L1`, once. -/
-theorem st220 : shareStatic 220 = true := by decide +kernel
+/-- `block_selector_tab__L26`, once. -/
+theorem st245 : shareStatic 245 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L1`, window 0. -/
-theorem w220_0 : shareWin 220 (snapsOf 220) 0 = true := by decide +kernel
+/-- `block_selector_tab__L26`, window 0. -/
+theorem w245_0 : shareWin 245 (snapsOf 245) 0 = true := by decide +kernel
 
-theorem ok220 : ShareOk 220 := ⟨st220, fun i hi ↦ by
-  have h : (snapsOf 220).length = 0 := by decide +kernel
+theorem ok245 : ShareOk 245 := ⟨st245, fun i hi ↦ by
+  have h : (snapsOf 245).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w220_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L2`, once. -/
-theorem st221 : shareStatic 221 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L2`, window 0. -/
-theorem w221_0 : shareWin 221 (snapsOf 221) 0 = true := by decide +kernel
-
-theorem ok221 : ShareOk 221 := ⟨st221, fun i hi ↦ by
-  have h : (snapsOf 221).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w221_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L3`, once. -/
-theorem st222 : shareStatic 222 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `block_selector_tab__L3`, window 0. -/
-theorem w222_0 : shareWin 222 (snapsOf 222) 0 = true := by decide +kernel
-
-theorem ok222 : ShareOk 222 := ⟨st222, fun i hi ↦ by
-  have h : (snapsOf 222).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w222_0⟩
+  exact w245_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -14,17 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `verify_log2_ceil__L15_L34`, once. -/
-theorem st408 : shareStatic 408 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `verify_log2_ceil__L15_L34`, window 0. -/
-theorem w408_0 : shareWin 408 (snapsOf 408) 0 = true := by decide +kernel
-
-theorem ok408 : ShareOk 408 := ⟨st408, fun i hi ↦ by
-  have h : (snapsOf 408).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w408_0⟩
+/-- `verify_merkle_cap__L8`, window 13. -/
+theorem w413_13 : shareWin 413 (snapsOf 413) 13 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

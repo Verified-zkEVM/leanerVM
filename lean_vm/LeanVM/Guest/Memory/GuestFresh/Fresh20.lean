@@ -315,5 +315,11 @@ theorem core20_fresh : Data.core20.Fresh := by
   rw [List.drop_zero, all20] at h0
   exact fn_fresh_of_rangeFresh (fn := Data.core20) h0 nodup20 params20
 
+/-- `verify_sig_lean_sphincs`'s temporaries, by index. -/
+theorem tmps20 : (Stmt.tmpsList Data.core20.body).map V.idx = temps20 := by
+  have h0 := (from20_0).1
+  rw [List.drop_zero, all20] at h0
+  exact h0
+
 end
 end LeanVM.Guest

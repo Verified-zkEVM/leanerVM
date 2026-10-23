@@ -14,17 +14,8 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `statement_digest`, once. -/
-theorem st22 : shareStatic 22 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `statement_digest`, window 0. -/
-theorem w22_0 : shareWin 22 (snapsOf 22) 0 = true := by decide +kernel
-
-theorem ok22 : ShareOk 22 := ⟨st22, fun i hi ↦ by
-  have h : (snapsOf 22).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w22_0⟩
+/-- `da_vector_cell`, window 7. -/
+theorem w29_7 : shareWin 29 (snapsOf 29) 7 = true := by decide +kernel
 
 end
 end LeanVM.Guest.B2C.Shared

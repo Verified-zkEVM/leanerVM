@@ -14,43 +14,17 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L1`, once. -/
-theorem st379 : shareStatic 379 = true := by decide +kernel
+/-- `__loop28`, once. -/
+theorem st399 : shareStatic 399 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L1`, window 0. -/
-theorem w379_0 : shareWin 379 (snapsOf 379) 0 = true := by decide +kernel
+/-- `__loop28`, window 0. -/
+theorem w399_0 : shareWin 399 (snapsOf 399) 0 = true := by decide +kernel
 
-theorem ok379 : ShareOk 379 := ⟨st379, fun i hi ↦ by
-  have h : (snapsOf 379).length = 0 := by decide +kernel
+theorem ok399 : ShareOk 399 := ⟨st399, fun i hi ↦ by
+  have h : (snapsOf 399).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w379_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L2`, once. -/
-theorem st380 : shareStatic 380 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L2`, window 0. -/
-theorem w380_0 : shareWin 380 (snapsOf 380) 0 = true := by decide +kernel
-
-theorem ok380 : ShareOk 380 := ⟨st380, fun i hi ↦ by
-  have h : (snapsOf 380).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w380_0⟩
-
-set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L3`, once. -/
-theorem st381 : shareStatic 381 = true := by decide +kernel
-
-set_option maxRecDepth 100000 in
-/-- `da_hash_roots__L3`, window 0. -/
-theorem w381_0 : shareWin 381 (snapsOf 381) 0 = true := by decide +kernel
-
-theorem ok381 : ShareOk 381 := ⟨st381, fun i hi ↦ by
-  have h : (snapsOf 381).length = 0 := by decide +kernel
-  obtain rfl : i = 0 := by omega
-  exact w381_0⟩
+  exact w399_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

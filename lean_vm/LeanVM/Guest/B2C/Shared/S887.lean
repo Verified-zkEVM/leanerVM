@@ -14,30 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `__loop128`, once. -/
-theorem st563 : shareStatic 563 = true := by decide +kernel
+/-- `__loop148`, once. -/
+theorem st586 : shareStatic 586 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `__loop128`, window 0. -/
-theorem w563_0 : shareWin 563 (snapsOf 563) 0 = true := by decide +kernel
+/-- `__loop148`, window 0. -/
+theorem w586_0 : shareWin 586 (snapsOf 586) 0 = true := by decide +kernel
 
-theorem ok563 : ShareOk 563 := ⟨st563, fun i hi ↦ by
-  have h : (snapsOf 563).length = 0 := by decide +kernel
+theorem ok586 : ShareOk 586 := ⟨st586, fun i hi ↦ by
+  have h : (snapsOf 586).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w563_0⟩
+  exact w586_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L21_L7`, once. -/
-theorem st564 : shareStatic 564 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L23_L7`, once. -/
+theorem st587 : shareStatic 587 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `opening_queries__L0_L1_L64_L32_L21_L7`, window 0. -/
-theorem w564_0 : shareWin 564 (snapsOf 564) 0 = true := by decide +kernel
+/-- `opening_queries__L0_L1_L64_L32_L23_L7`, window 0. -/
+theorem w587_0 : shareWin 587 (snapsOf 587) 0 = true := by decide +kernel
 
-theorem ok564 : ShareOk 564 := ⟨st564, fun i hi ↦ by
-  have h : (snapsOf 564).length = 0 := by decide +kernel
+theorem ok587 : ShareOk 587 := ⟨st587, fun i hi ↦ by
+  have h : (snapsOf 587).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w564_0⟩
+  exact w587_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `__loop149`, once. -/
+theorem st588 : shareStatic 588 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `__loop149`, window 0. -/
+theorem w588_0 : shareWin 588 (snapsOf 588) 0 = true := by decide +kernel
+
+theorem ok588 : ShareOk 588 := ⟨st588, fun i hi ↦ by
+  have h : (snapsOf 588).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w588_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared

@@ -14,30 +14,43 @@ namespace LeanVM.Guest.B2C.Shared
 @[expose] public section
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L0`, once. -/
-theorem st343 : shareStatic 343 = true := by decide +kernel
+/-- `__loop24`, once. -/
+theorem st367 : shareStatic 367 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L0`, window 0. -/
-theorem w343_0 : shareWin 343 (snapsOf 343) 0 = true := by decide +kernel
+/-- `__loop24`, window 0. -/
+theorem w367_0 : shareWin 367 (snapsOf 367) 0 = true := by decide +kernel
 
-theorem ok343 : ShareOk 343 := ⟨st343, fun i hi ↦ by
-  have h : (snapsOf 343).length = 0 := by decide +kernel
+theorem ok367 : ShareOk 367 := ⟨st367, fun i hi ↦ by
+  have h : (snapsOf 367).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w343_0⟩
+  exact w367_0⟩
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L1`, once. -/
-theorem st344 : shareStatic 344 = true := by decide +kernel
+/-- `da_levels__L1_L0`, once. -/
+theorem st368 : shareStatic 368 = true := by decide +kernel
 
 set_option maxRecDepth 100000 in
-/-- `child_claim_list_last__L1`, window 0. -/
-theorem w344_0 : shareWin 344 (snapsOf 344) 0 = true := by decide +kernel
+/-- `da_levels__L1_L0`, window 0. -/
+theorem w368_0 : shareWin 368 (snapsOf 368) 0 = true := by decide +kernel
 
-theorem ok344 : ShareOk 344 := ⟨st344, fun i hi ↦ by
-  have h : (snapsOf 344).length = 0 := by decide +kernel
+theorem ok368 : ShareOk 368 := ⟨st368, fun i hi ↦ by
+  have h : (snapsOf 368).length = 0 := by decide +kernel
   obtain rfl : i = 0 := by omega
-  exact w344_0⟩
+  exact w368_0⟩
+
+set_option maxRecDepth 100000 in
+/-- `da_levels__L2_L1`, once. -/
+theorem st369 : shareStatic 369 = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+/-- `da_levels__L2_L1`, window 0. -/
+theorem w369_0 : shareWin 369 (snapsOf 369) 0 = true := by decide +kernel
+
+theorem ok369 : ShareOk 369 := ⟨st369, fun i hi ↦ by
+  have h : (snapsOf 369).length = 0 := by decide +kernel
+  obtain rfl : i = 0 := by omega
+  exact w369_0⟩
 
 end
 end LeanVM.Guest.B2C.Shared
