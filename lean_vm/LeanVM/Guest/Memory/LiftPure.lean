@@ -262,5 +262,33 @@ theorem relIn_of_leaf {lok : Atom → Bool} {g : String} {fn : Fn} {rd : Reader}
     (h : coreProgram.Rel rd g args rets) : coreProgram.RelIn rd R g args rets :=
   relIn_of_leaf' hf hleaf (fun σ es vs hp hw _ ↦ hload σ es vs hp hw) h
 
+/-! ## Frame runs fitting their frames -/
+
+mutual
+/-- The atoms of a statement, its branches' and arms' included. -/
+def stmtAtoms : Stmt → List Atom
+  | .atom a => [a]
+  | .ite _ z n => blockAtoms z ++ blockAtoms n
+  | .match_ _ arms => armsAtoms arms
+  | _ => []
+
+/-- The atoms of a block. -/
+def blockAtoms : List Stmt → List Atom
+  | [] => []
+  | s :: ss => stmtAtoms s ++ blockAtoms ss
+
+/-- The atoms of arms. -/
+def armsAtoms : List (List Stmt) → List Atom
+  | [] => []
+  | a :: as => blockAtoms a ++ armsAtoms as
+end
+
+/-- **Every frame run fits its frame**: a `frameAddr` run of a function's body has its cells, from
+the certificate's cell of its first value on, within the function's frame. The certificates'
+fact, discharged for the deployed instance from the checker's (`B2C.FnStatic`). -/
+def RunsFit (fs : String → ℕ) (cert : String → V → ℕ) : Prop :=
+  ∀ f fn, coreProgram.find? f = some fn → ∀ p r rs, Atom.frameAddr p (r :: rs) ∈ blockAtoms fn.body →
+    cert f r + (rs.length + 1) ≤ fs f
+
 end
 end LeanVM.Guest.Lift
