@@ -22,7 +22,7 @@ public import LeanVM.Protocol.EndToEnd.Front.InstanceWith
 
 The table phase's identities (`TableFid`, `LeanVM.Protocol.EndToEnd.Front.TablePhase`) compare
 the verifier program's bus result, `BusWit.result` (`verify_bus_balance`,
-`python-verifier/verifier.py:578-640` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`), with
+`python-verifier/verifier.py:581-643` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`), with
 the oracle protocol's output on the same reads, `Bus.busOut`. This module proves the two agree at
 the leanISA instance and the verifier's layout, for every read whose GKR point has `μ_bus`
 coordinates, whose memory values are three and whose fingerprint challenges are four:
@@ -1122,7 +1122,7 @@ section Padding
 
 variable (prog : Program) (s : Sizes) {fl : Option (KeccakRegion (shape prog s))}
 
-/-- The Python's padding term of a block (`padding_rows`, `verifier.py:635`): the padding weight of
+/-- The Python's padding term of a block (`padding_rows`, `verifier.py:638`): the padding weight of
 its owner's rows times its form at the owner's padding row, plus one. -/
 def pyPad (w : List E) (β : E) (p : List E) (b : BusBlock) : E :=
   paddingWeight (p.take b.logRows) b.rows *

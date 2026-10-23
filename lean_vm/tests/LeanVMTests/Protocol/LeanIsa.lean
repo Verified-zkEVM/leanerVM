@@ -6,7 +6,7 @@ import LeanVM.Protocol.LeanIsa
 * **The stack against the pinned Python.** For two announced size vectors, the stacked size and
   every column's offset (a `KECCAK` input lane: `QKECCAK`'s offset plus its slot times the
   table's height; an output lane, derived: none) equal the placement indices of the pinned verifier's `build_layout`
-  (`python-verifier/verifier.py` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`, for a
+  (`python-verifier/verifier.py` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, for a
   program of four `XOR` instructions; driver `layout_driver.py` of the port). The first has a
   table as tall as the memory and three more, and a `KECCAK` table of `2^16` rows: ties go to the
   lower global index, the shared columns first. The second mixes heights and has a `KECCAK`

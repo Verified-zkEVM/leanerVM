@@ -91,8 +91,8 @@ def bytecodeWords (prog : Program) : List K :=
     (List.finRange (2 ^ prog.logSize)).map fun i ↦ (encodeSlots (prog.code i))[s]
 
 /-- The public input as the verifier reads it: its four lanes, the digest's four words
-(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:735-742`; `Digest.halves`,
-`verifier.py:223-226`). -/
+(`public_input_bytes`, `crates/leanvm_core/src/cpu/mod.rs:723-730`; `Digest.halves`,
+`verifier.py:225-228`). -/
 def publicDigest (input : PublicInput) : Digest :=
   #v[(input.lanes 0).lane, (input.lanes 1).lane, (input.lanes 2).lane, (input.lanes 3).lane]
 
@@ -224,18 +224,18 @@ noncomputable def completenessError (fuel : ℕ) : ℝ≥0∞ :=
 /-- **The committed size of an execution**: the number of cells the honest prover commits to,
 every committed column at its table's height, the least power of two holding the table's rows
 (`1` for no row), and at least `2^9` for the `KECCAK` table (`TABLE_LOG_FLOORS`,
-`verifier.py:954`). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
+`verifier.py:970`). The memory has four columns of `2^κ` rows, and the bytecode's counts (`BFCNT`)
 one of `2^logSize` rows. Each opcode has a table of one row per instruction of that opcode the
-execution executes (`Trace.count`), with `15, 15, 8, 15, 14, 40` committed columns for `XOR`,
-`MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (the `KECCAK` table's fifty value lanes
-are committed in `q_keccak`, or not at all); and `q_keccak` has `2^6` rows per row of the `KECCAK`
-table. -/
+execution executes (`Trace.count`), with `15, 15, 8, 15, 14, 26` committed columns for `XOR`,
+`MUL_NATIVE`, `SET_CONSTANT`, `DEREF`, `JUMP`, `KECCAK` (of the `KECCAK` table's `90` columns, the
+fifty value lanes are committed in `q_keccak`, or not at all, and fourteen more in `q_keccak`'s
+spare slots); and `q_keccak` has `2^6` rows per row of the `KECCAK` table. -/
 noncomputable def Semantics.Trace.committedSize {prog : Program} (t : Trace prog) : ℕ :=
   let height (op : Opcode) : ℕ := 2 ^ Nat.clog 2 (t.count op)
   let keccakHeight : ℕ := 2 ^ max (Nat.clog 2 (t.count .keccak)) 9
   4 * 2 ^ t.κ + 2 ^ prog.logSize +
     15 * height .xor + 15 * height .mulNative + 8 * height .setConstant + 15 * height .deref +
-    14 * height .jump + 40 * keccakHeight + 2 ^ 6 * keccakHeight
+    14 * height .jump + 26 * keccakHeight + 2 ^ 6 * keccakHeight
 
 /-- **Completeness in the random-oracle model.** -/
 def Completeness : Prop :=

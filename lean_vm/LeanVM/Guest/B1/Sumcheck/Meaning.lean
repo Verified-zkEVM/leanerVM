@@ -12,15 +12,15 @@ public import LeanVM.Guest.B1.Common.Sponge
 /-!
 # Sumcheck rounds: meanings (TRIAGE G #30-32)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `3375f7a13`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `4af2cdddd`, G below) its meaning
 on its argument and return words, the Fiat-Shamir sponge as the guest carries it (`Fs`,
 `B1/Common/Sponge.lean`), and `…_Spec`, the statement that its core IR relation is that meaning
 (proved as `…_holds`).
 
 | function | G | meaning |
 | --- | --- | --- |
-| `sumcheck_round4` | 963-979 | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample, V:1330, 1342), the sponge in a round record |
-| `gkr_rounds__L{n}` | 982-1004 | `n` equality-mode rounds of `sumcheck _ 5` (`sumcheckRoundPoly 5 claim (some e)`), as in `gkrStep 2` (V:1379) |
+| `sumcheck_round4` | 963-979 | one plain round of `sumcheck _ 4 [none]` (`sumcheckRoundPoly 4 claim none`, a sample, V:1386, 1342), the sponge in a round record |
+| `gkr_rounds__L{n}` | 982-1004 | `n` equality-mode rounds of `sumcheck _ 5` (`sumcheckRoundPoly 5 claim (some e)`), as in `gkrStep 2` (V:1435) |
 | `batch_sumcheck__L23` | 1007-1022 | `Node.batchRounds` (N:226), 23 rounds |
 
 A round record (`ROUND_FS = 0`, `ROUND_CURSOR = 5`, `ROUND_CLAIM = 6`, `ROUND_SLOTS = 7`) holds a

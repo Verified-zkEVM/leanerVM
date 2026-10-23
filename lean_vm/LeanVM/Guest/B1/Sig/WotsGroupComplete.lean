@@ -12,7 +12,8 @@ public import LeanVM.Guest.B1.Sig.WotsGroup
 # A group's arm, complete
 
 `groupArm_complete`: arm `k < 4^n` of a group from base `b` completes on `b + 5 ..< armB (4^n)`,
-its valuation the arm evaluated and its tips canonical, from canonical starts.
+its valuation the arm evaluated and its tips canonical, from canonical starts; the arm is in
+single-assignment form.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -42,7 +43,9 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
         (armB W first n fold prodIn encIn b k)).1 σ
       (fun σ' => σ' = fwd (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b)
           (encT W fold n b) k (armB W first n fold prodIn encIn b k)).1 σ ∧
-        ∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) := by
+        (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+        SSA (armT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
+          (armB W first n fold prodIn encIn b k)).1) := by
   have hend : armB W first n fold prodIn encIn b (k + 1) ≤ armB W first n fold prodIn encIn b (4 ^ n) :=
     armB_mono W first n fold prodIn encIn b (by omega)
   have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
@@ -82,7 +85,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨b + 5, le_rfl, by omega, rfl⟩
         · exact absurd rfl h) σ kc
-    refine ⟨σ', he, ⟨hp, fun t ht => ?_⟩, hh⟩
+    refine ⟨σ', he, ⟨hp, fun t ht => ?_, hssa.1⟩, hh⟩
     rw [hp]
     exact ktip t ht
   · have ha := armB_pos W first n fold prodIn encIn b hk0
@@ -137,7 +140,7 @@ theorem groupArm_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : Step
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨_, by omega, by omega, rfl⟩
         · exact ⟨_, by rw [hws2]; omega, by rw [hws2]; omega, rfl⟩) σ kc
-    refine ⟨σ', he, ⟨hp, fun t ht => ?_⟩, hh⟩
+    refine ⟨σ', he, ⟨hp, fun t ht => ?_, hssa.1⟩, hh⟩
     rw [hp]
     exact ktip t ht
 

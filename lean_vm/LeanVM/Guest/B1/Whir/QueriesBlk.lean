@@ -30,7 +30,7 @@ open LeanVM.Protocol.Verifier
 
 variable {rd : Reader} {σ : Val}
 
-/-- The rows as the Spec reads them (V:1752-1754): at level 0 the `K` words reversed, deeper the
+/-- The rows as the Spec reads them (V:1811-1813): at level 0 the `K` words reversed, deeper the
 `E` words. -/
 def specRow (lvl : ℕ) (row : List K) : List E := if lvl = 0 then row.reverse.map ofK else extRow row
 
