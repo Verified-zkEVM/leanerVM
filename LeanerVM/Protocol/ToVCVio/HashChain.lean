@@ -135,62 +135,51 @@ private theorem map_snd_queries (enc : D → B → Q) :
 private theorem exists_take_of_mem :
     ∀ (cv : D) (steps : List (B × D)) (x : D), x ∈ cv :: steps.map (·.2) →
       ∃ j ≤ steps.length, last cv (steps.take j) = x
-  | cv, [], x, hx => ⟨0, Nat.le_refl _, by simpa [last] using (List.mem_singleton.mp hx).symm⟩
+  | cv, [], x, hx => ⟨0, Nat.le_refl _, (List.mem_singleton.mp hx).symm⟩
   | cv, (b, c) :: steps, x, hx => by
     rcases List.mem_cons.mp hx with rfl | hx
     · exact ⟨0, Nat.zero_le _, rfl⟩
     · obtain ⟨j, hj, hlast⟩ := exists_take_of_mem c steps x hx
-      exact ⟨j + 1, by simp [hj], by simpa [last] using hlast⟩
-
-/-- The last state of a chain is one of its states. -/
-private theorem last_mem : ∀ (cv : D) (steps : List (B × D)), last cv steps ∈ cv :: steps.map (·.2)
-  | _, [] => List.mem_singleton_self _
-  | _, (_, c) :: steps => List.mem_cons_of_mem _ (last_mem c steps)
+      exact ⟨j + 1, Nat.succ_le_succ hj, hlast⟩
 
 private theorem unique?_eq_some_iff {α : Type} [DecidableEq α] {l : List α} {x : α} :
     unique? l = some x ↔ x ∈ l ∧ ∀ y ∈ l, y = x := by
   cases l with
   | nil => simp [unique?]
   | cons a rest =>
-    simp only [unique?]
-    split
-    · rename_i h
-      simp only [List.all_eq_true, decide_eq_true_eq] at h
-      simp only [Option.some.injEq, List.mem_cons, forall_eq_or_imp]
-      constructor
-      · rintro rfl
-        exact ⟨Or.inl rfl, rfl, h⟩
-      · rintro ⟨-, rfl, -⟩
-        rfl
-    · rename_i h
-      simp only [List.all_eq_true, decide_eq_true_eq, not_forall] at h
-      obtain ⟨y, hy, hne⟩ := h
-      simp only [reduceCtorEq, false_iff, not_and, List.mem_cons, forall_eq_or_imp]
-      rintro - rfl hall
-      exact hne (hall y hy)
+    simp only [unique?, List.all_eq_true, decide_eq_true_eq, List.mem_cons, forall_eq_or_imp]
+    split_ifs with h
+    · exact ⟨by rintro ⟨⟩; exact ⟨.inl rfl, rfl, h⟩, fun ⟨_, hax, _⟩ ↦ hax ▸ rfl⟩
+    · exact ⟨nofun, fun ⟨_, hax, hall⟩ ↦ (h fun y hy ↦ (hall y hy).trans hax.symm).elim⟩
 
-/-- The first `p + 1` entries of a list are the first `p` and the entry at `p`. -/
-private theorem take_succ_eq {α : Type} {l : List α} {p : ℕ} (hp : p < l.length) :
-    l.take (p + 1) = l.take p ++ [l[p]] := by
-  rw [List.take_add_one, List.getElem?_eq_getElem hp]
-  rfl
-
-/-- Every query of a chain starts from one of its states. -/
+/-- Every query of a chain starts from the last state of a shorter prefix. -/
 private theorem mem_queries (enc : D → B → Q) :
     ∀ (cv : D) (steps : List (B × D)) (e : (_ : Q) × D), e ∈ queries enc cv steps →
-      ∃ d ∈ cv :: steps.map (·.2), ∃ b, e.1 = enc d b
-  | _, [], _, he => by simp [queries] at he
+      ∃ j < steps.length, ∃ b, e.1 = enc (last cv (steps.take j)) b
+  | _, [], _, he => nomatch he
   | cv, (b, c) :: steps, e, he => by
     rcases List.mem_cons.mp he with rfl | he
-    · exact ⟨cv, List.mem_cons_self .., b, rfl⟩
-    · obtain ⟨d, hd, b', hb'⟩ := mem_queries enc c steps e he
-      exact ⟨d, List.mem_cons_of_mem _ (by simpa using hd), b', hb'⟩
+    · exact ⟨0, Nat.zero_lt_succ _, b, rfl⟩
+    · obtain ⟨j, hj, b', hb'⟩ := mem_queries enc c steps e he
+      exact ⟨j + 1, Nat.succ_lt_succ hj, b', hb'⟩
 
 end Bookkeeping
 
 /-! ## The history of a chain -/
 
 variable {enc : D → B → Q} {step? : Q → Option (D × B)} {log : List ((_ : Q) × D)} {seed : D}
+
+/-- Without a collision, the step a logged query into `cv` parses as is the one step the log
+shows into `cv`. -/
+private theorem unique?_preimages (hcoll : ¬ HasCollision log) {e : (_ : Q) × D} (he : e ∈ log)
+    {cv : D} (hcv : e.2 = cv) {p : D × B} (hp : step? e.1 = some p) :
+    unique? (preimages step? log cv) = some p := by
+  refine unique?_eq_some_iff.mpr ⟨List.mem_filterMap.mpr ⟨e, he, by simp [hcv, hp]⟩, fun y hy ↦ ?_⟩
+  obtain ⟨e', he', hy⟩ := List.mem_filterMap.mp hy
+  split_ifs at hy with h
+  obtain hq : e'.1 = e.1 := by_contra fun hne ↦ hcoll ⟨e', he', e, he, hne, h.trans hcv.symm⟩
+  rw [hq, hp] at hy
+  exact (Option.some.inj hy).symm
 
 /-- The walk recovers a logged chain with enough fuel, when the log has no collision and no
 answer is `seed`. -/
@@ -199,30 +188,30 @@ private theorem walk_last (henc : ∀ d b, step? (enc d b) = some (d, b))
     (∀ e ∈ queries enc seed steps, e ∈ log) → ∀ fuel, steps.length ≤ fuel →
       walk step? log seed fuel (last seed steps) = some steps := by
   induction steps using List.reverseRecOn with
-  | nil =>
-    intro _ fuel _
-    cases fuel <;> simp [walk, last]
+  | nil => rintro - (_ | _) - <;> simp [walk, last]
   | append_singleton init x ih =>
     obtain ⟨b, cv⟩ := x
-    intro hchain fuel hlen
+    rintro hchain (_ | f) hlen
+    · simp at hlen
     rw [queries_append] at hchain
-    rw [last_append]
-    obtain ⟨f, rfl⟩ : ∃ f, fuel = f + 1 := ⟨fuel - 1, by simp at hlen; omega⟩
-    have hmem : (⟨enc (last seed init) b, cv⟩ : (_ : Q) × D) ∈ log := hchain _ (by simp)
-    have hpre : unique? (preimages step? log cv) = some (last seed init, b) := by
-      rw [unique?_eq_some_iff]
-      refine ⟨List.mem_filterMap.mpr ⟨_, hmem, by simp [henc]⟩, fun y hy ↦ ?_⟩
-      obtain ⟨e, he, hy⟩ := List.mem_filterMap.mp hy
-      by_cases hcv : e.2 = cv
-      · have hq : e.1 = enc (last seed init) b := by
-          by_contra hne
-          exact hcoll ⟨e, he, _, hmem, hne, hcv⟩
-        simp only [hcv, ↓reduceIte, hq, henc, Option.some.injEq] at hy
-        exact hy.symm
-      · simp [hcv] at hy
-    simp only [walk, hseed _ hmem, ↓reduceIte, hpre]
-    rw [ih (fun e he ↦ hchain e (List.mem_append_left _ he)) f (by simp at hlen; omega)]
-    rfl
+    have hmem := hchain ⟨enc (last seed init) b, cv⟩ (by simp)
+    simp only [walk, last_append, hseed _ hmem, ↓reduceIte,
+      unique?_preimages hcoll hmem rfl (henc _ _),
+      ih (fun e he ↦ hchain e (List.mem_append_left _ he)) f (by simpa using hlen), Option.map_some]
+
+/-- Two prefixes of a logged chain that end in one state have one length, when the log has no
+collision and no answer is `seed`. -/
+private theorem min_eq_of_last_take_eq (henc : ∀ d b, step? (enc d b) = some (d, b))
+    (hcoll : ¬ HasCollision log) (hseed : ∀ e ∈ log, e.2 ≠ seed) (steps : List (B × D))
+    (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) {j k : ℕ}
+    (h : last seed (steps.take j) = last seed (steps.take k)) :
+    min j steps.length = min k steps.length := by
+  have hw i := walk_last henc hcoll hseed (steps.take i)
+    (fun e he ↦ hchain e (List.mem_of_mem_take (queries_take enc seed steps i ▸ he)))
+    steps.length (List.length_take_le' _ _)
+  have hj := hw j
+  rw [h, hw k, Option.some.injEq] at hj
+  simpa using congrArg List.length hj.symm
 
 /-- The states of a logged chain are distinct, when the log has no collision and no answer is
 `seed`. -/
@@ -233,18 +222,13 @@ private theorem nodup_states (henc : ∀ d b, step? (enc d b) = some (d, b))
   | nil => exact List.nodup_singleton _
   | append_singleton init x ih =>
     obtain ⟨b, cv⟩ := x
-    have hinit : ∀ e ∈ queries enc seed init, e ∈ log := fun e he ↦
-      hchain e (by rw [queries_append]; exact List.mem_append_left _ he)
     rw [List.map_append, ← List.cons_append, List.nodup_append]
-    refine ⟨ih hinit, List.nodup_singleton _, fun x hx y hy hxy ↦ ?_⟩
-    obtain rfl : cv = y := (List.mem_singleton.mp hy).symm
-    obtain ⟨j, hj, hlast⟩ := exists_take_of_mem seed init x hx
-    have h1 := walk_last henc hcoll hseed (init.take j)
-      (fun e he ↦ hinit e (by rw [queries_take] at he; exact List.mem_of_mem_take he))
-      (init.length + 1) (by rw [List.length_take]; omega)
-    have h2 := walk_last henc hcoll hseed (init ++ [(b, cv)]) hchain (init.length + 1) (by simp)
-    rw [last_append, ← hxy, ← hlast, h1, Option.some.injEq] at h2
-    have := congrArg List.length h2
+    refine ⟨ih fun e he ↦ hchain e (by rw [queries_append]; exact List.mem_append_left _ he),
+      List.nodup_singleton _, fun x hx y hy hxy ↦ ?_⟩
+    obtain rfl := List.mem_singleton.mp hy
+    obtain ⟨j, hj, rfl⟩ := exists_take_of_mem seed init x hx
+    have := min_eq_of_last_take_eq henc hcoll hseed _ hchain (k := (init ++ [(b, y)]).length)
+      (by rwa [List.take_append_of_le_length hj, List.take_length, last_append])
     simp at this
     omega
 
@@ -256,13 +240,9 @@ theorem history_of_noCollision_noSeed (henc : ∀ d b, step? (enc d b) = some (d
     (hchain : ∀ e ∈ queries enc seed steps, e ∈ log) :
     history step? log seed (last seed steps) = some steps := by
   refine walk_last henc hcoll hseed steps hchain _ ?_
-  have hnd := (nodup_states henc hcoll hseed steps hchain).of_cons
-  have hsub : steps.map (·.2) ⊆ log.map (·.2) := by
-    intro x hx
-    rw [← map_snd_queries enc seed steps] at hx
-    obtain ⟨e, he, rfl⟩ := List.mem_map.mp hx
-    exact List.mem_map_of_mem (hchain e he)
-  simpa using (List.Nodup.subperm hnd hsub).length_le
+  have hsub : steps.map (·.2) ⊆ log.map (·.2) :=
+    map_snd_queries enc seed steps ▸ List.map_subset _ hchain
+  simpa using ((nodup_states henc hcoll hseed steps hchain).of_cons.subperm hsub).length_le
 
 variable [DecidableEq Q] {chunks : Q → List D} {inPlay : List ((_ : Q) × D) → List D}
 
@@ -276,7 +256,7 @@ private theorem queries_mem_take (hchunk : ∀ d b, d ∈ chunks (enc d b))
     (∀ e ∈ queries enc seed steps, e ∈ log) → ∀ n, last seed steps ∈ inPlay (log.take n) →
       ∀ e ∈ queries enc seed steps, e ∈ log.take n := by
   induction steps using List.reverseRecOn with
-  | nil => intro _ _ _ e he; simp [queries] at he
+  | nil => simp [queries]
   | append_singleton init x ih =>
     obtain ⟨b, cv⟩ := x
     intro hchain n hn e he
@@ -284,21 +264,15 @@ private theorem queries_mem_take (hchunk : ∀ d b, d ∈ chunks (enc d b))
     rw [last_append] at hn
     have hlast :=
       mem_take_of_inPlay hmono hcons hhit (hchain ⟨enc (last seed init) b, cv⟩ (by simp)) hn
-    obtain ⟨p, hp, hpe⟩ := List.mem_iff_getElem.mp hlast
-    rw [List.length_take] at hp
-    rw [List.getElem_take] at hpe
-    have hpl : p < log.length := (Nat.lt_min.mp hp).2
+    obtain ⟨p, hp, hpe⟩ := List.mem_take_iff_getElem.mp hlast
     have hinit : last seed init ∈ inPlay (log.take (p + 1)) := by
-      rw [take_succ_eq hpl]
-      exact hplay _ _ _ (by rw [hpe]; exact hchunk _ _)
+      rw [List.take_succ_eq_append_getElem (Nat.lt_min.mp hp).2]
+      exact hplay _ _ _ (hpe ▸ hchunk _ _)
     rcases List.mem_append.mp he with he | he
-    · have := ih (fun e he ↦ hchain e (List.mem_append_left _ he)) (p + 1) hinit e he
-      obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp this
-      rw [List.length_take] at hi
-      rw [List.getElem_take]
-      exact List.mem_iff_getElem.mpr ⟨i, by simp; omega, by simp⟩
-    · obtain rfl := List.mem_singleton.mp he
-      exact hlast
+    · obtain ⟨i, hi, rfl⟩ := List.mem_take_iff_getElem.mp
+        (ih (fun e he ↦ hchain e (List.mem_append_left _ he)) (p + 1) hinit e he)
+      exact List.mem_take_iff_getElem.mpr ⟨i, by omega, rfl⟩
+    · rwa [List.mem_singleton.mp he]
 
 /-- **The history before a query.** Let a log be consistent, with no collision and no hit, where
 the values in play grow along the log, start with `seed`, and take in the chunks of each query,
@@ -314,15 +288,14 @@ theorem history_take_of_noCollision_noHit (henc : ∀ d b, step? (enc d b) = som
     (hm : m < log.length) (hq : last seed steps ∈ chunks log[m].1)
     (hnew : ∀ e ∈ queries enc seed steps, e.1 ≠ log[m].1) :
     history step? (log.take m) seed (last seed steps) = some steps := by
+  have htake := List.take_succ_eq_append_getElem hm
   have hin := queries_mem_take hchunk hplay hmono hcons hhit steps hchain (m + 1)
-    (by rw [take_succ_eq hm]; exact hplay _ _ _ hq)
+    (htake ▸ hplay _ _ _ hq)
   refine history_of_noCollision_noSeed henc
     (fun h ↦ hcoll (h.mono fun e he ↦ List.mem_of_mem_take he))
     (fun e he h ↦ answer_not_mem_inPlay_nil hmono hcons hhit (List.mem_of_mem_take he)
       (h ▸ hseed)) steps fun e he ↦ ?_
-  have := hin e he
-  rw [take_succ_eq hm] at this
-  rcases List.mem_append.mp this with h | h
+  rcases List.mem_append.mp (htake ▸ hin e he) with h | h
   · exact h
   · exact absurd (by rw [List.mem_singleton.mp h]) (hnew e he)
 
@@ -338,61 +311,39 @@ theorem history_take_of_step (henc : ∀ d b, step? (enc d b) = some (d, b))
     (hm : m < log.length) {b : B} (hq : log[m].1 = enc (last seed steps) b) :
     history step? (log.take m) seed (last seed steps) = some steps := by
   refine history_take_of_noCollision_noHit henc hchunk hplay hmono hseed hcons hcoll hhit steps
-    hchain hm (by rw [hq]; exact hchunk _ _) fun e he heq ↦ ?_
-  have hns : ∀ e ∈ log, e.2 ≠ seed := fun e he h ↦
-    answer_not_mem_inPlay_nil hmono hcons hhit he (h ▸ hseed)
-  have hnd := nodup_states henc hcoll hns steps hchain
-  -- the query would start from the last state, which no earlier step starts from
-  rcases List.eq_nil_or_concat steps with rfl | ⟨init, ⟨b', cv⟩, rfl⟩
-  · simp [queries] at he
-  simp only [List.concat_eq_append] at hnd he hq
-  rw [List.map_append, ← List.cons_append, List.nodup_append] at hnd
-  rw [queries_append] at he
-  rw [last_append, ← heq] at hq
-  obtain ⟨d, hd, b'', hde⟩ : ∃ d ∈ seed :: init.map (·.2), ∃ b'', e.1 = enc d b'' := by
-    rcases List.mem_append.mp he with he | he
-    · exact mem_queries enc seed init e he
-    · exact ⟨last seed init, last_mem seed init, b', by rw [List.mem_singleton.mp he]⟩
-  have h' := congrArg step? (hde.symm.trans hq)
+    hchain hm (hq ▸ hchunk _ _) fun e he heq ↦ ?_
+  -- the query would start from the last state of a shorter prefix
+  obtain ⟨j, hj, b', hde⟩ := mem_queries enc seed steps e he
+  have h' := congrArg step? (hde.symm.trans (heq.trans hq))
   simp only [henc, Option.some.injEq, Prod.mk.injEq] at h'
-  exact hnd.2.2 d hd cv (by simp) h'.1
+  have := min_eq_of_last_take_eq henc hcoll
+    (fun e he h ↦ answer_not_mem_inPlay_nil hmono hcons hhit he (h ▸ hseed)) steps hchain
+    (j := j) (k := steps.length) (by rw [List.take_length]; exact h'.1)
+  simp at this
+  omega
 
+omit [DecidableEq Q] in
 /-- A walk found in part of a log is found in the whole log with more fuel, when the whole log has
 no collision. -/
 private theorem walk_mono {log' : List ((_ : Q) × D)} (hcoll : ¬ HasCollision log)
     (hsub : ∀ e ∈ log', e ∈ log) :
     ∀ (fuel fuel' : ℕ) (cv : D) (hs : List (B × D)), fuel ≤ fuel' →
       walk step? log' seed fuel cv = some hs → walk step? log seed fuel' cv = some hs
-  | 0, fuel', cv, hs, _, h => by
-    by_cases hcv : cv = seed
-    · cases fuel' <;> simp_all [walk]
-    · simp [walk, hcv] at h
-  | fuel + 1, fuel', cv, hs, hle, h => by
-    obtain ⟨f', rfl⟩ : ∃ f', fuel' = f' + 1 := ⟨fuel' - 1, by omega⟩
-    by_cases hcv : cv = seed
-    · simp_all [walk]
-    simp only [walk, hcv, ↓reduceIte] at h ⊢
-    split at h
-    · rename_i cv' b hu
-      obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
-      have hu' : unique? (preimages step? log cv) = some (cv', b) := by
-        obtain ⟨hmem, -⟩ := unique?_eq_some_iff.mp hu
-        obtain ⟨e₀, he₀, hp₀⟩ := List.mem_filterMap.mp hmem
-        have hcv₀ : e₀.2 = cv := by by_contra hne; simp [hne] at hp₀
-        simp only [hcv₀, ↓reduceIte] at hp₀
-        refine unique?_eq_some_iff.mpr
-          ⟨List.mem_filterMap.mpr ⟨e₀, hsub e₀ he₀, by simp [hcv₀, hp₀]⟩, fun y hy ↦ ?_⟩
-        obtain ⟨e, he, hy⟩ := List.mem_filterMap.mp hy
-        by_cases hecv : e.2 = cv
-        · have hq : e.1 = e₀.1 := by
-            by_contra hne
-            exact hcoll ⟨e, he, e₀, hsub e₀ he₀, hne, hecv.trans hcv₀.symm⟩
-          simp only [hecv, ↓reduceIte, hq, hp₀, Option.some.injEq] at hy
-          exact hy.symm
-        · simp [hecv] at hy
-      simp only [hu', walk_mono hcoll hsub fuel f' cv' hs' (by omega) hw, Option.map_some]
+  | 0, fuel', cv, hs, _, h => by cases fuel' <;> by_cases cv = seed <;> simp_all [walk]
+  | _ + 1, 0, _, _, hle, _ => absurd hle (by omega)
+  | fuel + 1, fuel' + 1, cv, hs, hle, h => by
+    unfold walk at h ⊢
+    split_ifs at h ⊢ with hcv
+    · exact h
+    rcases hu : unique? (preimages step? log' cv) with _ | ⟨cv', b⟩ <;> rw [hu] at h
     · cases h
+    obtain ⟨hs', hw, rfl⟩ := Option.map_eq_some_iff.mp h
+    obtain ⟨e, he, hp⟩ := List.mem_filterMap.mp (unique?_eq_some_iff.mp hu).1
+    split_ifs at hp with hecv
+    simp only [unique?_preimages hcoll (hsub e he) hecv hp,
+      walk_mono hcoll hsub fuel fuel' cv' hs' (by omega) hw, Option.map_some]
 
+omit [DecidableEq Q] in
 /-- **Histories are determined.** Without a collision in the log, a history found in the log's
 first `k` entries is the history in the whole log. -/
 theorem history_determined (hcoll : ¬ HasCollision log) {k : ℕ} {cv : D} {hs : List (B × D)}

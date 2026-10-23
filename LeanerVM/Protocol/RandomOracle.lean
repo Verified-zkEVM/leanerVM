@@ -94,42 +94,17 @@ private theorem prEvent_uniformSample_fst_of_bijective {α β γ : Type} [Sample
   (SampleableType.prEvent_uniformSample_comp_of_bijective h fun z ↦ p z.1).trans
     (SampleableType.prEvent_uniformSample_fst p)
 
-/-- Two digests with the same eight words are equal. -/
-private theorem digest_ext {d d' : Digest} (h0 : d[0] = d'[0]) (h1 : d[1] = d'[1])
-    (h2 : d[2] = d'[2]) (h3 : d[3] = d'[3]) (h4 : d[4] = d'[4]) (h5 : d[5] = d'[5])
-    (h6 : d[6] = d'[6]) (h7 : d[7] = d'[7]) : d = d' := by
-  refine Vector.ext fun i hi ↦ ?_
-  match i, hi with
-  | 0, _ => exact h0
-  | 1, _ => exact h1
-  | 2, _ => exact h2
-  | 3, _ => exact h3
-  | 4, _ => exact h4
-  | 5, _ => exact h5
-  | 6, _ => exact h6
-  | 7, _ => exact h7
-  | _ + 8, hi => omega
-
 /-- A digest is its challenge and its last two words. -/
 private theorem challengeOf_bijective :
     Function.Bijective fun d : Digest ↦ (FsState.challengeOf d, (d[6], d[7])) := by
   rw [Fintype.bijective_iff_injective_and_card]
-  refine ⟨fun d d' h ↦ ?_, ?_⟩
-  · simp only [Prod.mk.injEq] at h
-    obtain ⟨hc, h6, h7⟩ := h
-    have hl : ∀ i, (FsState.challengeOf d).limb i = (FsState.challengeOf d').limb i :=
-      fun i ↦ congrArg (·.limb i) hc
-    have l0 := hl 0
-    have l1 := hl 1
-    have l2 := hl 2
+  refine ⟨Function.LeftInverse.injective (g := fun p : E × UInt32 × UInt32 ↦
+    #v[lowWord (p.1.limb 0), highWord (p.1.limb 0), lowWord (p.1.limb 1), highWord (p.1.limb 1),
+      lowWord (p.1.limb 2), highWord (p.1.limb 2), p.2.1, p.2.2]) fun d ↦ ?_, ?_⟩
+  · ext i hi
     simp only [FsState.challengeOf, limb_ofLimbs, Matrix.cons_val_zero, Matrix.cons_val_one,
-      Matrix.cons_val_two] at l0 l1 l2
-    exact digest_ext (by simpa [lowWord_ofWords] using congrArg lowWord l0)
-      (by simpa [highWord_ofWords] using congrArg highWord l0)
-      (by simpa [lowWord_ofWords] using congrArg lowWord l1)
-      (by simpa [highWord_ofWords] using congrArg highWord l1)
-      (by simpa [lowWord_ofWords] using congrArg lowWord l2)
-      (by simpa [highWord_ofWords] using congrArg highWord l2) h6 h7
+      Matrix.cons_val_two, Matrix.tail_cons, Matrix.head_cons, lowWord_ofWords, highWord_ofWords]
+    rcases i with _ | _ | _ | _ | _ | _ | _ | _ | i <;> first | rfl | omega
   · rw [card_digest, Fintype.card_prod, Fintype.card_prod, card_E, ← FinEnum.card_eq_fintypeCard]
     rfl
 
@@ -148,11 +123,16 @@ theorem prEvent_challengeOf_eq (e : E) :
 /-- The first 64-bit word of a digest. -/
 private def firstWord (d : Digest) : ℕ := d[0].toNat + 2 ^ 32 * d[1].toNat
 
-private theorem firstWord_lt (d : Digest) : firstWord d < 2 ^ 64 := by
-  have := d[0].toNat_lt
-  have := d[1].toNat_lt
-  unfold firstWord
-  omega
+/-- The 64-bit word of two 32-bit words is below `2^64` and determines them. -/
+private theorem wordPair_lt_and_inj (a b : UInt32) : a.toNat + 2 ^ 32 * b.toNat < 2 ^ 64 ∧
+    ∀ {a' b' : UInt32}, a.toNat + 2 ^ 32 * b.toNat = a'.toNat + 2 ^ 32 * b'.toNat →
+      a = a' ∧ b = b' := by
+  have := a.toNat_lt
+  have := b.toNat_lt
+  refine ⟨by omega, fun {a' b'} h ↦ ?_⟩
+  have := a'.toNat_lt
+  have := b'.toNat_lt
+  exact ⟨UInt32.toNat_inj.mp (by omega), UInt32.toNat_inj.mp (by omega)⟩
 
 /-- A digest is the low `bits` bits and the rest of its first 64-bit word, and its last six
 words. -/
@@ -161,23 +141,18 @@ private theorem lowBits_bijective {bits : ℕ} (hb : bits ≤ 64) :
       ((⟨firstWord d % 2 ^ bits, Nat.mod_lt _ (by positivity)⟩ : Fin (2 ^ bits)),
         ((⟨firstWord d / 2 ^ bits, by
             rw [Nat.div_lt_iff_lt_mul (by positivity), ← pow_add, Nat.sub_add_cancel hb]
-            exact firstWord_lt d⟩ : Fin (2 ^ (64 - bits))),
+            exact (wordPair_lt_and_inj _ _).1⟩ : Fin (2 ^ (64 - bits))),
           #v[d[2], d[3], d[4], d[5], d[6], d[7]])) := by
   rw [Fintype.bijective_iff_injective_and_card]
   refine ⟨fun d d' h ↦ ?_, ?_⟩
   · simp only [Prod.mk.injEq, Fin.mk.injEq, Vector.mk_eq, Array.mk.injEq, List.cons.injEq,
       and_true] at h
     obtain ⟨hlo, hhi, h2, h3, h4, h5, h6, h7⟩ := h
-    have hw : firstWord d = firstWord d' := by
-      rw [← Nat.div_add_mod (firstWord d) (2 ^ bits), ← Nat.div_add_mod (firstWord d') (2 ^ bits),
-        hlo, hhi]
-    have := d[0].toNat_lt
-    have := d[1].toNat_lt
-    have := d'[0].toNat_lt
-    have := d'[1].toNat_lt
-    unfold firstWord at hw
-    exact digest_ext (UInt32.toNat_inj.mp (by omega)) (UInt32.toNat_inj.mp (by omega))
-      h2 h3 h4 h5 h6 h7
+    have hw := Nat.div_add_mod (firstWord d) (2 ^ bits)
+    rw [hlo, hhi, Nat.div_add_mod] at hw
+    obtain ⟨h0, h1⟩ := (wordPair_lt_and_inj _ _).2 hw.symm
+    ext i hi
+    rcases i with _ | _ | _ | _ | _ | _ | _ | _ | i <;> first | assumption | omega
   · rw [card_digest, Fintype.card_prod, Fintype.card_prod, Fintype.card_fin, Fintype.card_fin,
       Fintype.card_congr (arrayVectorEquivFin UInt32 6), Fintype.card_fun, Fintype.card_fin,
       ← FinEnum.card_eq_fintypeCard, ← mul_assoc, ← pow_add, Nat.add_sub_cancel' hb]
@@ -187,14 +162,11 @@ private theorem lowBits_bijective {bits : ℕ} (hb : bits ≤ 64) :
 in its first 64-bit word with probability `2^-bits`. -/
 theorem prEvent_lowBitsZero {bits : ℕ} (hb : bits ≤ 64) :
     Pr{let d ← $ᵗ Digest}[FsState.lowBitsZero d bits = true] = (2 ^ bits : ℝ≥0∞)⁻¹ := by
-  have hpos : 0 < 2 ^ bits := by positivity
   have h := prEvent_uniformSample_fst_of_bijective (lowBits_bijective hb)
-    (fun y ↦ y = ⟨0, hpos⟩)
+    (· = ⟨0, by positivity⟩)
   simp only [Fin.mk.injEq] at h
-  have hev : ∀ d : Digest, (FsState.lowBitsZero d bits = true) = (firstWord d % 2 ^ bits = 0) :=
-    fun d ↦ by simp [FsState.lowBitsZero, firstWord]
-  simp only [hev]
-  rw [h, SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fin, Nat.cast_pow,
+  simp only [FsState.lowBitsZero, beq_iff_eq, ← firstWord.eq_def, h,
+    SampleableType.prEvent_uniformSample_eq_singleton, Fintype.card_fin, Nat.cast_pow,
     Nat.cast_ofNat]
 
 /-! ## The chain read off a log -/
@@ -208,10 +180,8 @@ def halves (q : List UInt8) : List Digest :=
 the grinding base, the grinding check. -/
 theorem mem_halves_stepBytes (cv : Digest) (x : E) (tag : K) :
     cv ∈ halves (FsState.stepBytes cv x tag) := by
-  have hlen : (FsState.stepBytes cv x tag).length = 64 := by
-    simp [FsState.stepBytes, FsState.block, length_digestBytes, length_kBytes]
-  simp only [halves, hlen, ↓reduceIte]
-  simp [FsState.stepBytes, digestOfBytes_append]
+  simp [halves, FsState.stepBytes, FsState.block, length_digestBytes, length_kBytes,
+    digestOfBytes_append]
 
 /-- The state an input observes from and the element it absorbs, if it is an observe step. -/
 def observed? (q : List UInt8) : Option (Digest × E) :=
@@ -238,32 +208,23 @@ def inPlay (roots : List Digest) (log : hashSpec.QueryLog) : List Digest :=
 /-- The digests in play only grow along a log. -/
 private theorem inPlay_mono (roots : List Digest) :
     ∀ l₁ l₂ : hashSpec.QueryLog, l₁ <+: l₂ → ∀ d ∈ inPlay roots l₁, d ∈ inPlay roots l₂ := by
-  intro l₁ l₂ hpre d hd
-  obtain ⟨t, rfl⟩ := hpre
-  simp only [inPlay, List.mem_append, List.mem_flatMap] at hd ⊢
-  rcases hd with (hd | ⟨e, he, hd⟩) | hd
-  · exact Or.inl (Or.inl hd)
-  · exact Or.inl (Or.inr ⟨e, Or.inl he, hd⟩)
-  · right
-    obtain ⟨e, he, hr⟩ := List.mem_filterMap.mp hd
-    refine List.mem_filterMap.mpr ⟨e, List.mem_append_left _ he, ?_⟩
-    rcases ho : observed? e.1 with _ | p
-    · simp [ho] at hr
-    · simp only [ho, Option.bind_some] at hr ⊢
-      rcases hx : observedInto l₁ p.1 with _ | x₁
-      · simp [hx] at hr
-      · have : observedInto (l₁ ++ t) p.1 = some x₁ := by
-          rw [observedInto, List.findSome?_append, ← observedInto, hx, Option.some_or]
-        rw [this]
-        simpa [hx] using hr
+  rintro l₁ _ ⟨t, rfl⟩ d hd
+  simp only [inPlay, List.flatMap_append, List.mem_append] at hd ⊢
+  rcases hd with (hd | hd) | hd
+  · exact .inl (.inl hd)
+  · exact .inl (.inr (.inl hd))
+  obtain ⟨e, he, hr⟩ := List.mem_filterMap.mp hd
+  simp only [Option.bind_eq_some_iff] at hr
+  obtain ⟨p, hp, x₁, hx, hr⟩ := hr
+  refine .inr (List.mem_filterMap.mpr ⟨e, List.mem_append_left _ he, ?_⟩)
+  simp only [observedInto, List.findSome?_append] at hx ⊢
+  simp [hp, hx, hr]
 
 /-- The halves of a logged input are in play once it is asked. -/
 private theorem halves_mem_inPlay (roots : List Digest) :
     ∀ (l : hashSpec.QueryLog) (e : (_ : List UInt8) × Digest), ∀ d ∈ halves e.1,
-      d ∈ inPlay roots (l ++ [e]) := by
-  intro l e d hd
-  simp only [inPlay, List.mem_append, List.mem_flatMap]
-  exact Or.inl (Or.inr ⟨e, Or.inr (List.mem_singleton_self e), hd⟩)
+      d ∈ inPlay roots (l ++ [e]) :=
+  fun _ e _ hd ↦ by simp [inPlay, hd]
 
 /-- The chain's history in a log: from the state `s` back to `seed`, at each state the unique
 logged query answered by it that parses as a step, each block with the state it leads to; `none`

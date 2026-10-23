@@ -74,51 +74,38 @@ end Decidable
 
 /-- A collision in part of a log is one in the log. -/
 theorem HasCollision.mono {log log' : List ((_ : Q) × D)} (h : HasCollision log')
-    (hsub : ∀ e ∈ log', e ∈ log) : HasCollision log := by
-  obtain ⟨e₁, h₁, e₂, h₂, hne, heq⟩ := h
-  exact ⟨e₁, hsub e₁ h₁, e₂, hsub e₂ h₂, hne, heq⟩
+    (hsub : ∀ e ∈ log', e ∈ log) : HasCollision log :=
+  let ⟨e₁, h₁, e₂, h₂, h⟩ := h
+  ⟨e₁, hsub e₁ h₁, e₂, hsub e₂ h₂, h⟩
+
+variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
 
 /-- The first occurrence of a logged input: a position before which the log never asks it, and
 at which it is answered as everywhere else in a consistent log. -/
-private theorem first_occurrence [DecidableEq Q] {log : List ((_ : Q) × D)}
-    (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
+private theorem first_occurrence (hcons : Consistent log) {e : (_ : Q) × D} (he : e ∈ log) :
     ∃ (p : ℕ) (hp : p < log.length), Fresh (log.take p) e.1 ∧ log[p] = e := by
-  have hex : ∃ x ∈ log, decide (x.1 = e.1) = true := ⟨e, he, by simp⟩
-  refine ⟨log.findIdx (fun x ↦ decide (x.1 = e.1)), List.findIdx_lt_length_of_exists hex,
-    ?_, ?_⟩
-  · intro x hx
-    obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
-    rw [List.length_take] at hj
-    rw [List.getElem_take]
-    have := List.not_of_lt_findIdx (Nat.lt_min.mp hj).1
-    simpa using this
-  · have hp := List.findIdx_getElem (w := List.findIdx_lt_length_of_exists hex)
-    simp only [decide_eq_true_eq] at hp
-    exact Sigma.ext hp (heq_of_eq (hcons _ (List.getElem_mem _) e he hp))
-
-variable [DecidableEq Q] {inPlay : List ((_ : Q) × D) → List D} {log : List ((_ : Q) × D)}
+  have hp := List.findIdx_lt_length_of_exists (p := fun x ↦ x.1 = e.1) ⟨e, he, by simp⟩
+  have hq := of_decide_eq_true (List.findIdx_getElem (w := hp))
+  refine ⟨_, hp, fun x hx ↦ ?_, Sigma.ext hq (heq_of_eq (hcons _ (List.getElem_mem _) e he hq))⟩
+  obtain ⟨j, hj, rfl⟩ := List.mem_take_iff_getElem.mp hx
+  simpa using List.not_of_lt_findIdx (Nat.lt_min.mp hj).1
 
 /-- In a consistent log with no hit, a logged query whose answer is in play after `n` entries is
 asked within them, when `inPlay` grows along the log. -/
 theorem mem_take_of_inPlay (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
     (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log)
     {n : ℕ} (hn : e.2 ∈ inPlay (log.take n)) : e ∈ log.take n := by
-  obtain ⟨p, hp, hfresh, he'⟩ := first_occurrence hcons he
+  obtain ⟨p, hp, hfresh, rfl⟩ := first_occurrence hcons he
   by_cases hpn : p < n
-  · rw [← he']
-    exact List.mem_iff_getElem.mpr ⟨p, by rw [List.length_take]; exact Nat.lt_min.mpr ⟨hpn, hp⟩,
-      by simp⟩
-  · have hpre : log.take n <+: log.take p := by
-      rw [show log.take n = (log.take p).take n by rw [List.take_take, Nat.min_eq_left (by omega)]]
-      exact List.take_prefix _ _
-    exact absurd ⟨⟨p, hp⟩, by simp only [Fin.getElem_fin, he']; exact hfresh,
-      by simp only [Fin.getElem_fin, he']; exact hmono _ _ hpre _ hn⟩ hhit
+  · exact List.mem_take_iff_getElem.mpr ⟨p, Nat.lt_min.mpr ⟨hpn, hp⟩, rfl⟩
+  · exact absurd ⟨⟨p, hp⟩, hfresh,
+      hmono _ _ (List.take_prefix_take_left (Nat.not_lt.mp hpn)) _ hn⟩ hhit
 
 /-- In a consistent log with no hit, no answer is in play before the first query. -/
 theorem answer_not_mem_inPlay_nil (hmono : ∀ l₁ l₂, l₁ <+: l₂ → ∀ d ∈ inPlay l₁, d ∈ inPlay l₂)
     (hcons : Consistent log) (hhit : ¬ HasHit inPlay log) {e : (_ : Q) × D} (he : e ∈ log) :
-    e.2 ∉ inPlay [] := fun h ↦ by
-  simpa using mem_take_of_inPlay hmono hcons hhit he (n := 0) (by simpa using h)
+    e.2 ∉ inPlay [] := fun h ↦
+  List.not_mem_nil (mem_take_of_inPlay hmono hcons hhit he (n := 0) h)
 
 end
 end LeanerVM.Protocol.QueryLog

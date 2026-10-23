@@ -292,25 +292,12 @@ theorem length_input (cv : Digest) (b : Block) : (input cv b).length = 64 := by
 
 /-- The input of a step parses back to the step. -/
 theorem parse?_input (cv : Digest) (b : Block) : parse? (input cv b) = some (cv, b) := by
-  have h0 : (input cv b).drop 32 = kBytes (b.elem.limb 0) ++ (kBytes (b.elem.limb 1) ++
-      (kBytes (b.elem.limb 2) ++ kBytes b.tag)) := by
-    simp only [input, FsState.stepBytes, FsState.block, List.append_assoc]
-    exact List.drop_left' (length_digestBytes cv)
-  have h8 : (input cv b).drop 40 = kBytes (b.elem.limb 1) ++ (kBytes (b.elem.limb 2) ++
-      kBytes b.tag) := by
-    rw [show 40 = 32 + 8 from rfl, ← List.drop_drop, h0, List.drop_left' (length_kBytes _)]
-  have h16 : (input cv b).drop 48 = kBytes (b.elem.limb 2) ++ kBytes b.tag := by
-    rw [show 48 = 40 + 8 from rfl, ← List.drop_drop, h8, List.drop_left' (length_kBytes _)]
-  have h24 : (input cv b).drop 56 = kBytes b.tag := by
-    rw [show 56 = 48 + 8 from rfl, ← List.drop_drop, h16, List.drop_left' (length_kBytes _)]
-  have hx : E.ofLimbs (kOfBytes ((input cv b).drop 32)) (kOfBytes ((input cv b).drop 40))
-      (kOfBytes ((input cv b).drop 48)) = b.elem := by
-    rw [h0, h8, h16, kOfBytes_append, kOfBytes_append, kOfBytes_append, ofLimbs_limb]
-  have ht : kOfBytes ((input cv b).drop 56) = b.tag := by
-    rw [h24, ← List.append_nil (kBytes b.tag), kOfBytes_append]
-  have hcv : digestOfBytes (input cv b) = cv := by
-    rw [input, FsState.stepBytes, digestOfBytes_append]
-  simp only [parse?, length_input, ↓reduceIte, hx, ht, hcv]
+  have ht : kOfBytes (kBytes b.tag) = b.tag := by simpa using kOfBytes_append b.tag []
+  have hk : ∀ a n, 8 ≤ n → (kBytes a).drop n = [] := fun _ _ h ↦ List.drop_eq_nil_of_le h
+  simp only [parse?, length_input, ↓reduceIte]
+  simp only [input, FsState.stepBytes, FsState.block, List.append_assoc, List.drop_append,
+    length_digestBytes, length_kBytes, List.drop_eq_nil_of_le, Nat.reduceLeDiff, Nat.reduceSub,
+    List.drop_zero, List.nil_append, hk, kOfBytes_append, ht, digestOfBytes_append, ofLimbs_limb]
   cases b with
   | observe x => simp [tag, elem]
   | squeeze => simp [tag, elem, squeezeTag_ne_observeTag]
