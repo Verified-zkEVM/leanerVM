@@ -6,7 +6,7 @@ public import Mathlib.LinearAlgebra.Lagrange
 /-!
 # LeanDA
 
-The erasure code commitment of `crates/lean_da` at leanVM `keccak-gkr` `3375f7a13`, specified in
+The erasure code commitment of `crates/lean_da` at leanVM `main` `4af2cdddd`, specified in
 `doc/leanvm/body/10-ethereum.tex` §sec:leanda, for a matrix of `r` rows.
 
 * **The code** (`encode.rs:12-36`). A row's payload is `2^14` symbols of `K`, the evaluations on
@@ -30,11 +30,11 @@ The erasure code commitment of `crates/lean_da` at leanVM `keccak-gkr` `3375f7a1
   The crate keeps the column tree for this (`DaWitness::column_tree`, `commit.rs:23-45`), whose
   level `⌈log₂ r⌉` holds the column roots (`column_roots`), but verifies no sample:
   `verifyCell` is the check this path determines.
-* **Membership** (`membership.rs:32-86`, `verifier/src/da.rs:15-85`). Challenges `z ∈ E^14` give
+* **Membership** (`membership.rs:33-83`, `verifier/src/da.rs:15-85`). Challenges `z ∈ E^14` give
   the dual codeword `L`, the tensor `⊗_j (1, z_j)` read as novel-basis coefficients and encoded,
   that is `L(x) = ∏_j (1 + z_j Ŵ_j(x))` on the domain (Annex D, eq. dual-product), with
   `Ŵ_j` the normalized subspace polynomial of the span of `e_0 … e_(j-1)`. A matrix passes when
-  every row is orthogonal to `L` (`check_membership`, `membership.rs:97-106`; the guest's
+  every row is orthogonal to `L` (`check_membership`, `membership.rs:94-103`; the guest's
   `da_verify`). The challenges are drawn from the root by a duplex sponge over Keccak-f[1600]
   seeded with the label's hash (`membership_challenges`); the security game models them as one
   random oracle on the root.
