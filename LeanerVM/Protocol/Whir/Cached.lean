@@ -162,12 +162,23 @@ abbrev BO : Fin 1 ⊕ Unit → Type := Component.besideOracles (OneW sh (Kap sh'
 /-- The oracles after the reading: the next level's word. -/
 abbrev KO : Fin 1 → Type := Component.keptOracles (BO sh sh' κ') keepNew
 
-/-- The commitment of the next level's word, encoded once from the folded table. -/
-def commitNextCached : Component.Cached (commitNext sh sh' κ')
-    (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) := by
+/-- The commitment of the next level's word read off a cache holding the folded table and its
+word. -/
+def commitNextPairCached : Component.Cached (commitNext sh sh' κ')
+    (fun p ↦ (foldTable p.2 p.1.1.r, wordFast sh'.ℓ κ' sh'.R sh'.t (foldTable p.2 p.1.1.r)))
+    (fun p ↦ foldTable p.2 p.1.1.r) := by
   unfold commitNext
-  exact Component.Cached.sendOracleBeside (msg := fun _ g ↦ wordFast sh'.ℓ κ' sh'.R sh'.t g)
-      (upd := fun _ g ↦ g) (fun _ ↦ wordFast_eq _ _ _ _ _) fun _ ↦ rfl
+  exact Component.Cached.sendOracleBeside (msg := fun _ c ↦ c.2) (upd := fun _ c ↦ c.1)
+    (fun _ ↦ wordFast_eq _ _ _ _ _) fun _ ↦ rfl
+
+/-- The commitment of the next level's word, encoded once from the folded table. The word is
+built beside the table when the step starts, as data, and the message reads it: a message
+computed from the table by a closure would be rebuilt at every read of a row, since compiled code
+expands a closure returning a word to take the position as one more argument. -/
+def commitNextCached : Component.Cached (commitNext sh sh' κ')
+    (fun p ↦ foldTable p.2 p.1.1.r) (fun p ↦ foldTable p.2 p.1.1.r) :=
+  (commitNextPairCached sh sh' κ').adaptIn (fun _ g ↦ (g, wordFast sh'.ℓ κ' sh'.R sh'.t g))
+    fun _ ↦ rfl
 
 /-- The out-of-domain point, the folded table carried through. -/
 def drawPointCached : Component.Cached (drawPoint sh sh' κ')

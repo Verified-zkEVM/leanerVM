@@ -104,7 +104,8 @@ def writeProof (ops : WireOps (ProveM m)) (F : FlockSpec) (prog : Program) (s : 
     (compiledCodec ops (leanIsaInstance F prog s) (Verify.nLanes prog s)
       (leanIsaChain prog s hs ρ hρ).ladder)
     (compiledProver (leanIsaInstance F prog s) (leanIsa_conditions F prog s)
-      (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder)
+      (leanIsaChain_height F prog s hs ρ hρ) (leanIsaChain prog s hs ρ hρ).ladder
+      ((leanIsaChain prog s hs ρ hρ).ladder.headPar (leanIsaChain prog s hs ρ hρ).pars).hb)
     (input, fun i ↦ i.elim0) q
   hintOpenings
 
