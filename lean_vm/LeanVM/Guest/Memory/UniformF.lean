@@ -60,7 +60,7 @@ def Kid.toF (k : Kid) : KidF := ⟨k.f, k.taken, k.args, fun _ => k.Lin, fun _ =
 
 theorem Kid.toF_at (k : Kid) (p : ℕ) : k.toF.at p = k := rfl
 
-variable {fs : String → ℕ} {cert : String → V → ℕ}
+variable {fs : String → ℕ} {cert : String → V → ℕ} {kfB : KidF → ℕ}
 
 theorem CompleteAtD.toF {k : ℕ} {f : String} {Lin : Layout} {args : List E}
     {Out : List E → Layout → Prop} (h : CompleteAtD fs cert k f Lin args Out) :
@@ -126,6 +126,118 @@ theorem kidsFromIn_of_kidsF (κ : ℕ) : ∀ (ks : List KidF),
     · obtain ⟨N, L, outs, fps, hlen, hge, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsF κ ks
         (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
       refine ⟨fs k.f + N, L, ([], []) :: outs, b :: fps, by simp [hlen], fun p hp => ?_,
+        ⟨fun h => absurd h ht, ho⟩, hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩,
+        ?_⟩
+      · rcases List.mem_cons.mp hp with rfl | hp
+        · exact le_rfl
+        · have := hge p hp; omega
+      intro rd σ cs R Dacc hc hlow hL hLin hRg
+      match cs, hc with
+      | c :: cs, ⟨hf, hct, _, hc⟩ =>
+        simp only [KidF.atAll, List.zipWith_cons_cons, Kid.lins, List.flatMap_cons] at hLin
+        refine ⟨fs k.f, N, fun _ => False, fun _ => False, rfl, fun _ h => h.elim, ?_, ?_⟩
+        · have ht' : k.taken = false := by simpa using ht
+          rw [hct]
+          simp only [KidF.at, ht', Bool.false_eq_true, ↓reduceIte]
+          rw [hf]
+          rfl
+        · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL (Main.memL_append.mp hLin).2 ?_)
+          · intro i hi
+            rcases hi with hi | ⟨h, _⟩ | hi
+            · exact Or.inl (Or.inl hi)
+            · exact absurd h ht
+            · exact Or.inr hi
+          · have := hRg.2
+            simp only [KidF.atAll, KidF.at, hct, ht, Bool.false_eq_true, false_and, or_false]
+              at this ⊢
+            exact this
+
+/-! ## Within bounds -/
+
+/-- **`CompleteAtF` within `B` words**, before the memory. -/
+def CompleteAtFB (fs : String → ℕ) (cert : String → V → ℕ) (k : ℕ) (f : String)
+    (Lin : ℕ → Layout) (args : List E) (Out : ℕ → List E → Layout → Prop) (B : ℕ) : Prop :=
+  ∀ fp, ∃ (n : ℕ) (Lown : Layout) (rets : List E) (Lout : Layout), n ≤ B ∧ Out fp rets Lout ∧
+    Within (Lout ++ Lown) fp n ∧ DisjL (Lout ++ Lown) ∧ ∀ rd, LowDef k rd →
+      MemL rd (Lout ++ Lown ++ Lin fp) →
+      RelAtIn coreProgram fs cert rd (RegionL (Lin fp)) (RegionL Lout) fp n f args rets
+
+theorem CompleteAtFB.toF {k : ℕ} {f : String} {Lin : ℕ → Layout} {args : List E}
+    {Out : ℕ → List E → Layout → Prop} {B : ℕ} (h : CompleteAtFB fs cert k f Lin args Out B) :
+    CompleteAtF fs cert k f Lin args Out := fun fp =>
+  let ⟨n, Lown, rets, Lout, _, ho, hw, hd, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, ho, hw, hd, hr⟩
+
+theorem CompleteAtB.toFB {k : ℕ} {f : String} {Lin : Layout} {args : List E}
+    {Out : List E → Layout → Prop} {B : ℕ} (h : CompleteAtB fs cert k f Lin args Out B) :
+    CompleteAtFB fs cert k f (fun _ => Lin) args (fun _ => Out) B := fun fp =>
+  let ⟨n, Lown, rets, Lout, ho, hw, hd, hn, hr⟩ := h fp
+  ⟨n, Lown, rets, Lout, hn, ho, hw, hd, hr⟩
+
+/-- The callees' words: an entered call's bound, another's frame. -/
+def kidsFBound (fs : String → ℕ) (kfB : KidF → ℕ) : List KidF → ℕ
+  | k :: ks => (if k.taken then kfB k else fs k.f) + kidsFBound fs kfB ks
+  | [] => 0
+
+/-- **`kidsFromIn_of_kidsF` within the callees' bounds** (`kfB k` for an entered call, its frame
+for another).
+
+**The callees at their running offsets, their caller's words at their frame pointers**: from
+`b`, one total `N`, one layout, one result and one frame pointer per callee serve every memory
+holding the layouts and the words the callees read where they are placed. -/
+theorem kidsFromIn_of_kidsFB (κ : ℕ) : ∀ (ks : List KidF),
+    (∀ k ∈ ks, k.taken = true → CompleteAtFB fs cert κ k.f k.Lin k.args k.Out (kfB k)) → ∀ b : ℕ,
+    ∃ (N : ℕ) (L : Layout) (outs : List (List E × Layout)) (fps : List ℕ),
+      N ≤ kidsFBound fs kfB ks ∧ fps.length = ks.length ∧ (∀ p ∈ fps, b ≤ p) ∧
+      OutsOk (KidF.atAll ks fps) outs ∧ Within L b N ∧ DisjL L ∧
+      OutsIn (KidF.atAll ks fps) outs L ∧
+      ∀ (rd : Reader) (σ : Val) (cs : List Call) (R Dacc : ℕ → Prop),
+        CallsMatch σ cs (KidF.atAll ks fps) outs → LowDef κ rd → MemL rd L →
+        MemL rd (Kid.lins (KidF.atAll ks fps)) → RegionsOk R Dacc (KidF.atAll ks fps) outs →
+        KidsFromIn coreProgram fs cert rd σ R Dacc cs b N
+          (fun i => Dacc i ∨ outRegion (KidF.atAll ks fps) outs i)
+  | [], _, b => ⟨0, [], [], [], le_rfl, rfl, fun _ h => by simp at h, trivial, fun _ h => by simp at h,
+      disj_nil, trivial, fun rd σ cs R Dacc hc _ _ _ _ => by
+      match cs, hc with
+      | [], _ => exact ⟨rfl, fun i hi => hi.elim id fun h => h.elim⟩⟩
+  | k :: ks, hok, b => by
+    by_cases ht : k.taken = true
+    · obtain ⟨n, Lown, rets, Lout, hnB, hout, hw, hd, hrel⟩ := hok k (by simp) ht b
+      obtain ⟨N, L, outs, fps, hNB, hlen, hge, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsFB κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + n)
+      refine ⟨n + N, Lout ++ Lown ++ L, (rets, Lout) :: outs, b :: fps,
+        by simp only [kidsFBound, ht, ↓reduceIte]; omega, by simp [hlen],
+        fun p hp => ?_, ⟨fun _ => hout, ho⟩, ?_, disj_append hd hD hw hW le_rfl,
+        ⟨fun _ q hq => by simp [hq], hI.mono fun q hq => by simp [hq]⟩, ?_⟩
+      · rcases List.mem_cons.mp hp with rfl | hp
+        · exact le_rfl
+        · have := hge p hp; omega
+      · rw [within_append]
+        exact ⟨hw.mono le_rfl (by omega), hW.mono (by omega) (by omega)⟩
+      · intro rd σ cs R Dacc hc hlow hL hLin hRg
+        match cs, hc with
+        | c :: cs, ⟨hf, hct, hcar, hc⟩ =>
+          obtain ⟨hL1, hL2⟩ := Main.memL_append.mp hL
+          simp only [KidF.atAll, List.zipWith_cons_cons, Kid.lins, List.flatMap_cons] at hLin
+          obtain ⟨hLk, hLs⟩ := Main.memL_append.mp hLin
+          obtain ⟨hR1, hR2⟩ := hRg
+          obtain ⟨ha, hr⟩ := hcar ht
+          refine ⟨n, N, RegionL (k.Lin b), RegionL Lout, rfl, hR1 ht, ?_, ?_⟩
+          · rw [hct]
+            simp only [KidF.at, ht, ↓reduceIte]
+            rw [hf, ha, hr]
+            exact hrel rd hlow (Main.memL_append.mpr ⟨hL1, hLk⟩)
+          · refine kidsFromIn_dend cs _ _ _ ?_ (hK rd σ cs R _ hc hlow hL2 hLs ?_)
+            · intro i hi
+              rcases hi with hi | ⟨_, hi⟩ | hi
+              · exact Or.inl (Or.inl hi)
+              · exact Or.inl (Or.inr ⟨by rw [hct]; exact ht, hi⟩)
+              · exact Or.inr hi
+            · simpa [hct, KidF.atAll] using hR2
+    · obtain ⟨N, L, outs, fps, hNB, hlen, hge, ho, hW, hD, hI, hK⟩ := kidsFromIn_of_kidsFB κ ks
+        (fun k' hk' => hok k' (by simp [hk'])) (b + fs k.f)
+      refine ⟨fs k.f + N, L, ([], []) :: outs, b :: fps,
+        by simp only [kidsFBound, ht, Bool.false_eq_true, ↓reduceIte]; omega, by simp [hlen], fun p hp => ?_,
         ⟨fun h => absurd h ht, ho⟩, hW.mono (by omega) (by omega), hD, ⟨fun h => absurd h ht, hI⟩,
         ?_⟩
       · rcases List.mem_cons.mp hp with rfl | hp
