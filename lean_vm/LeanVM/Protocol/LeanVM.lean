@@ -16,7 +16,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.Statement
 The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor and
 `Statement.lean`), which imports nothing else from the repository. Knowledge soundness,
 `knowledgeSoundness_holds`, and its numbers are proved in `LeanVM.Protocol.LeanVMSound`; this page
-proves completeness, `completeness_holds`, with an explicit honest prover.
+proves completeness, `completeness_holds`, with an explicit honest prover, and the soundness bound
+in bits: at most `(Q + 2^14) · 2^-127` for `Q ≤ 2^120` queries (`knowledgeSoundness_bits`).
 
 **Completeness** (`completeness`): for a valid execution whose committed size
 (`Trace.committedSize`: the memory, the bytecode and a table per opcode, each at its height) is at
@@ -82,6 +83,39 @@ theorem completeness {prog : Program} {input : PublicInput} {t : Trace prog}
 below `2^-128`. -/
 theorem completenessError_le : completenessError (2 ^ 25) ≤ (2 : ℝ≥0∞)⁻¹ ^ 128 :=
   Complete.statement_completenessError_le
+
+/-! ## Knowledge soundness in bits -/
+
+/-- **The soundness bound in bits**: for `Q ≤ 2^120`, the soundness error is at most
+`(Q + 2^14) · 2^-127`. With `N = Q + 12008`, `7N ≤ 2^128`, so the error is at most
+`(2N · 2^128 + 12008) / 2^256`, and `2N + 1 ≤ 2(Q + 2^14)`. -/
+theorem soundnessError_le_bits {Q : ℕ} (hQ : Q ≤ 2 ^ 120) :
+    soundnessError Q ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 := by
+  have h2 : ((2 ^ 256 : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ 256 := by rw [Nat.cast_pow, Nat.cast_ofNat]
+  have hV : (verifierQueries : ℝ≥0∞) = ((12008 : ℕ) : ℝ≥0∞) := rfl
+  have hQ' : (Q + 2 ^ 14 : ℝ≥0∞) = ((Q + 2 ^ 14 : ℕ) : ℝ≥0∞) := by norm_cast
+  rw [soundnessError, hV, show verifierQueries = 12008 from rfl,
+    Sound.inv_pow_eq_div 128 256 (by norm_num), ← h2,
+    ENNReal.div_add_div_same, ← mul_div_assoc, ← Nat.cast_add, ← Nat.cast_mul,
+    ENNReal.div_add_div_same, ← Nat.cast_add, Sound.inv_pow_eq_div 127 256 (by norm_num), hQ',
+    ← mul_div_assoc, ← Nat.cast_mul]
+  refine ENNReal.div_le_div_right (Nat.cast_le.2 ?_) _
+  rw [show 256 - 128 = 128 from rfl, show 256 - 127 = 129 from rfl]
+  have h7 : 7 * (Q + 12008) ≤ 2 ^ 128 :=
+    calc 7 * (Q + 12008) ≤ 7 * (2 ^ 120 + 12008) := by gcongr
+      _ ≤ 2 ^ 128 := by norm_num
+  calc (Q + 12008) * (2 ^ 128 + 7 * (Q + 12008)) + 12008
+      ≤ (Q + 12008) * (2 ^ 128 + 2 ^ 128) + 12008 := by gcongr
+    _ = Q * 2 ^ 129 + (12008 * 2 ^ 129 + 12008) := by ring
+    _ ≤ Q * 2 ^ 129 + 2 ^ 14 * 2 ^ 129 := Nat.add_le_add_left (by norm_num) _
+    _ = (Q + 2 ^ 14) * 2 ^ 129 := by ring
+
+/-- **Knowledge soundness in bits**: an adversary of at most `Q ≤ 2^120` queries breaks
+soundness, for the extractor `extractor`, with probability at most `(Q + 2^14) · 2^-127`. -/
+theorem knowledgeSoundness_bits : ∀ (A : Adversary) (Q : ℕ), A.IsTotalQueryBound Q →
+    Q ≤ 2 ^ 120 →
+      Pr{let z ← experiment A}[Breaks extractor z] ≤ (Q + 2 ^ 14 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ 127 :=
+  fun _ _ hA hQ ↦ (knowledgeSoundness hA).trans (soundnessError_le_bits hQ)
 
 /-! ## The statement of `LeanVM/Spec/Statement.lean` -/
 

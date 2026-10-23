@@ -8,6 +8,7 @@
 module
 
 public import LeanVM.Guest.B1.Sig.WotsGroupComplete
+public import LeanVM.Guest.B1.Sig.CwKeep
 public import LeanVM.Guest.B1.Sig.Interface
 public import LeanVM.Guest.B1.Sig.Shifts
 
@@ -17,7 +18,7 @@ public import LeanVM.Guest.B1.Sig.Shifts
 * `hintKeep_complete`: a hint completes keeping the valuation;
 * `rangeS_complete`: a range check of `g^k`, `k < K ≤ n`, completes on a memory of `n` words;
 * `holdsArms_of`, `match_complete`: a dispatch completes by its arm;
-* `groupT_complete`: a group of digits `k`.
+* `groupT_complete`: a group of digits `k`, its arm's starts kept.
 -/
 
 namespace LeanVM.Guest.B1.Sig
@@ -111,7 +112,8 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
         (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
     Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
-      (fun σ' => σ' (.n b) = ofK (gpow k) ∧ ∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) := by
+      (fun σ' => σ' (.n b) = ofK (gpow k) ∧ (∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) ∧
+        ∀ t < n, σ' (grpPos W first n fold prodIn encIn b k t) = σ (grpPos W first n fold prodIn encIn b k t)) := by
   have h4n : 4 ^ n ≤ 64 := by
     calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
       _ = 64 := by norm_num
@@ -167,7 +169,12 @@ theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepSh
       rw [e] at this ⊢
       rw [he2.apply (Or.inr hj)]
       exact this)
-  exact ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb2, hp'.2⟩, hh'⟩
+  refine ⟨σ', he', ⟨by rw [he'.apply (Or.inl (by omega))]; exact hb2, hp'.2.1, fun t ht => ?_⟩, hh'⟩
+  obtain ⟨j, ej, hj, -⟩ := grpPos_spec W first n fold prodIn encIn b k t hk ht
+  rw [hp'.1, ej, fwd_hint_keep _ σ2 hp'.2.2
+    (armStart_mem W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b) k
+      (armB W first n fold prodIn encIn b k) ht) (.n j) (by rw [← ej]; exact List.mem_singleton_self _),
+    he2.apply (Or.inr hj)]
 
 end
 end LeanVM.Guest.B1.Sig

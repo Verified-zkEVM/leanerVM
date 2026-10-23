@@ -10,7 +10,7 @@ module
 public import LeanVM.Guest.B1.Whir.Run
 
 /-!
-# A level's head (V:1732-1764)
+# A level's head (V:1791-1823)
 
 `levelHead logN index level rest s` is a level of `whirLevelsOpen` up to its glued state: the
 fold rounds, the claims (`levelMid`), the proof of work, the query positions, the batching
@@ -26,7 +26,7 @@ open LeanVM.Protocol LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
 
 @[expose] public section
 
-/-- A level's queries and glue after its proof of work (V:1753-1764). -/
+/-- A level's queries and glue after its proof of work (V:1812-1823). -/
 def levelRest (messageLog index : ℕ) (level : Whir.Level) (levelFolds : List E)
     (s : WhirState) (pending : List (E × List E × (List E → E))) : Prog WhirState := do
   let queries ← sampleQueries (messageLog + level.logInvRate) level.queries

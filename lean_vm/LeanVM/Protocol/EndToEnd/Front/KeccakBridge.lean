@@ -20,8 +20,8 @@ public import LeanVM.Protocol.Keccak.Gkr
 /-!
 # The Keccak phase on doom
 
-Step 6 of `verify_execution` (`keccakPhase`, `python-verifier/verifier.py:1492-1499` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`): the table's 25 claims on the `KECCAK` output lanes,
+Step 6 of `verify_execution` (`keccakPhase`, `python-verifier/verifier.py:1505-1509` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): the table's 25 claims on the `KECCAK` output lanes,
 all at one point `inst`, leave the batch and are the Keccak reduction's claim on the permutation's
 output; the reduction (`verifyKeccak`) adds its claims on `q_keccak` to the batch and leaves a point
 and 64 bit-slice claims of `q_keccak` for ring switching.

@@ -23,7 +23,7 @@ before it output the proof, with the digests the oracle returned), and nothing e
 oracle, nor sees the verifier's queries, nor runs the adversary again. It does four things.
 
 1. **The announced sizes and the stack's root** (`afterRoot`). It reads them off the proof as the
-   verifier's first two steps do, `verify_execution` steps 1 and 2 (`verifier.py:1458-1469`):
+   verifier's first two steps do, `verify_execution` steps 1 and 2 (`verifier.py:1469-1480`):
    the announced sizes and the layout they build (`readSizes`), then the stack's Merkle root and
    the shape level 0 of the opening commits it at (`commitStack`). These steps read scalars and
    absorb them into the Fiat-Shamir sponge; what they read does not depend on the sponge, so the
@@ -32,13 +32,13 @@ oracle, nor sees the verifier's queries, nor runs the adversary again. It does f
 2. **The committed word** (`commitment`, `committedWord`). It inverts the Merkle tree under the
    root through the adversary's answers: leaf `v` of the word is the leaf of an opening at
    position `v` that climbs to the root through the adversary's queries (`openOne`, the check of
-   `Transcript.merkle`, `verifier.py:434-446`), if there is one, and the zero row otherwise.
+   `Transcript.merkle`, `verifier.py:433-445`), if there is one, and the zero row otherwise.
    Without a collision among the answers, at most one leaf climbs to the root at a position.
 3. **The candidates** (`Candidates`). Level 0 commits the stack (the committed columns, stacked,
    `2^μ` words of `K`) in `2^6` lanes: lane `u` is the stack's block `u`, its cells
    `j + 2^(μ−6)·u` for `j < 2^(μ−6)`, read as coefficients in the novel polynomial basis `X_j`,
    and column `v` of the word is the leaf holding the values of the `64` lanes at the domain point
-   `x_v = K.ofBits v`, in reverse order (`verifier.py:1149-1150`, `tuple(reversed(row))`): the
+   `x_v = K.ofBits v`, in reverse order (`verifier.py:1165-1166`, `tuple(reversed(row))`): the
    binary Reed–Solomon code of Annex B, §B.2 (`doc/leanvm/body/b-polynomial-commitment-scheme.tex`)
    and the encoder of Annex D, `def:enc` (`doc/leanvm/body/d-novel-basis.tex`). The candidates
    are the stacks whose encoding (`encode`) agrees with the word on at least the Johnson
@@ -50,7 +50,7 @@ oracle, nor sees the verifier's queries, nor runs the adversary again. It does f
    information-theoretic, not an algorithm with a running time.
 
 Every citation `verifier.py:N` is a line of `python-verifier/verifier.py` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`, the commit `Verifier.lean` transcribes; the Annexes
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, the commit `Verifier.lean` transcribes; the Annexes
 are cited at leanVM `127510d14c98ade4e8a97646c44fa7f1ff5e752d`.
 -/
 
@@ -63,7 +63,7 @@ open LeanVM.Protocol.Verifier LeanVM.Parameters.Whir
 
 /-! ## 1. The announced sizes and the stack's root -/
 
-/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1458-1469`): read the announced sizes, then
+/-- `verify_execution`'s steps 1 and 2 (`verifier.py:1469-1480`): read the announced sizes, then
 the stack's root; the layout and the WHIR rate exponent. -/
 def announceSizesAndRoot (bytecode : List K) : Prog (Layout × ℕ) := do
   let (layout, logInverseRate) ← readSizes bytecode
@@ -159,7 +159,7 @@ noncomputable def johnsonThreshold (μ R : ℕ) : ℕ :=
 /-! ## 4. The execution -/
 
 /-- **The memory image of a stack**: `2^logMemory` words, word `i` the three limbs at cell `i` of
-the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`verifier.py:682`), each at its placement's
+the memory columns `MEMORY_0`, `MEMORY_1`, `MEMORY_2` (`verifier.py:687`), each at its placement's
 offset on the stack. -/
 def memoryImage (layout : Layout) {μ : ℕ} (q : Vector K (2 ^ μ)) : MemImage layout.logMemory :=
   fun i ↦

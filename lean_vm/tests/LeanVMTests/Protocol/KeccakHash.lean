@@ -9,7 +9,7 @@ import LeanVM.Spec.Fast.Keccak
 sit on both sides of the 136-byte block boundary and cover the one-byte padding `0x81` (135
 bytes), a padding block of its own (136, 272) and the multi-block path. The digests are the
 reference `keccak_hash` of `python-verifier/verifier.py` (leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`, `verifier.py:191-207`), whose permutation is checked
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, `verifier.py:191-209`), whose permutation is checked
 independently: run with FIPS 202's padding `0x06` it gives `hashlib.sha3_256` on the same ramps
 (script `vectors.py` of the port). Then `keccakF` on the zero state (Keccak-f[1600]'s
 well-known `f1258f79…`) and on the lanes `0 … 24`; `hash_pair` and `hash_words` on known

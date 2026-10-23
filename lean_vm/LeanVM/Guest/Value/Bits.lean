@@ -337,7 +337,7 @@ theorem lt_log2Ceil_iff {W L : ℕ} : L < log2Ceil W ↔ 2 ^ L < W := by
   rw [← not_le, log2Ceil_le_iff, not_le]
 
 /-- **`log2Ceil` certified**: `L ≥ floor` with `W ≤ 2^L`, and `2^(L-1) < W` unless `L` is the
-floor, is `max floor (log2Ceil W)` (`verifier.py:247-248`, floored). -/
+floor, is `max floor (log2Ceil W)` (`verifier.py:249-250`, floored). -/
 theorem log2Ceil_certified {W L floor : ℕ} (hfl : floor ≤ L) (hW : W ≤ 2 ^ L)
     (hmin : L ≠ floor → 2 ^ (L - 1) < W) : L = max floor (log2Ceil W) := by
   have hle := log2Ceil_le_iff.mpr hW

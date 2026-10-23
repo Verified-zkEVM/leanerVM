@@ -2,6 +2,7 @@ import LeanDa.Commitment
 import LeanDa.Dual
 import LeanDa.Security
 import LeanDa.RpmSecurity
+import LeanDa.RpmWagner
 import PqDas
 
 /-!
@@ -19,7 +20,9 @@ In the random-permutation model (`LeanDa.RpmSecurity`: `H` Keccak-256 over a ran
 `π`, the challenges the deployed duplex over `π`, the adversary querying `π` and `π⁻¹`), position
 binding holds with the bound `Q² / 2^256 + Q² / 2^508` for `Q` permutation calls
 (`leanDa_positionBinding_rpm`), and code binding moves to the two-oracle random-oracle model
-within `Q² / 2^508` (`leanDa_codeBinding_rpm`).
+within `Q² / 2^508` (`leanDa_codeBinding_rpm`), where the duplex lemma (`LeanRpm.Duplex`) and
+sampling `H` in advance give Wagner's bound, averaged over `H`, plus `2 (Q + 15)² / 2^576`
+(`leanDa_codeBinding_rpm_bound`).
 -/
 
 open PqDas PqDas.CommittedSoundness OracleComp OracleSpec ENNReal
@@ -78,6 +81,71 @@ theorem leanDa_codeBinding [NeZero r]
   · exact pow_le_pow_left₀ zero_le (tsub_le_tsub_left (add_le_add le_rfl h₁) _) 2
   · exact mul_le_mul' le_rfl (add_le_add (add_le_add h₂ le_rfl) le_rfl)
 
+section CodeBindingRpm
+
+open LeanRpm
+
+variable (r : ℕ) {Crs Proof : Type} {rel : Unit × Digest × Challenges → (Fin (r * 128) → Cell) → Bool}
+  (ps : Nark (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof rel)
+
+/-- **LeanDA is code binding in the random-permutation model.** For every argument `ps` (any
+verifier, for any relation; an oracle-free parameter, as in Wagner's model), every extractor
+`ext`, and every adversary whose game, verifications included, makes at most `Q` permutation
+calls (`permCalls2`),
+
+`(Pr[code-bind] − (Q²/2^508 + 2(Q+15)²/2^576 + ε_ks + ε₁))² ≤ (Q + 2)(ε₂ + 14/2^192 + 2^-2688)`,
+
+where, for a uniformly random table `h` of `H` on the strings of at most `2048` bytes (`Hh h`
+its hash) and Wagner's adversary `advH h` built from the RPM adversary, `ε_ks` is the success of
+Wagner's reduction against the knowledge soundness of `ps` for the relation with the hash `Hh h`
+(`ksExpH`), and `ε₁`, `ε₂` those of his two reductions finding a collision of `Hh h`
+(`wpbCollExpH`, `forkCollExpH`).
+
+`Q²/2^508` is the two-oracle transfer, `2(Q+15)²/2^576` the duplex lemma (the challenges' sponge
+is a random oracle of the roots unless two of at most `Q + 15` states share their 576-bit
+capacity), and the rest is Wagner's bound for each `h`, averaged over `h`. -/
+theorem leanDa_codeBinding_rpm_bound [NeZero r]
+    (ext : Nark.Extractor (Unit × Digest × Challenges) (Fin (r * 128) → Cell) Crs Proof)
+    (A : CodeBindingAdvRpm r Crs Proof) (Q : ℕ)
+    (hQ : IsWeightBound (codeBindingGame r ps A) permCalls2 Q) :
+    (Pr{let b ← codeBindingExpRpm r ps A}[b = true] -
+        ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 +
+          (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true] +
+            Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]))) ^ 2 ≤
+      ((Q : ℝ≥0∞) + 2) *
+        (Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true] +
+          14 / 2 ^ 192 + (2 ^ 2688)⁻¹) := by
+  set εks := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= ksExpH r ps ext A}[b = true]
+  set ε₁ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= wpbCollExpH r ps ext A}[b = true]
+  set ε₂ := Pr{let b ← ($ᵗ HTab : ProbComp HTab) >>= forkCollExpH r ps ext A Q}[b = true]
+  set cb : ProbComp Bool := ($ᵗ HTab : ProbComp HTab) >>= fun h ↦ ps.setup >>= fun crs ↦
+    (simulateQ (Digest →ₒ Challenges).romImpl (gameW r ps A h crs)).run' ∅
+  -- Wagner's bound, averaged over `H`
+  have hW : (prT cb - (εks + ε₁)) ^ 2 ≤ ((Q : ℝ≥0∞) + 2) * (ε₂ + (14 / 2 ^ 192 + (2 ^ 2688)⁻¹)) := by
+    refine sq_tsub_avg_le _ _ _ _ _ _ _ fun h ↦ ?_
+    rw [prT_gameW r ps A h, ← add_assoc]
+    exact leanDa_codeBinding r (Hh h) (argH r ps (Hh h)) ext (advH r ps A h)
+      (hashQueryBound_advH r ps A Q hQ h)
+  -- the RPM game against the simulated world
+  have hG := codeBindingExpRpm_le_G r ps A Q hQ
+  rw [show Pr{let b ← codeBindingExpG r ps A}[b = true] = prT cb from prT_codeBindingExpG r ps A]
+    at hG
+  have hdup : ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 * ((Q + 14 + 1 : ℕ) : ℝ≥0∞) * (2 ^ 576 : ℝ≥0∞)⁻¹) =
+      2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576 := by
+    rw [div_eq_mul_inv]; ring
+  rw [hdup, add_assoc] at hG
+  rw [← add_assoc ε₂] at hW
+  refine le_trans (pow_le_pow_left₀ zero_le ?_ 2) hW
+  rw [tsub_le_iff_right]
+  calc Pr{let b ← codeBindingExpRpm r ps A}[b = true]
+      ≤ prT cb + ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := hG
+    _ ≤ (prT cb - (εks + ε₁) + (εks + ε₁)) +
+          ((Q ^ 2 : ℝ≥0∞) / 2 ^ 508 + 2 * ((Q + 15 : ℕ) : ℝ≥0∞) ^ 2 / 2 ^ 576) := by
+        gcongr; exact le_tsub_add
+    _ = _ := by ring
+
+end CodeBindingRpm
+
 end LeanDa
 
 /-! The build fails if a front-page theorem's axiom footprint ever grows beyond Lean's three
@@ -118,6 +186,10 @@ standard axioms. -/
 /-- info: 'LeanDa.leanDa_codeBinding_rpm' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in
 #print axioms LeanDa.leanDa_codeBinding_rpm
+
+/-- info: 'LeanDa.leanDa_codeBinding_rpm_bound' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs (whitespace := lax) in
+#print axioms LeanDa.leanDa_codeBinding_rpm_bound
 
 /-- info: 'LeanDa.membershipChallengesM_id' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs (whitespace := lax) in

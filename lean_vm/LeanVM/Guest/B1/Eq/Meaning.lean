@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Common.Basic
 /-!
 # Multilinear primitives: meanings (TRIAGE G #25-29)
 
-For each function of the guest (`lean_ethereum.py` at leanVM `3375f7a13`, G below) its meaning
+For each function of the guest (`lean_ethereum.py` at leanVM `4af2cdddd`, G below) its meaning
 on its argument and return words, and `…_Spec`, the statement that its core IR relation is that
 meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtree_frame`
 (G:810-867) have no core function of their own; their expansions are templates of
@@ -23,7 +23,7 @@ meaning (proved as `…_holds`). The inline helpers `eq_weight`, `eqtree`, `eqtr
 | `eq_prefix_run__L{n}` | 870-876 | `chain[j] = seed · Π_{k<j} (a_k + b1_k)`, `j ≤ n` |
 | `eq_prefix_chain` | 860-867 | `count = g^n`, `n < 41`, and `eq_prefix_run__L{n}` |
 | `plus_one_run__L{n}` | 879-882 | `out[k] = 1 + src[k]`, `k < n` |
-| `rs_eq_run` | 895-939 | the rows of `ringWeight`'s products (V:2109) |
+| `rs_eq_run` | 895-939 | the rows of `ringWeight`'s products (V:2171) |
 | `fold_final_msg__L{n}` | 942-960 | `multilinearEval` (V:653) |
 
 With `b1_k = 1 + b_k`, `a_k + b1_k` is the factor `1 + a_k + b_k` of `eqEval` (V:669).
@@ -115,7 +115,7 @@ def plus_one_run_Spec : Prop :=
 /-! ## `rs_eq_run` (TRIAGE #28) -/
 
 /-- Row entry `k` after the coordinates `i < j`: `c · Π_{i<j} (z_i^(2^k) + p_i)`, left to right
-(`p_i = 1 + r'_i`, the factor `1 + r_i^(2^k) + r'_i` of `ringWeight`, V:2109). -/
+(`p_i = 1 + r'_i`, the factor `1 + r_i^(2^k) + r'_i` of `ringWeight`, V:2171). -/
 def ringRow (c : E) (zs ps : List E) (k : ℕ) : E :=
   (List.zipWith (fun z p ↦ z ^ 2 ^ k + p) zs ps).foldl (· * ·) c
 

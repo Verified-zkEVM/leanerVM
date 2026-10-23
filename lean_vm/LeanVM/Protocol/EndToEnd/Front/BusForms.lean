@@ -14,8 +14,8 @@ public import LeanVM.Protocol.Verifier
 /-!
 # Forms as values
 
-`Form.evaluate f column` (`python-verifier/verifier.py:521-523` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`) is the sum over the form's terms of the
+`Form.evaluate f column` (`python-verifier/verifier.py:520-522` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) is the sum over the form's terms of the
 coefficient times the product of the monomial's columns. It is linear:
 
 * `Form.evaluate_addScaled`: `evaluate (f.add_scaled(g, w)) = evaluate f + w · evaluate g`, whatever

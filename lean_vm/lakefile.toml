@@ -10,6 +10,12 @@ autoImplicit = false
 relaxedAutoImplicit = false
 pp.unicode.fun = true
 
+# The random-permutation model and the ROM-to-RPM transfer for Keccak-256, on which
+# Spec/Rpm.lean states knowledge soundness and completeness in the random-permutation model.
+[[require]]
+name = "lean-rpm"
+path = "../lean_rpm"
+
 # The signature schemes whose security leanVM's formal/lean_xmss and formal/lean_sphincs prove,
 # and LeanDA, whose security formal/lean_da proves: Spec/Node.lean and Spec/Da.lean import their
 # Scheme modules, built here with this package's toolchain and dependencies, so they come first:

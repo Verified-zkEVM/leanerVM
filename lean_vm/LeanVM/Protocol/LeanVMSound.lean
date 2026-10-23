@@ -18,7 +18,7 @@ The statements are in `LeanVM/Spec/` (the ISA, the verifier, the extractor and
 `knowledgeSoundness_holds`, and gives the numbers; `LeanVM.Protocol.LeanVM` proves the second,
 completeness.
 
-The verifier is leanVM's at `3375f7a137c50b803f3416f6466b5d4e0719708a` (`verifier.py`), its
+The verifier is leanVM's at `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` (`verifier.py`), its
 Fiat-Shamir sponge a duplex sponge over Keccak-f[1600] and its Merkle hash Keccak-256. Both are
 modelled as independent random oracles (`HashSpec = (Bytes →ₒ Digest) + (KState →ₒ KState)`).
 

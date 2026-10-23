@@ -25,9 +25,9 @@ and it is data: what the adaptor's theorems say of it is in `LeanIsa/Sound.lean`
 **Sizes.** `Sizes` is what the prover announces: the memory log-size and the six opcode tables'
 row counts (`crates/verifier/src/lib.rs`); the bytecode's log-size is the program's. A table's
 log-height is `max(log2_ceil(rows), floor)`, the floor `0` but for `KECCAK`'s `9`
-(`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:954`; `KECCAK_MIN_STEPS_LOG`).
+(`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:970`; `KECCAK_MIN_STEPS_LOG`).
 `Sizes.Admissible prog s` is the part of the verifier's checks on sizes (`build_layout`,
-`verifier.py:957-997`): the memory window `[16, 32]`, the row cap `2^32`, and the stacked size
+`verifier.py:973-1013`): the memory window `[16, 32]`, the row cap `2^32`, and the stacked size
 `leanIsaμ prog s ≤ 28` (`crates/leanvm_core/src/pcs.rs:49-51`; its floor `15` holds by
 construction). `validRate` is the WHIR rate check, read off the same announcement and used by
 the commitment, not by the instance.
@@ -35,7 +35,7 @@ the commitment, not by the instance.
 **The tables.** Nine, in the order of the Rust's global columns
 (`crates/leanvm_core/src/cpu/layout.rs:13-27`): the memory columns `MEM_LO, MEM_HI, MEM_TOP,
 MFCNT` at height `2^logMem`; the bytecode finalize count `BFCNT` at `2^prog.logSize`; the Keccak
-reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs:157`, `SLOT_LOG = 6`); then the six
+reduction's column `QKECCAK` at `2^(τ_KECCAK + 6)` (`layout.rs:222`, `SLOT_LOG = 6`); then the six
 opcode tables at their log-heights, each `Component.toM3` of its Clean component with leanISA's
 separators, directions and counted channels (`channelSep`, `channelDir`, the memory and bytecode
 pulls). The first three are column groups: no constraint, flush or count, so the table sumcheck
@@ -46,16 +46,16 @@ leanISA's three remaining components: the verifier's state push `(1, 1)` and pul
 `(g^(N - 1), 1)` (`leanIsaVerifier`), the memory block's seed push `(g^i, 1, m_i)` and finalize
 pull `(g^i, MFCNT_i, m_i)` (`memTable`), and the bytecode block's seed push and finalize pull of
 the program's entries (`bytecodeTable`, with the program's eleven entry columns known to both
-parties, `Coord.known`; `bytecode_columns`, `layout.rs:224`). The index column is the verifier's
+parties, `Coord.known`; `bytecode_columns`, `layout.rs:291`). The index column is the verifier's
 (`idxColumn`), as the Rust's `Coord::Index` is.
 
-**The stack** (`crates/leanvm_core/src/witness.rs:56-95`). Every committed column has a
+**The stack** (`crates/leanvm_core/src/witness.rs:57-96`). Every committed column has a
 log-size, its table's; the fifty `KECCAK` value lanes have none (`Placement::VIRTUAL`,
-`witness.rs:19`; `layout.rs:164-172`). The committed columns, in global order, are sorted by
+`witness.rs:20`; `layout.rs:227-239`). The committed columns, in global order, are sorted by
 log-size, largest first, ties in global order (`stack_offsets`), and laid end to end at aligned
 offsets (`Blocks.layout`); the stack has `μ = max(⌈log₂ total⌉, 15)` variables
 (`placements_of`). Input lane `l` of the `KECCAK` table is read at slot `l` of `QKECCAK`
-(`Blocks.sliceLayout`; `verifier.py:990`): cell `x` of the lane is cell `x + l · 2^τ_KECCAK` of
+(`Blocks.sliceLayout`; `verifier.py:1009`): cell `x` of the lane is cell `x + l · 2^τ_KECCAK` of
 the region. The output lanes are *derived* (`derived`): lane `l` at row `x` is lane `l` of the
 last twelve rounds of Keccak-f[1600] (`keccakSegment 1`) of the state after twelve rounds that
 `QKECCAK` commits for step `x` (slots `25 … 49`, `midState`), so a stack carries no output lane, as
@@ -90,7 +90,7 @@ side has no more (each count is a pull's), and `JUMP`, the one table with constr
 With `d = 2` it meets the table sumcheck's degree bound by definition.
 
 The layout, the boundary blocks and the sizes are transcribed from `crates/leanvm_core/src` and
-`python-verifier/verifier.py` at leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`; the instance's
+`python-verifier/verifier.py` at leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`; the instance's
 polynomials are Clean's, through `Component.toM3`.
 
 ## Wrong readings excluded
@@ -156,7 +156,7 @@ structure Sizes where
   rows : Fin 6 → ℕ
 
 /-- An opcode table's log-height: the least `τ` with `rows ≤ 2^τ` (`log2_ceil`), at least the
-table's floor (`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:954`): `9` for `KECCAK`, `0`
+table's floor (`TABLE_LOG_FLOORS`, `python-verifier/verifier.py:970`): `9` for `KECCAK`, `0`
 otherwise. -/
 def Sizes.τ (s : Sizes) (j : Fin 6) : ℕ :=
   max (Nat.clog 2 (s.rows j)) (Verifier.tableLogFloors.getD j 0)
@@ -310,7 +310,7 @@ variable (prog : Program) (s : Sizes)
 abbrev kappa (c : Col) : ℕ := height prog s c.1
 
 /-- The committed columns in stacking order: largest first, ties in global order
-(`witness.rs:56-75`; `List.mergeSort` is stable). -/
+(`witness.rs:57-76`; `List.mergeSort` is stable). -/
 def stackOrder : List Col :=
   committedColumns.mergeSort fun a b ↦ decide (kappa prog s b ≤ kappa prog s a)
 
@@ -338,7 +338,7 @@ def minMu : ℕ := 15
 def maxMu : ℕ := 28
 
 /-- The stack's number of variables: the blocks' total, rounded up to a power of two, at least
-`2 ^ MIN_MU` (`placements_of`, `witness.rs:91`). -/
+`2 ^ MIN_MU` (`placements_of`, `witness.rs:92`). -/
 def leanIsaμ : ℕ := max (Nat.clog 2 (blocks prog s).total) minMu
 
 /-- The blocks fit on the stack. -/
@@ -429,12 +429,12 @@ def derived (c : Col) : Option (Column (leanIsaμ prog s) → Column (kappa prog
 def coords {S : Shape} {κ : ℕ} (cs : List (Coord S κ)) : Vector (Coord S κ) 16 :=
   Vector.ofFn fun k ↦ cs.getD k (.const 0)
 
-/-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs:224`): the entry's
+/-- Column `k` of the program's entries, `bytecode_columns` (`layout.rs:291`): the entry's
 coordinate `k` at every slot, coordinate `3 + k` of the bytecode tuple. -/
 def entryColumn (k : Fin 11) : Column prog.logSize :=
   ⟨Vector.ofFn fun i ↦ (entry (prog.code i))[k]⟩
 
-/-- The six boundary blocks (`layout.rs:348-394`): the state boundary, the memory seed and
+/-- The six boundary blocks (`layout.rs:415-461`): the state boundary, the memory seed and
 finalize, the bytecode seed and finalize. -/
 def boundary : List (BoundaryBlock (shape prog s)) :=
   let entries : List (Coord (shape prog s) prog.logSize) :=
@@ -459,7 +459,7 @@ def publicLines (input : PublicInput) : Vector (PublicLine (shape prog s)) 3 :=
     ⟨memCol 2, 0, 0, false, s.logMem_pos⟩]
 
 /-- The verifier's padding row of a table, in `K` (`Table.padding`,
-`python-verifier/verifier.py:790-796`): zero, but for the `KECCAK` output lanes, which hold
+`python-verifier/verifier.py:797-803`): zero, but for the `KECCAK` output lanes, which hold
 Keccak-f[1600] of the zero state. -/
 def padRowK (t : Verifier.Table) : List K :=
   if t.opcode = Verifier.opKeccak then
@@ -604,7 +604,7 @@ namespace LeanIsa
 /-! ## Admissible sizes -/
 
 /-- The checks the verifier makes of the announced sizes (`build_layout`,
-`python-verifier/verifier.py:884`, and `:1392`): the memory window, the row cap, and the stacked
+`python-verifier/verifier.py:891`, and `:1392`): the memory window, the row cap, and the stacked
 size's cap. The bytecode cap is `Program`'s by type, and the stacked size's floor holds by construction
 (`leanIsaμ`). -/
 def Sizes.Admissible (prog : Program) (s : Sizes) : Prop :=

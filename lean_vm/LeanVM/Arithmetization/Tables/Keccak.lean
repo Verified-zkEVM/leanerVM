@@ -19,9 +19,9 @@ public import Mathlib.Algebra.CharP.Two
 /-!
 # The `KECCAK` table
 
-At leanVM pin `3375f7a137c50b803f3416f6466b5d4e0719708a` and Clean pin `42fe4b26`. The columns
-are `KECCAK_COLUMNS` (`verifier.py:925-934`; `crates/leanvm_core/src/tables.rs`, the `KECCAK`
-table) and the flushes `_flushes_keccak` (`verifier.py:888-916`), matching specification §7
+At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` and Clean pin `42fe4b26`. The columns
+are `KECCAK_COLUMNS` (`verifier.py:931-940`; `crates/leanvm_core/src/tables.rs`, the `KECCAK`
+table) and the flushes `_flushes_keccak` (`verifier.py:895-922`), matching specification §7
 (`doc/leanvm/body/07-instruction-tables.tex`). There is no table constraint: the permutation is
 proved by the Keccak reduction (`verify_keccak`) on the input lanes committed to `q_keccak` and
 the output lanes the table's claims hand it.
@@ -54,7 +54,7 @@ open LeanVM.Parameters LeanVM.Semantics
 
 /-! ## The row -/
 
-/-- The `KECCAK` columns, in the order of `KECCAK_COLUMNS` (`verifier.py:925-934`). -/
+/-- The `KECCAK` columns, in the order of `KECCAK_COLUMNS` (`verifier.py:931-940`). -/
 structure KeccakRow (F : Type) where
   /-- The program counter. -/
   pc : F
@@ -200,7 +200,7 @@ theorem keccak_flags_of_decode {c o0 o1 o2 o3 o4 o5 o6 o7 f1 f2 : K} {ins : Inst
 /-! ## The table -/
 
 set_option maxHeartbeats 16000000 in
-/-- The `KECCAK` table (`_flushes_keccak`, `verifier.py:888-916`): state step, bytecode read of
+/-- The `KECCAK` table (`_flushes_keccak`, `verifier.py:895-922`): state step, bytecode read of
 `(KECCAK, o_m₀, …, o_m₃, o_tail, o_b8, o_cap, o_out, odd_in, odd_out)`, the thirteen cells read
 and the thirteen written, each as `(lo, hi, 0)` in its layout. Returns the pushed successor
 `(g·pc, fp)`; sound under `KeccakRelation`. -/

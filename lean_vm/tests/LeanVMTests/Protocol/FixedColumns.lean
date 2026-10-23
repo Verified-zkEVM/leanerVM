@@ -191,8 +191,8 @@ def slot12 : List K := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
 /-- Slot 13: `KECCAK`'s output layout flag. -/
 def slot13 : List K := [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
-/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:750-768` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`): sixteen slots of `2 ^ κ_bc` cells, the cell
+/-- The table `stacked_bytecode_table` builds (`crates/leanvm_core/src/leaf.rs:776-794` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`): sixteen slots of `2 ^ κ_bc` cells, the cell
 `(slot << κ_bc) + i` holding column `slot` at instruction `i`; the eleven public columns at
 slots 3 to 13 (`BYTECODE_PUBLIC_SLOT = 3`), and zero at the other slots. -/
 def rustTable : List K :=
