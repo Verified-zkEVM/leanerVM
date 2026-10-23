@@ -131,11 +131,12 @@ def RunTables (rd : Reader) (eqt gt : E) (n : ℕ) (zs zs1 gs : List E) : Prop :
     TbReadsAt rd (gt * gen ^ (16 * j)) (gTable (nib gs j))
 
 /-- `shared_selector_tables(eq_tab, g_tab, zeta_hi, zeta1_hi, gsq_hi, len_g)`: `len_g = g^n`,
-`n < 64`, and the tables of the `n` coordinates at `zeta_hi` are written. -/
+`n < 64`, and for the `n` coordinates, complements and shares read at `zeta_hi`, `zeta1_hi`,
+`gsq_hi`, their nibble tables are written. -/
 def SharedSelOut (rd : Reader) : List E → List E → Prop
   | [eqt, gt, z, z1, gsq, lenG], [] =>
-      ∃ n < 64, lenG = gen ^ n ∧ ∃ zs zs1 gs : List E, zs.length = n ∧ zs1.length = n ∧
-        gs.length = n ∧ TbReadsAt rd z zs ∧ TbReadsAt rd z1 zs1 ∧ TbReadsAt rd gsq gs ∧
+      ∃ n < 64, lenG = gen ^ n ∧ ∀ zs zs1 gs : List E, zs.length = n → zs1.length = n →
+        gs.length = n → TbReadsAt rd z zs → TbReadsAt rd z1 zs1 → TbReadsAt rd gsq gs →
         RunTables rd eqt gt n zs zs1 gs
   | _, _ => False
 
@@ -200,11 +201,18 @@ def topNib (p : List E) (j : ℕ) : List E := (nib p j).reverse
 /-- `g^(2^(4j + 3 - t))`, `t < 4`: the shares of nibble `j`'s index bits. -/
 def topShares (j : ℕ) : List E := (List.range 4).map fun t ↦ gen ^ 2 ^ (4 * j + 3 - t)
 
-/-- The opening point's tables (`selector_tables`): nibble `j`'s eq levels over its top
-coordinates at `sel_eq·g^(30j)` (`SEL_EQ_STRIDE = 30`), its `g`-power table at `sel_g·g^(16j)`. -/
+/-- The opening point's eq tables (`selector_tables`): nibble `j`'s eq levels over its top
+coordinates at `sel_eq·g^(30j)` (`SEL_EQ_STRIDE = 30`). -/
+def EqTabsAt (rd : Reader) (se : E) (p p1 : List E) : Prop :=
+  ∀ j < selNibbles, TbReadsAt rd (se * gen ^ (30 * j)) (eqLevels (topNib p j) (topNib p1 j))
+
+/-- The `g`-power tables (`selector_tables`): nibble `j`'s at `sel_g·g^(16j)`. -/
+def GTabsAt (rd : Reader) (sg : E) : Prop :=
+  ∀ j < selNibbles, TbReadsAt rd (sg * gen ^ (16 * j)) (gTable (topShares j))
+
+/-- The opening point's tables: both. -/
 def SelTabsAt (rd : Reader) (se sg : E) (p p1 : List E) : Prop :=
-  ∀ j < selNibbles, TbReadsAt rd (se * gen ^ (30 * j)) (eqLevels (topNib p j) (topNib p1 j)) ∧
-    TbReadsAt rd (sg * gen ^ (16 * j)) (gTable (topShares j))
+  EqTabsAt rd se p p1 ∧ GTabsAt rd sg
 
 /-- `selector_tables(point, point1)`: for the point and its complements read at `point`,
 `point1` (`28` coordinates), the returned buffers hold their tables. -/
@@ -218,13 +226,14 @@ def SelTablesOut (rd : Reader) : List E → List E → Prop
 def selector_tables_Spec : Prop :=
   ∀ rd args rets, coreProgram.Rel rd "selector_tables" args rets → SelTablesOut rd args rets
 
-/-- `column_selector__L{κ}(offset, sel_eq, sel_g)`: `offset = g^o` with `o < 2^28` a multiple of
-`2^κ`, and for any point whose tables are at `sel_eq`, `sel_g`, the selector is the eq weight of
-`o`'s bits `κ .. 27` against the point's coordinates there. -/
+/-- `column_selector__L{κ}(offset, sel_eq, sel_g)`: with the `g`-power tables at `sel_g`,
+`offset = g^o` with `o < 2^28` a multiple of `2^κ`, and for any point whose eq tables are at
+`sel_eq` the selector is the eq weight of `o`'s bits `κ .. 27` against the point's coordinates
+there. -/
 def ColSelOut (κ : ℕ) (rd : Reader) : List E → List E → Prop
   | [off, se, sg], [sel] =>
-      ∃ o : ℕ, o < 2 ^ 28 ∧ 2 ^ κ ∣ o ∧ off = gen ^ o ∧
-        ∀ p p1 : List E, p.length = 28 → p1.length = 28 → SelTabsAt rd se sg p p1 →
+      GTabsAt rd sg → ∃ o : ℕ, o < 2 ^ 28 ∧ 2 ^ κ ∣ o ∧ off = gen ^ o ∧
+        ∀ p p1 : List E, p.length = 28 → p1.length = 28 → EqTabsAt rd se p p1 →
           sel = bitsEq ((List.range (28 - κ)).map fun i ↦ o.testBit (κ + i)) (p.drop κ)
             (p1.drop κ)
   | _, _ => False

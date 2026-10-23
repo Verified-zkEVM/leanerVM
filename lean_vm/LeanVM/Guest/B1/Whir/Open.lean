@@ -7,6 +7,8 @@
 module
 
 public import LeanVM.Guest.B1.Whir.OpenAux
+public import LeanVM.Guest.B1.Whir.InterfaceW
+public import LeanVM.Guest.B1.Opening.QueriesW
 public import LeanVM.Guest.B1.Whir.Head
 public import LeanVM.Guest.B1.Whir.Tail
 public import LeanVM.Guest.B1.Whir.InnerEq
@@ -144,13 +146,19 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
       args rets → MeaningFoldFinalMsg c.yrLog rd args rets)
     {root : Digest} {fs : List E} {target root0 root1 cur : E} {rets : List E}
     (hfs : fs.length = 5) (hroot : (root0, root1) = digestScalars root)
-    (hrel : coreProgram.Rel rd ("open_stacked__L" ++ natStr m) (fs ++ [target, root0, root1, cur])
-      rets) :
-    OpenOut rd μ r root fs target cur rets := by
+    {C : CallRel} (hle : CallRel.Le C (coreProgram.Rel rd))
+    {Wf : ℕ → OsLv → List E → List E → List QW} (hqw : QWOk rd C Wf 0 c.levels)
+    {σ : Val} {fn' : Fn} (hfind' : coreProgram.find? ("open_stacked__L" ++ natStr m) = some fn')
+    (hp' : fn'.params.map σ = fs ++ [target, root0, root1, cur])
+    (hh : Stmt.HoldsList C rd σ fn'.body False (fun rs ↦ rs = rets)) :
+    OpenOutW rd μ r root fs target cur rets (readN rd cur (osWordsLen c))
+      ((osQCalls c 0 c.levels (osHead c).2).flatMap
+        (fun e ↦ lvOpenings rd σ e.2.1 (Wf e.1 e.2.1) e.2.2)) := by
   have hn := hF.n2
   obtain ⟨fn, hfind, hps, hbody⟩ := hfnc
-  rw [rel_iff_sem hfind] at hrel
-  obtain ⟨σ, hp, hh⟩ := hrel
+  rw [hfind] at hfind'
+  cases hfind'
+  have hp := hp'
   rw [hbody, osBody_split, holdsList_flat_ret _ (osBodyA_flat c)] at hh
   obtain ⟨hok, hret⟩ := hh
   rw [hps] at hp
@@ -158,17 +166,17 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
   obtain ⟨⟨⟨hH, hL⟩, hT⟩, hFin⟩ := hok
   -- the head
   obtain ⟨c0, c2, hrd0, hrun0, hin0, hcur0⟩ :=
-    osHead_sound (c := c) hfs hp hroot hF.shape hF.off0 hH
+    osHead_sound (c := c) hfs hp hroot hF.shape hF.off0 (allOk_mono hle hH)
   -- the levels
   obtain ⟨xs1, os1, R', ms, ws', rs, hrd1, hrun1, hmsl, hfmr, hgl, hrsl, hrec, hfl, hfch, hq, ht,
-    hfs1, hpad1, hco1, hcur1⟩ :=
-    osLevels_sound c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hin0 hL
+    hfs1, hpad1, hco1, hcur1, hos1, hxl1⟩ :=
+    osLevels_sound hle c.levels cfg 0 (osHead c).2 _ _ root hF.lok hcal hqw hin0 hL
   obtain ⟨p, hpp⟩ := osLevels_pad c c.levels 0 (osHead c).2 (by
     intro h; rw [h] at hn; simp at hn)
   set stL := (osLevels c 0 c.levels (osHead c).2).2 with hstL
   -- the tail
   obtain ⟨xs2, T, F', hxl2, hTl, hrd2, hrun2, hTr, -⟩ := osTail_sound hfold hF.ylog hfs1
-    (by have := hco1; unfold u128Bound; omega) (by rw [hpp] at hpad1 ⊢; exact hpad1) ws' hq ht hT
+    (by have := hco1; unfold u128Bound; omega) (by rw [hpp] at hpad1 ⊢; exact hpad1) ws' hq ht (allOk_mono hle hT)
   set stT := (osTail c stL).2 with hstT
   set F := ws'.folds with hFdef
   have hFl : F.length = c.nFolds := by
@@ -244,7 +252,7 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
     (ms := ms) (T := T) (Pt := (F ++ T).drop lane ++ (F ++ T).take lane)
     (β := βof c rs) (X := Xof rs F T) (P := Pof rs) (W := Wof rs) (Λ := Λof rs) (Z := Zof rs)
     (Y := Yof rs F T) hfm (by rw [hmsl, hF.ylen]) hfmr hTl hTr
-    (ptSrc_ok hFl hTl hF.lane hfch hTr') hbasis hres hood hn hFin
+    (ptSrc_ok hFl hTl hF.lane hfch hTr') hbasis hres hood hn (allOk_mono hle hFin)
   -- the glued weight
   have hlvfin : ∀ i < c.levels.length, LvFin c rs F T i := fun i hi ↦ by
     have hr := hrec' i hi
@@ -262,14 +270,20 @@ theorem open_generic {m μ r : ℕ} {c : OsCfg} {cfg : List Whir.Level}
       exact ⟨z, hz, by rw [lv_getD hi]; exact (hr.z.2.2 z hz).1⟩
   have hinner := inner_eq (rs := rs) (F := F) (T := T) (by rw [hrsl]) (by omega) hF.yr hTl hlvfin
   have hrets := hret.symm.trans hfin
-  refine ⟨[c0, c2] ++ (xs1 ++ (xs2 ++ [])), [] ++ (os1 ++ ([] ++ [])),
-    ⟨(F ++ T).drop lane ++ (F ++ T).take lane, ws'.glued.foldl (fun weight claim ↦
+  have hreads : ReadsAt rd cur ([c0, c2] ++ (xs1 ++ (xs2 ++ []))) := by
+    refine readsAt_append hrd0 (readsAt_append ?_ (readsAt_append ?_ (readsAt_nil _ _)))
+    · rw [show [c0, c2].length = 2 from rfl, ← hcur0]; exact hrd1
+    · rw [show [c0, c2].length = 2 from rfl, ← hcur0, ← hcur1]; exact hrd2
+  have hxlen : ([c0, c2] ++ (xs1 ++ (xs2 ++ []))).length = osWordsLen c := by
+    simp only [List.length_append, List.length_cons, List.length_nil, hxl1, hxl2, osWordsLen]
+    omega
+  rw [← hxlen, readN_of_readsAt hreads, ← hos1,
+    show os1 = [] ++ (os1 ++ ([] ++ [])) by simp]
+  refine ⟨⟨(F ++ T).drop lane ++ (F ++ T).take lane, ws'.glued.foldl (fun weight claim ↦
       weight + claim.scalar * claim.weightAt (F.drop claim.foldStart ++ T)) 0,
       multilinearEval ms T, σ (.n stT.1.t)⟩, F', R', ?_, ?_, ?_, σ (.n (stT.1.k + 1)),
     σ (.n (stT.1.k + 1 + 1)), ?_, ?_, ?_⟩
-  · refine readsAt_append hrd0 (readsAt_append ?_ (readsAt_append ?_ (readsAt_nil _ _)))
-    · rw [show [c0, c2].length = 2 from rfl, ← hcur0]; exact hrd1
-    · rw [show [c0, c2].length = 2 from rfl, ← hcur0, ← hcur1]; exact hrd2
+  · exact hreads
   · rw [whirOpen_eq hF.dc hcne target]
     refine RunsWith.bind' (RunsTo.withRoots hrun0 _) (RunsWith.bind' hrun1 ?_)
     rw [levelTail_eq, hF.last, hlane']

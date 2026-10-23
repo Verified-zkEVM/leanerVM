@@ -7,6 +7,7 @@
 module
 
 public import LeanVM.Guest.B1.KeccakGkr.VkT
+public import LeanVM.Guest.B1.KeccakGkr.CopyLoop
 
 /-!
 # `y` in the exponent
@@ -105,6 +106,129 @@ theorem vkBits_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (
   · rw [h43]; congr 1; omega
   · rw [h47]; congr 1; omega
   · rw [e48, h43, h47, ← pow_add]; congr 1; omega
+
+/-! ## Copies, the point, the squeezes -/
+
+theorem copyWordsT_holds {src dst : V} {sOff dOff b n : ℕ} {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (copyWordsT src dst sOff dOff b n) next kret) :
+    (∀ i < n, LoadHolds rd (σ src) (sOff + i) (σ (.n (b + i))) ∧
+      LoadHolds rd (σ dst) (dOff + i) (σ (.n (b + i)))) ∧ next := by
+  rw [copyWordsT, holdsList_range_flatten _ _ (fun _ ↦ rfl)] at h
+  refine ⟨fun i hi ↦ ?_, h.2⟩
+  have := h.1 i hi
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at this
+  exact this
+
+/-- A squeeze with nothing waiting. -/
+theorem sqZeroT_holds {capb o : ℕ} {cap : List E} (hcap : (cap5 capb).map σ = cap)
+    (hz : ∀ k < 4, σ (.n (66 + k)) = 0) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ (sqZeroT capb o) next kret) :
+    σ (.n (o + 19)) = (⟨cap, []⟩ : Fs).squeeze.1 ∧
+      (cap5 (o + 8)).map σ = (⟨cap, []⟩ : Fs).squeeze.2.cap ∧ next := by
+  rw [sqZeroT, holdsList_append, holds_challengeT] at h
+  simp only [keccakA, Stmt.HoldsList, Stmt.Holds] at h
+  obtain ⟨hk, hch, hn⟩ := h
+  have hin : ([V.n 66, .n 66, .n 66, .n 66, .n 66, .n 67, .n 68, .n 69] ++ cap5 capb).map σ =
+      rateOf (⟨cap, []⟩ : Fs).pend ++ (⟨cap, []⟩ : Fs).cap := by
+    rw [List.map_append, hcap, rateOf_nil]
+    simp [hz 0 (by omega), hz 1 (by omega), hz 2 (by omega), hz 3 (by omega)]
+  have := squeeze_atom (s := ⟨cap, []⟩) hk hin (b := o + 13) (by simpa using hch)
+  simp only [Nat.add_assoc, Nat.reduceAdd] at this
+  refine ⟨this.1, ?_, hn⟩
+  rw [← this.2]
+  simp [cap5, List.range_succ]
+
+/-- **The six squeezes** (G:2812-2819): the segment coordinate, then the five lane coordinates. -/
+theorem vkSqueezesT_holds {cap0 : List E} (hcap : (cap5 11).map σ = cap0)
+    (hz : ∀ k < 4, σ (.n (66 + k)) = 0) {next : Prop} {kret : List E → Prop}
+    (h : Stmt.HoldsList C rd σ vkSqueezesT next kret) :
+    (⟨cap0, []⟩ : Fs).squeezeN 1 = ([σ (.n 89)], ⟨(cap5 78).map σ, []⟩) ∧
+      (⟨(cap5 78).map σ, []⟩ : Fs).squeezeN 5 =
+        ((List.range 5).map (fun i ↦ σ (.n (110 + 20 * i))), ⟨(cap5 179).map σ, []⟩) ∧
+      LoadHolds rd (σ (.n 64)) 0 (σ (.n 89)) ∧
+      (∀ i < 5, LoadHolds rd (σ (.n 90)) i (σ (.n (110 + 20 * i)))) ∧ next := by
+  rw [vkSqueezesT, holdsList_append, holdsList_append, holdsList_range_flatten _ _
+    (fun _ ↦ rfl)] at h
+  obtain ⟨q0c, q0p, h⟩ := sqZeroT_holds hcap hz h
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨l89, -, hall, hn⟩ := h
+  have step : ∀ i < 5, σ (.n (110 + 20 * i)) =
+        (⟨(cap5 (if i = 0 then 78 else 79 + 20 * i)).map σ, []⟩ : Fs).squeeze.1 ∧
+      (cap5 (99 + 20 * i)).map σ =
+        (⟨(cap5 (if i = 0 then 78 else 79 + 20 * i)).map σ, []⟩ : Fs).squeeze.2.cap ∧
+      LoadHolds rd (σ (.n 90)) i (σ (.n (110 + 20 * i))) := by
+    intro i hi
+    have hb := hall i hi
+    rw [holdsList_append] at hb
+    obtain ⟨q1, q2, hb⟩ := sqZeroT_holds rfl hz hb
+    simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, and_true] at hb
+    refine ⟨by rw [show 110 + 20 * i = 91 + 20 * i + 19 by omega]; exact q1, ?_, hb⟩
+    rw [← q2]; congr 2; omega
+  refine ⟨?_, ?_, l89, fun i hi ↦ (step i hi).2.2, hn⟩
+  · simp only [Fs.squeezeN]
+    rw [← q0c]
+    have : (⟨cap0, []⟩ : Fs).squeeze.2 = ⟨(cap5 78).map σ, []⟩ := by
+      rw [show ((⟨cap0, []⟩ : Fs).squeeze.2) = ⟨(⟨cap0, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl, ← q0p]
+    rw [this]
+  · have hs : ∀ i < 5, (⟨(cap5 (if i = 0 then 78 else 79 + 20 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(cap5 (99 + 20 * i)).map σ, []⟩ := by
+      intro i hi
+      rw [show (⟨(cap5 (if i = 0 then 78 else 79 + 20 * i)).map σ, []⟩ : Fs).squeeze.2 =
+        ⟨(⟨(cap5 (if i = 0 then 78 else 79 + 20 * i)).map σ, []⟩ : Fs).squeeze.2.cap, []⟩ from rfl,
+        ← (step i hi).2.1]
+    have s0 := step 0 (by omega); have s1 := step 1 (by omega); have s2 := step 2 (by omega)
+    have s3 := step 3 (by omega); have s4 := step 4 (by omega)
+    have h0 := hs 0 (by omega); have h1 := hs 1 (by omega); have h2 := hs 2 (by omega)
+    have h3 := hs 3 (by omega); have h4 := hs 4 (by omega)
+    simp only [↓reduceIte, Nat.reduceMul, Nat.reduceAdd, Nat.one_ne_zero,
+      OfNat.ofNat_ne_zero] at s0 s1 s2 s3 s4 h0 h1 h2 h3 h4
+    simp only [Fs.squeezeN, List.range_succ, List.range_zero, List.nil_append, List.map_cons,
+      List.map_nil, List.cons_append, Nat.reduceMul, Nat.reduceAdd]
+    rw [h0, h1, h2, h3, h4, ← s0.1, ← s1.1, ← s2.1, ← s3.1, ← s4.1]
+
+/-- **`verify_keccak`'s head** (G:2784-2827). -/
+theorem vkHeadT_holds {τ : ℕ} (hτ1 : 9 ≤ τ) (hτ2 : τ ≤ 28) (htg : σ (.n 6) = gen ^ τ)
+    {next : Prop} {kret : List E → Prop} (h : Stmt.HoldsList C rd σ vkHeadT next kret) :
+    σ (.n 17) = gen ^ (τ - 4) ∧ σ (.n 19) = gen ^ (τ - 3) ∧
+    σ (.n 43) = gen ^ ((τ - 3) / 2) ∧ σ (.n 47) = gen ^ ((τ - 3) % 2) ∧
+    σ (.n 48) = gen ^ ((τ - 3) / 2 + (τ - 3) % 2) ∧
+    (∀ i < 4, LoadHolds rd (σ (.n 7)) i (σ (.n (52 + i))) ∧
+      LoadHolds rd (σ (.n 9)) i (σ (.n (52 + i)))) ∧
+    (1 + σ (.n 17) ≠ 0 → C "__loop11" [1, σ (.n 17), σ (.n 58), σ (.n 7) * gen ^ 4] []) ∧
+    σ (.n 64) = σ (.n 58) * σ (.n 17) ∧
+    (⟨[σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)], []⟩ : Fs).squeezeN 1 =
+      ([σ (.n 89)], ⟨(cap5 78).map σ, []⟩) ∧
+    (⟨(cap5 78).map σ, []⟩ : Fs).squeezeN 5 =
+      ((List.range 5).map (fun i ↦ σ (.n (110 + 20 * i))), ⟨(cap5 179).map σ, []⟩) ∧
+    LoadHolds rd (σ (.n 64)) 0 (σ (.n 89)) ∧
+    (∀ i < 5, LoadHolds rd (σ (.n 90)) i (σ (.n (110 + 20 * i)))) ∧
+    (LoadHolds rd (σ (.n 5)) 0 (σ (.n 191)) ∧ FsPackOk σ (.n 191) (191 + 1) dsObserve) ∧
+    next := by
+  rw [vkHeadT, holdsList_append, holdsList_append, holdsList_append, holdsList_append,
+    holdsList_append, holdsList_map_atoms] at h
+  obtain ⟨hcp, h⟩ := h
+  simp only [Atom.Holds] at hcp
+  obtain ⟨h17, h19, h43, h47, h48, h⟩ := vkBits_holds hτ1 hτ2 htg h
+  obtain ⟨hcw, h⟩ := copyWordsT_holds h
+  simp only [vkPointT, Stmt.HoldsList, Stmt.Holds, Atom.Holds] at h
+  obtain ⟨e56, e57, -, e59, e60, e61, e62, e63, -, hcall, e64, -, z66, z67, z68, z69, h⟩ := h
+  have hz : ∀ k < 4, σ (.n (66 + k)) = 0 := by
+    intro k hk
+    interval_cases k
+    · rw [z66, word_zero]
+    · rw [z67, word_zero]
+    · rw [z68, word_zero]
+    · rw [z69, word_zero]
+  have hcap : (cap5 11).map σ = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)] := by
+    simp only [cap5, List.map_cons, List.map_nil]
+    rw [hcp 0 (by omega), hcp 1 (by omega), hcp 2 (by omega), hcp 3 (by omega), hcp 4 (by omega)]
+  obtain ⟨q1, q5, l89, lr, h⟩ := vkSqueezesT_holds hcap hz h
+  obtain ⟨⟨lv, pv⟩, hn⟩ := (holds_fsNextT _ _ _ _ _).1 h
+  refine ⟨h17, h19, h43, h47, h48, fun i hi ↦ ⟨by simpa using (hcw i hi).1, by simpa using (hcw i hi).2⟩,
+    fun hne ↦ ?_, e64, q1, q5, l89, lr, ⟨lv, pv⟩, hn⟩
+  have := hcall (by rw [e60, e59, word_one]; exact hne)
+  simp only [List.map_cons, List.map_nil, e61, e63, e62, word_one, word_16] at this
+  exact this
 
 end
 end LeanVM.Guest.B1.VerifySub

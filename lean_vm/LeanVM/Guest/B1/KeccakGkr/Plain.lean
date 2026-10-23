@@ -116,7 +116,7 @@ theorem plain_round_sq0 {cur pt vIn : V} {zs capV : List V} {i a o : ℕ} {cap :
 theorem plain_round_sq1 {cur pt vIn p0 p1 : V} {zs capV : List V} {i a o : ℕ} {cap : List E} {w : E}
     (h : PlainRoundOk rd σ cur pt vIn
       ([p0, p1, .n (a + 7), .n (a + 9), .n (a + 17), .n (a + 19)] ++ zs ++ capV) i a o)
-    (hp : (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
+    (hp : IsCanonical128 (σ p0) → (σ p0, σ p1) = Keccak.scalarCells w dsObserve)
     (hz : zs.map σ = [0, 0]) (hc : capV.map σ = cap) :
     σ (.n (o + 19)) = (plainSq ⟨cap, [(w, dsObserve)]⟩ (σ (.n a)) (σ (.n (a + 10)))).1 ∧
       [σ (.n (o + 8)), σ (.n (o + 9)), σ (.n (o + 10)), σ (.n (o + 11)), σ (.n (o + 12))] =
@@ -126,6 +126,7 @@ theorem plain_round_sq1 {cur pt vIn p0 p1 : V} {zs capV : List V} {i a o : ℕ} 
   have c2 : IsCanonical128 (σ (.n (a + 10 + 7))) := hcan _ (by simp)
   have s0 := fsNext_scalar h.pk0 c0
   have s2 := fsNext_scalar h.pk2 c2
+  have hp := hp (hcan _ (by simp))
   have habs : ((⟨cap, [(w, dsObserve)]⟩ : Fs).absorb (σ (.n a)) dsObserve).absorb
       (σ (.n (a + 10))) dsObserve =
       ⟨cap, [(w, dsObserve), (σ (.n a), dsObserve), (σ (.n (a + 10)), dsObserve)]⟩ := rfl
@@ -374,8 +375,8 @@ theorem plain41_sound (rd : Reader) (args rets : List E)
     · exact r2.ld2
     · exact r3.ld0
     · exact r3.ld2
-  have hp : (σ (.n 15), σ (.n 16)) = Keccak.scalarCells w dsObserve := by
-    rw [e15, e16]; exact hw rfl
+  have hp : IsCanonical128 (σ (.n 15)) → (σ (.n 15), σ (.n 16)) = Keccak.scalarCells w dsObserve := by
+    intro hc; rw [e15, e16]; rw [e15] at hc; exact hw rfl hc
   have q0 := plain_round_sq1 (cap := [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)]) r0 hp hz0
     (by simp only [capV, List.map_cons, List.map_nil, Nat.reduceAdd, e10, e11, e12, e13, e14])
   have q1 := plain_round_sq0 (cap := [σ (.n 47), σ (.n 48), σ (.n 49), σ (.n 50), σ (.n 51)]) r1 hz
