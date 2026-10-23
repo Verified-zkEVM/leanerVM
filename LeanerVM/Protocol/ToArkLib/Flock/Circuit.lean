@@ -29,6 +29,12 @@ the gates' forms.
   honest block, the gates evaluated in order from the inputs and the constant.
 * `Bounded c`: every gate reads only the inputs, the constant and earlier gates, and sits at a
   fresh position.
+* `Lin m α`, a carrier of linear values over the positions (`0`, `+`, a position's value): the
+  forms (`formLin m`) or the weights `w` of the positions in a ring (`weightLin w`). A gate over
+  `α` is `GateOf α`; `rowsAt L cpos inputs gates` is every row at the carrier `L`, `rowOf` at the
+  forms (`rowOf_eq_rowsAt`), and a map of carriers (`Lin.Hom`) carries the rows (`rowsAt_map`).
+  In characteristic two, a form's value at the weights (`evalAt w`) is such a map, so the forward
+  walk of the R1CS is the rows at the weights of the gates' values there (`toBlockR1CS_rows`).
 
 The two directions, over any nontrivial ring of characteristic two (`holds_iff_gates`):
 `trace_satisfies` (the trace of a bounded circuit satisfies the R1CS and holds `1` at the
@@ -93,13 +99,16 @@ def Form.evalB (L z : Form m) : Bool := par m (L &&& z)
 
 /-! ## Circuits -/
 
-/-- A product gate: the two forms whose product the gate's position holds. -/
-structure Gate (m : ℕ) where
-  /-- The left form, the gate's row of `A`. -/
-  a : Form m
-  /-- The right form, the gate's row of `B`. -/
-  b : Form m
+/-- A product gate over a carrier `α`: the two values whose product the gate's position holds. -/
+structure GateOf (α : Type) where
+  /-- The left value, the gate's row of `A`. -/
+  a : α
+  /-- The right value, the gate's row of `B`. -/
+  b : α
   deriving Inhabited
+
+/-- A product gate: the two forms whose product the gate's position holds. -/
+abbrev Gate (m : ℕ) := GateOf (Form m)
 
 end ProductCircuit
 
@@ -132,6 +141,99 @@ def rowOf (c : ProductCircuit m) (k : Pos m) : Gate m :=
 /-- The circuit as a block R1CS with naive walks. -/
 def toBlockR1CS (R : Type*) [CommRing R] (c : ProductCircuit m) : BlockR1CS R m :=
   BlockR1CS.ofMatrices (fun k j ↦ (c.rowOf k).a.getLsbD j) (fun k j ↦ (c.rowOf k).b.getLsbD j)
+
+/-! ## Carriers -/
+
+/-- A carrier of linear values over the positions: `0`, `+`, and the value of position `j`. -/
+structure Lin (m : ℕ) (α : Type) where
+  /-- The zero value. -/
+  zero : α
+  /-- The sum of two values. -/
+  add : α → α → α
+  /-- The value of position `j`. -/
+  var : Pos m → α
+
+/-- Forms: `0`, XOR, and the form of a position. Reducible, so that the lemmas on `^^^` and
+`Form.var` apply to its values. -/
+abbrev formLin (m : ℕ) : Lin m (Form m) := ⟨0, (· ^^^ ·), Form.var⟩
+
+/-- The weights `w` of the positions: `0`, `+`, and the weight of a position. -/
+def weightLin {R : Type} [CommRing R] (w : CMlPolynomialEval R m) : Lin m R :=
+  ⟨0, (· + ·), fun j ↦ w[j]⟩
+
+/-- `φ` carries the carrier `L` to `M`: it maps `0`, `+` and every position's value to `M`'s. -/
+structure Lin.Hom {α β : Type} (L : Lin m α) (M : Lin m β) (φ : α → β) : Prop where
+  zero : φ L.zero = M.zero
+  add : ∀ a b, φ (L.add a b) = M.add (φ a) (φ b)
+  var : ∀ j, φ (L.var j) = M.var j
+
+section Carrier
+
+variable {α β : Type}
+
+/-- A gate with both values carried by `φ`. -/
+def GateOf.map (φ : α → β) (g : GateOf α) : GateOf β := ⟨φ g.a, φ g.b⟩
+
+/-- A recorded gate with both values carried by `φ`. -/
+def mapGate (φ : α → β) (kg : Pos m × GateOf α) : Pos m × GateOf β := (kg.1, kg.2.map φ)
+
+/-- The row of a position without a gate, at a carrier: `(1, 1)` at the constant, `(z_k, 1)` at
+an input, `(0, 0)` elsewhere. -/
+def restRow (L : Lin m α) (cpos : Pos m) (inputs : Form m) (k : Pos m) : GateOf α :=
+  if k = cpos then ⟨L.var cpos, L.var cpos⟩
+  else if inputs.getLsbD k then ⟨L.var k, L.var cpos⟩
+  else ⟨L.zero, L.zero⟩
+
+/-- Every row at a carrier: the first of the gates at the position, else `restRow`. -/
+def rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m) (gates : Array (Pos m × GateOf α)) :
+    Vector (GateOf α) (2 ^ m) :=
+  gates.foldr (fun kg t ↦ t.set kg.1 kg.2 kg.1.isLt) (Vector.ofFn (restRow L cpos inputs))
+
+theorem getElem_rowsAt (L : Lin m α) (cpos : Pos m) (inputs : Form m)
+    (gates : Array (Pos m × GateOf α)) (k : Pos m) :
+    (rowsAt L cpos inputs gates)[k] =
+      match gates.toList.lookup k with
+      | some g => g
+      | none => restRow L cpos inputs k := by
+  rw [rowsAt, ← Array.foldr_toList]
+  induction gates.toList with
+  | nil => simp
+  | cons kg rest ih =>
+    rw [List.foldr_cons, List.lookup_cons]
+    simp only [Fin.getElem_fin, Vector.getElem_set] at ih ⊢
+    by_cases hk : k = kg.1
+    · subst hk; simp
+    · have h1 : (k == kg.1) = false := by simpa using hk
+      have h2 : ¬ (kg.1 : ℕ) = k := fun h ↦ hk (Fin.ext h.symm)
+      simp only [h1, h2, ↓reduceIte]
+      exact ih
+
+/-- The rows of a circuit are its rows at the forms. -/
+theorem rowOf_eq_rowsAt (c : ProductCircuit m) (k : Pos m) :
+    c.rowOf k = (rowsAt (formLin m) c.cpos c.inputs c.gates)[k] := by
+  rw [getElem_rowsAt]
+  cases h : c.gates.toList.lookup k <;> simp only [rowOf, h, restRow]
+
+private theorem lookup_map_mapGate (φ : α → β) (l : List (Pos m × GateOf α)) (k : Pos m) :
+    (l.map (mapGate φ)).lookup k = (l.lookup k).map (GateOf.map φ) := by
+  induction l with
+  | nil => rfl
+  | cons kg rest ih =>
+    rw [List.map_cons, mapGate, List.lookup_cons, List.lookup_cons]
+    split <;> simp_all
+
+/-- The rows at `M` of the gates carried by `φ` are the rows at `L` carried by `φ`. -/
+theorem rowsAt_map {L : Lin m α} {M : Lin m β} {φ : α → β} (h : L.Hom M φ) (cpos : Pos m)
+    (inputs : Form m) (gates : Array (Pos m × GateOf α)) (k : Pos m) :
+    (rowsAt M cpos inputs (gates.map (mapGate φ)))[k] = (rowsAt L cpos inputs gates)[k].map φ := by
+  rw [getElem_rowsAt, getElem_rowsAt, Array.toList_map, lookup_map_mapGate]
+  cases gates.toList.lookup k with
+  | some g => rfl
+  | none =>
+    simp only [Option.map_none, restRow]
+    split_ifs <;> simp [GateOf.map, h.var, h.zero]
+
+end Carrier
 
 /-! ## The honest block -/
 
@@ -363,6 +465,46 @@ theorem eq_liftBlock_toBools [DecidableEq R] [Nontrivial R] {z : CMlPolynomialEv
   rcases hz ⟨k, hk⟩ with h | h <;> simp only [Fin.getElem_fin] at h <;> simp [h]
 
 end Ring
+
+/-! ## The rows at the weights -/
+
+section Weights
+
+variable {R : Type} [CommRing R]
+
+/-- A form at the weights `w`: the sum of the weights of its positions. -/
+def evalAt (w : CMlPolynomialEval R m) (L : Form m) : R :=
+  ∑ j : Pos m, if L.getLsbD j then w[j] else 0
+
+/-- In characteristic two, evaluation at the weights carries the forms to the weights. -/
+theorem evalAt_hom [CharP R 2] (w : CMlPolynomialEval R m) :
+    (formLin m).Hom (weightLin w) (evalAt w) where
+  zero := by simp [evalAt, weightLin]
+  add a b := by
+    have h2 : (2 : R) = 0 := by exact_mod_cast CharP.cast_eq_zero R 2
+    simp only [evalAt, weightLin, BitVec.getLsbD_xor, ← Finset.sum_add_distrib]
+    refine Finset.sum_congr rfl fun j _ ↦ ?_
+    cases a.getLsbD j <;> cases b.getLsbD j <;> simp [← two_mul, h2]
+  var j := by
+    simp only [evalAt, weightLin, getLsbD_var, decide_eq_true_eq, Fin.val_inj]
+    rw [Finset.sum_ite_eq]
+    simp
+
+/-- The forward walk of a circuit's R1CS at the weights `w` is its rows at the weights, of its
+gates with their forms evaluated at `w`. -/
+theorem toBlockR1CS_rows [CharP R 2] (c : ProductCircuit m) (w : CMlPolynomialEval R m) :
+    (c.toBlockR1CS R).rows w =
+      ((rowsAt (weightLin w) c.cpos c.inputs (c.gates.map (mapGate (evalAt w)))).map (·.a),
+        (rowsAt (weightLin w) c.cpos c.inputs (c.gates.map (mapGate (evalAt w)))).map (·.b)) := by
+  have hk (k : Pos m) := (rowsAt_map (evalAt_hom w) c.cpos c.inputs c.gates k).trans
+    (congrArg (GateOf.map (evalAt w)) (rowOf_eq_rowsAt c k).symm)
+  refine Prod.ext (Vector.ext fun k h ↦ ?_) (Vector.ext fun k h ↦ ?_)
+  · rw [Vector.getElem_map]
+    exact ((c.toBlockR1CS R).rows_fst w ⟨k, h⟩).trans (congrArg GateOf.a (hk ⟨k, h⟩)).symm
+  · rw [Vector.getElem_map]
+    exact ((c.toBlockR1CS R).rows_snd w ⟨k, h⟩).trans (congrArg GateOf.b (hk ⟨k, h⟩)).symm
+
+end Weights
 
 /-! ## Schedules -/
 

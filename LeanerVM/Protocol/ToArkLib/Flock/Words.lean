@@ -14,9 +14,11 @@ public import LeanerVM.Protocol.ToArkLib.Flock.Builder
 /-!
 # Word gadgets
 
-A word is 32 forms, bit `i` at index `i`. `Den w x u` says the word `x` denotes the value `u` on
-the block `w`. XOR, rotation, literals (`litW`, through the constant position) and input words
-(`inW`) are linear: no gate. The two adders record one gate per carry:
+A word is 32 values of a carrier, bit `i` at index `i`. The gadgets are written over the
+carrier (`xorW L`, `addW L`, …); on forms (`Word m`, at `formLin m`) they build circuits.
+`Den w x u` says the word of forms `x` denotes the value `u` on the block `w`. XOR, rotation,
+literals (`litW`, through the constant position) and input words (`inW`) are linear: no gate.
+The two adders record one gate per carry:
 
 * `addW x y`: `x + y`, 31 gates. The carry into bit `i + 1` is `c + (x_i + c)(y_i + c)`, the
   majority of `x_i`, `y_i`, `c` over GF(2).
@@ -26,7 +28,9 @@ the block `w`. XOR, rotation, literals (`litW`, through the constant position) a
   so the ripple's bit `0` needs no gate.
 
 `sound_addW`, `sound_add3W` state the specifications; `ok_addW`, `ok_add3W` the gate counts and
-that every output form reads only available positions.
+that every output form reads only available positions. `map_xorW`, `natural_addW`,
+`natural_add3W` and the others: at another carrier each gadget is the gadget at the first carrier
+carried by a map of carriers.
 
 The gates' forms and order are part of the R1CS a circuit lowers to: an adder computing the same
 sum with other gates gives other matrices, so a verifier walking a fixed circuit sees the
@@ -45,76 +49,174 @@ variable {m : ℕ}
 
 /-! ## Words -/
 
+/-- A 32-bit word of values of a carrier, bit `i` at index `i`. -/
+abbrev WordOf (α : Type) := Vector α 32
+
 /-- A 32-bit word of forms, bit `i` at index `i`. -/
-abbrev Word (m : ℕ) := Vector (Form m) 32
+abbrev Word (m : ℕ) := WordOf (Form m)
+
+section Gadgets
+
+variable {α : Type} (L : Lin m α)
 
 /-- Bitwise XOR of words. -/
-def xorW (x y : Word m) : Word m := Vector.ofFn fun i ↦ x[i] ^^^ y[i]
+def xorW (x y : WordOf α) : WordOf α := Vector.ofFn fun i ↦ L.add x[i] y[i]
 
 /-- Rotate right by `n`: bit `i` is bit `(i + n) mod 32`. -/
-def rotrW (w : Word m) (n : ℕ) : Word m :=
+def rotrW (w : WordOf α) (n : ℕ) : WordOf α :=
   Vector.ofFn fun i ↦ w[(i.val + n) % 32]'(Nat.mod_lt _ (by decide))
 
 /-- A literal word, through the constant position `cpos`: bit `i` is `cpos` if set, else `0`. -/
-def litW (cpos : Pos m) (c : UInt32) : Word m :=
-  Vector.ofFn fun i ↦ if c.toNat.testBit i then Form.var cpos else 0
+def litW (cpos : Pos m) (c : UInt32) : WordOf α :=
+  Vector.ofFn fun i ↦ if c.toNat.testBit i then L.var cpos else L.zero
 
 /-- The input word at the positions `b, …, b + 31`, reduced modulo the block size (`subW_inW`
 requires them in range). -/
-def inW (b : ℕ) : Word m := Vector.ofFn fun i ↦ Form.var (pos (b + i))
+def inW (b : ℕ) : WordOf α := Vector.ofFn fun i ↦ L.var (pos (b + i))
 
 /-- The carries of `x + y` from bit `31 - n` with carry `c`: carry `i + 1` is `c + g` with the gate
 `g = (x_i + c)(y_i + c)`. Returns the carries `c_{31-n}, …, c_31`. -/
-def addCarries (x y : Word m) : (n : ℕ) → Form m → Builder m (List (Form m))
+def addCarries (x y : WordOf α) : (n : ℕ) → α → BuilderOf m α (List α)
   | 0, c => pure [c]
   | n + 1, c => do
     let i := 30 - n
-    let g ← mul (x[i]'(by omega) ^^^ c) (y[i]'(by omega) ^^^ c)
-    let rest ← addCarries x y n (c ^^^ g)
+    let g ← mul L (L.add (x[i]'(by omega)) c) (L.add (y[i]'(by omega)) c)
+    let rest ← addCarries x y n (L.add c g)
     pure (c :: rest)
 
 /-- The sum of a ripple: bit `i` is `p_i + q_i + c_i`. -/
-def sumW (p q : Word m) (cs : List (Form m)) : Word m :=
-  Vector.ofFn fun i ↦ p[i] ^^^ q[i] ^^^ cs.getD i 0
+def sumW (p q : WordOf α) (cs : List α) : WordOf α :=
+  Vector.ofFn fun i ↦ L.add (L.add p[i] q[i]) (cs.getD i L.zero)
 
 /-- `x + y`, one gate per carry into bits `1, …, 31`. -/
-def addW (x y : Word m) : Builder m (Word m) := sumW x y <$> addCarries x y 31 0
+def addW (x y : WordOf α) : BuilderOf m α (WordOf α) :=
+  sumW L x y <$> addCarries L x y 31 L.zero
 
 /-- The majority gates of `add3W` from bit `31 - n`: `g_i = (x_i + z_i)(y_i + z_i)`, returning the
 majorities `g_i + z_i`. -/
-def majorities (x y z : Word m) : (n : ℕ) → Builder m (List (Form m))
+def majorities (x y z : WordOf α) : (n : ℕ) → BuilderOf m α (List α)
   | 0 => pure []
   | n + 1 => do
     let i := 30 - n
-    let g ← mul (x[i]'(by omega) ^^^ z[i]'(by omega)) (y[i]'(by omega) ^^^ z[i]'(by omega))
+    let g ← mul L (L.add (x[i]'(by omega)) (z[i]'(by omega)))
+      (L.add (y[i]'(by omega)) (z[i]'(by omega)))
     let rest ← majorities x y z n
-    pure ((g ^^^ z[i]'(by omega)) :: rest)
+    pure (L.add g (z[i]'(by omega)) :: rest)
 
 /-- The ripple of `add3W` from bit `31 - n` with carry `c`: a gate for each of bits `1, …, 30`;
 bit `0` of `q` is `0`, so bit `0` carries nothing and needs none. -/
-def rippleCarries (p q : Word m) : (n : ℕ) → Form m → Builder m (List (Form m))
+def rippleCarries (p q : WordOf α) : (n : ℕ) → α → BuilderOf m α (List α)
   | 0, c => pure [c]
   | n + 1, c => do
     let i := 30 - n
     if 1 ≤ i then
-      let g ← mul (p[i]'(by omega) ^^^ c) (q[i]'(by omega) ^^^ c)
-      let rest ← rippleCarries p q n (c ^^^ g)
+      let g ← mul L (L.add (p[i]'(by omega)) c) (L.add (q[i]'(by omega)) c)
+      let rest ← rippleCarries p q n (L.add c g)
       pure (c :: rest)
     else
       let rest ← rippleCarries p q n c
       pure (c :: rest)
 
 /-- The XOR word `x ⊕ y ⊕ z`. -/
-def xor3W (x y z : Word m) : Word m := Vector.ofFn fun i ↦ x[i] ^^^ y[i] ^^^ z[i]
+def xor3W (x y z : WordOf α) : WordOf α := Vector.ofFn fun i ↦ L.add (L.add x[i] y[i]) z[i]
 
 /-- The majorities shifted up by one: bit `0` is `0`, bit `i ≥ 1` is majority `i - 1`. -/
-def shiftW (ms : List (Form m)) : Word m :=
-  Vector.ofFn fun i ↦ if i.val = 0 then 0 else ms.getD (i.val - 1) 0
+def shiftW (ms : List α) : WordOf α :=
+  Vector.ofFn fun i ↦ if i.val = 0 then L.zero else ms.getD (i.val - 1) L.zero
 
 /-- `x + y + z`: 31 majority gates, then 30 ripple gates adding `xor3W` and `shiftW`. -/
-def add3W (x y z : Word m) : Builder m (Word m) :=
-  majorities x y z 31 >>= fun ms ↦
-    sumW (xor3W x y z) (shiftW ms) <$> rippleCarries (xor3W x y z) (shiftW ms) 31 0
+def add3W (x y z : WordOf α) : BuilderOf m α (WordOf α) :=
+  majorities L x y z 31 >>= fun ms ↦
+    sumW L (xor3W L x y z) (shiftW L ms) <$>
+      rippleCarries L (xor3W L x y z) (shiftW L ms) 31 L.zero
+
+end Gadgets
+
+/-! ## Carrying the gadgets -/
+
+section Natural
+
+variable {α β : Type} {L : Lin m α} {M : Lin m β} {φ : α → β}
+
+theorem map_xorW (h : L.Hom M φ) (x y : WordOf α) :
+    (xorW L x y).map φ = xorW M (x.map φ) (y.map φ) := by
+  ext i hi; simp [xorW, h.add]
+
+theorem map_rotrW (φ : α → β) (x : WordOf α) (n : ℕ) :
+    (rotrW x n).map φ = rotrW (x.map φ) n := by
+  ext i hi; simp [rotrW]
+
+theorem map_litW (h : L.Hom M φ) (cpos : Pos m) (c : UInt32) :
+    (litW L cpos c).map φ = litW M cpos c := by
+  ext i hi
+  simp only [litW, Vector.getElem_map, Vector.getElem_ofFn]
+  split <;> simp [h.var, h.zero]
+
+theorem map_inW (h : L.Hom M φ) (b : ℕ) : (inW L b).map φ = inW M b := by
+  ext i hi; simp [inW, h.var]
+
+theorem map_sumW (h : L.Hom M φ) (p q : WordOf α) (cs : List α) :
+    (sumW L p q cs).map φ = sumW M (p.map φ) (q.map φ) (cs.map φ) := by
+  ext i hi; simp [sumW, h.add, ← h.zero]
+
+theorem map_xor3W (h : L.Hom M φ) (x y z : WordOf α) :
+    (xor3W L x y z).map φ = xor3W M (x.map φ) (y.map φ) (z.map φ) := by
+  ext i hi; simp [xor3W, h.add]
+
+theorem map_shiftW (h : L.Hom M φ) (ms : List α) : (shiftW L ms).map φ = shiftW M (ms.map φ) := by
+  ext i hi; simp only [shiftW, Vector.getElem_map, Vector.getElem_ofFn]
+  split <;> simp [← h.zero]
+
+theorem natural_addCarries (h : L.Hom M φ) (x y : WordOf α) (n : ℕ) (c : α) :
+    Natural φ (List.map φ) (addCarries L x y n c)
+      (addCarries M (x.map φ) (y.map φ) n (φ c)) := by
+  induction n generalizing c with
+  | zero => exact natural_pure rfl
+  | succ n ih =>
+    simp only [addCarries]
+    refine natural_bind (natural_mul h (by simp [h.add]) (by simp [h.add])) fun g ↦ ?_
+    rw [← h.add]
+    exact natural_bind (ih _) fun _ ↦ natural_pure rfl
+
+theorem natural_addW (h : L.Hom M φ) {x y : WordOf α} {x' y' : WordOf β} (hx : x.map φ = x')
+    (hy : y.map φ = y') : Natural φ (Vector.map φ) (addW L x y) (addW M x' y') := by
+  subst hx hy
+  rw [addW, addW, ← h.zero]
+  exact natural_map (natural_addCarries h x y 31 L.zero) fun _ ↦ map_sumW h ..
+
+theorem natural_majorities (h : L.Hom M φ) (x y z : WordOf α) (n : ℕ) :
+    Natural φ (List.map φ) (majorities L x y z n)
+      (majorities M (x.map φ) (y.map φ) (z.map φ) n) := by
+  induction n with
+  | zero => exact natural_pure rfl
+  | succ n ih =>
+    simp only [majorities]
+    refine natural_bind (natural_mul h (by simp [h.add]) (by simp [h.add])) fun g ↦ ?_
+    exact natural_bind ih fun _ ↦ natural_pure (by simp [h.add])
+
+theorem natural_rippleCarries (h : L.Hom M φ) (p q : WordOf α) (n : ℕ) (c : α) :
+    Natural φ (List.map φ) (rippleCarries L p q n c)
+      (rippleCarries M (p.map φ) (q.map φ) n (φ c)) := by
+  induction n generalizing c with
+  | zero => exact natural_pure rfl
+  | succ n ih =>
+    simp only [rippleCarries]
+    split
+    · refine natural_bind (natural_mul h (by simp [h.add]) (by simp [h.add])) fun g ↦ ?_
+      rw [← h.add]
+      exact natural_bind (ih _) fun _ ↦ natural_pure rfl
+    · exact natural_bind (ih _) fun _ ↦ natural_pure rfl
+
+theorem natural_add3W (h : L.Hom M φ) {x y z : WordOf α} {x' y' z' : WordOf β}
+    (hx : x.map φ = x') (hy : y.map φ = y') (hz : z.map φ = z') :
+    Natural φ (Vector.map φ) (add3W L x y z) (add3W M x' y' z') := by
+  subst hx hy hz
+  rw [add3W, add3W]
+  refine natural_bind (natural_majorities h x y z 31) fun ms ↦ ?_
+  rw [← map_xor3W h, ← map_shiftW h, ← h.zero]
+  exact natural_map (natural_rippleCarries h _ _ 31 L.zero) fun _ ↦ map_sumW h ..
+
+end Natural
 
 /-! ## Denotation -/
 
@@ -135,7 +237,7 @@ theorem den_unique {w : Pos m → Bool} {x : Word m} {u u' : UInt32} (h : Den w 
   exact (h ⟨i, hi⟩).symm.trans (h' ⟨i, hi⟩)
 
 theorem den_xorW {w : Pos m → Bool} {x y : Word m} {xu yu : UInt32} (hx : Den w x xu)
-    (hy : Den w y yu) : Den w (xorW x y) (xu ^^^ yu) := by
+    (hy : Den w y yu) : Den w (xorW (formLin m) x y) (xu ^^^ yu) := by
   intro i
   rw [xorW, Fin.getElem_fin, Vector.getElem_ofFn, eval_xor, hx, hy]
   simp
@@ -153,7 +255,7 @@ theorem den_rotrW {w : Pos m → Bool} {x : Word m} {xu : UInt32} (hx : Den w x 
     simp only [i.isLt, decide_true, Bool.true_and]
 
 theorem den_litW {w : Pos m → Bool} {cpos : Pos m} (hc : w cpos = true) (u : UInt32) :
-    Den w (litW cpos u) u := by
+    Den w (litW (formLin m) cpos u) u := by
   intro i
   rw [litW, Fin.getElem_fin, Vector.getElem_ofFn]
   split_ifs with h
@@ -163,7 +265,7 @@ theorem den_litW {w : Pos m → Bool} {cpos : Pos m} (hc : w cpos = true) (u : U
 
 /-- An input word denotes the value whose bits the block holds at its positions. -/
 theorem den_inW {w : Pos m → Bool} {b : ℕ} {u : UInt32}
-    (h : ∀ i : Fin 32, w (pos (b + i)) = u.toBitVec.getLsbD i) : Den w (inW b) u := by
+    (h : ∀ i : Fin 32, w (pos (b + i)) = u.toBitVec.getLsbD i) : Den w (inW (formLin m) b) u := by
   intro i
   rw [inW, Fin.getElem_fin, Vector.getElem_ofFn, eval_var]
   exact h i
@@ -172,24 +274,24 @@ theorem den_inW {w : Pos m → Bool} {b : ℕ} {u : UInt32}
 def readWord (w : Pos m → Bool) (b : ℕ) : UInt32 := ⟨BitVec.ofFnLE fun i : Fin 32 ↦ w (pos (b + i))⟩
 
 /-- The input word at `b` denotes the word the block holds there. -/
-theorem den_readWord (w : Pos m → Bool) (b : ℕ) : Den w (inW b) (readWord w b) :=
+theorem den_readWord (w : Pos m → Bool) (b : ℕ) : Den w (inW (formLin m) b) (readWord w b) :=
   den_inW fun i ↦ by simp [readWord]
 
 /-! ## The ripple adder -/
 
 private theorem run_addCarries_zero (x y : Word m) (c : Form m) (σ : BuildState m) :
-    (addCarries x y 0 c).run σ = ([c], σ) := rfl
+    (addCarries (formLin m) x y 0 c).run σ = ([c], σ) := rfl
 
 private theorem run_addCarries_succ (x y : Word m) (n : ℕ) (c : Form m) (σ : BuildState m) :
-    (addCarries x y (n + 1) c).run σ =
-      let r := (addCarries x y n (c ^^^ Form.var (pos σ.next))).run
+    (addCarries (formLin m) x y (n + 1) c).run σ =
+      let r := (addCarries (formLin m) x y n (c ^^^ Form.var (pos σ.next))).run
         { next := σ.next + 1,
           gates := σ.gates.push
             (pos σ.next, ⟨x[30 - n]'(by omega) ^^^ c, y[30 - n]'(by omega) ^^^ c⟩) }
       (c :: r.1, r.2) := rfl
 
 private theorem addCarries_grows (x y : Word m) (n : ℕ) (c : Form m) :
-    Grows (addCarries x y n c) := by
+    Grows (addCarries (formLin m) x y n c) := by
   induction n generalizing c with
   | zero => intro σ kg h; rw [run_addCarries_zero]; exact h
   | succ n ih =>
@@ -203,8 +305,9 @@ private theorem addCarries_spec (x y : Word m) (z : Pos m → Bool) (xv yv : Bit
     (hx : ∀ i : Fin 32, x[i].eval z = xv.getLsbD i) (hy : ∀ i : Fin 32, y[i].eval z = yv.getLsbD i)
     (n : ℕ) (c : Form m) (σ : BuildState m) (hn : n ≤ 31)
     (hc : c.eval z = BitVec.carry (31 - n) xv yv false)
-    (hz : GatesHold ((addCarries x y n c).run σ).2 z) (j : ℕ) (hj : j ≤ n) :
-    (((addCarries x y n c).run σ).1.getD j 0).eval z = BitVec.carry (31 - n + j) xv yv false := by
+    (hz : GatesHold ((addCarries (formLin m) x y n c).run σ).2 z) (j : ℕ) (hj : j ≤ n) :
+    (((addCarries (formLin m) x y n c).run σ).1.getD j 0).eval z =
+      BitVec.carry (31 - n + j) xv yv false := by
   induction n generalizing c σ j with
   | zero =>
     obtain rfl : j = 0 := by omega
@@ -228,12 +331,13 @@ private theorem addCarries_spec (x y : Word m) (z : Pos m → Bool) (xv yv : Bit
         show 31 - n + j = 31 - (n + 1) + (j + 1) by omega]
 
 private theorem run_addW (x y : Word m) (σ : BuildState m) :
-    (addW x y).run σ =
-      (sumW x y ((addCarries x y 31 0).run σ).1, ((addCarries x y 31 0).run σ).2) := by
+    (addW (formLin m) x y).run σ =
+      (sumW (formLin m) x y ((addCarries (formLin m) x y 31 0).run σ).1,
+        ((addCarries (formLin m) x y 31 0).run σ).2) := by
   rw [addW, StateT.run_map]
   rfl
 
-theorem grows_addW (x y : Word m) : Grows (addW x y) := by
+theorem grows_addW (x y : Word m) : Grows (addW (formLin m) x y) := by
   intro σ kg h
   rw [run_addW]
   dsimp only
@@ -241,7 +345,7 @@ theorem grows_addW (x y : Word m) : Grows (addW x y) := by
 
 /-- The ripple adder is sound: if its gates hold, its output denotes the sum of its inputs. -/
 theorem sound_addW {w : Pos m → Bool} {x y : Word m} {xu yu : UInt32} (hx : Den w x xu)
-    (hy : Den w y yu) : Sound w (addW x y) (fun o ↦ Den w o (xu + yu)) := by
+    (hy : Den w y yu) : Sound w (addW (formLin m) x y) (fun o ↦ Den w o (xu + yu)) := by
   intro σ hz i
   rw [run_addW] at hz ⊢
   dsimp only at hz ⊢
@@ -282,18 +386,19 @@ theorem carry_save (x y z : BitVec 32) :
     Nat.add_mod_mod]
 
 private theorem run_majorities_zero (x y z : Word m) (σ : BuildState m) :
-    (majorities x y z 0).run σ = ([], σ) := rfl
+    (majorities (formLin m) x y z 0).run σ = ([], σ) := rfl
 
 private theorem run_majorities_succ (x y z : Word m) (n : ℕ) (σ : BuildState m) :
-    (majorities x y z (n + 1)).run σ =
-      let r := (majorities x y z n).run
+    (majorities (formLin m) x y z (n + 1)).run σ =
+      let r := (majorities (formLin m) x y z n).run
         { next := σ.next + 1,
           gates := σ.gates.push (pos σ.next,
             ⟨x[30 - n]'(by omega) ^^^ z[30 - n]'(by omega),
               y[30 - n]'(by omega) ^^^ z[30 - n]'(by omega)⟩) }
       ((Form.var (pos σ.next) ^^^ z[30 - n]'(by omega)) :: r.1, r.2) := rfl
 
-private theorem majorities_grows (x y z : Word m) (n : ℕ) : Grows (majorities x y z n) := by
+private theorem majorities_grows (x y z : Word m) (n : ℕ) :
+    Grows (majorities (formLin m) x y z n) := by
   induction n with
   | zero => intro σ kg h; rw [run_majorities_zero]; exact h
   | succ n ih =>
@@ -306,9 +411,10 @@ private theorem majorities_grows (x y z : Word m) (n : ℕ) : Grows (majorities 
 private theorem majorities_spec (x y z : Word m) (w : Pos m → Bool) (xv yv zv : BitVec 32)
     (hx : ∀ i : Fin 32, x[i].eval w = xv.getLsbD i) (hy : ∀ i : Fin 32, y[i].eval w = yv.getLsbD i)
     (hz : ∀ i : Fin 32, z[i].eval w = zv.getLsbD i)
-    (n : ℕ) (σ : BuildState m) (hn : n ≤ 31) (hw : GatesHold ((majorities x y z n).run σ).2 w)
+    (n : ℕ) (σ : BuildState m) (hn : n ≤ 31)
+    (hw : GatesHold ((majorities (formLin m) x y z n).run σ).2 w)
     (j : ℕ) (hj : j < n) :
-    (((majorities x y z n).run σ).1.getD j 0).eval w =
+    (((majorities (formLin m) x y z n).run σ).1.getD j 0).eval w =
       (xv &&& yv ||| xv &&& zv ||| yv &&& zv).getLsbD (31 - n + j) := by
   induction n generalizing σ j with
   | zero => omega
@@ -328,12 +434,12 @@ private theorem majorities_spec (x y z : Word m) (w : Pos m → Bool) (xv yv zv 
         show 31 - n + j = 31 - (n + 1) + (j + 1) by omega]
 
 private theorem run_rippleCarries_zero (p q : Word m) (c : Form m) (σ : BuildState m) :
-    (rippleCarries p q 0 c).run σ = ([c], σ) := rfl
+    (rippleCarries (formLin m) p q 0 c).run σ = ([c], σ) := rfl
 
 private theorem run_rippleCarries_gate (p q : Word m) (n : ℕ) (c : Form m) (σ : BuildState m)
     (h : 1 ≤ 30 - n) :
-    (rippleCarries p q (n + 1) c).run σ =
-      let r := (rippleCarries p q n (c ^^^ Form.var (pos σ.next))).run
+    (rippleCarries (formLin m) p q (n + 1) c).run σ =
+      let r := (rippleCarries (formLin m) p q n (c ^^^ Form.var (pos σ.next))).run
         { next := σ.next + 1,
           gates := σ.gates.push
             (pos σ.next, ⟨p[30 - n]'(by omega) ^^^ c, q[30 - n]'(by omega) ^^^ c⟩) }
@@ -343,14 +449,14 @@ private theorem run_rippleCarries_gate (p q : Word m) (n : ℕ) (c : Form m) (σ
 
 private theorem run_rippleCarries_skip (p q : Word m) (n : ℕ) (c : Form m) (σ : BuildState m)
     (h : ¬ 1 ≤ 30 - n) :
-    (rippleCarries p q (n + 1) c).run σ =
-      let r := (rippleCarries p q n c).run σ
+    (rippleCarries (formLin m) p q (n + 1) c).run σ =
+      let r := (rippleCarries (formLin m) p q n c).run σ
       (c :: r.1, r.2) := by
   simp only [rippleCarries, h, ↓reduceIte]
   rfl
 
 private theorem rippleCarries_grows (p q : Word m) (n : ℕ) (c : Form m) :
-    Grows (rippleCarries p q n c) := by
+    Grows (rippleCarries (formLin m) p q n c) := by
   induction n generalizing c with
   | zero => intro σ kg h; rw [run_rippleCarries_zero]; exact h
   | succ n ih =>
@@ -368,8 +474,8 @@ private theorem rippleCarries_spec (p q : Word m) (w : Pos m → Bool) (pv qv : 
     (hq0 : qv.getLsbD 0 = false) (hc0 : BitVec.carry 0 pv qv false = false)
     (n : ℕ) (c : Form m) (σ : BuildState m) (hn : n ≤ 31)
     (hc : c.eval w = BitVec.carry (31 - n) pv qv false)
-    (hw : GatesHold ((rippleCarries p q n c).run σ).2 w) (j : ℕ) (hj : j ≤ n) :
-    (((rippleCarries p q n c).run σ).1.getD j 0).eval w =
+    (hw : GatesHold ((rippleCarries (formLin m) p q n c).run σ).2 w) (j : ℕ) (hj : j ≤ n) :
+    (((rippleCarries (formLin m) p q n c).run σ).1.getD j 0).eval w =
       BitVec.carry (31 - n + j) pv qv false := by
   induction n generalizing c σ j with
   | zero =>
@@ -405,15 +511,16 @@ private theorem rippleCarries_spec (p q : Word m) (w : Pos m → Bool) (pv qv : 
           show 31 - n + j = 31 - (n + 1) + (j + 1) by omega]
 
 private theorem run_add3W (x y z : Word m) (σ : BuildState m) :
-    (add3W x y z).run σ =
-      let r1 := (majorities x y z 31).run σ
-      let r2 := (rippleCarries (xor3W x y z) (shiftW r1.1) 31 0).run r1.2
-      (sumW (xor3W x y z) (shiftW r1.1) r2.1, r2.2) := by
+    (add3W (formLin m) x y z).run σ =
+      let r1 := (majorities (formLin m) x y z 31).run σ
+      let r2 := (rippleCarries (formLin m) (xor3W (formLin m) x y z) (shiftW (formLin m) r1.1) 31
+        0).run r1.2
+      (sumW (formLin m) (xor3W (formLin m) x y z) (shiftW (formLin m) r1.1) r2.1, r2.2) := by
   rw [add3W, StateT.run_bind]
   simp only [StateT.run_map]
   rfl
 
-theorem grows_add3W (x y z : Word m) : Grows (add3W x y z) := by
+theorem grows_add3W (x y z : Word m) : Grows (add3W (formLin m) x y z) := by
   intro σ kg h
   rw [run_add3W]
   dsimp only
@@ -423,11 +530,11 @@ theorem grows_add3W (x y z : Word m) : Grows (add3W x y z) := by
 three inputs. -/
 theorem sound_add3W {w : Pos m → Bool} {x y z : Word m} {xu yu zu : UInt32} (hx : Den w x xu)
     (hy : Den w y yu) (hz : Den w z zu) :
-    Sound w (add3W x y z) (fun o ↦ Den w o (xu + yu + zu)) := by
+    Sound w (add3W (formLin m) x y z) (fun o ↦ Den w o (xu + yu + zu)) := by
   intro σ hw i
   rw [run_add3W] at hw ⊢
   dsimp only at hw ⊢
-  generalize hr1 : (majorities x y z 31).run σ = r1 at hw ⊢
+  generalize hr1 : (majorities (formLin m) x y z 31).run σ = r1 at hw ⊢
   -- the majority gates hold: they are a prefix of the gates
   have hw1 : GatesHold r1.2 w := fun kg hkg ↦ hw kg (rippleCarries_grows _ _ _ _ _ _ hkg)
   rw [UInt32.toBitVec_add, UInt32.toBitVec_add, carry_save]
@@ -435,11 +542,11 @@ theorem sound_add3W {w : Pos m → Bool} {x y z : Word m} {xu yu zu : UInt32} (h
   set yv := yu.toBitVec
   set zv := zu.toBitVec
   set mv := xv &&& yv ||| xv &&& zv ||| yv &&& zv
-  have hp : ∀ i : Fin 32, (xor3W x y z)[i].eval w = (xv ^^^ yv ^^^ zv).getLsbD i := by
+  have hp : ∀ i : Fin 32, (xor3W (formLin m) x y z)[i].eval w = (xv ^^^ yv ^^^ zv).getLsbD i := by
     intro i
     rw [xor3W, Fin.getElem_fin, Vector.getElem_ofFn, eval_xor, eval_xor, hx, hy, hz]
     simp [xv, yv, zv]
-  have hq : ∀ i : Fin 32, (shiftW r1.1)[i].eval w = (mv <<< 1).getLsbD i := by
+  have hq : ∀ i : Fin 32, (shiftW (formLin m) r1.1)[i].eval w = (mv <<< 1).getLsbD i := by
     intro i
     rw [shiftW, Fin.getElem_fin, Vector.getElem_ofFn, BitVec.getLsbD_shiftLeft]
     split_ifs with h0
@@ -473,7 +580,7 @@ theorem SubW.mono {x : Word m} {n n' : ℕ} (h : S.SubW x n) (hn : n ≤ n') : S
   fun i ↦ (h i).mono hn
 
 theorem subW_xorW {x y : Word m} {n : ℕ} (hx : S.SubW x n) (hy : S.SubW y n) :
-    S.SubW (xorW x y) n := by
+    S.SubW (xorW (formLin m) x y) n := by
   intro i
   rw [xorW, Fin.getElem_fin, Vector.getElem_ofFn]
   exact (hx i).xor (hy i)
@@ -484,7 +591,7 @@ theorem subW_rotrW {x : Word m} {n : ℕ} (hx : S.SubW x n) (r : ℕ) : S.SubW (
   exact hx ⟨_, Nat.mod_lt _ (by decide)⟩
 
 theorem subW_litW {cpos : Pos m} (hc : S.avail.getLsbD cpos = true) (c : UInt32) (n : ℕ) :
-    S.SubW (litW cpos c) n := by
+    S.SubW (litW (formLin m) cpos c) n := by
   intro i
   rw [litW, Fin.getElem_fin, Vector.getElem_ofFn]
   split_ifs
@@ -493,7 +600,7 @@ theorem subW_litW {cpos : Pos m} (hc : S.avail.getLsbD cpos = true) (c : UInt32)
 
 /-- An input word reads only start positions. -/
 theorem subW_inW {b : ℕ} (hb : b + 32 ≤ 2 ^ m) (h : ∀ i < 32, S.avail.getLsbD (b + i) = true)
-    (n : ℕ) : S.SubW (inW b) n := by
+    (n : ℕ) : S.SubW (inW (formLin m) b) n := by
   intro i
   rw [inW, Fin.getElem_fin, Vector.getElem_ofFn]
   exact subN_start (by rw [pos_val (by omega)]; exact h i i.isLt) n
@@ -513,14 +620,14 @@ theorem subN_getD {l : List (Form m)} {n : ℕ} (h : S.SubL l n) (i : ℕ) :
       exact ih (fun g hg ↦ h g (List.mem_cons_of_mem _ hg)) i
 
 theorem subW_sumW {p q : Word m} {cs : List (Form m)} {n : ℕ} (hp : S.SubW p n)
-    (hq : S.SubW q n) (hc : S.SubL cs n) : S.SubW (sumW p q cs) n := by
+    (hq : S.SubW q n) (hc : S.SubL cs n) : S.SubW (sumW (formLin m) p q cs) n := by
   intro i
   rw [sumW, Fin.getElem_fin, Vector.getElem_ofFn]
   exact ((hp i).xor (hq i)).xor (subN_getD hc i)
 
 private theorem ok_addCarries (x y : Word m) (n : ℕ) :
     ∀ (c : Form m) (n₀ : ℕ), S.SubW x n₀ → S.SubW y n₀ → S.SubN c n₀ →
-      S.Ok n₀ (addCarries x y n c) n S.SubL := by
+      S.Ok n₀ (addCarries (formLin m) x y n c) n S.SubL := by
   induction n with
   | zero =>
     intro c n₀ _ _ hc
@@ -539,13 +646,14 @@ private theorem ok_addCarries (x y : Word m) (n : ℕ) :
 
 /-- The ripple adder records `31` gates and its output reads only available positions. -/
 theorem ok_addW {n₀ : ℕ} {x y : Word m} (hx : S.SubW x n₀) (hy : S.SubW y n₀) :
-    S.Ok n₀ (addW x y) 31 S.SubW := by
+    S.Ok n₀ (addW (formLin m) x y) 31 S.SubW := by
   rw [addW]
   exact ok_map (ok_addCarries x y 31 0 n₀ hx hy (subN_zero _)) fun _ _ hn hcs ↦
     subW_sumW (hx.mono hn) (hy.mono hn) hcs
 
 private theorem ok_majorities (x y z : Word m) (n : ℕ) :
-    ∀ n₀ : ℕ, S.SubW x n₀ → S.SubW y n₀ → S.SubW z n₀ → S.Ok n₀ (majorities x y z n) n S.SubL := by
+    ∀ n₀ : ℕ, S.SubW x n₀ → S.SubW y n₀ → S.SubW z n₀ →
+      S.Ok n₀ (majorities (formLin m) x y z n) n S.SubL := by
   induction n with
   | zero =>
     intro n₀ _ _ _
@@ -565,7 +673,7 @@ private theorem ok_majorities (x y z : Word m) (n : ℕ) :
 
 private theorem ok_rippleCarries (p q : Word m) (n : ℕ) :
     ∀ (c : Form m) (n₀ : ℕ), S.SubW p n₀ → S.SubW q n₀ → S.SubN c n₀ →
-      S.Ok n₀ (rippleCarries p q n c) (min n 30) S.SubL := by
+      S.Ok n₀ (rippleCarries (formLin m) p q n c) (min n 30) S.SubL := by
   induction n with
   | zero =>
     intro c n₀ _ _ hc
@@ -589,12 +697,13 @@ private theorem ok_rippleCarries (p q : Word m) (n : ℕ) :
       · exact (hrest f hf).mono hn₃
 
 theorem subW_xor3W {x y z : Word m} {n : ℕ} (hx : S.SubW x n) (hy : S.SubW y n)
-    (hz : S.SubW z n) : S.SubW (xor3W x y z) n := by
+    (hz : S.SubW z n) : S.SubW (xor3W (formLin m) x y z) n := by
   intro i
   rw [xor3W, Fin.getElem_fin, Vector.getElem_ofFn]
   exact ((hx i).xor (hy i)).xor (hz i)
 
-theorem subW_shiftW {ms : List (Form m)} {n : ℕ} (h : S.SubL ms n) : S.SubW (shiftW ms) n := by
+theorem subW_shiftW {ms : List (Form m)} {n : ℕ} (h : S.SubL ms n) :
+    S.SubW (shiftW (formLin m) ms) n := by
   intro i
   rw [shiftW, Fin.getElem_fin, Vector.getElem_ofFn]
   split_ifs
@@ -604,7 +713,7 @@ theorem subW_shiftW {ms : List (Form m)} {n : ℕ} (h : S.SubL ms n) : S.SubW (s
 /-- The fused three-operand adder records `61` gates and its output reads only available
 positions. -/
 theorem ok_add3W {n₀ : ℕ} {x y z : Word m} (hx : S.SubW x n₀) (hy : S.SubW y n₀)
-    (hz : S.SubW z n₀) : S.Ok n₀ (add3W x y z) 61 S.SubW := by
+    (hz : S.SubW z n₀) : S.Ok n₀ (add3W (formLin m) x y z) 61 S.SubW := by
   rw [add3W]
   refine ok_bind (ok_majorities x y z 31 n₀ hx hy hz) (by omega) fun ms n₁ hn₁ hms ↦ ?_
   have hp := subW_xor3W (hx.mono hn₁) (hy.mono hn₁) (hz.mono hn₁)
