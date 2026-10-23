@@ -96,7 +96,7 @@ private theorem flush_totalDegree (k : Fin 16) : (flush.2.get k).totalDegree ≤
 def boundary : BoundaryBlock shape where
   κ := 1
   side := .pull
-  coords := Vector.ofFn fun k ↦ if k.val = 0 then .known ⟨#v[1, 1]⟩ else .const 0
+  coords := Vector.ofFn fun k ↦ if k.val = 0 then .ofColumn ⟨#v[1, 1]⟩ else .const 0
 
 /-- The toy instance. An `abbrev`, so that its fields reduce wherever a test names it. -/
 abbrev toy : M3Instance where

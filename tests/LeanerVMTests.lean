@@ -63,6 +63,8 @@ import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
 import LeanerVMTests.Protocol.RandomOracleGame
+import LeanerVMTests.Protocol.RustProof
+import LeanerVMTests.Protocol.RustProofData
 import LeanerVMTests.Protocol.SideProduct
 import LeanerVMTests.Protocol.Spine
 import LeanerVMTests.Protocol.Stack

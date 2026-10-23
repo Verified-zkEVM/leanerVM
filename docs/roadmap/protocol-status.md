@@ -994,6 +994,31 @@ blueprint has the three edits these definitions asked of it: Layer 11's threshol
 (an earlier answer to another input is a collision). Still owed: the flip, the proof's roots,
 `core` and `misbehaves_rom`.
 
+*On merge* of the executable verifier's stacked pull requests (on the proof object's and the
+Merkle trees', with the fast field arithmetic merged), the rest of Layer 12's verifier is on
+`main`, slice by slice.
+
+- **The setup** (`Protocol/Verify/Setup.lean`): `setup?` reads the announced sizes and rate off
+  the stream and makes `read_public`'s checks before any hash; `leanVm prog s`, `stackMu`,
+  `nLanes` (the level-0 rows' committed lanes, `witness.rs:97-101`) and `ladderOf` are what they
+  fix; `walkSetup` observes the sizes and reads the root; `samples`, `readRound(s)` and
+  `replayRounds` are the walk's primitives and the algebra's round decoding. Two changes keep the
+  verifier from building what it never reads: a known boundary coordinate carries its column as a
+  thunk and the evaluator of its extension (`Coord.known`, `Coord.ofColumn`; leanISA's
+  `idxCoord`, the closed form `idxColumnEval`, and `entryCoord`), so that the leanISA instance's
+  boundary no longer computes the `2^logMem` index column; and two `@[csimp]` theorems
+  (`LeanIsa.opcodeTable_eq_tab`, `LeanIsa.width_eq_tab`: each opcode table is converted from its
+  component once), beside the stateful provers' `Blocks.selectorWeight_eq_selectorWeightFast` (a
+  block's selector weight is a product, not an entry of a whole Lagrange basis). The fixture:
+  `scripts/dump-proof-rust.sh` proves the
+  division program of the Rust suite (`lean_compiler/tests/suite/field_div.rs`, with its fill
+  blocks, 2048 instructions) at the test rate and prints the program, its hash, the public input,
+  the stream (770 scalars) and the pruned openings (four levels) as the text of
+  `tests/LeanerVMTests/Protocol/RustProofData.lean`; `RustProof.lean` loads it, checks the
+  program against the Rust's program hash, and checks the setup against the second verifier's
+  reading (`μ = 20`, 33 lanes, queries `224, 56, 32, 22`, `μ_bus = 18`, five boundary columns,
+  104 column values) and its rejections.
+
 ## Upstream watch
 
 External work that may feed or replace a hole. The state of each is on GitHub.

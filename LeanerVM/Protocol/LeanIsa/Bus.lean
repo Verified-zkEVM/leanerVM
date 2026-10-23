@@ -527,12 +527,12 @@ theorem boundaryTuples_push :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxColumn, powersTable, Vector.get_ofFn]
+    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
-    have hl : ((Coord.known (idxColumn prog.logSize) :: Coord.const 1 ::
-        (List.finRange 8).map fun k ↦ (Coord.known (entryColumn prog k) :
+    have hl : ((idxCoord prog.logSize :: Coord.const 1 ::
+        (List.finRange 8).map fun k ↦ (entryCoord prog k :
           Coord (shape prog s) prog.logSize)).map
         fun co ↦ (leanIsaInstance F prog s).coordCell q co i) = gpow i :: 1 :: entryList i := by
       simp only [List.map_cons, List.map_map]
@@ -558,12 +558,12 @@ theorem boundaryTuples_pull :
     rfl
   · refine List.map_congr_left fun x _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         x).trans ?_
-    simp [M3Instance.coordCell, idxColumn, powersTable, Vector.get_ofFn]
+    simp [M3Instance.coordCell, idxCoord, Thunk.get, idxColumn, powersTable, Vector.get_ofFn]
     rfl
   · refine List.map_congr_left fun i _ ↦ (coords_coordCell (leanIsaInstance F prog s) _ _ q
         i).trans ?_
-    have hl : ((Coord.known (idxColumn prog.logSize) :: Coord.committed bfcntCol rfl ::
-        (List.finRange 8).map fun k ↦ (Coord.known (entryColumn prog k) :
+    have hl : ((idxCoord prog.logSize :: Coord.committed bfcntCol rfl ::
+        (List.finRange 8).map fun k ↦ (entryCoord prog k :
           Coord (shape prog s) prog.logSize)).map
         fun co ↦ (leanIsaInstance F prog s).coordCell q co i) =
           gpow i :: cell F prog s q bfcntCol i :: entryList i := by
