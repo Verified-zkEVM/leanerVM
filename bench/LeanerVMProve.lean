@@ -173,12 +173,51 @@ def proveTimed (fuel ρ : ℕ) : IO (Option (Proof PrunedMerklePaths)) := do
     IO.println "inadmissible sizes or rate"
     return none
 
+/-- Time one step, its value forced. -/
+def timed {α : Type} (name : String) (f : Unit → α) : IO α := do
+  let t0 ← IO.monoNanosNow
+  let r ← force (f ())
+  let t1 ← IO.monoNanosNow
+  IO.println s!"  {name}: {(t1 - t0).toFloat / 1e9} s"
+  (← IO.getStdout).flush
+  pure r
+
+/-- The commitment's steps timed one by one: the level-0 word, its stored rows, the tree, and the
+commitment component run against the wire. -/
+def probeCommit (fuel ρ : ℕ) : IO Unit := do
+  let some s := Sizes.ofWitness theWitness | IO.println "no sizes"
+  if hs : s.Admissible fillProg ∧ validRate ρ then
+    let C := leanIsaChain fillProg s hs.1 ρ hs.2
+    let hμ := leanIsaChain_height Blake2sFlock.blake2sFlockSpec fillProg s hs.1 ρ hs.2
+    IO.println s!"level 0: {C.sh.ℓ} folds, {C.κ} variables left, rate {C.sh.R}, {C.sh.t} queries"
+    let q ← timed "the stack" fun _ ↦ stackOf Blake2sFlock.blake2sFlockSpec fillProg s theWitness
+    let r ← timed "the level-0 word's rows" fun _ ↦
+      Whir.kwordRows C.sh.ℓ C.κ C.sh.R (hμ.symm ▸ q.values)
+    let x : Whir.KWord C.sh.ℓ (C.κ + C.sh.R) C.sh.t := Whir.KWord.ofRows r
+    let rows ← timed "its stored rows" fun _ ↦ level0Rows (nLanes fillProg s) x
+    let c ← timed "the tree" fun _ ↦ merkleCommitWith blake2sBytes (2 ^ C.sh.ℓ) rows
+    IO.println s!"  root word 0: {c.root[0]}"
+    let H : List UInt8 → IO Digest := fun b ↦ pure (blake2sBytes b)
+    let t0 ← IO.monoNanosNow
+    let r ← runProof fillProg mulInput (do
+      let _ ← Prover.runWith (commitCodec (proveOps H fuel) (nLanes fillProg s))
+        (commitWordCached (leanIsaInstance Blake2sFlock.blake2sFlockSpec fillProg s) hμ
+          (C.ladder.headPar C.pars).hb).toProver
+        (mulInput, fun i ↦ i.elim0) q
+      pure ())
+    let t1 ← IO.monoNanosNow
+    IO.println s!"  the commitment component against the wire: {(t1 - t0).toFloat / 1e9} s, {(r.map (·.stream.length))} scalars"
+  else IO.println "inadmissible"
+
 end LeanerVMProve
 
 open LeanerVMProve in
 /-- `leanervm-prove [file] [rate] [fuel] [pure]`: prove the vectors' witness, write the proof,
 read it back and check it. -/
 def main (args : List String) : IO UInt32 := do
+  if args.head? == some "probe" then
+    probeCommit (2 ^ 24) (((args[1]?).bind String.toNat?).getD 1)
+    return 0
   let file := args.getD 0 "tests/vectors/fill.proof"
   let ρ := ((args[1]?).bind String.toNat?).getD 1
   let fuel := ((args[2]?).bind String.toNat?).getD (2 ^ 24)

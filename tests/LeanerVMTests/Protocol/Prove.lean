@@ -26,9 +26,15 @@ open LeanerVMTests.Arithmetization.Statement
 
 /-! ## The run against a wire -/
 
+instance : ∀ i, OracleInterface ((say E ++ₚ draw E).Message i) :=
+  msgAppend (instOracleInterfaceSay E) (instOracleInterfaceDraw E)
+
+instance : ∀ i, SampleableType ((say E ++ₚ draw E).Challenge i) :=
+  chalAppend (instSampleableTypeSay E) (instSampleableTypeDraw E)
+
 /-- A toy component: the prover sends `s + 1`, the statement becomes `s + m`, then a challenge
 `x` makes it `(s + m) · x`. -/
-def toy :=
+def toy : Component.Def E NoOracle Unit E NoOracle Unit (say E ++ₚ draw E) :=
   (Component.sendChecked (StmtIn := E) (StmtOut := E) (W := Unit) NoOracle E
     (fun p ↦ p.1.1 + 1) (fun _ _ ↦ true) (fun s m ↦ s + m)).append
   (Component.sampleChallenge (StmtIn := E) (StmtOut := E) (W := Unit) NoOracle E
@@ -45,7 +51,7 @@ def s0 : FsState := FsState.seed fillProg mulInput
 def stmt : E := E.ofLimbs (K.ofBits 5) (K.ofBits 7) 0
 
 /-- The toy run on the writer. -/
-def toyRun : Option ((say E ++ₚ draw E).FullTranscript × (E × ∀ i, NoOracle i) × Unit) ×
+def toyRun : Option (((say E ++ₚ draw E).FullTranscript × (E × (∀ i, NoOracle i)) × Unit) ×
     WriterState PrunedMerklePaths) :=
   Id.run (runWrite (Prover.runWith toyCodec toy.red.prover (stmt, fun i ↦ i.elim0) ()) s0)
 
@@ -80,7 +86,8 @@ def counterOps : ChainOps (StateM ℕ) where
 -- The writer's positions are the walk's, with as many squeezes, at the deployed levels' depths
 -- and query counts.
 #guard [(14, 224), (11, 56), (8, 32), (7, 22), (19, 1)].all fun (b, t) ↦
-  (positionsWith counterOps.sample b t t).run 0 == (walkPositions counterOps b t t).run 0
+  Id.run ((positionsWith counterOps.sample b t t).run 0) ==
+    Id.run ((walkPositions counterOps b t t).run 0)
 
 /-! ## The committed rows -/
 

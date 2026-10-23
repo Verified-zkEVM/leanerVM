@@ -64,6 +64,7 @@ import LeanerVMTests.Protocol.Piop
 import LeanerVMTests.Protocol.PowerBatching
 import LeanerVMTests.Protocol.ProductTree
 import LeanerVMTests.Protocol.Proof
+import LeanerVMTests.Protocol.Prove
 import LeanerVMTests.Protocol.PublicInput
 import LeanerVMTests.Protocol.QueryRecord
 import LeanerVMTests.Protocol.RandomOracle
