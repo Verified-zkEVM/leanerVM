@@ -116,7 +116,8 @@ theorem selector_tables_completeAt (fs : String → ℕ) (cert : String → V �
     rw [this]
     match outs, ho with
     | [], _ => exact True.intro
-  · intro q hq
+  · rw [flatMap_loadsEv _ stPre (by decide +kernel)]
+    intro q hq
     obtain ⟨s, hs, hq⟩ := List.mem_filterMap.mp hq
     rcases stKind_cases (hkind s hs) with ⟨_, rfl⟩ | ⟨d, o, h | h, ho⟩ | ⟨o, rfl, ho⟩ |
       ⟨o, rfl, ho⟩ | ⟨a, rfl, ha⟩

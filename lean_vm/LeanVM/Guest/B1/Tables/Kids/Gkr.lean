@@ -96,7 +96,7 @@ theorem gkr_rounds_relIn {n : ℕ} (hn : n = 1 ∨ n = 2) {rd : Reader} {R : ℕ
 /-- `__loop29`'s statements before its `ret`. -/
 def l29Pre : List Stmt := l29Body.dropLast
 
-theorem l29Body_eq : l29Body = l29Pre ++ [.ret []] :=
+theorem l29Body_pre_eq : l29Body = l29Pre ++ [.ret []] :=
   (List.dropLast_append_getLast? (l := l29Body) (.ret []) rfl).symm
 
 theorem l29_flat : l29Pre.all Stmt.flat = true := by decide +kernel
@@ -126,11 +126,11 @@ theorem loop29_relIn {rd : Reader} {R : ℕ → Prop} {K : ℕ}
     obtain ⟨fn', hf', hpm, hb⟩ := l29Found
     rw [hf] at hf'
     obtain rfl := Option.some.inj hf'
-    refine relIn_of_flat hf (by rw [hb, l29Body_eq]) l29_flat hsem fun σ hpar hhl ↦ ?_
+    refine relIn_of_flat hf (by rw [hb, l29Body_pre_eq]) l29_flat hsem fun σ hpar hhl ↦ ?_
     rw [hpm] at hpar
     simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hpar
     obtain ⟨p0, p1, p2, p3⟩ := hpar
-    rw [hb, l29Body_eq, holdsList_append] at hhl
+    rw [hb, l29Body_pre_eq, holdsList_append] at hhl
     have hS := holds_of_mem_seq _ l29_seq hhl
     have m4 := hS _ (mem_of_slice (i := 0) (s := .atom (.mul (.n 4) (.n 0) (.n 0))) (by decide +kernel))
     have m5 := hS _ (mem_of_slice (i := 1) (s := .atom (.mul (.n 5) (.n 4) (.n 4))) (by decide +kernel))

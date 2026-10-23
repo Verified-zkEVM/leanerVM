@@ -61,7 +61,8 @@ theorem relIn_of_flat {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String
       (∀ s ∈ pre, DispOk σ s) ∧
       (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ R i) ∧
       ∀ c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ), c.taken = true →
-        coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ)) :
+        coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ))
+    (hnl : pre.all noLoadIte = true := by decide +kernel) :
     coreProgram.RelIn rd R f args rets := by
   refine relIn_of_sem hf hsem fun σ hp hh es vs' hw ↦ ?_
   obtain ⟨hd, hld, hk⟩ := H σ hp hh
@@ -71,7 +72,7 @@ theorem relIn_of_flat {C : CallRel} {rd : Reader} {R : ℕ → Prop} {f : String
   subst hes
   obtain ⟨-, -, -, hc, hl⟩ := flat_parts σ pre hfl
   refine ⟨fun A hA ↦ ?_, fun c hcm ht ↦ hk c (hc ▸ hcm) ht⟩
-  rw [hl] at hA
+  rw [hl, flatMap_loadsEv σ pre hnl] at hA
   obtain ⟨q, hq, rfl⟩ := List.mem_map.mp hA
   exact hld q hq
 
@@ -85,12 +86,13 @@ theorem relIn_of_flatRel {rd : Reader} {R : ℕ → Prop} {f : String} {fn : Fn}
       (∀ s ∈ pre, DispOk σ s) ∧
       (∀ q ∈ pre.filterMap Stmt.loadS, ∃ i, (σ q.1).limb 0 * gpow q.2 = gpow i ∧ R i) ∧
       ∀ c ∈ (pre.filterMap (Stmt.callSF σ)).map (Main.mkCall σ), c.taken = true →
-        coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ)) :
+        coreProgram.RelIn rd R c.f (c.args.map σ) (c.rets.map σ))
+    (hnl : pre.all noLoadIte = true := by decide +kernel) :
     coreProgram.RelIn rd R f args rets := by
   obtain ⟨fn', hf', hsem⟩ := (rel_iff coreProgram f args rets).mp h
   rw [hf, Option.some.injEq] at hf'
   subst hf'
-  exact relIn_of_flat hf hb hfl hsem H
+  exact relIn_of_flat hf hb hfl hsem H hnl
 
 /-- A load through a numbered value `.n p` with `(p, B)` in the table, at an offset below `B`;
 any other statement. -/
