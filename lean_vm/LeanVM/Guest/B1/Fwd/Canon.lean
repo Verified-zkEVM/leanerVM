@@ -174,6 +174,50 @@ theorem atoms_holds {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List Nat
     · exact h
     · exact holds_of_good (hg a ha) h
 
+
+/-! ## Pure atoms, and stores after the rest -/
+
+/-- The atoms whose equations are their relations: constants, sums, copies, products. -/
+def pureB : Atom → Bool
+  | .const .. | .add .. | .copy .. => true
+  | .mul d x y => decide (x.idx < d.idx) && decide (y.idx < d.idx)
+  | _ => false
+
+theorem holds_of_pure {σ : Val} {a : Atom} (hp : pureB a = true) (hg : Good rd S w σ a) :
+    a.Holds rd σ := by
+  cases a with
+  | const => exact hg
+  | add => exact hg
+  | copy => exact hg
+  | mul d x y =>
+    simp only [pureB, Bool.and_eq_true, decide_eq_true_eq] at hp
+    simp only [Good] at hg
+    rwa [ite_pos' hp] at hg
+  | _ => simp [pureB] at hp
+
+theorem pure_holds {σ : Val} {atoms : List Atom} (hg : ∀ a ∈ atoms, Good rd S w σ a) :
+    ∀ a ∈ atoms.filter pureB, a.Holds rd σ := fun a ha =>
+  holds_of_pure (List.mem_filter.mp ha).2 (hg a (List.mem_filter.mp ha).1)
+
+/-- **An evaluated block with stores holds**: the atoms but the stores `S` hold as in
+`atoms_holds` (their canonical inputs checked without the stores), then the stores, given the
+rest. -/
+theorem atoms_holds_stores {σ : Val} (hσ : ∀ v, σ v = σ (.n v.idx)) {A : List Nat}
+    {atoms : List Atom} (hk : canonChk A (atoms.filter (fun a => decide (a ∉ S))) = true)
+    (hg : ∀ a ∈ atoms, Good rd S w σ a) (hA : ∀ i ∈ A, IsCanonical128 (σ (.n i)))
+    (hn : ∀ a ∈ atoms, a ∉ S → needsSide a = true → a.Holds rd σ ∨ Side rd S σ a)
+    (hs : (∀ a ∈ atoms, a ∉ S → a.Holds rd σ) → ∀ a ∈ atoms, a ∈ S → a.Holds rd σ) :
+    ∀ a ∈ atoms, a.Holds rd σ := by
+  have h1 : ∀ a ∈ atoms, a ∉ S → a.Holds rd σ := by
+    have := atoms_holds hσ hk (fun a ha => hg a (List.mem_filter.mp ha).1) hA
+      (fun a ha hns => hn a (List.mem_filter.mp ha).1
+        (by simpa using (List.mem_filter.mp ha).2) hns)
+    exact fun a ha hS => this a (List.mem_filter.mpr ⟨ha, by simpa using hS⟩)
+  intro a ha
+  by_cases hS : a ∈ S
+  · exact hs h1 a ha hS
+  · exact h1 a ha hS
+
 /-! ## Blocks -/
 
 /-- A statement's relation, its continuation aside (`False` for a branch or a `ret`). -/
