@@ -85,7 +85,8 @@ theorem xLayer0_complete (hm : MemOK rd 64) (σ : Val) (hpre : XPre σ) (hPc : I
     (hsc : ∀ l < 16, IsCanonical128 (sibs l)) :
     Completes C rd 196 (xLayer 0 196 (.n 0)).2.1 (xLayer 0 196 (.n 0)).1 σ
       (fun σ' => IsCanonical128 (σ' (xLayer 0 196 (.n 0)).2.2) ∧
-        ∀ σ'', AgreeBelow (xLayer 0 196 (.n 0)).2.1 σ' σ'' → σ'' (.n 196) = rho ∧
+        ∀ σ'', AgreeBelow (xLayer 0 196 (.n 0)).2.1 σ' σ'' → σ'' (.n 196) = rho ∧ σ'' (.n 199) = c ∧
+          σ'' (.n 200) = d ∧
           (∀ q ≤ 19, σ'' (.n (cwState (xW 0 196) (xA 0 196 + 6) q).2.2) =
             ofK (gpow (nDigits 19 (dN (hcell [σ (.n 1), σ (xNode 0) + word (tw 12) 0 0, c, d, rho]).1) q))) ∧
           (∀ i < 58, σ'' (cwPos (xW 0 196) 19 (xA 0 196 + 6)
@@ -140,11 +141,15 @@ theorem xLayer0_complete (hm : MemOK rd 64) (σ : Val) (hpre : XPre σ) (hPc : I
           simp only [xNode, V.mk.injEq, true_and]; omega,
           hagd.apply (xNode_nb _ (by omega)), hpre.nodes _ (by omega)]
         exact canon_eOfNat _) hsc
-  refine (hcore.keep (Q := fun σ' => σ' (.n 196) = rho) (Q' := fun σ' => σ' (.n 196) = rho) hr196
-    (fun σ' he h => by rw [he.apply (Or.inl (by rw [hA]; norm_num))]; exact h)).mono le_rfl le_rfl
-    (fun σ' ⟨⟨hc', hk⟩, h196⟩ => ⟨hc', fun σ'' hag => ?_⟩)
+  refine (hcore.keep (Q := fun σ' => σ' (.n 196) = rho ∧ σ' (.n 199) = c ∧ σ' (.n 200) = d)
+    (Q' := fun σ' => σ' (.n 196) = rho ∧ σ' (.n 199) = c ∧ σ' (.n 200) = d) ⟨hr196, hr199, hr200⟩
+    (fun σ' he h => ⟨by rw [he.apply (Or.inl (by rw [hA]; norm_num))]; exact h.1,
+      by rw [he.apply (Or.inl (by rw [hA]; norm_num))]; exact h.2.1,
+      by rw [he.apply (Or.inl (by rw [hA]; norm_num))]; exact h.2.2⟩)).mono le_rfl le_rfl
+    (fun σ' ⟨⟨hc', hk⟩, h196, h199, h200⟩ => ⟨hc', fun σ'' hag => ?_⟩)
   obtain ⟨k1, k2, k3⟩ := hk σ'' hag
-  exact ⟨by rw [hag.apply ⟨196, by omega, rfl⟩]; exact h196, k1, k2, k3⟩
+  exact ⟨by rw [hag.apply ⟨196, by omega, rfl⟩]; exact h196, by rw [hag.apply ⟨199, by omega, rfl⟩]; exact h199,
+    by rw [hag.apply ⟨200, by omega, rfl⟩]; exact h200, k1, k2, k3⟩
 
 /-- **The top layer completes**, over the bottom root `root`. -/
 theorem xLayer1_complete {b : Nat} {root : V} (hb : 211 ≤ b) (hroot : NBv b root) (hm : MemOK rd 64)
