@@ -869,8 +869,9 @@ substituted as `eval env x`, so that `r.vA[0] * r.vB[0]` is reached through
 minutes; in a plain file the same proof checks in seconds once the vectors are literals, in a
 `module` only once the typed row's fields are also substituted by their evaluations, field by
 field. Products of scalar fields (`fp * o_A`) and sums of vector entries (`XOR`) are not
-affected. `Rows.lean` destructures both rows and substitutes, and every closed form checks in
-at most four seconds (the roadmap's conventions carry the rule, "Row closed forms").
+affected. `Rows.lean` destructures the row variable's vectors and substitutes the typed row by
+its evaluation, written field by field, and every closed form checks in at most four seconds
+(the roadmap's conventions carry the rule, "Row closed forms").
 
 **Targets.** F1 constraint completeness as phrased in `docs/architecture.md` was false without a
 program-shape hypothesis (test 15); since 2026-09-10 the architecture states T1 for well-formed

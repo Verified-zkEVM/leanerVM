@@ -198,14 +198,13 @@ private theorem map_eval_toElements {M : TypeMap} [ProvableType M] (env : Enviro
   (ProvableType.toElements_eval env x).symm
 
 /-- A state message is the array `[pc, fp]`. -/
-private theorem regs_toArray (s : Regs K) : (toElements s).toArray = #[s.pc, s.fp] := by
-  apply Array.toList_inj.mp
-  rw [Vector.toList_toArray, regs_toElements]
+private theorem regs_toArray (s : Regs K) : (toElements s).toArray = #[s.pc, s.fp] :=
+  Array.toList_inj.mp (by rw [Vector.toList_toArray, regs_toElements])
 
--- Each `*_pairs` proof below writes the vector fields of both rows as literals and substitutes
--- the typed row's fields by their evaluations before it evaluates the circuit: a projection of
--- an evaluated vector left under a product makes the kernel unfold multiplication in `K`, and
--- in a module the check does not return.
+-- Each `*_pairs` proof below writes the vector fields of the row variable as literals and
+-- substitutes the typed row by its evaluation, field by field, before it evaluates the circuit:
+-- a projection of an evaluated vector left under a product makes the kernel unfold
+-- multiplication in `K`, and in a module the check does not return.
 
 /-- A vector of three is a literal. -/
 private theorem exists_vector_three {α : Type} (v : Vector α 3) : ∃ a b c, v = #v[a, b, c] :=
@@ -214,6 +213,20 @@ private theorem exists_vector_three {α : Type} (v : Vector α 3) : ∃ a b c, v
 /-- A vector of two is a literal. -/
 private theorem exists_vector_two {α : Type} (v : Vector α 2) : ∃ a b, v = #v[a, b] :=
   ⟨v[0], v[1], by ext i hi; interval_cases i <;> rfl⟩
+
+/-- Substitutes the typed row by its field-by-field evaluation, the vector fields of the row
+variable being literals. -/
+local macro "subst_row" hx:ident : tactic => `(tactic|
+  (simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons, List.map_nil]
+     at $hx:ident
+   subst $hx:ident))
+
+/-- Evaluates an opcode row circuit's pairs and the sends `s` they are compared with. -/
+local macro "eval_pairs" circuit:ident s:ident : tactic => `(tactic|
+  simp only [Operations.interactionValues, circuit_norm, $circuit:ident, instructionStep, memRead,
+    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, $s:ident, OpcodeSends.pairs,
+    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
+    List.nil_append, List.append_nil, -BitVec.reduceNeg])
 
 /-- A row's messages on a channel, read off the `(channel name, message)` pairs its row circuit
 sends at the row variable. -/
@@ -253,16 +266,8 @@ private theorem xor_pairs (x : Var XorRow K) (env : Environment K) (n : ℕ) (r 
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
   obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three vA
   obtain ⟨b0, b1, b2, rfl⟩ := exists_vector_three vB
-  obtain ⟨pc', fp', oA', oB', oC', vA', vB', rA', rB', rC', rbc'⟩ := r
-  obtain ⟨a0', a1', a2', rfl⟩ := exists_vector_three vA'
-  obtain ⟨b0', b1', b2', rfl⟩ := exists_vector_three vB'
-  simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons,
-    List.map_nil, Vector.mk.injEq, XorRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, ⟨rfl, rfl, rfl⟩, rfl, rfl, rfl, rfl⟩ := hx
-  simp only [Operations.interactionValues, circuit_norm, xorTable, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, xorSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs xorTable xorSends
 
 /-- Every row of an `XOR` table sends `xorSends` of its typed row. -/
 theorem xor_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = ⟨xorTable⟩) (row : Array K) :
@@ -278,16 +283,8 @@ private theorem mul_pairs (x : Var MulRow K) (env : Environment K) (n : ℕ) (r 
   obtain ⟨pc, fp, oA, oB, oC, vA, vB, rA, rB, rC, rbc⟩ := x
   obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three vA
   obtain ⟨b0, b1, b2, rfl⟩ := exists_vector_three vB
-  obtain ⟨pc', fp', oA', oB', oC', vA', vB', rA', rB', rC', rbc'⟩ := r
-  obtain ⟨a0', a1', a2', rfl⟩ := exists_vector_three vA'
-  obtain ⟨b0', b1', b2', rfl⟩ := exists_vector_three vB'
-  simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons,
-    List.map_nil, Vector.mk.injEq, XorRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, ⟨rfl, rfl, rfl⟩, rfl, rfl, rfl, rfl⟩ := hx
-  simp only [Operations.interactionValues, circuit_norm, mulTable, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, mulSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs mulTable mulSends
 
 /-- Every row of a `MUL_NATIVE` table sends `mulSends` of its typed row. -/
 theorem mul_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = ⟨mulTable⟩) (row : Array K) :
@@ -302,15 +299,8 @@ private theorem set_pairs (x : Var SetRow K) (env : Environment K) (n : ℕ) (r 
       (fun i ↦ (i.channel.name, i.msg)) = (setSends r).pairs := by
   obtain ⟨pc, fp, o, k, rc, rbc⟩ := x
   obtain ⟨k0, k1, k2, rfl⟩ := exists_vector_three k
-  obtain ⟨pc', fp', o', k', rc', rbc'⟩ := r
-  obtain ⟨k0', k1', k2', rfl⟩ := exists_vector_three k'
-  simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons,
-    List.map_nil, Vector.mk.injEq, SetRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, rfl, rfl⟩ := hx
-  simp only [Operations.interactionValues, circuit_norm, setTable, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, setSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs setTable setSends
 
 /-- Every row of a `SET_CONSTANT` table sends `setSends` of its typed row. -/
 theorem set_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = ⟨setTable⟩) (row : Array K) :
@@ -325,15 +315,8 @@ private theorem deref_pairs (x : Var DerefRow K) (env : Environment K) (n : ℕ)
       (fun i ↦ (i.channel.name, i.msg)) = (derefSends r).pairs := by
   obtain ⟨pc, fp, o1, o2, o3, fpc, ffp, p, v3, r1, r2, r3, rbc⟩ := x
   obtain ⟨a0, a1, a2, rfl⟩ := exists_vector_three v3
-  obtain ⟨pc', fp', o1', o2', o3', fpc', ffp', p', v3', r1', r2', r3', rbc'⟩ := r
-  obtain ⟨a0', a1', a2', rfl⟩ := exists_vector_three v3'
-  simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons,
-    List.map_nil, Vector.mk.injEq, DerefRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl, rfl⟩, rfl, rfl, rfl, rfl⟩ := hx
-  simp only [Operations.interactionValues, circuit_norm, derefTable, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, derefSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs derefTable derefSends
 
 /-- Every row of a `DEREF` table sends `derefSends` of its typed row. -/
 theorem deref_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = ⟨derefTable⟩)
@@ -349,14 +332,8 @@ private theorem jump_pairs (x : Var JumpRow K) (env : Environment K) (n : ℕ) (
     (((jumpTable.main x).operations n).interactionValues env).map
       (fun i ↦ (i.channel.name, i.msg)) = (jumpSends r (env.get (n + 1))).pairs := by
   obtain ⟨pc, fp, oc, od, of, vcond, vpc, vfp, rc, rd, rf, rbc⟩ := x
-  obtain ⟨pc', fp', oc', od', of', vcond', vpc', vfp', rc', rd', rf', rbc'⟩ := r
-  simp only [circuit_norm, JumpRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := hx
-  dsimp only [jumpTable]
-  simp only [Operations.interactionValues, circuit_norm, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, jumpSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs jumpTable jumpSends
 
 /-- Every row of a `JUMP` table sends `jumpSends` of its typed row and its indicator, the raw
 cell after its columns and its inverse witness. -/
@@ -383,26 +360,8 @@ private theorem blake2s_pairs (x : Var Blake2sRow K) (env : Environment K) (n : 
   obtain ⟨cv0a, cv0b, rfl⟩ := exists_vector_two cv0
   obtain ⟨cv1a, cv1b, rfl⟩ := exists_vector_two cv1
   obtain ⟨mda, mdb, rfl⟩ := exists_vector_two md
-  obtain ⟨pc', fp', om0', om1', om2', om3', ocv', oout', omd', m0', m1', m2', m3', out0', out1',
-    cv0', cv1', md', rm0', rm1', rm2', rm3', rcv0', rcv1', rout0', rout1', rmd', rbc'⟩ := r
-  obtain ⟨m0a', m0b', rfl⟩ := exists_vector_two m0'
-  obtain ⟨m1a', m1b', rfl⟩ := exists_vector_two m1'
-  obtain ⟨m2a', m2b', rfl⟩ := exists_vector_two m2'
-  obtain ⟨m3a', m3b', rfl⟩ := exists_vector_two m3'
-  obtain ⟨out0a', out0b', rfl⟩ := exists_vector_two out0'
-  obtain ⟨out1a', out1b', rfl⟩ := exists_vector_two out1'
-  obtain ⟨cv0a', cv0b', rfl⟩ := exists_vector_two cv0'
-  obtain ⟨cv1a', cv1b', rfl⟩ := exists_vector_two cv1'
-  obtain ⟨mda', mdb', rfl⟩ := exists_vector_two md'
-  simp only [circuit_norm, Vector.map_mk, List.map_toArray, List.map_cons,
-    List.map_nil, Vector.mk.injEq, Blake2sRow.mk.injEq] at hx
-  obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩,
-    ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, ⟨rfl, rfl⟩, rfl, rfl, rfl, rfl, rfl,
-    rfl, rfl, rfl, rfl, rfl⟩ := hx
-  simp only [Operations.interactionValues, circuit_norm, blake2sTable, instructionStep, memRead,
-    bytecodeRead, AbstractInteraction.eval, map_eval_toElements, blake2sSends, OpcodeSends.pairs,
-    MemMsg.bump, BytecodeMsg.bump, List.flatMap_cons, List.flatMap_nil, List.cons_append,
-    List.nil_append, List.append_nil, -BitVec.reduceNeg]
+  subst_row hx
+  eval_pairs blake2sTable blake2sSends
 
 /-- Every row of a `BLAKE2S` table sends `blake2sSends` of its typed row. -/
 theorem blake2s_sendsOpcode {t : Air.Flat.Table K} (ht : t.component = ⟨blake2sTable⟩)
@@ -451,13 +410,10 @@ private theorem verifier_pairs (prog : Program) (x : Var PublicIO K) (env : Envi
 private theorem filter_two {a b : String} (hab : a ≠ b) (u v : Array K) (c : String) :
     ((([(a, u), (b, v)] : List (String × Array K)).filter fun p ↦ p.1 = c).map (·.2)) =
       if c = a then [u] else if c = b then [v] else [] := by
-  by_cases ha : c = a
-  · subst ha
-    simp [Ne.symm hab]
-  · by_cases hb : c = b
-    · subst hb
-      simp [hab, ha]
-    · simp [Ne.symm ha, Ne.symm hb, ha, hb]
+  split_ifs with ha hb
+  · simp [ha, Ne.symm hab]
+  · simp [hb, hab]
+  · simp [Ne.symm ha, Ne.symm hb]
 
 /-- A row of the memory block pushes its seed `(idx, 1, m)` and pulls its finalize
 `(idx, cntFin, m)`, and sends nothing on any other channel (specification §6.2 "Seed" and
