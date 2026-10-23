@@ -320,5 +320,178 @@ theorem termKids_complete (κ : ℕ) (hκ : 6 ≤ κ) (Lin : Main.Layout) (D : T
     rw [e1, e2]
     exact rsw_completeAt κ (by omega) hrl (by simp; omega) hcf
 
+/-! ## The callees' words -/
+
+/-- The terminal's buffers' honest words. -/
+def termOwn (D : TermData) : List (List E) :=
+  [eqChain D.zs ((p1Of D.x).take D.zs.length), eqChain D.chis ((p1Of D.x).take D.chis.length),
+    piW D.rm (p1Of D.x) D.m, eqChain D.outPt ((p1Of D.x).take D.outPt.length)]
+
+theorem termBuf_eq (D : TermData) (b0 : ℕ) : bufL b0 [35, 35, 35, 41] (termOwn D) =
+    [(b0, eqChain D.zs ((p1Of D.x).take D.zs.length)),
+      (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)),
+      (b0 + 70, piW D.rm (p1Of D.x) D.m),
+      (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length))] := by
+  simp [bufL, bases, termOwn, Nat.add_assoc]
+
+theorem kid_getD_mem {l : List KidD} {j : ℕ} (h : j < l.length) : l.getD j noKid ∈ l := by
+  rw [List.getD_eq_getElem _ _ h]; exact List.getElem_mem h
+
+theorem stRes_take (outs : List (List E × Main.Layout)) (j : ℕ) :
+    stRes (outs.take j) = if 3 < j then stRes outs else ([], []) := by
+  unfold stRes
+  split
+  · simp [List.getD_eq_getElem?_getD, *]
+  · simp [List.getD_eq_getElem?_getD, *]
+
+theorem stOut_nil {a b : ℕ} {p p1 : List E} : ¬ Tables.stOut a b p p1 [] [] := by
+  rintro ⟨_, _, h, -⟩; simp at h
+
+theorem selKid_taken {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)} {j : ℕ}
+    (ht : (selKid D c (outs.take j)).taken = true) :
+    3 < j ∧ stRes (outs.take j) = stRes outs ∧
+      Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes outs).1 (stRes outs).2 := by
+  have hst : Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes (outs.take j)).1
+      (stRes (outs.take j)).2 := @of_decide_eq_true _ (Classical.propDecidable _) ht
+  rw [stRes_take] at hst ⊢
+  split at hst
+  · rename_i h; exact ⟨h, by rw [ite_pos' h], hst⟩
+  · exact absurd hst stOut_nil
+
+theorem selKid_lin {D : TermData} {c : ℕ} {outs : List (List E × Main.Layout)} {j : ℕ}
+    (ht : (selKid D c (outs.take j)).taken = true) :
+    (selKid D c (outs.take j)).Lin =
+      (stRes outs).2 ++ Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) := by
+  obtain ⟨-, e, hst⟩ := selKid_taken ht
+  show @ite _ _ (Classical.propDecidable _) _ _ = _
+  rw [e, @ite_pos' _ _ (Classical.propDecidable _) _ _ hst]
+
+theorem regionL_append {L L' : Main.Layout} {i : ℕ} (h : RegionL (L ++ L') i) :
+    RegionL L i ∨ RegionL L' i := by
+  obtain ⟨q, hq, h⟩ := h
+  rcases List.mem_append.mp hq with hq | hq
+  · exact Or.inl ⟨q, hq, h⟩
+  · exact Or.inr ⟨q, hq, h⟩
+
+theorem regionL_cons_iff {q : ℕ × List E} {L : Main.Layout} {i : ℕ} (h : RegionL (q :: L) i) :
+    (q.1 ≤ i ∧ i < q.1 + q.2.length) ∨ RegionL L i := by
+  obtain ⟨q', hq, h⟩ := h
+  rcases List.mem_cons.mp hq with rfl | hq
+  · exact Or.inl h
+  · exact Or.inr ⟨q', hq, h⟩
+
+theorem termKid3 (Lin : Main.Layout) (D : TermData) (b0 : ℕ) (outs : List (List E × Main.Layout)) :
+    kidAt (termKids Lin D b0) [] outs 3 = ⟨"selector_tables", true,
+      [ofK (gpow D.B.pt), ofK (gpow D.B.pt1)], Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x),
+      Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)⟩ := rfl
+
+/-- **The callees read the caller's words, the buffers and `selector_tables`' result.** -/
+theorem termKids_regions (Lin : Main.Layout) (D : TermData) (b0 : ℕ)
+    (hreg : ∀ i, TermRegion D.B D.zs.length D.chis.length D.τ i → RegionL Lin i)
+    (hτ : D.τ + 6 ≤ 34) (hrl : D.ringPoint.length = D.τ + 6) (hcf : D.coeffs.length = 64)
+    (hxl : D.x.length ≤ 28) (outs : List (List E × Main.Layout)) :
+    RegionsOk (fun i => RegionL Lin i ∨ RegionL (bufL b0 [35, 35, 35, 41] (termOwn D)) i)
+      (fun _ => False) (kidsAt (termKids Lin D b0) [] outs) outs := by
+  have hpl : (p1Of D.x).length = 40 := p1Of_length (by simp only [termPointCap]; omega)
+  have hpt : (padPoint D.x).length = 40 := padPoint_length (by simp only [termPointCap]; omega)
+  have hst : ∀ i, RegionL (Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)) i → RegionL Lin i := by
+    intro i hi
+    obtain ⟨q, hq, h⟩ := hi
+    simp only [Tables.stLin, List.mem_cons, List.not_mem_nil, or_false] at hq
+    refine hreg i ?_
+    rcases hq with rfl | rfl
+    · simp only [pt28, List.length_take, hpt] at h; simp only [TermRegion]; omega
+    · simp only [pt128, List.length_take, hpl] at h; simp only [TermRegion]; omega
+  rw [termBuf_eq]
+  refine regionsOk_kidsAt _ _ _ _ fun j hj _ ht i hi => ?_
+  unfold kidAt at ht hi
+  simp only [List.nil_append] at ht hi
+  have hmem : (termKids Lin D b0).getD j noKid ∈ termKids Lin D b0 := kid_getD_mem hj
+  generalize (termKids Lin D b0).getD j noKid = k at ht hi hmem
+  simp only [termKids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
+    List.not_mem_nil, or_false] at hmem
+  have buf : ∀ q, q ∈ [(b0, eqChain D.zs ((p1Of D.x).take D.zs.length)),
+      (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)),
+      (b0 + 70, piW D.rm (p1Of D.x) D.m),
+      (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length))] →
+      q.1 ≤ i ∧ i < q.1 + q.2.length → RegionL Lin i ∨ RegionL [(b0, eqChain D.zs ((p1Of D.x).take D.zs.length)),
+      (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)),
+      (b0 + 70, piW D.rm (p1Of D.x) D.m),
+      (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length))] i :=
+    fun q hq h => Or.inr ⟨q, hq, h⟩
+  rcases hmem with ((rfl | rfl | rfl | rfl) | ⟨c, hc, rfl⟩) | rfl | rfl
+  · rcases regionL_cons_iff hi with h | h
+    · exact Or.inl (buf _ (by simp) h)
+    · exact Or.inl (Or.inl h)
+  · rcases regionL_cons_iff hi with h | h
+    · exact Or.inl (buf _ (by simp) h)
+    · exact Or.inl (Or.inl h)
+  · rcases regionL_cons_iff hi with h | h
+    · exact Or.inl (buf _ (by simp) h)
+    · exact Or.inl (Or.inl h)
+  · exact Or.inl (Or.inl (hst i hi))
+  · obtain ⟨h3, -, -⟩ := selKid_taken ht
+    rw [selKid_lin ht] at hi
+    rcases regionL_append hi with h | h
+    · refine Or.inr (Or.inr ⟨3, h3, by rw [termKid3], ?_⟩)
+      simpa [stRes] using h
+    · exact Or.inl (Or.inl (hst i h))
+  · rcases regionL_cons_iff hi with h | h
+    · exact Or.inl (buf _ (by simp) h)
+    · exact Or.inl (Or.inl h)
+  · refine Or.inl (Or.inl (hreg i ?_))
+    obtain ⟨q, hq, h⟩ := hi
+    simp only [List.mem_cons, List.not_mem_nil, or_false] at hq
+    rcases hq with rfl | rfl | rfl
+    · simp only [hrl] at h; simp only [TermRegion]; omega
+    · simp only [List.length_take, hpl] at h; simp only [TermRegion]; omega
+    · simp only [hcf] at h; simp only [TermRegion]; omega
+
+/-- **The callees' words are in memory**, given the caller's, the buffers and the entered callees'
+results. -/
+theorem termKids_mem (Lin : Main.Layout) (D : TermData) (b0 : ℕ) {rd : Reader}
+    (outs : List (List E × Main.Layout))
+    (hB : MemL rd (bufL b0 [35, 35, 35, 41] (termOwn D))) (hL : MemL rd Lin)
+    (hO : MemL rd (outsL (kidsAt (termKids Lin D b0) [] outs) outs))
+    (hst : MemL rd (Tables.stLin D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x)))
+    (hrs : MemL rd [(D.B.zv + 39, D.ringPoint), (D.B.pt1, (p1Of D.x).take (D.τ + 6)),
+      (D.B.ct, D.coeffs)]) :
+    MemL rd (Kid.lins (kidsAt (termKids Lin D b0) [] outs)) := by
+  rw [termBuf_eq] at hB
+  refine memL_lins_kidsAt _ _ _ fun j hj ho => ?_
+  have hmem : (termKids Lin D b0).getD j noKid ∈ termKids Lin D b0 := kid_getD_mem hj
+  have hmem' := hmem
+  unfold kidAt
+  simp only [List.nil_append]
+  generalize (termKids Lin D b0).getD j noKid = k at hmem ⊢
+  simp only [termKids, List.mem_append, List.mem_cons, List.mem_map, List.mem_range,
+    List.not_mem_nil, or_false] at hmem
+  have cons : ∀ q, q ∈ [(b0, eqChain D.zs ((p1Of D.x).take D.zs.length)),
+      (b0 + 35, eqChain D.chis ((p1Of D.x).take D.chis.length)),
+      (b0 + 70, piW D.rm (p1Of D.x) D.m),
+      (b0 + 105, eqChain D.outPt ((p1Of D.x).take D.outPt.length))] → MemL rd (q :: Lin) :=
+    fun q hq q' hq' => by
+      rcases List.mem_cons.mp hq' with rfl | hq'
+      · exact hB _ hq
+      · exact hL _ hq'
+  rcases hmem with ((rfl | rfl | rfl | rfl) | ⟨c, hc, rfl⟩) | rfl | rfl
+  · exact cons _ (by simp)
+  · exact cons _ (by simp)
+  · exact cons _ (by simp)
+  · exact hst
+  · by_cases ht : (selKid D c (outs.take j)).taken = true
+    · rw [selKid_lin ht]
+      obtain ⟨h3, -, -⟩ := selKid_taken ht
+      have := memL_outsL_at hO 3 (by rw [termKids_length]; omega) (by omega)
+        (by rw [termKid3])
+      exact Main.memL_append.mpr ⟨by simpa [stRes] using this, hst⟩
+    · have hn : ¬ Tables.stOut D.B.pt D.B.pt1 (pt28 D.x) (pt128 D.x) (stRes (outs.take j)).1
+          (stRes (outs.take j)).2 := fun h => ht (@decide_eq_true _ (Classical.propDecidable _) h)
+      show MemL rd (@ite _ _ (Classical.propDecidable _) _ _)
+      rw [@ite_neg' _ _ (Classical.propDecidable _) _ _ hn]
+      intro q hq; simp at hq
+  · exact cons _ (by simp)
+  · exact hrs
+
 end
 end LeanVM.Guest.B1.VerifySub
