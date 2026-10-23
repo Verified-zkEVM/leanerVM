@@ -179,5 +179,32 @@ theorem groupsT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepS
           exact hq'
         · exact hr q hq (by omega)
 
+/-- The digit `i` of the digits `K` of the groups. -/
+def digK (K : Nat → Nat) (i : Nat) : Nat := K (i / 3) / 4 ^ (i % 3) % 4
+
+theorem codewordT_eq (W : WotsT) (G : Nat) (target : E) (d0 : V) (b : Nat) :
+    (codewordT W G target d0 b).1 =
+      (groupsT W G 0 (cwState W b 0).1 (cwState W b 0).2.1 (cwState W b 0).2.2).1 ++
+        (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).1 ++
+        [copyS d0 (encT W false 1 (cwState W b G).2.2),
+          cst (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).2 target,
+          .atom (.assertEq (prodT W false 1 (cwState W b G).2.2)
+            (.n (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).2))] := by
+  have hgs := groupsT_eq W b G 0
+  simp only [Nat.zero_add] at hgs
+  have hgs' : (groupsT W G 0 (.n 0) (.n 0) b).2 = _ := hgs
+  simp only [codewordT]
+  rw [hgs']
+  rfl
+
+theorem codewordT_snd (W : WotsT) (G : Nat) (target : E) (d0 : V) (b : Nat) :
+    (codewordT W G target d0 b).2.1 =
+      (groupT W (3 * G) 1 false (cwState W b G).1 (cwState W b G).2.1 (cwState W b G).2.2).2 + 1 := by
+  have hgs := groupsT_eq W b G 0
+  simp only [Nat.zero_add] at hgs
+  have hgs' : (groupsT W G 0 (.n 0) (.n 0) b).2 = _ := hgs
+  simp only [codewordT]
+  rw [hgs']
+
 end
 end LeanVM.Guest.B1.Sig
