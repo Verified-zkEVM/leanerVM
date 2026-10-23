@@ -9,6 +9,7 @@ module
 
 public import LeanVM.Guest.B1.Sig.WotsGroupComplete
 public import LeanVM.Guest.B1.Sig.Interface
+public import LeanVM.Guest.B1.Sig.Shifts
 
 /-!
 # A group, complete
@@ -88,6 +89,85 @@ theorem match_complete {x : V} {arms : List (List Stmt)} {k lo hi : Nat} (hk : k
     obtain ⟨j, hj, rfl⟩ := hx
     exact he.apply (Or.inl hj)
   exact holdsArms_of arms 0 k hk (by rw [hx', hxv, Nat.zero_add]) (hh next kret hn)
+
+theorem word_two_pow_eq {j : Nat} (hj : j < 64) : word (2 ^ j) 0 0 = ofK (gpow j) := by
+  rw [word_eq_eOfNat, ← Value.gen_pow_eq_eOfNat hj, Value.gen_pow_eq_ofK]
+
+theorem start_ge {W : WotsT} {fold : Bool} {b k t lo : Nat} {base : Nat}
+    (h1 : lo ≤ base) (h2 : lo ≤ slotsT W fold b t 2) :
+    ∃ j, walkStartV (slotsT W fold b t) (dig k t) base = .n j ∧ lo ≤ j := by
+  unfold walkStartV
+  split
+  · exact ⟨_, rfl, h2⟩
+  · exact ⟨_, rfl, h1⟩
+
+/-- **A group completes**, its digits `k` hinted. -/
+theorem groupT_complete {W : WotsT} {B : Nat} {good : Val → Prop} (hW : StepShape W B)
+    (hc : StepCanon W B good) {first n : Nat} {fold : Bool} {prodIn encIn : V} {b k : Nat}
+    (hn : n ≤ 3) (hk : k < 4 ^ n) (hm : MemOK rd 64) (hB : B ≤ b) (hpi : NBv B prodIn)
+    (hei : NBv B encIn) (hpw : ∀ j, NBv B (W.power j)) (σ : Val) (hg : good σ)
+    (hb : σ (.n b) = ofK (gpow k))
+    (hs : ∀ t < n, StartCanon σ (slotsT W fold b t) (dig k t)
+      (walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))) :
+    Completes C rd b (groupT W first n fold prodIn encIn b).2 (groupT W first n fold prodIn encIn b).1 σ
+      (fun σ' => ∀ t < n, IsCanonical128 (σ' (.n (slotsT W fold b t 2)))) := by
+  have h4n : 4 ^ n ≤ 64 := by
+    calc 4 ^ n ≤ 4 ^ 3 := Nat.pow_le_pow_right (by norm_num) hn
+      _ = 64 := by norm_num
+  have hend : (groupT W first n fold prodIn encIn b).2 = armB W first n fold prodIn encIn b (4 ^ n) := by
+    simp only [groupT]
+    rw [armsT_snd]
+    rfl
+  have hge : b + 5 ≤ armB W first n fold prodIn encIn b (4 ^ n) := by
+    rw [← armB_zero W first n fold prodIn encIn b]
+    exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+  rw [hend]
+  simp only [groupT, List.cons_append]
+  show Completes C rd b _ ([hintW "digits" [.n b]] ++
+    (rangeS (.n b) (word (2 ^ (4 ^ n - 1)) 0 0) (b + 1) ++ [.match_ (.n b) _])) σ _
+  refine Completes.append (m := b + 1) (by omega) (by omega)
+    (by rw [valsList_hint]; exact .cons ⟨b, by omega, rfl⟩ (.nil _)) (hintKeep_complete σ _ _ _ _)
+    (fun σ1 he1 hp1 => ?_)
+  rw [hp1, word_two_pow_eq (by omega)]
+  refine Completes.append (m := b + 5) (by omega) hge ?_
+    (rangeS_complete (n := 64) (K := 4 ^ n) hm h4n hk σ (.n b) ⟨b, by omega, rfl⟩ hb)
+    (fun σ2 he2 _ => ?_)
+  · simp only [rangeS, cst, valsList_cons, valsList_nil, Stmt.vals, Atom.vals, List.append_nil,
+      List.cons_append, List.nil_append]
+    repeat (first | exact .nil _ | (refine .cons ⟨_, ?_, rfl⟩ ?_; omega))
+  have hag : AgreeBelow (b + 1) σ σ2 := he2.agree
+  have hb2 : σ2 (.n b) = ofK (gpow k) := by rw [← hag b (by omega)]; exact hb
+  have hk' : k < (armsT W (slotsT W fold b) first n fold prodIn encIn (prodT W fold n b) (encT W fold n b)
+      (4 ^ n) 0 (b + 5)).1.length := by rw [armsT_length]; exact hk
+  refine match_complete hk' ⟨b, by omega, rfl⟩ hb2 ?_
+  rw [armsT_getElem]
+  simp only [Nat.zero_add]
+  obtain ⟨σ', he', hp', hh'⟩ := groupArm_complete (C := C) (rd := rd) (first := first) hW hc hk hB hpi hei
+    (hpw _) σ2 (hc.1 _ _ (fun j hj => hag j (by omega)) hg)
+    (fun t ht => by
+      have := hs t ht
+      unfold StartCanon at this ⊢
+      have hbase : b + 5 ≤ armB W first n fold prodIn encIn b k := by
+        rw [← armB_zero W first n fold prodIn encIn b]
+        exact armB_mono W first n fold prodIn encIn b (Nat.zero_le _)
+      have hwb := walkBase_le (if k = 0 then W.size + 13 else W.size) k
+        (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k)
+        (Nat.zero_le t)
+      simp only [walkBase] at hwb
+      have hb0 : armB W first n fold prodIn encIn b k ≤
+          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k) := by
+        split <;> omega
+      have hsl := slot_bounds W fold b t 2 (by norm_num)
+      have hgs : b + 5 ≤ groupStart fold b := by rw [groupStart_eq]; split <;> omega
+      obtain ⟨j, e, hj⟩ := start_ge (W := W) (fold := fold) (b := b) (k := k) (t := t) (lo := b + 5)
+        (base := walkBase (if k = 0 then W.size + 13 else W.size) k 0 t
+          (if fold then armB W first n fold prodIn encIn b k + 1 else armB W first n fold prodIn encIn b k))
+        (by omega) (by omega)
+      rw [e] at this ⊢
+      rw [he2.apply (Or.inr hj)]
+      exact this)
+  exact ⟨σ', he', hp'.2, hh'⟩
 
 end
 end LeanVM.Guest.B1.Sig
