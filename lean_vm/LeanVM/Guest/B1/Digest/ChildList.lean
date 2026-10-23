@@ -446,3 +446,203 @@ theorem l17_step {rd : Reader} (hm : MemOk rd) {x : E} {ps : List E}
 
 end
 end LeanVM.Guest.B1.Digest
+
+namespace LeanVM.Guest.B1.Digest
+
+open LeanVM.Parameters LeanVM.Semantics LeanVM.Guest.Core LeanVM.Guest.Value LeanVM.Guest.Value.Keccak
+open LeanVM.Protocol LeanVM.Protocol.KeccakHash LeanVM.Protocol.Compile LeanVM.Protocol.Verifier
+
+@[expose] public section
+
+/-! ## The groups of child claims, by induction -/
+
+theorem childGroups_sound {rd : Reader} {chain entries cover base origin limit : E} {a : ℕ}
+    (h0 : StateAt rd chain 0 zeroState)
+    (hstep : ∀ q < a, ChildGroupStep rd chain entries cover base origin limit (gen ^ q)) :
+    ∀ q ≤ a, ∃ (os : List ℕ) (cells : List E),
+      ClaimsAt rd cover origin limit entries base (17 * q) os cells ∧ AllCanonical cells ∧
+      StateAt rd (chain * gen ^ (13 * q)) 0 (absorbChunks (8 * q) zeroState (cellsBytes cells)) := by
+  intro q
+  induction q with
+  | zero =>
+    intro _
+    refine ⟨[], [], ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩, fun _ h => absurd h (by simp), ?_⟩
+    simpa [absorbChunks] using h0
+  | succ q ih =>
+    intro hq
+    obtain ⟨os, cells, hcl, hcan, hS⟩ := ih (by omega)
+    have hpre : (cellsBytes cells).length = rate * (8 * q) := by
+      rw [length_cellsBytes, hcl.2.1]; show 16 * (4 * (17 * q)) = 136 * (8 * q); omega
+    rw [show chain * gen ^ (13 * q) = chain * (gen ^ q) ^ 13 by rw [gen_pow_pow]] at hS
+    obtain ⟨os2, c2, hcl2, hcan2, hS2⟩ := hstep q (by omega) (8 * q) (cellsBytes cells) hpre hS
+    rw [gen_pow_pow] at hcl2
+    refine ⟨os ++ os2, cells ++ c2, ?_, ?_, ?_⟩
+    · rw [show 17 * (q + 1) = 17 * q + 17 by ring]
+      exact claimsAt_append hcl (by rwa [show 17 * q = 17 * q from rfl])
+    · intro c hc
+      rcases List.mem_append.mp hc with hc | hc
+      · exact hcan c hc
+      · exact hcan2 c hc
+    · intro c
+      have := hS2 c
+      rw [gen_pow_pow, loadHolds_mul_gen_pow] at this
+      rw [loadHolds_mul_gen_pow, cellsBytes_append,
+        show 13 * (q + 1) + (0 + c.val) = 13 * q + (13 + c.val) by ring,
+        show 8 * (q + 1) = 8 * q + 8 by ring]
+      exact this
+
+/-! ## `child_claim_list_digest` -/
+
+/-- The branch of an empty list. -/
+noncomputable def cc24Zero : List Stmt := match Fn.body Data.core24 with
+  | [_, _, .ite _ z _, _, _, _] => z
+  | _ => []
+
+/-- The branch of a nonempty list. -/
+noncomputable def cc24Else : List Stmt := match Fn.body Data.core24 with
+  | [_, _, .ite _ _ n, _, _, _] => n
+  | _ => []
+
+set_option maxRecDepth 100000 in
+theorem core24_shape : Fn.body Data.core24 =
+    [.atom (.const (.n 6) (word 1 0 0)), .atom (.add (.n 7) (.n 5) (.n 6)),
+     .ite (.n 7) cc24Zero cc24Else, .atom (.copy (.n 67) (.n 14)), .atom (.copy (.n 68) (.n 15)),
+     .ret [.n 67, .n 68]] :=
+  stmtsEqb_sound (by decide +kernel)
+
+/-- The empty list's chain. -/
+noncomputable def ccZSpec : ChainSpec := ⟨[], 0, true, none, keccakBlocks (atomsIn cc24Zero)⟩
+
+noncomputable def ccZOk : Bool :=
+  cc24Zero.all Stmt.flat && ccZSpec.check (atomsIn cc24Zero) &&
+    decide (ccZSpec.outV (ccZSpec.nb - 1) 0 = V.n 14) &&
+    decide (ccZSpec.outV (ccZSpec.nb - 1) 1 = V.n 15)
+
+noncomputable def ccEOk : Bool :=
+  cc24Else.all Stmt.flat &&
+  cc24Else.any (stmtEqb · (.call "list_split" [.n 5] [.n 27, .n 28])) &&
+  cc24Else.any (stmtEqb · (.callIf (.n 51) "__loop17"
+    [.n 52, .n 27, .n 36, .n 0, .n 1, .n 2, .n 3, .n 4])) &&
+  cc24Else.any (stmtEqb · (.dispatch (.n 28) cclNames [.n 58, .n 0, .n 1, .n 64, .n 3, .n 4]
+    [.n 65, .n 66])) &&
+  (atomsIn cc24Else).any (isConstAt (.n 52) 1 0) &&
+  (atomsIn cc24Else).any (isAddAt (.n 51) (.n 50) (.n 27)) &&
+  (atomsIn cc24Else).any (isConstAt (.n 50) 1 0) &&
+  (List.range 13).all (fun c => (atomsIn cc24Else).any (isLoadAt (.n (37 + c)) (.n 36) c) &&
+    (atomsIn cc24Else).any (isConstAt (.n (37 + c)) 0 0)) &&
+  monoIs (atomsIn cc24Else) (.n 58) (.n 36) (.n 27) 13 &&
+  monoIs (atomsIn cc24Else) (.n 64) (.n 2) (.n 27) 17 &&
+  (atomsIn cc24Else).any (isCopyAt (.n 14) (.n 65)) &&
+  (atomsIn cc24Else).any (isCopyAt (.n 15) (.n 66))
+
+set_option maxRecDepth 100000 in
+theorem ccz_ok : ccZOk = true := by decide +kernel
+
+set_option maxRecDepth 100000 in
+theorem cce_ok : ccEOk = true := by decide +kernel
+
+theorem childListOut_of_claims {rd : Reader} {entries cover base origin limit : E} {n : ℕ}
+    {os : List ℕ} {cells : List E} {rets : List E}
+    (h : ClaimsAt rd cover origin limit entries base n os cells) (hcan : AllCanonical cells)
+    (hr : rets = digestCells (keccak256 (cellsBytes cells))) :
+    ChildListOut rd entries cover base origin limit n rets := by
+  obtain ⟨-, hl, hc⟩ := h
+  refine ⟨fun j => os.getD j 0, cells, hl, hcan, fun j hj => ?_, hr⟩
+  obtain ⟨h1, h2, h3⟩ := hc j hj
+  refine ⟨h1, h2, fun c hcc => ?_⟩
+  have := h3 c hcc
+  rwa [getD_drop'] at this
+
+/-- **`child_claim_list_digest` rebuilds a child's claim list at hinted slots and computes its
+digest.** -/
+theorem child_claim_list_digest_sound : child_claim_list_digest_sound_Spec := by
+  intro rd hm args rets h
+  obtain ⟨σ, hp, hb⟩ := (rel_iff_sem find_child_claim_list_digest args rets).mp h
+  have hp' : args = [σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4), σ (.n 5)] := by
+    rw [← hp]; rfl
+  subst hp'
+  rw [core24_shape] at hb
+  simp only [Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil] at hb
+  obtain ⟨c6, a7, -, hz, hnz⟩ := hb
+  have hz1 := ccz_ok
+  have he1 := cce_ok
+  simp only [ccZOk, Bool.and_eq_true, decide_eq_true_eq] at hz1
+  simp only [ccEOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at he1
+  obtain ⟨⟨⟨hzf, hzc⟩, hz14⟩, hz15⟩ := hz1
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨⟨hef, hls⟩, hlp⟩, hdis⟩, h52⟩, h51⟩, h50⟩, hzs⟩, hm58⟩, hm64⟩, hc14⟩, hc15⟩ := he1
+  by_cases h7 : σ (.n 7) = 0
+  · -- the empty list
+    have hn1 : σ (.n 5) = 1 := by
+      rw [a7, c6, word_one] at h7; exact e_add_eq_zero_iff.mp h7
+    obtain ⟨hall, h67, h68, hr⟩ := holdsList_flat _ hzf _ _ (hz h7)
+    have hat := atoms_of_flat hall
+    obtain ⟨hd, -⟩ := chain_final hzc rfl hat (pre := []) (n := 0) rfl
+      (fun c => (cellsOfState_zero false c).symm)
+    rw [hz14, hz15, show List.take (ccZSpec.len / 16) (ccZSpec.vals σ) = [] by simp [ccZSpec],
+      List.nil_append] at hd
+    refine ⟨0, by norm_num, by rw [hn1, pow_zero], childListOut_of_claims (os := []) (cells := [])
+      ⟨rfl, rfl, fun j hj => absurd hj (by omega)⟩ (fun _ h => absurd h (by simp)) ?_⟩
+    rw [← hr, h67, h68, digestCells, ← hd]
+  · -- a nonempty list
+    obtain ⟨hall, h67, h68, hr⟩ := holdsList_flat _ (List.all_eq_true.mpr hef) _ _ (hnz h7)
+    have hat := atoms_of_flat hall
+    obtain ⟨a, ha, b, hb, hn, hab⟩ := list_split_sound rd hm _ _ (call_of_flat hall hls)
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hab
+    obtain ⟨h27, h28⟩ := hab
+    simp only [maxKeys, claimGroup] at ha hb hn
+    have h0 : StateAt rd (σ (.n 36)) 0 zeroState := by
+      intro c
+      have hl := load_sound (hzs c c.isLt).1 hat
+      rw [const_sound (hzs c c.isLt).2 hat, word_zero] at hl
+      rw [Nat.zero_add, cellsOfState_zero]
+      exact hl
+    have hloop := callIf_of_flat hall hlp
+    have h51v : σ (.n 51) = 1 + σ (.n 27) := by
+      rw [add_sound h51 hat, const_sound h50 hat, word_one]
+    have h52v : σ (.n 52) = 1 := by rw [const_sound h52 hat, word_one]
+    have hsteps : ∀ q < a, ChildGroupStep rd (σ (.n 36)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2))
+        (σ (.n 3)) (σ (.n 4)) (gen ^ q) :=
+      loop_sound (f := "__loop17")
+        (ps := [σ (.n 27), σ (.n 36), σ (.n 0), σ (.n 1), σ (.n 2), σ (.n 3), σ (.n 4)])
+        (N := σ (.n 27))
+        (B := ChildGroupStep rd (σ (.n 36)) (σ (.n 0)) (σ (.n 1)) (σ (.n 2)) (σ (.n 3)) (σ (.n 4)))
+        (by unfold ordG; omega) h27
+        (fun x hx => by
+          obtain ⟨h1, h2⟩ := l17_step hm hx
+          exact ⟨h1 _ _ _ _ _ _ _ rfl, h2⟩)
+        (fun hne => by
+          have := hloop.2 (by rw [h51v]; exact hne)
+          simpa [h52v] using this)
+    obtain ⟨osa, ca, hcla, hcana, hSa⟩ := childGroups_sound h0 hsteps a le_rfl
+    obtain ⟨j, hj, hsel, hcall⟩ := dispatch_of_flat hall hdis
+    have hj17 : j < 17 := hj
+    have hjb : j = b := by
+      rw [h28, gen_pow_eq_ofK] at hsel
+      exact (gpow_injOn (by simp only [Set.mem_Iio]; omega) (by simp only [Set.mem_Iio]; omega)
+        (ofK_injective hsel)).symm
+    subst hjb
+    rw [show cclNames[j] = cclNames.getD j "" by
+      rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hj]; rfl] at hcall
+    obtain ⟨sp, ent, cov, mk, og, lim, hargs, hlast⟩ := childLast_sound hm hj17 hcall
+    simp only [List.map_cons, List.map_nil, List.cons.injEq, and_true] at hargs
+    obtain ⟨hsp, hent, hcov, hmk, hog, hlim⟩ := hargs
+    have h58 : σ (.n 58) = σ (.n 36) * gen ^ (13 * a) := by
+      rw [monoIs_sound hm58 hat, h27, gen_pow_pow]
+    have h64 : σ (.n 64) = σ (.n 2) * gen ^ (17 * a) := by
+      rw [monoIs_sound hm64 hat, h27, gen_pow_pow]
+    have hpre : (cellsBytes ca).length = rate * (8 * a) := by
+      rw [length_cellsBytes, hcla.2.1]; show 16 * (4 * (17 * a)) = 136 * (8 * a); omega
+    obtain ⟨osb, cb, hclb, hcanb, hd⟩ :=
+      hlast (8 * a) (cellsBytes ca) hpre (by rw [← hsp, h58]; exact hSa)
+    rw [← hent, ← hcov, ← hmk, ← hog, ← hlim, h64] at hclb
+    refine ⟨17 * a + j, by simp only [claimGroup, maxKeys]; omega, by rw [hn],
+      childListOut_of_claims (claimsAt_append hcla hclb) ?_ ?_⟩
+    · intro c hc
+      rcases List.mem_append.mp hc with hc | hc
+      · exact hcana c hc
+      · exact hcanb c hc
+    · rw [← hr, h67, h68, copy_sound hc14 hat, copy_sound hc15 hat, cellsBytes_append]
+      exact hd
+
+end
+end LeanVM.Guest.B1.Digest
