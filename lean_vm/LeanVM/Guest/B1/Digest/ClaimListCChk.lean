@@ -108,6 +108,13 @@ noncomputable def clBrOk : Bool :=
   clElsePre.all (fun s => isAtomS s || stmtEqb s (.call "list_split" [.n 1] [.n 23, .n 24]) ||
     stmtEqb s (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0]) ||
     stmtEqb s (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
+  clElsePre.any (stmtEqb · (.call "list_split" [.n 1] [.n 23, .n 24])) &&
+  clElsePre.any (stmtEqb · (.callIf (.n 47) "__loop16" [.n 48, .n 23, .n 32, .n 0])) &&
+  clElsePre.any (stmtEqb · (.dispatch (.n 24) clNames [.n 54, .n 62] [.n 63, .n 64])) &&
+  (List.range 13).all (fun c => (atomsIn clElsePre).any (isConstAt (.n (33 + c)) 0 0)) &&
+  (atomsIn clElsePre).any (fun a => match a with
+    | .hint (.allocDyn d _) => decide (d = .n 32)
+    | _ => false) &&
   (chk 2 clZEval).isSome && (storesOf 2 clZEval).isEmpty && canonChk [] (atomsIn clZEval) &&
   (atomsIn clZEval).all (fun a => !needsSide a) && cl23Zero.all isAtomS
 
