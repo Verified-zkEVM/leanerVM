@@ -26,6 +26,13 @@ Build with `lake build` (the root module `LeanRpm.lean` checks that the main the
   Keccak-256 hash (`keccakPad_length`: `⌊n / 136⌋ + 1` for `n` bytes).
 - `LeanRpm/Signature.lean`: the SUF-CMA game of a hash-based signature scheme in the ROM and in the
   RPM, and the transfer of its bounds (used by `lean_xmss` and `lean_sphincs`).
+- `LeanRpm/Eager.lean`: eager sampling of a finite part of a random oracle as a uniform table.
+- `LeanRpm/Rerun.lean`: a coin-free computation recomputed from a later cache returns the same
+  result; weight bounds of prefixes and through simulations; coins through simulations.
+- `LeanRpm/Duplex/`: the duplex lemma (`Defs.lean` the duplex and its simulator, `Lazy.lean` the
+  simulator with lazily sampled challenges, `Table.lean`, `Inv.lean`, `Chal.lean`, `Budget.lean`
+  against a table of challenges, `Main.lean` the lemma, `Vec.lean` the challenges as one random
+  oracle of vectors and the order of random oracles).
 
 ## Results
 
@@ -88,6 +95,22 @@ then `romAdv A`'s ROM experiment makes at most `q` hash calls on every outcome a
 `Pr_RPM[A wins] ≤ Pr_ROM[romAdv A wins] + Q² / 2^509`; a ROM bound `q / 2^b` gives
 `q / 2^b + Q² / 2^509`, and `Q / 2^b + Q² / 2^509` with the permutation budget alone
 (`rpm_bound_perm`).
+
+**The duplex lemma** (`Duplex.duplex_le`). A protocol derives `n` challenges of a root `r` by a
+duplex over the random function `F` (`chalP`): `y₀ = F (init (H label))`, `y₁ = F (first r y₀)`,
+`y_{k+1} = F (next y_k)`, the challenges the `out y_k`, where `first` and `next` keep the
+capacity and `first` is injective in `r` (`DuplexSpec`). In the two-oracle ROM, a computation `B`
+with at most `N_B` calls of `F`, followed by the challenges of a root it chose and a computation
+`post` of them with coins and `H`, succeeds with probability at most that of the simulated world
+plus `N (2N εc)`, `N = N_B + n + 1`, `εc` the largest probability of a capacity. In the simulated
+world `B` runs against the simulator (`simImpl`: a fresh call `F x` with `x` the next state of a
+challenge path is answered `build (G (r, j), w)` for fresh `w`, any other uniformly), and `post`
+gets `G (r, ·)`, `G` a random oracle on `(root, index)`; with the challenges sampled lazily the
+simulator is exactly `F` (`run'_simImpl_evalDistEq`), and against a table of challenges the
+derived challenges are the table's unless a fresh answer's capacity repeats one seen
+(`chal_ok`, `prob_bad_le`). `run'_romImpl_evalDistEq_vec` reads `G` as one random oracle of
+vectors. LeanDA's membership challenges instantiate it (`lean_da`, `LeanDa.daDuplex`: capacity
+576 bits, `εc = 2^-576`).
 
 ## Not covered
 
