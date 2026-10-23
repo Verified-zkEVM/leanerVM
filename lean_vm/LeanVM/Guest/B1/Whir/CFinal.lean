@@ -67,13 +67,14 @@ def osFinalF (σ : Val) (st : OsSt) (ms : List E) (nonce : E) (i : ℕ) : E :=
   else (finalVals σ st ms nonce).getD (i - (osMat st.cb st.co st.k).2.2) 0
 
 /-- **The final message and its proof of work, honestly.** -/
-theorem osFinal_complete {c : OsCfg}
-    (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
+theorem osFinal_complete {c : OsCfg} {FM : E}
+    (hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets → args.getD 8 0 = FM →
       C ("opening_final_message__L" ++ natStr c.yrLen) args rets)
     {g : ℕ} (hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
       C ("grind_check__L" ++ natStr g) args rets)
     {st : OsSt} (σ : Val) (hfs : st.fs.length = 5) (hco : st.co < u128Bound) (hb : st.Below)
-    (hcan : AllCanonical (st.fsv σ)) (hfm : osFmsg < st.k) {ms : List E} {nonce : E}
+    (hcan : AllCanonical (st.fsv σ)) (hfm : osFmsg < st.k) (hFM : σ (.n osFmsg) = FM)
+    {ms : List E} {nonce : E}
     (hml : ms.length = c.yrLen) (hrd : ReadsAt rd (st.cur σ) (ms ++ [nonce]))
     (hout : ReadsAt rd (σ (.n osFmsg)) ms)
     (hpow : powOk Whir.queryGrindingBits nonce
@@ -120,7 +121,7 @@ theorem osFinal_complete {c : OsCfg}
     refine ⟨⟨okm, ?_⟩, ?_⟩
     · simp only [allOk_cons, allOk_nil, and_true, StmtOk, List.map_cons, List.map_nil, osRun,
         List.range_succ, List.range_zero, List.nil_append, List.cons_append, hf, Nat.add_zero]
-      apply hFm
+      refine hFm _ _ ?_ (by simp only [List.getD_cons_succ, List.getD_cons_zero]; rw [hagree osFmsg hfm, hFM])
       rw [hagree f0 hfl.1, hagree f1 hfl.2.1, hagree f2 hfl.2.2.1, hagree f3 hfl.2.2.2.1,
         hagree f4 hfl.2.2.2.2, hagree st.w0 hb.w0, hagree st.w1 hb.w1, hcur,
         hagree osFmsg hfm, v0, v1, v2, v3, v4, v5, v6, v7]

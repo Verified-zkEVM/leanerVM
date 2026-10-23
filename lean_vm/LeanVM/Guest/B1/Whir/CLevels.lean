@@ -186,7 +186,7 @@ structure LvHF (C : CallRel) (rd : Reader) (P : OsPtrs) (c : OsCfg) (lvl : ℕ) 
     (F : Fs) (q : List E) (t cur : E) : Prop where
   fin : lvl = c.yrLevel
   hC : ∀ args rets, MeaningOpeningFold rd args rets → C "opening_fold" args rets
-  hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets →
+  hFm : ∀ args rets, MeaningOpeningFinalMessage c.yrLen rd args rets → args.getD 8 0 = P.fmsg →
     C ("opening_final_message__L" ++ natStr c.yrLen) args rets
   hGr : ∀ args rets, MeaningGrindCheck Whir.queryGrindingBits args rets →
     C ("grind_check__L" ++ natStr lv.grind) args rets
@@ -258,7 +258,8 @@ theorem osLevel_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ : V
   · have hc : (lvl = c.yrLevel) = True := eq_true hfin
     simp only [hc, ↓reduceIte] at h
     simp only [lvF, lvOut, lvWords, lvLam, lvFq, lvCap, hc, ↓reduceIte]
-    refine BlkF.mono (osLevel_final_complete (C := C) (rd := rd) σ hfin h.hC h.hFm h.hGr hfs hco hb hk
+    refine BlkF.mono (osLevel_final_complete (C := C) (rd := rd) σ hfin h.hC
+      (fun a r hm h8 ↦ h.hFm a r hm (by rw [h8]; rfl)) h.hGr hfs hco hb hk
       hcan hpad hpk h.hxl h.hrd h.hst h.hml h.hrd2 h.hout h.hpow h.hn0 h.hn5 D.sqz h.h0 h.hm
       h.hL h.hQ2 h.hqw h.hbo D.wp D.r0 D.r1 D.sum D.ic0 D.ic2 h.hRW h.hCap h.hr0 h.hr1 h.hQ
       h.hi h.hbeta) fun σ' ⟨ho, ha⟩ ↦ ⟨LvOut.congr_cur ho (by

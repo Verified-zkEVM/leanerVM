@@ -87,7 +87,7 @@ theorem osCallsOk_honest {c : OsCfg} {tr : OsTr} {μ r : ℕ} {cfg : List Whir.L
   refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm', fun i hi ↦ ?_, fun i hi _ ↦ ?_, ?_⟩
   · refine ⟨fun _ _ hm' ↦ osCR_named osKindOf_fold hm', fun _ _ hm' ↦ osCR_named osKindOf_can hm',
       fun hne _ _ hm' ↦ osCR_named (hN.ood i hi hne) hm', fun _ _ hm' ↦ osCR_named (hN.grind i hi) hm',
-      fun _ _ _ hm' ↦ osCR_named hN.fm hm', fun _ ↦ ?_, ?_, ?_, ?_⟩
+      fun _ _ _ hm' _ ↦ osCR_named hN.fm hm', fun _ ↦ ?_, ?_, ?_, ?_⟩
     · exact osCR_special (hN.sq i hi) ⟨i, hi, Or.inl ⟨rfl, rfl, rfl⟩⟩
     · exact osCR_named (hN.rw i hi) (rw_meaning_at hF h hm.fixed hi (hW i hi) (hN.il i hi))
     · exact osCR_named (hN.cap i hi) (cap_meaning_at h hs hrun hcaps hC hFl hi (hN.cdd i hi))
