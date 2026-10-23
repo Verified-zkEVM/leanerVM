@@ -158,5 +158,166 @@ theorem claimLast_complete {k : ℕ} (hk : k < 17) {sp blk : E} {n : ℕ} {pre :
     exact hrel
   · exact absurd hok (by simp)
 
+theorem cl_pre_mem {fn : Fn} {s : Stmt} (h : s ∈ loopPre fn) : s ∈ fn.body := by
+  unfold loopPre at h
+  cases hs : splitLoopF fn.body with
+  | none => simp [hs] at h
+  | some q =>
+    obtain ⟨pre, c, g, args⟩ := q
+    rw [hs] at h
+    rw [(splitLoopF_eq hs).1]
+    exact List.mem_append_left _ (by simpa using h)
+
+theorem cl_atom_mem {ss : List Stmt} {a : Atom} (h : a ∈ atomsIn ss) : Stmt.atom a ∈ ss := by
+  obtain ⟨s, hs, hsa⟩ := List.mem_filterMap.mp h
+  cases s <;> simp only [reduceCtorEq, Option.some.injEq] at hsa
+  subst hsa
+  exact hs
+
+theorem cl_mem_atoms {ss : List Stmt} {a : Atom} (h : Stmt.atom a ∈ ss) : a ∈ atomsIn ss :=
+  List.mem_filterMap.mpr ⟨_, h, rfl⟩
+
+set_option maxRecDepth 20000 in
+set_option maxHeartbeats 1000000 in
+/-- **A group of claims** (`__loop16`'s block at the counter `x`): the state after whole blocks
+`pre` at `chain · x^13`, the 68 canonical cells at `entries · x^68`, the state after them at
+`chain · x^13` from offset `13`. -/
+theorem l16_block {x N chain entries : E} {n : ℕ} {pre : List UInt8}
+    (hpre : pre.length = rate * n) (hS : StateAt rd (chain * x ^ 13) 0 (absorbChunks n zeroState pre))
+    {cells : List E} (hl : cells.length = 68) (hr : ReadsAt rd (entries * x ^ 68) cells)
+    (hc : AllCanonical cells)
+    (hS' : StateAt rd (chain * x ^ 13) 13
+      (absorbChunks (n + 8) zeroState (pre ++ cellsBytes cells))) :
+    LoopBlock rd (coreProgram.getD 323 default) x N [chain, entries] := by
+  have hok := l16_ok
+  have hcok := l16c_ok
+  have hnb := l16_nb
+  set fn := coreProgram.getD 323 default
+  set A := loopAtoms fn with hAdef
+  set S := storesOf 4 fn.body with hSdef
+  simp only [l16Ok, Bool.and_eq_true, decide_eq_true_eq] at hok
+  obtain ⟨⟨⟨⟨⟨⟨⟨-, hlen4⟩, hck⟩, hst⟩, hl1⟩, -⟩, -⟩, -⟩ := hok
+  simp only [l16cOk, Bool.and_eq_true, Option.isSome_iff_exists, List.all_eq_true,
+    Bool.or_eq_true, Bool.not_eq_true', decide_eq_true_eq] at hcok
+  obtain ⟨⟨⟨⟨⟨⟨⟨⟨⟨hshape, c', hchk⟩, hpreA⟩, heqA⟩, hSsh⟩, hcan⟩, hneeds⟩, hstF⟩, hm9⟩, hm17⟩ :=
+    hcok
+  have heqA' := atomsEqbL_sound heqA
+  let args : List E := [x, N, chain, entries]
+  obtain ⟨σ, hσ⟩ : ∃ σ : Val, σ = B1.Val.ofArgs (ev rd (fun _ => 0) args fn.body) := ⟨_, rfl⟩
+  have hidx : ∀ v, σ v = σ (.n v.idx) := fun v => by rw [hσ]; rfl
+  obtain ⟨-, -, hgs⟩ := ev_spec rd (fun _ => 0) fn.body args hchk
+  rw [show args.length = 4 from rfl, ← hσ] at hgs
+  have hg : ∀ a ∈ A, Good rd S (fun _ => 0) σ a := fun a ha =>
+    hgs (.atom a) (cl_pre_mem (cl_atom_mem (by rw [heqA']; exact ha)))
+  have hpar : fn.params = [.n 0, .n 1, .n 2, .n 3] := by
+    have hs2 := hshape
+    simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hs2
+    rw [hs2.1.2, hlen4]; rfl
+  have par : ∀ i (hi : i < 4), σ (.n i) = args.getD i 0 := fun i hi => by
+    rw [hσ]; exact ev_params rd _ (l := args) hchk (by simp [args]; omega)
+  have e0 : σ (.n 0) = x := par 0 (by omega)
+  have e2 : σ (.n 2) = chain := par 2 (by omega)
+  have e3 : σ (.n 3) = entries := par 3 (by omega)
+  have hP := pure_holds hg
+  have v9 : σ (.n 9) = chain * x ^ 13 := by rw [monoIs_sound hm9 hP, e2, e0]
+  have v17 : σ (.n 17) = entries * x ^ 68 := by rw [monoIs_sound hm17 hP, e3, e0]
+  have hSof : ∀ a ∈ S, ∃ c < 13,
+      a = .load ((l16Spec A).outV ((l16Spec A).nb - 1) c) (.n 9) (13 + c) := by
+    intro a ha
+    obtain ⟨c, hc', he⟩ := List.any_eq_true.mp (hSsh a ha)
+    exact ⟨c, List.mem_range.mp hc', atomEqb_sound he⟩
+  have hnS9 : ∀ d o, o < 13 → Atom.load d (.n 9) o ∉ S := by
+    intro d o ho h
+    obtain ⟨c, -, he⟩ := hSof _ h
+    simp only [Atom.load.injEq] at he
+    omega
+  have hnS17 : ∀ d o, Atom.load d (.n 17) o ∉ S := by
+    intro d o h
+    obtain ⟨c, -, he⟩ := hSof _ h
+    simp only [Atom.load.injEq] at he
+    exact absurd (congrArg V.idx he.2.1) (by decide)
+  have hq : ∀ a, isLoadB a = false → decide (a ∉ S) = true := by
+    intro a ha
+    simp only [decide_eq_true_eq]
+    intro hm
+    obtain ⟨c, -, rfl⟩ := hSof a hm
+    simp [isLoadB] at ha
+  have vst : ∀ c : Fin 13, σ (l16St.getD c default) =
+      cellsOfState (absorbChunks n zeroState pre) false c := by
+    intro c
+    simp only [stLoadsOk, Bool.and_eq_true, List.all_eq_true, List.mem_range] at hst
+    have hc13 := c.isLt
+    rw [load_val (hst.2 c c.isLt) hg (hnS9 _ _ (by omega)), v9, rdAt_of_load (hS c)]
+  have vc : ∀ i < 68, σ (.n (i + 18)) = cells.getD i 0 := by
+    intro i hi
+    simp only [loadsOk, List.all_eq_true, List.mem_range] at hl1
+    have := hl1 i (by simp [l16Spec]; omega)
+    simp only [l16Spec, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hi,
+      Option.map_some, Option.getD_some] at this
+    rw [load_val this hg (hnS17 _ _), v17, rdAt_of_load (hr i (by omega)),
+      List.getD_eq_getElem _ _ (by omega)]
+  have hA : ∀ i ∈ l16St.map V.idx ++ (List.range 68).map (· + 18), IsCanonical128 (σ (.n i)) := by
+    intro i hi
+    rcases List.mem_append.mp hi with hi | hi
+    · obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hi
+      obtain ⟨c, hc', rfl⟩ := List.mem_map.mp hv
+      have hc13 := List.mem_range.mp hc'
+      have := vst ⟨c, hc13⟩
+      simp only [l16St, List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_range hc13,
+        Option.map_some, Option.getD_some] at this
+      rw [← hidx, this]
+      exact canon_cellsOfState _ _ _
+    · obtain ⟨j, hj, rfl⟩ := List.mem_map.mp hi
+      have hj' := List.mem_range.mp hj
+      rw [vc j hj', List.getD_eq_getElem _ _ (by omega)]
+      exact hc _ (List.getElem_mem _)
+  have hat : ∀ a ∈ A, a.Holds rd σ := by
+    refine atoms_holds_stores (S := S) (w := fun _ => 0) hidx hcan hg hA
+      (fun a ha hnS' hns => Or.inl ?_) (fun h1 a ha haS => ?_)
+    · rcases hneeds a ha with ((h | h) | h) | h
+      · rw [hns] at h; exact absurd h (by simp)
+      · exact absurd h hnS'
+      · cases a <;> simp only [isLoadBelow, Bool.false_eq_true, Bool.and_eq_true,
+          decide_eq_true_eq] at h
+        rename_i d p o
+        obtain ⟨rfl, ho⟩ := h
+        have hv := hS ⟨o, ho⟩
+        rw [Nat.zero_add, ← v9] at hv
+        exact load_holds_of hnS' (hg _ ha) hv
+      · cases a <;> simp only [isLoadBelow, Bool.false_eq_true, Bool.and_eq_true,
+          decide_eq_true_eq] at h
+        rename_i d p o
+        obtain ⟨rfl, ho⟩ := h
+        have hv := hr o (by omega)
+        rw [← v17] at hv
+        exact load_holds_of hnS' (hg _ ha) hv
+    · have hF : ∀ b ∈ A.filter (fun a => decide (a ∉ S)), b.Holds rd σ :=
+        fun b hb => h1 b (List.mem_filter.mp hb).1 (by simpa using (List.mem_filter.mp hb).2)
+      have hchk' : (l16Spec A).check (A.filter (fun a => decide (a ∉ S))) = true := by
+        rw [check_filter hq]; exact hck
+      have h0 := initCell_of_loads (s := l16Spec A) rfl hstF hF
+        (S := absorbChunks n zeroState pre) (by rw [v9]; exact hS)
+      obtain ⟨hw, -, -⟩ := chain_whole hchk' rfl hF hpre h0
+      have hv : (l16Spec A).vals σ = cells := by
+        refine List.ext_getElem (by simp [l16Spec, ChainSpec.vals, hl]) fun i h1 h2 => ?_
+        have hi : i < 68 := by omega
+        simp only [l16Spec, ChainSpec.vals, List.getElem_map, List.getElem_range, srcVal]
+        rw [vc i hi, List.getD_eq_getElem _ _ h2]
+      obtain ⟨c, hc13, rfl⟩ := hSof a haS
+      show LoadHolds rd (σ (.n 9)) (13 + c) (σ ((l16Spec A).outV ((l16Spec A).nb - 1) c))
+      have hwc := hw ⟨c, hc13⟩
+      rw [hv, hnb, show ((⟨c, hc13⟩ : Fin 13) : ℕ) = c from rfl] at hwc
+      rw [hnb, hwc, v9]
+      exact hS' ⟨c, hc13⟩
+  refine ⟨σ, ?_, fun s hs => ?_⟩
+  · rw [hpar]
+    simp only [List.map_cons, List.map_nil]
+    rw [e0, par 1 (by omega), e2, e3]
+    rfl
+  · have := hpreA s hs
+    cases s <;> simp only [isAtomS, Bool.false_eq_true] at this
+    rename_i a
+    exact ⟨hat a (by have := cl_mem_atoms hs; rwa [heqA'] at this), trivial⟩
+
 end
 end LeanVM.Guest.B1.Digest
