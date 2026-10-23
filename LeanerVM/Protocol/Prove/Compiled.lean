@@ -20,16 +20,16 @@ The compiled protocol is the list-binding compilation `listBindingDef`: the leve
 committed, the front phases and the opening's batching over it, the opening's input, and WHIR's
 opening. A front phase over the word runs its honest prover on the stack the witness holds
 (`Phase.FrontDef.over`). `Component.Cached.over` does the same with a cached prover of the phase,
-and runs as the phase over the word does (`run_eq`), so the cached bus phase and table sumcheck of
-`LeanerVM.Protocol.HonestProver` carry over to the compiled protocol.
+and runs as the phase over the word does (`run_eq`), so the cached bus phase, table sumcheck and
+Flock phase of `LeanerVM.Protocol.HonestProver` carry over to the compiled protocol.
 
 `listBindingCached` is the cached prover of the whole compilation: the level-0 word's rows encoded
 once by the transform and the word reading them sent (`commitWordCached`, on `κ + R ≤ 64`
 positions' bits, which every deployed level has), the cached bus phase, table sumcheck and Flock
 phase over the word, WHIR's cached opening (`Whir.whirOpenCached`), and the honest provers of the
-public-input check, the batching and the opening's input. **`compiledProver_run`**: the run of its prover,
-`compiledProver`, is the run of the compilation's honest prover, on every statement, stack and
-challenge sequence. No definition or statement of the protocol changes.
+public-input check, the batching and the opening's input. **`compiledProver_run`**: the run of
+its prover, `compiledProver`, is the run of the compilation's honest prover, on every statement,
+stack and challenge sequence. No definition or statement of the protocol changes.
 -/
 
 namespace LeanerVM.Protocol

@@ -27,7 +27,7 @@ positions. It is the writer's side of the verifier's walk: each phase's codec mi
 * A round polynomial sends its coefficients but the dropped one (`RoundPoly.encode`): `c_0` in a
   round whose equality weight is factored out (the grand product's and the zerocheck's), `c_1` in
   a plain round.
-* A challenge of several elements is that many squezes: the four fingerprint challenges `α`,
+* A challenge of several elements is that many squeezes: the four fingerprint challenges `α`,
   then `β`; a point, one squeeze per coordinate.
 * The committed words: the level-0 word's row at a position is its first `n` lanes in reverse,
   lane `u` at word `n - 1 - u` (`level0Rows`); a later level's row is its lanes in order, each

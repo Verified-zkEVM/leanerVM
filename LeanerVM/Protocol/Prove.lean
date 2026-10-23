@@ -34,8 +34,8 @@ in a monad `m`:
    (`none` when it runs out);
 4. every committed word is opened at its level's positions (`merkleOpen`), in level order.
 
-`prove := proveWith (m := Id) blake2sBytes` at the deployed BLAKE2s specification of `F`, the one
-`verify` reads. `honestAdversary` is the prover in the random-oracle game: every hash a query, an
+`prove` is `proveWith (m := Id) blake2sBytes` at the deployed Flock specification
+(`Blake2sFlock.blake2sFlockSpec`), the one `verify` reads. `honestAdversary` is the prover in the random-oracle game: every hash a query, an
 empty proof when the grinding runs out of fuel.
 
 **Differences from the Rust prover** (`crates/lean_vm/src/cpu/mod.rs:520-640`, `prove`, at leanVM

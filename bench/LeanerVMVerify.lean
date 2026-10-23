@@ -34,10 +34,10 @@ interval. -/
 runs of `verify` (default `1`); the Rust fixture's proof, or the proof of `file`. -/
 def main (args : List String) : IO UInt32 := do
   let runs := (args.head?.bind String.toNat?).getD 1
-  let vector := args[1]?
+  let vector : Option String := args[1]?
   let loaded ← match vector with
     | none => pure (some fx)
-    | some file => return load (← IO.FS.readFile file)
+    | some file => do pure (load (← IO.FS.readFile file))
   let some f := loaded | do
     IO.println s!"FAIL the loader rejects {vector.getD ""}"
     return 1
