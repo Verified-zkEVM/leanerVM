@@ -157,5 +157,106 @@ theorem subTops_eq (hpre : SPre rd σ) {c : Coord} {s : SuperIdx} {j : SubIdx} {
     rw [this]
     rfl
 
+/-- The top fold's sibling at level `l` of coordinate `c` at base `b`, the other level-3 node at
+`l = 3`. -/
+noncomputable def topSib (σ : Val) (c : Nat) (enc : Option V) (bound : V) (b l : Nat) : E :=
+  if l < 3 then σ (.n (flBase (coordAdr (coordS σ b)) 0 l
+    (foAB (.n (b + 6)) coordAdr 4 (.n ((coordS1 c enc bound b).2.1 + 5)) (.n (b + 1))
+      (fun s => word (c * hiMul + s * 2 ^ 35) 0 0) (fun s => cbMul s (26 + 4 * c))
+      ((coordS1 c enc bound b).2.1 + 18) (coordS σ b))))
+  else σ (if coordS σ b / 2 ^ 3 = 0 then (coordFd c b (coordS1 c enc bound b).2.1).2.2.2.1
+    else (coordFd c b (coordS1 c enc bound b).2.1).2.2.1)
+
+/-- A coordinate's opening, read off the frame. -/
+noncomputable def coordOpening (σ : Val) (c : Nat) (enc : Option V) (bound : V) (b : Nat) :
+    CoordOpening :=
+  ⟨fun j => subOpening σ c j.val (if j.val = 0 then enc else some (coordS0 c enc bound b).2.2.1)
+      (if j.val = 0 then b + 10 else (coordS0 c enc bound b).2.1),
+    fun l => sv (topSib σ c enc bound b l.val)⟩
+
+/-- **A coordinate's two level-3 nodes**, as the Spec's `coordRecover`. -/
+theorem coordKey_eq (hpre : SPre rd σ) {c : Coord} {enc : Option V} {bound : V} {b : Nat}
+    (hf : CoordFacts σ c.val enc bound b) {mark : CoordMark} (hs : mark.super.val = coordS σ b)
+    (ha0 : (mark.child 0).val = subA σ (b + 10))
+    (ha1 : (mark.child 1).val = subA σ (coordS0 c.val enc bound b).2.1)
+    (ht0 : (mark.word 0).val = subT σ (b + 10))
+    (ht1 : (mark.word 1).val = subT σ (coordS0 c.val enc bound b).2.1)
+    {index : Index} (hidx : index.val = sIdx σ) :
+    @coordRecover Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark (coordOpening σ c.val enc bound b) =
+      (sv (σ (coordFd c.val b (coordS1 c.val enc bound b).2.1).2.2.1),
+        sv (σ (coordFd c.val b (coordS1 c.val enc bound b).2.1).2.2.2.1)) := by
+  have hidx26 := sIdx_lt σ
+  have hc8 : c.val < 8 := c.isLt
+  have hs16 : mark.super.val < 16 := mark.super.isLt
+  have hleaf : σ (.n (b + 6)) = eOfNat (sIdx σ) + word (c.val * hiMul + mark.super.val * 2 ^ 35) 0 0 := by
+    rw [hf.leafOK, sNode0_eq hpre, hs]
+  have t0 := subTops_eq hpre (c := c) (s := mark.super) (j := 0) (a := mark.child 0)
+    (t := mark.word 0) hf.sub0 ha0 ht0 hleaf hidx
+  have t1 := subTops_eq hpre (c := c) (s := mark.super) (j := 1) (a := mark.child 1)
+    (t := mark.word 1) hf.sub1 ha1 ht1 hleaf hidx
+  set f := (coordS1 c.val enc bound b).2.1 with hfdef
+  rw [coordRecover_id]
+  have hS : cellBytes (σ (.n (b + 6)) + word (tw 18) 0 0) = tweakBytes (.superChild index c mark.super) := by
+    rw [hleaf]
+    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 18 0 (c.val + 8 * mark.super.val) index.val)
+    rw [hidx]
+    exact superAdr_bytes hidx26 hc8 hs16
+  rw [sSuperHash_cells sq_keccak (aS := σ (.n (b + 6)) + word (tw 18) 0 0) t0 t1 hS]
+  have hsup : (hcell [σ sPP, σ (.n (b + 6)) + word (tw 18) 0 0,
+      σ (subFd c.val (0 : SubIdx).val enc (b + 10)).2.2.1,
+      σ (subFd c.val (0 : SubIdx).val enc (b + 10)).2.2.2.1,
+      σ (subFd c.val (1 : SubIdx).val (some (coordS0 c.val enc bound b).2.2.1)
+        (coordS0 c.val enc bound b).2.1).2.2.1,
+      σ (subFd c.val (1 : SubIdx).val (some (coordS0 c.val enc bound b).2.2.1)
+        (coordS0 c.val enc bound b).2.1).2.2.2.1]).1 = σ (.n (f + 5)) := hf.super.symm
+  rw [hsup]
+  -- the top fold
+  set s := mark.super.val with hsdef
+  set A : Nat → E := fun l => if l < 3 then flAdr σ (.n (b + 6)) (coordAdr s) l else
+    eOfNat (sIdx σ + 2 ^ 32 * (c.val + 8 * (l + 1) + 64 * (s / 2 ^ (l + 1))) + 2 ^ 56 * (19 + 32 * 0))
+    with hA
+  have hAb : ∀ (l : Fin topHeight) (node : SuperIdx), node.val = s / 2 ^ (l.val + 1) →
+      cellBytes (A l.val) = tweakBytes (.topNode index c l node) := by
+    intro l node hn
+    show _ = Sphincs.fieldBytes (Sphincs.tweakFields 19 0 (c.val + 8 * (l.val + 1) + 64 * node.val)
+      index.val)
+    rw [hn, hidx]
+    have hl4 : l.val < 4 := l.isLt
+    by_cases hl : l.val < 3
+    · simp only [hA, hl, ↓reduceIte, flAdr, coordAdr]
+      rw [hleaf]
+      exact topNodeAdr_bytes hidx26 hc8 hs16 hl
+    · simp only [hA, hl, ↓reduceIte]
+      have hq : s / 2 ^ (l.val + 1) < 2 ^ 3 := div_two_pow_lt (n := 3) (show s < 2 ^ (3 + 1) from hs16)
+      exact sAdr_bytes (by omega) (by omega) (by omega) (by omega)
+  have htf := sTopFold_cells sq_keccak (pp := σ sPP) (A := A) (index := index) (c := c) (s := mark.super)
+    hAb (topSib σ c.val enc bound b) (topHeight - 1) (by decide) (σ (.n (f + 5)))
+  have hreach : xFold (σ sPP) A (fun l => s.testBit l) (topSib σ c.val enc bound b) (topHeight - 1)
+      (σ (.n (f + 5))) =
+      σ (if s / 2 ^ 3 = 0 then (coordFd c.val b f).2.2.1 else (coordFd c.val b f).2.2.2.1) := by
+    rw [hs, hf.node, mFold_eq_xFold]
+    apply xFold_congr
+    intro l hl
+    have hl3 : l < 3 := by simpa [topHeight] using hl
+    refine ⟨?_, rfl, ?_⟩
+    · simp only [hA, hl3, ↓reduceIte, hs]
+    · simp only [topSib, hl3, ↓reduceIte]
+  show orderTops (s.testBit (topHeight - 1))
+      (@topFold Id _ ⟨Node.keccakBits⟩ (spp (σ sPP)) index c mark.super
+        (fun l => sv (topSib σ c.val enc bound b l.val)) (topHeight - 1) (sv (σ (.n (f + 5)))))
+      (sv (topSib σ c.val enc bound b (topHeight - 1))) = _
+  rw [htf, hreach]
+  have hb3 : s.testBit 3 = !(s / 2 ^ 3 == 0) := testBit_top (show s < 2 ^ (3 + 1) from hs16)
+  rw [show topHeight - 1 = 3 from rfl, hb3]
+  unfold topSib
+  simp only [lt_irrefl, ↓reduceIte, ← hs]
+  by_cases h0 : s / 2 ^ 3 = 0
+  · simp only [h0, ↓reduceIte]
+    rfl
+  · simp only [h0, ↓reduceIte]
+    have : (s / 2 ^ 3 == 0) = false := by simpa using h0
+    rw [this]
+    rfl
+
 end
 end LeanVM.Guest.B1.Sig
