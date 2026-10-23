@@ -31,6 +31,8 @@ challenge `λ`.
   powers of `λ` in `lam_pool` and `lam_out`, the outputs' claim's point at `z_vals` and the ring
   switch's point at `z_vals·g^39`, the ring map's coefficients at `c_table`, the terminal point at
   `point` (zero-padded to `SIZE_BITS + QKECCAK_SLOT_LOG = 40` words) and `1 + point` at `point1`;
+  the memory nonempty (`1 ≤ log_mem`, `buildLayout` gives `16 ≤ log_mem`) and the bus point at most
+  `40` long (`eq_prefix_chain`'s range);
 * `check_opening_terminal_Spec`: under `TermPre`, the relation gives the terminal check.
 -/
 
@@ -83,7 +85,8 @@ def TermPre (rd : Reader) (layout : Layout) (bus : BusResult) (claims : List Col
       Tables.TCtx rd layout bus claims [zeta, chi, rm, gmu, gzcn, cplen] ∧
       Tables.PCtx rd kappas off kap ∧ Tables.KappasBelow rd kap ∧
       layout.placements = (placementsOf kappas).1 ∧ layout.stackLog = (placementsOf kappas).2 ∧
-      layout.stackLog ≤ 28 ∧ layout.logMemory ≤ 32 ∧ layout.tableLogHeights.length = 6 ∧
+      layout.stackLog ≤ 28 ∧ 1 ≤ layout.logMemory ∧ layout.logMemory ≤ 32 ∧
+      bus.point.length ≤ 40 ∧ layout.tableLogHeights.length = 6 ∧
       (∀ h ∈ layout.tableLogHeights, h < 29) ∧
       glm = gen ^ layout.logMemory ∧ gtau = gen ^ τ ∧
       (∀ j < Tables.nClaims, Tables.claimColumns.getD j 0 ∉ keccakOutputColumns →
