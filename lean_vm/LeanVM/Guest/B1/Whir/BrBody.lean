@@ -97,7 +97,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
     (hrun : RunsWith (whirOpen μ r target) ⟨capOf S, []⟩ xs os [(root, stackShape μ r)] w s'
       roots')
     (hnz : NoZeroChallenge μ r target S xs os root) :
-    ∃ (c0 c2 : E) (tr : OsTr), TrFit c tr ∧
+    ∃ (c0 c2 : E) (tr : OsTr), TrFit c tr ∧ (tr.point (c.levels.headD default).folds).length = μ ∧
       ptC tr (c.levels.headD default).folds = w.point ++ List.replicate (pointCap - μ) 0 ∧
       pt1C tr (c.levels.headD default).folds =
         w.point.map (1 + ·) ++ List.replicate (pointCap - μ) 1 ∧
@@ -165,7 +165,7 @@ theorem osBodyA_honest {c : OsCfg} {μ r : ℕ} {cfg : List Whir.Level} (hF : Ca
       have hlw := levelsOk_width 0 c.levels cfg hF.lok i (by rw [← hfit.len]; simpa using hi)
       show (Ls.getD (i + 1) default).width = _
       rw [hw, hl, hlw, Nat.zero_add]
-  refine ⟨c0, c2, tr, hfit, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_,
+  refine ⟨c0, c2, tr, hfit, hpl, by rw [ptC, hpoint, hpl], by rw [pt1C, hpoint, hpl], ?_,
     ⟨hqs, hheight, hindex, hwidth⟩⟩
   intro C rd σ A hcap h5 h6 h7 hrd hm hc
   -- the head's words
