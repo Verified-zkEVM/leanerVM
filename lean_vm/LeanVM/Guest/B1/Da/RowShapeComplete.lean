@@ -65,9 +65,12 @@ theorem nPad_bounds {r : ℕ} (hr : 1 ≤ r) : r ≤ LeanDa.nPad r ∧ LeanDa.nP
     simp
 
 set_option maxRecDepth 10000 in
-/-- **`da_row_shape` is complete.** -/
-theorem da_row_shape_complete : da_row_shape_complete_Spec := by
-  intro rd hm gsq hsq r L hr1 hr hL
+/-- **`da_row_shape` is complete** on a memory defined below `2^16`, reading `g^(2^L)` at
+`g_squares·g^L`. -/
+theorem da_row_shape_complete' (rd : Reader) (hm : Sig.MemOK rd (2 ^ 16)) (gsq : E) (r L : ℕ)
+    (hsq : LoadHolds rd gsq L (gen ^ 2 ^ L)) (hr1 : 1 ≤ r) (hr : r ≤ LeanDa.maxRows)
+    (hL : 2 ^ L = LeanDa.nPad r) :
+    coreProgram.Rel rd "da_row_shape" [gen ^ r, gen ^ L, gsq] [gen ^ 2 ^ L, gen ^ (2 ^ L - r)] := by
   unfold LeanDa.maxRows at hr
   obtain ⟨hlo, hhi⟩ := nPad_bounds hr1
   have hlo' : r ≤ 2 ^ L := hL ▸ hlo
@@ -81,11 +84,11 @@ theorem da_row_shape_complete : da_row_shape_complete_Spec := by
   have hpow : 2 ^ L ≤ 1024 := by
     calc 2 ^ L ≤ 2 ^ 10 := Nat.pow_le_pow_right (by norm_num) hL10
       _ = 1024 := by norm_num
-  obtain ⟨t9, t10, h9, e8, h10⟩ := rc_holds hm (k := r) (K := 1024) (by omega) (by norm_num)
-  obtain ⟨t13, t14, h13, e12, h14⟩ := rc_holds hm (k := L) (K := 10) (by omega) (by norm_num)
-  obtain ⟨t20, t21, h20, e19, h21⟩ := rc_holds hm (k := 2 ^ L - r) (K := 1024) (by omega)
+  obtain ⟨t9, t10, h9, e8, h10⟩ := rc_holds' hm (k := r) (K := 1024) (by omega) (by norm_num)
+  obtain ⟨t13, t14, h13, e12, h14⟩ := rc_holds' hm (k := L) (K := 10) (by omega) (by norm_num)
+  obtain ⟨t20, t21, h20, e19, h21⟩ := rc_holds' hm (k := 2 ^ L - r) (K := 1024) (by omega)
     (by norm_num)
-  obtain ⟨t28, t29, h28, e27, h29⟩ := rc_holds hm (k := 2 * r - 2 ^ L - 1) (K := 1023) (by omega)
+  obtain ⟨t28, t29, h28, e27, h29⟩ := rc_holds' hm (k := 2 * r - 2 ^ L - 1) (K := 1023) (by omega)
     (by norm_num)
   have hne : gen ^ r + word 1 0 0 ≠ 0 := by
     rw [word_one, Ne, e_add_eq_zero_iff, ← pow_zero gen]
@@ -106,9 +109,22 @@ theorem da_row_shape_complete : da_row_shape_complete_Spec := by
     ⟨h9, by rw [word_g1024]; exact e8, h10⟩, trivial, ⟨h13, by rw [word_g10]; exact e12, h14⟩,
     trivial, ?_, ?_, trivial, ⟨h20, by rw [word_g1024]; exact e19, h21⟩, trivial, trivial, trivial,
     trivial, ?_, ⟨h28, by rw [word_g1023]; exact e27, h29⟩, trivial, trivial, trivial⟩
-  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq L (by omega)
+  · rw [loadHolds_mul_gen_pow, Nat.add_zero]; exact hsq
   · rw [← pow_add]; congr 1; omega
   · rw [word_gen, ← pow_succ, ← pow_add, ← pow_add]; congr 1; omega
+
+/-- **`da_row_shape` is complete.** -/
+theorem da_row_shape_complete : da_row_shape_complete_Spec := by
+  intro rd hm gsq hsq r L hr1 hr hL
+  have hL10 : L ≤ 10 := by
+    unfold LeanDa.maxRows at hr
+    obtain ⟨-, hhi⟩ := nPad_bounds hr1
+    have hlt : 2 ^ L < 2 ^ 11 := by
+      calc 2 ^ L < 2 * r := hL ▸ hhi
+        _ ≤ 2 ^ 11 := by norm_num; omega
+    have := (Nat.pow_lt_pow_iff_right (by norm_num : 1 < 2)).mp hlt
+    omega
+  exact da_row_shape_complete' rd (memOK_of_memOk hm) gsq r L (hsq L (by omega)) hr1 hr hL
 
 end
 end LeanVM.Guest.B1.Da

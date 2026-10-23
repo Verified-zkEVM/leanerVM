@@ -39,13 +39,22 @@ theorem load_gen (hm : MemOk rd) {i : ℕ} (hi : i < 2 ^ 16) : ∃ w, LoadHolds 
   rw [gen_pow_eq_ofK]
   exact Sig.load_gpow (memOK_of_memOk hm) hi
 
+/-- **A range check of `g^k` against `g^K` holds** on a memory defined below `2^16`, `k ≤ K < 2^16`,
+its witness `g^(K - k)`. -/
+theorem rc_holds' (hm : Sig.MemOK rd (2 ^ 16)) {k K : ℕ} (hk : k ≤ K) (hK : K < 2 ^ 16) :
+    ∃ t1 t2, LoadHolds rd (gen ^ k) 0 t1 ∧ gen ^ K = gen ^ k * gen ^ (K - k) ∧
+      LoadHolds rd (gen ^ (K - k)) 0 t2 := by
+  obtain ⟨t1, h1⟩ : ∃ w, LoadHolds rd (gen ^ k) 0 w := by
+    rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show k < 2 ^ 16 by omega)
+  obtain ⟨t2, h2⟩ : ∃ w, LoadHolds rd (gen ^ (K - k)) 0 w := by
+    rw [gen_pow_eq_ofK]; exact Sig.load_gpow hm (show K - k < 2 ^ 16 by omega)
+  exact ⟨t1, t2, h1, by rw [← pow_add]; congr 1; omega, h2⟩
+
 /-- **A range check of `g^k` against `g^K` holds**, `k ≤ K < 2^16`, its witness `g^(K - k)`. -/
 theorem rc_holds (hm : MemOk rd) {k K : ℕ} (hk : k ≤ K) (hK : K < 2 ^ 16) :
     ∃ t1 t2, LoadHolds rd (gen ^ k) 0 t1 ∧ gen ^ K = gen ^ k * gen ^ (K - k) ∧
-      LoadHolds rd (gen ^ (K - k)) 0 t2 := by
-  obtain ⟨t1, h1⟩ := load_gen hm (show k < 2 ^ 16 by omega)
-  obtain ⟨t2, h2⟩ := load_gen hm (show K - k < 2 ^ 16 by omega)
-  exact ⟨t1, t2, h1, by rw [← pow_add]; congr 1; omega, h2⟩
+      LoadHolds rd (gen ^ (K - k)) 0 t2 :=
+  rc_holds' (memOK_of_memOk hm) hk hK
 
 /-- **`list_split` is complete.** -/
 theorem list_split_complete : list_split_complete_Spec := by

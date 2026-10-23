@@ -151,7 +151,40 @@ theorem gap_block {j : ℕ} {f : String} (hs : loopShapeF (coreProgram.getD j de
 
 /-! ## A column -/
 
+/-- A column's honest valuation. -/
+def colσ (xb : E) (r gp L : ℕ) (pb coltree rowbase cd lv node c0 c1 : E) : Val :=
+  Val.ofArgs [xb, gen ^ r, gen ^ 2 ^ L, gen ^ gp, gen ^ L, pb,
+    coltree, rowbase, cd, xb * xb, cd * (xb * xb), lv, gen ^ 2 ^ L * gen ^ 2 ^ L,
+    gen ^ 2 ^ L * gen ^ 2 ^ L * (gen ^ 2 ^ L * gen ^ 2 ^ L), node, word 1 0 0, word 1 0 0 + gen ^ r,
+    word 1 0 0, word 1 0 0, word 1 0 0 + gen ^ gp, word 1 0 0, c0, c1, xb * xb, coltree * (xb * xb)]
+
 set_option maxRecDepth 20000 in
+/-- **A column's body holds** on its honest valuation, its vector check, its rows' and padding
+rows' blocks, its tree's root, and the root's cells in the column tree. -/
+theorem col_holds {rl gl : String} {jr jg : ℕ}
+    (hfr : coreProgram.find? rl = some (coreProgram.getD jr default))
+    (hsr : loopShapeF (coreProgram.getD jr default) rl = true)
+    (hfg : coreProgram.find? gl = some (coreProgram.getD jg default))
+    (hsg : loopShapeF (coreProgram.getD jg default) gl = true)
+    {xb pb coltree rowbase cd lv node c0 c1 : E} {r gp L : ℕ} (hL : L ≤ 10)
+    (hvec : coreProgram.Rel rd "da_vector_cell" [cd * (xb * xb)] [lv])
+    (hrows : ∀ i < r, LoopBlock rd (coreProgram.getD jr default) (gen ^ i) (gen ^ r)
+      [lv, rowbase, xb, node, pb])
+    (hgaps : ∀ d < gp, LoopBlock rd (coreProgram.getD jg default) (gen ^ d) (gen ^ gp)
+      [node, gen ^ r])
+    (hlev : coreProgram.Rel rd (daLevelsName L) [node] [c0, c1])
+    (hs0 : LoadHolds rd (coltree * (xb * xb)) 0 c0) (hs1 : LoadHolds rd (coltree * (xb * xb)) 1 c1) :
+    Stmt.HoldsList (coreProgram.Rel rd) rd (colσ xb r gp L pb coltree rowbase cd lv node c0 c1)
+      (colBody rl gl) False (fun rs => rs = []) := by
+  have gr := guard_complete hfr hsr hrows
+  have gg := guard_complete hfg hsg hgaps
+  rw [← word_one] at gr gg
+  simp only [colσ, colBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
+    ofArgs_n, List.getD_cons_succ, List.getD_cons_zero, true_and, and_true]
+  have hlt : L < dlNames.length := by simp [dlNames]; omega
+  exact ⟨hvec, gr.1, gr.2, gg.1, gg.2, ⟨L, hlt, gen_pow_eq_ofK L, by
+    rw [show dlNames[L] = daLevelsName L by simp [dlNames]]; exact hlev⟩, hs0, hs1⟩
+
 /-- **A column holds**, its vector check, its rows' and padding rows' blocks, its tree's root, and
 the root's cells in the column tree. -/
 theorem col_rel {fname rl gl : String} {jc jr jg : ℕ}
@@ -172,20 +205,10 @@ theorem col_rel {fname rl gl : String} {jc jr jg : ℕ}
     (hs0 : LoadHolds rd (coltree * (xb * xb)) 0 c0) (hs1 : LoadHolds rd (coltree * (xb * xb)) 1 c1) :
     coreProgram.Rel rd fname [xb, gen ^ r, gen ^ 2 ^ L, gen ^ gp, gen ^ L, pb, coltree, rowbase, cd]
       [] := by
-  have gr := guard_complete hfr hsr hrows
-  have gg := guard_complete hfg hsg hgaps
-  rw [← word_one] at gr gg
-  refine (rel_iff_sem hfc _ _).mpr ⟨Val.ofArgs [xb, gen ^ r, gen ^ 2 ^ L, gen ^ gp, gen ^ L, pb,
-    coltree, rowbase, cd, xb * xb, cd * (xb * xb), lv, gen ^ 2 ^ L * gen ^ 2 ^ L,
-    gen ^ 2 ^ L * gen ^ 2 ^ L * (gen ^ 2 ^ L * gen ^ 2 ^ L), node, word 1 0 0, word 1 0 0 + gen ^ r,
-    word 1 0 0, word 1 0 0, word 1 0 0 + gen ^ gp, word 1 0 0, c0, c1, xb * xb, coltree * (xb * xb)],
+  refine (rel_iff_sem hfc _ _).mpr ⟨colσ xb r gp L pb coltree rowbase cd lv node c0 c1,
     by rw [hpar]; rfl, ?_⟩
   rw [hbody]
-  simp only [colBody, Stmt.HoldsList, Stmt.Holds, Atom.Holds, List.map_cons, List.map_nil,
-    ofArgs_n, List.getD_cons_succ, List.getD_cons_zero, true_and, and_true]
-  have hlt : L < dlNames.length := by simp [dlNames]; omega
-  exact ⟨hvec, gr.1, gr.2, gg.1, gg.2, ⟨L, hlt, gen_pow_eq_ofK L, by
-    rw [show dlNames[L] = daLevelsName L by simp [dlNames]]; exact hlev⟩, hs0, hs1⟩
+  exact col_holds hfr hsr hfg hsg hL hvec hrows hgaps hlev hs0 hs1
 
 end
 end LeanVM.Guest.B1.Da
