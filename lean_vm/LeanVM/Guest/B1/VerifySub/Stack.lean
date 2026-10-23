@@ -70,7 +70,7 @@ theorem vs_stack {κ : ℕ} (hκ : κ ≤ 32) (hκ6 : 6 ≤ κ) (L : MemImage κ
   obtain ⟨N, hN, hgN, hm34, -, -, hret⟩ := ((log2_holds.2.2.2 hκ hκ6 L _ _ _ hexp _).1
     (hLe _ _ _ hl2))
   simp only [List.cons.injEq, and_true] at hret
-  have hT := stackTotal_lt F.hm32 hsL F.hh29
+  have hT := sl_stackTotal_lt F.hm32 hsL F.hh29
   have eN : N = Tables.stackTotal (columnKappas F.logMem 19 (Tables.tableHeightsOf F.rowsN)) :=
     gen_pow_inj (lt_trans hN (by norm_num)) (lt_trans hT (by norm_num)) (hgN.symm.trans e1887)
   rw [eN] at hm34 hret
