@@ -206,31 +206,31 @@ def Ok (n : ℕ) : Prop :=
 
 end GkStepD
 
-/-- **One step of the walk, read back** (two levels, or one from a state without a point). -/
-theorem gkrStep_inv {n : ℕ} {st st' : GkrState} {s s' : Fs} {xs : List E}
-    (h : RunsTo (gkrStep n st) s xs st' s') (hc : ∃ sp, s.Carries sp)
+/-- **One step of the walk, read back** from the carried run (two levels, or one from a state
+without a point). -/
+theorem gkrStep_invT {n : ℕ} {st st' : GkrState} {s s' : Fs} {zs rest : List E}
+    (e : runT (gkrStep n st) ⟨s, zs, [], []⟩ = some (st', ⟨s', rest, [], []⟩))
     (hn : n = 2 ∨ st.point = []) :
-    ∃ D : GkStepD, D.Ok s st n ∧ xs = D.xs ∧ st' = D.st' s st n ∧ s' = D.s' s st n := by
-  obtain ⟨sp, hsp⟩ := hc
-  have e := RunsTo.toT h hsp []
-  rw [List.append_nil, gkrStep_eq] at e
+    ∃ D : GkStepD, D.Ok s st n ∧ zs = D.xs ++ rest ∧ st' = D.st' s st n ∧
+      s' = D.s' s st n := by
+  rw [gkrStep_eq] at e
   obtain ⟨c, st1, h1, h2⟩ := runT_bind_some e
   rw [runT_sampleE] at h1
   simp only [Option.some.injEq, Prod.mk.injEq] at h1
   obtain ⟨rfl, rfl⟩ := h1
   obtain ⟨r, st2, h3, h4⟩ := runT_bind_some h2
-  obtain ⟨cs, rest, hcl, hc4, hz, hr, hst⟩ : ∃ (cs : List (List E)) (rest : List E),
-      cs.length = st.point.length ∧ (∀ c ∈ cs, c.length = 4) ∧ xs = cs.flatten ++ rest ∧
+  obtain ⟨cs, rest0, hcl, hc4, hz, hr, hst⟩ : ∃ (cs : List (List E)) (rest0 : List E),
+      cs.length = st.point.length ∧ (∀ c ∈ cs, c.length = 4) ∧ zs = cs.flatten ++ rest0 ∧
       r = ((gkrRun cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2).1,
         (gkrRun cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2).2.1) ∧
-      st2 = ⟨(gkrRun cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2).2.2, rest,
+      st2 = ⟨(gkrRun cs st.point (polyEval st.values s.squeeze.1) s.squeeze.2).2.2, rest0,
         [], []⟩ := by
     rcases hn with rfl | hp
     · exact runT_sumcheck5_some _ _ _ _ _ _ _ _ h3
     · rw [hp] at h3 ⊢
       simp only [List.map_nil, sumcheck] at h3
       obtain ⟨rfl, rfl⟩ := runT_pure_some h3
-      exact ⟨[], xs, rfl, by simp, rfl, rfl, rfl⟩
+      exact ⟨[], zs, rfl, by simp, rfl, rfl, rfl⟩
   subst hr hst
   obtain ⟨ch0, st3, h5, h6⟩ := runT_bind_some h4
   obtain ⟨r0, l0, z0, rfl⟩ := runT_readN_some _ _ _ _ _ _ _ h5
@@ -252,6 +252,17 @@ theorem gkrStep_inv {n : ℕ} {st st' : GkrState} {s s' : Fs} {xs : List E}
     simp [GkStepD.xs]
   · rw [e1]; rfl
   · rw [es']; rfl
+
+/-- **One step of the walk, read back** from an accepting run. -/
+theorem gkrStep_inv {n : ℕ} {st st' : GkrState} {s s' : Fs} {xs : List E}
+    (h : RunsTo (gkrStep n st) s xs st' s') (hc : ∃ sp, s.Carries sp)
+    (hn : n = 2 ∨ st.point = []) :
+    ∃ D : GkStepD, D.Ok s st n ∧ xs = D.xs ∧ st' = D.st' s st n ∧ s' = D.s' s st n := by
+  obtain ⟨sp, hsp⟩ := hc
+  have e := RunsTo.toT h hsp []
+  rw [List.append_nil] at e
+  obtain ⟨D, h1, h2, h3, h4⟩ := gkrStep_invT e hn
+  exact ⟨D, h1, by rw [h2, List.append_nil], h3, h4⟩
 
 end
 end LeanVM.Guest.B1.Tables
