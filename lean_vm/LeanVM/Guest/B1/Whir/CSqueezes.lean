@@ -12,7 +12,7 @@ public import LeanVM.Guest.B1.Whir.CSqLoop
 # The squeezes, honestly
 
 `osSqueezes_complete`: from the carried capacity (nothing waiting), the squeeze run's rows
-holding the squeeze chain and each squeeze decoded (`SqIterMem`), the block holds (the loop by
+holding the squeeze chain (`SqNextMem`; the loop's own facts, `SqIterMem`, by
 `sqLoop_complete`), the batching challenge the chain's next squeeze, its capacity carried
 (`SqzOut`).
 -/
@@ -26,6 +26,10 @@ open LeanVM.Protocol.Verifier
 @[expose] public section
 
 variable {rd : Reader}
+
+/-- The squeeze run's row `x` holds the capacity after the squeeze. -/
+def SqNextMem (rd : Reader) (sqz x : E) (cap : List E) : Prop :=
+  ∀ i < 5, LoadHolds rd (sqz * x ^ 5) (5 + i) ((capOf (⟨cap, []⟩ : Fs).perm).getD i 0)
 
 /-- What a level's squeezes leave: the challenge's capacity carried, the challenge, the zero
 run allocated. -/
@@ -63,8 +67,7 @@ theorem osSqueezes_completeC {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {
     (hfs : st.fs.length = 5) (hb : st.Below) (hk : 34 ≤ st.k) (hcan : AllCanonical (st.fsv σ))
     (hpad : PadOk σ st.pad) (hpk : ∀ p, st.pad = some p → p + 4 < st.k)
     (sqz : E) (h0 : ∀ i < 5, LoadHolds rd sqz i ((st.fsv σ).getD i 0))
-    (hm : ∀ j < lv.squeezes, SqIterMem rd lv.depth lv.posOff sqz (σ (.n osQpos)) (σ (.n osQbp))
-      (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)
+    (hm : ∀ j < lv.squeezes, SqNextMem rd sqz (gen ^ j) ((⟨st.fsv σ, []⟩ : Fs).squeezeN j).2.cap)
     (hL : IsInK (1 + gen ^ lv.squeezes) ∧ (1 + gen ^ lv.squeezes ≠ 0 →
       C (c.sqLoop lvl) [1, gen ^ lv.squeezes, sqz, σ (.n osQpos), σ (.n osQbp)] [])) :
     BlkF C rd σ st.k (osSqueezes c lvl lv st).2.k
@@ -138,7 +141,7 @@ theorem osSqueezes_completeC {C : CallRel} {c : OsCfg} {lvl : ℕ} {lv : OsLv} {
   -- the last capacity, from the last iteration's row
   obtain ⟨n', hn'⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
   have hlast : ∀ i < 5, LoadHolds rd (sqz * gen ^ (5 * n)) i (Fn.cap.getD i 0) := fun i hi ↦ by
-    have hnx := (hm n' (by omega)).next i hi
+    have hnx := hm n' (by omega) i hi
     have hsn : Fn = ((F0.squeezeN n').2).squeeze.2 := by rw [hFn, hn', squeezeN_snoc]
     have hpn : (F0.squeezeN n').2 = ⟨(F0.squeezeN n').2.cap, []⟩ :=
       fs_of_pend_nil (squeezeN_pend rfl _)
@@ -271,7 +274,7 @@ theorem osSqueezes_complete {c : OsCfg} {lvl : ℕ} {lv : OsLv} {st : OsSt} (σ 
       (fun σ' ↦ SqzOut σ' st (osSqueezes c lvl lv st).2
         ((⟨st.fsv σ, []⟩ : Fs).squeezeN lv.squeezes).2 ∧ AgreeBelow st.k σ σ') := by
   obtain ⟨fn, hfind, hps, hbody⟩ := hloop
-  exact osSqueezes_completeC σ hn0 hn5 hfs hb hk hcan hpad hpk sqz h0 hm
+  exact osSqueezes_completeC σ hn0 hn5 hfs hb hk hcan hpad hpk sqz h0 (fun j hj ↦ (hm j hj).next)
     (sqLoop_complete hfind lv hps hbody hpw hpo hdec hn0 sqz (σ (.n osQpos))
       (σ (.n osQbp)) (st.fsv σ) (by simp [OsSt.fsv, hfs]) hcan hm)
 
