@@ -94,15 +94,14 @@ theorem guard_soundC {σ : Val} {P : List Stmt} {gc : V} {f : String} {one N : V
     rwa [List.map_cons, List.map_cons, const_sound h1 hat, word_one] at this
   · exact absurd ha (by simp)
 
-/-- `loop_stepF` under a call relation that unfolds. -/
-theorem loop_stepC (hC : Unfolds rd C) {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
-    (hok : loopShapeF fn f = true) {x : E} {ps : List E} (h : C f (x :: ps) []) :
-    ∃ σ : Val, σ (V.n 0) = x ∧ fn.params.tail.map σ = ps ∧
+/-- **A loop helper's body at a valuation**: its counter and other parameters, its block, and,
+while `x·g ≠ N`, the call at `x·g`. -/
+theorem loop_of_body {f : String} {fn : Fn} (hok : loopShapeF fn f = true) {x : E} {ps : List E}
+    {σ : Val} (hp : fn.params.map σ = x :: ps)
+    (hb : Stmt.HoldsList C rd σ fn.body False (fun rs => rs = [])) :
+    σ (V.n 0) = x ∧ fn.params.tail.map σ = ps ∧
       (∀ s ∈ loopPre fn, Stmt.Holds C rd σ s True (fun rs => rs = [])) ∧
       (x * gen + ps.headD 0 ≠ 0 → C f (x * gen :: ps) []) := by
-  obtain ⟨fn', σ, hf', hp, hb⟩ := hC _ _ _ h
-  rw [hf] at hf'
-  cases hf'
   simp only [loopShapeF, Bool.and_eq_true, decide_eq_true_eq] at hok
   obtain ⟨⟨h2, hpar⟩, hok⟩ := hok
   unfold loopPre
@@ -128,7 +127,7 @@ theorem loop_stepC (hC : Unfolds rd C) {f : String} {fn : Fn} (hf : coreProgram.
       obtain ⟨k, hk⟩ : ∃ k, fn.params.length = k + 2 := ⟨fn.params.length - 2, by omega⟩
       rw [hk, List.range_succ_eq_map, List.range_succ_eq_map]
       simp
-    refine ⟨σ, hx0, hps, by simpa [hsl] using hall, fun hne => ?_⟩
+    refine ⟨hx0, hps, by simpa [hsl] using hall, fun hne => ?_⟩
     split at hc
     · rename_i p q hpq
       simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
@@ -147,6 +146,39 @@ theorem loop_stepC (hC : Unfolds rd C) {f : String} {fn : Fn} (hf : coreProgram.
       rwa [hargs, hgf] at this
     · exact absurd hc (by simp)
   · exact absurd hok (by simp)
+
+/-- `loop_stepF` under a call relation that unfolds. -/
+theorem loop_stepC (hC : Unfolds rd C) {f : String} {fn : Fn} (hf : coreProgram.find? f = some fn)
+    (hok : loopShapeF fn f = true) {x : E} {ps : List E} (h : C f (x :: ps) []) :
+    ∃ σ : Val, σ (V.n 0) = x ∧ fn.params.tail.map σ = ps ∧
+      (∀ s ∈ loopPre fn, Stmt.Holds C rd σ s True (fun rs => rs = [])) ∧
+      (x * gen + ps.headD 0 ≠ 0 → C f (x * gen :: ps) []) := by
+  obtain ⟨fn', σ, hf', hp, hb⟩ := hC _ _ _ h
+  rw [hf] at hf'
+  cases hf'
+  exact ⟨σ, loop_of_body hok hp hb⟩
+
+/-- **`loop_stepF` at the frame map's valuation** `Vm f (x :: ps) []`. -/
+theorem loop_stepV {Vm : FrameMap} (hVm : UnfoldsV rd C Vm) {f : String} {fn : Fn}
+    (hf : coreProgram.find? f = some fn) (hok : loopShapeF fn f = true) {x : E} {ps : List E}
+    (h : C f (x :: ps) []) :
+    Vm f (x :: ps) [] (V.n 0) = x ∧ fn.params.tail.map (Vm f (x :: ps) []) = ps ∧
+      (∀ s ∈ loopPre fn, Stmt.Holds C rd (Vm f (x :: ps) []) s True (fun rs => rs = [])) ∧
+      (x * gen + ps.headD 0 ≠ 0 → C f (x * gen :: ps) []) := by
+  obtain ⟨fn', hf', hp, hb⟩ := hVm _ _ _ h
+  rw [hf] at hf'
+  cases hf'
+  exact loop_of_body hok hp hb
+
+/-- **The body of a called function at the frame map's valuation.** -/
+theorem body_ofV {Vm : FrameMap} (hVm : UnfoldsV rd C Vm) {f : String} {fn : Fn}
+    (hf : coreProgram.find? f = some fn) {args rets : List E} (h : C f args rets) :
+    fn.params.map (Vm f args rets) = args ∧
+      Stmt.HoldsList C rd (Vm f args rets) fn.body False (fun rs => rs = rets) := by
+  obtain ⟨fn', hf', hp, hb⟩ := hVm _ _ _ h
+  rw [hf] at hf'
+  cases hf'
+  exact ⟨hp, hb⟩
 
 /-! ## The callees' contracts -/
 
