@@ -38,9 +38,9 @@ the call's words. The decoder chooses nothing and verifies nothing. The seed is 
 the statement's digest binds it, so a consumer comparing the digest with its own statement's under
 the deployed seed learns both, unless it holds a Keccak-256 collision.
 
-At leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a` the statement's preimage is hashed as it is,
+At leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462` the statement's preimage is hashed as it is,
 without the zero fill to whole blocks that BLAKE2s had (`statement_digest`,
-`crates/rec_aggregation/src/aggregation.rs:344-365`): `statementPreimage` is those bytes, and the
+`crates/rec_aggregation/src/aggregation.rs:347-368`): `statementPreimage` is those bytes, and the
 former `statementBytes` (the bytes before the fill) is gone.
 -/
 

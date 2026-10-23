@@ -17,7 +17,7 @@ public import LeanVM.Protocol.Verifier.Cost
 # Knowledge soundness of the leanVM verifier in the random-oracle model
 
 For one statement, `P = leanVmProgram (bytecodeWords prog) (publicDigest input)` the deployed
-verifier program (leanVM `3375f7a137c50b803f3416f6466b5d4e0719708a`) and `σ = leanVmSeed …` its
+verifier program (leanVM `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) and `σ = leanVmSeed …` its
 Fiat-Shamir seed: the doom certificate's bound, the extractor, and the step from an accepted proof
 without a witness to doom. The probability statements, for an adversary that chooses the
 statement, are in `LeanVM.Protocol.EndToEnd.Sound.Statements`.

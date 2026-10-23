@@ -23,7 +23,7 @@ the Keccak state (`KState`, 1600 bits), sampled uniformly and queried forward (`
   the output of an edge, a fresh inverse query `π⁻¹ y` uniformly among the states that are not yet
   the input of an edge.
 * **Keccak-256** (`keccak256With π`) is `keccak256` (`LeanVM/Spec/Keccak.lean`, `keccak_hash`,
-  `verifier.py:191-207`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
+  `verifier.py:191-209`) with `π` in place of Keccak-f[1600]: the sponge of rate 136 bytes and
   capacity 512 bits, the padding `0x01 ‖ 0^* ‖ 0x80`, the zero initial state, the first four lanes
   as the digest. **Keccak-f[1600]**, the Fiat-Shamir duplex's permutation, is `π` itself. The two
   oracles of `Statement.lean` are implemented so (`rpmImpl`), and the verifier and the honest
@@ -179,11 +179,11 @@ noncomputable def rpmExperiment (A : RpmAdversary) : ProbComp RpmOutcome := do
 
 /-- The 200 bytes of a Keccak state, as `lean_rpm` splits them (32 digest bytes, 104 more bytes
 of the rate, 64 bytes of capacity): byte `8i + k` is byte `k` of lane `i`, little-endian
-(`keccak_hash`'s `unpack("<17Q", ...)`, `verifier.py:205`). -/
+(`keccak_hash`'s `unpack("<17Q", ...)`, `verifier.py:207`). -/
 def KState.toRpm (s : KState) : LeanRpm.KState :=
   LeanRpm.KState.ofBytes (s.toList.flatMap wordBytes)
 
-/-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:219-221`). -/
+/-- A digest of 32 bytes as four little-endian words (`Digest.words`, `verifier.py:221-223`). -/
 def Digest.ofRpm (d : LeanRpm.KDigest) : Digest :=
   #v[leLane d.toList 0, leLane d.toList 1, leLane d.toList 2, leLane d.toList 3]
 

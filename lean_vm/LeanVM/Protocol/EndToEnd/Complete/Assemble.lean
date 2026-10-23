@@ -17,8 +17,8 @@ public import LeanVM.Protocol.EndToEnd.Complete.KeccakPhase
 /-!
 # Assembling the honest run
 
-`verifyExecution` (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py:1451-1507` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`) is a sequence of phases. Its honest prover is the
+`verifyExecution` (`LeanVM.Protocol.Verifier`, `python-verifier/verifier.py:1462-1518` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) is a sequence of phases. Its honest prover is the
 sequence of the phases' honest scripts (`honestRun`), and the simulation composes along `bind`
 (`Follows.bind`), each phase handing the next the facts it needs:
 

@@ -13,8 +13,8 @@ public import LeanVM.Spec.Verifier
 /-!
 # Keccak-f on bits
 
-The GKR reduction of `verifyKeccak` (`verifier.py:1189-1394` at leanVM keccak-gkr
-`3375f7a137c50b803f3416f6466b5d4e0719708a`, `doc/leanvm/body/c-keccak-gkr.tex`,
+The GKR reduction of `verifyKeccak` (`verifier.py:1205-1405` at leanVM `main`
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, `doc/leanvm/body/c-keccak-gkr.tex`,
 §`keccak:perm`) speaks of a state as `1600` bits, position `j = z + 64ℓ` being bit `z` (the
 *slice*) of lane `ℓ`. A round maps a state `a` to
 

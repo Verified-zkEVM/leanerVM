@@ -16,7 +16,7 @@ The claim at depth `12` is on the committed inputs, slot `25m + ℓ` of `q_kecca
 `ℓ` of segment `m`'s input (`doc/leanvm` eq. `keccak:eq:in` with §`keccak:segments`). With
 `Φ(i)` the claim's sum restricted to instance `i`:
 
-* the instance rounds (`verifier.py:1388`): `Fl acc = Σ_u μ̃(acc ++ u)·Φ̃(acc ++ u)`, a plain
+* the instance rounds (`verifier.py:1399`): `Fl acc = Σ_u μ̃(acc ++ u)·Φ̃(acc ++ u)`, a plain
   family of degree two on four bits, `claimSum` before (`Fl_nil`);
 * the slot rounds (`_keccak_open` with `first = 0, count = 2`): with the instance point `λ`,
   `Fs acc = μ̃(λ) · Σ_u Σ_z W̃_z(acc ++ u)·S̃_z(acc ++ u)`, `W_z(o)` the slot weights

@@ -16,7 +16,7 @@ public import LeanVM.Guest.B1.Whir.Positions
 After the proof of work the sponge has nothing waiting. The level stores its capacity in the
 squeeze run's row `0`, runs the squeeze loop (`lv.squeezes` squeezes, each decoding `192/depth`
 positions), loads the last capacity and squeezes the batching challenge `lam`
-(`osSqueezes_sound`). In the Spec that is `sampleQueries` (V:1623; `sampleQueriesAux_run`) and
+(`osSqueezes_sound`). In the Spec that is `sampleQueries` (V:1682; `sampleQueriesAux_run`) and
 `sampleE`.
 
 `PadOk σ pad`: the sponge's zero run, once allocated, holds zeros.

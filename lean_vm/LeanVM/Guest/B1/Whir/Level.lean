@@ -65,7 +65,7 @@ structure OsRec where
   F : ℕ
   ml : ℕ
 
-/-- The claims a level glues (V:1716-1724, 1745-1760). -/
+/-- The claims a level glues (V:1775-1783, 1745-1760). -/
 def recClaims (r : OsRec) : List GluedClaim :=
   match r.z with
   | some z => [⟨1 * r.lam, r.F, fun x ↦ eqEval z x⟩,

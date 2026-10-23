@@ -13,7 +13,7 @@ public import LeanVM.Protocol.Keccak.LayerSum
 /-!
 # One layer as a specification
 
-`verifyKeccakLayer (P + 4) step claim` (`verifier.py:1295-1338`) is `layerProg`, by `rfl`. A
+`verifyKeccakLayer (P + 4) step claim` (`verifier.py:1311-1354`) is `layerProg`, by `rfl`. A
 candidate `q` with states `Tq q` before the round (and `afterRound (Tq q) step` after it) is
 *alive*:
 
@@ -44,13 +44,13 @@ open scoped ENNReal
 
 /-! ## The program -/
 
-/-- The verifier's projected value (`verifier.py:1300`). -/
+/-- The verifier's projected value (`verifier.py:1316`). -/
 def projectedOf (claim : KeccakClaim) (product : List E) : E :=
   sumE ((List.range productBits).map fun c ↦
     sumE ((List.zip claim.mu rmfeProject).filterMap fun (m, mask) ↦
       if mask.testBit c then some m else none) * product.getD c 0)
 
-/-- The verifier's `iota` (`verifier.py:1302-1306`). -/
+/-- The verifier's `iota` (`verifier.py:1318-1322`). -/
 def iotaOf (P step : ℕ) (claim : KeccakClaim) : E :=
   sumE ((List.range keccakSegments).map fun segment ↦
     let constant := keccakRC.getD (keccakDepth * (segment + 1) - step - 1) 0
@@ -187,7 +187,7 @@ noncomputable def tailSpec (hst : Stable C) (hcard : ∀ h, (C h).ncard ≤ L₀
             ⟨htrue.trans (batch_eq (Tq q) P s res.2.2 res2.1 hres2 b).symm, hR⟩⟩)
           (fun _ _ h ↦ h) le_rfl le_rfl le_rfl
 
-/-- **One layer** (`verify_keccak_layer`, `verifier.py:1295-1338`): from doom of "the claim
+/-- **One layer** (`verify_keccak_layer`, `verifier.py:1311-1354`): from doom of "the claim
 holds of the states after the round" to doom of "the next claim holds of the states before it",
 a claim of the same shape. Lead `0`; the evaluation point's group `L₀·46/|E|`, each sumcheck
 round's `L₀·3/|E|`, `β`'s `L₀·2/|E|` plus the follower's lead `T`. -/

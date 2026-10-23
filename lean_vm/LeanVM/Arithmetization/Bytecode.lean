@@ -12,15 +12,15 @@ public import LeanVM.Semantics.Lemmas
 /-!
 # The bytecode encoding
 
-At leanVM pin `3375f7a137c50b803f3416f6466b5d4e0719708a`, transcribed from:
+At leanVM pin `4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`, transcribed from:
 
 * specification §8.1 (`doc/leanvm/body/08-end-to-end-protocol.tex`): instruction `z` is sixteen
   `K` slots, the opcode in slot 3, the operands, immediate lanes and flags after it, zero
   elsewhere;
-* `crates/leanvm_core/src/cpu/layout.rs:221-300` (`bytecode_columns`): the eleven public program
+* `crates/leanvm_core/src/cpu/layout.rs:288-367` (`bytecode_columns`): the eleven public program
   columns, the opcode then ten operand slots, offsets as g-powers, a `SET` immediate as its three
   limbs, the `DEREF` store-mode flags and `KECCAK`'s layout flags as `0` or `1`, unused slots
-  zero; `crates/leanvm_core/src/leaf.rs:739-768` stacks them at slots `3..14`
+  zero; `crates/leanvm_core/src/leaf.rs:765-794` stacks them at slots `3..14`
   (`BYTECODE_PUBLIC_SLOT = 3`);
 * `crates/leanvm_core/src/cpu/isa.rs:58-75`: the `DEREF` store mode as the flag pair
   `(f_pc, f_fp)`, `cell = (0, 0)`, `pc = (1, 0)`, `fp = (0, 1)`.
@@ -46,7 +46,7 @@ loading/correspondence theorem. Those interfaces require separate coverage or re
 * The flag pair `(1, 1)` decodes to nothing, and so does every pair that is not one of the
   three.
 * A nonzero spare entry coordinate is not ignored. Each opcode table's bytecode tuple carries
-  literal zeros in its spare coordinates (`_flushes_*`, `verifier.py:799-916`), and `decode`
+  literal zeros in its spare coordinates (`_flushes_*`, `verifier.py:806-922`), and `decode`
   rejects a tuple that violates that opcode's canonical entry shape. This is an eleven-coordinate
   entry claim, not rejection by the typed program's address lookup.
 -/

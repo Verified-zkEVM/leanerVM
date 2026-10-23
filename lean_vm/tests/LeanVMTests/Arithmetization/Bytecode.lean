@@ -11,7 +11,7 @@ back by `decode` under compiled evaluation. The slot positions are
 pinned against the table of specification §8.1 (`08-end-to-end-protocol.tex:12-23`):
 `SET_CONSTANT`'s `k₂` at slot 7 and `KECCAK`'s ten operands at slots 4 to 13 (`o_{m₀..m₃}, o_tail,
 o_b8, o_cap, o_out` and the two layout flags). The flag pairs and the opcode words are pinned
-against `cpu/isa.rs` and `tables.rs:99-104` (leanVM `3375f7a1`).
+against `cpu/isa.rs` and `tables.rs:99-104` (leanVM `4af2cddd`).
 The mutations at the end reject the flag pair `(1, 1)`, a non-Boolean flag (`DEREF`'s and
 `KECCAK`'s), an unknown opcode, and a nonzero spare slot; the first is also derived from
 `decode_eq_none_iff`, so the rejection is a theorem and not only an evaluation.

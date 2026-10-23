@@ -9,7 +9,7 @@ module
 public import LeanVM.Guest.B1.Whir.Run
 
 /-!
-# The tail rounds (V:1702-1714)
+# The tail rounds (V:1761-1773)
 
 `tailRounds (k + 1)` is `foldRounds k` (each round sampling, folding and reading the next
 quadratic) then one last sample, its fold the final claim (`tailRounds_eq`): the guest runs the

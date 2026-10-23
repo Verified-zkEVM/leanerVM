@@ -15,9 +15,9 @@ public import LeanVM.Protocol.LeanIsa.Bus
 /-!
 # The framework blocks
 
-The bus phase (`verify_bus_balance`, `python-verifier/verifier.py:578-640` at leanVM
-`3375f7a137c50b803f3416f6466b5d4e0719708a`) evaluates the three framework blocks of each side
-itself (`fingerprints`, `verifier.py:604-613`): the state boundary, the memory's `2^logMemory`
+The bus phase (`verify_bus_balance`, `python-verifier/verifier.py:581-643` at leanVM
+`4af2cdddd7cd41b9df2cc7e123e314a91b0b4462`) evaluates the three framework blocks of each side
+itself (`fingerprints`, `verifier.py:607-616`): the state boundary, the memory's `2^logMemory`
 rows and the bytecode's `2^logBytecode` rows. The honest leaves of these blocks are, row by row,
 `β` plus the fingerprint of the row's tuple (`stateTab`, `memTab`, `bcTab`). This module proves
 
