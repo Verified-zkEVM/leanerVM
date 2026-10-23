@@ -23,6 +23,9 @@ challenges (`membershipVector_eq_dual`).
   `point (b · 2^(s+1)) + span(e_0 … e_s)` (`Stage`). On the block `Ŵ_s` is `t` on the first half and
   `t + 1` on the second, `t` the twiddle, so a butterfly splits the block into two such blocks
   (`stage_encodeLayer`). After the last layer the blocks are the values (`encode_eq_novelEval`).
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 open Polynomial

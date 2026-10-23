@@ -19,6 +19,9 @@ The building blocks of `PqDas`, instantiated with LeanDA (`LeanDa.Scheme`) for `
 
 `leanDa r H ps` is the scheme with the hash `H` and an argument of knowledge `ps` for the relation
 `Relation r H`: the cells commit to the root and pass the membership test on the challenges.
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 open PqDas OracleComp OracleSpec ENNReal

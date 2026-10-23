@@ -23,7 +23,8 @@ Repeated queries to the same commitment are collapsed by the cache to a single
 counted query, so rewinding the counted oracle at the fork point replaces the
 challenge of the *first* (hence every) query on the target commitment.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Defs
 import VCVio.CryptoFoundations.ReplayFork

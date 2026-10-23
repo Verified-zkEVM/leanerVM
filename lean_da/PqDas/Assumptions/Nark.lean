@@ -25,7 +25,8 @@ random oracle; when instantiating it with a proof system that internally uses
 one (e.g. for its own Fiat-Shamir transform), that oracle must be independent
 of (domain-separated from) the oracle used elsewhere in the commitment scheme.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.CommitmentScheme
 

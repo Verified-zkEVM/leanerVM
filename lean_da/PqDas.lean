@@ -3,7 +3,8 @@
 
 The security framework for erasure code commitments of Benedikt Wagner.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment

@@ -6,8 +6,9 @@ import PqDas
 /-!
 # LeanDA's security
 
-Wagner's theorems for his erasure code commitment from a vector commitment, a code checker and
-an argument of knowledge (`PqDas`), instantiated with LeanDA as `crates/lean_da` computes it, for
+Benedikt Wagner's theorems for his erasure code commitment from a vector commitment, a code
+checker and an argument of knowledge (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da; his
+post: https://ethresear.ch/t/formally-verified-security-for-pq-das-leanda/25746), instantiated with LeanDA as `crates/lean_da` computes it, for
 any number `r ≥ 1` of rows and any hash `H` (the crate's is BLAKE2s): completeness, position
 binding by reduction to a collision of `H`, and code binding with the membership test's
 soundness `δ = 14 / 2^192` over `|E^14| = 2^2688` challenges. The argument `ps` and its extractor `ext` are parameters: knowledge soundness enters

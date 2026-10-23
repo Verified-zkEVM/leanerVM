@@ -29,7 +29,8 @@ the reductions `WeakPosBindingAdv.toPosBindingAdv` and
 `CollisionAdv.toPosBindingAdv`. The reductions are explicit algorithms so that
 a human reader can verify they are PPT.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.CommitmentScheme
 

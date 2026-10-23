@@ -14,7 +14,8 @@ event to the fork point and to discharge the forking lemma's side conditions:
 * therefore, on the support of `runTrace`, winning is *equivalent* to the fork
   point being defined.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Fork
 

@@ -9,7 +9,8 @@ code commitment into a full data availability sampling scheme, which is not
 formalized here. Compare Foundations of Data Availability Sampling
 (eprint 2023/1079), Section 6.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.CommitmentScheme
 

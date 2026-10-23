@@ -14,6 +14,9 @@ passes for every `z` (`dot_dual_eq_zero`). A row that is not a codeword is not o
 `Xᵤ` (`mem_rsCode_of_orthogonal`), so the polynomial is nonzero, of total degree at most `14`,
 and Schwartz-Zippel bounds its zeros (`card_acceptSet_le`): at most `14 |E|^13` of the
 `|E|^14` challenges accept it.
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 open Polynomial Module

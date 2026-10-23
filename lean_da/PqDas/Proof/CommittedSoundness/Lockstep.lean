@@ -24,7 +24,8 @@ analogous Fiat-Shamir machinery in VCVio
   of a successful contextual fork agree on the output commitment and on the
   miss log up to the fork point (`runTrace_com_eq_of_mem_contextFork`).
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Fork
 

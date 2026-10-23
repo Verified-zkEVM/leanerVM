@@ -18,6 +18,9 @@ its own dual. With the novel basis spanning the polynomials of degree below `2^1
 orthogonal to every `Xⱼ` on the domain is a codeword (`mem_rsCode_of_orthogonal`).
 
 The code is also the image of the systematic encoder (`range_encodeRow`).
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 open Polynomial Module

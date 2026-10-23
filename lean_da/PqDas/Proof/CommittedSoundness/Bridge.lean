@@ -15,7 +15,8 @@ single simulated query composed with an arbitrary continuation unfolds, so
 that rewriting never mixes differently-spelled (definitionally equal) range
 types.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Proof.CommittedSoundness.Fork
 import VCVio.OracleComp.EvalDist.Sum

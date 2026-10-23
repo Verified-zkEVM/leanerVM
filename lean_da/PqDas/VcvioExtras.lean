@@ -14,7 +14,8 @@ general in the predicate).
 a pure event that every reachable outcome implies; the proofs use it where the
 removed discrete API compared a computation with a `pure` Boolean.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import VCVio.CryptoFoundations.ReplayFork
 import VCVio.OracleComp.Constructions.Fork.Basic

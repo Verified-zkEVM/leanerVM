@@ -9,6 +9,9 @@ one commitment at one position to two different cells give an `H` collision, whi
 `rowRoot ‖ colRoot`, and return the first pair of inputs that differ while their hashes agree
 (`findCollision_spec`). The cells' bytes differ because a cell's encoding is injective
 (`cellBytes_injective`), and the roots' inputs hash alike, so such a level exists.
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 namespace LeanDa

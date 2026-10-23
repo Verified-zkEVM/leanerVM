@@ -28,7 +28,8 @@ query determined the challenge, at a multiplicative loss in the number of
 queries; alternatively, the non-interactive game can be analyzed directly with
 a forking lemma.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import PqDas.Assumptions.ErasureCode
 import PqDas.Assumptions.VectorCommitment

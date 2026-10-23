@@ -16,7 +16,8 @@ hook for programming the oracle in reductions. Mirrors VCVio's
 internally simulate the random-oracle world for an adversary. By construction
 the two agree: `evalDist_simulateRomWithCache`.
 
-Ported from b-wagn/fv-pq-da at 4475179c, modified for VCVio afa6593.
+Benedikt Wagner's formalization (https://github.com/b-wagn/fv-pq-da), ported at 4475179c and
+modified for VCVio afa6593.
 -/
 import VCVio.OracleComp.HasQuery.Morphism
 import VCVio.OracleComp.ProbCompLift

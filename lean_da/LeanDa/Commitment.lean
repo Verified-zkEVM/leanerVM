@@ -8,6 +8,9 @@ codewords given as lists, is `commitCells` of the matrix the rows form
 (`commitCodewords_eq_commitCells`). A tree built level by level over the leaves `f 0 … f (2^d - 1)`
 has the root `merkleRoot H d f` (`treeRoot_map_range`), and the crate lists the leaves the model
 indexes: the row digests then the padding rows, and the cell digests column by column.
+
+This module is part of the instantiation of Benedikt Wagner's framework for erasure code
+commitments (`PqDas`, ported from https://github.com/b-wagn/fv-pq-da) with LeanDA.
 -/
 
 namespace LeanDa
