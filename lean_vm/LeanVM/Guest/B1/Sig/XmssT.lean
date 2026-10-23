@@ -72,20 +72,34 @@ def xStepAddrs (idx : V) (b : Nat) : List Stmt :=
   (List.range 3).flatMap fun s =>
     [cst (b + 2 * s) (word (tw 1 + s * stepMul) 0 0), addS (.n (b + 2 * s + 1)) idx (.n (b + 2 * s))]
 
-/-- Layer `layer` from base `b`, over the bottom root `root` at the top: its statements, the next
-base and its root. -/
+/-! ## A layer -/
+
+def xA (layer b : Nat) : Nat := if layer = 0 then b + 28 else b + 19
+def xIdx (layer b : Nat) : V := if layer = 0 then xNode 0 else .n (b + 1)
+def xD0 (layer b : Nat) : V := if layer = 0 then .n (b + 15) else .n (b + 6)
+def xRho (layer b : Nat) : V := if layer = 0 then .n b else .n (b + 2)
+def xW (layer b : Nat) : WotsT := xWots fun s => .n (xA layer b + 2 * s + 1)
+def xCw (layer b : Nat) : List Stmt × Nat × List V :=
+  codewordT (xW layer b) 19 xTarget (xD0 layer b) (xA layer b + 6)
+def xLeafCells (layer b : Nat) : List V := V.n 1 :: V.n ((xCw layer b).2.1 + 1) :: (xCw layer b).2.2
+def xLeafK (layer b : Nat) : List Stmt × Nat × Nat :=
+  kMsg xPad ((xLeafCells layer b).map KC.cell) 960 false none ((xCw layer b).2.1 + 2)
+def xNodeOf (layer l : Nat) : Option V :=
+  if 16 * layer + l + 1 = 32 then none else some (xNode (16 * layer + l + 1))
+def xBitOf (layer l : Nat) : V := xBit (16 * layer + l)
+def xAddrOf (layer l : Nat) : Nat := tw 3 + (l + 1) * hiMul + layer * lxTop
+def xMk (layer b : Nat) : List Stmt × Nat × V :=
+  merkleT xPad (.n 1) (xBitOf layer) (xNodeOf layer) (xAddrOf layer) 16 0 (.n (xLeafK layer b).2.2)
+    (xLeafK layer b).2.1
+
+/-- Layer `layer` from base `b`, over the bottom root `root` at the top: its message digest, its
+step addresses, its codeword, its one-time leaf and its path; the statements, the next base and
+its root. -/
 def xLayer (layer b : Nat) (root : V) : List Stmt × Nat × V :=
-  let idx : V := if layer = 0 then xNode 0 else .n (b + 1)
-  let a := if layer = 0 then b + 28 else b + 19
-  let d0 : V := if layer = 0 then .n (b + 15) else .n (b + 6)
-  let cw := codewordT (xWots fun s => .n (a + 2 * s + 1)) 19 xTarget d0 (a + 6)
-  let c := cw.2.1
-  let leaf := kMsg xPad ((V.n 1 :: V.n (c + 1) :: cw.2.2).map KC.cell) 960 false none (c + 2)
-  let mk := merkleT xPad (.n 1) (fun l => xBit (16 * layer + l))
-    (fun l => if 16 * layer + l + 1 = 32 then none else some (xNode (16 * layer + l + 1)))
-    (fun l => tw 3 + (l + 1) * hiMul + layer * lxTop) 16 0 (.n leaf.2.2) leaf.2.1
-  ((if layer = 0 then xDigest0 b else xDigest1 b root) ++ xStepAddrs idx a ++ cw.1 ++
-    [cst c (word (tw 2) 0 0), addS (.n (c + 1)) idx (.n c)] ++ leaf.1 ++ mk.1, mk.2.1, mk.2.2)
+  ((if layer = 0 then xDigest0 b else xDigest1 b root) ++ xStepAddrs (xIdx layer b) (xA layer b) ++
+    (xCw layer b).1 ++ [cst (xCw layer b).2.1 (word (tw 2) 0 0),
+      addS (.n ((xCw layer b).2.1 + 1)) (xIdx layer b) (.n (xCw layer b).2.1)] ++
+    (xLeafK layer b).1 ++ (xMk layer b).1, (xMk layer b).2.1, (xMk layer b).2.2)
 
 /-- The body of `verify_lean_xmss`. -/
 def xBody : List Stmt :=

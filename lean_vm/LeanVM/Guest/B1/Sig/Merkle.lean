@@ -189,5 +189,38 @@ theorem merkleT_sound {pad : Nat} (hp : PadOK σ pad) {pp : V} {bitOf : Nat → 
             (h.left.left.left.sub fun x hx => by simp only [List.mem_cons, List.not_mem_nil] at hx ⊢; tauto)
             h.left.right h.right
 
+/-- **A path's addresses**: level `l`'s address cell holds its constant, plus the parent's index
+unless it is a root. -/
+theorem merkleT_adr {pad : Nat} {pp : V} {bitOf : Nat → V} {nodeOf : Nat → Option V}
+    {addrOf : Nat → Nat} : ∀ (m l : Nat) (cur : V) (b : Nat),
+    AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m l cur b).1 → ∀ j < m,
+      σ (mAdr nodeOf (l + j) (mBase nodeOf l j b)) = word (addrOf (l + j)) 0 0 +
+        (match nodeOf (l + j) with
+          | none => 0
+          | some nd => σ nd)
+  | 0, _, _, _, _, j, hj => absurd hj (by omega)
+  | m + 1, l, cur, b, h, j, hj => by
+      simp only [merkleT] at h
+      rcases j with _ | j
+      · simp only [Nat.add_zero, mBase]
+        cases hn : nodeOf l with
+        | none =>
+            simp only [hn] at h
+            have e := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+            simp only [Atom.Holds] at e
+            simp [mAdr, hn, e]
+        | some nd =>
+            simp only [hn] at h
+            have e1 := h.atom (a := .const (.n (b + 4)) (word (addrOf l) 0 0)) (by simp [cst])
+            have e2 := h.atom (a := .add (.n (b + 5)) (.n (b + 4)) nd) (by simp [addS])
+            simp only [Atom.Holds] at e1 e2
+            simp [mAdr, hn, e1, e2]
+      · have hr : AtomsHold rd σ (merkleT pad pp bitOf nodeOf addrOf m (l + 1)
+            (.n ((match nodeOf l with | none => b + 5 | some _ => b + 6) + 1)) (mNext nodeOf l b)).1 :=
+          h.right
+        have := merkleT_adr m (l + 1) _ _ hr j (by omega)
+        rw [show l + 1 + j = l + (j + 1) by omega] at this
+        simpa [mBase] using this
+
 end
 end LeanVM.Guest.B1.Sig

@@ -379,5 +379,37 @@ theorem codewordT_sound {W : WotsT} (hW : StepAtoms W) {f : Nat → Nat → E �
         _ ≤ 2 ^ 2 * 2 ^ 126 := Nat.mul_le_mul_left _ (Nat.pow_le_pow_right (by norm_num) (by omega))
         _ = 2 ^ 128 := by norm_num)]
 
+theorem map_range_three_mul {α : Type} (g : Nat → α) :
+    ∀ G, (List.range (3 * G)).map g = (List.range G).flatMap (fun j => (List.range 3).map fun r => g (3 * j + r))
+  | 0 => rfl
+  | G + 1 => by
+      rw [show 3 * (G + 1) = 3 * G + 3 by ring, List.range_add, List.map_append, map_range_three_mul g G,
+        List.range_succ (n := G), List.flatMap_append, List.map_map]
+      simp
+
+/-- **The codeword's tips** are the chains' tips, in order. -/
+theorem codewordT_tips (W : WotsT) {G : Nat} (hG : 0 < G) (target : E) (d0 : V) (b : Nat) :
+    (codewordT W G target d0 b).2.2 = (List.range (3 * G + 1)).map (cwTip W b) := by
+  have hgs := groupsT_eq W b G 0
+  simp only [Nat.zero_add] at hgs
+  have hgs' : (groupsT W G 0 (.n 0) (.n 0) b).2 = _ := hgs
+  simp only [codewordT]
+  rw [hgs']
+  rw [List.range_succ (n := 3 * G), List.map_append, map_range_three_mul]
+  simp only [List.map_cons, List.map_nil]
+  congr 1
+  · apply List.flatMap_congr
+    intro j _
+    apply List.map_congr_left
+    intro r hr
+    have hr' : r < 3 := List.mem_range.mp hr
+    simp only [cwTip, show (3 * j + r) / 3 = j by omega, show (3 * j + r) % 3 = r by omega]
+  · simp only [cwTip, show 3 * G / 3 = G by omega, show 3 * G % 3 = 0 by omega,
+      show (G == 0) = false by simp; omega]
+
+theorem codewordT_tips_length (W : WotsT) {G : Nat} (hG : 0 < G) (target : E) (d0 : V) (b : Nat) :
+    (codewordT W G target d0 b).2.2.length = 3 * G + 1 := by
+  rw [codewordT_tips W hG]; simp
+
 end
 end LeanVM.Guest.B1.Sig

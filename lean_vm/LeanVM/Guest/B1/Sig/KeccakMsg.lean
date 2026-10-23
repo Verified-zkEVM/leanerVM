@@ -616,5 +616,72 @@ theorem kMsg_sound {pad : Nat} (hp : PadOK σ pad) {cells : List KC} {len : Nat}
   simp only [O, hB', Nat.add_sub_cancel, htr']
   simp [cells13, runV, List.getD_eq_getElem?_getD]
 
+/-! ## Atoms only -/
+
+theorem kRunFresh_atoms : ∀ (ks : List KC) (b : Nat), atomsOnly (kRunFresh ks b) = true
+  | [], _ => rfl
+  | .zero :: ks, b => kRunFresh_atoms ks (b + 1)
+  | .const _ :: ks, b => kRunFresh_atoms ks (b + 1)
+  | .cell _ :: ks, b => kRunFresh_atoms ks (b + 1)
+
+theorem kRun_atoms' (pad : Nat) (ks : List KC) (tailRun : Bool) (b : Nat) :
+    atomsOnly (kRun pad ks tailRun b).1 = true := by
+  unfold kRun
+  split_ifs
+  · rfl
+  · rfl
+  · split
+    · split_ifs
+      · rfl
+      · exact kRunFresh_atoms _ _
+    · exact kRunFresh_atoms _ _
+
+theorem kXor_atoms (pad : Nat) (st : V) (k : KC) (b : Nat) : atomsOnly (kXor pad st k b).1 = true := by
+  cases k with
+  | zero => rfl
+  | const c =>
+      show atomsOnly ((kCell pad _ b).1 ++ _) = true
+      rw [atomsOnly_append, kCell_atoms]; rfl
+  | cell v => rfl
+
+theorem kTailXor_atoms (pad : Nat) : ∀ (sts : List V) (ks : List KC) (b : Nat),
+    atomsOnly (kTailXor pad sts ks b).1 = true
+  | [], _, _ => rfl
+  | _ :: _, [], _ => rfl
+  | st :: sts, k :: ks, b => by
+      cases k with
+      | zero =>
+          show atomsOnly ([copyS (.n b) st] ++ _) = true
+          rw [atomsOnly_append, kTailXor_atoms pad sts ks]; rfl
+      | const c =>
+          show atomsOnly ((kXor pad st (.const c) b).1 ++ _) = true
+          rw [atomsOnly_append, kXor_atoms, kTailXor_atoms pad sts ks]; rfl
+      | cell v =>
+          show atomsOnly ((kXor pad st (.cell v) b).1 ++ _) = true
+          rw [atomsOnly_append, kXor_atoms, kTailXor_atoms pad sts ks]; rfl
+
+theorem kIns_atoms (pad : Nat) (blk : List KC) (tailRun : Bool) (st : Option (List V)) (b : Nat) :
+    atomsOnly (kIns pad blk tailRun st b).1 = true := by
+  cases st with
+  | none => simp [kIns, atomsOnly_append, kCell_atoms, kRun_atoms']
+  | some st =>
+      simp only [kIns]
+      split <;> simp [atomsOnly_append, kXor_atoms, kTailXor_atoms]
+
+theorem kBlocks_atoms (pad : Nat) (cs : List KC) (B : Nat) (tailRun : Bool) (out : Option Nat) :
+    ∀ m k st b, atomsOnly (kBlocks pad cs B tailRun out m k st b).1 = true
+  | 0, _, _, _ => rfl
+  | m + 1, k, st, b => by
+      simp only [kBlocks, atomsOnly_append, kIns_atoms, kBlocks_atoms pad cs B tailRun out m]
+      rfl
+
+theorem kXorByte_atoms (cs : List KC) (pos v b : Nat) : atomsOnly (kXorByte cs pos v b).1 = true := by
+  simp only [kXorByte]
+  split <;> rfl
+
+theorem kMsg_atoms (pad : Nat) (cells : List KC) (len : Nat) (tailRun : Bool) (out : Option Nat)
+    (b : Nat) : atomsOnly (kMsg pad cells len tailRun out b).1 = true := by
+  simp only [kMsg, atomsOnly_append, kXorByte_atoms, kBlocks_atoms, Bool.and_self]
+
 end
 end LeanVM.Guest.B1.Sig
